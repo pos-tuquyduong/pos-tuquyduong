@@ -17,7 +17,7 @@ export default function Orders() {
     try {
       const data = await ordersApi.list({ date });
       setOrders(data.orders);
-      setStats(data.today_stats);
+      setStats(data.todayStats || {});
     } catch (err) {
       console.error(err);
     } finally {
