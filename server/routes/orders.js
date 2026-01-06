@@ -181,7 +181,7 @@ router.post('/', authenticate, async (req, res) => {
       INSERT INTO pos_orders (
         code, customer_id, customer_name, customer_phone,
         subtotal, discount, discount_reason, total,
-        payment_method, balance_used,
+        payment_method, balance_amount,
         status, note, created_by, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
     `, [
@@ -269,11 +269,11 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_orders'), async 
     const now = getNow();
 
     // Hoàn lại số dư nếu đã thanh toán bằng balance
-    if (order.balance_used > 0 && order.customer_id) {
+    if (order.balance_amount > 0 && order.customer_id) {
       const customer = queryOne('SELECT * FROM pos_customers WHERE id = ?', [order.customer_id]);
       if (customer) {
         const balanceBefore = customer.balance;
-        const balanceAfter = customer.balance + order.balance_used;
+        const balanceAfter = customer.balance + order.balance_amount;
 
         run('UPDATE pos_customers SET balance = ?, updated_at = ? WHERE id = ?',
           [balanceAfter, now, customer.id]);
@@ -284,7 +284,7 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_orders'), async 
             balance_before, balance_after, ref_type, ref_id,
             note, created_by, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [customer.id, customer.phone, 'refund', order.balance_used, balanceBefore, balanceAfter, 'order', order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username, now]);
+        `, [customer.id, customer.phone, 'refund', order.balance_amount, balanceBefore, balanceAfter, 'order', order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username, now]);
       }
     }
 
