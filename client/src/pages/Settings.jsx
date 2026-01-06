@@ -1,4 +1,4 @@
-// Settings.jsx
+// Settings.jsx - FIXED: Dùng unique_id thay vì id để tránh trùng
 import { useState, useEffect } from 'react';
 import { productsApi, usersApi } from '../utils/api';
 import { Save, Plus, Users, Package } from 'lucide-react';
@@ -33,14 +33,26 @@ export default function Settings() {
     finally { setLoading(false); }
   };
 
-  const updatePrice = (id, price) => {
-    setProducts(products.map(p => p.id === id ? { ...p, price: parseInt(price) || 0 } : p));
+  // SỬA: Dùng unique_id (sx_product_type + sx_product_id) thay vì id
+  const getUniqueId = (p) => `${p.sx_product_type}_${p.sx_product_id}`;
+
+  const updatePrice = (uniqueId, price) => {
+    setProducts(products.map(p => 
+      getUniqueId(p) === uniqueId ? { ...p, price: parseInt(price) || 0 } : p
+    ));
   };
 
   const savePrices = async () => {
     setSaving(true);
     try {
-      await productsApi.updatePricesBatch(products.map(p => ({ id: p.id, price: p.price })));
+      // SỬA: Gửi sx_product_type + sx_product_id thay vì id
+      await productsApi.updatePricesBatch(products.map(p => ({ 
+        sx_product_type: p.sx_product_type,
+        sx_product_id: p.sx_product_id,
+        code: p.code,
+        name: p.name,
+        price: p.price 
+      })));
       setMessage('Đã lưu giá thành công!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) { setMessage('Lỗi: ' + err.message); }
@@ -69,7 +81,7 @@ export default function Settings() {
       <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
       <div className="page-content">
         {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
-        
+
         <div className="flex gap-1 mb-2">
           <button className={`btn ${tab === 'products' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('products')}>
             <Package size={16} /> Giá bán
@@ -92,15 +104,53 @@ export default function Settings() {
                 </button>
               </div>
               <table className="table">
-                <thead><tr><th>Mã</th><th>Tên SP</th><th>Loại</th><th>Giá bán (VND)</th><th>Trạng thái</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Tên SP</th>
+                    <th>Loại</th>
+                    <th>Giá bán (VND)</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {products.map(p => (
-                    <tr key={p.id}>
-                      <td><strong>{p.code}</strong></td>
+                    // SỬA: Dùng unique_id làm key
+                    <tr key={getUniqueId(p)}>
+                      <td>
+                        {/* Hiển thị icon từ SX */}
+                        <span style={{ marginRight: '0.25rem' }}>{p.icon || (p.category === 'tea' ? '🍵' : '🥤')}</span>
+                        <strong style={{ color: p.color || '#333' }}>{p.code}</strong>
+                      </td>
                       <td>{p.name}</td>
-                      <td>{p.category === 'juice' ? 'Nước ép' : 'Trà'}</td>
-                      <td><input type="number" className="input" style={{ width: '120px' }} value={p.price} onChange={e => updatePrice(p.id, e.target.value)} /></td>
-                      <td>{p.is_active ? <span className="badge badge-success">Đang bán</span> : <span className="badge badge-gray">Tạm dừng</span>}</td>
+                      <td>
+                        <span style={{ 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '4px',
+                          background: p.category === 'tea' ? '#fffbeb' : '#f0fdf4',
+                          color: p.category === 'tea' ? '#f59e0b' : '#22c55e',
+                          fontSize: '0.85rem'
+                        }}>
+                          {p.category === 'juice' ? 'Nước ép' : 'Trà'}
+                        </span>
+                      </td>
+                      <td>
+                        <input 
+                          type="number" 
+                          className="input" 
+                          style={{ width: '120px' }} 
+                          value={p.price || ''} 
+                          placeholder="0"
+                          // SỬA: Dùng unique_id
+                          onChange={e => updatePrice(getUniqueId(p), e.target.value)} 
+                        />
+                      </td>
+                      <td>
+                        {p.is_active ? 
+                          <span className="badge badge-success">Đang bán</span> : 
+                          <span className="badge badge-gray">Tạm dừng</span>
+                        }
+                      </td>
                     </tr>
                   ))}
                 </tbody>
