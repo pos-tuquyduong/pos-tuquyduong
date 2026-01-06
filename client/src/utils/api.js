@@ -173,7 +173,7 @@ export const productsApi = {
   update: (id, data) => api.put(`/products/${id}`, data),
   updatePrice: (id, price) => api.put(`/products/${id}/price`, { price }),
   toggle: (id) => api.put(`/products/${id}/toggle`, {}),
-  updatePricesBatch: (prices) => api.put('/products/prices/batch', { prices })
+  updatePricesBatch: (products) => api.put('/products/batch/prices', { products })
 };
 
 // Orders API
