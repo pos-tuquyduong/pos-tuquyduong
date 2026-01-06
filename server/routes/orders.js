@@ -1,7 +1,7 @@
 /**
  * POS System - Order Routes
  * Quản lý đơn hàng bán lẻ
- * FIXED: Dùng sx_product_type + sx_product_id thay vì id
+ * FIXED: Khớp với cấu trúc bảng pos_orders trong database.js
  */
 
 const express = require('express');
@@ -84,7 +84,7 @@ router.get('/:id', authenticate, (req, res) => {
 /**
  * POST /api/pos/orders
  * Tạo đơn hàng mới
- * FIXED: Dùng sx_product_type + sx_product_id để tìm sản phẩm
+ * FIXED: Dùng sx_product_type + sx_product_id và khớp với database schema
  */
 router.post('/', authenticate, async (req, res) => {
   try {
@@ -106,18 +106,16 @@ router.post('/', authenticate, async (req, res) => {
       // FIXED: Dùng sx_product_type + sx_product_id thay vì id
       let product;
       if (item.sx_product_type && item.sx_product_id !== undefined) {
-        // Tìm bằng composite key (ưu tiên)
         product = queryOne(
           'SELECT * FROM pos_products WHERE sx_product_type = ? AND sx_product_id = ? AND is_active = 1', 
           [item.sx_product_type, item.sx_product_id]
         );
       } else {
-        // Fallback: tìm bằng id (cho backward compatibility)
         product = queryOne('SELECT * FROM pos_products WHERE id = ? AND is_active = 1', [item.product_id]);
       }
 
       if (!product) {
-        return res.status(400).json({ error: `Sản phẩm không tồn tại hoặc đã ngừng bán` });
+        return res.status(400).json({ error: 'Sản phẩm không tồn tại hoặc đã ngừng bán' });
       }
       if (product.price <= 0) {
         return res.status(400).json({ error: `Sản phẩm ${product.name} chưa có giá bán` });
@@ -133,7 +131,7 @@ router.post('/', authenticate, async (req, res) => {
         }
       } catch (err) {
         console.error('Stock check error:', err.message);
-        // Cho phép tiếp tục nếu không kết nối được SX (fallback)
+        // Cho phép tiếp tục nếu không kết nối được SX
       }
 
       const itemTotal = product.price * item.quantity;
@@ -173,7 +171,7 @@ router.post('/', authenticate, async (req, res) => {
       balanceAfter = customer.balance - total;
     }
 
-    // Tạo đơn hàng
+    // Tạo đơn hàng - KHỚP VỚI DATABASE SCHEMA
     const orderCode = generateOrderCode();
     const now = getNow();
 
@@ -182,8 +180,8 @@ router.post('/', authenticate, async (req, res) => {
         code, customer_id, customer_name, customer_phone,
         subtotal, discount, discount_reason, total,
         payment_method, balance_amount,
-        status, notes, created_by, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
+        status, notes, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)
     `, [
       orderCode,
       customer?.id || null,
@@ -196,8 +194,7 @@ router.post('/', authenticate, async (req, res) => {
       payment_method,
       balanceAmount,
       notes || null,
-      req.user.username,
-      now, now
+      req.user.username
     ]);
 
     const orderId = result.lastInsertRowid;
@@ -221,17 +218,17 @@ router.post('/', authenticate, async (req, res) => {
 
     // Trừ số dư khách hàng
     if (balanceAmount > 0 && customer) {
-      run('UPDATE pos_customers SET balance = ?, updated_at = ? WHERE id = ?', 
-        [balanceAfter, now, customer.id]);
+      run('UPDATE pos_customers SET balance = ? WHERE id = ?', 
+        [balanceAfter, customer.id]);
 
       // Ghi log giao dịch số dư
       run(`
         INSERT INTO pos_balance_transactions (
           customer_id, customer_phone, type, amount, 
-          balance_before, balance_after, ref_type, ref_id,
-          notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [customer.id, customer.phone, 'payment', -balanceAmount, balanceBefore, balanceAfter, 'order', orderId, 'Thanh toán đơn hàng ' + orderCode, req.user.username, now]);
+          balance_before, balance_after, reference_type, reference_id,
+          notes, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [customer.id, customer.phone, 'payment', -balanceAmount, balanceBefore, balanceAfter, 'order', orderId, 'Thanh toán đơn hàng ' + orderCode, req.user.username]);
     }
 
     res.json({ 
@@ -275,27 +272,25 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_orders'), async 
         const balanceBefore = customer.balance;
         const balanceAfter = customer.balance + order.balance_amount;
 
-        run('UPDATE pos_customers SET balance = ?, updated_at = ? WHERE id = ?',
-          [balanceAfter, now, customer.id]);
+        run('UPDATE pos_customers SET balance = ? WHERE id = ?',
+          [balanceAfter, customer.id]);
 
         run(`
           INSERT INTO pos_balance_transactions (
             customer_id, customer_phone, type, amount,
-            balance_before, balance_after, ref_type, ref_id,
-            notes, created_by, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [customer.id, customer.phone, 'refund', order.balance_amount, balanceBefore, balanceAfter, 'order', order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username, now]);
+            balance_before, balance_after, reference_type, reference_id,
+            notes, created_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [customer.id, customer.phone, 'refund', order.balance_amount, balanceBefore, balanceAfter, 'order', order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username]);
       }
     }
 
     // Cập nhật trạng thái
     run(`
       UPDATE pos_orders 
-      SET status = 'cancelled', cancel_reason = ?, cancelled_by = ?, cancelled_at = ?, updated_at = ?
+      SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
       WHERE id = ?
-    `, [reason || 'Không có lý do', req.user.username, now, now, order.id]);
-
-    // TODO: Hoàn lại tồn kho vào SX
+    `, [reason || 'Không có lý do', req.user.username, now, order.id]);
 
     res.json({ success: true });
   } catch (err) {
