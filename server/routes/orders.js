@@ -88,7 +88,7 @@ router.get('/:id', authenticate, (req, res) => {
  */
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { customer_id, items, payment_method, discount = 0, discount_reason, note } = req.body;
+    const { customer_id, items, payment_method, discount = 0, discount_reason, notes } = req.body;
 
     // Validate
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -182,7 +182,7 @@ router.post('/', authenticate, async (req, res) => {
         code, customer_id, customer_name, customer_phone,
         subtotal, discount, discount_reason, total,
         payment_method, balance_amount,
-        status, note, created_by, created_at, updated_at
+        status, notes, created_by, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
     `, [
       orderCode,
@@ -195,7 +195,7 @@ router.post('/', authenticate, async (req, res) => {
       total,
       payment_method,
       balanceAmount,
-      note || null,
+      notes || null,
       req.user.username,
       now, now
     ]);
@@ -229,7 +229,7 @@ router.post('/', authenticate, async (req, res) => {
         INSERT INTO pos_balance_transactions (
           customer_id, customer_phone, type, amount, 
           balance_before, balance_after, ref_type, ref_id,
-          note, created_by, created_at
+          notes, created_by, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [customer.id, customer.phone, 'payment', -balanceAmount, balanceBefore, balanceAfter, 'order', orderId, 'Thanh toán đơn hàng ' + orderCode, req.user.username, now]);
     }
@@ -282,7 +282,7 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_orders'), async 
           INSERT INTO pos_balance_transactions (
             customer_id, customer_phone, type, amount,
             balance_before, balance_after, ref_type, ref_id,
-            note, created_by, created_at
+            notes, created_by, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [customer.id, customer.phone, 'refund', order.balance_amount, balanceBefore, balanceAfter, 'order', order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username, now]);
       }
