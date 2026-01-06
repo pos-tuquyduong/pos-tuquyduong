@@ -180,6 +180,7 @@ async function outStockFIFO(productType, productId, quantity, customerInfo, orde
 }
 
 module.exports = {
+  isSxConfigured,
   callSxApi,
   getFinishedProducts,
   checkStock,
