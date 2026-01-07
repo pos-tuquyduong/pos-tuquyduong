@@ -16,7 +16,19 @@ const upload = multer({ dest: 'uploads/' });
  * GET /api/pos/backup/download
  * Tải file backup database
  */
-router.get('/download', authenticate, (req, res) => {
+  router.get('/download', (req, res) => {
+    // Cho phép token qua query string để download trực tiếp
+    const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Không có token xác thực' });
+    }
+
+    try {
+      const jwt = require('jsonwebtoken');
+      jwt.verify(token, process.env.JWT_SECRET || 'pos-secret-key-2025');
+    } catch (err) {
+      return res.status(401).json({ error: 'Token không hợp lệ' });
+    }
   try {
     const dbPath = process.env.DB_PATH || './data/pos.db';
 
