@@ -180,8 +180,8 @@ router.post('/', authenticate, async (req, res) => {
         code, customer_id, customer_name, customer_phone,
         subtotal, discount, discount_reason, total,
         payment_method, balance_amount,
-        status, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)
+        status, notes, created_by, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
     `, [
       orderCode,
       customer?.id || null,
@@ -194,7 +194,8 @@ router.post('/', authenticate, async (req, res) => {
       payment_method,
       balanceAmount,
       notes || null,
-      req.user.username
+      req.user.username,
+      now
     ]);
 
     const orderId = result.lastInsertRowid;
