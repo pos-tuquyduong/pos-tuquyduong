@@ -22,6 +22,7 @@ const syncRoutes = require('./routes/sync');
 const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
+const backupRoutes = require('./routes/backup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -53,6 +54,7 @@ app.use('/api/pos/stock', stockRoutes);
 app.use('/api/pos/reports', reportRoutes);
 app.use('/api/pos/users', userRoutes);
 app.use('/api/pos/permissions', userRoutes); // Reuse for permissions
+app.use('/api/pos/backup', backupRoutes);
 
 // Health check
 app.get('/api/pos/health', (req, res) => {
