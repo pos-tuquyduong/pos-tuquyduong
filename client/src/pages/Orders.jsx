@@ -26,7 +26,7 @@ export default function Orders() {
   };
 
   const formatPrice = (p) => (p || 0).toLocaleString() + 'đ';
-  const formatTime = (d) => new Date(d).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (d) => new Date(d).toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 
   const getStatusBadge = (status) => {
     switch(status) {
