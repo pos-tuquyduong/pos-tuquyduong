@@ -61,14 +61,14 @@ function formatDate(date) {
  * Lấy ngày hôm nay (YYYY-MM-DD)
  */
 function getToday() {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
 }
 
 /**
  * Lấy timestamp hiện tại
  */
 function getNow() {
-  return new Date().toISOString();
+  return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(' ', 'T');
 }
 
 /**

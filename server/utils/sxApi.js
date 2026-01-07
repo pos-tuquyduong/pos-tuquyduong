@@ -126,55 +126,24 @@ async function getStockSummary() {
 }
 
 /**
- * Xuất kho theo FIFO (hết hạn trước xuất trước)
+ * Xuất kho - GỌI THẲNG API SX (SX đã có toDbProductType convert)
  */
-async function outStockFIFO(productType, productId, quantity, customerInfo, orderInfo) {
+async function outStockFIFO(productType, productId, quantity, orderCode) {
   try {
-    // Lấy danh sách batch theo thứ tự hết hạn
-    const finishedProducts = await getFinishedProducts();
-    
-    const batches = finishedProducts
-      .filter(fp => 
-        fp.product_type === productType && 
-        (productId === null ? fp.product_id === null : fp.product_id === productId) &&
-        fp.quantity > 0
-      )
-      .sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date));
-
-    let remaining = quantity;
-    const results = [];
-
-    for (const batch of batches) {
-      if (remaining <= 0) break;
-
-      const outQty = Math.min(remaining, batch.quantity);
-      
-      const result = await outFinishedProduct(batch.id, {
-        quantity: outQty,
-        type: 'out_sale',
-        customer_id: customerInfo?.id || null,
-        customer_name: customerInfo?.name || null,
-        notes: `Bán hàng - ${orderInfo?.code || ''}`,
-        reference_type: 'pos_order',
-        reference_id: orderInfo?.id || null
-      });
-
-      results.push({
-        batch_id: batch.id,
-        quantity: outQty,
-        remaining: result.remaining
-      });
-
-      remaining -= outQty;
-    }
-
-    if (remaining > 0) {
-      throw new Error(`Không đủ hàng. Còn thiếu ${remaining} ${productType}`);
-    }
-
-    return { success: true, results };
+    const result = await callSxApi('/api/pos/stock/out', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_type: productType,
+        product_id: productId,
+        quantity: quantity,
+        order_code: orderCode,
+        notes: `POS: ${orderCode}`
+      })
+    });
+    console.log(`✅ Stock out: ${productType} #${productId} x${quantity} - ${orderCode}`);
+    return result;
   } catch (err) {
-    console.error('Error in outStockFIFO:', err.message);
+    console.error('❌ Stock out error:', err.message);
     throw err;
   }
 }
