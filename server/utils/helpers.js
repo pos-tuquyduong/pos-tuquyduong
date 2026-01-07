@@ -6,8 +6,7 @@
  * Tạo mã đơn hàng: ORD-YYYYMMDD-XXX
  */
 function generateOrderCode() {
-  const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const dateStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(/-/g, '');
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   return `ORD-${dateStr}-${random}`;
 }
