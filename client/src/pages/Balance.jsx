@@ -1,97 +1,116 @@
 /**
  * POS - Balance Page (Quản lý số dư)
- * Updated: Dùng walletsApi mới
+ * Hiện danh sách khách + số dư + nạp tiền + lịch sử giao dịch
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { walletsApi, customersV2Api } from '../utils/api';
-import { Search, Plus, Wallet, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Search, RefreshCw, Plus, X, History, Wallet } from 'lucide-react';
 
 export default function Balance() {
-  const [customer, setCustomer] = useState(null);
-  const [wallet, setWallet] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [searchPhone, setSearchPhone] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [stats, setStats] = useState({ total: 0, hasBalance: 0, totalBalance: 0 });
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Topup form
+  // Topup modal
   const [showTopup, setShowTopup] = useState(false);
-  const [topupAmount, setTopupAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [notes, setNotes] = useState('');
+  const [topupData, setTopupData] = useState({ phone: '', name: '', amount: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  const normalizePhone = (phone) => {
-    let p = phone.replace(/\D/g, '');
-    if (p.startsWith('84')) p = '0' + p.slice(2);
-    return p;
-  };
+  // History modal
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyPhone, setHistoryPhone] = useState('');
+  const [historyName, setHistoryName] = useState('');
+  const [transactions, setTransactions] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const searchCustomer = async () => {
-    if (!searchPhone.trim()) return;
+  useEffect(() => {
+    loadData();
+  }, []);
 
+  const loadData = async () => {
     setLoading(true);
-    setError('');
-
     try {
-      const phone = normalizePhone(searchPhone.trim());
+      // Lấy danh sách khách từ V2 API (merge SX + POS)
+      const data = await customersV2Api.list();
+      const allCustomers = data.customers || [];
 
-      // Lấy thông tin khách từ V2 API (merge SX + POS)
-      const customerData = await customersV2Api.get(phone);
-      setCustomer(customerData);
+      // Tính stats
+      const hasBalance = allCustomers.filter(c => c.balance > 0);
+      const totalBalance = hasBalance.reduce((sum, c) => sum + (c.balance || 0), 0);
 
-      // Lấy wallet
-      const walletData = await walletsApi.get(phone);
-      setWallet(walletData);
+      setStats({
+        total: allCustomers.length,
+        hasBalance: hasBalance.length,
+        totalBalance
+      });
 
-      // Lấy transactions
-      const txData = await walletsApi.transactions(phone);
-      setTransactions(txData.transactions || []);
+      setCustomers(allCustomers);
     } catch (err) {
-      setError('Không tìm thấy khách hàng');
-      setCustomer(null);
-      setWallet(null);
-      setTransactions([]);
+      setError('Không thể tải dữ liệu');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTopup = async (e) => {
-    e.preventDefault();
+  // Filter và search
+  const filteredCustomers = customers.filter(c => {
+    // Filter
+    if (filter === 'has_balance' && (!c.balance || c.balance <= 0)) return false;
 
-    const amount = parseInt(topupAmount);
-    if (!amount || amount <= 0) {
-      setError('Số tiền không hợp lệ');
-      return;
+    // Search
+    if (search) {
+      const q = search.toLowerCase();
+      if (!c.name?.toLowerCase().includes(q) && !c.phone?.includes(q)) return false;
     }
 
+    return true;
+  }).sort((a, b) => (b.balance || 0) - (a.balance || 0)); // Sort theo số dư giảm dần
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // Search đã được xử lý qua filteredCustomers
+  };
+
+  // Mở popup nạp tiền
+  const openTopup = (customer = null) => {
+    if (customer) {
+      setTopupData({
+        phone: customer.phone || '',
+        name: customer.name || '',
+        amount: '',
+        notes: ''
+      });
+    } else {
+      setTopupData({ phone: '', name: '', amount: '', notes: '' });
+    }
+    setShowTopup(true);
+  };
+
+  // Xử lý nạp tiền
+  const handleTopup = async (e) => {
+    e.preventDefault();
     setSubmitting(true);
     setError('');
 
     try {
-      await walletsApi.topup({
-        phone: customer.phone,
-        amount,
-        customer_name: customer.name,
-        payment_method: paymentMethod,
-        notes
+      const result = await walletsApi.topup({
+        phone: topupData.phone,
+        amount: parseInt(topupData.amount),
+        customer_name: topupData.name,
+        notes: topupData.notes,
+        payment_method: 'cash'
       });
 
-      setSuccess(`Đã nạp ${amount.toLocaleString()}đ thành công!`);
+      setSuccess(`Đã nạp ${parseInt(topupData.amount).toLocaleString()}đ cho ${topupData.name || topupData.phone}. Số dư mới: ${result.balance.toLocaleString()}đ`);
       setShowTopup(false);
-      setTopupAmount('');
-      setNotes('');
-
-      // Refresh data
-      const walletData = await walletsApi.get(customer.phone);
-      setWallet(walletData);
-      const txData = await walletsApi.transactions(customer.phone);
-      setTransactions(txData.transactions || []);
-
-      setTimeout(() => setSuccess(''), 3000);
+      loadData();
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,230 +118,311 @@ export default function Balance() {
     }
   };
 
-  const quickAmounts = [100000, 200000, 500000, 1000000, 2000000];
+  // Xem lịch sử giao dịch
+  const openHistory = async (customer) => {
+    setHistoryPhone(customer.phone);
+    setHistoryName(customer.name);
+    setShowHistory(true);
+    setLoadingHistory(true);
 
-  const formatPrice = (price) => (price || 0).toLocaleString() + 'đ';
-
-  const formatDate = (date) => new Date(date).toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  const getTypeLabel = (type) => {
-    switch(type) {
-      case 'topup': return { label: 'Nạp tiền', color: '#22c55e', icon: ArrowUpCircle };
-      case 'purchase': return { label: 'Thanh toán', color: '#ef4444', icon: ArrowDownCircle };
-      case 'payment': return { label: 'Thanh toán', color: '#ef4444', icon: ArrowDownCircle };
-      case 'refund': return { label: 'Hoàn tiền', color: '#3b82f6', icon: ArrowUpCircle };
-      case 'adjust': return { label: 'Điều chỉnh', color: '#64748b', icon: Wallet };
-      default: return { label: type, color: '#64748b', icon: Wallet };
+    try {
+      const data = await walletsApi.transactions(customer.phone);
+      setTransactions(data.transactions || []);
+    } catch (err) {
+      console.error(err);
+      setTransactions([]);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
-  const currentBalance = wallet?.balance || customer?.balance || 0;
+  const formatDate = (date) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatMoney = (amount) => {
+    return (amount || 0).toLocaleString() + 'đ';
+  };
 
   return (
     <>
       <header className="page-header">
         <h1 className="page-title">💰 Quản lý số dư</h1>
+        <div className="flex gap-1">
+          <button className="btn btn-outline" onClick={loadData}>
+            <RefreshCw size={16} />
+          </button>
+          <button className="btn btn-primary" onClick={() => openTopup()}>
+            <Plus size={16} /> Nạp tiền
+          </button>
+        </div>
       </header>
 
       <div className="page-content">
         {error && <div className="alert alert-danger">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
 
-        {/* Search */}
-        <div className="card mb-2">
-          <div className="form-label">Tìm khách hàng</div>
-          <div className="flex gap-1">
-            <input
-              type="text"
-              className="input"
-              placeholder="Nhập SĐT..."
-              value={searchPhone}
-              onChange={(e) => setSearchPhone(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchCustomer()}
-            />
-            <button className="btn btn-primary" onClick={searchCustomer} disabled={loading}>
-              <Search size={16} /> {loading ? 'Đang tìm...' : 'Tìm'}
-            </button>
+        {/* Stats */}
+        <div className="grid grid-3 mb-2">
+          <div className="stat-card">
+            <div className="stat-label">Tổng khách hàng</div>
+            <div className="stat-value">{stats.total}</div>
+          </div>
+          <div className="stat-card" style={{ background: '#dcfce7' }}>
+            <div className="stat-label">💰 Có số dư</div>
+            <div className="stat-value">{stats.hasBalance}</div>
+          </div>
+          <div className="stat-card" style={{ background: '#dbeafe' }}>
+            <div className="stat-label">💵 Tổng số dư</div>
+            <div className="stat-value">{formatMoney(stats.totalBalance)}</div>
           </div>
         </div>
 
-        {customer && (
-          <div className="grid grid-2 gap-2">
-            {/* Customer Info & Balance */}
-            <div>
-              <div className="card">
-                <div className="flex flex-between flex-center mb-2">
-                  <div>
-                    <div className="font-bold text-lg">{customer.name || 'Khách lẻ'}</div>
-                    <div className="text-gray">{customer.phone}</div>
-                    {customer.is_pending && (
-                      <span className="badge badge-warning mt-1">Chờ đồng bộ</span>
-                    )}
-                    {customer.is_synced && (
-                      <span className="badge badge-success mt-1">Đã đồng bộ SX</span>
-                    )}
+        {/* Search & Filter */}
+        <div className="card">
+          <form onSubmit={handleSearch} className="flex gap-1 mb-2">
+            <input
+              type="text"
+              className="input"
+              placeholder="Tìm theo SĐT hoặc tên..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button type="submit" className="btn btn-primary">
+              <Search size={16} /> Tìm
+            </button>
+          </form>
+
+          <div className="flex gap-1 mb-2">
+            {[
+              { key: 'all', label: 'Tất cả' },
+              { key: 'has_balance', label: '💰 Có số dư' }
+            ].map(f => (
+              <button
+                key={f.key}
+                className={`btn ${filter === f.key ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Table */}
+          {loading ? (
+            <div className="loading">Đang tải...</div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="text-gray text-center" style={{ padding: '2rem' }}>
+              Không có khách hàng nào
+            </div>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>#</th>
+                  <th>SĐT</th>
+                  <th>Tên KH</th>
+                  <th style={{ textAlign: 'right' }}>Số dư</th>
+                  <th style={{ width: '120px' }}>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((c, idx) => (
+                  <tr key={c.phone || idx}>
+                    <td className="text-gray">{idx + 1}</td>
+                    <td>{c.phone || <span className="text-gray">(trống)</span>}</td>
+                    <td>
+                      <strong>{c.name || 'Chưa có tên'}</strong>
+                      {c.relationship && c.parent_name && (
+                        <div className="text-sm text-gray">
+                          └ {c.relationship} của {c.parent_name}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="font-bold" style={{ 
+                        color: c.balance > 0 ? '#22c55e' : '#64748b' 
+                      }}>
+                        {formatMoney(c.balance)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex gap-1">
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          onClick={() => openTopup(c)}
+                          title="Nạp tiền"
+                        >
+                          <Wallet size={14} /> Nạp
+                        </button>
+                        <button 
+                          className="btn btn-outline" 
+                          style={{ padding: '0.25rem 0.5rem' }}
+                          onClick={() => openHistory(c)}
+                          title="Lịch sử"
+                        >
+                          <History size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Topup Modal */}
+      {showTopup && (
+        <div className="modal-overlay" onClick={() => setShowTopup(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">💰 Nạp tiền</div>
+              <button className="btn btn-outline" onClick={() => setShowTopup(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleTopup}>
+              <div className="modal-body">
+                {error && <div className="alert alert-danger">{error}</div>}
+
+                <div className="form-group">
+                  <label className="form-label">SĐT khách hàng *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={topupData.phone}
+                    onChange={(e) => setTopupData({...topupData, phone: e.target.value})}
+                    placeholder="0901234567"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Tên KH</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={topupData.name}
+                    onChange={(e) => setTopupData({...topupData, name: e.target.value})}
+                    placeholder="Tên khách hàng"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Số tiền nạp *</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={topupData.amount}
+                    onChange={(e) => setTopupData({...topupData, amount: e.target.value})}
+                    placeholder="500000"
+                    min="1000"
+                    step="1000"
+                    required
+                  />
+                  <div className="text-sm text-gray mt-1">
+                    {topupData.amount && `= ${parseInt(topupData.amount || 0).toLocaleString()}đ`}
                   </div>
                 </div>
 
-                <div className="balance-display">
-                  <div className="text-sm" style={{ opacity: 0.8 }}>Số dư hiện tại</div>
-                  <div className="balance-amount">{formatPrice(currentBalance)}</div>
-                </div>
-
-                {wallet && (
-                  <div className="flex gap-2 mt-2" style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                    <div>Tổng nạp: {formatPrice(wallet.total_topup)}</div>
-                    <div>Đã dùng: {formatPrice(wallet.total_spent)}</div>
-                  </div>
-                )}
-
-                <div className="flex gap-1 mt-2">
-                  <button 
-                    className="btn btn-success btn-lg"
-                    style={{ flex: 1 }}
-                    onClick={() => setShowTopup(true)}
-                  >
-                    <Plus size={18} /> Nạp tiền
-                  </button>
+                <div className="form-group">
+                  <label className="form-label">Lý do / Ghi chú</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={topupData.notes}
+                    onChange={(e) => setTopupData({...topupData, notes: e.target.value})}
+                    placeholder="VD: Nạp trước 2 tháng"
+                  />
                 </div>
               </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setShowTopup(false)}>
+                  Hủy
+                </button>
+                <button type="submit" className="btn btn-success" disabled={submitting}>
+                  {submitting ? 'Đang nạp...' : 'Xác nhận nạp tiền'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-              {/* Topup Form */}
-              {showTopup && (
-                <div className="card mt-2">
-                  <div className="card-title">Nạp tiền</div>
-                  <form onSubmit={handleTopup}>
-                    <div className="form-group">
-                      <label className="form-label">Số tiền</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={topupAmount}
-                        onChange={(e) => setTopupAmount(e.target.value)}
-                        placeholder="Nhập số tiền"
-                      />
-                    </div>
-
-                    <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
-                      {quickAmounts.map(amount => (
-                        <button
-                          key={amount}
-                          type="button"
-                          className="btn btn-outline"
-                          onClick={() => setTopupAmount(amount.toString())}
-                        >
-                          {(amount / 1000)}k
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Phương thức</label>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          className={`btn ${paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}`}
-                          style={{ flex: 1 }}
-                          onClick={() => setPaymentMethod('cash')}
-                        >
-                          💵 Tiền mặt
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn ${paymentMethod === 'transfer' ? 'btn-primary' : 'btn-outline'}`}
-                          style={{ flex: 1 }}
-                          onClick={() => setPaymentMethod('transfer')}
-                        >
-                          🏦 Chuyển khoản
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Ghi chú</label>
-                      <input
-                        type="text"
-                        className="input"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                      />
-                    </div>
-
-                    {topupAmount && (
-                      <div className="text-sm mb-2" style={{ color: '#22c55e' }}>
-                        Số dư sau nạp: {formatPrice(currentBalance + parseInt(topupAmount))}
-                      </div>
-                    )}
-
-                    <div className="flex gap-1">
-                      <button type="button" className="btn btn-outline" onClick={() => setShowTopup(false)}>
-                        Hủy
-                      </button>
-                      <button type="submit" className="btn btn-success" disabled={submitting}>
-                        {submitting ? 'Đang nạp...' : 'Xác nhận nạp tiền'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
+      {/* History Modal */}
+      {showHistory && (
+        <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <div className="modal-title">
+                📜 Lịch sử giao dịch - {historyName || historyPhone}
+              </div>
+              <button className="btn btn-outline" onClick={() => setShowHistory(false)}>
+                <X size={16} />
+              </button>
             </div>
-
-            {/* Transaction History */}
-            <div className="card">
-              <div className="card-title">Lịch sử giao dịch</div>
-              {transactions.length === 0 ? (
-                <div className="text-gray text-sm">Chưa có giao dịch</div>
+            <div className="modal-body">
+              {loadingHistory ? (
+                <div className="loading">Đang tải...</div>
+              ) : transactions.length === 0 ? (
+                <div className="text-gray text-center">Chưa có giao dịch nào</div>
               ) : (
-                <div>
-                  {transactions.map(tx => {
-                    const typeInfo = getTypeLabel(tx.type);
-                    const Icon = typeInfo.icon;
-                    return (
-                      <div key={tx.id} style={{ 
-                        padding: '0.75rem 0', 
-                        borderBottom: '1px solid #e2e8f0',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <div className="flex flex-center gap-1">
-                          <Icon size={20} style={{ color: typeInfo.color }} />
-                          <div>
-                            <div className="font-bold" style={{ fontSize: '0.875rem' }}>
-                              {typeInfo.label}
-                            </div>
-                            <div className="text-sm text-gray">
-                              {formatDate(tx.created_at)}
-                            </div>
-                            {tx.notes && (
-                              <div className="text-sm text-gray">{tx.notes}</div>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div className="font-bold" style={{ 
-                            color: tx.amount >= 0 ? '#22c55e' : '#ef4444' 
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Loại</th>
+                      <th style={{ textAlign: 'right' }}>Số tiền</th>
+                      <th style={{ textAlign: 'right' }}>Số dư</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map(t => (
+                      <tr key={t.id}>
+                        <td className="text-sm">{formatDate(t.created_at)}</td>
+                        <td>
+                          {t.type === 'topup' ? (
+                            <span className="badge badge-success">Nạp</span>
+                          ) : t.type === 'purchase' ? (
+                            <span className="badge badge-warning">Mua</span>
+                          ) : t.type === 'refund' ? (
+                            <span className="badge badge-info">Hoàn</span>
+                          ) : (
+                            <span className="badge badge-gray">{t.type}</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span style={{ 
+                            color: t.amount > 0 ? '#22c55e' : '#ef4444',
+                            fontWeight: 600
                           }}>
-                            {tx.amount >= 0 ? '+' : ''}{formatPrice(tx.amount)}
-                          </div>
-                          <div className="text-sm text-gray">
-                            → {formatPrice(tx.balance_after)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                            {t.amount > 0 ? '+' : ''}{formatMoney(t.amount)}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }} className="text-gray">
+                          {formatMoney(t.balance_after)}
+                        </td>
+                        <td className="text-sm">{t.notes || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

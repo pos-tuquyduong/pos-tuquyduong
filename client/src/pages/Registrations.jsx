@@ -1,6 +1,7 @@
 /**
  * POS - Registrations Page
  * Quản lý đăng ký mới + Export 2 bước + Log + Hoàn tác
+ * v3: Fix page refresh sau confirm export
  */
 
 import { useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ export default function Registrations() {
   const [exporting, setExporting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0); // Lưu số lượng pending khi bắt đầu export
 
   // Edit modal
   const [showEdit, setShowEdit] = useState(false);
@@ -36,6 +38,7 @@ export default function Registrations() {
 
   const loadData = async () => {
     setLoading(true);
+    setError('');
     try {
       const params = {};
       if (filter !== 'all') params.status = filter;
@@ -44,7 +47,7 @@ export default function Registrations() {
       setRegistrations(data.registrations || []);
       setStats(data.stats || { total: 0, pending: 0, exported: 0 });
     } catch (err) {
-      setError('Không thể tải danh sách');
+      setError('Không thể tải danh sách: ' + err.message);
       console.error(err);
     } finally {
       setLoading(false);
@@ -62,6 +65,7 @@ export default function Registrations() {
     setError('');
     try {
       await registrationsApi.exportCsv();
+      setPendingCount(stats.pending); // Lưu số lượng để hiện trong confirm
       setSuccess('✅ Đã tải file CSV! Kiểm tra file rồi bấm "Xác nhận" bên dưới.');
       setShowConfirm(true);
     } catch (err) {
@@ -79,23 +83,35 @@ export default function Registrations() {
       const result = await registrationsApi.confirmExport();
       setSuccess(`🎉 ${result.message}`);
       setShowConfirm(false);
-      loadData();
+      setPendingCount(0);
+
+      // Reload data ngay lập tức
+      await loadData();
+
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
-      setError(err.message);
+      setError('Lỗi: ' + err.message);
     } finally {
       setConfirming(false);
     }
+  };
+
+  // Hủy confirm
+  const handleCancelConfirm = () => {
+    setShowConfirm(false);
+    setPendingCount(0);
+    setSuccess('');
   };
 
   // Hoàn tác 1 đăng ký
   const handleRevert = async (id) => {
     if (!confirm('Hoàn tác đăng ký này về trạng thái "Chờ export"?')) return;
 
+    setError('');
     try {
       await registrationsApi.revert(id);
       setSuccess('Đã hoàn tác!');
-      loadData();
+      await loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message);
@@ -106,11 +122,12 @@ export default function Registrations() {
   const handleRevertLast = async () => {
     if (!confirm('Hoàn tác TẤT CẢ khách từ lần export gần nhất?')) return;
 
+    setError('');
     try {
       const result = await registrationsApi.revertLast();
       setSuccess(result.message);
-      loadData();
-      loadLogs();
+      await loadData();
+      await loadLogs();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       setError(err.message);
@@ -138,10 +155,11 @@ export default function Registrations() {
   const handleDelete = async (id) => {
     if (!confirm('Xóa đăng ký này?')) return;
 
+    setError('');
     try {
       await registrationsApi.delete(id);
       setSuccess('Đã xóa!');
-      loadData();
+      await loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message);
@@ -155,11 +173,12 @@ export default function Registrations() {
 
   const handleSaveEdit = async () => {
     setSaving(true);
+    setError('');
     try {
       await registrationsApi.update(editData.id, editData);
       setSuccess('Đã cập nhật!');
       setShowEdit(false);
-      loadData();
+      await loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message);
@@ -236,7 +255,7 @@ export default function Registrations() {
             <button 
               className="btn btn-primary" 
               onClick={handleDownloadCsv}
-              disabled={exporting || stats.pending === 0}
+              disabled={exporting || stats.pending === 0 || showConfirm}
             >
               <Download size={16} /> 
               {exporting ? 'Đang tải...' : `1. Tải CSV (${stats.pending} khách)`}
@@ -250,7 +269,7 @@ export default function Registrations() {
                 disabled={confirming}
               >
                 <Check size={16} /> 
-                {confirming ? 'Đang xử lý...' : '2. Xác nhận đã export'}
+                {confirming ? 'Đang xử lý...' : `2. Xác nhận đã export (${pendingCount} khách)`}
               </button>
             )}
           </div>
@@ -263,11 +282,11 @@ export default function Registrations() {
               borderRadius: '8px',
               fontSize: '0.875rem'
             }}>
-              ⚠️ Đã tải file CSV? Bấm "Xác nhận" để đánh dấu {stats.pending} khách đã export.
+              ⚠️ Đã tải file CSV? Bấm "Xác nhận" để đánh dấu {pendingCount} khách đã export.
               <button 
                 className="btn btn-outline" 
                 style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                onClick={() => setShowConfirm(false)}
+                onClick={handleCancelConfirm}
               >
                 Hủy
               </button>
@@ -304,6 +323,7 @@ export default function Registrations() {
             <table className="table">
               <thead>
                 <tr>
+                  <th style={{ width: '40px' }}>#</th>
                   <th>SĐT</th>
                   <th>Tên KH</th>
                   <th>Sản phẩm</th>
@@ -313,8 +333,9 @@ export default function Registrations() {
                 </tr>
               </thead>
               <tbody>
-                {registrations.map(r => (
+                {registrations.map((r, idx) => (
                   <tr key={r.id}>
+                    <td className="text-gray">{idx + 1}</td>
                     <td>
                       <div>{r.phone}</div>
                       {r.parent_phone && (

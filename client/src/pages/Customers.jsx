@@ -1,15 +1,15 @@
 /**
  * POS - Customers Page
- * Updated: Dùng customersV2Api + registrationsApi
+ * Hiện danh sách khách từ SX + POS với STT, subscription info, relationship
  */
 
 import { useState, useEffect } from 'react';
-import { customersV2Api, registrationsApi, walletsApi } from '../utils/api';
-import { Search, Plus, X, Phone, User, Users, RefreshCw } from 'lucide-react';
+import { customersV2Api, registrationsApi } from '../utils/api';
+import { Search, Plus, X, Phone, Users, RefreshCw, User } from 'lucide-react';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
-  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0 });
+  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -27,42 +27,20 @@ export default function Customers() {
 
   useEffect(() => {
     loadCustomers();
-  }, [filter]);
+  }, []);
 
   const loadCustomers = async () => {
     setLoading(true);
     try {
-      // Lấy danh sách khách từ V2 API (merge SX + POS)
       const data = await customersV2Api.list();
-      let filtered = data.customers || [];
-
-      // Filter theo trạng thái
-      if (filter === 'synced') {
-        filtered = filtered.filter(c => c.is_synced);
-      } else if (filter === 'pending') {
-        filtered = filtered.filter(c => c.is_pending);
-      } else if (filter === 'has_balance') {
-        filtered = filtered.filter(c => c.balance > 0);
-      }
-
-      // Search
-      if (search) {
-        const q = search.toLowerCase();
-        filtered = filtered.filter(c => 
-          c.name?.toLowerCase().includes(q) || 
-          c.phone?.includes(q)
-        );
-      }
-
-      setCustomers(filtered);
-
-      // Tính stats
       const allCustomers = data.customers || [];
+
+      setCustomers(allCustomers);
       setStats({
         total: allCustomers.length,
         synced: allCustomers.filter(c => c.is_synced).length,
         pending: allCustomers.filter(c => c.is_pending).length,
-        has_balance: allCustomers.filter(c => c.balance > 0).length
+        hasBalance: allCustomers.filter(c => c.balance > 0).length
       });
     } catch (err) {
       setError('Không thể tải danh sách khách hàng');
@@ -72,9 +50,24 @@ export default function Customers() {
     }
   };
 
+  // Filter và search
+  const filteredCustomers = customers.filter(c => {
+    // Filter
+    if (filter === 'synced' && !c.is_synced) return false;
+    if (filter === 'pending' && !c.is_pending) return false;
+    if (filter === 'has_balance' && (!c.balance || c.balance <= 0)) return false;
+
+    // Search
+    if (search) {
+      const q = search.toLowerCase();
+      if (!c.name?.toLowerCase().includes(q) && !c.phone?.includes(q)) return false;
+    }
+
+    return true;
+  });
+
   const handleSearch = (e) => {
     e.preventDefault();
-    loadCustomers();
   };
 
   const handleSubmit = async (e) => {
@@ -83,7 +76,6 @@ export default function Customers() {
     setError('');
 
     try {
-      // Tạo đăng ký mới qua registrationsApi
       await registrationsApi.create({
         phone: formData.phone,
         name: formData.name,
@@ -137,6 +129,10 @@ export default function Customers() {
     return null;
   };
 
+  const formatMoney = (amount) => {
+    return (amount || 0).toLocaleString() + 'đ';
+  };
+
   return (
     <>
       <header className="page-header">
@@ -171,7 +167,7 @@ export default function Customers() {
           </div>
           <div className="stat-card">
             <div className="stat-label">💰 Có số dư</div>
-            <div className="stat-value">{stats.has_balance}</div>
+            <div className="stat-value">{stats.hasBalance}</div>
           </div>
         </div>
 
@@ -210,7 +206,7 @@ export default function Customers() {
           {/* Table */}
           {loading ? (
             <div className="loading">Đang tải...</div>
-          ) : customers.length === 0 ? (
+          ) : filteredCustomers.length === 0 ? (
             <div className="text-gray text-center" style={{ padding: '2rem' }}>
               Không có khách hàng nào
             </div>
@@ -218,37 +214,91 @@ export default function Customers() {
             <table className="table">
               <thead>
                 <tr>
+                  <th style={{ width: '40px' }}>#</th>
                   <th>SĐT</th>
                   <th>Tên KH</th>
-                  <th>Số dư</th>
+                  <th>Gói đăng ký</th>
+                  <th style={{ textAlign: 'right' }}>Số dư</th>
                   <th>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {customers.map((c, idx) => (
+                {filteredCustomers.map((c, idx) => (
                   <tr key={c.phone || idx}>
+                    <td className="text-gray">{idx + 1}</td>
                     <td>
                       <div className="flex flex-center gap-1">
                         <Phone size={14} className="text-gray" />
-                        {c.phone}
+                        {c.phone || <span className="text-gray">(trống)</span>}
                       </div>
                     </td>
                     <td>
                       <div>
                         <strong>{c.name || 'Chưa có tên'}</strong>
                       </div>
+                      {/* Hiển thị quan hệ nếu là khách phụ */}
+                      {c.relationship && c.parent_name && (
+                        <div className="text-sm" style={{ color: '#8b5cf6' }}>
+                          <User size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                          {c.relationship} của <strong>{c.parent_name}</strong>
+                        </div>
+                      )}
+                      {/* Hiển thị số người nhận nếu có */}
+                      {c.children_count > 0 && (
+                        <div className="text-sm text-gray">
+                          <Users size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                          Có {c.children_count} người nhận
+                        </div>
+                      )}
                       {c.notes && (
                         <div className="text-sm text-gray">{c.notes}</div>
                       )}
-                      {c.requested_product && (
-                        <div className="text-sm text-gray">
-                          📦 {c.requested_product} ({c.requested_cycles || 1} CT)
-                        </div>
-                      )}
                     </td>
                     <td>
-                      <span className="font-bold" style={{ color: c.balance > 0 ? '#22c55e' : '#64748b' }}>
-                        {(c.balance || 0).toLocaleString()}đ
+                      {/* Hiển thị thông tin subscription từ SX */}
+                      {c.subscriptions && c.subscriptions.length > 0 ? (
+                        c.subscriptions.map((sub, i) => (
+                          <div key={i} className="text-sm" style={{ marginBottom: '2px' }}>
+                            <span className="badge badge-info" style={{ marginRight: '4px' }}>
+                              {sub.product_name || sub.product_type}
+                            </span>
+                            {sub.group_name && (
+                              <span 
+                                className="badge" 
+                                style={{ 
+                                  background: sub.group_color || '#e2e8f0',
+                                  color: '#1e293b'
+                                }}
+                              >
+                                {sub.group_name}
+                              </span>
+                            )}
+                            {sub.cycles > 1 && (
+                              <span className="text-gray"> ({sub.cycles} CT)</span>
+                            )}
+                          </div>
+                        ))
+                      ) : c.requested_product ? (
+                        <div className="text-sm">
+                          <span className="badge badge-warning">
+                            {c.requested_product}
+                          </span>
+                          {c.requested_cycles && (
+                            <span className="text-gray"> ({c.requested_cycles} CT)</span>
+                          )}
+                          <div className="text-gray" style={{ fontSize: '0.7rem' }}>
+                            Chờ xếp nhóm
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray">-</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="font-bold" style={{ 
+                        color: c.balance > 0 ? '#22c55e' : '#64748b' 
+                      }}>
+                        {formatMoney(c.balance)}
                       </span>
                     </td>
                     <td>{getStatusBadge(c)}</td>
@@ -341,7 +391,7 @@ export default function Customers() {
                   borderRadius: '8px' 
                 }}>
                   <div className="form-label" style={{ marginBottom: '0.75rem' }}>
-                    👥 Mua hộ người khác (tùy chọn)
+                    👥 Là người nhận của khách khác (tùy chọn)
                   </div>
                   <div className="form-group">
                     <label className="form-label">SĐT khách chính</label>
