@@ -1,11 +1,11 @@
 /**
- * POS - Registrations Page (thay thế Sync.jsx)
- * Quản lý đăng ký subscription mới, export CSV cho SX
+ * POS - Registrations Page
+ * Quản lý đăng ký mới + Export 2 bước + Log + Hoàn tác
  */
 
 import { useState, useEffect } from 'react';
 import { registrationsApi } from '../utils/api';
-import { Download, Check, Trash2, Edit2, X, RefreshCw, FileText } from 'lucide-react';
+import { Download, Check, Trash2, Edit2, X, RefreshCw, FileText, History, RotateCcw } from 'lucide-react';
 
 export default function Registrations() {
   const [registrations, setRegistrations] = useState([]);
@@ -14,12 +14,21 @@ export default function Registrations() {
   const [filter, setFilter] = useState('pending');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Export state
   const [exporting, setExporting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   // Edit modal
   const [showEdit, setShowEdit] = useState(false);
   const [editData, setEditData] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Log modal
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -42,17 +51,19 @@ export default function Registrations() {
     }
   };
 
-  const handleExportCsv = async () => {
+  // BƯỚC 1: Tải CSV
+  const handleDownloadCsv = async () => {
     if (stats.pending === 0) {
       setError('Không có đăng ký mới để export');
       return;
     }
 
     setExporting(true);
+    setError('');
     try {
       await registrationsApi.exportCsv();
-      setSuccess('Đã tải file CSV!');
-      setTimeout(() => setSuccess(''), 3000);
+      setSuccess('✅ Đã tải file CSV! Kiểm tra file rồi bấm "Xác nhận" bên dưới.');
+      setShowConfirm(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -60,22 +71,68 @@ export default function Registrations() {
     }
   };
 
-  const handleMarkExported = async () => {
-    if (stats.pending === 0) {
-      setError('Không có đăng ký nào để đánh dấu');
-      return;
+  // BƯỚC 2: Xác nhận export
+  const handleConfirmExport = async () => {
+    setConfirming(true);
+    setError('');
+    try {
+      const result = await registrationsApi.confirmExport();
+      setSuccess(`🎉 ${result.message}`);
+      setShowConfirm(false);
+      loadData();
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConfirming(false);
     }
+  };
 
-    if (!confirm(`Đánh dấu ${stats.pending} đăng ký đã export?`)) return;
+  // Hoàn tác 1 đăng ký
+  const handleRevert = async (id) => {
+    if (!confirm('Hoàn tác đăng ký này về trạng thái "Chờ export"?')) return;
 
     try {
-      await registrationsApi.markExported();
-      setSuccess('Đã đánh dấu exported!');
+      await registrationsApi.revert(id);
+      setSuccess('Đã hoàn tác!');
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  // Hoàn tác lần export gần nhất
+  const handleRevertLast = async () => {
+    if (!confirm('Hoàn tác TẤT CẢ khách từ lần export gần nhất?')) return;
+
+    try {
+      const result = await registrationsApi.revertLast();
+      setSuccess(result.message);
+      loadData();
+      loadLogs();
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Xem logs
+  const loadLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const data = await registrationsApi.getLogs();
+      setLogs(data.logs || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const openLogs = () => {
+    setShowLogs(true);
+    loadLogs();
   };
 
   const handleDelete = async (id) => {
@@ -138,6 +195,9 @@ export default function Registrations() {
       <header className="page-header">
         <h1 className="page-title">📋 Đăng ký mới</h1>
         <div className="flex gap-1">
+          <button className="btn btn-outline" onClick={openLogs} title="Lịch sử export">
+            <History size={16} />
+          </button>
           <button className="btn btn-outline" onClick={loadData}>
             <RefreshCw size={16} />
           </button>
@@ -164,29 +224,55 @@ export default function Registrations() {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Export Actions */}
         <div className="card mb-2">
           <div className="card-title">Export cho SX</div>
           <p className="text-sm text-gray mb-2">
-            Tải file CSV chứa danh sách khách mới để import vào hệ thống SX
+            Bước 1: Tải file CSV → Bước 2: Xác nhận để đánh dấu đã export
           </p>
-          <div className="flex gap-1">
+
+          <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
+            {/* Bước 1 */}
             <button 
               className="btn btn-primary" 
-              onClick={handleExportCsv}
+              onClick={handleDownloadCsv}
               disabled={exporting || stats.pending === 0}
             >
               <Download size={16} /> 
-              {exporting ? 'Đang tải...' : `Tải CSV (${stats.pending} khách)`}
+              {exporting ? 'Đang tải...' : `1. Tải CSV (${stats.pending} khách)`}
             </button>
-            <button 
-              className="btn btn-success" 
-              onClick={handleMarkExported}
-              disabled={stats.pending === 0}
-            >
-              <Check size={16} /> Đánh dấu đã export
-            </button>
+
+            {/* Bước 2 - chỉ hiện sau khi tải */}
+            {showConfirm && (
+              <button 
+                className="btn btn-success" 
+                onClick={handleConfirmExport}
+                disabled={confirming}
+              >
+                <Check size={16} /> 
+                {confirming ? 'Đang xử lý...' : '2. Xác nhận đã export'}
+              </button>
+            )}
           </div>
+
+          {showConfirm && (
+            <div style={{ 
+              marginTop: '0.75rem', 
+              padding: '0.75rem', 
+              background: '#fef3c7', 
+              borderRadius: '8px',
+              fontSize: '0.875rem'
+            }}>
+              ⚠️ Đã tải file CSV? Bấm "Xác nhận" để đánh dấu {stats.pending} khách đã export.
+              <button 
+                className="btn btn-outline" 
+                style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                onClick={() => setShowConfirm(false)}
+              >
+                Hủy
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Filter & List */}
@@ -221,7 +307,6 @@ export default function Registrations() {
                   <th>SĐT</th>
                   <th>Tên KH</th>
                   <th>Sản phẩm</th>
-                  <th>Khách chính</th>
                   <th>Ngày tạo</th>
                   <th>Trạng thái</th>
                   <th></th>
@@ -230,7 +315,14 @@ export default function Registrations() {
               <tbody>
                 {registrations.map(r => (
                   <tr key={r.id}>
-                    <td>{r.phone}</td>
+                    <td>
+                      <div>{r.phone}</div>
+                      {r.parent_phone && (
+                        <div className="text-sm text-gray">
+                          ← {r.parent_phone} ({r.relationship || 'KH chính'})
+                        </div>
+                      )}
+                    </td>
                     <td>
                       <strong>{r.name}</strong>
                       {r.notes && <div className="text-sm text-gray">{r.notes}</div>}
@@ -239,32 +331,26 @@ export default function Registrations() {
                       {r.requested_product || '-'}
                       {r.requested_cycles && <span className="text-gray"> ({r.requested_cycles} CT)</span>}
                     </td>
-                    <td>
-                      {r.parent_phone ? (
-                        <div>
-                          <div>{r.parent_phone}</div>
-                          {r.relationship && (
-                            <span className="badge badge-info">{r.relationship}</span>
-                          )}
-                        </div>
-                      ) : '-'}
-                    </td>
                     <td className="text-sm">{formatDate(r.created_at)}</td>
                     <td>
                       {r.status === 'pending' ? (
                         <span className="badge badge-warning">🟡 Chờ</span>
                       ) : (
-                        <span className="badge badge-success">🟢 Exported</span>
+                        <div>
+                          <span className="badge badge-success">🟢 Exported</span>
+                          <div className="text-sm text-gray">{formatDate(r.exported_at)}</div>
+                        </div>
                       )}
                     </td>
                     <td>
                       <div className="flex gap-1">
-                        {r.status === 'pending' && (
+                        {r.status === 'pending' ? (
                           <>
                             <button 
                               className="btn btn-outline" 
                               style={{ padding: '0.25rem 0.5rem' }}
                               onClick={() => openEdit(r)}
+                              title="Sửa"
                             >
                               <Edit2 size={14} />
                             </button>
@@ -272,10 +358,20 @@ export default function Registrations() {
                               className="btn btn-danger" 
                               style={{ padding: '0.25rem 0.5rem' }}
                               onClick={() => handleDelete(r.id)}
+                              title="Xóa"
                             >
                               <Trash2 size={14} />
                             </button>
                           </>
+                        ) : (
+                          <button 
+                            className="btn btn-outline" 
+                            style={{ padding: '0.25rem 0.5rem' }}
+                            onClick={() => handleRevert(r.id)}
+                            title="Hoàn tác"
+                          >
+                            <RotateCcw size={14} />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -370,6 +466,57 @@ export default function Registrations() {
               <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logs Modal */}
+      {showLogs && (
+        <div className="modal-overlay" onClick={() => setShowLogs(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <div className="modal-title">📜 Lịch sử Export</div>
+              <button className="btn btn-outline" onClick={() => setShowLogs(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {loadingLogs ? (
+                <div className="loading">Đang tải...</div>
+              ) : logs.length === 0 ? (
+                <div className="text-gray text-center">Chưa có lịch sử export</div>
+              ) : (
+                <>
+                  {logs.length > 0 && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <button className="btn btn-warning" onClick={handleRevertLast}>
+                        <RotateCcw size={16} /> Hoàn tác lần export gần nhất
+                      </button>
+                    </div>
+                  )}
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Thời gian</th>
+                        <th>Người thực hiện</th>
+                        <th>Số KH</th>
+                        <th>File</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.map(log => (
+                        <tr key={log.id}>
+                          <td className="text-sm">{formatDate(log.exported_at)}</td>
+                          <td>{log.exported_by}</td>
+                          <td>{log.customer_count}</td>
+                          <td className="text-sm">{log.file_name || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
             </div>
           </div>
         </div>

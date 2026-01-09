@@ -1,6 +1,6 @@
 /**
  * POS Frontend - API Utils
- * Updated: Thêm walletsApi, registrationsApi, customersV2Api
+ * Updated: Thêm registrations confirmExport, revert, getLogs
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/pos';
@@ -136,7 +136,7 @@ export const authApi = {
 
 // ============ API MỚI ============
 
-// Wallets API (thay thế balanceApi cũ)
+// Wallets API
 export const walletsApi = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -152,7 +152,7 @@ export const walletsApi = {
   }
 };
 
-// Registrations API (thay thế sync cho khách mới)
+// Registrations API - ĐÃ CẬP NHẬT
 export const registrationsApi = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -163,11 +163,20 @@ export const registrationsApi = {
   update: (id, data) => api.put(`/registrations/${id}`, data),
   delete: (id) => api.delete(`/registrations/${id}`),
   stats: () => api.get('/registrations/stats/summary'),
+
+  // Export 2 bước
   exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${new Date().toISOString().slice(0,10)}.csv`),
-  markExported: (ids) => api.post('/registrations/mark-exported', { ids })
+  confirmExport: () => api.post('/registrations/confirm-export', {}),
+
+  // Hoàn tác
+  revert: (id) => api.post(`/registrations/revert/${id}`, {}),
+  revertLast: () => api.post('/registrations/revert-last', {}),
+
+  // Logs
+  getLogs: () => api.get('/registrations/export-logs')
 };
 
-// Customers V2 API (merge SX + POS)
+// Customers V2 API
 export const customersV2Api = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -196,7 +205,7 @@ export const customersApi = {
   addChild: (id, data) => api.post(`/customers/${id}/children`, data)
 };
 
-// Balance API (cũ - giữ lại để tương thích)
+// Balance API (cũ)
 export const balanceApi = {
   get: (customerId, params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -250,7 +259,7 @@ export const stockApi = {
     api.get(`/stock/check?product_type=${product_type}&product_id=${product_id || ''}&quantity=${quantity}`)
 };
 
-// Sync API (cũ - giữ lại)
+// Sync API (cũ)
 export const syncApi = {
   status: () => api.get('/sync/status'),
   exportPreview: () => api.get('/sync/export/preview'),
