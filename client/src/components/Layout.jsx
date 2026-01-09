@@ -9,7 +9,7 @@ import {
   Users, 
   Wallet, 
   Package, 
-  RefreshCw, 
+  ClipboardList, 
   BarChart3,
   Settings,
   LogOut,
@@ -34,13 +34,13 @@ export default function Layout() {
     { to: '/customers', icon: Users, label: 'Khách hàng' },
     { to: '/balance', icon: Wallet, label: 'Số dư', permission: 'view_customer_balance' },
     { to: '/orders', icon: Package, label: 'Đơn hàng' },
-    { to: '/sync', icon: RefreshCw, label: 'Đồng bộ' },
+    { to: '/registrations', icon: ClipboardList, label: 'Đăng ký mới' },
     { to: '/reports', icon: BarChart3, label: 'Báo cáo', permission: 'view_reports' },
     { to: '/refunds', icon: AlertCircle, label: 'Hoàn tiền', permission: 'approve_refund' },
     { to: '/settings', icon: Settings, label: 'Cài đặt', permission: 'manage_users' },
   ];
 
-  // Menu items cho bottom nav (chọn 5 quan trọng nhất)
+  // Menu items cho bottom nav (5 quan trọng nhất)
   const bottomNavItems = [
     { to: '/', icon: ShoppingCart, label: 'Bán hàng' },
     { to: '/customers', icon: Users, label: 'Khách' },

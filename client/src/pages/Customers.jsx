@@ -1,43 +1,72 @@
 /**
  * POS - Customers Page
+ * Updated: Dùng customersV2Api + registrationsApi
  */
 
 import { useState, useEffect } from 'react';
-import { customersApi } from '../utils/api';
-import { Search, Plus, X, Phone, User, Users } from 'lucide-react';
+import { customersV2Api, registrationsApi, walletsApi } from '../utils/api';
+import { Search, Plus, X, Phone, User, Users, RefreshCw } from 'lucide-react';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
-  const [stats, setStats] = useState({});
+  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     phone: '', name: '', notes: '',
-    customer_type: 'subscription',
+    parent_phone: '',
+    relationship: '',
     requested_product: 'Nước ép',
-    requested_cycles: 1,
-    children: []
+    requested_cycles: 1
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     loadCustomers();
   }, [filter]);
 
   const loadCustomers = async () => {
+    setLoading(true);
     try {
-      const params = {};
-      if (filter !== 'all') params.sync_status = filter;
-      if (search) params.search = search;
-      
-      const data = await customersApi.list(params);
-      setCustomers(data.customers);
-      setStats(data.stats);
+      // Lấy danh sách khách từ V2 API (merge SX + POS)
+      const data = await customersV2Api.list();
+      let filtered = data.customers || [];
+
+      // Filter theo trạng thái
+      if (filter === 'synced') {
+        filtered = filtered.filter(c => c.is_synced);
+      } else if (filter === 'pending') {
+        filtered = filtered.filter(c => c.is_pending);
+      } else if (filter === 'has_balance') {
+        filtered = filtered.filter(c => c.balance > 0);
+      }
+
+      // Search
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(c => 
+          c.name?.toLowerCase().includes(q) || 
+          c.phone?.includes(q)
+        );
+      }
+
+      setCustomers(filtered);
+
+      // Tính stats
+      const allCustomers = data.customers || [];
+      setStats({
+        total: allCustomers.length,
+        synced: allCustomers.filter(c => c.is_synced).length,
+        pending: allCustomers.filter(c => c.is_pending).length,
+        has_balance: allCustomers.filter(c => c.balance > 0).length
+      });
     } catch (err) {
       setError('Không thể tải danh sách khách hàng');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -54,16 +83,28 @@ export default function Customers() {
     setError('');
 
     try {
-      await customersApi.create(formData);
+      // Tạo đăng ký mới qua registrationsApi
+      await registrationsApi.create({
+        phone: formData.phone,
+        name: formData.name,
+        notes: formData.notes,
+        parent_phone: formData.parent_phone || null,
+        relationship: formData.relationship || null,
+        requested_product: formData.requested_product,
+        requested_cycles: formData.requested_cycles
+      });
+
+      setSuccess('Đã thêm khách hàng mới! Chờ đồng bộ với SX.');
       setShowModal(false);
       setFormData({
         phone: '', name: '', notes: '',
-        customer_type: 'subscription',
+        parent_phone: '',
+        relationship: '',
         requested_product: 'Nước ép',
-        requested_cycles: 1,
-        children: []
+        requested_cycles: 1
       });
       loadCustomers();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -71,63 +112,66 @@ export default function Customers() {
     }
   };
 
-  const addChild = () => {
-    setFormData({
-      ...formData,
-      children: [...formData.children, { name: '', phone: '', relationship: '' }]
-    });
-  };
+  const relationships = [
+    { value: '', label: '-- Chọn quan hệ --' },
+    { value: 'con', label: 'Con' },
+    { value: 'bố', label: 'Bố' },
+    { value: 'mẹ', label: 'Mẹ' },
+    { value: 'vợ', label: 'Vợ' },
+    { value: 'chồng', label: 'Chồng' },
+    { value: 'anh/chị/em', label: 'Anh/Chị/Em' },
+    { value: 'bạn bè', label: 'Bạn bè' },
+    { value: 'khác', label: 'Khác' }
+  ];
 
-  const updateChild = (index, field, value) => {
-    const newChildren = [...formData.children];
-    newChildren[index][field] = value;
-    setFormData({ ...formData, children: newChildren });
-  };
-
-  const removeChild = (index) => {
-    setFormData({
-      ...formData,
-      children: formData.children.filter((_, i) => i !== index)
-    });
-  };
-
-  const getSyncBadge = (status) => {
-    switch(status) {
-      case 'new': return <span className="badge badge-warning">🟡 Mới</span>;
-      case 'exported': return <span className="badge badge-info">🟠 Chờ SX</span>;
-      case 'synced': return <span className="badge badge-success">🟢 Đã xếp</span>;
-      case 'retail_only': return <span className="badge badge-gray">⚪ Mua lẻ</span>;
-      default: return null;
+  const getStatusBadge = (customer) => {
+    if (customer.is_synced) {
+      return <span className="badge badge-success">🟢 Đã đồng bộ</span>;
     }
+    if (customer.is_pending) {
+      return <span className="badge badge-warning">🟡 Chờ đồng bộ</span>;
+    }
+    if (customer.is_retail) {
+      return <span className="badge badge-gray">⚪ Khách lẻ</span>;
+    }
+    return null;
   };
 
   return (
     <>
       <header className="page-header">
         <h1 className="page-title">👥 Khách hàng</h1>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={16} /> Thêm khách
-        </button>
+        <div className="flex gap-1">
+          <button className="btn btn-outline" onClick={loadCustomers}>
+            <RefreshCw size={16} />
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> Thêm khách
+          </button>
+        </div>
       </header>
 
       <div className="page-content">
+        {error && <div className="alert alert-danger">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
+
         {/* Stats */}
         <div className="grid grid-4 mb-2">
           <div className="stat-card">
             <div className="stat-label">Tổng KH</div>
-            <div className="stat-value">{Object.values(stats).reduce((a, b) => a + b, 0)}</div>
+            <div className="stat-value">{stats.total}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">🟢 Đã xếp nhóm</div>
-            <div className="stat-value">{stats.synced || 0}</div>
+            <div className="stat-label">🟢 Đã đồng bộ SX</div>
+            <div className="stat-value">{stats.synced}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">🟡 Mới tạo</div>
-            <div className="stat-value">{stats.new || 0}</div>
+            <div className="stat-label">🟡 Chờ đồng bộ</div>
+            <div className="stat-value">{stats.pending}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">🟠 Chờ SX</div>
-            <div className="stat-value">{stats.exported || 0}</div>
+            <div className="stat-label">💰 Có số dư</div>
+            <div className="stat-value">{stats.has_balance}</div>
           </div>
         </div>
 
@@ -146,17 +190,19 @@ export default function Customers() {
             </button>
           </form>
 
-          <div className="flex gap-1 mb-2">
-            {['all', 'new', 'exported', 'synced', 'retail_only'].map(f => (
+          <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
+            {[
+              { key: 'all', label: 'Tất cả' },
+              { key: 'synced', label: '🟢 Đã đồng bộ' },
+              { key: 'pending', label: '🟡 Chờ đồng bộ' },
+              { key: 'has_balance', label: '💰 Có số dư' }
+            ].map(f => (
               <button
-                key={f}
-                className={`btn ${filter === f ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setFilter(f)}
+                key={f.key}
+                className={`btn ${filter === f.key ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setFilter(f.key)}
               >
-                {f === 'all' ? 'Tất cả' :
-                 f === 'new' ? '🟡 Mới' :
-                 f === 'exported' ? '🟠 Chờ SX' :
-                 f === 'synced' ? '🟢 Đã xếp' : '⚪ Mua lẻ'}
+                {f.label}
               </button>
             ))}
           </div>
@@ -164,6 +210,10 @@ export default function Customers() {
           {/* Table */}
           {loading ? (
             <div className="loading">Đang tải...</div>
+          ) : customers.length === 0 ? (
+            <div className="text-gray text-center" style={{ padding: '2rem' }}>
+              Không có khách hàng nào
+            </div>
           ) : (
             <table className="table">
               <thead>
@@ -171,13 +221,12 @@ export default function Customers() {
                   <th>SĐT</th>
                   <th>Tên KH</th>
                   <th>Số dư</th>
-                  <th>Nhóm</th>
                   <th>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {customers.map(c => (
-                  <tr key={c.id}>
+                {customers.map((c, idx) => (
+                  <tr key={c.phone || idx}>
                     <td>
                       <div className="flex flex-center gap-1">
                         <Phone size={14} className="text-gray" />
@@ -186,22 +235,23 @@ export default function Customers() {
                     </td>
                     <td>
                       <div>
-                        {c.parent_phone && <span className="text-gray">└─ </span>}
-                        <strong>{c.name}</strong>
+                        <strong>{c.name || 'Chưa có tên'}</strong>
                       </div>
-                      {c.children_count > 0 && (
+                      {c.notes && (
+                        <div className="text-sm text-gray">{c.notes}</div>
+                      )}
+                      {c.requested_product && (
                         <div className="text-sm text-gray">
-                          <Users size={12} /> Có {c.children_count} người nhận
+                          📦 {c.requested_product} ({c.requested_cycles || 1} CT)
                         </div>
                       )}
                     </td>
                     <td>
-                      <span className="font-bold" style={{ color: '#2563eb' }}>
+                      <span className="font-bold" style={{ color: c.balance > 0 ? '#22c55e' : '#64748b' }}>
                         {(c.balance || 0).toLocaleString()}đ
                       </span>
                     </td>
-                    <td>{c.sx_group_name || '-'}</td>
-                    <td>{getSyncBadge(c.sync_status)}</td>
+                    <td>{getStatusBadge(c)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -223,7 +273,7 @@ export default function Customers() {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 {error && <div className="alert alert-danger">{error}</div>}
-                
+
                 <div className="form-group">
                   <label className="form-label">SĐT *</label>
                   <input
@@ -243,7 +293,7 @@ export default function Customers() {
                     className="input"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="chị Nguyễn Thị A"
+                    placeholder="Nguyễn Thị A"
                     required
                   />
                 </div>
@@ -255,97 +305,66 @@ export default function Customers() {
                     className="input"
                     value={formData.notes}
                     onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    placeholder="Ghi chú thêm..."
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Loại khách</label>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      className={`btn ${formData.customer_type === 'subscription' ? 'btn-primary' : 'btn-outline'}`}
-                      onClick={() => setFormData({...formData, customer_type: 'subscription'})}
+                <div className="grid grid-2 gap-1">
+                  <div className="form-group">
+                    <label className="form-label">Sản phẩm</label>
+                    <select
+                      className="select"
+                      value={formData.requested_product}
+                      onChange={(e) => setFormData({...formData, requested_product: e.target.value})}
                     >
-                      Đăng ký Subscription
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn ${formData.customer_type === 'retail' ? 'btn-primary' : 'btn-outline'}`}
-                      onClick={() => setFormData({...formData, customer_type: 'retail'})}
-                    >
-                      Chỉ mua lẻ
-                    </button>
+                      <option value="Nước ép">Nước ép</option>
+                      <option value="Trà">Trà</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Số chu kỳ</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={formData.requested_cycles}
+                      onChange={(e) => setFormData({...formData, requested_cycles: parseInt(e.target.value) || 1})}
+                      min="1"
+                    />
                   </div>
                 </div>
 
-                {formData.customer_type === 'subscription' && (
-                  <div className="grid grid-2 gap-1">
-                    <div className="form-group">
-                      <label className="form-label">Sản phẩm</label>
-                      <select
-                        className="select"
-                        value={formData.requested_product}
-                        onChange={(e) => setFormData({...formData, requested_product: e.target.value})}
-                      >
-                        <option value="Nước ép">Nước ép</option>
-                        <option value="Trà">Trà</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Số chu kỳ</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={formData.requested_cycles}
-                        onChange={(e) => setFormData({...formData, requested_cycles: parseInt(e.target.value) || 1})}
-                        min="1"
-                      />
-                    </div>
+                {/* Khách phụ (mua hộ) */}
+                <div style={{ 
+                  marginTop: '1rem', 
+                  padding: '1rem', 
+                  background: '#f8fafc', 
+                  borderRadius: '8px' 
+                }}>
+                  <div className="form-label" style={{ marginBottom: '0.75rem' }}>
+                    👥 Mua hộ người khác (tùy chọn)
                   </div>
-                )}
-
-                {/* Children */}
-                <div className="form-group">
-                  <div className="flex flex-between flex-center mb-1">
-                    <label className="form-label" style={{ margin: 0 }}>Người nhận</label>
-                    <button type="button" className="btn btn-outline" onClick={addChild}>
-                      <Plus size={14} /> Thêm
-                    </button>
+                  <div className="form-group">
+                    <label className="form-label">SĐT khách chính</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.parent_phone}
+                      onChange={(e) => setFormData({...formData, parent_phone: e.target.value})}
+                      placeholder="SĐT người thanh toán"
+                    />
                   </div>
-                  {formData.children.map((child, i) => (
-                    <div key={i} className="flex gap-1 mb-1">
-                      <input
-                        type="text"
-                        className="input"
-                        placeholder="Tên"
-                        value={child.name}
-                        onChange={(e) => updateChild(i, 'name', e.target.value)}
-                      />
-                      <input
-                        type="text"
-                        className="input"
-                        placeholder="SĐT (nếu có)"
-                        value={child.phone}
-                        onChange={(e) => updateChild(i, 'phone', e.target.value)}
-                      />
-                      <select
-                        className="select"
-                        value={child.relationship}
-                        onChange={(e) => updateChild(i, 'relationship', e.target.value)}
-                      >
-                        <option value="">Quan hệ</option>
-                        <option value="mẹ">Mẹ</option>
-                        <option value="bố">Bố</option>
-                        <option value="chị gái">Chị gái</option>
-                        <option value="anh">Anh</option>
-                        <option value="bạn">Bạn</option>
-                        <option value="khác">Khác</option>
-                      </select>
-                      <button type="button" className="btn btn-danger" onClick={() => removeChild(i)}>
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+                  <div className="form-group">
+                    <label className="form-label">Quan hệ</label>
+                    <select
+                      className="select"
+                      value={formData.relationship}
+                      onChange={(e) => setFormData({...formData, relationship: e.target.value})}
+                    >
+                      {relationships.map(r => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">
