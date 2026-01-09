@@ -189,7 +189,7 @@ export default function Sales() {
         {error && <div className="alert alert-danger">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '1.5rem' }}>
+        <div className="sales-layout">
           {/* Left: Products */}
           <div>
             {/* Customer Search */}

@@ -303,3 +303,51 @@ body {
   .main-content { margin-left: 0; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
 }
+/* ===== SALES PAGE RESPONSIVE ===== */
+.sales-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .sales-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-layout > div:last-child {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+    background: white;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    z-index: 100;
+    border-radius: 16px 16px 0 0;
+    padding: 1rem;
+  }
+
+  .sales-layout > div:first-child {
+    padding-bottom: 200px;
+  }
+}
+/* DEBUG - xóa sau khi test */
+.sales-layout:before {
+  content: "Desktop mode";
+  position: fixed;
+  top: 0;
+  left: 50%;
+  background: red;
+  color: white;
+  padding: 5px 10px;
+  z-index: 9999;
+  font-size: 12px;
+}
+@media (max-width: 768px) {
+  .sales-layout:before {
+    content: "Mobile mode";
+    background: green;
+  }
+}

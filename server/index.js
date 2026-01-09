@@ -23,6 +23,10 @@ const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
 const backupRoutes = require('./routes/backup');
+// === ROUTES MỚI (Phase 2) ===
+const walletsRoutes = require('./routes/wallets');
+const registrationsRoutes = require('./routes/registrations');
+const customersV2Routes = require('./routes/customers-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,6 +59,10 @@ app.use('/api/pos/reports', reportRoutes);
 app.use('/api/pos/users', userRoutes);
 app.use('/api/pos/permissions', userRoutes); // Reuse for permissions
 app.use('/api/pos/backup', backupRoutes);
+// === API MỚI (Phase 2) ===
+app.use('/api/pos/wallets', walletsRoutes);
+app.use('/api/pos/registrations', registrationsRoutes);
+app.use('/api/pos/v2/customers', customersV2Routes);
 
 // Health check
 app.get('/api/pos/health', (req, res) => {
