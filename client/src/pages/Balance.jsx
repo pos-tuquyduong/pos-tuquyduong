@@ -1,19 +1,21 @@
 /**
  * POS - Balance Page (Quản lý số dư)
+ * Updated: Dùng walletsApi mới
  */
 
 import { useState } from 'react';
-import { customersApi, balanceApi } from '../utils/api';
+import { walletsApi, customersV2Api } from '../utils/api';
 import { Search, Plus, Wallet, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 
 export default function Balance() {
   const [customer, setCustomer] = useState(null);
+  const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [searchPhone, setSearchPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   // Topup form
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState('');
@@ -21,22 +23,36 @@ export default function Balance() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const normalizePhone = (phone) => {
+    let p = phone.replace(/\D/g, '');
+    if (p.startsWith('84')) p = '0' + p.slice(2);
+    return p;
+  };
+
   const searchCustomer = async () => {
     if (!searchPhone.trim()) return;
-    
+
     setLoading(true);
     setError('');
 
     try {
-      const data = await customersApi.getByPhone(searchPhone.trim());
-      setCustomer(data);
-      
-      // Load transactions
-      const balanceData = await balanceApi.get(data.id);
-      setTransactions(balanceData.transactions);
+      const phone = normalizePhone(searchPhone.trim());
+
+      // Lấy thông tin khách từ V2 API (merge SX + POS)
+      const customerData = await customersV2Api.get(phone);
+      setCustomer(customerData);
+
+      // Lấy wallet
+      const walletData = await walletsApi.get(phone);
+      setWallet(walletData);
+
+      // Lấy transactions
+      const txData = await walletsApi.transactions(phone);
+      setTransactions(txData.transactions || []);
     } catch (err) {
       setError('Không tìm thấy khách hàng');
       setCustomer(null);
+      setWallet(null);
       setTransactions([]);
     } finally {
       setLoading(false);
@@ -45,7 +61,7 @@ export default function Balance() {
 
   const handleTopup = async (e) => {
     e.preventDefault();
-    
+
     const amount = parseInt(topupAmount);
     if (!amount || amount <= 0) {
       setError('Số tiền không hợp lệ');
@@ -56,8 +72,10 @@ export default function Balance() {
     setError('');
 
     try {
-      await balanceApi.topup(customer.id, {
+      await walletsApi.topup({
+        phone: customer.phone,
         amount,
+        customer_name: customer.name,
         payment_method: paymentMethod,
         notes
       });
@@ -67,11 +85,11 @@ export default function Balance() {
       setTopupAmount('');
       setNotes('');
 
-      // Refresh
-      const data = await customersApi.getByPhone(customer.phone);
-      setCustomer(data);
-      const balanceData = await balanceApi.get(data.id);
-      setTransactions(balanceData.transactions);
+      // Refresh data
+      const walletData = await walletsApi.get(customer.phone);
+      setWallet(walletData);
+      const txData = await walletsApi.transactions(customer.phone);
+      setTransactions(txData.transactions || []);
 
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -83,7 +101,7 @@ export default function Balance() {
 
   const quickAmounts = [100000, 200000, 500000, 1000000, 2000000];
 
-  const formatPrice = (price) => price.toLocaleString() + 'đ';
+  const formatPrice = (price) => (price || 0).toLocaleString() + 'đ';
 
   const formatDate = (date) => new Date(date).toLocaleString('vi-VN', {
     day: '2-digit',
@@ -95,12 +113,15 @@ export default function Balance() {
   const getTypeLabel = (type) => {
     switch(type) {
       case 'topup': return { label: 'Nạp tiền', color: '#22c55e', icon: ArrowUpCircle };
+      case 'purchase': return { label: 'Thanh toán', color: '#ef4444', icon: ArrowDownCircle };
       case 'payment': return { label: 'Thanh toán', color: '#ef4444', icon: ArrowDownCircle };
       case 'refund': return { label: 'Hoàn tiền', color: '#3b82f6', icon: ArrowUpCircle };
       case 'adjust': return { label: 'Điều chỉnh', color: '#64748b', icon: Wallet };
       default: return { label: type, color: '#64748b', icon: Wallet };
     }
   };
+
+  const currentBalance = wallet?.balance || customer?.balance || 0;
 
   return (
     <>
@@ -119,7 +140,7 @@ export default function Balance() {
             <input
               type="text"
               className="input"
-              placeholder="Nhập SĐT hoặc quét QR..."
+              placeholder="Nhập SĐT..."
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchCustomer()}
@@ -137,18 +158,28 @@ export default function Balance() {
               <div className="card">
                 <div className="flex flex-between flex-center mb-2">
                   <div>
-                    <div className="font-bold text-lg">{customer.name}</div>
+                    <div className="font-bold text-lg">{customer.name || 'Khách lẻ'}</div>
                     <div className="text-gray">{customer.phone}</div>
-                    {customer.sx_group_name && (
-                      <div className="text-sm mt-1">📍 {customer.sx_group_name}</div>
+                    {customer.is_pending && (
+                      <span className="badge badge-warning mt-1">Chờ đồng bộ</span>
+                    )}
+                    {customer.is_synced && (
+                      <span className="badge badge-success mt-1">Đã đồng bộ SX</span>
                     )}
                   </div>
                 </div>
 
                 <div className="balance-display">
                   <div className="text-sm" style={{ opacity: 0.8 }}>Số dư hiện tại</div>
-                  <div className="balance-amount">{formatPrice(customer.balance || 0)}</div>
+                  <div className="balance-amount">{formatPrice(currentBalance)}</div>
                 </div>
+
+                {wallet && (
+                  <div className="flex gap-2 mt-2" style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                    <div>Tổng nạp: {formatPrice(wallet.total_topup)}</div>
+                    <div>Đã dùng: {formatPrice(wallet.total_spent)}</div>
+                  </div>
+                )}
 
                 <div className="flex gap-1 mt-2">
                   <button 
@@ -224,7 +255,7 @@ export default function Balance() {
 
                     {topupAmount && (
                       <div className="text-sm mb-2" style={{ color: '#22c55e' }}>
-                        Số dư sau nạp: {formatPrice((customer.balance || 0) + parseInt(topupAmount))}
+                        Số dư sau nạp: {formatPrice(currentBalance + parseInt(topupAmount))}
                       </div>
                     )}
 

@@ -1,5 +1,6 @@
 /**
  * POS Frontend - API Utils
+ * Updated: Thêm walletsApi, registrationsApi, customersV2Api
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/pos';
@@ -44,7 +45,6 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        // Token hết hạn
         if (response.status === 401) {
           this.setToken(null);
           window.location.href = '/login';
@@ -81,11 +81,10 @@ class ApiClient {
     return this.request(endpoint, { method: 'DELETE' });
   }
 
-  // Upload file
   async upload(endpoint, formData) {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getToken();
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
@@ -99,7 +98,6 @@ class ApiClient {
     return data;
   }
 
-  // Download file
   async download(endpoint, filename) {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getToken();
@@ -136,7 +134,53 @@ export const authApi = {
     api.put('/auth/password', { current_password, new_password })
 };
 
-// Customers API
+// ============ API MỚI ============
+
+// Wallets API (thay thế balanceApi cũ)
+export const walletsApi = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/wallets${query ? '?' + query : ''}`);
+  },
+  get: (phone) => api.get(`/wallets/${phone}`),
+  topup: (data) => api.post('/wallets/topup', data),
+  deduct: (data) => api.post('/wallets/deduct', data),
+  adjust: (data) => api.post('/wallets/adjust', data),
+  transactions: (phone, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/wallets/${phone}/transactions${query ? '?' + query : ''}`);
+  }
+};
+
+// Registrations API (thay thế sync cho khách mới)
+export const registrationsApi = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/registrations${query ? '?' + query : ''}`);
+  },
+  get: (id) => api.get(`/registrations/${id}`),
+  create: (data) => api.post('/registrations', data),
+  update: (id, data) => api.put(`/registrations/${id}`, data),
+  delete: (id) => api.delete(`/registrations/${id}`),
+  stats: () => api.get('/registrations/stats/summary'),
+  exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${new Date().toISOString().slice(0,10)}.csv`),
+  markExported: (ids) => api.post('/registrations/mark-exported', { ids })
+};
+
+// Customers V2 API (merge SX + POS)
+export const customersV2Api = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/v2/customers${query ? '?' + query : ''}`);
+  },
+  get: (phone) => api.get(`/v2/customers/${phone}`),
+  getFull: (phone) => api.get(`/v2/customers/${phone}/full`),
+  search: (query) => api.get(`/v2/customers/search/${encodeURIComponent(query)}`)
+};
+
+// ============ API CŨ (giữ lại để tương thích) ============
+
+// Customers API (cũ)
 export const customersApi = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -152,7 +196,7 @@ export const customersApi = {
   addChild: (id, data) => api.post(`/customers/${id}/children`, data)
 };
 
-// Balance API
+// Balance API (cũ - giữ lại để tương thích)
 export const balanceApi = {
   get: (customerId, params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -206,7 +250,7 @@ export const stockApi = {
     api.get(`/stock/check?product_type=${product_type}&product_id=${product_id || ''}&quantity=${quantity}`)
 };
 
-// Sync API
+// Sync API (cũ - giữ lại)
 export const syncApi = {
   status: () => api.get('/sync/status'),
   exportPreview: () => api.get('/sync/export/preview'),
