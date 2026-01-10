@@ -1,7 +1,10 @@
 /**
  * POS System - Order Routes
  * Quản lý đơn hàng bán lẻ
- * FIXED: Khớp với cấu trúc bảng pos_orders trong database.js
+ * 
+ * THIẾT KẾ: phone làm định danh chính
+ * - Thanh toán số dư dùng pos_wallets (theo phone)
+ * - Không dùng pos_customers.balance
  */
 
 const express = require('express');
@@ -10,8 +13,7 @@ const { authenticate, checkPermission } = require('../middleware/auth');
 const { 
   generateOrderCode, 
   getNow, 
-  getToday,
-  calculateOrderTotal 
+  normalizePhone
 } = require('../utils/helpers');
 const { checkStock, outStockFIFO } = require('../utils/sxApi');
 
@@ -23,7 +25,7 @@ const router = express.Router();
  */
 router.get('/', authenticate, (req, res) => {
   try {
-    const { date, from, to, customer_id, status, page = 1, limit = 50 } = req.query;
+    const { date, from, to, customer_phone, status, page = 1, limit = 50 } = req.query;
 
     let sql = `
       SELECT o.*, 
@@ -39,7 +41,10 @@ router.get('/', authenticate, (req, res) => {
       if (from) { sql += ` AND DATE(o.created_at) >= ?`; params.push(from); }
       if (to) { sql += ` AND DATE(o.created_at) <= ?`; params.push(to); }
     }
-    if (customer_id) { sql += ` AND o.customer_id = ?`; params.push(customer_id); }
+    if (customer_phone) { 
+      sql += ` AND o.customer_phone = ?`; 
+      params.push(normalizePhone(customer_phone)); 
+    }
     if (status) { sql += ` AND o.status = ?`; params.push(status); }
 
     sql += ` ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
@@ -84,11 +89,11 @@ router.get('/:id', authenticate, (req, res) => {
 /**
  * POST /api/pos/orders
  * Tạo đơn hàng mới
- * FIXED: Dùng sx_product_type + sx_product_id và khớp với database schema
+ * Thanh toán số dư dùng pos_wallets (theo phone)
  */
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { customer_id, items, payment_method, discount = 0, discount_reason, notes } = req.body;
+    const { customer_phone, customer_name, items, payment_method, discount = 0, discount_reason, notes } = req.body;
 
     // Validate
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -103,7 +108,6 @@ router.post('/', authenticate, async (req, res) => {
     let subtotal = 0;
 
     for (const item of items) {
-      // FIXED: Dùng sx_product_type + sx_product_id thay vì id
       let product;
       if (item.sx_product_type && item.sx_product_id !== undefined) {
         product = queryOne(
@@ -131,7 +135,6 @@ router.post('/', authenticate, async (req, res) => {
         }
       } catch (err) {
         console.error('Stock check error:', err.message);
-        // Cho phép tiếp tục nếu không kết nối được SX
       }
 
       const itemTotal = product.price * item.quantity;
@@ -151,42 +154,44 @@ router.post('/', authenticate, async (req, res) => {
 
     const total = Math.max(0, subtotal - discount);
 
-    // Lấy thông tin khách hàng
-    let customer = null;
-    if (customer_id) {
-      customer = queryOne('SELECT * FROM pos_customers WHERE id = ?', [customer_id]);
-    }
+    // Normalize phone
+    const phone = normalizePhone(customer_phone);
 
-    // Thanh toán bằng số dư
+    // Thanh toán bằng số dư - dùng pos_wallets
     let balanceAmount = 0;
     let balanceBefore = 0;
     let balanceAfter = 0;
 
-    if (payment_method === 'balance' && customer) {
-      if (customer.balance < total) {
-        return res.status(400).json({ error: `Số dư không đủ. Hiện có: ${customer.balance.toLocaleString()}đ` });
+    if (payment_method === 'balance' && phone) {
+      const wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        return res.status(400).json({ 
+          error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ, cần: ${total.toLocaleString()}đ` 
+        });
       }
+
       balanceAmount = total;
-      balanceBefore = customer.balance;
-      balanceAfter = customer.balance - total;
+      balanceBefore = currentBalance;
+      balanceAfter = currentBalance - total;
     }
 
-    // Tạo đơn hàng - KHỚP VỚI DATABASE SCHEMA
+    // Tạo đơn hàng
     const orderCode = generateOrderCode();
     const now = getNow();
 
     const result = run(`
       INSERT INTO pos_orders (
-        code, customer_id, customer_name, customer_phone,
+        code, customer_phone, customer_name,
         subtotal, discount, discount_reason, total,
         payment_method, balance_amount,
         status, notes, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
     `, [
       orderCode,
-      customer?.id || null,
-      customer?.name || 'Khách lẻ',
-      customer?.phone || null,
+      phone || null,
+      customer_name || 'Khách lẻ',
       subtotal,
       discount,
       discount_reason || null,
@@ -217,19 +222,23 @@ router.post('/', authenticate, async (req, res) => {
       }
     }
 
-    // Trừ số dư khách hàng
-    if (balanceAmount > 0 && customer) {
-      run('UPDATE pos_customers SET balance = ? WHERE id = ?', 
-        [balanceAfter, customer.id]);
+    // Trừ số dư từ pos_wallets
+    if (balanceAmount > 0 && phone) {
+      // Cập nhật wallet
+      const walletExists = queryOne('SELECT id FROM pos_wallets WHERE phone = ?', [phone]);
+      if (walletExists) {
+        run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+          [balanceAfter, balanceAmount, now, phone]);
+      }
 
-      // Ghi log giao dịch số dư
+      // Ghi log giao dịch
       run(`
         INSERT INTO pos_balance_transactions (
-          customer_id, customer_phone, type, amount, 
-          balance_before, balance_after, reference_type, reference_id,
-          notes, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [customer.id, customer.phone, 'payment', -balanceAmount, balanceBefore, balanceAfter, 'order', orderId, 'Thanh toán đơn hàng ' + orderCode, req.user.username]);
+          customer_phone, customer_name, type, amount, 
+          balance_before, balance_after, order_id,
+          notes, created_by, created_at
+        ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)
+      `, [phone, customer_name || null, -balanceAmount, balanceBefore, balanceAfter, orderId, 'Thanh toán đơn hàng ' + orderCode, req.user.username, now]);
     }
 
     res.json({ 
@@ -238,7 +247,8 @@ router.post('/', authenticate, async (req, res) => {
         id: orderId, 
         code: orderCode, 
         total,
-        items: orderItems.length
+        items: orderItems.length,
+        balance_after: balanceAfter
       } 
     });
 
@@ -250,9 +260,9 @@ router.post('/', authenticate, async (req, res) => {
 
 /**
  * PUT /api/pos/orders/:id/cancel
- * Hủy đơn hàng
+ * Hủy đơn hàng - hoàn tiền vào pos_wallets
  */
-router.put('/:id/cancel', authenticate, checkPermission('cancel_orders'), async (req, res) => {
+router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (req, res) => {
   try {
     const { reason } = req.body;
     const order = queryOne('SELECT * FROM pos_orders WHERE id = ?', [req.params.id]);
@@ -266,23 +276,25 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_orders'), async 
 
     const now = getNow();
 
-    // Hoàn lại số dư nếu đã thanh toán bằng balance
-    if (order.balance_amount > 0 && order.customer_id) {
-      const customer = queryOne('SELECT * FROM pos_customers WHERE id = ?', [order.customer_id]);
-      if (customer) {
-        const balanceBefore = customer.balance;
-        const balanceAfter = customer.balance + order.balance_amount;
+    // Hoàn lại số dư vào pos_wallets nếu đã thanh toán bằng balance
+    if (order.balance_amount > 0 && order.customer_phone) {
+      const phone = order.customer_phone;
+      const wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
 
-        run('UPDATE pos_customers SET balance = ? WHERE id = ?',
-          [balanceAfter, customer.id]);
+      if (wallet) {
+        const balanceBefore = wallet.balance;
+        const balanceAfter = wallet.balance + order.balance_amount;
+
+        run('UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?',
+          [balanceAfter, order.balance_amount, now, phone]);
 
         run(`
           INSERT INTO pos_balance_transactions (
-            customer_id, customer_phone, type, amount,
-            balance_before, balance_after, reference_type, reference_id,
-            notes, created_by
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [customer.id, customer.phone, 'refund', order.balance_amount, balanceBefore, balanceAfter, 'order', order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username]);
+            customer_phone, customer_name, type, amount,
+            balance_before, balance_after, order_id,
+            notes, created_by, created_at
+          ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
+        `, [phone, order.customer_name, order.balance_amount, balanceBefore, balanceAfter, order.id, 'Hoàn tiền hủy đơn ' + order.code, req.user.username, now]);
       }
     }
 

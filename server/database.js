@@ -1,6 +1,11 @@
 /**
  * POS System - Database Module
  * Sử dụng sql.js (SQLite in JavaScript)
+ * 
+ * THIẾT KẾ: phone làm định danh chính
+ * - pos_wallets: quản lý số dư theo phone
+ * - pos_balance_transactions: lịch sử giao dịch theo phone
+ * - pos_customers: chỉ lưu thông tin khách (không có balance)
  */
 
 const initSqlJs = require('sql.js');
@@ -14,14 +19,12 @@ let db = null;
  */
 async function initDatabase(dbPath = './data/pos.db') {
   const SQL = await initSqlJs();
-  
-  // Đảm bảo thư mục data tồn tại
+
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  
-  // Load database nếu đã tồn tại, hoặc tạo mới
+
   if (fs.existsSync(dbPath)) {
     const fileBuffer = fs.readFileSync(dbPath);
     db = new SQL.Database(fileBuffer);
@@ -30,16 +33,11 @@ async function initDatabase(dbPath = './data/pos.db') {
     db = new SQL.Database();
     console.log('✅ Tạo database mới:', dbPath);
   }
-  
-  // Tạo các bảng
+
   createTables();
-  
-  // Tạo dữ liệu mặc định
   seedDefaultData();
-  
-  // Lưu database
   saveDatabase(dbPath);
-  
+
   return db;
 }
 
@@ -78,7 +76,8 @@ function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BẢNG 3: KHÁCH HÀNG
+  // BẢNG 3: KHÁCH HÀNG (chỉ thông tin, KHÔNG có balance)
+  // Số dư quản lý riêng trong pos_wallets theo phone
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
     CREATE TABLE IF NOT EXISTS pos_customers (
@@ -88,7 +87,6 @@ function createTables() {
       notes TEXT,
       parent_phone TEXT,
       relationship TEXT,
-      balance REAL DEFAULT 0,
       qr_code TEXT UNIQUE,
       pin_code TEXT,
       email TEXT,
@@ -135,12 +133,12 @@ function createTables() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 5: ĐƠN HÀNG
+  // Dùng customer_phone làm key chính, customer_id chỉ để tham chiếu
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
     CREATE TABLE IF NOT EXISTS pos_orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT UNIQUE NOT NULL,
-      customer_id INTEGER,
       customer_phone TEXT,
       customer_name TEXT,
       subtotal REAL DEFAULT 0,
@@ -167,7 +165,6 @@ function createTables() {
       notes TEXT,
       created_by TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (customer_id) REFERENCES pos_customers(id),
       FOREIGN KEY (promotion_id) REFERENCES pos_promotions(id)
     )
   `);
@@ -193,29 +190,42 @@ function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BẢNG 7: GIAO DỊCH SỐ DƯ
+  // BẢNG 7: SỐ DƯ KHÁCH HÀNG (phone là key chính)
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
-    CREATE TABLE IF NOT EXISTS pos_balance_transactions (
+    CREATE TABLE IF NOT EXISTS pos_wallets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      customer_id INTEGER NOT NULL,
-      customer_phone TEXT,
-      type TEXT NOT NULL,
-      amount REAL NOT NULL,
-      balance_before REAL,
-      balance_after REAL,
-      reference_type TEXT,
-      reference_id INTEGER,
-      payment_method TEXT,
-      notes TEXT,
-      created_by TEXT,
+      phone TEXT UNIQUE NOT NULL,
+      balance REAL DEFAULT 0,
+      total_topup REAL DEFAULT 0,
+      total_spent REAL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (customer_id) REFERENCES pos_customers(id)
+      updated_at DATETIME
     )
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BẢNG 8: KHUYẾN MÃI
+  // BẢNG 8: LỊCH SỬ GIAO DỊCH SỐ DƯ (phone là key chính)
+  // ═══════════════════════════════════════════════════════════════════════════
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pos_balance_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_phone TEXT NOT NULL,
+      customer_name TEXT,
+      type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      balance_before REAL DEFAULT 0,
+      balance_after REAL DEFAULT 0,
+      order_id INTEGER,
+      payment_method TEXT DEFAULT 'cash',
+      notes TEXT,
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 9: KHUYẾN MÃI
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
     CREATE TABLE IF NOT EXISTS pos_promotions (
@@ -239,14 +249,14 @@ function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BẢNG 9: LOG SỬ DỤNG KHUYẾN MÃI
+  // BẢNG 10: LOG SỬ DỤNG KHUYẾN MÃI
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
     CREATE TABLE IF NOT EXISTS pos_promotion_usage (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       promotion_id INTEGER NOT NULL,
       order_id INTEGER NOT NULL,
-      customer_id INTEGER,
+      customer_phone TEXT,
       discount_amount REAL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (promotion_id) REFERENCES pos_promotions(id),
@@ -255,13 +265,13 @@ function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BẢNG 10: YÊU CẦU HOÀN TIỀN
+  // BẢNG 11: YÊU CẦU HOÀN TIỀN
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
     CREATE TABLE IF NOT EXISTS pos_refund_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL,
-      customer_id INTEGER NOT NULL,
+      customer_phone TEXT NOT NULL,
       order_total REAL,
       balance_paid REAL,
       refund_amount REAL,
@@ -273,13 +283,12 @@ function createTables() {
       processed_at DATETIME,
       rejection_reason TEXT,
       balance_transaction_id INTEGER,
-      FOREIGN KEY (order_id) REFERENCES pos_orders(id),
-      FOREIGN KEY (customer_id) REFERENCES pos_customers(id)
+      FOREIGN KEY (order_id) REFERENCES pos_orders(id)
     )
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BẢNG 11: LOG ĐỒNG BỘ
+  // BẢNG 12: LOG ĐỒNG BỘ
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`
     CREATE TABLE IF NOT EXISTS pos_sync_logs (
@@ -296,19 +305,68 @@ function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // INDEXES
+  // BẢNG 13: ĐĂNG KÝ MỚI
+  // ═══════════════════════════════════════════════════════════════════════════
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pos_registrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      notes TEXT,
+      parent_phone TEXT,
+      relationship TEXT,
+      requested_product TEXT,
+      requested_cycles INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'pending',
+      exported_at DATETIME,
+      exported_by TEXT,
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 14: LOG EXPORT
+  // ═══════════════════════════════════════════════════════════════════════════
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pos_export_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exported_at TEXT NOT NULL,
+      exported_by TEXT NOT NULL,
+      registration_ids TEXT NOT NULL,
+      customer_count INTEGER NOT NULL,
+      file_name TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INDEXES - Tối ưu cho phone làm key chính
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`CREATE INDEX IF NOT EXISTS idx_customer_phone ON pos_customers(phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_customer_parent ON pos_customers(parent_phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_customer_sync ON pos_customers(sync_status)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_customer_type ON pos_customers(customer_type)`);
+
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_date ON pos_orders(created_at)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_customer ON pos_orders(customer_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_order_phone ON pos_orders(customer_phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_status ON pos_orders(status)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_balance_customer ON pos_balance_transactions(customer_id)`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_wallet_phone ON pos_wallets(phone)`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_balance_phone ON pos_balance_transactions(customer_phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_balance_type ON pos_balance_transactions(type)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_balance_date ON pos_balance_transactions(created_at)`);
+
   db.run(`CREATE INDEX IF NOT EXISTS idx_product_category ON pos_products(category)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_product_active ON pos_products(is_active)`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_registration_phone ON pos_registrations(phone)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_registration_status ON pos_registrations(status)`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_refund_phone ON pos_refund_requests(customer_phone)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_refund_status ON pos_refund_requests(status)`);
 
   console.log('✅ Đã tạo tất cả các bảng');
 }
@@ -318,11 +376,10 @@ function createTables() {
  */
 function seedDefaultData() {
   const bcrypt = require('bcryptjs');
-  
-  // Kiểm tra đã có admin chưa
+
+  // Tạo admin mặc định
   const adminExists = db.exec("SELECT COUNT(*) as count FROM pos_users WHERE username = 'admin'");
   if (adminExists[0]?.values[0][0] === 0) {
-    // Tạo admin mặc định
     const hashedPassword = bcrypt.hashSync('admin123', 10);
     db.run(`
       INSERT INTO pos_users (username, password, display_name, role, is_active)
@@ -335,7 +392,6 @@ function seedDefaultData() {
   const permissionsExist = db.exec("SELECT COUNT(*) as count FROM pos_permissions");
   if (permissionsExist[0]?.values[0][0] === 0) {
     const permissions = [
-      // Admin có tất cả
       ['admin', 'view_customer_balance', 1],
       ['admin', 'topup_balance', 1],
       ['admin', 'adjust_balance', 1],
@@ -349,7 +405,6 @@ function seedDefaultData() {
       ['admin', 'view_all_orders', 1],
       ['admin', 'manage_promotions', 1],
       ['admin', 'manage_permissions', 1],
-      // Staff mặc định
       ['staff', 'view_customer_balance', 1],
       ['staff', 'topup_balance', 1],
       ['staff', 'adjust_balance', 0],
@@ -374,7 +429,7 @@ function seedDefaultData() {
     console.log('✅ Đã tạo phân quyền mặc định');
   }
 
-  // Tạo sản phẩm mẫu (nước ép CT1-CT8 + trà)
+  // Tạo sản phẩm mẫu
   const productsExist = db.exec("SELECT COUNT(*) as count FROM pos_products");
   if (productsExist[0]?.values[0][0] === 0) {
     const products = [
@@ -455,10 +510,9 @@ function run(sql, params = []) {
     }
     stmt.step();
     stmt.free();
-    
-    // Lưu database sau mỗi thay đổi
+
     saveDatabase(process.env.DB_PATH || './data/pos.db');
-    
+
     return {
       lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0][0],
       changes: db.getRowsModified()

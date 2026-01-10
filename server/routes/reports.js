@@ -1,6 +1,10 @@
 /**
  * POS System - Report Routes
  * Báo cáo doanh thu, bán hàng
+ * 
+ * THIẾT KẾ: phone làm định danh chính
+ * - Số dư từ pos_wallets
+ * - Giao dịch từ pos_balance_transactions (theo phone)
  */
 
 const express = require('express');
@@ -190,14 +194,14 @@ router.get('/products', authenticate, checkPermission('view_reports'), (req, res
 
 /**
  * GET /api/pos/reports/balance
- * Báo cáo số dư khách hàng
+ * Báo cáo số dư khách hàng - từ pos_wallets
  */
 router.get('/balance', authenticate, checkPermission('view_reports'), (req, res) => {
   try {
     // Top khách có số dư cao
     const topBalance = query(`
-      SELECT id, phone, name, balance
-      FROM pos_customers
+      SELECT phone, balance, total_topup, total_spent
+      FROM pos_wallets
       WHERE balance > 0
       ORDER BY balance DESC
       LIMIT 20
@@ -206,23 +210,26 @@ router.get('/balance', authenticate, checkPermission('view_reports'), (req, res)
     // Tổng số dư trong hệ thống
     const totalBalance = queryOne(`
       SELECT 
-        SUM(balance) as total,
-        COUNT(CASE WHEN balance > 0 THEN 1 END) as customer_count
-      FROM pos_customers
+        COALESCE(SUM(balance), 0) as total,
+        COUNT(CASE WHEN balance > 0 THEN 1 END) as customer_count,
+        COALESCE(SUM(total_topup), 0) as all_time_topup,
+        COALESCE(SUM(total_spent), 0) as all_time_spent
+      FROM pos_wallets
     `);
 
     // Giao dịch gần đây
     const recentTransactions = query(`
-      SELECT t.*, c.name as customer_name
-      FROM pos_balance_transactions t
-      LEFT JOIN pos_customers c ON t.customer_id = c.id
-      ORDER BY t.created_at DESC
+      SELECT *
+      FROM pos_balance_transactions
+      ORDER BY created_at DESC
       LIMIT 50
     `);
 
     res.json({
       total_balance: totalBalance?.total || 0,
       customer_with_balance: totalBalance?.customer_count || 0,
+      all_time_topup: totalBalance?.all_time_topup || 0,
+      all_time_spent: totalBalance?.all_time_spent || 0,
       top_balance: topBalance,
       recent_transactions: recentTransactions
     });

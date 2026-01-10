@@ -1,6 +1,10 @@
 /**
  * POS System - Main Server
  * Hệ thống bán hàng cho Juice Delivery
+ * 
+ * THIẾT KẾ: phone làm định danh chính
+ * - Số dư: pos_wallets + wallets.js
+ * - Đã bỏ balance.js (route cũ dùng customer_id)
  */
 
 require('dotenv').config();
@@ -14,7 +18,6 @@ const { initDatabase } = require('./database');
 // Import routes
 const authRoutes = require('./routes/auth');
 const customerRoutes = require('./routes/customers');
-const balanceRoutes = require('./routes/balance');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const refundRoutes = require('./routes/refunds');
@@ -23,7 +26,7 @@ const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
 const backupRoutes = require('./routes/backup');
-// === ROUTES MỚI (Phase 2) ===
+// === ROUTES MỚI (Phase 2) - phone làm key chính ===
 const walletsRoutes = require('./routes/wallets');
 const registrationsRoutes = require('./routes/registrations');
 const customersV2Routes = require('./routes/customers-v2');
@@ -33,7 +36,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: '*', // Cho phép tất cả trong dev, production nên giới hạn
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -49,7 +52,6 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api/pos/auth', authRoutes);
 app.use('/api/pos/customers', customerRoutes);
-app.use('/api/pos/customers', balanceRoutes); // /api/pos/customers/:id/balance
 app.use('/api/pos/products', productRoutes);
 app.use('/api/pos/orders', orderRoutes);
 app.use('/api/pos/refunds', refundRoutes);
@@ -57,7 +59,7 @@ app.use('/api/pos/sync', syncRoutes);
 app.use('/api/pos/stock', stockRoutes);
 app.use('/api/pos/reports', reportRoutes);
 app.use('/api/pos/users', userRoutes);
-app.use('/api/pos/permissions', userRoutes); // Reuse for permissions
+app.use('/api/pos/permissions', userRoutes);
 app.use('/api/pos/backup', backupRoutes);
 // === API MỚI (Phase 2) ===
 app.use('/api/pos/wallets', walletsRoutes);
@@ -69,8 +71,9 @@ app.get('/api/pos/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    service: 'POS System'
+    version: '2.0.0',
+    service: 'POS System',
+    design: 'phone-based identity'
   });
 });
 
@@ -78,13 +81,17 @@ app.get('/api/pos/health', (req, res) => {
 app.get('/api/pos', (req, res) => {
   res.json({
     name: 'POS System API',
-    version: '1.0.0',
+    version: '2.0.0',
+    design: 'phone làm định danh chính',
     endpoints: {
       auth: '/api/pos/auth',
       customers: '/api/pos/customers',
       products: '/api/pos/products',
       orders: '/api/pos/orders',
       refunds: '/api/pos/refunds',
+      wallets: '/api/pos/wallets',
+      registrations: '/api/pos/registrations',
+      'customers-v2': '/api/pos/v2/customers',
       sync: '/api/pos/sync',
       stock: '/api/pos/stock',
       reports: '/api/pos/reports',
@@ -117,19 +124,18 @@ app.use((err, req, res, next) => {
 // Start server
 async function startServer() {
   try {
-    // Khởi tạo database
     const dbPath = process.env.DB_PATH || './data/pos.db';
     await initDatabase(dbPath);
     console.log('✅ Database initialized');
 
-    // Start listening
     app.listen(PORT, () => {
-      console.log('═══════════════════════════════════════════════════');
-      console.log(`  🚀 POS System Server`);
+      console.log('══════════════════════════════════════════════════');
+      console.log(`  🚀 POS System Server v2.0`);
       console.log(`  📍 http://localhost:${PORT}`);
       console.log(`  📊 API: http://localhost:${PORT}/api/pos`);
-      console.log(`  🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log('═══════════════════════════════════════════════════');
+      console.log(`  🔑 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`  📱 Design: phone-based identity`);
+      console.log('══════════════════════════════════════════════════');
       console.log('');
       console.log('  Default login: admin / admin123');
       console.log('');
