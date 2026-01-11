@@ -94,6 +94,7 @@ export default function Settings() {
   const savePermissions = async () => {
     setSaving(true);
     try {
+      await usersApi.updatePermissions('manager', permissions.manager);
       await usersApi.updatePermissions('staff', permissions.staff);
       setMessage('Đã lưu phân quyền!');
       setTimeout(() => setMessage(''), 3000);
@@ -385,32 +386,92 @@ export default function Settings() {
             /* TAB PHÂN QUYỀN */
             <>
               <div className="flex flex-between mb-2">
-                <div className="card-title" style={{ margin: 0 }}>Phân quyền cho Staff</div>
+                <div className="card-title" style={{ margin: 0 }}>Phân quyền theo vai trò</div>
                 <button className="btn btn-primary" onClick={savePermissions} disabled={saving}>
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
               <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                Admin luôn có tất cả quyền. Chỉ cần cấu hình quyền cho Staff.
+                Owner luôn có tất cả quyền. Cấu hình quyền cho Manager và Staff.
               </p>
-              <div className="grid grid-2 gap-1">
-                {allPerms.map(p => (
-                  <label key={p.key} className="flex flex-center gap-1" style={{ 
-                    padding: '0.75rem', 
-                    cursor: 'pointer',
-                    background: permissions.staff?.[p.key] ? '#f0fdf4' : '#fff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px'
-                  }}>
-                    <input 
-                      type="checkbox" 
-                      checked={permissions.staff?.[p.key] || false} 
-                      onChange={() => togglePermission('staff', p.key)} 
-                      style={{ width: '18px', height: '18px' }}
-                    />
-                    <span style={{ flex: 1 }}>{p.label}</span>
-                  </label>
-                ))}
+
+              {/* PHÂN QUYỀN CHO MANAGER */}
+              <div style={{ 
+                marginBottom: '1.5rem', 
+                padding: '1rem', 
+                background: '#fef3c7', 
+                borderRadius: '12px',
+                border: '2px solid #fbbf24'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#92400e'
+                }}>
+                  📋 Phân quyền cho Manager
+                </div>
+                <div className="grid grid-2 gap-1">
+                  {allPerms.map(p => (
+                    <label key={`manager-${p.key}`} className="flex flex-center gap-1" style={{ 
+                      padding: '0.5rem 0.75rem', 
+                      cursor: 'pointer',
+                      background: permissions.manager?.[p.key] ? '#fef9c3' : '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem'
+                    }}>
+                      <input 
+                        type="checkbox" 
+                        checked={permissions.manager?.[p.key] || false} 
+                        onChange={() => togglePermission('manager', p.key)} 
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ flex: 1 }}>{p.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* PHÂN QUYỀN CHO STAFF */}
+              <div style={{ 
+                padding: '1rem', 
+                background: '#f0fdf4', 
+                borderRadius: '12px',
+                border: '2px solid #86efac'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#166534'
+                }}>
+                  👤 Phân quyền cho Staff
+                </div>
+                <div className="grid grid-2 gap-1">
+                  {allPerms.map(p => (
+                    <label key={`staff-${p.key}`} className="flex flex-center gap-1" style={{ 
+                      padding: '0.5rem 0.75rem', 
+                      cursor: 'pointer',
+                      background: permissions.staff?.[p.key] ? '#dcfce7' : '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem'
+                    }}>
+                      <input 
+                        type="checkbox" 
+                        checked={permissions.staff?.[p.key] || false} 
+                        onChange={() => togglePermission('staff', p.key)} 
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ flex: 1 }}>{p.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </>
           ) : tab === 'backup' ? (
