@@ -83,7 +83,7 @@ export default function Layout() {
           <div style={{ marginBottom: '0.75rem' }}>
             <div style={{ fontWeight: 600 }}>{user?.display_name || user?.username}</div>
             <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-              {user?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}
+              {user?.role === 'owner' ? 'Owner' : user?.role === 'manager' ? 'Manager' : 'Staff'}
             </div>
           </div>
           <button 
@@ -147,7 +147,7 @@ export default function Layout() {
             <div className="mobile-menu-user">
               <div style={{ fontWeight: 600 }}>{user?.display_name || user?.username}</div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                {user?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}
+                {user?.role === 'owner' ? 'Owner' : user?.role === 'manager' ? 'Manager' : 'Staff'}
               </div>
             </div>
             <nav className="mobile-menu-nav">

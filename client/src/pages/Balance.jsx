@@ -28,6 +28,10 @@ export default function Balance() {
   const [transactions, setTransactions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // Adjust modal (chỉ owner)
+  const [showAdjust, setShowAdjust] = useState(false);
+  const [adjustData, setAdjustData] = useState({ phone: "", name: "", amount: "", reason: "" });
+
   useEffect(() => {
     loadData();
   }, []);
@@ -133,6 +137,44 @@ export default function Balance() {
       setTransactions([]);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+
+  // Mở popup điều chỉnh (chỉ owner)
+  const openAdjust = (customer) => {
+    setAdjustData({
+      phone: customer.phone || "",
+      name: customer.name || "",
+      amount: "",
+      reason: ""
+    });
+    setShowAdjust(true);
+  };
+
+  // Xử lý điều chỉnh số dư
+  const handleAdjust = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const result = await walletsApi.adjust({
+        phone: adjustData.phone,
+        amount: parseInt(adjustData.amount),
+        customer_name: adjustData.name,
+        reason: adjustData.reason
+      });
+
+      const sign = result.adjusted > 0 ? "+" : "";
+      setSuccess(`Đã điều chỉnh ${sign}${result.adjusted.toLocaleString()}đ cho ${adjustData.name || adjustData.phone}. Số dư mới: ${result.balance.toLocaleString()}đ`);
+      setShowAdjust(false);
+      loadData();
+      setTimeout(() => setSuccess(""), 5000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -270,6 +312,14 @@ export default function Balance() {
                           title="Lịch sử"
                         >
                           <History size={14} />
+                        </button>
+                        <button 
+                          className="btn btn-warning" 
+                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                          onClick={() => openAdjust(c)}
+                          title="Điều chỉnh số dư"
+                        >
+                          ±
                         </button>
                       </div>
                     </td>
@@ -423,6 +473,67 @@ export default function Balance() {
           </div>
         </div>
       )}
+
+      {/* Adjust Modal */}
+      {showAdjust && (
+        <div className="modal-overlay" onClick={() => setShowAdjust(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">⚖️ Điều chỉnh số dư</div>
+              <button className="btn btn-outline" onClick={() => setShowAdjust(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleAdjust}>
+              <div className="modal-body">
+                {error && <div className="alert alert-danger">{error}</div>}
+
+                <div className="form-group">
+                  <label className="form-label">Khách hàng</label>
+                  <input type="text" className="input" value={`${adjustData.name} - ${adjustData.phone}`} disabled />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Số tiền điều chỉnh *</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={adjustData.amount}
+                    onChange={(e) => setAdjustData({...adjustData, amount: e.target.value})}
+                    placeholder="VD: 50000 hoặc -30000"
+                    required
+                  />
+                  <div className="text-sm text-gray mt-1">
+                    Nhập số dương để tăng, số âm để giảm
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Lý do điều chỉnh *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={adjustData.reason}
+                    onChange={(e) => setAdjustData({...adjustData, reason: e.target.value})}
+                    placeholder="VD: Sửa lỗi nhập sai, bù trừ..."
+                    required
+                    minLength={3}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setShowAdjust(false)}>
+                  Hủy
+                </button>
+                <button type="submit" className="btn btn-warning" disabled={submitting}>
+                  {submitting ? "Đang xử lý..." : "Xác nhận điều chỉnh"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

@@ -23,6 +23,7 @@ export default function Settings() {
   const [userForm, setUserForm] = useState({ username: '', password: '', display_name: '', role: 'staff' });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => { loadData(); }, [tab]);
 
@@ -159,12 +160,17 @@ export default function Settings() {
   const openResetPassword = (user) => {
     setEditingUser(user);
     setNewPassword('');
+    setConfirmPassword('');
     setShowPasswordModal(true);
   };
 
   const resetPassword = async () => {
     if (!newPassword || newPassword.length < 6) {
       setMessage('Lỗi: Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage('Lỗi: Mật khẩu xác nhận không khớp');
       return;
     }
     setSaving(true);
@@ -331,8 +337,8 @@ export default function Settings() {
                       <td><strong>{u.username}</strong></td>
                       <td>{u.display_name}</td>
                       <td>
-                        <span className={`badge ${u.role === 'admin' ? 'badge-warning' : 'badge-info'}`}>
-                          {u.role === 'admin' ? '👑 Admin' : '👤 Staff'}
+                        <span className={`badge ${u.role === 'owner' ? 'badge-warning' : u.role === 'manager' ? 'badge-info' : 'badge-info'}`}>
+                          {u.role === 'owner' ? '👑 Owner' : u.role === 'manager' ? '📋 Manager' : '👤 Staff'}
                         </span>
                       </td>
                       <td>
@@ -364,7 +370,7 @@ export default function Settings() {
                             className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`}
                             title={u.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
                             onClick={() => toggleUserActive(u)}
-                            disabled={u.role === 'admin' && users.filter(x => x.role === 'admin' && x.is_active).length <= 1}
+                            disabled={u.role === 'owner' && users.filter(x => x.role === 'owner' && x.is_active).length <= 1}
                           >
                             {u.is_active ? '🚫' : '✅'}
                           </button>
@@ -519,7 +525,8 @@ export default function Settings() {
                   onChange={e => setUserForm({ ...userForm, role: e.target.value })}
                 >
                   <option value="staff">👤 Staff</option>
-                  <option value="admin">👑 Admin</option>
+                  <option value="manager">📋 Manager</option>
+                  <option value="owner">👑 Owner</option>
                 </select>
               </div>
             </div>
@@ -556,6 +563,21 @@ export default function Settings() {
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự"
                 />
+              </div>
+              <div className="form-group">
+                <label>Xác nhận mật khẩu *</label>
+                <input 
+                  type="password" 
+                  className="input" 
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu"
+                />
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                    Mật khẩu không khớp
+                  </p>
+                )}
               </div>
             </div>
             <div className="modal-footer">

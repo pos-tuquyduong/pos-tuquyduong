@@ -72,7 +72,7 @@ function checkPermission(permission) {
       const { role } = req.user;
       
       // Admin có tất cả quyền
-      if (role === 'admin') {
+      if (role === 'owner') {
         return next();
       }
 

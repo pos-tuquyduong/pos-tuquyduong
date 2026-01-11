@@ -383,7 +383,7 @@ function seedDefaultData() {
     const hashedPassword = bcrypt.hashSync('admin123', 10);
     db.run(`
       INSERT INTO pos_users (username, password, display_name, role, is_active)
-      VALUES ('admin', '${hashedPassword}', 'Quản trị viên', 'admin', 1)
+      VALUES ('admin', '${hashedPassword}', 'Owner', 'owner', 1)
     `);
     console.log('✅ Đã tạo tài khoản admin mặc định (admin/admin123)');
   }
@@ -392,19 +392,19 @@ function seedDefaultData() {
   const permissionsExist = db.exec("SELECT COUNT(*) as count FROM pos_permissions");
   if (permissionsExist[0]?.values[0][0] === 0) {
     const permissions = [
-      ['admin', 'view_customer_balance', 1],
-      ['admin', 'topup_balance', 1],
-      ['admin', 'adjust_balance', 1],
-      ['admin', 'view_reports', 1],
-      ['admin', 'manage_products', 1],
-      ['admin', 'manage_users', 1],
-      ['admin', 'approve_refund', 1],
-      ['admin', 'export_data', 1],
-      ['admin', 'import_data', 1],
-      ['admin', 'cancel_order', 1],
-      ['admin', 'view_all_orders', 1],
-      ['admin', 'manage_promotions', 1],
-      ['admin', 'manage_permissions', 1],
+      ['owner', 'view_customer_balance', 1],
+      ['owner', 'topup_balance', 1],
+      ['owner', 'adjust_balance', 1],
+      ['owner', 'view_reports', 1],
+      ['owner', 'manage_products', 1],
+      ['owner', 'manage_users', 1],
+      ['owner', 'approve_refund', 1],
+      ['owner', 'export_data', 1],
+      ['owner', 'import_data', 1],
+      ['owner', 'cancel_order', 1],
+      ['owner', 'view_all_orders', 1],
+      ['owner', 'manage_promotions', 1],
+      ['owner', 'manage_permissions', 1],
       ['staff', 'view_customer_balance', 1],
       ['staff', 'topup_balance', 1],
       ['staff', 'adjust_balance', 0],
@@ -418,6 +418,20 @@ function seedDefaultData() {
       ['staff', 'view_all_orders', 0],
       ['staff', 'manage_promotions', 0],
       ['staff', 'manage_permissions', 0],
+      // Manager permissions
+      ['manager', 'view_customer_balance', 1],
+      ['manager', 'topup_balance', 1],
+      ['manager', 'adjust_balance', 0],
+      ['manager', 'view_reports', 1],
+      ['manager', 'manage_products', 1],
+      ['manager', 'manage_users', 0],
+      ['manager', 'approve_refund', 1],
+      ['manager', 'export_data', 1],
+      ['manager', 'import_data', 1],
+      ['manager', 'cancel_order', 1],
+      ['manager', 'view_all_orders', 1],
+      ['manager', 'manage_promotions', 1],
+      ['manager', 'manage_permissions', 0],
     ];
 
     permissions.forEach(([role, permission, allowed]) => {

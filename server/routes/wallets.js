@@ -130,6 +130,61 @@ router.post('/deduct', authenticate, (req, res) => {
 });
 
 /**
+
+/**
+ * POST /api/pos/wallets/adjust
+ * Điều chỉnh số dư (chỉ owner)
+ */
+router.post("/adjust", authenticate, checkPermission("adjust_balance"), (req, res) => {
+  try {
+    const { phone, amount, customer_name, reason } = req.body;
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return res.status(400).json({ error: "SĐT không hợp lệ" });
+    }
+
+    const adjustAmount = parseInt(amount);
+    if (!adjustAmount || adjustAmount === 0) {
+      return res.status(400).json({ error: "Số tiền điều chỉnh không hợp lệ" });
+    }
+
+    if (!reason || reason.trim().length < 3) {
+      return res.status(400).json({ error: "Vui lòng nhập lý do (tối thiểu 3 ký tự)" });
+    }
+
+    let wallet = queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [normalizedPhone]);
+    const balanceBefore = wallet?.balance || 0;
+    const balanceAfter = balanceBefore + adjustAmount;
+
+    if (balanceAfter < 0) {
+      return res.status(400).json({ error: `Không thể giảm. Số dư hiện tại: ${balanceBefore.toLocaleString()}đ` });
+    }
+
+    if (wallet) {
+      if (adjustAmount > 0) {
+        run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
+          [balanceAfter, adjustAmount, getNow(), normalizedPhone]);
+      } else {
+        run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+          [balanceAfter, Math.abs(adjustAmount), getNow(), normalizedPhone]);
+      }
+    } else {
+      run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
+        [normalizedPhone, balanceAfter, adjustAmount > 0 ? adjustAmount : 0, getNow(), getNow()]);
+    }
+
+    run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
+         VALUES (?, ?, "adjust", ?, ?, ?, ?, ?, ?)`,
+      [normalizedPhone, customer_name || null, adjustAmount, balanceBefore, balanceAfter, reason, req.user.username, getNow()]);
+
+    res.json({ success: true, balance: balanceAfter, adjusted: adjustAmount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/pos/wallets/:phone/transactions
  * Lịch sử giao dịch
  */
