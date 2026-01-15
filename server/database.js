@@ -176,7 +176,49 @@ function createTables() {
   } catch (e) {
     // Cột đã tồn tại, bỏ qua
   }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MIGRATION V3: Hỗ trợ công nợ + thanh toán linh hoạt
+  // ═══════════════════════════════════════════════════════════════════════════
 
+  // Thêm cột payment_status vào pos_orders
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN payment_status TEXT DEFAULT 'paid'`);
+    console.log('✅ Đã thêm cột payment_status vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  // Thêm cột debt_amount vào pos_orders (số tiền còn nợ)
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN debt_amount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột debt_amount vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  // Thêm cột due_date vào pos_orders (hạn thanh toán)
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN due_date DATETIME`);
+    console.log('✅ Đã thêm cột due_date vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  // Thêm cột cash_amount vào pos_orders
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN cash_amount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột cash_amount vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  // Thêm cột transfer_amount vào pos_orders
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN transfer_amount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột transfer_amount vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 6: CHI TIẾT ĐƠN HÀNG
   // ═══════════════════════════════════════════════════════════════════════════
@@ -397,6 +439,8 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_phone ON pos_orders(customer_phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_status ON pos_orders(status)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_invoice ON pos_orders(invoice_number)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_order_payment_status ON pos_orders(payment_status)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_order_debt ON pos_orders(debt_amount)`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_wallet_phone ON pos_wallets(phone)`);
 

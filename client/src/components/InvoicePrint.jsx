@@ -14,13 +14,41 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Printer, Download } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAPER SIZE CONFIG
+// PAPER SIZE CONFIG - Chuẩn kích thước thực tế
 // ═══════════════════════════════════════════════════════════════════════════
 const PAPER_SIZES = {
-  '58mm': { width: '58mm', name: '58mm (Máy in nhiệt nhỏ)', fontSize: '10px' },
-  '80mm': { width: '80mm', name: '80mm (Máy in nhiệt)', fontSize: '11px' },
-  'a5': { width: '148mm', name: 'A5 (148 × 210 mm)', fontSize: '12px' },
-  'a4': { width: '210mm', name: 'A4 (210 × 297 mm)', fontSize: '13px' }
+  '58mm': { 
+    width: '58mm',      // ~219px at 96dpi
+    minWidth: '180px',  // Preview minimum
+    maxWidth: '220px',  // Preview maximum  
+    name: '58mm (Nhiệt nhỏ)', 
+    fontSize: '9px',
+    padding: '8px'
+  },
+  '80mm': { 
+    width: '80mm',      // ~302px at 96dpi
+    minWidth: '260px',  
+    maxWidth: '302px',  
+    name: '80mm (Nhiệt)', 
+    fontSize: '10px',
+    padding: '12px'
+  },
+  'a5': { 
+    width: '148mm',     // ~559px at 96dpi
+    minWidth: '400px',  
+    maxWidth: '560px',  
+    name: 'A5 (148×210mm)', 
+    fontSize: '12px',
+    padding: '20px'
+  },
+  'a4': { 
+    width: '210mm',     // ~794px at 96dpi
+    minWidth: '600px',  
+    maxWidth: '794px',  
+    name: 'A4 (210×297mm)', 
+    fontSize: '14px',
+    padding: '24px'
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -61,7 +89,7 @@ export default function InvoicePrint({
   // ═══════════════════════════════════════════════════════════════════════════
   const handlePrint = async () => {
     setPrinting(true);
-    
+
     try {
       // Log in hóa đơn
       const token = localStorage.getItem('pos_token');
@@ -82,7 +110,7 @@ export default function InvoicePrint({
       // Open print dialog
       const printContent = printRef.current;
       const printWindow = window.open('', '_blank', 'width=800,height=600');
-      
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -94,8 +122,11 @@ export default function InvoicePrint({
               font-family: Arial, sans-serif; 
               font-size: ${paper.fontSize};
               width: ${paper.width};
+              max-width: ${paper.width};
               margin: 0 auto;
-              padding: 10px;
+              padding: ${paper.padding};
+              overflow-wrap: break-word;
+              word-break: break-word;
             }
             .invoice { width: 100%; }
             .text-center { text-align: center; }
@@ -109,14 +140,21 @@ export default function InvoicePrint({
             .logo { max-width: 80px; max-height: 80px; margin: 0 auto 8px; display: block; }
             .store-name { font-size: 1.3em; font-weight: bold; }
             .invoice-number { font-size: 1.1em; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 4px 0; text-align: left; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            th, td { padding: 4px 0; text-align: left; overflow: hidden; text-overflow: ellipsis; }
             th:last-child, td:last-child { text-align: right; }
             .total-row { font-size: 1.2em; font-weight: bold; }
             .qr-code { width: 80px; height: 80px; margin: 8px auto; }
             @media print {
-              body { width: ${paper.width}; }
-              @page { size: ${paper.width} auto; margin: 5mm; }
+              body { 
+                width: ${paper.width}; 
+                max-width: ${paper.width};
+                padding: ${paper.padding};
+              }
+              @page { 
+                size: ${paperSize === 'a4' ? 'A4' : paperSize === 'a5' ? 'A5' : paper.width + ' auto'}; 
+                margin: ${paperSize === 'a4' || paperSize === 'a5' ? '10mm' : '3mm'}; 
+              }
             }
           </style>
         </head>
@@ -125,19 +163,19 @@ export default function InvoicePrint({
         </body>
         </html>
       `);
-      
+
       printWindow.document.close();
       printWindow.focus();
-      
+
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
-        
+
         if (onPrintComplete) {
           onPrintComplete(order.code, paperSize);
         }
       }, 250);
-      
+
     } catch (err) {
       console.error('Print error:', err);
       alert('Lỗi khi in: ' + err.message);
@@ -163,12 +201,13 @@ export default function InvoicePrint({
         background: 'white',
         borderRadius: '12px',
         width: '95%',
-        maxWidth: '500px',
+        maxWidth: paperSize === 'a4' ? '850px' : paperSize === 'a5' ? '620px' : '500px',
         maxHeight: '90vh',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        transition: 'max-width 0.3s ease'
       }}>
         {/* Header */}
         <div style={{
@@ -238,26 +277,33 @@ export default function InvoicePrint({
             style={{
               background: 'white',
               width: paper.width,
-              minWidth: paperSize === '58mm' ? '200px' : paperSize === '80mm' ? '280px' : '400px',
-              padding: '16px',
+              minWidth: paper.minWidth,
+              maxWidth: paper.maxWidth,
+              padding: paper.padding,
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              fontSize: paper.fontSize
+              fontSize: paper.fontSize,
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word'
             }}
           >
             {/* === INVOICE CONTENT === */}
-            <div className="invoice">
+            <div style={{ width: '100%' }}>
               {/* Header - Logo & Store Info */}
-              <div className="text-center mb-2 border-b">
+              <div style={{ 
+                textAlign: 'center', 
+                marginBottom: '12px', 
+                paddingBottom: '12px', 
+                borderBottom: '1px dashed #ccc' 
+              }}>
                 {isEnabled('invoice_show_logo') && settings.store_logo && (
                   <img 
                     src={settings.store_logo} 
                     alt="Logo" 
-                    className="logo"
                     style={{ maxWidth: '80px', maxHeight: '80px', margin: '0 auto 8px', display: 'block' }}
                   />
                 )}
                 {isEnabled('invoice_show_store_name') && (
-                  <div className="store-name" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>
+                  <div style={{ fontSize: '1.3em', fontWeight: 'bold' }}>
                     {settings.store_name || 'TÚ QUÝ ĐƯỜNG'}
                   </div>
                 )}
@@ -279,7 +325,7 @@ export default function InvoicePrint({
               </div>
 
               {/* Invoice Number & Info */}
-              <div className="text-center mb-2">
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
                 <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>
                   HÓA ĐƠN BÁN HÀNG
                 </div>
@@ -301,15 +347,19 @@ export default function InvoicePrint({
               </div>
 
               {/* Customer & Staff Info */}
-              <div className="mb-2 border-b" style={{ paddingBottom: '8px' }}>
+              <div style={{ 
+                marginBottom: '12px', 
+                paddingBottom: '8px', 
+                borderBottom: '1px dashed #ccc' 
+              }}>
                 {isEnabled('invoice_show_customer_name') && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span>Khách hàng:</span>
                     <span style={{ fontWeight: 'bold' }}>{order.customer_name || 'Khách lẻ'}</span>
                   </div>
                 )}
                 {isEnabled('invoice_show_customer_phone') && order.customer_phone && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span>SĐT:</span>
                     <span>{order.customer_phone}</span>
                   </div>
@@ -324,28 +374,28 @@ export default function InvoicePrint({
 
               {/* Products */}
               {isEnabled('invoice_show_products') && order.items && order.items.length > 0 && (
-                <div className="mb-2">
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #ddd' }}>
-                        <th style={{ textAlign: 'left', padding: '4px 0' }}>Sản phẩm</th>
-                        <th style={{ textAlign: 'center', padding: '4px 0' }}>SL</th>
-                        <th style={{ textAlign: 'right', padding: '4px 0' }}>T.Tiền</th>
+                        <th style={{ textAlign: 'left', padding: '6px 4px', width: '50%' }}>Sản phẩm</th>
+                        <th style={{ textAlign: 'center', padding: '6px 4px', width: '15%' }}>SL</th>
+                        <th style={{ textAlign: 'right', padding: '6px 4px', width: '35%' }}>T.Tiền</th>
                       </tr>
                     </thead>
                     <tbody>
                       {order.items.map((item, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px dotted #eee' }}>
-                          <td style={{ padding: '4px 0' }}>
+                          <td style={{ padding: '6px 4px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {item.product_code || item.product_name}
                             {paperSize !== '58mm' && item.product_name && item.product_code && (
                               <div style={{ fontSize: '0.85em', color: '#666' }}>{item.product_name}</div>
                             )}
                           </td>
-                          <td style={{ textAlign: 'center', padding: '4px 0' }}>
+                          <td style={{ textAlign: 'center', padding: '6px 4px' }}>
                             {item.quantity}
                           </td>
-                          <td style={{ textAlign: 'right', padding: '4px 0' }}>
+                          <td style={{ textAlign: 'right', padding: '6px 4px', whiteSpace: 'nowrap' }}>
                             {formatPrice(item.unit_price * item.quantity)}
                           </td>
                         </tr>
@@ -356,7 +406,7 @@ export default function InvoicePrint({
               )}
 
               {/* Summary */}
-              <div className="border-t" style={{ paddingTop: '8px' }}>
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
                 {isEnabled('invoice_show_subtotal') && order.subtotal !== order.total && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span>Tạm tính:</span>
@@ -375,7 +425,7 @@ export default function InvoicePrint({
                     justifyContent: 'space-between', 
                     fontSize: '1.2em', 
                     fontWeight: 'bold',
-                    borderTop: '1px solid #ddd',
+                    borderTop: '2px solid #333',
                     paddingTop: '8px',
                     marginTop: '8px'
                   }}>
@@ -412,7 +462,7 @@ export default function InvoicePrint({
               </div>
 
               {/* Footer Messages */}
-              <div className="text-center border-t" style={{ marginTop: '12px', paddingTop: '12px' }}>
+              <div style={{ textAlign: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #ccc' }}>
                 {isEnabled('invoice_show_qr_lookup') && order.code && (
                   <div style={{ marginBottom: '8px' }}>
                     <div style={{ 

@@ -127,7 +127,54 @@ router.get('/stats', authenticate, (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+/**
+ * GET /api/pos/customers/search
+ * Autocomplete search khách hàng - trả về name, phone, balance, debt
+ */
+router.get('/search', authenticate, (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
 
+    if (!q || q.length < 1) {
+      return res.json([]);
+    }
+
+    const searchTerm = `%${q}%`;
+
+    // Query khách hàng + số dư + tổng nợ
+    const customers = query(`
+      SELECT 
+        c.id,
+        c.phone,
+        c.name,
+        c.parent_phone,
+        c.relationship,
+        COALESCE(w.balance, 0) as balance,
+        COALESCE(debt.total_debt, 0) as total_debt,
+        COALESCE(debt.pending_orders, 0) as pending_orders
+      FROM pos_customers c
+      LEFT JOIN pos_wallets w ON c.phone = w.phone
+      LEFT JOIN (
+        SELECT 
+          customer_phone,
+          SUM(debt_amount) as total_debt,
+          COUNT(*) as pending_orders
+        FROM pos_orders 
+        WHERE debt_amount > 0 AND status != 'cancelled'
+        GROUP BY customer_phone
+      ) debt ON c.phone = debt.customer_phone
+      WHERE c.name LIKE ? OR c.phone LIKE ?
+      ORDER BY 
+        CASE WHEN c.name LIKE ? THEN 0 ELSE 1 END,
+        c.name
+      LIMIT ?
+    `, [searchTerm, searchTerm, q + '%', parseInt(limit)]);
+
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 /**
  * GET /api/pos/customers/:id
  * Chi tiết khách hàng
