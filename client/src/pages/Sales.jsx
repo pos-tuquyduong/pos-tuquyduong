@@ -2,11 +2,13 @@
  * POS - Sales Page
  * Hiển thị sản phẩm với icon/color từ SX (nhất quán 100%)
  * v2: Thêm popup xác nhận, tiền khách đưa, màn hình thành công
+ * v3: Tích hợp InvoicePrint - In hóa đơn (Phase A)
  */
 
 import { useState, useEffect } from 'react';
 import { productsApi, customersApi, ordersApi } from '../utils/api';
 import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer } from 'lucide-react';
+import InvoicePrint from '../components/InvoicePrint';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -27,8 +29,13 @@ export default function Sales() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
 
+  // State cho hóa đơn (Phase A)
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [invoiceSettings, setInvoiceSettings] = useState({});
+
   useEffect(() => {
     loadProducts();
+    loadInvoiceSettings();
   }, []);
 
   const loadProducts = async () => {
@@ -40,6 +47,32 @@ export default function Sales() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Load cài đặt hóa đơn (Phase A)
+  const loadInvoiceSettings = async () => {
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch('/api/pos/settings', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const result = await res.json();
+      if (result.success && result.data) {
+        setInvoiceSettings(result.data);
+      }
+    } catch (err) {
+      console.error('Load invoice settings error:', err);
+    }
+  };
+
+  // Mở popup in hóa đơn (Phase A)
+  const openInvoice = () => {
+    setShowInvoice(true);
+  };
+
+  // Callback sau khi in xong
+  const handlePrintComplete = (orderCode, paperSize) => {
+    console.log(`Đã in hóa đơn ${orderCode} - khổ ${paperSize}`);
   };
 
   const searchCustomer = async () => {
@@ -168,12 +201,18 @@ export default function Sales() {
 
       // Lưu thông tin đơn hàng để hiển thị màn hình thành công
       setCompletedOrder({
+        id: result.order.id,
         code: result.order.code,
+        invoice_number: result.order.invoice_number,
         total: total,
+        discount: discount,
         paymentMethod: paymentMethod,
         cashReceived: cashReceivedNum,
         change: changeAmount,
         customerName: customer?.name || 'Khách lẻ',
+        customerPhone: customer?.phone || null,
+        createdBy: result.order.created_by,
+        createdAt: result.order.created_at,
         items: cart,
         balanceAfter: result.order.balance_after
       });
@@ -972,7 +1011,7 @@ export default function Sales() {
               {/* Buttons */}
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button
-                  onClick={() => {/* TODO: In hóa đơn */}}
+                  onClick={openInvoice}
                   style={{
                     flex: 1,
                     padding: '0.875rem',
@@ -1008,6 +1047,36 @@ export default function Sales() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========== POPUP IN HÓA ĐƠN (Phase A) ========== */}
+      {showInvoice && completedOrder && (
+        <InvoicePrint
+          order={{
+            id: completedOrder.id,
+            code: completedOrder.code,
+            invoice_number: completedOrder.invoice_number,
+            customer_name: completedOrder.customerName,
+            customer_phone: completedOrder.customerPhone,
+            created_by: completedOrder.createdBy,
+            created_at: completedOrder.createdAt,
+            items: completedOrder.items.map(item => ({
+              product_code: item.product_code,
+              product_name: item.product_name,
+              quantity: item.quantity,
+              unit_price: item.unit_price
+            })),
+            subtotal: completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
+            discount: completedOrder.discount || 0,
+            total: completedOrder.total,
+            payment_method: completedOrder.paymentMethod,
+            cash_received: completedOrder.cashReceived,
+            change_amount: completedOrder.change
+          }}
+          settings={invoiceSettings}
+          onClose={() => setShowInvoice(false)}
+          onPrintComplete={handlePrintComplete}
+        />
       )}
     </>
   );
