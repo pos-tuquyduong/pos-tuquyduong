@@ -67,6 +67,7 @@ export default function Sales() {
 
   // Mở popup in hóa đơn (Phase A)
   const openInvoice = () => {
+    setShowSuccessModal(false); // Đóng modal thành công trước
     setShowInvoice(true);
   };
 
