@@ -169,6 +169,14 @@ function createTables() {
     )
   `);
 
+  // Thêm cột invoice_number vào pos_orders nếu chưa có
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN invoice_number TEXT`);
+    console.log('✅ Đã thêm cột invoice_number vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại, bỏ qua
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 6: CHI TIẾT ĐƠN HÀNG
   // ═══════════════════════════════════════════════════════════════════════════
@@ -342,6 +350,42 @@ function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 15: CÀI ĐẶT HỆ THỐNG (MỚI - Phase A)
+  // Lưu cấu hình cửa hàng, hóa đơn, Zalo, Email...
+  // ═══════════════════════════════════════════════════════════════════════════
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pos_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 16: LOG IN HÓA ĐƠN (MỚI - Phase A)
+  // Lưu lịch sử in hóa đơn
+  // ═══════════════════════════════════════════════════════════════════════════
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pos_invoice_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      order_code TEXT NOT NULL,
+      invoice_number TEXT NOT NULL,
+      paper_size TEXT DEFAULT 'a5',
+      printed_by INTEGER,
+      printed_by_name TEXT,
+      printed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      print_type TEXT DEFAULT 'print',
+      sent_zalo INTEGER DEFAULT 0,
+      sent_email INTEGER DEFAULT 0,
+      is_deleted INTEGER DEFAULT 0,
+      deleted_at TEXT,
+      deleted_by INTEGER,
+      FOREIGN KEY (order_id) REFERENCES pos_orders(id)
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // INDEXES - Tối ưu cho phone làm key chính
   // ═══════════════════════════════════════════════════════════════════════════
   db.run(`CREATE INDEX IF NOT EXISTS idx_customer_phone ON pos_customers(phone)`);
@@ -352,6 +396,7 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_date ON pos_orders(created_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_phone ON pos_orders(customer_phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_order_status ON pos_orders(status)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_order_invoice ON pos_orders(invoice_number)`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_wallet_phone ON pos_wallets(phone)`);
 
@@ -367,6 +412,11 @@ function createTables() {
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_refund_phone ON pos_refund_requests(customer_phone)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_refund_status ON pos_refund_requests(status)`);
+
+  // Index mới cho invoice_logs
+  db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_order ON pos_invoice_logs(order_code)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_date ON pos_invoice_logs(printed_at)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_number ON pos_invoice_logs(invoice_number)`);
 
   console.log('✅ Đã tạo tất cả các bảng');
 }
@@ -464,6 +514,79 @@ function seedDefaultData() {
       `);
     });
     console.log('✅ Đã tạo sản phẩm mẫu (giá = 0, cần cập nhật sau)');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SEED DỮ LIỆU MẶC ĐỊNH CHO pos_settings (MỚI - Phase A)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const settingsExist = db.exec("SELECT COUNT(*) as count FROM pos_settings");
+  if (settingsExist[0]?.values[0][0] === 0) {
+    const defaultSettings = [
+      // Thông tin cửa hàng
+      ['store_name', 'TÚ QUÝ ĐƯỜNG'],
+      ['store_address', 'LK4 - 129 Trương Định, Tương Mai, Hà Nội'],
+      ['store_phone', '024 2245 5565'],
+      ['store_slogan', ''],
+      ['store_tax_id', ''],
+      ['store_logo', ''],
+
+      // Cài đặt in
+      ['invoice_default_size', 'a5'],
+      ['invoice_quick_size', '80mm'],
+      ['invoice_copies', '1'],
+      ['invoice_auto_print', 'false'],
+
+      // Nội dung hiển thị
+      ['invoice_show_logo', 'true'],
+      ['invoice_show_store_name', 'true'],
+      ['invoice_show_address', 'true'],
+      ['invoice_show_phone', 'true'],
+      ['invoice_show_slogan', 'false'],
+      ['invoice_show_invoice_number', 'true'],
+      ['invoice_show_order_code', 'true'],
+      ['invoice_show_datetime', 'true'],
+      ['invoice_show_staff', 'true'],
+      ['invoice_show_customer_name', 'true'],
+      ['invoice_show_customer_phone', 'false'],
+      ['invoice_show_products', 'true'],
+      ['invoice_show_subtotal', 'true'],
+      ['invoice_show_discount', 'true'],
+      ['invoice_show_total', 'true'],
+      ['invoice_show_cash_received', 'true'],
+      ['invoice_show_change', 'true'],
+      ['invoice_show_payment_method', 'true'],
+      ['invoice_show_qr_lookup', 'true'],
+      ['invoice_show_qr_zalo', 'false'],
+      ['invoice_show_vat', 'false'],
+
+      // Lời nhắn
+      ['invoice_thank_you', 'Cảm ơn quý khách đã mua hàng!'],
+      ['invoice_policy', 'Đổi trả trong 24h với hóa đơn'],
+      ['invoice_note', ''],
+
+      // Zalo (chuẩn bị sẵn)
+      ['zalo_enabled', 'false'],
+      ['zalo_oa_id', ''],
+      ['zalo_template_id', ''],
+      ['zalo_access_token', ''],
+
+      // Email (chuẩn bị sẵn)
+      ['email_enabled', 'false'],
+      ['email_smtp_host', ''],
+      ['email_smtp_port', ''],
+      ['email_smtp_user', ''],
+      ['email_smtp_pass', ''],
+      ['email_from', ''],
+      ['email_template', ''],
+    ];
+
+    defaultSettings.forEach(([key, value]) => {
+      db.run(`
+        INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
+        VALUES ('${key}', '${value}', datetime('now', '+7 hours'))
+      `);
+    });
+    console.log('✅ Đã tạo cài đặt mặc định cho hóa đơn');
   }
 }
 

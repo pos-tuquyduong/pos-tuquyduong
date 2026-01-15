@@ -1,7 +1,59 @@
-// Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup
+// Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup + HÓA ĐƠN (Phase A)
 import { useState, useEffect } from 'react';
 import { productsApi, usersApi } from '../utils/api';
-import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
+import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2, FileText, Image } from 'lucide-react';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS API (mới cho Phase A)
+// ═══════════════════════════════════════════════════════════════════════════
+const settingsApi = {
+  getAll: async () => {
+    const token = localStorage.getItem('pos_token');
+    const res = await fetch('/api/pos/settings', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  },
+  update: async (settings) => {
+    const token = localStorage.getItem('pos_token');
+    const res = await fetch('/api/pos/settings', {
+      method: 'PUT',
+      headers: { 
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ settings })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  },
+  uploadLogo: async (file) => {
+    const token = localStorage.getItem('pos_token');
+    const formData = new FormData();
+    formData.append('logo', file);
+    const res = await fetch('/api/pos/settings/logo', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  },
+  deleteLogo: async () => {
+    const token = localStorage.getItem('pos_token');
+    const res = await fetch('/api/pos/settings/logo', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  }
+};
 
 export default function Settings() {
   const [tab, setTab] = useState('products');
@@ -25,6 +77,50 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INVOICE SETTINGS STATE (mới cho Phase A)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const [invoiceSettings, setInvoiceSettings] = useState({
+    // Thông tin cửa hàng
+    store_name: '',
+    store_address: '',
+    store_phone: '',
+    store_slogan: '',
+    store_tax_id: '',
+    store_logo: '',
+    // Cài đặt in
+    invoice_default_size: 'a5',
+    invoice_quick_size: '80mm',
+    invoice_copies: '1',
+    invoice_auto_print: 'false',
+    // Nội dung hiển thị
+    invoice_show_logo: 'true',
+    invoice_show_store_name: 'true',
+    invoice_show_address: 'true',
+    invoice_show_phone: 'true',
+    invoice_show_slogan: 'false',
+    invoice_show_invoice_number: 'true',
+    invoice_show_order_code: 'true',
+    invoice_show_datetime: 'true',
+    invoice_show_staff: 'true',
+    invoice_show_customer_name: 'true',
+    invoice_show_customer_phone: 'false',
+    invoice_show_products: 'true',
+    invoice_show_subtotal: 'true',
+    invoice_show_discount: 'true',
+    invoice_show_total: 'true',
+    invoice_show_cash_received: 'true',
+    invoice_show_change: 'true',
+    invoice_show_payment_method: 'true',
+    invoice_show_qr_lookup: 'true',
+    invoice_show_qr_zalo: 'false',
+    invoice_show_vat: 'false',
+    // Lời nhắn
+    invoice_thank_you: '',
+    invoice_policy: '',
+    invoice_note: ''
+  });
+
   useEffect(() => { loadData(); }, [tab]);
 
   const loadData = async () => {
@@ -42,6 +138,8 @@ export default function Settings() {
         setAllPerms(data.all_permissions);
       } else if (tab === 'backup') {
         await loadBackupInfo();
+      } else if (tab === 'invoice') {
+        await loadInvoiceSettings();
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -56,6 +154,88 @@ export default function Settings() {
       const data = await res.json();
       setBackupInfo(data);
     } catch (err) { console.error(err); }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INVOICE FUNCTIONS (mới cho Phase A)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const loadInvoiceSettings = async () => {
+    try {
+      const result = await settingsApi.getAll();
+      if (result.success && result.data) {
+        setInvoiceSettings(prev => ({ ...prev, ...result.data }));
+      }
+    } catch (err) { 
+      console.error('Load invoice settings error:', err); 
+      setMessage('Lỗi: ' + err.message);
+    }
+  };
+
+  const saveInvoiceSettings = async () => {
+    setSaving(true);
+    try {
+      await settingsApi.update(invoiceSettings);
+      setMessage('Đã lưu cài đặt hóa đơn!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) { 
+      setMessage('Lỗi: ' + err.message); 
+    }
+    finally { setSaving(false); }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file
+    if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+      setMessage('Lỗi: Chỉ chấp nhận file ảnh (JPEG, PNG, GIF)');
+      return;
+    }
+    if (file.size > 500 * 1024) {
+      setMessage('Lỗi: File quá lớn (tối đa 500KB)');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await settingsApi.uploadLogo(file);
+      await loadInvoiceSettings(); // Reload to get new logo
+      setMessage('Đã upload logo thành công!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    } finally {
+      setSaving(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteLogo = async () => {
+    if (!confirm('Bạn có chắc muốn xóa logo?')) return;
+
+    setSaving(true);
+    try {
+      await settingsApi.deleteLogo();
+      setInvoiceSettings(prev => ({ ...prev, store_logo: '' }));
+      setMessage('Đã xóa logo!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateInvoiceSetting = (key, value) => {
+    setInvoiceSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const toggleInvoiceShow = (key) => {
+    setInvoiceSettings(prev => ({
+      ...prev,
+      [key]: prev[key] === 'true' ? 'false' : 'true'
+    }));
   };
 
   // Products functions
@@ -231,6 +411,32 @@ export default function Settings() {
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INVOICE DISPLAY FIELDS CONFIG
+  // ═══════════════════════════════════════════════════════════════════════════
+  const invoiceDisplayFields = [
+    { key: 'invoice_show_logo', label: 'Logo cửa hàng' },
+    { key: 'invoice_show_store_name', label: 'Tên cửa hàng' },
+    { key: 'invoice_show_address', label: 'Địa chỉ' },
+    { key: 'invoice_show_phone', label: 'Số điện thoại' },
+    { key: 'invoice_show_slogan', label: 'Slogan' },
+    { key: 'invoice_show_invoice_number', label: 'Số hóa đơn' },
+    { key: 'invoice_show_order_code', label: 'Mã đơn hàng' },
+    { key: 'invoice_show_datetime', label: 'Ngày giờ' },
+    { key: 'invoice_show_staff', label: 'Nhân viên bán' },
+    { key: 'invoice_show_customer_name', label: 'Tên khách hàng' },
+    { key: 'invoice_show_customer_phone', label: 'SĐT khách hàng' },
+    { key: 'invoice_show_products', label: 'Danh sách SP' },
+    { key: 'invoice_show_subtotal', label: 'Tạm tính' },
+    { key: 'invoice_show_discount', label: 'Giảm giá' },
+    { key: 'invoice_show_total', label: 'Tổng tiền' },
+    { key: 'invoice_show_cash_received', label: 'Tiền khách đưa' },
+    { key: 'invoice_show_change', label: 'Tiền thừa' },
+    { key: 'invoice_show_payment_method', label: 'Phương thức TT' },
+    { key: 'invoice_show_qr_lookup', label: 'QR tra cứu' },
+    { key: 'invoice_show_vat', label: 'Thông tin VAT' }
+  ];
+
   return (
     <>
       <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
@@ -246,6 +452,9 @@ export default function Settings() {
           </button>
           <button className={`btn ${tab === 'permissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('permissions')}>
             🔐 Phân quyền
+          </button>
+          <button className={`btn ${tab === 'invoice' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('invoice')}>
+            <FileText size={16} /> Hóa đơn
           </button>
           <button className={`btn ${tab === 'backup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('backup')}>
             <Database size={16} /> Sao lưu
@@ -474,6 +683,347 @@ export default function Settings() {
                 </div>
               </div>
             </>
+          ) : tab === 'invoice' ? (
+            /* ═══════════════════════════════════════════════════════════════════════════
+               TAB HÓA ĐƠN (MỚI - Phase A)
+               ═══════════════════════════════════════════════════════════════════════════ */
+            <>
+              <div className="flex flex-between mb-2">
+                <div className="card-title" style={{ margin: 0 }}>🧾 Cài đặt Hóa đơn</div>
+                <button className="btn btn-primary" onClick={saveInvoiceSettings} disabled={saving}>
+                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu cài đặt'}
+                </button>
+              </div>
+
+              {/* SECTION 1: THÔNG TIN CỬA HÀNG */}
+              <div style={{ 
+                marginBottom: '1.5rem', 
+                padding: '1rem', 
+                background: '#fef3c7', 
+                borderRadius: '12px',
+                border: '2px solid #fbbf24'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#92400e'
+                }}>
+                  🏪 Thông tin cửa hàng
+                </div>
+
+                {/* Logo */}
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>Logo cửa hàng</label>
+                  <div className="flex gap-1" style={{ alignItems: 'center' }}>
+                    {invoiceSettings.store_logo ? (
+                      <div style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#fff'
+                      }}>
+                        <img 
+                          src={invoiceSettings.store_logo} 
+                          alt="Logo" 
+                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        border: '2px dashed #cbd5e1',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#f8fafc',
+                        color: '#94a3b8'
+                      }}>
+                        <Image size={24} />
+                      </div>
+                    )}
+                    <div>
+                      <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer', marginRight: '0.5rem' }}>
+                        <Upload size={14} /> Tải lên
+                        <input 
+                          type="file" 
+                          accept="image/jpeg,image/png,image/gif"
+                          style={{ display: 'none' }}
+                          onChange={handleLogoUpload}
+                        />
+                      </label>
+                      {invoiceSettings.store_logo && (
+                        <button className="btn btn-danger btn-sm" onClick={handleDeleteLogo}>
+                          <Trash2 size={14} /> Xóa
+                        </button>
+                      )}
+                      <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                        PNG/JPG, tối đa 500KB, nên vuông 200x200px
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-2 gap-1">
+                  <div className="form-group">
+                    <label>Tên cửa hàng *</label>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      value={invoiceSettings.store_name}
+                      onChange={e => updateInvoiceSetting('store_name', e.target.value)}
+                      placeholder="VD: TÚ QUÝ ĐƯỜNG"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Hotline</label>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      value={invoiceSettings.store_phone}
+                      onChange={e => updateInvoiceSetting('store_phone', e.target.value)}
+                      placeholder="VD: 024 2245 5565"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Địa chỉ</label>
+                  <input 
+                    type="text" 
+                    className="input" 
+                    value={invoiceSettings.store_address}
+                    onChange={e => updateInvoiceSetting('store_address', e.target.value)}
+                    placeholder="VD: LK4 - 129 Trương Định, Tương Mai, Hà Nội"
+                  />
+                </div>
+
+                <div className="grid grid-2 gap-1">
+                  <div className="form-group">
+                    <label>Slogan</label>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      value={invoiceSettings.store_slogan}
+                      onChange={e => updateInvoiceSetting('store_slogan', e.target.value)}
+                      placeholder="VD: Sức khỏe từ thiên nhiên"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Mã số thuế</label>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      value={invoiceSettings.store_tax_id}
+                      onChange={e => updateInvoiceSetting('store_tax_id', e.target.value)}
+                      placeholder="VD: 0123456789"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: CÀI ĐẶT IN */}
+              <div style={{ 
+                marginBottom: '1.5rem', 
+                padding: '1rem', 
+                background: '#dbeafe', 
+                borderRadius: '12px',
+                border: '2px solid #60a5fa'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#1e40af'
+                }}>
+                  🖨️ Cài đặt in
+                </div>
+
+                <div className="grid grid-2 gap-1">
+                  <div className="form-group">
+                    <label>Khổ giấy mặc định</label>
+                    <select 
+                      className="input"
+                      value={invoiceSettings.invoice_default_size}
+                      onChange={e => updateInvoiceSetting('invoice_default_size', e.target.value)}
+                    >
+                      <option value="58mm">58mm (Máy in nhiệt nhỏ)</option>
+                      <option value="80mm">80mm (Máy in nhiệt)</option>
+                      <option value="a5">A5 (148 x 210 mm)</option>
+                      <option value="a4">A4 (210 x 297 mm)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Khổ in nhanh</label>
+                    <select 
+                      className="input"
+                      value={invoiceSettings.invoice_quick_size}
+                      onChange={e => updateInvoiceSetting('invoice_quick_size', e.target.value)}
+                    >
+                      <option value="58mm">58mm</option>
+                      <option value="80mm">80mm</option>
+                      <option value="a5">A5</option>
+                      <option value="a4">A4</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-2 gap-1">
+                  <div className="form-group">
+                    <label>Số bản in mặc định</label>
+                    <select 
+                      className="input"
+                      value={invoiceSettings.invoice_copies}
+                      onChange={e => updateInvoiceSetting('invoice_copies', e.target.value)}
+                    >
+                      <option value="1">1 bản</option>
+                      <option value="2">2 bản</option>
+                      <option value="3">3 bản</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Tự động in</label>
+                    <select 
+                      className="input"
+                      value={invoiceSettings.invoice_auto_print}
+                      onChange={e => updateInvoiceSetting('invoice_auto_print', e.target.value)}
+                    >
+                      <option value="false">Không (hỏi trước khi in)</option>
+                      <option value="true">Có (in ngay sau thanh toán)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: NỘI DUNG HIỂN THỊ */}
+              <div style={{ 
+                marginBottom: '1.5rem', 
+                padding: '1rem', 
+                background: '#f0fdf4', 
+                borderRadius: '12px',
+                border: '2px solid #86efac'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#166534'
+                }}>
+                  📝 Nội dung hiển thị trên hóa đơn
+                </div>
+
+                <div className="grid grid-3 gap-1">
+                  {invoiceDisplayFields.map(field => (
+                    <label key={field.key} className="flex flex-center gap-1" style={{ 
+                      padding: '0.5rem 0.75rem', 
+                      cursor: 'pointer',
+                      background: invoiceSettings[field.key] === 'true' ? '#dcfce7' : '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem'
+                    }}>
+                      <input 
+                        type="checkbox" 
+                        checked={invoiceSettings[field.key] === 'true'} 
+                        onChange={() => toggleInvoiceShow(field.key)} 
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ flex: 1 }}>{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* SECTION 4: LỜI NHẮN */}
+              <div style={{ 
+                marginBottom: '1.5rem', 
+                padding: '1rem', 
+                background: '#fdf4ff', 
+                borderRadius: '12px',
+                border: '2px solid #e879f9'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#86198f'
+                }}>
+                  💬 Lời nhắn trên hóa đơn
+                </div>
+
+                <div className="form-group">
+                  <label>Lời cảm ơn</label>
+                  <input 
+                    type="text" 
+                    className="input" 
+                    value={invoiceSettings.invoice_thank_you}
+                    onChange={e => updateInvoiceSetting('invoice_thank_you', e.target.value)}
+                    placeholder="VD: Cảm ơn quý khách đã mua hàng!"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Chính sách đổi trả</label>
+                  <input 
+                    type="text" 
+                    className="input" 
+                    value={invoiceSettings.invoice_policy}
+                    onChange={e => updateInvoiceSetting('invoice_policy', e.target.value)}
+                    placeholder="VD: Đổi trả trong 24h với hóa đơn"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Ghi chú thêm</label>
+                  <textarea 
+                    className="input" 
+                    rows="2"
+                    value={invoiceSettings.invoice_note}
+                    onChange={e => updateInvoiceSetting('invoice_note', e.target.value)}
+                    placeholder="Ghi chú bổ sung (nếu có)"
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+
+              {/* SECTION 5: THÔNG BÁO TỰ ĐỘNG (disabled, chuẩn bị sẵn) */}
+              <div style={{ 
+                padding: '1rem', 
+                background: '#f1f5f9', 
+                borderRadius: '12px',
+                border: '2px solid #cbd5e1',
+                opacity: 0.7
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#64748b'
+                }}>
+                  🔔 Thông báo tự động (Sắp ra mắt)
+                </div>
+                <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
+                  Gửi hóa đơn qua Zalo ZNS hoặc Email - Tính năng đang phát triển (Phase C)
+                </p>
+              </div>
+            </>
           ) : tab === 'backup' ? (
             /* TAB SAO LƯU */
             <>
@@ -651,7 +1201,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* CSS cho Modal */}
+      {/* CSS cho Modal + Invoice */}
       <style>{`
         .modal-overlay {
           position: fixed;
@@ -723,6 +1273,24 @@ export default function Settings() {
         .badge-info {
           background: #dbeafe;
           color: #1d4ed8;
+        }
+        .grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+        }
+        @media (max-width: 768px) {
+          .grid-3 {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 480px) {
+          .grid-3 {
+            grid-template-columns: 1fr;
+          }
+        }
+        textarea.input {
+          font-family: inherit;
+          min-height: 60px;
         }
       `}</style>
     </>
