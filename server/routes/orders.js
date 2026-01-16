@@ -360,19 +360,17 @@ router.post('/:id/pay-debt', authenticate, (req, res) => {
         UPDATE pos_orders SET 
           cash_amount = COALESCE(cash_amount, 0) + ?,
           debt_amount = ?,
-          payment_status = ?,
-          updated_at = ?
+          payment_status = ?
         WHERE id = ?
-      `, [paidAmount, remainingDebt, newPaymentStatus, now, id]);
+      `, [paidAmount, remainingDebt, newPaymentStatus, id]);
     } else {
       run(`
         UPDATE pos_orders SET 
           transfer_amount = COALESCE(transfer_amount, 0) + ?,
           debt_amount = ?,
-          payment_status = ?,
-          updated_at = ?
+          payment_status = ?
         WHERE id = ?
-      `, [paidAmount, remainingDebt, newPaymentStatus, now, id]);
+      `, [paidAmount, remainingDebt, newPaymentStatus, id]);
     }
 
     // Log giao dịch thanh toán nợ
