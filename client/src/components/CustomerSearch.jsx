@@ -40,7 +40,7 @@ export default function CustomerSearch({
       clearTimeout(debounceRef.current);
     }
 
-    if (!query || query.length < 2) {
+    if (!query || query.length < 1) {
       setResults([]);
       setShowDropdown(false);
       return;
@@ -362,7 +362,7 @@ export default function CustomerSearch({
 
       {/* No results */}
       {showDropdown &&
-        query.length >= 2 &&
+        query.length >= 1 &&
         results.length === 0 &&
         !loading && (
           <div
