@@ -55,11 +55,11 @@ router.get('/', authenticate, (req, res) => {
 
     const todayStats = queryOne(`
       SELECT 
-        COUNT(*) as count,
-        COALESCE(SUM(total), 0) as revenue
+        COUNT(*) as order_count,
+        COALESCE(SUM(total), 0) as total_revenue,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count
       FROM pos_orders 
       WHERE DATE(created_at) = DATE('now', 'localtime')
-        AND status != 'cancelled'
     `);
 
     res.json({ orders, total, todayStats });
@@ -300,6 +300,114 @@ router.post('/', authenticate, async (req, res) => {
 
   } catch (err) {
     console.error('Create order error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/pos/orders/:id/pay-debt
+ * Xác nhận thanh toán nợ cho đơn hàng
+ * - Cập nhật debt_amount, cash_amount/transfer_amount
+ * - Cập nhật payment_status thành 'paid' nếu hết nợ
+ */
+router.post('/:id/pay-debt', authenticate, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_method, amount } = req.body;
+
+    // Validate payment_method
+    if (!payment_method || !['cash', 'transfer'].includes(payment_method)) {
+      return res.status(400).json({ error: 'Phương thức thanh toán không hợp lệ (cash hoặc transfer)' });
+    }
+
+    // Kiểm tra đơn hàng
+    const order = queryOne('SELECT * FROM pos_orders WHERE id = ?', [id]);
+    if (!order) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: 'Đơn hàng đã bị hủy' });
+    }
+
+    if (order.payment_status === 'paid') {
+      return res.status(400).json({ error: 'Đơn hàng đã được thanh toán đầy đủ' });
+    }
+
+    if (!order.debt_amount || order.debt_amount <= 0) {
+      return res.status(400).json({ error: 'Đơn hàng không có nợ' });
+    }
+
+    const now = getNow();
+    const paidAmount = amount || order.debt_amount;
+
+    // Validate số tiền thanh toán
+    if (paidAmount <= 0) {
+      return res.status(400).json({ error: 'Số tiền thanh toán phải lớn hơn 0' });
+    }
+
+    if (paidAmount > order.debt_amount) {
+      return res.status(400).json({ error: `Số tiền thanh toán không được vượt quá nợ (${order.debt_amount.toLocaleString()}đ)` });
+    }
+
+    // Tính toán số nợ còn lại
+    const remainingDebt = order.debt_amount - paidAmount;
+    const newPaymentStatus = remainingDebt <= 0 ? 'paid' : 'partial';
+
+    // Cập nhật đơn hàng
+    if (payment_method === 'cash') {
+      run(`
+        UPDATE pos_orders SET 
+          cash_amount = COALESCE(cash_amount, 0) + ?,
+          debt_amount = ?,
+          payment_status = ?,
+          updated_at = ?
+        WHERE id = ?
+      `, [paidAmount, remainingDebt, newPaymentStatus, now, id]);
+    } else {
+      run(`
+        UPDATE pos_orders SET 
+          transfer_amount = COALESCE(transfer_amount, 0) + ?,
+          debt_amount = ?,
+          payment_status = ?,
+          updated_at = ?
+        WHERE id = ?
+      `, [paidAmount, remainingDebt, newPaymentStatus, now, id]);
+    }
+
+    // Log giao dịch thanh toán nợ
+    if (order.customer_phone) {
+      run(`
+        INSERT INTO pos_balance_transactions (
+          customer_phone, customer_name, type, amount,
+          balance_before, balance_after, order_id,
+          notes, created_by, created_at
+        ) VALUES (?, ?, 'debt_payment', ?, 0, 0, ?, ?, ?, ?)
+      `, [
+        order.customer_phone,
+        order.customer_name,
+        paidAmount,
+        id,
+        `Thanh toán nợ đơn ${order.code} bằng ${payment_method === 'cash' ? 'tiền mặt' : 'chuyển khoản'}`,
+        req.user.username,
+        now
+      ]);
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Đã xác nhận thanh toán thành công',
+      data: {
+        order_id: id,
+        order_code: order.code,
+        paid_amount: paidAmount,
+        payment_method: payment_method,
+        remaining_debt: remainingDebt,
+        payment_status: newPaymentStatus
+      }
+    });
+  } catch (err) {
+    console.error('Pay debt error:', err);
     res.status(500).json({ error: err.message });
   }
 });
