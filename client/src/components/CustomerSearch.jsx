@@ -219,7 +219,7 @@ export default function CustomerSearch({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setShowDropdown(true)}
-          placeholder="Tìm khách hàng (nhập ít nhất 2 ký tự)..."
+          placeholder="Tìm khách hàng (nhập ít nhất 1 ký tự)..."
           style={{
             width: "100%",
             padding: "0.75rem 1rem 0.75rem 2.5rem",
