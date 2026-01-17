@@ -32,7 +32,7 @@ export default function Customers() {
   const [detailForm, setDetailForm] = useState({
     discount_type: 'percent',
     discount_value: 0,
-    pos_notes: ''
+    discount_note: ''
   });
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function Customers() {
     setDetailForm({
       discount_type: customer.discount_type || 'percent',
       discount_value: customer.discount_value || 0,
-      pos_notes: customer.pos_notes || ''
+      discount_note: customer.discount_note || ''
     });
     setShowDetailModal(true);
     setError('');
@@ -136,7 +136,7 @@ export default function Customers() {
       await customersV2Api.updateDiscount(selectedCustomer.phone, {
         discount_type: detailForm.discount_value > 0 ? detailForm.discount_type : null,
         discount_value: detailForm.discount_value,
-        pos_notes: detailForm.pos_notes
+        discount_note: detailForm.discount_note
       });
       
       setSuccess(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
@@ -313,9 +313,9 @@ export default function Customers() {
                           {c.notes}
                         </div>
                       )}
-                      {c.pos_notes && (
-                        <div className="text-sm" style={{ color: '#0369a1' }}>
-                          📝 {c.pos_notes}
+                      {c.discount_note && c.discount_value > 0 && (
+                        <div className="text-sm" style={{ color: '#dc2626' }}>
+                          💬 {c.discount_note}
                         </div>
                       )}
                     </td>
@@ -631,18 +631,17 @@ export default function Customers() {
                 </div>
               </div>
 
-              {/* Ghi chú POS */}
+              {/* Lý do chiết khấu */}
               <div className="form-group">
                 <label className="form-label">
-                  📝 Ghi chú POS (riêng cho bán hàng)
+                  💬 Lý do chiết khấu
                 </label>
-                <textarea
+                <input
+                  type="text"
                   className="input"
-                  rows={2}
-                  value={detailForm.pos_notes}
-                  onChange={(e) => setDetailForm({...detailForm, pos_notes: e.target.value})}
-                  placeholder="Nhập ghi chú riêng cho POS..."
-                  style={{ resize: 'vertical' }}
+                  value={detailForm.discount_note}
+                  onChange={(e) => setDetailForm({...detailForm, discount_note: e.target.value})}
+                  placeholder="VD: Khách VIP, mua số lượng lớn..."
                 />
               </div>
 
