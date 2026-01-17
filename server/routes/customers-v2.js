@@ -1,7 +1,7 @@
 /**
  * POS System - Customers V2 Routes
  * API tra cứu khách (merge SX + POS wallets + registrations)
- * Phase B: Thêm API cập nhật chiết khấu mặc định
+ * Phase B: Thêm API cập nhật chiết khấu + ghi chú
  */
 
 const express = require("express");
@@ -61,11 +61,11 @@ async function fetchSXCustomers() {
   }
 }
 
-// Helper: Lấy map chiết khấu từ pos_customers
-function getDiscountMap() {
-  const discounts = query("SELECT phone, discount_type, discount_value FROM pos_customers WHERE discount_value > 0");
+// Helper: Lấy map thông tin bổ sung từ pos_customers (CK + notes)
+function getCustomerExtrasMap() {
+  const extras = query("SELECT phone, discount_type, discount_value, notes FROM pos_customers");
   const map = {};
-  discounts.forEach((d) => (map[d.phone] = d));
+  extras.forEach((d) => (map[d.phone] = d));
   return map;
 }
 
@@ -86,7 +86,7 @@ router.get("/search/:query", authenticate, async (req, res) => {
     const sxCustomers = await fetchSXCustomers();
     const registrations = query("SELECT * FROM pos_registrations");
     const wallets = query("SELECT * FROM pos_wallets");
-    const discountMap = getDiscountMap();
+    const extrasMap = getCustomerExtrasMap();
 
     const walletMap = {};
     wallets.forEach((w) => (walletMap[w.phone] = w));
@@ -96,13 +96,14 @@ router.get("/search/:query", authenticate, async (req, res) => {
       .filter((c) => c.name?.toLowerCase().includes(q) || c.phone?.includes(q))
       .map((c) => {
         const phone = normalizePhone(c.phone);
-        const discount = discountMap[phone];
+        const extras = extrasMap[phone];
         return {
           ...c,
           balance: walletMap[phone]?.balance || 0,
           source: "sx",
-          discount_type: discount?.discount_type || null,
-          discount_value: discount?.discount_value || 0,
+          discount_type: extras?.discount_type || null,
+          discount_value: extras?.discount_value || 0,
+          notes: extras?.notes || c.notes || null,
         };
       });
 
@@ -115,15 +116,16 @@ router.get("/search/:query", authenticate, async (req, res) => {
           (r.name?.toLowerCase().includes(q) || r.phone?.includes(q)),
       )
       .map((r) => {
-        const discount = discountMap[r.phone];
+        const extras = extrasMap[r.phone];
         return {
           name: r.name,
           phone: r.phone,
           balance: walletMap[r.phone]?.balance || 0,
           source: "pos",
           is_pending: r.status === "pending",
-          discount_type: discount?.discount_type || null,
-          discount_value: discount?.discount_value || 0,
+          discount_type: extras?.discount_type || null,
+          discount_value: extras?.discount_value || 0,
+          notes: extras?.notes || r.notes || null,
         };
       });
 
@@ -147,7 +149,7 @@ router.get("/", authenticate, async (req, res) => {
     const registrations = query(
       "SELECT * FROM pos_registrations WHERE status = 'pending'",
     );
-    const discountMap = getDiscountMap();
+    const extrasMap = getCustomerExtrasMap();
 
     const walletMap = {};
     wallets.forEach((w) => (walletMap[w.phone] = w));
@@ -159,7 +161,7 @@ router.get("/", authenticate, async (req, res) => {
     const result = sxCustomers.map((c) => {
       const phone = normalizePhone(c.phone);
       const wallet = walletMap[phone];
-      const discount = discountMap[phone];
+      const extras = extrasMap[phone];
       delete regMap[phone];
       return {
         ...c,
@@ -167,26 +169,27 @@ router.get("/", authenticate, async (req, res) => {
         balance: wallet?.balance || 0,
         source: "sx",
         is_synced: true,
-        discount_type: discount?.discount_type || null,
-        discount_value: discount?.discount_value || 0,
+        discount_type: extras?.discount_type || null,
+        discount_value: extras?.discount_value || 0,
+        notes: extras?.notes || c.notes || null,
       };
     });
 
     // Thêm pending
     Object.values(regMap).forEach((r) => {
-      const discount = discountMap[r.phone];
+      const extras = extrasMap[r.phone];
       result.push({
         name: r.name,
         phone: r.phone,
-        notes: r.notes,
         balance: walletMap[r.phone]?.balance || 0,
         source: "pos",
         is_synced: false,
         is_pending: true,
         registration_id: r.id,
         requested_product: r.requested_product,
-        discount_type: discount?.discount_type || null,
-        discount_value: discount?.discount_value || 0,
+        discount_type: extras?.discount_type || null,
+        discount_value: extras?.discount_value || 0,
+        notes: extras?.notes || r.notes || null,
       });
     });
 
@@ -202,7 +205,7 @@ router.get("/", authenticate, async (req, res) => {
 
 /**
  * PUT /api/pos/v2/customers/:phone/discount
- * Phase B: Cập nhật chiết khấu mặc định cho khách
+ * Cập nhật chiết khấu + ghi chú cho khách
  */
 router.put("/:phone/discount", authenticate, checkPermission('manage_users'), async (req, res) => {
   try {
@@ -211,9 +214,9 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
       return res.status(400).json({ error: "SĐT không hợp lệ" });
     }
 
-    const { discount_type, discount_value } = req.body;
+    const { discount_type, discount_value, notes } = req.body;
     
-    // Validate
+    // Validate discount
     if (discount_type && !['percent', 'fixed'].includes(discount_type)) {
       return res.status(400).json({ error: "Loại chiết khấu không hợp lệ (percent/fixed)" });
     }
@@ -233,22 +236,23 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
       // Update
       run(`
         UPDATE pos_customers 
-        SET discount_type = ?, discount_value = ?, updated_at = CURRENT_TIMESTAMP 
+        SET discount_type = ?, discount_value = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE phone = ?
-      `, [discount_type || null, value, phone]);
+      `, [discount_type || null, value, notes || null, phone]);
     } else {
       // Insert mới (khách từ SX hoặc chưa có trong pos_customers)
       run(`
-        INSERT INTO pos_customers (phone, name, discount_type, discount_value, created_at) 
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [phone, 'Khách hàng', discount_type || null, value]);
+        INSERT INTO pos_customers (phone, name, discount_type, discount_value, notes, created_at) 
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `, [phone, 'Khách hàng', discount_type || null, value, notes || null]);
     }
 
     res.json({ 
       success: true, 
       phone,
       discount_type: discount_type || null,
-      discount_value: value 
+      discount_value: value,
+      notes: notes || null
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -277,7 +281,7 @@ router.get("/:phone", authenticate, async (req, res) => {
       [phone],
     );
     const posCustomer = queryOne(
-      "SELECT discount_type, discount_value FROM pos_customers WHERE phone = ?",
+      "SELECT discount_type, discount_value, notes FROM pos_customers WHERE phone = ?",
       [phone]
     );
 
@@ -307,6 +311,10 @@ router.get("/:phone", authenticate, async (req, res) => {
     customer.total_spent = wallet?.total_spent || 0;
     customer.discount_type = posCustomer?.discount_type || null;
     customer.discount_value = posCustomer?.discount_value || 0;
+    // Ưu tiên notes từ pos_customers
+    if (posCustomer?.notes) {
+      customer.notes = posCustomer.notes;
+    }
 
     res.json(customer);
   } catch (err) {
@@ -336,7 +344,7 @@ router.get("/:phone/full", authenticate, async (req, res) => {
       [phone],
     );
     const posCustomer = queryOne(
-      "SELECT discount_type, discount_value FROM pos_customers WHERE phone = ?",
+      "SELECT discount_type, discount_value, notes FROM pos_customers WHERE phone = ?",
       [phone]
     );
 
@@ -359,6 +367,9 @@ router.get("/:phone/full", authenticate, async (req, res) => {
     customer.balance = wallet?.balance || 0;
     customer.discount_type = posCustomer?.discount_type || null;
     customer.discount_value = posCustomer?.discount_value || 0;
+    if (posCustomer?.notes) {
+      customer.notes = posCustomer.notes;
+    }
 
     const transactions = query(
       "SELECT * FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 20",

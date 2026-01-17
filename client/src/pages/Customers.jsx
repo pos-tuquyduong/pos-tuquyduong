@@ -1,12 +1,12 @@
 /**
  * POS - Customers Page
  * Hiện danh sách khách từ SX + POS với STT, subscription info, relationship
- * Phase B: Thêm chiết khấu mặc định cho mỗi khách hàng
+ * Phase B: Click vào row để mở modal sửa CK + ghi chú
  */
 
 import { useState, useEffect } from 'react';
 import { customersV2Api, registrationsApi } from '../utils/api';
-import { Search, Plus, X, Phone, Users, RefreshCw, User, Percent } from 'lucide-react';
+import { Search, Plus, X, Phone, Users, RefreshCw, User, Percent, FileText } from 'lucide-react';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -26,12 +26,13 @@ export default function Customers() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Phase B: Modal chiết khấu
-  const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [discountCustomer, setDiscountCustomer] = useState(null);
-  const [discountForm, setDiscountForm] = useState({
+  // Modal chi tiết khách hàng (CK + ghi chú)
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [detailForm, setDetailForm] = useState({
     discount_type: 'percent',
-    discount_value: 0
+    discount_value: 0,
+    notes: ''
   });
 
   useEffect(() => {
@@ -61,13 +62,11 @@ export default function Customers() {
 
   // Filter và search
   const filteredCustomers = customers.filter(c => {
-    // Filter
     if (filter === 'synced' && !c.is_synced) return false;
     if (filter === 'pending' && !c.is_pending) return false;
     if (filter === 'has_balance' && (!c.balance || c.balance <= 0)) return false;
     if (filter === 'has_discount' && (!c.discount_value || c.discount_value <= 0)) return false;
 
-    // Search
     if (search) {
       const q = search.toLowerCase();
       if (!c.name?.toLowerCase().includes(q) && !c.phone?.includes(q)) return false;
@@ -114,36 +113,38 @@ export default function Customers() {
     }
   };
 
-  // Phase B: Mở modal chiết khấu
-  const openDiscountModal = (customer) => {
-    setDiscountCustomer(customer);
-    setDiscountForm({
+  // Mở modal chi tiết khi click vào row
+  const openDetailModal = (customer) => {
+    setSelectedCustomer(customer);
+    setDetailForm({
       discount_type: customer.discount_type || 'percent',
-      discount_value: customer.discount_value || 0
+      discount_value: customer.discount_value || 0,
+      notes: customer.notes || ''
     });
-    setShowDiscountModal(true);
+    setShowDetailModal(true);
     setError('');
   };
 
-  // Phase B: Lưu chiết khấu
-  const handleSaveDiscount = async () => {
-    if (!discountCustomer) return;
+  // Lưu thông tin (CK + ghi chú)
+  const handleSaveDetail = async () => {
+    if (!selectedCustomer) return;
     
     setSubmitting(true);
     setError('');
     
     try {
-      await customersV2Api.updateDiscount(discountCustomer.phone, {
-        discount_type: discountForm.discount_value > 0 ? discountForm.discount_type : null,
-        discount_value: discountForm.discount_value
+      await customersV2Api.updateDiscount(selectedCustomer.phone, {
+        discount_type: detailForm.discount_value > 0 ? detailForm.discount_type : null,
+        discount_value: detailForm.discount_value,
+        notes: detailForm.notes
       });
       
-      setSuccess(`Đã cập nhật chiết khấu cho ${discountCustomer.name || discountCustomer.phone}`);
-      setShowDiscountModal(false);
+      setSuccess(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
+      setShowDetailModal(false);
       loadCustomers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message || 'Không thể cập nhật chiết khấu');
+      setError(err.message || 'Không thể cập nhật thông tin');
     } finally {
       setSubmitting(false);
     }
@@ -271,13 +272,18 @@ export default function Customers() {
                   <th>Tên KH</th>
                   <th>Gói đăng ký</th>
                   <th style={{ textAlign: 'right' }}>Số dư</th>
-                  <th style={{ textAlign: 'center' }}>CK mặc định</th>
+                  <th style={{ textAlign: 'center' }}>CK</th>
                   <th>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCustomers.map((c, idx) => (
-                  <tr key={c.phone || idx}>
+                  <tr 
+                    key={c.phone || idx}
+                    onClick={() => openDetailModal(c)}
+                    style={{ cursor: 'pointer' }}
+                    className="hover-row"
+                  >
                     <td className="text-gray">{idx + 1}</td>
                     <td>
                       <div className="flex flex-center gap-1">
@@ -289,14 +295,12 @@ export default function Customers() {
                       <div>
                         <strong>{c.name || 'Chưa có tên'}</strong>
                       </div>
-                      {/* Hiển thị quan hệ nếu là khách phụ */}
                       {c.relationship && c.parent_name && (
                         <div className="text-sm" style={{ color: '#8b5cf6' }}>
                           <User size={12} style={{ display: 'inline', marginRight: '4px' }} />
                           {c.relationship} của <strong>{c.parent_name}</strong>
                         </div>
                       )}
-                      {/* Hiển thị số người nhận nếu có */}
                       {c.children_count > 0 && (
                         <div className="text-sm text-gray">
                           <Users size={12} style={{ display: 'inline', marginRight: '4px' }} />
@@ -304,11 +308,13 @@ export default function Customers() {
                         </div>
                       )}
                       {c.notes && (
-                        <div className="text-sm text-gray">{c.notes}</div>
+                        <div className="text-sm text-gray">
+                          <FileText size={10} style={{ display: 'inline', marginRight: '4px' }} />
+                          {c.notes}
+                        </div>
                       )}
                     </td>
                     <td>
-                      {/* Hiển thị thông tin subscription từ SX */}
                       {c.subscriptions && c.subscriptions.length > 0 ? (
                         c.subscriptions.map((sub, i) => (
                           <div key={i} className="text-sm" style={{ marginBottom: '2px' }}>
@@ -355,24 +361,20 @@ export default function Customers() {
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button
-                        className="btn btn-outline"
-                        style={{ 
-                          padding: '0.25rem 0.5rem', 
-                          fontSize: '0.8rem',
-                          color: c.discount_value > 0 ? '#dc2626' : '#64748b',
-                          borderColor: c.discount_value > 0 ? '#fecaca' : undefined,
-                          background: c.discount_value > 0 ? '#fef2f2' : undefined
-                        }}
-                        onClick={() => openDiscountModal(c)}
-                        title="Cài đặt chiết khấu mặc định"
-                      >
-                        <Percent size={12} style={{ marginRight: '4px' }} />
-                        {c.discount_value > 0 
-                          ? formatDiscount(c.discount_type, c.discount_value)
-                          : 'Cài đặt'
-                        }
-                      </button>
+                      {c.discount_value > 0 ? (
+                        <span 
+                          className="badge" 
+                          style={{ 
+                            background: '#fef2f2', 
+                            color: '#dc2626',
+                            border: '1px solid #fecaca'
+                          }}
+                        >
+                          {formatDiscount(c.discount_type, c.discount_value)}
+                        </span>
+                      ) : (
+                        <span className="text-gray">-</span>
+                      )}
                     </td>
                     <td>{getStatusBadge(c)}</td>
                   </tr>
@@ -380,6 +382,18 @@ export default function Customers() {
               </tbody>
             </table>
           )}
+          
+          {/* Hướng dẫn */}
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '0.75rem', 
+            background: '#f0f9ff', 
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            color: '#0369a1'
+          }}>
+            💡 Click vào dòng khách hàng để cài đặt chiết khấu và ghi chú
+          </div>
         </div>
       </div>
 
@@ -503,94 +517,162 @@ export default function Customers() {
         </div>
       )}
 
-      {/* Modal Chiết khấu mặc định - Phase B */}
-      {showDiscountModal && discountCustomer && (
-        <div className="modal-overlay" onClick={() => setShowDiscountModal(false)}>
-          <div className="modal" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+      {/* Modal Chi tiết khách hàng - CK + Ghi chú */}
+      {showDetailModal && selectedCustomer && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">
-                <Percent size={18} style={{ marginRight: '8px' }} />
-                Chiết khấu mặc định
+                👤 Chi tiết khách hàng
               </div>
-              <button className="btn btn-outline" onClick={() => setShowDiscountModal(false)}>
+              <button className="btn btn-outline" onClick={() => setShowDetailModal(false)}>
                 <X size={16} />
               </button>
             </div>
             <div className="modal-body">
               {error && <div className="alert alert-danger">{error}</div>}
               
+              {/* Thông tin cơ bản */}
               <div style={{ 
-                padding: '0.75rem', 
+                padding: '1rem', 
                 background: '#f8fafc', 
                 borderRadius: '8px',
                 marginBottom: '1rem'
               }}>
-                <div style={{ fontWeight: 500 }}>{discountCustomer.name || 'Khách lẻ'}</div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  <Phone size={12} style={{ marginRight: '4px', display: 'inline' }} />
-                  {discountCustomer.phone}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                      {selectedCustomer.name || 'Khách lẻ'}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '4px' }}>
+                      <Phone size={14} style={{ marginRight: '6px', display: 'inline', verticalAlign: 'middle' }} />
+                      {selectedCustomer.phone}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {getStatusBadge(selectedCustomer)}
+                    <div style={{ marginTop: '8px', fontWeight: 600, color: selectedCustomer.balance > 0 ? '#22c55e' : '#64748b' }}>
+                      💰 {formatMoney(selectedCustomer.balance)}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedCustomer.relationship && selectedCustomer.parent_name && (
+                  <div style={{ marginTop: '8px', padding: '8px', background: '#f3e8ff', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    <User size={14} style={{ display: 'inline', marginRight: '6px', color: '#8b5cf6' }} />
+                    {selectedCustomer.relationship} của <strong>{selectedCustomer.parent_name}</strong>
+                  </div>
+                )}
+
+                {selectedCustomer.subscriptions && selectedCustomer.subscriptions.length > 0 && (
+                  <div style={{ marginTop: '8px' }}>
+                    {selectedCustomer.subscriptions.map((sub, i) => (
+                      <span key={i} className="badge badge-info" style={{ marginRight: '4px' }}>
+                        {sub.product_name || sub.product_type}
+                        {sub.group_name && ` - ${sub.group_name}`}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Chiết khấu mặc định */}
+              <div style={{ 
+                padding: '1rem', 
+                background: '#fffbeb', 
+                borderRadius: '8px',
+                border: '1px solid #fde68a',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ fontWeight: 500, marginBottom: '0.75rem', color: '#92400e' }}>
+                  <Percent size={16} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
+                  Chiết khấu mặc định
+                </div>
+                
+                <div className="grid grid-2 gap-1">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Loại</label>
+                    <select
+                      className="select"
+                      value={detailForm.discount_type}
+                      onChange={(e) => setDetailForm({...detailForm, discount_type: e.target.value})}
+                    >
+                      <option value="percent">Phần trăm (%)</option>
+                      <option value="fixed">Số tiền (đ)</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">
+                      Giá trị {detailForm.discount_type === 'percent' ? '(%)' : '(đ)'}
+                    </label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={detailForm.discount_value}
+                      onChange={(e) => setDetailForm({...detailForm, discount_value: parseFloat(e.target.value) || 0})}
+                      min="0"
+                      max={detailForm.discount_type === 'percent' ? 100 : undefined}
+                      step={detailForm.discount_type === 'percent' ? 1 : 1000}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Loại chiết khấu</label>
-                <select
-                  className="select"
-                  value={discountForm.discount_type}
-                  onChange={(e) => setDiscountForm({...discountForm, discount_type: e.target.value})}
-                >
-                  <option value="percent">Phần trăm (%)</option>
-                  <option value="fixed">Số tiền cố định (đ)</option>
-                </select>
-              </div>
-
+              {/* Ghi chú */}
               <div className="form-group">
                 <label className="form-label">
-                  Giá trị {discountForm.discount_type === 'percent' ? '(%)' : '(đ)'}
+                  <FileText size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
+                  Ghi chú
                 </label>
-                <input
-                  type="number"
+                <textarea
                   className="input"
-                  value={discountForm.discount_value}
-                  onChange={(e) => setDiscountForm({...discountForm, discount_value: parseFloat(e.target.value) || 0})}
-                  min="0"
-                  max={discountForm.discount_type === 'percent' ? 100 : undefined}
-                  step={discountForm.discount_type === 'percent' ? 1 : 1000}
-                  placeholder={discountForm.discount_type === 'percent' ? '0-100' : 'Số tiền'}
+                  rows={2}
+                  value={detailForm.notes}
+                  onChange={(e) => setDetailForm({...detailForm, notes: e.target.value})}
+                  placeholder="Nhập ghi chú về khách hàng..."
+                  style={{ resize: 'vertical' }}
                 />
               </div>
 
               <div style={{ 
-                padding: '0.75rem', 
-                background: '#fef3c7', 
-                borderRadius: '8px',
-                fontSize: '0.85rem',
-                color: '#92400e'
+                padding: '0.5rem 0.75rem', 
+                background: '#f0f9ff', 
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                color: '#0369a1'
               }}>
-                💡 Chiết khấu này sẽ tự động áp dụng khi chọn khách trong màn hình Bán hàng.
-                Mã chiết khấu hoặc chiết khấu thủ công vẫn có thể ghi đè.
+                💡 Chiết khấu tự động áp dụng khi bán hàng
               </div>
             </div>
             <div className="modal-footer">
               <button 
                 type="button" 
                 className="btn btn-outline" 
-                onClick={() => setDiscountForm({ ...discountForm, discount_value: 0 })}
+                onClick={() => setShowDetailModal(false)}
               >
-                Xóa CK
+                Đóng
               </button>
               <button 
                 type="button" 
                 className="btn btn-primary" 
-                onClick={handleSaveDiscount}
+                onClick={handleSaveDetail}
                 disabled={submitting}
               >
-                {submitting ? 'Đang lưu...' : 'Lưu'}
+                {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        .hover-row:hover {
+          background-color: #f8fafc !important;
+        }
+        .hover-row:hover td {
+          background-color: #f8fafc !important;
+        }
+      `}</style>
     </>
   );
 }
