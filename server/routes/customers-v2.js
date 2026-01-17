@@ -383,4 +383,44 @@ router.get("/:phone/full", authenticate, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ DEBUG APIs - XÓA SAU KHI DÙNG XONG
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/pos/v2/customers/debug/view
+ * Xem tất cả discount trong pos_customers
+ */
+router.get("/debug/view", authenticate, async (req, res) => {
+  try {
+    const data = query("SELECT id, phone, name, discount_type, discount_value, discount_note FROM pos_customers ORDER BY discount_value DESC");
+    const withDiscount = data.filter(d => d.discount_value > 0);
+    res.json({ 
+      total: data.length, 
+      with_discount: withDiscount.length,
+      data: withDiscount
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/pos/v2/customers/debug/reset
+ * Reset tất cả discount về 0
+ */
+router.get("/debug/reset", authenticate, async (req, res) => {
+  try {
+    const before = query("SELECT phone, discount_value FROM pos_customers WHERE discount_value > 0");
+    run("UPDATE pos_customers SET discount_type = NULL, discount_value = 0, discount_note = NULL");
+    res.json({ 
+      message: "Đã reset tất cả discount",
+      affected: before.length,
+      phones_reset: before.map(b => b.phone)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
