@@ -61,9 +61,9 @@ async function fetchSXCustomers() {
   }
 }
 
-// Helper: Lấy map thông tin bổ sung từ pos_customers (CK + notes)
+// Helper: Lấy map thông tin bổ sung từ pos_customers (CK + pos_notes)
 function getCustomerExtrasMap() {
-  const extras = query("SELECT phone, discount_type, discount_value, notes FROM pos_customers");
+  const extras = query("SELECT phone, discount_type, discount_value, notes as pos_notes FROM pos_customers");
   const map = {};
   extras.forEach((d) => (map[d.phone] = d));
   return map;
@@ -103,7 +103,7 @@ router.get("/search/:query", authenticate, async (req, res) => {
           source: "sx",
           discount_type: extras?.discount_type || null,
           discount_value: extras?.discount_value || 0,
-          notes: extras?.notes || c.notes || null,
+          pos_notes: extras?.pos_notes || null,
         };
       });
 
@@ -125,7 +125,8 @@ router.get("/search/:query", authenticate, async (req, res) => {
           is_pending: r.status === "pending",
           discount_type: extras?.discount_type || null,
           discount_value: extras?.discount_value || 0,
-          notes: extras?.notes || r.notes || null,
+          notes: r.notes,
+          pos_notes: extras?.pos_notes || null,
         };
       });
 
@@ -171,7 +172,7 @@ router.get("/", authenticate, async (req, res) => {
         is_synced: true,
         discount_type: extras?.discount_type || null,
         discount_value: extras?.discount_value || 0,
-        notes: extras?.notes || c.notes || null,
+        pos_notes: extras?.pos_notes || null,
       };
     });
 
@@ -189,7 +190,8 @@ router.get("/", authenticate, async (req, res) => {
         requested_product: r.requested_product,
         discount_type: extras?.discount_type || null,
         discount_value: extras?.discount_value || 0,
-        notes: extras?.notes || r.notes || null,
+        notes: r.notes,
+        pos_notes: extras?.pos_notes || null,
       });
     });
 
@@ -214,7 +216,7 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
       return res.status(400).json({ error: "SĐT không hợp lệ" });
     }
 
-    const { discount_type, discount_value, notes } = req.body;
+    const { discount_type, discount_value, pos_notes } = req.body;
     
     // Validate discount
     if (discount_type && !['percent', 'fixed'].includes(discount_type)) {
@@ -238,13 +240,13 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
         UPDATE pos_customers 
         SET discount_type = ?, discount_value = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE phone = ?
-      `, [discount_type || null, value, notes || null, phone]);
+      `, [discount_type || null, value, pos_notes || null, phone]);
     } else {
       // Insert mới (khách từ SX hoặc chưa có trong pos_customers)
       run(`
         INSERT INTO pos_customers (phone, name, discount_type, discount_value, notes, created_at) 
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [phone, 'Khách hàng', discount_type || null, value, notes || null]);
+      `, [phone, 'Khách hàng', discount_type || null, value, pos_notes || null]);
     }
 
     res.json({ 
@@ -252,7 +254,7 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
       phone,
       discount_type: discount_type || null,
       discount_value: value,
-      notes: notes || null
+      pos_notes: pos_notes || null
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -281,7 +283,7 @@ router.get("/:phone", authenticate, async (req, res) => {
       [phone],
     );
     const posCustomer = queryOne(
-      "SELECT discount_type, discount_value, notes FROM pos_customers WHERE phone = ?",
+      "SELECT discount_type, discount_value, notes as pos_notes FROM pos_customers WHERE phone = ?",
       [phone]
     );
 
@@ -311,10 +313,7 @@ router.get("/:phone", authenticate, async (req, res) => {
     customer.total_spent = wallet?.total_spent || 0;
     customer.discount_type = posCustomer?.discount_type || null;
     customer.discount_value = posCustomer?.discount_value || 0;
-    // Ưu tiên notes từ pos_customers
-    if (posCustomer?.notes) {
-      customer.notes = posCustomer.notes;
-    }
+    customer.pos_notes = posCustomer?.pos_notes || null;
 
     res.json(customer);
   } catch (err) {
@@ -344,7 +343,7 @@ router.get("/:phone/full", authenticate, async (req, res) => {
       [phone],
     );
     const posCustomer = queryOne(
-      "SELECT discount_type, discount_value, notes FROM pos_customers WHERE phone = ?",
+      "SELECT discount_type, discount_value, notes as pos_notes FROM pos_customers WHERE phone = ?",
       [phone]
     );
 
@@ -367,9 +366,7 @@ router.get("/:phone/full", authenticate, async (req, res) => {
     customer.balance = wallet?.balance || 0;
     customer.discount_type = posCustomer?.discount_type || null;
     customer.discount_value = posCustomer?.discount_value || 0;
-    if (posCustomer?.notes) {
-      customer.notes = posCustomer.notes;
-    }
+    customer.pos_notes = posCustomer?.pos_notes || null;
 
     const transactions = query(
       "SELECT * FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 20",

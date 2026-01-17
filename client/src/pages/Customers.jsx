@@ -26,13 +26,13 @@ export default function Customers() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Modal chi tiết khách hàng (CK + ghi chú)
+  // Modal chi tiết khách hàng (CK + ghi chú POS)
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailForm, setDetailForm] = useState({
     discount_type: 'percent',
     discount_value: 0,
-    notes: ''
+    pos_notes: ''
   });
 
   useEffect(() => {
@@ -119,13 +119,13 @@ export default function Customers() {
     setDetailForm({
       discount_type: customer.discount_type || 'percent',
       discount_value: customer.discount_value || 0,
-      notes: customer.notes || ''
+      pos_notes: customer.pos_notes || ''
     });
     setShowDetailModal(true);
     setError('');
   };
 
-  // Lưu thông tin (CK + ghi chú)
+  // Lưu thông tin (CK + ghi chú POS)
   const handleSaveDetail = async () => {
     if (!selectedCustomer) return;
     
@@ -136,7 +136,7 @@ export default function Customers() {
       await customersV2Api.updateDiscount(selectedCustomer.phone, {
         discount_type: detailForm.discount_value > 0 ? detailForm.discount_type : null,
         discount_value: detailForm.discount_value,
-        notes: detailForm.notes
+        pos_notes: detailForm.pos_notes
       });
       
       setSuccess(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
@@ -311,6 +311,11 @@ export default function Customers() {
                         <div className="text-sm text-gray">
                           <FileText size={10} style={{ display: 'inline', marginRight: '4px' }} />
                           {c.notes}
+                        </div>
+                      )}
+                      {c.pos_notes && (
+                        <div className="text-sm" style={{ color: '#0369a1' }}>
+                          📝 {c.pos_notes}
                         </div>
                       )}
                     </td>
@@ -574,6 +579,14 @@ export default function Customers() {
                     ))}
                   </div>
                 )}
+
+                {/* Ghi chú từ SX (readonly) */}
+                {selectedCustomer.notes && (
+                  <div style={{ marginTop: '8px', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem', color: '#64748b' }}>
+                    <FileText size={12} style={{ display: 'inline', marginRight: '6px' }} />
+                    <span style={{ fontStyle: 'italic' }}>Ghi chú SX: {selectedCustomer.notes}</span>
+                  </div>
+                )}
               </div>
 
               {/* Chiết khấu mặc định */}
@@ -618,18 +631,17 @@ export default function Customers() {
                 </div>
               </div>
 
-              {/* Ghi chú */}
+              {/* Ghi chú POS */}
               <div className="form-group">
                 <label className="form-label">
-                  <FileText size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
-                  Ghi chú
+                  📝 Ghi chú POS (riêng cho bán hàng)
                 </label>
                 <textarea
                   className="input"
                   rows={2}
-                  value={detailForm.notes}
-                  onChange={(e) => setDetailForm({...detailForm, notes: e.target.value})}
-                  placeholder="Nhập ghi chú về khách hàng..."
+                  value={detailForm.pos_notes}
+                  onChange={(e) => setDetailForm({...detailForm, pos_notes: e.target.value})}
+                  placeholder="Nhập ghi chú riêng cho POS..."
                   style={{ resize: 'vertical' }}
                 />
               </div>
