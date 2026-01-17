@@ -285,7 +285,25 @@ export const reportsApi = {
   staff: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return api.get(`/reports/staff${query ? '?' + query : ''}`);
+  },
+  // Phase B: Báo cáo chiết khấu + shipping
+  discounts: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/reports/discounts${query ? '?' + query : ''}`);
   }
+};
+
+// Discount Codes API - Phase B
+export const discountCodesApi = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/discount-codes${query ? '?' + query : ''}`);
+  },
+  get: (id) => api.get(`/discount-codes/${id}`),
+  create: (data) => api.post('/discount-codes', data),
+  update: (id, data) => api.put(`/discount-codes/${id}`, data),
+  delete: (id) => api.delete(`/discount-codes/${id}`),
+  validate: (code, orderSubtotal) => api.post('/discount-codes/validate', { code, order_subtotal: orderSubtotal })
 };
 
 // Users API

@@ -22,7 +22,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) =
   try {
     const { date = getToday() } = req.query;
 
-    // Tổng quan đơn hàng
+    // Tổng quan đơn hàng - Phase B: Thêm shipping + đơn có mã CK
     const orderStats = queryOne(`
       SELECT 
         COUNT(*) as total_orders,
@@ -32,7 +32,9 @@ router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) =
         SUM(CASE WHEN status = 'completed' THEN cash_amount ELSE 0 END) as cash_revenue,
         SUM(CASE WHEN status = 'completed' THEN transfer_amount ELSE 0 END) as transfer_revenue,
         SUM(CASE WHEN status = 'completed' THEN balance_amount ELSE 0 END) as balance_revenue,
-        SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as total_discount
+        SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as total_discount,
+        SUM(CASE WHEN status = 'completed' THEN COALESCE(shipping_fee, 0) ELSE 0 END) as total_shipping,
+        SUM(CASE WHEN status = 'completed' AND discount_code IS NOT NULL THEN 1 ELSE 0 END) as orders_with_discount_code
       FROM pos_orders
       WHERE DATE(created_at) = ?
     `, [date]);
@@ -271,6 +273,68 @@ router.get('/staff', authenticate, checkPermission('view_reports'), (req, res) =
     const staffStats = query(sql, params);
 
     res.json(staffStats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/pos/reports/discounts
+ * Phase B: Báo cáo chiết khấu + shipping
+ */
+router.get('/discounts', authenticate, checkPermission('view_reports'), (req, res) => {
+  try {
+    const { from, to } = req.query;
+    
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Vui lòng chọn khoảng thời gian' });
+    }
+
+    // Tổng quan
+    const summary = queryOne(`
+      SELECT 
+        COUNT(CASE WHEN discount > 0 THEN 1 END) as total_orders_with_discount,
+        SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as total_discount_amount,
+        SUM(CASE WHEN status = 'completed' THEN COALESCE(shipping_fee, 0) ELSE 0 END) as total_shipping_fee,
+        AVG(CASE WHEN status = 'completed' AND discount > 0 THEN discount END) as avg_discount_per_order
+      FROM pos_orders
+      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
+    `, [from, to]);
+
+    // Thống kê theo mã chiết khấu
+    const byCode = query(`
+      SELECT 
+        discount_code,
+        COUNT(*) as usage_count,
+        SUM(discount) as total_discount
+      FROM pos_orders
+      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
+        AND discount_code IS NOT NULL
+        AND status = 'completed'
+      GROUP BY discount_code
+      ORDER BY usage_count DESC
+    `, [from, to]);
+
+    // Thống kê theo ngày
+    const byDate = query(`
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as order_count,
+        SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as total_discount,
+        SUM(CASE WHEN status = 'completed' THEN COALESCE(shipping_fee, 0) ELSE 0 END) as total_shipping
+      FROM pos_orders
+      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `, [from, to]);
+
+    res.json({
+      from,
+      to,
+      summary,
+      by_code: byCode,
+      by_date: byDate
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -15,6 +15,7 @@ import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
 import Refunds from './pages/Refunds';
 import Settings from './pages/Settings';
+import DiscountCodes from './pages/DiscountCodes';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="registrations" element={<Registrations />} />
         <Route path="sync" element={<Navigate to="/registrations" replace />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="discount-codes" element={<DiscountCodes />} />
         <Route path="refunds" element={<Refunds />} />
         <Route path="settings" element={<Settings />} />
       </Route>

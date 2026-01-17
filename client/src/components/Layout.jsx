@@ -15,7 +15,8 @@ import {
   LogOut,
   AlertCircle,
   Menu,
-  X
+  X,
+  Tag
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -35,6 +36,7 @@ export default function Layout() {
     { to: '/balance', icon: Wallet, label: 'Số dư', permission: 'view_customer_balance' },
     { to: '/orders', icon: Package, label: 'Đơn hàng' },
     { to: '/registrations', icon: ClipboardList, label: 'Đăng ký mới' },
+    { to: '/discount-codes', icon: Tag, label: 'Mã chiết khấu', permission: 'manage_users' },
     { to: '/reports', icon: BarChart3, label: 'Báo cáo', permission: 'view_reports' },
     { to: '/refunds', icon: AlertCircle, label: 'Hoàn tiền', permission: 'approve_refund' },
     { to: '/settings', icon: Settings, label: 'Cài đặt', permission: 'manage_users' },
