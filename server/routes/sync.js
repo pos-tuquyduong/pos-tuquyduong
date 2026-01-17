@@ -256,7 +256,7 @@ router.post('/import', authenticate, checkPermission('import_data'), upload.sing
         const existing = queryOne('SELECT * FROM pos_customers WHERE phone = ?', [phone]);
 
         if (existing) {
-          // Cập nhật
+          // Cập nhật - KHÔNG ghi đè discount_type, discount_value, discount_note
           run(`
             UPDATE pos_customers SET
               sx_group_name = COALESCE(?, sx_group_name),

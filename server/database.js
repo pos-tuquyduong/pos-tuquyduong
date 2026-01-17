@@ -462,6 +462,95 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_date ON pos_invoice_logs(printed_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_number ON pos_invoice_logs(invoice_number)`);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 17: MÃ CHIẾT KHẤU (MỚI)
+  // ═══════════════════════════════════════════════════════════════════════════
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pos_discount_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      discount_type TEXT NOT NULL DEFAULT 'percent',
+      discount_value REAL NOT NULL DEFAULT 0,
+      min_order REAL DEFAULT 0,
+      max_discount REAL DEFAULT 0,
+      usage_limit INTEGER DEFAULT 0,
+      used_count INTEGER DEFAULT 0,
+      valid_from TEXT,
+      valid_to TEXT,
+      is_active INTEGER DEFAULT 1,
+      notes TEXT,
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME
+    )
+  `);
+
+  // Index cho discount_codes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_discount_code ON pos_discount_codes(code)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_discount_active ON pos_discount_codes(is_active)`);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MIGRATION: Thêm trường chiết khấu vào pos_customers
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    db.run(`ALTER TABLE pos_customers ADD COLUMN discount_type TEXT DEFAULT 'percent'`);
+    console.log('✅ Đã thêm cột discount_type vào pos_customers');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  try {
+    db.run(`ALTER TABLE pos_customers ADD COLUMN discount_value REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột discount_value vào pos_customers');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  try {
+    db.run(`ALTER TABLE pos_customers ADD COLUMN discount_note TEXT`);
+    console.log('✅ Đã thêm cột discount_note vào pos_customers');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MIGRATION: Thêm trường chiết khấu + shipping vào pos_orders
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_type TEXT`);
+    console.log('✅ Đã thêm cột discount_type vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_value REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột discount_value vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_amount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột discount_amount vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_code TEXT`);
+    console.log('✅ Đã thêm cột discount_code vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
+  try {
+    db.run(`ALTER TABLE pos_orders ADD COLUMN shipping_fee REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột shipping_fee vào pos_orders');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 

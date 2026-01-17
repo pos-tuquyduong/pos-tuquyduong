@@ -129,7 +129,7 @@ router.get('/stats', authenticate, (req, res) => {
 });
 /**
  * GET /api/pos/customers/search
- * Autocomplete search khách hàng - trả về name, phone, balance, debt
+ * Autocomplete search khách hàng - trả về name, phone, balance, debt, discount
  */
 router.get('/search', authenticate, (req, res) => {
   try {
@@ -141,7 +141,7 @@ router.get('/search', authenticate, (req, res) => {
 
     const searchTerm = `%${q}%`;
 
-    // Query khách hàng + số dư + tổng nợ
+    // Query khách hàng + số dư + tổng nợ + chiết khấu
     const customers = query(`
       SELECT 
         c.id,
@@ -149,6 +149,9 @@ router.get('/search', authenticate, (req, res) => {
         c.name,
         c.parent_phone,
         c.relationship,
+        c.discount_type,
+        c.discount_value,
+        c.discount_note,
         COALESCE(w.balance, 0) as balance,
         COALESCE(debt.total_debt, 0) as total_debt,
         COALESCE(debt.pending_orders, 0) as pending_orders
@@ -476,6 +479,62 @@ router.put('/:id', authenticate, (req, res) => {
     );
 
     res.json({ success: true, customer: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PUT /api/pos/customers/:id/discount
+ * Cập nhật chiết khấu cho khách hàng
+ */
+router.put('/:id/discount', authenticate, (req, res) => {
+  try {
+    const { discount_type, discount_value, discount_note } = req.body;
+
+    const customer = queryOne(
+      'SELECT * FROM pos_customers WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (!customer) {
+      return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
+    }
+
+    // Validate
+    if (discount_type && !['percent', 'fixed'].includes(discount_type)) {
+      return res.status(400).json({ error: 'Loại chiết khấu không hợp lệ' });
+    }
+
+    if (discount_type === 'percent' && discount_value > 100) {
+      return res.status(400).json({ error: 'Phần trăm chiết khấu không được vượt quá 100%' });
+    }
+
+    run(`
+      UPDATE pos_customers SET
+        discount_type = ?,
+        discount_value = ?,
+        discount_note = ?,
+        updated_at = ?
+      WHERE id = ?
+    `, [
+      discount_type || 'percent',
+      discount_value || 0,
+      discount_note || null,
+      getNow(),
+      req.params.id
+    ]);
+
+    const updated = queryOne(
+      'SELECT * FROM pos_customers WHERE id = ?',
+      [req.params.id]
+    );
+
+    res.json({ 
+      success: true, 
+      customer: updated,
+      message: 'Đã cập nhật chiết khấu cho khách hàng'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

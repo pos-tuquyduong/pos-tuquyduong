@@ -32,6 +32,8 @@ const registrationsRoutes = require('./routes/registrations');
 const customersV2Routes = require('./routes/customers-v2');
 // === ROUTES MỚI (Phase A) - Hệ thống hóa đơn ===
 const settingsRoutes = require('./routes/settings');
+// === ROUTES MỚI (Phase B) - Chiết khấu + Shipping ===
+const discountCodesRoutes = require('./routes/discount-codes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -69,16 +71,18 @@ app.use('/api/pos/registrations', registrationsRoutes);
 app.use('/api/pos/v2/customers', customersV2Routes);
 // === API MỚI (Phase A) - Hệ thống hóa đơn ===
 app.use('/api/pos/settings', settingsRoutes);
+// === API MỚI (Phase B) - Chiết khấu + Shipping ===
+app.use('/api/pos/discount-codes', discountCodesRoutes);
 
 // Health check
 app.get('/api/pos/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '2.1.0',
+    version: '2.2.0',
     service: 'POS System',
     design: 'phone-based identity',
-    features: ['invoice-system']
+    features: ['invoice-system', 'discount-shipping']
   });
 });
 
@@ -86,7 +90,7 @@ app.get('/api/pos/health', (req, res) => {
 app.get('/api/pos', (req, res) => {
   res.json({
     name: 'POS System API',
-    version: '2.1.0',
+    version: '2.2.0',
     design: 'phone làm định danh chính',
     endpoints: {
       auth: '/api/pos/auth',
@@ -98,6 +102,7 @@ app.get('/api/pos', (req, res) => {
       registrations: '/api/pos/registrations',
       'customers-v2': '/api/pos/v2/customers',
       settings: '/api/pos/settings',
+      'discount-codes': '/api/pos/discount-codes',
       sync: '/api/pos/sync',
       stock: '/api/pos/stock',
       reports: '/api/pos/reports',
@@ -136,12 +141,13 @@ async function startServer() {
 
     app.listen(PORT, () => {
       console.log('══════════════════════════════════════════════════');
-      console.log(`  🚀 POS System Server v2.1`);
+      console.log(`  🚀 POS System Server v2.2`);
       console.log(`  📍 http://localhost:${PORT}`);
       console.log(`  📊 API: http://localhost:${PORT}/api/pos`);
       console.log(`  🔑 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`  📱 Design: phone-based identity`);
       console.log(`  🧾 Feature: Invoice System (Phase A)`);
+      console.log(`  💰 Feature: Discount + Shipping (Phase B)`);
       console.log('══════════════════════════════════════════════════');
       console.log('');
       console.log('  Default login: admin / admin123');

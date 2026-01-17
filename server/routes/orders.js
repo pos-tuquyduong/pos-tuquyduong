@@ -90,6 +90,7 @@ router.get('/:id', authenticate, (req, res) => {
  * POST /api/pos/orders
  * Tạo đơn hàng mới
  * Hỗ trợ: Thanh toán linh hoạt (số dư + tiền mặt/CK + ghi nợ)
+ * Phase B: Hỗ trợ chiết khấu linh hoạt + phí ship
  */
 router.post('/', authenticate, async (req, res) => {
   try {
@@ -102,7 +103,12 @@ router.post('/', authenticate, async (req, res) => {
       transfer_amount = 0,     // Số tiền chuyển khoản
       debt_amount = 0,         // Số tiền ghi nợ
       due_date = null,         // Hạn thanh toán (nếu ghi nợ)
-      payment_status = 'paid'  // 'paid', 'partial', 'pending'
+      payment_status = 'paid', // 'paid', 'partial', 'pending'
+      // === Phase B: Chiết khấu + Shipping ===
+      discount_type = null,    // 'percent' | 'fixed' | null (dùng discount cũ)
+      discount_value = 0,      // Giá trị chiết khấu (% hoặc số tiền)
+      discount_code = null,    // Mã chiết khấu (nếu có)
+      shipping_fee = 0         // Phí vận chuyển
     } = req.body;
 
     // Validate
@@ -159,7 +165,68 @@ router.post('/', authenticate, async (req, res) => {
       });
     }
 
-    const total = Math.max(0, subtotal - discount);
+    // === Phase B: Tính chiết khấu ===
+    let finalDiscountType = discount_type;
+    let finalDiscountValue = discount_value;
+    let finalDiscountAmount = 0;
+    let finalDiscountCode = discount_code;
+    let discountCodeId = null;
+
+    // Ưu tiên 1: Mã chiết khấu
+    if (discount_code) {
+      const codeRecord = queryOne(
+        'SELECT * FROM pos_discount_codes WHERE UPPER(code) = UPPER(?) AND is_active = 1',
+        [discount_code.trim()]
+      );
+
+      if (codeRecord) {
+        // Kiểm tra hiệu lực
+        const today = new Date().toISOString().slice(0, 10);
+        let codeValid = true;
+        
+        if (codeRecord.valid_from && today < codeRecord.valid_from) codeValid = false;
+        if (codeRecord.valid_to && today > codeRecord.valid_to) codeValid = false;
+        if (codeRecord.usage_limit > 0 && codeRecord.used_count >= codeRecord.usage_limit) codeValid = false;
+        if (codeRecord.min_order > 0 && subtotal < codeRecord.min_order) codeValid = false;
+
+        if (codeValid) {
+          finalDiscountType = codeRecord.discount_type;
+          finalDiscountValue = codeRecord.discount_value;
+          finalDiscountCode = codeRecord.code;
+          discountCodeId = codeRecord.id;
+        }
+      }
+    }
+
+    // Ưu tiên 2: Chiết khấu từ request (discount_type + discount_value)
+    // Đã có từ params
+
+    // Ưu tiên 3: Chiết khấu cũ (discount số cố định) - backward compatible
+    if (!finalDiscountType && discount > 0) {
+      finalDiscountType = 'fixed';
+      finalDiscountValue = discount;
+    }
+
+    // Tính số tiền chiết khấu
+    if (finalDiscountType === 'percent' && finalDiscountValue > 0) {
+      finalDiscountAmount = subtotal * finalDiscountValue / 100;
+      // Giới hạn max_discount từ mã CK nếu có
+      if (discountCodeId) {
+        const codeRecord = queryOne('SELECT max_discount FROM pos_discount_codes WHERE id = ?', [discountCodeId]);
+        if (codeRecord?.max_discount > 0 && finalDiscountAmount > codeRecord.max_discount) {
+          finalDiscountAmount = codeRecord.max_discount;
+        }
+      }
+    } else if (finalDiscountType === 'fixed' && finalDiscountValue > 0) {
+      finalDiscountAmount = finalDiscountValue;
+    }
+
+    // Đảm bảo chiết khấu không vượt subtotal
+    finalDiscountAmount = Math.min(finalDiscountAmount, subtotal);
+
+    // Tính total: subtotal - chiết khấu + phí ship
+    const finalShippingFee = shipping_fee || 0;
+    const total = Math.max(0, subtotal - finalDiscountAmount + finalShippingFee);
 
     // Normalize phone
     const phone = normalizePhone(customer_phone);
@@ -221,18 +288,24 @@ router.post('/', authenticate, async (req, res) => {
       INSERT INTO pos_orders (
         code, customer_phone, customer_name,
         subtotal, discount, discount_reason, total,
+        discount_type, discount_value, discount_amount, discount_code, shipping_fee,
         payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
         payment_status, due_date,
         status, notes, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
     `, [
       orderCode,
       phone || null,
       customer_name || 'Khách lẻ',
       subtotal,
-      discount,
+      finalDiscountAmount, // backward compatible: discount = discount_amount
       discount_reason || null,
       total,
+      finalDiscountType || null,
+      finalDiscountValue || 0,
+      finalDiscountAmount,
+      finalDiscountCode || null,
+      finalShippingFee,
       payment_method === 'debt' ? 'debt' : payment_method,
       cash_amount || 0,
       transfer_amount || 0,
@@ -283,11 +356,22 @@ router.post('/', authenticate, async (req, res) => {
       `, [phone, customer_name || null, -actualBalanceAmount, balanceBefore, balanceAfter, orderId, 'Thanh toán đơn hàng ' + orderCode, req.user.username, now]);
     }
 
+    // === Phase B: Tăng used_count của mã chiết khấu ===
+    if (discountCodeId) {
+      run('UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?', [now, discountCodeId]);
+    }
+
     res.json({ 
       success: true, 
       order: { 
         id: orderId, 
         code: orderCode, 
+        subtotal,
+        discount_type: finalDiscountType,
+        discount_value: finalDiscountValue,
+        discount_amount: finalDiscountAmount,
+        discount_code: finalDiscountCode,
+        shipping_fee: finalShippingFee,
         total,
         items: orderItems.length,
         balance_after: balanceAfter,

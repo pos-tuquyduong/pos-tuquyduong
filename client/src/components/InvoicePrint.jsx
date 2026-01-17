@@ -499,8 +499,15 @@ export default function InvoicePrint({
                 )}
                 {isEnabled('invoice_show_discount') && order.discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#dc2626' }}>
-                    <span>Giảm giá:</span>
+                    <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}:</span>
                     <span>-{formatPrice(order.discount)}</span>
+                  </div>
+                )}
+                {/* === Phase B: Phí vận chuyển === */}
+                {order.shipping_fee > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#f97316' }}>
+                    <span>Phí vận chuyển:</span>
+                    <span>+{formatPrice(order.shipping_fee)}</span>
                   </div>
                 )}
                 {isEnabled('invoice_show_total') && (

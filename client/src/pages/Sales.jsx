@@ -39,6 +39,14 @@ export default function Sales() {
   const [isDebt, setIsDebt] = useState(false);                // Có ghi nợ không
   const [dueDate, setDueDate] = useState('');                 // Hạn thanh toán
 
+  // === Phase B: State cho chiết khấu + shipping ===
+  const [discountType, setDiscountType] = useState('percent'); // 'percent' | 'fixed'
+  const [discountValue, setDiscountValue] = useState(0);       // Giá trị chiết khấu
+  const [discountCode, setDiscountCode] = useState('');        // Mã chiết khấu
+  const [discountCodeValid, setDiscountCodeValid] = useState(null); // Kết quả validate mã
+  const [shippingFee, setShippingFee] = useState(0);           // Phí vận chuyển
+  const [validatingCode, setValidatingCode] = useState(false); // Đang validate mã
+
   useEffect(() => {
     loadProducts();
     loadInvoiceSettings();
@@ -82,6 +90,60 @@ export default function Sales() {
     console.log(`Đã in hóa đơn ${orderCode} - khổ ${paperSize}`);
   };
 
+  // === Phase B: Validate mã chiết khấu ===
+  const validateDiscountCode = async () => {
+    if (!discountCode.trim()) {
+      setDiscountCodeValid(null);
+      return;
+    }
+    
+    setValidatingCode(true);
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch('/api/pos/discount-codes/validate', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token 
+        },
+        body: JSON.stringify({ 
+          code: discountCode.trim(),
+          order_subtotal: subtotal
+        })
+      });
+      const result = await res.json();
+      
+      if (res.ok && result.valid) {
+        setDiscountCodeValid(result);
+        setError('');
+      } else {
+        setDiscountCodeValid({ valid: false, error: result.error });
+        setError(result.error || 'Mã không hợp lệ');
+      }
+    } catch (err) {
+      setDiscountCodeValid({ valid: false, error: 'Lỗi kiểm tra mã' });
+      setError('Lỗi kiểm tra mã chiết khấu');
+    } finally {
+      setValidatingCode(false);
+    }
+  };
+
+  // Reset mã chiết khấu
+  const clearDiscountCode = () => {
+    setDiscountCode('');
+    setDiscountCodeValid(null);
+  };
+
+  // Áp dụng chiết khấu mặc định của khách hàng
+  const applyCustomerDiscount = () => {
+    if (customer?.discount_value > 0) {
+      setDiscountType(customer.discount_type || 'percent');
+      setDiscountValue(customer.discount_value);
+      setDiscountCode('');
+      setDiscountCodeValid(null);
+    }
+  };
+
   // Xử lý khi chọn khách hàng từ autocomplete
   const handleSelectCustomer = (selectedCustomer) => {
     setCustomer(selectedCustomer);
@@ -90,6 +152,14 @@ export default function Sales() {
     setUseBalance(false);
     setBalanceToUse(0);
     setIsDebt(false);
+    
+    // === Phase B: Áp dụng chiết khấu mặc định của KH ===
+    if (selectedCustomer?.discount_value > 0) {
+      setDiscountType(selectedCustomer.discount_type || 'percent');
+      setDiscountValue(selectedCustomer.discount_value);
+      setDiscountCode('');
+      setDiscountCodeValid(null);
+    }
   };
 
   // Xử lý khi bỏ chọn khách hàng
@@ -99,6 +169,11 @@ export default function Sales() {
     setBalanceToUse(0);
     setIsDebt(false);
     setPaymentMethod('cash');
+    // === Phase B: Reset chiết khấu ===
+    setDiscountType('percent');
+    setDiscountValue(0);
+    setDiscountCode('');
+    setDiscountCodeValid(null);
   };
 
   const addToCart = (product) => {
@@ -158,7 +233,25 @@ export default function Sales() {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-  const total = Math.max(0, subtotal - discount);
+  
+  // === Phase B: Tính chiết khấu ===
+  let discountAmount = 0;
+  if (discountCodeValid?.valid) {
+    // Ưu tiên 1: Mã chiết khấu đã validate
+    discountAmount = discountCodeValid.discount_amount || 0;
+  } else if (discountType === 'percent' && discountValue > 0) {
+    // Ưu tiên 2: Chiết khấu %
+    discountAmount = subtotal * discountValue / 100;
+  } else if (discountType === 'fixed' && discountValue > 0) {
+    // Ưu tiên 3: Chiết khấu số tiền cố định
+    discountAmount = discountValue;
+  } else if (discount > 0) {
+    // Backward compatible
+    discountAmount = discount;
+  }
+  discountAmount = Math.min(discountAmount, subtotal);
+  
+  const total = Math.max(0, subtotal - discountAmount + (shippingFee || 0));
 
   // Tính toán thanh toán linh hoạt
   const customerBalance = customer?.balance || 0;
@@ -241,8 +334,13 @@ export default function Sales() {
           quantity: item.quantity
         })),
         payment_method: isDebt ? 'debt' : paymentMethod,
-        discount: discount,
-        discount_reason: discount > 0 ? 'Giảm giá' : null,
+        discount: discount, // backward compatible
+        discount_reason: discountAmount > 0 ? 'Giảm giá' : null,
+        // === Phase B: Chiết khấu + Shipping ===
+        discount_type: discountCodeValid?.valid ? discountCodeValid.discount_type : (discountValue > 0 ? discountType : null),
+        discount_value: discountCodeValid?.valid ? discountCodeValid.discount_value : discountValue,
+        discount_code: discountCodeValid?.valid ? discountCodeValid.code : null,
+        shipping_fee: shippingFee || 0,
         // Thêm thông tin thanh toán linh hoạt
         balance_amount: balanceUsed,
         cash_amount: cashAmount,
@@ -259,8 +357,13 @@ export default function Sales() {
         id: result.order.id,
         code: result.order.code,
         invoice_number: result.order.invoice_number,
+        subtotal: result.order.subtotal || subtotal,
+        discount: discountAmount,
+        discount_type: result.order.discount_type,
+        discount_value: result.order.discount_value,
+        discount_code: result.order.discount_code,
+        shipping_fee: result.order.shipping_fee || shippingFee,
         total: total,
-        discount: discount,
         paymentMethod: isDebt ? 'debt' : paymentMethod,
         balanceUsed: balanceUsed,
         cashReceived: cashReceivedNum,
@@ -289,6 +392,12 @@ export default function Sales() {
       setBalanceToUse(0);
       setIsDebt(false);
       setDueDate('');
+      // === Phase B: Reset chiết khấu + shipping ===
+      setDiscountType('percent');
+      setDiscountValue(0);
+      setDiscountCode('');
+      setDiscountCodeValid(null);
+      setShippingFee(0);
       loadProducts();
 
     } catch (err) {
@@ -577,17 +686,132 @@ export default function Sales() {
               </div>
             ))}
 
-            {/* Giảm giá */}
-            <div style={{ marginTop: '0.75rem' }}>
-              <label style={{ fontSize: '0.85rem', color: '#666' }}>Giảm giá</label>
-              <input
-                type="number"
-                className="input"
-                value={discount}
-                onChange={(e) => setDiscount(Math.max(0, parseInt(e.target.value) || 0))}
-                placeholder="0"
-                style={{ marginTop: '0.25rem' }}
-              />
+            {/* === Phase B: Chiết khấu + Shipping === */}
+            <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+              {/* Mã chiết khấu */}
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.25rem' }}>
+                  Mã chiết khấu
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    className="input"
+                    value={discountCode}
+                    onChange={(e) => {
+                      setDiscountCode(e.target.value.toUpperCase());
+                      setDiscountCodeValid(null);
+                    }}
+                    placeholder="Nhập mã..."
+                    style={{ flex: 1 }}
+                    disabled={discountCodeValid?.valid}
+                  />
+                  {discountCodeValid?.valid ? (
+                    <button
+                      onClick={clearDiscountCode}
+                      style={{
+                        padding: '0 0.75rem',
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  ) : (
+                    <button
+                      onClick={validateDiscountCode}
+                      disabled={!discountCode.trim() || validatingCode}
+                      style={{
+                        padding: '0 0.75rem',
+                        background: discountCode.trim() ? '#3b82f6' : '#e2e8f0',
+                        color: discountCode.trim() ? 'white' : '#999',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: discountCode.trim() ? 'pointer' : 'not-allowed',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      {validatingCode ? '...' : 'Áp dụng'}
+                    </button>
+                  )}
+                </div>
+                {discountCodeValid?.valid && (
+                  <div style={{ 
+                    marginTop: '0.25rem', 
+                    fontSize: '0.8rem', 
+                    color: '#16a34a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}>
+                    ✓ {discountCodeValid.message}
+                  </div>
+                )}
+              </div>
+
+              {/* Chiết khấu manual (ẩn nếu đã dùng mã) */}
+              {!discountCodeValid?.valid && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.25rem' }}>
+                    Chiết khấu
+                    {customer?.discount_value > 0 && (
+                      <span 
+                        onClick={applyCustomerDiscount}
+                        style={{ 
+                          marginLeft: '0.5rem', 
+                          color: '#3b82f6', 
+                          cursor: 'pointer',
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        (KH: {customer.discount_type === 'percent' ? customer.discount_value + '%' : customer.discount_value.toLocaleString() + 'đ'})
+                      </span>
+                    )}
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <select
+                      value={discountType}
+                      onChange={(e) => setDiscountType(e.target.value)}
+                      style={{
+                        padding: '0.5rem',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        background: 'white',
+                        width: '80px'
+                      }}
+                    >
+                      <option value="percent">%</option>
+                      <option value="fixed">đ</option>
+                    </select>
+                    <input
+                      type="number"
+                      className="input"
+                      value={discountValue || ''}
+                      onChange={(e) => setDiscountValue(Math.max(0, parseInt(e.target.value) || 0))}
+                      placeholder="0"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Phí vận chuyển */}
+              <div>
+                <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.25rem' }}>
+                  Phí vận chuyển
+                </label>
+                <input
+                  type="number"
+                  className="input"
+                  value={shippingFee || ''}
+                  onChange={(e) => setShippingFee(Math.max(0, parseInt(e.target.value) || 0))}
+                  placeholder="0"
+                />
+              </div>
             </div>
 
             {/* Tổng */}
@@ -600,10 +824,20 @@ export default function Sales() {
                 <span>Tạm tính</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              {discount > 0 && (
+              {discountAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', marginBottom: '0.25rem' }}>
-                  <span>Giảm giá</span>
-                  <span>-{formatPrice(discount)}</span>
+                  <span>
+                    Chiết khấu
+                    {discountCodeValid?.valid && <span style={{ fontSize: '0.75rem' }}> ({discountCodeValid.code})</span>}
+                    {!discountCodeValid?.valid && discountType === 'percent' && discountValue > 0 && <span style={{ fontSize: '0.75rem' }}> ({discountValue}%)</span>}
+                  </span>
+                  <span>-{formatPrice(discountAmount)}</span>
+                </div>
+              )}
+              {shippingFee > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f97316', marginBottom: '0.25rem' }}>
+                  <span>Phí vận chuyển</span>
+                  <span>+{formatPrice(shippingFee)}</span>
                 </div>
               )}
             </div>
@@ -1360,8 +1594,10 @@ export default function Sales() {
           quantity: item.quantity,
           unit_price: item.unit_price
         })),
-        subtotal: completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
+        subtotal: completedOrder.subtotal || completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
         discount: completedOrder.discount || 0,
+        discount_code: completedOrder.discount_code,
+        shipping_fee: completedOrder.shipping_fee || 0,
         total: completedOrder.total,
         payment_method: completedOrder.paymentMethod,
         cash_received: completedOrder.cashReceived,
