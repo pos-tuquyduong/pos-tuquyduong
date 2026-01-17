@@ -1,6 +1,7 @@
 /**
  * POS Frontend - API Utils
  * Updated: Thêm registrations confirmExport, revert, getLogs
+ * Phase B: Thêm customersV2Api.updateDiscount
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/pos';
@@ -176,7 +177,7 @@ export const registrationsApi = {
   getLogs: () => api.get('/registrations/export-logs')
 };
 
-// Customers V2 API
+// Customers V2 API - Phase B: Thêm updateDiscount
 export const customersV2Api = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -184,7 +185,9 @@ export const customersV2Api = {
   },
   get: (phone) => api.get(`/v2/customers/${phone}`),
   getFull: (phone) => api.get(`/v2/customers/${phone}/full`),
-  search: (query) => api.get(`/v2/customers/search/${encodeURIComponent(query)}`)
+  search: (query) => api.get(`/v2/customers/search/${encodeURIComponent(query)}`),
+  // Phase B: Cập nhật chiết khấu mặc định cho khách
+  updateDiscount: (phone, data) => api.put(`/v2/customers/${phone}/discount`, data)
 };
 
 // ============ API CŨ (giữ lại để tương thích) ============

@@ -1,11 +1,12 @@
 /**
  * POS - Customers Page
  * Hiện danh sách khách từ SX + POS với STT, subscription info, relationship
+ * Phase B: Thêm chiết khấu mặc định cho mỗi khách hàng
  */
 
 import { useState, useEffect } from 'react';
 import { customersV2Api, registrationsApi } from '../utils/api';
-import { Search, Plus, X, Phone, Users, RefreshCw, User } from 'lucide-react';
+import { Search, Plus, X, Phone, Users, RefreshCw, User, Percent } from 'lucide-react';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -24,6 +25,14 @@ export default function Customers() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Phase B: Modal chiết khấu
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountCustomer, setDiscountCustomer] = useState(null);
+  const [discountForm, setDiscountForm] = useState({
+    discount_type: 'percent',
+    discount_value: 0
+  });
 
   useEffect(() => {
     loadCustomers();
@@ -56,6 +65,7 @@ export default function Customers() {
     if (filter === 'synced' && !c.is_synced) return false;
     if (filter === 'pending' && !c.is_pending) return false;
     if (filter === 'has_balance' && (!c.balance || c.balance <= 0)) return false;
+    if (filter === 'has_discount' && (!c.discount_value || c.discount_value <= 0)) return false;
 
     // Search
     if (search) {
@@ -104,6 +114,41 @@ export default function Customers() {
     }
   };
 
+  // Phase B: Mở modal chiết khấu
+  const openDiscountModal = (customer) => {
+    setDiscountCustomer(customer);
+    setDiscountForm({
+      discount_type: customer.discount_type || 'percent',
+      discount_value: customer.discount_value || 0
+    });
+    setShowDiscountModal(true);
+    setError('');
+  };
+
+  // Phase B: Lưu chiết khấu
+  const handleSaveDiscount = async () => {
+    if (!discountCustomer) return;
+    
+    setSubmitting(true);
+    setError('');
+    
+    try {
+      await customersV2Api.updateDiscount(discountCustomer.phone, {
+        discount_type: discountForm.discount_value > 0 ? discountForm.discount_type : null,
+        discount_value: discountForm.discount_value
+      });
+      
+      setSuccess(`Đã cập nhật chiết khấu cho ${discountCustomer.name || discountCustomer.phone}`);
+      setShowDiscountModal(false);
+      loadCustomers();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Không thể cập nhật chiết khấu');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const relationships = [
     { value: '', label: '-- Chọn quan hệ --' },
     { value: 'con', label: 'Con' },
@@ -131,6 +176,12 @@ export default function Customers() {
 
   const formatMoney = (amount) => {
     return (amount || 0).toLocaleString() + 'đ';
+  };
+
+  const formatDiscount = (type, value) => {
+    if (!value || value <= 0) return '-';
+    if (type === 'percent') return `${value}%`;
+    return formatMoney(value);
   };
 
   return (
@@ -191,7 +242,8 @@ export default function Customers() {
               { key: 'all', label: 'Tất cả' },
               { key: 'synced', label: '🟢 Đã đồng bộ' },
               { key: 'pending', label: '🟡 Chờ đồng bộ' },
-              { key: 'has_balance', label: '💰 Có số dư' }
+              { key: 'has_balance', label: '💰 Có số dư' },
+              { key: 'has_discount', label: '🏷️ Có CK' }
             ].map(f => (
               <button
                 key={f.key}
@@ -219,6 +271,7 @@ export default function Customers() {
                   <th>Tên KH</th>
                   <th>Gói đăng ký</th>
                   <th style={{ textAlign: 'right' }}>Số dư</th>
+                  <th style={{ textAlign: 'center' }}>CK mặc định</th>
                   <th>Trạng thái</th>
                 </tr>
               </thead>
@@ -300,6 +353,26 @@ export default function Customers() {
                       }}>
                         {formatMoney(c.balance)}
                       </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        className="btn btn-outline"
+                        style={{ 
+                          padding: '0.25rem 0.5rem', 
+                          fontSize: '0.8rem',
+                          color: c.discount_value > 0 ? '#dc2626' : '#64748b',
+                          borderColor: c.discount_value > 0 ? '#fecaca' : undefined,
+                          background: c.discount_value > 0 ? '#fef2f2' : undefined
+                        }}
+                        onClick={() => openDiscountModal(c)}
+                        title="Cài đặt chiết khấu mặc định"
+                      >
+                        <Percent size={12} style={{ marginRight: '4px' }} />
+                        {c.discount_value > 0 
+                          ? formatDiscount(c.discount_type, c.discount_value)
+                          : 'Cài đặt'
+                        }
+                      </button>
                     </td>
                     <td>{getStatusBadge(c)}</td>
                   </tr>
@@ -426,6 +499,95 @@ export default function Customers() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chiết khấu mặc định - Phase B */}
+      {showDiscountModal && discountCustomer && (
+        <div className="modal-overlay" onClick={() => setShowDiscountModal(false)}>
+          <div className="modal" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">
+                <Percent size={18} style={{ marginRight: '8px' }} />
+                Chiết khấu mặc định
+              </div>
+              <button className="btn btn-outline" onClick={() => setShowDiscountModal(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="alert alert-danger">{error}</div>}
+              
+              <div style={{ 
+                padding: '0.75rem', 
+                background: '#f8fafc', 
+                borderRadius: '8px',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ fontWeight: 500 }}>{discountCustomer.name || 'Khách lẻ'}</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  <Phone size={12} style={{ marginRight: '4px', display: 'inline' }} />
+                  {discountCustomer.phone}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Loại chiết khấu</label>
+                <select
+                  className="select"
+                  value={discountForm.discount_type}
+                  onChange={(e) => setDiscountForm({...discountForm, discount_type: e.target.value})}
+                >
+                  <option value="percent">Phần trăm (%)</option>
+                  <option value="fixed">Số tiền cố định (đ)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Giá trị {discountForm.discount_type === 'percent' ? '(%)' : '(đ)'}
+                </label>
+                <input
+                  type="number"
+                  className="input"
+                  value={discountForm.discount_value}
+                  onChange={(e) => setDiscountForm({...discountForm, discount_value: parseFloat(e.target.value) || 0})}
+                  min="0"
+                  max={discountForm.discount_type === 'percent' ? 100 : undefined}
+                  step={discountForm.discount_type === 'percent' ? 1 : 1000}
+                  placeholder={discountForm.discount_type === 'percent' ? '0-100' : 'Số tiền'}
+                />
+              </div>
+
+              <div style={{ 
+                padding: '0.75rem', 
+                background: '#fef3c7', 
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                color: '#92400e'
+              }}>
+                💡 Chiết khấu này sẽ tự động áp dụng khi chọn khách trong màn hình Bán hàng.
+                Mã chiết khấu hoặc chiết khấu thủ công vẫn có thể ghi đè.
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                onClick={() => setDiscountForm({ ...discountForm, discount_value: 0 })}
+              >
+                Xóa CK
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={handleSaveDiscount}
+                disabled={submitting}
+              >
+                {submitting ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
           </div>
         </div>
       )}
