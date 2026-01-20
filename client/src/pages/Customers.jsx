@@ -125,6 +125,9 @@ export default function Customers() {
     setError('');
   };
 
+  // Kiểm tra khách có SĐT không (để cho phép set CK)
+  const canSetDiscount = (customer) => !!customer?.phone;
+
   // Lưu thông tin (CK + ghi chú POS)
   const handleSaveDetail = async () => {
     if (!selectedCustomer) return;
@@ -590,60 +593,80 @@ export default function Customers() {
               </div>
 
               {/* Chiết khấu mặc định */}
-              <div style={{ 
-                padding: '1rem', 
-                background: '#fffbeb', 
-                borderRadius: '8px',
-                border: '1px solid #fde68a',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ fontWeight: 500, marginBottom: '0.75rem', color: '#92400e' }}>
-                  <Percent size={16} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
-                  Chiết khấu mặc định
-                </div>
-                
-                <div className="grid grid-2 gap-1">
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Loại</label>
-                    <select
-                      className="select"
-                      value={detailForm.discount_type}
-                      onChange={(e) => setDetailForm({...detailForm, discount_type: e.target.value})}
-                    >
-                      <option value="percent">Phần trăm (%)</option>
-                      <option value="fixed">Số tiền (đ)</option>
-                    </select>
+              {canSetDiscount(selectedCustomer) ? (
+                <>
+                  <div style={{ 
+                    padding: '1rem', 
+                    background: '#fffbeb', 
+                    borderRadius: '8px',
+                    border: '1px solid #fde68a',
+                    marginBottom: '1rem'
+                  }}>
+                    <div style={{ fontWeight: 500, marginBottom: '0.75rem', color: '#92400e' }}>
+                      <Percent size={16} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
+                      Chiết khấu mặc định
+                    </div>
+                    
+                    <div className="grid grid-2 gap-1">
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">Loại</label>
+                        <select
+                          className="select"
+                          value={detailForm.discount_type}
+                          onChange={(e) => setDetailForm({...detailForm, discount_type: e.target.value})}
+                        >
+                          <option value="percent">Phần trăm (%)</option>
+                          <option value="fixed">Số tiền (đ)</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">
+                          Giá trị {detailForm.discount_type === 'percent' ? '(%)' : '(đ)'}
+                        </label>
+                        <input
+                          type="number"
+                          className="input"
+                          value={detailForm.discount_value}
+                          onChange={(e) => setDetailForm({...detailForm, discount_value: parseFloat(e.target.value) || 0})}
+                          min="0"
+                          max={detailForm.discount_type === 'percent' ? 100 : undefined}
+                          step={detailForm.discount_type === 'percent' ? 1 : 1000}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+
+                  {/* Lý do chiết khấu */}
+                  <div className="form-group">
                     <label className="form-label">
-                      Giá trị {detailForm.discount_type === 'percent' ? '(%)' : '(đ)'}
+                      💬 Lý do chiết khấu
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       className="input"
-                      value={detailForm.discount_value}
-                      onChange={(e) => setDetailForm({...detailForm, discount_value: parseFloat(e.target.value) || 0})}
-                      min="0"
-                      max={detailForm.discount_type === 'percent' ? 100 : undefined}
-                      step={detailForm.discount_type === 'percent' ? 1 : 1000}
+                      value={detailForm.discount_note}
+                      onChange={(e) => setDetailForm({...detailForm, discount_note: e.target.value})}
+                      placeholder="VD: Khách VIP, mua số lượng lớn..."
                     />
                   </div>
+                </>
+              ) : (
+                <div style={{ 
+                  padding: '1rem', 
+                  background: '#fef2f2', 
+                  borderRadius: '8px',
+                  border: '1px solid #fecaca',
+                  marginBottom: '1rem',
+                  color: '#991b1b'
+                }}>
+                  <div style={{ fontWeight: 500, marginBottom: '0.5rem' }}>
+                    ⚠️ Không thể cài đặt chiết khấu
+                  </div>
+                  <div style={{ fontSize: '0.85rem' }}>
+                    Khách hàng chưa có SĐT. Vui lòng bổ sung SĐT ở hệ thống SX trước khi cài đặt chiết khấu.
+                  </div>
                 </div>
-              </div>
-
-              {/* Lý do chiết khấu */}
-              <div className="form-group">
-                <label className="form-label">
-                  💬 Lý do chiết khấu
-                </label>
-                <input
-                  type="text"
-                  className="input"
-                  value={detailForm.discount_note}
-                  onChange={(e) => setDetailForm({...detailForm, discount_note: e.target.value})}
-                  placeholder="VD: Khách VIP, mua số lượng lớn..."
-                />
-              </div>
+              )}
 
               <div style={{ 
                 padding: '0.5rem 0.75rem', 
@@ -663,14 +686,16 @@ export default function Customers() {
               >
                 Đóng
               </button>
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                onClick={handleSaveDetail}
-                disabled={submitting}
-              >
-                {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-              </button>
+              {canSetDiscount(selectedCustomer) && (
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={handleSaveDetail}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              )}
             </div>
           </div>
         </div>
