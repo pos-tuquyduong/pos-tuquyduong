@@ -1,6 +1,9 @@
 /**
  * POS System - Backup Routes
  * Sao lưu và khôi phục database
+ * 
+ * NOTE: Với Turso, backup/restore hoạt động khác.
+ * File này giữ lại để tương thích, có thể cập nhật sau.
  */
 
 const express = require('express');
@@ -15,8 +18,9 @@ const upload = multer({ dest: 'uploads/' });
 /**
  * GET /api/pos/backup/download
  * Tải file backup database
+ * NOTE: Với Turso cloud, tính năng này cần được cập nhật
  */
-  router.get('/download', (req, res) => {
+  router.get('/download', async (req, res) => {
     // Cho phép token qua query string để download trực tiếp
     const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
@@ -30,16 +34,11 @@ const upload = multer({ dest: 'uploads/' });
       return res.status(401).json({ error: 'Token không hợp lệ' });
     }
   try {
-    const dbPath = process.env.DB_PATH || './data/pos.db';
-
-    if (!fs.existsSync(dbPath)) {
-      return res.status(404).json({ error: 'Database không tồn tại' });
-    }
-
-    const timestamp = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
-    const fileName = `pos-backup-${timestamp}.db`;
-
-    res.download(dbPath, fileName);
+    // Turso cloud - không có file local
+    return res.status(501).json({ 
+      error: 'Tính năng backup đang được cập nhật cho Turso cloud database',
+      message: 'Vui lòng sử dụng Turso Dashboard để backup'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -48,38 +47,23 @@ const upload = multer({ dest: 'uploads/' });
 /**
  * POST /api/pos/backup/restore
  * Khôi phục database từ file backup
+ * NOTE: Với Turso cloud, tính năng này cần được cập nhật
  */
-router.post('/restore', authenticate, upload.single('file'), (req, res) => {
+router.post('/restore', authenticate, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Không có file upload' });
     }
 
-    const dbPath = process.env.DB_PATH || './data/pos.db';
-    const dataDir = path.dirname(dbPath);
-
-    // Tạo folder nếu chưa có
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-
-    // Backup file hiện tại trước khi restore
-    let backupPath = null;
-    if (fs.existsSync(dbPath)) {
-      backupPath = path.join(dataDir, `pos-before-restore-${Date.now()}.db`);
-      fs.copyFileSync(dbPath, backupPath);
-    }
-
-    // Copy file mới vào
-    fs.copyFileSync(req.file.path, dbPath);
-
     // Xóa file tạm
-    fs.unlinkSync(req.file.path);
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
 
-    res.json({ 
-      success: true, 
-      message: 'Khôi phục thành công! Vui lòng restart server để áp dụng.',
-      backup_created: backupPath
+    // Turso cloud - không support restore file local
+    return res.status(501).json({ 
+      error: 'Tính năng restore đang được cập nhật cho Turso cloud database',
+      message: 'Vui lòng sử dụng Turso Dashboard để restore'
     });
   } catch (err) {
     // Xóa file tạm nếu có lỗi
@@ -94,20 +78,13 @@ router.post('/restore', authenticate, upload.single('file'), (req, res) => {
  * GET /api/pos/backup/info
  * Thông tin database hiện tại
  */
-router.get('/info', authenticate, (req, res) => {
+router.get('/info', authenticate, async (req, res) => {
   try {
-    const dbPath = process.env.DB_PATH || './data/pos.db';
-
-    if (!fs.existsSync(dbPath)) {
-      return res.json({ exists: false });
-    }
-
-    const stats = fs.statSync(dbPath);
+    // Turso cloud database info
     res.json({
-      exists: true,
-      size: stats.size,
-      sizeFormatted: (stats.size / 1024).toFixed(2) + ' KB',
-      modified: stats.mtime
+      type: 'turso_cloud',
+      url: process.env.TURSO_DATABASE_URL ? 'Connected' : 'Not configured',
+      message: 'Database đang chạy trên Turso Cloud'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

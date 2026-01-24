@@ -1,42 +1,36 @@
 /**
  * POS System - Database Module
- * Sử dụng sql.js (SQLite in JavaScript)
+ * Sử dụng Turso (@libsql/client) - Cloud SQLite
  * 
  * THIẾT KẾ: phone làm định danh chính
  * - pos_wallets: quản lý số dư theo phone
  * - pos_balance_transactions: lịch sử giao dịch theo phone
  * - pos_customers: chỉ lưu thông tin khách (không có balance)
+ * 
+ * MIGRATION từ sql.js sang Turso:
+ * - Tất cả functions (query, queryOne, run) giờ là async
+ * - Các routes cần thêm await khi gọi
  */
 
-const initSqlJs = require('sql.js');
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@libsql/client');
 
 let db = null;
 
 /**
- * Khởi tạo database
+ * Khởi tạo database - Kết nối Turso
  */
-async function initDatabase(dbPath = './data/pos.db') {
-  const SQL = await initSqlJs();
+async function initDatabase() {
+  // Kết nối Turso
+  db = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
 
-  const dir = path.dirname(dbPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  console.log('✅ Đã kết nối Turso database');
 
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(fileBuffer);
-    console.log('✅ Đã load database từ file:', dbPath);
-  } else {
-    db = new SQL.Database();
-    console.log('✅ Tạo database mới:', dbPath);
-  }
-
-  createTables();
-  seedDefaultData();
-  saveDatabase(dbPath);
+  // Tạo bảng và seed data
+  await createTables();
+  await seedDefaultData();
 
   return db;
 }
@@ -44,11 +38,11 @@ async function initDatabase(dbPath = './data/pos.db') {
 /**
  * Tạo tất cả các bảng
  */
-function createTables() {
+async function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 1: NHÂN VIÊN
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -64,7 +58,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 2: PHÂN QUYỀN
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_permissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       role TEXT NOT NULL,
@@ -79,7 +73,7 @@ function createTables() {
   // BẢNG 3: KHÁCH HÀNG (chỉ thông tin, KHÔNG có balance)
   // Số dư quản lý riêng trong pos_wallets theo phone
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       phone TEXT UNIQUE NOT NULL,
@@ -112,7 +106,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 4: SẢN PHẨM
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT UNIQUE NOT NULL,
@@ -135,7 +129,7 @@ function createTables() {
   // BẢNG 5: ĐƠN HÀNG
   // Dùng customer_phone làm key chính, customer_id chỉ để tham chiếu
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT UNIQUE NOT NULL,
@@ -171,7 +165,7 @@ function createTables() {
 
   // Thêm cột invoice_number vào pos_orders nếu chưa có
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN invoice_number TEXT`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN invoice_number TEXT`);
     console.log('✅ Đã thêm cột invoice_number vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại, bỏ qua
@@ -182,7 +176,7 @@ function createTables() {
 
   // Thêm cột payment_status vào pos_orders
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN payment_status TEXT DEFAULT 'paid'`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN payment_status TEXT DEFAULT 'paid'`);
     console.log('✅ Đã thêm cột payment_status vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
@@ -190,7 +184,7 @@ function createTables() {
 
   // Thêm cột debt_amount vào pos_orders (số tiền còn nợ)
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN debt_amount REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN debt_amount REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột debt_amount vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
@@ -198,7 +192,7 @@ function createTables() {
 
   // Thêm cột due_date vào pos_orders (hạn thanh toán)
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN due_date DATETIME`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN due_date DATETIME`);
     console.log('✅ Đã thêm cột due_date vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
@@ -206,7 +200,7 @@ function createTables() {
 
   // Thêm cột cash_amount vào pos_orders
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN cash_amount REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN cash_amount REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột cash_amount vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
@@ -214,7 +208,7 @@ function createTables() {
 
   // Thêm cột transfer_amount vào pos_orders
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN transfer_amount REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN transfer_amount REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột transfer_amount vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
@@ -222,7 +216,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 6: CHI TIẾT ĐƠN HÀNG
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_order_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL,
@@ -242,7 +236,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 7: SỐ DƯ KHÁCH HÀNG (phone là key chính)
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_wallets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       phone TEXT UNIQUE NOT NULL,
@@ -257,7 +251,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 8: LỊCH SỬ GIAO DỊCH SỐ DƯ (phone là key chính)
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_balance_transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       customer_phone TEXT NOT NULL,
@@ -277,7 +271,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 9: KHUYẾN MÃI
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_promotions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT UNIQUE NOT NULL,
@@ -301,7 +295,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 10: LOG SỬ DỤNG KHUYẾN MÃI
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_promotion_usage (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       promotion_id INTEGER NOT NULL,
@@ -317,7 +311,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 11: YÊU CẦU HOÀN TIỀN
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_refund_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL,
@@ -340,7 +334,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 12: LOG ĐỒNG BỘ
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_sync_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
@@ -357,7 +351,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 13: ĐĂNG KÝ MỚI
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_registrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       phone TEXT UNIQUE NOT NULL,
@@ -378,7 +372,7 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 14: LOG EXPORT
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_export_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       exported_at TEXT NOT NULL,
@@ -395,7 +389,7 @@ function createTables() {
   // BẢNG 15: CÀI ĐẶT HỆ THỐNG (MỚI - Phase A)
   // Lưu cấu hình cửa hàng, hóa đơn, Zalo, Email...
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_settings (
       key TEXT PRIMARY KEY,
       value TEXT,
@@ -407,7 +401,7 @@ function createTables() {
   // BẢNG 16: LOG IN HÓA ĐƠN (MỚI - Phase A)
   // Lưu lịch sử in hóa đơn
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_invoice_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL,
@@ -430,42 +424,42 @@ function createTables() {
   // ═══════════════════════════════════════════════════════════════════════════
   // INDEXES - Tối ưu cho phone làm key chính
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`CREATE INDEX IF NOT EXISTS idx_customer_phone ON pos_customers(phone)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_customer_parent ON pos_customers(parent_phone)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_customer_sync ON pos_customers(sync_status)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_customer_type ON pos_customers(customer_type)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_customer_phone ON pos_customers(phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_customer_parent ON pos_customers(parent_phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_customer_sync ON pos_customers(sync_status)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_customer_type ON pos_customers(customer_type)`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_date ON pos_orders(created_at)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_phone ON pos_orders(customer_phone)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_status ON pos_orders(status)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_invoice ON pos_orders(invoice_number)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_payment_status ON pos_orders(payment_status)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_order_debt ON pos_orders(debt_amount)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_date ON pos_orders(created_at)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_phone ON pos_orders(customer_phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_status ON pos_orders(status)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_invoice ON pos_orders(invoice_number)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_payment_status ON pos_orders(payment_status)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_debt ON pos_orders(debt_amount)`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_wallet_phone ON pos_wallets(phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_wallet_phone ON pos_wallets(phone)`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_balance_phone ON pos_balance_transactions(customer_phone)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_balance_type ON pos_balance_transactions(type)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_balance_date ON pos_balance_transactions(created_at)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_balance_phone ON pos_balance_transactions(customer_phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_balance_type ON pos_balance_transactions(type)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_balance_date ON pos_balance_transactions(created_at)`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_product_category ON pos_products(category)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_product_active ON pos_products(is_active)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_product_category ON pos_products(category)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_product_active ON pos_products(is_active)`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_registration_phone ON pos_registrations(phone)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_registration_status ON pos_registrations(status)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_registration_phone ON pos_registrations(phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_registration_status ON pos_registrations(status)`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_refund_phone ON pos_refund_requests(customer_phone)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_refund_status ON pos_refund_requests(status)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_refund_phone ON pos_refund_requests(customer_phone)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_refund_status ON pos_refund_requests(status)`);
 
   // Index mới cho invoice_logs
-  db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_order ON pos_invoice_logs(order_code)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_date ON pos_invoice_logs(printed_at)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_number ON pos_invoice_logs(invoice_number)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_order ON pos_invoice_logs(order_code)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_date ON pos_invoice_logs(printed_at)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_invoice_logs_number ON pos_invoice_logs(invoice_number)`);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 17: MÃ CHIẾT KHẤU (MỚI)
   // ═══════════════════════════════════════════════════════════════════════════
-  db.run(`
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_discount_codes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT UNIQUE NOT NULL,
@@ -486,28 +480,28 @@ function createTables() {
   `);
 
   // Index cho discount_codes
-  db.run(`CREATE INDEX IF NOT EXISTS idx_discount_code ON pos_discount_codes(code)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_discount_active ON pos_discount_codes(is_active)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_discount_code ON pos_discount_codes(code)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_discount_active ON pos_discount_codes(is_active)`);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MIGRATION: Thêm trường chiết khấu vào pos_customers
   // ═══════════════════════════════════════════════════════════════════════════
   try {
-    db.run(`ALTER TABLE pos_customers ADD COLUMN discount_type TEXT DEFAULT 'percent'`);
+    await db.execute(`ALTER TABLE pos_customers ADD COLUMN discount_type TEXT DEFAULT 'percent'`);
     console.log('✅ Đã thêm cột discount_type vào pos_customers');
   } catch (e) {
     // Cột đã tồn tại
   }
 
   try {
-    db.run(`ALTER TABLE pos_customers ADD COLUMN discount_value REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_customers ADD COLUMN discount_value REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột discount_value vào pos_customers');
   } catch (e) {
     // Cột đã tồn tại
   }
 
   try {
-    db.run(`ALTER TABLE pos_customers ADD COLUMN discount_note TEXT`);
+    await db.execute(`ALTER TABLE pos_customers ADD COLUMN discount_note TEXT`);
     console.log('✅ Đã thêm cột discount_note vào pos_customers');
   } catch (e) {
     // Cột đã tồn tại
@@ -517,35 +511,35 @@ function createTables() {
   // MIGRATION: Thêm trường chiết khấu + shipping vào pos_orders
   // ═══════════════════════════════════════════════════════════════════════════
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_type TEXT`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN discount_type TEXT`);
     console.log('✅ Đã thêm cột discount_type vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
   }
 
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_value REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN discount_value REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột discount_value vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
   }
 
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_amount REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN discount_amount REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột discount_amount vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
   }
 
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN discount_code TEXT`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN discount_code TEXT`);
     console.log('✅ Đã thêm cột discount_code vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
   }
 
   try {
-    db.run(`ALTER TABLE pos_orders ADD COLUMN shipping_fee REAL DEFAULT 0`);
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN shipping_fee REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột shipping_fee vào pos_orders');
   } catch (e) {
     // Cột đã tồn tại
@@ -557,23 +551,23 @@ function createTables() {
 /**
  * Tạo dữ liệu mặc định
  */
-function seedDefaultData() {
+async function seedDefaultData() {
   const bcrypt = require('bcryptjs');
 
   // Tạo admin mặc định
-  const adminExists = db.exec("SELECT COUNT(*) as count FROM pos_users WHERE username = 'admin'");
-  if (adminExists[0]?.values[0][0] === 0) {
+  const adminExists = await query("SELECT COUNT(*) as count FROM pos_users WHERE username = 'admin'");
+  if (adminExists[0]?.count === 0) {
     const hashedPassword = bcrypt.hashSync('admin123', 10);
-    db.run(`
+    await run(`
       INSERT INTO pos_users (username, password, display_name, role, is_active)
-      VALUES ('admin', '${hashedPassword}', 'Owner', 'owner', 1)
-    `);
+      VALUES (?, ?, ?, ?, ?)
+    `, ['admin', hashedPassword, 'Owner', 'owner', 1]);
     console.log('✅ Đã tạo tài khoản admin mặc định (admin/admin123)');
   }
 
   // Tạo phân quyền mặc định
-  const permissionsExist = db.exec("SELECT COUNT(*) as count FROM pos_permissions");
-  if (permissionsExist[0]?.values[0][0] === 0) {
+  const permissionsExist = await query("SELECT COUNT(*) as count FROM pos_permissions");
+  if (permissionsExist[0]?.count === 0) {
     const permissions = [
       ['owner', 'view_customer_balance', 1],
       ['owner', 'topup_balance', 1],
@@ -617,18 +611,18 @@ function seedDefaultData() {
       ['manager', 'manage_permissions', 0],
     ];
 
-    permissions.forEach(([role, permission, allowed]) => {
-      db.run(`
+    for (const [role, permission, allowed] of permissions) {
+      await run(`
         INSERT OR IGNORE INTO pos_permissions (role, permission, allowed)
-        VALUES ('${role}', '${permission}', ${allowed})
-      `);
-    });
+        VALUES (?, ?, ?)
+      `, [role, permission, allowed]);
+    }
     console.log('✅ Đã tạo phân quyền mặc định');
   }
 
   // Tạo sản phẩm mẫu
-  const productsExist = db.exec("SELECT COUNT(*) as count FROM pos_products");
-  if (productsExist[0]?.values[0][0] === 0) {
+  const productsExist = await query("SELECT COUNT(*) as count FROM pos_products");
+  if (productsExist[0]?.count === 0) {
     const products = [
       ['CT1', 'Hồng Tân Sinh', 'juice', 0, 'túi', 'juice', 1],
       ['CT2', 'Lục Tân Khí', 'juice', 0, 'túi', 'juice', 2],
@@ -640,20 +634,20 @@ function seedDefaultData() {
       ['CT8', 'Công thức 8', 'juice', 0, 'túi', 'juice', 8],
     ];
 
-    products.forEach(([code, name, category, price, unit, sx_type, sx_id]) => {
-      db.run(`
+    for (const [code, name, category, price, unit, sx_type, sx_id] of products) {
+      await run(`
         INSERT INTO pos_products (code, name, category, price, unit, sx_product_type, sx_product_id, sort_order)
-        VALUES ('${code}', '${name}', '${category}', ${price}, '${unit}', '${sx_type}', ${sx_id}, ${sx_id})
-      `);
-    });
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [code, name, category, price, unit, sx_type, sx_id, sx_id]);
+    }
     console.log('✅ Đã tạo sản phẩm mẫu (giá = 0, cần cập nhật sau)');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SEED DỮ LIỆU MẶC ĐỊNH CHO pos_settings (MỚI - Phase A)
   // ═══════════════════════════════════════════════════════════════════════════
-  const settingsExist = db.exec("SELECT COUNT(*) as count FROM pos_settings");
-  if (settingsExist[0]?.values[0][0] === 0) {
+  const settingsExist = await query("SELECT COUNT(*) as count FROM pos_settings");
+  if (settingsExist[0]?.count === 0) {
     const defaultSettings = [
       // Thông tin cửa hàng
       ['store_name', 'TÚ QUÝ ĐƯỜNG'],
@@ -713,24 +707,21 @@ function seedDefaultData() {
       ['email_template', ''],
     ];
 
-    defaultSettings.forEach(([key, value]) => {
-      db.run(`
+    for (const [key, value] of defaultSettings) {
+      await run(`
         INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
-        VALUES ('${key}', '${value}', datetime('now', '+7 hours'))
-      `);
-    });
+        VALUES (?, ?, datetime('now', '+7 hours'))
+      `, [key, value]);
+    }
     console.log('✅ Đã tạo cài đặt mặc định cho hóa đơn');
   }
 }
 
 /**
- * Lưu database xuống file
+ * Lưu database - Turso tự động lưu, giữ function này để tương thích
  */
-function saveDatabase(dbPath = './data/pos.db') {
-  if (!db) return;
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(dbPath, buffer);
+function saveDatabase() {
+  // Turso tự động lưu, không cần làm gì
 }
 
 /**
@@ -741,20 +732,19 @@ function getDb() {
 }
 
 /**
- * Query helper - SELECT
+ * Query helper - SELECT (ASYNC)
+ * @param {string} sql - SQL query
+ * @param {Array} params - Parameters
+ * @returns {Promise<Array>} - Array of rows
  */
-function query(sql, params = []) {
+async function query(sql, params = []) {
   try {
-    const stmt = db.prepare(sql);
-    if (params.length > 0) {
-      stmt.bind(params);
-    }
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return results;
+    const result = await db.execute({
+      sql: sql,
+      args: params
+    });
+    // Chuyển đổi rows thành array of objects
+    return result.rows.map(row => ({ ...row }));
   } catch (err) {
     console.error('Query error:', err.message);
     throw err;
@@ -762,30 +752,32 @@ function query(sql, params = []) {
 }
 
 /**
- * Query helper - SELECT một dòng
+ * Query helper - SELECT một dòng (ASYNC)
+ * @param {string} sql - SQL query
+ * @param {Array} params - Parameters
+ * @returns {Promise<Object|null>} - Single row or null
  */
-function queryOne(sql, params = []) {
-  const results = query(sql, params);
+async function queryOne(sql, params = []) {
+  const results = await query(sql, params);
   return results[0] || null;
 }
 
 /**
- * Run helper - INSERT/UPDATE/DELETE
+ * Run helper - INSERT/UPDATE/DELETE (ASYNC)
+ * @param {string} sql - SQL statement
+ * @param {Array} params - Parameters
+ * @returns {Promise<Object>} - { lastInsertRowid, changes }
  */
-function run(sql, params = []) {
+async function run(sql, params = []) {
   try {
-    const stmt = db.prepare(sql);
-    if (params.length > 0) {
-      stmt.bind(params);
-    }
-    stmt.step();
-    stmt.free();
-
-    saveDatabase(process.env.DB_PATH || './data/pos.db');
+    const result = await db.execute({
+      sql: sql,
+      args: params
+    });
 
     return {
-      lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0][0],
-      changes: db.getRowsModified()
+      lastInsertRowid: result.lastInsertRowid,
+      changes: result.rowsAffected
     };
   } catch (err) {
     console.error('Run error:', err.message);

@@ -5,6 +5,8 @@
  * THIẾT KẾ: phone làm định danh chính
  * - Thanh toán số dư dùng pos_wallets (theo phone)
  * - Không dùng pos_customers.balance
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require('express');
@@ -23,7 +25,7 @@ const router = express.Router();
  * GET /api/pos/orders
  * Danh sách đơn hàng
  */
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { date, from, to, customer_phone, status, page = 1, limit = 50 } = req.query;
 
@@ -50,10 +52,11 @@ router.get('/', authenticate, (req, res) => {
     sql += ` ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), (page - 1) * limit);
 
-    const orders = query(sql, params);
-    const total = queryOne(`SELECT COUNT(*) as total FROM pos_orders`)?.total || 0;
+    const orders = await query(sql, params);
+    const totalResult = await queryOne(`SELECT COUNT(*) as total FROM pos_orders`);
+    const total = totalResult?.total || 0;
 
-    const todayStats = queryOne(`
+    const todayStats = await queryOne(`
       SELECT 
         COUNT(*) as order_count,
         COALESCE(SUM(total), 0) as total_revenue,
@@ -72,14 +75,14 @@ router.get('/', authenticate, (req, res) => {
  * GET /api/pos/orders/:id
  * Chi tiết đơn hàng
  */
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const order = queryOne('SELECT * FROM pos_orders WHERE id = ?', [req.params.id]);
+    const order = await queryOne('SELECT * FROM pos_orders WHERE id = ?', [req.params.id]);
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
 
-    const items = query('SELECT * FROM pos_order_items WHERE order_id = ?', [order.id]);
+    const items = await query('SELECT * FROM pos_order_items WHERE order_id = ?', [order.id]);
     res.json({ ...order, items });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -123,12 +126,12 @@ router.post('/', authenticate, async (req, res) => {
     for (const item of items) {
       let product;
       if (item.sx_product_type && item.sx_product_id !== undefined) {
-        product = queryOne(
+        product = await queryOne(
           'SELECT * FROM pos_products WHERE sx_product_type = ? AND sx_product_id = ? AND is_active = 1', 
           [item.sx_product_type, item.sx_product_id]
         );
       } else {
-        product = queryOne('SELECT * FROM pos_products WHERE id = ? AND is_active = 1', [item.product_id]);
+        product = await queryOne('SELECT * FROM pos_products WHERE id = ? AND is_active = 1', [item.product_id]);
       }
 
       if (!product) {
@@ -174,7 +177,7 @@ router.post('/', authenticate, async (req, res) => {
 
     // Ưu tiên 1: Mã chiết khấu
     if (discount_code) {
-      const codeRecord = queryOne(
+      const codeRecord = await queryOne(
         'SELECT * FROM pos_discount_codes WHERE UPPER(code) = UPPER(?) AND is_active = 1',
         [discount_code.trim()]
       );
@@ -212,7 +215,7 @@ router.post('/', authenticate, async (req, res) => {
       finalDiscountAmount = subtotal * finalDiscountValue / 100;
       // Giới hạn max_discount từ mã CK nếu có
       if (discountCodeId) {
-        const codeRecord = queryOne('SELECT max_discount FROM pos_discount_codes WHERE id = ?', [discountCodeId]);
+        const codeRecord = await queryOne('SELECT max_discount FROM pos_discount_codes WHERE id = ?', [discountCodeId]);
         if (codeRecord?.max_discount > 0 && finalDiscountAmount > codeRecord.max_discount) {
           finalDiscountAmount = codeRecord.max_discount;
         }
@@ -240,7 +243,7 @@ router.post('/', authenticate, async (req, res) => {
     // Hỗ trợ cả payment_method cũ (backward compatible) và mới
     if (payment_method === 'balance' && phone) {
       // Cách cũ: thanh toán toàn bộ bằng số dư
-      const wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+      const wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
       const currentBalance = wallet?.balance || 0;
 
       if (currentBalance < total) {
@@ -254,7 +257,7 @@ router.post('/', authenticate, async (req, res) => {
       balanceAfter = currentBalance - total;
     } else if (balance_amount > 0 && phone) {
       // Cách mới: thanh toán linh hoạt
-      const wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+      const wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
       const currentBalance = wallet?.balance || 0;
 
       if (currentBalance < balance_amount) {
@@ -284,7 +287,7 @@ router.post('/', authenticate, async (req, res) => {
     const orderCode = generateOrderCode();
     const now = getNow();
 
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_orders (
         code, customer_phone, customer_name,
         subtotal, discount, discount_reason, total,
@@ -322,7 +325,7 @@ router.post('/', authenticate, async (req, res) => {
 
     // Thêm chi tiết đơn hàng
     for (const item of orderItems) {
-      run(`
+      await run(`
         INSERT INTO pos_order_items (
           order_id, product_id, product_code, product_name,
           quantity, unit_price, total_price
@@ -340,14 +343,14 @@ router.post('/', authenticate, async (req, res) => {
     // Trừ số dư từ pos_wallets (nếu có dùng số dư)
     if (actualBalanceAmount > 0 && phone) {
       // Cập nhật wallet
-      const walletExists = queryOne('SELECT id FROM pos_wallets WHERE phone = ?', [phone]);
+      const walletExists = await queryOne('SELECT id FROM pos_wallets WHERE phone = ?', [phone]);
       if (walletExists) {
-        run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+        await run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
           [balanceAfter, actualBalanceAmount, now, phone]);
       }
 
       // Ghi log giao dịch
-      run(`
+      await run(`
         INSERT INTO pos_balance_transactions (
           customer_phone, customer_name, type, amount, 
           balance_before, balance_after, order_id,
@@ -358,7 +361,7 @@ router.post('/', authenticate, async (req, res) => {
 
     // === Phase B: Tăng used_count của mã chiết khấu ===
     if (discountCodeId) {
-      run('UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?', [now, discountCodeId]);
+      await run('UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?', [now, discountCodeId]);
     }
 
     res.json({ 
@@ -394,7 +397,7 @@ router.post('/', authenticate, async (req, res) => {
  * - Cập nhật debt_amount, cash_amount/transfer_amount
  * - Cập nhật payment_status thành 'paid' nếu hết nợ
  */
-router.post('/:id/pay-debt', authenticate, (req, res) => {
+router.post('/:id/pay-debt', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { payment_method, amount } = req.body;
@@ -405,7 +408,7 @@ router.post('/:id/pay-debt', authenticate, (req, res) => {
     }
 
     // Kiểm tra đơn hàng
-    const order = queryOne('SELECT * FROM pos_orders WHERE id = ?', [id]);
+    const order = await queryOne('SELECT * FROM pos_orders WHERE id = ?', [id]);
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
@@ -440,7 +443,7 @@ router.post('/:id/pay-debt', authenticate, (req, res) => {
 
     // Cập nhật đơn hàng
     if (payment_method === 'cash') {
-      run(`
+      await run(`
         UPDATE pos_orders SET 
           cash_amount = COALESCE(cash_amount, 0) + ?,
           debt_amount = ?,
@@ -448,7 +451,7 @@ router.post('/:id/pay-debt', authenticate, (req, res) => {
         WHERE id = ?
       `, [paidAmount, remainingDebt, newPaymentStatus, id]);
     } else {
-      run(`
+      await run(`
         UPDATE pos_orders SET 
           transfer_amount = COALESCE(transfer_amount, 0) + ?,
           debt_amount = ?,
@@ -459,7 +462,7 @@ router.post('/:id/pay-debt', authenticate, (req, res) => {
 
     // Log giao dịch thanh toán nợ
     if (order.customer_phone) {
-      run(`
+      await run(`
         INSERT INTO pos_balance_transactions (
           customer_phone, customer_name, type, amount,
           balance_before, balance_after, order_id,
@@ -501,7 +504,7 @@ router.post('/:id/pay-debt', authenticate, (req, res) => {
 router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (req, res) => {
   try {
     const { reason } = req.body;
-    const order = queryOne('SELECT * FROM pos_orders WHERE id = ?', [req.params.id]);
+    const order = await queryOne('SELECT * FROM pos_orders WHERE id = ?', [req.params.id]);
 
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
@@ -515,16 +518,16 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (
     // Hoàn lại số dư vào pos_wallets nếu đã thanh toán bằng balance
     if (order.balance_amount > 0 && order.customer_phone) {
       const phone = order.customer_phone;
-      const wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+      const wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
 
       if (wallet) {
         const balanceBefore = wallet.balance;
         const balanceAfter = wallet.balance + order.balance_amount;
 
-        run('UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?',
+        await run('UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?',
           [balanceAfter, order.balance_amount, now, phone]);
 
-        run(`
+        await run(`
           INSERT INTO pos_balance_transactions (
             customer_phone, customer_name, type, amount,
             balance_before, balance_after, order_id,
@@ -535,7 +538,7 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (
     }
 
     // Cập nhật trạng thái
-    run(`
+    await run(`
       UPDATE pos_orders 
       SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
       WHERE id = ?

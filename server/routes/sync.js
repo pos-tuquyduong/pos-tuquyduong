@@ -1,6 +1,9 @@
 /**
  * POS System - Sync Routes
  * Đồng bộ khách hàng với hệ thống Sản xuất
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
+ * QUAN TRỌNG: forEach → for...of khi có await bên trong
  */
 
 const express = require('express');
@@ -27,9 +30,9 @@ const upload = multer({
  * GET /api/pos/sync/status
  * Trạng thái đồng bộ
  */
-router.get('/status', authenticate, (req, res) => {
+router.get('/status', authenticate, async (req, res) => {
   try {
-    const stats = queryOne(`
+    const stats = await queryOne(`
       SELECT 
         SUM(CASE WHEN sync_status = 'new' THEN 1 ELSE 0 END) as new_count,
         SUM(CASE WHEN sync_status = 'exported' THEN 1 ELSE 0 END) as exported_count,
@@ -39,14 +42,14 @@ router.get('/status', authenticate, (req, res) => {
     `);
 
     // Lấy thông tin export gần nhất
-    const lastExport = queryOne(`
+    const lastExport = await queryOne(`
       SELECT * FROM pos_sync_logs 
       WHERE type = 'export_new' 
       ORDER BY created_at DESC LIMIT 1
     `);
 
     // Lấy thông tin import gần nhất
-    const lastImport = queryOne(`
+    const lastImport = await queryOne(`
       SELECT * FROM pos_sync_logs 
       WHERE type = 'import_sx' 
       ORDER BY created_at DESC LIMIT 1
@@ -56,7 +59,7 @@ router.get('/status', authenticate, (req, res) => {
     const warnings = [];
     
     // Khách new tồn đọng > 1 ngày
-    const oldNew = queryOne(`
+    const oldNew = await queryOne(`
       SELECT COUNT(*) as count FROM pos_customers 
       WHERE sync_status = 'new' 
       AND datetime(created_at) < datetime('now', '-1 day')
@@ -70,7 +73,7 @@ router.get('/status', authenticate, (req, res) => {
     }
 
     // Khách exported tồn đọng > 2 ngày
-    const oldExported = queryOne(`
+    const oldExported = await queryOne(`
       SELECT COUNT(*) as count FROM pos_customers 
       WHERE sync_status = 'exported' 
       AND datetime(exported_at) < datetime('now', '-2 day')
@@ -98,10 +101,10 @@ router.get('/status', authenticate, (req, res) => {
  * GET /api/pos/sync/export
  * Export khách hàng mới ra CSV
  */
-router.get('/export', authenticate, checkPermission('export_data'), (req, res) => {
+router.get('/export', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
     // Lấy danh sách khách new
-    const customers = query(`
+    const customers = await query(`
       SELECT c.*,
         p.name as parent_name
       FROM pos_customers c
@@ -137,18 +140,18 @@ router.get('/export', authenticate, checkPermission('export_data'), (req, res) =
 
     const csvContent = generateCSV(headers, rows);
 
-    // Cập nhật trạng thái khách hàng
+    // Cập nhật trạng thái khách hàng - QUAN TRỌNG: dùng for...of thay vì forEach
     const customerIds = customers.map(c => c.id);
-    customerIds.forEach(id => {
-      run(
+    for (const id of customerIds) {
+      await run(
         'UPDATE pos_customers SET sync_status = ?, exported_at = ?, exported_by = ? WHERE id = ?',
         ['exported', getNow(), req.user.username, id]
       );
-    });
+    }
 
     // Ghi log
     const fileName = `khach-moi_${new Date().toISOString().slice(0,10)}_${Date.now()}.csv`;
-    run(`
+    await run(`
       INSERT INTO pos_sync_logs (type, file_name, record_count, details, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [
@@ -173,9 +176,9 @@ router.get('/export', authenticate, checkPermission('export_data'), (req, res) =
  * GET /api/pos/sync/export/preview
  * Xem trước danh sách sẽ export
  */
-router.get('/export/preview', authenticate, (req, res) => {
+router.get('/export/preview', authenticate, async (req, res) => {
   try {
-    const customers = query(`
+    const customers = await query(`
       SELECT c.id, c.phone, c.name, c.requested_product, c.requested_cycles, c.created_at,
         p.name as parent_name
       FROM pos_customers c
@@ -197,7 +200,7 @@ router.get('/export/preview', authenticate, (req, res) => {
  * POST /api/pos/sync/import
  * Import CSV từ SX
  */
-router.post('/import', authenticate, checkPermission('import_data'), upload.single('file'), (req, res) => {
+router.post('/import', authenticate, checkPermission('import_data'), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Vui lòng chọn file CSV' });
@@ -253,11 +256,11 @@ router.post('/import', authenticate, checkPermission('import_data'), upload.sing
         };
 
         // Tìm khách hàng theo SĐT
-        const existing = queryOne('SELECT * FROM pos_customers WHERE phone = ?', [phone]);
+        const existing = await queryOne('SELECT * FROM pos_customers WHERE phone = ?', [phone]);
 
         if (existing) {
           // Cập nhật - KHÔNG ghi đè discount_type, discount_value, discount_note
-          run(`
+          await run(`
             UPDATE pos_customers SET
               sx_group_name = COALESCE(?, sx_group_name),
               sx_product = COALESCE(?, sx_product),
@@ -282,7 +285,7 @@ router.post('/import', authenticate, checkPermission('import_data'), upload.sing
         } else {
           // Tạo mới (khách từ SX import sang)
           if (data.name) {
-            run(`
+            await run(`
               INSERT INTO pos_customers (
                 phone, name, qr_code, 
                 sx_group_name, sx_product, sx_start_date, sx_end_date, sx_status,
@@ -313,7 +316,7 @@ router.post('/import', authenticate, checkPermission('import_data'), upload.sing
     }
 
     // Ghi log
-    run(`
+    await run(`
       INSERT INTO pos_sync_logs (type, file_name, record_count, details, status, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [
@@ -340,7 +343,7 @@ router.post('/import', authenticate, checkPermission('import_data'), upload.sing
  * GET /api/pos/sync/logs
  * Lịch sử đồng bộ
  */
-router.get('/logs', authenticate, (req, res) => {
+router.get('/logs', authenticate, async (req, res) => {
   try {
     const { type, limit = 20 } = req.query;
 
@@ -355,7 +358,7 @@ router.get('/logs', authenticate, (req, res) => {
     sql += ` ORDER BY created_at DESC LIMIT ?`;
     params.push(parseInt(limit));
 
-    const logs = query(sql, params);
+    const logs = await query(sql, params);
 
     res.json(logs);
   } catch (err) {

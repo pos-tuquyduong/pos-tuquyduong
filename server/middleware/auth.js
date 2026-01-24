@@ -1,14 +1,17 @@
 /**
  * POS System - Authentication Middleware
+ * 
+ * TURSO MIGRATION: Tất cả database calls phải dùng await
+ * Middleware phải là async function
  */
 
 const jwt = require('jsonwebtoken');
 const { query } = require('../database');
 
 /**
- * Middleware xác thực JWT token
+ * Middleware xác thực JWT token (ASYNC cho Turso)
  */
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
     
@@ -23,11 +26,12 @@ function authenticate(req, res, next) {
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Lấy thông tin user từ database
-    const user = query(
+    // Lấy thông tin user từ database - THÊM await
+    const users = await query(
       'SELECT id, username, display_name, role, is_active FROM pos_users WHERE id = ?',
       [decoded.userId]
-    )[0];
+    );
+    const user = users[0];
 
     if (!user) {
       return res.status(401).json({ 
@@ -64,10 +68,10 @@ function authenticate(req, res, next) {
 }
 
 /**
- * Middleware kiểm tra quyền
+ * Middleware kiểm tra quyền (ASYNC cho Turso)
  */
 function checkPermission(permission) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     try {
       const { role } = req.user;
       
@@ -76,11 +80,12 @@ function checkPermission(permission) {
         return next();
       }
 
-      // Kiểm tra quyền trong database
-      const perm = query(
+      // Kiểm tra quyền trong database - THÊM await
+      const perms = await query(
         'SELECT allowed FROM pos_permissions WHERE role = ? AND permission = ?',
         [role, permission]
-      )[0];
+      );
+      const perm = perms[0];
 
       if (!perm || !perm.allowed) {
         return res.status(403).json({ 
@@ -98,7 +103,7 @@ function checkPermission(permission) {
 }
 
 /**
- * Middleware kiểm tra role
+ * Middleware kiểm tra role (không cần async - không có DB call)
  */
 function checkRole(...allowedRoles) {
   return (req, res, next) => {

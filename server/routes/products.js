@@ -34,14 +34,14 @@ router.get('/', authenticate, async (req, res) => {
 
       } catch (err) {
         console.error('❌ Error loading from SX:', err.message);
-        products = getFallbackProducts(category);
+        products = await getFallbackProducts(category);
       }
     } else {
-      products = getFallbackProducts(category);
+      products = await getFallbackProducts(category);
     }
 
     // Merge giá từ POS database - SỬA: dùng composite key
-    const prices = query('SELECT sx_product_type, sx_product_id, price FROM pos_products');
+    const prices = await query('SELECT sx_product_type, sx_product_id, price FROM pos_products');
 
     products = products.map(p => {
       // TÌM GIÁ BẰNG COMPOSITE KEY (type + id)
@@ -70,10 +70,10 @@ router.get('/', authenticate, async (req, res) => {
 /**
  * Fallback khi không kết nối được SX
  */
-function getFallbackProducts(category) {
+async function getFallbackProducts(category) {
   console.log('⚠️  Using fallback products');
 
-  let products = query(
+  let products = await query(
     `SELECT * FROM pos_products WHERE is_active = 1${category ? ' AND category = ?' : ''} ORDER BY sort_order, name`,
     category ? [category] : []
   );
@@ -90,7 +90,7 @@ function getFallbackProducts(category) {
  * PUT /api/pos/products/price
  * Cập nhật giá bán - SỬA: dùng composite key
  */
-router.put('/price', authenticate, checkPermission('manage_settings'), (req, res) => {
+router.put('/price', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
     const { sx_product_type, sx_product_id, price } = req.body;
 
@@ -99,20 +99,20 @@ router.put('/price', authenticate, checkPermission('manage_settings'), (req, res
     }
 
     // Kiểm tra sản phẩm đã tồn tại chưa
-    const existing = queryOne(
+    const existing = await queryOne(
       'SELECT id FROM pos_products WHERE sx_product_type = ? AND sx_product_id = ?',
       [sx_product_type, sx_product_id]
     );
 
     if (existing) {
       // Update
-      run(
+      await run(
         'UPDATE pos_products SET price = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
         [price, sx_product_type, sx_product_id]
       );
     } else {
       // Insert mới
-      run(
+      await run(
         `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`,
         [
@@ -137,7 +137,7 @@ router.put('/price', authenticate, checkPermission('manage_settings'), (req, res
  * PUT /api/pos/products/batch/prices
  * Cập nhật giá hàng loạt
  */
-router.put('/batch/prices', authenticate, checkPermission('manage_settings'), (req, res) => {
+router.put('/batch/prices', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
     const { products } = req.body;
 
@@ -146,20 +146,20 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), (r
     }
 
     let updated = 0;
-    products.forEach(p => {
+    for (const p of products) {
       if (p.sx_product_type && p.sx_product_id !== undefined && p.price !== undefined) {
-        const existing = queryOne(
+        const existing = await queryOne(
           'SELECT id FROM pos_products WHERE sx_product_type = ? AND sx_product_id = ?',
           [p.sx_product_type, p.sx_product_id]
         );
 
         if (existing) {
-          run(
+          await run(
             'UPDATE pos_products SET price = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
             [p.price, p.sx_product_type, p.sx_product_id]
           );
         } else {
-          run(
+          await run(
             `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active)
              VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
             [
@@ -175,7 +175,7 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), (r
         }
         updated++;
       }
-    });
+    }
 
     res.json({ success: true, updated });
   } catch (err) {
@@ -197,20 +197,20 @@ router.post('/sync-from-sx', authenticate, checkPermission('manage_settings'), a
     let synced = 0;
 
     for (const p of sxProducts) {
-      const existing = queryOne(
+      const existing = await queryOne(
         'SELECT id, price FROM pos_products WHERE sx_product_type = ? AND sx_product_id = ?',
         [p.sx_product_type, p.sx_product_id]
       );
 
       if (existing) {
         // Update tên, giữ nguyên giá
-        run(
+        await run(
           'UPDATE pos_products SET code = ?, name = ?, updated_at = datetime("now") WHERE id = ?',
           [p.code, p.name, existing.id]
         );
       } else {
         // Insert mới với giá = 0
-        run(
+        await run(
           `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active)
            VALUES (?, ?, ?, ?, ?, 0, ?, 1)`,
           [p.code, p.name, p.category, p.sx_product_type, p.sx_product_id, p.category === 'tea' ? 'gói' : 'túi']

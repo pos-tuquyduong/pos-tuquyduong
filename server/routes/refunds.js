@@ -4,6 +4,8 @@
  * 
  * THIẾT KẾ: phone làm định danh chính
  * - Hoàn tiền vào pos_wallets (theo phone)
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require('express');
@@ -17,7 +19,7 @@ const router = express.Router();
  * GET /api/pos/refunds
  * Danh sách yêu cầu hoàn tiền
  */
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { status, page = 1, limit = 50 } = req.query;
 
@@ -41,10 +43,10 @@ router.get('/', authenticate, (req, res) => {
     sql += ` LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), offset);
 
-    const refunds = query(sql, params);
+    const refunds = await query(sql, params);
 
     // Đếm theo trạng thái
-    const stats = query(`
+    const stats = await query(`
       SELECT status, COUNT(*) as count 
       FROM pos_refund_requests 
       GROUP BY status
@@ -66,9 +68,9 @@ router.get('/', authenticate, (req, res) => {
  * GET /api/pos/refunds/pending
  * Danh sách chờ duyệt
  */
-router.get('/pending', authenticate, checkPermission('approve_refund'), (req, res) => {
+router.get('/pending', authenticate, checkPermission('approve_refund'), async (req, res) => {
   try {
-    const refunds = query(`
+    const refunds = await query(`
       SELECT r.*, 
         o.code as order_code,
         o.created_at as order_date,
@@ -90,11 +92,11 @@ router.get('/pending', authenticate, checkPermission('approve_refund'), (req, re
  * POST /api/pos/refunds
  * Tạo yêu cầu hoàn tiền
  */
-router.post('/', authenticate, (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const { order_id, reason } = req.body;
 
-    const order = queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);
+    const order = await queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
@@ -108,7 +110,7 @@ router.post('/', authenticate, (req, res) => {
     }
 
     // Kiểm tra đã có yêu cầu chưa
-    const existing = queryOne(
+    const existing = await queryOne(
       'SELECT id FROM pos_refund_requests WHERE order_id = ? AND status = ?',
       [order_id, 'pending']
     );
@@ -116,7 +118,7 @@ router.post('/', authenticate, (req, res) => {
       return res.status(400).json({ error: 'Đã có yêu cầu hoàn tiền đang chờ duyệt' });
     }
 
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_refund_requests (
         order_id, customer_phone, order_total, balance_paid, refund_amount,
         status, requested_by, requested_at, reason
@@ -146,9 +148,9 @@ router.post('/', authenticate, (req, res) => {
  * POST /api/pos/refunds/:id/approve
  * Phê duyệt hoàn tiền - cộng vào pos_wallets
  */
-router.post('/:id/approve', authenticate, checkPermission('approve_refund'), (req, res) => {
+router.post('/:id/approve', authenticate, checkPermission('approve_refund'), async (req, res) => {
   try {
-    const refund = queryOne(
+    const refund = await queryOne(
       'SELECT * FROM pos_refund_requests WHERE id = ?',
       [req.params.id]
     );
@@ -169,21 +171,21 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), (re
     const now = getNow();
 
     // Lấy hoặc tạo wallet
-    let wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+    let wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
     const balanceBefore = wallet?.balance || 0;
     const balanceAfter = balanceBefore + refund.refund_amount;
 
     if (wallet) {
-      run('UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?',
+      await run('UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?',
         [balanceAfter, now, phone]);
     } else {
-      run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) 
+      await run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) 
            VALUES (?, ?, 0, 0, ?, ?)`,
         [phone, balanceAfter, now, now]);
     }
 
     // Ghi log giao dịch
-    const txResult = run(`
+    const txResult = await run(`
       INSERT INTO pos_balance_transactions (
         customer_phone, customer_name, type, amount,
         balance_before, balance_after, order_id,
@@ -202,7 +204,7 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), (re
     ]);
 
     // Cập nhật yêu cầu hoàn tiền
-    run(`
+    await run(`
       UPDATE pos_refund_requests SET
         status = 'approved',
         processed_by = ?,
@@ -212,7 +214,7 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), (re
     `, [req.user.username, now, txResult.lastInsertRowid, refund.id]);
 
     // Cập nhật đơn hàng
-    run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ?`, [refund.order_id]);
+    await run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ?`, [refund.order_id]);
 
     res.json({
       success: true,
@@ -228,7 +230,7 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), (re
  * POST /api/pos/refunds/:id/reject
  * Từ chối hoàn tiền
  */
-router.post('/:id/reject', authenticate, checkPermission('approve_refund'), (req, res) => {
+router.post('/:id/reject', authenticate, checkPermission('approve_refund'), async (req, res) => {
   try {
     const { reason } = req.body;
 
@@ -236,7 +238,7 @@ router.post('/:id/reject', authenticate, checkPermission('approve_refund'), (req
       return res.status(400).json({ error: 'Vui lòng nhập lý do từ chối' });
     }
 
-    const refund = queryOne(
+    const refund = await queryOne(
       'SELECT * FROM pos_refund_requests WHERE id = ?',
       [req.params.id]
     );
@@ -250,7 +252,7 @@ router.post('/:id/reject', authenticate, checkPermission('approve_refund'), (req
     }
 
     // Cập nhật yêu cầu hoàn tiền
-    run(`
+    await run(`
       UPDATE pos_refund_requests SET
         status = 'rejected',
         processed_by = ?,

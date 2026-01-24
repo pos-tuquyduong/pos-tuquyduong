@@ -18,7 +18,7 @@ const router = express.Router();
  * GET /api/pos/customers
  * Danh sách khách hàng
  */
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { 
       sync_status, 
@@ -59,7 +59,7 @@ router.get('/', authenticate, (req, res) => {
     sql += ` LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), offset);
 
-    const customers = query(sql, params);
+    const customers = await query(sql, params);
 
     // Đếm tổng
     let countSql = `SELECT COUNT(*) as total FROM pos_customers WHERE 1=1`;
@@ -78,10 +78,11 @@ router.get('/', authenticate, (req, res) => {
       countParams.push(`%${search}%`, `%${search}%`);
     }
 
-    const total = queryOne(countSql, countParams)?.total || 0;
+    const totalResult = await queryOne(countSql, countParams);
+    const total = totalResult?.total || 0;
 
     // Thống kê theo sync_status
-    const stats = query(`
+    const stats = await query(`
       SELECT sync_status, COUNT(*) as count 
       FROM pos_customers 
       GROUP BY sync_status
@@ -109,9 +110,9 @@ router.get('/', authenticate, (req, res) => {
  * GET /api/pos/customers/stats
  * Thống kê khách hàng
  */
-router.get('/stats', authenticate, (req, res) => {
+router.get('/stats', authenticate, async (req, res) => {
   try {
-    const stats = query(`
+    const statsResult = await query(`
       SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN sync_status = 'new' THEN 1 ELSE 0 END) as new_count,
@@ -120,7 +121,8 @@ router.get('/stats', authenticate, (req, res) => {
         SUM(CASE WHEN sync_status = 'retail_only' THEN 1 ELSE 0 END) as retail_count,
         SUM(balance) as total_balance
       FROM pos_customers
-    `)[0];
+    `);
+    const stats = statsResult[0];
 
     res.json(stats);
   } catch (err) {
@@ -131,7 +133,7 @@ router.get('/stats', authenticate, (req, res) => {
  * GET /api/pos/customers/search
  * Autocomplete search khách hàng - trả về name, phone, balance, debt, discount
  */
-router.get('/search', authenticate, (req, res) => {
+router.get('/search', authenticate, async (req, res) => {
   try {
     const { q, limit = 10 } = req.query;
 
@@ -142,7 +144,7 @@ router.get('/search', authenticate, (req, res) => {
     const searchTerm = `%${q}%`;
 
     // Query khách hàng + số dư + tổng nợ + chiết khấu
-    const customers = query(`
+    const customers = await query(`
       SELECT 
         c.id,
         c.phone,
@@ -182,9 +184,9 @@ router.get('/search', authenticate, (req, res) => {
  * GET /api/pos/customers/:id
  * Chi tiết khách hàng
  */
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const customer = queryOne(
+    const customer = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -194,7 +196,7 @@ router.get('/:id', authenticate, (req, res) => {
     }
 
     // Lấy danh sách người nhận (con)
-    const children = query(
+    const children = await query(
       'SELECT id, phone, name, relationship FROM pos_customers WHERE parent_phone = ?',
       [customer.phone]
     );
@@ -202,14 +204,14 @@ router.get('/:id', authenticate, (req, res) => {
     // Lấy khách chính (cha)
     let parent = null;
     if (customer.parent_phone) {
-      parent = queryOne(
+      parent = await queryOne(
         'SELECT id, phone, name FROM pos_customers WHERE phone = ?',
         [customer.parent_phone]
       );
     }
 
     // Lấy giao dịch gần đây
-    const recentTransactions = query(
+    const recentTransactions = await query(
       `SELECT * FROM pos_balance_transactions 
        WHERE customer_id = ? 
        ORDER BY created_at DESC 
@@ -218,7 +220,7 @@ router.get('/:id', authenticate, (req, res) => {
     );
 
     // Lấy đơn hàng gần đây
-    const recentOrders = query(
+    const recentOrders = await query(
       `SELECT * FROM pos_orders 
        WHERE customer_id = ? 
        ORDER BY created_at DESC 
@@ -242,11 +244,11 @@ router.get('/:id', authenticate, (req, res) => {
  * GET /api/pos/customers/phone/:phone
  * Tìm theo SĐT (exact match)
  */
-router.get('/phone/:phone', authenticate, (req, res) => {
+router.get('/phone/:phone', authenticate, async (req, res) => {
   try {
     const phone = normalizePhone(req.params.phone);
     
-    const customer = queryOne(
+    const customer = await queryOne(
       'SELECT * FROM pos_customers WHERE phone = ?',
       [phone]
     );
@@ -256,7 +258,7 @@ router.get('/phone/:phone', authenticate, (req, res) => {
     }
 
     // Lấy danh sách người nhận
-    const children = query(
+    const children = await query(
       'SELECT id, phone, name, relationship FROM pos_customers WHERE parent_phone = ?',
       [customer.phone]
     );
@@ -271,9 +273,9 @@ router.get('/phone/:phone', authenticate, (req, res) => {
  * GET /api/pos/customers/qr/:code
  * Tìm theo QR code
  */
-router.get('/qr/:code', authenticate, (req, res) => {
+router.get('/qr/:code', authenticate, async (req, res) => {
   try {
-    const customer = queryOne(
+    const customer = await queryOne(
       'SELECT * FROM pos_customers WHERE qr_code = ?',
       [req.params.code]
     );
@@ -283,7 +285,7 @@ router.get('/qr/:code', authenticate, (req, res) => {
     }
 
     // Lấy danh sách người nhận
-    const children = query(
+    const children = await query(
       'SELECT id, phone, name, relationship FROM pos_customers WHERE parent_phone = ?',
       [customer.phone]
     );
@@ -298,7 +300,7 @@ router.get('/qr/:code', authenticate, (req, res) => {
  * POST /api/pos/customers
  * Thêm khách hàng mới
  */
-router.post('/', authenticate, (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const {
       phone,
@@ -328,7 +330,7 @@ router.post('/', authenticate, (req, res) => {
     }
 
     // Kiểm tra trùng
-    const existing = queryOne(
+    const existing = await queryOne(
       'SELECT id FROM pos_customers WHERE phone = ?',
       [normalizedPhone]
     );
@@ -346,7 +348,7 @@ router.post('/', authenticate, (req, res) => {
     const syncStatus = customer_type === 'retail' ? 'retail_only' : 'new';
 
     // Insert khách hàng chính
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_customers (
         phone, name, notes, parent_phone, relationship,
         qr_code, customer_type, requested_product, requested_cycles,
@@ -371,21 +373,21 @@ router.post('/', authenticate, (req, res) => {
 
     // Thêm người nhận (children)
     if (children && children.length > 0) {
-      children.forEach(child => {
+      for (const child of children) {
         if (child.name) {
           const childPhone = child.phone ? normalizePhone(child.phone) : null;
           const childQR = childPhone ? generateQRCode(childPhone) : null;
           
           // Kiểm tra phone trùng nếu có
           if (childPhone) {
-            const existingChild = queryOne(
+            const existingChild = await queryOne(
               'SELECT id FROM pos_customers WHERE phone = ?',
               [childPhone]
             );
-            if (existingChild) return; // Skip nếu trùng
+            if (existingChild) continue; // Skip nếu trùng
           }
 
-          run(`
+          await run(`
             INSERT INTO pos_customers (
               phone, name, parent_phone, relationship,
               qr_code, customer_type, sync_status, created_by, created_at
@@ -402,16 +404,16 @@ router.post('/', authenticate, (req, res) => {
             getNow()
           ]);
         }
-      });
+      }
     }
 
     // Trả về khách hàng vừa tạo
-    const newCustomer = queryOne(
+    const newCustomer = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [customerId]
     );
 
-    const newChildren = query(
+    const newChildren = await query(
       'SELECT * FROM pos_customers WHERE parent_phone = ?',
       [normalizedPhone]
     );
@@ -429,7 +431,7 @@ router.post('/', authenticate, (req, res) => {
  * PUT /api/pos/customers/:id
  * Cập nhật khách hàng
  */
-router.put('/:id', authenticate, (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const {
       name,
@@ -441,7 +443,7 @@ router.put('/:id', authenticate, (req, res) => {
       requested_cycles
     } = req.body;
 
-    const customer = queryOne(
+    const customer = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -450,7 +452,7 @@ router.put('/:id', authenticate, (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
     }
 
-    run(`
+    await run(`
       UPDATE pos_customers SET
         name = COALESCE(?, name),
         notes = ?,
@@ -473,7 +475,7 @@ router.put('/:id', authenticate, (req, res) => {
       req.params.id
     ]);
 
-    const updated = queryOne(
+    const updated = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -488,11 +490,11 @@ router.put('/:id', authenticate, (req, res) => {
  * PUT /api/pos/customers/:id/discount
  * Cập nhật chiết khấu cho khách hàng
  */
-router.put('/:id/discount', authenticate, (req, res) => {
+router.put('/:id/discount', authenticate, async (req, res) => {
   try {
     const { discount_type, discount_value, discount_note } = req.body;
 
-    const customer = queryOne(
+    const customer = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -510,7 +512,7 @@ router.put('/:id/discount', authenticate, (req, res) => {
       return res.status(400).json({ error: 'Phần trăm chiết khấu không được vượt quá 100%' });
     }
 
-    run(`
+    await run(`
       UPDATE pos_customers SET
         discount_type = ?,
         discount_value = ?,
@@ -525,7 +527,7 @@ router.put('/:id/discount', authenticate, (req, res) => {
       req.params.id
     ]);
 
-    const updated = queryOne(
+    const updated = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -544,9 +546,9 @@ router.put('/:id/discount', authenticate, (req, res) => {
  * GET /api/pos/customers/:id/children
  * Danh sách người nhận của khách
  */
-router.get('/:id/children', authenticate, (req, res) => {
+router.get('/:id/children', authenticate, async (req, res) => {
   try {
-    const customer = queryOne(
+    const customer = await queryOne(
       'SELECT phone FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -555,7 +557,7 @@ router.get('/:id/children', authenticate, (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
     }
 
-    const children = query(
+    const children = await query(
       'SELECT * FROM pos_customers WHERE parent_phone = ?',
       [customer.phone]
     );
@@ -570,7 +572,7 @@ router.get('/:id/children', authenticate, (req, res) => {
  * POST /api/pos/customers/:id/children
  * Thêm người nhận cho khách
  */
-router.post('/:id/children', authenticate, (req, res) => {
+router.post('/:id/children', authenticate, async (req, res) => {
   try {
     const { name, phone, relationship } = req.body;
 
@@ -578,7 +580,7 @@ router.post('/:id/children', authenticate, (req, res) => {
       return res.status(400).json({ error: 'Vui lòng nhập tên người nhận' });
     }
 
-    const parent = queryOne(
+    const parent = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [req.params.id]
     );
@@ -591,7 +593,7 @@ router.post('/:id/children', authenticate, (req, res) => {
     
     // Kiểm tra phone trùng nếu có
     if (childPhone) {
-      const existing = queryOne(
+      const existing = await queryOne(
         'SELECT id FROM pos_customers WHERE phone = ?',
         [childPhone]
       );
@@ -604,7 +606,7 @@ router.post('/:id/children', authenticate, (req, res) => {
 
     const qrCode = childPhone ? generateQRCode(childPhone) : null;
 
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_customers (
         phone, name, parent_phone, relationship,
         qr_code, customer_type, sync_status, created_by, created_at
@@ -621,7 +623,7 @@ router.post('/:id/children', authenticate, (req, res) => {
       getNow()
     ]);
 
-    const child = queryOne(
+    const child = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
       [result.lastInsertRowid]
     );

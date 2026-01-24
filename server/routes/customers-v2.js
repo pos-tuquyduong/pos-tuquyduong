@@ -2,6 +2,8 @@
  * POS System - Customers V2 Routes
  * API tra cứu khách (merge SX + POS wallets + registrations)
  * Phase B: Thêm API cập nhật chiết khấu + ghi chú
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require("express");
@@ -61,9 +63,9 @@ async function fetchSXCustomers() {
   }
 }
 
-// Helper: Lấy map thông tin bổ sung từ pos_customers (CK + lý do)
-function getCustomerExtrasMap() {
-  const extras = query("SELECT phone, discount_type, discount_value, discount_note FROM pos_customers");
+// Helper: Lấy map thông tin bổ sung từ pos_customers (CK + lý do) - ASYNC
+async function getCustomerExtrasMap() {
+  const extras = await query("SELECT phone, discount_type, discount_value, discount_note FROM pos_customers");
   const map = {};
   extras.forEach((d) => (map[d.phone] = d));
   return map;
@@ -84,9 +86,9 @@ router.get("/search/:query", authenticate, async (req, res) => {
     }
 
     const sxCustomers = await fetchSXCustomers();
-    const registrations = query("SELECT * FROM pos_registrations");
-    const wallets = query("SELECT * FROM pos_wallets");
-    const extrasMap = getCustomerExtrasMap();
+    const registrations = await query("SELECT * FROM pos_registrations");
+    const wallets = await query("SELECT * FROM pos_wallets");
+    const extrasMap = await getCustomerExtrasMap();
 
     const walletMap = {};
     wallets.forEach((w) => (walletMap[w.phone] = w));
@@ -146,11 +148,11 @@ router.get("/search/:query", authenticate, async (req, res) => {
 router.get("/", authenticate, async (req, res) => {
   try {
     const sxCustomers = await fetchSXCustomers();
-    const wallets = query("SELECT * FROM pos_wallets");
-    const registrations = query(
+    const wallets = await query("SELECT * FROM pos_wallets");
+    const registrations = await query(
       "SELECT * FROM pos_registrations WHERE status = 'pending'",
     );
-    const extrasMap = getCustomerExtrasMap();
+    const extrasMap = await getCustomerExtrasMap();
 
     const walletMap = {};
     wallets.forEach((w) => (walletMap[w.phone] = w));
@@ -232,18 +234,18 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
     }
 
     // Kiểm tra khách có tồn tại trong pos_customers không
-    const existing = queryOne("SELECT id FROM pos_customers WHERE phone = ?", [phone]);
+    const existing = await queryOne("SELECT id FROM pos_customers WHERE phone = ?", [phone]);
     
     if (existing) {
       // Update
-      run(`
+      await run(`
         UPDATE pos_customers 
         SET discount_type = ?, discount_value = ?, discount_note = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE phone = ?
       `, [discount_type || null, value, discount_note || null, phone]);
     } else {
       // Insert mới (khách từ SX hoặc chưa có trong pos_customers)
-      run(`
+      await run(`
         INSERT INTO pos_customers (phone, name, discount_type, discount_value, discount_note, created_at) 
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [phone, 'Khách hàng', discount_type || null, value, discount_note || null]);
@@ -275,14 +277,14 @@ router.get("/:phone", authenticate, async (req, res) => {
     const sxCustomer = sxCustomers.find(
       (c) => normalizePhone(c.phone) === phone,
     );
-    const wallet = queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [
+    const wallet = await queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [
       phone,
     ]);
-    const registration = queryOne(
+    const registration = await queryOne(
       "SELECT * FROM pos_registrations WHERE phone = ?",
       [phone],
     );
-    const posCustomer = queryOne(
+    const posCustomer = await queryOne(
       "SELECT discount_type, discount_value, discount_note FROM pos_customers WHERE phone = ?",
       [phone]
     );
@@ -335,14 +337,14 @@ router.get("/:phone/full", authenticate, async (req, res) => {
     const sxCustomer = sxCustomers.find(
       (c) => normalizePhone(c.phone) === phone,
     );
-    const wallet = queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [
+    const wallet = await queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [
       phone,
     ]);
-    const registration = queryOne(
+    const registration = await queryOne(
       "SELECT * FROM pos_registrations WHERE phone = ?",
       [phone],
     );
-    const posCustomer = queryOne(
+    const posCustomer = await queryOne(
       "SELECT discount_type, discount_value, discount_note FROM pos_customers WHERE phone = ?",
       [phone]
     );
@@ -368,11 +370,11 @@ router.get("/:phone/full", authenticate, async (req, res) => {
     customer.discount_value = posCustomer?.discount_value || 0;
     customer.discount_note = posCustomer?.discount_note || null;
 
-    const transactions = query(
+    const transactions = await query(
       "SELECT * FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 20",
       [phone],
     );
-    const orders = query(
+    const orders = await query(
       "SELECT * FROM pos_orders WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 20",
       [phone],
     );

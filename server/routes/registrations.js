@@ -1,6 +1,8 @@
 /**
  * POS System - Registrations Routes
  * Quản lý đăng ký subscription mới + Export logs + Revert
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require('express');
@@ -18,9 +20,9 @@ const router = express.Router();
 /**
  * GET /api/pos/registrations/stats/summary
  */
-router.get('/stats/summary', authenticate, (req, res) => {
+router.get('/stats/summary', authenticate, async (req, res) => {
   try {
-    const stats = queryOne(`
+    const stats = await queryOne(`
       SELECT COUNT(*) as total,
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
         SUM(CASE WHEN status = 'exported' THEN 1 ELSE 0 END) as exported
@@ -36,9 +38,9 @@ router.get('/stats/summary', authenticate, (req, res) => {
  * GET /api/pos/registrations/export/csv
  * Chỉ tải CSV, KHÔNG đánh dấu exported
  */
-router.get('/export/csv', authenticate, checkPermission('export_data'), (req, res) => {
+router.get('/export/csv', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
-    const registrations = query(`SELECT * FROM pos_registrations WHERE status = 'pending' ORDER BY created_at`);
+    const registrations = await query(`SELECT * FROM pos_registrations WHERE status = 'pending' ORDER BY created_at`);
 
     if (registrations.length === 0) {
       return res.status(400).json({ error: 'Không có đăng ký mới để export' });
@@ -78,10 +80,10 @@ router.get('/export/csv', authenticate, checkPermission('export_data'), (req, re
  * POST /api/pos/registrations/confirm-export
  * Xác nhận export thành công - đánh dấu exported + ghi log
  */
-router.post('/confirm-export', authenticate, checkPermission('export_data'), (req, res) => {
+router.post('/confirm-export', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
     // Lấy danh sách pending
-    const pending = query("SELECT id, phone, name FROM pos_registrations WHERE status = 'pending'");
+    const pending = await query("SELECT id, phone, name FROM pos_registrations WHERE status = 'pending'");
 
     if (pending.length === 0) {
       return res.status(400).json({ error: 'Không có đăng ký nào để đánh dấu' });
@@ -93,11 +95,11 @@ router.post('/confirm-export', authenticate, checkPermission('export_data'), (re
 
     // Đánh dấu exported
     const placeholders = ids.map(() => '?').join(',');
-    run(`UPDATE pos_registrations SET status = 'exported', exported_at = ?, exported_by = ? WHERE id IN (${placeholders})`,
+    await run(`UPDATE pos_registrations SET status = 'exported', exported_at = ?, exported_by = ? WHERE id IN (${placeholders})`,
       [now, req.user.username, ...ids]);
 
     // Ghi log
-    run(`INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count, file_name) VALUES (?, ?, ?, ?, ?)`,
+    await run(`INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count, file_name) VALUES (?, ?, ?, ?, ?)`,
       [now, req.user.username, JSON.stringify(ids), ids.length, fileName]);
 
     res.json({ 
@@ -114,9 +116,9 @@ router.post('/confirm-export', authenticate, checkPermission('export_data'), (re
  * POST /api/pos/registrations/revert/:id
  * Hoàn tác 1 đăng ký từ exported về pending
  */
-router.post('/revert/:id', authenticate, checkPermission('export_data'), (req, res) => {
+router.post('/revert/:id', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
-    const reg = queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
+    const reg = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
 
     if (!reg) {
       return res.status(404).json({ error: 'Không tìm thấy' });
@@ -126,7 +128,7 @@ router.post('/revert/:id', authenticate, checkPermission('export_data'), (req, r
       return res.status(400).json({ error: 'Chỉ có thể hoàn tác đăng ký đã exported' });
     }
 
-    run(`UPDATE pos_registrations SET status = 'pending', exported_at = NULL, exported_by = NULL WHERE id = ?`,
+    await run(`UPDATE pos_registrations SET status = 'pending', exported_at = NULL, exported_by = NULL WHERE id = ?`,
       [req.params.id]);
 
     res.json({ success: true, message: 'Đã hoàn tác về trạng thái chờ' });
@@ -139,10 +141,10 @@ router.post('/revert/:id', authenticate, checkPermission('export_data'), (req, r
  * POST /api/pos/registrations/revert-last
  * Hoàn tác lần export gần nhất
  */
-router.post('/revert-last', authenticate, checkPermission('export_data'), (req, res) => {
+router.post('/revert-last', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
     // Lấy log gần nhất
-    const lastLog = queryOne('SELECT * FROM pos_export_logs ORDER BY id DESC LIMIT 1');
+    const lastLog = await queryOne('SELECT * FROM pos_export_logs ORDER BY id DESC LIMIT 1');
 
     if (!lastLog) {
       return res.status(400).json({ error: 'Không có lịch sử export' });
@@ -152,11 +154,11 @@ router.post('/revert-last', authenticate, checkPermission('export_data'), (req, 
 
     // Hoàn tác các đăng ký
     const placeholders = ids.map(() => '?').join(',');
-    run(`UPDATE pos_registrations SET status = 'pending', exported_at = NULL, exported_by = NULL WHERE id IN (${placeholders}) AND status = 'exported'`,
+    await run(`UPDATE pos_registrations SET status = 'pending', exported_at = NULL, exported_by = NULL WHERE id IN (${placeholders}) AND status = 'exported'`,
       ids);
 
     // Xóa log
-    run('DELETE FROM pos_export_logs WHERE id = ?', [lastLog.id]);
+    await run('DELETE FROM pos_export_logs WHERE id = ?', [lastLog.id]);
 
     res.json({ 
       success: true, 
@@ -172,9 +174,9 @@ router.post('/revert-last', authenticate, checkPermission('export_data'), (req, 
  * GET /api/pos/registrations/export-logs
  * Lịch sử export
  */
-router.get('/export-logs', authenticate, (req, res) => {
+router.get('/export-logs', authenticate, async (req, res) => {
   try {
-    const logs = query('SELECT * FROM pos_export_logs ORDER BY id DESC LIMIT 20');
+    const logs = await query('SELECT * FROM pos_export_logs ORDER BY id DESC LIMIT 20');
     res.json({ logs });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -188,7 +190,7 @@ router.get('/export-logs', authenticate, (req, res) => {
 /**
  * GET /api/pos/registrations
  */
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { status, limit = 100 } = req.query;
     let sql = 'SELECT * FROM pos_registrations WHERE 1=1';
@@ -201,8 +203,8 @@ router.get('/', authenticate, (req, res) => {
     sql += ' ORDER BY created_at DESC LIMIT ?';
     params.push(parseInt(limit));
 
-    const registrations = query(sql, params);
-    const stats = queryOne(`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'exported' THEN 1 ELSE 0 END) as exported FROM pos_registrations`);
+    const registrations = await query(sql, params);
+    const stats = await queryOne(`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'exported' THEN 1 ELSE 0 END) as exported FROM pos_registrations`);
 
     res.json({ registrations, stats });
   } catch (err) {
@@ -213,7 +215,7 @@ router.get('/', authenticate, (req, res) => {
 /**
  * POST /api/pos/registrations
  */
-router.post('/', authenticate, (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const { phone, name, notes, parent_phone, relationship, requested_product, requested_cycles } = req.body;
 
@@ -225,7 +227,7 @@ router.post('/', authenticate, (req, res) => {
       return res.status(400).json({ error: 'Tên không được để trống' });
     }
 
-    const existing = queryOne('SELECT phone FROM pos_registrations WHERE phone = ?', [normalizedPhone]);
+    const existing = await queryOne('SELECT phone FROM pos_registrations WHERE phone = ?', [normalizedPhone]);
     if (existing) {
       return res.status(400).json({ error: 'SĐT đã được đăng ký' });
     }
@@ -233,13 +235,13 @@ router.post('/', authenticate, (req, res) => {
     const validRelationship = RELATIONSHIP_VALUES.includes(relationship) ? relationship : null;
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
 
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_registrations (phone, name, notes, parent_phone, relationship, requested_product, requested_cycles, status, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
       [normalizedPhone, name.trim(), notes || null, normalizedParentPhone, validRelationship, requested_product || null, requested_cycles ? parseInt(requested_cycles) : null, req.user.username, getNow()]
     );
 
-    const newReg = queryOne('SELECT * FROM pos_registrations WHERE id = ?', [result.lastInsertRowid]);
+    const newReg = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [result.lastInsertRowid]);
     res.json({ success: true, registration: newReg });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -253,9 +255,9 @@ router.post('/', authenticate, (req, res) => {
 /**
  * GET /api/pos/registrations/:id
  */
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const registration = queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
+    const registration = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
     if (!registration) {
       return res.status(404).json({ error: 'Không tìm thấy' });
     }
@@ -268,10 +270,10 @@ router.get('/:id', authenticate, (req, res) => {
 /**
  * PUT /api/pos/registrations/:id
  */
-router.put('/:id', authenticate, (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const { name, notes, parent_phone, relationship, requested_product, requested_cycles } = req.body;
-    const existing = queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
+    const existing = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
 
     if (!existing) {
       return res.status(404).json({ error: 'Không tìm thấy' });
@@ -282,11 +284,11 @@ router.put('/:id', authenticate, (req, res) => {
 
     const validRelationship = RELATIONSHIP_VALUES.includes(relationship) ? relationship : null;
 
-    run(`UPDATE pos_registrations SET name = ?, notes = ?, parent_phone = ?, relationship = ?, requested_product = ?, requested_cycles = ? WHERE id = ?`,
+    await run(`UPDATE pos_registrations SET name = ?, notes = ?, parent_phone = ?, relationship = ?, requested_product = ?, requested_cycles = ? WHERE id = ?`,
       [name?.trim() || existing.name, notes ?? existing.notes, parent_phone ? normalizePhone(parent_phone) : null, validRelationship, requested_product || existing.requested_product, requested_cycles ? parseInt(requested_cycles) : existing.requested_cycles, req.params.id]
     );
 
-    const updated = queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
+    const updated = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
     res.json({ success: true, registration: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -296,13 +298,13 @@ router.put('/:id', authenticate, (req, res) => {
 /**
  * DELETE /api/pos/registrations/:id
  */
-router.delete('/:id', authenticate, (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
-    const existing = queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
+    const existing = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'Không tìm thấy' });
     }
-    run('DELETE FROM pos_registrations WHERE id = ?', [req.params.id]);
+    await run('DELETE FROM pos_registrations WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

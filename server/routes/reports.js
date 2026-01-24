@@ -5,6 +5,8 @@
  * THIẾT KẾ: phone làm định danh chính
  * - Số dư từ pos_wallets
  * - Giao dịch từ pos_balance_transactions (theo phone)
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require('express');
@@ -18,12 +20,12 @@ const router = express.Router();
  * GET /api/pos/reports/daily
  * Báo cáo ngày
  */
-router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) => {
+router.get('/daily', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     const { date = getToday() } = req.query;
 
     // Tổng quan đơn hàng - Phase B: Thêm shipping + đơn có mã CK
-    const orderStats = queryOne(`
+    const orderStats = await queryOne(`
       SELECT 
         COUNT(*) as total_orders,
         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
@@ -40,7 +42,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) =
     `, [date]);
 
     // Tổng quan số dư
-    const balanceStats = queryOne(`
+    const balanceStats = await queryOne(`
       SELECT 
         SUM(CASE WHEN type = 'topup' THEN amount ELSE 0 END) as total_topup,
         SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) as total_refund,
@@ -50,7 +52,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) =
     `, [date]);
 
     // Sản phẩm bán chạy
-    const topProducts = query(`
+    const topProducts = await query(`
       SELECT 
         oi.product_code,
         oi.product_name,
@@ -65,7 +67,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) =
     `, [date]);
 
     // Danh sách đơn hàng
-    const orders = query(`
+    const orders = await query(`
       SELECT o.*, 
         (SELECT COUNT(*) FROM pos_order_items WHERE order_id = o.id) as item_count
       FROM pos_orders o
@@ -89,7 +91,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), (req, res) =
  * GET /api/pos/reports/sales
  * Báo cáo doanh thu theo khoảng thời gian
  */
-router.get('/sales', authenticate, checkPermission('view_reports'), (req, res) => {
+router.get('/sales', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     const { from, to, group_by = 'day' } = req.query;
 
@@ -109,7 +111,7 @@ router.get('/sales', authenticate, checkPermission('view_reports'), (req, res) =
         dateFormat = '%Y-%m-%d';
     }
 
-    const sales = query(`
+    const sales = await query(`
       SELECT 
         strftime('${dateFormat}', created_at) as period,
         COUNT(*) as order_count,
@@ -125,7 +127,7 @@ router.get('/sales', authenticate, checkPermission('view_reports'), (req, res) =
     `, [from, to]);
 
     // Tổng cộng
-    const totals = queryOne(`
+    const totals = await queryOne(`
       SELECT 
         COUNT(*) as total_orders,
         SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as total_revenue,
@@ -152,7 +154,7 @@ router.get('/sales', authenticate, checkPermission('view_reports'), (req, res) =
  * GET /api/pos/reports/products
  * Báo cáo sản phẩm bán chạy
  */
-router.get('/products', authenticate, checkPermission('view_reports'), (req, res) => {
+router.get('/products', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     const { from, to, limit = 20 } = req.query;
 
@@ -186,7 +188,7 @@ router.get('/products', authenticate, checkPermission('view_reports'), (req, res
     `;
     params.push(parseInt(limit));
 
-    const products = query(sql, params);
+    const products = await query(sql, params);
 
     res.json(products);
   } catch (err) {
@@ -198,10 +200,10 @@ router.get('/products', authenticate, checkPermission('view_reports'), (req, res
  * GET /api/pos/reports/balance
  * Báo cáo số dư khách hàng - từ pos_wallets
  */
-router.get('/balance', authenticate, checkPermission('view_reports'), (req, res) => {
+router.get('/balance', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     // Top khách có số dư cao
-    const topBalance = query(`
+    const topBalance = await query(`
       SELECT phone, balance, total_topup, total_spent
       FROM pos_wallets
       WHERE balance > 0
@@ -210,7 +212,7 @@ router.get('/balance', authenticate, checkPermission('view_reports'), (req, res)
     `);
 
     // Tổng số dư trong hệ thống
-    const totalBalance = queryOne(`
+    const totalBalance = await queryOne(`
       SELECT 
         COALESCE(SUM(balance), 0) as total,
         COUNT(CASE WHEN balance > 0 THEN 1 END) as customer_count,
@@ -220,7 +222,7 @@ router.get('/balance', authenticate, checkPermission('view_reports'), (req, res)
     `);
 
     // Giao dịch gần đây
-    const recentTransactions = query(`
+    const recentTransactions = await query(`
       SELECT *
       FROM pos_balance_transactions
       ORDER BY created_at DESC
@@ -244,7 +246,7 @@ router.get('/balance', authenticate, checkPermission('view_reports'), (req, res)
  * GET /api/pos/reports/staff
  * Báo cáo theo nhân viên
  */
-router.get('/staff', authenticate, checkPermission('view_reports'), (req, res) => {
+router.get('/staff', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     const { from, to } = req.query;
 
@@ -270,7 +272,7 @@ router.get('/staff', authenticate, checkPermission('view_reports'), (req, res) =
 
     sql += ` GROUP BY created_by ORDER BY revenue DESC`;
 
-    const staffStats = query(sql, params);
+    const staffStats = await query(sql, params);
 
     res.json(staffStats);
   } catch (err) {
@@ -282,7 +284,7 @@ router.get('/staff', authenticate, checkPermission('view_reports'), (req, res) =
  * GET /api/pos/reports/discounts
  * Phase B: Báo cáo chiết khấu + shipping
  */
-router.get('/discounts', authenticate, checkPermission('view_reports'), (req, res) => {
+router.get('/discounts', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     const { from, to } = req.query;
     
@@ -291,7 +293,7 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), (req, re
     }
 
     // Tổng quan
-    const summary = queryOne(`
+    const summary = await queryOne(`
       SELECT 
         COUNT(CASE WHEN discount > 0 THEN 1 END) as total_orders_with_discount,
         SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as total_discount_amount,
@@ -302,7 +304,7 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), (req, re
     `, [from, to]);
 
     // Thống kê theo mã chiết khấu
-    const byCode = query(`
+    const byCode = await query(`
       SELECT 
         discount_code,
         COUNT(*) as usage_count,
@@ -316,7 +318,7 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), (req, re
     `, [from, to]);
 
     // Thống kê theo ngày
-    const byDate = query(`
+    const byDate = await query(`
       SELECT 
         DATE(created_at) as date,
         COUNT(*) as order_count,

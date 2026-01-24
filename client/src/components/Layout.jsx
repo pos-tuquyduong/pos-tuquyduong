@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Menu,
   X,
-  Tag
+  Tag,
+  FileText
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -40,6 +41,7 @@ export default function Layout() {
     { to: '/reports', icon: BarChart3, label: 'Báo cáo', permission: 'view_reports' },
     { to: '/refunds', icon: AlertCircle, label: 'Hoàn tiền', permission: 'approve_refund' },
     { to: '/settings', icon: Settings, label: 'Cài đặt', permission: 'manage_users' },
+    { to: '/invoice-settings', icon: FileText, label: 'Cài đặt HĐ', permission: 'manage_users' },
   ];
 
   // Menu items cho bottom nav (5 quan trọng nhất)

@@ -3,6 +3,9 @@
  * API quản lý cài đặt hệ thống và hóa đơn
  * 
  * Phase A: Hệ thống hóa đơn cơ bản
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
+ * QUAN TRỌNG: forEach → for...of khi có await bên trong
  */
 
 const express = require('express');
@@ -31,9 +34,9 @@ const upload = multer({
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/pos/settings - Lấy tất cả settings
 // ═══════════════════════════════════════════════════════════════════════════
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
-    const settings = query('SELECT key, value, updated_at FROM pos_settings');
+    const settings = await query('SELECT key, value, updated_at FROM pos_settings');
     
     // Chuyển array thành object để dễ sử dụng
     const settingsObj = {};
@@ -55,10 +58,10 @@ router.get('/', authenticate, (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/pos/settings/:key - Lấy 1 setting
 // ═══════════════════════════════════════════════════════════════════════════
-router.get('/:key', authenticate, (req, res) => {
+router.get('/:key', authenticate, async (req, res) => {
   try {
     const { key } = req.params;
-    const setting = queryOne('SELECT key, value, updated_at FROM pos_settings WHERE key = ?', [key]);
+    const setting = await queryOne('SELECT key, value, updated_at FROM pos_settings WHERE key = ?', [key]);
 
     if (!setting) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy cài đặt' });
@@ -75,7 +78,7 @@ router.get('/:key', authenticate, (req, res) => {
 // PUT /api/pos/settings - Cập nhật nhiều settings
 // Body: { settings: { key1: value1, key2: value2, ... } }
 // ═══════════════════════════════════════════════════════════════════════════
-router.put('/', authenticate, (req, res) => {
+router.put('/', authenticate, async (req, res) => {
   try {
     const { settings } = req.body;
 
@@ -91,9 +94,10 @@ router.put('/', authenticate, (req, res) => {
     let updated = 0;
     const timestamp = new Date().toISOString();
 
-    Object.entries(settings).forEach(([key, value]) => {
+    // QUAN TRỌNG: Dùng for...of thay vì forEach vì có await
+    for (const [key, value] of Object.entries(settings)) {
       // Sử dụng INSERT OR REPLACE để tự động thêm mới hoặc cập nhật
-      run(`
+      await run(`
         INSERT INTO pos_settings (key, value, updated_at) 
         VALUES (?, ?, ?)
         ON CONFLICT(key) DO UPDATE SET 
@@ -101,7 +105,7 @@ router.put('/', authenticate, (req, res) => {
           updated_at = excluded.updated_at
       `, [key, String(value), timestamp]);
       updated++;
-    });
+    }
 
     res.json({
       success: true,
@@ -118,7 +122,7 @@ router.put('/', authenticate, (req, res) => {
 // POST /api/pos/settings/logo - Upload logo cửa hàng
 // Lưu dạng base64 trong database
 // ═══════════════════════════════════════════════════════════════════════════
-router.post('/logo', authenticate, upload.single('logo'), (req, res) => {
+router.post('/logo', authenticate, upload.single('logo'), async (req, res) => {
   try {
     // Kiểm tra quyền
     if (!['owner', 'manager'].includes(req.user.role)) {
@@ -134,7 +138,7 @@ router.post('/logo', authenticate, upload.single('logo'), (req, res) => {
     
     // Lưu vào database
     const timestamp = new Date().toISOString();
-    run(`
+    await run(`
       INSERT INTO pos_settings (key, value, updated_at) 
       VALUES ('store_logo', ?, ?)
       ON CONFLICT(key) DO UPDATE SET 
@@ -159,7 +163,7 @@ router.post('/logo', authenticate, upload.single('logo'), (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // DELETE /api/pos/settings/logo - Xóa logo
 // ═══════════════════════════════════════════════════════════════════════════
-router.delete('/logo', authenticate, (req, res) => {
+router.delete('/logo', authenticate, async (req, res) => {
   try {
     // Kiểm tra quyền
     if (!['owner', 'manager'].includes(req.user.role)) {
@@ -167,7 +171,7 @@ router.delete('/logo', authenticate, (req, res) => {
     }
 
     const timestamp = new Date().toISOString();
-    run(`
+    await run(`
       UPDATE pos_settings SET value = '', updated_at = ?
       WHERE key = 'store_logo'
     `, [timestamp]);
@@ -183,12 +187,12 @@ router.delete('/logo', authenticate, (req, res) => {
 // GET /api/pos/settings/invoice/next-number - Lấy số hóa đơn tiếp theo
 // Format: 00001/2026
 // ═══════════════════════════════════════════════════════════════════════════
-router.get('/invoice/next-number', authenticate, (req, res) => {
+router.get('/invoice/next-number', authenticate, async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
     
     // Đếm số hóa đơn trong năm hiện tại
-    const result = queryOne(`
+    const result = await queryOne(`
       SELECT COUNT(*) as count 
       FROM pos_invoice_logs 
       WHERE invoice_number LIKE ?
@@ -214,7 +218,7 @@ router.get('/invoice/next-number', authenticate, (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // POST /api/pos/settings/invoice/log - Lưu log in hóa đơn
 // ═══════════════════════════════════════════════════════════════════════════
-router.post('/invoice/log', authenticate, (req, res) => {
+router.post('/invoice/log', authenticate, async (req, res) => {
   try {
     const { order_id, order_code, invoice_number, paper_size = 'a5', print_type = 'print' } = req.body;
 
@@ -226,7 +230,7 @@ router.post('/invoice/log', authenticate, (req, res) => {
     }
 
     // Lưu log
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_invoice_logs (
         order_id, order_code, invoice_number, paper_size, 
         printed_by, printed_by_name, print_type, printed_at
@@ -242,7 +246,7 @@ router.post('/invoice/log', authenticate, (req, res) => {
     ]);
 
     // Cập nhật invoice_number vào order
-    run(`
+    await run(`
       UPDATE pos_orders SET invoice_number = ?
       WHERE id = ?
     `, [invoice_number, order_id]);
@@ -264,7 +268,7 @@ router.post('/invoice/log', authenticate, (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/pos/settings/invoice/logs - Lấy danh sách log in hóa đơn
 // ═══════════════════════════════════════════════════════════════════════════
-router.get('/invoice/logs', authenticate, (req, res) => {
+router.get('/invoice/logs', authenticate, async (req, res) => {
   try {
     const { from_date, to_date, limit = 100, offset = 0 } = req.query;
 
@@ -288,7 +292,7 @@ router.get('/invoice/logs', authenticate, (req, res) => {
     sql += ' ORDER BY il.printed_at DESC LIMIT ? OFFSET ?';
     params.push(parseInt(limit), parseInt(offset));
 
-    const logs = query(sql, params);
+    const logs = await query(sql, params);
 
     // Đếm tổng
     let countSql = `
@@ -305,7 +309,7 @@ router.get('/invoice/logs', authenticate, (req, res) => {
       countSql += ' AND DATE(printed_at) <= DATE(?)';
       countParams.push(to_date);
     }
-    const countResult = queryOne(countSql, countParams);
+    const countResult = await queryOne(countSql, countParams);
 
     res.json({
       success: true,
@@ -326,7 +330,7 @@ router.get('/invoice/logs', authenticate, (req, res) => {
 // DELETE /api/pos/settings/invoice/logs/:id - Xóa log hóa đơn (soft delete)
 // Chỉ Owner được xóa
 // ═══════════════════════════════════════════════════════════════════════════
-router.delete('/invoice/logs/:id', authenticate, (req, res) => {
+router.delete('/invoice/logs/:id', authenticate, async (req, res) => {
   try {
     // Kiểm tra quyền - chỉ owner
     if (req.user.role !== 'owner') {
@@ -336,7 +340,7 @@ router.delete('/invoice/logs/:id', authenticate, (req, res) => {
     const { id } = req.params;
 
     // Soft delete
-    run(`
+    await run(`
       UPDATE pos_invoice_logs 
       SET is_deleted = 1, deleted_at = datetime('now', '+7 hours'), deleted_by = ?
       WHERE id = ?
@@ -353,7 +357,7 @@ router.delete('/invoice/logs/:id', authenticate, (req, res) => {
 // DELETE /api/pos/settings/invoice/logs - Xóa nhiều log hóa đơn
 // Body: { ids: [1, 2, 3] }
 // ═══════════════════════════════════════════════════════════════════════════
-router.delete('/invoice/logs', authenticate, (req, res) => {
+router.delete('/invoice/logs', authenticate, async (req, res) => {
   try {
     // Kiểm tra quyền - chỉ owner
     if (req.user.role !== 'owner') {
@@ -368,7 +372,7 @@ router.delete('/invoice/logs', authenticate, (req, res) => {
 
     // Soft delete nhiều records
     const placeholders = ids.map(() => '?').join(',');
-    run(`
+    await run(`
       UPDATE pos_invoice_logs 
       SET is_deleted = 1, deleted_at = datetime('now', '+7 hours'), deleted_by = ?
       WHERE id IN (${placeholders})
@@ -387,27 +391,27 @@ router.delete('/invoice/logs', authenticate, (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/pos/settings/invoice/stats - Thống kê hóa đơn
 // ═══════════════════════════════════════════════════════════════════════════
-router.get('/invoice/stats', authenticate, (req, res) => {
+router.get('/invoice/stats', authenticate, async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
     const today = new Date().toISOString().split('T')[0];
 
     // Tổng số hóa đơn năm nay
-    const yearTotal = queryOne(`
+    const yearTotal = await queryOne(`
       SELECT COUNT(*) as count 
       FROM pos_invoice_logs 
       WHERE invoice_number LIKE ? AND is_deleted = 0
     `, [`%/${currentYear}`]);
 
     // Tổng số hóa đơn hôm nay
-    const todayTotal = queryOne(`
+    const todayTotal = await queryOne(`
       SELECT COUNT(*) as count 
       FROM pos_invoice_logs 
       WHERE DATE(printed_at) = DATE(?) AND is_deleted = 0
     `, [today]);
 
     // Thống kê theo khổ giấy
-    const byPaperSize = query(`
+    const byPaperSize = await query(`
       SELECT paper_size, COUNT(*) as count 
       FROM pos_invoice_logs 
       WHERE is_deleted = 0

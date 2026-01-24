@@ -14,7 +14,7 @@ const router = express.Router();
  * GET /api/pos/wallets
  * Danh sách wallets
  */
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { has_balance } = req.query;
     let sql = 'SELECT * FROM pos_wallets';
@@ -22,7 +22,7 @@ router.get('/', authenticate, (req, res) => {
       sql += ' WHERE balance > 0';
     }
     sql += ' ORDER BY balance DESC';
-    const wallets = query(sql);
+    const wallets = await query(sql);
     res.json(wallets);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -33,14 +33,14 @@ router.get('/', authenticate, (req, res) => {
  * GET /api/pos/wallets/:phone
  * Lấy wallet theo SĐT
  */
-router.get('/:phone', authenticate, (req, res) => {
+router.get('/:phone', authenticate, async (req, res) => {
   try {
     const phone = normalizePhone(req.params.phone);
     if (!phone) {
       return res.status(400).json({ error: 'SĐT không hợp lệ' });
     }
 
-    let wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+    let wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
     if (!wallet) {
       wallet = { phone, balance: 0, total_topup: 0, total_spent: 0 };
     }
@@ -54,7 +54,7 @@ router.get('/:phone', authenticate, (req, res) => {
  * POST /api/pos/wallets/topup
  * Nạp tiền
  */
-router.post('/topup', authenticate, checkPermission('topup_balance'), (req, res) => {
+router.post('/topup', authenticate, checkPermission('topup_balance'), async (req, res) => {
   try {
     const { phone, amount, customer_name, notes, payment_method } = req.body;
 
@@ -68,19 +68,19 @@ router.post('/topup', authenticate, checkPermission('topup_balance'), (req, res)
       return res.status(400).json({ error: 'Số tiền không hợp lệ' });
     }
 
-    let wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [normalizedPhone]);
+    let wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [normalizedPhone]);
     const balanceBefore = wallet?.balance || 0;
     const balanceAfter = balanceBefore + topupAmount;
 
     if (wallet) {
-      run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
+      await run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
         [balanceAfter, topupAmount, getNow(), normalizedPhone]);
     } else {
-      run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
+      await run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
         [normalizedPhone, balanceAfter, topupAmount, getNow(), getNow()]);
     }
 
-    run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, payment_method, notes, created_by, created_at)
+    await run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, payment_method, notes, created_by, created_at)
          VALUES (?, ?, 'topup', ?, ?, ?, ?, ?, ?, ?)`,
       [normalizedPhone, customer_name || null, topupAmount, balanceBefore, balanceAfter, payment_method || 'cash', notes || null, req.user.username, getNow()]);
 
@@ -94,7 +94,7 @@ router.post('/topup', authenticate, checkPermission('topup_balance'), (req, res)
  * POST /api/pos/wallets/deduct
  * Trừ tiền (khi mua hàng)
  */
-router.post('/deduct', authenticate, (req, res) => {
+router.post('/deduct', authenticate, async (req, res) => {
   try {
     const { phone, amount, customer_name, order_code, notes } = req.body;
 
@@ -108,7 +108,7 @@ router.post('/deduct', authenticate, (req, res) => {
       return res.status(400).json({ error: 'Số tiền không hợp lệ' });
     }
 
-    const wallet = queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [normalizedPhone]);
+    const wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [normalizedPhone]);
     if (!wallet || wallet.balance < deductAmount) {
       return res.status(400).json({ error: 'Số dư không đủ', balance: wallet?.balance || 0 });
     }
@@ -116,10 +116,10 @@ router.post('/deduct', authenticate, (req, res) => {
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore - deductAmount;
 
-    run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+    await run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
       [balanceAfter, deductAmount, getNow(), normalizedPhone]);
 
-    run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
+    await run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
          VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?)`,
       [normalizedPhone, customer_name || null, -deductAmount, balanceBefore, balanceAfter, notes || order_code || null, req.user.username, getNow()]);
 
@@ -135,7 +135,7 @@ router.post('/deduct', authenticate, (req, res) => {
  * POST /api/pos/wallets/adjust
  * Điều chỉnh số dư (chỉ owner)
  */
-router.post("/adjust", authenticate, checkPermission("adjust_balance"), (req, res) => {
+router.post("/adjust", authenticate, checkPermission("adjust_balance"), async (req, res) => {
   try {
     const { phone, amount, customer_name, reason } = req.body;
 
@@ -153,7 +153,7 @@ router.post("/adjust", authenticate, checkPermission("adjust_balance"), (req, re
       return res.status(400).json({ error: "Vui lòng nhập lý do (tối thiểu 3 ký tự)" });
     }
 
-    let wallet = queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [normalizedPhone]);
+    let wallet = await queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [normalizedPhone]);
     const balanceBefore = wallet?.balance || 0;
     const balanceAfter = balanceBefore + adjustAmount;
 
@@ -163,18 +163,18 @@ router.post("/adjust", authenticate, checkPermission("adjust_balance"), (req, re
 
     if (wallet) {
       if (adjustAmount > 0) {
-        run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
+        await run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
           [balanceAfter, adjustAmount, getNow(), normalizedPhone]);
       } else {
-        run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+        await run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
           [balanceAfter, Math.abs(adjustAmount), getNow(), normalizedPhone]);
       }
     } else {
-      run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
+      await run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
         [normalizedPhone, balanceAfter, adjustAmount > 0 ? adjustAmount : 0, getNow(), getNow()]);
     }
 
-    run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
+    await run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
          VALUES (?, ?, "adjust", ?, ?, ?, ?, ?, ?)`,
       [normalizedPhone, customer_name || null, adjustAmount, balanceBefore, balanceAfter, reason, req.user.username, getNow()]);
 
@@ -188,7 +188,7 @@ router.post("/adjust", authenticate, checkPermission("adjust_balance"), (req, re
  * GET /api/pos/wallets/:phone/transactions
  * Lịch sử giao dịch
  */
-router.get('/:phone/transactions', authenticate, (req, res) => {
+router.get('/:phone/transactions', authenticate, async (req, res) => {
   try {
     const phone = normalizePhone(req.params.phone);
     const { limit = 50 } = req.query;
@@ -197,7 +197,7 @@ router.get('/:phone/transactions', authenticate, (req, res) => {
       return res.status(400).json({ error: 'SĐT không hợp lệ' });
     }
 
-    const transactions = query(
+    const transactions = await query(
       `SELECT * FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY created_at DESC LIMIT ?`,
       [phone, parseInt(limit)]
     );

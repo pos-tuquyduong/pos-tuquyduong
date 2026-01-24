@@ -1,6 +1,8 @@
 /**
  * POS System - Discount Codes Routes
  * CRUD mã chiết khấu
+ * 
+ * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require('express');
@@ -14,7 +16,7 @@ const router = express.Router();
  * GET /api/pos/discount-codes
  * Lấy danh sách mã chiết khấu
  */
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { active_only } = req.query;
 
@@ -27,7 +29,7 @@ router.get('/', authenticate, (req, res) => {
 
     sql += ` ORDER BY created_at DESC`;
 
-    const codes = query(sql, params);
+    const codes = await query(sql, params);
 
     res.json(codes);
   } catch (err) {
@@ -39,9 +41,9 @@ router.get('/', authenticate, (req, res) => {
  * GET /api/pos/discount-codes/:id
  * Lấy chi tiết mã chiết khấu
  */
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const code = queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [req.params.id]);
+    const code = await queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [req.params.id]);
     
     if (!code) {
       return res.status(404).json({ error: 'Không tìm thấy mã chiết khấu' });
@@ -57,7 +59,7 @@ router.get('/:id', authenticate, (req, res) => {
  * POST /api/pos/discount-codes/validate
  * Kiểm tra mã chiết khấu có hợp lệ không
  */
-router.post('/validate', authenticate, (req, res) => {
+router.post('/validate', authenticate, async (req, res) => {
   try {
     const { code, order_subtotal } = req.body;
 
@@ -65,7 +67,7 @@ router.post('/validate', authenticate, (req, res) => {
       return res.status(400).json({ error: 'Vui lòng nhập mã chiết khấu' });
     }
 
-    const discountCode = queryOne(
+    const discountCode = await queryOne(
       'SELECT * FROM pos_discount_codes WHERE UPPER(code) = UPPER(?) AND is_active = 1',
       [code.trim()]
     );
@@ -131,7 +133,7 @@ router.post('/validate', authenticate, (req, res) => {
  * POST /api/pos/discount-codes
  * Tạo mã chiết khấu mới
  */
-router.post('/', authenticate, checkPermission('manage_promotions'), (req, res) => {
+router.post('/', authenticate, checkPermission('manage_promotions'), async (req, res) => {
   try {
     const {
       code,
@@ -159,12 +161,12 @@ router.post('/', authenticate, checkPermission('manage_promotions'), (req, res) 
     }
 
     // Kiểm tra mã đã tồn tại
-    const existing = queryOne('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [code.trim()]);
+    const existing = await queryOne('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [code.trim()]);
     if (existing) {
       return res.status(400).json({ error: 'Mã chiết khấu đã tồn tại' });
     }
 
-    const result = run(`
+    const result = await run(`
       INSERT INTO pos_discount_codes (
         code, discount_type, discount_value, min_order, max_discount,
         usage_limit, valid_from, valid_to, notes, created_by, created_at
@@ -197,7 +199,7 @@ router.post('/', authenticate, checkPermission('manage_promotions'), (req, res) 
  * PUT /api/pos/discount-codes/:id
  * Cập nhật mã chiết khấu
  */
-router.put('/:id', authenticate, checkPermission('manage_promotions'), (req, res) => {
+router.put('/:id', authenticate, checkPermission('manage_promotions'), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -214,14 +216,14 @@ router.put('/:id', authenticate, checkPermission('manage_promotions'), (req, res
     } = req.body;
 
     // Kiểm tra tồn tại
-    const existing = queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [id]);
+    const existing = await queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Không tìm thấy mã chiết khấu' });
     }
 
     // Kiểm tra mã trùng (nếu đổi mã)
     if (code && code.trim().toUpperCase() !== existing.code) {
-      const duplicate = queryOne(
+      const duplicate = await queryOne(
         'SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?) AND id != ?', 
         [code.trim(), id]
       );
@@ -230,7 +232,7 @@ router.put('/:id', authenticate, checkPermission('manage_promotions'), (req, res
       }
     }
 
-    run(`
+    await run(`
       UPDATE pos_discount_codes SET
         code = ?,
         discount_type = ?,
@@ -272,11 +274,11 @@ router.put('/:id', authenticate, checkPermission('manage_promotions'), (req, res
  * DELETE /api/pos/discount-codes/:id
  * Xóa mã chiết khấu
  */
-router.delete('/:id', authenticate, checkPermission('manage_promotions'), (req, res) => {
+router.delete('/:id', authenticate, checkPermission('manage_promotions'), async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [id]);
+    const existing = await queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Không tìm thấy mã chiết khấu' });
     }
@@ -284,14 +286,14 @@ router.delete('/:id', authenticate, checkPermission('manage_promotions'), (req, 
     // Kiểm tra đã sử dụng chưa
     if (existing.used_count > 0) {
       // Chỉ vô hiệu hóa, không xóa
-      run('UPDATE pos_discount_codes SET is_active = 0, updated_at = ? WHERE id = ?', [getNow(), id]);
+      await run('UPDATE pos_discount_codes SET is_active = 0, updated_at = ? WHERE id = ?', [getNow(), id]);
       return res.json({
         success: true,
         message: 'Mã đã được sử dụng, đã vô hiệu hóa thay vì xóa'
       });
     }
 
-    run('DELETE FROM pos_discount_codes WHERE id = ?', [id]);
+    await run('DELETE FROM pos_discount_codes WHERE id = ?', [id]);
 
     res.json({
       success: true,
@@ -306,11 +308,11 @@ router.delete('/:id', authenticate, checkPermission('manage_promotions'), (req, 
  * POST /api/pos/discount-codes/:id/increment-usage
  * Tăng số lần sử dụng (gọi khi tạo đơn hàng thành công)
  */
-router.post('/:id/increment-usage', authenticate, (req, res) => {
+router.post('/:id/increment-usage', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
-    run('UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?', [getNow(), id]);
+    await run('UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?', [getNow(), id]);
 
     res.json({ success: true });
   } catch (err) {

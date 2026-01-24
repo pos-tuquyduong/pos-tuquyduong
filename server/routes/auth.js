@@ -15,7 +15,7 @@ const router = express.Router();
  * POST /api/pos/auth/login
  * Đăng nhập
  */
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -26,7 +26,7 @@ router.post('/login', (req, res) => {
     }
 
     // Tìm user
-    const user = queryOne(
+    const user = await queryOne(
       'SELECT * FROM pos_users WHERE username = ?',
       [username]
     );
@@ -52,7 +52,7 @@ router.post('/login', (req, res) => {
     }
 
     // Cập nhật last_login
-    run(
+    await run(
       'UPDATE pos_users SET last_login = ? WHERE id = ?',
       [getNow(), user.id]
     );
@@ -65,7 +65,7 @@ router.post('/login', (req, res) => {
     );
 
     // Lấy permissions
-    const permissions = query(
+    const permissions = await query(
       'SELECT permission, allowed FROM pos_permissions WHERE role = ?',
       [user.role]
     );
@@ -93,7 +93,7 @@ router.post('/login', (req, res) => {
  * POST /api/pos/auth/logout
  * Đăng xuất (client-side xóa token)
  */
-router.post('/logout', authenticate, (req, res) => {
+router.post('/logout', authenticate, async (req, res) => {
   res.json({ success: true, message: 'Đã đăng xuất' });
 });
 
@@ -101,9 +101,9 @@ router.post('/logout', authenticate, (req, res) => {
  * GET /api/pos/auth/me
  * Lấy thông tin user hiện tại
  */
-router.get('/me', authenticate, (req, res) => {
+router.get('/me', authenticate, async (req, res) => {
   try {
-    const permissions = query(
+    const permissions = await query(
       'SELECT permission, allowed FROM pos_permissions WHERE role = ?',
       [req.user.role]
     );
@@ -124,7 +124,7 @@ router.get('/me', authenticate, (req, res) => {
  * PUT /api/pos/auth/password
  * Đổi mật khẩu
  */
-router.put('/password', authenticate, (req, res) => {
+router.put('/password', authenticate, async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
 
@@ -141,7 +141,7 @@ router.put('/password', authenticate, (req, res) => {
     }
 
     // Lấy user hiện tại
-    const user = queryOne(
+    const user = await queryOne(
       'SELECT password FROM pos_users WHERE id = ?',
       [req.user.id]
     );
@@ -155,7 +155,7 @@ router.put('/password', authenticate, (req, res) => {
 
     // Cập nhật mật khẩu mới
     const hashedPassword = bcrypt.hashSync(new_password, 10);
-    run(
+    await run(
       'UPDATE pos_users SET password = ? WHERE id = ?',
       [hashedPassword, req.user.id]
     );

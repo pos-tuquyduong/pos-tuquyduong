@@ -16,6 +16,7 @@ import Reports from './pages/Reports';
 import Refunds from './pages/Refunds';
 import Settings from './pages/Settings';
 import DiscountCodes from './pages/DiscountCodes';
+import InvoiceSettings from './pages/InvoiceSettings';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -63,6 +64,7 @@ function AppRoutes() {
         <Route path="discount-codes" element={<DiscountCodes />} />
         <Route path="refunds" element={<Refunds />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="invoice-settings" element={<InvoiceSettings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
