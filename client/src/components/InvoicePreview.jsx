@@ -25,7 +25,9 @@ const SAMPLE_DATA = {
   ],
   subtotal: 125000,
   discount: 12500,
-  discount_percent: 10,
+  discount_type: 'percent',  // 'percent' | 'fixed' | null
+  discount_value: 10,        // Giá trị: 10 (%) hoặc 50000 (đ)
+  discount_code: null,       // Mã code nếu có
   shipping: 15000,
   total: 127500
 };
@@ -420,7 +422,10 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
         
         {config.show?.discount_detail && SAMPLE_DATA.discount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#059669' }}>
-            <span>Chiết khấu ({SAMPLE_DATA.discount_percent}%):</span>
+            <span>Chiết khấu
+              {SAMPLE_DATA.discount_code ? ` (${SAMPLE_DATA.discount_code})` : 
+               SAMPLE_DATA.discount_type === 'percent' ? ` (${SAMPLE_DATA.discount_value}%)` : ''}:
+            </span>
             <span>-{formatCurrency(SAMPLE_DATA.discount)}</span>
           </div>
         )}

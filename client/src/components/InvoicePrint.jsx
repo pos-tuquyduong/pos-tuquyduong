@@ -499,7 +499,10 @@ export default function InvoicePrint({
                 )}
                 {isEnabled('invoice_show_discount') && order.discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#dc2626' }}>
-                    <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}:</span>
+                    <span>Chiết khấu
+                      {order.discount_code ? ` (${order.discount_code})` : 
+                       order.discount_type === 'percent' ? ` (${order.discount_value}%)` : ''}:
+                    </span>
                     <span>-{formatPrice(order.discount)}</span>
                   </div>
                 )}
