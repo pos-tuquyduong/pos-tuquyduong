@@ -2,7 +2,14 @@
  * InvoiceSettings.jsx - Trang cài đặt hóa đơn
  * UI 2 cột: Tùy chỉnh bên trái + Preview realtime bên phải
  * 
- * FIX: Di chuyển sub-components ra ngoài để tránh mất focus khi gõ
+ * FIX 1: Sub-components BÊN NGOÀI để tránh mất focus khi gõ
+ * FIX 2: STALE-WHILE-REVALIDATE pattern - 1 API duy nhất + cache
+ * 
+ * ┌─────────────────────────────────────────────────────────┐
+ * │ Có cache? → Hiển thị NGAY (0ms), API update ngầm       │
+ * │ Không cache? → Hiện loading, chờ API                   │
+ * │ Kết quả: Trang mở tức thì như app native!              │
+ * └─────────────────────────────────────────────────────────┘
  */
 import { useState, useEffect } from 'react';
 import { 
@@ -162,18 +169,31 @@ const SectionHeader = ({ id, title, alignable, expanded, onToggle, currentAlign,
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// API
+// API - 1 API DUY NHẤT + TIMEOUT (pattern giống Customers/Orders)
 // ═══════════════════════════════════════════════════════════════════════════
+const CACHE_KEY = 'pos_invoice_settings_cache';
+const API_TIMEOUT = 10000; // 10 giây
+
 const api = {
-  getConfig: async () => {
+  // Load TẤT CẢ settings trong 1 call
+  loadAll: async () => {
     const token = localStorage.getItem('pos_token');
-    const res = await fetch('/api/pos/settings/invoice_config', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (res.status === 404) return { success: true, data: { value: null } };
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+    
+    try {
+      const res = await fetch('/api/pos/settings', {
+        headers: { 'Authorization': 'Bearer ' + token },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') throw new Error('Timeout - API không phản hồi');
+      throw err;
+    }
   },
   
   saveConfig: async (config) => {
@@ -200,17 +220,6 @@ const api = {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     return data;
-  },
-  
-  getLogo: async () => {
-    const token = localStorage.getItem('pos_token');
-    const res = await fetch('/api/pos/settings/store_logo', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (res.status === 404) return { success: true, data: { value: '' } };
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
   }
 };
 
@@ -230,36 +239,91 @@ export default function InvoiceSettings() {
   });
   const [activePreset, setActivePreset] = useState('custom');
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STALE-WHILE-REVALIDATE: Có cache → hiện ngay, API chạy ngầm
+  // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => { loadConfig(); }, []);
 
   const loadConfig = async () => {
-    setLoading(true);
+    let hasCache = false;
+    
+    // Bước 1: Load từ cache NGAY LẬP TỨC (0ms)
     try {
-      const result = await api.getConfig();
-      if (result.success && result.data?.value) {
-        const parsed = JSON.parse(result.data.value);
-        setConfig(prev => ({
-          ...prev, ...parsed,
-          text: { ...prev.text, ...(parsed.text || {}) },
-          show: { ...prev.show, ...(parsed.show || {}) },
-          align: { ...prev.align, ...(parsed.align || {}) }
-        }));
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { config: cachedConfig, logo: cachedLogo } = JSON.parse(cached);
+        if (cachedConfig) {
+          setConfig(prev => mergeConfig(prev, cachedConfig));
+          hasCache = true;
+        }
+        if (cachedLogo) setLogo(cachedLogo);
       }
-      const logoResult = await api.getLogo();
-      if (logoResult.success && logoResult.data?.value) {
-        setLogo(logoResult.data.value);
+    } catch (e) {
+      console.warn('Cache read error:', e);
+    }
+
+    // Bước 2: Chỉ hiện loading nếu KHÔNG có cache
+    if (!hasCache) {
+      setLoading(true);
+    }
+    
+    // Bước 3: Load từ API (chạy ngầm nếu có cache)
+    try {
+      const result = await api.loadAll();
+      
+      if (result.success && result.data) {
+        const settings = result.data;
+        
+        // Parse invoice_config
+        let newConfig = DEFAULT_CONFIG;
+        if (settings.invoice_config) {
+          try {
+            const parsed = JSON.parse(settings.invoice_config);
+            newConfig = mergeConfig(DEFAULT_CONFIG, parsed);
+          } catch (e) {
+            console.warn('Parse config error:', e);
+          }
+        }
+        setConfig(newConfig);
+        
+        // Get logo
+        const newLogo = settings.store_logo || '';
+        setLogo(newLogo);
+        
+        // Save to cache
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            config: newConfig, logo: newLogo, timestamp: Date.now()
+          }));
+        } catch (e) {}
       }
     } catch (err) {
-      console.error('Load config error:', err);
+      console.error('Load settings error:', err);
+      if (!hasCache) {
+        showMessage('error', 'Không thể tải cài đặt: ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const mergeConfig = (defaults, loaded) => ({
+    ...defaults, ...loaded,
+    text: { ...defaults.text, ...(loaded.text || {}) },
+    show: { ...defaults.show, ...(loaded.show || {}) },
+    align: { ...defaults.align, ...(loaded.align || {}) }
+  });
+
   const handleSave = async () => {
     setSaving(true);
     try {
       await api.saveConfig(config);
+      // Update cache
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          config, logo, timestamp: Date.now()
+        }));
+      } catch (e) {}
       showMessage('success', '✓ Đã lưu cài đặt hóa đơn!');
     } catch (err) {
       showMessage('error', 'Lỗi: ' + err.message);
@@ -336,9 +400,17 @@ export default function InvoiceSettings() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Đang tải cài đặt...</p>
+      <div className="invoice-settings">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Đang tải cài đặt...</p>
+        </div>
+        <style>{`
+          .invoice-settings { padding: 1rem; }
+          .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 1rem; }
+          .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #10b981; border-radius: 50%; animation: spin 1s linear infinite; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
