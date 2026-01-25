@@ -322,7 +322,7 @@ router.post('/', authenticate, async (req, res) => {
       now
     ]);
 
-    const orderId = result.lastInsertRowid;
+    const orderId = Number(result.lastInsertRowid);
 
     // Thêm chi tiết đơn hàng
     for (const item of orderItems) {
