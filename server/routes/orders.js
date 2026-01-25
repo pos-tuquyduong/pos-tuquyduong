@@ -17,7 +17,7 @@ const {
   getNow, 
   normalizePhone
 } = require('../utils/helpers');
-const { checkStock, outStockFIFO } = require('../utils/sxApi');
+const { checkStock, outStockFIFO, inStockReturn } = require('../utils/sxApi');
 
 const router = express.Router();
 
@@ -322,7 +322,7 @@ router.post('/', authenticate, async (req, res) => {
       now
     ]);
 
-    const orderId = Number(result.lastInsertRowid);
+    const orderId = result.lastInsertRowid;
 
     // Thêm chi tiết đơn hàng
     for (const item of orderItems) {
@@ -531,7 +531,7 @@ router.post('/:id/pay-debt', authenticate, async (req, res) => {
 
 /**
  * PUT /api/pos/orders/:id/cancel
- * Hủy đơn hàng - hoàn tiền vào pos_wallets
+ * Hủy đơn hàng - hoàn tiền vào pos_wallets + hoàn kho SX
  */
 router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (req, res) => {
   try {
@@ -569,6 +569,19 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (
       }
     }
 
+    // Hoàn kho SX
+    const orderItems = await query(`
+      SELECT oi.*, p.sx_product_type, p.sx_product_id 
+      FROM pos_order_items oi
+      LEFT JOIN pos_products p ON oi.product_id = p.id
+      WHERE oi.order_id = ?
+    `, [order.id]);
+    for (const item of orderItems) {
+      if (item.sx_product_type && item.quantity > 0) {
+        await inStockReturn(item.sx_product_type, item.sx_product_id, item.quantity, order.code);
+      }
+    }
+
     // Cập nhật trạng thái
     await run(`
       UPDATE pos_orders 
@@ -576,7 +589,74 @@ router.put('/:id/cancel', authenticate, checkPermission('cancel_order'), async (
       WHERE id = ?
     `, [reason || 'Không có lý do', req.user.username, now, order.id]);
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'Đã hủy đơn hàng' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/pos/orders/:id
+ * Xóa hẳn đơn hàng (chỉ owner) - hoàn tiền + hoàn kho
+ */
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    // Kiểm tra quyền owner
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ error: 'Chỉ owner mới có quyền xóa đơn hàng' });
+    }
+
+    const order = await queryOne('SELECT * FROM pos_orders WHERE id = ?', [req.params.id]);
+    if (!order) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    const now = getNow();
+
+    // Hoàn lại số dư nếu đã trừ (và đơn chưa bị hủy trước đó)
+    if (order.balance_amount > 0 && order.customer_phone && order.status !== 'cancelled') {
+      const phone = order.customer_phone;
+      const wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
+
+      if (wallet) {
+        const balanceBefore = wallet.balance;
+        const balanceAfter = wallet.balance + order.balance_amount;
+
+        await run('UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?',
+          [balanceAfter, order.balance_amount, now, phone]);
+
+        await run(`
+          INSERT INTO pos_balance_transactions (
+            customer_phone, customer_name, type, amount,
+            balance_before, balance_after, order_id,
+            notes, created_by, created_at
+          ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
+        `, [phone, order.customer_name, order.balance_amount, balanceBefore, balanceAfter, order.id, 'Hoàn tiền xóa đơn ' + order.code, req.user.username, now]);
+      }
+    }
+
+    // Hoàn kho SX (nếu đơn chưa bị hủy)
+    if (order.status !== 'cancelled') {
+      const orderItems = await query(`
+        SELECT oi.*, p.sx_product_type, p.sx_product_id 
+        FROM pos_order_items oi
+        LEFT JOIN pos_products p ON oi.product_id = p.id
+        WHERE oi.order_id = ?
+      `, [order.id]);
+      for (const item of orderItems) {
+        if (item.sx_product_type && item.quantity > 0) {
+          await inStockReturn(item.sx_product_type, item.sx_product_id, item.quantity, order.code);
+        }
+      }
+    }
+
+    // Xóa order items trước
+    await run('DELETE FROM pos_order_items WHERE order_id = ?', [order.id]);
+    
+    // Xóa order
+    await run('DELETE FROM pos_orders WHERE id = ?', [order.id]);
+
+    res.json({ success: true, message: 'Đã xóa đơn hàng' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -5,13 +5,18 @@
  * - Click xem chi tiết đơn (popup)
  * - In hóa đơn từ chi tiết
  * - Xác nhận thanh toán nợ (TM/CK)
+ * - Sort theo các cột
+ * - Filter theo trạng thái thanh toán
+ * - Xóa/Hủy đơn (Owner only)
  */
 import { useState, useEffect } from 'react';
 import { ordersApi } from '../utils/api';
-import { Eye, Printer, X, Check, CreditCard, Banknote } from 'lucide-react';
+import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Orders() {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -27,6 +32,20 @@ export default function Orders() {
   // State cho xác nhận thanh toán nợ
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [submitting, setSubmitting] = useState(false);
+
+  // State cho sort
+  const [sortField, setSortField] = useState('created_at');
+  const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+
+  // State cho filter
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'paid' | 'pending' | 'partial' | 'cancelled'
+
+  // State cho modal xóa/hủy
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteOrder, setDeleteOrder] = useState(null);
+  const [deleteType, setDeleteType] = useState('cancel'); // 'cancel' | 'delete'
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -58,6 +77,99 @@ export default function Orders() {
       }
     } catch (err) {
       console.error('Load settings error:', err);
+    }
+  };
+
+  // === SORT & FILTER ===
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
+
+  const getSortIcon = (field) => {
+    if (sortField !== field) return <ChevronsUpDown size={14} style={{ opacity: 0.4 }} />;
+    return sortDir === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+  };
+
+  // Sort & filter orders
+  const getFilteredAndSortedOrders = () => {
+    let result = [...orders];
+    
+    // Filter
+    if (filterStatus !== 'all') {
+      if (filterStatus === 'cancelled') {
+        result = result.filter(o => o.status === 'cancelled');
+      } else {
+        result = result.filter(o => o.payment_status === filterStatus && o.status !== 'cancelled');
+      }
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let valA, valB;
+      switch (sortField) {
+        case 'code':
+          valA = a.code || '';
+          valB = b.code || '';
+          break;
+        case 'customer_name':
+          valA = a.customer_name || '';
+          valB = b.customer_name || '';
+          break;
+        case 'total':
+          valA = a.total || 0;
+          valB = b.total || 0;
+          break;
+        case 'payment_status':
+          valA = a.payment_status || '';
+          valB = b.payment_status || '';
+          break;
+        case 'created_at':
+        default:
+          valA = new Date(a.created_at).getTime();
+          valB = new Date(b.created_at).getTime();
+      }
+      
+      if (typeof valA === 'string') {
+        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return sortDir === 'asc' ? valA - valB : valB - valA;
+    });
+
+    return result;
+  };
+
+  // === XÓA / HỦY ĐƠN ===
+  const handleOpenDeleteModal = (order, e) => {
+    e.stopPropagation();
+    setDeleteOrder(order);
+    setDeleteType('cancel'); // Mặc định là hủy
+    setDeleteReason('');
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteOrder) return;
+    
+    setDeleting(true);
+    try {
+      if (deleteType === 'delete') {
+        await ordersApi.delete(deleteOrder.id);
+      } else {
+        await ordersApi.cancel(deleteOrder.id, deleteReason || 'Hủy đơn');
+      }
+      
+      setShowDeleteModal(false);
+      setDeleteOrder(null);
+      loadOrders(); // Reload
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -210,6 +322,34 @@ export default function Orders() {
           </div>
         </div>
 
+        {/* Filter Buttons */}
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {[
+            { key: 'all', label: 'Tất cả', count: orders.length },
+            { key: 'paid', label: '✓ Đã TT', count: orders.filter(o => o.payment_status === 'paid' && o.status !== 'cancelled').length },
+            { key: 'pending', label: 'Chưa TT', count: orders.filter(o => o.payment_status === 'pending' && o.status !== 'cancelled').length },
+            { key: 'partial', label: 'Nợ', count: orders.filter(o => o.payment_status === 'partial' && o.status !== 'cancelled').length },
+            { key: 'cancelled', label: 'Đã hủy', count: orders.filter(o => o.status === 'cancelled').length }
+          ].map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilterStatus(f.key)}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '16px',
+                border: filterStatus === f.key ? 'none' : '1px solid #ddd',
+                background: filterStatus === f.key ? '#3b82f6' : 'white',
+                color: filterStatus === f.key ? 'white' : '#333',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: filterStatus === f.key ? '600' : '400'
+              }}
+            >
+              {f.label} ({f.count})
+            </button>
+          ))}
+        </div>
+
         {/* Orders Table */}
         <div className="card">
           {loading ? (
@@ -223,18 +363,53 @@ export default function Orders() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Mã đơn</th>
-                    <th>Giờ</th>
-                    <th>Khách hàng</th>
-                    <th style={{ textAlign: 'right' }}>Tổng tiền</th>
+                    <th 
+                      onClick={() => handleSort('code')} 
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Mã đơn {getSortIcon('code')}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('created_at')} 
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Giờ {getSortIcon('created_at')}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('customer_name')} 
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Khách hàng {getSortIcon('customer_name')}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('total')} 
+                      style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                        Tổng tiền {getSortIcon('total')}
+                      </div>
+                    </th>
                     <th style={{ textAlign: 'center' }}>Thanh toán</th>
-                    <th style={{ textAlign: 'center' }}>TT Nợ</th>
+                    <th 
+                      onClick={() => handleSort('payment_status')} 
+                      style={{ textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        TT Nợ {getSortIcon('payment_status')}
+                      </div>
+                    </th>
                     <th style={{ textAlign: 'center' }}>Trạng thái</th>
-                    <th style={{ width: '60px', textAlign: 'center' }}></th>
+                    <th style={{ width: user?.role === 'owner' ? '100px' : '60px', textAlign: 'center' }}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(o => (
+                  {getFilteredAndSortedOrders().map(o => (
                     <tr 
                       key={o.id} 
                       style={{ cursor: 'pointer' }}
@@ -266,20 +441,38 @@ export default function Orders() {
                         {getStatusBadge(o.status)}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleViewDetail(o); }}
-                          style={{
-                            background: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '6px 8px',
-                            cursor: 'pointer'
-                          }}
-                          title="Xem chi tiết"
-                        >
-                          <Eye size={16} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleViewDetail(o); }}
+                            style={{
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 8px',
+                              cursor: 'pointer'
+                            }}
+                            title="Xem chi tiết"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          {user?.role === 'owner' && o.status !== 'cancelled' && (
+                            <button
+                              onClick={(e) => handleOpenDeleteModal(o, e)}
+                              style={{
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '6px 8px',
+                                cursor: 'pointer'
+                              }}
+                              title="Xóa/Hủy đơn"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -724,6 +917,130 @@ export default function Orders() {
       )}
 
       {/* Modal In hóa đơn */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* Modal Xóa/Hủy đơn hàng (Owner only) */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {showDeleteModal && deleteOrder && (
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h3>🗑️ Xử lý đơn hàng #{deleteOrder.code}</h3>
+              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {/* Chọn loại xử lý */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>
+                  Chọn cách xử lý:
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    padding: '0.75rem',
+                    border: deleteType === 'cancel' ? '2px solid #f59e0b' : '1px solid #ddd',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    background: deleteType === 'cancel' ? '#fef3c7' : 'white'
+                  }}>
+                    <input 
+                      type="radio" 
+                      name="deleteType" 
+                      checked={deleteType === 'cancel'}
+                      onChange={() => setDeleteType('cancel')}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600' }}>❌ Hủy đơn (giữ lịch sử)</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666' }}>Đơn sẽ được đánh dấu đã hủy</div>
+                    </div>
+                  </label>
+                  
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    padding: '0.75rem',
+                    border: deleteType === 'delete' ? '2px solid #ef4444' : '1px solid #ddd',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    background: deleteType === 'delete' ? '#fee2e2' : 'white'
+                  }}>
+                    <input 
+                      type="radio" 
+                      name="deleteType" 
+                      checked={deleteType === 'delete'}
+                      onChange={() => setDeleteType('delete')}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600' }}>🗑️ Xóa hẳn (không khôi phục)</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666' }}>Xóa vĩnh viễn khỏi hệ thống</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Lý do (chỉ khi hủy) */}
+              {deleteType === 'cancel' && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>
+                    Lý do hủy:
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="VD: Khách hủy, nhập sai..."
+                    value={deleteReason}
+                    onChange={e => setDeleteReason(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* Thông báo hoàn tiền/kho */}
+              <div style={{ 
+                background: '#fef3c7', 
+                padding: '0.75rem', 
+                borderRadius: '8px',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <AlertTriangle size={16} color="#b45309" />
+                  <strong style={{ color: '#b45309' }}>Sẽ thực hiện:</strong>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.5rem', fontSize: '0.9rem' }}>
+                  {deleteOrder.balance_amount > 0 && (
+                    <li>Hoàn <strong>{formatPrice(deleteOrder.balance_amount)}</strong> số dư cho {deleteOrder.customer_name}</li>
+                  )}
+                  <li>Hoàn tồn kho SX (các sản phẩm trong đơn)</li>
+                </ul>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button 
+                  className="btn btn-outline"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleting}
+                >
+                  Đóng
+                </button>
+                <button 
+                  className="btn"
+                  style={{ background: deleteType === 'delete' ? '#ef4444' : '#f59e0b' }}
+                  onClick={handleConfirmDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Đang xử lý...' : (deleteType === 'delete' ? '🗑️ Xóa hẳn' : '❌ Hủy đơn')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showInvoiceModal && selectedOrder && (
         <InvoicePrint
           order={selectedOrder}

@@ -240,7 +240,9 @@ export const ordersApi = {
   },
   get: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
-  cancel: (id, reason) => api.post(`/orders/${id}/cancel`, { reason })
+  cancel: (id, reason) => api.put(`/orders/${id}/cancel`, { reason }),
+  delete: (id) => api.delete(`/orders/${id}`),
+  payDebt: (id, data) => api.post(`/orders/${id}/pay-debt`, data)
 };
 
 // Refunds API

@@ -148,6 +148,30 @@ async function outStockFIFO(productType, productId, quantity, orderCode) {
   }
 }
 
+/**
+ * Hoàn kho - Khi hủy đơn hoặc xóa đơn
+ */
+async function inStockReturn(productType, productId, quantity, orderCode) {
+  try {
+    const result = await callSxApi('/api/pos/stock/in', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_type: productType,
+        product_id: productId,
+        quantity: quantity,
+        order_code: orderCode,
+        notes: `POS hoàn kho: ${orderCode}`
+      })
+    });
+    console.log(`✅ Stock return: ${productType} #${productId} x${quantity} - ${orderCode}`);
+    return result;
+  } catch (err) {
+    console.error('❌ Stock return error:', err.message);
+    // Không throw - hoàn kho fail không nên block hủy đơn
+    return null;
+  }
+}
+
 module.exports = {
   isSxConfigured,
   callSxApi,
@@ -157,5 +181,6 @@ module.exports = {
   getRecipes,
   getTeaProducts,
   getStockSummary,
-  outStockFIFO
+  outStockFIFO,
+  inStockReturn
 };
