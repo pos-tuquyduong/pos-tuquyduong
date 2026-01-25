@@ -100,6 +100,7 @@ router.post('/', authenticate, async (req, res) => {
     const { 
       customer_phone, customer_name, items, payment_method, 
       discount = 0, discount_reason, notes,
+      is_new_customer = false,    // Flag để tạo registration cho khách mới
       // Các field mới cho thanh toán linh hoạt
       balance_amount = 0,      // Số tiền trừ từ số dư
       cash_amount = 0,         // Số tiền mặt
@@ -362,6 +363,37 @@ router.post('/', authenticate, async (req, res) => {
     // === Phase B: Tăng used_count của mã chiết khấu ===
     if (discountCodeId) {
       await run('UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?', [now, discountCodeId]);
+    }
+
+    // === Tạo registration cho khách mới ===
+    if (is_new_customer && phone && customer_name) {
+      try {
+        // Kiểm tra xem đã có registration chưa (có thể khách mua lần 2 trước khi sync)
+        const existingReg = await queryOne(
+          'SELECT id, notes FROM pos_registrations WHERE phone = ? AND status = ?',
+          [phone, 'pending']
+        );
+        
+        if (existingReg) {
+          // Đã có registration pending -> cập nhật notes thêm order code
+          const newNotes = existingReg.notes 
+            ? `${existingReg.notes}, ${orderCode}`
+            : `Từ POS - Đơn hàng: ${orderCode}`;
+          await run(
+            'UPDATE pos_registrations SET notes = ? WHERE id = ?',
+            [newNotes, existingReg.id]
+          );
+        } else {
+          // Tạo registration mới
+          await run(`
+            INSERT INTO pos_registrations (phone, name, notes, status, created_by, created_at)
+            VALUES (?, ?, ?, 'pending', ?, ?)
+          `, [phone, customer_name, `Từ POS - Đơn hàng: ${orderCode}`, req.user.username, now]);
+        }
+      } catch (regErr) {
+        // Log error nhưng không fail order
+        console.error('Registration creation error:', regErr);
+      }
     }
 
     res.json({ 
