@@ -68,6 +68,10 @@ export default function Settings() {
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
   const [restoring, setRestoring] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [restorePreview, setRestorePreview] = useState(null);
+  const [restoreFile, setRestoreFile] = useState(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   // User management state
   const [showUserModal, setShowUserModal] = useState(false);
@@ -365,30 +369,98 @@ export default function Settings() {
   };
 
   // Backup functions
-  const downloadBackup = () => {
-    const token = localStorage.getItem('pos_token');
-    window.open('/api/pos/backup/download?token=' + token, '_blank');
+  const downloadBackupAll = async () => {
+    setExporting(true);
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch('/api/pos/backup/export-all', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `POS-backup-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMessage('✅ Đã tải file backup');
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
   };
 
-  const handleRestore = async (e) => {
+  const downloadBackupTable = async (tableName) => {
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch(`/api/pos/backup/export/${tableName}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `POS-${tableName}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    }
+  };
+
+  const handleRestoreFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.db')) {
-      setMessage('Lỗi: Vui lòng chọn file .db');
-      return;
-    }
-
-    if (!confirm('Bạn có chắc muốn khôi phục database? Dữ liệu hiện tại sẽ được backup trước khi khôi phục.')) {
+    if (!file.name.endsWith('.xlsx')) {
+      setMessage('Lỗi: Vui lòng chọn file .xlsx');
       e.target.value = '';
       return;
     }
 
-    setRestoring(true);
+    // Preview trước
     try {
       const token = localStorage.getItem('pos_token');
       const formData = new FormData();
       formData.append('file', file);
+
+      const res = await fetch('/api/pos/backup/preview-restore', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRestorePreview(data.preview);
+        setRestoreFile(file);
+        setShowRestoreConfirm(true);
+      } else {
+        setMessage('Lỗi: ' + data.error);
+      }
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    }
+    e.target.value = '';
+  };
+
+  const confirmRestore = async () => {
+    if (!restoreFile) return;
+    
+    setRestoring(true);
+    try {
+      const token = localStorage.getItem('pos_token');
+      const formData = new FormData();
+      formData.append('file', restoreFile);
 
       const res = await fetch('/api/pos/backup/restore', {
         method: 'POST',
@@ -398,7 +470,12 @@ export default function Settings() {
 
       const data = await res.json();
       if (data.success) {
-        setMessage('Khôi phục thành công! Trang sẽ tải lại sau 3 giây...');
+        const summary = data.results
+          .filter(r => r.status === 'restored')
+          .map(r => `${r.sheet}: ${r.rows}/${r.total}`)
+          .join(', ');
+        setMessage(`✅ Khôi phục thành công! ${summary}. Trang sẽ tải lại...`);
+        setShowRestoreConfirm(false);
         setTimeout(() => window.location.reload(), 3000);
       } else {
         setMessage('Lỗi: ' + data.error);
@@ -407,7 +484,6 @@ export default function Settings() {
       setMessage('Lỗi: ' + err.message);
     } finally {
       setRestoring(false);
-      e.target.value = '';
     }
   };
 
@@ -1027,38 +1103,91 @@ export default function Settings() {
           ) : tab === 'backup' ? (
             /* TAB SAO LƯU */
             <>
-              <div className="card-title">Sao lưu & Khôi phục Database</div>
+              <div className="card-title">📦 Sao lưu & Khôi phục (Excel)</div>
 
-              {/* Thông tin database */}
-              {backupInfo && backupInfo.exists && (
-                <div style={{ 
-                  background: '#f0fdf4', 
-                  padding: '1rem', 
-                  borderRadius: '8px', 
-                  marginBottom: '1.5rem' 
-                }}>
-                  <p style={{ margin: 0 }}>
-                    <strong>📁 Database hiện tại:</strong> {backupInfo.sizeFormatted}
-                  </p>
-                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
-                    Cập nhật lần cuối: {new Date(backupInfo.modified).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
-                  </p>
+              {/* Thống kê bảng */}
+              {backupInfo && backupInfo.tables && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ 
+                    background: '#f0fdf4', 
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '8px', 
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem'
+                  }}>
+                    <span>🗄️ Turso Cloud • <strong>{backupInfo.totalRows}</strong> dòng dữ liệu</span>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={downloadBackupAll}
+                      disabled={exporting}
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      {exporting ? '⏳ Đang xuất...' : '📥 Tải tất cả (.xlsx)'}
+                    </button>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table" style={{ fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr>
+                          <th>Bảng</th>
+                          <th style={{ textAlign: 'right' }}>Số dòng</th>
+                          <th style={{ width: '100px', textAlign: 'center' }}>Tải về</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {backupInfo.tables.map(t => (
+                          <tr key={t.name}>
+                            <td>
+                              <div style={{ fontWeight: '500' }}>{t.label}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#888' }}>{t.name}</div>
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{t.count}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                onClick={() => downloadBackupTable(t.name)}
+                                style={{
+                                  background: 'none',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '4px',
+                                  padding: '4px 8px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem'
+                                }}
+                              >
+                                📥 xlsx
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
-              {/* Buttons */}
-              <div className="flex gap-1">
-                <button className="btn btn-primary" onClick={downloadBackup}>
-                  <Download size={16} /> Tải file Backup
-                </button>
-
-                <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
-                  <Upload size={16} /> {restoring ? 'Đang khôi phục...' : 'Khôi phục từ file'}
+              {/* Khôi phục */}
+              <div style={{ 
+                background: '#fef3c7', 
+                padding: '1rem', 
+                borderRadius: '8px',
+                marginBottom: '1rem'
+              }}>
+                <strong>⚠️ Khôi phục từ file Excel</strong>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: '#666' }}>
+                  Upload file .xlsx đã backup trước đó. Dữ liệu hiện tại sẽ bị ghi đè.
+                </p>
+                <label className="btn btn-outline" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Upload size={16} /> Chọn file .xlsx để khôi phục
                   <input 
                     type="file" 
-                    accept=".db" 
+                    accept=".xlsx" 
                     style={{ display: 'none' }} 
-                    onChange={handleRestore}
+                    onChange={handleRestoreFile}
                     disabled={restoring}
                   />
                 </label>
@@ -1066,17 +1195,17 @@ export default function Settings() {
 
               {/* Hướng dẫn */}
               <div style={{ 
-                marginTop: '1.5rem', 
                 padding: '1rem', 
-                background: '#fffbeb', 
+                background: '#f8fafc', 
                 borderRadius: '8px',
                 fontSize: '0.9rem'
               }}>
                 <strong>💡 Hướng dẫn:</strong>
                 <ul style={{ margin: '0.5rem 0 0 1rem', padding: 0 }}>
                   <li>Nên backup định kỳ mỗi ngày</li>
-                  <li>Lưu file backup vào Google Drive hoặc máy tính</li>
-                  <li>Khi khôi phục, dữ liệu hiện tại sẽ được backup tự động trước</li>
+                  <li>"Tải tất cả" → 1 file Excel chứa toàn bộ data</li>
+                  <li>Tải từng bảng để kiểm tra hoặc chỉnh sửa riêng</li>
+                  <li>Khôi phục: upload file đã tải → xem preview → xác nhận</li>
                 </ul>
               </div>
             </>
@@ -1202,6 +1331,63 @@ export default function Settings() {
       )}
 
       {/* CSS cho Modal + Invoice */}
+      {/* Modal xác nhận restore */}
+      {showRestoreConfirm && restorePreview && (
+        <div className="modal-overlay" onClick={() => setShowRestoreConfirm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>⚠️ Xác nhận khôi phục</h3>
+              <button className="btn-close" onClick={() => setShowRestoreConfirm(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: '#dc2626', fontWeight: '500', marginTop: 0 }}>
+                Dữ liệu hiện tại sẽ bị ghi đè bởi file backup!
+              </p>
+              <table className="table" style={{ fontSize: '0.85rem' }}>
+                <thead>
+                  <tr>
+                    <th>Bảng</th>
+                    <th style={{ textAlign: 'right' }}>Hiện tại</th>
+                    <th style={{ textAlign: 'center' }}>→</th>
+                    <th style={{ textAlign: 'right' }}>Từ file</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {restorePreview.map(p => (
+                    <tr key={p.sheet} style={{ opacity: p.recognized ? 1 : 0.5 }}>
+                      <td>
+                        {p.label}
+                        {!p.recognized && <span style={{ color: '#ef4444', fontSize: '0.8rem' }}> (bỏ qua)</span>}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>{p.currentRows}</td>
+                      <td style={{ textAlign: 'center' }}>→</td>
+                      <td style={{ textAlign: 'right', fontWeight: 'bold', color: p.fileRows > 0 ? '#2563eb' : '#999' }}>
+                        {p.fileRows}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowRestoreConfirm(false)} disabled={restoring}>
+                Hủy
+              </button>
+              <button 
+                className="btn" 
+                style={{ background: '#dc2626', color: 'white' }}
+                onClick={confirmRestore}
+                disabled={restoring}
+              >
+                {restoring ? '⏳ Đang khôi phục...' : '⚠️ Xác nhận ghi đè'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .modal-overlay {
           position: fixed;

@@ -8,7 +8,12 @@
     "dev": "node server/index.js",
     "test": "bash test-migration.sh"
   },
-  "keywords": ["pos", "sales", "juice", "turso"],
+  "keywords": [
+    "pos",
+    "sales",
+    "juice",
+    "turso"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -18,7 +23,8 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": ">=18.0.0"
