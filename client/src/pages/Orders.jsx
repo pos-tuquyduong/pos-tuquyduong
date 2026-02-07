@@ -39,6 +39,7 @@ export default function Orders() {
 
   // State cho filter
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'paid' | 'pending' | 'partial' | 'cancelled'
+  const [searchCode, setSearchCode] = useState(''); // Tìm theo mã đơn
 
   // State cho modal xóa/hủy
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -99,7 +100,17 @@ export default function Orders() {
   const getFilteredAndSortedOrders = () => {
     let result = [...orders];
     
-    // Filter
+    // Search theo mã đơn
+    if (searchCode.trim()) {
+      const search = searchCode.trim().toLowerCase();
+      result = result.filter(o => 
+        (o.code || '').toLowerCase().includes(search) ||
+        (o.customer_phone || '').includes(search) ||
+        (o.customer_name || '').toLowerCase().includes(search)
+      );
+    }
+    
+    // Filter theo trạng thái
     if (filterStatus !== 'all') {
       if (filterStatus === 'cancelled') {
         result = result.filter(o => o.status === 'cancelled');
@@ -348,6 +359,39 @@ export default function Orders() {
               {f.label} ({f.count})
             </button>
           ))}
+        </div>
+
+        {/* Search Box */}
+        <div style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            placeholder="🔍 Tìm theo mã đơn, SĐT, tên khách..."
+            value={searchCode}
+            onChange={(e) => setSearchCode(e.target.value)}
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              padding: '0.6rem 1rem',
+              borderRadius: '8px',
+              border: '1px solid #ddd',
+              fontSize: '0.95rem'
+            }}
+          />
+          {searchCode && (
+            <button
+              onClick={() => setSearchCode('')}
+              style={{
+                marginLeft: '0.5rem',
+                padding: '0.5rem 0.8rem',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              ✕ Xóa
+            </button>
+          )}
         </div>
 
         {/* Orders Table */}

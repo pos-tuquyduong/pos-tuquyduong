@@ -10,6 +10,7 @@ const XLSX = require('xlsx');
 const multer = require('multer');
 const { authenticate } = require('../middleware/auth');
 const { query, run } = require('../database');
+const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -26,6 +27,32 @@ const BACKUP_TABLES = [
   { name: 'pos_promotions', label: 'Khuyến mãi', key: 'id' },
   { name: 'pos_settings', label: 'Cài đặt', key: 'key' }
 ];
+
+/**
+ * Helper: Lấy pos_products với tên mới nhất từ SX
+ */
+async function getProductsWithSxNames() {
+  const products = await query('SELECT * FROM pos_products');
+  
+  // Nếu SX online → merge tên từ SX
+  if (isSxConfigured()) {
+    try {
+      const sxProducts = await callSxApi('/api/pos/products-with-stock');
+      
+      return products.map(p => {
+        const sx = sxProducts.find(s => 
+          s.sx_product_type === p.sx_product_type && 
+          String(s.sx_product_id) === String(p.sx_product_id)
+        );
+        return sx ? { ...p, name: sx.name, code: sx.code } : p;
+      });
+    } catch (err) {
+      console.log('⚠️ SX offline, dùng tên trong POS:', err.message);
+    }
+  }
+  
+  return products;
+}
 
 /**
  * GET /api/pos/backup/info
@@ -70,7 +97,10 @@ router.get('/export-all', authenticate, async (req, res) => {
     const wb = XLSX.utils.book_new();
 
     for (const t of BACKUP_TABLES) {
-      const rows = await query(`SELECT * FROM ${t.name}`);
+      // pos_products: lấy tên từ SX
+      const rows = t.name === 'pos_products' 
+        ? await getProductsWithSxNames()
+        : await query(`SELECT * FROM ${t.name}`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
     }
@@ -111,7 +141,10 @@ router.get('/export/:table', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Bảng không hợp lệ' });
     }
 
-    const rows = await query(`SELECT * FROM ${tableDef.name}`);
+    // pos_products: lấy tên từ SX
+    const rows = tableDef.name === 'pos_products'
+      ? await getProductsWithSxNames()
+      : await query(`SELECT * FROM ${tableDef.name}`);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
 
