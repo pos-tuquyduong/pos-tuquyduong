@@ -207,6 +207,14 @@ export default function Orders() {
   const handleConfirmDelete = async () => {
     if (!deleteOrder) return;
     
+    // Double confirm cho xóa hẳn
+    if (deleteType === 'delete') {
+      const confirmed = window.confirm(
+        `⚠️ XÓA VĨNH VIỄN đơn #${deleteOrder.code}?\n\nHành động này KHÔNG THỂ hoàn tác!`
+      );
+      if (!confirmed) return;
+    }
+    
     setDeleting(true);
     try {
       if (deleteType === 'delete') {
@@ -1100,16 +1108,16 @@ export default function Orders() {
       {/* Modal Xóa/Hủy đơn hàng (Owner only) */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {showDeleteModal && deleteOrder && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
-            <div className="modal-header">
-              <h3>🗑️ Xử lý đơn hàng #{deleteOrder.code}</h3>
-              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
-                <X size={20} />
-              </button>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}
+          onClick={() => setShowDeleteModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>🗑️ Xử lý đơn hàng #{deleteOrder.code}</h3>
+              <button onClick={() => setShowDeleteModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
             </div>
             
-            <div className="modal-body">
+            <div style={{ padding: '1rem' }}>
               {/* Chọn loại xử lý */}
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>
@@ -1200,15 +1208,14 @@ export default function Orders() {
               {/* Buttons */}
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                 <button 
-                  className="btn btn-outline"
                   onClick={() => setShowDeleteModal(false)}
                   disabled={deleting}
+                  style={{ padding: '0.75rem 1.5rem', background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   Đóng
                 </button>
                 <button 
-                  className="btn"
-                  style={{ background: deleteType === 'delete' ? '#ef4444' : '#f59e0b' }}
+                  style={{ padding: '0.75rem 1.5rem', background: deleteType === 'delete' ? '#ef4444' : '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                   onClick={handleConfirmDelete}
                   disabled={deleting}
                 >

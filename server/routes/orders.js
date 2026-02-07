@@ -856,6 +856,12 @@ router.delete("/:id", authenticate, async (req, res) => {
     // Xóa order items trước
     await run("DELETE FROM pos_order_items WHERE order_id = ?", [order.id]);
 
+    // Xóa refund_requests liên quan
+    await run("DELETE FROM pos_refund_requests WHERE order_id = ?", [order.id]);
+
+    // Xóa damage_logs liên quan
+    await run("DELETE FROM pos_damage_logs WHERE order_id = ?", [order.id]);
+
     // Xóa order
     await run("DELETE FROM pos_orders WHERE id = ?", [order.id]);
 
