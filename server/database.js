@@ -545,6 +545,36 @@ async function createTables() {
     // Cột đã tồn tại
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 17: LOG SỰ CỐ HÀNG HỎNG (đơn giản - chỉ ghi log)
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_damage_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      order_code TEXT,
+      customer_phone TEXT,
+      customer_name TEXT,
+      product_code TEXT NOT NULL,
+      product_name TEXT,
+      quantity INTEGER NOT NULL,
+      unit_price INTEGER DEFAULT 0,
+      damage_value INTEGER DEFAULT 0,
+      reason TEXT NOT NULL,
+      reason_note TEXT,
+      action TEXT NOT NULL,
+      refund_amount INTEGER DEFAULT 0,
+      returned_to_stock INTEGER DEFAULT 0,
+      processed_by INTEGER,
+      processed_by_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (order_id) REFERENCES pos_orders(id)
+    )
+  `);
+
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_damage_log_order ON pos_damage_logs(order_id)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_damage_log_date ON pos_damage_logs(created_at)`);
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 

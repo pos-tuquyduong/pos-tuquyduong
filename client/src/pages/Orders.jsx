@@ -10,7 +10,7 @@
  * - Xóa/Hủy đơn (Owner only)
  */
 import { useState, useEffect } from 'react';
-import { ordersApi } from '../utils/api';
+import { ordersApi, productsApi } from '../utils/api';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,6 +40,21 @@ export default function Orders() {
   // State cho filter
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'paid' | 'pending' | 'partial' | 'cancelled'
   const [searchCode, setSearchCode] = useState(''); // Tìm theo mã đơn
+  const [filterProduct, setFilterProduct] = useState(''); // Lọc theo SP
+  const [productsList, setProductsList] = useState([]);
+
+  // State cho tab sự cố
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'damages'
+  const [damages, setDamages] = useState([]);
+  const [loadingDamages, setLoadingDamages] = useState(false);
+  
+  // State cho modal xử lý sự cố
+  const [showDamageModal, setShowDamageModal] = useState(false);
+  const [damageForm, setDamageForm] = useState({
+    order_id: null, items: [], product_code: '', quantity: 1,
+    reason: 'damaged', reason_note: '', action: 'refund', refund_amount: 0
+  });
+  const [submittingDamage, setSubmittingDamage] = useState(false);
 
   // State cho modal xóa/hủy
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -52,6 +67,27 @@ export default function Orders() {
     loadOrders();
     loadInvoiceSettings();
   }, [date]);
+
+  useEffect(() => { loadProducts(); }, []);
+  useEffect(() => { if (activeTab === 'damages') loadDamages(); }, [activeTab]);
+
+  const loadProducts = async () => {
+    try {
+      const data = await productsApi.list();
+      setProductsList(data || []);
+    } catch (err) { console.error('Load products error:', err); }
+  };
+
+  const loadDamages = async () => {
+    setLoadingDamages(true);
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch('/api/pos/damages', { headers: { 'Authorization': `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) setDamages(data.logs || []);
+    } catch (err) { console.error('Load damages error:', err); }
+    finally { setLoadingDamages(false); }
+  };
 
   const loadOrders = async () => {
     setLoading(true);
@@ -117,6 +153,11 @@ export default function Orders() {
       } else {
         result = result.filter(o => o.payment_status === filterStatus && o.status !== 'cancelled');
       }
+    }
+
+    // Filter theo sản phẩm
+    if (filterProduct) {
+      result = result.filter(o => (o.items || []).some(item => item.product_code === filterProduct));
     }
 
     // Sort
@@ -191,6 +232,52 @@ export default function Orders() {
   const formatDateTime = (d) => new Date(d).toLocaleString('vi-VN', { 
     timeZone: 'Asia/Ho_Chi_Minh' 
   });
+
+  // === DAMAGE HANDLING ===
+  const DAMAGE_REASONS = {
+    'damaged': 'Hỏng khi vận chuyển', 'wrong_product': 'Giao sai sản phẩm',
+    'rejected': 'Khách từ chối nhận', 'quality': 'Chất lượng không đạt', 'other': 'Lý do khác'
+  };
+  const DAMAGE_ACTIONS = { 'refund': 'Hoàn tiền', 'return_stock': 'Hoàn kho SX', 'none': 'Chỉ ghi nhận' };
+
+  const openDamageModal = (order) => {
+    const firstItem = order.items?.[0];
+    setDamageForm({
+      order_id: order.id, order_code: order.code, items: order.items || [],
+      product_code: firstItem?.product_code || '', quantity: 1, max_qty: firstItem?.quantity || 1,
+      reason: 'damaged', reason_note: '', action: 'refund', 
+      refund_amount: (firstItem?.unit_price || 0) * 1
+    });
+    setShowDamageModal(true);
+  };
+
+  const submitDamage = async () => {
+    if (!damageForm.product_code || !damageForm.quantity || !damageForm.action) {
+      alert('Vui lòng điền đầy đủ thông tin'); return;
+    }
+    setSubmittingDamage(true);
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch('/api/pos/damages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          order_id: damageForm.order_id, product_code: damageForm.product_code,
+          quantity: damageForm.quantity, reason: damageForm.reason,
+          reason_note: damageForm.reason_note, action: damageForm.action,
+          refund_amount: damageForm.action === 'refund' ? damageForm.refund_amount : 0,
+          return_to_stock: damageForm.action === 'return_stock'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        setShowDamageModal(false);
+        setShowDetailModal(false);
+      } else alert(data.error || 'Có lỗi xảy ra');
+    } catch (err) { alert('Lỗi: ' + err.message); }
+    finally { setSubmittingDamage(false); }
+  };
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -313,7 +400,24 @@ export default function Orders() {
           onChange={e => setDate(e.target.value)} 
         />
       </header>
+
+      {/* Tab Switcher */}
+      <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
+        {[
+          { key: 'orders', label: '📋 Đơn hàng' },
+          { key: 'damages', label: '⚠️ Lịch sử sự cố' }
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            padding: '0.75rem 1.5rem', background: 'none', border: 'none',
+            borderBottom: activeTab === tab.key ? '2px solid #3b82f6' : '2px solid transparent',
+            marginBottom: '-2px', color: activeTab === tab.key ? '#3b82f6' : '#6b7280',
+            fontWeight: activeTab === tab.key ? '600' : '400', cursor: 'pointer', fontSize: '1rem'
+          }}>{tab.label}</button>
+        ))}
+      </div>
       
+      {/* TAB: ĐƠN HÀNG */}
+      {activeTab === 'orders' && (
       <div className="page-content">
         {/* Stats */}
         <div className="grid grid-3 mb-2">
@@ -361,35 +465,21 @@ export default function Orders() {
           ))}
         </div>
 
-        {/* Search Box */}
-        <div style={{ marginBottom: '1rem' }}>
-          <input
-            type="text"
-            placeholder="🔍 Tìm theo mã đơn, SĐT, tên khách..."
-            value={searchCode}
+        {/* Search Box + Product Filter */}
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input type="text" placeholder="🔍 Tìm mã đơn, SĐT, tên..." value={searchCode}
             onChange={(e) => setSearchCode(e.target.value)}
-            style={{
-              width: '100%',
-              maxWidth: '400px',
-              padding: '0.6rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              fontSize: '0.95rem'
-            }}
+            style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', maxWidth: '250px' }}
           />
-          {searchCode && (
-            <button
-              onClick={() => setSearchCode('')}
-              style={{
-                marginLeft: '0.5rem',
-                padding: '0.5rem 0.8rem',
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                background: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              ✕ Xóa
+          <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)}
+            style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', background: 'white' }}>
+            <option value="">📦 Tất cả SP</option>
+            {productsList.map(p => <option key={p.code || p.unique_id} value={p.code}>{p.code} - {p.name}</option>)}
+          </select>
+          {(searchCode || filterProduct) && (
+            <button onClick={() => { setSearchCode(''); setFilterProduct(''); }}
+              style={{ padding: '0.5rem 0.8rem', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
+              ✕ Xóa lọc
             </button>
           )}
         </div>
@@ -526,6 +616,39 @@ export default function Orders() {
           )}
         </div>
       </div>
+      )}
+
+      {/* TAB: LỊCH SỬ SỰ CỐ */}
+      {activeTab === 'damages' && (
+        <div className="page-content">
+          <div className="card">
+            <h3 style={{ marginBottom: '1rem' }}>📋 Lịch sử xử lý sự cố</h3>
+            {loadingDamages ? <div className="loading">Đang tải...</div> 
+            : damages.length === 0 ? <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>Chưa có sự cố nào</div>
+            : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table">
+                  <thead><tr><th>Ngày</th><th>Đơn</th><th>SP</th><th>SL</th><th>Lý do</th><th>Xử lý</th><th>Hoàn tiền</th><th>Người XL</th></tr></thead>
+                  <tbody>
+                    {damages.map(d => (
+                      <tr key={d.id}>
+                        <td>{new Date(d.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td><strong>{d.order_code}</strong></td>
+                        <td>{d.product_code}</td>
+                        <td>{d.quantity}</td>
+                        <td>{DAMAGE_REASONS[d.reason] || d.reason}</td>
+                        <td>{DAMAGE_ACTIONS[d.action] || d.action}</td>
+                        <td>{d.refund_amount > 0 ? formatPrice(d.refund_amount) : '-'}</td>
+                        <td>{d.processed_by_name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {/* Modal Chi tiết đơn hàng */}
@@ -781,6 +904,18 @@ export default function Orders() {
                 >
                   <Check size={18} />
                   Xác nhận TT
+                </button>
+              )}
+              
+              {/* Nút xử lý sự cố - chỉ Manager/Owner */}
+              {selectedOrder.status !== 'cancelled' && (user?.role === 'owner' || user?.role === 'manager') && (
+                <button onClick={() => openDamageModal(selectedOrder)} style={{
+                  flex: 1, minWidth: '120px', padding: '0.75rem',
+                  background: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b',
+                  borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}>
+                  <AlertTriangle size={18} /> Xử lý sự cố
                 </button>
               )}
               
@@ -1095,6 +1230,82 @@ export default function Orders() {
             loadOrders();
           }}
         />
+      )}
+
+      {/* Modal Xử lý sự cố */}
+      {showDamageModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>⚠️ Xử lý sự cố - {damageForm.order_code}</h3>
+              <button onClick={() => setShowDamageModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
+            </div>
+            <div style={{ padding: '1rem' }}>
+              {/* Chọn SP */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Sản phẩm *</label>
+                <select value={damageForm.product_code} onChange={(e) => {
+                  const item = damageForm.items?.find(i => i.product_code === e.target.value);
+                  setDamageForm({ ...damageForm, product_code: e.target.value, max_qty: item?.quantity || 1, 
+                    quantity: 1, refund_amount: item?.unit_price || 0 });
+                }} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }}>
+                  {(damageForm.items || []).map(item => (
+                    <option key={item.product_code} value={item.product_code}>{item.product_code} - {item.product_name} (SL: {item.quantity})</option>
+                  ))}
+                </select>
+              </div>
+              {/* Số lượng */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Số lượng * (tối đa {damageForm.max_qty})</label>
+                <input type="number" min="1" max={damageForm.max_qty} value={damageForm.quantity}
+                  onChange={(e) => {
+                    const qty = Math.min(parseInt(e.target.value) || 1, damageForm.max_qty);
+                    const item = damageForm.items?.find(i => i.product_code === damageForm.product_code);
+                    setDamageForm({ ...damageForm, quantity: qty, refund_amount: (item?.unit_price || 0) * qty });
+                  }} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }} />
+              </div>
+              {/* Lý do */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Lý do *</label>
+                <select value={damageForm.reason} onChange={(e) => setDamageForm({ ...damageForm, reason: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }}>
+                  {Object.entries(DAMAGE_REASONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              {/* Phương án */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Phương án xử lý *</label>
+                <select value={damageForm.action} onChange={(e) => setDamageForm({ ...damageForm, action: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }}>
+                  {Object.entries(DAMAGE_ACTIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              {/* Số tiền hoàn */}
+              {damageForm.action === 'refund' && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Số tiền hoàn</label>
+                  <input type="number" min="0" value={damageForm.refund_amount}
+                    onChange={(e) => setDamageForm({ ...damageForm, refund_amount: parseInt(e.target.value) || 0 })}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }} />
+                </div>
+              )}
+              {/* Ghi chú */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Ghi chú</label>
+                <textarea value={damageForm.reason_note} onChange={(e) => setDamageForm({ ...damageForm, reason_note: e.target.value })}
+                  rows={2} placeholder="Mô tả thêm..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd', resize: 'vertical' }} />
+              </div>
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => setShowDamageModal(false)} style={{ flex: 1, padding: '0.75rem', background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Hủy</button>
+                <button onClick={submitDamage} disabled={submittingDamage} style={{ flex: 1, padding: '0.75rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  {submittingDamage ? 'Đang xử lý...' : 'Xác nhận'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

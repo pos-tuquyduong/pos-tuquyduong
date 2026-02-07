@@ -34,6 +34,8 @@ const customersV2Routes = require('./routes/customers-v2');
 const settingsRoutes = require('./routes/settings');
 // === ROUTES MỚI (Phase B) - Chiết khấu + Shipping ===
 const discountCodesRoutes = require('./routes/discount-codes');
+// === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+const damagesRoutes = require('./routes/damages');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,6 +75,8 @@ app.use('/api/pos/v2/customers', customersV2Routes);
 app.use('/api/pos/settings', settingsRoutes);
 // === API MỚI (Phase B) - Chiết khấu + Shipping ===
 app.use('/api/pos/discount-codes', discountCodesRoutes);
+// === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+app.use('/api/pos/damages', damagesRoutes);
 
 // Health check
 app.get('/api/pos/health', (req, res) => {
