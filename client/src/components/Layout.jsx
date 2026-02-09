@@ -57,8 +57,8 @@ export default function Layout() {
       {/* Sidebar - Desktop */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <ShoppingCart size={24} />
-          <span style={{ marginLeft: '0.5rem' }}>POS System</span>
+          <img src="/icons/icon-72x72.png" alt="Logo" style={{ width: '36px', height: '36px', borderRadius: '8px' }} />
+          <span>Tứ Quý Đường</span>
         </div>
 
         <nav className="sidebar-nav" style={{ flex: 1, paddingTop: '0.5rem' }}>
@@ -82,7 +82,7 @@ export default function Layout() {
 
         <div className="sidebar-footer" style={{ 
           padding: '1rem 1.5rem', 
-          borderTop: '1px solid #334155' 
+          borderTop: '1px solid rgba(255,255,255,0.15)' 
         }}>
           <div style={{ marginBottom: '0.75rem' }}>
             <div style={{ fontWeight: 600 }}>{user?.display_name || user?.username}</div>
@@ -143,7 +143,10 @@ export default function Layout() {
         <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-menu-header">
-              <span>Menu</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <img src="/icons/icon-72x72.png" alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px' }} />
+                <span>Tứ Quý Đường</span>
+              </div>
               <button onClick={() => setMobileMenuOpen(false)}>
                 <X size={24} />
               </button>

@@ -1,14 +1,14 @@
 {
-  "name": "POS Tú Quý Đường",
+  "name": "POS Tứ Quý Đường",
   "short_name": "POS TQĐ",
-  "description": "Hệ thống bán hàng Tú Quý Đường",
+  "description": "Hệ thống quản lý bán hàng Tứ Quý Đường",
   "start_url": "/",
   "scope": "/",
   "id": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#dc2626",
+  "background_color": "#B91C1C",
+  "theme_color": "#B91C1C",
   "lang": "vi-VN",
   "categories": ["business", "productivity"],
   "icons": [
