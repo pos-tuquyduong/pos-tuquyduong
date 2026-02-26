@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { productsApi, customersApi, ordersApi } from '../utils/api';
 import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
-import CustomerInput from '../components/CustomerInput';
+import CustomerSearch from '../components/CustomerSearch';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -144,26 +144,9 @@ export default function Sales() {
     }
   };
 
-  // Xử lý khi chọn khách hàng từ autocomplete
-  // Xử lý khi CustomerInput trả về customer data
-  const handleCustomerChange = (customerData) => {
-    if (!customerData) {
-      // Clear customer
-      setCustomer(null);
-      setUseBalance(false);
-      setBalanceToUse(0);
-      setIsDebt(false);
-      setPaymentMethod('cash');
-      // Reset chiết khấu
-      setDiscountType('percent');
-      setDiscountValue(0);
-      setDiscountCode('');
-      setDiscountCodeValid(null);
-      return;
-    }
-
-    // Set customer với isNew flag
-    setCustomer(customerData);
+  // Xử lý khi chọn khách hàng từ CustomerSearch
+  const handleSelectCustomer = (selectedCustomer) => {
+    setCustomer(selectedCustomer);
     setError('');
     
     // Reset các option thanh toán khi đổi khách
@@ -172,15 +155,15 @@ export default function Sales() {
     setIsDebt(false);
     
     // Áp dụng chiết khấu mặc định của KH (nếu có)
-    if (customerData?.discount_value > 0) {
-      setDiscountType(customerData.discount_type || 'percent');
-      setDiscountValue(customerData.discount_value);
+    if (selectedCustomer?.discount_value > 0) {
+      setDiscountType(selectedCustomer.discount_type || 'percent');
+      setDiscountValue(selectedCustomer.discount_value);
       setDiscountCode('');
       setDiscountCodeValid(null);
     }
   };
 
-  // Xử lý khi bỏ chọn khách hàng (legacy - không dùng nữa)
+  // Xử lý khi bỏ chọn khách hàng
   const handleClearCustomer = () => {
     setCustomer(null);
     setUseBalance(false);
@@ -465,12 +448,16 @@ export default function Sales() {
     <div className="sales-layout">
       {/* Left: Products */}
       <div>
-        {/* Customer Input - Smart 2 fields */}
+        {/* Customer Search - Autocomplete + Thêm khách mới */}
         <div className="card" style={{ marginBottom: '1rem' }}>
-          <div style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#666', fontWeight: '500' }}>
+          <div style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#B91C1C', fontWeight: '500' }}>
             👤 Khách hàng
           </div>
-          <CustomerInput onCustomerChange={handleCustomerChange} />
+          <CustomerSearch 
+            onSelect={handleSelectCustomer}
+            selectedCustomer={customer}
+            onClear={handleClearCustomer}
+          />
         </div>
 
         {/* Category Tabs */}
