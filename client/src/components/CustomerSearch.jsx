@@ -375,7 +375,11 @@ export default function CustomerSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.length >= 1 && setShowDropdown(true)}
+          onFocus={(e) => {
+            if (query.length >= 1) setShowDropdown(true);
+            e.target.style.borderColor = "#DC2626";
+            e.target.style.boxShadow = "0 0 0 3px rgba(220, 38, 38, 0.1)";
+          }}
           placeholder="Tìm khách hàng (tên hoặc SĐT)..."
           style={{
             width: "100%",
@@ -386,11 +390,7 @@ export default function CustomerSearch({
             outline: "none",
             transition: "border-color 0.2s, box-shadow 0.2s",
             color: "#991B1B",
-            background: "rgba(255, 255, 255, 0.8)",
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = "#DC2626";
-            e.target.style.boxShadow = "0 0 0 3px rgba(220, 38, 38, 0.1)";
+            background: "white",
           }}
           onBlur={(e) => {
             e.target.style.borderColor = "rgba(185, 28, 28, 0.2)";
@@ -421,9 +421,9 @@ export default function CustomerSearch({
             right: 0,
             marginTop: "4px",
             background: "white",
-            border: "1px solid rgba(185, 28, 28, 0.2)",
+            border: "1px solid rgba(185, 28, 28, 0.15)",
             borderRadius: "12px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 10px 40px rgba(185, 28, 28, 0.15)",
             zIndex: 9999,
             maxHeight: "400px",
             overflowY: "auto",
