@@ -449,7 +449,7 @@ export default function Sales() {
       {/* Left: Products */}
       <div>
         {/* Customer Search - Autocomplete + Thêm khách mới */}
-        <div className="card" style={{ marginBottom: '1rem' }}>
+        <div className="card" style={{ marginBottom: '1rem', position: 'relative', zIndex: 100 }}>
           <div style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#B91C1C', fontWeight: '500' }}>
             👤 Khách hàng
           </div>
