@@ -93,15 +93,30 @@ router.get("/search/:query", authenticate, async (req, res) => {
     const walletMap = {};
     wallets.forEach((w) => (walletMap[w.phone] = w));
 
+    // Tạo map tên để lookup parent_name
+    const customerNameMap = {};
+    sxCustomers.forEach((c) => {
+      customerNameMap[normalizePhone(c.phone)] = c.name;
+    });
+    registrations.forEach((r) => {
+      if (!customerNameMap[r.phone]) {
+        customerNameMap[r.phone] = r.name;
+      }
+    });
+
     // Tìm trong SX
     const sxResults = sxCustomers
       .filter((c) => c.name?.toLowerCase().includes(q) || c.phone?.includes(q))
       .map((c) => {
         const phone = normalizePhone(c.phone);
         const extras = extrasMap[phone];
+        // Lấy parent_balance nếu có parent_phone (từ SX)
+        const parentPhone = c.parent_phone ? normalizePhone(c.parent_phone) : null;
+        const parentBalance = parentPhone ? (walletMap[parentPhone]?.balance || 0) : 0;
         return {
           ...c,
           balance: walletMap[phone]?.balance || 0,
+          parent_balance: parentBalance, // Thêm số dư mẹ
           source: "sx",
           discount_type: extras?.discount_type || null,
           discount_value: extras?.discount_value || 0,
@@ -119,10 +134,16 @@ router.get("/search/:query", authenticate, async (req, res) => {
       )
       .map((r) => {
         const extras = extrasMap[r.phone];
+        // Lấy parent_balance nếu có parent_phone (từ registrations)
+        const parentPhone = r.parent_phone ? normalizePhone(r.parent_phone) : null;
+        const parentBalance = parentPhone ? (walletMap[parentPhone]?.balance || 0) : 0;
         return {
           name: r.name,
           phone: r.phone,
           balance: walletMap[r.phone]?.balance || 0,
+          parent_phone: parentPhone, // Thêm SĐT mẹ
+          parent_name: parentPhone ? customerNameMap[parentPhone] || null : null, // Lookup tên mẹ
+          parent_balance: parentBalance, // Thêm số dư mẹ
           source: "pos",
           is_pending: r.status === "pending",
           discount_type: extras?.discount_type || null,

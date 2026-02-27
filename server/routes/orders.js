@@ -142,6 +142,9 @@ router.post("/", authenticate, async (req, res) => {
       discount_value = 0, // Giá trị chiết khấu (% hoặc số tiền)
       discount_code = null, // Mã chiết khấu (nếu có)
       shipping_fee = 0, // Phí vận chuyển
+      // === Số dư mẹ (khách con) ===
+      parent_phone = null, // SĐT mẹ (nếu dùng số dư mẹ)
+      parent_balance_amount = 0, // Số tiền trừ từ số dư mẹ
     } = req.body;
 
     // Validate
@@ -292,6 +295,7 @@ router.post("/", authenticate, async (req, res) => {
 
     // Normalize phone
     const phone = normalizePhone(customer_phone);
+    const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
 
     // Xử lý thanh toán số dư từ pos_wallets
     let actualBalanceAmount = 0;
@@ -336,12 +340,43 @@ router.post("/", authenticate, async (req, res) => {
       balanceAfter = currentBalance - balance_amount;
     }
 
+    // === Xử lý số dư mẹ (nếu có) ===
+    let actualParentBalanceAmount = 0;
+    let parentBalanceBefore = 0;
+    let parentBalanceAfter = 0;
+    let parentName = null;
+
+    if (parent_balance_amount > 0 && normalizedParentPhone) {
+      const parentWallet = await queryOne(
+        "SELECT * FROM pos_wallets WHERE phone = ?",
+        [normalizedParentPhone],
+      );
+      const parentCurrentBalance = parentWallet?.balance || 0;
+
+      if (parentCurrentBalance < parent_balance_amount) {
+        return res.status(400).json({
+          error: `Số dư mẹ không đủ. Hiện có: ${parentCurrentBalance.toLocaleString()}đ`,
+        });
+      }
+
+      // Lấy tên parent để ghi log
+      const parentReg = await queryOne(
+        "SELECT name FROM pos_registrations WHERE phone = ?",
+        [normalizedParentPhone],
+      );
+      parentName = parentReg?.name || normalizedParentPhone;
+
+      actualParentBalanceAmount = parent_balance_amount;
+      parentBalanceBefore = parentCurrentBalance;
+      parentBalanceAfter = parentCurrentBalance - parent_balance_amount;
+    }
+
     // Xác định payment_status thực tế
     let finalPaymentStatus = payment_status;
     let finalDebtAmount = debt_amount;
 
     if (debt_amount > 0) {
-      finalPaymentStatus = actualBalanceAmount > 0 ? "partial" : "pending";
+      finalPaymentStatus = (actualBalanceAmount > 0 || actualParentBalanceAmount > 0) ? "partial" : "pending";
       finalDebtAmount = debt_amount;
     } else {
       finalPaymentStatus = "paid";
@@ -455,6 +490,43 @@ router.post("/", authenticate, async (req, res) => {
           balanceAfter,
           orderId,
           "Thanh toán đơn hàng " + orderCode,
+          req.user.username,
+          now,
+        ],
+      );
+    }
+
+    // === Trừ số dư MẸ từ pos_wallets (nếu khách con dùng số dư mẹ) ===
+    if (actualParentBalanceAmount > 0 && normalizedParentPhone) {
+      // Cập nhật wallet mẹ
+      const parentWalletExists = await queryOne(
+        "SELECT id FROM pos_wallets WHERE phone = ?",
+        [normalizedParentPhone],
+      );
+      if (parentWalletExists) {
+        await run(
+          `UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+          [parentBalanceAfter, actualParentBalanceAmount, now, normalizedParentPhone],
+        );
+      }
+
+      // Ghi log giao dịch cho mẹ - notes rõ ràng trừ cho ai
+      await run(
+        `
+        INSERT INTO pos_balance_transactions (
+          customer_phone, customer_name, type, amount, 
+          balance_before, balance_after, order_id,
+          notes, created_by, created_at
+        ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)
+      `,
+        [
+          normalizedParentPhone,
+          parentName,
+          -actualParentBalanceAmount,
+          parentBalanceBefore,
+          parentBalanceAfter,
+          orderId,
+          `Trừ cho KH: ${customer_name || phone} - Đơn ${orderCode}`,
           req.user.username,
           now,
         ],

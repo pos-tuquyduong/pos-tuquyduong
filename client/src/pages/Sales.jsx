@@ -39,6 +39,10 @@ export default function Sales() {
   const [isDebt, setIsDebt] = useState(false);                // Có ghi nợ không
   const [dueDate, setDueDate] = useState('');                 // Hạn thanh toán
 
+  // State cho số dư mẹ (khách con)
+  const [useParentBalance, setUseParentBalance] = useState(false);  // Có dùng số dư mẹ không
+  const [parentBalanceToUse, setParentBalanceToUse] = useState(0);  // Số tiền dư mẹ muốn dùng
+
   // === Phase B: State cho chiết khấu + shipping ===
   const [discountType, setDiscountType] = useState('percent'); // 'percent' | 'fixed'
   const [discountValue, setDiscountValue] = useState(0);       // Giá trị chiết khấu
@@ -152,6 +156,8 @@ export default function Sales() {
     // Reset các option thanh toán khi đổi khách
     setUseBalance(false);
     setBalanceToUse(0);
+    setUseParentBalance(false);
+    setParentBalanceToUse(0);
     setIsDebt(false);
     
     // Áp dụng chiết khấu mặc định của KH (nếu có)
@@ -168,6 +174,8 @@ export default function Sales() {
     setCustomer(null);
     setUseBalance(false);
     setBalanceToUse(0);
+    setUseParentBalance(false);
+    setParentBalanceToUse(0);
     setIsDebt(false);
     setPaymentMethod('cash');
     // === Phase B: Reset chiết khấu ===
@@ -258,7 +266,17 @@ export default function Sales() {
   const customerBalance = customer?.balance || 0;
   const maxBalanceCanUse = Math.min(customerBalance, total);
   const actualBalanceUsed = useBalance ? Math.min(balanceToUse || 0, maxBalanceCanUse) : 0;
-  const remainingAfterBalance = total - actualBalanceUsed;
+  const remainingAfterOwnBalance = total - actualBalanceUsed;
+
+  // Tính toán thanh toán - Số dư mẹ (nếu có)
+  const parentBalance = customer?.parent_balance || 0;
+  const parentPhone = customer?.parent_phone || null;
+  const parentName = customer?.parent_name || null;
+  const maxParentBalanceCanUse = Math.min(parentBalance, remainingAfterOwnBalance);
+  const actualParentBalanceUsed = useParentBalance ? Math.min(parentBalanceToUse || 0, maxParentBalanceCanUse) : 0;
+
+  // Tổng còn lại sau khi dùng cả 2 nguồn
+  const remainingAfterBalance = remainingAfterOwnBalance - actualParentBalanceUsed;
 
   const cashReceivedNum = parseInt(cashReceived) || 0;
   const changeAmount = Math.max(0, cashReceivedNum - remainingAfterBalance);
@@ -287,7 +305,8 @@ export default function Sales() {
   const handleSubmit = async () => {
     // Tính toán lại các giá trị
     const balanceUsed = useBalance ? actualBalanceUsed : 0;
-    const remaining = total - balanceUsed;
+    const parentBalanceUsed = useParentBalance ? actualParentBalanceUsed : 0;
+    const remaining = total - balanceUsed - parentBalanceUsed;
 
     // Validate
     if (!isDebt) {
@@ -349,7 +368,10 @@ export default function Sales() {
         transfer_amount: transferAmount,
         debt_amount: debtAmountFinal,
         due_date: isDebt && dueDate ? dueDate : null,
-        payment_status: debtAmountFinal > 0 ? (balanceUsed > 0 ? 'partial' : 'pending') : 'paid'
+        payment_status: debtAmountFinal > 0 ? (balanceUsed > 0 || parentBalanceUsed > 0 ? 'partial' : 'pending') : 'paid',
+        // === Số dư mẹ (nếu có) ===
+        parent_phone: parentBalanceUsed > 0 ? parentPhone : null,
+        parent_balance_amount: parentBalanceUsed
       };
 
       const result = await ordersApi.create(orderData);
@@ -392,6 +414,8 @@ export default function Sales() {
       setPaymentMethod('cash');
       setUseBalance(false);
       setBalanceToUse(0);
+      setUseParentBalance(false);
+      setParentBalanceToUse(0);
       setIsDebt(false);
       setDueDate('');
       // === Phase B: Reset chiết khấu + shipping ===
@@ -1136,8 +1160,84 @@ export default function Sales() {
             </div>
           )}
 
+          {/* 1b. Dùng số dư mẹ (nếu khách con có parent và parent có dư) */}
+          {customer && parentPhone && parentBalance > 0 && (
+            <div style={{ 
+              padding: '1rem', 
+              background: '#faf5ff', 
+              borderRadius: '8px',
+              marginBottom: '1rem',
+              border: useParentBalance ? '2px solid #7c3aed' : '1px solid #e9d5ff'
+            }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                cursor: 'pointer',
+                marginBottom: useParentBalance ? '0.75rem' : 0
+              }}>
+                <input
+                  type="checkbox"
+                  checked={useParentBalance}
+                  onChange={(e) => {
+                    setUseParentBalance(e.target.checked);
+                    if (e.target.checked) {
+                      setParentBalanceToUse(Math.min(parentBalance, remainingAfterOwnBalance));
+                    } else {
+                      setParentBalanceToUse(0);
+                    }
+                  }}
+                  style={{ width: '18px', height: '18px', accentColor: '#7c3aed' }}
+                />
+                <Wallet size={18} color="#7c3aed" />
+                <span style={{ fontWeight: '500', color: '#6b21a8' }}>
+                  Dùng số dư mẹ - {parentName || parentPhone} ({formatPrice(parentBalance)})
+                </span>
+              </label>
+
+              {useParentBalance && (
+                <div style={{ marginLeft: '26px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', color: '#7c3aed' }}>Số tiền dùng:</span>
+                    <input
+                      type="number"
+                      value={parentBalanceToUse}
+                      onChange={(e) => setParentBalanceToUse(Math.min(parseInt(e.target.value) || 0, maxParentBalanceCanUse))}
+                      style={{
+                        width: '120px',
+                        padding: '0.5rem',
+                        border: '1px solid #c4b5fd',
+                        borderRadius: '6px',
+                        textAlign: 'right',
+                        fontWeight: 'bold',
+                        color: '#6b21a8'
+                      }}
+                    />
+                    <button
+                      onClick={() => setParentBalanceToUse(maxParentBalanceCanUse)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        background: '#ede9fe',
+                        color: '#6b21a8',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem'
+                      }}
+                    >
+                      Tối đa
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#7c3aed', marginTop: '0.5rem' }}>
+                    Tối đa có thể dùng: {formatPrice(maxParentBalanceCanUse)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 2. Số tiền còn lại cần thanh toán */}
-          {(actualBalanceUsed > 0 || (customer && customerBalance > 0)) && (
+          {(actualBalanceUsed > 0 || actualParentBalanceUsed > 0 || (customer && (customerBalance > 0 || parentBalance > 0))) && (
             <div style={{ 
               padding: '0.75rem 1rem', 
               background: remainingAfterBalance > 0 ? '#fef3c7' : '#dcfce7',
