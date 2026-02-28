@@ -575,6 +575,27 @@ async function createTables() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_damage_log_order ON pos_damage_logs(order_id)`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_damage_log_date ON pos_damage_logs(created_at)`);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG: STOCK PENDING - Lưu trừ kho SX thất bại để retry
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_stock_pending (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_code TEXT NOT NULL,
+      order_id INTEGER,
+      sx_product_type TEXT NOT NULL,
+      sx_product_id INTEGER NOT NULL,
+      product_name TEXT,
+      quantity INTEGER NOT NULL,
+      direction TEXT NOT NULL DEFAULT 'out',
+      status TEXT DEFAULT 'pending',
+      retry_count INTEGER DEFAULT 0,
+      error_message TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      resolved_at DATETIME
+    )
+  `);
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 
@@ -815,11 +836,37 @@ async function run(sql, params = []) {
   }
 }
 
+/**
+ * Transaction helper - Bọc nhiều SQL trong 1 giao dịch atomic
+ * Nếu bất kỳ bước nào lỗi → rollback tất cả
+ * @returns {Object} - { query, queryOne, run, commit, rollback }
+ */
+async function beginTransaction() {
+  const tx = await db.transaction("write");
+  return {
+    async query(sql, params = []) {
+      const result = await tx.execute({ sql, args: params });
+      return result.rows.map(row => ({ ...row }));
+    },
+    async queryOne(sql, params = []) {
+      const result = await tx.execute({ sql, args: params });
+      return result.rows[0] ? { ...result.rows[0] } : null;
+    },
+    async run(sql, params = []) {
+      const result = await tx.execute({ sql, args: params });
+      return { lastInsertRowid: result.lastInsertRowid, changes: result.rowsAffected };
+    },
+    async commit() { await tx.commit(); },
+    async rollback() { try { await tx.rollback(); } catch(e) {} }
+  };
+}
+
 module.exports = {
   initDatabase,
   getDb,
   query,
   queryOne,
   run,
+  beginTransaction,
   saveDatabase
 };

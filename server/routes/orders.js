@@ -10,7 +10,7 @@
  */
 
 const express = require("express");
-const { query, queryOne, run } = require("../database");
+const { query, queryOne, run, beginTransaction } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
 const {
   generateOrderCode,
@@ -383,200 +383,188 @@ router.post("/", authenticate, async (req, res) => {
       finalDebtAmount = 0;
     }
 
-    // Tạo đơn hàng
+
+    // ========== ATOMIC TRANSACTION: Tạo đơn hàng ==========
+    // Tất cả thao tác DB (tạo đơn, trừ ví, ghi log) trong 1 transaction
+    // Nếu bất kỳ bước nào lỗi → rollback tất cả, không mất tiền
     const orderCode = generateOrderCode();
     const now = getNow();
+    const tx = await beginTransaction();
+    let orderId;
 
-    const result = await run(
-      `
-      INSERT INTO pos_orders (
-        code, customer_phone, customer_name,
-        subtotal, discount, discount_reason, total,
-        discount_type, discount_value, discount_amount, discount_code, shipping_fee,
-        payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
-        payment_status, due_date,
-        status, notes, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
-    `,
-      [
-        orderCode,
-        phone || null,
-        customer_name || "Khách lẻ",
-        subtotal,
-        finalDiscountAmount, // backward compatible: discount = discount_amount
-        discount_reason || null,
-        total,
-        finalDiscountType || null,
-        finalDiscountValue || 0,
-        finalDiscountAmount,
-        finalDiscountCode || null,
-        finalShippingFee,
-        payment_method === "debt" ? "debt" : payment_method,
-        cash_amount || 0,
-        transfer_amount || 0,
-        actualBalanceAmount,
-        finalDebtAmount,
-        finalPaymentStatus,
-        due_date || null,
-        notes || null,
-        req.user.username,
-        now,
-      ],
-    );
+    try {
+      // Re-check wallet inside transaction (chống race condition)
+      if (actualBalanceAmount > 0 && phone) {
+        const freshWallet = await tx.queryOne(
+          "SELECT * FROM pos_wallets WHERE phone = ?", [phone]
+        );
+        const freshBalance = freshWallet?.balance || 0;
+        if (freshBalance < actualBalanceAmount) {
+          await tx.rollback();
+          return res.status(400).json({
+            error: `Số dư không đủ. Hiện có: ${freshBalance.toLocaleString()}đ`,
+          });
+        }
+        balanceBefore = freshBalance;
+        balanceAfter = freshBalance - actualBalanceAmount;
+      }
 
-    const orderId = Number(result.lastInsertRowid);
+      if (actualParentBalanceAmount > 0 && normalizedParentPhone) {
+        const freshParentWallet = await tx.queryOne(
+          "SELECT * FROM pos_wallets WHERE phone = ?", [normalizedParentPhone]
+        );
+        const freshParentBalance = freshParentWallet?.balance || 0;
+        if (freshParentBalance < actualParentBalanceAmount) {
+          await tx.rollback();
+          return res.status(400).json({
+            error: `Số dư mẹ không đủ. Hiện có: ${freshParentBalance.toLocaleString()}đ`,
+          });
+        }
+        parentBalanceBefore = freshParentBalance;
+        parentBalanceAfter = freshParentBalance - actualParentBalanceAmount;
+      }
 
-    // Thêm chi tiết đơn hàng
-    for (const item of orderItems) {
-      await run(
-        `
-        INSERT INTO pos_order_items (
-          order_id, product_id, product_code, product_name,
-          quantity, unit_price, total_price
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
+      // 1. Tạo đơn hàng
+      const result = await tx.run(
+        `INSERT INTO pos_orders (
+          code, customer_phone, customer_name,
+          subtotal, discount, discount_reason, total,
+          discount_type, discount_value, discount_amount, discount_code, shipping_fee,
+          payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
+          payment_status, due_date,
+          status, notes, created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
-          orderId,
-          item.product_id,
-          item.product_code,
-          item.product_name,
-          item.quantity,
-          item.unit_price,
-          item.total_price,
+          orderCode, phone || null, customer_name || "Khách lẻ",
+          subtotal, finalDiscountAmount, discount_reason || null, total,
+          finalDiscountType || null, finalDiscountValue || 0, finalDiscountAmount,
+          finalDiscountCode || null, finalShippingFee,
+          payment_method === "debt" ? "debt" : payment_method,
+          cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
+          finalDebtAmount, finalPaymentStatus, due_date || null,
+          notes || null, req.user.username, now,
         ],
       );
+      orderId = Number(result.lastInsertRowid);
 
-      // Trừ kho từ SX (FIFO)
-      try {
-        await outStockFIFO(
-          item.sx_product_type,
-          item.sx_product_id,
-          item.quantity,
-          `POS: ${orderCode}`,
+      // 2. Thêm chi tiết đơn hàng
+      for (const item of orderItems) {
+        await tx.run(
+          `INSERT INTO pos_order_items (
+            order_id, product_id, product_code, product_name,
+            quantity, unit_price, total_price
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [orderId, item.product_id, item.product_code, item.product_name,
+           item.quantity, item.unit_price, item.total_price],
         );
-      } catch (err) {
-        console.error("Stock out error:", err.message);
       }
-    }
 
-    // Trừ số dư từ pos_wallets (nếu có dùng số dư)
-    if (actualBalanceAmount > 0 && phone) {
-      // Cập nhật wallet
-      const walletExists = await queryOne(
-        "SELECT id FROM pos_wallets WHERE phone = ?",
-        [phone],
-      );
-      if (walletExists) {
-        await run(
+      // 3. Trừ số dư khách (nếu có)
+      if (actualBalanceAmount > 0 && phone) {
+        await tx.run(
           `UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
           [balanceAfter, actualBalanceAmount, now, phone],
         );
-      }
-
-      // Ghi log giao dịch
-      await run(
-        `
-        INSERT INTO pos_balance_transactions (
-          customer_phone, customer_name, type, amount, 
-          balance_before, balance_after, order_id,
-          notes, created_by, created_at
-        ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)
-      `,
-        [
-          phone,
-          customer_name || null,
-          -actualBalanceAmount,
-          balanceBefore,
-          balanceAfter,
-          orderId,
-          "Thanh toán đơn hàng " + orderCode,
-          req.user.username,
-          now,
-        ],
-      );
-    }
-
-    // === Trừ số dư MẸ từ pos_wallets (nếu khách con dùng số dư mẹ) ===
-    if (actualParentBalanceAmount > 0 && normalizedParentPhone) {
-      // Cập nhật wallet mẹ
-      const parentWalletExists = await queryOne(
-        "SELECT id FROM pos_wallets WHERE phone = ?",
-        [normalizedParentPhone],
-      );
-      if (parentWalletExists) {
-        await run(
-          `UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
-          [parentBalanceAfter, actualParentBalanceAmount, now, normalizedParentPhone],
+        await tx.run(
+          `INSERT INTO pos_balance_transactions (
+            customer_phone, customer_name, type, amount,
+            balance_before, balance_after, order_id,
+            notes, created_by, created_at
+          ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)`,
+          [phone, customer_name || null, -actualBalanceAmount,
+           balanceBefore, balanceAfter, orderId,
+           "Thanh toán đơn hàng " + orderCode, req.user.username, now],
         );
       }
 
-      // Ghi log giao dịch cho mẹ - notes rõ ràng trừ cho ai
-      await run(
-        `
-        INSERT INTO pos_balance_transactions (
-          customer_phone, customer_name, type, amount, 
-          balance_before, balance_after, order_id,
-          notes, created_by, created_at
-        ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)
-      `,
-        [
-          normalizedParentPhone,
-          parentName,
-          -actualParentBalanceAmount,
-          parentBalanceBefore,
-          parentBalanceAfter,
-          orderId,
-          `Trừ cho KH: ${customer_name || phone} - Đơn ${orderCode}`,
-          req.user.username,
-          now,
-        ],
-      );
+      // 4. Trừ số dư mẹ (nếu có)
+      if (actualParentBalanceAmount > 0 && normalizedParentPhone) {
+        await tx.run(
+          `UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
+          [parentBalanceAfter, actualParentBalanceAmount, now, normalizedParentPhone],
+        );
+        await tx.run(
+          `INSERT INTO pos_balance_transactions (
+            customer_phone, customer_name, type, amount,
+            balance_before, balance_after, order_id,
+            notes, created_by, created_at
+          ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)`,
+          [normalizedParentPhone, parentName, -actualParentBalanceAmount,
+           parentBalanceBefore, parentBalanceAfter, orderId,
+           `Trừ cho KH: ${customer_name || phone} - Đơn ${orderCode}`,
+           req.user.username, now],
+        );
+      }
+
+      // 5. Tăng used_count mã chiết khấu
+      if (discountCodeId) {
+        await tx.run(
+          "UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?",
+          [now, discountCodeId],
+        );
+      }
+
+      // COMMIT - tất cả thành công → ghi vào DB
+      await tx.commit();
+      console.log(`✅ Đơn ${orderCode} - Transaction committed (order + wallet + log)`);
+
+    } catch (txErr) {
+      // BẤT KỲ lỗi nào → rollback tất cả, không mất tiền
+      await tx.rollback();
+      console.error(`❌ Đơn ${orderCode} - Transaction rolled back:`, txErr.message);
+      throw txErr;
     }
 
-    // === Phase B: Tăng used_count của mã chiết khấu ===
-    if (discountCodeId) {
-      await run(
-        "UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?",
-        [now, discountCodeId],
-      );
+    // ========== SAU TRANSACTION: Các thao tác không quan trọng ==========
+
+    // Trừ kho SX (bên ngoài transaction vì gọi API external)
+    for (const item of orderItems) {
+      try {
+        await outStockFIFO(
+          item.sx_product_type, item.sx_product_id,
+          item.quantity, `POS: ${orderCode}`,
+        );
+      } catch (err) {
+        // Ghi vào pos_stock_pending để retry sau
+        console.error(`⚠️ Stock out failed for ${item.product_name}: ${err.message}`);
+        try {
+          await run(
+            `INSERT INTO pos_stock_pending (
+              order_code, order_id, sx_product_type, sx_product_id,
+              product_name, quantity, direction, error_message, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'out', ?, ?)`,
+            [orderCode, orderId, item.sx_product_type, item.sx_product_id,
+             item.product_name, item.quantity, err.message, now],
+          );
+        } catch (logErr) {
+          console.error("Failed to log pending stock:", logErr.message);
+        }
+      }
     }
 
-    // === Tạo registration cho khách mới ===
+    // Tạo registration cho khách mới (không quan trọng, lỗi không ảnh hưởng đơn)
     if (is_new_customer && phone && customer_name) {
       try {
-        // Kiểm tra xem đã có registration chưa (có thể khách mua lần 2 trước khi sync)
         const existingReg = await queryOne(
           "SELECT id, notes FROM pos_registrations WHERE phone = ? AND status = ?",
           [phone, "pending"],
         );
-
         if (existingReg) {
-          // Đã có registration pending -> cập nhật notes thêm order code
           const newNotes = existingReg.notes
             ? `${existingReg.notes}, ${orderCode}`
             : `Từ POS - Đơn hàng: ${orderCode}`;
           await run("UPDATE pos_registrations SET notes = ? WHERE id = ?", [
-            newNotes,
-            existingReg.id,
+            newNotes, existingReg.id,
           ]);
         } else {
-          // Tạo registration mới
           await run(
-            `
-            INSERT INTO pos_registrations (phone, name, notes, status, created_by, created_at)
-            VALUES (?, ?, ?, 'pending', ?, ?)
-          `,
-            [
-              phone,
-              customer_name,
-              `Từ POS - Đơn hàng: ${orderCode}`,
-              req.user.username,
-              now,
-            ],
+            `INSERT INTO pos_registrations (phone, name, notes, status, created_by, created_at)
+            VALUES (?, ?, ?, 'pending', ?, ?)`,
+            [phone, customer_name, `Từ POS - Đơn hàng: ${orderCode}`,
+             req.user.username, now],
           );
         }
       } catch (regErr) {
-        // Log error nhưng không fail order
         console.error("Registration creation error:", regErr);
       }
     }
@@ -606,7 +594,6 @@ router.post("/", authenticate, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 /**
  * POST /api/pos/orders/:id/pay-debt
  * Xác nhận thanh toán nợ cho đơn hàng
@@ -735,8 +722,11 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
 });
 
 /**
+
+/**
  * PUT /api/pos/orders/:id/cancel
  * Hủy đơn hàng - hoàn tiền vào pos_wallets + hoàn kho SX
+ * ATOMIC: Hoàn ví + cập nhật trạng thái trong 1 transaction
  */
 router.put(
   "/:id/cancel",
@@ -758,76 +748,86 @@ router.put(
 
       const now = getNow();
 
-      // Hoàn lại số dư vào pos_wallets nếu đã thanh toán bằng balance
-      if (order.balance_amount > 0 && order.customer_phone) {
-        const phone = order.customer_phone;
-        const wallet = await queryOne(
-          "SELECT * FROM pos_wallets WHERE phone = ?",
-          [phone],
+      // ========== ATOMIC TRANSACTION: Hoàn tiền + hủy đơn ==========
+      const tx = await beginTransaction();
+      try {
+        // Hoàn lại số dư vào pos_wallets
+        if (order.balance_amount > 0 && order.customer_phone) {
+          const phone = order.customer_phone;
+          const wallet = await tx.queryOne(
+            "SELECT * FROM pos_wallets WHERE phone = ?", [phone]
+          );
+
+          if (wallet) {
+            const balanceBefore = wallet.balance;
+            const balanceAfter = wallet.balance + order.balance_amount;
+
+            await tx.run(
+              "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
+              [balanceAfter, order.balance_amount, now, phone],
+            );
+
+            await tx.run(
+              `INSERT INTO pos_balance_transactions (
+                customer_phone, customer_name, type, amount,
+                balance_before, balance_after, order_id,
+                notes, created_by, created_at
+              ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
+              [phone, order.customer_name, order.balance_amount,
+               balanceBefore, balanceAfter, order.id,
+               "Hoàn tiền hủy đơn " + order.code, req.user.username, now],
+            );
+          }
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        await tx.run(
+          `UPDATE pos_orders 
+          SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
+          WHERE id = ?`,
+          [reason || "Không có lý do", req.user.username, now, order.id],
         );
 
-        if (wallet) {
-          const balanceBefore = wallet.balance;
-          const balanceAfter = wallet.balance + order.balance_amount;
-
-          await run(
-            "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
-            [balanceAfter, order.balance_amount, now, phone],
-          );
-
-          await run(
-            `
-          INSERT INTO pos_balance_transactions (
-            customer_phone, customer_name, type, amount,
-            balance_before, balance_after, order_id,
-            notes, created_by, created_at
-          ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
-        `,
-            [
-              phone,
-              order.customer_name,
-              order.balance_amount,
-              balanceBefore,
-              balanceAfter,
-              order.id,
-              "Hoàn tiền hủy đơn " + order.code,
-              req.user.username,
-              now,
-            ],
-          );
-        }
+        await tx.commit();
+        console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);
+      } catch (txErr) {
+        await tx.rollback();
+        console.error(`❌ Hủy đơn ${order.code} - Rolled back:`, txErr.message);
+        throw txErr;
       }
 
-      // Hoàn kho SX
+      // Hoàn kho SX (bên ngoài transaction)
       const orderItems = await query(
-        `
-      SELECT oi.*, p.sx_product_type, p.sx_product_id 
-      FROM pos_order_items oi
-      LEFT JOIN pos_products p ON oi.product_id = p.id
-      WHERE oi.order_id = ?
-    `,
+        `SELECT oi.*, p.sx_product_type, p.sx_product_id 
+        FROM pos_order_items oi
+        LEFT JOIN pos_products p ON oi.product_id = p.id
+        WHERE oi.order_id = ?`,
         [order.id],
       );
       for (const item of orderItems) {
         if (item.sx_product_type && item.quantity > 0) {
-          await inStockReturn(
-            item.sx_product_type,
-            item.sx_product_id,
-            item.quantity,
-            order.code,
-          );
+          try {
+            await inStockReturn(
+              item.sx_product_type, item.sx_product_id,
+              item.quantity, order.code,
+            );
+          } catch (err) {
+            console.error(`⚠️ Stock return failed: ${err.message}`);
+            try {
+              await run(
+                `INSERT INTO pos_stock_pending (
+                  order_code, order_id, sx_product_type, sx_product_id,
+                  product_name, quantity, direction, error_message, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?)`,
+                [order.code, order.id, item.sx_product_type, item.sx_product_id,
+                 item.product_name, item.quantity, err.message, now],
+              );
+            } catch (logErr) {
+              console.error("Failed to log pending stock:", logErr.message);
+            }
+          }
         }
       }
-
-      // Cập nhật trạng thái
-      await run(
-        `
-      UPDATE pos_orders 
-      SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
-      WHERE id = ?
-    `,
-        [reason || "Không có lý do", req.user.username, now, order.id],
-      );
 
       res.json({ success: true, message: "Đã hủy đơn hàng" });
     } catch (err) {
@@ -839,10 +839,10 @@ router.put(
 /**
  * DELETE /api/pos/orders/:id
  * Xóa hẳn đơn hàng (chỉ owner) - hoàn tiền + hoàn kho
+ * ATOMIC: Hoàn ví + xóa đơn trong 1 transaction
  */
 router.delete("/:id", authenticate, async (req, res) => {
   try {
-    // Kiểm tra quyền owner
     if (req.user.role !== "owner") {
       return res
         .status(403)
@@ -858,84 +858,88 @@ router.delete("/:id", authenticate, async (req, res) => {
 
     const now = getNow();
 
-    // Hoàn lại số dư nếu đã trừ (và đơn chưa bị hủy trước đó)
-    if (
-      order.balance_amount > 0 &&
-      order.customer_phone &&
-      order.status !== "cancelled"
-    ) {
-      const phone = order.customer_phone;
-      const wallet = await queryOne(
-        "SELECT * FROM pos_wallets WHERE phone = ?",
-        [phone],
-      );
+    // Lấy items trước khi xóa (cần cho hoàn kho SX sau)
+    const orderItems = await query(
+      `SELECT oi.*, p.sx_product_type, p.sx_product_id 
+      FROM pos_order_items oi
+      LEFT JOIN pos_products p ON oi.product_id = p.id
+      WHERE oi.order_id = ?`,
+      [order.id],
+    );
 
-      if (wallet) {
-        const balanceBefore = wallet.balance;
-        const balanceAfter = wallet.balance + order.balance_amount;
-
-        await run(
-          "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
-          [balanceAfter, order.balance_amount, now, phone],
+    // ========== ATOMIC TRANSACTION: Hoàn tiền + xóa đơn ==========
+    const tx = await beginTransaction();
+    try {
+      // Hoàn lại số dư nếu đã trừ (và đơn chưa bị hủy)
+      if (order.balance_amount > 0 && order.customer_phone && order.status !== "cancelled") {
+        const phone = order.customer_phone;
+        const wallet = await tx.queryOne(
+          "SELECT * FROM pos_wallets WHERE phone = ?", [phone]
         );
 
-        await run(
-          `
-          INSERT INTO pos_balance_transactions (
-            customer_phone, customer_name, type, amount,
-            balance_before, balance_after, order_id,
-            notes, created_by, created_at
-          ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
-        `,
-          [
-            phone,
-            order.customer_name,
-            order.balance_amount,
-            balanceBefore,
-            balanceAfter,
-            order.id,
-            "Hoàn tiền xóa đơn " + order.code,
-            req.user.username,
-            now,
-          ],
-        );
-      }
-    }
+        if (wallet) {
+          const balanceBefore = wallet.balance;
+          const balanceAfter = wallet.balance + order.balance_amount;
 
-    // Hoàn kho SX (nếu đơn chưa bị hủy)
-    if (order.status !== "cancelled") {
-      const orderItems = await query(
-        `
-        SELECT oi.*, p.sx_product_type, p.sx_product_id 
-        FROM pos_order_items oi
-        LEFT JOIN pos_products p ON oi.product_id = p.id
-        WHERE oi.order_id = ?
-      `,
-        [order.id],
-      );
-      for (const item of orderItems) {
-        if (item.sx_product_type && item.quantity > 0) {
-          await inStockReturn(
-            item.sx_product_type,
-            item.sx_product_id,
-            item.quantity,
-            order.code,
+          await tx.run(
+            "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
+            [balanceAfter, order.balance_amount, now, phone],
+          );
+
+          await tx.run(
+            `INSERT INTO pos_balance_transactions (
+              customer_phone, customer_name, type, amount,
+              balance_before, balance_after, order_id,
+              notes, created_by, created_at
+            ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
+            [phone, order.customer_name, order.balance_amount,
+             balanceBefore, balanceAfter, order.id,
+             "Hoàn tiền xóa đơn " + order.code, req.user.username, now],
           );
         }
       }
+
+      // Xóa records liên quan
+      await tx.run("DELETE FROM pos_order_items WHERE order_id = ?", [order.id]);
+      await tx.run("DELETE FROM pos_refund_requests WHERE order_id = ?", [order.id]);
+      await tx.run("DELETE FROM pos_damage_logs WHERE order_id = ?", [order.id]);
+      await tx.run("DELETE FROM pos_orders WHERE id = ?", [order.id]);
+
+      await tx.commit();
+      console.log(`✅ Xóa đơn ${order.code} - Transaction committed`);
+    } catch (txErr) {
+      await tx.rollback();
+      console.error(`❌ Xóa đơn ${order.code} - Rolled back:`, txErr.message);
+      throw txErr;
     }
 
-    // Xóa order items trước
-    await run("DELETE FROM pos_order_items WHERE order_id = ?", [order.id]);
-
-    // Xóa refund_requests liên quan
-    await run("DELETE FROM pos_refund_requests WHERE order_id = ?", [order.id]);
-
-    // Xóa damage_logs liên quan
-    await run("DELETE FROM pos_damage_logs WHERE order_id = ?", [order.id]);
-
-    // Xóa order
-    await run("DELETE FROM pos_orders WHERE id = ?", [order.id]);
+    // Hoàn kho SX (bên ngoài transaction)
+    if (order.status !== "cancelled") {
+      for (const item of orderItems) {
+        if (item.sx_product_type && item.quantity > 0) {
+          try {
+            await inStockReturn(
+              item.sx_product_type, item.sx_product_id,
+              item.quantity, order.code,
+            );
+          } catch (err) {
+            console.error(`⚠️ Stock return failed: ${err.message}`);
+            try {
+              await run(
+                `INSERT INTO pos_stock_pending (
+                  order_code, order_id, sx_product_type, sx_product_id,
+                  product_name, quantity, direction, error_message, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?)`,
+                [order.code, order.id, item.sx_product_type, item.sx_product_id,
+                 item.product_name, item.quantity, err.message, now],
+              );
+            } catch (logErr) {
+              console.error("Failed to log pending stock:", logErr.message);
+            }
+          }
+        }
+      }
+    }
 
     res.json({ success: true, message: "Đã xóa đơn hàng" });
   } catch (err) {

@@ -48,19 +48,78 @@ function fetchUrl(url, options = {}) {
   });
 }
 
-// Helper: Lấy khách từ SX
+// Helper: Lấy khách từ SX + lazy cache vào pos_customers
+let lastCacheTime = 0;
+const CACHE_INTERVAL = 5 * 60 * 1000; // Cache mỗi 5 phút
+
 async function fetchSXCustomers() {
   try {
-    if (!SX_API_KEY) return [];
+    if (!SX_API_KEY) return await getLocalCachedCustomers();
     const response = await fetchUrl(`${SX_API_URL}/api/pos/customers/export`, {
       headers: { "X-API-Key": SX_API_KEY },
     });
-    if (!response.ok) return [];
-    return await response.json();
+    if (!response.ok) return await getLocalCachedCustomers();
+    const customers = await response.json();
+
+    // Lazy cache: lưu vào pos_customers (throttled, không block response)
+    if (customers.length > 0 && Date.now() - lastCacheTime > CACHE_INTERVAL) {
+      lastCacheTime = Date.now();
+      cacheCustomersToLocal(customers).catch(err =>
+        console.error("Cache customers error:", err.message)
+      );
+    }
+
+    return customers;
   } catch (err) {
     console.error("SX API error:", err.message);
-    return [];
+    console.warn("⚠️ SX unavailable - dùng cache local");
+    return await getLocalCachedCustomers();
   }
+}
+
+// Cache SX customers vào pos_customers (silent background)
+async function cacheCustomersToLocal(sxCustomers) {
+  let cached = 0;
+  for (const c of sxCustomers) {
+    const phone = normalizePhone(c.phone);
+    if (!phone) continue;
+    const parentPhone = c.parent_phone ? normalizePhone(c.parent_phone) : null;
+    try {
+      await run(`
+        INSERT INTO pos_customers (phone, name, parent_phone, relationship, sx_status, updated_at)
+        VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+        ON CONFLICT(phone) DO UPDATE SET
+          name = excluded.name,
+          parent_phone = excluded.parent_phone,
+          relationship = excluded.relationship,
+          sx_status = 'active',
+          updated_at = CURRENT_TIMESTAMP
+      `, [phone, c.name, parentPhone, c.relationship]);
+      cached++;
+    } catch (e) { /* skip individual errors */ }
+  }
+  console.log(`📋 Cached ${cached}/${sxCustomers.length} customers to local`);
+}
+
+// Fallback: đọc từ pos_customers khi SX sập
+async function getLocalCachedCustomers() {
+  const customers = await query(
+    "SELECT * FROM pos_customers WHERE sx_status = 'active' OR sx_status IS NULL"
+  );
+  if (customers.length > 0) {
+    console.log(`📋 Fallback: loaded ${customers.length} customers from local cache`);
+  }
+  return customers.map(c => ({
+    id: c.id,
+    name: c.name,
+    phone: c.phone,
+    notes: c.notes,
+    parent_phone: c.parent_phone,
+    parent_name: null,
+    relationship: c.relationship,
+    status: 'active',
+    subscriptions: [],
+  }));
 }
 
 // Helper: Lấy map thông tin bổ sung từ pos_customers (CK + lý do) - ASYNC
@@ -116,8 +175,6 @@ router.get("/search/:query", authenticate, async (req, res) => {
         return {
           ...c,
           balance: walletMap[phone]?.balance || 0,
-          parent_phone: parentPhone,
-          parent_name: parentPhone ? (c.parent_name || customerNameMap[parentPhone] || null) : null,
           parent_balance: parentBalance, // Thêm số dư mẹ
           source: "sx",
           discount_type: extras?.discount_type || null,
