@@ -116,6 +116,8 @@ router.get("/search/:query", authenticate, async (req, res) => {
         return {
           ...c,
           balance: walletMap[phone]?.balance || 0,
+          parent_phone: parentPhone,
+          parent_name: parentPhone ? (c.parent_name || customerNameMap[parentPhone] || null) : null,
           parent_balance: parentBalance, // Thêm số dư mẹ
           source: "sx",
           discount_type: extras?.discount_type || null,
