@@ -962,10 +962,12 @@ router.delete("/:id", authenticate, async (req, res) => {
         }
       }
 
-      // Xóa records liên quan
+      // Xóa records liên quan (tất cả bảng có FK → pos_orders)
       await tx.run("DELETE FROM pos_order_items WHERE order_id = ?", [order.id]);
       await tx.run("DELETE FROM pos_refund_requests WHERE order_id = ?", [order.id]);
       await tx.run("DELETE FROM pos_damage_logs WHERE order_id = ?", [order.id]);
+      await tx.run("DELETE FROM pos_promotion_usage WHERE order_id = ?", [order.id]);
+      await tx.run("DELETE FROM pos_invoice_logs WHERE order_id = ?", [order.id]);
       await tx.run("DELETE FROM pos_orders WHERE id = ?", [order.id]);
 
       await tx.commit();
