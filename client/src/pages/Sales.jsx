@@ -76,6 +76,12 @@ export default function Sales() {
       });
       const result = await res.json();
       if (result.success && result.data) {
+    // DEBUG - xóa sau khi fix xong
+    console.log('🔍 invoiceSettings loaded:', {
+      keys: Object.keys(result.data),
+      hasInvoiceConfig: !!result.data.invoice_config,
+      hasStoreLogo: !!result.data.store_logo
+    });
     setInvoiceSettings(result.data);
       }
     } catch (err) {

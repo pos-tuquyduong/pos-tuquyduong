@@ -97,6 +97,14 @@ export default function InvoicePrint({
   // Get paper config (for print sizing)
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
 
+  // DEBUG - xóa sau khi fix xong
+  console.log('🔍 InvoicePrint settings:', {
+    hasInvoiceConfig: !!settings.invoice_config,
+    hasStoreLogo: !!settings.store_logo,
+    logoLength: settings.store_logo?.length,
+    allKeys: Object.keys(settings)
+  });
+
   // Parse invoice_config từ settings (cùng format với InvoiceSettings/InvoicePreview)
   const invoiceConfig = useMemo(() => {
     try {
