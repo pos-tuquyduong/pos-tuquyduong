@@ -79,7 +79,9 @@ const formatCurrency = (num) => {
   return new Intl.NumberFormat('vi-VN').format(num) + 'đ';
 };
 
-export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
+export default function InvoicePreview({ config, size = 'a5', logo = '', orderData = null }) {
+  // Dùng orderData thật nếu có, nếu không dùng SAMPLE_DATA (cho preview trong settings)
+  const data = orderData || SAMPLE_DATA;
   // Compute styles based on size
   const styles = useMemo(() => {
     const baseStyles = {
@@ -325,16 +327,16 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
         fontSize: '0.9em'
       }}>
         {config.show?.invoice_number && (
-          <span>Số HĐ: <strong>{SAMPLE_DATA.invoice_number}</strong></span>
+          <span>Số HĐ: <strong>{data.invoice_number}</strong></span>
         )}
         {config.show?.order_code && (
-          <span>Mã: <strong>{SAMPLE_DATA.order_code}</strong></span>
+          <span>Mã: <strong>{data.order_code}</strong></span>
         )}
         {config.show?.datetime && (
-          <span>{SAMPLE_DATA.datetime}</span>
+          <span>{data.datetime}</span>
         )}
         {config.show?.staff && (
-          <span>NV: {SAMPLE_DATA.staff}</span>
+          <span>NV: {data.staff}</span>
         )}
       </div>
 
@@ -351,22 +353,22 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
           fontSize: '0.95em'
         }}>
           {config.show?.customer_name && (
-            <div><strong>KH:</strong> {SAMPLE_DATA.customer.name}</div>
+            <div><strong>KH:</strong> {data.customer.name}</div>
           )}
           {config.show?.customer_phone && (
-            <div><strong>SĐT:</strong> {SAMPLE_DATA.customer.phone}</div>
+            <div><strong>SĐT:</strong> {data.customer.phone}</div>
           )}
           {config.show?.customer_address && (
-            <div><strong>Địa chỉ:</strong> {SAMPLE_DATA.customer.address}</div>
+            <div><strong>Địa chỉ:</strong> {data.customer.address}</div>
           )}
           {config.show?.customer_balance && (
-            <div><strong>Số dư TK:</strong> {formatCurrency(SAMPLE_DATA.customer.balance)}</div>
+            <div><strong>Số dư TK:</strong> {formatCurrency(data.customer.balance)}</div>
           )}
           {config.show?.customer_type && (
-            <div><strong>Loại KH:</strong> {SAMPLE_DATA.customer.type}</div>
+            <div><strong>Loại KH:</strong> {data.customer.type}</div>
           )}
-          {config.show?.customer_note && SAMPLE_DATA.customer.note && (
-            <div><strong>Ghi chú:</strong> {SAMPLE_DATA.customer.note}</div>
+          {config.show?.customer_note && data.customer.note && (
+            <div><strong>Ghi chú:</strong> {data.customer.note}</div>
           )}
         </div>
       )}
@@ -392,7 +394,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
           </tr>
         </thead>
         <tbody>
-          {SAMPLE_DATA.items.map((item, idx) => (
+          {data.items.map((item, idx) => (
             <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
               {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center' }}>{idx + 1}</td>}
               {config.show?.col_product_code && <td style={{ padding: '1mm' }}>{item.code}</td>}
@@ -417,23 +419,23 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
           <span>Tạm tính:</span>
-          <span>{formatCurrency(SAMPLE_DATA.subtotal)}</span>
+          <span>{formatCurrency(data.subtotal)}</span>
         </div>
         
-        {config.show?.discount_detail && SAMPLE_DATA.discount > 0 && (
+        {config.show?.discount_detail && data.discount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#059669' }}>
             <span>Chiết khấu
-              {SAMPLE_DATA.discount_code ? ` (${SAMPLE_DATA.discount_code})` : 
-               SAMPLE_DATA.discount_type === 'percent' ? ` (${SAMPLE_DATA.discount_value}%)` : ''}:
+              {data.discount_code ? ` (${data.discount_code})` : 
+               data.discount_type === 'percent' ? ` (${data.discount_value}%)` : ''}:
             </span>
-            <span>-{formatCurrency(SAMPLE_DATA.discount)}</span>
+            <span>-{formatCurrency(data.discount)}</span>
           </div>
         )}
         
-        {config.show?.shipping_fee && SAMPLE_DATA.shipping > 0 && (
+        {config.show?.shipping_fee && data.shipping > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
             <span>Phí giao hàng:</span>
-            <span>{formatCurrency(SAMPLE_DATA.shipping)}</span>
+            <span>{formatCurrency(data.shipping)}</span>
           </div>
         )}
         
@@ -447,7 +449,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
           marginTop: '2mm'
         }}>
           <span>TỔNG CỘNG:</span>
-          <span>{formatCurrency(SAMPLE_DATA.total)}</span>
+          <span>{formatCurrency(data.total)}</span>
         </div>
 
         {config.show?.amount_words && (
@@ -457,7 +459,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '' }) {
             marginTop: '1mm',
             textAlign: 'left'
           }}>
-            ({numberToWords(SAMPLE_DATA.total)})
+            ({numberToWords(data.total)})
           </div>
         )}
       </div>

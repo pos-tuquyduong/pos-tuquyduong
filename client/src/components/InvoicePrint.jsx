@@ -19,8 +19,9 @@
  * - invoice_number được lưu vào pos_orders
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { X, Printer } from 'lucide-react';
+import InvoicePreview from './InvoicePreview';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAPER SIZE CONFIG - Chuẩn kích thước thực tế
@@ -93,14 +94,72 @@ export default function InvoicePrint({
   const [invoiceNumber, setInvoiceNumber] = useState(order.invoice_number || '');
   const printRef = useRef(null);
 
-  // Helper to check if a setting is enabled (default: true if not configured)
-  const isEnabled = (key) => {
-    if (settings[key] === undefined || settings[key] === null) return true;
-    return settings[key] === 'true' || settings[key] === true;
-  };
-
-  // Get paper config
+  // Get paper config (for print sizing)
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
+
+  // Parse invoice_config từ settings (cùng format với InvoiceSettings/InvoicePreview)
+  const invoiceConfig = useMemo(() => {
+    try {
+      if (settings.invoice_config) return JSON.parse(settings.invoice_config);
+    } catch (e) {}
+    // Default config nếu chưa cài đặt
+    return {
+      show: {
+        logo: true, store_name: true, slogan: true, address: true, phone: true, email: false,
+        invoice_number: true, order_code: true, datetime: true, staff: true, qr_code: false,
+        customer_name: true, customer_phone: true, customer_address: false, customer_balance: false,
+        customer_type: false, customer_note: false,
+        col_stt: false, col_product_code: false, col_unit: false, col_price: true,
+        discount_detail: true, shipping_fee: true, amount_words: false, payment_checkbox: true,
+        sig_seller: true, sig_shipper: true, sig_customer: true,
+        thank_you: true, policy: true
+      },
+      text: {
+        store_name: settings.store_name || 'TỨ QUÝ ĐƯỜNG',
+        slogan: settings.store_slogan || '',
+        address: settings.store_address || '',
+        phone: settings.store_phone || '',
+        email: settings.store_email || '',
+        thank_you: settings.invoice_thank_you || 'Cảm ơn quý khách!',
+        policy: settings.invoice_policy || ''
+      },
+      align: { header: 'center', order_info: 'justify', customer: 'left', totals: 'right', signatures: 'justify', footer: 'center' }
+    };
+  }, [settings]);
+
+  // Map order data sang format InvoicePreview
+  const orderData = useMemo(() => ({
+    invoice_number: invoiceNumber || order.invoice_number || '',
+    order_code: order.code,
+    datetime: formatDateTime(order.created_at),
+    staff: order.created_by,
+    customer: {
+      name: order.customer_name || 'Khách lẻ',
+      phone: order.customer_phone || '',
+      address: '',
+      balance: 0,
+    },
+    items: (order.items || []).map(item => ({
+      code: item.product_code,
+      name: item.product_name,
+      unit: '',
+      qty: item.quantity,
+      price: item.unit_price,
+      total: (item.unit_price || 0) * (item.quantity || 0)
+    })),
+    subtotal: order.subtotal || 0,
+    discount: order.discount || 0,
+    discount_type: order.discount_type,
+    discount_value: order.discount_value,
+    discount_code: order.discount_code,
+    shipping: order.shipping_fee || 0,
+    total: order.total || 0,
+    payment_method: order.payment_method,
+    cash_received: order.cash_received,
+    change_amount: order.change_amount,
+    debt_amount: order.debt_amount,
+    balance_amount: order.balance_amount,
+  }), [order, invoiceNumber]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GET NEXT INVOICE NUMBER
@@ -248,24 +307,6 @@ export default function InvoicePrint({
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // COMMON STYLES - Chống overflow
-  // ═══════════════════════════════════════════════════════════════════════════
-  const textWrapStyle = {
-    overflowWrap: 'break-word',
-    wordWrap: 'break-word',
-    wordBreak: 'break-word',
-    hyphens: 'auto'
-  };
-
-  const cellStyle = {
-    padding: '4px 2px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    verticalAlign: 'top',
-    ...textWrapStyle
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
   return (
@@ -371,7 +412,7 @@ export default function InvoicePrint({
           ))}
         </div>
 
-        {/* Invoice Preview */}
+        {/* Invoice Preview - dùng InvoicePreview (cùng component với Cài đặt HĐ) */}
         <div style={{
           flex: 1,
           overflow: 'auto',
@@ -380,309 +421,13 @@ export default function InvoicePrint({
           display: 'flex',
           justifyContent: 'center'
         }}>
-          <div 
-            ref={printRef}
-            style={{
-              background: 'white',
-              width: paper.width,
-              minWidth: paper.minWidth,
-              maxWidth: paper.maxWidth,
-              padding: paper.padding,
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              fontSize: paper.fontSize,
-              ...textWrapStyle
-            }}
-          >
-            {/* === INVOICE CONTENT === */}
-            <div className="invoice" style={{ width: '100%', ...textWrapStyle }}>
-              
-              {/* Header - Logo & Store Info */}
-              <div style={{ 
-                textAlign: 'center', 
-                marginBottom: '10px', 
-                paddingBottom: '10px', 
-                borderBottom: '1px dashed #ccc' 
-              }}>
-                {isEnabled('invoice_show_logo') && settings.store_logo && (
-                  <img 
-                    src={settings.store_logo} 
-                    alt="Logo" 
-                    style={{ maxWidth: '70px', maxHeight: '70px', margin: '0 auto 6px', display: 'block' }}
-                  />
-                )}
-                {isEnabled('invoice_show_store_name') && (
-                  <div style={{ fontSize: '1.2em', fontWeight: 'bold', ...textWrapStyle }}>
-                    {settings.store_name || 'TÚ QUÝ ĐƯỜNG'}
-                  </div>
-                )}
-                {isEnabled('invoice_show_address') && settings.store_address && (
-                  <div style={{ fontSize: '0.85em', color: '#666', marginTop: '3px', ...textWrapStyle }}>
-                    {settings.store_address}
-                  </div>
-                )}
-                {isEnabled('invoice_show_phone') && settings.store_phone && (
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>
-                    ☎ {settings.store_phone}
-                  </div>
-                )}
-              </div>
-
-              {/* Invoice Title & Number */}
-              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '3px' }}>
-                  HÓA ĐƠN BÁN HÀNG
-                </div>
-                {isEnabled('invoice_show_invoice_number') && invoiceNumber && (
-                  <div style={{ fontSize: '0.95em' }}>
-                    Số: <strong>{invoiceNumber}</strong>
-                  </div>
-                )}
-                {isEnabled('invoice_show_order_code') && (
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>
-                    Mã ĐH: {order.code}
-                  </div>
-                )}
-                {isEnabled('invoice_show_datetime') && (
-                  <div style={{ fontSize: '0.8em', color: '#666' }}>
-                    {formatDateTime(order.created_at)}
-                  </div>
-                )}
-              </div>
-
-              {/* Customer Info */}
-              <div style={{ 
-                marginBottom: '10px', 
-                paddingBottom: '8px', 
-                borderBottom: '1px dashed #ccc',
-                fontSize: '0.9em'
-              }}>
-                {isEnabled('invoice_show_customer_name') && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span>Khách hàng:</span>
-                    <span style={{ fontWeight: 'bold', maxWidth: '60%', textAlign: 'right', ...textWrapStyle }}>
-                      {order.customer_name || 'Khách lẻ'}
-                    </span>
-                  </div>
-                )}
-                {isEnabled('invoice_show_customer_phone') && order.customer_phone && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span>SĐT:</span>
-                    <span>{order.customer_phone}</span>
-                  </div>
-                )}
-                {isEnabled('invoice_show_staff') && order.created_by && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>NV bán:</span>
-                    <span>{order.created_by}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Products Table */}
-              {isEnabled('invoice_show_products') && order.items && order.items.length > 0 && (
-                <div style={{ marginBottom: '10px' }}>
-                  <table style={{ 
-                    width: '100%', 
-                    borderCollapse: 'collapse', 
-                    tableLayout: 'fixed',
-                    fontSize: '0.9em'
-                  }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #999' }}>
-                        <th style={{ ...cellStyle, width: paper.productColWidth, textAlign: 'left' }}>Sản phẩm</th>
-                        <th style={{ ...cellStyle, width: '15%', textAlign: 'center' }}>SL</th>
-                        <th style={{ ...cellStyle, width: '35%', textAlign: 'right' }}>T.Tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.items.map((item, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px dotted #ddd' }}>
-                          <td style={{ ...cellStyle, textAlign: 'left' }}>
-                            <div style={{ fontWeight: '500', ...textWrapStyle }}>
-                              {item.product_code || item.product_name}
-                            </div>
-                            {paperSize !== '58mm' && item.product_name && item.product_code && (
-                              <div style={{ fontSize: '0.85em', color: '#666', ...textWrapStyle }}>
-                                {item.product_name}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ ...cellStyle, textAlign: 'center' }}>
-                            {item.quantity}
-                          </td>
-                          <td style={{ ...cellStyle, textAlign: 'right' }}>
-                            {formatPrice((item.unit_price || 0) * (item.quantity || 0))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Summary */}
-              <div style={{ paddingTop: '8px', borderTop: '1px dashed #ccc', fontSize: '0.9em' }}>
-                {isEnabled('invoice_show_subtotal') && order.subtotal !== order.total && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                    <span>Tạm tính:</span>
-                    <span>{formatPrice(order.subtotal)}</span>
-                  </div>
-                )}
-                {isEnabled('invoice_show_discount') && order.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#dc2626' }}>
-                    <span>Chiết khấu
-                      {order.discount_code ? ` (${order.discount_code})` : 
-                       order.discount_type === 'percent' ? ` (${order.discount_value}%)` : ''}:
-                    </span>
-                    <span>-{formatPrice(order.discount)}</span>
-                  </div>
-                )}
-                {/* === Phase B: Phí vận chuyển === */}
-                {order.shipping_fee > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#f97316' }}>
-                    <span>Phí vận chuyển:</span>
-                    <span>+{formatPrice(order.shipping_fee)}</span>
-                  </div>
-                )}
-                {isEnabled('invoice_show_total') && (
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    fontSize: '1.15em', 
-                    fontWeight: 'bold',
-                    borderTop: '2px solid #333',
-                    paddingTop: '6px',
-                    marginTop: '6px'
-                  }}>
-                    <span>TỔNG CỘNG:</span>
-                    <span>{formatPrice(order.total)}</span>
-                  </div>
-                )}
-
-                {/* ═══════════════════════════════════════════════════════════════════════════ */}
-                {/* PAYMENT INFO - Chi tiết thanh toán */}
-                {/* ═══════════════════════════════════════════════════════════════════════════ */}
-                {isEnabled('invoice_show_payment_method') && (
-                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
-                    
-                    {/* Hiển thị số dư đã dùng */}
-                    {order.balance_amount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                        <span>💰 Trừ số dư:</span>
-                        <span>{formatPrice(order.balance_amount)}</span>
-                      </div>
-                    )}
-                    
-                    {/* Hiển thị tiền mặt */}
-                    {order.cash_amount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                        <span>💵 Tiền mặt:</span>
-                        <span>{formatPrice(order.cash_amount)}</span>
-                      </div>
-                    )}
-                    
-                    {/* Hiển thị chuyển khoản */}
-                    {order.transfer_amount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                        <span>🏦 Chuyển khoản:</span>
-                        <span>{formatPrice(order.transfer_amount)}</span>
-                      </div>
-                    )}
-                    
-                    {/* Hiển thị ghi nợ - với checkbox TM/CK */}
-                    {order.debt_amount > 0 && (
-                      <div style={{ 
-                        marginTop: '6px', 
-                        padding: '8px', 
-                        background: '#fff8e1', 
-                        border: '1px solid #ffcc02',
-                        borderRadius: '4px'
-                      }}>
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          fontWeight: 'bold',
-                          color: '#b45309',
-                          marginBottom: '4px'
-                        }}>
-                          <span>📝 CÒN NỢ:</span>
-                          <span>{formatPrice(order.debt_amount)}</span>
-                        </div>
-                        <div style={{ fontSize: '0.9em', color: '#92400e' }}>
-                          Thanh toán khi nhận hàng:
-                        </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: '16px', 
-                          marginTop: '4px',
-                          fontSize: '0.95em'
-                        }}>
-                          <span>☐ Tiền mặt</span>
-                          <span>☐ Chuyển khoản</span>
-                        </div>
-                        {order.due_date && (
-                          <div style={{ fontSize: '0.85em', color: '#92400e', marginTop: '4px' }}>
-                            Hạn TT: {new Date(order.due_date).toLocaleDateString('vi-VN')}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Nếu không có các trường chi tiết, hiển thị phương thức đơn giản */}
-                    {!order.balance_amount && !order.cash_amount && !order.transfer_amount && !order.debt_amount && order.payment_method && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Thanh toán:</span>
-                        <span style={{ fontWeight: 'bold' }}>
-                          {order.payment_method === 'cash' ? 'Tiền mặt' : 
-                           order.payment_method === 'transfer' ? 'Chuyển khoản' : 
-                           order.payment_method === 'balance' ? 'Trừ số dư' : 
-                           order.payment_method === 'debt' ? 'Ghi nợ' : order.payment_method}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Footer Messages */}
-              <div style={{ 
-                textAlign: 'center', 
-                marginTop: '10px', 
-                paddingTop: '10px', 
-                borderTop: '1px dashed #ccc',
-                fontSize: '0.85em'
-              }}>
-                {settings.invoice_thank_you && (
-                  <div style={{ fontWeight: 'bold', marginBottom: '3px', ...textWrapStyle }}>
-                    {settings.invoice_thank_you}
-                  </div>
-                )}
-
-                {settings.invoice_policy && (
-                  <div style={{ color: '#666', marginBottom: '3px', ...textWrapStyle }}>
-                    {settings.invoice_policy}
-                  </div>
-                )}
-
-                {settings.invoice_note && (
-                  <div style={{ fontSize: '0.9em', color: '#888', fontStyle: 'italic', ...textWrapStyle }}>
-                    {settings.invoice_note}
-                  </div>
-                )}
-
-                {isEnabled('invoice_show_vat') && settings.store_tax_id && (
-                  <div style={{ 
-                    fontSize: '0.85em', 
-                    color: '#666', 
-                    marginTop: '6px', 
-                    borderTop: '1px dashed #ddd', 
-                    paddingTop: '6px' 
-                  }}>
-                    MST: {settings.store_tax_id}
-                  </div>
-                )}
-              </div>
-            </div>
+          <div ref={printRef}>
+            <InvoicePreview
+              config={invoiceConfig}
+              size={paperSize}
+              logo={settings.store_logo || ''}
+              orderData={orderData}
+            />
           </div>
         </div>
 
