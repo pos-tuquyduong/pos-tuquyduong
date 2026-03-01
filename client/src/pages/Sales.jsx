@@ -402,9 +402,9 @@ export default function Sales() {
         balanceAfter: result.order.balance_after
       });
 
-      // Đóng popup thanh toán, mở popup thành công
+      // Đóng popup thanh toán, mở hóa đơn (bỏ qua popup thành công)
       setShowPaymentModal(false);
-      setShowSuccessModal(true);
+      setShowInvoice(true);
 
       // Reset
       setCart([]);
@@ -1710,7 +1710,18 @@ export default function Sales() {
         change_amount: completedOrder.change
       }}
       settings={invoiceSettings}
-      onClose={() => setShowInvoice(false)}
+      successInfo={{
+        cashReceived: completedOrder.cashReceived,
+        change: completedOrder.change,
+        balanceUsed: completedOrder.balanceUsed,
+        balanceAfter: completedOrder.balanceAfter,
+        debtAmount: completedOrder.debtAmount,
+        paymentMethod: completedOrder.paymentMethod
+      }}
+      onClose={() => {
+        setShowInvoice(false);
+        setCompletedOrder(null);
+      }}
       onPrintComplete={handlePrintComplete}
     />
       )}

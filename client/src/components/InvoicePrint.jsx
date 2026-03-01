@@ -84,6 +84,7 @@ export default function InvoicePrint({
   order, 
   settings = {}, 
   paperSize: initialPaperSize,
+  successInfo,
   onClose, 
   onPrintComplete 
 }) {
@@ -293,10 +294,10 @@ export default function InvoicePrint({
           alignItems: 'center',
           padding: '1rem 1.5rem',
           borderBottom: '1px solid #e2e8f0',
-          background: '#f8fafc'
+          background: successInfo ? '#22c55e' : '#f8fafc'
         }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            🧾 Xem trước hóa đơn
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: successInfo ? 'white' : 'inherit' }}>
+            {successInfo ? '✅ Thanh toán thành công!' : '🧾 Xem trước hóa đơn'}
           </h3>
           <button 
             onClick={onClose}
@@ -305,12 +306,39 @@ export default function InvoicePrint({
               border: 'none',
               cursor: 'pointer',
               padding: '0.25rem',
-              color: '#64748b'
+              color: successInfo ? 'white' : '#64748b'
             }}
           >
             <X size={24} />
           </button>
         </div>
+
+        {/* Success Info: Tiền thối, số dư */}
+        {successInfo && (
+          <div style={{
+            padding: '0.75rem 1.5rem',
+            background: '#f0fdf4',
+            borderBottom: '1px solid #bbf7d0',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '1.5rem',
+            flexWrap: 'wrap',
+            fontSize: '0.95rem'
+          }}>
+            <span><strong>Đơn:</strong> {order.code}</span>
+            {successInfo.paymentMethod === 'cash' && successInfo.change > 0 && (
+              <span style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '1.05rem' }}>
+                💰 Tiền thối: {formatPrice(successInfo.change)}
+              </span>
+            )}
+            {successInfo.balanceUsed > 0 && successInfo.balanceAfter !== undefined && (
+              <span>Dư còn: <strong>{formatPrice(successInfo.balanceAfter)}</strong></span>
+            )}
+            {successInfo.debtAmount > 0 && (
+              <span style={{ color: '#ea580c' }}>Ghi nợ: <strong>{formatPrice(successInfo.debtAmount)}</strong></span>
+            )}
+          </div>
+        )}
 
         {/* Paper Size Selector */}
         <div style={{
@@ -668,7 +696,8 @@ export default function InvoicePrint({
             style={{
               flex: 1,
               padding: '0.875rem',
-              background: '#f1f5f9',
+              background: successInfo ? '#3b82f6' : '#f1f5f9',
+              color: successInfo ? 'white' : '#333',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -676,7 +705,7 @@ export default function InvoicePrint({
               fontSize: '0.95rem'
             }}
           >
-            Đóng
+            {successInfo ? '➕ Đơn mới' : 'Đóng'}
           </button>
           <button
             onClick={handlePrint}
@@ -684,7 +713,7 @@ export default function InvoicePrint({
             style={{
               flex: 2,
               padding: '0.875rem',
-              background: '#3b82f6',
+              background: successInfo ? '#22c55e' : '#3b82f6',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -699,7 +728,7 @@ export default function InvoicePrint({
             }}
           >
             <Printer size={18} />
-            {printing ? 'Đang xử lý...' : 'In hóa đơn'}
+            {printing ? 'Đang xử lý...' : '🖨 In hóa đơn'}
           </button>
         </div>
       </div>
