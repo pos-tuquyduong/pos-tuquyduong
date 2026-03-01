@@ -199,7 +199,7 @@ export default function Orders() {
   const handleOpenDeleteModal = (order, e) => {
     e.stopPropagation();
     setDeleteOrder(order);
-    setDeleteType('cancel'); // Mặc định là hủy
+    setDeleteType(order.status === 'cancelled' ? 'delete' : 'cancel');
     setDeleteReason('');
     setShowDeleteModal(true);
   };
@@ -598,7 +598,7 @@ export default function Orders() {
                           >
                             <Eye size={16} />
                           </button>
-                          {user?.role === 'owner' && o.status !== 'cancelled' && (
+                          {user?.role === 'owner' && (
                             <button
                               onClick={(e) => handleOpenDeleteModal(o, e)}
                               style={{
@@ -1124,6 +1124,7 @@ export default function Orders() {
                   Chọn cách xử lý:
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {deleteOrder?.status !== 'cancelled' && (
                   <label style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -1145,6 +1146,7 @@ export default function Orders() {
                       <div style={{ fontSize: '0.8rem', color: '#666' }}>Đơn sẽ được đánh dấu đã hủy</div>
                     </div>
                   </label>
+                  )}
                   
                   <label style={{ 
                     display: 'flex', 
