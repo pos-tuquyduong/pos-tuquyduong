@@ -431,9 +431,10 @@ router.post("/", authenticate, async (req, res) => {
           subtotal, discount, discount_reason, total,
           discount_type, discount_value, discount_amount, discount_code, shipping_fee,
           payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
+          parent_phone, parent_balance_amount,
           payment_status, due_date,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, finalDiscountAmount, discount_reason || null, total,
@@ -441,7 +442,9 @@ router.post("/", authenticate, async (req, res) => {
           finalDiscountCode || null, finalShippingFee,
           payment_method === "debt" ? "debt" : payment_method,
           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
-          finalDebtAmount, finalPaymentStatus, due_date || null,
+          finalDebtAmount,
+          normalizedParentPhone || null, actualParentBalanceAmount,
+          finalPaymentStatus, due_date || null,
           notes || null, req.user.username, now,
         ],
       );
@@ -780,6 +783,36 @@ router.put(
           }
         }
 
+        // Hoàn lại số dư MẸ vào pos_wallets
+        if (order.parent_balance_amount > 0 && order.parent_phone) {
+          const parentPhone = order.parent_phone;
+          const parentWallet = await tx.queryOne(
+            "SELECT * FROM pos_wallets WHERE phone = ?", [parentPhone]
+          );
+
+          if (parentWallet) {
+            const pBalanceBefore = parentWallet.balance;
+            const pBalanceAfter = parentWallet.balance + order.parent_balance_amount;
+
+            await tx.run(
+              "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
+              [pBalanceAfter, order.parent_balance_amount, now, parentPhone],
+            );
+
+            await tx.run(
+              `INSERT INTO pos_balance_transactions (
+                customer_phone, customer_name, type, amount,
+                balance_before, balance_after, order_id,
+                notes, created_by, created_at
+              ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
+              [parentPhone, null, order.parent_balance_amount,
+               pBalanceBefore, pBalanceAfter, order.id,
+               `Hoàn tiền mẹ hủy đơn ${order.code} (KH: ${order.customer_name})`,
+               req.user.username, now],
+            );
+          }
+        }
+
         // Cập nhật trạng thái đơn hàng
         await tx.run(
           `UPDATE pos_orders 
@@ -895,6 +928,36 @@ router.delete("/:id", authenticate, async (req, res) => {
             [phone, order.customer_name, order.balance_amount,
              balanceBefore, balanceAfter, order.id,
              "Hoàn tiền xóa đơn " + order.code, req.user.username, now],
+          );
+        }
+      }
+
+      // Hoàn lại số dư MẸ nếu đã trừ (và đơn chưa bị hủy)
+      if (order.parent_balance_amount > 0 && order.parent_phone && order.status !== "cancelled") {
+        const parentPhone = order.parent_phone;
+        const parentWallet = await tx.queryOne(
+          "SELECT * FROM pos_wallets WHERE phone = ?", [parentPhone]
+        );
+
+        if (parentWallet) {
+          const pBalanceBefore = parentWallet.balance;
+          const pBalanceAfter = parentWallet.balance + order.parent_balance_amount;
+
+          await tx.run(
+            "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
+            [pBalanceAfter, order.parent_balance_amount, now, parentPhone],
+          );
+
+          await tx.run(
+            `INSERT INTO pos_balance_transactions (
+              customer_phone, customer_name, type, amount,
+              balance_before, balance_after, order_id,
+              notes, created_by, created_at
+            ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
+            [parentPhone, null, order.parent_balance_amount,
+             pBalanceBefore, pBalanceAfter, order.id,
+             `Hoàn tiền mẹ xóa đơn ${order.code} (KH: ${order.customer_name})`,
+             req.user.username, now],
           );
         }
       }

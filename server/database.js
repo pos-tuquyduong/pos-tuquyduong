@@ -545,6 +545,16 @@ async function createTables() {
     // Cột đã tồn tại
   }
 
+  // Migration: Thêm cột parent cho hoàn tiền mẹ khi hủy đơn
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN parent_phone TEXT`);
+    console.log('✅ Đã thêm cột parent_phone vào pos_orders');
+  } catch (e) {}
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN parent_balance_amount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột parent_balance_amount vào pos_orders');
+  } catch (e) {}
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 17: LOG SỰ CỐ HÀNG HỎNG (đơn giản - chỉ ghi log)
   // ═══════════════════════════════════════════════════════════════════════════

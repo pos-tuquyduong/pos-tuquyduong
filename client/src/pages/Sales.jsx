@@ -1062,16 +1062,24 @@ export default function Sales() {
             borderRadius: '8px',
             marginBottom: '1rem'
           }}>
-            {discount > 0 && (
+            {(discount > 0 || shippingFee > 0) && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Tạm tính</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+                {discount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                   <span>Giảm giá</span>
                   <span>-{formatPrice(discount)}</span>
                 </div>
+                )}
+                {shippingFee > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#f59e0b' }}>
+                  <span>Phí vận chuyển</span>
+                  <span>+{formatPrice(shippingFee)}</span>
+                </div>
+                )}
               </>
             )}
             <div style={{ 
@@ -1450,6 +1458,12 @@ export default function Sales() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
                 <span>Trừ số dư</span>
                 <span style={{ color: '#2563eb' }}>-{formatPrice(actualBalanceUsed)}</span>
+              </div>
+            )}
+            {actualParentBalanceUsed > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                <span style={{ color: '#7c3aed' }}>Trừ số dư mẹ</span>
+                <span style={{ color: '#7c3aed' }}>-{formatPrice(actualParentBalanceUsed)}</span>
               </div>
             )}
             {!isDebt && remainingAfterBalance > 0 && (
