@@ -93,8 +93,11 @@ export default function InvoicePrint({
   const [invoiceNumber, setInvoiceNumber] = useState(order.invoice_number || '');
   const printRef = useRef(null);
 
-  // Helper to check if a setting is enabled
-  const isEnabled = (key) => settings[key] === 'true' || settings[key] === true;
+  // Helper to check if a setting is enabled (default: true if not configured)
+  const isEnabled = (key) => {
+    if (settings[key] === undefined || settings[key] === null) return true;
+    return settings[key] === 'true' || settings[key] === true;
+  };
 
   // Get paper config
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
