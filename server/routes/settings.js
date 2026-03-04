@@ -146,12 +146,25 @@ router.post('/logo', authenticate, upload.single('logo'), async (req, res) => {
         updated_at = excluded.updated_at
     `, [base64, timestamp]);
 
+    // Verify: đọc lại từ DB để chắc chắn đã lưu thành công
+    const verify = await queryOne("SELECT value FROM pos_settings WHERE key = 'store_logo'");
+    const savedOk = verify && verify.value && verify.value.length > 100;
+
+    if (!savedOk) {
+      console.error('Logo save verification FAILED - value not in DB after write');
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Logo upload thất bại - không lưu được vào database. Vui lòng thử lại.' 
+      });
+    }
+
     res.json({
       success: true,
       message: 'Đã upload logo thành công',
       data: {
         size: req.file.size,
-        mimetype: req.file.mimetype
+        mimetype: req.file.mimetype,
+        logo: verify.value  // Trả base64 về để client verify + cache
       }
     });
   } catch (err) {

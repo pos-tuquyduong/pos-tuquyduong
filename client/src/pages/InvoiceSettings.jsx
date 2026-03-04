@@ -380,10 +380,30 @@ export default function InvoiceSettings() {
     }
     setSaving(true);
     try {
-      await api.uploadLogo(file);
-      const reader = new FileReader();
-      reader.onload = () => setLogo(reader.result);
-      reader.readAsDataURL(file);
+      const result = await api.uploadLogo(file);
+      // Dùng base64 từ server (đã verify lưu DB thành công) thay vì FileReader
+      const verifiedLogo = result.data?.logo;
+      if (verifiedLogo) {
+        setLogo(verifiedLogo);
+        // Cập nhật cache NGAY để Orders/Sales dùng được
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            config, logo: verifiedLogo, timestamp: Date.now()
+          }));
+        } catch (ce) {}
+      } else {
+        // Fallback: dùng FileReader nếu server không trả base64
+        const reader = new FileReader();
+        reader.onload = () => {
+          setLogo(reader.result);
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({
+              config, logo: reader.result, timestamp: Date.now()
+            }));
+          } catch (ce) {}
+        };
+        reader.readAsDataURL(file);
+      }
       showMessage('success', '✓ Đã upload logo!');
     } catch (err) {
       showMessage('error', 'Lỗi: ' + err.message);

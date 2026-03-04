@@ -110,7 +110,18 @@ export default function Orders() {
       });
       const data = await res.json();
       if (data.success) {
-        setInvoiceSettings(data.data);
+        const settings = data.data;
+        // Fallback: nếu API không có logo, lấy từ cache InvoiceSettings
+        if (!settings.store_logo) {
+          try {
+            const cached = localStorage.getItem('pos_invoice_settings_cache');
+            if (cached) {
+              const { logo } = JSON.parse(cached);
+              if (logo) settings.store_logo = logo;
+            }
+          } catch (e) {}
+        }
+        setInvoiceSettings(settings);
       }
     } catch (err) {
       console.error('Load settings error:', err);

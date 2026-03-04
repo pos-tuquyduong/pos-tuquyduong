@@ -76,8 +76,18 @@ export default function Sales() {
       });
       const result = await res.json();
       if (result.success && result.data) {
-    // DEBUG - xóa sau khi fix xong
-    setInvoiceSettings(result.data);
+    const settings = result.data;
+    // Fallback: nếu API không có logo, lấy từ cache InvoiceSettings
+    if (!settings.store_logo) {
+      try {
+        const cached = localStorage.getItem('pos_invoice_settings_cache');
+        if (cached) {
+          const { logo } = JSON.parse(cached);
+          if (logo) settings.store_logo = logo;
+        }
+      } catch (e) {}
+    }
+    setInvoiceSettings(settings);
       }
     } catch (err) {
       console.error('Load invoice settings error:', err);
