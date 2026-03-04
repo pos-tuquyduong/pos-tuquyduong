@@ -348,7 +348,28 @@ export default function Orders() {
     }
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = async () => {
+    // Fetch địa chỉ & số dư khách hàng (nếu có) để hiển thị trên hóa đơn
+    if (selectedOrder?.customer_phone) {
+      try {
+        const token = localStorage.getItem('pos_token');
+        const res = await fetch(`/api/pos/v2/customers/${selectedOrder.customer_phone}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const custData = await res.json();
+          setSelectedOrder(prev => ({
+            ...prev,
+            customer_address: custData.address || '',
+            customer_balance: custData.balance || 0,
+            customer_type: custData.customer_type || '',
+            customer_note: custData.discount_note || '',
+          }));
+        }
+      } catch (err) {
+        console.warn('Fetch customer address error:', err);
+      }
+    }
     setShowDetailModal(false);
     setShowInvoiceModal(true);
   };

@@ -97,27 +97,16 @@ export default function InvoicePrint({
   // Get paper config (for print sizing)
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
 
-  // DEBUG - xóa sau khi fix xong
-  console.log('🔍 InvoicePrint settings:', {
-    hasInvoiceConfig: !!settings.invoice_config,
-    hasStoreLogo: !!settings.store_logo,
-    logoLength: settings.store_logo?.length,
-    allKeys: Object.keys(settings)
-  });
-
   // Parse invoice_config từ settings (cùng format với InvoiceSettings/InvoicePreview)
   const invoiceConfig = useMemo(() => {
-    try {
-      if (settings.invoice_config) return JSON.parse(settings.invoice_config);
-    } catch (e) {}
     // Default config nếu chưa cài đặt
-    return {
+    const defaults = {
       show: {
         logo: true, store_name: true, slogan: true, address: true, phone: true, email: false,
-        invoice_number: true, order_code: true, datetime: true, staff: true, qr_code: false,
-        customer_name: true, customer_phone: true, customer_address: false, customer_balance: false,
+        invoice_number: true, order_code: true, datetime: true, staff: true, qr_code: true,
+        customer_name: true, customer_phone: true, customer_address: true, customer_balance: true,
         customer_type: false, customer_note: false,
-        col_stt: false, col_product_code: false, col_unit: false, col_price: true,
+        col_stt: true, col_product_code: false, col_unit: false, col_price: true,
         discount_detail: true, shipping_fee: true, amount_words: false, payment_checkbox: true,
         sig_seller: true, sig_shipper: true, sig_customer: true,
         thank_you: true, policy: true
@@ -133,6 +122,21 @@ export default function InvoicePrint({
       },
       align: { header: 'center', order_info: 'justify', customer: 'left', totals: 'right', signatures: 'justify', footer: 'center' }
     };
+
+    try {
+      if (settings.invoice_config) {
+        const saved = JSON.parse(settings.invoice_config);
+        // Merge: defaults ← saved (đảm bảo field mới không bị undefined)
+        return {
+          ...defaults,
+          ...saved,
+          show: { ...defaults.show, ...(saved.show || {}) },
+          text: { ...defaults.text, ...(saved.text || {}) },
+          align: { ...defaults.align, ...(saved.align || {}) }
+        };
+      }
+    } catch (e) {}
+    return defaults;
   }, [settings]);
 
   // Map order data sang format InvoicePreview
@@ -144,13 +148,15 @@ export default function InvoicePrint({
     customer: {
       name: order.customer_name || 'Khách lẻ',
       phone: order.customer_phone || '',
-      address: '',
-      balance: 0,
+      address: order.customer_address || '',
+      balance: order.customer_balance || 0,
+      type: order.customer_type || '',
+      note: order.customer_note || '',
     },
     items: (order.items || []).map(item => ({
       code: item.product_code,
       name: item.product_name,
-      unit: '',
+      unit: item.unit || '',
       qty: item.quantity,
       price: item.unit_price,
       total: (item.unit_price || 0) * (item.quantity || 0)
@@ -222,6 +228,11 @@ export default function InvoicePrint({
       const printContent = printRef.current;
       const printWindow = window.open('', '_blank', 'width=800,height=600');
 
+      if (!printWindow) {
+        alert('Trình duyệt chặn popup. Vui lòng cho phép popup rồi thử lại.');
+        return;
+      }
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -243,6 +254,7 @@ export default function InvoicePrint({
               word-wrap: break-word;
               word-break: break-word;
             }
+            img { max-width: 100%; height: auto; }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
             .bold { font-weight: bold; }
@@ -295,16 +307,28 @@ export default function InvoicePrint({
       `);
 
       printWindow.document.close();
+
+      // Chờ tất cả ảnh (logo, QR) load xong trước khi in
+      const images = printWindow.document.querySelectorAll('img');
+      const imagePromises = Array.from(images).map(img => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      });
+
+      await Promise.all(imagePromises);
+      // Thêm delay nhỏ để browser render hoàn tất
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       printWindow.focus();
+      printWindow.print();
+      printWindow.close();
 
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-
-        if (onPrintComplete) {
-          onPrintComplete(order.code, paperSize);
-        }
-      }, 250);
+      if (onPrintComplete) {
+        onPrintComplete(order.code, paperSize);
+      }
 
     } catch (err) {
       console.error('Print error:', err);

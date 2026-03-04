@@ -507,6 +507,14 @@ async function createTables() {
     // Cột đã tồn tại
   }
 
+  // MIGRATION: Thêm cột address vào pos_customers (cho hóa đơn)
+  try {
+    await db.execute(`ALTER TABLE pos_customers ADD COLUMN address TEXT`);
+    console.log('✅ Đã thêm cột address vào pos_customers');
+  } catch (e) {
+    // Cột đã tồn tại
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // MIGRATION: Thêm trường chiết khấu + shipping vào pos_orders
   // ═══════════════════════════════════════════════════════════════════════════
@@ -553,6 +561,22 @@ async function createTables() {
   try {
     await db.execute(`ALTER TABLE pos_orders ADD COLUMN parent_balance_amount REAL DEFAULT 0`);
     console.log('✅ Đã thêm cột parent_balance_amount vào pos_orders');
+  } catch (e) {}
+
+  // MIGRATION: Tiền khách đưa + tiền thối (để in lại hóa đơn)
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN cash_received REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột cash_received vào pos_orders');
+  } catch (e) {}
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN change_amount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột change_amount vào pos_orders');
+  } catch (e) {}
+
+  // MIGRATION: Đơn vị tính cho order items (để in hóa đơn)
+  try {
+    await db.execute(`ALTER TABLE pos_order_items ADD COLUMN unit TEXT DEFAULT 'túi'`);
+    console.log('✅ Đã thêm cột unit vào pos_order_items');
   } catch (e) {}
 
   // ═══════════════════════════════════════════════════════════════════════════

@@ -29,7 +29,13 @@ const SAMPLE_DATA = {
   discount_value: 10,        // Giá trị: 10 (%) hoặc 50000 (đ)
   discount_code: null,       // Mã code nếu có
   shipping: 15000,
-  total: 127500
+  total: 127500,
+  // Payment info (hiển thị section thanh toán trên hóa đơn)
+  payment_method: 'cash',
+  cash_received: 200000,
+  change_amount: 72500,
+  balance_amount: 0,
+  debt_amount: 0
 };
 
 // Number to Vietnamese words
@@ -203,6 +209,9 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
                 <div style={{ fontSize: '7px', fontStyle: 'italic', color: '#666' }}>
                   "{config.text.slogan}"
                 </div>
+              )}
+              {config.show?.address && config.text?.address && (
+                <div style={{ fontSize: '7px', color: '#444' }}>{config.text.address}</div>
               )}
               {config.show?.phone && (
                 <div style={{ fontSize: '8px' }}>{config.text?.phone || '024 2245 5565'}</div>
@@ -463,6 +472,63 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           </div>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          PAYMENT DETAILS - Chi tiết thanh toán thực tế
+      ═══════════════════════════════════════════════════════════════════════════ */}
+      {data.payment_method && (
+        <div style={{ 
+          marginBottom: isThermal ? '2mm' : '4mm',
+          fontSize: '0.9em'
+        }}>
+          {/* Phương thức thanh toán */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
+            <span>Thanh toán:</span>
+            <span style={{ fontWeight: '500' }}>
+              {data.payment_method === 'cash' ? '💵 Tiền mặt' :
+               data.payment_method === 'transfer' ? '🏦 Chuyển khoản' :
+               data.payment_method === 'balance' ? '💰 Số dư' :
+               data.payment_method === 'debt' ? '📝 Ghi nợ' :
+               data.payment_method === 'combined' ? '🔀 Kết hợp' : data.payment_method}
+            </span>
+          </div>
+
+          {/* Trừ số dư */}
+          {data.balance_amount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#2563eb' }}>
+              <span>  Trừ số dư:</span>
+              <span>{formatCurrency(data.balance_amount)}</span>
+            </div>
+          )}
+
+          {/* Tiền mặt khách đưa + tiền thối */}
+          {data.payment_method === 'cash' && data.cash_received > 0 && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
+                <span>  Tiền khách đưa:</span>
+                <span>{formatCurrency(data.cash_received)}</span>
+              </div>
+              {data.change_amount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', fontWeight: '600' }}>
+                  <span>  Tiền thối:</span>
+                  <span>{formatCurrency(data.change_amount)}</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Ghi nợ */}
+          {data.debt_amount > 0 && (
+            <div style={{ 
+              display: 'flex', justifyContent: 'space-between', marginBottom: '1mm',
+              color: '#ea580c', fontWeight: '600'
+            }}>
+              <span>  Ghi nợ:</span>
+              <span>{formatCurrency(data.debt_amount)}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════════
           PAYMENT CHECKBOX

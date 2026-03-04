@@ -32,7 +32,8 @@ export default function Customers() {
   const [detailForm, setDetailForm] = useState({
     discount_type: 'percent',
     discount_value: 0,
-    discount_note: ''
+    discount_note: '',
+    address: ''
   });
 
   useEffect(() => {
@@ -119,7 +120,8 @@ export default function Customers() {
     setDetailForm({
       discount_type: customer.discount_type || 'percent',
       discount_value: customer.discount_value || 0,
-      discount_note: customer.discount_note || ''
+      discount_note: customer.discount_note || '',
+      address: customer.address || ''
     });
     setShowDetailModal(true);
     setError('');
@@ -128,7 +130,7 @@ export default function Customers() {
   // Kiểm tra khách có SĐT không (để cho phép set CK)
   const canSetDiscount = (customer) => !!customer?.phone;
 
-  // Lưu thông tin (CK + ghi chú POS)
+  // Lưu thông tin (CK + ghi chú + địa chỉ)
   const handleSaveDetail = async () => {
     if (!selectedCustomer) return;
     
@@ -136,11 +138,24 @@ export default function Customers() {
     setError('');
     
     try {
+      // Cập nhật chiết khấu
       await customersV2Api.updateDiscount(selectedCustomer.phone, {
         discount_type: detailForm.discount_value > 0 ? detailForm.discount_type : null,
         discount_value: detailForm.discount_value,
         discount_note: detailForm.discount_note
       });
+
+      // Cập nhật địa chỉ
+      const token = localStorage.getItem('pos_token');
+      const addrRes = await fetch(`/api/pos/v2/customers/${selectedCustomer.phone}/address`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: detailForm.address })
+      });
+      if (!addrRes.ok) {
+        const err = await addrRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Không thể cập nhật địa chỉ');
+      }
       
       setSuccess(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
       setShowDetailModal(false);
@@ -647,6 +662,20 @@ export default function Customers() {
                       value={detailForm.discount_note}
                       onChange={(e) => setDetailForm({...detailForm, discount_note: e.target.value})}
                       placeholder="VD: Khách VIP, mua số lượng lớn..."
+                    />
+                  </div>
+
+                  {/* Địa chỉ giao hàng */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      📍 Địa chỉ (hiển thị trên hóa đơn)
+                    </label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={detailForm.address}
+                      onChange={(e) => setDetailForm({...detailForm, address: e.target.value})}
+                      placeholder="VD: 123 Nguyễn Trãi, Thanh Xuân, Hà Nội"
                     />
                   </div>
                 </>

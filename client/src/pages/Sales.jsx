@@ -77,11 +77,6 @@ export default function Sales() {
       const result = await res.json();
       if (result.success && result.data) {
     // DEBUG - xóa sau khi fix xong
-    console.log('🔍 invoiceSettings loaded:', {
-      keys: Object.keys(result.data),
-      hasInvoiceConfig: !!result.data.invoice_config,
-      hasStoreLogo: !!result.data.store_logo
-    });
     setInvoiceSettings(result.data);
       }
     } catch (err) {
@@ -219,6 +214,7 @@ export default function Sales() {
     product_code: product.code,
     product_name: product.name,
     unit_price: product.price,
+    unit: product.unit || 'túi',
     quantity: 1,
     stock: product.stock_quantity,
     icon: product.icon,
@@ -377,7 +373,10 @@ export default function Sales() {
         payment_status: debtAmountFinal > 0 ? (balanceUsed > 0 || parentBalanceUsed > 0 ? 'partial' : 'pending') : 'paid',
         // === Số dư mẹ (nếu có) ===
         parent_phone: parentBalanceUsed > 0 ? parentPhone : null,
-        parent_balance_amount: parentBalanceUsed
+        parent_balance_amount: parentBalanceUsed,
+        // === Tiền khách đưa / tiền thối (để in lại hóa đơn) ===
+        cash_received: paymentMethod === 'cash' ? cashReceivedNum : 0,
+        change_amount: paymentMethod === 'cash' ? Math.max(0, cashReceivedNum - remainingAfterBalance) : 0
       };
 
       const result = await ordersApi.create(orderData);
@@ -402,6 +401,10 @@ export default function Sales() {
         dueDate: dueDate,
         customerName: customer?.name || 'Khách lẻ',
         customerPhone: customer?.phone || null,
+        customerAddress: customer?.address || '',
+        customerBalance: customer?.balance || 0,
+        customerType: customer?.customer_type || '',
+        customerNote: customer?.discount_note || '',
         createdBy: result.order.created_by,
         createdAt: result.order.created_at,
         items: cart,
@@ -1698,22 +1701,31 @@ export default function Sales() {
         invoice_number: completedOrder.invoice_number,
         customer_name: completedOrder.customerName,
         customer_phone: completedOrder.customerPhone,
+        customer_address: completedOrder.customerAddress,
+        customer_balance: completedOrder.customerBalance,
+        customer_type: completedOrder.customerType,
+        customer_note: completedOrder.customerNote,
         created_by: completedOrder.createdBy,
         created_at: completedOrder.createdAt,
         items: completedOrder.items.map(item => ({
           product_code: item.product_code,
           product_name: item.product_name,
           quantity: item.quantity,
-          unit_price: item.unit_price
+          unit_price: item.unit_price,
+          unit: item.unit || ''
         })),
         subtotal: completedOrder.subtotal || completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
         discount: completedOrder.discount || 0,
+        discount_type: completedOrder.discount_type,
+        discount_value: completedOrder.discount_value,
         discount_code: completedOrder.discount_code,
         shipping_fee: completedOrder.shipping_fee || 0,
         total: completedOrder.total,
         payment_method: completedOrder.paymentMethod,
         cash_received: completedOrder.cashReceived,
-        change_amount: completedOrder.change
+        change_amount: completedOrder.change,
+        balance_amount: completedOrder.balanceUsed || 0,
+        debt_amount: completedOrder.debtAmount || 0
       }}
       settings={invoiceSettings}
       successInfo={{

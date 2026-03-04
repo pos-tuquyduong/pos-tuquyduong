@@ -145,6 +145,9 @@ router.post("/", authenticate, async (req, res) => {
       // === Số dư mẹ (khách con) ===
       parent_phone = null, // SĐT mẹ (nếu dùng số dư mẹ)
       parent_balance_amount = 0, // Số tiền trừ từ số dư mẹ
+      // === Tiền khách đưa / tiền thối ===
+      cash_received = 0, // Tiền khách đưa (TM)
+      change_amount = 0, // Tiền thối
     } = req.body;
 
     // Validate
@@ -206,6 +209,7 @@ router.post("/", authenticate, async (req, res) => {
         product_id: product.id,
         product_code: product.code,
         product_name: product.name,
+        unit: product.unit || 'túi',
         quantity: item.quantity,
         unit_price: product.price,
         total_price: itemTotal,
@@ -432,9 +436,10 @@ router.post("/", authenticate, async (req, res) => {
           discount_type, discount_value, discount_amount, discount_code, shipping_fee,
           payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
           parent_phone, parent_balance_amount,
+          cash_received, change_amount,
           payment_status, due_date,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, finalDiscountAmount, discount_reason || null, total,
@@ -444,6 +449,7 @@ router.post("/", authenticate, async (req, res) => {
           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
           finalDebtAmount,
           normalizedParentPhone || null, actualParentBalanceAmount,
+          cash_received || 0, change_amount || 0,
           finalPaymentStatus, due_date || null,
           notes || null, req.user.username, now,
         ],
@@ -455,10 +461,10 @@ router.post("/", authenticate, async (req, res) => {
         await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
-           item.quantity, item.unit_price, item.total_price],
+           item.quantity, item.unit_price, item.total_price, item.unit || 'túi'],
         );
       }
 

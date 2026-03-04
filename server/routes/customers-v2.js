@@ -124,7 +124,7 @@ async function getLocalCachedCustomers() {
 
 // Helper: Lấy map thông tin bổ sung từ pos_customers (CK + lý do) - ASYNC
 async function getCustomerExtrasMap() {
-  const extras = await query("SELECT phone, discount_type, discount_value, discount_note FROM pos_customers");
+  const extras = await query("SELECT phone, discount_type, discount_value, discount_note, address, customer_type FROM pos_customers");
   const map = {};
   extras.forEach((d) => (map[d.phone] = d));
   return map;
@@ -180,6 +180,8 @@ router.get("/search/:query", authenticate, async (req, res) => {
           discount_type: extras?.discount_type || null,
           discount_value: extras?.discount_value || 0,
           discount_note: extras?.discount_note || null,
+          address: extras?.address || null,
+          customer_type: extras?.customer_type || null,
         };
       });
 
@@ -209,6 +211,8 @@ router.get("/search/:query", authenticate, async (req, res) => {
           discount_value: extras?.discount_value || 0,
           notes: r.notes,
           discount_note: extras?.discount_note || null,
+          address: extras?.address || null,
+          customer_type: extras?.customer_type || null,
         };
       });
 
@@ -255,6 +259,8 @@ router.get("/", authenticate, async (req, res) => {
         discount_type: extras?.discount_type || null,
         discount_value: extras?.discount_value || 0,
         discount_note: extras?.discount_note || null,
+        address: extras?.address || null,
+          customer_type: extras?.customer_type || null,
       };
     });
 
@@ -274,6 +280,8 @@ router.get("/", authenticate, async (req, res) => {
         discount_value: extras?.discount_value || 0,
         notes: r.notes,
         discount_note: extras?.discount_note || null,
+        address: extras?.address || null,
+          customer_type: extras?.customer_type || null,
       });
     });
 
@@ -286,6 +294,42 @@ router.get("/", authenticate, async (req, res) => {
 // ══════════════════════════════════════════════════════
 // ROUTES CÓ PARAMETER - ĐẶT SAU CÙNG
 // ══════════════════════════════════════════════════════
+
+/**
+ * PUT /api/pos/v2/customers/:phone/address
+ * Cập nhật địa chỉ khách hàng
+ */
+router.put("/:phone/address", authenticate, checkPermission('manage_users'), async (req, res) => {
+  try {
+    const phone = normalizePhone(req.params.phone);
+    if (!phone) {
+      return res.status(400).json({ error: "SĐT không hợp lệ" });
+    }
+
+    const { address } = req.body;
+
+    // Kiểm tra khách có tồn tại trong pos_customers không
+    const existing = await queryOne("SELECT id FROM pos_customers WHERE phone = ?", [phone]);
+    
+    if (existing) {
+      await run(`
+        UPDATE pos_customers 
+        SET address = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE phone = ?
+      `, [address || null, phone]);
+    } else {
+      // Insert mới (khách từ SX chưa có record trong pos_customers)
+      await run(`
+        INSERT INTO pos_customers (phone, name, address, created_at) 
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      `, [phone, 'Khách hàng', address || null]);
+    }
+
+    res.json({ success: true, phone, address: address || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /**
  * PUT /api/pos/v2/customers/:phone/discount
@@ -365,7 +409,7 @@ router.get("/:phone", authenticate, async (req, res) => {
       [phone],
     );
     const posCustomer = await queryOne(
-      "SELECT discount_type, discount_value, discount_note FROM pos_customers WHERE phone = ?",
+      "SELECT discount_type, discount_value, discount_note, address, customer_type FROM pos_customers WHERE phone = ?",
       [phone]
     );
 
@@ -396,6 +440,8 @@ router.get("/:phone", authenticate, async (req, res) => {
     customer.discount_type = posCustomer?.discount_type || null;
     customer.discount_value = posCustomer?.discount_value || 0;
     customer.discount_note = posCustomer?.discount_note || null;
+    customer.address = posCustomer?.address || null;
+    customer.customer_type = posCustomer?.customer_type || null;
 
     res.json(customer);
   } catch (err) {
@@ -425,7 +471,7 @@ router.get("/:phone/full", authenticate, async (req, res) => {
       [phone],
     );
     const posCustomer = await queryOne(
-      "SELECT discount_type, discount_value, discount_note FROM pos_customers WHERE phone = ?",
+      "SELECT discount_type, discount_value, discount_note, address, customer_type FROM pos_customers WHERE phone = ?",
       [phone]
     );
 
@@ -449,6 +495,8 @@ router.get("/:phone/full", authenticate, async (req, res) => {
     customer.discount_type = posCustomer?.discount_type || null;
     customer.discount_value = posCustomer?.discount_value || 0;
     customer.discount_note = posCustomer?.discount_note || null;
+    customer.address = posCustomer?.address || null;
+    customer.customer_type = posCustomer?.customer_type || null;
 
     const transactions = await query(
       "SELECT * FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 20",
