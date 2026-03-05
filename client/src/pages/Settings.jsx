@@ -65,6 +65,12 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Packages state
+  const [packages, setPackages] = useState([]);
+  const [showPkgModal, setShowPkgModal] = useState(false);
+  const [editingPkg, setEditingPkg] = useState(null);
+  const [pkgForm, setPkgForm] = useState({ code: '', name: '', description: '', price: '', unit: 'túi', is_active: true });
+
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
   const [restoring, setRestoring] = useState(false);
@@ -133,6 +139,8 @@ export default function Settings() {
       if (tab === 'products') {
         const data = await productsApi.list({ active: '' });
         setProducts(data);
+      } else if (tab === 'packages') {
+        await loadPackages();
       } else if (tab === 'users') {
         const data = await usersApi.list();
         setUsers(data);
@@ -158,6 +166,45 @@ export default function Settings() {
       const data = await res.json();
       setBackupInfo(data);
     } catch (err) { console.error(err); }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PACKAGES FUNCTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  const pkgApi = (method, url, body) => {
+    const token = localStorage.getItem('pos_token');
+    const opts = { method, headers: { 'Authorization': 'Bearer ' + token } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(url, opts).then(r => r.json());
+  };
+  const loadPackages = async () => {
+    const data = await pkgApi('GET', '/api/pos/packages?active=');
+    if (data.success) setPackages(data.data);
+  };
+  const openPkgModal = (pkg = null) => {
+    setEditingPkg(pkg);
+    setPkgForm(pkg ? { code: pkg.code, name: pkg.name, description: pkg.description || '', price: pkg.price || '', unit: pkg.unit || 'túi', is_active: !!pkg.is_active }
+      : { code: '', name: '', description: '', price: '', unit: 'túi', is_active: true });
+    setShowPkgModal(true);
+  };
+  const savePkg = async () => {
+    if (!pkgForm.code || !pkgForm.name) { setMessage('Lỗi: Mã và tên bắt buộc'); return; }
+    setSaving(true);
+    try {
+      const url = editingPkg ? `/api/pos/packages/${editingPkg.id}` : '/api/pos/packages';
+      const data = await pkgApi(editingPkg ? 'PUT' : 'POST', url, { ...pkgForm, price: parseFloat(pkgForm.price) || 0 });
+      if (!data.success) throw new Error(data.error);
+      setMessage(data.message); setShowPkgModal(false); await loadPackages();
+    } catch (err) { setMessage('Lỗi: ' + err.message); } finally { setSaving(false); }
+  };
+  const deletePkg = async (pkg) => {
+    if (!confirm(`Xóa gói "${pkg.name}"?`)) return;
+    const data = await pkgApi('DELETE', `/api/pos/packages/${pkg.id}`);
+    setMessage(data.success ? data.message : 'Lỗi: ' + data.error); if (data.success) await loadPackages();
+  };
+  const togglePkg = async (pkg) => {
+    await pkgApi('PUT', `/api/pos/packages/${pkg.id}`, { is_active: !pkg.is_active });
+    await loadPackages();
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -523,6 +570,10 @@ export default function Settings() {
           <button className={`btn ${tab === 'products' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('products')}>
             <Package size={16} /> Giá bán
           </button>
+          <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('packages')}
+            style={{ background: tab === 'packages' ? '#7c3aed' : undefined, borderColor: tab === 'packages' ? '#7c3aed' : undefined }}>
+            📦 Gói SP
+          </button>
           <button className={`btn ${tab === 'users' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('users')}>
             <Users size={16} /> Nhân viên
           </button>
@@ -596,6 +647,79 @@ export default function Settings() {
                   ))}
                 </tbody>
               </table>
+            </>
+          ) : tab === 'packages' ? (
+            /* TAB GÓI SẢN PHẨM */
+            <>
+              <div className="flex flex-between mb-2">
+                <div>
+                  <div className="card-title" style={{ margin: 0, color: '#7c3aed' }}>📦 Template gói sản phẩm</div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: 2 }}>Chỉ cần tên + giá. Số lượng SP đặt linh hoạt khi bán.</div>
+                </div>
+                <button className="btn btn-primary" onClick={() => openPkgModal()} style={{ background: '#7c3aed' }}>
+                  <Plus size={16} /> Thêm gói
+                </button>
+              </div>
+              {packages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>Chưa có gói nào.</div>
+              ) : (
+                <table className="table">
+                  <thead><tr><th>Mã</th><th>Tên gói</th><th>Mô tả</th><th>Giá bán</th><th>ĐVT</th><th>Trạng thái</th><th></th></tr></thead>
+                  <tbody>
+                    {packages.map(pkg => (
+                      <tr key={pkg.id} style={{ opacity: pkg.is_active ? 1 : 0.5 }}>
+                        <td><strong style={{ color: '#7c3aed' }}>📦 {pkg.code}</strong></td>
+                        <td>{pkg.name}</td>
+                        <td style={{ fontSize: '0.85rem', color: '#666' }}>{pkg.description || '-'}</td>
+                        <td><strong style={{ color: '#2563eb' }}>{(pkg.price || 0).toLocaleString()}đ</strong></td>
+                        <td>{pkg.unit || 'túi'}</td>
+                        <td>
+                          <span onClick={() => togglePkg(pkg)} style={{ cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', background: pkg.is_active ? '#dcfce7' : '#f3f4f6', color: pkg.is_active ? '#166534' : '#9ca3af', fontSize: '0.85rem' }}>
+                            {pkg.is_active ? 'Đang bán' : 'Ngừng bán'}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', marginRight: '0.25rem' }} onClick={() => openPkgModal(pkg)}><Edit2 size={14} /></button>
+                          <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', color: '#ef4444' }} onClick={() => deletePkg(pkg)}><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {showPkgModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '420px', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.5rem', background: '#7c3aed', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ margin: 0 }}>📦 {editingPkg ? 'Sửa gói' : 'Thêm gói mới'}</h3>
+                      <button onClick={() => setShowPkgModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
+                    </div>
+                    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Mã gói *</label>
+                        <input className="input" placeholder="VD: PKG-DETOX30" value={pkgForm.code} onChange={e => setPkgForm({ ...pkgForm, code: e.target.value.toUpperCase() })} disabled={!!editingPkg} /></div>
+                      <div><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Tên gói *</label>
+                        <input className="input" placeholder="VD: Gói Detox 30 ngày" value={pkgForm.name} onChange={e => setPkgForm({ ...pkgForm, name: e.target.value })} /></div>
+                      <div><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Mô tả</label>
+                        <input className="input" placeholder="Mô tả ngắn" value={pkgForm.description} onChange={e => setPkgForm({ ...pkgForm, description: e.target.value })} /></div>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ flex: 2 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Giá bán (VND)</label>
+                          <input className="input" type="number" min="0" value={pkgForm.price} onChange={e => setPkgForm({ ...pkgForm, price: e.target.value })} /></div>
+                        <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>ĐVT</label>
+                          <input className="input" value={pkgForm.unit} onChange={e => setPkgForm({ ...pkgForm, unit: e.target.value })} /></div>
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={pkgForm.is_active} onChange={e => setPkgForm({ ...pkgForm, is_active: e.target.checked })} /> Đang bán
+                      </label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowPkgModal(false)}>Hủy</button>
+                      <button className="btn btn-primary" style={{ flex: 2, background: '#7c3aed' }} onClick={savePkg} disabled={saving}>
+                        <Save size={16} /> {saving ? 'Đang lưu...' : (editingPkg ? 'Cập nhật' : 'Thêm gói')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : tab === 'users' ? (
             /* TAB NHÂN VIÊN */

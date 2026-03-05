@@ -36,6 +36,7 @@ const settingsRoutes = require('./routes/settings');
 const discountCodesRoutes = require('./routes/discount-codes');
 // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
 const damagesRoutes = require('./routes/damages');
+const packagesRoutes = require('./routes/packages');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -77,6 +78,7 @@ app.use('/api/pos/settings', settingsRoutes);
 app.use('/api/pos/discount-codes', discountCodesRoutes);
 // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
 app.use('/api/pos/damages', damagesRoutes);
+app.use('/api/pos/packages', packagesRoutes);
 
 // Health check
 app.get('/api/pos/health', (req, res) => {

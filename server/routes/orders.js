@@ -124,7 +124,7 @@ router.post("/", authenticate, async (req, res) => {
     const {
       customer_phone,
       customer_name,
-      items,
+      items = [],
       payment_method,
       discount = 0,
       discount_reason,
@@ -148,10 +148,13 @@ router.post("/", authenticate, async (req, res) => {
       // === Tiền khách đưa / tiền thối ===
       cash_received = 0, // Tiền khách đưa (TM)
       change_amount = 0, // Tiền thối
+      // === Gói sản phẩm ===
+      customer_package_id = null, // Giao từ gói → ID của customer_package
+      package_buy = null, // Mua gói → { package_id, total_qty }
     } = req.body;
 
-    // Validate
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    // Validate — cho phép items rỗng nếu đang mua gói
+    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy) {
       return res
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
@@ -160,6 +163,7 @@ router.post("/", authenticate, async (req, res) => {
     // Lấy thông tin sản phẩm và tính tổng
     const orderItems = [];
     let subtotal = 0;
+    const isPackageDelivery = !!customer_package_id;
 
     for (const item of items) {
       let product;
@@ -180,13 +184,13 @@ router.post("/", authenticate, async (req, res) => {
           .status(400)
           .json({ error: "Sản phẩm không tồn tại hoặc đã ngừng bán" });
       }
-      if (product.price <= 0) {
+      if (!isPackageDelivery && product.price <= 0) {
         return res
           .status(400)
           .json({ error: `Sản phẩm ${product.name} chưa có giá bán` });
       }
 
-      // Kiểm tra tồn kho từ SX
+      // Kiểm tra tồn kho từ SX (cả đơn thường và giao gói đều cần)
       try {
         const stockCheck = await checkStock(
           product.sx_product_type,
@@ -202,7 +206,9 @@ router.post("/", authenticate, async (req, res) => {
         console.error("Stock check error:", err.message);
       }
 
-      const itemTotal = product.price * item.quantity;
+      // Giao từ gói → giá = 0đ
+      const unitPrice = isPackageDelivery ? 0 : product.price;
+      const itemTotal = unitPrice * item.quantity;
       subtotal += itemTotal;
 
       orderItems.push({
@@ -211,10 +217,29 @@ router.post("/", authenticate, async (req, res) => {
         product_name: product.name,
         unit: product.unit || 'túi',
         quantity: item.quantity,
-        unit_price: product.price,
+        unit_price: unitPrice,
         total_price: itemTotal,
         sx_product_type: product.sx_product_type,
         sx_product_id: product.sx_product_id,
+      });
+    }
+
+    // Mua gói → thêm line item cho gói
+    if (package_buy && package_buy.package_id) {
+      const pkg = await queryOne('SELECT * FROM pos_packages WHERE id = ? AND is_active = 1', [package_buy.package_id]);
+      if (!pkg) return res.status(400).json({ error: 'Gói sản phẩm không tồn tại' });
+      subtotal += pkg.price;
+      orderItems.push({
+        product_id: -pkg.id,
+        product_code: pkg.code,
+        product_name: `📦 ${pkg.name} (${package_buy.total_qty} ${pkg.unit})`,
+        unit: 'gói',
+        quantity: 1,
+        unit_price: pkg.price,
+        total_price: pkg.price,
+        sx_product_type: null,
+        sx_product_id: null,
+        is_package_item: true,
       });
     }
 
@@ -438,8 +463,9 @@ router.post("/", authenticate, async (req, res) => {
           parent_phone, parent_balance_amount,
           cash_received, change_amount,
           payment_status, due_date,
+          customer_package_id,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, finalDiscountAmount, discount_reason || null, total,
@@ -451,12 +477,14 @@ router.post("/", authenticate, async (req, res) => {
           normalizedParentPhone || null, actualParentBalanceAmount,
           cash_received || 0, change_amount || 0,
           finalPaymentStatus, due_date || null,
+          customer_package_id || null,
           notes || null, req.user.username, now,
         ],
       );
       orderId = Number(result.lastInsertRowid);
 
       // 2. Thêm chi tiết đơn hàng
+      // Lưu ý: package virtual item có product_id âm (-pkg.id) — SQLite/Turso không enforce FK
       for (const item of orderItems) {
         await tx.run(
           `INSERT INTO pos_order_items (
@@ -527,14 +555,15 @@ router.post("/", authenticate, async (req, res) => {
     // ========== SAU TRANSACTION: Các thao tác không quan trọng ==========
 
     // Trừ kho SX (bên ngoài transaction vì gọi API external)
+    // Bỏ qua virtual package items (is_package_item)
     for (const item of orderItems) {
+      if (item.is_package_item || !item.sx_product_type) continue;
       try {
         await outStockFIFO(
           item.sx_product_type, item.sx_product_id,
           item.quantity, `POS: ${orderCode}`,
         );
       } catch (err) {
-        // Ghi vào pos_stock_pending để retry sau
         console.error(`⚠️ Stock out failed for ${item.product_name}: ${err.message}`);
         try {
           await run(
@@ -548,6 +577,39 @@ router.post("/", authenticate, async (req, res) => {
         } catch (logErr) {
           console.error("Failed to log pending stock:", logErr.message);
         }
+      }
+    }
+
+    // Gói: tạo customer_package khi mua gói
+    if (package_buy && package_buy.package_id && phone) {
+      try {
+        await run(
+          `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 0, 'active', ?, ?)`,
+          [phone, package_buy.package_id, orderId, package_buy.total_qty, now, now]
+        );
+        console.log(`📦 Created customer package for ${phone}: ${package_buy.total_qty} SP`);
+      } catch (err) {
+        console.error('Package buy record error:', err.message);
+      }
+    }
+
+    // Gói: cập nhật delivered_qty khi giao từ gói (ATOMIC — tránh race condition)
+    if (customer_package_id) {
+      try {
+        const deliveredQty = orderItems.reduce((s, i) => s + (i.is_package_item ? 0 : i.quantity), 0);
+        // Atomic: SET delivered_qty = delivered_qty + N (không cần đọc trước)
+        await run(
+          `UPDATE pos_customer_packages 
+           SET delivered_qty = delivered_qty + ?, 
+               status = CASE WHEN delivered_qty + ? >= total_qty THEN 'completed' ELSE 'active' END,
+               updated_at = ?
+           WHERE id = ?`,
+          [deliveredQty, deliveredQty, now, customer_package_id]
+        );
+        console.log(`📦 Updated delivery +${deliveredQty} for package #${customer_package_id}`);
+      } catch (err) {
+        console.error('Package delivery update error:', err.message);
       }
     }
 

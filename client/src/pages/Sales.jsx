@@ -51,6 +51,12 @@ export default function Sales() {
   const [shippingFee, setShippingFee] = useState(0);           // Phí vận chuyển
   const [validatingCode, setValidatingCode] = useState(false); // Đang validate mã
 
+  // === Gói sản phẩm ===
+  const [pkgTemplates, setPkgTemplates] = useState([]);        // Template gói (from Settings)
+  const [customerPkgs, setCustomerPkgs] = useState([]);        // Gói active của khách
+  const [deliverMode, setDeliverMode] = useState(null);        // Đang giao từ gói nào
+  const [buyQty, setBuyQty] = useState('30');                  // Số lượng SP khi mua gói
+
   useEffect(() => {
     loadProducts();
     loadInvoiceSettings();
@@ -60,6 +66,13 @@ export default function Sales() {
     try {
       const data = await productsApi.list({ with_stock: 'true' });
       setProducts(data);
+      // Load package templates
+      try {
+        const token = localStorage.getItem('pos_token');
+        const pkgRes = await fetch('/api/pos/packages', { headers: { 'Authorization': 'Bearer ' + token } });
+        const pkgData = await pkgRes.json();
+        if (pkgData.success) setPkgTemplates(pkgData.data);
+      } catch (e) {}
     } catch (err) {
       setError('Không thể tải danh sách sản phẩm');
     } finally {
@@ -170,6 +183,7 @@ export default function Sales() {
     setUseParentBalance(false);
     setParentBalanceToUse(0);
     setIsDebt(false);
+    setDeliverMode(null);
     
     // Áp dụng chiết khấu mặc định của KH (nếu có)
     if (selectedCustomer?.discount_value > 0) {
@@ -177,6 +191,16 @@ export default function Sales() {
       setDiscountValue(selectedCustomer.discount_value);
       setDiscountCode('');
       setDiscountCodeValid(null);
+    }
+
+    // Load gói active của khách
+    if (selectedCustomer?.phone) {
+      const token = localStorage.getItem('pos_token');
+      fetch(`/api/pos/packages/customer/${selectedCustomer.phone}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(r => r.json()).then(d => {
+        if (d.success) setCustomerPkgs(d.data);
+      }).catch(() => {});
     }
   };
 
@@ -189,6 +213,8 @@ export default function Sales() {
     setParentBalanceToUse(0);
     setIsDebt(false);
     setPaymentMethod('cash');
+    setDeliverMode(null);
+    setCustomerPkgs([]);
     // === Phase B: Reset chiết khấu ===
     setDiscountType('percent');
     setDiscountValue(0);
@@ -197,7 +223,17 @@ export default function Sales() {
   };
 
   const addToCart = (product) => {
-    if (product.price <= 0) {
+    // Deliver mode: giá = 0đ, check remaining thay vì stock
+    if (deliverMode) {
+      const remaining = deliverMode.total_qty - deliverMode.delivered_qty;
+      const cartQty = cart.reduce((s, c) => s + c.quantity, 0);
+      if (cartQty + 1 > remaining) {
+        if (!confirm(`Vượt gói! Còn ${remaining} SP. Phần vượt tính giá thường?`)) return;
+        // Cho vượt → dùng giá thường cho item vượt
+      }
+    }
+
+    if (!deliverMode && product.price <= 0) {
       setError(`${product.name} chưa có giá bán`);
       return;
     }
@@ -206,7 +242,7 @@ export default function Sales() {
     const existing = cart.find(item => item.unique_key === uniqueKey);
 
     if (existing) {
-      if (product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
+      if (!deliverMode && product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
     setError(`Không đủ hàng. Tồn kho: ${product.stock_quantity}`);
     return;
       }
@@ -223,7 +259,7 @@ export default function Sales() {
     sx_product_id: product.sx_product_id,
     product_code: product.code,
     product_name: product.name,
-    unit_price: product.price,
+    unit_price: deliverMode ? 0 : product.price,
     unit: product.unit || 'túi',
     quantity: 1,
     stock: product.stock_quantity,
@@ -232,6 +268,26 @@ export default function Sales() {
       }]);
     }
     setError('');
+  };
+
+  // Thêm gói vào giỏ (mua gói mới) — chỉ 1 gói/đơn
+  const addPkgToCart = (pkg) => {
+    if (!customer) { setError('Chọn khách trước khi mua gói'); return; }
+    if (cart.some(c => c.is_pkg)) { setError('Chỉ mua 1 gói/đơn. Tạo đơn riêng cho gói khác.'); return; }
+    setCart([...cart, {
+      unique_key: `pkg_${pkg.id}`,
+      product_id: -pkg.id,
+      is_pkg: true,
+      package_id: pkg.id,
+      product_code: pkg.code,
+      product_name: `📦 ${pkg.name}`,
+      unit_price: pkg.price,
+      unit: pkg.unit || 'gói',
+      quantity: 1,
+      stock: Infinity,
+      icon: '📦',
+      color: '#7c3aed'
+    }]);
   };
 
   const updateQuantity = (uniqueKey, delta) => {
@@ -359,15 +415,15 @@ export default function Sales() {
       const orderData = {
         customer_phone: customer?.phone || null,
         customer_name: customer?.name || 'Khách lẻ',
-        is_new_customer: customer?.isNew || false, // Flag để backend tạo registration
-        items: cart.map(item => ({
+        is_new_customer: customer?.isNew || false,
+        items: cart.filter(item => !item.is_pkg).map(item => ({
           product_id: item.product_id,
           sx_product_type: item.sx_product_type,
           sx_product_id: item.sx_product_id,
           quantity: item.quantity
         })),
         payment_method: isDebt ? 'debt' : paymentMethod,
-        discount: discount, // backward compatible
+        discount: discount,
         discount_reason: discountAmount > 0 ? 'Giảm giá' : null,
         // === Phase B: Chiết khấu + Shipping ===
         discount_type: discountCodeValid?.valid ? discountCodeValid.discount_type : (discountValue > 0 ? discountType : null),
@@ -384,9 +440,12 @@ export default function Sales() {
         // === Số dư mẹ (nếu có) ===
         parent_phone: parentBalanceUsed > 0 ? parentPhone : null,
         parent_balance_amount: parentBalanceUsed,
-        // === Tiền khách đưa / tiền thối (để in lại hóa đơn) ===
+        // === Tiền khách đưa / tiền thối ===
         cash_received: paymentMethod === 'cash' ? cashReceivedNum : 0,
-        change_amount: paymentMethod === 'cash' ? Math.max(0, cashReceivedNum - remainingAfterBalance) : 0
+        change_amount: paymentMethod === 'cash' ? Math.max(0, cashReceivedNum - remainingAfterBalance) : 0,
+        // === Gói sản phẩm ===
+        customer_package_id: deliverMode?.id || null,
+        package_buy: cart.find(c => c.is_pkg) ? { package_id: cart.find(c => c.is_pkg).package_id, total_qty: parseInt(buyQty) || 30 } : null,
       };
 
       const result = await ordersApi.create(orderData);
@@ -443,6 +502,8 @@ export default function Sales() {
       setDiscountCode('');
       setDiscountCodeValid(null);
       setShippingFee(0);
+      setDeliverMode(null);
+      setCategory('all');
       loadProducts();
 
     } catch (err) {
@@ -503,6 +564,46 @@ export default function Sales() {
           />
         </div>
 
+        {/* Package Banner — khi khách có gói active */}
+        {customer && customerPkgs.filter(p => p.status === 'active').length > 0 && !deliverMode && (
+          <div style={{ background: 'linear-gradient(135deg, #faf5ff, #f3e8ff)', borderRadius: '12px', padding: '0.75rem', marginBottom: '0.75rem', border: '1.5px solid #c4b5fd' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', marginBottom: '0.5rem' }}>📦 Gói active</div>
+            {customerPkgs.filter(p => p.status === 'active').map(pkg => {
+              const pct = Math.round((pkg.delivered_qty / pkg.total_qty) * 100);
+              const rem = pkg.total_qty - pkg.delivered_qty;
+              return (
+                <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'white', borderRadius: '8px', marginBottom: '0.25rem', border: '1px solid #e9d5ff' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>{pkg.pkg_name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '3px' }}>
+                      <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#f3f4f6' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: pct >= 80 ? '#f59e0b' : '#7c3aed' }} />
+                      </div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#7c3aed' }}>{pkg.delivered_qty}/{pkg.total_qty}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => { setDeliverMode(pkg); setCart([]); setCategory('all'); }}
+                    style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#7c3aed', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>
+                    🚚 Giao ({rem})
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Deliver Mode Bar */}
+        {deliverMode && (
+          <div style={{ background: '#7c3aed', color: 'white', borderRadius: '10px', padding: '0.6rem 1rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <strong style={{ fontSize: '0.85rem' }}>🚚 Giao từ: {deliverMode.pkg_name}</strong>
+              <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>Giá = 0đ · Còn {deliverMode.total_qty - deliverMode.delivered_qty - cart.reduce((s, c) => s + c.quantity, 0)} SP</div>
+            </div>
+            <button onClick={() => { setDeliverMode(null); setCart([]); }}
+              style={{ padding: '0.3rem 0.7rem', borderRadius: 6, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.75rem' }}>✕ Hủy</button>
+          </div>
+        )}
+
         {/* Category Tabs */}
         <div className="flex gap-1" style={{ marginBottom: '1rem' }}>
           <button 
@@ -525,11 +626,33 @@ export default function Sales() {
           >
             🍵 Trà ({teaCount}) - {teaStock}
           </button>
+          {!deliverMode && pkgTemplates.length > 0 && (
+            <button 
+              className={`btn ${category === 'pkg' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setCategory('pkg')}
+              style={{ background: category === 'pkg' ? '#7c3aed' : undefined, borderColor: category === 'pkg' ? '#7c3aed' : undefined }}
+            >
+              📦 Mua gói ({pkgTemplates.length})
+            </button>
+          )}
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid / Packages Grid */}
         {loading ? (
           <div className="card">Đang tải sản phẩm...</div>
+        ) : category === 'pkg' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
+            {pkgTemplates.map(pkg => (
+              <div key={pkg.id} onClick={() => addPkgToCart(pkg)}
+                style={{ padding: '0.75rem', background: 'white', borderRadius: '12px', border: '2px solid #c4b5fd', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>📦</div>
+                <div style={{ fontWeight: 'bold', color: '#7c3aed', fontSize: '0.9rem' }}>{pkg.code}</div>
+                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem' }}>{pkg.name}</div>
+                <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '0.9rem' }}>{(pkg.price || 0).toLocaleString()}đ</div>
+                <div style={{ fontSize: '0.7rem', color: '#7c3aed', background: '#f3e8ff', padding: '2px 6px', borderRadius: 4, display: 'inline-block', marginTop: '0.25rem' }}>{pkg.unit}</div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div style={{ 
             display: 'grid', 
@@ -653,11 +776,22 @@ export default function Sales() {
                     {item.product_code}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#666' }}>
-                    {formatPrice(item.unit_price)} × {item.quantity}
+                    {deliverMode && !item.is_pkg ? '0đ (từ gói)' : `${formatPrice(item.unit_price)} × ${item.quantity}`}
                   </div>
+                  {item.is_pkg && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#7c3aed' }}>SL SP:</span>
+                      <input type="number" min="1" value={buyQty} onChange={e => setBuyQty(e.target.value)}
+                        style={{ width: '50px', padding: '2px 4px', borderRadius: 4, border: '1px solid #c4b5fd', fontSize: '0.75rem', textAlign: 'center' }} />
+                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>{item.unit || 'SP'}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  {/* Ẩn +/- cho gói SP (quantity luôn = 1) */}
+                  {!item.is_pkg && (
+                  <>
                   <button 
                     onClick={() => updateQuantity(item.unique_key, -1)}
                     style={{
@@ -691,6 +825,8 @@ export default function Sales() {
                   >
                     <Plus size={12} />
                   </button>
+                  </>
+                  )}
                   <button 
                     onClick={() => removeFromCart(item.unique_key)}
                     style={{
@@ -962,17 +1098,17 @@ export default function Sales() {
               </div>
             </div>
 
-            {/* Nút thanh toán - MỞ POPUP */}
+            {/* Nút thanh toán - MỞ POPUP / Giao từ gói → submit trực tiếp */}
             <button
-              onClick={openPaymentModal}
-              disabled={cart.length === 0}
+              onClick={deliverMode ? handleSubmit : openPaymentModal}
+              disabled={cart.length === 0 || submitting}
               style={{
                 width: '100%',
                 marginTop: '0.75rem',
                 padding: '0.875rem',
                 fontSize: '1rem',
                 fontWeight: 'bold',
-                background: '#22c55e',
+                background: deliverMode ? '#7c3aed' : '#22c55e',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -980,7 +1116,7 @@ export default function Sales() {
                 opacity: cart.length === 0 ? 0.7 : 1
               }}
             >
-              💳 Thanh toán {formatPrice(total)}
+              {deliverMode ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
             </button>
           </>
         )}

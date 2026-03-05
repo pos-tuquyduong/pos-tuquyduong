@@ -630,6 +630,55 @@ async function createTables() {
     )
   `);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG: GÓI SẢN PHẨM - Template (POS-only, quản lý trong Settings)
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_packages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      price REAL DEFAULT 0,
+      unit TEXT DEFAULT 'túi',
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG: GÓI KHÁCH HÀNG - Khi khách MUA gói (tracking giao hàng)
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_customer_packages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_phone TEXT NOT NULL,
+      package_id INTEGER NOT NULL,
+      order_id INTEGER,
+      total_qty INTEGER NOT NULL,
+      delivered_qty INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (package_id) REFERENCES pos_packages(id)
+    )
+  `);
+
+  // Migration: pos_orders thêm cột customer_package_id
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN customer_package_id INTEGER`);
+  } catch (e) { /* column already exists */ }
+
+  // Indexes cho pos_customer_packages
+  try {
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_cp_phone ON pos_customer_packages(customer_phone)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_cp_status ON pos_customer_packages(status)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_orders_cpid ON pos_orders(customer_package_id)`);
+  } catch (e) { /* already exists */ }
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 
