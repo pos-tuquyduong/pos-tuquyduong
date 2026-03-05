@@ -54,8 +54,33 @@ export default function Sales() {
   // === Gói sản phẩm ===
   const [pkgTemplates, setPkgTemplates] = useState([]);        // Template gói (from Settings)
   const [customerPkgs, setCustomerPkgs] = useState([]);        // Gói active của khách
-  const [deliverMode, setDeliverMode] = useState(null);        // Đang giao từ gói nào
+  const [activePkgId, setActivePkgId] = useState(null);        // ID gói đang bật (null = off)
   const [buyQty, setBuyQty] = useState('30');                  // Số lượng SP khi mua gói
+
+  // Derived: gói đang bật + danh sách SP được phép + helper check
+  const activePkg = customerPkgs.find(p => p.id === activePkgId) || null;
+  const pkgItemsList = activePkg?.pkg_items ? (typeof activePkg.pkg_items === 'string' ? JSON.parse(activePkg.pkg_items) : activePkg.pkg_items) : [];
+  const pkgAllowedKeys = new Set(pkgItemsList.map(i => `${i.sx_product_type}_${i.sx_product_id}`));
+
+  // Check gói đang MUA (is_pkg item in cart) → lấy template để biết SP nào thuộc gói
+  const pkgBuyInCart = cart.find(c => c.is_pkg);
+  const buyPkgTemplate = pkgBuyInCart ? pkgTemplates.find(t => t.id === pkgBuyInCart.package_id) : null;
+  const buyPkgItems = buyPkgTemplate?.package_items ? (typeof buyPkgTemplate.package_items === 'string' ? JSON.parse(buyPkgTemplate.package_items) : buyPkgTemplate.package_items) : [];
+  const buyPkgAllowedKeys = new Set(buyPkgItems.map(i => `${i.sx_product_type}_${i.sx_product_id}`));
+
+  // isInPkg: true nếu SP thuộc gói ĐANG GIAO (active) HOẶC gói ĐANG MUA (in cart)
+  const isInPkg = (product) => {
+    const key = `${product.sx_product_type}_${product.sx_product_id}`;
+    if (activePkg && pkgAllowedKeys.has(key)) return true;
+    if (buyPkgTemplate && buyPkgAllowedKeys.has(key)) return true;
+    return false;
+  };
+
+  // Gói nào đang active (để tính remaining)? Ưu tiên gói đang giao, fallback gói đang mua
+  const effectivePkgItems = activePkg ? pkgItemsList : buyPkgItems;
+  const effectiveTotalQty = activePkg ? (activePkg.total_qty || 0) : (parseInt(buyQty) || 0);
+  const effectiveDeliveredQty = activePkg ? (activePkg.delivered_qty || 0) : 0;
+  const effectiveDeliveredItems = activePkg ? (activePkg.delivered_items || []) : [];
 
   useEffect(() => {
     loadProducts();
@@ -183,9 +208,7 @@ export default function Sales() {
     setUseParentBalance(false);
     setParentBalanceToUse(0);
     setIsDebt(false);
-    setDeliverMode(null);
-    
-    // Áp dụng chiết khấu mặc định của KH (nếu có)
+    setActivePkgId(null);
     if (selectedCustomer?.discount_value > 0) {
       setDiscountType(selectedCustomer.discount_type || 'percent');
       setDiscountValue(selectedCustomer.discount_value);
@@ -213,7 +236,7 @@ export default function Sales() {
     setParentBalanceToUse(0);
     setIsDebt(false);
     setPaymentMethod('cash');
-    setDeliverMode(null);
+    setActivePkgId(null);
     setCustomerPkgs([]);
     // === Phase B: Reset chiết khấu ===
     setDiscountType('percent');
@@ -223,48 +246,66 @@ export default function Sales() {
   };
 
   const addToCart = (product) => {
-    // Deliver mode: giá = 0đ, check remaining thay vì stock
-    if (deliverMode) {
-      const remaining = deliverMode.total_qty - deliverMode.delivered_qty;
-      const cartQty = cart.reduce((s, c) => s + c.quantity, 0);
-      if (cartQty + 1 > remaining) {
-        if (!confirm(`Vượt gói! Còn ${remaining} SP. Phần vượt tính giá thường?`)) return;
-        // Cho vượt → dùng giá thường cho item vượt
+    // Xác định SP thuộc gói hay mua lẻ
+    const fromPkg = isInPkg(product);
+    // unique_key khác nhau: cùng SP có thể vừa từ gói vừa lẻ
+    const uniqueKey = fromPkg
+      ? `pkg_${product.sx_product_type}_${product.sx_product_id}`
+      : `${product.sx_product_type}_${product.sx_product_id}`;
+
+    // Check remaining nếu từ gói
+    if (fromPkg) {
+      const pkgCartQty = cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0);
+      const remaining = effectiveTotalQty - effectiveDeliveredQty;
+      if (pkgCartQty + 1 > remaining) {
+        setError(`Gói chỉ còn ${remaining} SP!`);
+        return;
+      }
+      // Per-item check
+      const pkgItem = effectivePkgItems.find(i => `${i.sx_product_type}_${i.sx_product_id}` === `${product.sx_product_type}_${product.sx_product_id}`);
+      if (pkgItem && pkgItem.qty > 0) {
+        const deliveredForItem = effectiveDeliveredItems.find(d => d.product_code === product.code)?.delivered_qty || 0;
+        const inCartForItem = cart.find(c => c.unique_key === uniqueKey)?.quantity || 0;
+        if (deliveredForItem + inCartForItem + 1 > pkgItem.qty) {
+          setError(`${product.code} chỉ còn ${pkgItem.qty - deliveredForItem - inCartForItem} trong gói!`);
+          return;
+        }
       }
     }
 
-    if (!deliverMode && product.price <= 0) {
+    if (!fromPkg && product.price <= 0) {
       setError(`${product.name} chưa có giá bán`);
       return;
     }
 
-    const uniqueKey = `${product.sx_product_type}_${product.sx_product_id}`;
     const existing = cart.find(item => item.unique_key === uniqueKey);
 
     if (existing) {
-      if (!deliverMode && product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
-    setError(`Không đủ hàng. Tồn kho: ${product.stock_quantity}`);
-    return;
+      if (!fromPkg && product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
+        setError(`Không đủ hàng. Tồn kho: ${product.stock_quantity}`);
+        return;
       }
       setCart(cart.map(item => 
-    item.unique_key === uniqueKey 
-      ? { ...item, quantity: item.quantity + 1 }
-      : item
+        item.unique_key === uniqueKey 
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
       ));
     } else {
       setCart([...cart, {
-    unique_key: uniqueKey,
-    product_id: product.id,
-    sx_product_type: product.sx_product_type,
-    sx_product_id: product.sx_product_id,
-    product_code: product.code,
-    product_name: product.name,
-    unit_price: deliverMode ? 0 : product.price,
-    unit: product.unit || 'túi',
-    quantity: 1,
-    stock: product.stock_quantity,
-    icon: product.icon,
-    color: product.color
+        unique_key: uniqueKey,
+        product_id: product.id,
+        sx_product_type: product.sx_product_type,
+        sx_product_id: product.sx_product_id,
+        product_code: product.code,
+        product_name: product.name,
+        unit_price: fromPkg ? 0 : product.price,
+        original_price: product.price,
+        unit: product.unit || 'túi',
+        quantity: 1,
+        stock: product.stock_quantity,
+        icon: product.icon,
+        color: fromPkg ? '#7c3aed' : product.color,
+        fromPkg,
       }]);
     }
     setError('');
@@ -288,25 +329,43 @@ export default function Sales() {
       icon: '📦',
       color: '#7c3aed'
     }]);
+    setCategory('all'); // Chuyển sang grid SP để chọn giao lần 1
   };
 
   const updateQuantity = (uniqueKey, delta) => {
     setCart(cart.map(item => {
-      if (item.unique_key === uniqueKey) {
-    const newQty = item.quantity + delta;
-    if (newQty <= 0) return null;
-    if (item.stock > 0 && newQty > item.stock) {
-      setError(`Không đủ hàng. Tồn kho: ${item.stock}`);
-      return item;
-    }
-    return { ...item, quantity: newQty };
+      if (item.unique_key !== uniqueKey) return item;
+      const newQty = item.quantity + delta;
+      if (newQty <= 0) return null;
+      // Package item: check remaining + per-item limit
+      if (item.fromPkg && delta > 0) {
+        const pkgCartQty = cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0);
+        const remaining = effectiveTotalQty - effectiveDeliveredQty;
+        if (pkgCartQty + 1 > remaining) { setError(`Gói chỉ còn ${remaining} SP!`); return item; }
+        const pkgItem = effectivePkgItems.find(i => `${i.sx_product_type}_${i.sx_product_id}` === `${item.sx_product_type}_${item.sx_product_id}`);
+        if (pkgItem && pkgItem.qty > 0) {
+          const deliveredForItem = effectiveDeliveredItems.find(d => d.product_code === item.product_code)?.delivered_qty || 0;
+          if (deliveredForItem + newQty > pkgItem.qty) { setError(`${item.product_code} chỉ còn ${pkgItem.qty - deliveredForItem} trong gói!`); return item; }
+        }
       }
-      return item;
+      // Regular item: check stock
+      if (!item.fromPkg && item.stock > 0 && newQty > item.stock) {
+        setError(`Không đủ hàng. Tồn kho: ${item.stock}`);
+        return item;
+      }
+      return { ...item, quantity: newQty };
     }).filter(Boolean));
   };
 
   const removeFromCart = (uniqueKey) => {
-    setCart(cart.filter(item => item.unique_key !== uniqueKey));
+    const item = cart.find(c => c.unique_key === uniqueKey);
+    // Xóa gói mua → xóa luôn SP từ gói
+    if (item?.is_pkg) {
+      setCart(cart.filter(c => c.unique_key !== uniqueKey && !c.fromPkg));
+      if (category === 'pkg') setCategory('all');
+    } else {
+      setCart(cart.filter(c => c.unique_key !== uniqueKey));
+    }
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
@@ -420,7 +479,8 @@ export default function Sales() {
           product_id: item.product_id,
           sx_product_type: item.sx_product_type,
           sx_product_id: item.sx_product_id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          from_package: item.fromPkg || false,
         })),
         payment_method: isDebt ? 'debt' : paymentMethod,
         discount: discount,
@@ -444,7 +504,7 @@ export default function Sales() {
         cash_received: paymentMethod === 'cash' ? cashReceivedNum : 0,
         change_amount: paymentMethod === 'cash' ? Math.max(0, cashReceivedNum - remainingAfterBalance) : 0,
         // === Gói sản phẩm ===
-        customer_package_id: deliverMode?.id || null,
+        customer_package_id: activePkgId || null,
         package_buy: cart.find(c => c.is_pkg) ? { package_id: cart.find(c => c.is_pkg).package_id, total_qty: parseInt(buyQty) || 30 } : null,
       };
 
@@ -502,7 +562,8 @@ export default function Sales() {
       setDiscountCode('');
       setDiscountCodeValid(null);
       setShippingFee(0);
-      setDeliverMode(null);
+      setActivePkgId(null);
+      setActivePkgId(null);
       setCategory('all');
       loadProducts();
 
@@ -565,42 +626,69 @@ export default function Sales() {
         </div>
 
         {/* Package Banner — khi khách có gói active */}
-        {customer && customerPkgs.filter(p => p.status === 'active').length > 0 && !deliverMode && (
+        {customer && customerPkgs.filter(p => p.status === 'active').length > 0 && (
           <div style={{ background: 'linear-gradient(135deg, #faf5ff, #f3e8ff)', borderRadius: '12px', padding: '0.75rem', marginBottom: '0.75rem', border: '1.5px solid #c4b5fd' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', marginBottom: '0.5rem' }}>📦 Gói active</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', marginBottom: '0.5rem' }}>📦 Gói sản phẩm</div>
             {customerPkgs.filter(p => p.status === 'active').map(pkg => {
-              const pct = Math.round((pkg.delivered_qty / pkg.total_qty) * 100);
+              const isOn = activePkgId === pkg.id;
+              const pkgCartQty = isOn ? cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0) : 0;
+              const pct = Math.round(((pkg.delivered_qty + pkgCartQty) / pkg.total_qty) * 100);
               const rem = pkg.total_qty - pkg.delivered_qty;
               return (
-                <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'white', borderRadius: '8px', marginBottom: '0.25rem', border: '1px solid #e9d5ff' }}>
+                <div key={pkg.id} style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
+                  background: isOn ? '#7c3aed' : 'white', borderRadius: '8px', marginBottom: '0.25rem',
+                  border: `1.5px solid ${isOn ? '#7c3aed' : '#e9d5ff'}`, transition: 'all 0.2s'
+                }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>{pkg.pkg_name}</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: isOn ? 'white' : '#374151' }}>{pkg.pkg_name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '3px' }}>
-                      <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#f3f4f6' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: pct >= 80 ? '#f59e0b' : '#7c3aed' }} />
+                      <div style={{ flex: 1, height: 4, borderRadius: 2, background: isOn ? 'rgba(255,255,255,0.3)' : '#f3f4f6' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: isOn ? 'white' : (pct >= 80 ? '#f59e0b' : '#7c3aed'), transition: 'width 0.3s' }} />
                       </div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#7c3aed' }}>{pkg.delivered_qty}/{pkg.total_qty}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: isOn ? 'rgba(255,255,255,0.9)' : '#7c3aed' }}>
+                        {pkg.delivered_qty + pkgCartQty}/{pkg.total_qty}
+                      </span>
                     </div>
                   </div>
-                  <button onClick={() => { setDeliverMode(pkg); setCart([]); setCategory('all'); }}
-                    style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#7c3aed', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>
-                    🚚 Giao ({rem})
+                  <button onClick={() => {
+                    if (pkgBuyInCart) { setError('Thanh toán gói hiện tại trước khi giao từ gói khác'); return; }
+                    if (isOn) { setActivePkgId(null); setCart(cart.filter(c => !c.fromPkg)); }
+                    else { setActivePkgId(pkg.id); setCart(cart.filter(c => !c.fromPkg)); }
+                  }}
+                    style={{
+                      padding: '0.35rem 0.75rem', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem',
+                      border: isOn ? '1px solid rgba(255,255,255,0.4)' : 'none',
+                      background: isOn ? 'transparent' : (pkgBuyInCart ? '#9ca3af' : '#7c3aed'), color: 'white',
+                    }}>
+                    {isOn ? '✕ Tắt' : `🚚 Giao (${rem})`}
                   </button>
                 </div>
               );
             })}
+            {activePkg && (
+              <div style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: '#7c3aed', background: 'white', borderRadius: '6px', padding: '3px 8px' }}>
+                💡 Viền <strong>tím</strong> = từ gói (0đ) · Viền xám = mua lẻ · Mix được
+              </div>
+            )}
           </div>
         )}
 
-        {/* Deliver Mode Bar */}
-        {deliverMode && (
+        {/* Active Package Bar — hiện khi bật gói HOẶC đang mua gói mới */}
+        {(activePkg || buyPkgTemplate) && (
           <div style={{ background: '#7c3aed', color: 'white', borderRadius: '10px', padding: '0.6rem 1rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <strong style={{ fontSize: '0.85rem' }}>🚚 Giao từ: {deliverMode.pkg_name}</strong>
-              <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>Giá = 0đ · Còn {deliverMode.total_qty - deliverMode.delivered_qty - cart.reduce((s, c) => s + c.quantity, 0)} SP</div>
+              <strong style={{ fontSize: '0.85rem' }}>
+                {activePkg ? `🚚 Giao từ: ${activePkg.pkg_name}` : `📦 Mua gói: ${buyPkgTemplate.name}`}
+              </strong>
+              <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>
+                SP tím = 0đ (từ gói) · SP xám = giá lẻ · Còn {effectiveTotalQty - effectiveDeliveredQty - cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0)} SP
+              </div>
             </div>
-            <button onClick={() => { setDeliverMode(null); setCart([]); }}
-              style={{ padding: '0.3rem 0.7rem', borderRadius: 6, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.75rem' }}>✕ Hủy</button>
+            {activePkg && (
+              <button onClick={() => { setActivePkgId(null); setCart(cart.filter(c => !c.fromPkg)); }}
+                style={{ padding: '0.3rem 0.7rem', borderRadius: 6, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.75rem' }}>✕ Tắt gói</button>
+            )}
           </div>
         )}
 
@@ -626,7 +714,7 @@ export default function Sales() {
           >
             🍵 Trà ({teaCount}) - {teaStock}
           </button>
-          {!deliverMode && pkgTemplates.length > 0 && (
+          {!activePkg && !pkgBuyInCart && pkgTemplates.length > 0 && (
             <button 
               className={`btn ${category === 'pkg' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setCategory('pkg')}
@@ -659,7 +747,9 @@ export default function Sales() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
             gap: '0.75rem' 
           }}>
-            {filteredProducts.map(product => (
+            {filteredProducts.map(product => {
+              const inPkg = isInPkg(product);
+              return (
               <div
                 key={`${product.sx_product_type}_${product.sx_product_id}`}
                 onClick={() => addToCart(product)}
@@ -667,73 +757,53 @@ export default function Sales() {
                   padding: '0.75rem',
                   background: 'white',
                   borderRadius: '12px',
-                  border: '2px solid #e2e8f0',
-                  cursor: product.price > 0 ? 'pointer' : 'not-allowed',
-                  opacity: product.stock_quantity <= 0 ? 0.5 : 1,
+                  border: inPkg ? '2.5px solid #c4b5fd' : '2px solid #e2e8f0',
+                  cursor: (product.price > 0 || inPkg) ? 'pointer' : 'not-allowed',
+                  opacity: product.stock_quantity <= 0 && !inPkg ? 0.5 : 1,
                   transition: 'all 0.2s',
                   position: 'relative'
                 }}
                 onMouseOver={(e) => {
-                  if (product.price > 0) e.currentTarget.style.borderColor = product.color || '#3b82f6';
+                  if (product.price > 0 || inPkg) e.currentTarget.style.borderColor = inPkg ? '#7c3aed' : (product.color || '#3b82f6');
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.borderColor = inPkg ? '#c4b5fd' : '#e2e8f0';
                 }}
               >
-                {/* Icon */}
-                <div style={{ 
-                  fontSize: '2rem', 
-                  textAlign: 'center', 
-                  marginBottom: '0.5rem' 
-                }}>
+                <div style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '0.5rem' }}>
                   {product.icon || '📦'}
                 </div>
-
-                {/* Info */}
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ 
-                    fontWeight: 'bold', 
-                    color: product.color || '#333',
-                    fontSize: '0.9rem',
-                    marginBottom: '0.25rem'
-                  }}>
+                  <div style={{ fontWeight: 'bold', color: inPkg ? '#7c3aed' : (product.color || '#333'), fontSize: '0.9rem', marginBottom: '0.25rem' }}>
                     {product.code}
                   </div>
-                  <div style={{ 
-                    fontSize: '0.75rem', 
-                    color: '#666',
-                    marginBottom: '0.25rem',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}>
+                  <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {product.name}
                   </div>
-                  <div style={{ 
-                    fontWeight: 'bold', 
-                    color: product.price > 0 ? '#2563eb' : '#ef4444',
-                    fontSize: '0.9rem'
-                  }}>
-                    {product.price > 0 ? formatPrice(product.price) : 'Chưa có giá'}
+                  {inPkg ? (
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af', textDecoration: 'line-through' }}>{formatPrice(product.price)}</span>
+                      <span style={{ fontWeight: 'bold', color: '#7c3aed', fontSize: '0.9rem', marginLeft: '4px' }}>0đ</span>
+                    </div>
+                  ) : (
+                    <div style={{ fontWeight: 'bold', color: product.price > 0 ? '#2563eb' : '#ef4444', fontSize: '0.9rem' }}>
+                      {product.price > 0 ? formatPrice(product.price) : 'Chưa có giá'}
+                    </div>
+                  )}
+                </div>
+                {/* Badge */}
+                {inPkg ? (
+                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#f3e8ff', color: '#7c3aed', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold' }}>📦</div>
+                ) : activePkg ? (
+                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '600' }}>Lẻ</div>
+                ) : (
+                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: product.stock_quantity > 0 ? '#dcfce7' : '#fee2e2', color: product.stock_quantity > 0 ? '#166534' : '#dc2626', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                    {product.stock_quantity}
                   </div>
-                </div>
-
-                {/* Stock Badge */}
-                <div style={{
-                  position: 'absolute',
-                  top: '4px',
-                  right: '4px',
-                  background: product.stock_quantity > 0 ? '#dcfce7' : '#fee2e2',
-                  color: product.stock_quantity > 0 ? '#166534' : '#dc2626',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '0.7rem',
-                  fontWeight: 'bold'
-                }}>
-                  {product.stock_quantity}
-                </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -776,7 +846,9 @@ export default function Sales() {
                     {item.product_code}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#666' }}>
-                    {deliverMode && !item.is_pkg ? '0đ (từ gói)' : `${formatPrice(item.unit_price)} × ${item.quantity}`}
+                    {item.fromPkg ? (
+                      <><span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.original_price || item.unit_price)}</span> <span style={{ color: '#7c3aed', fontWeight: 600 }}>→ 0đ</span></>
+                    ) : `${formatPrice(item.unit_price)} × ${item.quantity}`}
                   </div>
                   {item.is_pkg && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
@@ -850,9 +922,10 @@ export default function Sales() {
                   fontWeight: 'bold', 
                   minWidth: '70px', 
                   textAlign: 'right',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  color: item.fromPkg ? '#7c3aed' : undefined
                 }}>
-                  {formatPrice(item.quantity * item.unit_price)}
+                  {item.fromPkg ? '0đ' : formatPrice(item.quantity * item.unit_price)}
                 </div>
               </div>
             ))}
@@ -1100,7 +1173,7 @@ export default function Sales() {
 
             {/* Nút thanh toán - MỞ POPUP / Giao từ gói → submit trực tiếp */}
             <button
-              onClick={deliverMode ? handleSubmit : openPaymentModal}
+              onClick={total === 0 && cart.length > 0 ? handleSubmit : openPaymentModal}
               disabled={cart.length === 0 || submitting}
               style={{
                 width: '100%',
@@ -1108,7 +1181,7 @@ export default function Sales() {
                 padding: '0.875rem',
                 fontSize: '1rem',
                 fontWeight: 'bold',
-                background: deliverMode ? '#7c3aed' : '#22c55e',
+                background: total === 0 && cart.length > 0 ? '#7c3aed' : '#22c55e',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -1116,7 +1189,7 @@ export default function Sales() {
                 opacity: cart.length === 0 ? 0.7 : 1
               }}
             >
-              {deliverMode ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
+              {total === 0 && cart.length > 0 ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
             </button>
           </>
         )}

@@ -163,7 +163,6 @@ router.post("/", authenticate, async (req, res) => {
     // Lấy thông tin sản phẩm và tính tổng
     const orderItems = [];
     let subtotal = 0;
-    const isPackageDelivery = !!customer_package_id;
 
     for (const item of items) {
       let product;
@@ -184,13 +183,14 @@ router.post("/", authenticate, async (req, res) => {
           .status(400)
           .json({ error: "Sản phẩm không tồn tại hoặc đã ngừng bán" });
       }
-      if (!isPackageDelivery && product.price <= 0) {
+      // SP từ gói (from_package=true) cho phép price=0
+      if (!item.from_package && product.price <= 0) {
         return res
           .status(400)
           .json({ error: `Sản phẩm ${product.name} chưa có giá bán` });
       }
 
-      // Kiểm tra tồn kho từ SX (cả đơn thường và giao gói đều cần)
+      // Kiểm tra tồn kho từ SX (cả gói và lẻ đều cần)
       try {
         const stockCheck = await checkStock(
           product.sx_product_type,
@@ -206,8 +206,8 @@ router.post("/", authenticate, async (req, res) => {
         console.error("Stock check error:", err.message);
       }
 
-      // Giao từ gói → giá = 0đ
-      const unitPrice = isPackageDelivery ? 0 : product.price;
+      // Mix mode: SP từ gói → 0đ, SP lẻ → giá thường
+      const unitPrice = item.from_package ? 0 : product.price;
       const itemTotal = unitPrice * item.quantity;
       subtotal += itemTotal;
 
@@ -221,6 +221,7 @@ router.post("/", authenticate, async (req, res) => {
         total_price: itemTotal,
         sx_product_type: product.sx_product_type,
         sx_product_id: product.sx_product_id,
+        from_package: !!item.from_package,
       });
     }
 
@@ -583,12 +584,29 @@ router.post("/", authenticate, async (req, res) => {
     // Gói: tạo customer_package khi mua gói
     if (package_buy && package_buy.package_id && phone) {
       try {
-        await run(
+        const cpResult = await run(
           `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, created_at, updated_at)
            VALUES (?, ?, ?, ?, 0, 'active', ?, ?)`,
           [phone, package_buy.package_id, orderId, package_buy.total_qty, now, now]
         );
-        console.log(`📦 Created customer package for ${phone}: ${package_buy.total_qty} SP`);
+        const newCpId = Number(cpResult.lastInsertRowid);
+        console.log(`📦 Created customer package #${newCpId} for ${phone}: ${package_buy.total_qty} SP`);
+
+        // Giao lần 1 cùng đơn? → cập nhật delivered_qty ngay
+        const firstDeliveryQty = orderItems.reduce((s, i) => s + (i.from_package ? i.quantity : 0), 0);
+        if (firstDeliveryQty > 0) {
+          await run(
+            `UPDATE pos_customer_packages 
+             SET delivered_qty = ?,
+                 status = CASE WHEN ? >= total_qty THEN 'completed' ELSE 'active' END,
+                 updated_at = ?
+             WHERE id = ?`,
+            [firstDeliveryQty, firstDeliveryQty, now, newCpId]
+          );
+          // Gắn customer_package_id vào order (để tracking deliveries)
+          await run('UPDATE pos_orders SET customer_package_id = ? WHERE id = ?', [newCpId, orderId]);
+          console.log(`📦 First delivery: ${firstDeliveryQty} SP for new package #${newCpId}`);
+        }
       } catch (err) {
         console.error('Package buy record error:', err.message);
       }
@@ -597,17 +615,19 @@ router.post("/", authenticate, async (req, res) => {
     // Gói: cập nhật delivered_qty khi giao từ gói (ATOMIC — tránh race condition)
     if (customer_package_id) {
       try {
-        const deliveredQty = orderItems.reduce((s, i) => s + (i.is_package_item ? 0 : i.quantity), 0);
-        // Atomic: SET delivered_qty = delivered_qty + N (không cần đọc trước)
-        await run(
-          `UPDATE pos_customer_packages 
-           SET delivered_qty = delivered_qty + ?, 
-               status = CASE WHEN delivered_qty + ? >= total_qty THEN 'completed' ELSE 'active' END,
-               updated_at = ?
-           WHERE id = ?`,
-          [deliveredQty, deliveredQty, now, customer_package_id]
-        );
-        console.log(`📦 Updated delivery +${deliveredQty} for package #${customer_package_id}`);
+        // Chỉ đếm SP từ gói (from_package=true), không đếm SP lẻ
+        const deliveredQty = orderItems.reduce((s, i) => s + (i.from_package ? i.quantity : 0), 0);
+        if (deliveredQty > 0) {
+          await run(
+            `UPDATE pos_customer_packages 
+             SET delivered_qty = delivered_qty + ?, 
+                 status = CASE WHEN delivered_qty + ? >= total_qty THEN 'completed' ELSE 'active' END,
+                 updated_at = ?
+             WHERE id = ?`,
+            [deliveredQty, deliveredQty, now, customer_package_id]
+          );
+          console.log(`📦 Updated delivery +${deliveredQty} for package #${customer_package_id}`);
+        }
       } catch (err) {
         console.error('Package delivery update error:', err.message);
       }

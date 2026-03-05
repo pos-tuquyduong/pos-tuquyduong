@@ -69,7 +69,8 @@ export default function Settings() {
   const [packages, setPackages] = useState([]);
   const [showPkgModal, setShowPkgModal] = useState(false);
   const [editingPkg, setEditingPkg] = useState(null);
-  const [pkgForm, setPkgForm] = useState({ code: '', name: '', description: '', price: '', unit: 'túi', is_active: true });
+  const [pkgForm, setPkgForm] = useState({ code: '', name: '', description: '', price: '', unit: 'túi', total_qty: '', package_items: [], is_active: true });
+  const [allProducts, setAllProducts] = useState([]); // For package items checklist
 
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
@@ -183,16 +184,31 @@ export default function Settings() {
   };
   const openPkgModal = (pkg = null) => {
     setEditingPkg(pkg);
-    setPkgForm(pkg ? { code: pkg.code, name: pkg.name, description: pkg.description || '', price: pkg.price || '', unit: pkg.unit || 'túi', is_active: !!pkg.is_active }
-      : { code: '', name: '', description: '', price: '', unit: 'túi', is_active: true });
+    const existingItems = pkg?.package_items ? (typeof pkg.package_items === 'string' ? JSON.parse(pkg.package_items) : pkg.package_items) : [];
+    setPkgForm(pkg ? {
+      code: pkg.code, name: pkg.name, description: pkg.description || '', price: pkg.price || '',
+      unit: pkg.unit || 'túi', total_qty: pkg.total_qty || '', package_items: existingItems, is_active: !!pkg.is_active
+    } : { code: '', name: '', description: '', price: '', unit: 'túi', total_qty: '', package_items: [], is_active: true });
     setShowPkgModal(true);
+    // Load products for checklist
+    if (allProducts.length === 0) {
+      pkgApi('GET', '/api/pos/products?with_stock=true').then(data => {
+        if (Array.isArray(data)) setAllProducts(data);
+      }).catch(() => {});
+    }
   };
   const savePkg = async () => {
     if (!pkgForm.code || !pkgForm.name) { setMessage('Lỗi: Mã và tên bắt buộc'); return; }
     setSaving(true);
     try {
       const url = editingPkg ? `/api/pos/packages/${editingPkg.id}` : '/api/pos/packages';
-      const data = await pkgApi(editingPkg ? 'PUT' : 'POST', url, { ...pkgForm, price: parseFloat(pkgForm.price) || 0 });
+      const body = {
+        ...pkgForm,
+        price: parseFloat(pkgForm.price) || 0,
+        total_qty: parseInt(pkgForm.total_qty) || 0,
+        package_items: pkgForm.package_items.filter(i => i.qty > 0),
+      };
+      const data = await pkgApi(editingPkg ? 'PUT' : 'POST', url, body);
       if (!data.success) throw new Error(data.error);
       setMessage(data.message); setShowPkgModal(false); await loadPackages();
     } catch (err) { setMessage('Lỗi: ' + err.message); } finally { setSaving(false); }
@@ -664,26 +680,34 @@ export default function Settings() {
                 <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>Chưa có gói nào.</div>
               ) : (
                 <table className="table">
-                  <thead><tr><th>Mã</th><th>Tên gói</th><th>Mô tả</th><th>Giá bán</th><th>ĐVT</th><th>Trạng thái</th><th></th></tr></thead>
+                  <thead><tr><th>Mã</th><th>Tên gói</th><th>SL SP</th><th>Giá bán</th><th>TT</th><th></th></tr></thead>
                   <tbody>
-                    {packages.map(pkg => (
+                    {packages.map(pkg => {
+                      const locked = pkg.active_users > 0;
+                      return (
                       <tr key={pkg.id} style={{ opacity: pkg.is_active ? 1 : 0.5 }}>
                         <td><strong style={{ color: '#7c3aed' }}>📦 {pkg.code}</strong></td>
-                        <td>{pkg.name}</td>
-                        <td style={{ fontSize: '0.85rem', color: '#666' }}>{pkg.description || '-'}</td>
+                        <td>
+                          {pkg.name}
+                          {locked && <span style={{ fontSize: '0.7rem', marginLeft: '0.25rem', color: '#f59e0b' }}>🔒 {pkg.active_users} KH</span>}
+                        </td>
+                        <td><span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600, fontSize: '0.8rem' }}>{pkg.total_qty || '-'}</span></td>
                         <td><strong style={{ color: '#2563eb' }}>{(pkg.price || 0).toLocaleString()}đ</strong></td>
-                        <td>{pkg.unit || 'túi'}</td>
                         <td>
                           <span onClick={() => togglePkg(pkg)} style={{ cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', background: pkg.is_active ? '#dcfce7' : '#f3f4f6', color: pkg.is_active ? '#166534' : '#9ca3af', fontSize: '0.85rem' }}>
                             {pkg.is_active ? 'Đang bán' : 'Ngừng bán'}
                           </span>
                         </td>
                         <td>
-                          <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', marginRight: '0.25rem' }} onClick={() => openPkgModal(pkg)}><Edit2 size={14} /></button>
+                          <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', marginRight: '0.25rem' }}
+                            onClick={() => { if (locked) { setMessage(`Lỗi: ${pkg.active_users} KH đang dùng gói — không sửa được. Tạo gói mới!`); return; } openPkgModal(pkg); }}>
+                            {locked ? '🔒' : <Edit2 size={14} />}
+                          </button>
                           <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', color: '#ef4444' }} onClick={() => deletePkg(pkg)}><Trash2 size={14} /></button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -704,8 +728,44 @@ export default function Settings() {
                       <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <div style={{ flex: 2 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Giá bán (VND)</label>
                           <input className="input" type="number" min="0" value={pkgForm.price} onChange={e => setPkgForm({ ...pkgForm, price: e.target.value })} /></div>
+                        <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Tổng SL SP</label>
+                          <input className="input" type="number" min="0" value={pkgForm.total_qty} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>ĐVT</label>
                           <input className="input" value={pkgForm.unit} onChange={e => setPkgForm({ ...pkgForm, unit: e.target.value })} /></div>
+                      </div>
+                      {/* SP trong gói */}
+                      <div>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>📋 SP trong gói (chọn + nhập SL)</label>
+                        <div style={{ maxHeight: '200px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.5rem' }}>
+                          {allProducts.filter(p => p.price > 0).map(p => {
+                            const key = `${p.sx_product_type}_${p.sx_product_id}`;
+                            const existing = pkgForm.package_items.find(i => `${i.sx_product_type}_${i.sx_product_id}` === key);
+                            return (
+                              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                <input type="checkbox" checked={!!existing}
+                                  onChange={e => {
+                                    if (e.target.checked) {
+                                      setPkgForm({ ...pkgForm, package_items: [...pkgForm.package_items, { sx_product_type: p.sx_product_type, sx_product_id: p.sx_product_id, code: p.code, name: p.name, qty: 0 }] });
+                                    } else {
+                                      setPkgForm({ ...pkgForm, package_items: pkgForm.package_items.filter(i => `${i.sx_product_type}_${i.sx_product_id}` !== key) });
+                                    }
+                                  }} />
+                                <span style={{ flex: 1, fontSize: '0.8rem' }}>{p.icon || '📦'} {p.code} — {p.name}</span>
+                                {existing && (
+                                  <input type="number" min="0" value={existing.qty || ''} placeholder="SL"
+                                    onChange={e => setPkgForm({ ...pkgForm, package_items: pkgForm.package_items.map(i => `${i.sx_product_type}_${i.sx_product_id}` === key ? { ...i, qty: parseInt(e.target.value) || 0 } : i) })}
+                                    style={{ width: '55px', padding: '2px 4px', borderRadius: 4, border: '1px solid #c4b5fd', fontSize: '0.8rem', textAlign: 'center' }} />
+                                )}
+                              </div>
+                            );
+                          })}
+                          {allProducts.length === 0 && <div style={{ textAlign: 'center', color: '#999', padding: '0.5rem', fontSize: '0.8rem' }}>Đang tải SP...</div>}
+                        </div>
+                        {pkgForm.package_items.length > 0 && (
+                          <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginTop: '0.25rem' }}>
+                            {pkgForm.package_items.filter(i => i.qty > 0).length} SP · Tổng từ items: {pkgForm.package_items.reduce((s, i) => s + (i.qty || 0), 0)}
+                          </div>
+                        )}
                       </div>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                         <input type="checkbox" checked={pkgForm.is_active} onChange={e => setPkgForm({ ...pkgForm, is_active: e.target.checked })} /> Đang bán

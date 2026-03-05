@@ -641,6 +641,8 @@ async function createTables() {
       description TEXT,
       price REAL DEFAULT 0,
       unit TEXT DEFAULT 'túi',
+      total_qty INTEGER DEFAULT 0,
+      package_items TEXT,
       is_active INTEGER DEFAULT 1,
       sort_order INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -671,6 +673,10 @@ async function createTables() {
   try {
     await db.execute(`ALTER TABLE pos_orders ADD COLUMN customer_package_id INTEGER`);
   } catch (e) { /* column already exists */ }
+
+  // Migration: pos_packages thêm package_items + total_qty
+  try { await db.execute(`ALTER TABLE pos_packages ADD COLUMN total_qty INTEGER DEFAULT 0`); } catch (e) {}
+  try { await db.execute(`ALTER TABLE pos_packages ADD COLUMN package_items TEXT`); } catch (e) {}
 
   // Indexes cho pos_customer_packages
   try {
