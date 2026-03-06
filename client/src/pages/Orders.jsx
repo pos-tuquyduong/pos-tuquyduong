@@ -103,6 +103,16 @@ export default function Orders() {
   };
 
   const loadInvoiceSettings = async () => {
+    // Logo luôn đọc từ cache (được lưu bởi trang Cài đặt HĐ)
+    try {
+      const cached = localStorage.getItem('pos_invoice_settings_cache');
+      if (cached) {
+        const { logo } = JSON.parse(cached);
+        if (logo) setInvoiceSettings(prev => ({ ...prev, store_logo: logo }));
+      }
+    } catch (e) {}
+
+    // Settings (không có logo) từ API
     try {
       const token = localStorage.getItem('pos_token');
       const res = await fetch('/api/pos/settings', {
@@ -110,18 +120,7 @@ export default function Orders() {
       });
       const data = await res.json();
       if (data.success) {
-        const settings = data.data;
-        // Fallback: nếu API không có logo, lấy từ cache InvoiceSettings
-        if (!settings.store_logo) {
-          try {
-            const cached = localStorage.getItem('pos_invoice_settings_cache');
-            if (cached) {
-              const { logo } = JSON.parse(cached);
-              if (logo) settings.store_logo = logo;
-            }
-          } catch (e) {}
-        }
-        setInvoiceSettings(settings);
+        setInvoiceSettings(prev => ({ ...prev, ...data.data }));
       }
     } catch (err) {
       console.error('Load settings error:', err);

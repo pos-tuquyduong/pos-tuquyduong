@@ -227,6 +227,16 @@ export default function Settings() {
   // INVOICE FUNCTIONS (mới cho Phase A)
   // ═══════════════════════════════════════════════════════════════════════════
   const loadInvoiceSettings = async () => {
+    // Logo từ cache (được lưu bởi trang Cài đặt HĐ)
+    try {
+      const cached = localStorage.getItem('pos_invoice_settings_cache');
+      if (cached) {
+        const { logo } = JSON.parse(cached);
+        if (logo) setInvoiceSettings(prev => ({ ...prev, store_logo: logo }));
+      }
+    } catch (e) {}
+
+    // Settings (không có logo) từ API
     try {
       const result = await settingsApi.getAll();
       if (result.success && result.data) {
@@ -266,8 +276,18 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      await settingsApi.uploadLogo(file);
-      await loadInvoiceSettings(); // Reload to get new logo
+      const result = await settingsApi.uploadLogo(file);
+      const newLogo = result.data?.logo || '';
+      // Cập nhật state
+      setInvoiceSettings(prev => ({ ...prev, store_logo: newLogo }));
+      // Cập nhật cache để các trang khác dùng
+      try {
+        const cached = localStorage.getItem('pos_invoice_settings_cache');
+        const cacheData = cached ? JSON.parse(cached) : {};
+        localStorage.setItem('pos_invoice_settings_cache', JSON.stringify({
+          ...cacheData, logo: newLogo, timestamp: Date.now()
+        }));
+      } catch (ce) {}
       setMessage('Đã upload logo thành công!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -285,6 +305,14 @@ export default function Settings() {
     try {
       await settingsApi.deleteLogo();
       setInvoiceSettings(prev => ({ ...prev, store_logo: '' }));
+      // Xóa logo khỏi cache
+      try {
+        const cached = localStorage.getItem('pos_invoice_settings_cache');
+        const cacheData = cached ? JSON.parse(cached) : {};
+        localStorage.setItem('pos_invoice_settings_cache', JSON.stringify({
+          ...cacheData, logo: '', timestamp: Date.now()
+        }));
+      } catch (ce) {}
       setMessage('Đã xóa logo!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {

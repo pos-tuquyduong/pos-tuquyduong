@@ -107,25 +107,24 @@ export default function Sales() {
 
   // Load cài đặt hóa đơn (Phase A)
   const loadInvoiceSettings = async () => {
+    // Logo luôn đọc từ cache (được lưu bởi trang Cài đặt HĐ)
+    try {
+      const cached = localStorage.getItem('pos_invoice_settings_cache');
+      if (cached) {
+        const { logo } = JSON.parse(cached);
+        if (logo) setInvoiceSettings(prev => ({ ...prev, store_logo: logo }));
+      }
+    } catch (e) {}
+
+    // Settings (không có logo) từ API
     try {
       const token = localStorage.getItem('pos_token');
       const res = await fetch('/api/pos/settings', {
-    headers: { 'Authorization': 'Bearer ' + token }
+        headers: { 'Authorization': 'Bearer ' + token }
       });
       const result = await res.json();
       if (result.success && result.data) {
-    const settings = result.data;
-    // Fallback: nếu API không có logo, lấy từ cache InvoiceSettings
-    if (!settings.store_logo) {
-      try {
-        const cached = localStorage.getItem('pos_invoice_settings_cache');
-        if (cached) {
-          const { logo } = JSON.parse(cached);
-          if (logo) settings.store_logo = logo;
-        }
-      } catch (e) {}
-    }
-    setInvoiceSettings(settings);
+        setInvoiceSettings(prev => ({ ...prev, ...result.data }));
       }
     } catch (err) {
       console.error('Load invoice settings error:', err);

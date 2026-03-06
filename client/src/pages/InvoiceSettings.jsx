@@ -286,9 +286,21 @@ export default function InvoiceSettings() {
         }
         setConfig(newConfig);
         
-        // Get logo
-        const newLogo = settings.store_logo || '';
-        setLogo(newLogo);
+        // Logo: load riêng (không nằm trong GET /settings để API nhẹ)
+        let newLogo = logo; // giữ logo từ cache
+        try {
+          const token = localStorage.getItem('pos_token');
+          const logoRes = await fetch('/api/pos/settings/store_logo', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          const logoData = await logoRes.json();
+          if (logoData.success && logoData.data?.value) {
+            newLogo = logoData.data.value;
+            setLogo(newLogo);
+          }
+        } catch (e) {
+          console.warn('Load logo separately failed, using cache');
+        }
         
         // Save to cache
         try {

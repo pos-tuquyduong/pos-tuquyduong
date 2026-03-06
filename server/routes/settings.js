@@ -36,7 +36,8 @@ const upload = multer({
 // ═══════════════════════════════════════════════════════════════════════════
 router.get('/', authenticate, async (req, res) => {
   try {
-    const settings = await query('SELECT key, value, updated_at FROM pos_settings');
+    // Không trả store_logo (base64 nặng) — frontend đọc từ localStorage cache
+    const settings = await query("SELECT key, value, updated_at FROM pos_settings WHERE key != 'store_logo'");
     
     // Chuyển array thành object để dễ sử dụng
     const settingsObj = {};
@@ -46,8 +47,7 @@ router.get('/', authenticate, async (req, res) => {
 
     res.json({
       success: true,
-      data: settingsObj,
-      raw: settings // Trả về cả dạng array nếu cần
+      data: settingsObj
     });
   } catch (err) {
     console.error('GET settings error:', err);
