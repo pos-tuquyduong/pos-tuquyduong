@@ -901,6 +901,48 @@ router.put(
           }
         }
 
+        // ══ GÓI SP: Xử lý khi hủy đơn liên quan gói ══
+        // Case 1: Đơn này là đơn "mua gói" → hủy customer_package
+        const cancelBuyPkg = await tx.queryOne(
+          "SELECT id, delivered_qty FROM pos_customer_packages WHERE order_id = ?", [order.id]
+        );
+        if (cancelBuyPkg) {
+          if (cancelBuyPkg.delivered_qty > 0) {
+            // Đã có giao hàng → chỉ đánh dấu cancelled, giữ lịch sử
+            await tx.run(
+              `UPDATE pos_customer_packages SET status = 'cancelled', 
+               notes = ?, updated_at = ? WHERE id = ?`,
+              [`Hủy gói - đơn mua ${order.code} bị hủy (đã giao ${cancelBuyPkg.delivered_qty})`, now, cancelBuyPkg.id]
+            );
+          } else {
+            // Chưa giao gì → xóa hẳn
+            await tx.run("DELETE FROM pos_customer_packages WHERE id = ?", [cancelBuyPkg.id]);
+            await tx.run("UPDATE pos_orders SET customer_package_id = NULL WHERE customer_package_id = ? AND id != ?", [cancelBuyPkg.id, order.id]);
+          }
+          console.log(`📦 Hủy đơn mua gói: customer_package #${cancelBuyPkg.id}`);
+        }
+
+        // Case 2: Đơn này là đơn "giao từ gói" → trừ delivered_qty
+        if (order.customer_package_id && (!cancelBuyPkg || cancelBuyPkg.id !== order.customer_package_id)) {
+          const cancelItems = await tx.query(
+            `SELECT product_id, quantity, unit_price FROM pos_order_items WHERE order_id = ?`, [order.id]
+          );
+          const deliveredQty = (cancelItems || [])
+            .filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))
+            .reduce((s, i) => s + i.quantity, 0);
+          if (deliveredQty > 0) {
+            await tx.run(
+              `UPDATE pos_customer_packages 
+               SET delivered_qty = MAX(0, delivered_qty - ?),
+                   status = CASE WHEN status = 'completed' THEN 'active' ELSE status END,
+                   updated_at = ?
+               WHERE id = ?`,
+              [deliveredQty, now, order.customer_package_id]
+            );
+            console.log(`📦 Hủy đơn giao: hoàn lại -${deliveredQty} SP cho package #${order.customer_package_id}`);
+          }
+        }
+
         // Cập nhật trạng thái đơn hàng
         await tx.run(
           `UPDATE pos_orders 
@@ -1047,6 +1089,35 @@ router.delete("/:id", authenticate, async (req, res) => {
              `Hoàn tiền mẹ xóa đơn ${order.code} (KH: ${order.customer_name})`,
              req.user.username, now],
           );
+        }
+      }
+
+      // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══
+      // Case 1: Đơn này là đơn "mua gói" → xóa luôn customer_package
+      const buyPkg = await tx.queryOne(
+        "SELECT id FROM pos_customer_packages WHERE order_id = ?", [order.id]
+      );
+      if (buyPkg) {
+        await tx.run("DELETE FROM pos_customer_packages WHERE id = ?", [buyPkg.id]);
+        // Gỡ customer_package_id khỏi các đơn giao liên quan (nếu có)
+        await tx.run("UPDATE pos_orders SET customer_package_id = NULL WHERE customer_package_id = ? AND id != ?", [buyPkg.id, order.id]);
+        console.log(`📦 Xóa customer_package #${buyPkg.id} (đơn mua gói bị xóa)`);
+      }
+      // Case 2: Đơn này là đơn "giao từ gói" → trừ delivered_qty
+      if (order.customer_package_id && (!buyPkg || buyPkg.id !== order.customer_package_id)) {
+        const deliveredQty = orderItems
+          .filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))
+          .reduce((s, i) => s + i.quantity, 0);
+        if (deliveredQty > 0) {
+          await tx.run(
+            `UPDATE pos_customer_packages 
+             SET delivered_qty = MAX(0, delivered_qty - ?),
+                 status = CASE WHEN status = 'completed' THEN 'active' ELSE status END,
+                 updated_at = ?
+             WHERE id = ?`,
+            [deliveredQty, now, order.customer_package_id]
+          );
+          console.log(`📦 Hoàn lại -${deliveredQty} SP cho package #${order.customer_package_id}`);
         }
       }
 
