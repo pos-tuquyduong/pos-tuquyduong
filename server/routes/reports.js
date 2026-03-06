@@ -24,7 +24,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
   try {
     const { date = getToday() } = req.query;
 
-    // Tổng quan đơn hàng - Không đếm đơn giao từ gói (customer_package_id IS NULL)
+    // Tổng quan đơn hàng - Không đếm đơn giao từ gói 0đ (nhưng tính đơn mua gói có doanh thu)
     const orderStats = await queryOne(`
       SELECT 
         COUNT(*) as total_orders,
@@ -38,7 +38,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
         SUM(CASE WHEN status = 'completed' THEN COALESCE(shipping_fee, 0) ELSE 0 END) as total_shipping,
         SUM(CASE WHEN status = 'completed' AND discount_code IS NOT NULL THEN 1 ELSE 0 END) as orders_with_discount_code
       FROM pos_orders
-      WHERE DATE(created_at) = ? AND customer_package_id IS NULL
+      WHERE DATE(created_at) = ? AND (customer_package_id IS NULL OR total > 0)
     `, [date]);
 
     // Thống kê gói SP hôm nay
@@ -58,7 +58,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
       WHERE DATE(created_at) = ?
     `, [date]);
 
-    // Sản phẩm bán chạy (không tính giao từ gói)
+    // Sản phẩm bán chạy (không tính đơn giao từ gói 0đ)
     const topProducts = await query(`
       SELECT 
         oi.product_code,
@@ -67,7 +67,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
         SUM(oi.total_price) as total_revenue
       FROM pos_order_items oi
       JOIN pos_orders o ON oi.order_id = o.id
-      WHERE DATE(o.created_at) = ? AND o.status = 'completed' AND o.customer_package_id IS NULL AND oi.product_id > 0
+      WHERE DATE(o.created_at) = ? AND o.status = 'completed' AND (o.customer_package_id IS NULL OR o.total > 0) AND oi.product_id > 0
       GROUP BY oi.product_id
       ORDER BY total_quantity DESC
       LIMIT 10
