@@ -612,11 +612,56 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
   color: var(--gray-500);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Tablet & Phone (≤768px)
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
+  /* Layout */
   .sidebar { display: none; }
-  .main-content { margin-left: 0; }
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .main-content { margin-left: 0; padding-bottom: 80px; }
+
+  /* Grid: 2 cột (không 1 cột, lãng phí) */
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .grid { gap: 0.5rem; }
+
+  /* Page header: wrap buttons xuống dòng */
+  .page-header { flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1rem; }
+  .page-header > div { flex-wrap: wrap; gap: 0.4rem; }
+  .page-title { font-size: 1.1rem; width: 100%; }
+
+  /* Page content */
+  .page-content { padding: 0.75rem; }
+
+  /* Cards */
+  .card { padding: 1rem; border-radius: 0.75rem; }
+
+  /* Stat cards */
+  .stat-card { padding: 0.75rem; border-radius: 0.75rem; }
+  .stat-value { font-size: 1.15rem; }
+  .stat-label { font-size: 0.75rem; }
+
+  /* Buttons */
+  .btn { padding: 0.4rem 0.75rem; font-size: 0.8rem; gap: 0.3rem; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* Tables: scroll ngang */
+  .table { min-width: 600px; }
+  .table th, .table td { padding: 0.5rem; font-size: 0.8rem; white-space: nowrap; }
+
+  /* Inputs */
+  .input, .select { padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+
+  /* Alert */
+  .alert { font-size: 0.85rem; padding: 0.5rem 0.75rem; }
+
+  /* Flex utilities */
+  .flex { flex-wrap: wrap; }
+  .gap-1 { gap: 0.4rem; }
+
+  /* Modal */
+  .modal { max-width: 95vw !important; margin: 0 auto; }
 }
+
 /* ===== SALES PAGE RESPONSIVE ===== */
 .sales-layout {
   display: grid;
@@ -625,13 +670,11 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
 }
 
 @media (max-width: 768px) {
-  .sales-layout {
-    grid-template-columns: 1fr;
-  }
+  .sales-layout { grid-template-columns: 1fr; }
 
   .sales-layout > div:last-child {
     position: fixed;
-    bottom: 0;
+    bottom: 70px; /* trên bottom-nav */
     left: 0;
     right: 0;
     max-height: 50vh;
@@ -683,24 +726,8 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
     min-width: 60px;
   }
 
-  .bottom-nav-item.active {
-    color: var(--primary);
-  }
-
-  .bottom-nav-item svg {
-    width: 22px;
-    height: 22px;
-  }
-
-  /* Adjust main content padding */
-  .main-content {
-    padding-bottom: 80px;
-  }
-
-  /* Adjust sales layout cart position */
-  .sales-layout > div:last-child {
-    bottom: 70px;
-  }
+  .bottom-nav-item.active { color: var(--primary); }
+  .bottom-nav-item svg { width: 22px; height: 22px; }
 }
 
 /* ===== MOBILE MENU OVERLAY ===== */
@@ -791,4 +818,19 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
     width: 100%;
     font-size: 1rem;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SMALL PHONE (≤480px) — Luôn đặt SAU 768px
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .page-header { padding: 0.5rem 0.75rem; }
+  .page-title { font-size: 1rem; }
+  .page-content { padding: 0.5rem; }
+  .card { padding: 0.75rem; }
+  .stat-card { padding: 0.5rem; }
+  .stat-value { font-size: 1rem; }
+  .stat-label { font-size: 0.7rem; }
+  .btn { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+  .sales-layout > div:last-child { padding: 0.75rem; }
 }
