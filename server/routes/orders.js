@@ -229,15 +229,16 @@ router.post("/", authenticate, async (req, res) => {
     if (package_buy && package_buy.package_id) {
       const pkg = await queryOne('SELECT * FROM pos_packages WHERE id = ? AND is_active = 1', [package_buy.package_id]);
       if (!pkg) return res.status(400).json({ error: 'Gói sản phẩm không tồn tại' });
-      subtotal += pkg.price;
+      const pkgQty = package_buy.pkg_qty || 1;
+      subtotal += pkg.price * pkgQty;
       orderItems.push({
         product_id: -pkg.id,
         product_code: pkg.code,
         product_name: `📦 ${pkg.name} (${package_buy.total_qty} ${pkg.unit})`,
         unit: 'gói',
-        quantity: 1,
+        quantity: pkgQty,
         unit_price: pkg.price,
-        total_price: pkg.price,
+        total_price: pkg.price * pkgQty,
         sx_product_type: null,
         sx_product_id: null,
         is_package_item: true,
@@ -581,31 +582,35 @@ router.post("/", authenticate, async (req, res) => {
       }
     }
 
-    // Gói: tạo customer_package khi mua gói
+    // Gói: tạo customer_package khi mua gói (hỗ trợ mua nhiều gói)
     if (package_buy && package_buy.package_id && phone) {
+      const pkgQty = package_buy.pkg_qty || 1;
       try {
-        const cpResult = await run(
-          `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 0, 'active', ?, ?)`,
-          [phone, package_buy.package_id, orderId, package_buy.total_qty, now, now]
-        );
-        const newCpId = Number(cpResult.lastInsertRowid);
-        console.log(`📦 Created customer package #${newCpId} for ${phone}: ${package_buy.total_qty} SP`);
-
-        // Giao lần 1 cùng đơn? → cập nhật delivered_qty ngay
-        const firstDeliveryQty = orderItems.reduce((s, i) => s + (i.from_package ? i.quantity : 0), 0);
-        if (firstDeliveryQty > 0) {
-          await run(
-            `UPDATE pos_customer_packages 
-             SET delivered_qty = ?,
-                 status = CASE WHEN ? >= total_qty THEN 'completed' ELSE 'active' END,
-                 updated_at = ?
-             WHERE id = ?`,
-            [firstDeliveryQty, firstDeliveryQty, now, newCpId]
+        for (let i = 0; i < pkgQty; i++) {
+          const cpResult = await run(
+            `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 0, 'active', ?, ?)`,
+            [phone, package_buy.package_id, orderId, package_buy.total_qty, now, now]
           );
-          // Gắn customer_package_id vào order (để tracking deliveries)
-          await run('UPDATE pos_orders SET customer_package_id = ? WHERE id = ?', [newCpId, orderId]);
-          console.log(`📦 First delivery: ${firstDeliveryQty} SP for new package #${newCpId}`);
+          const newCpId = Number(cpResult.lastInsertRowid);
+          console.log(`📦 Created customer package #${newCpId} (${i + 1}/${pkgQty}) for ${phone}: ${package_buy.total_qty} SP`);
+
+          // Giao lần 1 cùng đơn — chỉ áp dụng cho gói đầu tiên
+          if (i === 0) {
+            const firstDeliveryQty = orderItems.reduce((s, item) => s + (item.from_package ? item.quantity : 0), 0);
+            if (firstDeliveryQty > 0) {
+              await run(
+                `UPDATE pos_customer_packages 
+                 SET delivered_qty = ?,
+                     status = CASE WHEN ? >= total_qty THEN 'completed' ELSE 'active' END,
+                     updated_at = ?
+                 WHERE id = ?`,
+                [firstDeliveryQty, firstDeliveryQty, now, newCpId]
+              );
+              await run('UPDATE pos_orders SET customer_package_id = ? WHERE id = ?', [newCpId, orderId]);
+              console.log(`📦 First delivery: ${firstDeliveryQty} SP for package #${newCpId}`);
+            }
+          }
         }
       } catch (err) {
         console.error('Package buy record error:', err.message);
@@ -902,28 +907,29 @@ router.put(
         }
 
         // ══ GÓI SP: Xử lý khi hủy đơn liên quan gói ══
-        // Case 1: Đơn này là đơn "mua gói" → hủy customer_package
-        const cancelBuyPkg = await tx.queryOne(
+        // Case 1: Đơn này là đơn "mua gói" → hủy TẤT CẢ customer_packages
+        const cancelBuyPkgs = await tx.query(
           "SELECT id, delivered_qty FROM pos_customer_packages WHERE order_id = ?", [order.id]
         );
-        if (cancelBuyPkg) {
-          if (cancelBuyPkg.delivered_qty > 0) {
-            // Đã có giao hàng → chỉ đánh dấu cancelled, giữ lịch sử
-            await tx.run(
-              `UPDATE pos_customer_packages SET status = 'cancelled', 
-               notes = ?, updated_at = ? WHERE id = ?`,
-              [`Hủy gói - đơn mua ${order.code} bị hủy (đã giao ${cancelBuyPkg.delivered_qty})`, now, cancelBuyPkg.id]
-            );
-          } else {
-            // Chưa giao gì → xóa hẳn
-            await tx.run("DELETE FROM pos_customer_packages WHERE id = ?", [cancelBuyPkg.id]);
-            await tx.run("UPDATE pos_orders SET customer_package_id = NULL WHERE customer_package_id = ? AND id != ?", [cancelBuyPkg.id, order.id]);
+        if (cancelBuyPkgs && cancelBuyPkgs.length > 0) {
+          for (const cp of cancelBuyPkgs) {
+            if (cp.delivered_qty > 0) {
+              await tx.run(
+                `UPDATE pos_customer_packages SET status = 'cancelled', 
+                 notes = ?, updated_at = ? WHERE id = ?`,
+                [`Hủy gói - đơn mua ${order.code} bị hủy (đã giao ${cp.delivered_qty})`, now, cp.id]
+              );
+            } else {
+              await tx.run("DELETE FROM pos_customer_packages WHERE id = ?", [cp.id]);
+              await tx.run("UPDATE pos_orders SET customer_package_id = NULL WHERE customer_package_id = ? AND id != ?", [cp.id, order.id]);
+            }
           }
-          console.log(`📦 Hủy đơn mua gói: customer_package #${cancelBuyPkg.id}`);
+          console.log(`📦 Hủy đơn mua gói: ${cancelBuyPkgs.length} packages`);
         }
 
         // Case 2: Đơn này là đơn "giao từ gói" → trừ delivered_qty
-        if (order.customer_package_id && (!cancelBuyPkg || cancelBuyPkg.id !== order.customer_package_id)) {
+        const cancelBuyPkgIds = (cancelBuyPkgs || []).map(b => b.id);
+        if (order.customer_package_id && !cancelBuyPkgIds.includes(order.customer_package_id)) {
           const cancelItems = await tx.query(
             `SELECT product_id, quantity, unit_price FROM pos_order_items WHERE order_id = ?`, [order.id]
           );
@@ -1093,18 +1099,20 @@ router.delete("/:id", authenticate, async (req, res) => {
       }
 
       // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══
-      // Case 1: Đơn này là đơn "mua gói" → xóa luôn customer_package
-      const buyPkg = await tx.queryOne(
+      // Case 1: Đơn này là đơn "mua gói" → xóa TẤT CẢ customer_packages (có thể nhiều gói)
+      const buyPkgs = await tx.query(
         "SELECT id FROM pos_customer_packages WHERE order_id = ?", [order.id]
       );
-      if (buyPkg) {
-        await tx.run("DELETE FROM pos_customer_packages WHERE id = ?", [buyPkg.id]);
-        // Gỡ customer_package_id khỏi các đơn giao liên quan (nếu có)
-        await tx.run("UPDATE pos_orders SET customer_package_id = NULL WHERE customer_package_id = ? AND id != ?", [buyPkg.id, order.id]);
-        console.log(`📦 Xóa customer_package #${buyPkg.id} (đơn mua gói bị xóa)`);
+      if (buyPkgs && buyPkgs.length > 0) {
+        for (const bp of buyPkgs) {
+          await tx.run("UPDATE pos_orders SET customer_package_id = NULL WHERE customer_package_id = ? AND id != ?", [bp.id, order.id]);
+        }
+        await tx.run("DELETE FROM pos_customer_packages WHERE order_id = ?", [order.id]);
+        console.log(`📦 Xóa ${buyPkgs.length} customer_packages (đơn mua gói bị xóa)`);
       }
       // Case 2: Đơn này là đơn "giao từ gói" → trừ delivered_qty
-      if (order.customer_package_id && (!buyPkg || buyPkg.id !== order.customer_package_id)) {
+      const buyPkgIds = (buyPkgs || []).map(b => b.id);
+      if (order.customer_package_id && !buyPkgIds.includes(order.customer_package_id)) {
         const deliveredQty = orderItems
           .filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))
           .reduce((s, i) => s + i.quantity, 0);

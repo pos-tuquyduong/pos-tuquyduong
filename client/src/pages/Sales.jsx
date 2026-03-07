@@ -313,7 +313,7 @@ export default function Sales() {
   // Thêm gói vào giỏ (mua gói mới) — chỉ 1 gói/đơn
   const addPkgToCart = (pkg) => {
     if (!customer) { setError('Chọn khách trước khi mua gói'); return; }
-    if (cart.some(c => c.is_pkg)) { setError('Chỉ mua 1 gói/đơn. Tạo đơn riêng cho gói khác.'); return; }
+    if (cart.some(c => c.is_pkg)) { setError('Đã có gói trong giỏ. Dùng +/- để tăng số lượng hoặc tạo đơn riêng cho gói khác.'); return; }
     setCart([...cart, {
       unique_key: `pkg_${pkg.id}`,
       product_id: -pkg.id,
@@ -332,10 +332,14 @@ export default function Sales() {
   };
 
   const updateQuantity = (uniqueKey, delta) => {
-    setCart(cart.map(item => {
+    let removedPkg = false;
+    const newCart = cart.map(item => {
       if (item.unique_key !== uniqueKey) return item;
       const newQty = item.quantity + delta;
-      if (newQty <= 0) return null;
+      if (newQty <= 0) {
+        if (item.is_pkg) removedPkg = true;
+        return null;
+      }
       // Package item: check remaining + per-item limit
       if (item.fromPkg && delta > 0) {
         const pkgCartQty = cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0);
@@ -353,7 +357,9 @@ export default function Sales() {
         return item;
       }
       return { ...item, quantity: newQty };
-    }).filter(Boolean));
+    }).filter(Boolean);
+    setCart(removedPkg ? newCart.filter(c => !c.fromPkg) : newCart);
+    if (removedPkg && category === 'pkg') setCategory('all');
   };
 
   const removeFromCart = (uniqueKey) => {
@@ -504,7 +510,11 @@ export default function Sales() {
         change_amount: paymentMethod === 'cash' ? Math.max(0, cashReceivedNum - remainingAfterBalance) : 0,
         // === Gói sản phẩm ===
         customer_package_id: activePkgId || null,
-        package_buy: cart.find(c => c.is_pkg) ? { package_id: cart.find(c => c.is_pkg).package_id, total_qty: parseInt(buyQty) || 30 } : null,
+        package_buy: cart.find(c => c.is_pkg) ? { 
+          package_id: cart.find(c => c.is_pkg).package_id, 
+          total_qty: parseInt(buyQty) || 30,
+          pkg_qty: cart.find(c => c.is_pkg).quantity || 1
+        } : null,
       };
 
       const result = await ordersApi.create(orderData);
@@ -860,8 +870,8 @@ export default function Sales() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  {/* Ẩn +/- cho gói SP (quantity luôn = 1) */}
-                  {!item.is_pkg && (
+                  {/* +/- cho tất cả items (kể cả gói) */}
+                  {!item.fromPkg && (
                   <>
                   <button 
                     onClick={() => updateQuantity(item.unique_key, -1)}
