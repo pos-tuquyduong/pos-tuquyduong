@@ -11,6 +11,7 @@
  */
 import { useState, useEffect } from 'react';
 import { ordersApi, productsApi } from '../utils/api';
+import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import { useAuth } from '../contexts/AuthContext';
@@ -103,25 +104,18 @@ export default function Orders() {
   };
 
   const loadInvoiceSettings = async () => {
-    // Logo luôn đọc từ cache (được lưu bởi trang Cài đặt HĐ)
-    try {
-      const cached = localStorage.getItem('pos_invoice_settings_cache');
-      if (cached) {
-        const { logo } = JSON.parse(cached);
-        if (logo) setInvoiceSettings(prev => ({ ...prev, store_logo: logo }));
-      }
-    } catch (e) {}
+    // Logo từ shared helper (cache-first + fallback API)
+    const logo = await getLogo();
+    if (logo) setInvoiceSettings(prev => ({ ...prev, store_logo: logo }));
 
-    // Settings (không có logo) từ API
+    // Settings từ API (không có logo, nhẹ)
     try {
       const token = localStorage.getItem('pos_token');
       const res = await fetch('/api/pos/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.success) {
-        setInvoiceSettings(prev => ({ ...prev, ...data.data }));
-      }
+      if (data.success) setInvoiceSettings(prev => ({ ...prev, ...data.data }));
     } catch (err) {
       console.error('Load settings error:', err);
     }
