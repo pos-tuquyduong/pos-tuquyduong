@@ -21,7 +21,10 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const [datePreset, setDatePreset] = useState('today');
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
   
   // State cho popup
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -64,10 +67,35 @@ export default function Orders() {
   const [deleteReason, setDeleteReason] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    loadOrders();
-    loadInvoiceSettings();
-  }, [date]);
+  // Tính from/to từ preset
+  const applyPreset = (preset) => {
+    setDatePreset(preset);
+    const now = new Date();
+    const fmt = d => d.toISOString().slice(0, 10);
+    switch (preset) {
+      case 'today':
+        setDateFrom(fmt(now)); setDateTo(fmt(now)); break;
+      case 'yesterday': {
+        const y = new Date(now); y.setDate(y.getDate() - 1);
+        setDateFrom(fmt(y)); setDateTo(fmt(y)); break;
+      }
+      case '7days': {
+        const d7 = new Date(now); d7.setDate(d7.getDate() - 6);
+        setDateFrom(fmt(d7)); setDateTo(fmt(now)); break;
+      }
+      case 'thisMonth':
+        setDateFrom(fmt(new Date(now.getFullYear(), now.getMonth(), 1))); setDateTo(fmt(now)); break;
+      case 'lastMonth': {
+        const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lmEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        setDateFrom(fmt(lm)); setDateTo(fmt(lmEnd)); break;
+      }
+      case 'custom': break; // user picks manually
+    }
+  };
+
+  useEffect(() => { loadOrders(); }, [dateFrom, dateTo]);
+  useEffect(() => { loadInvoiceSettings(); }, []);
 
   useEffect(() => { loadProducts(); }, []);
   useEffect(() => { if (activeTab === 'damages') loadDamages(); }, [activeTab]);
@@ -93,7 +121,15 @@ export default function Orders() {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const data = await ordersApi.list({ date });
+      const params = {};
+      if (dateFrom === dateTo) {
+        params.date = dateFrom; // 1 ngày → dùng date param (nhanh hơn)
+      } else {
+        params.from = dateFrom;
+        params.to = dateTo;
+      }
+      params.limit = 500; // Cho phép load nhiều hơn khi xem khoảng thời gian
+      const data = await ordersApi.list(params);
       setOrders(data.orders || []);
       setStats(data.todayStats || {});
     } catch (err) {
@@ -241,6 +277,10 @@ export default function Orders() {
   const formatTime = (d) => new Date(d).toLocaleTimeString('vi-VN', { 
     timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' 
   });
+  const formatDateShort = (d) => new Date(d).toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit'
+  });
+  const isMultiDay = dateFrom !== dateTo;
   const formatDateTime = (d) => new Date(d).toLocaleString('vi-VN', { 
     timeZone: 'Asia/Ho_Chi_Minh' 
   });
@@ -425,14 +465,34 @@ export default function Orders() {
     <>
       <header className="page-header">
         <h1 className="page-title">📦 Đơn hàng</h1>
-        <input 
-          type="date" 
-          className="input" 
-          style={{ width: 'auto' }} 
-          value={date} 
-          onChange={e => setDate(e.target.value)} 
-        />
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {[
+            { key: 'today', label: 'Hôm nay' },
+            { key: 'yesterday', label: 'Hôm qua' },
+            { key: '7days', label: '7 ngày' },
+            { key: 'thisMonth', label: 'Tháng này' },
+            { key: 'lastMonth', label: 'Tháng trước' },
+            { key: 'custom', label: 'Tùy chọn' },
+          ].map(p => (
+            <button
+              key={p.key}
+              onClick={() => applyPreset(p.key)}
+              className={`btn ${datePreset === p.key ? 'btn-primary' : 'btn-outline'}`}
+              style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+            >{p.label}</button>
+          ))}
+        </div>
       </header>
+
+      {/* Custom date range */}
+      {datePreset === 'custom' && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem 1rem', background: '#fef7ed', borderBottom: '1px solid #fde8cd', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem', color: '#B91C1C', fontWeight: 500 }}>Từ</span>
+          <input type="date" className="input" style={{ width: 'auto' }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <span style={{ fontSize: '0.85rem', color: '#B91C1C', fontWeight: 500 }}>đến</span>
+          <input type="date" className="input" style={{ width: 'auto' }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+        </div>
+      )}
 
       {/* Tab Switcher */}
       <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
@@ -523,7 +583,7 @@ export default function Orders() {
             <div className="loading">Đang tải...</div>
           ) : orders.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-              Không có đơn hàng nào trong ngày này
+              Không có đơn hàng nào trong khoảng thời gian này
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -543,7 +603,7 @@ export default function Orders() {
                       style={{ cursor: 'pointer', userSelect: 'none' }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        Giờ {getSortIcon('created_at')}
+                        {isMultiDay ? 'Ngày' : 'Giờ'} {getSortIcon('created_at')}
                       </div>
                     </th>
                     <th 
@@ -583,7 +643,7 @@ export default function Orders() {
                       onClick={() => handleViewDetail(o)}
                     >
                       <td><strong>{o.code}</strong></td>
-                      <td>{formatTime(o.created_at)}</td>
+                      <td>{isMultiDay ? <><span style={{ fontSize: '0.75rem', color: '#999' }}>{formatDateShort(o.created_at)}</span> {formatTime(o.created_at)}</> : formatTime(o.created_at)}</td>
                       <td>
                         <div>{o.customer_name || 'Khách lẻ'}</div>
                         {o.customer_phone && (

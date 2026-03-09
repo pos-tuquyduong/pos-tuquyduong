@@ -70,21 +70,29 @@ router.get("/", authenticate, async (req, res) => {
     params.push(parseInt(limit), (page - 1) * limit);
 
     const orders = await query(sql, params);
-    const totalResult = await queryOne(
-      `SELECT COUNT(*) as total FROM pos_orders`,
-    );
-    const total = totalResult?.total || 0;
 
-    const todayStats = await queryOne(`
+    // Stats theo cùng khoảng thời gian filter
+    let statsSql = `
       SELECT 
         COUNT(*) as order_count,
         COALESCE(SUM(total), 0) as total_revenue,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count
       FROM pos_orders 
-      WHERE DATE(created_at) = DATE('now', 'localtime')
-    `);
+      WHERE 1=1
+    `;
+    const statsParams = [];
+    if (date) {
+      statsSql += ` AND DATE(created_at) = ?`;
+      statsParams.push(date);
+    } else if (from || to) {
+      if (from) { statsSql += ` AND DATE(created_at) >= ?`; statsParams.push(from); }
+      if (to) { statsSql += ` AND DATE(created_at) <= ?`; statsParams.push(to); }
+    } else {
+      statsSql += ` AND DATE(created_at) = DATE('now', 'localtime')`;
+    }
+    const todayStats = await queryOne(statsSql, statsParams);
 
-    res.json({ orders, total, todayStats });
+    res.json({ orders, todayStats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
