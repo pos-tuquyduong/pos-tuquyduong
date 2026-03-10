@@ -274,8 +274,13 @@ export default function Sales() {
     const existing = cart.find(item => item.unique_key === uniqueKey);
 
     if (existing) {
-      if (!fromPkg && product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
-        setError(`Không đủ hàng. Tồn kho: ${product.stock_quantity}`);
+      // Stock check cho tất cả items (kể cả fromPkg — vì vẫn cần trừ kho SX)
+      if (product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
+        setError(`Không đủ hàng${fromPkg ? ' trong kho SX' : ''}. Tồn kho: ${product.stock_quantity}`);
+        return;
+      }
+      if (product.stock_quantity === 0) {
+        setError(`${product.name} hiện hết hàng trong kho SX`);
         return;
       }
       setCart(cart.map(item => 
@@ -284,6 +289,11 @@ export default function Sales() {
           : item
       ));
     } else {
+      // Stock check khi thêm SP mới (kể cả fromPkg)
+      if (product.stock_quantity === 0) {
+        setError(`${product.name} hiện hết hàng trong kho SX. Cần nhập thêm hàng trước khi giao.`);
+        return;
+      }
       setCart([...cart, {
         unique_key: uniqueKey,
         product_id: product.id,
@@ -308,6 +318,8 @@ export default function Sales() {
   const addPkgToCart = (pkg) => {
     if (!customer) { setError('Chọn khách trước khi mua gói'); return; }
     if (cart.some(c => c.is_pkg)) { setError('Đã có gói trong giỏ. Dùng +/- để tăng số lượng hoặc tạo đơn riêng cho gói khác.'); return; }
+    // Auto set buyQty từ template (thay vì hardcode '30')
+    setBuyQty(String(pkg.total_qty || 30));
     setCart([...cart, {
       unique_key: `pkg_${pkg.id}`,
       product_id: -pkg.id,
@@ -345,9 +357,9 @@ export default function Sales() {
           if (deliveredForItem + newQty > pkgItem.qty) { setError(`${item.product_code} chỉ còn ${pkgItem.qty - deliveredForItem} trong gói!`); return item; }
         }
       }
-      // Regular item: check stock
-      if (!item.fromPkg && item.stock > 0 && newQty > item.stock) {
-        setError(`Không đủ hàng. Tồn kho: ${item.stock}`);
+      // Stock check cho tất cả items (kể cả fromPkg)
+      if (!item.is_pkg && item.stock > 0 && newQty > item.stock) {
+        setError(`Không đủ hàng${item.fromPkg ? ' trong kho SX' : ''}. Tồn kho: ${item.stock}`);
         return item;
       }
       return { ...item, quantity: newQty };
@@ -856,7 +868,15 @@ export default function Sales() {
                   {item.is_pkg && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                       <span style={{ fontSize: '0.7rem', color: '#7c3aed' }}>SL SP:</span>
-                      <input type="number" min="1" value={buyQty} onChange={e => setBuyQty(e.target.value)}
+                      <input type="number" min="1" value={buyQty} onChange={e => {
+                        const val = parseInt(e.target.value) || 0;
+                        const pkgCartQty = cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0);
+                        if (val < pkgCartQty && pkgCartQty > 0) {
+                          setError(`Đã chọn ${pkgCartQty} SP giao. Không thể giảm dưới ${pkgCartQty}.`);
+                          return;
+                        }
+                        setBuyQty(e.target.value);
+                      }}
                         style={{ width: '50px', padding: '2px 4px', borderRadius: 4, border: '1px solid #c4b5fd', fontSize: '0.75rem', textAlign: 'center' }} />
                       <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>{item.unit || 'SP'}</span>
                     </div>
@@ -864,9 +884,7 @@ export default function Sales() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  {/* +/- cho tất cả items (kể cả gói) */}
-                  {!item.fromPkg && (
-                  <>
+                  {/* +/- cho tất cả items */}
                   <button 
                     onClick={() => updateQuantity(item.unique_key, -1)}
                     style={{
@@ -900,8 +918,6 @@ export default function Sales() {
                   >
                     <Plus size={12} />
                   </button>
-                  </>
-                  )}
                   <button 
                     onClick={() => removeFromCart(item.unique_key)}
                     style={{
