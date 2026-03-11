@@ -18,6 +18,7 @@ import {
   Upload, Trash2, Eye
 } from 'lucide-react';
 import InvoicePreview from '../components/InvoicePreview';
+import { getLogo } from '../utils/logoCache';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DEFAULT CONFIG
@@ -220,6 +221,17 @@ const api = {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     return data;
+  },
+
+  deleteLogo: async () => {
+    const token = localStorage.getItem('pos_token');
+    const res = await fetch('/api/pos/settings/logo', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
   }
 };
 
@@ -286,21 +298,9 @@ export default function InvoiceSettings() {
         }
         setConfig(newConfig);
         
-        // Logo: load riêng (không nằm trong GET /settings để API nhẹ)
-        let newLogo = logo; // giữ logo từ cache
-        try {
-          const token = localStorage.getItem('pos_token');
-          const logoRes = await fetch('/api/pos/settings/store_logo', {
-            headers: { 'Authorization': 'Bearer ' + token }
-          });
-          const logoData = await logoRes.json();
-          if (logoData.success && logoData.data?.value) {
-            newLogo = logoData.data.value;
-            setLogo(newLogo);
-          }
-        } catch (e) {
-          console.warn('Load logo separately failed, using cache');
-        }
+        // Logo: dùng shared helper (cache-first, chỉ gọi API nếu cache trống)
+        const newLogo = await getLogo();
+        if (newLogo) setLogo(newLogo);
         
         // Save to cache
         try {
@@ -512,7 +512,22 @@ export default function InvoiceSettings() {
                       {logo ? (
                         <div className="logo-preview">
                           <img src={logo} alt="Logo" />
-                          <button className="btn-remove-logo" onClick={() => setLogo('')} title="Xóa logo">
+                          <button className="btn-remove-logo" onClick={async () => {
+                            if (!confirm('Bạn có chắc muốn xóa logo?')) return;
+                            try {
+                              await api.deleteLogo();
+                              setLogo('');
+                              // Xóa logo khỏi cache
+                              try {
+                                const cached = localStorage.getItem(CACHE_KEY);
+                                const cacheData = cached ? JSON.parse(cached) : {};
+                                localStorage.setItem(CACHE_KEY, JSON.stringify({ ...cacheData, logo: '', timestamp: Date.now() }));
+                              } catch (ce) {}
+                              showMessage('success', '✓ Đã xóa logo');
+                            } catch (err) {
+                              showMessage('error', 'Lỗi: ' + err.message);
+                            }
+                          }} title="Xóa logo">
                             <Trash2 size={14} />
                           </button>
                         </div>
