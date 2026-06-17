@@ -79,12 +79,17 @@ router.put('/:id', authenticate, checkPermission('manage_users'), async (req, re
       return res.status(404).json({ error: 'Không tìm thấy nhân viên' });
     }
 
-    // Không cho sửa admin cuối cùng
-    if (user.role === 'admin' && role !== 'admin') {
-      const adminCountResult = await queryOne("SELECT COUNT(*) as count FROM pos_users WHERE role = 'admin' AND is_active = 1");
-      const adminCount = adminCountResult?.count || 0;
-      if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Không thể thay đổi quyền admin cuối cùng' });
+    // Bảo vệ chủ tài khoản (owner) cuối cùng:
+    // - Không cho HẠ QUYỀN owner duy nhất (role được gửi và khác 'owner')
+    // - Không cho VÔ HIỆU HÓA owner duy nhất (is_active === false)
+    // (vẫn cho phép đổi tên hiển thị của owner)
+    const isDemotingOwner = user.role === 'owner' && role !== undefined && role !== 'owner';
+    const isDeactivatingOwner = user.role === 'owner' && is_active === false;
+    if (isDemotingOwner || isDeactivatingOwner) {
+      const ownerCountResult = await queryOne("SELECT COUNT(*) as count FROM pos_users WHERE role = 'owner' AND is_active = 1");
+      const ownerCount = ownerCountResult?.count || 0;
+      if (ownerCount <= 1) {
+        return res.status(400).json({ error: 'Không thể vô hiệu hóa hoặc hạ quyền chủ tài khoản (owner) cuối cùng' });
       }
     }
 

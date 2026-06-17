@@ -905,6 +905,24 @@ function getDb() {
 }
 
 /**
+ * Chuẩn hóa tham số trước khi gắn vào câu lệnh SQL.
+ * @libsql/client (Turso) chỉ chấp nhận: null, number, bigint, string, Uint8Array.
+ * - undefined  -> null  (vd: PUT chỉ gửi 1 trường, các trường khác là undefined)
+ * - true/false -> 1/0   (libsql không chấp nhận kiểu boolean)
+ * Nhờ đó tránh lỗi "Unsupported type of value".
+ * @param {Array} params
+ * @returns {Array}
+ */
+function sanitizeArgs(params = []) {
+  if (!Array.isArray(params)) return params;
+  return params.map(v => {
+    if (v === undefined) return null;
+    if (typeof v === 'boolean') return v ? 1 : 0;
+    return v;
+  });
+}
+
+/**
  * Query helper - SELECT (ASYNC)
  * @param {string} sql - SQL query
  * @param {Array} params - Parameters
@@ -914,7 +932,7 @@ async function query(sql, params = []) {
   try {
     const result = await db.execute({
       sql: sql,
-      args: params
+      args: sanitizeArgs(params)
     });
     // Chuyển đổi rows thành array of objects
     return result.rows.map(row => ({ ...row }));
@@ -945,7 +963,7 @@ async function run(sql, params = []) {
   try {
     const result = await db.execute({
       sql: sql,
-      args: params
+      args: sanitizeArgs(params)
     });
 
     return {
@@ -967,15 +985,15 @@ async function beginTransaction() {
   const tx = await db.transaction("write");
   return {
     async query(sql, params = []) {
-      const result = await tx.execute({ sql, args: params });
+      const result = await tx.execute({ sql, args: sanitizeArgs(params) });
       return result.rows.map(row => ({ ...row }));
     },
     async queryOne(sql, params = []) {
-      const result = await tx.execute({ sql, args: params });
+      const result = await tx.execute({ sql, args: sanitizeArgs(params) });
       return result.rows[0] ? { ...result.rows[0] } : null;
     },
     async run(sql, params = []) {
-      const result = await tx.execute({ sql, args: params });
+      const result = await tx.execute({ sql, args: sanitizeArgs(params) });
       return { lastInsertRowid: result.lastInsertRowid, changes: result.rowsAffected };
     },
     async commit() { await tx.commit(); },
