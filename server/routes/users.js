@@ -222,4 +222,40 @@ router.put('/permissions/:role', authenticate, checkPermission('manage_permissio
   }
 });
 
+/**
+ * DELETE /api/pos/users/:id
+ * Xóa hẳn nhân viên khỏi hệ thống
+ * (Lịch sử đơn hàng/giao dịch cũ vẫn giữ tên người tạo vì lưu dạng văn bản)
+ */
+router.delete('/:id', authenticate, checkPermission('manage_users'), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const user = await queryOne('SELECT * FROM pos_users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ error: 'Không tìm thấy nhân viên' });
+    }
+
+    // Không cho tự xóa chính mình (tránh tự khóa quyền)
+    if (req.user.id === id) {
+      return res.status(400).json({ error: 'Không thể xóa chính tài khoản đang đăng nhập' });
+    }
+
+    // Không cho xóa chủ tài khoản (owner) cuối cùng
+    if (user.role === 'owner') {
+      const ownerCountResult = await queryOne("SELECT COUNT(*) as count FROM pos_users WHERE role = 'owner'");
+      const ownerCount = ownerCountResult?.count || 0;
+      if (ownerCount <= 1) {
+        return res.status(400).json({ error: 'Không thể xóa chủ tài khoản (owner) cuối cùng' });
+      }
+    }
+
+    await run('DELETE FROM pos_users WHERE id = ?', [id]);
+
+    res.json({ success: true, message: 'Đã xóa nhân viên' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

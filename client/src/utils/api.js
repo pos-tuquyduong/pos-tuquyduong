@@ -316,6 +316,7 @@ export const usersApi = {
   list: () => api.get('/users'),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
   resetPassword: (id, new_password) => api.put(`/users/${id}/password`, { new_password }),
   permissions: () => api.get('/users/permissions'),
   updatePermissions: (role, permissions) => api.put(`/permissions/${role}`, { permissions })

@@ -226,6 +226,16 @@ export default function Settings() {
     } catch (err) { setMessage('Lỗi: ' + err.message); }
   };
 
+  const deleteUser = async (user) => {
+    if (!confirm(`Xóa vĩnh viễn nhân viên "${user.display_name || user.username}"?\nHành động này không thể hoàn tác.`)) return;
+    try {
+      await usersApi.delete(user.id);
+      setMessage('Đã xóa nhân viên');
+      loadData();
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+  };
+
   const openResetPassword = (user) => {
     setEditingUser(user);
     setNewPassword('');
@@ -635,6 +645,15 @@ export default function Settings() {
                             disabled={u.role === 'owner' && users.filter(x => x.role === 'owner' && x.is_active).length <= 1}
                           >
                             {u.is_active ? '🚫' : '✅'}
+                          </button>
+                          <button 
+                            className="btn btn-sm btn-outline" 
+                            title="Xóa vĩnh viễn"
+                            style={{ color: '#ef4444' }}
+                            onClick={() => deleteUser(u)}
+                            disabled={u.role === 'owner' && users.filter(x => x.role === 'owner').length <= 1}
+                          >
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
