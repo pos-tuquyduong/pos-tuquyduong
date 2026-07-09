@@ -13,8 +13,13 @@ function isSxConfigured() {
   return SX_API_URL && SX_API_URL.trim() !== '';
 }
 
+// Thời gian chờ tối đa khi gọi SX (ms). Quá hạn thì hủy request để không treo.
+const SX_TIMEOUT_MS = parseInt(process.env.SX_TIMEOUT_MS || '8000', 10);
+
 /**
  * Gọi API SX
+ * Có timeout: nếu SX không phản hồi trong SX_TIMEOUT_MS thì tự hủy và ném lỗi,
+ * để nơi gọi có thể fallback thay vì treo vô thời hạn.
  */
 async function callSxApi(endpoint, options = {}) {
   if (!isSxConfigured()) {
@@ -30,8 +35,15 @@ async function callSxApi(endpoint, options = {}) {
     }
   };
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SX_TIMEOUT_MS);
+
   try {
-    const response = await fetch(url, { ...defaultOptions, ...options });
+    const response = await fetch(url, {
+      ...defaultOptions,
+      ...options,
+      signal: controller.signal
+    });
     const data = await response.json();
     
     if (!response.ok) {
@@ -40,8 +52,15 @@ async function callSxApi(endpoint, options = {}) {
     
     return data;
   } catch (err) {
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error(`SX không phản hồi sau ${SX_TIMEOUT_MS}ms (timeout)`);
+      console.error(`SX API Error [${endpoint}]:`, timeoutErr.message);
+      throw timeoutErr;
+    }
     console.error(`SX API Error [${endpoint}]:`, err.message);
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
