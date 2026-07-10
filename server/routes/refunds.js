@@ -9,7 +9,7 @@
  */
 
 const express = require('express');
-const { query, queryOne, run } = require('../database');
+const { query, queryOne, run, beginTransaction } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 
@@ -175,46 +175,54 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), asy
     const balanceBefore = wallet?.balance || 0;
     const balanceAfter = balanceBefore + refund.refund_amount;
 
-    if (wallet) {
-      await run('UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?',
-        [balanceAfter, now, phone]);
-    } else {
-      await run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) 
-           VALUES (?, ?, 0, 0, ?, ?)`,
-        [phone, balanceAfter, now, now]);
+    // Nguyên tử: ví + sổ + duyệt yêu cầu + đổi trạng thái đơn đi cùng một transaction
+    const tx = await beginTransaction();
+    try {
+      if (wallet) {
+        await tx.run('UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?',
+          [balanceAfter, now, phone]);
+      } else {
+        await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, ?, ?)`,
+          [phone, balanceAfter, now, now]);
+      }
+
+      // Ghi log giao dịch
+      const txResult = await tx.run(`
+        INSERT INTO pos_balance_transactions (
+          customer_phone, customer_name, type, amount,
+          balance_before, balance_after, order_id,
+          notes, created_by, created_at
+        ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        phone,
+        null,
+        refund.refund_amount,
+        balanceBefore,
+        balanceAfter,
+        refund.order_id,
+        'Hoàn tiền đơn hàng (duyệt)',
+        req.user.username,
+        now
+      ]);
+
+      // Cập nhật yêu cầu hoàn tiền
+      await tx.run(`
+        UPDATE pos_refund_requests SET
+          status = 'approved',
+          processed_by = ?,
+          processed_at = ?,
+          balance_transaction_id = ?
+        WHERE id = ?
+      `, [req.user.username, now, txResult.lastInsertRowid, refund.id]);
+
+      // Cập nhật đơn hàng
+      await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ?`, [refund.order_id]);
+
+      await tx.commit();
+    } catch (e) {
+      await tx.rollback();
+      throw e;
     }
-
-    // Ghi log giao dịch
-    const txResult = await run(`
-      INSERT INTO pos_balance_transactions (
-        customer_phone, customer_name, type, amount,
-        balance_before, balance_after, order_id,
-        notes, created_by, created_at
-      ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      phone,
-      null,
-      refund.refund_amount,
-      balanceBefore,
-      balanceAfter,
-      refund.order_id,
-      'Hoàn tiền đơn hàng (duyệt)',
-      req.user.username,
-      now
-    ]);
-
-    // Cập nhật yêu cầu hoàn tiền
-    await run(`
-      UPDATE pos_refund_requests SET
-        status = 'approved',
-        processed_by = ?,
-        processed_at = ?,
-        balance_transaction_id = ?
-      WHERE id = ?
-    `, [req.user.username, now, txResult.lastInsertRowid, refund.id]);
-
-    // Cập nhật đơn hàng
-    await run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ?`, [refund.order_id]);
 
     res.json({
       success: true,

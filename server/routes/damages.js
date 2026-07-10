@@ -8,7 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { query, queryOne, run } = require('../database');
+const { query, queryOne, run, beginTransaction } = require('../database');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 
 const DAMAGE_REASONS = {
@@ -157,28 +157,36 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
     
     // Xử lý hoàn tiền
     if (action === 'refund' && finalRefund > 0 && order.customer_phone) {
-      // Kiểm tra/tạo wallet
-      let wallet = await queryOne(`SELECT * FROM pos_wallets WHERE phone = ?`, [order.customer_phone]);
-      if (!wallet) {
-        await run(`INSERT INTO pos_wallets (phone, balance) VALUES (?, 0)`, [order.customer_phone]);
-        wallet = { balance: 0 };
+      const wallet = await queryOne(`SELECT * FROM pos_wallets WHERE phone = ?`, [order.customer_phone]);
+      const balanceBefore = wallet ? (wallet.balance || 0) : 0;
+      const balanceAfter = balanceBefore + finalRefund;
+
+      // Nguyên tử: cộng số dư + ghi sổ (đúng tên cột) đi cùng một transaction
+      const tx = await beginTransaction();
+      try {
+        if (wallet) {
+          await tx.run(`UPDATE pos_wallets SET balance = ?, updated_at = datetime('now') WHERE phone = ?`,
+            [balanceAfter, order.customer_phone]);
+        } else {
+          await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, datetime('now'), datetime('now'))`,
+            [order.customer_phone, balanceAfter]);
+        }
+        await tx.run(`
+          INSERT INTO pos_balance_transactions (customer_phone, type, amount, balance_before, balance_after, notes, created_by, created_at)
+          VALUES (?, 'compensation', ?, ?, ?, ?, ?, datetime('now'))
+        `, [
+          order.customer_phone,
+          finalRefund,
+          balanceBefore,
+          balanceAfter,
+          `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${quantity}`,
+          req.user.display_name || req.user.username
+        ]);
+        await tx.commit();
+      } catch (e) {
+        await tx.rollback();
+        throw e;
       }
-      
-      // Cộng số dư
-      await run(`UPDATE pos_wallets SET balance = balance + ?, updated_at = datetime('now') WHERE phone = ?`, 
-        [finalRefund, order.customer_phone]);
-      
-      // Ghi log giao dịch
-      await run(`
-        INSERT INTO pos_balance_transactions (phone, type, amount, balance_after, note, created_by, created_at)
-        VALUES (?, 'compensation', ?, ?, ?, ?, datetime('now'))
-      `, [
-        order.customer_phone,
-        finalRefund,
-        (wallet.balance || 0) + finalRefund,
-        `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${quantity}`,
-        req.user.display_name || req.user.username
-      ]);
     }
     
     // Xử lý hoàn kho
