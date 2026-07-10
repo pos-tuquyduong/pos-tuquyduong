@@ -6,7 +6,18 @@
  */
 
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { query } = require('../database');
+
+/**
+ * So sánh chuỗi bí mật theo thời gian hằng số (chống dò timing).
+ */
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
 
 /**
  * Middleware xác thực JWT token (ASYNC cho Turso)
@@ -117,8 +128,45 @@ function checkRole(...allowedRoles) {
   };
 }
 
+/**
+ * Xác thực cho MÁY-GỌI-MÁY (vd worker đồng bộ của web) — POS-1.
+ *
+ * - Nếu request có header `X-Service-Key`:
+ *     + Khớp với biến môi trường POS_SERVICE_API_KEY -> coi là "service principal"
+ *       (chỉ đọc), gắn req.user role='service'. KHÔNG phải người dùng thật.
+ *     + Không khớp / chưa cấu hình key -> 401.
+ * - Nếu KHÔNG có header đó -> chuyển sang xác thực JWT người dùng như bình thường
+ *   (luồng đăng nhập nhân viên giữ nguyên, không đổi một chữ).
+ *
+ * CHỈ gắn middleware này vào các endpoint CHỈ-ĐỌC mà máy thật sự cần
+ * (hiện tại: GET /api/pos/products). Các route khác vẫn dùng `authenticate`,
+ * nên service key không mở được cửa nào ngoài phạm vi cho phép.
+ */
+async function authenticateServiceOrUser(req, res, next) {
+  const serviceKey = req.headers['x-service-key'];
+  if (serviceKey !== undefined) {
+    const configured = process.env.POS_SERVICE_API_KEY || '';
+    if (!configured) {
+      return res.status(401).json({
+        error: 'Service auth chưa được cấu hình',
+        code: 'SERVICE_AUTH_NOT_CONFIGURED'
+      });
+    }
+    if (!safeEqual(serviceKey, configured)) {
+      return res.status(401).json({
+        error: 'Service key không hợp lệ',
+        code: 'INVALID_SERVICE_KEY'
+      });
+    }
+    req.user = { id: 0, username: 'web-sync', role: 'service', is_active: 1 };
+    return next();
+  }
+  return authenticate(req, res, next);
+}
+
 module.exports = {
   authenticate,
+  authenticateServiceOrUser,
   checkPermission,
   checkRole
 };

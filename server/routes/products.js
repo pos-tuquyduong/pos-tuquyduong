@@ -7,7 +7,7 @@
 
 const express = require('express');
 const { query, queryOne, run } = require('../database');
-const { authenticate, checkPermission } = require('../middleware/auth');
+const { authenticate, authenticateServiceOrUser, checkPermission } = require('../middleware/auth');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 
 const router = express.Router();
@@ -16,7 +16,8 @@ const router = express.Router();
  * GET /api/pos/products
  * Lấy danh sách sản phẩm từ SX với giá từ POS
  */
-router.get('/', authenticate, async (req, res) => {
+// POS-1: endpoint này cho phép CẢ người dùng (JWT) LẪN worker web (X-Service-Key, chỉ đọc).
+router.get('/', authenticateServiceOrUser, async (req, res) => {
   try {
     const { category } = req.query;
     let products = [];
