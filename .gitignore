@@ -1,0 +1,36 @@
+# ===== POS Tứ Quý Đường · .gitignore =====
+# (đổi tên file này thành ".gitignore" khi đặt vào repo)
+
+# Phụ thuộc
+node_modules/
+
+# Secret & môi trường (TUYỆT ĐỐI không commit)
+.env
+.env.*
+!.env.example
+
+# DB local — app chạy trên Turso cloud, file local KHÔNG cần versioning
+*.db
+*.db-journal
+*.db.*
+data/
+
+# Backup / dữ liệu khách — không đưa lên repo
+*.bak
+*.bak_*
+*_backup*
+backup_*
+*.sqlite
+*.sqlite3
+
+# Rác Replit / cache
+.local/
+.cache/
+.upm/
+.config/
+replit.nix.bak
+
+# Log / hệ điều hành
+*.log
+.DS_Store
+Thumbs.db
