@@ -269,6 +269,30 @@ async function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 8b: SỔ ĐIỂM THƯỞNG (LOY-1)
+  // Append-only. Số dư = SUM(points) các dòng CÒN HẠN. KHÔNG lưu số dư rời.
+  // type: earn | redeem | expire | bonus | adjust
+  // points: dương = cộng, âm = trừ. expires_at: NULL = không hết hạn.
+  // LƯU Ý: app luôn ghi created_at/expires_at bằng getNow() ('YYYY-MM-DDTHH:mm:ss', giờ +7).
+  //        So hạn điểm là so chuỗi (lexical) → PHẢI cùng định dạng, đừng dùng CURRENT_TIMESTAMP.
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_point_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_phone TEXT NOT NULL,
+      type TEXT NOT NULL,
+      points INTEGER NOT NULL,
+      order_id INTEGER,
+      expires_at TEXT,
+      reason TEXT,
+      created_by TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  // 1 index ghép đủ cho cả tính số dư (phone + expires_at) lẫn tra lịch sử theo phone (tiền tố trái).
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_point_tx_phone_exp ON pos_point_transactions(customer_phone, expires_at)`);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 9: KHUYẾN MÃI
   // ═══════════════════════════════════════════════════════════════════════════
   await db.execute(`
@@ -888,6 +912,22 @@ async function seedDefaultData() {
     }
     console.log('✅ Đã tạo cài đặt mặc định cho hóa đơn');
   }
+
+  // ─── LOY-1: cấu hình điểm thưởng (idempotent — INSERT OR IGNORE, chạy cả trên DB đã có) ───
+  // Chỉ seed 3 key v1 THỰC ĐỌC. Các key để dành (therapy_multiplier, earn_base, tiers_enabled)
+  // seed sau, đúng lúc GĐ3/LOY-4 nối tới — tránh cấu hình chưa ai đọc.
+  const loyaltyDefaults = [
+    ['loyalty_enabled', 'true'],              // bật/tắt cả hệ điểm
+    ['loyalty_earn_per_amount', '10000'],     // mỗi 10.000đ = 1 điểm
+    ['loyalty_point_expiry_months', '12'],    // hạn điểm (tháng)
+  ];
+  for (const [key, value] of loyaltyDefaults) {
+    await run(`
+      INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
+      VALUES (?, ?, datetime('now', '+7 hours'))
+    `, [key, value]);
+  }
+  console.log('✅ Đã đảm bảo cấu hình điểm thưởng (LOY-1)');
 }
 
 /**

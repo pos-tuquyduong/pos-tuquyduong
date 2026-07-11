@@ -14,6 +14,13 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Loyalty settings (LOY-1)
+  const [loyalty, setLoyalty] = useState({
+    loyalty_enabled: 'true',
+    loyalty_earn_per_amount: '10000',
+    loyalty_point_expiry_months: '12',
+  });
+
   // Packages state
   const [packages, setPackages] = useState([]);
   const [showPkgModal, setShowPkgModal] = useState(false);
@@ -56,6 +63,8 @@ export default function Settings() {
         setAllPerms(data.all_permissions);
       } else if (tab === 'backup') {
         await loadBackupInfo();
+      } else if (tab === 'loyalty') {
+        await loadLoyalty();
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -146,6 +155,40 @@ export default function Settings() {
         price: p.price 
       })));
       setMessage('Đã lưu giá thành công!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
+  };
+
+  // Loyalty functions (LOY-1) — dùng endpoint /api/pos/settings có sẵn
+  const loadLoyalty = async () => {
+    const data = await pkgApi('GET', '/api/pos/settings');
+    if (data.success) {
+      const s = data.data || {};
+      setLoyalty(prev => ({
+        loyalty_enabled: s.loyalty_enabled ?? prev.loyalty_enabled,
+        loyalty_earn_per_amount: s.loyalty_earn_per_amount ?? prev.loyalty_earn_per_amount,
+        loyalty_point_expiry_months: s.loyalty_point_expiry_months ?? prev.loyalty_point_expiry_months,
+      }));
+    }
+  };
+  const saveLoyalty = async () => {
+    setSaving(true);
+    try {
+      const per = parseInt(loyalty.loyalty_earn_per_amount) || 0;
+      const months = parseInt(loyalty.loyalty_point_expiry_months) || 0;
+      if (per < 1000) throw new Error('Mức quy đổi tối thiểu 1.000đ');
+      if (months < 1) throw new Error('Hạn điểm tối thiểu 1 tháng');
+      const enabled = (loyalty.loyalty_enabled === 'true' || loyalty.loyalty_enabled === true) ? 'true' : 'false';
+      const data = await pkgApi('PUT', '/api/pos/settings', {
+        settings: {
+          loyalty_enabled: enabled,
+          loyalty_earn_per_amount: String(per),
+          loyalty_point_expiry_months: String(months),
+        },
+      });
+      if (!data.success) throw new Error(data.error);
+      setMessage('Đã lưu cài đặt điểm thưởng!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
@@ -403,6 +446,9 @@ export default function Settings() {
           </button>
           <button className={`btn ${tab === 'backup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('backup')}>
             <Database size={16} /> Sao lưu
+          </button>
+          <button className={`btn ${tab === 'loyalty' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('loyalty')}>
+            🎁 Điểm thưởng
           </button>
         </div>
 
@@ -861,6 +907,61 @@ export default function Settings() {
                   <li>Tải từng bảng để kiểm tra hoặc chỉnh sửa riêng</li>
                   <li>Khôi phục: upload file đã tải → xem preview → xác nhận</li>
                 </ul>
+              </div>
+            </>
+          ) : tab === 'loyalty' ? (
+            /* TAB ĐIỂM THƯỞNG (LOY-1) */
+            <>
+              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🎁 Điểm thưởng</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+                Các con số dưới đây lưu trong cài đặt, không nằm trong code. Chỉnh xong bấm Lưu là áp dụng ngay.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>Bật tích điểm</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Tắt thì đơn không cộng điểm</div>
+                </div>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox"
+                    checked={loyalty.loyalty_enabled === 'true' || loyalty.loyalty_enabled === true}
+                    onChange={e => setLoyalty({ ...loyalty, loyalty_enabled: e.target.checked ? 'true' : 'false' })} />
+                  <span>{(loyalty.loyalty_enabled === 'true' || loyalty.loyalty_enabled === true) ? 'Đang bật' : 'Đang tắt'}</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>Bao nhiêu tiền = 1 điểm</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Mặc định 10.000đ</div>
+                </div>
+                <input type="number" className="input" style={{ width: 140, textAlign: 'right' }} min="1000" step="1000"
+                  value={loyalty.loyalty_earn_per_amount}
+                  onChange={e => setLoyalty({ ...loyalty, loyalty_earn_per_amount: e.target.value })} />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>Hạn điểm (tháng)</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Điểm hết hạn sau bao nhiêu tháng</div>
+                </div>
+                <input type="number" className="input" style={{ width: 100, textAlign: 'right' }} min="1" step="1"
+                  value={loyalty.loyalty_point_expiry_months}
+                  onChange={e => setLoyalty({ ...loyalty, loyalty_point_expiry_months: e.target.value })} />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee', opacity: 0.55 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>Món trị liệu nhân đôi ×2</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Để sau — bật khi có app</div>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '4px 10px', borderRadius: 6 }}>Chưa bật</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button className="btn btn-primary" onClick={saveLoyalty} disabled={saving}>
+                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
               </div>
             </>
           ) : null}
