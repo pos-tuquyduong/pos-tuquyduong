@@ -89,6 +89,8 @@ router.get('/info', authenticate, async (req, res) => {
  * Xuất tất cả data thành 1 file Excel (nhiều sheet)
  */
 router.get('/export-all', authenticate, async (req, res) => {
+  console.log('[export-all] BUILD=no-sx-v2 bat dau xuat...');
+  const t0 = Date.now();
   try {
     if (req.user.role !== 'owner') {
       return res.status(403).json({ error: 'Chỉ owner mới có quyền backup' });
@@ -97,10 +99,9 @@ router.get('/export-all', authenticate, async (req, res) => {
     const wb = XLSX.utils.book_new();
 
     for (const t of BACKUP_TABLES) {
-      // pos_products: lấy tên từ SX
-      const rows = t.name === 'pos_products' 
-        ? await getProductsWithSxNames()
-        : await query(`SELECT * FROM ${t.name}`);
+      // Backup luôn dùng dữ liệu lưu trong POS — KHÔNG gọi SX,
+      // để việc sao lưu không bao giờ bị treo khi SX chậm/sập.
+      const rows = await query(`SELECT * FROM ${t.name}`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
     }
@@ -119,9 +120,10 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    console.log(`[export-all] xong sau ${Date.now() - t0}ms, gui file ${filename}`);
     res.send(buffer);
   } catch (err) {
-    console.error('Export all error:', err);
+    console.error('[export-all] LOI:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -141,10 +143,8 @@ router.get('/export/:table', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Bảng không hợp lệ' });
     }
 
-    // pos_products: lấy tên từ SX
-    const rows = tableDef.name === 'pos_products'
-      ? await getProductsWithSxNames()
-      : await query(`SELECT * FROM ${tableDef.name}`);
+    // Backup luôn dùng dữ liệu lưu trong POS — KHÔNG gọi SX (tránh treo).
+    const rows = await query(`SELECT * FROM ${tableDef.name}`);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
 
