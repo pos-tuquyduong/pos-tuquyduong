@@ -14,6 +14,29 @@ const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Đọc bảng theo trang nhỏ để tránh phản hồi Turso quá lớn gây treo
+// (một số bảng như pos_customers có cột base64 nặng: qr_code...).
+const BACKUP_PAGE_SIZE = parseInt(process.env.BACKUP_PAGE_SIZE || '5', 10);
+
+/**
+ * Đọc TOÀN BỘ một bảng nhưng chia thành nhiều trang nhỏ,
+ * ghép lại — tránh việc kéo cả bảng đầy đủ cột một phát làm nghẽn kết nối.
+ */
+async function readTablePaged(tableName, orderKey) {
+  const all = [];
+  let offset = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await query(
+      `SELECT * FROM ${tableName} ORDER BY "${orderKey}" LIMIT ${BACKUP_PAGE_SIZE} OFFSET ${offset}`
+    );
+    for (const row of page) all.push(row);
+    if (page.length < BACKUP_PAGE_SIZE) break;
+    offset += BACKUP_PAGE_SIZE;
+  }
+  return all;
+}
+
 // Các bảng cần backup (thứ tự quan trọng cho restore - parent trước child)
 const BACKUP_TABLES = [
   { name: 'pos_customers', label: 'Khách hàng', key: 'phone' },
@@ -89,7 +112,7 @@ router.get('/info', authenticate, async (req, res) => {
  * Xuất tất cả data thành 1 file Excel (nhiều sheet)
  */
 router.get('/export-all', authenticate, async (req, res) => {
-  console.log('[export-all] BUILD=no-sx-v2 bat dau xuat...');
+  console.log('[export-all] BUILD=paged-v3 bat dau xuat...');
   const t0 = Date.now();
   try {
     if (req.user.role !== 'owner') {
@@ -99,9 +122,9 @@ router.get('/export-all', authenticate, async (req, res) => {
     const wb = XLSX.utils.book_new();
 
     for (const t of BACKUP_TABLES) {
-      // Backup luôn dùng dữ liệu lưu trong POS — KHÔNG gọi SX,
-      // để việc sao lưu không bao giờ bị treo khi SX chậm/sập.
-      const rows = await query(`SELECT * FROM ${t.name}`);
+      // Đọc phân trang để không bị treo khi bảng có cột nặng.
+      const rows = await readTablePaged(t.name, t.key);
+      console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
     }
@@ -143,8 +166,8 @@ router.get('/export/:table', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Bảng không hợp lệ' });
     }
 
-    // Backup luôn dùng dữ liệu lưu trong POS — KHÔNG gọi SX (tránh treo).
-    const rows = await query(`SELECT * FROM ${tableDef.name}`);
+    // Đọc phân trang để tránh treo khi bảng có cột nặng.
+    const rows = await readTablePaged(tableDef.name, tableDef.key);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
 
