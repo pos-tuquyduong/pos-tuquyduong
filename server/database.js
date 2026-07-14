@@ -919,7 +919,7 @@ async function seedDefaultData() {
   const loyaltyDefaults = [
     ['loyalty_enabled', 'true'],              // bật/tắt cả hệ điểm
     ['loyalty_earn_per_amount', '10000'],     // mỗi 10.000đ = 1 điểm
-    ['loyalty_point_expiry_months', '12'],    // hạn điểm (tháng)
+    ['loyalty_expiry_mode', 'none'],          // 'none' = không hết hạn (mặc định v1) | 'quarter' = cuốn chiếu theo quý
   ];
   for (const [key, value] of loyaltyDefaults) {
     await run(`

@@ -18,7 +18,7 @@ export default function Settings() {
   const [loyalty, setLoyalty] = useState({
     loyalty_enabled: 'true',
     loyalty_earn_per_amount: '10000',
-    loyalty_point_expiry_months: '12',
+    loyalty_expiry_mode: 'none',
   });
 
   // Packages state
@@ -168,7 +168,7 @@ export default function Settings() {
       setLoyalty(prev => ({
         loyalty_enabled: s.loyalty_enabled ?? prev.loyalty_enabled,
         loyalty_earn_per_amount: s.loyalty_earn_per_amount ?? prev.loyalty_earn_per_amount,
-        loyalty_point_expiry_months: s.loyalty_point_expiry_months ?? prev.loyalty_point_expiry_months,
+        loyalty_expiry_mode: s.loyalty_expiry_mode ?? prev.loyalty_expiry_mode,
       }));
     }
   };
@@ -176,15 +176,14 @@ export default function Settings() {
     setSaving(true);
     try {
       const per = parseInt(loyalty.loyalty_earn_per_amount) || 0;
-      const months = parseInt(loyalty.loyalty_point_expiry_months) || 0;
       if (per < 1000) throw new Error('Mức quy đổi tối thiểu 1.000đ');
-      if (months < 1) throw new Error('Hạn điểm tối thiểu 1 tháng');
+      const mode = (loyalty.loyalty_expiry_mode === 'quarter') ? 'quarter' : 'none';
       const enabled = (loyalty.loyalty_enabled === 'true' || loyalty.loyalty_enabled === true) ? 'true' : 'false';
       const data = await pkgApi('PUT', '/api/pos/settings', {
         settings: {
           loyalty_enabled: enabled,
           loyalty_earn_per_amount: String(per),
-          loyalty_point_expiry_months: String(months),
+          loyalty_expiry_mode: mode,
         },
       });
       if (!data.success) throw new Error(data.error);
@@ -942,12 +941,15 @@ export default function Settings() {
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>Hạn điểm (tháng)</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Điểm hết hạn sau bao nhiêu tháng</div>
+                  <div style={{ fontWeight: 600 }}>Hạn điểm</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Cuốn chiếu theo quý: điểm tích quý nào → hết hạn đầu quý đó năm sau</div>
                 </div>
-                <input type="number" className="input" style={{ width: 100, textAlign: 'right' }} min="1" step="1"
-                  value={loyalty.loyalty_point_expiry_months}
-                  onChange={e => setLoyalty({ ...loyalty, loyalty_point_expiry_months: e.target.value })} />
+                <select className="input" style={{ width: 180 }}
+                  value={loyalty.loyalty_expiry_mode}
+                  onChange={e => setLoyalty({ ...loyalty, loyalty_expiry_mode: e.target.value })}>
+                  <option value="none">Không hết hạn</option>
+                  <option value="quarter">Cuốn chiếu theo quý</option>
+                </select>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee', opacity: 0.55 }}>
