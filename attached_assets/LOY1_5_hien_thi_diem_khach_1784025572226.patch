@@ -1,0 +1,82 @@
+diff --git a/client/src/pages/Customers.jsx b/client/src/pages/Customers.jsx
+index d971dd4..5bda95c 100644
+--- a/client/src/pages/Customers.jsx
++++ b/client/src/pages/Customers.jsx
+@@ -290,6 +290,7 @@ export default function Customers() {
+                   <th>Tên KH</th>
+                   <th>Gói đăng ký</th>
+                   <th style={{ textAlign: 'right' }}>Số dư</th>
++                  <th style={{ textAlign: 'right' }}>🎁 Điểm</th>
+                   <th style={{ textAlign: 'center' }}>CK</th>
+                   <th>Trạng thái</th>
+                 </tr>
+@@ -383,6 +384,11 @@ export default function Customers() {
+                         {formatMoney(c.balance)}
+                       </span>
+                     </td>
++                    <td style={{ textAlign: 'right' }}>
++                      <span className="font-bold" style={{ color: c.points > 0 ? '#7c3aed' : '#94a3b8' }}>
++                        {c.points || 0}
++                      </span>
++                    </td>
+                     <td style={{ textAlign: 'center' }}>
+                       {c.discount_value > 0 ? (
+                         <span 
+@@ -577,6 +583,9 @@ export default function Customers() {
+                     <div style={{ marginTop: '8px', fontWeight: 600, color: selectedCustomer.balance > 0 ? '#22c55e' : '#64748b' }}>
+                       💰 {formatMoney(selectedCustomer.balance)}
+                     </div>
++                    <div style={{ marginTop: '4px', fontWeight: 600, color: selectedCustomer.points > 0 ? '#7c3aed' : '#94a3b8' }}>
++                      🎁 {selectedCustomer.points || 0} điểm
++                    </div>
+                   </div>
+                 </div>
+ 
+diff --git a/server/routes/customers-v2.js b/server/routes/customers-v2.js
+index 67bb3e4..f6381fe 100644
+--- a/server/routes/customers-v2.js
++++ b/server/routes/customers-v2.js
+@@ -9,7 +9,7 @@
+ const express = require("express");
+ const { query, queryOne, run } = require("../database");
+ const { authenticate, checkPermission } = require("../middleware/auth");
+-const { normalizePhone } = require("../utils/helpers");
++const { normalizePhone, getNow } = require("../utils/helpers");
+ const http = require("http");
+ const https = require("https");
+ const { URL } = require("url");
+@@ -241,6 +241,18 @@ router.get("/", authenticate, async (req, res) => {
+     const walletMap = {};
+     wallets.forEach((w) => (walletMap[w.phone] = w));
+ 
++    // LOY-1.5: số dư điểm còn hạn theo SĐT (đọc-thôi)
++    const nowStr = getNow();
++    const pointRows = await query(
++      `SELECT customer_phone, COALESCE(SUM(points),0) AS points
++       FROM pos_point_transactions
++       WHERE expires_at IS NULL OR expires_at > ?
++       GROUP BY customer_phone`,
++      [nowStr],
++    );
++    const pointsMap = {};
++    pointRows.forEach((p) => (pointsMap[p.customer_phone] = p.points));
++
+     const regMap = {};
+     registrations.forEach((r) => (regMap[r.phone] = r));
+ 
+@@ -254,6 +266,7 @@ router.get("/", authenticate, async (req, res) => {
+         ...c,
+         phone,
+         balance: wallet?.balance || 0,
++        points: pointsMap[phone] || 0,
+         source: "sx",
+         is_synced: true,
+         discount_type: extras?.discount_type || null,
+@@ -271,6 +284,7 @@ router.get("/", authenticate, async (req, res) => {
+         name: r.name,
+         phone: r.phone,
+         balance: walletMap[r.phone]?.balance || 0,
++        points: pointsMap[r.phone] || 0,
+         source: "pos",
+         is_synced: false,
+         is_pending: true,

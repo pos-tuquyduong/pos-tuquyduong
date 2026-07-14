@@ -9,7 +9,7 @@
 const express = require("express");
 const { query, queryOne, run } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
-const { normalizePhone } = require("../utils/helpers");
+const { normalizePhone, getNow } = require("../utils/helpers");
 const http = require("http");
 const https = require("https");
 const { URL } = require("url");
@@ -241,6 +241,18 @@ router.get("/", authenticate, async (req, res) => {
     const walletMap = {};
     wallets.forEach((w) => (walletMap[w.phone] = w));
 
+    // LOY-1.5: số dư điểm còn hạn theo SĐT (đọc-thôi)
+    const nowStr = getNow();
+    const pointRows = await query(
+      `SELECT customer_phone, COALESCE(SUM(points),0) AS points
+       FROM pos_point_transactions
+       WHERE expires_at IS NULL OR expires_at > ?
+       GROUP BY customer_phone`,
+      [nowStr],
+    );
+    const pointsMap = {};
+    pointRows.forEach((p) => (pointsMap[p.customer_phone] = p.points));
+
     const regMap = {};
     registrations.forEach((r) => (regMap[r.phone] = r));
 
@@ -254,6 +266,7 @@ router.get("/", authenticate, async (req, res) => {
         ...c,
         phone,
         balance: wallet?.balance || 0,
+        points: pointsMap[phone] || 0,
         source: "sx",
         is_synced: true,
         discount_type: extras?.discount_type || null,
@@ -271,6 +284,7 @@ router.get("/", authenticate, async (req, res) => {
         name: r.name,
         phone: r.phone,
         balance: walletMap[r.phone]?.balance || 0,
+        points: pointsMap[r.phone] || 0,
         source: "pos",
         is_synced: false,
         is_pending: true,

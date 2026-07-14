@@ -290,6 +290,7 @@ export default function Customers() {
                   <th>Tên KH</th>
                   <th>Gói đăng ký</th>
                   <th style={{ textAlign: 'right' }}>Số dư</th>
+                  <th style={{ textAlign: 'right' }}>🎁 Điểm</th>
                   <th style={{ textAlign: 'center' }}>CK</th>
                   <th>Trạng thái</th>
                 </tr>
@@ -381,6 +382,11 @@ export default function Customers() {
                         color: c.balance > 0 ? '#22c55e' : '#64748b' 
                       }}>
                         {formatMoney(c.balance)}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="font-bold" style={{ color: c.points > 0 ? '#7c3aed' : '#94a3b8' }}>
+                        {c.points || 0}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
@@ -576,6 +582,9 @@ export default function Customers() {
                     {getStatusBadge(selectedCustomer)}
                     <div style={{ marginTop: '8px', fontWeight: 600, color: selectedCustomer.balance > 0 ? '#22c55e' : '#64748b' }}>
                       💰 {formatMoney(selectedCustomer.balance)}
+                    </div>
+                    <div style={{ marginTop: '4px', fontWeight: 600, color: selectedCustomer.points > 0 ? '#7c3aed' : '#94a3b8' }}>
+                      🎁 {selectedCustomer.points || 0} điểm
                     </div>
                   </div>
                 </div>
