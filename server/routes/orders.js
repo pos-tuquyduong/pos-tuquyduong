@@ -428,6 +428,43 @@ router.post("/", authenticate, async (req, res) => {
     // Nếu bất kỳ bước nào lỗi → rollback tất cả, không mất tiền
     const orderCode = generateOrderCode();
     const now = getNow();
+
+    // ─── LOY-1 Gói 2: chuẩn bị cộng điểm (mọi tính toán NGOÀI transaction) ───
+    // Đọc cấu hình + tính điểm + tính hạn TRƯỚC khi mở tx. Trong tx chỉ còn 1 INSERT đã kiểm sẵn
+    // → một lỗi điểm KHÔNG BAO GIỜ rollback được một ca bán thật.
+    let loyaltyEarnPoints = 0;
+    let loyaltyExpiresAt = null;
+    let shouldEarnPoints = false;
+    try {
+      if (phone && total > 0) {
+        const loyRows = await query(
+          `SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')`,
+        );
+        const loy = {};
+        for (const r of loyRows) loy[r.key] = r.value;
+        if (loy.loyalty_enabled === 'true') {
+          const per = parseInt(loy.loyalty_earn_per_amount, 10);
+          if (Number.isFinite(per) && per >= 1) {
+            loyaltyEarnPoints = Math.floor(total / per);
+            if (loyaltyEarnPoints > 0) {
+              shouldEarnPoints = true;
+              // Hạn điểm: 'quarter' = cuốn chiếu theo quý (đầu quý tương ứng năm sau); ngược lại NULL = không hết hạn.
+              if (loy.loyalty_expiry_mode === 'quarter') {
+                const y = parseInt(now.slice(0, 4), 10);
+                const m = parseInt(now.slice(5, 7), 10);
+                const qStart = m <= 3 ? 1 : m <= 6 ? 4 : m <= 9 ? 7 : 10;
+                const mm = qStart < 10 ? '0' + qStart : '' + qStart;
+                loyaltyExpiresAt = (y + 1) + '-' + mm + '-01T00:00:00';
+              }
+            }
+          }
+        }
+      }
+    } catch (loyPrepErr) {
+      console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
+      shouldEarnPoints = false;
+    }
+
     const tx = await beginTransaction();
     let orderId;
 
@@ -549,6 +586,22 @@ router.post("/", authenticate, async (req, res) => {
           "UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?",
           [now, discountCodeId],
         );
+      }
+
+      // 6. LOY-1 Gói 2: cộng điểm (đã tính sẵn NGOÀI tx). Bọc try/catch để lỗi ghi điểm
+      //    KHÔNG kéo rollback đơn — tiền/đơn quan trọng hơn điểm thưởng.
+      if (shouldEarnPoints) {
+        try {
+          await tx.run(
+            `INSERT INTO pos_point_transactions (
+              customer_phone, type, points, order_id, expires_at, reason, created_by, created_at
+            ) VALUES (?, 'earn', ?, ?, ?, ?, ?, ?)`,
+            [phone, loyaltyEarnPoints, orderId, loyaltyExpiresAt,
+             `Tích điểm đơn ${orderCode}`, req.user.username, now],
+          );
+        } catch (loyErr) {
+          console.error(`⚠️ Đơn ${orderCode} - Ghi điểm lỗi (bỏ qua, đơn vẫn hoàn tất):`, loyErr.message);
+        }
       }
 
       // COMMIT - tất cả thành công → ghi vào DB
