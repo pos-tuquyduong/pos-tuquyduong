@@ -21,6 +21,12 @@ export default function Settings() {
     loyalty_expiry_mode: 'none',
   });
 
+  // Reward catalog (LOY-2a)
+  const [rewards, setRewards] = useState([]);
+  const [rewardForm, setRewardForm] = useState({
+    name: '', points_cost: '', discount_type: 'fixed', discount_value: '', valid_days: '30',
+  });
+
   // Packages state
   const [packages, setPackages] = useState([]);
   const [showPkgModal, setShowPkgModal] = useState(false);
@@ -65,6 +71,8 @@ export default function Settings() {
         await loadBackupInfo();
       } else if (tab === 'loyalty') {
         await loadLoyalty();
+      } else if (tab === 'rewards') {
+        await loadRewards();
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -191,6 +199,44 @@ export default function Settings() {
       setTimeout(() => setMessage(''), 3000);
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
+  };
+
+  // Reward catalog functions (LOY-2a)
+  const loadRewards = async () => {
+    const data = await pkgApi('GET', '/api/pos/rewards');
+    if (data.success) setRewards(data.data || []);
+  };
+  const addReward = async () => {
+    setSaving(true);
+    try {
+      const cost = parseInt(rewardForm.points_cost) || 0;
+      const value = parseFloat(rewardForm.discount_value) || 0;
+      if (!rewardForm.name.trim()) throw new Error('Nhập tên quà');
+      if (cost < 1) throw new Error('Giá điểm phải ≥ 1');
+      if (value <= 0) throw new Error('Trị giá giảm phải > 0');
+      const data = await pkgApi('POST', '/api/pos/rewards', {
+        name: rewardForm.name.trim(),
+        points_cost: cost,
+        discount_type: rewardForm.discount_type,
+        discount_value: value,
+        valid_days: parseInt(rewardForm.valid_days) || 30,
+      });
+      if (!data.success) throw new Error(data.error);
+      setRewardForm({ name: '', points_cost: '', discount_type: 'fixed', discount_value: '', valid_days: '30' });
+      await loadRewards();
+      setMessage('Đã thêm quà!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
+  };
+  const toggleReward = async (r) => {
+    const data = await pkgApi('PUT', `/api/pos/rewards/${r.id}`, { is_active: r.is_active ? 0 : 1 });
+    if (data.success) await loadRewards();
+  };
+  const deleteReward = async (r) => {
+    if (!window.confirm(`Ẩn quà "${r.name}"?`)) return;
+    const data = await pkgApi('DELETE', `/api/pos/rewards/${r.id}`);
+    if (data.success) await loadRewards();
   };
 
   // Permissions functions
@@ -448,6 +494,9 @@ export default function Settings() {
           </button>
           <button className={`btn ${tab === 'loyalty' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('loyalty')}>
             🎁 Điểm thưởng
+          </button>
+          <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
+            🎫 Kho quà
           </button>
         </div>
 
@@ -965,6 +1014,91 @@ export default function Settings() {
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
+            </>
+          ) : tab === 'rewards' ? (
+            /* TAB KHO QUÀ (LOY-2a) */
+            <>
+              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🎫 Kho quà đổi điểm</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+                Danh sách "bao nhiêu điểm đổi được gì". Khách sẽ đổi trên app; đây là nơi bạn quản.
+              </p>
+
+              {/* form thêm quà */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', padding: '0.75rem', background: '#f9fafb', borderRadius: 8, marginBottom: '1rem' }}>
+                <div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Tên quà</div>
+                  <input className="input" style={{ width: 170 }} placeholder="Phiếu giảm 20k"
+                    value={rewardForm.name} onChange={e => setRewardForm({ ...rewardForm, name: e.target.value })} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Giá (điểm)</div>
+                  <input type="number" className="input" style={{ width: 90, textAlign: 'right' }} min="1"
+                    value={rewardForm.points_cost} onChange={e => setRewardForm({ ...rewardForm, points_cost: e.target.value })} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Loại giảm</div>
+                  <select className="input" style={{ width: 120 }}
+                    value={rewardForm.discount_type} onChange={e => setRewardForm({ ...rewardForm, discount_type: e.target.value })}>
+                    <option value="fixed">Số tiền (đ)</option>
+                    <option value="percent">Phần trăm (%)</option>
+                  </select>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Trị giá</div>
+                  <input type="number" className="input" style={{ width: 90, textAlign: 'right' }} min="1"
+                    value={rewardForm.discount_value} onChange={e => setRewardForm({ ...rewardForm, discount_value: e.target.value })} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Hạn (ngày)</div>
+                  <input type="number" className="input" style={{ width: 80, textAlign: 'right' }} min="1"
+                    value={rewardForm.valid_days} onChange={e => setRewardForm({ ...rewardForm, valid_days: e.target.value })} />
+                </div>
+                <button className="btn btn-primary" onClick={addReward} disabled={saving}>
+                  <Plus size={16} /> Thêm
+                </button>
+              </div>
+
+              {/* danh sách quà */}
+              {rewards.length === 0 ? (
+                <p style={{ color: '#9ca3af', fontSize: 13 }}>Chưa có quà nào. Thêm ở trên.</p>
+              ) : (
+                <table className="table" style={{ width: '100%', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ color: '#6b7280', textAlign: 'left' }}>
+                      <th style={{ padding: '6px 8px' }}>Tên quà</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá điểm</th>
+                      <th style={{ padding: '6px 8px' }}>Ưu đãi</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>Hạn</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>Trạng thái</th>
+                      <th style={{ padding: '6px 8px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rewards.map(r => (
+                      <tr key={r.id} style={{ borderTop: '1px solid #eee', opacity: r.is_active ? 1 : 0.5 }}>
+                        <td style={{ padding: '8px' }}>{r.name}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600 }}>{r.points_cost} đ</td>
+                        <td style={{ padding: '8px' }}>
+                          {r.discount_type === 'percent'
+                            ? `Giảm ${r.discount_value}%`
+                            : `Giảm ${Number(r.discount_value).toLocaleString('vi-VN')}đ`}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>{r.valid_days} ngày</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <button className="btn btn-sm btn-outline" onClick={() => toggleReward(r)}>
+                            {r.is_active ? 'Đang bật' : 'Đã tắt'}
+                          </button>
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right' }}>
+                          <button className="btn btn-sm btn-outline" onClick={() => deleteReward(r)} title="Ẩn quà">
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </>
           ) : null}
         </div>

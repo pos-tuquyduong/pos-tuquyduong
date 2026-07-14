@@ -293,6 +293,47 @@ async function createTables() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_point_tx_phone_exp ON pos_point_transactions(customer_phone, expires_at)`);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 8c: KHO QUÀ ĐỔI ĐIỂM (LOY-2a) — danh mục phần thưởng, admin quản.
+  // Đổi điểm thật (trừ điểm + đẻ voucher) là LOY-2b; bảng này inert.
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_reward_catalog (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      points_cost INTEGER NOT NULL,
+      discount_type TEXT NOT NULL DEFAULT 'fixed',
+      discount_value REAL NOT NULL,
+      max_discount REAL DEFAULT 0,
+      valid_days INTEGER NOT NULL DEFAULT 30,
+      is_active INTEGER DEFAULT 1,
+      created_by TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG 8d: VÍ VOUCHER CỦA KHÁCH (LOY-2a) — voucher đã đổi, gắn theo SĐT.
+  // status: available | used | expired. code = mã trong pos_discount_codes.
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_voucher_grants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL,
+      customer_phone TEXT NOT NULL,
+      reward_id INTEGER,
+      status TEXT NOT NULL DEFAULT 'available',
+      point_tx_id INTEGER,
+      granted_at TEXT,
+      expires_at TEXT,
+      used_order_id INTEGER,
+      used_at TEXT
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_voucher_grant_phone ON pos_voucher_grants(customer_phone, status)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_voucher_grant_code ON pos_voucher_grants(code)`);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 9: KHUYẾN MÃI
   // ═══════════════════════════════════════════════════════════════════════════
   await db.execute(`
