@@ -1,0 +1,246 @@
+diff --git a/server/index.js b/server/index.js
+index 8399ee8..dfddd8f 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -35,6 +35,7 @@ const settingsRoutes = require('./routes/settings');
+ // === ROUTES MỚI (Phase B) - Chiết khấu + Shipping ===
+ const discountCodesRoutes = require('./routes/discount-codes');
+ const rewardsRoutes = require('./routes/rewards');
++const loyaltyRoutes = require('./routes/loyalty');
+ // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ const damagesRoutes = require('./routes/damages');
+ const packagesRoutes = require('./routes/packages');
+@@ -78,6 +79,7 @@ app.use('/api/pos/settings', settingsRoutes);
+ // === API MỚI (Phase B) - Chiết khấu + Shipping ===
+ app.use('/api/pos/discount-codes', discountCodesRoutes);
+ app.use('/api/pos/rewards', rewardsRoutes);
++app.use('/api/pos/loyalty', loyaltyRoutes);
+ // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ app.use('/api/pos/damages', damagesRoutes);
+ app.use('/api/pos/packages', packagesRoutes);
+diff --git a/server/routes/loyalty.js b/server/routes/loyalty.js
+new file mode 100644
+index 0000000..b2444e1
+--- /dev/null
++++ b/server/routes/loyalty.js
+@@ -0,0 +1,220 @@
++/**
++ * POS System - Loyalty Routes (LOY-2b)
++ * Đọc điểm · đọc ví voucher · đổi điểm lấy voucher.
++ *
++ * NGUYÊN TẮC:
++ * - POS là nguồn sự thật của điểm & voucher, khóa theo SĐT. App KH gọi thẳng 3 API này.
++ * - Voucher đổi ra = 1 dòng trong pos_discount_codes với usage_limit=1
++ *   → luồng bán CÓ SẴN tự kiểm hạn/lượt dùng và tự tăng used_count. KHÔNG sửa orders.js.
++ * - Đổi điểm là giao dịch NGUYÊN TỬ: trừ điểm + đẻ mã + ghi ví — lỗi bất kỳ bước nào → hủy sạch
++ *   (không mất điểm, không đẻ mã mồ côi). Khác với cộng điểm khi bán (ở đó điểm không được
++ *   phép kéo đổ đơn); ở đây all-or-nothing CHÍNH LÀ yêu cầu nghiệp vụ.
++ * - Turso trả lastInsertRowid dạng BigInt → luôn bọc Number() trước khi res.json().
++ *
++ * TURSO: mọi database call dùng await.
++ */
++
++const express = require('express');
++const { query, queryOne, beginTransaction } = require('../database');
++const { authenticate } = require('../middleware/auth');
++const { getNow, normalizePhone } = require('../utils/helpers');
++
++const router = express.Router();
++
++// Số dư điểm = SUM(points) các dòng CÒN HẠN. Không lưu số dư rời (bài học từ ví).
++const BALANCE_SQL = `
++  SELECT COALESCE(SUM(points), 0) AS points
++  FROM pos_point_transactions
++  WHERE customer_phone = ? AND (expires_at IS NULL OR expires_at > ?)
++`;
++
++/**
++ * Cộng ngày vào phần ngày của getNow() → 'YYYY-MM-DD'.
++ * Thuần, tất định, test được. Dùng UTC nội bộ để tránh lệch múi giờ khi cộng ngày.
++ * (pos_discount_codes.valid_to được orders.js so sánh dạng chuỗi ngày 'YYYY-MM-DD'.)
++ */
++function addDaysToDate(nowStr, days) {
++  const [y, m, d] = String(nowStr).slice(0, 10).split('-').map(Number);
++  const dt = new Date(Date.UTC(y, m - 1, d));
++  dt.setUTCDate(dt.getUTCDate() + days);
++  return dt.toISOString().slice(0, 10);
++}
++
++/** Mã voucher: TQD + 6 ký tự (bỏ ký tự dễ nhìn nhầm 0/O/1/I). */
++function generateVoucherCode() {
++  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
++  let s = '';
++  for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
++  return 'TQD' + s;
++}
++
++// ─────────────────────────────────────────────────────────────────────────────
++// GET /api/pos/loyalty/points/:phone — số dư điểm + lịch sử gần đây
++// ─────────────────────────────────────────────────────────────────────────────
++router.get('/points/:phone', authenticate, async (req, res) => {
++  try {
++    const phone = normalizePhone(req.params.phone);
++    if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
++
++    const now = getNow();
++    const row = await queryOne(BALANCE_SQL, [phone, now]);
++    const history = await query(
++      `SELECT id, type, points, order_id, expires_at, reason, created_at
++       FROM pos_point_transactions
++       WHERE customer_phone = ?
++       ORDER BY id DESC LIMIT 50`,
++      [phone],
++    );
++    res.json({ success: true, phone, points: row?.points || 0, history });
++  } catch (err) {
++    res.status(500).json({ error: err.message });
++  }
++});
++
++// ─────────────────────────────────────────────────────────────────────────────
++// GET /api/pos/loyalty/vouchers/:phone — ví voucher của khách (?all=1 → cả đã dùng)
++// ─────────────────────────────────────────────────────────────────────────────
++router.get('/vouchers/:phone', authenticate, async (req, res) => {
++  try {
++    const phone = normalizePhone(req.params.phone);
++    if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
++
++    const all = req.query.all === '1';
++    const today = getNow().slice(0, 10);
++    // "Còn dùng được" = chưa bị luồng bán tiêu (used_count=0, đây mới là nguồn sự thật)
++    // + chưa quá hạn + mã còn bật. KHÔNG dựa vào g.status: orders.js chỉ tăng used_count,
++    // không đụng bảng grants (LOY-2c sẽ đồng bộ status; tới lúc đó lọc này vẫn đúng).
++    const rows = await query(
++      `SELECT g.id, g.code, g.status, g.granted_at, g.expires_at, g.used_order_id, g.used_at,
++              r.name AS reward_name,
++              d.discount_type, d.discount_value, d.max_discount, d.used_count, d.is_active
++       FROM pos_voucher_grants g
++       LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id
++       LEFT JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code)
++       WHERE g.customer_phone = ?
++       ${all ? '' : `AND COALESCE(d.used_count, 0) = 0
++                     AND COALESCE(d.is_active, 1) = 1
++                     AND (g.expires_at IS NULL OR g.expires_at >= ?)`}
++       ORDER BY g.id DESC`,
++      all ? [phone] : [phone, today],
++    );
++
++    const data = rows.map((v) => {
++      const used = (v.used_count || 0) > 0;
++      const expired = !!(v.expires_at && v.expires_at < today);
++      const disabled = v.is_active === 0;
++      return {
++        ...v,
++        // status SUY RA từ nguồn sự thật (used_count của mã + hạn), KHÔNG dùng cột status lưu sẵn
++        // → không bao giờ lệch, không cần job đồng bộ. Cột g.status chỉ là vết tích, đừng tin.
++        status: used ? 'used' : expired ? 'expired' : disabled ? 'disabled' : 'available',
++        is_used: used,
++        is_expired: expired,
++      };
++    });
++    res.json({ success: true, phone, data });
++  } catch (err) {
++    res.status(500).json({ error: err.message });
++  }
++});
++
++// ─────────────────────────────────────────────────────────────────────────────
++// POST /api/pos/loyalty/redeem — đổi điểm lấy voucher (NGUYÊN TỬ)
++// body: { phone, reward_id }
++// ─────────────────────────────────────────────────────────────────────────────
++router.post('/redeem', authenticate, async (req, res) => {
++  try {
++    const phone = normalizePhone(req.body.phone);
++    const rewardId = parseInt(req.body.reward_id, 10);
++    if (!phone) return res.status(400).json({ error: 'Thiếu số điện thoại khách' });
++    if (!Number.isFinite(rewardId)) return res.status(400).json({ error: 'Thiếu quà cần đổi' });
++
++    // ── Chuẩn bị NGOÀI transaction ──
++    const reward = await queryOne(
++      'SELECT * FROM pos_reward_catalog WHERE id = ? AND is_active = 1',
++      [rewardId],
++    );
++    if (!reward) return res.status(404).json({ error: 'Quà không tồn tại hoặc đã tắt' });
++
++    const cost = parseInt(reward.points_cost, 10);
++    if (!Number.isFinite(cost) || cost < 1) {
++      return res.status(400).json({ error: 'Quà cấu hình sai giá điểm' });
++    }
++
++    const now = getNow();
++    const validTo = addDaysToDate(now, parseInt(reward.valid_days, 10) || 30);
++    const validFrom = now.slice(0, 10);
++
++    // Sinh mã chưa trùng (UNIQUE trên cột code là chốt chặn cuối).
++    let code = null;
++    for (let i = 0; i < 5; i++) {
++      const candidate = generateVoucherCode();
++      const dup = await queryOne('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [candidate]);
++      if (!dup) { code = candidate; break; }
++    }
++    if (!code) return res.status(500).json({ error: 'Không sinh được mã, thử lại' });
++
++    // ── Transaction: all-or-nothing ──
++    const tx = await beginTransaction();
++    try {
++      // Kiểm số dư BÊN TRONG tx để chặn đổi trùng khi bấm 2 lần cùng lúc.
++      const balRow = await tx.queryOne(BALANCE_SQL, [phone, now]);
++      const balance = balRow?.points || 0;
++      if (balance < cost) {
++        await tx.rollback();
++        return res.status(400).json({ error: `Không đủ điểm (có ${balance}, cần ${cost})` });
++      }
++
++      // 1) Trừ điểm — dòng redeem không có hạn (đã trừ là trừ vĩnh viễn).
++      const ptRes = await tx.run(
++        `INSERT INTO pos_point_transactions (
++           customer_phone, type, points, order_id, expires_at, reason, created_by, created_at
++         ) VALUES (?, 'redeem', ?, NULL, NULL, ?, ?, ?)`,
++        [phone, -cost, `Đổi quà: ${reward.name}`, req.user.username, now],
++      );
++      const pointTxId = Number(ptRes.lastInsertRowid);
++
++      // 2) Đẻ mã giảm giá dùng-một-lần → luồng bán có sẵn tự hiểu.
++      await tx.run(
++        `INSERT INTO pos_discount_codes (
++           code, discount_type, discount_value, min_order, max_discount,
++           usage_limit, used_count, valid_from, valid_to, is_active, notes, created_by, created_at
++         ) VALUES (?, ?, ?, 0, ?, 1, 0, ?, ?, 1, ?, ?, ?)`,
++        [code, reward.discount_type, reward.discount_value, reward.max_discount || 0,
++         validFrom, validTo, `Đổi điểm: ${reward.name} (${phone})`, req.user.username, now],
++      );
++
++      // 3) Ghi vào ví voucher của khách.
++      const grantRes = await tx.run(
++        `INSERT INTO pos_voucher_grants (
++           code, customer_phone, reward_id, status, point_tx_id, granted_at, expires_at
++         ) VALUES (?, ?, ?, 'available', ?, ?, ?)`,
++        [code, phone, rewardId, pointTxId, now, validTo],
++      );
++
++      await tx.commit();
++
++      res.json({
++        success: true,
++        message: `Đã đổi ${cost} điểm lấy "${reward.name}"`,
++        data: {
++          code,
++          grant_id: Number(grantRes.lastInsertRowid),
++          reward_name: reward.name,
++          discount_type: reward.discount_type,
++          discount_value: reward.discount_value,
++          expires_at: validTo,
++          points_spent: cost,
++          points_left: balance - cost,
++        },
++      });
++    } catch (txErr) {
++      await tx.rollback();
++      throw txErr;
++    }
++  } catch (err) {
++    res.status(500).json({ error: err.message });
++  }
++});
++
++module.exports = router;
