@@ -29,6 +29,13 @@ export default function Customers() {
   // Modal chi tiết khách hàng (CK + ghi chú POS)
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  // LOY-2: đổi quà tại quầy (dùng chung API mà app KH sẽ gọi)
+  const [rewards, setRewards] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
+  const [redeeming, setRedeeming] = useState(false);
+  const [redeemResult, setRedeemResult] = useState(null);
+  const [showRedeem, setShowRedeem] = useState(false);
   const [detailForm, setDetailForm] = useState({
     discount_type: 'percent',
     discount_value: 0,
@@ -117,6 +124,10 @@ export default function Customers() {
   // Mở modal chi tiết khi click vào row
   const openDetailModal = (customer) => {
     setSelectedCustomer(customer);
+    setShowRedeem(false);
+    setRedeemResult(null);
+    setRewards([]);
+    setVouchers([]);
     setDetailForm({
       discount_type: customer.discount_type || 'percent',
       discount_value: customer.discount_value || 0,
@@ -125,6 +136,63 @@ export default function Customers() {
     });
     setShowDetailModal(true);
     setError('');
+  };
+
+  // ─── LOY-2: đổi quà tại quầy — dùng ĐÚNG 3 API mà app KH sẽ gọi (không viết logic riêng) ───
+  const loyaltyApi = async (method, url, body) => {
+    const token = localStorage.getItem('pos_token');
+    const opts = { method, headers: { 'Authorization': 'Bearer ' + token } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    const res = await fetch(url, opts);
+    return res.json();
+  };
+
+  const openRedeem = async () => {
+    if (!selectedCustomer?.phone) return;
+    setShowRedeem(true);
+    setRedeemResult(null);
+    setError('');
+    try {
+      const ph = encodeURIComponent(selectedCustomer.phone);
+      const [r, v, p] = await Promise.all([
+        loyaltyApi('GET', '/api/pos/rewards?active=1'),
+        loyaltyApi('GET', `/api/pos/loyalty/vouchers/${ph}`),
+        loyaltyApi('GET', `/api/pos/loyalty/points/${ph}`),
+      ]);
+      // Báo lỗi THẬT — đừng để màn hình nói "chưa có quà" khi thực ra là lỗi tải.
+      if (!r.success) throw new Error(r.error || 'Không tải được kho quà');
+      setRewards(r.data || []);
+      if (v.success) setVouchers(v.data || []);
+      // Lấy điểm TƯƠI (số ở danh sách có thể cũ nếu khách vừa mua ở quầy khác).
+      if (p.success) setSelectedCustomer(prev => ({ ...prev, points: p.points }));
+    } catch (err) {
+      setError('Không tải được kho quà: ' + err.message);
+      setShowRedeem(false);
+    }
+  };
+
+  const doRedeem = async (reward) => {
+    if (!selectedCustomer?.phone || redeeming) return;
+    if (!window.confirm(`Đổi ${reward.points_cost} điểm lấy "${reward.name}" cho khách ${selectedCustomer.phone}?`)) return;
+    setRedeeming(true);
+    setError('');
+    try {
+      const data = await loyaltyApi('POST', '/api/pos/loyalty/redeem', {
+        phone: selectedCustomer.phone,
+        reward_id: reward.id,
+      });
+      if (!data.success) throw new Error(data.error || 'Đổi quà thất bại');
+      setRedeemResult(data.data);
+      // cập nhật điểm hiển thị ngay + tải lại ví
+      setSelectedCustomer(prev => ({ ...prev, points: data.data.points_left }));
+      const v = await loyaltyApi('GET', `/api/pos/loyalty/vouchers/${encodeURIComponent(selectedCustomer.phone)}`);
+      if (v.success) setVouchers(v.data || []);
+      await loadCustomers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRedeeming(false);
+    }
   };
 
   // Kiểm tra khách có SĐT không (để cho phép set CK)
@@ -586,11 +654,63 @@ export default function Customers() {
                     <div style={{ marginTop: '4px', fontWeight: 600, color: selectedCustomer.points > 0 ? '#7c3aed' : '#94a3b8' }}>
                       🎁 {selectedCustomer.points || 0} điểm
                     </div>
+                    {selectedCustomer.phone && (
+                      <button className="btn btn-outline" style={{ marginTop: '6px', padding: '4px 10px', fontSize: '0.78rem' }}
+                        onClick={() => (showRedeem ? setShowRedeem(false) : openRedeem())}>
+                        {showRedeem ? 'Đóng' : '🎫 Đổi quà'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {selectedCustomer.relationship && selectedCustomer.parent_name && (
-                  <div style={{ marginTop: '8px', padding: '8px', background: '#f3e8ff', borderRadius: '6px', fontSize: '0.85rem' }}>
+                {/* LOY-2: khu đổi quà tại quầy */}
+                {showRedeem && (
+                  <div style={{ marginTop: '12px', padding: '10px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
+                    {redeemResult && (
+                      <div style={{ padding: '10px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', marginBottom: '10px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>✅ Mã voucher: {redeemResult.code}</div>
+                        <div style={{ fontSize: '0.85rem', color: '#166534', marginTop: '2px' }}>
+                          {redeemResult.reward_name} · hạn {redeemResult.expires_at} · đã trừ {redeemResult.points_spent} điểm, còn {redeemResult.points_left}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#166534', marginTop: '4px' }}>
+                          Đọc mã này cho khách. Chỉ dùng được cho đơn của chính SĐT này.
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Kho quà</div>
+                    {rewards.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Chưa có quà. Thêm ở Cài đặt → 🎫 Kho quà.</div>
+                    ) : rewards.map(r => {
+                      const enough = (selectedCustomer.points || 0) >= r.points_cost;
+                      return (
+                        <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid #f3e8ff' }}>
+                          <div style={{ fontSize: '0.85rem' }}>
+                            {r.name}
+                            <span style={{ color: '#7c3aed', fontWeight: 600, marginLeft: '6px' }}>{r.points_cost} điểm</span>
+                          </div>
+                          <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: '0.78rem' }} disabled={!enough || redeeming}
+                            title={enough ? '' : 'Khách chưa đủ điểm'}
+                            onClick={() => doRedeem(r)}>
+                            {redeeming ? '...' : 'Đổi'}
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, margin: '10px 0 6px' }}>Ví voucher ({vouchers.length})</div>
+                    {vouchers.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Chưa có voucher nào chưa dùng.</div>
+                    ) : vouchers.map(v => (
+                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderTop: '1px solid #f3e8ff', fontSize: '0.82rem' }}>
+                        <span><b>{v.code}</b> · {v.reward_name || '—'}</span>
+                        <span style={{ color: '#64748b' }}>hạn {v.expires_at || '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedCustomer.relationship && selectedCustomer.parent_name && (                  <div style={{ marginTop: '8px', padding: '8px', background: '#f3e8ff', borderRadius: '6px', fontSize: '0.85rem' }}>
                     <User size={14} style={{ display: 'inline', marginRight: '6px', color: '#8b5cf6' }} />
                     {selectedCustomer.relationship} của <strong>{selectedCustomer.parent_name}</strong>
                   </div>
