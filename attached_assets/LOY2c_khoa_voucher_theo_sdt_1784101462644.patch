@@ -1,0 +1,117 @@
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 95beb88..afcd0c3 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -154,7 +154,8 @@ export default function Sales() {
+         },
+         body: JSON.stringify({ 
+           code: discountCode.trim(),
+-          order_subtotal: subtotal
++          order_subtotal: subtotal,
++          customer_phone: customer?.phone || null
+         })
+       });
+       const result = await res.json();
+@@ -202,11 +203,13 @@ export default function Sales() {
+     setParentBalanceToUse(0);
+     setIsDebt(false);
+     setActivePkgId(null);
++    // LOY-2c: đổi khách → kết quả kiểm mã cũ KHÔNG còn đúng (voucher khóa theo SĐT)
++    // → xóa để nhân viên kiểm lại, tránh màn hình hiện giảm giá của khách trước.
++    setDiscountCode('');
++    setDiscountCodeValid(null);
+     if (selectedCustomer?.discount_value > 0) {
+       setDiscountType(selectedCustomer.discount_type || 'percent');
+       setDiscountValue(selectedCustomer.discount_value);
+-      setDiscountCode('');
+-      setDiscountCodeValid(null);
+     }
+ 
+     // Load gói active của khách
+diff --git a/server/routes/discount-codes.js b/server/routes/discount-codes.js
+index 849894d..b7d313b 100644
+--- a/server/routes/discount-codes.js
++++ b/server/routes/discount-codes.js
+@@ -8,7 +8,7 @@
+ const express = require('express');
+ const { query, queryOne, run } = require('../database');
+ const { authenticate, checkPermission } = require('../middleware/auth');
+-const { getNow } = require('../utils/helpers');
++const { getNow, normalizePhone } = require('../utils/helpers');
+ 
+ const router = express.Router();
+ 
+@@ -61,7 +61,7 @@ router.get('/:id', authenticate, async (req, res) => {
+  */
+ router.post('/validate', authenticate, async (req, res) => {
+   try {
+-    const { code, order_subtotal } = req.body;
++    const { code, order_subtotal, customer_phone } = req.body;
+ 
+     if (!code) {
+       return res.status(400).json({ error: 'Vui lòng nhập mã chiết khấu' });
+@@ -76,6 +76,28 @@ router.post('/validate', authenticate, async (req, res) => {
+       return res.status(400).json({ error: 'Mã chiết khấu không tồn tại hoặc đã hết hiệu lực' });
+     }
+ 
++    // ─── LOY-2c: voucher đổi từ điểm bị KHÓA THEO SĐT ───
++    // Cùng luật với guard ở orders.js → "kiểm mã" báo đúng cái mà lúc thanh toán sẽ xảy ra.
++    // Mã thường (general) không có grant → bỏ qua. Guard lỗi → chỉ log, không chặn.
++    try {
++      const grant = await queryOne(
++        'SELECT customer_phone FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?)',
++        [discountCode.code]
++      );
++      if (grant && grant.customer_phone) {
++        const orderPhone = normalizePhone(customer_phone);
++        if (orderPhone !== grant.customer_phone) {
++          const p = String(grant.customer_phone);
++          const masked = p.length >= 7 ? p.slice(0, 4) + '***' + p.slice(-3) : p;
++          return res.status(400).json({
++            error: `Voucher này đã cấp riêng cho khách ${masked}. Vui lòng chọn đúng khách cho đơn.`
++          });
++        }
++      }
++    } catch (grantErr) {
++      console.error(`⚠️ LOY-2c (validate): không kiểm được chủ voucher ${discountCode.code}:`, grantErr.message);
++    }
++
+     // Kiểm tra ngày hiệu lực
+     const today = new Date().toISOString().slice(0, 10);
+     
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index f839645..4d5ae23 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -268,6 +268,31 @@ router.post("/", authenticate, async (req, res) => {
+       );
+ 
+       if (codeRecord) {
++        // ─── LOY-2c: voucher đổi từ điểm bị KHÓA THEO SĐT ───
++        // Mã thường (general, không đổi từ điểm) KHÔNG có grant → guard bỏ qua, luồng cũ y nguyên.
++        // Nếu chính guard lỗi hạ tầng → chỉ log, cho đơn chạy tiếp (không để loyalty chặn ca bán thật).
++        try {
++          const grant = await queryOne(
++            "SELECT customer_phone FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?)",
++            [codeRecord.code],
++          );
++          if (grant && grant.customer_phone) {
++            const orderPhone = normalizePhone(customer_phone);
++            if (orderPhone !== grant.customer_phone) {
++              const p = String(grant.customer_phone);
++              const masked = p.length >= 7 ? p.slice(0, 4) + "***" + p.slice(-3) : p;
++              return res.status(400).json({
++                error: `Voucher ${codeRecord.code} đã cấp riêng cho khách ${masked}. Vui lòng nhập đúng số điện thoại của khách vào đơn.`,
++              });
++            }
++          }
++        } catch (grantErr) {
++          console.error(
++            `⚠️ LOY-2c: không kiểm được chủ voucher ${codeRecord.code} (bỏ qua guard, đơn vẫn chạy):`,
++            grantErr.message,
++          );
++        }
++
+         // Kiểm tra hiệu lực
+         const today = new Date().toISOString().slice(0, 10);
+         let codeValid = true;

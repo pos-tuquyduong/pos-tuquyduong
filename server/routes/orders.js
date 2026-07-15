@@ -268,6 +268,31 @@ router.post("/", authenticate, async (req, res) => {
       );
 
       if (codeRecord) {
+        // ─── LOY-2c: voucher đổi từ điểm bị KHÓA THEO SĐT ───
+        // Mã thường (general, không đổi từ điểm) KHÔNG có grant → guard bỏ qua, luồng cũ y nguyên.
+        // Nếu chính guard lỗi hạ tầng → chỉ log, cho đơn chạy tiếp (không để loyalty chặn ca bán thật).
+        try {
+          const grant = await queryOne(
+            "SELECT customer_phone FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?)",
+            [codeRecord.code],
+          );
+          if (grant && grant.customer_phone) {
+            const orderPhone = normalizePhone(customer_phone);
+            if (orderPhone !== grant.customer_phone) {
+              const p = String(grant.customer_phone);
+              const masked = p.length >= 7 ? p.slice(0, 4) + "***" + p.slice(-3) : p;
+              return res.status(400).json({
+                error: `Voucher ${codeRecord.code} đã cấp riêng cho khách ${masked}. Vui lòng nhập đúng số điện thoại của khách vào đơn.`,
+              });
+            }
+          }
+        } catch (grantErr) {
+          console.error(
+            `⚠️ LOY-2c: không kiểm được chủ voucher ${codeRecord.code} (bỏ qua guard, đơn vẫn chạy):`,
+            grantErr.message,
+          );
+        }
+
         // Kiểm tra hiệu lực
         const today = new Date().toISOString().slice(0, 10);
         let codeValid = true;

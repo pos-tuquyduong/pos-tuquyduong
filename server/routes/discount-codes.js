@@ -8,7 +8,7 @@
 const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow } = require('../utils/helpers');
+const { getNow, normalizePhone } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -61,7 +61,7 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.post('/validate', authenticate, async (req, res) => {
   try {
-    const { code, order_subtotal } = req.body;
+    const { code, order_subtotal, customer_phone } = req.body;
 
     if (!code) {
       return res.status(400).json({ error: 'Vui lòng nhập mã chiết khấu' });
@@ -74,6 +74,28 @@ router.post('/validate', authenticate, async (req, res) => {
 
     if (!discountCode) {
       return res.status(400).json({ error: 'Mã chiết khấu không tồn tại hoặc đã hết hiệu lực' });
+    }
+
+    // ─── LOY-2c: voucher đổi từ điểm bị KHÓA THEO SĐT ───
+    // Cùng luật với guard ở orders.js → "kiểm mã" báo đúng cái mà lúc thanh toán sẽ xảy ra.
+    // Mã thường (general) không có grant → bỏ qua. Guard lỗi → chỉ log, không chặn.
+    try {
+      const grant = await queryOne(
+        'SELECT customer_phone FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?)',
+        [discountCode.code]
+      );
+      if (grant && grant.customer_phone) {
+        const orderPhone = normalizePhone(customer_phone);
+        if (orderPhone !== grant.customer_phone) {
+          const p = String(grant.customer_phone);
+          const masked = p.length >= 7 ? p.slice(0, 4) + '***' + p.slice(-3) : p;
+          return res.status(400).json({
+            error: `Voucher này đã cấp riêng cho khách ${masked}. Vui lòng chọn đúng khách cho đơn.`
+          });
+        }
+      }
+    } catch (grantErr) {
+      console.error(`⚠️ LOY-2c (validate): không kiểm được chủ voucher ${discountCode.code}:`, grantErr.message);
     }
 
     // Kiểm tra ngày hiệu lực

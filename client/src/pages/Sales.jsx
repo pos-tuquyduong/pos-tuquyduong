@@ -154,7 +154,8 @@ export default function Sales() {
         },
         body: JSON.stringify({ 
           code: discountCode.trim(),
-          order_subtotal: subtotal
+          order_subtotal: subtotal,
+          customer_phone: customer?.phone || null
         })
       });
       const result = await res.json();
@@ -202,11 +203,13 @@ export default function Sales() {
     setParentBalanceToUse(0);
     setIsDebt(false);
     setActivePkgId(null);
+    // LOY-2c: đổi khách → kết quả kiểm mã cũ KHÔNG còn đúng (voucher khóa theo SĐT)
+    // → xóa để nhân viên kiểm lại, tránh màn hình hiện giảm giá của khách trước.
+    setDiscountCode('');
+    setDiscountCodeValid(null);
     if (selectedCustomer?.discount_value > 0) {
       setDiscountType(selectedCustomer.discount_type || 'percent');
       setDiscountValue(selectedCustomer.discount_value);
-      setDiscountCode('');
-      setDiscountCodeValid(null);
     }
 
     // Load gói active của khách
