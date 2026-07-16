@@ -1,0 +1,26 @@
+diff --git a/client/src/pages/Customers.jsx b/client/src/pages/Customers.jsx
+index 87ff6fb..50030b9 100644
+--- a/client/src/pages/Customers.jsx
++++ b/client/src/pages/Customers.jsx
+@@ -673,7 +673,7 @@ export default function Customers() {
+                           {redeemResult.reward_name} · hạn {redeemResult.expires_at} · đã trừ {redeemResult.points_spent} điểm, còn {redeemResult.points_left}
+                         </div>
+                         <div style={{ fontSize: '0.8rem', color: '#166534', marginTop: '4px' }}>
+-                          Đọc mã này cho khách. Chỉ dùng được cho đơn của chính SĐT này.
++                          Đọc mã này cho khách. Dùng được <b>1 lần</b> rồi hết hiệu lực — khách tặng ai cũng được.
+                         </div>
+                       </div>
+                     )}
+diff --git a/server/routes/loyalty.js b/server/routes/loyalty.js
+index b2444e1..f9b99b9 100644
+--- a/server/routes/loyalty.js
++++ b/server/routes/loyalty.js
+@@ -4,6 +4,8 @@
+  *
+  * NGUYÊN TẮC:
+  * - POS là nguồn sự thật của điểm & voucher, khóa theo SĐT. App KH gọi thẳng 3 API này.
++ * - Voucher TỰ DO CHUYỂN NHƯỢNG (chốt 15.07.2026): ai cầm mã cũng dùng được, chỉ giới hạn
++ *   DÙNG 1 LẦN (usage_limit=1). Ví voucher theo SĐT chỉ là bản ghi "khách này đã đổi gì".
+  * - Voucher đổi ra = 1 dòng trong pos_discount_codes với usage_limit=1
+  *   → luồng bán CÓ SẴN tự kiểm hạn/lượt dùng và tự tăng used_count. KHÔNG sửa orders.js.
+  * - Đổi điểm là giao dịch NGUYÊN TỬ: trừ điểm + đẻ mã + ghi ví — lỗi bất kỳ bước nào → hủy sạch

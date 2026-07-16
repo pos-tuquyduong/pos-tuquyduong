@@ -4,6 +4,8 @@
  *
  * NGUYÊN TẮC:
  * - POS là nguồn sự thật của điểm & voucher, khóa theo SĐT. App KH gọi thẳng 3 API này.
+ * - Voucher TỰ DO CHUYỂN NHƯỢNG (chốt 15.07.2026): ai cầm mã cũng dùng được, chỉ giới hạn
+ *   DÙNG 1 LẦN (usage_limit=1). Ví voucher theo SĐT chỉ là bản ghi "khách này đã đổi gì".
  * - Voucher đổi ra = 1 dòng trong pos_discount_codes với usage_limit=1
  *   → luồng bán CÓ SẴN tự kiểm hạn/lượt dùng và tự tăng used_count. KHÔNG sửa orders.js.
  * - Đổi điểm là giao dịch NGUYÊN TỬ: trừ điểm + đẻ mã + ghi ví — lỗi bất kỳ bước nào → hủy sạch

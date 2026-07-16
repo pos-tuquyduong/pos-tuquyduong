@@ -673,7 +673,7 @@ export default function Customers() {
                           {redeemResult.reward_name} · hạn {redeemResult.expires_at} · đã trừ {redeemResult.points_spent} điểm, còn {redeemResult.points_left}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: '#166534', marginTop: '4px' }}>
-                          Đọc mã này cho khách. Chỉ dùng được cho đơn của chính SĐT này.
+                          Đọc mã này cho khách. Dùng được <b>1 lần</b> rồi hết hiệu lực — khách tặng ai cũng được.
                         </div>
                       </div>
                     )}

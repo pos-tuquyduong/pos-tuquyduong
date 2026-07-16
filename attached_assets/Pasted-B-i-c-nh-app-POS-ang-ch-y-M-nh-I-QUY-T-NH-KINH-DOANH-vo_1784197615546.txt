@@ -1,0 +1,44 @@
+Bối cảnh: app POS đang chạy. Mình ĐỔI QUYẾT ĐỊNH KINH DOANH: voucher đổi từ điểm
+giờ được TỰ DO CHUYỂN NHƯỢNG (ai cầm mã cũng dùng được), chỉ giữ luật DÙNG 1 LẦN.
+=> Cần GỠ BỎ phần khóa-voucher-theo-SĐT (LOY-2c) đã áp trước đó, và sửa lời nhắc trên UI.
+Bỏ qua tạo git branch — dùng checkpoint tự động.
+
+Trong attached_assets/ có 2 file .patch cần dùng (chạy `ls attached_assets/*.patch` để lấy tên đầy đủ):
+  - file LOY2c_khoa_voucher_theo_sdt*.patch   → GỠ NGƯỢC (đã áp trước đó)
+  - file LOY2e_go_khoa_voucher_sua_loi_nhac*.patch → ÁP MỚI (mình vừa đính kèm)
+
+Làm tuần tự:
+
+1) GỠ LOY-2c (chạy ngược patch cũ):
+   git apply -R --check "attached_assets/<TÊN_FILE_2c>.patch"
+   Nếu OK:  git apply -R "attached_assets/<TÊN_FILE_2c>.patch"
+   (nếu --check báo không khớp thì DỪNG và báo mình, đừng tự sửa tay)
+
+2) Xác nhận đã gỡ sạch — 3 lệnh này phải trả về 0 kết quả:
+   grep -c "LOY-2c" server/routes/orders.js
+   grep -c "pos_voucher_grants" server/routes/orders.js server/routes/discount-codes.js
+   grep -c "normalizePhone" server/routes/discount-codes.js
+
+3) ÁP patch sửa lời nhắc:
+   git apply --check "attached_assets/<TÊN_FILE_2e>.patch"
+   git apply "attached_assets/<TÊN_FILE_2e>.patch"
+
+4) Kiểm cú pháp:
+   node --check server/routes/orders.js
+   node --check server/routes/discount-codes.js
+   node --check server/routes/loyalty.js
+
+5) Rebuild frontend + khởi động lại server.
+
+6) Test lại luật mới (quan trọng — phải NGƯỢC với lần trước):
+   a. Đổi 1 voucher mới cho khách A (POST /api/pos/loyalty/redeem) → lấy mã.
+   b. Bán đơn cho KHÁCH B + nhập mã của A  → PHẢI GIẢM GIÁ BÌNH THƯỜNG (không còn bị chặn).
+   c. Đổi voucher khác cho A, bán đơn KHÁCH LẺ (không SĐT) + mã đó → cũng PHẢI CHẠY.
+   d. Dùng lại chính mã đã dùng ở bước b cho đơn thứ 2 → PHẢI BỊ CHẶN ("đã hết lượt sử dụng").
+   e. Mã giảm giá thường → vẫn chạy như cũ.
+   f. Màn Khách hàng → bấm khách → 🎫 Đổi quà → đổi → dòng nhắc phải ghi
+      "Dùng được 1 lần rồi hết hiệu lực — khách tặng ai cũng được"
+      (KHÔNG còn câu "Chỉ dùng được cho đơn của chính SĐT này").
+
+7) Xác nhận luồng bán cũ (tiền mặt/CK/ví/nợ) không đổi.
+8) Báo lại kèm mã voucher mẫu + kết quả bước b và d; CHƯA deploy.
