@@ -1,0 +1,22 @@
+diff --git a/server/routes/loyalty.js b/server/routes/loyalty.js
+index f9b99b9..5afdea5 100644
+--- a/server/routes/loyalty.js
++++ b/server/routes/loyalty.js
+@@ -42,12 +42,14 @@ function addDaysToDate(nowStr, days) {
+   return dt.toISOString().slice(0, 10);
+ }
+ 
+-/** Mã voucher: TQD + 6 ký tự (bỏ ký tự dễ nhìn nhầm 0/O/1/I). */
++/** Mã voucher: 6 ký tự, KHÔNG tiền tố. Bỏ ký tự dễ nhìn nhầm O/0 · I/1/L.
++ *  Không phân biệt hoa/thường (toàn hệ so mã bằng UPPER). ~887 triệu tổ hợp → hiếm trùng;
++ *  vẫn có chống trùng ở /redeem (đẻ lại nếu đụng mã đã tồn tại). */
+ function generateVoucherCode() {
+-  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
++  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // đã bỏ O,0,I,1,L
+   let s = '';
+   for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+-  return 'TQD' + s;
++  return s;
+ }
+ 
+ // ─────────────────────────────────────────────────────────────────────────────
