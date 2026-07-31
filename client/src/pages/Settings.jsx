@@ -34,6 +34,12 @@ export default function Settings() {
   const [pkgForm, setPkgForm] = useState({ code: '', name: '', description: '', price: '', unit: 'túi', total_qty: '', package_items: [], is_active: true });
   const [allProducts, setAllProducts] = useState([]); // For package items checklist
 
+  // Flash sale state (F1)
+  const [flash, setFlash] = useState({
+    enabled: false, start: '19:00', end: '20:00', percent: '50',
+    product_keys: [], is_flash_now: false, server_time_vn: '',
+  });
+
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
   const [restoring, setRestoring] = useState(false);
@@ -73,6 +79,8 @@ export default function Settings() {
         await loadLoyalty();
       } else if (tab === 'rewards') {
         await loadRewards();
+      } else if (tab === 'flash') {
+        await loadFlash();
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -237,6 +245,56 @@ export default function Settings() {
     if (!window.confirm(`Ẩn quà "${r.name}"?`)) return;
     const data = await pkgApi('DELETE', `/api/pos/rewards/${r.id}`);
     if (data.success) await loadRewards();
+  };
+
+  // Flash sale functions (F1)
+  const loadFlash = async () => {
+    const data = await pkgApi('GET', '/api/pos/flash');
+    if (data.success && data.data) {
+      setFlash({
+        enabled: !!data.data.enabled,
+        start: data.data.start || '19:00',
+        end: data.data.end || '20:00',
+        percent: String(data.data.percent || 50),
+        product_keys: Array.isArray(data.data.product_keys) ? data.data.product_keys : [],
+        is_flash_now: !!data.data.is_flash_now,
+        server_time_vn: data.data.server_time_vn || '',
+      });
+    }
+    if (allProducts.length === 0) {
+      const prods = await pkgApi('GET', '/api/pos/products?with_stock=true');
+      if (Array.isArray(prods)) setAllProducts(prods);
+    }
+  };
+  const toggleFlashProduct = (uid) => {
+    setFlash(prev => {
+      const has = prev.product_keys.includes(uid);
+      return { ...prev, product_keys: has ? prev.product_keys.filter(k => k !== uid) : [...prev.product_keys, uid] };
+    });
+  };
+  const saveFlash = async () => {
+    setSaving(true);
+    try {
+      const pct = parseInt(flash.percent) || 0;
+      if (pct < 1 || pct > 90) throw new Error('% giảm phải từ 1 đến 90');
+      const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+      if (!hhmm.test(flash.start) || !hhmm.test(flash.end)) throw new Error('Giờ không hợp lệ (HH:mm)');
+      if (flash.start === flash.end) throw new Error('Giờ bắt đầu và kết thúc không được trùng');
+      const data = await pkgApi('PUT', '/api/pos/settings', {
+        settings: {
+          flash_enabled: flash.enabled ? 'true' : 'false',
+          flash_start: flash.start,
+          flash_end: flash.end,
+          flash_percent: String(pct),
+          flash_product_keys: JSON.stringify(flash.product_keys),
+        },
+      });
+      if (!data.success) throw new Error(data.error);
+      setMessage('Đã lưu cấu hình flash sale!');
+      setTimeout(() => setMessage(''), 3000);
+      await loadFlash();
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
   };
 
   // Permissions functions
@@ -497,6 +555,9 @@ export default function Settings() {
           </button>
           <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
             🎫 Kho quà
+          </button>
+          <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
+            ⚡ Flash sale
           </button>
         </div>
 
@@ -1099,6 +1160,98 @@ export default function Settings() {
                   </tbody>
                 </table>
               )}
+            </>
+          ) : tab === 'flash' ? (
+            /* TAB FLASH SALE (F1) */
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 0.25rem' }}>
+                <div className="card-title" style={{ margin: 0 }}>⚡ Flash sale</div>
+                <span style={{
+                  marginLeft: 'auto', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+                  background: !flash.enabled ? '#f1f5f9' : flash.is_flash_now ? '#fee2e2' : '#f1f5f9',
+                  color: !flash.enabled ? '#64748b' : flash.is_flash_now ? '#b91c1c' : '#475569',
+                }}>
+                  {!flash.enabled ? 'Đang tắt'
+                    : flash.is_flash_now ? `🔴 ĐANG FLASH (VN ${flash.server_time_vn})`
+                    : `⚪ Ngoài giờ (VN ${flash.server_time_vn})`}
+                </span>
+              </div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+                Giảm giá theo khung giờ cho một số món. Trạng thái tính theo giờ Việt Nam ở máy chủ. App KH đọc cấu hình này để hiện đếm ngược.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div><div style={{ fontWeight: 600 }}>Bật flash sale</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Tắt thì không món nào được giảm</div></div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={flash.enabled}
+                    onChange={e => setFlash({ ...flash, enabled: e.target.checked })} />
+                  <span>{flash.enabled ? 'Đang bật' : 'Đang tắt'}</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div><div style={{ fontWeight: 600 }}>Khung giờ <span style={{ color: '#7c3aed' }}>(giờ Việt Nam)</span></div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Chỉ giảm trong khoảng này mỗi ngày</div></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input type="time" className="input" style={{ width: 110 }} value={flash.start}
+                    onChange={e => setFlash({ ...flash, start: e.target.value })} />
+                  <span style={{ color: '#9ca3af' }}>→</span>
+                  <input type="time" className="input" style={{ width: 110 }} value={flash.end}
+                    onChange={e => setFlash({ ...flash, end: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div><div style={{ fontWeight: 600 }}>% giảm</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Áp cho các món được tích bên dưới</div></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input type="number" className="input" style={{ width: 80, textAlign: 'right' }} min="1" max="90"
+                    value={flash.percent} onChange={e => setFlash({ ...flash, percent: e.target.value })} />
+                  <span>%</span>
+                </div>
+              </div>
+
+              <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #eee', marginTop: '0.5rem' }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  Chọn món được sale <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 12 }}>· {flash.product_keys.length} món</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8 }}>Tích món muốn giảm. Món không tích giữ giá gốc.</div>
+                {allProducts.length === 0 ? (
+                  <div style={{ color: '#9ca3af', fontSize: 13 }}>Đang tải sản phẩm...</div>
+                ) : (
+                  <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
+                    {allProducts.filter(p => p.price > 0).map(p => {
+                      const uid = p.unique_id;
+                      const checked = flash.product_keys.includes(uid);
+                      const pct = parseInt(flash.percent) || 0;
+                      const fp = Math.round(p.price * (1 - pct / 100));
+                      return (
+                        <label key={uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderTop: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleFlashProduct(uid)} />
+                          <span style={{ flex: 1, fontSize: 14 }}>
+                            {p.name} <span style={{ fontSize: 11, color: '#9ca3af' }}>({uid})</span>
+                          </span>
+                          {checked ? (
+                            <span style={{ fontSize: 13 }}>
+                              <s style={{ color: '#9ca3af' }}>{p.price.toLocaleString('vi-VN')}đ</s>{' '}
+                              <b style={{ color: '#b91c1c' }}>{fp.toLocaleString('vi-VN')}đ</b>
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 13, color: '#9ca3af' }}>{p.price.toLocaleString('vi-VN')}đ</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: '1rem' }}>
+                <button className="btn btn-primary" onClick={saveFlash} disabled={saving}>
+                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
             </>
           ) : null}
         </div>

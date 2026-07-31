@@ -969,6 +969,22 @@ async function seedDefaultData() {
     `, [key, value]);
   }
   console.log('✅ Đã đảm bảo cấu hình điểm thưởng (LOY-1)');
+
+  // ─── FLASH SALE (F1): cấu hình giảm giá theo khung giờ (giờ VN), chọn món theo (type,id) ───
+  const flashDefaults = [
+    ['flash_enabled', 'false'],       // mặc định TẮT — bật khi owner sẵn sàng
+    ['flash_start', '19:00'],         // giờ bắt đầu (HH:mm, giờ Việt Nam)
+    ['flash_end', '20:00'],           // giờ kết thúc
+    ['flash_percent', '50'],          // % giảm
+    ['flash_product_keys', '[]'],     // JSON mảng unique_id "type_id" các món được sale
+  ];
+  for (const [key, value] of flashDefaults) {
+    await run(`
+      INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
+      VALUES (?, ?, datetime('now', '+7 hours'))
+    `, [key, value]);
+  }
+  console.log('✅ Đã đảm bảo cấu hình flash sale (F1)');
 }
 
 /**
