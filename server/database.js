@@ -170,6 +170,12 @@ async function createTables() {
   } catch (e) {
     // Cột đã tồn tại, bỏ qua
   }
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN flash_discount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột flash_discount vào pos_orders (F2)');
+  } catch (e) {
+    // Cột đã tồn tại, bỏ qua
+  }
   // ═══════════════════════════════════════════════════════════════════════════
   // MIGRATION V3: Hỗ trợ công nợ + thanh toán linh hoạt
   // ═══════════════════════════════════════════════════════════════════════════

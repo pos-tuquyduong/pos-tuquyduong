@@ -18,6 +18,7 @@ const {
   normalizePhone,
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
+const { readFlashState } = require("../utils/flashState");
 
 const router = express.Router();
 
@@ -253,6 +254,33 @@ router.post("/", authenticate, async (req, res) => {
       });
     }
 
+    // === F2: Giảm FLASH (tầng 1, tự động) — tính trước mọi chiết khấu (phương án A) ===
+    // Chỉ giảm % cho món có (type,id) nằm trong danh sách flash, và ĐANG trong giờ VN.
+    // Server tự quyết (không tin client). Lỗi đọc flash → coi như không flash (đơn vẫn chạy).
+    let flashDiscountAmount = 0;
+    let flashApplied = false;
+    try {
+      const flashState = await readFlashState(query, getNow);
+      if (flashState.is_flash_now && flashState.percent > 0 && flashState.product_keys.length > 0) {
+        const keySet = new Set(flashState.product_keys);
+        let flashBase = 0;
+        for (const it of orderItems) {
+          if (it.sx_product_type != null && it.sx_product_id != null) {
+            const uid = `${it.sx_product_type}_${it.sx_product_id}`;
+            if (keySet.has(uid)) flashBase += it.unit_price * it.quantity;
+          }
+        }
+        if (flashBase > 0) {
+          flashDiscountAmount = Math.round((flashBase * flashState.percent) / 100);
+          flashApplied = true;
+        }
+      }
+    } catch (flashErr) {
+      console.error("⚠️ F2: lỗi đọc flash (bỏ qua, đơn vẫn chạy):", flashErr.message);
+      flashApplied = false;
+      flashDiscountAmount = 0;
+    }
+
     // === Phase B: Tính chiết khấu ===
     let finalDiscountType = discount_type;
     let finalDiscountValue = discount_value;
@@ -302,6 +330,13 @@ router.post("/", authenticate, async (req, res) => {
       finalDiscountValue = discount;
     }
 
+    // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
+    if (flashApplied && finalDiscountType === "percent" && finalDiscountValue > 0) {
+      return res.status(400).json({
+        error: "Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.",
+      });
+    }
+
     // Tính số tiền chiết khấu
     if (finalDiscountType === "percent" && finalDiscountValue > 0) {
       finalDiscountAmount = (subtotal * finalDiscountValue) / 100;
@@ -322,15 +357,21 @@ router.post("/", authenticate, async (req, res) => {
       finalDiscountAmount = finalDiscountValue;
     }
 
-    // Đảm bảo chiết khấu không vượt subtotal
-    finalDiscountAmount = Math.min(finalDiscountAmount, subtotal);
+    // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash (phương án A)
+    finalDiscountAmount = Math.min(
+      finalDiscountAmount,
+      Math.max(0, subtotal - flashDiscountAmount),
+    );
 
-    // Tính total: subtotal - chiết khấu + phí ship
+    // Tính total: subtotal - giảm flash - chiết khấu + phí ship
     const finalShippingFee = shipping_fee || 0;
     const total = Math.max(
       0,
-      subtotal - finalDiscountAmount + finalShippingFee,
+      subtotal - flashDiscountAmount - finalDiscountAmount + finalShippingFee,
     );
+    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + voucher) để hoá đơn & báo cáo
+    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount' giữ riêng để phân tích.
+    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount;
 
     // Normalize phone
     const phone = normalizePhone(customer_phone);
@@ -436,7 +477,8 @@ router.post("/", authenticate, async (req, res) => {
     let loyaltyExpiresAt = null;
     let shouldEarnPoints = false;
     try {
-      if (phone && total > 0) {
+      // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
+      if (phone && total > 0 && !flashApplied) {
         const loyRows = await query(
           `SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')`,
         );
@@ -505,18 +547,19 @@ router.post("/", authenticate, async (req, res) => {
         `INSERT INTO pos_orders (
           code, customer_phone, customer_name,
           subtotal, discount, discount_reason, total,
-          discount_type, discount_value, discount_amount, discount_code, shipping_fee,
+          discount_type, discount_value, discount_amount, flash_discount, discount_code, shipping_fee,
           payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
           parent_phone, parent_balance_amount,
           cash_received, change_amount,
           payment_status, due_date,
           customer_package_id,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
-          subtotal, finalDiscountAmount, discount_reason || null, total,
-          finalDiscountType || null, finalDiscountValue || 0, finalDiscountAmount,
+          subtotal, totalDiscountAmount, discount_reason || null, total,
+          finalDiscountType || null, finalDiscountValue || 0, totalDiscountAmount,
+          flashDiscountAmount,
           finalDiscountCode || null, finalShippingFee,
           payment_method === "debt" ? "debt" : payment_method,
           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,

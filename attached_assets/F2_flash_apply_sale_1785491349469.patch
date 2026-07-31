@@ -1,0 +1,307 @@
+diff --git a/server/database.js b/server/database.js
+index d6b1a6d..2b98de5 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -170,6 +170,12 @@ async function createTables() {
+   } catch (e) {
+     // Cột đã tồn tại, bỏ qua
+   }
++  try {
++    await db.execute(`ALTER TABLE pos_orders ADD COLUMN flash_discount REAL DEFAULT 0`);
++    console.log('✅ Đã thêm cột flash_discount vào pos_orders (F2)');
++  } catch (e) {
++    // Cột đã tồn tại, bỏ qua
++  }
+   // ═══════════════════════════════════════════════════════════════════════════
+   // MIGRATION V3: Hỗ trợ công nợ + thanh toán linh hoạt
+   // ═══════════════════════════════════════════════════════════════════════════
+diff --git a/server/routes/flash.js b/server/routes/flash.js
+index a0fc55a..ae2a1a7 100644
+--- a/server/routes/flash.js
++++ b/server/routes/flash.js
+@@ -1,88 +1,22 @@
+ /**
+  * POS System - Flash Sale Routes (F1)
+- * Đọc cấu hình flash sale + tính "đang trong giờ flash" theo GIỜ VIỆT NAM.
+- *
+- * NGUYÊN TẮC (đồng bộ Web KH sau này):
+- * - Cấu hình sống ở POS (nguồn sự thật). API này là HỢP ĐỒNG mà cả admin POS lẫn app KH đọc.
+- * - Món được sale lưu bằng KHÓA BỀN unique_id = "type_id" (KHÔNG dùng code/tên — chúng đổi).
+- *   → POS lúc bán và app lúc hiển thị cùng chỉ đúng một món.
+- * - "Đang flash" tính ở SERVER theo giờ VN (getNow trả +7). Client chỉ hiển thị; lúc tạo đơn
+- *   POS mới là người quyết (F2) → app & quầy không lệch, không gian lận giờ.
+- * - Route này CHỈ ĐỌC (inert). Áp giảm giá thật là F2.
+- *
+- * TURSO: mọi database call dùng await.
++ * Đọc cấu hình flash + trạng thái "đang flash" (giờ VN). CHỈ ĐỌC (inert).
++ * Logic dùng chung ở utils/flashState.js → trùng khớp với luồng bán (orders.js).
+  */
+ 
+ const express = require('express');
+ const { query } = require('../database');
+ const { authenticate } = require('../middleware/auth');
+ const { getNow } = require('../utils/helpers');
++const { readFlashState } = require('../utils/flashState');
+ 
+ const router = express.Router();
+ 
+-const FLASH_KEYS = ['flash_enabled', 'flash_start', 'flash_end', 'flash_percent', 'flash_product_keys'];
+-
+-// HH:mm hợp lệ 00:00–23:59
+-function isValidHHmm(s) {
+-  return typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+-}
+-
+-/**
+- * Đang trong khung giờ flash? So chuỗi "HH:mm" (giờ VN).
+- * Hỗ trợ cả khung qua nửa đêm (start > end, vd 22:00→02:00).
+- * Quy ước: gồm mốc bắt đầu, KHÔNG gồm mốc kết thúc [start, end).
+- */
+-function computeIsFlashNow(enabled, start, end, nowHHmm) {
+-  if (!enabled) return false;
+-  if (!isValidHHmm(start) || !isValidHHmm(end)) return false;
+-  if (start === end) return false; // khung 0 phút
+-  if (start < end) return nowHHmm >= start && nowHHmm < end;
+-  return nowHHmm >= start || nowHHmm < end; // qua nửa đêm
+-}
+-
+ // GET /api/pos/flash — cấu hình flash + trạng thái hiện tại (giờ VN)
+ router.get('/', authenticate, async (req, res) => {
+   try {
+-    const placeholders = FLASH_KEYS.map(() => '?').join(',');
+-    const rows = await query(
+-      `SELECT key, value FROM pos_settings WHERE key IN (${placeholders})`,
+-      FLASH_KEYS,
+-    );
+-    const m = {};
+-    rows.forEach((r) => (m[r.key] = r.value));
+-
+-    // product_keys: parse an toàn, chỉ giữ chuỗi "type_id" hợp lệ
+-    let productKeys = [];
+-    try {
+-      const parsed = JSON.parse(m.flash_product_keys || '[]');
+-      if (Array.isArray(parsed)) {
+-        productKeys = parsed.filter((k) => typeof k === 'string' && /^.+_.+$/.test(k));
+-      }
+-    } catch (e) {
+-      productKeys = [];
+-    }
+-
+-    // percent: kẹp 1–90, sai → 0 (an toàn cho F2: 0% = không giảm)
+-    let percent = parseInt(m.flash_percent, 10);
+-    if (!Number.isFinite(percent) || percent < 1 || percent > 90) percent = 0;
+-
+-    const enabled = m.flash_enabled === 'true';
+-    const start = isValidHHmm(m.flash_start) ? m.flash_start : null;
+-    const end = isValidHHmm(m.flash_end) ? m.flash_end : null;
+-    const nowHHmm = getNow().slice(11, 16);
+-
+-    res.json({
+-      success: true,
+-      data: {
+-        enabled,
+-        start,
+-        end,
+-        percent,
+-        product_keys: productKeys,
+-        is_flash_now: computeIsFlashNow(enabled, start, end, nowHHmm),
+-        server_time_vn: nowHHmm,
+-      },
+-    });
++    const data = await readFlashState(query, getNow);
++    res.json({ success: true, data });
+   } catch (err) {
+     res.status(500).json({ error: err.message });
+   }
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index f839645..7b36941 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -18,6 +18,7 @@ const {
+   normalizePhone,
+ } = require("../utils/helpers");
+ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
++const { readFlashState } = require("../utils/flashState");
+ 
+ const router = express.Router();
+ 
+@@ -253,6 +254,33 @@ router.post("/", authenticate, async (req, res) => {
+       });
+     }
+ 
++    // === F2: Giảm FLASH (tầng 1, tự động) — tính trước mọi chiết khấu (phương án A) ===
++    // Chỉ giảm % cho món có (type,id) nằm trong danh sách flash, và ĐANG trong giờ VN.
++    // Server tự quyết (không tin client). Lỗi đọc flash → coi như không flash (đơn vẫn chạy).
++    let flashDiscountAmount = 0;
++    let flashApplied = false;
++    try {
++      const flashState = await readFlashState(query, getNow);
++      if (flashState.is_flash_now && flashState.percent > 0 && flashState.product_keys.length > 0) {
++        const keySet = new Set(flashState.product_keys);
++        let flashBase = 0;
++        for (const it of orderItems) {
++          if (it.sx_product_type != null && it.sx_product_id != null) {
++            const uid = `${it.sx_product_type}_${it.sx_product_id}`;
++            if (keySet.has(uid)) flashBase += it.unit_price * it.quantity;
++          }
++        }
++        if (flashBase > 0) {
++          flashDiscountAmount = Math.round((flashBase * flashState.percent) / 100);
++          flashApplied = true;
++        }
++      }
++    } catch (flashErr) {
++      console.error("⚠️ F2: lỗi đọc flash (bỏ qua, đơn vẫn chạy):", flashErr.message);
++      flashApplied = false;
++      flashDiscountAmount = 0;
++    }
++
+     // === Phase B: Tính chiết khấu ===
+     let finalDiscountType = discount_type;
+     let finalDiscountValue = discount_value;
+@@ -302,6 +330,13 @@ router.post("/", authenticate, async (req, res) => {
+       finalDiscountValue = discount;
+     }
+ 
++    // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
++    if (flashApplied && finalDiscountType === "percent" && finalDiscountValue > 0) {
++      return res.status(400).json({
++        error: "Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.",
++      });
++    }
++
+     // Tính số tiền chiết khấu
+     if (finalDiscountType === "percent" && finalDiscountValue > 0) {
+       finalDiscountAmount = (subtotal * finalDiscountValue) / 100;
+@@ -322,15 +357,21 @@ router.post("/", authenticate, async (req, res) => {
+       finalDiscountAmount = finalDiscountValue;
+     }
+ 
+-    // Đảm bảo chiết khấu không vượt subtotal
+-    finalDiscountAmount = Math.min(finalDiscountAmount, subtotal);
++    // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash (phương án A)
++    finalDiscountAmount = Math.min(
++      finalDiscountAmount,
++      Math.max(0, subtotal - flashDiscountAmount),
++    );
+ 
+-    // Tính total: subtotal - chiết khấu + phí ship
++    // Tính total: subtotal - giảm flash - chiết khấu + phí ship
+     const finalShippingFee = shipping_fee || 0;
+     const total = Math.max(
+       0,
+-      subtotal - finalDiscountAmount + finalShippingFee,
++      subtotal - flashDiscountAmount - finalDiscountAmount + finalShippingFee,
+     );
++    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + voucher) để hoá đơn & báo cáo
++    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount' giữ riêng để phân tích.
++    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount;
+ 
+     // Normalize phone
+     const phone = normalizePhone(customer_phone);
+@@ -436,7 +477,8 @@ router.post("/", authenticate, async (req, res) => {
+     let loyaltyExpiresAt = null;
+     let shouldEarnPoints = false;
+     try {
+-      if (phone && total > 0) {
++      // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
++      if (phone && total > 0 && !flashApplied) {
+         const loyRows = await query(
+           `SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')`,
+         );
+@@ -505,18 +547,19 @@ router.post("/", authenticate, async (req, res) => {
+         `INSERT INTO pos_orders (
+           code, customer_phone, customer_name,
+           subtotal, discount, discount_reason, total,
+-          discount_type, discount_value, discount_amount, discount_code, shipping_fee,
++          discount_type, discount_value, discount_amount, flash_discount, discount_code, shipping_fee,
+           payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
+           parent_phone, parent_balance_amount,
+           cash_received, change_amount,
+           payment_status, due_date,
+           customer_package_id,
+           status, notes, created_by, created_at
+-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
++        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+         [
+           orderCode, phone || null, customer_name || "Khách lẻ",
+-          subtotal, finalDiscountAmount, discount_reason || null, total,
+-          finalDiscountType || null, finalDiscountValue || 0, finalDiscountAmount,
++          subtotal, totalDiscountAmount, discount_reason || null, total,
++          finalDiscountType || null, finalDiscountValue || 0, totalDiscountAmount,
++          flashDiscountAmount,
+           finalDiscountCode || null, finalShippingFee,
+           payment_method === "debt" ? "debt" : payment_method,
+           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
+diff --git a/server/utils/flashState.js b/server/utils/flashState.js
+new file mode 100644
+index 0000000..86da092
+--- /dev/null
++++ b/server/utils/flashState.js
+@@ -0,0 +1,66 @@
++/**
++ * Flash sale — trạng thái dùng chung (F1/F2).
++ * MỘT NGUỒN logic cho cả API đọc (routes/flash.js) lẫn luồng bán (routes/orders.js)
++ * → hai nơi không bao giờ tính khác nhau. Giờ so theo GIỜ VIỆT NAM (getNow trả +7).
++ */
++
++const FLASH_KEYS = ['flash_enabled', 'flash_start', 'flash_end', 'flash_percent', 'flash_product_keys'];
++
++function isValidHHmm(s) {
++  return typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
++}
++
++/** Đang trong khung giờ flash? [start, end) — gồm mốc đầu, không gồm mốc cuối. Hỗ trợ qua nửa đêm. */
++function computeIsFlashNow(enabled, start, end, nowHHmm) {
++  if (!enabled) return false;
++  if (!isValidHHmm(start) || !isValidHHmm(end)) return false;
++  if (start === end) return false;
++  if (start < end) return nowHHmm >= start && nowHHmm < end;
++  return nowHHmm >= start || nowHHmm < end;
++}
++
++/**
++ * Đọc cấu hình flash từ pos_settings + tính trạng thái hiện tại.
++ * @param {Function} query - hàm query(sql, params) trả mảng row
++ * @param {Function} getNow - hàm trả 'YYYY-MM-DDTHH:mm:ss' theo giờ VN
++ * @returns {Promise<{enabled,start,end,percent,product_keys,is_flash_now,server_time_vn}>}
++ */
++async function readFlashState(query, getNow) {
++  const placeholders = FLASH_KEYS.map(() => '?').join(',');
++  const rows = await query(
++    `SELECT key, value FROM pos_settings WHERE key IN (${placeholders})`,
++    FLASH_KEYS,
++  );
++  const m = {};
++  rows.forEach((r) => (m[r.key] = r.value));
++
++  let productKeys = [];
++  try {
++    const parsed = JSON.parse(m.flash_product_keys || '[]');
++    if (Array.isArray(parsed)) {
++      productKeys = parsed.filter((k) => typeof k === 'string' && /^.+_.+$/.test(k));
++    }
++  } catch (e) {
++    productKeys = [];
++  }
++
++  let percent = parseInt(m.flash_percent, 10);
++  if (!Number.isFinite(percent) || percent < 1 || percent > 90) percent = 0;
++
++  const enabled = m.flash_enabled === 'true';
++  const start = isValidHHmm(m.flash_start) ? m.flash_start : null;
++  const end = isValidHHmm(m.flash_end) ? m.flash_end : null;
++  const nowHHmm = getNow().slice(11, 16);
++
++  return {
++    enabled,
++    start,
++    end,
++    percent,
++    product_keys: productKeys,
++    is_flash_now: computeIsFlashNow(enabled, start, end, nowHHmm),
++    server_time_vn: nowHHmm,
++  };
++}
++
++module.exports = { readFlashState, computeIsFlashNow, isValidHHmm };
