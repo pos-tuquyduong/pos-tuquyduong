@@ -40,6 +40,10 @@ export default function Settings() {
     product_keys: [], is_flash_now: false, server_time_vn: '',
   });
 
+  // Membership tiers state (TIER-1a)
+  const [tiers, setTiers] = useState([]);
+  const [tierRound, setTierRound] = useState({ round_to: 500, round_mode: 'nearest' });
+
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
   const [restoring, setRestoring] = useState(false);
@@ -81,6 +85,8 @@ export default function Settings() {
         await loadRewards();
       } else if (tab === 'flash') {
         await loadFlash();
+      } else if (tab === 'tiers') {
+        await loadTiers();
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -293,6 +299,42 @@ export default function Settings() {
       setMessage('Đã lưu cấu hình flash sale!');
       setTimeout(() => setMessage(''), 3000);
       await loadFlash();
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
+  };
+
+  // Membership tier functions (TIER-1a)
+  const loadTiers = async () => {
+    const data = await pkgApi('GET', '/api/pos/tiers');
+    if (data.success && data.data) {
+      setTiers(data.data.tiers || []);
+      setTierRound({
+        round_to: data.data.round_to ?? 500,
+        round_mode: data.data.round_mode || 'nearest',
+      });
+    }
+  };
+  const updateTier = (id, field, value) => {
+    setTiers(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+  const saveTiers = async () => {
+    setSaving(true);
+    try {
+      for (const t of tiers) {
+        if (!String(t.name).trim()) throw new Error('Tên hạng không được trống');
+        const ms = Number(t.min_spend), pct = Number(t.discount_percent);
+        if (!Number.isFinite(ms) || ms < 0) throw new Error('Ngưỡng tiền không hợp lệ');
+        if (!Number.isFinite(pct) || pct < 0 || pct > 90) throw new Error('% giảm phải từ 0 đến 90');
+      }
+      const data = await pkgApi('PUT', '/api/pos/tiers', {
+        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), min_spend: Number(t.min_spend), discount_percent: Number(t.discount_percent) })),
+        round_to: tierRound.round_to,
+        round_mode: tierRound.round_mode,
+      });
+      if (!data.success) throw new Error(data.error);
+      setMessage('Đã lưu hạng thành viên!');
+      setTimeout(() => setMessage(''), 3000);
+      await loadTiers();
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
   };
@@ -558,6 +600,9 @@ export default function Settings() {
           </button>
           <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
             ⚡ Flash sale
+          </button>
+          <button className={`btn ${tab === 'tiers' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('tiers')}>
+            🏅 Hạng thành viên
           </button>
         </div>
 
@@ -1249,6 +1294,82 @@ export default function Settings() {
 
               <div style={{ marginTop: '1rem' }}>
                 <button className="btn btn-primary" onClick={saveFlash} disabled={saving}>
+                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
+            </>
+          ) : tab === 'tiers' ? (
+            /* TAB HẠNG THÀNH VIÊN (TIER-1a) */
+            <>
+              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🏅 Hạng thành viên</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+                Khách lên hạng theo <b>tổng tiền mua tích lũy</b>. Mỗi hạng giảm % cho mọi món. (Nhóm ưu đãi đặc biệt &amp; thẻ hội viên làm ở bước sau.)
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div><div style={{ fontWeight: 600 }}>Làm tròn giá</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Giá sau giảm được làm tròn cho đẹp</div></div>
+                <select className="input" style={{ width: 200 }}
+                  value={`${tierRound.round_to}_${tierRound.round_mode}`}
+                  onChange={e => { const [rt, rm] = e.target.value.split('_'); setTierRound({ round_to: parseInt(rt), round_mode: rm }); }}>
+                  <option value="500_nearest">Gần nhất tới 500đ</option>
+                  <option value="1000_nearest">Gần nhất tới 1.000đ</option>
+                  <option value="500_down">Tròn xuống tới 500đ (lợi khách)</option>
+                  <option value="1000_down">Tròn xuống tới 1.000đ (lợi khách)</option>
+                  <option value="0_nearest">Không làm tròn</option>
+                </select>
+              </div>
+
+              {tiers.length === 0 ? (
+                <p style={{ color: '#9ca3af', fontSize: 13, paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Đang tải hạng...</p>
+              ) : (
+                <table className="table" style={{ width: '100%', fontSize: 13, marginTop: '0.5rem' }}>
+                  <thead>
+                    <tr style={{ color: '#6b7280', textAlign: 'left' }}>
+                      <th style={{ padding: '6px 8px' }}>Tên hạng</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ngưỡng tổng mua (đ)</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tiers.map(t => (
+                      <tr key={t.id} style={{ borderTop: '1px solid #eee' }}>
+                        <td style={{ padding: '6px 8px' }}>
+                          <input className="input" style={{ width: '95%' }} value={t.name}
+                            onChange={e => updateTier(t.id, 'name', e.target.value)} />
+                        </td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                          <input type="number" className="input" style={{ width: 130, textAlign: 'right' }} min="0" step="1000"
+                            value={t.min_spend} onChange={e => updateTier(t.id, 'min_spend', e.target.value)} />
+                        </td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                          <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
+                            value={t.discount_percent} onChange={e => updateTier(t.id, 'discount_percent', e.target.value)} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {/* xem trước 1 ví dụ */}
+              {tiers.length > 0 && (
+                <div style={{ marginTop: '1rem', padding: '10px 12px', background: '#faf5ff', borderRadius: 8, fontSize: 13 }}>
+                  <b>Xem trước</b> — món giá 50.500đ:
+                  <span style={{ marginLeft: 8 }}>
+                    {tiers.map(t => {
+                      const pct = Number(t.discount_percent) || 0;
+                      let p = 50500 * (1 - pct / 100);
+                      const rt = tierRound.round_to;
+                      if (rt > 0) p = tierRound.round_mode === 'down' ? Math.floor(p / rt) * rt : Math.round(p / rt) * rt;
+                      return <span key={t.id} style={{ marginRight: 12 }}>{t.name}: <b style={{ color: '#7c3aed' }}>{p.toLocaleString('vi-VN')}đ</b></span>;
+                    })}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ marginTop: '1rem' }}>
+                <button className="btn btn-primary" onClick={saveTiers} disabled={saving}>
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>

@@ -37,6 +37,7 @@ const discountCodesRoutes = require('./routes/discount-codes');
 const rewardsRoutes = require('./routes/rewards');
 const loyaltyRoutes = require('./routes/loyalty');
 const flashRoutes = require('./routes/flash');
+const tiersRoutes = require('./routes/tiers');
 // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
 const damagesRoutes = require('./routes/damages');
 const packagesRoutes = require('./routes/packages');
@@ -82,6 +83,7 @@ app.use('/api/pos/discount-codes', discountCodesRoutes);
 app.use('/api/pos/rewards', rewardsRoutes);
 app.use('/api/pos/loyalty', loyaltyRoutes);
 app.use('/api/pos/flash', flashRoutes);
+app.use('/api/pos/tiers', tiersRoutes);
 // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
 app.use('/api/pos/damages', damagesRoutes);
 app.use('/api/pos/packages', packagesRoutes);

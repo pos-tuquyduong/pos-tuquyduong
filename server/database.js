@@ -991,6 +991,44 @@ async function seedDefaultData() {
     `, [key, value]);
   }
   console.log('✅ Đã đảm bảo cấu hình flash sale (F1)');
+
+  // ─── TIER-1a: hạng thành viên (giảm % theo hạng, lên hạng theo tổng tiền mua tích lũy) ───
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_membership_tiers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      min_spend REAL NOT NULL DEFAULT 0,
+      discount_percent REAL NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT
+    )
+  `);
+  // Seed 3 hạng mặc định CHỈ khi bảng rỗng (owner sửa tên/ngưỡng/% sau)
+  const tierCnt = await db.execute('SELECT COUNT(*) AS c FROM pos_membership_tiers');
+  if (Number(tierCnt.rows[0].c) === 0) {
+    const tierDefaults = [
+      ['Vàng', 500000, 5, 1],
+      ['Bạch Kim', 2000000, 8, 2],
+      ['Kim cương', 5000000, 10, 3],
+    ];
+    for (const [name, ms, pct, so] of tierDefaults) {
+      await run(`
+        INSERT INTO pos_membership_tiers (name, min_spend, discount_percent, sort_order, is_active, updated_at)
+        VALUES (?, ?, ?, ?, 1, datetime('now', '+7 hours'))
+      `, [name, ms, pct, so]);
+    }
+  }
+  // Cấu hình làm tròn giá hạng (dùng ở TIER-2). Mặc định: tròn GẦN NHẤT tới 500đ.
+  const tierSettings = [['tier_round_to', '500'], ['tier_round_mode', 'nearest']];
+  for (const [key, value] of tierSettings) {
+    await run(`
+      INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
+      VALUES (?, ?, datetime('now', '+7 hours'))
+    `, [key, value]);
+  }
+  console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a)');
 }
 
 /**
