@@ -253,6 +253,30 @@ router.get("/", authenticate, async (req, res) => {
     const pointsMap = {};
     pointRows.forEach((p) => (pointsMap[p.customer_phone] = p.points));
 
+    // TIER-1b: tổng tiền mua lũy kế theo SĐT (đọc-thôi, tính cả đơn flash sale, loại đơn đã hủy)
+    const spendRows = await query(
+      `SELECT customer_phone, COALESCE(SUM(total),0) AS total_spend
+       FROM pos_orders
+       WHERE status != 'cancelled'
+       GROUP BY customer_phone`,
+    );
+    const spendMap = {};
+    spendRows.forEach((s) => (spendMap[s.customer_phone] = s.total_spend));
+
+    // TIER-1b: hạng hiện tại, suy ra từ tổng tiền mua so với ngưỡng đã cấu hình (TIER-1a)
+    const tierRows = await query(
+      `SELECT id, name, min_spend, sort_order FROM pos_membership_tiers
+       WHERE is_active = 1 ORDER BY min_spend ASC`,
+    );
+    const resolveTier = (totalSpend) => {
+      let matched = null;
+      for (const t of tierRows) {
+        if (totalSpend >= t.min_spend) matched = t;
+        else break;
+      }
+      return matched ? { id: matched.id, name: matched.name, rank: matched.sort_order } : null;
+    };
+
     const regMap = {};
     registrations.forEach((r) => (regMap[r.phone] = r));
 
@@ -262,11 +286,14 @@ router.get("/", authenticate, async (req, res) => {
       const wallet = walletMap[phone];
       const extras = extrasMap[phone];
       delete regMap[phone];
+      const totalSpend = spendMap[phone] || 0;
       return {
         ...c,
         phone,
         balance: wallet?.balance || 0,
         points: pointsMap[phone] || 0,
+        total_spend: totalSpend,
+        tier: resolveTier(totalSpend),
         source: "sx",
         is_synced: true,
         discount_type: extras?.discount_type || null,
@@ -280,11 +307,14 @@ router.get("/", authenticate, async (req, res) => {
     // Thêm pending
     Object.values(regMap).forEach((r) => {
       const extras = extrasMap[r.phone];
+      const totalSpend = spendMap[r.phone] || 0;
       result.push({
         name: r.name,
         phone: r.phone,
         balance: walletMap[r.phone]?.balance || 0,
         points: pointsMap[r.phone] || 0,
+        total_spend: totalSpend,
+        tier: resolveTier(totalSpend),
         source: "pos",
         is_synced: false,
         is_pending: true,

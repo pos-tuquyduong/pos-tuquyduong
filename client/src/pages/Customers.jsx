@@ -271,6 +271,14 @@ export default function Customers() {
     return formatMoney(value);
   };
 
+  // TIER-1b: màu badge theo thứ hạng (rank), không phụ thuộc tên hạng vì owner có thể đổi tên
+  const TIER_COLORS = [
+    { bg: '#fef3c7', color: '#92400e', border: '#fde68a' }, // hạng 1 - vàng
+    { bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe' }, // hạng 2 - bạch kim
+    { bg: '#ede9fe', color: '#6d28d9', border: '#ddd6fe' }, // hạng 3 - kim cương
+  ];
+  const tierBadgeStyle = (rank) => TIER_COLORS[(rank - 1 + TIER_COLORS.length) % TIER_COLORS.length];
+
   return (
     <>
       <header className="page-header">
@@ -359,6 +367,7 @@ export default function Customers() {
                   <th>Gói đăng ký</th>
                   <th style={{ textAlign: 'right' }}>Số dư</th>
                   <th style={{ textAlign: 'right' }}>🎁 Điểm</th>
+                  <th style={{ textAlign: 'center' }}>🏅 Hạng</th>
                   <th style={{ textAlign: 'center' }}>CK</th>
                   <th>Trạng thái</th>
                 </tr>
@@ -456,6 +465,22 @@ export default function Customers() {
                       <span className="font-bold" style={{ color: c.points > 0 ? '#7c3aed' : '#94a3b8' }}>
                         {c.points || 0}
                       </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {c.tier ? (
+                        <span
+                          className="badge"
+                          style={{
+                            background: tierBadgeStyle(c.tier.rank).bg,
+                            color: tierBadgeStyle(c.tier.rank).color,
+                            border: `1px solid ${tierBadgeStyle(c.tier.rank).border}`,
+                          }}
+                        >
+                          {c.tier.name}
+                        </span>
+                      ) : (
+                        <span className="text-gray">-</span>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       {c.discount_value > 0 ? (
@@ -651,6 +676,20 @@ export default function Customers() {
                     <div style={{ marginTop: '8px', fontWeight: 600, color: selectedCustomer.balance > 0 ? '#22c55e' : '#64748b' }}>
                       💰 {formatMoney(selectedCustomer.balance)}
                     </div>
+                    {selectedCustomer.tier && (
+                      <div style={{ marginTop: '8px' }}>
+                        <span
+                          className="badge"
+                          style={{
+                            background: tierBadgeStyle(selectedCustomer.tier.rank).bg,
+                            color: tierBadgeStyle(selectedCustomer.tier.rank).color,
+                            border: `1px solid ${tierBadgeStyle(selectedCustomer.tier.rank).border}`,
+                          }}
+                        >
+                          🏅 {selectedCustomer.tier.name}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ marginTop: '4px', fontWeight: 600, color: selectedCustomer.points > 0 ? '#7c3aed' : '#94a3b8' }}>
                       🎁 {selectedCustomer.points || 0} điểm
                     </div>
