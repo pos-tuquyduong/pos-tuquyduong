@@ -40,9 +40,10 @@ export default function Settings() {
     product_keys: [], is_flash_now: false, server_time_vn: '',
   });
 
-  // Membership tiers state (TIER-1a)
+  // Membership tiers state (TIER-1a-v2)
   const [tiers, setTiers] = useState([]);
   const [tierRound, setTierRound] = useState({ round_to: 500, round_mode: 'nearest' });
+  const [tierValidMonths, setTierValidMonths] = useState(3);
 
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
@@ -303,7 +304,7 @@ export default function Settings() {
     finally { setSaving(false); }
   };
 
-  // Membership tier functions (TIER-1a)
+  // Membership tier functions (TIER-1a-v2)
   const loadTiers = async () => {
     const data = await pkgApi('GET', '/api/pos/tiers');
     if (data.success && data.data) {
@@ -312,6 +313,7 @@ export default function Settings() {
         round_to: data.data.round_to ?? 500,
         round_mode: data.data.round_mode || 'nearest',
       });
+      setTierValidMonths(data.data.valid_months ?? 3);
     }
   };
   const updateTier = (id, field, value) => {
@@ -322,17 +324,32 @@ export default function Settings() {
     try {
       for (const t of tiers) {
         if (!String(t.name).trim()) throw new Error('Tên hạng không được trống');
-        const ms = Number(t.min_spend), pct = Number(t.discount_percent);
-        if (!Number.isFinite(ms) || ms < 0) throw new Error('Ngưỡng tiền không hợp lệ');
+        const price = Number(t.card_price), pct = Number(t.discount_percent);
+        if (!Number.isFinite(price) || price < 0) throw new Error('Giá thẻ không hợp lệ');
         if (!Number.isFinite(pct) || pct < 0 || pct > 90) throw new Error('% giảm phải từ 0 đến 90');
       }
+      const vm = Number(tierValidMonths);
+      if (!Number.isFinite(vm) || vm < 1 || vm > 24) throw new Error('Số tháng hiệu lực phải từ 1 đến 24');
       const data = await pkgApi('PUT', '/api/pos/tiers', {
-        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), min_spend: Number(t.min_spend), discount_percent: Number(t.discount_percent) })),
+        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent) })),
         round_to: tierRound.round_to,
         round_mode: tierRound.round_mode,
+        valid_months: vm,
       });
       if (!data.success) throw new Error(data.error);
       setMessage('Đã lưu hạng thành viên!');
+      setTimeout(() => setMessage(''), 3000);
+      await loadTiers();
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
+  };
+  const deleteTier = async (id, name) => {
+    if (!window.confirm(`Xóa hạng "${name}"? (Khách đã mua thẻ hạng này trước đây không bị ảnh hưởng, chỉ ẩn khỏi danh sách bán thẻ.)`)) return;
+    setSaving(true);
+    try {
+      const data = await pkgApi('DELETE', `/api/pos/tiers/${id}`);
+      if (!data.success) throw new Error(data.error);
+      setMessage('Đã xóa hạng!');
       setTimeout(() => setMessage(''), 3000);
       await loadTiers();
     } catch (err) { setMessage('Lỗi: ' + err.message); }
@@ -1299,12 +1316,23 @@ export default function Settings() {
               </div>
             </>
           ) : tab === 'tiers' ? (
-            /* TAB HẠNG THÀNH VIÊN (TIER-1a) */
+            /* TAB HẠNG THÀNH VIÊN (TIER-1a-v2) */
             <>
               <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🏅 Hạng thành viên</div>
               <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
-                Khách lên hạng theo <b>tổng tiền mua tích lũy</b>. Mỗi hạng giảm % cho mọi món. (Nhóm ưu đãi đặc biệt &amp; thẻ hội viên làm ở bước sau.)
+                Khách <b>mua thẻ hạng này</b> để được giá ưu đãi (giảm % cho mọi món). Mua hàng thường không lên hạng — chỉ tích điểm đổi quà.
+                Thẻ có hạn dùng, hết hạn tự về giá gốc. (Bán thẻ &amp; nhóm ưu đãi đặc biệt làm ở bước sau.)
               </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                <div><div style={{ fontWeight: 600 }}>Hiệu lực thẻ</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Áp dụng chung cho mọi hạng, tính từ ngày mua</div></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="1" max="24"
+                    value={tierValidMonths} onChange={e => setTierValidMonths(e.target.value)} />
+                  <span style={{ fontSize: 13, color: '#6b7280' }}>tháng</span>
+                </div>
+              </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
                 <div><div style={{ fontWeight: 600 }}>Làm tròn giá</div>
@@ -1327,8 +1355,9 @@ export default function Settings() {
                   <thead>
                     <tr style={{ color: '#6b7280', textAlign: 'left' }}>
                       <th style={{ padding: '6px 8px' }}>Tên hạng</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ngưỡng tổng mua (đ)</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá bán thẻ (đ)</th>
                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1340,11 +1369,15 @@ export default function Settings() {
                         </td>
                         <td style={{ padding: '6px 8px', textAlign: 'right' }}>
                           <input type="number" className="input" style={{ width: 130, textAlign: 'right' }} min="0" step="1000"
-                            value={t.min_spend} onChange={e => updateTier(t.id, 'min_spend', e.target.value)} />
+                            value={t.card_price} onChange={e => updateTier(t.id, 'card_price', e.target.value)} />
                         </td>
                         <td style={{ padding: '6px 8px', textAlign: 'right' }}>
                           <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
                             value={t.discount_percent} onChange={e => updateTier(t.id, 'discount_percent', e.target.value)} />
+                        </td>
+                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                          <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: 12, color: '#dc2626' }}
+                            onClick={() => deleteTier(t.id, t.name)} disabled={saving}>Xóa</button>
                         </td>
                       </tr>
                     ))}

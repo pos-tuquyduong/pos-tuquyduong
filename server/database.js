@@ -997,7 +997,7 @@ async function seedDefaultData() {
     CREATE TABLE IF NOT EXISTS pos_membership_tiers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      min_spend REAL NOT NULL DEFAULT 0,
+      card_price REAL NOT NULL DEFAULT 0,
       discount_percent REAL NOT NULL DEFAULT 0,
       sort_order INTEGER NOT NULL DEFAULT 0,
       is_active INTEGER DEFAULT 1,
@@ -1005,7 +1005,16 @@ async function seedDefaultData() {
       updated_at TEXT
     )
   `);
-  // Seed 3 hạng mặc định CHỈ khi bảng rỗng (owner sửa tên/ngưỡng/% sau)
+  // TIER-1a-v2 (01.08.2026): đổi ý nghĩa cột — không còn là "ngưỡng tích lũy" mà là
+  // "giá bán thẻ hội viên" (owner quyết định: mua thẻ mới lên hạng, mua hàng thường chỉ tích điểm).
+  // Bảng cũ (nếu đã tồn tại từ TIER-1a) còn cột min_spend → đổi tên, giữ nguyên giá trị owner đã chỉnh.
+  try {
+    await db.execute(`ALTER TABLE pos_membership_tiers RENAME COLUMN min_spend TO card_price`);
+    console.log('✅ TIER-1a-v2: đã đổi tên cột min_spend → card_price');
+  } catch (e) {
+    // Bảng mới tạo đã có sẵn card_price, hoặc đã đổi tên trước đó — bỏ qua
+  }
+  // Seed 3 hạng mặc định CHỈ khi bảng rỗng (owner sửa tên/giá/% sau)
   const tierCnt = await db.execute('SELECT COUNT(*) AS c FROM pos_membership_tiers');
   if (Number(tierCnt.rows[0].c) === 0) {
     const tierDefaults = [
@@ -1013,22 +1022,27 @@ async function seedDefaultData() {
       ['Bạch Kim', 2000000, 8, 2],
       ['Kim cương', 5000000, 10, 3],
     ];
-    for (const [name, ms, pct, so] of tierDefaults) {
+    for (const [name, price, pct, so] of tierDefaults) {
       await run(`
-        INSERT INTO pos_membership_tiers (name, min_spend, discount_percent, sort_order, is_active, updated_at)
+        INSERT INTO pos_membership_tiers (name, card_price, discount_percent, sort_order, is_active, updated_at)
         VALUES (?, ?, ?, ?, 1, datetime('now', '+7 hours'))
-      `, [name, ms, pct, so]);
+      `, [name, price, pct, so]);
     }
   }
-  // Cấu hình làm tròn giá hạng (dùng ở TIER-2). Mặc định: tròn GẦN NHẤT tới 500đ.
-  const tierSettings = [['tier_round_to', '500'], ['tier_round_mode', 'nearest']];
+  // Cấu hình làm tròn giá hạng (dùng ở TIER-2) + số tháng hiệu lực thẻ (chung mọi hạng, TIER-1a-v2).
+  // Mặc định: tròn GẦN NHẤT tới 500đ · thẻ có hạn 3 tháng.
+  const tierSettings = [
+    ['tier_round_to', '500'],
+    ['tier_round_mode', 'nearest'],
+    ['tier_card_valid_months', '3'],
+  ];
   for (const [key, value] of tierSettings) {
     await run(`
       INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
       VALUES (?, ?, datetime('now', '+7 hours'))
     `, [key, value]);
   }
-  console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a)');
+  console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a-v2)');
 }
 
 /**

@@ -1,0 +1,259 @@
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index 00d5439..3c17622 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -40,9 +40,10 @@ export default function Settings() {
+     product_keys: [], is_flash_now: false, server_time_vn: '',
+   });
+ 
+-  // Membership tiers state (TIER-1a)
++  // Membership tiers state (TIER-1a-v2)
+   const [tiers, setTiers] = useState([]);
+   const [tierRound, setTierRound] = useState({ round_to: 500, round_mode: 'nearest' });
++  const [tierValidMonths, setTierValidMonths] = useState(3);
+ 
+   // Backup state
+   const [backupInfo, setBackupInfo] = useState(null);
+@@ -303,7 +304,7 @@ export default function Settings() {
+     finally { setSaving(false); }
+   };
+ 
+-  // Membership tier functions (TIER-1a)
++  // Membership tier functions (TIER-1a-v2)
+   const loadTiers = async () => {
+     const data = await pkgApi('GET', '/api/pos/tiers');
+     if (data.success && data.data) {
+@@ -312,6 +313,7 @@ export default function Settings() {
+         round_to: data.data.round_to ?? 500,
+         round_mode: data.data.round_mode || 'nearest',
+       });
++      setTierValidMonths(data.data.valid_months ?? 3);
+     }
+   };
+   const updateTier = (id, field, value) => {
+@@ -322,14 +324,17 @@ export default function Settings() {
+     try {
+       for (const t of tiers) {
+         if (!String(t.name).trim()) throw new Error('Tên hạng không được trống');
+-        const ms = Number(t.min_spend), pct = Number(t.discount_percent);
+-        if (!Number.isFinite(ms) || ms < 0) throw new Error('Ngưỡng tiền không hợp lệ');
++        const price = Number(t.card_price), pct = Number(t.discount_percent);
++        if (!Number.isFinite(price) || price < 0) throw new Error('Giá thẻ không hợp lệ');
+         if (!Number.isFinite(pct) || pct < 0 || pct > 90) throw new Error('% giảm phải từ 0 đến 90');
+       }
++      const vm = Number(tierValidMonths);
++      if (!Number.isFinite(vm) || vm < 1 || vm > 24) throw new Error('Số tháng hiệu lực phải từ 1 đến 24');
+       const data = await pkgApi('PUT', '/api/pos/tiers', {
+-        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), min_spend: Number(t.min_spend), discount_percent: Number(t.discount_percent) })),
++        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent) })),
+         round_to: tierRound.round_to,
+         round_mode: tierRound.round_mode,
++        valid_months: vm,
+       });
+       if (!data.success) throw new Error(data.error);
+       setMessage('Đã lưu hạng thành viên!');
+@@ -1299,13 +1304,24 @@ export default function Settings() {
+               </div>
+             </>
+           ) : tab === 'tiers' ? (
+-            /* TAB HẠNG THÀNH VIÊN (TIER-1a) */
++            /* TAB HẠNG THÀNH VIÊN (TIER-1a-v2) */
+             <>
+               <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🏅 Hạng thành viên</div>
+               <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+-                Khách lên hạng theo <b>tổng tiền mua tích lũy</b>. Mỗi hạng giảm % cho mọi món. (Nhóm ưu đãi đặc biệt &amp; thẻ hội viên làm ở bước sau.)
++                Khách <b>mua thẻ hạng này</b> để được giá ưu đãi (giảm % cho mọi món). Mua hàng thường không lên hạng — chỉ tích điểm đổi quà.
++                Thẻ có hạn dùng, hết hạn tự về giá gốc. (Bán thẻ &amp; nhóm ưu đãi đặc biệt làm ở bước sau.)
+               </p>
+ 
++              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
++                <div><div style={{ fontWeight: 600 }}>Hiệu lực thẻ</div>
++                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Áp dụng chung cho mọi hạng, tính từ ngày mua</div></div>
++                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
++                  <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="1" max="24"
++                    value={tierValidMonths} onChange={e => setTierValidMonths(e.target.value)} />
++                  <span style={{ fontSize: 13, color: '#6b7280' }}>tháng</span>
++                </div>
++              </div>
++
+               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
+                 <div><div style={{ fontWeight: 600 }}>Làm tròn giá</div>
+                   <div style={{ fontSize: 12, color: '#9ca3af' }}>Giá sau giảm được làm tròn cho đẹp</div></div>
+@@ -1327,7 +1343,7 @@ export default function Settings() {
+                   <thead>
+                     <tr style={{ color: '#6b7280', textAlign: 'left' }}>
+                       <th style={{ padding: '6px 8px' }}>Tên hạng</th>
+-                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ngưỡng tổng mua (đ)</th>
++                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá bán thẻ (đ)</th>
+                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
+                     </tr>
+                   </thead>
+@@ -1340,7 +1356,7 @@ export default function Settings() {
+                         </td>
+                         <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                           <input type="number" className="input" style={{ width: 130, textAlign: 'right' }} min="0" step="1000"
+-                            value={t.min_spend} onChange={e => updateTier(t.id, 'min_spend', e.target.value)} />
++                            value={t.card_price} onChange={e => updateTier(t.id, 'card_price', e.target.value)} />
+                         </td>
+                         <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                           <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
+diff --git a/server/database.js b/server/database.js
+index 02cb91b..64ff056 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -997,7 +997,7 @@ async function seedDefaultData() {
+     CREATE TABLE IF NOT EXISTS pos_membership_tiers (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       name TEXT NOT NULL,
+-      min_spend REAL NOT NULL DEFAULT 0,
++      card_price REAL NOT NULL DEFAULT 0,
+       discount_percent REAL NOT NULL DEFAULT 0,
+       sort_order INTEGER NOT NULL DEFAULT 0,
+       is_active INTEGER DEFAULT 1,
+@@ -1005,7 +1005,16 @@ async function seedDefaultData() {
+       updated_at TEXT
+     )
+   `);
+-  // Seed 3 hạng mặc định CHỈ khi bảng rỗng (owner sửa tên/ngưỡng/% sau)
++  // TIER-1a-v2 (01.08.2026): đổi ý nghĩa cột — không còn là "ngưỡng tích lũy" mà là
++  // "giá bán thẻ hội viên" (owner quyết định: mua thẻ mới lên hạng, mua hàng thường chỉ tích điểm).
++  // Bảng cũ (nếu đã tồn tại từ TIER-1a) còn cột min_spend → đổi tên, giữ nguyên giá trị owner đã chỉnh.
++  try {
++    await db.execute(`ALTER TABLE pos_membership_tiers RENAME COLUMN min_spend TO card_price`);
++    console.log('✅ TIER-1a-v2: đã đổi tên cột min_spend → card_price');
++  } catch (e) {
++    // Bảng mới tạo đã có sẵn card_price, hoặc đã đổi tên trước đó — bỏ qua
++  }
++  // Seed 3 hạng mặc định CHỈ khi bảng rỗng (owner sửa tên/giá/% sau)
+   const tierCnt = await db.execute('SELECT COUNT(*) AS c FROM pos_membership_tiers');
+   if (Number(tierCnt.rows[0].c) === 0) {
+     const tierDefaults = [
+@@ -1013,22 +1022,27 @@ async function seedDefaultData() {
+       ['Bạch Kim', 2000000, 8, 2],
+       ['Kim cương', 5000000, 10, 3],
+     ];
+-    for (const [name, ms, pct, so] of tierDefaults) {
++    for (const [name, price, pct, so] of tierDefaults) {
+       await run(`
+-        INSERT INTO pos_membership_tiers (name, min_spend, discount_percent, sort_order, is_active, updated_at)
++        INSERT INTO pos_membership_tiers (name, card_price, discount_percent, sort_order, is_active, updated_at)
+         VALUES (?, ?, ?, ?, 1, datetime('now', '+7 hours'))
+-      `, [name, ms, pct, so]);
++      `, [name, price, pct, so]);
+     }
+   }
+-  // Cấu hình làm tròn giá hạng (dùng ở TIER-2). Mặc định: tròn GẦN NHẤT tới 500đ.
+-  const tierSettings = [['tier_round_to', '500'], ['tier_round_mode', 'nearest']];
++  // Cấu hình làm tròn giá hạng (dùng ở TIER-2) + số tháng hiệu lực thẻ (chung mọi hạng, TIER-1a-v2).
++  // Mặc định: tròn GẦN NHẤT tới 500đ · thẻ có hạn 3 tháng.
++  const tierSettings = [
++    ['tier_round_to', '500'],
++    ['tier_round_mode', 'nearest'],
++    ['tier_card_valid_months', '3'],
++  ];
+   for (const [key, value] of tierSettings) {
+     await run(`
+       INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
+       VALUES (?, ?, datetime('now', '+7 hours'))
+     `, [key, value]);
+   }
+-  console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a)');
++  console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a-v2)');
+ }
+ 
+ /**
+diff --git a/server/routes/tiers.js b/server/routes/tiers.js
+index 3477734..6c192dd 100644
+--- a/server/routes/tiers.js
++++ b/server/routes/tiers.js
+@@ -1,6 +1,7 @@
+ /**
+- * POS System - Membership Tier Routes (TIER-1a)
+- * Đọc/lưu cấu hình hạng thành viên + mức làm tròn giá.
++ * POS System - Membership Tier Routes (TIER-1a-v2)
++ * Đọc/lưu cấu hình hạng thành viên (giá thẻ + % giảm) + số tháng hiệu lực + mức làm tròn giá.
++ * Hạng lên theo MUA THẺ (TIER-1c), không còn theo tích lũy mua hàng.
+  * INERT: chưa áp giá lúc bán (đó là TIER-2). App KH đọc cùng API này.
+  *
+  * TURSO: mọi database call dùng await; lastInsertRowid là BigInt → bọc Number() khi trả.
+@@ -14,31 +15,35 @@ const { getNow } = require('../utils/helpers');
+ const router = express.Router();
+ 
+ const ROUND_ALLOWED = [0, 500, 1000];
++const VALID_MONTHS_MIN = 1;
++const VALID_MONTHS_MAX = 24;
+ 
+-// GET /api/pos/tiers — danh sách hạng (sắp theo ngưỡng) + cấu hình làm tròn
++// GET /api/pos/tiers — danh sách hạng (sắp theo giá thẻ) + cấu hình làm tròn + hạn thẻ
+ router.get('/', authenticate, async (req, res) => {
+   try {
+     const tiers = await query(
+-      'SELECT * FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order ASC, min_spend ASC',
++      'SELECT * FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order ASC, card_price ASC',
+     );
+     const rows = await query(
+-      "SELECT key, value FROM pos_settings WHERE key IN ('tier_round_to','tier_round_mode')",
++      "SELECT key, value FROM pos_settings WHERE key IN ('tier_round_to','tier_round_mode','tier_card_valid_months')",
+     );
+     const s = {};
+     rows.forEach((r) => (s[r.key] = r.value));
+     let roundTo = parseInt(s.tier_round_to, 10);
+     if (!ROUND_ALLOWED.includes(roundTo)) roundTo = 500;
+     const roundMode = s.tier_round_mode === 'down' ? 'down' : 'nearest';
+-    res.json({ success: true, data: { tiers, round_to: roundTo, round_mode: roundMode } });
++    let validMonths = parseInt(s.tier_card_valid_months, 10);
++    if (!Number.isFinite(validMonths) || validMonths < VALID_MONTHS_MIN || validMonths > VALID_MONTHS_MAX) validMonths = 3;
++    res.json({ success: true, data: { tiers, round_to: roundTo, round_mode: roundMode, valid_months: validMonths } });
+   } catch (err) {
+     res.status(500).json({ error: err.message });
+   }
+ });
+ 
+-// PUT /api/pos/tiers — lưu các hạng (theo id) + cấu hình làm tròn
++// PUT /api/pos/tiers — lưu các hạng (theo id) + cấu hình làm tròn + hạn thẻ
+ router.put('/', authenticate, checkPermission('manage_promotions'), async (req, res) => {
+   try {
+-    const { tiers, round_to, round_mode } = req.body || {};
++    const { tiers, round_to, round_mode, valid_months } = req.body || {};
+     if (!Array.isArray(tiers)) return res.status(400).json({ error: 'Thiếu danh sách hạng' });
+     const now = getNow();
+ 
+@@ -46,19 +51,22 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req,
+       const id = parseInt(t.id, 10);
+       if (!Number.isFinite(id)) continue;
+       const name = String(t.name || '').trim();
+-      const minSpend = Number(t.min_spend);
++      const cardPrice = Number(t.card_price);
+       const pct = Number(t.discount_percent);
+       if (!name) return res.status(400).json({ error: 'Tên hạng không được trống' });
+-      if (!Number.isFinite(minSpend) || minSpend < 0) return res.status(400).json({ error: 'Ngưỡng tiền không hợp lệ' });
++      if (!Number.isFinite(cardPrice) || cardPrice < 0) return res.status(400).json({ error: 'Giá thẻ không hợp lệ' });
+       if (!Number.isFinite(pct) || pct < 0 || pct > 90) return res.status(400).json({ error: '% giảm phải từ 0 đến 90' });
+       await run(
+-        'UPDATE pos_membership_tiers SET name=?, min_spend=?, discount_percent=?, updated_at=? WHERE id=?',
+-        [name, minSpend, pct, now, id],
++        'UPDATE pos_membership_tiers SET name=?, card_price=?, discount_percent=?, updated_at=? WHERE id=?',
++        [name, cardPrice, pct, now, id],
+       );
+     }
+ 
+     const rt = ROUND_ALLOWED.includes(parseInt(round_to, 10)) ? String(parseInt(round_to, 10)) : '500';
+     const rm = round_mode === 'down' ? 'down' : 'nearest';
++    const vmInt = parseInt(valid_months, 10);
++    const vm = (Number.isFinite(vmInt) && vmInt >= VALID_MONTHS_MIN && vmInt <= VALID_MONTHS_MAX) ? String(vmInt) : '3';
++
+     await run(
+       `INSERT INTO pos_settings (key, value, updated_at) VALUES ('tier_round_to', ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`,
+@@ -69,6 +77,11 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req,
+        ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`,
+       [rm, now],
+     );
++    await run(
++      `INSERT INTO pos_settings (key, value, updated_at) VALUES ('tier_card_valid_months', ?, ?)
++       ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`,
++      [vm, now],
++    );
+ 
+     res.json({ success: true, message: 'Đã lưu hạng thành viên' });
+   } catch (err) {
