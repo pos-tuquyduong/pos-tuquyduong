@@ -1,0 +1,64 @@
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index 3c17622..58cd744 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -343,6 +343,18 @@ export default function Settings() {
+     } catch (err) { setMessage('Lỗi: ' + err.message); }
+     finally { setSaving(false); }
+   };
++  const deleteTier = async (id, name) => {
++    if (!window.confirm(`Xóa hạng "${name}"? (Khách đã mua thẻ hạng này trước đây không bị ảnh hưởng, chỉ ẩn khỏi danh sách bán thẻ.)`)) return;
++    setSaving(true);
++    try {
++      const data = await pkgApi('DELETE', `/api/pos/tiers/${id}`);
++      if (!data.success) throw new Error(data.error);
++      setMessage('Đã xóa hạng!');
++      setTimeout(() => setMessage(''), 3000);
++      await loadTiers();
++    } catch (err) { setMessage('Lỗi: ' + err.message); }
++    finally { setSaving(false); }
++  };
+ 
+   // Permissions functions
+   const togglePermission = (role, perm) => {
+@@ -1345,6 +1357,7 @@ export default function Settings() {
+                       <th style={{ padding: '6px 8px' }}>Tên hạng</th>
+                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá bán thẻ (đ)</th>
+                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
++                      <th style={{ padding: '6px 8px', textAlign: 'center' }}></th>
+                     </tr>
+                   </thead>
+                   <tbody>
+@@ -1362,6 +1375,10 @@ export default function Settings() {
+                           <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
+                             value={t.discount_percent} onChange={e => updateTier(t.id, 'discount_percent', e.target.value)} />
+                         </td>
++                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
++                          <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: 12, color: '#dc2626' }}
++                            onClick={() => deleteTier(t.id, t.name)} disabled={saving}>Xóa</button>
++                        </td>
+                       </tr>
+                     ))}
+                   </tbody>
+diff --git a/server/routes/tiers.js b/server/routes/tiers.js
+index 6c192dd..6db57a0 100644
+--- a/server/routes/tiers.js
++++ b/server/routes/tiers.js
+@@ -89,4 +89,17 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req,
+   }
+ });
+ 
++// DELETE /api/pos/tiers/:id — xóa mềm 1 hạng (is_active=0), KHÔNG xóa cứng dữ liệu
++router.delete('/:id', authenticate, checkPermission('manage_promotions'), async (req, res) => {
++  try {
++    const id = parseInt(req.params.id, 10);
++    if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID không hợp lệ' });
++    const now = getNow();
++    await run('UPDATE pos_membership_tiers SET is_active=0, updated_at=? WHERE id=?', [now, id]);
++    res.json({ success: true, message: 'Đã xóa hạng' });
++  } catch (err) {
++    res.status(500).json({ error: err.message });
++  }
++});
++
+ module.exports = router;
