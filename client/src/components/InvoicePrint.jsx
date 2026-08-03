@@ -159,7 +159,8 @@ export default function InvoicePrint({
       unit: item.unit || '',
       qty: item.quantity,
       price: item.unit_price,
-      total: (item.unit_price || 0) * (item.quantity || 0)
+      total: (item.unit_price || 0) * (item.quantity || 0),
+      note: item.note ?? item.notes ?? '',
     })),
     subtotal: order.subtotal || 0,
     discount: order.discount || 0,

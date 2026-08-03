@@ -672,22 +672,34 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
 @media (max-width: 768px) {
   .sales-layout { grid-template-columns: 1fr; }
 
-  .sales-layout > div:last-child {
+  /* A1+A2 (03.08.2026): giỏ hàng mặc định THU GỌN thành thanh dưới,
+     chỉ bung thành sheet đầy đủ khi chạm vào — không che menu như trước. */
+  .sales-layout > div.cart-panel {
     position: fixed;
     bottom: 70px; /* trên bottom-nav */
     left: 0;
     right: 0;
     max-height: 50vh;
-    overflow-y: auto;
     background: white;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
     z-index: 100;
     border-radius: 16px 16px 0 0;
     padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* header đứng yên, chỉ cart-body cuộn */
   }
 
+  .cart-panel .cart-header { flex: 0 0 auto; }
+  .cart-panel .cart-toggle-mobile { display: flex !important; }
+  .cart-panel .cart-body { overflow-y: auto; }
+
+  /* Chưa mở rộng: chỉ hiện thanh mini (header), ẩn phần danh sách/thanh toán */
+  .cart-panel:not(.cart-expanded) { max-height: none; }
+  .cart-panel:not(.cart-expanded) .cart-body { display: none; }
+
   .sales-layout > div:first-child {
-    padding-bottom: 200px;
+    padding-bottom: 90px; /* chỉ cần chừa chỗ cho thanh mini, không phải 50vh nữa */
   }
 }
 
@@ -832,5 +844,5 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
   .stat-value { font-size: 1rem; }
   .stat-label { font-size: 0.7rem; }
   .btn { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
-  .sales-layout > div:last-child { padding: 0.75rem; }
+  .sales-layout > div.cart-panel { padding: 0.75rem; }
 }

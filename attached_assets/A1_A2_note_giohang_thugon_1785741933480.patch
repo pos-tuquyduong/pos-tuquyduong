@@ -1,0 +1,262 @@
+diff --git a/client/src/components/InvoicePreview.jsx b/client/src/components/InvoicePreview.jsx
+index 355610e..371e76e 100644
+--- a/client/src/components/InvoicePreview.jsx
++++ b/client/src/components/InvoicePreview.jsx
+@@ -407,7 +407,12 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+             <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
+               {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center' }}>{idx + 1}</td>}
+               {config.show?.col_product_code && <td style={{ padding: '1mm' }}>{item.code}</td>}
+-              <td style={{ padding: '1mm' }}>{item.name}</td>
++              <td style={{ padding: '1mm' }}>
++                {item.name}
++                {item.note && (
++                  <div style={{ fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>{item.note}</div>
++                )}
++              </td>
+               {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center' }}>{item.unit}</td>}
+               <td style={{ padding: '1mm', textAlign: 'center' }}>{item.qty}</td>
+               {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right' }}>{formatCurrency(item.price)}</td>}
+diff --git a/client/src/components/InvoicePrint.jsx b/client/src/components/InvoicePrint.jsx
+index f58891e..2030fcf 100644
+--- a/client/src/components/InvoicePrint.jsx
++++ b/client/src/components/InvoicePrint.jsx
+@@ -159,7 +159,8 @@ export default function InvoicePrint({
+       unit: item.unit || '',
+       qty: item.quantity,
+       price: item.unit_price,
+-      total: (item.unit_price || 0) * (item.quantity || 0)
++      total: (item.unit_price || 0) * (item.quantity || 0),
++      note: item.note ?? item.notes ?? '',
+     })),
+     subtotal: order.subtotal || 0,
+     discount: order.discount || 0,
+diff --git a/client/src/index.css b/client/src/index.css
+index e72f954..c3054df 100644
+--- a/client/src/index.css
++++ b/client/src/index.css
+@@ -672,22 +672,34 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
+ @media (max-width: 768px) {
+   .sales-layout { grid-template-columns: 1fr; }
+ 
+-  .sales-layout > div:last-child {
++  /* A1+A2 (03.08.2026): giỏ hàng mặc định THU GỌN thành thanh dưới,
++     chỉ bung thành sheet đầy đủ khi chạm vào — không che menu như trước. */
++  .sales-layout > div.cart-panel {
+     position: fixed;
+     bottom: 70px; /* trên bottom-nav */
+     left: 0;
+     right: 0;
+     max-height: 50vh;
+-    overflow-y: auto;
+     background: white;
+     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+     z-index: 100;
+     border-radius: 16px 16px 0 0;
+     padding: 1rem;
++    display: flex;
++    flex-direction: column;
++    overflow: hidden; /* header đứng yên, chỉ cart-body cuộn */
+   }
+ 
++  .cart-panel .cart-header { flex: 0 0 auto; }
++  .cart-panel .cart-toggle-mobile { display: flex !important; }
++  .cart-panel .cart-body { overflow-y: auto; }
++
++  /* Chưa mở rộng: chỉ hiện thanh mini (header), ẩn phần danh sách/thanh toán */
++  .cart-panel:not(.cart-expanded) { max-height: none; }
++  .cart-panel:not(.cart-expanded) .cart-body { display: none; }
++
+   .sales-layout > div:first-child {
+-    padding-bottom: 200px;
++    padding-bottom: 90px; /* chỉ cần chừa chỗ cho thanh mini, không phải 50vh nữa */
+   }
+ }
+ 
+@@ -832,5 +844,5 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
+   .stat-value { font-size: 1rem; }
+   .stat-label { font-size: 0.7rem; }
+   .btn { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+-  .sales-layout > div:last-child { padding: 0.75rem; }
++  .sales-layout > div.cart-panel { padding: 0.75rem; }
+ }
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 95beb88..6b31b50 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -25,6 +25,11 @@ export default function Sales() {
+   const [paymentMethod, setPaymentMethod] = useState('cash');
+   const [category, setCategory] = useState('all');
+ 
++  // === A1+A2: giỏ hàng thu gọn trên mobile + ghi chú theo món ===
++  const [cartExpanded, setCartExpanded] = useState(false); // chỉ có tác dụng trên mobile (CSS)
++  const [noteEditKey, setNoteEditKey] = useState(null);    // unique_key đang mở ô ghi chú
++  const NOTE_PRESETS = ['Ít đường', 'Không đường', 'Ít đá', 'Không đá', 'Ít sữa'];
++
+   // State cho popup thanh toán
+   const [showPaymentModal, setShowPaymentModal] = useState(false);
+   const [cashReceived, setCashReceived] = useState('');
+@@ -379,6 +384,19 @@ export default function Sales() {
+     }
+   };
+ 
++  // === A1: ghi chú theo món (đen đá ít đường...) ===
++  const updateItemNote = (uniqueKey, note) => {
++    setCart(cart.map(item => item.unique_key === uniqueKey ? { ...item, note } : item));
++  };
++  const toggleNotePreset = (uniqueKey, preset) => {
++    const item = cart.find(c => c.unique_key === uniqueKey);
++    if (!item) return;
++    const current = (item.note || '').split(',').map(s => s.trim()).filter(Boolean);
++    const has = current.includes(preset);
++    const next = has ? current.filter(p => p !== preset) : [...current, preset];
++    updateItemNote(uniqueKey, next.join(', '));
++  };
++
+   const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+   
+   // === Phase B: Tính chiết khấu ===
+@@ -492,6 +510,7 @@ export default function Sales() {
+           sx_product_id: item.sx_product_id,
+           quantity: item.quantity,
+           from_package: item.fromPkg || false,
++          note: item.note ? String(item.note).trim().slice(0, 200) : null,
+         })),
+         payment_method: isDebt ? 'debt' : paymentMethod,
+         discount: discount,
+@@ -561,6 +580,7 @@ export default function Sales() {
+ 
+       // Reset
+       setCart([]);
++      setNoteEditKey(null);
+       setCustomer(null);
+       setSearchPhone('');
+       setDiscount(0);
+@@ -824,16 +844,27 @@ export default function Sales() {
+       </div>
+ 
+       {/* Right: Cart */}
+-      <div className="card" style={{ 
++      <div className={"card cart-panel" + (cartExpanded ? " cart-expanded" : "")} style={{ 
+         position: 'sticky', 
+         top: '1rem', 
+         maxHeight: 'calc(100vh - 120px)',
+         overflow: 'auto'
+       }}>
+-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '1rem' }}>
+-          🛒 Giỏ hàng ({cart.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)
+-        </h3>
++        <div
++          className="cart-header"
++          onClick={() => setCartExpanded(v => !v)}
++          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', cursor: 'pointer' }}
++        >
++          <h3 style={{ margin: 0, fontSize: '1rem' }}>
++            🛒 Giỏ hàng ({cart.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)
++          </h3>
++          <span className="cart-toggle-mobile" style={{ display: 'none', alignItems: 'center', gap: '0.4rem' }}>
++            <span style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '0.9rem' }}>{formatPrice(total)}</span>
++            <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: cartExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▲</span>
++          </span>
++        </div>
+ 
++        <div className="cart-body">
+         {cart.length === 0 ? (
+           <div style={{ 
+             textAlign: 'center', 
+@@ -881,6 +912,62 @@ export default function Sales() {
+                       <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>{item.unit || 'SP'}</span>
+                     </div>
+                   )}
++                  {/* A1: ghi chú theo món (đen đá ít đường...) — không áp dụng cho dòng mua gói */}
++                  {!item.is_pkg && (
++                    noteEditKey === item.unique_key ? (
++                      <div style={{ marginTop: '0.35rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.4rem' }} onClick={e => e.stopPropagation()}>
++                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.3rem' }}>
++                          {NOTE_PRESETS.map(preset => {
++                            const active = (item.note || '').split(',').map(s => s.trim()).includes(preset);
++                            return (
++                              <button
++                                key={preset}
++                                type="button"
++                                onClick={() => toggleNotePreset(item.unique_key, preset)}
++                                style={{
++                                  fontSize: '0.7rem', padding: '2px 8px', borderRadius: 12,
++                                  border: '1px solid ' + (active ? '#3b82f6' : '#e2e8f0'),
++                                  background: active ? '#3b82f6' : 'white',
++                                  color: active ? 'white' : '#666', cursor: 'pointer'
++                                }}
++                              >
++                                {preset}
++                              </button>
++                            );
++                          })}
++                        </div>
++                        <div style={{ display: 'flex', gap: '0.25rem' }}>
++                          <input
++                            type="text"
++                            value={item.note || ''}
++                            onChange={e => updateItemNote(item.unique_key, e.target.value)}
++                            placeholder="Ghi chú khác..."
++                            className="input"
++                            style={{ flex: 1, fontSize: '0.75rem', padding: '3px 6px' }}
++                          />
++                          <button
++                            type="button"
++                            onClick={() => setNoteEditKey(null)}
++                            style={{ fontSize: '0.7rem', padding: '3px 10px', borderRadius: 6, border: 'none', background: '#22c55e', color: 'white', cursor: 'pointer' }}
++                          >
++                            Xong
++                          </button>
++                        </div>
++                      </div>
++                    ) : (
++                      <button
++                        type="button"
++                        onClick={(e) => { e.stopPropagation(); setNoteEditKey(item.unique_key); }}
++                        style={{
++                          marginTop: '0.2rem', fontSize: '0.7rem', display: 'block',
++                          color: item.note ? '#3b82f6' : '#9ca3af',
++                          background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left'
++                        }}
++                      >
++                        {item.note ? `📝 ${item.note}` : '+ Ghi chú'}
++                      </button>
++                    )
++                  )}
+                 </div>
+ 
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+@@ -1212,6 +1299,7 @@ export default function Sales() {
+             </button>
+           </>
+         )}
++        </div>
+       </div>
+     </div>
+       </div>
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index 7b36941..55c1949 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -231,6 +231,7 @@ router.post("/", authenticate, async (req, res) => {
+         sx_product_type: product.sx_product_type,
+         sx_product_id: product.sx_product_id,
+         from_package: !!item.from_package,
++        note: item.note ? String(item.note).trim().slice(0, 200) : null,
+       });
+     }
+ 
+@@ -579,10 +580,10 @@ router.post("/", authenticate, async (req, res) => {
+         await tx.run(
+           `INSERT INTO pos_order_items (
+             order_id, product_id, product_code, product_name,
+-            quantity, unit_price, total_price, unit
+-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
++            quantity, unit_price, total_price, unit, notes
++          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           [orderId, item.product_id, item.product_code, item.product_name,
+-           item.quantity, item.unit_price, item.total_price, item.unit || 'túi'],
++           item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null],
+         );
+       }
+ 

@@ -25,6 +25,11 @@ export default function Sales() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [category, setCategory] = useState('all');
 
+  // === A1+A2: giỏ hàng thu gọn trên mobile + ghi chú theo món ===
+  const [cartExpanded, setCartExpanded] = useState(false); // chỉ có tác dụng trên mobile (CSS)
+  const [noteEditKey, setNoteEditKey] = useState(null);    // unique_key đang mở ô ghi chú
+  const NOTE_PRESETS = ['Ít đường', 'Không đường', 'Ít đá', 'Không đá', 'Ít sữa'];
+
   // State cho popup thanh toán
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [cashReceived, setCashReceived] = useState('');
@@ -379,6 +384,19 @@ export default function Sales() {
     }
   };
 
+  // === A1: ghi chú theo món (đen đá ít đường...) ===
+  const updateItemNote = (uniqueKey, note) => {
+    setCart(cart.map(item => item.unique_key === uniqueKey ? { ...item, note } : item));
+  };
+  const toggleNotePreset = (uniqueKey, preset) => {
+    const item = cart.find(c => c.unique_key === uniqueKey);
+    if (!item) return;
+    const current = (item.note || '').split(',').map(s => s.trim()).filter(Boolean);
+    const has = current.includes(preset);
+    const next = has ? current.filter(p => p !== preset) : [...current, preset];
+    updateItemNote(uniqueKey, next.join(', '));
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
   
   // === Phase B: Tính chiết khấu ===
@@ -492,6 +510,7 @@ export default function Sales() {
           sx_product_id: item.sx_product_id,
           quantity: item.quantity,
           from_package: item.fromPkg || false,
+          note: item.note ? String(item.note).trim().slice(0, 200) : null,
         })),
         payment_method: isDebt ? 'debt' : paymentMethod,
         discount: discount,
@@ -561,6 +580,7 @@ export default function Sales() {
 
       // Reset
       setCart([]);
+      setNoteEditKey(null);
       setCustomer(null);
       setSearchPhone('');
       setDiscount(0);
@@ -824,16 +844,27 @@ export default function Sales() {
       </div>
 
       {/* Right: Cart */}
-      <div className="card" style={{ 
+      <div className={"card cart-panel" + (cartExpanded ? " cart-expanded" : "")} style={{ 
         position: 'sticky', 
         top: '1rem', 
         maxHeight: 'calc(100vh - 120px)',
         overflow: 'auto'
       }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '1rem' }}>
-          🛒 Giỏ hàng ({cart.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)
-        </h3>
+        <div
+          className="cart-header"
+          onClick={() => setCartExpanded(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', cursor: 'pointer' }}
+        >
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>
+            🛒 Giỏ hàng ({cart.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)
+          </h3>
+          <span className="cart-toggle-mobile" style={{ display: 'none', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '0.9rem' }}>{formatPrice(total)}</span>
+            <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: cartExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▲</span>
+          </span>
+        </div>
 
+        <div className="cart-body">
         {cart.length === 0 ? (
           <div style={{ 
             textAlign: 'center', 
@@ -880,6 +911,62 @@ export default function Sales() {
                         style={{ width: '50px', padding: '2px 4px', borderRadius: 4, border: '1px solid #c4b5fd', fontSize: '0.75rem', textAlign: 'center' }} />
                       <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>{item.unit || 'SP'}</span>
                     </div>
+                  )}
+                  {/* A1: ghi chú theo món (đen đá ít đường...) — không áp dụng cho dòng mua gói */}
+                  {!item.is_pkg && (
+                    noteEditKey === item.unique_key ? (
+                      <div style={{ marginTop: '0.35rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.4rem' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.3rem' }}>
+                          {NOTE_PRESETS.map(preset => {
+                            const active = (item.note || '').split(',').map(s => s.trim()).includes(preset);
+                            return (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => toggleNotePreset(item.unique_key, preset)}
+                                style={{
+                                  fontSize: '0.7rem', padding: '2px 8px', borderRadius: 12,
+                                  border: '1px solid ' + (active ? '#3b82f6' : '#e2e8f0'),
+                                  background: active ? '#3b82f6' : 'white',
+                                  color: active ? 'white' : '#666', cursor: 'pointer'
+                                }}
+                              >
+                                {preset}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <input
+                            type="text"
+                            value={item.note || ''}
+                            onChange={e => updateItemNote(item.unique_key, e.target.value)}
+                            placeholder="Ghi chú khác..."
+                            className="input"
+                            style={{ flex: 1, fontSize: '0.75rem', padding: '3px 6px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setNoteEditKey(null)}
+                            style={{ fontSize: '0.7rem', padding: '3px 10px', borderRadius: 6, border: 'none', background: '#22c55e', color: 'white', cursor: 'pointer' }}
+                          >
+                            Xong
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setNoteEditKey(item.unique_key); }}
+                        style={{
+                          marginTop: '0.2rem', fontSize: '0.7rem', display: 'block',
+                          color: item.note ? '#3b82f6' : '#9ca3af',
+                          background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left'
+                        }}
+                      >
+                        {item.note ? `📝 ${item.note}` : '+ Ghi chú'}
+                      </button>
+                    )
                   )}
                 </div>
 
@@ -1212,6 +1299,7 @@ export default function Sales() {
             </button>
           </>
         )}
+        </div>
       </div>
     </div>
       </div>

@@ -231,6 +231,7 @@ router.post("/", authenticate, async (req, res) => {
         sx_product_type: product.sx_product_type,
         sx_product_id: product.sx_product_id,
         from_package: !!item.from_package,
+        note: item.note ? String(item.note).trim().slice(0, 200) : null,
       });
     }
 
@@ -579,10 +580,10 @@ router.post("/", authenticate, async (req, res) => {
         await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price, unit
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
-           item.quantity, item.unit_price, item.total_price, item.unit || 'túi'],
+           item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null],
         );
       }
 

@@ -407,7 +407,12 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
             <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
               {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center' }}>{idx + 1}</td>}
               {config.show?.col_product_code && <td style={{ padding: '1mm' }}>{item.code}</td>}
-              <td style={{ padding: '1mm' }}>{item.name}</td>
+              <td style={{ padding: '1mm' }}>
+                {item.name}
+                {item.note && (
+                  <div style={{ fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>{item.note}</div>
+                )}
+              </td>
               {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center' }}>{item.unit}</td>}
               <td style={{ padding: '1mm', textAlign: 'center' }}>{item.qty}</td>
               {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right' }}>{formatCurrency(item.price)}</td>}
