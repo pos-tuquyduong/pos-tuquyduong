@@ -82,7 +82,7 @@ const numberToWords = (num) => {
 
 // Format currency
 const formatCurrency = (num) => {
-  return new Intl.NumberFormat('vi-VN').format(num) + 'đ';
+  return new Intl.NumberFormat('vi-VN').format(num);
 };
 
 export default function InvoicePreview({ config, size = 'a5', logo = '', orderData = null }) {
@@ -168,10 +168,14 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       <div 
         className="invoice-header"
         style={{ 
-          textAlign: getAlign('header'),
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: isThermal ? '2mm' : '4mm',
           marginBottom: isThermal ? '2mm' : '5mm'
         }}
       >
+      <div style={{ flex: 1, textAlign: getAlign('header') }}>
         {/* Thermal: Logo + Name + QR inline */}
         {isThermal ? (
           <div style={{ 
@@ -306,6 +310,21 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         )}
       </div>
 
+      {config.show?.order_code && (
+        <div style={{
+          flexShrink: 0,
+          background: '#f5f0e8',
+          borderRadius: isThermal ? '4px' : '6px',
+          padding: isThermal ? '2px 6px' : '4px 10px',
+          fontSize: isThermal ? '13px' : '18px',
+          fontWeight: 'bold',
+          color: '#8b3a1a'
+        }}>
+          #{(data.order_code || '').split('-').pop()}
+        </div>
+      )}
+      </div>
+
       {/* Divider */}
       <div style={{ 
         borderTop: `1px ${styles.borderStyle} #999`, 
@@ -338,9 +357,6 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         {config.show?.invoice_number && (
           <span>Số HĐ: <strong>{data.invoice_number}</strong></span>
         )}
-        {config.show?.order_code && (
-          <span>Mã: <strong>{data.order_code}</strong></span>
-        )}
         {config.show?.datetime && (
           <span>{data.datetime}</span>
         )}
@@ -362,7 +378,20 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           fontSize: '0.95em'
         }}>
           {config.show?.customer_name && (
-            <div><strong>KH:</strong> {data.customer.name}</div>
+            <div>
+              <strong>KH:</strong> {data.customer.name}
+              {data.customer.tier && (
+                <span style={{
+                  marginLeft: '6px',
+                  fontSize: '0.8em',
+                  fontWeight: 'bold',
+                  padding: '1px 7px',
+                  borderRadius: '4px',
+                  background: '#efe6fb',
+                  color: '#5b3ea3'
+                }}>{data.customer.tier}</span>
+              )}
+            </div>
           )}
           {config.show?.customer_phone && (
             <div><strong>SĐT:</strong> {data.customer.phone}</div>
@@ -403,22 +432,41 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           </tr>
         </thead>
         <tbody>
-          {data.items.map((item, idx) => (
-            <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
-              {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center' }}>{idx + 1}</td>}
-              {config.show?.col_product_code && <td style={{ padding: '1mm' }}>{item.code}</td>}
-              <td style={{ padding: '1mm' }}>
-                {item.name}
-                {item.note && (
-                  <div style={{ fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>{item.note}</div>
-                )}
-              </td>
-              {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center' }}>{item.unit}</td>}
-              <td style={{ padding: '1mm', textAlign: 'center' }}>{item.qty}</td>
-              {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right' }}>{formatCurrency(item.price)}</td>}
-              <td style={{ padding: '1mm', textAlign: 'right' }}>{formatCurrency(item.total)}</td>
-            </tr>
-          ))}
+          {data.items.map((item, idx) => {
+            const hasFlash = item.flash_price != null && item.flash_price !== item.price;
+            return (
+              <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
+                {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{idx + 1}</td>}
+                {config.show?.col_product_code && <td style={{ padding: '1mm', verticalAlign: 'top' }}>{item.code}</td>}
+                <td style={{ padding: '1mm' }}>
+                  <div style={{ fontSize: isThermal ? '1.5em' : '1.25em', fontWeight: 'bold' }}>{item.name}</div>
+                  {item.note && (
+                    <div style={{
+                      display: 'inline-block',
+                      fontSize: isThermal ? '1.1em' : '1em',
+                      fontWeight: 'bold',
+                      color: '#0f6e56',
+                      background: '#e1f5ee',
+                      padding: '1px 7px',
+                      borderRadius: '5px',
+                      marginTop: '0.5mm'
+                    }}>{item.note}</div>
+                  )}
+                  {hasFlash && (
+                    <div style={{ fontSize: '0.75em', color: '#666', marginTop: '0.5mm' }}>
+                      Giá gốc <span style={{ textDecoration: 'line-through' }}>{formatCurrency(item.price)}</span>
+                      {' → '}
+                      <span style={{ color: '#a32d2d', fontWeight: 'bold' }}>Flash {formatCurrency(item.flash_price)}/{item.unit || 'món'}</span>
+                    </div>
+                  )}
+                </td>
+                {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.unit}</td>}
+                <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.qty}</td>
+                {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(item.price)}</td>}
+                <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(item.total)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -436,13 +484,20 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           <span>{formatCurrency(data.subtotal)}</span>
         </div>
         
-        {config.show?.discount_detail && data.discount > 0 && (
+        {config.show?.discount_detail && data.flash_discount > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#a32d2d' }}>
+            <span>Giảm giá Flash:</span>
+            <span>-{formatCurrency(data.flash_discount)}</span>
+          </div>
+        )}
+
+        {config.show?.discount_detail && (data.discount - (data.flash_discount || 0)) > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#059669' }}>
             <span>Chiết khấu
               {data.discount_code ? ` (${data.discount_code})` : 
                data.discount_type === 'percent' ? ` (${data.discount_value}%)` : ''}:
             </span>
-            <span>-{formatCurrency(data.discount)}</span>
+            <span>-{formatCurrency(data.discount - (data.flash_discount || 0))}</span>
           </div>
         )}
         

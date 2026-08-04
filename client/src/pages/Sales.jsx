@@ -551,6 +551,7 @@ export default function Sales() {
         invoice_number: result.order.invoice_number,
         subtotal: result.order.subtotal || subtotal,
         discount: discountAmount,
+        flash_discount: result.order.flash_discount || 0,
         discount_type: result.order.discount_type,
         discount_value: result.order.discount_value,
         discount_code: result.order.discount_code,
@@ -570,7 +571,7 @@ export default function Sales() {
         customerNote: customer?.discount_note || '',
         createdBy: result.order.created_by,
         createdAt: result.order.created_at,
-        items: cart,
+        items: result.order.items,
         balanceAfter: result.order.balance_after
       });
 
@@ -2033,15 +2034,10 @@ export default function Sales() {
         customer_note: completedOrder.customerNote,
         created_by: completedOrder.createdBy,
         created_at: completedOrder.createdAt,
-        items: completedOrder.items.map(item => ({
-          product_code: item.product_code,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          unit: item.unit || ''
-        })),
+        items: completedOrder.items,
         subtotal: completedOrder.subtotal || completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
         discount: completedOrder.discount || 0,
+        flash_discount: completedOrder.flash_discount || 0,
         discount_type: completedOrder.discount_type,
         discount_value: completedOrder.discount_value,
         discount_code: completedOrder.discount_code,

@@ -1,0 +1,308 @@
+diff --git a/client/src/components/InvoicePreview.jsx b/client/src/components/InvoicePreview.jsx
+index 371e76e..cdc4da4 100644
+--- a/client/src/components/InvoicePreview.jsx
++++ b/client/src/components/InvoicePreview.jsx
+@@ -82,7 +82,7 @@ const numberToWords = (num) => {
+ 
+ // Format currency
+ const formatCurrency = (num) => {
+-  return new Intl.NumberFormat('vi-VN').format(num) + 'đ';
++  return new Intl.NumberFormat('vi-VN').format(num);
+ };
+ 
+ export default function InvoicePreview({ config, size = 'a5', logo = '', orderData = null }) {
+@@ -168,10 +168,14 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+       <div 
+         className="invoice-header"
+         style={{ 
+-          textAlign: getAlign('header'),
++          display: 'flex',
++          alignItems: 'flex-start',
++          justifyContent: 'space-between',
++          gap: isThermal ? '2mm' : '4mm',
+           marginBottom: isThermal ? '2mm' : '5mm'
+         }}
+       >
++      <div style={{ flex: 1, textAlign: getAlign('header') }}>
+         {/* Thermal: Logo + Name + QR inline */}
+         {isThermal ? (
+           <div style={{ 
+@@ -306,6 +310,21 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+         )}
+       </div>
+ 
++      {config.show?.order_code && (
++        <div style={{
++          flexShrink: 0,
++          background: '#f5f0e8',
++          borderRadius: isThermal ? '4px' : '6px',
++          padding: isThermal ? '2px 6px' : '4px 10px',
++          fontSize: isThermal ? '13px' : '18px',
++          fontWeight: 'bold',
++          color: '#8b3a1a'
++        }}>
++          #{(data.order_code || '').split('-').pop()}
++        </div>
++      )}
++      </div>
++
+       {/* Divider */}
+       <div style={{ 
+         borderTop: `1px ${styles.borderStyle} #999`, 
+@@ -338,9 +357,6 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+         {config.show?.invoice_number && (
+           <span>Số HĐ: <strong>{data.invoice_number}</strong></span>
+         )}
+-        {config.show?.order_code && (
+-          <span>Mã: <strong>{data.order_code}</strong></span>
+-        )}
+         {config.show?.datetime && (
+           <span>{data.datetime}</span>
+         )}
+@@ -362,7 +378,20 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+           fontSize: '0.95em'
+         }}>
+           {config.show?.customer_name && (
+-            <div><strong>KH:</strong> {data.customer.name}</div>
++            <div>
++              <strong>KH:</strong> {data.customer.name}
++              {data.customer.tier && (
++                <span style={{
++                  marginLeft: '6px',
++                  fontSize: '0.8em',
++                  fontWeight: 'bold',
++                  padding: '1px 7px',
++                  borderRadius: '4px',
++                  background: '#efe6fb',
++                  color: '#5b3ea3'
++                }}>{data.customer.tier}</span>
++              )}
++            </div>
+           )}
+           {config.show?.customer_phone && (
+             <div><strong>SĐT:</strong> {data.customer.phone}</div>
+@@ -403,22 +432,41 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+           </tr>
+         </thead>
+         <tbody>
+-          {data.items.map((item, idx) => (
+-            <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
+-              {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center' }}>{idx + 1}</td>}
+-              {config.show?.col_product_code && <td style={{ padding: '1mm' }}>{item.code}</td>}
+-              <td style={{ padding: '1mm' }}>
+-                {item.name}
+-                {item.note && (
+-                  <div style={{ fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>{item.note}</div>
+-                )}
+-              </td>
+-              {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center' }}>{item.unit}</td>}
+-              <td style={{ padding: '1mm', textAlign: 'center' }}>{item.qty}</td>
+-              {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right' }}>{formatCurrency(item.price)}</td>}
+-              <td style={{ padding: '1mm', textAlign: 'right' }}>{formatCurrency(item.total)}</td>
+-            </tr>
+-          ))}
++          {data.items.map((item, idx) => {
++            const hasFlash = item.flash_price != null && item.flash_price !== item.price;
++            return (
++              <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
++                {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{idx + 1}</td>}
++                {config.show?.col_product_code && <td style={{ padding: '1mm', verticalAlign: 'top' }}>{item.code}</td>}
++                <td style={{ padding: '1mm' }}>
++                  <div style={{ fontSize: isThermal ? '1.5em' : '1.25em', fontWeight: 'bold' }}>{item.name}</div>
++                  {item.note && (
++                    <div style={{
++                      display: 'inline-block',
++                      fontSize: isThermal ? '1.1em' : '1em',
++                      fontWeight: 'bold',
++                      color: '#0f6e56',
++                      background: '#e1f5ee',
++                      padding: '1px 7px',
++                      borderRadius: '5px',
++                      marginTop: '0.5mm'
++                    }}>{item.note}</div>
++                  )}
++                  {hasFlash && (
++                    <div style={{ fontSize: '0.75em', color: '#666', marginTop: '0.5mm' }}>
++                      Giá gốc <span style={{ textDecoration: 'line-through' }}>{formatCurrency(item.price)}</span>
++                      {' → '}
++                      <span style={{ color: '#a32d2d', fontWeight: 'bold' }}>Flash {formatCurrency(item.flash_price)}/{item.unit || 'món'}</span>
++                    </div>
++                  )}
++                </td>
++                {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.unit}</td>}
++                <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.qty}</td>
++                {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(item.price)}</td>}
++                <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(item.total)}</td>
++              </tr>
++            );
++          })}
+         </tbody>
+       </table>
+ 
+@@ -436,13 +484,20 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+           <span>{formatCurrency(data.subtotal)}</span>
+         </div>
+         
+-        {config.show?.discount_detail && data.discount > 0 && (
++        {config.show?.discount_detail && data.flash_discount > 0 && (
++          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#a32d2d' }}>
++            <span>Giảm giá Flash:</span>
++            <span>-{formatCurrency(data.flash_discount)}</span>
++          </div>
++        )}
++
++        {config.show?.discount_detail && (data.discount - (data.flash_discount || 0)) > 0 && (
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#059669' }}>
+             <span>Chiết khấu
+               {data.discount_code ? ` (${data.discount_code})` : 
+                data.discount_type === 'percent' ? ` (${data.discount_value}%)` : ''}:
+             </span>
+-            <span>-{formatCurrency(data.discount)}</span>
++            <span>-{formatCurrency(data.discount - (data.flash_discount || 0))}</span>
+           </div>
+         )}
+         
+diff --git a/client/src/components/InvoicePrint.jsx b/client/src/components/InvoicePrint.jsx
+index 2030fcf..eaa403b 100644
+--- a/client/src/components/InvoicePrint.jsx
++++ b/client/src/components/InvoicePrint.jsx
+@@ -152,6 +152,7 @@ export default function InvoicePrint({
+       balance: order.customer_balance || 0,
+       type: order.customer_type || '',
+       note: order.customer_note || '',
++      tier: order.customer_tier || null,
+     },
+     items: (order.items || []).map(item => ({
+       code: item.product_code,
+@@ -161,9 +162,11 @@ export default function InvoicePrint({
+       price: item.unit_price,
+       total: (item.unit_price || 0) * (item.quantity || 0),
+       note: item.note ?? item.notes ?? '',
++      flash_price: item.flash_unit_price ?? null,
+     })),
+     subtotal: order.subtotal || 0,
+     discount: order.discount || 0,
++    flash_discount: order.flash_discount || 0,
+     discount_type: order.discount_type,
+     discount_value: order.discount_value,
+     discount_code: order.discount_code,
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 6b31b50..48b323b 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -551,6 +551,7 @@ export default function Sales() {
+         invoice_number: result.order.invoice_number,
+         subtotal: result.order.subtotal || subtotal,
+         discount: discountAmount,
++        flash_discount: result.order.flash_discount || 0,
+         discount_type: result.order.discount_type,
+         discount_value: result.order.discount_value,
+         discount_code: result.order.discount_code,
+@@ -570,7 +571,7 @@ export default function Sales() {
+         customerNote: customer?.discount_note || '',
+         createdBy: result.order.created_by,
+         createdAt: result.order.created_at,
+-        items: cart,
++        items: result.order.items,
+         balanceAfter: result.order.balance_after
+       });
+ 
+@@ -2033,15 +2034,10 @@ export default function Sales() {
+         customer_note: completedOrder.customerNote,
+         created_by: completedOrder.createdBy,
+         created_at: completedOrder.createdAt,
+-        items: completedOrder.items.map(item => ({
+-          product_code: item.product_code,
+-          product_name: item.product_name,
+-          quantity: item.quantity,
+-          unit_price: item.unit_price,
+-          unit: item.unit || ''
+-        })),
++        items: completedOrder.items,
+         subtotal: completedOrder.subtotal || completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
+         discount: completedOrder.discount || 0,
++        flash_discount: completedOrder.flash_discount || 0,
+         discount_type: completedOrder.discount_type,
+         discount_value: completedOrder.discount_value,
+         discount_code: completedOrder.discount_code,
+diff --git a/server/database.js b/server/database.js
+index 64ff056..89206e9 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -235,9 +235,17 @@ async function createTables() {
+       notes TEXT,
+       unit TEXT DEFAULT 'túi',
+       sx_finished_product_id INTEGER,
++      flash_unit_price REAL,
+       FOREIGN KEY (order_id) REFERENCES pos_orders(id)
+     )
+   `);
++  // Hóa đơn (04.08.2026): cột hiển thị giá đã giảm Flash cho TỪNG món — CHỈ để in hóa đơn,
++  // không ảnh hưởng cách tính subtotal/total thật (vẫn giữ nguyên logic cũ, giảm theo tổng).
++  try {
++    await db.execute(`ALTER TABLE pos_order_items ADD COLUMN flash_unit_price REAL`);
++  } catch (e) {
++    // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã chạy ALTER trước đó) — bỏ qua
++  }
+ 
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BẢNG 7: SỐ DƯ KHÁCH HÀNG (phone là key chính)
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index 55c1949..aeadf8d 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -265,15 +265,24 @@ router.post("/", authenticate, async (req, res) => {
+       if (flashState.is_flash_now && flashState.percent > 0 && flashState.product_keys.length > 0) {
+         const keySet = new Set(flashState.product_keys);
+         let flashBase = 0;
++        const matchedItems = [];
+         for (const it of orderItems) {
+           if (it.sx_product_type != null && it.sx_product_id != null) {
+             const uid = `${it.sx_product_type}_${it.sx_product_id}`;
+-            if (keySet.has(uid)) flashBase += it.unit_price * it.quantity;
++            if (keySet.has(uid)) {
++              flashBase += it.unit_price * it.quantity;
++              matchedItems.push(it);
++            }
+           }
+         }
+         if (flashBase > 0) {
+           flashDiscountAmount = Math.round((flashBase * flashState.percent) / 100);
+           flashApplied = true;
++          // Hóa đơn (04.08.2026): giá đã giảm CHỈ để hiển thị từng món trên hóa đơn.
++          // subtotal/total thật vẫn tính theo unit_price gốc + trừ flashDiscountAmount tổng như cũ — KHÔNG đổi.
++          for (const it of matchedItems) {
++            it.flash_unit_price = Math.round(it.unit_price * (1 - flashState.percent / 100));
++          }
+         }
+       }
+     } catch (flashErr) {
+@@ -580,10 +589,11 @@ router.post("/", authenticate, async (req, res) => {
+         await tx.run(
+           `INSERT INTO pos_order_items (
+             order_id, product_id, product_code, product_name,
+-            quantity, unit_price, total_price, unit, notes
+-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
++            quantity, unit_price, total_price, unit, notes, flash_unit_price
++          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           [orderId, item.product_id, item.product_code, item.product_name,
+-           item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null],
++           item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
++           item.flash_unit_price || null],
+         );
+       }
+ 
+@@ -778,11 +788,12 @@ router.post("/", authenticate, async (req, res) => {
+         subtotal,
+         discount_type: finalDiscountType,
+         discount_value: finalDiscountValue,
++        flash_discount: flashApplied ? flashDiscountAmount : 0,
+         discount_amount: finalDiscountAmount,
+         discount_code: finalDiscountCode,
+         shipping_fee: finalShippingFee,
+         total,
+-        items: orderItems.length,
++        items: orderItems,
+         balance_after: balanceAfter,
+         debt_amount: finalDebtAmount,
+         payment_status: finalPaymentStatus,

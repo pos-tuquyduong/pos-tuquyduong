@@ -235,9 +235,17 @@ async function createTables() {
       notes TEXT,
       unit TEXT DEFAULT 'túi',
       sx_finished_product_id INTEGER,
+      flash_unit_price REAL,
       FOREIGN KEY (order_id) REFERENCES pos_orders(id)
     )
   `);
+  // Hóa đơn (04.08.2026): cột hiển thị giá đã giảm Flash cho TỪNG món — CHỈ để in hóa đơn,
+  // không ảnh hưởng cách tính subtotal/total thật (vẫn giữ nguyên logic cũ, giảm theo tổng).
+  try {
+    await db.execute(`ALTER TABLE pos_order_items ADD COLUMN flash_unit_price REAL`);
+  } catch (e) {
+    // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã chạy ALTER trước đó) — bỏ qua
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 7: SỐ DƯ KHÁCH HÀNG (phone là key chính)

@@ -265,15 +265,24 @@ router.post("/", authenticate, async (req, res) => {
       if (flashState.is_flash_now && flashState.percent > 0 && flashState.product_keys.length > 0) {
         const keySet = new Set(flashState.product_keys);
         let flashBase = 0;
+        const matchedItems = [];
         for (const it of orderItems) {
           if (it.sx_product_type != null && it.sx_product_id != null) {
             const uid = `${it.sx_product_type}_${it.sx_product_id}`;
-            if (keySet.has(uid)) flashBase += it.unit_price * it.quantity;
+            if (keySet.has(uid)) {
+              flashBase += it.unit_price * it.quantity;
+              matchedItems.push(it);
+            }
           }
         }
         if (flashBase > 0) {
           flashDiscountAmount = Math.round((flashBase * flashState.percent) / 100);
           flashApplied = true;
+          // Hóa đơn (04.08.2026): giá đã giảm CHỈ để hiển thị từng món trên hóa đơn.
+          // subtotal/total thật vẫn tính theo unit_price gốc + trừ flashDiscountAmount tổng như cũ — KHÔNG đổi.
+          for (const it of matchedItems) {
+            it.flash_unit_price = Math.round(it.unit_price * (1 - flashState.percent / 100));
+          }
         }
       }
     } catch (flashErr) {
@@ -580,10 +589,11 @@ router.post("/", authenticate, async (req, res) => {
         await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price, unit, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit, notes, flash_unit_price
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
-           item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null],
+           item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
+           item.flash_unit_price || null],
         );
       }
 
@@ -778,11 +788,12 @@ router.post("/", authenticate, async (req, res) => {
         subtotal,
         discount_type: finalDiscountType,
         discount_value: finalDiscountValue,
+        flash_discount: flashApplied ? flashDiscountAmount : 0,
         discount_amount: finalDiscountAmount,
         discount_code: finalDiscountCode,
         shipping_fee: finalShippingFee,
         total,
-        items: orderItems.length,
+        items: orderItems,
         balance_after: balanceAfter,
         debt_amount: finalDebtAmount,
         payment_status: finalPaymentStatus,
