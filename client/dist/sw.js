@@ -3,7 +3,7 @@
  * Network-first với cache fallback
  */
 
-const CACHE_NAME = 'pos-tqd-v1';
+const CACHE_NAME = 'pos-tqd-v2';
 
 // Assets cache khi install
 const PRECACHE = [

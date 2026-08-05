@@ -1,0 +1,13 @@
+diff --git a/client/public/sw.js b/client/public/sw.js
+index 6f87dda..8b49c46 100644
+--- a/client/public/sw.js
++++ b/client/public/sw.js
+@@ -3,7 +3,7 @@
+  * Network-first với cache fallback
+  */
+ 
+-const CACHE_NAME = 'pos-tqd-v1';
++const CACHE_NAME = 'pos-tqd-v2';
+ 
+ // Assets cache khi install
+ const PRECACHE = [
