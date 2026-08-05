@@ -403,7 +403,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
             <div><strong>Số dư TK:</strong> {formatCurrency(data.customer.balance)}</div>
           )}
           {config.show?.customer_type && (
-            <div><strong>Loại KH:</strong> {data.customer.type}</div>
+            <div><strong>Hạng Thành viên:</strong> {data.customer.type}</div>
           )}
           {config.show?.customer_note && data.customer.note && (
             <div><strong>Ghi chú:</strong> {data.customer.note}</div>

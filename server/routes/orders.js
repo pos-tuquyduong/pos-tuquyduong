@@ -474,6 +474,24 @@ router.post("/", authenticate, async (req, res) => {
     }
 
 
+    // ─── An toàn tiền bạc: đối chiếu tổng thanh toán máy khách gửi lên với total server tự tính ───
+    // Máy khách hiện CHƯA biết Flash lúc tính tiền mặt/chuyển khoản/ghi nợ cần thu (tính trước khi
+    // biết kết quả server). Nếu lệch (vd đang có Flash mà máy khách gửi số như không có Flash) →
+    // từ chối tạo đơn, KHÔNG bao giờ âm thầm ghi sai số tiền thu của khách.
+    const paymentSum = Math.round(
+      (Number(cash_amount) || 0) +
+      (Number(transfer_amount) || 0) +
+      actualBalanceAmount +
+      actualParentBalanceAmount +
+      finalDebtAmount
+    );
+    if (Math.abs(paymentSum - total) > 1) {
+      return res.status(400).json({
+        error: `Số tiền thanh toán (${paymentSum.toLocaleString('vi-VN')}đ) không khớp tổng đơn hàng thật (${total.toLocaleString('vi-VN')}đ)` +
+          (flashApplied ? ' — đang áp dụng Flash sale, vui lòng tải lại giỏ hàng rồi thử lại.' : '.'),
+      });
+    }
+
     // ========== ATOMIC TRANSACTION: Tạo đơn hàng ==========
     // Tất cả thao tác DB (tạo đơn, trừ ví, ghi log) trong 1 transaction
     // Nếu bất kỳ bước nào lỗi → rollback tất cả, không mất tiền
@@ -789,6 +807,7 @@ router.post("/", authenticate, async (req, res) => {
         discount_type: finalDiscountType,
         discount_value: finalDiscountValue,
         flash_discount: flashApplied ? flashDiscountAmount : 0,
+        discount: totalDiscountAmount,
         discount_amount: finalDiscountAmount,
         discount_code: finalDiscountCode,
         shipping_fee: finalShippingFee,

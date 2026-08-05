@@ -91,7 +91,36 @@ export default function Sales() {
   useEffect(() => {
     loadProducts();
     loadInvoiceSettings();
+    loadFlashState();
+    // Tự làm mới trạng thái Flash mỗi 60s — để giỏ hàng tự cập nhật đúng lúc vào/hết khung giờ Flash,
+    // không cần khách tự F5 lại trang.
+    const flashTimer = setInterval(loadFlashState, 60000);
+    return () => clearInterval(flashTimer);
   }, []);
+
+  // === Trạng thái Flash sale (đọc từ cổng /api/pos/flash có sẵn — không tạo API mới) ===
+  const [flashState, setFlashState] = useState(null);
+  const loadFlashState = async () => {
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch('/api/pos/flash', { headers: { 'Authorization': 'Bearer ' + token } });
+      const result = await res.json();
+      if (result.success) setFlashState(result.data);
+    } catch (err) {
+      console.error('Load flash state error:', err);
+      // Lỗi mạng → coi như không có Flash, không chặn bán hàng (giống hành vi fallback bên server)
+    }
+  };
+
+  // Giá đã giảm Flash cho 1 item trong giỏ (chỉ hiển thị/tính client — server luôn tự tính lại,
+  // không tin số này). Trả về null nếu món không thuộc diện Flash hoặc Flash không đang chạy.
+  const getFlashPrice = (item) => {
+    if (!flashState?.is_flash_now || !flashState.percent) return null;
+    if (item.sx_product_type == null || item.sx_product_id == null) return null;
+    const uid = `${item.sx_product_type}_${item.sx_product_id}`;
+    if (!flashState.product_keys?.includes(uid)) return null;
+    return Math.round(item.unit_price * (1 - flashState.percent / 100));
+  };
 
   const loadProducts = async () => {
     try {
@@ -398,7 +427,16 @@ export default function Sales() {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-  
+
+  // === Flash sale (client tự tính để hiện đúng giá + tính đúng tiền cần thu ngay lúc chọn món —
+  // server LUÔN tự tính lại số này khi tạo đơn, không tin số client gửi, đây chỉ để hiển thị đúng
+  // và tránh yêu cầu khách trả sai tiền trước khi thanh toán). ===
+  const cartFlashDiscount = cart.reduce((sum, item) => {
+    const flashPrice = getFlashPrice(item);
+    if (flashPrice == null) return sum;
+    return sum + (item.unit_price - flashPrice) * item.quantity;
+  }, 0);
+
   // === Phase B: Tính chiết khấu ===
   let discountAmount = 0;
   if (discountCodeValid?.valid) {
@@ -414,9 +452,9 @@ export default function Sales() {
     // Backward compatible
     discountAmount = discount;
   }
-  discountAmount = Math.min(discountAmount, subtotal);
-  
-  const total = Math.max(0, subtotal - discountAmount + (shippingFee || 0));
+  discountAmount = Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount));
+
+  const total = Math.max(0, subtotal - cartFlashDiscount - discountAmount + (shippingFee || 0));
 
   // Tính toán thanh toán linh hoạt
   const customerBalance = customer?.balance || 0;
@@ -446,6 +484,7 @@ export default function Sales() {
       setError('Giỏ hàng trống');
       return;
     }
+    loadFlashState(); // làm mới ngay trước khi thanh toán — tránh dùng số Flash quá cũ (>60s)
 
     // Reset state thanh toán
     setError('');
@@ -550,13 +589,13 @@ export default function Sales() {
         code: result.order.code,
         invoice_number: result.order.invoice_number,
         subtotal: result.order.subtotal || subtotal,
-        discount: discountAmount,
+        discount: result.order.discount ?? discountAmount,
         flash_discount: result.order.flash_discount || 0,
         discount_type: result.order.discount_type,
         discount_value: result.order.discount_value,
         discount_code: result.order.discount_code,
         shipping_fee: result.order.shipping_fee || shippingFee,
-        total: total,
+        total: result.order.total,
         paymentMethod: isDebt ? 'debt' : paymentMethod,
         balanceUsed: balanceUsed,
         cashReceived: cashReceivedNum,
@@ -895,7 +934,18 @@ export default function Sales() {
                   <div style={{ fontSize: '0.75rem', color: '#666' }}>
                     {item.fromPkg ? (
                       <><span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.original_price || item.unit_price)}</span> <span style={{ color: '#7c3aed', fontWeight: 600 }}>→ 0đ</span></>
-                    ) : `${formatPrice(item.unit_price)} × ${item.quantity}`}
+                    ) : (() => {
+                      const flashPrice = getFlashPrice(item);
+                      if (flashPrice == null) return `${formatPrice(item.unit_price)} × ${item.quantity}`;
+                      return (
+                        <>
+                          <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
+                          {' '}
+                          <span style={{ color: '#dc2626', fontWeight: 700 }}>⚡ {formatPrice(flashPrice)}</span>
+                          {` × ${item.quantity}`}
+                        </>
+                      );
+                    })()}
                   </div>
                   {item.is_pkg && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
@@ -1383,9 +1433,15 @@ export default function Sales() {
               }}>
                 <span>
                   {item.icon} {item.product_code} × {item.quantity}
+                  {getFlashPrice(item) != null && (
+                    <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: '0.35rem' }}>⚡Flash</span>
+                  )}
                 </span>
                 <span style={{ fontWeight: 'bold' }}>
-                  {formatPrice(item.unit_price * item.quantity)}
+                  {(() => {
+                    const flashPrice = getFlashPrice(item);
+                    return formatPrice((flashPrice != null ? flashPrice : item.unit_price) * item.quantity);
+                  })()}
                 </span>
               </div>
             ))}

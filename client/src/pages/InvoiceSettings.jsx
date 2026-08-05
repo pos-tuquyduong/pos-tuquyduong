@@ -1,99 +1,195 @@
 /**
  * InvoiceSettings.jsx - Trang cài đặt hóa đơn
  * UI 2 cột: Tùy chỉnh bên trái + Preview realtime bên phải
- * 
+ *
  * FIX 1: Sub-components BÊN NGOÀI để tránh mất focus khi gõ
  * FIX 2: STALE-WHILE-REVALIDATE pattern - 1 API duy nhất + cache
- * 
+ *
  * ┌─────────────────────────────────────────────────────────┐
  * │ Có cache? → Hiển thị NGAY (0ms), API update ngầm       │
  * │ Không cache? → Hiện loading, chờ API                   │
  * │ Kết quả: Trang mở tức thì như app native!              │
  * └─────────────────────────────────────────────────────────┘
  */
-import { useState, useEffect } from 'react';
-import { 
-  Save, RotateCcw, ChevronDown, ChevronRight, 
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Upload, Trash2, Eye
-} from 'lucide-react';
-import InvoicePreview from '../components/InvoicePreview';
-import { getLogo } from '../utils/logoCache';
+import { useState, useEffect } from "react";
+import {
+  Save,
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Upload,
+  Trash2,
+  Eye,
+} from "lucide-react";
+import InvoicePreview from "../components/InvoicePreview";
+import { getLogo } from "../utils/logoCache";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DEFAULT CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 const DEFAULT_CONFIG = {
-  default_size: 'a5',
+  default_size: "a5",
   text: {
-    store_name: 'TỨ QUÝ ĐƯỜNG',
-    slogan: 'Sức khỏe từ thiên nhiên',
-    address: 'LK4-129 Trương Định, Tương Mai, HN',
-    phone: '024 2245 5565',
-    email: '',
-    thank_you: 'Cảm ơn quý khách!',
-    policy: 'Đổi trả trong 24h'
+    store_name: "TỨ QUÝ ĐƯỜNG",
+    slogan: "Sức khỏe từ thiên nhiên",
+    address: "LK4-129 Trương Định, Tương Mai, HN",
+    phone: "024 2245 5565",
+    email: "",
+    thank_you: "Cảm ơn quý khách!",
+    policy: "Đổi trả trong 24h",
   },
   show: {
-    logo: true, store_name: true, slogan: true, address: true, phone: true, email: false,
-    invoice_number: true, order_code: true, datetime: true, staff: true, qr_code: true,
-    customer_name: true, customer_phone: true, customer_address: true, customer_balance: true,
-    customer_type: false, customer_note: false,
-    col_stt: true, col_product_code: false, col_unit: false, col_price: true,
-    discount_detail: true, shipping_fee: true, amount_words: false, payment_checkbox: true,
-    sig_seller: true, sig_shipper: true, sig_customer: true,
-    thank_you: true, policy: true
+    logo: true,
+    store_name: true,
+    slogan: true,
+    address: true,
+    phone: true,
+    email: false,
+    invoice_number: true,
+    order_code: true,
+    datetime: true,
+    staff: true,
+    qr_code: true,
+    customer_name: true,
+    customer_phone: true,
+    customer_address: true,
+    customer_balance: true,
+    customer_type: false,
+    customer_note: false,
+    col_stt: true,
+    col_product_code: false,
+    col_unit: false,
+    col_price: true,
+    discount_detail: true,
+    shipping_fee: true,
+    amount_words: false,
+    payment_checkbox: true,
+    sig_seller: true,
+    sig_shipper: true,
+    sig_customer: true,
+    thank_you: true,
+    policy: true,
   },
   align: {
-    header: 'center',
-    order_info: 'justify',
-    customer: 'left',
-    totals: 'right',
-    signatures: 'justify',
-    footer: 'center'
-  }
+    header: "center",
+    order_info: "justify",
+    customer: "left",
+    totals: "right",
+    signatures: "justify",
+    footer: "center",
+  },
 };
 
 const PRESETS = {
   basic: {
-    name: 'Cơ bản',
+    name: "Cơ bản",
     show: {
-      logo: true, store_name: true, slogan: false, address: true, phone: true, email: false,
-      invoice_number: true, order_code: false, datetime: true, staff: true, qr_code: false,
-      customer_name: true, customer_phone: true, customer_address: false, customer_balance: false,
-      customer_type: false, customer_note: false,
-      col_stt: false, col_product_code: false, col_unit: false, col_price: true,
-      discount_detail: false, shipping_fee: true, amount_words: false, payment_checkbox: false,
-      sig_seller: false, sig_shipper: false, sig_customer: false,
-      thank_you: true, policy: false
-    }
+      logo: true,
+      store_name: true,
+      slogan: false,
+      address: true,
+      phone: true,
+      email: false,
+      invoice_number: true,
+      order_code: false,
+      datetime: true,
+      staff: true,
+      qr_code: false,
+      customer_name: true,
+      customer_phone: true,
+      customer_address: false,
+      customer_balance: false,
+      customer_type: false,
+      customer_note: false,
+      col_stt: false,
+      col_product_code: false,
+      col_unit: false,
+      col_price: true,
+      discount_detail: false,
+      shipping_fee: true,
+      amount_words: false,
+      payment_checkbox: false,
+      sig_seller: false,
+      sig_shipper: false,
+      sig_customer: false,
+      thank_you: true,
+      policy: false,
+    },
   },
   full: {
-    name: 'Đầy đủ',
+    name: "Đầy đủ",
     show: {
-      logo: true, store_name: true, slogan: true, address: true, phone: true, email: false,
-      invoice_number: true, order_code: true, datetime: true, staff: true, qr_code: true,
-      customer_name: true, customer_phone: true, customer_address: true, customer_balance: true,
-      customer_type: false, customer_note: true,
-      col_stt: true, col_product_code: false, col_unit: false, col_price: true,
-      discount_detail: true, shipping_fee: true, amount_words: true, payment_checkbox: true,
-      sig_seller: true, sig_shipper: true, sig_customer: true,
-      thank_you: true, policy: true
-    }
+      logo: true,
+      store_name: true,
+      slogan: true,
+      address: true,
+      phone: true,
+      email: false,
+      invoice_number: true,
+      order_code: true,
+      datetime: true,
+      staff: true,
+      qr_code: true,
+      customer_name: true,
+      customer_phone: true,
+      customer_address: true,
+      customer_balance: true,
+      customer_type: false,
+      customer_note: true,
+      col_stt: true,
+      col_product_code: false,
+      col_unit: false,
+      col_price: true,
+      discount_detail: true,
+      shipping_fee: true,
+      amount_words: true,
+      payment_checkbox: true,
+      sig_seller: true,
+      sig_shipper: true,
+      sig_customer: true,
+      thank_you: true,
+      policy: true,
+    },
   },
   delivery: {
-    name: 'Giao hàng',
+    name: "Giao hàng",
     show: {
-      logo: true, store_name: true, slogan: false, address: false, phone: true, email: false,
-      invoice_number: true, order_code: true, datetime: true, staff: true, qr_code: true,
-      customer_name: true, customer_phone: true, customer_address: true, customer_balance: false,
-      customer_type: false, customer_note: true,
-      col_stt: false, col_product_code: false, col_unit: false, col_price: true,
-      discount_detail: true, shipping_fee: true, amount_words: false, payment_checkbox: true,
-      sig_seller: true, sig_shipper: true, sig_customer: true,
-      thank_you: true, policy: false
-    }
-  }
+      logo: true,
+      store_name: true,
+      slogan: false,
+      address: false,
+      phone: true,
+      email: false,
+      invoice_number: true,
+      order_code: true,
+      datetime: true,
+      staff: true,
+      qr_code: true,
+      customer_name: true,
+      customer_phone: true,
+      customer_address: true,
+      customer_balance: false,
+      customer_type: false,
+      customer_note: true,
+      col_stt: false,
+      col_product_code: false,
+      col_unit: false,
+      col_price: true,
+      discount_detail: true,
+      shipping_fee: true,
+      amount_words: false,
+      payment_checkbox: true,
+      sig_seller: true,
+      sig_shipper: true,
+      sig_customer: true,
+      thank_you: true,
+      policy: false,
+    },
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -102,15 +198,24 @@ const PRESETS = {
 
 // Alignment button
 const AlignButton = ({ section, value, currentAlign, onUpdate }) => {
-  const icons = { left: AlignLeft, center: AlignCenter, right: AlignRight, justify: AlignJustify };
+  const icons = {
+    left: AlignLeft,
+    center: AlignCenter,
+    right: AlignRight,
+    justify: AlignJustify,
+  };
   const Icon = icons[value];
   const isActive = currentAlign === value;
-  
+
   return (
     <button
-      className={`align-btn ${isActive ? 'active' : ''}`}
+      className={`align-btn ${isActive ? "active" : ""}`}
       onClick={() => onUpdate(section, value)}
-      title={value === 'justify' ? 'Đều 2 bên' : value.charAt(0).toUpperCase() + value.slice(1)}
+      title={
+        value === "justify"
+          ? "Đều 2 bên"
+          : value.charAt(0).toUpperCase() + value.slice(1)
+      }
     >
       <Icon size={14} />
     </button>
@@ -121,7 +226,11 @@ const AlignButton = ({ section, value, currentAlign, onUpdate }) => {
 const ToggleOnly = ({ field, label, checked, onToggle }) => (
   <div className="toggle-field">
     <label className="toggle-label">
-      <input type="checkbox" checked={checked} onChange={() => onToggle(field)} />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={() => onToggle(field)}
+      />
       <span className="toggle-switch"></span>
       <span className="toggle-text">{label}</span>
     </label>
@@ -129,10 +238,23 @@ const ToggleOnly = ({ field, label, checked, onToggle }) => (
 );
 
 // Toggle field với input text
-const ToggleWithInput = ({ field, label, checked, onToggle, textValue, onTextChange, placeholder, inputType = 'text' }) => (
+const ToggleWithInput = ({
+  field,
+  label,
+  checked,
+  onToggle,
+  textValue,
+  onTextChange,
+  placeholder,
+  inputType = "text",
+}) => (
   <div className="toggle-field">
     <label className="toggle-label">
-      <input type="checkbox" checked={checked} onChange={() => onToggle(field)} />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={() => onToggle(field)}
+      />
       <span className="toggle-switch"></span>
       <span className="toggle-text">{label}</span>
     </label>
@@ -141,7 +263,7 @@ const ToggleWithInput = ({ field, label, checked, onToggle, textValue, onTextCha
         <input
           type={inputType}
           value={textValue}
-          onChange={e => onTextChange(e.target.value)}
+          onChange={(e) => onTextChange(e.target.value)}
           placeholder={placeholder}
         />
       </div>
@@ -150,19 +272,47 @@ const ToggleWithInput = ({ field, label, checked, onToggle, textValue, onTextCha
 );
 
 // Section header
-const SectionHeader = ({ id, title, alignable, expanded, onToggle, currentAlign, onAlignUpdate }) => (
+const SectionHeader = ({
+  id,
+  title,
+  alignable,
+  expanded,
+  onToggle,
+  currentAlign,
+  onAlignUpdate,
+}) => (
   <div className="section-header" onClick={() => onToggle(id)}>
     <div className="section-title">
       {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
       <span>{title}</span>
     </div>
     {alignable && expanded && (
-      <div className="align-buttons" onClick={e => e.stopPropagation()}>
-        <AlignButton section={id} value="left" currentAlign={currentAlign} onUpdate={onAlignUpdate} />
-        <AlignButton section={id} value="center" currentAlign={currentAlign} onUpdate={onAlignUpdate} />
-        <AlignButton section={id} value="right" currentAlign={currentAlign} onUpdate={onAlignUpdate} />
-        {(id === 'order_info' || id === 'signatures') && (
-          <AlignButton section={id} value="justify" currentAlign={currentAlign} onUpdate={onAlignUpdate} />
+      <div className="align-buttons" onClick={(e) => e.stopPropagation()}>
+        <AlignButton
+          section={id}
+          value="left"
+          currentAlign={currentAlign}
+          onUpdate={onAlignUpdate}
+        />
+        <AlignButton
+          section={id}
+          value="center"
+          currentAlign={currentAlign}
+          onUpdate={onAlignUpdate}
+        />
+        <AlignButton
+          section={id}
+          value="right"
+          currentAlign={currentAlign}
+          onUpdate={onAlignUpdate}
+        />
+        {(id === "order_info" || id === "signatures") && (
+          <AlignButton
+            section={id}
+            value="justify"
+            currentAlign={currentAlign}
+            onUpdate={onAlignUpdate}
+          />
         )}
       </div>
     )}
@@ -172,51 +322,57 @@ const SectionHeader = ({ id, title, alignable, expanded, onToggle, currentAlign,
 // ═══════════════════════════════════════════════════════════════════════════
 // API - 1 API DUY NHẤT + TIMEOUT (pattern giống Customers/Orders)
 // ═══════════════════════════════════════════════════════════════════════════
-const CACHE_KEY = 'pos_invoice_settings_cache';
+const CACHE_KEY = "pos_invoice_settings_cache";
 const API_TIMEOUT = 10000; // 10 giây
 
 const api = {
   // Load TẤT CẢ settings trong 1 call
   loadAll: async () => {
-    const token = localStorage.getItem('pos_token');
+    const token = localStorage.getItem("pos_token");
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-    
+
     try {
-      const res = await fetch('/api/pos/settings', {
-        headers: { 'Authorization': 'Bearer ' + token },
-        signal: controller.signal
+      const res = await fetch("/api/pos/settings", {
+        headers: { Authorization: "Bearer " + token },
+        signal: controller.signal,
       });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (err) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') throw new Error('Timeout - API không phản hồi');
+      if (err.name === "AbortError")
+        throw new Error("Timeout - API không phản hồi");
       throw err;
     }
   },
-  
+
   saveConfig: async (config) => {
-    const token = localStorage.getItem('pos_token');
-    const res = await fetch('/api/pos/settings', {
-      method: 'PUT',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: { invoice_config: JSON.stringify(config) } })
+    const token = localStorage.getItem("pos_token");
+    const res = await fetch("/api/pos/settings", {
+      method: "PUT",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        settings: { invoice_config: JSON.stringify(config) },
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     return data;
   },
-  
+
   uploadLogo: async (file) => {
-    const token = localStorage.getItem('pos_token');
+    const token = localStorage.getItem("pos_token");
     const formData = new FormData();
-    formData.append('logo', file);
-    const res = await fetch('/api/pos/settings/logo', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token },
-      body: formData
+    formData.append("logo", file);
+    const res = await fetch("/api/pos/settings/logo", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+      body: formData,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -224,15 +380,15 @@ const api = {
   },
 
   deleteLogo: async () => {
-    const token = localStorage.getItem('pos_token');
-    const res = await fetch('/api/pos/settings/logo', {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + token }
+    const token = localStorage.getItem("pos_token");
+    const res = await fetch("/api/pos/settings/logo", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer " + token },
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     return data;
-  }
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -240,52 +396,59 @@ const api = {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function InvoiceSettings() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [logo, setLogo] = useState('');
+  const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-  const [previewSize, setPreviewSize] = useState('a5');
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [previewSize, setPreviewSize] = useState("a5");
   const [expandedSections, setExpandedSections] = useState({
-    header: true, order_info: true, customer: true, products: true, 
-    totals: true, signatures: true, footer: true
+    header: true,
+    order_info: true,
+    customer: true,
+    products: true,
+    totals: true,
+    signatures: true,
+    footer: true,
   });
-  const [activePreset, setActivePreset] = useState('custom');
+  const [activePreset, setActivePreset] = useState("custom");
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STALE-WHILE-REVALIDATE: Có cache → hiện ngay, API chạy ngầm
   // ═══════════════════════════════════════════════════════════════════════════
-  useEffect(() => { loadConfig(); }, []);
+  useEffect(() => {
+    loadConfig();
+  }, []);
 
   const loadConfig = async () => {
     let hasCache = false;
-    
+
     // Bước 1: Load từ cache NGAY LẬP TỨC (0ms)
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const { config: cachedConfig, logo: cachedLogo } = JSON.parse(cached);
         if (cachedConfig) {
-          setConfig(prev => mergeConfig(prev, cachedConfig));
+          setConfig((prev) => mergeConfig(prev, cachedConfig));
           hasCache = true;
         }
         if (cachedLogo) setLogo(cachedLogo);
       }
     } catch (e) {
-      console.warn('Cache read error:', e);
+      console.warn("Cache read error:", e);
     }
 
     // Bước 2: Chỉ hiện loading nếu KHÔNG có cache
     if (!hasCache) {
       setLoading(true);
     }
-    
+
     // Bước 3: Load từ API (chạy ngầm nếu có cache)
     try {
       const result = await api.loadAll();
-      
+
       if (result.success && result.data) {
         const settings = result.data;
-        
+
         // Parse invoice_config
         let newConfig = DEFAULT_CONFIG;
         if (settings.invoice_config) {
@@ -293,26 +456,31 @@ export default function InvoiceSettings() {
             const parsed = JSON.parse(settings.invoice_config);
             newConfig = mergeConfig(DEFAULT_CONFIG, parsed);
           } catch (e) {
-            console.warn('Parse config error:', e);
+            console.warn("Parse config error:", e);
           }
         }
         setConfig(newConfig);
-        
+
         // Logo: dùng shared helper (cache-first, chỉ gọi API nếu cache trống)
         const newLogo = await getLogo();
         if (newLogo) setLogo(newLogo);
-        
+
         // Save to cache
         try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            config: newConfig, logo: newLogo, timestamp: Date.now()
-          }));
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              config: newConfig,
+              logo: newLogo,
+              timestamp: Date.now(),
+            }),
+          );
         } catch (e) {}
       }
     } catch (err) {
-      console.error('Load settings error:', err);
+      console.error("Load settings error:", err);
       if (!hasCache) {
-        showMessage('error', 'Không thể tải cài đặt: ' + err.message);
+        showMessage("error", "Không thể tải cài đặt: " + err.message);
       }
     } finally {
       setLoading(false);
@@ -320,10 +488,11 @@ export default function InvoiceSettings() {
   };
 
   const mergeConfig = (defaults, loaded) => ({
-    ...defaults, ...loaded,
+    ...defaults,
+    ...loaded,
     text: { ...defaults.text, ...(loaded.text || {}) },
     show: { ...defaults.show, ...(loaded.show || {}) },
-    align: { ...defaults.align, ...(loaded.align || {}) }
+    align: { ...defaults.align, ...(loaded.align || {}) },
   });
 
   const handleSave = async () => {
@@ -332,62 +501,82 @@ export default function InvoiceSettings() {
       await api.saveConfig(config);
       // Update cache
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-          config, logo, timestamp: Date.now()
-        }));
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            config,
+            logo,
+            timestamp: Date.now(),
+          }),
+        );
       } catch (e) {}
-      showMessage('success', '✓ Đã lưu cài đặt hóa đơn!');
+      showMessage("success", "✓ Đã lưu cài đặt hóa đơn!");
     } catch (err) {
-      showMessage('error', 'Lỗi: ' + err.message);
+      showMessage("error", "Lỗi: " + err.message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = () => {
-    if (confirm('Bạn có chắc muốn reset về mặc định?')) {
+    if (confirm("Bạn có chắc muốn reset về mặc định?")) {
       setConfig(DEFAULT_CONFIG);
-      setActivePreset('custom');
-      showMessage('info', 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
+      setActivePreset("custom");
+      showMessage("info", 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
     }
   };
 
   const applyPreset = (key) => {
-    if (key === 'custom') { setActivePreset('custom'); return; }
+    if (key === "custom") {
+      setActivePreset("custom");
+      return;
+    }
     const preset = PRESETS[key];
     if (preset) {
-      setConfig(prev => ({ ...prev, show: { ...prev.show, ...preset.show } }));
+      setConfig((prev) => ({
+        ...prev,
+        show: { ...prev.show, ...preset.show },
+      }));
       setActivePreset(key);
-      showMessage('info', `Đã áp dụng mẫu "${preset.name}". Nhấn Lưu để áp dụng.`);
+      showMessage(
+        "info",
+        `Đã áp dụng mẫu "${preset.name}". Nhấn Lưu để áp dụng.`,
+      );
     }
   };
 
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const toggleShow = (field) => {
-    setConfig(prev => ({ ...prev, show: { ...prev.show, [field]: !prev.show[field] } }));
-    setActivePreset('custom');
+    setConfig((prev) => ({
+      ...prev,
+      show: { ...prev.show, [field]: !prev.show[field] },
+    }));
+    setActivePreset("custom");
   };
 
   const updateText = (field, value) => {
-    setConfig(prev => ({ ...prev, text: { ...prev.text, [field]: value } }));
+    setConfig((prev) => ({ ...prev, text: { ...prev.text, [field]: value } }));
   };
 
   const updateAlign = (section, value) => {
-    setConfig(prev => ({ ...prev, align: { ...prev.align, [section]: value } }));
+    setConfig((prev) => ({
+      ...prev,
+      align: { ...prev.align, [section]: value },
+    }));
   };
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
-      showMessage('error', 'Chỉ chấp nhận file ảnh (JPEG, PNG, GIF)');
+    if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
+      showMessage("error", "Chỉ chấp nhận file ảnh (JPEG, PNG, GIF)");
       return;
     }
     if (file.size > 500 * 1024) {
-      showMessage('error', 'File quá lớn (tối đa 500KB)');
+      showMessage("error", "File quá lớn (tối đa 500KB)");
       return;
     }
     setSaving(true);
@@ -399,9 +588,14 @@ export default function InvoiceSettings() {
         setLogo(verifiedLogo);
         // Cập nhật cache NGAY để Orders/Sales dùng được
         try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            config, logo: verifiedLogo, timestamp: Date.now()
-          }));
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              config,
+              logo: verifiedLogo,
+              timestamp: Date.now(),
+            }),
+          );
         } catch (ce) {}
       } else {
         // Fallback: dùng FileReader nếu server không trả base64
@@ -409,25 +603,30 @@ export default function InvoiceSettings() {
         reader.onload = () => {
           setLogo(reader.result);
           try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-              config, logo: reader.result, timestamp: Date.now()
-            }));
+            localStorage.setItem(
+              CACHE_KEY,
+              JSON.stringify({
+                config,
+                logo: reader.result,
+                timestamp: Date.now(),
+              }),
+            );
           } catch (ce) {}
         };
         reader.readAsDataURL(file);
       }
-      showMessage('success', '✓ Đã upload logo!');
+      showMessage("success", "✓ Đã upload logo!");
     } catch (err) {
-      showMessage('error', 'Lỗi: ' + err.message);
+      showMessage("error", "Lỗi: " + err.message);
     } finally {
       setSaving(false);
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+    setTimeout(() => setMessage({ type: "", text: "" }), 4000);
   };
 
   if (loading) {
@@ -453,33 +652,55 @@ export default function InvoiceSettings() {
       <div className="settings-header">
         <h1>⚙️ Cài đặt Hóa đơn</h1>
         <div className="header-actions">
-          <button className="btn btn-outline" onClick={handleReset} disabled={saving}>
+          <button
+            className="btn btn-outline"
+            onClick={handleReset}
+            disabled={saving}
+          >
             <RotateCcw size={16} /> Reset
           </button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu cài đặt'}
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            <Save size={16} /> {saving ? "Đang lưu..." : "Lưu cài đặt"}
           </button>
         </div>
       </div>
 
-      {message.text && <div className={`message message-${message.type}`}>{message.text}</div>}
+      {message.text && (
+        <div className={`message message-${message.type}`}>{message.text}</div>
+      )}
 
       {/* Preset bar */}
       <div className="preset-bar">
         <span className="preset-label">Mẫu nhanh:</span>
         <div className="preset-buttons">
           {Object.entries(PRESETS).map(([key, preset]) => (
-            <button key={key} className={`preset-btn ${activePreset === key ? 'active' : ''}`} onClick={() => applyPreset(key)}>
+            <button
+              key={key}
+              className={`preset-btn ${activePreset === key ? "active" : ""}`}
+              onClick={() => applyPreset(key)}
+            >
               {preset.name}
             </button>
           ))}
-          <button className={`preset-btn ${activePreset === 'custom' ? 'active' : ''}`} onClick={() => setActivePreset('custom')}>
+          <button
+            className={`preset-btn ${activePreset === "custom" ? "active" : ""}`}
+            onClick={() => setActivePreset("custom")}
+          >
             Tùy chỉnh
           </button>
         </div>
         <div className="size-selector">
           <span>Khổ mặc định:</span>
-          <select value={config.default_size} onChange={e => setConfig(prev => ({ ...prev, default_size: e.target.value }))}>
+          <select
+            value={config.default_size}
+            onChange={(e) =>
+              setConfig((prev) => ({ ...prev, default_size: e.target.value }))
+            }
+          >
             <option value="58mm">58mm</option>
             <option value="80mm">80mm</option>
             <option value="a5">A5</option>
@@ -496,14 +717,25 @@ export default function InvoiceSettings() {
 
           {/* HEADER Section */}
           <div className="section">
-            <SectionHeader id="header" title="HEADER" alignable expanded={expandedSections.header} 
-              onToggle={toggleSection} currentAlign={config.align.header} onAlignUpdate={updateAlign} />
+            <SectionHeader
+              id="header"
+              title="HEADER"
+              alignable
+              expanded={expandedSections.header}
+              onToggle={toggleSection}
+              currentAlign={config.align.header}
+              onAlignUpdate={updateAlign}
+            />
             {expandedSections.header && (
               <div className="section-content">
                 {/* Logo */}
                 <div className="toggle-field logo-field">
                   <label className="toggle-label">
-                    <input type="checkbox" checked={config.show.logo} onChange={() => toggleShow('logo')} />
+                    <input
+                      type="checkbox"
+                      checked={config.show.logo}
+                      onChange={() => toggleShow("logo")}
+                    />
                     <span className="toggle-switch"></span>
                     <span className="toggle-text">Logo</span>
                   </label>
@@ -512,130 +744,351 @@ export default function InvoiceSettings() {
                       {logo ? (
                         <div className="logo-preview">
                           <img src={logo} alt="Logo" />
-                          <button className="btn-remove-logo" onClick={async () => {
-                            if (!confirm('Bạn có chắc muốn xóa logo?')) return;
-                            try {
-                              await api.deleteLogo();
-                              setLogo('');
-                              // Xóa logo khỏi cache
+                          <button
+                            className="btn-remove-logo"
+                            onClick={async () => {
+                              if (!confirm("Bạn có chắc muốn xóa logo?"))
+                                return;
                               try {
-                                const cached = localStorage.getItem(CACHE_KEY);
-                                const cacheData = cached ? JSON.parse(cached) : {};
-                                localStorage.setItem(CACHE_KEY, JSON.stringify({ ...cacheData, logo: '', timestamp: Date.now() }));
-                              } catch (ce) {}
-                              showMessage('success', '✓ Đã xóa logo');
-                            } catch (err) {
-                              showMessage('error', 'Lỗi: ' + err.message);
-                            }
-                          }} title="Xóa logo">
+                                await api.deleteLogo();
+                                setLogo("");
+                                // Xóa logo khỏi cache
+                                try {
+                                  const cached =
+                                    localStorage.getItem(CACHE_KEY);
+                                  const cacheData = cached
+                                    ? JSON.parse(cached)
+                                    : {};
+                                  localStorage.setItem(
+                                    CACHE_KEY,
+                                    JSON.stringify({
+                                      ...cacheData,
+                                      logo: "",
+                                      timestamp: Date.now(),
+                                    }),
+                                  );
+                                } catch (ce) {}
+                                showMessage("success", "✓ Đã xóa logo");
+                              } catch (err) {
+                                showMessage("error", "Lỗi: " + err.message);
+                              }
+                            }}
+                            title="Xóa logo"
+                          >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       ) : (
                         <label className="upload-btn">
-                          <Upload size={14} /><span>Upload</span>
-                          <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                          <Upload size={14} />
+                          <span>Upload</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            style={{ display: "none" }}
+                          />
                         </label>
                       )}
                     </div>
                   )}
                 </div>
 
-                <ToggleWithInput field="store_name" label="Tên cửa hàng" checked={config.show.store_name}
-                  onToggle={toggleShow} textValue={config.text.store_name} onTextChange={v => updateText('store_name', v)} placeholder="Tên cửa hàng" />
-                <ToggleWithInput field="slogan" label="Slogan" checked={config.show.slogan}
-                  onToggle={toggleShow} textValue={config.text.slogan} onTextChange={v => updateText('slogan', v)} placeholder="Slogan" />
-                <ToggleWithInput field="address" label="Địa chỉ" checked={config.show.address}
-                  onToggle={toggleShow} textValue={config.text.address} onTextChange={v => updateText('address', v)} placeholder="Địa chỉ" />
-                <ToggleWithInput field="phone" label="Hotline" checked={config.show.phone}
-                  onToggle={toggleShow} textValue={config.text.phone} onTextChange={v => updateText('phone', v)} placeholder="Số điện thoại" />
-                <ToggleWithInput field="email" label="Email" checked={config.show.email}
-                  onToggle={toggleShow} textValue={config.text.email} onTextChange={v => updateText('email', v)} placeholder="Email" inputType="email" />
+                <ToggleWithInput
+                  field="store_name"
+                  label="Tên cửa hàng"
+                  checked={config.show.store_name}
+                  onToggle={toggleShow}
+                  textValue={config.text.store_name}
+                  onTextChange={(v) => updateText("store_name", v)}
+                  placeholder="Tên cửa hàng"
+                />
+                <ToggleWithInput
+                  field="slogan"
+                  label="Slogan"
+                  checked={config.show.slogan}
+                  onToggle={toggleShow}
+                  textValue={config.text.slogan}
+                  onTextChange={(v) => updateText("slogan", v)}
+                  placeholder="Slogan"
+                />
+                <ToggleWithInput
+                  field="address"
+                  label="Địa chỉ"
+                  checked={config.show.address}
+                  onToggle={toggleShow}
+                  textValue={config.text.address}
+                  onTextChange={(v) => updateText("address", v)}
+                  placeholder="Địa chỉ"
+                />
+                <ToggleWithInput
+                  field="phone"
+                  label="Hotline"
+                  checked={config.show.phone}
+                  onToggle={toggleShow}
+                  textValue={config.text.phone}
+                  onTextChange={(v) => updateText("phone", v)}
+                  placeholder="Số điện thoại"
+                />
+                <ToggleWithInput
+                  field="email"
+                  label="Email"
+                  checked={config.show.email}
+                  onToggle={toggleShow}
+                  textValue={config.text.email}
+                  onTextChange={(v) => updateText("email", v)}
+                  placeholder="Email"
+                  inputType="email"
+                />
               </div>
             )}
           </div>
 
           {/* ORDER INFO Section */}
           <div className="section">
-            <SectionHeader id="order_info" title="ĐƠN HÀNG" alignable expanded={expandedSections.order_info}
-              onToggle={toggleSection} currentAlign={config.align.order_info} onAlignUpdate={updateAlign} />
+            <SectionHeader
+              id="order_info"
+              title="ĐƠN HÀNG"
+              alignable
+              expanded={expandedSections.order_info}
+              onToggle={toggleSection}
+              currentAlign={config.align.order_info}
+              onAlignUpdate={updateAlign}
+            />
             {expandedSections.order_info && (
               <div className="section-content">
-                <ToggleOnly field="invoice_number" label="Số hóa đơn" checked={config.show.invoice_number} onToggle={toggleShow} />
-                <ToggleOnly field="order_code" label="Mã đơn hàng" checked={config.show.order_code} onToggle={toggleShow} />
-                <ToggleOnly field="datetime" label="Ngày giờ" checked={config.show.datetime} onToggle={toggleShow} />
-                <ToggleOnly field="staff" label="Nhân viên" checked={config.show.staff} onToggle={toggleShow} />
-                <ToggleOnly field="qr_code" label="QR code tra cứu" checked={config.show.qr_code} onToggle={toggleShow} />
+                <ToggleOnly
+                  field="invoice_number"
+                  label="Số hóa đơn"
+                  checked={config.show.invoice_number}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="order_code"
+                  label="Mã đơn hàng"
+                  checked={config.show.order_code}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="datetime"
+                  label="Ngày giờ"
+                  checked={config.show.datetime}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="staff"
+                  label="Nhân viên"
+                  checked={config.show.staff}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="qr_code"
+                  label="QR code tra cứu"
+                  checked={config.show.qr_code}
+                  onToggle={toggleShow}
+                />
               </div>
             )}
           </div>
 
           {/* CUSTOMER Section */}
           <div className="section">
-            <SectionHeader id="customer" title="KHÁCH HÀNG" alignable expanded={expandedSections.customer}
-              onToggle={toggleSection} currentAlign={config.align.customer} onAlignUpdate={updateAlign} />
+            <SectionHeader
+              id="customer"
+              title="KHÁCH HÀNG"
+              alignable
+              expanded={expandedSections.customer}
+              onToggle={toggleSection}
+              currentAlign={config.align.customer}
+              onAlignUpdate={updateAlign}
+            />
             {expandedSections.customer && (
               <div className="section-content">
-                <ToggleOnly field="customer_name" label="Tên khách" checked={config.show.customer_name} onToggle={toggleShow} />
-                <ToggleOnly field="customer_phone" label="Số điện thoại" checked={config.show.customer_phone} onToggle={toggleShow} />
-                <ToggleOnly field="customer_address" label="Địa chỉ giao hàng" checked={config.show.customer_address} onToggle={toggleShow} />
-                <ToggleOnly field="customer_balance" label="Số dư tài khoản" checked={config.show.customer_balance} onToggle={toggleShow} />
-                <ToggleOnly field="customer_type" label="Loại khách hàng" checked={config.show.customer_type} onToggle={toggleShow} />
-                <ToggleOnly field="customer_note" label="Ghi chú" checked={config.show.customer_note} onToggle={toggleShow} />
+                <ToggleOnly
+                  field="customer_name"
+                  label="Tên khách"
+                  checked={config.show.customer_name}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="customer_phone"
+                  label="Số điện thoại"
+                  checked={config.show.customer_phone}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="customer_address"
+                  label="Địa chỉ giao hàng"
+                  checked={config.show.customer_address}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="customer_balance"
+                  label="Số dư tài khoản"
+                  checked={config.show.customer_balance}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="customer_type"
+                  label="Hạng Thành viên"
+                  checked={config.show.customer_type}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="customer_note"
+                  label="Ghi chú"
+                  checked={config.show.customer_note}
+                  onToggle={toggleShow}
+                />
               </div>
             )}
           </div>
 
           {/* PRODUCTS Section */}
           <div className="section">
-            <SectionHeader id="products" title="BẢNG SẢN PHẨM" expanded={expandedSections.products} onToggle={toggleSection} />
+            <SectionHeader
+              id="products"
+              title="BẢNG SẢN PHẨM"
+              expanded={expandedSections.products}
+              onToggle={toggleSection}
+            />
             {expandedSections.products && (
               <div className="section-content">
-                <ToggleOnly field="col_stt" label="Cột STT" checked={config.show.col_stt} onToggle={toggleShow} />
-                <ToggleOnly field="col_product_code" label="Cột mã SP" checked={config.show.col_product_code} onToggle={toggleShow} />
-                <ToggleOnly field="col_unit" label="Cột đơn vị tính" checked={config.show.col_unit} onToggle={toggleShow} />
-                <ToggleOnly field="col_price" label="Cột đơn giá" checked={config.show.col_price} onToggle={toggleShow} />
+                <ToggleOnly
+                  field="col_stt"
+                  label="Cột STT"
+                  checked={config.show.col_stt}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="col_product_code"
+                  label="Cột mã SP"
+                  checked={config.show.col_product_code}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="col_unit"
+                  label="Cột đơn vị tính"
+                  checked={config.show.col_unit}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="col_price"
+                  label="Cột đơn giá"
+                  checked={config.show.col_price}
+                  onToggle={toggleShow}
+                />
               </div>
             )}
           </div>
 
           {/* TOTALS Section */}
           <div className="section">
-            <SectionHeader id="totals" title="THANH TOÁN" alignable expanded={expandedSections.totals}
-              onToggle={toggleSection} currentAlign={config.align.totals} onAlignUpdate={updateAlign} />
+            <SectionHeader
+              id="totals"
+              title="THANH TOÁN"
+              alignable
+              expanded={expandedSections.totals}
+              onToggle={toggleSection}
+              currentAlign={config.align.totals}
+              onAlignUpdate={updateAlign}
+            />
             {expandedSections.totals && (
               <div className="section-content">
-                <ToggleOnly field="discount_detail" label="Chi tiết chiết khấu" checked={config.show.discount_detail} onToggle={toggleShow} />
-                <ToggleOnly field="shipping_fee" label="Phí giao hàng" checked={config.show.shipping_fee} onToggle={toggleShow} />
-                <ToggleOnly field="amount_words" label="Số tiền bằng chữ" checked={config.show.amount_words} onToggle={toggleShow} />
-                <ToggleOnly field="payment_checkbox" label="Checkbox xác nhận TT" checked={config.show.payment_checkbox} onToggle={toggleShow} />
+                <ToggleOnly
+                  field="discount_detail"
+                  label="Chi tiết chiết khấu"
+                  checked={config.show.discount_detail}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="shipping_fee"
+                  label="Phí giao hàng"
+                  checked={config.show.shipping_fee}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="amount_words"
+                  label="Số tiền bằng chữ"
+                  checked={config.show.amount_words}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="payment_checkbox"
+                  label="Checkbox xác nhận TT"
+                  checked={config.show.payment_checkbox}
+                  onToggle={toggleShow}
+                />
               </div>
             )}
           </div>
 
           {/* SIGNATURES Section */}
           <div className="section">
-            <SectionHeader id="signatures" title="CHỮ KÝ" alignable expanded={expandedSections.signatures}
-              onToggle={toggleSection} currentAlign={config.align.signatures} onAlignUpdate={updateAlign} />
+            <SectionHeader
+              id="signatures"
+              title="CHỮ KÝ"
+              alignable
+              expanded={expandedSections.signatures}
+              onToggle={toggleSection}
+              currentAlign={config.align.signatures}
+              onAlignUpdate={updateAlign}
+            />
             {expandedSections.signatures && (
               <div className="section-content">
-                <ToggleOnly field="sig_seller" label="NV bán hàng" checked={config.show.sig_seller} onToggle={toggleShow} />
-                <ToggleOnly field="sig_shipper" label="NV giao hàng" checked={config.show.sig_shipper} onToggle={toggleShow} />
-                <ToggleOnly field="sig_customer" label="Khách hàng" checked={config.show.sig_customer} onToggle={toggleShow} />
+                <ToggleOnly
+                  field="sig_seller"
+                  label="NV bán hàng"
+                  checked={config.show.sig_seller}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="sig_shipper"
+                  label="NV giao hàng"
+                  checked={config.show.sig_shipper}
+                  onToggle={toggleShow}
+                />
+                <ToggleOnly
+                  field="sig_customer"
+                  label="Khách hàng"
+                  checked={config.show.sig_customer}
+                  onToggle={toggleShow}
+                />
               </div>
             )}
           </div>
 
           {/* FOOTER Section */}
           <div className="section">
-            <SectionHeader id="footer" title="FOOTER" alignable expanded={expandedSections.footer}
-              onToggle={toggleSection} currentAlign={config.align.footer} onAlignUpdate={updateAlign} />
+            <SectionHeader
+              id="footer"
+              title="FOOTER"
+              alignable
+              expanded={expandedSections.footer}
+              onToggle={toggleSection}
+              currentAlign={config.align.footer}
+              onAlignUpdate={updateAlign}
+            />
             {expandedSections.footer && (
               <div className="section-content">
-                <ToggleWithInput field="thank_you" label="Lời cảm ơn" checked={config.show.thank_you}
-                  onToggle={toggleShow} textValue={config.text.thank_you} onTextChange={v => updateText('thank_you', v)} placeholder="Lời cảm ơn" />
-                <ToggleWithInput field="policy" label="Chính sách" checked={config.show.policy}
-                  onToggle={toggleShow} textValue={config.text.policy} onTextChange={v => updateText('policy', v)} placeholder="Chính sách đổi trả" />
+                <ToggleWithInput
+                  field="thank_you"
+                  label="Lời cảm ơn"
+                  checked={config.show.thank_you}
+                  onToggle={toggleShow}
+                  textValue={config.text.thank_you}
+                  onTextChange={(v) => updateText("thank_you", v)}
+                  placeholder="Lời cảm ơn"
+                />
+                <ToggleWithInput
+                  field="policy"
+                  label="Chính sách"
+                  checked={config.show.policy}
+                  onToggle={toggleShow}
+                  textValue={config.text.policy}
+                  onTextChange={(v) => updateText("policy", v)}
+                  placeholder="Chính sách đổi trả"
+                />
               </div>
             )}
           </div>
@@ -644,10 +1097,16 @@ export default function InvoiceSettings() {
         {/* Right: Preview */}
         <div className="preview-panel">
           <div className="preview-header">
-            <h2><Eye size={18} /> Xem trước</h2>
+            <h2>
+              <Eye size={18} /> Xem trước
+            </h2>
             <div className="preview-size-buttons">
-              {['58mm', '80mm', 'a5', 'a4'].map(size => (
-                <button key={size} className={`size-btn ${previewSize === size ? 'active' : ''}`} onClick={() => setPreviewSize(size)}>
+              {["58mm", "80mm", "a5", "a4"].map((size) => (
+                <button
+                  key={size}
+                  className={`size-btn ${previewSize === size ? "active" : ""}`}
+                  onClick={() => setPreviewSize(size)}
+                >
                   {size.toUpperCase()}
                 </button>
               ))}
