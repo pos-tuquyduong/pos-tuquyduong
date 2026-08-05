@@ -485,7 +485,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         marginBottom: isThermal ? '2mm' : '4mm'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
-          <span>Tạm tính:</span>
+          <span>Tiền hàng:</span>
           <span>{formatCurrency(data.subtotal - (data.flash_discount || 0))}</span>
         </div>
 
