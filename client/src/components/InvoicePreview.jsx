@@ -434,6 +434,8 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         <tbody>
           {data.items.map((item, idx) => {
             const hasFlash = item.flash_price != null && item.flash_price !== item.price;
+            const realPrice = hasFlash ? item.flash_price : item.price;
+            const realTotal = realPrice * item.qty;
             return (
               <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
                 {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{idx + 1}</td>}
@@ -453,17 +455,20 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
                     }}>{item.note}</div>
                   )}
                   {hasFlash && (
-                    <div style={{ fontSize: '0.75em', color: '#666', marginTop: '0.5mm' }}>
-                      Giá gốc <span style={{ textDecoration: 'line-through' }}>{formatCurrency(item.price)}</span>
-                      {' → '}
-                      <span style={{ color: '#a32d2d', fontWeight: 'bold' }}>Flash {formatCurrency(item.flash_price)}/{item.unit || 'món'}</span>
-                    </div>
+                    <div style={{ fontSize: '0.75em', color: '#a32d2d', fontWeight: 'bold', marginTop: '0.5mm' }}>⚡ Flash</div>
                   )}
                 </td>
                 {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.unit}</td>}
                 <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.qty}</td>
-                {config.show?.col_price && <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(item.price)}</td>}
-                <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(item.total)}</td>
+                {config.show?.col_price && (
+                  <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>
+                    {hasFlash && (
+                      <div style={{ fontSize: '0.75em', color: '#999', textDecoration: 'line-through' }}>{formatCurrency(item.price)}</div>
+                    )}
+                    {formatCurrency(realPrice)}
+                  </td>
+                )}
+                <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>{formatCurrency(realTotal)}</td>
               </tr>
             );
           })}
@@ -481,15 +486,8 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
           <span>Tạm tính:</span>
-          <span>{formatCurrency(data.subtotal)}</span>
+          <span>{formatCurrency(data.subtotal - (data.flash_discount || 0))}</span>
         </div>
-        
-        {config.show?.discount_detail && data.flash_discount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#a32d2d' }}>
-            <span>Giảm giá Flash:</span>
-            <span>-{formatCurrency(data.flash_discount)}</span>
-          </div>
-        )}
 
         {config.show?.discount_detail && (data.discount - (data.flash_discount || 0)) > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#059669' }}>
