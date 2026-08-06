@@ -59,6 +59,7 @@ export default function Sales() {
 
   // === Gói sản phẩm ===
   const [pkgTemplates, setPkgTemplates] = useState([]);        // Template gói (from Settings)
+  const [membershipTiers, setMembershipTiers] = useState([]);  // TIER-1c: hạng thành viên bán như sản phẩm
   const [customerPkgs, setCustomerPkgs] = useState([]);        // Gói active của khách
   const [activePkgId, setActivePkgId] = useState(null);        // ID gói đang bật (null = off)
   const [buyQty, setBuyQty] = useState('30');                  // Số lượng SP khi mua gói
@@ -70,6 +71,7 @@ export default function Sales() {
 
   // Check gói đang MUA (is_pkg item in cart) → lấy template để biết SP nào thuộc gói
   const pkgBuyInCart = cart.find(c => c.is_pkg);
+  const membershipInCart = cart.find(c => c.is_membership); // TIER-1c
   const buyPkgTemplate = pkgBuyInCart ? pkgTemplates.find(t => t.id === pkgBuyInCart.package_id) : null;
   const buyPkgItems = buyPkgTemplate?.package_items ? (typeof buyPkgTemplate.package_items === 'string' ? JSON.parse(buyPkgTemplate.package_items) : buyPkgTemplate.package_items) : [];
   const buyPkgAllowedKeys = new Set(buyPkgItems.map(i => `${i.sx_product_type}_${i.sx_product_id}`));
@@ -132,6 +134,13 @@ export default function Sales() {
         const pkgRes = await fetch('/api/pos/packages', { headers: { 'Authorization': 'Bearer ' + token } });
         const pkgData = await pkgRes.json();
         if (pkgData.success) setPkgTemplates(pkgData.data);
+      } catch (e) {}
+      // TIER-1c: Load hạng thành viên (bán như sản phẩm)
+      try {
+        const token = localStorage.getItem('pos_token');
+        const tierRes = await fetch('/api/pos/tiers', { headers: { 'Authorization': 'Bearer ' + token } });
+        const tierData = await tierRes.json();
+        if (tierData.success) setMembershipTiers(tierData.data.tiers || []);
       } catch (e) {}
     } catch (err) {
       setError('Không thể tải danh sách sản phẩm');
@@ -371,6 +380,27 @@ export default function Sales() {
     setCategory('all'); // Chuyển sang grid SP để chọn giao lần 1
   };
 
+  // TIER-1c: Thêm thẻ hội viên vào giỏ (mua như 1 sản phẩm) — chỉ 1 thẻ/đơn
+  const addMembershipToCart = (tier) => {
+    if (!customer) { setError('Chọn khách trước khi mua thẻ hội viên'); return; }
+    if (cart.some(c => c.is_membership)) { setError('Đã có thẻ hội viên trong giỏ. Xóa thẻ cũ trước nếu muốn đổi hạng khác.'); return; }
+    setCart([...cart, {
+      unique_key: `membership_${tier.id}`,
+      product_id: -1000000 - tier.id,
+      is_membership: true,
+      tier_id: tier.id,
+      product_code: `THE-${tier.name}`,
+      product_name: `🎟️ Thẻ hội viên ${tier.name}`,
+      unit_price: tier.card_price,
+      unit: 'thẻ',
+      quantity: 1,
+      stock: Infinity,
+      icon: '🎟️',
+      color: '#5b3ea3'
+    }]);
+    setCategory('all');
+  };
+
   const updateQuantity = (uniqueKey, delta) => {
     let removedPkg = false;
     const newCart = cart.map(item => {
@@ -543,7 +573,7 @@ export default function Sales() {
         customer_phone: customer?.phone || null,
         customer_name: customer?.name || 'Khách lẻ',
         is_new_customer: customer?.isNew || false,
-        items: cart.filter(item => !item.is_pkg).map(item => ({
+        items: cart.filter(item => !item.is_pkg && !item.is_membership).map(item => ({
           product_id: item.product_id,
           sx_product_type: item.sx_product_type,
           sx_product_id: item.sx_product_id,
@@ -579,6 +609,8 @@ export default function Sales() {
           total_qty: parseInt(buyQty) || 30,
           pkg_qty: cart.find(c => c.is_pkg).quantity || 1
         } : null,
+        // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm) ===
+        membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id } : null,
       };
 
       const result = await ordersApi.create(orderData);
@@ -798,11 +830,32 @@ export default function Sales() {
               📦 Mua gói ({pkgTemplates.length})
             </button>
           )}
+          {!membershipInCart && membershipTiers.length > 0 && (
+            <button 
+              className={`btn ${category === 'membership' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setCategory('membership')}
+              style={{ background: category === 'membership' ? '#5b3ea3' : undefined, borderColor: category === 'membership' ? '#5b3ea3' : undefined }}
+            >
+              🎟️ Mua thẻ ({membershipTiers.length})
+            </button>
+          )}
         </div>
 
-        {/* Products Grid / Packages Grid */}
+        {/* Products Grid / Packages Grid / Membership Grid */}
         {loading ? (
           <div className="card">Đang tải sản phẩm...</div>
+        ) : category === 'membership' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
+            {membershipTiers.map(tier => (
+              <div key={tier.id} onClick={() => addMembershipToCart(tier)}
+                style={{ padding: '0.75rem', background: 'white', borderRadius: '12px', border: '2px solid #c4b1e8', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🎟️</div>
+                <div style={{ fontWeight: 'bold', color: '#5b3ea3', fontSize: '0.9rem' }}>{tier.name}</div>
+                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem' }}>Giảm {tier.discount_percent}% mỗi đơn</div>
+                <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '0.9rem' }}>{(tier.card_price || 0).toLocaleString()}đ</div>
+              </div>
+            ))}
+          </div>
         ) : category === 'pkg' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
             {pkgTemplates.map(pkg => (
@@ -964,7 +1017,7 @@ export default function Sales() {
                     </div>
                   )}
                   {/* A1: ghi chú theo món (đen đá ít đường...) — không áp dụng cho dòng mua gói */}
-                  {!item.is_pkg && (
+                  {!item.is_pkg && !item.is_membership && (
                     noteEditKey === item.unique_key ? (
                       <div style={{ marginTop: '0.35rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.4rem' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.3rem' }}>
@@ -1328,9 +1381,11 @@ export default function Sales() {
               </div>
             </div>
 
-            {/* Nút thanh toán - MỞ POPUP / Giao từ gói → submit trực tiếp */}
+            {/* Nút thanh toán - MỞ POPUP / Giao từ gói → submit trực tiếp
+                (điều kiện thu hẹp: chỉ khi CÓ SP giao từ gói, không phải bất kỳ giỏ nào tổng = 0đ —
+                tổng = 0đ còn có thể do mua thẻ hội viên giá 0đ, khi đó vẫn cần qua popup thanh toán bình thường) */}
             <button
-              onClick={total === 0 && cart.length > 0 ? handleSubmit : openPaymentModal}
+              onClick={cart.some(c => c.fromPkg) && total === 0 ? handleSubmit : openPaymentModal}
               disabled={cart.length === 0 || submitting}
               style={{
                 width: '100%',
@@ -1338,7 +1393,7 @@ export default function Sales() {
                 padding: '0.875rem',
                 fontSize: '1rem',
                 fontWeight: 'bold',
-                background: total === 0 && cart.length > 0 ? '#7c3aed' : '#22c55e',
+                background: cart.some(c => c.fromPkg) && total === 0 ? '#7c3aed' : '#22c55e',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -1346,7 +1401,7 @@ export default function Sales() {
                 opacity: cart.length === 0 ? 0.7 : 1
               }}
             >
-              {total === 0 && cart.length > 0 ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
+              {cart.some(c => c.fromPkg) && total === 0 ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
             </button>
           </>
         )}

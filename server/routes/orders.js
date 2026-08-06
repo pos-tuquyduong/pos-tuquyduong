@@ -16,6 +16,7 @@ const {
   generateOrderCode,
   getNow,
   normalizePhone,
+  addMonthsSafe,
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const { readFlashState } = require("../utils/flashState");
@@ -160,13 +161,18 @@ router.post("/", authenticate, async (req, res) => {
       // === Gói sản phẩm ===
       customer_package_id = null, // Giao từ gói → ID của customer_package
       package_buy = null, // Mua gói → { package_id, total_qty }
+      // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm, cùng đơn với hàng thường) ===
+      membership_buy = null, // { tier_id }
     } = req.body;
 
-    // Validate — cho phép items rỗng nếu đang mua gói
-    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy) {
+    // Validate — cho phép items rỗng nếu đang mua gói / mua thẻ hội viên
+    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy) {
       return res
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
+    }
+    if (membership_buy && membership_buy.tier_id && !customer_phone) {
+      return res.status(400).json({ error: "Cần chọn khách hàng trước khi mua thẻ hội viên" });
     }
 
     // Lấy thông tin sản phẩm và tính tổng
@@ -252,6 +258,27 @@ router.post("/", authenticate, async (req, res) => {
         sx_product_type: null,
         sx_product_id: null,
         is_package_item: true,
+      });
+    }
+
+    // TIER-1c: Mua thẻ hội viên → thêm line item cho thẻ (giống hệt cách mua gói)
+    let membershipTier = null;
+    if (membership_buy && membership_buy.tier_id) {
+      membershipTier = await queryOne('SELECT * FROM pos_membership_tiers WHERE id = ? AND is_active = 1', [membership_buy.tier_id]);
+      if (!membershipTier) return res.status(400).json({ error: 'Hạng thành viên không tồn tại hoặc đã bị xóa' });
+      const cardPrice = Number(membershipTier.card_price) || 0;
+      subtotal += cardPrice;
+      orderItems.push({
+        product_id: -1000000 - membershipTier.id, // né trùng với product_id thường và -pkg.id
+        product_code: `THE-${membershipTier.name}`,
+        product_name: `🎟️ Thẻ hội viên ${membershipTier.name}`,
+        unit: 'thẻ',
+        quantity: 1,
+        unit_price: cardPrice,
+        total_price: cardPrice,
+        sx_product_type: null,
+        sx_product_id: null,
+        is_membership_item: true,
       });
     }
 
@@ -750,6 +777,31 @@ router.post("/", authenticate, async (req, res) => {
       }
     }
 
+    // TIER-1c: mua thẻ hội viên → ghi vào sổ, TÍNH LẠI hạn dùng đúng cấu hình hiện tại
+    if (membershipTier && phone) {
+      try {
+        const settingsRows = await query(
+          "SELECT key, value FROM pos_settings WHERE key = 'tier_card_valid_months'",
+        );
+        let validMonths = parseInt(settingsRows[0]?.value, 10);
+        if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
+
+        const nowDate = new Date(now.replace(' ', 'T'));
+        const expiresDate = addMonthsSafe(nowDate, validMonths);
+        const expiresAt = expiresDate.toISOString().slice(0, 19).replace('T', ' ');
+
+        await run(
+          `INSERT INTO pos_membership_purchases
+            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [phone, membershipTier.id, membershipTier.name, membershipTier.card_price, orderId, now, expiresAt, req.user.username],
+        );
+        console.log(`🎟️ Đã ghi mua thẻ ${membershipTier.name} cho ${phone}, hết hạn ${expiresAt}`);
+      } catch (err) {
+        console.error('Membership purchase record error:', err.message);
+      }
+    }
+
     // Gói: cập nhật delivered_qty khi giao từ gói (ATOMIC — tránh race condition)
     if (customer_package_id) {
       try {
@@ -1060,6 +1112,18 @@ router.put(
             }
           }
           console.log(`📦 Hủy đơn mua gói: ${cancelBuyPkgs.length} packages`);
+        }
+
+        // ══ TIER-1c: Hủy đơn có mua thẻ hội viên → xóa dòng đã ghi (khách không còn được giữ hạng
+        // từ đơn đã hoàn tiền). Không vi phạm nguyên tắc "chỉ thêm dòng" — đây là sửa lỗi/hoàn tiền,
+        // giống hệt cách gói SP đã xử lý ở trên. Không ảnh hưởng hạng hiện tại nếu khách đã mua thẻ
+        // MỚI HƠN sau đó (dòng mới hơn vẫn còn nguyên, "mới nhất còn hạn" vẫn đúng).
+        const cancelledMembership = await tx.queryOne(
+          "SELECT id, tier_name FROM pos_membership_purchases WHERE order_id = ?", [order.id]
+        );
+        if (cancelledMembership) {
+          await tx.run("DELETE FROM pos_membership_purchases WHERE id = ?", [cancelledMembership.id]);
+          console.log(`🎟️ Hủy đơn mua thẻ ${cancelledMembership.tier_name} (đơn ${order.code})`);
         }
 
         // Case 2: Đơn này là đơn "giao từ gói" → trừ delivered_qty

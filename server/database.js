@@ -1051,6 +1051,26 @@ async function seedDefaultData() {
     `, [key, value]);
   }
   console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a-v2)');
+
+  // ─── TIER-1c (05.08.2026): sổ ghi mua thẻ hội viên — CHỈ THÊM DÒNG, không sửa/xóa.
+  // Mua thẻ đi qua ĐÚNG luồng bán hàng thường (giỏ hàng → thanh toán tiền mặt/CK như 1 sản phẩm,
+  // giống hệt cách "mua gói" đã có) — nên không cần lưu payment_method riêng, chỉ cần liên kết
+  // về đơn hàng thật (order_id) để xem chi tiết thanh toán khi cần.
+  // Hạng hiện tại của khách = dòng MỚI NHẤT còn hạn (expires_at > hiện tại) trong bảng này.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_membership_purchases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_phone TEXT NOT NULL,
+      tier_id INTEGER NOT NULL,
+      tier_name TEXT NOT NULL,
+      price_paid REAL NOT NULL DEFAULT 0,
+      order_id INTEGER,
+      purchased_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_by TEXT
+    )
+  `);
+  console.log('✅ Đã đảm bảo bảng mua thẻ hội viên (TIER-1c)');
 }
 
 /**

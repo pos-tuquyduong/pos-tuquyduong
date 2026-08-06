@@ -155,6 +155,18 @@ function generateCSV(headers, rows) {
   return '\uFEFF' + [headerLine, ...dataLines].join('\n'); // BOM for UTF-8
 }
 
+// Cộng tháng an toàn — tránh bẫy JS Date.setMonth() nhảy tháng khi ngày đích không tồn tại
+// (vd 31/1 + 1 tháng KHÔNG được nhảy sang 3/3, phải chốt về ngày cuối tháng 2). Dùng chung
+// cho mọi nơi tính hạn hiệu lực theo tháng (TIER-1c và về sau).
+function addMonthsSafe(date, months) {
+  const d = new Date(date.getTime());
+  const targetMonth = d.getMonth() + months;
+  const lastDayOfTargetMonth = new Date(d.getFullYear(), targetMonth + 1, 0).getDate();
+  d.setDate(Math.min(d.getDate(), lastDayOfTargetMonth));
+  d.setMonth(targetMonth);
+  return d;
+}
+
 module.exports = {
   generateOrderCode,
   generateQRCode,
@@ -168,5 +180,6 @@ module.exports = {
   calculateOrderTotal,
   parseCSVLine,
   escapeCSVField,
-  generateCSV
+  generateCSV,
+  addMonthsSafe
 };

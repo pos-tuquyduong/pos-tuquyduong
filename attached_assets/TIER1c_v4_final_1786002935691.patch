@@ -1,0 +1,557 @@
+diff --git a/client/src/pages/Customers.jsx b/client/src/pages/Customers.jsx
+index 50030b9..90f399d 100644
+--- a/client/src/pages/Customers.jsx
++++ b/client/src/pages/Customers.jsx
+@@ -36,6 +36,24 @@ export default function Customers() {
+   const [redeeming, setRedeeming] = useState(false);
+   const [redeemResult, setRedeemResult] = useState(null);
+   const [showRedeem, setShowRedeem] = useState(false);
++
++  // === TIER-1c: hạng thành viên hiện tại (chỉ xem — mua thẻ qua màn Bán hàng, như 1 sản phẩm) ===
++  const [membershipStatus, setMembershipStatus] = useState(null);
++
++  const loadMembershipStatus = async (phone) => {
++    if (!phone) { setMembershipStatus(null); return; }
++    try {
++      const token = localStorage.getItem('pos_token');
++      const res = await fetch(`/api/pos/membership/status/${encodeURIComponent(phone)}`, {
++        headers: { 'Authorization': 'Bearer ' + token }
++      });
++      const result = await res.json();
++      if (result.success) setMembershipStatus(result.data);
++    } catch (err) {
++      console.error('Load membership status error:', err);
++      setMembershipStatus(null);
++    }
++  };
+   const [detailForm, setDetailForm] = useState({
+     discount_type: 'percent',
+     discount_value: 0,
+@@ -136,6 +154,7 @@ export default function Customers() {
+     });
+     setShowDetailModal(true);
+     setError('');
++    loadMembershipStatus(customer.phone);
+   };
+ 
+   // ─── LOY-2: đổi quà tại quầy — dùng ĐÚNG 3 API mà app KH sẽ gọi (không viết logic riêng) ───
+@@ -360,6 +379,7 @@ export default function Customers() {
+                   <th style={{ textAlign: 'right' }}>Số dư</th>
+                   <th style={{ textAlign: 'right' }}>🎁 Điểm</th>
+                   <th style={{ textAlign: 'center' }}>CK</th>
++                  <th>Hạng</th>
+                   <th>Trạng thái</th>
+                 </tr>
+               </thead>
+@@ -473,6 +493,19 @@ export default function Customers() {
+                         <span className="text-gray">-</span>
+                       )}
+                     </td>
++                    <td>
++                      {!c.membership ? (
++                        <span className="text-gray">-</span>
++                      ) : (
++                        <span style={{
++                          fontWeight: 700, padding: '2px 7px', borderRadius: 5, fontSize: '0.75rem', whiteSpace: 'nowrap',
++                          background: c.membership.status === 'expired' ? '#fee2e2' : c.membership.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
++                          color: c.membership.status === 'expired' ? '#b91c1c' : c.membership.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
++                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : `Còn ${c.membership.days_remaining} ngày`}>
++                          {c.membership.tier_name}{c.membership.status !== 'active' && ` (${c.membership.status === 'expired' ? 'hết hạn' : c.membership.days_remaining + 'n'})`}
++                        </span>
++                      )}
++                    </td>
+                     <td>{getStatusBadge(c)}</td>
+                   </tr>
+                 ))}
+@@ -663,6 +696,30 @@ export default function Customers() {
+                   </div>
+                 </div>
+ 
++                {/* TIER-1c: hạng thành viên hiện tại */}
++                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
++                  <div style={{ fontSize: '0.85rem' }}>
++                    {!membershipStatus || membershipStatus.status === 'none' ? (
++                      <span style={{ color: '#94a3b8' }}>Chưa có hạng thành viên</span>
++                    ) : (
++                      <span>
++                        <span style={{
++                          fontWeight: 700, padding: '2px 8px', borderRadius: 5, fontSize: '0.8rem',
++                          background: membershipStatus.status === 'expired' ? '#fee2e2' : membershipStatus.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
++                          color: membershipStatus.status === 'expired' ? '#b91c1c' : membershipStatus.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
++                        }}>{membershipStatus.tier_name}</span>
++                        {membershipStatus.status === 'expired' ? (
++                          <span style={{ color: '#b91c1c', marginLeft: 6 }}>Đã hết hạn</span>
++                        ) : membershipStatus.status === 'expiring_soon' ? (
++                          <span style={{ color: '#92400e', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
++                        ) : (
++                          <span style={{ color: '#64748b', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
++                        )}
++                      </span>
++                    )}
++                  </div>
++                </div>
++
+                 {/* LOY-2: khu đổi quà tại quầy */}
+                 {showRedeem && (
+                   <div style={{ marginTop: '12px', padding: '10px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index d9094c8..820e7cb 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -59,6 +59,7 @@ export default function Sales() {
+ 
+   // === Gói sản phẩm ===
+   const [pkgTemplates, setPkgTemplates] = useState([]);        // Template gói (from Settings)
++  const [membershipTiers, setMembershipTiers] = useState([]);  // TIER-1c: hạng thành viên bán như sản phẩm
+   const [customerPkgs, setCustomerPkgs] = useState([]);        // Gói active của khách
+   const [activePkgId, setActivePkgId] = useState(null);        // ID gói đang bật (null = off)
+   const [buyQty, setBuyQty] = useState('30');                  // Số lượng SP khi mua gói
+@@ -70,6 +71,7 @@ export default function Sales() {
+ 
+   // Check gói đang MUA (is_pkg item in cart) → lấy template để biết SP nào thuộc gói
+   const pkgBuyInCart = cart.find(c => c.is_pkg);
++  const membershipInCart = cart.find(c => c.is_membership); // TIER-1c
+   const buyPkgTemplate = pkgBuyInCart ? pkgTemplates.find(t => t.id === pkgBuyInCart.package_id) : null;
+   const buyPkgItems = buyPkgTemplate?.package_items ? (typeof buyPkgTemplate.package_items === 'string' ? JSON.parse(buyPkgTemplate.package_items) : buyPkgTemplate.package_items) : [];
+   const buyPkgAllowedKeys = new Set(buyPkgItems.map(i => `${i.sx_product_type}_${i.sx_product_id}`));
+@@ -133,6 +135,13 @@ export default function Sales() {
+         const pkgData = await pkgRes.json();
+         if (pkgData.success) setPkgTemplates(pkgData.data);
+       } catch (e) {}
++      // TIER-1c: Load hạng thành viên (bán như sản phẩm)
++      try {
++        const token = localStorage.getItem('pos_token');
++        const tierRes = await fetch('/api/pos/tiers', { headers: { 'Authorization': 'Bearer ' + token } });
++        const tierData = await tierRes.json();
++        if (tierData.success) setMembershipTiers(tierData.data.tiers || []);
++      } catch (e) {}
+     } catch (err) {
+       setError('Không thể tải danh sách sản phẩm');
+     } finally {
+@@ -371,6 +380,27 @@ export default function Sales() {
+     setCategory('all'); // Chuyển sang grid SP để chọn giao lần 1
+   };
+ 
++  // TIER-1c: Thêm thẻ hội viên vào giỏ (mua như 1 sản phẩm) — chỉ 1 thẻ/đơn
++  const addMembershipToCart = (tier) => {
++    if (!customer) { setError('Chọn khách trước khi mua thẻ hội viên'); return; }
++    if (cart.some(c => c.is_membership)) { setError('Đã có thẻ hội viên trong giỏ. Xóa thẻ cũ trước nếu muốn đổi hạng khác.'); return; }
++    setCart([...cart, {
++      unique_key: `membership_${tier.id}`,
++      product_id: -1000000 - tier.id,
++      is_membership: true,
++      tier_id: tier.id,
++      product_code: `THE-${tier.name}`,
++      product_name: `🎟️ Thẻ hội viên ${tier.name}`,
++      unit_price: tier.card_price,
++      unit: 'thẻ',
++      quantity: 1,
++      stock: Infinity,
++      icon: '🎟️',
++      color: '#5b3ea3'
++    }]);
++    setCategory('all');
++  };
++
+   const updateQuantity = (uniqueKey, delta) => {
+     let removedPkg = false;
+     const newCart = cart.map(item => {
+@@ -543,7 +573,7 @@ export default function Sales() {
+         customer_phone: customer?.phone || null,
+         customer_name: customer?.name || 'Khách lẻ',
+         is_new_customer: customer?.isNew || false,
+-        items: cart.filter(item => !item.is_pkg).map(item => ({
++        items: cart.filter(item => !item.is_pkg && !item.is_membership).map(item => ({
+           product_id: item.product_id,
+           sx_product_type: item.sx_product_type,
+           sx_product_id: item.sx_product_id,
+@@ -579,6 +609,8 @@ export default function Sales() {
+           total_qty: parseInt(buyQty) || 30,
+           pkg_qty: cart.find(c => c.is_pkg).quantity || 1
+         } : null,
++        // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm) ===
++        membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id } : null,
+       };
+ 
+       const result = await ordersApi.create(orderData);
+@@ -798,11 +830,32 @@ export default function Sales() {
+               📦 Mua gói ({pkgTemplates.length})
+             </button>
+           )}
++          {!membershipInCart && membershipTiers.length > 0 && (
++            <button 
++              className={`btn ${category === 'membership' ? 'btn-primary' : 'btn-outline'}`}
++              onClick={() => setCategory('membership')}
++              style={{ background: category === 'membership' ? '#5b3ea3' : undefined, borderColor: category === 'membership' ? '#5b3ea3' : undefined }}
++            >
++              🎟️ Mua thẻ ({membershipTiers.length})
++            </button>
++          )}
+         </div>
+ 
+-        {/* Products Grid / Packages Grid */}
++        {/* Products Grid / Packages Grid / Membership Grid */}
+         {loading ? (
+           <div className="card">Đang tải sản phẩm...</div>
++        ) : category === 'membership' ? (
++          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
++            {membershipTiers.map(tier => (
++              <div key={tier.id} onClick={() => addMembershipToCart(tier)}
++                style={{ padding: '0.75rem', background: 'white', borderRadius: '12px', border: '2px solid #c4b1e8', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
++                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🎟️</div>
++                <div style={{ fontWeight: 'bold', color: '#5b3ea3', fontSize: '0.9rem' }}>{tier.name}</div>
++                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem' }}>Giảm {tier.discount_percent}% mỗi đơn</div>
++                <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '0.9rem' }}>{(tier.card_price || 0).toLocaleString()}đ</div>
++              </div>
++            ))}
++          </div>
+         ) : category === 'pkg' ? (
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
+             {pkgTemplates.map(pkg => (
+@@ -964,7 +1017,7 @@ export default function Sales() {
+                     </div>
+                   )}
+                   {/* A1: ghi chú theo món (đen đá ít đường...) — không áp dụng cho dòng mua gói */}
+-                  {!item.is_pkg && (
++                  {!item.is_pkg && !item.is_membership && (
+                     noteEditKey === item.unique_key ? (
+                       <div style={{ marginTop: '0.35rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.4rem' }} onClick={e => e.stopPropagation()}>
+                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.3rem' }}>
+@@ -1328,9 +1381,11 @@ export default function Sales() {
+               </div>
+             </div>
+ 
+-            {/* Nút thanh toán - MỞ POPUP / Giao từ gói → submit trực tiếp */}
++            {/* Nút thanh toán - MỞ POPUP / Giao từ gói → submit trực tiếp
++                (điều kiện thu hẹp: chỉ khi CÓ SP giao từ gói, không phải bất kỳ giỏ nào tổng = 0đ —
++                tổng = 0đ còn có thể do mua thẻ hội viên giá 0đ, khi đó vẫn cần qua popup thanh toán bình thường) */}
+             <button
+-              onClick={total === 0 && cart.length > 0 ? handleSubmit : openPaymentModal}
++              onClick={cart.some(c => c.fromPkg) && total === 0 ? handleSubmit : openPaymentModal}
+               disabled={cart.length === 0 || submitting}
+               style={{
+                 width: '100%',
+@@ -1338,7 +1393,7 @@ export default function Sales() {
+                 padding: '0.875rem',
+                 fontSize: '1rem',
+                 fontWeight: 'bold',
+-                background: total === 0 && cart.length > 0 ? '#7c3aed' : '#22c55e',
++                background: cart.some(c => c.fromPkg) && total === 0 ? '#7c3aed' : '#22c55e',
+                 color: 'white',
+                 border: 'none',
+                 borderRadius: '8px',
+@@ -1346,7 +1401,7 @@ export default function Sales() {
+                 opacity: cart.length === 0 ? 0.7 : 1
+               }}
+             >
+-              {total === 0 && cart.length > 0 ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
++              {cart.some(c => c.fromPkg) && total === 0 ? `🚚 Xác nhận giao ${cart.reduce((s, c) => s + c.quantity, 0)} SP` : `💳 Thanh toán ${formatPrice(total)}`}
+             </button>
+           </>
+         )}
+diff --git a/server/database.js b/server/database.js
+index 89206e9..7b02259 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -1051,6 +1051,26 @@ async function seedDefaultData() {
+     `, [key, value]);
+   }
+   console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a-v2)');
++
++  // ─── TIER-1c (05.08.2026): sổ ghi mua thẻ hội viên — CHỈ THÊM DÒNG, không sửa/xóa.
++  // Mua thẻ đi qua ĐÚNG luồng bán hàng thường (giỏ hàng → thanh toán tiền mặt/CK như 1 sản phẩm,
++  // giống hệt cách "mua gói" đã có) — nên không cần lưu payment_method riêng, chỉ cần liên kết
++  // về đơn hàng thật (order_id) để xem chi tiết thanh toán khi cần.
++  // Hạng hiện tại của khách = dòng MỚI NHẤT còn hạn (expires_at > hiện tại) trong bảng này.
++  await db.execute(`
++    CREATE TABLE IF NOT EXISTS pos_membership_purchases (
++      id INTEGER PRIMARY KEY AUTOINCREMENT,
++      customer_phone TEXT NOT NULL,
++      tier_id INTEGER NOT NULL,
++      tier_name TEXT NOT NULL,
++      price_paid REAL NOT NULL DEFAULT 0,
++      order_id INTEGER,
++      purchased_at TEXT NOT NULL,
++      expires_at TEXT NOT NULL,
++      created_by TEXT
++    )
++  `);
++  console.log('✅ Đã đảm bảo bảng mua thẻ hội viên (TIER-1c)');
+ }
+ 
+ /**
+diff --git a/server/index.js b/server/index.js
+index 0d17da5..f1d154d 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -38,6 +38,7 @@ const rewardsRoutes = require('./routes/rewards');
+ const loyaltyRoutes = require('./routes/loyalty');
+ const flashRoutes = require('./routes/flash');
+ const tiersRoutes = require('./routes/tiers');
++const membershipRoutes = require('./routes/membership');
+ // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ const damagesRoutes = require('./routes/damages');
+ const packagesRoutes = require('./routes/packages');
+@@ -84,6 +85,7 @@ app.use('/api/pos/rewards', rewardsRoutes);
+ app.use('/api/pos/loyalty', loyaltyRoutes);
+ app.use('/api/pos/flash', flashRoutes);
+ app.use('/api/pos/tiers', tiersRoutes);
++app.use('/api/pos/membership', membershipRoutes);
+ // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ app.use('/api/pos/damages', damagesRoutes);
+ app.use('/api/pos/packages', packagesRoutes);
+diff --git a/server/routes/customers-v2.js b/server/routes/customers-v2.js
+index f6381fe..ddabcc9 100644
+--- a/server/routes/customers-v2.js
++++ b/server/routes/customers-v2.js
+@@ -256,6 +256,25 @@ router.get("/", authenticate, async (req, res) => {
+     const regMap = {};
+     registrations.forEach((r) => (regMap[r.phone] = r));
+ 
++    // TIER-1c: hạng thành viên hiện tại (dòng mua mới nhất/phone) — 1 câu truy vấn, không N+1
++    const tierRows = await query(`
++      SELECT customer_phone, tier_name, expires_at FROM (
++        SELECT customer_phone, tier_name, expires_at,
++          ROW_NUMBER() OVER (PARTITION BY customer_phone ORDER BY purchased_at DESC, id DESC) AS rn
++        FROM pos_membership_purchases
++      ) WHERE rn = 1
++    `);
++    const tierMap = {};
++    const nowMs = new Date(nowStr.replace(' ', 'T')).getTime();
++    tierRows.forEach((row) => {
++      const expiresMs = new Date(String(row.expires_at).replace(' ', 'T')).getTime();
++      const daysRemaining = Math.ceil((expiresMs - nowMs) / (24 * 60 * 60 * 1000));
++      let status = 'active';
++      if (daysRemaining <= 0) status = 'expired';
++      else if (daysRemaining <= 7) status = 'expiring_soon';
++      tierMap[row.customer_phone] = { tier_name: row.tier_name, days_remaining: daysRemaining, status };
++    });
++
+     // Merge SX + wallets
+     const result = sxCustomers.map((c) => {
+       const phone = normalizePhone(c.phone);
+@@ -274,6 +293,7 @@ router.get("/", authenticate, async (req, res) => {
+         discount_note: extras?.discount_note || null,
+         address: extras?.address || null,
+           customer_type: extras?.customer_type || null,
++        membership: tierMap[phone] || null,
+       };
+     });
+ 
+@@ -290,6 +310,7 @@ router.get("/", authenticate, async (req, res) => {
+         is_pending: true,
+         registration_id: r.id,
+         requested_product: r.requested_product,
++        membership: tierMap[r.phone] || null,
+         discount_type: extras?.discount_type || null,
+         discount_value: extras?.discount_value || 0,
+         notes: r.notes,
+diff --git a/server/routes/membership.js b/server/routes/membership.js
+new file mode 100644
+index 0000000..f84e6e9
+--- /dev/null
++++ b/server/routes/membership.js
+@@ -0,0 +1,59 @@
++/**
++ * POS System - Membership Status Routes (TIER-1c)
++ * Tra cứu hạng hiện tại của khách hàng.
++ *
++ * Việc MUA thẻ đi qua đúng luồng bán hàng thường (POST /api/pos/orders với
++ * membership_buy — xem orders.js), giống hệt cách "mua gói" hoạt động — không
++ * có endpoint mua riêng ở đây nữa, tránh 2 luồng thanh toán song song.
++ *
++ * Nguyên tắc: pos_membership_purchases CHỈ THÊM DÒNG, không sửa/xóa.
++ * Hạng hiện tại = dòng MỚI NHẤT (purchased_at) mà expires_at > hiện tại.
++ */
++
++const express = require('express');
++const { queryOne } = require('../database');
++const { authenticate } = require('../middleware/auth');
++const { normalizePhone, getNow } = require('../utils/helpers');
++
++const router = express.Router();
++
++// Helper: tính trạng thái hạng hiện tại của 1 khách (dùng chung cho GET status + hiển thị danh sách)
++async function getMembershipStatus(phone) {
++  const row = await queryOne(
++    `SELECT * FROM pos_membership_purchases WHERE customer_phone = ? ORDER BY purchased_at DESC, id DESC LIMIT 1`,
++    [phone],
++  );
++  if (!row) return { tier_name: null, status: 'none' };
++
++  const now = new Date(getNow().replace(' ', 'T'));
++  const expires = new Date(String(row.expires_at).replace(' ', 'T'));
++  const msRemaining = expires.getTime() - now.getTime();
++  const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
++
++  let status = 'active';
++  if (msRemaining <= 0) status = 'expired';
++  else if (daysRemaining <= 7) status = 'expiring_soon';
++
++  return {
++    tier_id: row.tier_id,
++    tier_name: row.tier_name,
++    expires_at: row.expires_at,
++    days_remaining: daysRemaining,
++    status, // 'active' | 'expiring_soon' | 'expired' | 'none'
++  };
++}
++
++// GET /api/pos/membership/status/:phone — tra cứu hạng hiện tại của 1 khách
++router.get('/status/:phone', authenticate, async (req, res) => {
++  try {
++    const phone = normalizePhone(req.params.phone);
++    if (!phone) return res.status(400).json({ error: 'SĐT không hợp lệ' });
++    const data = await getMembershipStatus(phone);
++    res.json({ success: true, data });
++  } catch (err) {
++    res.status(500).json({ error: err.message });
++  }
++});
++
++module.exports = router;
++module.exports.getMembershipStatus = getMembershipStatus;
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index b20231a..f01200d 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -16,6 +16,7 @@ const {
+   generateOrderCode,
+   getNow,
+   normalizePhone,
++  addMonthsSafe,
+ } = require("../utils/helpers");
+ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
+ const { readFlashState } = require("../utils/flashState");
+@@ -160,14 +161,19 @@ router.post("/", authenticate, async (req, res) => {
+       // === Gói sản phẩm ===
+       customer_package_id = null, // Giao từ gói → ID của customer_package
+       package_buy = null, // Mua gói → { package_id, total_qty }
++      // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm, cùng đơn với hàng thường) ===
++      membership_buy = null, // { tier_id }
+     } = req.body;
+ 
+-    // Validate — cho phép items rỗng nếu đang mua gói
+-    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy) {
++    // Validate — cho phép items rỗng nếu đang mua gói / mua thẻ hội viên
++    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy) {
+       return res
+         .status(400)
+         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
+     }
++    if (membership_buy && membership_buy.tier_id && !customer_phone) {
++      return res.status(400).json({ error: "Cần chọn khách hàng trước khi mua thẻ hội viên" });
++    }
+ 
+     // Lấy thông tin sản phẩm và tính tổng
+     const orderItems = [];
+@@ -255,6 +261,27 @@ router.post("/", authenticate, async (req, res) => {
+       });
+     }
+ 
++    // TIER-1c: Mua thẻ hội viên → thêm line item cho thẻ (giống hệt cách mua gói)
++    let membershipTier = null;
++    if (membership_buy && membership_buy.tier_id) {
++      membershipTier = await queryOne('SELECT * FROM pos_membership_tiers WHERE id = ? AND is_active = 1', [membership_buy.tier_id]);
++      if (!membershipTier) return res.status(400).json({ error: 'Hạng thành viên không tồn tại hoặc đã bị xóa' });
++      const cardPrice = Number(membershipTier.card_price) || 0;
++      subtotal += cardPrice;
++      orderItems.push({
++        product_id: -1000000 - membershipTier.id, // né trùng với product_id thường và -pkg.id
++        product_code: `THE-${membershipTier.name}`,
++        product_name: `🎟️ Thẻ hội viên ${membershipTier.name}`,
++        unit: 'thẻ',
++        quantity: 1,
++        unit_price: cardPrice,
++        total_price: cardPrice,
++        sx_product_type: null,
++        sx_product_id: null,
++        is_membership_item: true,
++      });
++    }
++
+     // === F2: Giảm FLASH (tầng 1, tự động) — tính trước mọi chiết khấu (phương án A) ===
+     // Chỉ giảm % cho món có (type,id) nằm trong danh sách flash, và ĐANG trong giờ VN.
+     // Server tự quyết (không tin client). Lỗi đọc flash → coi như không flash (đơn vẫn chạy).
+@@ -750,6 +777,31 @@ router.post("/", authenticate, async (req, res) => {
+       }
+     }
+ 
++    // TIER-1c: mua thẻ hội viên → ghi vào sổ, TÍNH LẠI hạn dùng đúng cấu hình hiện tại
++    if (membershipTier && phone) {
++      try {
++        const settingsRows = await query(
++          "SELECT key, value FROM pos_settings WHERE key = 'tier_card_valid_months'",
++        );
++        let validMonths = parseInt(settingsRows[0]?.value, 10);
++        if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
++
++        const nowDate = new Date(now.replace(' ', 'T'));
++        const expiresDate = addMonthsSafe(nowDate, validMonths);
++        const expiresAt = expiresDate.toISOString().slice(0, 19).replace('T', ' ');
++
++        await run(
++          `INSERT INTO pos_membership_purchases
++            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by)
++           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
++          [phone, membershipTier.id, membershipTier.name, membershipTier.card_price, orderId, now, expiresAt, req.user.username],
++        );
++        console.log(`🎟️ Đã ghi mua thẻ ${membershipTier.name} cho ${phone}, hết hạn ${expiresAt}`);
++      } catch (err) {
++        console.error('Membership purchase record error:', err.message);
++      }
++    }
++
+     // Gói: cập nhật delivered_qty khi giao từ gói (ATOMIC — tránh race condition)
+     if (customer_package_id) {
+       try {
+@@ -1062,6 +1114,18 @@ router.put(
+           console.log(`📦 Hủy đơn mua gói: ${cancelBuyPkgs.length} packages`);
+         }
+ 
++        // ══ TIER-1c: Hủy đơn có mua thẻ hội viên → xóa dòng đã ghi (khách không còn được giữ hạng
++        // từ đơn đã hoàn tiền). Không vi phạm nguyên tắc "chỉ thêm dòng" — đây là sửa lỗi/hoàn tiền,
++        // giống hệt cách gói SP đã xử lý ở trên. Không ảnh hưởng hạng hiện tại nếu khách đã mua thẻ
++        // MỚI HƠN sau đó (dòng mới hơn vẫn còn nguyên, "mới nhất còn hạn" vẫn đúng).
++        const cancelledMembership = await tx.queryOne(
++          "SELECT id, tier_name FROM pos_membership_purchases WHERE order_id = ?", [order.id]
++        );
++        if (cancelledMembership) {
++          await tx.run("DELETE FROM pos_membership_purchases WHERE id = ?", [cancelledMembership.id]);
++          console.log(`🎟️ Hủy đơn mua thẻ ${cancelledMembership.tier_name} (đơn ${order.code})`);
++        }
++
+         // Case 2: Đơn này là đơn "giao từ gói" → trừ delivered_qty
+         const cancelBuyPkgIds = (cancelBuyPkgs || []).map(b => b.id);
+         if (order.customer_package_id && !cancelBuyPkgIds.includes(order.customer_package_id)) {
+diff --git a/server/utils/helpers.js b/server/utils/helpers.js
+index 3e37788..919c507 100644
+--- a/server/utils/helpers.js
++++ b/server/utils/helpers.js
+@@ -155,6 +155,18 @@ function generateCSV(headers, rows) {
+   return '\uFEFF' + [headerLine, ...dataLines].join('\n'); // BOM for UTF-8
+ }
+ 
++// Cộng tháng an toàn — tránh bẫy JS Date.setMonth() nhảy tháng khi ngày đích không tồn tại
++// (vd 31/1 + 1 tháng KHÔNG được nhảy sang 3/3, phải chốt về ngày cuối tháng 2). Dùng chung
++// cho mọi nơi tính hạn hiệu lực theo tháng (TIER-1c và về sau).
++function addMonthsSafe(date, months) {
++  const d = new Date(date.getTime());
++  const targetMonth = d.getMonth() + months;
++  const lastDayOfTargetMonth = new Date(d.getFullYear(), targetMonth + 1, 0).getDate();
++  d.setDate(Math.min(d.getDate(), lastDayOfTargetMonth));
++  d.setMonth(targetMonth);
++  return d;
++}
++
+ module.exports = {
+   generateOrderCode,
+   generateQRCode,
+@@ -168,5 +180,6 @@ module.exports = {
+   calculateOrderTotal,
+   parseCSVLine,
+   escapeCSVField,
+-  generateCSV
++  generateCSV,
++  addMonthsSafe
+ };

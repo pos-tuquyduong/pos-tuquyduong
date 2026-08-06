@@ -36,6 +36,24 @@ export default function Customers() {
   const [redeeming, setRedeeming] = useState(false);
   const [redeemResult, setRedeemResult] = useState(null);
   const [showRedeem, setShowRedeem] = useState(false);
+
+  // === TIER-1c: hạng thành viên hiện tại (chỉ xem — mua thẻ qua màn Bán hàng, như 1 sản phẩm) ===
+  const [membershipStatus, setMembershipStatus] = useState(null);
+
+  const loadMembershipStatus = async (phone) => {
+    if (!phone) { setMembershipStatus(null); return; }
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch(`/api/pos/membership/status/${encodeURIComponent(phone)}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const result = await res.json();
+      if (result.success) setMembershipStatus(result.data);
+    } catch (err) {
+      console.error('Load membership status error:', err);
+      setMembershipStatus(null);
+    }
+  };
   const [detailForm, setDetailForm] = useState({
     discount_type: 'percent',
     discount_value: 0,
@@ -136,6 +154,7 @@ export default function Customers() {
     });
     setShowDetailModal(true);
     setError('');
+    loadMembershipStatus(customer.phone);
   };
 
   // ─── LOY-2: đổi quà tại quầy — dùng ĐÚNG 3 API mà app KH sẽ gọi (không viết logic riêng) ───
@@ -360,6 +379,7 @@ export default function Customers() {
                   <th style={{ textAlign: 'right' }}>Số dư</th>
                   <th style={{ textAlign: 'right' }}>🎁 Điểm</th>
                   <th style={{ textAlign: 'center' }}>CK</th>
+                  <th>Hạng</th>
                   <th>Trạng thái</th>
                 </tr>
               </thead>
@@ -471,6 +491,19 @@ export default function Customers() {
                         </span>
                       ) : (
                         <span className="text-gray">-</span>
+                      )}
+                    </td>
+                    <td>
+                      {!c.membership ? (
+                        <span className="text-gray">-</span>
+                      ) : (
+                        <span style={{
+                          fontWeight: 700, padding: '2px 7px', borderRadius: 5, fontSize: '0.75rem', whiteSpace: 'nowrap',
+                          background: c.membership.status === 'expired' ? '#fee2e2' : c.membership.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
+                          color: c.membership.status === 'expired' ? '#b91c1c' : c.membership.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
+                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : `Còn ${c.membership.days_remaining} ngày`}>
+                          {c.membership.tier_name}{c.membership.status !== 'active' && ` (${c.membership.status === 'expired' ? 'hết hạn' : c.membership.days_remaining + 'n'})`}
+                        </span>
                       )}
                     </td>
                     <td>{getStatusBadge(c)}</td>
@@ -659,6 +692,30 @@ export default function Customers() {
                         onClick={() => (showRedeem ? setShowRedeem(false) : openRedeem())}>
                         {showRedeem ? 'Đóng' : '🎫 Đổi quà'}
                       </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* TIER-1c: hạng thành viên hiện tại */}
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '0.85rem' }}>
+                    {!membershipStatus || membershipStatus.status === 'none' ? (
+                      <span style={{ color: '#94a3b8' }}>Chưa có hạng thành viên</span>
+                    ) : (
+                      <span>
+                        <span style={{
+                          fontWeight: 700, padding: '2px 8px', borderRadius: 5, fontSize: '0.8rem',
+                          background: membershipStatus.status === 'expired' ? '#fee2e2' : membershipStatus.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
+                          color: membershipStatus.status === 'expired' ? '#b91c1c' : membershipStatus.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
+                        }}>{membershipStatus.tier_name}</span>
+                        {membershipStatus.status === 'expired' ? (
+                          <span style={{ color: '#b91c1c', marginLeft: 6 }}>Đã hết hạn</span>
+                        ) : membershipStatus.status === 'expiring_soon' ? (
+                          <span style={{ color: '#92400e', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
+                        ) : (
+                          <span style={{ color: '#64748b', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
+                        )}
+                      </span>
                     )}
                   </div>
                 </div>

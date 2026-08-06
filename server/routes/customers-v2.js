@@ -256,6 +256,25 @@ router.get("/", authenticate, async (req, res) => {
     const regMap = {};
     registrations.forEach((r) => (regMap[r.phone] = r));
 
+    // TIER-1c: hạng thành viên hiện tại (dòng mua mới nhất/phone) — 1 câu truy vấn, không N+1
+    const tierRows = await query(`
+      SELECT customer_phone, tier_name, expires_at FROM (
+        SELECT customer_phone, tier_name, expires_at,
+          ROW_NUMBER() OVER (PARTITION BY customer_phone ORDER BY purchased_at DESC, id DESC) AS rn
+        FROM pos_membership_purchases
+      ) WHERE rn = 1
+    `);
+    const tierMap = {};
+    const nowMs = new Date(nowStr.replace(' ', 'T')).getTime();
+    tierRows.forEach((row) => {
+      const expiresMs = new Date(String(row.expires_at).replace(' ', 'T')).getTime();
+      const daysRemaining = Math.ceil((expiresMs - nowMs) / (24 * 60 * 60 * 1000));
+      let status = 'active';
+      if (daysRemaining <= 0) status = 'expired';
+      else if (daysRemaining <= 7) status = 'expiring_soon';
+      tierMap[row.customer_phone] = { tier_name: row.tier_name, days_remaining: daysRemaining, status };
+    });
+
     // Merge SX + wallets
     const result = sxCustomers.map((c) => {
       const phone = normalizePhone(c.phone);
@@ -274,6 +293,7 @@ router.get("/", authenticate, async (req, res) => {
         discount_note: extras?.discount_note || null,
         address: extras?.address || null,
           customer_type: extras?.customer_type || null,
+        membership: tierMap[phone] || null,
       };
     });
 
@@ -290,6 +310,7 @@ router.get("/", authenticate, async (req, res) => {
         is_pending: true,
         registration_id: r.id,
         requested_product: r.requested_product,
+        membership: tierMap[r.phone] || null,
         discount_type: extras?.discount_type || null,
         discount_value: extras?.discount_value || 0,
         notes: r.notes,
