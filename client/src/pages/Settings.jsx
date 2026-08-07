@@ -167,6 +167,12 @@ export default function Settings() {
     ));
   };
 
+  const updateSpecialGroup = (uniqueId, checked) => {
+    setProducts(products.map(p =>
+      getUniqueId(p) === uniqueId ? { ...p, is_special_group: checked } : p
+    ));
+  };
+
   const savePrices = async () => {
     setSaving(true);
     try {
@@ -175,7 +181,8 @@ export default function Settings() {
         sx_product_id: p.sx_product_id,
         code: p.code,
         name: p.name,
-        price: p.price 
+        price: p.price,
+        is_special_group: !!p.is_special_group
       })));
       setMessage('Đã lưu giá thành công!');
       setTimeout(() => setMessage(''), 3000);
@@ -325,13 +332,15 @@ export default function Settings() {
       for (const t of tiers) {
         if (!String(t.name).trim()) throw new Error('Tên hạng không được trống');
         const price = Number(t.card_price), pct = Number(t.discount_percent);
+        const specialPct = Number(t.special_discount_percent) || 0;
         if (!Number.isFinite(price) || price < 0) throw new Error('Giá thẻ không hợp lệ');
         if (!Number.isFinite(pct) || pct < 0 || pct > 90) throw new Error('% giảm phải từ 0 đến 90');
+        if (specialPct < 0 || specialPct > 90) throw new Error('% giảm SP đặc biệt phải từ 0 đến 90');
       }
       const vm = Number(tierValidMonths);
       if (!Number.isFinite(vm) || vm < 1 || vm > 24) throw new Error('Số tháng hiệu lực phải từ 1 đến 24');
       const data = await pkgApi('PUT', '/api/pos/tiers', {
-        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent) })),
+        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent), special_discount_percent: Number(t.special_discount_percent) || 0 })),
         round_to: tierRound.round_to,
         round_mode: tierRound.round_mode,
         valid_months: vm,
@@ -640,6 +649,7 @@ export default function Settings() {
                     <th>Tên SP</th>
                     <th>Loại</th>
                     <th>Giá bán (VND)</th>
+                    <th style={{ textAlign: 'center' }}>SP đặc biệt</th>
                     <th>Trạng thái</th>
                   </tr>
                 </thead>
@@ -670,6 +680,14 @@ export default function Settings() {
                           value={p.price || ''} 
                           placeholder="0"
                           onChange={e => updatePrice(getUniqueId(p), e.target.value)} 
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={!!p.is_special_group}
+                          onChange={e => updateSpecialGroup(getUniqueId(p), e.target.checked)}
+                          title="SP thuộc nhóm đặc biệt (vd cà phê) — nhận % giảm hạng riêng, khác % giảm thường"
                         />
                       </td>
                       <td>
@@ -1357,6 +1375,7 @@ export default function Settings() {
                       <th style={{ padding: '6px 8px' }}>Tên hạng</th>
                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá bán thẻ (đ)</th>
                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm % SP đặc biệt</th>
                       <th style={{ padding: '6px 8px', textAlign: 'center' }}></th>
                     </tr>
                   </thead>
@@ -1375,6 +1394,11 @@ export default function Settings() {
                           <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
                             value={t.discount_percent} onChange={e => updateTier(t.id, 'discount_percent', e.target.value)} />
                         </td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                          <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
+                            value={t.special_discount_percent ?? 0} onChange={e => updateTier(t.id, 'special_discount_percent', e.target.value)}
+                            title="% giảm riêng cho SP đặc biệt (vd cà phê) — tick ở tab Giá bán" />
+                        </td>
                         <td style={{ padding: '6px 8px', textAlign: 'center' }}>
                           <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: 12, color: '#dc2626' }}
                             onClick={() => deleteTier(t.id, t.name)} disabled={saving}>Xóa</button>
@@ -1388,7 +1412,7 @@ export default function Settings() {
               {/* xem trước 1 ví dụ */}
               {tiers.length > 0 && (
                 <div style={{ marginTop: '1rem', padding: '10px 12px', background: '#faf5ff', borderRadius: 8, fontSize: 13 }}>
-                  <b>Xem trước</b> — món giá 50.500đ:
+                  <b>Xem trước</b> — món thường giá 50.500đ:
                   <span style={{ marginLeft: 8 }}>
                     {tiers.map(t => {
                       const pct = Number(t.discount_percent) || 0;

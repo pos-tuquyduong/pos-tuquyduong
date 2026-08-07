@@ -41,8 +41,8 @@ router.get('/', authenticateServiceOrUser, async (req, res) => {
       products = await getFallbackProducts(category);
     }
 
-    // Merge giá từ POS database - SỬA: dùng composite key
-    const prices = await query('SELECT sx_product_type, sx_product_id, price FROM pos_products');
+    // Merge giá + TIER-2 (SP đặc biệt) từ POS database - SỬA: dùng composite key
+    const prices = await query('SELECT sx_product_type, sx_product_id, price, is_special_group FROM pos_products');
 
     products = products.map(p => {
       // TÌM GIÁ BẰNG COMPOSITE KEY (type + id)
@@ -56,6 +56,7 @@ router.get('/', authenticateServiceOrUser, async (req, res) => {
         // Tạo unique_id để frontend phân biệt
         unique_id: `${p.sx_product_type}_${p.sx_product_id}`,
         price: priceInfo?.price || 0,
+        is_special_group: !!priceInfo?.is_special_group,
         unit: p.category === 'tea' ? 'gói' : 'túi',
         is_active: 1
       };
@@ -156,13 +157,13 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
 
         if (existing) {
           await run(
-            'UPDATE pos_products SET price = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
-            [p.price, p.sx_product_type, p.sx_product_id]
+            'UPDATE pos_products SET price = ?, is_special_group = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
+            [p.price, p.is_special_group ? 1 : 0, p.sx_product_type, p.sx_product_id]
           );
         } else {
           await run(
-            `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+            `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, is_special_group)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
             [
               p.code || `${p.sx_product_type === 'tea' ? 'TEA' : 'CT'}${p.sx_product_id}`,
               p.name || 'Từ SX',
@@ -170,7 +171,8 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
               p.sx_product_type,
               p.sx_product_id,
               p.price,
-              p.sx_product_type === 'tea' ? 'gói' : 'túi'
+              p.sx_product_type === 'tea' ? 'gói' : 'túi',
+              p.is_special_group ? 1 : 0
             ]
           );
         }

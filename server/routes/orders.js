@@ -20,6 +20,7 @@ const {
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const { readFlashState } = require("../utils/flashState");
+const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
 
 const router = express.Router();
 
@@ -237,6 +238,7 @@ router.post("/", authenticate, async (req, res) => {
         sx_product_type: product.sx_product_type,
         sx_product_id: product.sx_product_id,
         from_package: !!item.from_package,
+        is_special_group: !!product.is_special_group,
         note: item.note ? String(item.note).trim().slice(0, 200) : null,
       });
     }
@@ -358,6 +360,51 @@ router.post("/", authenticate, async (req, res) => {
       }
     }
 
+    // Normalize phone (chuyển lên sớm hơn — TIER-2 cần biết khách là ai trước khi tính chiết khấu)
+    const phone = normalizePhone(customer_phone);
+    const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
+
+    // === TIER-2: Giảm theo HẠNG THÀNH VIÊN (tầng cùng mức F2, tự động) ===
+    // Bám ĐÚNG luật F2 đã có: đơn có dính Flash (flashApplied=true) → KHÔNG cộng giảm hạng,
+    // giống hệt cách F2 chặn voucher %. Đơn không dính Flash thì hạng vẫn áp bình thường dù
+    // Flash đang chạy ở chỗ khác. Server tự quyết (không tin client) — client CHỈ được hiển thị
+    // trước, số thật luôn do server tính lại ở đây.
+    let tierDiscountAmount = 0;
+    let tierApplied = false;
+    if (!flashApplied && phone) {
+      try {
+        const membership = await getMembershipStatus(query, queryOne, getNow, phone);
+        if (isTierUsable(membership.status)) {
+          const tier = await queryOne(
+            "SELECT discount_percent, special_discount_percent FROM pos_membership_tiers WHERE id = ?",
+            [membership.tier_id],
+          );
+          if (tier) {
+            for (const it of orderItems) {
+              if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
+              // Math.min(90, ...) là phòng vệ 2 lớp — Settings đã chặn 0-90 lúc lưu rồi,
+              // nhưng nếu dữ liệu lỡ bị hỏng (vd nhập tay thẳng vào DB), tuyệt đối không để
+              // % giảm vượt 90 khiến giá món sau giảm thành ÂM (khách được "trả tiền" thay vì trả).
+              const rawRate = it.is_special_group
+                ? Number(tier.special_discount_percent) || 0
+                : Number(tier.discount_percent) || 0;
+              const rate = Math.min(90, Math.max(0, rawRate));
+              if (rate > 0) {
+                tierDiscountAmount += Math.round(it.unit_price * it.quantity * rate / 100);
+                // Hóa đơn: giá đã giảm CHỈ để hiển thị từng món — không ảnh hưởng total thật.
+                it.tier_unit_price = Math.round(it.unit_price * (1 - rate / 100));
+              }
+            }
+            if (tierDiscountAmount > 0) tierApplied = true;
+          }
+        }
+      } catch (tierErr) {
+        console.error("⚠️ TIER-2: lỗi tính giảm hạng (bỏ qua, đơn vẫn chạy):", tierErr.message);
+        tierDiscountAmount = 0;
+        tierApplied = false;
+      }
+    }
+
     // Ưu tiên 2: Chiết khấu từ request (discount_type + discount_value)
     // Đã có từ params
 
@@ -394,25 +441,21 @@ router.post("/", authenticate, async (req, res) => {
       finalDiscountAmount = finalDiscountValue;
     }
 
-    // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash (phương án A)
+    // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash + giảm hạng
     finalDiscountAmount = Math.min(
       finalDiscountAmount,
-      Math.max(0, subtotal - flashDiscountAmount),
+      Math.max(0, subtotal - flashDiscountAmount - tierDiscountAmount),
     );
 
-    // Tính total: subtotal - giảm flash - chiết khấu + phí ship
+    // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
     const finalShippingFee = shipping_fee || 0;
     const total = Math.max(
       0,
-      subtotal - flashDiscountAmount - finalDiscountAmount + finalShippingFee,
+      subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount + finalShippingFee,
     );
-    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + voucher) để hoá đơn & báo cáo
-    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount' giữ riêng để phân tích.
-    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount;
-
-    // Normalize phone
-    const phone = normalizePhone(customer_phone);
-    const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
+    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + hạng + voucher) để hoá đơn & báo cáo
+    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount'/'tier_discount' giữ riêng để phân tích.
+    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount + tierDiscountAmount;
 
     // Xử lý thanh toán số dư từ pos_wallets
     let actualBalanceAmount = 0;
@@ -634,11 +677,11 @@ router.post("/", authenticate, async (req, res) => {
         await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price, unit, notes, flash_unit_price
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
-           item.flash_unit_price || null],
+           item.flash_unit_price || null, item.tier_unit_price || null],
         );
       }
 
@@ -859,6 +902,7 @@ router.post("/", authenticate, async (req, res) => {
         discount_type: finalDiscountType,
         discount_value: finalDiscountValue,
         flash_discount: flashApplied ? flashDiscountAmount : 0,
+        tier_discount: tierApplied ? tierDiscountAmount : 0,
         discount: totalDiscountAmount,
         discount_amount: finalDiscountAmount,
         discount_code: finalDiscountCode,

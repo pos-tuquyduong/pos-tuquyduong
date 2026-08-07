@@ -60,6 +60,7 @@ export default function Sales() {
   // === Gói sản phẩm ===
   const [pkgTemplates, setPkgTemplates] = useState([]);        // Template gói (from Settings)
   const [membershipTiers, setMembershipTiers] = useState([]);  // TIER-1c: hạng thành viên bán như sản phẩm
+  const [membershipInfo, setMembershipInfo] = useState(null);  // TIER-2: hạng hiện tại của khách đang chọn (status + % giảm)
   const [customerPkgs, setCustomerPkgs] = useState([]);        // Gói active của khách
   const [activePkgId, setActivePkgId] = useState(null);        // ID gói đang bật (null = off)
   const [buyQty, setBuyQty] = useState('30');                  // Số lượng SP khi mua gói
@@ -122,6 +123,20 @@ export default function Sales() {
     const uid = `${item.sx_product_type}_${item.sx_product_id}`;
     if (!flashState.product_keys?.includes(uid)) return null;
     return Math.round(item.unit_price * (1 - flashState.percent / 100));
+  };
+
+  // TIER-2: giá đã giảm theo HẠNG cho 1 item (chỉ hiển thị/tính client — server luôn tự tính lại).
+  // Bám đúng luật F2: đơn có dính Flash (cartFlashDiscount > 0) → KHÔNG cộng giảm hạng.
+  const getTierPrice = (item) => {
+    if (!membershipInfo?.usable) return null;
+    if (item.is_membership || item.is_pkg) return null;
+    if (cartFlashDiscount > 0) return null; // đơn dính Flash — hạng không cộng thêm (đúng luật đã chốt)
+    const rawRate = item.is_special_group
+      ? (membershipInfo.special_discount_percent || 0)
+      : (membershipInfo.discount_percent || 0);
+    const rate = Math.min(90, Math.max(0, rawRate)); // phòng vệ khớp với server, không để giá âm
+    if (!rate) return null;
+    return Math.round(item.unit_price * (1 - rate / 100));
   };
 
   const loadProducts = async () => {
@@ -233,10 +248,33 @@ export default function Sales() {
     }
   };
 
+  // TIER-2: tra hạng hiện tại của khách + gộp % giảm từ danh sách hạng đã tải sẵn (membershipTiers)
+  // — không sửa API tra cứu, chỉ tra cứu status + tự lookup rate cục bộ, tránh gọi API 2 lần.
+  const loadMembershipInfo = async (phone) => {
+    if (!phone) { setMembershipInfo(null); return; }
+    try {
+      const token = localStorage.getItem('pos_token');
+      const res = await fetch(`/api/pos/membership/status/${encodeURIComponent(phone)}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const result = await res.json();
+      if (result.success) {
+        const status = result.data;
+        const usable = status.status === 'active' || status.status === 'expiring_soon';
+        const tierRates = usable ? membershipTiers.find(t => t.id === status.tier_id) : null;
+        setMembershipInfo({ ...status, usable, discount_percent: tierRates?.discount_percent || 0, special_discount_percent: tierRates?.special_discount_percent || 0 });
+      }
+    } catch (err) {
+      console.error('Load membership info error:', err);
+      setMembershipInfo(null);
+    }
+  };
+
   // Xử lý khi chọn khách hàng từ CustomerSearch
   const handleSelectCustomer = (selectedCustomer) => {
     setCustomer(selectedCustomer);
     setError('');
+    loadMembershipInfo(selectedCustomer?.phone);
     
     // Reset các option thanh toán khi đổi khách
     setUseBalance(false);
@@ -266,6 +304,7 @@ export default function Sales() {
   // Xử lý khi bỏ chọn khách hàng
   const handleClearCustomer = () => {
     setCustomer(null);
+    setMembershipInfo(null);
     setUseBalance(false);
     setBalanceToUse(0);
     setUseParentBalance(false);
@@ -352,6 +391,7 @@ export default function Sales() {
         icon: product.icon,
         color: fromPkg ? '#7c3aed' : product.color,
         fromPkg,
+        is_special_group: !!product.is_special_group,
       }]);
     }
     setError('');
@@ -467,6 +507,13 @@ export default function Sales() {
     return sum + (item.unit_price - flashPrice) * item.quantity;
   }, 0);
 
+  // === TIER-2: giảm theo hạng thành viên (client tự tính, server luôn tính lại — xem getTierPrice) ===
+  const cartTierDiscount = cart.reduce((sum, item) => {
+    const tierPrice = getTierPrice(item);
+    if (tierPrice == null) return sum;
+    return sum + (item.unit_price - tierPrice) * item.quantity;
+  }, 0);
+
   // === Phase B: Tính chiết khấu ===
   let discountAmount = 0;
   if (discountCodeValid?.valid) {
@@ -482,9 +529,9 @@ export default function Sales() {
     // Backward compatible
     discountAmount = discount;
   }
-  discountAmount = Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount));
+  discountAmount = Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount));
 
-  const total = Math.max(0, subtotal - cartFlashDiscount - discountAmount + (shippingFee || 0));
+  const total = Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount - discountAmount + (shippingFee || 0));
 
   // Tính toán thanh toán linh hoạt
   const customerBalance = customer?.balance || 0;
@@ -515,6 +562,7 @@ export default function Sales() {
       return;
     }
     loadFlashState(); // làm mới ngay trước khi thanh toán — tránh dùng số Flash quá cũ (>60s)
+    if (customer?.phone) loadMembershipInfo(customer.phone); // TIER-2: tránh dùng hạng quá cũ (vd vừa hết hạn giữa phiên bán)
 
     // Reset state thanh toán
     setError('');
@@ -623,6 +671,7 @@ export default function Sales() {
         subtotal: result.order.subtotal || subtotal,
         discount: result.order.discount ?? discountAmount,
         flash_discount: result.order.flash_discount || 0,
+        tier_discount: result.order.tier_discount || 0,
         discount_type: result.order.discount_type,
         discount_value: result.order.discount_value,
         discount_code: result.order.discount_code,
@@ -654,6 +703,7 @@ export default function Sales() {
       setCart([]);
       setNoteEditKey(null);
       setCustomer(null);
+      setMembershipInfo(null);
       setSearchPhone('');
       setDiscount(0);
       setPaymentMethod('cash');
@@ -2149,6 +2199,7 @@ export default function Sales() {
         subtotal: completedOrder.subtotal || completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
         discount: completedOrder.discount || 0,
         flash_discount: completedOrder.flash_discount || 0,
+        tier_discount: completedOrder.tier_discount || 0,
         discount_type: completedOrder.discount_type,
         discount_value: completedOrder.discount_value,
         discount_code: completedOrder.discount_code,

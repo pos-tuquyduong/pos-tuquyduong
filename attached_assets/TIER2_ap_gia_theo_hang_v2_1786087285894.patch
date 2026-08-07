@@ -1,0 +1,686 @@
+diff --git a/client/src/components/InvoicePreview.jsx b/client/src/components/InvoicePreview.jsx
+index f4f49e2..d7df4c8 100644
+--- a/client/src/components/InvoicePreview.jsx
++++ b/client/src/components/InvoicePreview.jsx
+@@ -433,8 +433,13 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+         </thead>
+         <tbody>
+           {data.items.map((item, idx) => {
++            // Flash và giảm hạng KHÔNG BAO GIỜ cùng áp cho 1 món (đúng luật đã chốt: đơn dính
++            // Flash thì hạng không cộng thêm) — nên tối đa chỉ 1 trong 2 có giá trị, ưu tiên hiện
++            // đúng cái nào server đã tính (không cần "chọn", chỉ cần đọc đúng field có giá trị).
+             const hasFlash = item.flash_price != null && item.flash_price !== item.price;
+-            const realPrice = hasFlash ? item.flash_price : item.price;
++            const hasTier = !hasFlash && item.tier_price != null && item.tier_price !== item.price;
++            const hasDiscount = hasFlash || hasTier;
++            const realPrice = hasFlash ? item.flash_price : hasTier ? item.tier_price : item.price;
+             const realTotal = realPrice * item.qty;
+             return (
+               <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
+@@ -457,12 +462,15 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+                   {hasFlash && (
+                     <div style={{ fontSize: '0.75em', color: '#a32d2d', fontWeight: 'bold', marginTop: '0.5mm' }}>⚡ Flash</div>
+                   )}
++                  {hasTier && (
++                    <div style={{ fontSize: '0.75em', color: '#5b3ea3', fontWeight: 'bold', marginTop: '0.5mm' }}>🎖️ Giá hội viên</div>
++                  )}
+                 </td>
+                 {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.unit}</td>}
+                 <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.qty}</td>
+                 {config.show?.col_price && (
+                   <td style={{ padding: '1mm', textAlign: 'right', verticalAlign: 'top' }}>
+-                    {hasFlash && (
++                    {hasDiscount && (
+                       <div style={{ fontSize: '0.75em', color: '#999', textDecoration: 'line-through' }}>{formatCurrency(item.price)}</div>
+                     )}
+                     {formatCurrency(realPrice)}
+@@ -486,16 +494,16 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+       }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
+           <span>Tiền hàng:</span>
+-          <span>{formatCurrency(data.subtotal - (data.flash_discount || 0))}</span>
++          <span>{formatCurrency(data.subtotal - (data.flash_discount || 0) - (data.tier_discount || 0))}</span>
+         </div>
+ 
+-        {config.show?.discount_detail && (data.discount - (data.flash_discount || 0)) > 0 && (
++        {config.show?.discount_detail && (data.discount - (data.flash_discount || 0) - (data.tier_discount || 0)) > 0 && (
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm', color: '#059669' }}>
+             <span>Chiết khấu
+               {data.discount_code ? ` (${data.discount_code})` : 
+                data.discount_type === 'percent' ? ` (${data.discount_value}%)` : ''}:
+             </span>
+-            <span>-{formatCurrency(data.discount - (data.flash_discount || 0))}</span>
++            <span>-{formatCurrency(data.discount - (data.flash_discount || 0) - (data.tier_discount || 0))}</span>
+           </div>
+         )}
+         
+diff --git a/client/src/components/InvoicePrint.jsx b/client/src/components/InvoicePrint.jsx
+index eaa403b..9af8730 100644
+--- a/client/src/components/InvoicePrint.jsx
++++ b/client/src/components/InvoicePrint.jsx
+@@ -163,10 +163,12 @@ export default function InvoicePrint({
+       total: (item.unit_price || 0) * (item.quantity || 0),
+       note: item.note ?? item.notes ?? '',
+       flash_price: item.flash_unit_price ?? null,
++      tier_price: item.tier_unit_price ?? null,
+     })),
+     subtotal: order.subtotal || 0,
+     discount: order.discount || 0,
+     flash_discount: order.flash_discount || 0,
++    tier_discount: order.tier_discount || 0,
+     discount_type: order.discount_type,
+     discount_value: order.discount_value,
+     discount_code: order.discount_code,
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 820e7cb..92eba48 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -60,6 +60,7 @@ export default function Sales() {
+   // === Gói sản phẩm ===
+   const [pkgTemplates, setPkgTemplates] = useState([]);        // Template gói (from Settings)
+   const [membershipTiers, setMembershipTiers] = useState([]);  // TIER-1c: hạng thành viên bán như sản phẩm
++  const [membershipInfo, setMembershipInfo] = useState(null);  // TIER-2: hạng hiện tại của khách đang chọn (status + % giảm)
+   const [customerPkgs, setCustomerPkgs] = useState([]);        // Gói active của khách
+   const [activePkgId, setActivePkgId] = useState(null);        // ID gói đang bật (null = off)
+   const [buyQty, setBuyQty] = useState('30');                  // Số lượng SP khi mua gói
+@@ -124,6 +125,20 @@ export default function Sales() {
+     return Math.round(item.unit_price * (1 - flashState.percent / 100));
+   };
+ 
++  // TIER-2: giá đã giảm theo HẠNG cho 1 item (chỉ hiển thị/tính client — server luôn tự tính lại).
++  // Bám đúng luật F2: đơn có dính Flash (cartFlashDiscount > 0) → KHÔNG cộng giảm hạng.
++  const getTierPrice = (item) => {
++    if (!membershipInfo?.usable) return null;
++    if (item.is_membership || item.is_pkg) return null;
++    if (cartFlashDiscount > 0) return null; // đơn dính Flash — hạng không cộng thêm (đúng luật đã chốt)
++    const rawRate = item.is_special_group
++      ? (membershipInfo.special_discount_percent || 0)
++      : (membershipInfo.discount_percent || 0);
++    const rate = Math.min(90, Math.max(0, rawRate)); // phòng vệ khớp với server, không để giá âm
++    if (!rate) return null;
++    return Math.round(item.unit_price * (1 - rate / 100));
++  };
++
+   const loadProducts = async () => {
+     try {
+       const data = await productsApi.list({ with_stock: 'true' });
+@@ -233,10 +248,33 @@ export default function Sales() {
+     }
+   };
+ 
++  // TIER-2: tra hạng hiện tại của khách + gộp % giảm từ danh sách hạng đã tải sẵn (membershipTiers)
++  // — không sửa API tra cứu, chỉ tra cứu status + tự lookup rate cục bộ, tránh gọi API 2 lần.
++  const loadMembershipInfo = async (phone) => {
++    if (!phone) { setMembershipInfo(null); return; }
++    try {
++      const token = localStorage.getItem('pos_token');
++      const res = await fetch(`/api/pos/membership/status/${encodeURIComponent(phone)}`, {
++        headers: { 'Authorization': 'Bearer ' + token }
++      });
++      const result = await res.json();
++      if (result.success) {
++        const status = result.data;
++        const usable = status.status === 'active' || status.status === 'expiring_soon';
++        const tierRates = usable ? membershipTiers.find(t => t.id === status.tier_id) : null;
++        setMembershipInfo({ ...status, usable, discount_percent: tierRates?.discount_percent || 0, special_discount_percent: tierRates?.special_discount_percent || 0 });
++      }
++    } catch (err) {
++      console.error('Load membership info error:', err);
++      setMembershipInfo(null);
++    }
++  };
++
+   // Xử lý khi chọn khách hàng từ CustomerSearch
+   const handleSelectCustomer = (selectedCustomer) => {
+     setCustomer(selectedCustomer);
+     setError('');
++    loadMembershipInfo(selectedCustomer?.phone);
+     
+     // Reset các option thanh toán khi đổi khách
+     setUseBalance(false);
+@@ -266,6 +304,7 @@ export default function Sales() {
+   // Xử lý khi bỏ chọn khách hàng
+   const handleClearCustomer = () => {
+     setCustomer(null);
++    setMembershipInfo(null);
+     setUseBalance(false);
+     setBalanceToUse(0);
+     setUseParentBalance(false);
+@@ -352,6 +391,7 @@ export default function Sales() {
+         icon: product.icon,
+         color: fromPkg ? '#7c3aed' : product.color,
+         fromPkg,
++        is_special_group: !!product.is_special_group,
+       }]);
+     }
+     setError('');
+@@ -467,6 +507,13 @@ export default function Sales() {
+     return sum + (item.unit_price - flashPrice) * item.quantity;
+   }, 0);
+ 
++  // === TIER-2: giảm theo hạng thành viên (client tự tính, server luôn tính lại — xem getTierPrice) ===
++  const cartTierDiscount = cart.reduce((sum, item) => {
++    const tierPrice = getTierPrice(item);
++    if (tierPrice == null) return sum;
++    return sum + (item.unit_price - tierPrice) * item.quantity;
++  }, 0);
++
+   // === Phase B: Tính chiết khấu ===
+   let discountAmount = 0;
+   if (discountCodeValid?.valid) {
+@@ -482,9 +529,9 @@ export default function Sales() {
+     // Backward compatible
+     discountAmount = discount;
+   }
+-  discountAmount = Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount));
++  discountAmount = Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount));
+ 
+-  const total = Math.max(0, subtotal - cartFlashDiscount - discountAmount + (shippingFee || 0));
++  const total = Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount - discountAmount + (shippingFee || 0));
+ 
+   // Tính toán thanh toán linh hoạt
+   const customerBalance = customer?.balance || 0;
+@@ -515,6 +562,7 @@ export default function Sales() {
+       return;
+     }
+     loadFlashState(); // làm mới ngay trước khi thanh toán — tránh dùng số Flash quá cũ (>60s)
++    if (customer?.phone) loadMembershipInfo(customer.phone); // TIER-2: tránh dùng hạng quá cũ (vd vừa hết hạn giữa phiên bán)
+ 
+     // Reset state thanh toán
+     setError('');
+@@ -623,6 +671,7 @@ export default function Sales() {
+         subtotal: result.order.subtotal || subtotal,
+         discount: result.order.discount ?? discountAmount,
+         flash_discount: result.order.flash_discount || 0,
++        tier_discount: result.order.tier_discount || 0,
+         discount_type: result.order.discount_type,
+         discount_value: result.order.discount_value,
+         discount_code: result.order.discount_code,
+@@ -654,6 +703,7 @@ export default function Sales() {
+       setCart([]);
+       setNoteEditKey(null);
+       setCustomer(null);
++      setMembershipInfo(null);
+       setSearchPhone('');
+       setDiscount(0);
+       setPaymentMethod('cash');
+@@ -2149,6 +2199,7 @@ export default function Sales() {
+         subtotal: completedOrder.subtotal || completedOrder.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0),
+         discount: completedOrder.discount || 0,
+         flash_discount: completedOrder.flash_discount || 0,
++        tier_discount: completedOrder.tier_discount || 0,
+         discount_type: completedOrder.discount_type,
+         discount_value: completedOrder.discount_value,
+         discount_code: completedOrder.discount_code,
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index 58cd744..0e3964a 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -167,6 +167,12 @@ export default function Settings() {
+     ));
+   };
+ 
++  const updateSpecialGroup = (uniqueId, checked) => {
++    setProducts(products.map(p =>
++      getUniqueId(p) === uniqueId ? { ...p, is_special_group: checked } : p
++    ));
++  };
++
+   const savePrices = async () => {
+     setSaving(true);
+     try {
+@@ -175,7 +181,8 @@ export default function Settings() {
+         sx_product_id: p.sx_product_id,
+         code: p.code,
+         name: p.name,
+-        price: p.price 
++        price: p.price,
++        is_special_group: !!p.is_special_group
+       })));
+       setMessage('Đã lưu giá thành công!');
+       setTimeout(() => setMessage(''), 3000);
+@@ -325,13 +332,15 @@ export default function Settings() {
+       for (const t of tiers) {
+         if (!String(t.name).trim()) throw new Error('Tên hạng không được trống');
+         const price = Number(t.card_price), pct = Number(t.discount_percent);
++        const specialPct = Number(t.special_discount_percent) || 0;
+         if (!Number.isFinite(price) || price < 0) throw new Error('Giá thẻ không hợp lệ');
+         if (!Number.isFinite(pct) || pct < 0 || pct > 90) throw new Error('% giảm phải từ 0 đến 90');
++        if (specialPct < 0 || specialPct > 90) throw new Error('% giảm SP đặc biệt phải từ 0 đến 90');
+       }
+       const vm = Number(tierValidMonths);
+       if (!Number.isFinite(vm) || vm < 1 || vm > 24) throw new Error('Số tháng hiệu lực phải từ 1 đến 24');
+       const data = await pkgApi('PUT', '/api/pos/tiers', {
+-        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent) })),
++        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent), special_discount_percent: Number(t.special_discount_percent) || 0 })),
+         round_to: tierRound.round_to,
+         round_mode: tierRound.round_mode,
+         valid_months: vm,
+@@ -640,6 +649,7 @@ export default function Settings() {
+                     <th>Tên SP</th>
+                     <th>Loại</th>
+                     <th>Giá bán (VND)</th>
++                    <th style={{ textAlign: 'center' }}>SP đặc biệt</th>
+                     <th>Trạng thái</th>
+                   </tr>
+                 </thead>
+@@ -672,6 +682,14 @@ export default function Settings() {
+                           onChange={e => updatePrice(getUniqueId(p), e.target.value)} 
+                         />
+                       </td>
++                      <td style={{ textAlign: 'center' }}>
++                        <input
++                          type="checkbox"
++                          checked={!!p.is_special_group}
++                          onChange={e => updateSpecialGroup(getUniqueId(p), e.target.checked)}
++                          title="SP thuộc nhóm đặc biệt (vd cà phê) — nhận % giảm hạng riêng, khác % giảm thường"
++                        />
++                      </td>
+                       <td>
+                         {p.is_active ? 
+                           <span className="badge badge-success">Đang bán</span> : 
+@@ -1357,6 +1375,7 @@ export default function Settings() {
+                       <th style={{ padding: '6px 8px' }}>Tên hạng</th>
+                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá bán thẻ (đ)</th>
+                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
++                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm % SP đặc biệt</th>
+                       <th style={{ padding: '6px 8px', textAlign: 'center' }}></th>
+                     </tr>
+                   </thead>
+@@ -1375,6 +1394,11 @@ export default function Settings() {
+                           <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
+                             value={t.discount_percent} onChange={e => updateTier(t.id, 'discount_percent', e.target.value)} />
+                         </td>
++                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
++                          <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
++                            value={t.special_discount_percent ?? 0} onChange={e => updateTier(t.id, 'special_discount_percent', e.target.value)}
++                            title="% giảm riêng cho SP đặc biệt (vd cà phê) — tick ở tab Giá bán" />
++                        </td>
+                         <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                           <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: 12, color: '#dc2626' }}
+                             onClick={() => deleteTier(t.id, t.name)} disabled={saving}>Xóa</button>
+@@ -1388,7 +1412,7 @@ export default function Settings() {
+               {/* xem trước 1 ví dụ */}
+               {tiers.length > 0 && (
+                 <div style={{ marginTop: '1rem', padding: '10px 12px', background: '#faf5ff', borderRadius: 8, fontSize: 13 }}>
+-                  <b>Xem trước</b> — món giá 50.500đ:
++                  <b>Xem trước</b> — món thường giá 50.500đ:
+                   <span style={{ marginLeft: 8 }}>
+                     {tiers.map(t => {
+                       const pct = Number(t.discount_percent) || 0;
+diff --git a/server/database.js b/server/database.js
+index 7b02259..75631eb 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -120,10 +120,18 @@ async function createTables() {
+       sort_order INTEGER DEFAULT 0,
+       sx_product_type TEXT,
+       sx_product_id INTEGER,
++      is_special_group INTEGER DEFAULT 0,
+       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+       updated_at DATETIME
+     )
+   `);
++  // TIER-2 (06.08.2026): cột đánh dấu "SP đặc biệt/phễu" (vd cà phê) — nhận % giảm hạng RIÊNG,
++  // khác với % giảm hạng thường. Bảng cũ (đã tồn tại) chưa có cột này → thêm bằng ALTER.
++  try {
++    await db.execute(`ALTER TABLE pos_products ADD COLUMN is_special_group INTEGER DEFAULT 0`);
++  } catch (e) {
++    // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã ALTER trước đó) — bỏ qua
++  }
+ 
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BẢNG 5: ĐƠN HÀNG
+@@ -236,6 +244,7 @@ async function createTables() {
+       unit TEXT DEFAULT 'túi',
+       sx_finished_product_id INTEGER,
+       flash_unit_price REAL,
++      tier_unit_price REAL,
+       FOREIGN KEY (order_id) REFERENCES pos_orders(id)
+     )
+   `);
+@@ -246,6 +255,13 @@ async function createTables() {
+   } catch (e) {
+     // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã chạy ALTER trước đó) — bỏ qua
+   }
++  // TIER-2 (06.08.2026): tương tự flash_unit_price — giá đã giảm theo HẠNG cho TỪNG món,
++  // chỉ để in hóa đơn đúng, không ảnh hưởng cách tính total thật.
++  try {
++    await db.execute(`ALTER TABLE pos_order_items ADD COLUMN tier_unit_price REAL`);
++  } catch (e) {
++    // Cột đã tồn tại — bỏ qua
++  }
+ 
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BẢNG 7: SỐ DƯ KHÁCH HÀNG (phone là key chính)
+@@ -1007,12 +1023,20 @@ async function seedDefaultData() {
+       name TEXT NOT NULL,
+       card_price REAL NOT NULL DEFAULT 0,
+       discount_percent REAL NOT NULL DEFAULT 0,
++      special_discount_percent REAL NOT NULL DEFAULT 0,
+       sort_order INTEGER NOT NULL DEFAULT 0,
+       is_active INTEGER DEFAULT 1,
+       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+       updated_at TEXT
+     )
+   `);
++  // TIER-2 (06.08.2026): % giảm RIÊNG cho nhóm SP đặc biệt (vd cà phê) — khác % giảm thường.
++  // Bảng cũ (đã tồn tại) chưa có cột này → thêm bằng ALTER.
++  try {
++    await db.execute(`ALTER TABLE pos_membership_tiers ADD COLUMN special_discount_percent REAL NOT NULL DEFAULT 0`);
++  } catch (e) {
++    // Cột đã tồn tại — bỏ qua
++  }
+   // TIER-1a-v2 (01.08.2026): đổi ý nghĩa cột — không còn là "ngưỡng tích lũy" mà là
+   // "giá bán thẻ hội viên" (owner quyết định: mua thẻ mới lên hạng, mua hàng thường chỉ tích điểm).
+   // Bảng cũ (nếu đã tồn tại từ TIER-1a) còn cột min_spend → đổi tên, giữ nguyên giá trị owner đã chỉnh.
+diff --git a/server/routes/membership.js b/server/routes/membership.js
+index f84e6e9..8d201cb 100644
+--- a/server/routes/membership.js
++++ b/server/routes/membership.js
+@@ -6,49 +6,24 @@
+  * membership_buy — xem orders.js), giống hệt cách "mua gói" hoạt động — không
+  * có endpoint mua riêng ở đây nữa, tránh 2 luồng thanh toán song song.
+  *
+- * Nguyên tắc: pos_membership_purchases CHỈ THÊM DÒNG, không sửa/xóa.
+- * Hạng hiện tại = dòng MỚI NHẤT (purchased_at) mà expires_at > hiện tại.
++ * Logic tra hạng dùng chung với orders.js qua utils/membershipStatus.js —
++ * MỘT NGUỒN duy nhất, tránh 2 nơi tính khác nhau (đúng khuôn mẫu flashState.js).
+  */
+ 
+ const express = require('express');
+-const { queryOne } = require('../database');
++const { query, queryOne } = require('../database');
+ const { authenticate } = require('../middleware/auth');
+ const { normalizePhone, getNow } = require('../utils/helpers');
++const { getMembershipStatus } = require('../utils/membershipStatus');
+ 
+ const router = express.Router();
+ 
+-// Helper: tính trạng thái hạng hiện tại của 1 khách (dùng chung cho GET status + hiển thị danh sách)
+-async function getMembershipStatus(phone) {
+-  const row = await queryOne(
+-    `SELECT * FROM pos_membership_purchases WHERE customer_phone = ? ORDER BY purchased_at DESC, id DESC LIMIT 1`,
+-    [phone],
+-  );
+-  if (!row) return { tier_name: null, status: 'none' };
+-
+-  const now = new Date(getNow().replace(' ', 'T'));
+-  const expires = new Date(String(row.expires_at).replace(' ', 'T'));
+-  const msRemaining = expires.getTime() - now.getTime();
+-  const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+-
+-  let status = 'active';
+-  if (msRemaining <= 0) status = 'expired';
+-  else if (daysRemaining <= 7) status = 'expiring_soon';
+-
+-  return {
+-    tier_id: row.tier_id,
+-    tier_name: row.tier_name,
+-    expires_at: row.expires_at,
+-    days_remaining: daysRemaining,
+-    status, // 'active' | 'expiring_soon' | 'expired' | 'none'
+-  };
+-}
+-
+ // GET /api/pos/membership/status/:phone — tra cứu hạng hiện tại của 1 khách
+ router.get('/status/:phone', authenticate, async (req, res) => {
+   try {
+     const phone = normalizePhone(req.params.phone);
+     if (!phone) return res.status(400).json({ error: 'SĐT không hợp lệ' });
+-    const data = await getMembershipStatus(phone);
++    const data = await getMembershipStatus(query, queryOne, getNow, phone);
+     res.json({ success: true, data });
+   } catch (err) {
+     res.status(500).json({ error: err.message });
+@@ -56,4 +31,3 @@ router.get('/status/:phone', authenticate, async (req, res) => {
+ });
+ 
+ module.exports = router;
+-module.exports.getMembershipStatus = getMembershipStatus;
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index f01200d..e440133 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -20,6 +20,7 @@ const {
+ } = require("../utils/helpers");
+ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
+ const { readFlashState } = require("../utils/flashState");
++const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
+ 
+ const router = express.Router();
+ 
+@@ -237,6 +238,7 @@ router.post("/", authenticate, async (req, res) => {
+         sx_product_type: product.sx_product_type,
+         sx_product_id: product.sx_product_id,
+         from_package: !!item.from_package,
++        is_special_group: !!product.is_special_group,
+         note: item.note ? String(item.note).trim().slice(0, 200) : null,
+       });
+     }
+@@ -358,6 +360,51 @@ router.post("/", authenticate, async (req, res) => {
+       }
+     }
+ 
++    // Normalize phone (chuyển lên sớm hơn — TIER-2 cần biết khách là ai trước khi tính chiết khấu)
++    const phone = normalizePhone(customer_phone);
++    const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
++
++    // === TIER-2: Giảm theo HẠNG THÀNH VIÊN (tầng cùng mức F2, tự động) ===
++    // Bám ĐÚNG luật F2 đã có: đơn có dính Flash (flashApplied=true) → KHÔNG cộng giảm hạng,
++    // giống hệt cách F2 chặn voucher %. Đơn không dính Flash thì hạng vẫn áp bình thường dù
++    // Flash đang chạy ở chỗ khác. Server tự quyết (không tin client) — client CHỈ được hiển thị
++    // trước, số thật luôn do server tính lại ở đây.
++    let tierDiscountAmount = 0;
++    let tierApplied = false;
++    if (!flashApplied && phone) {
++      try {
++        const membership = await getMembershipStatus(query, queryOne, getNow, phone);
++        if (isTierUsable(membership.status)) {
++          const tier = await queryOne(
++            "SELECT discount_percent, special_discount_percent FROM pos_membership_tiers WHERE id = ?",
++            [membership.tier_id],
++          );
++          if (tier) {
++            for (const it of orderItems) {
++              if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
++              // Math.min(90, ...) là phòng vệ 2 lớp — Settings đã chặn 0-90 lúc lưu rồi,
++              // nhưng nếu dữ liệu lỡ bị hỏng (vd nhập tay thẳng vào DB), tuyệt đối không để
++              // % giảm vượt 90 khiến giá món sau giảm thành ÂM (khách được "trả tiền" thay vì trả).
++              const rawRate = it.is_special_group
++                ? Number(tier.special_discount_percent) || 0
++                : Number(tier.discount_percent) || 0;
++              const rate = Math.min(90, Math.max(0, rawRate));
++              if (rate > 0) {
++                tierDiscountAmount += Math.round(it.unit_price * it.quantity * rate / 100);
++                // Hóa đơn: giá đã giảm CHỈ để hiển thị từng món — không ảnh hưởng total thật.
++                it.tier_unit_price = Math.round(it.unit_price * (1 - rate / 100));
++              }
++            }
++            if (tierDiscountAmount > 0) tierApplied = true;
++          }
++        }
++      } catch (tierErr) {
++        console.error("⚠️ TIER-2: lỗi tính giảm hạng (bỏ qua, đơn vẫn chạy):", tierErr.message);
++        tierDiscountAmount = 0;
++        tierApplied = false;
++      }
++    }
++
+     // Ưu tiên 2: Chiết khấu từ request (discount_type + discount_value)
+     // Đã có từ params
+ 
+@@ -394,25 +441,21 @@ router.post("/", authenticate, async (req, res) => {
+       finalDiscountAmount = finalDiscountValue;
+     }
+ 
+-    // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash (phương án A)
++    // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash + giảm hạng
+     finalDiscountAmount = Math.min(
+       finalDiscountAmount,
+-      Math.max(0, subtotal - flashDiscountAmount),
++      Math.max(0, subtotal - flashDiscountAmount - tierDiscountAmount),
+     );
+ 
+-    // Tính total: subtotal - giảm flash - chiết khấu + phí ship
++    // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
+     const finalShippingFee = shipping_fee || 0;
+     const total = Math.max(
+       0,
+-      subtotal - flashDiscountAmount - finalDiscountAmount + finalShippingFee,
++      subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount + finalShippingFee,
+     );
+-    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + voucher) để hoá đơn & báo cáo
+-    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount' giữ riêng để phân tích.
+-    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount;
+-
+-    // Normalize phone
+-    const phone = normalizePhone(customer_phone);
+-    const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
++    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + hạng + voucher) để hoá đơn & báo cáo
++    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount'/'tier_discount' giữ riêng để phân tích.
++    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount + tierDiscountAmount;
+ 
+     // Xử lý thanh toán số dư từ pos_wallets
+     let actualBalanceAmount = 0;
+@@ -634,11 +677,11 @@ router.post("/", authenticate, async (req, res) => {
+         await tx.run(
+           `INSERT INTO pos_order_items (
+             order_id, product_id, product_code, product_name,
+-            quantity, unit_price, total_price, unit, notes, flash_unit_price
+-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
++            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price
++          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           [orderId, item.product_id, item.product_code, item.product_name,
+            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
+-           item.flash_unit_price || null],
++           item.flash_unit_price || null, item.tier_unit_price || null],
+         );
+       }
+ 
+@@ -859,6 +902,7 @@ router.post("/", authenticate, async (req, res) => {
+         discount_type: finalDiscountType,
+         discount_value: finalDiscountValue,
+         flash_discount: flashApplied ? flashDiscountAmount : 0,
++        tier_discount: tierApplied ? tierDiscountAmount : 0,
+         discount: totalDiscountAmount,
+         discount_amount: finalDiscountAmount,
+         discount_code: finalDiscountCode,
+diff --git a/server/routes/products.js b/server/routes/products.js
+index 9299098..e83b59e 100644
+--- a/server/routes/products.js
++++ b/server/routes/products.js
+@@ -41,8 +41,8 @@ router.get('/', authenticateServiceOrUser, async (req, res) => {
+       products = await getFallbackProducts(category);
+     }
+ 
+-    // Merge giá từ POS database - SỬA: dùng composite key
+-    const prices = await query('SELECT sx_product_type, sx_product_id, price FROM pos_products');
++    // Merge giá + TIER-2 (SP đặc biệt) từ POS database - SỬA: dùng composite key
++    const prices = await query('SELECT sx_product_type, sx_product_id, price, is_special_group FROM pos_products');
+ 
+     products = products.map(p => {
+       // TÌM GIÁ BẰNG COMPOSITE KEY (type + id)
+@@ -56,6 +56,7 @@ router.get('/', authenticateServiceOrUser, async (req, res) => {
+         // Tạo unique_id để frontend phân biệt
+         unique_id: `${p.sx_product_type}_${p.sx_product_id}`,
+         price: priceInfo?.price || 0,
++        is_special_group: !!priceInfo?.is_special_group,
+         unit: p.category === 'tea' ? 'gói' : 'túi',
+         is_active: 1
+       };
+@@ -156,13 +157,13 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
+ 
+         if (existing) {
+           await run(
+-            'UPDATE pos_products SET price = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
+-            [p.price, p.sx_product_type, p.sx_product_id]
++            'UPDATE pos_products SET price = ?, is_special_group = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
++            [p.price, p.is_special_group ? 1 : 0, p.sx_product_type, p.sx_product_id]
+           );
+         } else {
+           await run(
+-            `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active)
+-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
++            `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, is_special_group)
++             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+             [
+               p.code || `${p.sx_product_type === 'tea' ? 'TEA' : 'CT'}${p.sx_product_id}`,
+               p.name || 'Từ SX',
+@@ -170,7 +171,8 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
+               p.sx_product_type,
+               p.sx_product_id,
+               p.price,
+-              p.sx_product_type === 'tea' ? 'gói' : 'túi'
++              p.sx_product_type === 'tea' ? 'gói' : 'túi',
++              p.is_special_group ? 1 : 0
+             ]
+           );
+         }
+diff --git a/server/routes/tiers.js b/server/routes/tiers.js
+index 6db57a0..b6be7c2 100644
+--- a/server/routes/tiers.js
++++ b/server/routes/tiers.js
+@@ -53,12 +53,14 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req,
+       const name = String(t.name || '').trim();
+       const cardPrice = Number(t.card_price);
+       const pct = Number(t.discount_percent);
++      const specialPct = t.special_discount_percent === undefined || t.special_discount_percent === '' ? 0 : Number(t.special_discount_percent);
+       if (!name) return res.status(400).json({ error: 'Tên hạng không được trống' });
+       if (!Number.isFinite(cardPrice) || cardPrice < 0) return res.status(400).json({ error: 'Giá thẻ không hợp lệ' });
+       if (!Number.isFinite(pct) || pct < 0 || pct > 90) return res.status(400).json({ error: '% giảm phải từ 0 đến 90' });
++      if (!Number.isFinite(specialPct) || specialPct < 0 || specialPct > 90) return res.status(400).json({ error: '% giảm SP đặc biệt phải từ 0 đến 90' });
+       await run(
+-        'UPDATE pos_membership_tiers SET name=?, card_price=?, discount_percent=?, updated_at=? WHERE id=?',
+-        [name, cardPrice, pct, now, id],
++        'UPDATE pos_membership_tiers SET name=?, card_price=?, discount_percent=?, special_discount_percent=?, updated_at=? WHERE id=?',
++        [name, cardPrice, pct, specialPct, now, id],
+       );
+     }
+ 
+diff --git a/server/utils/membershipStatus.js b/server/utils/membershipStatus.js
+new file mode 100644
+index 0000000..d4e4f50
+--- /dev/null
++++ b/server/utils/membershipStatus.js
+@@ -0,0 +1,40 @@
++/**
++ * Hạng thành viên — trạng thái dùng chung (TIER-1c/TIER-2).
++ * MỘT NGUỒN logic cho cả API tra cứu (routes/membership.js) lẫn luồng bán (routes/orders.js)
++ * → hai nơi không bao giờ tính khác nhau (đúng khuôn mẫu flashState.js).
++ *
++ * Nguyên tắc: pos_membership_purchases CHỈ THÊM DÒNG, không sửa/xóa.
++ * Hạng hiện tại = dòng MỚI NHẤT (purchased_at, rồi tới id — chống trùng giây) mà expires_at > hiện tại.
++ */
++
++async function getMembershipStatus(query, queryOne, getNow, phone) {
++  const row = await queryOne(
++    `SELECT * FROM pos_membership_purchases WHERE customer_phone = ? ORDER BY purchased_at DESC, id DESC LIMIT 1`,
++    [phone],
++  );
++  if (!row) return { tier_id: null, tier_name: null, status: 'none' };
++
++  const now = new Date(getNow().replace(' ', 'T'));
++  const expires = new Date(String(row.expires_at).replace(' ', 'T'));
++  const msRemaining = expires.getTime() - now.getTime();
++  const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
++
++  let status = 'active';
++  if (msRemaining <= 0) status = 'expired';
++  else if (daysRemaining <= 7) status = 'expiring_soon';
++
++  return {
++    tier_id: row.tier_id,
++    tier_name: row.tier_name,
++    expires_at: row.expires_at,
++    days_remaining: daysRemaining,
++    status, // 'active' | 'expiring_soon' | 'expired' | 'none'
++  };
++}
++
++// TIER-2: hạng còn dùng được để áp giá = active HOẶC expiring_soon (chỉ 'expired'/'none' là hết quyền lợi)
++function isTierUsable(status) {
++  return status === 'active' || status === 'expiring_soon';
++}
++
++module.exports = { getMembershipStatus, isTierUsable };

@@ -1,0 +1,43 @@
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index c5040c3..92eba48 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -131,9 +131,10 @@ export default function Sales() {
+     if (!membershipInfo?.usable) return null;
+     if (item.is_membership || item.is_pkg) return null;
+     if (cartFlashDiscount > 0) return null; // đơn dính Flash — hạng không cộng thêm (đúng luật đã chốt)
+-    const rate = item.is_special_group
++    const rawRate = item.is_special_group
+       ? (membershipInfo.special_discount_percent || 0)
+       : (membershipInfo.discount_percent || 0);
++    const rate = Math.min(90, Math.max(0, rawRate)); // phòng vệ khớp với server, không để giá âm
+     if (!rate) return null;
+     return Math.round(item.unit_price * (1 - rate / 100));
+   };
+@@ -561,6 +562,7 @@ export default function Sales() {
+       return;
+     }
+     loadFlashState(); // làm mới ngay trước khi thanh toán — tránh dùng số Flash quá cũ (>60s)
++    if (customer?.phone) loadMembershipInfo(customer.phone); // TIER-2: tránh dùng hạng quá cũ (vd vừa hết hạn giữa phiên bán)
+ 
+     // Reset state thanh toán
+     setError('');
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index 1e1b35e..e440133 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -382,9 +382,13 @@ router.post("/", authenticate, async (req, res) => {
+           if (tier) {
+             for (const it of orderItems) {
+               if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
+-              const rate = it.is_special_group
++              // Math.min(90, ...) là phòng vệ 2 lớp — Settings đã chặn 0-90 lúc lưu rồi,
++              // nhưng nếu dữ liệu lỡ bị hỏng (vd nhập tay thẳng vào DB), tuyệt đối không để
++              // % giảm vượt 90 khiến giá món sau giảm thành ÂM (khách được "trả tiền" thay vì trả).
++              const rawRate = it.is_special_group
+                 ? Number(tier.special_discount_percent) || 0
+                 : Number(tier.discount_percent) || 0;
++              const rate = Math.min(90, Math.max(0, rawRate));
+               if (rate > 0) {
+                 tierDiscountAmount += Math.round(it.unit_price * it.quantity * rate / 100);
+                 // Hóa đơn: giá đã giảm CHỈ để hiển thị từng món — không ảnh hưởng total thật.

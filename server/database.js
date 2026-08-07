@@ -120,10 +120,18 @@ async function createTables() {
       sort_order INTEGER DEFAULT 0,
       sx_product_type TEXT,
       sx_product_id INTEGER,
+      is_special_group INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME
     )
   `);
+  // TIER-2 (06.08.2026): cột đánh dấu "SP đặc biệt/phễu" (vd cà phê) — nhận % giảm hạng RIÊNG,
+  // khác với % giảm hạng thường. Bảng cũ (đã tồn tại) chưa có cột này → thêm bằng ALTER.
+  try {
+    await db.execute(`ALTER TABLE pos_products ADD COLUMN is_special_group INTEGER DEFAULT 0`);
+  } catch (e) {
+    // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã ALTER trước đó) — bỏ qua
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 5: ĐƠN HÀNG
@@ -236,6 +244,7 @@ async function createTables() {
       unit TEXT DEFAULT 'túi',
       sx_finished_product_id INTEGER,
       flash_unit_price REAL,
+      tier_unit_price REAL,
       FOREIGN KEY (order_id) REFERENCES pos_orders(id)
     )
   `);
@@ -245,6 +254,13 @@ async function createTables() {
     await db.execute(`ALTER TABLE pos_order_items ADD COLUMN flash_unit_price REAL`);
   } catch (e) {
     // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã chạy ALTER trước đó) — bỏ qua
+  }
+  // TIER-2 (06.08.2026): tương tự flash_unit_price — giá đã giảm theo HẠNG cho TỪNG món,
+  // chỉ để in hóa đơn đúng, không ảnh hưởng cách tính total thật.
+  try {
+    await db.execute(`ALTER TABLE pos_order_items ADD COLUMN tier_unit_price REAL`);
+  } catch (e) {
+    // Cột đã tồn tại — bỏ qua
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1007,12 +1023,20 @@ async function seedDefaultData() {
       name TEXT NOT NULL,
       card_price REAL NOT NULL DEFAULT 0,
       discount_percent REAL NOT NULL DEFAULT 0,
+      special_discount_percent REAL NOT NULL DEFAULT 0,
       sort_order INTEGER NOT NULL DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT
     )
   `);
+  // TIER-2 (06.08.2026): % giảm RIÊNG cho nhóm SP đặc biệt (vd cà phê) — khác % giảm thường.
+  // Bảng cũ (đã tồn tại) chưa có cột này → thêm bằng ALTER.
+  try {
+    await db.execute(`ALTER TABLE pos_membership_tiers ADD COLUMN special_discount_percent REAL NOT NULL DEFAULT 0`);
+  } catch (e) {
+    // Cột đã tồn tại — bỏ qua
+  }
   // TIER-1a-v2 (01.08.2026): đổi ý nghĩa cột — không còn là "ngưỡng tích lũy" mà là
   // "giá bán thẻ hội viên" (owner quyết định: mua thẻ mới lên hạng, mua hàng thường chỉ tích điểm).
   // Bảng cũ (nếu đã tồn tại từ TIER-1a) còn cột min_spend → đổi tên, giữ nguyên giá trị owner đã chỉnh.

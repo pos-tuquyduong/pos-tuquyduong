@@ -53,12 +53,14 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req, 
       const name = String(t.name || '').trim();
       const cardPrice = Number(t.card_price);
       const pct = Number(t.discount_percent);
+      const specialPct = t.special_discount_percent === undefined || t.special_discount_percent === '' ? 0 : Number(t.special_discount_percent);
       if (!name) return res.status(400).json({ error: 'Tên hạng không được trống' });
       if (!Number.isFinite(cardPrice) || cardPrice < 0) return res.status(400).json({ error: 'Giá thẻ không hợp lệ' });
       if (!Number.isFinite(pct) || pct < 0 || pct > 90) return res.status(400).json({ error: '% giảm phải từ 0 đến 90' });
+      if (!Number.isFinite(specialPct) || specialPct < 0 || specialPct > 90) return res.status(400).json({ error: '% giảm SP đặc biệt phải từ 0 đến 90' });
       await run(
-        'UPDATE pos_membership_tiers SET name=?, card_price=?, discount_percent=?, updated_at=? WHERE id=?',
-        [name, cardPrice, pct, now, id],
+        'UPDATE pos_membership_tiers SET name=?, card_price=?, discount_percent=?, special_discount_percent=?, updated_at=? WHERE id=?',
+        [name, cardPrice, pct, specialPct, now, id],
       );
     }
 
