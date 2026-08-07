@@ -1,0 +1,68 @@
+diff --git a/server/routes/customers-v2.js b/server/routes/customers-v2.js
+index ddabcc9..3b02a98 100644
+--- a/server/routes/customers-v2.js
++++ b/server/routes/customers-v2.js
+@@ -10,44 +10,12 @@ const express = require("express");
+ const { query, queryOne, run } = require("../database");
+ const { authenticate, checkPermission } = require("../middleware/auth");
+ const { normalizePhone, getNow } = require("../utils/helpers");
+-const http = require("http");
+-const https = require("https");
+-const { URL } = require("url");
++const { callSxApi } = require("../utils/sxApi");
+ 
+ const router = express.Router();
+ 
+-const SX_API_URL = process.env.SX_API_URL || "http://localhost:3000";
+ const SX_API_KEY = process.env.SX_API_KEY || "";
+ 
+-// Helper: fetch tương thích Node < 18
+-function fetchUrl(url, options = {}) {
+-  return new Promise((resolve, reject) => {
+-    const urlObj = new URL(url);
+-    const lib = urlObj.protocol === "https:" ? https : http;
+-
+-    const req = lib.request(
+-      url,
+-      {
+-        method: options.method || "GET",
+-        headers: options.headers || {},
+-      },
+-      (res) => {
+-        let data = "";
+-        res.on("data", (chunk) => (data += chunk));
+-        res.on("end", () => {
+-          resolve({
+-            ok: res.statusCode >= 200 && res.statusCode < 300,
+-            status: res.statusCode,
+-            json: () => Promise.resolve(JSON.parse(data)),
+-          });
+-        });
+-      },
+-    );
+-    req.on("error", reject);
+-    req.end();
+-  });
+-}
+-
+ // Helper: Lấy khách từ SX + lazy cache vào pos_customers
+ let lastCacheTime = 0;
+ const CACHE_INTERVAL = 5 * 60 * 1000; // Cache mỗi 5 phút
+@@ -55,11 +23,12 @@ const CACHE_INTERVAL = 5 * 60 * 1000; // Cache mỗi 5 phút
+ async function fetchSXCustomers() {
+   try {
+     if (!SX_API_KEY) return await getLocalCachedCustomers();
+-    const response = await fetchUrl(`${SX_API_URL}/api/pos/customers/export`, {
+-      headers: { "X-API-Key": SX_API_KEY },
+-    });
+-    if (!response.ok) return await getLocalCachedCustomers();
+-    const customers = await response.json();
++    // ISSUE-2: trước đây dùng fetchUrl() tự viết (http/https thô, KHÔNG timeout)
++    // → khi SX treo (không lỗi rõ ràng, chỉ không phản hồi) thì request treo vô thời hạn.
++    // callSxApi() đã có AbortController timeout (SX_TIMEOUT_MS, mặc định 8s) — dùng lại đúng
++    // 1 chỗ, không viết trùng lần 2 (đây là API tìm kiếm khách hàng, cùng lỗi với API danh sách
++    // khách hàng đã sửa trước đó — 2 endpoint khác nhau nhưng dùng chung hàm này).
++    const customers = await callSxApi("/api/pos/customers/export");
+ 
+     // Lazy cache: lưu vào pos_customers (throttled, không block response)
+     if (customers.length > 0 && Date.now() - lastCacheTime > CACHE_INTERVAL) {
