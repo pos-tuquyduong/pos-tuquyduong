@@ -463,7 +463,9 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
                     <div style={{ fontSize: '0.75em', color: '#a32d2d', fontWeight: 'bold', marginTop: '0.5mm' }}>⚡ Flash</div>
                   )}
                   {hasTier && (
-                    <div style={{ fontSize: '0.75em', color: '#5b3ea3', fontWeight: 'bold', marginTop: '0.5mm' }}>🎖️ Giá hội viên</div>
+                    <div style={{ fontSize: '0.75em', color: '#5b3ea3', fontWeight: 'bold', marginTop: '0.5mm' }}>
+                      🎖️ Khách hàng {data.customer?.tier || 'hội viên'}
+                    </div>
                   )}
                 </td>
                 {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.unit}</td>}

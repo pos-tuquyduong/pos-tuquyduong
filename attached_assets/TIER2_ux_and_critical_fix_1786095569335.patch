@@ -1,0 +1,172 @@
+diff --git a/client/src/components/InvoicePreview.jsx b/client/src/components/InvoicePreview.jsx
+index d7df4c8..47d77ff 100644
+--- a/client/src/components/InvoicePreview.jsx
++++ b/client/src/components/InvoicePreview.jsx
+@@ -463,7 +463,9 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+                     <div style={{ fontSize: '0.75em', color: '#a32d2d', fontWeight: 'bold', marginTop: '0.5mm' }}>⚡ Flash</div>
+                   )}
+                   {hasTier && (
+-                    <div style={{ fontSize: '0.75em', color: '#5b3ea3', fontWeight: 'bold', marginTop: '0.5mm' }}>🎖️ Giá hội viên</div>
++                    <div style={{ fontSize: '0.75em', color: '#5b3ea3', fontWeight: 'bold', marginTop: '0.5mm' }}>
++                      🎖️ Khách hàng {data.customer?.tier || 'hội viên'}
++                    </div>
+                   )}
+                 </td>
+                 {config.show?.col_unit && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{item.unit}</td>}
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 92eba48..fde03ae 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -672,6 +672,7 @@ export default function Sales() {
+         discount: result.order.discount ?? discountAmount,
+         flash_discount: result.order.flash_discount || 0,
+         tier_discount: result.order.tier_discount || 0,
++        customerTier: result.order.customer_tier || null,
+         discount_type: result.order.discount_type,
+         discount_value: result.order.discount_value,
+         discount_code: result.order.discount_code,
+@@ -1039,15 +1040,28 @@ export default function Sales() {
+                       <><span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.original_price || item.unit_price)}</span> <span style={{ color: '#7c3aed', fontWeight: 600 }}>→ 0đ</span></>
+                     ) : (() => {
+                       const flashPrice = getFlashPrice(item);
+-                      if (flashPrice == null) return `${formatPrice(item.unit_price)} × ${item.quantity}`;
+-                      return (
+-                        <>
+-                          <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
+-                          {' '}
+-                          <span style={{ color: '#dc2626', fontWeight: 700 }}>⚡ {formatPrice(flashPrice)}</span>
+-                          {` × ${item.quantity}`}
+-                        </>
+-                      );
++                      if (flashPrice != null) {
++                        return (
++                          <>
++                            <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
++                            {' '}
++                            <span style={{ color: '#dc2626', fontWeight: 700 }}>⚡ {formatPrice(flashPrice)}</span>
++                            {` × ${item.quantity}`}
++                          </>
++                        );
++                      }
++                      const tierPrice = getTierPrice(item);
++                      if (tierPrice != null) {
++                        return (
++                          <>
++                            <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
++                            {' '}
++                            <span style={{ color: '#5b3ea3', fontWeight: 700 }}>🎖️ {formatPrice(tierPrice)}</span>
++                            {` × ${item.quantity}`}
++                          </>
++                        );
++                      }
++                      return `${formatPrice(item.unit_price)} × ${item.quantity}`;
+                     })()}
+                   </div>
+                   {item.is_pkg && (
+@@ -1538,14 +1552,19 @@ export default function Sales() {
+               }}>
+                 <span>
+                   {item.icon} {item.product_code} × {item.quantity}
+-                  {getFlashPrice(item) != null && (
++                  {getFlashPrice(item) != null ? (
+                     <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: '0.35rem' }}>⚡Flash</span>
+-                  )}
++                  ) : getTierPrice(item) != null ? (
++                    <span style={{ color: '#5b3ea3', fontWeight: 700, marginLeft: '0.35rem' }}>🎖️Hạng</span>
++                  ) : null}
+                 </span>
+                 <span style={{ fontWeight: 'bold' }}>
+                   {(() => {
+                     const flashPrice = getFlashPrice(item);
+-                    return formatPrice((flashPrice != null ? flashPrice : item.unit_price) * item.quantity);
++                    if (flashPrice != null) return formatPrice(flashPrice * item.quantity);
++                    const tierPrice = getTierPrice(item);
++                    if (tierPrice != null) return formatPrice(tierPrice * item.quantity);
++                    return formatPrice(item.unit_price * item.quantity);
+                   })()}
+                 </span>
+               </div>
+@@ -2192,6 +2211,7 @@ export default function Sales() {
+         customer_address: completedOrder.customerAddress,
+         customer_balance: completedOrder.customerBalance,
+         customer_type: completedOrder.customerType,
++        customer_tier: completedOrder.customerTier,
+         customer_note: completedOrder.customerNote,
+         created_by: completedOrder.createdBy,
+         created_at: completedOrder.createdAt,
+diff --git a/server/database.js b/server/database.js
+index 75631eb..782cb74 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -184,6 +184,20 @@ async function createTables() {
+   } catch (e) {
+     // Cột đã tồn tại, bỏ qua
+   }
++  // TIER-2 (07.08.2026): lưu lại giảm hạng + tên hạng lúc mua — để IN LẠI đơn cũ (reprint)
++  // vẫn hiện đúng, không lệch với lúc mới tạo (giống hệt cách flash_discount đã làm).
++  try {
++    await db.execute(`ALTER TABLE pos_orders ADD COLUMN tier_discount REAL DEFAULT 0`);
++    console.log('✅ Đã thêm cột tier_discount vào pos_orders (TIER-2)');
++  } catch (e) {
++    // Cột đã tồn tại, bỏ qua
++  }
++  try {
++    await db.execute(`ALTER TABLE pos_orders ADD COLUMN customer_tier TEXT`);
++    console.log('✅ Đã thêm cột customer_tier vào pos_orders (TIER-2)');
++  } catch (e) {
++    // Cột đã tồn tại, bỏ qua
++  }
+   // ═══════════════════════════════════════════════════════════════════════════
+   // MIGRATION V3: Hỗ trợ công nợ + thanh toán linh hoạt
+   // ═══════════════════════════════════════════════════════════════════════════
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index e440133..935394a 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -371,6 +371,7 @@ router.post("/", authenticate, async (req, res) => {
+     // trước, số thật luôn do server tính lại ở đây.
+     let tierDiscountAmount = 0;
+     let tierApplied = false;
++    let appliedTierName = null; // hóa đơn: hiện đúng tên hạng thật của khách (KH tự đổi tên ở Cài đặt)
+     if (!flashApplied && phone) {
+       try {
+         const membership = await getMembershipStatus(query, queryOne, getNow, phone);
+@@ -380,6 +381,7 @@ router.post("/", authenticate, async (req, res) => {
+             [membership.tier_id],
+           );
+           if (tier) {
++            appliedTierName = membership.tier_name;
+             for (const it of orderItems) {
+               if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
+               // Math.min(90, ...) là phòng vệ 2 lớp — Settings đã chặn 0-90 lúc lưu rồi,
+@@ -645,19 +647,19 @@ router.post("/", authenticate, async (req, res) => {
+         `INSERT INTO pos_orders (
+           code, customer_phone, customer_name,
+           subtotal, discount, discount_reason, total,
+-          discount_type, discount_value, discount_amount, flash_discount, discount_code, shipping_fee,
++          discount_type, discount_value, discount_amount, flash_discount, tier_discount, customer_tier, discount_code, shipping_fee,
+           payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
+           parent_phone, parent_balance_amount,
+           cash_received, change_amount,
+           payment_status, due_date,
+           customer_package_id,
+           status, notes, created_by, created_at
+-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
++        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+         [
+           orderCode, phone || null, customer_name || "Khách lẻ",
+           subtotal, totalDiscountAmount, discount_reason || null, total,
+           finalDiscountType || null, finalDiscountValue || 0, totalDiscountAmount,
+-          flashDiscountAmount,
++          flashDiscountAmount, tierDiscountAmount, appliedTierName || null,
+           finalDiscountCode || null, finalShippingFee,
+           payment_method === "debt" ? "debt" : payment_method,
+           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
+@@ -903,6 +905,7 @@ router.post("/", authenticate, async (req, res) => {
+         discount_value: finalDiscountValue,
+         flash_discount: flashApplied ? flashDiscountAmount : 0,
+         tier_discount: tierApplied ? tierDiscountAmount : 0,
++        customer_tier: appliedTierName,
+         discount: totalDiscountAmount,
+         discount_amount: finalDiscountAmount,
+         discount_code: finalDiscountCode,

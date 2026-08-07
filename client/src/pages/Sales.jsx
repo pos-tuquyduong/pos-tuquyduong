@@ -672,6 +672,7 @@ export default function Sales() {
         discount: result.order.discount ?? discountAmount,
         flash_discount: result.order.flash_discount || 0,
         tier_discount: result.order.tier_discount || 0,
+        customerTier: result.order.customer_tier || null,
         discount_type: result.order.discount_type,
         discount_value: result.order.discount_value,
         discount_code: result.order.discount_code,
@@ -1039,15 +1040,28 @@ export default function Sales() {
                       <><span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.original_price || item.unit_price)}</span> <span style={{ color: '#7c3aed', fontWeight: 600 }}>→ 0đ</span></>
                     ) : (() => {
                       const flashPrice = getFlashPrice(item);
-                      if (flashPrice == null) return `${formatPrice(item.unit_price)} × ${item.quantity}`;
-                      return (
-                        <>
-                          <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
-                          {' '}
-                          <span style={{ color: '#dc2626', fontWeight: 700 }}>⚡ {formatPrice(flashPrice)}</span>
-                          {` × ${item.quantity}`}
-                        </>
-                      );
+                      if (flashPrice != null) {
+                        return (
+                          <>
+                            <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
+                            {' '}
+                            <span style={{ color: '#dc2626', fontWeight: 700 }}>⚡ {formatPrice(flashPrice)}</span>
+                            {` × ${item.quantity}`}
+                          </>
+                        );
+                      }
+                      const tierPrice = getTierPrice(item);
+                      if (tierPrice != null) {
+                        return (
+                          <>
+                            <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
+                            {' '}
+                            <span style={{ color: '#5b3ea3', fontWeight: 700 }}>🎖️ {formatPrice(tierPrice)}</span>
+                            {` × ${item.quantity}`}
+                          </>
+                        );
+                      }
+                      return `${formatPrice(item.unit_price)} × ${item.quantity}`;
                     })()}
                   </div>
                   {item.is_pkg && (
@@ -1538,14 +1552,19 @@ export default function Sales() {
               }}>
                 <span>
                   {item.icon} {item.product_code} × {item.quantity}
-                  {getFlashPrice(item) != null && (
+                  {getFlashPrice(item) != null ? (
                     <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: '0.35rem' }}>⚡Flash</span>
-                  )}
+                  ) : getTierPrice(item) != null ? (
+                    <span style={{ color: '#5b3ea3', fontWeight: 700, marginLeft: '0.35rem' }}>🎖️Hạng</span>
+                  ) : null}
                 </span>
                 <span style={{ fontWeight: 'bold' }}>
                   {(() => {
                     const flashPrice = getFlashPrice(item);
-                    return formatPrice((flashPrice != null ? flashPrice : item.unit_price) * item.quantity);
+                    if (flashPrice != null) return formatPrice(flashPrice * item.quantity);
+                    const tierPrice = getTierPrice(item);
+                    if (tierPrice != null) return formatPrice(tierPrice * item.quantity);
+                    return formatPrice(item.unit_price * item.quantity);
                   })()}
                 </span>
               </div>
@@ -2192,6 +2211,7 @@ export default function Sales() {
         customer_address: completedOrder.customerAddress,
         customer_balance: completedOrder.customerBalance,
         customer_type: completedOrder.customerType,
+        customer_tier: completedOrder.customerTier,
         customer_note: completedOrder.customerNote,
         created_by: completedOrder.createdBy,
         created_at: completedOrder.createdAt,

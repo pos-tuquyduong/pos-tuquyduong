@@ -184,6 +184,20 @@ async function createTables() {
   } catch (e) {
     // Cột đã tồn tại, bỏ qua
   }
+  // TIER-2 (07.08.2026): lưu lại giảm hạng + tên hạng lúc mua — để IN LẠI đơn cũ (reprint)
+  // vẫn hiện đúng, không lệch với lúc mới tạo (giống hệt cách flash_discount đã làm).
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN tier_discount REAL DEFAULT 0`);
+    console.log('✅ Đã thêm cột tier_discount vào pos_orders (TIER-2)');
+  } catch (e) {
+    // Cột đã tồn tại, bỏ qua
+  }
+  try {
+    await db.execute(`ALTER TABLE pos_orders ADD COLUMN customer_tier TEXT`);
+    console.log('✅ Đã thêm cột customer_tier vào pos_orders (TIER-2)');
+  } catch (e) {
+    // Cột đã tồn tại, bỏ qua
+  }
   // ═══════════════════════════════════════════════════════════════════════════
   // MIGRATION V3: Hỗ trợ công nợ + thanh toán linh hoạt
   // ═══════════════════════════════════════════════════════════════════════════

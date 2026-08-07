@@ -371,6 +371,7 @@ router.post("/", authenticate, async (req, res) => {
     // trước, số thật luôn do server tính lại ở đây.
     let tierDiscountAmount = 0;
     let tierApplied = false;
+    let appliedTierName = null; // hóa đơn: hiện đúng tên hạng thật của khách (KH tự đổi tên ở Cài đặt)
     if (!flashApplied && phone) {
       try {
         const membership = await getMembershipStatus(query, queryOne, getNow, phone);
@@ -380,6 +381,7 @@ router.post("/", authenticate, async (req, res) => {
             [membership.tier_id],
           );
           if (tier) {
+            appliedTierName = membership.tier_name;
             for (const it of orderItems) {
               if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
               // Math.min(90, ...) là phòng vệ 2 lớp — Settings đã chặn 0-90 lúc lưu rồi,
@@ -645,19 +647,19 @@ router.post("/", authenticate, async (req, res) => {
         `INSERT INTO pos_orders (
           code, customer_phone, customer_name,
           subtotal, discount, discount_reason, total,
-          discount_type, discount_value, discount_amount, flash_discount, discount_code, shipping_fee,
+          discount_type, discount_value, discount_amount, flash_discount, tier_discount, customer_tier, discount_code, shipping_fee,
           payment_method, cash_amount, transfer_amount, balance_amount, debt_amount,
           parent_phone, parent_balance_amount,
           cash_received, change_amount,
           payment_status, due_date,
           customer_package_id,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, totalDiscountAmount, discount_reason || null, total,
           finalDiscountType || null, finalDiscountValue || 0, totalDiscountAmount,
-          flashDiscountAmount,
+          flashDiscountAmount, tierDiscountAmount, appliedTierName || null,
           finalDiscountCode || null, finalShippingFee,
           payment_method === "debt" ? "debt" : payment_method,
           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
@@ -903,6 +905,7 @@ router.post("/", authenticate, async (req, res) => {
         discount_value: finalDiscountValue,
         flash_discount: flashApplied ? flashDiscountAmount : 0,
         tier_discount: tierApplied ? tierDiscountAmount : 0,
+        customer_tier: appliedTierName,
         discount: totalDiscountAmount,
         discount_amount: finalDiscountAmount,
         discount_code: finalDiscountCode,
