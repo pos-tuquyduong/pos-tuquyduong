@@ -1,0 +1,281 @@
+diff --git a/client/package.json b/client/package.json
+index 1dabf56..6eac425 100644
+--- a/client/package.json
++++ b/client/package.json
+@@ -11,6 +11,7 @@
+   },
+   "dependencies": {
+     "axios": "^1.13.2",
++    "jsqr": "^1.4.0",
+     "lucide-react": "^0.562.0",
+     "react": "^19.2.0",
+     "react-dom": "^19.2.0",
+diff --git a/client/src/components/QrScanModal.jsx b/client/src/components/QrScanModal.jsx
+new file mode 100644
+index 0000000..8c7aa0d
+--- /dev/null
++++ b/client/src/components/QrScanModal.jsx
+@@ -0,0 +1,155 @@
++import { useEffect, useRef, useState } from 'react';
++import jsQR from 'jsqr';
++
++/**
++ * A5: Modal quét QR mã khuyến mãi bằng camera.
++ * Thuần client — không gọi API mới, không đụng luồng tiền.
++ * Đọc được QR → gọi onResult(text) rồi tự đóng. Cha (Sales.jsx) tự quyết định
++ * làm gì với text đọc được (đổ vào ô mã, gọi validateDiscountCode như cũ).
++ */
++export default function QrScanModal({ onResult, onClose }) {
++  const videoRef = useRef(null);
++  const canvasRef = useRef(null);
++  const streamRef = useRef(null);
++  const rafRef = useRef(null);
++  const doneRef = useRef(false); // chặn bắn kết quả 2 lần nếu 2 frame liền đọc trúng
++  const [error, setError] = useState('');
++
++  useEffect(() => {
++    let cancelled = false;
++
++    async function start() {
++      try {
++        const stream = await navigator.mediaDevices.getUserMedia({
++          video: { facingMode: 'environment' },
++        });
++        if (cancelled) {
++          // Component đã bị đóng trong lúc chờ quyền camera → tắt ngay, đừng rò rỉ stream.
++          stream.getTracks().forEach((t) => t.stop());
++          return;
++        }
++        streamRef.current = stream;
++        if (videoRef.current) {
++          videoRef.current.srcObject = stream;
++          await videoRef.current.play();
++        }
++        tick();
++      } catch (err) {
++        if (!cancelled) {
++          setError(
++            err?.name === 'NotAllowedError'
++              ? 'Chưa được cấp quyền camera. Vào cài đặt trình duyệt để bật quyền, hoặc nhập mã tay.'
++              : 'Không mở được camera. Nhập mã tay bên dưới.'
++          );
++        }
++      }
++    }
++
++    function tick() {
++      if (cancelled || doneRef.current) return;
++      const video = videoRef.current;
++      const canvas = canvasRef.current;
++      if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
++        canvas.width = video.videoWidth;
++        canvas.height = video.videoHeight;
++        const ctx = canvas.getContext('2d');
++        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
++        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
++        const code = jsQR(imageData.data, imageData.width, imageData.height);
++        if (code && code.data) {
++          doneRef.current = true;
++          onResult(code.data);
++          return; // không schedule frame kế, để cleanup lo phần dừng stream
++        }
++      }
++      rafRef.current = requestAnimationFrame(tick);
++    }
++
++    start();
++
++    return () => {
++      cancelled = true;
++      if (rafRef.current) cancelAnimationFrame(rafRef.current);
++      if (streamRef.current) {
++        streamRef.current.getTracks().forEach((t) => t.stop());
++        streamRef.current = null;
++      }
++    };
++  }, [onResult]);
++
++  return (
++    <div
++      style={{
++        position: 'fixed',
++        inset: 0,
++        background: 'rgba(0,0,0,0.75)',
++        zIndex: 1000,
++        display: 'flex',
++        flexDirection: 'column',
++        alignItems: 'center',
++        justifyContent: 'center',
++        padding: '1rem',
++      }}
++    >
++      <div
++        style={{
++          width: '100%',
++          maxWidth: '360px',
++          background: '#fff',
++          borderRadius: '12px',
++          overflow: 'hidden',
++        }}
++      >
++        <div
++          style={{
++            padding: '0.75rem 1rem',
++            display: 'flex',
++            justifyContent: 'space-between',
++            alignItems: 'center',
++            borderBottom: '1px solid #eee',
++          }}
++        >
++          <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Quét mã QR</span>
++          <button
++            onClick={onClose}
++            style={{
++              border: 'none',
++              background: 'transparent',
++              fontSize: '1.1rem',
++              cursor: 'pointer',
++              padding: '0.25rem 0.5rem',
++            }}
++            aria-label="Đóng"
++          >
++            ✕
++          </button>
++        </div>
++
++        {error ? (
++          <div style={{ padding: '1.5rem 1rem', textAlign: 'center', color: '#dc2626', fontSize: '0.85rem' }}>
++            {error}
++          </div>
++        ) : (
++          <div style={{ position: 'relative', background: '#000' }}>
++            <video
++              ref={videoRef}
++              playsInline
++              muted
++              style={{ width: '100%', display: 'block', maxHeight: '70vh' }}
++            />
++            <div
++              style={{
++                position: 'absolute',
++                inset: '15%',
++                border: '2px solid #22c55e',
++                borderRadius: '8px',
++                pointerEvents: 'none',
++              }}
++            />
++          </div>
++        )}
++        <canvas ref={canvasRef} style={{ display: 'none' }} />
++      </div>
++    </div>
++  );
++}
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index fde03ae..1616c3d 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -8,9 +8,10 @@
+ import { useState, useEffect } from 'react';
+ import { productsApi, customersApi, ordersApi } from '../utils/api';
+ import { getLogo } from '../utils/logoCache';
+-import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText } from 'lucide-react';
++import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText, Camera } from 'lucide-react';
+ import InvoicePrint from '../components/InvoicePrint';
+ import CustomerSearch from '../components/CustomerSearch';
++import QrScanModal from '../components/QrScanModal';
+ 
+ export default function Sales() {
+   const [products, setProducts] = useState([]);
+@@ -54,6 +55,7 @@ export default function Sales() {
+   const [discountValue, setDiscountValue] = useState(0);       // Giá trị chiết khấu
+   const [discountCode, setDiscountCode] = useState('');        // Mã chiết khấu
+   const [discountCodeValid, setDiscountCodeValid] = useState(null); // Kết quả validate mã
++  const [showQrScan, setShowQrScan] = useState(false);          // A5: mở/đóng modal quét QR
+   const [shippingFee, setShippingFee] = useState(0);           // Phí vận chuyển
+   const [validatingCode, setValidatingCode] = useState(false); // Đang validate mã
+ 
+@@ -195,8 +197,13 @@ export default function Sales() {
+   };
+ 
+   // === Phase B: Validate mã chiết khấu ===
+-  const validateDiscountCode = async () => {
+-    if (!discountCode.trim()) {
++  // codeOverride: dùng khi gọi ngay sau khi quét QR (A5) — vì setDiscountCode là async,
++  // nếu đọc lại từ state `discountCode` ngay sau đó có thể dính giá trị cũ. Nút "Áp dụng"
++  // cũ vẫn gọi validateDiscountCode() không tham số (hoặc nhận event của onClick) → rơi về
++  // đọc từ state như trước giờ, không đổi hành vi cũ.
++  const validateDiscountCode = async (codeOverride) => {
++    const codeToCheck = (typeof codeOverride === 'string' ? codeOverride : discountCode).trim();
++    if (!codeToCheck) {
+       setDiscountCodeValid(null);
+       return;
+     }
+@@ -211,7 +218,7 @@ export default function Sales() {
+           'Authorization': 'Bearer ' + token 
+         },
+         body: JSON.stringify({ 
+-          code: discountCode.trim(),
++          code: codeToCheck,
+           order_subtotal: subtotal
+         })
+       });
+@@ -238,6 +245,16 @@ export default function Sales() {
+     setDiscountCodeValid(null);
+   };
+ 
++  // A5: kết quả đọc được từ camera → đổ vào đúng ô mã đang có, gọi lại đúng /validate
++  // đang dùng cho nhập tay. Không tạo luồng riêng, không đụng orders.js.
++  const handleQrScanResult = (text) => {
++    const code = String(text || '').trim().toUpperCase();
++    setShowQrScan(false);
++    if (!code) return;
++    setDiscountCode(code);
++    validateDiscountCode(code);
++  };
++
+   // Áp dụng chiết khấu mặc định của khách hàng
+   const applyCustomerDiscount = () => {
+     if (customer?.discount_value > 0) {
+@@ -1224,6 +1241,26 @@ export default function Sales() {
+                     style={{ flex: 1 }}
+                     disabled={discountCodeValid?.valid}
+                   />
++                  {!discountCodeValid?.valid && (
++                    <button
++                      type="button"
++                      onClick={() => setShowQrScan(true)}
++                      title="Quét mã QR"
++                      aria-label="Quét mã QR"
++                      style={{
++                        padding: '0 0.6rem',
++                        background: '#eef2ff',
++                        color: '#3730a3',
++                        border: 'none',
++                        borderRadius: '6px',
++                        cursor: 'pointer',
++                        display: 'flex',
++                        alignItems: 'center',
++                      }}
++                    >
++                      <Camera size={16} />
++                    </button>
++                  )}
+                   {discountCodeValid?.valid ? (
+                     <button
+                       onClick={clearDiscountCode}
+@@ -2247,6 +2284,14 @@ export default function Sales() {
+       onPrintComplete={handlePrintComplete}
+     />
+       )}
++
++      {/* ========== A5: QUÉT MÃ QR ========== */}
++      {showQrScan && (
++        <QrScanModal
++          onResult={handleQrScanResult}
++          onClose={() => setShowQrScan(false)}
++        />
++      )}
+     </>
+   );
+ }

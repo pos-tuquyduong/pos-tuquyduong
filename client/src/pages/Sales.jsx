@@ -8,9 +8,10 @@
 import { useState, useEffect } from 'react';
 import { productsApi, customersApi, ordersApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
-import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText } from 'lucide-react';
+import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText, Camera } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
+import QrScanModal from '../components/QrScanModal';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -54,6 +55,7 @@ export default function Sales() {
   const [discountValue, setDiscountValue] = useState(0);       // Giá trị chiết khấu
   const [discountCode, setDiscountCode] = useState('');        // Mã chiết khấu
   const [discountCodeValid, setDiscountCodeValid] = useState(null); // Kết quả validate mã
+  const [showQrScan, setShowQrScan] = useState(false);          // A5: mở/đóng modal quét QR
   const [shippingFee, setShippingFee] = useState(0);           // Phí vận chuyển
   const [validatingCode, setValidatingCode] = useState(false); // Đang validate mã
 
@@ -195,8 +197,13 @@ export default function Sales() {
   };
 
   // === Phase B: Validate mã chiết khấu ===
-  const validateDiscountCode = async () => {
-    if (!discountCode.trim()) {
+  // codeOverride: dùng khi gọi ngay sau khi quét QR (A5) — vì setDiscountCode là async,
+  // nếu đọc lại từ state `discountCode` ngay sau đó có thể dính giá trị cũ. Nút "Áp dụng"
+  // cũ vẫn gọi validateDiscountCode() không tham số (hoặc nhận event của onClick) → rơi về
+  // đọc từ state như trước giờ, không đổi hành vi cũ.
+  const validateDiscountCode = async (codeOverride) => {
+    const codeToCheck = (typeof codeOverride === 'string' ? codeOverride : discountCode).trim();
+    if (!codeToCheck) {
       setDiscountCodeValid(null);
       return;
     }
@@ -211,7 +218,7 @@ export default function Sales() {
           'Authorization': 'Bearer ' + token 
         },
         body: JSON.stringify({ 
-          code: discountCode.trim(),
+          code: codeToCheck,
           order_subtotal: subtotal
         })
       });
@@ -236,6 +243,16 @@ export default function Sales() {
   const clearDiscountCode = () => {
     setDiscountCode('');
     setDiscountCodeValid(null);
+  };
+
+  // A5: kết quả đọc được từ camera → đổ vào đúng ô mã đang có, gọi lại đúng /validate
+  // đang dùng cho nhập tay. Không tạo luồng riêng, không đụng orders.js.
+  const handleQrScanResult = (text) => {
+    const code = String(text || '').trim().toUpperCase();
+    setShowQrScan(false);
+    if (!code) return;
+    setDiscountCode(code);
+    validateDiscountCode(code);
   };
 
   // Áp dụng chiết khấu mặc định của khách hàng
@@ -1224,6 +1241,26 @@ export default function Sales() {
                     style={{ flex: 1 }}
                     disabled={discountCodeValid?.valid}
                   />
+                  {!discountCodeValid?.valid && (
+                    <button
+                      type="button"
+                      onClick={() => setShowQrScan(true)}
+                      title="Quét mã QR"
+                      aria-label="Quét mã QR"
+                      style={{
+                        padding: '0 0.6rem',
+                        background: '#eef2ff',
+                        color: '#3730a3',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Camera size={16} />
+                    </button>
+                  )}
                   {discountCodeValid?.valid ? (
                     <button
                       onClick={clearDiscountCode}
@@ -2246,6 +2283,14 @@ export default function Sales() {
       }}
       onPrintComplete={handlePrintComplete}
     />
+      )}
+
+      {/* ========== A5: QUÉT MÃ QR ========== */}
+      {showQrScan && (
+        <QrScanModal
+          onResult={handleQrScanResult}
+          onClose={() => setShowQrScan(false)}
+        />
       )}
     </>
   );
