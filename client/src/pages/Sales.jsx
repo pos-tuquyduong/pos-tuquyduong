@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { productsApi, customersApi, ordersApi } from '../utils/api';
+import { productsApi, ordersApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
 import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText, Camera } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
@@ -17,11 +17,15 @@ export default function Sales() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [customer, setCustomer] = useState(null);
-  const [searchPhone, setSearchPhone] = useState('');
+  // searchPhone: chỉ dùng setSearchPhone để reset, giá trị đọc không dùng ở đâu — bỏ getter, giữ setter y nguyên hành vi cũ
+  const [, setSearchPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // success: đang hiện ở dòng banner bên dưới nhưng chưa nơi nào gọi setSuccess() để bật —
+  // giữ nguyên hành vi hiện tại (banner chưa từng hiện), chỉ bỏ setter chưa dùng để hết lỗi lint.
+  // Muốn bật banner "thành công" thật thì cần nối setSuccess(...) ở chỗ tạo đơn xong — việc riêng, chưa làm ở đây.
+  const [success] = useState('');
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [category, setCategory] = useState('all');
@@ -151,15 +155,22 @@ export default function Sales() {
         const pkgRes = await fetch('/api/pos/packages', { headers: { 'Authorization': 'Bearer ' + token } });
         const pkgData = await pkgRes.json();
         if (pkgData.success) setPkgTemplates(pkgData.data);
-      } catch (e) {}
+      } catch (e) {
+        // Không chặn màn Bán hàng nếu lỗi — chỉ ghi log để biết vì sao tab "Mua gói" có thể thiếu dữ liệu
+        console.error('Không tải được mẫu gói combo:', e?.message || e);
+      }
       // TIER-1c: Load hạng thành viên (bán như sản phẩm)
       try {
         const token = localStorage.getItem('pos_token');
         const tierRes = await fetch('/api/pos/tiers', { headers: { 'Authorization': 'Bearer ' + token } });
         const tierData = await tierRes.json();
         if (tierData.success) setMembershipTiers(tierData.data.tiers || []);
-      } catch (e) {}
+      } catch (e) {
+        // Không chặn màn Bán hàng nếu lỗi — chỉ ghi log để biết vì sao danh sách hạng thành viên có thể thiếu
+        console.error('Không tải được danh sách hạng thành viên:', e?.message || e);
+      }
     } catch (err) {
+      console.error('Lỗi tải danh sách sản phẩm:', err?.message || err);
       setError('Không thể tải danh sách sản phẩm');
     } finally {
       setLoading(false);
@@ -232,6 +243,7 @@ export default function Sales() {
         setError(result.error || 'Mã không hợp lệ');
       }
     } catch (err) {
+      console.error('Lỗi kiểm tra mã chiết khấu:', err?.message || err);
       setDiscountCodeValid({ valid: false, error: 'Lỗi kiểm tra mã' });
       setError('Lỗi kiểm tra mã chiết khấu');
     } finally {
@@ -569,8 +581,8 @@ export default function Sales() {
   const cashReceivedNum = parseInt(cashReceived) || 0;
   const changeAmount = Math.max(0, cashReceivedNum - remainingAfterBalance);
 
-  // Số tiền ghi nợ (nếu chọn ghi nợ và còn tiền chưa TT)
-  const debtAmount = isDebt ? remainingAfterBalance : 0;
+  // (Đã bỏ biến debtAmount dư thừa ở đây — số tiền ghi nợ thật được tính lại đúng bằng
+  // debtAmountFinal lúc submit đơn, biến này chưa từng được đọc ở đâu, xóa không đổi hành vi)
 
   // Mở popup xác nhận thanh toán
   const openPaymentModal = () => {
