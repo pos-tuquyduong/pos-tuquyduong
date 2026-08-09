@@ -588,6 +588,22 @@ async function createTables() {
     )
   `);
 
+  // Bước 2 (08.08.2026) — chuẩn bị cho voucher "khách mới" giảm-1-món:
+  // discount_scope: 'order' (mặc định, y hệt hành vi hiện tại — giảm cả đơn) | 'item' (giảm 1 món).
+  // applicable_group_id: chỉ có ý nghĩa khi scope='item' — trỏ vào pos_product_groups (Bước 1).
+  // CHỈ THÊM CỘT, CHƯA CÓ GÌ ĐỌC 2 CỘT NÀY Ở orders.js — mọi voucher đang chạy (mã thường,
+  // đổi điểm) không đổi hành vi, vì giá trị mặc định 'order' khớp đúng cách chúng đang hoạt động.
+  try {
+    await db.execute(`ALTER TABLE pos_discount_codes ADD COLUMN discount_scope TEXT DEFAULT 'order'`);
+  } catch (e) {
+    // Cột đã tồn tại — bỏ qua
+  }
+  try {
+    await db.execute(`ALTER TABLE pos_discount_codes ADD COLUMN applicable_group_id INTEGER`);
+  } catch (e) {
+    // Cột đã tồn tại — bỏ qua
+  }
+
   // Index cho discount_codes
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_discount_code ON pos_discount_codes(code)`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_discount_active ON pos_discount_codes(is_active)`);
