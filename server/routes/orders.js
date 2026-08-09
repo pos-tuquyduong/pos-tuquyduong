@@ -17,6 +17,7 @@ const { findEligibleItemForGroup, computeItemDiscountAmount } = require("../util
 const {
   generateOrderCode,
   getNow,
+  getToday,
   normalizePhone,
   addMonthsSafe,
 } = require("../utils/helpers");
@@ -340,7 +341,10 @@ router.post("/", authenticate, async (req, res) => {
 
       if (codeRecord) {
         // Kiểm tra hiệu lực
-        const today = new Date().toISOString().slice(0, 10);
+        // BUG-FIX (09.08.2026): trước đây dùng new Date().toISOString() = giờ UTC, lệch 7 tiếng
+        // so với giờ Việt Nam — sửa bằng cách dùng đúng hàm dùng chung getToday() (đã có sẵn
+        // trong helpers.js, đang được reports.js dùng đúng) thay vì tự viết lại logic tính ngày.
+        const today = getToday();
         let codeValid = true;
 
         if (codeRecord.valid_from && today < codeRecord.valid_from)

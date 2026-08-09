@@ -21,7 +21,7 @@
 
 const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
-const { normalizePhone, getNow } = require('../utils/helpers');
+const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -118,7 +118,13 @@ router.post('/claim', async (req, res) => {
       });
     }
 
-    const validTo = new Date(nowMs + config.validDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+    // BUG-FIX (09.08.2026): valid_to phải là NGÀY THUẦN ("2026-09-08"), khớp đúng quy ước
+    // cột này dùng ở mọi nơi khác trong hệ thống — trước đây lưu ngày+giờ đầy đủ, chỉ lộ lỗi
+    // đúng vào NGÀY CUỐI hết hạn (so sánh chuỗi coi "còn hạn" dù thực ra đã qua giờ hết hạn).
+    // BUG-FIX (09.08.2026): dùng đúng hàm dùng chung addDaysToDateString() (tính theo lịch
+    // Y-M-D, không dính giờ/múi giờ) — thay vì cộng mili-giây rồi format lại theo UTC (có thể
+    // lệch 1 ngày so với lịch Việt Nam thật, tuỳ giờ claim trong ngày).
+    const validTo = addDaysToDateString(getToday(), config.validDays);
 
     // Giao dịch NGUYÊN TỬ — đánh dấu đã claim + phát voucher, lỗi bất kỳ bước nào → hủy sạch
     // (đúng khuôn mẫu loyalty.js /redeem, không để mã "claimed" mồ côi không có voucher).
@@ -136,7 +142,12 @@ router.post('/claim', async (req, res) => {
         [
           voucherCode, config.discountType, config.discountValue,
           config.scope === 'order' ? config.minOrder : 0,
-          now, validTo,
+          // BUG-FIX (09.08.2026): valid_from phải để NULL (dùng được ngay), không phải `now`.
+          // Cột này ở mọi nơi khác lưu dạng CHỈ NGÀY ("2026-08-09"), còn `now` là ngày+giờ đầy
+          // đủ ("2026-08-09T21:32:39") — so sánh chuỗi "2026-08-09" < "2026-08-09T21:32:39" ra
+          // TRUE (vì là tiền tố của nhau) → hệ thống hiểu nhầm "chưa tới ngày bắt đầu", chặn
+          // nhầm voucher vừa tạo. Voucher khách-mới không cần giới hạn ngày bắt đầu — để null.
+          null, validTo,
           `Ưu đãi khách mới (claim ${now})`,
           config.scope, applicableGroupId, now,
         ]

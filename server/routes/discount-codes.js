@@ -8,7 +8,7 @@
 const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow } = require('../utils/helpers');
+const { getNow, getToday } = require('../utils/helpers');
 const { findEligibleItemForGroup, computeItemDiscountAmount } = require('../utils/itemScopeDiscount');
 
 const router = express.Router();
@@ -78,7 +78,9 @@ router.post('/validate', authenticate, async (req, res) => {
     }
 
     // Kiểm tra ngày hiệu lực
-    const today = new Date().toISOString().slice(0, 10);
+    // BUG-FIX (09.08.2026): dùng đúng hàm dùng chung getToday() (đã có sẵn trong helpers.js,
+    // đang được reports.js dùng đúng) thay vì tự viết new Date().toISOString() (giờ UTC, sai).
+    const today = getToday();
     
     if (discountCode.valid_from && today < discountCode.valid_from) {
       return res.status(400).json({ error: 'Mã chiết khấu chưa có hiệu lực' });

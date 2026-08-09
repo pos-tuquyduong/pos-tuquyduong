@@ -64,6 +64,20 @@ function getToday() {
 }
 
 /**
+ * Cộng thêm N ngày vào 1 chuỗi ngày ("YYYY-MM-DD" hoặc chuỗi ngày+giờ, chỉ lấy 10 ký tự đầu),
+ * trả về đúng dạng ngày thuần "YYYY-MM-DD" — DÙNG CHUNG cho mọi nơi cần tính "hạn N ngày kể từ
+ * ngày X" (voucher đổi điểm ở loyalty.js, voucher khách-mới ở signup-codes.js...). Tính bằng
+ * lịch (Date.UTC trên riêng phần Y-M-D, không dính giờ/múi giờ) — tránh lệch ngày do cộng mili-
+ * giây rồi format lại theo UTC (có thể lệch 1 ngày so với lịch Việt Nam thật).
+ */
+function addDaysToDateString(dateStr, days) {
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
  * Lấy timestamp hiện tại
  */
 function getNow() {
@@ -175,6 +189,7 @@ module.exports = {
   formatDate,
   getToday,
   getNow,
+  addDaysToDateString,
   isValidPhone,
   normalizePhone,
   calculateOrderTotal,

@@ -567,6 +567,21 @@ async function createTables() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 17: MÃ CHIẾT KHẤU (MỚI)
+  //
+  // ⚠️ QUY ƯỚC BẮT BUỘC (09.08.2026, ghi lại sau khi tự vá lỗi do quên đúng quy ước này):
+  // `valid_from`/`valid_to` PHẢI luôn là NGÀY THUẦN dạng "YYYY-MM-DD" (10 ký tự, KHÔNG có
+  // giờ/phút/giây) — vì hệ thống so sánh hạn bằng SO SÁNH CHUỖI thô (`today < valid_from`),
+  // không phải so sánh ngày thật. Nếu 1 nơi lỡ lưu dạng "YYYY-MM-DDTHH:MM:SS" trong khi so
+  // sánh dùng "YYYY-MM-DD" → so sánh chuỗi coi ngày ngắn hơn "nhỏ hơn" ngày dài hơn (vì là
+  // tiền tố của nhau) → chặn nhầm mã hợp lệ (hoặc bỏ sót mã đã hết hạn cùng ngày).
+  // Đã xảy ra thật ở signup-codes.js (Bước 4) — sinh mã claim để `valid_from`/`valid_to` là
+  // ngày+giờ đầy đủ, khiến mọi voucher vừa claim bị báo "chưa có hiệu lực". Mọi chỗ MỚI ghi
+  // vào 2 cột này (kể cả code AI viết sau này) PHẢI dùng `.slice(0, 10)` hoặc để `null` —
+  // không bao giờ lưu nguyên `getNow()`/`new Date().toISOString()` chưa cắt.
+  //
+  // Tương tự: "hôm nay" để so sánh PHẢI tính theo GIỜ VIỆT NAM (`getNow().slice(0,10)`),
+  // KHÔNG dùng `new Date().toISOString().slice(0,10)` (giờ UTC, lệch 7 tiếng) — nếu không,
+  // khung 0h-7h sáng giờ VN mỗi ngày sẽ tính sai "hôm nay" thành "hôm qua".
   // ═══════════════════════════════════════════════════════════════════════════
   await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_discount_codes (

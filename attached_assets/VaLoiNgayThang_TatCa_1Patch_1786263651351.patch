@@ -1,0 +1,149 @@
+diff --git a/server/database.js b/server/database.js
+index 1d819da..63a243d 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -567,6 +567,21 @@ async function createTables() {
+ 
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BẢNG 17: MÃ CHIẾT KHẤU (MỚI)
++  //
++  // ⚠️ QUY ƯỚC BẮT BUỘC (09.08.2026, ghi lại sau khi tự vá lỗi do quên đúng quy ước này):
++  // `valid_from`/`valid_to` PHẢI luôn là NGÀY THUẦN dạng "YYYY-MM-DD" (10 ký tự, KHÔNG có
++  // giờ/phút/giây) — vì hệ thống so sánh hạn bằng SO SÁNH CHUỖI thô (`today < valid_from`),
++  // không phải so sánh ngày thật. Nếu 1 nơi lỡ lưu dạng "YYYY-MM-DDTHH:MM:SS" trong khi so
++  // sánh dùng "YYYY-MM-DD" → so sánh chuỗi coi ngày ngắn hơn "nhỏ hơn" ngày dài hơn (vì là
++  // tiền tố của nhau) → chặn nhầm mã hợp lệ (hoặc bỏ sót mã đã hết hạn cùng ngày).
++  // Đã xảy ra thật ở signup-codes.js (Bước 4) — sinh mã claim để `valid_from`/`valid_to` là
++  // ngày+giờ đầy đủ, khiến mọi voucher vừa claim bị báo "chưa có hiệu lực". Mọi chỗ MỚI ghi
++  // vào 2 cột này (kể cả code AI viết sau này) PHẢI dùng `.slice(0, 10)` hoặc để `null` —
++  // không bao giờ lưu nguyên `getNow()`/`new Date().toISOString()` chưa cắt.
++  //
++  // Tương tự: "hôm nay" để so sánh PHẢI tính theo GIỜ VIỆT NAM (`getNow().slice(0,10)`),
++  // KHÔNG dùng `new Date().toISOString().slice(0,10)` (giờ UTC, lệch 7 tiếng) — nếu không,
++  // khung 0h-7h sáng giờ VN mỗi ngày sẽ tính sai "hôm nay" thành "hôm qua".
+   // ═══════════════════════════════════════════════════════════════════════════
+   await db.execute(`
+     CREATE TABLE IF NOT EXISTS pos_discount_codes (
+diff --git a/server/routes/discount-codes.js b/server/routes/discount-codes.js
+index 4439ac9..6662dfd 100644
+--- a/server/routes/discount-codes.js
++++ b/server/routes/discount-codes.js
+@@ -8,7 +8,7 @@
+ const express = require('express');
+ const { query, queryOne, run } = require('../database');
+ const { authenticate, checkPermission } = require('../middleware/auth');
+-const { getNow } = require('../utils/helpers');
++const { getNow, getToday } = require('../utils/helpers');
+ const { findEligibleItemForGroup, computeItemDiscountAmount } = require('../utils/itemScopeDiscount');
+ 
+ const router = express.Router();
+@@ -78,7 +78,9 @@ router.post('/validate', authenticate, async (req, res) => {
+     }
+ 
+     // Kiểm tra ngày hiệu lực
+-    const today = new Date().toISOString().slice(0, 10);
++    // BUG-FIX (09.08.2026): dùng đúng hàm dùng chung getToday() (đã có sẵn trong helpers.js,
++    // đang được reports.js dùng đúng) thay vì tự viết new Date().toISOString() (giờ UTC, sai).
++    const today = getToday();
+     
+     if (discountCode.valid_from && today < discountCode.valid_from) {
+       return res.status(400).json({ error: 'Mã chiết khấu chưa có hiệu lực' });
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index fece459..3e6e2f3 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -17,6 +17,7 @@ const { findEligibleItemForGroup, computeItemDiscountAmount } = require("../util
+ const {
+   generateOrderCode,
+   getNow,
++  getToday,
+   normalizePhone,
+   addMonthsSafe,
+ } = require("../utils/helpers");
+@@ -340,7 +341,10 @@ router.post("/", authenticate, async (req, res) => {
+ 
+       if (codeRecord) {
+         // Kiểm tra hiệu lực
+-        const today = new Date().toISOString().slice(0, 10);
++        // BUG-FIX (09.08.2026): trước đây dùng new Date().toISOString() = giờ UTC, lệch 7 tiếng
++        // so với giờ Việt Nam — sửa bằng cách dùng đúng hàm dùng chung getToday() (đã có sẵn
++        // trong helpers.js, đang được reports.js dùng đúng) thay vì tự viết lại logic tính ngày.
++        const today = getToday();
+         let codeValid = true;
+ 
+         if (codeRecord.valid_from && today < codeRecord.valid_from)
+diff --git a/server/routes/signup-codes.js b/server/routes/signup-codes.js
+index 619f178..60d113b 100644
+--- a/server/routes/signup-codes.js
++++ b/server/routes/signup-codes.js
+@@ -21,7 +21,7 @@
+ 
+ const express = require('express');
+ const { query, queryOne, run, beginTransaction } = require('../database');
+-const { normalizePhone, getNow } = require('../utils/helpers');
++const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
+ 
+ const router = express.Router();
+ 
+@@ -118,7 +118,13 @@ router.post('/claim', async (req, res) => {
+       });
+     }
+ 
+-    const validTo = new Date(nowMs + config.validDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
++    // BUG-FIX (09.08.2026): valid_to phải là NGÀY THUẦN ("2026-09-08"), khớp đúng quy ước
++    // cột này dùng ở mọi nơi khác trong hệ thống — trước đây lưu ngày+giờ đầy đủ, chỉ lộ lỗi
++    // đúng vào NGÀY CUỐI hết hạn (so sánh chuỗi coi "còn hạn" dù thực ra đã qua giờ hết hạn).
++    // BUG-FIX (09.08.2026): dùng đúng hàm dùng chung addDaysToDateString() (tính theo lịch
++    // Y-M-D, không dính giờ/múi giờ) — thay vì cộng mili-giây rồi format lại theo UTC (có thể
++    // lệch 1 ngày so với lịch Việt Nam thật, tuỳ giờ claim trong ngày).
++    const validTo = addDaysToDateString(getToday(), config.validDays);
+ 
+     // Giao dịch NGUYÊN TỬ — đánh dấu đã claim + phát voucher, lỗi bất kỳ bước nào → hủy sạch
+     // (đúng khuôn mẫu loyalty.js /redeem, không để mã "claimed" mồ côi không có voucher).
+@@ -136,7 +142,12 @@ router.post('/claim', async (req, res) => {
+         [
+           voucherCode, config.discountType, config.discountValue,
+           config.scope === 'order' ? config.minOrder : 0,
+-          now, validTo,
++          // BUG-FIX (09.08.2026): valid_from phải để NULL (dùng được ngay), không phải `now`.
++          // Cột này ở mọi nơi khác lưu dạng CHỈ NGÀY ("2026-08-09"), còn `now` là ngày+giờ đầy
++          // đủ ("2026-08-09T21:32:39") — so sánh chuỗi "2026-08-09" < "2026-08-09T21:32:39" ra
++          // TRUE (vì là tiền tố của nhau) → hệ thống hiểu nhầm "chưa tới ngày bắt đầu", chặn
++          // nhầm voucher vừa tạo. Voucher khách-mới không cần giới hạn ngày bắt đầu — để null.
++          null, validTo,
+           `Ưu đãi khách mới (claim ${now})`,
+           config.scope, applicableGroupId, now,
+         ]
+diff --git a/server/utils/helpers.js b/server/utils/helpers.js
+index 919c507..a6ee9bf 100644
+--- a/server/utils/helpers.js
++++ b/server/utils/helpers.js
+@@ -63,6 +63,20 @@ function getToday() {
+   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
+ }
+ 
++/**
++ * Cộng thêm N ngày vào 1 chuỗi ngày ("YYYY-MM-DD" hoặc chuỗi ngày+giờ, chỉ lấy 10 ký tự đầu),
++ * trả về đúng dạng ngày thuần "YYYY-MM-DD" — DÙNG CHUNG cho mọi nơi cần tính "hạn N ngày kể từ
++ * ngày X" (voucher đổi điểm ở loyalty.js, voucher khách-mới ở signup-codes.js...). Tính bằng
++ * lịch (Date.UTC trên riêng phần Y-M-D, không dính giờ/múi giờ) — tránh lệch ngày do cộng mili-
++ * giây rồi format lại theo UTC (có thể lệch 1 ngày so với lịch Việt Nam thật).
++ */
++function addDaysToDateString(dateStr, days) {
++  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
++  const dt = new Date(Date.UTC(y, m - 1, d));
++  dt.setUTCDate(dt.getUTCDate() + days);
++  return dt.toISOString().slice(0, 10);
++}
++
+ /**
+  * Lấy timestamp hiện tại
+  */
+@@ -175,6 +189,7 @@ module.exports = {
+   formatDate,
+   getToday,
+   getNow,
++  addDaysToDateString,
+   isValidPhone,
+   normalizePhone,
+   calculateOrderTotal,
