@@ -1109,6 +1109,44 @@ async function seedDefaultData() {
     )
   `);
   console.log('✅ Đã đảm bảo bảng mua thẻ hội viên (TIER-1c)');
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG: NHÓM SẢN PHẨM (dùng chung, tách khỏi is_special_group của TIER)
+  // Mục đích: 1 sản phẩm có thể vừa thuộc nhóm giá TIER, vừa thuộc nhóm khác
+  // (vd nhóm áp voucher khách-mới) — độc lập nhau, không lẫn ý nghĩa.
+  // Khoá theo (sx_product_type, sx_product_id) — đúng khoá bất biến toàn hệ,
+  // không theo `code`/tên (code có thể đổi, id SX thì không).
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_product_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME
+    )
+  `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_product_group_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL REFERENCES pos_product_groups(id),
+      sx_product_type TEXT NOT NULL,
+      sx_product_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(group_id, sx_product_type, sx_product_id)
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_group_members_group ON pos_product_group_members(group_id)`);
+
+  // Seed đúng 1 nhóm cần dùng ngay bây giờ (voucher khách-mới) — không dựng UI
+  // tạo/xoá nhóm tuỳ ý vì hiện chỉ có 1 nhu cầu thật; owner chỉ tick sản phẩm
+  // vào/ra nhóm có sẵn này. Khi có nhu cầu thứ 2 thật sự mới đáng thêm UI quản lý nhóm.
+  await db.execute(`
+    INSERT INTO pos_product_groups (code, name)
+    SELECT 'khach_moi', 'Ưu đãi khách mới'
+    WHERE NOT EXISTS (SELECT 1 FROM pos_product_groups WHERE code = 'khach_moi')
+  `);
+  console.log('✅ Đã đảm bảo bảng nhóm sản phẩm + seed nhóm "khach_moi"');
 }
 
 /**

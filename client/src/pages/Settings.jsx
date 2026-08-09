@@ -61,6 +61,11 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Bước 1 — Nhóm sản phẩm "khach_moi" (dùng cho voucher khách-mới sau này).
+  // Set các key `${sx_product_type}_${sx_product_id}` đang thuộc nhóm.
+  const [signupGroupMembers, setSignupGroupMembers] = useState(new Set());
+  const [savingSignupGroup, setSavingSignupGroup] = useState(false);
+
   useEffect(() => { loadData(); }, [tab]);
 
   const loadData = async () => {
@@ -69,6 +74,7 @@ export default function Settings() {
       if (tab === 'products') {
         const data = await productsApi.list({ active: '' });
         setProducts(data);
+        await loadSignupGroup();
       } else if (tab === 'packages') {
         await loadPackages();
       } else if (tab === 'users') {
@@ -112,6 +118,45 @@ export default function Settings() {
     const opts = { method, headers: { 'Authorization': 'Bearer ' + token } };
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     return fetch(url, opts).then(r => r.json());
+  };
+
+  // Bước 1 — nhóm sản phẩm "khach_moi": load thành viên hiện có, đổ vào Set để tick sẵn checkbox
+  const loadSignupGroup = async () => {
+    const data = await pkgApi('GET', '/api/pos/product-groups/khach_moi/members');
+    if (data.success) {
+      const keys = data.data.members.map(m => `${m.sx_product_type}_${m.sx_product_id}`);
+      setSignupGroupMembers(new Set(keys));
+    }
+  };
+
+  const toggleSignupGroupMember = (uniqueId) => {
+    setSignupGroupMembers(prev => {
+      const next = new Set(prev);
+      if (next.has(uniqueId)) next.delete(uniqueId); else next.add(uniqueId);
+      return next;
+    });
+  };
+
+  const saveSignupGroup = async () => {
+    setSavingSignupGroup(true);
+    try {
+      const members = Array.from(signupGroupMembers).map(key => {
+        // key có dạng "${sx_product_type}_${sx_product_id}" — product_type có thể chứa dấu "_",
+        // nên tách bằng cách lấy đúng sx_product_id ở cuối (phần số) thay vì split('_') ngây thơ.
+        const lastUnderscore = key.lastIndexOf('_');
+        return {
+          sx_product_type: key.slice(0, lastUnderscore),
+          sx_product_id: parseInt(key.slice(lastUnderscore + 1), 10),
+        };
+      });
+      const data = await pkgApi('PUT', '/api/pos/product-groups/khach_moi/members', { members });
+      setMessage(data.success ? `Đã lưu nhóm sản phẩm (${data.data.count} món)` : 'Lỗi: ' + data.error);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    } finally {
+      setSavingSignupGroup(false);
+    }
   };
   const loadPackages = async () => {
     const data = await pkgApi('GET', '/api/pos/packages?active=');
@@ -642,6 +687,14 @@ export default function Settings() {
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu tất cả'}
                 </button>
               </div>
+              <div className="flex flex-between mb-2">
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
+                  Cột "Áp voucher khách mới" lưu riêng, không chung nút "Lưu tất cả" ở trên.
+                </p>
+                <button className="btn btn-secondary" onClick={saveSignupGroup} disabled={savingSignupGroup}>
+                  <Save size={16} /> {savingSignupGroup ? 'Đang lưu...' : 'Lưu nhóm voucher khách mới'}
+                </button>
+              </div>
               <table className="table">
                 <thead>
                   <tr>
@@ -650,6 +703,7 @@ export default function Settings() {
                     <th>Loại</th>
                     <th>Giá bán (VND)</th>
                     <th style={{ textAlign: 'center' }}>SP đặc biệt</th>
+                    <th style={{ textAlign: 'center' }}>Áp voucher khách mới</th>
                     <th>Trạng thái</th>
                   </tr>
                 </thead>
@@ -688,6 +742,14 @@ export default function Settings() {
                           checked={!!p.is_special_group}
                           onChange={e => updateSpecialGroup(getUniqueId(p), e.target.checked)}
                           title="SP thuộc nhóm đặc biệt (vd cà phê) — nhận % giảm hạng riêng, khác % giảm thường"
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={signupGroupMembers.has(getUniqueId(p))}
+                          onChange={() => toggleSignupGroupMember(getUniqueId(p))}
+                          title="Món này được phép áp voucher khách-mới (giảm 50% 1 món)"
                         />
                       </td>
                       <td>

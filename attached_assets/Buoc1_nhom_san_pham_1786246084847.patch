@@ -1,0 +1,274 @@
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index 0e3964a..0e1df85 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -61,6 +61,11 @@ export default function Settings() {
+   const [newPassword, setNewPassword] = useState('');
+   const [confirmPassword, setConfirmPassword] = useState('');
+ 
++  // Bước 1 — Nhóm sản phẩm "khach_moi" (dùng cho voucher khách-mới sau này).
++  // Set các key `${sx_product_type}_${sx_product_id}` đang thuộc nhóm.
++  const [signupGroupMembers, setSignupGroupMembers] = useState(new Set());
++  const [savingSignupGroup, setSavingSignupGroup] = useState(false);
++
+   useEffect(() => { loadData(); }, [tab]);
+ 
+   const loadData = async () => {
+@@ -69,6 +74,7 @@ export default function Settings() {
+       if (tab === 'products') {
+         const data = await productsApi.list({ active: '' });
+         setProducts(data);
++        await loadSignupGroup();
+       } else if (tab === 'packages') {
+         await loadPackages();
+       } else if (tab === 'users') {
+@@ -113,6 +119,45 @@ export default function Settings() {
+     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+     return fetch(url, opts).then(r => r.json());
+   };
++
++  // Bước 1 — nhóm sản phẩm "khach_moi": load thành viên hiện có, đổ vào Set để tick sẵn checkbox
++  const loadSignupGroup = async () => {
++    const data = await pkgApi('GET', '/api/pos/product-groups/khach_moi/members');
++    if (data.success) {
++      const keys = data.data.members.map(m => `${m.sx_product_type}_${m.sx_product_id}`);
++      setSignupGroupMembers(new Set(keys));
++    }
++  };
++
++  const toggleSignupGroupMember = (uniqueId) => {
++    setSignupGroupMembers(prev => {
++      const next = new Set(prev);
++      if (next.has(uniqueId)) next.delete(uniqueId); else next.add(uniqueId);
++      return next;
++    });
++  };
++
++  const saveSignupGroup = async () => {
++    setSavingSignupGroup(true);
++    try {
++      const members = Array.from(signupGroupMembers).map(key => {
++        // key có dạng "${sx_product_type}_${sx_product_id}" — product_type có thể chứa dấu "_",
++        // nên tách bằng cách lấy đúng sx_product_id ở cuối (phần số) thay vì split('_') ngây thơ.
++        const lastUnderscore = key.lastIndexOf('_');
++        return {
++          sx_product_type: key.slice(0, lastUnderscore),
++          sx_product_id: parseInt(key.slice(lastUnderscore + 1), 10),
++        };
++      });
++      const data = await pkgApi('PUT', '/api/pos/product-groups/khach_moi/members', { members });
++      setMessage(data.success ? `Đã lưu nhóm sản phẩm (${data.data.count} món)` : 'Lỗi: ' + data.error);
++      setTimeout(() => setMessage(''), 3000);
++    } catch (err) {
++      setMessage('Lỗi: ' + err.message);
++    } finally {
++      setSavingSignupGroup(false);
++    }
++  };
+   const loadPackages = async () => {
+     const data = await pkgApi('GET', '/api/pos/packages?active=');
+     if (data.success) setPackages(data.data);
+@@ -642,6 +687,14 @@ export default function Settings() {
+                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu tất cả'}
+                 </button>
+               </div>
++              <div className="flex flex-between mb-2">
++                <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
++                  Cột "Áp voucher khách mới" lưu riêng, không chung nút "Lưu tất cả" ở trên.
++                </p>
++                <button className="btn btn-secondary" onClick={saveSignupGroup} disabled={savingSignupGroup}>
++                  <Save size={16} /> {savingSignupGroup ? 'Đang lưu...' : 'Lưu nhóm voucher khách mới'}
++                </button>
++              </div>
+               <table className="table">
+                 <thead>
+                   <tr>
+@@ -650,6 +703,7 @@ export default function Settings() {
+                     <th>Loại</th>
+                     <th>Giá bán (VND)</th>
+                     <th style={{ textAlign: 'center' }}>SP đặc biệt</th>
++                    <th style={{ textAlign: 'center' }}>Áp voucher khách mới</th>
+                     <th>Trạng thái</th>
+                   </tr>
+                 </thead>
+@@ -690,6 +744,14 @@ export default function Settings() {
+                           title="SP thuộc nhóm đặc biệt (vd cà phê) — nhận % giảm hạng riêng, khác % giảm thường"
+                         />
+                       </td>
++                      <td style={{ textAlign: 'center' }}>
++                        <input
++                          type="checkbox"
++                          checked={signupGroupMembers.has(getUniqueId(p))}
++                          onChange={() => toggleSignupGroupMember(getUniqueId(p))}
++                          title="Món này được phép áp voucher khách-mới (giảm 50% 1 món)"
++                        />
++                      </td>
+                       <td>
+                         {p.is_active ? 
+                           <span className="badge badge-success">Đang bán</span> : 
+diff --git a/server/database.js b/server/database.js
+index 782cb74..9b89725 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -1109,6 +1109,44 @@ async function seedDefaultData() {
+     )
+   `);
+   console.log('✅ Đã đảm bảo bảng mua thẻ hội viên (TIER-1c)');
++
++  // ═══════════════════════════════════════════════════════════════════════════
++  // BẢNG: NHÓM SẢN PHẨM (dùng chung, tách khỏi is_special_group của TIER)
++  // Mục đích: 1 sản phẩm có thể vừa thuộc nhóm giá TIER, vừa thuộc nhóm khác
++  // (vd nhóm áp voucher khách-mới) — độc lập nhau, không lẫn ý nghĩa.
++  // Khoá theo (sx_product_type, sx_product_id) — đúng khoá bất biến toàn hệ,
++  // không theo `code`/tên (code có thể đổi, id SX thì không).
++  // ═══════════════════════════════════════════════════════════════════════════
++  await db.execute(`
++    CREATE TABLE IF NOT EXISTS pos_product_groups (
++      id INTEGER PRIMARY KEY AUTOINCREMENT,
++      code TEXT UNIQUE NOT NULL,
++      name TEXT NOT NULL,
++      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
++      updated_at DATETIME
++    )
++  `);
++  await db.execute(`
++    CREATE TABLE IF NOT EXISTS pos_product_group_members (
++      id INTEGER PRIMARY KEY AUTOINCREMENT,
++      group_id INTEGER NOT NULL REFERENCES pos_product_groups(id),
++      sx_product_type TEXT NOT NULL,
++      sx_product_id INTEGER NOT NULL,
++      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
++      UNIQUE(group_id, sx_product_type, sx_product_id)
++    )
++  `);
++  await db.execute(`CREATE INDEX IF NOT EXISTS idx_group_members_group ON pos_product_group_members(group_id)`);
++
++  // Seed đúng 1 nhóm cần dùng ngay bây giờ (voucher khách-mới) — không dựng UI
++  // tạo/xoá nhóm tuỳ ý vì hiện chỉ có 1 nhu cầu thật; owner chỉ tick sản phẩm
++  // vào/ra nhóm có sẵn này. Khi có nhu cầu thứ 2 thật sự mới đáng thêm UI quản lý nhóm.
++  await db.execute(`
++    INSERT INTO pos_product_groups (code, name)
++    SELECT 'khach_moi', 'Ưu đãi khách mới'
++    WHERE NOT EXISTS (SELECT 1 FROM pos_product_groups WHERE code = 'khach_moi')
++  `);
++  console.log('✅ Đã đảm bảo bảng nhóm sản phẩm + seed nhóm "khach_moi"');
+ }
+ 
+ /**
+diff --git a/server/index.js b/server/index.js
+index f1d154d..4c8815f 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -38,6 +38,7 @@ const rewardsRoutes = require('./routes/rewards');
+ const loyaltyRoutes = require('./routes/loyalty');
+ const flashRoutes = require('./routes/flash');
+ const tiersRoutes = require('./routes/tiers');
++const productGroupsRoutes = require('./routes/product-groups');
+ const membershipRoutes = require('./routes/membership');
+ // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ const damagesRoutes = require('./routes/damages');
+@@ -85,6 +86,7 @@ app.use('/api/pos/rewards', rewardsRoutes);
+ app.use('/api/pos/loyalty', loyaltyRoutes);
+ app.use('/api/pos/flash', flashRoutes);
+ app.use('/api/pos/tiers', tiersRoutes);
++app.use('/api/pos/product-groups', productGroupsRoutes);
+ app.use('/api/pos/membership', membershipRoutes);
+ // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ app.use('/api/pos/damages', damagesRoutes);
+diff --git a/server/routes/product-groups.js b/server/routes/product-groups.js
+new file mode 100644
+index 0000000..f297b2f
+--- /dev/null
++++ b/server/routes/product-groups.js
+@@ -0,0 +1,91 @@
++/**
++ * POS System - Product Groups Routes (Bước 1 của "Ưu đãi khách mới")
++ *
++ * Cơ chế nhóm sản phẩm DÙNG CHUNG — tách hoàn toàn khỏi is_special_group của TIER-2.
++ * Hiện chỉ có đúng 1 nhóm cần dùng: code = 'khach_moi' (seed sẵn trong database.js).
++ * Chưa dựng UI tạo/xoá nhóm tuỳ ý vì mới có 1 nhu cầu thật — khi có nhu cầu thứ 2
++ * mới đáng mở rộng route này thành CRUD nhóm đầy đủ.
++ *
++ * INERT: route này chỉ đọc/ghi 2 bảng mới (pos_product_groups, pos_product_group_members).
++ * Không đọc, không ghi vào pos_products, pos_orders, hay bất kỳ luồng tính tiền nào.
++ */
++
++const express = require('express');
++const { query, queryOne, run, beginTransaction } = require('../database');
++const { authenticate, checkPermission } = require('../middleware/auth');
++
++const router = express.Router();
++
++// GET /api/pos/product-groups/:code/members
++// Trả về nhóm + danh sách sản phẩm hiện đang thuộc nhóm (chỉ khoá định danh, không kèm tên/giá —
++// client tự ghép với danh sách sản phẩm đã có sẵn từ /api/pos/products).
++router.get('/:code/members', authenticate, async (req, res) => {
++  try {
++    const group = await queryOne('SELECT id, code, name FROM pos_product_groups WHERE code = ?', [req.params.code]);
++    if (!group) {
++      return res.status(404).json({ success: false, error: `Không tìm thấy nhóm sản phẩm "${req.params.code}"` });
++    }
++    const members = await query(
++      'SELECT sx_product_type, sx_product_id FROM pos_product_group_members WHERE group_id = ?',
++      [group.id]
++    );
++    res.json({ success: true, data: { group, members } });
++  } catch (err) {
++    console.error('Lỗi lấy thành viên nhóm sản phẩm:', err.message);
++    res.status(500).json({ success: false, error: err.message });
++  }
++});
++
++// PUT /api/pos/product-groups/:code/members
++// Body: { members: [{ sx_product_type, sx_product_id }, ...] }
++// Thay thế TOÀN BỘ danh sách thành viên nhóm bằng danh sách gửi lên (xoá hết, chèn lại) —
++// khớp đúng kiểu UI "tick chọn rồi Lưu" đang dùng ở Settings, không cần diff từng dòng.
++router.put('/:code/members', authenticate, checkPermission('manage_settings'), async (req, res) => {
++  const { members } = req.body;
++  if (!Array.isArray(members)) {
++    return res.status(400).json({ success: false, error: 'members phải là mảng' });
++  }
++  // Validate từng phần tử trước khi đụng DB — tránh ghi nửa chừng rồi mới phát hiện sai định dạng
++  for (const m of members) {
++    if (!m || typeof m.sx_product_type !== 'string' || !m.sx_product_type.trim() ||
++        !Number.isInteger(m.sx_product_id)) {
++      return res.status(400).json({
++        success: false,
++        error: 'Mỗi thành viên cần sx_product_type (chuỗi) và sx_product_id (số nguyên)',
++      });
++    }
++  }
++
++  const tx = await beginTransaction();
++  try {
++    const group = await tx.queryOne('SELECT id FROM pos_product_groups WHERE code = ?', [req.params.code]);
++    if (!group) {
++      await tx.rollback();
++      return res.status(404).json({ success: false, error: `Không tìm thấy nhóm sản phẩm "${req.params.code}"` });
++    }
++
++    await tx.run('DELETE FROM pos_product_group_members WHERE group_id = ?', [group.id]);
++
++    // Loại trùng lặp trong payload gửi lên (vd client lỡ gửi 2 lần cùng 1 sản phẩm) —
++    // tránh vi phạm UNIQUE(group_id, sx_product_type, sx_product_id) giữa chừng transaction.
++    const seen = new Set();
++    for (const m of members) {
++      const key = `${m.sx_product_type}::${m.sx_product_id}`;
++      if (seen.has(key)) continue;
++      seen.add(key);
++      await tx.run(
++        'INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (?, ?, ?)',
++        [group.id, m.sx_product_type, m.sx_product_id]
++      );
++    }
++
++    await tx.commit();
++    res.json({ success: true, data: { count: seen.size } });
++  } catch (err) {
++    await tx.rollback();
++    console.error('Lỗi lưu thành viên nhóm sản phẩm:', err.message);
++    res.status(500).json({ success: false, error: err.message });
++  }
++});
++
++module.exports = router;
