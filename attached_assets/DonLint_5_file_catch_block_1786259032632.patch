@@ -1,0 +1,141 @@
+diff --git a/client/src/components/InvoicePrint.jsx b/client/src/components/InvoicePrint.jsx
+index 0ffea67..16e147b 100644
+--- a/client/src/components/InvoicePrint.jsx
++++ b/client/src/components/InvoicePrint.jsx
+@@ -135,7 +135,9 @@ export default function InvoicePrint({
+           align: { ...defaults.align, ...(saved.align || {}) }
+         };
+       }
+-    } catch (e) {}
++    } catch (e) {
++      console.warn('Không parse được invoice_config đã lưu (dữ liệu hỏng, dùng mặc định):', e);
++    }
+     return defaults;
+   }, [settings]);
+ 
+@@ -164,6 +166,7 @@ export default function InvoicePrint({
+       note: item.note ?? item.notes ?? '',
+       flash_price: item.flash_unit_price ?? null,
+       tier_price: item.tier_unit_price ?? null,
++      signup_price: item.signup_unit_price ?? null,
+     })),
+     subtotal: order.subtotal || 0,
+     discount: order.discount || 0,
+diff --git a/client/src/contexts/AuthContext.jsx b/client/src/contexts/AuthContext.jsx
+index 69f8d18..927fb24 100644
+--- a/client/src/contexts/AuthContext.jsx
++++ b/client/src/contexts/AuthContext.jsx
+@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
+       setUser(data.user);
+       setPermissions(data.permissions);
+     } catch (err) {
++      console.error('Kiểm tra phiên đăng nhập thất bại, xoá token:', err?.message || err);
+       api.setToken(null);
+     } finally {
+       setLoading(false);
+@@ -46,7 +47,8 @@ export function AuthProvider({ children }) {
+     try {
+       await authApi.logout();
+     } catch (err) {
+-      // Ignore
++      // Đăng xuất vẫn nên coi là thành công dù API lỗi (token phía client vẫn bị xoá) — chỉ log để biết
++      console.error('Lỗi gọi API đăng xuất (bỏ qua, vẫn đăng xuất phía client):', err?.message || err);
+     }
+     api.setToken(null);
+     setUser(null);
+diff --git a/client/src/pages/DiscountCodes.jsx b/client/src/pages/DiscountCodes.jsx
+index 07e2eb4..62e17c8 100644
+--- a/client/src/pages/DiscountCodes.jsx
++++ b/client/src/pages/DiscountCodes.jsx
+@@ -50,6 +50,7 @@ export default function DiscountCodes() {
+       const result = await discountCodesApi.list();
+       setCodes(result.data || []);
+     } catch (err) {
++      console.error('Lỗi tải danh sách mã chiết khấu:', err?.message || err);
+       setError('Không thể tải danh sách mã chiết khấu');
+     } finally {
+       setLoading(false);
+diff --git a/client/src/pages/InvoiceSettings.jsx b/client/src/pages/InvoiceSettings.jsx
+index fc11d76..0ef5dc1 100644
+--- a/client/src/pages/InvoiceSettings.jsx
++++ b/client/src/pages/InvoiceSettings.jsx
+@@ -475,7 +475,7 @@ export default function InvoiceSettings() {
+               timestamp: Date.now(),
+             }),
+           );
+-        } catch (e) {}
++        } catch (e) { console.warn('Không lưu được cache cấu hình hoá đơn sau khi tải (localStorage đầy/chặn, bỏ qua):', e); }
+       }
+     } catch (err) {
+       console.error("Load settings error:", err);
+@@ -509,7 +509,7 @@ export default function InvoiceSettings() {
+             timestamp: Date.now(),
+           }),
+         );
+-      } catch (e) {}
++      } catch (e) { console.warn('Không lưu được cache sau khi lưu cài đặt (đã lưu server thành công, chỉ cache lỗi):', e); }
+       showMessage("success", "✓ Đã lưu cài đặt hóa đơn!");
+     } catch (err) {
+       showMessage("error", "Lỗi: " + err.message);
+@@ -596,7 +596,7 @@ export default function InvoiceSettings() {
+               timestamp: Date.now(),
+             }),
+           );
+-        } catch (ce) {}
++        } catch (ce) { console.warn('Không lưu được cache logo sau khi upload (đã lưu server thành công, chỉ cache lỗi):', ce); }
+       } else {
+         // Fallback: dùng FileReader nếu server không trả base64
+         const reader = new FileReader();
+@@ -611,7 +611,7 @@ export default function InvoiceSettings() {
+                 timestamp: Date.now(),
+               }),
+             );
+-          } catch (ce) {}
++          } catch (ce) { console.warn('Không lưu được cache logo (nhánh FileReader fallback, không ảnh hưởng hiện logo):', ce); }
+         };
+         reader.readAsDataURL(file);
+       }
+@@ -767,7 +767,7 @@ export default function InvoiceSettings() {
+                                       timestamp: Date.now(),
+                                     }),
+                                   );
+-                                } catch (ce) {}
++                                } catch (ce) { console.warn('Không lưu được cache sau khi xoá logo (đã xoá server thành công, chỉ cache lỗi):', ce); }
+                                 showMessage("success", "✓ Đã xóa logo");
+                               } catch (err) {
+                                 showMessage("error", "Lỗi: " + err.message);
+diff --git a/client/src/utils/logoCache.js b/client/src/utils/logoCache.js
+index 5614c31..f43cdb4 100644
+--- a/client/src/utils/logoCache.js
++++ b/client/src/utils/logoCache.js
+@@ -10,7 +10,9 @@ function readCache() {
+   try {
+     const raw = localStorage.getItem(CACHE_KEY);
+     if (raw) return JSON.parse(raw);
+-  } catch (e) {}
++  } catch (e) {
++    console.warn('Không đọc được cache logo (localStorage lỗi/dữ liệu hỏng, bỏ qua):', e);
++  }
+   return null;
+ }
+ 
+@@ -20,7 +22,9 @@ function writeLogoToCache(logo) {
+     localStorage.setItem(CACHE_KEY, JSON.stringify({
+       ...cached, logo, timestamp: Date.now()
+     }));
+-  } catch (e) {}
++  } catch (e) {
++    console.warn('Không ghi được cache logo (localStorage đầy/chặn, bỏ qua):', e);
++  }
+ }
+ 
+ async function fetchLogoFromAPI() {
+@@ -55,7 +59,7 @@ export async function getLogo() {
+   try {
+     return await fetchLogoFromAPI();
+   } catch (e) {
+-    console.warn('Logo API failed');
++    console.warn('Logo API failed:', e);
+     return '';
+   }
+ }

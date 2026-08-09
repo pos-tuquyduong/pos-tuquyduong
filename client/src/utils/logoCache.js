@@ -10,7 +10,9 @@ function readCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Không đọc được cache logo (localStorage lỗi/dữ liệu hỏng, bỏ qua):', e);
+  }
   return null;
 }
 
@@ -20,7 +22,9 @@ function writeLogoToCache(logo) {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       ...cached, logo, timestamp: Date.now()
     }));
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Không ghi được cache logo (localStorage đầy/chặn, bỏ qua):', e);
+  }
 }
 
 async function fetchLogoFromAPI() {
@@ -55,7 +59,7 @@ export async function getLogo() {
   try {
     return await fetchLogoFromAPI();
   } catch (e) {
-    console.warn('Logo API failed');
+    console.warn('Logo API failed:', e);
     return '';
   }
 }

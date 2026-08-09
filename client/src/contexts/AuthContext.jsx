@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       setPermissions(data.permissions);
     } catch (err) {
+      console.error('Kiểm tra phiên đăng nhập thất bại, xoá token:', err?.message || err);
       api.setToken(null);
     } finally {
       setLoading(false);
@@ -46,7 +47,8 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } catch (err) {
-      // Ignore
+      // Đăng xuất vẫn nên coi là thành công dù API lỗi (token phía client vẫn bị xoá) — chỉ log để biết
+      console.error('Lỗi gọi API đăng xuất (bỏ qua, vẫn đăng xuất phía client):', err?.message || err);
     }
     api.setToken(null);
     setUser(null);

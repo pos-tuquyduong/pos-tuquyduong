@@ -135,7 +135,9 @@ export default function InvoicePrint({
           align: { ...defaults.align, ...(saved.align || {}) }
         };
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Không parse được invoice_config đã lưu (dữ liệu hỏng, dùng mặc định):', e);
+    }
     return defaults;
   }, [settings]);
 

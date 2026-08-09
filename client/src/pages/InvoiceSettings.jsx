@@ -475,7 +475,7 @@ export default function InvoiceSettings() {
               timestamp: Date.now(),
             }),
           );
-        } catch (e) {}
+        } catch (e) { console.warn('Không lưu được cache cấu hình hoá đơn sau khi tải (localStorage đầy/chặn, bỏ qua):', e); }
       }
     } catch (err) {
       console.error("Load settings error:", err);
@@ -509,7 +509,7 @@ export default function InvoiceSettings() {
             timestamp: Date.now(),
           }),
         );
-      } catch (e) {}
+      } catch (e) { console.warn('Không lưu được cache sau khi lưu cài đặt (đã lưu server thành công, chỉ cache lỗi):', e); }
       showMessage("success", "✓ Đã lưu cài đặt hóa đơn!");
     } catch (err) {
       showMessage("error", "Lỗi: " + err.message);
@@ -596,7 +596,7 @@ export default function InvoiceSettings() {
               timestamp: Date.now(),
             }),
           );
-        } catch (ce) {}
+        } catch (ce) { console.warn('Không lưu được cache logo sau khi upload (đã lưu server thành công, chỉ cache lỗi):', ce); }
       } else {
         // Fallback: dùng FileReader nếu server không trả base64
         const reader = new FileReader();
@@ -611,7 +611,7 @@ export default function InvoiceSettings() {
                 timestamp: Date.now(),
               }),
             );
-          } catch (ce) {}
+          } catch (ce) { console.warn('Không lưu được cache logo (nhánh FileReader fallback, không ảnh hưởng hiện logo):', ce); }
         };
         reader.readAsDataURL(file);
       }
@@ -767,7 +767,7 @@ export default function InvoiceSettings() {
                                       timestamp: Date.now(),
                                     }),
                                   );
-                                } catch (ce) {}
+                                } catch (ce) { console.warn('Không lưu được cache sau khi xoá logo (đã xoá server thành công, chỉ cache lỗi):', ce); }
                                 showMessage("success", "✓ Đã xóa logo");
                               } catch (err) {
                                 showMessage("error", "Lỗi: " + err.message);

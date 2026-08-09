@@ -50,6 +50,7 @@ export default function DiscountCodes() {
       const result = await discountCodesApi.list();
       setCodes(result.data || []);
     } catch (err) {
+      console.error('Lỗi tải danh sách mã chiết khấu:', err?.message || err);
       setError('Không thể tải danh sách mã chiết khấu');
     } finally {
       setLoading(false);
