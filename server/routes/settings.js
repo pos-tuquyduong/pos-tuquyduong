@@ -14,6 +14,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { query, queryOne, run, saveDatabase } = require('../database');
+const { getToday } = require('../utils/helpers');
 const { authenticate } = require('../middleware/auth');
 
 // Multer config cho upload logo
@@ -407,7 +408,11 @@ router.delete('/invoice/logs', authenticate, async (req, res) => {
 router.get('/invoice/stats', authenticate, async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
-    const today = new Date().toISOString().split('T')[0];
+    // BUG-FIX (09.08.2026, phát hiện lúc rà soát toàn hệ thống): dùng đúng getToday() thay vì
+    // new Date().toISOString() (giờ UTC) — nếu không, thống kê "hôm nay" sai lệch trong khung
+    // 0h-7h sáng giờ VN mỗi ngày (đếm nhầm sang ngày hôm qua). Mức độ thấp (chỉ ảnh hưởng số
+    // liệu thống kê hiển thị, không đụng tiền), nhưng cùng lỗi nên vá luôn cho nhất quán.
+    const today = getToday();
 
     // Tổng số hóa đơn năm nay
     const yearTotal = await queryOne(`
