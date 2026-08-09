@@ -1124,6 +1124,21 @@ export default function Sales() {
                           </>
                         );
                       }
+                      // Bước 5 UI: voucher "giảm 1 món" — CHỈ 1 đơn vị được giảm, không phải cả dòng
+                      // (khác hẳn Flash/Tier ở trên) — nên không thể dùng chung công thức "giá × SL".
+                      if (isSignupDiscountRow(item) && discountCodeValid?.discount_amount != null) {
+                        const discountedUnitPrice = Math.max(0, item.unit_price - discountCodeValid.discount_amount);
+                        return (
+                          <>
+                            <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{formatPrice(item.unit_price)}</span>
+                            {' '}
+                            <span style={{ color: '#4338ca', fontWeight: 700 }}>🎯 {formatPrice(discountedUnitPrice)}</span>
+                            {item.quantity > 1
+                              ? ` (1 ly) + ${item.quantity - 1} × ${formatPrice(item.unit_price)}`
+                              : ` × 1`}
+                          </>
+                        );
+                      }
                       return `${formatPrice(item.unit_price)} × ${item.quantity}`;
                     })()}
                   </div>
@@ -1662,16 +1677,16 @@ export default function Sales() {
             borderRadius: '8px',
             marginBottom: '1rem'
           }}>
-            {(discountAmount > 0 || shippingFee > 0) && (
+            {(discount > 0 || shippingFee > 0) && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Tạm tính</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                {discountAmount > 0 && (
+                {discount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                   <span>Giảm giá</span>
-                  <span>-{formatPrice(discountAmount)}</span>
+                  <span>-{formatPrice(discount)}</span>
                 </div>
                 )}
                 {shippingFee > 0 && (
