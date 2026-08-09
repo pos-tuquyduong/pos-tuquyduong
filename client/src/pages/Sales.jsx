@@ -230,7 +230,13 @@ export default function Sales() {
         },
         body: JSON.stringify({ 
           code: codeToCheck,
-          order_subtotal: subtotal
+          order_subtotal: subtotal,
+          items: cart.map(it => ({
+            sx_product_type: it.sx_product_type,
+            sx_product_id: it.sx_product_id,
+            unit_price: it.unit_price,
+            quantity: it.quantity,
+          })),
         })
       });
       const result = await res.json();
@@ -255,6 +261,16 @@ export default function Sales() {
   const clearDiscountCode = () => {
     setDiscountCode('');
     setDiscountCodeValid(null);
+  };
+
+  // Bước 5: dòng nào trong giỏ đang được voucher "giảm 1 món" áp vào — dùng để highlight UI.
+  // Đọc từ chính kết quả /validate server trả về (applies_to), KHÔNG tự đoán ở client —
+  // đúng nguyên tắc "server quyết, client chỉ hiển thị lại".
+  const isSignupDiscountRow = (item) => {
+    const applies = discountCodeValid?.valid && discountCodeValid?.discount_scope === 'item'
+      ? discountCodeValid.applies_to : null;
+    if (!applies) return false;
+    return item.sx_product_type === applies.sx_product_type && item.sx_product_id === applies.sx_product_id;
   };
 
   // A5: kết quả đọc được từ camera → đổ vào đúng ô mã đang có, gọi lại đúng /validate
@@ -1049,7 +1065,9 @@ export default function Sales() {
           </div>
         ) : (
           <>
-            {cart.map(item => (
+            {cart.map(item => {
+              const signupHighlight = isSignupDiscountRow(item);
+              return (
               <div 
                 key={item.unique_key}
                 style={{ 
@@ -1057,9 +1075,24 @@ export default function Sales() {
                   alignItems: 'center', 
                   gap: '0.5rem',
                   padding: '0.5rem',
-                  borderBottom: '1px solid #f1f5f9'
+                  borderBottom: '1px solid #f1f5f9',
+                  position: 'relative',
+                  ...(signupHighlight ? {
+                    background: '#eef2ff',
+                    border: '1px solid #6366f1',
+                    borderRadius: '6px',
+                  } : {}),
                 }}
               >
+                {signupHighlight && (
+                  <div style={{
+                    fontSize: '0.65rem', fontWeight: 'bold', color: '#4338ca',
+                    background: '#e0e7ff', padding: '1px 6px', borderRadius: '4px',
+                    position: 'absolute', top: '-0.6rem', left: '0.5rem',
+                  }}>
+                    🎯 Áp voucher khách mới
+                  </div>
+                )}
                 <div style={{ fontSize: '1.25rem' }}>{item.icon || '📦'}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 'bold', color: item.color }}>
@@ -1232,7 +1265,8 @@ export default function Sales() {
                   {item.fromPkg ? '0đ' : formatPrice(item.quantity * item.unit_price)}
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* === Phase B: Chiết khấu + Shipping === */}
             <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>

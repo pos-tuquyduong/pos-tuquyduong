@@ -13,6 +13,7 @@ const express = require("express");
 const { query, queryOne, run, beginTransaction } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
 const { generateVoucherCode } = require("../utils/voucherCode");
+const { findEligibleItemForGroup, computeItemDiscountAmount } = require("../utils/itemScopeDiscount");
 const {
   generateOrderCode,
   getNow,
@@ -327,6 +328,8 @@ router.post("/", authenticate, async (req, res) => {
     let finalDiscountAmount = 0;
     let finalDiscountCode = discount_code;
     let discountCodeId = null;
+    let discountCodeScope = 'order'; // Bước 5: 'order' | 'item' — mặc định 'order' khớp hành vi cũ
+    let discountCodeGroupId = null;
 
     // Ưu tiên 1: Mã chiết khấu
     if (discount_code) {
@@ -349,7 +352,9 @@ router.post("/", authenticate, async (req, res) => {
           codeRecord.used_count >= codeRecord.usage_limit
         )
           codeValid = false;
-        if (codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
+        // Bước 5: đơn tối thiểu CHỈ áp dụng cho voucher giảm-cả-đơn — voucher giảm-1-món
+        // không có khái niệm đơn tối thiểu (đã chốt lúc thiết kế).
+        if (codeRecord.discount_scope !== 'item' && codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
           codeValid = false;
 
         if (codeValid) {
@@ -357,6 +362,8 @@ router.post("/", authenticate, async (req, res) => {
           finalDiscountValue = codeRecord.discount_value;
           finalDiscountCode = codeRecord.code;
           discountCodeId = codeRecord.id;
+          discountCodeScope = codeRecord.discount_scope === 'item' ? 'item' : 'order';
+          discountCodeGroupId = codeRecord.applicable_group_id || null;
         }
       }
     }
@@ -418,14 +425,35 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
+    // Áp dụng cho CẢ voucher giảm-1-món (Bước 5) vì đọc finalDiscountType từ codeRecord.discount_type
+    // như cũ, không phân biệt scope — tái dùng đúng điều kiện có sẵn, không viết luật riêng.
     if (flashApplied && finalDiscountType === "percent" && finalDiscountValue > 0) {
       return res.status(400).json({
         error: "Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.",
       });
     }
 
+    // Bước 5: món được chọn để giảm (chỉ có giá trị khi discountCodeScope === 'item') —
+    // khai báo ở đây để dùng lại lúc gắn signup_unit_price vào orderItems cho hóa đơn.
+    let itemScopeTargetItem = null;
+
     // Tính số tiền chiết khấu
-    if (finalDiscountType === "percent" && finalDiscountValue > 0) {
+    if (discountCodeScope === 'item' && discountCodeId) {
+      // Voucher giảm-1-món: KHÔNG tính theo subtotal — tìm đúng 1 món (giá cao nhất trong
+      // nhóm được phép, có mặt trong giỏ) rồi chỉ giảm trên giá của đúng 1 đơn vị món đó.
+      itemScopeTargetItem = await findEligibleItemForGroup(query, discountCodeGroupId, orderItems);
+      if (!itemScopeTargetItem) {
+        return res.status(400).json({
+          error: "Đơn này chưa có món nào được áp mã này",
+        });
+      }
+      finalDiscountAmount = computeItemDiscountAmount(
+        finalDiscountType, finalDiscountValue, itemScopeTargetItem.unit_price
+      );
+      // Hóa đơn: đánh dấu đúng dòng món được giảm — CHỈ hiển thị, không đổi unit_price gốc
+      // dùng để tính subtotal/total thật (đúng khuôn flash_unit_price/tier_unit_price).
+      itemScopeTargetItem.signup_unit_price = Math.max(0, itemScopeTargetItem.unit_price - finalDiscountAmount);
+    } else if (finalDiscountType === "percent" && finalDiscountValue > 0) {
       finalDiscountAmount = (subtotal * finalDiscountValue) / 100;
       // Giới hạn max_discount từ mã CK nếu có
       if (discountCodeId) {
@@ -449,6 +477,11 @@ router.post("/", authenticate, async (req, res) => {
       finalDiscountAmount,
       Math.max(0, subtotal - flashDiscountAmount - tierDiscountAmount),
     );
+    // Nếu bị trần trên cắt bớt, đồng bộ lại giá hiển thị trên hóa đơn cho đúng số thật đã giảm
+    // (ca cực hiếm — flash/tier gần như luôn không cùng áp dụng, nhưng vẫn xử lý cho chắc).
+    if (itemScopeTargetItem) {
+      itemScopeTargetItem.signup_unit_price = Math.max(0, itemScopeTargetItem.unit_price - finalDiscountAmount);
+    }
 
     // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
     const finalShippingFee = shipping_fee || 0;

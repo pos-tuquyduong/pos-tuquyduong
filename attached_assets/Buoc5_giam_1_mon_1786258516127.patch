@@ -1,0 +1,324 @@
+diff --git a/client/src/components/InvoicePreview.jsx b/client/src/components/InvoicePreview.jsx
+index 47fcd3c..2ca7e6e 100644
+--- a/client/src/components/InvoicePreview.jsx
++++ b/client/src/components/InvoicePreview.jsx
+@@ -439,9 +439,17 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+             // đúng cái nào server đã tính (không cần "chọn", chỉ cần đọc đúng field có giá trị).
+             const hasFlash = item.flash_price != null && item.flash_price !== item.price;
+             const hasTier = !hasFlash && item.tier_price != null && item.tier_price !== item.price;
+-            const hasDiscount = hasFlash || hasTier;
+-            const realPrice = hasFlash ? item.flash_price : hasTier ? item.tier_price : item.price;
+-            const realTotal = realPrice * item.qty;
++            // Bước 5: ưu đãi khách mới CHỈ giảm giá ĐÚNG 1 ĐƠN VỊ của món, khác hẳn flash/tier
++            // (giảm mọi đơn vị trong dòng) — không được dùng chung công thức realPrice*qty,
++            // nếu không sẽ hiện giảm nhầm cho TOÀN BỘ số lượng.
++            const hasSignup = !hasFlash && !hasTier && item.signup_price != null && item.signup_price !== item.price;
++            const hasDiscount = hasFlash || hasTier || hasSignup;
++            const realPrice = hasFlash ? item.flash_price : hasTier ? item.tier_price : hasSignup ? item.signup_price : item.price;
++            // Công thức đúng cho cả 2 trường hợp: flash/tier (giảm mọi đơn vị) dùng realPrice*qty
++            // như cũ; signup (giảm đúng 1 đơn vị) = (qty-1) đơn vị giá gốc + 1 đơn vị đã giảm.
++            const realTotal = hasSignup
++              ? (item.price * Math.max(0, item.qty - 1)) + realPrice
++              : realPrice * item.qty;
+             return (
+               <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
+                 {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{idx + 1}</td>}
+diff --git a/client/src/components/InvoicePrint.jsx b/client/src/components/InvoicePrint.jsx
+index 0ffea67..5b41f96 100644
+--- a/client/src/components/InvoicePrint.jsx
++++ b/client/src/components/InvoicePrint.jsx
+@@ -164,6 +164,7 @@ export default function InvoicePrint({
+       note: item.note ?? item.notes ?? '',
+       flash_price: item.flash_unit_price ?? null,
+       tier_price: item.tier_unit_price ?? null,
++      signup_price: item.signup_unit_price ?? null,
+     })),
+     subtotal: order.subtotal || 0,
+     discount: order.discount || 0,
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 5dee2be..7af3180 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -230,7 +230,13 @@ export default function Sales() {
+         },
+         body: JSON.stringify({ 
+           code: codeToCheck,
+-          order_subtotal: subtotal
++          order_subtotal: subtotal,
++          items: cart.map(it => ({
++            sx_product_type: it.sx_product_type,
++            sx_product_id: it.sx_product_id,
++            unit_price: it.unit_price,
++            quantity: it.quantity,
++          })),
+         })
+       });
+       const result = await res.json();
+@@ -257,6 +263,16 @@ export default function Sales() {
+     setDiscountCodeValid(null);
+   };
+ 
++  // Bước 5: dòng nào trong giỏ đang được voucher "giảm 1 món" áp vào — dùng để highlight UI.
++  // Đọc từ chính kết quả /validate server trả về (applies_to), KHÔNG tự đoán ở client —
++  // đúng nguyên tắc "server quyết, client chỉ hiển thị lại".
++  const isSignupDiscountRow = (item) => {
++    const applies = discountCodeValid?.valid && discountCodeValid?.discount_scope === 'item'
++      ? discountCodeValid.applies_to : null;
++    if (!applies) return false;
++    return item.sx_product_type === applies.sx_product_type && item.sx_product_id === applies.sx_product_id;
++  };
++
+   // A5: kết quả đọc được từ camera → đổ vào đúng ô mã đang có, gọi lại đúng /validate
+   // đang dùng cho nhập tay. Không tạo luồng riêng, không đụng orders.js.
+   const handleQrScanResult = (text) => {
+@@ -1049,7 +1065,9 @@ export default function Sales() {
+           </div>
+         ) : (
+           <>
+-            {cart.map(item => (
++            {cart.map(item => {
++              const signupHighlight = isSignupDiscountRow(item);
++              return (
+               <div 
+                 key={item.unique_key}
+                 style={{ 
+@@ -1057,9 +1075,24 @@ export default function Sales() {
+                   alignItems: 'center', 
+                   gap: '0.5rem',
+                   padding: '0.5rem',
+-                  borderBottom: '1px solid #f1f5f9'
++                  borderBottom: '1px solid #f1f5f9',
++                  position: 'relative',
++                  ...(signupHighlight ? {
++                    background: '#eef2ff',
++                    border: '1px solid #6366f1',
++                    borderRadius: '6px',
++                  } : {}),
+                 }}
+               >
++                {signupHighlight && (
++                  <div style={{
++                    fontSize: '0.65rem', fontWeight: 'bold', color: '#4338ca',
++                    background: '#e0e7ff', padding: '1px 6px', borderRadius: '4px',
++                    position: 'absolute', top: '-0.6rem', left: '0.5rem',
++                  }}>
++                    🎯 Áp voucher khách mới
++                  </div>
++                )}
+                 <div style={{ fontSize: '1.25rem' }}>{item.icon || '📦'}</div>
+                 <div style={{ flex: 1 }}>
+                   <div style={{ fontWeight: 'bold', color: item.color }}>
+@@ -1232,7 +1265,8 @@ export default function Sales() {
+                   {item.fromPkg ? '0đ' : formatPrice(item.quantity * item.unit_price)}
+                 </div>
+               </div>
+-            ))}
++              );
++            })}
+ 
+             {/* === Phase B: Chiết khấu + Shipping === */}
+             <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+diff --git a/server/routes/discount-codes.js b/server/routes/discount-codes.js
+index 849894d..4439ac9 100644
+--- a/server/routes/discount-codes.js
++++ b/server/routes/discount-codes.js
+@@ -9,6 +9,7 @@ const express = require('express');
+ const { query, queryOne, run } = require('../database');
+ const { authenticate, checkPermission } = require('../middleware/auth');
+ const { getNow } = require('../utils/helpers');
++const { findEligibleItemForGroup, computeItemDiscountAmount } = require('../utils/itemScopeDiscount');
+ 
+ const router = express.Router();
+ 
+@@ -61,7 +62,7 @@ router.get('/:id', authenticate, async (req, res) => {
+  */
+ router.post('/validate', authenticate, async (req, res) => {
+   try {
+-    const { code, order_subtotal } = req.body;
++    const { code, order_subtotal, items } = req.body;
+ 
+     if (!code) {
+       return res.status(400).json({ error: 'Vui lòng nhập mã chiết khấu' });
+@@ -92,7 +93,33 @@ router.post('/validate', authenticate, async (req, res) => {
+       return res.status(400).json({ error: 'Mã chiết khấu đã hết lượt sử dụng' });
+     }
+ 
+-    // Kiểm tra đơn tối thiểu
++    // Bước 5: voucher "giảm 1 món" — rẽ nhánh hoàn toàn khác voucher giảm-cả-đơn thường
++    if (discountCode.discount_scope === 'item') {
++      const eligibleItem = await findEligibleItemForGroup(query, discountCode.applicable_group_id, items || []);
++      if (!eligibleItem) {
++        return res.status(400).json({
++          error: 'Đơn này chưa có món nào được áp mã này',
++        });
++      }
++      const discount_amount = computeItemDiscountAmount(
++        discountCode.discount_type, discountCode.discount_value, eligibleItem.unit_price
++      );
++      return res.json({
++        valid: true,
++        code: discountCode.code,
++        discount_type: discountCode.discount_type,
++        discount_value: discountCode.discount_value,
++        discount_scope: 'item',
++        discount_amount,
++        applies_to: {
++          sx_product_type: eligibleItem.sx_product_type,
++          sx_product_id: eligibleItem.sx_product_id,
++          unit_price: eligibleItem.unit_price,
++        },
++      });
++    }
++
++    // Kiểm tra đơn tối thiểu (chỉ áp dụng cho voucher giảm-cả-đơn)
+     if (discountCode.min_order > 0 && order_subtotal < discountCode.min_order) {
+       return res.status(400).json({ 
+         error: `Đơn hàng tối thiểu ${discountCode.min_order.toLocaleString()}đ để áp dụng mã này` 
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index 9ef1fbf..fece459 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -13,6 +13,7 @@ const express = require("express");
+ const { query, queryOne, run, beginTransaction } = require("../database");
+ const { authenticate, checkPermission } = require("../middleware/auth");
+ const { generateVoucherCode } = require("../utils/voucherCode");
++const { findEligibleItemForGroup, computeItemDiscountAmount } = require("../utils/itemScopeDiscount");
+ const {
+   generateOrderCode,
+   getNow,
+@@ -327,6 +328,8 @@ router.post("/", authenticate, async (req, res) => {
+     let finalDiscountAmount = 0;
+     let finalDiscountCode = discount_code;
+     let discountCodeId = null;
++    let discountCodeScope = 'order'; // Bước 5: 'order' | 'item' — mặc định 'order' khớp hành vi cũ
++    let discountCodeGroupId = null;
+ 
+     // Ưu tiên 1: Mã chiết khấu
+     if (discount_code) {
+@@ -349,7 +352,9 @@ router.post("/", authenticate, async (req, res) => {
+           codeRecord.used_count >= codeRecord.usage_limit
+         )
+           codeValid = false;
+-        if (codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
++        // Bước 5: đơn tối thiểu CHỈ áp dụng cho voucher giảm-cả-đơn — voucher giảm-1-món
++        // không có khái niệm đơn tối thiểu (đã chốt lúc thiết kế).
++        if (codeRecord.discount_scope !== 'item' && codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
+           codeValid = false;
+ 
+         if (codeValid) {
+@@ -357,6 +362,8 @@ router.post("/", authenticate, async (req, res) => {
+           finalDiscountValue = codeRecord.discount_value;
+           finalDiscountCode = codeRecord.code;
+           discountCodeId = codeRecord.id;
++          discountCodeScope = codeRecord.discount_scope === 'item' ? 'item' : 'order';
++          discountCodeGroupId = codeRecord.applicable_group_id || null;
+         }
+       }
+     }
+@@ -418,14 +425,35 @@ router.post("/", authenticate, async (req, res) => {
+     }
+ 
+     // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
++    // Áp dụng cho CẢ voucher giảm-1-món (Bước 5) vì đọc finalDiscountType từ codeRecord.discount_type
++    // như cũ, không phân biệt scope — tái dùng đúng điều kiện có sẵn, không viết luật riêng.
+     if (flashApplied && finalDiscountType === "percent" && finalDiscountValue > 0) {
+       return res.status(400).json({
+         error: "Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.",
+       });
+     }
+ 
++    // Bước 5: món được chọn để giảm (chỉ có giá trị khi discountCodeScope === 'item') —
++    // khai báo ở đây để dùng lại lúc gắn signup_unit_price vào orderItems cho hóa đơn.
++    let itemScopeTargetItem = null;
++
+     // Tính số tiền chiết khấu
+-    if (finalDiscountType === "percent" && finalDiscountValue > 0) {
++    if (discountCodeScope === 'item' && discountCodeId) {
++      // Voucher giảm-1-món: KHÔNG tính theo subtotal — tìm đúng 1 món (giá cao nhất trong
++      // nhóm được phép, có mặt trong giỏ) rồi chỉ giảm trên giá của đúng 1 đơn vị món đó.
++      itemScopeTargetItem = await findEligibleItemForGroup(query, discountCodeGroupId, orderItems);
++      if (!itemScopeTargetItem) {
++        return res.status(400).json({
++          error: "Đơn này chưa có món nào được áp mã này",
++        });
++      }
++      finalDiscountAmount = computeItemDiscountAmount(
++        finalDiscountType, finalDiscountValue, itemScopeTargetItem.unit_price
++      );
++      // Hóa đơn: đánh dấu đúng dòng món được giảm — CHỈ hiển thị, không đổi unit_price gốc
++      // dùng để tính subtotal/total thật (đúng khuôn flash_unit_price/tier_unit_price).
++      itemScopeTargetItem.signup_unit_price = Math.max(0, itemScopeTargetItem.unit_price - finalDiscountAmount);
++    } else if (finalDiscountType === "percent" && finalDiscountValue > 0) {
+       finalDiscountAmount = (subtotal * finalDiscountValue) / 100;
+       // Giới hạn max_discount từ mã CK nếu có
+       if (discountCodeId) {
+@@ -449,6 +477,11 @@ router.post("/", authenticate, async (req, res) => {
+       finalDiscountAmount,
+       Math.max(0, subtotal - flashDiscountAmount - tierDiscountAmount),
+     );
++    // Nếu bị trần trên cắt bớt, đồng bộ lại giá hiển thị trên hóa đơn cho đúng số thật đã giảm
++    // (ca cực hiếm — flash/tier gần như luôn không cùng áp dụng, nhưng vẫn xử lý cho chắc).
++    if (itemScopeTargetItem) {
++      itemScopeTargetItem.signup_unit_price = Math.max(0, itemScopeTargetItem.unit_price - finalDiscountAmount);
++    }
+ 
+     // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
+     const finalShippingFee = shipping_fee || 0;
+diff --git a/server/utils/itemScopeDiscount.js b/server/utils/itemScopeDiscount.js
+new file mode 100644
+index 0000000..b626d5e
+--- /dev/null
++++ b/server/utils/itemScopeDiscount.js
+@@ -0,0 +1,52 @@
++/**
++ * Bước 5 — Logic dùng chung cho voucher "giảm 1 món" (discount_scope='item').
++ * DÙNG CHUNG giữa discount-codes.js (/validate — chỉ xem trước) và orders.js
++ * (tính tiền thật lúc thanh toán) — đúng nguyên tắc "client chỉ preview, server
++ * luôn tính lại", nhưng ở đây còn chặt hơn: CẢ HAI ĐẦU SERVER cũng phải cùng
++ * gọi đúng 1 hàm này, không viết 2 bản logic dễ lệch nhau.
++ */
++
++/**
++ * Tìm món "đắt nhất" trong giỏ hàng thuộc nhóm sản phẩm được áp voucher.
++ * @param {Function} query - hàm query() từ database.js
++ * @param {number} groupId - id nhóm sản phẩm (pos_product_groups.id)
++ * @param {Array} items - giỏ hàng, mỗi item cần có sx_product_type, sx_product_id, unit_price
++ * @returns {object|null} - item được chọn (đối tượng gốc trong mảng items), hoặc null nếu
++ *   giỏ không có món nào thuộc nhóm.
++ */
++async function findEligibleItemForGroup(query, groupId, items) {
++  if (!groupId || !Array.isArray(items) || items.length === 0) return null;
++
++  const members = await query(
++    'SELECT sx_product_type, sx_product_id FROM pos_product_group_members WHERE group_id = ?',
++    [groupId]
++  );
++  const memberKeys = new Set(members.map(m => `${m.sx_product_type}_${m.sx_product_id}`));
++
++  let best = null;
++  for (const it of items) {
++    if (it.sx_product_type == null || it.sx_product_id == null) continue;
++    const key = `${it.sx_product_type}_${it.sx_product_id}`;
++    if (!memberKeys.has(key)) continue;
++    const price = Number(it.unit_price) || 0;
++    if (!best || price > (Number(best.unit_price) || 0)) best = it;
++  }
++  return best;
++}
++
++/**
++ * Tính số tiền giảm cho ĐÚNG 1 đơn vị của món được chọn (không nhân số lượng).
++ * fixed: không vượt quá giá của chính món đó (tránh giảm ra số âm nếu owner lỡ cấu hình
++ * giá trị giảm lớn hơn giá món).
++ */
++function computeItemDiscountAmount(discountType, discountValue, unitPrice) {
++  const price = Number(unitPrice) || 0;
++  const value = Number(discountValue) || 0;
++  if (discountType === 'percent') {
++    return Math.round((price * Math.min(100, Math.max(0, value))) / 100);
++  }
++  // fixed
++  return Math.min(Math.max(0, value), price);
++}
++
++module.exports = { findEligibleItemForGroup, computeItemDiscountAmount };

@@ -439,9 +439,17 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
             // đúng cái nào server đã tính (không cần "chọn", chỉ cần đọc đúng field có giá trị).
             const hasFlash = item.flash_price != null && item.flash_price !== item.price;
             const hasTier = !hasFlash && item.tier_price != null && item.tier_price !== item.price;
-            const hasDiscount = hasFlash || hasTier;
-            const realPrice = hasFlash ? item.flash_price : hasTier ? item.tier_price : item.price;
-            const realTotal = realPrice * item.qty;
+            // Bước 5: ưu đãi khách mới CHỈ giảm giá ĐÚNG 1 ĐƠN VỊ của món, khác hẳn flash/tier
+            // (giảm mọi đơn vị trong dòng) — không được dùng chung công thức realPrice*qty,
+            // nếu không sẽ hiện giảm nhầm cho TOÀN BỘ số lượng.
+            const hasSignup = !hasFlash && !hasTier && item.signup_price != null && item.signup_price !== item.price;
+            const hasDiscount = hasFlash || hasTier || hasSignup;
+            const realPrice = hasFlash ? item.flash_price : hasTier ? item.tier_price : hasSignup ? item.signup_price : item.price;
+            // Công thức đúng cho cả 2 trường hợp: flash/tier (giảm mọi đơn vị) dùng realPrice*qty
+            // như cũ; signup (giảm đúng 1 đơn vị) = (qty-1) đơn vị giá gốc + 1 đơn vị đã giảm.
+            const realTotal = hasSignup
+              ? (item.price * Math.max(0, item.qty - 1)) + realPrice
+              : realPrice * item.qty;
             return (
               <tr key={idx} style={{ borderBottom: '1px dashed #ddd' }}>
                 {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{idx + 1}</td>}

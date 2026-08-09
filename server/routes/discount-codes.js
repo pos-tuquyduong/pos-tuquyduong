@@ -9,6 +9,7 @@ const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
+const { findEligibleItemForGroup, computeItemDiscountAmount } = require('../utils/itemScopeDiscount');
 
 const router = express.Router();
 
@@ -61,7 +62,7 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.post('/validate', authenticate, async (req, res) => {
   try {
-    const { code, order_subtotal } = req.body;
+    const { code, order_subtotal, items } = req.body;
 
     if (!code) {
       return res.status(400).json({ error: 'Vui lòng nhập mã chiết khấu' });
@@ -92,7 +93,33 @@ router.post('/validate', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Mã chiết khấu đã hết lượt sử dụng' });
     }
 
-    // Kiểm tra đơn tối thiểu
+    // Bước 5: voucher "giảm 1 món" — rẽ nhánh hoàn toàn khác voucher giảm-cả-đơn thường
+    if (discountCode.discount_scope === 'item') {
+      const eligibleItem = await findEligibleItemForGroup(query, discountCode.applicable_group_id, items || []);
+      if (!eligibleItem) {
+        return res.status(400).json({
+          error: 'Đơn này chưa có món nào được áp mã này',
+        });
+      }
+      const discount_amount = computeItemDiscountAmount(
+        discountCode.discount_type, discountCode.discount_value, eligibleItem.unit_price
+      );
+      return res.json({
+        valid: true,
+        code: discountCode.code,
+        discount_type: discountCode.discount_type,
+        discount_value: discountCode.discount_value,
+        discount_scope: 'item',
+        discount_amount,
+        applies_to: {
+          sx_product_type: eligibleItem.sx_product_type,
+          sx_product_id: eligibleItem.sx_product_id,
+          unit_price: eligibleItem.unit_price,
+        },
+      });
+    }
+
+    // Kiểm tra đơn tối thiểu (chỉ áp dụng cho voucher giảm-cả-đơn)
     if (discountCode.min_order > 0 && order_subtotal < discountCode.min_order) {
       return res.status(400).json({ 
         error: `Đơn hàng tối thiểu ${discountCode.min_order.toLocaleString()}đ để áp dụng mã này` 

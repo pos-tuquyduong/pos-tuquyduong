@@ -164,6 +164,7 @@ export default function InvoicePrint({
       note: item.note ?? item.notes ?? '',
       flash_price: item.flash_unit_price ?? null,
       tier_price: item.tier_unit_price ?? null,
+      signup_price: item.signup_unit_price ?? null,
     })),
     subtotal: order.subtotal || 0,
     discount: order.discount || 0,
