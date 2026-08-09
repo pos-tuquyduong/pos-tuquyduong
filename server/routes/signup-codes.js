@@ -22,6 +22,7 @@
 const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
 const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
+const { authenticate, checkPermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -170,6 +171,72 @@ router.post('/claim', async (req, res) => {
     });
   } catch (err) {
     console.error('Signup code claim error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/pos/signup-codes — danh sách mã cho owner xem trong app (Cài đặt).
+// Query: ?claimed=true để chỉ lấy các mã đã claim (dùng cho màn quản lý SĐT).
+router.get('/', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    let sql = 'SELECT * FROM pos_signup_codes';
+    const params = [];
+    if (req.query.claimed === 'true') {
+      sql += ' WHERE claimed_phone IS NOT NULL';
+    }
+    sql += ' ORDER BY COALESCE(claimed_at, issued_at) DESC LIMIT 500';
+    const rows = await query(sql, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('List signup codes error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/pos/signup-codes/:id/reset — HOÀN TÁC 1 lần claim (dọn dữ liệu test).
+// Làm 2 việc NGUYÊN TỬ trong 1 transaction: (1) gỡ claimed_at/claimed_phone khỏi
+// pos_signup_codes để SĐT claim lại được, (2) VÔ HIỆU HOÁ (is_active=0, không xoá cứng —
+// giữ vết để tra soát) voucher đã phát ra lúc claim — nếu không làm bước 2, voucher cũ
+// vẫn còn dùng được dù đã "hoàn tác", vì bước thanh toán không hề biết tới bảng này.
+router.post('/:id/reset', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    const signupRow = await queryOne('SELECT * FROM pos_signup_codes WHERE id = ?', [req.params.id]);
+    if (!signupRow) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy mã' });
+    }
+    if (!signupRow.claimed_at) {
+      return res.status(400).json({ success: false, error: 'Mã này chưa được claim, không cần hoàn tác' });
+    }
+
+    // An toàn: không hoàn tác nếu voucher đã THẬT SỰ được dùng trong 1 đơn hàng (used_count > 0)
+    // — tránh xoá mất dấu vết 1 giao dịch thật đã xảy ra chỉ vì bấm nhầm nút hoàn tác.
+    const voucherRow = await queryOne('SELECT id, used_count FROM pos_discount_codes WHERE code = ?', [signupRow.code]);
+    if (voucherRow && voucherRow.used_count > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Voucher này đã được dùng trong ít nhất 1 đơn hàng thật — không thể hoàn tác tự động, liên hệ kỹ thuật nếu chắc chắn cần xử lý.',
+      });
+    }
+
+    const tx = await beginTransaction();
+    try {
+      await tx.run(
+        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ?',
+        [signupRow.id]
+      );
+      // XOÁ HẲN (không chỉ vô hiệu hoá) — vì mã voucher = đúng mã in-bill (thiết kế "1 mã
+      // xuyên suốt"), nếu chỉ tắt is_active thì dòng cũ vẫn tồn tại, sẽ bị lớp chống-trùng-mã
+      // (chặn claim nếu mã đã có trong pos_discount_codes) chặn nhầm khi claim lại lần 2.
+      await tx.run('DELETE FROM pos_discount_codes WHERE code = ?', [signupRow.code]);
+      await tx.commit();
+    } catch (txErr) {
+      await tx.rollback();
+      throw txErr;
+    }
+
+    res.json({ success: true, message: `Đã hoàn tác — SĐT ${signupRow.claimed_phone} có thể claim lại, voucher cũ đã xoá` });
+  } catch (err) {
+    console.error('Reset signup code error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

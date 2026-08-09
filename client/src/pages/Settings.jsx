@@ -103,6 +103,7 @@ export default function Settings() {
         setProducts(prodData);
         await loadSignupCfg();
         await loadSignupGroup();
+        await loadClaimedSignupCodes();
       } else if (tab === 'rewards') {
         await loadRewards();
       } else if (tab === 'flash') {
@@ -248,6 +249,29 @@ export default function Settings() {
       setTimeout(() => setMessage(''), 3000);
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
+  };
+
+  // Danh sách SĐT đã claim ưu đãi khách mới — xem trực tiếp trong app, phục vụ đối soát/marketing
+  const [claimedSignupCodes, setClaimedSignupCodes] = useState([]);
+  const [resettingSignupId, setResettingSignupId] = useState(null);
+  const loadClaimedSignupCodes = async () => {
+    const data = await pkgApi('GET', '/api/pos/signup-codes?claimed=true');
+    if (data.success) setClaimedSignupCodes(data.data || []);
+  };
+  const resetSignupClaim = async (row) => {
+    if (!confirm(`Hoàn tác claim của SĐT ${row.claimed_phone} (mã ${row.code})? Voucher đã phát sẽ bị XOÁ, SĐT có thể claim lại từ đầu.`)) return;
+    setResettingSignupId(row.id);
+    try {
+      const data = await pkgApi('POST', `/api/pos/signup-codes/${row.id}/reset`);
+      if (!data.success) throw new Error(data.error);
+      setMessage(data.message);
+      setTimeout(() => setMessage(''), 4000);
+      await loadClaimedSignupCodes();
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    } finally {
+      setResettingSignupId(null);
+    }
   };
 
   // Bước 4 — Ưu đãi khách mới: dùng chung endpoint /api/pos/settings, chỉ khác tiền tố key
@@ -1388,6 +1412,57 @@ export default function Settings() {
               <button className="btn btn-primary" onClick={saveSignupCfg} disabled={saving}>
                 <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
               </button>
+
+              {/* Danh sách SĐT đã claim — xem trực tiếp, phục vụ đối soát/marketing sau này */}
+              <div style={{ marginTop: 24, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div className="card-title" style={{ margin: 0, fontSize: 15 }}>
+                    📋 SĐT đã nhận ưu đãi ({claimedSignupCodes.length})
+                  </div>
+                  <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={loadClaimedSignupCodes}>
+                    🔄 Làm mới
+                  </button>
+                </div>
+                <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+                  Mỗi SĐT chỉ claim được 1 lần trong đời — dùng nút "Hoàn tác" bên dưới để dọn dữ liệu
+                  test (SĐT bịa lúc thử nghiệm), tránh chiếm mất suất claim thật của khách sau này.
+                </p>
+                {claimedSignupCodes.length === 0 ? (
+                  <p style={{ fontSize: 13, color: '#9ca3af' }}>Chưa có ai claim.</p>
+                ) : (
+                  <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                    <table className="table" style={{ fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th>SĐT</th>
+                          <th>Mã</th>
+                          <th>Claim lúc</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {claimedSignupCodes.map(row => (
+                          <tr key={row.id}>
+                            <td style={{ fontWeight: 600 }}>{row.claimed_phone}</td>
+                            <td><code>{row.code}</code></td>
+                            <td style={{ color: '#6b7280' }}>{row.claimed_at}</td>
+                            <td>
+                              <button
+                                className="btn btn-outline"
+                                style={{ fontSize: 11, padding: '2px 8px', color: '#dc2626', borderColor: '#dc2626' }}
+                                onClick={() => resetSignupClaim(row)}
+                                disabled={resettingSignupId === row.id}
+                              >
+                                {resettingSignupId === row.id ? '...' : 'Hoàn tác'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </>
           ) : tab === 'rewards' ? (
             /* TAB KHO QUÀ (LOY-2a) */
