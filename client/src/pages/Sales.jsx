@@ -1662,16 +1662,16 @@ export default function Sales() {
             borderRadius: '8px',
             marginBottom: '1rem'
           }}>
-            {(discount > 0 || shippingFee > 0) && (
+            {(discountAmount > 0 || shippingFee > 0) && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Tạm tính</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                {discount > 0 && (
+                {discountAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                   <span>Giảm giá</span>
-                  <span>-{formatPrice(discount)}</span>
+                  <span>-{formatPrice(discountAmount)}</span>
                 </div>
                 )}
                 {shippingFee > 0 && (

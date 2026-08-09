@@ -1,0 +1,12 @@
+diff --git a/server/routes/discount-codes.js b/server/routes/discount-codes.js
+index 6662dfd..9b72910 100644
+--- a/server/routes/discount-codes.js
++++ b/server/routes/discount-codes.js
+@@ -113,6 +113,7 @@ router.post('/validate', authenticate, async (req, res) => {
+         discount_value: discountCode.discount_value,
+         discount_scope: 'item',
+         discount_amount,
++        message: `Giảm ${discount_amount.toLocaleString('vi-VN')}đ (1 món)`,
+         applies_to: {
+           sx_product_type: eligibleItem.sx_product_type,
+           sx_product_id: eligibleItem.sx_product_id,
