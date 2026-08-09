@@ -21,6 +21,16 @@ export default function Settings() {
     loyalty_expiry_mode: 'none',
   });
 
+  // Bước 4 — Cấu hình "Ưu đãi khách mới" (dùng chung cơ chế /api/pos/settings key-value)
+  const [signupCfg, setSignupCfg] = useState({
+    signup_enabled: 'false',
+    signup_scope: 'order',      // 'order' | 'item'
+    signup_discount_type: 'fixed',
+    signup_discount_value: '20000',
+    signup_min_order: '50000',  // chỉ có ý nghĩa khi scope='order'
+    signup_voucher_valid_days: '30',
+  });
+
   // Reward catalog (LOY-2a)
   const [rewards, setRewards] = useState([]);
   const [rewardForm, setRewardForm] = useState({
@@ -88,6 +98,11 @@ export default function Settings() {
         await loadBackupInfo();
       } else if (tab === 'loyalty') {
         await loadLoyalty();
+      } else if (tab === 'signup') {
+        const prodData = await productsApi.list({ active: '' });
+        setProducts(prodData);
+        await loadSignupCfg();
+        await loadSignupGroup();
       } else if (tab === 'rewards') {
         await loadRewards();
       } else if (tab === 'flash') {
@@ -230,6 +245,46 @@ export default function Settings() {
         is_special_group: !!p.is_special_group
       })));
       setMessage('Đã lưu giá thành công!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
+  };
+
+  // Bước 4 — Ưu đãi khách mới: dùng chung endpoint /api/pos/settings, chỉ khác tiền tố key
+  const loadSignupCfg = async () => {
+    const data = await pkgApi('GET', '/api/pos/settings');
+    if (data.success) {
+      const s = data.data || {};
+      setSignupCfg(prev => ({
+        signup_enabled: s.signup_enabled ?? prev.signup_enabled,
+        signup_scope: s.signup_scope ?? prev.signup_scope,
+        signup_discount_type: s.signup_discount_type ?? prev.signup_discount_type,
+        signup_discount_value: s.signup_discount_value ?? prev.signup_discount_value,
+        signup_min_order: s.signup_min_order ?? prev.signup_min_order,
+        signup_voucher_valid_days: s.signup_voucher_valid_days ?? prev.signup_voucher_valid_days,
+      }));
+    }
+  };
+  const saveSignupCfg = async () => {
+    setSaving(true);
+    try {
+      const value = parseFloat(signupCfg.signup_discount_value) || 0;
+      if (value <= 0) throw new Error('Giá trị giảm phải > 0');
+      if (signupCfg.signup_discount_type === 'percent' && value > 100) throw new Error('% giảm không được vượt quá 100');
+      const validDays = parseInt(signupCfg.signup_voucher_valid_days) || 30;
+      const minOrder = signupCfg.signup_scope === 'order' ? (parseInt(signupCfg.signup_min_order) || 0) : 0;
+      const data = await pkgApi('PUT', '/api/pos/settings', {
+        settings: {
+          signup_enabled: signupCfg.signup_enabled === 'true' || signupCfg.signup_enabled === true ? 'true' : 'false',
+          signup_scope: signupCfg.signup_scope === 'item' ? 'item' : 'order',
+          signup_discount_type: signupCfg.signup_discount_type === 'percent' ? 'percent' : 'fixed',
+          signup_discount_value: String(value),
+          signup_min_order: String(minOrder),
+          signup_voucher_valid_days: String(validDays),
+        },
+      });
+      if (!data.success) throw new Error(data.error);
+      setMessage('Đã lưu cấu hình ưu đãi khách mới!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
@@ -668,6 +723,9 @@ export default function Settings() {
           </button>
           <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
             🎫 Kho quà
+          </button>
+          <button className={`btn ${tab === 'signup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('signup')}>
+            🎯 Ưu đãi khách mới
           </button>
           <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
             ⚡ Flash sale
@@ -1217,6 +1275,119 @@ export default function Settings() {
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
+            </>
+          ) : tab === 'signup' ? (
+            /* TAB ƯU ĐÃI KHÁCH MỚI (Bước 4) */
+            <>
+              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🎯 Ưu đãi khách mới</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+                In mã trên bill khi bán — khách tạo tài khoản app trong 24h để đổi mã lấy voucher.
+                Bỏ qua nếu SĐT đơn đó đã từng đổi ưu đãi này trước đây.
+              </p>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={signupCfg.signup_enabled === 'true' || signupCfg.signup_enabled === true}
+                  onChange={e => setSignupCfg({ ...signupCfg, signup_enabled: e.target.checked ? 'true' : 'false' })}
+                />
+                Bật chương trình (in mã trên bill)
+              </label>
+
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 6px' }}>Kiểu khuyến mãi</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`btn ${signupCfg.signup_scope === 'order' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setSignupCfg({ ...signupCfg, signup_scope: 'order' })}
+                  >
+                    Giảm cả đơn
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${signupCfg.signup_scope === 'item' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setSignupCfg({ ...signupCfg, signup_scope: 'item' })}
+                  >
+                    Giảm 1 món
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, maxWidth: 480 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: '#6b7280' }}>Loại giảm</label>
+                  <select
+                    className="input"
+                    value={signupCfg.signup_discount_type}
+                    onChange={e => setSignupCfg({ ...signupCfg, signup_discount_type: e.target.value })}
+                  >
+                    <option value="fixed">Số tiền cố định</option>
+                    <option value="percent">Phần trăm</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: '#6b7280' }}>
+                    Giá trị giảm {signupCfg.signup_discount_type === 'percent' ? '(%)' : '(đ)'}
+                  </label>
+                  <input
+                    className="input"
+                    type="number"
+                    value={signupCfg.signup_discount_value}
+                    onChange={e => setSignupCfg({ ...signupCfg, signup_discount_value: e.target.value })}
+                  />
+                </div>
+                {signupCfg.signup_scope === 'order' && (
+                  <div>
+                    <label style={{ fontSize: 12, color: '#6b7280' }}>Đơn tối thiểu (đ)</label>
+                    <input
+                      className="input"
+                      type="number"
+                      value={signupCfg.signup_min_order}
+                      onChange={e => setSignupCfg({ ...signupCfg, signup_min_order: e.target.value })}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label style={{ fontSize: 12, color: '#6b7280' }}>Hạn dùng voucher sau khi đổi (ngày)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    value={signupCfg.signup_voucher_valid_days}
+                    onChange={e => setSignupCfg({ ...signupCfg, signup_voucher_valid_days: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {signupCfg.signup_scope === 'item' && (
+                <div style={{ marginBottom: 16, maxWidth: 480 }}>
+                  <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 6px' }}>
+                    Nhóm sản phẩm được áp ({signupGroupMembers.size} món đã chọn) — tick trong danh sách bên dưới
+                  </p>
+                  <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
+                    {products.map(p => {
+                      const uid = getUniqueId(p);
+                      return (
+                        <label key={uid} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
+                          <input
+                            type="checkbox"
+                            checked={signupGroupMembers.has(uid)}
+                            onChange={() => toggleSignupGroupMember(uid)}
+                          />
+                          {p.name} <span style={{ color: '#9ca3af' }}>({(p.price || 0).toLocaleString('vi-VN')}đ)</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={saveSignupGroup} disabled={savingSignupGroup}>
+                    <Save size={16} /> {savingSignupGroup ? 'Đang lưu...' : 'Lưu nhóm sản phẩm'}
+                  </button>
+                </div>
+              )}
+
+              <button className="btn btn-primary" onClick={saveSignupCfg} disabled={saving}>
+                <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
+              </button>
             </>
           ) : tab === 'rewards' ? (
             /* TAB KHO QUÀ (LOY-2a) */

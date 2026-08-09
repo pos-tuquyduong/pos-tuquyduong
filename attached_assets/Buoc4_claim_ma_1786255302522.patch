@@ -1,0 +1,394 @@
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index cefd794..3b674eb 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -21,6 +21,16 @@ export default function Settings() {
+     loyalty_expiry_mode: 'none',
+   });
+ 
++  // Bước 4 — Cấu hình "Ưu đãi khách mới" (dùng chung cơ chế /api/pos/settings key-value)
++  const [signupCfg, setSignupCfg] = useState({
++    signup_enabled: 'false',
++    signup_scope: 'order',      // 'order' | 'item'
++    signup_discount_type: 'fixed',
++    signup_discount_value: '20000',
++    signup_min_order: '50000',  // chỉ có ý nghĩa khi scope='order'
++    signup_voucher_valid_days: '30',
++  });
++
+   // Reward catalog (LOY-2a)
+   const [rewards, setRewards] = useState([]);
+   const [rewardForm, setRewardForm] = useState({
+@@ -88,6 +98,11 @@ export default function Settings() {
+         await loadBackupInfo();
+       } else if (tab === 'loyalty') {
+         await loadLoyalty();
++      } else if (tab === 'signup') {
++        const prodData = await productsApi.list({ active: '' });
++        setProducts(prodData);
++        await loadSignupCfg();
++        await loadSignupGroup();
+       } else if (tab === 'rewards') {
+         await loadRewards();
+       } else if (tab === 'flash') {
+@@ -235,6 +250,46 @@ export default function Settings() {
+     finally { setSaving(false); }
+   };
+ 
++  // Bước 4 — Ưu đãi khách mới: dùng chung endpoint /api/pos/settings, chỉ khác tiền tố key
++  const loadSignupCfg = async () => {
++    const data = await pkgApi('GET', '/api/pos/settings');
++    if (data.success) {
++      const s = data.data || {};
++      setSignupCfg(prev => ({
++        signup_enabled: s.signup_enabled ?? prev.signup_enabled,
++        signup_scope: s.signup_scope ?? prev.signup_scope,
++        signup_discount_type: s.signup_discount_type ?? prev.signup_discount_type,
++        signup_discount_value: s.signup_discount_value ?? prev.signup_discount_value,
++        signup_min_order: s.signup_min_order ?? prev.signup_min_order,
++        signup_voucher_valid_days: s.signup_voucher_valid_days ?? prev.signup_voucher_valid_days,
++      }));
++    }
++  };
++  const saveSignupCfg = async () => {
++    setSaving(true);
++    try {
++      const value = parseFloat(signupCfg.signup_discount_value) || 0;
++      if (value <= 0) throw new Error('Giá trị giảm phải > 0');
++      if (signupCfg.signup_discount_type === 'percent' && value > 100) throw new Error('% giảm không được vượt quá 100');
++      const validDays = parseInt(signupCfg.signup_voucher_valid_days) || 30;
++      const minOrder = signupCfg.signup_scope === 'order' ? (parseInt(signupCfg.signup_min_order) || 0) : 0;
++      const data = await pkgApi('PUT', '/api/pos/settings', {
++        settings: {
++          signup_enabled: signupCfg.signup_enabled === 'true' || signupCfg.signup_enabled === true ? 'true' : 'false',
++          signup_scope: signupCfg.signup_scope === 'item' ? 'item' : 'order',
++          signup_discount_type: signupCfg.signup_discount_type === 'percent' ? 'percent' : 'fixed',
++          signup_discount_value: String(value),
++          signup_min_order: String(minOrder),
++          signup_voucher_valid_days: String(validDays),
++        },
++      });
++      if (!data.success) throw new Error(data.error);
++      setMessage('Đã lưu cấu hình ưu đãi khách mới!');
++      setTimeout(() => setMessage(''), 3000);
++    } catch (err) { setMessage('Lỗi: ' + err.message); }
++    finally { setSaving(false); }
++  };
++
+   // Loyalty functions (LOY-1) — dùng endpoint /api/pos/settings có sẵn
+   const loadLoyalty = async () => {
+     const data = await pkgApi('GET', '/api/pos/settings');
+@@ -669,6 +724,9 @@ export default function Settings() {
+           <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
+             🎫 Kho quà
+           </button>
++          <button className={`btn ${tab === 'signup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('signup')}>
++            🎯 Ưu đãi khách mới
++          </button>
+           <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
+             ⚡ Flash sale
+           </button>
+@@ -1218,6 +1276,119 @@ export default function Settings() {
+                 </button>
+               </div>
+             </>
++          ) : tab === 'signup' ? (
++            /* TAB ƯU ĐÃI KHÁCH MỚI (Bước 4) */
++            <>
++              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🎯 Ưu đãi khách mới</div>
++              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
++                In mã trên bill khi bán — khách tạo tài khoản app trong 24h để đổi mã lấy voucher.
++                Bỏ qua nếu SĐT đơn đó đã từng đổi ưu đãi này trước đây.
++              </p>
++
++              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 14 }}>
++                <input
++                  type="checkbox"
++                  checked={signupCfg.signup_enabled === 'true' || signupCfg.signup_enabled === true}
++                  onChange={e => setSignupCfg({ ...signupCfg, signup_enabled: e.target.checked ? 'true' : 'false' })}
++                />
++                Bật chương trình (in mã trên bill)
++              </label>
++
++              <div style={{ marginBottom: 16 }}>
++                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 6px' }}>Kiểu khuyến mãi</p>
++                <div style={{ display: 'flex', gap: 8 }}>
++                  <button
++                    type="button"
++                    className={`btn ${signupCfg.signup_scope === 'order' ? 'btn-primary' : 'btn-outline'}`}
++                    onClick={() => setSignupCfg({ ...signupCfg, signup_scope: 'order' })}
++                  >
++                    Giảm cả đơn
++                  </button>
++                  <button
++                    type="button"
++                    className={`btn ${signupCfg.signup_scope === 'item' ? 'btn-primary' : 'btn-outline'}`}
++                    onClick={() => setSignupCfg({ ...signupCfg, signup_scope: 'item' })}
++                  >
++                    Giảm 1 món
++                  </button>
++                </div>
++              </div>
++
++              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, maxWidth: 480 }}>
++                <div>
++                  <label style={{ fontSize: 12, color: '#6b7280' }}>Loại giảm</label>
++                  <select
++                    className="input"
++                    value={signupCfg.signup_discount_type}
++                    onChange={e => setSignupCfg({ ...signupCfg, signup_discount_type: e.target.value })}
++                  >
++                    <option value="fixed">Số tiền cố định</option>
++                    <option value="percent">Phần trăm</option>
++                  </select>
++                </div>
++                <div>
++                  <label style={{ fontSize: 12, color: '#6b7280' }}>
++                    Giá trị giảm {signupCfg.signup_discount_type === 'percent' ? '(%)' : '(đ)'}
++                  </label>
++                  <input
++                    className="input"
++                    type="number"
++                    value={signupCfg.signup_discount_value}
++                    onChange={e => setSignupCfg({ ...signupCfg, signup_discount_value: e.target.value })}
++                  />
++                </div>
++                {signupCfg.signup_scope === 'order' && (
++                  <div>
++                    <label style={{ fontSize: 12, color: '#6b7280' }}>Đơn tối thiểu (đ)</label>
++                    <input
++                      className="input"
++                      type="number"
++                      value={signupCfg.signup_min_order}
++                      onChange={e => setSignupCfg({ ...signupCfg, signup_min_order: e.target.value })}
++                    />
++                  </div>
++                )}
++                <div>
++                  <label style={{ fontSize: 12, color: '#6b7280' }}>Hạn dùng voucher sau khi đổi (ngày)</label>
++                  <input
++                    className="input"
++                    type="number"
++                    value={signupCfg.signup_voucher_valid_days}
++                    onChange={e => setSignupCfg({ ...signupCfg, signup_voucher_valid_days: e.target.value })}
++                  />
++                </div>
++              </div>
++
++              {signupCfg.signup_scope === 'item' && (
++                <div style={{ marginBottom: 16, maxWidth: 480 }}>
++                  <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 6px' }}>
++                    Nhóm sản phẩm được áp ({signupGroupMembers.size} món đã chọn) — tick trong danh sách bên dưới
++                  </p>
++                  <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
++                    {products.map(p => {
++                      const uid = getUniqueId(p);
++                      return (
++                        <label key={uid} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
++                          <input
++                            type="checkbox"
++                            checked={signupGroupMembers.has(uid)}
++                            onChange={() => toggleSignupGroupMember(uid)}
++                          />
++                          {p.name} <span style={{ color: '#9ca3af' }}>({(p.price || 0).toLocaleString('vi-VN')}đ)</span>
++                        </label>
++                      );
++                    })}
++                  </div>
++                  <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={saveSignupGroup} disabled={savingSignupGroup}>
++                    <Save size={16} /> {savingSignupGroup ? 'Đang lưu...' : 'Lưu nhóm sản phẩm'}
++                  </button>
++                </div>
++              )}
++
++              <button className="btn btn-primary" onClick={saveSignupCfg} disabled={saving}>
++                <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
++              </button>
++            </>
+           ) : tab === 'rewards' ? (
+             /* TAB KHO QUÀ (LOY-2a) */
+             <>
+diff --git a/server/index.js b/server/index.js
+index 4c8815f..ee693a7 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -39,6 +39,7 @@ const loyaltyRoutes = require('./routes/loyalty');
+ const flashRoutes = require('./routes/flash');
+ const tiersRoutes = require('./routes/tiers');
+ const productGroupsRoutes = require('./routes/product-groups');
++const signupCodesRoutes = require('./routes/signup-codes');
+ const membershipRoutes = require('./routes/membership');
+ // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ const damagesRoutes = require('./routes/damages');
+@@ -87,6 +88,7 @@ app.use('/api/pos/loyalty', loyaltyRoutes);
+ app.use('/api/pos/flash', flashRoutes);
+ app.use('/api/pos/tiers', tiersRoutes);
+ app.use('/api/pos/product-groups', productGroupsRoutes);
++app.use('/api/pos/signup-codes', signupCodesRoutes);
+ app.use('/api/pos/membership', membershipRoutes);
+ // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
+ app.use('/api/pos/damages', damagesRoutes);
+diff --git a/server/routes/signup-codes.js b/server/routes/signup-codes.js
+new file mode 100644
+index 0000000..d38205e
+--- /dev/null
++++ b/server/routes/signup-codes.js
+@@ -0,0 +1,158 @@
++/**
++ * POS System - Signup Codes Routes (Bước 4 của "Ưu đãi khách mới")
++ *
++ * POST /claim: cửa nhận mã — khách nhập mã in trên bill lúc tạo tài khoản App KH.
++ * Kiểm hạn 24h (rolling từ lúc mã được in) + chặn SĐT đã từng claim (bất kể mã nào) →
++ * phát ra 1 voucher THẬT trong pos_discount_codes, dùng đúng cấu hình owner đặt trong
++ * Cài đặt (đọc qua pos_settings, key tiền tố `signup_`).
++ *
++ * ⚠️ LƯU Ý KIẾN TRÚC (chưa giải quyết, ghi rõ để không quên): App KH backend CHƯA XÂY,
++ * nên endpoint này hiện KHÔNG dùng `authenticate` (JWT nhân viên POS — App KH sẽ không
++ * có JWT đó). Bảo vệ tạm thời dựa vào bản chất mã: 6 ký tự ngẫu nhiên, chỉ tồn tại thật
++ * trên giấy in, hạn 24h, dùng 1 lần — brute-force gần như bất khả thi trong 24h
++ * (~887 triệu tổ hợp). Khi xây App KH backend thật (M1), cần bổ sung xác thực
++ * service-to-service (API key riêng cho App KH, khác JWT nhân viên) — CHƯA làm ở đây.
++ */
++
++const express = require('express');
++const { query, queryOne, run, beginTransaction } = require('../database');
++const { normalizePhone, getNow } = require('../utils/helpers');
++const { generateVoucherCode } = require('../utils/voucherCode');
++
++const router = express.Router();
++
++const CODE_EXPIRE_HOURS = 24;
++const DEFAULT_VALID_DAYS = 30;
++
++async function getSignupConfig() {
++  const rows = await query(
++    "SELECT key, value FROM pos_settings WHERE key LIKE 'signup_%'"
++  );
++  const cfg = {};
++  for (const r of rows) cfg[r.key] = r.value;
++  return {
++    enabled: cfg.signup_enabled === '1' || cfg.signup_enabled === 'true',
++    scope: cfg.signup_scope === 'item' ? 'item' : 'order', // mặc định 'order' nếu chưa cấu hình
++    discountType: cfg.signup_discount_type === 'fixed' ? 'fixed' : 'percent',
++    discountValue: Number(cfg.signup_discount_value) || 0,
++    minOrder: Number(cfg.signup_min_order) || 0,
++    validDays: Number(cfg.signup_voucher_valid_days) || DEFAULT_VALID_DAYS,
++  };
++}
++
++// POST /api/pos/signup-codes/claim
++// Body: { code, phone }
++router.post('/claim', async (req, res) => {
++  try {
++    const rawCode = String(req.body.code || '').trim().toUpperCase();
++    const phone = normalizePhone(req.body.phone);
++
++    if (!rawCode) {
++      return res.status(400).json({ success: false, error: 'Thiếu mã ưu đãi' });
++    }
++    if (!phone) {
++      return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ' });
++    }
++
++    const config = await getSignupConfig();
++    if (!config.enabled) {
++      return res.status(400).json({ success: false, error: 'Chương trình ưu đãi khách mới hiện đang tắt' });
++    }
++
++    const now = getNow();
++
++    const signupRow = await queryOne(
++      'SELECT * FROM pos_signup_codes WHERE UPPER(code) = ?',
++      [rawCode]
++    );
++    if (!signupRow) {
++      return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
++    }
++    if (signupRow.claimed_at) {
++      return res.status(400).json({ success: false, error: 'Mã này đã được sử dụng' });
++    }
++
++    // Hạn 24h rolling từ lúc in — so sánh bằng mili-giây, không phụ thuộc múi giờ chuỗi.
++    const issuedMs = new Date(signupRow.issued_at.replace(' ', 'T') + 'Z').getTime();
++    const nowMs = new Date(now.replace(' ', 'T') + 'Z').getTime();
++    const hoursPassed = (nowMs - issuedMs) / (1000 * 60 * 60);
++    if (!Number.isFinite(hoursPassed) || hoursPassed > CODE_EXPIRE_HOURS) {
++      return res.status(400).json({ success: false, error: 'Mã đã hết hạn (quá 24 giờ kể từ lúc in)' });
++    }
++
++    // Chặn theo SĐT (không theo mã) — 1 SĐT chỉ claim được đúng 1 lần trong đời, bất kể mã nào.
++    const claimedBefore = await queryOne(
++      'SELECT id FROM pos_signup_codes WHERE claimed_phone = ? LIMIT 1',
++      [phone]
++    );
++    if (claimedBefore) {
++      return res.status(400).json({ success: false, error: 'Số điện thoại này đã từng nhận ưu đãi khách mới' });
++    }
++
++    // Nhóm sản phẩm áp dụng — chỉ cần khi scope='item', dùng đúng nhóm seed sẵn ở Bước 1.
++    let applicableGroupId = null;
++    if (config.scope === 'item') {
++      const group = await queryOne("SELECT id FROM pos_product_groups WHERE code = 'khach_moi'");
++      if (!group) {
++        return res.status(500).json({ success: false, error: 'Chưa cấu hình nhóm sản phẩm cho ưu đãi khách mới' });
++      }
++      applicableGroupId = group.id;
++    }
++
++    // Sinh mã voucher chưa trùng — tối đa 5 lần thử (~887 triệu tổ hợp, cực hiếm đụng).
++    let voucherCode = null;
++    for (let attempt = 0; attempt < 5; attempt++) {
++      const candidate = generateVoucherCode();
++      const exists = await queryOne('SELECT id FROM pos_discount_codes WHERE code = ?', [candidate]);
++      if (!exists) { voucherCode = candidate; break; }
++    }
++    if (!voucherCode) {
++      return res.status(500).json({ success: false, error: 'Không sinh được mã voucher, thử lại' });
++    }
++
++    const validTo = new Date(nowMs + config.validDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
++
++    // Giao dịch NGUYÊN TỬ — đánh dấu đã claim + phát voucher, lỗi bất kỳ bước nào → hủy sạch
++    // (đúng khuôn mẫu loyalty.js /redeem, không để mã "claimed" mồ côi không có voucher).
++    const tx = await beginTransaction();
++    try {
++      await tx.run(
++        'UPDATE pos_signup_codes SET claimed_at = ?, claimed_phone = ? WHERE id = ?',
++        [now, phone, signupRow.id]
++      );
++      await tx.run(
++        `INSERT INTO pos_discount_codes (
++           code, discount_type, discount_value, min_order, usage_limit, used_count,
++           valid_from, valid_to, is_active, notes, discount_scope, applicable_group_id, created_at
++         ) VALUES (?, ?, ?, ?, 1, 0, ?, ?, 1, ?, ?, ?, ?)`,
++        [
++          voucherCode, config.discountType, config.discountValue,
++          config.scope === 'order' ? config.minOrder : 0,
++          now, validTo,
++          `Ưu đãi khách mới (claim ${now})`,
++          config.scope, applicableGroupId, now,
++        ]
++      );
++      await tx.commit();
++    } catch (txErr) {
++      await tx.rollback();
++      throw txErr;
++    }
++
++    res.json({
++      success: true,
++      data: {
++        voucher_code: voucherCode,
++        discount_type: config.discountType,
++        discount_value: config.discountValue,
++        scope: config.scope,
++        valid_to: validTo,
++      },
++    });
++  } catch (err) {
++    console.error('Signup code claim error:', err.message);
++    res.status(500).json({ success: false, error: err.message });
++  }
++});
++
++module.exports = router;
