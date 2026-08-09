@@ -20,6 +20,7 @@ const express = require('express');
 const { query, queryOne, beginTransaction } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
+const { generateVoucherCode } = require('../utils/voucherCode');
 
 const router = express.Router();
 
@@ -42,15 +43,8 @@ function addDaysToDate(nowStr, days) {
   return dt.toISOString().slice(0, 10);
 }
 
-/** Mã voucher: 6 ký tự, KHÔNG tiền tố. Bỏ ký tự dễ nhìn nhầm O/0 · I/1/L.
- *  Không phân biệt hoa/thường (toàn hệ so mã bằng UPPER). ~887 triệu tổ hợp → hiếm trùng;
- *  vẫn có chống trùng ở /redeem (đẻ lại nếu đụng mã đã tồn tại). */
-function generateVoucherCode() {
-  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // đã bỏ O,0,I,1,L
-  let s = '';
-  for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
-  return s;
-}
+// Mã voucher: dùng chung utils/voucherCode.js (không định nghĩa lại ở đây — xem file đó
+// để biết bảng chữ cái + lý do bỏ ký tự dễ nhầm).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pos/loyalty/points/:phone — số dư điểm + lịch sử gần đây

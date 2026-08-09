@@ -706,6 +706,7 @@ export default function Sales() {
         discount_value: result.order.discount_value,
         discount_code: result.order.discount_code,
         shipping_fee: result.order.shipping_fee || shippingFee,
+        signupCode: result.order.signup_code || null, // Bước 3: mã ưu đãi khách mới, để in ra bill
         total: result.order.total,
         paymentMethod: isDebt ? 'debt' : paymentMethod,
         balanceUsed: balanceUsed,
@@ -2278,7 +2279,8 @@ export default function Sales() {
         cash_received: completedOrder.cashReceived,
         change_amount: completedOrder.change,
         balance_amount: completedOrder.balanceUsed || 0,
-        debt_amount: completedOrder.debtAmount || 0
+        debt_amount: completedOrder.debtAmount || 0,
+        signup_code: completedOrder.signupCode || null
       }}
       settings={invoiceSettings}
       successInfo={{

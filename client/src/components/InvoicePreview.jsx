@@ -35,7 +35,8 @@ const SAMPLE_DATA = {
   cash_received: 200000,
   change_amount: 72500,
   balance_amount: 0,
-  debt_amount: 0
+  debt_amount: 0,
+  signup_code: null  // Bước 3: mã ưu đãi khách mới, null = không hiện khối này (mẫu xem trước không cần bịa mã)
 };
 
 // Number to Vietnamese words
@@ -679,6 +680,26 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
                 <div style={{ fontSize: '0.8em', color: '#666' }}>(Ký, ghi rõ họ tên)</div>
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          BƯỚC 3 (08.08.2026): MÃ ƯU ĐÃI KHÁCH MỚI — chỉ hiện khi đơn có mã (server quyết định
+          có sinh mã hay không, xem orders.js). Không có config bật/tắt riêng ở đây vì việc
+          bật/tắt tính năng nằm ở phía server (Bước sau sẽ có cờ bật/tắt trong Cài đặt).
+      ═══════════════════════════════════════════════════════════════════════════ */}
+      {data.signup_code && (
+        <>
+          <div style={{ borderTop: `1px dashed #ccc`, margin: isThermal ? '2mm 0' : '4mm 0' }} />
+          <div style={{ textAlign: 'center', fontSize: '0.9em' }}>
+            <div style={{ color: '#666', marginBottom: '1mm' }}>Mã ưu đãi khách mới</div>
+            <div style={{ fontWeight: 'bold', fontSize: '1.3em', letterSpacing: '2px', marginBottom: '1mm' }}>
+              {data.signup_code}
+            </div>
+            <div style={{ color: '#666', fontSize: '0.85em' }}>
+              Tạo tài khoản app trong 24h để nhận ưu đãi
+            </div>
           </div>
         </>
       )}

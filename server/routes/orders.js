@@ -12,6 +12,7 @@
 const express = require("express");
 const { query, queryOne, run, beginTransaction } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
+const { generateVoucherCode } = require("../utils/voucherCode");
 const {
   generateOrderCode,
   getNow,
@@ -895,6 +896,39 @@ router.post("/", authenticate, async (req, res) => {
       }
     }
 
+    // Bước 3 (08.08.2026) — Mã ưu đãi khách mới: in trên bill, đổi lấy tài khoản App KH.
+    // INERT với đơn hàng — lỗi ở đây KHÔNG được làm hỏng đơn đã tạo xong, chỉ log rồi bỏ qua.
+    // Luật: in cho MỌI đơn, trừ khi đơn có SĐT và SĐT đó đã từng claim ưu đãi này trước đây.
+    let signupCode = null;
+    try {
+      let alreadyClaimed = false;
+      if (phone) {
+        const claimedBefore = await queryOne(
+          'SELECT id FROM pos_signup_codes WHERE claimed_phone = ? LIMIT 1',
+          [phone]
+        );
+        alreadyClaimed = !!claimedBefore;
+      }
+      if (!alreadyClaimed) {
+        // Chống trùng mã: thử tối đa 5 lần, cực hiếm khi đụng (~887 triệu tổ hợp)
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const candidate = generateVoucherCode();
+          const exists = await queryOne('SELECT id FROM pos_signup_codes WHERE code = ?', [candidate]);
+          if (!exists) {
+            await run(
+              `INSERT INTO pos_signup_codes (code, order_id, order_customer_phone, issued_at)
+               VALUES (?, ?, ?, ?)`,
+              [candidate, orderId, phone || null, now]
+            );
+            signupCode = candidate;
+            break;
+          }
+        }
+      }
+    } catch (signupErr) {
+      console.error('Signup code creation error:', signupErr.message);
+    }
+
     res.json({
       success: true,
       order: {
@@ -917,6 +951,7 @@ router.post("/", authenticate, async (req, res) => {
         payment_status: finalPaymentStatus,
         created_by: req.user.display_name || req.user.username,
         created_at: now,
+        signup_code: signupCode,
       },
     });
   } catch (err) {

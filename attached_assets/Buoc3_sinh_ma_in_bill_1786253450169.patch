@@ -1,0 +1,220 @@
+diff --git a/client/src/components/InvoicePreview.jsx b/client/src/components/InvoicePreview.jsx
+index 47d77ff..47fcd3c 100644
+--- a/client/src/components/InvoicePreview.jsx
++++ b/client/src/components/InvoicePreview.jsx
+@@ -35,7 +35,8 @@ const SAMPLE_DATA = {
+   cash_received: 200000,
+   change_amount: 72500,
+   balance_amount: 0,
+-  debt_amount: 0
++  debt_amount: 0,
++  signup_code: null  // Bước 3: mã ưu đãi khách mới, null = không hiện khối này (mẫu xem trước không cần bịa mã)
+ };
+ 
+ // Number to Vietnamese words
+@@ -683,6 +684,26 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
+         </>
+       )}
+ 
++      {/* ═══════════════════════════════════════════════════════════════════════════
++          BƯỚC 3 (08.08.2026): MÃ ƯU ĐÃI KHÁCH MỚI — chỉ hiện khi đơn có mã (server quyết định
++          có sinh mã hay không, xem orders.js). Không có config bật/tắt riêng ở đây vì việc
++          bật/tắt tính năng nằm ở phía server (Bước sau sẽ có cờ bật/tắt trong Cài đặt).
++      ═══════════════════════════════════════════════════════════════════════════ */}
++      {data.signup_code && (
++        <>
++          <div style={{ borderTop: `1px dashed #ccc`, margin: isThermal ? '2mm 0' : '4mm 0' }} />
++          <div style={{ textAlign: 'center', fontSize: '0.9em' }}>
++            <div style={{ color: '#666', marginBottom: '1mm' }}>Mã ưu đãi khách mới</div>
++            <div style={{ fontWeight: 'bold', fontSize: '1.3em', letterSpacing: '2px', marginBottom: '1mm' }}>
++              {data.signup_code}
++            </div>
++            <div style={{ color: '#666', fontSize: '0.85em' }}>
++              Tạo tài khoản app trong 24h để nhận ưu đãi
++            </div>
++          </div>
++        </>
++      )}
++
+       {/* ═══════════════════════════════════════════════════════════════════════════
+           FOOTER
+       ═══════════════════════════════════════════════════════════════════════════ */}
+diff --git a/client/src/components/InvoicePrint.jsx b/client/src/components/InvoicePrint.jsx
+index 9af8730..0ffea67 100644
+--- a/client/src/components/InvoicePrint.jsx
++++ b/client/src/components/InvoicePrint.jsx
+@@ -179,6 +179,7 @@ export default function InvoicePrint({
+     change_amount: order.change_amount,
+     debt_amount: order.debt_amount,
+     balance_amount: order.balance_amount,
++    signup_code: order.signup_code || null,
+   }), [order, invoiceNumber]);
+ 
+   // ═══════════════════════════════════════════════════════════════════════════
+diff --git a/client/src/pages/Sales.jsx b/client/src/pages/Sales.jsx
+index 42700ea..5dee2be 100644
+--- a/client/src/pages/Sales.jsx
++++ b/client/src/pages/Sales.jsx
+@@ -706,6 +706,7 @@ export default function Sales() {
+         discount_value: result.order.discount_value,
+         discount_code: result.order.discount_code,
+         shipping_fee: result.order.shipping_fee || shippingFee,
++        signupCode: result.order.signup_code || null, // Bước 3: mã ưu đãi khách mới, để in ra bill
+         total: result.order.total,
+         paymentMethod: isDebt ? 'debt' : paymentMethod,
+         balanceUsed: balanceUsed,
+@@ -2278,7 +2279,8 @@ export default function Sales() {
+         cash_received: completedOrder.cashReceived,
+         change_amount: completedOrder.change,
+         balance_amount: completedOrder.balanceUsed || 0,
+-        debt_amount: completedOrder.debtAmount || 0
++        debt_amount: completedOrder.debtAmount || 0,
++        signup_code: completedOrder.signupCode || null
+       }}
+       settings={invoiceSettings}
+       successInfo={{
+diff --git a/server/database.js b/server/database.js
+index 3fa6f3f..1d819da 100644
+--- a/server/database.js
++++ b/server/database.js
+@@ -1162,7 +1162,28 @@ async function seedDefaultData() {
+     SELECT 'khach_moi', 'Ưu đãi khách mới'
+     WHERE NOT EXISTS (SELECT 1 FROM pos_product_groups WHERE code = 'khach_moi')
+   `);
+-  console.log('✅ Đã đảm bảo bảng nhóm sản phẩm + seed nhóm "khach_moi"');
++  // ═══════════════════════════════════════════════════════════════════════════
++  // BẢNG: MÃ ƯU ĐÃI KHÁCH MỚI (Bước 3, 08.08.2026) — in trên bill, đổi lấy tài khoản App KH
++  // 2 tầng hạn TÁCH BIỆT, đừng gộp chung 1 cột:
++  //   - issued_at/CODE_EXPIRE_HOURS (hằng số 24h, xem signup-codes.js): cửa sổ để claim
++  //   - claimed_at + voucher sinh ra sau claim có hạn riêng (30 ngày, tính ở bước claim)
++  // is_signup_code KHÔNG cần cột riêng — INERT hoàn toàn với đơn hàng/tiền: chỉ đọc
++  // customer_phone của đơn để quyết định có in mã hay không, không ghi ngược lại đơn hàng.
++  // ═══════════════════════════════════════════════════════════════════════════
++  await db.execute(`
++    CREATE TABLE IF NOT EXISTS pos_signup_codes (
++      id INTEGER PRIMARY KEY AUTOINCREMENT,
++      code TEXT UNIQUE NOT NULL,
++      order_id INTEGER,
++      order_customer_phone TEXT,
++      issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
++      claimed_at DATETIME,
++      claimed_phone TEXT
++    )
++  `);
++  await db.execute(`CREATE INDEX IF NOT EXISTS idx_signup_code ON pos_signup_codes(code)`);
++  await db.execute(`CREATE INDEX IF NOT EXISTS idx_signup_claimed_phone ON pos_signup_codes(claimed_phone)`);
++  console.log('✅ Đã đảm bảo bảng mã ưu đãi khách mới (pos_signup_codes)');
+ }
+ 
+ /**
+diff --git a/server/routes/loyalty.js b/server/routes/loyalty.js
+index 5afdea5..042821e 100644
+--- a/server/routes/loyalty.js
++++ b/server/routes/loyalty.js
+@@ -20,6 +20,7 @@ const express = require('express');
+ const { query, queryOne, beginTransaction } = require('../database');
+ const { authenticate } = require('../middleware/auth');
+ const { getNow, normalizePhone } = require('../utils/helpers');
++const { generateVoucherCode } = require('../utils/voucherCode');
+ 
+ const router = express.Router();
+ 
+@@ -42,15 +43,8 @@ function addDaysToDate(nowStr, days) {
+   return dt.toISOString().slice(0, 10);
+ }
+ 
+-/** Mã voucher: 6 ký tự, KHÔNG tiền tố. Bỏ ký tự dễ nhìn nhầm O/0 · I/1/L.
+- *  Không phân biệt hoa/thường (toàn hệ so mã bằng UPPER). ~887 triệu tổ hợp → hiếm trùng;
+- *  vẫn có chống trùng ở /redeem (đẻ lại nếu đụng mã đã tồn tại). */
+-function generateVoucherCode() {
+-  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // đã bỏ O,0,I,1,L
+-  let s = '';
+-  for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+-  return s;
+-}
++// Mã voucher: dùng chung utils/voucherCode.js (không định nghĩa lại ở đây — xem file đó
++// để biết bảng chữ cái + lý do bỏ ký tự dễ nhầm).
+ 
+ // ─────────────────────────────────────────────────────────────────────────────
+ // GET /api/pos/loyalty/points/:phone — số dư điểm + lịch sử gần đây
+diff --git a/server/routes/orders.js b/server/routes/orders.js
+index 935394a..9ef1fbf 100644
+--- a/server/routes/orders.js
++++ b/server/routes/orders.js
+@@ -12,6 +12,7 @@
+ const express = require("express");
+ const { query, queryOne, run, beginTransaction } = require("../database");
+ const { authenticate, checkPermission } = require("../middleware/auth");
++const { generateVoucherCode } = require("../utils/voucherCode");
+ const {
+   generateOrderCode,
+   getNow,
+@@ -895,6 +896,39 @@ router.post("/", authenticate, async (req, res) => {
+       }
+     }
+ 
++    // Bước 3 (08.08.2026) — Mã ưu đãi khách mới: in trên bill, đổi lấy tài khoản App KH.
++    // INERT với đơn hàng — lỗi ở đây KHÔNG được làm hỏng đơn đã tạo xong, chỉ log rồi bỏ qua.
++    // Luật: in cho MỌI đơn, trừ khi đơn có SĐT và SĐT đó đã từng claim ưu đãi này trước đây.
++    let signupCode = null;
++    try {
++      let alreadyClaimed = false;
++      if (phone) {
++        const claimedBefore = await queryOne(
++          'SELECT id FROM pos_signup_codes WHERE claimed_phone = ? LIMIT 1',
++          [phone]
++        );
++        alreadyClaimed = !!claimedBefore;
++      }
++      if (!alreadyClaimed) {
++        // Chống trùng mã: thử tối đa 5 lần, cực hiếm khi đụng (~887 triệu tổ hợp)
++        for (let attempt = 0; attempt < 5; attempt++) {
++          const candidate = generateVoucherCode();
++          const exists = await queryOne('SELECT id FROM pos_signup_codes WHERE code = ?', [candidate]);
++          if (!exists) {
++            await run(
++              `INSERT INTO pos_signup_codes (code, order_id, order_customer_phone, issued_at)
++               VALUES (?, ?, ?, ?)`,
++              [candidate, orderId, phone || null, now]
++            );
++            signupCode = candidate;
++            break;
++          }
++        }
++      }
++    } catch (signupErr) {
++      console.error('Signup code creation error:', signupErr.message);
++    }
++
+     res.json({
+       success: true,
+       order: {
+@@ -917,6 +951,7 @@ router.post("/", authenticate, async (req, res) => {
+         payment_status: finalPaymentStatus,
+         created_by: req.user.display_name || req.user.username,
+         created_at: now,
++        signup_code: signupCode,
+       },
+     });
+   } catch (err) {
+diff --git a/server/utils/voucherCode.js b/server/utils/voucherCode.js
+new file mode 100644
+index 0000000..3e3a501
+--- /dev/null
++++ b/server/utils/voucherCode.js
+@@ -0,0 +1,15 @@
++/**
++ * Sinh mã 6 ký tự dùng chung cho mọi loại voucher/mã trong hệ thống
++ * (voucher đổi điểm ở loyalty.js, mã khách-mới ở signup-codes.js...).
++ * Bỏ ký tự dễ nhìn nhầm O/0, I/1/L. Không phân biệt hoa/thường
++ * (toàn hệ so mã bằng UPPER). ~887 triệu tổ hợp → hiếm trùng;
++ * nơi gọi vẫn nên tự kiểm tra trùng trong DB trước khi lưu (xem loyalty.js /redeem).
++ */
++function generateVoucherCode() {
++  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // đã bỏ O,0,I,1,L
++  let s = '';
++  for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
++  return s;
++}
++
++module.exports = { generateVoucherCode };

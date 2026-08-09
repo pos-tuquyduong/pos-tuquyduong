@@ -1162,7 +1162,28 @@ async function seedDefaultData() {
     SELECT 'khach_moi', 'Ưu đãi khách mới'
     WHERE NOT EXISTS (SELECT 1 FROM pos_product_groups WHERE code = 'khach_moi')
   `);
-  console.log('✅ Đã đảm bảo bảng nhóm sản phẩm + seed nhóm "khach_moi"');
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BẢNG: MÃ ƯU ĐÃI KHÁCH MỚI (Bước 3, 08.08.2026) — in trên bill, đổi lấy tài khoản App KH
+  // 2 tầng hạn TÁCH BIỆT, đừng gộp chung 1 cột:
+  //   - issued_at/CODE_EXPIRE_HOURS (hằng số 24h, xem signup-codes.js): cửa sổ để claim
+  //   - claimed_at + voucher sinh ra sau claim có hạn riêng (30 ngày, tính ở bước claim)
+  // is_signup_code KHÔNG cần cột riêng — INERT hoàn toàn với đơn hàng/tiền: chỉ đọc
+  // customer_phone của đơn để quyết định có in mã hay không, không ghi ngược lại đơn hàng.
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_signup_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      order_id INTEGER,
+      order_customer_phone TEXT,
+      issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      claimed_at DATETIME,
+      claimed_phone TEXT
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_signup_code ON pos_signup_codes(code)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_signup_claimed_phone ON pos_signup_codes(claimed_phone)`);
+  console.log('✅ Đã đảm bảo bảng mã ưu đãi khách mới (pos_signup_codes)');
 }
 
 /**

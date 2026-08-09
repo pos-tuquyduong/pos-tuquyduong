@@ -179,6 +179,7 @@ export default function InvoicePrint({
     change_amount: order.change_amount,
     debt_amount: order.debt_amount,
     balance_amount: order.balance_amount,
+    signup_code: order.signup_code || null,
   }), [order, invoiceNumber]);
 
   // ═══════════════════════════════════════════════════════════════════════════
