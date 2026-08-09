@@ -111,14 +111,14 @@ export default function DiscountCodes() {
       setEditingCode(code);
       setFormData({
         code: code.code,
-        description: code.description || '',
+        description: code.notes || '', // BUG-FIX (08.08.2026): DB dùng cột `notes`, không phải `description` — map đúng khi tải để sửa
         discount_type: code.discount_type,
         discount_value: code.discount_value,
-        min_order_amount: code.min_order_amount || 0,
-        max_discount_amount: code.max_discount_amount || null,
+        min_order_amount: code.min_order || 0, // BUG-FIX: DB dùng `min_order`
+        max_discount_amount: code.max_discount || null, // BUG-FIX: DB dùng `max_discount`
         usage_limit: code.usage_limit || null,
-        start_date: code.start_date ? code.start_date.slice(0, 10) : '',
-        end_date: code.end_date ? code.end_date.slice(0, 10) : '',
+        start_date: code.valid_from ? code.valid_from.slice(0, 10) : '', // BUG-FIX: DB dùng `valid_from`
+        end_date: code.valid_to ? code.valid_to.slice(0, 10) : '', // BUG-FIX: DB dùng `valid_to`
         is_active: code.is_active
       });
     } else {
@@ -161,13 +161,22 @@ export default function DiscountCodes() {
     setError('');
 
     try {
+      // BUG-FIX (08.08.2026): trước đây gửi thẳng `...formData` — tên trường client
+      // (description/min_order_amount/max_discount_amount/start_date/end_date) không khớp
+      // tên cột server mong đợi (notes/min_order/max_discount/valid_from/valid_to), nên
+      // 4 trường này ÂM THẦM KHÔNG ĐƯỢC LƯU bấy lâu nay. Map đúng tên ở đây, KHÔNG đổi tên
+      // state/JSX phía trên để giảm rủi ro gõ nhầm chỗ khác trong file.
       const data = {
-        ...formData,
         code: formData.code.toUpperCase().trim(),
-        max_discount_amount: formData.max_discount_amount || null,
+        notes: formData.description,
+        discount_type: formData.discount_type,
+        discount_value: formData.discount_value,
+        min_order: formData.min_order_amount || 0,
+        max_discount: formData.max_discount_amount || null,
         usage_limit: formData.usage_limit || null,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null
+        valid_from: formData.start_date || null,
+        valid_to: formData.end_date || null,
+        is_active: formData.is_active
       };
 
       if (editingCode) {
