@@ -48,7 +48,10 @@ export default function DiscountCodes() {
     setLoading(true);
     try {
       const result = await discountCodesApi.list();
-      setCodes(result.data || []);
+      // BUG-FIX (09.08.2026): server GET /discount-codes trả thẳng mảng (không bọc {data:...}),
+      // nhưng chỗ này lại đọc result.data — luôn ra undefined → danh sách hiện trống dù DB có
+      // dữ liệu thật. Đây là lỗi có sẵn từ trước, không liên quan gì tới claim/Bước 5.
+      setCodes(Array.isArray(result) ? result : (result?.data || []));
     } catch (err) {
       console.error('Lỗi tải danh sách mã chiết khấu:', err?.message || err);
       setError('Không thể tải danh sách mã chiết khấu');

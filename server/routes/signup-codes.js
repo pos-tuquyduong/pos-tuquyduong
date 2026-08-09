@@ -6,6 +6,11 @@
  * phát ra 1 voucher THẬT trong pos_discount_codes, dùng đúng cấu hình owner đặt trong
  * Cài đặt (đọc qua pos_settings, key tiền tố `signup_`).
  *
+ * ĐỔI THIẾT KẾ (09.08.2026, theo yêu cầu owner): mã voucher = ĐÚNG mã đã in trên bill,
+ * KHÔNG sinh mã mới lúc claim nữa. Trước đây claim xong sẽ ra 1 mã khác hẳn — gây nhầm
+ * lẫn (khách/nhân viên tưởng mã in-bill dùng được luôn). Giờ khách chỉ cần nhớ đúng 1 mã
+ * duy nhất xuyên suốt từ lúc in tới lúc áp ở quầy.
+ *
  * ⚠️ LƯU Ý KIẾN TRÚC (chưa giải quyết, ghi rõ để không quên): App KH backend CHƯA XÂY,
  * nên endpoint này hiện KHÔNG dùng `authenticate` (JWT nhân viên POS — App KH sẽ không
  * có JWT đó). Bảo vệ tạm thời dựa vào bản chất mã: 6 ký tự ngẫu nhiên, chỉ tồn tại thật
@@ -17,7 +22,6 @@
 const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
 const { normalizePhone, getNow } = require('../utils/helpers');
-const { generateVoucherCode } = require('../utils/voucherCode');
 
 const router = express.Router();
 
@@ -99,15 +103,19 @@ router.post('/claim', async (req, res) => {
       applicableGroupId = group.id;
     }
 
-    // Sinh mã voucher chưa trùng — tối đa 5 lần thử (~887 triệu tổ hợp, cực hiếm đụng).
-    let voucherCode = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const candidate = generateVoucherCode();
-      const exists = await queryOne('SELECT id FROM pos_discount_codes WHERE code = ?', [candidate]);
-      if (!exists) { voucherCode = candidate; break; }
-    }
-    if (!voucherCode) {
-      return res.status(500).json({ success: false, error: 'Không sinh được mã voucher, thử lại' });
+    // Sinh mã voucher: DÙNG THẲNG mã đã in-bill (rawCode) — không sinh mã mới nữa (đổi
+    // thiết kế 09.08.2026). Chỉ cần phòng hờ trùng cực hiếm với 1 mã chiết khấu KHÁC đã
+    // tồn tại từ trước (owner tự tạo tay, hoặc mã đổi-điểm) — tránh vỡ UNIQUE giữa transaction.
+    const voucherCode = rawCode;
+    const existingDiscountCode = await queryOne(
+      'SELECT id FROM pos_discount_codes WHERE UPPER(code) = ?',
+      [voucherCode]
+    );
+    if (existingDiscountCode) {
+      return res.status(409).json({
+        success: false,
+        error: 'Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.',
+      });
     }
 
     const validTo = new Date(nowMs + config.validDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
