@@ -56,7 +56,12 @@ export function AuthProvider({ children }) {
   };
 
   const hasPermission = (permission) => {
-    if (user?.role === 'admin') return true;
+    // BUG-FIX (09.08.2026): role thật trong toàn hệ thống luôn là 'owner', KHÔNG BAO GIỜ
+    // là 'admin' — dòng cũ khiến owner luôn bị coi là không có quyền gì (permissions object
+    // của owner rỗng, không ai seed permission tường minh cho role 'owner' vì backend đã
+    // bypass hoàn toàn ở middleware/auth.js). Hậu quả thật: các tab/menu dùng hàm này để
+    // ẩn/hiện (Cài đặt, Báo cáo, Sản phẩm, Flash sale...) bị ẩn nhầm khỏi tài khoản owner.
+    if (user?.role === 'owner') return true;
     return !!permissions[permission];
   };
 
@@ -67,7 +72,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     hasPermission,
-    isAdmin: user?.role === 'admin'
+    isAdmin: user?.role === 'owner'
   };
 
   return (
