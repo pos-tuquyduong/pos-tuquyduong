@@ -1,11 +1,27 @@
 // Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup + HÓA ĐƠN (Phase A)
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 
 
 export default function Settings() {
-  const [tab, setTab] = useState('products');
+  // Đặt tên tránh trùng với state `permissions` cục bộ (dữ liệu tick-chọn phân quyền,
+  // khác hẳn permissions của CHÍNH người đang đăng nhập lấy từ AuthContext).
+  const { hasPermission } = useAuth();
+
+  // Đúng thứ tự các nút tab hiện trên màn hình — dùng để tự chọn tab đầu tiên người dùng
+  // THẬT SỰ có quyền, tránh trường hợp mặc định 'products' bị ẩn nút nhưng nội dung tab đó
+  // (không ai bấm được) vẫn là tab đang chọn ngầm, không tab nào sáng lên.
+  const TAB_PERMISSION = {
+    products: 'manage_settings', packages: 'manage_users', users: 'manage_users',
+    permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
+    rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
+    tiers: 'manage_promotions',
+  };
+  const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
+
+  const [tab, setTab] = useState(firstVisibleTab);
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [permissions, setPermissions] = useState({});
@@ -726,37 +742,57 @@ export default function Settings() {
         {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
 
         <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
+          {hasPermission('manage_settings') && (
           <button className={`btn ${tab === 'products' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('products')}>
             <Package size={16} /> Giá bán
           </button>
+          )}
+          {hasPermission('manage_users') && (
           <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('packages')}
             style={{ background: tab === 'packages' ? '#7c3aed' : undefined, borderColor: tab === 'packages' ? '#7c3aed' : undefined }}>
             📦 Gói SP
           </button>
+          )}
+          {hasPermission('manage_users') && (
           <button className={`btn ${tab === 'users' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('users')}>
             <Users size={16} /> Nhân viên
           </button>
+          )}
+          {hasPermission('manage_permissions') && (
           <button className={`btn ${tab === 'permissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('permissions')}>
             🔐 Phân quyền
           </button>
+          )}
+          {hasPermission('export_data') && (
           <button className={`btn ${tab === 'backup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('backup')}>
             <Database size={16} /> Sao lưu
           </button>
+          )}
+          {hasPermission('manage_settings') && (
           <button className={`btn ${tab === 'loyalty' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('loyalty')}>
             🎁 Điểm thưởng
           </button>
+          )}
+          {hasPermission('manage_promotions') && (
           <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
             🎫 Kho quà
           </button>
+          )}
+          {hasPermission('manage_settings') && (
           <button className={`btn ${tab === 'signup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('signup')}>
             🎯 Ưu đãi khách mới
           </button>
+          )}
+          {hasPermission('manage_settings') && (
           <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
             ⚡ Flash sale
           </button>
+          )}
+          {hasPermission('manage_promotions') && (
           <button className={`btn ${tab === 'tiers' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('tiers')}>
             🏅 Hạng thành viên
           </button>
+          )}
         </div>
 
         <div className="card">

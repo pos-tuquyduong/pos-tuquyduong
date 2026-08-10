@@ -1,0 +1,164 @@
+diff --git a/client/src/components/Layout.jsx b/client/src/components/Layout.jsx
+index f04b1e2..568b677 100644
+--- a/client/src/components/Layout.jsx
++++ b/client/src/components/Layout.jsx
+@@ -26,6 +26,15 @@ export default function Layout() {
+   const navigate = useNavigate();
+   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+ 
++  // Dùng chung cho mọi menu item: item.permission (1 quyền bắt buộc) HOẶC item.permissions
++  // (mảng — chỉ cần CÓ ÍT NHẤT 1 trong số đó, dùng cho "Cài đặt" vì bên trong có nhiều tab
++  // xài quyền khác nhau — không nên gộp cứng vào đúng 1 quyền như trước).
++  const canSee = (item) => {
++    if (item.permission) return hasPermission(item.permission);
++    if (item.permissions) return item.permissions.some(p => hasPermission(p));
++    return true;
++  };
++
+   const handleLogout = async () => {
+     await logout();
+     navigate('/login');
+@@ -37,10 +46,10 @@ export default function Layout() {
+     { to: '/balance', icon: Wallet, label: 'Số dư', permission: 'view_customer_balance' },
+     { to: '/orders', icon: Package, label: 'Đơn hàng' },
+     { to: '/registrations', icon: ClipboardList, label: 'Đăng ký mới' },
+-    { to: '/discount-codes', icon: Tag, label: 'Mã chiết khấu', permission: 'manage_users' },
++    { to: '/discount-codes', icon: Tag, label: 'Mã chiết khấu', permission: 'manage_promotions' },
+     { to: '/reports', icon: BarChart3, label: 'Báo cáo', permission: 'view_reports' },
+     { to: '/refunds', icon: AlertCircle, label: 'Hoàn tiền', permission: 'approve_refund' },
+-    { to: '/settings', icon: Settings, label: 'Cài đặt', permission: 'manage_users' },
++    { to: '/settings', icon: Settings, label: 'Cài đặt', permissions: ['manage_settings', 'manage_promotions', 'manage_users', 'manage_permissions', 'export_data'] },
+     { to: '/invoice-settings', icon: FileText, label: 'Cài đặt HĐ', permission: 'manage_users' },
+   ];
+ 
+@@ -63,7 +72,7 @@ export default function Layout() {
+ 
+         <nav className="sidebar-nav" style={{ flex: 1, paddingTop: '0.5rem' }}>
+           {navItems.map((item) => {
+-            if (item.permission && !hasPermission(item.permission)) {
++            if (!canSee(item)) {
+               return null;
+             }
+             return (
+@@ -114,7 +123,7 @@ export default function Layout() {
+       {/* Bottom Navigation - Mobile */}
+       <nav className="bottom-nav">
+         {bottomNavItems.map((item) => {
+-          if (item.permission && !hasPermission(item.permission)) {
++          if (!canSee(item)) {
+             return null;
+           }
+           return (
+@@ -159,7 +168,7 @@ export default function Layout() {
+             </div>
+             <nav className="mobile-menu-nav">
+               {navItems.map((item) => {
+-                if (item.permission && !hasPermission(item.permission)) {
++                if (!canSee(item)) {
+                   return null;
+                 }
+                 return (
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index 451424c..385a516 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -9,7 +9,19 @@ export default function Settings() {
+   // Đặt tên tránh trùng với state `permissions` cục bộ (dữ liệu tick-chọn phân quyền,
+   // khác hẳn permissions của CHÍNH người đang đăng nhập lấy từ AuthContext).
+   const { hasPermission } = useAuth();
+-  const [tab, setTab] = useState('products');
++
++  // Đúng thứ tự các nút tab hiện trên màn hình — dùng để tự chọn tab đầu tiên người dùng
++  // THẬT SỰ có quyền, tránh trường hợp mặc định 'products' bị ẩn nút nhưng nội dung tab đó
++  // (không ai bấm được) vẫn là tab đang chọn ngầm, không tab nào sáng lên.
++  const TAB_PERMISSION = {
++    products: 'manage_settings', packages: 'manage_users', users: 'manage_users',
++    permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
++    rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
++    tiers: 'manage_promotions',
++  };
++  const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
++
++  const [tab, setTab] = useState(firstVisibleTab);
+   const [products, setProducts] = useState([]);
+   const [users, setUsers] = useState([]);
+   const [permissions, setPermissions] = useState({});
+@@ -736,16 +748,22 @@ export default function Settings() {
+         {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
+ 
+         <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
++          {hasPermission('manage_settings') && (
+           <button className={`btn ${tab === 'products' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('products')}>
+             <Package size={16} /> Giá bán
+           </button>
++          )}
++          {hasPermission('manage_users') && (
+           <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('packages')}
+             style={{ background: tab === 'packages' ? '#7c3aed' : undefined, borderColor: tab === 'packages' ? '#7c3aed' : undefined }}>
+             📦 Gói SP
+           </button>
++          )}
++          {hasPermission('manage_users') && (
+           <button className={`btn ${tab === 'users' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('users')}>
+             <Users size={16} /> Nhân viên
+           </button>
++          )}
+           {hasPermission('manage_permissions') && (
+           <button className={`btn ${tab === 'permissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('permissions')}>
+             🔐 Phân quyền
+@@ -756,21 +774,31 @@ export default function Settings() {
+             <Database size={16} /> Sao lưu
+           </button>
+           )}
++          {hasPermission('manage_settings') && (
+           <button className={`btn ${tab === 'loyalty' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('loyalty')}>
+             🎁 Điểm thưởng
+           </button>
++          )}
++          {hasPermission('manage_promotions') && (
+           <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
+             🎫 Kho quà
+           </button>
++          )}
++          {hasPermission('manage_settings') && (
+           <button className={`btn ${tab === 'signup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('signup')}>
+             🎯 Ưu đãi khách mới
+           </button>
++          )}
++          {hasPermission('manage_settings') && (
+           <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
+             ⚡ Flash sale
+           </button>
++          )}
++          {hasPermission('manage_promotions') && (
+           <button className={`btn ${tab === 'tiers' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('tiers')}>
+             🏅 Hạng thành viên
+           </button>
++          )}
+         </div>
+ 
+         <div className="card">
+diff --git a/server/routes/settings.js b/server/routes/settings.js
+index 90ebb71..553059f 100644
+--- a/server/routes/settings.js
++++ b/server/routes/settings.js
+@@ -15,6 +15,7 @@ const path = require('path');
+ const fs = require('fs');
+ const { query, queryOne, run, saveDatabase } = require('../database');
+ const { getToday } = require('../utils/helpers');
++const { checkPermission } = require('../middleware/auth');
+ const { authenticate } = require('../middleware/auth');
+ 
+ // Multer config cho upload logo
+@@ -79,7 +80,10 @@ router.get('/:key', authenticate, async (req, res) => {
+ // PUT /api/pos/settings - Cập nhật nhiều settings
+ // Body: { settings: { key1: value1, key2: value2, ... } }
+ // ═══════════════════════════════════════════════════════════════════════════
+-router.put('/', authenticate, async (req, res) => {
++// BUG-FIX (09.08.2026, phát hiện lúc rà soát toàn hệ thống): route này trước đây chỉ cần
++// đăng nhập là ghi được (đổi cấu hình Loyalty, Flash sale, Ưu đãi khách mới...) — bất kỳ
++// nhân viên nào cũng đổi được dù không có quyền quản lý cài đặt. Thêm checkPermission.
++router.put('/', authenticate, checkPermission('manage_settings'), async (req, res) => {
+   try {
+     const { settings } = req.body;
+ 
