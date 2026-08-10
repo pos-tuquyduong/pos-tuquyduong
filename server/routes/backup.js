@@ -8,7 +8,7 @@ const express = require('express');
 const router = express.Router();
 const XLSX = require('xlsx');
 const multer = require('multer');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, checkPermission } = require('../middleware/auth');
 const { query, run } = require('../database');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 
@@ -48,7 +48,13 @@ const BACKUP_TABLES = [
   { name: 'pos_registrations', label: 'Đăng ký mới', key: 'id' },
   { name: 'pos_refund_requests', label: 'Yêu cầu hoàn tiền', key: 'id' },
   { name: 'pos_promotions', label: 'Khuyến mãi', key: 'id' },
-  { name: 'pos_settings', label: 'Cài đặt', key: 'key' }
+  { name: 'pos_settings', label: 'Cài đặt', key: 'key' },
+  // Thêm 09.08.2026 — 4 bảng của tính năng "Ưu đãi khách mới" (Bước 1-4), trước đây
+  // chưa có trong backup nên toàn bộ dữ liệu SĐT đã claim KHÔNG được sao lưu.
+  { name: 'pos_signup_codes', label: 'Mã ưu đãi khách mới', key: 'id' },
+  { name: 'pos_discount_codes', label: 'Mã chiết khấu', key: 'id' },
+  { name: 'pos_product_groups', label: 'Nhóm sản phẩm', key: 'id' },
+  { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' }
 ];
 
 /**
@@ -81,7 +87,7 @@ async function getProductsWithSxNames() {
  * GET /api/pos/backup/info
  * Thông tin database + thống kê số dòng từng bảng
  */
-router.get('/info', authenticate, async (req, res) => {
+router.get('/info', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
     const tables = [];
     for (const t of BACKUP_TABLES) {
@@ -189,6 +195,13 @@ router.get('/export/:table', authenticate, async (req, res) => {
  */
 router.post('/preview-restore', authenticate, upload.single('file'), async (req, res) => {
   try {
+    // Đồng bộ với /restore ngay sau đây trong cùng luồng — không có lý do để 1 nhân viên
+    // xem trước nội dung file backup (bao gồm số dòng mỗi bảng) nếu không phải người sẽ
+    // thực hiện restore, việc mà đã khoá cứng owner-only từ trước.
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ error: 'Chỉ owner mới có quyền xem trước file khôi phục' });
+    }
+
     if (!req.file) {
       return res.status(400).json({ error: 'Không có file upload' });
     }

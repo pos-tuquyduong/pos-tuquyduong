@@ -138,6 +138,12 @@ export default function Settings() {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
+      if (!res.ok) {
+        // BUG-FIX (09.08.2026): trước đây không kiểm res.ok — nếu server báo 403 (thiếu
+        // quyền export_data), màn hình chỉ trống trơn không rõ lý do. Giờ hiện rõ thông báo.
+        setBackupInfo({ error: data.error || 'Không có quyền xem thông tin sao lưu' });
+        return;
+      }
       setBackupInfo(data);
     } catch (err) { console.error(err); }
   };
@@ -1173,6 +1179,12 @@ export default function Settings() {
             /* TAB SAO LƯU */
             <>
               <div className="card-title">📦 Sao lưu & Khôi phục (Excel)</div>
+
+              {backupInfo?.error && (
+                <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem', fontSize: 13.5 }}>
+                  🔒 {backupInfo.error}
+                </div>
+              )}
 
               {/* Thống kê bảng */}
               {backupInfo && backupInfo.tables && (

@@ -1,0 +1,96 @@
+diff --git a/client/src/pages/Settings.jsx b/client/src/pages/Settings.jsx
+index 7eec9f9..21e1945 100644
+--- a/client/src/pages/Settings.jsx
++++ b/client/src/pages/Settings.jsx
+@@ -122,6 +122,12 @@ export default function Settings() {
+         headers: { 'Authorization': 'Bearer ' + token }
+       });
+       const data = await res.json();
++      if (!res.ok) {
++        // BUG-FIX (09.08.2026): trước đây không kiểm res.ok — nếu server báo 403 (thiếu
++        // quyền export_data), màn hình chỉ trống trơn không rõ lý do. Giờ hiện rõ thông báo.
++        setBackupInfo({ error: data.error || 'Không có quyền xem thông tin sao lưu' });
++        return;
++      }
+       setBackupInfo(data);
+     } catch (err) { console.error(err); }
+   };
+@@ -1138,6 +1144,12 @@ export default function Settings() {
+             <>
+               <div className="card-title">📦 Sao lưu & Khôi phục (Excel)</div>
+ 
++              {backupInfo?.error && (
++                <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem', fontSize: 13.5 }}>
++                  🔒 {backupInfo.error}
++                </div>
++              )}
++
+               {/* Thống kê bảng */}
+               {backupInfo && backupInfo.tables && (
+                 <div style={{ marginBottom: '1.5rem' }}>
+diff --git a/server/routes/backup.js b/server/routes/backup.js
+index 3b7e766..211d484 100644
+--- a/server/routes/backup.js
++++ b/server/routes/backup.js
+@@ -8,7 +8,7 @@ const express = require('express');
+ const router = express.Router();
+ const XLSX = require('xlsx');
+ const multer = require('multer');
+-const { authenticate } = require('../middleware/auth');
++const { authenticate, checkPermission } = require('../middleware/auth');
+ const { query, run } = require('../database');
+ const { isSxConfigured, callSxApi } = require('../utils/sxApi');
+ 
+@@ -48,7 +48,13 @@ const BACKUP_TABLES = [
+   { name: 'pos_registrations', label: 'Đăng ký mới', key: 'id' },
+   { name: 'pos_refund_requests', label: 'Yêu cầu hoàn tiền', key: 'id' },
+   { name: 'pos_promotions', label: 'Khuyến mãi', key: 'id' },
+-  { name: 'pos_settings', label: 'Cài đặt', key: 'key' }
++  { name: 'pos_settings', label: 'Cài đặt', key: 'key' },
++  // Thêm 09.08.2026 — 4 bảng của tính năng "Ưu đãi khách mới" (Bước 1-4), trước đây
++  // chưa có trong backup nên toàn bộ dữ liệu SĐT đã claim KHÔNG được sao lưu.
++  { name: 'pos_signup_codes', label: 'Mã ưu đãi khách mới', key: 'id' },
++  { name: 'pos_discount_codes', label: 'Mã chiết khấu', key: 'id' },
++  { name: 'pos_product_groups', label: 'Nhóm sản phẩm', key: 'id' },
++  { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' }
+ ];
+ 
+ /**
+@@ -81,7 +87,7 @@ async function getProductsWithSxNames() {
+  * GET /api/pos/backup/info
+  * Thông tin database + thống kê số dòng từng bảng
+  */
+-router.get('/info', authenticate, async (req, res) => {
++router.get('/info', authenticate, checkPermission('export_data'), async (req, res) => {
+   try {
+     const tables = [];
+     for (const t of BACKUP_TABLES) {
+@@ -189,6 +195,13 @@ router.get('/export/:table', authenticate, async (req, res) => {
+  */
+ router.post('/preview-restore', authenticate, upload.single('file'), async (req, res) => {
+   try {
++    // Đồng bộ với /restore ngay sau đây trong cùng luồng — không có lý do để 1 nhân viên
++    // xem trước nội dung file backup (bao gồm số dòng mỗi bảng) nếu không phải người sẽ
++    // thực hiện restore, việc mà đã khoá cứng owner-only từ trước.
++    if (req.user.role !== 'owner') {
++      return res.status(403).json({ error: 'Chỉ owner mới có quyền xem trước file khôi phục' });
++    }
++
+     if (!req.file) {
+       return res.status(400).json({ error: 'Không có file upload' });
+     }
+diff --git a/server/routes/users.js b/server/routes/users.js
+index 4f055a5..963ee2c 100644
+--- a/server/routes/users.js
++++ b/server/routes/users.js
+@@ -167,7 +167,9 @@ router.get('/permissions', authenticate, checkPermission('manage_permissions'),
+       { key: 'cancel_order', label: 'Hủy đơn hàng' },
+       { key: 'view_all_orders', label: 'Xem tất cả đơn hàng' },
+       { key: 'manage_promotions', label: 'Quản lý khuyến mãi' },
+-      { key: 'manage_permissions', label: 'Quản lý phân quyền' }
++      { key: 'manage_permissions', label: 'Quản lý phân quyền' },
++      { key: 'manage_settings', label: 'Quản lý cài đặt hệ thống (sản phẩm, ưu đãi khách mới, nhóm SP...)' },
++      { key: 'manage_orders', label: 'Xử lý sự cố đơn hàng (hàng hỏng/hoàn trả)' }
+     ];
+ 
+     res.json({

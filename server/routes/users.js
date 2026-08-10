@@ -167,7 +167,9 @@ router.get('/permissions', authenticate, checkPermission('manage_permissions'), 
       { key: 'cancel_order', label: 'Hủy đơn hàng' },
       { key: 'view_all_orders', label: 'Xem tất cả đơn hàng' },
       { key: 'manage_promotions', label: 'Quản lý khuyến mãi' },
-      { key: 'manage_permissions', label: 'Quản lý phân quyền' }
+      { key: 'manage_permissions', label: 'Quản lý phân quyền' },
+      { key: 'manage_settings', label: 'Quản lý cài đặt hệ thống (sản phẩm, ưu đãi khách mới, nhóm SP...)' },
+      { key: 'manage_orders', label: 'Xử lý sự cố đơn hàng (hàng hỏng/hoàn trả)' }
     ];
 
     res.json({
