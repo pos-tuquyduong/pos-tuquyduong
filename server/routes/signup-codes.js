@@ -11,18 +11,16 @@
  * lẫn (khách/nhân viên tưởng mã in-bill dùng được luôn). Giờ khách chỉ cần nhớ đúng 1 mã
  * duy nhất xuyên suốt từ lúc in tới lúc áp ở quầy.
  *
- * ⚠️ LƯU Ý KIẾN TRÚC (chưa giải quyết, ghi rõ để không quên): App KH backend CHƯA XÂY,
- * nên endpoint này hiện KHÔNG dùng `authenticate` (JWT nhân viên POS — App KH sẽ không
- * có JWT đó). Bảo vệ tạm thời dựa vào bản chất mã: 6 ký tự ngẫu nhiên, chỉ tồn tại thật
- * trên giấy in, hạn 24h, dùng 1 lần — brute-force gần như bất khả thi trong 24h
- * (~887 triệu tổ hợp). Khi xây App KH backend thật (M1), cần bổ sung xác thực
- * service-to-service (API key riêng cho App KH, khác JWT nhân viên) — CHƯA làm ở đây.
+ * ĐÃ VÁ (09.08.2026, chuẩn bị cho App KH): dùng lại đúng cơ chế `authenticateServiceOrUser`
+ * đã có sẵn từ POS-1 (worker đồng bộ) — nhận header `X-Service-Key` khớp biến môi trường
+ * `POS_SERVICE_API_KEY` thì coi là "service principal" (App KH backend sau này), không có
+ * header đó thì rơi về xác thực JWT nhân viên bình thường (không đổi hành vi cũ ở quầy).
  */
 
 const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
 const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
-const { authenticate, checkPermission } = require('../middleware/auth');
+const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -47,7 +45,7 @@ async function getSignupConfig() {
 
 // POST /api/pos/signup-codes/claim
 // Body: { code, phone }
-router.post('/claim', async (req, res) => {
+router.post('/claim', authenticateServiceOrUser, async (req, res) => {
   try {
     const rawCode = String(req.body.code || '').trim().toUpperCase();
     const phone = normalizePhone(req.body.phone);

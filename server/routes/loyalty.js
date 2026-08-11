@@ -18,7 +18,7 @@
 
 const express = require('express');
 const { query, queryOne, beginTransaction } = require('../database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authenticateServiceOrUser } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 const { generateVoucherCode } = require('../utils/voucherCode');
 
@@ -49,7 +49,9 @@ function addDaysToDate(nowStr, days) {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pos/loyalty/points/:phone — số dư điểm + lịch sử gần đây
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/points/:phone', authenticate, async (req, res) => {
+// ĐÃ VÁ (09.08.2026, chuẩn bị App KH): dùng authenticateServiceOrUser — App KH backend
+// (sau này) gọi bằng X-Service-Key, nhân viên POS vẫn dùng JWT như cũ, không đổi gì.
+router.get('/points/:phone', authenticateServiceOrUser, async (req, res) => {
   try {
     const phone = normalizePhone(req.params.phone);
     if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
@@ -72,7 +74,7 @@ router.get('/points/:phone', authenticate, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pos/loyalty/vouchers/:phone — ví voucher của khách (?all=1 → cả đã dùng)
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/vouchers/:phone', authenticate, async (req, res) => {
+router.get('/vouchers/:phone', authenticateServiceOrUser, async (req, res) => {
   try {
     const phone = normalizePhone(req.params.phone);
     if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
@@ -120,7 +122,7 @@ router.get('/vouchers/:phone', authenticate, async (req, res) => {
 // POST /api/pos/loyalty/redeem — đổi điểm lấy voucher (NGUYÊN TỬ)
 // body: { phone, reward_id }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/redeem', authenticate, async (req, res) => {
+router.post('/redeem', authenticateServiceOrUser, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const rewardId = parseInt(req.body.reward_id, 10);

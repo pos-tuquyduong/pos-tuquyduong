@@ -1,0 +1,98 @@
+diff --git a/env.example b/env.example
+index c3ed9b9..04da7ac 100644
+--- a/env.example
++++ b/env.example
+@@ -18,6 +18,14 @@ JWT_EXPIRES_IN=8h
+ SX_API_URL=https://your-sx-system.railway.app
+ SX_API_KEY=your-sx-api-key
+ 
++# === SERVICE-TO-SERVICE API KEY (dùng cho App KH / worker đồng bộ, KHÔNG bắt buộc lúc này) ===
++# Cho phép máy-gọi-máy (App KH backend, worker đồng bộ...) gọi vào 1 số API cụ thể mà
++# không cần JWT nhân viên — gửi kèm header `X-Service-Key: <giá trị này>`.
++# Chưa điền = các endpoint này chỉ chạy được qua JWT nhân viên như bình thường, không lỗi gì.
++# Khi bắt đầu code App KH backend: tạo 1 chuỗi ngẫu nhiên dài (vd `openssl rand -hex 32`),
++# điền vào đây VÀ vào cấu hình App KH backend — 2 bên phải khớp nhau.
++POS_SERVICE_API_KEY=
++
+ # === SERVER CONFIG ===
+ PORT=3000
+ NODE_ENV=production
+diff --git a/server/routes/loyalty.js b/server/routes/loyalty.js
+index 042821e..838040f 100644
+--- a/server/routes/loyalty.js
++++ b/server/routes/loyalty.js
+@@ -18,7 +18,7 @@
+ 
+ const express = require('express');
+ const { query, queryOne, beginTransaction } = require('../database');
+-const { authenticate } = require('../middleware/auth');
++const { authenticate, authenticateServiceOrUser } = require('../middleware/auth');
+ const { getNow, normalizePhone } = require('../utils/helpers');
+ const { generateVoucherCode } = require('../utils/voucherCode');
+ 
+@@ -49,7 +49,9 @@ function addDaysToDate(nowStr, days) {
+ // ─────────────────────────────────────────────────────────────────────────────
+ // GET /api/pos/loyalty/points/:phone — số dư điểm + lịch sử gần đây
+ // ─────────────────────────────────────────────────────────────────────────────
+-router.get('/points/:phone', authenticate, async (req, res) => {
++// ĐÃ VÁ (09.08.2026, chuẩn bị App KH): dùng authenticateServiceOrUser — App KH backend
++// (sau này) gọi bằng X-Service-Key, nhân viên POS vẫn dùng JWT như cũ, không đổi gì.
++router.get('/points/:phone', authenticateServiceOrUser, async (req, res) => {
+   try {
+     const phone = normalizePhone(req.params.phone);
+     if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
+@@ -72,7 +74,7 @@ router.get('/points/:phone', authenticate, async (req, res) => {
+ // ─────────────────────────────────────────────────────────────────────────────
+ // GET /api/pos/loyalty/vouchers/:phone — ví voucher của khách (?all=1 → cả đã dùng)
+ // ─────────────────────────────────────────────────────────────────────────────
+-router.get('/vouchers/:phone', authenticate, async (req, res) => {
++router.get('/vouchers/:phone', authenticateServiceOrUser, async (req, res) => {
+   try {
+     const phone = normalizePhone(req.params.phone);
+     if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
+@@ -120,7 +122,7 @@ router.get('/vouchers/:phone', authenticate, async (req, res) => {
+ // POST /api/pos/loyalty/redeem — đổi điểm lấy voucher (NGUYÊN TỬ)
+ // body: { phone, reward_id }
+ // ─────────────────────────────────────────────────────────────────────────────
+-router.post('/redeem', authenticate, async (req, res) => {
++router.post('/redeem', authenticateServiceOrUser, async (req, res) => {
+   try {
+     const phone = normalizePhone(req.body.phone);
+     const rewardId = parseInt(req.body.reward_id, 10);
+diff --git a/server/routes/signup-codes.js b/server/routes/signup-codes.js
+index d80986a..c2f9f52 100644
+--- a/server/routes/signup-codes.js
++++ b/server/routes/signup-codes.js
+@@ -11,18 +11,16 @@
+  * lẫn (khách/nhân viên tưởng mã in-bill dùng được luôn). Giờ khách chỉ cần nhớ đúng 1 mã
+  * duy nhất xuyên suốt từ lúc in tới lúc áp ở quầy.
+  *
+- * ⚠️ LƯU Ý KIẾN TRÚC (chưa giải quyết, ghi rõ để không quên): App KH backend CHƯA XÂY,
+- * nên endpoint này hiện KHÔNG dùng `authenticate` (JWT nhân viên POS — App KH sẽ không
+- * có JWT đó). Bảo vệ tạm thời dựa vào bản chất mã: 6 ký tự ngẫu nhiên, chỉ tồn tại thật
+- * trên giấy in, hạn 24h, dùng 1 lần — brute-force gần như bất khả thi trong 24h
+- * (~887 triệu tổ hợp). Khi xây App KH backend thật (M1), cần bổ sung xác thực
+- * service-to-service (API key riêng cho App KH, khác JWT nhân viên) — CHƯA làm ở đây.
++ * ĐÃ VÁ (09.08.2026, chuẩn bị cho App KH): dùng lại đúng cơ chế `authenticateServiceOrUser`
++ * đã có sẵn từ POS-1 (worker đồng bộ) — nhận header `X-Service-Key` khớp biến môi trường
++ * `POS_SERVICE_API_KEY` thì coi là "service principal" (App KH backend sau này), không có
++ * header đó thì rơi về xác thực JWT nhân viên bình thường (không đổi hành vi cũ ở quầy).
+  */
+ 
+ const express = require('express');
+ const { query, queryOne, run, beginTransaction } = require('../database');
+ const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
+-const { authenticate, checkPermission } = require('../middleware/auth');
++const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
+ 
+ const router = express.Router();
+ 
+@@ -47,7 +45,7 @@ async function getSignupConfig() {
+ 
+ // POST /api/pos/signup-codes/claim
+ // Body: { code, phone }
+-router.post('/claim', async (req, res) => {
++router.post('/claim', authenticateServiceOrUser, async (req, res) => {
+   try {
+     const rawCode = String(req.body.code || '').trim().toUpperCase();
+     const phone = normalizePhone(req.body.phone);
