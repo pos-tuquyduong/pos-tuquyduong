@@ -764,6 +764,29 @@ router.post("/", authenticate, async (req, res) => {
 
       // 5. Tăng used_count mã chiết khấu
       if (discountCodeId) {
+        // BUG-FIX (13.08.2026) — race condition: kiểm tra usage_limit lúc nãy (đầu hàm,
+        // ngoài transaction) rồi mới tăng used_count ở đây (trong transaction) — nếu 2 đơn
+        // dùng CHUNG 1 mã bấm gần như cùng lúc ở 2 quầy, cả 2 có thể cùng đọc used_count
+        // CŨ trước khi bên kia kịp tăng, dẫn tới mã bị dùng vượt quá usage_limit cho phép.
+        // Sửa theo ĐÚNG khuôn đã có sẵn ở trên cho "số dư ví" (dòng ~654: "Re-check ...
+        // trong transaction (chống race condition)") — đọc lại used_count LẦN NỮA ngay
+        // trong transaction (transaction "write" khoá ghi độc quyền, đọc lúc này chắc chắn
+        // là số mới nhất, không có đơn nào khác chen ngang được), rồi mới quyết định tăng.
+        const freshCode = await tx.queryOne(
+          "SELECT usage_limit, used_count FROM pos_discount_codes WHERE id = ?",
+          [discountCodeId],
+        );
+        if (
+          freshCode &&
+          freshCode.usage_limit > 0 &&
+          freshCode.used_count >= freshCode.usage_limit
+        ) {
+          await tx.rollback();
+          return res.status(400).json({
+            error: `Mã giảm giá "${finalDiscountCode}" vừa hết lượt dùng (có đơn khác vừa dùng trước). Vui lòng bỏ mã hoặc thử mã khác.`,
+            code: "DISCOUNT_CODE_LIMIT_REACHED",
+          });
+        }
         await tx.run(
           "UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ? WHERE id = ?",
           [now, discountCodeId],
