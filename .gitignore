@@ -34,3 +34,4 @@ replit.nix.bak
 *.log
 .DS_Store
 Thumbs.db
+attached_assets/

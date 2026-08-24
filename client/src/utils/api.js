@@ -6,23 +6,139 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/pos';
 
+/**
+ * POS-1 (POS-ERRHANDLING-v1) — PHÂN LOẠI 401 THEO `code`, KHÔNG THEO URL.
+ *
+ * Danh sách dưới đây là các mã 401 có nghĩa "PHIÊN ĐĂNG NHẬP ĐÃ CHẾT" —
+ * CHỈ chúng mới được phép xoá token và đá về /login.
+ *
+ * Cố ý dùng DANH SÁCH CHO PHÉP, không dùng danh sách cấm: 401 lạ hoặc 401
+ * không kèm code thì KHÔNG đăng xuất. Nhầm về phía "để yên" chỉ khiến nhân
+ * viên bấm lại một lần; nhầm về phía "đăng xuất" đẻ ra vòng lặp
+ * đăng nhập -> 401 -> đăng xuất không lối thoát.
+ *
+ * Đối chiếu server (đã rà HẾT 10 chỗ trả 401 trong server/, 23.08.2026):
+ *
+ *   middleware/auth.js — phiên nhân viên chết thật, CÓ trong danh sách:
+ *     NO_TOKEN · USER_NOT_FOUND · USER_INACTIVE · TOKEN_EXPIRED · INVALID_TOKEN
+ *
+ *   middleware/auth.js — xác thực MÁY-GỌI-MÁY, cố ý ĐỂ NGOÀI danh sách:
+ *     SERVICE_AUTH_NOT_CONFIGURED · INVALID_SERVICE_KEY
+ *     Đây là lỗi CẤU HÌNH SERVER, không phải phiên nhân viên. Trình duyệt
+ *     không gửi X-Service-Key nên thực tế không tới được, nhưng đăng xuất vì
+ *     server thiếu cấu hình chính là công thức của vòng lặp vô tận.
+ *
+ *   routes/auth.js — 3 chỗ trong POST /auth/login, trả 401 KHÔNG KÈM CODE:
+ *     sai tài khoản / sai mật khẩu / tài khoản bị vô hiệu hoá.
+ *     PHẢI ĐỂ YÊN. Trước bản vá này, gõ sai mật khẩu bị window.location.href
+ *     tải lại cả trang, xoá sạch state lỗi của màn Login — nhân viên không
+ *     bao giờ đọc được lý do, chỉ thấy form trắng trở lại.
+ *
+ * ⚠ Ghi chú đã biết (CHƯA vá, nằm ngoài phạm vi đợt này): server KHÔNG có mã
+ * AUTH_NOT_CONFIGURED. Nếu thiếu biến JWT_SECRET, jwt.verify ném
+ * JsonWebTokenError và middleware trả INVALID_TOKEN — lỗi cấu hình đội lốt
+ * token hỏng, nên vẫn bị đăng xuất. Không thành vòng lặp (đăng nhập lại sẽ
+ * gặp lỗi 500 từ jwt.sign) nhưng thông báo gây hiểu nhầm.
+ */
+const SESSION_DEAD_CODES = [
+  'NO_TOKEN',
+  'INVALID_TOKEN',
+  'TOKEN_EXPIRED',
+  'USER_NOT_FOUND',
+  'USER_INACTIVE'
+];
+
+/** Chuỗi rỗng / undefined KHÔNG được coi là khớp (checklist B5). */
+function isSessionDead(status, code) {
+  return status === 401 && !!code && SESSION_DEAD_CODES.includes(code);
+}
+
+/**
+ * Đọc body ĐÚNG MỘT LẦN, chịu được body rỗng và body không phải JSON.
+ *
+ * `response.json()` trần ném SyntaxError khi gặp trang lỗi HTML của proxy
+ * (Render / Cloudflare trả 502 dạng HTML). Lúc đó mã 401 thật bị che mất và
+ * không còn gì để phân loại. Đọc text rồi tự parse thì luôn giữ được
+ * response.status. Đọc text một lần nên không cần res.clone() (checklist B2).
+ */
+async function readBody(response) {
+  let text;
+  try {
+    text = await response.text();
+  } catch {
+    return {};
+  }
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: `HTTP ${response.status} (phản hồi không phải JSON)` };
+  }
+}
+
+/** Dựng Error mang theo status + code để nơi gọi phân nhánh được nếu cần. */
+function buildApiError(response, data) {
+  const err = new Error(
+    (data && (data.error || data.message)) || `HTTP ${response.status}`
+  );
+  err.status = response.status;
+  err.code = data && data.code;
+  return err;
+}
+
 class ApiClient {
   constructor() {
     this.baseUrl = API_BASE;
     this.token = localStorage.getItem('pos_token');
+    // POS-1 — cờ chặn cho request SONG SONG (checklist B3). Màn Bán hàng bắn
+    // nhiều lời gọi cùng lúc; hết phiên là tất cả cùng trả 401. Không có cờ
+    // thì có bao nhiêu request là bấy nhiêu lần gán window.location.href.
+    this.sessionExpiredHandled = false;
   }
 
   setToken(token) {
     this.token = token;
     if (token) {
       localStorage.setItem('pos_token', token);
+      // Đăng nhập lại thành công -> mở cờ cho phiên mới.
+      this.sessionExpiredHandled = false;
     } else {
+      // Nhánh xoá token cố ý KHÔNG mở lại cờ.
       localStorage.removeItem('pos_token');
     }
   }
 
   getToken() {
     return this.token || localStorage.getItem('pos_token');
+  }
+
+  /**
+   * POS-1 — chỗ DUY NHẤT xử lý phiên đã chết. Chỉ chạy một lần mỗi phiên.
+   * Không đá đi khi đang ở sẵn /login: tránh tải lại trang thừa và tránh
+   * xoá mất thông báo lỗi mà màn Login vừa hiện.
+   */
+  handleSessionExpired() {
+    if (this.sessionExpiredHandled) return;
+    this.sessionExpiredHandled = true;
+    this.setToken(null);
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+  }
+
+  /**
+   * Chỗ DUY NHẤT quyết định một phản hồi lỗi phải làm gì.
+   *
+   * LUÔN NÉM lỗi (checklist A2): gán window.location.href KHÔNG dừng ngay mã
+   * JavaScript đang chạy — điều hướng chỉ được xếp hàng. Không ném thì chuỗi
+   * .then() phía sau vẫn chạy tiếp với object {error:...} và ném TypeError ở
+   * chỗ .map(), tức là trắng màn hình đúng vào lúc đang đá về login.
+   */
+  raiseForStatus(response, data) {
+    if (isSessionDead(response.status, data && data.code)) {
+      this.handleSessionExpired();
+    }
+    throw buildApiError(response, data);
   }
 
   async request(endpoint, options = {}) {
@@ -43,14 +159,10 @@ class ApiClient {
         headers
       });
 
-      const data = await response.json();
+      const data = await readBody(response);
 
       if (!response.ok) {
-        if (response.status === 401) {
-          this.setToken(null);
-          window.location.href = '/login';
-        }
-        throw new Error(data.error || `HTTP ${response.status}`);
+        this.raiseForStatus(response, data);
       }
 
       return data;
@@ -92,9 +204,10 @@ class ApiClient {
       body: formData
     });
 
-    const data = await response.json();
+    // POS-1 — upload đi qua CÙNG bộ phân loại với request().
+    const data = await readBody(response);
     if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}`);
+      this.raiseForStatus(response, data);
     }
     return data;
   }
@@ -107,9 +220,11 @@ class ApiClient {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
 
+    // POS-1 — download đi qua CÙNG bộ phân loại. Trước đây hết phiên khi bấm
+    // "Xuất CSV" chỉ hiện "Không có token xác thực" rồi kẹt tại chỗ.
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || `HTTP ${response.status}`);
+      const data = await readBody(response);
+      this.raiseForStatus(response, data);
     }
 
     const blob = await response.blob();

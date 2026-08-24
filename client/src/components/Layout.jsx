@@ -2,8 +2,9 @@
  * POS - Main Layout with Sidebar + Bottom Navigation (Mobile)
  */
 
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ErrorBoundary from './ErrorBoundary';
 import { 
   ShoppingCart, 
   Users, 
@@ -24,6 +25,7 @@ import { useState } from 'react';
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -108,7 +110,13 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="main-content">
-        <Outlet />
+        {/* POS-2 (POS-ERRHANDLING-v1) — lưới đỡ BÊN TRONG: một màn hình vỡ
+            thì sidebar và bottom-nav vẫn còn, nhân viên chuyển sang tab khác
+            bán tiếp được. key theo đường dẫn để mỗi lần chuyển tab là lưới đỡ
+            được dựng lại — nếu không, đã vỡ một lần là kẹt màn báo lỗi mãi. */}
+        <ErrorBoundary key={location.pathname} label="Màn hình này">
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       {/* Bottom Navigation - Mobile */}
