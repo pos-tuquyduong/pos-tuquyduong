@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test": "bash test-migration.sh"
+    "test": "node kiem_tra_truoc_khi_giao.js"
   },
   "keywords": [
     "pos",
