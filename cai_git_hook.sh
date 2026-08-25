@@ -65,7 +65,7 @@ chmod +x "$HOOK"
 
 echo "✓ Đã cài $HOOK"
 echo ""
-echo "Từ giờ mỗi lần git commit sẽ tự chạy 26 phép kiểm; có lỗi thì chặn."
+echo "Từ giờ mỗi lần git commit sẽ tự chạy 30 phép kiểm; có lỗi thì chặn."
 echo ""
 echo "Nhớ:"
 echo "  · Hook KHÔNG đi theo git — clone về máy mới phải chạy lại script này."
