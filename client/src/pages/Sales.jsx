@@ -402,11 +402,11 @@ export default function Sales() {
 
     if (existing) {
       // Stock check cho tất cả items (kể cả fromPkg — vì vẫn cần trừ kho SX)
-      if (product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
+      if (!product.khong_quan_kho && product.stock_quantity > 0 && existing.quantity >= product.stock_quantity) {
         setError(`Không đủ hàng${fromPkg ? ' trong kho SX' : ''}. Tồn kho: ${product.stock_quantity}`);
         return;
       }
-      if (product.stock_quantity === 0) {
+      if (!product.khong_quan_kho && product.stock_quantity === 0) {
         setError(`${product.name} hiện hết hàng trong kho SX`);
         return;
       }
@@ -417,7 +417,7 @@ export default function Sales() {
       ));
     } else {
       // Stock check khi thêm SP mới (kể cả fromPkg)
-      if (product.stock_quantity === 0) {
+      if (!product.khong_quan_kho && product.stock_quantity === 0) {
         setError(`${product.name} hiện hết hàng trong kho SX. Cần nhập thêm hàng trước khi giao.`);
         return;
       }
@@ -984,7 +984,7 @@ export default function Sales() {
                   borderRadius: '12px',
                   border: inPkg ? '2.5px solid #c4b5fd' : '2px solid #e2e8f0',
                   cursor: (product.price > 0 || inPkg) ? 'pointer' : 'not-allowed',
-                  opacity: product.stock_quantity <= 0 && !inPkg ? 0.5 : 1,
+                  opacity: !product.khong_quan_kho && product.stock_quantity <= 0 && !inPkg ? 0.5 : 1,
                   transition: 'all 0.2s',
                   position: 'relative'
                 }}
@@ -1022,8 +1022,12 @@ export default function Sales() {
                 ) : activePkg ? (
                   <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '600' }}>Lẻ</div>
                 ) : (
-                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: product.stock_quantity > 0 ? '#dcfce7' : '#fee2e2', color: product.stock_quantity > 0 ? '#166534' : '#dc2626', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                    {product.stock_quantity}
+                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: product.khong_quan_kho ? '#e0e7ff' : (product.stock_quantity > 0 ? '#dcfce7' : '#fee2e2'), color: product.khong_quan_kho ? '#3730a3' : (product.stock_quantity > 0 ? '#166534' : '#dc2626'), padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                    {/* POS-NHOMKHONGKHO-v1: nhóm pha theo yêu cầu (cà phê, trà pha sẵn)
+                        KHÔNG đếm tồn. Trước đây badge in thẳng stock_quantity nên
+                        nhóm này ra Ô ĐỎ TRỐNG — trông như lỗi. Nay hiện "Có sẵn".
+                        KHÔNG bịa số 999 (POS-2): số giả nguy hiểm hơn không có số. */}
+                    {product.khong_quan_kho ? 'Có sẵn' : product.stock_quantity}
                   </div>
                 )}
               </div>
