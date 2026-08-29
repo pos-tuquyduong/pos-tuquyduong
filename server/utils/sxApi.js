@@ -147,7 +147,14 @@ async function getStockSummary() {
 /**
  * Xuất kho - GỌI THẲNG API SX (SX đã có toDbProductType convert)
  */
-async function outStockFIFO(productType, productId, quantity, orderCode) {
+/**
+ * POS-VANTAY-v1: them tham so vanTay (tuy chon).
+ * SX (SX-VANTAY-v1) ghi lai van tay; gap lai thi tra 200 kem da_lam_roi:true
+ * va KHONG tru lan nua. Nho vay gui lai bao nhieu lan cung vo hai — do la dieu
+ * kien de bat duoc viec tu do hang doi va doi chieu dinh ky.
+ * Khong truyen vanTay thi SX chay y nhu cu (tuong thich nguoc).
+ */
+async function outStockFIFO(productType, productId, quantity, orderCode, vanTay) {
   try {
     const result = await callSxApi('/api/pos/stock/out', {
       method: 'POST',
@@ -156,9 +163,14 @@ async function outStockFIFO(productType, productId, quantity, orderCode) {
         product_id: productId,
         quantity: quantity,
         order_code: orderCode,
+        van_tay: vanTay || undefined,
         notes: `POS: ${orderCode}`
       })
     });
+    if (result && result.da_lam_roi) {
+      console.log(`↩️  Stock out DA LAM ROI: ${vanTay} (luc ${result.lam_luc}) — khong tru lai`);
+      return result;
+    }
     console.log(`✅ Stock out: ${productType} #${productId} x${quantity} - ${orderCode}`);
     return result;
   } catch (err) {
@@ -170,7 +182,8 @@ async function outStockFIFO(productType, productId, quantity, orderCode) {
 /**
  * Hoàn kho - Khi hủy đơn hoặc xóa đơn
  */
-async function inStockReturn(productType, productId, quantity, orderCode) {
+/** POS-VANTAY-v1: xem chu thich o outStockFIFO. */
+async function inStockReturn(productType, productId, quantity, orderCode, vanTay) {
   try {
     const result = await callSxApi('/api/pos/stock/in', {
       method: 'POST',
@@ -179,9 +192,14 @@ async function inStockReturn(productType, productId, quantity, orderCode) {
         product_id: productId,
         quantity: quantity,
         order_code: orderCode,
+        van_tay: vanTay || undefined,
         notes: `POS hoàn kho: ${orderCode}`
       })
     });
+    if (result && result.da_lam_roi) {
+      console.log(`↩️  Stock return DA LAM ROI: ${vanTay} (luc ${result.lam_luc}) — khong cong lai`);
+      return result;
+    }
     console.log(`✅ Stock return: ${productType} #${productId} x${quantity} - ${orderCode}`);
     return result;
   } catch (err) {

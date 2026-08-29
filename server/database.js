@@ -133,6 +133,15 @@ async function createTables() {
     // Cột đã tồn tại (bảng mới tạo đã có, hoặc đã ALTER trước đó) — bỏ qua
   }
 
+  // POS-VANTAY-v1: luu van tay vao so no de buoc TU DO HANG DOI sau nay gui
+  // lai dung van tay cu. Khong co cot nay thi khong dung lai duoc van tay,
+  // va gui lai se tru kho LAN NUA.
+  try {
+    await db.execute(`ALTER TABLE pos_stock_pending ADD COLUMN van_tay TEXT`);
+  } catch (e) {
+    // Cột đã tồn tại — bỏ qua
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 5: ĐƠN HÀNG
   // Dùng customer_phone làm key chính, customer_id chỉ để tham chiếu

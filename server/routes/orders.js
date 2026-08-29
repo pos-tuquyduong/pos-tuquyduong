@@ -824,12 +824,17 @@ router.post("/", authenticate, async (req, res) => {
 
     // Trừ kho SX (bên ngoài transaction vì gọi API external)
     // Bỏ qua virtual package items (is_package_item)
-    for (const item of orderItems) {
+    // POS-VANTAY-v1: dung .entries() de co SO THU TU MON on dinh.
+    // So thu tu bam theo VI TRI TRONG MANG, khong bam theo bo dem tang dan —
+    // nhu vay dong item bi bo qua (goi ao) khong lam lech so thu tu cua cac
+    // dong sau, va gui lai lan nao cung ra dung van tay do.
+    for (const [sttMon, item] of orderItems.entries()) {
       if (item.is_package_item || !item.sx_product_type) continue;
+      const vanTay = `POS:${orderId}:out:${sttMon}`;
       try {
         await outStockFIFO(
           item.sx_product_type, item.sx_product_id,
-          item.quantity, `POS: ${orderCode}`,
+          item.quantity, `POS: ${orderCode}`, vanTay,
         );
       } catch (err) {
         console.error(`⚠️ Stock out failed for ${item.product_name}: ${err.message}`);
@@ -837,10 +842,10 @@ router.post("/", authenticate, async (req, res) => {
           await run(
             `INSERT INTO pos_stock_pending (
               order_code, order_id, sx_product_type, sx_product_id,
-              product_name, quantity, direction, error_message, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 'out', ?, ?)`,
+              product_name, quantity, direction, error_message, created_at, van_tay
+            ) VALUES (?, ?, ?, ?, ?, ?, 'out', ?, ?, ?)`,
             [orderCode, orderId, item.sx_product_type, item.sx_product_id,
-             item.product_name, item.quantity, err.message, now],
+             item.product_name, item.quantity, err.message, now, vanTay],
           );
         } catch (logErr) {
           console.error("Failed to log pending stock:", logErr.message);
@@ -1314,12 +1319,15 @@ router.put(
         WHERE oi.order_id = ?`,
         [order.id],
       );
-      for (const item of orderItems) {
+      for (const [sttMon, item] of orderItems.entries()) {
         if (item.sx_product_type && item.quantity > 0) {
+          // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
+          // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
+          const vanTay = `POS:${order.id}:in:${sttMon}`;
           try {
             await inStockReturn(
               item.sx_product_type, item.sx_product_id,
-              item.quantity, order.code,
+              item.quantity, order.code, vanTay,
             );
           } catch (err) {
             console.error(`⚠️ Stock return failed: ${err.message}`);
@@ -1327,10 +1335,10 @@ router.put(
               await run(
                 `INSERT INTO pos_stock_pending (
                   order_code, order_id, sx_product_type, sx_product_id,
-                  product_name, quantity, direction, error_message, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?)`,
+                  product_name, quantity, direction, error_message, created_at, van_tay
+                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?, ?)`,
                 [order.code, order.id, item.sx_product_type, item.sx_product_id,
-                 item.product_name, item.quantity, err.message, now],
+                 item.product_name, item.quantity, err.message, now, vanTay],
               );
             } catch (logErr) {
               console.error("Failed to log pending stock:", logErr.message);
@@ -1488,12 +1496,15 @@ router.delete("/:id", authenticate, async (req, res) => {
 
     // Hoàn kho SX (bên ngoài transaction)
     if (order.status !== "cancelled") {
-      for (const item of orderItems) {
+      for (const [sttMon, item] of orderItems.entries()) {
         if (item.sx_product_type && item.quantity > 0) {
+          // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
+          // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
+          const vanTay = `POS:${order.id}:in:${sttMon}`;
           try {
             await inStockReturn(
               item.sx_product_type, item.sx_product_id,
-              item.quantity, order.code,
+              item.quantity, order.code, vanTay,
             );
           } catch (err) {
             console.error(`⚠️ Stock return failed: ${err.message}`);
@@ -1501,10 +1512,10 @@ router.delete("/:id", authenticate, async (req, res) => {
               await run(
                 `INSERT INTO pos_stock_pending (
                   order_code, order_id, sx_product_type, sx_product_id,
-                  product_name, quantity, direction, error_message, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?)`,
+                  product_name, quantity, direction, error_message, created_at, van_tay
+                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?, ?)`,
                 [order.code, order.id, item.sx_product_type, item.sx_product_id,
-                 item.product_name, item.quantity, err.message, now],
+                 item.product_name, item.quantity, err.message, now, vanTay],
               );
             } catch (logErr) {
               console.error("Failed to log pending stock:", logErr.message);
