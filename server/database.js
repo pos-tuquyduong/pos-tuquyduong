@@ -142,6 +142,20 @@ async function createTables() {
     // Cột đã tồn tại — bỏ qua
   }
 
+  // POS-TONCU-v1: nho SO TON CUOI CUNG BIET DUOC va GIO biet.
+  // Mat ket noi SX thi tra dung so nay kem gio, thay cho so 999 bia ra.
+  // Chi ghi cho mon CO QUAN KHO va khi SX tra ve mot con so that.
+  try {
+    await db.execute(`ALTER TABLE pos_products ADD COLUMN ton_gan_nhat INTEGER`);
+  } catch (e) {
+    // Cot da ton tai — bo qua
+  }
+  try {
+    await db.execute(`ALTER TABLE pos_products ADD COLUMN ton_luc TEXT`);
+  } catch (e) {
+    // Cot da ton tai — bo qua
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 5: ĐƠN HÀNG
   // Dùng customer_phone làm key chính, customer_id chỉ để tham chiếu
@@ -775,7 +789,8 @@ async function createTables() {
       retry_count INTEGER DEFAULT 0,
       error_message TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      resolved_at DATETIME
+      resolved_at DATETIME,
+      van_tay TEXT
     )
   `);
 

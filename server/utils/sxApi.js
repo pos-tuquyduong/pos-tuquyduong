@@ -204,8 +204,13 @@ async function inStockReturn(productType, productId, quantity, orderCode, vanTay
     return result;
   } catch (err) {
     console.error('❌ Stock return error:', err.message);
-    // Không throw - hoàn kho fail không nên block hủy đơn
-    return null;
+    // POS-TONCU-v1: PHAI nem loi. Truoc day `return null` lam khoi ghi so no
+    // chieu "in" trong orders.js KHONG BAO GIO CHAY (no nam trong catch, cho
+    // nhan loi ma loi khong bao gio toi). Hau qua: huy don luc SX mat ket noi
+    // thi kho KHONG duoc cong lai VA khong co dau vet nao.
+    // Nem loi KHONG lam hong viec huy don: noi goi da boc san try/catch,
+    // huy don van xong, chi khac la viec hoan kho duoc GHI VAO SO NO de doi sau.
+    throw err;
   }
 }
 

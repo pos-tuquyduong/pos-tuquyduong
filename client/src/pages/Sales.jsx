@@ -393,7 +393,10 @@ export default function Sales() {
       }
     }
 
-    if (!fromPkg && product.price <= 0) {
+    // POS-TONCU-v1: gia nay co the la null. `null <= 0` tinh ra true nen dong
+    // cu VAN chan dung — nhung do la ep kieu ngam, doc khong ra. Viet tuong minh:
+    // chi ban khi gia la SO va lon hon 0.
+    if (!fromPkg && !(typeof product.price === 'number' && product.price > 0)) {
       setError(`${product.name} chưa có giá bán`);
       return;
     }
@@ -793,8 +796,30 @@ export default function Sales() {
   // Thống kê theo category
   const juiceCount = products.filter(p => p.category === 'juice').length;
   const teaCount = products.filter(p => p.category === 'tea').length;
-  const juiceStock = products.filter(p => p.category === 'juice').reduce((sum, p) => sum + p.stock_quantity, 0);
-  const teaStock = products.filter(p => p.category === 'tea').reduce((sum, p) => sum + p.stock_quantity, 0);
+  // POS-TONCU-v1: ton co the la null (chua ro / khong quan kho). null cong vao
+  // so ra NaN -> tab hien "Tra (3) - NaN". Ep ve 0 truoc khi cong.
+  const congTon = (sum, p) => sum + (Number(p.stock_quantity) || 0);
+  const juiceStock = products.filter(p => p.category === 'juice').reduce(congTon, 0);
+  const teaStock = products.filter(p => p.category === 'tea').reduce(congTon, 0);
+
+  // POS-TONCU-v1: MAU cua huy hieu ton, gom mot cho de khong lech nhau.
+  // Quan trong: so CU phai ra MAU VANG. De mau xanh nhu so tuoi thi lai dung
+  // cai bay cua so 999 — nhin qua tuong binh thuong nen khong ai kiem tra.
+  // Va CHUA RO (null) phai ra mau XAM, khong duoc do: do nghia la HET HANG.
+  const kieuTon = (p) => {
+    if (p.khong_quan_kho) return { nen: '#e0e7ff', chu: '#3730a3', nhan: 'Có sẵn', chuThich: 'Pha khi khách gọi' };
+    const ton = p.stock_quantity;
+    if (ton === null || ton === undefined)
+      return { nen: '#f1f5f9', chu: '#475569', nhan: '⏱ ?', chuThich: 'Chưa rõ tồn — chưa liên lạc được kho' };
+    if (p.ton_cu) {
+      const gio = (p.ton_luc || '').slice(11, 16);
+      return { nen: '#fef3c7', chu: '#92400e', nhan: `⏱ ${ton}`,
+               chuThich: `Tồn ${ton}${gio ? ' lúc ' + gio : ''} — chưa liên lạc được kho, số có thể đã cũ` };
+    }
+    return ton > 0
+      ? { nen: '#dcfce7', chu: '#166534', nhan: String(ton), chuThich: `Còn ${ton}` }
+      : { nen: '#fee2e2', chu: '#dc2626', nhan: String(ton), chuThich: 'Hết hàng' };
+  };
 
   return (
     <>
@@ -984,7 +1009,10 @@ export default function Sales() {
                   borderRadius: '12px',
                   border: inPkg ? '2.5px solid #c4b5fd' : '2px solid #e2e8f0',
                   cursor: (product.price > 0 || inPkg) ? 'pointer' : 'not-allowed',
-                  opacity: !product.khong_quan_kho && product.stock_quantity <= 0 && !inPkg ? 0.5 : 1,
+                  // POS-TONCU-v1: chi mo khi BIET CHAC la het (so 0).
+                  // null = chua ro, khong phai het -> khong lam mo.
+                  opacity: !product.khong_quan_kho && product.stock_quantity !== null
+                    && product.stock_quantity <= 0 && !inPkg ? 0.5 : 1,
                   transition: 'all 0.2s',
                   position: 'relative'
                 }}
@@ -1022,12 +1050,12 @@ export default function Sales() {
                 ) : activePkg ? (
                   <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '600' }}>Lẻ</div>
                 ) : (
-                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: product.khong_quan_kho ? '#e0e7ff' : (product.stock_quantity > 0 ? '#dcfce7' : '#fee2e2'), color: product.khong_quan_kho ? '#3730a3' : (product.stock_quantity > 0 ? '#166534' : '#dc2626'), padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                  <div title={kieuTon(product).chuThich} style={{ position: 'absolute', top: '4px', right: '4px', background: kieuTon(product).nen, color: kieuTon(product).chu, padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
                     {/* POS-NHOMKHONGKHO-v1: nhóm pha theo yêu cầu (cà phê, trà pha sẵn)
                         KHÔNG đếm tồn. Trước đây badge in thẳng stock_quantity nên
                         nhóm này ra Ô ĐỎ TRỐNG — trông như lỗi. Nay hiện "Có sẵn".
                         KHÔNG bịa số 999 (POS-2): số giả nguy hiểm hơn không có số. */}
-                    {product.khong_quan_kho ? 'Có sẵn' : product.stock_quantity}
+                    {kieuTon(product).nhan}
                   </div>
                 )}
               </div>
