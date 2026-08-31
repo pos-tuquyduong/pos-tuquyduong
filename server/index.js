@@ -44,6 +44,9 @@ const membershipRoutes = require('./routes/membership');
 // === ROUTES MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
 const damagesRoutes = require('./routes/damages');
 const packagesRoutes = require('./routes/packages');
+// POS-DODNO-v1: nguoi di doi so no
+const soNoRoutes = require('./routes/so-no');
+const { doNeuDenLuc } = require('./utils/doSoNo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,6 +63,17 @@ app.use(express.urlencoded({ extended: true }));
 // Request logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} | ${req.method} ${req.path}`);
+  next();
+});
+
+// ═══ POS-DODNO-v1 · LOP 1: doi so no an theo hoat dong ═══════════════════
+// PHAI dat TRUOC moi duong /api/pos. Dat sau thi khong bao gio chay: yeu cau
+// khop duong nao thi duong do tra loi va KHONG goi next() di tiep.
+// KHONG dung hen gio: Render Free ngu khi khong ai dung, cron se hong CAM ma
+// van tuong dang chay. Lay chinh viec ban hang lam dong ho.
+// KHONG await: nguoi dung khong phai cho viec nay.
+app.use('/api/pos', (req, res, next) => {
+  try { doNeuDenLuc(); } catch (e) { /* khong bao gio chan nguoi dung */ }
   next();
 });
 
@@ -93,6 +107,7 @@ app.use('/api/pos/membership', membershipRoutes);
 // === API MỚI (Phase E) - Báo cáo sự cố hàng hỏng ===
 app.use('/api/pos/damages', damagesRoutes);
 app.use('/api/pos/packages', packagesRoutes);
+app.use('/api/pos/so-no', soNoRoutes);   // POS-DODNO-v1
 
 // Health check
 app.get('/api/pos/health', (req, res) => {

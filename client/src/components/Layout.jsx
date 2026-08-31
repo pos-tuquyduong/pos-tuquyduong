@@ -20,11 +20,41 @@ import {
   Tag,
   FileText
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+// POS-DODNO-v1: goi qua lop chung, KHONG fetch tran (luat banh coc cua bo kiem)
+import { soNoApi } from '../utils/api';
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+
+  // ═══ POS-DODNO-v1 · LOP 2 + 3: dai bao viec ket, bam vao la doi ngay ═══
+  // Gop hai lop vao MOT khoi: thay so va xu ly ngay tai cho, khong phai di
+  // tim man hinh khac. Goi qua soNoApi (lop chung) chu KHONG fetch tran.
+  const [soNo, setSoNo] = useState({ cho: 0, canXem: 0 });
+  const [dangDoi, setDangDoi] = useState(false);
+
+  const xemSoNo = async () => {
+    try {
+      setSoNo(await soNoApi.xem());
+    } catch { /* im lang: dai bao hong khong duoc lam hong ca man hinh */ }
+  };
+
+  useEffect(() => {
+    xemSoNo();
+    const h = setInterval(xemSoNo, 60000);
+    return () => clearInterval(h);
+  }, []);
+
+  const doiNgay = async () => {
+    if (dangDoi) return;
+    setDangDoi(true);
+    try {
+      await soNoApi.doiNgay();
+      await xemSoNo();
+    } catch { /* im lang */ }
+    finally { setDangDoi(false); }
+  };
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -63,6 +93,29 @@ export default function Layout() {
           <span>Tứ Quý Đường</span>
         </div>
 
+        {/* POS-DODNO-v1: chi hien khi CO viec ket — khong co thi khong chiem cho */}
+        {(soNo.cho > 0 || soNo.canXem > 0) && (
+          <div
+            onClick={doiNgay}
+            title="Việc kho chưa gửi được sang bên sản xuất. Bấm để gửi lại ngay."
+            style={{
+              margin: '0.5rem 0.75rem', padding: '0.5rem 0.75rem', borderRadius: 8,
+              background: soNo.canXem > 0 ? '#fee2e2' : '#fef3c7',
+              color: soNo.canXem > 0 ? '#991b1b' : '#92400e',
+              fontSize: '0.75rem', fontWeight: 600,
+              cursor: dangDoi ? 'wait' : 'pointer', lineHeight: 1.35,
+            }}
+          >
+            {dangDoi
+              ? 'Đang gửi lại...'
+              : <>
+                  ⏳ {soNo.cho > 0 && <>{soNo.cho} việc kho chờ gửi</>}
+                  {soNo.cho > 0 && soNo.canXem > 0 && ' · '}
+                  {soNo.canXem > 0 && <>{soNo.canXem} việc cần bạn xem</>}
+                  <div style={{ fontWeight: 400, marginTop: 2 }}>Bấm để gửi lại ngay</div>
+                </>}
+          </div>
+        )}
         <nav className="sidebar-nav" style={{ flex: 1, paddingTop: '0.5rem' }}>
           {navItems.map((item) => {
             if (item.permission && !hasPermission(item.permission)) {

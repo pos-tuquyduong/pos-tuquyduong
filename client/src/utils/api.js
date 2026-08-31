@@ -347,6 +347,12 @@ export const productsApi = {
   updatePricesBatch: (products) => api.put('/products/batch/prices', { products })
 };
 
+// POS-DODNO-v1 · So no kho
+export const soNoApi = {
+  xem: () => api.get('/so-no'),
+  doiNgay: () => api.post('/so-no/doi-ngay', {})
+};
+
 // Orders API
 export const ordersApi = {
   list: (params = {}) => {
