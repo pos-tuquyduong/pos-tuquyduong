@@ -308,6 +308,9 @@ export default function Sales() {
         const usable = status.status === 'active' || status.status === 'expiring_soon';
         const tierRates = usable ? membershipTiers.find(t => t.id === status.tier_id) : null;
         setMembershipInfo({ ...status, usable, discount_percent: tierRates?.discount_percent || 0, special_discount_percent: tierRates?.special_discount_percent || 0 });
+      } else {
+        // POS-DOIKHACH-v1: khach moi khong co the -> PHAI xoa hang cua khach truoc.
+        setMembershipInfo(null);
       }
     } catch (err) {
       console.error('Load membership info error:', err);
@@ -328,11 +331,33 @@ export default function Sales() {
     setParentBalanceToUse(0);
     setIsDebt(false);
     setActivePkgId(null);
+    // POS-DOIKHACH-v1: PHAI co nhanh else. Truoc day chi biet DIEN khi khach
+    // moi co chiet khau, khong biet XOA khi khach moi khong co -> con so cua
+    // khach TRUOC van nam nguyen do va khach SAU duoc giam oan.
+    // `handleClearCustomer` da don dung tu truoc; day la lam not duong con lai.
     if (selectedCustomer?.discount_value > 0) {
       setDiscountType(selectedCustomer.discount_type || 'percent');
       setDiscountValue(selectedCustomer.discount_value);
-      setDiscountCode('');
-      setDiscountCodeValid(null);
+    } else {
+      setDiscountType('percent');
+      setDiscountValue(0);
+    }
+    // Ma chiet khau luon xoa: no gan voi khach hoac voi lan mua do,
+    // khong mang sang nguoi khac duoc.
+    setDiscountCode('');
+    setDiscountCodeValid(null);
+
+    // POS-DOIKHACH-v1: goi la cua khach CU, khong mang sang khach MOI duoc.
+    // Doi khach ma de nguyen mon "lay tu goi" trong gio thi may chu van tinh
+    // 0d (orders.js) trong khi ma goi da bi xoa -> khong ai bi tru luot.
+    // GIU nguyen mon thuong, chi bo mon tu goi, va noi ro da bo may mon.
+    const monTuGoi = cart.filter((m) => m.fromPkg);
+    if (monTuGoi.length) {
+      setCart(cart.filter((m) => !m.fromPkg));
+      setError(
+        `Đã bỏ ${monTuGoi.length} món lấy từ gói ra khỏi giỏ vì gói thuộc về khách trước. ` +
+        `Bấm lại nếu khách mới cũng có gói.`
+      );
     }
 
     // Load gói active của khách

@@ -225,6 +225,19 @@ router.post("/", authenticate, async (req, res) => {
         console.error("Stock check error:", err.message);
       }
 
+      // POS-DOIKHACH-v1: khai "lay tu goi" thi PHAI noi ro goi nao.
+      // Thieu ma goi ma van cho 0d chinh la ke ho lam hang ra khoi cua,
+      // khong thu tien, va KHONG goi nao bi tru luot (orders.js ~917).
+      // Chan o day la tang cuoi: du man hinh co sot, tien van khong mat.
+      if (item.from_package && !customer_package_id) {
+        return res.status(400).json({
+          error:
+            `Sản phẩm ${product.name} khai là lấy từ gói nhưng không kèm gói nào. ` +
+            `Hãy chọn lại gói của khách, hoặc bỏ món này ra khỏi giỏ.`,
+          code: "TU_GOI_NHUNG_THIEU_GOI",
+        });
+      }
+
       // Mix mode: SP từ gói → 0đ, SP lẻ → giá thường
       const unitPrice = item.from_package ? 0 : product.price;
       const itemTotal = unitPrice * item.quantity;
