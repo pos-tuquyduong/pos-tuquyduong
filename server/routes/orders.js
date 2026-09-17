@@ -226,6 +226,46 @@ router.post("/", authenticate, async (req, res) => {
     }
     // ═══ het POS-CONGDON-v1 · LO 3 ═══════════════════════════════════════
 
+    // ═══ POS-AUTHZ-v1: mon nao duoc phep lay tu goi ══════════════════════
+    // Man ban hang da kiem viec nay (Sales.jsx:77) nhung MAY CHU thi chua —
+    // khach co goi TRA, khai lay NUOC EP tu goi thi van duoc 0d.
+    // null = goi khong khai danh sach mon -> KHONG kiem, cho qua nhu cu
+    //        (goi cu tao truoc khi co tinh nang nay van ban binh thuong).
+    let monDuocLayTuGoi = null;
+    {
+      let dsJson = null;
+      if (customer_package_id) {
+        const g = await queryOne(
+          `SELECT p.package_items FROM pos_customer_packages cp
+             JOIN pos_packages p ON p.id = cp.package_id
+            WHERE cp.id = ?`,
+          [customer_package_id],
+        );
+        dsJson = g?.package_items || null;
+      } else if (package_buy && package_buy.package_id) {
+        const p = await queryOne(
+          "SELECT package_items FROM pos_packages WHERE id = ?",
+          [package_buy.package_id],
+        );
+        dsJson = p?.package_items || null;
+      }
+      if (dsJson) {
+        try {
+          const ds = typeof dsJson === "string" ? JSON.parse(dsJson) : dsJson;
+          if (Array.isArray(ds) && ds.length) {
+            monDuocLayTuGoi = new Set(
+              ds.map((i) => `${i.sx_product_type}_${i.sx_product_id}`),
+            );
+          }
+        } catch (e) {
+          // Danh sach hong thi KHONG kiem — tha cho qua con hon chan nham
+          // ca quay vi mot dong du lieu loi.
+          console.error("package_items khong doc duoc:", e.message);
+        }
+      }
+    }
+    // ═══ het POS-AUTHZ-v1 · doc danh sach ════════════════════════════════
+
     for (const item of items) {
       let product;
       if (item.sx_product_type && item.sx_product_id !== undefined) {
@@ -284,8 +324,26 @@ router.post("/", authenticate, async (req, res) => {
         });
       }
 
+      // ═══ POS-AUTHZ-v1 · CONG DONG O DAY ════════════════════════════════
+      // `item.from_package` chi la DE NGHI cua to khai. May chu xac nhan lai
+      // mon do co that su nam trong goi khong roi moi cho 0d.
+      if (item.from_package && monDuocLayTuGoi) {
+        const khoaMon = `${product.sx_product_type}_${product.sx_product_id}`;
+        if (!monDuocLayTuGoi.has(khoaMon)) {
+          return res.status(400).json({
+            error:
+              `Sản phẩm ${product.name} KHÔNG nằm trong gói của khách, ` +
+              `không thể lấy từ gói. Hãy bỏ món này ra khỏi giỏ hoặc bán như hàng lẻ.`,
+            code: "MON_KHONG_TRONG_GOI",
+          });
+        }
+      }
+      // Gia 0 den tu BIEN NAY — da qua het cac phep kiem — chu KHONG den
+      // thang tu co cua to khai. Day la khac biet that, khong phai doi ten.
+      const layTuGoi = !!item.from_package;
+
       // Mix mode: SP từ gói → 0đ, SP lẻ → giá thường
-      const unitPrice = item.from_package ? 0 : product.price;
+      const unitPrice = layTuGoi ? 0 : product.price;
       const itemTotal = unitPrice * item.quantity;
       subtotal += itemTotal;
 
