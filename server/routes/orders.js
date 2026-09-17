@@ -183,6 +183,49 @@ router.post("/", authenticate, async (req, res) => {
     const orderItems = [];
     let subtotal = 0;
 
+    // ═══ POS-CONGDON-v1 · LO 3: goi phai DUNG CHU ════════════════════════
+    // Truoc day tru luot theo ma goi gui len ma khong kiem chu. Nhan vien
+    // chon nham khach la luot bi tru vao goi NGUOI KHAC, va nguoi bi tru
+    // khong biet gi cho toi luc den lay hang ma may bao het luot.
+    // Chan o DAY, truoc vong lap mon, vi vong lap moi la noi tinh 0d.
+    if (customer_package_id) {
+      const goiKH = await queryOne(
+        `SELECT id, customer_phone, status, total_qty, delivered_qty
+           FROM pos_customer_packages WHERE id = ?`,
+        [customer_package_id],
+      );
+      if (!goiKH) {
+        return res.status(400).json({
+          error: "Khong tim thay goi nay. Hay chon lai goi cua khach.",
+          code: "GOI_KHONG_TON_TAI",
+        });
+      }
+      const sdtDon = normalizePhone(customer_phone);
+      const sdtGoi = normalizePhone(goiKH.customer_phone);
+      if (!sdtDon || sdtDon !== sdtGoi) {
+        return res.status(400).json({
+          error:
+            "Goi nay thuoc ve khach khac, khong dung cho don nay duoc. " +
+            "Hay chon lai dung khach, hoac bo cac mon lay tu goi ra khoi gio.",
+          code: "GOI_KHONG_DUNG_CHU",
+        });
+      }
+      if (goiKH.status !== "active") {
+        return res.status(400).json({
+          error: `Goi cua khach dang o trang thai "${goiKH.status}", khong dung duoc.`,
+          code: "GOI_HET_HIEU_LUC",
+        });
+      }
+      const conLai = Number(goiKH.total_qty || 0) - Number(goiKH.delivered_qty || 0);
+      if (conLai <= 0) {
+        return res.status(400).json({
+          error: "Goi cua khach da giao het luot.",
+          code: "GOI_HET_LUOT",
+        });
+      }
+    }
+    // ═══ het POS-CONGDON-v1 · LO 3 ═══════════════════════════════════════
+
     for (const item of items) {
       let product;
       if (item.sx_product_type && item.sx_product_id !== undefined) {
@@ -229,7 +272,10 @@ router.post("/", authenticate, async (req, res) => {
       // Thieu ma goi ma van cho 0d chinh la ke ho lam hang ra khoi cua,
       // khong thu tien, va KHONG goi nao bi tru luot (orders.js ~917).
       // Chan o day la tang cuoi: du man hinh co sot, tien van khong mat.
-      if (item.from_package && !customer_package_id) {
+      // POS-CONGDON-v1: them ngoai le `package_buy`. Khach MUA GOI roi lay hang
+      // ngay trong cung don thi goi chua ton tai nen chua co ma — nhung don van
+      // hop le, may chu se tao goi va tru luot lan 1 o cuoi (orders.js ~951).
+      if (item.from_package && !customer_package_id && !package_buy) {
         return res.status(400).json({
           error:
             `Sản phẩm ${product.name} khai là lấy từ gói nhưng không kèm gói nào. ` +
@@ -387,6 +433,31 @@ router.post("/", authenticate, async (req, res) => {
 
     // Normalize phone (chuyển lên sớm hơn — TIER-2 cần biết khách là ai trước khi tính chiết khấu)
     const phone = normalizePhone(customer_phone);
+
+    // ═══ POS-CONGDON-v1 · LO 2: thoi tin muc giam gui len ════════════════
+    // Truoc day: finalDiscountValue = discount_value lay THANG tu to khai,
+    // khong can ma chiet khau nao -> khai giam 90% thi duoc giam 90%.
+    // Nay: khong co ma chiet khau hop le thi may chu TU DOC chiet khau rieng
+    // cua khach tu ho so. Man ban hang von cung chi gui so lay tu ho so do,
+    // nen quay KHONG doi gi — chi khac la so tien nay do may chu tu tra.
+    // Khach vang lai (khong so dien thoai) -> khong co chiet khau rieng.
+    if (!discountCodeId) {
+      const khCK = phone
+        ? await queryOne(
+            "SELECT discount_type, discount_value FROM pos_customers WHERE phone = ?",
+            [phone],
+          )
+        : null;
+      const mucCK = Number(khCK?.discount_value || 0);
+      if (mucCK > 0) {
+        finalDiscountType = khCK.discount_type || "percent";
+        finalDiscountValue = mucCK;
+      } else {
+        finalDiscountType = null;
+        finalDiscountValue = 0;
+      }
+    }
+    // ═══ het POS-CONGDON-v1 · LO 2 ═══════════════════════════════════════
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
 
     // === TIER-2: Giảm theo HẠNG THÀNH VIÊN (tầng cùng mức F2, tự động) ===
@@ -436,10 +507,16 @@ router.post("/", authenticate, async (req, res) => {
     // Đã có từ params
 
     // Ưu tiên 3: Chiết khấu cũ (discount số cố định) - backward compatible
-    if (!finalDiscountType && discount > 0) {
+    // ═══ POS-CONGDON-v1: TAT duong nay ══════════════════════════════════
+    // `discount` lay THANG tu to khai, khong co nguon nao kiem chung — khai
+    // bao nhieu duoc giam bay nhieu. Man ban hang LUON gui 0 (Sales.jsx:29
+    // khoi tao 0, khong cho nao dat khac), nen tat di khong doi gi o quay.
+    // Giu lai khoi de thay ro da tat co chu y, khong phai vo tinh xoa.
+    if (false && !finalDiscountType && discount > 0) {
       finalDiscountType = "fixed";
       finalDiscountValue = discount;
     }
+    // ═══ het POS-CONGDON-v1 · LO 2b ═════════════════════════════════════
 
     // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
     // Áp dụng cho CẢ voucher giảm-1-món (Bước 5) vì đọc finalDiscountType từ codeRecord.discount_type
@@ -501,7 +578,10 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
-    const finalShippingFee = shipping_fee || 0;
+    // POS-CONGDON-v1: phi van chuyen KHONG duoc am. Truoc day khai so am la
+    // giam thang vao tong don — `Math.max(0, total)` chi chan total am, khong
+    // chan total bi giam. Ep ve so, am thi coi nhu 0.
+    const finalShippingFee = Math.max(0, Number(shipping_fee) || 0);
     const total = Math.max(
       0,
       subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount + finalShippingFee,
