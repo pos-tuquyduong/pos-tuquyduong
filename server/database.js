@@ -1223,6 +1223,33 @@ async function seedDefaultData() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_signup_code ON pos_signup_codes(code)`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_signup_claimed_phone ON pos_signup_codes(claimed_phone)`);
   console.log('✅ Đã đảm bảo bảng mã ưu đãi khách mới (pos_signup_codes)');
+
+  // POS-NHANDIEM-v1: đánh dấu mã đã dùng để NHÂN ĐIỂM (khác với claimed_at
+  // là đã dùng để đổi voucher — hai việc độc lập, bật/tắt riêng).
+  try {
+    await db.execute(`ALTER TABLE pos_signup_codes ADD COLUMN diem_nhan_luc DATETIME`);
+  } catch (e) { /* cột đã tồn tại */ }
+  try {
+    await db.execute(`ALTER TABLE pos_signup_codes ADD COLUMN diem_nhan_phone TEXT`);
+  } catch (e) { /* cột đã tồn tại */ }
+
+  // Cấu hình mặc định — chỉ chèn khi CHƯA có, không đè cấu hình owner đã đặt.
+  // Mặc định TẮT vì App KH chưa có; bật lúc nào là việc của chủ quán.
+  for (const [k, v] of [
+    ['nhandiem_enabled', '0'],
+    ['nhandiem_he_so', '2'],
+    ['nhandiem_han_gio', '24'],
+    ['nhandiem_chi_lan_dau', '1'],
+  ]) {
+    try {
+      await db.execute({
+        sql: `INSERT INTO pos_settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO NOTHING`,
+        args: [k, v],
+      });
+    } catch (e) { /* đã có hoặc bảng chưa sẵn — bỏ qua */ }
+  }
+  console.log('✅ Đã đảm bảo cấu hình nhân điểm từ mã bill (POS-NHANDIEM-v1)');
 }
 
 /**

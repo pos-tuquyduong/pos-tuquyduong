@@ -43,6 +43,213 @@ async function getSignupConfig() {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  POS-NHANDIEM-v1 — ma tren bill dung de NHAN DIEM TICH LUY cua don vua mua
+//
+//  Doc lap hoan toan voi duong /claim (doi voucher): hai viec khac nhau, bat
+//  tat rieng, danh dau bang 2 cot khac nhau. Mot ma co the dung ca hai neu
+//  chu quan bat ca hai.
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function docCauHinhNhanDiem() {
+  const rows = await query(
+    "SELECT key, value FROM pos_settings WHERE key LIKE 'nhandiem_%'",
+  );
+  const c = {};
+  for (const r of rows) c[r.key] = r.value;
+  const heSo = Number(c.nhandiem_he_so);
+  const hanGio = Number(c.nhandiem_han_gio);
+  return {
+    bat: c.nhandiem_enabled === '1' || c.nhandiem_enabled === 'true',
+    heSo: Number.isFinite(heSo) && heSo >= 1 ? heSo : 2,
+    hanGio: Number.isFinite(hanGio) && hanGio > 0 ? hanGio : 24,
+    chiLanDau: c.nhandiem_chi_lan_dau !== '0',
+  };
+}
+
+// POST /api/pos/signup-codes/nhan-diem
+// Body: { code, phone }
+router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
+  try {
+    const maGoc = String(req.body.code || '').trim().toUpperCase();
+    const phone = normalizePhone(req.body.phone);
+
+    if (!maGoc) return res.status(400).json({ success: false, error: 'Thiếu mã trên bill' });
+    if (!phone) return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ' });
+
+    const ch = await docCauHinhNhanDiem();
+    if (!ch.bat) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chương trình nhân điểm đang tắt.',
+        code: 'NHANDIEM_DANG_TAT',
+      });
+    }
+
+    const dong = await queryOne(
+      'SELECT * FROM pos_signup_codes WHERE UPPER(code) = ?',
+      [maGoc],
+    );
+    if (!dong) return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
+
+    if (dong.diem_nhan_luc) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mã này đã được dùng để nhận điểm rồi.',
+        code: 'MA_DA_NHAN_DIEM',
+      });
+    }
+
+    // Hạn tính bằng GIỜ kể từ lúc in bill — so bằng mili-giây, không phụ thuộc chuỗi.
+    const lucIn = new Date(String(dong.issued_at).replace(' ', 'T') + 'Z').getTime();
+    const bayGio = new Date(getNow().replace(' ', 'T') + 'Z').getTime();
+    const daQua = (bayGio - lucIn) / (1000 * 60 * 60);
+    if (!Number.isFinite(daQua) || daQua > ch.hanGio) {
+      return res.status(400).json({
+        success: false,
+        error: `Mã đã hết hạn (quá ${ch.hanGio} giờ kể từ lúc in bill).`,
+        code: 'MA_HET_HAN',
+      });
+    }
+
+    if (ch.chiLanDau) {
+      const daNhan = await queryOne(
+        'SELECT id FROM pos_signup_codes WHERE diem_nhan_phone = ? LIMIT 1',
+        [phone],
+      );
+      if (daNhan) {
+        return res.status(400).json({
+          success: false,
+          error: 'Số điện thoại này đã từng nhận điểm nhân từ mã bill.',
+          code: 'SDT_DA_NHAN',
+        });
+      }
+    }
+
+    if (!dong.order_id) {
+      return res.status(400).json({ success: false, error: 'Mã này không gắn với đơn nào.' });
+    }
+    const don = await queryOne(
+      'SELECT id, code, total, status FROM pos_orders WHERE id = ?',
+      [dong.order_id],
+    );
+    if (!don) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn của mã này.' });
+    if (don.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        error: 'Đơn của mã này đã bị huỷ, không nhận điểm được.',
+        code: 'DON_DA_HUY',
+      });
+    }
+
+    // Điểm gốc tính theo ĐÚNG cấu hình điểm đang chạy, không tự đặt công thức riêng.
+    const loyRows = await query(
+      "SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')",
+    );
+    const loy = {};
+    for (const r of loyRows) loy[r.key] = r.value;
+    if (loy.loyalty_enabled !== '1' && loy.loyalty_enabled !== 'true') {
+      return res.status(400).json({
+        success: false,
+        error: 'Chương trình tích điểm đang tắt.',
+        code: 'TICH_DIEM_DANG_TAT',
+      });
+    }
+    const moiBaoNhieu = Number(loy.loyalty_earn_per_amount);
+    if (!Number.isFinite(moiBaoNhieu) || moiBaoNhieu < 1) {
+      return res.status(400).json({ success: false, error: 'Cấu hình tích điểm chưa hợp lệ.' });
+    }
+    const diemGoc = Math.floor(Number(don.total || 0) / moiBaoNhieu);
+    if (diemGoc <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Đơn này không đủ để tính điểm.',
+        code: 'DON_KHONG_DU_DIEM',
+      });
+    }
+
+    // Đơn đã được cộng điểm lúc bán (khách có cho SĐT) thì chỉ cộng BÙ phần
+    // còn thiếu, để tổng đúng bằng gốc x hệ số — KHÔNG cộng đôi.
+    const daCong = await queryOne(
+      "SELECT id FROM pos_point_transactions WHERE order_id = ? AND type = 'earn' LIMIT 1",
+      [don.id],
+    );
+    const diemCong = daCong
+      ? Math.round(diemGoc * (ch.heSo - 1))
+      : Math.round(diemGoc * ch.heSo);
+
+    if (diemCong <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Hệ số hiện tại không cộng thêm điểm nào cho đơn này.',
+        code: 'KHONG_THEM_DIEM',
+      });
+    }
+
+    const now = getNow();
+
+    // Han diem PHAI theo dung luat cua diem ban hang (orders.js ~787): che do
+    // 'quarter' thi diem het han dau quy tuong ung nam sau. De NULL thi diem tu
+    // ma bill song vinh vien trong khi diem ban hang het han — cung mot bang,
+    // hai luat khac nhau.
+    let hanDiem = null;
+    if (loy.loyalty_expiry_mode === 'quarter') {
+      const y = parseInt(now.slice(0, 4), 10);
+      const m = parseInt(now.slice(5, 7), 10);
+      const qStart = m <= 3 ? 1 : m <= 6 ? 4 : m <= 9 ? 7 : 10;
+      const mm = qStart < 10 ? '0' + qStart : '' + qStart;
+      hanDiem = (y + 1) + '-' + mm + '-01T00:00:00';
+    }
+
+    const tx = await beginTransaction();
+    try {
+      // CHIEM MA TRUOC, cong diem sau. `AND diem_nhan_luc IS NULL` la cho then
+      // chot: hai nguoi nhap cung mot ma cung luc thi ca hai deu thay ma chua
+      // dung (phep kiem o tren nam NGOAI giao dich), nhung chi MOT nguoi UPDATE
+      // duoc — nguoi kia thay changes = 0 va bi chan. Khong co no thi ca hai
+      // cung duoc cong diem.
+      const chiem = await tx.run(
+        `UPDATE pos_signup_codes SET diem_nhan_luc = ?, diem_nhan_phone = ?
+          WHERE id = ? AND diem_nhan_luc IS NULL`,
+        [now, phone, dong.id],
+      );
+      if (!chiem || chiem.changes === 0) {
+        await tx.rollback();
+        return res.status(400).json({
+          success: false,
+          error: 'Mã này vừa được dùng để nhận điểm.',
+          code: 'MA_DA_NHAN_DIEM',
+        });
+      }
+      await tx.run(
+        `INSERT INTO pos_point_transactions
+           (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
+         VALUES (?, 'earn', ?, ?, ?, ?, ?, ?)`,
+        [phone, diemCong, don.id, hanDiem,
+         `Nhân ${ch.heSo} điểm từ mã bill ${maGoc} (đơn ${don.code})`,
+         (req.user && req.user.username) || 'service', now],
+      );
+      await tx.commit();
+    } catch (e) {
+      try { await tx.rollback(); } catch {}
+      throw e;
+    }
+
+    res.json({
+      success: true,
+      diem_cong: diemCong,
+      diem_goc: diemGoc,
+      he_so: ch.heSo,
+      het_han: hanDiem,
+      da_cong_truoc_do: !!daCong,
+      don: don.code,
+      message: `Đã cộng ${diemCong} điểm cho ${phone} từ đơn ${don.code}.`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/pos/signup-codes/claim
 // Body: { code, phone }
 router.post('/claim', authenticateServiceOrUser, async (req, res) => {
