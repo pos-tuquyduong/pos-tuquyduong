@@ -16,6 +16,7 @@ const { generateVoucherCode } = require("../utils/voucherCode");
 const { findEligibleItemForGroup, computeItemDiscountAmount } = require("../utils/itemScopeDiscount");
 const {
   generateOrderCode,
+  taoMaDonTheoSo, // POS-MADON-v1
   getNow,
   getToday,
   normalizePhone,
@@ -756,7 +757,10 @@ router.post("/", authenticate, async (req, res) => {
     // ========== ATOMIC TRANSACTION: Tạo đơn hàng ==========
     // Tất cả thao tác DB (tạo đơn, trừ ví, ghi log) trong 1 transaction
     // Nếu bất kỳ bước nào lỗi → rollback tất cả, không mất tiền
-    const orderCode = generateOrderCode();
+    // POS-MADON-v1: so thu tu trong ngay thay cho 3 so ngau nhien.
+    // Ngau nhien chi co 1.000 kha nang/ngay -> ban 40 don la hon nua so ngay
+    // co trung -> UNIQUE chan -> don bi tu choi giua luc khach dang cho.
+    const orderCode = await taoMaDonTheoSo(queryOne);
     const now = getNow();
 
     // ─── LOY-1 Gói 2: chuẩn bị cộng điểm (mọi tính toán NGOÀI transaction) ───

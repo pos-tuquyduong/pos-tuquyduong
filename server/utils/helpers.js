@@ -12,6 +12,57 @@ function generateOrderCode() {
 }
 
 /**
+ * POS-MADON-v1 — Tạo mã đơn theo SỐ THỨ TỰ trong ngày: ORD-YYYYMMDD-001
+ *
+ * Thay cho `generateOrderCode()` bốc ngẫu nhiên 3 số: chỉ 1.000 khả năng mỗi
+ * ngày, bán 40 đơn là hơn nửa số ngày có trùng. Cột `code` có UNIQUE nên
+ * trùng = đơn BỊ TỪ CHỐI lúc ghi, giữa lúc khách đang đứng chờ.
+ *
+ * Nhận `queryOne` từ nơi gọi để không tạo phụ thuộc vòng giữa helpers và
+ * database (helpers hiện không nạp database, giữ nguyên như vậy).
+ */
+async function taoMaDonTheoSo(queryOne) {
+  const ngay = new Date()
+    .toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })
+    .replace(/-/g, "");
+  const dau = `ORD-${ngay}-`;
+
+  // Số lớn nhất đã dùng hôm nay. Đơn CŨ mang mã ngẫu nhiên cũng cùng dạng
+  // nên vẫn đếm được — mã mới luôn lớn hơn mọi mã cũ trong ngày.
+  let ke = 1;
+  try {
+    const rows = await queryOne(
+      `SELECT code FROM pos_orders WHERE code LIKE ? ORDER BY LENGTH(code) DESC, code DESC LIMIT 1`,
+      [`${dau}%`],
+    );
+    if (rows && rows.code) {
+      const phan = String(rows.code).slice(dau.length);
+      const so = parseInt(phan, 10);
+      if (Number.isFinite(so)) ke = so + 1;
+    }
+  } catch (e) {
+    // Đọc hỏng thì bắt đầu từ 1 rồi để vòng dưới tự tránh trùng.
+    console.error("Khong doc duoc ma don gan nhat:", e.message);
+  }
+
+  // Hai đơn cùng lúc có thể cùng tính ra một số. Hiếm ở một quầy nhưng vẫn
+  // phải chặn: thử số kế tiếp cho tới khi tìm được mã chưa ai lấy.
+  for (let i = 0; i < 30; i++) {
+    const ma = dau + String(ke + i).padStart(3, "0");
+    try {
+      const da = await queryOne("SELECT id FROM pos_orders WHERE code = ?", [ma]);
+      if (!da) return ma;
+    } catch (e) {
+      return ma; // không kiểm được thì cứ dùng, UNIQUE là chốt cuối
+    }
+  }
+
+  // Hết 30 lần: dùng mã theo mili giây. Xấu nhưng KHÔNG BAO GIỜ được để
+  // việc sinh mã chặn một ca bán thật.
+  return dau + String(Date.now()).slice(-6);
+}
+
+/**
  * Tạo mã QR từ SĐT: QR-0901234567
  */
 function generateQRCode(phone) {
@@ -183,6 +234,7 @@ function addMonthsSafe(date, months) {
 
 module.exports = {
   generateOrderCode,
+  taoMaDonTheoSo, // POS-MADON-v1
   generateQRCode,
   formatCurrency,
   formatDateTime,
