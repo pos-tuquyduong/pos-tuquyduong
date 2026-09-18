@@ -108,6 +108,7 @@ app.use('/api/pos/membership', membershipRoutes);
 app.use('/api/pos/damages', damagesRoutes);
 app.use('/api/pos/packages', packagesRoutes);
 app.use('/api/pos/so-no', soNoRoutes);   // POS-DODNO-v1
+app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-v1
 
 // Health check
 app.get('/api/pos/health', (req, res) => {
