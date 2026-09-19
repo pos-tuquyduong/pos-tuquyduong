@@ -103,6 +103,17 @@ export default function Settings() {
 
   useEffect(() => { loadData(); }, [tab]);
 
+  // POS-MOTNUTLUU-v1: chup khi tai xong HAN (loading ve false), khong chup
+  // giua chung. Chi phu thuoc [tab, loading] nen KHONG chay lai khi nguoi
+  // dung go gia — neu phu thuoc products thi ban chup bi ghi de va so thay
+  // doi luon bang 0.
+  useEffect(() => {
+    if (tab === 'products' && !loading) {
+      chupLaiGia(products, signupGroupMembers);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, loading]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -185,6 +196,54 @@ export default function Settings() {
     });
   };
 
+  // ═══ POS-MOTNUTLUU-v1 ════════════════════════════════════════════════
+  // Ban chup luc vua tai xong, de biet dong nao da bi sua.
+  const [banChupGia, setBanChupGia] = useState(null);
+
+  // Chup lai: goi sau khi tai danh sach va sau khi luu xong.
+  const chupLaiGia = (ds, nhom) => {
+    setBanChupGia({
+      gia: JSON.stringify((ds || []).map(p => [
+        `${p.sx_product_type}_${p.sx_product_id}`, p.price ?? null, !!p.is_special_group,
+      ])),
+      nhom: JSON.stringify(Array.from(nhom || []).sort()),
+    });
+  };
+
+  // Dem so dong da sua. Tick voucher khong gan voi dong nao cu the nen dem
+  // rieng: co doi tap hop hay khong (0 hoac 1).
+  const demThayDoi = () => {
+    if (!banChupGia) return 0;
+    let n = 0;
+    try {
+      const cu = new Map(JSON.parse(banChupGia.gia).map(x => [x[0], x]));
+      for (const p of products) {
+        const k = `${p.sx_product_type}_${p.sx_product_id}`;
+        const c = cu.get(k);
+        if (!c) { n++; continue; }
+        if ((p.price ?? null) !== c[1] || !!p.is_special_group !== c[2]) n++;
+      }
+      if (JSON.stringify(Array.from(signupGroupMembers).sort()) !== banChupGia.nhom) n++;
+    } catch { return 0; }
+    return n;
+  };
+
+  // MOT nut luu CA HAI. Khong viet lai hai ham cu — goi lan luot, hai duong
+  // may chu giu nguyen ven.
+  const luuTatCaThayDoi = async () => {
+    // CHI chup lai khi CA HAI thanh cong. Luu hong ma van chup thi nut ve 0
+    // va nguoi dung tuong da luu xong — mat phan vua go ma khong biet.
+    const okGia = await savePrices();
+    const okNhom = await saveSignupGroup();
+    if (okGia && okNhom) {
+      chupLaiGia(products, signupGroupMembers);
+    } else {
+      setMessage('Chưa lưu được hết — số thay đổi vẫn còn, bấm lại để thử.');
+      setTimeout(() => setMessage(''), 5000);
+    }
+  };
+  // ═══ het POS-MOTNUTLUU-v1 ════════════════════════════════════════════
+
   const saveSignupGroup = async () => {
     setSavingSignupGroup(true);
     try {
@@ -200,8 +259,10 @@ export default function Settings() {
       const data = await pkgApi('PUT', '/api/pos/product-groups/khach_moi/members', { members });
       setMessage(data.success ? `Đã lưu nhóm sản phẩm (${data.data.count} món)` : 'Lỗi: ' + data.error);
       setTimeout(() => setMessage(''), 3000);
+      return !!data.success;   // POS-MOTNUTLUU-v1: may chu tra success=false cung la HONG
     } catch (err) {
       setMessage('Lỗi: ' + err.message);
+      return false;
     } finally {
       setSavingSignupGroup(false);
     }
@@ -279,7 +340,8 @@ export default function Settings() {
       })));
       setMessage('Đã lưu giá thành công!');
       setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+      return true;   // POS-MOTNUTLUU-v1: bao cho nut gop biet da luu duoc
+    } catch (err) { setMessage('Lỗi: ' + err.message); return false; }
     finally { setSaving(false); }
   };
 
@@ -857,19 +919,28 @@ export default function Settings() {
           {loading ? <div className="loading">Đang tải...</div> : tab === 'products' ? (
             /* TAB GIÁ BÁN */
             <>
+              {/* POS-MOTNUTLUU-v1: MOT nut luu ca gia lan tick voucher.
+                  Truoc day hai nut rieng cho cung mot bang, kem mot dong giai
+                  thich — go gia xong bam nham nut la mat phan vua go. */}
               <div className="flex flex-between mb-2">
                 <div className="card-title" style={{ margin: 0 }}>Quản lý giá bán</div>
-                <button className="btn btn-primary" onClick={savePrices} disabled={saving}>
-                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu tất cả'}
-                </button>
-              </div>
-              <div className="flex flex-between mb-2">
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                  Cột "Áp voucher khách mới" lưu riêng, không chung nút "Lưu tất cả" ở trên.
-                </p>
-                <button className="btn btn-secondary" onClick={saveSignupGroup} disabled={savingSignupGroup}>
-                  <Save size={16} /> {savingSignupGroup ? 'Đang lưu...' : 'Lưu nhóm voucher khách mới'}
-                </button>
+                {(() => {
+                  const soDoi = demThayDoi();
+                  const dangLuu = saving || savingSignupGroup;
+                  return (
+                    <button
+                      className={`btn ${soDoi > 0 ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={luuTatCaThayDoi}
+                      disabled={dangLuu || soDoi === 0}
+                      title={soDoi > 0
+                        ? `${soDoi} dòng đã sửa — lưu cả giá và tick voucher trong một lần`
+                        : 'Chưa sửa gì'}
+                    >
+                      <Save size={16} />{' '}
+                      {dangLuu ? 'Đang lưu...' : soDoi > 0 ? `Lưu thay đổi (${soDoi})` : 'Chưa có thay đổi'}
+                    </button>
+                  );
+                })()}
               </div>
               <table className="table">
                 <thead>
