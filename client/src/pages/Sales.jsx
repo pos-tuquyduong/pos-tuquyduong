@@ -751,6 +751,8 @@ export default function Sales() {
         discount_code: result.order.discount_code,
         shipping_fee: result.order.shipping_fee || shippingFee,
         signupCode: result.order.signup_code || null, // Bước 3: mã ưu đãi khách mới, để in ra bill
+        signupNhan: result.order.signup_nhan || null,  // POS-NHANDIEM-UI-v1: nhãn + lời do máy chủ dựng
+        signupLoi: result.order.signup_loi || null,
         total: result.order.total,
         paymentMethod: isDebt ? 'debt' : paymentMethod,
         balanceUsed: balanceUsed,
@@ -2386,7 +2388,9 @@ export default function Sales() {
         change_amount: completedOrder.change,
         balance_amount: completedOrder.balanceUsed || 0,
         debt_amount: completedOrder.debtAmount || 0,
-        signup_code: completedOrder.signupCode || null
+        signup_code: completedOrder.signupCode || null,
+        signup_nhan: completedOrder.signupNhan || null,   // POS-NHANDIEM-UI-v1
+        signup_loi: completedOrder.signupLoi || null
       }}
       settings={invoiceSettings}
       successInfo={{

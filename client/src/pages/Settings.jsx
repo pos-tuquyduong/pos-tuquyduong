@@ -38,6 +38,15 @@ export default function Settings() {
   });
 
   // Bước 4 — Cấu hình "Ưu đãi khách mới" (dùng chung cơ chế /api/pos/settings key-value)
+  // POS-NHANDIEM-UI-v1: 4 thong so cua chuong trinh nhan diem. Dung chung
+  // duong /api/pos/settings nhu signupCfg, chi khac tien to key.
+  const [nhanDiemCfg, setNhanDiemCfg] = useState({
+    nhandiem_enabled: '0',
+    nhandiem_he_so: '2',
+    nhandiem_han_gio: '24',
+    nhandiem_chi_lan_dau: '1',
+  });
+
   const [signupCfg, setSignupCfg] = useState({
     signup_enabled: 'false',
     signup_scope: 'order',      // 'order' | 'item'
@@ -115,6 +124,7 @@ export default function Settings() {
       } else if (tab === 'loyalty') {
         await loadLoyalty();
       } else if (tab === 'signup') {
+        await loadNhanDiemCfg();   // POS-NHANDIEM-UI-v1: nap cung the
         const prodData = await productsApi.list({ active: '' });
         setProducts(prodData);
         await loadSignupCfg();
@@ -297,6 +307,48 @@ export default function Settings() {
   };
 
   // Bước 4 — Ưu đãi khách mới: dùng chung endpoint /api/pos/settings, chỉ khác tiền tố key
+  // POS-NHANDIEM-UI-v1: nap va luu 4 thong so nhan diem.
+  // Luu RIENG khoi signupCfg: hai chuong trinh doc lap, bat/tat rieng, nen
+  // luu cai nay KHONG duoc dong cham cai kia.
+  const loadNhanDiemCfg = async () => {
+    const data = await pkgApi('GET', '/api/pos/settings');
+    if (data.success) {
+      const s = data.data || {};
+      setNhanDiemCfg(prev => ({
+        nhandiem_enabled: s.nhandiem_enabled ?? prev.nhandiem_enabled,
+        nhandiem_he_so: s.nhandiem_he_so ?? prev.nhandiem_he_so,
+        nhandiem_han_gio: s.nhandiem_han_gio ?? prev.nhandiem_han_gio,
+        nhandiem_chi_lan_dau: s.nhandiem_chi_lan_dau ?? prev.nhandiem_chi_lan_dau,
+      }));
+    }
+  };
+
+  const saveNhanDiemCfg = async () => {
+    setSaving(true);
+    try {
+      const heSo = parseFloat(nhanDiemCfg.nhandiem_he_so);
+      if (!(heSo >= 1)) throw new Error('Hệ số phải từ 1 trở lên');
+      const hanGio = parseInt(nhanDiemCfg.nhandiem_han_gio, 10);
+      if (!(hanGio > 0)) throw new Error('Hạn mã phải lớn hơn 0 giờ');
+      const kq = await pkgApi('PUT', '/api/pos/settings', {
+        settings: {
+          nhandiem_enabled: nhanDiemCfg.nhandiem_enabled === '1' ? '1' : '0',
+          nhandiem_he_so: String(heSo),
+          nhandiem_han_gio: String(hanGio),
+          nhandiem_chi_lan_dau: nhanDiemCfg.nhandiem_chi_lan_dau === '1' ? '1' : '0',
+        },
+      });
+      if (!kq.success) throw new Error(kq.error || 'Không lưu được');
+      setMessage('Đã lưu cấu hình nhân điểm');
+      setTimeout(() => setMessage(''), 3000);
+      await loadNhanDiemCfg();
+    } catch (err) {
+      setMessage('Lỗi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const loadSignupCfg = async () => {
     const data = await pkgApi('GET', '/api/pos/settings');
     if (data.success) {
@@ -1351,10 +1403,74 @@ export default function Settings() {
           ) : tab === 'signup' ? (
             /* TAB ƯU ĐÃI KHÁCH MỚI (Bước 4) */
             <>
+              {/* ═══ POS-NHANDIEM-UI-v1 · Nhân điểm từ mã bill ═══════════════════
+                  Đặt TRƯỚC khối voucher vì đây là chương trình chính từ 18.09.
+                  Hai chương trình dùng CHUNG một mã in trên bill nhưng độc lập
+                  nhau — bật tắt riêng, lưu riêng. */}
+              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>⭐ Nhân điểm từ mã bill</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
+                Khách chưa cho số điện thoại thì đơn đó không được tính điểm. Mã in trên bill cho phép
+                khách tạo tài khoản sau và nhận điểm của chính đơn vừa mua, nhân theo hệ số bên dưới.
+                <br />
+                <b>Hai loại hạn khác nhau:</b> hạn của MÃ là số giờ kể từ lúc in bill · điểm sau khi đã
+                vào tài khoản thì sống theo cấu hình ở thẻ "Điểm thưởng", giống hệt điểm mua hàng.
+              </p>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={nhanDiemCfg.nhandiem_enabled === '1'}
+                  onChange={e => setNhanDiemCfg({ ...nhanDiemCfg, nhandiem_enabled: e.target.checked ? '1' : '0' })}
+                />
+                Bật chương trình nhân điểm
+              </label>
+
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div style={{ minWidth: 150 }}>
+                  <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 6px' }}>Hệ số nhân</p>
+                  <input
+                    className="input" type="number" min="1" step="1"
+                    value={nhanDiemCfg.nhandiem_he_so}
+                    onChange={e => setNhanDiemCfg({ ...nhanDiemCfg, nhandiem_he_so: e.target.value })}
+                  />
+                  <p style={{ fontSize: 12, color: '#9ca3af', margin: '4px 0 0' }}>2 = gấp đôi · 3 = gấp ba</p>
+                </div>
+                <div style={{ minWidth: 150 }}>
+                  <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 6px' }}>Hạn của mã (giờ)</p>
+                  <input
+                    className="input" type="number" min="1" step="1"
+                    value={nhanDiemCfg.nhandiem_han_gio}
+                    onChange={e => setNhanDiemCfg({ ...nhanDiemCfg, nhandiem_han_gio: e.target.value })}
+                  />
+                  <p style={{ fontSize: 12, color: '#9ca3af', margin: '4px 0 0' }}>24 = một ngày · 168 = một tuần</p>
+                </div>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={nhanDiemCfg.nhandiem_chi_lan_dau === '1'}
+                  onChange={e => setNhanDiemCfg({ ...nhanDiemCfg, nhandiem_chi_lan_dau: e.target.checked ? '1' : '0' })}
+                />
+                Mỗi số điện thoại chỉ nhận một lần
+                <span style={{ fontSize: 12, color: '#9ca3af' }}>— bỏ tick để chạy chương trình cho mọi lần mua</span>
+              </label>
+
+              <button className="btn btn-primary" onClick={saveNhanDiemCfg} disabled={saving}
+                style={{ marginBottom: 28 }}>
+                {saving ? 'Đang lưu...' : 'Lưu cấu hình nhân điểm'}
+              </button>
+
+              <div style={{ borderTop: '1px solid #e5e7eb', marginBottom: 20 }} />
+
               <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🎯 Ưu đãi khách mới</div>
               <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
-                In mã trên bill khi bán — khách tạo tài khoản app trong 24h để đổi mã lấy voucher.
+                Chương trình CŨ: đổi mã lấy phiếu giảm giá. Dùng CHUNG mã in trên bill với chương trình
+                nhân điểm ở trên, nhưng bật tắt và lưu riêng.
                 Bỏ qua nếu SĐT đơn đó đã từng đổi ưu đãi này trước đây.
+                <br />
+                <b>Từ 18.09:</b> tạo tài khoản lần đầu vốn đã có mã giảm giá riêng, nên chương trình này
+                sẽ tắt khi App khách hàng xong. Giữ lại để không có khoảng trống.
               </p>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 14 }}>

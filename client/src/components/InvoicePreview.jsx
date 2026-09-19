@@ -701,12 +701,16 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         <>
           <div style={{ borderTop: `1px dashed #ccc`, margin: isThermal ? '2mm 0' : '4mm 0' }} />
           <div style={{ textAlign: 'center', fontSize: '0.9em' }}>
-            <div style={{ color: '#666', marginBottom: '1mm' }}>Mã ưu đãi khách mới</div>
+            <div style={{ color: '#666', marginBottom: '1mm' }}>{data.signup_nhan || 'Mã ưu đãi khách mới'}</div>
             <div style={{ fontWeight: 'bold', fontSize: '1.3em', letterSpacing: '2px', marginBottom: '1mm' }}>
               {data.signup_code}
             </div>
+            {/* POS-NHANDIEM-UI-v1: chu do MAY CHU dung san (orders.js) roi gui kem
+                ma. Bill chi in, khong tu tinh — doi chuong trinh thi sua MOT cho.
+                Khong co chu gui sang (don cu, hoac may chu chua cap nhat) thi giu
+                nguyen chu cu, KHONG bao gio de trong. */}
             <div style={{ color: '#666', fontSize: '0.85em' }}>
-              Tạo tài khoản app trong 24h để nhận ưu đãi
+              {data.signup_loi || 'Tạo tài khoản app trong 24h để nhận ưu đãi'}
             </div>
           </div>
         </>

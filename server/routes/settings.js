@@ -15,7 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const { query, queryOne, run, saveDatabase } = require('../database');
 const { getToday } = require('../utils/helpers');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, checkPermission } = require('../middleware/auth');
 
 // Multer config cho upload logo
 const storage = multer.memoryStorage();
@@ -79,7 +79,13 @@ router.get('/:key', authenticate, async (req, res) => {
 // PUT /api/pos/settings - Cập nhật nhiều settings
 // Body: { settings: { key1: value1, key2: value2, ... } }
 // ═══════════════════════════════════════════════════════════════════════════
-router.put('/', authenticate, async (req, res) => {
+// POS-ANTOAN-v1: duong nay truoc day chi co `authenticate` — BAT KY nhan vien
+// nao dang nhap deu sua duoc MOI cau hinh: ty le tich diem, he so nhan diem,
+// cau hinh hoa don, flash sale. Cac duong cai dat khac deu da kiem quyen nay
+// (products.js:141,188,239 · product-groups.js:43 · signup-codes.js:385),
+// rieng duong nay bi sot.
+// Chu quan (role 'owner') LUON qua duoc (auth.js:90) nen khong lo bi chan nham.
+router.put('/', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
     const { settings } = req.body;
 

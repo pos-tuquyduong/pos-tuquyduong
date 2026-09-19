@@ -1172,6 +1172,38 @@ router.post("/", authenticate, async (req, res) => {
         created_by: req.user.display_name || req.user.username,
         created_at: now,
         signup_code: signupCode,
+        // POS-NHANDIEM-UI-v1: dung san CHU cho bill ngay tai day. Bill khong
+        // phai biet chuong trinh nao dang bat — doi chuong trinh thi sua MOT cho.
+        ...(await (async () => {
+          try {
+            if (!signupCode) return {};
+            const rows = await query(
+              "SELECT key, value FROM pos_settings WHERE key IN ('nhandiem_enabled','nhandiem_he_so','nhandiem_han_gio','signup_enabled')",
+            );
+            const c = {};
+            for (const r of rows) c[r.key] = r.value;
+            const batDiem = c.nhandiem_enabled === '1';
+            const batVoucher = c.signup_enabled === 'true' || c.signup_enabled === '1';
+            const heSo = Number(c.nhandiem_he_so) || 2;
+            const gio = Number(c.nhandiem_han_gio) || 24;
+            const hanChu = gio >= 24 && gio % 24 === 0 ? (gio / 24) + ' ngay' : gio + ' gio';
+            if (batDiem && batVoucher) {
+              return { signup_nhan: 'Ma uu dai',
+                signup_loi: `Tao tai khoan trong ${hanChu} de nhan uu dai va gap ${heSo} diem cua don nay` };
+            }
+            if (batDiem) {
+              return { signup_nhan: 'Ma nhan diem',
+                signup_loi: `Tao tai khoan trong ${hanChu} de nhan gap ${heSo} diem cua don nay` };
+            }
+            if (batVoucher) {
+              return { signup_nhan: 'Ma uu dai khach moi',
+                signup_loi: `Tao tai khoan app trong ${hanChu} de nhan uu dai` };
+            }
+            return { signup_nhan: 'Ma don hang', signup_loi: null };
+          } catch (e) {
+            return {};   // loi doc cau hinh KHONG duoc lam hong viec tao don
+          }
+        })()),
       },
     });
   } catch (err) {

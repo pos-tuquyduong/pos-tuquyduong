@@ -101,7 +101,10 @@ router.post('/topup', authenticate, checkPermission('topup_balance'), async (req
  * POST /api/pos/wallets/deduct
  * Trừ tiền (khi mua hàng)
  */
-router.post('/deduct', authenticate, async (req, res) => {
+// POS-ANTOAN-v1: tru so du thu cong phai co quyen `adjust_balance`.
+// Ban hang khong di qua day (orders.js tu cap nhat vi ~886) nen khoa lai
+// KHONG anh huong quay.
+router.post('/deduct', authenticate, checkPermission('adjust_balance'), async (req, res) => {
   try {
     const { phone, amount, customer_name, order_code, notes } = req.body;
 

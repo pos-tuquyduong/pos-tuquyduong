@@ -54,7 +54,44 @@ const BACKUP_TABLES = [
   { name: 'pos_signup_codes', label: 'Mã ưu đãi khách mới', key: 'id' },
   { name: 'pos_discount_codes', label: 'Mã chiết khấu', key: 'id' },
   { name: 'pos_product_groups', label: 'Nhóm sản phẩm', key: 'id' },
-  { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' }
+  { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' },
+
+  // ═══ POS-ANTOAN-v1 (18.09.2026) — 15 bảng TRƯỚC ĐÂY KHÔNG ĐƯỢC SAO LƯU ═══
+  // Rà soát toàn bộ 29 bảng của database thì chỉ 14 bảng có trong danh sách này.
+  // Khôi phục từ bản sao lưu cũ = MẤT sạch điểm thưởng của khách, mất gói đã
+  // bán, mất thẻ thành viên, mất cả tài khoản nhân viên.
+  // Thứ tự dưới đây là CHA TRƯỚC CON SAU — restore chèn theo đúng thứ tự này.
+
+  // Tài khoản và quyền (phải có trước, mọi thứ khác tham chiếu created_by)
+  { name: 'pos_users', label: 'Tài khoản nhân viên', key: 'id' },
+  { name: 'pos_permissions', label: 'Phân quyền', key: 'id' },
+
+  // Điểm thưởng — MẤT LÀ MẤT HẾT, không dựng lại được từ đơn hàng vì
+  // điểm còn phụ thuộc cấu hình tại thời điểm bán và các lần đổi quà.
+  { name: 'pos_point_transactions', label: 'Giao dịch điểm thưởng', key: 'id' },
+  { name: 'pos_reward_catalog', label: 'Kho quà', key: 'id' },
+  { name: 'pos_voucher_grants', label: 'Voucher đã phát', key: 'id' },
+
+  // Gói: danh mục trước, gói của khách sau
+  { name: 'pos_packages', label: 'Danh mục gói', key: 'id' },
+  { name: 'pos_customer_packages', label: 'Gói của khách', key: 'id' },
+
+  // Thẻ thành viên: hạng trước, lịch sử mua sau
+  { name: 'pos_membership_tiers', label: 'Hạng thành viên', key: 'id' },
+  { name: 'pos_membership_purchases', label: 'Lịch sử mua thẻ', key: 'id' },
+
+  // Sổ nợ kho — việc chưa gửi được sang SX. Mất là mất luôn dấu vết hàng
+  // đã bán mà kho chưa trừ.
+  { name: 'pos_stock_pending', label: 'Sổ nợ kho', key: 'id' },
+
+  // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
+  { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
+  { name: 'pos_promotion_usage', label: 'Lịch sử dùng khuyến mãi', key: 'id' },
+  { name: 'pos_invoice_logs', label: 'Nhật ký hoá đơn', key: 'id' },
+
+  // Nhật ký kỹ thuật — giữ để truy nguyên sự cố
+  { name: 'pos_sync_logs', label: 'Nhật ký đồng bộ', key: 'id' },
+  { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' }
 ];
 
 /**

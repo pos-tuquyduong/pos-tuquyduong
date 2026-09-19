@@ -490,7 +490,11 @@ router.put('/:id', authenticate, async (req, res) => {
  * PUT /api/pos/customers/:id/discount
  * Cập nhật chiết khấu cho khách hàng
  */
-router.put('/:id/discount', authenticate, async (req, res) => {
+// POS-ANTOAN-v1: chiet khau rieng cua khach la uu dai thuong mai, phai co
+// quyen moi dat duoc. Truoc day bat ky nhan vien nao cung dat duoc — va vi
+// POS-CONGDON-v1 lam may chu TU TRA con so nay khi ban, dat 90% o day nghia
+// la ban giam 90% ma khong qua bat ky cong nao.
+router.put('/:id/discount', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
     const { discount_type, discount_value, discount_note } = req.body;
 

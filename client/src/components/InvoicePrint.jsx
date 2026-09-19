@@ -183,6 +183,8 @@ export default function InvoicePrint({
     debt_amount: order.debt_amount,
     balance_amount: order.balance_amount,
     signup_code: order.signup_code || null,
+    signup_nhan: order.signup_nhan || null,   // POS-NHANDIEM-UI-v1
+    signup_loi: order.signup_loi || null,
   }), [order, invoiceNumber]);
 
   // ═══════════════════════════════════════════════════════════════════════════
