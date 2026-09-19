@@ -200,6 +200,72 @@ export default function Settings() {
   // Ban chup luc vua tai xong, de biet dong nao da bi sua.
   const [banChupGia, setBanChupGia] = useState(null);
 
+  // ═══ POS-BOCUC-v1: gom 9 the thanh 3 nhom ════════════════════════════
+  // CHI la lop hien thi. `tab` giu nguyen y nghia, moi nut van goi setTab
+  // nhu cu — khong doi mot dong logic nao.
+  // Kem QUYEN de: (a) an nhom ma nguoi dung khong co the nao, (b) bam nhom
+  // thi mo dung the dau tien HO XEM DUOC.
+  const NHOM_THE = [
+    { ma: 'ban', ten: 'Bán hàng', the: [
+      ['products', 'manage_settings'], ['packages', 'manage_users'],
+    ]},
+    { ma: 'khach', ten: 'Khách hàng', the: [
+      ['loyalty', 'manage_settings'], ['signup', 'manage_settings'],
+      ['tiers', 'manage_promotions'], ['flash', 'manage_settings'],
+      ['rewards', 'manage_promotions'],
+    ]},
+    { ma: 'hethong', ten: 'Hệ thống', the: [
+      ['users', 'manage_users'], ['permissions', 'manage_permissions'],
+      ['backup', 'export_data'],
+    ]},
+  ];
+
+  // The nao trong nhom nay nguoi dung xem duoc.
+  const theXemDuoc = (nhom) => nhom.the.filter(([, q]) => hasPermission(q)).map(([t]) => t);
+  // Nhom KHONG co the nao xem duoc thi an han — bam vao khong thay gi con
+  // kho hieu hon la khong co nhom do.
+  const nhomHienDuoc = NHOM_THE.filter(n => theXemDuoc(n).length > 0);
+
+  // Nhom nao dang chua the dang mo thi nhom do sang — khong can nho rieng.
+  const nhomDangMo = (nhomHienDuoc.find(n => n.the.some(([t]) => t === tab))
+    || nhomHienDuoc[0] || NHOM_THE[0]).ma;
+  const [nhomChon, setNhomChon] = useState(nhomDangMo);
+  // Doi the bang cach khac (vd bam tu noi khac) thi nhom tu nhay theo.
+  useEffect(() => { setNhomChon(nhomDangMo); }, [nhomDangMo]);
+
+  const nhomHienTai = nhomHienDuoc.find(n => n.ma === nhomChon) || nhomHienDuoc[0] || NHOM_THE[0];
+  const theTrongNhom = nhomHienTai.the.map(([t]) => t);
+
+  // Bam sang nhom khac thi MO LUON the dau tien cua nhom do. Neu chi doi
+  // hang the ma giu nguyen noi dung cu thi nguoi dung thay mot nhom dang
+  // sang, khong the nao duoc chon, va ben duoi van la man hinh cu.
+  // Doi the LA tai lai du lieu tu may chu (useEffect [tab]) — phan gia vua
+  // go ma chua luu se bi ghi de va MAT, khong canh bao gi. Truoc day chi mat
+  // khi bam the khac; hang nhom moi them mot duong nua de mat.
+  // Chi hoi khi dang o the Gia ban, vi chi the do co phep dem thay doi.
+  const doiThe = (t) => {
+    if (t !== tab && tab === 'products') {
+      const n = demThayDoi();
+      if (n > 0 && !window.confirm(
+        `Còn ${n} thay đổi chưa lưu ở bảng giá. Rời đi sẽ mất. Vẫn rời?`
+      )) return;
+    }
+    setTab(t);
+  };
+
+  const chonNhom = (n) => {
+    const ds = theXemDuoc(n);
+    // Hoi TRUOC khi doi nhom: hoi xong nguoi dung bam Huy ma nhom da nhay
+    // roi thi ho thay nhom moi sang trong khi van dang o man cu.
+    if (ds.length && !ds.includes(tab)) {
+      const truoc = tab;
+      doiThe(ds[0]);
+      if (tab === truoc) return;   // nguoi dung bam Huy -> giu nguyen ca nhom
+    }
+    setNhomChon(n.ma);
+  };
+  // ═══ het POS-BOCUC-v1 ════════════════════════════════════════════════
+
   // Chup lai: goi sau khi tai danh sach va sau khi luu xong.
   const chupLaiGia = (ds, nhom) => {
     setBanChupGia({
@@ -861,55 +927,75 @@ export default function Settings() {
       <div className="page-content">
         {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
 
+        {/* POS-BOCUC-v1: hang chon NHOM. Hang the ben duoi chi hien the
+            thuoc nhom dang chon, nen moi hang chi con 2-4 the. */}
+        <div className="flex gap-2 mb-2" style={{ borderBottom: '1px solid #e5e7eb' }}>
+          {nhomHienDuoc.map(n => (
+            <button
+              key={n.ma}
+              onClick={() => chonNhom(n)}
+              style={{
+                background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
+                padding: '0 0 8px', fontSize: '0.95rem',
+                fontWeight: nhomChon === n.ma ? 600 : 400,
+                color: nhomChon === n.ma ? '#b91c1c' : '#6b7280',
+                borderBottom: nhomChon === n.ma ? '2px solid #b91c1c' : '2px solid transparent',
+              }}
+            >
+              {n.ten}
+            </button>
+          ))}
+        </div>
+
         <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
-          {hasPermission('manage_settings') && (
-          <button className={`btn ${tab === 'products' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('products')}>
+          {theTrongNhom.includes('products') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'products' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('products')}>
             <Package size={16} /> Giá bán
           </button>
           )}
-          {hasPermission('manage_users') && (
-          <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('packages')}
+          {theTrongNhom.includes('packages') && hasPermission('manage_users') && (
+          <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('packages')}
             style={{ background: tab === 'packages' ? '#7c3aed' : undefined, borderColor: tab === 'packages' ? '#7c3aed' : undefined }}>
             📦 Gói SP
           </button>
           )}
-          {hasPermission('manage_users') && (
-          <button className={`btn ${tab === 'users' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('users')}>
+          {theTrongNhom.includes('users') && hasPermission('manage_users') && (
+          <button className={`btn ${tab === 'users' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('users')}>
             <Users size={16} /> Nhân viên
           </button>
           )}
-          {hasPermission('manage_permissions') && (
-          <button className={`btn ${tab === 'permissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('permissions')}>
+          {theTrongNhom.includes('permissions') && hasPermission('manage_permissions') && (
+          <button className={`btn ${tab === 'permissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('permissions')}>
             🔐 Phân quyền
           </button>
           )}
-          {hasPermission('export_data') && (
-          <button className={`btn ${tab === 'backup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('backup')}>
+          {theTrongNhom.includes('backup') && hasPermission('export_data') && (
+          <button className={`btn ${tab === 'backup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('backup')}>
             <Database size={16} /> Sao lưu
           </button>
           )}
-          {hasPermission('manage_settings') && (
-          <button className={`btn ${tab === 'loyalty' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('loyalty')}>
+          {theTrongNhom.includes('loyalty') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'loyalty' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('loyalty')}>
             🎁 Điểm thưởng
           </button>
           )}
-          {hasPermission('manage_promotions') && (
-          <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('rewards')}>
+          {theTrongNhom.includes('rewards') && hasPermission('manage_promotions') && (
+          <button className={`btn ${tab === 'rewards' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('rewards')}>
             🎫 Kho quà
           </button>
           )}
-          {hasPermission('manage_settings') && (
-          <button className={`btn ${tab === 'signup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('signup')}>
+          {theTrongNhom.includes('signup') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'signup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('signup')}>
             🎯 Ưu đãi khách mới
           </button>
           )}
-          {hasPermission('manage_settings') && (
-          <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('flash')}>
+          {theTrongNhom.includes('flash') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'flash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('flash')}>
             ⚡ Flash sale
           </button>
           )}
-          {hasPermission('manage_promotions') && (
-          <button className={`btn ${tab === 'tiers' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('tiers')}>
+          {theTrongNhom.includes('tiers') && hasPermission('manage_promotions') && (
+          <button className={`btn ${tab === 'tiers' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('tiers')}>
             🏅 Hạng thành viên
           </button>
           )}
@@ -949,8 +1035,13 @@ export default function Settings() {
                     <th>Tên SP</th>
                     <th>Loại</th>
                     <th>Giá bán (VND)</th>
-                    <th style={{ textAlign: 'center' }}>SP đặc biệt</th>
-                    <th style={{ textAlign: 'center' }}>Áp voucher khách mới</th>
+                    {/* POS-BOCUC-v1: 2 cot o vuong -> 1 cot nhan bam duoc */}
+                    <th>
+                      Áp dụng cho
+                      <div style={{ fontWeight: 400, fontSize: '0.75rem', color: '#9ca3af' }}>
+                        bấm để bật hoặc tắt
+                      </div>
+                    </th>
                     <th>Trạng thái</th>
                   </tr>
                 </thead>
@@ -983,21 +1074,39 @@ export default function Settings() {
                           onChange={e => updatePrice(getUniqueId(p), e.target.value)} 
                         />
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={!!p.is_special_group}
-                          onChange={e => updateSpecialGroup(getUniqueId(p), e.target.checked)}
-                          title="SP thuộc nhóm đặc biệt (vd cà phê) — nhận % giảm hạng riêng, khác % giảm thường"
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={signupGroupMembers.has(getUniqueId(p))}
-                          onChange={() => toggleSignupGroupMember(getUniqueId(p))}
-                          title="Món này được phép áp voucher khách-mới (giảm 50% 1 món)"
-                        />
+                      {/* POS-BOCUC-v1: nhan bam duoc thay cho 2 o vuong.
+                          Dam = dang bat · mo vien dut = dang tat. Goi DUNG hai
+                          ham cu, khong viet lai gi. */}
+                      <td>
+                        {(() => {
+                          const kieu = (bat) => ({
+                            fontSize: '0.75rem', padding: '3px 10px', borderRadius: 12,
+                            marginRight: 6, cursor: 'pointer',
+                            background: bat ? '#fef3c7' : 'transparent',
+                            color: bat ? '#92400e' : '#9ca3af',
+                            border: bat ? 'none' : '1px dashed #d1d5db',
+                          });
+                          const dacBiet = !!p.is_special_group;
+                          const coVoucher = signupGroupMembers.has(getUniqueId(p));
+                          return (
+                            <>
+                              <button
+                                style={kieu(coVoucher)}
+                                onClick={() => toggleSignupGroupMember(getUniqueId(p))}
+                                title="Món này được phép áp voucher khách-mới (giảm 50% 1 món)"
+                              >
+                                Voucher KH mới
+                              </button>
+                              <button
+                                style={kieu(dacBiet)}
+                                onClick={() => updateSpecialGroup(getUniqueId(p), !dacBiet)}
+                                title="SP thuộc nhóm đặc biệt (vd cà phê) — nhận % giảm hạng riêng, khác % giảm thường"
+                              >
+                                SP đặc biệt
+                              </button>
+                            </>
+                          );
+                        })()}
                       </td>
                       <td>
                         {p.is_active ? 
