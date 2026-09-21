@@ -371,6 +371,7 @@ export default function Orders() {
       case 'cash': return '💵';
       case 'transfer': return '🏦';
       case 'balance': return '💰';
+      case 'cho_thu': return '\u23f3';   // POS-CHUATHU-v1: cho khach tra tai quay
       case 'debt': return '📝';
       default: return '💳';
     }

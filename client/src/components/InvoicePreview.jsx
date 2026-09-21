@@ -566,6 +566,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
                data.payment_method === 'transfer' ? '🏦 Chuyển khoản' :
                data.payment_method === 'balance' ? '💰 Số dư' :
                data.payment_method === 'debt' ? '📝 Ghi nợ' :
+               data.payment_method === 'cho_thu' ? '🧾 Chưa thu' :
                data.payment_method === 'combined' ? '🔀 Kết hợp' : data.payment_method}
             </span>
           </div>
@@ -600,7 +601,9 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
               display: 'flex', justifyContent: 'space-between', marginBottom: '1mm',
               color: '#ea580c', fontWeight: '600'
             }}>
-              <span>  Ghi nợ:</span>
+              {/* POS-CHUATHU-v1: cùng một dòng tiền, hai ý nghĩa khác nhau.
+                  Đưa cho khách đang đứng chờ tờ bill ghi "Ghi nợ" là sai. */}
+              <span>  {data.payment_method === 'cho_thu' ? 'CHƯA THU:' : 'Ghi nợ:'}</span>
               <span>{formatCurrency(data.debt_amount)}</span>
             </div>
           )}

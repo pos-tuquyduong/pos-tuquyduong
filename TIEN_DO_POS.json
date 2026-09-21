@@ -1,20 +1,108 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 1,
-  "cap_nhat": "2026-09-19",
+  "phien_ban_so": 2,
+  "cap_nhat": "2026-09-21",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
-    { "ma": "P12", "ten": "Don chua thu — nut 'Chua thu · in bill' cho khach le (payment_method='cho_thu') + nho co khong_quan_kho CHI de hien chu. La buoc di truoc cua P3", "tang": 1, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "P3", "ten": "Ma QR thanh toan payOS — can H1 xong truoc, payOS khong co moi truong thu", "tang": 1, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "P6", "ten": "In 2 may (cho mua may)", "tang": 2, "trang_thai": "cho_ngoai_canh", "patch": null, "commit": null, "ngay": null },
-    { "ma": "P7", "ten": "Tab nhom tu sinh — thuan POS, khong can SX sua (products-with-stock da tra category/icon/color/unit). Thay 2 nut viet cung o Sales.jsx 954-969", "tang": 2, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "P8", "ten": "Nhom/mon rieng cho POS (them cot nguon: sx | pos)", "tang": 2, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "P9", "ten": "Anh tung mon cho nhan vien — can P8 xong truoc", "tang": 2, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "H1", "ten": "Render len goi tra tien — DIEU KIEN cua P3", "tang": 1, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "H2", "ten": "Doi 4 khoa — thu tu BAT BUOC: SX truoc, POS sau", "tang": 1, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "H4", "ten": "Don du lieu thu — con TESTPRODOWN ben SX (da an)", "tang": 1, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "H5", "ten": "Chay lai 3 bo do — nghiem thu cuoi", "tang": 1, "trang_thai": "dang_mo", "patch": null, "commit": null, "ngay": null },
-    { "ma": "X1", "ten": "Do suc chiu tai khi khach dong — do truoc, quyet sau", "tang": 3, "trang_thai": "chua_ro", "patch": null, "commit": null, "ngay": null }
+    {
+      "ma": "P12",
+      "ten": "Don chua thu — nut 'Chua thu · in bill' cho khach le (payment_method='cho_thu') + nho co khong_quan_kho CHI de hien chu. La buoc di truoc cua P3",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "POS-CHUATHU-v1",
+      "commit": null,
+      "ngay": "2026-09-21"
+    },
+    {
+      "ma": "P3",
+      "ten": "Ma QR thanh toan payOS — can H1 xong truoc, payOS khong co moi truong thu",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P6",
+      "ten": "In 2 may (cho mua may)",
+      "tang": 2,
+      "trang_thai": "cho_ngoai_canh",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P7",
+      "ten": "Tab nhom tu sinh — thuan POS, khong can SX sua (products-with-stock da tra category/icon/color/unit). Thay 2 nut viet cung o Sales.jsx 954-969",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P8",
+      "ten": "Nhom/mon rieng cho POS (them cot nguon: sx | pos)",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P9",
+      "ten": "Anh tung mon cho nhan vien — can P8 xong truoc",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "H1",
+      "ten": "Render len goi tra tien — DIEU KIEN cua P3",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "H2",
+      "ten": "Doi 4 khoa — thu tu BAT BUOC: SX truoc, POS sau",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "H4",
+      "ten": "Don du lieu thu — con TESTPRODOWN ben SX (da an)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "H5",
+      "ten": "Chay lai 3 bo do — nghiem thu cuoi",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "X1",
+      "ten": "Do suc chiu tai khi khach dong — do truoc, quyet sau",
+      "tang": 3,
+      "trang_thai": "chua_ro",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    }
   ]
 }
