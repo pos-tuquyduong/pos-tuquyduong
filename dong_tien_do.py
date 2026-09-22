@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DONG TIEN DO v2 — doan chep vao CUOI moi patch, chay SAU khi patch da ghi file xong.
+DONG TIEN DO v3 — doan chep vao CUOI moi patch, chay SAU khi patch da ghi file xong.
 
 Vi sao can: 10 tren 27 loi cu chi lo ra khi chu quan hoi lai, va da co lan
 "so ghi 13 ma liet ke 15". Nguyen nhan chung: so viec giu bang TAY va bang TRI NHO.
@@ -35,6 +35,14 @@ import json
 import os
 import glob
 import datetime
+
+# DINH NGHIA DUY NHAT "viec da dong". Moi cong cu khac phai goi con_mo(), khong tu viet lai.
+#   xong = da lam xong · gop = gop vao viec khac (xem truong gop_vao)
+DONG = ("xong", "gop")
+
+
+def con_mo(v):
+    return v.get("trang_thai") not in DONG
 
 
 def tim_tep():
@@ -90,8 +98,12 @@ def ghi_tien_do(ma_viec, ma_patch, commit=None):
         print("            (patch KHONG tu them viec moi: them tay roi chay lai)")
         return False
 
-    if dong.get("trang_thai") == "xong":
-        print("  [tien do] %s da danh dau xong tu %s — giu nguyen" % (ma_viec, dong.get("ngay")))
+    if not con_mo(dong):
+        if dong.get("trang_thai") == "gop":
+            print("  [tien do] %s da GOP VAO %s — khong danh dau o day. Patch nay co le phai ghi ma %s."
+                  % (ma_viec, dong.get("gop_vao") or "?", dong.get("gop_vao") or "?"))
+        else:
+            print("  [tien do] %s da danh dau xong tu %s — giu nguyen" % (ma_viec, dong.get("ngay")))
         return False
 
     dong["trang_thai"] = "xong"
@@ -103,7 +115,7 @@ def ghi_tien_do(ma_viec, ma_patch, commit=None):
     d["phien_ban_so"] = int(d.get("phien_ban_so", 0)) + 1
     _ghi(tep, d)
 
-    con = sum(1 for v in ds if v.get("trang_thai") != "xong")
+    con = sum(1 for v in ds if con_mo(v))
     print("  [tien do] %s -> XONG (%s) trong %s. Con %d viec dang mo."
           % (ma_viec, ma_patch, tep, con))
     return True
@@ -117,14 +129,16 @@ def in_tom_tat():
     d = _doc(tep)
     print("\n%s — %s — cap nhat %s" % (tep, d.get("he", "?"), d.get("cap_nhat", "?")))
     for v in d.get("viec", []):
-        dau = "x" if v.get("trang_thai") == "xong" else " "
+        dau = "x" if v.get("trang_thai") == "xong" else "~" if v.get("trang_thai") == "gop" else " "
         them = ""
         if v.get("trang_thai") == "xong":
             them = "  (%s · %s)" % (v.get("patch") or "?", v.get("ngay") or "?")
+        elif v.get("trang_thai") == "gop":
+            them = "  (gop vao %s)" % (v.get("gop_vao") or "?")
         elif v.get("trang_thai") != "dang_mo":
             them = "  [%s]" % v.get("trang_thai")
         print("  [%s] %-4s %s%s" % (dau, v.get("ma"), v.get("ten", "")[:68], them))
-    con = sum(1 for v in d.get("viec", []) if v.get("trang_thai") != "xong")
+    con = sum(1 for v in d.get("viec", []) if con_mo(v))
     print("  -> %d viec dang mo\n" % con)
 
 

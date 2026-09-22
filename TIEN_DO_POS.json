@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 2,
-  "cap_nhat": "2026-09-21",
+  "phien_ban_so": 3,
+  "cap_nhat": "2026-09-22",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
     {
@@ -25,12 +25,13 @@
     },
     {
       "ma": "P6",
-      "ten": "In 2 may (cho mua may)",
+      "ten": "(gop vao P17 ngay 22.09 — ke hoach cu gui ESC/POS theo IP khong chay duoc tu may chu tren Render) In 2 may (cho mua may)",
       "tang": 2,
-      "trang_thai": "cho_ngoai_canh",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
-      "ngay": null
+      "ngay": null,
+      "gop_vao": "P17"
     },
     {
       "ma": "P7",
@@ -100,6 +101,69 @@
       "ten": "Do suc chiu tai khi khach dong — do truoc, quyet sau",
       "tang": 3,
       "trang_thai": "chua_ro",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P19",
+      "ten": "Nen may chu cho P13-P18: bang nhat ky don · bo loc bill cho thu · duong DOI CACH TRA (4 chot) · bang hang doi in. LAM DAU TIEN",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P13",
+      "ten": "Man ban hang mot man, khong popup: 3 cach tra (tien mat chon to / chuyen khoan QR / in bill mang ra ban) · the so bill · thu 2 cham + hoan tac · huy co ly do",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P14",
+      "ten": "Ghi chu tung ly: nut mac dinh + ghi chu dac biet tach rieng · nut tach ly · van luu 1 cot notes",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P15",
+      "ten": "Khach: tim ten/SDT + quet QR thanh vien · QR thanh vien la ma rieng that (doi ham helpers.js 68) · bill in diem · ma nhan diem chi khi khong co khach va du diem · chu co dau · PIN khi tieu vi",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P16",
+      "ten": "Xem truoc & Cai dat in: bill khach · tem coc moi ly 1 tem · phieu pha che · phieu -> may, so ban, mac dinh theo cach ban/app. Giai doan 1 in qua trinh duyet",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P17",
+      "ten": "Hang doi in + tram in (thay P6): may Windows + QZ Tray · so lenh da in/cho/loi · in lai tung to/tung tem · can mua may bill 80mm + may tem 40x30",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P18",
+      "ten": "Lich su don: ngan ben phai · nhat ky tung don · in lai · doi cach tra (ly do, trong ngay, hoan tac) · 4 o chot ca",
+      "tang": 1,
+      "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
       "ngay": null
