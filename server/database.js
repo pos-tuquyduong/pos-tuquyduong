@@ -795,6 +795,24 @@ async function createTables() {
   `);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // POS-NEN-v1 (P19): NHẬT KÝ ĐƠN — chỉ ghi việc CHƯA có chỗ lưu (thu tiền sau,
+  // đổi cách trả, sau này in lại). Giờ tạo / huỷ đã nằm trong pos_orders.
+  // Nhớ: bảng mới nào cũng phải vào BACKUP_TABLES — bộ kiểm có luật chặn.
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_order_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      loai TEXT NOT NULL,
+      noi_dung TEXT,
+      chi_tiet TEXT,
+      nguoi TEXT,
+      luc TEXT NOT NULL
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_order_log_order ON pos_order_log(order_id)`);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG: GÓI SẢN PHẨM - Template (POS-only, quản lý trong Settings)
   // ═══════════════════════════════════════════════════════════════════════════
   await db.execute(`

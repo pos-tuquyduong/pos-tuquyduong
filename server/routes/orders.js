@@ -23,6 +23,7 @@ const {
   addMonthsSafe,
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
+const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
 
@@ -1274,29 +1275,28 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     const newPaymentStatus = remainingDebt <= 0 ? "paid" : "partial";
 
     // Cập nhật đơn hàng
-    if (payment_method === "cash") {
-      await run(
-        `
-        UPDATE pos_orders SET 
-          cash_amount = COALESCE(cash_amount, 0) + ?,
-          debt_amount = ?,
-          payment_status = ?
-        WHERE id = ?
-      `,
-        [paidAmount, remainingDebt, newPaymentStatus, id],
-      );
-    } else {
-      await run(
-        `
-        UPDATE pos_orders SET 
-          transfer_amount = COALESCE(transfer_amount, 0) + ?,
-          debt_amount = ?,
-          payment_status = ?
-        WHERE id = ?
-      `,
-        [paidAmount, remainingDebt, newPaymentStatus, id],
-      );
+    // POS-NEN-v1 (P19): CHỐNG THU HAI LẦN. Trước đây câu UPDATE chỉ lọc theo id —
+    // hai lệnh thu cùng lúc (bấm đúp, hay sau này payOS gọi webhook hai lần) cùng đọc
+    // thấy "còn nợ 19.000đ" rồi cùng cộng tiền: đơn 19.000đ thành tiền mặt 38.000đ.
+    // Đã chứng minh trên máy chủ thật với độ trễ mạng như Turso. Nay chỉ ghi khi nợ
+    // trong sổ còn ĐÚNG bằng số vừa đọc, rồi kiểm số dòng bị đổi.
+    // payment_method đã được kiểm chỉ là cash|transfer ở trên → tên cột an toàn.
+    const cotTien = payment_method === "cash" ? "cash_amount" : "transfer_amount";
+    const kqThu = await run(
+      `UPDATE pos_orders SET ${cotTien} = COALESCE(${cotTien}, 0) + ?, debt_amount = ?, payment_status = ?
+        WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status != 'cancelled'`,
+      [paidAmount, remainingDebt, newPaymentStatus, id, order.debt_amount],
+    );
+    if (kqThu.changes !== 1) {
+      return res.status(409).json({
+        error: "Đơn vừa được thu bởi một thao tác khác — tải lại để xem",
+        code: "DA_THU_ROI",
+      });
     }
+    await nhatKyDon.ghiNhatKy(Number(id), "thu",
+      `Thu ${nhatKyDon.tenCach(payment_method)} ${nhatKyDon.tien(paidAmount)}` +
+        (remainingDebt > 0 ? ` · còn nợ ${nhatKyDon.tien(remainingDebt)}` : ""),
+      req.user.username, { cach: payment_method, so_tien: paidAmount, con_no: remainingDebt });
 
     // Log giao dịch thanh toán nợ
     if (order.customer_phone) {

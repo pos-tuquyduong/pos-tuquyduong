@@ -374,6 +374,29 @@ chac('orders.js chặn sản phẩm chưa có giá',
 // `discount_type`/`discount_value` không có mẫu thô đặc trưng để kiểm vắng mặt
 // — chúng chỉ là biến đọc từ body rồi dùng thẳng. Phải tự soi bằng mắt, mục G.
 
+// E7 — POS-NEN-v1: pay-debt phải chặn thu hai lần. Gỡ điều kiện debt_amount khỏi
+// WHERE là hai lệnh thu cùng lúc cùng cộng tiền (đã chứng minh với độ trễ Turso).
+{
+  const src = boGhiChu(doc('server/routes/orders.js'));
+  const a = src.indexOf('"/:id/pay-debt"');
+  const khoi = a < 0 ? '' : src.slice(a, src.indexOf('router.', a + 20));
+  chac('pay-debt chặn thu hai lần (WHERE … debt_amount = ? + kiểm số dòng đổi)',
+    /WHERE id = \? AND debt_amount = \?/.test(khoi) && /changes !== 1/.test(khoi),
+    'bấm đúp hoặc webhook gọi hai lần sẽ cộng tiền hai lần');
+}
+
+// E8 — POS-NEN-v1: mọi bảng tạo trong database.js phải có trong danh sách sao lưu.
+// Đợt 17.09 phát hiện sao lưu thiếu 15/29 bảng — khôi phục là mất điểm, gói, tài khoản.
+{
+  const db = doc('server/database.js'), bk = doc('server/routes/backup.js');
+  const tao = [...new Set([...db.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map(m => m[1]))];
+  const i = bk.indexOf('BACKUP_TABLES');
+  const sl = i < 0 ? '' : bk.slice(i, bk.indexOf('];', i));
+  const thieu = tao.filter(t => !new RegExp(`name:\\s*'${t}'`).test(sl));
+  chac(`mọi bảng đều được sao lưu (${tao.length} bảng)`, tao.length > 0 && thieu.length === 0,
+    'thiếu trong BACKUP_TABLES: ' + thieu.join(', '));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 nhom('F · VỆ SINH REPO');
 

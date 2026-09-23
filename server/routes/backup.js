@@ -83,6 +83,7 @@ const BACKUP_TABLES = [
   // Sổ nợ kho — việc chưa gửi được sang SX. Mất là mất luôn dấu vết hàng
   // đã bán mà kho chưa trừ.
   { name: 'pos_stock_pending', label: 'Sổ nợ kho', key: 'id' },
+  { name: 'pos_order_log', label: 'Nhật ký đơn', key: 'id' },   // POS-NEN-v1 (P19)
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },

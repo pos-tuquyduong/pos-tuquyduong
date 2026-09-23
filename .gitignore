@@ -35,5 +35,7 @@ replit.nix.bak
 .DS_Store
 Thumbs.db
 attached_assets/
+__pycache__/
+*.pyc
 
 *.truoc_*

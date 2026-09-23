@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 3,
-  "cap_nhat": "2026-09-22",
+  "phien_ban_so": 4,
+  "cap_nhat": "2026-09-23",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
     {
@@ -109,10 +109,10 @@
       "ma": "P19",
       "ten": "Nen may chu cho P13-P18: bang nhat ky don · bo loc bill cho thu · duong DOI CACH TRA (4 chot) · bang hang doi in. LAM DAU TIEN",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
+      "trang_thai": "xong",
+      "patch": "POS-NEN-v1",
       "commit": null,
-      "ngay": null
+      "ngay": "2026-09-23"
     },
     {
       "ma": "P13",

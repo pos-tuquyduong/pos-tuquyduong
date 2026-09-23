@@ -20,6 +20,7 @@ const authRoutes = require('./routes/auth');
 const customerRoutes = require('./routes/customers');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
+const donMoRongRoutes = require('./routes/don-mo-rong'); // POS-NEN-v1 (P19)
 const refundRoutes = require('./routes/refunds');
 const syncRoutes = require('./routes/sync');
 const stockRoutes = require('./routes/stock');
@@ -81,6 +82,8 @@ app.use('/api/pos', (req, res, next) => {
 app.use('/api/pos/auth', authRoutes);
 app.use('/api/pos/customers', customerRoutes);
 app.use('/api/pos/products', productRoutes);
+// POS-NEN-v1: gắn TRƯỚC orderRoutes — nếu sau, /orders/cho-thu bị /orders/:id hiểu là một mã đơn
+app.use('/api/pos/orders', donMoRongRoutes);
 app.use('/api/pos/orders', orderRoutes);
 app.use('/api/pos/refunds', refundRoutes);
 app.use('/api/pos/sync', syncRoutes);
