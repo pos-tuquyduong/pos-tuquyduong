@@ -3,7 +3,10 @@
  * Gọi API từ hệ thống Sản xuất
  */
 
-const SX_API_URL = process.env.SX_API_URL || '';
+// POS-KHOTHU-v2 — địa chỉ SX do ketNoiKho.js quyết định. Replit: TẮT, trừ khi
+// đặt SX_API_URL_THU. Render: như cũ. Là KHOÁ trong code, không phải lời dặn
+// sửa .env — vì biến trong tab Secrets của Replit thì dotenv không ghi đè.
+const SX_API_URL = require('../ketNoiKho').diaChiSX();
 const SX_API_KEY = process.env.SX_API_KEY || '';
 
 /**

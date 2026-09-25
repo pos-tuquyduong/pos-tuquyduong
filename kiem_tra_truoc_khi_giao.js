@@ -458,6 +458,80 @@ chac('.gitignore có attached_assets/',
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-KHOTHU-v2)');
+
+// K1 — chỉ ketNoiKho.js được đọc 2 biến kết nối. Kiểm MẪU NGUY HIỂM VẮNG MẶT
+// ở MỌI file (E13) — bắt được cả biến trung gian lẫn cách viết khác, vì mọi
+// đường nối vào kho thật đều phải đi qua việc đọc biến môi trường.
+{
+  const cam = [
+    /process\.env\.(TURSO_DATABASE_URL|SX_API_URL)\b/,
+    /process\.env\[\s*['"`](TURSO_DATABASE_URL|SX_API_URL)['"`]\s*\]/,
+    /\{[^}]*\b(TURSO_DATABASE_URL|SX_API_URL)\b[^}]*\}\s*=\s*process\.env/,
+  ];
+  const cho = path.join('server', 'ketNoiKho.js');
+  const vi = [];
+  for (const f of [...liet('server', ['.js']), ...liet('cong_cu', ['.js'])]) {
+    if (f === cho) continue;
+    const src = boGhiChu(doc(f));
+    if (cam.some((re) => re.test(src))) vi.push(f);
+  }
+  chac('chỉ server/ketNoiKho.js đọc biến kết nối kho thật',
+    vi.length === 0, 'tự đọc biến kết nối: ' + vi.join(', '));
+}
+
+// K2 — CHẠY THẬT ketNoiKho.js qua 4 ca môi trường. Kiểm HÀNH VI, không kiểm
+// câu chữ: bản vá có vô số cách viết, hành vi đúng chỉ có một (E12, E13).
+{
+  const p = path.join(GOC, 'server', 'ketNoiKho.js');
+  if (!co('server/ketNoiKho.js')) {
+    fail('server/ketNoiKho.js tồn tại', 'thiếu file');
+  } else {
+    const BIEN = ['REPL_ID', 'REPL_SLUG', 'REPLIT', 'TURSO_DATABASE_URL',
+                  'TURSO_AUTH_TOKEN', 'SX_API_URL', 'SX_API_URL_THU'];
+    const giu = {};
+    for (const k of BIEN) giu[k] = process.env[k];
+    const dat = (o) => { for (const k of BIEN) delete process.env[k]; Object.assign(process.env, o); };
+    const nap = () => { delete require.cache[require.resolve(p)]; return require(p); };
+    const sai = [];
+    try {
+      // Ca 1 — Replit, có ĐỦ biến production → PHẢI dùng file, PHẢI tắt SX
+      dat({ REPL_ID: 'x', TURSO_DATABASE_URL: 'libsql://that', TURSO_AUTH_TOKEN: 't', SX_API_URL: 'https://that' });
+      let m = nap(); let c = m.cauHinhTurso();
+      if (!c.laMayThu || !String(c.cauHinh.url).startsWith('file:')) sai.push('ca 1: Replit không dùng file');
+      if (c.cauHinh.authToken) sai.push('ca 1: Replit vẫn mang authToken');
+      if (m.diaChiSX() !== '') sai.push('ca 1: Replit vẫn bật SX');
+      // Ca 2 — Replit + SX_API_URL_THU → dùng đúng địa chỉ thử
+      dat({ REPL_SLUG: 'x', SX_API_URL: 'https://that', SX_API_URL_THU: 'https://thu' });
+      m = nap();
+      if (m.diaChiSX() !== 'https://thu') sai.push('ca 2: không dùng SX_API_URL_THU');
+      // Ca 3 — không phải Replit → Turso + SX thật, y như trước patch
+      dat({ TURSO_DATABASE_URL: 'libsql://that', TURSO_AUTH_TOKEN: 't', SX_API_URL: 'https://that' });
+      m = nap(); c = m.cauHinhTurso();
+      if (c.laMayThu || c.cauHinh.url !== 'libsql://that' || c.cauHinh.authToken !== 't') sai.push('ca 3: production không dùng Turso');
+      if (m.diaChiSX() !== 'https://that') sai.push('ca 3: production mất SX');
+      // Ca 4 — không phải Replit, thiếu URL → PHẢI từ chối (B5)
+      dat({});
+      m = nap(); let nem = false;
+      try { m.cauHinhTurso(); } catch { nem = true; }
+      if (!nem) sai.push('ca 4: thiếu URL mà không từ chối');
+    } catch (e) {
+      sai.push('lỗi khi chạy: ' + e.message);
+    } finally {
+      for (const k of BIEN) {
+        if (giu[k] === undefined) delete process.env[k]; else process.env[k] = giu[k];
+      }
+      delete require.cache[require.resolve(p)];
+    }
+    chac('ketNoiKho.js chạy đúng cả 4 ca môi trường', sai.length === 0, sai.join(' · '));
+  }
+}
+
+// K3 — kho thử không được lọt vào git
+chac('.gitignore chặn thư mục data/', /^data\/\s*$/m.test(doc('.gitignore')),
+  'thêm dòng "data/" vào .gitignore');
+
 console.log('');
 console.log('╔══════════════════════════════════════════════════════════════╗');
 console.log('  KIỂM TRA TRƯỚC KHI GIAO — POS Tứ Quý Đường' +

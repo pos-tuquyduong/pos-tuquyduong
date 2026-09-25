@@ -378,6 +378,31 @@ sinh lại lockfile trước**.
 Đã kiểm 24.08: chuỗi trong `.replit` **KHÁC** biến trên Render → chỉ là rác cấu
 hình dev, không phải lỗ hổng. Ghi lại vì lần sau nhìn thấy dễ hoảng.
 
+### P8. ⭐ Kho thử cục bộ — MỘT nơi quyết định nối vào đâu (POS-KHOTHU-v2)
+Trước 24.09.2026, cửa sổ Replit nối thẳng Turso production **và** gọi SX
+production: đơn thử ghi vào dữ liệu bán hàng thật và trừ kho thật.
+`cong_cu/thu_p1.js` ghi "không dùng kho thật" ở đầu file nhưng thực tế nối
+đúng Turso đó và chèn dòng giả vào `pos_stock_pending` — ghi chú lệch code.
+
+Từ POS-KHOTHU-v2:
+- `server/ketNoiKho.js` là nơi **DUY NHẤT** đọc `TURSO_DATABASE_URL` và
+  `SX_API_URL`. Cần kết nối thì gọi `cauHinhTurso()` / `diaChiSX()`. Bộ kiểm
+  nhóm K chặn commit nếu file khác tự đọc.
+- Replit → `data/pos_thu.db`, SX **TẮT**. Muốn thử liên thông thì đặt
+  `SX_API_URL_THU` trỏ vào **SX Replit** — không bao giờ trỏ vào production.
+- Tắt SX bằng **code**, không bằng sửa `.env`: biến đặt trong tab Secrets của
+  Replit thì `dotenv` không ghi đè, sửa `.env` vô tác dụng.
+- Kho thử trống lần đầu: đăng nhập `admin` / `admin123` (`seedDefaultData`).
+- Không nhận ra Replit thì nghiêng về Turso: nhận sai trên Render mà rơi vào
+  file cục bộ thì đơn thật ghi vào ổ tạm, **mất khi khởi động lại**. Dòng log
+  đầu tiên luôn báo đang ở kho nào — đọc nó.
+- `data/pos.db` là file cũ thời sql.js — KHÔNG dùng. `index.js` vẫn truyền
+  `DB_PATH` vào `initDatabase()` nhưng hàm bỏ qua tham số đó.
+- Kho thử KHÔNG dựng lại được lỗi mạng / 502 / Turso chậm. Nhánh xử lý lỗi
+  kết nối vẫn phải soi bằng mắt (E6).
+- Deploy POS bằng Replit Deployments thì PHẢI xem lại `ketNoiKho.js` — môi
+  trường đó cũng có `REPL_ID`.
+
 ---
 
 ## G. CHECKLIST TRƯỚC KHI GIAO CODE

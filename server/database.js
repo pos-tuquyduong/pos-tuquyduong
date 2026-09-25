@@ -13,6 +13,7 @@
  */
 
 const { createClient } = require('@libsql/client');
+const { cauHinhTurso, diaChiSX } = require('./ketNoiKho'); // POS-KHOTHU-v2
 
 let db = null;
 
@@ -20,13 +21,14 @@ let db = null;
  * Khởi tạo database - Kết nối Turso
  */
 async function initDatabase() {
-  // Kết nối Turso
-  db = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  // POS-KHOTHU-v2 — nối vào đâu do server/ketNoiKho.js quyết định.
+  // KHÔNG tự đọc biến môi trường ở đây.
+  const kn = cauHinhTurso();
+  db = createClient(kn.cauHinh);
 
-  console.log('✅ Đã kết nối Turso database');
+  console.log(kn.laMayThu
+    ? `⚠️  KHO THỬ cục bộ: ${kn.cauHinh.url} · SX: ${diaChiSX() || 'TẮT'} — KHÔNG phải dữ liệu thật`
+    : '✅ Đã kết nối Turso database (PRODUCTION)');
 
   // Tạo bảng và seed data
   await createTables();

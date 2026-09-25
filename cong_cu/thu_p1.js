@@ -21,18 +21,14 @@ require('dotenv').config();
 
 const { createClient } = require('@libsql/client');
 
-if (!process.env.TURSO_DATABASE_URL) {
-  console.error('\n❌ Khong doc duoc TURSO_DATABASE_URL.\n');
-  console.error('   Kiem hai dieu:');
-  console.error('   1. Dang o THU MUC GOC cua repo POS?   ->  ls .env');
-  console.error('   2. File .env co dong TURSO_DATABASE_URL?  ->  grep TURSO .env | cut -c1-40\n');
-  process.exit(1);
-}
-
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+// POS-KHOTHU-v2 — dùng CHUNG quyết định với server (C15). Trước đây file này
+// tự nối Turso production và CHÈN dòng giả vào kho thật, dù ghi chú đầu file
+// nói "không dùng kho thật". Giờ chạy trong Replit là thử trên kho thử —
+// đúng cái kho server đang chạy cạnh nó.
+const { cauHinhTurso } = require('../server/ketNoiKho');
+const kn = cauHinhTurso();
+console.log(kn.laMayThu ? '⚠️  KHO THỬ: ' + kn.cauHinh.url : '✅ Turso PRODUCTION');
+const db = createClient(kn.cauHinh);
 
 const TIEN_TO = 'ZZTHU-';
 
