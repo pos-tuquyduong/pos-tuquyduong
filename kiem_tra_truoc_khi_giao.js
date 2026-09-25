@@ -424,6 +424,26 @@ chac('orders.js chặn sản phẩm chưa có giá',
     'thiếu điều kiện cancelled hoặc payment_status !== \'paid\'');
 }
 
+// E10 — POS-P21-v1: "kiểm lại sổ" chỉ cộng các loại dòng làm đổi số dư ví.
+// pay-debt ghi 'debt_payment' số DƯƠNG (tiền mặt/chuyển khoản trả nợ); SUM mọi
+// dòng thì ví được cộng khống đúng số nợ đã trả. Danh sách TRẮNG, chủ quán duyệt
+// 25.09.2026 — loại mới mặc định KHÔNG tính. Bài chạy thật: node cong_cu/thu_P21.js
+{
+  const src = boGhiChu(doc('server/routes/wallets.js'));
+  const m = src.match(/const LOAI_TINH_VAO_VI\s*=\s*\[([^\]]*)\]/);
+  const ds = m ? [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1]).sort().join(',') : '';
+  chac('ví: danh sách trắng LOAI_TINH_VAO_VI đúng 5 loại đã duyệt, không có debt_payment',
+    ds === 'adjust,compensation,purchase,refund,topup',
+    'danh sách đang là: ' + (ds || '(không có)'));
+  const a = src.indexOf('async function reconcileWallet');
+  const than = a < 0 ? '' : src.slice(a, src.indexOf('\n}', a));
+  const b = src.indexOf("router.post('/reconcile-all'");
+  const tatCa = b < 0 ? '' : src.slice(b, src.indexOf('router.', b + 20));
+  chac('ví: đối soát (1 khách + kiểm lại sổ) chỉ đọc dòng thuộc danh sách trắng',
+    /SUM\(amount\)[^`]*\$\{DK_LOAI_VI\}/.test(than) && /DISTINCT customer_phone[^`]*\$\{DK_LOAI_VI\}/.test(tatCa),
+    'bấm "kiểm lại sổ" sẽ cộng tiền thu nợ vào ví khách');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 nhom('F · VỆ SINH REPO');
 

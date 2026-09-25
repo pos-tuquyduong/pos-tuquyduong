@@ -231,13 +231,23 @@ router.get('/:phone/transactions', authenticate, async (req, res) => {
 });
 
 /**
- * Đối soát: tính lại số dư = TỔNG ledger theo SĐT, ghi lại cho khớp.
+ * POS-P21-v1: CHỈ các loại dòng này làm đổi pos_wallets.balance, nên CHỈ chúng
+ * được cộng khi đối soát. Danh sách TRẮNG — chủ quán duyệt 25.09.2026.
+ * 'debt_payment' (pay-debt) là tiền mặt/chuyển khoản trả nợ, KHÔNG phải tiền
+ * trong ví: cộng vào là ví được cộng khống. Loại MỚI mặc định KHÔNG tính —
+ * muốn tính phải thêm vào đây, có chủ quán duyệt.
+ */
+const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation'];
+const DK_LOAI_VI = `type IN (${LOAI_TINH_VAO_VI.map(() => '?').join(', ')})`;
+
+/**
+ * Đối soát: tính lại số dư = TỔNG ledger (chỉ LOAI_TINH_VAO_VI) theo SĐT, ghi lại cho khớp.
  * Đây là lưới an toàn để số dư lưu-sẵn không bao giờ trôi khỏi sổ.
  */
 async function reconcileWallet(phone) {
   const row = await queryOne(
-    `SELECT COALESCE(SUM(amount), 0) AS ledger_sum FROM pos_balance_transactions WHERE customer_phone = ?`,
-    [phone]
+    `SELECT COALESCE(SUM(amount), 0) AS ledger_sum FROM pos_balance_transactions WHERE customer_phone = ? AND ${DK_LOAI_VI}`,
+    [phone, ...LOAI_TINH_VAO_VI]
   );
   const ledgerSum = row?.ledger_sum || 0;
   const wallet = await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
@@ -271,7 +281,11 @@ router.post('/:phone/reconcile', authenticate, checkPermission('adjust_balance')
  */
 router.post('/reconcile-all', authenticate, checkPermission('adjust_balance'), async (req, res) => {
   try {
-    const phones = await query(`SELECT DISTINCT customer_phone AS phone FROM pos_balance_transactions WHERE customer_phone IS NOT NULL`);
+    // P21: khách chỉ có dòng debt_payment không có ví — đừng đẻ ví cho họ.
+    const phones = await query(
+      `SELECT DISTINCT customer_phone AS phone FROM pos_balance_transactions WHERE customer_phone IS NOT NULL AND ${DK_LOAI_VI}`,
+      LOAI_TINH_VAO_VI
+    );
     const results = [];
     for (const p of phones) {
       results.push(await reconcileWallet(p.phone));

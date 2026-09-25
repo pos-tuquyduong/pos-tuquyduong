@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 6,
+  "phien_ban_so": 7,
   "cap_nhat": "2026-09-25",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
@@ -182,10 +182,10 @@
       "ma": "P21",
       "ten": "Hotfix: reconcileWallet chi cong cac loai trong danh sach TRANG (topup, purchase, refund, adjust, compensation); debt_payment va moi loai moi KHONG tinh vao vi. Deploy ngay sau P20",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
+      "trang_thai": "xong",
+      "patch": "POS-P21-v1",
       "commit": null,
-      "ngay": null
+      "ngay": "2026-09-25"
     },
     {
       "ma": "P22",
