@@ -5,7 +5,7 @@
       "Bash(npm run build:*)",
       "Bash(node kiem_tra_truoc_khi_giao.js:*)",
       "Bash(node --check:*)",
-      "Bash(python3:*)",
+      "Bash(python3 dong_tien_do.py:*)",
       "Bash(grep:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
@@ -39,7 +39,8 @@
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./.replit)"
-    ]
+    ],
+    "defaultMode": "default"
   },
   "hooks": {
     "PostToolUse": [
@@ -63,5 +64,10 @@
         ]
       }
     ]
+  },
+  "disableAutoMode": true,
+  "model": "claude-opus-5-5",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-5-5"
   }
 }
