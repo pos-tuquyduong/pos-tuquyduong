@@ -39,3 +39,4 @@ __pycache__/
 *.pyc
 
 *.truoc_*
+.claude/settings.local.json

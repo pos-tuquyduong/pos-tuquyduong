@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>POS Tứ Quý Đường — xem trước, in bill và tem cốc</title>
+<style>
+  :root{
+    --nen:#eef2f7; --chu:#1f2937; --mo:#64748b; --vien:#e5e7eb;
+    --do1:#8f1d1d; --do2:#a52222; --hong:#fdf1f1;
+    --lam:#2563eb; --luc:#16a34a; --duong:#0284c7; --tim:#7c3aed; --cam:#ea580c;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --nen:#0f172a; } }
+  :root[data-theme="dark"]{ --nen:#0f172a; }
+  :root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  *{box-sizing:border-box}
+  body{margin:0;padding:12px;background:var(--nen);color:var(--chu);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.4}
+  .bao{max-width:1380px;margin:0 auto}
+  .tren{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:.84rem}
+  .tren .dem{background:#fff;border:1px solid var(--vien);border-radius:999px;padding:6px 14px;font-weight:700}
+  .tren .dem b{color:var(--do2)}
+  .tren button{padding:6px 12px;border-radius:999px;border:1px dashed #94a3b8;background:#fff;cursor:pointer;font-weight:600;font-size:.78rem}
+
+  .may{display:flex;background:#fff;border-radius:12px;overflow:hidden;border:1px solid var(--vien);
+    box-shadow:0 12px 30px -18px rgba(0,0,0,.4);min-height:660px;position:relative}
+  .canh{width:170px;flex:0 0 170px;background:linear-gradient(180deg,var(--do1),var(--do2));color:#fff;padding:12px 8px}
+  .logo{font-weight:800;padding:4px 8px 14px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:8px}
+  .mi{padding:9px 10px;border-radius:8px;font-size:.86rem;margin-bottom:2px;display:flex;justify-content:space-between;align-items:center}
+  .mi.on{background:#fff;color:var(--do2);font-weight:700} .mi.mo{opacity:.55}
+  .cn{border-radius:999px;font-size:.68rem;font-weight:800;padding:0 7px;background:var(--do2);color:#fff}
+
+  .phai{flex:1;min-width:0;background:linear-gradient(180deg,#fffafa,var(--hong));padding:14px 16px}
+  .dau{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .dau h1{margin:0;font-size:1.2rem}
+  .cot{display:flex;gap:14px;align-items:flex-start}
+  .trai{flex:1;min-width:0}
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}
+  .tabs div{padding:7px 12px;border-radius:8px;border:1px solid var(--vien);background:#fff;font-size:.8rem;font-weight:600}
+  .tabs div.on{background:#dc2626;color:#fff;border-color:#dc2626}
+  .luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}
+  .sp{background:#fff;border-radius:10px;padding:9px 5px 11px;text-align:center;position:relative;cursor:pointer;
+    box-shadow:0 1px 3px rgba(0,0,0,.07);user-select:none}
+  .sp:hover{box-shadow:0 4px 12px rgba(0,0,0,.12)} .sp.het{opacity:.4;cursor:not-allowed}
+  .bg{position:absolute;top:5px;right:6px;font-size:.66rem;font-weight:700;border-radius:5px;padding:0 6px}
+  .b0{background:#fee2e2;color:#b91c1c} .bc{background:#dcfce7;color:#15803d} .bs{background:#e0e7ff;color:#3730a3}
+  .sp .ic{font-size:1.45rem} .sp .ma{font-weight:800;font-size:.82rem} .sp .tn{font-size:.72rem;color:var(--mo)}
+  .sp .gi{color:var(--lam);font-weight:800;font-size:.82rem}
+
+  .cotphai{width:400px;flex:0 0 400px}
+  .dai{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:-1px}
+  .ve{flex:0 0 auto;border-radius:11px 11px 0 0;padding:6px 12px 8px;cursor:pointer;border:1px solid var(--vien);
+    border-bottom:none;background:#f8fafc;line-height:1.15;text-align:center;min-width:76px;position:relative}
+  .ve .so{font-size:1.3rem;font-weight:900} .ve small{display:block;font-size:.7rem;color:var(--mo)}
+  .ve.on{background:#fff} .ve.moi{background:#f0fdf4;border-color:#bbf7d0}
+  .ve .cham{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%}
+  .khung{background:#fff;border:1px solid var(--vien);border-radius:0 12px 12px 12px;padding:12px;min-height:440px}
+
+  .dong{border-bottom:1px solid #f1f5f9;padding:7px 0}
+  .dong .t1{display:flex;justify-content:space-between;align-items:center;font-size:.86rem}
+  .dong .t1 button{width:26px;height:26px;border:1px solid var(--vien);background:#fff;border-radius:6px;cursor:pointer}
+  .ghichu{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+  .ghichu button{padding:3px 8px;border-radius:999px;border:1px solid var(--vien);background:#fff;font-size:.7rem;cursor:pointer}
+  .ghichu button.on{background:#dbeafe;border-color:#60a5fa;color:#1e40af;font-weight:700}
+  .ghichu .tach{border-style:dashed;color:var(--duong)}
+  .ghichu .dacbiet{border-style:dashed;color:#b91c1c}
+  .o-rieng{display:flex;align-items:center;gap:5px;margin-top:5px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:3px 7px}
+  .o-rieng span{color:#b91c1c;font-weight:800}
+  .o-rieng input{flex:1;border:none;background:transparent;font-size:.8rem;padding:4px 0;outline:none;min-width:0}
+  .o-rieng small{font-size:.66rem}
+  .o-rieng button{border:none;background:none;color:#b91c1c;cursor:pointer;font-size:.8rem}
+  .rong{color:var(--mo);font-size:.82rem;text-align:center;padding:18px 0}
+  .tongcong{background:#eff6ff;border-radius:9px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+  .tongcong b{color:var(--lam);font-size:1.25rem}
+  .nhan{font-size:.72rem;font-weight:800;color:var(--mo);text-transform:uppercase;letter-spacing:.03em;margin:10px 0 5px}
+  .hai{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .nutto{border:none;border-radius:11px;padding:11px 4px;color:#fff;font-weight:800;font-size:.86rem;cursor:pointer;line-height:1.25;width:100%}
+  .nutto:disabled{background:#cbd5e1 !important;cursor:not-allowed}
+  .nutto small{display:block;font-weight:600;font-size:.7rem;opacity:.92}
+  .hop-xanh{margin-top:8px;background:#f0fdf4;border-radius:10px;padding:9px}
+  .hop-xanh .lb{font-size:.76rem;color:#166534;font-weight:700;margin-bottom:6px}
+  .hop-xanh .ds{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .hop-xanh button{border:1px solid #bbf7d0;background:#fff;border-radius:8px;padding:9px;font-weight:800;cursor:pointer;font-size:.86rem}
+  .hop-xanh button.dung{background:var(--luc);color:#fff;border-color:var(--luc)}
+  .nut{border:none;border-radius:10px;padding:10px;font-weight:800;cursor:pointer;font-size:.86rem;color:#fff}
+  .nut.xam{background:#f1f5f9;color:var(--chu)} .nut:disabled{background:#cbd5e1;cursor:not-allowed}
+  .solenh{margin-top:8px;border-top:1px dashed var(--vien);padding-top:6px;font-size:.72rem}
+  .solenh div{display:flex;justify-content:space-between;align-items:center;padding:2px 0;color:var(--mo)}
+  .solenh div.loi{color:#dc2626;font-weight:700} .solenh div.cho{color:#b45309}
+  .bon{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+  .o4{background:#fff;border-radius:12px;padding:10px 12px} .o4 small{display:block;font-size:.74rem;color:var(--mo)} .o4 b{font-size:1.15rem}
+  .bangls{width:100%;border-collapse:collapse;font-size:.84rem;min-width:620px}
+  .bangls th{background:#fdf2f2;color:#991b1b;font-size:.72rem;text-align:left;padding:9px 10px}
+  .bangls td{padding:9px 10px;border-top:1px solid #f1f5f9} .hangls{cursor:pointer} .hangls:hover{background:#fffbeb} .hangls.chon{background:#fef3c7}
+  .ngan{position:absolute;top:0;right:0;bottom:0;width:370px;background:#fff;box-shadow:-10px 0 30px rgba(0,0,0,.15);display:flex;flex-direction:column;z-index:30}
+  .ngan .hd{padding:12px 14px;border-bottom:1px solid var(--vien);display:flex;justify-content:space-between;align-items:center}
+  .ngan .bd{padding:12px 14px;overflow:auto;flex:1} .ngan .ft{padding:12px 14px;border-top:1px solid var(--vien)}
+  .nk{border-left:2px solid var(--vien);margin:6px 0 0 6px;padding-left:12px}
+  .nk div{position:relative;font-size:.8rem;padding:4px 0} .nk small{color:var(--mo)}
+  .nk div::before{content:'';position:absolute;left:-18px;top:9px;width:10px;height:10px;border-radius:50%;background:#94a3b8}
+  .nk .c::before{background:#0284c7} .nk .d::before{background:#16a34a} .nk .h::before{background:#64748b} .nk .dc::before{background:#7c3aed} .nk .i::before{background:#475569}
+  .phu-quet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:70;padding:14px}
+  .hop-quet{background:#fff;border-radius:14px;padding:14px;width:100%;max-width:380px}
+  .khung-cam{margin:10px 0;height:190px;border-radius:10px;background:linear-gradient(135deg,#1f2937,#374151);position:relative;display:flex;align-items:flex-end;justify-content:center;color:#cbd5e1;font-size:.72rem;padding-bottom:8px}
+  .vien-cam{position:absolute;left:50%;top:44%;width:120px;height:120px;transform:translate(-50%,-50%);border:3px solid #22c55e;border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.25)}
+  .ve.nhay{animation:nhay 1s infinite} @keyframes nhay{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.6)}50%{box-shadow:0 0 0 6px rgba(124,58,237,0)}}
+  @media (max-width:760px){ .ngan{width:100%} .bon{grid-template-columns:1fr 1fr} }
+  .solenh button{border:1px solid var(--vien);background:#fff;border-radius:6px;font-size:.68rem;padding:1px 6px;cursor:pointer}
+
+  /* xem trước */
+  .xt-dau{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .chon-in{display:flex;flex-direction:column;gap:5px;margin:8px 0}
+  .chon-in label{display:flex;align-items:center;gap:8px;font-size:.84rem;background:#f8fafc;border-radius:9px;padding:7px 10px;cursor:pointer}
+  .chon-in label small{margin-left:auto;color:var(--mo);font-size:.72rem}
+  .chon-in input{width:17px;height:17px}
+  .xem{display:flex;gap:10px;align-items:flex-start;overflow-x:auto;padding:8px 2px;background:#f1f5f9;border-radius:10px}
+
+  /* giấy */
+  .bill{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.7rem;background:#fff;border:1px dashed #94a3b8;
+    border-radius:4px;padding:10px 11px;width:190px;flex:0 0 190px;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+  .bill .d{display:flex;justify-content:space-between;gap:6px}
+  .bill .to{text-align:center;font-size:2.4rem;font-weight:900;letter-spacing:-2px;line-height:1;margin:5px 0 1px}
+  .bill .kc{border-top:1px dashed #94a3b8;margin:6px 0}
+  .bill .gc{color:#1e40af;font-style:italic;padding-left:8px}
+  .bill .qr{margin:6px auto 0;width:60px;height:60px;border:2px dashed #cbd5e1;border-radius:5px;display:flex;
+    align-items:center;justify-content:center;font-size:.55rem;color:#94a3b8;text-align:center}
+  .bill.pc{border-color:#f59e0b;background:#fffbeb}
+  .tems{display:flex;flex-direction:column;gap:5px;flex:0 0 auto}
+  .tem{width:152px;height:114px;background:#fff;border:1px solid #cbd5e1;border-radius:7px;padding:6px 8px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;display:flex;flex-direction:column;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  .tem .h{display:flex;justify-content:space-between;align-items:baseline}
+  .tem .h b{font-size:1.25rem;letter-spacing:-1px} .tem .h span{font-size:.72rem;font-weight:800;background:#1f2937;color:#fff;border-radius:4px;padding:0 5px}
+  .tem .ten{font-size:.8rem;font-weight:800;margin-top:3px;line-height:1.15}
+  .tem .tc{font-size:.74rem;font-weight:800;color:#b91c1c;margin-top:2px;line-height:1.15;flex:1}
+  .tem .rg{margin-top:2px;font-size:.66rem;font-weight:800;color:#fff;background:#b91c1c;border-radius:3px;padding:1px 4px;line-height:1.2}
+  .tem .ch{font-size:.58rem;color:#64748b;display:flex;justify-content:space-between}
+  .kh-tim{margin-bottom:10px}
+  .kh-tim input{width:100%;padding:8px 10px;border:1px solid var(--vien);border-radius:9px;font-size:.84rem}
+  .kh-kq{padding:7px 9px;border:1px solid var(--vien);border-top:none;background:#fff;font-size:.8rem;cursor:pointer}
+  .kh-kq:hover{background:#f0fdf4} .kh-kq.trong{cursor:default;color:var(--mo);background:#f8fafc}
+  .kh-goi{font-size:.7rem;color:var(--mo);margin-top:5px;line-height:1.35}
+  .kh-chon{display:flex;justify-content:space-between;align-items:center;background:#f0fdf4;border:1px solid #bbf7d0;
+    border-radius:10px;padding:7px 10px;margin-bottom:10px}
+  .kh-chon button{border:none;background:none;cursor:pointer;font-size:1rem;color:var(--mo)}
+  .the-cai{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:12px}
+  .the-cai .tieu{font-weight:800;font-size:.9rem;margin-bottom:8px}
+  .bangcai{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
+  .bangcai th{background:#fdf2f2;color:#991b1b;font-size:.72rem;text-align:left;padding:8px;font-weight:800}
+  .bangcai th small{font-weight:400}
+  .bangcai td{padding:9px 8px;border-top:1px solid #f1f5f9;vertical-align:top}
+  .bangcai input[type=checkbox]{width:18px;height:18px}
+  .chon{padding:6px;border:1px solid var(--vien);border-radius:7px;font-size:.8rem;max-width:210px}
+  .nv{padding:6px 10px;border-radius:8px;border:1px solid var(--vien);background:#fff;cursor:pointer;font-weight:600;font-size:.76rem}
+  .may-in{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
+  .khay{background:#fff;border:1px solid var(--vien);border-radius:12px;padding:10px 12px;flex:1;min-width:260px}
+  .khay h4{margin:0 0 8px;font-size:.86rem;display:flex;justify-content:space-between;align-items:center}
+  .khay .ra{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;min-height:60px}
+  .khay .trong{font-size:.78rem;color:var(--mo)}
+  .den-may{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;background:#cbd5e1}
+  .den-may.chay{background:#22c55e;box-shadow:0 0 0 3px #bbf7d0}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:12px;
+    padding:11px 14px;display:flex;align-items:center;gap:12px;font-size:.86rem;z-index:60;box-shadow:0 10px 26px rgba(0,0,0,.35);max-width:94vw}
+  .toast .ho{background:none;border:none;color:#7dd3fc;font-weight:800;cursor:pointer;font-size:.84rem}
+  .toast .den{font-size:.72rem;color:#94a3b8}
+  .giai{background:#fff;border:1px solid var(--vien);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:.84rem}
+  .giai h4{margin:0 0 6px;font-size:.92rem}
+  @media (max-width:1100px){ .cot{flex-direction:column} .cotphai{width:100%;flex:none} }
+  @media (max-width:760px){ .canh{display:none} }
+</style>
+</head>
+<body>
+<div class="bao">
+  <div class="tren">
+    <span class="dem">Đã bấm <b id="dem">0</b> lần</span>
+    <button onclick="datLai()">↺ Làm lại</button>
+    <button onclick="donApp()" style="border-color:#7c3aed;color:#5b21b6">📱 Giả lập: khách đặt từ App KH</button>
+    <button id="amthanh" onclick="S.amThanh=!S.amThanh;if(S.amThanh)chuong();ve()">🔔 Âm thanh: bật</button>
+    <span style="color:var(--mo)">Thử: bấm DNL hai lần → trên dòng DNL bấm “＋ tách ly” → chọn ghi chú khác cho từng ly → Tiền mặt → Đúng tiền → xem trước → In.</span>
+  </div>
+
+  <div class="may">
+    <div class="canh">
+      <div class="logo">🫖 Tứ Quý Đường</div>
+      <div class="mi" id="m-ban" style="cursor:pointer" onclick="S.man='ban';ve()">🛒 Bán hàng <span class="cn" id="cn" style="display:none"></span></div>
+      <div class="mi mo">👥 Khách hàng</div>
+      <div class="mi" id="m-ls" style="cursor:pointer" onclick="S.man='ls';S.chon=null;ve()">📜 Lịch sử đơn</div>
+      <div class="mi" id="m-cai" style="cursor:pointer" onclick="S.man='cai';ve()">⚙️ Cài đặt in</div>
+    </div>
+    <div class="phai" id="app"></div>
+    <div id="ngan"></div>
+  </div>
+
+  <div class="may-in" id="mayin"></div>
+
+  <div class="giai">
+    <h4>Mỗi lần bán in ra những gì</h4>
+    <b>Bill khách</b> — ra <b>máy in bill ở quầy</b> (khổ 80mm), đưa cho khách. Số bill in to.<br>
+    <b>Tem cốc</b> — ra <b>máy in tem ở chỗ pha chế</b> (tem 40×30mm), <b>mỗi ly một tem</b>, dán lên cốc. Tem ghi số bill, “ly 2/3”, tên món và tuỳ chỉnh in đậm màu.<br>
+    <b>Phiếu pha chế</b> — tuỳ chọn, tắt sẵn. Quán dùng tem thì tem chính là phiếu pha chế; bật cái này khi muốn thêm một tờ tổng.<br>
+    Luôn có bước <b>xem trước</b>: chưa bấm In thì chưa có gì được ghi. Bấm <b>← Quay lại</b> là về chọn cách trả, món vẫn còn nguyên.
+  </div>
+</div>
+
+<script>
+const SP=[
+  {ma:'DNL',ten:'Dưỡng Nhan Lộ',gia:30000,ton:28,ic:'🍵',m:'#16a34a'},
+  {ma:'CF01',ten:'Cà Phê Đen',gia:19000,ton:null,ic:'☕',m:'#b45309'},
+  {ma:'CT1',ten:'Hồng Tân Sinh',gia:50500,ton:0,ic:'🥤',m:'#dc2626'},
+  {ma:'CT2',ten:'Lục Tân Khí',gia:50500,ton:0,ic:'🥤',m:'#dc2626'},
+  {ma:'CT5',ten:'Thanh Tân Dưỡng',gia:49500,ton:0,ic:'🥤',m:'#dc2626'},
+  {ma:'NTL',ten:'Ngọc Thanh Lộ',gia:35000,ton:0,ic:'🍵',m:'#16a34a'},
+  {ma:'AML',ten:'An Mi Lộ',gia:50000,ton:0,ic:'🍵',m:'#16a34a'},
+];
+const GHICHU=['Ít đường','Không đường','Ít đá','Không đá','Ít sữa'];      // Sales.jsx dòng 36 — có sẵn, sau chuyển vào Cài đặt
+const TEM_TOI_DA=40;
+// Máy in mà trạm in nhìn thấy. 'kho' quyết định phiếu nào in được ra máy nào.
+const MAY=[
+  {id:'quay', ten:'Máy in bill · quầy',      kho:'80mm'},
+  {id:'tem',  ten:'Máy in tem · pha chế',    kho:'tem'},
+  {id:'pc',   ten:'Máy in bill · pha chế',   kho:'80mm'},
+];
+const PHIEU=[
+  {id:'khach', ten:'🧾 Bill khách',      kho:'80mm', ghi:'đưa cho khách'},
+  {id:'tem',   ten:'🏷 Tem cốc',          kho:'tem',  ghi:'mỗi ly một tem, dán cốc'},
+  {id:'pc',    ten:'📋 Phiếu pha chế',    kho:'80mm', ghi:'một tờ tổng cho người pha'},
+];
+// Khách quen có sẵn trong POS · điểm theo đúng cấu hình máy thật:
+//   loyalty_earn_per_amount = 10.000đ / 1 điểm (database.js 1061) · nhandiem_he_so = 2 (database.js)
+const KHACH=[
+  {ten:'Chị Lan',  sdt:'0912345678', diem:45,  vi:120000, hang:'Bạc',  qr:'TQD-7KQ2M9XA'},
+  {ten:'Anh Minh', sdt:'0987654321', diem:12,  vi:0,      hang:'Mới',  qr:'TQD-H4WPZ3NC'},
+  {ten:'Cô Hạnh',  sdt:'0903111222', diem:130, vi:350000, hang:'Vàng', qr:'TQD-B8RVY6KD'},
+];
+// Đọc được một chuỗi từ camera → quyết định. Mã kiểu cũ = "QR-" + SĐT (helpers.js dòng 68):
+// ai biết SĐT là tự làm ra được, nên KHÔNG nhận nữa.
+function docQR(txt){
+  txt=String(txt||'').trim();
+  if(/^QR-\d{9,11}$/.test(txt)) return {loi:'Mã kiểu cũ (ghép từ số điện thoại) — không còn dùng vì ai cũng làm giả được. Mời khách mở mã mới trong app, hoặc tìm theo SĐT.'};
+  const k=KHACH.find(x=>x.qr===txt);
+  return k?{khach:k}:{loi:'Không phải thẻ thành viên của quán.'};
+}
+const MOI_DIEM=10000, HE_SO=2, HAN_GIO=24;
+const diemCua=tong=>Math.floor(tong/MOI_DIEM);
+const sdtDep=x=>x.replace(/(\d{4})(\d{3})(\d{3})/,'$1 $2 $3');
+function maNhan(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let m=''; for(let i=0;i<8;i++) m+=c[Math.floor(Math.random()*c.length)];
+  return m.slice(0,4)+'-'+m.slice(4); }
+const tenMay=id=>(MAY.find(m=>m.id===id)||{}).ten||'—';                                                         // tem 40×30mm in được khoảng chừng này ký tự
+const chonCua=g=>(g.chon||[]).join(', ');
+const coGhiChu=g=>(g.chon&&g.chon.length)||g.rieng;
+// Lưu xuống máy chủ vẫn là MỘT cột notes như cũ — hai phần cách nhau bằng dấu xuống dòng.
+// Ô gõ tự do chỉ một dòng nên nhân viên không gõ được dấu xuống dòng: ranh giới không bao giờ lẫn.
+const ghiChuLuu=g=>[chonCua(g),g.rieng].filter(Boolean).join('\n');
+const QR=(n=18,v=4)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-${v}px"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>`;
+const t=n=>n.toLocaleString('vi-VN')+'đ';
+const so3=n=>'#'+String(n).padStart(3,'0');
+const gio=ms=>new Date(ms).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+
+const S={man:'ban',khach:null,timKH:'',quet:null,amThanh:true,loc:'tatca',chon:null,doi:null,lyDoi:null,huy:null,lyDo:null,
+  cai:{ may:{khach:'quay',tem:'tem',pc:'quay'}, ban:{khach:1,tem:1,pc:1},
+        quay:{khach:true,tem:true,pc:false}, ngoai:{khach:true,tem:true,pc:false}, app:{khach:false,tem:true,pc:true} },
+  bat:{quay:true,tem:true,pc:true}, hetGiay:{quay:false,tem:false,pc:false}, lenh:[], idLenh:0, inLai:null, chonLai:{},
+  moGC:null,gio:[],khoa:0,buoc:'chon',kieu:null,dua:0,moTM:false,
+  inKhach:true,inTem:true,inPC:false,
+  don:[],so:13,ve:'moi',
+  ra:{},den:{},bao:null,bam:0};
+let hen=null, dem=null;
+
+document.addEventListener('click',e=>{ if(e.target.closest('button,.sp,.ve,label')){ S.bam++; document.getElementById('dem').textContent=S.bam; }},true);
+
+const tongGio=()=>S.gio.reduce((s,g)=>s+g.gia*g.sl,0);
+const soLy=l=>l.reduce((s,g)=>s+g.sl,0);
+const mo=()=>S.don.filter(d=>(d.tt==='cho'&&!d.dangThu)||(d.nguon==='app'&&!d.giao)).sort((a,b)=>a.tao-b.tao);
+const phut=ms=>Math.max(0,Math.floor((Date.now()-ms)/60000));
+
+// ─── giỏ: mỗi dòng có khoá riêng, nên cùng một món tách được nhiều dòng với ghi chú khác nhau ───
+function them(m){ if(S.buoc!=='chon'||S.ve!=='moi') return; const s=SP.find(x=>x.ma===m); if(s.ton===0) return;
+  const c=S.gio.find(g=>g.ma===m&&!coGhiChu(g)); c?c.sl++:S.gio.push({k:++S.khoa,ma:s.ma,ten:s.ten,gia:s.gia,sl:1,chon:[],rieng:''}); ve(); }
+function doi(k,d){ const c=S.gio.find(g=>g.k===k); c.sl+=d; if(c.sl<1) S.gio=S.gio.filter(g=>g!==c); ve(); }
+function lat(k,gc){ const c=S.gio.find(g=>g.k===k); const i=c.chon.indexOf(gc); i>=0?c.chon.splice(i,1):c.chon.push(gc); ve(); }
+function goRieng(k,v){ const c=S.gio.find(g=>g.k===k); if(c) c.rieng=v.replace(/\s+/g,' ').slice(0,200); }   // 200 = máy chủ cắt ở orders.js dòng 363
+function tach(k){ const c=S.gio.find(g=>g.k===k); if(c.sl<2) return; c.sl--;
+  S.gio.splice(S.gio.indexOf(c)+1,0,{...c,k:++S.khoa,sl:1,chon:[],rieng:''}); S.moGC=S.khoa; ve(); }
+
+// ─── bước 1: chọn cách trả → bước 2: xem trước ───
+function xemTruoc(kieu,dua){ if(kieu==='cash'&&!(dua>=tongGio())) return;   // tiền mặt thiếu thì không cho đi tiếp
+  S.kieu=kieu; S.dua=dua||0; S.buoc='xem'; S.moTM=false;
+  const md=S.cai[kieu==='cho'?'ngoai':'quay'];                 // mặc định lấy từ Cài đặt in
+  S.inKhach=md.khach; S.inTem=md.tem; S.inPC=md.pc;          // đổi ở đây chỉ áp cho đơn này
+  ve(); }
+function quayLai(){ S.buoc='chon'; S.kieu=null; ve(); }
+
+function temCua(d){
+  const tong=soLy(d.mon); let i=0; const ra=[];
+  d.mon.forEach(g=>{ for(let j=0;j<g.sl;j++){ i++; ra.push({so:d.so,i,tong,ten:g.ten,chon:chonCua(g),rieng:g.rieng,luc:d.tao,app:d.nguon==='app'}); } });
+  return ra;
+}
+
+// ─── bước 3: bấm In = ghi đơn + gửi lệnh in ───
+// Mọi lệnh in đều ghi vào sổ lệnh: máy nào, tờ gì, lần thứ mấy, kết quả ra sao.
+//   'da'  = máy đã nhận và in       'cho' = máy tắt / trạm in mất kết nối — tự in khi có lại
+//   'loi' = máy báo lỗi (hết giấy, kẹt giấy) — KHÔNG tự in lại, người quyết định
+function ghi(d,loai,viec){ (d.nk=d.nk||[]).push({luc:Date.now(),loai,viec}); }
+function guiLenh(m,giay){
+  const l={id:++S.idLenh,m,giay,luc:Date.now(),so:giay.d?giay.d.so:giay.x.so,
+           tt: !S.bat[m]?'cho' : S.hetGiay[m]?'loi' : 'da'};
+  S.lenh.unshift(l);
+  if(l.tt==='da'){ (S.ra[m]=S.ra[m]||[]).push(giay); S.den[m]=true; }
+  return l;
+}
+function tenGiay(g){ return g.loai==='tem'?`tem ${g.x.i}/${g.x.tong}`:g.loai==='pc'?'phiếu pha chế':'bill khách'; }
+function inLaiLenh(id){ const l=S.lenh.find(x=>x.id===id); if(!l) return;
+  if(l.tt==='loi') l.tt='bo';                                     // lệnh lỗi đã được thay bằng lệnh in lại
+  S.ra={}; S.den={};
+  const g=l.giay.loai==='tem'?{...l.giay,x:{...l.giay.x,lan:(l.giay.x.lan||1)+1}}:{...l.giay,lan:(l.giay.lan||1)+1};
+  guiLenh(l.m,g); setTimeout(()=>{S.den={};ve();},1400); ve(); }
+function inLaiLoi(m){ const ds=S.lenh.filter(x=>x.m===m&&x.tt==='loi'); S.ra={}; S.den={};
+  ds.forEach(l=>{ l.tt='bo'; const g=l.giay.loai==='tem'?{...l.giay,x:{...l.giay.x,lan:(l.giay.x.lan||1)+1}}:{...l.giay,lan:(l.giay.lan||1)+1}; guiLenh(m,g); });
+  thongBao(`Đã in lại ${ds.length} lệnh lỗi ở ${tenMay(m)}`); setTimeout(()=>{S.den={};ve();},1400); }
+function soLanIn(so,loai,i){ return S.lenh.filter(l=>l.so===so&&l.giay.loai===loai&&(loai!=='tem'||l.giay.x.i===i)&&l.tt==='da').length; }
+// In lại theo đơn: chọn từng tờ, từng tem
+function moInLai(so){ S.inLai=so; S.chonLai={}; ve(); }
+function inLaiChon(){ const d=S.don.find(x=>x.so===S.inLai); if(!d) return; S.ra={}; S.den={}; let n=0;
+  for(const k in S.chonLai){ if(!S.chonLai[k]) continue;
+    if(k==='khach'||k==='pc'){ guiLenh(S.cai.may[k],{loai:k,d,lan:soLanIn(d.so,k)+1}); n++; }
+    else { const x=temCua(d).find(t=>'tem'+t.i===k); guiLenh(S.cai.may.tem,{loai:'tem',x:{...x,lan:soLanIn(d.so,'tem',x.i)+1}}); n++; } }
+  S.inLai=null; ghi(d,'i',`In lại ${n} tờ`); thongBao(`Đã in lại ${n} tờ cho ${so3(d.so)}`); setTimeout(()=>{S.den={};ve();},1400); }
+
+function inVaGhi(){
+  S.so++;
+  const d={so:S.so,mon:S.gio.map(g=>({...g})),tong:tongGio(),tt:S.kieu==='cho'?'cho':'da',
+    cach:S.kieu==='cho'?null:S.kieu,dua:S.dua,tao:Date.now(),nk:[]};
+  ghi(d,S.kieu==='cho'?'c':'d', S.kieu==='cho'?'Bán · in bill mang ra bàn':`Bán tại quầy · ${S.kieu==='cash'?'tiền mặt'+(S.dua>tongGio()?' · khách đưa '+t(S.dua)+', thối '+t(S.dua-tongGio()):''):'chuyển khoản'} ${t(tongGio())}`);
+  const diem=diemCua(d.tong);
+  if(S.khach){ S.khach.diem+=diem; d.khach={ten:S.khach.ten,sdt:S.khach.sdt,cong:diem,tong:S.khach.diem}; }
+  else if(diem>0){ d.ma=maNhan(); d.diemMa=diem*HE_SO; }
+  S.don.unshift(d);
+  const tems=temCua(d);
+  S.ra={}; S.den={};
+  const gui=(loai,giay)=>{ const m=S.cai.may[loai], n=S.cai.ban[loai]||1; for(let i=0;i<n;i++) guiLenh(m,giay); };
+  if(S.inKhach) gui('khach',{loai:'khach',d});
+  if(S.inPC)    gui('pc',{loai:'pc',d});
+  if(S.inTem)   tems.forEach(x=>gui('tem',{loai:'tem',x}));
+  setTimeout(()=>{ S.den={}; ve(); },1400);
+  const phan=[S.inKhach&&'bill khách',S.inPC&&'phiếu pha chế',S.inTem&&`${tems.length} tem cốc`].filter(Boolean).join(' · ');
+  S.gio=[]; S.buoc='chon'; S.kieu=null; S.khach=null; S.timKH='';
+  if(d.tt==='cho') S.ve='moi';
+  thongBao(`${so3(d.so)} đã ghi · đang in ${phan||'(không in gì)'}${d.khach?` · +${d.khach.cong} điểm cho ${d.khach.ten}`:''}`);
+}
+
+// ─── ĐƠN TỪ APP KH: không ai bấm gì ở quầy — máy chủ nhận đơn, tự đẩy lệnh in theo Cài đặt in ───
+function donApp(){
+  const menu=[['DNL',1,['Ít đường'],''],['CF01',2,[],'1 ly nóng']];
+  S.so++;
+  const mon=menu.map(([ma,sl,chon,rieng],i)=>{ const p=SP.find(x=>x.ma===ma); return {k:1000+S.so*10+i,ma,ten:p.ten,gia:p.gia,sl,chon,rieng}; });
+  const d={so:S.so,mon,tong:mon.reduce((a,g)=>a+g.gia*g.sl,0),tt:'da',cach:'transfer',nguon:'app',giao:false,daXem:false,tao:Date.now(),nk:[],
+           khach:{ten:'Chị Lan (app)',sdt:'0912345678',cong:0,tong:0}};
+  const kh=KHACH[0]; d.khach.cong=diemCua(d.tong); kh.diem+=d.khach.cong; d.khach.tong=kh.diem;
+  S.don.unshift(d); S.ra={}; S.den={};
+  const md=S.cai.app; let ok=true;
+  const gui=(loai,giay)=>{ const m=S.cai.may[loai]; for(let i=0;i<(S.cai.ban[loai]||1);i++){ const l=guiLenh(m,giay); if(l.tt!=='da') ok=false; } };
+  if(md.khach) gui('khach',{loai:'khach',d});
+  if(md.pc)    gui('pc',{loai:'pc',d});
+  if(md.tem)   temCua(d).forEach(x=>gui('tem',{loai:'tem',x}));
+  d.inLoi=!ok;
+  ghi(d,'c','Đơn từ app · đã thanh toán online'+(ok?' · đã tự in cho pha chế':' · CHƯA in được'));
+  chuong();
+  setTimeout(()=>{S.den={};ve();},1400);
+  thongBao(ok?`📱 Đơn app ${so3(d.so)} — đã thanh toán online, đã tự in cho pha chế`
+             :`⚠ Đơn app ${so3(d.so)} CHƯA IN ĐƯỢC — xem máy in / trạm in`);
+}
+// Chuông: 3 tiếng "ting" bằng Web Audio — không cần tệp âm thanh.
+// Trình duyệt chỉ cho phát tiếng SAU khi người dùng đã bấm vào trang ít nhất 1 lần:
+// máy quầy mở POS ra là phải bấm một cái (nút "Bật âm thanh") — giới hạn của trình duyệt, không phải của POS.
+let _ac=null; S.soTieng=0;
+function chuong(){ if(!S.amThanh) return; S.soTieng++;
+  try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; _ac=_ac||new AC();
+    [0,.18,.36].forEach((tg,i)=>{ const o=_ac.createOscillator(), g=_ac.createGain();
+      o.frequency.value=[880,1175,1568][i]; o.type='sine'; o.connect(g); g.connect(_ac.destination);
+      g.gain.setValueAtTime(.0001,_ac.currentTime+tg); g.gain.exponentialRampToValueAtTime(.35,_ac.currentTime+tg+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,_ac.currentTime+tg+.25); o.start(_ac.currentTime+tg); o.stop(_ac.currentTime+tg+.3); });
+  }catch(e){} }
+function nhacDonApp(){ if(S.don.some(d=>d.nguon==='app'&&!d.daXem&&!d.giao)) chuong(); }
+function moThe(so){ S.man='ban'; S.ve=so; S.huy=null; const d=S.don.find(x=>x.so===so); if(d&&d.nguon==='app') d.daXem=true; ve(); }
+function huyDon(){ const d=S.don.find(x=>x.so===S.huy); if(!d||!S.lyDo||d.tt!=='cho') return;
+  const ly=S.lyDo; d.tt='huy'; d.lyDo=ly; S.huy=null; S.lyDo=null; S.ve='moi';
+  clearTimeout(hen); clearInterval(dem); S.bao={chu:`${so3(d.so)} đã huỷ · ${ly}`,hoan:true,con:5};
+  dem=setInterval(()=>{ if(S.bao){S.bao.con--; ve();} },1000);
+  hen=setTimeout(()=>{ ghi(d,'h',`Huỷ · ${ly} · trả hàng về kho`); S.bao=null; clearInterval(dem); ve(); },5000);
+  S.hoanFn=()=>{ d.tt='cho'; d.lyDo=null; S.ve=d.so; }; ve(); }
+function doiCach(){ const d=S.don.find(x=>x.so===S.doi); if(!d||d.tt!=='da'||!S.lyDoi) return;
+  const tu=d.cach, sang=tu==='cash'?'transfer':'cash', ly=S.lyDoi, ten=c=>c==='cash'?'tiền mặt':'chuyển khoản';
+  S.doi=null; S.lyDoi=null; d.dangDoi=true;
+  clearTimeout(hen); clearInterval(dem); S.bao={chu:`${so3(d.so)}: ${ten(tu)} → ${ten(sang)}`,hoan:true,con:5};
+  dem=setInterval(()=>{ if(S.bao){S.bao.con--; ve();} },1000);
+  hen=setTimeout(()=>{ d.cach=sang; d.dangDoi=false; ghi(d,'dc',`Đổi ${ten(tu)} → ${ten(sang)} · ${ly}`); S.bao=null; clearInterval(dem); ve(); },5000);
+  S.hoanFn=()=>{ d.dangDoi=false; }; ve(); }
+function daGiao(so){ const d=S.don.find(x=>x.so===so); if(d){ d.giao=true; ghi(d,'d','Khách đã lấy'); S.ve='moi'; } ve(); }
+function thongBao(chu){ clearTimeout(hen); S.bao={chu}; hen=setTimeout(()=>{S.bao=null; ve();},6000); ve(); }
+
+// ─── thu bill đang mở ngoài bàn: không in gì thêm (khách đã cầm bill) ───
+function thu(so,cach){
+  const d=S.don.find(x=>x.so===so); if(!d||d.tt!=='cho') return;
+  d.dangThu=true; S.ve='moi';
+  clearTimeout(hen); clearInterval(dem);
+  S.bao={chu:`${so3(so)} đã thu ${cach==='cash'?'tiền mặt':'chuyển khoản'} ${t(d.tong)}`,hoan:true,con:5};
+  dem=setInterval(()=>{ if(S.bao){S.bao.con--; ve();} },1000);
+  hen=setTimeout(()=>{ d.tt='da'; d.cach=cach; d.dangThu=false; ghi(d,'d',`Thu ${cach==='cash'?'tiền mặt':'chuyển khoản'} ${t(d.tong)}`); S.bao=null; clearInterval(dem); ve(); },5000);
+  S.hoanFn=()=>{ d.dangThu=false; S.ve=so; };
+  ve();
+}
+function hoan(){ clearTimeout(hen); clearInterval(dem); S.bao=null; S.hoanFn&&S.hoanFn(); ve(); }
+function datLai(){ Object.assign(S,{gio:[],buoc:'chon',kieu:null,don:[],so:13,ve:'moi',ra:{},lenh:[],inLai:null,bao:null,bam:-1}); ve(); }
+
+// ─── giấy in ───
+function dauInLai(lan){ return lan>1?`<div style="text-align:center;font-size:.62rem;font-weight:800;background:#1f2937;color:#fff;border-radius:3px;margin-bottom:4px">IN LẠI · LẦN ${lan}</div>`:''; }
+function billGiay(d,loai,lan){
+  if(loai==='pc') return `<div class="bill pc">${dauInLai(lan)}
+    <div style="text-align:center;font-weight:800">PHIẾU PHA CHẾ</div>
+    <div class="to">${so3(d.so)}</div><div style="text-align:center;font-size:.6rem;color:#64748b">${gio(d.tao)} · ${soLy(d.mon)} ly</div>
+    <div class="kc"></div>
+    ${d.mon.map(g=>`<div class="d"><b>${g.sl} × ${g.ten}</b></div>${chonCua(g)?`<div class="gc" style="color:#b91c1c;font-weight:700">↳ ${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc" style="color:#fff;background:#b91c1c;font-weight:700;font-style:normal;border-radius:3px;margin:1px 0 1px 8px;padding:0 4px">✎ ${g.rieng}</div>`:''}`).join('')}
+  </div>`;
+  const tt = d.tt==='da'
+    ? `<div style="text-align:center;font-weight:800;color:#16a34a;margin-top:4px">ĐÃ THANH TOÁN</div>
+       <div class="d" style="font-size:.64rem"><span>${d.cach==='cash'?'Tiền mặt':'Chuyển khoản'}</span><span>${t(d.cach==='cash'&&d.dua?d.dua:d.tong)}</span></div>
+       ${d.cach==='cash'&&d.dua>d.tong?`<div class="d" style="font-size:.64rem"><span>Tiền thối</span><span>${t(d.dua-d.tong)}</span></div>`:''}`
+    : `<div style="text-align:center;font-weight:800;color:#ea580c;margin-top:4px">CHƯA THANH TOÁN</div><div class="qr">QR payOS<br>(sau P3)</div>`;
+  return `<div class="bill">${dauInLai(lan)}
+    <div style="text-align:center;font-weight:800">TỨ QUÝ ĐƯỜNG</div>
+    ${d.nguon==='app'?'<div style="text-align:center;font-size:.62rem;font-weight:800">📱 ĐƠN TỪ APP</div>':''}
+    <div class="to">${so3(d.so)}</div>
+    <div style="text-align:center;font-size:.6rem;color:#64748b">ORD-20260921-${String(d.so).padStart(3,'0')} · ${gio(d.tao)}</div>
+    <div class="kc"></div>
+    ${d.mon.map(g=>`<div class="d"><span>${g.ten} ×${g.sl}</span><span>${t(g.gia*g.sl)}</span></div>${chonCua(g)?`<div class="gc">${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc">✎ ${g.rieng}</div>`:''}`).join('')}
+    <div class="kc"></div>
+    <div class="d" style="font-weight:800"><span>TỔNG</span><span>${t(d.tong)}</span></div>
+    ${tt}
+    ${d.khach?`<div class="kc"></div>
+      <div class="d"><span>Khách</span><span>${d.khach.ten}</span></div>
+      <div class="d"><span>Điểm đơn này</span><b>+${d.khach.cong}</b></div>
+      <div class="d"><span>Tổng điểm</span><b>${d.khach.tong}</b></div>`
+    :d.ma?`<div class="kc"></div>
+      <div style="text-align:center;font-size:.62rem;color:#475569">🎁 MÃ NHẬN ĐIỂM</div>
+      <div style="text-align:center;font-size:1.05rem;font-weight:900;letter-spacing:2px">${d.ma}</div>
+      <div class="qr" style="width:54px;height:54px">QR<br>nhận điểm</div>
+      <div style="text-align:center;font-size:.6rem;color:#475569;margin-top:3px;line-height:1.3">Tạo tài khoản trong ${HAN_GIO} giờ<br>để nhận <b>${d.diemMa} điểm</b> (gấp ${HE_SO}) của đơn này</div>`:''}
+  </div>`;
+}
+function temGiay(x){ return `<div class="tem">
+  <div class="h"><b>${so3(x.so)}</b><span>${x.i}/${x.tong}</span></div>
+  <div class="ten">${x.ten}</div>
+  <div class="tc">${x.chon||(x.rieng?'':'<span style="color:#94a3b8;font-weight:400">— bình thường —</span>')}
+    ${x.rieng?`<div class="rg">✎ ${x.rieng.length>TEM_TOI_DA?x.rieng.slice(0,TEM_TOI_DA-1)+'…':x.rieng}</div>`:''}</div>
+  <div class="ch"><span>${gio(x.luc)}</span><span>${x.lan>1?'<b style="color:#1f2937">IN LẠI '+x.lan+'</b>':x.app?'📱 APP':'Tứ Quý Đường'}</span></div></div>`; }
+
+// ─── vẽ ───
+function goiTien(T){ return [T,Math.ceil(T/10000)*10000,Math.ceil(T/50000)*50000,Math.ceil(T/100000)*100000,200000,500000]
+  .filter((v,i,a)=>v>=T&&a.indexOf(v)===i).slice(0,4); }
+
+function oKhach(){
+  if(S.khach) return `<div class="kh-chon">
+    <div><b>👤 ${S.khach.ten}</b> <span style="color:var(--mo);font-size:.76rem">${sdtDep(S.khach.sdt)} · hạng ${S.khach.hang}</span>
+      <div style="font-size:.74rem;color:#166534">${S.khach.diem} điểm${S.gio.length?` · đơn này <b>+${diemCua(tongGio())}</b>`:''}
+        ${S.khach.vi?` · <span style="color:#1e40af">ví ${t(S.khach.vi)}</span>`:''}</div></div>
+    <button onclick="S.khach=null;S.timKH='';ve()" title="Bỏ chọn khách">✕</button></div>`;
+  const q=S.timKH.trim().toLowerCase().replace(/\s/g,'');
+  const kq=q.length>=2?KHACH.filter(k=>k.ten.toLowerCase().includes(q)||k.sdt.includes(q)):[];
+  return `<div class="kh-tim">
+    <div style="display:flex;gap:6px"><input id="o-kh" placeholder="🔍 Khách quen: tên hoặc SĐT" value="${S.timKH.replace(/"/g,'&quot;')}"
+      oninput="S.timKH=this.value;veKQ()" autocomplete="off" style="flex:1">
+      <button class="nv" style="white-space:nowrap" onclick="S.quet={};ve()" title="Quét mã thành viên bằng camera">📷 Quét thẻ</button></div>
+    <div id="kq-kh">${kqKhach(kq,q)}</div>
+    <div class="kh-goi">Không chọn = <b>khách lẻ / khách mới</b> → bill in <b>mã nhận điểm</b>, khách tự tạo tài khoản và nhận điểm. Không cần tạo khách ở quầy.</div>
+  </div>`;
+}
+function kqKhach(kq,q){
+  if(q.length<2) return '';
+  if(!kq.length) return `<div class="kh-kq trong">Không thấy khách này. Khách mới thì cứ bán — bill sẽ in mã để khách tự đăng ký.</div>`;
+  return kq.map(k=>`<div class="kh-kq" onclick="chonKhach('${k.sdt}')"><b>${k.ten}</b> · ${sdtDep(k.sdt)} <span style="float:right;color:#166534">${k.diem} điểm</span></div>`).join('');
+}
+function veKQ(){ const q=S.timKH.trim().toLowerCase().replace(/\s/g,'');
+  const kq=q.length>=2?KHACH.filter(k=>k.ten.toLowerCase().includes(q)||k.sdt.includes(q)):[];
+  const el=document.getElementById('kq-kh'); if(el) el.innerHTML=kqKhach(kq,q); }
+function chonKhach(sdt){ S.khach=KHACH.find(k=>k.sdt===sdt); S.timKH=''; ve(); }
+function khungChon(){
+  const T=tongGio(), co=S.gio.length>0;
+  return `${oKhach()}
+    ${!co?'<div class="rong">Chạm món bên trái để bắt đầu</div>':S.gio.map(g=>`<div class="dong">
+      <div class="t1"><span><b style="color:var(--lam)">${g.ma}</b> ${g.ten}</span>
+        <span style="display:flex;gap:6px;align-items:center"><button onclick="doi(${g.k},-1)">−</button><b>${g.sl}</b>
+        <button onclick="doi(${g.k},1)">＋</button><b style="min-width:62px;text-align:right">${t(g.gia*g.sl)}</b></span></div>
+      <div class="ghichu">${GHICHU.map(x=>`<button class="${g.chon.includes(x)?'on':''}" onclick="lat(${g.k},'${x}')">${x}</button>`).join('')}
+        ${S.moGC===g.k||g.rieng?'':`<button class="dacbiet" onclick="S.moGC=${g.k};ve()">✎ ghi chú khác</button>`}
+        ${g.sl>1?`<button class="tach" onclick="tach(${g.k})" title="Tách 1 ly ra để ghi chú riêng">＋ tách ly</button>`:''}</div>
+      ${S.moGC===g.k||g.rieng?`<div class="o-rieng">
+        <span>✎</span><input id="gc-${g.k}" type="text" maxlength="200" value="${(g.rieng||'').replace(/"/g,'&quot;')}"
+          placeholder="Ghi chú đặc biệt: nhiều gừng, không ống hút…"
+          oninput="goRieng(${g.k},this.value);document.getElementById('dem-${g.k}').textContent=this.value.length+'/'+TEM_TOI_DA;document.getElementById('dem-${g.k}').style.color=this.value.length>TEM_TOI_DA?'#dc2626':'#94a3b8'"
+          onkeydown="if(event.key==='Enter')this.blur()" onblur="S.moGC=null;ve()">
+        <small id="dem-${g.k}" style="color:${(g.rieng||'').length>TEM_TOI_DA?'#dc2626':'#94a3b8'}">${(g.rieng||'').length}/${TEM_TOI_DA}</small>
+        ${g.rieng?`<button onmousedown="event.preventDefault()" onclick="goRieng(${g.k},'');S.moGC=null;ve()" title="Xoá ghi chú">✕</button>`:''}</div>`:''}
+    </div>`).join('')}
+    ${co?`<div class="tongcong"><span>Tổng · ${soLy(S.gio)} ly</span><b>${t(T)}</b></div>`:''}
+    <div class="nhan">Khách trả ngay tại quầy</div>
+    <div class="hai">
+      <button class="nutto" style="background:var(--luc)" ${co?'':'disabled'} onclick="S.moTM=!S.moTM;ve()">💵 Tiền mặt<small>chọn tờ khách đưa</small></button>
+      <button class="nutto" style="background:var(--tim)" ${co?'':'disabled'} onclick="xemTruoc('transfer')">${QR(20,5)} Chuyển khoản<small>quét QR · thấy tiền về</small></button>
+    </div>
+    ${S.moTM&&co?`<div class="hop-xanh"><div class="lb">Khách đưa bao nhiêu?</div><div class="ds">${goiTien(T).map((v,i)=>
+      `<button class="${i?'':'dung'}" onclick="xemTruoc('cash',${v})">${i?t(v)+`<br><small style="font-weight:600;color:#166534">thối ${t(v-T)}</small>`:'Đúng tiền<br><small style="font-weight:600">'+t(T)+'</small>'}</button>`).join('')}</div></div>`:''}
+    <div class="nhan">Khách ngồi bàn</div>
+    <button class="nutto" style="background:var(--duong)" ${co?'':'disabled'} onclick="xemTruoc('cho')">🧾 In bill · mang ra bàn<small>thu tiền khi đưa bill cho khách</small></button>
+    ${(()=>{ const vb=S.don.filter(d=>d.tt==='da'&&d.nguon!=='app'&&!d.dangDoi).sort((a,b)=>b.tao-a.tao)[0];
+      if(!vb||phut(vb.tao)>=30) return '';
+      return `<div style="margin-top:12px;padding-top:9px;border-top:1px dashed var(--vien);font-size:.78rem;color:var(--mo);display:flex;justify-content:space-between;align-items:center">
+        <span>Vừa bán <b style="color:var(--chu)">${so3(vb.so)}</b> · ${vb.cach==='cash'?'💵':QR(13,2)} ${t(vb.tong)}</span>
+        <span style="color:var(--lam);cursor:pointer;font-weight:600" onclick="S.man='ls';S.chon=${vb.so};S.doi=${vb.so};S.lyDoi=null;ve()">⇄ Đổi cách trả</span></div>`; })()}`;
+}
+
+function khungXem(){
+  const T=tongGio(), soSau=S.so+1;
+  const gia={so:soSau,mon:S.gio,tong:T,tt:S.kieu==='cho'?'cho':'da',cach:S.kieu==='cho'?null:S.kieu,dua:S.dua,tao:Date.now()};
+  if(S.khach) gia.khach={ten:S.khach.ten,sdt:S.khach.sdt,cong:diemCua(T),tong:S.khach.diem+diemCua(T)};
+  else if(diemCua(T)>0){ gia.ma='••••-••••'; gia.diemMa=diemCua(T)*HE_SO; }
+  const tems=temCua(gia);
+  const tieu = S.kieu==='cash'?`💵 Tiền mặt · khách đưa ${t(S.dua)}`:S.kieu==='transfer'?`${QR(16,3)} Chuyển khoản`:'🧾 Mang ra bàn · chưa thu';
+  return `
+    <div class="xt-dau"><b style="font-size:.95rem">Xem trước khi in</b><span style="font-size:.78rem;color:var(--mo)">${tieu}</span></div>
+    <div class="chon-in">
+      ${[['khach','inKhach','🧾 Bill khách'],['tem','inTem',`🏷 Tem cốc × ${tems.length}`],['pc','inPC','📋 Phiếu pha chế']].map(([id,bien,ten])=>{
+        const m=S.cai.may[id], n=S.cai.ban[id];
+        return `<label><input type="checkbox" ${S[bien]?'checked':''} onchange="S.${bien}=this.checked;ve()"> ${ten}${n>1?` <b>×${n} bản</b>`:''}
+          <small>→ ${tenMay(m)}${S.bat[m]?'':' <b style="color:#dc2626">· đang tắt</b>'}</small></label>`;}).join('')}
+    </div>
+    <div style="font-size:.7rem;color:var(--mo);margin:-2px 0 6px">Dấu tick lấy từ <b>Cài đặt in</b>. Bỏ tick ở đây chỉ áp cho đơn này.</div>
+    ${[['khach','inKhach'],['tem','inTem'],['pc','inPC']].some(([id,b])=>S[b]&&!S.bat[S.cai.may[id]])?
+      `<div style="font-size:.74rem;background:#fff7ed;color:#9a3412;border-radius:8px;padding:6px 9px;margin-bottom:6px">
+        ⚠ Có máy đang tắt — lệnh in <b>không mất</b>, nằm chờ và tự in khi máy bật lại.</div>`:''}
+    <div class="xem">
+      ${S.inKhach?billGiay(gia,'khach'):''}
+      ${S.inPC?billGiay(gia,'pc'):''}
+      ${S.inTem?`<div class="tems">${tems.map(temGiay).join('')}</div>`:''}
+      ${!S.inKhach&&!S.inPC&&!S.inTem?'<div class="rong" style="padding:20px">Không chọn in gì</div>':''}
+    </div>
+    ${S.inTem&&S.gio.some(g=>(g.rieng||'').length>TEM_TOI_DA)?`<div style="font-size:.74rem;background:#fef2f2;color:#991b1b;border-radius:8px;padding:6px 9px;margin-top:6px">
+      ⚠ Có ghi chú dài hơn ${TEM_TOI_DA} ký tự — tem chỉ in được phần đầu (có dấu …). Bill khách và phiếu pha chế vẫn in đủ.</div>`:''}
+    <div style="font-size:.72rem;color:var(--mo);margin:6px 0 8px">Số bill <b>${so3(soSau)}</b>${S.khach?'':' và mã nhận điểm'} là dự kiến — máy chủ cấp thật lúc bấm In.</div>
+    <div style="display:flex;gap:7px">
+      <button class="nut xam" style="flex:1" onclick="quayLai()">← Quay lại</button>
+      <button class="nut" style="flex:1.8;background:${S.kieu==='cho'?'var(--duong)':'var(--luc)'}" onclick="inVaGhi()">🖨 In${S.kieu==='cho'?' · mang ra bàn':' · hoàn tất'}</button>
+    </div>`;
+}
+
+function khungVe(d){
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:2.2rem;font-weight:900;line-height:1">${so3(d.so)}</span>
+      <span style="font-size:.78rem;color:var(--mo)">ra bàn ${phut(d.tao)} phút</span></div>
+    ${d.mon.map(g=>`<div class="dong"><div class="t1"><span>${g.ten} ×${g.sl}</span><b>${t(g.gia*g.sl)}</b></div>
+      ${chonCua(g)?`<div style="font-size:.74rem;color:#1e40af;font-style:italic">${chonCua(g)}</div>`:''}
+      ${g.rieng?`<div style="font-size:.74rem;color:#b91c1c;font-weight:700">✎ ${g.rieng}</div>`:''}</div>`).join('')}
+    <div class="tongcong"><span>Cần thu</span><b>${t(d.tong)}</b></div>
+    <div class="hai">
+      <button class="nutto" style="background:var(--luc)" onclick="thu(${d.so},'cash')">💵 Tiền mặt<small>đúng tiền</small></button>
+      <button class="nutto" style="background:var(--tim)" onclick="thu(${d.so},'transfer')">${QR(20,5)} Chuyển khoản<small>thấy tiền về rồi</small></button>
+    </div>
+    ${S.huy===d.so?`<div style="background:#fef2f2;border-radius:10px;padding:9px;margin-top:10px">
+      <div style="font-size:.76rem;font-weight:800;color:#991b1b;margin-bottom:6px">Huỷ ${so3(d.so)} — lý do (bắt buộc)</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${['Khách bỏ đi','Tạo nhầm','Khách đổi món','Khác'].map(x=>`<button class="nv" style="${S.lyDo===x?'background:#fee2e2;border-color:#dc2626':''}" onclick="S.lyDo='${x}';ve()">${x}</button>`).join('')}</div>
+      <div style="display:flex;gap:6px;margin-top:7px"><button class="nut xam" style="flex:1" onclick="S.huy=null;S.lyDo=null;ve()">Không huỷ</button>
+        <button class="nut" style="flex:1;background:#dc2626" ${S.lyDo?'':'disabled'} onclick="huyDon()">Huỷ · trả kho</button></div></div>`
+    :`<div style="display:flex;gap:6px;margin-top:10px"><button class="nv" style="flex:1" onclick="moInLai(${d.so})">🖨 In lại…</button>
+      <button class="nv" style="flex:1;color:#b91c1c" onclick="S.huy=${d.so};S.lyDo=null;ve()">✕ Huỷ bill</button></div>`}
+    <div style="font-size:.74rem;color:var(--mo);margin-top:8px">Khách đã cầm bill, pha chế đã có tem — thu xong không in thêm gì.</div>`;
+}
+function khungApp(d){
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:2.2rem;font-weight:900;line-height:1">${so3(d.so)}</span>
+      <span style="background:#ede9fe;color:#5b21b6;font-weight:800;font-size:.76rem;border-radius:999px;padding:3px 10px">📱 ĐƠN TỪ APP</span></div>
+    ${d.inLoi?`<div style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:9px;padding:8px 10px;font-size:.8rem;margin-bottom:8px">
+      <b>⚠ Chưa in được cho pha chế.</b> Đơn vẫn nằm đây, không mất. Kiểm máy in / trạm in rồi bấm In lại.</div>`:''}
+    <div style="font-size:.8rem;margin-bottom:6px">👤 <b>${d.khach.ten}</b> · <span style="color:#166534">+${d.khach.cong} điểm</span></div>
+    ${d.mon.map(g=>`<div class="dong"><div class="t1"><span>${g.ten} ×${g.sl}</span><b>${t(g.gia*g.sl)}</b></div>
+      ${chonCua(g)?`<div style="font-size:.74rem;color:#1e40af;font-style:italic">${chonCua(g)}</div>`:''}
+      ${g.rieng?`<div style="font-size:.74rem;color:#b91c1c;font-weight:700">✎ ${g.rieng}</div>`:''}</div>`).join('')}
+    <div class="tongcong"><span>Đã thanh toán online</span><b>${t(d.tong)}</b></div>
+    <div class="hai">
+      <button class="nutto" style="background:var(--luc)" onclick="daGiao(${d.so})">✓ Khách đã lấy<small>đóng thẻ này</small></button>
+      <button class="nutto" style="background:#475569" onclick="moInLai(${d.so})">🖨 In lại…<small>chọn tờ cần in</small></button>
+    </div>`;
+}
+function khungInLai(d){
+  const tems=temCua(d);
+  const o=(k,ten,lan)=>`<label style="display:flex;gap:8px;align-items:center;padding:6px 8px;background:#f8fafc;border-radius:8px;margin-bottom:4px;font-size:.82rem;cursor:pointer">
+    <input type="checkbox" ${S.chonLai[k]?'checked':''} onchange="S.chonLai['${k}']=this.checked;ve()"> ${ten}
+    <small style="margin-left:auto;color:var(--mo)">${lan?'đã in '+lan+' lần':'chưa in'}</small></label>`;
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b>🖨 In lại ${so3(d.so)}</b><span style="font-size:.74rem;color:var(--mo)">tờ nào hỏng thì tick tờ đó</span></div>
+    ${o('khach','🧾 Bill khách',soLanIn(d.so,'khach'))}
+    ${o('pc','📋 Phiếu pha chế',soLanIn(d.so,'pc'))}
+    <div style="font-size:.72rem;font-weight:800;color:var(--mo);margin:8px 0 4px">TEM CỐC</div>
+    ${tems.map(x=>o('tem'+x.i,`🏷 ${x.i}/${x.tong} · ${x.ten}${x.chon?' · '+x.chon:''}`,soLanIn(d.so,'tem',x.i))).join('')}
+    <div style="font-size:.72rem;color:var(--mo);margin:6px 0 8px">Tờ in lại có dòng <b>IN LẠI · LẦN n</b> — để không ai nhầm là một đơn mới.</div>
+    <div style="display:flex;gap:7px"><button class="nut xam" style="flex:1" onclick="S.inLai=null;ve()">Thôi</button>
+      <button class="nut" style="flex:1.6;background:#475569" ${Object.values(S.chonLai).some(Boolean)?'':'disabled'} onclick="inLaiChon()">🖨 In lại mục đã chọn</button></div>`;
+}
+
+function manCai(){
+  const c=S.cai;
+  const hang=PHIEU.map(p=>`<tr>
+    <td><b>${p.ten}</b><div style="font-size:.72rem;color:var(--mo)">${p.ghi}</div></td>
+    <td><select class="chon" onchange="S.cai.may.${p.id}=this.value;ve()">
+      ${MAY.filter(m=>m.kho===p.kho).map(m=>`<option value="${m.id}" ${c.may[p.id]===m.id?'selected':''}>${m.ten}</option>`).join('')}</select>
+      <div style="font-size:.66rem;color:var(--mo)">chỉ hiện máy khổ ${p.kho==='tem'?'tem':'80mm'}</div></td>
+    <td style="text-align:center"><input type="number" min="1" max="3" value="${c.ban[p.id]}" style="width:52px;padding:5px;border:1px solid var(--vien);border-radius:6px"
+        onchange="S.cai.ban.${p.id}=Math.max(1,Math.min(3,+this.value||1));ve()"></td>
+    <td style="text-align:center"><input type="checkbox" ${c.quay[p.id]?'checked':''} onchange="S.cai.quay.${p.id}=this.checked;ve()"></td>
+    <td style="text-align:center"><input type="checkbox" ${c.ngoai[p.id]?'checked':''} onchange="S.cai.ngoai.${p.id}=this.checked;ve()"></td>
+    <td style="text-align:center;background:#f5f3ff"><input type="checkbox" ${c.app[p.id]?'checked':''} onchange="S.cai.app.${p.id}=this.checked;ve()"></td>
+  </tr>`).join('');
+  return `
+  <div class="dau"><h1>⚙️ Cài đặt in</h1><span style="font-size:.8rem;color:var(--mo)">chủ quán chỉnh một lần · áp cho mọi đơn</span></div>
+  <div class="the-cai">
+    <div class="tieu">1 · Phiếu nào in ra máy nào, mặc định in khi nào</div>
+    <div style="overflow-x:auto"><table class="bangcai">
+      <tr><th>Loại phiếu</th><th>In ra máy</th><th>Số bản</th><th>Trả tại quầy<br><small>💵 / ▦</small></th><th>Mang ra bàn<br><small>🧾</small></th><th>Đơn từ app<br><small>📱 tự in</small></th></tr>
+      ${hang}</table></div>
+    <div style="font-size:.74rem;color:var(--mo);margin-top:8px">Cột <b>Trả tại quầy</b> và <b>Mang ra bàn</b> là dấu tick mặc định ở màn xem trước. Cột <b>Đơn từ app</b> thì <b>không có ai xem trước</b> — máy chủ tự in đúng các tờ được tick, ngay khi đơn về. Nhân viên vẫn bỏ tick được cho từng đơn — không làm đổi cài đặt này.</div>
+  </div>
+  <div class="the-cai">
+    <div class="tieu">2 · Máy in trạm in đang thấy</div>
+    ${MAY.map(m=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #f1f5f9">
+      <span class="den-may ${S.bat[m.id]?'chay':''}"></span><b style="flex:1">${m.ten}</b>
+      <span style="font-size:.74rem;color:var(--mo)">khổ ${m.kho==='tem'?'tem 40×30':'80mm'}</span>
+      ${S.lenh.filter(l=>l.m===m.id&&l.tt==='cho').length?`<span style="font-size:.74rem;color:#9a3412;font-weight:700">${S.lenh.filter(l=>l.m===m.id&&l.tt==='cho').length} lệnh đang chờ</span>`:''}
+      <button class="nv" onclick="batTat('${m.id}')">${S.bat[m.id]?'Giả lập: tắt máy':'Giả lập: bật máy'}</button></div>`).join('')}
+    <div style="font-size:.74rem;color:var(--mo);margin-top:6px">Máy thật: trạm in tự báo máy nào đang cắm và bật. Máy tắt thì lệnh in <b>nằm chờ</b>, bật lên là tự in.</div>
+  </div>`;
+}
+function batTat(id){ S.bat[id]=!S.bat[id];
+  const cho=S.lenh.filter(l=>l.m===id&&l.tt==='cho');
+  if(S.bat[id]&&cho.length){ S.ra={[id]:[]}; S.den={[id]:true};
+    cho.reverse().forEach(l=>{ if(S.hetGiay[id]) l.tt='loi'; else { l.tt='da'; S.ra[id].push(l.giay); } });
+    S.don.forEach(d=>{ if(d.nguon==='app'&&d.inLoi&&!S.lenh.some(l=>l.so===d.so&&l.tt!=='da'&&l.tt!=='bo')) d.inLoi=false; });
+    setTimeout(()=>{S.den={};ve();},1400); }
+  ve(); }
+function manLS(){
+  const all=S.don.filter(d=>!d.dangThu), loc=S.loc==='tatca'?all:all.filter(d=>d.tt===S.loc);
+  const da=all.filter(d=>d.tt==='da');
+  const tm=da.filter(d=>d.cach==='cash').reduce((a,d)=>a+d.tong,0), ck=da.filter(d=>d.cach==='transfer').reduce((a,d)=>a+d.tong,0);
+  const cho=all.filter(d=>d.tt==='cho');
+  return `
+  <div class="dau"><h1>📜 Lịch sử đơn</h1><span style="font-size:.8rem;color:var(--mo)">tra cứu · in lại · đổi cách trả · hoàn tiền</span></div>
+  <div class="bon">
+    <div class="o4"><small>💵 Tiền mặt đã thu</small><b style="color:var(--luc)">${t(tm)}</b></div>
+    <div class="o4"><small>${QR(13,2)} Chuyển khoản đã thu</small><b style="color:var(--tim)">${t(ck)}</b></div>
+    <div class="o4"><small>🧾 Chưa thu · ${cho.length} bill</small><b style="color:var(--duong)">${t(cho.reduce((a,d)=>a+d.tong,0))}</b></div>
+    <div class="o4"><small>✕ Đã huỷ</small><b style="color:var(--mo)">${all.filter(d=>d.tt==='huy').length} bill</b></div>
+  </div>
+  <div class="tabs">${[['tatca','Tất cả'],['da','Đã thu'],['cho','Chưa thu'],['huy','Đã huỷ']].map(([k,v])=>`<div class="${S.loc===k?'on':''}" style="cursor:pointer" onclick="S.loc='${k}';S.chon=null;ve()">${v} (${k==='tatca'?all.length:all.filter(d=>d.tt===k).length})</div>`).join('')}</div>
+  <div style="background:#fff;border-radius:12px;overflow:auto"><table class="bangls">
+    <tr><th>Bill</th><th>Giờ</th><th>Món</th><th>Khách</th><th style="text-align:right">Tiền</th><th>Trạng thái</th></tr>
+    ${loc.length?loc.map(d=>`<tr class="hangls ${S.chon===d.so?'chon':''}" onclick="S.chon=${d.so};S.doi=null;S.inLai=null;ve()">
+      <td style="font-weight:900">${so3(d.so)}${d.nguon==='app'?' 📱':''}</td><td>${gio(d.tao)}</td>
+      <td>${d.mon.map(g=>g.ma+'×'+g.sl).join(', ')}</td><td>${d.khach?d.khach.ten:'<span style="color:var(--mo)">khách lẻ</span>'}</td>
+      <td style="text-align:right;font-weight:700">${t(d.tong)}</td>
+      <td>${d.tt==='da'?(d.cach==='cash'?'💵 Đã thu':QR(12,2)+' Đã thu'):d.tt==='cho'?'🧾 Chưa thu':'✕ '+(d.lyDo||'Huỷ')}</td></tr>`).join('')
+    :`<tr><td colspan="6" style="text-align:center;color:var(--mo);padding:22px">Chưa có đơn nào.</td></tr>`}
+  </table></div>`;
+}
+function ngan(){
+  if(S.man!=='ls'||!S.chon) return '';
+  const d=S.don.find(x=>x.so===S.chon); if(!d) return '';
+  const coDoi=d.tt==='da'&&d.nguon!=='app'&&!d.dangDoi;
+  let chan='';
+  if(S.inLai===d.so) chan=khungInLai(d);
+  else if(S.doi===d.so) chan=`<div style="background:#faf5ff;border-radius:10px;padding:10px">
+      <div style="font-size:.8rem;font-weight:800;margin-bottom:6px">Đổi cách trả</div>
+      <div style="font-size:.9rem;margin-bottom:8px"><s style="color:var(--mo)">${d.cach==='cash'?'💵 Tiền mặt':QR(14,2)+' Chuyển khoản'}</s> → <b>${d.cach==='cash'?QR(14,2)+' Chuyển khoản':'💵 Tiền mặt'}</b></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${['Khách đổi ý','Bấm nhầm','Khác'].map(x=>`<button class="nv" style="${S.lyDoi===x?'background:#ede9fe;border-color:#7c3aed':''}" onclick="S.lyDoi='${x}';ve()">${x}</button>`).join('')}</div>
+      <div style="font-size:.72rem;color:var(--mo);margin:7px 0">Số tiền không đổi — chỉ chuyển giữa ô tiền mặt và ô chuyển khoản lúc chốt ca. Chỉ bill trong ngày.</div>
+      <div style="display:flex;gap:6px"><button class="nut xam" style="flex:1" onclick="S.doi=null;ve()">Thôi</button>
+        <button class="nut" style="flex:1.4;background:var(--tim)" ${S.lyDoi?'':'disabled'} onclick="doiCach()">Xác nhận đổi</button></div></div>`;
+  else chan=`<div style="display:flex;flex-direction:column;gap:6px">
+      ${d.tt==='cho'?`<button class="nut" style="background:var(--duong)" onclick="moThe(${d.so})">→ Mở ở màn Bán hàng để thu</button>`:''}
+      <button class="nut xam" onclick="moInLai(${d.so})">🖨 In lại…</button>
+      ${coDoi?`<button class="nut" style="background:#f5f3ff;color:#6d28d9" onclick="S.doi=${d.so};S.lyDoi=null;ve()">⇄ Đổi cách trả</button>`:''}
+      ${d.tt==='da'?`<button class="nut xam">↩ Hoàn tiền <small style="font-weight:400">(đã có trong POS)</small></button>`:''}</div>`;
+  return `<div class="ngan">
+    <div class="hd"><b style="font-size:1.4rem">${so3(d.so)}${d.nguon==='app'?' 📱':''}</b><span style="cursor:pointer;font-size:1.2rem;padding:4px 8px" onclick="S.chon=null;S.doi=null;S.inLai=null;ve()">✕</span></div>
+    <div class="bd">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>${d.tt==='da'?(d.cach==='cash'?'💵 Đã thu tiền mặt':QR(13,2)+' Đã thu chuyển khoản'):d.tt==='cho'?'🧾 Chưa thu':'✕ Đã huỷ'}</span><b style="color:var(--lam);font-size:1.15rem">${t(d.tong)}</b></div>
+      ${d.mon.map(g=>`<div style="font-size:.82rem">${g.ten} ×${g.sl}${chonCua(g)?` <i style="color:#1e40af">· ${chonCua(g)}</i>`:''}${g.rieng?` <b style="color:#b91c1c">✎ ${g.rieng}</b>`:''}</div>`).join('')}
+      <div style="font-size:.8rem;margin-top:6px">${d.khach?`👤 ${d.khach.ten} · +${d.khach.cong} điểm`:d.ma?`🎁 mã nhận điểm <b>${d.ma}</b>`:'khách lẻ'}</div>
+      <div style="font-size:.8rem;font-weight:800;margin:14px 0 2px">Nhật ký</div>
+      <div class="nk">${(d.nk||[]).map(x=>`<div class="${x.loai}"><small>${gio(x.luc)}</small> · ${x.viec}</div>`).join('')}${d.dangDoi?'<div class="dc"><small>…</small> đang đổi cách trả</div>':''}</div>
+    </div><div class="ft">${chan}</div></div>`;
+}
+// ── Quét thẻ thành viên bằng camera (POS đã có sẵn bộ quét: QrScanModal.jsx dùng jsQR + camera sau)
+function veQuet(){
+  if(!S.quet) return '';
+  const thu=[['Thẻ Chị Lan','TQD-7KQ2M9XA'],['Thẻ Cô Hạnh','TQD-B8RVY6KD'],['Mã giảm giá lạ','GIAM20'],['Mã giả: QR-0912345678','QR-0912345678']];
+  return `<div class="phu-quet" onclick="if(event.target===this){S.quet=null;ve()}"><div class="hop-quet">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b>📷 Quét thẻ thành viên</b><span style="cursor:pointer" onclick="S.quet=null;ve()">✕</span></div>
+    <div class="khung-cam"><div class="vien-cam"></div><span>camera sau · đưa mã QR vào khung</span></div>
+    ${S.quet.loi?`<div style="background:#fef2f2;color:#991b1b;border-radius:8px;padding:8px 10px;font-size:.8rem;margin-bottom:8px">✗ ${S.quet.loi}</div>`:''}
+    <div style="font-size:.72rem;color:var(--mo);margin-bottom:5px">Giả lập — bấm để "đưa mã" vào camera:</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">${thu.map(([ten,ma])=>`<button class="nv" onclick="quetDuoc('${ma}')">${ten}</button>`).join('')}</div>
+  </div></div>`;
+}
+function quetDuoc(txt){ const r=docQR(txt); if(r.khach){ S.khach=r.khach; S.quet=null; S.timKH=''; thongBao(`Đã nhận diện ${r.khach.ten}`); } else { S.quet={loi:r.loi}; } ve(); }
+function ve(){
+  const ds=mo(), cur=ds.find(d=>d.so===S.ve); if(S.ve!=='moi'&&!cur) S.ve='moi';
+  const cn=document.getElementById('cn'); cn.style.display=ds.length?'inline':'none'; cn.textContent=ds.length;
+  document.getElementById('m-ban').className='mi'+(S.man==='ban'?' on':'');
+  document.getElementById('m-cai').className='mi'+(S.man==='cai'?' on':'');
+  document.getElementById('m-ls').className='mi'+(S.man==='ls'?' on':'');
+  document.getElementById('amthanh').textContent=S.amThanh?'🔔 Âm thanh: bật':'🔕 Âm thanh: tắt';
+  document.getElementById('ngan').innerHTML=ngan();
+  if(S.man==='cai'){ document.getElementById('app').innerHTML=manCai(); veKhay(); return; }
+  if(S.man==='ls'){ document.getElementById('app').innerHTML=manLS()+(S.bao?`<div class="toast"><span>${S.bao.chu}</span>${S.bao.hoan?`<button class="ho" onclick="hoan()">HOÀN TÁC</button><span class="den">${S.bao.con}s</span>`:''}</div>`:''); veKhay(); return; }
+  document.getElementById('app').innerHTML=`
+    <div class="dau"><h1>🛒 Bán hàng</h1><span style="color:#b45309;font-size:.85rem">Thứ Hai, 21/9/2026</span></div>
+    <div class="cot">
+      <div class="trai">
+        <div class="tabs"><div class="on">Tất cả</div><div>🍵 Trà · 28</div><div>☕ Cà phê</div><div>🥤 Nước ép · hết</div></div>
+        <div class="luoi">${SP.map(s=>{const bg=s.ton===null?'<span class="bg bs">Có sẵn</span>':s.ton>0?`<span class="bg bc">${s.ton}</span>`:'<span class="bg b0">Hết</span>';
+          return `<div class="sp ${s.ton===0?'het':''}" onclick="them('${s.ma}')">${bg}<div class="ic">${s.ic}</div>
+            <div class="ma" style="color:${s.m}">${s.ma}</div><div class="tn">${s.ten}</div><div class="gi">${t(s.gia)}</div></div>`;}).join('')}</div>
+      </div>
+      <div class="cotphai">
+        <div class="dai">
+          <div class="ve moi ${S.ve==='moi'?'on':''}" onclick="S.ve='moi';ve()"><b style="font-size:.88rem">🛒 Đơn mới</b><small>${S.gio.length?t(tongGio()):'trống'}</small></div>
+          ${ds.map(d=>`<div class="ve ${S.ve===d.so?'on':''} ${d.nguon==='app'&&!d.daXem?'nhay':''}" onclick="if(S.buoc==='chon'){moThe(${d.so})}">
+            <span class="cham" style="background:${d.inLoi?'#dc2626':d.nguon==='app'?'#7c3aed':phut(d.tao)>=10?'#dc2626':'#0ea5e9'}"></span>
+            <div class="so">${so3(d.so)}</div><small>${d.nguon==='app'?'📱 app':t(d.tong)}${d.inLoi?' · ⚠':''}</small></div>`).join('')}
+        </div>
+        <div class="khung">${S.inLai&&S.don.find(x=>x.so===S.inLai)?khungInLai(S.don.find(x=>x.so===S.inLai))
+          :S.ve!=='moi'?(cur.nguon==='app'?khungApp(cur):khungVe(cur)):S.buoc==='xem'?khungXem():khungChon()}</div>
+      </div>
+    </div>
+    ${veQuet()}
+    ${S.bao?`<div class="toast"><span>🖨 ${S.bao.chu}</span>${S.bao.hoan?`<button class="ho" onclick="hoan()">HOÀN TÁC</button><span class="den">${S.bao.con}s</span>`:''}</div>`:''}`;
+  veKhay();
+}
+function veKhay(){
+  document.getElementById('mayin').innerHTML=MAY.map(m=>{
+    const ra=S.ra[m.id]||[], cho=S.lenh.filter(l=>l.m===m.id&&l.tt==='cho').length, loi=S.lenh.filter(l=>l.m===m.id&&l.tt==='loi');
+    const gan=S.lenh.filter(l=>l.m===m.id&&l.tt!=='bo').slice(0,5);
+    const tinh=!S.bat[m.id]?['ĐANG TẮT','#dc2626']:S.hetGiay[m.id]?['HẾT GIẤY','#dc2626']:['sẵn sàng','var(--mo)'];
+    return `<div class="khay"><h4><span><span class="den-may ${S.den[m.id]?'chay':''}" style="${tinh[0]==='sẵn sàng'?'':'background:#fca5a5'}"></span>${m.kho==='tem'?'🏷':'🖨'} ${m.ten}</span>
+      <small style="color:${tinh[1]};font-weight:700">${tinh[0]}${cho?' · '+cho+' chờ':''}${loi.length?' · '+loi.length+' lỗi':''}</small></h4>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="nv" onclick="S.hetGiay['${m.id}']=!S.hetGiay['${m.id}'];ve()">${S.hetGiay[m.id]?'✓ Đã nạp giấy':'Giả lập: hết giấy'}</button>
+        <button class="nv" onclick="batTat('${m.id}')">${S.bat[m.id]?'Giả lập: tắt máy':'Giả lập: bật máy'}</button>
+        ${loi.length&&!S.hetGiay[m.id]&&S.bat[m.id]?`<button class="nv" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="inLaiLoi('${m.id}')">🖨 In lại ${loi.length} lệnh lỗi</button>`:''}
+      </div>
+      <div class="ra">${ra.length?ra.map(g=>g.loai==='tem'?temGiay(g.x):billGiay(g.d,g.loai,g.lan)).join(''):'<span class="trong">Chưa in gì</span>'}</div>
+      ${gan.length?`<div class="solenh">${gan.map(l=>`<div class="${l.tt}">
+        <span>${gio(l.luc)} · <b>${so3(l.so)}</b> ${tenGiay(l.giay)}${(l.giay.lan||l.giay.x&&l.giay.x.lan||1)>1?' · in lại':''}</span>
+        <span>${{da:'✓ đã in',cho:'⏳ chờ máy',loi:'✗ lỗi'}[l.tt]} ${l.tt!=='cho'?`<button onclick="inLaiLenh(${l.id})">in lại</button>`:''}</span></div>`).join('')}</div>`:''}
+    </div>`;}).join('');
+}
+setInterval(nhacDonApp,15000);
+ve();
+</script>
+</body>
+</html>

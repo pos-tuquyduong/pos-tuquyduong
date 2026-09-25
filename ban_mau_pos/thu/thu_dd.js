@@ -1,0 +1,67 @@
+const fs=require('fs'); const _h=fs.readFileSync(require('path').join(__dirname,'..','ban_mau_pos.html'),'utf8'); const js=_h.split('<script>')[1].split('</script>')[0];
+const nut={}; const el=id=>nut[id]||(nut[id]={innerHTML:'',textContent:'',style:{},className:''});
+global.document={getElementById:el,addEventListener(){}};
+const hang=[]; global.setTimeout=(f,ms)=>{ if(ms===5000) hang.push(f); return 1;}; global.clearTimeout=()=>{};
+global.setInterval=()=>0; global.clearInterval=()=>{};
+let soOsc=0;
+global.window={AudioContext:function(){ this.currentTime=0; this.destination={};
+  this.createOscillator=()=>{ soOsc++; return {frequency:{},connect(){},start(){},stop(){}}; };
+  this.createGain=()=>({gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}}); }};
+eval(js+';global.VE=ve;global.A={S,them,xemTruoc,inVaGhi,thu,hoan,huyDon,doiCach,donApp,moThe,daGiao,nhacDonApp,quetDuoc,docQR,mo,KHACH};');
+const app=()=>nut['app'].innerHTML, ng=()=>nut['ngan'].innerHTML, het=()=>{const f=hang.pop(); f&&f();};
+let d=0,x=0; const k=(t,c)=>{console.log(`  [${c?'ĐẠT':'HỎNG'}] ${t}`); c?d++:x++;};
+
+console.log('\n── quét thẻ thành viên ──');
+A.S.quet={}; VE();
+k('bấm 📷 → mở khung camera', app().includes('Quét thẻ thành viên') && app().includes('camera sau'));
+A.quetDuoc('TQD-7KQ2M9XA'); VE();
+k('quét thẻ Chị Lan → nhận diện, đóng camera', A.S.khach&&A.S.khach.ten==='Chị Lan' && !A.S.quet);
+k('hiện hạng + điểm + ví của khách', app().includes('hạng Bạc') && app().includes('45 điểm') && app().includes('ví 120.000đ'));
+A.S.khach=null; A.S.quet={}; A.quetDuoc('QR-0912345678'); VE();
+k('mã GIẢ kiểu cũ "QR-<SĐT>" → TỪ CHỐI, không nhận diện', !A.S.khach && app().includes('ai cũng làm giả được'));
+A.quetDuoc('GIAM20'); VE();
+k('mã lạ → báo "không phải thẻ thành viên"', !A.S.khach && app().includes('Không phải thẻ thành viên'));
+k('docQR: mã thật của Cô Hạnh', A.docQR('TQD-B8RVY6KD').khach.ten==='Cô Hạnh');
+A.S.quet=null;
+
+console.log('\n── nhật ký + huỷ bill ngoài bàn ──');
+A.them('DNL'); A.xemTruoc('cho'); A.inVaGhi();
+const b=A.S.don[0];
+k('tạo bill → nhật ký có dòng đầu', b.nk.length===1 && b.nk[0].viec.includes('mang ra bàn'));
+A.moThe(b.so); A.S.huy=b.so; VE();
+k('huỷ: nút khoá khi chưa chọn lý do', /disabled onclick="huyDon\(\)"/.test(app()));
+A.S.lyDo='Khách bỏ đi'; A.huyDon();
+k('huỷ có hoàn tác', app().includes('HOÀN TÁC'));
+A.hoan(); k('hoàn tác huỷ → bill quay lại chờ thu', b.tt==='cho' && A.S.ve===b.so);
+A.S.huy=b.so; A.S.lyDo='Khách bỏ đi'; A.huyDon(); het();
+k('huỷ thật → nhật ký ghi "Huỷ · Khách bỏ đi · trả hàng về kho"', b.tt==='huy' && b.nk.some(n=>n.viec==='Huỷ · Khách bỏ đi · trả hàng về kho'));
+
+console.log('\n── đổi cách trả sau khi in ──');
+A.them('CF01'); A.xemTruoc('cash',20000); A.inVaGhi(); VE();
+const c=A.S.don[0];
+k('dưới giỏ có "Vừa bán … ⇄ Đổi cách trả"', app().includes('Vừa bán') && app().includes('Đổi cách trả'));
+A.S.man='ls'; A.S.chon=c.so; A.S.doi=c.so; VE();
+k('mở ở Lịch sử, chế độ đổi, nút khoá khi chưa có lý do', ng().includes('Xác nhận đổi') && /disabled onclick="doiCach\(\)"/.test(ng()));
+A.S.lyDoi='Khách đổi ý'; A.doiCach(); k('trong 5 giây: chưa đổi', c.cach==='cash');
+het(); k('hết 5 giây: đã đổi sang chuyển khoản + nhật ký', c.cach==='transfer' && c.nk.some(n=>n.viec.includes('Đổi tiền mặt → chuyển khoản · Khách đổi ý')));
+A.S.chon=c.so; A.S.doi=null; VE();
+k('ngăn Lịch sử hiện nhật ký 2 dòng: bán + đổi', (ng().match(/<div class="(d|dc)"><small>/g)||[]).length===2);
+
+console.log('\n── đơn app: âm thanh ──');
+const truoc=A.S.soTieng, osc0=soOsc;
+A.S.man='ban'; A.donApp(); const ap=A.S.don[0]; VE();
+k('đơn app về → chuông kêu (3 tiếng ting)', A.S.soTieng===truoc+1 && soOsc-osc0===3);
+k('thẻ đơn app nhấp nháy khi chưa ai mở', app().includes('nhay'));
+A.nhacDonApp(); k('chưa ai mở → 15 giây sau kêu nhắc lại', A.S.soTieng===truoc+2);
+A.moThe(ap.so); VE();
+k('mở thẻ → thôi nhấp nháy', !app().includes('class="ve on nhay"') && ap.daXem);
+A.nhacDonApp(); k('đã mở → không nhắc nữa', A.S.soTieng===truoc+2);
+A.S.amThanh=false; A.donApp(); k('tắt âm thanh → đơn về không kêu', A.S.soTieng===truoc+2);
+A.S.amThanh=true;
+
+console.log('\n── Lịch sử chỉ tra cứu ──');
+const cho=A.S.don.find(o=>o.tt==='cho'&&o.nguon!=='app')||(A.them('DNL'),A.xemTruoc('cho'),A.inVaGhi(),A.S.don[0]);
+A.S.man='ls'; A.S.chon=cho.so; A.S.doi=null; VE();
+k('bill chưa thu ở Lịch sử: có "Mở ở Bán hàng", KHÔNG có nút thu', ng().includes('Mở ở màn Bán hàng') && !ng().includes('Tiền mặt<small>'));
+k('bốn ô chốt ca có mặt', app().includes('Tiền mặt đã thu') && app().includes('Chuyển khoản đã thu') && app().includes('Chưa thu') && app().includes('Đã huỷ'));
+console.log(`\n  → ${d} đạt · ${x} hỏng\n`);

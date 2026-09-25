@@ -1,0 +1,67 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(node kiem_tra_truoc_khi_giao.js:*)",
+      "Bash(node --check:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git branch:*)",
+      "Bash(bash ban_mau_pos/chay_thu.sh:*)"
+    ],
+    "ask": [
+      "Edit(./kiem_tra_truoc_khi_giao.js)",
+      "Write(./kiem_tra_truoc_khi_giao.js)",
+      "Edit(./CHECKLIST_CODE.md)",
+      "Edit(./TIEN_DO_POS.json)",
+      "Edit(./ban_mau_pos/**)",
+      "Write(./ban_mau_pos/**)",
+      "Edit(./.claude/**)",
+      "Write(./.claude/**)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(git add -A:*)",
+      "Bash(git add .:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git checkout main:*)",
+      "Bash(git checkout master:*)",
+      "Bash(rm -rf:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./.replit)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/nhac_sau_sua.cjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kiem_truoc_khi_dung.cjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
