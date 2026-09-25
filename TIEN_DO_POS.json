@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 4,
-  "cap_nhat": "2026-09-23",
+  "phien_ban_so": 6,
+  "cap_nhat": "2026-09-25",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
     {
@@ -116,12 +116,13 @@
     },
     {
       "ma": "P13",
-      "ten": "Man ban hang mot man, khong popup: 3 cach tra (tien mat chon to / chuyen khoan QR / in bill mang ra ban) · the so bill · thu 2 cham + hoan tac · huy co ly do",
+      "ten": "(gop vao P13a-e ngay 25.09) Man ban hang mot man, khong popup: 3 cach tra (tien mat chon to / chuyen khoan QR / in bill mang ra ban) · the so bill · thu 2 cham + hoan tac · huy co ly do",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
-      "ngay": null
+      "ngay": null,
+      "gop_vao": "P13a-e"
     },
     {
       "ma": "P14",
@@ -161,7 +162,97 @@
     },
     {
       "ma": "P18",
-      "ten": "Lich su don: ngan ben phai · nhat ky tung don · in lai · doi cach tra (ly do, trong ngay, hoan tac) · 4 o chot ca",
+      "ten": "Lich su don: ngan ben phai · nhat ky tung don · in lai · doi cach tra (ly do, trong ngay) · 4 o chot ca",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P20",
+      "ten": "Hotfix: ma tren bill chi dung duoc khi bill da thanh toan — /claim va /nhan-diem cung kiem: gan don · chua huy · payment_status='paid'. LAM TRUOC moi viec P13",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "POS-P20-v1",
+      "commit": null,
+      "ngay": "2026-09-25"
+    },
+    {
+      "ma": "P21",
+      "ten": "Hotfix: reconcileWallet chi cong cac loai trong danh sach TRANG (topup, purchase, refund, adjust, compensation); debt_payment va moi loai moi KHONG tinh vao vi. Deploy ngay sau P20",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P22",
+      "ten": "Diem thuong chi cong khi thu du: don paid luc tao cong ngay; don cho thu/con no cong o pay-debt khi thanh paid, chi khi don CHUA co dong earn (F2). pay-debt: UPDATE don + dong debt_payment + cong diem trong MOT transaction (diem loi khong hong lan thu), log thu ghi SAU CUNG voi meta truoc-khi-thu dung thuc te. CHO CHU QUAN QUYET 1 viec: diem am khi khach da tieu diem — ap cho hoan thu P13e va huy don P24",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P23",
+      "ten": "May chu tu choi don co package_buy hoac membership_buy ma chua thu du (cho_thu, ghi no, con no)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P24",
+      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P13a",
+      "ten": "Nen P13: them choThu/nhatKy/doiCachTra vao api.js · MOT nguong bill_cho_do_phut (seed + o Cai dat, client fallback 10) · quyen doi_cach_tra (owner+manager+staff, seed ngoai khoi bang rong) + checkPermission o doi-cach-tra",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P13b",
+      "ten": "Day the bill cho thu + thu 2 cham tien mat/chuyen khoan, GHI NGAY (bo hoan tac 5s); xu ly 400 da thu / 409 DA_THU_ROI. Can TRUOC: gate ban mau (bo hoan tac, sua luat 2 va luat 3 — bill mang ra ban chi thu o Ban hang, don ghi no thu o Lich su don) + P22",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P13c",
+      "ten": "Khung the: huy bill co ly do + xac nhan, an nut voi nguoi khong co quyen cancel_order; In lai tach cho P16",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P13d",
+      "ten": "Ba nut tra tien + day to tien thay popup; ham thuan dungPayloadDon dung chung (C15), giu popup cu lam loi du phong cho ca phuc tap",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P13e",
+      "ten": "Hoan thu o Lich su don: quyen hoan_thu (manager), ly do + xac nhan; thu phai la thao tac cuoi, trong ngay (owner: moi ngay + xac nhan them), ma uu dai chua dung; append-only (log hoan_thu, dong debt_payment_hoan am, dong diem am). Can P21, P22",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,

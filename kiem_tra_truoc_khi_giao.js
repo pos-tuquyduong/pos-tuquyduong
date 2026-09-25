@@ -397,6 +397,33 @@ chac('orders.js chặn sản phẩm chưa có giá',
     'thiếu trong BACKUP_TABLES: ' + thieu.join(', '));
 }
 
+// E9 — POS-P20-v1: mã in trên bill chỉ dùng được khi bill ĐÃ THANH TOÁN.
+// Bill "mang ra bàn chưa thu" vẫn in mã; /claim từng không đọc đơn (đơn huỷ vẫn
+// đổi được voucher), /nhan-diem không kiểm payment_status. Mỗi đường dùng mã
+// phải gọi kiemDonCuaMa TRƯỚC lệnh ghi đầu tiên, và hàm đó phải chặn đơn huỷ +
+// đơn chưa 'paid'. Bài chạy thật: node cong_cu/thu_P20.js
+{
+  const src = boGhiChu(doc('server/routes/signup-codes.js'));
+  const khoi = (ten) => {
+    const a = src.indexOf(`router.post('${ten}'`);
+    return a < 0 ? '' : src.slice(a, src.indexOf('router.', a + 20));
+  };
+  for (const ten of ['/claim', '/nhan-diem']) {
+    const k = khoi(ten);
+    const goi = k.indexOf('kiemDonCuaMa(');
+    const ghi = [k.indexOf('beginTransaction('), k.indexOf('UPDATE pos_signup_codes')].filter((i) => i >= 0);
+    const ghiDau = ghi.length ? Math.min(...ghi) : Infinity;
+    chac(`${ten}: kiểm đơn của mã (chưa huỷ, đã thanh toán) TRƯỚC lệnh ghi`,
+      k !== '' && goi >= 0 && goi < ghiDau,
+      'khách dùng được mã in trên bill khi bill chưa trả tiền hoặc đã huỷ');
+  }
+  const a = src.indexOf('function kiemDonCuaMa');
+  const than = a < 0 ? '' : src.slice(a, src.indexOf('\n}', a));
+  chac('kiemDonCuaMa chặn đơn đã huỷ và đơn chưa thanh toán đủ',
+    /status\s*===\s*'cancelled'/.test(than) && /payment_status\s*!==\s*'paid'/.test(than),
+    'thiếu điều kiện cancelled hoặc payment_status !== \'paid\'');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 nhom('F · VỆ SINH REPO');
 

@@ -27,6 +27,36 @@ const router = express.Router();
 const CODE_EXPIRE_HOURS = 24;
 const DEFAULT_VALID_DAYS = 30;
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  POS-P20-v1 — mã in bill chỉ dùng được khi bill ĐÃ THANH TOÁN
+//
+//  Bill "mang ra bàn chưa thu" vẫn in mã. Trước đây khách dùng được mã (đổi
+//  voucher qua /claim, nhận điểm qua /nhan-diem) khi chưa trả tiền; /claim còn
+//  không đọc đơn — đơn đã huỷ vẫn claim được. Một hàm dùng chung cho CẢ HAI
+//  đường (C15), gọi trước mọi lệnh ghi. Không đổi việc in mã lên bill.
+//
+//  Trả { don } nếu dùng được, hoặc { loi: { status, code, error } }.
+// ═══════════════════════════════════════════════════════════════════════════
+async function kiemDonCuaMa(dong) {
+  if (!dong.order_id) {
+    return { loi: { status: 400, code: 'MA_KHONG_GAN_DON', error: 'Mã này không gắn với đơn nào.' } };
+  }
+  const don = await queryOne(
+    'SELECT id, code, total, status, payment_status FROM pos_orders WHERE id = ?',
+    [dong.order_id],
+  );
+  if (!don) {
+    return { loi: { status: 404, code: 'KHONG_THAY_DON', error: 'Không tìm thấy đơn của mã này.' } };
+  }
+  if (don.status === 'cancelled') {
+    return { loi: { status: 400, code: 'DON_DA_HUY', error: 'Đơn của mã này đã bị huỷ, mã không dùng được.' } };
+  }
+  if (don.payment_status !== 'paid') {
+    return { loi: { status: 400, code: 'BILL_CHUA_THANH_TOAN', error: 'Mã dùng được sau khi bill được thanh toán.' } };
+  }
+  return { don };
+}
+
 async function getSignupConfig() {
   const rows = await query(
     "SELECT key, value FROM pos_settings WHERE key LIKE 'signup_%'"
@@ -126,21 +156,12 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
       }
     }
 
-    if (!dong.order_id) {
-      return res.status(400).json({ success: false, error: 'Mã này không gắn với đơn nào.' });
+    // POS-P20-v1: gắn đơn · chưa huỷ · ĐÃ THANH TOÁN — cùng một hàm với /claim.
+    const kqDon = await kiemDonCuaMa(dong);
+    if (kqDon.loi) {
+      return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
     }
-    const don = await queryOne(
-      'SELECT id, code, total, status FROM pos_orders WHERE id = ?',
-      [dong.order_id],
-    );
-    if (!don) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn của mã này.' });
-    if (don.status === 'cancelled') {
-      return res.status(400).json({
-        success: false,
-        error: 'Đơn của mã này đã bị huỷ, không nhận điểm được.',
-        code: 'DON_DA_HUY',
-      });
-    }
+    const don = kqDon.don;
 
     // Điểm gốc tính theo ĐÚNG cấu hình điểm đang chạy, không tự đặt công thức riêng.
     const loyRows = await query(
@@ -297,6 +318,13 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
     );
     if (claimedBefore) {
       return res.status(400).json({ success: false, error: 'Số điện thoại này đã từng nhận ưu đãi khách mới' });
+    }
+
+    // POS-P20-v1: gắn đơn · chưa huỷ · ĐÃ THANH TOÁN — cùng một hàm với /nhan-diem.
+    // Đặt sau các phép kiểm hạn / SĐT (thứ tự lời báo giống /nhan-diem), TRƯỚC khi phát voucher.
+    const kqDon = await kiemDonCuaMa(signupRow);
+    if (kqDon.loi) {
+      return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
     }
 
     // Nhóm sản phẩm áp dụng — chỉ cần khi scope='item', dùng đúng nhóm seed sẵn ở Bước 1.
