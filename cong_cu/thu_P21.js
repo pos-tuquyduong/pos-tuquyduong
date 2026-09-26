@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THỬ P21 — "kiểm lại sổ" chỉ cộng các loại dòng thuộc DANH SÁCH TRẮNG
+ *  THỬ P21 — gọi route reconcile (chưa có màn hình nào gọi) chỉ cộng các loại dòng thuộc DANH SÁCH TRẮNG
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRƯỚC KHI VÁ POS-P21-v1. Xanh ngay từ đầu = vô giá trị (K3).
  *
@@ -10,7 +10,7 @@
  *  Lỗi: reconcileWallet đặt số dư = SUM(amount) của MỌI dòng trong
  *  pos_balance_transactions. pay-debt ghi dòng 'debt_payment' mang số DƯƠNG —
  *  tiền khách trả nợ bằng tiền mặt/chuyển khoản, KHÔNG phải tiền trong ví.
- *  Bấm "kiểm lại sổ" là ví khách được cộng khống đúng số nợ đã trả.
+ *  Gọi route reconcile (chưa có màn hình nào gọi) là ví khách được cộng khống đúng số nợ đã trả.
  *
  *  Chạy thật như thu_P20.js: database.js + libsql trên file kho TẠM; nạp ví,
  *  tạo đơn, thu nợ, huỷ đơn, điều chỉnh, đền bù đều qua ROUTE THẬT — bài thử
@@ -124,11 +124,11 @@ async function main() {
     await noRoiThu(sdt2);
     const r2 = await goi('POST', '/wallets/reconcile-all');
     k('POST /wallets/reconcile-all → 200', r2.status === 200, moTa(r2));
-    k('sau "kiểm lại sổ" toàn bộ: ví vẫn 50.000đ', await soDu(sdt2) === 50000, `ví = ${await soDu(sdt2)}`);
+    k('sau khi gọi route reconcile (chưa có màn hình nào gọi) toàn bộ: ví vẫn 50.000đ', await soDu(sdt2) === 50000, `ví = ${await soDu(sdt2)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[B] Khách CHỈ có thu nợ, chưa từng có ví → "kiểm lại sổ" không được đẻ ra ví');
+  muc('[B] Khách CHỈ có thu nợ, chưa từng có ví → gọi route reconcile (chưa có màn hình nào gọi) không được đẻ ra ví');
   {
     const sdt = sdtMoi();
     await noRoiThu(sdt);

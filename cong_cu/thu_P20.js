@@ -128,7 +128,7 @@ async function main() {
     return { id: o.id, ma: r.order.signup_code, trangThaiTien: o.payment_status };
   };
   const claim = (ma, phone = sdtMoi()) => goi('POST', '/signup-codes/claim', { code: ma, phone }, true);
-  const nhanDiem = (ma) => goi('POST', '/signup-codes/nhan-diem', { code: ma, phone: sdtMoi() }, true);
+  const nhanDiem = (ma, phone = sdtMoi()) => goi('POST', '/signup-codes/nhan-diem', { code: ma, phone }, true);
   const moTa = (r) => `HTTP ${r.status}${r.code ? ' · ' + r.code : ''}${r.error ? ' · ' + r.error : ''}`;
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -218,6 +218,34 @@ async function main() {
     k('đúng 1 voucher trong pos_discount_codes', Number(v.n) === 1, `có ${v.n}`);
     const m = await db.queryOne('SELECT claimed_phone FROM pos_signup_codes WHERE UPPER(code) = ?', [String(d.ma).toUpperCase()]);
     const sdtGhi = m ? m.claimed_phone : '(không có dòng)';
+    k(`mã ghi đúng SĐT người chen vào (${sdtChen}), không bị người sau (${sdtSau}) ghi đè`,
+      sdtGhi === sdtChen, String(sdtGhi));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm');
+  {
+    const d = await taoDon('nhận điểm tranh nhau', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    const sdtChen = sdtMoi(), sdtSau = sdtMoi();
+    let nguoiChen = null;
+    // POS-P20-v4 — đường song song của ca [E]: /nhan-diem cũng kiểm diem_nhan_luc
+    // NGOÀI giao dịch rồi mới chiếm mã. Agent soát 26.09 xoá `AND diem_nhan_luc
+    // IS NULL` mà thu_P20 và bộ kiểm vẫn xanh.
+    //
+    // PHÉP PHÂN BIỆT: "người đến sau → 400 MA_DA_NHAN_DIEM" — bỏ `AND diem_nhan_luc
+    // IS NULL` thì UPDATE luôn được 1 dòng, người sau ra 200. Hai phép "đúng 1 dòng
+    // điểm" và "đúng SĐT" là phép CANH: pos_point_transactions không có UNIQUE nào
+    // đỡ (database.js), nên bỏ điều kiện đó thì cả hai cũng đỏ. Chủ quán duyệt 26.09.2026.
+    mocTruocTx = async () => { nguoiChen = await nhanDiem(d.ma, sdtChen); imLang(); };
+    const r = await nhanDiem(d.ma, sdtSau);
+    mocTruocTx = null;
+    k('móc chạy: người chen vào nhận điểm được → 200',
+      nguoiChen !== null && nguoiChen.status === 200, nguoiChen ? moTa(nguoiChen) : 'móc không chạy');
+    k('người đến sau → 400 MA_DA_NHAN_DIEM', r.status === 400 && r.code === 'MA_DA_NHAN_DIEM', moTa(r));
+    const p = await db.queryOne('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE order_id = ?', [d.id]);
+    k('đúng 1 dòng pos_point_transactions của đơn', Number(p.n) === 1, `có ${p.n}`);
+    const m = await db.queryOne('SELECT diem_nhan_phone FROM pos_signup_codes WHERE UPPER(code) = ?', [String(d.ma).toUpperCase()]);
+    const sdtGhi = m ? m.diem_nhan_phone : '(không có dòng)';
     k(`mã ghi đúng SĐT người chen vào (${sdtChen}), không bị người sau (${sdtSau}) ghi đè`,
       sdtGhi === sdtChen, String(sdtGhi));
   }

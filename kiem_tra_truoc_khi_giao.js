@@ -455,6 +455,20 @@ chac('orders.js chặn sản phẩm chưa có giá',
       !!m && chan >= 0 && chenVoucher >= 0 && chan < chenVoucher,
       'hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch');
   }
+  {
+    // POS-P20-v4: đường song song của /claim. Agent soát 26.09 xoá `AND
+    // diem_nhan_luc IS NULL` → thu_P20 và bộ kiểm vẫn xanh. Đòi đúng dạng chặn
+    // (changes === 0 hoặc !== 1), nằm giữa UPDATE chiếm mã và lệnh cộng điểm.
+    const k = khoi('/nhan-diem');
+    const m = k.match(/const\s+(\w+)\s*=\s*await\s+tx\.run\(\s*['`]UPDATE pos_signup_codes SET diem_nhan_luc[^'`]*\bAND\s+diem_nhan_luc\s+IS\s+NULL\s*['`]/);
+    const sauUpdate = m ? m.index + m[0].length : -1;
+    const chan = m ? k.slice(sauUpdate).search(new RegExp(
+      `if\\s*\\(\\s*!\\s*${m[1]}\\s*\\|\\|\\s*${m[1]}\\.changes\\s*(?:===\\s*0|!==\\s*1)\\s*\\)\\s*\\{\\s*await\\s+tx\\.rollback\\(\\s*\\)\\s*;\\s*return\\b`)) : -1;
+    const congDiem = m ? k.slice(sauUpdate).indexOf('INSERT INTO pos_point_transactions') : -1;
+    chac('/nhan-diem: chiếm mã bằng UPDATE ... AND diem_nhan_luc IS NULL rồi if (!X || X.changes === 0) { rollback; return } TRƯỚC khi cộng điểm',
+      !!m && chan >= 0 && congDiem >= 0 && chan < congDiem,
+      'hai người nhận điểm cùng một mã cùng lúc đều được cộng điểm');
+  }
 }
 
 // E11 — POS-P20-v2: bài thử CHẠY THẬT trong bộ kiểm (cũng là pre-commit và
