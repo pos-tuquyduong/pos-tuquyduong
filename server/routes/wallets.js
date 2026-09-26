@@ -277,7 +277,9 @@ router.post('/:phone/reconcile', authenticate, checkPermission('adjust_balance')
 });
 
 /**
- * POST /api/pos/wallets/reconcile-all — đối soát toàn bộ (owner). Nút "kiểm lại sổ".
+ * POST /api/pos/wallets/reconcile-all — đối soát toàn bộ (quyền adjust_balance).
+ * Chưa có màn hình nào gọi route này (grep "reconcile" trong client/src = 0, 26.09.2026)
+ * — chỉ tới được bằng gọi thẳng API.
  */
 router.post('/reconcile-all', authenticate, checkPermission('adjust_balance'), async (req, res) => {
   try {

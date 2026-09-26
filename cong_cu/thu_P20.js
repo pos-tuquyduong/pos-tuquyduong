@@ -60,6 +60,19 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   await db.initDatabase();
 
+  // POS-P20-v3 — MÓC giữa "phép kiểm ngoài giao dịch" và "mở giao dịch", để dựng
+  // lại race claim cho CHẮC CHẮN (Promise.all trên kho cục bộ luôn chạy tuần tự,
+  // người thứ hai bị phép kiểm claimed_at chặn trước, không tới UPDATE). Phải gắn
+  // TRƯỚC khi require các route vì signup-codes.js lấy beginTransaction lúc nạp.
+  // Móc chạy MỘT lần rồi tự gỡ; bình thường là null → đi thẳng hàm gốc.
+  let mocTruocTx = null;
+  const txGoc = db.beginTransaction;
+  db.beginTransaction = async (...thamSo) => {
+    const moc = mocTruocTx; mocTruocTx = null;
+    if (moc) await moc();
+    return txGoc(...thamSo);
+  };
+
   const app = express();
   app.use(express.json());
   app.use('/api/pos/orders', require(path.join(GOC, 'server', 'routes', 'orders.js')));
@@ -114,7 +127,7 @@ async function main() {
     if (!r.order.signup_code) throw new Error(`Đơn "${ten}" không được phát mã in bill`);
     return { id: o.id, ma: r.order.signup_code, trangThaiTien: o.payment_status };
   };
-  const claim = (ma) => goi('POST', '/signup-codes/claim', { code: ma, phone: sdtMoi() }, true);
+  const claim = (ma, phone = sdtMoi()) => goi('POST', '/signup-codes/claim', { code: ma, phone }, true);
   const nhanDiem = (ma) => goi('POST', '/signup-codes/nhan-diem', { code: ma, phone: sdtMoi() }, true);
   const moTa = (r) => `HTTP ${r.status}${r.code ? ' · ' + r.code : ''}${r.error ? ' · ' + r.error : ''}`;
 
@@ -179,6 +192,34 @@ async function main() {
     const d2 = await hoanTien('hoàn tiền 2');
     const r2 = await nhanDiem(d2.ma);
     k('/nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN', r2.status === 400 && r2.code === 'DON_DA_HOAN', moTa(r2));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher');
+  {
+    const d = await taoDon('claim tranh nhau', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    const sdtChen = sdtMoi(), sdtSau = sdtMoi();
+    let nguoiChen = null;
+    // Người đến sau đã qua mọi phép kiểm (mã chưa claim) và sắp mở giao dịch thì
+    // người chen vào claim trọn vẹn xong. UPDATE của người sau phải thấy 0 dòng.
+    //
+    // PHÉP PHÂN BIỆT BẢN VÁ: "người đến sau → 409 MA_DA_DUNG" — đỏ trên v1 và trên
+    // đột biến `chiem.changes > 5` (cả hai ra 500 vì vỡ UNIQUE). Hai phép "đúng 1
+    // voucher" và "đúng SĐT" là phép CANH BẤT BIẾN: xanh cả trên v1 nhờ
+    // UNIQUE(pos_discount_codes.code) + rollback (mã voucher = mã in bill); sẽ đỏ
+    // nếu ai bỏ ràng buộc đó hoặc đổi cách sinh mã voucher. Chủ quán duyệt 26.09.2026.
+    mocTruocTx = async () => { nguoiChen = await claim(d.ma, sdtChen); imLang(); };
+    const r = await claim(d.ma, sdtSau);
+    mocTruocTx = null;
+    k('móc chạy: người chen vào claim được → 200',
+      nguoiChen !== null && nguoiChen.status === 200, nguoiChen ? moTa(nguoiChen) : 'móc không chạy');
+    k('người đến sau → 409 MA_DA_DUNG', r.status === 409 && r.code === 'MA_DA_DUNG', moTa(r));
+    const v = await db.queryOne('SELECT COUNT(*) AS n FROM pos_discount_codes WHERE UPPER(code) = ?', [String(d.ma).toUpperCase()]);
+    k('đúng 1 voucher trong pos_discount_codes', Number(v.n) === 1, `có ${v.n}`);
+    const m = await db.queryOne('SELECT claimed_phone FROM pos_signup_codes WHERE UPPER(code) = ?', [String(d.ma).toUpperCase()]);
+    const sdtGhi = m ? m.claimed_phone : '(không có dòng)';
+    k(`mã ghi đúng SĐT người chen vào (${sdtChen}), không bị người sau (${sdtSau}) ghi đè`,
+      sdtGhi === sdtChen, String(sdtGhi));
   }
 
   // ═════════════════════════════════════════════════════════════════════════

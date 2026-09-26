@@ -444,8 +444,15 @@ chac('orders.js chặn sản phẩm chưa có giá',
   {
     const k = khoi('/claim');
     const m = k.match(/const\s+(\w+)\s*=\s*await\s+tx\.run\(\s*['`]UPDATE pos_signup_codes SET claimed_at[^'`]*\bAND\s+claimed_at\s+IS\s+NULL\s*['`]/);
-    chac('/claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL và đọc .changes',
-      !!m && new RegExp(`${m[1]}\\.changes`).test(k),
+    // POS-P20-v3: siết. Chỉ đòi chữ `X.changes` có mặt thì `if (X && X.changes > 5)`
+    // vẫn xanh (agent soát 26.09 chứng minh). Nay đòi ĐÚNG dạng chặn, và nó phải
+    // nằm giữa lệnh UPDATE chiếm mã và lệnh INSERT voucher.
+    const sauUpdate = m ? m.index + m[0].length : -1;
+    const chan = m ? k.slice(sauUpdate).search(new RegExp(
+      `if\\s*\\(\\s*!\\s*${m[1]}\\s*\\|\\|\\s*${m[1]}\\.changes\\s*!==\\s*1\\s*\\)\\s*\\{\\s*await\\s+tx\\.rollback\\(\\s*\\)\\s*;\\s*return\\b`)) : -1;
+    const chenVoucher = m ? k.slice(sauUpdate).indexOf('INSERT INTO pos_discount_codes') : -1;
+    chac('/claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher',
+      !!m && chan >= 0 && chenVoucher >= 0 && chan < chenVoucher,
       'hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch');
   }
 }
@@ -464,7 +471,8 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) {
     r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
 }
 
-// E10 — POS-P21-v1: "kiểm lại sổ" chỉ cộng các loại dòng làm đổi số dư ví.
+// E10 — POS-P21-v1: đối soát ví (/:phone/reconcile, /reconcile-all) chỉ cộng các loại dòng làm đổi số dư ví.
+// Hai route này chưa có nút trên màn hình — chỉ gọi thẳng API với quyền adjust_balance.
 // pay-debt ghi 'debt_payment' số DƯƠNG (tiền mặt/chuyển khoản trả nợ); SUM mọi
 // dòng thì ví được cộng khống đúng số nợ đã trả. Danh sách TRẮNG, chủ quán duyệt
 // 25.09.2026 — loại mới mặc định KHÔNG tính. Bài chạy thật: node cong_cu/thu_P21.js
@@ -479,9 +487,9 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) {
   const than = a < 0 ? '' : src.slice(a, src.indexOf('\n}', a));
   const b = src.indexOf("router.post('/reconcile-all'");
   const tatCa = b < 0 ? '' : src.slice(b, src.indexOf('router.', b + 20));
-  chac('ví: đối soát (1 khách + kiểm lại sổ) chỉ đọc dòng thuộc danh sách trắng',
+  chac('ví: đối soát (1 khách + toàn bộ) chỉ đọc dòng thuộc danh sách trắng',
     /SUM\(amount\)[^`]*\$\{DK_LOAI_VI\}/.test(than) && /DISTINCT customer_phone[^`]*\$\{DK_LOAI_VI\}/.test(tatCa),
-    'bấm "kiểm lại sổ" sẽ cộng tiền thu nợ vào ví khách');
+    'gọi API đối soát ví (/:phone/reconcile, /reconcile-all) sẽ cộng tiền thu nợ vào ví khách');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
