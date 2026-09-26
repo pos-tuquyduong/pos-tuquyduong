@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 8,
+  "phien_ban_so": 9,
   "cap_nhat": "2026-09-26",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
@@ -171,11 +171,11 @@
     },
     {
       "ma": "P20",
-      "ten": "Hotfix: ma tren bill chi dung duoc khi bill da thanh toan — /claim va /nhan-diem cung kiem: gan don · chua huy · payment_status='paid'. LAM TRUOC moi viec P13",
+      "ten": "Hotfix: ma tren bill chi dung duoc khi don goc nam trong danh sach TRANG status='completed' + payment_status='paid' — /claim va /nhan-diem cung kiem qua kiemDonCuaMa (gan don · huy/hoan/trang thai la deu bi chan); /claim chiem ma nguyen tu (AND claimed_at IS NULL + changes). LAM TRUOC moi viec P13",
       "tang": 1,
       "trang_thai": "dang_mo",
-      "patch": "POS-P20-v1, POS-P20-v2",
-      "commit": "9263ce5, 619836f",
+      "patch": "POS-P20-v1, POS-P20-v2, POS-P20-v3",
+      "commit": "9263ce5, 619836f, 2ce7c31",
       "ngay": null
     },
     {
@@ -184,12 +184,21 @@
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": "POS-P21-v1",
-      "commit": "59cec89",
+      "commit": "59cec89, 2ce7c31",
       "ngay": null
     },
     {
       "ma": "P20b",
       "ten": "Voucher sinh tu ma in bill chi dung duoc o POST /orders khi don goc con completed + paid (kiem luc DUNG, orders.js tra pos_discount_codes ~dong 457). Deploy rieng, lam ngay sau P20",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P20c",
+      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -263,6 +272,15 @@
       "ma": "P13e",
       "ten": "Hoan thu o Lich su don: quyen hoan_thu (manager), ly do + xac nhan; thu phai la thao tac cuoi, trong ngay (owner: moi ngay + xac nhan them), ma uu dai chua dung; append-only (log hoan_thu, dong debt_payment_hoan am, dong diem am). Can P21, P22",
       "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P25",
+      "ten": "Doi soat vi mot khach (wallets.js:258-260, POST /:phone/reconcile) tao vi 0d cho khach chi co no — ghi chu mo tu /ra-soat 26.09, chua xu ly",
+      "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
