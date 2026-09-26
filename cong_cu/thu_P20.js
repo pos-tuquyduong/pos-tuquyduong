@@ -64,6 +64,7 @@ async function main() {
   app.use(express.json());
   app.use('/api/pos/orders', require(path.join(GOC, 'server', 'routes', 'orders.js')));
   app.use('/api/pos/signup-codes', require(path.join(GOC, 'server', 'routes', 'signup-codes.js')));
+  app.use('/api/pos/refunds', require(path.join(GOC, 'server', 'routes', 'refunds.js')));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   noiLai();
@@ -152,6 +153,32 @@ async function main() {
     k('huỷ đơn qua PUT /cancel thật', h.status === 200, moTa(h));
     const r = await claim(d.ma);
     k('/claim với đơn đã huỷ → 400 DON_DA_HUY', r.status === 400 && r.code === 'DON_DA_HUY', moTa(r));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN');
+  {
+    // Hoàn tiền qua đúng đường thật: POST /refunds rồi POST /refunds/:id/approve
+    // (refunds.js ghi status='refunded', KHÔNG đổi payment_status → vẫn 'paid').
+    const hoanTien = async (ten) => {
+      const sdt = sdtMoi(); await napVi(sdt, 100000);
+      const d = await taoDon(ten, { customer_phone: sdt, customer_name: 'Khách hoàn', items: [mon()], payment_method: 'balance', balance_amount: 25000 });
+      const yc = await goi('POST', '/refunds', { order_id: d.id, reason: 'thử P20-v2' });
+      const ycId = yc.id || yc.refund_id || yc.refund?.id
+        || (await db.queryOne('SELECT id FROM pos_refund_requests WHERE order_id = ? ORDER BY id DESC LIMIT 1', [d.id]))?.id;
+      const duyet = await goi('POST', `/refunds/${ycId}/approve`, {});
+      k(`${ten}: duyệt hoàn tiền qua route thật → 200`, duyet.status === 200, moTa(duyet));
+      const o = await db.queryOne('SELECT status, payment_status FROM pos_orders WHERE id = ?', [d.id]);
+      k(`${ten}: DB status = refunded, payment_status = paid`, o.status === 'refunded' && o.payment_status === 'paid',
+        `${o.status} · ${o.payment_status}`);
+      return d;
+    };
+    const d1 = await hoanTien('hoàn tiền 1');
+    const r1 = await claim(d1.ma);
+    k('/claim với đơn đã hoàn tiền → 400 DON_DA_HOAN', r1.status === 400 && r1.code === 'DON_DA_HOAN', moTa(r1));
+    const d2 = await hoanTien('hoàn tiền 2');
+    const r2 = await nhanDiem(d2.ma);
+    k('/nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN', r2.status === 400 && r2.code === 'DON_DA_HOAN', moTa(r2));
   }
 
   // ═════════════════════════════════════════════════════════════════════════

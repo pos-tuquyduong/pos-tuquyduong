@@ -35,8 +35,15 @@ const DEFAULT_VALID_DAYS = 30;
 //  không đọc đơn — đơn đã huỷ vẫn claim được. Một hàm dùng chung cho CẢ HAI
 //  đường (C15), gọi trước mọi lệnh ghi. Không đổi việc in mã lên bill.
 //
+//  POS-P20-v2 — DANH SÁCH TRẮNG (chủ quán duyệt 25.09.2026): chỉ đơn ở đúng
+//  trạng thái dưới đây mới dùng được mã. Danh sách đen `status === 'cancelled'`
+//  của v1 để lọt đơn 'refunded' (refunds.js duyệt hoàn tiền giữ nguyên
+//  payment_status = 'paid'). Trạng thái mới sau này mặc định KHÔNG dùng được.
+//
 //  Trả { don } nếu dùng được, hoặc { loi: { status, code, error } }.
 // ═══════════════════════════════════════════════════════════════════════════
+const TRANG_THAI_DUNG_MA = { status: 'completed', payment_status: 'paid' };
+
 async function kiemDonCuaMa(dong) {
   if (!dong.order_id) {
     return { loi: { status: 400, code: 'MA_KHONG_GAN_DON', error: 'Mã này không gắn với đơn nào.' } };
@@ -48,13 +55,20 @@ async function kiemDonCuaMa(dong) {
   if (!don) {
     return { loi: { status: 404, code: 'KHONG_THAY_DON', error: 'Không tìm thấy đơn của mã này.' } };
   }
+  if (don.status === TRANG_THAI_DUNG_MA.status && don.payment_status === TRANG_THAI_DUNG_MA.payment_status) {
+    return { don };
+  }
+  // Ngoài danh sách trắng: chỉ còn việc chọn lời báo cho đúng.
   if (don.status === 'cancelled') {
     return { loi: { status: 400, code: 'DON_DA_HUY', error: 'Đơn của mã này đã bị huỷ, mã không dùng được.' } };
   }
-  if (don.payment_status !== 'paid') {
-    return { loi: { status: 400, code: 'BILL_CHUA_THANH_TOAN', error: 'Mã dùng được sau khi bill được thanh toán.' } };
+  if (don.status === 'refunded') {
+    return { loi: { status: 400, code: 'DON_DA_HOAN', error: 'Đơn của mã này đã được hoàn tiền, mã không dùng được.' } };
   }
-  return { don };
+  if (don.status !== TRANG_THAI_DUNG_MA.status) {
+    return { loi: { status: 400, code: 'DON_KHONG_HOP_LE', error: 'Đơn của mã này không ở trạng thái dùng được mã.' } };
+  }
+  return { loi: { status: 400, code: 'BILL_CHUA_THANH_TOAN', error: 'Mã dùng được sau khi bill được thanh toán.' } };
 }
 
 async function getSignupConfig() {
@@ -364,10 +378,17 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
     // (đúng khuôn mẫu loyalty.js /redeem, không để mã "claimed" mồ côi không có voucher).
     const tx = await beginTransaction();
     try {
-      await tx.run(
-        'UPDATE pos_signup_codes SET claimed_at = ?, claimed_phone = ? WHERE id = ?',
+      // POS-P20-v2: CHIẾM MÃ bằng `AND claimed_at IS NULL` + đọc changes — cùng
+      // khuôn /nhan-diem. Phép kiểm claimed_at ở trên nằm NGOÀI giao dịch; hai
+      // người claim cùng lúc đều qua được nó, chỉ lệnh UPDATE này phân xử.
+      const chiem = await tx.run(
+        'UPDATE pos_signup_codes SET claimed_at = ?, claimed_phone = ? WHERE id = ? AND claimed_at IS NULL',
         [now, phone, signupRow.id]
       );
+      if (!chiem || chiem.changes !== 1) {
+        await tx.rollback();
+        return res.status(409).json({ success: false, error: 'Mã này vừa được sử dụng.', code: 'MA_DA_DUNG' });
+      }
       await tx.run(
         `INSERT INTO pos_discount_codes (
            code, discount_type, discount_value, min_order, usage_limit, used_count,

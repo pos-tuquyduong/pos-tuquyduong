@@ -21,7 +21,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const os = require('os');
 
 const GOC = __dirname;
@@ -419,9 +419,49 @@ chac('orders.js chặn sản phẩm chưa có giá',
   }
   const a = src.indexOf('function kiemDonCuaMa');
   const than = a < 0 ? '' : src.slice(a, src.indexOf('\n}', a));
-  chac('kiemDonCuaMa chặn đơn đã huỷ và đơn chưa thanh toán đủ',
-    /status\s*===\s*'cancelled'/.test(than) && /payment_status\s*!==\s*'paid'/.test(than),
-    'thiếu điều kiện cancelled hoặc payment_status !== \'paid\'');
+  // POS-P20-v2: siết. Bản v1 chỉ soi `status === 'cancelled'` (khớp cả
+  // payment_status) và chỉ soi CÓ GỌI hàm — bỏ qua kết quả vẫn xanh, đơn
+  // 'refunded' vẫn lọt. Nay: danh sách TRẮNG + kết quả phải được dùng.
+  const hang = src.match(/const TRANG_THAI_DUNG_MA\s*=\s*\{\s*status:\s*'(\w+)',\s*payment_status:\s*'(\w+)'\s*\}/);
+  chac('kiemDonCuaMa: hằng TRANG_THAI_DUNG_MA (nếu dùng) đúng completed + paid',
+    !/TRANG_THAI_DUNG_MA/.test(than) || (hang && hang[1] === 'completed' && hang[2] === 'paid'),
+    'hằng danh sách trắng bị đổi: ' + (hang ? hang[1] + ' · ' + hang[2] : '(không đọc được)'));
+  const traDon = than.match(/return\s*\{\s*don\s*\}/g) || [];
+  chac('kiemDonCuaMa là DANH SÁCH TRẮNG: chỉ trả { don } khi status completed VÀ payment_status paid',
+    traDon.length === 1 &&
+      /if\s*\(\s*don\.status\s*===\s*(?:TRANG_THAI_DUNG_MA\.status|'completed')\s*&&\s*don\.payment_status\s*===\s*(?:TRANG_THAI_DUNG_MA\.payment_status|'paid')\s*\)\s*\{\s*return\s*\{\s*don\s*\}/.test(than),
+    'đơn hoàn tiền / trạng thái lạ vẫn dùng được mã (danh sách đen để lọt)');
+  for (const ten of ['/claim', '/nhan-diem']) {
+    const k = khoi(ten);
+    const m = k.match(/const\s+(\w+)\s*=\s*await\s+kiemDonCuaMa\(/);
+    const ghi = [k.indexOf('beginTransaction('), k.indexOf('UPDATE pos_signup_codes')].filter((i) => i >= 0);
+    const ghiDau = ghi.length ? Math.min(...ghi) : Infinity;
+    const chan = m ? k.search(new RegExp(`if\\s*\\(\\s*${m[1]}\\.loi\\s*\\)\\s*\\{?\\s*return\\b`)) : -1;
+    chac(`${ten}: DÙNG kết quả kiemDonCuaMa (if (X.loi) return) TRƯỚC lệnh ghi`,
+      chan >= 0 && chan < ghiDau,
+      'gọi hàm kiểm nhưng bỏ qua kết quả — mã vẫn dùng được');
+  }
+  {
+    const k = khoi('/claim');
+    const m = k.match(/const\s+(\w+)\s*=\s*await\s+tx\.run\(\s*['`]UPDATE pos_signup_codes SET claimed_at[^'`]*\bAND\s+claimed_at\s+IS\s+NULL\s*['`]/);
+    chac('/claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL và đọc .changes',
+      !!m && new RegExp(`${m[1]}\\.changes`).test(k),
+      'hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch');
+  }
+}
+
+// E11 — POS-P20-v2: bài thử CHẠY THẬT trong bộ kiểm (cũng là pre-commit và
+// hook Stop). Phép tĩnh chỉ soi chữ; bài thật tạo đơn, huỷ, hoàn tiền rồi gọi
+// route. Hết giờ hoặc sập = hỏng.
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) {
+  const t0 = Date.now();
+  const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: 120000 });
+  const giay = ((Date.now() - t0) / 1000).toFixed(1);
+  const ra = String(r.stdout || '') + String(r.stderr || '');
+  const hong = ra.replace(/\x1b\[[0-9;]*m/g, '').split('\n').filter((l) => /[✗✖]/.test(l)).map((l) => l.trim());
+  chac(`bài chạy thật ${bai} xanh (${giay} s)`,
+    r.status === 0 && !r.error,
+    r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
 }
 
 // E10 — POS-P21-v1: "kiểm lại sổ" chỉ cộng các loại dòng làm đổi số dư ví.
