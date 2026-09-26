@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 7,
-  "cap_nhat": "2026-09-25",
+  "phien_ban_so": 8,
+  "cap_nhat": "2026-09-26",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
     {
@@ -173,19 +173,28 @@
       "ma": "P20",
       "ten": "Hotfix: ma tren bill chi dung duoc khi bill da thanh toan — /claim va /nhan-diem cung kiem: gan don · chua huy · payment_status='paid'. LAM TRUOC moi viec P13",
       "tang": 1,
-      "trang_thai": "xong",
-      "patch": "POS-P20-v1",
-      "commit": null,
-      "ngay": "2026-09-25"
+      "trang_thai": "dang_mo",
+      "patch": "POS-P20-v1, POS-P20-v2",
+      "commit": "9263ce5, 619836f",
+      "ngay": null
     },
     {
       "ma": "P21",
       "ten": "Hotfix: reconcileWallet chi cong cac loai trong danh sach TRANG (topup, purchase, refund, adjust, compensation); debt_payment va moi loai moi KHONG tinh vao vi. Deploy ngay sau P20",
       "tang": 1,
-      "trang_thai": "xong",
+      "trang_thai": "dang_mo",
       "patch": "POS-P21-v1",
+      "commit": "59cec89",
+      "ngay": null
+    },
+    {
+      "ma": "P20b",
+      "ten": "Voucher sinh tu ma in bill chi dung duoc o POST /orders khi don goc con completed + paid (kiem luc DUNG, orders.js tra pos_discount_codes ~dong 457). Deploy rieng, lam ngay sau P20",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
       "commit": null,
-      "ngay": "2026-09-25"
+      "ngay": null
     },
     {
       "ma": "P22",
