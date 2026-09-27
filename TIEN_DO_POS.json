@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 10,
-  "cap_nhat": "2026-09-26",
+  "phien_ban_so": 12,
+  "cap_nhat": "2026-09-27",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
     {
@@ -173,19 +173,19 @@
       "ma": "P20",
       "ten": "Hotfix: ma tren bill chi dung duoc khi don goc nam trong danh sach TRANG status='completed' + payment_status='paid' — /claim va /nhan-diem cung kiem qua kiemDonCuaMa (gan don · huy/hoan/trang thai la deu bi chan); /claim chiem ma nguyen tu (AND claimed_at IS NULL + changes). LAM TRUOC moi viec P13",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": "POS-P20-v1, POS-P20-v2, POS-P20-v3, POS-P20-v4",
-      "commit": "9263ce5, 619836f, 2ce7c31, e699e93",
-      "ngay": null
+      "commit": "9263ce5, 619836f, 2ce7c31, e699e93, a9f1bbe",
+      "ngay": "2026-09-27"
     },
     {
       "ma": "P21",
       "ten": "Hotfix: reconcileWallet chi cong cac loai trong danh sach TRANG (topup, purchase, refund, adjust, compensation); debt_payment va moi loai moi KHONG tinh vao vi. Deploy ngay sau P20",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": "POS-P21-v1",
-      "commit": "59cec89, 2ce7c31, e699e93",
-      "ngay": null
+      "commit": "59cec89, 2ce7c31, e699e93, a9f1bbe",
+      "ngay": "2026-09-27"
     },
     {
       "ma": "P20b",
@@ -198,7 +198,7 @@
     },
     {
       "ma": "P20c",
-      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b; GHI CHU: kiemDonCuaMa chay ngoai giao dich (signup-codes.js:174, :339) — don huy/hoan giua luc kiem va UPDATE; GHI CHU: thong nhat ma loi ma-da-dung (/claim :317, :390, /nhan-diem :253)",
+      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b; GHI CHU: kiemDonCuaMa chay ngoai giao dich (signup-codes.js:174, :339) — don huy/hoan giua luc kiem va UPDATE; GHI CHU: thong nhat ma loi ma-da-dung (/claim :317, :390, /nhan-diem :253); GHI CHU [a] (soat lan 3, 27.09): /:id/reset (server/routes/signup-codes.js) kiem claimed_at va used_count NGOAI giao dich roi DELETE pos_discount_codes khong co AND used_count = 0 — co the xoa voucher dang dung do; GHI CHU [b]: phep kiem tinh /nhan-diem trong kiem_tra_truoc_khi_giao.js bi lua khi cau chan nam trong chuoi JS hoac sau -- trong SQL (boGhiChu chi bo comment JS); nghi phep /claim cung vay, CHUA pha thu; de xuat THEM phep moi, KHONG noi phep cu; GHI CHU [c]: thu_P20.js chua co ca ma tro toi don da bi xoa (nhanh kiemDonCuaMa tra 404 KHONG_THAY_DON); production co 9 ma nhu vay, da xet 27.09, khong can xu ly du lieu; GHI CHU [d]: /nhan-diem khong xet claimed_at — neu bat ca voucher lan nhan diem thi mot ma bill lay duoc ca hai. CHO CHU QUAN QUYET: y muon hay loi",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
