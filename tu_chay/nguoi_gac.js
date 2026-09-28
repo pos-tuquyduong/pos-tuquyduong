@@ -34,6 +34,7 @@ const LUAT = [
   ['G-LUAT', 'file luật chỉ sửa được khi mục Phạm vi ghi ĐÚNG TÊN file (glob chung không tính) — ghi mục Câu hỏi'],
   ['G4-PHAMVI', 'file khớp mục Phạm vi được sửa'],
   ['G5-NGOAIPV', 'ngoài phạm vi phiếu — ghi vào mục Câu hỏi của trang_thai.md, làm tiếp phần khác'],
+  ['G-LIENKET', 'đích ghi là file thường đang có nhiều liên kết cứng (nlink > 1) — có thể là liên kết cứng tới file được bảo vệ; xoá liên kết rồi tạo file mới'],
   ['B-BIMAT-CHU', 'lệnh nhắc tới khoá / bí mật (TOKEN, SECRET, API_KEY, environ) — không đọc bí mật'],
   ['B-PHANTICH', 'người gác không hiểu cú pháp lệnh này nên chặn — viết lệnh đơn giản hơn, tách thành nhiều lệnh'],
   ['B-GAN', 'gán biến môi trường nguy hiểm trước lệnh (GIT_*, PATH, LD_*, NODE_OPTIONS, CLAUDE*…) — bỏ phần gán'],
@@ -42,8 +43,11 @@ const LUAT = [
   ['B-DUONGDAN', 'chương trình gọi qua đường dẫn lạ — gọi thẳng tên chương trình có trong danh sách'],
   ['B-CHUONGTRINH', 'chương trình không có trong danh sách cho phép (sh -c, eval, xargs, env, sudo… đều bị chặn) — cần thì ghi mục Câu hỏi'],
   ['B-BASHFILE', 'bash/sh chỉ chạy đúng một script trong .claude/tu_chay/ hoặc cong_cu/'],
+  ['B-BASHTHEM', 'bash/sh chạy được file ghi ĐÚNG đường dẫn trong tep_bash_them của cau_hinh.json (không glob)'],
   ['B-TIMEOUT', 'timeout: xét lệnh bên trong'],
   ['B-CD', 'cd chỉ vào thư mục trong kho hoặc nháp, đường dẫn viết thẳng'],
+  ['B-CD-VITRI', 'cd chỉ được đứng ĐẦU lệnh, không chuyển hướng, không gán biến, và chỉ nối tiếp bằng && (vd: cd client && npm run build)'],
+  ['B-CD-KHUNG', 'không cd vào .git/ hay .claude/'],
   ['B-DICHCHU', 'đích ghi phải là đường dẫn viết thẳng (không biến, không ký tự đại diện) để người gác kiểm được'],
   ['B-GHI-CHUYENHUONG', 'đích chuyển hướng > >> được xét như sửa file'],
   ['B-DEV', 'ghi ra /dev/null, /dev/stdout, /dev/stderr được cho'],
@@ -62,11 +66,13 @@ const LUAT = [
   ['GIT-ARCHIVE', 'git archive: không --remote; -o phải trỏ vào nháp'],
   ['NPM-LENH', 'npm chỉ cho test, ci, run, ls — thêm thư viện phải hỏi chủ quán'],
   ['PY-PATCH', 'không chạy patch_*.py'],
+  ['PY-M', 'python3 -m chạy được pip/venv/http.server và mã tuỳ ý — cần thì ghi mục Câu hỏi'],
   ['PY-SO', 'không ghi sổ việc (ghi_tien_do, dong_tien_do.py kèm tham số) — chủ quán ghi trong Shell'],
   ['NODE-CAIDAT', 'trình cài cai_dat.* chỉ chủ quán chạy trong Shell'],
   ['B-MANOI', 'mã viết thẳng trong lệnh (node -e, python3 -c, heredoc) nhắc tới file được bảo vệ'],
   ['RM-NHAP', 'chỉ được xoá trong thư mục nháp'],
   ['CP-DICH', 'đích cp / mv / ln được xét như sửa file'],
+  ['LN-CUNG', 'ln phải có -s (liên kết mềm); cp không được -l/--link — liên kết cứng lách được kiểm đích ghi'],
   ['CP-DEQUY', 'chép / chuyển cả thư mục chỉ được làm vào nháp'],
   ['MV-NGUON', 'mv xoá file nguồn: nguồn được xét như sửa file'],
   ['TAR-LA', 'tar: không rõ chế độ, hoặc có tuỳ chọn chạy chương trình'],
@@ -100,7 +106,7 @@ const CHO_CHAY = new Set(('git node npm python3 ls cat head tail wc grep sed awk
 const GIT_CHO = new Set(['status', 'diff', 'log', 'show', 'add', 'commit', 'checkout', 'branch', 'rev-parse', 'ls-files',
   'grep', 'blame', 'merge-base', 'cat-file', 'archive']);
 const BRANCH_XEM = new Set(['--show-current', '-a', '-r', '-v', '-vv', '--list', '--all', '--remotes', '--no-color']);
-const BIEN_NGUY = /^(GIT_\w*|LD_\w*|PATH|NODE_OPTIONS|BASH_ENV|ENV|IFS|HOME|CLAUDE\w*|TU_CHAY\w*|npm_config_\w*|NPM_CONFIG_\w*|PROMPT_COMMAND|PYTHON\w*)$/;
+const BIEN_NGUY = /^(GIT_\w*|LD_\w*|PATH|NODE_OPTIONS|BASH_ENV|ENV|IFS|HOME|CLAUDE\w*|TU_CHAY\w*|npm_config_\w*|NPM_CONFIG_\w*|PROMPT_COMMAND|PYTHON\w*|SHELLOPTS|BASHOPTS|PS4|CURL_HOME|(?:https?|ftp|all|no)_proxy)$/i;
 const MAU_BI_MAT = ['.env', '.env.local', '.env.production', '.replit'];
 const MANOI_CO_DINH = ['\\.claude', '\\.git/', 'settings\\.json', 'phieu\\.md', 'bien_ban_soat', 'tu_chay_nhat_ky'];
 const NHAT_KY = '.tu_chay_nhat_ky.jsonl';
@@ -146,6 +152,9 @@ function globRe(g, chamDau = false) {
 // Mẫu không có "/" (và theoTen) thì so với tên file ở mọi tầng; có "/" thì so cả đường dẫn.
 const khop = (ds, rel, theoTen) => ds.some((m) => globRe(m).test(theoTen && !m.includes('/') ? path.basename(rel) : rel));
 const trongNhap = (abs, nc) => laCon(abs, nc.nhap);
+// Tuỳ chọn dài VIẾT TẮT: git, getopt_long (sort, sed, tar, cp…), file nhận mọi tiền tố không mơ hồ
+// (git commit --no-verif = --no-verify). Từ --x là tiền tố của tên nào (không đặt độ dài tối thiểu) → coi là tên đó.
+const laDai = (v, ...ten) => { const k = v.split('=')[0]; return /^--[^-]/.test(k) && ten.some((t) => t.startsWith(k)); };
 const relKho = (abs, nc) => path.relative(nc.goc, abs).split(path.sep).join('/');
 const ngoaiKho = (rel) => rel.startsWith('..') || path.isAbsolute(rel);
 const KHUNG = /^(\.claude|\.git)(\/|$)/;
@@ -153,6 +162,7 @@ const KHUNG = /^(\.claude|\.git)(\/|$)/;
 // MỘT hàm cho mọi đường ghi: Edit/Write/MultiEdit/NotebookEdit, > >> tee, cp mv ln, tar, git checkout --, touch chmod…
 function ghiDuoc(p, nc, cwd, laCongCuSua) {
   const abs = thuc(path.resolve(cwd, p));
+  if (luat('G-LIENKET')) { try { const st = fs.lstatSync(abs); if (st.isFile() && st.nlink > 1) return chan('G-LIENKET', relKho(abs, nc)); } catch {} }
   if (luat('G-NHAP') && trongNhap(abs, nc)) return null;
   if (laCongCuSua && luat('G-PLANS') && laCon(abs, nc.plans)) return null;
   const rel = relKho(abs, nc);
@@ -184,15 +194,22 @@ function tachLenh(s, home) {
 }
 function dsLenh(st, dong) {
   const s = st.s, ds = [];
-  let l = null, ong = false; // ong: mục kế tiếp đứng sau | — bash chạy nó trong subshell
-  const day = (m) => { if (ong) m.rieng = true; ds.push(m); };
-  const ket = () => { if (l && (l.tu.length || l.gan.length || l.cc.length || l.con.length)) day(l); l = null; };
+  // ong: mục kế tiếp đứng sau | (kể cả | cuối dòng) — bash chạy nó trong subshell.
+  // dau: chỉ số mục đầu của danh sách && / || đang đọc — gặp & thì CẢ danh sách chạy nền.
+  let l = null, ong = false, dau = 0;
+  const day = (m) => { if (ong) { m.rieng = true; ong = false; } ds.push(m); };
+  const ket = () => {
+    const co = !!l && (l.tu.length || l.gan.length || l.cc.length || l.con.length || l.coCH);
+    if (co) day(l);
+    l = null;
+    return co;
+  };
   for (;;) {
     if (st.i >= s.length) { if (dong) throw loiPT('thiếu ' + dong); ket(); return ds; }
     const c = s[st.i];
     if (c === ' ' || c === '\t') { st.i++; continue; }
     if (c === '\\' && s[st.i + 1] === '\n') { st.i += 2; continue; }
-    if (c === '\n') { st.i++; ket(); ong = false; docHeredoc(st); continue; }
+    if (c === '\n') { st.i++; if (ket()) { ds[ds.length - 1].sau = '\n'; dau = ds.length; } docHeredoc(st); continue; }
     if (c === '#') { while (st.i < s.length && s[st.i] !== '\n') st.i++; continue; }
     if (c === dong) { st.i++; ket(); return ds; }
     if (c === ')') throw loiPT(') lạc');
@@ -201,9 +218,12 @@ function dsLenh(st, dong) {
       const op = /^(&&|\|\||\|&)/.test(s.slice(st.i, st.i + 2)) ? s.slice(st.i, st.i + 2) : c;
       st.i += op.length;
       ket();
-      // Mỗi phần của pipeline và lệnh chạy nền (&) là một subshell: cd bên trong không đổi cwd bên ngoài.
-      if (ds.length && ['|', '|&', '&'].includes(op)) ds[ds.length - 1].rieng = true;
-      ong = op === '|' || op === '|&';
+      // Mỗi phần của pipeline và cả danh sách chạy nền (&) là subshell: cd bên trong không đổi cwd bên ngoài.
+      const cuoi = ds[ds.length - 1];
+      if (cuoi) cuoi.sau = op;
+      if (op === '|' || op === '|&') { if (cuoi) cuoi.rieng = true; ong = true; }
+      if (op === '&') for (let j = dau; j < ds.length; j++) ds[j].rieng = true;
+      if (op === '&' || op === ';') dau = ds.length;
       continue;
     }
     if (c === '(') { if (l) throw loiPT('( giữa lệnh'); st.i++; day({ khoi: dsLenh(st, ')') }); continue; }
@@ -215,6 +235,7 @@ function dsLenh(st, dong) {
   }
 }
 function chuyenHuong(st, l, op) {
+  l.coCH = true;
   if (st.s[st.i] === '(') throw loiPT('<( ) / >( ) không hỗ trợ');
   while (st.s[st.i] === ' ' || st.s[st.i] === '\t') st.i++;
   const t = docTu(st, l);
@@ -327,7 +348,9 @@ function xetBash(lenh, nc) {
   return xetDs(ds, nc, { d: nc.cwd });
 }
 function xetDs(ds, nc, cwd) {
-  for (const m of ds) {
+  for (let j = 0; j < ds.length; j++) {
+    const m = ds[j];
+    if (!m.khoi) m.duocCd = j === 0 && !m.rieng && !m.coCH && !m.gan.length && (m.sau === undefined || m.sau === '&&');
     const k = m.khoi ? xetDs(m.khoi, nc, { d: cwd.d }) : xetMot(m, nc, m.rieng ? { d: cwd.d } : cwd);
     if (k) return k;
   }
@@ -373,12 +396,16 @@ function xetChuong(tu, l, nc, cwd) {
   const a = tu.slice(1);
   if (ten === 'timeout' && luat('B-TIMEOUT')) {
     let i = 0;
-    while (i < a.length && a[i].val.startsWith('-')) i += ['-s', '-k', '--signal', '--kill-after'].includes(a[i].val) ? 2 : 1;
-    return i + 1 < a.length ? xetChuong(a.slice(i + 1), l, nc, cwd) : null;
+    while (i < a.length && a[i].val.startsWith('-')) {
+      const v = a[i].val;
+      i += ['-s', '-k'].includes(v) || (!v.includes('=') && laDai(v, '--signal', '--kill-after')) ? 2 : 1;
+    }
+    return i + 1 < a.length ? xetChuong(a.slice(i + 1), { ...l, duocCd: false }, nc, { d: cwd.d }) : null;
   }
-  if ((ten === 'bash' || ten === 'sh') && luat('B-BASHFILE') && a.length === 1 && a[0].chu) {
+  if ((ten === 'bash' || ten === 'sh') && a.length === 1 && a[0].chu) {
     const rel = relKho(thuc(path.resolve(cwd.d, a[0].val)), nc);
-    if (/^\.claude\/tu_chay\/[^/]+\.sh$|^cong_cu\/.+\.sh$/.test(rel)) return null;
+    if (luat('B-BASHFILE') && /^\.claude\/tu_chay\/[^/]+\.sh$|^cong_cu\/.+\.sh$/.test(rel)) return null;
+    if (luat('B-BASHTHEM') && nc.cauHinh.tep_bash_them.includes(rel)) return null; // so nguyên chuỗi, không glob
   }
   if (!CHO_CHAY.has(ten) && !nc.cauHinh.chuong_trinh_them.includes(ten)) {
     return luat('B-CHUONGTRINH') ? chan('B-CHUONGTRINH', ten) : null;
@@ -398,7 +425,7 @@ function tachCo(a, ngan = '', dai = []) {
     if (v.startsWith('--')) {
       const j = v.indexOf('=');
       if (j > 0) co.push({ k: v.slice(0, j), g: tuGia(v.slice(j + 1), w.chu) });
-      else if (dai.includes(v)) { i++; co.push({ k: v, g: a[i] || tuGia('') }); } else co.push({ k: v });
+      else if (laDai(v, ...dai)) { i++; co.push({ k: v, g: a[i] || tuGia('') }); } else co.push({ k: v });
       continue;
     }
     for (let j = 1; j < v.length; j++) {
@@ -408,7 +435,7 @@ function tachCo(a, ngan = '', dai = []) {
       break;
     }
   }
-  return { co, vt, coCo: (...k) => co.find((c) => k.includes(c.k)) };
+  return { co, vt, coCo: (...k) => co.find((c) => k.some((x) => c.k === x || (x.startsWith('--') && laDai(c.k, x)))) };
 }
 const chuoiVao = (l) => l.vao.join('\n');
 function reManoi(nc) {
@@ -417,6 +444,10 @@ function reManoi(nc) {
 }
 function chepChuyen(ten, a, nc, cwd) {
   const { vt, coCo } = tachCo(a, 'tS', ['--target-directory', '--suffix']);
+  if (luat('LN-CUNG')) {
+    if (ten === 'ln' && !coCo('-s', '--symbolic')) return chan('LN-CUNG', a.map((w) => w.tho).join(' '));
+    const lk = ten === 'cp' && coCo('-l', '--link'); if (lk) return chan('LN-CUNG', lk.k);
+  }
   const td = coCo('-t', '--target-directory');
   const khongTd = coCo('-T', '--no-target-directory');
   const deQuy = ten === 'cp' && coCo('-r', '-R', '-a', '--recursive', '--archive');
@@ -444,18 +475,30 @@ function maNoi(ten, a, l) { // lấy mã chạy thẳng + file script của node
   const coGt = ten === 'node' ? ['-r', '--require', '--import', '--loader'] : ['-m', '-W', '-X', '-Q'];
   for (; i < a.length; i++) {
     const v = a[i].val;
-    if (coMa.includes(v)) { ma = (a[i + 1] || tuGia('')).val; break; }
-    const eq = coMa.find((c) => c.startsWith('--') && v.startsWith(c + '='));
-    if (eq) { ma = v.slice(eq.length + 1); break; }
+    const dai = coMa.filter((c) => c.startsWith('--'));
+    if (coMa.includes(v) || (!v.includes('=') && laDai(v, ...dai))) { ma = (a[i + 1] || tuGia('')).val; break; }
+    if (v.includes('=') && laDai(v, ...dai)) { ma = v.slice(v.indexOf('=') + 1); break; }
     if (ten === 'python3' && /^-c./.test(v)) { ma = v.slice(2); break; }
     if (v === '-m' && ten === 'python3') break;
-    if (coGt.includes(v)) { i++; continue; }
+    if (coGt.includes(v) || laDai(v, ...coGt.filter((c) => c.startsWith('--')))) { if (!v.includes('=')) i++; continue; }
     if (v === '-') { ma = chuoiVao(l); break; }
     if (!v.startsWith('-')) { script = a[i]; break; }
   }
   if (ma === null && !script && i >= a.length) ma = chuoiVao(l);
   return { ma, script, sau: script ? a.slice(i + 1) : [] };
 }
+// python3 -m: cờ ngắn 'm' (kể cả gộp -sm/-Im) trước khi gặp cờ ăn giá trị (-c -W -X -Q) hoặc positional (script)
+function coCoM(a) {
+  for (const w of a) {
+    const v = w.val;
+    if (v === '--' || !v.startsWith('-')) break;
+    if (v.startsWith('--')) continue;
+    for (let j = 1; j < v.length; j++) { if (v[j] === 'm') return true; if ('cWXQ'.includes(v[j])) break; }
+  }
+  return false;
+}
+// process.env KHÔNG theo sau . hoặc [ = đọc TOÀN BỘ biến môi trường (có bí mật). process.env.PORT / [..] cho qua.
+const loMoiTruong = (ma) => !!ma && /process\.env(?![.\[])/.test(ma);
 
 const LUAT_CON = {
   git(a, nc, cwd) {
@@ -469,15 +512,15 @@ const LUAT_CON = {
     if (!sub || !sub.chu || !GIT_CHO.has(sub.val)) return luat('GIT-LENH') ? chan('GIT-LENH', sub ? sub.tho : '(trống)') : null;
     const r = a.slice(i + 1);
     const lenh = sub.val;
-    if (lenh !== 'archive' && luat('GIT-OUTPUT') && r.some((w) => /^--output(=|$)|^--ext-diff$/.test(w.val)
-      || (lenh === 'grep' && /^(-O|--open-files-in-pager)/.test(w.val)))) return chan('GIT-OUTPUT');
+    if (lenh !== 'archive' && luat('GIT-OUTPUT') && r.some((w) => laDai(w.val, '--output', '--ext-diff')
+      || (lenh === 'grep' && (/^-O/.test(w.val) || laDai(w.val, '--open-files-in-pager'))))) return chan('GIT-OUTPUT');
     if (lenh === 'add' && luat('GIT-ADD')) {
       let het = false;
       for (const w of r) {
         const v = w.val;
         if (!het && v === '--') { het = true; continue; }
         if (!het && v.startsWith('--')) {
-          if (['--all', '--update', '--force', '--patch', '--interactive', '--edit', '--no-ignore-removal'].includes(v.split('=')[0])) return chan('GIT-ADD', v);
+          if (laDai(v, '--all', '--update', '--force', '--patch', '--interactive', '--edit', '--no-ignore-removal')) return chan('GIT-ADD', v);
         } else if (!het && v.startsWith('-') && v.length > 1) {
           if (/[Aufpie]/.test(v.slice(1))) return chan('GIT-ADD', v);
         } else if (!w.chu || v === '.' || v === './' || v.startsWith(':') || thuc(path.resolve(cwd.d, v)) === nc.goc) {
@@ -493,8 +536,8 @@ const LUAT_CON = {
           const v = r[j].val;
           if (v === '--') break;
           if (v.startsWith('--')) {
-            if (['--no-verify', '--amend', '--all', '--include', '--only'].includes(v.split('=')[0])) return chan('GIT-COMMIT-CO', v);
-            if (coGt.includes(v)) j++;
+            if (laDai(v, '--no-verify', '--amend', '--all', '--include', '--only')) return chan('GIT-COMMIT-CO', v);
+            if (!v.includes('=') && laDai(v, ...coGt)) j++;
           } else if (v.startsWith('-') && v.length > 1) {
             for (let x = 1; x < v.length; x++) {
               if ('naio'.includes(v[x])) return chan('GIT-COMMIT-CO', v);
@@ -514,8 +557,8 @@ const LUAT_CON = {
     if (lenh === 'archive' && luat('GIT-ARCHIVE')) {
       const { co } = tachCo(r, 'o', ['--output', '--prefix', '--format', '--remote', '--exec']);
       for (const c of co) {
-        if (['--remote', '--exec'].includes(c.k)) return chan('GIT-ARCHIVE', c.k);
-        if (['-o', '--output'].includes(c.k) && !(c.g.chu && trongNhap(thuc(path.resolve(cwd.d, c.g.val)), nc))) return chan('GIT-ARCHIVE', c.g.tho);
+        if (laDai(c.k, '--remote', '--exec')) return chan('GIT-ARCHIVE', c.k);
+        if ((c.k === '-o' || laDai(c.k, '--output')) && !(c.g.chu && trongNhap(thuc(path.resolve(cwd.d, c.g.val)), nc))) return chan('GIT-ARCHIVE', c.g.tho);
       }
     }
     return null;
@@ -528,18 +571,47 @@ const LUAT_CON = {
     return null;
   },
   python3(a, nc, cwd, l) {
+    if (luat('PY-M') && coCoM(a)) return chan('PY-M', a.map((w) => w.tho).join(' '));
     const { ma, script, sau } = maNoi('python3', a, l);
     const ten = script ? path.basename(script.val) : '';
     if (luat('PY-PATCH') && (/^patch_.*\.py$/.test(ten) || /patch_\w*\.py/.test(ma || ''))) return chan('PY-PATCH');
     const toan = [...a.map((w) => w.val), chuoiVao(l)].join('\n');
     if (luat('PY-SO') && (/ghi_tien_do/.test(toan) || (ten === 'dong_tien_do.py' && sau.length))) return chan('PY-SO');
+    if (luat('B-BIMAT-CHU') && loMoiTruong(ma)) return chan('B-BIMAT-CHU', 'process.env');
     if (luat('B-MANOI') && ma && reManoi(nc).test(ma)) return chan('B-MANOI');
     return null;
   },
   node(a, nc, cwd, l) {
     if (luat('NODE-CAIDAT') && a.some((w) => /^cai_dat\.(js|sh)$/.test(path.basename(w.val)))) return chan('NODE-CAIDAT');
     const { ma } = maNoi('node', a, l);
+    if (luat('B-BIMAT-CHU') && loMoiTruong(ma)) return chan('B-BIMAT-CHU', 'process.env');
     if (luat('B-MANOI') && ma && reManoi(nc).test(ma)) return chan('B-MANOI');
+    return null;
+  },
+  ps(a) {
+    if (luat('B-BIMAT-CHU') && a.some((w) => w.chu && !w.val.startsWith('-') && w.val.includes('e'))) return chan('B-BIMAT-CHU', 'ps e (đọc môi trường)');
+    return null;
+  },
+  grep(a, nc, cwd) {
+    if (!luat('B-BIMAT-CHU')) return null;
+    const { co, vt } = tachCo(a, 'ABCDdefm', ['--after-context', '--before-context', '--context', '--devices',
+      '--directories', '--regexp', '--file', '--max-count', '--exclude', '--exclude-dir', '--exclude-from',
+      '--include', '--group-separator', '--binary-files', '--color', '--colour']);
+    const deQuy = co.some((c) => c.k === '-r' || c.k === '-R' || laDai(c.k, '--recursive', '--dereference-recursive'));
+    if (!deQuy) return null;
+    const coEF = co.some((c) => c.k === '-e' || c.k === '-f' || laDai(c.k, '--regexp', '--file'));
+    const duong = coEF ? vt : vt.slice(1); // không có -e/-f thì positional đầu là MẪU
+    if (!duong.length) duong.push(tuGia('.')); // grep đệ quy không đường dẫn → GNU grep tìm cwd
+    const loai = co.filter((c) => c.g && c.k !== '--exclude-dir' && laDai(c.k, '--exclude')).map((c) => c.g.val);
+    for (const p of duong) {
+      if (!p.chu) continue;
+      const dir = thuc(path.resolve(cwd.d, p.val));
+      if (!laDir(dir)) continue;
+      let ten = [];
+      try { ten = fs.readdirSync(dir); } catch { continue; }
+      const lo = ten.filter((n) => nc.cauHinh.file_bi_mat.some((m) => globRe(m).test(n)) && !loai.some((ex) => globRe(ex).test(n)));
+      if (lo.length) return chan('B-BIMAT-CHU', `grep đệ quy đọc ${lo[0]} trong ${p.val} — thêm --exclude khớp hoặc trỏ vào thư mục con`);
+    }
     return null;
   },
   rm(a, nc, cwd) {
@@ -559,8 +631,9 @@ const LUAT_CON = {
   touch: (a, nc, cwd) => (luat('B-GHI-TOUCH') ? ghiHet(tachCo(a, 'dtr', ['--date', '--reference']).vt, nc, cwd) : null),
   chmod(a, nc, cwd) {
     const co = ['-R', '-v', '-c', '-f', '--recursive', '--verbose', '--changes', '--silent', '--quiet', '--preserve-root', '--no-preserve-root'];
-    const vt = a.filter((w) => !co.includes(w.val) && !w.val.startsWith('--reference'));
-    if (!a.some((w) => w.val.startsWith('--reference'))) vt.shift();
+    const laRef = (w) => laDai(w.val, '--reference');
+    const vt = a.filter((w) => !co.includes(w.val) && !laDai(w.val, ...co.filter((c) => c.startsWith('--'))) && !laRef(w));
+    if (!a.some(laRef)) vt.shift();
     return luat('B-GHI-TOUCH') ? ghiHet(vt, nc, cwd) : null;
   },
   sort(a, nc, cwd) {
@@ -583,17 +656,18 @@ const LUAT_CON = {
     const DAI = { '--file': 'f', '--directory': 'C', '--create': 'c', '--extract': 'x', '--get': 'x', '--list': 't',
       '--append': 'r', '--update': 'u', '--concatenate': 'A', '--catenate': 'A', '--diff': 'd', '--compare': 'd', '--delete': 'D',
       '--to-stdout': 'O' };
-    const NGUY = /^--(to-command|use-compress-program|checkpoint-action|info-script|new-volume-script|rsh-command|rmt-command|index-file)/;
+    const NGUY = ['--to-command', '--use-compress-program', '--checkpoint-action', '--info-script', '--new-volume-script',
+      '--rsh-command', '--rmt-command', '--index-file'];
     for (let i = 0; i < a.length; i++) {
       const w = a[i], v = w.val;
       if (cho.length && !v.startsWith('-')) { nhan(cho.shift(), w); continue; }
       if (v.startsWith('--')) {
-        if (NGUY.test(v)) return luat('TAR-LA') ? chan('TAR-LA', v) : null;
-        const [k, ...gt] = v.split('=');
-        const ch = DAI[k];
-        if (!ch) continue;
-        if (ch === 'D') che.add('D');
-        else if (ch === 'f' || ch === 'C') { if (gt.length) nhan(ch, tuGia(gt.join('='), w.chu)); else cho.push(ch); } else che.add(ch);
+        if (laDai(v, ...NGUY)) return luat('TAR-LA') ? chan('TAR-LA', v) : null;
+        const gt = v.includes('=') ? v.slice(v.indexOf('=') + 1) : null;
+        for (const ten of Object.keys(DAI).filter((t) => laDai(v, t))) { // viết tắt mơ hồ → nhận MỌI nghĩa (an toàn hơn)
+          const ch = DAI[ten];
+          if (ch === 'f' || ch === 'C') { if (gt !== null) nhan(ch, tuGia(gt, w.chu)); else cho.push(ch); } else che.add(ch);
+        }
         continue;
       }
       if (i === 0 && !v.startsWith('-') && /^[A-Za-z]+$/.test(v) || v.startsWith('-')) {
@@ -619,9 +693,9 @@ const LUAT_CON = {
     let coE = false;
     for (let i = 0; i < a.length; i++) {
       const v = a[i].val;
-      if (v === '--in-place' || v.startsWith('--in-place=')) return luat('SED-I') ? chan('SED-I', v) : null;
-      if (v === '-f' || v.startsWith('--file')) return luat('SED-WE') ? chan('SED-WE', '-f') : null;
-      if (v.startsWith('--expression')) { coE = true; kich.push(v.includes('=') ? v.slice(v.indexOf('=') + 1) : (a[++i] || tuGia('')).val); continue; }
+      if (laDai(v, '--in-place')) return luat('SED-I') ? chan('SED-I', v) : null;
+      if (v === '-f' || laDai(v, '--file')) return luat('SED-WE') ? chan('SED-WE', '-f') : null;
+      if (laDai(v, '--expression')) { coE = true; kich.push(v.includes('=') ? v.slice(v.indexOf('=') + 1) : (a[++i] || tuGia('')).val); continue; }
       if (/^-[^-]/.test(v)) {
         for (let j = 1; j < v.length; j++) {
           if (v[j] === 'i' && luat('SED-I')) return chan('SED-I', v);
@@ -639,13 +713,13 @@ const LUAT_CON = {
   awk(a) {
     const { co, vt } = tachCo(a, 'vF', []);
     if (!luat('AWK-GHI')) return null;
-    if (co.some((c) => c.k === '-f' || c.k === '--file')) return chan('AWK-GHI', '-f');
+    if (co.some((c) => c.k === '-f' || laDai(c.k, '--file'))) return chan('AWK-GHI', '-f');
     const p = vt[0] ? vt[0].val : '';
     if (/system\s*\(|(^|[^|])\|(?!\|)|\bprintf?\b[^;}\n]*>/.test(p)) return chan('AWK-GHI');
     return null;
   },
   file(a) {
-    const c = a.find((w) => w.val === '--compile' || /^-[a-zA-Z]*C/.test(w.val));
+    const c = a.find((w) => laDai(w.val, '--compile') || /^-[a-zA-Z]*C/.test(w.val));
     return c && luat('FILE-C') ? chan('FILE-C', c.val) : null;
   },
   find(a) {
@@ -655,13 +729,17 @@ const LUAT_CON = {
   curl(a, nc, cwd) {
     const { co, vt } = tachCo(a, 'HdXuowAebcDFTKmxrCEyYzQ', ['--data', '--data-raw', '--data-binary', '--data-urlencode', '--header',
       '--request', '--user', '--output', '--write-out', '--user-agent', '--referer', '--cookie', '--cookie-jar', '--dump-header',
-      '--form', '--upload-file', '--config', '--max-time', '--proxy', '--range', '--connect-timeout', '--retry', '--json', '--url']);
-    const cam = co.find((c) => /^(-K|--config|-O|--remote-name(-all)?|-J|--remote-header-name|--trace(-ascii)?|--stderr|--libcurl|--etag-save|--hsts|--alt-svc)$/.test(c.k));
+      '--form', '--upload-file', '--config', '--max-time', '--proxy', '--range', '--connect-timeout', '--retry', '--json', '--url',
+      '--preproxy', '--socks4', '--socks4a', '--socks5', '--socks5-hostname', '--proxy1.0']);
+    const cam = co.find((c) => ['-K', '-O', '-J', '-x'].includes(c.k) || laDai(c.k, '--config', '--remote-name', '--remote-name-all',
+      '--remote-header-name', '--trace', '--trace-ascii', '--stderr', '--libcurl', '--etag-save', '--hsts', '--alt-svc',
+      '--proxy', '--proxy1.0', '--preproxy', '--socks4', '--socks4a', '--socks5', '--socks5-hostname'));
     if (cam && luat('CURL-CAM')) return chan('CURL-CAM', cam.k);
-    const ghi = co.filter((c) => /^(-o|--output|-c|--cookie-jar|-D|--dump-header)$/.test(c.k) && c.g.val !== '-').map((c) => c.g);
+    const ghi = co.filter((c) => (['-o', '-c', '-D'].includes(c.k) || laDai(c.k, '--output', '--cookie-jar', '--dump-header'))
+      && c.g && c.g.val !== '-').map((c) => c.g);
     const k = luat('CURL-GHI') ? ghiHet(ghi, nc, cwd) : null;
     if (k) return k;
-    const url = [...vt, ...co.filter((c) => c.k === '--url').map((c) => c.g)];
+    const url = [...vt, ...co.filter((c) => laDai(c.k, '--url') && c.g).map((c) => c.g)];
     for (const u of url) {
       let host = '';
       try { host = u.chu ? new URL(/^[a-z]+:\/\//i.test(u.val) ? u.val : 'http://' + u.val).hostname : ''; } catch {}
@@ -678,11 +756,13 @@ const LUAT_CON = {
     }
     return null;
   },
-  cd(a, nc, cwd) {
+  cd(a, nc, cwd, l) {
+    if (!(l && l.duocCd) && luat('B-CD-VITRI')) return chan('B-CD-VITRI', a.map((w) => w.tho).join(' '));
     const w = a[0] || tuGia(nc.home || '');
     const abs = w.chu ? thuc(path.resolve(cwd.d, w.val)) : '';
     const hopLe = a.length <= 1 && w.chu && w.val !== '-' && laDir(abs) && (laCon(abs, nc.goc) || trongNhap(abs, nc));
     if (!hopLe && luat('B-CD')) return chan('B-CD', w.tho);
+    if (abs && KHUNG.test(relKho(abs, nc)) && luat('B-CD-KHUNG')) return chan('B-CD-KHUNG', w.tho);
     if (abs) cwd.d = abs;
     return null;
   },
@@ -721,6 +801,12 @@ function layNhap(sd, goc, home) {
   if (r === path.sep || r === home || laCon(goc, r) || laCon(r, goc)) return null;
   return r;
 }
+// tep_bash_them: đường dẫn tương đối ĐÃ chuẩn hoá, không rỗng, không .., không glob, là file thật trong kho (không qua symlink).
+function tepBashHopLe(e, goc) {
+  if (typeof e !== 'string' || !e || path.isAbsolute(e) || /[*?[\]{}]/.test(e) || path.posix.normalize(e) !== e
+    || e.endsWith('/') || e.split('/').includes('..')) return false;
+  try { const r = fs.realpathSync(path.join(goc, e)); return r === path.join(goc, e) && fs.statSync(r).isFile(); } catch { return false; }
+}
 function ngCanh(vao, env) {
   let goc = null;
   try { goc = fs.realpathSync(env.CLAUDE_PROJECT_DIR); if (!fs.existsSync(path.join(goc, '.git'))) goc = null; } catch {}
@@ -728,7 +814,8 @@ function ngCanh(vao, env) {
   let cauHinh = null;
   try {
     cauHinh = JSON.parse(fs.readFileSync(path.join(goc, '.claude/tu_chay/cau_hinh.json'), 'utf8'));
-    if (!['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them'].every((k) => Array.isArray(cauHinh[k]))) cauHinh = null;
+    if (!['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them', 'tep_bash_them'].every((k) => Array.isArray(cauHinh[k]))
+      || !cauHinh.tep_bash_them.every((e) => tepBashHopLe(e, goc))) cauHinh = null;
   } catch { cauHinh = null; }
   if (!cauHinh && luat('NG-CAUHINH')) return { kq: chan('NG-CAUHINH') };
   const home = typeof env.HOME === 'string' && path.isAbsolute(env.HOME) ? env.HOME : null;
@@ -817,7 +904,7 @@ function chay() {
   process.stdin.on('error', (e) => ketThuc(chan('NG-LOI', e.message)));
 }
 
-module.exports = { LUAT, xet };
+module.exports = { LUAT, xet, tachLenh };
 if (require.main === module) {
   try { chay(); } catch (e) {
     fs.writeSync(2, '[NG-LOI] người gác gặp lỗi bất ngờ — chặn · ' + e.message + '\n');

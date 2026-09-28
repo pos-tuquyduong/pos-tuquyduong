@@ -523,6 +523,82 @@ nằm ở `viec/TU-CHAY-1/ke_hoach.md`.
 16. **Sổ việc:** từ giờ tới khi có `day_len.sh` (TU-CHAY-3), **chủ quán tự ghi sổ
     trong Shell** theo lệnh chat soạn. Agent không ghi sổ (PY-SO, `file_cam`).
     Việc TU-CHAY-1 không thêm mục vào sổ.
+17. **`tep_bash_them` trong cau_hinh.json** (chủ quán chốt 28.09): bash/sh được chạy
+    đúng một file ghi trong danh sách này, so NGUYÊN đường dẫn đã chuẩn hoá (không
+    glob, không kèm tham số), mã luật B-BASHTHEM. POS: `["ban_mau_pos/chay_thu.sh"]`.
+    Chỉ mở việc CHẠY. Sửa file đó vẫn theo `file_luat` (`ban_mau_pos/**`: phạm vi
+    phải ghi đúng tên), có ca thử canh.
+18. **Bản lưu trước khi vá (`<file>.truoc_<ĐỢT>`) KHÔNG ghi trong kho** (chủ quán
+    chốt 28.09): đặt trong thư mục nháp. **CLAUDE.md §4 bước 5 hiện vẫn ghi "lưu
+    thành `<file>.truoc_<TEN_DOT>`" cạnh file gốc → sẽ sửa cho khớp ở TU-CHAY-2.**
+    Tới lúc đó, làm theo CLAUDE.md trong kho sẽ bị người gác chặn G5 — chép vào nháp.
+19. **Tuỳ chọn dài viết tắt** (vòng C4b): git, getopt_long và file nhận mọi tiền
+    tố không mơ hồ. MỘT hàm `laDai`: từ `--x` là tiền tố của tuỳ chọn bị cấm thì coi
+    là tuỳ chọn đó, áp cho mọi chỗ so tuỳ chọn dài (git add/commit/archive/--output/
+    --ext-diff, sort, uniq, sed, tar, curl, file, cp/mv/ln, node, timeout, chmod).
+    Lớp 1 có thêm deny `Bash(git *--no-v*)` — `*` đứng được ở mọi chỗ trong mẫu
+    (docs/en/permissions: "A `*` can go anywhere in the rule").
+20. **`cd` chặt lại** (vòng C4b):
+    - cd chỉ được đổi cwd khi đứng ĐẦU lệnh, không chuyển hướng, không gán biến,
+      không nằm trong pipeline hay danh sách chạy nền, và CHỈ nối tiếp bằng `&&`.
+      Mọi `cd` khác → B-CD-VITRI. `timeout cd` cũng bị chặn; lệnh trong `timeout`
+      luôn xét với bản sao cwd.
+    - Cấm cd vào `.git/`, `.claude/` (kể cả qua symlink) → B-CD-KHUNG.
+    - `|` và `|&` cuối dòng (kể cả sau `#`) vẫn nối pipeline sang dòng sau. `&`
+      đưa CẢ danh sách `&&`/`||` ra nền.
+    - **Chặn oan có chủ ý:** lệnh build ở CLAUDE.md §3 `cd client && npm run build
+      && cd ..` bị chặn (vì `cd ..`). Dạng thay: `(cd client && npm run build)`.
+      **CLAUDE.md §3 sẽ sửa ở TU-CHAY-2.**
+    - Bài thử đối chiếu bash THẬT: chạy bản vô hại (cd + touch) trong kho giả,
+      so chỗ file thật rơi vào với quyết định của người gác.
+21. **Kiểm từng mục `tep_bash_them`** khi đọc cấu hình: đường dẫn tương đối đã chuẩn
+    hoá, không rỗng, không `..`, không glob, là file thật trong kho, không qua
+    symlink. Sai → NG-CAUHINH. `SHELLOPTS`, `BASHOPTS`, `PS4` vào danh sách biến nguy hiểm.
+22. **Bốn quy tắc thêm ở vòng C4c** (chủ quán chốt, 28.09):
+    - **LN-CUNG:** `ln` không có `-s` → chặn; `cp -l`/`--link` (kể cả gộp `-al`, viết
+      tắt) → chặn. Liên kết CỨNG ghi vào cùng inode với file khác nên lách được kiểm
+      đích ghi (vd `ln .git/config server/a.js` rồi sửa `server/a.js`).
+    - **G-LIENKET:** trong `ghiDuoc`, đích đang tồn tại là file thường có `nlink > 1`
+      → chặn (bắt cả trường hợp liên kết cứng đã có sẵn từ trước). Đặt TRƯỚC nhánh
+      cho-qua của nháp/phạm vi để không bị bỏ sót.
+    - **PY-M:** `python3 -m` (kể cả gộp `-sm`, `-Im`) → chặn. `-m` chạy được
+      pip/venv/http.server và nạp mã tuỳ ý — cùng lớp lỗ với script tự mở file.
+    - **CURL-CAM mở rộng:** thêm `-x`, `--proxy`, `--preproxy`, `--socks4`,
+      `--socks4a`, `--socks5`, `--socks5-hostname`, `--proxy1.0` (kể cả viết tắt).
+    - **BIEN_NGUY mở rộng** (soát độc lập lần 2, chat, 28.09): cờ proxy chặn được
+      nhưng gán biến môi trường proxy rồi để `curl` tự đọc thì lọt — thêm
+      `CURL_HOME` và `*_proxy` (`http_proxy`, `https_proxy`, `ftp_proxy`,
+      `all_proxy`, `no_proxy`, không phân biệt hoa thường) vào `BIEN_NGUY`.
+    - **B-BIMAT-CHU mở rộng** (cùng mã, ba chỗ):
+      - `ps` đối số kiểu BSD (không gạch đầu) chứa chữ `e` → chặn (BSD `e` in môi
+        trường tiến trình). `ps -e`, `ps -ef`, `ps aux` cho qua.
+      - `node -e/-p` hoặc `python3 -c` có `process.env` KHÔNG theo sau `.` hoặc `[`
+        → chặn (đọc TOÀN BỘ môi trường). `process.env.PORT`, `process.env[..]` cho qua.
+      - `grep` đệ quy (`-r`, `-R`, `--recursive`, gộp, viết tắt) vào thư mục chứa
+        TRỰC TIẾP file thuộc `file_bi_mat` mà không có `--exclude` khớp → chặn kèm gợi
+        ý. `grep -rn x server/`, `grep -rn x . --exclude='.env*'` cho qua.
+        `grep` đệ quy KHÔNG có đường dẫn (vd `grep -rn DATABASE_URL`) → GNU grep tìm
+        thư mục hiện tại, nên coi đường dẫn là `cwd` và kiểm như thường.
+23. **TU-CHAY-2 `chay.sh` sẽ mở `claude` với biến bí mật đã GỠ khỏi môi trường.**
+    Người gác không giới hạn `Read`, `ps`/`node -e process.env`/`grep -r` chỉ bịt các
+    lối đọc bí mật QUA LỆNH; lối chắc chắn nhất là để chính tiến trình claude không có
+    `TURSO_AUTH_TOKEN`/`JWT_SECRET`… trong `environ`. `chay.sh` (TU-CHAY-2) sẽ đọc
+    bí mật, dùng để dựng thứ cần, rồi `env -u`/`unset` trước khi `exec claude`.
+
+### Phân loại lỗ (chủ quán chốt 28.09)
+
+- **Loại A — BẮT BUỘC vá ở người gác:** hậu quả KHÔNG hiện trong `git diff`, hoặc
+  không lùi được. Gồm:
+  - push, mạng, production;
+  - `.git/` (hook, config, lịch sử);
+  - `.env` và bí mật;
+  - file ngoài kho hoặc file chưa theo dõi;
+  - `.claude/`.
+- **Loại B — ghi ở đây, cổng TU-CHAY-3 bắt:** chỉ sửa nhầm file đang theo dõi trong
+  kho. Hiện trong `git diff`, lùi được.
+- **Yêu cầu cho TU-CHAY-3:** cổng phải kiểm `viec/<MÃ>/phieu.md` và `.claude/` KHÔNG
+  đổi so với lúc giao việc (so với commit `PHIEU: <MÃ>`), vì một số lỗ loại B / lưới
+  hai (script node/python) chạm tới đúng các file này.
 
 ### Lỗ còn hở — nói thẳng
 
@@ -550,12 +626,13 @@ nằm ở `viec/TU-CHAY-1/ke_hoach.md`.
   nên chặn cả `grep -rn TURSO_AUTH_TOKEN server/` và commit message có các chữ đó.
 - **Mọi dòng trong mục `## Phạm vi` đều được hiểu là đường dẫn / glob**, kể cả dòng
   văn xuôi. Phiếu do chat soạn và được G1 bảo vệ, nên rủi ro thấp.
-- **Soát độc lập 28.09 bắt được hai lỗ, đã vá kèm ca thử (đỏ trước khi vá):**
-  - `cd` trong một đoạn nối bằng `|` hoặc `&` làm lệch cwd mà người gác theo dõi;
-  - `file -C` ghi file mà không đi qua ghiDuoc (mã FILE-C).
+- **Sửa lời trước đây: vá vòng C3 chưa đủ.** B13 bản trước ghi "hai lỗ (cd trong
+  `|`/`&`, `file -C`) đã vá". Soát gọn vòng C4 cho thấy câu đó SAI: `|` ở cuối dòng,
+  `timeout cd`, `cd` có điều kiện (`||`, chuyển hướng hỏng), `… && ls &` (cả danh
+  sách chạy nền) vẫn làm lệch cwd; `file --comp` (viết tắt) vẫn lọt. Thêm nữa, mọi
+  tuỳ chọn dài VIẾT TẮT đều lọt, ví dụ `git commit --no-verif` bỏ qua pre-commit.
+  Đã vá ở vòng C4b (mục 19–21), có ca thử đỏ trước khi vá (`bang_chung_do_C4b.txt`).
 - **Chặn chặt hơn bản v1.1:**
   - khối `{ …; }`, `if`/`for`/`while`, `$(( ))`, `<( )`, `$'…'` và `${X:-…}` đều bị chặn;
-  - `bash ban_mau_pos/chay_thu.sh` bị chặn, vì B3 chỉ cho `.claude/tu_chay/*.sh`
-    và `cong_cu/**/*.sh`.
 
   Muốn mở thì chủ quán quyết (thêm vào `chuong_trinh_them`, hoặc đổi luật).

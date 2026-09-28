@@ -19,7 +19,9 @@ const { spawnSync } = require('child_process');
 const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
 // Chỉ dùng Edit(...): luật Write(...) Claude Code không bao giờ xét (docs/en/permissions).
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
-  'Bash(git push *)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)'];
+  'Bash(git push *)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)',
+  // "*" đứng được ở mọi chỗ trong mẫu (docs/en/permissions): chặn cả --no-verify viết tắt (--no-verif, --no-v…)
+  'Bash(git *--no-v*)'];
 const PRE_PUSH = `#!/usr/bin/env bash
 # pre-push — tu-chay (TU-CHAY-1). Cài bằng: bash tu_chay/cai_dat.sh
 # Chặn push chạy TỪ TRONG Claude Code (có CLAUDECODE hoặc CLAUDE_CODE_CHILD_SESSION).

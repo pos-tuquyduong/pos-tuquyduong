@@ -12,6 +12,7 @@
   "file_bi_mat": [".env", ".env.*", ".replit"],
   "ten_mien_production": ["pos-tuquyduong.io.vn", "turso.io"],
   "chuong_trinh_them": [],
+  "tep_bash_them": ["ban_mau_pos/chay_thu.sh"],
   "so_vong_sua_toi_da": 3,
   "vuot_ngan_sach_canh_bao": 1.5,
   "kiem_sau_day_len": "log Render có dòng '✅ Đã kết nối Turso database (PRODUCTION)'"

@@ -1,0 +1,12 @@
+# Bằng chứng ĐỎ vòng C4 (tep_bash_them) — 2026-09-28T02:40:55+00:00
+# Lệnh: node tu_chay/thu_nguoi_gac.js — ca thử mới đã thêm, người gác + cau_hinh.json CHƯA vá (a46446e). Mã thoát: 1
+
+thu_nguoi_gac: 415/420 ca người gác đúng mã · 103 phép khác
+  ✗ ca cau_hinh.json thiếu tep_bash_them: mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca Bash "bash ban_mau_pos/chay_thu.sh": mong CHO, ra CHAN:B-CHUONGTRINH
+  ✗ ca Bash "sh ban_mau_pos/chay_thu.sh": mong CHO, ra CHAN:B-CHUONGTRINH
+  ✗ ca Bash "bash ./ban_mau_pos/chay_thu.sh": mong CHO, ra CHAN:B-CHUONGTRINH
+  ✗ ca Bash "cd ban_mau_pos && bash chay_thu.sh": mong CHO, ra CHAN:B-CHUONGTRINH
+  ✗ tu_chay/cau_hinh.json hợp lệ, đủ trường
+  ✗ cau_hinh: tep_bash_them đúng một file ban_mau_pos/chay_thu.sh, không glob
+  ĐỎ — 7 chỗ hỏng

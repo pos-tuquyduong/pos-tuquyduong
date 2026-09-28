@@ -43,11 +43,13 @@ const CAU_HINH = {
   file_luat: ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**'],
   file_bi_mat: ['.env', '.env.*', '.replit'],
   chuong_trinh_them: [],
+  tep_bash_them: ['ban_mau_pos/chay_thu.sh'],
 };
 function kho(ten, { nhanh = 'viec/X', cauHinh = JSON.stringify(CAU_HINH), phieu = {} } = {}) {
   const g = path.join(TAM, ten);
   viet(g, '.git/HEAD', /^[0-9a-f]{40}$/.test(nhanh) ? nhanh + '\n' : `ref: refs/heads/${nhanh}\n`);
   if (cauHinh !== null) viet(g, '.claude/tu_chay/cau_hinh.json', cauHinh);
+  viet(g, 'ban_mau_pos/chay_thu.sh', 'echo thu\n');
   for (const [ma, nd] of Object.entries(phieu)) viet(g, `viec/${ma}/phieu.md`, nd);
   return g;
 }
@@ -77,6 +79,12 @@ const KHO_H = kho('kho_h', { nhanh: 'viec/H', phieu: { H: '# H\n## Phạm vi\n- 
 const KHO_KCH = kho('kho_kch', { cauHinh: null, phieu: { X: PHIEU_X } });
 const KHO_HONG = kho('kho_hong', { cauHinh: '{', phieu: { X: PHIEU_X } });
 const KHO_THIEU = kho('kho_thieu', { cauHinh: JSON.stringify({ app: 'x', file_cam: [] }), phieu: { X: PHIEU_X } });
+const { tep_bash_them: _bo, ...CH_THIEU_BASH } = CAU_HINH;
+const KHO_TBT = kho('kho_tbt', { cauHinh: JSON.stringify(CH_THIEU_BASH), phieu: { X: PHIEU_X } });
+// KHO_LK: server/a.js là LIÊN KẾT CỨNG (nlink 2) → G-LIENKET. Đặt riêng để không phá ca server/a.js trong KHO.
+const KHO_LK = kho('kho_lk', { phieu: { X: PHIEU_X } });
+viet(KHO_LK, 'server/a.js', 'x');
+fs.linkSync(path.join(KHO_LK, 'server/a.js'), path.join(KHO_LK, 'server/a_cung.js'));
 
 // ── Ca thử ───────────────────────────────────────────────────────────────────
 function vao(cc, ti, o = {}) {
@@ -91,7 +99,7 @@ const ca = (ten, cc, ti, ky, o = {}) => CA.push({
   ten, ky: ky === 'CHO' ? 'CHO' : 'CHAN:' + ky, chuoi: o.chuoi !== undefined ? o.chuoi : vao(cc, ti, o),
   env: o.env || { CLAUDE_PROJECT_DIR: o.goc || KHO, HOME },
 });
-const B = (lenh, ky, o) => ca('Bash ' + JSON.stringify(lenh), 'Bash', { command: lenh }, ky, o);
+const B = (lenh, ky, o) => { ca('Bash ' + JSON.stringify(lenh), 'Bash', { command: lenh }, ky, o); if (!o) CA[CA.length - 1].lenh = lenh; };
 const E = (p, ky, o) => ca('Edit ' + p, 'Edit', { file_path: p, old_string: 'a', new_string: 'b' }, ky, o);
 const W = (p, ky, o) => ca('Write ' + p, 'Write', { file_path: p, content: 'x' }, ky, o);
 const N = NHAP;
@@ -107,6 +115,14 @@ ca('CLAUDE_PROJECT_DIR không phải kho git', 'Read', {}, 'NG-GOC', { env: { CL
 ca('thiếu cau_hinh.json', 'Read', {}, 'NG-CAUHINH', { goc: KHO_KCH });
 ca('cau_hinh.json hỏng JSON', 'Read', {}, 'NG-CAUHINH', { goc: KHO_HONG });
 ca('cau_hinh.json thiếu trường', 'Read', {}, 'NG-CAUHINH', { goc: KHO_THIEU });
+ca('cau_hinh.json thiếu tep_bash_them', 'Read', {}, 'NG-CAUHINH', { goc: KHO_TBT });
+// (6) từng mục tep_bash_them: tương đối đã chuẩn hoá, không rỗng, không .., không glob, file có thật trong kho
+['', '../ngoai.sh', '/etc/passwd', './ban_mau_pos/chay_thu.sh', 'ban_mau_pos//chay_thu.sh', 'ban_mau_pos/khong_co.sh',
+  'ban_mau_pos/*.sh', 'ban_mau_pos', 5, 'ban_mau_pos/../ban_mau_pos/chay_thu.sh', 'ln_ngoai.sh', 'ban_mau_pos/chay_thu.sh/'].forEach((m, i) => {
+  const g = kho('kho_tb' + i, { cauHinh: JSON.stringify({ ...CAU_HINH, tep_bash_them: [m] }), phieu: { X: PHIEU_X } });
+  if (m === 'ln_ngoai.sh') fs.symlinkSync(viet(TAM, 'ngoai_sh/x.sh', 'x'), path.join(g, 'ln_ngoai.sh'));
+  ca('tep_bash_them sai: ' + JSON.stringify(m), 'Read', {}, 'NG-CAUHINH', { goc: g });
+});
 
 // Công cụ
 for (const cc of ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode',
@@ -180,7 +196,10 @@ for (const l of ['$G push', '"$(echo git)" push', '{ ls; }', '[[ -f x ]]']) B(l,
 for (const l of ['./git status', TAM + '/git status']) B(l, 'B-DUONGDAN');
 for (const l of ['echo $((1+2))', 'cat <(ls)', "echo $'a'", 'echo "abc', 'echo ${X:-$(git push)}', 'echo $(ls',
   'cat <<EOF\nabc', 'echo a )', 'ls ;; ls']) B(l, 'B-PHANTICH');
-for (const l of ['GIT_DIR=x git status', 'PATH=/tmp ls', 'LD_PRELOAD=x ls', 'CLAUDECODE= ls', 'NODE_OPTIONS=-r ls']) B(l, 'B-GAN');
+for (const l of ['GIT_DIR=x git status', 'PATH=/tmp ls', 'LD_PRELOAD=x ls', 'CLAUDECODE= ls', 'NODE_OPTIONS=-r ls',
+  'SHELLOPTS=xtrace ls', 'BASHOPTS=x ls', 'PS4=x ls',
+  'http_proxy=http://p curl http://localhost/', 'HTTPS_PROXY=x curl localhost', 'ALL_PROXY=socks5://p curl localhost',
+  'all_proxy=x curl localhost', 'no_proxy= curl localhost', 'CURL_HOME=/tmp curl localhost']) B(l, 'B-GAN');
 for (const l of ['echo $TURSO_AUTH_TOKEN', 'cat /proc/self/environ', 'grep API_KEY server/a.js', 'echo $JWT_SECRET']) B(l, 'B-BIMAT-CHU');
 for (const l of ['cat .env', 'cat ./.env.local', 'cat server/../.env', 'cat .e*', 'cat .e""nv', 'cat .replit',
   'F=.env', 'cp .env ' + N + '/', 'head -c 9 {.env,x}']) B(l, 'B-BIMAT-FILE');
@@ -222,14 +241,26 @@ for (const l of ['echo >> viec/X/phieu.md', 'cp ' + N + '/f.txt viec/X/phieu.md'
   'ln -s /etc/passwd viec/X/phieu.md', 'tar czf viec/X/phieu.md server', 'sort -o viec/X/phieu.md server/a.js',
   'uniq server/a.js viec/X/phieu.md', 'xxd server/a.js viec/X/phieu.md', 'chmod +x viec/X/phieu.md',
   'chmod -w viec/X/phieu.md', 'curl http://127.0.0.1:3000 -o viec/X/phieu.md']) B(l, 'G1-PHIEU');
-for (const l of ['echo x > .claude/settings.json', 'touch .claude/x', 'cd .claude && cp ' + N + '/f.txt settings.json']) B(l, 'G1-KHUNG');
+for (const l of ['echo x > .claude/settings.json', 'touch .claude/x']) B(l, 'G1-KHUNG');
 B('echo x >| TIEN_DO_POS.json', 'G1-CAM');
 for (const l of ['ls &> server/b.js', 'git checkout -- server/b.js', 'mv server/a.js server/b.js', 'mv server/b.js server/a.js',
-  '(cd server) && cp ' + N + '/f.txt a.js', 'cd server | cp ' + N + '/f.txt a.js', 'cd server & cp ' + N + '/f.txt a.js',
-  'ls | cd server; cp ' + N + '/f.txt a.js']) B(l, 'G5-NGOAIPV');
+  '(cd server) && cp ' + N + '/f.txt a.js']) B(l, 'G5-NGOAIPV');
 for (const l of ['echo x > ' + HOME + '/.claude/plans/p.md', 'cp ' + N + '/f.txt ' + HOME + '/.claude/plans/p.md']) B(l, 'G0-NGOAI');
 for (const l of ['echo x > $F', 'echo > viec/X/*.md', 'cp x viec/X/{phieu,a}.md', 'rm $X', 'tee $F']) B(l, 'B-DICHCHU');
 for (const l of ['cd / && ls', 'cd .. && ls', 'cd $X', 'cd - && ls']) B(l, 'B-CD');
+// (4) cd chỉ đổi cwd khi đứng ĐẦU lệnh, không chuyển hướng, không gán biến, và CHỈ nối bằng &&
+for (const l of ['cd server | cp ' + N + '/f.txt a.js', 'cd server & cp ' + N + '/f.txt a.js', 'ls | cd server; cp ' + N + '/f.txt a.js',
+  'cd server; cp ' + N + '/f.txt a.js', 'cd server\ncp ' + N + '/f.txt a.js', 'ls && cd server && cp ' + N + '/f.txt a.js',
+  'cd server < /dev/null && ls', 'X=1 cd server && ls', 'cd server || ls', 'cd server && ls; cd ..', 'ls || cd server; ls',
+  'timeout 5 cd server && cp ' + N + '/f.txt a.js', 'ls |\ncd server && ls', 'ls | # c\ncd server && ls', 'ls |&\ncd server && ls',
+  'cd server 2>/dev/null && ls']) B(l, 'B-CD-VITRI');
+for (const l of ['cd server &&\ncp ' + N + '/f.txt a.js', 'cd server', '(cd server && cp ' + N + '/f.txt a.js)',
+  'echo $(cd server && ls)', 'cd server && ls | cat', '(cd client && npm run build)']) B(l, 'CHO');
+// Lệnh build ở CLAUDE.md §3 có `&& cd ..` ở cuối → bị chặn theo luật (4); dùng dạng ( ) ở trên. Sửa CLAUDE.md ở TU-CHAY-2.
+B('cd client && npm run build && cd ..', 'B-CD-VITRI');
+// (5) cấm cd vào .git/, .claude/ (kể cả qua symlink)
+for (const l of ['cd .git && ls', 'cd .claude/tu_chay && ls', 'cd server/ln_claude && ls', 'cd .git',
+  'cd .claude && cp ' + N + '/f.txt settings.json']) B(l, 'B-CD-KHUNG');
 
 // Bash — luật con
 for (const l of ['git diff --output=server/b.js', 'git log --output x', 'git grep -O x', 'git diff --ext-diff']) B(l, 'GIT-OUTPUT');
@@ -266,8 +297,67 @@ for (const l of ['find . -delete', "find . -name '*.js' -exec rm {} \\;", 'find 
 for (const l of ['curl https://pos-tuquyduong.io.vn/api', 'curl $U', 'curl http://example.com']) B(l, 'CURL-HOST');
 for (const l of ['curl -K cfg http://localhost', 'curl -O http://localhost/x']) B(l, 'CURL-CAM');
 for (const l of ['mkdir .claude/moi', 'mkdir ' + TAM + '/khac']) B(l, 'MKDIR-DICH');
-for (const l of ['file -C -m x.mgc', 'file --compile -m x.mgc']) B(l, 'FILE-C');
+for (const l of ['file -C -m x.mgc', 'file --compile -m x.mgc', 'file --comp -m x', 'file --co -m x']) B(l, 'FILE-C');
+// (1) tuỳ chọn dài viết tắt
+for (const [l, m] of [['git commit --no-verif -m x', 'GIT-COMMIT-CO'], ['git commit --amen', 'GIT-COMMIT-CO'],
+  ['git commit --al -m x', 'GIT-COMMIT-CO'], ['git add --al', 'GIT-ADD'], ['git add --forc server/a.js', 'GIT-ADD'],
+  ['sort --outp=viec/X/phieu.md server/a.js', 'G1-PHIEU'], ['sed --in-pl s/a/b/ server/a.js', 'SED-I'],
+  ['git archive --remot=x HEAD', 'GIT-ARCHIVE'], ['git diff --outp=server/b.js', 'GIT-OUTPUT'], ['git diff --ext', 'GIT-OUTPUT'],
+  ['cp --target=viec/X ' + N + '/phieu.md', 'G1-PHIEU'], ['tar -c --fil=viec/X/phieu.md server', 'G1-PHIEU'],
+  ['curl --outp viec/X/phieu.md http://localhost', 'G1-PHIEU'], ['uniq --skip-fi 1 server/a.js viec/X/phieu.md', 'G1-PHIEU'],
+  ['tar --to-comm=sh -xf a.tar -C ' + N, 'TAR-LA']]) B(l, m);
+for (const l of ['git commit --no-edit -m x', 'sort -r server/a.js', 'git diff --stat', 'tar --list -f ' + N + '/a.tar',
+  'curl --silent http://localhost:5000', 'file --mime-type server/a.js', 'sed --quiet -n p server/a.js']) B(l, 'CHO');
+// tep_bash_them: đúng đường dẫn trong cấu hình, không glob; file_luat ban_mau_pos/** vẫn giữ nguyên
+for (const l of ['bash ban_mau_pos/chay_thu.sh', 'sh ban_mau_pos/chay_thu.sh', 'bash ./ban_mau_pos/chay_thu.sh',
+  'cd ban_mau_pos && bash chay_thu.sh']) B(l, 'CHO');
+for (const l of ['bash ban_mau_pos/khac.sh', 'bash ban_mau_pos/chay_thu.sh x', 'bash ban_mau_pos/*.sh', 'bash -c ban_mau_pos/chay_thu.sh',
+  'bash ban_mau_pos/chay_thu.sh.truoc_X']) B(l, 'B-CHUONGTRINH');
+E('ban_mau_pos/chay_thu.sh', 'G-LUAT');
+B('echo x > ban_mau_pos/chay_thu.sh', 'G-LUAT');
+B('cp ' + N + '/f.txt ban_mau_pos/chay_thu.sh', 'G-LUAT');
 B('file server/a.js', 'CHO');
+
+// ── (C4c) liên kết cứng · proxy · python -m · mở rộng bí mật ─────────────────
+// (1) LN-CUNG: ln không -s → chặn; cp có -l/--link (kể cả gộp, viết tắt) → chặn
+for (const l of ['ln -f .git/config server/a.js', 'ln x server/a.js', 'cp -l x server/a.js',
+  'cp -al server ' + N + '/g', 'cp --link x server/a.js', 'cp --li x server/a.js',
+  'ln -f server/b.js server/a.js']) B(l, 'LN-CUNG');
+// (1) G-LIENKET: đích đang tồn tại là file thường nlink > 1 → chặn (Edit, > , cp)
+E('server/a.js', 'G-LIENKET', { goc: KHO_LK });
+B('echo x > server/a.js', 'G-LIENKET', { goc: KHO_LK });
+B('cp ' + N + '/f.txt server/a.js', 'G-LIENKET', { goc: KHO_LK });
+W('server/a_cung.js', 'G-LIENKET', { goc: KHO_LK });
+// (1) cho qua: ln -s trong phạm vi / vào nháp
+for (const l of ['ln -sf ' + KHO + '/server/b.js ' + N + '/lnk', 'ln -s server/b.js ' + N + '/l2']) B(l, 'CHO');
+// (2) CURL-CAM thêm cờ proxy / socks (kể cả viết tắt)
+for (const l of ['curl -x http://p:8080 http://localhost', 'curl --proxy http://p http://localhost',
+  'curl --preproxy socks5://p http://localhost', 'curl --socks4 p http://localhost', 'curl --socks4a p http://localhost',
+  'curl --socks5 p http://localhost', 'curl --socks5-hostname p http://localhost', 'curl --proxy1.0 p http://localhost',
+  'curl --prox http://p http://localhost', 'curl --socks5-host p http://localhost']) B(l, 'CURL-CAM');
+// (3) PY-M: python3 -m → chặn (kể cả gộp cờ ngắn)
+for (const l of ['python3 -m pip install x', 'python3 -m venv env', 'python3 -m', 'python3 -sm pip',
+  'python3 -Im http.server']) B(l, 'PY-M');
+for (const l of ['python3 x.py -m', 'python3 -c "print(1)"']) B(l, 'CHO');
+// (4) B-BIMAT-CHU: ps đối số BSD chứa 'e' → chặn; ps -e / -ef / aux cho qua
+for (const l of ['ps e', 'ps aux e', 'ps auxe', 'ps axe', 'ps -A e']) B(l, 'B-BIMAT-CHU');
+for (const l of ['ps -e', 'ps -ef', 'ps -ely', 'ps 1234']) B(l, 'CHO');
+// (4) B-BIMAT-CHU: node -e/-p, python3 -c có process.env không theo sau . hoặc [
+for (const l of ['node -e "console.log(process.env)"', 'node -p "process.env"',
+  'node -e "for(const k in process.env){}"', 'python3 -c "print(process.env)"']) B(l, 'B-BIMAT-CHU');
+for (const l of ['node -e "console.log(process.env.PORT)"', 'node -p "process.env[0]"']) B(l, 'CHO');
+// (4) B-BIMAT-CHU: grep đệ quy vào thư mục chứa trực tiếp file bí mật, không --exclude khớp
+for (const l of ['grep -rn x .', 'grep -r foo .', 'grep -R foo .', 'grep --recursive foo .',
+  'grep --recur foo .', 'grep -rIn foo .']) B(l, 'B-BIMAT-CHU');
+for (const l of ['grep -rn x server/', 'grep -rn x . --exclude=.env*', "grep -rn x . --exclude='.env*'",
+  'grep foo server/a.js', 'grep -n foo .']) B(l, 'CHO');
+// grep đệ quy KHÔNG đường dẫn → GNU grep tìm THƯ MỤC HIỆN TẠI (cwd), kiểm như thường
+for (const l of ['grep -rn x', 'grep -r DATABASE_URL']) B(l, 'B-BIMAT-CHU');
+// có -e thì x là ĐƯỜNG DẪN (không phải mẫu) → grep không tìm cwd
+B('grep -rn x -e y', 'CHO');
+for (const l of ['cd server && grep -rn x', 'grep -rn x server/']) B(l, 'CHO');
+// ps: đối số không phải BSD-e vẫn cho qua
+for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
 
 // ── Chạy ca trong tiến trình ────────────────────────────────────────────────
 const coXet = typeof gac.xet === 'function';
@@ -302,14 +392,67 @@ if (coXet && Array.isArray(gac.LUAT) && gac.LUAT.length) {
   chac('người gác xuất xet() và bảng LUAT', false);
 }
 
+// ── (9) Tự sinh biến thể — mọi biến thể phải bị CHẶN (bất kỳ mã nào) ────────
+const SINH = [];
+// a) ca "phải chặn" có ; hoặc && (không nháy, không heredoc): xuống dòng, \ nối dòng, | # chú thích
+for (const c of CA) {
+  const l = c.lenh;
+  if (!l || c.ky === 'CHO' || c.ky === 'CHAN:B-PHANTICH' || /['"`\\<]/.test(l) || !/; |&& /.test(l)) continue;
+  SINH.push(l.replace(/; /g, '\n').replace(/&& /g, '&&\n'));
+  SINH.push(l.replace(/; /g, ' \\\n; ').replace(/&& /g, ' \\\n&& '));
+  SINH.push(l.replace(/; |&& /g, ' | # c\n'));
+}
+// b) mọi tiền tố (từ "--x") của mỗi tuỳ chọn dài bị cấm
+const CAM_DAI = [
+  ['git commit {} -m x', '--no-verify'], ['git commit {}', '--amend'], ['git commit {} -m x', '--all'],
+  ['git commit {} -m x', '--include'], ['git commit {} -m x', '--only'],
+  ...['--all', '--update', '--force', '--patch', '--interactive', '--edit', '--no-ignore-removal'].map((t) => ['git add {} server/a.js', t]),
+  ['git diff {}=server/b.js', '--output'], ['git diff {} server/b.js', '--output'], ['git diff {}', '--ext-diff'],
+  ['git grep {} x', '--open-files-in-pager'], ['git archive {}=x HEAD', '--remote'], ['git archive {}=x HEAD', '--exec'],
+  ['git archive {}=server/b.tar HEAD', '--output'],
+  ['sort {}=viec/X/phieu.md server/a.js', '--output'], ['sort {} viec/X/phieu.md server/a.js', '--output'],
+  ...['--skip-fields', '--skip-chars', '--check-chars'].map((t) => ['uniq {} 1 server/a.js viec/X/phieu.md', t]),
+  ['sed {} s/a/b/ server/a.js', '--in-place'], ['sed {}=x.sed server/a.js', '--file'],
+  ...['--to-command', '--use-compress-program', '--checkpoint-action', '--info-script', '--new-volume-script', '--rsh-command',
+    '--rmt-command', '--index-file'].map((t) => ['tar {}=sh -xf a.tar -C ' + N, t]),
+  ['tar -c {}=viec/X/phieu.md server', '--file'], ['tar -xf ' + N + '/a.tar {}=server', '--directory'],
+  ...['--config', '--trace', '--trace-ascii', '--stderr', '--libcurl', '--etag-save', '--hsts', '--alt-svc'].map((t) => ['curl {}=x http://localhost', t]),
+  ...['--remote-name', '--remote-name-all', '--remote-header-name'].map((t) => ['curl {} http://localhost/x', t]),
+  ...['--output', '--cookie-jar', '--dump-header'].map((t) => ['curl {}=viec/X/phieu.md http://localhost', t]),
+  ['file {} -m x', '--compile'],
+  ['cp {}=viec/X ' + N + '/phieu.md', '--target-directory'], ['cp {} viec/X ' + N + '/phieu.md', '--target-directory'],
+  ['cp {} ' + N + '/dir server/', '--recursive'], ['cp {} ' + N + '/dir server/', '--archive'],
+  ["node {}=\"require('fs').writeFileSync('.claude/x','')\"", '--eval'], ["node {}=\"require('fs').writeFileSync('.claude/x','')\"", '--print'],
+];
+for (const [mau, ten] of CAM_DAI) for (let n = 3; n <= ten.length; n++) SINH.push(mau.replace('{}', ten.slice(0, n)));
+// c) cờ ngắn bị cấm ở dạng gộp: -X, -kX, -Xk (k là cờ vô hại)
+for (const [mau, chu, kem] of [['git commit -{} -m x', 'naio', 'q'], ['git add -{} server/a.js', 'Aufpie', 'v'],
+  ['sed -{} s/a/b/ server/a.js', 'i', 'n'], ['file -{} -m x', 'C', 'b'], ['tar -{}f a.tar -C ' + N + '/dir', 'I', 'x'],
+  ['sort -{}viec/X/phieu.md server/a.js', 'o', 'r'], ['curl -{} http://localhost/x', 'KO', 's'], ['cp -{} ' + N + '/dir server/', 'rRa', 'v']]) {
+  for (const ch of chu) for (const g of [ch, kem + ch, ch + kem]) SINH.push(mau.replace('{}', g));
+}
+if (coXet) {
+  const lot = SINH.filter((l) => chay({ chuoi: vao('Bash', { command: l }), env: { CLAUDE_PROJECT_DIR: KHO, HOME } }, new Set()) === 'CHO');
+  chac(`tự sinh: ${SINH.length} biến thể đều bị chặn`, lot.length === 0, lot.slice(0, 8).map((x) => JSON.stringify(x)).join(' | '));
+}
+// (2) | và |& cuối dòng (kể cả sau # chú thích) vẫn nối pipeline sang dòng sau → phần sau là subshell
+{
+  const tach = gac.tachLenh;
+  const rieng = (l) => { try { return !!tach(l, HOME)[1].rieng; } catch { return 'lỗi'; } };
+  chac('bộ tách: `|`/`|&` cuối dòng (kể cả sau #) nối pipeline sang dòng sau', typeof tach === 'function'
+    && ['ls |\ncd x', 'ls | # c\ncd x', 'ls |&\ncd x', 'ls |\n\ncd x'].every((l) => rieng(l) === true) && rieng('ls\ncd x') === false);
+}
+
 // Cấu hình thật của POS
 {
   let ch = null;
   try { ch = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8')); } catch {}
-  chac('tu_chay/cau_hinh.json hợp lệ, đủ trường', !!ch && ['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them']
+  chac('tu_chay/cau_hinh.json hợp lệ, đủ trường', !!ch && ['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them', 'tep_bash_them']
     .every((k) => Array.isArray(ch[k])));
   chac('cau_hinh: TIEN_DO_*.json trong file_cam; 4 file luật trong file_luat', !!ch && ch.file_cam.includes('TIEN_DO_*.json')
     && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**'].every((f) => ch.file_luat.includes(f)));
+  chac('cau_hinh: tep_bash_them đúng một file ban_mau_pos/chay_thu.sh, không glob', !!ch && Array.isArray(ch.tep_bash_them)
+    && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
   chac('PHIEN_BAN = tu-chay 1.1.0', pb === 'tu-chay 1.1.0', pb || '(không có)');
@@ -334,7 +477,41 @@ function choTreo(env) {
     p.stdin.write('{"tool_name":');
   });
 }
+// (10) Đối chiếu bash THẬT cho các ca cd: chạy bản vô hại (cd + touch) trong kho giả,
+// tìm file thật rơi vào đâu. Người gác CHO thì Edit chính chỗ đó cũng phải CHO; lệch → đỏ.
+function doiChieuBash() {
+  const CAC = [['cd viec/X && touch z01', true], ['cd viec/X | touch z02'], ['cd viec/X & touch z03'],
+    ['ls |\ncd viec/X; touch z04'], ['ls | # c\ncd viec/X && touch z05'], ['ls |&\ncd viec/X && touch z06'],
+    ['timeout 5 cd viec/X; touch z07'], ['ls || cd viec/X; touch z08'], ['cd viec/X < /khong_co; touch z09'],
+    ['cd viec/X; touch z10'], ['cd viec/X && ls | touch z11', true], ['cd viec/X && (touch z12)', true],
+    ['(cd viec/X && touch z13)', true], ['(cd viec/X) && touch z14'], ['cd viec/X && touch z15 && cd ../.. && touch z16'],
+    ['cd viec/X &&\ntouch z17', true], ['cd viec/X\ntouch z18'], ['echo $(cd viec/X && touch z20)', true],
+    ['test -d viec/X && cd viec/X && touch z21'], ['cd viec/X && ls & touch z22'], ['true | cd viec/X && touch z23']];
+  const env = { CLAUDE_PROJECT_DIR: KHO, HOME };
+  const tim = (ten) => {
+    const ra = [];
+    (function di(d) {
+      let ds = [];
+      try { ds = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+      for (const x of ds) {
+        const p = path.join(d, x.name);
+        if (x.isDirectory() && !x.isSymbolicLink()) di(p); else if (x.name === ten) ra.push(p);
+      }
+    })(TAM);
+    return ra;
+  };
+  for (const [lenh, phaiCho] of CAC) {
+    const r = chay({ chuoi: vao('Bash', { command: lenh }), env }, new Set());
+    spawnSync('bash', ['-c', lenh], { cwd: KHO, env: { PATH: process.env.PATH, HOME }, timeout: 10000, encoding: 'utf8' });
+    const ten = [...lenh.matchAll(/touch (z\d+)/g)].map((m) => m[1]);
+    const noi = ten.flatMap(tim);
+    const sai = noi.filter((p) => chay({ chuoi: vao('Write', { file_path: p, content: '' }), env }, new Set()) !== 'CHO');
+    chac(`đối chiếu bash: ${JSON.stringify(lenh)} → người gác ${r}`, (r !== 'CHO' || (noi.length > 0 && !sai.length))
+      && (!phaiCho || r === 'CHO'), `file thật ở: ${noi.map((p) => path.relative(TAM, p)).join(', ') || '(không có)'}`);
+  }
+}
 async function tienTrinh() {
+  doiChieuBash();
   const env = { CLAUDE_PROJECT_DIR: KHO, HOME, PATH: process.env.PATH };
   const NK = path.join(KHO, '.tu_chay_nhat_ky.jsonl');
   const tatCa = [];
@@ -401,7 +578,7 @@ const SETTINGS_GOC = JSON.stringify({
 }, null, 2) + '\n';
 const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
-  'Bash(git push *)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)'];
+  'Bash(git push *)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)', 'Bash(git *--no-v*)'];
 const HOME_CAI = path.join(TAM, 'home_cai');
 fs.mkdirSync(HOME_CAI);
 function envSach(them = {}) {

@@ -1,0 +1,39 @@
+thu_nguoi_gac: 497/538 ca người gác đúng mã · 129 phép khác
+  ✗ ca Bash "ln -f .git/config server/a.js": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Bash "ln x server/a.js": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Bash "cp -l x server/a.js": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Bash "cp -al server /tmp/thu_gac_epvXpu/nhap/g": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Bash "cp --link x server/a.js": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Bash "cp --li x server/a.js": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Bash "ln -f server/b.js server/a.js": mong CHAN:LN-CUNG, ra CHO
+  ✗ ca Edit server/a.js: mong CHAN:G-LIENKET, ra CHO
+  ✗ ca Bash "echo x > server/a.js": mong CHAN:G-LIENKET, ra CHO
+  ✗ ca Bash "cp /tmp/thu_gac_epvXpu/nhap/f.txt server/a.js": mong CHAN:G-LIENKET, ra CHO
+  ✗ ca Write server/a_cung.js: mong CHAN:G-LIENKET, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "curl -x http://p:8080 http://localhost": mong CHAN:CURL-CAM, ra CHO
+  ✗ ca Bash "curl --proxy http://p http://localhost": mong CHAN:CURL-CAM, ra CHO
+  ✗ ca Bash "curl --preproxy socks5://p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "curl --socks4 p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "curl --socks4a p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "curl --socks5 p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "curl --socks5-hostname p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "curl --proxy1.0 p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "curl --prox http://p http://localhost": mong CHAN:CURL-CAM, ra CHO
+  ✗ ca Bash "curl --socks5-host p http://localhost": mong CHAN:CURL-CAM, ra CHAN:CURL-HOST
+  ✗ ca Bash "python3 -m pip install x": mong CHAN:PY-M, ra CHO
+  ✗ ca Bash "python3 -m venv env": mong CHAN:PY-M, ra CHO
+  ✗ ca Bash "python3 -m": mong CHAN:PY-M, ra CHO
+  ✗ ca Bash "python3 -sm pip": mong CHAN:PY-M, ra CHO
+  ✗ ca Bash "python3 -Im http.server": mong CHAN:PY-M, ra CHO
+  ✗ ca Bash "ps e": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "ps aux e": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "ps auxe": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "ps axe": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ … và 11 ca hỏng khác
+  ĐỎ — 41 chỗ hỏng
+
+===== C4c bổ sung (28.09): grep đệ quy KHÔNG đường dẫn → tìm cwd. Bản CHƯA vá: =====
+  ✗ ca Bash "grep -rn x": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "grep -r DATABASE_URL": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "grep -rn x -e y": mong CHAN:B-BIMAT-CHU, ra CHO
+  ĐỎ — 3 chỗ hỏng
