@@ -474,7 +474,7 @@ chac('orders.js chặn sản phẩm chưa có giá',
 // E11 — POS-P20-v2: bài thử CHẠY THẬT trong bộ kiểm (cũng là pre-commit và
 // hook Stop). Phép tĩnh chỉ soi chữ; bài thật tạo đơn, huỷ, hoàn tiền rồi gọi
 // route. Hết giờ hoặc sập = hỏng.
-for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) {
+function chayBaiThat(bai) {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: 120000 });
   const giay = ((Date.now() - t0) / 1000).toFixed(1);
@@ -484,6 +484,7 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) {
     r.status === 0 && !r.error,
     r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
 }
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) chayBaiThat(bai);
 
 // E10 — POS-P21-v1: đối soát ví (/:phone/reconcile, /reconcile-all) chỉ cộng các loại dòng làm đổi số dư ví.
 // Hai route này chưa có nút trên màn hình — chỉ gọi thẳng API với quyền adjust_balance.
@@ -504,6 +505,36 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) {
   chac('ví: đối soát (1 khách + toàn bộ) chỉ đọc dòng thuộc danh sách trắng',
     /SUM\(amount\)[^`]*\$\{DK_LOAI_VI\}/.test(than) && /DISTINCT customer_phone[^`]*\$\{DK_LOAI_VI\}/.test(tatCa),
     'gọi API đối soát ví (/:phone/reconcile, /reconcile-all) sẽ cộng tiền thu nợ vào ví khách');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+nhom('T · TỰ CHẠY — người gác (TU-CHAY-1)');
+
+// T1 — bài phá thử người gác CHẠY THẬT: ~400 ca đúng mã luật, đột biến từng
+// luật, tiến trình thật (stdin treo, nhật ký), cài đặt trên kho tạm + pre-push.
+chayBaiThat('tu_chay/thu_nguoi_gac.js');
+
+// T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/
+// (trừ cai_dat.*, trình cài không chép sang). Lệch = hook đang chạy mã khác
+// mã đã thử → CẢNH BÁO, chủ quán chạy lại bash tu_chay/cai_dat.sh.
+{
+  const daCai = path.join(GOC, '.claude', 'tu_chay');
+  if (!fs.existsSync(daCai)) {
+    pass('.claude/tu_chay/ chưa cài — bỏ qua so byte với tu_chay/');
+  } else {
+    const nguon = fs.readdirSync(path.join(GOC, 'tu_chay')).filter((f) => !/^cai_dat\./.test(f)).sort();
+    const coSan = fs.readdirSync(daCai).sort();
+    const lech = nguon.filter((f) => {
+      try { return Buffer.compare(fs.readFileSync(path.join(GOC, 'tu_chay', f)), fs.readFileSync(path.join(daCai, f))) !== 0; } catch { return true; }
+    });
+    const thua = coSan.filter((f) => !nguon.includes(f));
+    if (lech.length || thua.length) {
+      canhBao('.claude/tu_chay/ khớp từng byte với tu_chay/',
+        `lệch: ${lech.join(', ') || '-'} · thừa: ${thua.join(', ') || '-'} — chủ quán chạy lại: bash tu_chay/cai_dat.sh`);
+    } else {
+      pass(`.claude/tu_chay/ khớp từng byte với tu_chay/ (${nguon.length} file)`);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

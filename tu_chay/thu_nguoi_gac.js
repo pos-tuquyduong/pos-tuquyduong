@@ -225,7 +225,8 @@ for (const l of ['echo >> viec/X/phieu.md', 'cp ' + N + '/f.txt viec/X/phieu.md'
 for (const l of ['echo x > .claude/settings.json', 'touch .claude/x', 'cd .claude && cp ' + N + '/f.txt settings.json']) B(l, 'G1-KHUNG');
 B('echo x >| TIEN_DO_POS.json', 'G1-CAM');
 for (const l of ['ls &> server/b.js', 'git checkout -- server/b.js', 'mv server/a.js server/b.js', 'mv server/b.js server/a.js',
-  '(cd server) && cp ' + N + '/f.txt a.js']) B(l, 'G5-NGOAIPV');
+  '(cd server) && cp ' + N + '/f.txt a.js', 'cd server | cp ' + N + '/f.txt a.js', 'cd server & cp ' + N + '/f.txt a.js',
+  'ls | cd server; cp ' + N + '/f.txt a.js']) B(l, 'G5-NGOAIPV');
 for (const l of ['echo x > ' + HOME + '/.claude/plans/p.md', 'cp ' + N + '/f.txt ' + HOME + '/.claude/plans/p.md']) B(l, 'G0-NGOAI');
 for (const l of ['echo x > $F', 'echo > viec/X/*.md', 'cp x viec/X/{phieu,a}.md', 'rm $X', 'tee $F']) B(l, 'B-DICHCHU');
 for (const l of ['cd / && ls', 'cd .. && ls', 'cd $X', 'cd - && ls']) B(l, 'B-CD');
@@ -256,7 +257,7 @@ B('rm -r server', 'RM-NHAP', { nhap: KHO });
 B('rm -rf /tmp/x', 'RM-NHAP', { nhap: '/' });
 for (const l of ['cp -r ' + N + '/dir server/', 'cp ' + N + '/dir server/x', 'mv ' + N + '/dir server/']) B(l, 'CP-DEQUY');
 for (const l of ['tar -xf ' + N + '/a.tar', 'tar xf a.tar -C server']) B(l, 'TAR-X');
-for (const l of ['tar --to-command=sh -xf a.tar -C ' + N, 'tar -I x -xf a.tar -C ' + N, 'tar server']) B(l, 'TAR-LA');
+for (const l of ['tar --to-command=sh -xf a.tar -C ' + N, 'tar -I x -xf a.tar -C ' + N, 'tar -v server']) B(l, 'TAR-LA');
 for (const l of ["sed -i 's/a/b/' server/a.js", "sed -ni 'p' server/a.js", "sed --in-place=.bak 's/a/b/' server/a.js"]) B(l, 'SED-I');
 for (const l of ["sed 's/a/b/w viec/X/phieu.md' server/a.js", "sed -e '1e rm x' server/a.js", 'sed -f x.sed server/a.js']) B(l, 'SED-WE');
 for (const l of ["awk '{print > \"viec/X/phieu.md\"}' server/a.js", "awk 'BEGIN{system(\"git push\")}'",
@@ -265,6 +266,8 @@ for (const l of ['find . -delete', "find . -name '*.js' -exec rm {} \\;", 'find 
 for (const l of ['curl https://pos-tuquyduong.io.vn/api', 'curl $U', 'curl http://example.com']) B(l, 'CURL-HOST');
 for (const l of ['curl -K cfg http://localhost', 'curl -O http://localhost/x']) B(l, 'CURL-CAM');
 for (const l of ['mkdir .claude/moi', 'mkdir ' + TAM + '/khac']) B(l, 'MKDIR-DICH');
+for (const l of ['file -C -m x.mgc', 'file --compile -m x.mgc']) B(l, 'FILE-C');
+B('file server/a.js', 'CHO');
 
 // ── Chạy ca trong tiến trình ────────────────────────────────────────────────
 const coXet = typeof gac.xet === 'function';
