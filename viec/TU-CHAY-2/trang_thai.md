@@ -40,8 +40,8 @@ Kiểm sống 2a: máy mây push nhánh việc.
 
 ## BÁO CÁO
 VIỆC:        TU-CHAY-2 — Giao việc trên máy mây (phần B, D, E, F, G, H, I; A và lớp 1 của D đã xong ở 2a)
-ĐÃ SỬA:      tu_chay/nguoi_gac.js:544-571 — xetHoanTac (git checkout -- / git restore), mã GIT-HOANTAC, G-HOANTAC;
-               :166,181 — ghiDuoc(…, hoanTac) cho qua sau khung/cấm/phiếu/G2; :578 restore; :620 checkout --
+ĐÃ SỬA:      tu_chay/nguoi_gac.js:541-570 — xetHoanTac (git checkout -- / git restore), mã GIT-HOANTAC, G-HOANTAC;
+               :168,181 — ghiDuoc(…, hoanTac) cho qua sau khung/cấm/phiếu/G2; :578 restore; :620 checkout --
              tu_chay/cai_dat.js — skill .claude/skills/lam-viec/SKILL.md + hook SessionStart startup|resume, timeout 600
              tu_chay/cai_thu_vien.sh (mới), tu_chay/xem_thu.sh (mới), tu_chay/skill_lam_viec.md (mới), tu_chay/MAU_PHIEU.md (mới)
              kiem_tra_truoc_khi_giao.js — T1b chạy thu_cong_cu.js, T3 so byte skill (chỉ THÊM)
