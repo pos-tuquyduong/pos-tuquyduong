@@ -22,6 +22,20 @@ Gồm 6 phần:
 5. `tu_chay/cai_thu_vien.sh`: cài thư viện trên máy mây (E).
 6. `tu_chay/xem_thu.sh <MÃ>`: chủ quán chạy ở Replit (F).
 
+### Chủ quán đã chốt (trả lời kế hoạch lần 1, 30.09)
+Phiên trước viết kế hoạch trên commit cũ nên không push được; các câu hỏi của nó đã trả lời ở đây:
+1. Thêm `client/package-lock.json` vào Phạm vi để vá P6: sửa ĐÚNG MỘT dòng `resolved` của `jsqr`
+   (`http://package-firewall.replit.local/npm/jsqr/-/jsqr-1.4.0.tgz` →
+   `https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz`), giữ nguyên `integrity`.
+2. Mục E dùng hook SessionStart (không dùng Setup script).
+3. Hook gọi bản ĐÃ CÀI `.claude/tu_chay/cai_thu_vien.sh` (nguồn vẫn là `tu_chay/cai_thu_vien.sh`).
+4. Hoàn tác file luật không có trong Phạm vi: CHO QUA (trả về bản commit là an toàn).
+   File khung (`.claude/`, `.git/`), file cấm và phiếu vẫn CHẶN.
+5. Hoàn tác file đã bị xoá khỏi đĩa: CHO QUA (cũng là hoàn tác; git tự báo lỗi nếu kho không có file đó).
+6. Máy push nhánh việc: được, chỉ `git push -u origin viec/TU-CHAY-2` (xem mục Cấm).
+7. Luật deny `*main*`, `*-d*`, `*-f*` có thể chặn oan mã việc chứa các chữ đó: mẫu phiếu dặn mã việc
+   không chứa `main` và không có `-d`/`-f` (chữ thường, cả dạng hoa nếu Claude Code so không phân biệt hoa thường).
+
 ## Nghiệm thu
 
 ### A. Người gác — push (đang ở nhánh `viec/TU-CHAY-2`, có phiếu) — ĐÃ XONG ở 2a
@@ -46,6 +60,8 @@ Cho qua:
 - `git checkout -- server/index.js`
 - `git restore server/index.js`
 - `git restore --staged server/index.js`
+- file luật không có trong Phạm vi (vd `git restore CHECKLIST_CODE.md`)
+- file đã bị xoá khỏi đĩa (vd `git restore server/index.js` khi file không còn)
 
 Chặn:
 - `git checkout main -- server/index.js`, `git checkout HEAD~1 -- server/index.js`
@@ -73,8 +89,12 @@ Chặn:
 - Kế hoạch so hai cách: Setup script của môi trường, hoặc hook SessionStart chỉ
   chạy khi `CLAUDE_CODE_REMOTE=true` (hook thì do `cai_dat.js` ghép vào settings).
   Tra code.claude.com/docs/en/claude-code-on-the-web, ghi nguồn, ghi rõ chọn cách nào.
-- Cả hai cách đều gọi `bash tu_chay/cai_thu_vien.sh`: chạy `npm ci` rồi
-  `(cd client && npm ci)`. Lỗi thì báo rõ, không im lặng.
+- Đã chốt: hook SessionStart (do `cai_dat.js` ghép vào settings), chỉ chạy khi `CLAUDE_CODE_REMOTE=true`,
+  gọi `bash .claude/tu_chay/cai_thu_vien.sh`: chạy `npm ci` rồi `(cd client && npm ci)`. Lỗi thì báo rõ,
+  không im lặng, không làm hỏng phiên.
+- `client/package-lock.json`: chỉ đổi đúng dòng `resolved` của `jsqr` (xem "Chủ quán đã chốt" 1);
+  `git diff` của file này đúng 1 dòng; `(cd client && npm ci)` chạy được trên máy mây;
+  `node kiem_tra_truoc_khi_giao.js --day-du` xanh, `client/dist/` không đổi byte nào.
 - Kiểm thật trên máy mây: sau khi cài, phiên mới chạy `npm test` không còn cảnh báo
   thiếu `client/node_modules`. Phần nào chỉ kiểm được sau khi chủ quán cài thì ghi vào
   mục CHƯA KIỂM của báo cáo.
@@ -138,6 +158,7 @@ Chặn:
 - kiem_tra_truoc_khi_giao.js
 - CLAUDE.md
 - .gitignore
+- client/package-lock.json
 - viec/TU-CHAY-2/**
 
 ## Ngân sách
@@ -162,4 +183,5 @@ không
 - Chỉ push đúng nhánh việc: `git push -u origin viec/TU-CHAY-2`. Không push nhánh khác, không đụng `main`, không merge, không tạo PR.
 - Không đổi `.git/hooks/pre-push` và nội dung PRE_PUSH.
 - Không nới luật nào khác của người gác ngoài B. Không nới GIT-PUSH. Không rút gọn người gác (D4, để sau).
+- `client/package-lock.json`: chỉ sửa đúng một dòng `resolved` của `jsqr`, không sinh lại lockfile.
 - Không chạy `patch_*.py`. Không sửa sổ việc.
