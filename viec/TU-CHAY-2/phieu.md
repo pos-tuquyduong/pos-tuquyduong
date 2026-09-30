@@ -4,15 +4,19 @@
 Máy mây (claude.ai/code) tự làm trọn một việc: đọc phiếu, làm, thử, commit và
 **đẩy đúng nhánh việc của mình**. Replit chỉ còn là phòng xem thử.
 
-Việc này làm trên Claude Code ở **Replit**. Người gác đang cài vẫn chặn push, nên
-chủ quán tự đẩy từ Shell. Luật mới chỉ có hiệu lực sau khi chủ quán chạy
+Phần A (push nhánh việc) và lớp 1 của D (bỏ deny push chung, thêm deny hẹp) ĐÃ XONG
+ở commit TU-CHAY-2a: chat viết và chạy thử, chủ quán cài bằng `cai_dat.sh`, rồi kiểm
+sống trên máy mây (push nhánh việc được, push `main` bị chặn).
+
+Phần còn lại làm trên máy mây (claude.ai/code). Máy tự push nhánh việc bằng
+`git push -u origin viec/TU-CHAY-2`. Không chạy Claude Code trên Replit.
+Luật mới trong `tu_chay/` chỉ có hiệu lực sau khi chủ quán chạy
 `bash tu_chay/cai_dat.sh` và commit `.claude/`.
 
 Gồm 6 phần:
-1. Người gác: hai luật mới là push nhánh việc (A) và hoàn tác file (B).
-2. `cai_dat.js`: bỏ luật deny push CHUNG ở lớp 1 (hiện có `Bash(git push *)` trong
-   DENY_MOI và `Bash(git push:*)` cũ trong settings), thay bằng luật hẹp; cài skill.
-   Chỉ sửa người gác mà không sửa lớp 1 thì máy mây vẫn không push được.
+1. Người gác: push nhánh việc (A) — ĐÃ XONG ở 2a (luật GIT-PUSH); hoàn tác file (B) — CÒN LÀM.
+2. `cai_dat.js`: bỏ deny push chung + thêm deny hẹp — ĐÃ XONG ở 2a; cài skill
+   (và hook SessionStart nếu mục E chọn cách đó) — CÒN LÀM.
 3. `CLAUDE.md` (G).
 4. Mẫu phiếu và skill `/lam-viec` (H).
 5. `tu_chay/cai_thu_vien.sh`: cài thư viện trên máy mây (E).
@@ -20,7 +24,10 @@ Gồm 6 phần:
 
 ## Nghiệm thu
 
-### A. Người gác — push (đang ở nhánh `viec/TU-CHAY-2`, có phiếu)
+### A. Người gác — push (đang ở nhánh `viec/TU-CHAY-2`, có phiếu) — ĐÃ XONG ở 2a
+Các ca dưới đây đã có trong `tu_chay/thu_nguoi_gac.js` (bằng chứng: `viec/TU-CHAY-2/bang_chung_do_2a.txt`).
+Không làm lại, không nới; chỉ giữ xanh.
+
 Cho qua:
 - `git push origin viec/TU-CHAY-2`
 - `git push -u origin viec/TU-CHAY-2`
@@ -47,7 +54,7 @@ Chặn:
 - file khung, file cấm, phiếu: `git restore .claude/settings.json`, `git restore TIEN_DO_POS.json`, `git checkout -- viec/TU-CHAY-2/phieu.md`
 
 ### C. Chung cho người gác
-- Mọi ca mới ở A và B nằm trong `tu_chay/thu_nguoi_gac.js` và ĐỎ trên người gác
+- Mọi ca mới ở B nằm trong `tu_chay/thu_nguoi_gac.js` và ĐỎ trên người gác
   hiện tại TRƯỚC khi sửa. Bằng chứng: `viec/TU-CHAY-2/bang_chung_do.txt`.
 - Ca cũ vẫn xanh. Ca cũ nào đổi kết quả (vd "push nhánh việc bị chặn") thì ghi
   trong `ke_hoach.md` là ca nào và vì sao.
@@ -55,9 +62,8 @@ Chặn:
 - `(cd client && npm run build)` vẫn qua (đã có ca thử), không làm hỏng.
 
 ### D. Trình cài (kho tạm + remote bare tạm, như TU-CHAY-1)
-- Lần 1: deny không còn `Bash(git push *)` và `Bash(git push:*)`; có luật deny
-  hẹp chặn push `main`, force, delete. Tra cú pháp ở code.claude.com/docs/en/permissions
-  và ghi nguồn. Các deny khác giữ nguyên.
+- ĐÃ XONG ở 2a: deny không còn `Bash(git push *)` và `Bash(git push:*)`; có deny hẹp
+  (DENY_MOI, DENY_BO trong `cai_dat.js`). Giữ nguyên, không nới.
 - Skill cài vào `.claude/skills/lam-viec/SKILL.md`.
 - Lần 2 không đổi gì. Các ca từ chối của TU-CHAY-1 vẫn đạt.
 - `.git/hooks/pre-push` giữ nguyên, không đổi PRE_PUSH.
@@ -69,7 +75,9 @@ Chặn:
   Tra code.claude.com/docs/en/claude-code-on-the-web, ghi nguồn, ghi rõ chọn cách nào.
 - Cả hai cách đều gọi `bash tu_chay/cai_thu_vien.sh`: chạy `npm ci` rồi
   `(cd client && npm ci)`. Lỗi thì báo rõ, không im lặng.
-- Trên Replit không kiểm được phần máy mây: ghi vào mục CHƯA KIỂM.
+- Kiểm thật trên máy mây: sau khi cài, phiên mới chạy `npm test` không còn cảnh báo
+  thiếu `client/node_modules`. Phần nào chỉ kiểm được sau khi chủ quán cài thì ghi vào
+  mục CHƯA KIỂM của báo cáo.
 
 ### F. `xem_thu.sh` (thử trên kho tạm có remote bare)
 - `bash tu_chay/xem_thu.sh TU-CHAY-9`: fetch, sang `viec/TU-CHAY-9` mới nhất,
@@ -106,15 +114,15 @@ Chặn:
 
 ### I. Chung
 - `npm test` xanh (có nhóm T và `thu_cong_cu.js`); `node kiem_tra_truoc_khi_giao.js --day-du` xanh.
-- `tu_chay/THIET_KE.md`: thêm mục B14 ghi hai luật mới, thay đổi lớp 1, cách cài
+- `tu_chay/THIET_KE.md`: thêm mục B14 ghi luật GIT-PUSH (2a) và luật hoàn tác, thay đổi lớp 1, cách cài
   thư viện đã chọn, và lỗ còn hở (lớp 1 không còn chặn push chung; `main` dựa vào
   người gác và luật bảo vệ trên GitHub).
-- `tu_chay/PHIEN_BAN` = `tu-chay 1.2.0`.
+- `tu_chay/PHIEN_BAN` = `tu-chay 1.2.0` (sửa luôn phép kiểm PHIEN_BAN trong `thu_nguoi_gac.js`).
 
 ### Kiểm sống sau khi chủ quán cài (máy KHÔNG làm, ghi để biết)
 - Máy mây: `npm test` không còn cảnh báo thiếu `client/node_modules`.
-- Máy mây push `viec/TU-CHAY-2` được; push `main` bị chặn.
 - `git checkout -- server/index.js` được.
+- (Push nhánh việc được / push `main` bị chặn: đã kiểm sống ở 2a.)
 
 ## Phạm vi
 - tu_chay/nguoi_gac.js
@@ -133,13 +141,13 @@ Chặn:
 - viec/TU-CHAY-2/**
 
 ## Ngân sách
-Khoảng 230 dòng code:
-- nguoi_gac.js +~70;
-- cai_dat.js +~40;
+Khoảng 190 dòng code (chưa tính phần 2a đã xong):
+- nguoi_gac.js +~40 (hoàn tác; push đã có ở 2a);
+- cai_dat.js +~25 (skill, hook nếu chọn);
 - xem_thu.sh ~80, cai_thu_vien.sh ~15;
 - kiem_tra +~10.
 
-Khoảng 280 dòng thử: thu_nguoi_gac.js +~150, thu_cong_cu.js ~130.
+Khoảng 210 dòng thử: thu_nguoi_gac.js +~80, thu_cong_cu.js ~130.
 
 Tài liệu khoảng 200 dòng: skill ~90, mẫu phiếu ~40, CLAUDE.md ±10, THIET_KE +~50.
 
@@ -151,7 +159,7 @@ không
 
 ## Cấm
 - Không sửa `.claude/`. Không chạy `cai_dat.sh`, `xem_thu.sh` trên kho thật (chỉ trên kho tạm trong nháp).
-- Không push, không merge, không đụng `main`: việc này chủ quán tự đẩy.
+- Chỉ push đúng nhánh việc: `git push -u origin viec/TU-CHAY-2`. Không push nhánh khác, không đụng `main`, không merge, không tạo PR.
 - Không đổi `.git/hooks/pre-push` và nội dung PRE_PUSH.
-- Không nới luật nào khác của người gác ngoài A và B. Không rút gọn người gác (D4, để sau).
+- Không nới luật nào khác của người gác ngoài B. Không nới GIT-PUSH. Không rút gọn người gác (D4, để sau).
 - Không chạy `patch_*.py`. Không sửa sổ việc.
