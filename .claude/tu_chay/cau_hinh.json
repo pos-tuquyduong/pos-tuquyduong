@@ -1,0 +1,19 @@
+{
+  "app": "POS",
+  "nhanh_chinh": "main",
+  "lenh_bai_thu": ["npm test"],
+  "lenh_kiem_day_du": ["node kiem_tra_truoc_khi_giao.js --day-du"],
+  "lenh_gia_lap": [],
+  "thu_muc_bai_thu": ["cong_cu/"],
+  "so_viec": "TIEN_DO_POS.json",
+  "cong_cu_so_viec": "dong_tien_do.py",
+  "file_cam": [".env", ".env.*", ".replit", "TIEN_DO_*.json"],
+  "file_luat": ["kiem_tra_truoc_khi_giao.js", "CHECKLIST_CODE.md", "ban_mau_pos/**", "tu_chay/**"],
+  "file_bi_mat": [".env", ".env.*", ".replit"],
+  "ten_mien_production": ["pos-tuquyduong.io.vn", "turso.io"],
+  "chuong_trinh_them": [],
+  "tep_bash_them": ["ban_mau_pos/chay_thu.sh"],
+  "so_vong_sua_toi_da": 3,
+  "vuot_ngan_sach_canh_bao": 1.5,
+  "kiem_sau_day_len": "log Render có dòng '✅ Đã kết nối Turso database (PRODUCTION)'"
+}

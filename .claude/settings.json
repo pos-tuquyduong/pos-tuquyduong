@@ -16,16 +16,6 @@
       "Bash(git branch:*)",
       "Bash(bash ban_mau_pos/chay_thu.sh:*)"
     ],
-    "ask": [
-      "Edit(./kiem_tra_truoc_khi_giao.js)",
-      "Write(./kiem_tra_truoc_khi_giao.js)",
-      "Edit(./CHECKLIST_CODE.md)",
-      "Edit(./TIEN_DO_POS.json)",
-      "Edit(./ban_mau_pos/**)",
-      "Write(./ban_mau_pos/**)",
-      "Edit(./.claude/**)",
-      "Write(./.claude/**)"
-    ],
     "deny": [
       "Bash(git push:*)",
       "Bash(git merge:*)",
@@ -38,7 +28,18 @@
       "Bash(rm -rf:*)",
       "Read(./.env)",
       "Read(./.env.*)",
-      "Read(./.replit)"
+      "Read(./.replit)",
+      "Edit(./.claude/**)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(./.replit)",
+      "Edit(./TIEN_DO_*.json)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git reset *)",
+      "Bash(git commit -n *)",
+      "Bash(git -c *)",
+      "Bash(git *--no-v*)"
     ],
     "defaultMode": "default"
   },
@@ -63,9 +64,20 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js\" || exit 2",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   },
-  "disableAutoMode": "disable",
   "model": "claude-opus-5-5",
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-5-5"

@@ -40,3 +40,5 @@ __pycache__/
 
 *.truoc_*
 .claude/settings.local.json
+# Nhật ký người gác (TU-CHAY-1) — ghi mỗi quyết định, xoay vòng ở 1 MB
+.tu_chay_nhat_ky*.jsonl

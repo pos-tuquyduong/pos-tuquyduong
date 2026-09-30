@@ -1,0 +1,46 @@
+# Bằng chứng ĐỎ vòng C4b (vòng vá thứ 4) — 2026-09-28T03:53:28+00:00
+# Lệnh: node tu_chay/thu_nguoi_gac.js — ca thử (1)-(10) đã thêm; người gác, cau_hinh, cai_dat CHƯA vá. Mã thoát: 1
+
+thu_nguoi_gac: 427/480 ca người gác đúng mã · 127 phép khác
+  ✗ ca tep_bash_them sai: "": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "../ngoai.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "/etc/passwd": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "./ban_mau_pos/chay_thu.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ban_mau_pos//chay_thu.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ban_mau_pos/khong_co.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ban_mau_pos/*.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ban_mau_pos": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: 5: mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ban_mau_pos/../ban_mau_pos/chay_thu.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ln_ngoai.sh": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca tep_bash_them sai: "ban_mau_pos/chay_thu.sh/": mong CHAN:NG-CAUHINH, ra CHO
+  ✗ ca Bash "SHELLOPTS=xtrace ls": mong CHAN:B-GAN, ra CHO
+  ✗ ca Bash "BASHOPTS=x ls": mong CHAN:B-GAN, ra CHO
+  ✗ ca Bash "PS4=x ls": mong CHAN:B-GAN, ra CHO
+  ✗ ca Bash "cd server | cp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "cd server & cp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "ls | cd server; cp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "cd server; cp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "cd server\ncp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "ls && cd server && cp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "cd server < /dev/null && ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "X=1 cd server && ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "cd server || ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "cd server && ls; cd ..": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "ls || cd server; ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "timeout 5 cd server && cp <tạm>/nhap/f.txt a.js": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "ls |\ncd server && ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "ls | # c\ncd server && ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ ca Bash "ls |&\ncd server && ls": mong CHAN:B-CD-VITRI, ra CHO
+  ✗ … và 23 ca hỏng khác
+  ✗ tự sinh: 629 biến thể đều bị chặn — "cd server\ncp <tạm>/nhap/f.txt a.js" | "cd server \\\n; cp <tạm>/nhap/f.txt a.js" | "ls &&\ncd server &&\ncp <tạm>/nhap/f.txt a.js" | "ls  \\\n&& cd server  \\\n&& cp <tạm>/nhap/f.txt a.js" | "X=1 cd server &&\nls" | "X=1 cd server  \\\n&& ls" | "X=1 cd server  | # c\nls" | "cd server &&\nls\ncd .."
+  ✗ bộ tách: `|`/`|&` cuối dòng (kể cả sau #) nối pipeline sang dòng sau
+  ✗ đối chiếu bash: "ls |\ncd viec/X; touch z04" → người gác CHO — file thật ở: kho/z04
+  ✗ đối chiếu bash: "ls | # c\ncd viec/X && touch z05" → người gác CHO — file thật ở: kho/z05
+  ✗ đối chiếu bash: "ls |&\ncd viec/X && touch z06" → người gác CHO — file thật ở: kho/z06
+  ✗ đối chiếu bash: "timeout 5 cd viec/X; touch z07" → người gác CHO — file thật ở: kho/z07
+  ✗ đối chiếu bash: "ls || cd viec/X; touch z08" → người gác CHO — file thật ở: kho/z08
+  ✗ đối chiếu bash: "cd viec/X < /khong_co; touch z09" → người gác CHO — file thật ở: kho/z09
+  ✗ đối chiếu bash: "cd viec/X && ls & touch z22" → người gác CHO — file thật ở: kho/z22
+  ✗ settings: deny có đủ luật cũ + luật mới
+  ĐỎ — 63 chỗ hỏng

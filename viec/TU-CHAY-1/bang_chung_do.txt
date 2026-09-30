@@ -1,0 +1,65 @@
+# Bằng chứng ĐỎ (K3) — 2026-09-28T00:50:59+00:00
+# Lệnh: node tu_chay/thu_nguoi_gac.js --nguoi-gac <nháp>/rong.js --cai-dat <nháp>/rong_cai.js
+# rong.js và rong_cai.js là file RỖNG (0 byte). Chưa có tu_chay/nguoi_gac.js, cai_dat.*, cau_hinh.json, PHIEN_BAN.
+# Mã thoát: 1
+
+thu_nguoi_gac: 0/400 ca người gác đúng mã · 36 phép khác
+  ✗ ca JSON hỏng: mong CHAN:NG-JSON, ra không có xet()
+  ✗ ca JSON rỗng {}: mong CHAN:NG-JSON, ra không có xet()
+  ✗ ca JSON null: mong CHAN:NG-JSON, ra không có xet()
+  ✗ ca Edit thiếu file_path: mong CHAN:NG-JSON, ra không có xet()
+  ✗ ca thiếu CLAUDE_PROJECT_DIR: mong CHAN:NG-GOC, ra không có xet()
+  ✗ ca CLAUDE_PROJECT_DIR không tồn tại: mong CHAN:NG-GOC, ra không có xet()
+  ✗ ca CLAUDE_PROJECT_DIR không phải kho git: mong CHAN:NG-GOC, ra không có xet()
+  ✗ ca thiếu cau_hinh.json: mong CHAN:NG-CAUHINH, ra không có xet()
+  ✗ ca cau_hinh.json hỏng JSON: mong CHAN:NG-CAUHINH, ra không có xet()
+  ✗ ca cau_hinh.json thiếu trường: mong CHAN:NG-CAUHINH, ra không có xet()
+  ✗ ca công cụ cho qua Read: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua Grep: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua Glob: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua WebFetch: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua WebSearch: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua Agent: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua TodoWrite: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua ExitPlanMode: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua AskUserQuestion: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua Skill: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua ToolSearch: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua EnterPlanMode: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua TaskCreate: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua TaskUpdate: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua TaskGet: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua TaskList: mong CHO, ra không có xet()
+  ✗ ca công cụ cho qua TaskOutput: mong CHO, ra không có xet()
+  ✗ ca công cụ lạ TaskStop: mong CHAN:CC-LA, ra không có xet()
+  ✗ ca công cụ lạ mcp__x__y: mong CHAN:CC-LA, ra không có xet()
+  ✗ ca công cụ lạ mcp__claude_ai_Gmail__authenticate: mong CHAN:CC-LA, ra không có xet()
+  ✗ … và 370 ca hỏng khác
+  ✗ người gác xuất xet() và bảng LUAT
+  ✗ tu_chay/cau_hinh.json hợp lệ, đủ trường
+  ✗ cau_hinh: TIEN_DO_*.json trong file_cam; 4 file luật trong file_luat
+  ✗ PHIEN_BAN = tu-chay 1.1.0 — (không có)
+  ✗ tiến trình: git push → exit 2 + JSON deny có mã — exit 0 · 
+  ✗ tiến trình: JSON hỏng → exit 2
+  ✗ tiến trình: thiếu CLAUDE_PROJECT_DIR → exit 2, lý do NG-GOC
+  ✗ tiến trình: stdin quá 20 MB → exit 2 — exit 0
+  ✗ tiến trình: stdin không đóng → chặn trong < 3 s — exit 0 sau 25 ms
+  ✗ nhật ký: có dòng CHO của Read và dòng CHAN GIT-LENH của push — 0 dòng
+  ✗ nhật ký: quá 1 MB thì xoay vòng — chính 1048586 B · cũ -1 B
+  ✗ nhật ký không ghi được → chặn, lý do nói rõ đĩa đầy/dọn nháp
+  ✗ cài đặt lần 1: thoát 0 — /nix/store/smkzrg2vvp3lng3hq7v9svfni5mnqjh2-bash-interactive-5.2p37/bin/bash: <tạm>/cai_a/tu_chay/cai_dat.sh: No such file or directory
+
+  ✗ settings: hook PreToolUse "*" đúng lệnh, timeout 30, chỉ một mục
+  ✗ settings: deny có đủ luật cũ + luật mới
+  ✗ settings: bỏ hết ask, bỏ disableAutoMode ở cả hai chỗ
+  ✗ settings: không còn luật Write(...)
+  ✗ lưu settings.json.truoc_TUCHAY = bản gốc
+  ✗ .claude/tu_chay/ = tu_chay/ trừ cai_dat.*, khớp từng byte — nguồn nguoi_gac.js,thu_nguoi_gac.js · đã cài 
+  ✗ pre-push được cài, có quyền chạy
+  ✗ in sẵn git add từng file + git commit, không có add -A / add .
+  ✗ cài đặt lần 2: thoát 0, in "không đổi gì", không đổi byte nào
+  ✗ pre-push: có CLAUDECODE → push bị từ chối, remote không đổi
+  ✗ pre-push: có CLAUDE_CODE_CHILD_SESSION → push bị từ chối
+  ✗ cài đặt: lý do khi có CLAUDECODE có "Shell"
+  ✗ cài đặt: lý do khi pre-push khác nội dung đã có có "pre-push"
+  ĐỎ — 426 chỗ hỏng
