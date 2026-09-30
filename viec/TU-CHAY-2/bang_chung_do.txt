@@ -74,3 +74,16 @@ thu_cong_cu: 28 phép · 23 chỗ hỏng
   ✗ H3 skill: dặn in git log --oneline -3 trong câu trả lời đầu tiên
   ✗ H3 skill: tối đa 3 vòng sửa; câu hỏi nghiệp vụ thì dừng
   ĐỎ — 23 chỗ hỏng
+
+BẰNG CHỨNG ĐỎ — vòng soát độc lập (lỗ ký tự \ trong pathspec git), chạy trên nguoi_gac.js của commit 2714b7c:
+  node tu_chay/thu_nguoi_gac.js → exit 1
+
+thu_nguoi_gac: 728/735 ca người gác đúng mã · 145 phép khác
+  ✗ ca Bash "git restore '\\.claude/settings.json'": mong CHAN:GIT-HOANTAC, ra CHO
+  ✗ ca Bash "git checkout -- '\\.claude/settings.json'": mong CHAN:GIT-HOANTAC, ra CHO
+  ✗ ca Bash "git restore --staged -- '\\.git/config'": mong CHAN:GIT-HOANTAC, ra CHO
+  ✗ ca Bash "git restore 'viec/X/phie\\u.md'": mong CHAN:GIT-HOANTAC, ra CHO
+  ✗ ca Bash "git restore '\\.env'": mong CHAN:GIT-HOANTAC, ra CHO
+  ✗ ca Bash "git restore 'TIEN_DO_POS.jso\\n'": mong CHAN:GIT-HOANTAC, ra CHO
+  ✗ ca Bash "git restore server/b.js '.clau\\de/settings.json'": mong CHAN:GIT-HOANTAC, ra CHO
+  ĐỎ — 7 chỗ hỏng

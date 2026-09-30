@@ -360,7 +360,11 @@ for (const l of ['git restore --source=main server/b.js', 'git restore -s HEAD~1
   'git restore -p server/b.js', 'git restore --patch server/b.js', 'git restore --stag server/b.js', 'git restore -SW server/b.js',
   'git restore --ours server/b.js', 'git restore --overlay server/b.js', 'git restore -m server/b.js', 'git restore',
   'git restore --staged', 'git restore -- .', "git restore ':!x'", 'git restore $F', 'git restore ./', 'git checkout -- .',
-  'git checkout -- server/', 'git checkout --', 'git restore --source main server/b.js']) B(l, 'GIT-HOANTAC');
+  'git checkout -- server/', 'git checkout --', 'git restore --source main server/b.js',
+  // soát độc lập: với git, `\` cũng là ký tự glob (thoát ký tự kế) → '\.claude/x' khớp .claude/x mà người gác tưởng tên khác
+  "git restore '\\.claude/settings.json'", "git checkout -- '\\.claude/settings.json'", "git restore --staged -- '\\.git/config'",
+  "git restore 'viec/X/phie\\u.md'", "git restore '\\.env'", "git restore 'TIEN_DO_POS.jso\\n'",
+  "git restore server/b.js '.clau\\de/settings.json'"]) B(l, 'GIT-HOANTAC');
 for (const l of ['git restore .claude/settings.json', 'git restore --staged .claude/settings.json',
   'git restore server/ln_claude/settings.json', 'git checkout -- .claude/settings.json']) B(l, 'G1-KHUNG');
 B('git restore TIEN_DO_POS.json', 'G1-CAM');
