@@ -62,7 +62,9 @@ const LUAT = [
   ['GIT-COMMIT-CO', 'git commit không được kèm -n/--no-verify/--amend/-a/-i/-o'],
   ['GIT-COMMIT-NHANH', 'chỉ commit trên nhánh viec/*'],
   ['GIT-CHECKOUT', 'git checkout chỉ cho -b viec/<tên> hoặc -- <file trong phạm vi>'],
-  ['GIT-CHECKOUT-FILE', 'git checkout -- <file>: mỗi file xét như sửa file'],
+  ['GIT-CHECKOUT-FILE', 'git checkout -- <file>: mỗi file xét như hoàn tác file'],
+  ['GIT-HOANTAC', 'hoàn tác chỉ đúng dạng: git checkout -- <file> hoặc git restore [--staged|-S|--worktree|-W|-q] <file> — tên file viết thẳng, không thư mục, không glob (* ? [ ] \\), không --source/-p'],
+  ['G-HOANTAC', 'hoàn tác file về bản đã lưu (index/commit) được cho (kể cả file ngoài phạm vi, file luật, file đã xoá) — khung, file cấm, phiếu vẫn chặn'],
   ['GIT-BRANCH', 'git branch chỉ được xem (--show-current, -a, -v…)'],
   ['GIT-ARCHIVE', 'git archive: không --remote; -o phải trỏ vào nháp'],
   ['NPM-LENH', 'npm chỉ cho test, ci, run, ls — thêm thư viện phải hỏi chủ quán'],
@@ -163,7 +165,7 @@ const ngoaiKho = (rel) => rel.startsWith('..') || path.isAbsolute(rel);
 const KHUNG = /^(\.claude|\.git)(\/|$)/;
 
 // MỘT hàm cho mọi đường ghi: Edit/Write/MultiEdit/NotebookEdit, > >> tee, cp mv ln, tar, git checkout --, touch chmod…
-function ghiDuoc(p, nc, cwd, laCongCuSua) {
+function ghiDuoc(p, nc, cwd, laCongCuSua, hoanTac = false) {
   const abs = thuc(path.resolve(cwd, p));
   if (luat('G-LIENKET')) { try { const st = fs.lstatSync(abs); if (st.isFile() && st.nlink > 1) return chan('G-LIENKET', relKho(abs, nc)); } catch {} }
   if (luat('G-NHAP') && trongNhap(abs, nc)) return null;
@@ -176,6 +178,7 @@ function ghiDuoc(p, nc, cwd, laCongCuSua) {
   if (luat('G2-VIEC') && !nc.ma) return chan('G2-VIEC', `nhánh hiện tại: ${nc.nhanh || '(không rõ / HEAD tách rời)'}`);
   if (luat('G2-PHIEU') && !nc.phamVi) return chan('G2-PHIEU', `viec/${nc.ma}/phieu.md`);
   if (luat('G3-HOSO') && (rel === `viec/${nc.ma}/ke_hoach.md` || rel === `viec/${nc.ma}/trang_thai.md`)) return null;
+  if (hoanTac && luat('G-HOANTAC')) return null; // trả về bản commit: an toàn cả với file ngoài phạm vi / file luật
   const pv = nc.phamVi || [];
   if (luat('G-LUAT') && khop(nc.cauHinh.file_luat, rel, false) && !pv.includes(rel)) return chan('G-LUAT', rel);
   if (luat('G4-PHAMVI') && khop(pv, rel, false)) return null;
@@ -535,6 +538,33 @@ function xetPush(r, nc, cwd) {
   return null;
 }
 
+// TU-CHAY-2 — hoàn tác file: git checkout -- <file…> và git restore [HOANTAC_CO…] [--] <file…>
+//   · tuỳ chọn theo danh sách CHO PHÉP, đúng nguyên chữ (không --source/-s, -p, --pathspec-from-file, viết tắt, gộp);
+//   · mỗi file viết thẳng, không ký tự glob của git `* ? [ ] \` (git tự mở pathspec kể cả trong nháy; `\` thoát ký
+//     tự kế nên '\.claude/x' khớp .claude/x), không ':' (pathspec magic), không thư mục;
+//   · nguồn hoàn tác là INDEX (restore không --staged, checkout --) hoặc HEAD (--staged) — không nhận nguồn khác;
+//   · rồi đi qua ghiDuoc(…, hoanTac): khung, file cấm, phiếu, ngoài kho, liên kết cứng, không có việc → vẫn chặn.
+// Lỗ biết trước (loại B, B14): thư mục ĐÃ XOÁ khỏi đĩa không phân biệt được với file đã xoá.
+const HOANTAC_CO = new Set(['--staged', '-S', '--worktree', '-W', '-q', '--quiet']);
+function xetHoanTac(r, coTuyChon, nc, cwd) {
+  const tep = [];
+  let het = !coTuyChon;
+  for (const w of r) {
+    if (!het && w.val === '--') { het = true; continue; }
+    if (!het && w.val.startsWith('-') && w.val.length > 1) {
+      if (luat('GIT-HOANTAC') && !HOANTAC_CO.has(w.val)) return chan('GIT-HOANTAC', 'tuỳ chọn không cho: ' + w.tho);
+    } else tep.push(w);
+  }
+  if (luat('GIT-HOANTAC')) {
+    if (!tep.length) return chan('GIT-HOANTAC', 'thiếu tên file');
+    for (const w of tep) {
+      if (!w.chu || /[*?[\]\\]/.test(w.val) || w.val.startsWith(':') || w.val.endsWith('/')
+        || laDir(path.resolve(cwd.d, w.val))) return chan('GIT-HOANTAC', w.tho);
+    }
+  }
+  return dauTien(tep, (w) => (w.chu ? ghiDuoc(w.val, nc, cwd.d, false, true) : khongChu(w)));
+}
+
 const LUAT_CON = {
   git(a, nc, cwd) {
     let i = 0;
@@ -545,6 +575,7 @@ const LUAT_CON = {
     }
     const sub = a[i];
     if (sub && sub.chu && sub.val === 'push') return xetPush(a.slice(i + 1), nc, cwd);
+    if (sub && sub.chu && sub.val === 'restore') return xetHoanTac(a.slice(i + 1), true, nc, cwd);
     if (!sub || !sub.chu || !GIT_CHO.has(sub.val)) return luat('GIT-LENH') ? chan('GIT-LENH', sub ? sub.tho : '(trống)') : null;
     const r = a.slice(i + 1);
     const lenh = sub.val;
@@ -586,7 +617,7 @@ const LUAT_CON = {
     }
     if (lenh === 'checkout') {
       if (r.length === 2 && r[0].val === '-b' && r[1].chu && /^viec\/[A-Za-z0-9._-]+$/.test(r[1].val)) return null;
-      if (r.length >= 2 && r[0].val === '--') return luat('GIT-CHECKOUT-FILE') ? ghiHet(r.slice(1), nc, cwd) : null;
+      if (r.length && r[0].val === '--') return luat('GIT-CHECKOUT-FILE') ? xetHoanTac(r.slice(1), false, nc, cwd) : null;
       return luat('GIT-CHECKOUT') ? chan('GIT-CHECKOUT', r.map((w) => w.tho).join(' ')) : null;
     }
     if (lenh === 'branch' && luat('GIT-BRANCH') && r.some((w) => !BRANCH_XEM.has(w.val))) return chan('GIT-BRANCH');
