@@ -1,0 +1,76 @@
+BẰNG CHỨNG ĐỎ — TU-CHAY-2 bước 1 (máy mây, 30.09.2026)
+Bài thử MỚI chạy trên người gác + trình cài CHƯA vá (nguoi_gac.js, cai_dat.js y như commit 2989d48):
+  node tu_chay/thu_nguoi_gac.js → exit 1
+
+thu_nguoi_gac: 680/728 ca người gác đúng mã · 143 phép khác
+  ✗ ca Bash "git checkout -- server/b.js": mong CHO, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "git restore server/b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --staged server/b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore CHECKLIST_CODE.md": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git checkout -- CHECKLIST_CODE.md": mong CHO, ra CHAN:G-LUAT
+  ✗ ca Bash "git restore server/xoa.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore server/a.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -W server/b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --worktree --staged server/b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -S server/b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -q -- server/b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git checkout -- server/a.js server/b.js": mong CHO, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "cd server && git restore b.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore server/b.js server/xoa.js": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --source=main server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -s HEAD~1 server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore .": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore server/": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore server": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore server/*.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --pathspec-from-file=x": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -p server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --patch server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --stag server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -SW server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --ours server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --overlay server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore -m server/b.js": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ ca Bash "git restore --staged": mong CHAN:GIT-HOANTAC, ra CHAN:GIT-LENH
+  ✗ … và 18 ca hỏng khác
+  ✗ PHIEN_BAN = tu-chay 1.2.0 — tu-chay 1.1.0
+  ✗ settings: đúng một hook SessionStart "startup|resume" gọi bản đã cài cai_thu_vien.sh, timeout 600
+  ✗ skill: .claude/skills/lam-viec/SKILL.md khớp từng byte tu_chay/skill_lam_viec.md
+  ✗ trình cài in git add .claude/skills/lam-viec/SKILL.md
+  ✗ cài lại: giữ hook SessionStart khác, thay mục cai_thu_vien.sh cũ bằng đúng một mục mới — [{"matcher":"startup","hooks":[{"type":"command","command":"echo khac"}]},{"matcher":"startup","hooks":[{"type":"command","command":"bash \"$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh\""}]}]
+  ĐỎ — 53 chỗ hỏng
+
+Bài thử MỚI tu_chay/thu_cong_cu.js khi CHƯA có xem_thu.sh, cai_thu_vien.sh, MAU_PHIEU.md, skill_lam_viec.md:
+  node tu_chay/thu_cong_cu.js → exit 1
+
+thu_cong_cu: 28 phép · 23 chỗ hỏng
+  ✗ F3 xem_thu: file theo dõi bị sửa → từ chối, không đổi gì, nêu tên file — chưa có xem_thu.sh
+
+  ✗ F1 xem_thu TU-CHAY-9: thoát 0, HEAD = commit MỚI NHẤT trên origin, đứng ở viec/TU-CHAY-9 — chưa có xem_thu.sh
+
+  ✗ F1 xem_thu: build client, chạy kiem_tra --day-du, in "bấm Run"
+  ✗ F8 xem_thu: lần đầu chưa có node_modules → npm ci ở gốc và client
+  ✗ F8 xem_thu: chạy lại, lockfile không đổi → KHÔNG npm ci
+  ✗ F8 xem_thu: client/package-lock.json đổi → npm ci ĐÚNG ở client, không ở gốc
+  ✗ F3b xem_thu: client/dist/ bị sửa → trả về bản commit, báo, vẫn chạy — chưa có xem_thu.sh
+
+  ✗ F2 xem_thu main: về main MỚI NHẤT — chưa có xem_thu.sh
+
+  ✗ baiXemThu sập: git checkout -q viec/TU-CHAY-9 (/tmp/thu_cc_poBgLf/quay): error: pathspec 'viec/TU-CHAY-9' did not match any file(s) known to git
+  ✗ E2 cai_thu_vien: không có CLAUDE_CODE_REMOTE → thoát 0, không gọi npm
+  ✗ E2 cai_thu_vien: CLAUDE_CODE_REMOTE=false → không gọi npm
+  ✗ E3 cai_thu_vien: máy mây → npm ci ở gốc RỒI ở client, thoát 0 —  · bash: /home/user/pos-tuquyduong/tu_chay/cai_thu_vien.sh: No such file or directory
+
+  ✗ E4 cai_thu_vien: đã cài, lockfile không đổi → bỏ qua
+  ✗ E4 cai_thu_vien: lockfile client đổi → chỉ npm ci ở client
+  ✗ E5 cai_thu_vien: npm ci hỏng → vẫn thoát 0 (không làm hỏng phiên), stdout báo rõ ✗ + chỗ hỏng — exit 127 · 
+  ✗ E5 cai_thu_vien: lần hỏng không ghi dấu → lần sau cài lại ở gốc
+  ✗ H1 MAU_PHIEU.md: đủ 7 mục của B5 — ## Mục tiêu, ## Nghiệm thu, ## Phạm vi, ## Ngân sách, ## Đổi cấu trúc DB, ## Thư viện mới, ## Cấm
+  ✗ H1 MAU_PHIEU.md: dặn file luật và file mới trong tu_chay/ ghi ĐÚNG TÊN ở Phạm vi
+  ✗ H1 MAU_PHIEU.md: dặn mã việc không chứa main, -d, -f
+  ✗ H2 skill: frontmatter có name: lam-viec, description, argument-hint, disable-model-invocation: true
+  ✗ H3 skill: các mốc B6 (máy mây) đúng thứ tự, bước đầu là git log --oneline -3 ghi vào trang_thai.md — thiếu/sai thứ tự: git log --oneline -3, trang_thai.md, ke_hoach.md, đỏ, npm test, npm run build, /ra-soat, git push -u origin viec/, trang_thai.md
+  ✗ H3 skill: dặn in git log --oneline -3 trong câu trả lời đầu tiên
+  ✗ H3 skill: tối đa 3 vòng sửa; câu hỏi nghiệp vụ thì dừng
+  ĐỎ — 23 chỗ hỏng
