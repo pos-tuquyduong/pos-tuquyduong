@@ -513,6 +513,8 @@ nhom('T · TỰ CHẠY — người gác (TU-CHAY-1)');
 // T1 — bài phá thử người gác CHẠY THẬT: ~400 ca đúng mã luật, đột biến từng
 // luật, tiến trình thật (stdin treo, nhật ký), cài đặt trên kho tạm + pre-push.
 chayBaiThat('tu_chay/thu_nguoi_gac.js');
+// T1b — TU-CHAY-2: xem_thu.sh, cai_thu_vien.sh, mẫu phiếu, skill (kho tạm + remote bare, npm giả)
+chayBaiThat('tu_chay/thu_cong_cu.js');
 
 // T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/
 // (trừ cai_dat.*, trình cài không chép sang). Lệch = hook đang chạy mã khác
@@ -534,6 +536,18 @@ chayBaiThat('tu_chay/thu_nguoi_gac.js');
     } else {
       pass(`.claude/tu_chay/ khớp từng byte với tu_chay/ (${nguon.length} file)`);
     }
+  }
+}
+// T3 — TU-CHAY-2: skill đã cài .claude/skills/lam-viec/SKILL.md khớp từng byte nguồn tu_chay/skill_lam_viec.md
+{
+  const daCai = path.join(GOC, '.claude', 'skills', 'lam-viec', 'SKILL.md');
+  if (!fs.existsSync(daCai)) {
+    pass('.claude/skills/lam-viec/SKILL.md chưa cài — bỏ qua so byte');
+  } else if (Buffer.compare(fs.readFileSync(daCai), fs.readFileSync(path.join(GOC, 'tu_chay', 'skill_lam_viec.md'))) !== 0) {
+    canhBao('.claude/skills/lam-viec/SKILL.md khớp từng byte với tu_chay/skill_lam_viec.md',
+      'lệch — chủ quán chạy lại: bash tu_chay/cai_dat.sh');
+  } else {
+    pass('.claude/skills/lam-viec/SKILL.md khớp từng byte với tu_chay/skill_lam_viec.md');
   }
 }
 

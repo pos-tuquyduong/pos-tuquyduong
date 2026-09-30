@@ -6,9 +6,12 @@
 //   1. từ chối nếu đang chạy trong Claude Code (CLAUDECODE / CLAUDE_CODE_CHILD_SESSION)
 //   2. kiểm nguồn + tính MỌI thay đổi trong bộ nhớ, kiểm hết điều kiện TRƯỚC khi ghi
 //   3. settings.json: bỏ mọi luật ask, bỏ disableAutoMode (cả cấp gốc lẫn permissions.),
-//      giữ defaultMode "default", thêm deny, thêm hook PreToolUse "*" (thay bản cũ, không nhân đôi)
+//      giữ defaultMode "default", bỏ deny push chung (TU-CHAY-2a), thêm deny, thêm hook PreToolUse "*"
+//      (thay bản cũ, không nhân đôi)
 //   4. lưu bản gốc .claude/settings.json.truoc_TUCHAY (chỉ lần đầu), ghi file tạm rồi đổi tên
 //   5. chép tu_chay/ (trừ cai_dat.*) vào .claude/tu_chay/, cài .git/hooks/pre-push
+//   5b. TU-CHAY-2: chép tu_chay/skill_lam_viec.md thành .claude/skills/lam-viec/SKILL.md; thêm hook SessionStart
+//       gọi bản ĐÃ CÀI .claude/tu_chay/cai_thu_vien.sh (chỉ làm việc khi CLAUDE_CODE_REMOTE=true — máy mây)
 //   6. chạy lần hai không đổi gì; in đã đổi gì + lệnh git add từng file, git commit
 // Lùi: cp .claude/settings.json.truoc_TUCHAY .claude/settings.json
 'use strict';
@@ -19,9 +22,21 @@ const { spawnSync } = require('child_process');
 const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
 // Chỉ dùng Edit(...): luật Write(...) Claude Code không bao giờ xét (docs/en/permissions).
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
-  'Bash(git push *)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)',
+  'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)',
   // "*" đứng được ở mọi chỗ trong mẫu (docs/en/permissions): chặn cả --no-verify viết tắt (--no-verif, --no-v…)
-  'Bash(git *--no-v*)'];
+  'Bash(git *--no-v*)',
+  // TU-CHAY-2a: máy mây phải push được nhánh việc → bỏ deny push CHUNG (DENY_BO), thay bằng deny HẸP.
+  // Lưới thô: người gác (GIT-PUSH) mới là lớp chính xác; đây bắt main, ép đè (-f, --force*, --follow-tags),
+  // xoá (-d, --delete, --dry-run), gương, mọi nhánh, tag, prune, refspec có : hoặc +.
+  // Nguồn: code.claude.com/docs/en/permissions — "*" đứng mọi chỗ; `Bash(git * main)` khớp `git push origin main`;
+  // Claude Code tách lệnh ghép theo && ; | nên mỗi đoạn xét riêng; deny thắng allow.
+  'Bash(git push *main*)', 'Bash(git push *-f*)', 'Bash(git push *-d*)', 'Bash(git push *--mirror*)', 'Bash(git push *--all*)',
+  'Bash(git push *--tags*)', 'Bash(git push *--prune*)', 'Bash(git push *:*)', 'Bash(git push *+*)'];
+const DENY_BO = ['Bash(git push *)', 'Bash(git push:*)'];
+// TU-CHAY-2 mục E — docs/en/cloud-environments "Install dependencies with a SessionStart hook": matcher startup|resume,
+// "$CLAUDE_PROJECT_DIR"; hook SessionStart không chặn được phiên (docs/en/hooks). 600 s = mặc định của tài liệu, ghi rõ.
+const LENH_THU_VIEN = 'bash "$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh"';
+const MUC_THU_VIEN = { matcher: 'startup|resume', hooks: [{ type: 'command', command: LENH_THU_VIEN, timeout: 600 }] };
 const PRE_PUSH = `#!/usr/bin/env bash
 # pre-push — tu-chay (TU-CHAY-1). Cài bằng: bash tu_chay/cai_dat.sh
 # Chặn push chạy TỪ TRONG Claude Code (có CLAUDECODE hoặc CLAUDE_CODE_CHILD_SESSION).
@@ -71,20 +86,32 @@ delete quyen.ask;
 delete quyen.disableAutoMode;
 delete s.disableAutoMode;
 quyen.defaultMode = 'default';
-quyen.deny = Array.isArray(quyen.deny) ? quyen.deny : [];
+quyen.deny = (Array.isArray(quyen.deny) ? quyen.deny : []).filter((d) => !DENY_BO.includes(d));
 for (const d of DENY_MOI) if (!quyen.deny.includes(d)) quyen.deny.push(d);
 s.hooks = s.hooks && typeof s.hooks === 'object' ? s.hooks : {};
 s.hooks.PreToolUse = (Array.isArray(s.hooks.PreToolUse) ? s.hooks.PreToolUse : [])
   .filter((m) => !JSON.stringify(m).includes('.claude/tu_chay/nguoi_gac.js'))
   .concat([{ matcher: '*', hooks: [{ type: 'command', command: LENH_HOOK, timeout: 30 }] }]);
+s.hooks.SessionStart = (Array.isArray(s.hooks.SessionStart) ? s.hooks.SessionStart : [])
+  .filter((m) => !JSON.stringify(m).includes('.claude/tu_chay/cai_thu_vien.sh'))
+  .concat([MUC_THU_VIEN]);
 const setMoi = JSON.stringify(s, null, 2) + '\n';
 { // kiểm JSON mới TRƯỚC khi ghi
   const k = JSON.parse(setMoi);
-  const dungHook = k.hooks.PreToolUse.filter((m) => m.matcher === '*' && m.hooks[0].command === LENH_HOOK).length === 1;
-  if (!dungHook || !DENY_MOI.every((d) => k.permissions.deny.includes(d)) || k.permissions.ask !== undefined
+  const dungHook = k.hooks.PreToolUse.filter((m) => m.matcher === '*' && m.hooks[0].command === LENH_HOOK).length === 1
+    && k.hooks.SessionStart.filter((m) => JSON.stringify(m) === JSON.stringify(MUC_THU_VIEN)).length === 1;
+  if (!dungHook || !DENY_MOI.every((d) => k.permissions.deny.includes(d)) || DENY_BO.some((d) => k.permissions.deny.includes(d))
+    || k.permissions.ask !== undefined
     || k.disableAutoMode !== undefined || k.permissions.disableAutoMode !== undefined) dung('settings.json mới không qua phép kiểm cấu trúc');
 }
 const setDoi = setMoi !== setGoc.toString('utf8');
+
+// Skill /lam-viec: nguồn để phẳng trong tu_chay/ (T2 so từng mục của tu_chay/ với .claude/tu_chay/)
+const skillNguon = doc(path.join(NGUON, 'skill_lam_viec.md'));
+if (skillNguon === null) dung('thiếu tu_chay/skill_lam_viec.md');
+const P_SKILL = path.join(GOC, '.claude', 'skills', 'lam-viec', 'SKILL.md');
+const skillCo = doc(P_SKILL);
+const skillDoi = !skillCo || Buffer.compare(skillCo, skillNguon) !== 0;
 
 const P_PUSH = path.join(GIT, 'hooks', 'pre-push');
 const pushCo = doc(P_PUSH);
@@ -93,7 +120,7 @@ if (pushCo !== null && pushCo.toString('utf8') !== PRE_PUSH) {
 }
 const pushDoi = pushCo === null || (fs.statSync(P_PUSH).mode & 0o111) === 0;
 
-if (!setDoi && !fileDoi.length && !pushDoi) {
+if (!setDoi && !fileDoi.length && !pushDoi && !skillDoi) {
   console.log('· không đổi gì — người gác đã cài đúng từ trước.');
   process.exit(0);
 }
@@ -106,12 +133,18 @@ if (setDoi) {
   const tam = P_SET + '.tam_TUCHAY';
   fs.writeFileSync(tam, setMoi);
   fs.renameSync(tam, P_SET);
-  doi.push('.claude/settings.json: bỏ ask + disableAutoMode, giữ defaultMode "default", thêm deny, thêm hook PreToolUse "*"');
+  doi.push('.claude/settings.json: bỏ ask + disableAutoMode, giữ defaultMode "default", bỏ deny push chung, thêm deny hẹp, hook PreToolUse "*", '
+    + 'hook SessionStart cài thư viện (máy mây)');
 }
 if (fileDoi.length) {
   fs.mkdirSync(DICH, { recursive: true });
   for (const f of fileDoi) fs.copyFileSync(path.join(NGUON, f), path.join(DICH, f));
   doi.push('.claude/tu_chay/: chép ' + fileDoi.join(', '));
+}
+if (skillDoi) {
+  fs.mkdirSync(path.dirname(P_SKILL), { recursive: true });
+  fs.writeFileSync(P_SKILL, skillNguon);
+  doi.push('.claude/skills/lam-viec/SKILL.md: skill /lam-viec (từ tu_chay/skill_lam_viec.md)');
 }
 if (pushDoi) {
   fs.mkdirSync(path.dirname(P_PUSH), { recursive: true });
@@ -125,6 +158,7 @@ for (const d of doi) console.log('  · ' + d);
 console.log('\nLệnh tiếp theo — gõ trong Shell, add TỪNG file một:');
 console.log('  git add .claude/settings.json');
 for (const f of FILE) console.log('  git add .claude/tu_chay/' + f);
-console.log('  git commit -m "TU-CHAY-1: chu quan cai nguoi gac vao .claude"');
-console.log('\nRồi mở phiên MỚI: claude --permission-mode auto  → gõ /permissions để xem luật deny.');
+console.log('  git add .claude/skills/lam-viec/SKILL.md');
+console.log('  git commit -m "TU-CHAY: chu quan cai nguoi gac vao .claude"');
+console.log('\nKHÔNG mở claude trong Shell Replit. Máy chạy trên claude.ai/code, phiên MỚI, đúng nhánh việc, chế độ Auto.');
 console.log('Lùi settings: cp .claude/settings.json.truoc_TUCHAY .claude/settings.json');

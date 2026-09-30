@@ -59,7 +59,8 @@ const PHIEU_X = ['# X — phiếu thử', '## Mục tiêu', 'thử người gác
 
 const KHO = kho('kho', { phieu: { X: PHIEU_X } });
 for (const f of ['server/a.js', 'server/b.js', 'viec/X/ke_hoach.md', 'client/package.json', 'cong_cu/thu.sh',
-  '.env', 'TIEN_DO_POS.json', 'ban_mau_pos/x.html', '.claude/settings.json', 'kiem_tra_truoc_khi_giao.js']) viet(KHO, f, 'x');
+  '.env', 'TIEN_DO_POS.json', 'ban_mau_pos/x.html', '.claude/settings.json', 'kiem_tra_truoc_khi_giao.js',
+  'CHECKLIST_CODE.md']) viet(KHO, f, 'x');
 const NGOAI = path.join(TAM, 'ngoai');
 fs.mkdirSync(NGOAI);
 fs.symlinkSync(NGOAI, path.join(KHO, 'server/ln_ngoai'));
@@ -131,7 +132,8 @@ for (const cc of ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'Tod
 for (const cc of ['TaskStop', 'mcp__x__y', 'mcp__claude_ai_Gmail__authenticate', 'Artifact', 'PowerShell',
   'EnterWorktree', 'Workflow', 'CronCreate', 'SendMessage', 'CongCuLa']) ca('công cụ lạ ' + cc, cc, { command: 'ls' }, 'CC-LA');
 ca('Monitor đọc log', 'Monitor', { command: 'tail -f server/a.js' }, 'CHO');
-ca('Monitor lách push', 'Monitor', { command: 'git push origin viec/X' }, 'GIT-LENH');
+ca('Monitor push nhánh việc', 'Monitor', { command: 'git push origin viec/X' }, 'CHO');
+ca('Monitor lách push main', 'Monitor', { command: 'git push origin main' }, 'GIT-PUSH');
 ca('Monitor ws', 'Monitor', { ws: { url: 'wss://x.io' } }, 'CC-LA');
 ca('Bash lệnh không phải chuỗi', 'Bash', { command: 5 }, 'B-PHANTICH');
 
@@ -179,12 +181,81 @@ E('viec/H/khac.md', 'G5-NGOAIPV', { goc: KHO_H });
 E('server/a.js', 'CHO', { goc: KHO_H });
 
 // Bash — lách push đủ kiểu
-for (const l of ['git push', 'git  push origin viec/X', 'ls && git push', 'ls; git push', 'ls\ngit push',
+// TU-CHAY-2a: push bare / sai dạng đổi mã GIT-LENH → GIT-PUSH (vẫn chặn); 'git  push origin viec/X' nay là CHO (xem dưới)
+for (const l of ['git push', 'ls && git push', 'ls; git push', 'ls\ngit push',
   'echo $(git push)', 'echo `git push`', 'echo "$(git push)"', '(git push)', 'ls | (git push)',
   '/usr/bin/git push', 'timeout 5 git push', 'timeout -s KILL 5 git push', 'git \\\n push',
+  'cat <<EOF\n$(git push)\nEOF']) B(l, 'GIT-PUSH');
+for (const l of [
   'git merge viec/Y', 'git reset --hard', 'git rebase main', 'git stash', 'git switch main', 'git config core.hooksPath x',
-  'git remote -v', 'git tag v1', 'git rm server/a.js', 'git restore server/a.js', 'git clean -fd', 'git update-ref x y',
-  'cat <<EOF\n$(git push)\nEOF']) B(l, 'GIT-LENH');
+  'git remote -v', 'git tag v1', 'git rm server/a.js', 'git clean -fd', 'git update-ref x y',
+  'git push origin viec/X; git merge main', 'git fetch origin', 'git pull origin viec/X']) B(l, 'GIT-LENH');
+
+// ── TU-CHAY-2a: push ĐÚNG nhánh việc đang đứng — chỉ `git push [-u|--set-upstream|-q|-v] origin viec/<MÃ>`
+// KHO đứng ở viec/X, phiếu X có ## Phạm vi.
+for (const l of ['git push origin viec/X', 'git push -u origin viec/X', 'git push --set-upstream origin viec/X',
+  'git push origin viec/X -u', 'git push -q origin viec/X', 'git push --quiet -u origin viec/X', 'git push -v origin viec/X',
+  'git  push origin viec/X', "git push -u origin 'viec/X'", 'git push -u "origin" "viec/X"', 'git --no-pager push -u origin viec/X',
+  'cd server && git push -u origin viec/X', 'timeout 60 git push -u origin viec/X', 'git push -u origin viec/X 2>&1 | tail -5',
+  'git add server/a.js && git commit -m x && git push -u origin viec/X']) B(l, 'CHO');
+for (const l of [
+  // thiếu / thừa / sai đích
+  'git push origin', 'git push -u origin', 'git push -u', 'git push viec/X', 'git push origin viec/X viec/X',
+  'git push origin viec/X main', 'git push origin main', 'git push -u origin main', 'git push origin HEAD:main',
+  'git push origin viec/X:main', 'git push origin refs/heads/main', 'git push origin refs/heads/viec/X',
+  'git push origin HEAD', 'git push origin @', 'git push origin +viec/X', 'git push origin viec/X:viec/X', 'git push origin :viec/X',
+  'git push origin viec/X:', 'git push origin viec/Y', 'git push origin viec/x', 'git push origin viec/X/', 'git push origin Viec/X',
+  'git push origin viec/\u03a7', 'git push origin viec/X~1', 'git push origin viec/X^{}', 'git push origin main:viec/X',
+  // sai remote
+  'git push upstream viec/X', 'git push Origin viec/X', 'git push origin/viec/X', 'git push . viec/X', 'git push ../x viec/X',
+  'git push https://github.com/pos-tuquyduong/pos-tuquyduong.git viec/X', 'git push git@github.com:a/b.git viec/X',
+  'git push file:///tmp/x viec/X',
+  // tuỳ chọn cấm — trước và sau refspec, dạng ngắn gộp, dạng viết tắt, dạng =
+  'git push --force origin viec/X', 'git push -f origin viec/X', 'git push origin viec/X --force', 'git push origin viec/X -f',
+  'git push --force-with-lease origin viec/X', 'git push --force-with-lease=viec/X origin viec/X', 'git push --force-if-includes origin viec/X',
+  'git push --delete origin viec/X', 'git push -d origin viec/X', 'git push origin --delete viec/X', 'git push --mirror origin',
+  'git push --all origin', 'git push --branches origin', 'git push --tags origin viec/X', 'git push --follow-tags origin viec/X',
+  'git push --no-verify origin viec/X', 'git push --no-verif origin viec/X', 'git push --forc origin viec/X', 'git push --del origin viec/X',
+  'git push --set-up origin viec/X', 'git push -uf origin viec/X', 'git push -fu origin viec/X', 'git push -ud origin viec/X',
+  'git push -qf origin viec/X', 'git push -uq origin viec/X', 'git push --repo=origin viec/X', 'git push --repo origin viec/X',
+  'git push --receive-pack=x origin viec/X', 'git push --exec=x origin viec/X', 'git push -o ci.skip origin viec/X',
+  'git push --push-option=x origin viec/X', 'git push --prune origin viec/X', 'git push --atomic origin viec/X',
+  'git push --dry-run origin viec/X', 'git push -n origin viec/X', 'git push --signed origin viec/X', 'git push --no-thin origin viec/X',
+  'git push -- origin viec/X', 'git push -u -- origin viec/X', 'git push --recurse-submodules=on-demand origin viec/X',
+  // không viết thẳng
+  'git push origin viec/$B', 'git push origin "$(git branch --show-current)"', 'git push origin viec/X*', 'git push origin viec/{X,Y}',
+  'git push $R viec/X', 'git push origin `echo viec/X`',
+  // nối lệnh
+  'ls && git push origin main', 'git push origin viec/X && git push origin main', 'git push origin viec/X; git push -f origin viec/X',
+  'echo $(git push origin HEAD:main)', 'timeout 5 git push origin main', 'git push -u origin viec/X | git push origin main',
+]) B(l, 'GIT-PUSH');
+// push trong thư mục nháp (một bản clone khác) → chặn, dù đúng tên nhánh
+B('git push -u origin viec/X', 'GIT-PUSH', { cwd: N });
+// push từ một kho git LỒNG trong kho (viec/X/** luôn trong phạm vi nên máy dựng được viec/X/long/.git) → chặn
+fs.mkdirSync(path.join(KHO, 'viec/X/long/.git'), { recursive: true });
+fs.mkdirSync(path.join(KHO, 'viec/X/long/con'), { recursive: true });
+viet(KHO, 'server/long2/.git', 'gitdir: ' + NGOAI + '\n');
+B('cd viec/X/long && git push -u origin viec/X', 'GIT-PUSH');
+B('cd viec/X/long/con && git push -u origin viec/X', 'GIT-PUSH');
+B('cd server/long2 && git push -u origin viec/X', 'GIT-PUSH');
+B('cd viec/X && git push -u origin viec/X', 'CHO');
+B('cd ' + N + ' && git push -u origin viec/X', 'GIT-PUSH');
+B('cd ' + N + '/dir && git push origin viec/X', 'GIT-PUSH');
+// các lớp khác vẫn chặn trước
+for (const l of ['GIT_DIR=x git push origin viec/X', 'GIT_SSH_COMMAND=x git push -u origin viec/X',
+  'GIT_CONFIG_PARAMETERS=x git push origin viec/X']) B(l, 'B-GAN');
+for (const l of ['git -C . push origin viec/X', 'git -c push.default=x push origin viec/X',
+  'git --git-dir=.git push origin viec/X']) B(l, 'GIT-TUYCHON');
+for (const l of ['sh -c "git push origin viec/X"', 'env git push origin viec/X', 'echo viec/X | xargs git push origin'])
+  B(l, 'B-CHUONGTRINH');
+// nhánh không phải việc / không có phiếu / phiếu thiếu Phạm vi / HEAD tách rời → chặn
+B('git push origin main', 'GIT-PUSH', { goc: KHO_MAIN });
+B('git push -u origin viec/X', 'GIT-PUSH', { goc: KHO_MAIN });
+B('git push -u origin viec/X', 'GIT-PUSH', { goc: KHO_TACH });
+B('git push -u origin viec/Y', 'GIT-PUSH', { goc: KHO_Y });
+B('git push -u origin viec/Z', 'GIT-PUSH', { goc: KHO_Z });
+B('git push -u origin viec/H', 'CHO', { goc: KHO_H });
+B('git push -u origin viec/X', 'GIT-PUSH', { goc: KHO_H });
 B("cat <<'EOF'\n$(git push)\nEOF", 'CHO');
 for (const l of ['git -C . push', 'git -c core.hooksPath=/dev/null commit -m x', 'git --git-dir=/x status',
   'git --work-tree=/ status']) B(l, 'GIT-TUYCHON');
@@ -243,7 +314,7 @@ for (const l of ['echo >> viec/X/phieu.md', 'cp ' + N + '/f.txt viec/X/phieu.md'
   'chmod -w viec/X/phieu.md', 'curl http://127.0.0.1:3000 -o viec/X/phieu.md']) B(l, 'G1-PHIEU');
 for (const l of ['echo x > .claude/settings.json', 'touch .claude/x']) B(l, 'G1-KHUNG');
 B('echo x >| TIEN_DO_POS.json', 'G1-CAM');
-for (const l of ['ls &> server/b.js', 'git checkout -- server/b.js', 'mv server/a.js server/b.js', 'mv server/b.js server/a.js',
+for (const l of ['ls &> server/b.js', 'mv server/a.js server/b.js', 'mv server/b.js server/a.js',
   '(cd server) && cp ' + N + '/f.txt a.js']) B(l, 'G5-NGOAIPV');
 for (const l of ['echo x > ' + HOME + '/.claude/plans/p.md', 'cp ' + N + '/f.txt ' + HOME + '/.claude/plans/p.md']) B(l, 'G0-NGOAI');
 for (const l of ['echo x > $F', 'echo > viec/X/*.md', 'cp x viec/X/{phieu,a}.md', 'rm $X', 'tee $F']) B(l, 'B-DICHCHU');
@@ -273,6 +344,36 @@ B('git commit -m x', 'GIT-COMMIT-NHANH', { goc: KHO_TACH });
 B('git status', 'CHO', { goc: KHO_MAIN });
 for (const l of ['git checkout main', 'git checkout -b tam', 'git checkout -b viec/x main', 'git checkout .',
   'git checkout HEAD -- server/a.js']) B(l, 'GIT-CHECKOUT');
+
+// ── TU-CHAY-2 mục B: hoàn tác file đã sửa nhầm — git checkout -- <file> / git restore <file>
+// Phạm vi phiếu X KHÔNG có server/b.js (đóng vai server/index.js của phiếu). Trả về bản commit là an toàn:
+// file ngoài phạm vi, file luật, file đã xoá khỏi đĩa → CHO. Khung, file cấm, phiếu → vẫn chặn.
+// Ca cũ đổi kết quả: 'git checkout -- server/b.js' (G5-NGOAIPV → CHO), 'git restore server/a.js' (GIT-LENH → CHO).
+for (const l of ['git checkout -- server/b.js', 'git restore server/b.js', 'git restore --staged server/b.js',
+  'git restore CHECKLIST_CODE.md', 'git checkout -- CHECKLIST_CODE.md', 'git restore server/xoa.js', 'git restore server/a.js',
+  'git restore -W server/b.js', 'git restore --worktree --staged server/b.js', 'git restore -S server/b.js',
+  'git restore -q -- server/b.js', 'git checkout -- server/a.js server/b.js', 'cd server && git restore b.js',
+  'git restore server/b.js server/xoa.js']) B(l, 'CHO');
+for (const l of ['git checkout main -- server/b.js', 'git checkout HEAD~1 -- server/b.js']) B(l, 'GIT-CHECKOUT');
+for (const l of ['git restore --source=main server/b.js', 'git restore -s HEAD~1 server/b.js', 'git restore .',
+  'git restore server/', 'git restore server', 'git restore server/*.js', 'git restore --pathspec-from-file=x',
+  'git restore -p server/b.js', 'git restore --patch server/b.js', 'git restore --stag server/b.js', 'git restore -SW server/b.js',
+  'git restore --ours server/b.js', 'git restore --overlay server/b.js', 'git restore -m server/b.js', 'git restore',
+  'git restore --staged', 'git restore -- .', "git restore ':!x'", 'git restore $F', 'git restore ./', 'git checkout -- .',
+  'git checkout -- server/', 'git checkout --', 'git restore --source main server/b.js',
+  // soát độc lập: với git, `\` cũng là ký tự glob (thoát ký tự kế) → '\.claude/x' khớp .claude/x mà người gác tưởng tên khác
+  "git restore '\\.claude/settings.json'", "git checkout -- '\\.claude/settings.json'", "git restore --staged -- '\\.git/config'",
+  "git restore 'viec/X/phie\\u.md'", "git restore '\\.env'", "git restore 'TIEN_DO_POS.jso\\n'",
+  "git restore server/b.js '.clau\\de/settings.json'"]) B(l, 'GIT-HOANTAC');
+for (const l of ['git restore .claude/settings.json', 'git restore --staged .claude/settings.json',
+  'git restore server/ln_claude/settings.json', 'git checkout -- .claude/settings.json']) B(l, 'G1-KHUNG');
+B('git restore TIEN_DO_POS.json', 'G1-CAM');
+for (const l of ['git restore viec/X/phieu.md', 'git checkout -- viec/X/phieu.md']) B(l, 'G1-PHIEU');
+B('git restore ../ngoai/x', 'G0-NGOAI');
+B('git restore server/b.js', 'G2-VIEC', { goc: KHO_MAIN });
+B('git restore server/b.js', 'G2-VIEC', { goc: KHO_TACH });
+B('git restore server/b.js', 'G2-PHIEU', { goc: KHO_Y });
+B('git restore server/a.js', 'G-LIENKET', { goc: KHO_LK });
 for (const l of ['git branch -D viec/Y', 'git branch moi', 'git branch -m a b']) B(l, 'GIT-BRANCH');
 for (const l of ['git archive --remote=x HEAD', 'git archive -o server/b.tar HEAD']) B(l, 'GIT-ARCHIVE');
 for (const l of ['npm install lodash', 'npm i x', 'npm exec x', 'npm --prefix client run build', 'npm publish']) B(l, 'NPM-LENH');
@@ -455,7 +556,7 @@ if (coXet) {
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.1.0', pb === 'tu-chay 1.1.0', pb || '(không có)');
+  chac('PHIEN_BAN = tu-chay 1.2.0', pb === 'tu-chay 1.2.0', pb || '(không có)');
 }
 
 // ── Tiến trình thật ─────────────────────────────────────────────────────────
@@ -519,10 +620,13 @@ async function tienTrinh() {
   chac('tiến trình: Read → exit 0, không in gì', r.status === 0 && r.stdout === '', `exit ${r.status} · ${r.stdout}`);
   r = goi(vao('TaskCreate', { subject: 'x' }), env); tatCa.push(r);
   chac('tiến trình: TaskCreate → exit 0', r.status === 0);
-  r = goi(vao('Bash', { command: 'git push origin viec/X' }), env); tatCa.push(r);
+  r = goi(vao('Bash', { command: 'git push origin main' }), env); tatCa.push(r);
   const hso = r.json && r.json.hookSpecificOutput;
-  chac('tiến trình: git push → exit 2 + JSON deny có mã', r.status === 2 && !!hso && hso.hookEventName === 'PreToolUse'
-    && hso.permissionDecision === 'deny' && /\[GIT-LENH\]/.test(hso.permissionDecisionReason) && r.stderr.length > 0,
+  chac('tiến trình: git push origin main → exit 2 + JSON deny có mã', r.status === 2 && !!hso && hso.hookEventName === 'PreToolUse'
+    && hso.permissionDecision === 'deny' && /\[GIT-PUSH\]/.test(hso.permissionDecisionReason) && r.stderr.length > 0,
+    `exit ${r.status} · ${String(r.stdout).slice(0, 200)}`);
+  r = goi(vao('Bash', { command: 'git push -u origin viec/X' }), env); tatCa.push(r);
+  chac('tiến trình: git push -u origin viec/X (nhánh đang đứng) → exit 0, không in gì', r.status === 0 && r.stdout === '',
     `exit ${r.status} · ${String(r.stdout).slice(0, 200)}`);
   r = goi('{hong', env); tatCa.push(r);
   chac('tiến trình: JSON hỏng → exit 2', r.status === 2);
@@ -538,9 +642,9 @@ async function tienTrinh() {
 
   let dong = [];
   try { dong = fs.readFileSync(NK, 'utf8').trim().split('\n').map((d) => JSON.parse(d)); } catch {}
-  chac('nhật ký: có dòng CHO của Read và dòng CHAN GIT-LENH của push',
+  chac('nhật ký: có dòng CHO của Read và dòng CHAN GIT-PUSH của push main',
     dong.some((d) => d.cong_cu === 'Read' && d.quyet === 'CHO')
-    && dong.some((d) => d.cong_cu === 'Bash' && d.quyet === 'CHAN' && d.ma === 'GIT-LENH' && /git push/.test(d.noi_dung)),
+    && dong.some((d) => d.cong_cu === 'Bash' && d.quyet === 'CHAN' && d.ma === 'GIT-PUSH' && /git push origin main/.test(d.noi_dung)),
     `${dong.length} dòng`);
   fs.writeFileSync(NK, 'x'.repeat(1024 * 1024 + 10));
   goi(vao('Read', {}), env);
@@ -577,8 +681,13 @@ const SETTINGS_GOC = JSON.stringify({
   env: { CLAUDE_CODE_SUBAGENT_MODEL: 'claude-opus-5-5' },
 }, null, 2) + '\n';
 const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
+// TU-CHAY-2a: bỏ deny push CHUNG, thay bằng deny hẹp (main, ép đè, xoá, gương, mọi nhánh, tag, refspec : và +).
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
-  'Bash(git push *)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)', 'Bash(git *--no-v*)'];
+  'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)', 'Bash(git *--no-v*)',
+  'Bash(git push *main*)', 'Bash(git push *-f*)', 'Bash(git push *-d*)', 'Bash(git push *--mirror*)', 'Bash(git push *--all*)',
+  'Bash(git push *--tags*)', 'Bash(git push *--prune*)', 'Bash(git push *:*)', 'Bash(git push *+*)'];
+const DENY_BO = ['Bash(git push *)', 'Bash(git push:*)'];
+const LENH_THU_VIEN = 'bash "$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh"';
 const HOME_CAI = path.join(TAM, 'home_cai');
 fs.mkdirSync(HOME_CAI);
 function envSach(them = {}) {
@@ -637,7 +746,11 @@ function baiCaiDat() {
   chac('settings: hook PreToolUse "*" đúng lệnh, timeout 30, chỉ một mục', Array.isArray(pre) && pre.length === 1
     && pre[0].matcher === '*' && pre[0].hooks.length === 1 && pre[0].hooks[0].type === 'command'
     && pre[0].hooks[0].command === LENH_HOOK && pre[0].hooks[0].timeout === 30, JSON.stringify(pre));
-  chac('settings: deny có đủ luật cũ + luật mới', !!s && [...goc.permissions.deny, ...DENY_MOI].every((d) => s.permissions.deny.includes(d)));
+  chac('settings: deny có đủ luật cũ (trừ deny push chung) + luật mới', !!s
+    && [...goc.permissions.deny.filter((d) => !DENY_BO.includes(d)), ...DENY_MOI].every((d) => s.permissions.deny.includes(d)));
+  chac('settings: KHÔNG còn deny push chung Bash(git push *) / Bash(git push:*)', !!s && DENY_BO.every((d) => !s.permissions.deny.includes(d)),
+    JSON.stringify(s && s.permissions.deny));
+  chac('settings: deny không trùng lặp', !!s && new Set(s.permissions.deny).size === s.permissions.deny.length);
   chac('settings: bỏ hết ask, bỏ disableAutoMode ở cả hai chỗ', !!s && s.permissions.ask === undefined
     && s.disableAutoMode === undefined && s.permissions.disableAutoMode === undefined);
   chac('settings: giữ defaultMode default, model, env, allow, PostToolUse, Stop', !!s && s.permissions.defaultMode === 'default'
@@ -646,6 +759,16 @@ function baiCaiDat() {
     && JSON.stringify(s.hooks.PostToolUse) === JSON.stringify(goc.hooks.PostToolUse)
     && JSON.stringify(s.hooks.Stop) === JSON.stringify(goc.hooks.Stop));
   chac('settings: không còn luật Write(...)', !!s && !JSON.stringify(s.permissions).includes('Write('));
+  // TU-CHAY-2 mục E: hook SessionStart cài thư viện trên máy mây — gọi bản ĐÃ CÀI trong .claude/tu_chay/
+  const ss = s && s.hooks && s.hooks.SessionStart;
+  chac('settings: đúng một hook SessionStart "startup|resume" gọi bản đã cài cai_thu_vien.sh, timeout 600', Array.isArray(ss)
+    && ss.length === 1 && ss[0].matcher === 'startup|resume' && ss[0].hooks.length === 1 && ss[0].hooks[0].type === 'command'
+    && ss[0].hooks[0].command === LENH_THU_VIEN && ss[0].hooks[0].timeout === 600, JSON.stringify(ss));
+  // TU-CHAY-2 mục D: skill /lam-viec cài từ tu_chay/skill_lam_viec.md (nguồn để phẳng)
+  const skill = docB(path.join(A, '.claude/skills/lam-viec/SKILL.md'));
+  chac('skill: .claude/skills/lam-viec/SKILL.md khớp từng byte tu_chay/skill_lam_viec.md', !!skill
+    && Buffer.compare(skill, docB(path.join(A, 'tu_chay/skill_lam_viec.md')) || Buffer.alloc(0)) === 0);
+  chac('trình cài in git add .claude/skills/lam-viec/SKILL.md', String(r.stdout).includes('git add .claude/skills/lam-viec/SKILL.md'));
   chac('lưu settings.json.truoc_TUCHAY = bản gốc', String(docB(path.join(A, '.claude/settings.json.truoc_TUCHAY'))) === SETTINGS_GOC);
   const nguon = fs.readdirSync(path.join(A, 'tu_chay')).filter((f) => !/^cai_dat\./.test(f)).sort();
   let daCai = [];
@@ -661,6 +784,31 @@ function baiCaiDat() {
   chac('in sẵn git add từng file + git commit, không có add -A / add .', ra.includes('git add .claude/settings.json')
     && nguon.every((f) => ra.includes('git add .claude/tu_chay/' + f)) && /git commit -m/.test(ra)
     && !/git add (-A|\.(\s|$)|--all)/.test(ra));
+
+  chac('trình cài không bảo mở claude trong Shell Replit (máy chạy trên claude.ai/code)', !/claude --permission-mode/.test(ra)
+    && ra.includes('claude.ai/code'), ra.slice(-300));
+
+  // TU-CHAY-2a: kho đã cài bản TU-CHAY-1 (deny có Bash(git push *) và Bash(git push:*)) → cài lại gỡ deny chung
+  {
+    const G = khoCai('cai_f', { settings: JSON.stringify({ permissions: {
+      deny: ['Bash(git push:*)', 'Bash(git merge *)', 'Bash(git push *)', 'Bash(rm -rf:*)'], defaultMode: 'default' },
+    hooks: { SessionStart: [{ matcher: 'startup', hooks: [{ type: 'command', command: 'echo khac' }] },
+      { matcher: 'startup', hooks: [{ type: 'command', command: LENH_THU_VIEN }] }] } }, null, 2) + '\n' });
+    const x = caiDat(G);
+    let sg = null;
+    try { sg = JSON.parse(fs.readFileSync(path.join(G, '.claude/settings.json'), 'utf8')); } catch {}
+    chac('cài lại trên bản TU-CHAY-1: gỡ deny push chung, có đủ DENY_MOI, giữ Bash(rm -rf:*), không trùng',
+      x.status === 0 && !!sg && DENY_BO.every((d) => !sg.permissions.deny.includes(d)) && DENY_MOI.every((d) => sg.permissions.deny.includes(d))
+      && sg.permissions.deny.includes('Bash(rm -rf:*)') && new Set(sg.permissions.deny).size === sg.permissions.deny.length,
+      JSON.stringify(sg && sg.permissions.deny));
+    const ssG = (sg && sg.hooks && sg.hooks.SessionStart) || [];
+    chac('cài lại: giữ hook SessionStart khác, thay mục cai_thu_vien.sh cũ bằng đúng một mục mới',
+      ssG.length === 2 && ssG[0].hooks[0].command === 'echo khac'
+      && ssG.filter((m) => JSON.stringify(m).includes('cai_thu_vien.sh')).length === 1 && ssG[1].matcher === 'startup|resume', JSON.stringify(ssG));
+    const t = anh(G);
+    const y = caiDat(G);
+    chac('cài lại lần 2 trên bản TU-CHAY-1: không đổi gì', y.status === 0 && /không đổi gì/.test(y.stdout) && anh(G) === t);
+  }
 
   // Lần 2 — không đổi gì
   const truoc = anh(A);
@@ -687,7 +835,7 @@ function baiCaiDat() {
     const t = anh(g);
     const x = caiDat(g, them);
     chac(`cài đặt từ chối khi ${ten}, không ghi gì`, x.status !== 0 && anh(g) === t
-      && !fs.existsSync(path.join(g, '.claude/tu_chay')), `exit ${x.status}`);
+      && !fs.existsSync(path.join(g, '.claude/tu_chay')) && !fs.existsSync(path.join(g, '.claude/skills')), `exit ${x.status}`);
     if (lyDo) chac(`cài đặt: lý do khi ${ten} có "${lyDo}"`, (x.stdout + x.stderr).includes(lyDo));
   };
   tuChoi('có CLAUDECODE', khoCai('cai_b'), { CLAUDECODE: '1' }, 'Shell');

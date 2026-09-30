@@ -1,0 +1,63 @@
+BẰNG CHỨNG ĐỎ — TU-CHAY-2a (chat viết và chạy trong container, 30.09.2026)
+Bài thử CUỐI (tu_chay/thu_nguoi_gac.js mới) chạy trên người gác + trình cài CŨ của commit 2e0d33a:
+  node tu_chay/thu_nguoi_gac.js --nguoi-gac <2e0d33a>/nguoi_gac.js --cai-dat <2e0d33a>/cai_dat.js
+  → exit 1
+
+thu_nguoi_gac: 547/678 ca người gác đúng mã · 138 phép khác
+  ✗ ca Monitor push nhánh việc: mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Monitor lách push main: mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "ls && git push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "ls; git push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "ls\ngit push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "echo $(git push)": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "echo `git push`": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "echo \"$(git push)\"": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "(git push)": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "ls | (git push)": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "/usr/bin/git push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "timeout 5 git push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "timeout -s KILL 5 git push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "git \\\n push": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "cat <<EOF\n$(git push)\nEOF": mong CHAN:GIT-PUSH, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push -u origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push --set-upstream origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push origin viec/X -u": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push -q origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push --quiet -u origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push -v origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git  push origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push -u origin 'viec/X'": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push -u \"origin\" \"viec/X\"": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git --no-pager push -u origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "cd server && git push -u origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "timeout 60 git push -u origin viec/X": mong CHO, ra CHAN:GIT-LENH
+  ✗ ca Bash "git push -u origin viec/X 2>&1 | tail -5": mong CHO, ra CHAN:GIT-LENH
+  ✗ … và 101 ca hỏng khác
+  ✗ tiến trình: git push origin main → exit 2 + JSON deny có mã — exit 2 · {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[GIT-LENH] người gác chặn: lệnh git con không có trong danh sách (push, merge, reset, rebase
+  ✗ tiến trình: git push -u origin viec/X (nhánh đang đứng) → exit 0, không in gì — exit 2 · {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[GIT-LENH] người gác chặn: lệnh git con không có trong danh sách (push, merge, reset, rebase
+  ✗ nhật ký: có dòng CHO của Read và dòng CHAN GIT-PUSH của push main — 7 dòng
+  ✗ settings: deny có đủ luật cũ (trừ deny push chung) + luật mới
+  ✗ settings: KHÔNG còn deny push chung Bash(git push *) / Bash(git push:*) — ["Bash(git push:*)","Bash(git add -A:*)","Read(./.env)","Bash(rm -rf:*)","Edit(./.claude/**)","Edit(./.env)","Edit(./.env.*)","Edit(./.replit)","Edit(./TIEN_DO_*.json)","Bash(git push *)","Bash(git merge *)","Bash(git reset *)","Bash(git commit -n *)","Bash(git -c *)","Bash(git *--no-v*)"]
+  ✗ trình cài không bảo mở claude trong Shell Replit (máy chạy trên claude.ai/code) — add .claude/tu_chay/nguoi_gac.js
+  git add .claude/tu_chay/thu_nguoi_gac.js
+  git commit -m "TU-CHAY-1: chu quan cai nguoi gac vao .claude"
+
+Rồi mở phiên MỚI: claude --permission-mode auto  → gõ /permissions để xem luật deny.
+Lùi settings: cp .claude/settings.json.truoc_TUCHAY .claude/settings.json
+
+  ✗ cài lại trên bản TU-CHAY-1: gỡ deny push chung, có đủ DENY_MOI, giữ Bash(rm -rf:*), không trùng — ["Bash(git push:*)","Bash(git merge *)","Bash(git push *)","Bash(rm -rf:*)","Edit(./.claude/**)","Edit(./.env)","Edit(./.env.*)","Edit(./.replit)","Edit(./TIEN_DO_*.json)","Bash(git reset *)","Bash(git commit -n *)","Bash(git -c *)","Bash(git *--no-v*)"]
+  ĐỎ — 138 chỗ hỏng
+
+Vòng tự soát 2 — cách lách 'push từ kho git LỒNG' (viec/X/** luôn trong phạm vi):
+ca mới chạy trên người gác đã vá vòng 1 (chưa kiểm .git lồng) → exit 1:
+
+thu_nguoi_gac: 675/678 ca người gác đúng mã · 139 phép khác
+  ✗ ca Bash "cd viec/X/long && git push -u origin viec/X": mong CHAN:GIT-PUSH, ra CHO
+  ✗ ca Bash "cd viec/X/long/con && git push -u origin viec/X": mong CHAN:GIT-PUSH, ra CHO
+  ✗ ca Bash "cd server/long2 && git push -u origin viec/X": mong CHAN:GIT-PUSH, ra CHO
+  ✗ tự sinh: 659 biến thể đều bị chặn — "cd viec/X/long &&\ngit push -u origin viec/X" | "cd viec/X/long  \\\n&& git push -u origin viec/X" | "cd viec/X/long/con &&\ngit push -u origin viec/X" | "cd viec/X/long/con  \\\n&& git push -u origin viec/X" | "cd server/long2 &&\ngit push -u origin viec/X" | "cd server/long2  \\\n&& git push -u origin viec/X"
+  ĐỎ — 4 chỗ hỏng
+
+Sau khi vá: 678/678 ca đúng mã · mọi đột biến đỏ · tiến trình thật và cài đặt đạt → XANH.

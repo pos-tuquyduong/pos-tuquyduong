@@ -45,7 +45,7 @@ trong `TIEN_DO_POS.json`: ở sổ việc, H1 là "nâng Render", P7 là "tab nh
 npm test                                  # bộ kiểm tự động (SX là: npm run kiem)
 node kiem_tra_truoc_khi_giao.js --day-du  # thêm: so băm dist với src
 python3 dong_tien_do.py                   # xem sổ việc
-cd client && npm run build && cd ..       # BẮT BUỘC sau mọi sửa client/src/
+(cd client && npm run build)              # BẮT BUỘC sau mọi sửa client/src/
 bash ban_mau_pos/chay_thu.sh              # 119 phép của bản mẫu giao diện
 ```
 
@@ -55,10 +55,10 @@ bash ban_mau_pos/chay_thu.sh              # 119 phép của bản mẫu giao di�
 2. Đọc code thật của vùng sắp sửa + mục CHECKLIST tương ứng.
 3. `grep` tìm **mọi chỗ cùng khuôn** trong file, trước khi sửa dòng đầu tiên (K4).
 4. Viết bài thử **trước**, chạy trên bản CHƯA vá, **xác nhận nó ĐỎ** (K3).
-5. Sửa code. Lưu bản trước khi vá thành `<file>.truoc_<TEN_DOT>` (đã có trong `.gitignore`).
+5. Sửa code. Bản lưu trước khi vá (`<file>.truoc_<TEN_DOT>`) để trong thư mục nháp, không để trong kho.
 6. `npm test` → xanh. Sửa `client/src/` thì `npm run build` rồi `--day-du`.
-7. `ghi_tien_do("<mã việc>", "<mã patch>")` hoặc sửa `TIEN_DO_POS.json`.
-8. Commit. Báo cáo theo mẫu ở mục 7.
+7. Không ghi sổ việc — sổ việc do chủ quán ghi sau khi quầy chạy ổn.
+8. Commit, rồi `git push -u origin viec/<MÃ>`. Báo cáo theo mẫu ở mục 7.
 
 ## 5. Ràng buộc vĩnh viễn — sửa vào là hỏng
 
@@ -80,7 +80,8 @@ bash ban_mau_pos/chay_thu.sh              # 119 phép của bản mẫu giao di�
   phép THÊM phép kiểm hoặc HẠ `NGUONG_FETCH` sau khi đã dọn thật; mọi thay đổi
   khác phải hỏi chủ quán và nêu rõ lỗ đã tìm ra.
 - **Không `git commit --no-verify`**, không `git add -A` (Agent Replit đã tự
-  commit 4 lần — F3), không `git push`, không `git merge`, không đụng `main`.
+  commit 4 lần — F3), chỉ push nhánh việc của mình (`git push -u origin viec/<MÃ>`);
+  không push nhánh khác, không `git merge`, không đụng `main`.
 - **Không sửa code trực tiếp trên production.**
 - **Không viết số cứng** (giá, hạng thẻ, số tháng) — tất cả nằm ở dữ liệu.
 - **Không thêm `fetch` trần ngoài `client/src/utils/api.js`** — bánh cóc sẽ chặn commit.
