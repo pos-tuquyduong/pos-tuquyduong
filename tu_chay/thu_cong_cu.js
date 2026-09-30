@@ -76,6 +76,7 @@ function baiXemThu() {
   git(NGUON, 'checkout', '-q', '-b', 'viec/TU-CHAY-9');
   viet(NGUON, 'server/a.js', 'a2\n'); commit('C2');
   viet(NGUON, 'server/a.js', 'a3\n'); const C3 = commit('C3');
+  git(NGUON, 'push', '-q', 'origin', 'viec/TU-CHAY-9');
 
   const chay = (ma, them = {}, tep = 'tu_chay/xem_thu.sh') => spawnSync('bash', [tep, ma],
     { cwd: QUAY, env: moiTruong(them), encoding: 'utf8', timeout: 60000 });
@@ -91,12 +92,14 @@ function baiXemThu() {
   r = chay('TU-CHAY-9', { CLAUDE_CODE_CHILD_SESSION: '1' });
   chac('F6 xem_thu: có CLAUDE_CODE_CHILD_SESSION → từ chối', r.status !== 0 && head() === h0);
 
-  // F3 — file đã theo dõi đang bị sửa
-  viet(QUAY, 'server/a.js', 'sua tay\n');
+  // F3 — file đã theo dõi đang bị sửa. Dùng file GIỐNG NHAU ở hai nhánh: git sẽ cho checkout mang theo sửa đổi,
+  // nên chỉ phép chặn của xem_thu.sh mới giữ được "không đổi gì" (sửa server/a.js thì chính git đã từ chối).
+  viet(QUAY, 'client/package.json', 'sua tay\n');
   r = chay('TU-CHAY-9');
-  chac('F3 xem_thu: file theo dõi bị sửa → từ chối, không đổi gì, nêu tên file', r.status !== 0 && head() === h0
-    && doc(path.join(QUAY, 'server/a.js')) === 'sua tay\n' && ra(r).includes('server/a.js'), ra(r).slice(0, 300));
-  git(QUAY, 'checkout', '-q', '--', 'server/a.js');
+  chac('F3 xem_thu: file theo dõi bị sửa → từ chối trước khi fetch, không đổi gì, nêu tên file', r.status !== 0 && head() === h0
+    && nhanh() === 'main' && !fs.existsSync(path.join(QUAY, '.git/FETCH_HEAD'))
+    && doc(path.join(QUAY, 'client/package.json')) === 'sua tay\n' && ra(r).includes('client/package.json'), ra(r).slice(0, 300));
+  git(QUAY, 'checkout', '-q', '--', 'client/package.json');
 
   // F4 — nhánh không có trên origin; mã sai dạng
   r = chay('KHONG-CO');
@@ -126,11 +129,14 @@ function baiXemThu() {
   chac('F8 xem_thu: client/package-lock.json đổi → npm ci ĐÚNG ở client, không ở gốc', r.status === 0 && head() === C4
     && dongNpm().includes(QUAY + '/client|ci') && !dongNpm().includes(QUAY + '|ci'), dongNpm().join(' ; '));
 
-  // F3b — client/dist/ bị sửa: trả về bản commit, báo, chạy tiếp
+  // F3b — client/dist/ bị sửa: trả về bản commit, báo, chạy tiếp. Nhánh mới có dist KHÁC → không trả trước
+  // thì git từ chối fast-forward (build sau đó ghi đè dist nên không che được lỗi này).
+  viet(NGUON, 'client/src/app.js', 'v3\n'); viet(NGUON, 'client/dist/app.js', 'v3\n'); const C5 = commit('src + dist v3');
+  git(NGUON, 'push', '-q', 'origin', 'viec/TU-CHAY-9');
   viet(QUAY, 'client/dist/app.js', 'dist sua tay\n');
   r = chay('TU-CHAY-9');
-  chac('F3b xem_thu: client/dist/ bị sửa → trả về bản commit, báo, vẫn chạy', r.status === 0
-    && doc(path.join(QUAY, 'client/dist/app.js')) === 'v1\n' && ra(r).includes('client/dist'), ra(r).slice(0, 300));
+  chac('F3b xem_thu: client/dist/ bị sửa → trả về bản commit, báo, vẫn sang bản mới', r.status === 0 && head() === C5
+    && doc(path.join(QUAY, 'client/dist/app.js')) === 'v3\n' && ra(r).includes('client/dist'), ra(r).slice(0, 300));
 
   // F2 — quay về main mới nhất
   git(NGUON, 'checkout', '-q', 'main');
