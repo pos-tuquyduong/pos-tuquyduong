@@ -14,3 +14,7 @@ Kiểm sống 2a: máy mây push nhánh việc.
   đột biến hai mã mới đều đỏ khi tắt. Còn đỏ 5 phép của bước 3 (trình cài) và bước 6 (PHIEN_BAN).
 - Bước 3 XONG: `cai_dat.js` (skill + SessionStart), `cai_thu_vien.sh`, `skill_lam_viec.md` (bước đầu: git log --oneline -3,
   ghi trang_thai, in trong câu trả lời đầu tiên), `MAU_PHIEU.md`. Bài cài đặt, E2–E5, H1–H3 xanh.
+- Bước 4 XONG: `xem_thu.sh` (F1–F11 xanh); `kiem_tra` thêm T1b (`thu_cong_cu.js`) và T3 (so byte skill).
+  Đột biến trong nháp: 7/8 đột biến xem_thu.sh và 5/5 của cai_thu_vien.sh làm bài thử đỏ. Hai ca F3, F3b đã làm chặt
+  sau khi đột biến lộ ra chúng xanh oan. Đột biến "bỏ bọc hàm" vẫn xanh: git thay file bằng inode mới nên bash
+  đọc bản cũ qua fd — không dựng được ca hỏng thật (ghi CHƯA KIỂM).
