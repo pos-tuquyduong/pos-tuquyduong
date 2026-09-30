@@ -12,3 +12,5 @@ Kiểm sống 2a: máy mây push nhánh việc.
   `npm test` ĐỎ ở T1 tới hết bước 2–4 — chủ ý (bài thử đi trước mã).
 - Bước 2 XONG: `nguoi_gac.js` thêm `xetHoanTac` + mã `GIT-HOANTAC`, `G-HOANTAC`. `thu_nguoi_gac.js`: 728/728 ca đúng mã,
   đột biến hai mã mới đều đỏ khi tắt. Còn đỏ 5 phép của bước 3 (trình cài) và bước 6 (PHIEN_BAN).
+- Bước 3 XONG: `cai_dat.js` (skill + SessionStart), `cai_thu_vien.sh`, `skill_lam_viec.md` (bước đầu: git log --oneline -3,
+  ghi trang_thai, in trong câu trả lời đầu tiên), `MAU_PHIEU.md`. Bài cài đặt, E2–E5, H1–H3 xanh.
