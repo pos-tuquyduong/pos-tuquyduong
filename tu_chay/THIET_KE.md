@@ -636,3 +636,64 @@ nằm ở `viec/TU-CHAY-1/ke_hoach.md`.
   - khối `{ …; }`, `if`/`for`/`while`, `$(( ))`, `<( )`, `$'…'` và `${X:-…}` đều bị chặn;
 
   Muốn mở thì chủ quán quyết (thêm vào `chuong_trinh_them`, hoặc đổi luật).
+
+## B14. TU-CHAY-2 — máy mây tự làm trọn một việc (30.09.2026, tu-chay 1.2.0)
+
+Nguồn tài liệu đã tra (30.09.2026): code.claude.com/docs/en/claude-code-on-the-web, /cloud-environments
+(mục "Setup scripts vs. SessionStart hooks", "Install dependencies with a SessionStart hook"), /hooks
+(SessionStart), /skills (Frontmatter reference). Chi tiết: `viec/TU-CHAY-2/ke_hoach.md`.
+
+1. **Luật GIT-PUSH (TU-CHAY-2a).** Push theo danh sách CHO PHÉP đúng một dạng:
+   `git push [-u|--set-upstream|-q|--quiet|-v|--verbose] origin viec/<MÃ>`, trong đó MÃ là nhánh đang
+   đứng, nhánh có `viec/<MÃ>/phieu.md` kèm `## Phạm vi`, chạy từ trong kho (không từ nháp, không từ
+   kho git lồng). Mọi dạng khác → GIT-PUSH (không ép, không xoá, không refspec `:`/`+`, không HEAD,
+   không URL, không remote khác, không `main`). `.git/hooks/pre-push` giữ nguyên.
+2. **Hoàn tác file** (`GIT-HOANTAC`, `G-HOANTAC`, hàm `xetHoanTac`):
+   - cho: `git checkout -- <file…>`, `git restore [--staged|-S|--worktree|-W|-q|--quiet] [--] <file…>`;
+   - tuỳ chọn khác (`--source/-s`, `-p`, `--pathspec-from-file`, `--ours`, `--overlay`, viết tắt, gộp
+     `-SW`), `checkout <nhánh/commit> --`, glob (kể cả trong nháy, vì git tự mở pathspec), `:` (pathspec
+     magic), `.`, thư mục, tên kết thúc `/`, tên qua biến → chặn;
+   - file đi qua `ghiDuoc(…, hoanTac)`: khung (`.claude/`, `.git/`), file cấm, phiếu, ngoài kho, liên
+     kết cứng, không có việc/phiếu → vẫn chặn; tới chỗ G-LUAT/G4/G5 thì **cho** (chủ quán chốt 30.09:
+     trả về bản commit là an toàn, kể cả file luật ngoài Phạm vi và file đã xoá khỏi đĩa).
+   - Ca cũ đổi kết quả: `git checkout -- server/b.js` (ngoài phạm vi) G5-NGOAIPV → CHO;
+     `git restore server/a.js` GIT-LENH → CHO.
+3. **Lớp 1 đổi (2a).** Bỏ deny push CHUNG `Bash(git push *)`, `Bash(git push:*)` (DENY_BO) để máy mây push
+   được nhánh việc; thêm deny HẸP (DENY_MOI): `*main*`, `*-f*`, `*-d*`, `*--mirror*`, `*--all*`,
+   `*--tags*`, `*--prune*`, `*:*`, `*+*`. Người gác (GIT-PUSH) mới là lớp chính xác.
+4. **Cài thư viện trên máy mây: hook SessionStart** (chủ quán chốt; không dùng Setup script).
+   - So hai cách: Setup script chạy trước Claude Code, chỉ ở máy mây, cấu hình trong hộp thoại môi trường
+     (không nằm trong git), bỏ qua khi có bản cache. SessionStart nằm trong `.claude/settings.json` (đi
+     theo git, chủ quán duyệt), chạy mỗi lần startup/resume ở cả máy nhà lẫn máy mây → phải tự thoát khi
+     `CLAUDE_CODE_REMOTE` khác `true`. Hook SessionStart không chặn được phiên.
+   - `cai_dat.js` ghép đúng một mục `{ matcher: "startup|resume", command: bash "$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh", timeout: 600 }`
+     — gọi bản ĐÃ CÀI, không gọi nguồn `tu_chay/`. Cài lại thì thay mục cũ, giữ hook SessionStart khác.
+   - `cai_thu_vien.sh`: `npm ci` ở gốc rồi ở `client/`; bỏ qua chỗ đã cài đúng lockfile (dấu băm
+     `node_modules/.tu_chay_lock`); lỗi thì báo `✗` ra stdout (vào ngữ cảnh Claude) và stderr, vẫn thoát 0.
+   - `client/package-lock.json`: dòng `resolved` của `jsqr` trỏ `package-firewall.replit.local` (npm trên
+     máy mây trả E405) → đổi sang `registry.npmjs.org`, giữ `integrity`. Một dòng, không sinh lại lockfile (P6).
+5. **Skill `/lam-viec`**: nguồn phẳng `tu_chay/skill_lam_viec.md` (T2 đọc mọi mục trong `tu_chay/`), trình
+   cài chép thành `.claude/skills/lam-viec/SKILL.md`; `disable-model-invocation: true` — chỉ chủ quán gọi.
+   Bước đầu: `git log --oneline -3`, ghi vào `trang_thai.md` và in trong câu trả lời đầu tiên. Bộ kiểm T3
+   CẢNH BÁO khi bản đã cài lệch nguồn.
+6. **`xem_thu.sh <MÃ>|main`** (chủ quán chạy ở Replit): kiểm hết rồi mới đổi; chỉ fast-forward; `npm ci` chỉ
+   khi lockfile đổi hoặc chưa cài; dist sau build khác bản commit → báo, trả dist về bản commit bằng
+   `git checkout HEAD -- client/dist` + `git clean -fdq -- client/dist` (chỉ trong `client/dist/`, chủ quán
+   chốt 30.09), không bảo bấm Run. Thân nằm trong hàm để checkout đổi chính file không làm hỏng.
+
+### Lỗ còn hở — nói thẳng (thêm ở TU-CHAY-2)
+
+- **Lớp 1 không còn chặn push chung.** Push sai dạng chỉ còn người gác (GIT-PUSH) và deny hẹp chặn;
+  `git push --no-verify` bỏ qua pre-push. Nhánh `main` dựa vào người gác + luật bảo vệ nhánh trên GitHub.
+  Deny hẹp soi chữ: mã việc chứa `main`, `-d`, `-f` bị chặn oan (MAU_PHIEU.md dặn tránh).
+- **Hoàn tác: thư mục ĐÃ XOÁ khỏi đĩa** không phân biệt được với file đã xoá (người gác không gọi git) →
+  `git restore server/cu` trả CẢ thư mục về bản commit. Loại B (hiện trong `git diff`, lùi được), chủ
+  quán chốt 30.09. Thư mục khung/phiếu vẫn bị chặn theo tên.
+- **`npm ci` trong hook SessionStart** chạy script lấy từ package.json ngoài tầm người gác — cùng lớp lỗ
+  với `npm ci` / `npm test` đã ghi ở B13.
+- **Phiên máy mây mở từ bản chụp CŨ.** Một phiên từng mở ra ở commit `45f783e` (TU-CHAY-2a) dù GitHub đã
+  có commit mới hơn — môi trường dùng lại bản chụp cũ. Chữa: sửa ô **Setup script** của môi trường (hiện
+  chỉ có một lệnh `echo`) để môi trường dựng lại. Chặn tái diễn: skill `/lam-viec` bắt đầu bằng
+  `git log --oneline -3`, in ra để chủ quán đối chiếu với GitHub; không khớp thì dừng.
+- **`xem_thu.sh`: phép "không tự hỏng khi đổi chính file" chưa có ca đỏ thật.** git thay file bằng inode mới
+  nên bash vẫn đọc bản cũ qua fd đang mở; bọc hàm là lớp phòng thêm, bài thử (F10) không phân biệt được.
