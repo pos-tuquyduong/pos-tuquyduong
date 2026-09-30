@@ -18,3 +18,7 @@ Kiểm sống 2a: máy mây push nhánh việc.
   Đột biến trong nháp: 7/8 đột biến xem_thu.sh và 5/5 của cai_thu_vien.sh làm bài thử đỏ. Hai ca F3, F3b đã làm chặt
   sau khi đột biến lộ ra chúng xanh oan. Đột biến "bỏ bọc hàm" vẫn xanh: git thay file bằng inode mới nên bash
   đọc bản cũ qua fd — không dựng được ca hỏng thật (ghi CHƯA KIỂM).
+- Bước 5 XONG: `client/package-lock.json` đổi đúng 1 dòng `resolved` của jsqr (`git diff --numstat` = 1 1, integrity giữ).
+  Trước vá: `npm ci` với lockfile cũ (chép vào nháp) → E405 GET package-firewall.replit.local…jsqr. Sau vá: `(cd client && npm ci)`
+  thoát 0 trên máy mây; `(cd client && npm run build)` → `client/dist/` không đổi byte nào; `--day-du`: "dist đã commit KHỚP
+  với src", hết cảnh báo thiếu client/node_modules. Còn đỏ đúng một phép: PHIEN_BAN (bước 6).
