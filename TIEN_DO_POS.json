@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 12,
-  "cap_nhat": "2026-09-27",
+  "phien_ban_so": 13,
+  "cap_nhat": "2026-09-30",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
   "viec": [
     {
@@ -280,6 +280,51 @@
     {
       "ma": "P25",
       "ten": "Doi soat vi mot khach (wallets.js:258-260, POST /:phone/reconcile) tao vi 0d cho khach chi co no — ghi chu mo tu /ra-soat 26.09, chua xu ly",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-1",
+      "ten": "Nguoi gac cho Claude Code tu chay: 71 luat, 551/551 ca, soat doc lap DAT; pha thu tren may may 28.09 DAT (loai A)",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-1",
+      "commit": "aadbcef",
+      "ngay": "2026-09-30"
+    },
+    {
+      "ma": "TU-CHAY-2",
+      "ten": "Giao viec tren may may: mau phieu, /lam-viec, sua CLAUDE.md, cho push dung nhanh viec, cai thu vien client, xem_thu.sh",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-3",
+      "ten": "Cong tren GitHub cho moi PR (bai thu xanh, dung pham vi, phieu va .claude khong doi, bai thu 2 chieu) + soat doc lap",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-4",
+      "ten": "Gia lap quay: 11 kich ban + 9 bat bien so sach, chay trong cong",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "DON-DEP-v1",
+      "ten": "Bo attached_assets/ khoi git (69 file, 43 MB) sau khi kiem client khong dung @assets; xoa 19 file patch_*.py",
       "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
