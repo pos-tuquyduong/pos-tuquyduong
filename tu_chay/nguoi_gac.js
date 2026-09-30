@@ -63,8 +63,8 @@ const LUAT = [
   ['GIT-COMMIT-NHANH', 'chỉ commit trên nhánh viec/*'],
   ['GIT-CHECKOUT', 'git checkout chỉ cho -b viec/<tên> hoặc -- <file trong phạm vi>'],
   ['GIT-CHECKOUT-FILE', 'git checkout -- <file>: mỗi file xét như hoàn tác file'],
-  ['GIT-HOANTAC', 'hoàn tác chỉ đúng dạng: git checkout -- <file> hoặc git restore [--staged|-S|--worktree|-W|-q] <file> — tên file viết thẳng, không thư mục, không glob, không --source/-p'],
-  ['G-HOANTAC', 'hoàn tác file về bản commit được cho (kể cả file ngoài phạm vi, file luật, file đã xoá) — khung, file cấm, phiếu vẫn chặn'],
+  ['GIT-HOANTAC', 'hoàn tác chỉ đúng dạng: git checkout -- <file> hoặc git restore [--staged|-S|--worktree|-W|-q] <file> — tên file viết thẳng, không thư mục, không glob (* ? [ ] \\), không --source/-p'],
+  ['G-HOANTAC', 'hoàn tác file về bản đã lưu (index/commit) được cho (kể cả file ngoài phạm vi, file luật, file đã xoá) — khung, file cấm, phiếu vẫn chặn'],
   ['GIT-BRANCH', 'git branch chỉ được xem (--show-current, -a, -v…)'],
   ['GIT-ARCHIVE', 'git archive: không --remote; -o phải trỏ vào nháp'],
   ['NPM-LENH', 'npm chỉ cho test, ci, run, ls — thêm thư viện phải hỏi chủ quán'],
@@ -540,7 +540,9 @@ function xetPush(r, nc, cwd) {
 
 // TU-CHAY-2 — hoàn tác file: git checkout -- <file…> và git restore [HOANTAC_CO…] [--] <file…>
 //   · tuỳ chọn theo danh sách CHO PHÉP, đúng nguyên chữ (không --source/-s, -p, --pathspec-from-file, viết tắt, gộp);
-//   · mỗi file viết thẳng, không glob (git tự mở pathspec kể cả trong nháy), không ':' (pathspec magic), không thư mục;
+//   · mỗi file viết thẳng, không ký tự glob của git `* ? [ ] \` (git tự mở pathspec kể cả trong nháy; `\` thoát ký
+//     tự kế nên '\.claude/x' khớp .claude/x), không ':' (pathspec magic), không thư mục;
+//   · nguồn hoàn tác là INDEX (restore không --staged, checkout --) hoặc HEAD (--staged) — không nhận nguồn khác;
 //   · rồi đi qua ghiDuoc(…, hoanTac): khung, file cấm, phiếu, ngoài kho, liên kết cứng, không có việc → vẫn chặn.
 // Lỗ biết trước (loại B, B14): thư mục ĐÃ XOÁ khỏi đĩa không phân biệt được với file đã xoá.
 const HOANTAC_CO = new Set(['--staged', '-S', '--worktree', '-W', '-q', '--quiet']);
@@ -556,7 +558,7 @@ function xetHoanTac(r, coTuyChon, nc, cwd) {
   if (luat('GIT-HOANTAC')) {
     if (!tep.length) return chan('GIT-HOANTAC', 'thiếu tên file');
     for (const w of tep) {
-      if (!w.chu || /[*?[\]]/.test(w.val) || w.val.startsWith(':') || w.val.endsWith('/')
+      if (!w.chu || /[*?[\]\\]/.test(w.val) || w.val.startsWith(':') || w.val.endsWith('/')
         || laDir(path.resolve(cwd.d, w.val))) return chan('GIT-HOANTAC', w.tho);
     }
   }
