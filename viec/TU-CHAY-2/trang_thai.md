@@ -10,3 +10,5 @@ Kiểm sống 2a: máy mây push nhánh việc.
 - Bước 1 XONG: ca B, D2/D2b, I3 vào `tu_chay/thu_nguoi_gac.js`; viết `tu_chay/thu_cong_cu.js` (F, E, H; mỗi ca tự đặt/xoá
   CLAUDE_CODE_REMOTE, CLAUDECODE). Chạy trên bản CHƯA vá → cả hai ĐỎ (`bang_chung_do.txt`: 53 + 23 chỗ hỏng).
   `npm test` ĐỎ ở T1 tới hết bước 2–4 — chủ ý (bài thử đi trước mã).
+- Bước 2 XONG: `nguoi_gac.js` thêm `xetHoanTac` + mã `GIT-HOANTAC`, `G-HOANTAC`. `thu_nguoi_gac.js`: 728/728 ca đúng mã,
+  đột biến hai mã mới đều đỏ khi tắt. Còn đỏ 5 phép của bước 3 (trình cài) và bước 6 (PHIEN_BAN).
