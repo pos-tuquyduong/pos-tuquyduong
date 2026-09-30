@@ -17,7 +17,6 @@
       "Bash(bash ban_mau_pos/chay_thu.sh:*)"
     ],
     "deny": [
-      "Bash(git push:*)",
       "Bash(git merge:*)",
       "Bash(git add -A:*)",
       "Bash(git add .:*)",
@@ -34,12 +33,20 @@
       "Edit(./.env.*)",
       "Edit(./.replit)",
       "Edit(./TIEN_DO_*.json)",
-      "Bash(git push *)",
       "Bash(git merge *)",
       "Bash(git reset *)",
       "Bash(git commit -n *)",
       "Bash(git -c *)",
-      "Bash(git *--no-v*)"
+      "Bash(git *--no-v*)",
+      "Bash(git push *main*)",
+      "Bash(git push *-f*)",
+      "Bash(git push *-d*)",
+      "Bash(git push *--mirror*)",
+      "Bash(git push *--all*)",
+      "Bash(git push *--tags*)",
+      "Bash(git push *--prune*)",
+      "Bash(git push *:*)",
+      "Bash(git push *+*)"
     ],
     "defaultMode": "default"
   },

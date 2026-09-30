@@ -55,7 +55,8 @@ const LUAT = [
   ['B-GHI-PHU', 'đích ghi của sort -o, uniq, xxd được xét như sửa file'],
   ['B-GHI-TOUCH', 'đích của touch / chmod được xét như sửa file'],
   ['GIT-TUYCHON', 'git không được kèm -C, -c, --git-dir, --work-tree… — cd vào thư mục rồi gọi git'],
-  ['GIT-LENH', 'lệnh git con không có trong danh sách (push, merge, reset, rebase, stash, config… bị cấm) — đẩy/gộp là việc của chủ quán'],
+  ['GIT-LENH', 'lệnh git con không có trong danh sách (merge, reset, rebase, stash, config, fetch, pull… bị cấm) — gộp là việc của chủ quán'],
+  ['GIT-PUSH', 'push chỉ được đúng dạng: git push -u origin viec/<MÃ> — MÃ là nhánh đang đứng, nhánh có phiếu kèm ## Phạm vi, chạy trong kho; không ép, không xoá, không refspec, không đụng main'],
   ['GIT-OUTPUT', 'git --output / --ext-diff / grep -O bị chặn — dùng > vào nháp'],
   ['GIT-ADD', 'git add phải kèm tên file cụ thể (không -A, -u, -f, ., glob)'],
   ['GIT-COMMIT-CO', 'git commit không được kèm -n/--no-verify/--amend/-a/-i/-o'],
@@ -105,6 +106,8 @@ const CHO_CHAY = new Set(('git node npm python3 ls cat head tail wc grep sed awk
   + 'dirname realpath tr cmp comm nl seq xxd od which uname whoami id ps').split(' '));
 const GIT_CHO = new Set(['status', 'diff', 'log', 'show', 'add', 'commit', 'checkout', 'branch', 'rev-parse', 'ls-files',
   'grep', 'blame', 'merge-base', 'cat-file', 'archive']);
+// git push: tuỳ chọn cho phép — đúng nguyên chữ, không viết tắt, không gộp (-uq), không dạng =.
+const PUSH_CO = new Set(['-u', '--set-upstream', '-q', '--quiet', '-v', '--verbose']);
 const BRANCH_XEM = new Set(['--show-current', '-a', '-r', '-v', '-vv', '--list', '--all', '--remotes', '--no-color']);
 const BIEN_NGUY = /^(GIT_\w*|LD_\w*|PATH|NODE_OPTIONS|BASH_ENV|ENV|IFS|HOME|CLAUDE\w*|TU_CHAY\w*|npm_config_\w*|NPM_CONFIG_\w*|PROMPT_COMMAND|PYTHON\w*|SHELLOPTS|BASHOPTS|PS4|CURL_HOME|(?:https?|ftp|all|no)_proxy)$/i;
 const MAU_BI_MAT = ['.env', '.env.local', '.env.production', '.replit'];
@@ -500,6 +503,38 @@ function coCoM(a) {
 // process.env KHÔNG theo sau . hoặc [ = đọc TOÀN BỘ biến môi trường (có bí mật). process.env.PORT / [..] cho qua.
 const loMoiTruong = (ma) => !!ma && /process\.env(?![.\[])/.test(ma);
 
+// TU-CHAY-2a — push DANH SÁCH CHO PHÉP một dạng: git push [PUSH_CO…] origin viec/<MÃ>
+//   · MÃ = nhánh đang đứng (đọc .git/HEAD của gốc kho), nhánh có viec/<MÃ>/phieu.md kèm mục ## Phạm vi;
+//   · đúng HAI đối số vị trí, viết thẳng: "origin" và "viec/<MÃ>" (không :, +, HEAD, refs/, URL, biến, glob);
+//   · mọi từ bắt đầu bằng - phải nằm trong PUSH_CO, ở bất kỳ vị trí nào (git nhận tuỳ chọn cả sau refspec);
+//   · thư mục chạy (sau cd) nằm trong kho — push từ bản clone trong nháp bị chặn.
+// Không đạt → GIT-PUSH. main còn được lớp 1 (deny Bash(git push *main*)) và GitHub chặn thêm.
+function xetPush(r, nc, cwd) {
+  if (!luat('GIT-PUSH')) return null;
+  const vt = [];
+  for (const w of r) {
+    if (!w.chu) return chan('GIT-PUSH', 'đối số không viết thẳng: ' + w.tho);
+    if (w.val.startsWith('-')) {
+      if (!PUSH_CO.has(w.val)) return chan('GIT-PUSH', 'tuỳ chọn không cho: ' + w.tho);
+    } else vt.push(w.val);
+  }
+  if (!nc.ma) return chan('GIT-PUSH', `nhánh đang đứng không phải viec/<MÃ>: ${nc.nhanh || '(HEAD tách rời)'}`);
+  if (!nc.phamVi) return chan('GIT-PUSH', `viec/${nc.ma}/phieu.md chưa có hoặc thiếu mục ## Phạm vi`);
+  const dung = `viec/${nc.ma}`;
+  if (vt.length !== 2 || vt[0] !== 'origin' || vt[1] !== dung) {
+    return chan('GIT-PUSH', `phải đúng: git push -u origin ${dung} — nhận được: ${r.map((w) => w.tho).join(' ') || '(trống)'}`);
+  }
+  const d = thuc(path.resolve(nc.goc, cwd.d));
+  if (!laCon(d, nc.goc) || KHUNG.test(relKho(d, nc))) return chan('GIT-PUSH', 'chỉ push từ trong kho, không từ thư mục nháp: ' + d);
+  // Kho git LỒNG (có .git — thư mục hay file gitdir — ở d hoặc thư mục cha nào dưới gốc): git sẽ push kho đó, không phải kho này.
+  for (let x = d; x !== nc.goc; x = path.dirname(x)) {
+    let co = false;
+    try { fs.lstatSync(path.join(x, '.git')); co = true; } catch {}
+    if (co) return chan('GIT-PUSH', 'thư mục nằm trong một kho git lồng: ' + relKho(x, nc));
+  }
+  return null;
+}
+
 const LUAT_CON = {
   git(a, nc, cwd) {
     let i = 0;
@@ -509,6 +544,7 @@ const LUAT_CON = {
       if (['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env'].includes(a[i].val)) i++;
     }
     const sub = a[i];
+    if (sub && sub.chu && sub.val === 'push') return xetPush(a.slice(i + 1), nc, cwd);
     if (!sub || !sub.chu || !GIT_CHO.has(sub.val)) return luat('GIT-LENH') ? chan('GIT-LENH', sub ? sub.tho : '(trống)') : null;
     const r = a.slice(i + 1);
     const lenh = sub.val;
