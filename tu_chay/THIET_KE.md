@@ -651,8 +651,12 @@ Nguồn tài liệu đã tra (30.09.2026): code.claude.com/docs/en/claude-code-o
 2. **Hoàn tác file** (`GIT-HOANTAC`, `G-HOANTAC`, hàm `xetHoanTac`):
    - cho: `git checkout -- <file…>`, `git restore [--staged|-S|--worktree|-W|-q|--quiet] [--] <file…>`;
    - tuỳ chọn khác (`--source/-s`, `-p`, `--pathspec-from-file`, `--ours`, `--overlay`, viết tắt, gộp
-     `-SW`), `checkout <nhánh/commit> --`, glob (kể cả trong nháy, vì git tự mở pathspec), `:` (pathspec
-     magic), `.`, thư mục, tên kết thúc `/`, tên qua biến → chặn;
+     `-SW`), `checkout <nhánh/commit> --`, ký tự glob của git `* ? [ ] \` (kể cả trong nháy, vì git tự mở
+     pathspec; `\` thoát ký tự kế nên `'\.claude/x'` khớp `.claude/x` — soát độc lập bắt được, đã vá có ca đỏ
+     trước), `:` (pathspec magic), `.`, thư mục, tên kết thúc `/`, tên qua biến → chặn;
+   - nguồn hoàn tác là INDEX (`restore` không `--staged`, `checkout --`) hoặc HEAD (`--staged`), không phải luôn
+     "bản commit". Máy mây không có lệnh nào ghi index tuỳ ý (không `update-index`, `apply`, `stash`), nên hiện
+     tương đương; mở thêm lệnh ghi index sau này thì phải xét lại luật này;
    - file đi qua `ghiDuoc(…, hoanTac)`: khung (`.claude/`, `.git/`), file cấm, phiếu, ngoài kho, liên
      kết cứng, không có việc/phiếu → vẫn chặn; tới chỗ G-LUAT/G4/G5 thì **cho** (chủ quán chốt 30.09:
      trả về bản commit là an toàn, kể cả file luật ngoài Phạm vi và file đã xoá khỏi đĩa).
