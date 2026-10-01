@@ -1,0 +1,137 @@
+# TU-CHAY-3 — bằng chứng ĐỎ trên code CHƯA sửa (nền 88985fd + bài thử mới), 01.10.2026
+
+## node tu_chay/thu_nguoi_gac.js → exit 1
+thu_nguoi_gac: 751/777 ca người gác đúng mã · 153 phép khác
+  ✗ ca công cụ nộp báo cáo agent phụ SubagentHandback: mong CHO, ra CHAN:CC-LA
+  ✗ ca Bash "git add '\\.claude/x'": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add 'server/*.js'": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add 'a[b].js'": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add 'x?.js'": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add \"server/*.js\"": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add server": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add server/": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add -- server": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add -- 'server/*.js'": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add --pathspec-from-file=x": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add --pathspec-from-file x": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git add --pathspec-from-f=x": mong CHAN:GIT-ADD, ra CHO
+  ✗ ca Bash "git commit -m x 'server/*.js'": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit -m x '\\.claude/x'": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit -m x server": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit -m x -- server": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit -m x -- 'a[b].js'": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit --pathspec-from-file=x -m y": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit -m x .": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Bash "git commit -m x $F": mong CHAN:GIT-COMMIT-CO, ra CHO
+  ✗ ca Edit .github/workflows/cong.yml: mong CHAN:G1-CAM, ra CHAN:G5-NGOAIPV
+  ✗ ca Write .github/workflows/moi.yml: mong CHAN:G1-CAM, ra CHAN:G5-NGOAIPV
+  ✗ ca Bash "git restore .github/workflows/keep-alive.yml": mong CHAN:G1-CAM, ra CHO
+  ✗ ca Bash "git checkout -- .github/workflows/keep-alive.yml": mong CHAN:G1-CAM, ra CHO
+  ✗ ca Bash "echo x > .github/workflows/cong.yml": mong CHAN:G1-CAM, ra CHAN:G5-NGOAIPV
+  ✗ cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)
+  ✗ PHIEN_BAN = tu-chay 1.3.0 — tu-chay 1.2.0
+  ✗ settings: deny có đủ luật cũ (trừ deny push chung) + luật mới
+  ✗ bản cài .claude/commands/ra-soat.md khớp từng byte tu_chay/lenh_ra_soat.md
+  ✗ trình cài in git add .claude/commands/ra-soat.md
+  ✗ bản cài .github/workflows/cong.yml khớp từng byte tu_chay/cong_github.yml
+  ✗ trình cài in git add .github/workflows/cong.yml
+  ✗ cài lại trên bản TU-CHAY-1: gỡ deny push chung, có đủ DENY_MOI, giữ Bash(rm -rf:*), không trùng — ["Bash(git merge *)","Bash(rm -rf:*)","Edit(./.claude/**)","Edit(./.env)","Edit(./.env.*)","Edit(.
+  ✗ C8 cài: hook SessionStart của chủ quán chung mục với bộ khung vẫn còn; bộ khung đúng một lần — [{"matcher":"startup|resume","hooks":[{"type":"command","command":"bash \"$CLAUDE_PROJECT_DIR/.claude
+  ✗ C8 cài: hook PreToolUse của chủ quán chung mục với người gác vẫn còn; người gác đúng một lần — [{"matcher":"*","hooks":[{"type":"command","command":"node \"$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguo
+  ĐỎ — 36 chỗ hỏng
+
+
+## node tu_chay/thu_cong_cu.js → exit 1
+thu_cong_cu: 66 phép · 20 chỗ hỏng
+  ✗ C7 kéo nhánh: origin đi trước → HEAD = origin, in "trước → sau"
+  ✗ C3 kéo nhánh: lệnh git có ghi CHỈ là fetch origin <nhánh> và merge --ff-only
+  ✗ C3 kéo nhánh: kéo TRƯỚC npm ci (lockfile vừa đổi → npm ci chạy sau merge)
+  ✗ C4 kéo nhánh: file theo dõi đang sửa → không kéo, file giữ nguyên, có cảnh báo
+  ✗ C4 kéo nhánh: file CHƯA theo dõi không cản kéo
+  ✗ C5 kéo nhánh: lệch nhau → "máy DỪNG, báo chủ quán", HEAD giữ nguyên
+  ✗ C6 kéo nhánh: fetch hỏng → thoát 0, cảnh báo, npm ci vẫn chạy — ✓ cai_thu_vien: npm ci ở . xong
+  ✗ F3 KHUON_LOI.md thật trong ngân sách khuon_loi_toi_da — cau_hinh.json thiếu khoá khuon_loi_toi_da (số nguyên dương)
+  ✗ F1 skill: có bước 11 sau bước 10, đủ ba ngăn khoá / nguyên tắc / bỏ, ghi ## bài học, không tự làm đề xuất ngoài phạm vi
+  ✗ F2 CLAUDE.md §7: "bắt buộc đủ 7 mục", có dòng BÀI HỌC:
+  ✗ F2 không còn "6 mục" trong skill, THIET_KE, MAU_PHIEU, lenh_ra_soat, CLAUDE.md — skill_lam_viec.md, THIET_KE.md, ../CLAUDE.md
+  ✗ F2 skill: báo cáo 7 mục, có BÀI HỌC
+  ✗ E2 lenh_ra_soat: diff cả nhánh từ commit PHIEU đầu tiên (regex có neo), không còn "chưa commit"
+  ✗ E3 lenh_ra_soat: dặn nộp báo cáo bằng SubagentHandback; mẫu có BÀI HỌC:
+  ✗ E4 lenh_ra_soat: đủ 6 mục soát (K3, K4, K5, K1, Đường tiền, P1) và câu cấm ĐẠT khi chưa đọc code
+  ✗ E1 lenh_ra_soat: có frontmatter description
+  ✗ G1 MAU_PHIEU: dòng mẫu "Chờ duyệt kế hoạch" + ghi chú bỏ khi làm thẳng
+  ✗ G2 MAU_PHIEU: mục tuỳ chọn ## Bài thử đỏ dạng "không — <lý do>"
+  ✗ G3 MAU_PHIEU: nhắc .github/ máy không sửa, cổng do cai_dat.sh cài
+  ✗ H2/B7 THIET_KE B15: pull_request_target, hai job, sudo, lỗ còn hở (chưa được cổng soát, admin), settings.json cũ sau kéo
+  ĐỎ — 20 chỗ hỏng
+
+
+## node tu_chay/thu_cong.js → exit 1 (cong.js, cong_github.yml chưa có)
+thu_cong: 63 phép · 63 chỗ hỏng
+  ✗ B có tu_chay/cong_github.yml
+  ✗ A1 đúng phạm vi + bài thử đỏ trên gốc/xanh trên PR: phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ A2 chỉ *.md + viec/X/**: phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ A3 .claude/** khớp kết quả cai_dat.js (chủ quán đã chạy cai_dat.sh): phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ A4 phiếu đổi ở commit PHIEU: X: phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ A5 miễn bài thử đỏ có lý do: phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ A5 miễn bài thử đỏ có lý do: lý do có "chỉ đổi chú thích" — node:internal/modules/cjs/loader:1386
+  ✗ K5 xoá file trong phạm vi: phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ K5 Q1: cong_cu/khac.js (không phải thu_*.js) không bị coi là bài thử: phải ĐẠT — node:internal/modules/cjs/loader:1386
+  ✗ K5 commit gộp main (không đụng phiếu) không bị A7 chặn: dựng PR — git commit -q -m gop: 
+  ✗ A6 file ngoài phạm vi: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A6 file ngoài phạm vi: lý do có "file `docs/ngoai.md` không có trong Phạm vi của phiếu" — node:internal/modules/cjs/loader:1386
+  ✗ A6 file luật chỉ ghi bằng glob chung: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A6 file luật chỉ ghi bằng glob chung: lý do có "ĐÚNG TÊN" — node:internal/modules/cjs/loader:1386
+  ✗ A6 xoá file ngoài phạm vi: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A6 xoá file ngoài phạm vi: lý do có "ngoai/cu.md" — node:internal/modules/cjs/loader:1386
+  ✗ A7 phiếu đổi ở commit thường: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A7 phiếu đổi ở commit thường: lý do có "PHIEU: X" — node:internal/modules/cjs/loader:1386
+  ✗ A7 tiêu đề PHIEU: X0 với mã X: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A7 commit PHIEU: X kèm file ngoài viec/X/: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A7 biên bản soát ở commit thường: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A8 sửa tay .claude/ lệch kết quả cai_dat.js: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A8 sửa tay .claude/ lệch kết quả cai_dat.js: lý do có "chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc" — node:internal/modules/cjs/loader:1386
+  ✗ A8 tu_chay/ đổi mà chưa chạy cai_dat.sh: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A8 tu_chay/ đổi mà chưa chạy cai_dat.sh: lý do có "chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc" — node:internal/modules/cjs/loader:1386
+  ✗ A9 keep-alive.yml đổi: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A9 keep-alive.yml đổi: lý do có "keep-alive.yml" — node:internal/modules/cjs/loader:1386
+  ✗ A9 workflow lạ mới: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A9 workflow lạ mới: lý do có "la.yml" — node:internal/modules/cjs/loader:1386
+  ✗ A9 cong.yml lệch bản cài: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A9 cong.yml lệch bản cài: lý do có "cong.yml" — node:internal/modules/cjs/loader:1386
+  ✗ A10 file cấm TIEN_DO_X.json: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A10 file cấm TIEN_DO_X.json: lý do có "TIEN_DO_X.json" — node:internal/modules/cjs/loader:1386
+  ✗ A10 file cấm .env.local: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A10 file cấm .env.local: lý do có ".env.local" — node:internal/modules/cjs/loader:1386
+  ✗ A10 file cấm .replit: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A10 file cấm .replit: lý do có ".replit" — node:internal/modules/cjs/loader:1386
+  ✗ A10b PR bỏ TIEN_DO_*.json khỏi file_cam của chính nó rồi sửa TIEN_DO_X.json: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A10b PR bỏ TIEN_DO_*.json khỏi file_cam của chính nó rồi sửa TIEN_DO_X.json: lý do có "TIEN_DO_X.json" — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử mới XANH trên gốc: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử mới XANH trên gốc: lý do có "cong_cu/thu_b.js" — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử mới XANH trên gốc: lý do có "XANH trên code gốc" — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử SỬA mà xanh trên gốc: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử SỬA mà xanh trên gốc: lý do có "cong_cu/thu_c.js" — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử thiếu thư viện trên gốc không tính là đỏ hợp lệ: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A11 bài thử thiếu thư viện trên gốc không tính là đỏ hợp lệ: lý do có "không chạy được trên code gốc" — node:internal/modules/cjs/loader:1386
+  ✗ A12 đổi code, không bài thử, không miễn: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A12 đổi code, không bài thử, không miễn: lý do có "bài thử" — node:internal/modules/cjs/loader:1386
+  ✗ A13 npm test đỏ: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A13 npm test đỏ: lý do có "npm test" — node:internal/modules/cjs/loader:1386
+  ✗ A13 --day-du đỏ: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A13 --day-du đỏ: lý do có "--day-du" — node:internal/modules/cjs/loader:1386
+  ✗ A14 nhánh không dạng viec/<MÃ>: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A14 không có viec/<MÃ>/phieu.md: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A14 phiếu thiếu ## Phạm vi: phải ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ A14 chay: thư mục không đứng ở head → ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ tách chế độ: tinh ĐẠT mà KHÔNG chạy bài thử / npm test của PR — node:internal/modules/cjs/loader:1386
+  ✗ tách chế độ: chay có chạy bài thử + npm test (đối chứng) — node:internal/modules/cjs/loader:1386
+  ✗ tinh đọc phiếu bằng git show: phiếu sửa trên đĩa (chưa commit) mở thêm phạm vi → vẫn ĐỎ — node:internal/modules/cjs/loader:1386
+  ✗ nạp được tu_chay/cong.js — Cannot find module '/home/user/pos-tuquyduong/tu_chay/cong.js'
+  ✗ cong.js xuất hàm cong({ cheDo, thuMuc, base, head, nhanh, tat })
+  ✗ cong.js dùng lại xetPhamVi / khop / phamViTuChu của nguoi_gac.js, không tự viết globRe
+  ✗ cong.js đọc cau_hinh.json từ __dirname (BASE), không từ thư mục PR
+  ĐỎ — 63 chỗ hỏng
+
+Ghi chú K3: C1, C2, C5b (thu_cong_cu.js) XANH trên bản cũ vì bản cũ không kéo gì — đối chứng là C7/C3 cùng kho ĐỎ ở trên.
+thu_cong.js: mọi ca ĐỎ phải kèm dòng "CỔNG ĐỎ" do cổng in — sập vì thiếu cong.js không được tính là đỏ đúng.
