@@ -1,9 +1,9 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 13,
-  "cap_nhat": "2026-09-30",
-  "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Patch TU danh dau viec cua chinh no khi chay xong (dong_tien_do.py). Nguoi chi sua tay khi THEM viec moi.",
+  "phien_ban_so": 14,
+  "cap_nhat": "2026-10-01",
+  "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
       "ma": "P12",
@@ -297,16 +297,16 @@
     },
     {
       "ma": "TU-CHAY-2",
-      "ten": "Giao viec tren may may: mau phieu, /lam-viec, sua CLAUDE.md, cho push dung nhanh viec, cai thu vien client, xem_thu.sh",
+      "ten": "Giao viec tren may may: nguoi gac 1.2.0 (push dung nhanh viec, hoan tac file), hook SessionStart cai thu vien, /lam-viec, MAU_PHIEU, xem_thu.sh, va P6; 735/735 + 35/35, soat + kiem song DAT",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-2",
+      "commit": "8e6a402",
+      "ngay": "2026-10-01"
     },
     {
       "ma": "TU-CHAY-3",
-      "ten": "Cong tren GitHub cho moi PR (bai thu xanh, dung pham vi, phieu va .claude khong doi, bai thu 2 chieu) + soat doc lap",
+      "ten": "Cong tren GitHub cho moi PR (bai thu xanh, dung pham vi, phieu va .claude khong doi, bai thu 2 chieu) + soat doc lap; them: hook SessionStart tu keo nhanh viec (ff-only), agent soat nop duoc bao cao, chan git add '\\.claude', buoc 11 rut kinh nghiem trong /lam-viec",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
