@@ -310,7 +310,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
    - so số dòng với ngân sách.
 7. Chạy `bash .claude/tu_chay/soat.sh <MÃ>`. KHÔNG ĐẠT → sửa, rồi quay lại bước 5. Quá `so_vong_sua_toi_da` → dừng.
 8. Chạy `node .claude/tu_chay/cong.js <MÃ>`. Cổng đóng → sửa nếu sửa được, không thì dừng.
-9. Báo cáo 6 mục, kèm số dòng thêm/bớt so với ngân sách. **Dừng. Không đẩy.**
+9. Báo cáo 7 mục (TU-CHAY-3 thêm BÀI HỌC), kèm số dòng thêm/bớt so với ngân sách. **Dừng. Không đẩy.**
 
 ## B7. Soát độc lập `soat.sh <MÃ>`
 
@@ -701,3 +701,103 @@ Nguồn tài liệu đã tra (30.09.2026): code.claude.com/docs/en/claude-code-o
   `git log --oneline -3`, in ra để chủ quán đối chiếu với GitHub; không khớp thì dừng.
 - **`xem_thu.sh`: phép "không tự hỏng khi đổi chính file" chưa có ca đỏ thật.** git thay file bằng inode mới
   nên bash vẫn đọc bản cũ qua fd đang mở; bọc hàm là lớp phòng thêm, bài thử (F10) không phân biệt được.
+
+## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.0)
+
+Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `viec/TU-CHAY-3/ke_hoach.md`.
+
+1. **Cổng PR — lớp thứ ba, chạy NGOÀI máy.** Nguồn `tu_chay/cong_github.yml`, trình cài chép thành
+   `.github/workflows/cong.yml` (máy không sửa được `.github/`). Hai job, ruleset `khoa-main` đòi cả hai:
+   - `cong` → `node goc/tu_chay/cong.js tinh …` — KHÔNG chạy một dòng code nào của PR. Đọc PR bằng git
+     (`cat-file`, `diff`, `log`): nhánh `viec/<MÃ>` + phiếu + `## Phạm vi` (A14); phiếu và
+     `bien_ban_soat.json` chỉ đổi ở commit `PHIEU: <MÃ>` (neo, không khớp `PHIEU: <MÃ>0`) và commit đó chỉ đụng
+     `viec/<MÃ>/` (A7); `.github/` chỉ `cong.yml` (A9); file cấm (A10); Phạm vi bằng `xetPhamVi` — CÙNG hàm của
+     người gác (A6, cộng G3-HOSO: `ke_hoach.md`, `trang_thai.md` của việc); đổi code mà không có bài thử `thu_*.js`
+     và không có mục `## Bài thử đỏ` `không — <lý do>` (A12); **A8 tĩnh** (vòng soát 1–2): mỗi đích trong `ban_cai` và
+     `.claude/tu_chay/<file>` phải đúng byte nguồn `tu_chay/<file>` CỦA HEAD (chỉ file, không thư mục con — như trình cài);
+     file `.claude/` khác ngoài các đích đó và `settings.json` không được đổi; `settings.json` có mục PreToolUse ĐÚNG
+     `muc_gac` của `cau_hinh.json` (so cấu trúc, không soi chuỗi) và hai deny `Edit(./.claude/**)`, `Edit(./.github/**)`;
+     PR không xoá `tu_chay/cai_dat.js`, `tu_chay/cai_dat.sh`. Chuẩn là `cau_hinh.json` của main; PR (cấu hình của head)
+     chỉ được THÊM mục `ban_cai` có đích trong `.claude/` (không phải `settings.json`) và đổi `timeout` của `muc_gac`
+     (lệnh, matcher giữ nguyên) — vòng soát 3: PR bộ khung đổi chính cấu hình cài rồi chủ quán cài từng bị đỏ vĩnh viễn.
+     Mỗi phép (từng deny, hook, xoá từng trình cài, `.claude/` lạ, nới `muc_gac`) có ca riêng + đột biến.
+   - `cong-chay` → `cong.js chay …` — chạy code PR: `.claude/**` + `cong.yml` phải khớp từng byte kết quả
+     `cai_dat.js` (`.claude/` của gốc + `tu_chay/` của PR) (A8, câu "chủ quán chạy bash tu_chay/cai_dat.sh trên
+     nhánh việc"); `npm ci`; mỗi bài thử mới/sửa chạy trên `git archive` của gốc phải ĐỎ — xanh, quá giờ, thiếu
+     thư viện đều KHÔNG tính — và chạy trên code PR phải XANH (A11; vòng soát 1: file `thu_*.js` luôn đỏ từng làm cổng
+     xanh, vì `npm test` chỉ chạy bài thử được ghi tên trong bộ kiểm); `lenh_bai_thu` + `lenh_kiem_day_du` (A13).
+   - `cau_hinh.json` và `nguoi_gac.js` lấy ở thư mục của `cong.js` = checkout của `main` (BASE) — PR bỏ
+     `TIEN_DO_*.json` khỏi `file_cam` của chính nó vẫn bị chặn (A10b).
+2. **Vì sao `pull_request_target`** (docs.github.com, mục Events that trigger workflows — máy mây không vào được
+   trang này, `EGRESS_BLOCKED`; đọc qua kết quả tìm kiếm): workflow chạy trong ngữ cảnh nhánh gốc, bản `cong.yml`
+   trên `main` mới là bản chạy → PR không tự sửa được cổng của nó. `pull_request` thì PR sửa được workflow.
+   - "A job that is skipped will report its status as Success" → không job nào có `if:`; fork bị chặn bằng
+     BƯỚC đầu thoát 1 (job đỏ), trước mọi checkout — code fork không bao giờ được tải (A15). `actions/checkout`
+     v7 còn tự chặn checkout PR fork dưới `pull_request_target` (`allow-unsafe-pr-checkout` mặc định false).
+   - `permissions: contents: read`, không `secrets.`, `persist-credentials: false`, không cache
+     (`package-manager-cache: false`), action chính chủ ghim SHA 40 ký tự: `actions/checkout` v7.0.1
+     `3d3c42e5aac5ba805825da76410c181273ba90b1`, `actions/setup-node` v7.0.0 `820762786026740c76f36085b0efc47a31fe5020`
+     (cả hai `using: node24`, đọc `action.yml` tại SHA). Node 22, `ubuntu-24.04`, `timeout-minutes: 20`.
+   - `${{ }}` chỉ trong `with:`/`env:`, không trong `run:` (tên nhánh do PR đặt). `npm ci` nằm TRONG `cong.js`, không
+     là bước riêng (script `postinstall` sẽ ghi được `$GITHUB_ENV`/`$GITHUB_PATH` cho bước sau); tiến trình con
+     không nhận biến `GITHUB_*`, `ACTIONS_*`, `CLAUDE*`.
+   - Bài thử: `tu_chay/thu_cong.js` — kho tạm, ~30 ca A, đột biến A6–A14, `kiemYml` + 23 đột biến chữ của yml.
+3. **Rủi ro còn lại, vì sao chấp nhận:** `cong-chay` chạy code PR (`npm ci`, bài thử, `npm test`) trên máy GitHub
+   với token chỉ đọc, không bí mật, không lưu credential. Máy GitHub cho `sudo` → code PR về lý thuyết làm giả
+   được kết quả `cong-chay`: job này canh LỖI, không canh ÁC Ý. Job `cong` (không chạy code PR, máy riêng) canh:
+   phạm vi, file cấm, `.github/`, phiếu, bản cài khớp nguồn của head, mục hook người gác đúng cấu trúc, HAI deny
+   `Edit(./.claude/**)` / `Edit(./.github/**)`. Phần CHỈ `cong-chay` canh được: `settings.json` đúng TỪNG BYTE kết quả
+   `cai_dat.js` — tức mọi deny khác, allow, `defaultMode`, hook SessionStart/Stop/PostToolUse — bài thử đỏ/xanh, `npm test`. (Bản trước của câu này nói "mọi kiểm lén nằm ở `cong`" — SAI, vòng soát 1 bắt.)
+   `cai_dat.js` là của PR, nên A8 tự tham chiếu: PR sửa trình cài và `.claude/` cùng kiểu thì qua — hàng rào là
+   `cai_dat.js` thuộc `file_luat`, phải ghi đúng tên trong phiếu do chủ quán viết.
+4. **Hook mở phiên kéo nhánh (C).** Thêm vào đầu `cai_thu_vien.sh` (cùng mục SessionStart, không file mới): chỉ khi
+   `CLAUDE_CODE_REMOTE=true`, đứng ở `viec/*`, không có file đã theo dõi đang sửa dở; `git fetch origin <nhánh>`
+   rồi `git merge --ff-only` — hai lệnh git có ghi duy nhất; máy đã đủ / đi trước → không kéo; lệch nhau → "máy
+   DỪNG, báo chủ quán"; mất mạng → cảnh báo; luôn thoát 0, kéo TRƯỚC `npm ci`. In `cũ → mới` cho bước 1.
+   **Sau khi hook kéo nhánh, phiên đang chạy vẫn dùng `settings.json` CŨ** (Claude Code đọc lúc mở phiên) —
+   luật deny, hook mới chỉ có hiệu lực ở phiên sau. Người gác thì luôn chạy bản mới trên đĩa
+   (`.claude/tu_chay/nguoi_gac.js` được gọi lại mỗi lần dùng công cụ).
+5. **Trình cài.** `ghepHook`: gỡ đúng hook bộ khung khỏi từng mục, giữ hook khác của chủ quán kể cả chung mục
+   (sửa Phát hiện 3 của TU-CHAY-2), dùng cho cả PreToolUse lẫn SessionStart. Bảng `BAN_CAI` chép nguyên byte:
+   skill `/lam-viec`, `/ra-soat` (`tu_chay/lenh_ra_soat.md` → `.claude/commands/ra-soat.md`), cổng
+   (`tu_chay/cong_github.yml` → `.github/workflows/cong.yml`). Bộ kiểm T4 cảnh báo khi bản cài lệch nguồn.
+6. **Người gác.**
+   - 1A: cho qua ĐÚNG tên `SubagentHandback` (công cụ agent phụ nộp báo cáo — nhật ký người gác 01.10.2026: chặn
+     3 lần, báo cáo không về). `SendMessage` và tên gần giống vẫn CC-LA.
+   - `.github/**` vào `file_cam` (G1-CAM) và `Edit(./.github/**)` vào deny lớp 1. Hệ quả: Edit/Write/`>`, hoàn tác
+     (`git restore`, `git checkout --`) file trong `.github/` đều bị chặn; B-MANOI chặn `node -e`/`python3 -c`/heredoc
+     nhắc `.github/`.
+   - Một vị từ `tenThang` (chữ viết thẳng, không `* ? [ ] \`, không `:`, không thư mục) cho hoàn tác, `git add`,
+     pathspec của `git commit`; chặn thêm `--pathspec-from-file`. `git add <thư mục>` đổi từ CHO thành GIT-ADD.
+7. **`/ra-soat` thuộc bộ khung**: soát CẢ NHÁNH từ cha của commit `PHIEU: <MÃ>` đầu tiên (máy mây không có ref
+   `main`, người gác cấm `fetch` — chủ quán duyệt Q4); nộp bằng `SubagentHandback`; mẫu có dòng `BÀI HỌC:`.
+8. **bước 11 rút kinh nghiệm** trong skill: gom sự cố → KHOÁ / NGUYÊN TẮC / BỎ → dọn lời dặn đã có phép kiểm
+   thay → `## Bài học` của `trang_thai.md`. Báo cáo CLAUDE.md §7 thành 7 mục (thêm BÀI HỌC). `KHUON_LOI.md` có
+   ngân sách `khuon_loi_toi_da: 120` dòng (bài thử F3 trong `thu_cong_cu.js`).
+
+### Lỗ còn hở — nói thẳng (thêm ở TU-CHAY-3)
+
+- **Chính PR của TU-CHAY-3 chưa được cổng soát**: workflow `pull_request_target` chỉ có hiệu lực sau khi lên
+  `main`. Chat soát tay PR này.
+- **Chủ quán là admin, đi tắt được ruleset** (bypass). Cổng không chặn được người có quyền bỏ qua nó.
+- **Check-run của `pull_request_target` gắn vào commit nào** chưa đọc được tận docs.github.com. Kiểm sống bước
+  1–2 phải thấy check `cong` / `cong-chay` trên PR thử và nút Merge bị khoá. Nếu không: KHÔNG tự thêm
+  `statuses: write`; máy dừng, chủ quán chọn.
+- **ĐẠT trên base cũ vẫn dùng được** sau khi `main` đổi (types không có `edited`, ruleset chưa bật "Require branches
+  to be up to date"). Chủ quán có thể bật tuỳ chọn đó.
+- **Tiêu đề `PHIEU: <MÃ>`** ai push được cũng đặt được — cổng tin tiêu đề; lớp chặn máy sửa phiếu vẫn là G1-PHIEU.
+- **Commit gộp** không đụng phiếu thì A7 không liệt kê (mặc định `git log -- <file>`); `--full-history` sẽ chặn
+  oan mọi commit gộp `main` vào nhánh việc (K5). Commit gộp tự đổi phiếu vẫn bị liệt kê.
+- **A8 chặn mọi sửa tay của chủ quán trong `.claude/`** không qua `tu_chay/` + `cai_dat.sh` (theo chữ phiếu A8).
+- **Bài thử chạy trên gốc mà đỏ vì lý do khác** (vd. tự `throw`) vẫn được tính là đỏ hợp lệ — cổng không phân biệt
+  "đỏ đúng chỗ"; đó là việc của `/ra-soat` (K3).
+- Hook kéo nhánh: ca C1, C2, C5b xanh cả trên bản chưa vá (bản cũ không kéo gì); ca đối chứng C7/C3 cùng kho đỏ.
+- **Bỏ một mục `ban_cai` hay xoá một file khỏi `tu_chay/`**: trình cài không xoá bản cài cũ, cổng vẫn so đích cũ với nguồn
+  đã mất → đỏ. Muốn bỏ thì chủ quán làm tay hai bước (gỡ ở main trước). Đổi lệnh/matcher người gác cũng vậy.
+- **Không có ca thử** cho phép kiểm cấu trúc `muc_gac` trong `cai_dat.js` và phép kiểm `cau_hinh.json` lúc nạp `cong.js`
+  (đột biến M9, M10 của vòng soát 3 sống) — `thu_nguoi_gac.js` ghim nội dung `muc_gac`, rủi ro thấp.
+- **A11 không có lối miễn cho bài thử CŨ bị sửa** (thêm ca hồi quy cho hành vi đang đúng, sửa chú thích): theo chữ phiếu,
+  mục `## Bài thử đỏ` chỉ miễn A12. Chủ quán quyết có mở lối miễn không.
+- **`npm test` theo `package.json` của PR**: phiếu nào ghi `package.json` thì PR đổi được script `test` → A13 tắt
+  (loại "ác ý", ở `cong-chay`). Bịt rẻ: thêm `package.json` vào `file_luat` — đề xuất, chưa làm.
+

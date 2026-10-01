@@ -12,6 +12,9 @@
 //   5. chép tu_chay/ (trừ cai_dat.*) vào .claude/tu_chay/, cài .git/hooks/pre-push
 //   5b. TU-CHAY-2: chép tu_chay/skill_lam_viec.md thành .claude/skills/lam-viec/SKILL.md; thêm hook SessionStart
 //       gọi bản ĐÃ CÀI .claude/tu_chay/cai_thu_vien.sh (chỉ làm việc khi CLAUDE_CODE_REMOTE=true — máy mây)
+//   5c. TU-CHAY-3: BAN_CAI — chép thêm tu_chay/lenh_ra_soat.md → .claude/commands/ra-soat.md và
+//       tu_chay/cong_github.yml → .github/workflows/cong.yml (cổng PR; máy không sửa được .github/, chủ quán cài).
+//       Ghép hook (ghepHook): gỡ ĐÚNG hook bộ khung khỏi từng mục, giữ hook khác của chủ quán kể cả khi chung mục.
 //   6. chạy lần hai không đổi gì; in đã đổi gì + lệnh git add từng file, git commit
 // Lùi: cp .claude/settings.json.truoc_TUCHAY .claude/settings.json
 'use strict';
@@ -19,10 +22,10 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
 // Chỉ dùng Edit(...): luật Write(...) Claude Code không bao giờ xét (docs/en/permissions).
+// Edit(...) song song với file_cam của cau_hinh.json (TU-CHAY-3: thêm .github/**).
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
-  'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)',
+  'Edit(./.github/**)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)',
   // "*" đứng được ở mọi chỗ trong mẫu (docs/en/permissions): chặn cả --no-verify viết tắt (--no-verif, --no-v…)
   'Bash(git *--no-v*)',
   // TU-CHAY-2a: máy mây phải push được nhánh việc → bỏ deny push CHUNG (DENY_BO), thay bằng deny HẸP.
@@ -37,6 +40,14 @@ const DENY_BO = ['Bash(git push *)', 'Bash(git push:*)'];
 // "$CLAUDE_PROJECT_DIR"; hook SessionStart không chặn được phiên (docs/en/hooks). 600 s = mặc định của tài liệu, ghi rõ.
 const LENH_THU_VIEN = 'bash "$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh"';
 const MUC_THU_VIEN = { matcher: 'startup|resume', hooks: [{ type: 'command', command: LENH_THU_VIEN, timeout: 600 }] };
+// Gỡ hook bộ khung (lệnh chứa `dau`) khỏi từng mục, bỏ mục chỉ khi hết hook; đã có đúng `muc` thì giữ chỗ, không thì thêm cuối.
+function ghepHook(ds, muc, dau) {
+  ds = Array.isArray(ds) ? ds : [];
+  const i = ds.findIndex((m) => JSON.stringify(m) === JSON.stringify(muc));
+  const sach = ds.map((m, j) => (j === i || !m || !Array.isArray(m.hooks) ? m
+    : { ...m, hooks: m.hooks.filter((h) => !JSON.stringify(h).includes(dau)) })).filter((m) => !m || !Array.isArray(m.hooks) || m.hooks.length);
+  return i >= 0 ? sach : sach.concat([muc]);
+}
 const PRE_PUSH = `#!/usr/bin/env bash
 # pre-push — tu-chay (TU-CHAY-1). Cài bằng: bash tu_chay/cai_dat.sh
 # Chặn push chạy TỪ TRONG Claude Code (có CLAUDECODE hoặc CLAUDE_CODE_CHILD_SESSION).
@@ -66,7 +77,19 @@ const hp = spawnSync('git', ['config', '--get', 'core.hooksPath'], { cwd: GOC, e
 if (hp.error || String(hp.stdout).trim()) dung('không kiểm được core.hooksPath, hoặc kho đặt core.hooksPath — pre-push trong .git/hooks sẽ không chạy');
 
 // 1. Kiểm nguồn
-try { JSON.parse(fs.readFileSync(path.join(NGUON, 'cau_hinh.json'), 'utf8')); } catch (e) { dung('tu_chay/cau_hinh.json hỏng: ' + e.message); }
+// BAN_CAI: [nguồn trong tu_chay/, đích] — chép nguyên byte; MỘT bảng trong cau_hinh.json cho trình cài, cổng, bộ kiểm T4
+// MUC_GAC: mục hook PreToolUse của người gác — MỘT định nghĩa trong cau_hinh.json (cổng so cấu trúc với nó)
+let BAN_CAI = [], MUC_GAC = null;
+try { ({ ban_cai: BAN_CAI, muc_gac: MUC_GAC } = JSON.parse(fs.readFileSync(path.join(NGUON, 'cau_hinh.json'), 'utf8'))); } catch (e) {
+  dung('tu_chay/cau_hinh.json hỏng: ' + e.message);
+}
+if (!MUC_GAC || MUC_GAC.matcher !== '*' || !Array.isArray(MUC_GAC.hooks) || MUC_GAC.hooks.length !== 1
+  || !String(MUC_GAC.hooks[0].command).includes('.claude/tu_chay/nguoi_gac.js') || !/\|\| exit 2$/.test(MUC_GAC.hooks[0].command)) {
+  dung('tu_chay/cau_hinh.json: muc_gac phải là mục hook người gác (matcher "*", lệnh … nguoi_gac.js || exit 2)');
+}
+if (!Array.isArray(BAN_CAI) || !BAN_CAI.every((c) => Array.isArray(c) && c.length === 2 && !/(^|\/)\.\.(\/|$)/.test(c.join('/')))) {
+  dung('tu_chay/cau_hinh.json: ban_cai phải là danh sách [nguồn, đích]');
+}
 const kt = spawnSync(process.execPath, ['--check', path.join(NGUON, 'nguoi_gac.js')], { encoding: 'utf8', timeout: 10000 });
 if (kt.status !== 0) dung('tu_chay/nguoi_gac.js lỗi cú pháp hoặc không có: ' + String(kt.stderr || (kt.error && kt.error.message)).trim());
 
@@ -89,16 +112,14 @@ quyen.defaultMode = 'default';
 quyen.deny = (Array.isArray(quyen.deny) ? quyen.deny : []).filter((d) => !DENY_BO.includes(d));
 for (const d of DENY_MOI) if (!quyen.deny.includes(d)) quyen.deny.push(d);
 s.hooks = s.hooks && typeof s.hooks === 'object' ? s.hooks : {};
-s.hooks.PreToolUse = (Array.isArray(s.hooks.PreToolUse) ? s.hooks.PreToolUse : [])
-  .filter((m) => !JSON.stringify(m).includes('.claude/tu_chay/nguoi_gac.js'))
-  .concat([{ matcher: '*', hooks: [{ type: 'command', command: LENH_HOOK, timeout: 30 }] }]);
-s.hooks.SessionStart = (Array.isArray(s.hooks.SessionStart) ? s.hooks.SessionStart : [])
-  .filter((m) => !JSON.stringify(m).includes('.claude/tu_chay/cai_thu_vien.sh'))
-  .concat([MUC_THU_VIEN]);
+s.hooks.PreToolUse = ghepHook(s.hooks.PreToolUse, MUC_GAC, '.claude/tu_chay/nguoi_gac.js');
+s.hooks.SessionStart = ghepHook(s.hooks.SessionStart, MUC_THU_VIEN, '.claude/tu_chay/cai_thu_vien.sh');
 const setMoi = JSON.stringify(s, null, 2) + '\n';
 { // kiểm JSON mới TRƯỚC khi ghi
   const k = JSON.parse(setMoi);
-  const dungHook = k.hooks.PreToolUse.filter((m) => m.matcher === '*' && m.hooks[0].command === LENH_HOOK).length === 1
+  const dungHook = k.hooks.PreToolUse.filter((m) => JSON.stringify(m) === JSON.stringify(MUC_GAC)).length === 1
+    && JSON.stringify(k.hooks.PreToolUse).split('.claude/tu_chay/nguoi_gac.js').length === 2
+    && JSON.stringify(k.hooks.SessionStart).split('.claude/tu_chay/cai_thu_vien.sh').length === 2
     && k.hooks.SessionStart.filter((m) => JSON.stringify(m) === JSON.stringify(MUC_THU_VIEN)).length === 1;
   if (!dungHook || !DENY_MOI.every((d) => k.permissions.deny.includes(d)) || DENY_BO.some((d) => k.permissions.deny.includes(d))
     || k.permissions.ask !== undefined
@@ -106,12 +127,13 @@ const setMoi = JSON.stringify(s, null, 2) + '\n';
 }
 const setDoi = setMoi !== setGoc.toString('utf8');
 
-// Skill /lam-viec: nguồn để phẳng trong tu_chay/ (T2 so từng mục của tu_chay/ với .claude/tu_chay/)
-const skillNguon = doc(path.join(NGUON, 'skill_lam_viec.md'));
-if (skillNguon === null) dung('thiếu tu_chay/skill_lam_viec.md');
-const P_SKILL = path.join(GOC, '.claude', 'skills', 'lam-viec', 'SKILL.md');
-const skillCo = doc(P_SKILL);
-const skillDoi = !skillCo || Buffer.compare(skillCo, skillNguon) !== 0;
+// Bản cài nguồn phẳng (skill /lam-viec, /ra-soat, cổng GitHub)
+const banDoi = BAN_CAI.filter(([n, d]) => {
+  const nd = doc(path.join(NGUON, n));
+  if (nd === null) dung('thiếu tu_chay/' + n);
+  const co = doc(path.join(GOC, d));
+  return !co || Buffer.compare(co, nd) !== 0;
+});
 
 const P_PUSH = path.join(GIT, 'hooks', 'pre-push');
 const pushCo = doc(P_PUSH);
@@ -120,7 +142,7 @@ if (pushCo !== null && pushCo.toString('utf8') !== PRE_PUSH) {
 }
 const pushDoi = pushCo === null || (fs.statSync(P_PUSH).mode & 0o111) === 0;
 
-if (!setDoi && !fileDoi.length && !pushDoi && !skillDoi) {
+if (!setDoi && !fileDoi.length && !pushDoi && !banDoi.length) {
   console.log('· không đổi gì — người gác đã cài đúng từ trước.');
   process.exit(0);
 }
@@ -141,10 +163,10 @@ if (fileDoi.length) {
   for (const f of fileDoi) fs.copyFileSync(path.join(NGUON, f), path.join(DICH, f));
   doi.push('.claude/tu_chay/: chép ' + fileDoi.join(', '));
 }
-if (skillDoi) {
-  fs.mkdirSync(path.dirname(P_SKILL), { recursive: true });
-  fs.writeFileSync(P_SKILL, skillNguon);
-  doi.push('.claude/skills/lam-viec/SKILL.md: skill /lam-viec (từ tu_chay/skill_lam_viec.md)');
+for (const [n, d] of banDoi) {
+  fs.mkdirSync(path.dirname(path.join(GOC, d)), { recursive: true });
+  fs.copyFileSync(path.join(NGUON, n), path.join(GOC, d));
+  doi.push(`${d}: chép từ tu_chay/${n}`);
 }
 if (pushDoi) {
   fs.mkdirSync(path.dirname(P_PUSH), { recursive: true });
@@ -158,7 +180,7 @@ for (const d of doi) console.log('  · ' + d);
 console.log('\nLệnh tiếp theo — gõ trong Shell, add TỪNG file một:');
 console.log('  git add .claude/settings.json');
 for (const f of FILE) console.log('  git add .claude/tu_chay/' + f);
-console.log('  git add .claude/skills/lam-viec/SKILL.md');
+for (const [, d] of BAN_CAI) console.log('  git add ' + d);
 console.log('  git commit -m "TU-CHAY: chu quan cai nguoi gac vao .claude"');
 console.log('\nKHÔNG mở claude trong Shell Replit. Máy chạy trên claude.ai/code, phiên MỚI, đúng nhánh việc, chế độ Auto.');
 console.log('Lùi settings: cp .claude/settings.json.truoc_TUCHAY .claude/settings.json');

@@ -30,6 +30,10 @@ viet(TAM, 'bin/npm', [
   'if [ "$1" = run ] && [ "$2" = build ]; then rm -rf dist; mkdir -p dist; cp src/* dist/; fi',
   'exit 0', ''].join('\n'));
 fs.chmodSync(path.join(TAM, 'bin/npm'), 0o755);
+const GIT_THAT = String(spawnSync('bash', ['-c', 'command -v git'], { encoding: 'utf8' }).stdout).trim();
+viet(TAM, 'bin/git', ['#!/usr/bin/env bash', '[ -n "$KEO_NHAT_KY" ] && echo "git|$*" >> "$KEO_NHAT_KY"',
+  `exec "${GIT_THAT}" "$@"`, ''].join('\n'));
+fs.chmodSync(path.join(TAM, 'bin/git'), 0o755);
 
 function moiTruong(them = {}) {
   const e = {};
@@ -218,6 +222,116 @@ function baiThuVien() {
   chac('E5 cai_thu_vien: lần hỏng không ghi dấu → lần sau cài lại ở gốc', r.status === 0 && dongNpm().includes(TV + '|ci'), dongNpm().join(' ; '));
 }
 
+
+// ═══ C · hook mở phiên kéo nhánh việc (TU-CHAY-3) — kho tạm + remote bare ═════
+function baiKeoNhanh() {
+  const SH = path.join(__dirname, 'cai_thu_vien.sh');
+  const BARE = path.join(TAM, 'keo.git');
+  git(TAM, 'init', '-q', '--bare', BARE);
+  const CQ = path.join(TAM, 'keo_cq'); // bản của chủ quán: đẩy commit mới lên origin
+  fs.mkdirSync(CQ);
+  git(CQ, 'init', '-q', '-b', 'viec/K');
+  viet(CQ, 'package-lock.json', '{"v":1}\n'); viet(CQ, 'a.txt', '1\n');
+  git(CQ, 'add', 'package-lock.json', 'a.txt'); git(CQ, 'commit', '-q', '-m', 'goc');
+  git(CQ, 'branch', 'khac'); git(CQ, 'branch', 'main');
+  git(CQ, 'remote', 'add', 'origin', BARE);
+  git(CQ, 'push', '-q', 'origin', 'viec/K', 'khac', 'main');
+  const M = path.join(TAM, 'keo_may'); // bản của máy mây
+  git(TAM, 'clone', '-q', '-b', 'viec/K', BARE, M);
+  const dayMoi = (nd) => { viet(CQ, 'package-lock.json', nd); git(CQ, 'commit', '-q', '-am', 'moi ' + nd.trim()); git(CQ, 'push', '-q', 'origin', 'viec/K'); };
+  const head = () => git(M, 'rev-parse', 'HEAD');
+  const chay = (them) => { fs.writeFileSync(NK_NPM, ''); return spawnSync('bash', [SH], { cwd: path.join(TAM, 'home'),
+    env: moiTruong({ CLAUDE_PROJECT_DIR: M, KEO_NHAT_KY: NK_NPM, ...them }), encoding: 'utf8', timeout: 60000 }); };
+  const nk = () => dongNpm();
+  const coFetch = () => nk().some((d) => /^git\|fetch/.test(d));
+  const MAY = { CLAUDE_CODE_REMOTE: 'true' };
+
+  dayMoi('{"v":2}\n');
+  let h0 = head();
+  let r = chay({});
+  chac('C1 kéo nhánh: không có CLAUDE_CODE_REMOTE → không kéo, không gọi git', r.status === 0 && head() === h0 && !nk().length, nk().join(' ; '));
+  r = chay({ CLAUDE_CODE_REMOTE: 'false' });
+  chac('C1 kéo nhánh: CLAUDE_CODE_REMOTE=false → không kéo', r.status === 0 && head() === h0 && !coFetch());
+
+  for (const [ten, dat] of [['main', () => git(M, 'checkout', '-q', 'main')], ['khac', () => git(M, 'checkout', '-q', 'khac')],
+    ['HEAD tách rời', () => git(M, 'checkout', '-q', '--detach', h0)]]) {
+    dat();
+    const hx = head();
+    r = chay(MAY);
+    chac(`C2 kéo nhánh: đứng ở ${ten} → không fetch, HEAD giữ nguyên, thoát 0`, r.status === 0 && head() === hx && !coFetch(), nk().join(' ; '));
+  }
+  git(M, 'checkout', '-q', 'viec/K');
+
+  // C7 + C3: kéo được → in trước → sau; lệnh git có ghi chỉ fetch + merge --ff-only; npm ci chạy SAU khi kéo (lockfile mới)
+  const truoc = git(M, 'rev-parse', '--short', 'HEAD');
+  r = chay(MAY);
+  const sau = git(M, 'rev-parse', '--short', 'HEAD');
+  chac('C7 kéo nhánh: origin đi trước → HEAD = origin, in "trước → sau"', r.status === 0 && head() === git(BARE, 'rev-parse', 'viec/K')
+    && r.stdout.includes(`${truoc} → ${sau}`), r.stdout + r.stderr);
+  const dong = nk();
+  const lenhGit = dong.filter((d) => d.startsWith('git|')).map((d) => d.slice(4));
+  const ghi = lenhGit.filter((l) => !/^(symbolic-ref|diff|rev-parse|merge-base)( |$)/.test(l));
+  chac('C3 kéo nhánh: lệnh git có ghi CHỈ là fetch origin <nhánh> và merge --ff-only', ghi.length === 2 && /^fetch( -q)? origin viec\/K$/.test(ghi[0])
+    && /^merge .*--ff-only/.test(ghi[1]), lenhGit.join(' ; '));
+  const iMerge = dong.findIndex((d) => /^git\|merge /.test(d));
+  const iCi = dong.findIndex((d) => d === M + '|ci');
+  chac('C3 kéo nhánh: kéo TRƯỚC npm ci (lockfile vừa đổi → npm ci chạy sau merge)', iMerge >= 0 && iCi > iMerge, dong.join(' ; '));
+
+  // Không có gì mới → không in lỗi, không đổi
+  h0 = head();
+  r = chay(MAY);
+  chac('C kéo nhánh: không có gì mới → HEAD giữ nguyên, không ✗', r.status === 0 && head() === h0 && !/✗/.test(r.stdout), r.stdout);
+
+  // C4: file đã theo dõi đang sửa dở → không kéo, cây giữ nguyên
+  dayMoi('{"v":3}\n');
+  viet(M, 'a.txt', 'sua do\n');
+  h0 = head();
+  r = chay(MAY);
+  chac('C4 kéo nhánh: file theo dõi đang sửa → không kéo, file giữ nguyên, có cảnh báo', r.status === 0 && head() === h0
+    && doc(path.join(M, 'a.txt')) === 'sua do\n' && /sửa dở/.test(r.stdout), r.stdout);
+  git(M, 'checkout', '-q', '--', 'a.txt');
+  viet(M, 'chua_theo_doi.txt', 'x');
+  r = chay(MAY);
+  chac('C4 kéo nhánh: file CHƯA theo dõi không cản kéo', r.status === 0 && head() === git(BARE, 'rev-parse', 'viec/K'), r.stdout);
+
+  // C5b: máy đi TRƯỚC origin (commit chưa push) → không kéo, KHÔNG báo DỪNG oan
+  viet(M, 'b.txt', 'm\n'); git(M, 'add', 'b.txt'); git(M, 'commit', '-q', '-m', 'may');
+  h0 = head();
+  r = chay(MAY);
+  chac('C5b kéo nhánh: máy đi trước origin → không kéo, không có chữ DỪNG', r.status === 0 && head() === h0 && !/DỪNG/.test(r.stdout), r.stdout);
+  // C5: hai bên lệch → DỪNG, báo chủ quán; không merge thường, không reset
+  dayMoi('{"v":4}\n');
+  r = chay(MAY);
+  chac('C5 kéo nhánh: lệch nhau → "máy DỪNG, báo chủ quán", HEAD giữ nguyên', r.status === 0 && head() === h0
+    && r.stdout.includes('máy DỪNG, báo chủ quán'), r.stdout);
+  chac('C5 kéo nhánh: lệch nhau → không gọi merge', !nk().some((d) => /^git\|merge /.test(d)), nk().join(' ; '));
+
+  // C6: mất mạng / fetch hỏng → cảnh báo, thoát 0, npm ci vẫn chạy
+  git(M, 'remote', 'set-url', 'origin', path.join(TAM, 'khong_co.git'));
+  fs.rmSync(path.join(M, 'node_modules'), { recursive: true, force: true });
+  r = chay(MAY);
+  chac('C6 kéo nhánh: fetch hỏng → thoát 0, cảnh báo, npm ci vẫn chạy', r.status === 0 && /không kéo được/.test(r.stdout)
+    && nk().includes(M + '|ci'), r.stdout + ' · ' + nk().join(' ; '));
+}
+
+// ═══ F3 · ngân sách dòng KHUON_LOI.md ═════════════════════════════════════
+// Hàm thuần: trả '' nếu đạt, câu lỗi nếu vượt hoặc cấu hình thiếu khoá.
+function kiemKhuonLoi(chuoi, toiDa) {
+  if (!Number.isInteger(toiDa) || toiDa <= 0) return 'cau_hinh.json thiếu khoá khuon_loi_toi_da (số nguyên dương)';
+  const n = String(chuoi).replace(/\n$/, '').split('\n').length;
+  return n > toiDa ? `KHUON_LOI.md ${n} dòng > ${toiDa} — gộp hoặc xoá mục, không nới số` : '';
+}
+function baiKhuonLoi() {
+  let ch = {};
+  try { ch = JSON.parse(doc(path.join(__dirname, 'cau_hinh.json'))); } catch {}
+  const that = doc(path.join(__dirname, '..', 'KHUON_LOI.md')) || '';
+  chac('F3 KHUON_LOI.md thật trong ngân sách khuon_loi_toi_da', that.length > 0 && kiemKhuonLoi(that, ch.khuon_loi_toi_da) === '',
+    kiemKhuonLoi(that, ch.khuon_loi_toi_da));
+  chac('F3 file giả 121 dòng với ngân sách 120 → ĐỎ', kiemKhuonLoi('x\n'.repeat(121), 120) !== '');
+  chac('F3 đúng 120 dòng → đạt (không đỏ oan)', kiemKhuonLoi('x\n'.repeat(120), 120) === '');
+  chac('F3 cấu hình thiếu khoá → ĐỎ', kiemKhuonLoi('x\n', undefined) !== '');
+}
+
 // ═══ H · mẫu phiếu + skill ═════════════════════════════════════════════════
 function baiTaiLieu() {
   const mp = doc(path.join(__dirname, 'MAU_PHIEU.md')) || '';
@@ -241,9 +355,41 @@ function baiTaiLieu() {
   chac('H3 skill: dặn in git log --oneline -3 trong câu trả lời đầu tiên', /câu trả lời đầu tiên/.test(than));
   chac('H3 skill: tối đa 3 vòng sửa; câu hỏi nghiệp vụ thì dừng', /tối đa 3/.test(than) && /## câu hỏi/.test(than) && /dừng/.test(than));
   chac('H3 skill: không ghi sổ việc, không add -A, không bỏ qua hook', !/ghi_tien_do|git add -a|--no-verify/.test(than));
+  // TU-CHAY-3 F1: bước 11 rút kinh nghiệm, sau bước 10, đủ ba ngăn
+  const b10 = than.indexOf('\n10. '), b11 = than.indexOf('\n11. ');
+  const buoc11 = b11 >= 0 ? than.slice(b11) : '';
+  chac('F1 skill: có bước 11 sau bước 10, đủ ba ngăn khoá / nguyên tắc / bỏ, ghi ## bài học, không tự làm đề xuất ngoài phạm vi',
+    b10 >= 0 && b11 > b10 && ['khoá', 'nguyên tắc', 'bỏ', '## bài học', 'khuon_loi.md', 'đỏ'].every((x) => buoc11.includes(x)), buoc11.slice(0, 200));
+  // F2: báo cáo 7 mục ở mọi chỗ (K4)
+  const cl = doc(path.join(__dirname, '..', 'CLAUDE.md')) || '';
+  chac('F2 CLAUDE.md §7: "bắt buộc đủ 7 mục", có dòng BÀI HỌC:', /bắt buộc đủ 7 mục/.test(cl) && /^BÀI HỌC:/m.test(cl));
+  const con6 = ['skill_lam_viec.md', 'THIET_KE.md', 'MAU_PHIEU.md', 'lenh_ra_soat.md', '../CLAUDE.md']
+    .filter((f) => /6 mục/.test(doc(path.join(__dirname, f)) || ''));
+  chac('F2 không còn "6 mục" trong skill, THIET_KE, MAU_PHIEU, lenh_ra_soat, CLAUDE.md', !con6.length, con6.join(', '));
+  chac('F2 skill: báo cáo 7 mục, có BÀI HỌC', /báo cáo 7 mục/.test(than) && than.includes('bài học'));
+  // E2–E4: /ra-soat soát CẢ NHÁNH từ mốc PHIEU (máy mây không có ref main), nộp bằng SubagentHandback, có BÀI HỌC
+  const rs = doc(path.join(__dirname, 'lenh_ra_soat.md')) || '';
+  chac('E2 lenh_ra_soat: diff cả nhánh từ commit PHIEU đầu tiên (regex có neo), không còn câu dặn cũ "git diff của các thay đổi chưa commit"',
+    rs.includes('--grep="^PHIEU: ') && rs.includes('([^A-Za-z0-9._-]|$)') && /git diff [^\n]*\^ HEAD/.test(rs)
+    && /git diff --name-only/.test(rs) && !rs.includes('`git diff` của các thay đổi chưa commit'));
+  chac('E3 lenh_ra_soat: dặn nộp báo cáo bằng SubagentHandback; mẫu có BÀI HỌC:', rs.includes('SubagentHandback') && /^BÀI HỌC:/m.test(rs));
+  chac('E4 lenh_ra_soat: đủ 6 mục soát (K3, K4, K5, K1, Đường tiền, P1) và câu cấm ĐẠT khi chưa đọc code',
+    ['**K3', '**K4', '**K5', '**K1', '**Đường tiền', '**P1'].every((x) => rs.includes(x))
+    && rs.includes('Không được kết luận ĐẠT nếu còn mục nào chưa đọc được code thật'));
+  chac('E1 lenh_ra_soat: có frontmatter description', /^---\ndescription: \S/.test(rs));
+  // G1–G3: mẫu phiếu
+  chac('G1 MAU_PHIEU: dòng mẫu "Chờ duyệt kế hoạch" + ghi chú bỏ khi làm thẳng', mp.includes('**Chờ duyệt kế hoạch:**') && /làm thẳng/.test(mp));
+  chac('G2 MAU_PHIEU: mục tuỳ chọn ## Bài thử đỏ dạng "không — <lý do>"', mp.includes('## Bài thử đỏ') && mp.includes('không — <lý do>'));
+  chac('G3 MAU_PHIEU: nhắc .github/ máy không sửa, cổng do cai_dat.sh cài', mp.includes('.github/') && mp.includes('cai_dat.sh'));
+  // H2 / B7: THIET_KE B15
+  const tk = doc(path.join(__dirname, 'THIET_KE.md')) || '';
+  const b15 = tk.indexOf('## B15') >= 0 ? tk.slice(tk.indexOf('## B15')) : '';
+  chac('H2/B7 THIET_KE B15: pull_request_target, hai job, sudo, lỗ còn hở (chưa được cổng soát, admin), settings.json cũ sau kéo',
+    ['pull_request_target', 'cong-chay', 'sudo', 'chưa được cổng soát', 'admin', 'settings.json', 'SubagentHandback', 'bước 11']
+      .every((x) => b15.includes(x)), b15.slice(0, 120));
 }
 
-for (const bai of [baiXemThu, baiThuVien, baiTaiLieu]) {
+for (const bai of [baiXemThu, baiThuVien, baiKeoNhanh, baiKhuonLoi, baiTaiLieu]) {
   try { bai(); } catch (e) { hong.push(`${bai.name} sập: ` + String(e && e.message || e).split('\n')[0]); }
 }
 fs.rmSync(TAM, { recursive: true, force: true });

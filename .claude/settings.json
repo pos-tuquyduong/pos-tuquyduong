@@ -46,7 +46,8 @@
       "Bash(git push *--tags*)",
       "Bash(git push *--prune*)",
       "Bash(git push *:*)",
-      "Bash(git push *+*)"
+      "Bash(git push *+*)",
+      "Edit(./.github/**)"
     ],
     "defaultMode": "default"
   },

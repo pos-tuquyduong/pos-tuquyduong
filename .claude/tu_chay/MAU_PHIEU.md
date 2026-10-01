@@ -5,7 +5,13 @@
 
      MÃ việc: chữ, số, dấu chấm, gạch dưới, gạch nối. KHÔNG chứa "main" và KHÔNG chứa "-d" hay "-f"
      (kể cả hoa: MAIN, -D, -F) — luật deny lớp 1 (Bash(git push *main*), *-d*, *-f*) sẽ chặn oan lệnh push
-     nhánh việc. Ví dụ tốt: P7-TAB-NHOM, TU-CHAY-3. -->
+     nhánh việc. Ví dụ tốt: P7-TAB-NHOM, TU-CHAY-3.
+
+     File trong .github/ máy KHÔNG sửa được (file cấm). Cổng PR (.github/workflows/cong.yml) do chủ quán
+     cài bằng bash tu_chay/cai_dat.sh từ nguồn tu_chay/cong_github.yml. -->
+
+**Chờ duyệt kế hoạch:** viết `viec/<MÃ>/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+<Bỏ dòng trên khi chủ quán muốn máy làm thẳng, không chờ duyệt kế hoạch.>
 
 ## Mục tiêu
 <Một đoạn: quầy được gì sau việc này. Vì sao làm bây giờ.>
@@ -22,6 +28,10 @@
  trong tu_chay/ phải ghi ĐÚNG TÊN từng file — glob chung như tu_chay/** KHÔNG mở được file luật.>
 - viec/<MÃ>/**
 - <đường dẫn>
+
+## Bài thử đỏ
+<TUỲ CHỌN — chỉ ghi khi phiếu cho miễn "bài thử phải đỏ trên code gốc" (cổng PR A5). Một dòng:>
+không — <lý do>
 
 ## Ngân sách
 <Khoảng số dòng thêm/bớt, ví dụ "~80 dòng code + ~150 dòng thử". Vượt 1,5 lần thì phải giải thích.>

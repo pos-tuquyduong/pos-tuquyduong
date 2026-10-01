@@ -1,6 +1,6 @@
 ---
 name: lam-viec
-description: Làm trọn một việc tu-chay trên máy mây theo phiếu viec/<MÃ>/phieu.md — kế hoạch, bài thử đỏ trước, sửa, kiểm, commit, push nhánh việc, báo cáo 6 mục. Chủ quán gọi bằng /lam-viec <MÃ>.
+description: Làm trọn một việc tu-chay trên máy mây theo phiếu viec/<MÃ>/phieu.md — kế hoạch, bài thử đỏ trước, sửa, kiểm, commit, push nhánh việc, báo cáo 7 mục, rút kinh nghiệm. Chủ quán gọi bằng /lam-viec <MÃ>.
 argument-hint: "<MÃ> [tiep]"
 disable-model-invocation: true
 ---
@@ -49,6 +49,20 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    (`so_vong_sua_toi_da` trong `cau_hinh.json`); quá thì ghi `## Câu hỏi` và dừng.
 9. **Push nhánh việc**: `git push -u origin viec/$0` — đúng dạng này, không nhánh khác, không `main`.
    Phiếu hay chủ quán dặn push sau mỗi bước thì push ngay sau mỗi commit của bước.
-10. **Báo cáo 6 mục** (CLAUDE.md §7) ghi vào cuối `viec/$0/trang_thai.md`, commit, push, rồi in lại
-    trong câu trả lời: VIỆC · ĐÃ SỬA · BÀI THỬ · ĐÃ RÀ K4 · CHƯA KIỂM · GIT. Mục CHƯA KIỂM nói thẳng
-    điều máy không kiểm được. **Dừng.** Không merge, không tạo PR.
+10. **Báo cáo 7 mục** (CLAUDE.md §7) ghi vào cuối `viec/$0/trang_thai.md`: VIỆC · ĐÃ SỬA · BÀI THỬ ·
+    ĐÃ RÀ K4 · CHƯA KIỂM · GIT · BÀI HỌC. Mục CHƯA KIỂM nói thẳng điều máy không kiểm được.
+11. **Rút kinh nghiệm** (đầu vào cho BÀI HỌC):
+    1. Gom sự cố của việc này: bài thử đỏ bất ngờ; lệnh bị người gác chặn (mã luật + vì sao — đọc
+       `.tu_chay_nhat_ky.jsonl`); lỗi agent soát bắt (dòng `BÀI HỌC:` của `/ra-soat`); vượt ngân sách;
+       phải hỏi / dừng; lệnh phải làm lại.
+    2. Xếp mỗi bài vào **đúng một** ngăn, kèm lý do:
+       - **KHOÁ** — thành bài thử, phép kiểm hoặc luật người gác, có ca đỏ trước. File trong Phạm vi thì
+         làm luôn; ngoài Phạm vi thì ghi đề xuất cụ thể: file nào, phép kiểm gì, ca đỏ nào.
+       - **NGUYÊN TẮC** — một mục trong `KHUON_LOI.md` theo khuôn sẵn ("Đã gây / Dấu hiệu / Chặn"), kèm ví dụ
+         thật. Không vào khuôn K1–K8 nào thì mở K9 trở đi. Ngoài Phạm vi thì ghi đề xuất.
+       - **BỎ** — chỉ xảy ra một lần. Một dòng lý do.
+    3. Dọn: lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` đã có phép kiểm làm thay thì đề xuất xoá.
+       `KHUON_LOI.md` không vượt `khuon_loi_toi_da` của `cau_hinh.json` — vượt thì gộp, không nới số.
+    4. Ghi mục `## Bài học` của `trang_thai.md`, commit, push, rồi in báo cáo 7 mục trong câu trả lời.
+       Đề xuất ngoài Phạm vi máy KHÔNG tự làm — chat soát duyệt, gom vào việc sau hoặc phiếu `HOC-<n>`.
+    **Dừng.** Không merge, không tạo PR.

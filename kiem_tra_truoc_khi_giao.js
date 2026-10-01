@@ -515,6 +515,8 @@ nhom('T · TỰ CHẠY — người gác (TU-CHAY-1)');
 chayBaiThat('tu_chay/thu_nguoi_gac.js');
 // T1b — TU-CHAY-2: xem_thu.sh, cai_thu_vien.sh, mẫu phiếu, skill (kho tạm + remote bare, npm giả)
 chayBaiThat('tu_chay/thu_cong_cu.js');
+// T1c — TU-CHAY-3: cổng PR cong.js (kho tạm, đột biến A6–A14) + file workflow cong_github.yml (B1–B6)
+chayBaiThat('tu_chay/thu_cong.js');
 
 // T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/
 // (trừ cai_dat.*, trình cài không chép sang). Lệch = hook đang chạy mã khác
@@ -548,6 +550,19 @@ chayBaiThat('tu_chay/thu_cong_cu.js');
       'lệch — chủ quán chạy lại: bash tu_chay/cai_dat.sh');
   } else {
     pass('.claude/skills/lam-viec/SKILL.md khớp từng byte với tu_chay/skill_lam_viec.md');
+  }
+}
+
+// T4 — TU-CHAY-3: bản cài trong ban_cai của tu_chay/cau_hinh.json (/ra-soat, cổng GitHub; skill đã có T3) khớp
+// từng byte nguồn trong tu_chay/ (lệch → CẢNH BÁO, như T3)
+for (const [nguon, dich] of JSON.parse(doc('tu_chay/cau_hinh.json')).ban_cai.filter(([n]) => n !== 'skill_lam_viec.md')) {
+  const daCai = path.join(GOC, dich);
+  if (!fs.existsSync(daCai)) {
+    canhBao(`${dich} khớp từng byte với tu_chay/${nguon}`, 'chưa cài — chủ quán chạy: bash tu_chay/cai_dat.sh');
+  } else if (Buffer.compare(fs.readFileSync(daCai), fs.readFileSync(path.join(GOC, 'tu_chay', nguon))) !== 0) {
+    canhBao(`${dich} khớp từng byte với tu_chay/${nguon}`, 'lệch — chủ quán chạy lại: bash tu_chay/cai_dat.sh');
+  } else {
+    pass(`${dich} khớp từng byte với tu_chay/${nguon}`);
   }
 }
 

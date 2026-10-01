@@ -32,6 +32,12 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 - **LUẬT CỨNG:** mọi bài thử phải chạy trên **bản CHƯA vá** và **bắt buộc phải
   hỏng**. Xanh cả hai bên = bài thử vô giá trị, phải viết lại.
 - Bốn nhánh phải phá thử: chưa vá · marker suông · vá rồi quên marker · đủ cả hai.
+- Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
+  (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
+- Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
+- Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
+  khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát).
+- "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc đó. Bốn lần trong một phiên,
@@ -47,6 +53,8 @@ Lỗi nặng nhất phiên trước, và nó đã lên production: patch chặn 
 gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
 đúng như vậy. Quầy mất khả năng bán kiểu đó cho tới khi vá.
 
+- Siết một phép (soi chuỗi → so cấu trúc) cũng là thêm phép chặn: liệt kê lại luồng hợp lệ, nhất là luồng đổi
+  chính thứ làm chuẩn so sánh (cổng TU-CHAY-3 vòng 2: PR đổi `muc_gac` rồi cài đúng vẫn đỏ vĩnh viễn).
 - **Chặn:** thêm phép chặn nào cũng phải liệt kê **mọi luồng hợp lệ** đi qua
   điều kiện đó, rồi viết một ca thử "**phải KHÔNG bị chặn**" cho từng luồng.
 
@@ -62,9 +70,11 @@ Middleware đặt sau route · ghi lại tồn cho mọi món mọi lần tải 
 trong hàm cập nhật của `setCart` · quên `dotenv` trong công cụ thử · sổ việc ghi
 17 mà liệt kê 20 · để lẫn patch cũ trong thư mục giao · bài thử sai tên bảng cột
 (`customer_packages` thay vì `pos_customer_packages`) · **bảo chạy `npm run kiem`
-ở POS trong khi POS dùng `npm test`**.
+ở POS trong khi POS dùng `npm test`** · commit không thành mà vẫn push → "Everything up-to-date",
+không đẩy gì (TU-CHAY-2).
 
 - **Chặn:** tên bảng, tên cột, tên script — tra trong code, không nhớ từ kho kia.
+- **Chặn:** sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong `git log origin/viec/<MÃ>..HEAD` phải rỗng.
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
 Khuôn nguy hiểm nhất về cách nghĩ. Bộ kiểm báo `POST /orders` chưa có cổng phân

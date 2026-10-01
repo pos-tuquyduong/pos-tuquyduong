@@ -130,7 +130,10 @@ for (const cc of ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'Tod
   'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet',
   'TaskList', 'TaskOutput']) ca('công cụ cho qua ' + cc, cc, {}, 'CHO');
 for (const cc of ['TaskStop', 'mcp__x__y', 'mcp__claude_ai_Gmail__authenticate', 'Artifact', 'PowerShell',
-  'EnterWorktree', 'Workflow', 'CronCreate', 'SendMessage', 'CongCuLa']) ca('công cụ lạ ' + cc, cc, { command: 'ls' }, 'CC-LA');
+  'EnterWorktree', 'Workflow', 'CronCreate', 'SendMessage', 'CongCuLa', 'SubagentHandbackX', 'subagenthandback',
+  'SubagentHandbac']) ca('công cụ lạ ' + cc, cc, { command: 'ls' }, 'CC-LA');
+// TU-CHAY-3 D1: agent phụ nộp báo cáo bằng SubagentHandback (nhật ký người gác 01.10.2026, CC-LA chặn) — cho ĐÚNG tên này
+ca('công cụ nộp báo cáo agent phụ SubagentHandback', 'SubagentHandback', { result: 'x' }, 'CHO');
 ca('Monitor đọc log', 'Monitor', { command: 'tail -f server/a.js' }, 'CHO');
 ca('Monitor push nhánh việc', 'Monitor', { command: 'git push origin viec/X' }, 'CHO');
 ca('Monitor lách push main', 'Monitor', { command: 'git push origin main' }, 'GIT-PUSH');
@@ -337,6 +340,18 @@ for (const l of ['cd .git && ls', 'cd .claude/tu_chay && ls', 'cd server/ln_clau
 for (const l of ['git diff --output=server/b.js', 'git log --output x', 'git grep -O x', 'git diff --ext-diff']) B(l, 'GIT-OUTPUT');
 for (const l of ['git add -A', 'git add .', 'git add --all', 'git add -u', 'git add -f server/a.js', "git add ':/'",
   'git add server/*.js', 'git add -- .']) B(l, 'GIT-ADD');
+// TU-CHAY-3 D3: git tự mở pathspec kể cả trong nháy (* ? [ ] \\) — `\\.claude/x` khớp .claude/x; thư mục = add cả cây
+for (const l of ["git add '\\.claude/x'", "git add 'server/*.js'", "git add 'a[b].js'", "git add 'x?.js'", 'git add "server/*.js"',
+  'git add server', 'git add server/', 'git add -- server', "git add -- 'server/*.js'", 'git add --pathspec-from-file=x',
+  'git add --pathspec-from-file x', 'git add --pathspec-from-f=x']) B(l, 'GIT-ADD');
+for (const l of ['git add server/a.js', 'git add "server/a.js"', 'git add viec/X/ke_hoach.md', 'git add server/bánh_mì.js',
+  'git add -- server/a.js', 'git add server/xoa_roi.js']) B(l, 'CHO');
+// TU-CHAY-3 Q2: git commit <pathspec> commit hàng loạt không qua git add từng file — cùng luật tên file viết thẳng
+for (const l of ["git commit -m x 'server/*.js'", "git commit -m x '\\.claude/x'", 'git commit -m x server',
+  'git commit -m x -- server', "git commit -m x -- 'a[b].js'", 'git commit --pathspec-from-file=x -m y',
+  'git commit -m x .', 'git commit -m x $F']) B(l, 'GIT-COMMIT-CO');
+for (const l of ['git commit -m "TU-CHAY-3: a*b? [x] \\ y"', 'git commit -m x server/a.js', 'git commit -m x -- server/a.js',
+  "git commit -m 'sửa * và ?'", 'git commit -F ' + N + '/f.txt', 'git commit --message=a*b']) B(l, 'CHO');
 for (const l of ['git commit --no-verify -m x', 'git commit -n -m x', 'git commit -am x', 'git commit --amend --no-edit',
   'git commit -a -m x', 'git commit --all -m x']) B(l, 'GIT-COMMIT-CO');
 B('git commit -m x', 'GIT-COMMIT-NHANH', { goc: KHO_MAIN });
@@ -461,6 +476,18 @@ for (const l of ['cd server && grep -rn x', 'grep -rn x server/']) B(l, 'CHO');
 for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
 
 // ── Chạy ca trong tiến trình ────────────────────────────────────────────────
+// TU-CHAY-3 D4: với cấu hình THẬT (tu_chay/cau_hinh.json), Edit cong.yml và hoàn tác keep-alive.yml đều bị G1-CAM chặn
+{
+  const KT = kho('kho_that', { cauHinh: fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8'), phieu: { X: PHIEU_X } });
+  viet(KT, '.github/workflows/keep-alive.yml', 'x');
+  E('.github/workflows/cong.yml', 'G1-CAM', { goc: KT });
+  W('.github/workflows/moi.yml', 'G1-CAM', { goc: KT });
+  B('git restore .github/workflows/keep-alive.yml', 'G1-CAM', { goc: KT });
+  B('git checkout -- .github/workflows/keep-alive.yml', 'G1-CAM', { goc: KT });
+  B('echo x > .github/workflows/cong.yml', 'G1-CAM', { goc: KT });
+  E('server/a.js', 'CHO', { goc: KT });
+}
+
 const coXet = typeof gac.xet === 'function';
 const chay = (c, tat) => {
   try {
@@ -468,6 +495,9 @@ const chay = (c, tat) => {
     return r && r.quyet === 'CHO' ? 'CHO' : 'CHAN:' + (r && r.ma);
   } catch (e) { return 'LOI:' + e.message; }
 };
+// TU-CHAY-3 bước 11 (KHOÁ): ca thêm SAU vòng chấm thì không bao giờ được chấm mà bài vẫn xanh (K3 — đã gặp
+// khi viết ca D4). Đóng băng: ca() gọi muộn → TypeError → bài sập ĐỎ.
+Object.freeze(CA);
 let daiCa = 0;
 for (const c of CA) {
   const ra = coXet ? chay(c, new Set()) : 'không có xet()';
@@ -554,9 +584,18 @@ if (coXet) {
     && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**'].every((f) => ch.file_luat.includes(f)));
   chac('cau_hinh: tep_bash_them đúng một file ban_mau_pos/chay_thu.sh, không glob', !!ch && Array.isArray(ch.tep_bash_them)
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
+  chac('cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)', !!ch && ch.file_cam.includes('.github/**')
+    && ch.khuon_loi_toi_da === 120);
+  chac('cau_hinh: muc_gac — MỘT định nghĩa hook người gác cho cai_dat.js và cổng (vòng soát 2)', !!ch
+    && JSON.stringify(ch.muc_gac) === JSON.stringify({ matcher: '*', hooks: [{ type: 'command',
+      command: 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2', timeout: 30 }] }),
+    JSON.stringify(ch && ch.muc_gac));
+  chac('cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng)', !!ch
+    && JSON.stringify(ch.ban_cai) === JSON.stringify([['skill_lam_viec.md', '.claude/skills/lam-viec/SKILL.md'],
+      ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.2.0', pb === 'tu-chay 1.2.0', pb || '(không có)');
+  chac('PHIEN_BAN = tu-chay 1.3.0', pb === 'tu-chay 1.3.0', pb || '(không có)');
 }
 
 // ── Tiến trình thật ─────────────────────────────────────────────────────────
@@ -683,7 +722,7 @@ const SETTINGS_GOC = JSON.stringify({
 const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
 // TU-CHAY-2a: bỏ deny push CHUNG, thay bằng deny hẹp (main, ép đè, xoá, gương, mọi nhánh, tag, refspec : và +).
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
-  'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)', 'Bash(git *--no-v*)',
+  'Edit(./.github/**)', 'Bash(git merge *)', 'Bash(git reset *)', 'Bash(git commit -n *)', 'Bash(git -c *)', 'Bash(git *--no-v*)',
   'Bash(git push *main*)', 'Bash(git push *-f*)', 'Bash(git push *-d*)', 'Bash(git push *--mirror*)', 'Bash(git push *--all*)',
   'Bash(git push *--tags*)', 'Bash(git push *--prune*)', 'Bash(git push *:*)', 'Bash(git push *+*)'];
 const DENY_BO = ['Bash(git push *)', 'Bash(git push:*)'];
@@ -730,6 +769,7 @@ function anh(g) { // ảnh chụp mọi file .claude + pre-push, để so "khôn
       if (x.isDirectory()) di(p); else ra[path.relative(g, p)] = fs.readFileSync(p).toString('base64');
     }
   })(path.join(g, '.claude'));
+  try { ra['.github/workflows/cong.yml'] = fs.readFileSync(path.join(g, '.github/workflows/cong.yml')).toString('base64'); } catch {}
   ra['.git/hooks/pre-push'] = (docB(path.join(g, '.git/hooks/pre-push')) || '').toString('base64');
   return JSON.stringify(ra);
 }
@@ -769,6 +809,14 @@ function baiCaiDat() {
   chac('skill: .claude/skills/lam-viec/SKILL.md khớp từng byte tu_chay/skill_lam_viec.md', !!skill
     && Buffer.compare(skill, docB(path.join(A, 'tu_chay/skill_lam_viec.md')) || Buffer.alloc(0)) === 0);
   chac('trình cài in git add .claude/skills/lam-viec/SKILL.md', String(r.stdout).includes('git add .claude/skills/lam-viec/SKILL.md'));
+  // TU-CHAY-3 E1, B: /ra-soat và cổng GitHub cài từ nguồn trong tu_chay/, khớp từng byte; in git add từng file
+  let banCai = [];
+  try { banCai = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8')).ban_cai || []; } catch {}
+  for (const [nguon, dich] of banCai) {
+    const d = docB(path.join(A, dich));
+    chac(`bản cài ${dich} khớp từng byte tu_chay/${nguon}`, !!d && Buffer.compare(d, docB(path.join(A, 'tu_chay', nguon)) || Buffer.alloc(0)) === 0);
+    chac(`trình cài in git add ${dich}`, String(r.stdout).includes('git add ' + dich));
+  }
   chac('lưu settings.json.truoc_TUCHAY = bản gốc', String(docB(path.join(A, '.claude/settings.json.truoc_TUCHAY'))) === SETTINGS_GOC);
   const nguon = fs.readdirSync(path.join(A, 'tu_chay')).filter((f) => !/^cai_dat\./.test(f)).sort();
   let daCai = [];
@@ -808,6 +856,27 @@ function baiCaiDat() {
     const t = anh(G);
     const y = caiDat(G);
     chac('cài lại lần 2 trên bản TU-CHAY-1: không đổi gì', y.status === 0 && /không đổi gì/.test(y.stdout) && anh(G) === t);
+  }
+
+  // TU-CHAY-3 C8 (Phát hiện 3 của TU-CHAY-2): hook của chủ quán nằm CHUNG mục với hook bộ khung → vẫn còn sau cài
+  {
+    const G = khoCai('cai_g', { settings: JSON.stringify({ permissions: { deny: [], defaultMode: 'default' }, hooks: {
+      SessionStart: [{ matcher: 'startup|resume', hooks: [{ type: 'command', command: LENH_THU_VIEN, timeout: 600 },
+        { type: 'command', command: 'echo ss_chu_quan' }] }],
+      PreToolUse: [{ matcher: '*', hooks: [{ type: 'command', command: 'echo pre_chu_quan' },
+        { type: 'command', command: LENH_HOOK, timeout: 30 }] }] } }, null, 2) + '\n' });
+    const x = caiDat(G);
+    let sg = null;
+    try { sg = JSON.parse(fs.readFileSync(path.join(G, '.claude/settings.json'), 'utf8')); } catch {}
+    const ss = JSON.stringify((sg && sg.hooks.SessionStart) || []);
+    const pt = JSON.stringify((sg && sg.hooks.PreToolUse) || []);
+    chac('C8 cài: hook SessionStart của chủ quán chung mục với bộ khung vẫn còn; bộ khung đúng một lần', x.status === 0
+      && ss.includes('echo ss_chu_quan') && ss.split('cai_thu_vien.sh').length === 2, ss);
+    chac('C8 cài: hook PreToolUse của chủ quán chung mục với người gác vẫn còn; người gác đúng một lần', x.status === 0
+      && pt.includes('echo pre_chu_quan') && pt.split('nguoi_gac.js').length === 2, pt);
+    const t = anh(G);
+    const y = caiDat(G);
+    chac('C8 cài lần hai trên settings có hook chung mục: không đổi gì', y.status === 0 && /không đổi gì/.test(y.stdout) && anh(G) === t);
   }
 
   // Lần 2 — không đổi gì
