@@ -16,5 +16,7 @@
   "so_vong_sua_toi_da": 3,
   "vuot_ngan_sach_canh_bao": 1.5,
   "khuon_loi_toi_da": 120,
+  "ban_cai": [["skill_lam_viec.md", ".claude/skills/lam-viec/SKILL.md"], ["lenh_ra_soat.md", ".claude/commands/ra-soat.md"],
+    ["cong_github.yml", ".github/workflows/cong.yml"]],
   "kiem_sau_day_len": "log Render có dòng '✅ Đã kết nối Turso database (PRODUCTION)'"
 }

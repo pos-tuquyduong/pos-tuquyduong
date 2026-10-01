@@ -712,11 +712,15 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
      (`cat-file`, `diff`, `log`): nhánh `viec/<MÃ>` + phiếu + `## Phạm vi` (A14); phiếu và
      `bien_ban_soat.json` chỉ đổi ở commit `PHIEU: <MÃ>` (neo, không khớp `PHIEU: <MÃ>0`) và commit đó chỉ đụng
      `viec/<MÃ>/` (A7); `.github/` chỉ `cong.yml` (A9); file cấm (A10); Phạm vi bằng `xetPhamVi` — CÙNG hàm của
-     người gác (A6); đổi code mà không có bài thử `thu_*.js` và không có mục `## Bài thử đỏ` `không — <lý do>` (A12).
+     người gác (A6, cộng G3-HOSO: `ke_hoach.md`, `trang_thai.md` của việc); đổi code mà không có bài thử `thu_*.js`
+     và không có mục `## Bài thử đỏ` `không — <lý do>` (A12); **A8 tĩnh** (vòng soát 1): mỗi đích trong `ban_cai` và
+     `.claude/tu_chay/*` phải đúng byte nguồn `tu_chay/*` CỦA HEAD, `.claude/settings.json` còn hook người gác và deny
+     `Edit(./.claude/**)`, `Edit(./.github/**)`, PR không xoá `tu_chay/cai_dat.js`.
    - `cong-chay` → `cong.js chay …` — chạy code PR: `.claude/**` + `cong.yml` phải khớp từng byte kết quả
      `cai_dat.js` (`.claude/` của gốc + `tu_chay/` của PR) (A8, câu "chủ quán chạy bash tu_chay/cai_dat.sh trên
      nhánh việc"); `npm ci`; mỗi bài thử mới/sửa chạy trên `git archive` của gốc phải ĐỎ — xanh, quá giờ, thiếu
-     thư viện đều KHÔNG tính (A11); `lenh_bai_thu` + `lenh_kiem_day_du` (A13).
+     thư viện đều KHÔNG tính — và chạy trên code PR phải XANH (A11; vòng soát 1: file `thu_*.js` luôn đỏ từng làm cổng
+     xanh, vì `npm test` chỉ chạy bài thử được ghi tên trong bộ kiểm); `lenh_bai_thu` + `lenh_kiem_day_du` (A13).
    - `cau_hinh.json` và `nguoi_gac.js` lấy ở thư mục của `cong.js` = checkout của `main` (BASE) — PR bỏ
      `TIEN_DO_*.json` khỏi `file_cam` của chính nó vẫn bị chặn (A10b).
 2. **Vì sao `pull_request_target`** (docs.github.com, mục Events that trigger workflows — máy mây không vào được
@@ -735,8 +739,12 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
    - Bài thử: `tu_chay/thu_cong.js` — kho tạm, ~30 ca A, đột biến A6–A14, `kiemYml` + 23 đột biến chữ của yml.
 3. **Rủi ro còn lại, vì sao chấp nhận:** `cong-chay` chạy code PR (`npm ci`, bài thử, `npm test`) trên máy GitHub
    với token chỉ đọc, không bí mật, không lưu credential. Máy GitHub cho `sudo` → code PR về lý thuyết làm giả
-   được kết quả `cong-chay`: job này canh LỖI, không canh ÁC Ý. Mọi kiểm "lén / ngoài phạm vi" nằm ở `cong`, job
-   không chạy code PR, trên máy riêng.
+   được kết quả `cong-chay`: job này canh LỖI, không canh ÁC Ý. Job `cong` (không chạy code PR, máy riêng) canh:
+   phạm vi, file cấm, `.github/`, phiếu, bản cài khớp nguồn của head, người gác + deny còn trong `settings.json`.
+   Phần CHỈ `cong-chay` canh được: `settings.json` đúng TỪNG BYTE kết quả `cai_dat.js` (phải chạy trình cài), bài thử
+   đỏ/xanh, `npm test`. (Bản trước của câu này nói "mọi kiểm lén nằm ở `cong`" — SAI, vòng soát 1 bắt.)
+   `cai_dat.js` là của PR, nên A8 tự tham chiếu: PR sửa trình cài và `.claude/` cùng kiểu thì qua — hàng rào là
+   `cai_dat.js` thuộc `file_luat`, phải ghi đúng tên trong phiếu do chủ quán viết.
 4. **Hook mở phiên kéo nhánh (C).** Thêm vào đầu `cai_thu_vien.sh` (cùng mục SessionStart, không file mới): chỉ khi
    `CLAUDE_CODE_REMOTE=true`, đứng ở `viec/*`, không có file đã theo dõi đang sửa dở; `git fetch origin <nhánh>`
    rồi `git merge --ff-only` — hai lệnh git có ghi duy nhất; máy đã đủ / đi trước → không kéo; lệch nhau → "máy
@@ -779,4 +787,8 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - **Bài thử chạy trên gốc mà đỏ vì lý do khác** (vd. tự `throw`) vẫn được tính là đỏ hợp lệ — cổng không phân biệt
   "đỏ đúng chỗ"; đó là việc của `/ra-soat` (K3).
 - Hook kéo nhánh: ca C1, C2, C5b xanh cả trên bản chưa vá (bản cũ không kéo gì); ca đối chứng C7/C3 cùng kho đỏ.
+- **A11 không có lối miễn cho bài thử CŨ bị sửa** (thêm ca hồi quy cho hành vi đang đúng, sửa chú thích): theo chữ phiếu,
+  mục `## Bài thử đỏ` chỉ miễn A12. Chủ quán quyết có mở lối miễn không.
+- **`npm test` theo `package.json` của PR**: phiếu nào ghi `package.json` thì PR đổi được script `test` → A13 tắt
+  (loại "ác ý", ở `cong-chay`). Bịt rẻ: thêm `package.json` vào `file_luat` — đề xuất, chưa làm.
 

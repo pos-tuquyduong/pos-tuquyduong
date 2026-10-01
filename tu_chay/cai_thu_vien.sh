@@ -16,7 +16,7 @@ case "$nhanh" in
     if ! git diff --quiet HEAD -- 2>/dev/null; then
       echo "⚠ kéo nhánh: có file đã theo dõi đang sửa dở — KHÔNG kéo $nhanh, cây giữ nguyên"
     elif ! timeout 60 git fetch -q origin "$nhanh" 2>/dev/null; then
-      echo "⚠ kéo nhánh: không kéo được origin/$nhanh (mạng?) — làm tiếp trên bản đang có"
+      echo "⚠ kéo nhánh: không kéo được origin/$nhanh (mạng? nhánh chưa có trên origin?) — làm tiếp trên bản đang có"
     elif git merge-base --is-ancestor FETCH_HEAD HEAD; then
       echo "· kéo nhánh: $nhanh đã có đủ commit của origin — không kéo"
     elif ! git merge-base --is-ancestor HEAD FETCH_HEAD; then

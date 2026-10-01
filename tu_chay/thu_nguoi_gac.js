@@ -583,6 +583,9 @@ if (coXet) {
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   chac('cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)', !!ch && ch.file_cam.includes('.github/**')
     && ch.khuon_loi_toi_da === 120);
+  chac('cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng)', !!ch
+    && JSON.stringify(ch.ban_cai) === JSON.stringify([['skill_lam_viec.md', '.claude/skills/lam-viec/SKILL.md'],
+      ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
   chac('PHIEN_BAN = tu-chay 1.3.0', pb === 'tu-chay 1.3.0', pb || '(không có)');
@@ -800,7 +803,9 @@ function baiCaiDat() {
     && Buffer.compare(skill, docB(path.join(A, 'tu_chay/skill_lam_viec.md')) || Buffer.alloc(0)) === 0);
   chac('trình cài in git add .claude/skills/lam-viec/SKILL.md', String(r.stdout).includes('git add .claude/skills/lam-viec/SKILL.md'));
   // TU-CHAY-3 E1, B: /ra-soat và cổng GitHub cài từ nguồn trong tu_chay/, khớp từng byte; in git add từng file
-  for (const [nguon, dich] of [['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]) {
+  let banCai = [];
+  try { banCai = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8')).ban_cai || []; } catch {}
+  for (const [nguon, dich] of banCai) {
     const d = docB(path.join(A, dich));
     chac(`bản cài ${dich} khớp từng byte tu_chay/${nguon}`, !!d && Buffer.compare(d, docB(path.join(A, 'tu_chay', nguon)) || Buffer.alloc(0)) === 0);
     chac(`trình cài in git add ${dich}`, String(r.stdout).includes('git add ' + dich));

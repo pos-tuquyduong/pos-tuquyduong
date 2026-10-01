@@ -42,9 +42,6 @@ const DENY_BO = ['Bash(git push *)', 'Bash(git push:*)'];
 const LENH_THU_VIEN = 'bash "$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh"';
 const MUC_THU_VIEN = { matcher: 'startup|resume', hooks: [{ type: 'command', command: LENH_THU_VIEN, timeout: 600 }] };
 const MUC_GAC = { matcher: '*', hooks: [{ type: 'command', command: LENH_HOOK, timeout: 30 }] };
-// [nguồn trong tu_chay/, đích] — chép nguyên byte (bộ kiểm T3/T4 so lại)
-const BAN_CAI = [['skill_lam_viec.md', '.claude/skills/lam-viec/SKILL.md'], ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'],
-  ['cong_github.yml', '.github/workflows/cong.yml']];
 // Gỡ hook bộ khung (lệnh chứa `dau`) khỏi từng mục, bỏ mục chỉ khi hết hook; đã có đúng `muc` thì giữ chỗ, không thì thêm cuối.
 function ghepHook(ds, muc, dau) {
   ds = Array.isArray(ds) ? ds : [];
@@ -82,7 +79,12 @@ const hp = spawnSync('git', ['config', '--get', 'core.hooksPath'], { cwd: GOC, e
 if (hp.error || String(hp.stdout).trim()) dung('không kiểm được core.hooksPath, hoặc kho đặt core.hooksPath — pre-push trong .git/hooks sẽ không chạy');
 
 // 1. Kiểm nguồn
-try { JSON.parse(fs.readFileSync(path.join(NGUON, 'cau_hinh.json'), 'utf8')); } catch (e) { dung('tu_chay/cau_hinh.json hỏng: ' + e.message); }
+// BAN_CAI: [nguồn trong tu_chay/, đích] — chép nguyên byte; MỘT bảng trong cau_hinh.json cho trình cài, cổng, bộ kiểm T4
+let BAN_CAI = [];
+try { BAN_CAI = JSON.parse(fs.readFileSync(path.join(NGUON, 'cau_hinh.json'), 'utf8')).ban_cai; } catch (e) { dung('tu_chay/cau_hinh.json hỏng: ' + e.message); }
+if (!Array.isArray(BAN_CAI) || !BAN_CAI.every((c) => Array.isArray(c) && c.length === 2 && !/(^|\/)\.\.(\/|$)/.test(c.join('/')))) {
+  dung('tu_chay/cau_hinh.json: ban_cai phải là danh sách [nguồn, đích]');
+}
 const kt = spawnSync(process.execPath, ['--check', path.join(NGUON, 'nguoi_gac.js')], { encoding: 'utf8', timeout: 10000 });
 if (kt.status !== 0) dung('tu_chay/nguoi_gac.js lỗi cú pháp hoặc không có: ' + String(kt.stderr || (kt.error && kt.error.message)).trim());
 

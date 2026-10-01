@@ -553,8 +553,9 @@ chayBaiThat('tu_chay/thu_cong.js');
   }
 }
 
-// T4 — TU-CHAY-3: /ra-soat và cổng GitHub đã cài khớp từng byte nguồn trong tu_chay/ (lệch → CẢNH BÁO, như T3)
-for (const [nguon, dich] of [['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]) {
+// T4 — TU-CHAY-3: bản cài trong ban_cai của tu_chay/cau_hinh.json (/ra-soat, cổng GitHub; skill đã có T3) khớp
+// từng byte nguồn trong tu_chay/ (lệch → CẢNH BÁO, như T3)
+for (const [nguon, dich] of JSON.parse(doc('tu_chay/cau_hinh.json')).ban_cai.filter(([n]) => n !== 'skill_lam_viec.md')) {
   const daCai = path.join(GOC, dich);
   if (!fs.existsSync(daCai)) {
     canhBao(`${dich} khớp từng byte với tu_chay/${nguon}`, 'chưa cài — chủ quán chạy: bash tu_chay/cai_dat.sh');

@@ -135,3 +135,22 @@ thu_cong: 63 phép · 63 chỗ hỏng
 
 Ghi chú K3: C1, C2, C5b (thu_cong_cu.js) XANH trên bản cũ vì bản cũ không kéo gì — đối chứng là C7/C3 cùng kho ĐỎ ở trên.
 thu_cong.js: mọi ca ĐỎ phải kèm dòng "CỔNG ĐỎ" do cổng in — sập vì thiếu cong.js không được tính là đỏ đúng.
+
+## Vòng sửa 1 (sau /ra-soat KHÔNG ĐẠT) — ca mới chạy trên code 2c366c7 → ĐỎ
+thu_cong: 113 phép · 12 chỗ hỏng
+  ✗ A11 bài thử mới luôn đỏ (đỏ cả trên code PR): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ A11 bài thử mới luôn đỏ (đỏ cả trên code PR): lý do có "ĐỎ trên code PR" — ✓ CỔNG CHẠY ĐẠT
+  ✗ A11 bài thử mới không phải JS: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ A11 bài thử mới không phải JS: lý do có "ĐỎ trên code PR" — ✓ CỔNG CHẠY ĐẠT
+  ✗ A8 xoá cai_dat.js + settings.json gỡ người gác + xoá cong.yml: lý do có "chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc" — ✗ [A12] đổi code mà không có bài thử mới (thu_*.js), phiếu không c
+  ✗ A8 xoá cai_dat.js (chế độ chay): lý do có "cai_dat.js" — ✗ [A12] đổi code mà không có bài thử nào ĐỎ hợp lệ trên code gốc
+  ✗ A8 tĩnh: sửa tay .claude/tu_chay/PHIEN_BAN: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ A8 tĩnh: sửa tay .claude/tu_chay/PHIEN_BAN: lý do có ".claude/tu_chay/PHIEN_BAN" — ✓ CỔNG TĨNH ĐẠT
+  ✗ A8 tĩnh: cong.yml lệch nguồn tu_chay/cong_github.yml: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ A8 tĩnh: cong.yml lệch nguồn tu_chay/cong_github.yml: lý do có "cong.yml" — ✓ CỔNG TĨNH ĐẠT
+  ✗ K5 G3-HOSO: trang_thai.md khi phiếu không ghi viec/X/**: phải ĐẠT — ✗ [A6] file `viec/X/ke_hoach.md` không có trong Phạm vi của phiếu
+  ✗ đột biến tắt A8 → ca "A8 xoá cai_dat.js (chế độ chay)" thành ĐẠT (bài thử bắt được kiểm A8) — [A12] đổi code mà không có bài thử nào ĐỎ hợp lệ trên code gốc
+  ĐỎ — 12 chỗ hỏng
+thu_nguoi_gac: 777/777 ca người gác đúng mã · 150 phép khác
+  ✗ cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng)
+  ĐỎ — 1 chỗ hỏng

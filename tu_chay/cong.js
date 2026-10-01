@@ -32,6 +32,7 @@ const duoi = (s, n = 20) => String(s).trim().split('\n').slice(-n).join('\n');
 // Bài thử (chủ quán chốt Q1): file thu_*.js trong thu_muc_bai_thu hoặc tu_chay/
 const laBaiThu = (p) => /^thu_[^/]*\.js$/.test(path.posix.basename(p))
   && (path.posix.dirname(p) === 'tu_chay' || CH.thu_muc_bai_thu.some((d) => p.startsWith(d)));
+const CHO_HOSO = (ma) => [`viec/${ma}/ke_hoach.md`, `viec/${ma}/trang_thai.md`]; // = G3-HOSO của người gác
 const laCode = (p) => !/\.md$/.test(p) && !p.startsWith('viec/') && !p.startsWith('.claude/') && p !== '.github/workflows/cong.yml';
 function giaiNen(cwd, sha, dich, ...duong) { // git archive <sha> [đường dẫn…] | tar -x -C dich
   const a = spawnSync('git', ['archive', '--format=tar', sha, ...duong], { cwd, maxBuffer: 1 << 30, env: envCon() });
@@ -99,8 +100,22 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
         .filter((p) => p && !p.startsWith(`viec/${ma}/`));
       if (la.length) doLy('A7', `commit ${sha.slice(0, 7)} "${td}" đổi cả file ngoài viec/${ma}/: ${la.join(', ')}`);
     }
+    // A8 tĩnh — không chạy code PR: bản cài phải đúng byte nguồn của chính head; người gác + deny .claude/ còn nguyên
+    if (blob(thuMuc, moc, 'tu_chay/cai_dat.js') !== null) {
+      const tep = git(thuMuc, 'ls-tree', '-z', '--name-only', `${head}:tu_chay`).split('\0').filter((f) => f && !/^cai_dat\./.test(f));
+      const cap = [...CH.ban_cai.map(([n, d]) => [`tu_chay/${n}`, d]), ...tep.map((f) => [`tu_chay/${f}`, `.claude/tu_chay/${f}`])];
+      const lech = cap.filter(([n, d]) => { const a = blob(thuMuc, head, n), b = blob(thuMuc, head, d); return !a || !b || Buffer.compare(a, b) !== 0; })
+        .map(([, d]) => d);
+      let s = null;
+      try { s = JSON.parse(blob(thuMuc, head, '.claude/settings.json')); } catch {}
+      const gacCon = !!s && JSON.stringify((s.hooks || {}).PreToolUse || []).includes('.claude/tu_chay/nguoi_gac.js')
+        && ['Edit(./.claude/**)', 'Edit(./.github/**)'].every((d) => ((s.permissions || {}).deny || []).includes(d));
+      if (!gacCon) lech.push('.claude/settings.json (mất hook người gác hoặc deny .claude/ .github/)');
+      if (blob(thuMuc, head, 'tu_chay/cai_dat.js') === null) lech.push('tu_chay/cai_dat.js (PR xoá trình cài)');
+      if (lech.length) doLy('A8', `bản cài lệch nguồn: ${lech.slice(0, 6).join(', ')}${lech.length > 6 ? ', …' : ''} — ${CAI_LAI}`);
+    }
     for (const { p } of doi) {
-      if (p.startsWith('.claude/') || baoVe.includes(p)) continue; // .claude/: chế độ chay so với cai_dat.js (A8)
+      if (p.startsWith('.claude/') || baoVe.includes(p) || CHO_HOSO(ma).includes(p)) continue; // .claude/: A8 ở trên + chế độ chay
       if (p.startsWith('.github/')) {
         if (p !== '.github/workflows/cong.yml') doLy('A9', `file \`${p}\` trong .github/ — chỉ .github/workflows/cong.yml (do cai_dat.sh cài) được đổi`);
         continue;
@@ -121,8 +136,10 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   if (dung !== head) { doLy('A14', `thư mục PR đang đứng ở ${dung.slice(0, 7)}, không phải head ${head.slice(0, 7)}`); if (bat('A14')) return kq(); }
   const tam = fs.mkdtempSync(path.join(os.tmpdir(), 'cong_'));
   try {
-    // A3/A8 — .claude/** và cong.yml phải đúng kết quả cai_dat.js (.claude/ của gốc + tu_chay/ của PR)
-    if (blob(thuMuc, head, 'tu_chay/cai_dat.js') !== null) {
+    // A3/A8 — .claude/** và cong.yml phải đúng kết quả cai_dat.js (.claude/ của gốc + tu_chay/ của PR); PR xoá trình cài → ĐỎ
+    if (blob(thuMuc, head, 'tu_chay/cai_dat.js') === null) {
+      if (blob(thuMuc, moc, 'tu_chay/cai_dat.js') !== null) doLy('A8', `PR xoá tu_chay/cai_dat.js — ${CAI_LAI}`);
+    } else {
       const cai = path.join(tam, 'cai');
       giaiNen(thuMuc, moc, cai, '.claude'); // gốc chưa có .claude/ thì bỏ qua
       giaiNen(thuMuc, head, cai, 'tu_chay');
@@ -166,6 +183,9 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       else if (r.status === null) doLy('A11', `bài thử \`${p}\` quá giờ trên code gốc — không tính là đỏ`);
       else if (thieu) doLy('A11', `bài thử \`${p}\` không chạy được trên code gốc (thiếu thư viện '${thieu[1]}') — không tính là đỏ`);
       else doHopLe++;
+      // …và phải XANH trên code PR (ra-soat L1: file thu_*.js luôn đỏ không được làm cổng xanh)
+      const h = chayLenh(process.execPath, [p], { cwd: thuMuc, timeout: 300000 });
+      if (h.status !== 0) doLy('A11', `bài thử \`${p}\` ĐỎ trên code PR (thoát ${h.status}) — bài thử phải xanh sau khi vá:\n${duoi(h.stdout + h.stderr, 5)}`);
     });
     if (coCode && !mien && !doHopLe) doLy('A12', 'đổi code mà không có bài thử nào ĐỎ hợp lệ trên code gốc');
     // A13 — lệnh kiểm của cấu hình bản main, chạy trên code PR
