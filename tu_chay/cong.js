@@ -16,6 +16,9 @@ const { spawnSync } = require('child_process');
 const gac = require(path.join(__dirname, 'nguoi_gac.js'));
 const CH = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8'));
 const CAI_LAI = 'chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc';
+if (!Array.isArray(CH.ban_cai) || !CH.muc_gac || !Array.isArray(CH.thu_muc_bai_thu)) {
+  throw new Error('tu_chay/cau_hinh.json (bản main) thiếu ban_cai / muc_gac / thu_muc_bai_thu');
+}
 
 const envCon = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(GITHUB_|ACTIONS_|CLAUDE)/i.test(k)));
 const chayLenh = (lenh, a, o = {}) => spawnSync(lenh, a, { encoding: 'utf8', maxBuffer: 1 << 28, env: envCon(), ...o });
@@ -102,16 +105,23 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
     }
     // A8 tĩnh — không chạy code PR: bản cài phải đúng byte nguồn của chính head; người gác + deny .claude/ còn nguyên
     if (blob(thuMuc, moc, 'tu_chay/cai_dat.js') !== null) {
-      const tep = git(thuMuc, 'ls-tree', '-z', '--name-only', `${head}:tu_chay`).split('\0').filter((f) => f && !/^cai_dat\./.test(f));
+      // chỉ FILE trực tiếp trong tu_chay/ (trình cài cũng chỉ chép file, bỏ thư mục con)
+      const tep = git(thuMuc, 'ls-tree', '-z', `${head}:tu_chay`).split('\0').map((d) => /^\d+ blob \S+\t(.+)$/.exec(d))
+        .filter(Boolean).map((m) => m[1]).filter((f) => !/^cai_dat\./.test(f));
       const cap = [...CH.ban_cai.map(([n, d]) => [`tu_chay/${n}`, d]), ...tep.map((f) => [`tu_chay/${f}`, `.claude/tu_chay/${f}`])];
       const lech = cap.filter(([n, d]) => { const a = blob(thuMuc, head, n), b = blob(thuMuc, head, d); return !a || !b || Buffer.compare(a, b) !== 0; })
         .map(([, d]) => d);
+      const quan = new Set([...cap.map(([, d]) => d), '.claude/settings.json']);
+      for (const { p } of doi) if (p.startsWith('.claude/') && !quan.has(p)) lech.push(`${p} (không do trình cài quản)`);
       let s = null;
       try { s = JSON.parse(blob(thuMuc, head, '.claude/settings.json')); } catch {}
-      const gacCon = !!s && JSON.stringify((s.hooks || {}).PreToolUse || []).includes('.claude/tu_chay/nguoi_gac.js')
-        && ['Edit(./.claude/**)', 'Edit(./.github/**)'].every((d) => ((s.permissions || {}).deny || []).includes(d));
-      if (!gacCon) lech.push('.claude/settings.json (mất hook người gác hoặc deny .claude/ .github/)');
-      if (blob(thuMuc, head, 'tu_chay/cai_dat.js') === null) lech.push('tu_chay/cai_dat.js (PR xoá trình cài)');
+      const pre = s && s.hooks && Array.isArray(s.hooks.PreToolUse) ? s.hooks.PreToolUse : [];
+      if (!pre.some((m) => JSON.stringify(m) === JSON.stringify(CH.muc_gac))) lech.push('.claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac)');
+      const deny = s && s.permissions && Array.isArray(s.permissions.deny) ? s.permissions.deny : [];
+      for (const d of ['Edit(./.claude/**)', 'Edit(./.github/**)']) if (!deny.includes(d)) lech.push(`.claude/settings.json: thiếu deny ${d}`);
+      for (const f of ['tu_chay/cai_dat.js', 'tu_chay/cai_dat.sh']) {
+        if (blob(thuMuc, moc, f) !== null && blob(thuMuc, head, f) === null) lech.push(`PR xoá trình cài ${f}`);
+      }
       if (lech.length) doLy('A8', `bản cài lệch nguồn: ${lech.slice(0, 6).join(', ')}${lech.length > 6 ? ', …' : ''} — ${CAI_LAI}`);
     }
     for (const { p } of doi) {
@@ -183,15 +193,18 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       else if (r.status === null) doLy('A11', `bài thử \`${p}\` quá giờ trên code gốc — không tính là đỏ`);
       else if (thieu) doLy('A11', `bài thử \`${p}\` không chạy được trên code gốc (thiếu thư viện '${thieu[1]}') — không tính là đỏ`);
       else doHopLe++;
-      // …và phải XANH trên code PR (ra-soat L1: file thu_*.js luôn đỏ không được làm cổng xanh)
-      const h = chayLenh(process.execPath, [p], { cwd: thuMuc, timeout: 300000 });
-      if (h.status !== 0) doLy('A11', `bài thử \`${p}\` ĐỎ trên code PR (thoát ${h.status}) — bài thử phải xanh sau khi vá:\n${duoi(h.stdout + h.stderr, 5)}`);
     });
     if (coCode && !mien && !doHopLe) doLy('A12', 'đổi code mà không có bài thử nào ĐỎ hợp lệ trên code gốc');
     // A13 — lệnh kiểm của cấu hình bản main, chạy trên code PR
     for (const l of [...CH.lenh_bai_thu, ...CH.lenh_kiem_day_du]) {
       const r = chayLenh('bash', ['-c', l], { cwd: thuMuc, timeout: 900000 });
       if (r.status !== 0) doLy('A13', `\`${l}\` đỏ:\n${duoi(r.stdout + r.stderr)}`);
+    }
+    // A11 — bài thử mới / sửa phải XANH trên code PR (vòng soát 1: file thu_*.js luôn đỏ không được làm cổng xanh).
+    // Chạy SAU A13: bài thử ghi ra cây làm việc không làm đổi kết quả npm test.
+    for (const p of baiThu) {
+      const h = chayLenh(process.execPath, [p], { cwd: thuMuc, timeout: 300000 });
+      if (h.status !== 0) doLy('A11', `bài thử \`${p}\` ĐỎ trên code PR (thoát ${h.status}) — bài thử phải xanh sau khi vá:\n${duoi(h.stdout + h.stderr, 5)}`);
     }
   } finally {
     fs.rmSync(tam, { recursive: true, force: true });

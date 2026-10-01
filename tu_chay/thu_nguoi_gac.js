@@ -583,6 +583,10 @@ if (coXet) {
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   chac('cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)', !!ch && ch.file_cam.includes('.github/**')
     && ch.khuon_loi_toi_da === 120);
+  chac('cau_hinh: muc_gac — MỘT định nghĩa hook người gác cho cai_dat.js và cổng (vòng soát 2)', !!ch
+    && JSON.stringify(ch.muc_gac) === JSON.stringify({ matcher: '*', hooks: [{ type: 'command',
+      command: 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2', timeout: 30 }] }),
+    JSON.stringify(ch && ch.muc_gac));
   chac('cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng)', !!ch
     && JSON.stringify(ch.ban_cai) === JSON.stringify([['skill_lam_viec.md', '.claude/skills/lam-viec/SKILL.md'],
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));

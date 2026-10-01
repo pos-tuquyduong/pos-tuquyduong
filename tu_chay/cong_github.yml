@@ -1,7 +1,9 @@
 # cong.yml — CỔNG PR vào main (TU-CHAY-3). NGUỒN: tu_chay/cong_github.yml. KHÔNG sửa bản trong .github/:
 # chủ quán cài bằng `bash tu_chay/cai_dat.sh`. Thiết kế, nguồn tài liệu, rủi ro còn lại: tu_chay/THIET_KE.md B15.
 # pull_request_target: GitHub chạy bản workflow trên main → PR không tự sửa được cổng của chính nó.
-# Job `cong` KHÔNG chạy code PR (phạm vi, file cấm, .github/, phiếu). Job `cong-chay` chạy bài thử / npm test của PR.
+# Job `cong` KHÔNG chạy code PR: phạm vi, file cấm, .github/, phiếu, bản cài khớp nguồn của head, hook người gác
+# (so cấu trúc với muc_gac) + deny .claude/ .github/. Job `cong-chay` chạy code PR: settings.json đúng từng byte kết quả
+# cai_dat.js, bài thử đỏ trên gốc / xanh trên PR, npm test, --day-du.
 # Ruleset khoa-main đòi cả hai check. Không job nào có `if:` — job bị bỏ qua thì GitHub tính là đạt.
 name: Cong PR
 on:

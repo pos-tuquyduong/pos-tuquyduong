@@ -22,7 +22,6 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const LENH_HOOK = 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2';
 // Chỉ dùng Edit(...): luật Write(...) Claude Code không bao giờ xét (docs/en/permissions).
 // Edit(...) song song với file_cam của cau_hinh.json (TU-CHAY-3: thêm .github/**).
 const DENY_MOI = ['Edit(./.claude/**)', 'Edit(./.env)', 'Edit(./.env.*)', 'Edit(./.replit)', 'Edit(./TIEN_DO_*.json)',
@@ -41,7 +40,6 @@ const DENY_BO = ['Bash(git push *)', 'Bash(git push:*)'];
 // "$CLAUDE_PROJECT_DIR"; hook SessionStart không chặn được phiên (docs/en/hooks). 600 s = mặc định của tài liệu, ghi rõ.
 const LENH_THU_VIEN = 'bash "$CLAUDE_PROJECT_DIR/.claude/tu_chay/cai_thu_vien.sh"';
 const MUC_THU_VIEN = { matcher: 'startup|resume', hooks: [{ type: 'command', command: LENH_THU_VIEN, timeout: 600 }] };
-const MUC_GAC = { matcher: '*', hooks: [{ type: 'command', command: LENH_HOOK, timeout: 30 }] };
 // Gỡ hook bộ khung (lệnh chứa `dau`) khỏi từng mục, bỏ mục chỉ khi hết hook; đã có đúng `muc` thì giữ chỗ, không thì thêm cuối.
 function ghepHook(ds, muc, dau) {
   ds = Array.isArray(ds) ? ds : [];
@@ -80,8 +78,15 @@ if (hp.error || String(hp.stdout).trim()) dung('không kiểm được core.hook
 
 // 1. Kiểm nguồn
 // BAN_CAI: [nguồn trong tu_chay/, đích] — chép nguyên byte; MỘT bảng trong cau_hinh.json cho trình cài, cổng, bộ kiểm T4
-let BAN_CAI = [];
-try { BAN_CAI = JSON.parse(fs.readFileSync(path.join(NGUON, 'cau_hinh.json'), 'utf8')).ban_cai; } catch (e) { dung('tu_chay/cau_hinh.json hỏng: ' + e.message); }
+// MUC_GAC: mục hook PreToolUse của người gác — MỘT định nghĩa trong cau_hinh.json (cổng so cấu trúc với nó)
+let BAN_CAI = [], MUC_GAC = null;
+try { ({ ban_cai: BAN_CAI, muc_gac: MUC_GAC } = JSON.parse(fs.readFileSync(path.join(NGUON, 'cau_hinh.json'), 'utf8'))); } catch (e) {
+  dung('tu_chay/cau_hinh.json hỏng: ' + e.message);
+}
+if (!MUC_GAC || MUC_GAC.matcher !== '*' || !Array.isArray(MUC_GAC.hooks) || MUC_GAC.hooks.length !== 1
+  || !String(MUC_GAC.hooks[0].command).includes('.claude/tu_chay/nguoi_gac.js') || !/\|\| exit 2$/.test(MUC_GAC.hooks[0].command)) {
+  dung('tu_chay/cau_hinh.json: muc_gac phải là mục hook người gác (matcher "*", lệnh … nguoi_gac.js || exit 2)');
+}
 if (!Array.isArray(BAN_CAI) || !BAN_CAI.every((c) => Array.isArray(c) && c.length === 2 && !/(^|\/)\.\.(\/|$)/.test(c.join('/')))) {
   dung('tu_chay/cau_hinh.json: ban_cai phải là danh sách [nguồn, đích]');
 }

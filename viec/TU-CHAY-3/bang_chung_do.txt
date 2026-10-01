@@ -154,3 +154,19 @@ thu_cong: 113 phép · 12 chỗ hỏng
 thu_nguoi_gac: 777/777 ca người gác đúng mã · 150 phép khác
   ✗ cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng)
   ĐỎ — 1 chỗ hỏng
+
+## Vòng sửa 2 (sau /ra-soat vòng 2 KHÔNG ĐẠT) — ca mới chạy trên code 416000c → ĐỎ
+thu_cong: 129 phép · 9 chỗ hỏng
+  ✗ A8 tĩnh: hook người gác bị vô hiệu (matcher lạ, bỏ || exit 2) nhưng còn chuỗi đường dẫn: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ A8 tĩnh: hook người gác bị vô hiệu (matcher lạ, bỏ || exit 2) nhưng còn chuỗi đường dẫn: lý do có "hook người gác" — ✓ CỔNG TĨNH ĐẠT
+  ✗ A8 tĩnh: thiếu deny Edit(./.github/**): lý do có "Edit(./.github/**)" — ✗ [A8] bản cài lệch nguồn: .claude/settings.json (mất hook người gác hoặc deny .claude/ .github/) — chủ quán chạy bash tu_ch
+  ✗ A8 tĩnh: chỉ xoá tu_chay/cai_dat.js (cong.yml, settings giữ đúng): lý do có "PR xoá trình cài tu_chay/cai_dat.js" — ✗ [A8] bản cài lệch nguồn: tu_chay/cai_dat.js (PR xoá trình cài) — chủ quán chạy
+  ✗ A8 tĩnh: xoá tu_chay/cai_dat.sh: lý do có "tu_chay/cai_dat.sh" — ✗ [A12] đổi code mà không có bài thử mới (thu_*.js), phiếu không có mục "## Bài thử đỏ" ghi "không — <lý do>"
+  ✗ A8 tĩnh: thêm .claude/commands/la.md (không do trình cài quản): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ A8 tĩnh: thêm .claude/commands/la.md (không do trình cài quản): lý do có ".claude/commands/la.md" — ✓ CỔNG TĨNH ĐẠT
+  ✗ K5 thư mục con trong tu_chay/ sau khi chủ quán chạy cai_dat.sh: phải ĐẠT — ✗ [A8] bản cài lệch nguồn: .claude/tu_chay/mau — chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc
+  ✗ đột biến tắt A8 → ca "A8 tĩnh: xoá tu_chay/cai_dat.sh" thành ĐẠT (bài thử bắt được kiểm A8) — [A12] đổi code mà không có bài thử mới (thu_*.js), phiếu không có mục "## Bài thử đỏ" ghi "không — <lý
+  ĐỎ — 9 chỗ hỏng
+thu_nguoi_gac: 777/777 ca người gác đúng mã · 157 phép khác
+  ✗ cau_hinh: muc_gac — MỘT định nghĩa hook người gác cho cai_dat.js và cổng (vòng soát 2)
+  ĐỎ — 1 chỗ hỏng

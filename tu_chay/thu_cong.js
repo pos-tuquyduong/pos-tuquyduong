@@ -40,7 +40,7 @@ const viet = (goc, rel, nd) => { const p = path.join(goc, rel); fs.mkdirSync(pat
 const PHIEU = ['# X — phiếu thử cổng', '', '## Mục tiêu', 'thử cổng', '', '## Phạm vi', '- viec/X/**', '- README.md',
   '- server/a.js', '- server/moi.js', '- cong_cu/thu_a.js', '- cong_cu/thu_b.js', '- cong_cu/thu_c.js', '- cong_cu/thu_d.js',
   '- cong_cu/khac.js', '- DO_TEST.md', '- DO_DAYDU.md', '- TIEN_DO_X.json', '- .env.local', '- .replit',
-  '- tu_chay/MAU_PHIEU.md', '- tu_chay/cau_hinh.json', '- tu_chay/cai_dat.js', '- tu_chay/**', '- .github/workflows/keep-alive.yml', '',
+  '- tu_chay/MAU_PHIEU.md', '- tu_chay/cau_hinh.json', '- tu_chay/cai_dat.js', '- tu_chay/cai_dat.sh', '- tu_chay/mau/a.md', '- tu_chay/**', '- .github/workflows/keep-alive.yml', '',
   '## Ngân sách', '~1 dòng', ''].join('\n');
 // Bài thử hợp lệ: ĐỎ trên gốc (chưa có server/moi.js), XANH trên PR. Ghi dấu để biết code PR đã chạy.
 const THU_HOP_LE = "require('fs').appendFileSync(process.env.THU_DAU || '/dev/null', 'x');\n"
@@ -177,6 +177,34 @@ function baiCong() {
     { che: 'tinh', chua: ['.claude/tu_chay/PHIEN_BAN'] });
   ca('A8 tĩnh: cong.yml lệch nguồn tu_chay/cong_github.yml', [['sua', { '.github/workflows/cong.yml': '# sửa tay\n' }]], 'ĐỎ',
     { che: 'tinh', chua: ['cong.yml'] });
+  // Vòng soát 2: mỗi phép của A8 tĩnh một ca CHỈ vi phạm đúng phép đó (ca gộp luôn đỏ nhờ phép khác — K3)
+  const doiSet = (f) => () => {
+    const p = path.join(G, '.claude/settings.json');
+    const s = JSON.parse(fs.readFileSync(p, 'utf8'));
+    f(s);
+    fs.writeFileSync(p, JSON.stringify(s, null, 2) + '\n');
+  };
+  ca('A8 tĩnh: hook người gác bị vô hiệu (matcher lạ, bỏ || exit 2) nhưng còn chuỗi đường dẫn', [['vo hieu', doiSet((s) => {
+    for (const m of s.hooks.PreToolUse) {
+      if (JSON.stringify(m).includes('nguoi_gac.js')) {
+        m.matcher = 'KhongCoCongCuNay';
+        for (const h of m.hooks) h.command = h.command.replace('|| exit 2', '; exit 0');
+      }
+    }
+  })]], 'ĐỎ', { che: 'tinh', chua: ['hook người gác'] });
+  ca('A8 tĩnh: thiếu deny Edit(./.github/**)', [['deny', doiSet((s) => {
+    s.permissions.deny = s.permissions.deny.filter((d) => d !== 'Edit(./.github/**)');
+  })]], 'ĐỎ', { che: 'tinh', chua: ['Edit(./.github/**)'] });
+  ca('A8 tĩnh: chỉ xoá tu_chay/cai_dat.js (cong.yml, settings giữ đúng)', [['xoa', { 'tu_chay/cai_dat.js': null,
+    'cong_cu/thu_a.js': THU_HOP_LE, ...sv }]], 'ĐỎ', { che: 'tinh', chua: ['PR xoá trình cài tu_chay/cai_dat.js'] });
+  ca('A8 tĩnh: xoá tu_chay/cai_dat.sh', [['xoa', { 'tu_chay/cai_dat.sh': null, 'cong_cu/thu_a.js': THU_HOP_LE, ...sv }]], 'ĐỎ', { che: 'tinh', chua: ['tu_chay/cai_dat.sh'] });
+  ca('A8 tĩnh: thêm .claude/commands/la.md (không do trình cài quản)', [['la', { '.claude/commands/la.md': 'x\n' }]], 'ĐỎ',
+    { che: 'tinh', chua: ['.claude/commands/la.md'] });
+  ca('K5 thư mục con trong tu_chay/ sau khi chủ quán chạy cai_dat.sh', [['mau', () => {
+    viet(G, 'tu_chay/mau/a.md', 'mẫu\n');
+    const r = caiDat();
+    if (r.status !== 0) throw new Error(r.stderr + r.stdout);
+  }]], 'ĐẠT');
   // K5 (ra-soat nghi ngờ 2): người gác cho máy ghi ke_hoach.md / trang_thai.md (G3-HOSO) dù phiếu quên viec/X/** → cổng cũng cho
   ca('K5 G3-HOSO: trang_thai.md khi phiếu không ghi viec/X/**', [['PHIEU: X bo dong viec', { 'viec/X/phieu.md': PHIEU.replace('- viec/X/**\n', '') }],
     ['ghi', { 'viec/X/trang_thai.md': 'x\n', 'viec/X/ke_hoach.md': 'y\n' }]], 'ĐẠT', { che: 'tinh' });
@@ -221,6 +249,10 @@ function baiCong() {
     ['A10', 'A10 file cấm TIEN_DO_X.json', 'tinh'], ['A11', 'A11 bài thử mới XANH trên gốc', 'chay'],
     ['A11', 'A11 bài thử mới luôn đỏ (đỏ cả trên code PR)', 'chay'], ['A8', 'A8 tĩnh: sửa tay .claude/tu_chay/PHIEN_BAN', 'tinh'],
     ['A8', 'A8 xoá cai_dat.js (chế độ chay)', 'chay'],
+    ['A8', 'A8 tĩnh: hook người gác bị vô hiệu (matcher lạ, bỏ || exit 2) nhưng còn chuỗi đường dẫn', 'tinh'],
+    ['A8', 'A8 tĩnh: thiếu deny Edit(./.github/**)', 'tinh'],
+    ['A8', 'A8 tĩnh: chỉ xoá tu_chay/cai_dat.js (cong.yml, settings giữ đúng)', 'tinh'],
+    ['A8', 'A8 tĩnh: xoá tu_chay/cai_dat.sh', 'tinh'], ['A8', 'A8 tĩnh: thêm .claude/commands/la.md (không do trình cài quản)', 'tinh'],
     ['A12', 'A12 đổi code, không bài thử, không miễn', 'tinh'], ['A13', 'A13 npm test đỏ', 'chay'], ['A14', 'A14 HEAD ≠ head', 'chay']];
   if (mod && typeof mod.cong === 'function') {
     for (const [ma, ten, cheDo] of DB) {

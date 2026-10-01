@@ -713,9 +713,11 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
      `bien_ban_soat.json` chỉ đổi ở commit `PHIEU: <MÃ>` (neo, không khớp `PHIEU: <MÃ>0`) và commit đó chỉ đụng
      `viec/<MÃ>/` (A7); `.github/` chỉ `cong.yml` (A9); file cấm (A10); Phạm vi bằng `xetPhamVi` — CÙNG hàm của
      người gác (A6, cộng G3-HOSO: `ke_hoach.md`, `trang_thai.md` của việc); đổi code mà không có bài thử `thu_*.js`
-     và không có mục `## Bài thử đỏ` `không — <lý do>` (A12); **A8 tĩnh** (vòng soát 1): mỗi đích trong `ban_cai` và
-     `.claude/tu_chay/*` phải đúng byte nguồn `tu_chay/*` CỦA HEAD, `.claude/settings.json` còn hook người gác và deny
-     `Edit(./.claude/**)`, `Edit(./.github/**)`, PR không xoá `tu_chay/cai_dat.js`.
+     và không có mục `## Bài thử đỏ` `không — <lý do>` (A12); **A8 tĩnh** (vòng soát 1–2): mỗi đích trong `ban_cai` và
+     `.claude/tu_chay/<file>` phải đúng byte nguồn `tu_chay/<file>` CỦA HEAD (chỉ file, không thư mục con — như trình cài);
+     file `.claude/` khác ngoài các đích đó và `settings.json` không được đổi; `settings.json` có mục PreToolUse ĐÚNG
+     `muc_gac` của `cau_hinh.json` (so cấu trúc, không soi chuỗi) và hai deny `Edit(./.claude/**)`, `Edit(./.github/**)`;
+     PR không xoá `tu_chay/cai_dat.js`, `tu_chay/cai_dat.sh`. Mỗi phép có ca riêng + đột biến.
    - `cong-chay` → `cong.js chay …` — chạy code PR: `.claude/**` + `cong.yml` phải khớp từng byte kết quả
      `cai_dat.js` (`.claude/` của gốc + `tu_chay/` của PR) (A8, câu "chủ quán chạy bash tu_chay/cai_dat.sh trên
      nhánh việc"); `npm ci`; mỗi bài thử mới/sửa chạy trên `git archive` của gốc phải ĐỎ — xanh, quá giờ, thiếu
@@ -740,9 +742,9 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 3. **Rủi ro còn lại, vì sao chấp nhận:** `cong-chay` chạy code PR (`npm ci`, bài thử, `npm test`) trên máy GitHub
    với token chỉ đọc, không bí mật, không lưu credential. Máy GitHub cho `sudo` → code PR về lý thuyết làm giả
    được kết quả `cong-chay`: job này canh LỖI, không canh ÁC Ý. Job `cong` (không chạy code PR, máy riêng) canh:
-   phạm vi, file cấm, `.github/`, phiếu, bản cài khớp nguồn của head, người gác + deny còn trong `settings.json`.
-   Phần CHỈ `cong-chay` canh được: `settings.json` đúng TỪNG BYTE kết quả `cai_dat.js` (phải chạy trình cài), bài thử
-   đỏ/xanh, `npm test`. (Bản trước của câu này nói "mọi kiểm lén nằm ở `cong`" — SAI, vòng soát 1 bắt.)
+   phạm vi, file cấm, `.github/`, phiếu, bản cài khớp nguồn của head, mục hook người gác đúng cấu trúc, HAI deny
+   `Edit(./.claude/**)` / `Edit(./.github/**)`. Phần CHỈ `cong-chay` canh được: `settings.json` đúng TỪNG BYTE kết quả
+   `cai_dat.js` — tức mọi deny khác, allow, `defaultMode`, hook SessionStart/Stop/PostToolUse — bài thử đỏ/xanh, `npm test`. (Bản trước của câu này nói "mọi kiểm lén nằm ở `cong`" — SAI, vòng soát 1 bắt.)
    `cai_dat.js` là của PR, nên A8 tự tham chiếu: PR sửa trình cài và `.claude/` cùng kiểu thì qua — hàng rào là
    `cai_dat.js` thuộc `file_luat`, phải ghi đúng tên trong phiếu do chủ quán viết.
 4. **Hook mở phiên kéo nhánh (C).** Thêm vào đầu `cai_thu_vien.sh` (cùng mục SessionStart, không file mới): chỉ khi
