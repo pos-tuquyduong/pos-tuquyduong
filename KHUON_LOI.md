@@ -35,6 +35,9 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 - Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
   (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
 - Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
+- Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
+  khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát).
+- "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc đó. Bốn lần trong một phiên,
@@ -50,6 +53,8 @@ Lỗi nặng nhất phiên trước, và nó đã lên production: patch chặn 
 gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
 đúng như vậy. Quầy mất khả năng bán kiểu đó cho tới khi vá.
 
+- Siết một phép (soi chuỗi → so cấu trúc) cũng là thêm phép chặn: liệt kê lại luồng hợp lệ, nhất là luồng đổi
+  chính thứ làm chuẩn so sánh (cổng TU-CHAY-3 vòng 2: PR đổi `muc_gac` rồi cài đúng vẫn đỏ vĩnh viễn).
 - **Chặn:** thêm phép chặn nào cũng phải liệt kê **mọi luồng hợp lệ** đi qua
   điều kiện đó, rồi viết một ca thử "**phải KHÔNG bị chặn**" cho từng luồng.
 

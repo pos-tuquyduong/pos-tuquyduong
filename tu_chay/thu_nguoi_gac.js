@@ -495,6 +495,9 @@ const chay = (c, tat) => {
     return r && r.quyet === 'CHO' ? 'CHO' : 'CHAN:' + (r && r.ma);
   } catch (e) { return 'LOI:' + e.message; }
 };
+// TU-CHAY-3 bước 11 (KHOÁ): ca thêm SAU vòng chấm thì không bao giờ được chấm mà bài vẫn xanh (K3 — đã gặp
+// khi viết ca D4). Đóng băng: ca() gọi muộn → TypeError → bài sập ĐỎ.
+Object.freeze(CA);
 let daiCa = 0;
 for (const c of CA) {
   const ra = coXet ? chay(c, new Set()) : 'không có xet()';
