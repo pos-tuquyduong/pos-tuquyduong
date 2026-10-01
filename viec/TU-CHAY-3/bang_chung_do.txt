@@ -170,3 +170,10 @@ thu_cong: 129 phép · 9 chỗ hỏng
 thu_nguoi_gac: 777/777 ca người gác đúng mã · 157 phép khác
   ✗ cau_hinh: muc_gac — MỘT định nghĩa hook người gác cho cai_dat.js và cổng (vòng soát 2)
   ĐỎ — 1 chỗ hỏng
+
+## Vòng sửa 3 (sau /ra-soat vòng 3 KHÔNG ĐẠT) — ca mới chạy trên code 1720a54
+(ca deny Edit(./.claude/**) và ca nới muc_gac XANH ngay vì phép đã có — đỏ trước của chúng là đột biến M2b của người soát; nay có trong bảng đột biến)
+thu_cong: 138 phép · 2 chỗ hỏng
+  ✗ K5 PR đổi muc_gac (timeout 30→60) + chủ quán đã cài: phải ĐẠT — ✗ [A8] bản cài lệch nguồn: .claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac) — chủ quán chạy bash tu_
+  ✗ K5 PR thêm một mục ban_cai + nguồn + chủ quán đã cài: phải ĐẠT — ✗ [A8] bản cài lệch nguồn: .claude/commands/moi.md (không do trình cài quản) — chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việ
+  ĐỎ — 2 chỗ hỏng

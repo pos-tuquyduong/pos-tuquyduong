@@ -108,7 +108,18 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       // chỉ FILE trực tiếp trong tu_chay/ (trình cài cũng chỉ chép file, bỏ thư mục con)
       const tep = git(thuMuc, 'ls-tree', '-z', `${head}:tu_chay`).split('\0').map((d) => /^\d+ blob \S+\t(.+)$/.exec(d))
         .filter(Boolean).map((m) => m[1]).filter((f) => !/^cai_dat\./.test(f));
-      const cap = [...CH.ban_cai.map(([n, d]) => [`tu_chay/${n}`, d]), ...tep.map((f) => [`tu_chay/${f}`, `.claude/tu_chay/${f}`])];
+      // Chuẩn là cấu hình của main (CH). PR (cau_hinh.json của head) chỉ được THÊM bản cài vào .claude/, và chỉ đổi
+      // timeout của muc_gac — lệnh, matcher người gác giữ nguyên (vòng soát 3: PR bộ khung đổi cấu hình rồi cài → ĐẠT).
+      let chH = {};
+      try { chH = JSON.parse(blob(thuMuc, head, 'tu_chay/cau_hinh.json')); } catch {}
+      const banCai = [...CH.ban_cai, ...(Array.isArray(chH.ban_cai) ? chH.ban_cai : []).filter((c) => Array.isArray(c) && c.length === 2
+        && /^\.claude\/(?!settings\.json$)/.test(c[1]) && !CH.ban_cai.some((b) => b[1] === c[1]))];
+      const g0 = CH.muc_gac.hooks[0], gH = chH.muc_gac;
+      const mucDuoc = [CH.muc_gac];
+      if (gH && gH.matcher === '*' && Array.isArray(gH.hooks) && gH.hooks.length === 1 && Object.keys(gH.hooks[0]).length === 3
+        && gH.hooks[0].type === g0.type && gH.hooks[0].command === g0.command && Number.isInteger(gH.hooks[0].timeout)
+        && gH.hooks[0].timeout > 0) mucDuoc.push(gH);
+      const cap = [...banCai.map(([n, d]) => [`tu_chay/${n}`, d]), ...tep.map((f) => [`tu_chay/${f}`, `.claude/tu_chay/${f}`])];
       const lech = cap.filter(([n, d]) => { const a = blob(thuMuc, head, n), b = blob(thuMuc, head, d); return !a || !b || Buffer.compare(a, b) !== 0; })
         .map(([, d]) => d);
       const quan = new Set([...cap.map(([, d]) => d), '.claude/settings.json']);
@@ -116,7 +127,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       let s = null;
       try { s = JSON.parse(blob(thuMuc, head, '.claude/settings.json')); } catch {}
       const pre = s && s.hooks && Array.isArray(s.hooks.PreToolUse) ? s.hooks.PreToolUse : [];
-      if (!pre.some((m) => JSON.stringify(m) === JSON.stringify(CH.muc_gac))) lech.push('.claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac)');
+      if (!pre.some((m) => mucDuoc.some((g) => JSON.stringify(m) === JSON.stringify(g)))) lech.push('.claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac)');
       const deny = s && s.permissions && Array.isArray(s.permissions.deny) ? s.permissions.deny : [];
       for (const d of ['Edit(./.claude/**)', 'Edit(./.github/**)']) if (!deny.includes(d)) lech.push(`.claude/settings.json: thiếu deny ${d}`);
       for (const f of ['tu_chay/cai_dat.js', 'tu_chay/cai_dat.sh']) {
@@ -147,9 +158,10 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   const tam = fs.mkdtempSync(path.join(os.tmpdir(), 'cong_'));
   try {
     // A3/A8 — .claude/** và cong.yml phải đúng kết quả cai_dat.js (.claude/ của gốc + tu_chay/ của PR); PR xoá trình cài → ĐỎ
-    if (blob(thuMuc, head, 'tu_chay/cai_dat.js') === null) {
-      if (blob(thuMuc, moc, 'tu_chay/cai_dat.js') !== null) doLy('A8', `PR xoá tu_chay/cai_dat.js — ${CAI_LAI}`);
-    } else {
+    for (const f of ['tu_chay/cai_dat.js', 'tu_chay/cai_dat.sh']) { // song song với A8 tĩnh
+      if (blob(thuMuc, moc, f) !== null && blob(thuMuc, head, f) === null) doLy('A8', `PR xoá trình cài ${f} — ${CAI_LAI}`);
+    }
+    if (blob(thuMuc, head, 'tu_chay/cai_dat.js') !== null) {
       const cai = path.join(tam, 'cai');
       giaiNen(thuMuc, moc, cai, '.claude'); // gốc chưa có .claude/ thì bỏ qua
       giaiNen(thuMuc, head, cai, 'tu_chay');

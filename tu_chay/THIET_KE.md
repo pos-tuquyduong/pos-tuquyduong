@@ -717,7 +717,10 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
      `.claude/tu_chay/<file>` phải đúng byte nguồn `tu_chay/<file>` CỦA HEAD (chỉ file, không thư mục con — như trình cài);
      file `.claude/` khác ngoài các đích đó và `settings.json` không được đổi; `settings.json` có mục PreToolUse ĐÚNG
      `muc_gac` của `cau_hinh.json` (so cấu trúc, không soi chuỗi) và hai deny `Edit(./.claude/**)`, `Edit(./.github/**)`;
-     PR không xoá `tu_chay/cai_dat.js`, `tu_chay/cai_dat.sh`. Mỗi phép có ca riêng + đột biến.
+     PR không xoá `tu_chay/cai_dat.js`, `tu_chay/cai_dat.sh`. Chuẩn là `cau_hinh.json` của main; PR (cấu hình của head)
+     chỉ được THÊM mục `ban_cai` có đích trong `.claude/` (không phải `settings.json`) và đổi `timeout` của `muc_gac`
+     (lệnh, matcher giữ nguyên) — vòng soát 3: PR bộ khung đổi chính cấu hình cài rồi chủ quán cài từng bị đỏ vĩnh viễn.
+     Mỗi phép (từng deny, hook, xoá từng trình cài, `.claude/` lạ, nới `muc_gac`) có ca riêng + đột biến.
    - `cong-chay` → `cong.js chay …` — chạy code PR: `.claude/**` + `cong.yml` phải khớp từng byte kết quả
      `cai_dat.js` (`.claude/` của gốc + `tu_chay/` của PR) (A8, câu "chủ quán chạy bash tu_chay/cai_dat.sh trên
      nhánh việc"); `npm ci`; mỗi bài thử mới/sửa chạy trên `git archive` của gốc phải ĐỎ — xanh, quá giờ, thiếu
@@ -789,6 +792,10 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - **Bài thử chạy trên gốc mà đỏ vì lý do khác** (vd. tự `throw`) vẫn được tính là đỏ hợp lệ — cổng không phân biệt
   "đỏ đúng chỗ"; đó là việc của `/ra-soat` (K3).
 - Hook kéo nhánh: ca C1, C2, C5b xanh cả trên bản chưa vá (bản cũ không kéo gì); ca đối chứng C7/C3 cùng kho đỏ.
+- **Bỏ một mục `ban_cai` hay xoá một file khỏi `tu_chay/`**: trình cài không xoá bản cài cũ, cổng vẫn so đích cũ với nguồn
+  đã mất → đỏ. Muốn bỏ thì chủ quán làm tay hai bước (gỡ ở main trước). Đổi lệnh/matcher người gác cũng vậy.
+- **Không có ca thử** cho phép kiểm cấu trúc `muc_gac` trong `cai_dat.js` và phép kiểm `cau_hinh.json` lúc nạp `cong.js`
+  (đột biến M9, M10 của vòng soát 3 sống) — `thu_nguoi_gac.js` ghim nội dung `muc_gac`, rủi ro thấp.
 - **A11 không có lối miễn cho bài thử CŨ bị sửa** (thêm ca hồi quy cho hành vi đang đúng, sửa chú thích): theo chữ phiếu,
   mục `## Bài thử đỏ` chỉ miễn A12. Chủ quán quyết có mở lối miễn không.
 - **`npm test` theo `package.json` của PR**: phiếu nào ghi `package.json` thì PR đổi được script `test` → A13 tắt

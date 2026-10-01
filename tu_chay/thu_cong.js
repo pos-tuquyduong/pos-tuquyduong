@@ -40,7 +40,7 @@ const viet = (goc, rel, nd) => { const p = path.join(goc, rel); fs.mkdirSync(pat
 const PHIEU = ['# X — phiếu thử cổng', '', '## Mục tiêu', 'thử cổng', '', '## Phạm vi', '- viec/X/**', '- README.md',
   '- server/a.js', '- server/moi.js', '- cong_cu/thu_a.js', '- cong_cu/thu_b.js', '- cong_cu/thu_c.js', '- cong_cu/thu_d.js',
   '- cong_cu/khac.js', '- DO_TEST.md', '- DO_DAYDU.md', '- TIEN_DO_X.json', '- .env.local', '- .replit',
-  '- tu_chay/MAU_PHIEU.md', '- tu_chay/cau_hinh.json', '- tu_chay/cai_dat.js', '- tu_chay/cai_dat.sh', '- tu_chay/mau/a.md', '- tu_chay/**', '- .github/workflows/keep-alive.yml', '',
+  '- tu_chay/MAU_PHIEU.md', '- tu_chay/cau_hinh.json', '- tu_chay/cai_dat.js', '- tu_chay/cai_dat.sh', '- tu_chay/mau/a.md', '- tu_chay/lenh_moi.md', '- tu_chay/**', '- .github/workflows/keep-alive.yml', '',
   '## Ngân sách', '~1 dòng', ''].join('\n');
 // Bài thử hợp lệ: ĐỎ trên gốc (chưa có server/moi.js), XANH trên PR. Ghi dấu để biết code PR đã chạy.
 const THU_HOP_LE = "require('fs').appendFileSync(process.env.THU_DAU || '/dev/null', 'x');\n"
@@ -195,6 +195,37 @@ function baiCong() {
   ca('A8 tĩnh: thiếu deny Edit(./.github/**)', [['deny', doiSet((s) => {
     s.permissions.deny = s.permissions.deny.filter((d) => d !== 'Edit(./.github/**)');
   })]], 'ĐỎ', { che: 'tinh', chua: ['Edit(./.github/**)'] });
+  ca('A8 tĩnh: thiếu deny Edit(./.claude/**)', [['deny', doiSet((s) => {
+    s.permissions.deny = s.permissions.deny.filter((d) => d !== 'Edit(./.claude/**)');
+  })]], 'ĐỎ', { che: 'tinh', chua: ['Edit(./.claude/**)'] });
+  // Vòng soát 3 (K5): PR bộ khung đổi CHÍNH cấu hình cài rồi chủ quán chạy cai_dat.sh → phải ĐẠT (main là chuẩn, PR chỉ THÊM)
+  const doiCH = (f) => () => {
+    const p = path.join(G, 'tu_chay/cau_hinh.json');
+    const ch = JSON.parse(fs.readFileSync(p, 'utf8'));
+    f(ch);
+    fs.writeFileSync(p, JSON.stringify(ch, null, 2) + '\n');
+  };
+  const caiLai = () => { const r = caiDat(); if (r.status !== 0) throw new Error(r.stderr + r.stdout); };
+  ca('K5 PR đổi muc_gac (timeout 30→60) + chủ quán đã cài', [['muc', () => {
+    doiCH((ch) => { ch.muc_gac.hooks[0].timeout = 60; })();
+    viet(G, 'cong_cu/thu_a.js', THU_HOP_LE); viet(G, 'server/moi.js', 'module.exports = 2;\n');
+    caiLai();
+  }]], 'ĐẠT');
+  ca('K5 PR thêm một mục ban_cai + nguồn + chủ quán đã cài', [['ban', () => {
+    doiCH((ch) => { ch.ban_cai.push(['lenh_moi.md', '.claude/commands/moi.md']); })();
+    viet(G, 'tu_chay/lenh_moi.md', 'lệnh mới\n');
+    viet(G, 'cong_cu/thu_a.js', THU_HOP_LE); viet(G, 'server/moi.js', 'module.exports = 2;\n');
+    caiLai();
+  }]], 'ĐẠT');
+  ca('A8 tĩnh: PR nới muc_gac (matcher Bash) và sửa tay settings + bản cài cho khớp', [['noi', () => {
+    doiCH((ch) => { ch.muc_gac.matcher = 'Bash'; })();
+    fs.copyFileSync(path.join(G, 'tu_chay/cau_hinh.json'), path.join(G, '.claude/tu_chay/cau_hinh.json'));
+    doiSet((s) => { for (const m of s.hooks.PreToolUse) if (JSON.stringify(m).includes('nguoi_gac.js')) m.matcher = 'Bash'; })();
+    viet(G, 'cong_cu/thu_a.js', THU_HOP_LE); viet(G, 'server/moi.js', 'module.exports = 2;\n');
+  }]], 'ĐỎ', { che: 'tinh', chua: ['hook người gác'] });
+  // Vòng soát 3 (nghi ngờ M6): bài thử ghi ra cây PR (DO_TEST.md) — chạy SAU npm test nên không làm đổi kết quả A13
+  ca('K5 bài thử ghi file vào cây PR không làm đỏ npm test', [['ghi', { 'cong_cu/thu_a.js': THU_HOP_LE.replace("process.exit(",
+    "if (require('fs').existsSync('server/moi.js')) require('fs').writeFileSync('DO_TEST.md', 'x');\nprocess.exit("), ...sv }]], 'ĐẠT');
   ca('A8 tĩnh: chỉ xoá tu_chay/cai_dat.js (cong.yml, settings giữ đúng)', [['xoa', { 'tu_chay/cai_dat.js': null,
     'cong_cu/thu_a.js': THU_HOP_LE, ...sv }]], 'ĐỎ', { che: 'tinh', chua: ['PR xoá trình cài tu_chay/cai_dat.js'] });
   ca('A8 tĩnh: xoá tu_chay/cai_dat.sh', [['xoa', { 'tu_chay/cai_dat.sh': null, 'cong_cu/thu_a.js': THU_HOP_LE, ...sv }]], 'ĐỎ', { che: 'tinh', chua: ['tu_chay/cai_dat.sh'] });
@@ -250,7 +281,8 @@ function baiCong() {
     ['A11', 'A11 bài thử mới luôn đỏ (đỏ cả trên code PR)', 'chay'], ['A8', 'A8 tĩnh: sửa tay .claude/tu_chay/PHIEN_BAN', 'tinh'],
     ['A8', 'A8 xoá cai_dat.js (chế độ chay)', 'chay'],
     ['A8', 'A8 tĩnh: hook người gác bị vô hiệu (matcher lạ, bỏ || exit 2) nhưng còn chuỗi đường dẫn', 'tinh'],
-    ['A8', 'A8 tĩnh: thiếu deny Edit(./.github/**)', 'tinh'],
+    ['A8', 'A8 tĩnh: thiếu deny Edit(./.github/**)', 'tinh'], ['A8', 'A8 tĩnh: thiếu deny Edit(./.claude/**)', 'tinh'],
+    ['A8', 'A8 tĩnh: PR nới muc_gac (matcher Bash) và sửa tay settings + bản cài cho khớp', 'tinh'],
     ['A8', 'A8 tĩnh: chỉ xoá tu_chay/cai_dat.js (cong.yml, settings giữ đúng)', 'tinh'],
     ['A8', 'A8 tĩnh: xoá tu_chay/cai_dat.sh', 'tinh'], ['A8', 'A8 tĩnh: thêm .claude/commands/la.md (không do trình cài quản)', 'tinh'],
     ['A12', 'A12 đổi code, không bài thử, không miễn', 'tinh'], ['A13', 'A13 npm test đỏ', 'chay'], ['A14', 'A14 HEAD ≠ head', 'chay']];
