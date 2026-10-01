@@ -44,7 +44,7 @@ Bài thử đỏ trước: `bang_chung_do.txt` (lần đầu + vòng sửa 1, 2,
 |---|---|---|---|
 | a | Agent phụ không nộp được báo cáo — `SubagentHandback` bị CC-LA 19 lần (nhật ký người gác) | KHOÁ | D1, `nguoi_gac.js` CONG_CU_DOC + ca CHO/CC-LA; có hiệu lực sau khi chủ quán cài |
 | b | Ca D4 đặt SAU vòng chấm của `thu_nguoi_gac.js` → không bao giờ được chấm mà bài vẫn xanh (tự phát hiện khi chạy) | KHOÁ | `Object.freeze(CA)` sau vòng chấm; ca đỏ trước: bản chép có ca muộn → 777/778 không ✗; có khoá → `TypeError`, ĐỎ |
-| c | Cổng: file `thu_*.js` luôn đỏ làm cổng xanh (soát 1) | KHOÁ + NGUYÊN TẮC | ca A11 "luôn đỏ", "không phải JS" + đột biến; K3 thêm dòng "đỏ trên gốc kèm xanh trên bản vá" |
+| c | Cổng: file `thu_*.js` luôn đỏ làm cổng xanh (soát 1) | KHOÁ | ca A11 "luôn đỏ", "không phải JS" + đột biến (dòng K3 "đỏ trên gốc kèm xanh trên bản vá" là ví dụ đi kèm, không tính ngăn riêng) |
 | d | Ca gộp nhiều vi phạm → đột biến không bắt (soát 2, 3) | NGUYÊN TẮC | K3 thêm dòng "mỗi phép một ca chỉ vi phạm đúng phép đó" |
 | e | Siết hook từ soi chuỗi sang so cấu trúc → chặn oan PR đổi `muc_gac` (soát 3) | NGUYÊN TẮC | K5 thêm dòng "siết một phép = thêm phép chặn, liệt kê lại luồng hợp lệ" |
 | f | Câu tổng kết trong THIET_KE nói quá so với code (soát 1, 2) | BỎ | K1 đã có đúng luật này; lỗi là không áp dụng, không phải thiếu luật |
@@ -114,7 +114,9 @@ CHƯA KIỂM:   - Cổng CHƯA chạy trên GitHub: check-run của pull_request
              - Ngân sách VƯỢT 1,3 lần: code ~450 dòng / ~320 (1,4×) — cong.js 242/150 (hai chế độ Q5, A8 tĩnh qua 3 vòng
                soát, chạy bài thử trên PR), cong_github.yml 87/45 (hai job Q5, setup-node Q3 trong cả hai); bài thử ~650 /
                ~400 (1,6×) — ca Q2, Q3, A10b, tách chế độ, ~25 ca do 3 vòng soát. Đường tiền, client/: không đụng.
-GIT:         (xem dòng git log ngay dưới khối này — ghi sau commit cuối)
-BÀI HỌC:     KHOÁ 7 · NGUYÊN TẮC 5 · BỎ 7 (19 bài: 10 sự cố của việc này + 9 bài phiếu F4; chi tiết ở ## Bài học)
+GIT:         faf415a TU-CHAY-3: trang thai — /ra-soat 3 vong, bai hoc buoc 11, bao cao 7 muc
+             c79ffae TU-CHAY-3: buoc 11 — khoa ca them muon trong thu_nguoi_gac (Object.freeze), 3 nguyen tac K3/K5
+             (commit này chỉ thêm dòng GIT vào trang_thai.md)
+BÀI HỌC:     KHOÁ 8 · NGUYÊN TẮC 4 · BỎ 7 (19 bài: 10 sự cố của việc này + 9 bài phiếu F4; chi tiết ở ## Bài học)
 ```
 
