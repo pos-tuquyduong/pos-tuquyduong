@@ -373,3 +373,26 @@ hôm nay), phải ghi ra file nháp. Kết luận của người soát: "ĐẠT 
 check-run + `edited`/up-to-date vào B15; 4.10 liệt kê ở mục 10; bảng mục 9 thêm H1, H2/B7, ghi chú A15, C1/C2, F2;
 sửa số dòng (mục 0). Không sửa: Q3 (người soát nghiêng về BỎ `setup-node`) — để chủ quán chọn.
 E2 cũng phải neo: `--grep="^PHIEU: <MÃ>([^A-Za-z0-9._-]|$)" -E` (soát 4.5).
+
+## Chủ quán duyệt (01.10.2026) — áp dụng khi làm
+- Q1 (a): bài thử = `thu_*.js` trong `thu_muc_bai_thu` hoặc `tu_chay/`.
+- Q2: chặn luôn `git commit` có ký tự đại diện / thư mục / `--pathspec-from-file`, ca đỏ trước.
+- Q3: giữ `actions/setup-node` ghim SHA, `node-version: 22`; bản action mới nhất chạy Node 24, ghi nguồn;
+  `runs-on: ubuntu-24.04`; `timeout-minutes: 20` mỗi job; B6 kiểm thêm ba điều này.
+  Tra 01.10.2026 (WebFetch github.com / raw.githubusercontent.com):
+  - `actions/checkout` v7.0.1 → `3d3c42e5aac5ba805825da76410c181273ba90b1`; `action.yml` tại SHA đó: `using: node24`.
+    v7 có input `allow-unsafe-pr-checkout` (mặc định false: chặn checkout code PR fork khi `pull_request_target`)
+    — không đặt; B6 cấm chuỗi này.
+  - `actions/setup-node` v7.0.0 → `820762786026740c76f36085b0efc47a31fe5020`; `action.yml`: `using: 'node24'`, có input
+    `package-manager-cache` (tự cache) → đặt `package-manager-cache: false`, B6 kiểm.
+- Q4: mốc diff của `/ra-soat` = commit `PHIEU: <MÃ>` đầu tiên (regex có neo).
+- Q5: hai job `cong` và `cong-chay`.
+- Thêm (1): cả hai chế độ lấy `cau_hinh.json` và `nguoi_gac.js` từ BASE (thư mục chứa `cong.js` = checkout `main`),
+  không từ PR. Ca A10b: PR vừa bỏ `TIEN_DO_*.json` khỏi `file_cam` vừa sửa `TIEN_DO_X.json` → vẫn ĐỎ.
+- Thêm (2): B15 ghi — sau khi hook kéo nhánh, phiên đang chạy vẫn dùng `settings.json` cũ (đọc lúc mở phiên);
+  người gác thì luôn chạy bản mới trên đĩa.
+- Ngân sách: vượt tới 1,3 lần chấp nhận; quá thì giải thích.
+- Lệch nhỏ khi làm: A7 KHÔNG dùng `--full-history` — với cờ đó, commit gộp `main` vào nhánh việc (không đụng phiếu)
+  vẫn bị liệt kê (không TREESAME với cha bên main) → chặn oan (K5). Mặc định của `git log -- <file>` vẫn liệt kê
+  commit gộp nào tự đổi phiếu (không TREESAME với cha nào).
+

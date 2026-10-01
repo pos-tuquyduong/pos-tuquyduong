@@ -32,6 +32,9 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 - **LUẬT CỨNG:** mọi bài thử phải chạy trên **bản CHƯA vá** và **bắt buộc phải
   hỏng**. Xanh cả hai bên = bài thử vô giá trị, phải viết lại.
 - Bốn nhánh phải phá thử: chưa vá · marker suông · vá rồi quên marker · đủ cả hai.
+- Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
+  (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
+- Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc đó. Bốn lần trong một phiên,
@@ -62,9 +65,11 @@ Middleware đặt sau route · ghi lại tồn cho mọi món mọi lần tải 
 trong hàm cập nhật của `setCart` · quên `dotenv` trong công cụ thử · sổ việc ghi
 17 mà liệt kê 20 · để lẫn patch cũ trong thư mục giao · bài thử sai tên bảng cột
 (`customer_packages` thay vì `pos_customer_packages`) · **bảo chạy `npm run kiem`
-ở POS trong khi POS dùng `npm test`**.
+ở POS trong khi POS dùng `npm test`** · commit không thành mà vẫn push → "Everything up-to-date",
+không đẩy gì (TU-CHAY-2).
 
 - **Chặn:** tên bảng, tên cột, tên script — tra trong code, không nhớ từ kho kia.
+- **Chặn:** sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong `git log origin/viec/<MÃ>..HEAD` phải rỗng.
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
 Khuôn nguy hiểm nhất về cách nghĩ. Bộ kiểm báo `POST /orders` chưa có cổng phân

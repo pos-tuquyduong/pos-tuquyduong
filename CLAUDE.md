@@ -88,7 +88,7 @@ bash ban_mau_pos/chay_thu.sh              # 119 phép của bản mẫu giao di�
 - **Không dùng `str_replace` với chuỗi tiếng Việt** — hỏng mã. Dùng Python
   `content.replace()` (F8).
 
-## 7. Mẫu báo cáo khi xong — bắt buộc đủ 6 mục
+## 7. Mẫu báo cáo khi xong — bắt buộc đủ 7 mục
 
 ```
 VIỆC:        <mã việc trong TIEN_DO_POS.json> — <tên>
@@ -97,6 +97,7 @@ BÀI THỬ:     chạy trên bản chưa vá → ĐỎ ở <chỗ nào>; sau khi
 ĐÃ RÀ K4:    grep "<mẫu>" trong <file> → <n> chỗ, đã xử lý hết
 CHƯA KIỂM:   <điều máy không kiểm được — nói thẳng, đừng giấu>
 GIT:         git log --oneline -2
+BÀI HỌC:     KHOÁ <n> · NGUYÊN TẮC <n> · BỎ <n> — chi tiết ở ## Bài học của trang_thai.md (bước 11 /lam-viec)
 ```
 
 Thiếu mục "CHƯA KIỂM" là báo cáo không đạt. Đã có lần nói "đã kiểm hết" trong
