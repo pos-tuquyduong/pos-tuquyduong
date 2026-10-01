@@ -26,7 +26,7 @@ const LUAT = [
   ['G-PLANS', 'Edit/Write kế hoạch vào ~/.claude/plans được cho'],
   ['G0-NGOAI', 'đích nằm ngoài kho và ngoài nháp — file tạm thì ghi vào thư mục nháp (scratchpad)'],
   ['G1-KHUNG', '.claude/, .git/ và nhật ký người gác không ai trong Claude Code được sửa — đổi luật là việc riêng, chủ quán duyệt'],
-  ['G1-CAM', 'file cấm (file_cam: .env, .replit, sổ việc) — không sửa; sổ việc do chủ quán ghi trong Shell'],
+  ['G1-CAM', 'file cấm (file_cam: .env, .replit, sổ việc, .github/) — không sửa; sổ việc do chủ quán ghi trong Shell; cổng GitHub do cai_dat.sh cài'],
   ['G1-PHIEU', 'phiếu và biên bản soát không được sửa — cần đổi phiếu thì ghi mục Câu hỏi trong trang_thai.md'],
   ['G2-VIEC', 'không ở nhánh viec/<MÃ> thì không được sửa file trong kho — chủ quán giao việc bằng chay.sh'],
   ['G2-PHIEU', 'nhánh viec/<MÃ> chưa có phiếu, hoặc phiếu thiếu mục "## Phạm vi" — dừng, báo chủ quán'],
@@ -58,8 +58,8 @@ const LUAT = [
   ['GIT-LENH', 'lệnh git con không có trong danh sách (merge, reset, rebase, stash, config, fetch, pull… bị cấm) — gộp là việc của chủ quán'],
   ['GIT-PUSH', 'push chỉ được đúng dạng: git push -u origin viec/<MÃ> — MÃ là nhánh đang đứng, nhánh có phiếu kèm ## Phạm vi, chạy trong kho; không ép, không xoá, không refspec, không đụng main'],
   ['GIT-OUTPUT', 'git --output / --ext-diff / grep -O bị chặn — dùng > vào nháp'],
-  ['GIT-ADD', 'git add phải kèm tên file cụ thể (không -A, -u, -f, ., glob)'],
-  ['GIT-COMMIT-CO', 'git commit không được kèm -n/--no-verify/--amend/-a/-i/-o'],
+  ['GIT-ADD', 'git add phải kèm tên file cụ thể, viết thẳng (không -A, -u, -f, ., thư mục, --pathspec-from-file, ký tự đại diện * ? [ ] \\ kể cả trong nháy)'],
+  ['GIT-COMMIT-CO', 'git commit không được kèm -n/--no-verify/--amend/-a/-i/-o/--pathspec-from-file; tên file sau commit viết thẳng (không thư mục, không * ? [ ] \\)'],
   ['GIT-COMMIT-NHANH', 'chỉ commit trên nhánh viec/*'],
   ['GIT-CHECKOUT', 'git checkout chỉ cho -b viec/<tên> hoặc -- <file trong phạm vi>'],
   ['GIT-CHECKOUT-FILE', 'git checkout -- <file>: mỗi file xét như hoàn tác file'],
@@ -100,8 +100,11 @@ Object.assign(MO_TA, {
   'NG-NHATKY': 'không ghi được nhật ký người gác — có thể đĩa đầy, dọn thư mục nháp',
 });
 
+// SubagentHandback: công cụ agent phụ nộp báo cáo về phiên chính (TU-CHAY-3 D1 — tên lấy từ nhật ký người gác 01.10.2026,
+// CC-LA chặn thì báo cáo không về). Chỉ đúng tên này, không mẫu chung.
 const CONG_CU_DOC = new Set(['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode',
-  'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput']);
+  'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput',
+  'SubagentHandback']);
 const CONG_CU_SUA = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const CHO_CHAY = new Set(('git node npm python3 ls cat head tail wc grep sed awk sort uniq cut diff find echo printf date pwd '
   + 'du df mkdir cp mv rm tar ln sleep curl kill cd test true timeout tee touch chmod sha256sum md5sum stat file basename '
@@ -179,8 +182,11 @@ function ghiDuoc(p, nc, cwd, laCongCuSua, hoanTac = false) {
   if (luat('G2-PHIEU') && !nc.phamVi) return chan('G2-PHIEU', `viec/${nc.ma}/phieu.md`);
   if (luat('G3-HOSO') && (rel === `viec/${nc.ma}/ke_hoach.md` || rel === `viec/${nc.ma}/trang_thai.md`)) return null;
   if (hoanTac && luat('G-HOANTAC')) return null; // trả về bản commit: an toàn cả với file ngoài phạm vi / file luật
-  const pv = nc.phamVi || [];
-  if (luat('G-LUAT') && khop(nc.cauHinh.file_luat, rel, false) && !pv.includes(rel)) return chan('G-LUAT', rel);
+  return xetPhamVi(rel, nc.phamVi || [], nc.cauHinh);
+}
+// File có trong Phạm vi của phiếu không. MỘT hàm cho người gác và cổng PR (tu_chay/cong.js) — K4.
+function xetPhamVi(rel, pv, cauHinh) {
+  if (luat('G-LUAT') && khop(cauHinh.file_luat, rel, false) && !pv.includes(rel)) return chan('G-LUAT', rel);
   if (luat('G4-PHAMVI') && khop(pv, rel, false)) return null;
   return luat('G5-NGOAIPV') ? chan('G5-NGOAIPV', rel) : null;
 }
@@ -545,6 +551,10 @@ function xetPush(r, nc, cwd) {
 //   · nguồn hoàn tác là INDEX (restore không --staged, checkout --) hoặc HEAD (--staged) — không nhận nguồn khác;
 //   · rồi đi qua ghiDuoc(…, hoanTac): khung, file cấm, phiếu, ngoài kho, liên kết cứng, không có việc → vẫn chặn.
 // Lỗ biết trước (loại B, B14): thư mục ĐÃ XOÁ khỏi đĩa không phân biệt được với file đã xoá.
+// Tên file viết thẳng cho pathspec của git (hoàn tác, add, commit): chữ, không ký tự đại diện của git
+// (* ? [ ] \ — git tự mở pathspec kể cả trong nháy; `\.claude/x` khớp .claude/x), không pathspec magic `:`, không thư mục.
+const tenThang = (w, cwd) => w.chu && !/[*?[\]\\]/.test(w.val) && !w.val.startsWith(':') && !w.val.endsWith('/')
+  && !laDir(path.resolve(cwd.d, w.val));
 const HOANTAC_CO = new Set(['--staged', '-S', '--worktree', '-W', '-q', '--quiet']);
 function xetHoanTac(r, coTuyChon, nc, cwd) {
   const tep = [];
@@ -557,10 +567,7 @@ function xetHoanTac(r, coTuyChon, nc, cwd) {
   }
   if (luat('GIT-HOANTAC')) {
     if (!tep.length) return chan('GIT-HOANTAC', 'thiếu tên file');
-    for (const w of tep) {
-      if (!w.chu || /[*?[\]\\]/.test(w.val) || w.val.startsWith(':') || w.val.endsWith('/')
-        || laDir(path.resolve(cwd.d, w.val))) return chan('GIT-HOANTAC', w.tho);
-    }
+    for (const w of tep) if (!tenThang(w, cwd)) return chan('GIT-HOANTAC', w.tho);
   }
   return dauTien(tep, (w) => (w.chu ? ghiDuoc(w.val, nc, cwd.d, false, true) : khongChu(w)));
 }
@@ -587,10 +594,11 @@ const LUAT_CON = {
         const v = w.val;
         if (!het && v === '--') { het = true; continue; }
         if (!het && v.startsWith('--')) {
-          if (laDai(v, '--all', '--update', '--force', '--patch', '--interactive', '--edit', '--no-ignore-removal')) return chan('GIT-ADD', v);
+          if (laDai(v, '--all', '--update', '--force', '--patch', '--interactive', '--edit', '--no-ignore-removal',
+            '--pathspec-from-file')) return chan('GIT-ADD', v);
         } else if (!het && v.startsWith('-') && v.length > 1) {
           if (/[Aufpie]/.test(v.slice(1))) return chan('GIT-ADD', v);
-        } else if (!w.chu || v === '.' || v === './' || v.startsWith(':') || thuc(path.resolve(cwd.d, v)) === nc.goc) {
+        } else if (!tenThang(w, cwd)) {
           return chan('GIT-ADD', w.tho);
         }
       }
@@ -599,18 +607,19 @@ const LUAT_CON = {
       if (luat('GIT-COMMIT-CO')) {
         const coGt = ['--message', '--file', '--author', '--date', '--template', '--reuse-message', '--reedit-message',
           '--fixup', '--squash', '--cleanup', '--trailer'];
+        let het = false;
         for (let j = 0; j < r.length; j++) {
           const v = r[j].val;
-          if (v === '--') break;
-          if (v.startsWith('--')) {
-            if (laDai(v, '--no-verify', '--amend', '--all', '--include', '--only')) return chan('GIT-COMMIT-CO', v);
+          if (!het && v === '--') { het = true; continue; }
+          if (!het && v.startsWith('--')) {
+            if (laDai(v, '--no-verify', '--amend', '--all', '--include', '--only', '--pathspec-from-file')) return chan('GIT-COMMIT-CO', v);
             if (!v.includes('=') && laDai(v, ...coGt)) j++;
-          } else if (v.startsWith('-') && v.length > 1) {
+          } else if (!het && v.startsWith('-') && v.length > 1) {
             for (let x = 1; x < v.length; x++) {
               if ('naio'.includes(v[x])) return chan('GIT-COMMIT-CO', v);
               if ('mFcCt'.includes(v[x])) { if (x === v.length - 1) j++; break; }
             }
-          }
+          } else if (!tenThang(r[j], cwd)) return chan('GIT-COMMIT-CO', r[j].tho); // pathspec: commit hàng loạt (TU-CHAY-3 Q2)
         }
       }
       if (luat('GIT-COMMIT-NHANH') && !/^viec\/./.test(nc.nhanh || '')) return chan('GIT-COMMIT-NHANH', nc.nhanh || '(HEAD tách rời)');
@@ -850,8 +859,11 @@ function docNhanh(goc) {
 }
 function docPhamVi(goc, ma) {
   let t;
-  try { t = fs.readFileSync(path.join(goc, 'viec', ma, 'phieu.md'), 'utf8').normalize('NFC'); } catch { return null; }
-  const dong = t.split('\n');
+  try { t = fs.readFileSync(path.join(goc, 'viec', ma, 'phieu.md'), 'utf8'); } catch { return null; }
+  return phamViTuChu(t);
+}
+function phamViTuChu(t) {
+  const dong = String(t).normalize('NFC').split('\n');
   const bd = dong.findIndex((d) => /^##\s+Phạm vi\s*$/.test(d.trim()));
   if (bd < 0) return null;
   const ds = [];
@@ -971,7 +983,7 @@ function chay() {
   process.stdin.on('error', (e) => ketThuc(chan('NG-LOI', e.message)));
 }
 
-module.exports = { LUAT, xet, tachLenh };
+module.exports = { LUAT, xet, tachLenh, xetPhamVi, phamViTuChu, khop };
 if (require.main === module) {
   try { chay(); } catch (e) {
     fs.writeSync(2, '[NG-LOI] người gác gặp lỗi bất ngờ — chặn · ' + e.message + '\n');
