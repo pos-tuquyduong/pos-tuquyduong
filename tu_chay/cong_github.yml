@@ -1,0 +1,85 @@
+# cong.yml — CỔNG PR vào main (TU-CHAY-3). NGUỒN: tu_chay/cong_github.yml. KHÔNG sửa bản trong .github/:
+# chủ quán cài bằng `bash tu_chay/cai_dat.sh`. Thiết kế, nguồn tài liệu, rủi ro còn lại: tu_chay/THIET_KE.md B15.
+# pull_request_target: GitHub chạy bản workflow trên main → PR không tự sửa được cổng của chính nó.
+# Job `cong` KHÔNG chạy code PR (phạm vi, file cấm, .github/, phiếu). Job `cong-chay` chạy bài thử / npm test của PR.
+# Ruleset khoa-main đòi cả hai check. Không job nào có `if:` — job bị bỏ qua thì GitHub tính là đạt.
+name: Cong PR
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  cong:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Chặn PR từ fork
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "✗ CỔNG ĐỎ: PR từ kho fork ($HEAD_REPO) — không tải code PR"
+            exit 1
+          fi
+      - name: Lấy cổng từ main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, node24
+        with:
+          path: goc
+          persist-credentials: false
+      - name: Lấy code PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, node24
+        with:
+          path: pr
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0, node24
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Cổng tĩnh (không chạy code PR)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          NHANH: ${{ github.event.pull_request.head.ref }}
+        run: node goc/tu_chay/cong.js tinh pr "$BASE" "$HEAD_SHA" "$NHANH"
+  cong-chay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Chặn PR từ fork
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "✗ CỔNG ĐỎ: PR từ kho fork ($HEAD_REPO) — không tải code PR"
+            exit 1
+          fi
+      - name: Lấy cổng từ main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, node24
+        with:
+          path: goc
+          persist-credentials: false
+      - name: Lấy code PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, node24
+        with:
+          path: pr
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0, node24
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Cổng chạy (npm ci, bài thử trên code gốc, npm test, --day-du)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          NHANH: ${{ github.event.pull_request.head.ref }}
+        run: node goc/tu_chay/cong.js chay pr "$BASE" "$HEAD_SHA" "$NHANH"
