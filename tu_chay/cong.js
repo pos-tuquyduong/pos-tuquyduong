@@ -222,10 +222,8 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       }
       const r = chayLenh(process.execPath, [p], { cwd: goc, timeout: 300000 });
       const thieu = /Cannot find module '([^'./][^']*)'/.exec(String(r.stdout) + String(r.stderr));
-      if (r.status === 0 && mienCu.has(p)) { // không tính doHopLe: A12 giữ
-        ghi.push(`miễn A11 (bài thử cũ sửa): ${p} — ${mienCu.get(p)}`);
-        daMien.push(p);
-      }
+      if (mienCu.has(p)) daMien.push(p); // (d) theo FILE ghi trong mục, xanh hay đỏ trên gốc (soát vòng 2)
+      if (r.status === 0 && mienCu.has(p)) ghi.push(`miễn A11 (bài thử cũ sửa): ${p} — ${mienCu.get(p)}`); // không tính doHopLe: A12 giữ
       else if (r.status === 0) doLy('A11', `bài thử \`${p}\` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá`);
       else if (r.status === null) doLy('A11', `bài thử \`${p}\` quá giờ trên code gốc — không tính là đỏ`);
       else if (thieu) doLy('A11', `bài thử \`${p}\` không chạy được trên code gốc (thiếu thư viện '${thieu[1]}') — không tính là đỏ`);
@@ -243,7 +241,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       const h = chayLenh(process.execPath, [p], { cwd: thuMuc, timeout: 300000 });
       if (h.status !== 0) doLy('A11', `bài thử \`${p}\` ĐỎ trên code PR (thoát ${h.status}) — bài thử phải xanh sau khi vá:\n${duoi(h.stdout + h.stderr, 5)}`);
     }
-    // HOC-1 (d): bài thử được miễn — BẢN GỐC (ở mốc) chạy trên code PR, đúng đường dẫn, phải XANH: PR không được thay bài cũ
+    // HOC-1 (d): bài thử ghi trong mục miễn — BẢN GỐC (ở mốc) chạy trên code PR, đúng đường dẫn, phải XANH: PR không được thay bài cũ
     // bằng bản yếu hơn rồi làm hỏng thứ bản gốc canh. Ghi bản gốc tạm vào cây PR, chạy, trả lại bản head.
     for (const p of daMien) {
       const f = path.join(thuMuc, p);
