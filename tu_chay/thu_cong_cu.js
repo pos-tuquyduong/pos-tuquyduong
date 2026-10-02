@@ -420,6 +420,14 @@ function baiT2() {
   chac('C3 .claude/tu_chay/ có FILE thừa → vẫn CẢNH BÁO "thừa: thua.txt"', /^CANH /.test(c3) && /thừa: thua\.txt /.test(c3), c3);
   const c3b = chay(kho('t2_c3b', (g) => viet(g, '.claude/tu_chay/con2/x.md', 'x\n')));
   chac('C3 THƯ MỤC con trong .claude/tu_chay/ không tính là thừa → T2 PASS', /^PASS /.test(c3b) && !/CANH/.test(c3b), c3b);
+  // Vòng soát 1: symlink tới FILE vẫn là file (trình cài lọc bằng statSync, đi theo symlink) — T2 phải so như file thường
+  const c4 = chay(kho('t2_c4', (g) => { fs.symlinkSync('a.js', path.join(g, 'tu_chay/lien.js')); viet(g, '.claude/tu_chay/lien.js', 'khác\n'); }));
+  chac('C2 symlink trong tu_chay/ lệch bản cài → vẫn CẢNH BÁO "lệch: lien.js"', /^CANH /.test(c4) && /lệch: lien\.js /.test(c4), c4);
+  const c5 = chay(kho('t2_c5', (g) => fs.symlinkSync('a.js', path.join(g, '.claude/tu_chay/thua.js'))));
+  chac('C3 symlink thừa trong .claude/tu_chay/ → vẫn CẢNH BÁO "thừa: thua.js"', /^CANH /.test(c5) && /thừa: thua\.js /.test(c5), c5);
+  let c6 = '';
+  try { c6 = chay(kho('t2_c6', (g) => fs.symlinkSync('khong_co.js', path.join(g, '.claude/tu_chay/treo.js')))); } catch (e) { c6 = 'SẬP ' + e.message; }
+  chac('C3 symlink treo trong .claude/tu_chay/ → CẢNH BÁO "thừa: treo.js", không sập bộ kiểm', /^CANH /.test(c6) && /thừa: treo\.js /.test(c6), c6);
 }
 
 for (const bai of [baiXemThu, baiThuVien, baiKeoNhanh, baiKhuonLoi, baiTaiLieu, baiT2]) {
