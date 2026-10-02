@@ -177,9 +177,8 @@ async function main() {
       const sdt = sdtMoi(); await napVi(sdt, 100000);
       const d = await taoDon(ten, { customer_phone: sdt, customer_name: 'Khách hoàn', items: [mon()], payment_method: 'balance', balance_amount: 25000 });
       const yc = await goi('POST', '/refunds', { order_id: d.id, reason: 'thử P20-v2' });
-      const ycId = yc.id || yc.refund_id || yc.refund?.id
-        || (await db.queryOne('SELECT id FROM pos_refund_requests WHERE order_id = ? ORDER BY id DESC LIMIT 1', [d.id]))?.id;
-      const duyet = await goi('POST', `/refunds/${ycId}/approve`, {});
+      k(`${ten}: POST /refunds → 200, refund_id là số`, yc.status === 200 && typeof yc.refund_id === 'number', moTa(yc));
+      const duyet = await goi('POST', `/refunds/${yc.refund_id}/approve`, {});
       k(`${ten}: duyệt hoàn tiền qua route thật → 200`, duyet.status === 200, moTa(duyet));
       const o = await db.queryOne('SELECT status, payment_status FROM pos_orders WHERE id = ?', [d.id]);
       k(`${ten}: DB status = refunded, payment_status = paid`, o.status === 'refunded' && o.payment_status === 'paid',
