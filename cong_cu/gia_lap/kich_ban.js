@@ -101,8 +101,7 @@ const KICH_BAN = [
     c.mong('dùng mã rồi mới huỷ đơn → 200, 200', m.status === 200 && h2.status === 200, `${c.ma(m)} / ${c.ma(h2)}`);
   } },
   // KB6 đi ĐÚNG đường quầy dùng: Lịch sử đơn → báo hỏng → Hoàn tiền (Orders.jsx:310–322 → damages.js), cộng ví khách.
-  // (chủ quán chốt 02.10.2026). POST /refunds không có màn hình gọi và đang trả 500 (BigInt, refunds.js:139) —
-  // việc vá BigInt thêm KB12 cho POST /refunds, đỏ trước.
+  // (chủ quán chốt 02.10.2026). POST /refunds (chưa có màn hình gọi) chạy ở KB12.
   { ten: 'hoàn tiền (báo hỏng)', chay: async (c) => {
     const d = await c.taoDon('KB6', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(1)], payment_method: 'cash', cash_amount: 20000 });
     const truoc = await c.vi(KH.quen);
@@ -166,6 +165,16 @@ const KICH_BAN = [
     c.moc.truocTx = null;
     c.mong('hai người /nhan-diem chồng nhau → 200 + 400 MA_DA_NHAN_DIEM', chen2?.status === 200 && r2.status === 400 && r2.code === 'MA_DA_NHAN_DIEM',
       `${chen2 ? c.ma(chen2) : 'móc không chạy'} / ${c.ma(r2)}`);
+  } },
+  // KB12 (P26a): yêu cầu hoàn tiền → duyệt, dùng refund_id máy chủ trả về (KHÔNG tra kho). Trước P26a: 500 BigInt.
+  { ten: 'hoàn tiền về ví qua yêu cầu + duyệt', chay: async (c) => {
+    const d = await c.taoDon('KB12', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(2)], payment_method: 'balance', balance_amount: 30000 });
+    const truoc = await c.vi(KH.quen);
+    const yc = await c.goi('nv', 'POST', '/refunds', { order_id: d.id, reason: 'giả lập' });
+    if (!c.mong('POST /refunds → 200, refund_id là số', yc.status === 200 && typeof yc.refund_id === 'number', c.ma(yc))) return;
+    const dy = await c.goi('chu', 'POST', `/refunds/${yc.refund_id}/approve`, {});
+    c.mong('duyệt hoàn tiền → 200, ví +30.000', dy.status === 200 && await c.vi(KH.quen) === truoc + 30000,
+      `${c.ma(dy)} · ví ${truoc} → ${await c.vi(KH.quen)}`);
   } },
 ];
 
