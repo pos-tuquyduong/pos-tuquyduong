@@ -37,6 +37,8 @@ DB = [
      'thu_cong_cu.js', 'treo'),
     ('MD bỏ phép (d) bản gốc chạy trên code PR', 'tu_chay/cong.js', 'for (const p of daMien) {', 'for (const p of []) {',
      'thu_cong.js', 'HOC-1 (d)(i)'),
+    ('MD2 (d) chỉ cho bài xanh trên gốc', 'tu_chay/cong.js', 'if (mienCu.has(p)) daMien.push(p);',
+     'if (mienCu.has(p) && r.status === 0) daMien.push(p);', 'thu_cong.js', 'HOC-1 (d)(iii)'),
 ]
 
 
