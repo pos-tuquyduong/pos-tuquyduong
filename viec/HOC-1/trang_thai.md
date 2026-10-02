@@ -17,7 +17,7 @@ ghi đúng lệnh chạy lại.
 ## Bước 4–6 — bài thử, sửa, kiểm
 - Bài thử chạy trên code CHƯA vá → ĐỎ: `viec/HOC-1/bang_chung_do.txt` (`thu_cong` 21 chỗ, `thu_nguoi_gac` 4, `thu_cong_cu` 6).
 - Sau vá (HEAD hiện tại, sau phép (d) và soát vòng 2): `thu_cong` 196 phép · 0 hỏng; `thu_nguoi_gac` 782/782 ca + 165 phép; `thu_cong_cu` 77 phép · 0 hỏng.
-- `npm test` và `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 54 · FAIL 0 · CẢNH BÁO 2 (T2, T3: bản cài `.claude/`
+- `npm test`: PASS 53 · FAIL 0 · CẢNH BÁO 2; `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 54 · FAIL 0 · CẢNH BÁO 2 (T2, T3: bản cài `.claude/`
   lệch nguồn — chủ quán chạy `bash tu_chay/cai_dat.sh`). `thu_cong.js` 39,2 s trong giới hạn 120 s của `chayBaiThat`.
 - Cổng TĨNH luật CŨ (bản `cong.js` của main lưu ở nháp) trên nhánh này, mốc `c064f42`: chỉ `[A8] bản cài lệch nguồn`
   (chờ chủ quán cài). Không A6 / A7 / A12.
@@ -232,7 +232,8 @@ BÀI HỌC:
 ## Câu hỏi
 1. ~~Miễn A11 có nên đòi "chỉ thêm ca"?~~ — **ĐÃ CHỐT (02.10.2026): phương án (d)**, bản gốc chạy trên code PR phải xanh.
    Đã làm, xem "Chủ quán chốt Câu hỏi 1" ở trên.
-2. **(d) theo FILE ghi trong mục hay chỉ theo bài "xanh trên gốc"?** (soát vòng 3, NGHI NGỜ 1 — luồng K5 (e)) Sửa vòng 2 làm
+2. ~~(d) theo FILE ghi trong mục hay chỉ theo bài "xanh trên gốc"?~~ — **ĐÃ CHỐT (02.10.2026): phương án (a)**, giữ như HEAD
+   (theo file). Không chạy vòng soát mới (chủ quán dặn). Câu gốc: (soát vòng 3, NGHI NGỜ 1 — luồng K5 (e)) Sửa vòng 2 làm
    (d) chạy cho MỌI file ghi trong mục mà PR sửa (`cong.js:225`). Hệ quả: phiếu CỐ Ý đổi hành vi mà bài cũ đang canh, nếu ghi
    bài đó vào mục, sẽ bị A11 "bản gốc đỏ trên code PR". Lối đi đã ghi trong `MAU_PHIEU.md`: đừng ghi file đó vào mục. Phương án:
    (a) giữ như HEAD (theo file — đóng lỗ "lách bằng một ca đỏ" của soát vòng 2); (b) lùi về "chỉ bài xanh trên gốc" (một dòng
@@ -250,6 +251,11 @@ BÀI HỌC:
    thì phiếu sau (vd chạy bản gốc của MỌI bài thử cũ bị sửa).
 5. (soát vòng 2) `cong.js:248-250` dùng `writeFileSync` — bài được miễn mà là symlink thì bước (d) ghi vào file đích; bước cuối
    của cổng nên không đổi kết quả. Hiếm; chưa sửa.
+6. **Đề xuất KHOÁ — CHƯA LÀM** (Bài học j, soát vòng 1–2): phép kiểm trong `tu_chay/thu_cong_cu.js` (ngoài Phạm vi HOC-1) —
+   mọi tên đột biến trong `viec/<MÃ>/dot_bien.py` phải có trong `viec/<MÃ>/trang_thai.md`. Ca đỏ: trang_thai thiếu "MD2".
+7. **Đề xuất KHOÁ — CHƯA LÀM** (Bài học k, soát vòng 3): phép kiểm trong `tu_chay/thu_cong_cu.js` (ngoài Phạm vi HOC-1) —
+   mỗi `<file>:<n>` trong mục BÁO CÁO của `viec/<MÃ>/trang_thai.md` phải trỏ tới dòng có ở HEAD và chứa từ khoá đi kèm.
+   Ca đỏ: BÁO CÁO ghi `cong.js:145` cho `file_luat` (ở HEAD là dòng 156).
 
 ## Bài học (bước 11)
 | # | Sự cố | Ngăn | Ở đâu / lý do |
@@ -283,7 +289,7 @@ VIỆC:        HOC-1 — miễn A11 cho bài thử cũ, package.json là file lu
 BÀI THỬ:     chạy trên bản chưa vá → ĐỎ: thu_cong 21 chỗ, thu_nguoi_gac 4, thu_cong_cu 6 (bang_chung_do.txt);
              (d)(i) ĐỎ trước (d), (d)(iii) ĐỎ trước sửa vòng 2; ca xanh trên gốc đỏ bằng đột biến: 18/18 ĐỎ đúng chỗ,
              3 M0 XANH (python3 viec/HOC-1/dot_bien.py, lần đủ cuối trên c8670cb); sau vá: thu_cong 196 phép 0 hỏng,
-             thu_nguoi_gac 782/782 + 165, thu_cong_cu 77 — npm test / --day-du PASS 54 FAIL 0 CẢNH BÁO 2 (bản cài)
+             thu_nguoi_gac 782/782 + 165, thu_cong_cu 77 — npm test PASS 53, --day-du PASS 54 · FAIL 0 · CẢNH BÁO 2 (bản cài)
 ĐÃ RÀ K4:    4 chỗ liệt kê tu_chay/ (cai_dat.js:97, cong.js:49 cacFile, cong.js:120 ls-tree, T2 :530) cùng khuôn kể cả symlink;
              file_luat ở nguoi_gac.js:189 + cong.js:156 — một mục phủ cả hai; mucMien / mucBaiThuCu cùng cách tách dòng;
              (d) phủ MỌI file ghi trong mục mà PR sửa (xanh lẫn đỏ trên gốc — lỗi soát vòng 2 đã sửa)
