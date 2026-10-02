@@ -11,7 +11,7 @@ Tài liệu có ba phần:
 
 1. **Người gác** chuyển từ "cấm những gì biết là xấu" sang "**chỉ cho những gì cần**". Lệnh lạ bị chặn mặc định.
 2. **Phép thử hai chiều do máy tự chạy.** Bài thử mới phải ĐỎ trên code cũ và XANH trên code mới. Việc "chứng minh đỏ" không còn dựa vào lời AI.
-3. **Giả lập có kiểm bất biến sổ sách**, và dùng lại 6 câu SQL đã chạy trên production ngày 27.09. Cách giả lập được viết cụ thể (B10).
+3. **Giả lập có kiểm bất biến sổ sách** (B10). 6 câu SQL chạy trên production ngày 27.09 không có trong kho — câu SQL I1–I9 viết lại từ schema thật ở `cong_cu/gia_lap/bat_bien.js` (TU-CHAY-4).
 4. **Có luật "đường ngắn nhất":**
    - Phiếu ghi ngân sách dòng code.
    - Kế hoạch phải so hai phương án.

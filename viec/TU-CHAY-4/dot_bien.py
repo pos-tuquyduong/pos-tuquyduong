@@ -20,6 +20,8 @@ DB = [
     ('E4e A1 bỏ một tên biến khoá', 'gl', 'chay.js', '|SX_API_KEY|', '|', 'SX_API_KEY'),
     ('E4f A2 bỏ dọn kho tạm', 'gl', 'chay.js', "process.on('exit', () => { try { fs.rmSync(THU_MUC",
      "process.on('khong_bao_gio', () => { try { fs.rmSync(THU_MUC", 'gia_lap_'),
+    ('E4g bắt nhầm máy chủ (đọc cổng SX giả thay cổng POS)', 'gl', 'chay.js', 'http://127.0.0.1:${mayPos.address().port}/api/pos',
+     'http://127.0.0.1:${sxMay.address().port}/api/pos', 'dòng tổng đúng'),
     ('F2 bánh cóc: 10 kịch bản', 'tai_cho', 'cong_cu/gia_lap/kich_ban.js', 'module.exports = { KICH_BAN,',
      'module.exports = { KICH_BAN: KICH_BAN.slice(0, 10),', 'bánh cóc giả lập'),
     ('S3 danh sách trắng ví lệch wallets.js', 'tai_cho', 'cong_cu/gia_lap/bat_bien.js', "'refund', 'adjust', 'compensation'];",
@@ -66,7 +68,8 @@ def chay(ten, kieu, f, tim, moi, dau):
         if dau is None:
             return ('XANH' if r.returncode == 0 and not do else 'ĐỎ'), '; '.join(do)[:300]
         trung = [l for l in do if dau in l]
-        return ('ĐỎ đúng chỗ' if r.returncode != 0 and trung else 'SAI'), (trung[0] if trung else '; '.join(do))[:300]
+        # In MỌI dòng ✗ (soát vòng 3): lỗi lạ không được nấp sau lỗi cố ý.
+        return ('ĐỎ đúng chỗ' if r.returncode != 0 and trung else 'SAI'), (' | '.join(trung + [l for l in do if l not in trung]))[:900]
     finally:
         shutil.rmtree(tam, ignore_errors=True)
 
