@@ -1,0 +1,39 @@
+# P26a — bằng chứng ĐỎ trên code CHƯA vá (server/database.js như 604bcd5), 02.10.2026
+# Bài thử đã viết/sửa theo kế hoạch; chỉ in dòng ✗ và dòng kết luận. Mọi lệnh thoát 1.
+
+$ node cong_cu/thu_P26a.js   → thoát 1
+  ✗ C1 POST /refunds → 200, refund_id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · refund_id undefined · kho 1
+  ✗ C2 POST /discount-codes → 200, id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · id undefined · kho 1
+  ✗ C3 POST /settings/invoice/log → 200, data.id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · id undefined · kho 1
+  ✗ C4 POST /packages/buy → 200, data.id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · id undefined · kho 1
+  ✗ C5 tx.run(INSERT) → lastInsertRowid là số, đúng dòng trong kho  — bigint 61 · kho 61
+  3 đạt · 5 hỏng
+
+$ node cong_cu/thu_P20.js   → thoát 1
+  ✗ hoàn tiền 1: POST /refunds → 200, refund_id là số  — HTTP 500 · Do not know how to serialize a BigInt
+  ✗ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200  — HTTP 404 · Không tìm thấy yêu cầu hoàn tiền
+  ✗ hoàn tiền 1: DB status = refunded, payment_status = paid  — completed · paid
+  ✗ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN  — HTTP 200
+  ✗ hoàn tiền 2: POST /refunds → 200, refund_id là số  — HTTP 500 · Do not know how to serialize a BigInt
+  ✗ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200  — HTTP 404 · Không tìm thấy yêu cầu hoàn tiền
+  ✗ hoàn tiền 2: DB status = refunded, payment_status = paid  — completed · paid
+  ✗ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN  — HTTP 200
+  43 đạt · 8 hỏng
+
+$ node cong_cu/gia_lap/chay.js   → thoát 1
+  ✗ KB12 → HTTP: POST /refunds → 200, refund_id là số: HTTP 500 · Do not know how to serialize a BigInt
+Giả lập: 12 kịch bản · 9 bất biến · KHÔNG ĐẠT (1 lệch)
+
+$ node cong_cu/thu_gia_lap.js   → thoát 1
+  ✗ thoát 0, dòng tổng đúng "Giả lập: 12 kịch bản · 9 bất biến · ĐẠT"  — thoát 1 · Giả lập: 12 kịch bản · 9 bất biến · KHÔNG ĐẠT (1 lệch)
+  ✗ KB12 → HTTP: POST /refunds → 200, refund_id là số: HTTP 500 · Do not know how to serialize a BigInt
+  30 đạt · 1 hỏng
+
+# Chạy lại sau efcce93 (thu_P26a đẩy sqlite_sequence 6 bảng — soát vòng 3), trên server/ có database.js của 604bcd5:
+$ node cong_cu/thu_P26a.js --may-chu <bản sao gốc>   → thoát 1
+  ✗ C1 POST /refunds → 200, refund_id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · refund_id undefined · kho 101
+  ✗ C2 POST /discount-codes → 200, id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · id undefined · kho 201
+  ✗ C3 POST /settings/invoice/log → 200, data.id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · id undefined · kho 301
+  ✗ C4 POST /packages/buy → 200, data.id là số, đúng dòng trong kho  — HTTP 500 · Do not know how to serialize a BigInt · id undefined · kho 401
+  ✗ C5 tx.run(INSERT) → lastInsertRowid là số, đúng dòng trong kho  — bigint 61 · kho 61
+  3 đạt · 5 hỏng

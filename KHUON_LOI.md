@@ -35,6 +35,7 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 - Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
   (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
 - Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
+- "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ — đọc WHERE của bất biến trước (P26a: KB12 ≠ I1-refunded).
 - Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
   khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát).
 - "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
@@ -65,6 +66,8 @@ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng n
   chính thứ làm chuẩn so sánh (cổng TU-CHAY-3 vòng 2: PR đổi `muc_gac` rồi cài đúng vẫn đỏ vĩnh viễn).
 - **Chặn:** thêm phép chặn nào cũng phải liệt kê **mọi luồng hợp lệ** đi qua
   điều kiện đó, rồi viết một ca thử "**phải KHÔNG bị chặn**" cho từng luồng.
+- Chiều ngược: ca "phải qua" (200) chỉ khoá luồng **HỢP LỆ** — đọc phân quyền + đường tiền của route trước khi viết
+  `status === 200` (P26a C4 khoá `POST /packages/buy` — không quyền, không thu tiền — vào pre-commit; soát bắt).
 
 ## K6 · Vi phạm luật có sẵn của chính dự án
 Đã gây: dùng `fetch` trần trong `Layout.jsx`, vi phạm luật bánh cóc. Bộ kiểm của
