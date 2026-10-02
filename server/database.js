@@ -1335,6 +1335,9 @@ async function queryOne(sql, params = []) {
   return results[0] || null;
 }
 
+// P26a — kho trả lastInsertRowid dạng BigInt; res.json không chuyển được → route ghi xong rồi báo 500. Đổi ở gốc.
+const soDong = (v) => (v == null ? v : Number(v));
+
 /**
  * Run helper - INSERT/UPDATE/DELETE (ASYNC)
  * @param {string} sql - SQL statement
@@ -1349,7 +1352,7 @@ async function run(sql, params = []) {
     });
 
     return {
-      lastInsertRowid: result.lastInsertRowid,
+      lastInsertRowid: soDong(result.lastInsertRowid),
       changes: result.rowsAffected
     };
   } catch (err) {
@@ -1376,7 +1379,7 @@ async function beginTransaction() {
     },
     async run(sql, params = []) {
       const result = await tx.execute({ sql, args: sanitizeArgs(params) });
-      return { lastInsertRowid: result.lastInsertRowid, changes: result.rowsAffected };
+      return { lastInsertRowid: soDong(result.lastInsertRowid), changes: result.rowsAffected };
     },
     async commit() { await tx.commit(); },
     async rollback() { try { await tx.rollback(); } catch(e) {} }
