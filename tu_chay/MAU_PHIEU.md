@@ -39,7 +39,8 @@ không — <lý do>
 <Cổng chỉ bỏ điều kiện "đỏ trên code gốc" cho file đó; vẫn phải XANH trên code PR, và BẢN GỐC của file (ở main) chạy
  trên code PR cũng phải XANH — chỉ thêm ca, không bớt ca bản gốc đang canh. Bài thử mới, file bị xoá hay đổi tên
  KHÔNG được miễn (cổng báo "dòng hỏng"). Miễn này KHÔNG thay A12: đổi code thì vẫn cần một bài thử đỏ hợp lệ khác,
- hoặc mục ## Bài thử đỏ.>
+ hoặc mục ## Bài thử đỏ. Ghi file vào mục là bật phép bản gốc cho file đó (kể cả khi bản sửa đỏ trên gốc): việc CỐ Ý đổi
+ hành vi mà bài cũ đang canh thì KHÔNG ghi file đó vào mục — bản sửa đỏ trên gốc đã là bài đỏ hợp lệ.>
 
 ## Ngân sách
 <Khoảng số dòng thêm/bớt, ví dụ "~80 dòng code + ~150 dòng thử". Vượt 1,5 lần thì phải giải thích.>
