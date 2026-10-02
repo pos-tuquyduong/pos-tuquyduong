@@ -35,6 +35,7 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 - Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
   (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
 - Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
+- "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ — đọc WHERE của bất biến trước (P26a: KB12 ≠ I1-refunded).
 - Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
   khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát).
 - "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
