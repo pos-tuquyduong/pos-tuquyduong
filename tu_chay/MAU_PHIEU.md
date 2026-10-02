@@ -33,6 +33,13 @@
 <TUỲ CHỌN — chỉ ghi khi phiếu cho miễn "bài thử phải đỏ trên code gốc" (cổng PR A5). Một dòng:>
 không — <lý do>
 
+## Bài thử cũ sửa
+<TUỲ CHỌN (HOC-1) — bài thử ĐÃ CÓ ở main mà việc này sửa (vd thêm ca hồi quy) và vẫn xanh trên code gốc. Mỗi dòng một file:>
+- <đường dẫn thu_*.js> — <lý do>
+<Cổng chỉ bỏ điều kiện "đỏ trên code gốc" cho file đó; vẫn phải XANH trên code PR. Bài thử mới, file bị xoá hay đổi tên
+ KHÔNG được miễn (cổng báo "dòng hỏng"). Miễn này KHÔNG thay A12: đổi code thì vẫn cần một bài thử đỏ hợp lệ khác,
+ hoặc mục ## Bài thử đỏ.>
+
 ## Ngân sách
 <Khoảng số dòng thêm/bớt, ví dụ "~80 dòng code + ~150 dòng thử". Vượt 1,5 lần thì phải giải thích.>
 
