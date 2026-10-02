@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 16,
+  "phien_ban_so": 17,
   "cap_nhat": "2026-10-02",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -198,7 +198,7 @@
     },
     {
       "ma": "P20c",
-      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b; GHI CHU: kiemDonCuaMa chay ngoai giao dich (signup-codes.js:174, :339) — don huy/hoan giua luc kiem va UPDATE; GHI CHU: thong nhat ma loi ma-da-dung (/claim :317, :390, /nhan-diem :253); GHI CHU [a] (soat lan 3, 27.09): /:id/reset (server/routes/signup-codes.js) kiem claimed_at va used_count NGOAI giao dich roi DELETE pos_discount_codes khong co AND used_count = 0 — co the xoa voucher dang dung do; GHI CHU [b]: phep kiem tinh /nhan-diem trong kiem_tra_truoc_khi_giao.js bi lua khi cau chan nam trong chuoi JS hoac sau -- trong SQL (boGhiChu chi bo comment JS); nghi phep /claim cung vay, CHUA pha thu; de xuat THEM phep moi, KHONG noi phep cu; GHI CHU [c]: thu_P20.js chua co ca ma tro toi don da bi xoa (nhanh kiemDonCuaMa tra 404 KHONG_THAY_DON); production co 9 ma nhu vay, da xet 27.09, khong can xu ly du lieu; GHI CHU [d]: /nhan-diem khong xet claimed_at — neu bat ca voucher lan nhan diem thi mot ma bill lay duoc ca hai. CHO CHU QUAN QUYET: y muon hay loi",
+      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b; GHI CHU: kiemDonCuaMa chay ngoai giao dich (signup-codes.js:174, :339) — don huy/hoan giua luc kiem va UPDATE; GHI CHU: thong nhat ma loi ma-da-dung (/claim :317, :390, /nhan-diem :253); GHI CHU [a] (soat lan 3, 27.09): /:id/reset (server/routes/signup-codes.js) kiem claimed_at va used_count NGOAI giao dich roi DELETE pos_discount_codes khong co AND used_count = 0 — co the xoa voucher dang dung do; GHI CHU [b]: phep kiem tinh /nhan-diem trong kiem_tra_truoc_khi_giao.js bi lua khi cau chan nam trong chuoi JS hoac sau -- trong SQL (boGhiChu chi bo comment JS); nghi phep /claim cung vay, CHUA pha thu; de xuat THEM phep moi, KHONG noi phep cu; GHI CHU [c]: thu_P20.js chua co ca ma tro toi don da bi xoa (nhanh kiemDonCuaMa tra 404 KHONG_THAY_DON); production co 9 ma nhu vay, da xet 27.09, khong can xu ly du lieu; GHI CHU [d]: /nhan-diem khong xet claimed_at — neu bat ca voucher lan nhan diem thi mot ma bill lay duoc ca hai. CHO CHU QUAN QUYET: y muon hay loi; CHU QUAN CHOT 02.10 [d]: moi ma in tren bill chi cho MOT khuyen mai; voucher hay nhan diem do Cai dat quyet; loai gan vao ma LUC IN, doi cai dat sau khong doi ma da in",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -207,7 +207,7 @@
     },
     {
       "ma": "P22",
-      "ten": "Diem thuong chi cong khi thu du: don paid luc tao cong ngay; don cho thu/con no cong o pay-debt khi thanh paid, chi khi don CHUA co dong earn (F2). pay-debt: UPDATE don + dong debt_payment + cong diem trong MOT transaction (diem loi khong hong lan thu), log thu ghi SAU CUNG voi meta truoc-khi-thu dung thuc te. CHO CHU QUAN QUYET 1 viec: diem am khi khach da tieu diem — ap cho hoan thu P13e va huy don P24",
+      "ten": "Diem thuong chi cong khi thu du: don paid luc tao cong ngay; don cho thu/con no cong o pay-debt khi thanh paid, chi khi don CHUA co dong earn (F2). pay-debt: UPDATE don + dong debt_payment + cong diem trong MOT transaction (diem loi khong hong lan thu), log thu ghi SAU CUNG voi meta truoc-khi-thu dung thuc te. CHO CHU QUAN QUYET 1 viec: diem am khi khach da tieu diem — ap cho hoan thu P13e va huy don P24; CHU QUAN CHOT 02.10: DIEM AM khi khach da tieu diem (ap cho P24, P13e); phai sua bat bien I8 cua gia lap",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -225,7 +225,7 @@
     },
     {
       "ma": "P24",
-      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22",
+      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22; CHU QUAN CHOT 02.10: DIEM AM; phai sua bat bien I8 cua gia lap",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -243,7 +243,7 @@
     },
     {
       "ma": "P13b",
-      "ten": "Day the bill cho thu + thu 2 cham tien mat/chuyen khoan, GHI NGAY (bo hoan tac 5s); xu ly 400 da thu / 409 DA_THU_ROI. Can TRUOC: gate ban mau (bo hoan tac, sua luat 2 va luat 3 — bill mang ra ban chi thu o Ban hang, don ghi no thu o Lich su don) + P22",
+      "ten": "Day the bill cho thu + thu 2 cham tien mat/chuyen khoan, GHI NGAY (bo hoan tac 5s); xu ly 400 da thu / 409 DA_THU_ROI. Can TRUOC: gate ban mau (bo hoan tac, sua luat 2 va luat 3 — bill mang ra ban chi thu o Ban hang, don ghi no thu o Lich su don) + P22; CHU QUAN CHOT 02.10 cong ban mau: BO hoan tac 5s; bill mang ra ban chi thu o Ban hang, don ghi no chi thu o Lich su don — sua ban_mau_pos/ truoc",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -270,7 +270,7 @@
     },
     {
       "ma": "P13e",
-      "ten": "Hoan thu o Lich su don: quyen hoan_thu (manager), ly do + xac nhan; thu phai la thao tac cuoi, trong ngay (owner: moi ngay + xac nhan them), ma uu dai chua dung; append-only (log hoan_thu, dong debt_payment_hoan am, dong diem am). Can P21, P22",
+      "ten": "Hoan thu o Lich su don: quyen hoan_thu (manager), ly do + xac nhan; thu phai la thao tac cuoi, trong ngay (owner: moi ngay + xac nhan them), ma uu dai chua dung; append-only (log hoan_thu, dong debt_payment_hoan am, dong diem am). Can P21, P22; CHU QUAN CHOT 02.10: diem am",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -333,8 +333,35 @@
     },
     {
       "ma": "TU-CHAY-4",
-      "ten": "Gia lap quay: 11 kich ban + 9 bat bien so sach, chay trong cong",
+      "ten": "Gia lap quay: 11 kich ban + 9 bat bien so sach, chay trong cong; KET QUA: tu-chay 1.3.2 (PR #6, 2 check xanh). cong_cu/gia_lap/ (chay.js, kich_ban.js, bat_bien.js) — may chu that + kho tam + SX gia + tre 40ms, 11 kich ban, 9 bat bien; thu_gia_lap.js: M1-M10 bat dung bat bien; chi chay o --day-du (~22 s), bo kiem goi voi moi truong loc sach khoa; file_luat them cong_cu/gia_lap/** + cong_cu/thu_gia_lap.js; I8 = luat diem HIEN TAI (P22/P24 phai sua I8); KB6 di duong bao hong -> hoan vi",
       "tang": 1,
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-4",
+      "commit": "ba274cd",
+      "ngay": "2026-10-02"
+    },
+    {
+      "ma": "P26a",
+      "ten": "Va loi BigInt: route tra lastInsertRowid (BigInt) ra JSON -> 500 du da ghi: refunds.js:139, packages.js:178, discount-codes.js:220 (man hinh co goi: tao ma chiet khau bao loi du da tao), settings.js:278 (log in hoa don), + loyalty/tiers can Number(); bo cho thu_P20.js:180 lach loi; them KB12 POST /refunds -> duyet vao gia lap (do truoc)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P26b",
+      "ten": "Va bam trung (kiem ngoai giao dich roi ghi khong dieu kien): huy don tra vi -> hoan vi 2 lan; duyet hoan 2 lan; nap vi dung luc tieu vi -> ghi de; bao hong -> hoan tien doc vi ngoai giao dich roi ghi de so du (damages.js:160-172); bao hong tin so tien hoan do man hinh gui (damages.js:155). Moi cho mot kich ban 'hai nguoi cung bam' trong gia lap (do truoc)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "HOC-2",
+      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap",
+      "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
