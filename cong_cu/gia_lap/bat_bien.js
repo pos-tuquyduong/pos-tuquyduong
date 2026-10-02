@@ -18,6 +18,7 @@ const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
 
 const BAT_BIEN = {
   // I1 — mã bill chỉ dùng trên đơn đã thu, chưa huỷ. Huỷ/hoàn SAU lúc dùng là hợp lệ (>= vì getNow theo giây).
+  // Nhánh 'refunded' CHƯA có kịch bản chạy qua (KB6 đi đường báo hỏng) — KB12 POST /refunds của việc vá BigInt sẽ phủ.
   async I1(q) {
     const ds = await q(`SELECT s.code, o.code AS don, o.status, o.payment_status, o.cancelled_at,
         CASE WHEN s.claimed_at IS NULL THEN s.diem_nhan_luc WHEN s.diem_nhan_luc IS NULL THEN s.claimed_at
@@ -61,7 +62,7 @@ const BAT_BIEN = {
       WHERE type NOT IN (${IN([...LOAI_TINH_VAO_VI, 'debt_payment'])}) GROUP BY type`);
     return ds.map((r) => `loại dòng ví lạ "${r.type}": ${r.n} dòng`);
   },
-  // I6 — mỗi đơn thu đúng một lần: tiền mặt + CK + ví + ví mẹ + nợ còn lại = tổng đơn (±1đ như orders.js:746).
+  // I6 — mỗi đơn thu đúng một lần: tiền mặt + CK + ví + ví mẹ + nợ còn lại = tổng đơn (±1đ như orders.js:751).
   async I6(q) {
     const ds = await q(`SELECT code, total, COALESCE(cash_amount, 0) + COALESCE(transfer_amount, 0) + COALESCE(balance_amount, 0)
       + COALESCE(parent_balance_amount, 0) + COALESCE(debt_amount, 0) AS da_ghi FROM pos_orders`);

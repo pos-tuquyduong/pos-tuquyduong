@@ -50,6 +50,7 @@ if (process.argv.includes('--chi-kiem-an-toan')) { viet('Giả lập: an toàn: 
 // ── A2 · kho tạm, xoá kể cả khi sập ─────────────────────────────────────────
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_'));
 process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
+for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // bộ kiểm hết giờ gửi SIGTERM → vẫn dọn
 const sap = (e) => { viet(`Giả lập: SẬP — ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' · ') : e}`); process.exit(2); };
 
 async function main() {

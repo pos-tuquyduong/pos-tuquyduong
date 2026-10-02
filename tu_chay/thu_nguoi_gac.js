@@ -498,17 +498,11 @@ for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
   const TEN = kho('kho_json_ten', { cauHinh: ch, phieu: phieu('- package.json') });
   E('package.json', 'CHO', { goc: TEN });
   B('echo x > package.json', 'CHO', { goc: TEN });
-}
-// TU-CHAY-4 F3: giả lập quầy là file luật — phiếu chỉ ghi glob thì chặn, ghi đúng tên từng file thì cho
-{
-  const ch = fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8');
-  const phieu = (dong) => ({ X: PHIEU_X.replace('- kiem_tra_truoc_khi_giao.js', '- kiem_tra_truoc_khi_giao.js\n' + dong) });
-  const GLOB = kho('kho_gl_glob', { cauHinh: ch, phieu: phieu('- cong_cu/gia_lap/**\n- cong_cu/*.js') });
-  E('cong_cu/gia_lap/kich_ban.js', 'G-LUAT', { goc: GLOB });
-  E('cong_cu/thu_gia_lap.js', 'G-LUAT', { goc: GLOB });
-  const TEN = kho('kho_gl_ten', { cauHinh: ch, phieu: phieu('- cong_cu/gia_lap/kich_ban.js\n- cong_cu/thu_gia_lap.js') });
-  E('cong_cu/gia_lap/kich_ban.js', 'CHO', { goc: TEN });
-  E('cong_cu/thu_gia_lap.js', 'CHO', { goc: TEN });
+  // TU-CHAY-4 F3: giả lập quầy là file luật — phiếu chỉ ghi glob thì chặn, ghi đúng tên từng file thì cho
+  for (const [ky, dong] of [['G-LUAT', '- cong_cu/gia_lap/**\n- cong_cu/*.js'], ['CHO', '- cong_cu/gia_lap/kich_ban.js\n- cong_cu/thu_gia_lap.js']]) {
+    const g = kho('kho_gl_' + ky, { cauHinh: ch, phieu: phieu(dong) });
+    for (const f of ['cong_cu/gia_lap/kich_ban.js', 'cong_cu/thu_gia_lap.js']) E(f, ky, { goc: g });
+  }
 }
 
 const coXet = typeof gac.xet === 'function';
