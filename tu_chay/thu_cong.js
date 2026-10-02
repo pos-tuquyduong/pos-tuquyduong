@@ -48,6 +48,7 @@ const THU_HOP_LE = "require('fs').appendFileSync(process.env.THU_DAU || '/dev/nu
 const KIEM_GIA = "const fs = require('fs');\nfs.appendFileSync(process.env.THU_DAU || '/dev/null', 'k');\n"
   + "process.exit(fs.existsSync(process.argv.includes('--day-du') ? 'DO_DAYDU.md' : 'DO_TEST.md') ? 1 : 0);\n";
 
+const THU_C_GOC = "process.exit(require('fs').existsSync('server/a.js') ? 0 : 1);\n";
 let G = null, BASE = null;
 function dungKho() {
   G = path.join(TAM, 'kho');
@@ -64,7 +65,7 @@ function dungKho() {
   viet(G, 'kiem_tra_truoc_khi_giao.js', KIEM_GIA);
   viet(G, 'README.md', 'kho thử\n');
   viet(G, 'server/a.js', 'module.exports = 1;\n');
-  viet(G, 'cong_cu/thu_c.js', 'process.exit(1);\n');
+  viet(G, 'cong_cu/thu_c.js', THU_C_GOC); // bài thử CŨ thật: xanh trên gốc, bắt việc xoá server/a.js (HOC-1 d)
   viet(G, 'cong_cu/khac.js', 'process.exit(1);\n');
   viet(G, 'ngoai/cu.md', 'ngoài phạm vi\n');
   viet(G, 'viec/X/phieu.md', PHIEU);
@@ -97,7 +98,7 @@ function goi(cheDo, head, nhanh = 'viec/X') {
 }
 const PR = {}; // tên ca → head, cho phần đột biến
 // che: 'ca' = tinh rồi chay (đạt khi cả hai đạt), hoặc 'tinh' / 'chay'
-function ca(ten, buoc, mong, { che = 'ca', chua = [], nhanh = 'viec/X' } = {}) {
+function ca(ten, buoc, mong, { che = 'ca', chua = [], khong = [], nhanh = 'viec/X' } = {}) {
   let head;
   try { head = pr(buoc); } catch (e) { chac(`${ten}: dựng PR`, false, e.message); return; }
   PR[ten] = head;
@@ -108,6 +109,7 @@ function ca(ten, buoc, mong, { che = 'ca', chua = [], nhanh = 'viec/X' } = {}) {
   // ĐỎ phải là cổng tự kết luận (dòng "CỔNG ĐỎ"), không phải sập vì thiếu file / lỗi cú pháp (K3)
   chac(`${ten}: phải ${mong}`, mong === 'ĐẠT' ? ok : !ok && ra.includes('CỔNG ĐỎ'), ra);
   for (const s of chua) chac(`${ten}: lý do có "${s}"`, ra.includes(s), ra);
+  for (const s of khong) chac(`${ten}: KHÔNG có "${s}"`, !ra.includes(s), ra);
 }
 
 function baiCong() {
@@ -245,6 +247,62 @@ function baiCong() {
   ca('A14 nhánh không dạng viec/<MÃ>', [['a', { 'README.md': 'z\n' }]], 'ĐỎ', { nhanh: 'tinh-nang/x' });
   ca('A14 không có viec/<MÃ>/phieu.md', [['a', { 'README.md': 'z\n' }]], 'ĐỎ', { nhanh: 'viec/Y' });
   ca('A14 phiếu thiếu ## Phạm vi', [['PHIEU: X bo pham vi', { 'viec/X/phieu.md': PHIEU.replace('## Phạm vi', '## Pham-vi-sai') }]], 'ĐỎ');
+
+  // HOC-1 A — miễn A11 cho bài thử ĐÃ CÓ bị sửa (phiếu ## Bài thử cũ sửa). Phiếu đổi ở commit "PHIEU: X" (A7).
+  const phieuMoi = (them) => ['PHIEU: X mien', { 'viec/X/phieu.md': PHIEU + them }];
+  const MIEN = '\n## Bài thử cũ sửa\n- cong_cu/thu_c.js — thêm ca hồi quy\n';
+  const XANH = 'process.exit(0); // thêm ca hồi quy\n';
+  const moi = { 'cong_cu/thu_a.js': THU_HOP_LE, ...sv };
+  const DONG_MIEN = 'miễn A11 (bài thử cũ sửa): cong_cu/thu_c.js — thêm ca hồi quy';
+  ca('HOC-1 A1 bài thử cũ sửa, xanh trên gốc + PR, có trong mục → miễn A11', [phieuMoi(MIEN), ['sua', { 'cong_cu/thu_c.js': XANH, ...moi }]],
+    'ĐẠT', { chua: [DONG_MIEN], khong: ['dòng hỏng'] });
+  ca('HOC-1 A1 đường dẫn ghi kèm backtick như mục Phạm vi', [phieuMoi(MIEN.replace('- cong_cu/thu_c.js', '- `cong_cu/thu_c.js`')),
+    ['sua', { 'cong_cu/thu_c.js': XANH, ...moi }]], 'ĐẠT', { che: 'chay', chua: [DONG_MIEN] });
+  ca('HOC-1 K5 mục trỏ bài thử PR không đụng → không báo hỏng', [phieuMoi(MIEN), ['moi', moi]], 'ĐẠT',
+    { che: 'chay', khong: ['dòng hỏng', 'miễn A11'] });
+  ca('HOC-1 K5 bài thử cũ có trong mục mà vẫn ĐỎ trên gốc → tính là bài đỏ hợp lệ', [phieuMoi(MIEN),
+    ['sua', { 'cong_cu/thu_c.js': THU_HOP_LE, ...sv }]], 'ĐẠT', { che: 'chay', khong: ['miễn A11'] });
+  // HOC-1 (d) chủ quán chốt Câu hỏi 1: bản GỐC của bài thử được miễn chạy trên code PR phải XANH
+  ca('HOC-1 (d)(i) bài cũ được miễn bị thay bằng bản luôn xanh, PR làm hỏng code bản gốc bắt', [phieuMoi(MIEN),
+    ['sua', { 'cong_cu/thu_c.js': 'process.exit(0);\n', 'server/a.js': null, ...moi }]], 'ĐỎ',
+    { che: 'chay', chua: ['bài thử cũ được miễn nhưng bản gốc đỏ trên code PR', 'cong_cu/thu_c.js'] });
+  // Soát vòng 2 (lỗi 1): file ghi trong mục mà bản head ĐỎ trên gốc cũng phải qua (d) — không lách bằng một ca đỏ mới
+  ca('HOC-1 (d)(iii) bài trong mục ĐỎ trên gốc, bỏ ca gốc, PR làm hỏng code bản gốc bắt', [phieuMoi(MIEN),
+    ['sua', { 'cong_cu/thu_c.js': THU_HOP_LE, 'server/a.js': null, ...sv }]], 'ĐỎ',
+    { che: 'chay', chua: ['bài thử cũ được miễn nhưng bản gốc đỏ trên code PR', 'cong_cu/thu_c.js'] });
+  ca('HOC-1 (d)(ii) K5 chỉ thêm ca vào bài cũ, giữ ca gốc → ĐẠT', [phieuMoi(MIEN), ['sua', { 'cong_cu/thu_c.js':
+    "if (!require('fs').existsSync('README.md')) process.exit(1); // ca mới\n" + THU_C_GOC, ...moi }]], 'ĐẠT',
+    { che: 'chay', chua: [DONG_MIEN], khong: ['bản gốc đỏ'] });
+  ca('HOC-1 A3 bài thử MỚI ghi trong mục → không miễn', [phieuMoi('\n## Bài thử cũ sửa\n- cong_cu/thu_b.js — lách\n'),
+    ['moi', { 'cong_cu/thu_b.js': 'process.exit(0);\n', ...moi }]], 'ĐỎ',
+    { che: 'chay', chua: ['bài thử mới không được miễn', 'cong_cu/thu_b.js` XANH trên code gốc'] });
+  ca('HOC-1 A4 bài thử cũ được miễn nhưng ĐỎ trên code PR', [phieuMoi(MIEN), ['sua', { 'cong_cu/thu_c.js':
+    "process.exit(require('fs').existsSync('server/moi.js') ? 1 : 0);\n", ...moi }]], 'ĐỎ',
+    { che: 'chay', chua: ['cong_cu/thu_c.js` ĐỎ trên code PR'], khong: ['XANH trên code gốc'] });
+  ca('HOC-1 A6 dòng thiếu lý do → hỏng, A11 như cũ', [phieuMoi('\n## Bài thử cũ sửa\n- cong_cu/thu_c.js —\n'),
+    ['sua', { 'cong_cu/thu_c.js': XANH, ...moi }]], 'ĐỎ', { che: 'chay', chua: ['dòng hỏng', 'cong_cu/thu_c.js` XANH trên code gốc'] });
+  ca('HOC-1 A6 lý do còn là chỗ trống của mẫu <…> → hỏng', [phieuMoi('\n## Bài thử cũ sửa\n- cong_cu/thu_c.js — <lý do>\n'),
+    ['sua', { 'cong_cu/thu_c.js': XANH, ...moi }]], 'ĐỎ', { che: 'chay', chua: ['dòng hỏng', 'cong_cu/thu_c.js` XANH trên code gốc'] });
+  ca('HOC-1 A6 dòng không phải thu_*.js → hỏng', [phieuMoi('\n## Bài thử cũ sửa\n- cong_cu/khac.js — x\n'), ['moi', moi]], 'ĐẠT',
+    { che: 'chay', chua: ['dòng hỏng', 'cong_cu/khac.js'] });
+  ca('HOC-1 A6 đường dẫn không có trong kho → hỏng', [phieuMoi('\n## Bài thử cũ sửa\n- cong_cu/thu_khong_co.js — x\n'), ['moi', moi]], 'ĐẠT',
+    { che: 'chay', chua: ['dòng hỏng', 'không có trong kho'] });
+  ca('HOC-1 duyệt (1) bài thử cũ bị PR xoá → dòng hỏng', [phieuMoi(MIEN), ['xoa', { 'cong_cu/thu_c.js': null, ...moi }]], 'ĐẠT',
+    { che: 'chay', chua: ['dòng hỏng', 'bị PR xoá hoặc đổi tên'] });
+  ca('HOC-1 duyệt (1) bài thử cũ bị đổi tên → cả hai tên đều hỏng, tên mới A11', [phieuMoi(
+    '\n## Bài thử cũ sửa\n- cong_cu/thu_c.js — đổi tên\n- cong_cu/thu_d.js — đổi tên\n'),
+  ['doi ten', () => { git(G, 'mv', 'cong_cu/thu_c.js', 'cong_cu/thu_d.js'); viet(G, 'cong_cu/thu_d.js', XANH); for (const [f, nd] of Object.entries(moi)) viet(G, f, nd); }]],
+  'ĐỎ', { che: 'chay', chua: ['bị PR xoá hoặc đổi tên', 'bài thử mới không được miễn', 'cong_cu/thu_d.js` XANH trên code gốc'] });
+  ca('HOC-1 A7 chỉ có bài thử cũ được miễn, đổi code, không ## Bài thử đỏ → A12', [phieuMoi(MIEN),
+    ['sua', { 'cong_cu/thu_c.js': XANH, 'server/a.js': 'module.exports = 5;\n' }]], 'ĐỎ', { che: 'chay', chua: [DONG_MIEN, 'A12'] });
+  ca('HOC-1 K5 mục miễn đứng trước ## Bài thử đỏ → cả hai cùng đọc được', [phieuMoi(MIEN + '\n## Bài thử đỏ\nkhông — chỉ thêm ca hồi quy\n'),
+    ['sua', { 'cong_cu/thu_c.js': XANH, 'server/a.js': 'module.exports = 5;\n' }]], 'ĐẠT', { chua: [DONG_MIEN, 'chỉ thêm ca hồi quy'], khong: ['dòng hỏng'] });
+  // HOC-1 B4 — package.json là file luật: glob chung không mở được, ghi đúng tên thì được
+  const goiMoi = '{ "name": "kho-thu", "private": true, "description": "b4", "scripts": { "test": "node kiem_tra_truoc_khi_giao.js" } }\n';
+  ca('HOC-1 B4 package.json chỉ ghi glob chung *.json', [['PHIEU: X json', { 'viec/X/phieu.md': PHIEU.replace('- README.md', '- README.md\n- *.json') }],
+    ['goi', { 'package.json': goiMoi, ...moi }]], 'ĐỎ', { che: 'tinh', chua: ['package.json` phải ghi ĐÚNG TÊN'] });
+  ca('HOC-1 B4 K5 package.json ghi đúng tên', [['PHIEU: X json', { 'viec/X/phieu.md': PHIEU.replace('- README.md', '- README.md\n- package.json') }],
+    ['goi', { 'package.json': goiMoi, ...moi }]], 'ĐẠT', { che: 'tinh' });
 
   // A14 chế độ chay: cây đang đứng không phải head
   {
@@ -421,7 +479,27 @@ function baiYml() {
   chac('B5 keep-alive.yml không đổi byte nào', bam === 'b68d4b9453f7607bb44e5306f5af6920e7f988555a08899da28da9a380492ff5', bam);
 }
 
-for (const bai of [baiYml, baiCong]) {
+// ═══ HOC-1 D2 · cong.js dừng ngay khi cau_hinh.json (bản main) thiếu khoá (đột biến M10) ═══
+function baiNapCauHinh() {
+  const d = path.join(TAM, 'nap');
+  fs.mkdirSync(d);
+  for (const f of ['cong.js', 'nguoi_gac.js']) fs.copyFileSync(path.join(__dirname, f), path.join(d, f));
+  const that = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8'));
+  const nap = (ch) => {
+    fs.writeFileSync(path.join(d, 'cau_hinh.json'), JSON.stringify(ch));
+    return spawnSync(process.execPath, ['-e', `require(${JSON.stringify(path.join(d, 'cong.js'))})`], { env: envSach(), encoding: 'utf8', timeout: 30000 });
+  };
+  const r0 = nap(that);
+  chac('D2 đối chứng (K5): cấu hình đủ → cong.js nạp được', r0.status === 0, r0.stderr);
+  for (const k of ['ban_cai', 'muc_gac', 'thu_muc_bai_thu']) {
+    const thieu = { ...that };
+    delete thieu[k];
+    const r = nap(thieu);
+    chac(`D2 cau_hinh.json thiếu ${k} → cong.js dừng khi nạp, báo rõ`, r.status !== 0 && /cau_hinh\.json \(bản main\) thiếu/.test(r.stderr), r.stderr);
+  }
+}
+
+for (const bai of [baiYml, baiCong, baiNapCauHinh]) {
   try { bai(); } catch (e) { hong.push(`${bai.name} sập: ` + String(e && e.message || e).split('\n')[0]); }
 }
 fs.rmSync(TAM, { recursive: true, force: true });

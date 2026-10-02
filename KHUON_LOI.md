@@ -47,6 +47,10 @@ chỗ thứ hai nằm ngay trong cùng hàm hoặc cách chưa tới 150 dòng.
   cùng dạng X trong cùng file.
 - **Chặn:** tìm ra một lỗi thì `grep` cả file tìm mọi chỗ cùng khuôn **trước khi
   viết dòng sửa đầu tiên**.
+- "Cùng khuôn với X" phải giống X ở **mọi loại đầu vào**, không chỉ ca vừa gặp: T2 lọc `Dirent.isFile()` (bỏ
+  symlink) trong khi trình cài lọc `statSync().isFile()` (giữ symlink) — vá thư mục con mà nới T2 với symlink (HOC-1).
+- Tài liệu hứa theo ĐỐI TƯỢNG ("file ghi trong mục") thì phép chặn phải gắn theo đối tượng, không theo một nhánh
+  kết quả: phép (d) chỉ chạy cho bài "xanh trên gốc" → thêm một ca đỏ là lách được (HOC-1, soát vòng 2).
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Lỗi nặng nhất phiên trước, và nó đã lên production: patch chặn đơn khai "lấy từ
