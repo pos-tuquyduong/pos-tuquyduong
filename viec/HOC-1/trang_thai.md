@@ -171,9 +171,72 @@ BÀI HỌC:
 - NGHI NGỜ symlink + đổi tên module: ghi `## Phát hiện` 4, 5 — không tự làm.
 Vòng sửa: 2/3.
 
+### Vòng 3 — báo cáo nguyên văn (rút gọn xuống dòng; nội dung, số dòng, kết luận giữ nguyên)
+```
+KHÔNG ĐẠT. Code và bài thử vòng 3 đúng. Còn 2 lỗi hồ sơ (số dòng trôi trong BÁO CÁO, THIET_KE.md chưa theo kịp sửa
+vòng 2) — sửa ~3 dòng tài liệu, không đụng code.
+Căn cứ ở HEAD d7f6c37: cong.js 1–274, kiem_tra 475–482 và 524–545, cai_dat.js 80–100, thu_cong.js 40–70 và 251–300,
+trang_thai.md toàn bộ, phieu.md, dot_bien.py; git diff ecd44e2^ HEAD và 8d3bfc9 HEAD.
+Chạy: thu_cong 196 · 0; thu_cong_cu 77 · 0; thu_nguoi_gac 782/782 + 165 — khớp trang_thai.md:19. dot_bien.py MD2 MD ĐỎ đúng chỗ
+(MD2 3 dòng). Thêm SA ((d) ghi bản head thay bản gốc, cong.js:248) → ĐỎ ở (d)(i); SB (daMien bỏ bài thoát 1 trên gốc) → ĐỎ ở
+(d)(iii). git status sạch.
+1. K3 đạt: (d)(iii) thu_cong.js:270–272 chỉ vi phạm (d) (A12 đủ nhờ doHopLe++ cong.js:230), kiểm câu "bản gốc đỏ trên code PR";
+   đỏ dưới MD2, xanh ở HEAD; ca K5 :263–264 vẫn xanh.
+2. K4: lỗi 1 vòng 2 sửa đúng — cong.js:225 đưa mọi p trong mienCu mà PR sửa vào daMien; :226–230 giữ A11/A12; đường vào daMien
+   chỉ :225, (d) ở :246–252. Hồ sơ chưa cùng khuôn: THIET_KE.md:807 "Bài được miễn còn phải qua (d)" hẹp hơn code (lỗi 2).
+3. K5 qua cong.js:225: (a) trong mục, xanh gốc, chỉ thêm ca → ĐẠT (:273); (b) trong mục, đỏ gốc, giữ ca gốc → ĐẠT (:263);
+   (c) xoá/đổi tên → dòng hỏng, không vào (d) (:290, :292); (d) PR không đụng → không chạy (:261); (e) MỚI bị chặn ở vòng 3:
+   trong mục, đỏ gốc, việc này đổi ĐÚNG hành vi ca cũ khẳng định (vd phiếu đổi quy tắc giá thu_P20 canh) — vòng 2 ĐẠT, vòng 3
+   A11; máy không tự gỡ (phiếu chỉ đổi ở commit PHIEU:); trang_thai.md:166–169 đã ghi "cách đọc rộng hơn" và hỏi chủ quán →
+   NGHI NGỜ. Phát hiện 4 (đổi tên module) nay chặn cả bài đỏ gốc. Chế độ tinh giữ nguyên (diff cong.js chỉ :61–71, :200–211,
+   :225–226, :244–252; A12 tĩnh :162 không đổi).
+4. K1: xem lỗi 1; còn lại khớp HEAD (cong.js 61-71, 200-208, 225-226, 244-252, 162, 49, 120, 19, "sau dòng 166"; cau_hinh.json:11;
+   kiem_tra:530-533, :479; cai_dat.js:97, :86-87; nguoi_gac.js:189; CHECKLIST_CODE.md:263; KHUON_LOI.md 111 dòng; dot_bien.py
+   18 đột biến + 3 M0).
+5. Đường tiền: không đụng server/. 6. P1: không đụng client/src/.
+LỖI TÌM ĐƯỢC:
+1. trang_thai.md:224 ĐÃ RÀ K4 — "cong.js:145" sai: ở HEAD :145 là lech.push('PR xoá trình cài …'); file_luat thật ở
+   gac.xetPhamVi :156, câu G-LUAT :158. Số 145 đúng ở mốc, chép từ ke_hoach.md:109 rồi trôi 11 dòng. K1/K7 (bẫy CLAUDE.md §8).
+2. tu_chay/THIET_KE.md:807 — vẫn "Bài được miễn còn phải qua phép (d)"; từ a9b52fa (d) chạy cho MỌI file trong mục mà PR sửa
+   (cong.js:225). Commit cuối đụng THIET_KE là 10dfb6a, trước vòng 2. MAU_PHIEU.md:37 cũng không báo trước. K4/K7.
+3. (nhẹ) trang_thai.md:218 "KHUON_LOI.md K4 (+2 dòng)", diff là +4. K1.
+NGHI NGỜ:
+- Luồng K5 (e) chặn từ vòng 3, chưa có lời chủ quán chốt mà đã làm — chọn: giữ cách đọc rộng hay lùi một dòng cong.js:225.
+- "Phát hiện 5" của trang_thai (:188, BÁO CÁO :229) trùng tên "Phát hiện 5" của phiếu / THIET_KE.md:809 — dễ nhầm.
+- "cùng khuôn kể cả symlink" (trang_thai.md:223) chỉ đúng symlink tới FILE; symlink tới THƯ MỤC: cai_dat.js:97 + T2 :530 bỏ
+  qua, cong.js:120 (ls-tree, 120000 blob) tính là file → A8 tĩnh lệch vĩnh viễn; cong.js:50 không đi vào. Có từ trước HOC-1, hiếm.
+- Lỗ "thay bài cũ bằng ca đỏ mới mà KHÔNG ghi mục miễn" vẫn còn (trang_thai.md:186–187).
+- Bản gốc require file trợ giúp không tên thu_* mà PR được sửa → PR làm yếu file đó để bản gốc vẫn xanh; ngoài tầm (d); chưa
+  dựng ca.
+CHƯA SOÁT ĐƯỢC: cổng thật GitHub (F3, A8), thời gian máy GitHub; chưa chạy npm test / --day-du (ngoài danh sách được phép);
+chưa chạy đủ dot_bien.py (chỉ MD, MD2 + SA, SB); chế độ chay trên kho thật.
+BÀI HỌC:
+- KHOÁ (đề xuất): phép kiểm số dòng trong BÁO CÁO — mỗi <file>:<n> trỏ tới dòng có từ khoá đi kèm; rẻ hơn: cấm chép số dòng
+  từ ke_hoach.md, phải grep -n lại ở HEAD.
+- KHOÁ (gộp vào j): sau vòng sửa đổi phạm vi một phép kiểm, tài liệu lâu dài (THIET_KE B15, MAU_PHIEU) đổi cùng loạt commit;
+  ca đỏ: commit đổi cong.js mà THIET_KE.md không đổi.
+- NGUYÊN TẮC (K4, bổ sung): mở rộng phép chặn theo đối tượng thì rà lại MỌI chỗ mô tả phép đó, và liệt kê luồng hợp lệ mới bị
+  chặn (K5) cho chủ quán chốt TRƯỚC khi làm.
+```
+
+### Sửa sau vòng 3 (vòng sửa 3/3 — chỉ tài liệu, không đụng code)
+- Lỗi 1: ĐÃ RÀ K4 sửa `cong.js:145` → `cong.js:156` (grep lại ở HEAD: `gac.xetPhamVi` dòng 156).
+- Lỗi 2: `THIET_KE.md` B15 — "MỌI file ghi trong mục mà PR sửa (xanh hay đỏ trên gốc) còn phải qua (d)"; `MAU_PHIEU.md` thêm câu:
+  ghi file vào mục là bật phép bản gốc; CỐ Ý đổi hành vi bài cũ canh thì KHÔNG ghi file vào mục (bản sửa đỏ trên gốc đã là bài
+  đỏ hợp lệ) — đây là lối đi cho luồng K5 (e), không cần sửa code.
+- Lỗi 3: "+2 dòng" → "+4 dòng". NGHI NGỜ "Phát hiện 5" trùng tên: BÁO CÁO nay ghi "mục 5 ở ## Phát hiện của file này".
+- Kiểm lại: `node tu_chay/thu_cong_cu.js` xanh (soi chữ MAU_PHIEU vẫn qua), `npm test` xanh — xem BÁO CÁO.
+- Đã hết 3 vòng sửa → KHÔNG chạy `/ra-soat` vòng 4; phần sửa vòng 3 chưa được agent độc lập soát (ghi ở CHƯA KIỂM). Dừng, chờ
+  chủ quán: Câu hỏi 2.
+
 ## Câu hỏi
 1. ~~Miễn A11 có nên đòi "chỉ thêm ca"?~~ — **ĐÃ CHỐT (02.10.2026): phương án (d)**, bản gốc chạy trên code PR phải xanh.
    Đã làm, xem "Chủ quán chốt Câu hỏi 1" ở trên.
+2. **(d) theo FILE ghi trong mục hay chỉ theo bài "xanh trên gốc"?** (soát vòng 3, NGHI NGỜ 1 — luồng K5 (e)) Sửa vòng 2 làm
+   (d) chạy cho MỌI file ghi trong mục mà PR sửa (`cong.js:225`). Hệ quả: phiếu CỐ Ý đổi hành vi mà bài cũ đang canh, nếu ghi
+   bài đó vào mục, sẽ bị A11 "bản gốc đỏ trên code PR". Lối đi đã ghi trong `MAU_PHIEU.md`: đừng ghi file đó vào mục. Phương án:
+   (a) giữ như HEAD (theo file — đóng lỗ "lách bằng một ca đỏ" của soát vòng 2); (b) lùi về "chỉ bài xanh trên gốc" (một dòng
+   `cong.js:225`, mở lại lỗ (d)(iii), ca (d)(iii) + MD2 phải đổi theo). Máy không tự chọn.
 
 ## Phát hiện
 1. Chép nguyên mẫu `## Bài thử cũ sửa` từ `MAU_PHIEU.md` vào phiếu sinh "dòng hỏng" giả (chỉ là dòng `·` thông tin).
@@ -200,6 +263,7 @@ Vòng sửa: 2/3.
 | f | Miễn A11 không kiểm "chỉ thêm ca" (soát vòng 1, nghi ngờ) | KHOÁ | Chủ quán chốt (d): `cong.js:244-252`, ca (d)(i)/(ii), đột biến MD |
 | h | (d) gắn theo nhánh "xanh trên gốc" thay vì theo file ghi trong mục → lách bằng một ca đỏ (soát vòng 2, lỗi 1) | KHOÁ | ca (d)(iii), đột biến MD2 đỏ trước |
 | i | Cùng lỗi (h) nhìn từ cách nghĩ | NGUYÊN TẮC | `KHUON_LOI.md` K4 thêm dòng "phép chặn theo đối tượng" (111/120 dòng) |
+| k | Số dòng trong BÁO CÁO chép từ `ke_hoach.md` (viết ở mốc) → trôi 11 dòng; THIET_KE B15 không theo kịp sửa vòng 2 (soát vòng 3, lỗi 1–2) | KHOÁ (đề xuất) | Ngoài Phạm vi: phép kiểm trong `tu_chay/thu_cong_cu.js` — mỗi `<file>:<n>` trong mục BÁO CÁO của `viec/<MÃ>/trang_thai.md` phải trỏ tới dòng có ở HEAD và chứa từ khoá đi kèm; ca đỏ = BÁO CÁO ghi `cong.js:145` cho `file_luat`. Chat soát duyệt |
 | j | `trang_thai.md` trôi khỏi HEAD sau đợt sửa theo quyết định chủ quán — lặp 2 vòng (soát vòng 1 lỗi 2, vòng 2 lỗi 2) | KHOÁ (đề xuất) | Ngoài Phạm vi: phép kiểm trong `tu_chay/thu_cong_cu.js` (hoặc `lenh_ra_soat.md`): mọi tên đột biến trong `viec/<MÃ>/dot_bien.py` phải có trong `viec/<MÃ>/trang_thai.md`; ca đỏ = trang_thai thiếu "MD2". Chat soát duyệt |
 
 Dọn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` vừa được phép kiểm làm thay trọn.
@@ -215,18 +279,18 @@ VIỆC:        HOC-1 — miễn A11 cho bài thử cũ, package.json là file lu
              chế độ tinh không đổi (A12 ở cong.js:162)
              tu_chay/cau_hinh.json:11 — file_luat thêm "package.json"
              kiem_tra_truoc_khi_giao.js:530-533 — T2 chỉ so file (statSync như cai_dat.js:97), symlink treo không sập
-             tu_chay/PHIEN_BAN 1.3.1; MAU_PHIEU.md, skill_lam_viec.md, THIET_KE.md B15 (Phát hiện 5, (d)); KHUON_LOI.md K4 (+2 dòng)
+             tu_chay/PHIEN_BAN 1.3.1; MAU_PHIEU.md, skill_lam_viec.md, THIET_KE.md B15 (Phát hiện 5, (d)); KHUON_LOI.md K4 (+4 dòng)
 BÀI THỬ:     chạy trên bản chưa vá → ĐỎ: thu_cong 21 chỗ, thu_nguoi_gac 4, thu_cong_cu 6 (bang_chung_do.txt);
              (d)(i) ĐỎ trước (d), (d)(iii) ĐỎ trước sửa vòng 2; ca xanh trên gốc đỏ bằng đột biến: 18/18 ĐỎ đúng chỗ,
              3 M0 XANH (python3 viec/HOC-1/dot_bien.py, lần đủ cuối trên c8670cb); sau vá: thu_cong 196 phép 0 hỏng,
              thu_nguoi_gac 782/782 + 165, thu_cong_cu 77 — npm test / --day-du PASS 54 FAIL 0 CẢNH BÁO 2 (bản cài)
 ĐÃ RÀ K4:    4 chỗ liệt kê tu_chay/ (cai_dat.js:97, cong.js:49 cacFile, cong.js:120 ls-tree, T2 :530) cùng khuôn kể cả symlink;
-             file_luat ở nguoi_gac.js:189 + cong.js:145 — một mục phủ cả hai; mucMien / mucBaiThuCu cùng cách tách dòng;
+             file_luat ở nguoi_gac.js:189 + cong.js:156 — một mục phủ cả hai; mucMien / mucBaiThuCu cùng cách tách dòng;
              (d) phủ MỌI file ghi trong mục mà PR sửa (xanh lẫn đỏ trên gốc — lỗi soát vòng 2 đã sửa)
 CHƯA KIỂM:   cổng thật trên GitHub (F3) — cần chủ quán chạy bash tu_chay/cai_dat.sh trên viec/HOC-1 trước, không thì A8 đỏ;
              thời gian thu_cong.js trên máy GitHub (39 s ở đây, giới hạn 120 s); chế độ chay trên kho THẬT (npm ci + toàn
              bộ) chưa chạy — chỉ qua kho giả; (d) với bài thử không kín (ghi trạng thái vào cây) và bài là symlink
-             (Phát hiện 5); đường KHÔNG ghi mục miễn vẫn để lọt "thay bài cũ bằng ca đỏ mới" (có từ trước, Phát hiện 4)
-GIT:         xem dòng commit cuối của nhánh — mục này viết trước commit của chính nó; HEAD trước commit này: c8670cb
-BÀI HỌC:     KHOÁ 4 (+1 đề xuất) · NGUYÊN TẮC 2 · BỎ 2 — chi tiết ở ## Bài học
+             (mục 5 ở ## Phát hiện của file này); đường KHÔNG ghi mục miễn vẫn để lọt "thay bài cũ bằng ca đỏ mới" (có từ trước, Phát hiện 4)
+GIT:         xem dòng commit cuối của nhánh — mục này viết trước commit của chính nó; HEAD trước commit này: d7f6c37
+BÀI HỌC:     KHOÁ 4 (+2 đề xuất) · NGUYÊN TẮC 2 · BỎ 2 — chi tiết ở ## Bài học
 ```
