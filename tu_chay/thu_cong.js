@@ -48,6 +48,7 @@ const THU_HOP_LE = "require('fs').appendFileSync(process.env.THU_DAU || '/dev/nu
 const KIEM_GIA = "const fs = require('fs');\nfs.appendFileSync(process.env.THU_DAU || '/dev/null', 'k');\n"
   + "process.exit(fs.existsSync(process.argv.includes('--day-du') ? 'DO_DAYDU.md' : 'DO_TEST.md') ? 1 : 0);\n";
 
+const THU_C_GOC = "process.exit(require('fs').existsSync('server/a.js') ? 0 : 1);\n";
 let G = null, BASE = null;
 function dungKho() {
   G = path.join(TAM, 'kho');
@@ -64,7 +65,7 @@ function dungKho() {
   viet(G, 'kiem_tra_truoc_khi_giao.js', KIEM_GIA);
   viet(G, 'README.md', 'kho thử\n');
   viet(G, 'server/a.js', 'module.exports = 1;\n');
-  viet(G, 'cong_cu/thu_c.js', 'process.exit(1);\n');
+  viet(G, 'cong_cu/thu_c.js', THU_C_GOC); // bài thử CŨ thật: xanh trên gốc, bắt việc xoá server/a.js (HOC-1 d)
   viet(G, 'cong_cu/khac.js', 'process.exit(1);\n');
   viet(G, 'ngoai/cu.md', 'ngoài phạm vi\n');
   viet(G, 'viec/X/phieu.md', PHIEU);
@@ -261,6 +262,13 @@ function baiCong() {
     { che: 'chay', khong: ['dòng hỏng', 'miễn A11'] });
   ca('HOC-1 K5 bài thử cũ có trong mục mà vẫn ĐỎ trên gốc → tính là bài đỏ hợp lệ', [phieuMoi(MIEN),
     ['sua', { 'cong_cu/thu_c.js': THU_HOP_LE, ...sv }]], 'ĐẠT', { che: 'chay', khong: ['miễn A11'] });
+  // HOC-1 (d) chủ quán chốt Câu hỏi 1: bản GỐC của bài thử được miễn chạy trên code PR phải XANH
+  ca('HOC-1 (d)(i) bài cũ được miễn bị thay bằng bản luôn xanh, PR làm hỏng code bản gốc bắt', [phieuMoi(MIEN),
+    ['sua', { 'cong_cu/thu_c.js': 'process.exit(0);\n', 'server/a.js': null, ...moi }]], 'ĐỎ',
+    { che: 'chay', chua: ['bài thử cũ được miễn nhưng bản gốc đỏ trên code PR', 'cong_cu/thu_c.js'] });
+  ca('HOC-1 (d)(ii) K5 chỉ thêm ca vào bài cũ, giữ ca gốc → ĐẠT', [phieuMoi(MIEN), ['sua', { 'cong_cu/thu_c.js':
+    "if (!require('fs').existsSync('README.md')) process.exit(1); // ca mới\n" + THU_C_GOC, ...moi }]], 'ĐẠT',
+    { che: 'chay', chua: [DONG_MIEN], khong: ['bản gốc đỏ'] });
   ca('HOC-1 A3 bài thử MỚI ghi trong mục → không miễn', [phieuMoi('\n## Bài thử cũ sửa\n- cong_cu/thu_b.js — lách\n'),
     ['moi', { 'cong_cu/thu_b.js': 'process.exit(0);\n', ...moi }]], 'ĐỎ',
     { che: 'chay', chua: ['bài thử mới không được miễn', 'cong_cu/thu_b.js` XANH trên code gốc'] });
