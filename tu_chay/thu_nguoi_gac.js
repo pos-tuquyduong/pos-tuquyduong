@@ -487,6 +487,18 @@ for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
   B('echo x > .github/workflows/cong.yml', 'G1-CAM', { goc: KT });
   E('server/a.js', 'CHO', { goc: KT });
 }
+// HOC-1 B2/B3: package.json là file luật — phiếu chỉ ghi glob chung *.json thì chặn (Edit lẫn Bash), ghi đúng tên thì cho
+{
+  const ch = fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8');
+  const phieu = (dong) => ({ X: PHIEU_X.replace('- kiem_tra_truoc_khi_giao.js', '- kiem_tra_truoc_khi_giao.js\n' + dong) });
+  const GLOB = kho('kho_json_glob', { cauHinh: ch, phieu: phieu('- *.json') });
+  E('package.json', 'G-LUAT', { goc: GLOB });
+  B('echo x > package.json', 'G-LUAT', { goc: GLOB });
+  E('server/a.js', 'CHO', { goc: GLOB });
+  const TEN = kho('kho_json_ten', { cauHinh: ch, phieu: phieu('- package.json') });
+  E('package.json', 'CHO', { goc: TEN });
+  B('echo x > package.json', 'CHO', { goc: TEN });
+}
 
 const coXet = typeof gac.xet === 'function';
 const chay = (c, tat) => {
@@ -580,8 +592,9 @@ if (coXet) {
   try { ch = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8')); } catch {}
   chac('tu_chay/cau_hinh.json hợp lệ, đủ trường', !!ch && ['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them', 'tep_bash_them']
     .every((k) => Array.isArray(ch[k])));
-  chac('cau_hinh: TIEN_DO_*.json trong file_cam; 4 file luật trong file_luat', !!ch && ch.file_cam.includes('TIEN_DO_*.json')
-    && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**'].every((f) => ch.file_luat.includes(f)));
+  chac('cau_hinh: TIEN_DO_*.json trong file_cam; 5 file luật (HOC-1 B1: thêm package.json) trong file_luat', !!ch
+    && ch.file_cam.includes('TIEN_DO_*.json')
+    && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**', 'package.json'].every((f) => ch.file_luat.includes(f)));
   chac('cau_hinh: tep_bash_them đúng một file ban_mau_pos/chay_thu.sh, không glob', !!ch && Array.isArray(ch.tep_bash_them)
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   chac('cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)', !!ch && ch.file_cam.includes('.github/**')
@@ -595,7 +608,7 @@ if (coXet) {
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.3.0', pb === 'tu-chay 1.3.0', pb || '(không có)');
+  chac('PHIEN_BAN = tu-chay 1.3.1', pb === 'tu-chay 1.3.1', pb || '(không có)');
 }
 
 // ── Tiến trình thật ─────────────────────────────────────────────────────────
@@ -911,6 +924,19 @@ function baiCaiDat() {
   tuChoi('có CLAUDE_CODE_CHILD_SESSION', khoCai('cai_c'), { CLAUDE_CODE_CHILD_SESSION: '1' });
   tuChoi('settings.json hỏng JSON', khoCai('cai_d', { settings: '{hong' }), {});
   tuChoi('pre-push khác nội dung đã có', khoCai('cai_e', { prePush: '#!/bin/sh\nexit 0\n' }), {}, 'pre-push');
+  // HOC-1 D1 (đột biến M9): muc_gac sai ĐÚNG MỘT điều kiện → trình cài dừng trước khi ghi, báo đúng câu muc_gac
+  const SAI = [['matcher khác *', (m) => { m.matcher = 'Bash'; }],
+    ['lệnh thiếu || exit 2', (m) => { m.hooks[0].command = m.hooks[0].command.replace(/ \|\| exit 2$/, ''); }],
+    ['lệnh không trỏ .claude/tu_chay/nguoi_gac.js', (m) => { m.hooks[0].command = m.hooks[0].command.replace('nguoi_gac.js', 'khac.js'); }],
+    ['nhiều hơn một hook', (m) => { m.hooks.push({ type: 'command', command: 'true' }); }]];
+  SAI.forEach(([ten, sua], i) => {
+    const g = khoCai('cai_mg' + i);
+    const p = path.join(g, 'tu_chay/cau_hinh.json');
+    const ch = JSON.parse(fs.readFileSync(p, 'utf8'));
+    sua(ch.muc_gac);
+    fs.writeFileSync(p, JSON.stringify(ch, null, 2) + '\n');
+    tuChoi(`muc_gac ${ten}`, g, {}, 'muc_gac phải là mục hook người gác');
+  });
 }
 
 (async () => {
