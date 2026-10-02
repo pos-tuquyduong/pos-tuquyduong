@@ -60,7 +60,9 @@ KB6 đi đường báo hỏng (`damages.js`). Sau đó thêm M10 (KB6 → I4).
 - `npm test`: PASS 55 · FAIL 0 · 1 CẢNH BÁO (bản cài `.claude/tu_chay/` lệch nguồn — chủ quán chạy `bash tu_chay/cai_dat.sh`).
 - `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 59 · FAIL 0 (giả lập 22,6 s, `thu_gia_lap` 24,2 s). Không sửa `client/src/`.
 - Ngân sách: giả lập 493 dòng / ~450 (1,1×) · `thu_gia_lap.js` 168 / ~200 · bộ kiểm +32/−3 / ±30 · cấu hình ±1 ·
-  `thu_nguoi_gac.js` **+15/−3 → vòng sửa 1 gom còn +9/−3** / ±5 (ròng +6, 1,2× — dưới ngưỡng 1,5) · tài liệu ~30.
+  `thu_nguoi_gac.js` **+15/−3 → vòng sửa 1 gom còn +9/−3** / ±5 → tính cùng thước đo DÒNG THÊM như kế hoạch §9: **9/5 = 1,8×,
+  VƯỢT ngưỡng cảnh báo 1,5** (vòng 2 bắt; vòng 1 ghi "ròng 1,2×" là đổi thước đo — sai). Lý do: 4 ca người gác (2 phải chặn,
+  2 phải cho qua — K5) + phép file_luat 7 mục; không gom thêm được mà không bỏ ca. · tài liệu ~30.
 
 ## Câu hỏi
 
@@ -150,6 +152,23 @@ Giả lập sau việc này là chỗ tự nhiên để dựng ca cho ba lỗ tr
    khi có kịch bản xoá đơn. Chưa xác định là lỗi hay ý muốn.
 
 Phát hiện 1–5: chủ quán mở việc vá riêng (chốt 02.10.2026) — KHÔNG sửa trong TU-CHAY-4. 6–7: ghi để chủ quán xét.
+
+## CHƯA KIỂM (máy không kiểm được hoặc kịch bản chưa phủ)
+- **8/13 đường ghi ví không kịch bản nào chạy** (agent soát đếm, đã đối chiếu): bán ví mẹ `orders.js:905`, huỷ ví mẹ `:1412`,
+  xoá đơn `:1590`, `:1619`, duyệt hoàn `refunds.js:182`, `/wallets/deduct` `wallets.js:131`, `/wallets/adjust` `:184`, `:187`.
+  Thêm: khôi phục sao lưu `backup.js:288–340` ghi lại cả `pos_wallets`. Phủ: bán `orders.js:887`, huỷ `:1383`, báo hỏng
+  `damages.js:168`, nạp `wallets.js:79`, đối soát `:256`.
+- Nhánh `refunded` của I1 — không kịch bản nào chạy (KB12 của việc vá BigInt). Hoàn kho của báo hỏng (`damages.js:196`, không
+  vân tay; SX giả không có `/api/pos/stock/return`).
+- Cổng thật trên GitHub Actions: thời gian, độ ổn định của KB10 (đòi đúng "200,409") khi máy CI quá tải.
+- Replit có Secrets (máy mây không đọc được môi trường — người gác chặn đúng luật). Nhánh A2 "không có `data/`": ở đây `data/`
+  rỗng; mã đã xử lý cả ba trường hợp (`thu_gia_lap.js` hàm `chup`) nhưng nhánh "không có" chưa chạy thật.
+- Bộ kiểm có thật sự lọc môi trường (MT_SACH) — không đột biến nào kiểm; máy mây sạch nên bỏ lọc vẫn xanh.
+- Đường SIGTERM: thử một lần bằng script nháp (vòng 1, agent vòng 2 đối chứng: bỏ dòng thì sót thư mục). Không có đột biến
+  lâu dài trong `dot_bien.py`. SIGKILL không bắt được — sót thư mục tạm (chỉ dữ liệu giả).
+- KB2 chạy vắt qua nửa đêm giờ VN → 409 `KHONG_TRONG_NGAY` (`don-mo-rong.js:129`). I9 dùng `paid_amount` server trả
+  (`kich_ban.js:26`) — không độc lập; I6 bù.
+- Phát hiện 1–7: chỉ đọc code, chưa dựng ca chạy.
 
 ## Bước 8 — /ra-soat
 
@@ -242,6 +261,85 @@ BÀI HỌC:
 - Nghi ngờ: `bat_bien.js` :746 → :751; THIET_KE B10 dặn việc thêm kịch bản phải ghi `thu_gia_lap.js` + `NGUONG_KICH_BAN`, và
   việc thêm kịch bản xoá đơn phải sửa I7/xem I2; damages tin số tiền client + xoá đơn để mã mồ côi → Phát hiện 6, 7.
   KB2 qua nửa đêm, KB10 trên CI quá tải, I9 không độc lập → CHƯA KIỂM.
+
+### Vòng 2 — báo cáo nguyên văn (agent độc lập, HEAD 0f22a2a)
+
+```
+KHÔNG ĐẠT
+
+Kết luận ngắn: năm trong sáu mục sửa ở vòng 1 đã sửa đúng. Còn một lỗi THẬT trong code giả lập, xuất hiện trong lượt soát
+này: hai giả lập chạy song song có thể tranh nhau cùng một cổng mạng, làm thu_gia_lap đỏ thất thường. Ngoài ra còn 3 lỗi
+tài liệu.
+
+Đã chạy (HEAD 0f22a2a, cây sạch trước và sau): --day-du PASS 59 · FAIL 0 · 1 cảnh báo (giả lập 21,9 s, thu_gia_lap 23,9 s);
+npm test PASS 55 · FAIL 0; thu_gia_lap chạy riêng 3 lần: 31/0 cả 3; dot_bien.py M0 E4f E4b: E4b, E4f ĐỎ đúng chỗ, **M0 ĐỎ**
+(lỗi 1); thu_nguoi_gac trên cau_hinh.json của 9d7a4b4 → ĐỎ 3 chỗ, trên HEAD 786/786 xanh; SIGTERM: HEAD → thoát 2, tmp
+sạch; bản đối chứng bỏ dòng :53 → chết vì SIGTERM, thư mục còn sót → bản vá có tác dụng thật.
+
+LỖI TÌM ĐƯỢC:
+1. cong_cu/gia_lap/chay.js:121 + :132–136 — tranh cổng giữa các giả lập song song (TOCTOU): :121 mượn cổng trống rồi đóng;
+   index.js:180 mới app.listen(PORT) sau initDatabase; tiến trình khác lấy mất cổng. Vòng chờ /health nhận bất kỳ máy POS
+   nào. Gặp thật: dot_bien.py M0 → "✗ M10 … thoát 2 · SẬP — không tạo được đơn "nợ mẫu": HTTP 401 Token không hợp lệ"
+   (auth.js:73 — chữ ký sai, chỉ có khi rơi vào giả lập KHÁC, JWT_SECRET khác, chay.js:118). Tần suất ~1/8 lần
+   thu_gia_lap (12 máy chủ song song, thu_gia_lap.js:129–132). Hệ quả: --day-du (cổng cong-chay) đỏ ngẫu nhiên; bảng
+   "9/9 đạt" của dot_bien không lặp lại ổn định. Không thể ra XANH oan. — K2/K7.
+2. tu_chay/THIET_KE.md:456 (B12 bước 5) — còn "Trong lúc chưa có, cổng chỉ cảnh báo"; grep gia_lap trong cong.js,
+   cong_github.yml, cai_dat.js, skill_lam_viec.md, lenh_ra_soat.md, MAU_PHIEU.md → 0 dòng. Việc này đã xoá câu đó ở :204
+   nhưng sót chỗ thứ hai cùng file. — K4 (tài liệu) + K1.
+3. viec/TU-CHAY-4/ke_hoach.md:3 — khối "Đã đổi SAU khi duyệt" hứa "chỗ lệch đánh dấu ⟶" nhưng chỉ :240 có dấu. Chưa đánh
+   dấu: :96 KB6, :154–163 bảng §4 thiếu M10, :169–171 "ước lượng chưa đo", :182–183 F1, :206 "9+1+4", :211 "M1–M9". Nội
+   dung khối đúng với code (13 lệnh UPDATE pos_wallets: phủ 5, chưa phủ 8; M10; E3 10+2+3; cong.js:234). :11 trỏ "CHƯA KIỂM
+   trong trang_thai.md" nhưng trang_thai.md không có mục đó. — K1.
+4. viec/TU-CHAY-4/trang_thai.md:48–49 — ngân sách thu_nguoi_gac.js đổi thước đo để lọt ngưỡng: ghi "ròng +6, 1,2×" trong khi
+   mục khác và kế hoạch §9 tính dòng THÊM. Cùng thước đo: 9/5 = 1,8× — VẪN vượt 1,5× mà không ghi. — K1.
+
+Kiểm từng mục vòng 1: 1 đủ bốn chỗ, còn :456; 2 S4 đúng, khối đầu đúng, còn lỗi 3; 3 đúng (31/0, 10 đột biến); 4 đúng
+(bat_bien.js:21, orders.js:751); 5 gom đúng (thu_nguoi_gac.js:501–505, `ch` là cấu hình thật :491, đỏ gốc/xanh HEAD) nhưng
+số ngân sách sai (lỗi 4); 6 đúng (thoát 3 :47 và 0 :48 trước móc tín hiệu; 0/1/2 qua process.exit; móc exit :52 chạy một
+lần; spawnSync hết giờ → status 2 + ETIMEDOUT, chayBaiThat vẫn đỏ).
+
+NGHI NGỜ:
+- K5 tiềm ẩn: 10 chuỗi đột biến (thu_gia_lap.js:59–79) khớp nguyên văn server/; việc vá Phát hiện 1–5 dễ đổi một chuỗi →
+  --day-du đỏ, việc vá phải ghi thu_gia_lap.js (file luật). THIET_KE.md:403 chỉ dặn cho việc THÊM kịch bản.
+- chay.js:43 so tên miền phân biệt hoa thường: "TURSO.IO" lọt (TURSO_* vẫn chặn theo tên — rủi ro thấp).
+- backup.js:288–340 khôi phục ghi lại pos_wallets — đường ghi ví thứ 14, chưa tính.
+- Tiền: không thấy lỗ (món chỉ gửi product_id, kich_ban.js:47–48; đơn/ví đọc DB :22, :36). refund_amount 20000
+  (kich_ban.js:110) là số client gửi, server tin (damages.js:155 — Phát hiện 6). I4 không bắt hoàn thừa.
+- bat_bien.js:13 dẫn wallets.js:240 đúng; :59 dẫn :236 là chú thích debt_payment — chấp nhận được.
+
+CHƯA SOÁT ĐƯỢC: GitHub Actions (thời gian, tần suất lỗi 1); Replit Secrets; A2 khi không có data/; không có bài thử lâu dài
+cho SIGTERM (E4f chỉ phá móc exit); chưa chạy lại toàn bộ dot_bien.py (E4a,c,d,e, F2, S3) sau d111f6b; 8 đường ghi ví,
+nhánh refunded I1, hoàn kho damages; fetch trần Orders.jsx:114, :313 (mã sẵn có); P1: không file server/, client/, data/.
+
+BÀI HỌC:
+- KHOÁ: giả lập tự kiểm nói chuyện đúng máy chủ của mình (mã ngẫu nhiên ở /health, hoặc API có xác thực trước KB đầu), hoặc
+  listen cổng 0 rồi đọc cổng thật; kèm bài thử chạy N giả lập song song nhiều lần.
+- NGUYÊN TẮC (K2/K7): bài thử chạy nhiều tiến trình song song thì mọi tài nguyên dùng chung (cổng, thư mục tạm, bí mật sinh
+  theo thời gian) phải có định danh riêng và được kiểm. "Lấy cổng trống rồi đóng" là TOCTOU. Chạy xanh một lần không chứng
+  minh ổn định — chạy lại ≥ 5 lần trước khi ghi "N/N đạt".
+- KHOÁ (K4 tài liệu): xoá một khẳng định thì grep cả file tìm câu cùng nghĩa; có thể thêm phép tĩnh: THIET_KE.md không được
+  nói cổng làm việc gì mà grep cong.js không ra.
+- NGUYÊN TẮC (K1): ngân sách tính một thước đo cố định — dòng thêm, như kế hoạch §9. Không đổi sang "ròng" để lọt ngưỡng.
+- NGUYÊN TẮC: khối "đã đổi sau duyệt" hứa "chỗ lệch đánh dấu ⟶" thì phải grep đủ mọi chỗ lệch; chỗ trỏ sang file khác phải có thật.
+- KHOÁ: sửa code an toàn ở vòng soát (như móc SIGTERM) cần đột biến tương ứng trong dot_bien.py, không thì ghi CHƯA KIỂM.
+```
+
+### Sửa sau vòng 2 (vòng sửa 2/3)
+- Lỗi 1 — đọc lại `chay.js:121` và `index.js:180`: ĐÚNG. Bỏ "mượn cổng rồi đóng": đặt `PORT='0'`, bắt đúng `http.Server` mà
+  `index.js` listen (vá tạm `http.Server.prototype.listen`, trả lại ngay khi máy chủ lên), đọc cổng THẬT từ nó. Cùng khuôn
+  (K4): `JWT_SECRET = 'gia_lap_' + Date.now()` trùng được khi hai tiến trình khởi động cùng mili-giây → đổi sang
+  `crypto.randomBytes`. Độ ổn định sau vá (chạy lại `thu_gia_lap.js` nhiều lần liên tiếp, mỗi lần ≥ 12 giả lập song song):
+  **6/6 lần `thu_gia_lap.js` xanh** (31 đạt · 0 hỏng mỗi lần; script nháp `lap6.js`), rồi `python3 viec/TU-CHAY-4/dot_bien.py`
+  chạy lại TOÀN BỘ trên HEAD 875d608: **9/9 đạt** (M0 xanh; E4a–f, F2, S3 đỏ đúng chỗ) — thêm 7 lần `thu_gia_lap` không có
+  lần đỏ lạ nào. Tổng 13 lần liên tiếp × ≥ 12 giả lập song song, 0 lần tranh cổng (trước vá: ~1/8). Không chứng minh tuyệt
+  đối — chỉ là bằng chứng thống kê; cách vá bỏ hẳn khe TOCTOU (cổng do hệ điều hành cấp lúc listen, không trả lại).
+- Lỗi 2 — THIET_KE.md B12 bước 5: cổng KHÔNG chạy và KHÔNG cảnh báo khi chưa có giả lập.
+- Lỗi 3 — ke_hoach.md: khối đầu nêu đủ các chỗ lệch đã biết (§2, §4, §5, §6, §8), câu "phần dưới giữ nguyên văn — trái thì
+  theo khối này"; thêm mục "CHƯA KIỂM" thật vào trang_thai.md (trên).
+- Lỗi 4 — ngân sách `thu_nguoi_gac.js` ghi lại đúng thước đo: 9/5 = 1,8×, VƯỢT ngưỡng, kèm lý do (Bước 6).
+- Nghi ngờ: so tên miền không phân biệt hoa thường (`chay.js` A1) — ca E3 `BIEN_VO_HAI_A` đổi sang giá trị viết HOA
+  (`KHO.TURSO.IO`), ca viết thường vẫn có ở `BIEN_VO_HAI_B`; THIET_KE B10 dặn việc sửa `server/**` làm lệch chuỗi đột biến phải
+  ghi `thu_gia_lap.js`; `backup.js` khôi phục → CHƯA KIỂM.
 
 ## Sự cố trong lượt này (đầu vào bước 11)
 
