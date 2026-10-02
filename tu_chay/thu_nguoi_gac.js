@@ -620,7 +620,7 @@ if (coXet) {
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.3.1', pb === 'tu-chay 1.3.1', pb || '(không có)');
+  chac('PHIEN_BAN = tu-chay 1.3.2', pb === 'tu-chay 1.3.2', pb || '(không có)');
 }
 
 // ── Tiến trình thật ─────────────────────────────────────────────────────────
