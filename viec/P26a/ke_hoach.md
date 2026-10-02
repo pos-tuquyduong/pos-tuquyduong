@@ -119,7 +119,7 @@ này. Lưu ý: chính lỗi 500 hôm nay làm nhân viên dễ bấm lại → v
 ## 8b. Phát hiện ngoài phạm vi sẽ ghi
 
 - `cong_cu/gia_lap/bat_bien.js:21` (ngoài phạm vi): chú thích hẹn "KB12 POST /refunds … sẽ phủ" nhánh `refunded` của I1 —
-  sau việc này KB12 phủ thật, chú thích cần cập nhật ở việc sau.
+  SAI DỰ ĐOÁN (soát vòng 2): I1 chỉ xét đơn có mã bill đã dùng (bat_bien.js:28), KB12 không dùng mã → không phủ. Xem trang_thai.md.
 - `refunds.js:113-119` kiểm yêu cầu trùng ngoài giao dịch (mục 8).
 
 ## 9. Ngân sách
