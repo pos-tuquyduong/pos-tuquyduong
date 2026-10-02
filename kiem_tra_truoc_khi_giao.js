@@ -527,7 +527,8 @@ chayBaiThat('tu_chay/thu_cong.js');
     pass('.claude/tu_chay/ chưa cài — bỏ qua so byte với tu_chay/');
   } else {
     // HOC-1: chỉ so FILE, bỏ thư mục con — cùng khuôn cai_dat.js (chỉ chép file) và cổng A8
-    const tep = (d) => fs.readdirSync(d, { withFileTypes: true }).filter((x) => x.isFile()).map((x) => x.name);
+    const tep = (d) => fs.readdirSync(d).filter((f) => { try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } });
+    // statSync như cai_dat.js:97: symlink tới file = file; symlink treo vẫn tính (báo lệch/thừa), không làm sập bộ kiểm
     const nguon = tep(path.join(GOC, 'tu_chay')).filter((f) => !/^cai_dat\./.test(f)).sort();
     const coSan = tep(daCai).sort();
     const lech = nguon.filter((f) => {
