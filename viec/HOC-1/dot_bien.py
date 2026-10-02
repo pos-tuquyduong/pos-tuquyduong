@@ -35,6 +35,8 @@ DB = [
     ('MC3 T2 bỏ try quanh statSync (symlink treo)', 'kiem_tra_truoc_khi_giao.js',
      '{ try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } }', 'fs.statSync(path.join(d, f)).isFile()',
      'thu_cong_cu.js', 'treo'),
+    ('MD bỏ phép (d) bản gốc chạy trên code PR', 'tu_chay/cong.js', 'for (const p of daMien) {', 'for (const p of []) {',
+     'thu_cong.js', 'HOC-1 (d)(i)'),
 ]
 
 
