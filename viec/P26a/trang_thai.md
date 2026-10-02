@@ -21,6 +21,7 @@ ba274cd Merge pull request #6 from pos-tuquyduong/viec/TU-CHAY-4
 - [x] `/ra-soat` vòng 2 KHÔNG ĐẠT (nói sai KB12 phủ I1-refunded; mục GIT) → sửa tài liệu (vòng sửa 2/3)
 - [x] `/ra-soat` vòng 3 KHÔNG ĐẠT (C1–C4, C7 xanh oan với id sai: bảng trống id = 1 = rowsAffected) → sửa bài thử
       (efcce93, vòng sửa 3/3 — vòng cuối). Còn `/ra-soat` vòng 4; KHÔNG ĐẠT nữa thì ghi Câu hỏi và dừng.
+- [x] `/ra-soat` vòng 4 **ĐẠT** (dựng lại M-d + 4 đột biến khác). Sửa 2 chỗ tài liệu cũ (bang_chung_do, 143 dòng). Bước 9–11 xong.
 
 ## Đột biến A5 — lệnh chạy lại được
 
@@ -154,8 +155,8 @@ quán — ghi Phát hiện; ke_hoach.md:61 sửa MAX(id); lỗ hoàn ví hai l�
 Sự cố của việc này: người gác chặn 4 lệnh phiên chính (B-PHANTICH `${…}` trong vòng lặp; B-CHUONGTRINH `env -i`;
 SED-I `sed -i` trên bản sao trong thư mục nháp; B-DICHCHU biến ở đích ghi) + B-MANOI (heredoc nhắc file được bảo vệ khi
 ghi file này) + 1 lệnh bị từ chối quyền (`rm -rf` thư mục nháp); agent soát kế hoạch bị chặn 2, agent soát code bị chặn 6
-(`.tu_chay_nhat_ky.jsonl` 08:19–09:25). Soát vòng 1 KHÔNG ĐẠT (A5 chưa ghi). `thu_P26a.js` 140 dòng / ngân sách ~90
-(vượt 1,55× > ngưỡng 1,5). Agent soát đè bản đột biến của phiên chính.
+(`.tu_chay_nhat_ky.jsonl` 08:19–09:25). Soát vòng 1 KHÔNG ĐẠT (A5 chưa ghi). `thu_P26a.js` 143 dòng (sau efcce93) / ngân sách ~90
+(vượt 1,59× > ngưỡng 1,5). Agent soát đè bản đột biến của phiên chính.
 
 - **KHOÁ** (ngoài Phạm vi — đề xuất, gom vào P26b): kịch bản giả lập "hoàn tiền rồi huỷ đơn / huỷ rồi duyệt hoàn" →
   lệnh thứ hai phải bị chặn, + bất biến giả lập "tổng dòng ví refund + cancel_refund của một đơn ≤ balance_amount".
@@ -176,6 +177,11 @@ ghi file này) + 1 lệnh bị từ chối quyền (`rm -rf` thư mục nháp); 
   M-d (`rowsAffected` thay `lastInsertRowid`) — trước 8/0 xanh oan, sau ✗ C1–C4, C7.
 - **NGUYÊN TẮC** (đề xuất, KHUON_LOI.md đã 118/120 — không thêm dòng, gộp vào K3 ở việc dọn sau): phép "id trả về ===
   id trong kho" phải chạy trên bảng có sẵn dòng (id ≠ 1 = rowsAffected). Đã gây: C1–C4, C7 xanh oan qua 2 vòng soát.
+- **KHOÁ** (ngoài Phạm vi bài này — đề xuất việc sau): KB12 đẩy `sqlite_sequence` của `pos_refund_requests` (hoặc tạo
+  yêu cầu mồi) để `refund_id` ≠ 1; ca đỏ: M-d (`rowsAffected`) hôm nay chỉ làm giả lập đỏ ở KB9, KB12 vẫn xanh (soát vòng 4).
+  Kèm: `thu_P26a.js:84` đổi INSERT `sqlite_sequence` thành UPSERT nếu sau này `initDatabase` gieo sẵn dòng (chưa xảy ra).
+- **NGUYÊN TẮC** (đề xuất, gộp vào K4 ở việc dọn — KHUON_LOI.md 118/120): sửa bài thử thì chạy lại và cập nhật
+  `bang_chung_do.txt` + số đo (số dòng, tỉ lệ ngân sách) trong cùng commit. Đã gây: soát vòng 4 bắt "kho 1" và "140 dòng" cũ.
 - **BỎ**: vượt ngân sách `thu_P26a.js` — phiếu tính ~90 cho 4 route, bài cần thêm C5 + 3 ca K5 (C7–C9) và cờ `--may-chu`;
   một lần, không thành luật. Các lệnh bị người gác chặn: luật đúng, đã làm theo hướng dẫn, không lặp.
 - Dọn: không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md đã có phép kiểm làm thay do việc này. KHUON_LOI.md 118/120 dòng (sau dòng K3 vòng 2).
@@ -212,7 +218,7 @@ GIT:         git log --oneline -2 ngay trước commit ghi file này (commit đ�
              efcce93 P26a: thu_P26a day id moi bang len (sqlite_sequence) - 'dung dong' phan biet duoc voi rowsAffected
              6ebfd5c P26a: trang thai - ra-soat vong 2, sua phat hien I1, cau hoi C4, muc GIT
              Đối chiếu đầu nhánh thật: git log --oneline -1 origin/viec/P26a; git log origin/viec/P26a..HEAD phải rỗng.
-BÀI HỌC:     KHOÁ 4 · NGUYÊN TẮC 4 · BỎ 1 — chi tiết ở ## Bài học
+BÀI HỌC:     KHOÁ 5 · NGUYÊN TẮC 5 · BỎ 1 — chi tiết ở ## Bài học
 ```
 
 ## /ra-soat vòng 2 — báo cáo nguyên văn
@@ -354,3 +360,78 @@ Xử lý vòng 3 (vòng sửa 3/3, cuối): `thu_P26a.js` đặt `sqlite_sequenc
 giữa bảng. Đã tự chạy M-d trên `rv3_y/mc` (diff đúng 1 dòng): trước 8/0, sau ✗ C1–C4, C7. M-d ghi vào mục Đột biến A5. Mục
 GIT, số dòng KHUON_LOI, Tiến độ đã sửa. Nghi ngờ "I4 tự kiểm sổ ví" (ke_hoach.md:81): không dựng đột biến — KB12 tự kiểm ví
 +30.000 bằng `c.mong`; câu ở kế hoạch là dự kiến, không phải khẳng định đã kiểm.
+
+## /ra-soat vòng 4 — báo cáo nguyên văn
+
+```
+ĐẠT
+
+Kết luận: cách xử lý lỗi vòng 3 đúng. Tôi đã dựng lại đột biến M-d và thêm 4 đột biến khác. Phần code của nhánh đúng, đủ nghiệm thu A1–A7. Còn 2 chỗ tài liệu cũ nhỏ, không làm sai kết luận nào. Thư mục nháp đã dùng: `scratchpad/rv4_a` (goc, md, mdtx, mnull), `scratchpad/rv4_b` (thu_P20 trên M-d), `scratchpad/rv4_c` (ma, mb), `scratchpad/rv4_daydu.txt`. Không sửa file nào trong kho, không commit.
+
+LỖI TÌM ĐƯỢC (nhỏ, không chặn):
+- `viec/P26a/bang_chung_do.txt:5-8` — đây là bằng chứng đỏ in từ bài thử bản trước efcce93, nên ghi "kho 1". Bài hiện tại chạy trên gốc in "kho 101 / 201 / 301 / 401" (tôi chạy lại: 3 đạt · 5 hỏng, cùng các ca C1–C5). Kết luận đỏ vẫn đúng, chỉ chi tiết đã cũ. Dòng 48 của trang_thai.md đã ghi kết quả chạy lại. Khuôn K4 (sửa bài thử, sót tài liệu cùng nghĩa).
+- `viec/P26a/trang_thai.md:157` — ghi "`thu_P26a.js` 140 dòng … 1,55×". Sau efcce93, `wc -l` cho 143 dòng, tức khoảng 1,59×. Vẫn vượt ngưỡng 1,5 như đã ghi, nên kết luận BỎ không đổi. Khuôn K4/K7.
+
+Sáu mục soát:
+
+1. K3 — bài thử có giá trị.
+   - Cách dựng: `thu_P26a.js:82-84` đặt `sqlite_sequence` cho 6 bảng. Cả 6 đều là AUTOINCREMENT, đã xem `database.js:370, 390, 450, 540, 613, 842`. Riêng C5 dùng rowid của `pos_settings` (bảng có sẵn 60 dòng, `database.js:527`).
+   - Các lần chạy:
+
+| Bản | Kết quả | Ca đỏ |
+|---|---|---|
+| HEAD | 8 đạt · 0 hỏng, thoát 0 | — |
+| Gốc (`database.js` của 604bcd5^) | 3 đạt · 5 hỏng | C1–C4 (500 BigInt), C5 (`bigint 61`) |
+| M-a (bỏ `soDong` ở `run()` thường) | 4 đạt · 4 hỏng | C1–C4 |
+| M-b (bỏ ở `tx.run`) | 7 đạt · 1 hỏng | đúng C5 |
+| M-d (`soDong(result.rowsAffected)` ở :1355) | 3 đạt · 5 hỏng | C1–C4, C7 ("id 1 · kho 101 / 201 / 301 / 401 / 501") — **khớp trang_thai.md:45-47** |
+| M-dtx (mới: `rowsAffected` ở `tx.run` :1382) | 6 đạt · 2 hỏng | C5 ("number 1 · kho 61"), C8 ("grant_id 1 · kho 601") |
+
+   - Mỗi bản đột biến tôi đã `diff`: lệch HEAD đúng 1 dòng.
+   - Bài kiểm hành vi (status, kiểu, id khớp kho), không soi marker, nên marker suông không làm nó xanh được.
+   - Thêm: `thu_P20` chạy trên bản sao có server M-d → 48 đạt · 3 hỏng ("hoàn tiền 2: duyệt → 400 Yêu cầu này đã được xử lý").
+
+2. K4 — `grep lastInsertRowid` toàn kho (trừ attached_assets, node_modules, dist) ra 17 chỗ trong routes.
+   - Chỗ phát ra giá trị chỉ có `database.js:1355` và `:1382`, cả hai đã dùng `soDong`.
+   - `process.env` trong database.js: 0 chỗ. Vì vậy chặn ketNoiKho (`thu_P26a.js:27-36`) là đủ, bài thử không chạm Turso khi pre-commit chạy với env thật.
+   - `customers.js:372→413` chỉ dùng id làm tham số SQL.
+   - Không sót chỗ nào trong phạm vi.
+
+3. K5 — `soDong` (`database.js:1339`) chỉ đổi kiểu, không thêm phép chặn nào.
+   - Các luồng: route đã bọc `Number()` (rewards:49, loyalty:175/202, orders:868/1022); id dùng làm tham số SQL (refunds:216, users:61, packages:47, registrations:244, customers:372/632); UPDATE/DELETE.
+   - `--day-du` trên HEAD: PASS 61 · FAIL 0, thoát 0; giả lập ≥12 kịch bản; thu_P26a chạy 0,7 s.
+   - Không thấy luồng nào bị chặn oan.
+
+4. K1 — đối chiếu khớp:
+   - Số dòng: `database.js` 1338-1339/1355/1382; `kiem_tra_truoc_khi_giao.js` 488/715; KHUON_LOI.md 118 dòng.
+   - Mục GIT (`trang_thai.md:211-213`): efcce93 và 6ebfd5c đúng là hai cha liền trước 8be601d.
+   - `git log origin/viec/P26a..HEAD` rỗng; origin ở 8be601d.
+   - Chỉ có 2 chỗ cũ đã nêu ở trên.
+
+5. Đường tiền — diff không đổi logic tiền nào.
+   - `/packages/buy` (`packages.js:169-178`) vẫn không kiểm quyền, không thu tiền, tin `total_qty` client gửi. Lỗi có từ trước và đã ghi Phát hiện / Câu hỏi.
+   - Trước P26a route này cũng đã ghi dòng (rồi mới 500), nên P26a không mở thêm lỗ.
+   - Lỗ hoàn ví hai lần vẫn mở; ngoài phạm vi, đã ghi.
+
+6. P1 — diff không đụng `client/`. `--day-du` báo "dist đã commit KHỚP với src hiện tại".
+
+NGHI NGỜ:
+- KB12 (`kich_ban.js:170-178`) không phân biệt được M-d. Trong giả lập, `pos_refund_requests` còn trống, nên id 1 trùng với dòng đúng.
+  - Tôi chạy `gia_lap/chay.js --may-chu rv4_a/md` → chỉ đỏ KB9 (delivered_qty), KB12 xanh.
+  - Phiếu A3 không đòi KB12 kiểm id đúng dòng, và M-d đã bị thu_P26a cùng thu_P20 bắt. Đây là điểm yếu, không phải thiếu nghiệm thu.
+- `thu_P26a.js:84` dùng `INSERT INTO sqlite_sequence` chứ không UPSERT. Nếu sau này `initDatabase` gieo sẵn dòng vào một trong 6 bảng, sẽ có 2 dòng `sqlite_sequence` cho cùng bảng, và hành vi khi đó chưa kiểm. Hôm nay cả 6 bảng đều trống: id ra 101, 201, … đúng như dự kiến.
+
+CHƯA SOÁT ĐƯỢC:
+- Turso production (hrana): chưa biết `lastInsertRowid` ở đó kiểu gì.
+- Nhánh giữ null/undefined của `soDong`. Đột biến mnull (`soDong = v => Number(v)`) cho 8 đạt · 0 hỏng, nên không phân biệt được. Trang_thai đã ghi CHƯA KIỂM, khớp.
+- `thu_P20` trên bản gốc: không có cờ `--may-chu`, tôi chỉ chạy được trên M-d qua cây bản sao.
+- Màn hình thật trên trình duyệt.
+
+BÀI HỌC:
+- NGUYÊN TẮC (K4 của luật vòng 3): đã đặt dòng mồi cho bài thử chính thì phải rà cả những bài khác dùng id server trả về trên bảng trống (KB12 trong giả lập). Ca đỏ: M-d làm KB12 vẫn xanh.
+- NGUYÊN TẮC (K4 tài liệu): sửa bài thử thì chạy lại và cập nhật luôn `bang_chung_do.txt` cùng các số đo (số dòng, tỉ lệ ngân sách) trong cùng commit.
+```
+
+Xử lý vòng 4: `bang_chung_do.txt` thêm khối chạy lại bài sau efcce93 trên gốc (giữ khối cũ làm lịch sử); số dòng
+`thu_P26a.js` sửa 140 → 143 (1,59×). Hai NGHI NGỜ (KB12 không bắt M-d; INSERT sqlite_sequence không UPSERT) ghi vào Bài học
+làm đề xuất cho việc sau — không sửa: hết vòng sửa, và phiếu A3 không đòi KB12 kiểm id đúng dòng.
