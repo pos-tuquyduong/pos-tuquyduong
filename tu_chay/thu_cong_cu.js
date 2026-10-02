@@ -387,9 +387,42 @@ function baiTaiLieu() {
   chac('H2/B7 THIET_KE B15: pull_request_target, hai job, sudo, lỗ còn hở (chưa được cổng soát, admin), settings.json cũ sau kéo',
     ['pull_request_target', 'cong-chay', 'sudo', 'chưa được cổng soát', 'admin', 'settings.json', 'SubagentHandback', 'bước 11']
       .every((x) => b15.includes(x)), b15.slice(0, 120));
+  // HOC-1: mục tuỳ chọn ## Bài thử cũ sửa (MAU_PHIEU, skill), Phát hiện 5 (THIET_KE B15)
+  chac('HOC-1 MAU_PHIEU: mục tuỳ chọn ## Bài thử cũ sửa, dạng "- <đường dẫn thu_*.js> — <lý do>", bài thử mới không được miễn, không thay A12',
+    mp.includes('## Bài thử cũ sửa') && mp.includes('- <đường dẫn thu_*.js> — <lý do>') && mp.includes('mới') && mp.includes('## Bài thử đỏ'));
+  chac('HOC-1 skill: bài thử cũ xanh trên gốc thì báo chủ quán thêm ## Bài thử cũ sửa vào phiếu', than.includes('## bài thử cũ sửa'));
+  chac('HOC-1 E THIET_KE B15: .claude/ chỉ đổi qua nguồn tu_chay/ + cai_dat.sh, sửa tay .claude/hooks bị A8',
+    ['Phát hiện 5', '.claude/hooks/', 'A8'].every((x) => b15.includes(x)), b15.slice(0, 120));
 }
 
-for (const bai of [baiXemThu, baiThuVien, baiKeoNhanh, baiKhuonLoi, baiTaiLieu]) {
+// ═══ HOC-1 C · T2 của kiem_tra_truoc_khi_giao.js bỏ thư mục con ═══════════════
+// Chạy KHỐI MÃ THẬT của T2 (cắt từ file luật, giữa "// T2 —" và "// T3 —") trên kho tạm, không đụng kho thật.
+function baiT2() {
+  const kt = doc(path.join(__dirname, '..', 'kiem_tra_truoc_khi_giao.js')) || '';
+  const a = kt.indexOf('\n// T2 —'), b = kt.indexOf('\n// T3 —');
+  chac('C cắt được khối T2 thật trong kiem_tra_truoc_khi_giao.js', a >= 0 && b > a);
+  if (a < 0 || b <= a) return;
+  const t2 = new Function('fs', 'path', 'GOC', 'pass', 'canhBao', kt.slice(a, b));
+  const chay = (goc) => { const ra = []; t2(fs, path, goc, (t, g) => ra.push('PASS ' + t + ' ' + (g || '')), (t, g) => ra.push('CANH ' + t + ' ' + (g || ''))); return ra.join('\n'); };
+  const kho = (ten, them) => {
+    const g = path.join(TAM, ten);
+    for (const d of ['tu_chay', '.claude/tu_chay']) { viet(g, d + '/a.js', 'a\n'); viet(g, d + '/PHIEN_BAN', 'v\n'); }
+    viet(g, 'tu_chay/cai_dat.js', 'cai\n');
+    viet(g, 'tu_chay/con/b.md', 'thư mục con\n');
+    if (them) them(g);
+    return g;
+  };
+  const c1 = chay(kho('t2_c1'));
+  chac('C1 tu_chay/ có thư mục con, file khớp bản cài → T2 PASS, không cảnh báo', /^PASS /.test(c1) && !/CANH/.test(c1), c1);
+  const c2 = chay(kho('t2_c2', (g) => viet(g, '.claude/tu_chay/a.js', 'khác\n')));
+  chac('C2 một file lệch bản cài → vẫn CẢNH BÁO "lệch: a.js"', /^CANH /.test(c2) && /lệch: a\.js /.test(c2), c2);
+  const c3 = chay(kho('t2_c3', (g) => viet(g, '.claude/tu_chay/thua.txt', 'x\n')));
+  chac('C3 .claude/tu_chay/ có FILE thừa → vẫn CẢNH BÁO "thừa: thua.txt"', /^CANH /.test(c3) && /thừa: thua\.txt /.test(c3), c3);
+  const c3b = chay(kho('t2_c3b', (g) => viet(g, '.claude/tu_chay/con2/x.md', 'x\n')));
+  chac('C3 THƯ MỤC con trong .claude/tu_chay/ không tính là thừa → T2 PASS', /^PASS /.test(c3b) && !/CANH/.test(c3b), c3b);
+}
+
+for (const bai of [baiXemThu, baiThuVien, baiKeoNhanh, baiKhuonLoi, baiTaiLieu, baiT2]) {
   try { bai(); } catch (e) { hong.push(`${bai.name} sập: ` + String(e && e.message || e).split('\n')[0]); }
 }
 fs.rmSync(TAM, { recursive: true, force: true });
