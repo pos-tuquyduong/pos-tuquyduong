@@ -485,7 +485,7 @@ function chayBaiThat(bai, env) {
     r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
   return ra;
 }
-for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) chayBaiThat(bai);
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js']) chayBaiThat(bai);
 
 // E10 — POS-P21-v1: đối soát ví (/:phone/reconcile, /reconcile-all) chỉ cộng các loại dòng làm đổi số dư ví.
 // Hai route này chưa có nút trên màn hình — chỉ gọi thẳng API với quyền adjust_balance.
@@ -712,7 +712,7 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 // thật, kể cả trên Replit có Secrets. Chạy tay mà môi trường có khoá thì giả lập tự từ chối (A1).
 // S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG. Việc sau thêm kịch bản mới, không xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
-const NGUONG_KICH_BAN = 11;
+const NGUONG_KICH_BAN = 12;
 const NGUONG_BAT_BIEN = 9;
 // S4 — đo 02.10.2026: giả lập 22 s, thu_gia_lap 24 s (> 15 s) → CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du).
 {
