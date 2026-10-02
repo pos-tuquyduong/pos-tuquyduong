@@ -58,7 +58,7 @@ Ca thử (mỗi ca so HTTP status + kiểu + so với kho, không dò chữ — 
 |---|---|---|---|
 | C1 | A1 | nạp ví → `POST /orders` trả bằng ví → `POST /refunds` → 200, `typeof refund_id === 'number'`, bằng `id` của `pos_refund_requests` theo `order_id` | 500 BigInt |
 | C2 | A1 | `POST /discount-codes` → 200, `id` số, bằng `id` tra theo `code` | 500 BigInt |
-| C3 | A1 | `POST /settings/invoice/log` → 200, `data.id` số, bằng `MAX(id)` của `pos_invoice_logs` theo `invoice_number` | 500 BigInt |
+| C3 | A1 | `POST /settings/invoice/log` → 200, `data.id` số, bằng `id` của `pos_invoice_logs` theo `invoice_number` | 500 BigInt |
 | C4 | A1 | `POST /packages/buy` → 200, `data.id` số, bằng `id` của `pos_customer_packages` theo `customer_phone` | 500 BigInt |
 | C5 | A1 (giao dịch) | `db.beginTransaction()` → `tx.run(INSERT …)` → `typeof lastInsertRowid === 'number'`, commit, bằng id trong kho | `bigint` |
 | C7 | A2 / K5 | `POST /rewards` (đã bọc Number) → 200, `id` số, bằng id trong kho | **xanh trên gốc** — ca "phải KHÔNG hỏng" |
