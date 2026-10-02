@@ -499,6 +499,17 @@ for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
   E('package.json', 'CHO', { goc: TEN });
   B('echo x > package.json', 'CHO', { goc: TEN });
 }
+// TU-CHAY-4 F3: giả lập quầy là file luật — phiếu chỉ ghi glob thì chặn, ghi đúng tên từng file thì cho
+{
+  const ch = fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8');
+  const phieu = (dong) => ({ X: PHIEU_X.replace('- kiem_tra_truoc_khi_giao.js', '- kiem_tra_truoc_khi_giao.js\n' + dong) });
+  const GLOB = kho('kho_gl_glob', { cauHinh: ch, phieu: phieu('- cong_cu/gia_lap/**\n- cong_cu/*.js') });
+  E('cong_cu/gia_lap/kich_ban.js', 'G-LUAT', { goc: GLOB });
+  E('cong_cu/thu_gia_lap.js', 'G-LUAT', { goc: GLOB });
+  const TEN = kho('kho_gl_ten', { cauHinh: ch, phieu: phieu('- cong_cu/gia_lap/kich_ban.js\n- cong_cu/thu_gia_lap.js') });
+  E('cong_cu/gia_lap/kich_ban.js', 'CHO', { goc: TEN });
+  E('cong_cu/thu_gia_lap.js', 'CHO', { goc: TEN });
+}
 
 const coXet = typeof gac.xet === 'function';
 const chay = (c, tat) => {
@@ -592,9 +603,10 @@ if (coXet) {
   try { ch = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8')); } catch {}
   chac('tu_chay/cau_hinh.json hợp lệ, đủ trường', !!ch && ['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them', 'tep_bash_them']
     .every((k) => Array.isArray(ch[k])));
-  chac('cau_hinh: TIEN_DO_*.json trong file_cam; 5 file luật (HOC-1 B1: thêm package.json) trong file_luat', !!ch
+  chac('cau_hinh: TIEN_DO_*.json trong file_cam; 7 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập) trong file_luat', !!ch
     && ch.file_cam.includes('TIEN_DO_*.json')
-    && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**', 'package.json'].every((f) => ch.file_luat.includes(f)));
+    && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**', 'package.json',
+      'cong_cu/gia_lap/**', 'cong_cu/thu_gia_lap.js'].every((f) => ch.file_luat.includes(f)));
   chac('cau_hinh: tep_bash_them đúng một file ban_mau_pos/chay_thu.sh, không glob', !!ch && Array.isArray(ch.tep_bash_them)
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   chac('cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)', !!ch && ch.file_cam.includes('.github/**')

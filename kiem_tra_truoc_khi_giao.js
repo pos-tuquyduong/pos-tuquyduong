@@ -474,15 +474,16 @@ chac('orders.js chặn sản phẩm chưa có giá',
 // E11 — POS-P20-v2: bài thử CHẠY THẬT trong bộ kiểm (cũng là pre-commit và
 // hook Stop). Phép tĩnh chỉ soi chữ; bài thật tạo đơn, huỷ, hoàn tiền rồi gọi
 // route. Hết giờ hoặc sập = hỏng.
-function chayBaiThat(bai) {
+function chayBaiThat(bai, env) {
   const t0 = Date.now();
-  const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: 120000 });
+  const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: 120000, env });
   const giay = ((Date.now() - t0) / 1000).toFixed(1);
   const ra = String(r.stdout || '') + String(r.stderr || '');
   const hong = ra.replace(/\x1b\[[0-9;]*m/g, '').split('\n').filter((l) => /[✗✖]/.test(l)).map((l) => l.trim());
   chac(`bài chạy thật ${bai} xanh (${giay} s)`,
     r.status === 0 && !r.error,
     r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
+  return ra;
 }
 for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js']) chayBaiThat(bai);
 
@@ -703,6 +704,32 @@ nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-K
 // K3 — kho thử không được lọt vào git
 chac('.gitignore chặn thư mục data/', /^data\/\s*$/m.test(doc('.gitignore')),
   'thêm dòng "data/" vào .gitignore');
+
+// ═══════════════════════════════════════════════════════════════════════════
+nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy chủ thật, kho tạm');
+
+// S1 — giả lập chạy với môi trường ĐÃ LỌC SẠCH (chủ quán chốt 02.10.2026): nó không bao giờ cầm khoá
+// thật, kể cả trên Replit có Secrets. Chạy tay mà môi trường có khoá thì giả lập tự từ chối (A1).
+// S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG. Việc sau thêm kịch bản mới, không xoá kịch bản cũ.
+const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
+const NGUONG_KICH_BAN = 11;
+const NGUONG_BAT_BIEN = 9;
+{
+  const ra = chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH);
+  const m = ra.match(/Giả lập: (\d+) kịch bản · (\d+) bất biến/);
+  chac(`bánh cóc giả lập: ≥ ${NGUONG_KICH_BAN} kịch bản, ≥ ${NGUONG_BAT_BIEN} bất biến`,
+    !!m && +m[1] >= NGUONG_KICH_BAN && +m[2] >= NGUONG_BAT_BIEN, m ? m[0] : 'không thấy dòng tổng của giả lập');
+  // S3 — I4/I5 chép danh sách trắng ví (wallets.js không export): hai bản phải đi cùng nhau
+  const dsVi = (p) => {
+    const x = boGhiChu(doc(p)).match(/const LOAI_TINH_VAO_VI\s*=\s*\[([^\]]*)\]/);
+    return x ? [...x[1].matchAll(/'(\w+)'/g)].map((y) => y[1]).sort().join(',') : '';
+  };
+  const viGl = dsVi('cong_cu/gia_lap/bat_bien.js');
+  chac('giả lập: danh sách trắng ví trong bat_bien.js khớp wallets.js', !!viGl && viGl === dsVi('server/routes/wallets.js'),
+    `bat_bien.js: ${viGl || '(không có)'} · wallets.js: ${dsVi('server/routes/wallets.js')}`);
+  // S4 — phá thử giả lập (9 đột biến server, A1, A2) — chậm, chỉ --day-du (cổng cong-chay chạy --day-du)
+  if (DAY_DU) chayBaiThat('cong_cu/thu_gia_lap.js', MT_SACH);
+}
 
 console.log('');
 console.log('╔══════════════════════════════════════════════════════════════╗');
