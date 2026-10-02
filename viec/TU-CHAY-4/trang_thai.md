@@ -37,7 +37,13 @@ Một điểm của bản soát tự nó lệch số dòng (I3 ghi orders.js:128
 
 ## Câu hỏi
 
-### Câu hỏi 4 — MỤC G: giả lập bắt được lỗi THẬT ở KB6 (02.10.2026) — CHỜ CHỦ QUÁN
+### Câu hỏi 4 — MỤC G: giả lập bắt được lỗi THẬT ở KB6 (02.10.2026) — ĐÃ CHỐT: (c)
+
+Chủ quán chốt 02.10.2026: **(c)** — KB6 đi đúng đường quầy (`POST /damages` action `refund`, đơn có SĐT, cộng ví để I4
+kiểm). Lỗi BigInt + damages ghi đè ví ghi Phát hiện; chủ quán mở việc vá riêng, việc vá BigInt thêm **KB12 `POST /refunds`
+đỏ trước**. Không sửa server, không sửa `thu_P20.js`. **F1:** giả lập 22 s > 15 s → chỉ chạy ở `--day-du`.
+
+Nội dung câu hỏi gốc:
 
 Kịch bản 6 (hoàn tiền), bất biến: không bất biến nào lệch — lệch là **HTTP**, tiền không sai:
 ```
@@ -100,8 +106,17 @@ mã bill, chưa vá ở các chỗ dưới). Đều thuộc vùng CLAUDE.md §8 
 Giả lập sau việc này là chỗ tự nhiên để dựng ca cho ba lỗ trên (thêm kịch bản "hai người cùng huỷ", "cùng duyệt hoàn",
 "nạp ví lúc đang bán") — đề xuất mở việc riêng, không làm trong TU-CHAY-4 (phiếu cấm sửa server; mục G).
 
-4. **Trả BigInt ra JSON → 500 sau khi đã ghi** — xem Câu hỏi 4: `refunds.js:139`, `packages.js:178`, `discount-codes.js:220`,
-   `settings.js:278`. Giả lập chạy thật đã bắt được (KB6).
+4. **Trả BigInt ra JSON → 500 SAU KHI đã ghi.** libsql trả `lastInsertRowid` kiểu BigInt (`database.js:1352`, `:1379` chuyển
+   thẳng). Bốn route trả thẳng ra `res.json` → `catch` trả 500 dù dữ liệu đã ghi: `refunds.js:139` (`POST /refunds` — giả lập
+   bắt được, KB6 bản đầu), `packages.js:178` (`POST /packages/buy`), `discount-codes.js:220` (tạo mã chiết khấu),
+   `settings.js:278` (ghi log in hoá đơn). `loyalty.js:14` và `tiers.js:7` đã ghi luật "bọc `Number()`" — đúng cách vá.
+   `cong_cu/thu_P20.js:180` đang LÁCH lỗi này (đọc mã yêu cầu từ DB khi `refund_id` không có) — không sửa ở việc này.
+   Việc vá: thêm **KB12 `POST /refunds`** vào `kich_ban.js`, đỏ trước trên code chưa vá.
+5. **Báo hỏng → hoàn tiền ghi đè số dư ví** (cùng khuôn 1–3). `damages.js:160` đọc ví NGOÀI giao dịch, `:165` mở giao dịch,
+   `:168` ghi `balance = ?` số tuyệt đối. Hoàn tiền báo hỏng cùng lúc với một giao dịch ví khác (bán trả ví, nạp ví) → một
+   trong hai bị đè. KB6 đi đường này tuần tự nên không lộ; kịch bản "bấm trùng" để dành cho việc vá.
+
+Phát hiện 1–5: chủ quán mở việc vá riêng (chốt 02.10.2026) — KHÔNG sửa trong TU-CHAY-4.
 
 ## Sự cố trong lượt này (đầu vào bước 11)
 
