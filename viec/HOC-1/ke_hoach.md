@@ -20,6 +20,9 @@
 - lý do rỗng hoặc dạng `<…>` của mẫu, không phải `laBaiThu`, không có ở head lẫn mốc → `ghi` "dòng hỏng … — không miễn";
 - có ở head nhưng KHÔNG có ở mốc (`blob(moc, p) === null`) → `ghi` "bài thử mới không được miễn: p" và A11 như cũ.
 
+Kiểm **mọi dòng của mục**, kể cả dòng trỏ file PR không đụng (soát kế hoạch c). Đường dẫn bỏ backtick và `./` đầu
+giống `phamViTuChu` (`nguoi_gac.js:871–872`) — dòng `` - `cong_cu/thu_P20.js` — … `` phải được hiểu (soát d).
+
 Trong vòng A11 (dòng 204): `r.status === 0 && mienCu.has(p) && blob(moc, p) !== null` →
 `ghi.push('miễn A11 (bài thử cũ sửa): p — lý do')`, KHÔNG `doHopLe++` (A7: miễn không thay A12).
 Vòng "xanh trên code PR" (217–220) giữ nguyên → A4 tự có. Phiếu đọc từ blob head (dòng 74) như A5 → A8 nghiệm thu
@@ -50,6 +53,8 @@ Không tạo `cong_cu/thu_HOC1.js` (đặt được hợp lý trong `thu_cong_cu
   `--cai-dat <bản đột biến>` (dòng 22). Bốn ca, mỗi ca CHỈ sai một điều kiện của `cai_dat.js:86–87`: matcher `"Bash"`;
   lệnh bỏ `|| exit 2`; lệnh trỏ `.claude/tu_chay/khac.js … || exit 2`; hai hook (thêm `{type:'command',command:'true'}`).
   Mỗi ca: thoát ≠ 0, ra đúng câu "muc_gac phải là mục hook người gác", `anh()` không đổi byte nào. Không sửa `cai_dat.js`.
+  Cấu hình hỏng: sau `khoCai()` ghi đè `tu_chay/cau_hinh.json` của kho tạm bằng bản thật đã đổi `muc_gac` (JSON parse →
+  sửa một trường → stringify), rồi mới `anh()` + `caiDat()` (soát e).
   Phương án B (đặt ở `thu_cong_cu.js`) bỏ: phải dựng lại kho cài, ~+30 dòng.
 - **D2 (M10) → `thu_cong.js`** (~15 dòng): chép `cong.js` + `nguoi_gac.js` vào thư mục tạm cùng `cau_hinh.json` thiếu
   lần lượt `ban_cai` / `muc_gac` / `thu_muc_bai_thu` → `node -e "require(<cong.js>)"` phải thoát ≠ 0 và ra đúng câu
@@ -65,22 +70,22 @@ Không tạo `cong_cu/thu_HOC1.js` (đặt được hợp lý trong `thu_cong_cu
 | A1 | `thu_cong.js`: `PHIEU: X` thêm mục `- cong_cu/thu_c.js — thêm ca hồi quy`; sửa `thu_c.js` thành xanh + `thu_a.js` hợp lệ + `server/moi.js` → ĐẠT, có dòng "miễn A11 (bài thử cũ sửa): cong_cu/thu_c.js — thêm ca hồi quy" | code gốc: A11 → ĐỎ |
 | A2 | ca A1 cũ "đúng phạm vi + bài thử đỏ/xanh" giữ nguyên → ĐẠT | (K5, đã có) |
 | A3 | mục ghi `cong_cu/thu_a.js` (mới), `thu_a.js` xanh trên gốc → ĐỎ A11 + "bài thử mới không được miễn" | đột biến tay: bỏ điều kiện "có ở mốc" |
-| A4 | mục ghi `thu_c.js`, sửa `thu_c.js` thành bản đỏ cả trên PR + bài đỏ hợp lệ khác → ĐỎ "ĐỎ trên code PR" | đột biến tắt A11 (thêm vào danh sách DB) |
+| A4 | mục ghi `thu_c.js`, sửa `thu_c.js` thành bản XANH trên gốc, ĐỎ trên PR (`exit(existsSync('server/moi.js') ? 1 : 0)`) + bài đỏ hợp lệ khác → ĐỎ "ĐỎ trên code PR" (soát b: bản đỏ cả trên gốc thì không thử phần miễn) | đột biến tay: miễn bỏ luôn kiểm "xanh trên PR" |
 | A5 | ca cũ "A11 bài thử SỬA mà xanh trên gốc" giữ nguyên → ĐỎ | (đã có) |
 | A6 | ba ca, mỗi ca một lỗi: thiếu lý do (`- cong_cu/thu_c.js —`), không phải `thu_*.js` (`- cong_cu/khac.js — x`), không có trong kho (`- cong_cu/thu_khong_co.js — x`) → "dòng hỏng"; ca thiếu lý do: `thu_c.js` bị sửa xanh gốc → A11 | đột biến tay: bỏ từng kiểm |
 | A7 | mục miễn `thu_c.js` hợp lệ, sửa `thu_c.js` + `server/a.js`, không bài đỏ, không `## Bài thử đỏ` → ĐỎ A12 | đột biến tay: miễn tính `doHopLe++` |
-| A8 | mục miễn thêm vào phiếu ở commit thường → ĐỎ A7 (tinh) | (A7 có sẵn + đột biến tắt A7) |
+| A8 | dùng lại ca có sẵn "A7 phiếu đổi ở commit thường" (`thu_cong.js`) — mục miễn đọc từ cùng blob phiếu; không thêm ca (soát 2) | (A7 có sẵn + đột biến tắt A7) |
 | B1 | `thu_nguoi_gac.js:583` thêm `package.json` vào danh sách phải có | code gốc → ĐỎ |
 | B2 | kho cấu hình THẬT, phiếu `- *.json` → `E('package.json', 'G-LUAT')` | code gốc → CHO, ĐỎ |
 | B3 | phiếu `- package.json` → `E('package.json', 'CHO')` | (K5) |
-| B4 | `thu_cong.js`: phiếu `- *.json`, PR đổi `package.json` → A6 "ĐÚNG TÊN"; phiếu `- package.json` → không A6 | code gốc: lý do khác, thiếu "ĐÚNG TÊN" → ĐỎ |
+| B4 | `thu_cong.js`: commit `PHIEU: X` thêm `- *.json` (tránh A7), rồi commit đổi `package.json` (giữ `"test"`) kèm `thu_a.js` hợp lệ + `server/moi.js` (tránh A12, vì `laCode`) → A6 "ĐÚNG TÊN"; biến thể phiếu `- package.json` → ĐẠT (tinh) | code gốc: lý do khác, thiếu "ĐÚNG TÊN" → ĐỎ |
 | C1 | kho tạm: `tu_chay/{a.js, con/b}` + `.claude/tu_chay/a.js` cùng byte → pass, không canhBao | code gốc → canhBao "lệch: con" |
 | C2 | `.claude/tu_chay/a.js` khác byte → canhBao có "lệch: a.js" | (giữ hành vi cũ) |
 | C3 | `.claude/tu_chay/thua.txt` → "thừa: thua.txt"; `.claude/tu_chay/con2/` → không thừa | code gốc → "thừa: con2" |
 | D1, D2 | như mục D | đột biến tay M9, M10 |
 | E | `THIET_KE.md` B15 thêm đoạn | tài liệu |
 | F1–F3 | ghi vào `trang_thai.md` | — |
-| G | `npm test`, `--day-du`, `PHIEN_BAN` = `tu-chay 1.3.1` | — |
+| G | `npm test`, `--day-du`, `PHIEN_BAN` = `tu-chay 1.3.1`; sửa ca `thu_nguoi_gac.js:598` từ `1.3.0` sang `1.3.1` (soát a) | code gốc: PHIEN_BAN 1.3.0 → ĐỎ |
 
 Tài liệu (thêm ca soi chữ trong `thu_cong_cu.js` mục H, theo khuôn có sẵn ở đó): MAU_PHIEU có `## Bài thử cũ sửa`
 (cách ghi, giới hạn A3/A7); skill nhắc "báo chủ quán thêm mục, không tự lách".
@@ -115,3 +120,14 @@ nhánh `viec/HOC-1`** sau khi máy push xong, rồi mới mở PR.
 ## Ngân sách dự kiến
 Code ~25 (`cong.js` +~20, `kiem_tra` ±2, `cau_hinh.json` ±1, `cai_dat.js` 0). Thử ~170 (`thu_cong.js` +~100,
 `thu_cong_cu.js` +~45, `thu_nguoi_gac.js` +~25). Tài liệu ~30. Dưới ngân sách phiếu.
+
+## Soát kế hoạch (agent phụ, chỉ đọc) — CẦN SỬA → đã sửa vào bản này
+- (a) `thu_nguoi_gac.js:598` khoá `tu-chay 1.3.0` → thêm vào ca G.
+- (b) A4 phải xanh gốc / đỏ PR → sửa ca.
+- (c) A6 kiểm mọi dòng mục miễn → ghi rõ ở mục A.
+- (d) bỏ backtick đường dẫn như `phamViTuChu` → ghi rõ ở mục A.
+- (e) cách dựng B4 (commit `PHIEU: X`, kèm bài thử hợp lệ) và đưa cấu hình hỏng vào D1 → ghi rõ.
+- Gợi ý ngắn hơn: dùng `f.st === 'M'` từ `doi` thay `blob(moc, p)` cho bài thử bị sửa — nhận, khi viết code dùng
+  `doi` cho file PR đụng; dòng mục trỏ file PR không đụng vẫn phải `blob` để báo "không có trong kho".
+- Ghi nhận: A3, A7, D1, D2 xanh trên code gốc (phép mới / phép đã có) → bằng chứng đỏ là đột biến tay; cổng luật cũ vẫn
+  qua vì mỗi file `thu_*.js` có ca đỏ khác (A1/B4, C1/C3, B1/B2/G).
