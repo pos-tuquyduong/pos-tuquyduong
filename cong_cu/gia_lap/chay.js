@@ -22,7 +22,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const net = require('net');
+const http = require('http');
+const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..', '..');
 const thamSo = (ten, macDinh) => { const i = process.argv.indexOf(ten); return i > 0 ? process.argv[i + 1] : macDinh; };
@@ -40,7 +41,7 @@ function kiemAnToan() {
     return `không đọc được ten_mien_production trong ${CAU_HINH}`;
   }
   const bien = process.env;
-  const xau = Object.keys(bien).filter((t) => BIEN_MAY_THAT.test(t) || mien.some((m) => String(bien[t]).includes(m)));
+  const xau = Object.keys(bien).filter((t) => BIEN_MAY_THAT.test(t) || mien.some((m) => String(bien[t]).toLowerCase().includes(m.toLowerCase())));
   return xau.length ? `môi trường có biến của máy thật: ${xau.join(', ')} (không in giá trị)` : '';
 }
 const lyDo = kiemAnToan();
@@ -115,10 +116,15 @@ async function main() {
 
   // Khoá GIẢ — chỉ đặt SAU phép kiểm A1.
   const bienGia = process.env;
-  bienGia.JWT_SECRET = 'gia_lap_' + Date.now();
+  bienGia.JWT_SECRET = 'gia_lap_' + crypto.randomBytes(16).toString('hex');   // ngẫu nhiên: giả lập song song không trùng khoá
   bienGia.POS_SERVICE_API_KEY = 'khoa_dich_vu_gia_lap';
   bienGia.SX_API_KEY = 'khoa_sx_gia_lap';
-  bienGia.PORT = String(await new Promise((ok) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); }); }));
+  // Cổng 0: hệ điều hành cấp cổng lúc index.js listen; bắt đúng máy chủ đó để đọc cổng THẬT. Không "mượn cổng rồi đóng"
+  // (TOCTOU — soát vòng 2 bắt: giả lập song song lấy mất cổng, yêu cầu rơi sang máy khác → 401).
+  bienGia.PORT = '0';
+  const listenGoc = http.Server.prototype.listen;
+  let mayPos = null;
+  http.Server.prototype.listen = function (...a) { mayPos = mayPos || this; return listenGoc.apply(this, a); };
 
   // Móc trước giao dịch (KB11): vá database.js TRƯỚC khi route lấy beginTransaction (orders.js:13).
   const db = require(path.join(MAY_CHU, 'database.js'));
@@ -128,12 +134,13 @@ async function main() {
 
   // B1 · máy chủ THẬT: nạp nguyên index.js (tự initDatabase rồi mới listen).
   require(path.join(MAY_CHU, 'index.js'));
-  const goc = `http://127.0.0.1:${bienGia.PORT}/api/pos`;
-  for (let i = 0; ; i++) {
-    try { if ((await fetch(goc + '/health')).ok) break; } catch { /* chưa lên */ }
+  for (let i = 0; !mayPos?.listening; i++) {
     if (i > 100) throw new Error('máy chủ không lên sau 10 s');
     await new Promise((ok) => setTimeout(ok, 100));
   }
+  http.Server.prototype.listen = listenGoc;
+  const goc = `http://127.0.0.1:${mayPos.address().port}/api/pos`;
+  if (!(await fetch(goc + '/health')).ok) throw new Error('máy chủ của giả lập không trả lời /health');
 
   const jwt = require(tim('jsonwebtoken'));
   const q = async (sql, a = []) => db.query(sql, a);

@@ -107,7 +107,7 @@ async function main() {
   // ── E3 / A1 ─────────────────────────────────────────────────────────────
   const TU_CHOI = [['TURSO_DATABASE_URL', 'libsql://gia-tri-1'], ['TURSO_AUTH_TOKEN', 'gia-tri-2'], ['DATABASE_URL', 'gia-tri-3'],
     ['SX_API_URL', 'gia-tri-4'], ['SX_API_URL_THU', 'gia-tri-5'], ['SX_API_KEY', 'gia-tri-6'], ['JWT_SECRET', 'gia-tri-7'],
-    ['POS_SERVICE_API_KEY', 'gia-tri-8'], ['BIEN_VO_HAI_A', 'https://kho.turso.io/x'], ['BIEN_VO_HAI_B', 'https://pos-tuquyduong.io.vn/api']];
+    ['POS_SERVICE_API_KEY', 'gia-tri-8'], ['BIEN_VO_HAI_A', 'https://KHO.TURSO.IO/x'], ['BIEN_VO_HAI_B', 'https://pos-tuquyduong.io.vn/api']];
   const CHO_QUA = [['NODE_ENV', 'development'], ['GHI_CHU', 'turso cuc bo khong ten mien'], ['npm_package_name', 'pos-system-turso']];
   const hong1 = path.join(TAM, 'hong.json'); fs.writeFileSync(hong1, '{');
   const hong2 = path.join(TAM, 'rong.json'); fs.writeFileSync(hong2, '{"ten_mien_production": []}');
