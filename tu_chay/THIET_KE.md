@@ -804,7 +804,8 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   `- <đường dẫn thu_*.js> — <lý do>`. Chỉ file có ở mốc và PR SỬA mới được miễn điều kiện "đỏ trên code gốc"; vẫn phải
   xanh trên code PR; không tính là bài đỏ hợp lệ nên A12 giữ nguyên. Bài thử mới, file bị xoá / đổi tên (cổng dùng
   `--no-renames`: đổi tên = xoá tên cũ + thêm tên mới), dòng thiếu lý do, không phải `thu_*.js`, không có trong kho →
-  "dòng hỏng", không miễn. Chế độ `tinh` không đổi. Mục miễn đọc từ phiếu ở head → đổi phiếu ngoài commit `PHIEU:` là A7.
+  "dòng hỏng", không miễn. Bài được miễn còn phải qua phép (d) (chủ quán chốt Câu hỏi 1): BẢN GỐC của file (ở mốc)
+  chạy trên code PR phải XANH — PR không thay được bài cũ bằng bản yếu hơn rồi làm hỏng thứ bản gốc canh. Chế độ `tinh` không đổi. Mục miễn đọc từ phiếu ở head → đổi phiếu ngoài commit `PHIEU:` là A7.
 - **T2** của `kiem_tra_truoc_khi_giao.js` chỉ so FILE, bỏ thư mục con — cùng khuôn trình cài và A8.
 - **Phát hiện 5 — mọi thay đổi trong `.claude/` đi qua nguồn `tu_chay/`** rồi chủ quán chạy `bash tu_chay/cai_dat.sh`
   trên nhánh việc. Sửa tay `.claude/hooks/*.cjs`, `.claude/settings.json` hay file `.claude/` khác (kể cả để vá nhanh)
