@@ -29,7 +29,12 @@ DB = [
      '${mienCu.get(p)}`), doHopLe++; //', 'thu_cong.js', 'HOC-1 A7'),
     ('MB cau_hinh bỏ package.json khỏi file_luat', 'tu_chay/cau_hinh.json', ', "package.json"]', ']', 'thu_nguoi_gac.js', 'package.json'),
     ('MB4 như MB, đo bằng bài thử cổng', 'tu_chay/cau_hinh.json', ', "package.json"]', ']', 'thu_cong.js', 'HOC-1 B4'),
-    ('MC T2 về bản cũ (đọc cả thư mục)', 'kiem_tra_truoc_khi_giao.js', '.filter((x) => x.isFile())', '', 'thu_cong_cu.js', 'C'),
+    ('MC T2 về bản cũ (đọc cả thư mục)', 'kiem_tra_truoc_khi_giao.js', '.filter((f) => { try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } })', '', 'thu_cong_cu.js', 'C'),
+    ('MC2 T2 lọc bằng Dirent.isFile (bỏ symlink)', 'kiem_tra_truoc_khi_giao.js', 'fs.readdirSync(d).filter((f) => { try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } })',
+     'fs.readdirSync(d, { withFileTypes: true }).filter((x) => x.isFile()).map((x) => x.name)', 'thu_cong_cu.js', 'symlink'),
+    ('MC3 T2 bỏ try quanh statSync (symlink treo)', 'kiem_tra_truoc_khi_giao.js',
+     '{ try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } }', 'fs.statSync(path.join(d, f)).isFile()',
+     'thu_cong_cu.js', 'treo'),
 ]
 
 
