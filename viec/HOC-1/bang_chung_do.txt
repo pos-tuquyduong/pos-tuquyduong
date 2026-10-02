@@ -1,0 +1,98 @@
+# HOC-1 bước 4 — bài thử mới chạy trên code CHƯA vá (HEAD 48e36c4 + bài thử mới), 02.10.2026
+
+=== node tu_chay/thu_cong.js  → thoát 1 ===
+thu_cong: 187 phép · 21 chỗ hỏng
+  ✗ HOC-1 A1 bài thử cũ sửa, xanh trên gốc + PR, có trong mục → miễn A11: phải ĐẠT — ✓ CỔNG TĨNH ĐẠT
+
+✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A1 bài thử cũ sửa, xanh trên gốc + PR, có trong mục → miễn A11: lý do có "miễn A11 (bài thử cũ sửa): cong_cu/thu_c.js — thêm ca hồi quy" — ✓ CỔNG TĨNH ĐẠT
+
+✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A1 đường dẫn ghi kèm backtick như mục Phạm vi: phải ĐẠT — ✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A1 đường dẫn ghi kèm backtick như mục Phạm vi: lý do có "miễn A11 (bài thử cũ sửa): cong_cu/thu_c.js — thêm ca hồi quy" — ✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A3 bài thử MỚI ghi trong mục → không miễn: lý do có "bài thử mới không được miễn" — ✗ [A11] bài thử `cong_cu/thu_b.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A4 bài thử cũ được miễn nhưng ĐỎ trên code PR: KHÔNG có "XANH trên code gốc" — ✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ [A11] bài thử `cong_cu/thu_c.js` ĐỎ trên code PR (thoát 1) — bài thử phải xanh sau khi vá:
+
+✗ CỔNG ĐỎ (CHẠY) — 2 lý do
+
+  ✗ HOC-1 A6 dòng thiếu lý do → hỏng, A11 như cũ: lý do có "dòng hỏng" — ✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A6 lý do còn là chỗ trống của mẫu <…> → hỏng: lý do có "dòng hỏng" — ✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A6 dòng không phải thu_*.js → hỏng: lý do có "dòng hỏng" — ✓ CỔNG CHẠY ĐẠT
+
+  ✗ HOC-1 A6 dòng không phải thu_*.js → hỏng: lý do có "cong_cu/khac.js" — ✓ CỔNG CHẠY ĐẠT
+
+  ✗ HOC-1 A6 đường dẫn không có trong kho → hỏng: lý do có "dòng hỏng" — ✓ CỔNG CHẠY ĐẠT
+
+  ✗ HOC-1 A6 đường dẫn không có trong kho → hỏng: lý do có "không có trong kho" — ✓ CỔNG CHẠY ĐẠT
+
+  ✗ HOC-1 duyệt (1) bài thử cũ bị PR xoá → dòng hỏng: lý do có "dòng hỏng" — ✓ CỔNG CHẠY ĐẠT
+
+  ✗ HOC-1 duyệt (1) bài thử cũ bị PR xoá → dòng hỏng: lý do có "bị PR xoá hoặc đổi tên" — ✓ CỔNG CHẠY ĐẠT
+
+  ✗ HOC-1 duyệt (1) bài thử cũ bị đổi tên → cả hai tên đều hỏng, tên mới A11: lý do có "bị PR xoá hoặc đổi tên" — ✗ [A11] bài thử `cong_cu/thu_d.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 duyệt (1) bài thử cũ bị đổi tên → cả hai tên đều hỏng, tên mới A11: lý do có "bài thử mới không được miễn" — ✗ [A11] bài thử `cong_cu/thu_d.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 A7 chỉ có bài thử cũ được miễn, đổi code, không ## Bài thử đỏ → A12: lý do có "miễn A11 (bài thử cũ sửa): cong_cu/thu_c.js — thêm ca hồi quy" — ✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ [A12] đổi code mà không có bài thử nào ĐỎ hợp lệ trên code gốc
+✗ CỔNG ĐỎ (CHẠY) — 2 lý do
+
+  ✗ HOC-1 K5 mục miễn đứng trước ## Bài thử đỏ → cả hai cùng đọc được: phải ĐẠT — · miễn bài thử đỏ (phiếu ## Bài thử đỏ): chỉ thêm ca hồi quy
+✓ CỔNG TĨNH ĐẠT
+
+· miễn bài thử đỏ (phiếu ## Bài thử đỏ): chỉ thêm ca hồi quy
+✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 K5 mục miễn đứng trước ## Bài thử đỏ → cả hai cùng đọc được: lý do có "miễn A11 (bài thử cũ sửa): cong_cu/thu_c.js — thêm ca hồi quy" — · miễn bài thử đỏ (phiếu ## Bài thử đỏ): chỉ thêm ca hồi quy
+✓ CỔNG TĨNH ĐẠT
+
+· miễn bài thử đỏ (phiếu ## Bài thử đỏ): chỉ thêm ca hồi quy
+✗ [A11] bài thử `cong_cu/thu_c.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+
+  ✗ HOC-1 B4 package.json chỉ ghi glob chung *.json: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+
+  ✗ HOC-1 B4 package.json chỉ ghi glob chung *.json: lý do có "package.json` phải ghi ĐÚNG TÊN" — ✓ CỔNG TĨNH ĐẠT
+
+  ĐỎ — 21 chỗ hỏng
+
+=== node tu_chay/thu_nguoi_gac.js  → thoát 1 ===
+thu_nguoi_gac: 780/782 ca người gác đúng mã · 165 phép khác
+  ✗ ca Edit package.json: mong CHAN:G-LUAT, ra CHO
+  ✗ ca Bash "echo x > package.json": mong CHAN:G-LUAT, ra CHO
+  ✗ cau_hinh: TIEN_DO_*.json trong file_cam; 5 file luật (HOC-1 B1: thêm package.json) trong file_luat
+  ✗ PHIEN_BAN = tu-chay 1.3.1 — tu-chay 1.3.0
+  ĐỎ — 4 chỗ hỏng
+
+=== node tu_chay/thu_cong_cu.js  → thoát 1 ===
+thu_cong_cu: 74 phép · 6 chỗ hỏng
+  ✗ HOC-1 MAU_PHIEU: mục tuỳ chọn ## Bài thử cũ sửa, dạng "- <đường dẫn thu_*.js> — <lý do>", bài thử mới không được miễn, không thay A12
+  ✗ HOC-1 skill: bài thử cũ xanh trên gốc thì báo chủ quán thêm ## Bài thử cũ sửa vào phiếu
+  ✗ HOC-1 E THIET_KE B15: .claude/ chỉ đổi qua nguồn tu_chay/ + cai_dat.sh, sửa tay .claude/hooks bị A8 — ## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.0)
+
+Chi tiế
+  ✗ C1 tu_chay/ có thư mục con, file khớp bản cài → T2 PASS, không cảnh báo — CANH .claude/tu_chay/ khớp từng byte với tu_chay/ lệch: con · thừa: - — chủ quán chạy lại: bash tu_chay/cai_dat.sh
+  ✗ C2 một file lệch bản cài → vẫn CẢNH BÁO "lệch: a.js" — CANH .claude/tu_chay/ khớp từng byte với tu_chay/ lệch: a.js, con · thừa: - — chủ quán chạy lại: bash tu_chay/cai_dat.sh
+  ✗ C3 THƯ MỤC con trong .claude/tu_chay/ không tính là thừa → T2 PASS — CANH .claude/tu_chay/ khớp từng byte với tu_chay/ lệch: con · thừa: con2 — chủ quán chạy lại: bash tu_chay/cai_dat.sh
+  ĐỎ — 6 chỗ hỏng
+
+Xanh trên bản chưa vá (đúng dự kiến, phép đã có sẵn hoặc K5): D1 (4 ca muc_gac), D2 (3 ca + đối chứng), các ca K5, B3.
+Bằng chứng đỏ của D1/D2/A3/A6/A7: đột biến tay — xem bảng trong trang_thai.md.
