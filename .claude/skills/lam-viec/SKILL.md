@@ -40,6 +40,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    push, rồi dừng ở đây.
 4. **Bài thử trước.** Viết bài thử, chạy trên code CHƯA sửa, thấy nó **đỏ** (K3). Lưu kết quả vào
    `viec/$0/bang_chung_do.txt`. Xanh ngay trên bản chưa sửa = bài thử vô giá trị, viết lại.
+   Sửa một bài thử ĐÃ CÓ mà nó vẫn xanh trên code gốc (thêm ca hồi quy): ghi `## Câu hỏi`, báo chủ quán thêm mục
+   `## Bài thử cũ sửa` vào phiếu — không tự sửa phiếu, không tự lách bằng ca đỏ giả.
 5. **Sửa code** cho tới khi bài thử xanh. Bản lưu trước khi vá để trong thư mục nháp, không để trong kho.
 6. **Kiểm.** `npm test` phải xanh. Đụng `client/src/` thì `(cd client && npm run build)` rồi
    `node kiem_tra_truoc_khi_giao.js --day-du`. Tự rà: code chết, trùng lặp, hàm dùng một lần, so số

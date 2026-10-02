@@ -702,7 +702,7 @@ Nguồn tài liệu đã tra (30.09.2026): code.claude.com/docs/en/claude-code-o
 - **`xem_thu.sh`: phép "không tự hỏng khi đổi chính file" chưa có ca đỏ thật.** git thay file bằng inode mới
   nên bash vẫn đọc bản cũ qua fd đang mở; bọc hàm là lớp phòng thêm, bài thử (F10) không phân biệt được.
 
-## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.0)
+## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.0; HOC-1 1.3.1)
 
 Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `viec/TU-CHAY-3/ke_hoach.md`.
 
@@ -794,10 +794,21 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - Hook kéo nhánh: ca C1, C2, C5b xanh cả trên bản chưa vá (bản cũ không kéo gì); ca đối chứng C7/C3 cùng kho đỏ.
 - **Bỏ một mục `ban_cai` hay xoá một file khỏi `tu_chay/`**: trình cài không xoá bản cài cũ, cổng vẫn so đích cũ với nguồn
   đã mất → đỏ. Muốn bỏ thì chủ quán làm tay hai bước (gỡ ở main trước). Đổi lệnh/matcher người gác cũng vậy.
-- **Không có ca thử** cho phép kiểm cấu trúc `muc_gac` trong `cai_dat.js` và phép kiểm `cau_hinh.json` lúc nạp `cong.js`
-  (đột biến M9, M10 của vòng soát 3 sống) — `thu_nguoi_gac.js` ghim nội dung `muc_gac`, rủi ro thấp.
-- **A11 không có lối miễn cho bài thử CŨ bị sửa** (thêm ca hồi quy cho hành vi đang đúng, sửa chú thích): theo chữ phiếu,
-  mục `## Bài thử đỏ` chỉ miễn A12. Chủ quán quyết có mở lối miễn không.
-- **`npm test` theo `package.json` của PR**: phiếu nào ghi `package.json` thì PR đổi được script `test` → A13 tắt
-  (loại "ác ý", ở `cong-chay`). Bịt rẻ: thêm `package.json` vào `file_luat` — đề xuất, chưa làm.
+- ~~Không có ca thử cho `muc_gac` của `cai_dat.js` và cấu hình lúc nạp `cong.js` (M9, M10)~~ — HOC-1 D1, D2 đã có ca.
+- ~~A11 không có lối miễn cho bài thử CŨ bị sửa~~ — HOC-1: mục `## Bài thử cũ sửa` của phiếu (xem dưới).
+- **`npm test` theo `package.json` của PR**: HOC-1 đưa `package.json` vào `file_luat` → chỉ phiếu ghi ĐÚNG TÊN mới mở
+  được. Phiếu đã ghi đúng tên thì PR vẫn đổi được script `test` — chủ quán duyệt dòng đó khi soạn phiếu.
+
+### HOC-1 (02.10.2026, tu-chay 1.3.1)
+- **Miễn A11 cho bài thử cũ sửa** (`cong.js`, chế độ `chay`): phiếu có mục `## Bài thử cũ sửa`, dòng
+  `- <đường dẫn thu_*.js> — <lý do>`. Chỉ file có ở mốc và PR SỬA mới được miễn điều kiện "đỏ trên code gốc"; vẫn phải
+  xanh trên code PR; không tính là bài đỏ hợp lệ nên A12 giữ nguyên. Bài thử mới, file bị xoá / đổi tên (cổng dùng
+  `--no-renames`: đổi tên = xoá tên cũ + thêm tên mới), dòng thiếu lý do, không phải `thu_*.js`, không có trong kho →
+  "dòng hỏng", không miễn. MỌI file ghi trong mục mà PR sửa (bản sửa xanh hay đỏ trên gốc — soát vòng 2) còn
+  phải qua phép (d) (chủ quán chốt Câu hỏi 1): BẢN GỐC của file (ở mốc) chạy trên code PR phải XANH — PR không thay được bài cũ bằng bản yếu hơn rồi làm hỏng thứ bản gốc canh. Chế độ `tinh` không đổi. Mục miễn đọc từ phiếu ở head → đổi phiếu ngoài commit `PHIEU:` là A7.
+- **T2** của `kiem_tra_truoc_khi_giao.js` chỉ so FILE, bỏ thư mục con — cùng khuôn trình cài và A8.
+- **Phát hiện 5 — mọi thay đổi trong `.claude/` đi qua nguồn `tu_chay/`** rồi chủ quán chạy `bash tu_chay/cai_dat.sh`
+  trên nhánh việc. Sửa tay `.claude/hooks/*.cjs`, `.claude/settings.json` hay file `.claude/` khác (kể cả để vá nhanh)
+  → cổng chặn A8 ("không do trình cài quản" hoặc "lệch kết quả cai_dat.js"). Muốn đổi thứ trong `.claude/` mà trình
+  cài chưa quản: làm phiếu sửa `tu_chay/` (thêm `ban_cai`) trước.
 
