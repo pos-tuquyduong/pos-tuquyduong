@@ -36,7 +36,7 @@ Một điểm của bản soát tự nó lệch số dòng (I3 ghi orders.js:128
 Lần đầu `thu_gia_lap` 29 đạt · 1 hỏng: KB6 đỏ vì lỗi THẬT `refunds.js:139` (BigInt → 500) — dừng, Câu hỏi 4. Chủ quán chốt (c):
 KB6 đi đường báo hỏng (`damages.js`). Sau đó thêm M10 (KB6 → I4).
 
-### Hiện tại (HEAD sau vòng sửa 1)
+### Hiện tại (sau vòng sửa 3)
 - `thu_gia_lap.js`: **31 đạt · 0 hỏng** — A1 15 ca (10 từ chối · 2 cấu hình hỏng · 3 cho qua), A2 (sập → thoát 2, tmp sạch,
   `data/` không đổi), **10/10 đột biến máy chủ** (M1→I6, M2→I1, M3→I4, M4→I7, M5→I8, M6→I9, M7→I9, M8→I3, M9→I5, M10→I4),
   I2 trên kho tay (0 dòng / 2 dòng).
@@ -51,6 +51,7 @@ KB6 đi đường báo hỏng (`damages.js`). Sau đó thêm M10 (KB6 → I4).
   | E4d bỏ một kịch bản | ĐỎ: ✗ dòng tổng (10 kịch bản) |
   | E4e A1 bỏ tên `SX_API_KEY` | ĐỎ: ✗ ca SX_API_KEY → thoát 3 |
   | E4f A2 bỏ dọn kho tạm | ĐỎ: ✗ mọi thư mục gia_lap_* đã xoá |
+  | E4g bắt nhầm máy chủ (đọc cổng SX giả) — thêm ở vòng sửa 3 | ĐỎ tất định: giả lập SẬP "không trả lời /health", thoát 2 |
   | F2 giả lập còn 10 kịch bản | ĐỎ: ✗ bánh cóc giả lập (bộ kiểm `--day-du`) |
   | S3 danh sách trắng ví lệch wallets.js | ĐỎ: ✗ danh sách trắng ví (bộ kiểm nhanh) |
 - Dọn khi bị SIGTERM (vòng sửa 1): chạy giả lập, gửi SIGTERM sau 6 s → thoát 2, thư mục `gia_lap_*` đã xoá (script nháp
@@ -59,7 +60,7 @@ KB6 đi đường báo hỏng (`damages.js`). Sau đó thêm M10 (KB6 → I4).
 ## Bước 6 — kiểm, tự rà
 - `npm test`: PASS 55 · FAIL 0 · 1 CẢNH BÁO (bản cài `.claude/tu_chay/` lệch nguồn — chủ quán chạy `bash tu_chay/cai_dat.sh`).
 - `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 59 · FAIL 0 (giả lập 22,6 s, `thu_gia_lap` 24,2 s). Không sửa `client/src/`.
-- Ngân sách: giả lập 493 dòng / ~450 (1,1×) · `thu_gia_lap.js` 168 / ~200 · bộ kiểm +32/−3 / ±30 · cấu hình ±1 ·
+- Ngân sách (đo lại sau vòng sửa 3, `wc -l`): giả lập **502** dòng / ~450 (1,12×) · `thu_gia_lap.js` 168 / ~200 · bộ kiểm +32/−3 / ±30 · cấu hình ±1 ·
   `thu_nguoi_gac.js` **+15/−3 → vòng sửa 1 gom còn +9/−3** / ±5 → tính cùng thước đo DÒNG THÊM như kế hoạch §9: **9/5 = 1,8×,
   VƯỢT ngưỡng cảnh báo 1,5** (vòng 2 bắt; vòng 1 ghi "ròng 1,2×" là đổi thước đo — sai). Lý do: 4 ca người gác (2 phải chặn,
   2 phải cho qua — K5) + phép file_luat 7 mục; không gom thêm được mà không bỏ ca. · tài liệu ~30.
@@ -164,6 +165,13 @@ Phát hiện 1–5: chủ quán mở việc vá riêng (chốt 02.10.2026) — K
 - Replit có Secrets (máy mây không đọc được môi trường — người gác chặn đúng luật). Nhánh A2 "không có `data/`": ở đây `data/`
   rỗng; mã đã xử lý cả ba trường hợp (`thu_gia_lap.js` hàm `chup`) nhưng nhánh "không có" chưa chạy thật.
 - Bộ kiểm có thật sự lọc môi trường (MT_SACH) — không đột biến nào kiểm; máy mây sạch nên bỏ lọc vẫn xanh.
+- **Tranh cổng (vòng 2, lỗi 1): bản vá đúng nhờ LẬP LUẬN CẤU TRÚC, không nhờ phép thử.** Cổng đọc từ chính máy chủ index.js
+  (`chay.js:142`); E4g bắt được việc bắt NHẦM máy chủ (tất định). KHÔNG có phép thử nào bắt việc quay lại "mượn cổng rồi
+  đóng" (lỗi thất thường; agent vòng 3 chạy bản chưa vá 40 song song: 40/40 sạch — không tái hiện được). Con số "13 lần
+  sạch" ghi ở Sửa sau vòng 2 KHÔNG phải bằng chứng (vòng 3: chỉ 6 + 1 lần quan sát được, và không có đối chứng).
+- initDatabase hỏng → `index.js:196–198` `process.exit(1)` khi console đã tắt → giả lập thoát 1 không in gì (hứa "2 sập").
+  Không xanh oan (bộ kiểm đòi 0). Máy chủ giả lập nghe mọi giao diện (`index.js:181`) ~25 s với khoá dịch vụ giả cố định —
+  chỉ dữ liệu giả. Máy chỉ có IPv6 chưa thử.
 - Đường SIGTERM: thử một lần bằng script nháp (vòng 1, agent vòng 2 đối chứng: bỏ dòng thì sót thư mục). Không có đột biến
   lâu dài trong `dot_bien.py`. SIGKILL không bắt được — sót thư mục tạm (chỉ dữ liệu giả).
 - KB2 chạy vắt qua nửa đêm giờ VN → 409 `KHONG_TRONG_NGAY` (`don-mo-rong.js:129`). I9 dùng `paid_amount` server trả
@@ -340,6 +348,134 @@ BÀI HỌC:
 - Nghi ngờ: so tên miền không phân biệt hoa thường (`chay.js` A1) — ca E3 `BIEN_VO_HAI_A` đổi sang giá trị viết HOA
   (`KHO.TURSO.IO`), ca viết thường vẫn có ở `BIEN_VO_HAI_B`; THIET_KE B10 dặn việc sửa `server/**` làm lệch chuỗi đột biến phải
   ghi `thu_gia_lap.js`; `backup.js` khôi phục → CHƯA KIỂM.
+
+### Vòng 3 — báo cáo nguyên văn (agent độc lập, HEAD f50989d)
+
+```
+KHÔNG ĐẠT
+
+Kết luận ngắn: bản sửa code của vòng 2 (tranh cổng, JWT, A1 hoa/thường) ĐÚNG — đã đọc code thật và chạy thử áp lực,
+không thấy lỗi. Còn 3 lỗi, cả ba ở tài liệu và bằng chứng, không ở code. Lỗi 1 vi phạm luật cứng K3 ("đột biến không
+dựng được ca hỏng thật thì ghi CHƯA KIỂM"), nên không kết luận ĐẠT.
+
+Đã chạy ở HEAD f50989d (cây sạch trước và sau; /tmp không sót gia_lap_*, thu_gl_*, db_tc4_*): npm test PASS 55 · FAIL 0 ·
+1 cảnh báo (T4 bản cài lệch nguồn, đúng trang_thai:60); thu_gia_lap 31/0; --day-du PASS 59 · FAIL 0. Áp lực (script nháp
+ap_luc.js ngoài kho, môi trường PATH/HOME/TMPDIR riêng): HEAD 16 song song × 2 vòng 32/32 ĐẠT; HEAD 40 song song 40/40 ĐẠT,
+31 s, không sót thư mục; đối chứng bản 0f22a2a (còn mượn cổng) 40 song song CŨNG 40/40. A1 (a1_hoa.js): HEAD từ chối
+"https://KHO.TURSO.IO/x" và "Pos-TuQuyDuong.IO.VN", bản 0f22a2a cho cả hai qua → ca E3 BIEN_VO_HAI_A đỏ trên bản cũ thật;
+giá trị vô hại vẫn qua ("Turso cuc bo", "POS dùng Turso (libsql)", "turso-io-runner").
+
+A. Kiểm lỗi vòng 2:
+1. Tranh cổng — ĐÚNG. SX giả listen chay.js:79 TRƯỚC khi vá prototype :125–127; express 5.2.1 app.listen =
+   http.createServer(this) + server.listen (express/lib/application.js:598–605); trong server/ chỉ index.js:181 listen.
+   listening không true trước kho sẵn sàng (index.js:178 await initDatabase rồi :181 listen). PORT chỉ đọc ở index.js:53.
+   Cổng đọc từ mayPos.address() (chay.js:142); /health :143 thừa nhưng vô hại. Prototype trả ở :141; hai đường không trả
+   đều kết thúc tiến trình (sap → exit 2). JWT_SECRET crypto.randomBytes (:119) trước khi nạp index.js. A1 hoa/thường
+   (:44) không chặn oan.
+2. THIET_KE B12 bước 5 (:458–459) — đúng với cong.js:234.
+3. ke_hoach.md:3–11 — đúng.
+4. Ngân sách thu_nguoi_gac (trang_thai:63–65) — 9/5 = 1,8×, đúng numstat +9/−3.
+
+LỖI TÌM ĐƯỢC:
+1. viec/TU-CHAY-4/trang_thai.md:331–335 (và CHƯA KIỂM :156–171) — K3 + K1. Bản sửa tranh cổng không có bài thử nào đỏ trên
+   bản chưa vá; trang_thai coi "13 lần liên tiếp, 0 lần tranh cổng (trước vá ~1/8)" là bằng chứng, không ghi CHƯA KIỂM.
+   "7 lần" từ dot_bien.py không quan sát được: dot_bien.py:68–69 chỉ in dòng ✗ khớp dấu; E4a–f vốn đỏ nên ✗ thêm do tranh
+   cổng bị che — chỉ M0 cho thấy "không đỏ lạ" → 6 + 1, không phải 13. Thống kê không phân biệt bản vá/chưa vá (0f22a2a
+   40/40 ĐẠT; với tỷ lệ 1/8, (7/8)^13 ≈ 0,18). Bản vá đúng nhờ lập luận cấu trúc; phải ghi CHƯA KIỂM: không đột biến/bài
+   thử nào bắt việc quay lại "mượn cổng" hay bắt nhầm máy chủ.
+2. tu_chay/THIET_KE.md:14 và :422 — K4 tài liệu + K1: :14 vẫn ghi giả lập "dùng lại 6 câu SQL đã chạy trên production ngày
+   27.09"; :422 (việc này thêm) ghi "6 câu ngày 27.09 không có trong kho". Cùng khuôn lỗi 2 vòng 2.
+3. viec/TU-CHAY-4/trang_thai.md:62 — K1 nhẹ: "giả lập 493 dòng / ~450 (1,1×)", thật 138 + 192 + 172 = 502 (1,12×) — không
+   cập nhật sau hai vòng sửa chay.js (184 → 185 → 192).
+
+NGHI NGỜ: initDatabase hỏng → index.js:196–198 process.exit(1), console tắt (chay.js:62) → thoát 1 không in gì, trái đầu
+file chay.js:19 "2 sập" (không xanh oan; có từ vòng 0). index.js:181 listen mọi giao diện, POS_SERVICE_API_KEY giả cố định
+(chay.js:120) → ~25 s máy cùng LAN gọi được (dữ liệu giả; trước vòng 2 cũng vậy). chay.js:141 gán lại listenGoc thành thuộc
+tính riêng thay vì xoá — tương đương. trang_thai:39 tiêu đề "HEAD sau vòng sửa 1" và số đo :61 chưa cập nhật (số vẫn đúng).
+
+Soát B: K3 E3 hoa/thường đỏ trên bản cũ thật; tranh cổng xem lỗi 1. K4 tài nguyên dùng chung: cổng máy chủ 0, cổng SX 0,
+kho mkdtemp, JWT ngẫu nhiên, TMPDIR riêng; server không ghi file khác (ketNoiKho.js:30 đã bị thay); tài liệu lỗi 2. K5 không
+thấy chặn oan. K1 lỗi 1, 3. Đường tiền: diff không chạm server/, client/, data/, .env; ketNoiKho thay chay.js:83–88, dotenv
+:89; database.js:23–26 bỏ qua dbPath; món chỉ gửi product_id. P1 không áp dụng.
+
+CHƯA SOÁT ĐƯỢC: lap6.js không nằm trong kho (không kiểm được "6/6"); không tái hiện được tranh cổng trên bản cũ (0/40); không
+chạy lại dot_bien.py; GitHub Actions; Replit Secrets; A2 khi không có data/; máy chỉ IPv6 / bindv6only=1.
+
+BÀI HỌC:
+- KHOÁ: đột biến E4g trong dot_bien.py: chay.js bỏ đọc cổng thật (PORT cố định, hoặc mayPos bắt máy SX) — phải ĐỎ tất định;
+  không có thì CHƯA KIỂM; không dùng "N lần sạch" thay ca đỏ.
+- KHOÁ: dot_bien.py in TẤT CẢ dòng ✗ và báo SAI khi có ✗ ngoài dấu mong đợi.
+- NGUYÊN TẮC (K3/K1): bằng chứng thống kê cho lỗi thất thường chỉ có giá trị khi CÙNG khung chạy đã cho thấy lỗi trên bản
+  chưa vá với tần suất đo được.
+- NGUYÊN TẮC (K4 tài liệu): thêm câu phủ định một sự thật cũ thì grep cả file tìm câu khẳng định ngược lại (THIET_KE:14).
+- NGUYÊN TẮC (K1): số ngân sách / số dòng trong trang_thai đo lại ở mỗi vòng sửa có đụng code (493 → 502).
+```
+
+### Sửa sau vòng 3 (vòng sửa 3/3 — cuối; không còn vòng soát nào sau đây)
+- Lỗi 1 — đúng. Mục CHƯA KIỂM nay ghi thẳng: bản vá tranh cổng đúng nhờ lập luận cấu trúc; "13 lần sạch" không phải bằng chứng.
+  Thêm **E4g** vào `dot_bien.py` (đọc cổng SX giả thay cổng POS) → **ĐỎ tất định** (giả lập SẬP "không trả lời /health", thoát
+  2) — phép `/health` ở `chay.js:143` vòng 3 gọi là "thừa" chính là thứ làm E4g tất định. Việc quay lại "mượn cổng" vẫn CHƯA KIỂM.
+  `dot_bien.py` nay in MỌI dòng ✗ (không báo SAI khi có ✗ thêm — một đột biến làm lệch nhiều chỗ là bình thường, vd E4b);
+  lần chạy `M0 E4g E4b` sau sửa: 3/3 đạt, và nhờ in đủ mới thấy E4b còn làm KB10 chạy tuần tự (200/400 — bằng chứng chồng nhau
+  cũng bắt được) và M1 không còn lộ khi tắt trễ (đúng bài học P19).
+- Lỗi 2 — THIET_KE.md:14 viết lại: 6 câu 27.09 không có trong kho, SQL viết lại ở `bat_bien.js`.
+- Lỗi 3 — số dòng đo lại: giả lập 502 (1,12×).
+- Nghi ngờ (thoát 1 khi initDatabase hỏng, nghe mọi giao diện, IPv6) → CHƯA KIỂM, không sửa (vòng sửa cuối, không đổi hành vi).
+
+## Bài học (bước 11)
+
+Gom sự cố: bài thử đỏ bất ngờ trên code thật (KB6 — BigInt, mục G); 15 lần người gác chặn (`.tu_chay_nhat_ky.jsonl`:
+B-BIMAT-CHU 6, B-CHUONGTRINH 5, B-CD-VITRI, B-MANOI, B-PHANTICH, B-TENCHU — đều đúng luật, không lách); soát kế hoạch 11 điểm;
+soát code 3 vòng (vòng 1: tài liệu sai cơ chế cổng; vòng 2: tranh cổng thật + tài liệu; vòng 3: bằng chứng thống kê + tài liệu);
+vượt ngân sách `thu_nguoi_gac.js` (1,8×); dừng hỏi 2 lần (bước 3, mục G).
+
+| # | Bài | Ngăn | Lý do / việc |
+|---|---|---|---|
+| 1 | Bằng chứng thống kê cho lỗi thất thường không có đối chứng | **NGUYÊN TẮC** — đã thêm `KHUON_LOI.md` K3 | xảy ra ở vòng 2→3; luật K3 sẵn có nhưng chưa nói ca "chạy N lần" |
+| 2 | Tài liệu có đường song song (sót câu cùng nghĩa trong cùng file) | **NGUYÊN TẮC** — đã thêm `KHUON_LOI.md` K4 | lặp 2 lần (B12 vòng 2, dòng 14 vòng 3) |
+| 3 | Tài liệu tả cơ chế không tồn tại (`lenh_gia_lap` — cổng không đọc) | **KHOÁ — đề xuất ngoài Phạm vi** | `tu_chay/thu_cong.js` (hoặc bộ kiểm nhóm T): mọi khoá `lenh_*` trong `cau_hinh.json` phải được `cong.js` đọc, hoặc bị xoá; ca đỏ: đặt `lenh_gia_lap: ["false"]` → cổng vẫn xanh = phải đỏ. Cách khác: `cong.js:234` chạy cả `lenh_gia_lap`. Thuộc `tu_chay/cong.js` — ngoài Phạm vi việc này |
+| 4 | Tài nguyên dùng chung giữa tiến trình song song (cổng mượn rồi đóng, khoá theo `Date.now()`) | **KHOÁ** — đã làm: E4g (`dot_bien.py`), cổng 0 + khoá ngẫu nhiên | trong Phạm vi |
+| 5 | Lỗi lạ nấp sau lỗi cố ý trong bảng đột biến | **KHOÁ** — đã làm: `dot_bien.py` in mọi ✗ | trong Phạm vi |
+| 6 | Chủ quán đổi kịch bản → tài liệu còn khẳng định phủ đường cũ (KB6, nhánh refunded I1) | **NGUYÊN TẮC** — gộp vào bài 2 (cùng khuôn: câu cũ sót sau khi sự thật đổi) | không mở khuôn mới, `KHUON_LOI.md` giữ ≤ 120 dòng (115) |
+| 7 | Ngân sách đổi thước đo để lọt ngưỡng; số dòng không đo lại | **KHOÁ — đề xuất ngoài Phạm vi** | cổng (`tu_chay/cong.js`) tự tính "dòng thêm / ngân sách phiếu" từ `git diff --numstat` và ghi vào biên bản — máy đo, không để agent tự khai |
+| 8 | Lỗi BigInt (`lastInsertRowid` ra JSON) ở 4 route | **KHOÁ — đề xuất cho việc vá** | thêm KB12 `POST /refunds` (đỏ trước); và một phép tĩnh trong bộ kiểm: `res.json` không được chứa `lastInsertRowid` trần (ca đỏ: 4 chỗ hiện có) |
+| 9 | Người gác chặn heredoc vì chữ tên biến khoá trong văn bản tài liệu | **BỎ** | đúng luật; cách làm đúng (script qua Write) đã rõ, không lặp lại thành lỗi |
+| 10 | `for`/`time`/`{ }` bị chặn khi viết lệnh | **BỎ** | luật người gác có sẵn và đã rõ; dùng script Node nháp |
+
+Dọn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mà việc này làm thành phép kiểm thay được. CLAUDE.md §2 ghi
+"36 phép lúc 24.09.2026" cho bộ kiểm — đã cũ (hiện 55 nhanh / 59 `--day-du`) — đề xuất sửa (ngoài Phạm vi). `KHUON_LOI.md`:
+115/120 dòng.
+
+## BÁO CÁO
+
+```
+VIỆC:        TU-CHAY-4 — Giả lập quầy POS: 11 kịch bản + 9 bất biến sổ sách, chạy trong cổng (qua --day-du)
+ĐÃ SỬA:      cong_cu/gia_lap/chay.js (mới, 192 dòng) — A1 từ chối khi môi trường có biến máy thật / tên miền production
+               (không phân biệt hoa thường), A2 kho tạm + dọn kể cả khi sập/SIGTERM, nạp NGUYÊN server/index.js với ketNoiKho
+               + dotenv thay thế, SX giả ghi vân tay, trễ 40 ms mọi lệnh kho, móc trước giao dịch, cổng 0 đọc từ máy chủ thật
+             cong_cu/gia_lap/kich_ban.js (mới, 172) — dữ liệu mẫu tự khẳng định + 11 kịch bản (KB6 đi báo hỏng → hoàn ví)
+             cong_cu/gia_lap/bat_bien.js (mới, 138) — I1–I9, SQL chỉ đọc; I8 = luật điểm HIỆN TẠI (P22/P24 phải sửa)
+             cong_cu/thu_gia_lap.js (mới, 168) — E1, 10 đột biến server, A1 15 ca, A2, I2 kho tay
+             kiem_tra_truoc_khi_giao.js:477 (chayBaiThat nhận env, trả output), :709 nhóm S — giả lập + thu_gia_lap ở --day-du với môi trường lọc sạch,
+               bánh cóc ≥11 kịch bản / ≥9 bất biến, so danh sách trắng ví
+             tu_chay/cau_hinh.json:11 — file_luat thêm cong_cu/gia_lap/**, cong_cu/thu_gia_lap.js
+             tu_chay/thu_nguoi_gac.js:501–505, :599–603, :617 — 4 ca F3, file_luat 7 mục, PHIEN_BAN 1.3.2
+             tu_chay/THIET_KE.md — B10 khớp cách nối thật, B2/B7/B8/B12 cổng không đọc lenh_gia_lap; tu_chay/PHIEN_BAN 1.3.2
+             KHUON_LOI.md K3, K4 — 2 nguyên tắc (bước 11)
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ ở thu_gia_lap "không thấy giả lập", thu_nguoi_gac 3 ca F3, bộ kiểm nhóm S 3 phép
+               (bang_chung_do.txt); sau khi vá → XANH: thu_gia_lap 31/0, thu_nguoi_gac 786/786, npm test 55/0,
+               --day-du 59/0; dot_bien.py (E4a–g, F2, S3) đỏ đúng chỗ, M0 xanh
+ĐÃ RÀ K4:    grep "UPDATE pos_wallets" trong server/routes → 13 chỗ, kịch bản phủ 5, 8 ghi CHƯA KIỂM;
+             grep ":in:\${sttMon}" orders.js → 2 chỗ (M4 đổi cả hai, chỉ huỷ có kịch bản);
+             grep "lastInsertRowid" trả ra res.json → 4 chỗ, ghi Phát hiện; grep "lenh_gia_lap" THIET_KE.md → mọi chỗ đã sửa
+CHƯA KIỂM:   xem mục "CHƯA KIỂM" — 8/13 đường ghi ví và nhánh refunded của I1 không kịch bản nào chạy; việc quay lại
+               "mượn cổng" không có phép thử (bản vá đúng nhờ lập luận); cổng GitHub Actions thật (thời gian, KB10 khi máy
+               quá tải); Replit có Secrets; A2 khi KHÔNG có data/ chưa chạy thật; bộ kiểm có lọc môi trường thật không;
+               initDatabase hỏng → thoát 1 im lặng; Phát hiện 1–7 chỉ đọc code. Vòng sửa 3 KHÔNG có vòng soát sau nó.
+GIT:         (xem git log --oneline -2 ở cuối lượt)
+BÀI HỌC:     KHOÁ 4 (2 đã làm: E4g, dot_bien in mọi ✗; 2 đề xuất ngoài Phạm vi: cổng đọc mọi lenh_*, cổng tự đo ngân sách;
+               + đề xuất KB12/phép tĩnh BigInt cho việc vá) · NGUYÊN TẮC 2 (KHUON_LOI K3, K4) · BỎ 2
+```
 
 ## Sự cố trong lượt này (đầu vào bước 11)
 
