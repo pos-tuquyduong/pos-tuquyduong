@@ -11,7 +11,7 @@ Tài liệu có ba phần:
 
 1. **Người gác** chuyển từ "cấm những gì biết là xấu" sang "**chỉ cho những gì cần**". Lệnh lạ bị chặn mặc định.
 2. **Phép thử hai chiều do máy tự chạy.** Bài thử mới phải ĐỎ trên code cũ và XANH trên code mới. Việc "chứng minh đỏ" không còn dựa vào lời AI.
-3. **Giả lập có kiểm bất biến sổ sách**, và dùng lại 6 câu SQL đã chạy trên production ngày 27.09. Cách giả lập được viết cụ thể (B10).
+3. **Giả lập có kiểm bất biến sổ sách** (B10). 6 câu SQL chạy trên production ngày 27.09 không có trong kho — câu SQL I1–I9 viết lại từ schema thật ở `cong_cu/gia_lap/bat_bien.js` (TU-CHAY-4).
 4. **Có luật "đường ngắn nhất":**
    - Phiếu ghi ngân sách dòng code.
    - Kế hoạch phải so hai phương án.
@@ -201,7 +201,9 @@ cong_cu/gia_lap/             # riêng từng app (B10)
 }
 ```
 
-`lenh_gia_lap` để trống cho tới TU-CHAY-4. Khi còn trống, cổng chỉ **CẢNH BÁO**, không chặn.
+`lenh_gia_lap` **để trống và cổng KHÔNG đọc nó**: `cong.js:234` chỉ chạy `lenh_bai_thu` + `lenh_kiem_day_du`. Giả lập POS vào
+cổng qua bộ kiểm `--day-du` (nhóm S) — đó là đường DUY NHẤT; ghi giả lập vào `lenh_gia_lap` thì nó KHÔNG BAO GIỜ chạy ở cổng.
+App khác muốn giả lập chạy ở cổng cũng phải nối qua `lenh_kiem_day_du` (hoặc mở việc sửa `cong.js`).
 
 ## B3. Người gác `nguoi_gac.js` (hook PreToolUse)
 
@@ -302,7 +304,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
    - Có ca nghiệm thu nào không có bài thử không?
    - Có đường song song nào bị bỏ sót không?
 4. Viết bài thử **trước**, chạy thử, thấy nó **đỏ** trên code hiện tại. Sau đó mới viết code.
-5. Viết code cho tới khi bài thử xanh. Chạy `lenh_bai_thu`, `lenh_kiem_day_du`, `lenh_gia_lap`.
+5. Viết code cho tới khi bài thử xanh. Chạy `lenh_bai_thu`, `lenh_kiem_day_du` (POS: có giả lập quầy).
 6. Tự rà trước khi nhờ soát:
    - code chết;
    - trùng lặp;
@@ -332,7 +334,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 
 1. Đang ở nhánh `viec/<MÃ>`, cây sạch (không tính các file `??` có sẵn từ trước).
 2. **Phạm vi:** mọi file trong `git diff --name-only <chính>...HEAD` phải khớp mục Phạm vi hoặc nằm trong `viec/<MÃ>/`. Không có file nào khớp `file_cam` hay nằm trong `.claude/`.
-3. **Bài thử xanh:** `lenh_bai_thu`, `lenh_kiem_day_du`, `lenh_gia_lap` đều thoát 0.
+3. **Bài thử xanh:** `lenh_bai_thu`, `lenh_kiem_day_du` đều thoát 0 (`cong.js:234`; cổng không đọc `lenh_gia_lap`). POS: giả lập nằm trong `--day-du`.
 4. **Phép thử hai chiều:**
    - Dựng bản sao của **nhánh chính**.
    - Chép sang đó **những file bài thử mới hoặc đã sửa** (nằm trong `thu_muc_bai_thu`) của HEAD.
@@ -362,7 +364,12 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 
 ## B10. Giả lập — "một ngày ở quầy trong 2 phút"
 
-`cong_cu/gia_lap/chay.sh` là thứ duy nhất `lenh_gia_lap` gọi. Mỗi app viết phần này riêng; POS viết ở TU-CHAY-4.
+**Cách nối thật (TU-CHAY-4, 02.10.2026):** `node cong_cu/gia_lap/chay.js` — ba file: `chay.js` (an toàn + sân khấu + in kết
+quả), `kich_ban.js`, `bat_bien.js`. Bộ kiểm gọi ở **`--day-du`** (nhóm S) với **môi trường đã lọc sạch** — giả lập không bao
+giờ cầm khoá thật, kể cả trên Replit; cổng `cong-chay` chạy `--day-du` nên PR nào cũng qua giả lập. Không qua
+`lenh_gia_lap` (cổng không đọc khoá đó — B2). Đo: giả lập 22 s, `cong_cu/thu_gia_lap.js` 24 s (> 15 s nên không vào bản nhanh / pre-commit).
+Cả ba file và `thu_gia_lap.js` là **file luật** (`file_luat`): việc sau muốn sửa phải ghi ĐÚNG TÊN file trong phiếu.
+Bánh cóc: số kịch bản ≥ 11, số bất biến ≥ 9 — chỉ được tăng.
 
 **An toàn trước hết:**
 - Thấy biến môi trường trỏ tới `ten_mien_production` hoặc có khoá thật → **từ chối chạy**.
@@ -372,7 +379,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 **Dựng sân khấu:**
 1. Bật **máy chủ thật** của app (đúng code sẽ lên production) ở cổng riêng.
 2. Bật một **SX giả**: trả tồn kho, và ghi lại mọi lệnh trừ/hoàn kho kèm vân tay.
-3. Bật **độ trễ mạng giả** ~40ms, giống Turso thật. Dùng lại `tre_mang.cjs` của bộ thử P19. Đây là bài học P19: không có trễ thì lỗ thu hai lần không lộ ra.
+3. Bật **độ trễ mạng giả** ~40ms, giống Turso thật: bọc client libsql, mọi lệnh tới kho (kho không có `tre_mang.cjs` cũ). Đây là bài học P19: không có trễ thì lỗ thu hai lần không lộ ra. Giả lập tự kiểm trễ đang bật (trung vị ≥ 35 ms).
 4. Nạp **dữ liệu mẫu cố định**:
    - 3 khách: một khách mới, một khách quen có ví 200.000đ, một khách đang nợ 50.000đ;
    - 5 món;
@@ -385,14 +392,18 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 3. "Chưa thu" rồi thu.
 4. Ghi nợ rồi trả nợ.
 5. Huỷ đơn.
-6. Hoàn tiền.
+6. Hoàn tiền — đi đường quầy dùng: báo hỏng → Hoàn tiền vào ví (`damages.js`). `POST /refunds` không có màn hình gọi và đang trả 500 (BigInt) — việc vá thêm **KB12** cho nó.
 7. Khách mới dùng mã in trên bill (bill đã thu → được; bill chưa thu → bị từ chối).
 8. Nạp ví rồi tiêu ví.
 9. Mua gói.
 10. **Hai người cùng bấm thu một bill.**
 11. **Hai người cùng nhập một mã.**
 
-Việc mới thêm kịch bản mới vào đây. Kịch bản cũ không bao giờ bị xoá, vì chúng là lưới chống lỗi quay lại.
+**Việc sau thêm kịch bản mới (vào cuối `kich_ban.js`), không xoá kịch bản cũ** — chúng là lưới chống lỗi quay lại.
+Thêm kịch bản là đổi dòng tổng → phiếu phải ghi cả `cong_cu/thu_gia_lap.js` (`DONG_DAT`) và nâng `NGUONG_KICH_BAN` trong
+`kiem_tra_truoc_khi_giao.js`. Thêm kịch bản XOÁ đơn thì sửa I7 (vân tay của đơn đã xoá) và xem I2 (DELETE không xoá mã bill).
+**Việc sửa `server/**`** (vd vá Phát hiện của TU-CHAY-4) có thể làm một chuỗi đột biến M1–M10 trong `thu_gia_lap.js` không
+khớp nữa → `--day-du` đỏ "đột biến không áp được": phiếu việc đó phải ghi `cong_cu/thu_gia_lap.js` và sửa chuỗi theo code mới.
 
 **Kiểm bất biến sổ sách.** Sau **mỗi** kịch bản và ở cuối, chạy các câu SQL chỉ đọc trên DB giả. Tất cả phải ra **0 dòng lệch**:
 
@@ -405,10 +416,15 @@ Việc mới thêm kịch bản mới vào đây. Kịch bản cũ không bao gi
 | I5 | Không có loại giao dịch ví lạ | câu (f) |
 | I6 | Mỗi đơn thu **đúng một lần** (tổng đã thu = tổng đơn) | P19 |
 | I7 | Mỗi vân tay trừ kho SX giả nhận **đúng một lần** | vân tay |
-| I8 | Điểm khách = tổng dòng điểm | P22 sẽ dùng |
+| I8 | Điểm mỗi đơn đúng luật HIỆN TẠI (gốc × hệ số nếu nhận điểm mã bill; đơn chưa thu / đã huỷ vẫn giữ điểm). **P22 và P24 PHẢI sửa I8** — phiếu ghi tên `cong_cu/gia_lap/bat_bien.js` | luật điểm hiện tại (chủ quán chốt 02.10.2026) |
 | I9 | Mỗi thao tác tiền có một dòng nhật ký đơn | P19 |
 
-Kết quả in dạng: `Giả lập: 11 kịch bản · 9 bất biến · ĐẠT`, hoặc chỉ đúng kịch bản nào làm bất biến nào lệch, bao nhiêu tiền.
+Câu SQL của I1–I9 nằm ở `cong_cu/gia_lap/bat_bien.js` (viết từ schema thật; 6 câu ngày 27.09 không có trong kho).
+
+Kết quả in dạng: `Giả lập: 11 kịch bản · 9 bất biến · ĐẠT`, hoặc từng dòng `KB<n> → I<k>: …` / `KB<n> → HTTP: …` rồi `· KHÔNG ĐẠT`.
+
+**Phá thử** `cong_cu/thu_gia_lap.js`: 10 đột biến trên bản sao `server/` (mỗi cái bỏ một chặn có thật → đúng bất biến lệch),
+A1 (khoá thật, tên miền production → từ chối), A2 (kho tạm dọn sạch kể cả khi sập; chạy được khi không có `data/`).
 
 **Việc thay đổi giao diện** chạy thêm bộ thử của bản mẫu (`ban_mau_pos`, 119 phép) cho luồng bấm.
 
@@ -439,7 +455,8 @@ Kết quả in dạng: `Giả lập: 11 kịch bản · 9 bất biến · ĐẠT
 2. Viết `cau_hinh.json` riêng cho kho đó.
 3. Ghép phần deny và hooks vào `settings.json`.
 4. Chạy `thu_nguoi_gac.js`, phải xanh.
-5. Viết `cong_cu/gia_lap/` riêng cho app. Trong lúc chưa có, cổng chỉ cảnh báo.
+5. Viết `cong_cu/gia_lap/` riêng cho app và nối vào `lenh_kiem_day_du` (B10). Trong lúc chưa có, cổng KHÔNG chạy giả lập và
+   KHÔNG cảnh báo gì (`cong.js:234` không biết đến giả lập).
 6. `PHIEN_BAN` phải khớp với kho gốc.
 
 ---
@@ -467,7 +484,7 @@ Các việc từ TU-CHAY-1 đến TU-CHAY-4 làm ở **chế độ tay**: chưa 
   - Bài thử xanh oan (đúng cả trên code cũ) → cổng đóng.
   - `day_len.sh` chạy thật với một việc vô hại, rồi lùi thử bằng lệnh nó in ra.
 
-**TU-CHAY-4 · Giả lập quầy POS:** đủ 11 kịch bản và 9 bất biến ở B10.
+**TU-CHAY-4 · Giả lập quầy POS:** đủ 11 kịch bản và 9 bất biến ở B10. (Xong ở nhánh `viec/TU-CHAY-4`, chờ chủ quán ghi sổ.)
 - Tự từ chối chạy khi thấy khoá thật.
 - Phá thử bất biến: cố ý bỏ một chặn trong bản sao → bất biến tương ứng phải lệch.
 

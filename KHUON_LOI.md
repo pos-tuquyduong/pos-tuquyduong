@@ -38,6 +38,8 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 - Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
   khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát).
 - "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
+- Lỗi thất thường (tranh cổng, chạy song song): "N/N lần sạch" KHÔNG là bằng chứng nếu cùng khung chạy chưa cho thấy lỗi trên
+  bản chưa vá — TU-CHAY-4 ghi "13 lần sạch" trong khi bản chưa vá cũng 40/40 sạch. Dựng đột biến đỏ TẤT ĐỊNH, không được thì CHƯA KIỂM.
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc đó. Bốn lần trong một phiên,
@@ -51,6 +53,8 @@ chỗ thứ hai nằm ngay trong cùng hàm hoặc cách chưa tới 150 dòng.
   symlink) trong khi trình cài lọc `statSync().isFile()` (giữ symlink) — vá thư mục con mà nới T2 với symlink (HOC-1).
 - Tài liệu hứa theo ĐỐI TƯỢNG ("file ghi trong mục") thì phép chặn phải gắn theo đối tượng, không theo một nhánh
   kết quả: phép (d) chỉ chạy cho bài "xanh trên gốc" → thêm một ca đỏ là lách được (HOC-1, soát vòng 2).
+- Tài liệu cũng có đường song song: sửa / phủ định một câu thì grep CẢ FILE tìm câu cùng nghĩa (TU-CHAY-4: "cổng chỉ cảnh
+  báo" sót ở B12, "dùng lại 6 câu 27.09" sót ở dòng 14 — mỗi vòng soát bắt thêm một chỗ).
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Lỗi nặng nhất phiên trước, và nó đã lên production: patch chặn đơn khai "lấy từ

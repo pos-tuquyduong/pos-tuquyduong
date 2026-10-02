@@ -1,0 +1,23 @@
+# TU-CHAY-4 — bằng chứng ĐỎ trên code CHƯA có giả lập (02.10.2026, nền fa7f2b1)
+$ node cong_cu/thu_gia_lap.js
+
+THỬ GIẢ LẬP QUẦY (TU-CHAY-4)
+  ✗ E1 có giả lập cong_cu/gia_lap/chay.js  — không thấy giả lập — chưa viết hoặc sai đường dẫn
+
+  0 đạt · 1 hỏng
+
+[thoát 1]
+$ node tu_chay/thu_nguoi_gac.js  (cau_hinh.json gốc chưa có file_luat giả lập)
+thu_nguoi_gac: 784/786 ca người gác đúng mã · 165 phép khác
+  ✗ ca Edit cong_cu/gia_lap/kich_ban.js: mong CHAN:G-LUAT, ra CHO
+  ✗ ca Edit cong_cu/thu_gia_lap.js: mong CHAN:G-LUAT, ra CHO
+  ✗ cau_hinh: TIEN_DO_*.json trong file_cam; 7 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập) trong file_luat
+  ĐỎ — 3 chỗ hỏng
+[thoát 1]
+$ node kiem_tra_truoc_khi_giao.js  (chỉ dòng ✗)
+  ✗ bài chạy thật tu_chay/thu_nguoi_gac.js xanh (4.5 s)  → ✗ ca Edit cong_cu/gia_lap/kich_ban.js: mong CHAN:G-LUAT, ra CHO | ✗ ca Edit cong_cu/thu_gia_lap.js: mong CHAN:G-LUAT, ra CHO | ✗ cau_hinh: TIEN_DO_*.json trong file_cam; 7 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập) trong file_luat
+  ✗ bài chạy thật cong_cu/gia_lap/chay.js xanh (0.0 s)  → thoát mã 1
+  ✗ bánh cóc giả lập: ≥ 11 kịch bản, ≥ 9 bất biến  → không thấy dòng tổng của giả lập
+  ✗ giả lập: danh sách trắng ví trong bat_bien.js khớp wallets.js  → bat_bien.js: (không có) · wallets.js: adjust,compensation,purchase,refund,topup
+  ĐẾM (không đoán):  PASS 53  ·  FAIL 4  ·  CẢNH BÁO 1
+  ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md.
