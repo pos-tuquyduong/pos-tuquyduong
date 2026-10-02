@@ -79,6 +79,9 @@ async function main() {
   const SDT = '0926000001';
   await db.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at)
     VALUES (?, 100000, 100000, 0, datetime('now'), datetime('now'))`, [SDT]);
+  // Bảng trống thì id = 1 = rowsAffected → "đúng dòng" không phân biệt được (soát vòng 3). Đẩy id mỗi bảng đi một khác.
+  for (const [i, bang] of ['pos_refund_requests', 'pos_discount_codes', 'pos_invoice_logs', 'pos_customer_packages',
+    'pos_reward_catalog', 'pos_voucher_grants'].entries()) await db.run('INSERT INTO sqlite_sequence (name, seq) VALUES (?, ?)', [bang, 100 * (i + 1)]);
 
   console.log('\nTHỬ P26a — id trả ra JSON là số, đúng dòng vừa ghi');
   console.log('\n[A1] bốn route đưa thẳng lastInsertRowid vào res.json');
