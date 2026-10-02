@@ -18,6 +18,9 @@ ba274cd Merge pull request #6 from pos-tuquyduong/viec/TU-CHAY-4
 - [x] Bước 5 vá `server/database.js` (`soDong`, dòng 1338-1339; dùng ở 1355 và 1382)
 - [x] Bước 6 `npm test` thoát 0 · `--day-du` 61 đạt / 0 hỏng (giả lập 12 kịch bản ĐẠT, thu_gia_lap xanh)
 - [x] Bước 7 commit từng file · bước 8 `/ra-soat` vòng 1 KHÔNG ĐẠT (thiếu A5 trong file này) → sửa (vòng sửa 1/3)
+- [x] `/ra-soat` vòng 2 KHÔNG ĐẠT (nói sai KB12 phủ I1-refunded; mục GIT) → sửa tài liệu (vòng sửa 2/3)
+- [x] `/ra-soat` vòng 3 KHÔNG ĐẠT (C1–C4, C7 xanh oan với id sai: bảng trống id = 1 = rowsAffected) → sửa bài thử
+      (efcce93, vòng sửa 3/3 — vòng cuối). Còn `/ra-soat` vòng 4; KHÔNG ĐẠT nữa thì ghi Câu hỏi và dừng.
 
 ## Đột biến A5 — lệnh chạy lại được
 
@@ -39,6 +42,10 @@ Kết quả (02.10.2026, chạy lại sau soát trên bản sao đã `diff` đú
 - M-b (bỏ ở `run()` giao dịch): ✗ đúng C5 — `7 đạt · 1 hỏng`.
 - M-c (M-a trên giả lập): `✗ KB12 → HTTP: POST /refunds → 200, refund_id là số: HTTP 500 · Do not know how to serialize a BigInt`,
   `Giả lập: 12 kịch bản · 9 bất biến · KHÔNG ĐẠT (1 lệch)`.
+- M-d (soát vòng 3 dựng; `run()` trả `soDong(result.rowsAffected)` thay cho `lastInsertRowid`) — dựng như M-a, thay
+  `soDong(result.lastInsertRowid),` bằng `soDong(result.rowsAffected),` ở dòng 1355. Trước efcce93: `8 đạt · 0 hỏng` (XANH
+  OAN). Sau efcce93 (đẩy `sqlite_sequence` mỗi bảng lên 100·i): ✗ C1 C2 C3 C4 C7 — `3 đạt · 5 hỏng` (vd "refund_id 1 · kho 101").
+- Chạy lại với bài sau efcce93 (02.10.2026): gốc 604bcd5 ✗ C1–C5 `3 đạt · 5 hỏng`; M-a ✗ C1–C4; M-b ✗ đúng C5; HEAD `8 đạt · 0 hỏng`.
 
 ## Phát hiện
 
@@ -165,9 +172,13 @@ ghi file này) + 1 lệnh bị từ chối quyền (`rm -rf` thư mục nháp); 
   giả lập ĐỎ; đọc WHERE của bất biến trước. Đã gây: kế hoạch + trang_thai nói KB12 phủ I1-refunded (soát vòng 2 bắt).
 - **KHOÁ** (ngoài Phạm vi — đề xuất P26b): kịch bản "đơn trả ví → claim mã bill → POST /refunds + duyệt" — phủ thật
   I1-refunded; ca đỏ: xoá nhánh `refunded` ở bat_bien.js:31 phải làm giả lập ĐỎ (hôm nay vẫn ĐẠT).
+- **KHOÁ** — LÀM LUÔN trong Phạm vi (efcce93): `thu_P26a.js` đẩy `sqlite_sequence` 6 bảng → id ≠ 1 ≠ rowsAffected. Ca đỏ:
+  M-d (`rowsAffected` thay `lastInsertRowid`) — trước 8/0 xanh oan, sau ✗ C1–C4, C7.
+- **NGUYÊN TẮC** (đề xuất, KHUON_LOI.md đã 118/120 — không thêm dòng, gộp vào K3 ở việc dọn sau): phép "id trả về ===
+  id trong kho" phải chạy trên bảng có sẵn dòng (id ≠ 1 = rowsAffected). Đã gây: C1–C4, C7 xanh oan qua 2 vòng soát.
 - **BỎ**: vượt ngân sách `thu_P26a.js` — phiếu tính ~90 cho 4 route, bài cần thêm C5 + 3 ca K5 (C7–C9) và cờ `--may-chu`;
   một lần, không thành luật. Các lệnh bị người gác chặn: luật đúng, đã làm theo hướng dẫn, không lặp.
-- Dọn: không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md đã có phép kiểm làm thay do việc này. KHUON_LOI.md 117/120 dòng.
+- Dọn: không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md đã có phép kiểm làm thay do việc này. KHUON_LOI.md 118/120 dòng (sau dòng K3 vòng 2).
 
 ## Báo cáo 7 mục
 
@@ -181,7 +192,8 @@ VIỆC:        P26a — Vá lỗi "ghi xong rồi báo 500" (BigInt) tại gốc
              cong_cu/thu_gia_lap.js:31 — dòng tổng 12 kịch bản.
              kiem_tra_truoc_khi_giao.js:488 thêm thu_P26a vào bài chạy thật (bản nhanh); :715 NGUONG_KICH_BAN 11 → 12.
              KHUON_LOI.md K5 — thêm 2 dòng "chiều ngược".
-BÀI THỬ:     chạy trên bản chưa vá → ĐỎ: thu_P26a C1–C4 (HTTP 500 BigInt), C5 (bigint) — 3 đạt · 5 hỏng;
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ: thu_P26a C1–C4 (HTTP 500 BigInt), C5 (bigint) — 3 đạt · 5 hỏng
+             (bảng có id mồi từ efcce93 → đột biến trả sai id cũng đỏ, xem M-d);
              thu_P20 "POST /refunds → 200, refund_id là số" HTTP 500 — 43 đạt · 8 hỏng;
              giả lập "KB12 → HTTP … 500", KHÔNG ĐẠT; thu_gia_lap E1 dòng tổng (bang_chung_do.txt).
              Sau khi vá → XANH: thu_P26a 8/0, thu_P20 51/0, giả lập 12 kịch bản ĐẠT, npm test thoát 0, --day-du 61/0.
@@ -196,10 +208,11 @@ CHƯA KIỂM:   - Turso production (hrana): chỉ thử libsql file cục bộ; 
              - M-c không nằm trong khung E2 của thu_gia_lap (khung đòi lệch bất biến, KB12 lệch ở HTTP) — chỉ chạy tay.
              - Màn hình thật (tạo mã chiết khấu, in hoá đơn) chưa bấm thử trên trình duyệt; chỉ kiểm qua API.
              - Lỗ hoàn ví hai lần (refunds approve + cancel) CÒN MỞ — ngoài phạm vi, xem Phát hiện.
-GIT:         (lúc ghi báo cáo, trước commit chứa chính dòng này)
-             47c531c P26a: trang thai - dot bien A5, phat hien, ra-soat vong 1, bai hoc, bao cao 7 muc
-             dd3520a P26a: ke hoach - C3 so id theo invoice_number (khong MAX)
-BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 1 — chi tiết ở ## Bài học
+GIT:         git log --oneline -2 ngay trước commit ghi file này (commit đó là "P26a: trang thai - ra-soat vong 3 …"):
+             efcce93 P26a: thu_P26a day id moi bang len (sqlite_sequence) - 'dung dong' phan biet duoc voi rowsAffected
+             6ebfd5c P26a: trang thai - ra-soat vong 2, sua phat hien I1, cau hoi C4, muc GIT
+             Đối chiếu đầu nhánh thật: git log --oneline -1 origin/viec/P26a; git log origin/viec/P26a..HEAD phải rỗng.
+BÀI HỌC:     KHOÁ 4 · NGUYÊN TẮC 4 · BỎ 1 — chi tiết ở ## Bài học
 ```
 
 ## /ra-soat vòng 2 — báo cáo nguyên văn
@@ -276,3 +289,68 @@ Thư mục nháp đã dùng: …/scratchpad/rv2_a5 (da5/ma, da5/mb, goc), …/sc
 Xử lý vòng 2 (vòng sửa 2/3): Phát hiện I1 viết lại (đã tự đọc bat_bien.js:20-32); ke_hoach §8b đánh dấu sai dự đoán;
 Phát hiện hoàn ví thêm màn duyệt Refunds.jsx:21 đang chạy thật; mâu thuẫn K5/C4 → `## Câu hỏi` (máy không tự đổi C4);
 mục GIT ghi kết quả lệnh; thêm 1 dòng K3 vào KHUON_LOI.md (118/120). Không đổi code.
+
+## /ra-soat vòng 3 — báo cáo nguyên văn
+
+```
+KHÔNG ĐẠT
+
+Bản vá trong `server/database.js` đúng, các lỗi vòng 1 và vòng 2 đã xử lý đúng. Lý do không đạt: bài thử mới `thu_P26a.js` chỉ kiểm đúng một nửa nghiệm thu A1. Nó bắt được id kiểu BigInt, nhưng KHÔNG bắt được trường hợp id trả về là SAI DÒNG ở C1–C4 và C7. Tôi đã dựng đột biến chứng minh.
+
+LỖI TÌM ĐƯỢC:
+- cong_cu/thu_P26a.js:87-105 (C1–C4) và :116-118 (C7) — K3, xanh oan.
+  - Mỗi ca chạy trên bảng TRỐNG, nên dòng vừa ghi luôn có id = 1. Lỗi này hiện rõ trong chính kết quả chạy trên bản gốc: "refund_id undefined · kho 1", "kho 1" ở cả C1–C4.
+  - Số dòng bị ảnh hưởng (`rowsAffected`) cũng bằng 1. Vậy phép "c.id === id trong kho" không phân biệt được "đúng dòng vừa ghi" với "một số 1 bất kỳ".
+  - Đột biến tôi đã chạy: bản sao server ở `scratchpad/rv3_y/mc`, `diff` lệch HEAD đúng 1 dòng, database.js:1355 đổi thành `lastInsertRowid: soDong(result.rowsAffected)`. Kết quả: `node cong_cu/thu_P26a.js --may-chu …/rv3_y/mc` → "8 đạt · 0 hỏng", thoát 0.
+  - Nghĩa là bản nhanh (pre-commit) vẫn xanh với một bản vá trả sai id cho MỌI lệnh INSERT qua `run()`. Chỉ giả lập ở `--day-du` bắt được: "✗ KB9 … delivered_qty", "KHÔNG ĐẠT (2 lệch)".
+  - Phiếu A1 đòi "đúng bằng id của dòng vừa ghi trong kho", tên ca cũng ghi "đúng dòng trong kho", nhưng phần đó chưa được kiểm thật. Nó còn vi phạm luật K3 "mỗi phép chặn một ca chỉ vi phạm đúng phép đó": vế "id đúng dòng" của C1–C4 không bao giờ đỏ riêng được.
+  - C5 không dính lỗi này, vì id ở đó là 61.
+  - Cách sửa: chèn sẵn 1–2 dòng mồi vào mỗi bảng trước khi gọi route, để id ≠ 1. Sửa xong thì chạy lại đột biến trên, phải ĐỎ ở C1–C4.
+- viec/P26a/trang_thai.md:199-201 (mục GIT) — K7. Dòng này được ghi trong commit 6ebfd5c và nói "trước commit chứa chính dòng này", nhưng lại liệt kê 47c531c và dd3520a. Thực tế commit ngay trước 6ebfd5c là 57d5449, trước nữa là c65e451. Đây vẫn là trạng thái cũ ba commit, không phải kết quả `git log --oneline -2` khớp với nhánh lúc giao.
+- viec/P26a/trang_thai.md:170 ghi "KHUON_LOI.md 117/120 dòng"; thực tế `wc -l` = 118, và chính dòng 278 cũng ghi 118. Dòng 14-20 (Tiến độ) dừng ở vòng 1, chưa có vòng 2. K4: sửa tài liệu một chỗ, sót chỗ cùng nghĩa.
+
+Kiểm việc xử lý vòng 2:
+- (1) Đúng. trang_thai.md:60-64 và ke_hoach.md:121-122 giờ ghi đúng là KB12 KHÔNG phủ nhánh I1-refunded. Tôi đã đọc bat_bien.js:20-32: WHERE ở dòng 28 chỉ lấy đơn có mã bill đã dùng. Grep "phủ|I1" trong ke_hoach.md và trang_thai.md không còn câu nào nói KB12 phủ I1. Vế "KB12 … sẽ phủ" vẫn còn ở bat_bien.js:21, nhưng file này ngoài Phạm vi và đã ghi Phát hiện.
+- (2) Mục GIT nay đã có kết quả lệnh nhưng đã cũ (xem trên).
+- (3) Đã có `## Câu hỏi` (trang_thai.md:68-72) về chuyện C4 mâu thuẫn với luật K5 mới, máy không tự đổi. Chấp nhận được.
+
+Sáu mục soát:
+1. K3:
+   - Bản gốc (`scratchpad/rv3_x/goc` = server HEAD + `git show 604bcd5^:server/database.js`, diff đúng 3 chỗ của bản vá): `thu_P26a` 3 đạt · 5 hỏng (C1–C4 "HTTP 500 · Do not know how to serialize a BigInt", C5 "bigint 61"), thoát 1.
+   - HEAD: 8 đạt · 0 hỏng, thoát 0.
+   - Bài kiểm hành vi (status, `typeof`, id trong kho), không soi marker, nên marker suông không làm nó xanh được.
+   - Lỗ: vế "đúng id" không phân biệt được (lỗi số 1 ở trên).
+2. K4: `grep -n lastInsertRowid server/database.js` → chỉ :1355 và :1382 phát ra giá trị, cả hai đã vá.
+   - Grep cả server → 17 chỗ ở routes, chỉ tiêu thụ, không phát ra.
+   - `query()` (:1313-1325) chỉ trả rows, không trả lastInsertRowid.
+   - `getDb` chỉ có ở database.js:1285 và :1391.
+   - Grep `BigInt|bigint` → chỉ ra chú thích. Không sót chỗ nào.
+3. K5: `soDong` (database.js:1339) chỉ đổi kiểu và giữ null/undefined, không chặn luồng nào.
+   - Route đã tự bọc `Number()` vẫn xanh: rewards.js:49 (C7), loyalty.js:202 qua tx.run (C8), orders.js:868 và 1022 (giả lập ĐẠT).
+   - `npm test`: PASS 57 · FAIL 0. `--day-du`: PASS 61 · FAIL 0, có giả lập 12 kịch bản và thu_gia_lap 26,2 s, thoát 0.
+   - Không thấy luồng nào bị chặn oan.
+4. K1: ngoài các lệch ở trên, các số dòng đã đối chiếu đều khớp code: database.js:1338-1339/1355/1382, kiem_tra_truoc_khi_giao.js:488/715, thu_gia_lap.js:31, KB12 ở kich_ban.js:169-178, bat_bien.js:21/28/31.
+5. Đường tiền: diff không đổi logic tiền. KB12 và thu_P20 dùng `refund_id` server trả về. Các lỗ có từ trước (hoàn ví hai lần; `/packages/buy` không quyền, không thu tiền) đã ghi Phát hiện, ngoài Phạm vi.
+6. P1: diff không đụng `client/`. `--day-du` báo "dist đã commit KHỚP với src hiện tại".
+
+NGHI NGỜ:
+- ke_hoach.md:81 nói "I4 tự kiểm sổ ví" cho KB12. Theo luật K3 mới, khẳng định về độ phủ cần đột biến kèm theo. Tôi không dựng đột biến cho câu này. Lỗi chính của KB12 đã có `c.mong` ví +30.000 kiểm trực tiếp, nên rủi ro thấp.
+- Không thấy mục GIT nào ghi `git log origin/viec/P26a..HEAD`. Tôi đã tự chạy cả hai chiều, đều rỗng, tức nhánh đã đẩy khớp HEAD 6ebfd5c (theo ref origin cục bộ, chưa fetch).
+
+CHƯA SOÁT ĐƯỢC:
+- Turso production (hrana): chưa biết `lastInsertRowid` ở đó có kiểu gì.
+- thu_P20 trên bản gốc và trên đột biến `rowsAffected`: thu_P20 không có cờ `--may-chu`, nên không chạy được.
+- Màn hình thật trên trình duyệt.
+
+BÀI HỌC:
+- NGUYÊN TẮC (K3): bài thử so "id trả về === id trong kho" phải chạy trên bảng đã có dòng mồi, để id ≠ 1 = rowsAffected. Đột biến bắt buộc phải có: trả `rowsAffected` thay cho `lastInsertRowid`.
+- KHOÁ (đề xuất): thêm đột biến M-d (`soDong(result.rowsAffected)` ở `run()`) vào bộ đột biến A5. M-d phải làm thu_P26a ĐỎ ngay trong bản nhanh, không chỉ trong `--day-du`.
+
+Thư mục nháp đã dùng: `scratchpad/rv3_x`, `scratchpad/rv3_y`, `scratchpad/rv3_npmtest.txt`, `scratchpad/rv3_daydu.txt`. Tôi không sửa file nào trong kho và không commit.
+```
+
+Xử lý vòng 3 (vòng sửa 3/3, cuối): `thu_P26a.js` đặt `sqlite_sequence` cho 6 bảng (pos_refund_requests 100, pos_discount_codes
+200, pos_invoice_logs 300, pos_customer_packages 400, pos_reward_catalog 500, pos_voucher_grants 600) → id khác 1, khác nhau
+giữa bảng. Đã tự chạy M-d trên `rv3_y/mc` (diff đúng 1 dòng): trước 8/0, sau ✗ C1–C4, C7. M-d ghi vào mục Đột biến A5. Mục
+GIT, số dòng KHUON_LOI, Tiến độ đã sửa. Nghi ngờ "I4 tự kiểm sổ ví" (ke_hoach.md:81): không dựng đột biến — KB12 tự kiểm ví
++30.000 bằng `c.mong`; câu ở kế hoạch là dự kiến, không phải khẳng định đã kiểm.
