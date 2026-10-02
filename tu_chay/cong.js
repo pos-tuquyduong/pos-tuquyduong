@@ -58,6 +58,17 @@ function mucMien(phieu) { // "## Bài thử đỏ" rồi dòng "không — <lý 
   const m = sau && /^\s*[-*]?\s*không\s*—\s*([^<\s].*)$/.exec(sau); // "<lý do>" của mẫu phiếu không tính
   return m ? m[1].trim() : null;
 }
+function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "- <đường dẫn thu_*.js> — <lý do>"; đường dẫn đọc như phamViTuChu
+  const dong = phieu.normalize('NFC').split('\n');
+  const i = dong.findIndex((d) => /^##\s+Bài thử cũ sửa\s*$/.test(d.trim()));
+  const ra = [];
+  for (let j = i + 1; i >= 0 && j < dong.length && !/^#/.test(dong[j]); j++) {
+    if (!dong[j].trim() || dong[j].trim().startsWith('<')) continue;
+    const m = /^\s*[-*]?\s*`?([^`\s]+)`?\s*—\s*([^<\s].*)?$/.exec(dong[j]);
+    ra.push({ dong: dong[j].trim(), p: m ? m[1].replace(/^\.\//, '') : '', ly: m && m[2] ? m[2].trim() : '' });
+  }
+  return ra;
+}
 
 function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   const lyDo = [], ghi = [];
@@ -186,6 +197,15 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       const r = chayLenh('npm', ['ci'], { cwd: path.join(thuMuc, d), timeout: 600000 });
       if (r.status !== 0) doLy('A13', `npm ci ở ${d} hỏng:\n${duoi(r.stdout + r.stderr)}`);
     }
+    // HOC-1 — miễn A11 chỉ cho bài thử ĐÃ CÓ ở mốc và PR SỬA (M); mới, xoá, đổi tên (--no-renames: D + A) → dòng hỏng
+    const mienCu = new Map();
+    for (const { dong: d, p, ly } of mucBaiThuCu(phieu)) {
+      const st = (doi.find((f) => f.p === p) || {}).st;
+      const sai = !p || !ly ? 'thiếu đường dẫn hoặc lý do sau —' : !laBaiThu(p) ? 'không phải bài thử thu_*.js'
+        : st === 'D' ? 'bài thử bị PR xoá hoặc đổi tên' : blob(thuMuc, moc, p) !== null ? ''
+          : blob(thuMuc, head, p) === null ? 'không có trong kho' : 'bài thử mới không được miễn (file mới hoặc tên mới)';
+      if (sai) ghi.push(`dòng hỏng ở ## Bài thử cũ sửa: "${d}" — ${sai}, không miễn`); else mienCu.set(p, ly);
+    }
     // A11 — bài thử mới / sửa phải ĐỎ trên code gốc (git archive mốc + bài thử của head + node_modules vừa cài)
     let doHopLe = 0;
     baiThu.forEach((p, i) => {
@@ -201,7 +221,8 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       }
       const r = chayLenh(process.execPath, [p], { cwd: goc, timeout: 300000 });
       const thieu = /Cannot find module '([^'./][^']*)'/.exec(String(r.stdout) + String(r.stderr));
-      if (r.status === 0) doLy('A11', `bài thử \`${p}\` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá`);
+      if (r.status === 0 && mienCu.has(p)) ghi.push(`miễn A11 (bài thử cũ sửa): ${p} — ${mienCu.get(p)}`); // không tính doHopLe: A12 giữ
+      else if (r.status === 0) doLy('A11', `bài thử \`${p}\` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá`);
       else if (r.status === null) doLy('A11', `bài thử \`${p}\` quá giờ trên code gốc — không tính là đỏ`);
       else if (thieu) doLy('A11', `bài thử \`${p}\` không chạy được trên code gốc (thiếu thư viện '${thieu[1]}') — không tính là đỏ`);
       else doHopLe++;
