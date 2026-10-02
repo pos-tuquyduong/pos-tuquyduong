@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 15,
+  "phien_ban_so": 16,
   "cap_nhat": "2026-10-02",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -315,12 +315,12 @@
     },
     {
       "ma": "HOC-1",
-      "ten": "Bai hoc tu TU-CHAY-3, phieu nho, viec dau tien chay qua cong that (phai thay 2 check xanh). Chu quan dong y ca ba (02.10): (1) mien A11 cho bai thu DA CO bi sua, ghi trong phieu — bai thu moi van phai do truoc; (2) package.json vao file_luat; (3) sua T2 bo qua thu muc con trong tu_chay/. Kem ca cho dot bien M9 (phep muc_gac trong cai_dat.js), M10 (phep cau hinh khi nap cong.js). Kiem song: hook keo nhanh viec + /ra-soat nhan bao cao ngay lan dau. Ghi nhan Phat hien 5: chu quan sua tay .claude/hooks/*.cjs se bi cong chan",
+      "ten": "Bai hoc tu TU-CHAY-3, phieu nho, viec dau tien chay qua cong that (phai thay 2 check xanh). Chu quan dong y ca ba (02.10): (1) mien A11 cho bai thu DA CO bi sua, ghi trong phieu — bai thu moi van phai do truoc; (2) package.json vao file_luat; (3) sua T2 bo qua thu muc con trong tu_chay/. Kem ca cho dot bien M9 (phep muc_gac trong cai_dat.js), M10 (phep cau hinh khi nap cong.js). Kiem song: hook keo nhanh viec + /ra-soat nhan bao cao ngay lan dau. Ghi nhan Phat hien 5: chu quan sua tay .claude/hooks/*.cjs se bi cong chan; KET QUA: tu-chay 1.3.1 (PR #5, 2 check cong + cong-chay XANH — viec dau tien qua cong that). Them (d) do chu quan chot: ban GOC cua moi bai thu ghi trong ## Bai thu cu sua chay tren code PR phai XANH (chong thay bai cu bang ban yeu); dot bien 18/18 bat dung cho; kiem song: SubagentHandback khong bi chan, hook mo phien chay (chua gap lan KEO that). Phat hien 6, 7 (khoa ho so: ten dot bien, so dong BAO CAO) chua lam",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "HOC-1",
+      "commit": "446a81f",
+      "ngay": "2026-10-02"
     },
     {
       "ma": "TIET-KIEM-1",
