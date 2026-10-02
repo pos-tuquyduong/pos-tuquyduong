@@ -27,13 +27,40 @@ Một điểm của bản soát tự nó lệch số dòng (I3 ghi orders.js:128
 
 ## Bước 4–5 — bài thử, giả lập (02.10.2026)
 
-- Bài thử viết TRƯỚC, đỏ trên gốc: `viec/TU-CHAY-4/bang_chung_do.txt` — `thu_gia_lap.js` ✗ "không thấy giả lập" (thoát 1);
-  `thu_nguoi_gac.js` ✗ 3 ca F3 (thoát 1); bộ kiểm ✗ nhóm S (3 phép) + T1.
-- Đã viết `cong_cu/gia_lap/{chay,kich_ban,bat_bien}.js`. Đo: giả lập 22 s; `thu_gia_lap.js` 24 s (mọi lần chạy song song).
-- `thu_gia_lap.js` trên code thật: **29 đạt · 1 hỏng**. Xanh: A1 15 ca (10 từ chối, 2 cấu hình hỏng, 3 cho qua), A2 (sập
-  → thoát 2, tmp sạch, `data/` không đổi), **9/9 đột biến bắt đúng bất biến** (M1→I6, M2→I1, M3→I4, M4→I7, M5→I8, M6→I9,
-  M7→I9, M8→I3, M9→I5), I2 trên kho tay. Hỏng duy nhất: E1, vì KB6 — xem Câu hỏi 4.
-- CHƯA làm (chờ trả lời Câu hỏi 4): F3 `cau_hinh.json`, F4 tài liệu, `PHIEN_BAN`, đo lại F1, `/ra-soat`.
+### Ca đỏ trước, theo nhóm (`bang_chung_do.txt`, chạy trên code CHƯA có giả lập)
+- **A, D, E** — `node cong_cu/thu_gia_lap.js` → ✗ "E1 có giả lập … không thấy giả lập" (thoát 1; câu kết luận, không chỉ mã thoát — K3).
+- **F1, F2** — bộ kiểm nhóm S: ✗ giả lập chạy thật, ✗ bánh cóc (không thấy dòng tổng), ✗ danh sách trắng ví (bat_bien.js chưa có).
+- **F3** — `node tu_chay/thu_nguoi_gac.js` → ✗ 3 ca (2 ca người gác G-LUAT ra CHO, ca file_luat 7 mục) trên `cau_hinh.json` gốc.
+
+### Lần chạy đầu và mục G
+Lần đầu `thu_gia_lap` 29 đạt · 1 hỏng: KB6 đỏ vì lỗi THẬT `refunds.js:139` (BigInt → 500) — dừng, Câu hỏi 4. Chủ quán chốt (c):
+KB6 đi đường báo hỏng (`damages.js`). Sau đó thêm M10 (KB6 → I4).
+
+### Hiện tại (HEAD sau vòng sửa 1)
+- `thu_gia_lap.js`: **31 đạt · 0 hỏng** — A1 15 ca (10 từ chối · 2 cấu hình hỏng · 3 cho qua), A2 (sập → thoát 2, tmp sạch,
+  `data/` không đổi), **10/10 đột biến máy chủ** (M1→I6, M2→I1, M3→I4, M4→I7, M5→I8, M6→I9, M7→I9, M8→I3, M9→I5, M10→I4),
+  I2 trên kho tay (0 dòng / 2 dòng).
+- Đột biến vào chính lưới — chạy lại: `python3 viec/TU-CHAY-4/dot_bien.py [tên …]` (F2/S3 sửa file thật rồi trả lại từng byte,
+  đừng chạy song song lệnh khác). Kết quả 02.10.2026: **9/9 đạt**
+  | Đột biến | Kết quả |
+  |---|---|
+  | M0 giả lập nguyên vẹn | XANH |
+  | E4a I7 luôn trả rỗng | ĐỎ: ✗ M4 → KB5 → I7 (giả lập ra "ĐẠT", không dòng lệch) |
+  | E4b bỏ trễ mạng | ĐỎ: ✗ KB10 → HTTP trễ kho đang bật (trung vị 0 ms) |
+  | E4c bỏ kiểm một bất biến | ĐỎ: ✗ dòng tổng (… 8 bất biến) |
+  | E4d bỏ một kịch bản | ĐỎ: ✗ dòng tổng (10 kịch bản) |
+  | E4e A1 bỏ tên `SX_API_KEY` | ĐỎ: ✗ ca SX_API_KEY → thoát 3 |
+  | E4f A2 bỏ dọn kho tạm | ĐỎ: ✗ mọi thư mục gia_lap_* đã xoá |
+  | F2 giả lập còn 10 kịch bản | ĐỎ: ✗ bánh cóc giả lập (bộ kiểm `--day-du`) |
+  | S3 danh sách trắng ví lệch wallets.js | ĐỎ: ✗ danh sách trắng ví (bộ kiểm nhanh) |
+- Dọn khi bị SIGTERM (vòng sửa 1): chạy giả lập, gửi SIGTERM sau 6 s → thoát 2, thư mục `gia_lap_*` đã xoá (script nháp
+  `thu_sigterm.js`). Bản trước khi vá CHƯA chạy đối chứng — Node mặc định không gọi `exit` khi nhận SIGTERM.
+
+## Bước 6 — kiểm, tự rà
+- `npm test`: PASS 55 · FAIL 0 · 1 CẢNH BÁO (bản cài `.claude/tu_chay/` lệch nguồn — chủ quán chạy `bash tu_chay/cai_dat.sh`).
+- `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 59 · FAIL 0 (giả lập 22,6 s, `thu_gia_lap` 24,2 s). Không sửa `client/src/`.
+- Ngân sách: giả lập 493 dòng / ~450 (1,1×) · `thu_gia_lap.js` 168 / ~200 · bộ kiểm +32/−3 / ±30 · cấu hình ±1 ·
+  `thu_nguoi_gac.js` **+15/−3 → vòng sửa 1 gom còn +9/−3** / ±5 (ròng +6, 1,2× — dưới ngưỡng 1,5) · tài liệu ~30.
 
 ## Câu hỏi
 
@@ -116,7 +143,105 @@ Giả lập sau việc này là chỗ tự nhiên để dựng ca cho ba lỗ tr
    `:168` ghi `balance = ?` số tuyệt đối. Hoàn tiền báo hỏng cùng lúc với một giao dịch ví khác (bán trả ví, nạp ví) → một
    trong hai bị đè. KB6 đi đường này tuần tự nên không lộ; kịch bản "bấm trùng" để dành cho việc vá.
 
-Phát hiện 1–5: chủ quán mở việc vá riêng (chốt 02.10.2026) — KHÔNG sửa trong TU-CHAY-4.
+6. **Báo hỏng → hoàn tiền tin số tiền client gửi** (agent soát vòng 1). `damages.js:155` lấy `refund_amount` client gửi, không
+   có trần theo giá món; không chặn hoàn nhiều lần cho cùng một món; không chặn đơn chưa thu / đã huỷ; dòng `compensation`
+   không có `order_id` (`:175`). Không bất biến nào bắt được (I4 chỉ so ví với sổ). CHƯA dựng ca chạy.
+7. **Xoá đơn để lại mã bill mồ côi** (nghi ngờ, agent soát): `orders.js:1669–1674` không xoá `pos_signup_codes` → I2 sẽ báo
+   khi có kịch bản xoá đơn. Chưa xác định là lỗi hay ý muốn.
+
+Phát hiện 1–5: chủ quán mở việc vá riêng (chốt 02.10.2026) — KHÔNG sửa trong TU-CHAY-4. 6–7: ghi để chủ quán xét.
+
+## Bước 8 — /ra-soat
+
+### Vòng 1 — báo cáo nguyên văn (agent độc lập, HEAD 735db14)
+
+```
+KHÔNG ĐẠT. Code giả lập và bài thử đều đúng và có giá trị. Nhưng tài liệu đi kèm khẳng định sai so với code, và sổ
+trạng thái không còn khớp với nhánh. Chỉ cần sửa tài liệu, không phải sửa code. Một số đường ghi ví chưa được phủ mà
+không ghi rõ.
+
+Đã chạy trong lượt này, HEAD 735db14, cây sạch trước và sau:
+- node cong_cu/thu_gia_lap.js: 31 đạt · 0 hỏng.
+- npm test: PASS 55 · FAIL 0.
+- node kiem_tra_truoc_khi_giao.js --day-du: PASS 59 · FAIL 0, thoát 0. Giả lập 22.0 s, thu_gia_lap 23.7 s.
+- python3 viec/TU-CHAY-4/dot_bien.py M0 E4: M0 xanh; E4a–f đều ĐỎ đúng chỗ.
+- dot_bien.py S3 F2, chạy riêng, không song song: cả hai ĐỎ đúng chỗ, file thật được trả lại nguyên vẹn.
+- git diff --stat 9d7a4b4^ HEAD -- server client rỗng, nên không đụng server/client, và không có vấn đề P1 với client/dist/.
+
+LỖI TÌM ĐƯỢC:
+1. tu_chay/THIET_KE.md:204–205, :306, :336 — tài liệu nói cổng chạy lenh_gia_lap "nếu có", và "thêm vào lenh_gia_lap là
+   chạy hai lần". Sai: tu_chay/cong.js:234 chỉ chạy lenh_bai_thu và lenh_kiem_day_du; grep "lenh_gia_lap|gia_lap" trong
+   tu_chay/*.js chỉ ra thu_nguoi_gac.js. Ai làm theo tài liệu, đặt giả lập vào lenh_gia_lap, thì giả lập KHÔNG BAO GIỜ
+   chạy ở cổng. — K1.
+2. viec/TU-CHAY-4/ke_hoach.md — sai và cũ so với code, không ghi là đã thay:
+   · :13 (S4) dẫn "món INSERT … :820–831". Thật ra là orders.js:872–881; :820–831 là đoạn kiểm lại ví.
+   · :85 KB6 vẫn tả đường POST /refunds; §4 bảng chỉ có M1–M9, code có M10; §6 ghi "9 từ chối + 1 hỏng + 4 cho qua",
+     thật là 10 + 2 + 3; :158 "ước lượng chưa đo", F1 dặn sửa lại câu này nhưng chưa sửa.
+   · :228 (§8) ghi 11 kịch bản phủ "duyệt hoàn". Sau quyết định (c), KHÔNG kịch bản nào gọi /refunds/:id/approve
+     (refunds.js:174–219, ghi ví tuyệt đối ở :182). Cũng §8: "5 đường ghi ví" bỏ sót damages.js:168 và nhánh ví mẹ.
+   — K1/K4.
+3. viec/TU-CHAY-4/trang_thai.md, mục "Bước 4–5" — vẫn ghi "CHƯA làm: F3, F4, PHIEN_BAN, đo lại F1, /ra-soat" và
+   "29 đạt · 1 hỏng · 9/9 đột biến". Thực tế e45e0c6 và d6e5b2f đã làm F3/F4/PHIEN_BAN, và hiện là 31/0 · 10 đột biến. — K1.
+4. K4 — đường ghi ví không kịch bản nào chạy: DELETE /orders/:id (orders.js:1579–1635, client có ordersApi.delete
+   api.js:365); POST /refunds/:id/approve (refunds.js:182); /wallets deduct (wallets.js:131), adjust (wallets.js:184/187);
+   nhánh ví mẹ khi bán (orders.js:903–919) và khi huỷ (orders.js:1401–1428). Phủ được: bán (orders.js:887), huỷ ví khách
+   (orders.js:1383), damages (damages.js:168), nạp (wallets.js:79), đối soát (wallets.js:256). Khoảng 13 chỗ ghi ví; phủ 5,
+   chưa phủ 8. Hệ quả: nhánh refunded của I1 (bat_bien.js:25, :30) giờ là code không bao giờ chạy. Phần còn lại đã xử lý
+   đủ: danh sách trắng ví 2 bản (S3), vân tay in 2 chỗ (M4 đổi cả hai, chỉ KB5 chạy), chiếm mã claim/nhan-diem (KB11a/b),
+   nhật ký thu/doi (M6/M7).
+5. Ngân sách — tu_chay/thu_nguoi_gac.js +15/−3 so với phiếu ±~5 và kế hoạch ~8: vượt ngưỡng cảnh báo 1,5× mà không ghi.
+   Các phần khác trong ngân sách: giả lập 493 / ~450 (1,1×), thu_gia_lap.js 168 / ~200, bộ kiểm +32/−3.
+6. cong_cu/gia_lap/chay.js:52 — kho tạm chỉ được xoá trong process.on('exit'). Khi bị SIGTERM (spawnSync hết giờ,
+   kiem_tra_truoc_khi_giao.js:480) hoặc SIGKILL (thu_gia_lap.js:52) thì gia_lap_* còn sót trong /tmp thật. Trong
+   thu_gia_lap.js, TMPDIR là thư mục riêng do ket() dọn, nên chỉ đường gọi từ bộ kiểm bị sót. Chỉ là dữ liệu giả. — A2, nhẹ.
+
+NGHI NGỜ:
+- K5 tiềm ẩn: thêm kịch bản xoá đơn (DELETE) thì I7 (bat_bien.js:74–87) báo "vân tay lạ" OAN; I2 báo mồ côi vì
+  orders.js:1669–1674 không xoá pos_signup_codes (có thể là lỗi thật). Hiện chưa lộ.
+- I9: sổ phía quầy ghi r.data.paid_amount từ phản hồi server (kich_ban.js:26), không độc lập; I6 bù phần lớn.
+- thu_gia_lap.js:31 so khớp ĐÚNG "11 kịch bản · 9 bất biến" — KB12 buộc sửa thu_gia_lap.js (file luật), THIET_KE.md và
+  trang_thai không dặn ghi file đó trong phiếu.
+- Có thể đỏ thất thường: KB2 409 KHONG_TRONG_NGAY nếu chạy vắt qua nửa đêm giờ VN (don-mo-rong.js:129); KB10 đòi đúng
+  "200,409" — máy CI quá tải chạy tuần tự sẽ ra 400 (khả năng thấp: E4b cho thấy trễ = 0 vẫn chồng nhau).
+- Ngoài phạm vi, chưa có trong Phát hiện: damages.js:155 lấy refund_amount client gửi, không trần, không chặn hoàn nhiều
+  lần cùng món, không chặn đơn chưa thu/đã huỷ; dòng compensation không có order_id (damages.js:175). Chưa dựng ca.
+- bat_bien.js:64 dẫn "±1đ như orders.js:746"; phép so ±1 thật ở :751.
+
+Kết quả từng câu: K3 — bằng chứng đỏ trên gốc là thật; mỗi I1–I9 có ca chứng minh phát hiện được (M1–M10 kiểm đúng regex
+KB<n> → I<k>:, thu_gia_lap.js:145; E4a cho thấy M4 lộ thuần qua I7; I2 ca tay; SQL sai ném lỗi → sập, chay.js:171 ngoài try);
+bằng chứng chồng nhau KB10/KB11 là thật. K5 — A1 không chặn oan (bộ kiểm lọc môi trường MT_SACH; thu_gia_lap tự lọc; biến
+server đọc đều nằm trong regex chay.js:35; npm_* và NODE_ENV có ca cho qua); bánh cóc F2 không đỏ oan. Đường tiền/an toàn —
+giả lập đọc đơn và ví từ DB (kich_ban.js:22, :36), không gửi giá; dotenv bị thay (chay.js:87), ketNoiKho trỏ file tạm
+(:81–86), không đụng Turso, data/, .env.
+
+CHƯA SOÁT ĐƯỢC: thời gian/độ ổn định trên GitHub Actions (giới hạn A13 900 s, chayBaiThat 120 s, con của thu_gia_lap 110 s);
+Replit thật (Secrets); nhánh "không có data/" của A2 (data/ ở đây rỗng); không đột biến nào kiểm bộ kiểm thật sự lọc môi
+trường (bỏ MT_SACH thì máy mây vẫn xanh); các đường ở mục 4; hoàn kho của damages (damages.js:196, không vân tay); phát
+hiện bấm trùng 1–5 (chỉ đọc code).
+
+BÀI HỌC:
+- KHOÁ: phép kiểm tĩnh — mọi lệnh trong cau_hinh.json mà THIET_KE.md nói cổng chạy phải có trong tu_chay/cong.js (hoặc
+  cổng phải thật sự chạy lenh_gia_lap). Lỗi 1 do tài liệu tả cơ chế không tồn tại.
+- KHOÁ: kịch bản xoá đơn (DELETE) và duyệt hoàn (KB12) vào danh sách việc sau, kèm sửa I7 để biết đơn đã xoá.
+- NGUYÊN TẮC (K1/K4): chủ quán đổi một kịch bản (KB6: refunds → damages) thì rà lại MỌI chỗ tài liệu đã khẳng định phủ
+  đường cũ; đường bị thay ghi rõ CHƯA KIỂM. Áp dụng cho ke_hoach §8, trang_thai và nhánh refunded của I1.
+- NGUYÊN TẮC: trang_thai.md cập nhật ở mỗi commit đóng một mục — "CHƯA làm" còn sót sau khi đã làm là K1 trong sổ của việc.
+```
+
+### Sửa sau vòng 1 (vòng sửa 1/3)
+- Lỗi 1 — đọc lại `tu_chay/cong.js:234`: ĐÚNG, cổng chỉ chạy `lenh_bai_thu` + `lenh_kiem_day_du`. THIET_KE.md :204–205,
+  :306, :337, :370 sửa: cổng KHÔNG đọc `lenh_gia_lap`, giả lập vào cổng chỉ qua `--day-du`.
+- Lỗi 2 — `ke_hoach.md`: thêm khối "Đã đổi SAU khi duyệt" đầu file (KB6, M10, E3 10+2+3, F1 đã đo, cổng, đường ghi ví);
+  S4 :820–831 → :872–881; §8 đánh dấu ⟶ SAI sau (c). Giữ nguyên văn phần đã duyệt.
+- Lỗi 3 — viết lại mục Bước 4–5, thêm Bước 6 (mục trên).
+- Lỗi 4 — 8 đường ghi ví chưa phủ ghi vào CHƯA KIỂM (báo cáo bước 10); chú thích nhánh `refunded` của I1 (bat_bien.js).
+- Lỗi 5 — `thu_nguoi_gac.js` gom 4 ca vào khối HOC-1 có sẵn: +15/−3 → +9/−3. Vẫn 786/786 xanh; ca G-LUAT vẫn đọc
+  `cau_hinh.json` thật nên vẫn đỏ trên gốc.
+- Lỗi 6 — `chay.js`: SIGTERM/SIGINT → `process.exit(2)` → chạy dọn `exit`. Thử thật: thoát 2, tmp sạch. SIGKILL không bắt được
+  — ghi CHƯA KIỂM.
+- Nghi ngờ: `bat_bien.js` :746 → :751; THIET_KE B10 dặn việc thêm kịch bản phải ghi `thu_gia_lap.js` + `NGUONG_KICH_BAN`, và
+  việc thêm kịch bản xoá đơn phải sửa I7/xem I2; damages tin số tiền client + xoá đơn để mã mồ côi → Phát hiện 6, 7.
+  KB2 qua nửa đêm, KB10 trên CI quá tải, I9 không độc lập → CHƯA KIỂM.
 
 ## Sự cố trong lượt này (đầu vào bước 11)
 

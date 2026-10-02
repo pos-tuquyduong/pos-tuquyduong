@@ -201,8 +201,9 @@ cong_cu/gia_lap/             # riêng từng app (B10)
 }
 ```
 
-`lenh_gia_lap` **để trống** (TU-CHAY-4): giả lập POS nối qua bộ kiểm `--day-du` (nhóm S), mà `lenh_kiem_day_du` đã gọi —
-thêm vào `lenh_gia_lap` là chạy hai lần. App khác chưa có giả lập thì để trống như cũ.
+`lenh_gia_lap` **để trống và cổng KHÔNG đọc nó**: `cong.js:234` chỉ chạy `lenh_bai_thu` + `lenh_kiem_day_du`. Giả lập POS vào
+cổng qua bộ kiểm `--day-du` (nhóm S) — đó là đường DUY NHẤT; ghi giả lập vào `lenh_gia_lap` thì nó KHÔNG BAO GIỜ chạy ở cổng.
+App khác muốn giả lập chạy ở cổng cũng phải nối qua `lenh_kiem_day_du` (hoặc mở việc sửa `cong.js`).
 
 ## B3. Người gác `nguoi_gac.js` (hook PreToolUse)
 
@@ -303,7 +304,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
    - Có ca nghiệm thu nào không có bài thử không?
    - Có đường song song nào bị bỏ sót không?
 4. Viết bài thử **trước**, chạy thử, thấy nó **đỏ** trên code hiện tại. Sau đó mới viết code.
-5. Viết code cho tới khi bài thử xanh. Chạy `lenh_bai_thu`, `lenh_kiem_day_du` (POS: có giả lập quầy), `lenh_gia_lap` nếu có.
+5. Viết code cho tới khi bài thử xanh. Chạy `lenh_bai_thu`, `lenh_kiem_day_du` (POS: có giả lập quầy).
 6. Tự rà trước khi nhờ soát:
    - code chết;
    - trùng lặp;
@@ -333,7 +334,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 
 1. Đang ở nhánh `viec/<MÃ>`, cây sạch (không tính các file `??` có sẵn từ trước).
 2. **Phạm vi:** mọi file trong `git diff --name-only <chính>...HEAD` phải khớp mục Phạm vi hoặc nằm trong `viec/<MÃ>/`. Không có file nào khớp `file_cam` hay nằm trong `.claude/`.
-3. **Bài thử xanh:** `lenh_bai_thu`, `lenh_kiem_day_du`, `lenh_gia_lap` (nếu có) đều thoát 0. POS: giả lập nằm trong `--day-du`.
+3. **Bài thử xanh:** `lenh_bai_thu`, `lenh_kiem_day_du` đều thoát 0 (`cong.js:234`; cổng không đọc `lenh_gia_lap`). POS: giả lập nằm trong `--day-du`.
 4. **Phép thử hai chiều:**
    - Dựng bản sao của **nhánh chính**.
    - Chép sang đó **những file bài thử mới hoặc đã sửa** (nằm trong `thu_muc_bai_thu`) của HEAD.
@@ -366,7 +367,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 **Cách nối thật (TU-CHAY-4, 02.10.2026):** `node cong_cu/gia_lap/chay.js` — ba file: `chay.js` (an toàn + sân khấu + in kết
 quả), `kich_ban.js`, `bat_bien.js`. Bộ kiểm gọi ở **`--day-du`** (nhóm S) với **môi trường đã lọc sạch** — giả lập không bao
 giờ cầm khoá thật, kể cả trên Replit; cổng `cong-chay` chạy `--day-du` nên PR nào cũng qua giả lập. Không qua
-`lenh_gia_lap`. Đo: giả lập 22 s, `cong_cu/thu_gia_lap.js` 24 s (> 15 s nên không vào bản nhanh / pre-commit).
+`lenh_gia_lap` (cổng không đọc khoá đó — B2). Đo: giả lập 22 s, `cong_cu/thu_gia_lap.js` 24 s (> 15 s nên không vào bản nhanh / pre-commit).
 Cả ba file và `thu_gia_lap.js` là **file luật** (`file_luat`): việc sau muốn sửa phải ghi ĐÚNG TÊN file trong phiếu.
 Bánh cóc: số kịch bản ≥ 11, số bất biến ≥ 9 — chỉ được tăng.
 
@@ -399,6 +400,8 @@ Bánh cóc: số kịch bản ≥ 11, số bất biến ≥ 9 — chỉ được
 11. **Hai người cùng nhập một mã.**
 
 **Việc sau thêm kịch bản mới (vào cuối `kich_ban.js`), không xoá kịch bản cũ** — chúng là lưới chống lỗi quay lại.
+Thêm kịch bản là đổi dòng tổng → phiếu phải ghi cả `cong_cu/thu_gia_lap.js` (`DONG_DAT`) và nâng `NGUONG_KICH_BAN` trong
+`kiem_tra_truoc_khi_giao.js`. Thêm kịch bản XOÁ đơn thì sửa I7 (vân tay của đơn đã xoá) và xem I2 (DELETE không xoá mã bill).
 
 **Kiểm bất biến sổ sách.** Sau **mỗi** kịch bản và ở cuối, chạy các câu SQL chỉ đọc trên DB giả. Tất cả phải ra **0 dòng lệch**:
 

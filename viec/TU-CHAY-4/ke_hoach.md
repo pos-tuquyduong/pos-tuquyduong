@@ -1,4 +1,15 @@
-# TU-CHAY-4 — Kế hoạch (bước 3, CHỜ DUYỆT)
+# TU-CHAY-4 — Kế hoạch (bước 3, ĐÃ DUYỆT 02.10.2026)
+
+> **Đã đổi SAU khi duyệt** (đọc mục này trước — phần dưới giữ nguyên văn bản đã duyệt, chỗ lệch đánh dấu ⟶):
+> - KB6: đường `POST /refunds` → **báo hỏng → hoàn ví** (`POST /damages`), chủ quán chốt (c) ở Câu hỏi 4. Không kịch bản nào
+>   còn gọi `/refunds/:id/approve` → nhánh `refunded` của I1 chưa có kịch bản chạy qua (KB12 của việc vá BigInt).
+> - Thêm đột biến **M10** (damages ghi loại dòng ngoài danh sách trắng → KB6 → I4). Tổng 10 đột biến.
+> - E3 thật: **10 ca từ chối + 2 cấu hình hỏng + 3 ca cho qua** (không phải 9 + 1 + 4).
+> - F1 đã đo: giả lập 22 s, `thu_gia_lap` 24 s → **chỉ `--day-du`** (chủ quán chốt).
+> - Cổng KHÔNG đọc `lenh_gia_lap` (`tu_chay/cong.js:234`) — giả lập vào cổng chỉ qua `--day-du`.
+> - Đường ghi ví: 13 chỗ; 11 kịch bản phủ 5 (bán :887, huỷ :1383, damages :168, nạp :79, đối soát :256), CHƯA phủ 8 —
+>   xem CHƯA KIỂM trong `trang_thai.md`. Câu "phủ duyệt hoàn" ở §8 là SAI sau quyết định (c).
+
 
 Nền: `9d7a4b4 PHIEU: TU-CHAY-4` trên `d047037` (main). Mọi file:dòng dưới đây đọc trong lượt này (02.10.2026).
 Chưa viết code, chưa viết bài thử — phiếu dặn dừng ở bước 3.
@@ -10,7 +21,7 @@ Chưa viết code, chưa viết bài thử — phiếu dặn dừng ở bước 
 | S1 | `server/index.js` không `module.exports`, tự gọi `require('dotenv').config()` (:10), tự `initDatabase` + `app.listen(PORT)` (:174–198). Thứ tự mount có ý nghĩa: `don-mo-rong` trước `orders` (:86–87), móc `doNeuDenLuc` trước mọi `/api/pos` (:76–79). | index.js |
 | S2 | `initDatabase()` không nhận tham số (bỏ qua `DB_PATH`), nối qua `ketNoiKho.cauHinhTurso()` rồi `createClient` của `@libsql/client`. | database.js:15–27 |
 | S3 | `sxApi` đọc `diaChiSX()` **lúc nạp module** và `SX_API_KEY` từ biến môi trường. | sxApi.js:9–10 |
-| S4 | Vân tay kho: bán `POS:<id>:out:<stt>` (bán: stt = vị trí món trong mảng `orderItems`; huỷ: thứ tự SELECT không ORDER BY = rowid — hai cách trùng nhau vì món INSERT đúng thứ tự mảng, :820–831, :1502–1508), huỷ `POS:<id>:in:<stt>`; lỗi SX → ghi `pos_stock_pending`. | orders.js:989–1004, :1513–1528 (DELETE :1690) |
+| S4 | Vân tay kho: bán `POS:<id>:out:<stt>` (bán: stt = vị trí món trong mảng `orderItems`; huỷ: thứ tự SELECT không ORDER BY = rowid — hai cách trùng nhau vì món INSERT đúng thứ tự mảng, :872–881, :1502–1508), huỷ `POS:<id>:in:<stt>`; lỗi SX → ghi `pos_stock_pending`. | orders.js:989–1004, :1513–1528 (DELETE :1690) |
 | S5 | pay-debt chặn thu hai lần bằng `WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status != 'cancelled'` + `changes !== 1` → 409 `DA_THU_ROI`; ghi nhật ký `thu` (:1296) và dòng sổ `debt_payment` số dương, balance 0/0, chỉ khi đơn có SĐT (:1303–1320). | orders.js:1285–1294 |
 | S6 | Đổi cách trả ghi nhật ký `doi`, chống đổi hai lần bằng so số tiền. | don-mo-rong.js:142–157 |
 | S7 | Danh sách trắng ví `LOAI_TINH_VAO_VI = ['topup','purchase','refund','adjust','compensation']` — **không export**. Đối soát 1 khách / toàn bộ chỉ cộng loại trong danh sách. | wallets.js:240–262, :284–297 |
@@ -226,7 +237,7 @@ Giả lập không thêm chặn nào vào máy chủ. "Chặn" mới duy nhất 
 - Lấy từ gói có HAI đường (`package_buy` cùng đơn, `customer_package_id` gói có sẵn) — KB9a, KB9b.
 - Nhật ký đơn có HAI chỗ ghi (`thu`, `doi`) — M6, M7.
 - Ghi ví có 5 đường (bán, huỷ, xoá, duyệt hoàn, nạp) + đối soát — 11 kịch bản phủ bán/huỷ/duyệt hoàn/nạp/đối soát; xoá
-  đơn và `/wallets/deduct|adjust` → CHƯA KIỂM.
+  đơn và `/wallets/deduct|adjust` → CHƯA KIỂM. ⟶ SAI sau (c): không phủ duyệt hoàn; thêm damages :168 (phủ) và ví mẹ (chưa).
 - Danh sách trắng ví có 2 bản (wallets.js, bat_bien.js) → F2 phép tĩnh so khớp.
 
 ## 9. Ngân sách dự kiến
