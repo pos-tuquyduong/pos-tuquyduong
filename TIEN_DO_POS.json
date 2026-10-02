@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 14,
-  "cap_nhat": "2026-10-01",
+  "phien_ban_so": 15,
+  "cap_nhat": "2026-10-02",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -306,8 +306,26 @@
     },
     {
       "ma": "TU-CHAY-3",
-      "ten": "Cong tren GitHub cho moi PR (bai thu xanh, dung pham vi, phieu va .claude khong doi, bai thu 2 chieu) + soat doc lap; them: hook SessionStart tu keo nhanh viec (ff-only), agent soat nop duoc bao cao, chan git add '\\.claude', buoc 11 rut kinh nghiem trong /lam-viec",
+      "ten": "Cong tren GitHub cho moi PR (bai thu xanh, dung pham vi, phieu va .claude khong doi, bai thu 2 chieu) + soat doc lap; them: hook SessionStart tu keo nhanh viec (ff-only), agent soat nop duoc bao cao, chan git add '\\.claude', buoc 11 rut kinh nghiem trong /lam-viec; bo khung tu-chay 1.3.0 (PR #3); kiem song 02.10 DAT: PR thu #4 do dung ly do (cong 8s: A6 + A12; cong-chay 1m29s: A12), check gan dung commit dau PR, ruleset khoa-main doi cong + cong-chay, nut Merge bi khoa",
       "tang": 1,
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-3",
+      "commit": "03e1b48",
+      "ngay": "2026-10-01"
+    },
+    {
+      "ma": "HOC-1",
+      "ten": "Bai hoc tu TU-CHAY-3, phieu nho, viec dau tien chay qua cong that (phai thay 2 check xanh). Chu quan dong y ca ba (02.10): (1) mien A11 cho bai thu DA CO bi sua, ghi trong phieu — bai thu moi van phai do truoc; (2) package.json vao file_luat; (3) sua T2 bo qua thu muc con trong tu_chay/. Kem ca cho dot bien M9 (phep muc_gac trong cai_dat.js), M10 (phep cau hinh khi nap cong.js). Kiem song: hook keo nhanh viec + /ra-soat nhan bao cao ngay lan dau. Ghi nhan Phat hien 5: chu quan sua tay .claude/hooks/*.cjs se bi cong chan",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TIET-KIEM-1",
+      "ten": "Do truoc 3-4 viec (luot, phut, lan bi chan, lan lam lai, % han muc chup truoc/sau) roi moi chinh: model re chi cho agent tim file; doc hep file > ~30 KB; tran dong CLAUDE.md; mo mang docs.github.com + code.claude.com; luat dung khi bi chan cung ma 2 lan. KHONG tiet kiem o agent soat, bai thu do truoc, duyet ke hoach (So D8)",
+      "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
