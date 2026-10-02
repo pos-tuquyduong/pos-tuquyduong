@@ -28,7 +28,7 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const DONG_DAT = 'Giả lập: 11 kịch bản · 9 bất biến · ĐẠT';
+const DONG_DAT = 'Giả lập: 12 kịch bản · 9 bất biến · ĐẠT';
 
 let dat = 0;
 const hong = [];
