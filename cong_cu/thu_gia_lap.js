@@ -6,7 +6,7 @@
  *  Chạy ở GỐC kho POS:   node cong_cu/thu_gia_lap.js [--gia-lap <thư mục giả lập>]
  *
  *  E1  giả lập trên code thật → ĐẠT, đúng dòng tổng.
- *  E2  9 đột biến trên BẢN SAO server/ (không đụng bản thật), mỗi đột biến bỏ
+ *  E2  10 đột biến trên BẢN SAO server/ (không đụng bản thật), mỗi đột biến bỏ
  *      một chặn có thật → đúng bất biến tương ứng lệch. Chuỗi đột biến không
  *      khớp đúng số lần → HỎNG (không bao giờ đếm là đạt — K3).
  *  E3  A1: từ chối khi có khoá thật / tên miền production; cho qua biến vô hại.
@@ -74,6 +74,8 @@ const DOT_BIEN = [
     'remainingDebt <= 0 ? "paid" : "partial"', 'remainingDebt <= 0 ? "partial" : "paid"', 1, 3, 'I3'],
   ['M9 loại dòng thu nợ lạ', 'routes/orders.js',
     "'debt_payment', ?, 0, 0", "'tra_no', ?, 0, 0", 1, 4, 'I5'],
+  ['M10 báo hỏng hoàn ví ghi loại dòng ngoài danh sách trắng', 'routes/damages.js',
+    "VALUES (?, 'compensation',", "VALUES (?, 'den_bu',", 1, 6, 'I4'],
 ];
 
 function banSao(ma, file, goc, thay, soLan) {

@@ -714,11 +714,15 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
 const NGUONG_KICH_BAN = 11;
 const NGUONG_BAT_BIEN = 9;
+// S4 — đo 02.10.2026: giả lập 22 s, thu_gia_lap 24 s (> 15 s) → CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du).
 {
-  const ra = chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH);
-  const m = ra.match(/Giả lập: (\d+) kịch bản · (\d+) bất biến/);
-  chac(`bánh cóc giả lập: ≥ ${NGUONG_KICH_BAN} kịch bản, ≥ ${NGUONG_BAT_BIEN} bất biến`,
-    !!m && +m[1] >= NGUONG_KICH_BAN && +m[2] >= NGUONG_BAT_BIEN, m ? m[0] : 'không thấy dòng tổng của giả lập');
+  if (DAY_DU) {
+    const ra = chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH);
+    const m = ra.match(/Giả lập: (\d+) kịch bản · (\d+) bất biến/);
+    chac(`bánh cóc giả lập: ≥ ${NGUONG_KICH_BAN} kịch bản, ≥ ${NGUONG_BAT_BIEN} bất biến`,
+      !!m && +m[1] >= NGUONG_KICH_BAN && +m[2] >= NGUONG_BAT_BIEN, m ? m[0] : 'không thấy dòng tổng của giả lập');
+    chayBaiThat('cong_cu/thu_gia_lap.js', MT_SACH);
+  }
   // S3 — I4/I5 chép danh sách trắng ví (wallets.js không export): hai bản phải đi cùng nhau
   const dsVi = (p) => {
     const x = boGhiChu(doc(p)).match(/const LOAI_TINH_VAO_VI\s*=\s*\[([^\]]*)\]/);
@@ -727,8 +731,6 @@ const NGUONG_BAT_BIEN = 9;
   const viGl = dsVi('cong_cu/gia_lap/bat_bien.js');
   chac('giả lập: danh sách trắng ví trong bat_bien.js khớp wallets.js', !!viGl && viGl === dsVi('server/routes/wallets.js'),
     `bat_bien.js: ${viGl || '(không có)'} · wallets.js: ${dsVi('server/routes/wallets.js')}`);
-  // S4 — phá thử giả lập (9 đột biến server, A1, A2) — chậm, chỉ --day-du (cổng cong-chay chạy --day-du)
-  if (DAY_DU) chayBaiThat('cong_cu/thu_gia_lap.js', MT_SACH);
 }
 
 console.log('');
@@ -740,7 +742,7 @@ console.log(dong.join('\n'));
 console.log('');
 console.log(`  ĐẾM (không đoán):  PASS ${PASS}  ·  FAIL ${FAIL}  ·  CẢNH BÁO ${CANH_BAO}`);
 console.log(`  Tổng phép kiểm:    ${PASS + FAIL}`);
-if (!DAY_DU) console.log('  (chạy --day-du để kiểm thêm: dist có khớp src không)');
+if (!DAY_DU) console.log('  (chạy --day-du để kiểm thêm: dist có khớp src không, giả lập quầy)');
 console.log('');
 
 if (FAIL > 0) {
