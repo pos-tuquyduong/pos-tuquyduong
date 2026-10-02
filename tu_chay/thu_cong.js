@@ -266,6 +266,10 @@ function baiCong() {
   ca('HOC-1 (d)(i) bài cũ được miễn bị thay bằng bản luôn xanh, PR làm hỏng code bản gốc bắt', [phieuMoi(MIEN),
     ['sua', { 'cong_cu/thu_c.js': 'process.exit(0);\n', 'server/a.js': null, ...moi }]], 'ĐỎ',
     { che: 'chay', chua: ['bài thử cũ được miễn nhưng bản gốc đỏ trên code PR', 'cong_cu/thu_c.js'] });
+  // Soát vòng 2 (lỗi 1): file ghi trong mục mà bản head ĐỎ trên gốc cũng phải qua (d) — không lách bằng một ca đỏ mới
+  ca('HOC-1 (d)(iii) bài trong mục ĐỎ trên gốc, bỏ ca gốc, PR làm hỏng code bản gốc bắt', [phieuMoi(MIEN),
+    ['sua', { 'cong_cu/thu_c.js': THU_HOP_LE, 'server/a.js': null, ...sv }]], 'ĐỎ',
+    { che: 'chay', chua: ['bài thử cũ được miễn nhưng bản gốc đỏ trên code PR', 'cong_cu/thu_c.js'] });
   ca('HOC-1 (d)(ii) K5 chỉ thêm ca vào bài cũ, giữ ca gốc → ĐẠT', [phieuMoi(MIEN), ['sua', { 'cong_cu/thu_c.js':
     "if (!require('fs').existsSync('README.md')) process.exit(1); // ca mới\n" + THU_C_GOC, ...moi }]], 'ĐẠT',
     { che: 'chay', chua: [DONG_MIEN], khong: ['bản gốc đỏ'] });
