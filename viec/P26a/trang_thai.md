@@ -48,20 +48,28 @@ Kết quả (02.10.2026, chạy lại sau soát trên bản sao đã `diff` đú
   không kiểm trạng thái đơn; `PUT /orders/:id/cancel` chỉ chặn `status === "cancelled"` (orders.js:1362), không chặn
   `refunded`. Đơn 25.000 trả ví → yêu cầu hoàn → duyệt → huỷ: ví +50.000 (người soát chạy thật trên kho tạm, cả hai thứ tự).
   Đường song song: `DELETE /:id` (orders.js:1579, 1608) chỉ kiểm `!== "cancelled"`. Ngoài phạm vi (routes/ bị cấm) —
-  cần việc riêng; màn quầy hiện chưa gọi `POST /refunds`, nhưng API đã mở. Đề nghị gom vào P26b cùng mục trên.
+  cần việc riêng; màn quầy chưa gọi `POST /refunds` (api.js không có hàm tạo yêu cầu), nhưng màn DUYỆT đang chạy thật
+  (`client/src/pages/Refunds.jsx:21` → `refundsApi.approve`); trước P26a `POST /refunds` vẫn ghi dòng rồi mới 500, nên
+  production có thể đang có yêu cầu treo duyệt được. Đề nghị gom vào P26b cùng mục trên.
 - `refunds.js:151-173, 209-216` (NGHI NGỜ, chưa tái hiện): duyệt kiểm `pending` và đọc số dư ví ngoài giao dịch, UPDATE
   không có `AND status = 'pending'`, ví ghi số tuyệt đối → có thể duyệt đôi trên Turso có trễ mạng. 3 lần chạy cục bộ không ra.
 - `POST /packages/buy` (packages.js:169-178): chỉ `authenticate`, không `checkPermission`, không thu tiền, `total_qty` lấy
   từ client, không kiểm `package_id` → nhân viên nào cũng tạo được gói `active` miễn phí. Client không gọi route này.
   `thu_P26a.js` C4 đòi route này 200 (phiếu A1 ghi đích danh) bằng token CHỦ QUÁN → thêm `checkPermission` sau này
   vẫn xanh; nhưng thêm "phải thu tiền" sẽ làm C4 đỏ — khi đó sửa C4 theo luồng hợp lệ mới, KHÔNG nới route.
-- `cong_cu/gia_lap/bat_bien.js:21`: chú thích hẹn KB12 sẽ phủ nhánh `refunded` của I1 — KB12 đã có; cập nhật ở việc sau.
+- **KB12 CHƯA phủ nhánh `refunded` của I1** (soát vòng 2 bắt, đã tự đọc lại): I1 chỉ xét đơn có mã bill ĐÃ DÙNG
+  (`cong_cu/gia_lap/bat_bien.js:28` `WHERE s.claimed_at IS NOT NULL OR s.diem_nhan_luc IS NOT NULL`), KB12 không gọi
+  `/claim` hay `/nhan-diem`. Đột biến của người soát: thay nhánh `refunded` (bat_bien.js:31) bằng `false` → giả lập vẫn
+  `12 kịch bản · 9 bất biến · ĐẠT`. Chú thích bat_bien.js:21 "CHƯA có kịch bản chạy qua" vẫn ĐÚNG — chỉ cần bỏ vế
+  "KB12 … sẽ phủ". Việc sau (P26b): kịch bản đơn trả ví → claim mã bill → `POST /refunds` + duyệt, đỏ khi xoá nhánh.
 - Phiếu A2 gọi `tiers.js` là route "đã tự bọc Number()", nhưng `tiers.js:88` không trả id nào; C9 chỉ kiểm `PUT /tiers` → 200,
   ca A2 đúng nghĩa là C7 `POST /rewards` (rewards.js:49) và C8 `/loyalty/redeem` (loyalty.js:202, đi qua `tx.run`).
 
 ## Câu hỏi
 
-(không có)
+- (không chặn việc này) Luật K5 "chiều ngược" vừa thêm lấy C4 làm ví dụ vi phạm, nhưng C4 vẫn nằm trong bộ kiểm bản nhanh
+  vì phiếu A1 ghi đích danh `POST /packages/buy`. Chủ quán chọn: giữ C4 tới khi P26b vá route (C4 đổi theo luồng hợp lệ
+  mới), hay bỏ C4 khỏi `thu_P26a` ngay (A1 còn 3 route + đường giao dịch)? Máy KHÔNG tự đổi.
 
 ## /ra-soat vòng 1 — báo cáo nguyên văn
 
@@ -153,6 +161,10 @@ ghi file này) + 1 lệnh bị từ chối quyền (`rm -rf` thư mục nháp); 
   quyền + đường tiền của route trước khi viết `status === 200`. Ví dụ thật: C4 `/packages/buy`.
 - **NGUYÊN TẮC** (ngoài Phạm vi — đề xuất cho lệnh `/ra-soat`): agent soát dựng bản sao trong thư mục nháp tên riêng
   (`rv_*`), không `cp -r` vào thư mục đã có. Đã gây: đè `ma/`, `mb/` của phiên chính (K7).
+- **NGUYÊN TẮC** — K3, ĐÃ GHI vào `KHUON_LOI.md` (1 dòng): "kịch bản X phủ nhánh Y" chỉ nói được khi đột biến xoá Y làm
+  giả lập ĐỎ; đọc WHERE của bất biến trước. Đã gây: kế hoạch + trang_thai nói KB12 phủ I1-refunded (soát vòng 2 bắt).
+- **KHOÁ** (ngoài Phạm vi — đề xuất P26b): kịch bản "đơn trả ví → claim mã bill → POST /refunds + duyệt" — phủ thật
+  I1-refunded; ca đỏ: xoá nhánh `refunded` ở bat_bien.js:31 phải làm giả lập ĐỎ (hôm nay vẫn ĐẠT).
 - **BỎ**: vượt ngân sách `thu_P26a.js` — phiếu tính ~90 cho 4 route, bài cần thêm C5 + 3 ca K5 (C7–C9) và cờ `--may-chu`;
   một lần, không thành luật. Các lệnh bị người gác chặn: luật đúng, đã làm theo hướng dẫn, không lặp.
 - Dọn: không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md đã có phép kiểm làm thay do việc này. KHUON_LOI.md 117/120 dòng.
@@ -184,6 +196,83 @@ CHƯA KIỂM:   - Turso production (hrana): chỉ thử libsql file cục bộ; 
              - M-c không nằm trong khung E2 của thu_gia_lap (khung đòi lệch bất biến, KB12 lệch ở HTTP) — chỉ chạy tay.
              - Màn hình thật (tạo mã chiết khấu, in hoá đơn) chưa bấm thử trên trình duyệt; chỉ kiểm qua API.
              - Lỗ hoàn ví hai lần (refunds approve + cancel) CÒN MỞ — ngoài phạm vi, xem Phát hiện.
-GIT:         xem git log --oneline -2 ở câu trả lời cuối
-BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
+GIT:         (lúc ghi báo cáo, trước commit chứa chính dòng này)
+             47c531c P26a: trang thai - dot bien A5, phat hien, ra-soat vong 1, bai hoc, bao cao 7 muc
+             dd3520a P26a: ke hoach - C3 so id theo invoice_number (khong MAX)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 1 — chi tiết ở ## Bài học
 ```
+
+## /ra-soat vòng 2 — báo cáo nguyên văn
+
+```
+KHÔNG ĐẠT. Phần code đúng. A5 chạy lại được, và cả ba lỗi vòng 1 đã xử lý đúng. Nhưng báo cáo còn một khẳng định sai mà tôi đã chứng minh bằng đột biến: KB12 KHÔNG phủ nhánh `refunded` của bất biến I1. Đây đúng là khuôn "xanh oan" về độ phủ. Sửa chỉ mất 2 dòng tài liệu, không phải sửa code.
+
+LỖI TÌM ĐƯỢC:
+- viec/P26a/trang_thai.md:58 và ke_hoach.md:121-122 — sai so với kết quả chạy — K1/K3.
+  - Hai chỗ này nói KB12 đã phủ nhánh `refunded` của I1 ("sau việc này KB12 phủ thật", "KB12 đã có; cập nhật ở việc sau").
+  - Thực tế I1 (cong_cu/gia_lap/bat_bien.js:22-32) chỉ chọn đơn có mã bill đã dùng: `WHERE s.claimed_at IS NOT NULL OR s.diem_nhan_luc IS NOT NULL` (dòng 28). KB12 (kich_ban.js:170-178) không gọi `/claim` hay `/nhan-diem`, nên không bao giờ đi vào nhánh này.
+  - Đột biến đã chạy: chép `cong_cu/gia_lap` sang `scratchpad/rv2_i1`, rồi thay `|| (r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung))` bằng `|| false`. Lệnh: `node rv2_i1/cong_cu/gia_lap/chay.js --may-chu /home/user/pos-tuquyduong/server --cau-hinh .../tu_chay/cau_hinh.json` → `Giả lập: 12 kịch bản · 9 bất biến · ĐẠT`.
+  - Nghĩa là nhánh này vẫn không có kịch bản nào chạy qua. Chú thích bat_bien.js:21 ("CHƯA có kịch bản chạy qua") hiện vẫn ĐÚNG. Việc sau mà theo trang_thai.md "cập nhật chú thích" sẽ ghi sai rằng nhánh đã được phủ.
+  - Cách sửa: ghi lại Phát hiện thành "KB12 chưa phủ I1-refunded — cần kịch bản claim mã bill rồi hoàn qua /refunds". Ghi luôn kết quả đột biến trên.
+- viec/P26a/trang_thai.md:187 — mục GIT ghi "xem git log --oneline -2 ở câu trả lời cuối" thay vì kết quả lệnh. Mẫu ở CLAUDE.md §7 đòi kết quả thật. Lỗi nhỏ, thuộc K7 (giao nhận).
+
+Kiểm việc xử lý vòng 1:
+- (a) Đã xử lý đúng. trang_thai.md đã có khối A5 và mục CHƯA KIỂM. Tôi chạy đúng khối lệnh, thay `<NHAP>` bằng `scratchpad/rv2_a5`:
+  - `diff` cho thấy mỗi bản sao lệch HEAD đúng một dòng (1355 với ma, 1382 với mb).
+  - M-a: 4 đạt · 4 hỏng (C1–C4, HTTP 500 BigInt).
+  - M-b: 7 đạt · 1 hỏng (đúng C5, `bigint 61`).
+  - M-c: `✗ KB12 → HTTP … 500`, `KHÔNG ĐẠT (1 lệch)`.
+  - Tất cả khớp với ghi chép.
+- (b) Ghi Phát hiện là đúng. Tôi đã đọc code và thấy khớp:
+  - refunds.js:150-225: duyệt yêu cầu hoàn tiền không kiểm trạng thái đơn.
+  - orders.js:1362: huỷ đơn chỉ chặn `cancelled`; từ 1372 cộng `balance_amount` vào ví, không xét `refunded`.
+  - orders.js:1579 và 1608: chỉ kiểm `!== "cancelled"`.
+  - refunds.js:104: chỉ đường tạo yêu cầu mới chặn `refunded`.
+  - Lỗi có từ trước, ngoài phạm vi. Lưu ý thêm: client CÓ màn duyệt (client/src/pages/Refunds.jsx:21 → `refundsApi.approve`; Layout.jsx:74). Trước P26a, `POST /refunds` vẫn ghi dòng xong rồi mới báo 500, nên yêu cầu treo có thể đã nằm sẵn trên production và duyệt được. Câu "màn quầy hiện chưa gọi `POST /refunds`" đúng (api.js:370-377 không có hàm tạo yêu cầu), nhưng đường duyệt thì đang chạy thật.
+- (c) Giữ C4 là chấp nhận được, vì phiếu A1 ghi đích danh route này. Đã kiểm hai khẳng định:
+  - "Thêm `checkPermission` sau này vẫn xanh" là đúng: auth.js:90-92 cho `owner` qua hết, và C4 dùng token chủ quán (thu_P26a.js:63-64).
+  - packages.js:169-178 hở đúng như mô tả.
+
+Trả lời 6 mục soát:
+1. K3 — bài thử có giá trị.
+   - Trên gốc (`rv2_a5/goc` = server HEAD + `git show 604bcd5^:server/database.js`): `thu_P26a` 3 đạt · 5 hỏng (C1–C5), khớp bang_chung_do.txt.
+   - Trên HEAD: 8 đạt · 0 hỏng.
+   - Bài kiểm hành vi: HTTP 200, `typeof` là số, id khớp kho (thu_P26a.js:89-127). Không soi marker.
+   - Vá kiểu marker suông, kiểu `BigInt.prototype.toJSON`, hay chỉ vá route đều không qua được C5 (kiểm `laSo` trên `tx.run`). M-a và M-b mỗi cái đỏ đúng ca của nó.
+2. K4 — `grep -rn lastInsertRowid server` ra 21 dòng: 4 ở database.js, 17 ở routes.
+   - Chỉ database.js:1355 và 1382 phát ra giá trị; cả hai đã vá.
+   - `getDb` và `createClient` chỉ có trong database.js. `.execute(` ngoài database.js: 0 chỗ.
+   - Công cụ thử (gia_lap/chay.js:164, kich_ban.js:50/53, thu_P20.js:298/301) tự bọc `Number()`, nên vẫn đúng.
+   - Không sót chỗ nào.
+3. K5 — `soDong` (database.js:1339) chỉ đổi kiểu, không chặn gì.
+   - Route đã bọc `Number()` (C7, C8): xanh.
+   - Id dùng làm tham số SQL (refunds.js:216 qua approve): xanh.
+   - UPDATE/DELETE (KB1–11): xanh.
+   - `--day-du` tôi chạy lại: PASS 61 · FAIL 0, thoát 0; thu_P26a 0,7 s trong bản nhanh (kiem_tra_truoc_khi_giao.js:488).
+4. K1 — ngoài lỗi I1 ở trên, các khẳng định khác đều khớp code hoặc kết quả chạy:
+   - Số dòng: database.js:1338-1339/1355/1382, kiem_tra:488/715, thu_gia_lap:31, thu_P20:180, tiers.js:88, rewards.js:49, loyalty.js:202.
+   - KHUON_LOI.md dài 117 dòng; thu_P26a.js 140 dòng (gấp 1,55 lần ngân sách 90).
+   - Số lần người gác chặn khớp `.tu_chay_nhat_ky.jsonl`: phiên chính 5 lần (4 B-* + B-MANOI); a825 chặn 6 lần (09:18–09:25); ae709 chặn 2 lần (08:19).
+5. Đường tiền — diff không đổi logic tiền. KB12 hoàn `refund_amount` lấy từ đơn trong DB (refunds.js:127-128), không tin client. Các lỗ có từ trước đã nêu ở trên.
+6. P1 — không đụng `client/`; `--day-du` báo "dist đã commit KHỚP với src".
+
+NGHI NGỜ:
+- KHUON_LOI.md (K5, dòng thêm mới) lấy C4 làm ví dụ vi phạm ("khoá … vào pre-commit; soát bắt"), nhưng C4 vẫn nằm nguyên trong bộ kiểm bản nhanh. Luật mới và bài thử của chính nhánh này mâu thuẫn nhau. Đáng lẽ phải nêu ở `## Câu hỏi` cho chủ quán quyết (phiếu: "ghi ## Câu hỏi"), nhưng mục này để "(không có)" và phiên tự quyết.
+- Lỗ hoàn ví hai lần: tôi chỉ đọc code, không tự chạy lại ca +50.000 (vòng 1 đã chạy). Đọc code thấy khớp.
+
+CHƯA SOÁT ĐƯỢC:
+- Turso production (hrana): chưa kiểm `lastInsertRowid` ở đó có kiểu gì.
+- thu_P20 trên bản gốc: chỉ đối chiếu bang_chung_do.txt (43/8), không chạy lại vì thu_P20 không có cờ `--may-chu`.
+- Màn hình thật (tạo mã chiết khấu, in hoá đơn) trên trình duyệt.
+- Duyệt hai lần cùng lúc trên kho có độ trễ mạng.
+
+BÀI HỌC:
+- NGUYÊN TẮC (K3/K1): khẳng định "kịch bản X phủ nhánh Y của bất biến" phải kèm đột biến xoá nhánh Y mà làm giả lập ĐỎ. Đọc điều kiện WHERE của bất biến trước khi nói một kịch bản "chạy qua" nó. Lần này I1 chỉ xét đơn có mã bill đã dùng, nên KB12 không chạm tới.
+- KHOÁ (đề xuất cho P26b): thêm kịch bản "đơn trả bằng ví, claim mã bill, rồi `POST /refunds` + approve". Kịch bản này phủ thật I1-refunded và dùng được để dựng ca đỏ cho lỗ hoàn hai lần.
+
+Thư mục nháp đã dùng: …/scratchpad/rv2_a5 (da5/ma, da5/mb, goc), …/scratchpad/rv2_i1, …/scratchpad/rv2_dd.txt. Không sửa file nào trong kho, không commit.
+```
+
+Xử lý vòng 2 (vòng sửa 2/3): Phát hiện I1 viết lại (đã tự đọc bat_bien.js:20-32); ke_hoach §8b đánh dấu sai dự đoán;
+Phát hiện hoàn ví thêm màn duyệt Refunds.jsx:21 đang chạy thật; mâu thuẫn K5/C4 → `## Câu hỏi` (máy không tự đổi C4);
+mục GIT ghi kết quả lệnh; thêm 1 dòng K3 vào KHUON_LOI.md (118/120). Không đổi code.
