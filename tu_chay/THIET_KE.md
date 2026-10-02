@@ -402,6 +402,8 @@ Bánh cóc: số kịch bản ≥ 11, số bất biến ≥ 9 — chỉ được
 **Việc sau thêm kịch bản mới (vào cuối `kich_ban.js`), không xoá kịch bản cũ** — chúng là lưới chống lỗi quay lại.
 Thêm kịch bản là đổi dòng tổng → phiếu phải ghi cả `cong_cu/thu_gia_lap.js` (`DONG_DAT`) và nâng `NGUONG_KICH_BAN` trong
 `kiem_tra_truoc_khi_giao.js`. Thêm kịch bản XOÁ đơn thì sửa I7 (vân tay của đơn đã xoá) và xem I2 (DELETE không xoá mã bill).
+**Việc sửa `server/**`** (vd vá Phát hiện của TU-CHAY-4) có thể làm một chuỗi đột biến M1–M10 trong `thu_gia_lap.js` không
+khớp nữa → `--day-du` đỏ "đột biến không áp được": phiếu việc đó phải ghi `cong_cu/thu_gia_lap.js` và sửa chuỗi theo code mới.
 
 **Kiểm bất biến sổ sách.** Sau **mỗi** kịch bản và ở cuối, chạy các câu SQL chỉ đọc trên DB giả. Tất cả phải ra **0 dòng lệch**:
 
@@ -453,7 +455,8 @@ A1 (khoá thật, tên miền production → từ chối), A2 (kho tạm dọn s
 2. Viết `cau_hinh.json` riêng cho kho đó.
 3. Ghép phần deny và hooks vào `settings.json`.
 4. Chạy `thu_nguoi_gac.js`, phải xanh.
-5. Viết `cong_cu/gia_lap/` riêng cho app. Trong lúc chưa có, cổng chỉ cảnh báo.
+5. Viết `cong_cu/gia_lap/` riêng cho app và nối vào `lenh_kiem_day_du` (B10). Trong lúc chưa có, cổng KHÔNG chạy giả lập và
+   KHÔNG cảnh báo gì (`cong.js:234` không biết đến giả lập).
 6. `PHIEN_BAN` phải khớp với kho gốc.
 
 ---

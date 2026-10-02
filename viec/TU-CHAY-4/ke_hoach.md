@@ -1,6 +1,7 @@
 # TU-CHAY-4 — Kế hoạch (bước 3, ĐÃ DUYỆT 02.10.2026)
 
-> **Đã đổi SAU khi duyệt** (đọc mục này trước — phần dưới giữ nguyên văn bản đã duyệt, chỗ lệch đánh dấu ⟶):
+> **Đã đổi SAU khi duyệt** (đọc mục này trước). Phần dưới giữ NGUYÊN VĂN bản đã duyệt; chỗ nào trái khối này thì theo khối này. Chỗ lệch đã
+> biết: §2 bảng KB6 · §4 bảng đột biến (thiếu M10) và đoạn "Thời gian" · §5 F1 · §6 dòng A1 và D · §8 (đánh dấu ⟶):
 > - KB6: đường `POST /refunds` → **báo hỏng → hoàn ví** (`POST /damages`), chủ quán chốt (c) ở Câu hỏi 4. Không kịch bản nào
 >   còn gọi `/refunds/:id/approve` → nhánh `refunded` của I1 chưa có kịch bản chạy qua (KB12 của việc vá BigInt).
 > - Thêm đột biến **M10** (damages ghi loại dòng ngoài danh sách trắng → KB6 → I4). Tổng 10 đột biến.
@@ -8,7 +9,7 @@
 > - F1 đã đo: giả lập 22 s, `thu_gia_lap` 24 s → **chỉ `--day-du`** (chủ quán chốt).
 > - Cổng KHÔNG đọc `lenh_gia_lap` (`tu_chay/cong.js:234`) — giả lập vào cổng chỉ qua `--day-du`.
 > - Đường ghi ví: 13 chỗ; 11 kịch bản phủ 5 (bán :887, huỷ :1383, damages :168, nạp :79, đối soát :256), CHƯA phủ 8 —
->   xem CHƯA KIỂM trong `trang_thai.md`. Câu "phủ duyệt hoàn" ở §8 là SAI sau quyết định (c).
+>   xem mục "CHƯA KIỂM" trong `trang_thai.md`. Câu "phủ duyệt hoàn" ở §8 là SAI sau quyết định (c).
 
 
 Nền: `9d7a4b4 PHIEU: TU-CHAY-4` trên `d047037` (main). Mọi file:dòng dưới đây đọc trong lượt này (02.10.2026).
