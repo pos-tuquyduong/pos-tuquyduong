@@ -36,7 +36,8 @@ không — <lý do>
 ## Bài thử cũ sửa
 <TUỲ CHỌN (HOC-1) — bài thử ĐÃ CÓ ở main mà việc này sửa (vd thêm ca hồi quy) và vẫn xanh trên code gốc. Mỗi dòng một file:>
 - <đường dẫn thu_*.js> — <lý do>
-<Cổng chỉ bỏ điều kiện "đỏ trên code gốc" cho file đó; vẫn phải XANH trên code PR. Bài thử mới, file bị xoá hay đổi tên
+<Cổng chỉ bỏ điều kiện "đỏ trên code gốc" cho file đó; vẫn phải XANH trên code PR, và BẢN GỐC của file (ở main) chạy
+ trên code PR cũng phải XANH — chỉ thêm ca, không bớt ca bản gốc đang canh. Bài thử mới, file bị xoá hay đổi tên
  KHÔNG được miễn (cổng báo "dòng hỏng"). Miễn này KHÔNG thay A12: đổi code thì vẫn cần một bài thử đỏ hợp lệ khác,
  hoặc mục ## Bài thử đỏ.>
 
