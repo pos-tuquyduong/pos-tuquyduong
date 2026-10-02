@@ -65,6 +65,8 @@ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng n
   chính thứ làm chuẩn so sánh (cổng TU-CHAY-3 vòng 2: PR đổi `muc_gac` rồi cài đúng vẫn đỏ vĩnh viễn).
 - **Chặn:** thêm phép chặn nào cũng phải liệt kê **mọi luồng hợp lệ** đi qua
   điều kiện đó, rồi viết một ca thử "**phải KHÔNG bị chặn**" cho từng luồng.
+- Chiều ngược: ca "phải qua" (200) chỉ khoá luồng **HỢP LỆ** — đọc phân quyền + đường tiền của route trước khi viết
+  `status === 200` (P26a C4 khoá `POST /packages/buy` — không quyền, không thu tiền — vào pre-commit; soát bắt).
 
 ## K6 · Vi phạm luật có sẵn của chính dự án
 Đã gây: dùng `fetch` trần trong `Layout.jsx`, vi phạm luật bánh cóc. Bộ kiểm của
