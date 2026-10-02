@@ -389,7 +389,8 @@ function baiTaiLieu() {
       .every((x) => b15.includes(x)), b15.slice(0, 120));
   // HOC-1: mục tuỳ chọn ## Bài thử cũ sửa (MAU_PHIEU, skill), Phát hiện 5 (THIET_KE B15)
   chac('HOC-1 MAU_PHIEU: mục tuỳ chọn ## Bài thử cũ sửa, dạng "- <đường dẫn thu_*.js> — <lý do>", bài thử mới không được miễn, không thay A12',
-    mp.includes('## Bài thử cũ sửa') && mp.includes('- <đường dẫn thu_*.js> — <lý do>') && mp.includes('mới') && mp.includes('## Bài thử đỏ'));
+    mp.includes('## Bài thử cũ sửa') && mp.includes('- <đường dẫn thu_*.js> — <lý do>') && mp.includes('mới') && mp.includes('## Bài thử đỏ')
+    && mp.includes('BẢN GỐC'));
   chac('HOC-1 skill: bài thử cũ xanh trên gốc thì báo chủ quán thêm ## Bài thử cũ sửa vào phiếu', than.includes('## bài thử cũ sửa'));
   chac('HOC-1 E THIET_KE B15: .claude/ chỉ đổi qua nguồn tu_chay/ + cai_dat.sh, sửa tay .claude/hooks bị A8',
     ['Phát hiện 5', '.claude/hooks/', 'A8'].every((x) => b15.includes(x)), b15.slice(0, 120));
