@@ -43,6 +43,7 @@ async function dungDuLieu(c) {
   const sp = await db.query("SELECT * FROM pos_products WHERE is_active = 1 AND COALESCE(sx_product_type, '') <> '' ORDER BY id LIMIT 5");
   if (sp.length !== 5) throw new Error(`dữ liệu mẫu: cần 5 món có mã SX, có ${sp.length}`);
   for (const [i, p] of sp.entries()) await db.run('UPDATE pos_products SET price = ? WHERE id = ?', [GIA[i], p.id]);
+  c.sp = sp;
   c.mon = (i, sl = 1, tuGoi = false) => ({ product_id: sp[i].id, sx_product_type: sp[i].sx_product_type,
     sx_product_id: sp[i].sx_product_id, quantity: sl, from_package: tuGoi });
   c.goiId = Number((await db.run(`INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active)
@@ -99,14 +100,16 @@ const KICH_BAN = [
     const h2 = await c.goi('chu', 'PUT', `/orders/${d2.id}/cancel`, { reason: 'huỷ sau khi khách đã dùng mã' });
     c.mong('dùng mã rồi mới huỷ đơn → 200, 200', m.status === 200 && h2.status === 200, `${c.ma(m)} / ${c.ma(h2)}`);
   } },
-  { ten: 'hoàn tiền', chay: async (c) => {
-    const d = await c.taoDon('KB6', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(1)], payment_method: 'balance', balance_amount: 20000 });
+  // KB6 đi ĐÚNG đường quầy dùng: Lịch sử đơn → báo hỏng → Hoàn tiền (Orders.jsx:310–322 → damages.js), cộng ví khách.
+  // (chủ quán chốt 02.10.2026). POST /refunds không có màn hình gọi và đang trả 500 (BigInt, refunds.js:139) —
+  // việc vá BigInt thêm KB12 cho POST /refunds, đỏ trước.
+  { ten: 'hoàn tiền (báo hỏng)', chay: async (c) => {
+    const d = await c.taoDon('KB6', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(1)], payment_method: 'cash', cash_amount: 20000 });
     const truoc = await c.vi(KH.quen);
-    const yc = await c.goi('nv', 'POST', '/refunds', { order_id: d.id, reason: 'giả lập hoàn' });
-    const dy = await c.goi('chu', 'POST', `/refunds/${yc.refund_id}/approve`, {});
-    const o = await c.db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [d.id]);
-    c.mong('yêu cầu + duyệt hoàn → 200, refunded, ví +20.000', yc.status === 200 && dy.status === 200 && o.status === 'refunded'
-      && await c.vi(KH.quen) === truoc + 20000, `${c.ma(yc)} / ${c.ma(dy)} / ${o.status}`);
+    const h = await c.goi('chu', 'POST', '/damages', { order_id: d.id, product_code: c.sp[1].code, quantity: 1, reason: 'damaged',
+      reason_note: 'giả lập', action: 'refund', refund_amount: 20000, return_to_stock: false });
+    c.mong('báo hỏng → hoàn 20.000 vào ví → 200, ví +20.000', h.status === 200 && h.success === true
+      && await c.vi(KH.quen) === truoc + 20000, `${c.ma(h)} · ví ${truoc} → ${await c.vi(KH.quen)}`);
   } },
   { ten: 'khách mới dùng mã in trên bill', chay: async (c) => {
     const a = await c.claim(c.billDaThu.ma, KH.moi);
