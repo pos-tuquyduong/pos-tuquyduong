@@ -13,6 +13,9 @@ F1: hook mở phiên in "kéo nhánh: viec/HOC-1 đã có đủ commit của ori
 `ke_hoach.md` viết xong, agent phụ đã soát (xem dưới). Phiếu dặn **chờ duyệt kế hoạch** → DỪNG, chưa viết bài thử,
 chưa sửa code.
 
+F2 (một phần): agent phụ soát kế hoạch nộp báo cáo qua `SubagentHandback`, người gác KHÔNG chặn (02.10.2026).
+`/ra-soat` sẽ thử lại ở bước 8.
+
 ## Câu hỏi
 (chưa có)
 
