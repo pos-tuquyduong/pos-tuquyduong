@@ -6,7 +6,7 @@
  *  Chạy ở GỐC kho POS:   node cong_cu/thu_gia_lap.js [--gia-lap <thư mục giả lập>]
  *
  *  E1  giả lập trên code thật → ĐẠT, đúng dòng tổng.
- *  E2  10 đột biến trên BẢN SAO server/ (không đụng bản thật), mỗi đột biến bỏ
+ *  E2  12 đột biến trên BẢN SAO server/ (không đụng bản thật), mỗi đột biến bỏ
  *      một chặn có thật → đúng bất biến tương ứng lệch. Chuỗi đột biến không
  *      khớp đúng số lần → HỎNG (không bao giờ đếm là đạt — K3).
  *  E3  A1: từ chối khi có khoá thật / tên miền production; cho qua biến vô hại.
@@ -28,7 +28,7 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const DONG_DAT = 'Giả lập: 12 kịch bản · 9 bất biến · ĐẠT';
+const DONG_DAT = 'Giả lập: 18 kịch bản · 10 bất biến · ĐẠT';
 
 let dat = 0;
 const hong = [];
@@ -75,7 +75,11 @@ const DOT_BIEN = [
   ['M9 loại dòng thu nợ lạ', 'routes/orders.js',
     "'debt_payment', ?, 0, 0", "'tra_no', ?, 0, 0", 1, 4, 'I5'],
   ['M10 báo hỏng hoàn ví ghi loại dòng ngoài danh sách trắng', 'routes/damages.js',
-    "VALUES (?, 'compensation',", "VALUES (?, 'den_bu',", 1, 6, 'I4'],
+    "loai: 'compensation'", "loai: 'den_bu'", 1, 6, 'I4'],
+  ['M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn)', 'routes/orders.js',
+    "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1, 13, 'I10'],
+  ['M12 xoá đơn hoàn ví bất kể trạng thái', 'routes/orders.js',
+    'if (order.status === "completed") {', 'if (true) {', 1, 14, 'I10'],
 ];
 
 function banSao(ma, file, goc, thay, soLan) {
