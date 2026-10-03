@@ -334,12 +334,28 @@ async function main() {
     k('M3 xoá đơn trả ví mẹ completed → 200, ví mẹ về như trước đơn (K5)', x3.status === 200 && await vi(me) === v3, `${moTa(x3)} · ví mẹ ${v3} → ${await vi(me)}`);
     const d4 = await donMe(); await huy(d4); const v4 = await vi(me); const x4 = await xoa(d4);
     k('M4 xoá đơn trả ví mẹ ĐÃ HUỶ → ví mẹ không đổi', x4.status === 200 && await vi(me) === v4, `${moTa(x4)} · ví mẹ ${v4} → ${await vi(me)}`);
-    const d5 = await donMe(5000); await hoan(d5);   // con trả 5.000 ví (hoàn được qua yêu cầu), mẹ trả 20.000
-    const v5 = await vi(me);
-    const h5 = await huy(d5);
-    k('M5 huỷ đơn có ví mẹ ĐÃ HOÀN → 400, ví mẹ không đổi', h5.status === 400 && await vi(me) === v5, `${moTa(h5)} · ví mẹ ${v5} → ${await vi(me)}`);
-    const x5 = await xoa(d5);
-    k('M6 xoá đơn có ví mẹ ĐÃ HOÀN → 200, ví mẹ không đổi', x5.status === 200 && await vi(me) === v5, `${moTa(x5)} · ví mẹ ${v5} → ${await vi(me)}`);
+    // Q9 = (a) (chủ quán chốt sau soát vòng 4): duyệt hoàn trả CẢ phần ví mẹ, cùng giao dịch, sau cổng đơn; yêu cầu vẫn
+    // chỉ ghi phần ví con. Mỗi ca tự đỏ trên gốc, không nhờ trạng thái ca trước (K3).
+    const dongHoanVi = (id, sdt) => so("SELECT COUNT(*) FROM pos_balance_transactions WHERE order_id = ? AND type = 'refund' AND customer_phone = ?", [id, sdt]);
+    const d5 = await donMe(5000);   // con trả 5.000 ví, mẹ trả 20.000
+    const vMe5 = await vi(me), vCon5 = await vi(con);
+    const y5 = await yeuCau(d5); const r5 = await duyet(y5.refund_id);
+    const yc5 = await mot('SELECT refund_amount FROM pos_refund_requests WHERE id = ?', [y5.refund_id]);
+    k('M5 duyệt hoàn đơn con 5.000 + mẹ 20.000 → 200, ví mẹ +20.000 đúng MỘT dòng refund, ví con +5.000, yêu cầu ghi 5.000',
+      r5.status === 200 && await vi(me) === vMe5 + 20000 && await dongHoanVi(d5, me) === 1 && await vi(con) === vCon5 + 5000
+        && Number(yc5?.refund_amount) === 5000,
+      `${moTa(r5)} · ví mẹ ${vMe5} → ${await vi(me)} (${await dongHoanVi(d5, me)} dòng) · ví con ${vCon5} → ${await vi(con)} · yêu cầu ${yc5?.refund_amount}`);
+    const d6 = await donMe(5000); await hoan(d6);
+    const v6 = await vi(me);
+    const h6 = await huy(d6); const x6 = await xoa(d6);
+    k('M6 đơn có ví mẹ đã duyệt hoàn → huỷ 400, xoá 200, ví mẹ KHÔNG được hoàn thêm (tổng hoàn mẹ = 1 lần)',
+      h6.status === 400 && x6.status === 200 && await vi(me) === v6 && await dongHoanVi(d6, me) <= 1,
+      `${moTa(h6)} / ${moTa(x6)} · ví mẹ ${v6} → ${await vi(me)} · ${await dongHoanVi(d6, me)} dòng hoàn mẹ`);
+    const d8 = await donMe(5000); const y8 = await yeuCau(d8);
+    await db.run("UPDATE pos_orders SET status = 'cancelled' WHERE id = ?", [d8]);   // dữ liệu cũ: đơn huỷ, yêu cầu còn chờ
+    const v8 = await vi(me); const r8 = await duyet(y8.refund_id);
+    k('M8 đơn có ví mẹ đã huỷ (yêu cầu còn chờ) → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví mẹ không đổi',
+      r8.status === 400 && r8.code === 'DON_KHONG_CON_HOAN_DUOC' && await vi(me) === v8, `${moTa(r8)} · ví mẹ ${v8} → ${await vi(me)}`);
     const me2 = sdtMoi(); await nap(me2, 10000);
     const t = await goi('POST', '/orders', { customer_phone: con, customer_name: 'Con P26b', parent_phone: me2, items: [mon(0)],
       payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
