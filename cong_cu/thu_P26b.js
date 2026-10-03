@@ -14,6 +14,8 @@
  *    co.ban       — lần mở giao dịch kế tiếp ném lỗi mã SQLITE_BUSY (ca K1)
  *    co.camNgoai  — run() NGOÀI giao dịch khớp mẫu này thì ném lỗi: bắt mọi lệnh
  *                   ghi lọt ra ngoài giao dịch (A4b, C4b)
+ *  Luôn bật: run() NGOÀI giao dịch trong lúc một giao dịch đang mở → ném lỗi ngay
+ *  (trên kho file nó sẽ SQLITE_BUSY và làm hỏng kết nối — bài thử sập ở chỗ khác).
  *  Chỉ so HTTP status, code và kho — không dò chữ (E12).
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -59,12 +61,18 @@ async function main() {
   // Công tắc — đặt TRƯỚC khi nạp route (route lấy hàm bằng destructuring lúc require).
   const co = { ban: false, camNgoai: null };
   const txGoc = db.beginTransaction, runGoc = db.run;
+  let dangMo = 0;
   db.beginTransaction = async (...a) => {
     if (co.ban) { co.ban = false; const e = new Error('SQLITE_BUSY: database is locked (giả)'); e.code = 'SQLITE_BUSY'; throw e; }
-    return txGoc(...a);
+    const tx = await txGoc(...a);
+    dangMo++;
+    let xong = false;
+    const dong = (f) => async () => { try { return await f(); } finally { if (!xong) { xong = true; dangMo--; } } };
+    return { ...tx, commit: dong(tx.commit), rollback: dong(tx.rollback) };
   };
   db.run = async (sql, a) => {
     if (co.camNgoai && co.camNgoai.test(sql)) throw new Error('ghi ngoài giao dịch: ' + String(sql).trim().slice(0, 50));
+    if (dangMo) throw new Error('run() ngoài giao dịch trong lúc giao dịch đang mở: ' + String(sql).trim().slice(0, 50));
     return runGoc(sql, a);
   };
 
@@ -175,6 +183,12 @@ async function main() {
     const o3 = await mot('SELECT status FROM pos_orders WHERE id = ?', [d3]);
     k('A2c duyệt bình thường → 200, ví +25.000, đơn refunded (K5)', r3.status === 200 && await vi(s1) === v3 + 25000 && o3.status === 'refunded',
       `${moTa(r3)} · ví ${v3} → ${await vi(s1)} · ${o3.status}`);
+    const d4 = await donVi(s1); const y4 = await yeuCau(d4);
+    await goi('POST', `/refunds/${y4.refund_id}/reject`, { reason: 'thử P26b' });
+    const v4 = await vi(s1); const r4 = await duyet(y4.refund_id);
+    const st4 = (await mot('SELECT status FROM pos_refund_requests WHERE id = ?', [y4.refund_id]))?.status;
+    k('A2d duyệt yêu cầu đã bị từ chối (đơn vẫn completed) → 400 YEU_CAU_DA_XU_LY, ví không đổi, vẫn rejected',
+      r4.status === 400 && r4.code === 'YEU_CAU_DA_XU_LY' && await vi(s1) === v4 && st4 === 'rejected', `${moTa(r4)} · ví ${v4} → ${await vi(s1)} · ${st4}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
