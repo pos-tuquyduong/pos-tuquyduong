@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""P26b — F3: đột biến cho MỖI chỗ vá, cả "bỏ vá" lẫn "VÁ SAI". Chạy ở GỐC kho:  python3 viec/P26b/dot_bien.py [tên...]
+
+Mỗi đột biến: chép server/ (hoặc cong_cu/gia_lap/) ra thư mục tạm, thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi
+sẵn — không khớp là HỎNG, không bao giờ đếm là đạt, K3), rồi chạy bài thử / giả lập trên bản sao. Đạt = đầu ra có
+dòng lệch khớp mẫu `bat` (đúng ca phải bắt), không phải chỉ mã thoát ≠ 0.
+Không đụng server/ thật, data/, Turso. Thư mục tạm xoá khi xong.
+"""
+import os, re, shutil, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
+
+GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+CAU_HINH = os.path.join(GOC, 'tu_chay', 'cau_hinh.json')
+
+# (tên, chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong đầu ra)
+#   chạy: 'thu'  = node cong_cu/thu_P26b.js --may-chu <bản sao>
+#         'kbN'  = giả lập tới KB N trên bản sao server/
+#         'glN'  = giả lập tới KB N, bản sao cong_cu/gia_lap/ (đột biến vào bất biến)
+#         'thugl'= node cong_cu/thu_gia_lap.js --gia-lap <bản sao gia_lap>
+O, R, W, D, P = 'routes/orders.js', 'routes/refunds.js', 'routes/wallets.js', 'routes/damages.js', 'routes/packages.js'
+DOT_BIEN = [
+  # ── huỷ đơn ──
+  ('huy-bo-cong', 'thu', [(O, "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1)], r'✗ A1a'),
+  ('huy-khong-kiem-changes', 'thu', [(O, 'if (doi.changes !== 1) {', 'if (false) {', 1)], r'✗ A1a'),
+  ('huy-kiem-ngoai-tx', 'kb15', [
+    (O, '      const tx = await beginTransaction();\n      let order;\n',
+        '      const cu = await queryOne("SELECT status FROM pos_orders WHERE id = ?", [req.params.id]);\n      const tx = await beginTransaction();\n      let order;\n', 1),
+    (O, "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1),
+    (O, 'if (doi.changes !== 1) {', "if (cu?.status !== 'completed') {", 1)], r'KB15 → (HTTP: hai lệnh huỷ|I10)'),
+  ('huy-bo-tu-choi-yeu-cau', 'thu', [(O, "SET status = 'rejected', rejection_reason = 'Đơn đã huỷ', processed_by = ?", "SET processed_by = ?", 1)], r'✗ A4a'),
+  ('huy-tu-choi-ngoai-tx', 'thu', [(O, "        await tx.run(\n          `UPDATE pos_refund_requests SET status = 'rejected'",
+                                       "        await run(\n          `UPDATE pos_refund_requests SET status = 'rejected'", 1)], r'✗ A4b'),
+  # ── xoá đơn ──
+  ('xoa-hoan-bat-ke-trang-thai', 'thu', [(O, 'if (order.status === "completed") {', 'if (order.status !== "cancelled") {', 1)], r'✗ A3a'),
+  ('xoa-doc-don-ngoai-tx', 'kb14', [
+    (O, '    const tx = await beginTransaction();\n    let order, orderItems;\n',
+        '    const cu = await queryOne("SELECT status FROM pos_orders WHERE id = ?", [req.params.id]);\n    const tx = await beginTransaction();\n    let order, orderItems;\n', 1),
+    (O, 'if (order.status === "completed") {', 'if (cu?.status === "completed") {', 1)], r'KB14 → (HTTP: xoá chồng|I10)'),
+  # ── tạo đơn ──
+  ('tao-don-chi-kiem-ngoai-tx', 'kb17', [(O, 'soCot: tru.soTien, khongAm: true', 'soCot: tru.soTien, khongAm: false', 1)], r'KB17 → HTTP: hai đơn ví'),
+  # ── yêu cầu hoàn ──
+  ('yc-bo-kiem-trung', 'kb15', [(R, 'if (existing) return loi(400', 'if (false) return loi(400', 1)], r'KB15 → HTTP: hai lệnh tạo yêu cầu'),
+  ('yc-kiem-trung-ngoai-tx', 'kb15', [
+    (R, "    const kq = await trongGiaoDich(async (tx) => {\n      const order = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);",
+        "    const cu = await query('SELECT id FROM pos_refund_requests WHERE order_id = ? AND status = ?', [order_id, 'pending']);\n"
+        "    const kq = await trongGiaoDich(async (tx) => {\n      const order = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);", 1),
+    (R, 'if (existing) return loi(400', 'if (cu.length) return loi(400', 1)], r'KB15 → HTTP: hai lệnh tạo yêu cầu'),
+  ('duyet-bo-chiem-yeu-cau', 'kb16', [(R, "WHERE id = ? AND status = 'pending'`, [req.user.username, now, refund.id]);", "WHERE id = ?`, [req.user.username, now, refund.id]);", 1)],
+    r'KB16 → (HTTP: hai lệnh duyệt|I4|I10)'),
+  ('duyet-khong-kiem-changes', 'kb16', [(R, 'if (chiem.changes !== 1) return', 'if (false) return', 1)], r'KB16 → (HTTP: hai lệnh duyệt|I4|I10)'),
+  ('duyet-bo-cong-don', 'thu', [(R, "WHERE id = ? AND status = 'completed'`, [refund.order_id]);", "WHERE id = ?`, [refund.order_id]);", 1)], r'✗ A2a'),
+  ('duyet-cong-don-khong-kiem-changes', 'thu', [(R, 'if (don.changes !== 1) return', 'if (false) return', 1)], r'✗ A2a'),
+  ('tu-choi-bo-dieu-kien', 'kb16', [(R, "WHERE id = ? AND status = 'pending'`, [req.user.username, getNow(), reason, refund.id]);",
+                                        "WHERE id = ?`, [req.user.username, getNow(), reason, refund.id]);", 1)], r'KB16 → HTTP: từ chối chồng'),
+  ('tu-choi-khong-kiem-changes', 'kb16', [(R, 'return doi.changes === 1 ? doi :', 'return true ? doi :', 1)], r'KB16 → HTTP: từ chối chồng'),
+  ('Q8-bo-chan-goi', 'thu', [(R, 'if (await coGoi(tx, ', 'if (false && await coGoi(tx, ', 2)], r'✗ Q8a'),
+  ('Q8-chi-chan-luc-tao', 'thu', [(R, 'if (await coGoi(tx, refund.order_id))', 'if (false)', 1)], r'✗ Q8b'),
+  # ── ví ──
+  ('nap-ghi-tuyet-doi-tu-so-ngoai-tx', 'kb17', [
+    (W, "    const kq = await trongGiaoDich((tx) => ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'topup',",
+        "    const cu = await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [normalizedPhone]);\n"
+        "    const kq = await trongGiaoDich(async (tx) => { const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'topup',", 1),
+    (W, "      cot: 'total_topup', soCot: topupAmount }));",
+        "      cot: 'total_topup', soCot: topupAmount }); await tx.run('UPDATE pos_wallets SET balance = ? WHERE phone = ?', "
+        "[Number(cu?.balance || 0) + topupAmount, normalizedPhone]); return r; });", 1)], r'KB17 → (HTTP: nạp 100\.000|I4)'),
+  ('nap-so-truoc-doc-ngoai-tx', 'kb17', [
+    (W, "    const kq = await trongGiaoDich((tx) => ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'topup',",
+        "    const cu = await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [normalizedPhone]);\n"
+        "    const kq = await trongGiaoDich(async (tx) => { const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'topup',", 1),
+    (W, "      cot: 'total_topup', soCot: topupAmount }));",
+        "      cot: 'total_topup', soCot: topupAmount }); const t = Number(cu?.balance || 0); await tx.run('UPDATE pos_balance_transactions "
+        "SET balance_before = ?, balance_after = ? WHERE id = ?', [t, t + topupAmount, r.id]); return r; });", 1)], r'KB17 → HTTP: chuỗi sổ'),
+  ('ghiVi-bo-khongAm', 'kb17', [(W, 'if (khongAm && sau < 0) return', 'if (false) return', 1)], r'KB17 → HTTP: (trừ tay hết|hai đơn ví)'),
+  ('tru-tay-chi-kiem-ngoai-tx', 'kb17', [
+    (W, "    const kq = await trongGiaoDich(async (tx) => {\n      const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'purchase', soTien: -deductAmount,",
+        "    const w0 = await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [normalizedPhone]);\n"
+        "    if (!w0 || w0.balance < deductAmount) return res.status(400).json({ error: 'Số dư không đủ', code: 'SO_DU_KHONG_DU' });\n"
+        "    const kq = await trongGiaoDich(async (tx) => {\n      const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'purchase', soTien: -deductAmount,", 1),
+    (W, 'soCot: deductAmount, khongAm: true', 'soCot: deductAmount, khongAm: false', 1)], r'KB17 → HTTP: trừ tay hết'),
+  ('dieu-chinh-bo-khongAm', 'kb17', [(W, 'soCot: Math.abs(adjustAmount), khongAm: true', 'soCot: Math.abs(adjustAmount), khongAm: false', 1)], r'KB17 → HTTP: điều chỉnh âm'),
+  ('doi-soat-bo-tx', 'kb17', [
+    (W, '  return trongGiaoDich(async (tx) => {\n    const row = await tx.queryOne(', '  return (async (tx) => {\n    const row = await tx.queryOne(', 1),
+    (W, '    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };\n  });\n}',
+        '    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };\n  })({ queryOne, run });\n}', 1)],
+    r'KB17 → HTTP: đối soát chồng'),
+  ('doi-soat-doc-tong-ngoai-tx', 'kb17', [
+    (W, '  return trongGiaoDich(async (tx) => {\n    const row = await tx.queryOne(',
+        '  const row0 = await queryOne(`SELECT COALESCE(SUM(amount), 0) AS ledger_sum FROM pos_balance_transactions WHERE customer_phone = ? AND ${DK_LOAI_VI}`, '
+        '[phone, ...LOAI_TINH_VAO_VI]);\n  return trongGiaoDich(async (tx) => {\n    const row = row0 || await tx.queryOne(', 1)], r'KB17 → (HTTP: đối soát chồng|I4)'),
+  # ── báo hỏng ──
+  ('hong-bo-tran', 'thu', [(D, 'if (finalRefund > damage_value || Number(da.tien) + finalRefund > Number(dong.tien)) {', 'if (false) {', 1)], r'✗ C1a'),
+  ('hong-tran-theo-man-hinh', 'thu', [(D, 'const gia = Number(dong.gia);', 'const gia = Number(req.body.unit_price || dong.gia);', 1)], r'✗ C1b'),
+  ('hong-lay-dong-dau', 'thu', [(D, "FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);",
+                                    "FROM (SELECT * FROM pos_order_items WHERE order_id = ? AND product_code = ? ORDER BY id LIMIT 1)`, [order_id, product_code]);", 1)], r'✗ C6a'),
+  ('hong-bo-tran-cong-don', 'thu', [(D, ' || Number(da.tien) + finalRefund > Number(dong.tien)) {', ') {', 1)], r'✗ C6b'),
+  ('hong-bo-cong-don-so-luong', 'thu', [(D, 'const conLai = Number(dong.sl) - Number(da.sl);', 'const conLai = Number(dong.sl);', 1)], r'✗ C2a'),
+  ('hong-cong-don-ngoai-tx', 'kb18', [
+    (D, "    const kq = await trongGiaoDich(async (tx) => {\n      const order = await tx.queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);",
+        "    const da0 = await queryOne(`SELECT COALESCE(SUM(quantity), 0) AS sl, COALESCE(SUM(refund_amount), 0) AS tien FROM pos_damage_logs "
+        "WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);\n"
+        "    const kq = await trongGiaoDich(async (tx) => {\n      const order = await tx.queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);", 1),
+    (D, 'const da = await tx.queryOne(`SELECT', 'const da = da0 || await tx.queryOne(`SELECT', 1)], r'KB18 → HTTP: báo hỏng chồng'),
+  ('hong-bo-chan-don-huy', 'thu', [(D, "if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ", "if (false) return loi(400, 'Đơn đã huỷ", 1)], r'✗ C3a'),
+  ('hong-quen-refunded', 'thu', [(D, "if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ", "if (order.status === 'cancelled') return loi(400, 'Đơn đã huỷ", 1)], r'✗ C3c'),
+  ('hong-log-ngoai-tx', 'thu', [(D, 'const log = await tx.run(`', 'const log = await run(`', 1)], r'✗ C4b'),
+  ('hong-bo-order-id-so', 'thu', [(D, 'orderId: order.id, ghiChu: `Đền bù', 'ghiChu: `Đền bù', 1)], r'✗ C4a'),
+  # ── /packages/buy ──
+  ('packages-buy-dung-lai', 'thu', [(P, "// P26b (D): BỎ POST /buy",
+    "router.post('/buy', authenticate, async (req, res) => { const r = await run(`INSERT INTO pos_customer_packages (customer_phone, package_id, total_qty, "
+    "delivered_qty, status, created_at) VALUES (?, ?, ?, 0, 'active', datetime('now'))`, [req.body.customer_phone, req.body.package_id, req.body.total_qty]); "
+    "res.json({ success: true, data: { id: Number(r.lastInsertRowid) } }); });\n// P26b (D): BỎ POST /buy", 1)], r'✗ D '),
+  # ── giả lập: bất biến ──
+  ('I1-nhanh-refunded-false', 'gl13', [('bat_bien.js', "|| (r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung)))))",
+                                         "|| (false && String(r.luc_hoan) >= String(r.luc_dung)))))", 1)], r'KB13 → I1:'),
+  ('I10-bo', 'thugl', [('bat_bien.js', 'return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)', 'return ds.filter(() => false)', 1)], r'✗ M11'),
+]
+# BUSY → 409: bỏ ánh xạ ở TỪNG route (lần xuất hiện thứ i của loiGhi trong file) → đúng ca K1 của route đó đỏ.
+for f, ds in [(O, ['tạo đơn', 'huỷ đơn', 'xoá đơn']), (R, ['tạo yêu cầu hoàn', 'duyệt hoàn', 'từ chối hoàn']),
+              (W, ['nạp ví', 'trừ tay', 'điều chỉnh', 'đối soát', 'đối soát toàn bộ']), (D, ['báo hỏng'])]:
+  for i, ten in enumerate(ds):
+    DOT_BIEN.append((f'K1-bo-409-{ten.replace(" ", "-")}', 'thu', [(f, 'loiGhi(res, err);', ('res.status(500).json({ error: err.message });', i), len(ds))],
+                     r'✗ K1 ' + re.escape(ten) + ':'))
+
+
+def ap(thu_muc, cap):
+  for f, cu, moi, n in cap:
+    p = os.path.join(thu_muc, f)
+    s = open(p, encoding='utf-8').read()
+    if s.count(cu) != n:
+      return f'{f}: chuỗi gốc khớp {s.count(cu)} lần, cần {n} — đột biến không áp được'
+    if isinstance(moi, tuple):   # chỉ thay lần xuất hiện thứ moi[1]
+      vt = -1
+      for _ in range(moi[1] + 1): vt = s.index(cu, vt + 1)
+      s = s[:vt] + moi[0] + s[vt + len(cu):]
+    else:
+      s = s.replace(cu, moi)
+    open(p, 'w', encoding='utf-8').write(s)
+  return ''
+
+
+def chay1(db):
+  ten, cach, cap, bat = db
+  tam = tempfile.mkdtemp(prefix='p26b_db_')
+  try:
+    if cach in ('gl13', 'thugl'):
+      thu = os.path.join(tam, 'gia_lap')
+      shutil.copytree(os.path.join(GOC, 'cong_cu', 'gia_lap'), thu)
+    else:
+      thu = os.path.join(tam, 'server')
+      shutil.copytree(os.path.join(GOC, 'server'), thu)
+      os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tam, 'node_modules'))
+    loi = ap(thu, cap)
+    if loi: return ten, False, loi
+    if cach == 'thu': lenh = ['node', 'cong_cu/thu_P26b.js', '--may-chu', thu]
+    elif cach.startswith('kb'): lenh = ['node', 'cong_cu/gia_lap/chay.js', '--may-chu', thu, '--den-kb', cach[2:]]
+    elif cach == 'gl13': lenh = ['node', os.path.join(thu, 'chay.js'), '--may-chu', os.path.join(GOC, 'server'), '--cau-hinh', CAU_HINH, '--den-kb', '13']
+    else: lenh = ['node', 'cong_cu/thu_gia_lap.js', '--gia-lap', thu]
+    r = subprocess.run(lenh, cwd=GOC, capture_output=True, text=True, timeout=300)
+    ra = re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
+    trung = [l.strip() for l in ra.splitlines() if re.search(bat, l)]
+    return ten, r.returncode != 0 and bool(trung), (trung[0][:160] if trung else f'thoát {r.returncode}, KHÔNG thấy /{bat}/ · ' + ra.strip().splitlines()[-1][:120])
+  finally:
+    shutil.rmtree(tam, ignore_errors=True)
+
+
+if __name__ == '__main__':
+  chon = [d for d in DOT_BIEN if len(sys.argv) < 2 or d[0] in sys.argv[1:]]
+  with ThreadPoolExecutor(max_workers=6) as ex:
+    kq = list(ex.map(chay1, chon))
+  hong = 0
+  for ten, dat, chi in kq:
+    print(('  ✓ ' if dat else '  ✗ ') + f'{ten}: {chi}')
+    hong += not dat
+  print(f'\n  {len(kq) - hong} đột biến bị bắt · {hong} KHÔNG bị bắt (trên {len(kq)})')
+  sys.exit(1 if hong else 0)
