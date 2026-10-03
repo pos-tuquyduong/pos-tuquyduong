@@ -320,6 +320,32 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[MẸ] ví mẹ (parent_phone / parent_balance_amount — Sales.jsx gửi): trừ đúng, hoàn đúng MỘT lần (soát vòng 3)');
+  {
+    const me = sdtMoi(), con = sdtMoi(); await nap(me, 100000); await nap(con, 50000);
+    const donMe = (conTra = 0) => taoDon({ customer_phone: con, customer_name: 'Con P26b', parent_phone: me, items: [mon(0)],
+      payment_method: 'cash', cash_amount: 0, balance_amount: conTra, parent_balance_amount: 25000 - conTra });
+    const v0 = await vi(me);
+    const d = await donMe();
+    k('M1 đơn trả ví mẹ 25.000 → ví mẹ −25.000 (K5)', await vi(me) === v0 - 25000, `ví mẹ ${v0} → ${await vi(me)}`);
+    const h = await huy(d);
+    k('M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)', h.status === 200 && await vi(me) === v0, `${moTa(h)} · ví mẹ ${v0} → ${await vi(me)}`);
+    const v3 = await vi(me); const d3 = await donMe(); const x3 = await xoa(d3);
+    k('M3 xoá đơn trả ví mẹ completed → 200, ví mẹ về như trước đơn (K5)', x3.status === 200 && await vi(me) === v3, `${moTa(x3)} · ví mẹ ${v3} → ${await vi(me)}`);
+    const d4 = await donMe(); await huy(d4); const v4 = await vi(me); const x4 = await xoa(d4);
+    k('M4 xoá đơn trả ví mẹ ĐÃ HUỶ → ví mẹ không đổi', x4.status === 200 && await vi(me) === v4, `${moTa(x4)} · ví mẹ ${v4} → ${await vi(me)}`);
+    const d5 = await donMe(5000); await hoan(d5);   // con trả 5.000 ví (hoàn được qua yêu cầu), mẹ trả 20.000
+    const v5 = await vi(me);
+    const h5 = await huy(d5);
+    k('M5 huỷ đơn có ví mẹ ĐÃ HOÀN → 400, ví mẹ không đổi', h5.status === 400 && await vi(me) === v5, `${moTa(h5)} · ví mẹ ${v5} → ${await vi(me)}`);
+    const x5 = await xoa(d5);
+    k('M6 xoá đơn có ví mẹ ĐÃ HOÀN → 200, ví mẹ không đổi', x5.status === 200 && await vi(me) === v5, `${moTa(x5)} · ví mẹ ${v5} → ${await vi(me)}`);
+    const me2 = sdtMoi(); await nap(me2, 10000);
+    const t = await goi('POST', '/orders', { customer_phone: con, customer_name: 'Con P26b', parent_phone: me2, items: [mon(0)],
+      payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
+    k('M7 ví mẹ không đủ → 400 SO_DU_KHONG_DU, ví mẹ không đổi', t.status === 400 && t.code === 'SO_DU_KHONG_DU' && await vi(me2) === 10000, moTa(t));
+  }
+
   muc('[D] POST /packages/buy đã bỏ');
   {
     const truoc = await so('SELECT COUNT(*) FROM pos_customer_packages');
