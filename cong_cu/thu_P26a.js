@@ -102,10 +102,12 @@ async function main() {
     `${moTa(c3)} · id ${c3.data?.id} · kho ${id3}`);
   const goiId = Number((await db.run(`INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active)
     VALUES ('GOI_P26A', 'Gói P26a', 300000, 'ly', 10, 1)`)).lastInsertRowid);
+  // P26b (D): route đã BỎ — không màn hình nào gọi, gói bán qua đơn hàng có thu tiền (KB9 giả lập).
+  const dem4 = () => idKho('SELECT COUNT(*) AS id FROM pos_customer_packages WHERE customer_phone = ?', [SDT]);
+  const truoc4 = await dem4();
   const c4 = await goi('POST', '/packages/buy', { customer_phone: SDT, package_id: goiId, total_qty: 10 });
-  const id4 = await idKho('SELECT id FROM pos_customer_packages WHERE customer_phone = ? AND package_id = ?', [SDT, goiId]);
-  k('C4 POST /packages/buy → 200, data.id là số, đúng dòng trong kho', c4.status === 200 && laSo(c4.data?.id) && c4.data.id === id4,
-    `${moTa(c4)} · id ${c4.data?.id} · kho ${id4}`);
+  k('C4 POST /packages/buy → 404, không thêm dòng pos_customer_packages', c4.status === 404 && await dem4() === truoc4,
+    `${moTa(c4)} · ${truoc4} → ${await dem4()} dòng`);
 
   console.log('\n[A1] đường trong giao dịch: beginTransaction().run');
   const tx = await db.beginTransaction();
