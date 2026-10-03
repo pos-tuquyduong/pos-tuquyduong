@@ -11,7 +11,9 @@
  *  CHẠY THẬT như thu_P26a.js: database.js thật + libsql thật trên file kho TẠM,
  *  SX tắt (nên hoàn kho thật đẻ dòng nợ kho 'in' — dùng để thấy lệnh thua có
  *  chạm khối hoàn kho không). Hai công tắc bọc database.js TRƯỚC khi nạp route:
- *    co.ban       — lần mở giao dịch kế tiếp ném lỗi mã SQLITE_BUSY (ca K1)
+ *    co.ban       — lần mở giao dịch kế tiếp ném lỗi mã SQLITE_BUSY (ca K1, kho file: BEGIN chạy ngay)
+ *    co.banCauDau — câu lệnh ĐẦU TIÊN trong giao dịch kế tiếp ném SQLITE_BUSY (ca K1b: Turso gửi BEGIN lười,
+ *                   gộp vào câu đầu — @libsql/client hrana.js — nên kho bận lộ ra ở câu đầu, không ở beginTransaction)
  *    co.camNgoai  — run() NGOÀI giao dịch khớp mẫu này thì ném lỗi: bắt mọi lệnh
  *                   ghi lọt ra ngoài giao dịch (A4b, C4b)
  *  Luôn bật: run() NGOÀI giao dịch trong lúc một giao dịch đang mở → ném lỗi ngay
@@ -59,16 +61,21 @@ async function main() {
   await db.initDatabase();
 
   // Công tắc — đặt TRƯỚC khi nạp route (route lấy hàm bằng destructuring lúc require).
-  const co = { ban: false, camNgoai: null };
+  const co = { ban: false, banCauDau: false, camNgoai: null };
   const txGoc = db.beginTransaction, runGoc = db.run;
   let dangMo = 0;
   db.beginTransaction = async (...a) => {
     if (co.ban) { co.ban = false; const e = new Error('SQLITE_BUSY: database is locked (giả)'); e.code = 'SQLITE_BUSY'; throw e; }
     const tx = await txGoc(...a);
     dangMo++;
-    let xong = false;
+    let xong = false, cauDau = co.banCauDau;
+    co.banCauDau = false;
     const dong = (f) => async () => { try { return await f(); } finally { if (!xong) { xong = true; dangMo--; } } };
-    return { ...tx, commit: dong(tx.commit), rollback: dong(tx.rollback) };
+    const lenh = (f) => async (...b) => {
+      if (cauDau) { cauDau = false; const e = new Error('SQLITE_BUSY: database is locked (giả, câu đầu)'); e.code = 'SQLITE_BUSY'; throw e; }
+      return f(...b);
+    };
+    return { ...tx, query: lenh(tx.query), queryOne: lenh(tx.queryOne), run: lenh(tx.run), commit: dong(tx.commit), rollback: dong(tx.rollback) };
   };
   db.run = async (sql, a) => {
     if (co.camNgoai && co.camNgoai.test(sql)) throw new Error('ghi ngoài giao dịch: ' + String(sql).trim().slice(0, 50));
@@ -356,15 +363,17 @@ async function main() {
       ['đối soát toàn bộ', () => goi('POST', '/wallets/reconcile-all', {})],
       ['báo hỏng', () => baoHong(dHong, { product_code: sp[1].code, quantity: 1, action: 'refund' })],
     ];
-    for (const [ten, lam] of LENH) {
-      const truoc = await chup();
-      co.ban = true;
-      const r = await lam();
-      const conBat = co.ban;
-      co.ban = false;
-      const sau = await chup();
-      k(`K1 ${ten}: kho bận → 409 KHO_BAN, kho không đổi`, r.status === 409 && r.code === 'KHO_BAN' && sau === truoc,
-        `${moTa(r)}${conBat ? ' · lệnh không mở giao dịch nào' : ''}${sau !== truoc ? ' · kho đổi' : ''}`);
+    for (const [ma, cong, kieu] of [['K1', 'ban', 'lúc mở giao dịch'], ['K1b', 'banCauDau', 'ở câu đầu trong giao dịch (Turso)']]) {
+      for (const [ten, lam] of LENH) {
+        const truoc = await chup();
+        co[cong] = true;
+        const r = await lam();
+        const conBat = co[cong];
+        co[cong] = false;
+        const sau = await chup();
+        k(`${ma} ${ten}: kho bận ${kieu} → 409 KHO_BAN, kho không đổi`, r.status === 409 && r.code === 'KHO_BAN' && sau === truoc,
+          `${moTa(r)}${conBat ? ' · lệnh không mở giao dịch nào' : ''}${sau !== truoc ? ' · kho đổi' : ''}`);
+      }
     }
   }
 
