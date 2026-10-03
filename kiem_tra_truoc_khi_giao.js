@@ -485,7 +485,34 @@ function chayBaiThat(bai, env) {
     r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
   return ra;
 }
-for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js']) chayBaiThat(bai);
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js']) chayBaiThat(bai);
+
+// E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
+// ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
+// trongGiaoDich (wallets.js — mở beginTransaction).
+// Trước P26b: 18 lệnh ghi ở 12 chỗ đọc số dư NGOÀI giao dịch rồi `SET balance = ?` → hai người bấm gần nhau mất một khoản.
+// Bài chạy thật: thu_P26b.js; chồng nhau thật: giả lập KB14–KB18.
+{
+  const thanHam = (src, mau) => { const a = src.indexOf(mau); return a < 0 ? '' : src.slice(a, src.indexOf('\n}', a)); };
+  const vi = boGhiChu(doc('server/routes/wallets.js'));
+  const ghiVi = thanHam(vi, 'async function ghiVi(');
+  const doiSoat = thanHam(vi, 'async function reconcileWallet(');
+  const sai = [];
+  for (const f of fs.readdirSync(path.join(GOC, 'server', 'routes')).filter((x) => x.endsWith('.js')).sort()) {
+    let src = boGhiChu(doc('server/routes/' + f));
+    if (f === 'wallets.js') src = src.replace(ghiVi, '').replace(doiSoat, '');
+    for (const m of src.matchAll(/(?:UPDATE|INSERT\s+INTO)\s+pos_wallets\b[^`'"]{0,60}/g)) sai.push(`${f}: ${m[0].replace(/\s+/g, ' ')}`);
+  }
+  chac('ví: mọi lệnh ghi pos_wallets trong server/routes/ nằm trong ghiVi hoặc reconcileWallet', !!ghiVi && sai.length === 0,
+    (ghiVi ? '' : 'không thấy async function ghiVi( trong wallets.js · ') + sai.join(' · '));
+  chac('ví: ghiVi đọc số dư bằng tx.queryOne và cộng tương đối (balance = balance + ?), không SET balance = ?',
+    /tx\.queryOne\(\s*['`"]SELECT balance FROM pos_wallets/.test(ghiVi) && /balance\s*=\s*balance\s*\+\s*\?/.test(ghiVi)
+      && !/SET\s+balance\s*=\s*\?/.test(ghiVi), 'số dư trước/sau lấy ngoài giao dịch hoặc ghi tuyệt đối → mất khoản khi bấm chồng');
+  chac('ví: đối soát (reconcileWallet) đọc tổng sổ và ghi trong CÙNG một giao dịch',
+    /trongGiaoDich\(async \(tx\) =>/.test(doiSoat) && /async function trongGiaoDich[^}]*beginTransaction\(\)/.test(vi)
+      && /tx\.queryOne\([^;]*SUM\(amount\)/.test(doiSoat) && /tx\.run\(\s*`UPDATE pos_wallets SET balance = \?/.test(doiSoat),
+    'bán đơn xen giữa lúc đọc tổng sổ và lúc ghi → mất khoản trừ');
+}
 
 // E10 — POS-P21-v1: đối soát ví (/:phone/reconcile, /reconcile-all) chỉ cộng các loại dòng làm đổi số dư ví.
 // Hai route này chưa có nút trên màn hình — chỉ gọi thẳng API với quyền adjust_balance.
@@ -712,8 +739,8 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 // thật, kể cả trên Replit có Secrets. Chạy tay mà môi trường có khoá thì giả lập tự từ chối (A1).
 // S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG. Việc sau thêm kịch bản mới, không xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
-const NGUONG_KICH_BAN = 12;
-const NGUONG_BAT_BIEN = 9;
+const NGUONG_KICH_BAN = 18;
+const NGUONG_BAT_BIEN = 10;
 // S4 — đo 02.10.2026: giả lập 22 s, thu_gia_lap 24 s (> 15 s) → CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du).
 {
   if (DAY_DU) {
