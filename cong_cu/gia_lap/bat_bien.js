@@ -1,5 +1,5 @@
 /**
- * GIẢ LẬP QUẦY (TU-CHAY-4) — 9 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
+ * GIẢ LẬP QUẦY (TU-CHAY-4) — 10 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
  *
  * Mỗi hàm I<n>(q, ctx) trả mảng chuỗi mô tả dòng lệch — rỗng = đạt. Mô tả phải
  * ỔN ĐỊNH (có mã đơn, số tiền) vì chay.js chỉ in lần đầu một lệch xuất hiện.
@@ -18,7 +18,8 @@ const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
 
 const BAT_BIEN = {
   // I1 — mã bill chỉ dùng trên đơn đã thu, chưa huỷ. Huỷ/hoàn SAU lúc dùng là hợp lệ (>= vì getNow theo giây).
-  // Nhánh 'refunded' CHƯA có kịch bản chạy qua (KB6 đi đường báo hỏng) — KB12 POST /refunds của việc vá BigInt sẽ phủ.
+  // Nhánh 'refunded': KB13 (P26b) phủ — dùng mã rồi hoàn qua yêu cầu + duyệt. Đổi nhánh này thành false → KB13 → I1 lệch
+  // (viec/P26b/dot_bien.py chạy thử). KB12 KHÔNG phủ (không dùng mã).
   async I1(q) {
     const ds = await q(`SELECT s.code, o.code AS don, o.status, o.payment_status, o.cancelled_at,
         CASE WHEN s.claimed_at IS NULL THEN s.diem_nhan_luc WHEN s.diem_nhan_luc IS NULL THEN s.claimed_at
@@ -132,6 +133,15 @@ const BAT_BIEN = {
       }
     }
     return lech;
+  },
+  // I10 (P26b) — hoàn vào ví của mỗi đơn ≤ số đơn đó đã trả bằng ví (ví khách + ví mẹ). Đọc theo SỔ nên đơn đã xoá vẫn soát.
+  // Đền bù báo hỏng ('compensation') không tính: nó đền cả đơn trả tiền mặt.
+  async I10(q) {
+    const ds = await q(`SELECT order_id, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
+        -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra
+      FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id`);
+    return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)
+      .map((r) => `đơn #${r.order_id}: hoàn vào ví ${tien(r.hoan)} > đã trả bằng ví ${tien(r.tra)}`);
   },
 };
 
