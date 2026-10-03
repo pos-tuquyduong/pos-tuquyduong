@@ -6,7 +6,7 @@
  *  Chạy ở GỐC kho POS:   node cong_cu/thu_gia_lap.js [--gia-lap <thư mục giả lập>]
  *
  *  E1  giả lập trên code thật → ĐẠT, đúng dòng tổng.
- *  E2  12 đột biến trên BẢN SAO server/ (không đụng bản thật), mỗi đột biến bỏ
+ *  E2  13 đột biến trên BẢN SAO server/ (không đụng bản thật), mỗi đột biến bỏ
  *      một chặn có thật → đúng bất biến tương ứng lệch. Chuỗi đột biến không
  *      khớp đúng số lần → HỎNG (không bao giờ đếm là đạt — K3).
  *  E3  A1: từ chối khi có khoá thật / tên miền production; cho qua biến vô hại.
@@ -28,7 +28,7 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const DONG_DAT = 'Giả lập: 18 kịch bản · 10 bất biến · ĐẠT';
+const DONG_DAT = 'Giả lập: 18 kịch bản · 11 bất biến · ĐẠT';
 
 let dat = 0;
 const hong = [];
@@ -80,6 +80,8 @@ const DOT_BIEN = [
     "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1, 13, 'I10'],
   ['M12 xoá đơn hoàn ví bất kể trạng thái', 'routes/orders.js',
     'if (order.status === "completed") {', 'if (true) {', 1, 14, 'I10'],
+  ['M13 duyệt hoàn trả phần ví mẹ vào ví con (Q9)', 'routes/refunds.js',
+    'await ghiVi(tx, { phone: me.parent_phone,', 'await ghiVi(tx, { phone: refund.customer_phone,', 1, 17, 'I11'],
 ];
 
 function banSao(ma, file, goc, thay, soLan) {

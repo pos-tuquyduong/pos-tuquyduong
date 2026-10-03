@@ -742,7 +742,7 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 // S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG. Việc sau thêm kịch bản mới, không xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
 const NGUONG_KICH_BAN = 18;
-const NGUONG_BAT_BIEN = 10;
+const NGUONG_BAT_BIEN = 11;
 // S4 — đo 02.10.2026: giả lập 22 s, thu_gia_lap 24 s (> 15 s) → CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du).
 {
   if (DAY_DU) {
