@@ -312,6 +312,14 @@ const KICH_BAN = [
       || Number(r.balance_before) !== (i ? Number(dong[i - 1].balance_after) : 0));
     c.mong('chuỗi sổ ví liền: before dòng sau = after dòng trước, after = before + amount', gay.length === 0,
       gay.map((r) => `#${r.id} ${r.type} ${r.amount}: ${r.balance_before} → ${r.balance_after}`).join(' · '));
+    // B5 ví mẹ (soát vòng 3): ví mẹ 30.000, hai đơn trừ ví mẹ 25.000 chồng nhau → một đơn bị chặn, ví mẹ không âm.
+    const ME = sdtMoi();
+    await c.nap(ME, 30000);
+    const banMe = () => c.goi('chu', 'POST', '/orders', { customer_phone: S, customer_name: 'Khách KB17', parent_phone: ME, items: [c.mon(0)],
+      payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
+    const [m1, m2] = await c.chong(banMe, banMe);
+    c.mong('hai đơn trừ ví mẹ 25.000 chồng nhau, ví mẹ 30.000 → 200 + 400 SO_DU_KHONG_DU, ví mẹ 5.000', m1?.status === 200 && m2.status === 400
+      && m2.code === 'SO_DU_KHONG_DU' && await c.vi(ME) === 5000, `${m1 ? c.ma(m1) : 'móc không chạy'} / ${c.ma(m2)} · ví mẹ ${await c.vi(ME)}`);
     // B5: số dư 30.000, hai đơn ví 25.000 chồng nhau → một đơn bị chặn.
     await c.nap(S2, 30000);
     const ban2 = () => c.goi('chu', 'POST', '/orders', { customer_phone: S2, customer_name: 'Khách KB17', items: [c.mon(0)], payment_method: 'balance', balance_amount: 25000 });
