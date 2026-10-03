@@ -159,6 +159,13 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), asy
       const vi = await ghiVi(tx, { phone: refund.customer_phone, loai: 'refund', soTien: refund.refund_amount, orderId: refund.order_id,
         ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now });
       await tx.run('UPDATE pos_refund_requests SET balance_transaction_id = ? WHERE id = ?', [vi.id, refund.id]);
+      // Q9 = (a) (chủ quán chốt 03.10.2026): trả CẢ phần ví mẹ — cùng giao dịch, SAU cổng đơn, số đọc trong giao dịch.
+      // Yêu cầu vẫn chỉ ghi phần ví con (refund_amount); huỷ / xoá đơn đã hoàn không hoàn thêm (A1, A3).
+      const me = await tx.queryOne('SELECT parent_phone, parent_balance_amount, code FROM pos_orders WHERE id = ?', [refund.order_id]);
+      if (me?.parent_phone && Number(me.parent_balance_amount) > 0) {
+        await ghiVi(tx, { phone: me.parent_phone, loai: 'refund', soTien: Number(me.parent_balance_amount), orderId: refund.order_id,
+          ghiChu: `Hoàn tiền mẹ đơn ${me.code} (duyệt)`, nguoi: req.user.username, luc: now });
+      }
       return { ...vi, refund_amount: refund.refund_amount };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
