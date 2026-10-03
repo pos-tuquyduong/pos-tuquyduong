@@ -1,5 +1,6 @@
 P26b — BẰNG CHỨNG ĐỎ TRÊN CODE GỐC. Máy chủ: `git archive 6efcc3b server` (chưa vá) chạy qua --may-chu;
-bài thử / giả lập / bộ kiểm là bản CUỐI của nhánh này. Lệnh chạy lại: python3 dựng bản sao như trên rồi các lệnh dưới.
+bài thử / giả lập / bộ kiểm là bản ở commit aebb663 (thu_P26b 55 ca, gồm K1 + K1b; giả lập 18 KB · 10 bất biến).
+Ghi lại sau soát vòng 2 (bản trước là 43 ca, cũ). Lệnh chạy lại: python3 dựng bản sao như trên rồi các lệnh dưới.
 
 ## 1. node cong_cu/thu_P26b.js --may-chu <gốc> — thoát 1
 
@@ -54,20 +55,32 @@ THỬ P26b — vá lỗ tiền ví
   ✗ A5 không đơn nào được hoàn vào ví nhiều hơn số đã trả bằng ví  — [{"order_id":1001,"hoan":50000,"tra":25000},{"order_id":1005,"hoan":50000,"tra":25000},{"order_id":1008,"hoan":50000,"tra":25000},{"order_id":1014,"hoan":100000,"tra":50000}]
 
 [K1] kho bận (SQLITE_BUSY) → 409 KHO_BAN, kho KHÔNG đổi — từng route
-  ✗ K1 tạo đơn: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 huỷ đơn: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 xoá đơn: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 tạo yêu cầu hoàn: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào · kho đổi
-  ✗ K1 duyệt hoàn: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 từ chối hoàn: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào · kho đổi
-  ✗ K1 nạp ví: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 trừ tay: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 điều chỉnh: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
-  ✗ K1 đối soát: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
-  ✗ K1 đối soát toàn bộ: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
-  ✗ K1 báo hỏng: kho bận → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 tạo đơn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 huỷ đơn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 xoá đơn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 tạo yêu cầu hoàn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào · kho đổi
+  ✗ K1 duyệt hoàn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 từ chối hoàn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào · kho đổi
+  ✗ K1 nạp ví: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 trừ tay: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 điều chỉnh: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1 đối soát: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
+  ✗ K1 đối soát toàn bộ: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
+  ✗ K1 báo hỏng: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
+  ✗ K1b tạo đơn: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
+  ✗ K1b huỷ đơn: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
+  ✗ K1b xoá đơn: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
+  ✗ K1b tạo yêu cầu hoàn: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 400 · Đã có yêu cầu hoàn tiền đang chờ duyệt · lệnh không mở giao dịch nào
+  ✗ K1b duyệt hoàn: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 400 · Yêu cầu này đã được xử lý · lệnh không mở giao dịch nào
+  ✗ K1b từ chối hoàn: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 400 · Yêu cầu này đã được xử lý · lệnh không mở giao dịch nào
+  ✗ K1b nạp ví: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
+  ✗ K1b trừ tay: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
+  ✗ K1b điều chỉnh: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
+  ✗ K1b đối soát: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
+  ✗ K1b đối soát toàn bộ: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
+  ✗ K1b báo hỏng: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
 
-  10 đạt · 33 hỏng
+  10 đạt · 45 hỏng
 
 
 
