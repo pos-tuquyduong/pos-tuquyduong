@@ -10,7 +10,6 @@ import os, re, shutil, subprocess, sys, tempfile
 from concurrent.futures import ThreadPoolExecutor
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-CAU_HINH = os.path.join(GOC, 'tu_chay', 'cau_hinh.json')
 
 # (tên, chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong đầu ra)
 #   chạy: 'thu'  = node cong_cu/thu_P26b.js --may-chu <bản sao>
@@ -45,9 +44,10 @@ DOT_BIEN = [
         "    const cu = await query('SELECT id FROM pos_refund_requests WHERE order_id = ? AND status = ?', [order_id, 'pending']);\n"
         "    const kq = await trongGiaoDich(async (tx) => {\n      const order = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);", 1),
     (R, 'if (existing) return loi(400', 'if (cu.length) return loi(400', 1)], r'KB15 → HTTP: hai lệnh tạo yêu cầu'),
+  # Cổng đơn (completed → refunded) che cổng yêu cầu ở ca duyệt hai lần; cổng yêu cầu có tác dụng RIÊNG ở yêu cầu đã từ chối.
   ('duyet-bo-chiem-yeu-cau', 'kb16', [(R, "WHERE id = ? AND status = 'pending'`, [req.user.username, now, refund.id]);", "WHERE id = ?`, [req.user.username, now, refund.id]);", 1)],
-    r'KB16 → (HTTP: hai lệnh duyệt|I4|I10)'),
-  ('duyet-khong-kiem-changes', 'kb16', [(R, 'if (chiem.changes !== 1) return', 'if (false) return', 1)], r'KB16 → (HTTP: hai lệnh duyệt|I4|I10)'),
+    r'KB16 → HTTP: duyệt chồng lên từ chối'),
+  ('duyet-khong-kiem-changes', 'thu', [(R, 'if (chiem.changes !== 1) return', 'if (false) return', 1)], r'✗ A2d'),
   ('duyet-bo-cong-don', 'thu', [(R, "WHERE id = ? AND status = 'completed'`, [refund.order_id]);", "WHERE id = ?`, [refund.order_id]);", 1)], r'✗ A2a'),
   ('duyet-cong-don-khong-kiem-changes', 'thu', [(R, 'if (don.changes !== 1) return', 'if (false) return', 1)], r'✗ A2a'),
   ('tu-choi-bo-dieu-kien', 'kb16', [(R, "WHERE id = ? AND status = 'pending'`, [req.user.username, getNow(), reason, refund.id]);",
@@ -81,7 +81,7 @@ DOT_BIEN = [
   ('doi-soat-bo-tx', 'kb17', [
     (W, '  return trongGiaoDich(async (tx) => {\n    const row = await tx.queryOne(', '  return (async (tx) => {\n    const row = await tx.queryOne(', 1),
     (W, '    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };\n  });\n}',
-        '    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };\n  })({ queryOne, run });\n}', 1)],
+        '    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };\n  })({ queryOne, run: require(\'../database\').run });\n}', 1)],
     r'KB17 → HTTP: đối soát chồng'),
   ('doi-soat-doc-tong-ngoai-tx', 'kb17', [
     (W, '  return trongGiaoDich(async (tx) => {\n    const row = await tx.queryOne(',
@@ -112,7 +112,8 @@ DOT_BIEN = [
   # ── giả lập: bất biến ──
   ('I1-nhanh-refunded-false', 'gl13', [('bat_bien.js', "|| (r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung)))))",
                                          "|| (false && String(r.luc_hoan) >= String(r.luc_dung)))))", 1)], r'KB13 → I1:'),
-  ('I10-bo', 'thugl', [('bat_bien.js', 'return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)', 'return ds.filter(() => false)', 1)], r'✗ M11'),
+  # Bỏ I10 → M11 của thu_gia_lap không còn bất biến nào bắt (giả lập con vẫn CHẠY: thoát 1 vì mong HTTP, không phải 3 = từ chối).
+  ('I10-bo', 'thugl', [('bat_bien.js', 'return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)', 'return ds.filter(() => false)', 1)], r'✗ M11 .*thoát 1 '),
 ]
 # BUSY → 409: bỏ ánh xạ ở TỪNG route (lần xuất hiện thứ i của loiGhi trong file) → đúng ca K1 của route đó đỏ.
 for f, ds in [(O, ['tạo đơn', 'huỷ đơn', 'xoá đơn']), (R, ['tạo yêu cầu hoàn', 'duyệt hoàn', 'từ chối hoàn']),
@@ -142,9 +143,10 @@ def chay1(db):
   ten, cach, cap, bat = db
   tam = tempfile.mkdtemp(prefix='p26b_db_')
   try:
-    if cach in ('gl13', 'thugl'):
-      thu = os.path.join(tam, 'gia_lap')
+    if cach in ('gl13', 'thugl'):   # bản sao đặt ĐÚNG độ sâu: chay.js tự tìm tu_chay/ và server/ từ thư mục của nó
+      thu = os.path.join(tam, 'cong_cu', 'gia_lap')
       shutil.copytree(os.path.join(GOC, 'cong_cu', 'gia_lap'), thu)
+      for x in ('server', 'tu_chay', 'node_modules'): os.symlink(os.path.join(GOC, x), os.path.join(tam, x))
     else:
       thu = os.path.join(tam, 'server')
       shutil.copytree(os.path.join(GOC, 'server'), thu)
@@ -153,7 +155,7 @@ def chay1(db):
     if loi: return ten, False, loi
     if cach == 'thu': lenh = ['node', 'cong_cu/thu_P26b.js', '--may-chu', thu]
     elif cach.startswith('kb'): lenh = ['node', 'cong_cu/gia_lap/chay.js', '--may-chu', thu, '--den-kb', cach[2:]]
-    elif cach == 'gl13': lenh = ['node', os.path.join(thu, 'chay.js'), '--may-chu', os.path.join(GOC, 'server'), '--cau-hinh', CAU_HINH, '--den-kb', '13']
+    elif cach == 'gl13': lenh = ['node', os.path.join(thu, 'chay.js'), '--den-kb', '13']
     else: lenh = ['node', 'cong_cu/thu_gia_lap.js', '--gia-lap', thu]
     r = subprocess.run(lenh, cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
