@@ -51,6 +51,7 @@ chỗ thứ hai nằm ngay trong cùng hàm hoặc cách chưa tới 150 dòng.
 - **Chặn:** tìm ra một lỗi thì `grep` cả file tìm mọi chỗ cùng khuôn **trước khi
   viết dòng sửa đầu tiên**. Dời câu đọc vào `try` → rà `catch`/`finally` đọc biến đó (P26b: `order.code` → 500). Gắn
   cổng cho một khoản hoàn (ví) → grep mọi khoản hoàn khác cùng hàm: gói, thẻ, kho, điểm (P26b: xoá đơn hoàn gói 2 lần).
+  Gom về hàm chung → mỗi CHỖ GỌI là chỗ vá riêng; "hoàn hai lần" in sổ theo TỪNG ví trước khi kết luận (P26b: ví mẹ).
 - "Cùng khuôn với X" phải giống X ở **mọi loại đầu vào**, không chỉ ca vừa gặp: T2 lọc `Dirent.isFile()` (bỏ
   symlink) trong khi trình cài lọc `statSync().isFile()` (giữ symlink) — vá thư mục con mà nới T2 với symlink (HOC-1).
 - Tài liệu hứa theo ĐỐI TƯỢNG ("file ghi trong mục") thì phép chặn phải gắn theo đối tượng, không theo một nhánh
