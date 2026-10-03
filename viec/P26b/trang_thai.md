@@ -23,7 +23,9 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
 - [x] Bước 4 bài thử ĐỎ trên gốc → `bang_chung_do.txt` (chạy lại sau soát vòng 2 bằng bài ở commit aebb663 trên
       `git archive 6efcc3b server`): thu_P26b 10 đạt / 45 hỏng (10 ca xanh đều là ca K5 / "giữ"; 12 ca K1b đỏ;
       A2d đỏ trên gốc CHỈ vì thiếu `code` — gốc đã chặn ngoài giao dịch), giả lập KB13–KB18 32 lệch (KB1–KB12 sạch),
-      thu_P26a C4 ✗, bộ kiểm nhanh 5 FAIL.
+      thu_P26a C4 ✗, bộ kiểm nhanh 5 FAIL. **Ghi lại lần 3 sau soát vòng 3** (bài 62 ca, thêm ví mẹ): thu_P26b
+      14 đạt / 48 hỏng (14 xanh = 10 ca K5 cũ + M1–M4 là ca K5 ví mẹ; M5, M6 đỏ thật — gốc hoàn ví mẹ lần hai; M7 đỏ chỉ vì
+      thiếu `code`), giả lập 33 lệch (thêm "hai đơn trừ ví mẹ chồng nhau" — đỏ trên gốc chỉ vì thiếu `code`).
 - [x] Bước 5 vá 5 route. Bản lưu trước khi vá: thư mục nháp `truoc_P26b/` (ngoài kho).
       Giả lập bắt thêm một lỗ khi vá: tạo đơn kiểm số dư SAU khi ghi đơn → hai đơn chồng nhau trùng `pos_orders.code`
       → 500 thay vì 400. Sửa: trừ ví (cổng khongAm) TRƯỚC câu INSERT đơn, gắn order_id cho dòng sổ ngay sau.
@@ -37,14 +39,19 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
 - [x] `/ra-soat` vòng 2 **KHÔNG ĐẠT** — chỉ hồ sơ (báo cáo dưới): bằng chứng đỏ cũ (43 ca) dù tự ghi "bản cuối"; thiếu
       Phát hiện "huỷ rồi xoá đơn giao từ gói hoàn gói hai lần". Vòng sửa 2/3: chạy lại bằng chứng (55 ca: 10/45), thêm
       Phát hiện 14–17, bổ sung 13. Không đổi dòng mã nào.
+- [x] `/ra-soat` vòng 3 **KHÔNG ĐẠT** (báo cáo dưới): ba chỗ ghi ví MẸ (`orders.js:810`, `:1337`, `:1499`) viết lại mà
+      không ca thử / kịch bản / đột biến nào chạm — đột biến "không trừ ví mẹ + hoàn gấp đôi" qua hết. Vòng sửa 3/3 (CUỐI):
+      thu_P26b thêm M1–M7, KB17 thêm hai đơn trừ ví mẹ chồng nhau, 4 đột biến `me-*` (4/4 bị bắt; `me-bo-khongAm` bị bắt
+      qua 500 trùng mã đơn — Phát hiện 10, như `tao-don-chi-kiem-ngoai-tx`), ghi lại bằng chứng, Phát hiện 15 bổ sung, 18–20.
+      Không đổi dòng mã nào trong `server/`. Sau sửa: thu_P26b 62/62, giả lập 18 · 10 ĐẠT.
       Bộ kiểm: phép E12 (đối soát) do chính việc này viết đỏ oan lúc đầu — đòi `beginTransaction(` trong thân
       reconcileWallet trong khi mã gọi `trongGiaoDich(` (hàm mở giao dịch). Truy nguyên trước, rồi sửa phép (K2).
 
 
 ## Đột biến F3 — `python3 viec/P26b/dot_bien.py [tên…]` (mỗi đột biến chạy trên BẢN SAO, phải ra đúng dòng lệch)
 
-40 đột biến viết tay + 12 đột biến `K1-bo-409-<route>` sinh tự động (bỏ ánh xạ 409 ở TỪNG route):
-`huy-bo-cong` · `huy-khong-kiem-changes` · `huy-kiem-ngoai-tx` · `huy-bo-tu-choi-yeu-cau` · `huy-tu-choi-ngoai-tx` · `xoa-hoan-bat-ke-trang-thai` · `xoa-doc-don-ngoai-tx` · `tao-don-chi-kiem-ngoai-tx` · `yc-bo-kiem-trung` · `yc-kiem-trung-ngoai-tx` · `duyet-bo-chiem-yeu-cau` · `duyet-khong-kiem-changes` · `duyet-bo-cong-don` · `duyet-cong-don-khong-kiem-changes` · `tu-choi-bo-dieu-kien` · `tu-choi-khong-kiem-changes` · `Q8-bo-chan-goi` · `Q8-chi-chan-luc-tao` · `nap-ghi-tuyet-doi-tu-so-ngoai-tx` · `nap-so-truoc-doc-ngoai-tx` · `ghiVi-bo-khongAm` · `tru-tay-chi-kiem-ngoai-tx` · `dieu-chinh-bo-khongAm` · `doi-soat-bo-tx` · `doi-soat-doc-tong-ngoai-tx` · `hong-bo-tran` · `hong-tran-theo-man-hinh` · `hong-lay-dong-dau` · `hong-bo-tran-cong-don` · `hong-bo-cong-don-so-luong` · `hong-cong-don-ngoai-tx` · `hong-bo-chan-don-huy` · `hong-quen-refunded` · `hong-log-ngoai-tx` · `hong-bo-order-id-so` · `huy-catch-doc-order-code` · `xoa-catch-doc-order-code` · `packages-buy-dung-lai` · `I1-nhanh-refunded-false` · `I10-bo`
+44 đột biến viết tay + 12 đột biến `K1-bo-409-<route>` sinh tự động (bỏ ánh xạ 409 ở TỪNG route):
+`huy-bo-cong` · `huy-khong-kiem-changes` · `huy-kiem-ngoai-tx` · `huy-bo-tu-choi-yeu-cau` · `huy-tu-choi-ngoai-tx` · `xoa-hoan-bat-ke-trang-thai` · `xoa-doc-don-ngoai-tx` · `tao-don-chi-kiem-ngoai-tx` · `me-tao-don-khong-tru` · `me-huy-hoan-gap-doi` · `me-xoa-hoan-gap-doi` · `me-bo-khongAm` · `yc-bo-kiem-trung` · `yc-kiem-trung-ngoai-tx` · `duyet-bo-chiem-yeu-cau` · `duyet-khong-kiem-changes` · `duyet-bo-cong-don` · `duyet-cong-don-khong-kiem-changes` · `tu-choi-bo-dieu-kien` · `tu-choi-khong-kiem-changes` · `Q8-bo-chan-goi` · `Q8-chi-chan-luc-tao` · `nap-ghi-tuyet-doi-tu-so-ngoai-tx` · `nap-so-truoc-doc-ngoai-tx` · `ghiVi-bo-khongAm` · `tru-tay-chi-kiem-ngoai-tx` · `dieu-chinh-bo-khongAm` · `doi-soat-bo-tx` · `doi-soat-doc-tong-ngoai-tx` · `hong-bo-tran` · `hong-tran-theo-man-hinh` · `hong-lay-dong-dau` · `hong-bo-tran-cong-don` · `hong-bo-cong-don-so-luong` · `hong-cong-don-ngoai-tx` · `hong-bo-chan-don-huy` · `hong-quen-refunded` · `hong-log-ngoai-tx` · `hong-bo-order-id-so` · `huy-catch-doc-order-code` · `xoa-catch-doc-order-code` · `packages-buy-dung-lai` · `I1-nhanh-refunded-false` · `I10-bo`
 
 ## Câu hỏi
 
@@ -72,10 +79,17 @@ Xem `ke_hoach.md` mục 10 (1–9) — ngoài phạm vi, KHÔNG sửa (3 đã x�
 15. Huỷ đơn: câu `query(...)` lấy món để hoàn kho SX (`orders.js:1414-1420`) nằm SAU commit, ngoài try con. Nó ném
     SQLITE_BUSY thì `loiGhi` trả 409 "bấm lại" dù đơn ĐÃ huỷ, kho SX không được hoàn, không có dòng `pos_stock_pending`.
     Trước P26b đường này trả 500 (cũng sai) — không phải lỗi mới nhưng trái lời hứa của `loiGhi`. — soát vòng 2.
+    `reconcile-all` cũng vậy: BUSY ở ví thứ k sau khi k−1 ví đã commit → 409 "chưa ghi gì" sai lời (chạy lại được). — vòng 3.
 16. Báo hỏng `return_stock` trên đơn đã huỷ vẫn gọi SX hoàn kho lần hai (huỷ đã hoàn kho) — C3 chỉ chặn `refund`. Có từ
     trước. — soát vòng 2.
 17. Ví có `balance` NULL (dữ liệu cũ / khôi phục sao lưu): `ghiVi` ghi `balance = balance + ?` giữ NULL, dòng sổ ghi
     `sau = 0 + soTien`. Schema có `DEFAULT 0` nên khả năng thấp. — soát vòng 2.
+18. `ghiVi` tạo ví lúc hoàn (huỷ / xoá) khi ví đã mất (xoá tay, khôi phục thiếu): INSERT với `total_spent = -số_tiền`
+    (tổng chi âm). Việc tạo ví đã nêu ở ke_hoach.md mục 1; cột tổng âm thì chưa. — soát vòng 3.
+19. `loiGhi` (`wallets.js`) chỉ khớp đúng mã `SQLITE_BUSY`; tranh chấp trên Turso có thể mang mã khác (vd `SQLITE_BUSY_*`,
+    `TRANSACTION_TIMEOUT`, `STREAM_EXPIRED`) → vẫn 500. CHƯA KIỂM (không có Turso). — soát vòng 3.
+20. Báo hỏng hoàn tiền trên đơn CHƯA THU (`payment_status` nợ, `status` completed) vẫn cộng ví (`damages.js`, C3 chỉ xét
+    `status`). Có từ trước. — soát vòng 3.
 
 ## Soát độc lập — vòng 1 (chép nguyên báo cáo)
 
@@ -190,3 +204,54 @@ BÀI HỌC:
 Xử lý (vòng sửa 2/3): lỗi 1 — chạy lại bằng chứng bằng bài ở aebb663 (10 đạt · 45 hỏng, 12 ca K1b đỏ), ghi rõ commit trong
 đầu file; lỗi 2 — Phát hiện 14 (không sửa: gói, ngoài nghiệm thu). Nghi ngờ → Phát hiện 13 (bổ sung), 15, 16, 17; E12 lách
 được bằng nối chuỗi / tên biến — giữ, đã có bài thử hành vi + giả lập canh (ghi ở mục Bài học).
+
+## Soát độc lập — vòng 3 (chép nguyên báo cáo)
+
+```
+KHÔNG ĐẠT
+
+Kết luận: lần sửa của vòng 1 và vòng 2 đều đúng. Mã ví khách, huỷ đơn, duyệt hoàn, báo hỏng đều đúng khi đọc lại, và mọi
+bài thử của nhánh đều xanh. Còn một lỗ K3 trên đường tiền đang chạy thật: cả ba chỗ trừ và hoàn ví mẹ đã viết lại, nhưng
+không bài thử, kịch bản giả lập hay đột biến nào chạm tới. Tôi đã dựng một đột biến "tạo đơn không trừ ví mẹ + huỷ/xoá
+hoàn ví mẹ gấp đôi": nó qua hết.
+
+Đã chạy (HEAD 0c2233b): thu_P26b 55 · 0; --may-chu gốc 10 · 45; bang_chung_do.txt mục 1, 2 trùng từng dòng với lần chạy
+mới, mục 3 khớp, mục 4 (bộ kiểm nhanh, cây HEAD + server gốc) PASS 55 · FAIL 5 · CẢNH BÁO 1 (thiếu client/node_modules
+trong bản sao) — 5 FAIL đúng như file; không có thay đổi mã sau aebb663 → lỗi vòng 2 đã sửa đúng. dot_bien.py 52 · 0;
+giả lập 18 · 10 ĐẠT; npm test 61 · 0; --day-du 65 · 0 (thu_gia_lap 64.1 s).
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/orders.js:810 (tạo đơn, trừ ví mẹ), :1337 (huỷ, hoàn ví mẹ), :1499 (xoá, hoàn ví mẹ) — không có ca thử,
+   kịch bản hay đột biến nào — K3 + K4. Phiếu nêu "orders.js tạo đơn (ví khách + ví mẹ)", A5 "(khách + mẹ)", F3 "đột
+   biến cho MỖI chỗ vá"; ke_hoach.md:15,17,19 liệt kê W2, W4, W6. grep parent trong thu_P26b.js, kich_ban.js ra 0 dòng.
+   Đột biến dựng trên bản sao: soTien: actualParentBalanceAmount * 0 (không trừ ví mẹ); soTien: order.parent_balance_amount
+   * 2 (2 chỗ, hoàn gấp đôi) → thu_P26b 55 · 0, giả lập 18 · 10 ĐẠT. Đường thật: Sales.jsx:738-739 gửi parent_phone,
+   parent_balance_amount. Đọc mã thì hành vi hiện tại đúng — nhưng là khẳng định bằng mắt, không có khoá.
+   Sửa: ca "đơn trả ví mẹ → huỷ → ví mẹ +đúng một lần; huỷ đơn đã hoàn không cộng ví mẹ" (A1/A3) vào thu_P26b; hai đơn trả
+   ví mẹ chồng nhau (B5) vào KB17; 2 đột biến (bỏ vá / vá sai) cho ví mẹ.
+
+NGHI NGỜ:
+- ghiVi tạo ví lúc hoàn (wallets.js:67-71): ví chưa có thì INSERT với total_spent = soCot = -số_tiền (tổng chi âm).
+- reconcile-all: BUSY ở ví thứ k sau khi k-1 ví đã commit → 409 "chưa ghi gì" sai lời; Phát hiện 15 chỉ ghi phần huỷ đơn.
+- loiGhi (wallets.js:81) chỉ khớp đúng SQLITE_BUSY; Turso có thể mang mã khác → vẫn 500. Không dựng được.
+- Báo hỏng hoàn tiền trên đơn chưa thu (payment_status nợ, status completed) vẫn cộng ví (damages.js:163-172). Có từ trước.
+
+Sáu mục: 1 K3 đạt cho ví khách, chưa đạt cho ví mẹ · 2 K4 đạt (ghi pos_wallets 4 dòng trong ghiVi / reconcileWallet; đổi
+trạng thái đơn orders.js:1318, refunds.js:157 có điều kiện + changes) · 3 K5 đạt · 4 K1 đạt (kiểm lại dẫn chứng Phát hiện
+12, 14, 15 và hrana.js:53-89) · 5 Đường tiền đạt · 6 P1 không áp dụng.
+
+CHƯA SOÁT ĐƯỢC: BUSY thật trên Turso; hai đơn tiền mặt cùng lúc trùng mã; bấm chồng thật trên production; máy / app ngoài kho
+gọi POST /packages/buy; thu_P20 / thu_P21 không nhận --may-chu.
+
+BÀI HỌC:
+- KHOÁ: ca thử và kịch bản ví mẹ + 2 đột biến; dot_bien.py nên có danh sách "chỗ vá → đột biến" khớp từng dòng W1–W12 của
+  kế hoạch, để chỗ vá nào chưa có đột biến hiện ra ngay.
+- NGUYÊN TẮC (K3/K4): gom nhiều chỗ ghi về một hàm chung (ghiVi) thì từng CHỖ GỌI vẫn là một chỗ vá riêng — tham số sai ở
+  một chỗ gọi chỉ bài thử đi qua đúng chỗ đó mới bắt được. Đối chiếu bảng chỗ vá của kế hoạch với danh sách đột biến trước
+  khi báo xong.
+```
+
+Xử lý (vòng sửa 3/3 — CUỐI): lỗi 1 — M1–M7 + KB17 ví mẹ + 4 đột biến `me-*`; nghi ngờ → Phát hiện 15 (bổ sung), 18, 19, 20.
+Đối chiếu W1–W12 (ke_hoach.md mục 0) với đột biến: W1 `tao-don-chi-kiem-ngoai-tx` · W2 `me-tao-don-khong-tru`, `me-bo-khongAm`
+· W3 `huy-*` · W4 `me-huy-hoan-gap-doi` · W5 `xoa-*` · W6 `me-xoa-hoan-gap-doi` · W7 `duyet-*` · W8 `nap-*` · W9
+`tru-tay-*`, `ghiVi-bo-khongAm` · W10 `dieu-chinh-bo-khongAm` · W11 `doi-soat-*` · W12 `hong-*` — mỗi chỗ có ít nhất một.

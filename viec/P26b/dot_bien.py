@@ -37,6 +37,13 @@ DOT_BIEN = [
     (O, 'if (order.status === "completed") {', 'if (cu?.status === "completed") {', 1)], r'KB14 → (HTTP: xoá chồng|I10)'),
   # ── tạo đơn ──
   ('tao-don-chi-kiem-ngoai-tx', 'kb17', [(O, 'soCot: tru.soTien, khongAm: true', 'soCot: tru.soTien, khongAm: false', 1)], r'KB17 → HTTP: hai đơn ví'),
+  # ── ví mẹ (soát vòng 3): mỗi CHỖ GỌI ghiVi là một chỗ vá riêng ──
+  ('me-tao-don-khong-tru', 'thu', [(O, 'soTien: actualParentBalanceAmount, ghiChu: `Trừ cho KH', 'soTien: 0, ghiChu: `Trừ cho KH', 1)], r'✗ M1 '),
+  ('me-huy-hoan-gap-doi', 'thu', [(O, 'soTien: order.parent_balance_amount, orderId: order.id,\n            ghiChu: `Hoàn tiền mẹ hủy',
+                                       'soTien: 2 * order.parent_balance_amount, orderId: order.id,\n            ghiChu: `Hoàn tiền mẹ hủy', 1)], r'✗ M2 '),
+  ('me-xoa-hoan-gap-doi', 'thu', [(O, 'soTien: order.parent_balance_amount, orderId: order.id,\n            ghiChu: `Hoàn tiền mẹ xóa',
+                                       'soTien: 2 * order.parent_balance_amount, orderId: order.id,\n            ghiChu: `Hoàn tiền mẹ xóa', 1)], r'✗ M3 '),
+  ('me-bo-khongAm', 'kb17', [(O, 'soCot: tru.soTien, khongAm: true });', 'soCot: tru.soTien, khongAm: !!tru.khach });', 1)], r'KB17 → HTTP: hai đơn trừ ví mẹ'),
   # ── yêu cầu hoàn ──
   ('yc-bo-kiem-trung', 'kb15', [(R, 'if (existing) return loi(400', 'if (false) return loi(400', 1)], r'KB15 → HTTP: hai lệnh tạo yêu cầu'),
   ('yc-kiem-trung-ngoai-tx', 'kb15', [
