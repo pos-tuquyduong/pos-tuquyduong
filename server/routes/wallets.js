@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const { query, queryOne, run, beginTransaction } = require('../database');
+const { query, queryOne, beginTransaction } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 
@@ -51,6 +51,53 @@ router.get('/:phone', authenticate, async (req, res) => {
 });
 
 /**
+ * P26b — CHỖ DUY NHẤT ghi pos_wallets (bộ kiểm E12 canh), trừ đối soát. Gọi BÊN TRONG giao dịch ghi (beginTransaction
+ * là khoá ghi độc quyền): số dư trước/sau đọc trong giao dịch, cộng TƯƠNG ĐỐI, ví chưa có thì tạo, ghi dòng sổ cùng lúc.
+ * Trước đây mỗi route đọc số dư NGOÀI giao dịch rồi `SET balance = ?` → hai người bấm gần nhau thì mất một khoản.
+ * khongAm: số dư sau < 0 → KHÔNG ghi gì, trả { thieu: true } để chỗ gọi rollback + 400 SO_DU_KHONG_DU.
+ * cot/soCot: cột tổng (total_topup / total_spent) cộng thêm — duyệt hoàn, báo hỏng không truyền (như trước P26b).
+ */
+async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cachTra = 'cash', ghiChu = null, nguoi, luc = getNow(),
+  cot = null, soCot = 0, khongAm = false }) {
+  const w = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
+  const truoc = Number(w?.balance || 0);
+  const sau = truoc + soTien;
+  if (khongAm && sau < 0) return { truoc, sau, thieu: true };
+  const nap = cot === 'total_topup' ? soCot : 0, tieu = cot === 'total_spent' ? soCot : 0;
+  const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, total_topup = total_topup + ?, total_spent = total_spent + ?,
+    updated_at = ? WHERE phone = ?`, [soTien, nap, tieu, luc, phone]);
+  if (!u.changes) {
+    await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [phone, soTien, nap, tieu, luc, luc]);
+  }
+  const r = await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after,
+      order_id, payment_method, notes, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [phone, ten, loai, soTien, truoc, sau, orderId, cachTra, ghiChu, nguoi, luc]);
+  return { truoc, sau, id: r.lastInsertRowid };
+}
+
+/** P26b (chủ quán chốt Q1 03.10.2026): kho bận → 409 KHO_BAN — giao dịch đã rollback, lệnh này chưa ghi gì. Lỗi khác → 500. */
+function loiGhi(res, err) {
+  if (err && err.code === 'SQLITE_BUSY') {
+    return res.status(409).json({ code: 'KHO_BAN', error: 'Đang có thao tác khác ghi sổ — bấm lại' });
+  }
+  return res.status(500).json({ error: err.message });
+}
+
+/** Chạy `lam(tx)` trong một giao dịch ghi: lam trả về gì thì trả nấy; ném lỗi thì rollback rồi ném tiếp. */
+async function trongGiaoDich(lam) {
+  const tx = await beginTransaction();
+  try {
+    const kq = await lam(tx);
+    if (kq && kq.huy) await tx.rollback(); else await tx.commit();
+    return kq;
+  } catch (e) {
+    await tx.rollback();
+    throw e;
+  }
+}
+
+/**
  * POST /api/pos/wallets/topup
  * Nạp tiền
  */
@@ -68,32 +115,13 @@ router.post('/topup', authenticate, checkPermission('topup_balance'), async (req
       return res.status(400).json({ error: 'Số tiền không hợp lệ' });
     }
 
-    let wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [normalizedPhone]);
-    const balanceBefore = wallet?.balance || 0;
-    const balanceAfter = balanceBefore + topupAmount;
+    const kq = await trongGiaoDich((tx) => ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'topup',
+      soTien: topupAmount, cachTra: payment_method || 'cash', ghiChu: notes || null, nguoi: req.user.username,
+      cot: 'total_topup', soCot: topupAmount }));
 
-    // Nguyên tử: cập nhật số dư + ghi sổ đi cùng một transaction
-    const tx = await beginTransaction();
-    try {
-      if (wallet) {
-        await tx.run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
-          [balanceAfter, topupAmount, getNow(), normalizedPhone]);
-      } else {
-        await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
-          [normalizedPhone, balanceAfter, topupAmount, getNow(), getNow()]);
-      }
-      await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, payment_method, notes, created_by, created_at)
-           VALUES (?, ?, 'topup', ?, ?, ?, ?, ?, ?, ?)`,
-        [normalizedPhone, customer_name || null, topupAmount, balanceBefore, balanceAfter, payment_method || 'cash', notes || null, req.user.username, getNow()]);
-      await tx.commit();
-    } catch (e) {
-      await tx.rollback();
-      throw e;
-    }
-
-    res.json({ success: true, balance: balanceAfter, amount: topupAmount });
+    res.json({ success: true, balance: kq.sau, amount: topupAmount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -118,30 +146,18 @@ router.post('/deduct', authenticate, checkPermission('adjust_balance'), async (r
       return res.status(400).json({ error: 'Số tiền không hợp lệ' });
     }
 
-    const wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [normalizedPhone]);
-    if (!wallet || wallet.balance < deductAmount) {
-      return res.status(400).json({ error: 'Số dư không đủ', balance: wallet?.balance || 0 });
+    const kq = await trongGiaoDich(async (tx) => {
+      const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'purchase', soTien: -deductAmount,
+        ghiChu: notes || order_code || null, nguoi: req.user.username, cot: 'total_spent', soCot: deductAmount, khongAm: true });
+      return r.thieu ? { ...r, huy: true } : r;
+    });
+    if (kq.thieu) {
+      return res.status(400).json({ error: 'Số dư không đủ', code: 'SO_DU_KHONG_DU', balance: kq.truoc });
     }
 
-    const balanceBefore = wallet.balance;
-    const balanceAfter = balanceBefore - deductAmount;
-
-    const tx = await beginTransaction();
-    try {
-      await tx.run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
-        [balanceAfter, deductAmount, getNow(), normalizedPhone]);
-      await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
-           VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?)`,
-        [normalizedPhone, customer_name || null, -deductAmount, balanceBefore, balanceAfter, notes || order_code || null, req.user.username, getNow()]);
-      await tx.commit();
-    } catch (e) {
-      await tx.rollback();
-      throw e;
-    }
-
-    res.json({ success: true, balance: balanceAfter, deducted: deductAmount });
+    res.json({ success: true, balance: kq.sau, deducted: deductAmount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -169,40 +185,19 @@ router.post("/adjust", authenticate, checkPermission("adjust_balance"), async (r
       return res.status(400).json({ error: "Vui lòng nhập lý do (tối thiểu 3 ký tự)" });
     }
 
-    let wallet = await queryOne("SELECT * FROM pos_wallets WHERE phone = ?", [normalizedPhone]);
-    const balanceBefore = wallet?.balance || 0;
-    const balanceAfter = balanceBefore + adjustAmount;
-
-    if (balanceAfter < 0) {
-      return res.status(400).json({ error: `Không thể giảm. Số dư hiện tại: ${balanceBefore.toLocaleString()}đ` });
+    const kq = await trongGiaoDich(async (tx) => {
+      const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'adjust', soTien: adjustAmount,
+        ghiChu: reason, nguoi: req.user.username, cot: adjustAmount > 0 ? 'total_topup' : 'total_spent',
+        soCot: Math.abs(adjustAmount), khongAm: true });
+      return r.thieu ? { ...r, huy: true } : r;
+    });
+    if (kq.thieu) {
+      return res.status(400).json({ error: `Không thể giảm. Số dư hiện tại: ${kq.truoc.toLocaleString()}đ`, code: 'SO_DU_KHONG_DU' });
     }
 
-    const tx = await beginTransaction();
-    try {
-      if (wallet) {
-        if (adjustAmount > 0) {
-          await tx.run(`UPDATE pos_wallets SET balance = ?, total_topup = total_topup + ?, updated_at = ? WHERE phone = ?`,
-            [balanceAfter, adjustAmount, getNow(), normalizedPhone]);
-        } else {
-          await tx.run(`UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
-            [balanceAfter, Math.abs(adjustAmount), getNow(), normalizedPhone]);
-        }
-      } else {
-        await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
-          [normalizedPhone, balanceAfter, adjustAmount > 0 ? adjustAmount : 0, getNow(), getNow()]);
-      }
-      await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after, notes, created_by, created_at)
-           VALUES (?, ?, "adjust", ?, ?, ?, ?, ?, ?)`,
-        [normalizedPhone, customer_name || null, adjustAmount, balanceBefore, balanceAfter, reason, req.user.username, getNow()]);
-      await tx.commit();
-    } catch (e) {
-      await tx.rollback();
-      throw e;
-    }
-
-    res.json({ success: true, balance: balanceAfter, adjusted: adjustAmount });
+    res.json({ success: true, balance: kq.sau, adjusted: adjustAmount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -245,21 +240,25 @@ const DK_LOAI_VI = `type IN (${LOAI_TINH_VAO_VI.map(() => '?').join(', ')})`;
  * Đây là lưới an toàn để số dư lưu-sẵn không bao giờ trôi khỏi sổ.
  */
 async function reconcileWallet(phone) {
-  const row = await queryOne(
-    `SELECT COALESCE(SUM(amount), 0) AS ledger_sum FROM pos_balance_transactions WHERE customer_phone = ? AND ${DK_LOAI_VI}`,
-    [phone, ...LOAI_TINH_VAO_VI]
-  );
-  const ledgerSum = row?.ledger_sum || 0;
-  const wallet = await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
-  const before = wallet ? wallet.balance : null;
-  if (wallet) {
-    await run(`UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?`,
-      [ledgerSum, getNow(), phone]);
-  } else {
-    await run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, ?, ?)`,
-      [phone, ledgerSum, getNow(), getNow()]);
-  }
-  return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };
+  // P26b: đọc tổng sổ và ghi trong CÙNG một giao dịch ghi — bán đơn không xen vào giữa được. Ghi TUYỆT ĐỐI có chủ đích
+  // (số dư := tổng sổ) — chỗ duy nhất ngoài ghiVi được ghi pos_wallets (bộ kiểm E12).
+  return trongGiaoDich(async (tx) => {
+    const row = await tx.queryOne(
+      `SELECT COALESCE(SUM(amount), 0) AS ledger_sum FROM pos_balance_transactions WHERE customer_phone = ? AND ${DK_LOAI_VI}`,
+      [phone, ...LOAI_TINH_VAO_VI]
+    );
+    const ledgerSum = row?.ledger_sum || 0;
+    const wallet = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
+    const before = wallet ? wallet.balance : null;
+    if (wallet) {
+      await tx.run(`UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?`,
+        [ledgerSum, getNow(), phone]);
+    } else {
+      await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, ?, ?)`,
+        [phone, ledgerSum, getNow(), getNow()]);
+    }
+    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };
+  });
 }
 
 /**
@@ -272,7 +271,7 @@ router.post('/:phone/reconcile', authenticate, checkPermission('adjust_balance')
     const result = await reconcileWallet(phone);
     res.json({ success: true, ...result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -295,8 +294,11 @@ router.post('/reconcile-all', authenticate, checkPermission('adjust_balance'), a
     const fixed = results.filter(r => r.balance_before !== r.balance_after).length;
     res.json({ success: true, checked: results.length, fixed, results });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
 module.exports = router;
+module.exports.ghiVi = ghiVi;
+module.exports.loiGhi = loiGhi;
+module.exports.trongGiaoDich = trongGiaoDich;

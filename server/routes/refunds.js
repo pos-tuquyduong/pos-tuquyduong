@@ -9,11 +9,23 @@
  */
 
 const express = require('express');
-const { query, queryOne, run, beginTransaction } = require('../database');
+const { query } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow, normalizePhone } = require('../utils/helpers');
+const { getNow } = require('../utils/helpers');
+const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 
 const router = express.Router();
+
+// P26b (chủ quán chốt Q8 03.10.2026): đơn mua gói / thẻ hội viên KHÔNG hoàn qua yêu cầu — duyệt hoàn không huỷ gói, thẻ,
+// không hoàn kho; chỉ Huỷ đơn làm đủ. Chặn ở CẢ tạo lẫn duyệt (yêu cầu cũ có sẵn trong kho vẫn bị chặn lúc duyệt).
+const DON_CO_GOI = {
+  status: 400,
+  body: { code: 'DON_CO_GOI', error: 'Đơn có gói / thẻ hội viên — không hoàn qua yêu cầu, hãy dùng Huỷ đơn' },
+};
+const coGoi = async (tx, orderId) => !!(await tx.queryOne(
+  `SELECT 1 FROM pos_customer_packages WHERE order_id = ? UNION ALL SELECT 1 FROM pos_membership_purchases WHERE order_id = ? LIMIT 1`,
+  [orderId, orderId]));
+const loi = (status, error, code) => ({ huy: true, status, body: code ? { error, code } : { error } });
 
 /**
  * GET /api/pos/refunds
@@ -96,51 +108,32 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const { order_id, reason } = req.body;
 
-    const order = await queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);
-    if (!order) {
-      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
-    }
-
-    if (order.status === 'cancelled' || order.status === 'refunded') {
-      return res.status(400).json({ error: 'Đơn hàng đã được hủy/hoàn tiền' });
-    }
-
-    if (!order.balance_amount || order.balance_amount <= 0) {
-      return res.status(400).json({ error: 'Đơn hàng không thanh toán bằng số dư' });
-    }
-
-    // Kiểm tra đã có yêu cầu chưa
-    const existing = await queryOne(
-      'SELECT id FROM pos_refund_requests WHERE order_id = ? AND status = ?',
-      [order_id, 'pending']
-    );
-    if (existing) {
-      return res.status(400).json({ error: 'Đã có yêu cầu hoàn tiền đang chờ duyệt' });
-    }
-
-    const result = await run(`
-      INSERT INTO pos_refund_requests (
-        order_id, customer_phone, order_total, balance_paid, refund_amount,
-        status, requested_by, requested_at, reason
-      ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
-    `, [
-      order_id,
-      order.customer_phone,
-      order.total,
-      order.balance_amount,
-      order.balance_amount,
-      req.user.username,
-      getNow(),
-      reason || 'Yêu cầu hoàn tiền'
-    ]);
+    // P26b: đọc đơn + kiểm trùng TRONG giao dịch ghi — hai người bấm cùng lúc không đẻ được hai yêu cầu chờ duyệt.
+    const kq = await trongGiaoDich(async (tx) => {
+      const order = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);
+      if (!order) return loi(404, 'Không tìm thấy đơn hàng');
+      if (order.status === 'cancelled' || order.status === 'refunded') return loi(400, 'Đơn hàng đã được hủy/hoàn tiền');
+      if (!order.balance_amount || order.balance_amount <= 0) return loi(400, 'Đơn hàng không thanh toán bằng số dư');
+      if (await coGoi(tx, order.id)) return { huy: true, ...DON_CO_GOI };
+      const existing = await tx.queryOne('SELECT id FROM pos_refund_requests WHERE order_id = ? AND status = ?', [order_id, 'pending']);
+      if (existing) return loi(400, 'Đã có yêu cầu hoàn tiền đang chờ duyệt');
+      return tx.run(`
+        INSERT INTO pos_refund_requests (
+          order_id, customer_phone, order_total, balance_paid, refund_amount,
+          status, requested_by, requested_at, reason
+        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+      `, [order_id, order.customer_phone, order.total, order.balance_amount, order.balance_amount,
+        req.user.username, getNow(), reason || 'Yêu cầu hoàn tiền']);
+    });
+    if (kq.huy) return res.status(kq.status).json(kq.body);
 
     res.json({
       success: true,
-      refund_id: result.lastInsertRowid,
+      refund_id: kq.lastInsertRowid,
       message: 'Đã tạo yêu cầu hoàn tiền, chờ admin duyệt'
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -150,87 +143,40 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.post('/:id/approve', authenticate, checkPermission('approve_refund'), async (req, res) => {
   try {
-    const refund = await queryOne(
-      'SELECT * FROM pos_refund_requests WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (!refund) {
-      return res.status(404).json({ error: 'Không tìm thấy yêu cầu hoàn tiền' });
-    }
-
-    if (refund.status !== 'pending') {
-      return res.status(400).json({ error: 'Yêu cầu này đã được xử lý' });
-    }
-
-    const phone = refund.customer_phone;
-    if (!phone) {
-      return res.status(400).json({ error: 'Không có SĐT khách hàng' });
-    }
-
+    // P26b: mọi thứ TRONG một giao dịch ghi; chiếm yêu cầu và đổi trạng thái đơn bằng UPDATE có điều kiện + kiểm số dòng
+    // đổi — duyệt hai lần, duyệt đơn đã huỷ/đã hoàn đều thua 400, ví không đổi.
     const now = getNow();
-
-    // Lấy hoặc tạo wallet
-    let wallet = await queryOne('SELECT * FROM pos_wallets WHERE phone = ?', [phone]);
-    const balanceBefore = wallet?.balance || 0;
-    const balanceAfter = balanceBefore + refund.refund_amount;
-
-    // Nguyên tử: ví + sổ + duyệt yêu cầu + đổi trạng thái đơn đi cùng một transaction
-    const tx = await beginTransaction();
-    try {
-      if (wallet) {
-        await tx.run('UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?',
-          [balanceAfter, now, phone]);
-      } else {
-        await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, ?, ?)`,
-          [phone, balanceAfter, now, now]);
+    const kq = await trongGiaoDich(async (tx) => {
+      const refund = await tx.queryOne('SELECT * FROM pos_refund_requests WHERE id = ?', [req.params.id]);
+      if (!refund) return loi(404, 'Không tìm thấy yêu cầu hoàn tiền');
+      if (!refund.customer_phone) return loi(400, 'Không có SĐT khách hàng');
+      const chiem = await tx.run(`UPDATE pos_refund_requests SET status = 'approved', processed_by = ?, processed_at = ?
+        WHERE id = ? AND status = 'pending'`, [req.user.username, now, refund.id]);
+      if (chiem.changes !== 1) return loi(400, 'Yêu cầu này đã được xử lý', 'YEU_CAU_DA_XU_LY');
+      if (await coGoi(tx, refund.order_id)) return { huy: true, ...DON_CO_GOI };
+      const don = await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ? AND status = 'completed'`, [refund.order_id]);
+      if (don.changes !== 1) return loi(400, 'Đơn không còn ở trạng thái hoàn được (đã huỷ / đã hoàn)', 'DON_KHONG_CON_HOAN_DUOC');
+      const vi = await ghiVi(tx, { phone: refund.customer_phone, loai: 'refund', soTien: refund.refund_amount, orderId: refund.order_id,
+        ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now });
+      await tx.run('UPDATE pos_refund_requests SET balance_transaction_id = ? WHERE id = ?', [vi.id, refund.id]);
+      // Q9 = (a) (chủ quán chốt 03.10.2026): trả CẢ phần ví mẹ — cùng giao dịch, SAU cổng đơn, số đọc trong giao dịch.
+      // Yêu cầu vẫn chỉ ghi phần ví con (refund_amount); huỷ / xoá đơn đã hoàn không hoàn thêm (A1, A3).
+      const me = await tx.queryOne('SELECT parent_phone, parent_balance_amount, code FROM pos_orders WHERE id = ?', [refund.order_id]);
+      if (me?.parent_phone && Number(me.parent_balance_amount) > 0) {
+        await ghiVi(tx, { phone: me.parent_phone, loai: 'refund', soTien: Number(me.parent_balance_amount), orderId: refund.order_id,
+          ghiChu: `Hoàn tiền mẹ đơn ${me.code} (duyệt)`, nguoi: req.user.username, luc: now });
       }
-
-      // Ghi log giao dịch
-      const txResult = await tx.run(`
-        INSERT INTO pos_balance_transactions (
-          customer_phone, customer_name, type, amount,
-          balance_before, balance_after, order_id,
-          notes, created_by, created_at
-        ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        phone,
-        null,
-        refund.refund_amount,
-        balanceBefore,
-        balanceAfter,
-        refund.order_id,
-        'Hoàn tiền đơn hàng (duyệt)',
-        req.user.username,
-        now
-      ]);
-
-      // Cập nhật yêu cầu hoàn tiền
-      await tx.run(`
-        UPDATE pos_refund_requests SET
-          status = 'approved',
-          processed_by = ?,
-          processed_at = ?,
-          balance_transaction_id = ?
-        WHERE id = ?
-      `, [req.user.username, now, txResult.lastInsertRowid, refund.id]);
-
-      // Cập nhật đơn hàng
-      await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ?`, [refund.order_id]);
-
-      await tx.commit();
-    } catch (e) {
-      await tx.rollback();
-      throw e;
-    }
+      return { ...vi, refund_amount: refund.refund_amount };
+    });
+    if (kq.huy) return res.status(kq.status).json(kq.body);
 
     res.json({
       success: true,
-      message: `Đã hoàn ${refund.refund_amount.toLocaleString()}đ vào số dư`,
-      new_balance: balanceAfter
+      message: `Đã hoàn ${kq.refund_amount.toLocaleString()}đ vào số dư`,
+      new_balance: kq.sau
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -246,35 +192,22 @@ router.post('/:id/reject', authenticate, checkPermission('approve_refund'), asyn
       return res.status(400).json({ error: 'Vui lòng nhập lý do từ chối' });
     }
 
-    const refund = await queryOne(
-      'SELECT * FROM pos_refund_requests WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (!refund) {
-      return res.status(404).json({ error: 'Không tìm thấy yêu cầu hoàn tiền' });
-    }
-
-    if (refund.status !== 'pending') {
-      return res.status(400).json({ error: 'Yêu cầu này đã được xử lý' });
-    }
-
-    // Cập nhật yêu cầu hoàn tiền
-    await run(`
-      UPDATE pos_refund_requests SET
-        status = 'rejected',
-        processed_by = ?,
-        processed_at = ?,
-        rejection_reason = ?
-      WHERE id = ?
-    `, [req.user.username, getNow(), reason, refund.id]);
+    // P26b: trong giao dịch ghi + UPDATE có điều kiện — từ chối không đè lên yêu cầu vừa được duyệt.
+    const kq = await trongGiaoDich(async (tx) => {
+      const refund = await tx.queryOne('SELECT id FROM pos_refund_requests WHERE id = ?', [req.params.id]);
+      if (!refund) return loi(404, 'Không tìm thấy yêu cầu hoàn tiền');
+      const doi = await tx.run(`UPDATE pos_refund_requests SET status = 'rejected', processed_by = ?, processed_at = ?, rejection_reason = ?
+        WHERE id = ? AND status = 'pending'`, [req.user.username, getNow(), reason, refund.id]);
+      return doi.changes === 1 ? doi : loi(400, 'Yêu cầu này đã được xử lý', 'YEU_CAU_DA_XU_LY');
+    });
+    if (kq.huy) return res.status(kq.status).json(kq.body);
 
     res.json({
       success: true,
       message: 'Đã từ chối yêu cầu hoàn tiền'
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 

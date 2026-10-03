@@ -24,6 +24,7 @@ const {
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
+const { ghiVi, loiGhi } = require("./wallets"); // P26b: chỗ duy nhất ghi ví
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
 
@@ -652,7 +653,6 @@ router.post("/", authenticate, async (req, res) => {
 
     // Xử lý thanh toán số dư từ pos_wallets
     let actualBalanceAmount = 0;
-    let balanceBefore = 0;
     let balanceAfter = 0;
 
     // Tính toán số tiền thanh toán thực tế
@@ -668,12 +668,11 @@ router.post("/", authenticate, async (req, res) => {
       if (currentBalance < total) {
         return res.status(400).json({
           error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ, cần: ${total.toLocaleString()}đ`,
+          code: "SO_DU_KHONG_DU",
         });
       }
 
       actualBalanceAmount = total;
-      balanceBefore = currentBalance;
-      balanceAfter = currentBalance - total;
     } else if (balance_amount > 0 && phone) {
       // Cách mới: thanh toán linh hoạt
       const wallet = await queryOne(
@@ -685,18 +684,15 @@ router.post("/", authenticate, async (req, res) => {
       if (currentBalance < balance_amount) {
         return res.status(400).json({
           error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ`,
+          code: "SO_DU_KHONG_DU",
         });
       }
 
       actualBalanceAmount = balance_amount;
-      balanceBefore = currentBalance;
-      balanceAfter = currentBalance - balance_amount;
     }
 
     // === Xử lý số dư mẹ (nếu có) ===
     let actualParentBalanceAmount = 0;
-    let parentBalanceBefore = 0;
-    let parentBalanceAfter = 0;
     let parentName = null;
 
     if (parent_balance_amount > 0 && normalizedParentPhone) {
@@ -709,6 +705,7 @@ router.post("/", authenticate, async (req, res) => {
       if (parentCurrentBalance < parent_balance_amount) {
         return res.status(400).json({
           error: `Số dư mẹ không đủ. Hiện có: ${parentCurrentBalance.toLocaleString()}đ`,
+          code: "SO_DU_KHONG_DU",
         });
       }
 
@@ -720,8 +717,6 @@ router.post("/", authenticate, async (req, res) => {
       parentName = parentReg?.name || normalizedParentPhone;
 
       actualParentBalanceAmount = parent_balance_amount;
-      parentBalanceBefore = parentCurrentBalance;
-      parentBalanceAfter = parentCurrentBalance - parent_balance_amount;
     }
 
     // Xác định payment_status thực tế
@@ -805,35 +800,24 @@ router.post("/", authenticate, async (req, res) => {
     let orderId;
 
     try {
-      // Re-check wallet inside transaction (chống race condition)
-      if (actualBalanceAmount > 0 && phone) {
-        const freshWallet = await tx.queryOne(
-          "SELECT * FROM pos_wallets WHERE phone = ?", [phone]
-        );
-        const freshBalance = freshWallet?.balance || 0;
-        if (freshBalance < actualBalanceAmount) {
+      // 0. Trừ số dư khách / mẹ — P26b: qua ghiVi, đọc số dư + kiểm đủ + trừ TƯƠNG ĐỐI trong giao dịch này (trước đây kiểm
+      //    lại riêng rồi `SET balance = ?`). Làm TRƯỚC khi ghi đơn: thiếu → rollback, 400 trước khi đụng mã đơn. Dòng sổ gắn
+      //    order_id ngay sau khi có đơn (bước 1).
+      const dongSo = [];
+      for (const tru of [
+        actualBalanceAmount > 0 && phone && { phone, ten: customer_name || null, soTien: actualBalanceAmount,
+          ghiChu: "Thanh toán đơn hàng " + orderCode, nhan: "Số dư", khach: true },
+        actualParentBalanceAmount > 0 && normalizedParentPhone && { phone: normalizedParentPhone, ten: parentName,
+          soTien: actualParentBalanceAmount, ghiChu: `Trừ cho KH: ${customer_name || phone} - Đơn ${orderCode}`, nhan: "Số dư mẹ" },
+      ].filter(Boolean)) {
+        const r = await ghiVi(tx, { phone: tru.phone, ten: tru.ten, loai: "purchase", soTien: -tru.soTien,
+          ghiChu: tru.ghiChu, nguoi: req.user.username, luc: now, cot: "total_spent", soCot: tru.soTien, khongAm: true });
+        if (r.thieu) {
           await tx.rollback();
-          return res.status(400).json({
-            error: `Số dư không đủ. Hiện có: ${freshBalance.toLocaleString()}đ`,
-          });
+          return res.status(400).json({ error: `${tru.nhan} không đủ. Hiện có: ${r.truoc.toLocaleString()}đ`, code: "SO_DU_KHONG_DU" });
         }
-        balanceBefore = freshBalance;
-        balanceAfter = freshBalance - actualBalanceAmount;
-      }
-
-      if (actualParentBalanceAmount > 0 && normalizedParentPhone) {
-        const freshParentWallet = await tx.queryOne(
-          "SELECT * FROM pos_wallets WHERE phone = ?", [normalizedParentPhone]
-        );
-        const freshParentBalance = freshParentWallet?.balance || 0;
-        if (freshParentBalance < actualParentBalanceAmount) {
-          await tx.rollback();
-          return res.status(400).json({
-            error: `Số dư mẹ không đủ. Hiện có: ${freshParentBalance.toLocaleString()}đ`,
-          });
-        }
-        parentBalanceBefore = freshParentBalance;
-        parentBalanceAfter = freshParentBalance - actualParentBalanceAmount;
+        if (tru.khach) balanceAfter = r.sau;
+        dongSo.push(r.id);
       }
 
       // 1. Tạo đơn hàng
@@ -866,6 +850,7 @@ router.post("/", authenticate, async (req, res) => {
         ],
       );
       orderId = Number(result.lastInsertRowid);
+      for (const id of dongSo) await tx.run("UPDATE pos_balance_transactions SET order_id = ? WHERE id = ?", [orderId, id]);
 
       // 2. Thêm chi tiết đơn hàng
       // Lưu ý: package virtual item có product_id âm (-pkg.id) — SQLite/Turso không enforce FK
@@ -878,43 +863,6 @@ router.post("/", authenticate, async (req, res) => {
           [orderId, item.product_id, item.product_code, item.product_name,
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
            item.flash_unit_price || null, item.tier_unit_price || null],
-        );
-      }
-
-      // 3. Trừ số dư khách (nếu có)
-      if (actualBalanceAmount > 0 && phone) {
-        await tx.run(
-          `UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
-          [balanceAfter, actualBalanceAmount, now, phone],
-        );
-        await tx.run(
-          `INSERT INTO pos_balance_transactions (
-            customer_phone, customer_name, type, amount,
-            balance_before, balance_after, order_id,
-            notes, created_by, created_at
-          ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)`,
-          [phone, customer_name || null, -actualBalanceAmount,
-           balanceBefore, balanceAfter, orderId,
-           "Thanh toán đơn hàng " + orderCode, req.user.username, now],
-        );
-      }
-
-      // 4. Trừ số dư mẹ (nếu có)
-      if (actualParentBalanceAmount > 0 && normalizedParentPhone) {
-        await tx.run(
-          `UPDATE pos_wallets SET balance = ?, total_spent = total_spent + ?, updated_at = ? WHERE phone = ?`,
-          [parentBalanceAfter, actualParentBalanceAmount, now, normalizedParentPhone],
-        );
-        await tx.run(
-          `INSERT INTO pos_balance_transactions (
-            customer_phone, customer_name, type, amount,
-            balance_before, balance_after, order_id,
-            notes, created_by, created_at
-          ) VALUES (?, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?)`,
-          [normalizedParentPhone, parentName, -actualParentBalanceAmount,
-           parentBalanceBefore, parentBalanceAfter, orderId,
-           `Trừ cho KH: ${customer_name || phone} - Đơn ${orderCode}`,
-           req.user.username, now],
         );
       }
 
@@ -1209,7 +1157,7 @@ router.post("/", authenticate, async (req, res) => {
     });
   } catch (err) {
     console.error("Create order error:", err);
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 /**
@@ -1352,79 +1300,44 @@ router.put(
   async (req, res) => {
     try {
       const { reason } = req.body;
-      const order = await queryOne("SELECT * FROM pos_orders WHERE id = ?", [
-        req.params.id,
-      ]);
-
-      if (!order) {
-        return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
-      }
-      if (order.status === "cancelled") {
-        return res.status(400).json({ error: "Đơn hàng đã được hủy trước đó" });
-      }
-
       const now = getNow();
 
       // ========== ATOMIC TRANSACTION: Hoàn tiền + hủy đơn ==========
+      // P26b: đọc đơn TRONG giao dịch; cổng DUY NHẤT là UPDATE có điều kiện `AND status = 'completed'` + kiểm số dòng đổi.
+      // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, KHÔNG tới khối hoàn kho SX bên dưới.
       const tx = await beginTransaction();
+      let order;
       try {
-        // Hoàn lại số dư vào pos_wallets
-        if (order.balance_amount > 0 && order.customer_phone) {
-          const phone = order.customer_phone;
-          const wallet = await tx.queryOne(
-            "SELECT * FROM pos_wallets WHERE phone = ?", [phone]
-          );
-
-          if (wallet) {
-            const balanceBefore = wallet.balance;
-            const balanceAfter = wallet.balance + order.balance_amount;
-
-            await tx.run(
-              "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
-              [balanceAfter, order.balance_amount, now, phone],
-            );
-
-            await tx.run(
-              `INSERT INTO pos_balance_transactions (
-                customer_phone, customer_name, type, amount,
-                balance_before, balance_after, order_id,
-                notes, created_by, created_at
-              ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
-              [phone, order.customer_name, order.balance_amount,
-               balanceBefore, balanceAfter, order.id,
-               "Hoàn tiền hủy đơn " + order.code, req.user.username, now],
-            );
-          }
+        order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
+        if (!order) {
+          await tx.rollback();
+          return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
+        }
+        const doi = await tx.run(
+          `UPDATE pos_orders
+          SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
+          WHERE id = ? AND status = 'completed'`,
+          [reason || "Không có lý do", req.user.username, now, order.id],
+        );
+        if (doi.changes !== 1) {
+          await tx.rollback();
+          return res.status(400).json({
+            error: order.status === "cancelled" ? "Đơn hàng đã được hủy trước đó"
+              : `Đơn đang ở trạng thái "${order.status}" — không huỷ được`,
+            code: "DON_KHONG_HUY_DUOC",
+          });
         }
 
-        // Hoàn lại số dư MẸ vào pos_wallets
+        // Hoàn lại số dư khách / mẹ vào pos_wallets — P26b: qua ghiVi (tương đối, trong giao dịch này)
+        if (order.balance_amount > 0 && order.customer_phone) {
+          await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: "refund", soTien: order.balance_amount,
+            orderId: order.id, ghiChu: "Hoàn tiền hủy đơn " + order.code, nguoi: req.user.username, luc: now,
+            cot: "total_spent", soCot: -order.balance_amount });
+        }
         if (order.parent_balance_amount > 0 && order.parent_phone) {
-          const parentPhone = order.parent_phone;
-          const parentWallet = await tx.queryOne(
-            "SELECT * FROM pos_wallets WHERE phone = ?", [parentPhone]
-          );
-
-          if (parentWallet) {
-            const pBalanceBefore = parentWallet.balance;
-            const pBalanceAfter = parentWallet.balance + order.parent_balance_amount;
-
-            await tx.run(
-              "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
-              [pBalanceAfter, order.parent_balance_amount, now, parentPhone],
-            );
-
-            await tx.run(
-              `INSERT INTO pos_balance_transactions (
-                customer_phone, customer_name, type, amount,
-                balance_before, balance_after, order_id,
-                notes, created_by, created_at
-              ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
-              [parentPhone, null, order.parent_balance_amount,
-               pBalanceBefore, pBalanceAfter, order.id,
-               `Hoàn tiền mẹ hủy đơn ${order.code} (KH: ${order.customer_name})`,
-               req.user.username, now],
-            );
-          }
+          await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: order.parent_balance_amount, orderId: order.id,
+            ghiChu: `Hoàn tiền mẹ hủy đơn ${order.code} (KH: ${order.customer_name})`, nguoi: req.user.username, luc: now,
+            cot: "total_spent", soCot: -order.parent_balance_amount });
         }
 
         // ══ GÓI SP: Xử lý khi hủy đơn liên quan gói ══
@@ -1482,19 +1395,19 @@ router.put(
           }
         }
 
-        // Cập nhật trạng thái đơn hàng
+        // A4 (P26b): yêu cầu hoàn đang chờ của đơn → từ chối, CÙNG giao dịch — đơn đã huỷ không còn duyệt hoàn được.
         await tx.run(
-          `UPDATE pos_orders 
-          SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
-          WHERE id = ?`,
-          [reason || "Không có lý do", req.user.username, now, order.id],
+          `UPDATE pos_refund_requests SET status = 'rejected', rejection_reason = 'Đơn đã huỷ', processed_by = ?, processed_at = ?
+          WHERE order_id = ? AND status = 'pending'`,
+          [req.user.username, now, order.id],
         );
 
         await tx.commit();
         console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);
       } catch (txErr) {
+        // P26b: Turso gửi BEGIN lười — kho bận lộ ra ở câu ĐẦU, lúc `order` chưa có. Đọc order ở đây phải chịu được undefined.
         await tx.rollback();
-        console.error(`❌ Hủy đơn ${order.code} - Rolled back:`, txErr.message);
+        console.error(`❌ Hủy đơn ${order?.code || '#' + req.params.id} - Rolled back:`, txErr.message);
         throw txErr;
       }
 
@@ -1536,7 +1449,7 @@ router.put(
 
       res.json({ success: true, message: "Đã hủy đơn hàng" });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      loiGhi(res, err);
     }
   },
 );
@@ -1554,83 +1467,39 @@ router.delete("/:id", authenticate, async (req, res) => {
         .json({ error: "Chỉ owner mới có quyền xóa đơn hàng" });
     }
 
-    const order = await queryOne("SELECT * FROM pos_orders WHERE id = ?", [
-      req.params.id,
-    ]);
-    if (!order) {
-      return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
-    }
-
     const now = getNow();
 
-    // Lấy items trước khi xóa (cần cho hoàn kho SX sau)
-    const orderItems = await query(
-      `SELECT oi.*, p.sx_product_type, p.sx_product_id 
-      FROM pos_order_items oi
-      LEFT JOIN pos_products p ON oi.product_id = p.id
-      WHERE oi.order_id = ?`,
-      [order.id],
-    );
-
     // ========== ATOMIC TRANSACTION: Hoàn tiền + xóa đơn ==========
+    // P26b: đọc đơn + món TRONG giao dịch ghi (cổng duy nhất). Hoàn ví CHỈ khi đơn còn 'completed' — đơn đã hoàn / đã huỷ
+    // (kể cả vừa bị huỷ ngay trước lệnh xoá) không được cộng ví lần nữa.
     const tx = await beginTransaction();
+    let order, orderItems;
     try {
-      // Hoàn lại số dư nếu đã trừ (và đơn chưa bị hủy)
-      if (order.balance_amount > 0 && order.customer_phone && order.status !== "cancelled") {
-        const phone = order.customer_phone;
-        const wallet = await tx.queryOne(
-          "SELECT * FROM pos_wallets WHERE phone = ?", [phone]
-        );
-
-        if (wallet) {
-          const balanceBefore = wallet.balance;
-          const balanceAfter = wallet.balance + order.balance_amount;
-
-          await tx.run(
-            "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
-            [balanceAfter, order.balance_amount, now, phone],
-          );
-
-          await tx.run(
-            `INSERT INTO pos_balance_transactions (
-              customer_phone, customer_name, type, amount,
-              balance_before, balance_after, order_id,
-              notes, created_by, created_at
-            ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
-            [phone, order.customer_name, order.balance_amount,
-             balanceBefore, balanceAfter, order.id,
-             "Hoàn tiền xóa đơn " + order.code, req.user.username, now],
-          );
-        }
+      order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
+      if (!order) {
+        await tx.rollback();
+        return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
       }
 
-      // Hoàn lại số dư MẸ nếu đã trừ (và đơn chưa bị hủy)
-      if (order.parent_balance_amount > 0 && order.parent_phone && order.status !== "cancelled") {
-        const parentPhone = order.parent_phone;
-        const parentWallet = await tx.queryOne(
-          "SELECT * FROM pos_wallets WHERE phone = ?", [parentPhone]
-        );
+      // Lấy items trước khi xóa (cần cho hoàn kho SX sau)
+      orderItems = await tx.query(
+        `SELECT oi.*, p.sx_product_type, p.sx_product_id
+        FROM pos_order_items oi
+        LEFT JOIN pos_products p ON oi.product_id = p.id
+        WHERE oi.order_id = ?`,
+        [order.id],
+      );
 
-        if (parentWallet) {
-          const pBalanceBefore = parentWallet.balance;
-          const pBalanceAfter = parentWallet.balance + order.parent_balance_amount;
-
-          await tx.run(
-            "UPDATE pos_wallets SET balance = ?, total_spent = total_spent - ?, updated_at = ? WHERE phone = ?",
-            [pBalanceAfter, order.parent_balance_amount, now, parentPhone],
-          );
-
-          await tx.run(
-            `INSERT INTO pos_balance_transactions (
-              customer_phone, customer_name, type, amount,
-              balance_before, balance_after, order_id,
-              notes, created_by, created_at
-            ) VALUES (?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?)`,
-            [parentPhone, null, order.parent_balance_amount,
-             pBalanceBefore, pBalanceAfter, order.id,
-             `Hoàn tiền mẹ xóa đơn ${order.code} (KH: ${order.customer_name})`,
-             req.user.username, now],
-          );
+      if (order.status === "completed") {
+        if (order.balance_amount > 0 && order.customer_phone) {
+          await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: "refund", soTien: order.balance_amount,
+            orderId: order.id, ghiChu: "Hoàn tiền xóa đơn " + order.code, nguoi: req.user.username, luc: now,
+            cot: "total_spent", soCot: -order.balance_amount });
+        }
+        if (order.parent_balance_amount > 0 && order.parent_phone) {
+          await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: order.parent_balance_amount, orderId: order.id,
+            ghiChu: `Hoàn tiền mẹ xóa đơn ${order.code} (KH: ${order.customer_name})`, nguoi: req.user.username, luc: now,
+            cot: "total_spent", soCot: -order.parent_balance_amount });
         }
       }
 
@@ -1677,7 +1546,7 @@ router.delete("/:id", authenticate, async (req, res) => {
       console.log(`✅ Xóa đơn ${order.code} - Transaction committed`);
     } catch (txErr) {
       await tx.rollback();
-      console.error(`❌ Xóa đơn ${order.code} - Rolled back:`, txErr.message);
+      console.error(`❌ Xóa đơn ${order?.code || '#' + req.params.id} - Rolled back:`, txErr.message);
       throw txErr;
     }
 
@@ -1714,7 +1583,7 @@ router.delete("/:id", authenticate, async (req, res) => {
 
     res.json({ success: true, message: "Đã xóa đơn hàng" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 

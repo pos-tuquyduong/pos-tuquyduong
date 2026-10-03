@@ -8,8 +8,9 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { query, queryOne, run, beginTransaction } = require('../database');
+const { query, queryOne, run } = require('../database');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
+const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 
 const DAMAGE_REASONS = {
   'damaged': 'Hỏng khi vận chuyển',
@@ -132,106 +133,89 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
     }
     
-    // Lấy thông tin đơn hàng
-    const order = await queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);
-    if (!order) {
-      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    const soLuong = Number(quantity);
+    if (!Number.isInteger(soLuong) || soLuong <= 0) {
+      return res.status(400).json({ error: 'Số lượng không hợp lệ' });
     }
-    
-    // Lấy thông tin SP trong đơn
-    const item = await queryOne(
-      `SELECT * FROM pos_order_items WHERE order_id = ? AND product_code = ?`,
-      [order_id, product_code]
-    );
-    if (!item) {
-      return res.status(400).json({ error: 'Sản phẩm không có trong đơn hàng' });
+    const soGui = Number(refund_amount || 0);
+    if (!Number.isFinite(soGui) || soGui < 0) {
+      return res.status(400).json({ error: 'Số tiền đền không hợp lệ' });
     }
-    
-    if (quantity > item.quantity) {
-      return res.status(400).json({ error: `Số lượng tối đa: ${item.quantity}` });
-    }
-    
-    const unit_price = item.unit_price || 0;
-    const damage_value = unit_price * quantity;
-    const finalRefund = action === 'refund' ? (refund_amount || damage_value) : 0;
-    
-    // Xử lý hoàn tiền
-    if (action === 'refund' && finalRefund > 0 && order.customer_phone) {
-      const wallet = await queryOne(`SELECT * FROM pos_wallets WHERE phone = ?`, [order.customer_phone]);
-      const balanceBefore = wallet ? (wallet.balance || 0) : 0;
-      const balanceAfter = balanceBefore + finalRefund;
 
-      // Nguyên tử: cộng số dư + ghi sổ (đúng tên cột) đi cùng một transaction
-      const tx = await beginTransaction();
-      try {
-        if (wallet) {
-          await tx.run(`UPDATE pos_wallets SET balance = ?, updated_at = datetime('now') WHERE phone = ?`,
-            [balanceAfter, order.customer_phone]);
-        } else {
-          await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, datetime('now'), datetime('now'))`,
-            [order.customer_phone, balanceAfter]);
+    // P26b: MÁY CHỦ quyết số tiền đền (chủ quán chốt C1 + Q6 03.10.2026). Gom MỌI dòng cùng mã trong đơn: cộng dồn số lượng
+    // đã báo (mọi action) ≤ tổng số lượng; tiền mỗi lần ≤ số lượng × đơn giá CAO NHẤT các dòng đó; tổng tiền đền cộng dồn
+    // ≤ tổng giá các dòng (món lấy từ gói giá 0 → không đền tiền). Đọc + ghi ví + sổ + log trong CÙNG một giao dịch ghi.
+    const loi = (status, error, code) => ({ huy: true, status, body: { error, code } });
+    const kq = await trongGiaoDich(async (tx) => {
+      const order = await tx.queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);
+      if (!order) return loi(404, 'Không tìm thấy đơn hàng');
+      const dong = await tx.queryOne(`SELECT MIN(product_name) AS ten, COALESCE(SUM(quantity), 0) AS sl,
+          COALESCE(MAX(unit_price), 0) AS gia, COALESCE(SUM(unit_price * quantity), 0) AS tien, COUNT(*) AS n
+        FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
+      if (!Number(dong.n)) return loi(400, 'Sản phẩm không có trong đơn hàng');
+      const da = await tx.queryOne(`SELECT COALESCE(SUM(quantity), 0) AS sl, COALESCE(SUM(refund_amount), 0) AS tien
+        FROM pos_damage_logs WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
+      const conLai = Number(dong.sl) - Number(da.sl);
+      if (soLuong > conLai) return loi(400, `Số lượng tối đa: ${Math.max(0, conLai)}`, 'VUOT_SO_LUONG');
+      const gia = Number(dong.gia);
+      const damage_value = gia * soLuong;
+      const finalRefund = action === 'refund' ? (soGui || damage_value) : 0;
+      if (action === 'refund') {
+        if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ / đã hoàn — không đền tiền được', 'DON_KHONG_DEN_DUOC');
+        if (finalRefund > damage_value || Number(da.tien) + finalRefund > Number(dong.tien)) {
+          return loi(400, `Tiền đền tối đa: ${Math.max(0, Math.min(damage_value, Number(dong.tien) - Number(da.tien))).toLocaleString()}đ`, 'VUOT_GIA');
         }
-        await tx.run(`
-          INSERT INTO pos_balance_transactions (customer_phone, type, amount, balance_before, balance_after, notes, created_by, created_at)
-          VALUES (?, 'compensation', ?, ?, ?, ?, ?, datetime('now'))
-        `, [
-          order.customer_phone,
-          finalRefund,
-          balanceBefore,
-          balanceAfter,
-          `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${quantity}`,
-          req.user.display_name || req.user.username
-        ]);
-        await tx.commit();
-      } catch (e) {
-        await tx.rollback();
-        throw e;
+        if (finalRefund > 0 && order.customer_phone) {
+          await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
+            orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
+            nguoi: req.user.display_name || req.user.username });
+        }
       }
-    }
-    
-    // Xử lý hoàn kho
-    let stockReturned = 0;
+      const log = await tx.run(`
+        INSERT INTO pos_damage_logs (
+          order_id, order_code, customer_phone, customer_name,
+          product_code, product_name, quantity, unit_price, damage_value,
+          reason, reason_note, action, refund_amount, returned_to_stock,
+          processed_by, processed_by_name, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))
+      `, [
+        order_id, order.code, order.customer_phone, order.customer_name,
+        product_code, dong.ten, soLuong, gia, damage_value,
+        reason, reason_note || null, action, finalRefund,
+        req.user.id, req.user.display_name || req.user.username
+      ]);
+      return { order, finalRefund, logId: log.lastInsertRowid };
+    });
+    if (kq.huy) return res.status(kq.status).json(kq.body);
+    const { order, finalRefund } = kq;
+
+    // Xử lý hoàn kho (ngoài giao dịch — gọi SX, như trước P26b)
     if ((action === 'return_stock' || return_to_stock) && isSxConfigured()) {
       try {
         await callSxApi('/api/pos/stock/return', {
           method: 'POST',
           body: JSON.stringify({
             product_code,
-            quantity,
+            quantity: soLuong,
             reason: `Hoàn kho từ đơn ${order.code} - ${DAMAGE_REASONS[reason]}`
           })
         });
-        stockReturned = 1;
+        await run('UPDATE pos_damage_logs SET returned_to_stock = 1 WHERE id = ?', [kq.logId]);
       } catch (err) {
         console.log('Hoàn kho SX thất bại:', err.message);
       }
     }
-    
-    // Lưu log
-    await run(`
-      INSERT INTO pos_damage_logs (
-        order_id, order_code, customer_phone, customer_name,
-        product_code, product_name, quantity, unit_price, damage_value,
-        reason, reason_note, action, refund_amount, returned_to_stock,
-        processed_by, processed_by_name, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `, [
-      order_id, order.code, order.customer_phone, order.customer_name,
-      product_code, item.product_name, quantity, unit_price, damage_value,
-      reason, reason_note || null, action, finalRefund, stockReturned,
-      req.user.id, req.user.display_name || req.user.username
-    ]);
-    
+
     res.json({ 
       success: true, 
       message: action === 'refund' 
         ? `Đã hoàn ${finalRefund.toLocaleString()}đ vào số dư khách`
         : action === 'return_stock'
-          ? `Đã hoàn ${quantity} sản phẩm về kho`
+          ? `Đã hoàn ${soLuong} sản phẩm về kho`
           : 'Đã ghi nhận sự cố'
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 

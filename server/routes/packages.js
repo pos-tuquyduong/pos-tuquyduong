@@ -165,19 +165,7 @@ router.get('/customer-packages/:id/deliveries', authenticate, async (req, res) =
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST /buy — Khách mua gói
-router.post('/buy', authenticate, async (req, res) => {
-  try {
-    const { customer_phone, package_id, total_qty, order_id, notes } = req.body;
-    if (!customer_phone || !package_id || !total_qty) return res.status(400).json({ success: false, error: 'Thiếu thông tin' });
-    const now = new Date().toISOString();
-    const result = await run(
-      `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 0, 'active', ?, ?, ?)`,
-      [customer_phone, package_id, order_id || null, total_qty, notes || '', now, now]);
-    res.json({ success: true, data: { id: result.lastInsertRowid }, message: 'Đã tạo gói cho khách' });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
+// P26b (D): BỎ POST /buy — không màn hình nào gọi, tạo gói KHÔNG thu tiền. Gói bán qua POST /orders (package_buy).
 
 // PUT /customer-packages/:id/deliver — Atomic update delivered_qty
 router.put('/customer-packages/:id/deliver', authenticate, async (req, res) => {
