@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const { query, queryOne, run, beginTransaction } = require('../database');
+const { query, queryOne, beginTransaction } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 
