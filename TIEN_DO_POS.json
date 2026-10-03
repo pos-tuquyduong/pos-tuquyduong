@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 17,
-  "cap_nhat": "2026-10-02",
+  "phien_ban_so": 18,
+  "cap_nhat": "2026-10-03",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -342,7 +342,16 @@
     },
     {
       "ma": "P26a",
-      "ten": "Va loi BigInt: route tra lastInsertRowid (BigInt) ra JSON -> 500 du da ghi: refunds.js:139, packages.js:178, discount-codes.js:220 (man hinh co goi: tao ma chiet khau bao loi du da tao), settings.js:278 (log in hoa don), + loyalty/tiers can Number(); bo cho thu_P20.js:180 lach loi; them KB12 POST /refunds -> duyet vao gia lap (do truoc)",
+      "ten": "Va loi BigInt: route tra lastInsertRowid (BigInt) ra JSON -> 500 du da ghi: refunds.js:139, packages.js:178, discount-codes.js:220 (man hinh co goi: tao ma chiet khau bao loi du da tao), settings.js:278 (log in hoa don), + loyalty/tiers can Number(); bo cho thu_P20.js:180 lach loi; them KB12 POST /refunds -> duyet vao gia lap (do truoc); KET QUA: va goc database.js (soDong cho ca hai run(), tra lastInsertRowid dang Number), khong sua route; thu_P26a 8 ca (day sqlite_sequence de id khac rowsAffected); KB12 refunds -> duyet; PR #7 2 check xanh, 4 vong soat (vong 1-3 bat loi bai thu/tai lieu, code dung ngay); Render Live aa34031; chu quan thu tao ma chiet khau o quay: bao thanh cong (2026-10-03)",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "P26a",
+      "commit": "aa34031",
+      "ngay": "2026-10-02"
+    },
+    {
+      "ma": "P26b",
+      "ten": "Va lo tien (phieu 2026-10-03): (A) hoan vi 2 lan — huy don da hoan, duyet hoan don da huy, xoa don da hoan; huy/xoa don dong yeu cau hoan pending; tong hoan <= da tra bang vi. (B) bam trung: moi cho ghi pos_wallets.balance (tao don vi khach+me, huy, xoa, tao/duyet yeu cau hoan, nap, tru tay, dieu chinh, doi soat, den bu) doc lai trong giao dich, UPDATE co dieu kien + kiem so dong doi, cong/tru tuong doi. (C) bao hong: so den bu do may chu quyet, cong don so luong <= so mua, chan don da huy/hoan, so compensation ghi order_id. (D) bo POST /packages/buy, doi ca C4 thu_P26a. (E) gia lap: kich ban cho tung ca do truoc, kich ban phu nhanh refunded cua I1, bat bien hoan vi <= da tra. (F) thu_P26b + phep tinh cam ghi so du tuyet doi + dot bien BO VA va VA SAI bat buoc",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -350,8 +359,8 @@
       "ngay": null
     },
     {
-      "ma": "P26b",
-      "ten": "Va bam trung (kiem ngoai giao dich roi ghi khong dieu kien): huy don tra vi -> hoan vi 2 lan; duyet hoan 2 lan; nap vi dung luc tieu vi -> ghi de; bao hong -> hoan tien doc vi ngoai giao dich roi ghi de so du (damages.js:160-172); bao hong tin so tien hoan do man hinh gui (damages.js:155). Moi cho mot kich ban 'hai nguoi cung bam' trong gia lap (do truoc)",
+      "ma": "AUDIT-1",
+      "ten": "Audit toan bo phan tu chay — CHI DOC + BAO CAO, KHONG SUA (chot 02.10, sau P26b truoc HOC-2): nguoi gac moi luat co ca phai chan + phai cho qua; cong A6-A14 moi luat co ca do + dot bien; khoa cau_hinh.json khai ma khong doc (lenh_gia_lap...); gia lap moi bat bien co dot bien bat duoc, moi nhanh SQL co kich ban chay qua (xoa nhanh -> do); bo kiem moi phep do that; THIET_KE/CLAUDE/MAU_PHIEU/skill moi khang dinh co dan chung hoac CHUA KIEM; file_luat/file_cam/thu_muc_bai_thu khop thuc te. Ket qua: bang phat hien NANG/NHE + ty le dot bien bi bat; hai ben soat doc lap (agent soat + chat). Diem dung: HAI dot audit lien tiep khong con loi NANG",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -360,8 +369,8 @@
     },
     {
       "ma": "HOC-2",
-      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap",
-      "tang": 2,
+      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (118/120), dua dot bien VA SAI vao skill/cong neu khoa duoc",
+      "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
