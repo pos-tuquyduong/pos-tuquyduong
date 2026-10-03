@@ -501,7 +501,9 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a
   for (const f of fs.readdirSync(path.join(GOC, 'server', 'routes')).filter((x) => x.endsWith('.js')).sort()) {
     let src = boGhiChu(doc('server/routes/' + f));
     if (f === 'wallets.js') src = src.replace(ghiVi, '').replace(doiSoat, '');
-    for (const m of src.matchAll(/(?:UPDATE|INSERT\s+INTO)\s+pos_wallets\b[^`'"]{0,60}/g)) sai.push(`${f}: ${m[0].replace(/\s+/g, ' ')}`);
+    // Không phân biệt hoa thường; bắt cả UPDATE OR …, INSERT OR … INTO, REPLACE INTO, tên bảng trong ngoặc (soát vòng 1).
+    const GHI_VI = /\b(?:UPDATE(?:\s+OR\s+\w+)?|INSERT(?:\s+OR\s+\w+)?\s+INTO|REPLACE\s+INTO)\s+["`'\[]?pos_wallets\b[^`'"]{0,60}/gi;
+    for (const m of src.matchAll(GHI_VI)) sai.push(`${f}: ${m[0].replace(/\s+/g, ' ')}`);
   }
   chac('ví: mọi lệnh ghi pos_wallets trong server/routes/ nằm trong ghiVi hoặc reconcileWallet', !!ghiVi && sai.length === 0,
     (ghiVi ? '' : 'không thấy async function ghiVi( trong wallets.js · ') + sai.join(' · '));
