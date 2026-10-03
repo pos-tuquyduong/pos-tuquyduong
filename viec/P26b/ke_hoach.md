@@ -288,3 +288,30 @@ Tên đột biến ghi vào `trang_thai.md` khi chạy xong.
 | `thu_gia_lap.js` | ~20 | ~10 |
 | bộ kiểm | ~25 | ~20 |
 | `viec/P26b/dot_bien.py` | — | ~120 (không tính code) |
+
+## 12. Chủ quán duyệt aff6fde (03.10.2026) — phần này THẮNG mọi chỗ khác của file khi lệch
+
+- **Q1 = A**: `SQLITE_BUSY` → 409 `KHO_BAN` qua `loiGhi`; ca K1 cho TỪNG route đã đổi (tạo đơn, huỷ, xoá, tạo yêu cầu,
+  duyệt, từ chối, nạp, trừ tay, điều chỉnh, đối soát, báo hỏng). Thử lại BEGIN + kết nối libsql hỏng sau BUSY: chỉ Phát hiện 5.
+  K1 so ẢNH CHỤP kho (số dòng đơn / sổ / yêu cầu / log hỏng / nợ kho, tổng số dư, trạng thái đơn + yêu cầu) trước = sau.
+- **Q2** đồng ý — nhưng KB14 KHÔNG dùng đơn chỉ-gói nữa (Q8 chặn hoàn đơn có gói): dùng món KHÔNG mã SX do `dungDuLieu`
+  tạo (`MON_KHONG_SX`) cho `KH.moi` (đã claim ⇒ không sinh mã bill) ⇒ I2, I7 không đụng.
+- **Q3** giữ xoá yêu cầu cùng tx (A4c kiểm "không còn `pending`").
+- **Q4** chấp nhận; đột biến là bằng chứng.
+- **Q5** `getNow()` cho dòng sổ báo hỏng.
+- **Q6** món từ gói giá 0 → không đền tiền: chấp nhận. **Bỏ "dòng đầu"**: báo hỏng gom MỌI dòng cùng `product_code` của đơn:
+  cộng dồn số lượng đã báo (mọi action) + lần này ≤ TỔNG `quantity` các dòng; tiền mỗi lần ≤ `quantity × MAX(unit_price)`;
+  tổng tiền đền cộng dồn theo `(order_id, product_code)` ≤ `SUM(unit_price × quantity)` các dòng. Ca K5 **C6**: đơn có 1 dòng
+  từ gói (0đ, đứng TRƯỚC) + 1 dòng trả tiền cùng mã → đền đúng giá dòng trả tiền → 200. Đột biến vá sai "lấy dòng đầu" → C6 đỏ.
+  Phát hiện 3 coi như đã xử lý theo quyết định này.
+- **Q7** giữ như gốc (đơn không SĐT: 200, log có số tiền, không cộng ví).
+- **Q8** chấp nhận mất nút xoá. **Thêm chặn**: `POST /refunds` và duyệt hoàn → 400 `code: 'DON_CO_GOI'` ("Đơn có gói/thẻ hội viên —
+  dùng Huỷ đơn") khi có dòng `pos_customer_packages` hoặc `pos_membership_purchases` theo `order_id`. Ca **Q8a** tạo, **Q8b** duyệt
+  (yêu cầu chèn bằng SQL = dữ liệu cũ), **Q8c** đơn có thẻ hội viên — đỏ trên gốc. Đột biến: bỏ vá; vá sai "chỉ chặn lúc tạo".
+- **Lệnh thua ở huỷ đơn (400/409) return TRƯỚC khối hoàn kho SX**: A1a và K1-huỷ kiểm không có dòng `pos_stock_pending` mới
+  (SX chưa cấu hình trong bài thử ⇒ hoàn kho thật sẽ đẻ dòng nợ kho 'in'); KB15 (I7) bắt ở giả lập.
+- Phát hiện 1, 2, 4, 5, 7, 8, 9: chỉ ghi, không sửa.
+- Chỉnh nhỏ khi viết: xoá đơn KHÔNG kiểm `changes` của `DELETE` (đọc đơn trong tx ghi đã là cổng duy nhất — lớp thứ hai
+  không đột biến nào bắt được, K3). `ghiVi` dùng `UPDATE ... balance = balance + ?` rồi INSERT nếu `changes = 0` (không
+  dựa vào `ON CONFLICT` — không phải kiểm ràng buộc UNIQUE của bảng trên Turso). F2 không cần dấu: chỗ ghi `pos_wallets`
+  chỉ được nằm trong thân `ghiVi` hoặc thân `reconcileWallet` (thân này phải có `beginTransaction(`).
