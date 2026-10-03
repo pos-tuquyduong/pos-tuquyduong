@@ -104,6 +104,9 @@ DOT_BIEN = [
   ('hong-quen-refunded', 'thu', [(D, "if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ", "if (order.status === 'cancelled') return loi(400, 'Đơn đã huỷ", 1)], r'✗ C3c'),
   ('hong-log-ngoai-tx', 'thu', [(D, 'const log = await tx.run(`', 'const log = await run(`', 1)], r'✗ C4b'),
   ('hong-bo-order-id-so', 'thu', [(D, 'orderId: order.id, ghiChu: `Đền bù', 'ghiChu: `Đền bù', 1)], r'✗ C4a'),
+  # ── kho bận ở câu ĐẦU trong giao dịch (Turso: BEGIN lười) — catch không được đọc biến gán trong try (soát vòng 1) ──
+  ('huy-catch-doc-order-code', 'thu', [(O, "Hủy đơn ${order?.code || '#' + req.params.id} - Rolled back", "Hủy đơn ${order.code} - Rolled back", 1)], r'✗ K1b huỷ đơn:'),
+  ('xoa-catch-doc-order-code', 'thu', [(O, "Xóa đơn ${order?.code || '#' + req.params.id} - Rolled back", "Xóa đơn ${order.code} - Rolled back", 1)], r'✗ K1b xoá đơn:'),
   # ── /packages/buy ──
   ('packages-buy-dung-lai', 'thu', [(P, "// P26b (D): BỎ POST /buy",
     "router.post('/buy', authenticate, async (req, res) => { const r = await run(`INSERT INTO pos_customer_packages (customer_phone, package_id, total_qty, "
