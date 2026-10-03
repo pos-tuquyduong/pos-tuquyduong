@@ -320,6 +320,15 @@ const KICH_BAN = [
     const [m1, m2] = await c.chong(banMe, banMe);
     c.mong('hai đơn trừ ví mẹ 25.000 chồng nhau, ví mẹ 30.000 → 200 + 400 SO_DU_KHONG_DU, ví mẹ 5.000', m1?.status === 200 && m2.status === 400
       && m2.code === 'SO_DU_KHONG_DU' && await c.vi(ME) === 5000, `${m1 ? c.ma(m1) : 'móc không chạy'} / ${c.ma(m2)} · ví mẹ ${await c.vi(ME)}`);
+    // Q9 = (a): đơn ví con 5.000 + ví mẹ 20.000 → duyệt hoàn trả cả phần mẹ (I11 soát theo TỪNG ví).
+    await c.nap(ME, 20000);
+    const dQ9 = (await c.goi('chu', 'POST', '/orders', { customer_phone: S, customer_name: 'Khách KB17', parent_phone: ME, items: [c.mon(0)],
+      payment_method: 'cash', cash_amount: 0, balance_amount: 5000, parent_balance_amount: 20000 })).order?.id;
+    const vMe = await c.vi(ME), vCon = await c.vi(S);
+    const yQ9 = await c.yeuCau(dQ9);
+    const rQ9 = await c.duyet(yQ9.refund_id);
+    c.mong('đơn ví con 5.000 + ví mẹ 20.000 → duyệt hoàn → 200, ví mẹ +20.000, ví con +5.000', rQ9.status === 200
+      && await c.vi(ME) === vMe + 20000 && await c.vi(S) === vCon + 5000, `${c.ma(rQ9)} · ví mẹ ${vMe} → ${await c.vi(ME)} · ví con ${vCon} → ${await c.vi(S)}`);
     // B5: số dư 30.000, hai đơn ví 25.000 chồng nhau → một đơn bị chặn.
     await c.nap(S2, 30000);
     const ban2 = () => c.goi('chu', 'POST', '/orders', { customer_phone: S2, customer_name: 'Khách KB17', items: [c.mon(0)], payment_method: 'balance', balance_amount: 25000 });

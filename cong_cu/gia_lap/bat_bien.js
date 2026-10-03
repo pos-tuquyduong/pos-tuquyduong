@@ -1,5 +1,5 @@
 /**
- * GIẢ LẬP QUẦY (TU-CHAY-4) — 10 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
+ * GIẢ LẬP QUẦY (TU-CHAY-4) — 11 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
  *
  * Mỗi hàm I<n>(q, ctx) trả mảng chuỗi mô tả dòng lệch — rỗng = đạt. Mô tả phải
  * ỔN ĐỊNH (có mã đơn, số tiền) vì chay.js chỉ in lần đầu một lệch xuất hiện.
@@ -142,6 +142,15 @@ const BAT_BIEN = {
       FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id`);
     return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)
       .map((r) => `đơn #${r.order_id}: hoàn vào ví ${tien(r.hoan)} > đã trả bằng ví ${tien(r.tra)}`);
+  },
+  // I11 (P26b, Q9) — như I10 nhưng theo TỪNG ví: mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
+  // I10 gộp mọi ví nên không thấy phần ví mẹ bị hoàn nhầm vào ví con (soát vòng 4).
+  async I11(q) {
+    const ds = await q(`SELECT order_id, customer_phone, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
+        -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra
+      FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id, customer_phone`);
+    return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)
+      .map((r) => `đơn #${r.order_id}, ví ${r.customer_phone}: hoàn ${tien(r.hoan)} > ví này đã trả ${tien(r.tra)}`);
   },
 };
 
