@@ -1405,8 +1405,9 @@ router.put(
         await tx.commit();
         console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);
       } catch (txErr) {
+        // P26b: Turso gửi BEGIN lười — kho bận lộ ra ở câu ĐẦU, lúc `order` chưa có. Đọc order ở đây phải chịu được undefined.
         await tx.rollback();
-        console.error(`❌ Hủy đơn ${order.code} - Rolled back:`, txErr.message);
+        console.error(`❌ Hủy đơn ${order?.code || '#' + req.params.id} - Rolled back:`, txErr.message);
         throw txErr;
       }
 
@@ -1545,7 +1546,7 @@ router.delete("/:id", authenticate, async (req, res) => {
       console.log(`✅ Xóa đơn ${order.code} - Transaction committed`);
     } catch (txErr) {
       await tx.rollback();
-      console.error(`❌ Xóa đơn ${order.code} - Rolled back:`, txErr.message);
+      console.error(`❌ Xóa đơn ${order?.code || '#' + req.params.id} - Rolled back:`, txErr.message);
       throw txErr;
     }
 
