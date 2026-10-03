@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 18,
+  "phien_ban_so": 19,
   "cap_nhat": "2026-10-03",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -351,12 +351,12 @@
     },
     {
       "ma": "P26b",
-      "ten": "Va lo tien (phieu 2026-10-03): (A) hoan vi 2 lan — huy don da hoan, duyet hoan don da huy, xoa don da hoan; huy/xoa don dong yeu cau hoan pending; tong hoan <= da tra bang vi. (B) bam trung: moi cho ghi pos_wallets.balance (tao don vi khach+me, huy, xoa, tao/duyet yeu cau hoan, nap, tru tay, dieu chinh, doi soat, den bu) doc lai trong giao dich, UPDATE co dieu kien + kiem so dong doi, cong/tru tuong doi. (C) bao hong: so den bu do may chu quyet, cong don so luong <= so mua, chan don da huy/hoan, so compensation ghi order_id. (D) bo POST /packages/buy, doi ca C4 thu_P26a. (E) gia lap: kich ban cho tung ca do truoc, kich ban phu nhanh refunded cua I1, bat bien hoan vi <= da tra. (F) thu_P26b + phep tinh cam ghi so du tuyet doi + dot bien BO VA va VA SAI bat buoc",
+      "ten": "Va lo tien (phieu 2026-10-03): (A) hoan vi 2 lan — huy don da hoan, duyet hoan don da huy, xoa don da hoan; huy/xoa don dong yeu cau hoan pending; tong hoan <= da tra bang vi. (B) bam trung: moi cho ghi pos_wallets.balance (tao don vi khach+me, huy, xoa, tao/duyet yeu cau hoan, nap, tru tay, dieu chinh, doi soat, den bu) doc lai trong giao dich, UPDATE co dieu kien + kiem so dong doi, cong/tru tuong doi. (C) bao hong: so den bu do may chu quyet, cong don so luong <= so mua, chan don da huy/hoan, so compensation ghi order_id. (D) bo POST /packages/buy, doi ca C4 thu_P26a. (E) gia lap: kich ban cho tung ca do truoc, kich ban phu nhanh refunded cua I1, bat bien hoan vi <= da tra. (F) thu_P26b + phep tinh cam ghi so du tuyet doi + dot bien BO VA va VA SAI bat buoc; KET QUA: moi lenh ghi vi qua mot ham ghiVi (doc trong giao dich, cong/tru tuong doi, khongAm), doi trang thai bang UPDATE co dieu kien + kiem so dong doi; kho ban -> 409 KHO_BAN; bao hong: may chu quyet tien (tong cac dong cung ma), cong don so luong + tien, chan don huy/hoan; bo POST /packages/buy; chan hoan don co goi/the (DON_CO_GOI); Q9=(a) duyet hoan tra ca phan vi me; thu_P26b 63 ca, gia lap 18 KB 11 bat bien, 60 dot bien (59 bat, I10-bo khong ap duoc vi I11 bao trum); 5 vong soat (vong 1-4 KHONG DAT, vong Q9 DAT); PR #8 2 check xanh; Render Live; Q10 man Hoan tien trong (2026-10-03)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "P26b",
+      "commit": "c3d5816",
+      "ngay": "2026-10-03"
     },
     {
       "ma": "AUDIT-1",
@@ -369,8 +369,26 @@
     },
     {
       "ma": "HOC-2",
-      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (118/120), dua dot bien VA SAI vao skill/cong neu khoa duoc",
+      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (118/120), dua dot bien VA SAI vao skill/cong neu khoa duoc; TU P26b (03.10): bang_chung_do.txt phai khop so ca bai thu hien tai (sai 3 vong soat); cong_cu/ban_sao_goc.py dung ban sao server goc (nguoi gac chan 25 lan, phan lon viec nay); bang cho-va -> dot-bien trong dot_bien.py; I10-bo khong ap duoc (I11 trung chuoi, I10 bi I11 bao trum -> bo I10 hoac sua dot bien); M6 <= 1 -> === 1 + 3 ca Q9 de xuat; gia lap 62 s / thu_gia_lap 65 s gan han 110/120 s; KHUON_LOI 120/120 phai rut gon; P26b can 5 vong soat -> thuoc do qua soat khong loi nang van 0/3",
       "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P26c",
+      "ten": "Va lo tien/kho con lai sau P26b (Phat hien P26b, lam sau HOC-2, truoc P20b): (14) xoa don giao tu goi da huy tru delivered_qty lan 2 -> hoan goi 2 lan; (16) bao hong return_stock tren don da huy hoan kho SX lan 2; (12) pay-debt cho thu no don refunded; (20) bao hong hoan tien tren don chua thu van cong vi; (ke hoach 8) den bu roi huy/duyet hoan -> khach nhan ca hai; (4) xoa don khong don ma bill + van tay kho (I2/I7); (1, 22, 24) total_spent khi duyet hoan + vi me, them phep canh cot tong; (23) thong bao duyet hoan ghi ca phan vi me (refunds.js, khong can client). CHU QUAN CHOT khi lam phieu: (13) tran den bu theo gia khach thuc tra (flash/hang/ma giam) hay gia niem yet; (6) go 0 o man bao hong = khong den (hien den du gia). QUY TAC TAM o quay tu 03.10: don giao tu goi chi Huy, KHONG Xoa; don da huy khong bao hong",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P26d",
+      "ten": "Kho ban + Turso (can sua server/database.js; lam truoc H1/P3, khi quan con vang): (5) libsql file: BEGIN that bai vi BUSY lam hong ket noi -> thu lai BEGIN co gioi han; (19) loiGhi chi khop SQLITE_BUSY — do ma loi that tren Turso; (10) ma don sinh ngoai giao dich -> hai don cung luc trung ma 500; (15) 409 \"chua ghi gi\" sai loi khi loi xay ra SAU commit (huy don hoan kho SX, reconcile-all); (17, 18) vi balance NULL, tao vi khi hoan voi total_spent am; (7) khoi phuc sao luu ghi thang pos_wallets/pos_orders ngoai ghiVi",
+      "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
