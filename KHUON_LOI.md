@@ -29,16 +29,17 @@ Báo đỏ oan thì mất thời gian. Báo xanh oan thì **lỗi lên productio
 patch — patch đặt middleware sau 25 route nên không bao giờ chạy); bài thử chỉ
 phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 ca đạt.
 
-- **LUẬT CỨNG:** mọi bài thử phải chạy trên **bản CHƯA vá** và **bắt buộc phải
-  hỏng**. Xanh cả hai bên = bài thử vô giá trị, phải viết lại.
+- **LUẬT CỨNG:** mọi bài thử phải chạy trên **bản CHƯA vá** và **bắt buộc phải hỏng**. Xanh cả hai bên = vô giá trị, viết lại.
 - Bốn nhánh phải phá thử: chưa vá · marker suông · vá rồi quên marker · đủ cả hai.
 - Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
   (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
 - Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
 - "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ — đọc WHERE của bất biến trước (P26a: KB12 ≠ I1-refunded).
 - Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
-  khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát).
+  khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát). Hai CỔNG chồng nhau
+  cũng thế (P26b: cổng đơn che cổng yêu cầu). Lỗi hạ tầng giả lập theo đường Turso: BEGIN lười → lỗi ở câu ĐẦU (P26b K1b).
 - "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
+  Đổi bài sau khi ghi bằng chứng → chạy lại, chép lại; không "đỏ theo cùng lẽ" (P26b: 43 ≠ 55 ca, lọt 2 vòng soát).
 - Lỗi thất thường (tranh cổng, chạy song song): "N/N lần sạch" KHÔNG là bằng chứng nếu cùng khung chạy chưa cho thấy lỗi trên
   bản chưa vá — TU-CHAY-4 ghi "13 lần sạch" trong khi bản chưa vá cũng 40/40 sạch. Dựng đột biến đỏ TẤT ĐỊNH, không được thì CHƯA KIỂM.
 
@@ -46,10 +47,10 @@ phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 c
 Sửa một đường, để nguyên đường kia làm cùng việc đó. Bốn lần trong một phiên,
 chỗ thứ hai nằm ngay trong cùng hàm hoặc cách chưa tới 150 dòng.
 
-- **Dấu hiệu:** vừa tìm ra một lỗi dạng X → gần như chắc chắn có chỗ thứ hai
-  cùng dạng X trong cùng file.
+- **Dấu hiệu:** vừa tìm ra một lỗi dạng X → gần như chắc chắn có chỗ thứ hai cùng dạng X trong cùng file.
 - **Chặn:** tìm ra một lỗi thì `grep` cả file tìm mọi chỗ cùng khuôn **trước khi
-  viết dòng sửa đầu tiên**.
+  viết dòng sửa đầu tiên**. Dời câu đọc vào `try` → rà `catch`/`finally` đọc biến đó (P26b: `order.code` → 500). Gắn
+  cổng cho một khoản hoàn (ví) → grep mọi khoản hoàn khác cùng hàm: gói, thẻ, kho, điểm (P26b: xoá đơn hoàn gói 2 lần).
 - "Cùng khuôn với X" phải giống X ở **mọi loại đầu vào**, không chỉ ca vừa gặp: T2 lọc `Dirent.isFile()` (bỏ
   symlink) trong khi trình cài lọc `statSync().isFile()` (giữ symlink) — vá thư mục con mà nới T2 với symlink (HOC-1).
 - Tài liệu hứa theo ĐỐI TƯỢNG ("file ghi trong mục") thì phép chặn phải gắn theo đối tượng, không theo một nhánh
