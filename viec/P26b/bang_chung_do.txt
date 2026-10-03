@@ -1,6 +1,8 @@
 P26b — BẰNG CHỨNG ĐỎ TRÊN CODE GỐC. Máy chủ: `git archive 6efcc3b server` (chưa vá) chạy qua --may-chu;
-bài thử / giả lập / bộ kiểm là bản CÙNG COMMIT với file này (thu_P26b 62 ca gồm MẸ M1–M7, K1, K1b;
-giả lập 18 KB · 10 bất biến). Ghi lại ở vòng sửa 3 (sau soát vòng 3); bản trước 55 ca, trước nữa 43 ca — đều cũ. Lệnh chạy lại: python3 dựng bản sao như trên rồi các lệnh dưới.
+bài thử / giả lập / bộ kiểm là bản CÙNG COMMIT với file này (vòng sửa Q9: thu_P26b 63 ca gồm M5/M6/M8 Q9, K1, K1b;
+giả lập 18 KB · 11 bất biến gồm I11). Các bản trước (43 / 55 / 62 ca) đều cũ.
+ĐỎ RIÊNG CỦA Q9 trên HEAD trước vá Q9 (041649d…4da2cd2, đã có P26b): thu_P26b 62 đạt · 1 hỏng (✗ M5 — ví mẹ 0 dòng hoàn);
+giả lập 1 lệch (✗ KB17 → HTTP: đơn ví con 5.000 + ví mẹ 20.000 → duyệt hoàn … ví mẹ 5000 → 5000). Lệnh chạy lại: python3 dựng bản sao như trên rồi các lệnh dưới.
 
 ## 1. node cong_cu/thu_P26b.js --may-chu <gốc> — thoát 1
 
@@ -53,15 +55,16 @@ THỬ P26b — vá lỗ tiền ví
   ✓ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)
   ✓ M3 xoá đơn trả ví mẹ completed → 200, ví mẹ về như trước đơn (K5)
   ✓ M4 xoá đơn trả ví mẹ ĐÃ HUỶ → ví mẹ không đổi
-  ✗ M5 huỷ đơn có ví mẹ ĐÃ HOÀN → 400, ví mẹ không đổi  — HTTP 200 · ví mẹ 80000 → 100000
-  ✗ M6 xoá đơn có ví mẹ ĐÃ HOÀN → 200, ví mẹ không đổi  — HTTP 200 · ví mẹ 80000 → 100000
+  ✗ M5 duyệt hoàn đơn con 5.000 + mẹ 20.000 → 200, ví mẹ +20.000 đúng MỘT dòng refund, ví con +5.000, yêu cầu ghi 5.000  — HTTP 200 · ví mẹ 80000 → 80000 (0 dòng) · ví con 45000 → 50000 · yêu cầu 5000
+  ✗ M6 đơn có ví mẹ đã duyệt hoàn → huỷ 400, xoá 200, ví mẹ KHÔNG được hoàn thêm (tổng hoàn mẹ = 1 lần)  — HTTP 200 / HTTP 200 · ví mẹ 60000 → 80000 · 1 dòng hoàn mẹ
+  ✗ M8 đơn có ví mẹ đã huỷ (yêu cầu còn chờ) → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví mẹ không đổi  — HTTP 200 · ví mẹ 60000 → 60000
   ✗ M7 ví mẹ không đủ → 400 SO_DU_KHONG_DU, ví mẹ không đổi  — HTTP 400 · Số dư mẹ không đủ. Hiện có: 10,000đ
 
 [D] POST /packages/buy đã bỏ
   ✗ D POST /packages/buy → 404, không thêm dòng pos_customer_packages  — HTTP 200
 
 [A5] hoàn vào ví của mỗi đơn ≤ số đơn đó đã trả bằng ví (mọi ví, kể cả đơn đã xoá)
-  ✗ A5 không đơn nào được hoàn vào ví nhiều hơn số đã trả bằng ví  — [{"order_id":1001,"hoan":50000,"tra":25000},{"order_id":1005,"hoan":50000,"tra":25000},{"order_id":1008,"hoan":50000,"tra":25000},{"order_id":1014,"hoan":100000,"tra":50000},{"order_id":1025,"hoan":30000,"tra":25000}]
+  ✗ A5 không đơn nào được hoàn vào ví nhiều hơn số đã trả bằng ví  — [{"order_id":1001,"hoan":50000,"tra":25000},{"order_id":1005,"hoan":50000,"tra":25000},{"order_id":1008,"hoan":50000,"tra":25000},{"order_id":1014,"hoan":100000,"tra":50000},{"order_id":1026,"hoan":30000,"tra":25000}]
 
 [K1] kho bận (SQLITE_BUSY) → 409 KHO_BAN, kho KHÔNG đổi — từng route
   ✗ K1 tạo đơn: kho bận lúc mở giao dịch → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả)
@@ -89,21 +92,25 @@ THỬ P26b — vá lỗ tiền ví
   ✗ K1b đối soát toàn bộ: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 200 · lệnh không mở giao dịch nào
   ✗ K1b báo hỏng: kho bận ở câu đầu trong giao dịch (Turso) → 409 KHO_BAN, kho không đổi  — HTTP 500 · SQLITE_BUSY: database is locked (giả, câu đầu)
 
-  14 đạt · 48 hỏng
+  14 đạt · 49 hỏng
 
 
 
 ## 2. node cong_cu/gia_lap/chay.js --may-chu <gốc> — thoát 1
   ✗ KB13 → HTTP: huỷ đơn đã hoàn → 400 DON_KHONG_HUY_DUOC, ví không đổi: HTTP 200 · ví 265000 → 290000
   ✗ KB13 → I10: đơn #1017: hoàn vào ví 50.000đ > đã trả bằng ví 25.000đ
+  ✗ KB13 → I11: đơn #1017, ví 0900000001: hoàn 50.000đ > ví này đã trả 25.000đ
   ✗ KB14 → HTTP: xoá đơn đã hoàn → 200, ví không đổi: HTTP 200 / HTTP 200 / HTTP 200 · ví 50000 → 60000
   ✗ KB14 → HTTP: xoá chồng lên huỷ → huỷ 200, xoá 200, ví +10.000 đúng một lần: HTTP 200 / HTTP 200 · ví 50000 → 70000 · 2 dòng hoàn
   ✗ KB14 → I10: đơn #1018: hoàn vào ví 20.000đ > đã trả bằng ví 10.000đ
   ✗ KB14 → I10: đơn #1019: hoàn vào ví 20.000đ > đã trả bằng ví 10.000đ
+  ✗ KB14 → I11: đơn #1018, ví 0900000003: hoàn 20.000đ > ví này đã trả 10.000đ
+  ✗ KB14 → I11: đơn #1019, ví 0900000003: hoàn 20.000đ > ví này đã trả 10.000đ
   ✗ KB15 → HTTP: hai lệnh huỷ chồng nhau → 200 + 400 DON_KHONG_HUY_DUOC, ví +25.000 đúng một lần: HTTP 200 / HTTP 200 · ví 265000 → 315000
   ✗ KB15 → HTTP: hai lệnh tạo yêu cầu chồng nhau → 200 + 400, đúng 1 yêu cầu chờ duyệt: móc không chạy / HTTP 200 · 1 yêu cầu chờ
   ✗ KB15 → I7: vân tay POS:1020:in:0 (đơn ORD-20261003-018) SX nhận 2 lần
   ✗ KB15 → I10: đơn #1020: hoàn vào ví 50.000đ > đã trả bằng ví 25.000đ
+  ✗ KB15 → I11: đơn #1020, ví 0900000001: hoàn 50.000đ > ví này đã trả 25.000đ
   ✗ KB16 → HTTP: hai lệnh duyệt chồng nhau → 200 + 400, ví +30.000, đúng 1 dòng hoàn: HTTP 200 / HTTP 200 · ví 265000 → 295000 · 2 dòng hoàn
   ✗ KB16 → HTTP: duyệt chồng lên huỷ → huỷ 200, duyệt 400, yêu cầu rejected 'Đơn đã huỷ', ví +25.000 đúng một lần: HTTP 200 / HTTP 200 · {"status":"approved","rejection_reason":null} · ví 270000 → 295000
   ✗ KB16 → HTTP: từ chối chồng lên duyệt → duyệt 200, từ chối 400, yêu cầu vẫn approved: móc không chạy / HTTP 200 · rejected
@@ -112,6 +119,8 @@ THỬ P26b — vá lỗ tiền ví
   ✗ KB16 → I7: SX nhận vân tay lạ POS:1023:in:0 × 1
   ✗ KB16 → I10: đơn #1022: hoàn vào ví 60.000đ > đã trả bằng ví 30.000đ
   ✗ KB16 → I10: đơn #1023: hoàn vào ví 50.000đ > đã trả bằng ví 25.000đ
+  ✗ KB16 → I11: đơn #1022, ví 0900000001: hoàn 60.000đ > ví này đã trả 30.000đ
+  ✗ KB16 → I11: đơn #1023, ví 0900000001: hoàn 50.000đ > ví này đã trả 25.000đ
   ✗ KB17 → HTTP: nạp 100.000 chồng lên bán đơn ví 25.000 → cả hai 200, ví +75000: HTTP 200 / HTTP 200 · ví 30000 → 130000
   ✗ KB17 → HTTP: trừ tay 5.000 chồng lên nạp 10.000 → cả hai 200, ví +5000: HTTP 200 / HTTP 200 · ví 130000 → 125000
   ✗ KB17 → HTTP: điều chỉnh +5.000 chồng lên nạp 10.000 → cả hai 200, ví +15000: HTTP 200 / HTTP 200 · ví 125000 → 130000
@@ -122,12 +131,13 @@ THỬ P26b — vá lỗ tiền ví
   ✗ KB17 → HTTP: điều chỉnh âm hết số dư chồng lên bán đơn ví → bán 200, điều chỉnh âm hết số dư 400 SO_DU_KHONG_DU, ví 0 − 25.000 ≥ 0: móc không chạy / HTTP 400 · Số tiền điều chỉnh không hợp lệ · ví 0 → 0
   ✗ KB17 → HTTP: chuỗi sổ ví liền: before dòng sau = after dòng trước, after = before + amount: #3038 topup 100000: 30000 → 130000 · #3040 purchase -5000: 130000 → 125000 · #3042 adjust 5000: 125000 → 130000 · #3043 purchase -25000: 125000 → 100000 · #3045 refund 25000: 100000 → 125000 · #3047 compensation 20000: 125000 → 145000 · #3049 purchase -145000: 145000 → 0
   ✗ KB17 → HTTP: hai đơn trừ ví mẹ 25.000 chồng nhau, ví mẹ 30.000 → 200 + 400 SO_DU_KHONG_DU, ví mẹ 5.000: HTTP 200 / HTTP 400 · Số dư mẹ không đủ. Hiện có: 5,000đ · ví mẹ 5000
+  ✗ KB17 → HTTP: đơn ví con 5.000 + ví mẹ 20.000 → duyệt hoàn → 200, ví mẹ +20.000, ví con +5.000: HTTP 404 · Không tìm thấy yêu cầu hoàn tiền · ví mẹ 25000 → 25000 · ví con 0 → 0
   ✗ KB17 → HTTP: hai đơn ví 25.000 chồng nhau, số dư 30.000 → 200 + 400 SO_DU_KHONG_DU, ví 5.000: HTTP 200 / HTTP 400 · Số dư không đủ. Hiện có: 5,000đ · ví 5000
   ✗ KB17 → I4: ví 0920000009: số dư 0đ ≠ sổ -5.000đ, lệch 5.000đ
   ✗ KB18 → HTTP: báo hỏng chồng nhau vượt số lượng → 200, 200, 400 VUOT_SO_LUONG, tổng đã báo 2: HTTP 200 / HTTP 200 / HTTP 200 · tổng 3
   ✗ KB18 → HTTP: báo hỏng hoàn tiền trên đơn đã huỷ → 400 DON_KHONG_DEN_DUOC, ví không đổi: HTTP 200 · ví 290000 → 305000
   ✗ KB18 → I4: ví 0900000001: số dư 305.000đ ≠ sổ 360.000đ, lệch -55.000đ
-Giả lập: 18 kịch bản · 10 bất biến · KHÔNG ĐẠT (33 lệch)
+Giả lập: 18 kịch bản · 11 bất biến · KHÔNG ĐẠT (40 lệch)
 
 
 ## 3. node cong_cu/thu_P26a.js --may-chu <gốc> (C4 đổi theo D) — thoát 1

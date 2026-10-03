@@ -41,6 +41,14 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
 - [x] `/ra-soat` vòng 2 **KHÔNG ĐẠT** — chỉ hồ sơ (báo cáo dưới): bằng chứng đỏ cũ (43 ca) dù tự ghi "bản cuối"; thiếu
       Phát hiện "huỷ rồi xoá đơn giao từ gói hoàn gói hai lần". Vòng sửa 2/3: chạy lại bằng chứng (55 ca: 10/45), thêm
       Phát hiện 14–17, bổ sung 13. Không đổi dòng mã nào.
+- [x] **Vòng Q9** (chủ quán chốt Q9 = (a), cho thêm ĐÚNG 1 vòng sửa + 1 vòng soát chỉ cho Q9): bài thử trước — M5 viết lại
+      (duyệt hoàn → ví mẹ +20.000 đúng một dòng, ví con +5.000, yêu cầu vẫn 5.000), M6 tự đứng (đơn đã duyệt hoàn → huỷ
+      400, xoá 200, ví mẹ không thêm), M8 mới (đơn có ví mẹ đã huỷ → duyệt 400, ví mẹ không đổi), KB17 thêm đơn con + mẹ
+      → duyệt, bất biến I11 (theo TỪNG ví), M13 thu_gia_lap (phần mẹ vào ví con → KB17 → I11), NGUONG_BAT_BIEN 11.
+      Đỏ trên HEAD trước vá Q9: thu_P26b ✗ M5 (62/1), giả lập ✗ KB17 (1 lệch). Đỏ trên gốc 6efcc3b: M5, M6, M8, KB17, I11.
+      Vá `refunds.js` duyệt: sau cổng đơn, cùng giao dịch, đọc `parent_phone` / `parent_balance_amount` trong giao dịch,
+      ghiVi refund có order_id cho ví mẹ (bỏ qua khi 0 / không có mẹ). Đột biến Q9 4/4 bị bắt (bỏ vá; vào ví con; ngoài
+      giao dịch; giao dịch riêng không qua cổng đơn). Sau vá: thu_P26b 63/0, giả lập 18 · 11 ĐẠT.
 - [x] `/ra-soat` vòng 4 **KHÔNG ĐẠT** (báo cáo dưới) — mã đạt, mọi phép kiểm xanh (thu_P26b 62/0, gốc 14/48 trùng từng
       dòng bằng chứng, giả lập gốc 33 lệch trùng từng dòng, 56/56 đột biến, npm test 61/0, --day-du 65/0), NHƯNG lời giải
       thích M5/M6 sai và che một thay đổi về tiền: đơn ví con + ví mẹ đã duyệt hoàn → phần ví mẹ hết đường lấy lại.
@@ -56,14 +64,17 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
 
 ## Đột biến F3 — `python3 viec/P26b/dot_bien.py [tên…]` (mỗi đột biến chạy trên BẢN SAO, phải ra đúng dòng lệch)
 
-44 đột biến viết tay + 12 đột biến `K1-bo-409-<route>` sinh tự động (bỏ ánh xạ 409 ở TỪNG route):
-`huy-bo-cong` · `huy-khong-kiem-changes` · `huy-kiem-ngoai-tx` · `huy-bo-tu-choi-yeu-cau` · `huy-tu-choi-ngoai-tx` · `xoa-hoan-bat-ke-trang-thai` · `xoa-doc-don-ngoai-tx` · `tao-don-chi-kiem-ngoai-tx` · `me-tao-don-khong-tru` · `me-huy-hoan-gap-doi` · `me-xoa-hoan-gap-doi` · `me-bo-khongAm` · `yc-bo-kiem-trung` · `yc-kiem-trung-ngoai-tx` · `duyet-bo-chiem-yeu-cau` · `duyet-khong-kiem-changes` · `duyet-bo-cong-don` · `duyet-cong-don-khong-kiem-changes` · `tu-choi-bo-dieu-kien` · `tu-choi-khong-kiem-changes` · `Q8-bo-chan-goi` · `Q8-chi-chan-luc-tao` · `nap-ghi-tuyet-doi-tu-so-ngoai-tx` · `nap-so-truoc-doc-ngoai-tx` · `ghiVi-bo-khongAm` · `tru-tay-chi-kiem-ngoai-tx` · `dieu-chinh-bo-khongAm` · `doi-soat-bo-tx` · `doi-soat-doc-tong-ngoai-tx` · `hong-bo-tran` · `hong-tran-theo-man-hinh` · `hong-lay-dong-dau` · `hong-bo-tran-cong-don` · `hong-bo-cong-don-so-luong` · `hong-cong-don-ngoai-tx` · `hong-bo-chan-don-huy` · `hong-quen-refunded` · `hong-log-ngoai-tx` · `hong-bo-order-id-so` · `huy-catch-doc-order-code` · `xoa-catch-doc-order-code` · `packages-buy-dung-lai` · `I1-nhanh-refunded-false` · `I10-bo`
+48 đột biến viết tay + 12 đột biến `K1-bo-409-<route>` sinh tự động (bỏ ánh xạ 409 ở TỪNG route):
+`huy-bo-cong` · `huy-khong-kiem-changes` · `huy-kiem-ngoai-tx` · `huy-bo-tu-choi-yeu-cau` · `huy-tu-choi-ngoai-tx` · `xoa-hoan-bat-ke-trang-thai` · `xoa-doc-don-ngoai-tx` · `tao-don-chi-kiem-ngoai-tx` · `me-tao-don-khong-tru` · `me-huy-hoan-gap-doi` · `me-xoa-hoan-gap-doi` · `me-bo-khongAm` · `Q9-bo-hoan-me` · `Q9-hoan-me-vao-vi-con` · `Q9-hoan-me-ngoai-tx` · `Q9-hoan-me-khong-qua-cong-don` · `yc-bo-kiem-trung` · `yc-kiem-trung-ngoai-tx` · `duyet-bo-chiem-yeu-cau` · `duyet-khong-kiem-changes` · `duyet-bo-cong-don` · `duyet-cong-don-khong-kiem-changes` · `tu-choi-bo-dieu-kien` · `tu-choi-khong-kiem-changes` · `Q8-bo-chan-goi` · `Q8-chi-chan-luc-tao` · `nap-ghi-tuyet-doi-tu-so-ngoai-tx` · `nap-so-truoc-doc-ngoai-tx` · `ghiVi-bo-khongAm` · `tru-tay-chi-kiem-ngoai-tx` · `dieu-chinh-bo-khongAm` · `doi-soat-bo-tx` · `doi-soat-doc-tong-ngoai-tx` · `hong-bo-tran` · `hong-tran-theo-man-hinh` · `hong-lay-dong-dau` · `hong-bo-tran-cong-don` · `hong-bo-cong-don-so-luong` · `hong-cong-don-ngoai-tx` · `hong-bo-chan-don-huy` · `hong-quen-refunded` · `hong-log-ngoai-tx` · `hong-bo-order-id-so` · `huy-catch-doc-order-code` · `xoa-catch-doc-order-code` · `packages-buy-dung-lai` · `I1-nhanh-refunded-false` · `I10-bo`
 
 ## Câu hỏi
 
 Q1–Q8 đã trả lời (ke_hoach.md mục 12).
 
-**Q9 — ví MẸ của đơn đã duyệt hoàn (soát vòng 4; chờ chủ quán, KHÔNG tự chọn).**
+**Q9 — ĐÃ TRẢ LỜI: (a)** — duyệt hoàn trả cả phần ví mẹ, cùng giao dịch, sau cổng đơn; refund_amount giữ phần ví con;
+huỷ / xoá không đổi. (Nội dung câu hỏi giữ nguyên dưới đây làm hồ sơ.)
+
+**Q9 — ví MẸ của đơn đã duyệt hoàn (soát vòng 4).**
 - Sự thật (đọc trong lượt này): yêu cầu hoàn chỉ hoàn phần ví CON — `refunds.js:125` ghi `refund_amount = balance_amount`.
   Gốc (`git show 6efcc3b:server/routes/orders.js`): huỷ đơn hoàn ví mẹ không xét trạng thái (`:1400-1401`); xoá đơn hoàn
   ví mẹ khi `status !== 'cancelled'` (`:1607`) → đơn `refunded` vẫn được trả ví mẹ ĐÚNG MỘT lần.
@@ -110,7 +121,7 @@ Xem `ke_hoach.md` mục 10 (1–9) — ngoài phạm vi, KHÔNG sửa (3 đã x�
 20. Báo hỏng hoàn tiền trên đơn CHƯA THU (`payment_status` nợ, `status` completed) vẫn cộng ví (`damages.js`, C3 chỉ xét
     `status`). Có từ trước. — soát vòng 3.
 
-21. **Ví mẹ của đơn đã duyệt hoàn mất vĩnh viễn** — chi tiết ở Câu hỏi Q9 (bổ sung Phát hiện 2 của ke_hoach.md:
+21. **[ĐÃ XỬ LÝ theo Q9 = (a)]** Ví mẹ của đơn đã duyệt hoàn mất vĩnh viễn — chi tiết ở Câu hỏi Q9 (bổ sung Phát hiện 2 của ke_hoach.md:
     "yêu cầu hoàn bỏ phần ví mẹ" — sau P26b phần đó không còn lấy lại được qua huỷ / xoá). — soát vòng 4.
 22. Cột `total_spent` / `total_topup` (tham số `cot`/`soCot` của `ghiVi`, 9 chỗ gọi) không có ca thử / kịch bản / đột biến
     nào canh: đột biến đổi dấu `soCot` khi huỷ hoàn ví mẹ LỌT (62/0). Hai cột chỉ dùng hiển thị / báo cáo

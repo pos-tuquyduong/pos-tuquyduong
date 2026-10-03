@@ -44,6 +44,19 @@ DOT_BIEN = [
   ('me-xoa-hoan-gap-doi', 'thu', [(O, 'soTien: order.parent_balance_amount, orderId: order.id,\n            ghiChu: `Hoàn tiền mẹ xóa',
                                        'soTien: 2 * order.parent_balance_amount, orderId: order.id,\n            ghiChu: `Hoàn tiền mẹ xóa', 1)], r'✗ M3 '),
   ('me-bo-khongAm', 'kb17', [(O, 'soCot: tru.soTien, khongAm: true });', 'soCot: tru.soTien, khongAm: !!tru.khach });', 1)], r'KB17 → HTTP: hai đơn trừ ví mẹ'),
+  # ── Q9 = (a): duyệt hoàn trả phần ví mẹ (cùng giao dịch, sau cổng đơn) ──
+  ('Q9-bo-hoan-me', 'thu', [(R, 'if (me?.parent_phone && Number(me.parent_balance_amount) > 0) {', 'if (false) {', 1)], r'✗ M5 '),
+  ('Q9-hoan-me-vao-vi-con', 'thu', [(R, 'await ghiVi(tx, { phone: me.parent_phone,', 'await ghiVi(tx, { phone: refund.customer_phone,', 1)], r'✗ M5 '),
+  ('Q9-hoan-me-ngoai-tx', 'thu', [(R, 'await ghiVi(tx, { phone: me.parent_phone,',
+    "await ghiVi({ queryOne: require('../database').queryOne, run: require('../database').run }, { phone: me.parent_phone,", 1)], r'✗ M5 '),
+  ('Q9-hoan-me-khong-qua-cong-don', 'thu', [
+    (R, "    const kq = await trongGiaoDich(async (tx) => {\n      const refund = await tx.queryOne('SELECT * FROM pos_refund_requests WHERE id = ?', [req.params.id]);",
+        "    await trongGiaoDich(async (t2) => { const r0 = await t2.queryOne('SELECT order_id FROM pos_refund_requests WHERE id = ?', [req.params.id]);\n"
+        "      const me0 = r0 && await t2.queryOne('SELECT parent_phone, parent_balance_amount FROM pos_orders WHERE id = ?', [r0.order_id]);\n"
+        "      if (me0?.parent_phone && Number(me0.parent_balance_amount) > 0) await ghiVi(t2, { phone: me0.parent_phone, loai: 'refund', "
+        "soTien: Number(me0.parent_balance_amount), orderId: r0.order_id, nguoi: 'x' }); });\n"
+        "    const kq = await trongGiaoDich(async (tx) => {\n      const refund = await tx.queryOne('SELECT * FROM pos_refund_requests WHERE id = ?', [req.params.id]);", 1),
+    (R, 'if (me?.parent_phone && Number(me.parent_balance_amount) > 0) {', 'if (false) {', 1)], r'✗ M8 '),
   # ── yêu cầu hoàn ──
   ('yc-bo-kiem-trung', 'kb15', [(R, 'if (existing) return loi(400', 'if (false) return loi(400', 1)], r'KB15 → HTTP: hai lệnh tạo yêu cầu'),
   ('yc-kiem-trung-ngoai-tx', 'kb15', [
