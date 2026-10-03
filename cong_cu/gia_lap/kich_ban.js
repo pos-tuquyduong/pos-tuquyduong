@@ -268,6 +268,13 @@ const KICH_BAN = [
     const r3 = await c.db.queryOne('SELECT status FROM pos_refund_requests WHERE id = ?', [y3.refund_id]);
     c.mong('từ chối chồng lên duyệt → duyệt 200, từ chối 400, yêu cầu vẫn approved', chen3?.status === 200 && t.status === 400 && r3?.status === 'approved',
       `${chen3 ? c.ma(chen3) : 'móc không chạy'} / ${c.ma(t)} · ${r3?.status}`);
+    const d4 = await don('KB16d', 0, 25000);
+    const y4 = await c.yeuCau(d4.id);
+    const truoc4 = await c.vi(KH.quen);
+    const [chen4, a4] = await c.chong(() => c.goi('chu', 'POST', `/refunds/${y4.refund_id}/reject`, { reason: 'giả lập từ chối' }), () => c.duyet(y4.refund_id));
+    const r4 = await c.db.queryOne('SELECT status FROM pos_refund_requests WHERE id = ?', [y4.refund_id]);
+    c.mong('duyệt chồng lên từ chối → từ chối 200, duyệt 400, yêu cầu rejected, ví không đổi', chen4?.status === 200 && a4.status === 400
+      && r4?.status === 'rejected' && await c.vi(KH.quen) === truoc4, `${chen4 ? c.ma(chen4) : 'móc không chạy'} / ${c.ma(a4)} · ${r4?.status} · ví ${truoc4} → ${await c.vi(KH.quen)}`);
   } },
   { ten: 'ghi ví chồng nhau: nạp / trừ tay / điều chỉnh / đối soát / duyệt / báo hỏng; hai đơn ví vượt số dư', chay: async (c) => {
     const S = sdtMoi(), S2 = sdtMoi();
