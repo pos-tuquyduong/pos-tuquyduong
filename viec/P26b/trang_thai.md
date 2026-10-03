@@ -26,7 +26,7 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
       thu_P26a C4 ✗, bộ kiểm nhanh 5 FAIL. **Ghi lại lần 3 sau soát vòng 3** (bài 62 ca, thêm ví mẹ): thu_P26b
       14 đạt / 48 hỏng (14 xanh = 10 ca K5 cũ + M1–M4 là ca K5 ví mẹ; M5, M6 đỏ trên gốc — **SỬA SAU SOÁT VÒNG 4: KHÔNG phải
       "gốc hoàn ví mẹ lần hai"**. Gốc hoàn ví MẸ đúng MỘT lần (lúc huỷ / xoá); khoản hoàn hai lần là của ví CON (duyệt +
-      huỷ). M5/M6 đang khoá việc ví mẹ KHÔNG được hoàn — xem Câu hỏi Q9. M6 đỏ nhờ trạng thái M5 để lại (ca gộp, K3).
+      huỷ). [CŨ — trước Q9; M5/M6 đã viết lại ở vòng Q9, M6 tự đứng.] M5/M6 đang khoá việc ví mẹ KHÔNG được hoàn — xem Câu hỏi Q9. M6 đỏ nhờ trạng thái M5 để lại (ca gộp, K3).
       M7 đỏ chỉ vì thiếu `code`), giả lập 33 lệch (thêm "hai đơn trừ ví mẹ chồng nhau" — đỏ trên gốc chỉ vì thiếu `code`).
 - [x] Bước 5 vá 5 route. Bản lưu trước khi vá: thư mục nháp `truoc_P26b/` (ngoài kho).
       Giả lập bắt thêm một lỗ khi vá: tạo đơn kiểm số dư SAU khi ghi đơn → hai đơn chồng nhau trùng `pos_orders.code`
@@ -45,10 +45,15 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
       (duyệt hoàn → ví mẹ +20.000 đúng một dòng, ví con +5.000, yêu cầu vẫn 5.000), M6 tự đứng (đơn đã duyệt hoàn → huỷ
       400, xoá 200, ví mẹ không thêm), M8 mới (đơn có ví mẹ đã huỷ → duyệt 400, ví mẹ không đổi), KB17 thêm đơn con + mẹ
       → duyệt, bất biến I11 (theo TỪNG ví), M13 thu_gia_lap (phần mẹ vào ví con → KB17 → I11), NGUONG_BAT_BIEN 11.
-      Đỏ trên HEAD trước vá Q9: thu_P26b ✗ M5 (62/1), giả lập ✗ KB17 (1 lệch). Đỏ trên gốc 6efcc3b: M5, M6, M8, KB17, I11.
+      Đỏ RIÊNG của Q9: M5 (trước Q9 62/1 và trên gốc), KB17-Q9 (trước Q9, 1 lệch), M13 (thu_gia_lap). Trên gốc 6efcc3b
+      M6, M8, KB17-Q9 và I11 cũng đỏ nhưng vì lỗi KHÁC (huỷ 200; duyệt đơn huỷ 200; KB17-Q9 404 vì ví con đã cạn — kịch bản
+      không kiểm đơn tạo được; I11 chỉ ở dòng hoàn ví con hai lần) — soát vòng Q9 bắt câu tóm tắt cũ gộp chung.
       Vá `refunds.js` duyệt: sau cổng đơn, cùng giao dịch, đọc `parent_phone` / `parent_balance_amount` trong giao dịch,
       ghiVi refund có order_id cho ví mẹ (bỏ qua khi 0 / không có mẹ). Đột biến Q9 4/4 bị bắt (bỏ vá; vào ví con; ngoài
       giao dịch; giao dịch riêng không qua cổng đơn). Sau vá: thu_P26b 63/0, giả lập 18 · 11 ĐẠT.
+- [x] `/ra-soat` vòng Q9 **ĐẠT** (báo cáo dưới) — 3 lỗi nhỏ ở bài thử / hồ sơ, không ở mã. Hồ sơ đã sửa (câu cũ M5/M6,
+      câu tóm tắt đỏ trên gốc). M6 `<= 1` → `=== 1` KHÔNG sửa (chủ quán chỉ cho ĐÚNG 1 vòng sửa Q9, đã soát) → đề xuất KHOÁ.
+      Câu hỏi mới Q10 (dữ liệu production cũ). Bước 9–11 xong. **DỪNG** — không merge, không PR.
 - [x] `/ra-soat` vòng 4 **KHÔNG ĐẠT** (báo cáo dưới) — mã đạt, mọi phép kiểm xanh (thu_P26b 62/0, gốc 14/48 trùng từng
       dòng bằng chứng, giả lập gốc 33 lệch trùng từng dòng, 56/56 đột biến, npm test 61/0, --day-du 65/0), NHƯNG lời giải
       thích M5/M6 sai và che một thay đổi về tiền: đơn ví con + ví mẹ đã duyệt hoàn → phần ví mẹ hết đường lấy lại.
@@ -70,6 +75,15 @@ aa34031 Merge pull request #7 from pos-tuquyduong/viec/P26a
 ## Câu hỏi
 
 Q1–Q8 đã trả lời (ke_hoach.md mục 12).
+
+**Q10 — dữ liệu production CŨ (soát vòng Q9; chờ chủ quán, KHÔNG tự làm).** Đơn đã `refunded` TRƯỚC khi P26b lên, có
+`parent_balance_amount > 0`, phần ví mẹ chưa hoàn: trên gốc còn lấy lại được bằng Xoá đơn (gốc `orders.js:1607`); sau P26b
+huỷ 400 (`orders.js:1316-1329`), xoá không hoàn (`orders.js:1493`), duyệt không chạy lại được (yêu cầu đã `approved`) →
+phần mẹ mất hẳn, chỉ còn Điều chỉnh tay. Câu tra (chỉ đọc) để chủ quán chạy TRƯỚC khi lên production:
+`SELECT o.id, o.code, o.parent_phone, o.parent_balance_amount FROM pos_orders o WHERE o.status = 'refunded' AND
+o.parent_balance_amount > 0 AND NOT EXISTS (SELECT 1 FROM pos_balance_transactions t WHERE t.order_id = o.id AND
+t.type = 'refund' AND t.customer_phone = o.parent_phone)`. Có dòng nào thì quyết: điều chỉnh tay từng ví mẹ, hay một việc
+sau làm đường hoàn bù có kiểm.
 
 **Q9 — ĐÃ TRẢ LỜI: (a)** — duyệt hoàn trả cả phần ví mẹ, cùng giao dịch, sau cổng đơn; refund_amount giữ phần ví con;
 huỷ / xoá không đổi. (Nội dung câu hỏi giữ nguyên dưới đây làm hồ sơ.)
@@ -126,6 +140,13 @@ Xem `ke_hoach.md` mục 10 (1–9) — ngoài phạm vi, KHÔNG sửa (3 đã x�
 22. Cột `total_spent` / `total_topup` (tham số `cot`/`soCot` của `ghiVi`, 9 chỗ gọi) không có ca thử / kịch bản / đột biến
     nào canh: đột biến đổi dấu `soCot` khi huỷ hoàn ví mẹ LỌT (62/0). Hai cột chỉ dùng hiển thị / báo cáo
     (`reports.js:215-228`, `customers-v2.js:443`), không phải số dư. **CHƯA KIỂM.** — soát vòng 4.
+
+23. Màn duyệt hoàn (`Refunds.jsx:55`) và thông báo trả về (`refunds.js:175`, `new_balance` là ví con) chỉ hiện phần ví
+    con: duyệt "5.000" nhưng thực tế cộng 25.000 (con 5.000 + mẹ 20.000). Đúng chữ Q9 ("refund_amount giữ phần ví con");
+    chủ quán cần biết. `client/` ngoài phạm vi. — soát vòng Q9.
+24. Duyệt hoàn ví mẹ không giảm `total_spent` của ví mẹ (huỷ / xoá có giảm) — như duyệt ví con trước nay (Phát hiện 1, 22).
+    Đơn CHỈ trả ví mẹ (`balance_amount = 0`) vẫn không tạo được yêu cầu hoàn (`refunds.js:117`) — lấy lại qua huỷ / xoá,
+    không mất tiền. — soát vòng Q9.
 
 ## Soát độc lập — vòng 1 (chép nguyên báo cáo)
 
@@ -383,39 +404,113 @@ lần; vượt ngân sách giả lập (~260 dòng / ~200) và thời gian giả
 **Dọn (đề xuất, không tự làm):** dòng "LUẬT CỨNG" của K3 đã có bộ kiểm + `dot_bien` + cổng làm thay một phần — giữ, vì đây
 là lời dặn gốc; không thấy lời dặn nào đã có phép kiểm làm thay HOÀN TOÀN để xoá.
 
+**Vòng Q9 (bổ sung bước 11):**
+- KHOÁ (đã làm): M5 / M8 / KB17-Q9 / I11 / M13 + 4 đột biến `Q9-*` — mỗi cái có ca đỏ trước (M5, KB17 trên HEAD trước Q9).
+- KHOÁ — đề xuất (KHÔNG làm: hết vòng sửa Q9): M6 `<= 1` → `=== 1`; ca "đơn có mẹ, phần mẹ 0đ → duyệt 200, 0 dòng hoàn mẹ"
+  (bắt đột biến `> 0` → `>= 0`); ca "yêu cầu cũ trên đơn có mẹ → duyệt hoàn mẹ"; KB17-Q9 kiểm đơn tạo được trước khi đo.
+- NGUYÊN TẮC (gộp, KHUON_LOI vẫn 120/120): K3 "tên ca nói đúng điều máy kiểm"; K5 "luồng hợp lệ gồm cả DỮ LIỆU CŨ trên
+  production" (Q10). "Dòng tóm tắt đỏ trên gốc phải tách lỗi đang vá khỏi lỗi khác của gốc" — đã có ở K3 ("Đỏ trên gốc chỉ
+  có giá trị kèm…"), không thêm dòng.
+- BỎ: `\n` trong chuỗi `'''` của script sửa thành xuống dòng thật làm gãy `dot_bien.py` — một lần, đã trả về bản commit;
+  "5000" trong thông báo M5 là do `cut -c1-220` cắt cụt — truy nguyên bằng bản gỡ lỗi trong thư mục nháp trước khi sửa (K2).
+
 ## Báo cáo 7 mục (CLAUDE.md §7)
 
 ```
-VIỆC:        P26b — Vá lỗ tiền: hoàn ví hai lần, bấm trùng ghi đè ví, báo hỏng tin số màn hình gửi — DỪNG Ở BƯỚC 8:
-             /ra-soat vòng 4 KHÔNG ĐẠT sau 3 vòng sửa (Câu hỏi Q9 chờ chủ quán). KHÔNG merge, KHÔNG PR.
+VIỆC:        P26b — Vá lỗ tiền: hoàn ví hai lần, bấm trùng ghi đè ví, báo hỏng tin số màn hình gửi (+ Q9 = (a) ví mẹ)
+             Soát: vòng 1–4 KHÔNG ĐẠT (đã sửa 3 vòng), vòng Q9 ĐẠT. Câu hỏi mới Q10 chờ chủ quán. KHÔNG merge, KHÔNG PR.
 ĐÃ SỬA:      server/routes/wallets.js:55-97 — ghiVi (chỗ DUY NHẤT ghi ví: đọc trong giao dịch, cộng tương đối, khongAm,
                cột tổng), loiGhi (SQLITE_BUSY → 409 KHO_BAN), trongGiaoDich; nạp / trừ tay / điều chỉnh qua ghiVi;
                reconcileWallet đọc tổng sổ + ghi trong MỘT giao dịch
-             server/routes/orders.js — tạo đơn: trừ ví khách / mẹ qua ghiVi TRƯỚC khi ghi đơn, code SO_DU_KHONG_DU;
-               huỷ (:1300-1415): đọc đơn trong giao dịch, cổng UPDATE ... AND status = 'completed' + changes, hoàn ví qua
-               ghiVi, từ chối yêu cầu hoàn pending cùng giao dịch, catch chịu order chưa có; xoá (:1480-1550): đọc đơn +
-               món trong giao dịch, hoàn ví CHỈ khi completed
-             server/routes/refunds.js — tạo / duyệt / từ chối trong giao dịch, UPDATE có điều kiện + changes, chặn
-               DON_CO_GOI (gói / thẻ hội viên) ở tạo và duyệt, DON_KHONG_CON_HOAN_DUOC, YEU_CAU_DA_XU_LY
-             server/routes/damages.js:140-200 — máy chủ quyết tiền đền (gom mọi dòng cùng mã: MAX giá, SUM số lượng /
-               tiền), cộng dồn số lượng + tiền, chặn đơn huỷ / hoàn, ví + sổ (có order_id) + log cùng giao dịch
+             server/routes/orders.js — tạo đơn trừ ví khách / mẹ qua ghiVi TRƯỚC khi ghi đơn (SO_DU_KHONG_DU); huỷ: đọc
+               đơn trong giao dịch, cổng `AND status = 'completed'` + changes, từ chối yêu cầu hoàn pending cùng giao dịch,
+               catch chịu `order` chưa có; xoá: đọc đơn + món trong giao dịch, hoàn ví CHỈ khi completed
+             server/routes/refunds.js — tạo / duyệt / từ chối trong giao dịch, UPDATE có điều kiện + changes, DON_CO_GOI,
+               DON_KHONG_CON_HOAN_DUOC, YEU_CAU_DA_XU_LY; Q9: duyệt trả cả phần ví mẹ (:162-168), cùng giao dịch, sau cổng đơn
+             server/routes/damages.js:140-200 — máy chủ quyết tiền đền (mọi dòng cùng mã), cộng dồn số lượng + tiền, chặn
+               đơn huỷ / hoàn, ví + sổ (order_id) + log cùng giao dịch
              server/routes/packages.js — bỏ POST /buy
-BÀI THỬ:     chạy trên bản chưa vá (git archive 6efcc3b server) → ĐỎ: thu_P26b 14 đạt · 48 hỏng (14 xanh = ca K5),
-             giả lập KB13–KB18 33 lệch, thu_P26a C4 ✗, bộ kiểm nhanh 5 FAIL (bang_chung_do.txt); sau khi vá → XANH:
-             thu_P26b 62/0, thu_P20 51/0, thu_P21 14/0, thu_P26a 8/0, giả lập 18 KB · 10 bất biến ĐẠT, thu_gia_lap
-             33/0, npm test 61/0, --day-du 65/0; dot_bien.py 56/56 đột biến bị bắt (lần chạy đủ bộ của soát vòng 4)
+BÀI THỬ:     bản chưa vá (git archive 6efcc3b server) → ĐỎ: thu_P26b 14 đạt · 49 hỏng (14 xanh = ca K5), giả lập 40 lệch,
+             thu_P26a C4 ✗, bộ kiểm nhanh 5 FAIL; Q9 riêng trên HEAD trước Q9 → ĐỎ: thu_P26b ✗ M5 (62/1), giả lập ✗ KB17
+             sau vá → XANH: thu_P26b 63/0, thu_P20 51/0, thu_P21 14/0, thu_P26a 8/0, giả lập 18 KB · 11 bất biến ĐẠT,
+             thu_gia_lap 34/0, npm test 61/0, --day-du 65/0; dot_bien.py 56/56 (soát vòng 4) + 4/4 đột biến Q9
 ĐÃ RÀ K4:    grep -rniE "(update|insert( or \w+)? into|replace into)\s+pos_wallets" server → 18 lệnh ghi ở 12 chỗ trước vá,
-             nay 4 dòng, tất cả trong ghiVi / reconcileWallet; ghiVi gọi 11 chỗ đều truyền tx; chỗ đổi trạng thái đơn /
-             yêu cầu hoàn: orders.js huỷ + refunds.js tạo / duyệt / từ chối + xoá — đều có điều kiện + changes hoặc đọc
-             trong giao dịch; catch đọc biến gán trong try: 2 chỗ (đã sửa). Sót đã ghi Phát hiện: hoàn gói hai lần khi
-             xoá đơn đã huỷ (14), ví mẹ đơn đã hoàn (21 / Q9)
-CHƯA KIỂM:   hành vi BUSY thật trên Turso (BEGIN lười chỉ đọc từ mã client, mã lỗi khác SQLITE_BUSY — Phát hiện 19);
-             kết nối libsql hỏng sau BUSY trên kho file (Phát hiện 5, database.js ngoài phạm vi); hai đơn tiền mặt cùng
-             lúc trùng mã → 500 (Phát hiện 10); bấm chồng thật trên production (chỉ dựng bằng móc truocTx); cột
-             total_spent / total_topup không có phép canh (Phát hiện 22); ví mẹ đơn đã duyệt hoàn mất tiền (Q9 — hành vi
-             hiện tại đang được M5/M6 khoá, chờ chủ quán chọn); máy / app ngoài kho có gọi POST /packages/buy không;
-             thu_P20 / thu_P21 không nhận --may-chu nên không chạy trên bản đột biến; giả lập 62 s / thu_gia_lap ~65 s,
-             biên tới hạn 110 / 120 s đang hẹp (Phát hiện 11)
-GIT:         (xem dòng commit cuối của nhánh — git log --oneline -2 ở câu trả lời)
-BÀI HỌC:     KHOÁ 4 (+5 đề xuất ngoài phạm vi) · NGUYÊN TẮC 4 (gộp vào K3/K4, KHUON_LOI 120/120) · BỎ 4 — chi tiết ở ## Bài học
+             nay 4 dòng, tất cả trong ghiVi / reconcileWallet; ghiVi gọi 12 chỗ đều truyền tx (thêm refunds.js duyệt ví mẹ);
+             chỗ đổi trạng thái đơn / yêu cầu hoàn: đều có điều kiện + changes hoặc đọc trong giao dịch; catch đọc biến gán
+             trong try: 2 chỗ (đã sửa); 3 chỗ hoàn ví mẹ (duyệt / huỷ / xoá) — huỷ / xoá có cổng nên không hoàn lần hai.
+             Sót, đã ghi Phát hiện: hoàn gói hai lần khi xoá đơn đã huỷ (14)
+CHƯA KIỂM:   BUSY thật trên Turso (BEGIN lười chỉ đọc từ mã client; mã lỗi khác SQLITE_BUSY — Phát hiện 19); kết nối libsql
+             hỏng sau BUSY trên kho file (Phát hiện 5); hai đơn tiền mặt cùng lúc trùng mã → 500 (Phát hiện 10); bấm chồng
+             thật trên production (chỉ dựng bằng móc truocTx); total_spent / total_topup không có phép canh (Phát hiện 22);
+             dữ liệu production cũ — đơn đã hoàn trước khi lên, phần ví mẹ chưa hoàn (Q10, có câu tra); duyệt đơn có mẹ
+             phần mẹ 0đ, yêu cầu cũ trên đơn có mẹ, duyệt chồng huỷ / xoá trên đơn có mẹ — chưa có ca; M6 kiểm `<= 1`
+             (M5 đang che); máy / app ngoài kho gọi POST /packages/buy; thu_P20 / thu_P21 không nhận --may-chu; giả lập
+             67 s / thu_gia_lap 71 s — gần hạn 110 / 120 s (Phát hiện 11)
+GIT:         (git log --oneline -2 ở câu trả lời)
+BÀI HỌC:     KHOÁ 5 (+9 đề xuất) · NGUYÊN TẮC 6 (gộp vào K3 / K4 / K5, KHUON_LOI 120/120) · BỎ 6 — chi tiết ở ## Bài học
 ```
+
+## Soát độc lập — vòng Q9 (chép nguyên báo cáo)
+
+```
+ĐẠT (cho vòng Q9). Mã làm đúng nguyên văn quyết định Q9 = (a). Mọi bài thử, đột biến và hồ sơ số đều khớp kết quả tôi
+chạy lại. Còn 3 lỗi nhỏ ở bài thử và hồ sơ, không ở mã. Không lỗi nào gây xanh oan trên đường tiền.
+
+Đã chạy lại: thu_P26b HEAD 63 · 0; trước Q9 (4da2cd2) 62 · 1 (chỉ M5: "ví mẹ 80000 → 80000 (0 dòng)"); gốc (6efcc3b)
+14 · 49, M5, M6, M8, M7 trùng bang_chung_do.txt; giả lập HEAD "18 kịch bản · 11 bất biến · ĐẠT"; trước Q9 1 lệch (KB17,
+"ví mẹ 5000 → 5000"); gốc 40 lệch, trùng bằng chứng; dot_bien.py 4 đột biến Q9 đều bị bắt; thu_gia_lap 34/0 (M13 → KB17 →
+I11); npm test 61/0.
+
+Sáu mục:
+1. K3: M5 (thu_P26b.js:339-345) đỏ trên bản trước Q9 lẫn gốc, đúng lý do (ví mẹ không đổi, 0 dòng); kiểm số dư thật + đếm
+   dòng sổ, marker suông không làm xanh được. M8 là ca khoá luồng hợp lệ: xanh trước Q9, đỏ khi phần hoàn mẹ đi vòng qua
+   cổng đơn (đột biến Q9-hoan-me-khong-qua-cong-don).
+2. K4: grep "ghiVi(" trong server/ ra 3 chỗ hoàn ví mẹ: refunds.js:166 (mới), orders.js:1338 (huỷ), :1500 (xoá) — huỷ / xoá
+   có cổng trạng thái nên đơn đã duyệt hoàn không được hoàn mẹ lần nữa (M6). Lệch duy nhất: huỷ / xoá truyền
+   cot:"total_spent", duyệt thì không — chủ ý cũ (wallets.js:58, phieu.md:71).
+3. K5: đơn chỉ ví con → parent_phone NULL → bỏ qua (refunds.js:165), các ca duyệt cũ vẫn xanh; đơn có mẹ nhưng
+   parent_balance_amount = 0 → `>0` sai → bỏ qua — đúng khi đọc mã, KHÔNG có ca thử; yêu cầu cũ còn chờ → mẹ đọc từ
+   pos_orders lúc duyệt, đúng; đơn có gói → chặn trước, rollback; đơn đã huỷ (M8) → 400, ví mẹ không đổi; I11 với đơn đã
+   xoá → dòng sổ còn, ghép (order_id, customer_phone), đúng; I11 với đền bù → 'compensation' không tính, không báo oan.
+4. K1: số trong trang_thai.md và bang_chung_do.txt khớp từng dòng; hai câu sai / cũ ở mục lỗi.
+5. Đường tiền: số hoàn mẹ đọc từ pos_orders trong giao dịch (refunds.js:164), ghi lúc tạo đơn là actualParentBalanceAmount
+   sau khi đã trừ được ví mẹ (orders.js:719, 845). Không dùng số client gửi lúc duyệt.
+6. P1: không đụng client/.
+
+LỖI TÌM ĐƯỢC:
+- cong_cu/thu_P26b.js:351-352 — tên M6 "(tổng hoàn mẹ = 1 lần)" nhưng điều kiện dongHoanVi(d6, me) <= 1 → 0 dòng cũng qua;
+  M6 XANH trên bản trước Q9. Hiện M5 che được nên không xanh oan; M5 bị sửa / bỏ thì không còn ca nào bắt "duyệt không hoàn
+  mẹ". Sửa: === 1. K3.
+- viec/P26b/trang_thai.md:48 — "Đỏ trên gốc 6efcc3b: M5, M6, M8, KB17, I11" không nói M6, M8, KB17-Q9 đỏ trên gốc vì lý do
+  KHÁC Q9 (M6: huỷ 200; M8: duyệt đơn đã huỷ 200; KB17-Q9: "HTTP 404 · Không tìm thấy yêu cầu hoàn tiền · ví con 0 → 0" —
+  đơn không tạo được vì ví con đã cạn, kich_ban.js:325 lấy .order?.id mà không kiểm; I11 trên gốc chỉ ở dòng hoàn ví con hai
+  lần — I10 đã bắt). Đỏ riêng Q9 chỉ là M5 (gốc + trước Q9), KB17 (trước Q9), M13. bang_chung_do.txt in nguyên văn nên
+  trung thực, chỉ dòng tóm tắt gây hiểu nhầm. K3/K1.
+- viec/P26b/trang_thai.md:27-29 — còn câu cũ "M5/M6 đang khoá việc ví mẹ KHÔNG được hoàn … M6 đỏ nhờ trạng thái M5 để lại";
+  từ Q9 câu này sai. Phủ định một câu mà không grep cả file tìm câu cùng nghĩa. K4 (tài liệu).
+
+NGHI NGỜ:
+- Dữ liệu production có sẵn: đơn đã refunded trên gốc, parent_balance_amount > 0, phần mẹ chưa hoàn — trên gốc lấy lại được
+  bằng Xoá đơn (gốc orders.js:1607); sau P26b+Q9: huỷ 400 (orders.js:1316-1329), xoá không hoàn (orders.js:1493), duyệt
+  không chạy lại được → tiền mẹ mất hẳn, chỉ còn điều chỉnh tay. Nên hỏi chủ quán, kèm câu tra: pos_orders status='refunded'
+  AND parent_balance_amount>0 AND không có dòng refund cho order_id đó với customer_phone = parent_phone.
+- Người duyệt không thấy phần mẹ: Refunds.jsx:55 chỉ hiện refund_amount; thông báo refunds.js:175 "Đã hoàn ${refund_amount}đ",
+  new_balance là ví con. Duyệt 5.000 nhưng thực tế cộng 25.000.
+- Duyệt hoàn mẹ không giảm total_spent của ví mẹ (khác huỷ / xoá) — lệch đã biết, nay thêm cho ví mẹ.
+- Đơn chỉ trả bằng ví mẹ (balance_amount = 0) vẫn không tạo được yêu cầu hoàn (refunds.js:117); lấy lại qua huỷ / xoá.
+
+CHƯA SOÁT ĐƯỢC: duyệt đơn có parent_phone mà parent_balance_amount = 0 (đột biến > 0 → >= 0 không bị bắt); duyệt yêu cầu cũ
+(ycCu) trên đơn có ví mẹ; duyệt chồng lên huỷ / xoá trên đơn CÓ ví mẹ (KB16 chỉ phủ ví con); Turso thật; dữ liệu production;
+chưa chạy --day-du (giả lập và thu_gia_lap đã chạy riêng).
+
+BÀI HỌC:
+- KHOÁ: M6 dùng === 1. Ca K5 "đơn có mẹ, phần mẹ 0đ → duyệt 200, 0 dòng hoàn mẹ"; ca "yêu cầu cũ (ycCu) trên đơn có mẹ →
+  duyệt hoàn mẹ". Kịch bản giả lập kiểm đơn tạo được (200) trước khi đo (KB17:325).
+- NGUYÊN TẮC (K3): dòng tóm tắt "đỏ trên gốc" tách ca đỏ vì đúng lỗi đang vá khỏi ca đỏ vì lỗi khác của gốc; tên ca nói đúng
+  điều kiện máy kiểm.
+- NGUYÊN TẮC (K4, dữ liệu): đổi luật hoàn / cổng trạng thái thì hỏi "dữ liệu đã có trên production rơi vào trạng thái cũ thì
+  sao", không chỉ hỏi luồng mới.
+```
+
+Xử lý: lỗi 2, 3 (hồ sơ) đã sửa; lỗi 1 (M6 `=== 1`) KHÔNG sửa — hết vòng sửa Q9 → KHOÁ đề xuất. Nghi ngờ 1 → Câu hỏi Q10;
+2 → Phát hiện 23; 3, 4 → Phát hiện 24. `--day-du` phiên chính đã chạy sau vá Q9: PASS 65 · FAIL 0 (thu_gia_lap 71 s).
