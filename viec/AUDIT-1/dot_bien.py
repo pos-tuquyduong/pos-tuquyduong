@@ -67,6 +67,10 @@ DOT_BIEN = [
   ('B1-A12-bo', 'B1', 'cong', [(CG, "if (coCode && !baiThu.length && !mien) doLy('A12'", "if (false) doLy('A12'", 1)], r'✗ A12'),
   ('B1-laBaiThu-noi-slash', 'B1', 'cong', [(CG, "/^thu_[^/]*\\.js$/.test(path.posix.basename(p))", '/^thu_.*\\.js$/.test(p)', 1)], r'✗ A1[12]'),
   ('B1-A14-bo-dang-nhanh', 'B1', 'cong', [(CG, "if (!m) { doLy('A14', `nhánh \"${nhanh}\" không có dạng viec/<MÃ>`); if (bat('A14')) return kq(); }", 'if (!m) { }', 1)], r'✗ A14'),
+
+  # C2: cau ghi duong tien NGOAI P26b (diem ban, diem ma bill). Bo cau -> gia lap phai BAT (I8). SONG = NANG.
+  ('C2-orders-bo-diem-ban', 'C2', 'gl', [(O, 'if (shouldEarnPoints) {', 'if (false) {', 1)], r'→ I8:'),
+  ('C2-sc-bo-diem-ma', 'C2', 'gl', [(SC, 'await tx.run(\n        `INSERT INTO pos_point_transactions', 'if (false) await tx.run(\n        `INSERT INTO pos_point_transactions', 1)], r'→ I8:'),
 ]
 
 # ═══ Bản sao + lệnh ══════════════════════════════════════════════════════════

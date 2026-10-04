@@ -79,3 +79,8 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 # B1: python3 viec/AUDIT-1/dot_bien.py B1 → BẮT 7 (A6,A7,A10,A11 hai chiều,A12,laBaiThu) · SỐNG 1 (B1-A14-bo-dang-nhanh, cổng A14 chồng) · HỎNG 0 · LẠC 0
 # B2: python3 (đọc .key / ['key'] trong *.js) → 12 khoá có code đọc; 8 khoá chỉ nhãn/tài liệu (app, nhanh_chinh, so_viec, cong_cu_so_viec, so_vong_sua_toi_da, vuot_ngan_sach_canh_bao, lenh_gia_lap, kiem_sau_day_len)
 # B3: git ls-files thu_*.js + laBaiThu → thu_p1.js khớp laBaiThu nhưng nối kho thật; ban_mau_pos/thu/ cổng không thấy; grep "secrets." cong_github.yml = 0 (cổng không cấp Turso)
+
+# ── Nhóm C ──────────────────────────────────────────────────────────────────
+# C1: thu_gia_lap M1-M13 + P26b + C2 phủ I1-I11 (I2 kho tay, I10-bo HỎNG — AU-C1/E1). Chạy: node cong_cu/thu_gia_lap.js (trong --day-du) → XANH
+# C2: python3 viec/AUDIT-1/dot_bien.py C2 → BẮT 2 (C2-orders-bo-diem-ban KB1→I8, C2-sc-bo-diem-ma KB11→I8) · SỐNG 0. Đường tiền lõi: P26b 59 BẮT (e_bang).
+# C3: python3 c3.py (3 lần nối tiếp) → gia_lap [67.9,67.9,68.0]s (ngưỡng 110s, dư 1.62×) · thu_gia_lap [70.2,70.1,70.4]s (ngưỡng 120s, dư 1.70×). kiem:746 ghi 22/24s — lệch.
