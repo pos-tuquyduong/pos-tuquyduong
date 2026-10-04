@@ -38,6 +38,25 @@ DOT_BIEN = [
                                 'WHERE id = ? AND ? IS NOT NULL`', 1)], r'KB10 → I6:'),
   ('G3-vo-hai', 'G3', 'c2', [(O, '// 1. Tạo đơn hàng', '// 1. Tao don hang (AUDIT-1 vo hai)', 1)], r'KB\d+ → |✗'),
   ('G3-sap', 'G3', 'kb1', [(O, '// 1. Tạo đơn hàng', '}}}{{{', 1)], r'KB\d+ → '),
+
+  # ── A3: VÁ SAI người gác (bản sao tu_chay/), ≥1 mỗi nhóm luật; mở một lỗ cho lệnh nguy hiểm lọt.
+  #    BẮT = thu_nguoi_gac.js bắt (dòng ✗ ca / tự sinh / đối chiếu). SỐNG = lỗ lọt mà bài thử vẫn xanh = phát hiện.
+  ('A3-GITADD-bo-A', 'A3', 'gac', [(NG, '/[Aufpie]/.test(v.slice(1))', '/[ufpie]/.test(v.slice(1))', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-GITCOMMIT-bo-a', 'A3', 'gac', [(NG, "'naio'.includes(v[x])", "'nio'.includes(v[x])", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-GITPUSH-moi-nhanh', 'A3', 'gac', [(NG, 'vt[1] !== dung', 'false', 1)], r'✗ (ca |tự sinh|đối chiếu)'),
+  ('A3-SED-i-ngan', 'A3', 'gac', [(NG, "if (v[j] === 'i' && luat('SED-I'))", "if (v[j] === 'Z' && luat('SED-I'))", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-RM-bo-realpath', 'A3', 'gac', [(NG, '!(trongNhap(abs, nc) && trongNhap(thuc(abs), nc))', '!(trongNhap(abs, nc))', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-CURL-moi-host', 'A3', 'gac', [(NG, "!['localhost', '127.0.0.1'].includes(host)", "!['localhost', '127.0.0.1', host].includes(host)", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-LN-dao-s', 'A3', 'gac', [(NG, "if (ten === 'ln' && !coCo('-s', '--symbolic'))", "if (ten === 'ln' && coCo('-s', '--symbolic'))", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-G1CAM-theoten', 'A3', 'gac', [(NG, 'khop(nc.cauHinh.file_cam, rel, true)', 'khop(nc.cauHinh.file_cam, rel, false)', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-FINDCAM-bo-delete', 'A3', 'gac', [(NG, '/^-(delete|exec|execdir|ok|okdir|fls|fprint0?|fprintf)$/', '/^-(exec|execdir|ok|okdir|fls|fprint0?|fprintf)$/', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-NPM-them-install', 'A3', 'gac', [(NG, "['test', 'ci', 'run', 'ls'].includes(sub.val)", "['test', 'ci', 'run', 'ls', 'install'].includes(sub.val)", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-MKDIR-bo-khung', 'A3', 'gac', [(NG, 'ngoaiKho(rel) || KHUNG.test(rel)', 'ngoaiKho(rel)', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-TARX-moi-dich', 'A3', 'gac', [(NG, '!trongNhap(thuc(path.resolve(cwd.d, d.val)), nc)', 'false', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-FILEC-bo-ngan', 'A3', 'gac', [(NG, "laDai(w.val, '--compile') || /^-[a-zA-Z]*C/.test(w.val)", "laDai(w.val, '--compile')", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-BGAN-bo-PATH', 'A3', 'gac', [(NG, 'PATH|NODE_OPTIONS', 'NODE_OPTIONS', 1)], r'✗ (ca |tự sinh)'),
+  ('A3-CCLA-them-la', 'A3', 'gac', [(NG, "'SubagentHandback']);", "'SubagentHandback', 'Bash2']);", 1)], r'✗ (ca |tự sinh)'),
+  ('A3-GHIDUOC-bo-khung', 'A3', 'gac', [(NG, "KHUNG.test(rel) || rel.startsWith('.tu_chay_nhat_ky')", 'false', 1)], r'✗ (ca |tự sinh)'),
 ]
 
 # ═══ Bản sao + lệnh ══════════════════════════════════════════════════════════

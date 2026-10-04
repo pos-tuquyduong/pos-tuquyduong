@@ -14,3 +14,63 @@ LẠC   G3  G3-sap  (0 s) · [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả
 
 # K5 ngắt giữa chừng: timeout -s INT 30 python3 viec/AUDIT-1/dot_bien.py G3-vo-hai (2 lần; lần 2 sau khi thêm giết nhóm tiến trình con)
 #   → thoát 124 (timeout gửi INT) · tiến trình con còn chạy: 0 · /tmp/audit1_* + /tmp/gia_lap_* còn sót: 0 · git status ngoài viec/AUDIT-1/: rỗng
+
+# ── Nhóm A ──────────────────────────────────────────────────────────────────
+# A2: node tu_chay/thu_nguoi_gac.js → 786/786 ca đúng mã · mọi tắt-mã bắt được · XANH
+# A3: python3 viec/AUDIT-1/dot_bien.py A3 → BẮT 15 · SỐNG 1 (A3-CCLA-them-la) · HỎNG 0 · LẠC 0
+# A4: node viec/AUDIT-1/lach.js → 52/52 CHẶN · 0 LỌT:
+
+CHẶN [nhắm NG-JSON] tool_input thiếu command → CHAN:B-PHANTICH
+CHẶN [nhắm NG-GOC] không có gốc kho → CHAN:NG-GOC
+CHẶN [nhắm CC-LA] công cụ tên lạ (ShellExec) → CHAN:CC-LA
+CHẶN [nhắm CC-LA] MultiEdit file cấm → CHAN:G1-CAM
+CHẶN [nhắm G1-KHUNG] Edit .claude/settings.json → CHAN:G1-KHUNG
+CHẶN [nhắm G1-KHUNG] ghi nhật ký người gác → CHAN:G1-KHUNG
+CHẶN [nhắm G1-CAM] Write .env.local → CHAN:G1-CAM
+CHẶN [nhắm G1-CAM] Edit .github/workflows/x.yml → CHAN:G1-CAM
+CHẶN [nhắm G0-NGOAI] Write ra ngoài kho bằng .. → CHAN:G0-NGOAI
+CHẶN [nhắm G5-NGOAIPV] Edit file ngoài phạm vi → CHAN:G5-NGOAIPV
+CHẶN [nhắm G-LUAT] Edit file luật (glob chung trong phạm vi) → CHAN:G-LUAT
+CHẶN [nhắm B-GHI-CHUYENHUONG] ghi đè .env qua > → CHAN:B-BIMAT-FILE
+CHẶN [nhắm B-TEE] tee vào file cấm → CHAN:G1-CAM
+CHẶN [nhắm B-GAN] đặt NODE_OPTIONS trước lệnh → CHAN:B-GAN
+CHẶN [nhắm B-BIMAT-FILE] cat .env → CHAN:B-BIMAT-FILE
+CHẶN [nhắm B-BIMAT-CHU] in TOKEN → CHAN:B-BIMAT-CHU
+CHẶN [nhắm B-MANOI] node -e ghi .claude → CHAN:B-MANOI
+CHẶN [nhắm B-CHUONGTRINH] chạy python2 lạ → CHAN:B-CHUONGTRINH
+CHẶN [nhắm B-CHUONGTRINH] eval qua sh -c → CHAN:B-CHUONGTRINH
+CHẶN [nhắm B-DUONGDAN] gọi nhị phân qua đường lạ → CHAN:B-DUONGDAN
+CHẶN [nhắm B-TENCHU] tên chương trình qua biến → CHAN:B-TENCHU
+CHẶN [nhắm B-PHANTICH] thay thế số học → CHAN:B-PHANTICH
+CHẶN [nhắm B-BASHFILE] bash chạy script ngoài → CHAN:B-CHUONGTRINH
+CHẶN [nhắm B-CD-KHUNG] cd .git rồi sửa → CHAN:B-CD-KHUNG
+CHẶN [nhắm GIT-PUSH] push main → CHAN:GIT-PUSH
+CHẶN [nhắm GIT-PUSH] push nhánh khác → CHAN:GIT-PUSH
+CHẶN [nhắm GIT-PUSH] push refspec xoá → CHAN:GIT-PUSH
+CHẶN [nhắm GIT-LENH] git reset --hard → CHAN:GIT-LENH
+CHẶN [nhắm GIT-LENH] git merge → CHAN:GIT-LENH
+CHẶN [nhắm GIT-TUYCHON] git -C ngoài kho → CHAN:GIT-TUYCHON
+CHẶN [nhắm GIT-ADD] git add -A → CHAN:GIT-ADD
+CHẶN [nhắm GIT-ADD] git add thư mục → CHAN:GIT-ADD
+CHẶN [nhắm GIT-COMMIT-CO] commit --no-verify → CHAN:GIT-COMMIT-CO
+CHẶN [nhắm GIT-COMMIT-NHANH] commit trên main → CHAN:GIT-COMMIT-NHANH
+CHẶN [nhắm NPM-LENH] npm install → CHAN:NPM-LENH
+CHẶN [nhắm PY-PATCH] chạy patch_*.py → CHAN:PY-PATCH
+CHẶN [nhắm PY-M] python3 -m http.server → CHAN:PY-M
+CHẶN [nhắm PY-SO] ghi sổ việc → CHAN:PY-SO
+CHẶN [nhắm NODE-CAIDAT] chạy cai_dat.js → CHAN:NODE-CAIDAT
+CHẶN [nhắm RM-NHAP] rm trong kho → CHAN:RM-NHAP
+CHẶN [nhắm CP-DEQUY] cp -r vào .claude → CHAN:CP-DEQUY
+CHẶN [nhắm MV-NGUON] mv file cấm đi → CHAN:B-BIMAT-FILE
+CHẶN [nhắm LN-CUNG] ln cứng tới file cấm → CHAN:B-BIMAT-FILE
+CHẶN [nhắm TAR-X] tar giải nén vào kho → CHAN:TAR-X
+CHẶN [nhắm TAR-LA] tar chạy chương trình → CHAN:TAR-LA
+CHẶN [nhắm SED-I] sed -i file luật → CHAN:SED-I
+CHẶN [nhắm AWK-GHI] awk ghi file → CHAN:AWK-GHI
+CHẶN [nhắm FIND-CAM] find -delete → CHAN:FIND-CAM
+CHẶN [nhắm CURL-HOST] curl ra ngoài → CHAN:CURL-HOST
+CHẶN [nhắm CURL-GHI] curl -o file cấm → CHAN:B-BIMAT-FILE
+CHẶN [nhắm MKDIR-DICH] mkdir trong .git → CHAN:MKDIR-DICH
+CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
+
+  52/52 lệnh lách bị chặn · 0 LỌT
