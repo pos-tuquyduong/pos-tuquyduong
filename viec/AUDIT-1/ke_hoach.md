@@ -68,7 +68,7 @@ KHÔNG đột biến, 3 bản cùng lúc (`-j 3`) → phải xanh cả 3. Không
 | E2 | đếm ca trong `bang_chung_do.txt` từng việc vs số ca bài thử hiện tại; grep từng tên đột biến cũ trong `trang_thai.md` của việc đó | 0 | <1 phút |
 | F1/F2 | đọc 6 tài liệu, grep từ khoá cơ chế (`chặn|cấm|bắt buộc|phải đỏ|tự kiểm|cổng bắt|không được|KHÔNG`) → mỗi câu: dẫn phép kiểm (file:dòng / tên ca) hoặc CHƯA KIỂM; câu nghi sai → thử thật bằng dữ liệu (A4/B) → NẶNG nếu sai. Ghi `f_tai_lieu.md` | 0 | đọc tay |
 
-**Tổng máy ≈ 95 phút** (trên 90 phút của phiếu) → xem §5.
+**Tổng máy ≈ 95 phút** (trước khi sửa theo §8; sau §8 ước ≈ 85 phút) (trên 90 phút của phiếu) → xem §5.
 
 ## 3. Ca thử ánh xạ 1-1 với mục Nghiệm thu
 
@@ -126,3 +126,60 @@ thật xanh cuối việc; (5) không chạy lệnh lách nào — A4 chỉ truy
   `✗ <ca>`, không phải "thoát ≠ 0"; sập = LẠC.
 - `thu_P20/P21` không nhận `--may-chu` → phải chạy trên bản sao kho đủ (chép ~ cả kho trừ `attached_assets/`).
 - Người gác chặn lệnh của chính phiên (đã gặp B-PHANTICH) → mọi đo đạc viết thành script, không viết lệnh shell ghép.
+
+## 8. Sửa sau vòng soát kế hoạch (agent chỉ đọc, 04.10.2026) — §8 THẮNG các dòng trên nếu lệch
+
+Đã tự kiểm lại từng điểm bằng code trong lượt này trước khi nhận.
+
+**Ra ngoài phạm vi (phải sửa):**
+1. **E1 không gọi nguyên `viec/TU-CHAY-4/dot_bien.py`**: kiểu `tai_cho` của nó ghi THẲNG vào file thật rồi chép lại
+   (`viec/TU-CHAY-4/dot_bien.py:32-36, 56-63`) → phạm "không đổi byte ngoài `viec/AUDIT-1/`". Chỉ gọi nó với lọc tên các
+   mục chạy trên bản sao (`gl`); các mục `tai_cho` làm lại trên BẢN SAO kho trong `dot_bien.py` của AUDIT-1, cùng chuỗi.
+   Bản thân việc một `dot_bien.py` cũ sửa file thật (ngắt giữa chừng = kho bẩn) ghi thành phát hiện nhóm E.
+2. Ca người gác chạy bằng tiến trình thật: `CLAUDE_PROJECT_DIR` LUÔN trỏ vào kho giả trong thư mục tạm — hook ghi
+   `.tu_chay_nhat_ky.jsonl` vào gốc đó (`tu_chay/nguoi_gac.js:942-948`), file bị `.gitignore` nên `git status` không thấy;
+   K5 thêm phép: mtime + cỡ `.tu_chay_nhat_ky*.jsonl` của kho thật không đổi bởi `dot_bien.py`.
+3. Không liên kết mềm `client/node_modules`; phép `--day-du` (build client) chạy NỐI TIẾP, chép `client/` riêng; K5 thêm
+   chụp mtime `client/node_modules/.vite` (nếu có) trước/sau.
+4. `cong_cu/thu_p1.js` ghi kho thật (nạp `server/ketNoiKho`) — KHÔNG BAO GIỜ chạy; B3 ghi nó là "khớp `laBaiThu` nhưng
+   không phải bài thử an toàn" (ứng viên phát hiện).
+
+**Cách ngắn hơn (nhận):**
+- Bản sao theo NHU CẦU, không chép cả kho: C2 tầng 2 = bản sao `server/` + `cong_cu/thu_P20.js`, `thu_P21.js` + liên kết
+  `node_modules` (hai bài lấy `GOC = __dirname/..`, `cong_cu/thu_P20.js:25`), chạy thẳng hai bài — không `npm test`
+  (P26a/P26b đã chạy ở tầng 1). B1/A3 = chép `tu_chay/` + `.github/workflows/keep-alive.yml` theo khuôn
+  `viec/HOC-1/dot_bien.py:9`. Chỉ D1 cần bản sao đủ kho.
+- A1/B3: `thu_nguoi_gac.js` và `cong.js` không xuất `CA` / `laBaiThu` (`tu_chay/cong.js:259` chỉ `{ cong }`) → A1 đọc
+  NGUỒN theo mẫu lời gọi `ca(` / `B(` / `E(` / `W(` và đối chiếu tên ca trong đầu ra; B3 dựng lại quy tắc từ code
+  `laBaiThu` (`tu_chay/cong.js:36-37`) + `thu_muc_bai_thu`, ghi rõ là bản dựng lại, và kiểm chéo bằng một PR giả trong
+  `thu_cong.js` nếu được — không thì ghi CHƯA KIỂM.
+
+**Ca nghiệm thu bổ sung:**
+- **B1:** `tat` có sẵn chỉ phủ A6–A14 (`tu_chay/thu_cong.js:336-347`); A3, A4, A5 không có ca `tat` → đó là PHÁT HIỆN,
+  và B1 thêm đột biến "bỏ kiểm" + VÁ SAI riêng cho A3, A4, A5 trên bản sao `cong.js`. **A15** (bước chặn PR từ fork trong
+  `tu_chay/cong_github.yml`, `thu_cong.js:416,457`) vào bảng B1 với ≥1 VÁ SAI trên bản sao yml.
+- **A1/A4 với mã "cho qua"** (CC-DOC, G-NHAP, G-PLANS, G3-HOSO, G4-PHAMVI, G-HOANTAC, B-DEV, B-TIMEOUT, B-BASHTHEM…;
+  máy liệt kê bằng các mã mà `xet()` trả `CHO`): ca bắt buộc đảo lại = ≥1 ca CHO đúng mã + ≥1 ca CHẶN gần nhất; "lách" =
+  lệnh nguy hiểm khoác vỏ mã cho qua (vd ghi file luật qua đường nháp có `..`). NG-JSON/NG-GOC/NG-CAUHINH lách bằng JSON
+  đầu vào / biến môi trường, không bằng lệnh. Máy kiểm "đủ 74" theo hai bảng (chặn / cho qua).
+- **Lối hook:** NG-LOI, NG-GIO, NG-TRAN, NG-NHATKY có trong `MO_TA` mà không trong `LUAT` (`tu_chay/nguoi_gac.js:95-100`),
+  chỉ tới được qua stdin → ca tiến trình thật nhắm đúng 4 mã này (≥1 mỗi mã) trên bản sao người gác.
+- **A3 ↔ cổng:** `cong.js` nạp `nguoi_gac.js` (`tu_chay/cong.js:16`, `xetPhamVi`/`phamViTuChu`) → đột biến VÁ SAI ở hai
+  hàm đó chạy CẢ `thu_nguoi_gac.js` lẫn `thu_cong.js`; BẮT nếu một trong hai bắt.
+- **G3 thêm ca thứ tư `G3-sap`:** làm hỏng cú pháp `server/routes/orders.js` của bản sao → phải in **LẠC**, không phải
+  BẮT (đây đúng là K3: đỏ vì sập ≠ bắt).
+- **E1 ánh xạ đầu ra cũ:** HOC-1 `LỖI`→HỎNG, `ĐỎ nhưng SAI chỗ`→LẠC, `XANH — SỐNG`→SỐNG (`viec/HOC-1/dot_bien.py:50-60`);
+  TU-CHAY-4 `LỖI`→HỎNG, `SAI`→SỐNG/LẠC tách theo mã thoát (`:70-71`); P26b dùng chung ✗ → tách theo chữ "không áp được"
+  (HỎNG) và "thoát 0" (SỐNG), còn lại LẠC (`viec/P26b/dot_bien.py:186,197`). Ca đối chứng `M0` không đếm là đột biến.
+  E1 chạy MỘT MÌNH (P26b tự mở 6 luồng, `:193`) — không chung hàng chờ với nhóm khác.
+- **Kiểm sạch** chạy cho TỪNG loại bản sao (chỉ `server/`, chỉ `gia_lap/`, `tu_chay/`, đủ kho).
+- **G1:** bảng tỷ lệ có 5 cột BẮT · SỐNG · HỎNG · LẠC · TREO; tỷ lệ BẮT = BẮT / (tổng − HỎNG); LẠC và TREO KHÔNG cộng vào
+  BẮT, mỗi cái liệt kê tên để chạy lại.
+
+**Song song / thư mục tạm:**
+- Mỗi việc chạy đặt `TMPDIR` = thư mục con trong thư mục tạm của chính nó → `rmtree` dọn được cả `gia_lap_*` khi TREO
+  (giả lập chỉ dọn ở `process.on('exit')`, `cong_cu/gia_lap/chay.js:52`); chạy con bằng `start_new_session=True` và giết
+  cả nhóm tiến trình khi quá giờ.
+- `viec/P26b/thu_kho_ban.js` dùng đường cố định `tmpdir()/p26b_kho_ban.db` (`:5`) — chỉ chạy qua E1 (một mình), TMPDIR
+  riêng.
+- `-j 3` mặc định; ngay trước C3 không chạy gì khác (đo nối tiếp).
