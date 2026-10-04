@@ -100,3 +100,7 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 #     AU-F1: CLAUDE.md:113 "chiết khấu/gói/mã — bộ kiểm nhóm E canh" nói quá (E2 chỉ canh from_package; discount không phép — ghi chú E6 tự nhận)
 #     AU-F2: CLAUDE.md:26 "36 phép lúc 24.09" → HEAD nay 61 phép (ảnh cũ có ngày)
 # F2: lời dặn đã có phép kiểm thay (fetch trần→C1, git add -A→người gác, --no-verify→GIT-COMMIT-CO) → đề xuất rút; str_replace tiếng Việt GIỮ (không phép máy)
+
+# ── B4 + G5 ──────────────────────────────────────────────────────────────────
+# B4: node tu_chay/cong.js tinh . b94110e 62b90ce viec/AUDIT-1 → ✓ CỔNG TĨNH ĐẠT
+# G5: git diff --stat b94110e -- . ':!viec/AUDIT-1' → rỗng; git status ngoài viec/AUDIT-1 → sạch; npm test → PASS 61 FAIL 0
