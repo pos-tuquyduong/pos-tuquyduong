@@ -6,8 +6,9 @@ HEAD b9759cf, đo 04.10.2026. Bản nhanh: **61 phép** (`PASS 61` ở đầu ra
 
 ## D1 — mẫu đại diện: đột biến code đích → phép đỏ
 
-`python3 viec/AUDIT-1/dot_bien.py D1` (bản sao đủ kho; bài chạy thật thay stub để nhanh — các phép này đều TĨNH, không
-đụng bài thật): **10/10 BẮT** mỗi phép ở một nhóm:
+`python3 viec/AUDIT-1/dot_bien.py D1` — **46 BẮT · 0 SỐNG · 2 LẠC** (soát vòng 2: ĐỦ mỗi phép một đột biến RIÊNG, không
+còn "lấy mẫu 10"). Các phép TĨNH chạy stub bài thật (nhanh); 7 phép CHẠY THẬT dùng tên `!D1-…` (không stub). Mẫu 10
+tiêu biểu một nhóm:
 
 | phép | đột biến code đích | dòng đỏ |
 |---|---|---|
@@ -22,10 +23,14 @@ HEAD b9759cf, đo 04.10.2026. Bản nhanh: **61 phép** (`PASS 61` ở đầu ra
 | S3 danh sách ví | bỏ `'adjust'` khỏi `bat_bien.js` | ✗ giả lập: danh sách trắng ví |
 | F3 npm test | đổi `test` → file không tồn tại | ✗ npm test trỏ vào file có thật |
 
-Các phép TĨNH còn lại cùng khuôn (so chuỗi/cấu trúc code thật) nên cũng đỏ được khi sửa đích — AUDIT-1 lấy mẫu 10, ghi
-phần còn lại CHƯA KIỂM (không chạy từng cái; cùng khuôn với 10 cái trên). Phép CHẠY THẬT (E11 `thu_P20/P21/P26a/P26b`,
-T1 `thu_nguoi_gac`, T1b `thu_cong_cu`, T1c `thu_cong`) là thật — bằng chứng: nhóm C2/E1 làm chính các bài đó ĐỎ khi vá
-sai code đường tiền / người gác / cổng. D5/S4 (--day-du) đỏ được: D1-... đã chứng bằng S3; D5 build-lại đỏ khi `src`
+AUDIT-1 nay có đột biến RIÊNG cho từng phép TĨNH của B/D/E/F/K/S (A2, A2c, B2, handleSE, cờ song song, pathname,
+SESSION_DEAD_CODES đủ-5/không-service, ErrorBoundary tồn-tại/getDerived/main/Layout/key, ahref, POS-5/6, build-prod,
+giá-0, authz-thô, TRANG_THAI_DUNG_MA, danh-sách-trắng, claim/nhan-diem chiếm-mã, ví tương-đối/trắng-5, ketNoiKho 4-ca,
+gitignore data/attached/dist) — tất cả BẮT. Phép CHẠY THẬT dùng tên `!D1-…`: **thu_P21, thu_P26b, thu_nguoi_gac,
+thu_cong_cu, thu_cong** có đột biến làm CHÍNH file đó in dòng đỏ RIÊNG ⇒ live; **thu_P26a** live qua `C2F-loyalty-03`
+(C8). **thu_P20: CHƯA KIỂM liveness (AU-G5)** — đột biến riêng (`!D1-E11-P20`) bị phép TĨNH E7 chặn trước → LẠC, chưa
+có đột biến nào làm `thu_P20.js` đỏ dòng riêng (soát vòng 2; đúng cảnh báo KHUON_LOI K3 TU-CHAY-4). D5/S4 (--day-du)
+đỏ được: S3 đã chứng nhóm S; D5 build-lại đỏ khi `src`
 lệch `dist` (kiểm chứng lịch sử 24.08 ghi trong code).
 
 ## Phép chỉ CẢNH BÁO (không có nhánh FAIL) = không bao giờ làm quầy ĐỎ
@@ -44,3 +49,11 @@ lệch `dist` (kiểm chứng lịch sử 24.08 ghi trong code).
   ? 0` cùng tồn tại → `✗ POST /orders có cổng phân quyền`), nên không SỐNG.
 
 → Không phép TĨNH nào SỐNG (sửa đích là đỏ); hai chùm `canhBao`-thuần (F2, T2–T4) là "mềm" — ghi NHẸ.
+
+## Phép CHƯA KIỂM riêng (soát vòng 2 — thành thật)
+- **D2/D3/D4** (bundle `dist` không-phải-dev / index.html trỏ bundle thật / bundle có dấu vết): CHƯA có đột biến riêng
+  — cần sửa bundle đã-băm trong `client/dist/assets/*.js` (tên phụ thuộc hash). D5 (--day-du build-lại) chứng gián tiếp
+  dist-khớp-src; D1-D-build chứng script. Đề xuất HOC-2: đột biến chèn 'Download the React DevTools' vào bundle hiện có.
+- **thu_P20 liveness (AU-G5):** như trên — chưa chứng minh đỏ được.
+Vậy "D1 đủ" = 46 đột biến phủ mọi phép TĨNH + 6/7 phép chạy-thật; NGOẠI LỆ CHƯA KIỂM: D2/D3/D4, thu_P20, và 2 chùm
+canhBao-thuần (F2, T2–T4) vốn không có nhánh FAIL.

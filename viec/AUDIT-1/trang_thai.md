@@ -107,6 +107,28 @@ GIT:       xem `git log --oneline` nhánh viec/AUDIT-1 (đã push mỗi nhóm; v
 BÀI HỌC:   KHOÁ (đã làm: K5 anh_kho, C2F, D1 đủ) + đề xuất HOC-2 (bất biến loyalty/voucher/gói, CONG_CU_DOC, A14, neo
            đột biến cũ, T2-T4) · NGUYÊN TẮC 3 (K8 báo oan; K3 đột biến rữa; phân loại đường tiền theo đối tượng) · BỎ 2.
 
-KẾT QUẢ CHÍNH: câu ví/điểm-tích/hoàn/debt LÕI vững (40 BẮT, không SỐNG). Lưới KHÔNG phủ 16 câu đụng tiền → 3 nhóm NẶNG
-(AU-G1 đổi điểm→voucher, AU-G2 voucher dùng-lại khi bán, AU-G3 gói/thẻ trả trước) + AU-G4 NHẸ-tiền; 12 phát hiện NHẸ
+KẾT QUẢ CHÍNH: câu ví/điểm-tích/hoàn/debt LÕI vững (40 BẮT, không SỐNG). Lưới KHÔNG phủ 17 câu đụng tiền → 3 nhóm NẶNG
+(AU-G1 đổi điểm→voucher, AU-G2 voucher dùng-lại khi bán, AU-G3 gói/thẻ trả trước + huỷ-đơn-gói rò tiền) + AU-G4/G5 NHẸ; 12 phát hiện NHẸ
 khác; 3 đột biến hồ sơ cũ HỎNG trên HEAD. Đầu vào duy nhất của HOC-2 là bao_cao.md + c2_day_du.md.
+
+
+## Soát độc lập vòng 2 — kết quả (04.10.2026) — KHÔNG ĐẠT, đã sửa trong Phạm vi
+Agent chạy thật, lõi báo cáo vững (G3 sạch, nhãn C2F khớp, AU-G1/G2/G3 đúng — đã kiểm orders-05/21, loyalty-01,
+packages-05, G3 in "✓ kho thật không đổi"), NHƯNG bắt 2 điểm:
+1. **Phân loại SAI `orders-22`** (`orders.js:1357` DELETE customer_packages): tôi xếp "xoá đơn admin/hiếm NHẸ". Thực
+   ra ở `PUT /:id/cancel` (quyền `cancel_order`, KHÔNG owner — khoá owner `:1464` chỉ ở route DELETE). Bỏ câu → huỷ đơn
+   mua-gói HOÀN TIỀN (ghiVi refund :1333) mà customer_package vẫn 'active' = RÒ TIỀN cấp quầy. Cùng khuôn loyalty vòng 1.
+   → chuyển orders-22 + orders-24 (membership trong cùng route cancel) lên AU-G3; ghi caveat classifier chỉ đọc
+   middleware ở `router.<verb>(`, không đọc khoá owner trong thân hàm (orders-31/35/36/37/38 ở DELETE mới thật owner-only).
+2. **thu_P20 liveness CHƯA chứng minh**: báo cáo gộp P20 với P21/P26b "vẫn failable". Chạy thật: !D1-E11-P21/P26b BẮT
+   (dòng riêng), !D1-E11-P20/P26a LẠC (bị phép tĩnh E7/refunds chặn trước). thu_P26a live qua C2F-loyalty-03 C8; nhưng
+   **thu_P20 chưa đột biến nào làm nó đỏ dòng riêng** → ghi CHƯA KIỂM liveness (AU-G5), đúng cảnh báo K3/TU-CHAY-4.
+NGHI NGỜ agent nêu (nhận): "D1 ĐỦ" nói quá so với d_bang → đã sửa d_bang/bao_cao nêu rõ ngoại lệ (D2/D3/D4, thu_P20,
+canhBao T2-T4/F2). Classifier không đọc được role runtime (cancel_order/adjust_balance là quầy hay owner) — caveat đã ghi.
+
+## Bài học bổ sung (vòng 2)
+- **NGUYÊN TẮC K1:** xác định "đường khách/quầy chạm" phải bằng MIDDLEWARE + đọc THÂN HÀM (khoá `role==='owner'` nằm
+  TRONG hàm, classifier theo `router.<verb>(` không thấy) — không bằng chữ "admin/hiếm" trong văn xuôi. Ví dụ thật:
+  orders-22 (cancel, cancel_order) bị xếp nhầm admin NHẸ, thực là rò tiền quầy.
+- **KHOÁ K3:** một bài chạy-thật chỉ được tính "còn sống" khi có đột biến làm CHÍNH file đó in dòng đỏ RIÊNG; LẠC (bị
+  phép tĩnh chặn trước) KHÔNG chứng minh liveness. thu_P20 phải ghi CHƯA KIỂM cho tới khi có đột biến phá đúng thứ nó canh.

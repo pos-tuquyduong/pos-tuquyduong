@@ -15,8 +15,9 @@ LẠC = `C2F-orders-02` (bỏ INSERT pos_orders → FK gãy → giả lập SẬ
 - **C2F-orders-10-update-quay**: lấy hàng từ gói: customer_package_id của đơn không gán → sai liên kết gói
 - **C2F-orders-11-insert-quay**: mua thẻ thành viên: pos_membership_purchases không ghi → thẻ trả tiền mà không có bản ghi
 - **C2F-orders-21-update-quay**: trừ lượt giao của gói (delivered_qty) không chạy → khách lấy hàng từ gói quá số lượt
+- **C2F-orders-22-delete-quay**: HUỶ đơn mua-gói (quyền cancel_order, KHÔNG owner): customer_package KHÔNG xoá → khách được hoàn tiền (ghiVi refund :1333) mà VẪN giữ gói lấy hàng sau = RÒ TIỀN cấp quầy
 - **C2F-orders-23-update-quay**: đơn mua-gói: customer_package_id không gán
-- **C2F-orders-24-delete-quay**: huỷ đơn mua thẻ: pos_membership_purchases không xoá → thẻ ảo còn lại
+- **C2F-orders-24-delete-quay**: HUỶ đơn (quyền cancel_order, KHÔNG owner): pos_membership_purchases không xoá → khách được hoàn tiền mà thẻ thành viên vẫn còn = RÒ TIỀN
 - **C2F-orders-25-update-quay**: huỷ/xoá đơn: hoàn lượt gói (delivered_qty) không chạy
 - **C2F-orders-30-update-quay**: xoá đơn: lượt gói không hoàn
 - **C2F-orders-32-update-quay**: xoá đơn mua-gói: delivered_qty của gói khác không chỉnh
@@ -26,7 +27,9 @@ LẠC = `C2F-orders-02` (bỏ INSERT pos_orders → FK gãy → giả lập SẬ
 - **C2F-don-mo-rong-01-update-quay**: đổi cách trả: số cash/transfer không đổi → sai PHÂN LOẠI tiền (tổng không đổi)
 - **C2F-discount-codes-05-update-quay**: /increment-usage không tăng used_count (endpoint riêng, chưa rõ có gọi ở quầy)
 
-## SỐNG dọn dẹp / degraded (NHẸ — không mất tiền)
+**Caveat phân loại (soát vòng 2 bắt):** nhãn `-quay/-tri` chỉ đọc MIDDLEWARE ở dòng `router.<verb>(`, KHÔNG đọc khoá owner TRONG thân hàm. orders-31/35/36/37/38 (:1515-1543) nằm trong `DELETE /:id` có `if(req.user.role!=="owner") 403` (:1464) nên THẬT là owner-only (admin) dù nhãn ghi -quay. Ngược lại orders-22/24 (:1357,:1372) ở `PUT /:id/cancel` (quyền cancel_order, KHÔNG owner) là QUẦY — đã chuyển lên nhóm tiền.
+
+## SỐNG dọn dẹp / degraded (NHẸ — không mất tiền; orders-31/35/36/37/38 là owner-only DELETE)
 - stock_pending (orders-07/27/39): chỉ chạy khi SX lỗi; SX giả không lỗi nên KB không chạm.
 - registrations (orders-13/14): ghi SĐT/ghi chú sang SX — không phải sổ tiền quầy.
 - DELETE dọn khi xoá đơn (orders-22/31/35/36/37/38): để lại dòng mồ côi, không bất biến nào canh orphan; xoá đơn là thao tác hiếm/admin.

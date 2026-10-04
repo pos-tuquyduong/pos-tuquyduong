@@ -114,3 +114,8 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 # B1 thêm (A8/A9/A13/A15): 4/4 BẮT (A8 xoá cai_dat, A9 keep-alive.yml đổi, A13 --day-du, A15 đảo chặn fork trên bản sao cong_github.yml).
 # A4b: 44/74 mã có lệnh lách; 30 mã CHƯA KIỂM (mã CHO-qua / env / trùng A3) — a_bang_luat.md.
 # E2b: bang_chung_do cũ thu_nguoi_gac 780/782 → nay 786/786; số ca trôi theo thời gian (không tự kiểm lại).
+
+# ── ra-soát vòng 2 (round 2) — sửa 2 điểm ────────────────────────────────────
+# orders-22/24 (route PUT /:id/cancel, quyền cancel_order KHÔNG owner) chuyển NHẸ→AU-G3 (rò tiền: hoàn tiền mà gói/thẻ còn). 17 SỐNG tiền.
+# thu_P20 liveness CHƯA KIỂM (AU-G5): !D1-E11-P20 LẠც (E7 tĩnh chặn trước); P21/P26b/P26a/T1/T1b/T1c live có dòng riêng.
+# D1 "đủ" = 46 đột biến phủ mọi phép TĨNH + 6/7 chạy-thật; ngoại lệ CHƯA KIỂM: D2/D3/D4 (bundle băm), thu_P20, canhBao T2-T4/F2.

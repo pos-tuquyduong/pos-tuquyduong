@@ -6,9 +6,10 @@ Chi tiết từng nhóm: `a_bang_luat.md` (A), `b_bang.md` (B), `c_bang.md` + `c
 
 ## Kết luận một dòng
 C2 ĐỦ (86 câu ghi ở 11 file routes tiền, mỗi câu một đột biến bỏ câu): **40 BẮT · 45 SỐNG · 1 LẠC**. Câu ghi ví/điểm
-tích/hoàn/debt LÕI được lưới phủ (BẮT). NHƯNG lưới KHÔNG phủ **16 câu đụng tiền/điểm/gói**, trong đó **3 nhóm NẶNG**:
+tích/hoàn/debt LÕI được lưới phủ (BẮT). NHƯNG lưới KHÔNG phủ **17 câu đụng tiền/điểm/gói**, trong đó **3 nhóm NẶNG**:
 AU-G1 đổi điểm→voucher (`/loyalty/redeem`: trừ điểm + đẻ mã), AU-G2 voucher dùng khi BÁN không tăng `used_count`
-(mã dùng-một-lần dùng lại được), AU-G3 gói & thẻ trả trước (mua gói / lấy hàng từ gói / mua thẻ — không KB nào chạm).
+(mã dùng-một-lần dùng lại được), AU-G3 gói & thẻ trả trước (mua gói / lấy hàng từ gói / mua thẻ — và **HUỶ đơn mua-gói
+ở route `cancel` quyền quầy: hoàn tiền mà gói/thẻ vẫn còn = rò tiền** — soát vòng 2 bắt — không KB nào chạm).
 Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đổi cách trả, /increment-usage) là NHẸ. Ngoài đường tiền:
 12 phát hiện NHẸ (đột biến cũ HỎNG, phép chỉ cảnh báo, tài liệu lệch, K5 báo oan). **Không câu ví/điểm-tích LÕI nào SỐNG.**
 
@@ -18,8 +19,9 @@ Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đ
 |---|---|---|---|---|---|
 | **AU-G1** | **C/G** | **NẶNG** | `loyalty.js:170` (trừ điểm), `:179` (đẻ mã) POST /redeem | `C2F-loyalty-01/02` + `C2-loyalty-redeem-tru-0` → **SỐNG** (`loyalty-03` voucher_grants BẮT qua thu_P26a C8, nhưng điểm-trừ + mệnh-giá-mã KHÔNG kiểm) | KB đổi-thưởng + bất biến: mỗi `pos_voucher_grant` có đúng một `redeem` trừ điểm khớp, `discount_value` = reward; I8 nới soát redeem |
 | **AU-G2** | **C/G** | **NẶNG** | `orders.js:895` UPDATE pos_discount_codes used_count (áp voucher khi BÁN) | `C2F-orders-05-update-quay` → **SỐNG** | KB bán có áp voucher dùng-một-lần + bất biến: `used_count ≤ usage_limit`, mã `usage_limit=1` không dùng được lần hai |
-| **AU-G3** | **C/G** | **NẶNG** | gói & thẻ trả trước: `orders.js` customer_packages/membership (`C2F-orders-10/11/21/23/24/25/30/32`), `packages.js:177` deliver (`C2F-packages-05`) | `python3 … dot_bien.py C2F-orders-21-update-quay` → **SỐNG** | KB mua gói → lấy hàng từ gói → hết lượt + bất biến: tổng `delivered_qty` ≤ `total_qty`, mỗi đơn lấy-từ-gói trừ đúng một lượt, huỷ đơn hoàn lượt |
+| **AU-G3** | **C/G** | **NẶNG** | gói & thẻ trả trước: `orders.js` customer_packages/membership (`C2F-orders-10/11/21/23/25/30/32`); **HUỶ đơn (quyền `cancel_order`, KHÔNG owner): `:1357` DELETE customer_packages (`orders-22`), `:1372` DELETE membership (`orders-24`)**; `packages.js:177` deliver (`C2F-packages-05`) | `python3 … dot_bien.py C2F-orders-21-update-quay C2F-orders-22-delete-quay` → **SỐNG** | KB mua gói → lấy hàng → hết lượt → HUỶ; bất biến: `delivered_qty` ≤ `total_qty`, huỷ đơn mua-gói phải xoá/huỷ gói (không hoàn tiền mà giữ gói) |
 | AU-G4 | C | NHẸ-tiền | ví đối soát tạo-mới (`C2F-wallets-08`), link sổ hoàn (`C2F-refunds-05`), đổi cách trả (`C2F-don-mo-rong-01`), /increment-usage (`C2F-discount-codes-05`) | `dot_bien.py C2F` | xem `c2_day_du.md` — mức NHẸ (admin/hiếm, hoặc tổng tiền không đổi) |
+| AU-G5 | D | NHẸ | `thu_P20.js` liveness chưa chứng minh (đột biến riêng bị E7 tĩnh chặn → LẠC) | `dot_bien.py !D1-E11-P20` → LẠC | đột biến phá đúng thứ thu_P20 canh (mã bill claim/nhan-diem) mà không phép tĩnh nào trùng |
 | AU-A1 | A | NHẸ | `nguoi_gac.js` CONG_CU_DOC `:105-107` | `python3 … dot_bien.py A3-CCLA-them-la` → SỐNG | thêm phép `thu_nguoi_gac` so `CONG_CU_DOC`/`CONG_CU_SUA` với tập cố định (ca đỏ: thêm 1 tên) |
 | AU-B1 | B | NHẸ | `cong.js` hai cổng A14 `:82,88` | `python3 … dot_bien.py B1-A14-bo-dang-nhanh` → SỐNG | ca `thu_cong`: phiếu ở `viec/<MÃ xấu>` + nhánh không dạng `viec/<MÃ>` → ĐỎ riêng cổng dạng-nhánh |
 | AU-B2 | B | NHẸ | `cau_hinh.json` 8 khoá nhãn | `python3 scratchpad/b2.py` | bỏ khoá-nhãn hoặc ghi chú phân biệt khoá-code/tài-liệu |
@@ -42,8 +44,11 @@ Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đ
   bị loại. **Ở quầy:** khách đổi quà mà không mất điểm, hoặc mã giảm giá sai mệnh giá.
 - **AU-G2 (NẶNG):** `orders.js:895` áp voucher khi BÁN, bỏ `UPDATE used_count` → SỐNG (không KB nào áp voucher trong bán).
   **Ở quầy:** mã giảm giá `usage_limit=1` DÙNG LẠI được nhiều lần.
-- **AU-G3 (NẶNG):** gói & thẻ trả trước (8 câu orders customer_packages/membership + `packages.js:177` deliver) SỐNG.
-  **Ở quầy:** mua gói/thẻ không ghi sổ, lấy hàng từ gói quá số lượt, huỷ đơn không hoàn lượt — tiền trả trước sai.
+- **AU-G3 (NẶNG):** gói & thẻ trả trước (orders customer_packages/membership + `packages.js:177` deliver) SỐNG. **Ở
+  quầy:** mua gói/thẻ không ghi sổ, lấy hàng quá số lượt; **HUỶ đơn mua-gói (route `cancel`, quyền quầy cancel_order,
+  KHÔNG owner): `orders-22/24` bỏ DELETE customer_packages/membership → khách được HOÀN TIỀN (ghiVi refund :1333) mà
+  VẪN giữ gói/thẻ = rò tiền cấp quầy** (soát vòng 2 bắt — trước xếp nhầm NHẸ "xoá đơn admin"; classifier chỉ đọc
+  middleware ở `router.<verb>(`, không đọc khoá owner trong thân hàm).
 - AU-G4 (NHẸ-tiền): ví đối soát tạo-mới (`wallets-08`), link sổ hoàn (`refunds-05`), đổi cách trả (`don-mo-rong-01`,
   tổng không đổi), `/increment-usage` (`discount-codes-05`, endpoint riêng). Xem `c2_day_du.md`.
 - AU-A1 / AU-B1 (NHẸ, không phải tiền): `CONG_CU_DOC` không khoá bằng test; hai cổng A14 chồng — chi tiết trong bảng.
@@ -64,8 +69,12 @@ Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đ
 
 A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (44/74 mã; 30 mã còn lại CHƯA KIỂM — `a_bang_luat.md` A4b).
 LẠC liệt kê riêng (chạy lại -j1 một lần vẫn LẠC): `C2F-orders-02` (bỏ INSERT pos_orders → FK sập); `!D1-E11-P20`,
-`!D1-E11-P26a` (code break bị phép TĨNH E7/refunds bắt trước nên kiem đỏ "CÓ LỖI", không khớp dòng bài-thật — hai phép
-chạy-thật này vẫn failable: thu_P26a đỏ được qua `C2F-loyalty-03` C8, thu_P20/P21/P26b qua `!D1-E11-P21/P26b` + C2F).
+`!D1-E11-P26a` (code break bị phép TĨNH E7/refunds bắt trước nên kiem đỏ "CÓ LỖI", không khớp dòng bài-thật).
+**Liveness các phép chạy-thật (soát vòng 2):** thu_P21 (`!D1-E11-P21`), thu_P26b (`!D1-E11-P26b`), thu_P26a
+(`C2F-loyalty-03` C8), thu_nguoi_gac/thu_cong_cu/thu_cong (`!D1-T1/T1b/T1c`) — đều có đột biến làm CHÍNH file đó in
+dòng đỏ RIÊNG ⇒ chứng minh "còn sống". **thu_P20: CHƯA KIỂM liveness** — không đột biến nào làm `thu_P20.js` in dòng
+đỏ của chính nó (đột biến riêng bị E7 tĩnh chặn trước → LẠC); có thể là bài luôn-xanh mà audit chưa phát hiện (đúng
+cảnh báo KHUON_LOI K3 / TU-CHAY-4). Đề xuất HOC-2: viết một đột biến phá đúng thứ thu_P20 canh mà không phép tĩnh nào trùng.
 
 Đột biến CŨ chạy lại (E1), LẠC/TREO không có:
 
