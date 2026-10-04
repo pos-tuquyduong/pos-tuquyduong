@@ -11,6 +11,19 @@ c3d5816 Merge pull request #8 from pos-tuquyduong/viec/P26b
 ```
 Có commit `PHIEU: AUDIT-1` → đúng việc.
 
+## Bản chụp lúc làm tiếp (04.10.2026, sau duyệt kế hoạch)
+```
+$ git branch --show-current
+viec/AUDIT-1
+$ git log --oneline -3
+b9759cf AUDIT-1: trang thai — vong soat ke hoach, phat hien ghi san
+fa17b35 AUDIT-1: ke hoach §8 — sua theo vong soat (E1 khong goi tai_cho, A15, ma NG loi hook, TMPDIR)
+08fb596 AUDIT-1: trang thai buoc 1-3, cau hoi thoi gian
+```
+Chủ quán duyệt kế hoạch tại b9759cf (§8 thắng), Câu hỏi thời gian = (a) chạy đủ. Thêm 5 dặn: D1 đột biến chỉ vào
+thứ phép soi; C2 NẶNG chỉ sau tầng 2 + dòng "ở quầy sẽ sai gì"; thu_p1.js KHÔNG chạy, xếp mức bằng đọc code;
+LẠC/TREO chạy lại -j 1 một lần; vượt ước lượng 1,5 lần thì ghi số đo, làm tiếp.
+
 ## Tiến độ
 - [x] Bước 1 — đối chiếu bản chụp
 - [x] Bước 2 — đọc phiếu, CLAUDE.md, KHUON_LOI.md, đo kích thước + thời gian từng nhóm

@@ -1,0 +1,16 @@
+# AUDIT-1 — G3: công cụ đo tự chứng minh (thay bước 4 "bài thử đỏ")
+# HEAD b9759cf + khung dot_bien.py; chạy 04.10.2026: python3 viec/AUDIT-1/dot_bien.py G3
+# mong: sai-chuoi → HỎNG · da-biet (= M1 pay-debt) → BẮT · vo-hai (đổi chữ ghi chú) → SỐNG · sap (hỏng cú pháp) → LẠC
+
+AUDIT-1 dot_bien: 4 đột biến · -j 3 · kiểm sạch 3 loại
+HỎNG  G3  G3-sai-chuoi  (0 s) · server/routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+BẮT   G3  G3-da-biet  (21 s) · [cong_cu/gia_lap/chay.js --den-kb 10] ✗ KB10 → I6: đơn ORD-20261004-013: đã ghi 50.000đ ≠ tổng 25.000đ, lệch 25.000đ
+SỐNG  G3  G3-vo-hai  (72 s) · mọi lệnh thoát 0
+LẠC   G3  G3-sap  (0 s) · [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả lập: SẬP — /tmp/audit1_4k73fi4m/db_7qlf1v1g/kho/server/routes/orders.js:823 ·       }}}{{{ ·       ^
+
+  tổng 4 · thời gian 168 s
+  G3  BẮT 1 · SỐNG 1 · HỎNG 1 · LẠC 1 · TREO 0
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-1/, nhật ký người gác, data/, .vite); thư mục tạm đã xoá
+
+# K5 ngắt giữa chừng: timeout -s INT 30 python3 viec/AUDIT-1/dot_bien.py G3-vo-hai (2 lần; lần 2 sau khi thêm giết nhóm tiến trình con)
+#   → thoát 124 (timeout gửi INT) · tiến trình con còn chạy: 0 · /tmp/audit1_* + /tmp/gia_lap_* còn sót: 0 · git status ngoài viec/AUDIT-1/: rỗng
