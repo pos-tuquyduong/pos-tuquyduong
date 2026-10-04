@@ -106,3 +106,30 @@ AUDIT-1 KHONG tu sua.
 
 ## G5 — moi ten dot bien trong dot_bien.py (41 ten; co mat o trang_thai nay cho HOC-2)
 G3-sai-chuoi G3-da-biet G3-vo-hai G3-sap A3-GITADD-bo-A A3-GITCOMMIT-bo-a A3-GITPUSH-moi-nhanh A3-SED-i-ngan A3-RM-bo-realpath A3-CURL-moi-host A3-LN-dao-s A3-G1CAM-theoten A3-FINDCAM-bo-delete A3-NPM-them-install A3-MKDIR-bo-khung A3-TARX-moi-dich A3-FILEC-bo-ngan A3-BGAN-bo-PATH A3-CCLA-them-la A3-GHIDUOC-bo-khung B1-A11-dao-goc B1-A11-bo-xanh-PR B1-A6-bo-phamvi B1-A10-bo-filecam B1-A7-noi-tieude B1-A12-bo B1-laBaiThu-noi-slash B1-A14-bo-dang-nhanh C2-orders-bo-diem-ban C2-sc-bo-diem-ma C2-loyalty-redeem-tru-0 D1-A1-fffd D1-B1-json-tran D1-C1-them-fetch D1-E1-unitprice D1-E7-paydebt D1-E8-backup D1-E12-vi-ngoai D1-K1-env-tho D1-S3-vi-lech D1-F3-test-thieu
+
+## Bao cao 7 muc (CLAUDE.md §7)
+
+VIEC:        AUDIT-1 — Soat toan bo phan tu chay: luat nao that su chan, phep nao that su do, tai lieu nao noi dung
+DA SUA:      chi tao file trong viec/AUDIT-1/ (dot_bien.py, lach.js, bao_cao.md, a_bang_luat.md..f_tai_lieu.md,
+             bang_chung_do.txt, trang_thai.md). KHONG doi mot byte nao ngoai viec/AUDIT-1/ (viec chi doc + do + bao cao).
+BAI THU:     thay buoc "bai thu do" = G3 cong cu tu chung minh (python3 viec/AUDIT-1/dot_bien.py G3):
+             G3-sai-chuoi HONG · G3-da-biet BAT · G3-vo-hai SONG · G3-sap LAC — cong cu do khong noi doi (K3).
+DA RA K4:    duong song song da canh: hai loi vao nguoi gac (xet()/stdin), hai che do cong (tinh/chay), ghiVi vs
+             reconcileWallet, ban cai .claude/ vs nguon tu_chay/. grep cau ghi duong tien 11 file routes = 87; phu
+             duong ban/hoan/vi/diem-tich (P26b 59 BAT + C2 2 BAT); CHUA phu loyalty redeem (AU-G1).
+CHUA KIEM:   - loyalty redeem (AU-G1): da do SONG, nhung CHUA doc het logic loyalty.js nen khong khang dinh no dang
+               sai — chi khang dinh LUOI khong phu no.
+             - E11/T1 (phep chay that cua bo kiem): suy tu C2/E1 lam chung do, khong dot bien rieng tung phep.
+             - ban_mau_pos 119 phep: khong chay chay_thu.sh.
+             - bang_chung_do cu tung viec: khong doi chieu lai so ca tung dong (E2).
+             - may in khong rollback / Render ngu idle: khong soi duoc tu kho.
+             - thu_p1.js: KHONG chay (xep muc bang doc code — Replit kho thu, cong khong cap Turso, may may neu co TURSO_* se ghi that).
+GIT:         672b23c AUDIT-1: ra-soat vong 1 ... · 54f72ff bao cao G1 + B4 ... · 62b90ce nhom F tai lieu ...
+             (9 commit tren nhanh viec/AUDIT-1, da push)
+BAI HOC:     KHOA 2 (da lam: K5 bo nhat ky nguoi gac khoi anh_kho; them dot bien loyalty redeem) +
+             de xuat HOC-2 (bat bien loyalty, khoa CONG_CU_DOC, ca cong A14, sua neo I10-bo/MB/MB4, nang T2-T4) ·
+             NGUYEN TAC 3 (de xuat: K8 phep tu-kiem bao oan; K3 dot bien rua theo thoi gian; phan loai duong tien
+             theo doi tuong khach cham) · BO 2 (thoi quen lenh shell ghep; git fetch/rmdir bi chan) — chi tiet o ## Bai hoc.
+
+KET QUA CHINH: duong tien LOI da co KB vung (khong SONG); 1 NANG = luoi KHONG phu doi diem->voucher o quay (AU-G1);
+14 phat hien NHE. 3 dot bien ho so cu HONG tren HEAD (I10-bo, MB, MB4). Dau vao duy nhat cua HOC-2 la bao_cao.md.
