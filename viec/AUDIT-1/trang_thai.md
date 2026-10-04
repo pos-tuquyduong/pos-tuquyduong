@@ -19,9 +19,21 @@ Có commit `PHIEU: AUDIT-1` → đúng việc.
 - [ ] Nhóm A · [ ] B · [ ] C · [ ] D · [ ] E · [ ] F · [ ] báo cáo G1 · [ ] soát G4 · [ ] bài học
 
 ## Câu hỏi
-1. Tổng thời gian máy ước lượng ~95 phút (> 90 phút của phiếu). Cách cắt đề xuất ở `ke_hoach.md` §5 —
+1. Tổng thời gian máy ước lượng ~95 phút, sau sửa §8 còn ~85 phút (phiếu: > 90 phút thì hỏi). Cách cắt đề xuất ở `ke_hoach.md` §5 —
    chủ quán chọn (a) chạy đủ theo nhóm, hoặc (b)/(c). Chưa duyệt thì không chạy.
 
 ## Sự cố (đầu vào bài học)
 - Bước 2: người gác chặn 3 lệnh đo của chính tôi — `$(( ))` và `( … )` giữa lệnh (B-PHANTICH), `for`/`nproc`
   (B-CHUONGTRINH). Đúng luật; đổi sang script node trong nháp. Dự kiến xếp BỎ (thói quen viết lệnh, không phải lỗ).
+- Bước 3: agent chỉ đọc soát kế hoạch, bắt 1 lỗi ra ngoài phạm vi (E1 định gọi nguyên `viec/TU-CHAY-4/dot_bien.py` —
+  bài này sửa thẳng file thật), 3 cách làm không chạy được ("nạp `CA`/`laBaiThu`" — không được xuất; "`tat` có sẵn cho
+  mọi mã A*" — thiếu A3–A5), sót A15, 4 mã NG chỉ có ở lối hook, TMPDIR khi TREO. Đã kiểm lại bằng code rồi ghi vào
+  `ke_hoach.md` §8. Dự kiến xếp: NGUYÊN TẮC (K1 — kế hoạch khẳng định "gọi nguyên / nạp / có sẵn" mà chưa đọc code
+  đích; đề xuất câu dẫn trong KHUON_LOI K1, không sửa KHUON_LOI ở việc này).
+- Bước 3: người gác chặn thêm `$'…'` (B-PHANTICH) — cùng loại sự cố bước 2.
+
+## Phát hiện ghi sẵn (chưa chấm, kiểm lại khi chạy nhóm tương ứng)
+- `kiem_tra_truoc_khi_giao.js:746` ghi giả lập 22 s / thu_gia_lap 24 s; đo 04.10: 67,6 s / 70,6 s — hạn 110/120 s (C3).
+- `tu_chay/thu_cong.js:336-347` không có ca `tat` cho A3, A4, A5 (B1).
+- `viec/TU-CHAY-4/dot_bien.py:56-63` đột biến sửa THẲNG file thật (E).
+- `cong_cu/thu_p1.js` ghi kho thật nhưng nằm trong `thu_muc_bai_thu` (B3).
