@@ -88,3 +88,9 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 # ── Nhóm D ──────────────────────────────────────────────────────────────────
 # D1: python3 viec/AUDIT-1/dot_bien.py D1 → BẮT 10/10 (A1,B1,C1,E1,E7,E8,E12,K1,S3,F3 — mỗi phép đột biến vào code đích). SỐNG 0.
 #     Phép chạy thật (E11/T1/T1b/T1c) thật — C2/E1 làm chúng đỏ. Phép canhBao-thuần F2, T2-T4 không có nhánh FAIL (AU-D1/D2).
+
+# ── Nhóm E ──────────────────────────────────────────────────────────────────
+# E1 P26b:   python3 viec/P26b/dot_bien.py →   59 đột biến bị bắt · 1 KHÔNG bị bắt (trên 60)  (I10-bo HỎNG: chuỗi khớp 2 lần)
+# E1 HOC-1:  python3 viec/HOC-1/dot_bien.py → đa số ĐỎ đúng chỗ; MB + MB4 = "LỖI chuỗi tìm 0 lần" (, "package.json"] mất)
+# E1 TC4:    python3 viec/TU-CHAY-4/dot_bien.py M0 E4 → XANH 0 không đạt (chỉ gl; tai_cho F2/S3 KHÔNG chạy — sửa file thật)
+# E2: tên đột biến P26b/HOC-1/TU-CHAY-4 đều có trong trang_thai.md của việc; lệch nằm ở KẾT QUẢ (I10-bo/MB/MB4 nay HỎNG), không ở tên
