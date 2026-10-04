@@ -57,6 +57,16 @@ DOT_BIEN = [
   ('A3-BGAN-bo-PATH', 'A3', 'gac', [(NG, 'PATH|NODE_OPTIONS', 'NODE_OPTIONS', 1)], r'✗ (ca |tự sinh)'),
   ('A3-CCLA-them-la', 'A3', 'gac', [(NG, "'SubagentHandback']);", "'SubagentHandback', 'Bash2']);", 1)], r'✗ (ca |tự sinh)'),
   ('A3-GHIDUOC-bo-khung', 'A3', 'gac', [(NG, "KHUNG.test(rel) || rel.startsWith('.tu_chay_nhat_ky')", 'false', 1)], r'✗ (ca |tự sinh)'),
+
+  # ── B1: VÁ SAI cổng PR (bản sao tu_chay/), chạy thu_cong.js. BẮT = một ca "phải ĐỎ/ĐẠT" của thu_cong lật.
+  ('B1-A11-dao-goc', 'B1', 'cong', [(CG, 'else if (r.status === 0) doLy(\'A11\', `bài thử \\`${p}\\` XANH trên code gốc', 'else if (r.status === 7) doLy(\'A11\', `bài thử \\`${p}\\` XANH trên code gốc', 1)], r'✗ A11'),
+  ('B1-A11-bo-xanh-PR', 'B1', 'cong', [(CG, 'for (const p of baiThu) {\n      const h = chayLenh', 'for (const p of []) {\n      const h = chayLenh', 1)], r'✗ A11'),
+  ('B1-A6-bo-phamvi', 'B1', 'cong', [(CG, 'const r = gac.xetPhamVi(p, phamVi || [], CH);', 'const r = null;', 1)], r'✗ A6'),
+  ('B1-A10-bo-filecam', 'B1', 'cong', [(CG, 'if (gac.khop(CH.file_cam, p, true)) {', 'if (false) {', 1)], r'✗ A10'),
+  ('B1-A7-noi-tieude', 'B1', 'cong', [(CG, "if (!td.startsWith(dau) || !/^([^A-Za-z0-9._-]|$)/.test(td.slice(dau.length))) {", 'if (false) {', 1)], r'✗ A7'),
+  ('B1-A12-bo', 'B1', 'cong', [(CG, "if (coCode && !baiThu.length && !mien) doLy('A12'", "if (false) doLy('A12'", 1)], r'✗ A12'),
+  ('B1-laBaiThu-noi-slash', 'B1', 'cong', [(CG, "/^thu_[^/]*\\.js$/.test(path.posix.basename(p))", '/^thu_.*\\.js$/.test(p)', 1)], r'✗ A1[12]'),
+  ('B1-A14-bo-dang-nhanh', 'B1', 'cong', [(CG, "if (!m) { doLy('A14', `nhánh \"${nhanh}\" không có dạng viec/<MÃ>`); if (bat('A14')) return kq(); }", 'if (!m) { }', 1)], r'✗ A14'),
 ]
 
 # ═══ Bản sao + lệnh ══════════════════════════════════════════════════════════
