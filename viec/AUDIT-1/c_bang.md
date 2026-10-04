@@ -31,18 +31,25 @@ Bảng M1–M13 của `thu_gia_lap.js` (`:60-83`) + P26b + C2 phủ:
 
 Đường tiền LÕI (orders/refunds/wallets/damages) được P26b phủ bằng **60 đột biến, 59 BẮT · 1 HỎNG (I10-bo)** — mỗi câu
 INSERT/UPDATE/DELETE có giá trị tài chính bị bỏ hoặc vá sai, giả lập/bài thử bắt (xem `e_bang.md`). AUDIT-1 thêm 2 câu
-điểm (trên). **Không có câu nào SỐNG ở đường tiền lõi** → không có NẶNG ở C2.
+điểm tích (trên, đều BẮT). **Đường tiền LÕI có KB không câu nào SỐNG.** Riêng đường đổi điểm→voucher (`/redeem`) KHÔNG
+có KB → SỐNG = **AU-G1 NẶNG** (dưới).
 
 Đếm câu ghi (grep, cả ghi chú — số câu thật nhỏ hơn) ở 11 file routes tiền: orders 38 · signup-codes 8 · refunds 7 ·
 packages 7 · discount-codes 6 · customers-v2 6 · wallets 5 · rewards 4 · loyalty 3 · damages 2 · don-mo-rong 1 = 87.
 - **Đã phủ (giả lập KB1–18 + P26b + C2):** orders (tạo/huỷ/xoá/ghiVi/điểm/stock_pending), refunds (tạo/duyệt/từ
   chối/ví mẹ), wallets (nạp/trừ/điều chỉnh/đối soát), damages (báo hỏng), signup-codes (chiếm mã/claim/điểm — thu_P20),
   packages/buy (P26b D), don-mo-rong (đổi cách trả — M7 nhật ký).
-- **CHƯA KIỂM (admin config, KB không chạm; không bất biến phủ) — ghi số, không bắt buộc chạy (theo phiếu):**
+- **ĐƯỜNG TIỀN CHƯA PHỦ — ƯU TIÊN (AU-G1, NẶNG, sửa ra-soat vòng 1):** `loyalty.js:170,179,189` `POST /redeem` — khách
+  đổi điểm lấy voucher TẠI QUẦY (`authenticateServiceOrUser`): `:170` trừ điểm (`type='redeem', points=-cost`), `:179`
+  đẻ `pos_discount_codes`, `:189` ghi `pos_voucher_grants`. KHÔNG KB nào gọi `/redeem`; bất biến I8 CHỈ soát điểm tích
+  (`WHERE t.order_id = o.id`, `bat_bien.js:101`) nên dòng redeem (`order_id=NULL`) bị loại. Đo: `C2-loyalty-redeem-tru-0`
+  (trừ 0 điểm) → **SỐNG**. **Ở quầy sẽ sai gì:** khách đổi quà mà không mất điểm, hoặc mã sai mệnh giá — tiền thật.
+  (Trước đây xếp nhầm vào "admin config NHẸ"; agent soát bắt.) Đề xuất HOC-2: KB đổi-thưởng + bất biến "mỗi
+  voucher_grant có đúng một redeem trừ điểm khớp, discount_value = reward".
+- **CHƯA KIỂM (admin config THẬT — KB không chạm, không bất biến; ghi số, không bắt buộc chạy theo phiếu):**
   packages CRUD (tạo/sửa/xoá gói — `packages.js:41,80,104,107`), discount-codes CRUD (`:200,266,319,326,345`), rewards
-  CRUD (`:44,75,87`), loyalty đổi thưởng (`:170,179,189`), customers-v2 upsert (`:58,320,327,370,377`). Đây là đường
-  QUẢN TRỊ (tạo gói/mã/khách), không phải đường bán/hoàn trong 18 KB, và không bất biến sổ sách nào canh. Đề xuất HOC-2:
-  nếu P20b/P22–P24 đụng các bảng này thì thêm KB + bất biến phủ.
+  CRUD (`:44,75,87`), customers-v2 upsert (`:58,320,327,370,377`). Đây là đường QUẢN TRỊ (tạo gói/mã/khách), không phải
+  tiền khách chạm ở quầy. Đề xuất HOC-2: nếu P20b/P22–P24 đụng các bảng này thì thêm KB + bất biến phủ.
 
 ## C3 — thời gian giả lập vs ngưỡng
 

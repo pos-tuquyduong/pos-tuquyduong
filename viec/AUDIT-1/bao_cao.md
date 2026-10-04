@@ -5,14 +5,15 @@ Chi tiết từng nhóm: `a_bang_luat.md` (A), `b_bang.md` (B), `c_bang.md` (C),
 `f_tai_lieu.md` (F). Bằng chứng chạy: `bang_chung_do.txt`. Công cụ đo: `dot_bien.py`, `lach.js`.
 
 ## Kết luận một dòng
-**Đường tiền LÕI (tạo/huỷ/xoá đơn · hoàn · ví · điểm · kho · mã) vững: KHÔNG đột biến nào SỐNG ở đường tiền.** Mọi phát
-hiện đều **NHẸ** — lỗ hổng coverage của LƯỚI (đột biến cũ HỎNG, phép chỉ cảnh báo, tài liệu lệch), không phải lỗ cho
-tiền sai ở quầy.
+**Đường tiền LÕI đã có KB (tạo/huỷ/xoá đơn · hoàn · ví · điểm tích · kho · mã bill) vững: không đột biến nào SỐNG.**
+NHƯNG **1 NẶNG** — lưới giả lập KHÔNG phủ đường **đổi điểm→voucher ở quầy** (`POST /loyalty/redeem`): đột biến trừ 0
+điểm SỐNG (AU-G1). 14 phát hiện còn lại đều **NHẸ** (đột biến cũ HỎNG, phép chỉ cảnh báo, tài liệu lệch, K5 báo oan).
 
 ## Bảng phát hiện
 
 | mã | nhóm | mức | ở HEAD (file:dòng) | lệnh thấy lại | đề xuất khoá cho HOC-2 |
 |---|---|---|---|---|---|
+| **AU-G1** | **C/G** | **NẶNG** | `loyalty.js:170,179,189` POST /redeem (đổi điểm→voucher ở quầy) | `python3 … dot_bien.py C2-loyalty-redeem-tru-0` → **SỐNG** | thêm KB đổi-thưởng (gọi /redeem) + bất biến: mỗi `pos_voucher_grant` có đúng một dòng `redeem` trừ điểm khớp, `discount_value` = reward; I8 nới soát cả redeem |
 | AU-A1 | A | NHẸ | `nguoi_gac.js` CONG_CU_DOC `:105-107` | `python3 … dot_bien.py A3-CCLA-them-la` → SỐNG | thêm phép `thu_nguoi_gac` so `CONG_CU_DOC`/`CONG_CU_SUA` với tập cố định (ca đỏ: thêm 1 tên) |
 | AU-B1 | B | NHẸ | `cong.js` hai cổng A14 `:82,88` | `python3 … dot_bien.py B1-A14-bo-dang-nhanh` → SỐNG | ca `thu_cong`: phiếu ở `viec/<MÃ xấu>` + nhánh không dạng `viec/<MÃ>` → ĐỎ riêng cổng dạng-nhánh |
 | AU-B2 | B | NHẸ | `cau_hinh.json` 8 khoá nhãn | `python3 scratchpad/b2.py` | bỏ khoá-nhãn hoặc ghi chú phân biệt khoá-code/tài-liệu |
@@ -29,11 +30,15 @@ tiền sai ở quầy.
 | AU-F1 | F | NHẸ | `CLAUDE.md:113` | đọc + `kiem_tra…js:373` (E6) | sửa câu: nhóm E chỉ canh `from_package`, không canh `discount_*` |
 | AU-F2 | F | NHẸ | `CLAUDE.md:26` "36 phép" | `node kiem_tra…js` → 61 | bỏ số đếm cứng trong tài liệu |
 
-**Hai SỐNG — ở quầy sẽ sai gì?** Cả hai KHÔNG làm sai tiền ở quầy; là lỗ coverage của lưới:
-- AU-A1: nếu ai sửa `nguoi_gac.js` thêm một tên công cụ vào tập chỉ-đọc, `thu_nguoi_gac` không bắt (cổng A8 bắt mọi sửa
-  `nguoi_gac.js` lệch nguồn → không tới quầy được).
-- AU-B1: nếu ai xoá cổng A14 dạng-nhánh, `thu_cong` vẫn xanh vì cổng A14 thứ hai (phiếu) chặn — PR nhánh sai vẫn bị
-  chặn. Lỗ chỉ là test không phân biệt hai cổng chồng nhau.
+**Ba SỐNG — ở quầy sẽ sai gì?**
+- **AU-G1 (NẶNG — tiền thật):** lưới (18 KB + I1–I11) KHÔNG chạy `POST /loyalty/redeem`. Đột biến trừ 0 điểm khi đổi quà
+  SỐNG → **ở quầy: khách đổi quà mà KHÔNG mất điểm** (hoặc nếu lỗi ở `discount_value` thì mã giảm giá sai mệnh giá). I8
+  (`bat_bien.js:101`) chỉ soát điểm TÍCH (`WHERE t.order_id = o.id`); dòng redeem `order_id=NULL` nên bị loại. Đây là
+  lỗ LƯỚI (không khẳng định loyalty.js hiện đang sai — chưa đọc hết logic đó; AUDIT chỉ đo lưới).
+- AU-A1 (NHẸ): sửa `nguoi_gac.js` thêm tên công cụ vào tập chỉ-đọc → `thu_nguoi_gac` không bắt (cổng A8 bắt mọi sửa
+  `nguoi_gac.js` lệch nguồn → không tới quầy).
+- AU-B1 (NHẸ): xoá cổng A14 dạng-nhánh → `thu_cong` vẫn xanh vì cổng A14 thứ hai (phiếu) chặn — PR nhánh sai vẫn bị
+  chặn. Lỗ chỉ là test không phân biệt hai cổng chồng.
 
 ## Tỷ lệ BẮT/SỐNG/HỎNG/LẠC/TREO (LẠC+TREO KHÔNG cộng vào BẮT)
 
@@ -45,7 +50,7 @@ HỎNG/SỐNG của G3 là CỐ Ý):
 | G3 (demo) | 1 | 1 | 1 | 1 | 0 | — (cố ý mỗi loại 1) |
 | A3 người gác | 15 | 1 | 0 | 0 | 0 | 15/16 |
 | B1 cổng | 7 | 1 | 0 | 0 | 0 | 7/8 |
-| C2 đường tiền (thêm) | 2 | 0 | 0 | 0 | 0 | 2/2 |
+| C2 đường tiền (thêm) | 2 | 1 | 0 | 0 | 0 | 2/3 (SỐNG = AU-G1 loyalty redeem) |
 | D1 bộ kiểm | 10 | 0 | 0 | 0 | 0 | 10/10 |
 
 A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (không phải đột biến — là lệnh lách đưa vào `xet()`).
@@ -58,14 +63,18 @@ A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (không phải đột biến �
 | HOC-1 (`viec/HOC-1/dot_bien.py`) | 15 | 2 | HỎNG = `MB`, `MB4` (AU-E2); M0×3 đối chứng XANH |
 | TU-CHAY-4 gl (`… M0 E4`) | 7 | 0 | M0 đối chứng XANH; `tai_cho` (F2/S3) KHÔNG chạy (AU-E3) |
 
-**Tổng: không SỐNG nào ở đường tiền; 2 SỐNG ở lưới (A/B) đều NHẹ; 3 đột biến cũ HỎNG trên HEAD (I10-bo, MB, MB4).**
+**Tổng: 1 SỐNG ở đường tiền (AU-G1 loyalty redeem = NẶNG lưới thủng); 2 SỐNG ở lưới (A/B) NHẸ; 3 đột biến cũ HỎNG trên
+HEAD (I10-bo, MB, MB4).**
 
 ## B4 — cổng tĩnh của main chạy trên chính nhánh này
 `node tu_chay/cong.js tinh . b94110e 62b90ce viec/AUDIT-1` → **✓ CỔNG TĨNH ĐẠT** (mọi file đổi nằm trong Phạm vi
 `viec/AUDIT-1/**`, không đụng code chạy thật nên A11/A12 không áp).
 
 ## K5 — luồng hợp lệ KHÔNG bị ảnh hưởng
-`dot_bien.py` chỉ đụng bản sao trong thư mục tạm; cuối mỗi lần chạy in "✓ kho thật không đổi" (so `git status` ngoài
-`viec/AUDIT-1/`, nhật ký người gác, `data/`, `client/node_modules/.vite`); ngắt giữa chừng (SIGINT) → giết nhóm tiến
-trình con + xoá thư mục tạm (thử: `timeout -s INT 30 … G3-vo-hai` → 0 sót). `lach.js` chỉ truyền CHUỖI vào `xet()`,
-không thực thi lệnh lách nào.
+`dot_bien.py` chỉ đụng bản sao trong thư mục tạm; cuối mỗi lần chạy so `git status` (ngoài `viec/AUDIT-1/`), `data/` và
+`client/node_modules/.vite` trước/sau — khác là in "✗ KHO BẨN", thoát 3. **(Sửa ra-soat vòng 1:** `anh_kho()` KHÔNG còn
+so nhật ký người gác `.tu_chay_nhat_ky*` — hook ghi mọi lệnh Bash của CẢ phiên vào đó nên hoạt động song song làm nó
+đổi → báo "KHO BẨN" OAN dù kho không đụng, đúng khuôn K8; nay chỉ so `data/` + `.vite` + git status.) Ngắt bằng
+**SIGINT/SIGTERM** → giết nhóm tiến trình con + xoá thư mục tạm (thử `timeout -s INT 30 … G3-vo-hai` → 0 sót). SIGKILL/
+OOM/hết-giờ cứng KHÔNG bắt được (có thể để lại thư mục `/tmp/audit1_*` rỗng — rác /tmp, không đụng kho). `lach.js` chỉ
+truyền CHUỖI vào `xet()`, không thực thi lệnh lách nào.

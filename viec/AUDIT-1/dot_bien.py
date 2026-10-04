@@ -71,6 +71,9 @@ DOT_BIEN = [
   # C2: cau ghi duong tien NGOAI P26b (diem ban, diem ma bill). Bo cau -> gia lap phai BAT (I8). SONG = NANG.
   ('C2-orders-bo-diem-ban', 'C2', 'gl', [(O, 'if (shouldEarnPoints) {', 'if (false) {', 1)], r'→ I8:'),
   ('C2-sc-bo-diem-ma', 'C2', 'gl', [(SC, 'await tx.run(\n        `INSERT INTO pos_point_transactions', 'if (false) await tx.run(\n        `INSERT INTO pos_point_transactions', 1)], r'→ I8:'),
+  # loyalty redeem (đổi điểm→voucher ở quầy): trừ 0 điểm = đổi quà miễn phí. KHÔNG KB nào gọi POST /redeem → SỐNG =
+  # xác nhận lưới giả lập KHÔNG phủ đường này (ra-soat vòng 1 — lỗ mới, xếp CHƯA KIỂM ƯU TIÊN, không phải admin NHẸ).
+  ('C2-loyalty-redeem-tru-0', 'C2', 'gl', [('server/routes/loyalty.js', '[phone, -cost,', '[phone, 0,', 1)], r'→ I8:'),
 
   # D1: dot bien vao THU phep soi (code dich), KHONG sua kiem_tra. Chay kiem_tra tren ban sao kho. BAT = phep do -> ✗.
   ('D1-A1-fffd', 'D1', 'kiem', [('server/ketNoiKho.js', 'function laMayThu() {', 'function laMayThu() { /*�*/', 1)], r'✗ Ký tự hỏng mã'),
@@ -227,9 +230,12 @@ def kiem_sach(cach_ds, j):
 def anh_kho():
   st = subprocess.run(['git', 'status', '--porcelain', '--untracked-files=all'], cwd=GOC, capture_output=True, text=True).stdout
   st = '\n'.join(l for l in st.splitlines() if not l[3:].startswith('viec/AUDIT-1/'))
+  # KHÔNG so nhật ký người gác (.tu_chay_nhat_ky*): hook ghi MỌI lệnh Bash của CẢ phiên vào đó, nên hoạt động song
+  # song (soát viên / chủ quán gõ lệnh khác) làm nó đổi → báo "KHO BẨN" OAN dù dot_bien.py không đụng kho (ra-soat
+  # vòng 1, khuôn K8). Chỉ so data/ (dữ liệu quầy) — thứ dot_bien.py tuyệt đối không được chạm.
   phu = []
   for f in sorted(os.listdir(GOC)):
-    if f.startswith('.tu_chay_nhat_ky') or f == 'data':
+    if f == 'data':
       s = os.stat(os.path.join(GOC, f)); phu.append(f'{f}:{s.st_size}:{s.st_mtime_ns}')
   vite = os.path.join(GOC, 'client', 'node_modules', '.vite')
   phu.append('.vite:' + (str(os.stat(vite).st_mtime_ns) if os.path.exists(vite) else 'không có'))
@@ -285,7 +291,7 @@ def main():
   sot = os.path.exists(GOC_TAM)
   if anh_kho() != truoc or sot:
     print('  ✗ KHO BẨN — git status / nhật ký người gác / data/ / .vite đổi, hoặc thư mục tạm còn sót'); return 3
-  print('  ✓ kho thật không đổi (git status ngoài viec/AUDIT-1/, nhật ký người gác, data/, .vite); thư mục tạm đã xoá')
+  print('  ✓ kho thật không đổi (git status ngoài viec/AUDIT-1/, data/, .vite); thư mục tạm đã xoá')
   return 0
 
 
