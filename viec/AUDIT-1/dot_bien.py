@@ -71,6 +71,18 @@ DOT_BIEN = [
   # C2: cau ghi duong tien NGOAI P26b (diem ban, diem ma bill). Bo cau -> gia lap phai BAT (I8). SONG = NANG.
   ('C2-orders-bo-diem-ban', 'C2', 'gl', [(O, 'if (shouldEarnPoints) {', 'if (false) {', 1)], r'→ I8:'),
   ('C2-sc-bo-diem-ma', 'C2', 'gl', [(SC, 'await tx.run(\n        `INSERT INTO pos_point_transactions', 'if (false) await tx.run(\n        `INSERT INTO pos_point_transactions', 1)], r'→ I8:'),
+
+  # D1: dot bien vao THU phep soi (code dich), KHONG sua kiem_tra. Chay kiem_tra tren ban sao kho. BAT = phep do -> ✗.
+  ('D1-A1-fffd', 'D1', 'kiem', [('server/ketNoiKho.js', 'function laMayThu() {', 'function laMayThu() { /*�*/', 1)], r'✗ Ký tự hỏng mã'),
+  ('D1-B1-json-tran', 'D1', 'kiem', [('client/src/utils/api.js', 'this.sessionExpiredHandled = true;', 'this.sessionExpiredHandled = true; await response.json();', 1)], r'✗ api.js không có response.json'),
+  ('D1-C1-them-fetch', 'D1', 'kiem', [('client/src/pages/Customers.jsx', 'const res = await fetch(url, opts);', 'const res = await fetch(url, opts); fetch("/x");', 1)], r'✗ fetch trần ngoài api.js'),
+  ('D1-E1-unitprice', 'D1', 'kiem', [(O, 'let shouldEarnPoints = false;', 'let shouldEarnPoints = false; const _x = item.unit_price;', 1)], r'✗ orders.js KHÔNG tính tiền theo item.unit_price'),
+  ('D1-E7-paydebt', 'D1', 'kiem', [(O, 'WHERE id = ? AND debt_amount = ?', 'WHERE id = ? AND debt_amount >= ?', 1)], r'✗ pay-debt chặn thu hai lần'),
+  ('D1-E8-backup', 'D1', 'kiem', [('server/database.js', 'CREATE TABLE IF NOT EXISTS pos_orders (', 'CREATE TABLE IF NOT EXISTS pos_audit_x (x TEXT);\n    CREATE TABLE IF NOT EXISTS pos_orders (', 1)], r'✗ mọi bảng đều được sao lưu'),
+  ('D1-E12-vi-ngoai', 'D1', 'kiem', [('server/routes/don-mo-rong.js', 'const pmMoi =', 'await run("UPDATE pos_wallets SET balance = 0 WHERE phone = ?");\n    const pmMoi =', 1)], r'✗ ví: mọi lệnh ghi pos_wallets'),
+  ('D1-K1-env-tho', 'D1', 'kiem', [('server/index.js', "const express = require('express');", "const express = require('express'); const _u = process.env.TURSO_DATABASE_URL;", 1)], r'✗ chỉ server/ketNoiKho.js đọc biến'),
+  ('D1-S3-vi-lech', 'D1', 'kiem', [('cong_cu/gia_lap/bat_bien.js', "'refund', 'adjust', 'compensation']", "'refund', 'compensation']", 1)], r'✗ giả lập: danh sách trắng ví'),
+  ('D1-F3-test-thieu', 'D1', 'kiem', [('package.json', 'node kiem_tra_truoc_khi_giao.js', 'node khong_co_file.js', 1)], r'✗ npm test trỏ vào file có thật'),
 ]
 
 # ═══ Bản sao + lệnh ══════════════════════════════════════════════════════════
