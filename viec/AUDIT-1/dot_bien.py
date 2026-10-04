@@ -86,7 +86,112 @@ DOT_BIEN = [
   ('D1-K1-env-tho', 'D1', 'kiem', [('server/index.js', "const express = require('express');", "const express = require('express'); const _u = process.env.TURSO_DATABASE_URL;", 1)], r'✗ chỉ server/ketNoiKho.js đọc biến'),
   ('D1-S3-vi-lech', 'D1', 'kiem', [('cong_cu/gia_lap/bat_bien.js', "'refund', 'adjust', 'compensation']", "'refund', 'compensation']", 1)], r'✗ giả lập: danh sách trắng ví'),
   ('D1-F3-test-thieu', 'D1', 'kiem', [('package.json', 'node kiem_tra_truoc_khi_giao.js', 'node khong_co_file.js', 1)], r'✗ npm test trỏ vào file có thật'),
+
+  # D1 ĐỦ — một đột biến riêng cho MỖI phép (đặt vào THỨ phép soi). "!" = không stub bài thật (phép chạy thật).
+  # B1 thêm: A8/A9/A13 (bản sao cong.js) + A15 (bản sao cong_github.yml).
+  ('D1-A2-server-cu-phap', 'D1', 'kiem', [('server/ketNoiKho.js', 'module.exports = { laMayThu', 'module.exports = {{ laMayThu', 1)], r'✗ Cú pháp server'),
+  ('D1-A2c-client-cu-phap', 'D1', 'kiem', [('client/src/main.jsx', "import ErrorBoundary from './components/ErrorBoundary.jsx'", "import import ErrorBoundary from './components/ErrorBoundary.jsx'", 1)], r'✗ Cú pháp client'),
+  ('D1-B2-login-2-cho', 'D1', 'kiem', [('client/src/utils/api.js', "window.location.href = '/login';", "window.location.href = '/login'; window.location.href = '/login';", 1)], r'✗ api.js chỉ có 1 chỗ đá về /login'),
+  ('D1-B-handleSE', 'D1', 'kiem', [('client/src/utils/api.js', 'handleSessionExpired', 'handleSE2', 2)], r'✗ api.js có handleSessionExpired'),
+  ('D1-B-co-song-song', 'D1', 'kiem', [('client/src/utils/api.js', 'sessionExpiredHandled', 'sehai2', 4)], r'✗ api.js có cờ chặn request song song'),
+  ('D1-B-pathname', 'D1', 'kiem', [('client/src/utils/api.js', "window.location.pathname !== '/login'", "window.location.pathname !== '/login2'", 1)], r'✗ api.js không đá đi khi đang ở sẵn /login'),
+  ('D1-B-deadcodes-thieu', 'D1', 'kiem', [('client/src/utils/api.js', "'USER_INACTIVE'", '', 1)], r'✗ SESSION_DEAD_CODES đủ 5'),
+  ('D1-B-eb-getDerived', 'D1', 'kiem', [('client/src/components/ErrorBoundary.jsx', 'getDerivedStateFromError', 'getDerivedX', 1)], r'✗ ErrorBoundary có getDerivedStateFromError'),
+  ('D1-B-eb-ton-tai', 'D1', 'kiem', [('client/src/components/ErrorBoundary.jsx', None, None, 1)], r'✗ ErrorBoundary.jsx tồn tại'),
+  ('D1-B-main-boc', 'D1', 'kiem', [('client/src/main.jsx', 'ErrorBoundary', 'EBhai2', 4)], r'✗ main.jsx bọc'),
+  ('D1-B-layout-boc', 'D1', 'kiem', [('client/src/components/Layout.jsx', 'ErrorBoundary', 'EBba3', 4)], r'✗ Layout.jsx bọc'),
+  ('D1-B-key', 'D1', 'kiem', [('client/src/components/Layout.jsx', 'key={location.pathname}', 'keyX={location.pathname}', 1)], r'✗ Layout.jsx dùng key'),
+  ('D1-B-ahref-api', 'D1', 'kiem', [('client/src/pages/Settings.jsx', 'export default', 'const _a = `<a href="/api/x">`;\nexport default', 1)], r'✗ Không có <a href'),
+  ('D1-B-pos6-loginTime', 'D1', 'kiem', [('client/src/pages/Settings.jsx', 'export default', 'const _lt = "loginTime";\nexport default', 1)], r'✗ POS-6'),
+  ('D1-D-build-prod', 'D1', 'kiem', [('client/package.json', 'NODE_ENV=production vite build', 'vite build', 1)], r'✗ client build script ép NODE_ENV=production'),
+  ('D1-E-gia-0', 'D1', 'kiem', [('server/routes/orders.js', 'product.price <= 0', 'product.price < -1', 1)], r'✗ orders.js chặn sản phẩm chưa có giá'),
+  ('D1-E2-authz-tho', 'D1', 'kiem', [('server/routes/orders.js', 'let shouldEarnPoints = false;', 'let shouldEarnPoints = false; const _z2 = item.from_package ? 0 : 1;', 1)], r'✗ POST /orders có cổng phân quyền'),
+  ('D1-E-trangthai-dungma', 'D1', 'kiem', [('server/routes/signup-codes.js', "const TRANG_THAI_DUNG_MA = { status: 'completed', payment_status: 'paid' }", "const TRANG_THAI_DUNG_MA = { status: 'pending', payment_status: 'paid' }", 1)], r'✗ kiemDonCuaMa: hằng TRANG_THAI_DUNG_MA'),
+  ('D1-E-danhsach-trang', 'D1', 'kiem', [('server/routes/signup-codes.js', 'return { don };', 'return { don }; return { don };', 1)], r'✗ kiemDonCuaMa là DANH SÁCH TRẮNG'),
+  ('D1-E-claim-chiem', 'D1', 'kiem', [('server/routes/signup-codes.js', 'SET claimed_at = ?, claimed_phone = ? WHERE id = ? AND claimed_at IS NULL', 'SET claimed_at = ?, claimed_phone = ? WHERE id = ?', 1)], r'✗ /claim: chiếm mã'),
+  ('D1-E-ndiem-chiem', 'D1', 'kiem', [('server/routes/signup-codes.js', 'WHERE id = ? AND diem_nhan_luc IS NULL', 'WHERE id = ?', 1)], r'✗ /nhan-diem: chiếm mã'),
+  ('D1-E-vi-tuongdoi', 'D1', 'kiem', [('server/routes/wallets.js', 'SET balance = balance + ?', 'SET balance = ?', 1)], r'✗ ví: ghiVi đọc số dư'),
+  ('D1-E-vi-trang5', 'D1', 'kiem', [('server/routes/wallets.js', "const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation']", "const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation', 'debt_payment']", 1)], r'✗ ví: danh sách trắng LOAI_TINH_VAO_VI'),
+  ('D1-K-4ca', 'D1', 'kiem', [('server/ketNoiKho.js', 'process.env.REPL_ID', 'process.env.REPL_IDX', 1)], r'✗ ketNoiKho.js chạy đúng cả 4 ca'),
+  ('D1-K-data', 'D1', 'kiem', [('.gitignore', 'data/', 'data_x/', 1)], r'✗ .gitignore chặn thư mục data/'),
+  ('D1-F-attached', 'D1', 'kiem', [('.gitignore', 'attached_assets/', 'attached_assetsX/', 1)], r'✗ .gitignore có attached_assets/'),
+  ('D1-F-dist', 'D1', 'kiem', [('.gitignore', 'data/', 'data/\nclient/dist/', 1)], r'✗ .gitignore KHÔNG chặn client/dist'),
+  ('!D1-E11-P20', 'D1', 'kiem', [('server/routes/orders.js', 'WHERE id = ? AND debt_amount = ?', 'WHERE id = ? AND debt_amount >= ?', 1)], r'✗ bài chạy thật cong_cu/thu_P20.js'),
+  ('!D1-E11-P21', 'D1', 'kiem', [('server/routes/wallets.js', "const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation']", "const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation', 'debt_payment']", 1)], r'✗ bài chạy thật cong_cu/thu_P21.js'),
+  ('!D1-E11-P26a', 'D1', 'kiem', [('server/routes/refunds.js', 'if (chiem.changes !== 1) return', 'if (false) return', 1)], r'✗ bài chạy thật cong_cu/thu_P26a.js'),
+  ('!D1-E11-P26b', 'D1', 'kiem', [('server/routes/wallets.js', 'SET balance = balance + ?', 'SET balance = ?', 1)], r'✗ bài chạy thật cong_cu/thu_P26b.js'),
+  ('!D1-T1-nguoi-gac', 'D1', 'kiem', [('tu_chay/nguoi_gac.js', "if (/[Aufpie]/.test(v.slice(1))) return chan('GIT-ADD', v);", "if (/[ufpie]/.test(v.slice(1))) return chan('GIT-ADD', v);", 1)], r'✗ bài chạy thật tu_chay/thu_nguoi_gac.js'),
+  ('!D1-T1b-cong-cu', 'D1', 'kiem', [('tu_chay/xem_thu.sh', 'if [ -n "$CLAUDECODE" ] || [ -n "$CLAUDE_CODE_CHILD_SESSION" ]; then', 'if [ -n "$KHONG_CO_BIEN_NAY" ]; then', 1)], r'✗ bài chạy thật tu_chay/thu_cong_cu.js'),
+  ('!D1-T1c-cong', 'D1', 'kiem', [('tu_chay/cong.js', 'const r = gac.xetPhamVi(p, phamVi || [], CH);', 'const r = null;', 1)], r'✗ bài chạy thật tu_chay/thu_cong.js'),
+  ('B1-A8-noi', 'D1', 'cong', [('tu_chay/cong.js', "if (lech.length) doLy('A8', `bản cài lệch nguồn", "if (lech.length > 99) doLy('A8', `bản cài lệch nguồn", 1)], r'✗ A8'),
+  ('B1-A9-noi', 'D1', 'cong', [('tu_chay/cong.js', "if (p !== '.github/workflows/cong.yml') doLy('A9'", "if (false) doLy('A9'", 1)], r'✗ A9'),
+  ('B1-A13-bo-daydu', 'D1', 'cong', [('tu_chay/cong.js', 'for (const l of [...CH.lenh_bai_thu, ...CH.lenh_kiem_day_du]) {', 'for (const l of [...CH.lenh_bai_thu]) {', 1)], r'✗ A13'),
+  ('B1-A15-dao-fork', 'D1', 'cong', [('tu_chay/cong_github.yml', 'if [ "$HEAD_REPO" != "$BASE_REPO" ]; then', 'if [ "$HEAD_REPO" = "$BASE_REPO" ]; then', 2)], r'✗ A15'),
 ]
+
+# ═══ C2 ĐỦ — sinh một đột biến "bỏ câu" cho MỖI câu ghi thật ở 11 file routes tiền + lời gọi ghiVi ═══
+# Bỏ câu = thay callee bằng stub vô hại qua ternary `(0?callee:STUB)(…)` — giữ nguyên SQL/đối số, không sập cú pháp,
+# trả về {changes:1,…} nên downstream không ném. BẮT = giả lập/thu_P26a/b/P20/P21 in dòng ✗ (bất biến lệch / HTTP sai).
+# SỐNG = không bài nào bắt → câu ghi đó KHÔNG được lưới phủ (xếp mức theo middleware route, ghi "ở quầy sẽ sai gì").
+C2_FILES = ['orders', 'refunds', 'wallets', 'damages', 'packages', 'signup-codes', 'discount-codes', 'rewards',
+            'loyalty', 'don-mo-rong', 'customers-v2']
+STUB = '(0?%s:async()=>({changes:1,lastInsertRowid:1,rows:[],rowsAffected:1,id:1}))'
+
+
+def _bo_ghi_chu(s):
+  s = re.sub(r'/\*[\s\S]*?\*/', lambda m: ' ' * len(m.group()), s)
+  s = re.sub(r'(^|[^:])//[^\n]*', lambda m: m.group(1) + ' ' * (len(m.group()) - len(m.group(1))), s)
+  return s
+
+
+def _middleware(raw, pos):
+  # router.<verb>('...', <middleware…>, async…) gần nhất TRƯỚC pos → phân loại quầy/khách vs quản trị
+  best = None
+  for m in re.finditer(r"router\.(get|post|put|delete|patch)\(", raw):
+    if m.start() < pos: best = m
+    else: break
+  if not best: return 'khong-ro'
+  dong = raw[best.start():raw.find('\n', best.start()) + 1 or best.start() + 200]
+  dinh = raw[best.start():best.start() + 400]
+  if re.search(r"checkPermission\(\s*['\"]manage", dinh): return 'quan-tri'
+  if 'authenticateServiceOrUser' in dinh: return 'khach-app'
+  if 'authenticate' in dinh: return 'quay'
+  return 'khong-ro'
+
+
+def sinh_c2full():
+  ra = []
+  for f in C2_FILES:
+    rel = f'server/routes/{f}.js'
+    raw = open(os.path.join(GOC, rel), encoding='utf-8').read()
+    clean = _bo_ghi_chu(raw)
+    idx = 0
+    for m in re.finditer(r'(?<![\w.])(tx\.run|run|ghiVi)\(', clean):
+      callee = m.group(1)
+      pre = clean[max(0, m.start() - 20):m.start()]
+      if re.search(r'function\s*$', pre): continue  # bỏ ĐỊNH NGHĨA function ghiVi(
+      after = clean[m.end():m.end() + 240]
+      if callee == 'ghiVi':
+        kind = 'ghiVi'
+      else:
+        km = re.search(r'\b(INSERT INTO|UPDATE|DELETE FROM|REPLACE INTO)\b', after)
+        if not km: continue
+        kind = km.group(1).split()[0].lower()
+      start = m.start()
+      # nới neo trên RAW tới khi duy nhất (callee ở clean và raw cùng offset vì _bo_ghi_chu giữ độ dài)
+      L = 70
+      while L <= 600 and raw.count(raw[start:start + L]) != 1: L += 40
+      anchor = raw[start:start + L]
+      if raw.count(anchor) != 1: continue  # không neo được duy nhất → bỏ (ghi CHƯA KIỂM thủ công nếu cần)
+      new = (STUB % callee) + '(' + anchor[len(callee) + 1:]
+      mw = _middleware(raw, start)
+      idx += 1
+      ten = f'C2F-{f}-{idx:02d}-{kind}-{mw}'
+      ra.append((ten, 'C2F', 'c2full', [(rel, anchor, new, 1)], r'✗ '))
+  return ra
+
+
+DOT_BIEN += sinh_c2full()
 
 # ═══ Bản sao + lệnh ══════════════════════════════════════════════════════════
 BAI_THAT = ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js',
@@ -103,6 +208,9 @@ LENH = {  # cách chạy → (loại bản sao, [tầng: [lệnh…]], giây t�
   # C2: tầng nhanh = 4 bài chạy thật của npm test (P26a, P26b, P20, P21); còn sống mới chạy giả lập đủ 18 KB.
   'c2': ('sv', [[N('cong_cu/thu_P26a.js'), N('cong_cu/thu_P26b.js'), N('cong_cu/thu_P20.js'), N('cong_cu/thu_P21.js')],
                 [N('cong_cu/gia_lap/chay.js')]], 300),
+  # C2 ĐỦ: tầng 1 = giả lập 18 KB + thu_P26a + thu_P26b; SỐNG thì tầng 2 = thu_P20 + thu_P21 (hai bài này không nhận --may-chu).
+  'c2full': ('sv', [[N('cong_cu/gia_lap/chay.js'), N('cong_cu/thu_P26a.js'), N('cong_cu/thu_P26b.js')],
+                    [N('cong_cu/thu_P20.js'), N('cong_cu/thu_P21.js')]], 300),
   'kiem': ('kho', [[N('kiem_tra_truoc_khi_giao.js')]], 900),
   'kiemdd': ('khodd', [[N('kiem_tra_truoc_khi_giao.js', '--day-du')]], 1500),
 }

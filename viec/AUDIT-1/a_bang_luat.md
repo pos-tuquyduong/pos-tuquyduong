@@ -42,3 +42,22 @@ G1-CAM, FIND, NPM, MKDIR, TAR, FILE, B-GAN, G1-KHUNG.
 - Hai lối vào người gác: `xet()` trong tiến trình (A3/A4) và hook thật qua stdin — thu_nguoi_gac phủ lối stdin bằng
   `tienTrinh()` (7 ca tiến trình thật + treo). A3 phủ lối `xet()`.
 - `cong.js` dùng lại `xetPhamVi`/`khop`/`phamViTuChu` của `nguoi_gac.js` (không tự viết `globRe`) — xem nhóm B.
+
+
+## A4b — 30 mã CHƯA có lệnh lách riêng (CHƯA KIỂM), lý do
+
+`lach.js` phủ 44/74 mã bằng lệnh lách thật. 30 mã còn lại KHÔNG viết thêm lệnh lách (theo dặn chủ quán vòng soát cuối) —
+ghi CHƯA KIỂM kèm lý do. Phân ba loại:
+
+- **Mã CHO-qua (lách không áp — chúng CHO một thao tác hợp lệ, không chặn gì):** CC-DOC, CC-MONITOR, G-NHAP, G-PLANS,
+  G3-HOSO, G4-PHAMVI, G-HOANTAC, B-DEV, B-TIMEOUT, B-CD, B-CD-VITRI, GIT-CHECKOUT, GIT-CHECKOUT-FILE, GIT-BRANCH. Đã
+  phủ gián tiếp: A2 (tắt mã → `thu_nguoi_gac` đỏ ⇒ mã có hiệu lực) + A3 (vá sai mã này làm lọt/chặn nhầm → bắt).
+- **Mã điều kiện MÔI TRƯỜNG/CẤU TRÚC (không lách bằng một lệnh Bash):** NG-CAUHINH (thiếu cấu hình), G1-PHIEU, G2-VIEC,
+  G2-PHIEU (nhánh/phiếu), G-LIENKET (liên kết cứng), B-BASHTHEM (cấu hình tep_bash_them). A2+A3 phủ; lách bằng JSON đầu
+  vào/biến môi trường, không bằng lệnh — một phần A4 đã thử (NG-GOC, B-GAN).
+- **Mã chặn một tuỳ chọn/ghi cụ thể (A3 vá-sai đã phủ, lách trùng A3):** B-DICHCHU, B-GHI-PHU, B-GHI-TOUCH, GIT-OUTPUT,
+  GIT-HOANTAC, GIT-ARCHIVE, CP-DICH, TAR-C, SED-WE, CURL-CAM. Đã có A3 vá-sai cho nhóm SED/TAR/CURL/CP/GIT; A2 tắt từng
+  mã làm `thu_nguoi_gac` đỏ ⇒ mã có hiệu lực.
+
+Kết luận A4: 44 mã có lệnh lách thật (52/52 CHẶN); 30 mã dựa A2 (tắt→đỏ) + A3 (vá sai) — đủ chứng mã có hiệu lực, nhưng
+CHƯA có lệnh lách TRỰC TIẾP. Đề xuất HOC-2: nếu muốn phủ lách 100%, thêm lệnh lách cho nhóm "chặn tuỳ chọn cụ thể".
