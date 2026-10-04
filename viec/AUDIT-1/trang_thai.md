@@ -29,7 +29,7 @@ LẠC/TREO chạy lại -j 1 một lần; vượt ước lượng 1,5 lần thì
 - [x] Bước 2 — đọc phiếu, CLAUDE.md, KHUON_LOI.md, đo kích thước + thời gian từng nhóm
 - [x] Bước 3 — `ke_hoach.md` (soát bằng agent chỉ đọc) — **DỪNG chờ chủ quán duyệt** (phiếu: "Chờ duyệt kế hoạch")
 - [ ] G3 công cụ đo tự chứng minh → `bang_chung_do.txt`
-- [x] Nhóm A · [x] B · [x] C · [x] D · [x] E · [ ] F · [ ] báo cáo G1 · [ ] soát G4 · [ ] bài học
+- [x] Nhóm A · [x] B · [x] C · [x] D · [x] E · [x] F · [ ] báo cáo G1 · [ ] soát G4 · [ ] bài học
 
 ## Câu hỏi
 1. Tổng thời gian máy ước lượng ~95 phút, sau sửa §8 còn ~85 phút (phiếu: > 90 phút thì hỏi). Cách cắt đề xuất ở `ke_hoach.md` §5 —

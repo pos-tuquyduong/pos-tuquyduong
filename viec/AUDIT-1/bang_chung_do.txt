@@ -94,3 +94,9 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 # E1 HOC-1:  python3 viec/HOC-1/dot_bien.py → đa số ĐỎ đúng chỗ; MB + MB4 = "LỖI chuỗi tìm 0 lần" (, "package.json"] mất)
 # E1 TC4:    python3 viec/TU-CHAY-4/dot_bien.py M0 E4 → XANH 0 không đạt (chỉ gl; tai_cho F2/S3 KHÔNG chạy — sửa file thật)
 # E2: tên đột biến P26b/HOC-1/TU-CHAY-4 đều có trong trang_thai.md của việc; lệch nằm ở KẾT QUẢ (I10-bo/MB/MB4 nay HỎNG), không ở tên
+
+# ── Nhóm F ──────────────────────────────────────────────────────────────────
+# F1: rà khẳng định cơ chế trong CLAUDE.md/KHUON_LOI.md/THIET_KE.md → dẫn phép kiểm. KHÔNG câu nào SAI hẳn.
+#     AU-F1: CLAUDE.md:113 "chiết khấu/gói/mã — bộ kiểm nhóm E canh" nói quá (E2 chỉ canh from_package; discount không phép — ghi chú E6 tự nhận)
+#     AU-F2: CLAUDE.md:26 "36 phép lúc 24.09" → HEAD nay 61 phép (ảnh cũ có ngày)
+# F2: lời dặn đã có phép kiểm thay (fetch trần→C1, git add -A→người gác, --no-verify→GIT-COMMIT-CO) → đề xuất rút; str_replace tiếng Việt GIỮ (không phép máy)
