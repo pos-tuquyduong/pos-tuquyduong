@@ -97,7 +97,7 @@ DOT_BIEN = [
   ('D1-B-pathname', 'D1', 'kiem', [('client/src/utils/api.js', "window.location.pathname !== '/login'", "window.location.pathname !== '/login2'", 1)], r'✗ api.js không đá đi khi đang ở sẵn /login'),
   ('D1-B-deadcodes-thieu', 'D1', 'kiem', [('client/src/utils/api.js', "'USER_INACTIVE'", '', 1)], r'✗ SESSION_DEAD_CODES đủ 5'),
   ('D1-B-eb-getDerived', 'D1', 'kiem', [('client/src/components/ErrorBoundary.jsx', 'getDerivedStateFromError', 'getDerivedX', 1)], r'✗ ErrorBoundary có getDerivedStateFromError'),
-  ('D1-B-eb-ton-tai', 'D1', 'kiem', [('client/src/components/ErrorBoundary.jsx', None, None, 1)], r'✗ ErrorBoundary.jsx tồn tại'),
+  ('D1-B-eb-ton-tai', 'D1', 'kiem', [('client/src/components/ErrorBoundary.jsx', 'getDerivedStateFromError', None, 1)], r'✗ ErrorBoundary.jsx tồn tại'),
   ('D1-B-main-boc', 'D1', 'kiem', [('client/src/main.jsx', 'ErrorBoundary', 'EBhai2', 4)], r'✗ main.jsx bọc'),
   ('D1-B-layout-boc', 'D1', 'kiem', [('client/src/components/Layout.jsx', 'ErrorBoundary', 'EBba3', 4)], r'✗ Layout.jsx bọc'),
   ('D1-B-key', 'D1', 'kiem', [('client/src/components/Layout.jsx', 'key={location.pathname}', 'keyX={location.pathname}', 1)], r'✗ Layout.jsx dùng key'),

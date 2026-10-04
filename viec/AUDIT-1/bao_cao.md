@@ -1,19 +1,25 @@
 # AUDIT-1 — Báo cáo soát lưới an toàn
 
 HEAD `b9759cf` (+ sản phẩm AUDIT-1), đo 04.10.2026. Việc CHỈ ĐỌC + ĐO; không đổi byte nào ngoài `viec/AUDIT-1/`.
-Chi tiết từng nhóm: `a_bang_luat.md` (A), `b_bang.md` (B), `c_bang.md` (C), `d_bang.md` (D), `e_bang.md` (E),
-`f_tai_lieu.md` (F). Bằng chứng chạy: `bang_chung_do.txt`. Công cụ đo: `dot_bien.py`, `lach.js`.
+Chi tiết từng nhóm: `a_bang_luat.md` (A), `b_bang.md` (B), `c_bang.md` + `c2_day_du.md` (C), `d_bang.md` (D),
+`e_bang.md` (E), `f_tai_lieu.md` (F). Bằng chứng chạy: `bang_chung_do.txt`. Công cụ đo: `dot_bien.py`, `lach.js`.
 
 ## Kết luận một dòng
-**Đường tiền LÕI đã có KB (tạo/huỷ/xoá đơn · hoàn · ví · điểm tích · kho · mã bill) vững: không đột biến nào SỐNG.**
-NHƯNG **1 NẶNG** — lưới giả lập KHÔNG phủ đường **đổi điểm→voucher ở quầy** (`POST /loyalty/redeem`): đột biến trừ 0
-điểm SỐNG (AU-G1). 14 phát hiện còn lại đều **NHẸ** (đột biến cũ HỎNG, phép chỉ cảnh báo, tài liệu lệch, K5 báo oan).
+C2 ĐỦ (86 câu ghi ở 11 file routes tiền, mỗi câu một đột biến bỏ câu): **40 BẮT · 45 SỐNG · 1 LẠC**. Câu ghi ví/điểm
+tích/hoàn/debt LÕI được lưới phủ (BẮT). NHƯNG lưới KHÔNG phủ **16 câu đụng tiền/điểm/gói**, trong đó **3 nhóm NẶNG**:
+AU-G1 đổi điểm→voucher (`/loyalty/redeem`: trừ điểm + đẻ mã), AU-G2 voucher dùng khi BÁN không tăng `used_count`
+(mã dùng-một-lần dùng lại được), AU-G3 gói & thẻ trả trước (mua gói / lấy hàng từ gói / mua thẻ — không KB nào chạm).
+Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đổi cách trả, /increment-usage) là NHẸ. Ngoài đường tiền:
+12 phát hiện NHẸ (đột biến cũ HỎNG, phép chỉ cảnh báo, tài liệu lệch, K5 báo oan). **Không câu ví/điểm-tích LÕI nào SỐNG.**
 
 ## Bảng phát hiện
 
 | mã | nhóm | mức | ở HEAD (file:dòng) | lệnh thấy lại | đề xuất khoá cho HOC-2 |
 |---|---|---|---|---|---|
-| **AU-G1** | **C/G** | **NẶNG** | `loyalty.js:170,179,189` POST /redeem (đổi điểm→voucher ở quầy) | `python3 … dot_bien.py C2-loyalty-redeem-tru-0` → **SỐNG** | thêm KB đổi-thưởng (gọi /redeem) + bất biến: mỗi `pos_voucher_grant` có đúng một dòng `redeem` trừ điểm khớp, `discount_value` = reward; I8 nới soát cả redeem |
+| **AU-G1** | **C/G** | **NẶNG** | `loyalty.js:170` (trừ điểm), `:179` (đẻ mã) POST /redeem | `C2F-loyalty-01/02` + `C2-loyalty-redeem-tru-0` → **SỐNG** (`loyalty-03` voucher_grants BẮT qua thu_P26a C8, nhưng điểm-trừ + mệnh-giá-mã KHÔNG kiểm) | KB đổi-thưởng + bất biến: mỗi `pos_voucher_grant` có đúng một `redeem` trừ điểm khớp, `discount_value` = reward; I8 nới soát redeem |
+| **AU-G2** | **C/G** | **NẶNG** | `orders.js:895` UPDATE pos_discount_codes used_count (áp voucher khi BÁN) | `C2F-orders-05-update-quay` → **SỐNG** | KB bán có áp voucher dùng-một-lần + bất biến: `used_count ≤ usage_limit`, mã `usage_limit=1` không dùng được lần hai |
+| **AU-G3** | **C/G** | **NẶNG** | gói & thẻ trả trước: `orders.js` customer_packages/membership (`C2F-orders-10/11/21/23/24/25/30/32`), `packages.js:177` deliver (`C2F-packages-05`) | `python3 … dot_bien.py C2F-orders-21-update-quay` → **SỐNG** | KB mua gói → lấy hàng từ gói → hết lượt + bất biến: tổng `delivered_qty` ≤ `total_qty`, mỗi đơn lấy-từ-gói trừ đúng một lượt, huỷ đơn hoàn lượt |
+| AU-G4 | C | NHẸ-tiền | ví đối soát tạo-mới (`C2F-wallets-08`), link sổ hoàn (`C2F-refunds-05`), đổi cách trả (`C2F-don-mo-rong-01`), /increment-usage (`C2F-discount-codes-05`) | `dot_bien.py C2F` | xem `c2_day_du.md` — mức NHẸ (admin/hiếm, hoặc tổng tiền không đổi) |
 | AU-A1 | A | NHẸ | `nguoi_gac.js` CONG_CU_DOC `:105-107` | `python3 … dot_bien.py A3-CCLA-them-la` → SỐNG | thêm phép `thu_nguoi_gac` so `CONG_CU_DOC`/`CONG_CU_SUA` với tập cố định (ca đỏ: thêm 1 tên) |
 | AU-B1 | B | NHẸ | `cong.js` hai cổng A14 `:82,88` | `python3 … dot_bien.py B1-A14-bo-dang-nhanh` → SỐNG | ca `thu_cong`: phiếu ở `viec/<MÃ xấu>` + nhánh không dạng `viec/<MÃ>` → ĐỎ riêng cổng dạng-nhánh |
 | AU-B2 | B | NHẸ | `cau_hinh.json` 8 khoá nhãn | `python3 scratchpad/b2.py` | bỏ khoá-nhãn hoặc ghi chú phân biệt khoá-code/tài-liệu |
@@ -30,30 +36,36 @@ NHƯNG **1 NẶNG** — lưới giả lập KHÔNG phủ đường **đổi đi�
 | AU-F1 | F | NHẸ | `CLAUDE.md:113` | đọc + `kiem_tra…js:373` (E6) | sửa câu: nhóm E chỉ canh `from_package`, không canh `discount_*` |
 | AU-F2 | F | NHẸ | `CLAUDE.md:26` "36 phép" | `node kiem_tra…js` → 61 | bỏ số đếm cứng trong tài liệu |
 
-**Ba SỐNG — ở quầy sẽ sai gì?**
-- **AU-G1 (NẶNG — tiền thật):** lưới (18 KB + I1–I11) KHÔNG chạy `POST /loyalty/redeem`. Đột biến trừ 0 điểm khi đổi quà
-  SỐNG → **ở quầy: khách đổi quà mà KHÔNG mất điểm** (hoặc nếu lỗi ở `discount_value` thì mã giảm giá sai mệnh giá). I8
-  (`bat_bien.js:101`) chỉ soát điểm TÍCH (`WHERE t.order_id = o.id`); dòng redeem `order_id=NULL` nên bị loại. Đây là
-  lỗ LƯỚI (không khẳng định loyalty.js hiện đang sai — chưa đọc hết logic đó; AUDIT chỉ đo lưới).
-- AU-A1 (NHẸ): sửa `nguoi_gac.js` thêm tên công cụ vào tập chỉ-đọc → `thu_nguoi_gac` không bắt (cổng A8 bắt mọi sửa
-  `nguoi_gac.js` lệch nguồn → không tới quầy).
-- AU-B1 (NHẸ): xoá cổng A14 dạng-nhánh → `thu_cong` vẫn xanh vì cổng A14 thứ hai (phiếu) chặn — PR nhánh sai vẫn bị
-  chặn. Lỗ chỉ là test không phân biệt hai cổng chồng.
+**SỐNG đụng tiền — ở quầy sẽ sai gì?** (16 câu; đầy đủ ở `c2_day_du.md`). AUDIT chỉ đo LƯỚI, không khẳng định code đang sai.
+- **AU-G1 (NẶNG):** `/loyalty/redeem` — `loyalty-03` (voucher_grants) BẮT qua thu_P26a C8, nhưng `loyalty-01` (trừ điểm)
+  + `loyalty-02` (đẻ mã) SỐNG. I8 (`bat_bien.js:101`) chỉ soát điểm TÍCH (`WHERE t.order_id=o.id`); redeem `order_id=NULL`
+  bị loại. **Ở quầy:** khách đổi quà mà không mất điểm, hoặc mã giảm giá sai mệnh giá.
+- **AU-G2 (NẶNG):** `orders.js:895` áp voucher khi BÁN, bỏ `UPDATE used_count` → SỐNG (không KB nào áp voucher trong bán).
+  **Ở quầy:** mã giảm giá `usage_limit=1` DÙNG LẠI được nhiều lần.
+- **AU-G3 (NẶNG):** gói & thẻ trả trước (8 câu orders customer_packages/membership + `packages.js:177` deliver) SỐNG.
+  **Ở quầy:** mua gói/thẻ không ghi sổ, lấy hàng từ gói quá số lượt, huỷ đơn không hoàn lượt — tiền trả trước sai.
+- AU-G4 (NHẸ-tiền): ví đối soát tạo-mới (`wallets-08`), link sổ hoàn (`refunds-05`), đổi cách trả (`don-mo-rong-01`,
+  tổng không đổi), `/increment-usage` (`discount-codes-05`, endpoint riêng). Xem `c2_day_du.md`.
+- AU-A1 / AU-B1 (NHẸ, không phải tiền): `CONG_CU_DOC` không khoá bằng test; hai cổng A14 chồng — chi tiết trong bảng.
 
 ## Tỷ lệ BẮT/SỐNG/HỎNG/LẠC/TREO (LẠC+TREO KHÔNG cộng vào BẮT)
 
-Đột biến AUDIT-1 (`dot_bien.py`), chạy `python3 viec/AUDIT-1/dot_bien.py G3 A3 B1 C2 D1` (G3 là bộ tự-chứng-minh, LẠC/
-HỎNG/SỐNG của G3 là CỐ Ý):
+Đột biến AUDIT-1 (`dot_bien.py`). G3 là bộ tự-chứng-minh (LẠC/HỎNG/SỐNG của G3 là CỐ Ý). SỐNG đụng tiền = phát hiện
+(AU-G1..G4); SỐNG ở A3/B1 = lỗ test NHẸ. LẠC+TREO KHÔNG cộng vào BẮT, liệt kê riêng.
 
 | nhóm | BẮT | SỐNG | HỎNG | LẠC | TREO | tỷ lệ BẮT = BẮT/(tổng−HỎNG) |
 |---|---|---|---|---|---|---|
 | G3 (demo) | 1 | 1 | 1 | 1 | 0 | — (cố ý mỗi loại 1) |
 | A3 người gác | 15 | 1 | 0 | 0 | 0 | 15/16 |
-| B1 cổng | 7 | 1 | 0 | 0 | 0 | 7/8 |
-| C2 đường tiền (thêm) | 2 | 1 | 0 | 0 | 0 | 2/3 (SỐNG = AU-G1 loyalty redeem) |
-| D1 bộ kiểm | 10 | 0 | 0 | 0 | 0 | 10/10 |
+| B1 cổng (A6–A14 + A8/A9/A13/A15) | 11 | 1 | 0 | 0 | 0 | 11/12 |
+| C2 (2 câu điểm thêm + loyalty redeem) | 2 | 1 | 0 | 0 | 0 | 2/3 |
+| **C2F (86 câu bỏ-câu ĐỦ)** | **40** | **45** | **0** | **1** | **0** | 40/85 (SỐNG=lỗ lưới; LẠC=`orders-02` FK) |
+| D1 bộ kiểm (mỗi phép 1 đột biến) | 46 | 0 | 0 | 2 | 0 | 46/48 (LẠC=`!E11-P20`,`!E11-P26a` liệt kê riêng) |
 
-A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (không phải đột biến — là lệnh lách đưa vào `xet()`).
+A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (44/74 mã; 30 mã còn lại CHƯA KIỂM — `a_bang_luat.md` A4b).
+LẠC liệt kê riêng (chạy lại -j1 một lần vẫn LẠC): `C2F-orders-02` (bỏ INSERT pos_orders → FK sập); `!D1-E11-P20`,
+`!D1-E11-P26a` (code break bị phép TĨNH E7/refunds bắt trước nên kiem đỏ "CÓ LỖI", không khớp dòng bài-thật — hai phép
+chạy-thật này vẫn failable: thu_P26a đỏ được qua `C2F-loyalty-03` C8, thu_P20/P21/P26b qua `!D1-E11-P21/P26b` + C2F).
 
 Đột biến CŨ chạy lại (E1), LẠC/TREO không có:
 
@@ -63,8 +75,8 @@ A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (không phải đột biến �
 | HOC-1 (`viec/HOC-1/dot_bien.py`) | 15 | 2 | HỎNG = `MB`, `MB4` (AU-E2); M0×3 đối chứng XANH |
 | TU-CHAY-4 gl (`… M0 E4`) | 7 | 0 | M0 đối chứng XANH; `tai_cho` (F2/S3) KHÔNG chạy (AU-E3) |
 
-**Tổng: 1 SỐNG ở đường tiền (AU-G1 loyalty redeem = NẶNG lưới thủng); 2 SỐNG ở lưới (A/B) NHẸ; 3 đột biến cũ HỎNG trên
-HEAD (I10-bo, MB, MB4).**
+**Tổng: 16 SỐNG đụng tiền (3 nhóm NẶNG AU-G1/G2/G3 + AU-G4 NHẸ-tiền); 2 SỐNG lưới A/B NHẸ; 3 đột biến cũ HỎNG trên
+HEAD (I10-bo, MB, MB4). Câu ví/điểm-tích/hoàn/debt LÕI đều BẮT — không SỐNG.**
 
 ## B4 — cổng tĩnh của main chạy trên chính nhánh này
 `node tu_chay/cong.js tinh . b94110e 62b90ce viec/AUDIT-1` → **✓ CỔNG TĨNH ĐẠT** (mọi file đổi nằm trong Phạm vi

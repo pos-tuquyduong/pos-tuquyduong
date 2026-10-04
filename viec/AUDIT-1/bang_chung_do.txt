@@ -104,3 +104,13 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 # ── B4 + G5 ──────────────────────────────────────────────────────────────────
 # B4: node tu_chay/cong.js tinh . b94110e 62b90ce viec/AUDIT-1 → ✓ CỔNG TĨNH ĐẠT
 # G5: git diff --stat b94110e -- . ':!viec/AUDIT-1' → rỗng; git status ngoài viec/AUDIT-1 → sạch; npm test → PASS 61 FAIL 0
+
+# ── ra-soát vòng 2: C2 ĐỦ + D1 ĐỦ + B1 thêm ──────────────────────────────────
+# C2F (86 câu bỏ-câu, python3 viec/AUDIT-1/dot_bien.py C2F -j 3): 40 BẮT · 45 SỐNG · 1 LẠC(orders-02 FK) · 0 HỎNG. Bảng + phân loại: c2_day_du.md
+#   16 SỐNG đụng tiền → AU-G1 (loyalty-01/02), AU-G2 (orders-05 voucher used_count), AU-G3 (gói/thẻ: orders-10/11/21/23/24/25/30/32, packages-05), AU-G4 NHẸ (wallets-08, refunds-05, don-mo-rong-01, discount-codes-05)
+# D1 (mỗi phép 1 đột biến, python3 viec/AUDIT-1/dot_bien.py D1): 46 BẮT · 0 SỐNG · 0 HỎNG · 2 LẠC. Bài-thật P21/P26b/T1/T1b/T1c BẮT sạch.
+#   2 LẠC (chạy lại -j1 vẫn LẠC, không đếm BẮT): !D1-E11-P20, !D1-E11-P26a — code break bị phép tĩnh E7/refunds bắt trước (kiem đỏ "CÓ LỖI"), không khớp dòng bài-thật.
+#   thu_P26a failable chứng bằng C2F-loyalty-03 (✗ C8 qua thu_P26a). eb-ton-tai sửa (xoá file) → BẮT.
+# B1 thêm (A8/A9/A13/A15): 4/4 BẮT (A8 xoá cai_dat, A9 keep-alive.yml đổi, A13 --day-du, A15 đảo chặn fork trên bản sao cong_github.yml).
+# A4b: 44/74 mã có lệnh lách; 30 mã CHƯA KIỂM (mã CHO-qua / env / trùng A3) — a_bang_luat.md.
+# E2b: bang_chung_do cũ thu_nguoi_gac 780/782 → nay 786/786; số ca trôi theo thời gian (không tự kiểm lại).

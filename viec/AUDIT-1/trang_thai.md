@@ -45,19 +45,19 @@ LẠC/TREO chạy lại -j 1 một lần; vượt ước lượng 1,5 lần thì
   đích; đề xuất câu dẫn trong KHUON_LOI K1, không sửa KHUON_LOI ở việc này).
 - Bước 3: người gác chặn thêm `$'…'` (B-PHANTICH) — cùng loại sự cố bước 2.
 
+## Soát độc lập (/ra-soát) — hai vòng, đều KHÔNG ĐẠT rồi sửa trong Phạm vi
 
-## Soat doc lap (/ra-soat, agent general-purpose, 04.10.2026) -- KHONG DAT (vong 1)
-Cong cu do TRUNG THUC (G3 dung; 10 dot bien ngau nhien 10/10 BAT; 6 phat hien kiem lai dung), NHUNG 3 diem phai sua:
-1. LOI (K8/K3) -- bao_cao.md K5 + dot_bien.py anh_kho(): anh K5 gop nhat ky nguoi gac (ghi MOI lenh Bash cua phien).
-   Co hoat dong song song khi dot_bien.py chay -> in "KHO BAN" thoat 3 OAN (git status that sach). Agent gap 2/2 lan.
-   -> phai loai nhat ky nguoi gac khoi anh K5.
-2. NGHI NGO -- "ngat giua chung -> 0 sot" noi qua: chi SIGINT/SIGTERM duoc bat, SIGKILL/OOM khong. -> sua thanh SIGINT/SIGTERM.
-3. LO MOI (quan trong) -- server/routes/loyalty.js:170,179,189 POST /redeem: khach doi diem->voucher TAI QUAY
-   (authenticateServiceOrUser), KHONG KB/bat bien nao phu (I8 chi soat earn, redeem co order_id=NULL nen bi loai).
-   c_bang.md xep nham vao "admin config NHE CHUA KIEM". Theo dinh nghia phieu (sai diem/ma uu dai o quay) day la
-   duong tien -> phai xep CHUA KIEM UU TIEN. De xuat HOC-2: them KB doi-thuong + bat bien "moi voucher_grant co dung
-   mot redeem tru diem khop, discount_value = reward".
-Da sua ca 3 trong vong nay (commit "ra-soat vong 1").
+**Vòng 1** (agent general-purpose): công cụ đo TRUNG THỰC (G3 đúng; 10 đột biến ngẫu nhiên 10/10 BẮT; 6 phát hiện kiểm
+lại đúng), bắt 3 điểm: (1) `anh_kho()` gộp nhật ký người gác → báo "KHO BẨN" OAN khi có hoạt động song song (khuôn K8)
+— đã sửa, loại nhật ký khỏi ảnh K5; (2) câu "ngắt giữa chừng → 0 sót" nói quá (chỉ SIGINT/SIGTERM) — đã sửa; (3) lỗ
+mới `loyalty.js` đổi điểm→voucher ở quầy xếp nhầm admin NHẸ → sửa thành đường tiền (AU-G1).
+
+**Vòng 2** (chat soát cuối): công cụ đúng (chạy lại khớp từng dòng) nhưng đã tự CẮT MẪU trái lời duyệt (a). Làm tiếp
+ĐỦ, không cắt: (1) **C2 ĐỦ** — 86 đột biến bỏ-câu cho MỖI câu ghi ở 11 file routes tiền + lời gọi ghiVi (`C2F`,
+40 BẮT · 45 SỐNG · 1 LẠC); phân loại route theo middleware đọc từ code; 16 SỐNG đụng tiền → AU-G1/G2/G3 NẶNG + AU-G4
+NHẸ (`c2_day_du.md`). (2) **D1 ĐỦ** — mỗi phép (61 nhanh + --day-du) một đột biến riêng vào THỨ phép soi (46 BẮT · 2 LẠC
+liệt kê riêng). (3) **B1** thêm VÁ SAI A8/A9/A13/A15. (4) **E2** số ca thật (bang_chung_do cũ 782→786 ca, trôi). (5)
+**A4** 30 mã chưa có lệnh lách = CHƯA KIỂM kèm lý do. (6) bao_cao bỏ câu "P26b phủ mỗi câu", thêm số C2 ĐỦ; sửa dấu.
 
 ## Phát hiện ghi sẵn (chưa chấm, kiểm lại khi chạy nhóm tương ứng)
 - `kiem_tra_truoc_khi_giao.js:746` ghi giả lập 22 s / thu_gia_lap 24 s; đo 04.10: 67,6 s / 70,6 s — hạn 110/120 s (C3).
@@ -65,71 +65,48 @@ Da sua ca 3 trong vong nay (commit "ra-soat vong 1").
 - `viec/TU-CHAY-4/dot_bien.py:56-63` đột biến sửa THẲNG file thật (E).
 - `cong_cu/thu_p1.js` ghi kho thật nhưng nằm trong `thu_muc_bai_thu` (B3).
 
-## Bai hoc (buoc 11 — dau vao cho muc BAI HOC cua bao cao 7 muc; de xuat ngoai Pham vi KHONG tu lam)
 
-Su co gom duoc:
-- Nguoi gac chan nhieu lenh DO cua chinh toi: `for`/`$(( ))`/`$()`/`$'...'` (B-PHANTICH, B-CHUONGTRINH), heredoc nhac
-  nhat ky nguoi gac / environ (B-MANOI, B-BIMAT-CHU), `git fetch` (GIT-LENH), `rmdir`/`wait` (B-CHUONGTRINH). Deu dung
-  luat; da doi sang script python trong nhap.
-- Dung dot bien sai lan dau: B1-A11-dao-goc HONG (chuoi goc sai), B1-A14-bo-dang-nhanh LAC roi SONG (dot bien qua rong
-  -> thu hep dung cong A14 dang-nhanh). Da sua chuoi/thu hep roi chay lai.
-- Agent soat (/ra-soat) bat 3 diem: (a) anh_kho() gop nhat ky nguoi gac -> bao "KHO BAN" OAN khi co hoat dong song song
-  (khuon K8); (b) cau "ngat giua chung -> 0 sot" noi qua (chi SIGINT/SIGTERM); (c) loyalty redeem xep nham admin NHE,
-  thuc ra la duong tien CHUA PHU (AU-G1 NANG).
-- Dot bien/ho so CU rua theo thoi gian: I10-bo (chuoi khop 2 lan sau khi I11 them cung dong), MB/MB4 (file_luat moc
-  them sau "package.json") — deu HONG tren HEAD du ho so ghi "dat".
+## Bài học (bước 11 — đầu vào cho mục BÀI HỌC; đề xuất ngoài Phạm vi KHÔNG tự làm)
 
-Xep ngan:
-- KHOA (da lam trong Pham vi viec nay):
-  * dot_bien.py anh_kho() LOAI nhat ky nguoi gac khoi anh K5 — het bao oan "KHO BAN" (khuon K8). Co ca G3 chay lai xac nhan.
-  * them dot bien C2-loyalty-redeem-tru-0 -> do duoc lo loyalty redeem (SONG), bien lo agent neu ra thanh so do duoc.
-- KHOA (de xuat HOC-2, ngoai Pham vi — khong tu sua server/, tu_chay/, bo kiem):
-  * bat bien giả lập cho loyalty redeem + KB doi-thuong (dong AU-G1); I8 noi soat ca dong redeem (order_id NULL).
-  * thu_nguoi_gac khoa noi dung CONG_CU_DOC/CONG_CU_SUA bang tap co dinh (AU-A1).
-  * thu_cong them ca cong A14 dang-nhanh rieng (AU-B1); sua neo I10-bo/MB/MB4 (AU-C1/E1/E2); nang T2-T4 thanh fail (AU-D2).
-  * them cong_cu/thu_P20..P26b vao file_luat (AU-B3c); them ban_mau_pos/thu vao thu_muc_bai_thu (AU-B3b); doi ten thu_p1.js (AU-B3).
-- NGUYEN TAC (de xuat KHUON_LOI, ngoai Pham vi — KHUON_LOI dang 120/120, khong tu sua, ghi de xuat):
-  * (khuon K8 san co) Phep tu-kiem bao dong OAN trong dieu kien binh thuong day nguoi bo qua no -> mat canh bao that.
-    Vi du that: anh_kho() cua AUDIT-1 gop nhat ky nguoi gac -> "KHO BAN" oan 2/2 lan agent chay. Chan: anh chup chi
-    gom thu dot bien THUC SU co the doi (data/, git), khong gom file ghi hoat dong CA PHIEN.
-  * (khuon K3, bo sung) Dot bien/ho so coi la DAT bi RUA theo thoi gian: neo bang chuoi dai di qua nhieu muc -> muc
-    khac doi la HONG am tham ma ho so van ghi "dat". Vi du that: I10-bo, MB, MB4. Chan: moi con so "dat" phai kem lan
-    CHAY LAI tren HEAD hom nay; neo dot bien NGAN/RIENG (WHERE cua chinh bat bien), khong om ca cau di qua nhieu muc.
-  * (khuon K1/K5) Phan loai "duong tien" vs "admin config" theo DOI TUONG co gia tri tai chinh KHACH CHAM o quay,
-    khong theo "co trong 18 KB hay chua". Vi du that: loyalty redeem (khach doi diem lay voucher) bi xep nham admin NHE.
-- BO (chi xay ra mot lan):
-  * Thoi quen viet lenh shell ghep (for/$()/heredoc) bi nguoi gac chan — da biet dung script python trong nhap.
-  * git fetch/rmdir/wait bi chan — dung ref co san (b94110e lam moc B4), bo qua rac /tmp.
+Sự cố gom: người gác chặn nhiều lệnh đo của chính tôi (`for`/`$(( ))`/`$()`/`$'…'`/heredoc nhắc file bảo vệ/`git fetch`/
+`rmdir`/`wait`) → đổi sang script Python trong nháp; đột biến dựng sai lần đầu (B1-A11-dao-goc HỎNG chuỗi sai, B1-A14
+LẠC quá rộng, !D1-E11-P20/P26a LẠC vì phép tĩnh bắt trước) → sửa/thu hẹp/liệt kê riêng; agent soát bắt K5 báo oan +
+loyalty xếp nhầm; đột biến/hồ sơ cũ RỮA theo thời gian (I10-bo, MB, MB4 HỎNG trên HEAD; số ca 782→786).
 
-Moi de xuat NGOAI Pham vi (KHUON_LOI/CLAUDE.md/server/tu_chay/bo kiem): chat soat duyet, gom vao HOC-2 hoac phieu HOC-<n>.
-AUDIT-1 KHONG tu sua.
+- **KHOÁ (đã làm trong Phạm vi):** `anh_kho()` loại nhật ký người gác (hết báo oan); thêm đột biến `C2-loyalty-redeem-tru-0`
+  + bộ sinh `C2F` 86 câu (đo được lỗ đường tiền); D1 đủ mỗi phép một đột biến.
+- **KHOÁ (đề xuất HOC-2, ngoài Phạm vi):** bất biến loyalty redeem (AU-G1); KB+bất biến voucher used_count khi bán
+  (AU-G2); KB+bất biến gói/thẻ trả trước (AU-G3); `thu_nguoi_gac` khoá `CONG_CU_DOC` (AU-A1); ca `thu_cong` cổng A14
+  dạng-nhánh (AU-B1); neo lại I10-bo/MB/MB4 (AU-C1/E1/E2); nâng T2–T4 thành fail (AU-D2); thêm cong_cu/thu_P2x vào
+  file_luat (AU-B3c); đổi tên thu_p1.js / tự từ chối khi không laMayThu (AU-B3).
+- **NGUYÊN TẮC (đề xuất, KHUON_LOI đang 120/120 — không tự sửa):** (K8) phép tự-kiểm báo OAN trong điều kiện bình thường
+  dạy người bỏ qua nó (ví dụ anh_kho gộp nhật ký phiên); (K3 bổ sung) đột biến/hồ sơ coi là ĐẠT bị RỮA theo thời gian —
+  neo chuỗi dài đi qua nhiều mục thì mục khác đổi làm HỎNG âm thầm (I10-bo, MB, MB4) → mọi con số "đạt" phải kèm lần
+  chạy lại trên HEAD, neo NGẮN/RIÊNG; (K1/K5) phân loại "đường tiền" vs "admin config" theo ĐỐI TƯỢNG khách chạm ở quầy,
+  không theo "có trong 18 KB hay chưa" (loyalty redeem, gói/thẻ).
+- **BỎ (một lần):** thói quen viết lệnh shell ghép bị người gác chặn; `git fetch`/`rmdir` bị chặn → dùng ref có sẵn.
 
-## G5 — moi ten dot bien trong dot_bien.py (41 ten; co mat o trang_thai nay cho HOC-2)
-G3-sai-chuoi G3-da-biet G3-vo-hai G3-sap A3-GITADD-bo-A A3-GITCOMMIT-bo-a A3-GITPUSH-moi-nhanh A3-SED-i-ngan A3-RM-bo-realpath A3-CURL-moi-host A3-LN-dao-s A3-G1CAM-theoten A3-FINDCAM-bo-delete A3-NPM-them-install A3-MKDIR-bo-khung A3-TARX-moi-dich A3-FILEC-bo-ngan A3-BGAN-bo-PATH A3-CCLA-them-la A3-GHIDUOC-bo-khung B1-A11-dao-goc B1-A11-bo-xanh-PR B1-A6-bo-phamvi B1-A10-bo-filecam B1-A7-noi-tieude B1-A12-bo B1-laBaiThu-noi-slash B1-A14-bo-dang-nhanh C2-orders-bo-diem-ban C2-sc-bo-diem-ma C2-loyalty-redeem-tru-0 D1-A1-fffd D1-B1-json-tran D1-C1-them-fetch D1-E1-unitprice D1-E7-paydebt D1-E8-backup D1-E12-vi-ngoai D1-K1-env-tho D1-S3-vi-lech D1-F3-test-thieu
+Mọi đề xuất NGOÀI Phạm vi (KHUON_LOI/CLAUDE.md/server/tu_chay/bộ kiểm) → chat soát duyệt, gom vào HOC-2. AUDIT-1 KHÔNG tự sửa.
 
-## Bao cao 7 muc (CLAUDE.md §7)
+## G5 — mọi tên đột biến trong dot_bien.py (165 tên; có mặt ở trang_thai này cho HOC-2)
+G3-sai-chuoi G3-da-biet G3-vo-hai G3-sap A3-GITADD-bo-A A3-GITCOMMIT-bo-a A3-GITPUSH-moi-nhanh A3-SED-i-ngan A3-RM-bo-realpath A3-CURL-moi-host A3-LN-dao-s A3-G1CAM-theoten A3-FINDCAM-bo-delete A3-NPM-them-install A3-MKDIR-bo-khung A3-TARX-moi-dich A3-FILEC-bo-ngan A3-BGAN-bo-PATH A3-CCLA-them-la A3-GHIDUOC-bo-khung B1-A11-dao-goc B1-A11-bo-xanh-PR B1-A6-bo-phamvi B1-A10-bo-filecam B1-A7-noi-tieude B1-A12-bo B1-laBaiThu-noi-slash B1-A14-bo-dang-nhanh C2-orders-bo-diem-ban C2-sc-bo-diem-ma C2-loyalty-redeem-tru-0 D1-A1-fffd D1-B1-json-tran D1-C1-them-fetch D1-E1-unitprice D1-E7-paydebt D1-E8-backup D1-E12-vi-ngoai D1-K1-env-tho D1-S3-vi-lech D1-F3-test-thieu D1-A2-server-cu-phap D1-A2c-client-cu-phap D1-B2-login-2-cho D1-B-handleSE D1-B-co-song-song D1-B-pathname D1-B-deadcodes-thieu D1-B-eb-getDerived D1-B-eb-ton-tai D1-B-main-boc D1-B-layout-boc D1-B-key D1-B-ahref-api D1-B-pos6-loginTime D1-D-build-prod D1-E-gia-0 D1-E2-authz-tho D1-E-trangthai-dungma D1-E-danhsach-trang D1-E-claim-chiem D1-E-ndiem-chiem D1-E-vi-tuongdoi D1-E-vi-trang5 D1-K-4ca D1-K-data D1-F-attached D1-F-dist !D1-E11-P20 !D1-E11-P21 !D1-E11-P26a !D1-E11-P26b !D1-T1-nguoi-gac !D1-T1b-cong-cu !D1-T1c-cong B1-A8-noi B1-A9-noi B1-A13-bo-daydu B1-A15-dao-fork C2F-orders-01-ghiVi-quay C2F-orders-02-insert-quay C2F-orders-03-update-quay C2F-orders-04-insert-quay C2F-orders-05-update-quay C2F-orders-06-insert-quay C2F-orders-07-insert-quay C2F-orders-08-insert-quay C2F-orders-09-update-quay C2F-orders-10-update-quay C2F-orders-11-insert-quay C2F-orders-12-update-quay C2F-orders-13-update-quay C2F-orders-14-insert-quay C2F-orders-15-insert-quay C2F-orders-16-update-quay C2F-orders-17-insert-quay C2F-orders-18-update-quay C2F-orders-19-ghiVi-quay C2F-orders-20-ghiVi-quay C2F-orders-21-update-quay C2F-orders-22-delete-quay C2F-orders-23-update-quay C2F-orders-24-delete-quay C2F-orders-25-update-quay C2F-orders-26-update-quay C2F-orders-27-insert-quay C2F-orders-28-ghiVi-quay C2F-orders-29-ghiVi-quay C2F-orders-30-update-quay C2F-orders-31-delete-quay C2F-orders-32-update-quay C2F-orders-33-delete-quay C2F-orders-34-delete-quay C2F-orders-35-delete-quay C2F-orders-36-delete-quay C2F-orders-37-delete-quay C2F-orders-38-delete-quay C2F-orders-39-insert-quay C2F-refunds-01-insert-quay C2F-refunds-02-update-quay C2F-refunds-03-update-quay C2F-refunds-04-ghiVi-quay C2F-refunds-05-update-quay C2F-refunds-06-ghiVi-quay C2F-refunds-07-update-quay C2F-wallets-01-update-quay C2F-wallets-02-insert-quay C2F-wallets-03-insert-quay C2F-wallets-04-ghiVi-quay C2F-wallets-05-ghiVi-quay C2F-wallets-06-ghiVi-quay C2F-wallets-07-update-quay C2F-wallets-08-insert-quay C2F-damages-01-ghiVi-quan-tri C2F-damages-02-insert-quan-tri C2F-damages-03-update-quan-tri C2F-packages-01-insert-quan-tri C2F-packages-02-update-quan-tri C2F-packages-03-update-quan-tri C2F-packages-04-delete-quan-tri C2F-packages-05-update-quay C2F-packages-06-update-quan-tri C2F-signup-codes-01-update-khach-app C2F-signup-codes-02-insert-khach-app C2F-signup-codes-03-update-khach-app C2F-signup-codes-04-insert-khach-app C2F-signup-codes-05-update-quan-tri C2F-signup-codes-06-delete-quan-tri C2F-discount-codes-01-insert-quan-tri C2F-discount-codes-02-update-quan-tri C2F-discount-codes-03-update-quan-tri C2F-discount-codes-04-delete-quan-tri C2F-discount-codes-05-update-quay C2F-rewards-01-insert-quan-tri C2F-rewards-02-update-quan-tri C2F-rewards-03-update-quan-tri C2F-loyalty-01-insert-khach-app C2F-loyalty-02-insert-khach-app C2F-loyalty-03-insert-khach-app C2F-don-mo-rong-01-update-quay C2F-customers-v2-01-insert-khong-ro C2F-customers-v2-02-update-quan-tri C2F-customers-v2-03-insert-quan-tri C2F-customers-v2-04-update-quan-tri C2F-customers-v2-05-insert-quan-tri
 
-VIEC:        AUDIT-1 — Soat toan bo phan tu chay: luat nao that su chan, phep nao that su do, tai lieu nao noi dung
-DA SUA:      chi tao file trong viec/AUDIT-1/ (dot_bien.py, lach.js, bao_cao.md, a_bang_luat.md..f_tai_lieu.md,
-             bang_chung_do.txt, trang_thai.md). KHONG doi mot byte nao ngoai viec/AUDIT-1/ (viec chi doc + do + bao cao).
-BAI THU:     thay buoc "bai thu do" = G3 cong cu tu chung minh (python3 viec/AUDIT-1/dot_bien.py G3):
-             G3-sai-chuoi HONG · G3-da-biet BAT · G3-vo-hai SONG · G3-sap LAC — cong cu do khong noi doi (K3).
-DA RA K4:    duong song song da canh: hai loi vao nguoi gac (xet()/stdin), hai che do cong (tinh/chay), ghiVi vs
-             reconcileWallet, ban cai .claude/ vs nguon tu_chay/. grep cau ghi duong tien 11 file routes = 87; phu
-             duong ban/hoan/vi/diem-tich (P26b 59 BAT + C2 2 BAT); CHUA phu loyalty redeem (AU-G1).
-CHUA KIEM:   - loyalty redeem (AU-G1): da do SONG, nhung CHUA doc het logic loyalty.js nen khong khang dinh no dang
-               sai — chi khang dinh LUOI khong phu no.
-             - E11/T1 (phep chay that cua bo kiem): suy tu C2/E1 lam chung do, khong dot bien rieng tung phep.
-             - ban_mau_pos 119 phep: khong chay chay_thu.sh.
-             - bang_chung_do cu tung viec: khong doi chieu lai so ca tung dong (E2).
-             - may in khong rollback / Render ngu idle: khong soi duoc tu kho.
-             - thu_p1.js: KHONG chay (xep muc bang doc code — Replit kho thu, cong khong cap Turso, may may neu co TURSO_* se ghi that).
-GIT:         672b23c AUDIT-1: ra-soat vong 1 ... · 54f72ff bao cao G1 + B4 ... · 62b90ce nhom F tai lieu ...
-             (9 commit tren nhanh viec/AUDIT-1, da push)
-BAI HOC:     KHOA 2 (da lam: K5 bo nhat ky nguoi gac khoi anh_kho; them dot bien loyalty redeem) +
-             de xuat HOC-2 (bat bien loyalty, khoa CONG_CU_DOC, ca cong A14, sua neo I10-bo/MB/MB4, nang T2-T4) ·
-             NGUYEN TAC 3 (de xuat: K8 phep tu-kiem bao oan; K3 dot bien rua theo thoi gian; phan loai duong tien
-             theo doi tuong khach cham) · BO 2 (thoi quen lenh shell ghep; git fetch/rmdir bi chan) — chi tiet o ## Bai hoc.
+## Báo cáo 7 mục (CLAUDE.md §7)
 
-KET QUA CHINH: duong tien LOI da co KB vung (khong SONG); 1 NANG = luoi KHONG phu doi diem->voucher o quay (AU-G1);
-14 phat hien NHE. 3 dot bien ho so cu HONG tren HEAD (I10-bo, MB, MB4). Dau vao duy nhat cua HOC-2 la bao_cao.md.
+VIỆC:      AUDIT-1 — Soát toàn bộ phần tự chạy: luật nào thật sự chặn, phép nào thật sự đỏ, tài liệu nào nói đúng.
+ĐÃ SỬA:    chỉ tạo file trong `viec/AUDIT-1/` (dot_bien.py 127 đột biến, lach.js, bao_cao.md, c2_day_du.md, 6 bảng,
+           bang_chung_do.txt, trang_thai.md). KHÔNG đổi một byte nào ngoài `viec/AUDIT-1/`.
+BÀI THỬ:   thay bước "bài thử đỏ" = G3 công cụ tự chứng minh (G3-sai-chuoi HỎNG · G3-da-biet BẮT · G3-vo-hai SỐNG ·
+           G3-sap LẠC) — công cụ đo không nói dối (K3).
+ĐÃ RÀ K4:  đường song song: hai lối người gác (xet/stdin), hai chế độ cổng (tĩnh/chạy), ghiVi vs reconcileWallet, bản
+           cài .claude/ vs nguồn tu_chay/; C2 ĐỦ 86 câu ghi ở 11 file routes tiền (grep bỏ ghi chú) + lời gọi ghiVi.
+CHƯA KIỂM: logic loyalty.js/gói (chỉ đo lưới, không khẳng định code sai); D2/D3/D4 bundle dist (đột biến cần tên băm);
+           30 mã chưa có lệnh lách (A4b); số ca từng dòng bang_chung_do cũ; máy in/Render idle; thu_p1.js KHÔNG chạy
+           (xếp mức bằng đọc code); 2 LẠC !D1-E11-P20/P26a (bị phép tĩnh bắt trước — bài-thật vẫn failable qua ngả khác).
+GIT:       xem `git log --oneline` nhánh viec/AUDIT-1 (đã push mỗi nhóm; vòng 2 thêm C2F/D1-full/B1 + báo cáo).
+BÀI HỌC:   KHOÁ (đã làm: K5 anh_kho, C2F, D1 đủ) + đề xuất HOC-2 (bất biến loyalty/voucher/gói, CONG_CU_DOC, A14, neo
+           đột biến cũ, T2-T4) · NGUYÊN TẮC 3 (K8 báo oan; K3 đột biến rữa; phân loại đường tiền theo đối tượng) · BỎ 2.
+
+KẾT QUẢ CHÍNH: câu ví/điểm-tích/hoàn/debt LÕI vững (40 BẮT, không SỐNG). Lưới KHÔNG phủ 16 câu đụng tiền → 3 nhóm NẶNG
+(AU-G1 đổi điểm→voucher, AU-G2 voucher dùng-lại khi bán, AU-G3 gói/thẻ trả trước) + AU-G4 NHẸ-tiền; 12 phát hiện NHẸ
+khác; 3 đột biến hồ sơ cũ HỎNG trên HEAD. Đầu vào duy nhất của HOC-2 là bao_cao.md + c2_day_du.md.
