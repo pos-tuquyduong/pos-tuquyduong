@@ -1,4 +1,4 @@
-# HOC-2 — Kế hoạch (bước 3, CHỜ DUYỆT)
+# HOC-2 — Kế hoạch (bước 3 — ĐÃ DUYỆT 05.10, phạm vi sau khi tách ở mục đầu)
 
 Đọc trong lượt này: `viec/HOC-2/phieu.md`; `tu_chay/cong.js` (274 dòng, cả file); `tu_chay/nguoi_gac.js` 1–130, 484–500,
 645–665, 893–905, 986; `tu_chay/cau_hinh.json`; `tu_chay/cai_dat.js` 20–30, 78–92; `tu_chay/thu_cong.js` 1–120, 305–513;
@@ -10,6 +10,18 @@
 `viec/AUDIT-1/trang_thai.md` 60–154, `viec/P26b/trang_thai.md` 370–516; `ban_mau_pos/chay_thu.sh`; `CLAUDE.md` 20–30, 100–120.
 Số đo thật lúc lập kế hoạch (máy mây, HEAD `ba72a3f`): `--day-du` PASS 65 · FAIL 0; giả lập **68,0 s**, `thu_gia_lap`
 **73,3 s**, `thu_cong` 48,1 s (hạn `chayBaiThat` 120 s, `kiem_tra_truoc_khi_giao.js:479`).
+
+
+## Phạm vi sau khi tách (chủ quán chốt Q1–Q4, commit `61d037a PHIEU: HOC-2 sua`)
+- **Làm ở HOC-2** (chỉ bộ khung `tu_chay/` + hai file ngoài đã ghi trong Phạm vi): A1–A7, B1–B2, D1, E3, F1–F2, G.
+  - Q1: phiếu mới không còn mục `## Bài thử cũ sửa` → `thu_cong.js`, `thu_nguoi_gac.js`, `thu_cong_cu.js` mỗi bài phải có
+    ca hành vi mới ĐỎ trên gốc (đã có: A2/A16–A18; A7/B1/B2/PHIEN_BAN; E3).
+  - Q3: xoá `vuot_ngan_sach_canh_bao` (cùng các khoá không ai đọc ở bảng A2).
+  - Q4: A18 (VÁ SAI) không áp khi phiếu có miễn `## Bài thử đỏ` — có ca riêng.
+  - G: đột biến chạy lại chỉ gồm AUDIT-1 nhóm `G3`, `A3`, `B1` + `!D1-T1-nguoi-gac`, `!D1-T1b-cong-cu`, `!D1-T1c-cong`;
+    cả bộ HOC-1; cả bộ HOC-2.
+- **Sang HOC-2b** (không đụng ở đây): C1–C5, D2–D5, E1–E2; số đo "22 s" trong `THIET_KE.md`.
+- **Ước thời gian mới:** A ~60 ph · B ~20 · D1 ~10 · E3 ~25 · G + `/ra-soat` 1–3 vòng ~45 → ~2,5–3 giờ.
 
 ---
 
