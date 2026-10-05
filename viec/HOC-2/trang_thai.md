@@ -20,10 +20,10 @@ Thấy commit PHIEU thứ hai (`61d037a`). Hook mở phiên kéo nhánh `ba72a3f
 
 ## Tiến độ
 - Bước 1–3 xong (phiên trước); kế hoạch ĐÃ DUYỆT (phiếu sửa `61d037a`). Thêm mục "Phạm vi sau khi tách" → `97fe898`.
-- Bước 4: ba bài thử mới chạy trên code CHƯA sửa → ĐỎ (`bang_chung_do.txt`: thu_cong 30 chỗ hỏng / 251, thu_nguoi_gac
-  12 / 971, thu_cong_cu 8 / 85). Mọi ca CŨ vẫn đạt trên gốc.
+- Bước 4: ba bài thử mới chạy trên code CHƯA sửa → ĐỎ (`bang_chung_do.txt`, bản chạy lại sau soát vòng 1: thu_cong 31 chỗ hỏng / 253,
+  thu_nguoi_gac 12 / 971, thu_cong_cu 8 / 85). Mọi ca CŨ vẫn đạt trên gốc.
 - Bước 5: `b05f135` (A), `2529671` (B), `71bdd9b` (E3), `d5c24d2` (D1), `870ef78` (đột biến HOC-2). Ba bài xanh, số ca
-  khớp bằng chứng (251 · 971 · 85).
+  khớp bằng chứng (253 · 971 · 85 — sau soát vòng 1).
 - Không thấy thông báo đổi model trong phiên.
 
 ## Đột biến của HOC-2 (`viec/HOC-2/dot_bien.py`, chạy 05.10 trên `870ef78`) — bảng chỗ vá → đột biến
