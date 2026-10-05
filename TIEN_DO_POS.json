@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 19,
-  "cap_nhat": "2026-10-03",
+  "phien_ban_so": 20,
+  "cap_nhat": "2026-10-05",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -360,7 +360,25 @@
     },
     {
       "ma": "AUDIT-1",
-      "ten": "Audit toan bo phan tu chay — CHI DOC + BAO CAO, KHONG SUA (chot 02.10, sau P26b truoc HOC-2): nguoi gac moi luat co ca phai chan + phai cho qua; cong A6-A14 moi luat co ca do + dot bien; khoa cau_hinh.json khai ma khong doc (lenh_gia_lap...); gia lap moi bat bien co dot bien bat duoc, moi nhanh SQL co kich ban chay qua (xoa nhanh -> do); bo kiem moi phep do that; THIET_KE/CLAUDE/MAU_PHIEU/skill moi khang dinh co dan chung hoac CHUA KIEM; file_luat/file_cam/thu_muc_bai_thu khop thuc te. Ket qua: bang phat hien NANG/NHE + ty le dot bien bi bat; hai ben soat doc lap (agent soat + chat). Diem dung: HAI dot audit lien tiep khong con loi NANG",
+      "ten": "Audit toan bo phan tu chay — CHI DOC + BAO CAO, KHONG SUA (chot 02.10, sau P26b truoc HOC-2): nguoi gac moi luat co ca phai chan + phai cho qua; cong A6-A14 moi luat co ca do + dot bien; khoa cau_hinh.json khai ma khong doc (lenh_gia_lap...); gia lap moi bat bien co dot bien bat duoc, moi nhanh SQL co kich ban chay qua (xoa nhanh -> do); bo kiem moi phep do that; THIET_KE/CLAUDE/MAU_PHIEU/skill moi khang dinh co dan chung hoac CHUA KIEM; file_luat/file_cam/thu_muc_bai_thu khop thuc te. Ket qua: bang phat hien NANG/NHE + ty le dot bien bi bat; hai ben soat doc lap (agent soat + chat). Diem dung: HAI dot audit lien tiep khong con loi NANG | KET QUA DOT 1 (PR #9, 05.10): luoi canh tot loi vi/diem tich/hoan/thu no (C2 86 cau: 40 BAT, khong cau loi nao SONG); 4 NANG = lo LUOI (chua KB/bat bien canh, KHONG khang dinh code dang sai): AU-G1 doi diem->voucher /loyalty/redeem, AU-G2 voucher dung lai khi ban (used_count), AU-G3 goi/the tra truoc + huy don mua goi/the, AU-G6 so no kho stock_pending khi SX loi -> LUOI-1; ~16 NHE -> HOC-2. Diem dung CHUA dat -> AUDIT-2. Dau vao: viec/AUDIT-1/bao_cao.md + c2_day_du.md + d_bang.md; cong cu chay lai: viec/AUDIT-1/dot_bien.py",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "AUDIT-1",
+      "commit": "41fc639",
+      "ngay": "2026-10-05"
+    },
+    {
+      "ma": "LUOI-1",
+      "ten": "Va LUOI tien/kho (chot 05.10, chu quan chon (a): sau HOC-2, TRUOC P26c — P26c/P20b/P22-P24 sua dung cac duong nay): them kich ban gia lap + bat bien/phep canh cho 4 lo NANG AUDIT-1 — AU-G1 /loyalty/redeem (moi voucher_grant co dung mot dong redeem tru diem khop, discount_value = reward), AU-G2 ban co ap voucher dung-mot-lan (used_count tang, <= usage_limit), AU-G3 mua goi/the, lay tu goi, huy don mua goi/the (huy -> goi/the bi go, hoan dung), AU-G6 SX tra loi -> moi dong don hoac tru kho duoc hoac co dung mot dong stock_pending. Nghiem thu: moi dot bien C2F tuong ung trong viec/AUDIT-1/dot_bien.py chuyen SONG -> BAT. Chi them luoi, KHONG sua logic tien; KB lo ra code dang sai thi dung, ghi Cau hoi.",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "AUDIT-2",
+      "ten": "Audit dot 2 (sau LUOI-1 + HOC-2): chay lai toan bo viec/AUDIT-1/dot_bien.py tren HEAD + phan CHUA KIEM cua AUDIT-1 (thu_P20 liveness AU-G5, bundle D2-D5, 30 ma nguoi gac chua co lenh lach, logic loyalty/goi). Dat khi khong con loi NANG. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG.",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -369,7 +387,7 @@
     },
     {
       "ma": "HOC-2",
-      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (118/120), dua dot bien VA SAI vao skill/cong neu khoa duoc; TU P26b (03.10): bang_chung_do.txt phai khop so ca bai thu hien tai (sai 3 vong soat); cong_cu/ban_sao_goc.py dung ban sao server goc (nguoi gac chan 25 lan, phan lon viec nay); bang cho-va -> dot-bien trong dot_bien.py; I10-bo khong ap duoc (I11 trung chuoi, I10 bi I11 bao trum -> bo I10 hoac sua dot bien); M6 <= 1 -> === 1 + 3 ca Q9 de xuat; gia lap 62 s / thu_gia_lap 65 s gan han 110/120 s; KHUON_LOI 120/120 phai rut gon; P26b can 5 vong soat -> thuoc do qua soat khong loi nang van 0/3",
+      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (118/120), dua dot bien VA SAI vao skill/cong neu khoa duoc; TU P26b (03.10): bang_chung_do.txt phai khop so ca bai thu hien tai (sai 3 vong soat); cong_cu/ban_sao_goc.py dung ban sao server goc (nguoi gac chan 25 lan, phan lon viec nay); bang cho-va -> dot-bien trong dot_bien.py; I10-bo khong ap duoc (I11 trung chuoi, I10 bi I11 bao trum -> bo I10 hoac sua dot bien); M6 <= 1 -> === 1 + 3 ca Q9 de xuat; gia lap 62 s / thu_gia_lap 65 s gan han 110/120 s; KHUON_LOI 120/120 phai rut gon; P26b can 5 vong soat -> thuoc do qua soat khong loi nang van 0/3 | TU AUDIT-1 (05.10): cac phat hien NHE trong viec/AUDIT-1/bao_cao.md (AU-A1, AU-B1..B3c, AU-C1, AU-C3, AU-D1..D2, AU-E1..E3, AU-F1..F2, AU-G4..G5) + nguyen tac de xuat trong viec/AUDIT-1/trang_thai.md; 4 NANG tach sang LUOI-1 (lam ngay sau HOC-2)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
