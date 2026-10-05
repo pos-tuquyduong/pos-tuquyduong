@@ -455,6 +455,8 @@ for (const l of ['curl -x http://p:8080 http://localhost', 'curl --proxy http://
 for (const l of ['python3 -m pip install x', 'python3 -m venv env', 'python3 -m', 'python3 -sm pip',
   'python3 -Im http.server']) B(l, 'PY-M');
 for (const l of ['python3 x.py -m', 'python3 -c "print(1)"']) B(l, 'CHO');
+// HOC-2 B2: công cụ dựng bản sao server/ của một commit (đích ở thư mục tạm) — người gác cho qua
+B('python3 cong_cu/ban_sao_goc.py 61d037a /tmp/hoc2_goc', 'CHO');
 // (4) B-BIMAT-CHU: ps đối số BSD chứa 'e' → chặn; ps -e / -ef / aux cho qua
 for (const l of ['ps e', 'ps aux e', 'ps auxe', 'ps axe', 'ps -A e']) B(l, 'B-BIMAT-CHU');
 for (const l of ['ps -e', 'ps -ef', 'ps -ely', 'ps 1234']) B(l, 'CHO');
@@ -503,6 +505,15 @@ for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
     const g = kho('kho_gl_' + ky, { cauHinh: ch, phieu: phieu(dong) });
     for (const f of ['cong_cu/gia_lap/kich_ban.js', 'cong_cu/thu_gia_lap.js']) E(f, ky, { goc: g });
   }
+  // HOC-2 A7 (AU-B3c): bài chạy thật thu_P20/P21/P26a/P26b là file luật — cong_cu/** không mở được, ghi đúng tên thì được;
+  // file khác trong cong_cu/ vẫn mở bằng glob (K5)
+  const P2X = ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js'];
+  const CC = kho('kho_p2x_glob', { cauHinh: ch, phieu: phieu('- cong_cu/**') });
+  for (const f of P2X) E(f, 'G-LUAT', { goc: CC });
+  B('echo x > cong_cu/thu_P26b.js', 'G-LUAT', { goc: CC });
+  for (const f of ['cong_cu/thu_khac.js', 'cong_cu/do_chuathu.js']) E(f, 'CHO', { goc: CC });
+  const CT = kho('kho_p2x_ten', { cauHinh: ch, phieu: phieu(P2X.map((f) => '- ' + f).join('\n')) });
+  for (const f of P2X) E(f, 'CHO', { goc: CT });
 }
 
 const coXet = typeof gac.xet === 'function';
@@ -597,10 +608,11 @@ if (coXet) {
   try { ch = JSON.parse(fs.readFileSync(path.join(__dirname, 'cau_hinh.json'), 'utf8')); } catch {}
   chac('tu_chay/cau_hinh.json hợp lệ, đủ trường', !!ch && ['file_cam', 'file_luat', 'file_bi_mat', 'chuong_trinh_them', 'tep_bash_them']
     .every((k) => Array.isArray(ch[k])));
-  chac('cau_hinh: TIEN_DO_*.json trong file_cam; 7 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập) trong file_luat', !!ch
+  chac('cau_hinh: TIEN_DO_*.json trong file_cam; 11 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập; HOC-2 A7: thu_P2x) trong file_luat', !!ch
     && ch.file_cam.includes('TIEN_DO_*.json')
     && ['kiem_tra_truoc_khi_giao.js', 'CHECKLIST_CODE.md', 'ban_mau_pos/**', 'tu_chay/**', 'package.json',
-      'cong_cu/gia_lap/**', 'cong_cu/thu_gia_lap.js'].every((f) => ch.file_luat.includes(f)));
+      'cong_cu/gia_lap/**', 'cong_cu/thu_gia_lap.js', 'cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js',
+      'cong_cu/thu_P26b.js'].every((f) => ch.file_luat.includes(f)));
   chac('cau_hinh: tep_bash_them đúng một file ban_mau_pos/chay_thu.sh, không glob', !!ch && Array.isArray(ch.tep_bash_them)
     && JSON.stringify(ch.tep_bash_them) === JSON.stringify(['ban_mau_pos/chay_thu.sh']));
   chac('cau_hinh: .github/** trong file_cam (TU-CHAY-3 D4); khuon_loi_toi_da = 120 (F3)', !!ch && ch.file_cam.includes('.github/**')
@@ -614,7 +626,25 @@ if (coXet) {
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.3.2', pb === 'tu-chay 1.3.2', pb || '(không có)');
+  chac('PHIEN_BAN = tu-chay 1.4.0', pb === 'tu-chay 1.4.0', pb || '(không có)');
+}
+// HOC-2 B1 (AU-A1): tập công cụ chỉ-đọc / sửa file KHOÁ bằng tập cố định. Thêm một tên lạ (vd 'Bash2') là mở lỗ mà không ca hành vi
+// nào thấy (đột biến AUDIT-1 A3-CCLA-them-la từng SỐNG). Đọc literal trong mã nguồn của chính người gác đang thử (--nguoi-gac).
+{
+  let src = '';
+  try { src = fs.readFileSync(GAC, 'utf8'); } catch {}
+  const tap = (ten) => {
+    const m = new RegExp(`const ${ten} = new Set\\(\\[([^\\]]*)\\]\\)`).exec(src);
+    return m ? [...m[1].matchAll(/'([^']*)'/g)].map((x) => x[1]).sort() : null;
+  };
+  const DOC = ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode', 'AskUserQuestion', 'Skill',
+    'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput', 'SubagentHandback'];
+  const SUA = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
+  for (const [ten, mong] of [['CONG_CU_DOC', DOC], ['CONG_CU_SUA', SUA]]) {
+    const co = tap(ten);
+    chac(`ca khoá tập ${ten}: đúng ${mong.length} tên cố định`, !!co && JSON.stringify(co) === JSON.stringify([...mong].sort()),
+      co ? co.join(',') : 'không cắt được literal new Set([...])');
+  }
 }
 
 // ── Tiến trình thật ─────────────────────────────────────────────────────────
@@ -945,10 +975,52 @@ function baiCaiDat() {
   });
 }
 
+// ── HOC-2 B2: cong_cu/ban_sao_goc.py <commit> <đích> — server/ của commit, đích chỉ dưới thư mục tạm, không ghi gì lên git ──
+function baiBanSaoGoc() {
+  const GOC = path.join(__dirname, '..');
+  if (!fs.existsSync(path.join(GOC, 'server'))) { console.log('· bỏ qua B2 ban_sao_goc.py: bản sao chỉ có tu_chay/'); return; }
+  const CONG_CU = path.join(GOC, 'cong_cu', 'ban_sao_goc.py');
+  const TMP = path.join(TAM, 'bsg_tmp'), K = path.join(TMP, 'kho');
+  const envG = { PATH: process.env.PATH, HOME: path.join(TAM, 'home'), TMPDIR: TMP, GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 't',
+    GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
+  const git = (...a) => spawnSync('git', a, { cwd: K, env: envG, encoding: 'utf8' }).stdout;
+  viet(K, 'server/a.js', 'ban commit\n'); viet(K, 'node_modules/x/index.js', '1\n'); viet(K, '.gitignore', 'node_modules/\n');
+  git('init', '-q'); git('add', 'server', '.gitignore'); git('commit', '-q', '-m', 'goc');
+  const sha = git('rev-parse', 'HEAD').trim();
+  viet(K, 'server/a.js', 'sua chua commit\n');
+  const st0 = git('status', '--porcelain');
+  const bs = (...a) => spawnSync('python3', [CONG_CU, ...a], { cwd: K, env: envG, encoding: 'utf8', timeout: 30000 });
+  const ra = (r) => `thoát ${r.status}: ${(String(r.stdout) + String(r.stderr)).trim().slice(0, 200)}`;
+  const doc = (f) => { try { return fs.readFileSync(f, 'utf8'); } catch { return null; } };
+  const r1 = bs(sha, path.join(K, 'ban_sao'));
+  chac('B2 ban_sao_goc: đích trong kho → từ chối, không tạo gì', r1.status !== 0 && /trong kho/.test(r1.stderr)
+    && !fs.existsSync(path.join(K, 'ban_sao')), ra(r1));
+  const ngoai = path.join(TAM, 'ngoai_tmp', 'x');
+  const r2 = bs(sha, ngoai);
+  chac('B2 ban_sao_goc: đích ngoài thư mục tạm → từ chối, không tạo gì', r2.status !== 0 && /thư mục tạm/.test(r2.stderr) && !fs.existsSync(ngoai), ra(r2));
+  viet(TMP, 'day/f.txt', 'x');
+  const r3 = bs(sha, path.join(TMP, 'day'));
+  chac('B2 ban_sao_goc: đích có sẵn, không rỗng → từ chối, không đè', r3.status !== 0 && /không rỗng/.test(r3.stderr)
+    && fs.readdirSync(path.join(TMP, 'day')).join() === 'f.txt', ra(r3));
+  const r4 = bs('khong_co_commit_nay', path.join(TMP, 'd4'));
+  chac('B2 ban_sao_goc: commit không có → từ chối, không tạo gì', r4.status !== 0 && /không có commit/.test(r4.stderr)
+    && !fs.existsSync(path.join(TMP, 'd4')), ra(r4));
+  const D = path.join(TMP, 'dich');
+  const r5 = bs(sha, D);
+  let nm = '';
+  try { nm = fs.readlinkSync(path.join(D, 'node_modules')); } catch {}
+  chac('B2 ban_sao_goc: đích hợp lệ → server/ đúng byte commit (không phải cây làm việc), node_modules liên kết tới kho, in --may-chu',
+    r5.status === 0 && doc(path.join(D, 'server/a.js')) === 'ban commit\n' && nm === path.join(K, 'node_modules')
+    && String(r5.stdout).includes('--may-chu ' + path.join(D, 'server')), ra(r5));
+  chac('B2 ban_sao_goc: git status + HEAD của kho không đổi sau mọi lần chạy', git('status', '--porcelain') === st0
+    && git('rev-parse', 'HEAD').trim() === sha, git('status', '--porcelain'));
+}
+
 (async () => {
   try {
     await tienTrinh();
     baiCaiDat();
+    baiBanSaoGoc();
   } catch (e) {
     hong.push('bài thử sập: ' + (e && e.stack || e));
   } finally {
