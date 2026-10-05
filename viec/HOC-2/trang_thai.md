@@ -138,8 +138,11 @@ CHƯA KIỂM:   F2 — chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh v
              (A16–A18 chỉ áp từ việc sau). A18 không kiểm đột biến VS- có BẮT; A16 không so số ca với lượt chạy trên gốc
              (Phát hiện 2, 3). ban_sao_goc.py chưa dùng với thu_P26b thật (chỉ thử trên kho git tạm). Thời gian cong-chay trên
              GitHub chưa đo.
-GIT:         (xem git log --oneline -2 ở commit cuối — dòng dưới chép lúc ghi)
-BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 2 · BỎ 4 — chi tiết ở ## Bài học
+GIT:         b3350fa HOC-2: trang thai — A6 head cuoi, soat vong 2, bao cao 7 muc, bai hoc
+             fec5f41 HOC-2 soat vong 2: trang thai so ca 253; skill noi ro chay lai ca goc lan code da va
+             (hai commit TRƯỚC commit ghi dòng này — commit không chứa được mã của chính nó; câu trả lời cho chủ quán
+             chép hai commit cuối)
+BÀI HỌC:     KHOÁ 5 (3 đã làm + 2 đề xuất) · NGUYÊN TẮC 2 (đề xuất) · BỎ 6 — chi tiết ở ## Bài học
 ```
 
 ## Bài học
@@ -156,6 +159,11 @@ bộ; người gác chặn 8 lệnh: B-CHUONGTRINH (`for`, `time`), B-CD-VITRI (
 - NGUYÊN TẮC (đề xuất KHUON_LOI.md — ngoài Phạm vi, gom vào HOC-2b E1): K4 thêm ví dụ "chạy lại bằng chứng → grep hồ sơ tìm
   mọi câu trích con số cũ" (HOC-2 vòng 2); K5 thêm "bài thử mới phải chạy được trong MỌI bản sao đột biến đang dùng (AUDIT-1
   kiểu `tu` chỉ có tu_chay/) — phần cần kho đầy đủ thì gắn điều kiện có `server/`" (HOC-2 A2/B2).
-- BỎ: B-CHUONGTRINH, B-CD-VITRI, B-DICHCHU, GIT-LENH stash — lỗi gõ lệnh của máy, người gác làm đúng việc, một lần;
+- BỎ (6): B-CHUONGTRINH, B-CD-VITRI, B-DICHCHU, GIT-LENH stash — lỗi gõ lệnh của máy, người gác làm đúng việc, một lần;
   B-MANOI — dùng Write cho cau_hinh.json là đúng đường; THIET_KE sót `cong.js:234` — đã có khuôn K4 tài liệu.
 - Dọn (đề xuất cho HOC-2b E1): KHUON_LOI K3 câu "Đổi bài sau khi ghi bằng chứng → chạy lại, chép lại" nay có cổng A16 làm thay.
+
+## Soát độc lập — vòng 3: ĐẠT
+Lỗi hồ sơ nhẹ: mục GIT của báo cáo để trống bằng một câu hứa; số đếm BÀI HỌC lệch → sửa ở commit này. Ghi nhận: số đo G mới
+nhất (`npm test` 58/0/3, `--day-du` 62/0/3) do agent soát vòng 2 chạy trên `1989604`; A17 tự áp và `thu_cong_cu` xanh ở head.
+Tổng: 3 vòng soát, 2 vòng sửa (≤ `so_vong_sua_toi_da` 3).
