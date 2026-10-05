@@ -57,3 +57,80 @@ lệch `dist` (kiểm chứng lịch sử 24.08 ghi trong code).
 - **thu_P20 liveness (AU-G5):** như trên — chưa chứng minh đỏ được.
 Vậy "D1 đủ" = 46 đột biến phủ mọi phép TĨNH + 6/7 phép chạy-thật; NGOẠI LỆ CHƯA KIỂM: D2/D3/D4, thu_P20, và 2 chùm
 canhBao-thuần (F2, T2–T4) vốn không có nhánh FAIL.
+
+
+## D1 — đối chiếu TÊN phép (nhanh + --day-du) ↔ đột biến riêng (soát vòng 2 round 2)
+
+Mỗi phép trong đầu ra bộ kiểm có một đột biến D1 làm nó ĐỎ, hoặc CHƯA KIỂM kèm lý do. Chạy:
+`python3 viec/AUDIT-1/dot_bien.py <tên>`. (Phép đếm từ `--day-du` = 66 dòng ✓.)
+
+| phép (tên trong đầu ra bộ kiểm) | đột biến D1 |
+|---|---|
+| Ký tự hỏng mã U+FFFD = 0 (63 file) | `D1-A1-fffd` |
+| Cú pháp server/*.js | `D1-A2-server-cu-phap` |
+| Cú pháp client/src/*.jsx | `D1-A2c-client-cu-phap` |
+| api.js không có response.json() trần | `D1-B1-json-tran` |
+| api.js chỉ có 1 chỗ đá về /login | `D1-B2-login-2-cho` |
+| api.js có handleSessionExpired() | `D1-B-handleSE` |
+| api.js có cờ chặn request song song | `D1-B-co-song-song` |
+| api.js không đá đi khi đang ở sẵn /login | `D1-B-pathname` |
+| SESSION_DEAD_CODES đủ 5 mã phiên chết | `D1-B-deadcodes-thieu` |
+| SESSION_DEAD_CODES KHÔNG chứa mã cấu hình service | `D1-B-deadcodes-service` |
+| ErrorBoundary.jsx tồn tại | `D1-B-eb-ton-tai` |
+| ErrorBoundary có getDerivedStateFromError | `D1-B-eb-getDerived` |
+| main.jsx bọc <App/> bằng ErrorBoundary | `D1-B-main-boc` |
+| Layout.jsx bọc <Outlet/> bằng ErrorBoundary | `D1-B-layout-boc` |
+| Layout.jsx dùng key={location.pathname} | `D1-B-key` |
+| Không có <a href="/api/ hay window.open("/api/ | `D1-B-ahref-api` |
+| POS-5 đóng: khoá/token KHÔNG nhận qua query string | `D1-B-pos5-query` |
+| POS-6 đóng: client KHÔNG giữ bộ đếm phiên riêng | `D1-B-pos6-loginTime` |
+| fetch trần ngoài api.js = 34 | `D1-C1-them-fetch` |
+| client build script ép NODE_ENV=production | `D1-D-build-prod` |
+| Bundle KHÔNG phải bản dev của React | CHƯA KIỂM — D2 — cần sửa bundle đã-băm trong client/dist/assets (tên phụ thuộc hash); đề xuất HOC-2 |
+| index.html trỏ tới bundle CÓ THẬT trong dist/assets | CHƯA KIỂM — D3 — như D2 (tên băm) |
+| Bundle có dấu vết POS-ERRHANDLING-v1 | CHƯA KIỂM — D4 — như D2 (tên băm) |
+| dist đã commit KHỚP với src hiện tại | CHƯA KIỂM — D5 (--day-du) — build lại chứng dist-khớp-src; đã kiểm lịch sử 24.08 |
+| orders.js tự tra giá từ pos_products | `D1-E1b-tra-gia` |
+| orders.js KHÔNG tính tiền theo item.unit_price | `D1-E1-unitprice` |
+| orders.js chặn sản phẩm chưa có giá | `D1-E-gia-0` |
+| POST /orders có cổng phân quyền cho trường đặc quyền | `D1-E2-authz-tho` |
+| pay-debt chặn thu hai lần (WHERE … debt_amount = ? + kiểm số dòng đổi) | `D1-E7-paydebt` |
+| mọi bảng đều được sao lưu (30 bảng) | `D1-E8-backup` |
+| /claim: kiểm đơn của mã (chưa huỷ, đã thanh toán) TRƯỚC lệnh ghi | `D1-E9-claim-kiem` |
+| /nhan-diem: kiểm đơn của mã (chưa huỷ, đã thanh toán) TRƯỚC lệnh ghi | `D1-E9-ndiem-kiem` |
+| kiemDonCuaMa: hằng TRANG_THAI_DUNG_MA (nếu dùng) đúng completed + paid | `D1-E-trangthai-dungma` |
+| kiemDonCuaMa là DANH SÁCH TRẮNG: chỉ trả { don } khi status completed VÀ payment_status paid | `D1-E-danhsach-trang` |
+| /claim: DÙNG kết quả kiemDonCuaMa (if (X.loi) return) TRƯỚC lệnh ghi | `D1-E9-claim-dung` |
+| /nhan-diem: DÙNG kết quả kiemDonCuaMa (if (X.loi) return) TRƯỚC lệnh ghi | `D1-E9-ndiem-dung` |
+| /claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher | `D1-E-claim-chiem` |
+| /nhan-diem: chiếm mã bằng UPDATE ... AND diem_nhan_luc IS NULL rồi if (!X || X.changes === 0) { rollback; return } TRƯỚC khi cộng điểm | `D1-E-ndiem-chiem` |
+| bài chạy thật cong_cu/thu_P20.js xanh (2.3 s) | `!D1-E11-P20` |
+| bài chạy thật cong_cu/thu_P21.js xanh (1.1 s) | `!D1-E11-P21` |
+| bài chạy thật cong_cu/thu_P26a.js xanh (1.2 s) | `!D1-E11-P26a` |
+| bài chạy thật cong_cu/thu_P26b.js xanh (2.3 s) | `!D1-E11-P26b` |
+| ví: mọi lệnh ghi pos_wallets trong server/routes/ nằm trong ghiVi hoặc reconcileWallet | `D1-E12-vi-ngoai` |
+| ví: ghiVi đọc số dư bằng tx.queryOne và cộng tương đối (balance = balance + ?), không SET balance = ? | `D1-E-vi-tuongdoi` |
+| ví: đối soát (reconcileWallet) đọc tổng sổ và ghi trong CÙNG một giao dịch | `D1-E10-doisoat-tx` |
+| ví: danh sách trắng LOAI_TINH_VAO_VI đúng 5 loại đã duyệt, không có debt_payment | `D1-E-vi-trang5` |
+| ví: đối soát (1 khách + toàn bộ) chỉ đọc dòng thuộc danh sách trắng | `D1-E10-doisoat-trang` |
+| bài chạy thật tu_chay/thu_nguoi_gac.js xanh (7.5 s) | `!D1-T1-nguoi-gac` |
+| bài chạy thật tu_chay/thu_cong_cu.js xanh (4.0 s) | `!D1-T1b-cong-cu` |
+| bài chạy thật tu_chay/thu_cong.js xanh (56.9 s) | `!D1-T1c-cong` |
+| .claude/tu_chay/ khớp từng byte với tu_chay/ (14 file) | CHƯA KIỂM — T2 — chỉ canhBao, KHÔNG có nhánh FAIL (AU-D2) |
+| .claude/skills/lam-viec/SKILL.md khớp từng byte với tu_chay/skill_lam_viec.md | CHƯA KIỂM — T3 — canhBao-thuần (AU-D2) |
+| .claude/commands/ra-soat.md khớp từng byte với tu_chay/lenh_ra_soat.md | CHƯA KIỂM — T4 — canhBao-thuần (AU-D2) |
+| .github/workflows/cong.yml khớp từng byte với tu_chay/cong_github.yml | CHƯA KIỂM — T4 — canhBao-thuần (AU-D2) |
+| .gitignore có attached_assets/ | `D1-F-attached` |
+| .gitignore KHÔNG chặn client/dist | `D1-F-dist` |
+| Gốc repo sạch, không có .js lạc | CHƯA KIỂM — F2 — chỉ canhBao, KHÔNG có nhánh FAIL (AU-D1) |
+| npm test trỏ vào file có thật | `D1-F3-test-thieu` |
+| chỉ server/ketNoiKho.js đọc biến kết nối kho thật | `D1-K1-env-tho` |
+| ketNoiKho.js chạy đúng cả 4 ca môi trường | `D1-K-4ca` |
+| .gitignore chặn thư mục data/ | `D1-K-data` |
+| bài chạy thật cong_cu/gia_lap/chay.js xanh (68.5 s) | CHƯA KIỂM — S4 (--day-du); failable, chứng qua nhóm C2F (giả lập bắt 40 đột biến) |
+| bánh cóc giả lập: ≥ 18 kịch bản, ≥ 11 bất biến | CHƯA KIỂM — S4 (--day-du) — chứng qua TU-CHAY-4 E4d (bỏ kịch bản → bánh cóc đỏ) |
+| bài chạy thật cong_cu/thu_gia_lap.js xanh (73.2 s) | CHƯA KIỂM — S4 (--day-du); chứng qua TU-CHAY-4 (đột biến gl) |
+| giả lập: danh sách trắng ví trong bat_bien.js khớp wallets.js | `D1-S3-vi-lech` |
+| Qua hết… (dòng tổng kết) | KHÔNG phải phép |
+
+→ 53/65 phép có đột biến D1 riêng (bỏ dòng tổng kết); 12 CHƯA KIỂM đều có lý do: 4 bundle dist (cần tên băm), 4 byte-khớp + gốc-sạch (canhBao-thuần không FAIL), 3 giả-lập --day-du (chứng qua nhóm C/E). KHÔNG phép nào thiếu dòng.

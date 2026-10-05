@@ -12,6 +12,9 @@ LẠC = `C2F-orders-02` (bỏ INSERT pos_orders → FK gãy → giả lập SẬ
 - **C2F-loyalty-01-insert-khach-app**: khách đổi quà bị TRỪ SAI/không trừ điểm (dòng redeem) — I8 chỉ soát điểm tích
 - **C2F-loyalty-02-insert-khach-app**: mã giảm giá đổi-điểm đẻ sai mệnh giá/không đẻ — không KB nào kiểm discount_value của redeem
 - **C2F-orders-05-update-quay**: dùng voucher khi BÁN mà used_count không tăng → mã dùng-một-lần DÙNG LẠI được (giả lập không có KB áp voucher)
+- **C2F-orders-07-insert-quay**: AU-G6 (kho): INSERT pos_stock_pending — sổ NỢ TRỪ KHO SX khi SX/mạng trục trặc. Bỏ câu → bán mà kho SX KHÔNG BAO GIỜ bị trừ. SX giả không lỗi nên KB không chạm = lỗ lưới
+- **C2F-orders-27-insert-quay**: AU-G6 (kho): INSERT pos_stock_pending (đường huỷ/hoàn) — như orders-07
+- **C2F-orders-39-insert-quay**: AU-G6 (kho): INSERT pos_stock_pending (đường xoá) — như orders-07
 - **C2F-orders-10-update-quay**: lấy hàng từ gói: customer_package_id của đơn không gán → sai liên kết gói
 - **C2F-orders-11-insert-quay**: mua thẻ thành viên: pos_membership_purchases không ghi → thẻ trả tiền mà không có bản ghi
 - **C2F-orders-21-update-quay**: trừ lượt giao của gói (delivered_qty) không chạy → khách lấy hàng từ gói quá số lượt
@@ -30,7 +33,6 @@ LẠC = `C2F-orders-02` (bỏ INSERT pos_orders → FK gãy → giả lập SẬ
 **Caveat phân loại (soát vòng 2 bắt):** nhãn `-quay/-tri` chỉ đọc MIDDLEWARE ở dòng `router.<verb>(`, KHÔNG đọc khoá owner TRONG thân hàm. orders-31/35/36/37/38 (:1515-1543) nằm trong `DELETE /:id` có `if(req.user.role!=="owner") 403` (:1464) nên THẬT là owner-only (admin) dù nhãn ghi -quay. Ngược lại orders-22/24 (:1357,:1372) ở `PUT /:id/cancel` (quyền cancel_order, KHÔNG owner) là QUẦY — đã chuyển lên nhóm tiền.
 
 ## SỐNG dọn dẹp / degraded (NHẸ — không mất tiền; orders-31/35/36/37/38 là owner-only DELETE)
-- stock_pending (orders-07/27/39): chỉ chạy khi SX lỗi; SX giả không lỗi nên KB không chạm.
 - registrations (orders-13/14): ghi SĐT/ghi chú sang SX — không phải sổ tiền quầy.
 - DELETE dọn khi xoá đơn (orders-22/31/35/36/37/38): để lại dòng mồ côi, không bất biến nào canh orphan; xoá đơn là thao tác hiếm/admin.
 

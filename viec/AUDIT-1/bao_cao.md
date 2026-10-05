@@ -1,15 +1,16 @@
 # AUDIT-1 — Báo cáo soát lưới an toàn
 
-HEAD `b9759cf` (+ sản phẩm AUDIT-1), đo 04.10.2026. Việc CHỈ ĐỌC + ĐO; không đổi byte nào ngoài `viec/AUDIT-1/`.
+Mã server/ đo tại b9759cf (KHÔNG đổi suốt việc); sản phẩm AUDIT-1 tới HEAD `6771a7e`. Đo 04–05.10.2026. Việc CHỈ ĐỌC + ĐO; không đổi byte nào ngoài `viec/AUDIT-1/`.
 Chi tiết từng nhóm: `a_bang_luat.md` (A), `b_bang.md` (B), `c_bang.md` + `c2_day_du.md` (C), `d_bang.md` (D),
 `e_bang.md` (E), `f_tai_lieu.md` (F). Bằng chứng chạy: `bang_chung_do.txt`. Công cụ đo: `dot_bien.py`, `lach.js`.
 
 ## Kết luận một dòng
 C2 ĐỦ (86 câu ghi ở 11 file routes tiền, mỗi câu một đột biến bỏ câu): **40 BẮT · 45 SỐNG · 1 LẠC**. Câu ghi ví/điểm
-tích/hoàn/debt LÕI được lưới phủ (BẮT). NHƯNG lưới KHÔNG phủ **17 câu đụng tiền/điểm/gói**, trong đó **3 nhóm NẶNG**:
+tích/hoàn/debt LÕI được lưới phủ (BẮT). NHƯNG lưới KHÔNG phủ **20 câu đụng tiền/điểm/gói/kho**, trong đó **4 nhóm NẶNG**:
 AU-G1 đổi điểm→voucher (`/loyalty/redeem`: trừ điểm + đẻ mã), AU-G2 voucher dùng khi BÁN không tăng `used_count`
 (mã dùng-một-lần dùng lại được), AU-G3 gói & thẻ trả trước (mua gói / lấy hàng từ gói / mua thẻ — và **HUỶ đơn mua-gói
-ở route `cancel` quyền quầy: hoàn tiền mà gói/thẻ vẫn còn = rò tiền** — soát vòng 2 bắt — không KB nào chạm).
+ở route `cancel` quyền quầy: hoàn tiền mà gói/thẻ vẫn còn = rò tiền** — soát vòng 2 bắt), **AU-G6 kho SX** (bỏ INSERT
+`pos_stock_pending` → bán lúc SX/mạng trục trặc thì kho SX không bao giờ bị trừ — soát vòng 2-round-3 bắt).
 Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đổi cách trả, /increment-usage) là NHẸ. Ngoài đường tiền:
 12 phát hiện NHẸ (đột biến cũ HỎNG, phép chỉ cảnh báo, tài liệu lệch, K5 báo oan). **Không câu ví/điểm-tích LÕI nào SỐNG.**
 
@@ -22,6 +23,7 @@ Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đ
 | **AU-G3** | **C/G** | **NẶNG** | gói & thẻ trả trước: `orders.js` customer_packages/membership (`C2F-orders-10/11/21/23/25/30/32`); **HUỶ đơn (quyền `cancel_order`, KHÔNG owner): `:1357` DELETE customer_packages (`orders-22`), `:1372` DELETE membership (`orders-24`)**; `packages.js:177` deliver (`C2F-packages-05`) | `python3 … dot_bien.py C2F-orders-21-update-quay C2F-orders-22-delete-quay` → **SỐNG** | KB mua gói → lấy hàng → hết lượt → HUỶ; bất biến: `delivered_qty` ≤ `total_qty`, huỷ đơn mua-gói phải xoá/huỷ gói (không hoàn tiền mà giữ gói) |
 | AU-G4 | C | NHẸ-tiền | ví đối soát tạo-mới (`C2F-wallets-08`), link sổ hoàn (`C2F-refunds-05`), đổi cách trả (`C2F-don-mo-rong-01`), /increment-usage (`C2F-discount-codes-05`) | `dot_bien.py C2F` | xem `c2_day_du.md` — mức NHẸ (admin/hiếm, hoặc tổng tiền không đổi) |
 | AU-G5 | D | NHẸ | `thu_P20.js` liveness chưa chứng minh (đột biến riêng bị E7 tĩnh chặn → LẠC) | `dot_bien.py !D1-E11-P20` → LẠC | đột biến phá đúng thứ thu_P20 canh (mã bill claim/nhan-diem) mà không phép tĩnh nào trùng |
+| **AU-G6** | **C/G** | **NẶNG** | `orders.js` INSERT `pos_stock_pending` (sổ nợ trừ kho SX khi SX/mạng trục trặc): `C2F-orders-07/27/39` | `python3 … dot_bien.py C2F-orders-07-insert-quay` → **SỐNG** | **KB giả lập cho SX TRẢ LỖI** + bất biến: mỗi dòng đơn hoặc trừ kho SX được, hoặc có đúng một dòng `stock_pending` (SX giả không lỗi nên 18 KB hiện tại không chạm nhánh này = lỗ lưới) |
 | AU-A1 | A | NHẸ | `nguoi_gac.js` CONG_CU_DOC `:105-107` | `python3 … dot_bien.py A3-CCLA-them-la` → SỐNG | thêm phép `thu_nguoi_gac` so `CONG_CU_DOC`/`CONG_CU_SUA` với tập cố định (ca đỏ: thêm 1 tên) |
 | AU-B1 | B | NHẸ | `cong.js` hai cổng A14 `:82,88` | `python3 … dot_bien.py B1-A14-bo-dang-nhanh` → SỐNG | ca `thu_cong`: phiếu ở `viec/<MÃ xấu>` + nhánh không dạng `viec/<MÃ>` → ĐỎ riêng cổng dạng-nhánh |
 | AU-B2 | B | NHẸ | `cau_hinh.json` 8 khoá nhãn | `python3 scratchpad/b2.py` | bỏ khoá-nhãn hoặc ghi chú phân biệt khoá-code/tài-liệu |
@@ -49,6 +51,10 @@ Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đ
   KHÔNG owner): `orders-22/24` bỏ DELETE customer_packages/membership → khách được HOÀN TIỀN (ghiVi refund :1333) mà
   VẪN giữ gói/thẻ = rò tiền cấp quầy** (soát vòng 2 bắt — trước xếp nhầm NHẸ "xoá đơn admin"; classifier chỉ đọc
   middleware ở `router.<verb>(`, không đọc khoá owner trong thân hàm).
+- **AU-G6 (NẶNG — kho):** `orders-07/27/39` bỏ INSERT `pos_stock_pending` → SỐNG. **Ở quầy:** bán lúc SX/mạng
+  trục trặc, dòng đơn chuyển "nợ kho" nhưng KHÔNG ghi → kho SX không bao giờ bị trừ (SX giả trong 18 KB không lỗi nên
+  nhánh này không chạy = lỗ lưới). Đề xuất HOC-2: KB giả lập SX trả lỗi + bất biến "mỗi dòng đơn hoặc trừ kho được
+  hoặc có đúng một dòng stock_pending".
 - AU-G4 (NHẸ-tiền): ví đối soát tạo-mới (`wallets-08`), link sổ hoàn (`refunds-05`), đổi cách trả (`don-mo-rong-01`,
   tổng không đổi), `/increment-usage` (`discount-codes-05`, endpoint riêng). Xem `c2_day_du.md`.
 - AU-A1 / AU-B1 (NHẸ, không phải tiền): `CONG_CU_DOC` không khoá bằng test; hai cổng A14 chồng — chi tiết trong bảng.
@@ -65,7 +71,7 @@ Các SỐNG-tiền còn lại (ví đối soát tạo-mới, link sổ hoàn, đ
 | B1 cổng (A6–A14 + A8/A9/A13/A15) | 11 | 1 | 0 | 0 | 0 | 11/12 |
 | C2 (2 câu điểm thêm + loyalty redeem) | 2 | 1 | 0 | 0 | 0 | 2/3 |
 | **C2F (86 câu bỏ-câu ĐỦ)** | **40** | **45** | **0** | **1** | **0** | 40/85 (SỐNG=lỗ lưới; LẠC=`orders-02` FK) |
-| D1 bộ kiểm (mỗi phép 1 đột biến) | 46 | 0 | 0 | 2 | 0 | 46/48 (LẠC=`!E11-P20`,`!E11-P26a` liệt kê riêng) |
+| D1 bộ kiểm (mỗi phép 1 đột biến) | 55 | 0 | 0 | 2 | 0 | 53/65 phép có đột biến BẮT; 12 CHƯA KIỂM (bundle/canhBao/giả-lập, d_bang); 2 LẠC `!E11-P20/P26a` |
 
 A4 lách (`lach.js`): **52/52 CHẶN · 0 LỌT** (44/74 mã; 30 mã còn lại CHƯA KIỂM — `a_bang_luat.md` A4b).
 LẠC liệt kê riêng (chạy lại -j1 một lần vẫn LẠC): `C2F-orders-02` (bỏ INSERT pos_orders → FK sập); `!D1-E11-P20`,
@@ -84,7 +90,7 @@ cảnh báo KHUON_LOI K3 / TU-CHAY-4). Đề xuất HOC-2: viết một đột b
 | HOC-1 (`viec/HOC-1/dot_bien.py`) | 15 | 2 | HỎNG = `MB`, `MB4` (AU-E2); M0×3 đối chứng XANH |
 | TU-CHAY-4 gl (`… M0 E4`) | 7 | 0 | M0 đối chứng XANH; `tai_cho` (F2/S3) KHÔNG chạy (AU-E3) |
 
-**Tổng: 16 SỐNG đụng tiền (3 nhóm NẶNG AU-G1/G2/G3 + AU-G4 NHẸ-tiền); 2 SỐNG lưới A/B NHẸ; 3 đột biến cũ HỎNG trên
+**Tổng: 20 SỐNG đụng tiền (4 nhóm NẶNG AU-G1/G2/G3/G6 + AU-G4 NHẸ-tiền); 2 SỐNG lưới A/B NHẸ; 3 đột biến cũ HỎNG trên
 HEAD (I10-bo, MB, MB4). Câu ví/điểm-tích/hoàn/debt LÕI đều BẮT — không SỐNG.**
 
 ## B4 — cổng tĩnh của main chạy trên chính nhánh này

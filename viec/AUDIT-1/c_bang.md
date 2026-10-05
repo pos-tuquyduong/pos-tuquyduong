@@ -43,7 +43,7 @@ Phân loại route theo middleware ĐỌC TỪ CODE: `authenticate`/`authenticat
   (thu_P26a C8). Không câu LÕI nào SỐNG.
 - **SỐNG đụng tiền (16) = phát hiện** AU-G1 (loyalty trừ điểm + đẻ mã), AU-G2 (voucher used_count khi bán → dùng lại),
   AU-G3 (gói & thẻ trả trước: customer_packages/membership/deliver), AU-G4 NHẸ (ví đối soát tạo-mới, link sổ hoàn, đổi
-  cách trả, /increment-usage). Chi tiết + "ở quầy sai gì" ở `c2_day_du.md` và `bao_cao.md`.
+  cách trả, /increment-usage), **AU-G6 NẶNG kho** (orders-07/27/39 stock_pending — bán lúc SX trục trặc kho không bị trừ). Chi tiết + "ở quầy sai gì" ở `c2_day_du.md` và `bao_cao.md`.
 - **SỐNG admin config THẬT (CHƯA KIỂM đúng — KB không chạm):**
   packages CRUD (`packages.js:41,80,104,107`), discount-codes CRUD (`:200,266,319,326`), rewards CRUD (`:44,75,87`),
   signup-codes huỷ-claim (`:478,484`), customers-v2 upsert (`:58,320,327,370,377`). Đường QUẢN TRỊ (tạo gói/mã/khách), không phải

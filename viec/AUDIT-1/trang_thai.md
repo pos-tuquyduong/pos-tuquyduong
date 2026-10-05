@@ -88,6 +88,8 @@ loyalty xếp nhầm; đột biến/hồ sơ cũ RỮA theo thời gian (I10-bo,
 
 Mọi đề xuất NGOÀI Phạm vi (KHUON_LOI/CLAUDE.md/server/tu_chay/bộ kiểm) → chat soát duyệt, gom vào HOC-2. AUDIT-1 KHÔNG tự sửa.
 
+## G5b — tên đột biến thêm vòng 2 round 3: D1-E1b-tra-gia D1-E9-claim-kiem D1-E9-ndiem-kiem D1-E9-claim-dung D1-E9-ndiem-dung D1-E10-doisoat-tx D1-E10-doisoat-trang D1-B-deadcodes-service D1-B-pos5-query
+
 ## G5 — mọi tên đột biến trong dot_bien.py (165 tên; có mặt ở trang_thai này cho HOC-2)
 G3-sai-chuoi G3-da-biet G3-vo-hai G3-sap A3-GITADD-bo-A A3-GITCOMMIT-bo-a A3-GITPUSH-moi-nhanh A3-SED-i-ngan A3-RM-bo-realpath A3-CURL-moi-host A3-LN-dao-s A3-G1CAM-theoten A3-FINDCAM-bo-delete A3-NPM-them-install A3-MKDIR-bo-khung A3-TARX-moi-dich A3-FILEC-bo-ngan A3-BGAN-bo-PATH A3-CCLA-them-la A3-GHIDUOC-bo-khung B1-A11-dao-goc B1-A11-bo-xanh-PR B1-A6-bo-phamvi B1-A10-bo-filecam B1-A7-noi-tieude B1-A12-bo B1-laBaiThu-noi-slash B1-A14-bo-dang-nhanh C2-orders-bo-diem-ban C2-sc-bo-diem-ma C2-loyalty-redeem-tru-0 D1-A1-fffd D1-B1-json-tran D1-C1-them-fetch D1-E1-unitprice D1-E7-paydebt D1-E8-backup D1-E12-vi-ngoai D1-K1-env-tho D1-S3-vi-lech D1-F3-test-thieu D1-A2-server-cu-phap D1-A2c-client-cu-phap D1-B2-login-2-cho D1-B-handleSE D1-B-co-song-song D1-B-pathname D1-B-deadcodes-thieu D1-B-eb-getDerived D1-B-eb-ton-tai D1-B-main-boc D1-B-layout-boc D1-B-key D1-B-ahref-api D1-B-pos6-loginTime D1-D-build-prod D1-E-gia-0 D1-E2-authz-tho D1-E-trangthai-dungma D1-E-danhsach-trang D1-E-claim-chiem D1-E-ndiem-chiem D1-E-vi-tuongdoi D1-E-vi-trang5 D1-K-4ca D1-K-data D1-F-attached D1-F-dist !D1-E11-P20 !D1-E11-P21 !D1-E11-P26a !D1-E11-P26b !D1-T1-nguoi-gac !D1-T1b-cong-cu !D1-T1c-cong B1-A8-noi B1-A9-noi B1-A13-bo-daydu B1-A15-dao-fork C2F-orders-01-ghiVi-quay C2F-orders-02-insert-quay C2F-orders-03-update-quay C2F-orders-04-insert-quay C2F-orders-05-update-quay C2F-orders-06-insert-quay C2F-orders-07-insert-quay C2F-orders-08-insert-quay C2F-orders-09-update-quay C2F-orders-10-update-quay C2F-orders-11-insert-quay C2F-orders-12-update-quay C2F-orders-13-update-quay C2F-orders-14-insert-quay C2F-orders-15-insert-quay C2F-orders-16-update-quay C2F-orders-17-insert-quay C2F-orders-18-update-quay C2F-orders-19-ghiVi-quay C2F-orders-20-ghiVi-quay C2F-orders-21-update-quay C2F-orders-22-delete-quay C2F-orders-23-update-quay C2F-orders-24-delete-quay C2F-orders-25-update-quay C2F-orders-26-update-quay C2F-orders-27-insert-quay C2F-orders-28-ghiVi-quay C2F-orders-29-ghiVi-quay C2F-orders-30-update-quay C2F-orders-31-delete-quay C2F-orders-32-update-quay C2F-orders-33-delete-quay C2F-orders-34-delete-quay C2F-orders-35-delete-quay C2F-orders-36-delete-quay C2F-orders-37-delete-quay C2F-orders-38-delete-quay C2F-orders-39-insert-quay C2F-refunds-01-insert-quay C2F-refunds-02-update-quay C2F-refunds-03-update-quay C2F-refunds-04-ghiVi-quay C2F-refunds-05-update-quay C2F-refunds-06-ghiVi-quay C2F-refunds-07-update-quay C2F-wallets-01-update-quay C2F-wallets-02-insert-quay C2F-wallets-03-insert-quay C2F-wallets-04-ghiVi-quay C2F-wallets-05-ghiVi-quay C2F-wallets-06-ghiVi-quay C2F-wallets-07-update-quay C2F-wallets-08-insert-quay C2F-damages-01-ghiVi-quan-tri C2F-damages-02-insert-quan-tri C2F-damages-03-update-quan-tri C2F-packages-01-insert-quan-tri C2F-packages-02-update-quan-tri C2F-packages-03-update-quan-tri C2F-packages-04-delete-quan-tri C2F-packages-05-update-quay C2F-packages-06-update-quan-tri C2F-signup-codes-01-update-khach-app C2F-signup-codes-02-insert-khach-app C2F-signup-codes-03-update-khach-app C2F-signup-codes-04-insert-khach-app C2F-signup-codes-05-update-quan-tri C2F-signup-codes-06-delete-quan-tri C2F-discount-codes-01-insert-quan-tri C2F-discount-codes-02-update-quan-tri C2F-discount-codes-03-update-quan-tri C2F-discount-codes-04-delete-quan-tri C2F-discount-codes-05-update-quay C2F-rewards-01-insert-quan-tri C2F-rewards-02-update-quan-tri C2F-rewards-03-update-quan-tri C2F-loyalty-01-insert-khach-app C2F-loyalty-02-insert-khach-app C2F-loyalty-03-insert-khach-app C2F-don-mo-rong-01-update-quay C2F-customers-v2-01-insert-khong-ro C2F-customers-v2-02-update-quan-tri C2F-customers-v2-03-insert-quan-tri C2F-customers-v2-04-update-quan-tri C2F-customers-v2-05-insert-quan-tri
 
@@ -107,8 +109,8 @@ GIT:       xem `git log --oneline` nhánh viec/AUDIT-1 (đã push mỗi nhóm; v
 BÀI HỌC:   KHOÁ (đã làm: K5 anh_kho, C2F, D1 đủ) + đề xuất HOC-2 (bất biến loyalty/voucher/gói, CONG_CU_DOC, A14, neo
            đột biến cũ, T2-T4) · NGUYÊN TẮC 3 (K8 báo oan; K3 đột biến rữa; phân loại đường tiền theo đối tượng) · BỎ 2.
 
-KẾT QUẢ CHÍNH: câu ví/điểm-tích/hoàn/debt LÕI vững (40 BẮT, không SỐNG). Lưới KHÔNG phủ 17 câu đụng tiền → 3 nhóm NẶNG
-(AU-G1 đổi điểm→voucher, AU-G2 voucher dùng-lại khi bán, AU-G3 gói/thẻ trả trước + huỷ-đơn-gói rò tiền) + AU-G4/G5 NHẸ; 12 phát hiện NHẸ
+KẾT QUẢ CHÍNH: câu ví/điểm-tích/hoàn/debt LÕI vững (40 BẮT, không SỐNG). Lưới KHÔNG phủ 20 câu đụng tiền → 4 nhóm NẶNG
+(AU-G1 đổi điểm→voucher, AU-G2 voucher dùng-lại khi bán, AU-G3 gói/thẻ trả trước + huỷ-đơn-gói rò tiền, AU-G6 kho SX không bị trừ khi SX trục trặc) + AU-G4/G5 NHẸ; 12 phát hiện NHẸ
 khác; 3 đột biến hồ sơ cũ HỎNG trên HEAD. Đầu vào duy nhất của HOC-2 là bao_cao.md + c2_day_du.md.
 
 
@@ -132,3 +134,21 @@ canhBao T2-T4/F2). Classifier không đọc được role runtime (cancel_order/
   orders-22 (cancel, cancel_order) bị xếp nhầm admin NHẸ, thực là rò tiền quầy.
 - **KHOÁ K3:** một bài chạy-thật chỉ được tính "còn sống" khi có đột biến làm CHÍNH file đó in dòng đỏ RIÊNG; LẠC (bị
   phép tĩnh chặn trước) KHÔNG chứng minh liveness. thu_P20 phải ghi CHƯA KIỂM cho tới khi có đột biến phá đúng thứ nó canh.
+
+
+## Chat soát cuối vòng 2 (round 3) — sửa 3 điểm rồi dừng (không /ra-soat vòng 3)
+1. **AU-G6 NẶNG (kho):** `C2F-orders-07/27/39` (INSERT pos_stock_pending = sổ nợ trừ kho SX khi SX/mạng trục trặc)
+   trước xếp NHẸ "SX giả không lỗi nên KB không chạm" — chính đó là lỗ lưới; phiếu định nghĩa kho = NẶNG. Ở quầy: bán
+   lúc SX trục trặc thì kho SX không bao giờ bị trừ. Đề xuất HOC-2: KB giả lập SX trả lỗi + bất biến mỗi dòng đơn hoặc
+   trừ kho được hoặc có đúng một dòng stock_pending. (orders-22 đã rời "dọn dẹp" sang AU-G3 từ round 2.)
+2. **D1 ĐỦ:** thêm 9 đột biến riêng cho các phép còn thiếu — tự-tra-giá-pos_products, /claim+/nhan-diem kiểm-TRƯỚC-ghi,
+   /claim+/nhan-diem DÙNG-kết-quả, ví đối-soát CÙNG-tx, ví đối-soát danh-sách-trắng, SESSION_DEAD_CODES-service, POS-5.
+   Tất cả BẮT. Bảng đối chiếu TÊN phép (nhanh + --day-du) ↔ đột biến D1 ở cuối `d_bang.md`: 53/65 phép có đột biến BẮT,
+   12 CHƯA KIỂM đều có lý do (4 bundle dist cần tên băm; 4 byte-khớp + gốc-sạch canhBao-thuần không FAIL; 3 giả-lập
+   --day-du chứng qua nhóm C/E) — KHÔNG phép nào thiếu dòng. (Phát hiện khi làm: route /nhan-diem ở :116 chứa call
+   kiemDonCuaMa(dong) :174, /claim ở :290 chứa kiemDonCuaMa(signupRow) :339 — khoi() của bộ kiểm cắt khối đúng vậy.)
+3. **bao_cao.md:** ghi HEAD thật (mã server/ tại b9759cf không đổi; sản phẩm tới HEAD hiện tại), cập nhật số D1
+   (55 BẮT · 2 LẠC) và AU-G6.
+
+Bài học bổ sung (round 3): NGUYÊN TẮC — "KB không chạm" KHÔNG phải "an toàn"; với kho/tiền, nhánh degraded (SX lỗi,
+mạng trục trặc) mà lưới không có KB mô phỏng lỗi = lỗ NẶNG, không phải NHẸ. Đã gây: stock_pending xếp nhầm NHẸ 2 vòng.

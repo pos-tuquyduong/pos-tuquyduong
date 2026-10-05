@@ -119,3 +119,7 @@ CHẶN [nhắm FILE-C] file --compile → CHAN:FILE-C
 # orders-22/24 (route PUT /:id/cancel, quyền cancel_order KHÔNG owner) chuyển NHẸ→AU-G3 (rò tiền: hoàn tiền mà gói/thẻ còn). 17 SỐNG tiền.
 # thu_P20 liveness CHƯA KIỂM (AU-G5): !D1-E11-P20 LẠც (E7 tĩnh chặn trước); P21/P26b/P26a/T1/T1b/T1c live có dòng riêng.
 # D1 "đủ" = 46 đột biến phủ mọi phép TĨNH + 6/7 chạy-thật; ngoại lệ CHƯA KIỂM: D2/D3/D4 (bundle băm), thu_P20, canhBao T2-T4/F2.
+
+# ── vòng 2 round 3 ──────────────────────────────────────────────────────────
+# AU-G6 NẶNG: orders-07/27/39 (INSERT pos_stock_pending) SỐNG → kho SX không bị trừ khi SX trục trặc. 20 SỐNG tiền, 4 nhóm NẶNG.
+# D1 thêm 9 phép (tra-gia, claim/ndiem kiem+dung, doisoat tx+trang, deadcodes-service, pos5) đều BẮT. Bảng phép↔đột biến ở d_bang.md: 53/65 BẮT, 12 CHƯA KIỂM có lý do.
