@@ -285,7 +285,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
           const n = soCa(daRa.get(p));
           if (!ghiCa.has(p)) doLy('A16', `${P_BC} thiếu dòng "SỐ CA ${p}: <N>"`);
           else if (n === null) doLy('A16', `bài thử \`${p}\` không in dòng tổng (… đạt · … hỏng | … phép · … chỗ hỏng | a/B ca người gác … · C phép khác) trên code PR`);
-          else if (n !== ghiCa.get(p)) doLy('A16', `${P_BC} ghi "SỐ CA ${p}: ${ghiCa.get(p)}" ≠ ${n} ca ở head — chạy lại bài trên code gốc, chép lại bằng chứng`);
+          else if (n !== ghiCa.get(p)) doLy('A16', `${P_BC} ghi "SỐ CA ${p}: ${ghiCa.get(p)}" ≠ ${n} ca ở head — N là số ca bài in khi chạy trên code đã vá: chạy lại bài, chép lại số đó`);
         }
       }
     }

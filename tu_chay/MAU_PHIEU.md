@@ -34,8 +34,8 @@
 không — <lý do>
 
 <Hồ sơ máy ghi, cổng PR kiểm (HOC-2): viec/<MÃ>/bang_chung_do.txt có một dòng "SỐ CA <bài thử>: <N>" cho mỗi bài thử
- đỏ trên gốc, N = tổng số ca bài in (A16). PR đổi server/ hoặc client/src/ → viec/<MÃ>/dot_bien.py có ≥ 1 đột biến tên
- VS-… (vá sai, A18; khuyên thêm BV-… bỏ vá), mỗi đột biến một dòng ('<tên>', …); mọi tên ghi trong trang_thai.md (A17).
+ đỏ trên gốc, N = tổng số ca bài in khi chạy trên code đã vá (A16). PR đổi server/ hoặc client/src/ → viec/<MÃ>/dot_bien.py có ≥ 1 đột biến tên
+ VS-… (vá sai, A18; khuyên thêm BV-… bỏ vá), mỗi đột biến một dòng ('<tên>', …); mọi tên (NGUYÊN chuỗi đầu) ghi trong trang_thai.md (A17).
  Phiếu miễn ## Bài thử đỏ thì A16 và A18 không áp.>
 
 ## Bài thử cũ sửa

@@ -472,7 +472,7 @@ A1 (khoá thật, tên miền production → từ chối), A2 (kho tạm dọn s
 3. Ghép phần deny và hooks vào `settings.json`.
 4. Chạy `thu_nguoi_gac.js`, phải xanh.
 5. Viết `cong_cu/gia_lap/` riêng cho app và nối vào `lenh_kiem_day_du` (B10). Trong lúc chưa có, cổng KHÔNG chạy giả lập và
-   KHÔNG cảnh báo gì (`cong.js:234` không biết đến giả lập).
+   KHÔNG cảnh báo gì (`cong.js` A13 không biết đến giả lập).
 6. `PHIEN_BAN` phải khớp với kho gốc.
 
 ---
@@ -774,7 +774,7 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
    - `${{ }}` chỉ trong `with:`/`env:`, không trong `run:` (tên nhánh do PR đặt). `npm ci` nằm TRONG `cong.js`, không
      là bước riêng (script `postinstall` sẽ ghi được `$GITHUB_ENV`/`$GITHUB_PATH` cho bước sau); tiến trình con
      không nhận biến `GITHUB_*`, `ACTIONS_*`, `CLAUDE*`.
-   - Bài thử: `tu_chay/thu_cong.js` — kho tạm, ~30 ca A, đột biến A6–A14, `kiemYml` + 23 đột biến chữ của yml.
+   - Bài thử: `tu_chay/thu_cong.js` — kho tạm, ~30 ca A, đột biến A6–A14 (HOC-2: A6–A18, B16), `kiemYml` + 23 đột biến chữ của yml.
 3. **Rủi ro còn lại, vì sao chấp nhận:** `cong-chay` chạy code PR (`npm ci`, bài thử, `npm test`) trên máy GitHub
    với token chỉ đọc, không bí mật, không lưu credential. Máy GitHub cho `sudo` → code PR về lý thuyết làm giả
    được kết quả `cong-chay`: job này canh LỖI, không canh ÁC Ý. Job `cong` (không chạy code PR, máy riêng) canh:

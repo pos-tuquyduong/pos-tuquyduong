@@ -1,15 +1,17 @@
-# HOC-2 — bằng chứng ĐỎ: ba bài thử MỚI chạy trên code CHƯA sửa (HEAD 97fe898: cong.js, cau_hinh.json, skill, tài liệu gốc;
-# chưa có cong_cu/ban_sao_goc.py), máy mây 05.10.2026. Dòng "SỐ CA <bài>: <N>" = tổng số ca của bài (định dạng cổng A16).
-SỐ CA tu_chay/thu_cong.js: 251
+# HOC-2 — bằng chứng ĐỎ: ba bài thử BẢN CUỐI (sau soát vòng 1) đặt vào git archive của cb5d9fd (cha commit PHIEU: HOC-2 —
+# cong.js / cau_hinh.json / skill / tài liệu gốc, chưa có cong_cu/ban_sao_goc.py), máy mây 05.10.2026.
+# Dòng "SỐ CA <bài>: <N>" = số ca bài in khi chạy trên code đã vá (head) — cổng A16; trên gốc ba bài in cùng số.
+SỐ CA tu_chay/thu_cong.js: 253
 SỐ CA tu_chay/thu_nguoi_gac.js: 971
 SỐ CA tu_chay/thu_cong_cu.js: 85
 
-══ node tu_chay/thu_cong.js → thoát 1
-thu_cong: 251 phép · 30 chỗ hỏng
+══ node tu_chay/thu_cong.js (trên gốc) → thoát 1
+thu_cong: 253 phép · 31 chỗ hỏng
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "SỐ CA cong_cu/thu_a.js: 1" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "2 ca ở head" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "khi chạy trên code đã vá" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 không có bang_chung_do.txt: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 không có bang_chung_do.txt: lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 không có bang_chung_do.txt: lý do có "không có viec/X/bang_chung_do.txt" — ✓ CỔNG CHẠY ĐẠT
@@ -36,9 +38,9 @@ thu_cong: 251 phép · 30 chỗ hỏng
   ✗ HOC-2 A18 xoá file server/ cũng áp: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 xoá file server/ cũng áp: lý do có "server/a.js" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A2 mọi khoá của cau_hinh.json thật có người đọc (code còn nhắc tên, hoặc khoá chỉ-tài-liệu) — khoá app không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá nhanh_chinh không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá lenh_gia_lap không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá so_viec không ai đọc (không có trong NGUOI_DOC / TA
-  ĐỎ — 30 chỗ hỏng
+  ĐỎ — 31 chỗ hỏng
 
-══ node tu_chay/thu_nguoi_gac.js → thoát 1
+══ node tu_chay/thu_nguoi_gac.js (trên gốc) → thoát 1
 thu_nguoi_gac: 793/798 ca người gác đúng mã · 173 phép khác
   ✗ ca Edit cong_cu/thu_P20.js: mong CHAN:G-LUAT, ra CHO
   ✗ ca Edit cong_cu/thu_P21.js: mong CHAN:G-LUAT, ra CHO
@@ -47,14 +49,14 @@ thu_nguoi_gac: 793/798 ca người gác đúng mã · 173 phép khác
   ✗ ca Bash "echo x > cong_cu/thu_P26b.js": mong CHAN:G-LUAT, ra CHO
   ✗ cau_hinh: TIEN_DO_*.json trong file_cam; 11 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập; HOC-2 A7: thu_P2x) trong file_luat
   ✗ PHIEN_BAN = tu-chay 1.4.0 — tu-chay 1.3.2
-  ✗ B2 ban_sao_goc: đích trong kho → từ chối, không tạo gì — thoát 2: python3: can't open file '/home/user/pos-tuquyduong/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
-  ✗ B2 ban_sao_goc: đích ngoài thư mục tạm → từ chối, không tạo gì — thoát 2: python3: can't open file '/home/user/pos-tuquyduong/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
-  ✗ B2 ban_sao_goc: đích có sẵn, không rỗng → từ chối, không đè — thoát 2: python3: can't open file '/home/user/pos-tuquyduong/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
-  ✗ B2 ban_sao_goc: commit không có → từ chối, không tạo gì — thoát 2: python3: can't open file '/home/user/pos-tuquyduong/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
-  ✗ B2 ban_sao_goc: đích hợp lệ → server/ đúng byte commit (không phải cây làm việc), node_modules liên kết tới kho, in --may-chu — thoát 2: python3: can't open file '/home/user/pos-tuquyduong/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích trong kho → từ chối, không tạo gì — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích ngoài thư mục tạm → từ chối, không tạo gì — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích có sẵn, không rỗng → từ chối, không đè — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: commit không có → từ chối, không tạo gì — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích hợp lệ → server/ đúng byte commit (không phải cây làm việc), node_modules liên kết tới kho, in --may-chu — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
   ĐỎ — 12 chỗ hỏng
 
-══ node tu_chay/thu_cong_cu.js → thoát 1
+══ node tu_chay/thu_cong_cu.js (trên gốc) → thoát 1
 thu_cong_cu: 85 phép · 8 chỗ hỏng
   ✗ HOC-2 E3a skill: đổi code chạy thật → đột biến VS- (vá sai) + BV- (bỏ vá) trong dot_bien.py, bảng "chỗ vá → đột biến", dòng SỐ CA
   ✗ HOC-2 E3a skill: mọi tên đột biến ghi vào trang_thai.md

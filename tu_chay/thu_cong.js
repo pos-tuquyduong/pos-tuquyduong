@@ -318,7 +318,11 @@ function baiCong() {
   const BC = (nd) => ({ 'viec/X/bang_chung_do.txt': nd });
   const MIEN_DO = '\n## Bài thử đỏ\nkhông — chỉ đổi chú thích\n';
   ca('HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca)', [['them ca', { 'cong_cu/thu_a.js': thuIn('thu: 2 đạt · 0 hỏng'), ...sv }]], 'ĐỎ',
-    { che: 'chay', chua: ['[A16]', 'SỐ CA cong_cu/thu_a.js: 1', '2 ca ở head'] });
+    { che: 'chay', chua: ['[A16]', 'SỐ CA cong_cu/thu_a.js: 1', '2 ca ở head', 'khi chạy trên code đã vá'] });
+  // Soát vòng 1: bài ĐỎ trên gốc in số ca khác trên head (dừng sớm / sập) — N lấy theo head, ghi số head thì qua (K5)
+  ca('HOC-2 A16 K5 số ca trên gốc (2) khác trên head (3), bằng chứng ghi số head', [['a', { 'cong_cu/thu_a.js':
+    "const v = require('fs').existsSync('server/moi.js');\nconsole.log(v ? '3 đạt · 0 hỏng' : '1 đạt · 1 hỏng');\nprocess.exit(v ? 0 : 1);\n",
+    ...sv, ...BC('SỐ CA cong_cu/thu_a.js: 3\n') }]], 'ĐẠT', { che: 'chay' });
   ca('HOC-2 A16 không có bang_chung_do.txt', [['xoa', { 'viec/X/bang_chung_do.txt': null, ...moi }]], 'ĐỎ',
     { che: 'chay', chua: ['[A16]', 'không có viec/X/bang_chung_do.txt'] });
   ca('HOC-2 A16 thiếu dòng SỐ CA của một bài đỏ', [['b', { 'cong_cu/thu_b.js': THU_HOP_LE, ...moi }]], 'ĐỎ',
