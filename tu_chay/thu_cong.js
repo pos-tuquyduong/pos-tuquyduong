@@ -325,7 +325,7 @@ function baiCong() {
     { che: 'chay', chua: ['[A16]', 'thiếu dòng "SỐ CA cong_cu/thu_b.js: <N>"'], khong: ['cong_cu/thu_a.js'] });
   ca('HOC-2 A16 bài đỏ không in dòng tổng', [['a', { 'cong_cu/thu_a.js': "process.exit(require('fs').existsSync('server/moi.js') ? 0 : 1);\n", ...sv }]],
     'ĐỎ', { che: 'chay', chua: ['[A16]', 'cong_cu/thu_a.js', 'không in dòng tổng'] });
-  ca('HOC-2 A16 K5 dạng "N phép · M chỗ hỏng" kèm mã màu, bằng chứng khớp', [['a', { 'cong_cu/thu_a.js': thuIn('\x1b[32mthu: 3 phép · 0 chỗ hỏng\x1b[0m'),
+  ca('HOC-2 A16 K5 dạng "N phép · M chỗ hỏng" kèm mã màu, bằng chứng khớp', [['a', { 'cong_cu/thu_a.js': thuIn('\x1b[32mthu: \x1b[1m3\x1b[0m phép · 0 chỗ hỏng\x1b[0m'),
     ...sv, ...BC('SỐ CA cong_cu/thu_a.js: 3\n') }]], 'ĐẠT', { che: 'chay' });
   ca('HOC-2 A16 K5 dạng "a/B ca người gác … · C phép khác", lấy dòng tổng CUỐI', [['a', { 'cong_cu/thu_a.js': "console.log('9 đạt · 9 hỏng');\n"
     + thuIn('thu_nguoi_gac: 5/5 ca người gác đúng mã · 2 phép khác'), ...sv, ...BC('SỐ CA cong_cu/thu_a.js: 7\n') }]], 'ĐẠT', { che: 'chay' });
