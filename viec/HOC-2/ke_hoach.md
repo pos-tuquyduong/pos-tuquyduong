@@ -80,19 +80,18 @@ Bảng khoá (grep `cau_hinh` + tên khoá trong `tu_chay/`, `cong_cu/`, `kiem_t
 | `vuot_ngan_sach_canh_bao` | không ai (`THIET_KE.md:347` mô tả) | XOÁ (Q3) |
 | `khuon_loi_toi_da` | `tu_chay/thu_cong_cu.js:328` (phép F3) | code |
 | `muc_gac` | `cai_dat.js:83`; `cong.js:128` | code |
-| `ban_cai` | `cai_dat.js:83`; `cong.js:126`; `kiem_tra_truoc_khi_giao.js:590` (T4) | code |
+| `ban_cai` | `cai_dat.js:83`; `cong.js:126`; `kiem_tra_truoc_khi_giao.js:591` (T4) | code |
 | `kiem_sau_day_len` | không ai (`THIET_KE.md:361`, công cụ "lên production" chưa có) | XOÁ |
 
 Kiểm trước khi xoá (K5): `nguoi_gac.js:896` chỉ đòi 5 mảng; `cong.js:19` đòi `ban_cai/muc_gac/thu_muc_bai_thu`;
 `cai_dat.js:83` đọc `ban_cai/muc_gac`; `chay.js:39` đọc `ten_mien_production`; `thu_nguoi_gac.js:598–617` (bản gốc lẫn
 mới) không đòi khoá bị xoá. Không khoá bị xoá nào có người đọc.
 
-**Phương án A (chọn):** `cau_hinh.json` thêm khoá `"khoa_tai_lieu": ["so_vong_sua_toi_da"]` (JSON không có chú thích —
-danh sách khai rõ là cách duy nhất). Phép trong `thu_cong.js` (hàm thuần `kiemKhoa(ch, doc)` ~20 dòng): bảng cố định
-`NGUOI_DOC = { khoá: [file đọc] }`; với mỗi khoá của cấu hình: nằm trong `khoa_tai_lieu` thì phải có tên trong một file
-`tu_chay/*.md`; không thì phải có trong `NGUOI_DOC` VÀ file đọc (bỏ dòng chú thích `//`) phải chứa tên khoá (từ nguyên);
-tên trong `khoa_tai_lieu` phải là khoá có thật. Ca: cấu hình thật → 0 lỗi; thêm `khoa_la` → lỗi nêu `khoa_la`; đưa khoá
-vào `NGUOI_DOC` nhưng file đọc không còn nhắc → lỗi; `khoa_tai_lieu` ghi khoá không có → lỗi.
+**Phương án A (chọn, soát kế hoạch: ngắn hơn bản đầu):** KHÔNG thêm khoá cấu hình. Danh sách khai rõ nằm ngay trong
+`thu_cong.js` (hàm thuần `kiemKhoa(ch, doc)` ~18 dòng): bảng cố định `NGUOI_DOC = { khoá: [file đọc] }` (code) và
+`TAI_LIEU = { so_vong_sua_toi_da: 'tu_chay/skill_lam_viec.md' }` (khoá chỉ-tài-liệu). Mỗi khoá của cấu hình phải có ở một
+trong hai bảng VÀ file ghi kèm (bỏ dòng chú thích `//` với file .js) phải chứa tên khoá (từ nguyên). Ca: cấu hình thật →
+0 lỗi; thêm `khoa_la` → lỗi nêu `khoa_la`; khoá trong `NGUOI_DOC` mà file đọc không còn nhắc → lỗi.
 Đỏ trên gốc: `cau_hinh.json` gốc còn `lenh_gia_lap`, `app`… → lỗi.
 **Phương án B (bỏ):** quét mọi file tìm tên khoá (không bảng) — bài thử/tài liệu nhắc tên cũng tính là "đọc" → xanh oan.
 
@@ -107,9 +106,18 @@ Bằng chứng đọc bằng `blob` ở head TRƯỚC khi chạy code PR (đúng
 + hai con số): thiếu `bang_chung_do.txt`; thiếu dòng `SỐ CA` của bài; N ≠ số ca head; bài không in được dòng tổng.
 Bài thử cũ được miễn (`## Bài thử cũ sửa`) không bắt buộc dòng (không có bằng chứng đỏ).
 **Phương án B (bỏ):** chỉ soát dòng `SỐ CA` nào có mặt — bỏ dòng là lách; đúng khuôn K4 "phép gắn theo nhánh kết quả".
-Ảnh hưởng ca cũ của `thu_cong.js` (K5): bài giả `THU_HOP_LE` in thêm `1 đạt · 0 hỏng` / `0 đạt · 1 hỏng`, `sv` thêm
-`viec/X/bang_chung_do.txt` = `SỐ CA cong_cu/thu_a.js: 1`; các ca ĐẠT khác có bài đỏ hợp lệ (HOC-1 K5 "bài cũ trong mục mà
-vẫn ĐỎ trên gốc", (d)(ii)…) thêm dòng tương ứng — rà hết khi viết, mọi ca ĐẠT cũ phải còn ĐẠT.
+Dòng tổng đọc sau khi bỏ mã màu ANSI (`thu_P20.js:322`, `thu_P21.js` in kèm mã màu). A16 viết thành KHỐI RIÊNG sau vòng
+`cong.js:240–243` (dùng lại kết quả đã lưu), KHÔNG sửa các chuỗi neo mà đột biến AUDIT-1 dùng (`cong.js:82`, `:162`,
+`:234`, `:240–241`, `:225`…) — D5 mong 0 HỎNG.
+
+**Giữ mọi ca cũ của `thu_cong.js` (K5 — soát kế hoạch đếm: A18 làm đỏ ca ĐẠT 119, 130, 132, 211, 216, 229, 257, 259,
+261, 263, 273, 286, 288, 290, 304, phép "tách chế độ" 316–320, và 127/298 nếu không duyệt Q4; A17 làm đỏ 120, 243 vì ghi
+đè `trang_thai.md` = `x`; A16/A18 giữ ĐỎ các ca bảng `DB` 336–346 khi tắt mã — A9 154, A10 157, A12 244, A8 222/231/233
+(A18), A11 163/169, A8 177, A13 245 (A16)):** dữ liệu sẵn trong commit gốc `dungKho()` (`thu_cong.js:53–75`):
+`viec/X/dot_bien.py` có `('VS-x', …)`, `viec/X/trang_thai.md` có `VS-x`, `viec/X/bang_chung_do.txt` có dòng `SỐ CA` cho
+`cong_cu/thu_a.js` và `cong_cu/thu_c.js`; `THU_HOP_LE`, `THU_C_GOC` (`:46, :51`) in `N đạt · M hỏng`; hai ca 120, 243 ghi
+`trang_thai.md` giữ dòng `VS-x`. ~8 dòng. Sau khi viết: chạy lại cả `thu_cong` — mọi ca ĐẠT cũ còn ĐẠT, mọi đột biến tắt mã
+cũ còn thành ĐẠT; ca mới A16–A18 tự dựng dữ liệu sai riêng (mỗi ca chỉ vi phạm đúng một luật, K3).
 
 ### A4 — tên đột biến có trong trang_thai — `cong.js` chế độ `tinh` (A17, ~10 dòng)
 Đọc `viec/<MÃ>/dot_bien.py` và `trang_thai.md` ở head (blob). Tên = mỗi dòng mở đầu `('<tên>',` (regex
@@ -141,7 +149,7 @@ nháp (`cp -r` cả kho + `.git` vào nháp — `chay` chạy `npm ci` và ghi c
   muốn thêm thì trước hết `ban_mau_pos/thu/*.js` phải thoát ≠ 0 khi có ca hỏng (file luật bản mẫu, ngoài Phạm vi, phải
   hỏi chủ quán). Ghi lý do này vào `THIET_KE.md` cạnh chỗ tả `thu_muc_bai_thu`.
 - `file_luat` thêm đúng tên `cong_cu/thu_P20.js`, `cong_cu/thu_P21.js`, `cong_cu/thu_P26a.js`, `cong_cu/thu_P26b.js`.
-  Ca (`thu_nguoi_gac.js`, dùng `cau_hinh.json` thật như khối `:489–505`): phiếu chỉ `- cong_cu/**` → Edit
+  Ca (`thu_nguoi_gac.js`, dùng `cau_hinh.json` thật như khối `:491–506`): phiếu chỉ `- cong_cu/**` → Edit
   `cong_cu/thu_P26b.js` bị `G-LUAT` (và Bash `echo x > …`); phiếu ghi đúng tên → `CHO`; `cong_cu/thu_khac.js` với
   `cong_cu/**` → `CHO` (K5: glob vẫn mở file không phải luật). Ca cấu hình thật `:600` thêm 4 tên.
 - Không đổi luật nào khác, không đổi `cong_github.yml`.
@@ -151,7 +159,8 @@ nháp (`cp -r` cả kho + `.git` vào nháp — `chay` chạy `npm ci` và ghi c
 ### B1 (AU-A1) — khoá tập CONG_CU_DOC / CONG_CU_SUA
 **Phương án A (chọn, ~10 dòng, KHÔNG sửa `nguoi_gac.js`):** đọc mã nguồn người gác đang thử (`GAC`, đã hỗ trợ
 `--nguoi-gac`, `thu_nguoi_gac.js:21`), cắt literal `const CONG_CU_DOC = new Set([...])` và `CONG_CU_SUA`, lấy các tên
-`'…'`, so khớp ĐÚNG tập cố định trong bài (18 tên DOC, 4 tên SUA hiện có ở `nguoi_gac.js:105–108`). Không cắt được → đỏ.
+`'…'`, so khớp ĐÚNG tập cố định trong bài (18 tên DOC, 4 tên SUA hiện có ở `nguoi_gac.js:105–108`). Không cắt được → đỏ. Lỗi đẩy vào `hong` dưới dạng `ca khoá tập …` (dòng ra `✗ ca …`) để mẫu
+`✗ (ca |tự sinh)` của `A3-CCLA-them-la` (`viec/AUDIT-1/dot_bien.py:58`) khớp → BẮT, không LẠC.
 Ca hành vi có sẵn (`:129–136`) giữ nguyên. Đột biến `A3-CCLA-them-la` (thêm `'Bash2'`) → tập lệch → BẮT.
 **Phương án B (bỏ):** `module.exports` thêm hai tập — phải sửa `nguoi_gac.js` (phiếu: chỉ sửa khi B2 cần).
 
@@ -178,7 +187,7 @@ trước/sau: cùng PASS/CẢNH BÁO).
 
 ### C2 — bỏ I10 (`bat_bien.js:137–145`), `NGUONG_BAT_BIEN` 11 → 10 (`kiem_tra…js:745`)
 Xoá hàm I10 + chú thích I11 bỏ câu so I10; dòng đầu `bat_bien.js:2` "11" → "10"; `kiem_tra…js:745` = 10 kèm chú thích
-"I10 ⊂ I11, không giảm độ phủ (HOC-2, chủ quán chốt 2a)" và sửa câu "chỉ được TĂNG" (`:743`) thêm "trừ lần hạ có chủ quán
+"I10 ⊂ I11, không giảm độ phủ (HOC-2, chủ quán chốt 2a)" và sửa câu "chỉ được TĂNG" (`:742`) thêm "trừ lần hạ có chủ quán
 chốt"; `thu_gia_lap.js:31` `DONG_DAT` → `· 10 bất biến ·`; M11, M12 (`:80, :82`) mong `I11`.
 Lẽ bao trùm (ghi kèm): số tiền là số nguyên; Σ_ví(hoàn − trả) ≥ 1 ⇒ có ví với (hoàn − trả) ≥ 1 > 0,5 ⇒ mọi dòng I10 lệch
 thì I11 lệch cùng đơn. **Chứng minh bằng chạy** (bảng tên → bất biến bắt, ghi `trang_thai.md`): `thu_gia_lap` M11, M12 →
@@ -188,15 +197,17 @@ thì I11 lệch cùng đơn. **Chứng minh bằng chạy** (bảng tên → b�
 ### C3 — thời gian giả lập
 - Chú thích `kiem_tra…js:746` sửa theo số đo thật: máy mây 05.10.2026 giả lập 68,0 s, `thu_gia_lap` 73,3 s; thêm số đo
   job `cong-chay` trên GitHub (đọc log PR gần nhất bằng công cụ GitHub khi làm — chưa đọc, ghi vào trang_thai).
-- `chayBaiThat(bai, env, han = 120000)` (`:477`): bài xanh mà chạy > `han × 0,75` (= **90 s**) → `canhBao` "chạy X s, gần
-  hạn Y s" (không FAIL). Ngưỡng 90 s: lúc bình thường 68–73 s (máy mây) không bật; chốt lại sau khi có số GitHub — số
+- `chayBaiThat(bai, env, han = 120000, ganHan = false)` (`:477`): CHỈ hai lời gọi giả lập + `thu_gia_lap` (`:749, :753`)
+  bật `ganHan` (đúng phạm vi phiếu; `thu_cong` và thu_P2x không bị cảnh báo); bài xanh mà chạy > `han × 0,75` (= **90 s**)
+  → `canhBao` "chạy X s, gần hạn Y s" (không FAIL). Đo lại `thu_cong` sau khi thêm ca A (hiện 48 s, hạn 120 s): > 90 s thì
+  báo chủ quán, không tự nới. Ngưỡng 90 s: lúc bình thường 68–73 s (máy mây) không bật; chốt lại sau khi có số GitHub — số
   GitHub thật > 80 s thì báo chủ quán, KHÔNG tự nâng hạn (Cấm: không nới hạn).
 - Ca thử trong `cong_cu/thu_gia_lap.js` (ngân sách phiếu ±~15 ghi C3 ở đây; không đụng `tu_chay/`): cắt khối hàm
-  `chayBaiThat` thật từ `kiem_tra…js` (khuôn `thu_cong_cu.js:404–409` baiT2), chạy bằng `new Function` với GOC = thư mục
+  `chayBaiThat` thật từ `kiem_tra…js` (khuôn `thu_cong_cu.js:401–407` baiT2), chạy bằng `new Function` với GOC = thư mục
   tạm chứa `ngu.js` ngủ ~300 ms: `han` giả 350 ms → có cảnh báo; `han` thật 120000 → KHÔNG cảnh báo; bài thoát 1 → FAIL,
   không cảnh báo. Cắt không được → ca ĐỎ. Đỏ trên gốc: `chayBaiThat` gốc không cảnh báo.
 
-### C4 — `cong_cu/thu_P26b.js` (+~35) và KB17-Q9 (`kich_ban.js:322–324`)
+### C4 — `cong_cu/thu_P26b.js` (+~35) và KB17-Q9 (`kich_ban.js:323–326`)
 - M6 (`thu_P26b.js:351–352`) `<= 1` → `=== 1`.
 - M9 "đơn có ví mẹ, phần mẹ 0đ (con trả đủ 25.000 bằng ví) → duyệt 200, 0 dòng hoàn mẹ, ví mẹ không đổi".
 - M10 "yêu cầu cũ (`ycCu`, `:143`) trên đơn có ví mẹ → duyệt 200, ví mẹ +phần mẹ đúng 1 dòng".
@@ -212,17 +223,17 @@ thì I11 lệch cùng đơn. **Chứng minh bằng chạy** (bảng tên → b�
 `kiemDonCuaMa` là danh sách trắng + được gọi + kết quả được dùng; KHÔNG soi mã lỗi từng nhánh. Ứng viên theo thứ tự:
 (1) `signup-codes.js:63` `code: 'DON_DA_HUY'` → `'DON_DA_HOAN'` (đơn huỷ báo sai lý do) → mong `✗ /claim với đơn đã huỷ →
 400 DON_DA_HUY`; (2) `pay-debt` không đặt `payment_status` về `paid` (chuỗi cụ thể tìm khi làm) → mong `✗ … /claim → 200`.
-Chạy `node kiem_tra_truoc_khi_giao.js --day-du` trên bản sao kho: phải ĐỎ ĐÚNG dòng "bài chạy thật cong_cu/thu_P20.js"
+Chạy `node kiem_tra_truoc_khi_giao.js` (bản nhanh: E9 tĩnh + `thu_P20` chạy thật đều có, `:405–445`, `:488`) trên bản sao kho: phải ĐỎ ĐÚNG dòng "bài chạy thật cong_cu/thu_P20.js"
 VÀ không phép tĩnh nào khác đỏ. Ghi vào `viec/HOC-2/dot_bien.py` (`!C5-P20-…`). Không dựng được → ghi rõ vì sao.
 `thu_P20` xanh với mọi ứng viên → DỪNG, ghi `## Câu hỏi`. Không sửa `thu_P20.js` trừ khi cần (phiếu cho thêm ca).
 
 ## D. Đột biến cũ và công cụ cũ
 
-- **D1** `viec/HOC-1/dot_bien.py:41–42` `MB`, `MB4`: tìm `'"package.json"'` → thay `'"package.jsonX"'` (neo NGẮN, riêng:
+- **D1** `viec/HOC-1/dot_bien.py:30–31` `MB`, `MB4`: tìm `'"package.json"'` → thay `'"package.jsonX"'` (neo NGẮN, riêng:
   `cau_hinh.json` chỉ có 1 chỗ; đứng ở đâu trong mảng cũng khớp). Chạy `MB`, `MB4` → BẮT.
 - **D2** `viec/P26b/dot_bien.py:138–139` bỏ `I10-bo`, để một dòng chú thích "bỏ ở HOC-2: I10 xoá (I10 ⊂ I11)"; `:28`,
   `:37` mẫu `|I10` → `|I11` (C2). Cả bộ chạy: 0 HỎNG.
-- **D3** `viec/TU-CHAY-4/dot_bien.py:56–63` kiểu `tai_cho` → `ban_sao`: chép kho sang thư mục tạm (`shutil.copytree`,
+- **D3** `viec/TU-CHAY-4/dot_bien.py:55–66` kiểu `tai_cho` → `ban_sao`: chép kho sang thư mục tạm (`shutil.copytree`,
   bỏ `.git`, `node_modules`, `client/node_modules`, `data/` — nối symlink `node_modules` hai chỗ), thay chuỗi trong bản
   sao, chạy `kiem_tra_truoc_khi_giao.js` của bản sao. In `git status --porcelain` + chụp `data/` trước/sau, khác → báo
   "KHO BẨN", thoát ≠ 0. F2, S3 → BẮT. (Bộ kiểm F2 cần `--day-du` → bản sao phải có `client/` đủ để so băm `dist`; nếu
@@ -233,8 +244,8 @@ VÀ không phép tĩnh nào khác đỏ. Ghi vào `viec/HOC-2/dot_bien.py` (`!C5
   `viec/HOC-1/dot_bien.py`, `viec/TU-CHAY-4/dot_bien.py`, `viec/HOC-2/dot_bien.py`. Bảng BẮT/SỐNG/HỎNG/LẠC từng bộ, ĐẾM đủ.
   Mong: 0 HỎNG; `B1-A14-bo-dang-nhanh`, `A3-CCLA-them-la` thành BẮT; SỐNG còn lại chỉ là C2F của AU-G1/G2/G3/G4/G6
   (liệt kê tên). Chú ý: AUDIT-1 `!D1-E11-P20` vẫn có thể LẠC (phép tĩnh bắt trước) — liveness thu_P20 chứng minh ở C5.
-  Đột biến AUDIT-1 nào HỎNG vì neo rữa (vd `C2-sc-…`, `B1-…` đụng `cong.js` mới) → ghi rõ, KHÔNG sửa `viec/AUDIT-1/`
-  (ngoài Phạm vi) → `## Phát hiện`.
+  Code mới viết KHÔNG đổi chuỗi neo của AUDIT-1 (xem A3) → không đột biến AUDIT-1 nào HỎNG vì HOC-2; nếu vẫn HỎNG (neo
+  rữa do việc khác) → ghi rõ, KHÔNG sửa `viec/AUDIT-1/` (ngoài Phạm vi) → `## Phát hiện`.
 
 ## E. Tài liệu
 - **E1** `KHUON_LOI.md` 120 → ≤ 100 dòng: mỗi khuôn giữ "Dấu hiệu" + "Chặn"; "Đã gây" còn 1–2 ví dụ; bỏ lời dặn đã có
@@ -272,7 +283,7 @@ A12: có ≥ 1 bài đỏ hợp lệ (thu_cong…). A13: `npm test` + `--day-du`
 | NT | ca (file) | đỏ trước bằng |
 |---|---|---|
 | A1 | `thu_cong`: ca `viec/X/con` + `chua` câu dạng-nhánh; ca `:247` thêm `chua` | AUDIT-1 `B1-A14-bo-dang-nhanh` → BẮT |
-| A2 | `thu_cong`: `kiemKhoa` cấu hình thật = 0 lỗi; `+khoa_la` → lỗi; file đọc mất tên → lỗi; `khoa_tai_lieu` sai → lỗi | cấu hình gốc → lỗi |
+| A2 | `thu_cong`: `kiemKhoa` cấu hình thật = 0 lỗi; `+khoa_la` → lỗi; file đọc mất tên → lỗi | cấu hình gốc → lỗi |
 | A3 | `thu_cong`: thêm 1 ca vào bài, giữ `SỐ CA …: 1` → ĐỎ A16 nêu file + "1" và "2"; thiếu file / thiếu dòng / bài không in tổng → ĐỎ; miễn `## Bài thử đỏ` → ĐẠT; khớp → ĐẠT; tắt A16 → ca đỏ thành ĐẠT | cổng gốc → các ca ĐỎ thành ĐẠT |
 | A4 | `thu_cong`: `dot_bien.py` có `('M2',` mà trang_thai chỉ có `M20` → ĐỎ A17 in `M2`; đủ tên → ĐẠT; không có file → ĐẠT; tắt A17 | cổng gốc |
 | A5 | `thu_cong`: đổi `server/a.js` không `dot_bien.py` → ĐỎ A18; có file chỉ `BV-` → ĐỎ; có `VS-x` → ĐẠT; đổi `client/src/x.jsx` → áp; chỉ đổi `cong_cu/` → không áp; (Q4) có miễn → không áp; tắt A18 | cổng gốc |
@@ -288,7 +299,11 @@ A12: có ≥ 1 bài đỏ hợp lệ (thu_cong…). A13: `npm test` + `--day-du`
 | D1–D3 | chạy từng bộ, BẮT; D3 so `git status` trước/sau | trước sửa: HỎNG (MB, MB4, I10-bo) |
 | D4 | `grep thu_p1` sau xoá | — |
 | D5 | bảng đếm 5 bộ | — |
-| E1–E3 | ca soi chữ `thu_cong_cu`; `wc -l KHUON_LOI.md` ≤ 100; F3 xanh | chữ chưa có → đỏ |
+| E1 | `wc -l KHUON_LOI.md` ≤ 100; F3 xanh; bảng bỏ/gộp trong trang_thai | — |
+| E2 | ca soi chữ `thu_cong_cu` (khuôn F2 `:375`): CLAUDE.md không còn "36 phép", câu nhóm E có `from_package` và không gán `discount` cho nhóm E | chữ cũ → đỏ |
+| E3 | ca soi chữ `thu_cong_cu`: skill (`VS-`, `SỐ CA`, "đổi model", đếm nghiệm thu), ra-soat ("từng mục nghiệm thu"), MAU_PHIEU (`SỐ CA`, `VS-`), THIET_KE (A16, A17, A18; không còn `lenh_gia_lap`, `vuot_ngan_sach_canh_bao`, `kiem_sau_day_len`, `nhanh_chinh`, `so_viec`, "22 s"); PHIEN_BAN 1.4.0 | chữ chưa có → đỏ |
+| F1 | đã làm lúc mở phiên: `git log --oneline -3` in trong câu trả lời đầu + `trang_thai.md` | — |
+| F2 | chủ quán chạy `cai_dat.sh` trên nhánh, PR có `cong` + `cong-chay` xanh — máy không làm được, ghi CHƯA KIỂM | — |
 | G | `npm test`, `--day-du`, 6 bài chạy riêng | — |
 
 Đường tiền: việc này KHÔNG đổi `server/` → không có ca "hai người cùng bấm" mới; C4 chỉ thêm ca trên đường hoàn ví mẹ đã có.
@@ -317,10 +332,22 @@ A12: có ≥ 1 bài đỏ hợp lệ (thu_cong…). A13: `npm test` + `--day-du`
   `bat_bien.js:2` — grep `I10` / `11 bất biến` sau sửa phải chỉ còn ở hồ sơ cũ.
 - Neo `"package.json"`: `MB` và `MB4` cùng sửa.
 - Tài liệu (K4 tài liệu): mỗi câu đổi ở CLAUDE.md/THIET_KE/MAU_PHIEU/skill → grep cả file tìm câu cùng nghĩa
-  ("36 phép", "11 bất biến", "22 s", "lenh_gia_lap", "vuot_ngan_sach", "chiết khấu … nhóm E").
+  ("36 phép", "11 bất biến", "22 s", "lenh_gia_lap", "vuot_ngan_sach", "kiem_sau_day_len", "nhanh_chinh", "so_viec",
+  "app", "chiết khấu … nhóm E").
 
 ## Ngân sách dự kiến (so phiếu)
-Code ~185: `cong.js` +~40 (phiếu ~90), `cau_hinh.json` ±~8, `kiem_tra…js` ±~15, `bat_bien.js` −~12, `ban_sao_goc.py`
+Code ~185: `cong.js` +~40 (phiếu ~90), `cau_hinh.json` −~6, `kiem_tra…js` ±~15, `bat_bien.js` −~12, `ban_sao_goc.py`
 +~45, ba `dot_bien.py` cũ ±~30, `viec/HOC-2/dot_bien.py` +~60 (hồ sơ). Thử ~210: `thu_cong.js` +~110, `thu_nguoi_gac.js`
 +~45, `thu_P26b.js` +~35, `thu_gia_lap.js` ±~20, `thu_cong_cu.js` +~10. Tài liệu như phiếu. `nguoi_gac.js`,
 `gia_lap/chay.js`, `thu_P20.js`: 0 (chỉ sửa nếu bước làm thấy cần).
+
+## Soát kế hoạch (agent phụ, chỉ đọc) — CẦN SỬA → đã sửa vào bản này
+Ngoài Phạm vi / trái Cấm: không. Q1 đúng với code (`cong.js:225`, `:246–251`, `thu_nguoi_gac.js:617`). Đã sửa:
+1. A16–A18 làm đỏ ca ĐẠT cũ + bảng `DB` của `thu_cong.js` → dữ liệu sẵn trong `dungKho`, bài giả in dòng tổng (mục A3).
+2. B1 in `✗ ca …` để `A3-CCLA-them-la` BẮT, không LẠC.
+3. Thêm F1, F2, bằng chứng E2 (CLAUDE.md), soi chữ THIET_KE ở E3, thêm tên khoá vào danh sách grep K4.
+4. Chốt không đổi chuỗi neo AUDIT-1 trong `cong.js`; A16 là khối riêng.
+5. C3 chỉ cảnh báo cho giả lập + `thu_gia_lap`; đo lại `thu_cong` sau khi thêm ca.
+6. A16 bỏ mã màu ANSI trước khi đọc dòng tổng.
+7. Sửa số dòng (`HOC-1/dot_bien.py:30–31` và 6 chỗ lệch nhẹ).
+8. Nhận gợi ý ngắn hơn: bỏ khoá `khoa_tai_lieu` (A2); C5 chạy bộ kiểm bản nhanh.

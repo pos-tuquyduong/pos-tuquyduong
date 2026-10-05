@@ -11,6 +11,7 @@ Có commit `PHIEU: HOC-2`. Đã in ba dòng này trong câu trả lời đầu t
 
 ## Tiến độ
 - Bước 1–3 xong: đọc phiếu + code thật, viết `ke_hoach.md`, agent phụ soát kế hoạch (kết quả cuối `ke_hoach.md`).
+- Soát kế hoạch (agent phụ): CẦN SỬA 8 điểm → đã sửa vào `ke_hoach.md` (mục cuối).
 - Phiếu dặn **chờ duyệt kế hoạch** → DỪNG ở bước 3. Chưa viết bài thử, chưa sửa code.
 
 ## Số đo lúc lập kế hoạch
