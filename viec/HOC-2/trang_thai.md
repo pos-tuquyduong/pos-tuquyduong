@@ -75,7 +75,7 @@ VS- = vá sai, BV- = bỏ vá. Kết quả: 3 đối chứng XANH · 21 BẮT ·
 | AUDIT-1 `!D1-T1-nguoi-gac`, `!D1-T1b-cong-cu`, `!D1-T1c-cong` | 3 | 0 | 0 | 0 | |
 | AUDIT-1 `G3` (4) | 1 | 1 | 1 | 1 | ĐÚNG THIẾT KẾ "công cụ tự chứng minh": `G3-da-biet` BẮT, `G3-vo-hai` SỐNG (sửa vô hại), `G3-sai-chuoi` HỎNG (chuỗi cố ý sai), `G3-sap` LẠC (sập) |
 | HOC-1 cả bộ (3 đối chứng + 16) | 16 | 0 | 0 | 0 | 3 đối chứng XANH; `MB`, `MB4` trước D1: HỎNG (neo 0 lần), sau: BẮT |
-| HOC-2 cả bộ (3 đối chứng + 21) | 21 | 0 | 0 | 0 | bảng ở trên; chạy lại sau soát vòng 1 — xem dòng dưới |
+| HOC-2 cả bộ (3 đối chứng + 21) | 21 | 0 | 0 | 0 | bảng ở trên; chạy LẠI trên `009d249` (sau soát vòng 1): 3 XANH · 21 BẮT |
 
 AUDIT-1 in "✓ kho thật không đổi", thoát 0, 518 s. HỎNG duy nhất là `G3-sai-chuoi` — đột biến cố ý hỏng của chính công cụ đo.
 
