@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 22,
-  "cap_nhat": "2026-10-05",
+  "phien_ban_so": 23,
+  "cap_nhat": "2026-10-07",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -387,16 +387,16 @@
     },
     {
       "ma": "HOC-2",
-      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (120/120), dua dot bien VA SAI vao skill/cong neu khoa duoc; TU P26b (03.10): bang_chung_do.txt phai khop so ca bai thu hien tai (sai 3 vong soat); cong_cu/ban_sao_goc.py dung ban sao server goc (nguoi gac chan 25 lan, phan lon viec nay); bang cho-va -> dot-bien trong dot_bien.py; I10-bo khong ap duoc (I11 trung chuoi, I10 bi I11 bao trum -> bo I10 hoac sua dot bien); M6 <= 1 -> === 1 + 3 ca Q9 de xuat; gia lap 62 s / thu_gia_lap 65 s gan han 110/120 s; KHUON_LOI 120/120 phai rut gon; P26b can 5 vong soat -> thuoc do qua soat khong loi nang van 0/3 | TU AUDIT-1 (05.10): cac phat hien NHE trong viec/AUDIT-1/bao_cao.md (AU-A1, AU-B1..B3c, AU-C1, AU-C3, AU-D1..D2, AU-E1..E3, AU-F1..F2, AU-G4..G5) + nguyen tac de xuat trong viec/AUDIT-1/trang_thai.md; 4 NANG tach sang LUOI-1 (lam ngay sau HOC-2) | CHOT 05.10 (chu quan): (1b) T2-T4/F2 giu canh bao + ghi ly do; (2a) bo I10 (I10 nam trong I11), banh coc bat bien 11 -> 10; (3a) xoa cong_cu/thu_p1.js; (4a) rut KHUON_LOI.md <= 100 dong, giu tran 120. AU-G4 chuyen sang LUOI-1. Khong lam: cong kiem file:dong bao cao tro dung HEAD (de bao oan K8). Phieu: viec/HOC-2/phieu.md | TACH 05.10 (chu quan duyet ke hoach): HOC-2 = phan BO KHUNG tu_chay/ (A1-A7, B1-B2, E3, MB/MB4); Q1 bo thu_nguoi_gac khoi mien; Q3 xoa vuot_ngan_sach_canh_bao; Q4 luat VA SAI khong ap khi phieu mien bai thu do. Phan con lai -> HOC-2b. Phieu sua: commit PHIEU thu hai tren viec/HOC-2",
+      "ten": "Khoa ho so + cong (gom de xuat HOC-1 Phat hien 6-7 va TU-CHAY-4): ten dot bien trong dot_bien.py phai co trong trang_thai.md; file:dong muc BAO CAO phai tro dung dong o HEAD; cong doc moi khoa lenh_* trong cau_hinh hoac xoa khoa khong doc; cong tu do so dong code so voi ngan sach phieu. Lam khi ranh, chua gap; CHOT 02.10: lam sau AUDIT-1, truoc P20b — va phat hien AUDIT-1, 4 de xuat khoa da gom, rut gon KHUON_LOI.md (120/120), dua dot bien VA SAI vao skill/cong neu khoa duoc; TU P26b (03.10): bang_chung_do.txt phai khop so ca bai thu hien tai (sai 3 vong soat); cong_cu/ban_sao_goc.py dung ban sao server goc (nguoi gac chan 25 lan, phan lon viec nay); bang cho-va -> dot-bien trong dot_bien.py; I10-bo khong ap duoc (I11 trung chuoi, I10 bi I11 bao trum -> bo I10 hoac sua dot bien); M6 <= 1 -> === 1 + 3 ca Q9 de xuat; gia lap 62 s / thu_gia_lap 65 s gan han 110/120 s; KHUON_LOI 120/120 phai rut gon; P26b can 5 vong soat -> thuoc do qua soat khong loi nang van 0/3 | TU AUDIT-1 (05.10): cac phat hien NHE trong viec/AUDIT-1/bao_cao.md (AU-A1, AU-B1..B3c, AU-C1, AU-C3, AU-D1..D2, AU-E1..E3, AU-F1..F2, AU-G4..G5) + nguyen tac de xuat trong viec/AUDIT-1/trang_thai.md; 4 NANG tach sang LUOI-1 (lam ngay sau HOC-2) | CHOT 05.10 (chu quan): (1b) T2-T4/F2 giu canh bao + ghi ly do; (2a) bo I10 (I10 nam trong I11), banh coc bat bien 11 -> 10; (3a) xoa cong_cu/thu_p1.js; (4a) rut KHUON_LOI.md <= 100 dong, giu tran 120. AU-G4 chuyen sang LUOI-1. Khong lam: cong kiem file:dong bao cao tro dung HEAD (de bao oan K8). Phieu: viec/HOC-2/phieu.md | TACH 05.10 (chu quan duyet ke hoach): HOC-2 = phan BO KHUNG tu_chay/ (A1-A7, B1-B2, E3, MB/MB4); Q1 bo thu_nguoi_gac khoi mien; Q3 xoa vuot_ngan_sach_canh_bao; Q4 luat VA SAI khong ap khi phieu mien bai thu do. Phan con lai -> HOC-2b. Phieu sua: commit PHIEU thu hai tren viec/HOC-2 | XONG 07.10 (PR #10, b681ede; tu-chay 1.4.0): cong A16 (SO CA khop bai thu o head), A17 (ten dot bien trong trang_thai), A18 (doi server/ client/src/ -> can dot bien VS-); cau_hinh bo 7 khoa khong ai doc; file_luat + thu_P20/P21/P26a/P26b; cong_cu/ban_sao_goc.py. Viec bo khung SAU (chua lap ma): Phat hien 2-5 trong viec/HOC-2/trang_thai.md (A16 so them so ca tren goc, A18 khong chay dot bien, ten ngan o ho so HOC-1, ban_sao_goc.py che do ca kho) + tu_chay/THIET_KE.md con ghi \"22 s\"",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "HOC-2",
+      "commit": "b681ede",
+      "ngay": "2026-10-07"
     },
     {
       "ma": "HOC-2b",
-      "ten": "Phan con lai cua HOC-2 (tach 05.10, lam SAU khi HOC-2 gop, TRUOC LUOI-1): bo kiem + gia lap — T2-T4/F2 giu canh bao + ghi ly do (1b); bo I10, banh coc bat bien 11 -> 10 (2a); canh bao khi gia lap gan han (khong bao oan); thu_P26b M6 === 1 + ca Q9 vi me; KB17-Q9 kiem tao don; thu_P20 con song (AU-G5); dot bien cu P26b I10-bo, TU-CHAY-4 tai_cho sang ban sao; xoa cong_cu/thu_p1.js (3a); KHUON_LOI.md <= 100 dong, giu tran 120 (4a); CLAUDE.md AU-F1/F2; chay lai CA BO dot bien, dem du. Dau vao: viec/HOC-2/phieu.md ban dau (commit ba72a3f) muc C, D, E1-E2 + ke_hoach.md cung muc",
+      "ten": "Phan con lai cua HOC-2 (tach 05.10, lam SAU khi HOC-2 gop, TRUOC LUOI-1): bo kiem + gia lap — T2-T4/F2 giu canh bao + ghi ly do (1b); bo I10, banh coc bat bien 11 -> 10 (2a); canh bao khi gia lap gan han (khong bao oan); thu_P26b M6 === 1 + ca Q9 vi me; KB17-Q9 kiem tao don; thu_P20 con song (AU-G5); dot bien cu P26b I10-bo, TU-CHAY-4 tai_cho sang ban sao; xoa cong_cu/thu_p1.js (3a); KHUON_LOI.md <= 100 dong, giu tran 120 (4a); CLAUDE.md AU-F1/F2; chay lai CA BO dot bien, dem du. Dau vao: viec/HOC-2/phieu.md ban dau (commit ba72a3f) muc C, D, E1-E2 + ke_hoach.md cung muc | PHIEU 07.10: viec/HOC-2b/phieu.md tren nhanh viec/HOC-2b (cho duyet ke hoach; KHONG doi tu_chay/ nen khong can cai_dat.sh). D5 do thoi gian that: qua ~150 phut thi chu quan chon tach hoac thu hep D5 (phan con lai sang AUDIT-2)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
