@@ -27,7 +27,7 @@ Thấy commit PHIEU thứ hai (`61d037a`). Hook mở phiên kéo nhánh `ba72a3f
 - Không thấy thông báo đổi model trong phiên.
 
 ## Đột biến của HOC-2 (`viec/HOC-2/dot_bien.py`, chạy 05.10 trên `870ef78`) — bảng chỗ vá → đột biến
-VS- = vá sai, BV- = bỏ vá. Kết quả: 3 đối chứng XANH · 21 BẮT · 0 SỐNG · 0 HỎNG.
+VS- = vá sai, BV- = bỏ vá. Kết quả: 3 đối chứng XANH · 21 BẮT · 0 SỐNG · 0 HỎNG (sau soát của chat `fa7c18d`: 23 BẮT, xem cuối).
 
 | chỗ vá | đột biến | bài bắt (dòng ✗) | kết quả |
 |---|---|---|---|
@@ -37,8 +37,10 @@ VS- = vá sai, BV- = bỏ vá. Kết quả: 3 đối chứng XANH · 21 BẮT ·
 | A16 dòng tổng cuối | `VS-A16-dong-dau` | "lấy dòng tổng CUỐI" | BẮT |
 | A16 bỏ mã màu | `VS-A16-bo-mau` | "kèm mã màu" | BẮT |
 | A16 thiếu dòng | `VS-A16-bo-thieu-dong` | "thiếu dòng SỐ CA" | BẮT |
+| A16 so lệch hai chiều (soát chat) | `VS-A16-chi-bat-lon` | "bớt ca sau khi ghi" | BẮT |
 | A17 | `BV-A17-bo`, `VS-A17-bo-ranh-gioi` | "HOC-2 A17 tên đột biến M2" | BẮT ×2 |
 | A18 | `BV-A18-bo` | "HOC-2 A18 đổi server/" | BẮT |
+| A18 VS- ở ĐẦU tên (soát chat) | `VS-A18-chua-giua` | "chứa VS ở giữa" | BẮT |
 | A18 client/src | `VS-A18-chi-server` | "HOC-2 A18 đổi client/src/" | BẮT |
 | A18 kể cả xoá | `VS-A18-bo-xoa` | "HOC-2 A18 xoá file server/" | BẮT |
 | A18 miễn (Q4) | `VS-A18-mien-van-ap` | "HOC-2 A18 K5 (Q4)" | BẮT |
@@ -167,3 +169,17 @@ bộ; người gác chặn 8 lệnh: B-CHUONGTRINH (`for`, `time`), B-CD-VITRI (
 Lỗi hồ sơ nhẹ: mục GIT của báo cáo để trống bằng một câu hứa; số đếm BÀI HỌC lệch → sửa ở commit này. Ghi nhận: số đo G mới
 nhất (`npm test` 58/0/3, `--day-du` 62/0/3) do agent soát vòng 2 chạy trên `1989604`; A17 tự áp và `thu_cong_cu` xanh ở head.
 Tổng: 3 vòng soát, 2 vòng sửa (≤ `so_vong_sua_toi_da` 3).
+
+## Soát cuối của chat (HEAD `fa7c18d`) — 2 đột biến SỐNG → đã khoá (`4b8d58a`, chỉ `thu_cong.js`, không đổi `cong.js`)
+- `else if (n !== ghiCa.get(p))` → `n > ghiCa.get(p)` vẫn xanh: thiếu ca bớt ca. Thêm ca "HOC-2 A16 bằng chứng ghi 2 ca, bài ở
+  head chỉ có 1 ca (bớt ca sau khi ghi)" → ĐỎ `[A16]`. Đột biến `VS-A16-chi-bat-lon` → BẮT.
+- `tenDB.some((t) => t.startsWith('VS-'))` → `t.includes('VS')` vẫn xanh: thiếu ca tên chứa VS ở giữa. Thêm ca "HOC-2 A18
+  dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y)" → ĐỎ `[A18]`. Đột biến `VS-A18-chua-giua` → BẮT.
+- Bằng chứng đỏ chạy lại (`thu_cong.js` của head trong git archive `cb5d9fd`): 260 phép · 38 chỗ hỏng (7 dòng ✗ thuộc 2 ca mới);
+  trên head 260 phép · 0 hỏng → `SỐ CA tu_chay/thu_cong.js: 260` (thu_nguoi_gac 971, thu_cong_cu 85 không đổi).
+- Chạy lại (07.10.2026, máy mây, head `4b8d58a`): cả bộ `viec/HOC-2/dot_bien.py` 3 đối chứng XANH · 23 BẮT · 0 SỐNG · 0 HỎNG;
+  `viec/AUDIT-1/dot_bien.py B1` BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0, "kho thật không đổi"; `npm test` PASS 58 · FAIL 0 ·
+  CẢNH BÁO 3 (ba cảnh báo T2–T4 bản cài `.claude/` của container này chưa cài lại — chat đo sau `cai_dat` được 65/0/0);
+  `thu_cong` 53,9 s.
+- BÀI HỌC (KHOÁ, đã làm): phép so bằng (`!==`) cần ca lệch CẢ HAI chiều; phép tiền tố (`startsWith`) cần ca chuỗi có mặt ở
+  giữa — đột biến nới phép thành một chiều / chứa thì ca một chiều không bắt (K3).
