@@ -1,17 +1,21 @@
-# HOC-2 — bằng chứng ĐỎ: ba bài thử BẢN CUỐI (sau soát vòng 1) đặt vào git archive của cb5d9fd (cha commit PHIEU: HOC-2 —
+# HOC-2 — bằng chứng ĐỎ: ba bài thử BẢN CUỐI (sau soát của chat fa7c18d; thu_nguoi_gac, thu_cong_cu không đổi từ soát vòng 1) đặt vào git archive của cb5d9fd (cha commit PHIEU: HOC-2 —
 # cong.js / cau_hinh.json / skill / tài liệu gốc, chưa có cong_cu/ban_sao_goc.py), máy mây 05.10.2026.
 # Dòng "SỐ CA <bài>: <N>" = số ca bài in khi chạy trên code đã vá (head) — cổng A16; trên gốc ba bài in cùng số.
-SỐ CA tu_chay/thu_cong.js: 253
+SỐ CA tu_chay/thu_cong.js: 260
 SỐ CA tu_chay/thu_nguoi_gac.js: 971
 SỐ CA tu_chay/thu_cong_cu.js: 85
 
 ══ node tu_chay/thu_cong.js (trên gốc) → thoát 1
-thu_cong: 253 phép · 31 chỗ hỏng
+thu_cong: 260 phép · 38 chỗ hỏng
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "SỐ CA cong_cu/thu_a.js: 1" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "2 ca ở head" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "khi chạy trên code đã vá" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): lý do có "SỐ CA cong_cu/thu_a.js: 2" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): lý do có "≠ 1 ca ở head" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 không có bang_chung_do.txt: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 không có bang_chung_do.txt: lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
   ✗ HOC-2 A16 không có bang_chung_do.txt: lý do có "không có viec/X/bang_chung_do.txt" — ✓ CỔNG CHẠY ĐẠT
@@ -29,6 +33,9 @@ thu_cong: 253 phép · 31 chỗ hỏng
   ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: lý do có "VS-" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: lý do có "server/moi.js" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y): lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y): lý do có "không có tên nào mở đầu VS-" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 dot_bien.py chỉ có BV-: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 dot_bien.py chỉ có BV-: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 đổi client/src/ cũng áp: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
@@ -38,7 +45,7 @@ thu_cong: 253 phép · 31 chỗ hỏng
   ✗ HOC-2 A18 xoá file server/ cũng áp: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A18 xoá file server/ cũng áp: lý do có "server/a.js" — ✓ CỔNG TĨNH ĐẠT
   ✗ HOC-2 A2 mọi khoá của cau_hinh.json thật có người đọc (code còn nhắc tên, hoặc khoá chỉ-tài-liệu) — khoá app không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá nhanh_chinh không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá lenh_gia_lap không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá so_viec không ai đọc (không có trong NGUOI_DOC / TA
-  ĐỎ — 31 chỗ hỏng
+  ĐỎ — 38 chỗ hỏng
 
 ══ node tu_chay/thu_nguoi_gac.js (trên gốc) → thoát 1
 thu_nguoi_gac: 793/798 ca người gác đúng mã · 173 phép khác

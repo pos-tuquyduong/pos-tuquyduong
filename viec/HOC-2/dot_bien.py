@@ -21,12 +21,16 @@ DB = [
     ('VS-A16-dong-dau', CG, ".replace(/\\x1b\\[[0-9;]*m/g, '').split('\\n')) {", ".replace(/\\x1b\\[[0-9;]*m/g, '').split('\\n').reverse()) {",
      'thu_cong.js', 'lấy dòng tổng CUỐI'),
     ('VS-A16-bo-mau', CG, "String(ra).replace(/\\x1b\\[[0-9;]*m/g, '')", 'String(ra)', 'thu_cong.js', 'kèm mã màu'),
+    ('VS-A16-chi-bat-lon', CG, "else if (n !== ghiCa.get(p)) doLy('A16'", "else if (n > ghiCa.get(p)) doLy('A16'",
+     'thu_cong.js', 'bớt ca sau khi ghi'),
     ('VS-A16-bo-thieu-dong', CG, "if (!ghiCa.has(p)) doLy('A16'", "if (false) doLy('A16'", 'thu_cong.js', 'thiếu dòng SỐ CA'),
     # A17 — tên đột biến có trong trang_thai (cong.js tinh)
     ('BV-A17-bo', CG, "if (thieuTen.length) doLy('A17'", "if (false) doLy('A17'", 'thu_cong.js', 'HOC-2 A17 tên đột biến M2'),
     ('VS-A17-bo-ranh-gioi', CG, 'if (!chu(tt[i - 1]) && !chu(tt[i + t.length])) return true;', 'return true;', 'thu_cong.js', 'HOC-2 A17 tên đột biến M2'),
     # A18 — VÁ SAI bắt buộc (cong.js tinh)
     ('BV-A18-bo', CG, "if (doiChay.length && !mien && !tenDB.some((t) => t.startsWith('VS-'))) {", 'if (false) {', 'thu_cong.js', 'HOC-2 A18 đổi server/'),
+    ('VS-A18-chua-giua', CG, "tenDB.some((t) => t.startsWith('VS-'))", "tenDB.some((t) => t.includes('VS'))", 'thu_cong.js',
+     'chứa VS ở giữa'),
     ('VS-A18-chi-server', CG, "/^(server|client\\/src)\\//.test(f.p)", "/^server\\//.test(f.p)", 'thu_cong.js', 'HOC-2 A18 đổi client/src/'),
     ('VS-A18-bo-xoa', CG, 'doi.filter((f) => /^(server', "doi.filter((f) => f.st !== 'D' && /^(server", 'thu_cong.js', 'HOC-2 A18 xoá file server/'),
     ('VS-A18-mien-van-ap', CG, 'if (doiChay.length && !mien && ', 'if (doiChay.length && ', 'thu_cong.js', 'HOC-2 A18 K5 (Q4)'),

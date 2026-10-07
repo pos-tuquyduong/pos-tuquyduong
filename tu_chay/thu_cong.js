@@ -323,6 +323,10 @@ function baiCong() {
   ca('HOC-2 A16 K5 số ca trên gốc (2) khác trên head (3), bằng chứng ghi số head', [['a', { 'cong_cu/thu_a.js':
     "const v = require('fs').existsSync('server/moi.js');\nconsole.log(v ? '3 đạt · 0 hỏng' : '1 đạt · 1 hỏng');\nprocess.exit(v ? 0 : 1);\n",
     ...sv, ...BC('SỐ CA cong_cu/thu_a.js: 3\n') }]], 'ĐẠT', { che: 'chay' });
+  // Soát của chat (fa7c18d): đột biến `n > ghi` sống — bớt ca sau khi ghi bằng chứng cũng phải đỏ
+  ca('HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi)', [['bot ca', { ...moi,
+    ...BC('SỐ CA cong_cu/thu_a.js: 2\nSỐ CA cong_cu/thu_c.js: 1\n') }]], 'ĐỎ',
+    { che: 'chay', chua: ['[A16]', 'SỐ CA cong_cu/thu_a.js: 2', '≠ 1 ca ở head'] });
   ca('HOC-2 A16 không có bang_chung_do.txt', [['xoa', { 'viec/X/bang_chung_do.txt': null, ...moi }]], 'ĐỎ',
     { che: 'chay', chua: ['[A16]', 'không có viec/X/bang_chung_do.txt'] });
   ca('HOC-2 A16 thiếu dòng SỐ CA của một bài đỏ', [['b', { 'cong_cu/thu_b.js': THU_HOP_LE, ...moi }]], 'ĐỎ',
@@ -345,6 +349,9 @@ function baiCong() {
   // HOC-2 A5 (A18): PR đổi server/ hoặc client/src/ (kể cả xoá) → dot_bien.py có ≥ 1 đột biến VS- (vá sai)
   ca('HOC-2 A18 đổi server/ mà không có dot_bien.py', [['sv', { 'viec/X/dot_bien.py': null, ...moi }]], 'ĐỎ',
     { che: 'tinh', chua: ['[A18]', 'VS-', 'server/moi.js'] });
+  // Soát của chat (fa7c18d): đột biến `includes('VS')` sống — VS phải ở ĐẦU tên
+  ca('HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y)', [['sv', { 'viec/X/dot_bien.py': pyDB('M-VS-x', 'BV-VS-y'),
+    'viec/X/trang_thai.md': 'M-VS-x · BV-VS-y\n', ...moi }]], 'ĐỎ', { che: 'tinh', chua: ['[A18]', 'không có tên nào mở đầu VS-'] });
   ca('HOC-2 A18 dot_bien.py chỉ có BV-', [['sv', { 'viec/X/dot_bien.py': pyDB('BV-x'), 'viec/X/trang_thai.md': 'BV-x\n', ...moi }]], 'ĐỎ',
     { che: 'tinh', chua: ['[A18]'] });
   ca('HOC-2 A18 đổi client/src/ cũng áp', [['cl', { 'viec/X/dot_bien.py': null, 'client/src/x.jsx': 'x\n', 'cong_cu/thu_a.js': THU_HOP_LE }]], 'ĐỎ',
