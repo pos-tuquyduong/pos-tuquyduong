@@ -394,6 +394,25 @@ function baiTaiLieu() {
   chac('HOC-1 skill: bài thử cũ xanh trên gốc thì báo chủ quán thêm ## Bài thử cũ sửa vào phiếu', than.includes('## bài thử cũ sửa'));
   chac('HOC-1 E THIET_KE B15: .claude/ chỉ đổi qua nguồn tu_chay/ + cai_dat.sh, sửa tay .claude/hooks bị A8',
     ['Phát hiện 5', '.claude/hooks/', 'A8'].every((x) => b15.includes(x)), b15.slice(0, 120));
+  // HOC-2 E3: luật mới của bộ khung (cổng A16–A18) phải nằm trong skill, /ra-soat, mẫu phiếu, THIET_KE
+  chac('HOC-2 E3a skill: đổi code chạy thật → đột biến VS- (vá sai) + BV- (bỏ vá) trong dot_bien.py, bảng "chỗ vá → đột biến", dòng SỐ CA',
+    ['vs-', 'bv-', 'dot_bien.py', 'chỗ vá → đột biến', 'số ca '].every((x) => than.includes(x)));
+  chac('HOC-2 E3a skill: mọi tên đột biến ghi vào trang_thai.md', /tên đột biến[^\n]*trang_thai\.md/.test(than));
+  chac('HOC-2 E3b skill: trước khi báo xong ĐẾM từng mục nghiệm thu có bằng chứng, không lấy mẫu',
+    /đếm[^\n]*mục nghiệm thu/.test(than) && than.includes('không lấy mẫu'));
+  chac('HOC-2 E3c skill: thấy thông báo đổi model giữa phiên → ghi giờ + bước vào trang_thai.md', /đổi model[^\n]*giờ/.test(than));
+  chac('HOC-2 E3 lenh_ra_soat: đối chiếu ĐỦ từng mục nghiệm thu bằng đếm, liệt kê mục thiếu',
+    rs.includes('từng mục nghiệm thu') && /đếm/.test(rs) && rs.includes('mục thiếu'));
+  chac('HOC-2 E3 MAU_PHIEU: dòng đếm "SỐ CA <bài thử>: <N>" và đột biến VS- khi đổi server/ hoặc client/src/',
+    mp.includes('SỐ CA <') && mp.includes('VS-') && mp.includes('client/src/'));
+  let ch = {};
+  try { ch = JSON.parse(doc(path.join(__dirname, 'cau_hinh.json'))); } catch {}
+  const b2 = tk.indexOf('## B2.') >= 0 ? tk.slice(tk.indexOf('## B2.'), tk.indexOf('## B3.')) : '';
+  const khoaB2 = [...b2.matchAll(/^ {2}"(\w+)":/gm)].map((x) => x[1]).sort();
+  chac('HOC-2 E3 THIET_KE B2: ví dụ cau_hinh.json có ĐÚNG các khoá của cấu hình thật', JSON.stringify(khoaB2) === JSON.stringify(Object.keys(ch).sort()),
+    khoaB2.join(',') + ' ≠ ' + Object.keys(ch).sort().join(','));
+  chac('HOC-2 E3 THIET_KE: luật A16, A17, A18; bảng khoá (khoá chỉ-tài-liệu); lý do ban_mau_pos/thu/ không là bài thử cổng; không còn vuot_ngan_sach_canh_bao',
+    ['[A16]', '[A17]', '[A18]', 'chỉ-tài-liệu', 'ban_mau_pos/thu/'].every((x) => tk.includes(x)) && !tk.includes('vuot_ngan_sach_canh_bao'));
 }
 
 // ═══ HOC-1 C · T2 của kiem_tra_truoc_khi_giao.js bỏ thư mục con ═══════════════

@@ -20,6 +20,7 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
 - `git add` luôn kèm tên từng file. Không bỏ qua hook khi commit. Không sửa sổ việc `TIEN_DO_*.json`,
   không chạy công cụ ghi sổ — chủ quán ghi sau khi quầy chạy ổn.
 - Người gác chặn lệnh nào thì đọc lý do và làm theo hướng dẫn trong đó; không tìm cách lách.
+- Thấy thông báo đổi model giữa phiên: ghi giờ + bước đang làm vào `trang_thai.md` (kết quả trước/sau có thể khác tay).
 
 ## Các bước
 
@@ -42,6 +43,11 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    `viec/$0/bang_chung_do.txt`. Xanh ngay trên bản chưa sửa = bài thử vô giá trị, viết lại.
    Sửa một bài thử ĐÃ CÓ mà nó vẫn xanh trên code gốc (thêm ca hồi quy): ghi `## Câu hỏi`, báo chủ quán thêm mục
    `## Bài thử cũ sửa` vào phiếu — không tự sửa phiếu, không tự lách bằng ca đỏ giả.
+   `bang_chung_do.txt` có một dòng `SỐ CA <bài thử>: <N>` cho mỗi bài đỏ (N = tổng số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ); đổi bài
+   sau khi ghi → chạy lại trên gốc (bằng chứng đỏ) và trên code đã vá (số ca), chép lại cả hai (cổng A16).
+   Đổi code chạy thật (`server/`, `client/src/`): `viec/$0/dot_bien.py` có ít nhất một đột biến `VS-…` (vá sai — bản vá
+   sai cách mà bài thử phải bắt) và một `BV-…` (bỏ vá — gỡ chỗ vá); mỗi đột biến một dòng `('<tên>', …)` — tên = NGUYÊN chuỗi đầu, không sinh tên
+   bằng vòng lặp. Ghi bảng "chỗ vá → đột biến" và MỌI tên đột biến vào `trang_thai.md` (cổng A17, A18).
 5. **Sửa code** cho tới khi bài thử xanh. Bản lưu trước khi vá để trong thư mục nháp, không để trong kho.
 6. **Kiểm.** `npm test` phải xanh. Đụng `client/src/` thì `(cd client && npm run build)` rồi
    `node kiem_tra_truoc_khi_giao.js --day-du`. Tự rà: code chết, trùng lặp, hàm dùng một lần, so số
@@ -53,6 +59,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    Phiếu hay chủ quán dặn push sau mỗi bước thì push ngay sau mỗi commit của bước.
 10. **Báo cáo 7 mục** (CLAUDE.md §7) ghi vào cuối `viec/$0/trang_thai.md`: VIỆC · ĐÃ SỬA · BÀI THỬ ·
     ĐÃ RÀ K4 · CHƯA KIỂM · GIT · BÀI HỌC. Mục CHƯA KIỂM nói thẳng điều máy không kiểm được.
+    Trước khi báo xong, ĐẾM từng mục nghiệm thu của phiếu: mỗi mục một dòng kèm bằng chứng (bài thử, ca, lệnh) —
+    không lấy mẫu; còn mục thiếu bằng chứng thì chưa xong.
 11. **Rút kinh nghiệm** (đầu vào cho BÀI HỌC):
     1. Gom sự cố của việc này: bài thử đỏ bất ngờ; lệnh bị người gác chặn (mã luật + vì sao — đọc
        `.tu_chay_nhat_ky.jsonl`); lỗi agent soát bắt (dòng `BÀI HỌC:` của `/ra-soat`); vượt ngân sách;

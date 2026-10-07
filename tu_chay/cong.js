@@ -70,6 +70,17 @@ function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "
   return ra;
 }
 
+function soCa(ra) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử in (bỏ mã màu) — ba dạng đang có trong kho; không có → null
+  let n = null;
+  for (const d of String(ra).replace(/\x1b\[[0-9;]*m/g, '').split('\n')) {
+    let x;
+    if ((x = /(\d+) đạt · (\d+) hỏng/.exec(d))) n = +x[1] + +x[2];
+    else if ((x = /(\d+) phép · \d+ chỗ hỏng/.exec(d))) n = +x[1];
+    else if ((x = /\d+\/(\d+) ca người gác[^·\n]*· (\d+) phép khác/.exec(d))) n = +x[1] + +x[2];
+  }
+  return n;
+}
+
 function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   const lyDo = [], ghi = [];
   const bat = (ma) => !tat.has(ma);
@@ -160,12 +171,30 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       }
     }
     if (coCode && !baiThu.length && !mien) doLy('A12', 'đổi code mà không có bài thử mới (thu_*.js), phiếu không có mục "## Bài thử đỏ" ghi "không — <lý do>"');
+    // A17 (HOC-2) — mọi tên đột biến khai trong viec/<MÃ>/dot_bien.py (dòng mở đầu "('<tên>',") phải ghi trong trang_thai.md,
+    // ranh giới không phải chữ / số / _ / - (M2 không khớp nhờ M20). Tên sinh bằng vòng lặp thì cổng không đọc được (MAU_PHIEU).
+    const bDB = blob(thuMuc, head, `viec/${ma}/dot_bien.py`);
+    const tenDB = bDB === null ? [] : [...bDB.toString('utf8').normalize('NFC').matchAll(/^\s*\(\s*'([^'\n]+)'\s*,/gm)].map((x) => x[1]);
+    const tt = String(blob(thuMuc, head, `viec/${ma}/trang_thai.md`) || '').normalize('NFC');
+    const chu = (c) => /[\p{L}\p{N}_-]/u.test(c || '');
+    const coTen = (t) => { for (let i = tt.indexOf(t); i >= 0; i = tt.indexOf(t, i + 1)) if (!chu(tt[i - 1]) && !chu(tt[i + t.length])) return true; return false; };
+    const thieuTen = tenDB.filter((t) => !coTen(t));
+    if (thieuTen.length) doLy('A17', `tên đột biến trong viec/${ma}/dot_bien.py chưa ghi vào viec/${ma}/trang_thai.md: ${thieuTen.join(', ')}`);
+    // A18 (HOC-2) — VÁ SAI bắt buộc: PR đổi server/ hoặc client/src/ (kể cả xoá) phải có ≥ 1 đột biến tên "VS-…" trong
+    // viec/<MÃ>/dot_bien.py. Không áp khi phiếu miễn ## Bài thử đỏ (chủ quán chốt Q4) — không có chỗ vá nào để vá sai.
+    const doiChay = doi.filter((f) => /^(server|client\/src)\//.test(f.p)).map((f) => f.p);
+    if (doiChay.length && !mien && !tenDB.some((t) => t.startsWith('VS-'))) {
+      doLy('A18', `PR đổi code chạy thật (${doiChay.slice(0, 3).join(', ')}${doiChay.length > 3 ? ', …' : ''}) mà ${bDB === null
+        ? `không có viec/${ma}/dot_bien.py` : `viec/${ma}/dot_bien.py không có tên nào mở đầu VS-`} — cần ≥ 1 đột biến VS- (vá sai)`);
+    }
     return kq();
   }
 
   // chay — cây phải đứng đúng head (đã đọc xong mọi dữ liệu ở trên)
   const dung = git(thuMuc, 'rev-parse', 'HEAD').trim();
   if (dung !== head) { doLy('A14', `thư mục PR đang đứng ở ${dung.slice(0, 7)}, không phải head ${head.slice(0, 7)}`); if (bat('A14')) return kq(); }
+  const P_BC = `viec/${ma}/bang_chung_do.txt`;
+  const bangChung = blob(thuMuc, head, P_BC); // A16: đọc ở head TRƯỚC khi chạy code PR
   const tam = fs.mkdtempSync(path.join(os.tmpdir(), 'cong_'));
   try {
     // A3/A8 — .claude/** và cong.yml phải đúng kết quả cai_dat.js (.claude/ của gốc + tu_chay/ của PR); PR xoá trình cài → ĐỎ
@@ -208,7 +237,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
     }
     // A11 — bài thử mới / sửa phải ĐỎ trên code gốc (git archive mốc + bài thử của head + node_modules vừa cài)
     let doHopLe = 0;
-    const daMien = [];
+    const daMien = [], doGoc = [], daRa = new Map();
     baiThu.forEach((p, i) => {
       const goc = path.join(tam, 'goc' + i);
       giaiNen(thuMuc, moc, goc);
@@ -227,7 +256,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       else if (r.status === 0) doLy('A11', `bài thử \`${p}\` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá`);
       else if (r.status === null) doLy('A11', `bài thử \`${p}\` quá giờ trên code gốc — không tính là đỏ`);
       else if (thieu) doLy('A11', `bài thử \`${p}\` không chạy được trên code gốc (thiếu thư viện '${thieu[1]}') — không tính là đỏ`);
-      else doHopLe++;
+      else { doHopLe++; doGoc.push(p); }
     });
     if (coCode && !mien && !doHopLe) doLy('A12', 'đổi code mà không có bài thử nào ĐỎ hợp lệ trên code gốc');
     // A13 — lệnh kiểm của cấu hình bản main, chạy trên code PR
@@ -239,7 +268,26 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
     // Chạy SAU A13: bài thử ghi ra cây làm việc không làm đổi kết quả npm test.
     for (const p of baiThu) {
       const h = chayLenh(process.execPath, [p], { cwd: thuMuc, timeout: 300000 });
+      daRa.set(p, String(h.stdout) + String(h.stderr));
       if (h.status !== 0) doLy('A11', `bài thử \`${p}\` ĐỎ trên code PR (thoát ${h.status}) — bài thử phải xanh sau khi vá:\n${duoi(h.stdout + h.stderr, 5)}`);
+    }
+    // A16 (HOC-2) — bằng chứng đỏ khớp bài thử ở head: mỗi bài ĐỎ hợp lệ trên gốc có dòng "SỐ CA <bài>: <N>" trong
+    // viec/<MÃ>/bang_chung_do.txt, N = số ca bài in ở dòng tổng khi chạy trên code PR. Thêm ca sau khi ghi bằng chứng → đỏ.
+    if (!mien && doGoc.length) {
+      const ghiCa = new Map();
+      for (const d of String(bangChung || '').normalize('NFC').split('\n')) {
+        const x = /^SỐ CA (\S+): (\d+)$/.exec(d.trim());
+        if (x) ghiCa.set(x[1], Number(x[2]));
+      }
+      if (bangChung === null) doLy('A16', `không có ${P_BC} ở head — bài đỏ trên gốc: ${doGoc.join(', ')}`);
+      else {
+        for (const p of doGoc) {
+          const n = soCa(daRa.get(p));
+          if (!ghiCa.has(p)) doLy('A16', `${P_BC} thiếu dòng "SỐ CA ${p}: <N>"`);
+          else if (n === null) doLy('A16', `bài thử \`${p}\` không in dòng tổng (… đạt · … hỏng | … phép · … chỗ hỏng | a/B ca người gác … · C phép khác) trên code PR`);
+          else if (n !== ghiCa.get(p)) doLy('A16', `${P_BC} ghi "SỐ CA ${p}: ${ghiCa.get(p)}" ≠ ${n} ca ở head — N là số ca bài in khi chạy trên code đã vá: chạy lại bài, chép lại số đó`);
+        }
+      }
     }
     // HOC-1 (d): bài thử ghi trong mục miễn — BẢN GỐC (ở mốc) chạy trên code PR, đúng đường dẫn, phải XANH: PR không được thay bài cũ
     // bằng bản yếu hơn rồi làm hỏng thứ bản gốc canh. Ghi bản gốc tạm vào cây PR, chạy, trả lại bản head.

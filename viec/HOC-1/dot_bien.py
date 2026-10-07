@@ -27,8 +27,9 @@ DB = [
     ('MX bỏ kiểm "bị PR xoá / đổi tên"', 'tu_chay/cong.js', "st === 'D' ?", 'false ?', 'thu_cong.js', 'duyệt (1)'),
     ('MA7 miễn tính là bài đỏ hợp lệ', 'tu_chay/cong.js', '${mienCu.get(p)}`); //',
      '${mienCu.get(p)}`), doHopLe++; //', 'thu_cong.js', 'HOC-1 A7'),
-    ('MB cau_hinh bỏ package.json khỏi file_luat', 'tu_chay/cau_hinh.json', ', "package.json"]', ']', 'thu_nguoi_gac.js', 'package.json'),
-    ('MB4 như MB, đo bằng bài thử cổng', 'tu_chay/cau_hinh.json', ', "package.json"]', ']', 'thu_cong.js', 'HOC-1 B4'),
+    # HOC-2 D1 (AU-E2): neo NGẮN theo tên — đứng ở đâu trong file_luat cũng khớp (neo cũ ', "package.json"]' rữa khi thêm file luật)
+    ('MB cau_hinh bỏ package.json khỏi file_luat', 'tu_chay/cau_hinh.json', '"package.json"', '"package.jsonX"', 'thu_nguoi_gac.js', 'package.json'),
+    ('MB4 như MB, đo bằng bài thử cổng', 'tu_chay/cau_hinh.json', '"package.json"', '"package.jsonX"', 'thu_cong.js', 'HOC-1 B4'),
     ('MC T2 về bản cũ (đọc cả thư mục)', 'kiem_tra_truoc_khi_giao.js', '.filter((f) => { try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } })', '', 'thu_cong_cu.js', 'C'),
     ('MC2 T2 lọc bằng Dirent.isFile (bỏ symlink)', 'kiem_tra_truoc_khi_giao.js', 'fs.readdirSync(d).filter((f) => { try { return fs.statSync(path.join(d, f)).isFile(); } catch { return true; } })',
      'fs.readdirSync(d, { withFileTypes: true }).filter((x) => x.isFile()).map((x) => x.name)', 'thu_cong_cu.js', 'symlink'),

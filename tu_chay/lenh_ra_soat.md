@@ -49,6 +49,8 @@ Soát theo đúng thứ tự, mỗi mục phải trả lời bằng **file:dòng
 5. **Đường tiền.** Có trường tiền nào server tin client gửi thay vì tự tra DB
    không? (P3/P4)
 6. **P1 — `client/dist/`.** Có sửa `client/src/` mà chưa build lại không?
+7. **Nghiệm thu — đếm, không lấy mẫu.** Đối chiếu ĐỦ từng mục nghiệm thu của phiếu (A1, A2, …), mỗi mục một
+   dòng: có bằng chứng (file:dòng bài thử / ca / lệnh) hay thiếu. Liệt kê mọi mục thiếu; còn mục thiếu → KHÔNG ĐẠT.
 
 Trả về đúng định dạng:
 
@@ -56,6 +58,7 @@ Trả về đúng định dạng:
 ĐẠT / KHÔNG ĐẠT
 LỖI TÌM ĐƯỢC:  <file:dòng> — <mô tả> — <thuộc khuôn nào>
 NGHI NGỜ:      <chỗ chưa đủ căn cứ để kết luận>
+NGHIỆM THU:    <n>/<tổng> mục có bằng chứng · mục thiếu: <liệt kê>
 CHƯA SOÁT ĐƯỢC: <điều không kiểm được từ đây>
 BÀI HỌC:       <lỗi nào nên thành KHOÁ (bài thử / luật người gác) hay NGUYÊN TẮC (KHUON_LOI.md) — đầu vào bước 11>
 ```

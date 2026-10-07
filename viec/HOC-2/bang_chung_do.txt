@@ -1,0 +1,76 @@
+# HOC-2 — bằng chứng ĐỎ: ba bài thử BẢN CUỐI (sau soát của chat fa7c18d; thu_nguoi_gac, thu_cong_cu không đổi từ soát vòng 1) đặt vào git archive của cb5d9fd (cha commit PHIEU: HOC-2 —
+# cong.js / cau_hinh.json / skill / tài liệu gốc, chưa có cong_cu/ban_sao_goc.py), máy mây 05.10.2026.
+# Dòng "SỐ CA <bài>: <N>" = số ca bài in khi chạy trên code đã vá (head) — cổng A16; trên gốc ba bài in cùng số.
+SỐ CA tu_chay/thu_cong.js: 260
+SỐ CA tu_chay/thu_nguoi_gac.js: 971
+SỐ CA tu_chay/thu_cong_cu.js: 85
+
+══ node tu_chay/thu_cong.js (trên gốc) → thoát 1
+thu_cong: 260 phép · 38 chỗ hỏng
+  ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "SỐ CA cong_cu/thu_a.js: 1" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "2 ca ở head" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca): lý do có "khi chạy trên code đã vá" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): lý do có "SỐ CA cong_cu/thu_a.js: 2" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bằng chứng ghi 2 ca, bài ở head chỉ có 1 ca (bớt ca sau khi ghi): lý do có "≠ 1 ca ở head" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 không có bang_chung_do.txt: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 không có bang_chung_do.txt: lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 không có bang_chung_do.txt: lý do có "không có viec/X/bang_chung_do.txt" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thiếu dòng SỐ CA của một bài đỏ: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thiếu dòng SỐ CA của một bài đỏ: lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 thiếu dòng SỐ CA của một bài đỏ: lý do có "thiếu dòng "SỐ CA cong_cu/thu_b.js: <N>"" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bài đỏ không in dòng tổng: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bài đỏ không in dòng tổng: lý do có "[A16]" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bài đỏ không in dòng tổng: lý do có "cong_cu/thu_a.js" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A16 bài đỏ không in dòng tổng: lý do có "không in dòng tổng" — ✓ CỔNG CHẠY ĐẠT
+  ✗ HOC-2 A17 tên đột biến M2 chưa ghi (trang_thai chỉ có M20): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A17 tên đột biến M2 chưa ghi (trang_thai chỉ có M20): lý do có "[A17]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A17 tên đột biến M2 chưa ghi (trang_thai chỉ có M20): lý do có "chưa ghi vào viec/X/trang_thai.md: M2" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: lý do có "VS-" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi server/ mà không có dot_bien.py: lý do có "server/moi.js" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y): lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có tên chứa VS ở giữa (M-VS-x, BV-VS-y): lý do có "không có tên nào mở đầu VS-" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có BV-: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 dot_bien.py chỉ có BV-: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi client/src/ cũng áp: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi client/src/ cũng áp: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 đổi client/src/ cũng áp: lý do có "client/src/x.jsx" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 xoá file server/ cũng áp: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 xoá file server/ cũng áp: lý do có "[A18]" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A18 xoá file server/ cũng áp: lý do có "server/a.js" — ✓ CỔNG TĨNH ĐẠT
+  ✗ HOC-2 A2 mọi khoá của cau_hinh.json thật có người đọc (code còn nhắc tên, hoặc khoá chỉ-tài-liệu) — khoá app không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá nhanh_chinh không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá lenh_gia_lap không ai đọc (không có trong NGUOI_DOC / TAI_LIEU của thu_cong.js) — xoá khoá hoặc khai người đọc | khoá so_viec không ai đọc (không có trong NGUOI_DOC / TA
+  ĐỎ — 38 chỗ hỏng
+
+══ node tu_chay/thu_nguoi_gac.js (trên gốc) → thoát 1
+thu_nguoi_gac: 793/798 ca người gác đúng mã · 173 phép khác
+  ✗ ca Edit cong_cu/thu_P20.js: mong CHAN:G-LUAT, ra CHO
+  ✗ ca Edit cong_cu/thu_P21.js: mong CHAN:G-LUAT, ra CHO
+  ✗ ca Edit cong_cu/thu_P26a.js: mong CHAN:G-LUAT, ra CHO
+  ✗ ca Edit cong_cu/thu_P26b.js: mong CHAN:G-LUAT, ra CHO
+  ✗ ca Bash "echo x > cong_cu/thu_P26b.js": mong CHAN:G-LUAT, ra CHO
+  ✗ cau_hinh: TIEN_DO_*.json trong file_cam; 11 file luật (HOC-1 B1: package.json; TU-CHAY-4 F3: giả lập; HOC-2 A7: thu_P2x) trong file_luat
+  ✗ PHIEN_BAN = tu-chay 1.4.0 — tu-chay 1.3.2
+  ✗ B2 ban_sao_goc: đích trong kho → từ chối, không tạo gì — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích ngoài thư mục tạm → từ chối, không tạo gì — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích có sẵn, không rỗng → từ chối, không đè — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: commit không có → từ chối, không tạo gì — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ✗ B2 ban_sao_goc: đích hợp lệ → server/ đúng byte commit (không phải cây làm việc), node_modules liên kết tới kho, in --may-chu — thoát 2: python3: can't open file '<goc>/cong_cu/ban_sao_goc.py': [Errno 2] No such file or directory
+  ĐỎ — 12 chỗ hỏng
+
+══ node tu_chay/thu_cong_cu.js (trên gốc) → thoát 1
+thu_cong_cu: 85 phép · 8 chỗ hỏng
+  ✗ HOC-2 E3a skill: đổi code chạy thật → đột biến VS- (vá sai) + BV- (bỏ vá) trong dot_bien.py, bảng "chỗ vá → đột biến", dòng SỐ CA
+  ✗ HOC-2 E3a skill: mọi tên đột biến ghi vào trang_thai.md
+  ✗ HOC-2 E3b skill: trước khi báo xong ĐẾM từng mục nghiệm thu có bằng chứng, không lấy mẫu
+  ✗ HOC-2 E3c skill: thấy thông báo đổi model giữa phiên → ghi giờ + bước vào trang_thai.md
+  ✗ HOC-2 E3 lenh_ra_soat: đối chiếu ĐỦ từng mục nghiệm thu bằng đếm, liệt kê mục thiếu
+  ✗ HOC-2 E3 MAU_PHIEU: dòng đếm "SỐ CA <bài thử>: <N>" và đột biến VS- khi đổi server/ hoặc client/src/
+  ✗ HOC-2 E3 THIET_KE B2: ví dụ cau_hinh.json có ĐÚNG các khoá của cấu hình thật — app,chuong_trinh_them,cong_cu_so_viec,file_cam,kiem_sau_day_len,lenh_bai_thu,lenh_gia_lap,lenh_kiem_day_du,nhanh_chinh,so_viec,so_vong_sua_toi_da,ten_mien_production,thu_muc_bai_thu,vuot_ngan_sach_canh_bao ≠ app,ban_cai,chuong_trinh_them,cong_cu_so_viec,file_bi_mat,file_cam,file_luat,khuon_loi_toi_da,kiem_sau_day_len,lenh_bai_thu,lenh_gia_lap,lenh_kiem_day_du,muc_gac,nhanh_chinh,so_viec,so_vong_sua_toi_da,ten_mien_production,tep_bash_them,thu_muc_bai_thu,vuot_ngan_sach_canh_bao
+  ✗ HOC-2 E3 THIET_KE: luật A16, A17, A18; bảng khoá (khoá chỉ-tài-liệu); lý do ban_mau_pos/thu/ không là bài thử cổng; không còn vuot_ngan_sach_canh_bao
+  ĐỎ — 8 chỗ hỏng

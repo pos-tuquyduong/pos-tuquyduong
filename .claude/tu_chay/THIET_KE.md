@@ -184,26 +184,42 @@ cong_cu/gia_lap/             # riêng từng app (B10)
 
 ```json
 {
-  "app": "POS",
-  "nhanh_chinh": "main",
   "lenh_bai_thu": ["npm test"],
   "lenh_kiem_day_du": ["node kiem_tra_truoc_khi_giao.js --day-du"],
-  "lenh_gia_lap": [],
   "thu_muc_bai_thu": ["cong_cu/"],
-  "so_viec": "TIEN_DO_POS.json",
-  "cong_cu_so_viec": "dong_tien_do.py",
-  "file_cam": [".env", ".env.*", ".replit", "TIEN_DO_*.json"],
+  "file_cam": [".env", ".env.*", ".replit", "TIEN_DO_*.json", ".github/**"],
+  "file_luat": ["kiem_tra_truoc_khi_giao.js", "CHECKLIST_CODE.md", "ban_mau_pos/**", "tu_chay/**", "package.json", "…"],
+  "file_bi_mat": [".env", ".env.*", ".replit"],
   "ten_mien_production": ["pos-tuquyduong.io.vn", "turso.io"],
   "chuong_trinh_them": [],
+  "tep_bash_them": ["ban_mau_pos/chay_thu.sh"],
   "so_vong_sua_toi_da": 3,
-  "vuot_ngan_sach_canh_bao": 1.5,
-  "kiem_sau_day_len": "log Render có dòng '✅ Đã kết nối Turso database (PRODUCTION)'"
+  "khuon_loi_toi_da": 120,
+  "muc_gac": { "matcher": "*", "hooks": ["… hook người gác …"] },
+  "ban_cai": [["skill_lam_viec.md", ".claude/skills/lam-viec/SKILL.md"], "…"]
 }
 ```
 
-`lenh_gia_lap` **để trống và cổng KHÔNG đọc nó**: `cong.js:234` chỉ chạy `lenh_bai_thu` + `lenh_kiem_day_du`. Giả lập POS vào
-cổng qua bộ kiểm `--day-du` (nhóm S) — đó là đường DUY NHẤT; ghi giả lập vào `lenh_gia_lap` thì nó KHÔNG BAO GIỜ chạy ở cổng.
-App khác muốn giả lập chạy ở cổng cũng phải nối qua `lenh_kiem_day_du` (hoặc mở việc sửa `cong.js`).
+**Bảng khoá (HOC-2 A2) — mỗi khoá phải có người đọc.** Phép kiểm: `tu_chay/thu_cong.js` (`kiemKhoa`, bảng `NGUOI_DOC` /
+`TAI_LIEU`): khoá không có trong bảng → đỏ; file đọc ghi trong bảng không còn nhắc tên khoá (bỏ dòng chú thích `//`) → đỏ.
+
+| khoá | ai đọc |
+|---|---|
+| `lenh_bai_thu`, `lenh_kiem_day_du`, `thu_muc_bai_thu` | `cong.js` (A13; `laBaiThu`) |
+| `file_cam`, `file_luat`, `file_bi_mat`, `chuong_trinh_them`, `tep_bash_them` | `nguoi_gac.js` (`file_cam` cả `cong.js` A10) |
+| `ten_mien_production` | `cong_cu/gia_lap/chay.js` (từ chối chạy) |
+| `khuon_loi_toi_da` | `thu_cong_cu.js` (F3) |
+| `muc_gac`, `ban_cai` | `cai_dat.js`, `cong.js` (A8) |
+| `so_vong_sua_toi_da` | khoá chỉ-tài-liệu: skill `/lam-viec` bước 8 |
+
+`thu_muc_bai_thu` = `cong_cu/` (+ `tu_chay/`). **`ban_mau_pos/thu/` KHÔNG vào đây** (HOC-2 A7): sáu file
+`ban_mau_pos/thu/thu_*.js` in `N đạt · M hỏng` và LUÔN thoát 0 (`chay_thu.sh` mới đếm) → cổng A11 sẽ thấy mọi bài bản mẫu
+"XANH trên code gốc" và chặn oan mọi PR sửa bài thử bản mẫu (K5). Muốn thêm thì trước hết bài bản mẫu phải thoát ≠ 0
+khi có ca hỏng (file luật bản mẫu — chủ quán quyết).
+Đã XOÁ ở HOC-2 vì không ai đọc: `app`, `nhanh_chinh`, `lenh_gia_lap` (cổng chỉ chạy `lenh_bai_thu` + `lenh_kiem_day_du`;
+giả lập POS vào cổng qua `--day-du`, nhóm S — app khác cũng nối qua `lenh_kiem_day_du`), `so_viec`, `cong_cu_so_viec`
+(sổ việc giữ bằng `file_cam` + luật PY-SO), khoá cảnh báo vượt ngân sách (Q3: mục `## Ngân sách` là văn xuôi, cổng phải
+đoán số → báo oan; so ngân sách là việc của skill bước 6 và `/ra-soat`), `kiem_sau_day_len` (công cụ lên production chưa có).
 
 ## B3. Người gác `nguoi_gac.js` (hook PreToolUse)
 
@@ -334,7 +350,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 
 1. Đang ở nhánh `viec/<MÃ>`, cây sạch (không tính các file `??` có sẵn từ trước).
 2. **Phạm vi:** mọi file trong `git diff --name-only <chính>...HEAD` phải khớp mục Phạm vi hoặc nằm trong `viec/<MÃ>/`. Không có file nào khớp `file_cam` hay nằm trong `.claude/`.
-3. **Bài thử xanh:** `lenh_bai_thu`, `lenh_kiem_day_du` đều thoát 0 (`cong.js:234`; cổng không đọc `lenh_gia_lap`). POS: giả lập nằm trong `--day-du`.
+3. **Bài thử xanh:** `lenh_bai_thu`, `lenh_kiem_day_du` đều thoát 0 (`cong.js` A13). POS: giả lập nằm trong `--day-du`.
 4. **Phép thử hai chiều:**
    - Dựng bản sao của **nhánh chính**.
    - Chép sang đó **những file bài thử mới hoặc đã sửa** (nằm trong `thu_muc_bai_thu`) của HEAD.
@@ -344,7 +360,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 5. **Biên bản:** `ket_luan = DAT`. `commit` bằng HEAD trừ đúng commit biên bản. Bản trong kho khớp bản ở `~/.tu_chay_soat`.
 6. **Câu hỏi:** mục `## Câu hỏi` của `trang_thai.md` phải trống hoặc mọi câu đã được trả lời.
 7. **Gộp được:** nhánh chính trên `origin` là tổ tiên của HEAD.
-8. **Ngân sách:** số dòng thêm vượt ngân sách × `vuot_ngan_sach_canh_bao` → CẢNH BÁO (không chặn). Biên bản phải giải thích lý do.
+8. **Ngân sách:** (bản v1, KHÔNG làm — HOC-2 Q3 xoá khoá cảnh báo) so ngân sách là việc của skill bước 6 và `/ra-soat`.
 9. **Dung lượng:** `/tmp` còn chỗ, không còn bản sao cũ sót lại.
 10. In **CỔNG MỞ** hoặc **CỔNG ĐÓNG**, kèm danh sách từng phép đạt hay hỏng.
 
@@ -358,7 +374,7 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
    git merge --ff-only viec/<MÃ>
    git push origin <chính>
    ```
-4. In `kiem_sau_day_len` và **lệnh lùi soạn sẵn**. Hỏi `Thử quầy ổn? (gõ CO / KHONG)`.
+4. In dòng phải thấy trong log Render và **lệnh lùi soạn sẵn** (khoá cấu hình cũ đã xoá ở HOC-2 — công cụ chưa có). Hỏi `Thử quầy ổn? (gõ CO / KHONG)`.
 5. Trả lời CO → tạo nhánh `so/<MÃ>`, gọi công cụ sổ việc đánh `xong` kèm commit, gộp fast-forward, đẩy.
 6. Trả lời KHONG → in lệnh lùi, dừng.
 
@@ -366,8 +382,8 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 
 **Cách nối thật (TU-CHAY-4, 02.10.2026):** `node cong_cu/gia_lap/chay.js` — ba file: `chay.js` (an toàn + sân khấu + in kết
 quả), `kich_ban.js`, `bat_bien.js`. Bộ kiểm gọi ở **`--day-du`** (nhóm S) với **môi trường đã lọc sạch** — giả lập không bao
-giờ cầm khoá thật, kể cả trên Replit; cổng `cong-chay` chạy `--day-du` nên PR nào cũng qua giả lập. Không qua
-`lenh_gia_lap` (cổng không đọc khoá đó — B2). Đo: giả lập 22 s, `cong_cu/thu_gia_lap.js` 24 s (> 15 s nên không vào bản nhanh / pre-commit).
+giờ cầm khoá thật, kể cả trên Replit; cổng `cong-chay` chạy `--day-du` nên PR nào cũng qua giả lập. Không có khoá
+cấu hình riêng cho giả lập (B2). Đo: giả lập 22 s, `cong_cu/thu_gia_lap.js` 24 s (> 15 s nên không vào bản nhanh / pre-commit).
 Cả ba file và `thu_gia_lap.js` là **file luật** (`file_luat`): việc sau muốn sửa phải ghi ĐÚNG TÊN file trong phiếu.
 Bánh cóc: số kịch bản ≥ 11, số bất biến ≥ 9 — chỉ được tăng.
 
@@ -456,7 +472,7 @@ A1 (khoá thật, tên miền production → từ chối), A2 (kho tạm dọn s
 3. Ghép phần deny và hooks vào `settings.json`.
 4. Chạy `thu_nguoi_gac.js`, phải xanh.
 5. Viết `cong_cu/gia_lap/` riêng cho app và nối vào `lenh_kiem_day_du` (B10). Trong lúc chưa có, cổng KHÔNG chạy giả lập và
-   KHÔNG cảnh báo gì (`cong.js:234` không biết đến giả lập).
+   KHÔNG cảnh báo gì (`cong.js` A13 không biết đến giả lập).
 6. `PHIEN_BAN` phải khớp với kho gốc.
 
 ---
@@ -758,7 +774,7 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
    - `${{ }}` chỉ trong `with:`/`env:`, không trong `run:` (tên nhánh do PR đặt). `npm ci` nằm TRONG `cong.js`, không
      là bước riêng (script `postinstall` sẽ ghi được `$GITHUB_ENV`/`$GITHUB_PATH` cho bước sau); tiến trình con
      không nhận biến `GITHUB_*`, `ACTIONS_*`, `CLAUDE*`.
-   - Bài thử: `tu_chay/thu_cong.js` — kho tạm, ~30 ca A, đột biến A6–A14, `kiemYml` + 23 đột biến chữ của yml.
+   - Bài thử: `tu_chay/thu_cong.js` — kho tạm, ~30 ca A, đột biến A6–A14 (HOC-2: A6–A18, B16), `kiemYml` + 23 đột biến chữ của yml.
 3. **Rủi ro còn lại, vì sao chấp nhận:** `cong-chay` chạy code PR (`npm ci`, bài thử, `npm test`) trên máy GitHub
    với token chỉ đọc, không bí mật, không lưu credential. Máy GitHub cho `sudo` → code PR về lý thuyết làm giả
    được kết quả `cong-chay`: job này canh LỖI, không canh ÁC Ý. Job `cong` (không chạy code PR, máy riêng) canh:
@@ -829,3 +845,30 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   → cổng chặn A8 ("không do trình cài quản" hoặc "lệch kết quả cai_dat.js"). Muốn đổi thứ trong `.claude/` mà trình
   cài chưa quản: làm phiếu sửa `tu_chay/` (thêm `ban_cai`) trước.
 
+## B16. HOC-2 — khoá hồ sơ ở cổng, khoá cấu hình, người gác (05.10.2026, tu-chay 1.4.0)
+
+Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q4): `viec/HOC-2/ke_hoach.md`. Bài thử: `thu_cong.js` (A1–A5),
+`thu_nguoi_gac.js` (A7, B1, B2), `thu_cong_cu.js` (tài liệu).
+
+1. **[A16] bằng chứng đỏ khớp bài thử** (`cong.js`, `chay`): mỗi bài thử ĐỎ hợp lệ trên gốc phải có dòng
+   `SỐ CA <bài>: <N>` trong `viec/<MÃ>/bang_chung_do.txt` (đọc ở head TRƯỚC khi chạy code PR); N = số ca ở dòng tổng CUỐI
+   bài in khi chạy trên code PR, bỏ mã màu, ba dạng: `A đạt · B hỏng` → A+B; `N phép · M chỗ hỏng` → N;
+   `a/B ca người gác … · C phép khác` → B+C. Thiếu file / thiếu dòng / bài không in dòng tổng / số lệch → đỏ. Bài lấy
+   từ P26b: đổi bài sau khi ghi bằng chứng (43 ≠ 55 ca) lọt 2 vòng soát. Bài thử cũ được miễn (xanh trên gốc) không cần dòng.
+2. **[A17] tên đột biến có trong trang_thai** (`tinh`): mỗi dòng `('<tên>',` của `viec/<MÃ>/dot_bien.py` phải xuất hiện
+   trong `trang_thai.md` với ranh giới không phải chữ / số / `_` / `-` (`M2` không khớp nhờ `M20`). Tên sinh bằng vòng lặp
+   cổng không đọc được — quy ước một tuple một dòng (MAU_PHIEU, skill). Không có `dot_bien.py` → không áp.
+3. **[A18] VÁ SAI bắt buộc** (`tinh`): PR đổi (kể cả xoá) file dưới `server/` hoặc `client/src/` → `dot_bien.py` có ≥ 1
+   tên mở đầu `VS-`. Không áp khi phiếu miễn `## Bài thử đỏ` (chủ quán chốt Q4) hay PR không đụng hai thư mục đó.
+   A16 và A18 đều không áp khi có miễn; A17 áp mọi PR có `dot_bien.py`.
+4. **Cấu hình**: bảng khoá ở B2 (khoá không ai đọc đã xoá). `file_luat` thêm đúng tên `cong_cu/thu_P20.js`,
+   `cong_cu/thu_P21.js`, `cong_cu/thu_P26a.js`, `cong_cu/thu_P26b.js` (AU-B3c) — phiếu ghi `cong_cu/**` không mở được bốn
+   bài chạy thật đó; file khác trong `cong_cu/` vẫn mở bằng glob. `ban_mau_pos/thu/` không là bài thử cổng (B2).
+5. **Người gác — không sửa `nguoi_gac.js`**: `thu_nguoi_gac.js` khoá tập `CONG_CU_DOC` / `CONG_CU_SUA` bằng danh sách cố
+   định đọc từ mã nguồn (AU-A1: thêm `'Bash2'` từng SỐNG); ca A14 dạng-nhánh soi đúng câu kết luận (AU-B1: hai cổng
+   A14 chồng nhau).
+6. **`cong_cu/ban_sao_goc.py <commit> <đích>`** (B2, bài học P26b): `git archive <commit> server` vào đích + liên kết
+   `node_modules` của kho, in `--may-chu <đích>/server`. Đích phải dưới thư mục tạm, ngoài kho, chưa có hoặc rỗng; chỉ
+   đọc git. Dùng để chạy `thu_P26b.js` / giả lập trên code gốc mà không đụng cây làm việc.
+7. **Chính PR của HOC-2 chạy cổng LUẬT CŨ** (cổng lấy `cong.js` của main): A16–A18 áp từ việc sau. Hồ sơ HOC-2 tự
+   chạy `cong.js` mới trên bản sao kho, ghi vào `viec/HOC-2/trang_thai.md` (A6).
