@@ -26,7 +26,8 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
 - **Dấu hiệu:** bài xanh cả trước lẫn sau khi vá; tên ca nói một đằng, máy kiểm một nẻo (P26b M6: tên "= 1", kiểm "≤ 1").
 - **Chặn:** phá thử bốn nhánh: chưa vá · marker suông · vá rồi quên marker · đủ cả hai. Ca "phải ĐỎ" khớp **câu kết luận**,
   không chỉ mã thoát ≠ 0 (thiếu file cũng thoát 1). Mỗi ca chặn **chỉ vi phạm đúng một phép** — ca gộp luôn đỏ nhờ phép
-  khác; hai cổng chồng nhau cũng thế (P26b: cổng đơn che cổng yêu cầu).
+  khác; hai cổng chồng nhau cũng thế (P26b: cổng đơn che cổng yêu cầu). Ca "phải KHÔNG X" chỉ có giá trị khi đầu vào đủ mọi
+  điều kiện kích hoạt X trừ điều kiện đang thử (HOC-2b: "bài đỏ thì không cảnh báo" dùng bài đỏ thoát NGAY — không bao giờ tới ngưỡng).
 - **Chặn:** phép so bằng → ca lệch CẢ HAI chiều; phép tiền tố → ca chuỗi nằm GIỮA; luôn cài đột biến "nới phép".
   "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ.
 - **Chặn:** con số "đạt" phải kèm lần chạy lại trên HEAD; đột biến neo chuỗi NGẮN, RIÊNG (neo dài rữa sau vài việc).
@@ -51,6 +52,8 @@ Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ th�
   production và luồng đổi chính thứ làm chuẩn so sánh. Chiều ngược: ca "phải qua" (200) chỉ khoá luồng **HỢP LỆ** — đọc
   phân quyền + đường tiền của route trước khi viết `status === 200`.
 - **Chặn:** bài thử mới phải chạy được trong mọi bản sao đột biến đang dùng (có bản sao chỉ chép `tu_chay/` hoặc `server/`).
+  Bản sao NỐI symlink tới thư mục mà công cụ chép-rồi-sửa → ghi XUYÊN vào kho thật (HOC-2b: 13 đột biến vào `server/` thật):
+  bản sao chép thật, và công cụ chép-rồi-sửa tự kiểm `realpath` đích nằm trong thư mục tạm.
 
 ## K6 · Vi phạm luật có sẵn của chính dự án
 Đã gây: `fetch` trần trong `Layout.jsx`, vi phạm bánh cóc — bộ kiểm của chủ quán bắt, không phải tự bắt.

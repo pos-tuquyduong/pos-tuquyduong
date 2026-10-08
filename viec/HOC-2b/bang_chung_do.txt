@@ -2,13 +2,13 @@
 # Dòng "SỐ CA <bài>: <N>" = số ca bài in ở dòng tổng khi chạy trên code đã vá (head) — cổng A16.
 SỐ CA cong_cu/thu_gia_lap.js: 40
 
-## cong_cu/thu_gia_lap.js BẢN CUỐI (sau soát vòng 1: C3 hạn giả 5 s, C3c bài đỏ chậm, C3f, khoá banSao) đặt lên code CHƯA vá
-## (mọi file việc này sửa lấy lại từ 4a51723, trừ chính bài thử) → thoát 1 · 74,5 s — chạy lại 08.10
+## cong_cu/thu_gia_lap.js BẢN CUỐI (sau soát vòng 1–2: C3 hạn giả 5 s, C3c bài đỏ chậm, C3f ngoặc cân, khoá banSao) đặt lên code CHƯA vá
+## (mọi file việc này sửa lấy lại từ 4a51723, trừ chính bài thử) → thoát 1 · 75,4 s — chạy lại 08.10 với bài của 3e44477 (sau soát vòng 2)
   ✗ C3a bài xanh 4,5 s, hạn giả 5 s (80 % = 4 s), cờ bật → xanh + đúng 1 cảnh báo  — chac [true] · 0 cảnh báo
-  ✗ C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ, mặc định canhGan = false  — bật: (không) · 7 lời gọi
+  ✗ C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ (chữ true viết thẳng), mặc định canhGan = false  — bật: (không) · 6 lời gọi · cờ không phải chữ true/false: (không)
   ✗ thoát 0, dòng tổng đúng "Giả lập: 18 kịch bản · 10 bất biến · ĐẠT"  — thoát 0 · Giả lập: 18 kịch bản · 11 bất biến · ĐẠT
   37 đạt · 3 hỏng
-## cùng bài trên code ĐÃ vá (head, chạy riêng) → thoát 0 · 74,7 s
+## cùng bài trên code ĐÃ vá (head 3e44477, chạy riêng) → thoát 0 · 74,0 s
   40 đạt · 0 hỏng
 
 ## Bài thử cũ sửa (## Bài thử cũ sửa của phiếu) — server/ không đổi nên XANH trên gốc; đỏ bằng đột biến (viec/HOC-2b/dot_bien.py)
