@@ -473,16 +473,20 @@ chac('orders.js chặn sản phẩm chưa có giá',
 
 // E11 — POS-P20-v2: bài thử CHẠY THẬT trong bộ kiểm (cũng là pre-commit và
 // hook Stop). Phép tĩnh chỉ soi chữ; bài thật tạo đơn, huỷ, hoàn tiền rồi gọi
-// route. Hết giờ hoặc sập = hỏng.
-function chayBaiThat(bai, env) {
+// route. Hết giờ hoặc sập = hỏng. canhGan (HOC-2b C3, chỉ giả lập + thu_gia_lap): xanh mà quá 80 % hạn → CẢNH BÁO
+// (không chặn) — để thấy trước khi bài chạm hạn. Bài thử: cong_cu/thu_gia_lap.js [C3] cắt chính hàm này ra chạy.
+function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   const t0 = Date.now();
-  const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: 120000, env });
+  const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: han, env });
   const giay = ((Date.now() - t0) / 1000).toFixed(1);
   const ra = String(r.stdout || '') + String(r.stderr || '');
   const hong = ra.replace(/\x1b\[[0-9;]*m/g, '').split('\n').filter((l) => /[✗✖]/.test(l)).map((l) => l.trim());
-  chac(`bài chạy thật ${bai} xanh (${giay} s)`,
-    r.status === 0 && !r.error,
+  const xanh = r.status === 0 && !r.error;
+  chac(`bài chạy thật ${bai} xanh (${giay} s)`, xanh,
     r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
+  if (xanh && canhGan && Date.now() - t0 > han * 0.8) {
+    canhBao(`bài chạy thật ${bai} gần hạn`, `chạy ${giay} s > 80 % hạn ${han / 1000} s — báo chủ quán, KHÔNG nới hạn`);
+  }
   return ra;
 }
 for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js']) chayBaiThat(bai);
@@ -551,6 +555,8 @@ chayBaiThat('tu_chay/thu_cong.js');
 // T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/
 // (trừ cai_dat.*, trình cài không chép sang). Lệch = hook đang chạy mã khác
 // mã đã thử → CẢNH BÁO, chủ quán chạy lại bash tu_chay/cai_dat.sh.
+// Giữ CẢNH BÁO, không nâng FAIL (chủ quán chốt 1b, HOC-2b): máy sửa tu_chay/ trên nhánh thì bản cài chắc chắn lệch tới khi
+// chủ quán chạy cai_dat.sh; cổng A8 đã chặn cứng ở PR — FAIL ở đây là chặn commit của chính việc đang sửa tu_chay/.
 {
   const daCai = path.join(GOC, '.claude', 'tu_chay');
   if (!fs.existsSync(daCai)) {
@@ -574,6 +580,7 @@ chayBaiThat('tu_chay/thu_cong.js');
   }
 }
 // T3 — TU-CHAY-2: skill đã cài .claude/skills/lam-viec/SKILL.md khớp từng byte nguồn tu_chay/skill_lam_viec.md
+// Giữ CẢNH BÁO — cùng lý do T2 (chốt 1b).
 {
   const daCai = path.join(GOC, '.claude', 'skills', 'lam-viec', 'SKILL.md');
   if (!fs.existsSync(daCai)) {
@@ -587,7 +594,7 @@ chayBaiThat('tu_chay/thu_cong.js');
 }
 
 // T4 — TU-CHAY-3: bản cài trong ban_cai của tu_chay/cau_hinh.json (/ra-soat, cổng GitHub; skill đã có T3) khớp
-// từng byte nguồn trong tu_chay/ (lệch → CẢNH BÁO, như T3)
+// từng byte nguồn trong tu_chay/ (lệch → CẢNH BÁO, như T3). Giữ CẢNH BÁO — cùng lý do T2 (chốt 1b).
 for (const [nguon, dich] of JSON.parse(doc('tu_chay/cau_hinh.json')).ban_cai.filter(([n]) => n !== 'skill_lam_viec.md')) {
   const daCai = path.join(GOC, dich);
   if (!fs.existsSync(daCai)) {
@@ -616,7 +623,8 @@ chac('.gitignore có attached_assets/',
     'dist bị bỏ khỏi git → Render sẽ serve bản cũ mãi mãi');
 }
 
-// F2 — file .js lạc ở gốc repo.
+// F2 — file .js lạc ở gốc repo. Giữ CẢNH BÁO (chủ quán chốt 1b, HOC-2b): người gác chặn tạo .js ở gốc trong phiên việc;
+// file lạc cũ không làm hỏng quầy.
 //
 // Bản đầu cắm cứng ['fix.js','test-xlsx.js'] — vừa phải sửa tay mỗi lần có file
 // mới, vừa gộp nhầm hai thứ khác hẳn nhau: fix.js là rác thật (ALTER TABLE trên
@@ -739,18 +747,20 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 
 // S1 — giả lập chạy với môi trường ĐÃ LỌC SẠCH (chủ quán chốt 02.10.2026): nó không bao giờ cầm khoá
 // thật, kể cả trên Replit có Secrets. Chạy tay mà môi trường có khoá thì giả lập tự từ chối (A1).
-// S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG. Việc sau thêm kịch bản mới, không xoá kịch bản cũ.
+// S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG (trừ lần hạ có chủ quán chốt). Việc sau thêm kịch bản mới, không
+// xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
 const NGUONG_KICH_BAN = 18;
-const NGUONG_BAT_BIEN = 11;
-// S4 — đo 02.10.2026: giả lập 22 s, thu_gia_lap 24 s (> 15 s) → CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du).
+const NGUONG_BAT_BIEN = 10;   // 11 → 10: bỏ I10, I10 ⊂ I11, không giảm độ phủ (HOC-2b, chủ quán chốt 2a)
+// S4 — đo CHẠY RIÊNG 07.10.2026 (máy mây; chat đo 68 s / 80 s): giả lập 67 s, thu_gia_lap 72 s (> 15 s) → CHỈ chạy
+// ở --day-du (cổng cong-chay chạy --day-du); hạn 120 s, xanh mà quá 80 % (96 s) → CẢNH BÁO (HOC-2b C3).
 {
   if (DAY_DU) {
-    const ra = chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH);
+    const ra = chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH, 120000, true);
     const m = ra.match(/Giả lập: (\d+) kịch bản · (\d+) bất biến/);
     chac(`bánh cóc giả lập: ≥ ${NGUONG_KICH_BAN} kịch bản, ≥ ${NGUONG_BAT_BIEN} bất biến`,
       !!m && +m[1] >= NGUONG_KICH_BAN && +m[2] >= NGUONG_BAT_BIEN, m ? m[0] : 'không thấy dòng tổng của giả lập');
-    chayBaiThat('cong_cu/thu_gia_lap.js', MT_SACH);
+    chayBaiThat('cong_cu/thu_gia_lap.js', MT_SACH, 120000, true);
   }
   // S3 — I4/I5 chép danh sách trắng ví (wallets.js không export): hai bản phải đi cùng nhau
   const dsVi = (p) => {
