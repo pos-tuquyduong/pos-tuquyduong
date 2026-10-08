@@ -95,7 +95,7 @@ def chay(ten, kieu, doi, phai):
             if kieu == 'glk':
                 shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tam, 'server'))
             else:
-                that = os.path.join(os.path.dirname(tam), os.path.basename(tam) + '_that_server')
+                that = os.path.join(tam, 'that_server')   # TRONG tam: node tìm node_modules theo đường thật của liên kết
                 shutil.copytree(os.path.join(GOC, 'server'), that)
                 os.symlink(that, os.path.join(tam, 'server'))
             noi(tam, ['tu_chay', 'node_modules'])
@@ -121,7 +121,7 @@ def chay(ten, kieu, doi, phai):
             open(p, 'w', encoding='utf-8').write(s.replace(a, b))
         anh = lambda d: sorted((os.path.relpath(os.path.join(a, f), d), open(os.path.join(a, f), 'rb').read())
                                for a, _, fs_ in os.walk(d) for f in fs_)
-        that = os.path.join(os.path.dirname(tam), os.path.basename(tam) + '_that_server')
+        that = os.path.join(tam, 'that_server')
         truoc_that = anh(that) if kieu == 'glsym' else None
         r = subprocess.run(lenh, cwd=cwd, env=env, capture_output=True, text=True, timeout=900)
         ra = re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
@@ -143,7 +143,6 @@ def chay(ten, kieu, doi, phai):
         return f'ĐỎ đúng chỗ — ' + ' | '.join(trung[:3])[:400]
     finally:
         shutil.rmtree(tam, ignore_errors=True)
-        shutil.rmtree(tam + '_that_server', ignore_errors=True)
 
 
 def anh_kho():
