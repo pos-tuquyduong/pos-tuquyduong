@@ -50,6 +50,11 @@ DB = [
                                    'if (xanh && canhGan && Date.now() - t0 > han * 0.5) {')], ['✗ C3g ']),
     ('VS-C3-ty-le-cao', 'glk', [(KT, 'if (xanh && canhGan && Date.now() - t0 > han * 0.8) {',
                                   'if (xanh && canhGan && Date.now() - t0 > han * 0.95) {')], ['✗ C3a ']),
+    # soát chat 08.10 (c2a1143): tỉ lệ lệch ít (0,75 / 0,85) lọt khe C3g/C3a — C3f khoá đúng chữ han * 0.8
+    ('VS-C3-ty-le-075', 'glk', [(KT, 'if (xanh && canhGan && Date.now() - t0 > han * 0.8) {',
+                                  'if (xanh && canhGan && Date.now() - t0 > han * 0.75) {')], ['✗ C3f ']),
+    ('VS-C3-ty-le-085', 'glk', [(KT, 'if (xanh && canhGan && Date.now() - t0 > han * 0.8) {',
+                                  'if (xanh && canhGan && Date.now() - t0 > han * 0.85) {')], ['✗ C3f ']),
     ('VS-C3-mac-dinh-theo-so-doi-so', 'glk', [(KT, '  const t0 = Date.now();\n  const r = spawnSync(',
                                                 '  if (arguments.length < 4) canhGan = true;\n  const t0 = Date.now();\n  const r = spawnSync(')],
      ['✗ C3h ']),

@@ -439,3 +439,12 @@ CHƯA KIỂM:   D4 (thu_p1.js còn — người gác chặn xoá); hai check con
 GIT:         (xem git log --oneline -2 ở câu trả lời cuối — commit này chứa chính báo cáo)
 BÀI HỌC:     KHOÁ 9 · NGUYÊN TẮC 5 · BỎ 5 — chi tiết ở ## Bài học của trang_thai.md (bước 11 /lam-viec)
 ```
+
+## Soát cuối của chat (08.10, trên `c2a1143`) — chủ quán sửa bằng script `sua_HOC2b.py` (máy đã hết 3 vòng sửa)
+- Chat chạy lại: cổng tĩnh + cổng chạy của `main` mô phỏng trên `c2a1143` ĐẠT; `--day-du` PASS 65 · FAIL 0 · CẢNH BÁO 0 (máy chat
+  1 lõi: giả lập 67,8 s, `thu_gia_lap` 91,4 s).
+- Đột biến chat tự cài vào C3: 5/7 BẮT; SỐNG 2 — tỉ lệ ngưỡng `han * 0.75` và `han * 0.85` lọt khe C3g (70 %) / C3a (90 %).
+  Sửa: C3f đòi đúng chữ `han * 0.8` một lần trong hàm `chayBaiThat` (không thêm ca — `SỐ CA` giữ 42). Đột biến mới:
+  `VS-C3-ty-le-075`, `VS-C3-ty-le-085` → ✗ C3f.
+- D4 (chốt 3a, Q-D4): `cong_cu/thu_p1.js` xoá bằng `git rm` trong cùng commit của chủ quán.
+- Q-C3: chủ quán đồng ý thông số ca thử C3 (hạn giả 5 s; bài ngủ 4,5 s và 3,5 s). Q-SOAT: chat soát thay vòng máy thứ tư.
