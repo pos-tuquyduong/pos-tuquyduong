@@ -23,7 +23,7 @@ này**, hoặc một lệnh `grep` chạy được. Không có thì nói "chưa 
 | Tầng | File | Vai trò |
 |---|---|---|
 | 1 | `CHECKLIST_CODE.md` | lỗi ĐÃ XẢY RA THẬT, chia theo mục A–P. Tra theo mục trước khi sửa. |
-| 2 | `kiem_tra_truoc_khi_giao.js` | phép kiểm tự động (36 phép lúc 24.09.2026) + **bánh cóc** `NGUONG_FETCH` |
+| 2 | `kiem_tra_truoc_khi_giao.js` | phép kiểm tự động (đếm ở dòng `ĐẾM` khi chạy) + **bánh cóc** `NGUONG_FETCH` |
 | 3 | `.git/hooks/pre-commit` | chặn commit khi bộ kiểm đỏ — cài bằng `bash cai_git_hook.sh` |
 | 4 | `TIEN_DO_POS.json` | nguồn sự thật DUY NHẤT về việc còn mở / đã xong |
 
@@ -110,7 +110,9 @@ khi tầng DB chỉ là stub.
 - `.replit` đặt `NODE_ENV=development` từng làm bundle phình từ 673 kB lên 1.143 kB
   suốt 2 tuần mà không ai biết (P2). Đã bịt bằng `client/package.json`.
 - `POST /orders` **ĐÃ CÓ cổng phân quyền** cho các trường đặc quyền (chiết khấu,
-  lấy từ gói, mã gói) — bộ kiểm nhóm E canh. Mục P3 trong CHECKLIST_CODE.md ghi
+  lấy từ gói, mã gói). Về cổng này, bộ kiểm nhóm E CHỈ canh `from_package` (mẫu thô
+  `item.from_package ? 0` + marker POS-AUTHZ-v1); chiết khấu (`discount_type`/`discount_value`)
+  và mã gói (`customer_package_id`) KHÔNG có phép tĩnh — tự soi, mục G. Mục P3 trong CHECKLIST_CODE.md ghi
   "chưa vá" là **đã cũ**. Đừng vá lại thứ đang chạy đúng.
 - `POST /:id/pay-debt` đã chặn thu hai lần (trả `409 DA_THU_ROI`) — bộ kiểm canh.
 - Vùng **CHƯA rà** đường tiền: huỷ đơn/hoàn tiền trong `orders.js`, ví & điểm.

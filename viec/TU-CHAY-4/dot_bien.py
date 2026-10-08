@@ -3,7 +3,10 @@
 # Đột biến máy chủ (M1–M10) nằm sẵn trong cong_cu/thu_gia_lap.js — file này phá GIẢ LẬP và BỘ KIỂM.
 #   gl      : chép cong_cu/gia_lap/ sang kho tạm (server/, tu_chay/, node_modules nối symlink về kho thật), thay ĐÚNG
 #             một chuỗi, chạy `node cong_cu/thu_gia_lap.js --gia-lap <bản chép>` → phải ĐỎ, dòng ✗ chứa chuỗi đánh dấu.
-#   tai_cho : thay chuỗi trong file THẬT, chạy bộ kiểm, rồi TRẢ LẠI nguyên văn (bản lưu ở thư mục tạm, so lại từng byte).
+#   ban_sao : (HOC-2b — trước là `tai_cho` sửa file THẬT rồi trả lại) chép mọi file git theo dõi (trừ attached_assets/) sang
+#             thư mục tạm, node_modules nối symlink (client/node_modules CHÉP khi --day-du: bước so dist ghi .vite vào đó),
+#             thay chuỗi trong BẢN SAO, chạy bộ kiểm của bản sao. Không ghi file thật nào: chụp git status + data/ + .vite
+#             trước/sau, khác → "KHO BẨN", thoát 3.
 # M0 (không đột biến) phải XANH. Thay không được (chuỗi không có đúng 1 lần) → LỖI, không tính.
 import os, shutil, subprocess, sys, tempfile
 
@@ -22,9 +25,9 @@ DB = [
      "process.on('khong_bao_gio', () => { try { fs.rmSync(THU_MUC", 'gia_lap_'),
     ('E4g bắt nhầm máy chủ (đọc cổng SX giả thay cổng POS)', 'gl', 'chay.js', 'http://127.0.0.1:${mayPos.address().port}/api/pos',
      'http://127.0.0.1:${sxMay.address().port}/api/pos', 'dòng tổng đúng'),
-    ('F2 bánh cóc: 10 kịch bản', 'tai_cho', 'cong_cu/gia_lap/kich_ban.js', 'module.exports = { KICH_BAN,',
+    ('F2 bánh cóc: 10 kịch bản', 'ban_sao', 'cong_cu/gia_lap/kich_ban.js', 'module.exports = { KICH_BAN,',
      'module.exports = { KICH_BAN: KICH_BAN.slice(0, 10),', 'bánh cóc giả lập'),
-    ('S3 danh sách trắng ví lệch wallets.js', 'tai_cho', 'cong_cu/gia_lap/bat_bien.js', "'refund', 'adjust', 'compensation'];",
+    ('S3 danh sách trắng ví lệch wallets.js', 'ban_sao', 'cong_cu/gia_lap/bat_bien.js', "'refund', 'adjust', 'compensation'];",
      "'refund', 'compensation'];", 'danh sách trắng ví'),
 ]
 
@@ -53,17 +56,20 @@ def chay(ten, kieu, f, tim, moi, dau):
                 return 'LỖI', 'chuỗi không có đúng 1 lần'
             r = subprocess.run(['node', 'cong_cu/thu_gia_lap.js', '--gia-lap', gl], cwd=GOC, capture_output=True, text=True)
         else:
-            p = os.path.join(GOC, f)
-            luu = os.path.join(tam, 'luu')
-            shutil.copy2(p, luu)
-            try:
-                if not thay(p, tim, moi):
-                    return 'LỖI', 'chuỗi không có đúng 1 lần'
-                lenh = ['node', 'kiem_tra_truoc_khi_giao.js'] + (['--day-du'] if 'bánh cóc' in dau else [])
-                r = subprocess.run(lenh, cwd=GOC, capture_output=True, text=True)
-            finally:
-                shutil.copy2(luu, p)
-                assert open(luu, 'rb').read() == open(p, 'rb').read(), 'KHÔNG trả lại được ' + p
+            dd = 'bánh cóc' in dau
+            kho = os.path.join(tam, 'kho')
+            ds = subprocess.run(['git', 'ls-files', '-z'], cwd=GOC, capture_output=True, check=True).stdout.decode().split('\0')
+            for x in ds:
+                if x and not x.startswith('attached_assets/') and os.path.isfile(os.path.join(GOC, x)):
+                    os.makedirs(os.path.dirname(os.path.join(kho, x)), exist_ok=True)
+                    shutil.copy2(os.path.join(GOC, x), os.path.join(kho, x))
+            os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(kho, 'node_modules'))
+            cnm = os.path.join(GOC, 'client', 'node_modules')
+            if dd: shutil.copytree(cnm, os.path.join(kho, 'client', 'node_modules'), symlinks=True)
+            else: os.symlink(cnm, os.path.join(kho, 'client', 'node_modules'))
+            if not thay(os.path.join(kho, f), tim, moi):
+                return 'LỖI', 'chuỗi không có đúng 1 lần'
+            r = subprocess.run(['node', 'kiem_tra_truoc_khi_giao.js'] + (['--day-du'] if dd else []), cwd=kho, capture_output=True, text=True)
         do = dong_do(r.stdout + r.stderr)
         if dau is None:
             return ('XANH' if r.returncode == 0 and not do else 'ĐỎ'), '; '.join(do)[:300]
@@ -74,8 +80,16 @@ def chay(ten, kieu, f, tim, moi, dau):
         shutil.rmtree(tam, ignore_errors=True)
 
 
+def anh_kho():
+    st = subprocess.run(['git', 'status', '--porcelain'], cwd=GOC, capture_output=True, text=True).stdout
+    data, vite = os.path.join(GOC, 'data'), os.path.join(GOC, 'client', 'node_modules', '.vite')
+    dl = sorted(f'{x}:{os.stat(os.path.join(data, x)).st_mtime_ns}' for x in os.listdir(data)) if os.path.isdir(data) else ['(không có data/)']
+    return st, dl, os.stat(vite).st_mtime_ns if os.path.exists(vite) else None
+
+
 chon = sys.argv[1:]
 hong = 0
+truoc = anh_kho()
 for ten, kieu, f, tim, moi, dau in DB:
     if chon and not any(c in ten for c in chon):
         continue
@@ -84,4 +98,7 @@ for ten, kieu, f, tim, moi, dau in DB:
     hong += 0 if dat else 1
     print(f"{'✓' if dat else '✗'} {ten}: {kq} — {ghi}", flush=True)
 print(f"\n{'XANH' if not hong else 'ĐỎ'} — {hong} đột biến không đạt")
+if anh_kho() != truoc:
+    print('✗ KHO BẨN — git status / data/ / client/node_modules/.vite của kho thật đổi trong lúc chạy')
+    sys.exit(3)
 sys.exit(1 if hong else 0)

@@ -1,5 +1,5 @@
 /**
- * GIẢ LẬP QUẦY (TU-CHAY-4) — 11 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
+ * GIẢ LẬP QUẦY (TU-CHAY-4) — 10 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
  *
  * Mỗi hàm I<n>(q, ctx) trả mảng chuỗi mô tả dòng lệch — rỗng = đạt. Mô tả phải
  * ỔN ĐỊNH (có mã đơn, số tiền) vì chay.js chỉ in lần đầu một lệch xuất hiện.
@@ -134,17 +134,10 @@ const BAT_BIEN = {
     }
     return lech;
   },
-  // I10 (P26b) — hoàn vào ví của mỗi đơn ≤ số đơn đó đã trả bằng ví (ví khách + ví mẹ). Đọc theo SỔ nên đơn đã xoá vẫn soát.
-  // Đền bù báo hỏng ('compensation') không tính: nó đền cả đơn trả tiền mặt.
-  async I10(q) {
-    const ds = await q(`SELECT order_id, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
-        -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra
-      FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id`);
-    return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)
-      .map((r) => `đơn #${r.order_id}: hoàn vào ví ${tien(r.hoan)} > đã trả bằng ví ${tien(r.tra)}`);
-  },
-  // I11 (P26b, Q9) — như I10 nhưng theo TỪNG ví: mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
-  // I10 gộp mọi ví nên không thấy phần ví mẹ bị hoàn nhầm vào ví con (soát vòng 4).
+  // I11 (P26b, Q9) — theo TỪNG ví (ví khách + ví mẹ): mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
+  // Đọc theo SỔ nên đơn đã xoá vẫn soát. Đền bù báo hỏng ('compensation') không tính: nó đền cả đơn trả tiền mặt.
+  // (I10 gộp mọi ví đã bỏ ở HOC-2b, chủ quán chốt 2a: với số tiền đồng NGUYÊN — mọi kịch bản giả lập gửi số nguyên — tổng các
+  // ví lệch > 0,5 ⇒ có một ví lệch ≥ 1 ⇒ I11 lệch, nên I10 ⊂ I11. Tiền lẻ < 1đ chia nhiều ví thì I10 thấy mà I11 không.)
   async I11(q) {
     const ds = await q(`SELECT order_id, customer_phone, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
         -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra

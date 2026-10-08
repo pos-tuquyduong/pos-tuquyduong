@@ -14,6 +14,10 @@
  *      khi giả lập sập.
  *  I2  không có đột biến máy chủ tự nhiên → thử câu SQL bằng kho dữ liệu tay.
  *  E4  (đột biến vào chính giả lập) chạy tay: --gia-lap <bản sao đã phá>.
+ *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
+ *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
+ *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
+ *      tạm — server/ là liên kết về kho thật thì từng ghi XUYÊN (HOC-2b, 08.10).
  *
  *  Mọi giả lập con chạy với môi trường ĐÃ LỌC SẠCH, đúng như bộ kiểm gọi.
  * ═══════════════════════════════════════════════════════════════════════════
@@ -22,13 +26,14 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { Worker } = require('worker_threads');
 
 const GOC = path.join(__dirname, '..');
 const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const DONG_DAT = 'Giả lập: 18 kịch bản · 11 bất biến · ĐẠT';
+const DONG_DAT = 'Giả lập: 18 kịch bản · 10 bất biến · ĐẠT';
 
 let dat = 0;
 const hong = [];
@@ -77,24 +82,41 @@ const DOT_BIEN = [
   ['M10 báo hỏng hoàn ví ghi loại dòng ngoài danh sách trắng', 'routes/damages.js',
     "loai: 'compensation'", "loai: 'den_bu'", 1, 6, 'I4'],
   ['M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn)', 'routes/orders.js',
-    "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1, 13, 'I10'],
+    "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1, 13, 'I11'],
   ['M12 xoá đơn hoàn ví bất kể trạng thái', 'routes/orders.js',
-    'if (order.status === "completed") {', 'if (true) {', 1, 14, 'I10'],
+    'if (order.status === "completed") {', 'if (true) {', 1, 14, 'I11'],
   ['M13 duyệt hoàn trả phần ví mẹ vào ví con (Q9)', 'routes/refunds.js',
     'await ghiVi(tx, { phone: me.parent_phone,', 'await ghiVi(tx, { phone: refund.customer_phone,', 1, 17, 'I11'],
 ];
 
 function banSao(ma, file, goc, thay, soLan) {
   const thu = path.join(TAM, 'dot_bien_' + ma.split(' ')[0]);
-  fs.cpSync(path.join(GOC, 'server'), path.join(thu, 'server'), { recursive: true });
+  fs.cpSync(path.join(GOC, 'server'), path.join(thu, 'server'), { recursive: true, dereference: true });
   fs.symlinkSync(path.join(GOC, 'node_modules'), path.join(thu, 'node_modules'));
   const p = path.join(thu, 'server', file);
+  // HOC-2b: server/ (hay file con) là liên kết về kho thật thì writeFileSync ghi XUYÊN vào code thật (đã xảy ra 08.10).
+  if (!fs.realpathSync(p).startsWith(TAM + path.sep)) return { loi: `bản chép ${file} trỏ ra ngoài thư mục tạm — không ghi` };
   const nd = fs.readFileSync(p, 'utf8');
   const co = nd.split(goc).length - 1;
   if (co !== soLan) return { loi: `chuỗi gốc khớp ${co} lần, cần ${soLan} — đột biến không áp được` };
   fs.writeFileSync(p, nd.split(goc).join(thay));
   return { mayChu: path.join(thu, 'server') };
 }
+
+// C3: chạy hàm cắt ra trong worker (spawnSync chặn luồng) để bốn ca chạy cùng lúc, không cộng dồn thời gian.
+const C3_WORKER = `const { workerData: w, parentPort } = require('worker_threads');
+const ghi = { chac: [], canh: [] };
+try {
+  const fn = new Function('spawnSync', 'path', 'GOC', 'chac', 'canhBao', w.khoi + '\\nreturn chayBaiThat;')(require('child_process').spawnSync,
+    require('path'), w.goc, (t, dung) => ghi.chac.push(!!dung), (t, l) => ghi.canh.push(t + ' — ' + l));
+  fn(w.bai, undefined, ...w.thamSo);
+} catch (e) { ghi.loi = e.message; }
+parentPort.postMessage(ghi);`;
+const chayC3 = (khoi, goc, bai, thamSo) => new Promise((xong) => {
+  const w = new Worker(C3_WORKER, { eval: true, workerData: { khoi, goc, bai, thamSo } });
+  w.on('message', xong);
+  w.on('error', (e) => xong({ chac: [], canh: [], loi: e.message }));
+});
 
 async function main() {
   console.log('\nTHỬ GIẢ LẬP QUẦY (TU-CHAY-4)');
@@ -109,6 +131,52 @@ async function main() {
   const dataTruoc = chup();
   const rong = path.join(TAM, 'may_chu_rong');
   fs.mkdirSync(rong);
+
+  // ── C3 (HOC-2b): TRƯỚC các giả lập con song song — đo thời gian lúc máy rảnh ─────
+  console.log('\n[C3] chayBaiThat thật (cắt từ kiem_tra_truoc_khi_giao.js): xanh mà quá 80 % hạn → CẢNH BÁO');
+  let kt = '';
+  try { kt = fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8'); } catch { /* ca C3e đỏ */ }
+  const a3 = kt.indexOf('function chayBaiThat(');
+  const khoi = a3 < 0 ? '' : kt.slice(a3, kt.indexOf('\n}\n', a3) + 2);
+  const goc3 = path.join(TAM, 'c3');
+  fs.mkdirSync(goc3);
+  // Hạn giả 5 s → ngưỡng 4 s; bài ngủ 4,5 s: dư ~0,5 s mỗi phía cho node khởi động (bốn worker chạy cùng lúc).
+  fs.writeFileSync(path.join(goc3, 'ngu.js'), 'setTimeout(() => {}, 4500);\n');
+  fs.writeFileSync(path.join(goc3, 'hong.js'), 'setTimeout(() => process.exit(1), 4500);\n');   // ĐỎ mà CHẬM: đủ điều kiện cảnh báo trừ "xanh"
+  fs.writeFileSync(path.join(goc3, 'ngu70.js'), 'setTimeout(() => {}, 3500);\n');   // 70 % hạn giả: ngay DƯỚI ngưỡng (C3a ngay TRÊN, 90 %)
+  const c3 = await Promise.all([['ngu.js', [5000, true]], ['ngu.js', [120000, true]], ['hong.js', [5000, true]], ['ngu.js', [5000, false]],
+    ['ngu70.js', [5000, true]], ['ngu.js', [5000]]].map(([b, t]) => chayC3(khoi, goc3, b, t)));
+  const mo3 = (g) => `chac ${JSON.stringify(g.chac)} · ${g.canh.length} cảnh báo${g.canh.length ? ' (' + g.canh[0] + ')' : ''}${g.loi ? ' · lỗi: ' + g.loi : ''}`;
+  k('C3e cắt + dựng được hàm chayBaiThat từ kiem_tra_truoc_khi_giao.js', !!khoi && c3.every((g) => !g.loi), khoi ? c3.map(mo3).join(' | ') : 'không thấy function chayBaiThat(');
+  k('C3a bài xanh 4,5 s, hạn giả 5 s (80 % = 4 s), cờ bật → xanh + đúng 1 cảnh báo', c3[0].chac.join() === 'true' && c3[0].canh.length === 1, mo3(c3[0]));
+  k('C3b cùng bài, hạn thật 120 s, cờ bật → xanh, 0 cảnh báo', c3[1].chac.join() === 'true' && !c3[1].canh.length, mo3(c3[1]));
+  k('C3c bài thoát 1 sau 4,5 s (quá 80 % hạn giả 5 s), cờ bật → FAIL, 0 cảnh báo', c3[2].chac.join() === 'false' && !c3[2].canh.length, mo3(c3[2]));
+  k('C3d bài xanh quá 80 % hạn giả nhưng cờ TẮT (bài khác của bộ kiểm) → xanh, 0 cảnh báo', c3[3].chac.join() === 'true' && !c3[3].canh.length, mo3(c3[3]));
+  // C3g + C3a kẹp tỉ lệ ngưỡng trong (70 %, 90 %); C3h khoá cờ MẶC ĐỊNH bằng hành vi (gọi 3 đối số, không truyền cờ).
+  k('C3g bài xanh 3,5 s (70 % hạn giả 5 s, dưới ngưỡng 80 %), cờ bật → xanh, 0 cảnh báo', c3[4].chac.join() === 'true' && !c3[4].canh.length, mo3(c3[4]));
+  k('C3h bài xanh 4,5 s, hạn giả 5 s, KHÔNG truyền cờ (mặc định) → xanh, 0 cảnh báo', c3[5].chac.join() === 'true' && !c3[5].canh.length, mo3(c3[5]));
+  // C3f: lời gọi THẬT trong bộ kiểm — đúng hai lời gọi bật cờ (giả lập + bài này), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
+  // (lồng ngoặc, xuống dòng đều được); đối số cờ (thứ tư) chỉ được là chữ true/false viết thẳng — bật qua biến là ĐỎ.
+  const doiSo = (i) => { // đối số cấp ngoài của lời gọi mở ngoặc tại i
+    const ra = ['']; let sau = 0;
+    for (let j = i + 1; j < kt.length; j++) {
+      const c = kt[j];
+      if (c === '(' || c === '[' || c === '{') sau++;
+      else if ((c === ')' || c === ']' || c === '}') && sau-- === 0) return ra.map((x) => x.trim());
+      else if (c === ',' && sau === 0) { ra.push(''); continue; }
+      ra[ra.length - 1] += c;
+    }
+    return null;
+  };
+  const goi = [...kt.matchAll(/(function\s+)?\bchayBaiThat\s*\(/g)].filter((m) => !m[1]).map((m) => doiSo(m.index + m[0].length - 1));
+  const lech = goi.filter((a) => !a || (a.length > 3 && !/^(true|false)$/.test(a[3])));
+  const bat = goi.filter((a) => a && a[3] === 'true').map((a) => a[0]).sort().join(' ');
+  // Ngưỡng đúng chữ `han * 0.8` (chủ quán chốt 80 %): C3a/C3g chỉ kẹp tỉ lệ trong (70 %, 90 %) — soát chat 08.10 cài 0,75 / 0,85 vẫn SỐNG.
+  const nguong80 = (khoi.match(/\bhan \* 0\.8(?![\d.])/g) || []).length;
+  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8',
+    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js'" && !lech.length && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt)
+      && nguong80 === 1,
+    `bật: ${bat || '(không)'} · ${goi.length} lời gọi · cờ không phải chữ true/false: ${lech.map((a) => (a || ['?'])[0]).join(', ') || '(không)'} · chữ han * 0.8: ${nguong80} lần`);
 
   // ── E3 / A1 ─────────────────────────────────────────────────────────────
   const TU_CHOI = [['TURSO_DATABASE_URL', 'libsql://gia-tri-1'], ['TURSO_AUTH_TOKEN', 'gia-tri-2'], ['DATABASE_URL', 'gia-tri-3'],
