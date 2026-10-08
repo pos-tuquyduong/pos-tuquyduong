@@ -25,7 +25,7 @@ DOT_BIEN = [
     (O, '      const tx = await beginTransaction();\n      let order;\n',
         '      const cu = await queryOne("SELECT status FROM pos_orders WHERE id = ?", [req.params.id]);\n      const tx = await beginTransaction();\n      let order;\n', 1),
     (O, "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1),
-    (O, 'if (doi.changes !== 1) {', "if (cu?.status !== 'completed') {", 1)], r'KB15 → (HTTP: hai lệnh huỷ|I10)'),
+    (O, 'if (doi.changes !== 1) {', "if (cu?.status !== 'completed') {", 1)], r'KB15 → (HTTP: hai lệnh huỷ|I11)'),
   ('huy-bo-tu-choi-yeu-cau', 'thu', [(O, "SET status = 'rejected', rejection_reason = 'Đơn đã huỷ', processed_by = ?", "SET processed_by = ?", 1)], r'✗ A4a'),
   ('huy-tu-choi-ngoai-tx', 'thu', [(O, "        await tx.run(\n          `UPDATE pos_refund_requests SET status = 'rejected'",
                                        "        await run(\n          `UPDATE pos_refund_requests SET status = 'rejected'", 1)], r'✗ A4b'),
@@ -34,7 +34,7 @@ DOT_BIEN = [
   ('xoa-doc-don-ngoai-tx', 'kb14', [
     (O, '    const tx = await beginTransaction();\n    let order, orderItems;\n',
         '    const cu = await queryOne("SELECT status FROM pos_orders WHERE id = ?", [req.params.id]);\n    const tx = await beginTransaction();\n    let order, orderItems;\n', 1),
-    (O, 'if (order.status === "completed") {', 'if (cu?.status === "completed") {', 1)], r'KB14 → (HTTP: xoá chồng|I10)'),
+    (O, 'if (order.status === "completed") {', 'if (cu?.status === "completed") {', 1)], r'KB14 → (HTTP: xoá chồng|I11)'),
   # ── tạo đơn ──
   ('tao-don-chi-kiem-ngoai-tx', 'kb17', [(O, 'soCot: tru.soTien, khongAm: true', 'soCot: tru.soTien, khongAm: false', 1)], r'KB17 → HTTP: hai đơn ví'),
   # ── ví mẹ (soát vòng 3): mỗi CHỖ GỌI ghiVi là một chỗ vá riêng ──
@@ -135,8 +135,7 @@ DOT_BIEN = [
   # ── giả lập: bất biến ──
   ('I1-nhanh-refunded-false', 'gl13', [('bat_bien.js', "|| (r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung)))))",
                                          "|| (false && String(r.luc_hoan) >= String(r.luc_dung)))))", 1)], r'KB13 → I1:'),
-  # Bỏ I10 → M11 của thu_gia_lap không còn bất biến nào bắt (giả lập con vẫn CHẠY: thoát 1 vì mong HTTP, không phải 3 = từ chối).
-  ('I10-bo', 'thugl', [('bat_bien.js', 'return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)', 'return ds.filter(() => false)', 1)], r'✗ M11 .*thoát 1 '),
+  # I10-bo: bỏ ở HOC-2b — I10 đã xoá (I10 ⊂ I11, chủ quán chốt 2a); neo của nó nay chỉ còn trong I11.
 ]
 # BUSY → 409: bỏ ánh xạ ở TỪNG route (lần xuất hiện thứ i của loiGhi trong file) → đúng ca K1 của route đó đỏ.
 for f, ds in [(O, ['tạo đơn', 'huỷ đơn', 'xoá đơn']), (R, ['tạo yêu cầu hoàn', 'duyệt hoàn', 'từ chối hoàn']),
