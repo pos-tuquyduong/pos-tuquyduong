@@ -28,7 +28,8 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
   không chỉ mã thoát ≠ 0 (thiếu file cũng thoát 1). Mỗi ca chặn **chỉ vi phạm đúng một phép** — ca gộp luôn đỏ nhờ phép
   khác; hai cổng chồng nhau cũng thế (P26b: cổng đơn che cổng yêu cầu). Ca "phải KHÔNG X" chỉ có giá trị khi đầu vào đủ mọi
   điều kiện kích hoạt X trừ điều kiện đang thử (HOC-2b: "bài đỏ thì không cảnh báo" dùng bài đỏ thoát NGAY — không bao giờ tới ngưỡng).
-- **Chặn:** phép so bằng → ca lệch CẢ HAI chiều; phép tiền tố → ca chuỗi nằm GIỮA; luôn cài đột biến "nới phép".
+- **Chặn:** phép so bằng / NGƯỠNG (cả tỉ lệ) → ca ngay trên + ngay dưới; phép tiền tố → ca chuỗi nằm GIỮA; luôn cài đột biến
+  "nới phép". Giá trị MẶC ĐỊNH là hành vi — khoá bằng ca KHÔNG truyền đối số, không chỉ soi chữ ký hàm (HOC-2b C3g, C3h).
   "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ.
 - **Chặn:** con số "đạt" phải kèm lần chạy lại trên HEAD; đột biến neo chuỗi NGẮN, RIÊNG (neo dài rữa sau vài việc).
   Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi trên bản chưa vá — dựng đột biến đỏ
