@@ -1,106 +1,77 @@
 # TÁM KHUÔN LỖI — đọc TRƯỚC khi viết dòng code đầu tiên
 
-Rút từ sổ rà soát 24.08–17.09.2026: 27 lỗi, **10 lỗi chỉ lộ ra khi chủ quán hỏi
-lại**, 3 lỗi đã lên production. Các lỗi này KHÔNG ngẫu nhiên — chúng lặp theo
-tám khuôn dưới đây. Biết khuôn thì chặn được trước khi giao.
+Rút từ sổ rà soát từ 24.08.2026: lỗi lặp theo tám khuôn dưới đây, **nhiều lỗi chỉ lộ ra khi chủ quán hỏi lại**, vài lỗi
+đã lên production. Biết khuôn thì chặn được trước khi giao. Lời dặn nào đã có phép máy làm thay thì không nhắc lại ở
+đây — ghi tên phép: bài thử đỏ trên gốc ← cổng A11/A12; đổi bài sau khi ghi bằng chứng ← A16; tên đột biến trong hồ sơ
+← A17; đột biến vá sai ← A18.
 
 ---
 
 ## K1 · Khẳng định về code mà chưa đọc code
-Nguy hiểm nhất vì nó làm hỏng **quyết định**, không chỉ hỏng một dòng mã.
-Đã gây: tưởng POS tự sinh tab nhóm (thật ra `Sales.jsx` viết cứng 2 nút); coi
-file `.db` trong zip là production; xếp 4 việc đã xong vào danh sách còn phải làm.
-
-- **Dấu hiệu:** câu trả lời bắt đầu bằng "thường thì", "chắc là", hoặc dựa vào
-  trí nhớ về file đã đọc lượt trước.
-- **Chặn:** mọi khẳng định về hành vi hệ thống phải kèm **tên file + số dòng vừa
-  đọc trong lượt này**. Không có thì nói "chưa đọc, để tôi kiểm".
+Nguy hiểm nhất vì nó làm hỏng **quyết định**. Đã gây: tưởng POS tự sinh tab nhóm (thật ra `Sales.jsx` viết cứng 2 nút);
+xếp 4 việc đã xong vào danh sách còn phải làm.
+- **Dấu hiệu:** "thường thì", "chắc là", trí nhớ về file đọc lượt trước; xếp nặng/nhẹ theo nhãn ("admin", "hiếm",
+  "chưa có trong kịch bản").
+- **Chặn:** mọi khẳng định kèm **tên file + số dòng vừa đọc trong lượt này**, không có thì nói "chưa đọc". Xếp đường
+  tiền theo cái khách chạm ở quầy + middleware + khoá trong thân hàm; nhánh hỏng (SX lỗi, mạng) đụng kho/tiền là NẶNG.
 
 ## K2 · Phép chốt báo ĐỎ trong khi code đúng
-Đã 12 lần. Tin ngay kết quả đỏ thì đi sửa một thứ đang lành.
-Thường do phép chốt soi nhầm file, hoặc còn tìm tên biến của bản cũ.
-
-- **Chặn:** đỏ thì **truy nguyên trước, sửa sau**. In ra chuỗi thật đang có
-  trong file rồi mới kết luận.
+Đã 12 lần — thường do soi nhầm file, hoặc còn tìm tên biến của bản cũ.
+- **Dấu hiệu:** đỏ ngay sau khi đổi tên / dời code mà hành vi không đổi.
+- **Chặn:** đỏ thì **truy nguyên trước, sửa sau** — in chuỗi thật đang có trong file rồi mới kết luận.
 
 ## K3 · Bài kiểm báo XANH oan — nguy hơn K2 nhiều lần
-Báo đỏ oan thì mất thời gian. Báo xanh oan thì **lỗi lên production**.
-Đã gây: bài thử tự gắn middleware vào đúng chỗ rồi đo (kiểm ý tưởng, không kiểm
-patch — patch đặt middleware sau 25 route nên không bao giờ chạy); bài thử chỉ
-phủ `discount_value` mà bỏ `discount`, patch vô tác dụng mà vẫn 20 ca đạt.
-
-- **LUẬT CỨNG:** mọi bài thử phải chạy trên **bản CHƯA vá** và **bắt buộc phải hỏng**. Xanh cả hai bên = vô giá trị, viết lại.
-- Bốn nhánh phải phá thử: chưa vá · marker suông · vá rồi quên marker · đủ cả hai. Tên ca nói đúng điều máy kiểm (P26b M6: tên "= 1", kiểm "≤ 1").
-- Ca "phải ĐỎ" khớp **câu kết luận** của chương trình, không chỉ mã thoát ≠ 0: thiếu file cũng thoát 1
-  (`thu_cong.js`, TU-CHAY-3 — 63 ca "đỏ" khi `cong.js` còn chưa có).
-- Đột biến không dựng được ca hỏng thật thì ghi **CHƯA KIỂM**, không đếm là phép (bọc hàm `xem_thu.sh`, TU-CHAY-2).
-- "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ — đọc WHERE của bất biến trước (P26a: KB12 ≠ I1-refunded).
-- Mỗi phép chặn một ca **chỉ vi phạm đúng phép đó** (từng phần tử của danh sách cũng vậy): ca gộp luôn đỏ nhờ phép
-  khác nên đột biến không bắt được (cổng TU-CHAY-3: deny `Edit(./.claude/**)` sống qua 2 vòng soát). Hai CỔNG chồng nhau
-  cũng thế (P26b: cổng đơn che cổng yêu cầu). Lỗi hạ tầng giả lập theo đường Turso: BEGIN lười → lỗi ở câu ĐẦU (P26b K1b).
-- "Đỏ trên gốc" chỉ có giá trị kèm "xanh trên bản vá, chạy chính file đó" — file `thu_*.js` luôn đỏ từng làm cổng xanh.
-  Đổi bài sau khi ghi bằng chứng → chạy lại, chép lại; không "đỏ theo cùng lẽ" (P26b: 43 ≠ 55 ca, lọt 2 vòng soát).
-- Lỗi thất thường (tranh cổng, chạy song song): "N/N lần sạch" KHÔNG là bằng chứng nếu cùng khung chạy chưa cho thấy lỗi trên
-  bản chưa vá — TU-CHAY-4 ghi "13 lần sạch" trong khi bản chưa vá cũng 40/40 sạch. Dựng đột biến đỏ TẤT ĐỊNH, không được thì CHƯA KIỂM.
+Báo xanh oan thì **lỗi lên production**. Đã gây: bài thử tự gắn middleware vào đúng chỗ rồi đo (patch đặt sau 25 route
+nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ `discount` — patch vô tác dụng vẫn 20 ca đạt.
+- **Dấu hiệu:** bài xanh cả trước lẫn sau khi vá; tên ca nói một đằng, máy kiểm một nẻo (P26b M6: tên "= 1", kiểm "≤ 1").
+- **Chặn:** phá thử bốn nhánh: chưa vá · marker suông · vá rồi quên marker · đủ cả hai. Ca "phải ĐỎ" khớp **câu kết luận**,
+  không chỉ mã thoát ≠ 0 (thiếu file cũng thoát 1). Mỗi ca chặn **chỉ vi phạm đúng một phép** — ca gộp luôn đỏ nhờ phép
+  khác; hai cổng chồng nhau cũng thế (P26b: cổng đơn che cổng yêu cầu).
+- **Chặn:** phép so bằng → ca lệch CẢ HAI chiều; phép tiền tố → ca chuỗi nằm GIỮA; luôn cài đột biến "nới phép".
+  "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ.
+- **Chặn:** con số "đạt" phải kèm lần chạy lại trên HEAD; đột biến neo chuỗi NGẮN, RIÊNG (neo dài rữa sau vài việc).
+  Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi trên bản chưa vá — dựng đột biến đỏ
+  TẤT ĐỊNH, không được thì ghi **CHƯA KIỂM**, không đếm là phép.
 
 ## K4 · Sửa nửa vời — quên đường song song
-Sửa một đường, để nguyên đường kia làm cùng việc đó. Bốn lần trong một phiên,
-chỗ thứ hai nằm ngay trong cùng hàm hoặc cách chưa tới 150 dòng.
-
+Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ thứ hai thường trong cùng hàm hoặc cách chưa tới 150 dòng.
+Đã gây: P26b gắn cổng cho khoản hoàn ví mà xoá đơn vẫn hoàn gói 2 lần.
 - **Dấu hiệu:** vừa tìm ra một lỗi dạng X → gần như chắc chắn có chỗ thứ hai cùng dạng X trong cùng file.
-- **Chặn:** tìm ra một lỗi thì `grep` cả file tìm mọi chỗ cùng khuôn **trước khi
-  viết dòng sửa đầu tiên**. Dời câu đọc vào `try` → rà `catch`/`finally` đọc biến đó (P26b: `order.code` → 500). Gắn
-  cổng cho một khoản hoàn (ví) → grep mọi khoản hoàn khác cùng hàm: gói, thẻ, kho, điểm (P26b: xoá đơn hoàn gói 2 lần).
-  Gom về hàm chung → mỗi CHỖ GỌI là chỗ vá riêng; "hoàn hai lần" in sổ theo TỪNG ví trước khi kết luận (P26b: ví mẹ).
-- "Cùng khuôn với X" phải giống X ở **mọi loại đầu vào**, không chỉ ca vừa gặp: T2 lọc `Dirent.isFile()` (bỏ
-  symlink) trong khi trình cài lọc `statSync().isFile()` (giữ symlink) — vá thư mục con mà nới T2 với symlink (HOC-1).
-- Tài liệu hứa theo ĐỐI TƯỢNG ("file ghi trong mục") thì phép chặn phải gắn theo đối tượng, không theo một nhánh
-  kết quả: phép (d) chỉ chạy cho bài "xanh trên gốc" → thêm một ca đỏ là lách được (HOC-1, soát vòng 2).
-- Tài liệu cũng có đường song song: sửa / phủ định một câu thì grep CẢ FILE tìm câu cùng nghĩa (TU-CHAY-4: "cổng chỉ cảnh
-  báo" sót ở B12, "dùng lại 6 câu 27.09" sót ở dòng 14 — mỗi vòng soát bắt thêm một chỗ).
+- **Chặn:** `grep` cả file tìm mọi chỗ cùng khuôn **trước khi viết dòng sửa đầu tiên**: dời câu đọc vào `try` → rà
+  `catch`/`finally`; gắn cổng một khoản hoàn → mọi khoản hoàn khác (gói, thẻ, kho, điểm); gom về hàm chung → mỗi CHỖ GỌI
+  là chỗ vá riêng. "Cùng khuôn" phải giống ở **mọi loại đầu vào** (HOC-1: `Dirent.isFile()` bỏ symlink, `statSync` giữ).
+- **Chặn:** tài liệu hứa theo ĐỐI TƯỢNG thì phép chặn gắn theo đối tượng, không theo một nhánh kết quả. Sửa / phủ định
+  một câu tài liệu → grep CẢ FILE tìm câu cùng nghĩa; chạy lại bằng chứng → grep hồ sơ tìm mọi câu trích con số cũ.
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
-Lỗi nặng nhất phiên trước, và nó đã lên production: patch chặn đơn khai "lấy từ
-gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
-đúng như vậy. Quầy mất khả năng bán kiểu đó cho tới khi vá.
-
-- Siết một phép (soi chuỗi → so cấu trúc) cũng là thêm phép chặn: liệt kê lại luồng hợp lệ, nhất là luồng đổi
-  chính thứ làm chuẩn so sánh (cổng TU-CHAY-3 vòng 2: PR đổi `muc_gac` rồi cài đúng vẫn đỏ vĩnh viễn).
-- **Chặn:** thêm phép chặn nào cũng phải liệt kê **mọi luồng hợp lệ** đi qua
-  điều kiện đó, rồi viết một ca thử "**phải KHÔNG bị chặn**" cho từng luồng — kể cả DỮ LIỆU CŨ đang nằm trên production (P26b Q10).
-- Chiều ngược: ca "phải qua" (200) chỉ khoá luồng **HỢP LỆ** — đọc phân quyền + đường tiền của route trước khi viết
-  `status === 200` (P26a C4 khoá `POST /packages/buy` — không quyền, không thu tiền — vào pre-commit; soát bắt).
+Đã lên production: chặn đơn khai "lấy từ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
+đúng như vậy; quầy mất khả năng bán kiểu đó cho tới khi vá.
+- **Dấu hiệu:** thêm hoặc siết một phép (soi chuỗi → so cấu trúc) mà chưa liệt kê ai đang đi qua nó.
+- **Chặn:** liệt kê **mọi luồng hợp lệ** qua điều kiện, mỗi luồng một ca "**phải KHÔNG bị chặn**" — kể cả DỮ LIỆU CŨ trên
+  production và luồng đổi chính thứ làm chuẩn so sánh. Chiều ngược: ca "phải qua" (200) chỉ khoá luồng **HỢP LỆ** — đọc
+  phân quyền + đường tiền của route trước khi viết `status === 200`.
+- **Chặn:** bài thử mới phải chạy được trong mọi bản sao đột biến đang dùng (có bản sao chỉ chép `tu_chay/` hoặc `server/`).
 
 ## K6 · Vi phạm luật có sẵn của chính dự án
-Đã gây: dùng `fetch` trần trong `Layout.jsx`, vi phạm luật bánh cóc. Bộ kiểm của
-chủ quán bắt được, không phải tự bắt.
-
-- **Chặn:** chạy bộ kiểm **trước khi giao**, không phải sau. Và đọc mục G trong
-  `CHECKLIST_CODE.md` — phần lớn dạng lỗi máy không kiểm tự động được.
+Đã gây: `fetch` trần trong `Layout.jsx`, vi phạm bánh cóc — bộ kiểm của chủ quán bắt, không phải tự bắt.
+- **Dấu hiệu:** giao xong mới chạy bộ kiểm.
+- **Chặn:** chạy bộ kiểm **trước khi giao**, và đọc mục G trong `CHECKLIST_CODE.md` — phần máy không kiểm được.
 
 ## K7 · Lỗi kỹ thuật thường và lỗi giao nhận
-Middleware đặt sau route · ghi lại tồn cho mọi món mọi lần tải · gọi `setError`
-trong hàm cập nhật của `setCart` · quên `dotenv` trong công cụ thử · sổ việc ghi
-17 mà liệt kê 20 · để lẫn patch cũ trong thư mục giao · bài thử sai tên bảng cột
-(`customer_packages` thay vì `pos_customer_packages`) · **bảo chạy `npm run kiem`
-ở POS trong khi POS dùng `npm test`** · commit không thành mà vẫn push → "Everything up-to-date",
-không đẩy gì (TU-CHAY-2).
-
-- **Chặn:** tên bảng, tên cột, tên script — tra trong code, không nhớ từ kho kia.
-- **Chặn:** sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong `git log origin/viec/<MÃ>..HEAD` phải rỗng.
+Middleware đặt sau route · `setError` trong hàm cập nhật của `setCart` · quên `dotenv` trong công cụ thử · sai tên bảng
+(`customer_packages` thay vì `pos_customer_packages`) · **bảo chạy `npm run kiem` ở POS trong khi POS dùng `npm test`** ·
+commit không thành mà vẫn push → "Everything up-to-date".
+- **Dấu hiệu:** tên bảng, cột, script, lệnh viết theo trí nhớ.
+- **Chặn:** tra trong code, không nhớ từ kho kia. Sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong
+  `git log origin/viec/<MÃ>..HEAD` phải rỗng.
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
-Khuôn nguy hiểm nhất về cách nghĩ. Bộ kiểm báo `POST /orders` chưa có cổng phân
-quyền; kết luận "nó khắt khe quá" và đề nghị nới lỏng bộ kiểm. Sai hoàn toàn:
-server chưa bao giờ kiểm món có nằm trong gói không — khách có gói TRÀ khai lấy
-NƯỚC ÉP từ gói, server vẫn cho 0 đồng. Sửa đúng cách thì cảnh báo tự tắt, **không
-phải đụng một dòng nào** trong bộ kiểm.
-
-- **Dấu hiệu:** "phép kiểm này bắt oan", "nó khắt khe quá", "mình đã chặn ở chỗ
-  khác rồi" — nhất là khi kèm đề nghị sửa chính phép kiểm.
-- **Chặn:** phép kiểm do chủ quán viết, sau khi đã bị lừa nhiều lần, **mặc định
-  là nó đúng**. Trước khi nghĩ đến nới lỏng, phải tìm cho ra **lỗ mà nó đang
-  cảnh báo**. Tìm không ra thường nghĩa là chưa tìm đủ kỹ.
+Đã gây: bộ kiểm báo `POST /orders` chưa có cổng phân quyền; kết luận "nó khắt khe quá". Sai: khách có gói TRÀ khai lấy
+NƯỚC ÉP từ gói, server vẫn cho 0 đồng. Sửa đúng thì cảnh báo tự tắt, **không đụng một dòng** bộ kiểm.
+- **Dấu hiệu:** "phép kiểm này bắt oan", "khắt khe quá", "đã chặn ở chỗ khác rồi" — nhất là kèm đề nghị sửa phép kiểm.
+- **Chặn:** phép kiểm của chủ quán **mặc định là đúng** — tìm cho ra **lỗ nó cảnh báo** trước khi nghĩ đến nới.
+- **Chặn (chiều ngược):** phép tự-kiểm của mình mà báo oan lúc bình thường thì dạy người bỏ qua nó — chọn ngưỡng theo
+  số đo thật, đo CHẠY RIÊNG (đo lúc máy chạy việc khác ra 91 s thay vì 51 s — HOC-2b); sát ngưỡng thì báo chủ quán, không nới.
 
 ---
 
@@ -114,7 +85,4 @@ phải đụng một dòng nào** trong bộ kiểm.
 
 Không trả lời được câu nào thì **chưa xong**, không được báo xong.
 
----
-
-**Phát hiện lỗi mới:** thêm vào file này và xếp nó vào khuôn. Không thuộc khuôn
-nào thì có khuôn thứ chín — ghi lại ngay, đừng để lần sau tự khám phá lại.
+**Phát hiện lỗi mới:** thêm vào file này và xếp vào khuôn; không thuộc khuôn nào thì mở K9 — ghi ngay.
