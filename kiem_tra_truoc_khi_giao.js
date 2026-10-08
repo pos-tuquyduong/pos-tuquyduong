@@ -752,7 +752,7 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
 const NGUONG_KICH_BAN = 18;
 const NGUONG_BAT_BIEN = 10;   // 11 → 10: bỏ I10, I10 ⊂ I11, không giảm độ phủ (HOC-2b, chủ quán chốt 2a)
-// S4 — đo CHẠY RIÊNG 07.10.2026 (máy mây; chat đo 68 s / 80 s): giả lập 67 s, thu_gia_lap 72 s (> 15 s) → CHỈ chạy
+// S4 — đo CHẠY RIÊNG 08.10.2026 (máy mây; chat đo 68 s / 80 s): giả lập 67 s, thu_gia_lap 75 s (> 15 s) → CHỈ chạy
 // ở --day-du (cổng cong-chay chạy --day-du); hạn 120 s, xanh mà quá 80 % (96 s) → CẢNH BÁO (HOC-2b C3).
 {
   if (DAY_DU) {

@@ -10,6 +10,8 @@
 #   glk  : chép kiem_tra_truoc_khi_giao.js + cong_cu/ (server, tu_chay, node_modules nối) → thu_gia_lap của bản sao (C3)
 #   kiem : chép mọi file git theo dõi (trừ attached_assets/) → bộ kiểm bản nhanh của bản sao (C5)
 #   tc4  : như kiem + git init/commit trong bản sao → python3 viec/TU-CHAY-4/dot_bien.py S3 TRONG bản sao (D3)
+#   glsym: như glk nhưng server/ của bản sao là LIÊN KẾT tới một bản chép khác (`that_server`, đóng vai kho thật) → thu_gia_lap;
+#          that_server đổi = "GHI XUYÊN" (khoá banSao của thu_gia_lap — sự cố 08.10)
 import importlib.util, os, re, shutil, subprocess, sys, tempfile
 
 GOC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -38,6 +40,16 @@ DB = [
                               'if (xanh && Date.now() - t0 > han * 0.8) {')], ['✗ C3d ']),
     ('VS-C3-nguong-giay-co-dinh', 'glk', [(KT, 'if (xanh && canhGan && Date.now() - t0 > han * 0.8) {',
                                             'if (xanh && canhGan && Date.now() - t0 > 96000) {')], ['✗ C3a ']),
+    ('VS-C3-bo-xanh', 'glk', [(KT, 'if (xanh && canhGan && Date.now() - t0 > han * 0.8) {',
+                                'if (canhGan && Date.now() - t0 > han * 0.8) {')], ['✗ C3c ']),
+    ('VS-C3-mac-dinh-bat', 'glk', [(KT, 'function chayBaiThat(bai, env, han = 120000, canhGan = false) {',
+                                     'function chayBaiThat(bai, env, han = 120000, canhGan = true) {')], ['✗ C3f ']),
+    ('BV-C3-bo-co-gia-lap', 'glk', [(KT, "chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH, 120000, true)",
+                                      "chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH)")], ['✗ C3f ']),
+    ('M0-glsym', 'glsym', [], []),
+    ('BV-banSao-bo-khoa', 'glsym', [('cong_cu/thu_gia_lap.js', "{ recursive: true, dereference: true }", '{ recursive: true }'),
+                                    ('cong_cu/thu_gia_lap.js', "if (!fs.realpathSync(p).startsWith(TAM + path.sep)) return", 'if (false) return')],
+     ['GHI XUYÊN']),
     ('M0-kiem', 'kiem', [], []),
     ('C5-P20-hoan-bao-huy', 'kiem', [(SC, "if (don.status === 'cancelled') {",
                                       "if (don.status === 'cancelled' || don.status === 'refunded') {")],
@@ -75,12 +87,17 @@ def chay(ten, kieu, doi, phai):
             shutil.copytree(os.path.join(GOC, 'cong_cu', 'gia_lap'), os.path.join(tam, 'cong_cu', 'gia_lap'))
             noi(tam, ['server', 'tu_chay', 'node_modules'])
             lenh = ['node', os.path.join(tam, 'cong_cu', 'gia_lap', 'chay.js'), '--den-kb', '17']
-        elif kieu == 'glk':
+        elif kieu in ('glk', 'glsym'):
             shutil.copytree(os.path.join(GOC, 'cong_cu'), os.path.join(tam, 'cong_cu'))
             shutil.copy2(os.path.join(GOC, KT), os.path.join(tam, KT))
             # server/ CHÉP THẬT, không nối: thu_gia_lap chép server/ rồi sửa bản chép — nối symlink thì cpSync chép cái liên
             # kết và 13 đột biến M1–M13 ghi XUYÊN vào server/ thật (đã xảy ra 08.10, HOC-2b — bắt nhờ KHO BẨN).
-            shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tam, 'server'))
+            if kieu == 'glk':
+                shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tam, 'server'))
+            else:
+                that = os.path.join(os.path.dirname(tam), os.path.basename(tam) + '_that_server')
+                shutil.copytree(os.path.join(GOC, 'server'), that)
+                os.symlink(that, os.path.join(tam, 'server'))
             noi(tam, ['tu_chay', 'node_modules'])
             lenh, cwd = ['node', 'cong_cu/thu_gia_lap.js'], tam
         else:  # kiem, tc4
@@ -102,8 +119,14 @@ def chay(ten, kieu, doi, phai):
                 return f'HỎNG — chuỗi gốc khớp {s.count(a)} lần trong {f}, cần 1'
             os.remove(p)  # xoá rồi ghi: lỡ p là liên kết về kho thật thì cũng không ghi xuyên qua
             open(p, 'w', encoding='utf-8').write(s.replace(a, b))
+        anh = lambda d: sorted((os.path.relpath(os.path.join(a, f), d), open(os.path.join(a, f), 'rb').read())
+                               for a, _, fs_ in os.walk(d) for f in fs_)
+        that = os.path.join(os.path.dirname(tam), os.path.basename(tam) + '_that_server')
+        truoc_that = anh(that) if kieu == 'glsym' else None
         r = subprocess.run(lenh, cwd=cwd, env=env, capture_output=True, text=True, timeout=900)
         ra = re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
+        if kieu == 'glsym' and anh(that) != truoc_that:
+            ra += '\n✗ GHI XUYÊN — server/ "thật" (đích của liên kết) bị sửa\n'
         do = [l.strip() for l in ra.splitlines() if '✗' in l and 'CÓ LỖI' not in l]
         if not doi:
             thieu = [x for x in phai if x not in ra]
@@ -120,6 +143,7 @@ def chay(ten, kieu, doi, phai):
         return f'ĐỎ đúng chỗ — ' + ' | '.join(trung[:3])[:400]
     finally:
         shutil.rmtree(tam, ignore_errors=True)
+        shutil.rmtree(tam + '_that_server', ignore_errors=True)
 
 
 def anh_kho():

@@ -136,7 +136,8 @@ const BAT_BIEN = {
   },
   // I11 (P26b, Q9) — theo TỪNG ví (ví khách + ví mẹ): mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
   // Đọc theo SỔ nên đơn đã xoá vẫn soát. Đền bù báo hỏng ('compensation') không tính: nó đền cả đơn trả tiền mặt.
-  // (I10 gộp mọi ví đã bỏ ở HOC-2b: tiền nguyên, tổng các ví lệch > 0,5 ⇒ có một ví lệch ≥ 1 ⇒ I11 lệch — I10 ⊂ I11.)
+  // (I10 gộp mọi ví đã bỏ ở HOC-2b, chủ quán chốt 2a: với số tiền đồng NGUYÊN — mọi kịch bản giả lập gửi số nguyên — tổng các
+  // ví lệch > 0,5 ⇒ có một ví lệch ≥ 1 ⇒ I11 lệch, nên I10 ⊂ I11. Tiền lẻ < 1đ chia nhiều ví thì I10 thấy mà I11 không.)
   async I11(q) {
     const ds = await q(`SELECT order_id, customer_phone, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
         -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra

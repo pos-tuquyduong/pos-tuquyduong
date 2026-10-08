@@ -16,6 +16,8 @@
  *  E4  (đột biến vào chính giả lập) chạy tay: --gia-lap <bản sao đã phá>.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
+ *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
+ *      tạm — server/ là liên kết về kho thật thì từng ghi XUYÊN (HOC-2b, 08.10).
  *
  *  Mọi giả lập con chạy với môi trường ĐÃ LỌC SẠCH, đúng như bộ kiểm gọi.
  * ═══════════════════════════════════════════════════════════════════════════
@@ -89,9 +91,11 @@ const DOT_BIEN = [
 
 function banSao(ma, file, goc, thay, soLan) {
   const thu = path.join(TAM, 'dot_bien_' + ma.split(' ')[0]);
-  fs.cpSync(path.join(GOC, 'server'), path.join(thu, 'server'), { recursive: true });
+  fs.cpSync(path.join(GOC, 'server'), path.join(thu, 'server'), { recursive: true, dereference: true });
   fs.symlinkSync(path.join(GOC, 'node_modules'), path.join(thu, 'node_modules'));
   const p = path.join(thu, 'server', file);
+  // HOC-2b: server/ (hay file con) là liên kết về kho thật thì writeFileSync ghi XUYÊN vào code thật (đã xảy ra 08.10).
+  if (!fs.realpathSync(p).startsWith(TAM + path.sep)) return { loi: `bản chép ${file} trỏ ra ngoài thư mục tạm — không ghi` };
   const nd = fs.readFileSync(p, 'utf8');
   const co = nd.split(goc).length - 1;
   if (co !== soLan) return { loi: `chuỗi gốc khớp ${co} lần, cần ${soLan} — đột biến không áp được` };
@@ -136,16 +140,23 @@ async function main() {
   const khoi = a3 < 0 ? '' : kt.slice(a3, kt.indexOf('\n}\n', a3) + 2);
   const goc3 = path.join(TAM, 'c3');
   fs.mkdirSync(goc3);
-  fs.writeFileSync(path.join(goc3, 'ngu.js'), 'setTimeout(() => {}, 2600);\n');
-  fs.writeFileSync(path.join(goc3, 'hong.js'), 'process.exit(1);\n');
-  const c3 = await Promise.all([['ngu.js', [3000, true]], ['ngu.js', [120000, true]], ['hong.js', [120000, true]], ['ngu.js', [3000, false]]]
+  // Hạn giả 5 s → ngưỡng 4 s; bài ngủ 4,5 s: dư ~0,5 s mỗi phía cho node khởi động (bốn worker chạy cùng lúc).
+  fs.writeFileSync(path.join(goc3, 'ngu.js'), 'setTimeout(() => {}, 4500);\n');
+  fs.writeFileSync(path.join(goc3, 'hong.js'), 'setTimeout(() => process.exit(1), 4500);\n');   // ĐỎ mà CHẬM: đủ điều kiện cảnh báo trừ "xanh"
+  const c3 = await Promise.all([['ngu.js', [5000, true]], ['ngu.js', [120000, true]], ['hong.js', [5000, true]], ['ngu.js', [5000, false]]]
     .map(([b, t]) => chayC3(khoi, goc3, b, t)));
   const mo3 = (g) => `chac ${JSON.stringify(g.chac)} · ${g.canh.length} cảnh báo${g.canh.length ? ' (' + g.canh[0] + ')' : ''}${g.loi ? ' · lỗi: ' + g.loi : ''}`;
   k('C3e cắt + dựng được hàm chayBaiThat từ kiem_tra_truoc_khi_giao.js', !!khoi && c3.every((g) => !g.loi), khoi ? c3.map(mo3).join(' | ') : 'không thấy function chayBaiThat(');
-  k('C3a bài xanh 2,6 s, hạn giả 3 s (80 % = 2,4 s), cờ bật → xanh + đúng 1 cảnh báo', c3[0].chac.join() === 'true' && c3[0].canh.length === 1, mo3(c3[0]));
+  k('C3a bài xanh 4,5 s, hạn giả 5 s (80 % = 4 s), cờ bật → xanh + đúng 1 cảnh báo', c3[0].chac.join() === 'true' && c3[0].canh.length === 1, mo3(c3[0]));
   k('C3b cùng bài, hạn thật 120 s, cờ bật → xanh, 0 cảnh báo', c3[1].chac.join() === 'true' && !c3[1].canh.length, mo3(c3[1]));
-  k('C3c bài thoát 1, cờ bật → FAIL, 0 cảnh báo', c3[2].chac.join() === 'false' && !c3[2].canh.length, mo3(c3[2]));
+  k('C3c bài thoát 1 sau 4,5 s (quá 80 % hạn giả 5 s), cờ bật → FAIL, 0 cảnh báo', c3[2].chac.join() === 'false' && !c3[2].canh.length, mo3(c3[2]));
   k('C3d bài xanh quá 80 % hạn giả nhưng cờ TẮT (bài khác của bộ kiểm) → xanh, 0 cảnh báo', c3[3].chac.join() === 'true' && !c3[3].canh.length, mo3(c3[3]));
+  // C3f: lời gọi THẬT trong bộ kiểm — đúng hai lời gọi bật cờ (giả lập + bài này), mặc định cờ TẮT.
+  const goi = [...kt.matchAll(/chayBaiThat\(([^)\n]*)\)/g)].map((m) => m[1]).filter((a) => !a.includes('='));
+  const bat = goi.filter((a) => /\btrue\b/.test(a)).map((a) => a.split(',')[0].trim()).sort().join(' ');
+  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ, mặc định canhGan = false',
+    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js'" && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt),
+    `bật: ${bat || '(không)'} · ${goi.length} lời gọi`);
 
   // ── E3 / A1 ─────────────────────────────────────────────────────────────
   const TU_CHOI = [['TURSO_DATABASE_URL', 'libsql://gia-tri-1'], ['TURSO_AUTH_TOKEN', 'gia-tri-2'], ['DATABASE_URL', 'gia-tri-3'],
