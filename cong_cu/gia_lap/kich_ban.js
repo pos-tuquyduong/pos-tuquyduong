@@ -322,8 +322,10 @@ const KICH_BAN = [
       && m2.code === 'SO_DU_KHONG_DU' && await c.vi(ME) === 5000, `${m1 ? c.ma(m1) : 'móc không chạy'} / ${c.ma(m2)} · ví mẹ ${await c.vi(ME)}`);
     // Q9 = (a): đơn ví con 5.000 + ví mẹ 20.000 → duyệt hoàn trả cả phần mẹ (I11 soát theo TỪNG ví).
     await c.nap(ME, 20000);
-    const dQ9 = (await c.goi('chu', 'POST', '/orders', { customer_phone: S, customer_name: 'Khách KB17', parent_phone: ME, items: [c.mon(0)],
-      payment_method: 'cash', cash_amount: 0, balance_amount: 5000, parent_balance_amount: 20000 })).order?.id;
+    const tQ9 = await c.goi('chu', 'POST', '/orders', { customer_phone: S, customer_name: 'Khách KB17', parent_phone: ME, items: [c.mon(0)],
+      payment_method: 'cash', cash_amount: 0, balance_amount: 5000, parent_balance_amount: 20000 });
+    c.mong('đơn ví con 5.000 + ví mẹ 20.000 tạo được (200)', tQ9.status === 200 && !!tQ9.order?.id, c.ma(tQ9));
+    const dQ9 = tQ9.order?.id;
     const vMe = await c.vi(ME), vCon = await c.vi(S);
     const yQ9 = await c.yeuCau(dQ9);
     const rQ9 = await c.duyet(yQ9.refund_id);

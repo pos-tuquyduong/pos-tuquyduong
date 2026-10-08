@@ -348,14 +348,25 @@ async function main() {
     const d6 = await donMe(5000); await hoan(d6);
     const v6 = await vi(me);
     const h6 = await huy(d6); const x6 = await xoa(d6);
-    k('M6 đơn có ví mẹ đã duyệt hoàn → huỷ 400, xoá 200, ví mẹ KHÔNG được hoàn thêm (tổng hoàn mẹ = 1 lần)',
-      h6.status === 400 && x6.status === 200 && await vi(me) === v6 && await dongHoanVi(d6, me) <= 1,
+    k('M6 đơn có ví mẹ đã duyệt hoàn → huỷ 400, xoá 200, ví mẹ KHÔNG được hoàn thêm (hoàn mẹ đúng 1 dòng)',
+      h6.status === 400 && x6.status === 200 && await vi(me) === v6 && await dongHoanVi(d6, me) === 1,
       `${moTa(h6)} / ${moTa(x6)} · ví mẹ ${v6} → ${await vi(me)} · ${await dongHoanVi(d6, me)} dòng hoàn mẹ`);
     const d8 = await donMe(5000); const y8 = await yeuCau(d8);
     await db.run("UPDATE pos_orders SET status = 'cancelled' WHERE id = ?", [d8]);   // dữ liệu cũ: đơn huỷ, yêu cầu còn chờ
     const v8 = await vi(me); const r8 = await duyet(y8.refund_id);
     k('M8 đơn có ví mẹ đã huỷ (yêu cầu còn chờ) → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví mẹ không đổi',
       r8.status === 400 && r8.code === 'DON_KHONG_CON_HOAN_DUOC' && await vi(me) === v8, `${moTa(r8)} · ví mẹ ${v8} → ${await vi(me)}`);
+    // HOC-2b (Q9): phần mẹ 0đ → không ghi dòng hoàn mẹ (phép `> 0`); yêu cầu cũ trên đơn có ví mẹ vẫn hoàn mẹ đúng 1 dòng.
+    const d9 = await donMe(25000); const vMe9 = await vi(me);
+    const r9 = await duyet((await yeuCau(d9)).refund_id);
+    k('M9 đơn có ví mẹ, phần mẹ 0đ → duyệt 200, 0 dòng hoàn mẹ, ví mẹ không đổi',
+      r9.status === 200 && await dongHoanVi(d9, me) === 0 && await vi(me) === vMe9,
+      `${moTa(r9)} · ví mẹ ${vMe9} → ${await vi(me)} · ${await dongHoanVi(d9, me)} dòng hoàn mẹ`);
+    const d10 = await donMe(5000); const vMe10 = await vi(me);
+    const r10 = await duyet(await ycCu(d10));
+    k('M10 yêu cầu cũ (dữ liệu trước bản vá) trên đơn có ví mẹ → duyệt 200, ví mẹ +20.000, hoàn mẹ đúng 1 dòng',
+      r10.status === 200 && await vi(me) === vMe10 + 20000 && await dongHoanVi(d10, me) === 1,
+      `${moTa(r10)} · ví mẹ ${vMe10} → ${await vi(me)} · ${await dongHoanVi(d10, me)} dòng hoàn mẹ`);
     const me2 = sdtMoi(); await nap(me2, 10000);
     const t = await goi('POST', '/orders', { customer_phone: con, customer_name: 'Con P26b', parent_phone: me2, items: [mon(0)],
       payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
