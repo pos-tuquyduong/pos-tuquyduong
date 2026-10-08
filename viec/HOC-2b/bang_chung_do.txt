@@ -1,0 +1,20 @@
+# HOC-2b — bằng chứng ĐỎ. Máy mây 07.10.2026.
+# Dòng "SỐ CA <bài>: <N>" = số ca bài in ở dòng tổng khi chạy trên code đã vá (head) — cổng A16.
+SỐ CA cong_cu/thu_gia_lap.js: 39
+
+## cong_cu/thu_gia_lap.js (bản cuối) chạy trên code CHƯA vá (kiem_tra_truoc_khi_giao.js, bat_bien.js gốc 4a51723) → thoát 1
+  ✗ C3a bài xanh 2,6 s, hạn giả 3 s (80 % = 2,4 s), cờ bật → xanh + đúng 1 cảnh báo  — chac [true] · 0 cảnh báo
+  ✗ thoát 0, dòng tổng đúng "Giả lập: 18 kịch bản · 10 bất biến · ĐẠT"  — thoát 0 · Giả lập: 18 kịch bản · 11 bất biến · ĐẠT
+  37 đạt · 2 hỏng
+## cùng bài trên code ĐÃ vá → thoát 0
+  39 đạt · 0 hỏng
+
+## Bài thử cũ sửa (## Bài thử cũ sửa của phiếu) — server/ không đổi nên XANH trên gốc; đỏ bằng đột biến (viec/HOC-2b/dot_bien.py)
+cong_cu/thu_P26b.js (bản mới) trên code gốc: 65 đạt · 0 hỏng. Bản GỐC (b681ede) trên code PR: 63 đạt · 0 hỏng.
+  VS-q9-me-lon-hon-bang-0 → ✗ M9 đơn có ví mẹ, phần mẹ 0đ → duyệt 200, 0 dòng hoàn mẹ, ví mẹ không đổi — HTTP 200 · ví mẹ 80000 → 80000 · 1 dòng hoàn mẹ
+  BV-q9-bo-hoan-me        → ✗ M6 … (hoàn mẹ đúng 1 dòng) · ✗ M10 …
+  KB17-khong-nap-me       → ✗ KB17 → HTTP: đơn ví con 5.000 + ví mẹ 20.000 tạo được (200): HTTP 400 · SO_DU_KHONG_DU
+
+## D2 — viec/P26b/dot_bien.py trên HEAD gốc 4a51723 (trước khi sửa) → thoát 1
+  ✗ I10-bo: bat_bien.js: chuỗi gốc khớp 2 lần, cần 1 — đột biến không áp được
+  59 đột biến bị bắt · 1 KHÔNG bị bắt (trên 60)
