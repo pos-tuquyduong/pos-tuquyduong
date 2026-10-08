@@ -46,10 +46,16 @@ DB = [
                                      'function chayBaiThat(bai, env, han = 120000, canhGan = true) {')], ['✗ C3f ']),
     ('BV-C3-bo-co-gia-lap', 'glk', [(KT, "chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH, 120000, true)",
                                       "chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH)")], ['✗ C3f ']),
+    ('VS-C3-bat-qua-bien', 'glk', [(KT, "chayBaiThat('tu_chay/thu_cong.js');", "chayBaiThat('tu_chay/thu_cong.js', undefined, 120000, BAT_CO);")],
+     ['✗ C3f ']),
     ('M0-glsym', 'glsym', [], []),
     ('BV-banSao-bo-khoa', 'glsym', [('cong_cu/thu_gia_lap.js', "{ recursive: true, dereference: true }", '{ recursive: true }'),
                                     ('cong_cu/thu_gia_lap.js', "if (!fs.realpathSync(p).startsWith(TAM + path.sep)) return", 'if (false) return')],
      ['GHI XUYÊN']),
+    # chỉ gỡ lớp chép-thật: lớp realpath phải chặn ghi (13 dòng M báo "trỏ ra ngoài") và KHÔNG ghi xuyên. (Chỉ gỡ lớp realpath thì
+    # lớp chép-thật vẫn giữ an toàn — không dựng được ca đỏ: lớp phụ, CHƯA KIỂM riêng.)
+    ('BV-banSao-bo-dereference', 'glsym', [('cong_cu/thu_gia_lap.js', "{ recursive: true, dereference: true }", '{ recursive: true }')],
+     ['trỏ ra ngoài thư mục tạm']),
     ('M0-kiem', 'kiem', [], []),
     ('C5-P20-hoan-bao-huy', 'kiem', [(SC, "if (don.status === 'cancelled') {",
                                       "if (don.status === 'cancelled' || don.status === 'refunded') {")],
@@ -125,15 +131,18 @@ def chay(ten, kieu, doi, phai):
         truoc_that = anh(that) if kieu == 'glsym' else None
         r = subprocess.run(lenh, cwd=cwd, env=env, capture_output=True, text=True, timeout=900)
         ra = re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
-        if kieu == 'glsym' and anh(that) != truoc_that:
+        xuyen = kieu == 'glsym' and anh(that) != truoc_that
+        if xuyen:
             ra += '\n✗ GHI XUYÊN — server/ "thật" (đích của liên kết) bị sửa\n'
+            if 'GHI XUYÊN' not in phai:
+                return 'ĐỎ nhưng GHI XUYÊN — khoá còn lại không chặn ghi vào server/ "thật"'
         do = [l.strip() for l in ra.splitlines() if '✗' in l and 'CÓ LỖI' not in l]
         if not doi:
             thieu = [x for x in phai if x not in ra]
             # tc4: đầu ra của TU-CHAY-4 có sẵn dòng ✗ của bộ kiểm bên trong (S3 phải đỏ) — đối chứng xét mã thoát + chuỗi phải có
             return ('XANH (đối chứng đúng)' if r.returncode == 0 and (kieu == 'tc4' or not do) and not thieu and 'KHO BẨN' not in ra else
                     f'ĐỎ — đối chứng hỏng (thoát {r.returncode}): ' + ' | '.join(do[:3] + thieu)[:400])
-        if r.returncode == 0:
+        if r.returncode == 0 and not xuyen:   # ghi xuyên là bắt, kể cả khi bài thử tình cờ thoát 0
             return 'XANH — đột biến SỐNG'
         thieu = [x for x in phai if x not in ra]
         trung = [l for l in do if any(x in l for x in phai)] or [l.strip() for l in ra.splitlines() if any(x in l for x in phai)]

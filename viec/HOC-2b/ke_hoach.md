@@ -3,7 +3,7 @@
 **Chủ quán duyệt 07.10 — thay các chỗ khác trong file này:** Q1 ngưỡng cảnh báo gần hạn **80 %** hạn (96 s), không 75 %
 (chat đo chạy riêng: thu_gia_lap 80,4 s, giả lập 67,7 s). Q2 chọn **(b)**, thêm vào phần CHẠY THẬT: mọi đột biến D1 của AUDIT-1
 và mọi đối chứng M0-* của HOC-1, HOC-2; phần sang AUDIT-2 liệt kê đủ tên. P1: đo lại `thu_cong` CHẠY RIÊNG trước khi ghi; số đo
-trong chú thích S4 cũng đo chạy riêng. Ca C3 dùng hạn giả 3 s / bài ngủ 2,6 s (ngưỡng 2,4 s) — bốn ca chạy song song trong worker.
+trong chú thích S4 cũng đo chạy riêng. Ca C3 dùng hạn giả 5 s / bài ngủ 4,5 s (ngưỡng 4 s; bản đầu 3 s / 2,6 s — nới sau soát vòng 1) — bốn ca chạy song song trong worker.
 
 Đọc trong lượt này: `viec/HOC-2b/phieu.md`; `CLAUDE.md`; `KHUON_LOI.md`; `viec/HOC-2/ke_hoach.md` 1–60, 192–365 (phần C/D/E đã
 qua soát 05.10 — đối chiếu lại với code, không chép mù); `kiem_tra_truoc_khi_giao.js` 322–380, 403–488, 540–630, 730–783;

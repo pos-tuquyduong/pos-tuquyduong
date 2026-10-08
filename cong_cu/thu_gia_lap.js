@@ -151,12 +151,25 @@ async function main() {
   k('C3b cùng bài, hạn thật 120 s, cờ bật → xanh, 0 cảnh báo', c3[1].chac.join() === 'true' && !c3[1].canh.length, mo3(c3[1]));
   k('C3c bài thoát 1 sau 4,5 s (quá 80 % hạn giả 5 s), cờ bật → FAIL, 0 cảnh báo', c3[2].chac.join() === 'false' && !c3[2].canh.length, mo3(c3[2]));
   k('C3d bài xanh quá 80 % hạn giả nhưng cờ TẮT (bài khác của bộ kiểm) → xanh, 0 cảnh báo', c3[3].chac.join() === 'true' && !c3[3].canh.length, mo3(c3[3]));
-  // C3f: lời gọi THẬT trong bộ kiểm — đúng hai lời gọi bật cờ (giả lập + bài này), mặc định cờ TẮT.
-  const goi = [...kt.matchAll(/chayBaiThat\(([^)\n]*)\)/g)].map((m) => m[1]).filter((a) => !a.includes('='));
-  const bat = goi.filter((a) => /\btrue\b/.test(a)).map((a) => a.split(',')[0].trim()).sort().join(' ');
-  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ, mặc định canhGan = false',
-    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js'" && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt),
-    `bật: ${bat || '(không)'} · ${goi.length} lời gọi`);
+  // C3f: lời gọi THẬT trong bộ kiểm — đúng hai lời gọi bật cờ (giả lập + bài này), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
+  // (lồng ngoặc, xuống dòng đều được); đối số cờ (thứ tư) chỉ được là chữ true/false viết thẳng — bật qua biến là ĐỎ.
+  const doiSo = (i) => { // đối số cấp ngoài của lời gọi mở ngoặc tại i
+    const ra = ['']; let sau = 0;
+    for (let j = i + 1; j < kt.length; j++) {
+      const c = kt[j];
+      if (c === '(' || c === '[' || c === '{') sau++;
+      else if ((c === ')' || c === ']' || c === '}') && sau-- === 0) return ra.map((x) => x.trim());
+      else if (c === ',' && sau === 0) { ra.push(''); continue; }
+      ra[ra.length - 1] += c;
+    }
+    return null;
+  };
+  const goi = [...kt.matchAll(/(function\s+)?\bchayBaiThat\s*\(/g)].filter((m) => !m[1]).map((m) => doiSo(m.index + m[0].length - 1));
+  const lech = goi.filter((a) => !a || (a.length > 3 && !/^(true|false)$/.test(a[3])));
+  const bat = goi.filter((a) => a && a[3] === 'true').map((a) => a[0]).sort().join(' ');
+  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ (chữ true viết thẳng), mặc định canhGan = false',
+    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js'" && !lech.length && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt),
+    `bật: ${bat || '(không)'} · ${goi.length} lời gọi · cờ không phải chữ true/false: ${lech.map((a) => (a || ['?'])[0]).join(', ') || '(không)'}`);
 
   // ── E3 / A1 ─────────────────────────────────────────────────────────────
   const TU_CHOI = [['TURSO_DATABASE_URL', 'libsql://gia-tri-1'], ['TURSO_AUTH_TOKEN', 'gia-tri-2'], ['DATABASE_URL', 'gia-tri-3'],
