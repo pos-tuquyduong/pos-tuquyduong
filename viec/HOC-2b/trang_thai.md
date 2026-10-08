@@ -41,21 +41,28 @@ Có commit `PHIEU: HOC-2b`, cha là commit sổ v23 (`9ad7f99`). Đã in ba dòn
 Ngưỡng cảnh báo 80 % × 120 s = 96 s → dư 24 s (thu_gia_lap) ở máy mây; theo số chat đo (80,4 s) dư ~16 s.
 Số 91,3 s của `thu_cong` (Phát hiện P1 cũ) là đo khi phiên đang chạy việc khác song song → SAI, đã sửa P1.
 
-## Đột biến của HOC-2b (`viec/HOC-2b/dot_bien.py`, chạy 08.10 trên `b8e5306`) — bảng chỗ đổi → đột biến
-Kết quả: **16 đạt · 0 không đạt** (5 đối chứng XANH, 11 ĐỎ đúng chỗ), kho thật không đổi sau từng đột biến. VS- = vá sai, BV- = bỏ vá.
+## Đột biến của HOC-2b (`viec/HOC-2b/dot_bien.py`) — bảng chỗ đổi → đột biến
+Lần cuối (sau soát vòng 1): cả bộ trên `44d1a7c` → **20 đạt · 1 không đạt** (`M0-glsym` sập: `Cannot find module 'express'` — bản
+"server thật" đặt NGOÀI thư mục tạm nên node không tìm thấy node_modules; lỗi của công cụ đo, không phải code); sửa `5e20f9c`
+(đặt TRONG thư mục tạm), chạy lại `M0-glsym`, `BV-banSao-bo-khoa` → **2 đạt**. Tổng **21/21** (6 đối chứng XANH, 15 ĐỎ đúng chỗ),
+kho thật không đổi sau từng đột biến. VS- = vá sai, BV- = bỏ vá.
 
 | chỗ đổi | đột biến (tên nguyên văn) | bài bắt (dòng ✗) |
 |---|---|---|
-| đối chứng | `M0-p26b`, `M0-kb17`, `M0-glk`, `M0-kiem`, `M0-tc4` | XANH |
+| đối chứng | `M0-p26b`, `M0-kb17`, `M0-glk`, `M0-kiem`, `M0-tc4`, `M0-glsym` | XANH |
 | C4 `refunds.js:165` phép phần mẹ `> 0` (thu_P26b M9) | `VS-q9-me-lon-hon-bang-0` | ✗ M9 … — 1 dòng hoàn mẹ |
 | C4 hoàn mẹ khi duyệt (M6 `=== 1`, M10) | `BV-q9-bo-hoan-me` | ✗ M6 … 0 dòng hoàn mẹ · ✗ M10 … 0 dòng hoàn mẹ |
 | C4 KB17-Q9 kiểm tạo đơn (200) | `KB17-khong-nap-me` | ✗ KB17 → HTTP: đơn ví con 5.000 + ví mẹ 20.000 tạo được (200): HTTP 400 · SO_DU_KHONG_DU |
 | C2 I11 bắt thay I10 (bản vá sai của P26b) | `C2-I11-huy-kiem-ngoai-tx` | ✗ KB15 → I11: đơn #1020, ví 0900000001: hoàn 50.000đ > ví này đã trả 25.000đ |
 | C2 (như trên) | `C2-I11-xoa-doc-don-ngoai-tx` | ✗ KB14 → I11: đơn #1019, ví 0900000003: hoàn 20.000đ > ví này đã trả 10.000đ |
-| C3 cắt hàm (C3e) | `VS-C3-doi-ten-ham` | ✗ C3e … không thấy function chayBaiThat( |
+| C3 cắt hàm (C3e) — số "2,6 s / 3 s" ở các dòng C3 dưới là bản trước soát; bản cuối 4,5 s / 5 s | `VS-C3-doi-ten-ham` | ✗ C3e … không thấy function chayBaiThat( |
 | C3 khối cảnh báo | `BV-C3-bo-canh-bao` | ✗ C3a … 0 cảnh báo |
 | C3 chỉ hai lời gọi bật | `VS-C3-bo-co` | ✗ C3d … 1 cảnh báo |
 | C3 ngưỡng theo hạn, không số cứng | `VS-C3-nguong-giay-co-dinh` | ✗ C3a … 0 cảnh báo |
+| C3 chỉ cảnh báo bài XANH (soát vòng 1) | `VS-C3-bo-xanh` | ✗ C3c bài thoát 1 sau 4,5 s … chac [false] · 1 cảnh báo |
+| C3 mặc định cờ TẮT (soát vòng 1) | `VS-C3-mac-dinh-bat` | ✗ C3f … mặc định canhGan = false |
+| C3 lời gọi giả lập bật cờ (soát vòng 1) | `BV-C3-bo-co-gia-lap` | ✗ C3f … bật: 'cong_cu/thu_gia_lap.js' |
+| khoá `banSao` của `thu_gia_lap` (sự cố 08.10, soát vòng 1) | `BV-banSao-bo-khoa` | ✗ GHI XUYÊN — server/ "thật" (đích của liên kết) bị sửa |
 | C5 `thu_P20` còn sống (`signup-codes.js:62`) | `C5-P20-hoan-bao-huy` | bộ kiểm bản nhanh trên bản sao: CHỈ ✗ bài chạy thật cong_cu/thu_P20.js (✗ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN — HTTP 400 · DON_DA_HUY) |
 | D3 TU-CHAY-4 không ghi file thật | `VS-D3-ghi-that` | ✗ KHO BẨN (TU-CHAY-4 chạy trong kho git tạm) |
 
@@ -91,7 +98,7 @@ Phần (2) — chạy thật:
 | TU-CHAY-4 (10) | đủ | 9 ĐỎ đúng chỗ + M0 XANH | 0 | 0 | 0 | F2, S3 chạy trên bản sao; kho thật không đổi (D3) |
 | HOC-1 `M0-*` (3) + `MC*` (3) | 6 | 3 | 0 | 0 | 0 | 3 đối chứng XANH |
 | HOC-2 `M0-*` (3) | 3 | — | 0 | 0 | 0 | 3 đối chứng XANH |
-| HOC-2b (16) | đủ | 11 | 0 | 0 | 0 | 5 đối chứng XANH |
+| HOC-2b (21) | đủ (sau soát vòng 1) | 15 | 0 | 0 | 0 | 6 đối chứng XANH |
 AUDIT-1 kết thúc "✓ kho thật không đổi". Thời gian: HOC-2b 888 s · P26b 202 s · TU-CHAY-4 684 s · HOC-1 84 s · HOC-2 76 s ·
 AUDIT-1 (103) 1206 s → ~52 phút.
 
@@ -120,6 +127,15 @@ SỐNG của C2F ở trên chính là các lỗ AU-G1/G2/G3/G4/G6 (thuộc LUOI-
 | Ý MỚI gộp: K8 báo oan dạy bỏ qua · K3 con số đạt + chạy lại HEAD + neo ngắn · K3 so bằng 2 chiều, tiền tố chuỗi giữa, đột biến nới phép · K1 xếp đường tiền theo cái khách chạm + middleware + khoá thân hàm, nhánh hỏng NẶNG · K4 chạy lại bằng chứng → grep con số cũ · K5 bài thử chạy được trong mọi bản sao | thêm vào khuôn có sẵn | phiếu E1 |
 Mỗi khuôn K1–K8 có "Dấu hiệu" + "Chặn" (K2, K5, K6, K7 trước đây thiếu "Dấu hiệu" — đã thêm một dòng). "Năm câu tự hỏi" giữ nguyên.
 
+## Bằng chứng ĐẾM (C1, G) — `ĐẾM (không đoán)` nguyên văn
+- C1 (cùng điều kiện, bản sao kho không có `.claude/`, 08.10): gốc `4a51723` → `PASS 61 · FAIL 0 · CẢNH BÁO 0`; head
+  `b8e5306` → `PASS 61 · FAIL 0 · CẢNH BÁO 0`. Kho thật: gốc `--day-du` (07.10) `PASS 65 · FAIL 0 · CẢNH BÁO 0`.
+- G (head `44d1a7c`, 08.10, sau soát vòng 1): `npm test` → `PASS 61 · FAIL 0 · CẢNH BÁO 0`; `node kiem_tra_truoc_khi_giao.js --day-du`
+  → `PASS 65 · FAIL 0 · CẢNH BÁO 0` (giả lập 67,1 s, thu_gia_lap 74,7 s, thu_cong 61,8 s — dưới 96 s, không cảnh báo);
+  `thu_gia_lap` riêng 40 đạt · 0 hỏng (74,7 s); `thu_P20` 51 đạt · 0 hỏng; `thu_P26b` 65 đạt · 0 hỏng.
+- F2: 2 check `cong` + `cong-chay` của PR — **CHƯA KIỂM** (máy không tạo PR, người gác chặn công cụ GitHub); thời gian bước
+  `cong-chay` trên GitHub — **CHƯA KIỂM** (chat đo khi soát cuối).
+
 ## Câu hỏi
 - **Q-D4 (cần chủ quán):** xoá `cong_cu/thu_p1.js` (chốt 3a) — người gác chặn mọi cách xoá trong kho: `git rm` → `[GIT-LENH]`,
   `rm` → `[RM-NHAP] chỉ được xoá trong thư mục nháp`. Không lách (không dùng `os.remove` qua python). Đã kiểm: không bài thử,
@@ -140,5 +156,66 @@ Mỗi khuôn K1–K8 có "Dấu hiệu" + "Chặn" (K2, K5, K6, K7 trước đâ
 - P4 AUDIT-1 chạy không tham số bỏ nhóm G3 (`chon_db`, `viec/AUDIT-1/dot_bien.py:372`).
 - P5 `!D1-E11-P20`, `!D1-E11-P26a` LẠC (cả trên gốc 07.10 lẫn head): bộ kiểm đỏ nhưng dòng ✗ không khớp mẫu
   `✗ bài chạy thật …` (phép tĩnh bắt trước). Liveness `thu_P20` đã chứng minh riêng ở C5. Không sửa `viec/AUDIT-1/`.
+- P7 `CHECKLIST_CODE.md:16` còn "26 phép kiểm tự động" — số đếm cứng, lệch (K4 tài liệu như E2). File bị Cấm sửa.
 - P6 `CLAUDE.md:49` "119 phép của bản mẫu giao diện" và §9 "119 đạt" là sàn chủ quán đặt cho bản mẫu (không phải số phép bộ kiểm)
   → giữ (E2 chỉ bỏ số ở dòng 26).
+
+## Soát độc lập `/ra-soat` — vòng 1 (08.10, trên `f399872`) — báo cáo chép nguyên
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_gia_lap.js:141,147 — ca C3c "bài thoát 1, cờ bật → FAIL, 0 cảnh báo" vô giá trị (K3): hong.js process.exit(1) chạy
+   ~0,05 s với hạn 120 s — xa ngưỡng 96 s nên KHÔNG BAO GIỜ có cảnh báo dù bỏ `xanh &&`. Đã chạy thử trong thư mục nháp cắt đúng
+   hàm kiem_tra_truoc_khi_giao.js:478-495 với đột biến `if (xanh && canhGan` → `if (canhGan`: hong.js hạn 120 s → 0 cảnh báo
+   (C3c vẫn XANH); bài thoát 1 sau 2,6 s, hạn 3 s → 1 cảnh báo "gần hạn" cho một bài ĐỎ. Đột biến "nới phép" này không có trong
+   viec/HOC-2b/dot_bien.py:34-40 → SỐNG không ai biết. Sửa: C3c phải là bài ngủ quá 80 % hạn giả rồi thoát 1.
+2. kiem_tra_truoc_khi_giao.js:759,763 (hai lời gọi `120000, true`) — không phép nào canh hai lời gọi thật (K3/K4): bỏ `true` ở lời
+   gọi giả lập hoặc thu_gia_lap → cảnh báo gần hạn tắt vĩnh viễn, mọi bài vẫn xanh. Ca C3d truyền `false` tường minh
+   (thu_gia_lap.js:141 `[3000, false]`) nên đột biến đổi mặc định `canhGan = false` → `true` (bật cho cả 7 lời gọi khác: dòng 492,
+   549, 551, 553) cũng không bị bắt. Lời hứa "CHỈ hai lời gọi đó bật cảnh báo" của phiếu C3 chưa có khoá.
+3. cong_cu/thu_gia_lap.js:92 — gốc của sự cố 08.10 chưa được khoá (K4, "bịt bằng KHOÁ"): banSao vẫn fs.cpSync(GOC/server) không
+   dereference, không kiểm server là symlink, rồi writeFileSync vào bản chép. Bản vá chỉ ở MỘT nơi gọi (viec/HOC-2b/dot_bien.py:89-92,
+   kiểu glk chép thật server/). Bộ đột biến tương lai đặt thu_gia_lap.js cạnh server/ nối symlink sẽ lại ghi xuyên vào
+   server/routes/*.js thật. File này trong Phạm vi — khoá được ngay tại banSao.
+4. viec/HOC-2b/trang_thai.md — thiếu bằng chứng đã hứa (K1/K6): C1 — ke_hoach.md:67 và :206 hứa "ghi hai dòng ĐẾM vào
+   trang_thai.md" (npm test trước/sau) nhưng không có dòng ĐẾM nào; G — không có dòng ĐẾM của lần --day-du cuối trên head
+   (dòng 23-24 chỉ nói "chạy lại các bước kiểm sau mốc sự cố"); F2 — không có dòng "CHƯA KIỂM cong/cong-chay" (chỉ ở
+   ke_hoach.md:26-27, cho PR #10); dòng 22 "xem Bài học" nhưng không có mục ## Bài học.
+NGHI NGỜ:
+- Ca C3 (thu_gia_lap.js:139-141) có thể đỏ thất thường (K5): hạn giả 3 s, bài ngủ 2,6 s → chỉ 0,4 s cho node khởi động, 4 worker
+  spawn song song. Kế hoạch tự đặt biên 600 ms; bản cuối hẹp hơn. Máy CI chậm/bận → C3a/C3d ETIMEDOUT → thu_gia_lap FAIL → chặn
+  --day-du/cong-chay. Chưa đo được độ lệch (người gác chặn vòng lặp for).
+- Lập luận "I10 ⊂ I11" (bat_bien.js:139) dựa "tiền nguyên" không dẫn file:dòng; server/routes/orders.js ~720 nhận
+  parent_balance_amount từ body, không thấy ép số nguyên. Trong giả lập kịch bản gửi số nguyên nên đúng; chú thích nói chung hơn.
+- Ngưỡng 96 s so với cong-chay GitHub: chưa ai đo. Lần chạy của người soát: thu_gia_lap 73,1 s, giả lập 67,1 s, thu_cong 64,0 s
+  (thu_cong trong --day-du cao hơn số 52 s ở trang_thai.md:38).
+- Chú thích S4 (kiem_tra_truoc_khi_giao.js:755) "07.10 … thu_gia_lap 72 s" nhưng số 07.10 ở trang_thai.md:40 là 71,6 / 70,3 s.
+- K4 tài liệu: CHECKLIST_CODE.md:16 còn "26 phép kiểm tự động" (số đếm cứng, lệch) — file Cấm sửa, chưa ghi ## Phát hiện.
+- Bảng kết quả đột biến D5 / HOC-2b không có log trong kho; người soát không chạy lại theo lệnh.
+(K3: thu_gia_lap đỏ trên gốc; thu_P26b miễn, đỏ bằng VS-q9/BV-q9/KB17. K4: grep I10 còn 2 chú thích mới; chayBaiThat( 9 chỗ,
+ không chỗ nào khoá; cpSync 1 chỗ chưa khoá. K5: 7 lời gọi mặc định không đổi hành vi — npm test gốc 4a51723 61/0/0, head 61/0/0.
+ Đường tiền: PR không đổi server/ (git log 4a51723..HEAD -- server/ client/ tu_chay/ → 0). P1: không đụng client/src/.
+ Người soát tự chạy: npm test 61/0/0; --day-du head 65/0/0; thu_P20, thu_P26b, thu_gia_lap xanh; kiem_neo.py khớp bảng D5(1).)
+NGHIỆM THU:    10/14 mục có bằng chứng trong hồ sơ · mục thiếu: C1 (thiếu 2 dòng ĐẾM — người soát bù 61/0/0 gốc lẫn head), D4 (chưa
+               xoá thu_p1.js — Q-D4), F2 (không ghi CHƯA KIỂM cong/cong-chay), G (không có ĐẾM --day-du cuối — người soát bù 65/0/0)
+CHƯA SOÁT ĐƯỢC: thời gian cong-chay GitHub và check cong/cong-chay của PR; kết quả các bộ đột biến D5 / HOC-2b (không chạy lại theo
+               lệnh); độ lệch thời gian ca C3 khi máy bận; việc xoá thu_p1.js (D4)
+BÀI HỌC:       KHOÁ: C3c đổi sang bài thoát 1 sau khi quá 80 % hạn giả + đột biến VS-C3-bo-xanh; phép tĩnh/ca: đúng 2 lời gọi
+               chayBaiThat(..., true) (giả lập + thu_gia_lap), mặc định canhGan = false; thu_gia_lap.js banSao từ chối khi server/
+               là symlink (hoặc chép dereference: true). NGUYÊN TẮC (K3): ca "phải KHÔNG X" chỉ có giá trị khi đầu vào đã đủ điều
+               kiện kích hoạt X ngoài điều kiện đang thử — ca "bài đỏ thì không cảnh báo" phải dùng bài đỏ mà chậm. NGUYÊN TẮC (K4):
+               sửa ở bộ đột biến (nơi gọi) chưa phải khoá — chỗ gây hại là hàm bị gọi (banSao). NGUYÊN TẮC (K6/K1): điều kế hoạch
+               hứa ghi ("hai dòng ĐẾM", "xem Bài học") phải có trong trang_thai.md trước khi báo xong. BỎ: không có.
+```
+### Đã sửa theo vòng 1 (vòng sửa 1/3) — `44d1a7c`, `5e20f9c`
+1. C3c → `hong.js` ngủ 4,5 s rồi thoát 1, hạn giả 5 s (`thu_gia_lap.js` [C3]); đột biến `VS-C3-bo-xanh` → ✗ C3c.
+2. Ca C3f (`thu_gia_lap.js`): đếm mọi lời gọi `chayBaiThat(` thật trong bộ kiểm, lời gọi có `true` phải đúng là giả lập +
+   thu_gia_lap, chữ ký có `canhGan = false`; đột biến `VS-C3-mac-dinh-bat`, `BV-C3-bo-co-gia-lap` → ✗ C3f. Ca C3f ĐỎ trên gốc.
+3. `banSao` (`thu_gia_lap.js`): `cpSync(..., { dereference: true })` + chỉ ghi khi `realpath` của đích nằm trong thư mục tạm;
+   đột biến `BV-banSao-bo-khoa` (kiểu `glsym`: server/ của bản sao là liên kết tới bản "thật" trong thư mục tạm) → ✗ GHI XUYÊN.
+4. Thêm mục "Bằng chứng ĐẾM (C1, G)" + F2 CHƯA KIỂM; mục `## Bài học` ghi ở bước 11.
+Nghi ngờ: biên C3 nới (hạn giả 5 s, ngủ 4,5 s — dư ~0,5 s mỗi phía); chú thích I10 ⊂ I11 nêu rõ giả định tiền nguyên và chiều
+ngược (tiền lẻ < 1đ chia nhiều ví thì I10 thấy mà I11 không) — I10 bỏ theo chủ quán chốt 2a; S4 ghi số đo 08.10 (thu_gia_lap 75 s
+sau ca C3 mới); P7 `CHECKLIST_CODE.md:16` vào Phát hiện. Số `thu_cong` 61–64 s trong `--day-du` (người soát và lần cuối) cao hơn
+49–53 s lúc chạy riêng — vẫn dưới hạn, và thu_cong không bật cảnh báo (phiếu C3).
+Bằng chứng đỏ C3 đã chạy lại với bài BẢN CUỐI trên gốc → `bang_chung_do.txt` (37 đạt · 3 hỏng; head 40 đạt), `SỐ CA` = 40.
