@@ -57,7 +57,7 @@ tạm; sửa `5e20f9c`.) VS- = vá sai, BV- = bỏ vá.
 | C4 KB17-Q9 kiểm tạo đơn (200) | `KB17-khong-nap-me` | ✗ KB17 → HTTP: đơn ví con 5.000 + ví mẹ 20.000 tạo được (200): HTTP 400 · SO_DU_KHONG_DU |
 | C2 I11 bắt thay I10 (bản vá sai của P26b) | `C2-I11-huy-kiem-ngoai-tx` | ✗ KB15 → I11: đơn #1020, ví 0900000001: hoàn 50.000đ > ví này đã trả 25.000đ |
 | C2 (như trên) | `C2-I11-xoa-doc-don-ngoai-tx` | ✗ KB14 → I11: đơn #1019, ví 0900000003: hoàn 20.000đ > ví này đã trả 10.000đ |
-| C3 cắt hàm (C3e) — số "2,6 s / 3 s" ở các dòng C3 dưới là bản trước soát; bản cuối 4,5 s / 5 s | `VS-C3-doi-ten-ham` | ✗ C3e … không thấy function chayBaiThat( |
+| C3 cắt hàm (C3e) | `VS-C3-doi-ten-ham` | ✗ C3e … không thấy function chayBaiThat( |
 | C3 khối cảnh báo | `BV-C3-bo-canh-bao` | ✗ C3a … 0 cảnh báo |
 | C3 chỉ hai lời gọi bật | `VS-C3-bo-co` | ✗ C3d … 1 cảnh báo |
 | C3 ngưỡng theo hạn, không số cứng | `VS-C3-nguong-giay-co-dinh` | ✗ C3a … 0 cảnh báo |
