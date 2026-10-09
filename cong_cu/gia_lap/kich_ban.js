@@ -526,6 +526,10 @@ const KICH_BAN = [
     const gt = await c.goi('nv', 'PUT', `/packages/customer-packages/${g}/deliver`, { delivered_qty: 1 });
     if (gt.status === 200) c.soQuay.giaoGoi.set(g, (c.soQuay.giaoGoi.get(g) || 0) + 1);
     c.mong('giao tay 1 ly từ gói còn lượt (/deliver) → 200, gói +1', gt.status === 200 && await giao() === truoc + 1, `${c.ma(gt)} · ${truoc} → ${await giao()}`);
+    // Chiều ngược KB2 (soát vòng 2): tiền mặt → chuyển khoản; I16 soát cột tiền mặt về 0.
+    const d = await c.taoDon('KB26 đổi sang CK', { items: [c.mon(3)], payment_method: 'cash', cash_amount: 15000 });
+    const r = await c.doi(d.id, 'transfer', 'khách chuyển khoản lại');
+    c.mong('đổi tiền mặt → chuyển khoản → 200', r.status === 200, c.ma(r));
   } },
   // KB27 PHẢI LÀ KỊCH BẢN CUỐI: nợ kho của đơn ĐÃ XOÁ mà được đẩy (nút, hoặc tự đẩy 3 phút — index.js:76) thì SX nhận vân tay
   // của đơn không còn → I7 "vân tay lạ" = lỗi đã biết P26c (4). Kịch bản thêm SAU KB27 không được đẩy sổ nợ.
