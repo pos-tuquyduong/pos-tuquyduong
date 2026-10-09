@@ -401,3 +401,92 @@ trên gốc chạy lại (45/57, SỐ CA 102). C1, C2, C4 chạy lại đủ tr�
 - KB21 (`kich_ban.js`): ca hai nhân viên huỷ đơn mua gói ĐÃ GIAO 2/3 chồng nhau → 200 + 400 `DON_KHONG_HUY_DUOC`, đúng MỘT dòng
   hoàn (`c.dongHoan`), gói `cancelled`; bỏ khẳng định "ví + trọn giá". Ca gói CHƯA giao: thêm khẳng định ví + TRỌN giá gói.
 - Q7, Q9: không thêm kịch bản; Phát hiện 10, 11 (gom P26c); Phát hiện 10 ghi CHƯA PHỦ.
+
+## Soát độc lập — vòng 2 (`/ra-soat`, agent general-purpose mới, 09.10) — chép nguyên báo cáo
+
+KHÔNG ĐẠT
+
+Tôi đã soát HEAD df37411. Về code, HEAD trùng 31afeb0 và fb59762, vì hai commit cuối chỉ sửa trang_thai.md. Tôi không sửa file nào trong kho. `git status` sạch và `git log origin/viec/LUOI-1..HEAD` rỗng. Đột biến của riêng tôi chạy trên bản chép thật (copytree) đặt trong thư mục nháp, ngoài kho.
+
+Các lệnh tôi đã chạy, từng lệnh một, không chạy song song:
+- `npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0.
+- `thu_gia_lap --chi-du-lieu-tay`: 62 đạt · 0 hỏng.
+- `do_thoi_gian.js gl`: 81,2 s, "27 kịch bản · 16 bất biến · ĐẠT".
+- `do_thoi_gian.js kiem` (`--day-du`): 278,8 s, PASS 65 · FAIL 0 · CẢNH BÁO 0.
+- `viec/LUOI-1/dot_bien.py` với BV-I13*, BV-I12-so-ma, BV-B4-kb-khong-gan, VS-I16-tien-chi-tren: 6/6 BẮT.
+- `viec/AUDIT-1/dot_bien.py` với C2F-orders-21-update-quay, C2F-wallets-08-insert-quay: cả hai BẮT, kho thật không đổi.
+
+**Lỗi vòng 1 — đã sửa thật chưa:**
+1. I13 bỏ từng vế loại / trị giá: đã sửa. BV-I13-bo-loai và BV-I13-bo-tri-gia đều BẮT; dữ liệu tay ở thu_gia_lap.js có đủ ca "cùng loại khác trị giá" và "khác loại cùng trị giá".
+2. Ca I12 vi phạm gộp nhiều phép: đã sửa. bat_bien.js:186–189 đọc mã bằng truy vấn con; BV-I12-so-ma BẮT.
+3. Xoá đơn mua thẻ: đã ghi CHƯA PHỦ ở Phát hiện 10 (trang_thai.md:315–317), theo Q7 (a). Tôi đã đối chiếu: orders.js:1462–1590 không chạm `pos_membership_purchases`; Orders.jsx:242 và :1228–1245 cho chọn xoá đơn chưa huỷ.
+4. Bỏ `sxGia.kb = i + 1`: đã sửa. BV-B4-kb-khong-gan BẮT (KB25 → HTTP).
+5. Hồ sơ thiếu D2, E và dòng ĐẾM: đã sửa (trang_thai.md:205–211).
+6. ke_hoach mô tả I13 sai: đã sửa ở mục 5. Nhưng chỗ khác vẫn lệch, xem lỗi 3 dưới.
+
+LỖI TÌM ĐƯỢC:
+1. **cong_cu/gia_lap/bat_bien.js:261 (I16) — nhánh "đổi sang CHUYỂN KHOẢN" không có ca thử, không ở đâu trong cả bộ thử.** Khuôn K3 + K4.
+   - Phép kiểm `so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0` chỉ từng chạy với dòng đổi cuối là `cash`:
+     - dữ liệu tay ở thu_gia_lap.js (khung I16) chỉ có `"sang":"cash"`;
+     - giả lập chỉ có một lời gọi đổi cách trả, `c.doi(d.id, 'cash', …)` ở kich_ban.js:97.
+   - Tôi chạy thử hai đột biến, cả hai SỐNG trên `--chi-du-lieu-tay` và trên toàn giả lập ("27 kịch bản · 16 bất biến · ĐẠT"):
+     - `I16-luon-cot-ck`: thay ternary bằng `so(r.transfer_amount) === 0`, tức luôn soát cột chuyển khoản.
+     - `SRV-doi-tm-luon-du`: sửa server/routes/don-mo-rong.js:151 để đổi sang CK mà tiền mặt vẫn giữ nguyên → đơn ghi gấp đôi.
+   - Vì vậy phiếu B5 ("đổi cách trả ghi đúng số tiền mặt/chuyển khoản") và C3 ("mỗi bất biến mới … phải BẮT") mới đạt một chiều. Trang_thai và ke_hoach không ghi CHƯA PHỦ cho chiều này.
+   - Cách sửa: thêm ca tay "đổi sang transfer mà tiền mặt còn ≠ 0" và một đột biến cho nhánh này. Nên thêm cả một kịch bản đổi sang CK để bắt được đột biến phía máy chủ.
+2. **bat_bien.js:209 (I13) — vế chặn `so(r.usage_limit) > 0 &&` không có ca sạch nào đi qua.** Khuôn K5.
+   - Mã không giới hạn (`usage_limit` 0, là mặc định ở discount-codes.js:210; validate coi 0 là không giới hạn ở discount-codes.js:94) không xuất hiện trong dữ liệu tay hay giả lập với `used_count` > 0.
+   - Đột biến `I13-bo-gioi-han-0` (bỏ vế chặn) SỐNG ở cả tay lẫn giả lập. Nghĩa là luồng hợp lệ "mã dùng nhiều lần, không giới hạn" không có ca "phải KHÔNG lệch".
+3. **viec/LUOI-1/ke_hoach.md:66 và :93–96 — hồ sơ còn mô tả hành vi mà code không còn làm.** Khuôn K4/K1 về tài liệu.
+   - :66 vẫn ghi KB21 ca huỷ chồng "ví + giá gói ĐÚNG MỘT lần". Sau Q8 (b), kich_ban.js (KB21) chỉ khẳng định một dòng hoàn + gói cancelled; vòng sửa 2 không sửa ke_hoach.
+   - :93–96 ghi I8 so "tổng điểm mỗi khách = Σ earn − Σ |redeem|". Trong khi bat_bien.js:128–130 ghi rõ là KHÔNG so số dư.
+4. **bat_bien.js:104 (I7 vế b) — `n !== 1` là vế chết.** Khuôn K3, nhẹ.
+   - Đột biến bỏ riêng `n !== 1` SỐNG. Vế này thừa: n ≥ 2 thì đã bị :105 hoặc :106 bắt.
+   - Đột biến BV-I7-b-no-da-xong bỏ CẢ HAI vế cùng lúc, đúng kiểu mà lỗi 1 vòng 1 đã chỉ ra. Bỏ riêng `dem.get(vt) !== 1` thì BẮT (tôi đã chạy).
+   - Không mất phủ, nhưng code có một vế không giết được mà không ghi lý do.
+
+NGHI NGỜ:
+- **Thời gian `thu_gia_lap`:** 93,7 s so với ngưỡng 96 s (97,6 %). Máy CI cho `cong-chay` chưa đo. Hồ sơ đã ghi CHƯA KIỂM, nhưng chỉ cần thêm một kịch bản nữa là vượt ngưỡng.
+- **Chú thích S4 lệch số đo cuối:** kiem_tra_truoc_khi_giao.js ghi "~79 s" và "~92 s", số đo cuối là 80,5 s và 93,7 s.
+- **I12 (bat_bien.js:184–195) không soát `max_discount` / `valid_to` của mã đổi điểm** (loyalty.js:179–183). Đột biến ghi `max_discount` = 0, làm quà phần trăm mất trần, sẽ sống. Phiếu B1 không đòi, nhưng đây là trường chạm tiền chưa có lưới.
+- **Tự đẩy sổ nợ** (doSoNo.js:16, 114–121; `lanCuoi` = 0, giãn cách 3 phút) chỉ chạy khi một lượt giả lập vượt 180 s. Ke_hoach:76 nói dưới hạn 110/120 s thì không xảy ra. Nhưng timeout đột biến trong dot_bien.py là 300 s, nên máy quá tải có thể cho KB25/KB27 đỏ oan. Chưa thấy xảy ra.
+- **Lệch số dòng nhỏ:** ke_hoach và trang_thai ghi packages.js deliver ":170–181" (thật là :171–185) và cancel ":186" (thật là :188).
+
+NGHIỆM THU:    15/16 mục có bằng chứng · mục thiếu: B5 (chiều đổi sang chuyển khoản; C3 cũng có lỗ, xem lỗi 1)
+- A0 ✓ ke_hoach §0 (67,1 s / 74,9 s / 201,8 s, 4 lõi).
+- A1 ✓ chay.js:181/:186. Đo lại sau A1: 58,3 s, có số đo bù.
+- A2 ✓ ước + đo: 81,2 s giả lập (tôi đo); thu_gia_lap 93,7 s < 96 s.
+- B1 ✓ KB19 + I8 vế đổi điểm + I12.
+- B2 ✓ KB20 + I13 (theo Q1/Q6).
+- B3 ✓ KB21–23 + I14/I15; ghi CHƯA PHỦ cho Q7, Phát hiện cho Q8/Q9.
+- B4 ✓ KB24/25/27 + I7 + công tắc.
+- B5 ✗ một phần: đối soát / duyệt hoàn / increment-usage có; đổi cách trả chỉ có chiều cash.
+- B6 ✓ kiem_tra:753–754 (27 / 16).
+- C1 ✓ hồ sơ ghi 21/21; tôi tự chạy lại 2/21, cả hai BẮT.
+- C2 ✓ hồ sơ ghi 40/40.
+- C3 ✓ 67/67 theo hồ sơ (tôi chạy lại 6), nhưng có lỗ như lỗi 1.
+- C4 ✓ hồ sơ.
+- D1 ✓ khớp `git log`.
+- D2 ✓ ghi CHƯA KIỂM.
+- E ✓ tôi đã chạy lại: npm test PASS 61 · CẢNH BÁO 0; `--day-du` PASS 65 · CẢNH BÁO 0.
+
+P1: `git diff --stat 9521cec HEAD` trên server, client, tu_chay, .claude, .github, package.json, CHECKLIST_CODE.md, CLAUDE.md, viec/AUDIT-1, viec/HOC-1, viec/HOC-2, sổ việc đều rỗng. `--day-du` xanh, nên dist khớp src.
+
+Đường tiền: không thấy kịch bản nào khẳng định sai so với code tôi đã đọc.
+- Cancel orders.js:1296–1458: hoàn ví :1332; gói đã giao > 0 → cancelled, = 0 → DELETE + gỡ trỏ; xoá dòng thẻ :1366–1373.
+- Delete orders.js:1462–1590.
+- Đổi điểm loyalty.js:168–192.
+- KB23/KB27 né P26c (4)/(14), nhưng có ghi lý do.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy lại đủ C1+C2 (87 đột biến, khoảng 32 phút) và C4. Chỉ chạy mẫu 2/21 của C1 và 6/67 của C3.
+- Không xem được GitHub: D2 và thời gian trên máy CI.
+- Chưa kiểm KB25 có đỏ oan khi giả lập vượt 180 s hay không.
+- Đột biến ở don-mo-rong.js tôi chỉ chạy qua giả lập, không qua P26a/P26b.
+
+BÀI HỌC:
+- **KHOÁ:** mỗi ternary hoặc nhánh `sang === X ? … : …` trong bất biến phải có một ca tay cho TỪNG nhánh, kèm một đột biến "luôn đi một nhánh". Có thể thêm phép tự động vào dot_bien.py để sinh đột biến cho mỗi `? :` trong bat_bien.js.
+- **KHOÁ:** mỗi vế chặn (`x > 0 &&`, `!= null &&`, `status !== 'cancelled' &&`) phải có một ca SẠCH đi qua nó, kèm đột biến "bỏ vế chặn" phải BẮT. Đây là chiều K5 của "bỏ một điều kiện".
+- **NGUYÊN TẮC (K3):** vế không giết được, nếu thừa thật (như `n !== 1` ở I7), thì xoá đi hoặc ghi lý do ngay tại dòng. Không để đột biến bỏ hai vế cùng lúc che mất nó.
+- **NGUYÊN TẮC (K4 tài liệu):** khi chủ quán chốt đổi một khẳng định (Q8), grep CẢ ke_hoach.md lẫn trang_thai.md tìm câu cũ. Vòng sửa 2 chỉ sửa kich_ban.js và trang_thai.
+- **NGUYÊN TẮC (K4):** phủ một thao tác hai chiều (đổi cash ↔ transfer, nạp ↔ trừ) thì liệt kê cả hai chiều; chiều nào không phủ thì ghi CHƯA PHỦ.
