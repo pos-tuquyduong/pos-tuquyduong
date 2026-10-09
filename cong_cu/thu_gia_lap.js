@@ -13,6 +13,9 @@
  *  A2  data/ không đổi (kể cả khi KHÔNG có data/), thư mục tạm dọn sạch kể cả
  *      khi giả lập sập.
  *  I2  không có đột biến máy chủ tự nhiên → thử câu SQL bằng kho dữ liệu tay.
+ *  --chi-du-lieu-tay  CHỈ chạy I2 + LUOI-1 (vài giây) — dùng cho đột biến "nới phép" của bat_bien.js (viec/LUOI-1/dot_bien.py).
+ *  LUOI-1  I7 mở rộng, I8 vế đổi điểm, I12–I17 trên kho dữ liệu tay: bộ SẠCH → 0 lệch (K5); mỗi ca lệch ĐÚNG MỘT
+ *      phép, cả hai phía (bắt đột biến "nới phép" của bat_bien.js), khớp câu kết luận.
  *  E4  (đột biến vào chính giả lập) chạy tay: --gia-lap <bản sao đã phá>.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
@@ -33,7 +36,7 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const DONG_DAT = 'Giả lập: 18 kịch bản · 10 bất biến · ĐẠT';
+const DONG_DAT = 'Giả lập: 27 kịch bản · 16 bất biến · ĐẠT';
 
 let dat = 0;
 const hong = [];
@@ -124,6 +127,7 @@ async function main() {
     k(`E1 có giả lập ${path.relative(GOC, CHAY)}`, false, 'không thấy giả lập — chưa viết hoặc sai đường dẫn');
     return ket();
   }
+  if (process.argv.includes('--chi-du-lieu-tay')) return duLieuTay();
   const DATA = path.join(GOC, 'data');
   const chup = () => (fs.existsSync(DATA)
     ? fs.readdirSync(DATA).sort().map((f) => `${f}:${fs.statSync(path.join(DATA, f)).mtimeMs}`).join('|') || '(data/ rỗng)'
@@ -220,6 +224,10 @@ async function main() {
       moTa(r) + ' · ' + (r.ra.split('\n').filter((l) => / → I\d/.test(l)).join(' | ') || 'không có dòng lệch bất biến'));
   });
 
+  return duLieuTay();
+}
+
+async function duLieuTay() {
   // ── I2: kho dữ liệu tay (không có chặn máy chủ nào để bỏ) ───────────────
   console.log('\n[I2] câu SQL mã bill mồ côi trên kho dữ liệu tay');
   const { createClient } = require(require.resolve('@libsql/client', { paths: [GOC] }));
@@ -236,6 +244,128 @@ async function main() {
   const moCoi = await BAT_BIEN.I2(q, {});
   k('mã order_id NULL + mã trỏ đơn không có → I2 ra đúng 2 dòng', moCoi.length === 2, JSON.stringify(moCoi));
   kho.close();
+
+  // ── LUOI-1: bất biến mới / mở rộng trên kho dữ liệu tay. [tên, bất biến, khung, SQL lệch thêm (null = bộ sạch), mẫu kết luận, ctx] ──
+  console.log('\n[LUOI-1] I7 mở rộng · I8 đổi điểm · I12–I17 trên kho dữ liệu tay');
+  const KHUNG = {
+    I7: ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, status TEXT)', 'CREATE TABLE pos_products (id INTEGER PRIMARY KEY, sx_product_type TEXT)',
+      'CREATE TABLE pos_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER)',
+      'CREATE TABLE pos_stock_pending (id INTEGER PRIMARY KEY, order_code TEXT, van_tay TEXT, status TEXT)',
+      "INSERT INTO pos_orders VALUES (1, 'D1', 'completed')", "INSERT INTO pos_products VALUES (5, 'tra')", 'INSERT INTO pos_order_items VALUES (1, 1, 5)'],
+    I8: ["CREATE TABLE pos_settings (key TEXT, value TEXT)", "INSERT INTO pos_settings VALUES ('loyalty_enabled', 'true'), ('loyalty_earn_per_amount', '10000')",
+      'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, customer_phone TEXT, flash_discount REAL)',
+      'CREATE TABLE pos_signup_codes (id INTEGER PRIMARY KEY, order_id INTEGER, diem_nhan_luc TEXT)',
+      'CREATE TABLE pos_point_transactions (id INTEGER PRIMARY KEY, customer_phone TEXT, type TEXT, points INTEGER, order_id INTEGER)',
+      'CREATE TABLE pos_voucher_grants (id INTEGER PRIMARY KEY, code TEXT, customer_phone TEXT, reward_id INTEGER, point_tx_id INTEGER)',
+      'CREATE TABLE pos_reward_catalog (id INTEGER PRIMARY KEY, points_cost INTEGER, discount_type TEXT, discount_value REAL)',
+      "INSERT INTO pos_point_transactions VALUES (1, 'S', 'redeem', -3, NULL)", "INSERT INTO pos_reward_catalog VALUES (1, 3, 'fixed', 5000)",
+      "INSERT INTO pos_voucher_grants VALUES (1, 'MA1', 'S', 1, 1)"],
+    I13: ['CREATE TABLE pos_discount_codes (code TEXT, usage_limit INTEGER, used_count INTEGER, discount_type TEXT, discount_value REAL)',
+      'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, discount_code TEXT, discount_type TEXT, discount_value REAL, discount_amount REAL)',
+      "INSERT INTO pos_discount_codes VALUES ('A', 1, 1, 'fixed', 5000), ('B', 5, 2, 'fixed', 5000)",
+      "INSERT INTO pos_orders VALUES (1, 'a', 'fixed', 5000, 5000), (2, 'A', NULL, 0, 0), (3, 'B', 'fixed', 5000, 5000), (4, 'A', 'percent', 10, 2500)"],
+    I14: ['CREATE TABLE pos_customer_packages (id INTEGER PRIMARY KEY, status TEXT, total_qty INTEGER, delivered_qty INTEGER, order_id INTEGER)',
+      'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, status TEXT, customer_package_id INTEGER)',
+      'CREATE TABLE pos_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, unit_price REAL, quantity INTEGER)',
+      "INSERT INTO pos_customer_packages VALUES (1, 'active', 5, 3, 10), (2, 'active', 10, 1, NULL), (3, 'cancelled', 3, 2, 13)",
+      "INSERT INTO pos_orders VALUES (10, 'MUA', 'completed', 1), (11, 'LAY', 'completed', 1), (12, 'LAYHUY', 'cancelled', 1), (13, 'MUAHUY', 'cancelled', 3)",
+      'INSERT INTO pos_order_items VALUES (1, 10, -1, 300000, 1), (2, 10, 5, 0, 1), (3, 11, 5, 0, 2), (4, 12, 5, 0, 1), (5, 11, 6, 25000, 1)'],
+    I15: ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, status TEXT, customer_phone TEXT)',
+      'CREATE TABLE pos_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER)',
+      'CREATE TABLE pos_membership_purchases (id INTEGER PRIMARY KEY, order_id INTEGER)',
+      "INSERT INTO pos_orders VALUES (1, 'THE', 'completed', 'S'), (2, 'THEHUY', 'cancelled', 'S')",
+      'INSERT INTO pos_order_items VALUES (1, 1, -1000001), (2, 2, -1000001)', 'INSERT INTO pos_membership_purchases VALUES (1, 1)'],
+    I16: ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, cash_amount REAL, transfer_amount REAL)',
+      'CREATE TABLE pos_order_log (id INTEGER PRIMARY KEY, order_id INTEGER, loai TEXT, chi_tiet TEXT)',
+      "INSERT INTO pos_orders VALUES (1, 'D1', 25000, 0)",
+      `INSERT INTO pos_order_log VALUES (1, 1, 'doi', '{"sang":"transfer","so_tien":25000}'), (2, 1, 'thu', NULL), (3, 1, 'doi', '{"sang":"cash","so_tien":25000}')`],
+    I17: ['CREATE TABLE pos_refund_requests (id INTEGER PRIMARY KEY, order_id INTEGER, customer_phone TEXT, refund_amount REAL, status TEXT, balance_transaction_id INTEGER)',
+      'CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, order_id INTEGER, customer_phone TEXT, amount REAL)',
+      "INSERT INTO pos_refund_requests VALUES (1, 7, 'S', 30000, 'approved', 9), (2, 8, 'S', 5000, 'pending', NULL)",
+      "INSERT INTO pos_balance_transactions VALUES (9, 'refund', 7, 'S', 30000)"],
+  };
+  KHUNG.I12 = KHUNG.I8.slice(2).concat(['CREATE TABLE pos_discount_codes (code TEXT, discount_type TEXT, discount_value REAL, usage_limit INTEGER)',
+    "INSERT INTO pos_discount_codes VALUES ('MA1', 'fixed', 5000, 1)"]);
+  const VT = 'POS:1:out:0';
+  const sx = (nhan, hong, bat = [5]) => ({ nhanKho: nhan.map((v) => ({ van_tay: v })), sxGia: { hong: hong.map(([v, kb]) => ({ van_tay: v, kb })), kbBat: new Set(bat) } });
+  const no = (v, tt = 'pending') => `INSERT INTO pos_stock_pending (order_code, van_tay, status) VALUES ('D1', ${v ? `'${v}'` : 'NULL'}, '${tt}')`;
+  const QUAY = (tang = [], giao = []) => ({ soQuay: { tangMa: new Map(tang), giaoGoi: new Map(giao) } });
+  const CA = [
+    ['I7 sạch: SX nhận đúng 1', 'I7', 'I7', [], null, sx([VT], [])],
+    ['I7 sạch: SX lỗi → đúng 1 dòng nợ chờ đẩy', 'I7', 'I7', [no(VT)], null, sx([], [[VT, 5]])],
+    ['I7 sạch: nợ đã đẩy xong + SX nhận 1', 'I7', 'I7', [no(VT, 'resolved')], null, sx([VT], [[VT, 5]])],
+    ['I7 sạch: đơn đã xoá — lỗi out + in, mỗi cái 1 dòng nợ', 'I7', 'I7', [no('POS:9:out:0'), no('POS:9:in:0')], null,
+      { ...sx([VT], [['POS:9:out:0', 5], ['POS:9:in:0', 6]], [5, 6]) }],
+    ['I7 SX nhận 2 lần (phía trên)', 'I7', 'I7', [], /SX nhận 2 lần/, sx([VT, VT], [])],
+    ['I7 SX nhận 0, không nợ (phía dưới)', 'I7', 'I7', [], /SX nhận 0 lần$/, sx([], [])],
+    ['I7 SX nhận 1 VÀ còn nợ chờ đẩy', 'I7', 'I7', [no(VT)], /nợ kho chưa xong 1 dòng/, sx([VT], [[VT, 5]])],
+    ['I7 nợ đã xong nhưng SX nhận 0 (đơn đã xoá)', 'I7', 'I7', [no('POS:9:in:0', 'resolved')], /nợ kho POS:9:in:0 đã xong 1 dòng, SX nhận 0 lần/,
+      sx([VT], [['POS:9:in:0', 5]])],
+    ['I7 SX lỗi (đơn đã xoá) mà không có dòng nợ', 'I7', 'I7', [], /sổ nợ kho có 0 dòng/, sx([VT], [['POS:9:in:0', 5]])],
+    ['I7 SX lỗi một lần mà 2 dòng nợ cùng vân tay', 'I7', 'I7', [no('POS:9:in:0'), no('POS:9:in:0')], /sổ nợ kho có 2 dòng/, sx([VT], [['POS:9:in:0', 5]])],
+    ['I7 dòng nợ không có lần SX lỗi', 'I7', 'I7', [no('POS:9:in:0')], /không có lần SX lỗi tương ứng/, sx([VT], [])],
+    ['I7 dòng nợ không vân tay', 'I7', 'I7', [no(null)], /không có lần SX lỗi tương ứng/, sx([VT], [])],
+    ['I7 SX lỗi ở kịch bản không bật công tắc', 'I7', 'I7', [no('POS:9:in:0')], /không bật công tắc lỗi/, sx([VT], [['POS:9:in:0', 5]], [])],
+    ['I8 sạch: dòng đổi điểm −3 ↔ một quà giá 3', 'I8', 'I8', [], null, {}],
+    ['I8 đổi trừ 2 điểm (ít hơn giá)', 'I8', 'I8', ['UPDATE pos_point_transactions SET points = -2'], /-2 điểm, 1 quà trỏ tới, quà giá 3/, {}],
+    ['I8 đổi trừ 4 điểm (nhiều hơn giá)', 'I8', 'I8', ['UPDATE pos_point_transactions SET points = -4'], /-4 điểm, 1 quà trỏ tới, quà giá 3/, {}],
+    ['I8 dòng đổi không quà nào trỏ tới', 'I8', 'I8', ['UPDATE pos_voucher_grants SET point_tx_id = 99'], /0 quà trỏ tới/, {}],
+    ['I8 hai quà trỏ một dòng đổi', 'I8', 'I8', ["INSERT INTO pos_voucher_grants VALUES (2, 'MA2', 'S', 1, 1)"], /2 quà trỏ tới/, {}],
+    ['I8 loại dòng điểm lạ', 'I8', 'I8', ["INSERT INTO pos_point_transactions VALUES (2, 'S', 'tang', 5, NULL)"], /loại dòng điểm lạ "tang"/, {}],
+    ['I12 sạch: quà ↔ dòng redeem cùng SĐT, mã đúng trị giá, dùng 1 lần', 'I12', 'I12', [], null, {}],
+    ['I12 quà trỏ dòng không phải redeem', 'I12', 'I12', ["UPDATE pos_point_transactions SET type = 'earn'"], /dòng điểm earn/, {}],
+    ['I12 dòng redeem của SĐT khác', 'I12', 'I12', ["UPDATE pos_point_transactions SET customer_phone = 'KHAC'"], /mã MA1/, {}],
+    ['I12 dòng redeem −2 (ít hơn giá)', 'I12', 'I12', ['UPDATE pos_point_transactions SET points = -2'], /dòng điểm redeem -2 \(giá 3\)/, {}],
+    ['I12 dòng redeem −4 (nhiều hơn giá)', 'I12', 'I12', ['UPDATE pos_point_transactions SET points = -4'], /dòng điểm redeem -4 \(giá 3\)/, {}],
+    ['I12 không có mã giảm giá', 'I12', 'I12', ['DELETE FROM pos_discount_codes'], /, 0 mã/, {}],
+    ['I12 mã trị giá 4.999', 'I12', 'I12', ['UPDATE pos_discount_codes SET discount_value = 4999'], /fixed 4999 \(quà fixed 5000\)/, {}],
+    ['I12 mã trị giá 5.001', 'I12', 'I12', ['UPDATE pos_discount_codes SET discount_value = 5001'], /fixed 5001 \(quà fixed 5000\)/, {}],
+    ['I12 mã loại % thay cố định', 'I12', 'I12', ["UPDATE pos_discount_codes SET discount_type = 'percent'"], /percent 5000/, {}],
+    ['I12 mã dùng tối đa 2', 'I12', 'I12', ['UPDATE pos_discount_codes SET usage_limit = 2'], /dùng tối đa 2/, {}],
+    ['I12 mã dùng tối đa 0 (không giới hạn)', 'I12', 'I12', ['UPDATE pos_discount_codes SET usage_limit = 0'], /dùng tối đa 0/, {}],
+    ['I13 sạch: đơn đã áp + lượt tay; đơn gõ mã không áp (trống / chiết khấu hồ sơ khách) không tính', 'I13', 'I13', [], null, QUAY([['B', 1]])],
+    ['I13 dùng 0, có 1 đơn đã áp (phía dưới)', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 0 WHERE code = 'A'"], /mã A: đã dùng 0\/1, đơn đã áp 1/, QUAY([['B', 1]])],
+    ['I13 dùng 3, 1 đơn + 1 tay (phía trên)', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 3 WHERE code = 'B'"], /mã B: đã dùng 3\/5, đơn đã áp 1 \+ quầy tăng tay 1/, QUAY([['B', 1]])],
+    ['I13 vượt giới hạn dù khớp số đơn', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 2 WHERE code = 'A'", "INSERT INTO pos_orders VALUES (5, 'A', 'fixed', 5000, 5000)"], /mã A: đã dùng 2\/1, đơn đã áp 2/, QUAY([['B', 1]])],
+    ['I14 sạch: mua lấy ngay, lấy, lấy đã huỷ, gói tay + /deliver, gói huỷ', 'I14', 'I14', [], null, QUAY([], [[2, 1]])],
+    ['I14 đã giao 4 > đơn 3 (phía trên)', 'I14', 'I14', ['UPDATE pos_customer_packages SET delivered_qty = 4 WHERE id = 1'], /gói #1: đã giao 4, đơn lấy từ gói 3/, QUAY([], [[2, 1]])],
+    ['I14 đã giao 2 < đơn 3 (phía dưới)', 'I14', 'I14', ['UPDATE pos_customer_packages SET delivered_qty = 2 WHERE id = 1'], /gói #1: đã giao 2, đơn lấy từ gói 3/, QUAY([], [[2, 1]])],
+    ['I14 /deliver không ghi sổ quầy', 'I14', 'I14', [], /gói #2: đã giao 1, đơn lấy từ gói 0 \+ quầy giao tay 0/, QUAY()],
+    ['I14 đã giao vượt tổng', 'I14', 'I14', ["INSERT INTO pos_customer_packages VALUES (4, 'cancelled', 2, 3, NULL)"], /gói #4: đã giao 3 > tổng 2/, QUAY([], [[2, 1]])],
+    ['I14 gói của đơn mua đã huỷ còn dùng được', 'I14', 'I14', ["INSERT INTO pos_customer_packages VALUES (5, 'active', 3, 0, 13)"], /gói #5 \(active\) của đơn mua #13 đã huỷ/, QUAY([], [[2, 1]])],
+    ['I14 gói của đơn mua đã xoá còn dùng được', 'I14', 'I14', ["INSERT INTO pos_customer_packages VALUES (5, 'active', 3, 0, 99)"], /của đơn mua #99 đã xoá/, QUAY([], [[2, 1]])],
+    ['I14 đơn trỏ gói không còn', 'I14', 'I14', ["INSERT INTO pos_orders VALUES (14, 'MOCOI', 'cancelled', 77)"], /đơn MOCOI trỏ gói #77 không còn/, QUAY([], [[2, 1]])],
+    ['I14 đơn mua gói lấy ngay không trỏ gói của nó', 'I14', 'I14', ["INSERT INTO pos_customer_packages VALUES (6, 'active', 3, 0, 15)",
+      "INSERT INTO pos_orders VALUES (15, 'MUA2', 'completed', NULL)", 'INSERT INTO pos_order_items VALUES (9, 15, 5, 0, 1)'], /đơn mua gói MUA2 lấy ngay/, QUAY([], [[2, 1]])],
+    ['I15 sạch: đơn thẻ có 1 dòng mua; đơn thẻ đã huỷ không có', 'I15', 'I15', [], null, {}],
+    ['I15 đơn thẻ 0 dòng mua (phía dưới)', 'I15', 'I15', ['DELETE FROM pos_membership_purchases'], /đơn mua thẻ THE: 0 dòng/, {}],
+    ['I15 đơn thẻ 2 dòng mua (phía trên)', 'I15', 'I15', ['INSERT INTO pos_membership_purchases VALUES (2, 1)'], /đơn mua thẻ THE: 2 dòng/, {}],
+    ['I15 dòng mua thẻ của đơn đã huỷ', 'I15', 'I15', ['INSERT INTO pos_membership_purchases VALUES (2, 2)'], /dòng mua thẻ #2 của đơn #2 đã huỷ/, {}],
+    ['I15 dòng mua thẻ của đơn không còn', 'I15', 'I15', ['INSERT INTO pos_membership_purchases VALUES (2, 99)'], /dòng mua thẻ #2 của đơn #99 không còn/, {}],
+    ['I16 sạch: dòng đổi CUỐI khớp tiền trên đơn', 'I16', 'I16', [], null, {}],
+    ['I16 đơn vẫn chuyển khoản sau khi đổi sang tiền mặt', 'I16', 'I16', ['UPDATE pos_orders SET cash_amount = 0, transfer_amount = 25000'], /đổi sang cash 25000, đơn ghi tiền mặt 0/, {}],
+    ['I16 số tiền đổi 24.999', 'I16', 'I16', [`UPDATE pos_order_log SET chi_tiet = '{"sang":"cash","so_tien":24999}' WHERE id = 3`], /đổi sang cash 24999/, {}],
+    ['I16 số tiền đổi 25.001', 'I16', 'I16', [`UPDATE pos_order_log SET chi_tiet = '{"sang":"cash","so_tien":25001}' WHERE id = 3`], /đổi sang cash 25001/, {}],
+    ['I16 đổi sang tiền mặt mà CK chưa về 0', 'I16', 'I16', ['UPDATE pos_orders SET cash_amount = 24999, transfer_amount = 1'], /tiền mặt 24999 · CK 1/, {}],
+    ['I17 sạch: duyệt gắn đúng dòng refund; yêu cầu chờ không cần', 'I17', 'I17', [], null, {}],
+    ['I17 duyệt không gắn dòng sổ', 'I17', 'I17', ['UPDATE pos_refund_requests SET balance_transaction_id = NULL WHERE id = 1'], /gắn dòng sổ \(không có\)/, {}],
+    ['I17 gắn dòng không phải refund', 'I17', 'I17', ["UPDATE pos_balance_transactions SET type = 'topup'"], /gắn dòng sổ #9 topup/, {}],
+    ['I17 gắn dòng của đơn khác', 'I17', 'I17', ['UPDATE pos_balance_transactions SET order_id = 8'], /yêu cầu hoàn #1/, {}],
+    ['I17 gắn dòng của SĐT khác', 'I17', 'I17', ["UPDATE pos_balance_transactions SET customer_phone = 'KHAC'"], /yêu cầu hoàn #1/, {}],
+    ['I17 dòng sổ 29.999 (ít hơn)', 'I17', 'I17', ['UPDATE pos_balance_transactions SET amount = 29999'], /refund 29999, hoàn 30000/, {}],
+    ['I17 dòng sổ 30.001 (nhiều hơn)', 'I17', 'I17', ['UPDATE pos_balance_transactions SET amount = 30001'], /refund 30001, hoàn 30000/, {}],
+  ];
+  for (const [i, [tenCa, bb, khung, them, mau, ctx]] of CA.entries()) {
+    let ten = tenCa;
+    const kt = createClient({ url: 'file:' + path.join(TAM, `luoi1_${i}.db`) });
+    let ra;
+    try {
+      for (const sql of [...KHUNG[khung], ...them]) await kt.execute(sql);
+      ra = await BAT_BIEN[bb]((sql, a = []) => kt.execute({ sql, args: a }).then((r) => r.rows), ctx);
+    } catch (e) { ra = null; ten += ` — SẬP: ${e.message}`; }
+    kt.close();
+    k(ten, !!ra && (mau ? ra.length === 1 && mau.test(ra[0]) : ra.length === 0), JSON.stringify(ra));
+  }
   return ket();
 }
 
