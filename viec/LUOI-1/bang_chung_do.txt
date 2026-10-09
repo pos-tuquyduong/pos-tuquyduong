@@ -1,4 +1,4 @@
-LUOI-1 — bằng chứng ĐỎ trên gốc (09.10.2026, máy mây 4 lõi, chạy RIÊNG)
+LUOI-1 — bằng chứng ĐỎ trên gốc (09.10.2026, máy mây 4 lõi, chạy RIÊNG). Chạy lại sau vòng sửa 1 (bài thử đổi dữ liệu tay I12–I15).
 
 SỐ CA cong_cu/thu_gia_lap.js: 102
 
@@ -6,8 +6,10 @@ SỐ CA cong_cu/thu_gia_lap.js: 102
 Cách dựng: thư mục nháp ngoài kho; `git archive 9521cec cong_cu server tu_chay/cau_hinh.json kiem_tra_truoc_khi_giao.js
 package.json`, node_modules nối (chỉ đọc), chép thu_gia_lap.js của HEAD đè lên (cmp khớp byte); chạy `node cong_cu/thu_gia_lap.js`.
 server/ client/ tu_chay/ của việc này KHÔNG đổi so với gốc (git diff --stat 9521cec -- server client tu_chay rỗng).
-Kết quả: thoát 1 · 45 đạt · 57 hỏng. Trên HEAD: thoát 0 · 102 đạt · 0 hỏng (do_thoi_gian.js thugl, 92,1 s).
-Các ca hỏng trên gốc (dòng tổng 18 · 10 ≠ 27 · 16; ca dữ liệu tay I7 mở rộng / I8 đổi điểm sai câu kết luận; I12–I17 không có hàm):
+Kết quả: thoát 1 · 45 đạt · 57 hỏng. Trên HEAD: thoát 0 · 102 đạt · 0 hỏng (do_thoi_gian.js thugl, 90,5 s).
+Lưu ý (người soát vòng 1): ca I12–I17 đỏ trên gốc chỉ vì thiếu hàm; bằng chứng các bất biến đó BẮT lỗi thật nằm ở C3
+(viec/LUOI-1/dot_bien.py, 67/67) và C1 (21 đột biến máy chủ).
+Các ca hỏng trên gốc:
   ✗ thoát 0, dòng tổng đúng "Giả lập: 27 kịch bản · 16 bất biến · ĐẠT"  — thoát 0 · Giả lập: 18 kịch bản · 10 bất biến · ĐẠT
   ✗ I7 sạch: SX lỗi → đúng 1 dòng nợ chờ đẩy  — ["vân tay POS:1:out:0 (đơn D1) SX nhận 0 lần","nợ kho POS:1:out:0 (D1) dù SX giả không lỗi"]
   ✗ I7 sạch: nợ đã đẩy xong + SX nhận 1  — ["nợ kho POS:1:out:0 (D1) dù SX giả không lỗi"]
@@ -29,17 +31,17 @@ Các ca hỏng trên gốc (dòng tổng 18 · 10 ≠ 27 · 16; ca dữ liệu t
   ✗ I12 dòng redeem của SĐT khác — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 dòng redeem −2 (ít hơn giá) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 dòng redeem −4 (nhiều hơn giá) — SẬP: BAT_BIEN[bb] is not a function  — null
-  ✗ I12 không có mã giảm giá — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trùng hai dòng (chỉ vế số mã) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã trị giá 4.999 — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã trị giá 5.001 — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã loại % thay cố định — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã dùng tối đa 2 — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã dùng tối đa 0 (không giới hạn) — SẬP: BAT_BIEN[bb] is not a function  — null
-  ✗ I13 sạch: đơn đã áp + lượt tay; đơn gõ mã không áp (trống / chiết khấu hồ sơ khách) không tính — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I13 sạch: đơn đã áp + lượt tay; đơn gõ mã không áp (trống / cùng loại khác trị giá / khác loại cùng trị giá) không tính — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I13 dùng 0, có 1 đơn đã áp (phía dưới) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I13 dùng 3, 1 đơn + 1 tay (phía trên) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I13 vượt giới hạn dù khớp số đơn — SẬP: BAT_BIEN[bb] is not a function  — null
-  ✗ I14 sạch: mua lấy ngay, lấy, lấy đã huỷ, gói tay + /deliver, gói huỷ — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 sạch: mua lấy ngay, lấy (+ thẻ 0đ), lấy đã huỷ, gói tay + /deliver, gói huỷ, đơn lẻ, mua không lấy ngay — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I14 đã giao 4 > đơn 3 (phía trên) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I14 đã giao 2 < đơn 3 (phía dưới) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I14 /deliver không ghi sổ quầy — SẬP: BAT_BIEN[bb] is not a function  — null
@@ -48,7 +50,7 @@ Các ca hỏng trên gốc (dòng tổng 18 · 10 ≠ 27 · 16; ca dữ liệu t
   ✗ I14 gói của đơn mua đã xoá còn dùng được — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I14 đơn trỏ gói không còn — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I14 đơn mua gói lấy ngay không trỏ gói của nó — SẬP: BAT_BIEN[bb] is not a function  — null
-  ✗ I15 sạch: đơn thẻ có 1 dòng mua; đơn thẻ đã huỷ không có — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I15 sạch: đơn thẻ có 1 dòng mua; đơn thẻ đã huỷ / không SĐT / đơn thường không có — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I15 đơn thẻ 0 dòng mua (phía dưới) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I15 đơn thẻ 2 dòng mua (phía trên) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I15 dòng mua thẻ của đơn đã huỷ — SẬP: BAT_BIEN[bb] is not a function  — null
