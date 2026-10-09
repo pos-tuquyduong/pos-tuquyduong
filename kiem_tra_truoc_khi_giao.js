@@ -750,11 +750,11 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 // S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG (trừ lần hạ có chủ quán chốt). Việc sau thêm kịch bản mới, không
 // xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
-const NGUONG_KICH_BAN = 18;
-const NGUONG_BAT_BIEN = 10;   // 11 → 10: bỏ I10, I10 ⊂ I11, không giảm độ phủ (HOC-2b, chủ quán chốt 2a) — với tiền
-//                               đồng nguyên, giả định ghi ở bat_bien.js (I11)
-// S4 — đo CHẠY RIÊNG 08.10.2026 (máy mây; chat đo 68 s / 80 s): giả lập 67 s, thu_gia_lap 75 s (> 15 s) → CHỈ chạy
-// ở --day-du (cổng cong-chay chạy --day-du); hạn 120 s, xanh mà quá 80 % (96 s) → CẢNH BÁO (HOC-2b C3).
+const NGUONG_KICH_BAN = 27;   // 18 → 27: LUOI-1 thêm KB19–KB27 (đổi điểm, mã, gói, thẻ, nợ kho SX)
+const NGUONG_BAT_BIEN = 16;   // 10 → 16: LUOI-1 thêm I12–I17. (11 → 10 ở HOC-2b: bỏ I10, I10 ⊂ I11 — chủ quán chốt 2a.)
+// S4 — đo CHẠY RIÊNG trên máy mây 4 lõi (LUOI-1, 09.10.2026): giả lập 67 s → 58 s sau A1 (bất biến không cộng trễ) → ~79 s
+// với 27 kịch bản; thu_gia_lap 75 s → ~92 s. CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du); hạn 120 s, xanh mà quá
+// 80 % (96 s) → CẢNH BÁO (HOC-2b C3). thu_gia_lap đã sát ngưỡng: thêm kịch bản thì đo lại, vượt → hỏi chủ quán, KHÔNG nới.
 {
   if (DAY_DU) {
     const ra = chayBaiThat('cong_cu/gia_lap/chay.js', MT_SACH, 120000, true);
