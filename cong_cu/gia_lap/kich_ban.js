@@ -163,6 +163,7 @@ const KICH_BAN = [
     c.mong('lấy 1 ly 0đ từ gói có sẵn → delivered_qty = 1', Number(g2?.delivered_qty) === 1, JSON.stringify(g2));
   } },
   { ten: 'hai người cùng bấm thu một bill', chay: async (c) => {
+    const dau = c.doLenh.length;   // LUOI-1: đo trễ trên lệnh của CHÍNH KB10 (trước đây cả phiên — trễ tắt giữa chừng vẫn đạt)
     const d = await c.taoDon('KB10', { items: [c.mon(0)], payment_method: 'cho_thu', debt_amount: 25000 });
     const ra = await Promise.all([c.thu('chu', d.id, 'cash'), c.thu('nv', d.id, 'transfer')]);
     // Bằng chứng chồng nhau: tuần tự thì người sau ra 400 không có code (đã paid, orders.js:1245);
@@ -170,9 +171,9 @@ const KICH_BAN = [
     const st = ra.map((r) => r.status).sort().join(',');
     c.mong('hai lệnh thu chồng nhau → đúng một 200 + một 409 DA_THU_ROI', st === '200,409' && ra.some((r) => r.code === 'DA_THU_ROI'),
       ra.map(c.ma).join(' / '));
-    const tl = [...c.doLenh].sort((a, b) => a - b);
+    const tl = c.doLenh.slice(dau).sort((a, b) => a - b);
     const giua = tl.length ? tl[Math.floor(tl.length / 2)] : 0;
-    c.mong('trễ kho đang bật (trung vị một lệnh ≥ 35 ms)', giua >= 35, `trung vị ${giua} ms trên ${tl.length} lệnh`);
+    c.mong('trễ kho đang bật (trung vị một lệnh của KB10 ≥ 35 ms)', giua >= 35, `trung vị ${giua} ms trên ${tl.length} lệnh của KB10`);
   } },
   { ten: 'hai người cùng nhập một mã', chay: async (c) => {
     const d = await c.taoDon('KB11a', { items: [c.mon(0)], payment_method: 'cash', cash_amount: 25000 });
@@ -353,6 +354,157 @@ const KICH_BAN = [
     const h = await c.baoHong(d2.id, { product_code: c.sp[3].code, quantity: 1, action: 'refund' });
     c.mong('báo hỏng hoàn tiền trên đơn đã huỷ → 400 DON_KHONG_DEN_DUOC, ví không đổi', h.status === 400 && h.code === 'DON_KHONG_DEN_DUOC'
       && await c.vi(KH.quen) === truoc, `${c.ma(h)} · ví ${truoc} → ${await c.vi(KH.quen)}`);
+  } },
+  // ── LUOI-1: lưới tiền/kho cho AU-G1/G2/G3/G6 + AU-G4 (viec/LUOI-1). Mỗi kịch bản tự dựng dữ liệu — dungDuLieu không đổi. ──
+  // Màn hình gọi: đổi điểm Customers.jsx:199 · mã Sales.jsx:234/:728 · gói/thẻ Sales.jsx:744–751 · huỷ Orders.jsx:263 (nhân
+  // viên có quyền cancel_order) · đẩy sổ nợ Layout.jsx:53. /increment-usage, /deliver, đối soát: KHÔNG màn hình gọi (phủ qua API).
+  { ten: 'đổi điểm lấy mã rồi dùng mã khi bán', chay: async (c) => {
+    const S = sdtMoi();
+    const kh = { customer_phone: S, customer_name: 'Khách KB19' };
+    const qua = await c.goi('chu', 'POST', '/rewards', { name: 'Quà KB19', points_cost: 3, discount_type: 'fixed', discount_value: 5000, valid_days: 30 });
+    await c.taoDon('KB19 tích điểm', { ...kh, items: [c.mon(2)], payment_method: 'cash', cash_amount: 30000 });
+    const doi = await c.goi('nv', 'POST', '/loyalty/redeem', { phone: S, reward_id: qua.id });
+    c.mong('tạo quà 200; tích 3 điểm rồi đổi quà 3 điểm → 200, còn 0 điểm', qua.status === 200 && doi.status === 200 && doi.data?.points_left === 0,
+      `${c.ma(qua)} / ${c.ma(doi)} · còn ${doi.data?.points_left}`);
+    const lan2 = await c.goi('nv', 'POST', '/loyalty/redeem', { phone: S, reward_id: qua.id });
+    c.mong('đổi lần hai khi đã hết điểm → 400 (máy chủ không trả code)', lan2.status === 400, c.ma(lan2));
+    const ma = doi.data?.code;
+    const v = await c.goi('nv', 'POST', '/discount-codes/validate', { code: ma, order_subtotal: 25000 });
+    const b = await c.goi('nv', 'POST', '/orders', { ...kh, items: [c.mon(0)], discount_code: ma, payment_method: 'cash', cash_amount: 20000 });
+    const db = b.order?.id ? await c.db.queryOne('SELECT total, discount_amount FROM pos_orders WHERE id = ?', [b.order.id]) : null;
+    c.mong('mã đổi điểm: validate → 200 hợp lệ; bán 25.000 dùng mã → 200, giảm 5.000, thu 20.000', v.status === 200 && v.valid === true
+      && b.status === 200 && Number(db?.discount_amount) === 5000 && Number(db?.total) === 20000, `${c.ma(v)} / ${c.ma(b)} · ${JSON.stringify(db)}`);
+  } },
+  { ten: 'mã dùng-một-lần: hai quầy cùng dùng, dùng lại, tăng lượt tay', chay: async (c) => {
+    const tao = (code, gioiHan) => c.goi('chu', 'POST', '/discount-codes', { code, discount_type: 'fixed', discount_value: 5000, usage_limit: gioiHan });
+    const t = await tao('KB20MOTLAN', 1);
+    const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB20' };
+    const ban = () => c.goi('chu', 'POST', '/orders', { ...kh, items: [c.mon(0)], discount_code: 'KB20MOTLAN', payment_method: 'cash', cash_amount: 20000 });
+    const [r1, r2] = await c.chong(ban, ban);
+    c.mong('tạo mã 200; hai đơn cùng mã dùng-một-lần chồng nhau → 200 + 400 DISCOUNT_CODE_LIMIT_REACHED', t.status === 200 && r1?.status === 200
+      && r2.status === 400 && r2.code === 'DISCOUNT_CODE_LIMIT_REACHED', `${c.ma(t)} / ${r1 ? c.ma(r1) : 'móc không chạy'} / ${c.ma(r2)}`);
+    // Q1 = (a), chủ quán chốt 09.10: màn hình chặn ở validate (400, không code); gửi thẳng mã đã hết lượt thì máy chủ bỏ mã, tính đủ giá.
+    const v = await c.goi('chu', 'POST', '/discount-codes/validate', { code: 'KB20MOTLAN', order_subtotal: 25000 });
+    const lai = await c.goi('chu', 'POST', '/orders', { ...kh, items: [c.mon(0)], discount_code: 'KB20MOTLAN', payment_method: 'cash', cash_amount: 25000 });
+    const dl = lai.order?.id ? await c.db.queryOne('SELECT total, discount_amount FROM pos_orders WHERE id = ?', [lai.order.id]) : null;
+    c.mong('mã hết lượt: validate → 400; đơn gửi thẳng mã đó → 200, bỏ mã, đủ giá 25.000', v.status === 400 && lai.status === 200
+      && Number(dl?.total) === 25000 && Number(dl?.discount_amount) === 0, `${c.ma(v)} / ${c.ma(lai)} · ${JSON.stringify(dl)}`);
+    const t2 = await tao('KB20TANGTAY', 5);
+    const tang = await c.goi('chu', 'POST', `/discount-codes/${t2.id}/increment-usage`, {});
+    if (tang.status === 200) c.soQuay.tangMa.set('KB20TANGTAY', (c.soQuay.tangMa.get('KB20TANGTAY') || 0) + 1);
+    c.mong('tăng lượt tay (/increment-usage) → 200', t2.status === 200 && tang.status === 200, `${c.ma(t2)} / ${c.ma(tang)}`);
+  } },
+  { ten: 'gói: mua → lấy tới hết lượt → lấy thêm bị chặn → nhân viên huỷ đơn lấy / huỷ đơn mua (chồng nhau)', chay: async (c) => {
+    const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB21' };
+    const gia = await c.so('SELECT price FROM pos_packages WHERE id = ?', [c.goiId]);
+    const nap = await c.nap(kh.customer_phone, 2 * gia);
+    const mua = (ten) => c.taoDon(ten, { ...kh, items: [], package_buy: { package_id: c.goiId, total_qty: 3, pkg_qty: 1 },
+      payment_method: 'balance', balance_amount: gia });
+    const goiCua = (d) => c.so('SELECT id FROM pos_customer_packages WHERE order_id = ?', [d.id]);
+    const lay = (goi, sl) => c.goi('chu', 'POST', '/orders', { ...kh, items: [c.mon(0, sl, true)], customer_package_id: goi, payment_method: 'cash', cash_amount: 0 });
+    const huy = (id) => c.goi('nv', 'PUT', `/orders/${id}/cancel`, { reason: 'giả lập' });
+    const daGiao = (g) => c.so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [g]);
+    const m1 = await mua('KB21 mua gói 1');
+    const g1 = await goiCua(m1);
+    const l1 = await lay(g1, 2), l2 = await lay(g1, 1), l3 = await lay(g1, 1);
+    c.mong('nạp 200; gói 3 lượt: lấy 2 rồi 1 → 200, 200; lấy thêm → 400 GOI_HET_HIEU_LUC', nap.status === 200 && l1.status === 200
+      && l2.status === 200 && l3.status === 400 && l3.code === 'GOI_HET_HIEU_LUC', `${c.ma(nap)} / ${c.ma(l1)} / ${c.ma(l2)} / ${c.ma(l3)}`);
+    const h2 = await huy(l2.order?.id);
+    c.mong('nhân viên huỷ đơn lấy 1 ly → 200, gói còn giao 2', h2.status === 200 && await daGiao(g1) === 2, `${c.ma(h2)} · giao ${await daGiao(g1)}`);
+    const vi = await c.vi(kh.customer_phone);
+    const [x1, x2] = await c.chong(() => huy(m1.id), () => huy(m1.id));
+    c.mong('hai nhân viên huỷ đơn mua gói chồng nhau → 200 + 400 DON_KHONG_HUY_DUOC, ví + giá gói đúng một lần', x1?.status === 200
+      && x2.status === 400 && x2.code === 'DON_KHONG_HUY_DUOC' && await c.vi(kh.customer_phone) === vi + gia,
+    `${x1 ? c.ma(x1) : 'móc không chạy'} / ${c.ma(x2)} · ví ${vi} → ${await c.vi(kh.customer_phone)}`);
+    const l4 = await lay(g1, 1);
+    c.mong('lấy từ gói của đơn mua đã huỷ → 400 GOI_HET_HIEU_LUC', l4.status === 400 && l4.code === 'GOI_HET_HIEU_LUC', c.ma(l4));
+    const m2 = await mua('KB21 mua gói 2');
+    const g2 = await goiCua(m2);
+    const l5 = await lay(g2, 1);
+    const h5 = await huy(l5.order?.id), h6 = await huy(m2.id);
+    const con = await c.so('SELECT COUNT(*) FROM pos_customer_packages WHERE id = ?', [g2]);
+    const tro = await c.so('SELECT COUNT(*) FROM pos_orders WHERE customer_package_id = ?', [g2]);
+    c.mong('gói không còn lượt nào đã giao: huỷ đơn lấy rồi huỷ đơn mua → 200, 200; gói bị xoá, không đơn nào trỏ tới', l5.status === 200
+      && h5.status === 200 && h6.status === 200 && con === 0 && tro === 0, `${c.ma(l5)} / ${c.ma(h5)} / ${c.ma(h6)} · gói còn ${con} · ${tro} đơn trỏ`);
+  } },
+  { ten: 'mua thẻ hội viên bằng ví rồi nhân viên huỷ', chay: async (c) => {
+    const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB22' };   // khách MỚI: hạng thẻ giảm giá đơn sau (orders.js:529)
+    const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order, id LIMIT 1');
+    if (!hang) throw new Error('không có hạng thẻ nào đang bật');
+    const gia = Number(hang.card_price);
+    await c.nap(kh.customer_phone, gia);
+    const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'balance', balance_amount: gia });
+    const co = await c.so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d.id]);
+    const truoc = await c.vi(kh.customer_phone);
+    const h = await c.goi('nv', 'PUT', `/orders/${d.id}/cancel`, { reason: 'giả lập' });
+    const con = await c.so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d.id]);
+    c.mong('mua thẻ → 1 dòng mua thẻ; nhân viên huỷ → 200, ví + giá thẻ, dòng mua thẻ bị gỡ', co === 1 && h.status === 200
+      && await c.vi(kh.customer_phone) === truoc + gia && con === 0, `${co} dòng / ${c.ma(h)} · ví ${truoc} → ${await c.vi(kh.customer_phone)} · còn ${con}`);
+  } },
+  // Xoá (owner): KH.moi đã claim ở KB7 → đơn không sinh mã bill; món KHÔNG mã SX; xoá đơn lấy CHƯA huỷ — tránh lỗi đã biết P26c (4), (14).
+  { ten: 'chủ xoá đơn lấy từ gói, xoá đơn mua gói có lấy ngay', chay: async (c) => {
+    const kh = { customer_phone: KH.moi, customer_name: 'Khách mới' };
+    const tuGoi = { ...c.monKhongSx, from_package: true };
+    const gia = await c.so('SELECT price FROM pos_packages WHERE id = ?', [c.goiId]);
+    const m = await c.taoDon('KB23 mua gói lấy ngay', { ...kh, items: [tuGoi], package_buy: { package_id: c.goiId, total_qty: 5, pkg_qty: 1 },
+      payment_method: 'cash', cash_amount: gia });
+    const g = await c.so('SELECT id FROM pos_customer_packages WHERE order_id = ?', [m.id]);
+    const lay = () => c.goi('chu', 'POST', '/orders', { ...kh, items: [tuGoi], customer_package_id: g, payment_method: 'cash', cash_amount: 0 });
+    const xoa = (id) => c.goi('chu', 'DELETE', `/orders/${id}`);
+    const z = await lay();
+    const xz = await xoa(z.order?.id);
+    const giao = await c.so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [g]);
+    c.mong('mua gói lấy ngay 1, lấy thêm 1, chủ xoá đơn lấy → 200, 200, gói còn giao 1', z.status === 200 && xz.status === 200 && giao === 1,
+      `${c.ma(z)} / ${c.ma(xz)} · giao ${giao}`);
+    const z2 = await lay();
+    const xm = await xoa(m.id);
+    const con = await c.so('SELECT COUNT(*) FROM pos_customer_packages WHERE id = ?', [g]);
+    const tro = await c.so('SELECT COUNT(*) FROM pos_orders WHERE customer_package_id = ?', [g]);
+    c.mong('chủ xoá đơn mua gói → 200, gói bị xoá, đơn lấy còn lại không trỏ gói', z2.status === 200 && xm.status === 200 && con === 0 && tro === 0,
+      `${c.ma(z2)} / ${c.ma(xm)} · gói còn ${con} · ${tro} đơn trỏ`);
+  } },
+  // KB24 để công tắc SX lỗi BẬT tới hết kịch bản: KB25 chỉ đẩy được sổ nợ nếu chay.js tự tắt lỗi trước kịch bản.
+  { ten: 'SX lỗi lúc bán / huỷ đơn → nợ kho', chay: async (c) => {
+    const C = await c.taoDon('KB24 bán lúc SX tốt', { items: [c.mon(3)], payment_method: 'cash', cash_amount: 15000 });
+    c.batSxLoi();
+    const A = await c.taoDon('KB24 bán lúc SX lỗi', { items: [c.mon(0), c.mon(1)], payment_method: 'cash', cash_amount: 45000 });
+    const h = await c.goi('nv', 'PUT', `/orders/${C.id}/cancel`, { reason: 'giả lập' });
+    const no = await c.so("SELECT COUNT(*) FROM pos_stock_pending WHERE status = 'pending' AND order_id IN (?, ?)", [A.id, C.id]);
+    c.mong('bán + huỷ lúc SX lỗi → đơn vẫn tạo, huỷ 200, 3 dòng nợ kho chờ đẩy', A.status === 'completed' && h.status === 200 && no === 3,
+      `${A.status} / ${c.ma(h)} · ${no} dòng nợ`);
+  } },
+  { ten: 'đẩy sổ nợ kho (SX đã hết lỗi); bấm lại; hai người cùng bấm', chay: async (c) => {
+    const truoc = c.nhanKho.length;
+    const day = () => c.goi('nv', 'POST', '/so-no/doi-ngay', {});
+    const r1 = await day(), r2 = await day();
+    const [r3, r4] = await Promise.all([day(), day()]);
+    const con = await c.so("SELECT COUNT(*) FROM pos_stock_pending WHERE status <> 'resolved'");
+    c.mong('đẩy → 200, xong 3; bấm lại → xong 0; hai người cùng bấm → không gửi thêm; SX nhận đúng 3 lệnh, sổ nợ hết', r1.status === 200
+      && r1.xong === 3 && [r2, r3, r4].every((r) => r.status === 200 && !r.xong) && c.nhanKho.length === truoc + 3 && con === 0,
+    `${[r1, r2, r3, r4].map((r) => `${c.ma(r)} xong ${r.xong}`).join(' / ')} · SX nhận thêm ${c.nhanKho.length - truoc} · còn nợ ${con}`);
+  } },
+  { ten: 'đối soát ví khách chưa có ví; giao tay 1 ly từ gói (/deliver)', chay: async (c) => {
+    const coVi = await c.so('SELECT COUNT(*) FROM pos_wallets WHERE phone = ?', [KH.no]);
+    const ds = await c.goi('chu', 'POST', `/wallets/${KH.no}/reconcile`, {});
+    const vi = await c.db.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [KH.no]);
+    c.mong('đối soát khách nợ CHƯA có ví → 200, ví được tạo = tổng sổ', coVi === 0 && ds.status === 200 && ds.balance_before === null
+      && !!vi && Number(vi.balance) === Number(ds.ledger_sum), `có ví trước: ${coVi} · ${c.ma(ds)} · ví ${JSON.stringify(vi)} · sổ ${ds.ledger_sum}`);
+    const g = c.goiCoSan;
+    const giao = () => c.so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [g]);
+    const truoc = await giao();
+    // Q2 = (a), chủ quán chốt 09.10: phủ /deliver TRONG hạn lượt (đường này không trần — Phát hiện 4).
+    const gt = await c.goi('nv', 'PUT', `/packages/customer-packages/${g}/deliver`, { delivered_qty: 1 });
+    if (gt.status === 200) c.soQuay.giaoGoi.set(g, (c.soQuay.giaoGoi.get(g) || 0) + 1);
+    c.mong('giao tay 1 ly từ gói còn lượt (/deliver) → 200, gói +1', gt.status === 200 && await giao() === truoc + 1, `${c.ma(gt)} · ${truoc} → ${await giao()}`);
+  } },
+  // KB27 PHẢI LÀ KỊCH BẢN CUỐI: nợ kho của đơn ĐÃ XOÁ mà được đẩy (nút, hoặc tự đẩy 3 phút — index.js:76) thì SX nhận vân tay
+  // của đơn không còn → I7 "vân tay lạ" = lỗi đã biết P26c (4). Kịch bản thêm SAU KB27 không được đẩy sổ nợ.
+  { ten: 'SX lỗi: bán rồi chủ xoá đơn → nợ kho out + in', chay: async (c) => {
+    c.batSxLoi();
+    const d = await c.taoDon('KB27', { customer_phone: KH.moi, customer_name: 'Khách mới', items: [c.mon(2)], payment_method: 'cash', cash_amount: 30000 });
+    const x = await c.goi('chu', 'DELETE', `/orders/${d.id}`);
+    const no = await c.so('SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ?', [d.id]);
+    c.mong('bán lúc SX lỗi, chủ xoá đơn → 200, 2 dòng nợ kho (out lúc bán + in lúc xoá)', x.status === 200 && no === 2, `${c.ma(x)} · ${no} dòng nợ`);
   } },
 ];
 
