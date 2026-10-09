@@ -133,7 +133,7 @@ const BAT_BIEN = {
         (SELECT r.points_cost FROM pos_voucher_grants g JOIN pos_reward_catalog r ON r.id = g.reward_id WHERE g.point_tx_id = t.id) AS gia
       FROM pos_point_transactions t WHERE t.type = 'redeem'`);
     for (const r of doi) {
-      if (so(r.so_qua) !== 1 || so(r.points) !== -so(r.gia)) {
+      if (so(r.so_qua) !== 1 || (r.gia != null && so(r.points) !== -so(r.gia))) {
         lech.push(`dòng đổi điểm #${r.id} (${r.customer_phone}): ${so(r.points)} điểm, ${so(r.so_qua)} quà trỏ tới, quà giá ${so(r.gia)} điểm`);
       }
     }
@@ -192,13 +192,14 @@ const BAT_BIEN = {
         + `${r.discount_type} ${so(r.discount_value)} (quà ${r.loai_qua} ${so(r.tri_gia_qua)}), dùng tối đa ${r.usage_limit}`);
   },
   // I13 (AU-G2) — used_count ≤ usage_limit; used_count = số đơn ĐÃ ÁP mã + số lần /increment-usage trả 200 (sổ quầy). Huỷ / xoá
-  // đơn KHÔNG trả lượt (orders.js:1296–1590 không đụng pos_discount_codes) nên đếm đơn MỌI trạng thái. "Đã áp" = mã trên đơn
-  // VÀ loại/trị giá chiết khấu của đơn = của mã VÀ có giảm: máy chủ lưu discount_code cả khi mã KHÔNG được áp (orders.js:450).
-  // Giới hạn: xoá đơn đã áp mã làm mất dòng đơn (không kịch bản nào làm).
+  // đơn KHÔNG trả lượt (orders.js:1296–1590 không đụng pos_discount_codes) nên đếm đơn MỌI trạng thái. "Đã áp" = mã trên đơn VÀ
+  // loại + trị giá chiết khấu của đơn = của mã: máy chủ lưu discount_code cả khi mã KHÔNG được áp (orders.js:450), lúc đó loại/trị
+  // giá lấy từ hồ sơ khách (orders.js:504–520) hoặc trống. Giới hạn: hồ sơ khách trùng đúng loại + trị giá của mã gõ mà không áp;
+  // xoá đơn đã áp mã làm mất dòng đơn (không kịch bản nào làm hai việc này).
   async I13(q, ctx) {
     const ds = await q(`SELECT d.code, d.usage_limit, d.used_count,
         (SELECT COUNT(*) FROM pos_orders o WHERE UPPER(o.discount_code) = UPPER(d.code) AND o.discount_type = d.discount_type
-          AND o.discount_value = d.discount_value AND COALESCE(o.discount_amount, 0) > 0) AS so_don
+          AND o.discount_value = d.discount_value) AS so_don
       FROM pos_discount_codes d`);
     return ds.flatMap((r) => {
       const tay = ctx.soQuay.tangMa.get(String(r.code).toUpperCase()) || 0;
@@ -245,15 +246,15 @@ const BAT_BIEN = {
     return thieu.filter((r) => so(r.n) !== 1).map((r) => `đơn mua thẻ ${r.code}: ${so(r.n)} dòng mua thẻ`)
       .concat(thua.map((r) => `dòng mua thẻ #${r.id} của đơn #${r.order_id} ${r.status ? 'đã huỷ' : 'không còn'}`));
   },
-  // I16 (AU-G4) — đổi cách trả (don-mo-rong.js:107–160): dòng nhật ký 'doi' CUỐI của đơn khớp tiền đang ghi trên đơn.
+  // I16 (AU-G4) — đổi cách trả (don-mo-rong.js:107–160): dòng nhật ký 'doi' CUỐI của đơn khớp tiền đang ghi trên đơn: tổng
+  // = so_tien, cột của cách KIA = 0 (đổi sai cách thì cột kia còn tiền — không cần so riêng tên cách).
   async I16(q) {
     const ds = await q(`SELECT o.code, o.cash_amount, o.transfer_amount, l.chi_tiet FROM pos_order_log l JOIN pos_orders o ON o.id = l.order_id
       WHERE l.loai = 'doi' AND l.id = (SELECT MAX(x.id) FROM pos_order_log x WHERE x.order_id = l.order_id AND x.loai = 'doi')`);
     return ds.flatMap((r) => {
       let ct = {};
       try { ct = JSON.parse(r.chi_tiet) || {}; } catch { /* hỏng = lệch */ }
-      const cach = so(r.cash_amount) > 0 ? 'cash' : 'transfer';
-      const dung = ct.sang === cach && so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)
+      const dung = so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)
         && so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0;
       return dung ? [] : [`đơn ${r.code}: nhật ký đổi sang ${ct.sang} ${so(ct.so_tien)}, đơn ghi tiền mặt ${so(r.cash_amount)} · CK ${so(r.transfer_amount)}`];
     });
