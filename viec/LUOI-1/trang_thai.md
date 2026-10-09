@@ -10,9 +10,8 @@ caabb73 Merge pull request #11 from pos-tuquyduong/viec/HOC-2b
 Có commit `PHIEU: LUOI-1`, cha là commit sổ v24 (769adfe). Máy: 4 lõi (`/proc/cpuinfo`).
 
 ## Bước đang làm
-**DỪNG — chờ chủ quán trả lời Q7–Q9** (09.10). Soát vòng 1 KHÔNG ĐẠT → vòng sửa 1/3 xong (mục "Vòng sửa 1" cuối file); ba
-lỗi tiền/kho mới lộ ra lúc soát cần chủ quán quyết (phiếu: kịch bản lộ code sai → DỪNG, hỏi). Sau khi trả lời: làm theo,
-chạy lại bước 6, soát vòng 2.
+Chủ quán trả lời Q7 (a) · Q8 (b) · Q9 (a) (09.10) → làm theo (vòng sửa 2/3, mục cuối file), chạy lại C1–C4 trên head cuối,
+đo riêng, soát vòng 2.
 - [x] Bản gốc lưu ở thư mục nháp ngoài kho. `server/`, `client/`, `tu_chay/` KHÔNG đổi (`git diff --stat 9521cec -- server client tu_chay` rỗng).
 - [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Giả lập 67,1 s → **58,3 s** (18 · 10 ĐẠT).
 - [x] Siết KB10 + bằng chứng đỏ trên gốc (mục "Bằng chứng KB10" dưới).
@@ -216,7 +215,9 @@ thu_gia_lap / bộ kiểm hoặc neo trong file việc này sửa · Q5 đồng 
 Dặn thêm: (1) I8 vế điểm ghi rõ cách xử lý điểm hết hạn, ca điểm hết hạn ghi CHƯA KIỂM; (2) ca siết KB10 phải ĐỎ trên gốc
 với đột biến "trễ không bật lại" — ghi tên đột biến + kết quả ở đây; (3) mọi số đo chạy RIÊNG. Làm tiếp từ bước 4.
 
-## Câu hỏi — Q7–Q9 (MỚI sau soát vòng 1, chờ chủ quán) — DỪNG ở đây
+## Câu hỏi — Q7–Q9 (sau soát vòng 1) — chủ quán chốt 09.10: Q7 (a) · Q8 (b) · Q9 (a)
+Q8 (b) cụ thể: KB21 bỏ khẳng định "hoàn trọn giá gói" cho gói ĐÃ GIAO > 0, chỉ giữ: hoàn đúng MỘT lần (ca chồng), gói chuyển
+`cancelled`, không lấy thêm được. Gói CHƯA giao giữ khẳng định hoàn trọn.
 
 - **Q7 — xoá đơn mua thẻ: hoàn tiền mà khách vẫn giữ hạng (lỗi tiền MỚI, chưa có trong sổ việc).** Đọc code 09.10:
   đường XOÁ `orders.js:1462–1590` không có câu nào chạm `pos_membership_purchases` (grep "membership" sau dòng 1460: 0 chỗ), trong
@@ -298,9 +299,13 @@ với đột biến "trễ không bật lại" — ghi tên đột biến + kế
 9. Ca chồng mã giảm giá vấp P26d (10) — Q6 (a) siết. Cổng `DISCOUNT_CODE_LIMIT_REACHED` (`orders.js:880–893`) gần như không
    bao giờ tới được khi hai quầy chồng nhau (đơn sau 500 vì trùng mã đơn). **P26d (10) sửa xong thì siết KB20 về đúng 200 + 400
    `DISCOUNT_CODE_LIMIT_REACHED` và thêm đột biến bỏ kiểm lại trong giao dịch** (bỏ `freshCode` ở `orders.js:880–893` phải BẮT).
-10. Xoá đơn mua thẻ (owner) hoàn ví mà KHÔNG gỡ dòng mua thẻ (`orders.js:1462–1590`) — Q7. CHƯA PHỦ trong giả lập.
-11. Một đơn mua gói mới + lấy từ gói cũ → trừ lượt hai gói (`orders.js:975–985` + `:1021–1037`; `Sales.jsx:485–500`, `:744–751`) — Q9.
-12. Huỷ đơn mua gói đã giao một phần vẫn hoàn trọn giá gói (`orders.js:1331–1355`) — Q8.
+10. **[gom P26c — Q7 (a)]** Xoá đơn mua thẻ (owner) hoàn ví mà KHÔNG gỡ `pos_membership_purchases` (`orders.js:1462–1590`) →
+    khách được hoàn tiền mà vẫn giữ hạng. **CHƯA PHỦ** trong giả lập (thêm kịch bản = đỏ); I15 đã canh (vế "đơn không còn" + ca
+    dữ liệu tay). Quy tắc tạm ở quầy đề xuất: đơn mua thẻ chỉ Huỷ, không Xoá.
+11. **[gom P26c — Q9 (a)]** Một đơn vừa MUA gói mới vừa LẤY từ gói cũ: trừ lượt CẢ HAI gói, `customer_package_id` của đơn bị ghi
+    đè sang gói mới (`orders.js:975–985` + `:1021–1037`; `Sales.jsx:485–500`, `:744–751`). Đọc code, CHƯA CHẠY; không thêm kịch bản.
+12. **[gom P26c — Q8 (b)]** Huỷ đơn mua gói đã giao một phần: hoàn bao nhiêu — chủ quán chốt khi làm P26c (hiện hoàn TRỌN giá
+    gói, `orders.js:1331–1355`). KB21 không khẳng định số tiền cho ca này; ca gói chưa giao vẫn khẳng định hoàn trọn.
 8. `C2F-orders-31-delete-quay` (`orders.js:1515`, xoá gói khi xoá đơn mua) đang SỐNG — KB23 + I14 sẽ chạm (thêm, ngoài 21 cái).
 
 ## Soát kế hoạch (agent phụ, chỉ đọc) — CẦN SỬA 6 điểm, đã sửa trong ke_hoach.md
@@ -379,3 +384,8 @@ BÀI HỌC:
 Sau vòng sửa: C3 67/67; `thu_gia_lap` 102/0 (90,5 s); giả lập 27 · 16 ĐẠT (80,7 s); `--day-du` PASS 65 · 0 CẢNH BÁO; bằng chứng đỏ
 trên gốc chạy lại (45/57, SỐ CA 102). **C1, C2, C4 đã chạy TRƯỚC vòng sửa 1** (bất biến I12 và KB25 đổi sau đó) → chạy lại đủ trên
 head cuối sau khi chủ quán trả lời Q7–Q9.
+
+## Vòng sửa 2/3 (theo lời chốt Q7–Q9, 09.10)
+- KB21 (`kich_ban.js`): ca hai nhân viên huỷ đơn mua gói ĐÃ GIAO 2/3 chồng nhau → 200 + 400 `DON_KHONG_HUY_DUOC`, đúng MỘT dòng
+  hoàn (`c.dongHoan`), gói `cancelled`; bỏ khẳng định "ví + trọn giá". Ca gói CHƯA giao: thêm khẳng định ví + TRỌN giá gói.
+- Q7, Q9: không thêm kịch bản; Phát hiện 10, 11 (gom P26c); Phát hiện 10 ghi CHƯA PHỦ.
