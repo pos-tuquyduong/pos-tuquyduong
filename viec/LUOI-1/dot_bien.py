@@ -45,9 +45,11 @@ DOT_BIEN = [
   ('VS-B4-bat-khong-ghi-kb', 'kb24', [(CH, 'sxGia.loi = true; sxGia.kbBat.add(sxGia.kb);', 'sxGia.loi = true;', 1)],
    [r'KB24 → I7: SX lỗi ở kịch bản 24 không bật công tắc'], 'BẮT'),
   ('BV-B4-kb-khong-gan', 'kb25', [(CH, '    sxGia.kb = i + 1;\n', '', 1)], [r'KB25 → HTTP: chay.js: công tắc SX tự tắt'], 'BẮT'),
-  # Máy chủ (soát vòng 2): đổi sang chuyển khoản mà giữ nguyên tiền mặt → đơn ghi gấp đôi. KB26 (chiều tiền mặt → CK) + I16 bắt.
+  # Máy chủ (soát vòng 2): đổi sang chuyển khoản mà giữ nguyên tiền mặt → đơn ghi gấp đôi. Q10 = (a), chủ quán chốt 09.10:
+  # KHÔNG có kịch bản đổi tiền mặt → CK (thu_gia_lap vượt 96 s) → đột biến này SỐNG, chiều CK phía máy chủ CHƯA PHỦ. Việc chia
+  # giả lập 2 lượt (chen trước P26c) thêm lại đơn đó; nghiệm thu của việc ấy: đổi mong đợi dưới đây thành 'BẮT'.
   ('VS-SRV-doi-ck-giu-tien-mat', 'kb26', [('server/routes/don-mo-rong.js', "[sang === 'cash' ? soTien : 0,", "[sang === 'cash' ? soTien : tm,", 1)],
-   [r'KB26 → I16: đơn .*: nhật ký đổi sang transfer 15000, đơn ghi tiền mặt 15000'], 'BẮT'),
+   [r'KB26 → I16: đơn .*: nhật ký đổi sang transfer'], 'SỐNG'),
   ('VS-B4-loi-van-nhan', 'kb24', [(CH, "return r.status(503).json({ error: 'SX giả đang lỗi' }); }", '}', 1)],
    [r'KB24 → HTTP: bán \+ huỷ lúc SX lỗi', r'KB24 → I7:'], 'BẮT'),
   # ── bat_bien.js — "nới phép" cả hai phía / bỏ một vế; bắt bằng ca dữ liệu tay của thu_gia_lap (--chi-du-lieu-tay) ──
