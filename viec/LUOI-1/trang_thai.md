@@ -10,7 +10,9 @@ caabb73 Merge pull request #11 from pos-tuquyduong/viec/HOC-2b
 Có commit `PHIEU: LUOI-1`, cha là commit sổ v24 (769adfe). Máy: 4 lõi (`/proc/cpuinfo`).
 
 ## Bước đang làm
-Bước 4–9 xong (09.10). Còn: bước 8 soát độc lập `/ra-soat`, bước 10–11 báo cáo + bài học.
+**DỪNG — chờ chủ quán trả lời Q7–Q9** (09.10). Soát vòng 1 KHÔNG ĐẠT → vòng sửa 1/3 xong (mục "Vòng sửa 1" cuối file); ba
+lỗi tiền/kho mới lộ ra lúc soát cần chủ quán quyết (phiếu: kịch bản lộ code sai → DỪNG, hỏi). Sau khi trả lời: làm theo,
+chạy lại bước 6, soát vòng 2.
 - [x] Bản gốc lưu ở thư mục nháp ngoài kho. `server/`, `client/`, `tu_chay/` KHÔNG đổi (`git diff --stat 9521cec -- server client tu_chay` rỗng).
 - [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Giả lập 67,1 s → **58,3 s** (18 · 10 ĐẠT).
 - [x] Siết KB10 + bằng chứng đỏ trên gốc (mục "Bằng chứng KB10" dưới).
@@ -23,9 +25,12 @@ Bước 4–9 xong (09.10). Còn: bước 8 soát độc lập `/ra-soat`, bư�
 ## Số đo chạy RIÊNG (máy mây 4 lõi, `node viec/LUOI-1/do_thoi_gian.js …`)
 | Lệnh | Gốc 9521cec | Sau A1 (18 KB) | HEAD (27 KB · 16 BB) | Ngưỡng 80 % |
 |---|---|---|---|---|
-| giả lập `chay.js` | 67,1 s | 58,3 s | **80,9 s** (78,7 s lần trước) | 96 s |
-| `thu_gia_lap.js` | 74,9 s (42/0) | — | **92,1 s** (102/0; 91,7 s lần trước) | 96 s — SÁT (95,9 %) |
-| `kiem_tra --day-du` | 201,8 s | — | 281,3 s, thoát 0 | (không có hạn riêng) |
+| giả lập `chay.js` | 67,1 s | 58,3 s · 57,8 s | **80,7 s** (80,9 · 78,7 s các lần trước) | 96 s |
+| `thu_gia_lap.js` | 74,9 s (42/0) | **66,3 s** (42/0) | **90,5 s** (102/0; 92,1 · 91,7 s; người soát đo 93,3 s) | 96 s — SÁT (94–97 %) |
+| `kiem_tra --day-du` | 201,8 s, thoát 0 | 228,4 s · PASS 65 · FAIL 0 · CẢNH BÁO 0 | **275,3 s · PASS 65 · FAIL 0 · CẢNH BÁO 0** | (không có hạn riêng) |
+| `npm test` | — | — | **PASS 61 · FAIL 0 · CẢNH BÁO 0** | |
+Cột "Sau A1": giả lập 58,3 s đo trên HEAD lúc chỉ có A1; ba số còn lại đo bù (vòng sửa 1) trên `git archive 025106b` (commit chỉ có A1,
+18 KB · 10 BB) trong thư mục nháp, `node viec/LUOI-1/do_thoi_gian.js gl thugl kiem`.
 Từng KB mới (ms): KB19 2386 · KB20 2462 · KB21 7627 · KB22 2145 · KB23 3430 · KB24 1761 · KB25 555 · KB26 580 · KB27 1246.
 Vòng bất biến mỗi KB: ~572 ms (gốc) → 2–8 ms (A1). Đột biến: C1+C2 1915 s · C3 163 s · C4 (TU-CHAY-4 + P26b + HOC-2b + AUDIT-1 D1/G3)
 ~75 phút (D1/G3 654 s).
@@ -160,8 +165,11 @@ sang SX), `orders-35/36/37` (xoá đơn dọn bảng phụ, owner) — đúng nh
 - BẮT `C2F-wallets-08-insert-quay`
 </details>
 
-## C3 — đột biến của việc này (`python3 viec/LUOI-1/dot_bien.py -j 4`): 57 đột biến, 55 BẮT + 2 đúng mong đợi
-Lần 1: 2 SỐNG ngoài mong đợi → sửa bất biến (không sửa bài thử): `VS-I8-qua-chi-tren` (vế "số quà" bị vế "trừ đúng giá" che —
+## C3 — đột biến của việc này (`python3 viec/LUOI-1/dot_bien.py -j 4`)
+**Lần chạy cuối (sau vòng sửa 1, 195 s): 67 đột biến · BẮT 66 · LẠC 1 · SỐNG 0 · HỎNG 0 · đúng mong đợi 67/67, thoát 0.**
+66 cái mong BẮT đều BẮT; 1 cái mong LẠC (`GOC-KB10-cu-tre-khong-bat-lai` — bằng chứng KB10 CŨ không bắt trễ) đúng LẠC.
+Lịch sử: lần 1 57 đột biến
+(55 BẮT, 1 LẠC mong đợi, 2 SỐNG ngoài mong đợi). Lần 1: 2 SỐNG ngoài mong đợi → sửa bất biến (không sửa bài thử): `VS-I8-qua-chi-tren` (vế "số quà" bị vế "trừ đúng giá" che —
 giờ chỉ so điểm khi có quà), `BV-I16-sang` (vế thừa — đổi sai cách thì cột kia luôn ≠ 0; bỏ vế và đột biến). Lần 2 các đột
 biến liên quan: 8/8 BẮT. Kiểm sạch 6 cách chạy trước khi chấm: đều thoát 0.
 
@@ -169,18 +177,26 @@ Bảng chỗ đổi → đột biến:
 | Chỗ đổi | Đột biến |
 |---|---|
 | `chay.js` A1 trễ bật lại | `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau`, `GOC-KB10-cu-tre-khong-bat-lai`, `GOC-KB10-siet-tre-khong-bat-lai` |
-| `chay.js` công tắc SX | `BV-B4-sx-khong-tu-tat`, `VS-B4-sx-mac-dinh-bat`, `VS-B4-bat-khong-ghi-kb`, `VS-B4-loi-van-nhan` |
+| `chay.js` công tắc SX | `BV-B4-sx-khong-tu-tat`, `VS-B4-sx-mac-dinh-bat`, `VS-B4-bat-khong-ghi-kb`, `BV-B4-kb-khong-gan`, `VS-B4-loi-van-nhan` |
 | I7 mở rộng | `VS-I7-tong-chi-tren`, `VS-I7-tong-chi-duoi`, `BV-I7-b-no-da-xong`, `BV-I7-c-loi-phai-co-no`, `VS-I7-c-no-chi-duoi`, `BV-I7-d-no-phai-co-loi`, `BV-I7-e-kb-bat` |
 | I8 vế đổi điểm | `VS-I8-diem-chi-tren`, `VS-I8-diem-chi-duoi`, `VS-I8-qua-chi-duoi`, `VS-I8-qua-chi-tren`, `BV-I8-loai-la` |
-| I12 | `BV-I12-loai-dong`, `BV-I12-sdt`, `VS-I12-diem-chi-tren`, `VS-I12-diem-chi-duoi`, `BV-I12-loai-ma`, `VS-I12-tri-gia-chi-tren`, `VS-I12-tri-gia-chi-duoi`, `VS-I12-dung-chi-duoi`, `VS-I12-dung-chi-tren` |
-| I13 | `VS-I13-dung-chi-tren`, `VS-I13-dung-chi-duoi`, `VS-I13-gioi-han-cong-1`, `BV-I13-so-tay`, `BV-I13-loai-ma` |
-| I14 | `VS-I14-vuot-tong-cong-1`, `VS-I14-giao-chi-tren`, `VS-I14-giao-chi-duoi`, `BV-I14-so-tay`, `BV-I14-tinh-ca-don-huy`, `BV-I14-tinh-ca-mon-co-gia`, `BV-I14-goi-don-huy`, `BV-I14-goi-don-xoa`, `BV-I14-tro-goi`, `BV-I14-mua-lay-ngay` |
-| I15 | `VS-I15-the-chi-tren`, `VS-I15-the-chi-duoi`, `BV-I15-tinh-ca-don-huy`, `BV-I15-mua-don-huy`, `BV-I15-mua-don-xoa` |
+| I12 | `BV-I12-loai-dong`, `BV-I12-sdt`, `VS-I12-diem-chi-tren`, `VS-I12-diem-chi-duoi`, `BV-I12-loai-ma`, `VS-I12-tri-gia-chi-tren`, `VS-I12-tri-gia-chi-duoi`, `BV-I12-so-ma`, `VS-I12-dung-chi-duoi`, `VS-I12-dung-chi-tren` |
+| I13 | `VS-I13-dung-chi-tren`, `VS-I13-dung-chi-duoi`, `VS-I13-gioi-han-cong-1`, `BV-I13-so-tay`, `BV-I13-bo-loai`, `BV-I13-bo-tri-gia` |
+| I14 | `VS-I14-vuot-tong-cong-1`, `VS-I14-giao-chi-tren`, `VS-I14-giao-chi-duoi`, `BV-I14-so-tay`, `BV-I14-tinh-ca-don-huy`, `BV-I14-tinh-ca-mon-co-gia`, `BV-I14-goi-don-huy`, `BV-I14-goi-don-xoa`, `BV-I14-bo-product-id`, `BV-I14-tro-goi`, `BV-I14-tro-bo-not-null`, `BV-I14-mua-bo-co-goi`, `BV-I14-mua-bo-lay-ngay`, `BV-I14-mua-lay-ngay` |
+| I15 | `VS-I15-the-chi-tren`, `VS-I15-the-chi-duoi`, `BV-I15-tinh-ca-don-huy`, `BV-I15-bo-sdt`, `BV-I15-bo-mon-the`, `BV-I15-mua-don-huy`, `BV-I15-mua-don-xoa` |
 | I16 | `VS-I16-tien-chi-tren`, `VS-I16-tien-chi-duoi`, `BV-I16-cot-kia`, `BV-I16-dong-cuoi` |
-| I17 | `BV-I17-loai-dong`, `BV-I17-don`, `BV-I17-sdt`, `VS-I17-tien-lech-1` |
+| I17 | `BV-I17-bo-approved`, `BV-I17-loai-dong`, `BV-I17-don`, `BV-I17-sdt`, `VS-I17-tien-lech-1` |
 | KB19–KB27 / I12–I17 trên máy chủ thật | 21 đột biến C1 (bảng C1) |
 
-Mọi tên đột biến trong `viec/LUOI-1/dot_bien.py` (57): `GOC-KB10-cu-tre-khong-bat-lai`, `GOC-KB10-siet-tre-khong-bat-lai`, `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau`, `BV-B4-sx-khong-tu-tat`, `VS-B4-sx-mac-dinh-bat`, `VS-B4-bat-khong-ghi-kb`, `VS-B4-loi-van-nhan`, `VS-I7-tong-chi-tren`, `VS-I7-tong-chi-duoi`, `BV-I7-b-no-da-xong`, `BV-I7-c-loi-phai-co-no`, `VS-I7-c-no-chi-duoi`, `BV-I7-d-no-phai-co-loi`, `BV-I7-e-kb-bat`, `VS-I8-diem-chi-tren`, `VS-I8-diem-chi-duoi`, `VS-I8-qua-chi-duoi`, `VS-I8-qua-chi-tren`, `BV-I8-loai-la`, `BV-I12-loai-dong`, `BV-I12-sdt`, `VS-I12-diem-chi-tren`, `VS-I12-diem-chi-duoi`, `BV-I12-loai-ma`, `VS-I12-tri-gia-chi-tren`, `VS-I12-tri-gia-chi-duoi`, `VS-I12-dung-chi-duoi`, `VS-I12-dung-chi-tren`, `VS-I13-dung-chi-tren`, `VS-I13-dung-chi-duoi`, `VS-I13-gioi-han-cong-1`, `BV-I13-so-tay`, `BV-I13-loai-ma`, `VS-I14-vuot-tong-cong-1`, `VS-I14-giao-chi-tren`, `VS-I14-giao-chi-duoi`, `BV-I14-so-tay`, `BV-I14-tinh-ca-don-huy`, `BV-I14-tinh-ca-mon-co-gia`, `BV-I14-goi-don-huy`, `BV-I14-goi-don-xoa`, `BV-I14-tro-goi`, `BV-I14-mua-lay-ngay`, `VS-I15-the-chi-tren`, `VS-I15-the-chi-duoi`, `BV-I15-tinh-ca-don-huy`, `BV-I15-mua-don-huy`, `BV-I15-mua-don-xoa`, `VS-I16-tien-chi-tren`, `VS-I16-tien-chi-duoi`, `BV-I16-cot-kia`, `BV-I16-dong-cuoi`, `BV-I17-loai-dong`, `BV-I17-don`, `BV-I17-sdt`, `VS-I17-tien-lech-1`.
+Mọi tên đột biến trong `viec/LUOI-1/dot_bien.py` (67): `GOC-KB10-cu-tre-khong-bat-lai`, `GOC-KB10-siet-tre-khong-bat-lai`, `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau`, `BV-B4-sx-khong-tu-tat`, `VS-B4-sx-mac-dinh-bat`, `VS-B4-bat-khong-ghi-kb`, `BV-B4-kb-khong-gan`, `VS-B4-loi-van-nhan`, `VS-I7-tong-chi-tren`, `VS-I7-tong-chi-duoi`, `BV-I7-b-no-da-xong`, `BV-I7-c-loi-phai-co-no`, `VS-I7-c-no-chi-duoi`, `BV-I7-d-no-phai-co-loi`, `BV-I7-e-kb-bat`, `VS-I8-diem-chi-tren`, `VS-I8-diem-chi-duoi`, `VS-I8-qua-chi-duoi`, `VS-I8-qua-chi-tren`, `BV-I8-loai-la`, `BV-I12-loai-dong`, `BV-I12-sdt`, `VS-I12-diem-chi-tren`, `VS-I12-diem-chi-duoi`, `BV-I12-loai-ma`, `VS-I12-tri-gia-chi-tren`, `VS-I12-tri-gia-chi-duoi`, `BV-I12-so-ma`, `VS-I12-dung-chi-duoi`, `VS-I12-dung-chi-tren`, `VS-I13-dung-chi-tren`, `VS-I13-dung-chi-duoi`, `VS-I13-gioi-han-cong-1`, `BV-I13-so-tay`, `BV-I13-bo-loai`, `BV-I13-bo-tri-gia`, `VS-I14-vuot-tong-cong-1`, `VS-I14-giao-chi-tren`, `VS-I14-giao-chi-duoi`, `BV-I14-so-tay`, `BV-I14-tinh-ca-don-huy`, `BV-I14-tinh-ca-mon-co-gia`, `BV-I14-goi-don-huy`, `BV-I14-goi-don-xoa`, `BV-I14-tro-goi`, `BV-I14-bo-product-id`, `BV-I14-tro-bo-not-null`, `BV-I14-mua-bo-co-goi`, `BV-I14-mua-bo-lay-ngay`, `BV-I14-mua-lay-ngay`, `VS-I15-the-chi-tren`, `VS-I15-the-chi-duoi`, `BV-I15-tinh-ca-don-huy`, `BV-I15-bo-sdt`, `BV-I15-bo-mon-the`, `BV-I15-mua-don-huy`, `BV-I15-mua-don-xoa`, `VS-I16-tien-chi-tren`, `VS-I16-tien-chi-duoi`, `BV-I16-cot-kia`, `BV-I16-dong-cuoi`, `BV-I17-bo-approved`, `BV-I17-loai-dong`, `BV-I17-don`, `BV-I17-sdt`, `VS-I17-tien-lech-1`.
+
+## D2 — PR + check `cong`, `cong-chay`
+CHƯA KIỂM: máy không xem được GitHub (không tạo PR — phiếu cấm). Thời gian `thu_gia_lap` trên máy CI chưa đo (ở đây 90,5–93,3 s,
+sát ngưỡng cảnh báo 96 s).
+
+## E — toàn bộ (chạy riêng, HEAD sau vòng sửa 1)
+`npm test` PASS 61 · FAIL 0 · CẢNH BÁO 0 · `--day-du` PASS 65 · FAIL 0 · CẢNH BÁO 0 (275,3 s) · `thu_gia_lap` 102 đạt · 0 hỏng · giả lập
+27 · 16 ĐẠT. (Dòng `ĐẾM` chép nguyên — "thoát 0" không phải bằng chứng 0 cảnh báo.)
 
 ## C4 — bộ đột biến cũ chạm file việc này sửa (Q4 a: chỉ đột biến chạy giả lập / thu_gia_lap / bộ kiểm hoặc có neo trong file đổi)
 Neo trước khi chạy: `python3 viec/HOC-2b/kiem_neo.py` → AUDIT-1 173/174 (HỎNG = `G3-sai-chuoi` cố ý), P26b 59/59, HOC-1 20/20,
@@ -199,6 +215,29 @@ nhau hoặc gọi thẳng API → Phát hiện 5, gom P26c · Q4 (a) — C1+C2 c
 thu_gia_lap / bộ kiểm hoặc neo trong file việc này sửa · Q5 đồng ý (vượt 96 s → DỪNG, không nới).
 Dặn thêm: (1) I8 vế điểm ghi rõ cách xử lý điểm hết hạn, ca điểm hết hạn ghi CHƯA KIỂM; (2) ca siết KB10 phải ĐỎ trên gốc
 với đột biến "trễ không bật lại" — ghi tên đột biến + kết quả ở đây; (3) mọi số đo chạy RIÊNG. Làm tiếp từ bước 4.
+
+## Câu hỏi — Q7–Q9 (MỚI sau soát vòng 1, chờ chủ quán) — DỪNG ở đây
+
+- **Q7 — xoá đơn mua thẻ: hoàn tiền mà khách vẫn giữ hạng (lỗi tiền MỚI, chưa có trong sổ việc).** Đọc code 09.10:
+  đường XOÁ `orders.js:1462–1590` không có câu nào chạm `pos_membership_purchases` (grep "membership" sau dòng 1460: 0 chỗ), trong
+  khi vẫn hoàn ví khi đơn `completed` (`:1493–1503`). Đường HUỶ thì có gỡ dòng thẻ (`:1368–1374`). Màn Lịch sử đơn cho chủ xoá đơn
+  chưa huỷ (theo người soát: `Orders.jsx:242`, `:1213`). Hậu quả: chủ xoá đơn mua thẻ trả bằng ví → ví được hoàn đủ giá thẻ, dòng
+  mua thẻ còn → khách vẫn được giảm giá hạng. I15 (vế "dòng mua thẻ của đơn không còn") ĐÃ canh, có ca dữ liệu tay; chỉ thiếu
+  kịch bản. Thêm kịch bản thì giả lập ĐỎ (= lộ code sai). Chọn:
+  (a) KHÔNG thêm kịch bản xoá đơn thẻ trong việc này; ghi CHƯA PHỦ + Phát hiện 10 → gom vào P26c (cùng chỗ với (4)/(14) của đường
+  xoá); quy tắc tạm ở quầy: đơn mua thẻ chỉ Huỷ, không Xoá (như đơn gói). **Đề xuất.**
+  (b) thêm kịch bản → việc này dừng tới khi sửa `server/` ở việc khác.
+- **Q8 — huỷ đơn mua gói đã giao một phần: hoàn TRỌN giá gói.** KB21 đang khẳng định "huỷ đơn mua gói (đã giao 2/3) → ví + ĐỦ
+  giá gói" — đúng như máy chủ làm (`orders.js:1331–1335` hoàn trọn `balance_amount`; `:1350–1355` chỉ đánh dấu gói `cancelled`),
+  hai đơn lấy 0đ vẫn hiệu lực → khách được 2 ly miễn phí. Chưa thấy chủ quán chốt luật này. Chọn:
+  (a) đây là luật hiện tại, giữ ca KB21 như ĐANG mô tả hành vi hiện tại (ghi rõ trong chú thích "luật hiện tại — P26c/P24 đổi luật
+  thì sửa ca này cùng lúc", như I8 ghi cho điểm). **Đề xuất** — lưới khoá hành vi hiện tại, đổi luật là quyết định riêng.
+  (b) đây là lỗi tiền → bỏ khẳng định "ví + đủ giá" khỏi KB21 (chỉ giữ "gói bị gỡ"), ghi Phát hiện → P26c.
+- **Q9 — một đơn vừa MUA gói mới vừa LẤY từ gói cũ: trừ lượt ở CẢ HAI gói** (đọc code, CHƯA CHẠY). `Sales.jsx:744–751` gửi
+  được cả `package_buy` lẫn `customer_package_id` (`addPkgToCart` `:485–500` không tắt `activePkgId`); máy chủ cộng lượt lấy
+  ngay cho gói MỚI và trỏ đơn sang gói mới (`orders.js:975–985`), rồi `:1021–1037` cộng tiếp cho gói CŨ → một ly trừ hai gói,
+  và gói cũ mất dấu đơn. I14 sẽ đỏ nếu có kịch bản. Chọn: (a) không thêm kịch bản, Phát hiện 11 → P26c **(đề xuất)**; (b) thêm →
+  dừng việc.
 
 ## Câu hỏi — Q6 (chủ quán chọn (a) có siết, 09.10)
 
@@ -259,6 +298,9 @@ với đột biến "trễ không bật lại" — ghi tên đột biến + kế
 9. Ca chồng mã giảm giá vấp P26d (10) — Q6 (a) siết. Cổng `DISCOUNT_CODE_LIMIT_REACHED` (`orders.js:880–893`) gần như không
    bao giờ tới được khi hai quầy chồng nhau (đơn sau 500 vì trùng mã đơn). **P26d (10) sửa xong thì siết KB20 về đúng 200 + 400
    `DISCOUNT_CODE_LIMIT_REACHED` và thêm đột biến bỏ kiểm lại trong giao dịch** (bỏ `freshCode` ở `orders.js:880–893` phải BẮT).
+10. Xoá đơn mua thẻ (owner) hoàn ví mà KHÔNG gỡ dòng mua thẻ (`orders.js:1462–1590`) — Q7. CHƯA PHỦ trong giả lập.
+11. Một đơn mua gói mới + lấy từ gói cũ → trừ lượt hai gói (`orders.js:975–985` + `:1021–1037`; `Sales.jsx:485–500`, `:744–751`) — Q9.
+12. Huỷ đơn mua gói đã giao một phần vẫn hoàn trọn giá gói (`orders.js:1331–1355`) — Q8.
 8. `C2F-orders-31-delete-quay` (`orders.js:1515`, xoá gói khi xoá đơn mua) đang SỐNG — KB23 + I14 sẽ chạm (thêm, ngoài 21 cái).
 
 ## Soát kế hoạch (agent phụ, chỉ đọc) — CẦN SỬA 6 điểm, đã sửa trong ke_hoach.md
@@ -320,3 +362,20 @@ BÀI HỌC:
 - NGUYÊN TẮC (KHUON_LOI K3): một đột biến bỏ CẢ HAI vế cùng lúc không chứng minh được vế nào. Ca "lệch đúng một phép" phải chọn đầu vào sao cho các vế khác đều đúng. Ví dụ: đơn cùng loại, khác trị giá; và đơn khác loại, cùng trị giá.
 - NGUYÊN TẮC (K4): khi phủ "huỷ X" thì phải liệt kê đủ cả "xoá X" cho mọi đối tượng (gói, thẻ, mã, điểm). Đối tượng nào không phủ thì ghi CHƯA PHỦ ngay trong trang_thai.
 - NGUYÊN TẮC: "thoát 0" không phải bằng chứng cho "0 CẢNH BÁO". Phải chép nguyên dòng `ĐẾM` vào hồ sơ.
+
+## Vòng sửa 1/3 (sau soát vòng 1, 09.10)
+| Lỗi soát | Xử lý |
+|---|---|
+| 1. I13 bỏ MỘT vế WHERE vẫn SỐNG | Dữ liệu tay I13: mã A đổi sang percent 10; thêm đơn gõ mã "cùng loại khác trị giá" (percent 5) và "khác loại cùng trị giá" (fixed 10). Đột biến `BV-I13-loai-ma` (bỏ cả hai) thay bằng `BV-I13-bo-loai`, `BV-I13-bo-tri-gia` — cả hai BẮT. Rà luôn mọi WHERE nhiều vế của bất biến mới: thêm `BV-I14-bo-product-id`, `BV-I14-tro-bo-not-null`, `BV-I14-mua-bo-co-goi`, `BV-I14-mua-bo-lay-ngay`, `BV-I15-bo-sdt`, `BV-I15-bo-mon-the`, `BV-I17-bo-approved` + dữ liệu sạch tương ứng (món thẻ 0đ trong đơn lấy, đơn lẻ không gói, đơn mua gói không lấy ngay, đơn thẻ không SĐT, đơn thường có SĐT) — tất cả BẮT. |
+| 2. Ca I12 "không có mã" vi phạm 4 phép | I12 đọc mã bằng truy vấn con (không JOIN) nên ca "mã trùng hai dòng" chỉ vi phạm vế số mã; bỏ ca gộp; thêm `BV-I12-so-ma` — BẮT. |
+| 3. Xoá đơn mua thẻ chưa phủ | Lộ lỗi tiền mới → Q7, Phát hiện 10, CHƯA PHỦ. Không tự thêm kịch bản đỏ. |
+| 4. Bỏ `sxGia.kb = i + 1` SỐNG | KB24 ghi số kịch bản bật lỗi, KB25 khẳng định công tắc đã tắt và số kịch bản = KB24 + 1. Đột biến `BV-B4-kb-khong-gan` — BẮT. |
+| 5. Thiếu D2, E, dòng ĐẾM | Thêm mục D2 (CHƯA KIỂM), E (chép dòng ĐẾM `npm test` + `--day-du`). |
+| 6. ke_hoach còn ghi I13 `discount_amount > 0`; số dòng loyalty lệch | Sửa ke_hoach. |
+| NGHI NGỜ: KB21 hoàn trọn gói | Q8. |
+| NGHI NGỜ: mua gói mới + lấy gói cũ | Q9, Phát hiện 11. |
+| NGHI NGỜ: A1 chưa đo thu_gia_lap / --day-du | Đo bù trên `025106b` (bảng số đo). |
+| NGHI NGỜ: "55 BẮT + 2" mơ hồ | Ghi rõ 67 = 66 mong BẮT + 1 mong LẠC; nhật ký lần chạy cuối tóm ở mục C3. |
+Sau vòng sửa: C3 67/67; `thu_gia_lap` 102/0 (90,5 s); giả lập 27 · 16 ĐẠT (80,7 s); `--day-du` PASS 65 · 0 CẢNH BÁO; bằng chứng đỏ
+trên gốc chạy lại (45/57, SỐ CA 102). **C1, C2, C4 đã chạy TRƯỚC vòng sửa 1** (bất biến I12 và KB25 đổi sau đó) → chạy lại đủ trên
+head cuối sau khi chủ quán trả lời Q7–Q9.
