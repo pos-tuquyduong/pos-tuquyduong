@@ -527,7 +527,7 @@ BÀI HỌC:
 ## Vòng sửa 3/3 (sau soát vòng 2, 09.10) — vòng CUỐI
 | Lỗi soát vòng 2 | Xử lý |
 |---|---|
-| 1. I16 nhánh "đổi sang CK" không có ca | Dữ liệu tay thêm đơn D2 đổi sang CK (sạch) + ca "đổi sang CK mà tiền mặt chưa về 0"; đột biến `BV-I16-nhanh-ck` (bỏ soát nhánh CK — ca mới bắt), `VS-I16-luon-cot-ck`, `VS-I16-luon-cot-tm` (bộ sạch bắt). KB26 thêm đơn tiền mặt → đổi sang CK; đột biến máy chủ `VS-SRV-doi-ck-giu-tien-mat` BẮT (`KB26 → I16`). Hai ca I16 cũ thiếu `WHERE id = 1` (chạm cả D2) — sửa ca, không sửa bất biến (K2: truy nguyên trước). → **Q10** (thời gian). |
+| 1. I16 nhánh "đổi sang CK" không có ca | Dữ liệu tay thêm đơn D2 đổi sang CK (sạch) + ca "đổi sang CK mà tiền mặt chưa về 0"; đột biến `BV-I16-nhanh-ck` (bỏ soát nhánh CK — ca mới bắt), `VS-I16-luon-cot-ck`, `VS-I16-luon-cot-tm` (bộ sạch bắt). KB26 thêm đơn tiền mặt → đổi sang CK; đột biến máy chủ `VS-SRV-doi-ck-giu-tien-mat` BẮT (`KB26 → I16`). **Sau Q10 (a): đơn này ĐÃ BỎ khỏi KB26, đột biến mong đợi SỐNG — Phát hiện 13.** Hai ca I16 cũ thiếu `WHERE id = 1` (chạm cả D2) — sửa ca, không sửa bất biến (K2: truy nguyên trước). → **Q10** (thời gian). |
 | 2. I13 vế chặn `usage_limit > 0` không có ca sạch | Bộ sạch thêm mã C không giới hạn (0) dùng 2 lần; đột biến `BV-I13-bo-gioi-han-0` BẮT. |
 | 3. ke_hoach :66, :93–96 lệch code | Sửa (KB21 theo Q8 b; I8 không so số dư, ca điểm hết hạn CHƯA KIỂM). Số dòng packages.js sửa thành :171–185 (deliver), :187 (cancel). |
 | 4. I7 vế `n !== 1` chết | Bỏ vế, ghi lý do tại dòng; `BV-I7-b-no-da-xong` neo vào vế còn lại. |
