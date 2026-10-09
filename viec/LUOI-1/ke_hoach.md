@@ -26,7 +26,7 @@ Vòng 10 bất biến sau mỗi KB: **~572 ms (gốc) → 2–4 ms (A1)** — 18
 | Mã giảm giá khi bán | `pages/Sales.jsx:234` `POST /discount-codes/validate` rồi `:728` gửi `discount_code` chỉ khi validate hợp lệ | `orders.js:456–495` kiểm ngoài giao dịch: mã hết lượt → **bỏ mã, đơn vẫn 200** (không giảm); `:880–896` kiểm lại TRONG giao dịch → 400 `DISCOUNT_CODE_LIMIT_REACHED` (chỉ khi hai đơn chồng nhau); validate hết lượt → 400 **không `code`** (`discount-codes.js:94`) |
 | `/increment-usage` | KHÔNG màn hình nào gọi (grep `increment` trong `client/src` = 0) | `discount-codes.js:341–351` cộng 1, không kiểm gì |
 | Mua gói / lấy từ gói | `Sales.jsx:744–750` (`customer_package_id`, `package_buy`) | kiểm chủ gói + còn lượt NGOÀI giao dịch `orders.js:194–228`; tạo gói `:961–993` (lấy ngay → gán `customer_package_id` `:985`); cộng lượt sau commit `:1021–1037` |
-| `PUT /packages/customer-packages/:id/deliver` | KHÔNG màn hình nào gọi (Reports chỉ GET `/deliveries`) | `packages.js:170–181` cộng lượt, **không trần, không tạo đơn** |
+| `PUT /packages/customer-packages/:id/deliver` | KHÔNG màn hình nào gọi (Reports chỉ GET `/deliveries`) | `packages.js:171–185` cộng lượt, **không trần, không tạo đơn** |
 | Thẻ hội viên | `Sales.jsx:751` `membership_buy` | ghi `pos_membership_purchases` sau commit `orders.js:996–1017` |
 | Huỷ đơn | `pages/Orders.jsx:263` `ordersApi.cancel` (quyền `cancel_order`, nhân viên có — `database.js:951`) | `orders.js:1296–1458`: hoàn ví; đơn mua gói: gói đã giao > 0 → `cancelled` `:1351`, = 0 → DELETE + gỡ đơn trỏ tới `:1357–1358`; thẻ → DELETE `:1372`; đơn lấy từ gói → trả lượt `:1386`; hoàn kho SX, lỗi → nợ kho `in` `:1435`. **Không đụng `pos_discount_codes`** (huỷ không trả lượt mã) |
 | Xoá đơn (owner) | `ordersApi.delete` | `orders.js:1462–1590`: đơn mua gói → gỡ đơn trỏ tới `:1513` + DELETE gói `:1515`; đơn lấy từ gói → trả lượt `:1525` (**không xét đơn đã huỷ** — P26c (14)); hoàn kho, lỗi → nợ kho `in` `:1568`. **Không đụng `pos_discount_codes`** |
@@ -63,7 +63,7 @@ Không sửa `dungDuLieu` (mọi dữ liệu mới tự dựng trong kịch bả
 |---|---|---|---|
 | 19 | Đổi điểm lấy mã (B1) | chủ tạo quà qua `POST /rewards` (giá 3 điểm, giảm cố định); khách mới mua 30.000 → 3 điểm; `nv` `POST /loyalty/redeem` | 200 + `points_left` 0; đổi lần hai → 400 (máy chủ không trả `code`); validate mã mới → 200 `valid`; bán dùng mã → 200, `discount_amount` = giá trị quà |
 | 20 | Mã dùng-một-lần (B2) + `/increment-usage` (B5) | chủ tạo mã `usage_limit 1` qua `POST /discount-codes`; hai đơn cùng mã CHỒNG nhau (`c.chong`); validate lại; bán lại tuần tự; `POST /discount-codes/:id/increment-usage` trên mã khác | chồng: 200 + 400 `DISCOUNT_CODE_LIMIT_REACHED`; validate lần sau → 400; bán lại tuần tự → **xem Q1**; increment → 200 |
-| 21 | Gói: mua → lấy → hết lượt → huỷ (B3) | khách nạp ví; mua gói (ví) không lấy ngay, `total_qty 3`; lấy 2 rồi 1 (hết lượt); lấy thêm; `nv` huỷ đơn lấy 1 → lượt trả; hai `nv` huỷ đơn mua gói CHỒNG nhau; lấy từ gói đã huỷ; gói thứ hai: lấy 1, huỷ đơn lấy (lượt về 0), huỷ đơn mua | lấy thêm → 400 `GOI_HET_HIEU_LUC`; huỷ chồng → 200 + 400 `DON_KHONG_HUY_DUOC`, ví + giá gói ĐÚNG MỘT lần; lấy từ gói đã huỷ → 400 `GOI_HET_HIEU_LUC`; gói thứ hai bị xoá, đơn lấy bị gỡ trỏ |
+| 21 | Gói: mua → lấy → hết lượt → huỷ (B3) | khách nạp ví; mua gói (ví) không lấy ngay, `total_qty 3`; lấy 2 rồi 1 (hết lượt); lấy thêm; `nv` huỷ đơn lấy 1 → lượt trả; hai `nv` huỷ đơn mua gói CHỒNG nhau; lấy từ gói đã huỷ; gói thứ hai: lấy 1, huỷ đơn lấy (lượt về 0), huỷ đơn mua | lấy thêm → 400 `GOI_HET_HIEU_LUC`; huỷ chồng (gói đã giao 2/3) → 200 + 400 `DON_KHONG_HUY_DUOC`, đúng MỘT dòng hoàn, gói `cancelled` (Q8 b: KHÔNG khẳng định số tiền); gói chưa giao → ví + TRỌN giá; lấy từ gói đã huỷ → 400 `GOI_HET_HIEU_LUC`; gói thứ hai bị xoá, đơn lấy bị gỡ trỏ |
 | 22 | Thẻ hội viên (B3) | khách MỚI (hạng thẻ giảm giá đơn sau — `orders.js:529`) nạp ví; mua thẻ hạng đầu (đọc từ `pos_membership_tiers`) trả ví; `nv` huỷ | 200, 200; ví + giá thẻ đúng một lần |
 | 23 | Xoá đơn gói (B3, owner — chạm thêm `C2F-orders-31` :1515 đang SỐNG) | `KH.moi` (đã claim ở KB7 → đơn không sinh mã bill, tránh P26c (4)); món KHÔNG mã SX (tránh P26c (4) phần vân tay); mua gói có lấy ngay; đơn lấy Z; chủ XOÁ Z (Z chưa huỷ — tránh P26c (14)); đơn lấy Z2; chủ xoá đơn mua | 200 ×…; lượt trả đúng; gói bị xoá, Z2 bị gỡ trỏ |
 | 24 | SX lỗi lúc bán / huỷ (B4) | bán C (SX tốt); `c.batSxLoi()`; bán A (2 món SX) → nợ `out`; `nv` huỷ C → nợ `in`. **KHÔNG tự tắt lỗi** — để KB25 thử công tắc tự tắt | bán/huỷ lúc SX lỗi vẫn 200 |
@@ -91,8 +91,9 @@ SX giả: `const sxGia = { loi: false, hong: [], kbBat: new Set() }`. Khi `loi` 
   (e) lần lỗi ở kịch bản không bật công tắc (kể cả `dungDuLieu`) → lệch. Kịch bản cũ không bật lỗi ⇒ (c)(d) giữ đúng như
   luật cũ "không có nợ kho" — không nới.
 - **I8 mở rộng (vế đổi điểm — B1 "tích − đổi khớp sổ"):** giữ nguyên vế theo đơn; thêm: mỗi dòng `pos_point_transactions`
-  `type='redeem'` có đúng một `pos_voucher_grants` trỏ tới (`point_tx_id`) và `points = −points_cost` của quà; tổng điểm mỗi
-  khách = Σ `earn` − Σ |`redeem`| (không dòng loại lạ). Đặt ở I8 vì mẫu bắt của `C2-loyalty-redeem-tru-0` là `→ I8:`
+  `type='redeem'` có đúng một `pos_voucher_grants` trỏ tới (`point_tx_id`) và `points = −points_cost` của quà; không có loại
+  dòng điểm lạ (chỉ `earn`, `redeem`). KHÔNG so số dư theo khách (dòng `redeem` không hạn, `earn` có hạn — đổi xong mà phần tích
+  hết hạn thì số dư âm là đúng luật hiện tại; ca điểm hết hạn CHƯA KIỂM — chủ quán dặn 09.10). Đặt ở I8 vì mẫu bắt của `C2-loyalty-redeem-tru-0` là `→ I8:`
   (`viec/AUDIT-1/dot_bien.py:76`, ngoài Phạm vi). Đây là THÊM vế, không nới vế cũ.
 - **I12 đổi điểm:** mỗi `pos_voucher_grants` ↔ đúng một `pos_point_transactions` `id = point_tx_id`, `type='redeem'`, cùng SĐT,
   `points = −points_cost` của quà; mã `code` có `discount_type/discount_value` = quà, `usage_limit = 1`; mỗi dòng `redeem` có
@@ -197,7 +198,7 @@ nằm ở bảng C1 (chạy `dot_bien.py` của AUDIT-1 trước và sau).
 - **D1:** đã ghi ở `trang_thai.md` (bản chụp). **D2:** PR + 2 check `cong`/`cong-chay` — máy không xem được → CHƯA KIỂM.
 - **E:** `npm test` + `--day-du` xanh, 0 CẢNH BÁO chạy riêng; `thu_gia_lap` xanh.
 - **Không phủ (ghi CHƯA KIỂM):** nhánh thử lại thất bại / `can_xem` / nợ không vân tay của sổ nợ (`doSoNo.js:56–65`, `:87–95`);
-  `PUT /customer-packages/:id/cancel` (`packages.js:186`, quyền `manage_users`); tạo/xoá mã ở `signup-codes.js` (quản trị);
+  `PUT /customer-packages/:id/cancel` (`packages.js:187`, quyền `manage_users`); tạo/xoá mã ở `signup-codes.js` (quản trị);
   I13 khi xoá đơn có mã (dòng đơn mất hẳn — không KB nào làm) và khi khách có chiết khấu riêng gõ mã không áp
   (loại + trị giá hồ sơ khách trùng đúng mã gõ mà không áp) — giới hạn đã biết của I13.
 
