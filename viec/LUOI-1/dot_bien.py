@@ -45,12 +45,15 @@ DOT_BIEN = [
   ('VS-B4-bat-khong-ghi-kb', 'kb24', [(CH, 'sxGia.loi = true; sxGia.kbBat.add(sxGia.kb);', 'sxGia.loi = true;', 1)],
    [r'KB24 → I7: SX lỗi ở kịch bản 24 không bật công tắc'], 'BẮT'),
   ('BV-B4-kb-khong-gan', 'kb25', [(CH, '    sxGia.kb = i + 1;\n', '', 1)], [r'KB25 → HTTP: chay.js: công tắc SX tự tắt'], 'BẮT'),
+  # Máy chủ (soát vòng 2): đổi sang chuyển khoản mà giữ nguyên tiền mặt → đơn ghi gấp đôi. KB26 (chiều tiền mặt → CK) + I16 bắt.
+  ('VS-SRV-doi-ck-giu-tien-mat', 'kb26', [('server/routes/don-mo-rong.js', "[sang === 'cash' ? soTien : 0,", "[sang === 'cash' ? soTien : tm,", 1)],
+   [r'KB26 → I16: đơn .*: nhật ký đổi sang transfer 15000, đơn ghi tiền mặt 15000'], 'BẮT'),
   ('VS-B4-loi-van-nhan', 'kb24', [(CH, "return r.status(503).json({ error: 'SX giả đang lỗi' }); }", '}', 1)],
    [r'KB24 → HTTP: bán \+ huỷ lúc SX lỗi', r'KB24 → I7:'], 'BẮT'),
   # ── bat_bien.js — "nới phép" cả hai phía / bỏ một vế; bắt bằng ca dữ liệu tay của thu_gia_lap (--chi-du-lieu-tay) ──
   ('VS-I7-tong-chi-tren', 'tay', [(BB, '(chuaXong.get(vt) || 0) !== 1) {', '(chuaXong.get(vt) || 0) > 1) {', 1)], [r'✗ I7 SX nhận 0'], 'BẮT'),
   ('VS-I7-tong-chi-duoi', 'tay', [(BB, '(chuaXong.get(vt) || 0) !== 1) {', '(chuaXong.get(vt) || 0) < 1) {', 1)], [r'✗ I7 SX nhận 2'], 'BẮT'),
-  ('BV-I7-b-no-da-xong', 'tay', [(BB, 'of daXong) if (n !== 1 || dem.get(vt) !== 1)', 'of daXong) if (false)', 1)], [r'✗ I7 nợ đã xong'], 'BẮT'),
+  ('BV-I7-b-no-da-xong', 'tay', [(BB, 'of daXong) if (dem.get(vt) !== 1)', 'of daXong) if (false)', 1)], [r'✗ I7 nợ đã xong'], 'BẮT'),
   ('BV-I7-c-loi-phai-co-no', 'tay', [(BB, 'for (const vt of loi) if (soNo.get(vt) !== 1)', 'for (const vt of loi) if (false)', 1)],
    [r'✗ I7 SX lỗi \(đơn đã xoá\) mà không'], 'BẮT'),
   ('VS-I7-c-no-chi-duoi', 'tay', [(BB, 'for (const vt of loi) if (soNo.get(vt) !== 1)', 'for (const vt of loi) if ((soNo.get(vt) || 0) < 1)', 1)],
@@ -69,12 +72,14 @@ DOT_BIEN = [
   ('BV-I12-loai-ma', 'tay', [(BB, 'r.discount_type !== r.loai_qua || ', '', 1)], [r'✗ I12 mã loại %'], 'BẮT'),
   ('VS-I12-tri-gia-chi-tren', 'tay', [(BB, 'so(r.discount_value) !== so(r.tri_gia_qua)', 'so(r.discount_value) > so(r.tri_gia_qua)', 1)], [r'✗ I12 mã trị giá 4.999'], 'BẮT'),
   ('VS-I12-tri-gia-chi-duoi', 'tay', [(BB, 'so(r.discount_value) !== so(r.tri_gia_qua)', 'so(r.discount_value) < so(r.tri_gia_qua)', 1)], [r'✗ I12 mã trị giá 5.001'], 'BẮT'),
+  ('BV-I12-tran', 'tay', [(BB, ' || so(r.tran) !== so(r.tran_qua)', '', 1)], [r'✗ I12 mã mất trần'], 'BẮT'),
   ('BV-I12-so-ma', 'tay', [(BB, ' || so(r.so_ma) !== 1', '', 1)], [r'✗ I12 mã trùng hai dòng'], 'BẮT'),
   ('VS-I12-dung-chi-duoi', 'tay', [(BB, 'so(r.usage_limit) !== 1)', 'so(r.usage_limit) < 1)', 1)], [r'✗ I12 mã dùng tối đa 2'], 'BẮT'),
   ('VS-I12-dung-chi-tren', 'tay', [(BB, 'so(r.usage_limit) !== 1)', 'so(r.usage_limit) > 1)', 1)], [r'✗ I12 mã dùng tối đa 0'], 'BẮT'),
   ('VS-I13-dung-chi-tren', 'tay', [(BB, 'so(r.used_count) !== so(r.so_don) + tay', 'so(r.used_count) > so(r.so_don) + tay', 1)], [r'✗ I13 dùng 0'], 'BẮT'),
   ('VS-I13-dung-chi-duoi', 'tay', [(BB, 'so(r.used_count) !== so(r.so_don) + tay', 'so(r.used_count) < so(r.so_don) + tay', 1)], [r'✗ I13 dùng 3'], 'BẮT'),
   ('VS-I13-gioi-han-cong-1', 'tay', [(BB, 'so(r.used_count) > so(r.usage_limit))', 'so(r.used_count) > so(r.usage_limit) + 1)', 1)], [r'✗ I13 vượt giới hạn'], 'BẮT'),
+  ('BV-I13-bo-gioi-han-0', 'tay', [(BB, '(so(r.usage_limit) > 0 && so(r.used_count) > so(r.usage_limit))', '(so(r.used_count) > so(r.usage_limit))', 1)], [r'✗ I13 sạch'], 'BẮT'),
   ('BV-I13-so-tay', 'tay', [(BB, 'so(r.used_count) !== so(r.so_don) + tay', 'so(r.used_count) !== so(r.so_don)', 1)], [r'✗ I13 sạch'], 'BẮT'),
   ('BV-I13-bo-loai', 'tay', [(BB, ' AND o.discount_type = d.discount_type\n', '\n', 1)], [r'✗ I13 sạch'], 'BẮT'),
   ('BV-I13-bo-tri-gia', 'tay', [(BB, '\n          AND o.discount_value = d.discount_value)', ')', 1)], [r'✗ I13 sạch'], 'BẮT'),
@@ -101,6 +106,12 @@ DOT_BIEN = [
   ('BV-I15-mua-don-xoa', 'tay', [(BB, "WHERE o.id IS NULL OR o.status = 'cancelled'", "WHERE o.status = 'cancelled'", 1)], [r'✗ I15 dòng mua thẻ của đơn không còn'], 'BẮT'),
   ('VS-I16-tien-chi-tren', 'tay', [(BB, 'so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)', 'so(ct.so_tien) <= so(r.cash_amount) + so(r.transfer_amount)', 1)], [r'✗ I16 số tiền đổi 24.999'], 'BẮT'),
   ('VS-I16-tien-chi-duoi', 'tay', [(BB, 'so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)', 'so(ct.so_tien) >= so(r.cash_amount) + so(r.transfer_amount)', 1)], [r'✗ I16 số tiền đổi 25.001'], 'BẮT'),
+  ('VS-I16-luon-cot-ck', 'tay', [(BB, "so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0", 'so(r.transfer_amount) === 0', 1)],
+   [r'✗ I16 sạch'], 'BẮT'),
+  ('BV-I16-nhanh-ck', 'tay', [(BB, "so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0", "(ct.sang === 'cash' ? so(r.transfer_amount) : 0) === 0", 1)],
+   [r'✗ I16 đổi sang chuyển khoản mà tiền mặt'], 'BẮT'),
+  ('VS-I16-luon-cot-tm', 'tay', [(BB, "so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0", 'so(r.cash_amount) === 0', 1)],
+   [r'✗ I16 sạch'], 'BẮT'),
   ('BV-I16-cot-kia', 'tay', [(BB, "\n        && so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0", '', 1)],
    [r'✗ I16 đổi sang tiền mặt mà CK', r'✗ I16 đơn vẫn chuyển khoản'], 'BẮT'),
   ('BV-I16-dong-cuoi', 'tay', [(BB, " AND l.id = (SELECT MAX(x.id) FROM pos_order_log x WHERE x.order_id = l.order_id AND x.loai = 'doi')", '', 1)], [r'✗ I16 sạch'], 'BẮT'),
@@ -113,7 +124,7 @@ DOT_BIEN = [
 
 N = lambda *a: ['node', *a]
 LENH = {'tay': ('dau', N(TG, '--chi-du-lieu-tay'), 120), 'goc10': ('nen', N(CH, '--den-kb', '10'), 300)}
-for _k in (1, 10, 24, 25): LENH[f'kb{_k}'] = ('dau', N(CH, '--den-kb', str(_k)), 300)
+for _k in (1, 10, 24, 25, 26): LENH[f'kb{_k}'] = ('dau', N(CH, '--den-kb', str(_k)), 300)
 LENH['gl'] = ('dau', N(CH), 300)
 
 
