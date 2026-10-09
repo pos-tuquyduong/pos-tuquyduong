@@ -22,7 +22,7 @@ Vòng 10 bất biến sau mỗi KB: **~572 ms (gốc) → 2–4 ms (A1)** — 18
 
 | Đường | Màn hình gọi (client/src) | Máy chủ |
 |---|---|---|
-| Đổi điểm | `pages/Customers.jsx:199` `POST /loyalty/redeem` (token người dùng) | `loyalty.js:124–219`: thiếu điểm → 400 **không có `code`**; trừ điểm `:169`, đẻ mã `usage_limit=1` `:178`, ghi `pos_voucher_grants` `:189` |
+| Đổi điểm | `pages/Customers.jsx:199` `POST /loyalty/redeem` (token người dùng) | `loyalty.js:124–219`: thiếu điểm → 400 **không có `code`**; trừ điểm `:170`, đẻ mã `usage_limit=1` `:179`, ghi `pos_voucher_grants` `:189` |
 | Mã giảm giá khi bán | `pages/Sales.jsx:234` `POST /discount-codes/validate` rồi `:728` gửi `discount_code` chỉ khi validate hợp lệ | `orders.js:456–495` kiểm ngoài giao dịch: mã hết lượt → **bỏ mã, đơn vẫn 200** (không giảm); `:880–896` kiểm lại TRONG giao dịch → 400 `DISCOUNT_CODE_LIMIT_REACHED` (chỉ khi hai đơn chồng nhau); validate hết lượt → 400 **không `code`** (`discount-codes.js:94`) |
 | `/increment-usage` | KHÔNG màn hình nào gọi (grep `increment` trong `client/src` = 0) | `discount-codes.js:341–351` cộng 1, không kiểm gì |
 | Mua gói / lấy từ gói | `Sales.jsx:744–750` (`customer_package_id`, `package_buy`) | kiểm chủ gói + còn lượt NGOÀI giao dịch `orders.js:194–228`; tạo gói `:961–993` (lấy ngay → gán `customer_package_id` `:985`); cộng lượt sau commit `:1021–1037` |
@@ -98,8 +98,9 @@ SX giả: `const sxGia = { loi: false, hong: [], kbBat: new Set() }`. Khi `loi` 
   `points = −points_cost` của quà; mã `code` có `discount_type/discount_value` = quà, `usage_limit = 1`; mỗi dòng `redeem` có
   đúng một grant. (Giới hạn: so với quà HIỆN TẠI — chủ sửa quà sau khi đổi thì bất biến đỏ; không KB nào sửa quà.)
 - **I13 mã giảm giá:** `usage_limit > 0 ⇒ used_count ≤ usage_limit`; `used_count` = số đơn (MỌI trạng thái — huỷ/xoá không trả
-  lượt, xem mục 1) có `UPPER(discount_code)` = mã VÀ `discount_amount > 0` + số lần `/increment-usage` 200 (`ctx.soQuay.tangMa`).
-  Điều kiện `discount_amount > 0` vì máy chủ lưu `discount_code` cả khi mã KHÔNG được áp (Phát hiện 2).
+  lượt, xem mục 1) có `UPPER(discount_code)` = mã VÀ loại + trị giá chiết khấu của đơn = của mã + số lần `/increment-usage` 200
+  (`ctx.soQuay.tangMa`). So loại + trị giá vì máy chủ lưu `discount_code` cả khi mã KHÔNG được áp (Phát hiện 2). (Bản đầu dùng
+  `discount_amount > 0` — đổi ở c91101c: điều kiện thừa, đột biến không giết được.)
 - **I14 gói:** `delivered_qty ≤ total_qty`; gói không `cancelled`: `delivered_qty` = Σ món lấy-từ-gói của đơn không huỷ trỏ
   tới gói + `ctx.soQuay.giaoGoi`; gói có `order_id` mà đơn đã huỷ hoặc không còn ⇒ gói không còn hoặc `cancelled`;
   mọi `pos_orders.customer_package_id` trỏ tới gói còn tồn tại; đơn mua gói có món lấy ngay ⇒ `customer_package_id` = gói của
@@ -115,8 +116,8 @@ SX giả: `const sxGia = { loi: false, hong: [], kbBat: new Set() }`. Khi `loi` 
 
 | Đột biến | Câu bị bỏ | Bắt bởi (dự kiến) |
 |---|---|---|
-| C2F-loyalty-01-insert-khach-app | `loyalty.js:169` trừ điểm | KB19 → I12 (grant trỏ dòng id 1 = `earn`) |
-| C2F-loyalty-02-insert-khach-app | `loyalty.js:178` đẻ mã | KB19 → HTTP validate 400 + I12 |
+| C2F-loyalty-01-insert-khach-app | `loyalty.js:170` trừ điểm | KB19 → I12 (grant trỏ dòng id 1 = `earn`) |
+| C2F-loyalty-02-insert-khach-app | `loyalty.js:179` đẻ mã | KB19 → HTTP validate 400 + I12 |
 | C2-loyalty-redeem-tru-0 | trừ 0 điểm | KB19 → **I8 mở rộng** (mẫu bắt của AUDIT-1 là `→ I8:` — `viec/AUDIT-1/dot_bien.py:76`; bắt bằng I12/HTTP sẽ bị chấm LẠC) |
 | C2F-orders-05-update-quay | `orders.js:894` used_count | KB19/KB20 → I13 + HTTP chồng 200,200 |
 | C2F-orders-07-insert-quay | `:946` nợ out | KB24 → I7 (a)(c) |
@@ -145,7 +146,7 @@ Tên C2F sinh theo thứ tự câu trong `server/` — việc này không đổi
 Dùng lại máy chạy của `viec/AUDIT-1/dot_bien.py` (nạp bằng `runpy`, không sửa file đó), bảng đột biến riêng. Mỗi tên một
 dòng tuple, ghi NGUYÊN VĂN vào `trang_thai.md` (A17). Dự kiến (tên chốt khi viết):
 - Nới mỗi bất biến cả hai phía: I7 (`!== 1` → `> 1`, `< 1`; bỏ (c); bỏ (e)), I12 (bỏ điều kiện `type='redeem'`; `points = −cost`
-  → `<=`; `usage_limit = 1` → `>= 1`), I13 (`=` → `<=`, `>=`; bỏ `discount_amount > 0`), I14 (`≤ total` → `≤ total + 1`;
+  → `<=`; `usage_limit = 1` → `>= 1`), I13 (`=` → `<=`, `>=`; bỏ RIÊNG từng vế loại / trị giá), I14 (`≤ total` → `≤ total + 1`;
   `=` → `<=`/`>=`; bỏ phép trỏ gói), I15 (`=== 1` → `>= 1`/`<= 1`), I16 (bỏ so `sang`), I17 (bỏ so `amount`).
   Bắt bằng **ca dữ liệu tay trong `thu_gia_lap.js`** (như ca I2 có sẵn): mỗi bất biến một bộ sạch (0 lệch — K5) + bộ lệch
   ĐÚNG MỘT đơn vị mỗi phía (phải lệch).
@@ -198,7 +199,7 @@ nằm ở bảng C1 (chạy `dot_bien.py` của AUDIT-1 trước và sau).
 - **Không phủ (ghi CHƯA KIỂM):** nhánh thử lại thất bại / `can_xem` / nợ không vân tay của sổ nợ (`doSoNo.js:56–65`, `:87–95`);
   `PUT /customer-packages/:id/cancel` (`packages.js:186`, quyền `manage_users`); tạo/xoá mã ở `signup-codes.js` (quản trị);
   I13 khi xoá đơn có mã (dòng đơn mất hẳn — không KB nào làm) và khi khách có chiết khấu riêng gõ mã không áp
-  (`discount_amount > 0` dù mã không áp) — giới hạn đã biết của I13.
+  (loại + trị giá hồ sơ khách trùng đúng mã gõ mà không áp) — giới hạn đã biết của I13.
 
 ## 12. Thời gian máy (từ số đo mục 0)
 
