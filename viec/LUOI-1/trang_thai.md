@@ -10,9 +10,8 @@ caabb73 Merge pull request #11 from pos-tuquyduong/viec/HOC-2b
 Có commit `PHIEU: LUOI-1`, cha là commit sổ v24 (769adfe). Máy: 4 lõi (`/proc/cpuinfo`).
 
 ## Bước đang làm
-**DỪNG — Q10 (A2: `thu_gia_lap` 96,1 s > 96 s sau vòng sửa 3/3).** Soát vòng 2 KHÔNG ĐẠT → vòng sửa 3/3 (CUỐI theo
-`so_vong_sua_toi_da`) đã làm, mục "Vòng sửa 3/3" cuối file. Chờ chủ quán chọn Q10; sau đó: chạy lại C1–C4 trên head cuối, đo
-riêng, soát vòng 3 (nếu chủ quán cho thêm vòng — đã hết 3 vòng sửa).
+Chủ quán chọn Q10 (a) (09.10) → đã làm; code cuối `2e6e524`. Đo riêng, bằng chứng đỏ, C1–C4 chạy lại trên code cuối (mục
+"Chạy lại trên CODE CUỐI"). Còn: soát vòng 3 — KHÔNG ĐẠT thì không sửa thêm, chép báo cáo, push, DỪNG (chủ quán dặn).
 - [x] Bản gốc lưu ở thư mục nháp ngoài kho. `server/`, `client/`, `tu_chay/` KHÔNG đổi (`git diff --stat 9521cec -- server client tu_chay` rỗng).
 - [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Giả lập 67,1 s → **58,3 s** (18 · 10 ĐẠT).
 - [x] Siết KB10 + bằng chứng đỏ trên gốc (mục "Bằng chứng KB10" dưới).
@@ -41,7 +40,19 @@ Vòng bất biến mỗi KB: ~572 ms (gốc) → 2–8 ms (A1). Đột biến: C
 - `GOC-KB10-siet-tre-khong-bat-lai` (KB10 SIẾT) → **BẮT**: đỏ CẢ hai ca — "trung vị 0 ms trên 0 lệnh của KB10".
 Trên HEAD: `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau` → BẮT cả hai ca KB10.
 
-## Chạy lại trên HEAD CUỐI `31afeb0` (sau vòng sửa 2, 09.10, tuần tự, riêng)
+## Chạy lại trên CODE CUỐI `2e6e524` (sau Q10 a, 09.10, tuần tự, riêng) — số này là số nghiệm thu
+| Mục | Lệnh | Kết quả |
+|---|---|---|
+| Đo riêng | `npm test`; `node viec/LUOI-1/do_thoi_gian.js gl thugl kiem` | npm test PASS 61 · FAIL 0 · CẢNH BÁO 0 · giả lập **85,4 s** ĐẠT (27 · 16) · `thu_gia_lap` **93,4 s** 104/0 (< 96 s) · `--day-du` **290,0 s · PASS 65 · FAIL 0 · CẢNH BÁO 0** |
+| Bằng chứng đỏ | `thu_gia_lap` của HEAD trên `git archive 9521cec` | thoát 1 · 45 đạt · 59 hỏng · `SỐ CA cong_cu/thu_gia_lap.js: 104` |
+| C3 | `python3 viec/LUOI-1/dot_bien.py -j 4` | 73 · BẮT 71 · LẠC 1 · SỐNG 1 · **đúng mong đợi 73/73** · 258 s (LẠC = `GOC-KB10-cu-tre-khong-bat-lai`, SỐNG = `VS-SRV-doi-ck-giu-tien-mat` — cả hai đúng mong đợi) |
+| C1 + C2 | `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4` | C1 **21/21 BẮT** · C2 **40/40 vẫn BẮT** · C2F BẮT 62 · SỐNG 23 · LẠC 1 · HỎNG 0; C2 BẮT 1 · 1926 s · "✓ kho thật không đổi" |
+| C4 TU-CHAY-4 | đủ 10 | XANH — 0 đột biến không đạt |
+| C4 P26b | 18 đột biến chạy giả lập | 18 bị bắt · 0 không |
+| C4 HOC-2b | 25 (bỏ 3 cái `p26b`) | 25 đạt · 0 không |
+| C4 AUDIT-1 G3 + D1 | -j 4, 568 s | D1 BẮT 55 · LẠC 2 (như gốc); G3 BẮT 1 · SỐNG 1 · HỎNG 1 · LẠC 1 (đúng thiết kế) · kho không đổi |
+
+## (cũ) Chạy lại trên `31afeb0` (sau vòng sửa 2, 09.10, tuần tự, riêng)
 | Mục | Lệnh | Kết quả |
 |---|---|---|
 | C3 | `python3 viec/LUOI-1/dot_bien.py -j 4` | 67 · BẮT 66 · LẠC 1 (mong đợi) · đúng mong đợi 67/67 · 191 s · thoát 0 |
@@ -208,8 +219,8 @@ Mọi tên đột biến trong `viec/LUOI-1/dot_bien.py` (73): `GOC-KB10-cu-tre-
 CHƯA KIỂM: máy không xem được GitHub (không tạo PR — phiếu cấm). Thời gian `thu_gia_lap` trên máy CI chưa đo (ở đây 90,5–93,3 s,
 sát ngưỡng cảnh báo 96 s).
 
-## E — toàn bộ (chạy riêng, HEAD cuối `31afeb0`)
-`npm test` PASS 61 · FAIL 0 · CẢNH BÁO 0 · `--day-du` PASS 65 · FAIL 0 · CẢNH BÁO 0 (266,2 s) · `thu_gia_lap` 102 đạt · 0 hỏng · giả lập
+## E — toàn bộ (chạy riêng, code cuối `2e6e524`)
+`npm test` PASS 61 · FAIL 0 · CẢNH BÁO 0 · `--day-du` PASS 65 · FAIL 0 · CẢNH BÁO 0 (290,0 s) · `thu_gia_lap` 102 đạt · 0 hỏng · giả lập
 27 · 16 ĐẠT. (Dòng `ĐẾM` chép nguyên — "thoát 0" không phải bằng chứng 0 cảnh báo.)
 
 ## C4 — bộ đột biến cũ chạm file việc này sửa (Q4 a: chỉ đột biến chạy giả lập / thu_gia_lap / bộ kiểm hoặc có neo trong file đổi)
@@ -230,7 +241,7 @@ thu_gia_lap / bộ kiểm hoặc neo trong file việc này sửa · Q5 đồng 
 Dặn thêm: (1) I8 vế điểm ghi rõ cách xử lý điểm hết hạn, ca điểm hết hạn ghi CHƯA KIỂM; (2) ca siết KB10 phải ĐỎ trên gốc
 với đột biến "trễ không bật lại" — ghi tên đột biến + kết quả ở đây; (3) mọi số đo chạy RIÊNG. Làm tiếp từ bước 4.
 
-## Câu hỏi — Q10 (MỚI, sau vòng sửa 3/3) — DỪNG ở đây
+## Câu hỏi — Q10 (sau vòng sửa 3/3) — chủ quán chốt (a), 09.10
 
 - **Q10 — `thu_gia_lap` đo riêng 96,1 s > ngưỡng 96 s (80 % hạn 120 s).** Nguyên nhân: vòng sửa 3 thêm một đơn "đổi tiền mặt →
   chuyển khoản" vào KB26 (soát vòng 2, lỗi 1: chiều đổi sang CK chưa có ca nào; đột biến máy chủ `VS-SRV-doi-ck-giu-tien-mat` —
@@ -337,6 +348,10 @@ Q8 (b) cụ thể: KB21 bỏ khẳng định "hoàn trọn giá gói" cho gói �
     đè sang gói mới (`orders.js:975–985` + `:1021–1037`; `Sales.jsx:485–500`, `:744–751`). Đọc code, CHƯA CHẠY; không thêm kịch bản.
 12. **[gom P26c — Q8 (b)]** Huỷ đơn mua gói đã giao một phần: hoàn bao nhiêu — chủ quán chốt khi làm P26c (hiện hoàn TRỌN giá
     gói, `orders.js:1331–1355`). KB21 không khẳng định số tiền cho ca này; ca gói chưa giao vẫn khẳng định hoàn trọn.
+13. **[Q10 (a), chủ quán chốt 09.10]** Chiều đổi tiền mặt → chuyển khoản phía MÁY CHỦ **CHƯA PHỦ**: thêm kịch bản thì
+    `thu_gia_lap` vượt 96 s (đo 96,1 s). I16 vẫn soát nhánh CK bằng dữ liệu tay (`BV-I16-nhanh-ck` BẮT); đột biến máy chủ
+    `VS-SRV-doi-ck-giu-tien-mat` (đổi sang CK mà giữ tiền mặt → đơn ghi gấp đôi) **SỐNG** (đúng mong đợi đã ghi). **Việc chia giả
+    lập 2 lượt (chen trước P26c) thêm lại đơn này; nghiệm thu: đột biến này BẮT** (đổi mong đợi trong `viec/LUOI-1/dot_bien.py`).
 8. `C2F-orders-31-delete-quay` (`orders.js:1515`, xoá gói khi xoá đơn mua) đang SỐNG — KB23 + I14 sẽ chạm (thêm, ngoài 21 cái).
 
 ## Soát kế hoạch (agent phụ, chỉ đọc) — CẦN SỬA 6 điểm, đã sửa trong ke_hoach.md
@@ -523,3 +538,8 @@ BÀI HỌC:
 Kết quả sau vòng sửa 3: dữ liệu tay 64/0; C3 `python3 viec/LUOI-1/dot_bien.py -j 4` **73 · BẮT 72 · LẠC 1 (mong đợi) · 73/73 đúng
 mong đợi** (257 s); giả lập 27 · 16 ĐẠT **82,4 s**; `thu_gia_lap` 104/0 **96,1 s — VƯỢT 96 s** → DỪNG (Q10). Chưa chạy lại C1, C2,
 C4 và bằng chứng đỏ trên gốc (bài thử đổi — SỐ CA sẽ thành 104) — làm sau Q10.
+
+## Sau Q10 (a) (09.10)
+- KB26 bỏ đơn đổi tiền mặt → CK; `viec/LUOI-1/dot_bien.py`: `VS-SRV-doi-ck-giu-tien-mat` mong đợi SỐNG (ghi lý do + việc sau
+  phải đổi thành BẮT); Phát hiện 13. `thu_gia_lap` 93,4 s (< 96 s). Chú thích S4 (`kiem_tra_truoc_khi_giao.js`) theo số đo cuối.
+- Chạy lại đủ trên code cuối `2e6e524`: mục "Chạy lại trên CODE CUỐI".
