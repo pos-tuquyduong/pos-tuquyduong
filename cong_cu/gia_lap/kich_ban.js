@@ -433,21 +433,26 @@ const KICH_BAN = [
       && l2.status === 200 && l3.status === 400 && l3.code === 'GOI_HET_HIEU_LUC', `${c.ma(nap)} / ${c.ma(l1)} / ${c.ma(l2)} / ${c.ma(l3)}`);
     const h2 = await huy(l2.order?.id);
     c.mong('nhân viên huỷ đơn lấy 1 ly → 200, gói còn giao 2', h2.status === 200 && await daGiao(g1) === 2, `${c.ma(h2)} · giao ${await daGiao(g1)}`);
-    const vi = await c.vi(kh.customer_phone);
+    // Q8 = (b), chủ quán chốt 09.10: gói ĐÃ GIAO một phần — hoàn BAO NHIÊU chưa chốt (P26c) → KHÔNG khẳng định số tiền, chỉ:
+    // hoàn đúng MỘT lần (một dòng hoàn), gói chuyển cancelled, không lấy thêm được. Gói CHƯA giao (gói 2) vẫn khẳng định hoàn trọn.
     const [x1, x2] = await c.chong(() => huy(m1.id), () => huy(m1.id));
-    c.mong('hai nhân viên huỷ đơn mua gói chồng nhau → 200 + 400 DON_KHONG_HUY_DUOC, ví + giá gói đúng một lần', x1?.status === 200
-      && x2.status === 400 && x2.code === 'DON_KHONG_HUY_DUOC' && await c.vi(kh.customer_phone) === vi + gia,
-    `${x1 ? c.ma(x1) : 'móc không chạy'} / ${c.ma(x2)} · ví ${vi} → ${await c.vi(kh.customer_phone)}`);
+    const tt = await c.db.queryOne('SELECT status FROM pos_customer_packages WHERE id = ?', [g1]);
+    c.mong('hai nhân viên huỷ đơn mua gói đã giao 2/3 chồng nhau → 200 + 400 DON_KHONG_HUY_DUOC, đúng một dòng hoàn, gói cancelled', x1?.status === 200
+      && x2.status === 400 && x2.code === 'DON_KHONG_HUY_DUOC' && await c.dongHoan(m1.id) === 1 && tt?.status === 'cancelled',
+    `${x1 ? c.ma(x1) : 'móc không chạy'} / ${c.ma(x2)} · ${await c.dongHoan(m1.id)} dòng hoàn · gói ${tt?.status}`);
     const l4 = await lay(g1, 1);
     c.mong('lấy từ gói của đơn mua đã huỷ → 400 GOI_HET_HIEU_LUC', l4.status === 400 && l4.code === 'GOI_HET_HIEU_LUC', c.ma(l4));
     const m2 = await mua('KB21 mua gói 2');
     const g2 = await goiCua(m2);
     const l5 = await lay(g2, 1);
-    const h5 = await huy(l5.order?.id), h6 = await huy(m2.id);
+    const h5 = await huy(l5.order?.id);
+    const vi = await c.vi(kh.customer_phone);
+    const h6 = await huy(m2.id);
     const con = await c.so('SELECT COUNT(*) FROM pos_customer_packages WHERE id = ?', [g2]);
     const tro = await c.so('SELECT COUNT(*) FROM pos_orders WHERE customer_package_id = ?', [g2]);
-    c.mong('gói không còn lượt nào đã giao: huỷ đơn lấy rồi huỷ đơn mua → 200, 200; gói bị xoá, không đơn nào trỏ tới', l5.status === 200
-      && h5.status === 200 && h6.status === 200 && con === 0 && tro === 0, `${c.ma(l5)} / ${c.ma(h5)} / ${c.ma(h6)} · gói còn ${con} · ${tro} đơn trỏ`);
+    c.mong('gói không còn lượt nào đã giao: huỷ đơn lấy rồi huỷ đơn mua → 200, 200; ví + TRỌN giá gói; gói bị xoá, không đơn nào trỏ tới',
+      l5.status === 200 && h5.status === 200 && h6.status === 200 && await c.vi(kh.customer_phone) === vi + gia && con === 0 && tro === 0,
+      `${c.ma(l5)} / ${c.ma(h5)} / ${c.ma(h6)} · ví ${vi} → ${await c.vi(kh.customer_phone)} · gói còn ${con} · ${tro} đơn trỏ`);
   } },
   { ten: 'mua thẻ hội viên bằng ví rồi nhân viên huỷ', chay: async (c) => {
     const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB22' };   // khách MỚI: hạng thẻ giảm giá đơn sau (orders.js:529)
