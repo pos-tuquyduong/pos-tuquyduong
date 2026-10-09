@@ -183,9 +183,12 @@ const BAT_BIEN = {
   async I12(q) {
     const ds = await q(`SELECT g.id, g.code, g.customer_phone AS sdt, t.type, t.customer_phone AS sdt_tx, t.points,
         r.points_cost, r.discount_type AS loai_qua, r.discount_value AS tri_gia_qua,
-        d.discount_type, d.discount_value, d.usage_limit, (SELECT COUNT(*) FROM pos_discount_codes x WHERE x.code = g.code) AS so_ma
+        (SELECT x.discount_type FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS discount_type,
+        (SELECT x.discount_value FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS discount_value,
+        (SELECT x.usage_limit FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS usage_limit,
+        (SELECT COUNT(*) FROM pos_discount_codes x WHERE x.code = g.code) AS so_ma
       FROM pos_voucher_grants g LEFT JOIN pos_point_transactions t ON t.id = g.point_tx_id
-      LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id LEFT JOIN pos_discount_codes d ON d.code = g.code`);
+      LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id`);
     return ds.filter((r) => r.type !== 'redeem' || r.sdt_tx !== r.sdt || so(r.points) !== -so(r.points_cost) || so(r.so_ma) !== 1
       || r.discount_type !== r.loai_qua || so(r.discount_value) !== so(r.tri_gia_qua) || so(r.usage_limit) !== 1)
       .map((r) => `quà #${r.id} mã ${r.code}: dòng điểm ${r.type} ${so(r.points)} (giá ${so(r.points_cost)}), ${so(r.so_ma)} mã `
