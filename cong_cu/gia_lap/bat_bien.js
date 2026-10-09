@@ -101,7 +101,8 @@ const BAT_BIEN = {
       }
     }
     for (const [vt, n] of dem) if (!can.has(vt)) lech.push(`SX nhận vân tay lạ ${vt} × ${n}`);
-    for (const [vt, n] of daXong) if (n !== 1 || dem.get(vt) !== 1) lech.push(`nợ kho ${vt} đã xong ${n} dòng, SX nhận ${dem.get(vt) || 0} lần`);
+    // (b) chỉ soát SX nhận: số dòng nợ ≥ 2 cùng vân tay đã bị vế "mỗi vân tay lỗi ⇔ đúng một dòng nợ" và "nợ phải có lần lỗi" bắt.
+    for (const [vt, n] of daXong) if (dem.get(vt) !== 1) lech.push(`nợ kho ${vt} đã xong ${n} dòng, SX nhận ${dem.get(vt) || 0} lần`);
     for (const r of no) if (!r.van_tay || !loi.has(r.van_tay)) lech.push(`nợ kho ${r.van_tay} (${r.order_code}) không có lần SX lỗi tương ứng`);
     for (const vt of loi) if (soNo.get(vt) !== 1) lech.push(`SX báo lỗi vân tay ${vt}, sổ nợ kho có ${soNo.get(vt) || 0} dòng`);
     for (const h of hong) if (!ctx.sxGia.kbBat.has(h.kb)) lech.push(`SX lỗi ở kịch bản ${h.kb} không bật công tắc lỗi (vân tay ${h.van_tay})`);
@@ -178,11 +179,13 @@ const BAT_BIEN = {
       .map((r) => `đơn #${r.order_id}, ví ${r.customer_phone}: hoàn ${tien(r.hoan)} > ví này đã trả ${tien(r.tra)}`);
   },
   // ── LUOI-1: lưới tiền/kho cho 4 lỗ NẶNG của AUDIT-1 (AU-G1/G2/G3) + AU-G4 ──
-  // I12 (AU-G1) — mỗi quà đã đổi trỏ đúng dòng 'redeem' cùng SĐT trừ đúng giá quà; mã đẻ ra có loại/trị giá = quà, dùng 1 lần.
+  // I12 (AU-G1) — mỗi quà đã đổi trỏ đúng dòng 'redeem' cùng SĐT trừ đúng giá quà; mã đẻ ra có loại / trị giá / trần giảm = quà
+  // (loyalty.js:179–183), dùng 1 lần. Hạn mã (valid_to) KHÔNG soát (tính từ ngày đổi — CHƯA KIỂM).
   // So với quà HIỆN TẠI: chủ sửa quà sau khi đổi thì đỏ (không kịch bản nào sửa quà).
   async I12(q) {
     const ds = await q(`SELECT g.id, g.code, g.customer_phone AS sdt, t.type, t.customer_phone AS sdt_tx, t.points,
-        r.points_cost, r.discount_type AS loai_qua, r.discount_value AS tri_gia_qua,
+        r.points_cost, r.discount_type AS loai_qua, r.discount_value AS tri_gia_qua, r.max_discount AS tran_qua,
+        (SELECT x.max_discount FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS tran,
         (SELECT x.discount_type FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS discount_type,
         (SELECT x.discount_value FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS discount_value,
         (SELECT x.usage_limit FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS usage_limit,
@@ -190,9 +193,9 @@ const BAT_BIEN = {
       FROM pos_voucher_grants g LEFT JOIN pos_point_transactions t ON t.id = g.point_tx_id
       LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id`);
     return ds.filter((r) => r.type !== 'redeem' || r.sdt_tx !== r.sdt || so(r.points) !== -so(r.points_cost) || so(r.so_ma) !== 1
-      || r.discount_type !== r.loai_qua || so(r.discount_value) !== so(r.tri_gia_qua) || so(r.usage_limit) !== 1)
+      || r.discount_type !== r.loai_qua || so(r.discount_value) !== so(r.tri_gia_qua) || so(r.tran) !== so(r.tran_qua) || so(r.usage_limit) !== 1)
       .map((r) => `quà #${r.id} mã ${r.code}: dòng điểm ${r.type} ${so(r.points)} (giá ${so(r.points_cost)}), ${so(r.so_ma)} mã `
-        + `${r.discount_type} ${so(r.discount_value)} (quà ${r.loai_qua} ${so(r.tri_gia_qua)}), dùng tối đa ${r.usage_limit}`);
+        + `${r.discount_type} ${so(r.discount_value)} (quà ${r.loai_qua} ${so(r.tri_gia_qua)}), trần ${so(r.tran)} (quà ${so(r.tran_qua)}), dùng tối đa ${r.usage_limit}`);
   },
   // I13 (AU-G2) — used_count ≤ usage_limit; used_count = số đơn ĐÃ ÁP mã + số lần /increment-usage trả 200 (sổ quầy). Huỷ / xoá
   // đơn KHÔNG trả lượt (orders.js:1296–1590 không đụng pos_discount_codes) nên đếm đơn MỌI trạng thái. "Đã áp" = mã trên đơn VÀ
