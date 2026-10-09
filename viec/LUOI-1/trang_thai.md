@@ -10,8 +10,8 @@ caabb73 Merge pull request #11 from pos-tuquyduong/viec/HOC-2b
 Có commit `PHIEU: LUOI-1`, cha là commit sổ v24 (769adfe). Máy: 4 lõi (`/proc/cpuinfo`).
 
 ## Bước đang làm
-Chủ quán trả lời Q7 (a) · Q8 (b) · Q9 (a) (09.10) → làm theo (vòng sửa 2/3, mục cuối file), chạy lại C1–C4 trên head cuối,
-đo riêng, soát vòng 2.
+Chủ quán trả lời Q7 (a) · Q8 (b) · Q9 (a) (09.10) → đã làm (vòng sửa 2/3), C1–C4 chạy lại trên head cuối `31afeb0`, đo
+riêng xong. Còn: soát vòng 2, báo cáo 7 mục.
 - [x] Bản gốc lưu ở thư mục nháp ngoài kho. `server/`, `client/`, `tu_chay/` KHÔNG đổi (`git diff --stat 9521cec -- server client tu_chay` rỗng).
 - [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Giả lập 67,1 s → **58,3 s** (18 · 10 ĐẠT).
 - [x] Siết KB10 + bằng chứng đỏ trên gốc (mục "Bằng chứng KB10" dưới).
@@ -24,9 +24,9 @@ Chủ quán trả lời Q7 (a) · Q8 (b) · Q9 (a) (09.10) → làm theo (vòng 
 ## Số đo chạy RIÊNG (máy mây 4 lõi, `node viec/LUOI-1/do_thoi_gian.js …`)
 | Lệnh | Gốc 9521cec | Sau A1 (18 KB) | HEAD (27 KB · 16 BB) | Ngưỡng 80 % |
 |---|---|---|---|---|
-| giả lập `chay.js` | 67,1 s | 58,3 s · 57,8 s | **80,7 s** (80,9 · 78,7 s các lần trước) | 96 s |
-| `thu_gia_lap.js` | 74,9 s (42/0) | **66,3 s** (42/0) | **90,5 s** (102/0; 92,1 · 91,7 s; người soát đo 93,3 s) | 96 s — SÁT (94–97 %) |
-| `kiem_tra --day-du` | 201,8 s, thoát 0 | 228,4 s · PASS 65 · FAIL 0 · CẢNH BÁO 0 | **275,3 s · PASS 65 · FAIL 0 · CẢNH BÁO 0** | (không có hạn riêng) |
+| giả lập `chay.js` | 67,1 s | 58,3 s · 57,8 s | **80,5 s** head cuối (80,7 · 80,9 · 78,7 s các lần trước) | 96 s |
+| `thu_gia_lap.js` | 74,9 s (42/0) | **66,3 s** (42/0) | **93,7 s** head cuối (102/0; 90,5 · 92,1 · 91,7 s; người soát 93,3 s) | 96 s — SÁT (94–98 %) |
+| `kiem_tra --day-du` | 201,8 s, thoát 0 | 228,4 s · PASS 65 · FAIL 0 · CẢNH BÁO 0 | **266,2 s · PASS 65 · FAIL 0 · CẢNH BÁO 0** head cuối | (không có hạn riêng) |
 | `npm test` | — | — | **PASS 61 · FAIL 0 · CẢNH BÁO 0** | |
 Cột "Sau A1": giả lập 58,3 s đo trên HEAD lúc chỉ có A1; ba số còn lại đo bù (vòng sửa 1) trên `git archive 025106b` (commit chỉ có A1,
 18 KB · 10 BB) trong thư mục nháp, `node viec/LUOI-1/do_thoi_gian.js gl thugl kiem`.
@@ -40,7 +40,20 @@ Vòng bất biến mỗi KB: ~572 ms (gốc) → 2–8 ms (A1). Đột biến: C
 - `GOC-KB10-siet-tre-khong-bat-lai` (KB10 SIẾT) → **BẮT**: đỏ CẢ hai ca — "trung vị 0 ms trên 0 lệnh của KB10".
 Trên HEAD: `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau` → BẮT cả hai ca KB10.
 
-## C1 — 21 đột biến SỐNG trên gốc → BẮT (chạy 09.10, `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4`, 1915 s, "✓ kho thật không đổi")
+## Chạy lại trên HEAD CUỐI `31afeb0` (sau vòng sửa 2, 09.10, tuần tự, riêng)
+| Mục | Lệnh | Kết quả |
+|---|---|---|
+| C3 | `python3 viec/LUOI-1/dot_bien.py -j 4` | 67 · BẮT 66 · LẠC 1 (mong đợi) · đúng mong đợi 67/67 · 191 s · thoát 0 |
+| C1 + C2 | `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4` | C1 **21/21 BẮT** · C2 **40/40 vẫn BẮT** · C2F BẮT 62 · SỐNG 23 · LẠC 1 · HỎNG 0; C2 BẮT 1 · 1910 s · "✓ kho thật không đổi" |
+| C4 TU-CHAY-4 | đủ 10 | XANH — 0 đột biến không đạt |
+| C4 P26b | 18 đột biến chạy giả lập | 18 bị bắt · 0 không |
+| C4 HOC-2b | 25 (bỏ 3 cái `p26b`) | 25 đạt · 0 không |
+| C4 AUDIT-1 G3 + D1 | -j 4, 588 s | D1 BẮT 55 · LẠC 2 (như gốc); G3 BẮT 1 · SỐNG 1 · HỎNG 1 · LẠC 1 (đúng thiết kế) · kho không đổi |
+| Đo riêng | `npm test`; `do_thoi_gian.js gl thugl kiem` | npm test PASS 61 · FAIL 0 · CẢNH BÁO 0 · giả lập 80,5 s ĐẠT · thu_gia_lap 93,7 s 102/0 · `--day-du` 266,2 s PASS 65 · FAIL 0 · CẢNH BÁO 0 |
+Bảng chi tiết C1 dưới đây lấy từ lần chạy đầu; lần chạy trên head cuối cho cùng 21 BẮT (KB21 nay bắt `orders-21` bằng dòng "gói
+cancelled" trong ca huỷ chồng). Bảng đủ 87 dưới là của head cuối.
+
+## C1 — 21 đột biến SỐNG trên gốc → BẮT (lần đầu 09.10, 1915 s; chạy lại head cuối: 21/21)
 
 | Đột biến | Kết quả | Dòng bắt |
 |---|---|---|
@@ -165,7 +178,7 @@ sang SX), `orders-35/36/37` (xoá đơn dọn bảng phụ, owner) — đúng nh
 </details>
 
 ## C3 — đột biến của việc này (`python3 viec/LUOI-1/dot_bien.py -j 4`)
-**Lần chạy cuối (sau vòng sửa 1, 195 s): 67 đột biến · BẮT 66 · LẠC 1 · SỐNG 0 · HỎNG 0 · đúng mong đợi 67/67, thoát 0.**
+**Lần chạy cuối (head cuối `31afeb0`, 191 s; trước đó sau vòng sửa 1: 195 s cùng kết quả): 67 đột biến · BẮT 66 · LẠC 1 · SỐNG 0 · HỎNG 0 · đúng mong đợi 67/67, thoát 0.**
 66 cái mong BẮT đều BẮT; 1 cái mong LẠC (`GOC-KB10-cu-tre-khong-bat-lai` — bằng chứng KB10 CŨ không bắt trễ) đúng LẠC.
 Lịch sử: lần 1 57 đột biến
 (55 BẮT, 1 LẠC mong đợi, 2 SỐNG ngoài mong đợi). Lần 1: 2 SỐNG ngoài mong đợi → sửa bất biến (không sửa bài thử): `VS-I8-qua-chi-tren` (vế "số quà" bị vế "trừ đúng giá" che —
@@ -193,8 +206,8 @@ Mọi tên đột biến trong `viec/LUOI-1/dot_bien.py` (67): `GOC-KB10-cu-tre-
 CHƯA KIỂM: máy không xem được GitHub (không tạo PR — phiếu cấm). Thời gian `thu_gia_lap` trên máy CI chưa đo (ở đây 90,5–93,3 s,
 sát ngưỡng cảnh báo 96 s).
 
-## E — toàn bộ (chạy riêng, HEAD sau vòng sửa 1)
-`npm test` PASS 61 · FAIL 0 · CẢNH BÁO 0 · `--day-du` PASS 65 · FAIL 0 · CẢNH BÁO 0 (275,3 s) · `thu_gia_lap` 102 đạt · 0 hỏng · giả lập
+## E — toàn bộ (chạy riêng, HEAD cuối `31afeb0`)
+`npm test` PASS 61 · FAIL 0 · CẢNH BÁO 0 · `--day-du` PASS 65 · FAIL 0 · CẢNH BÁO 0 (266,2 s) · `thu_gia_lap` 102 đạt · 0 hỏng · giả lập
 27 · 16 ĐẠT. (Dòng `ĐẾM` chép nguyên — "thoát 0" không phải bằng chứng 0 cảnh báo.)
 
 ## C4 — bộ đột biến cũ chạm file việc này sửa (Q4 a: chỉ đột biến chạy giả lập / thu_gia_lap / bộ kiểm hoặc có neo trong file đổi)
@@ -382,8 +395,7 @@ BÀI HỌC:
 | NGHI NGỜ: A1 chưa đo thu_gia_lap / --day-du | Đo bù trên `025106b` (bảng số đo). |
 | NGHI NGỜ: "55 BẮT + 2" mơ hồ | Ghi rõ 67 = 66 mong BẮT + 1 mong LẠC; nhật ký lần chạy cuối tóm ở mục C3. |
 Sau vòng sửa: C3 67/67; `thu_gia_lap` 102/0 (90,5 s); giả lập 27 · 16 ĐẠT (80,7 s); `--day-du` PASS 65 · 0 CẢNH BÁO; bằng chứng đỏ
-trên gốc chạy lại (45/57, SỐ CA 102). **C1, C2, C4 đã chạy TRƯỚC vòng sửa 1** (bất biến I12 và KB25 đổi sau đó) → chạy lại đủ trên
-head cuối sau khi chủ quán trả lời Q7–Q9.
+trên gốc chạy lại (45/57, SỐ CA 102). C1, C2, C4 chạy lại đủ trên head cuối `31afeb0` — mục "Chạy lại trên HEAD CUỐI".
 
 ## Vòng sửa 2/3 (theo lời chốt Q7–Q9, 09.10)
 - KB21 (`kich_ban.js`): ca hai nhân viên huỷ đơn mua gói ĐÃ GIAO 2/3 chồng nhau → 200 + 400 `DON_KHONG_HUY_DUOC`, đúng MỘT dòng
