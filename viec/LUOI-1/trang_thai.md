@@ -10,8 +10,9 @@ caabb73 Merge pull request #11 from pos-tuquyduong/viec/HOC-2b
 Có commit `PHIEU: LUOI-1`, cha là commit sổ v24 (769adfe). Máy: 4 lõi (`/proc/cpuinfo`).
 
 ## Bước đang làm
-Chủ quán chọn Q10 (a) (09.10) → đã làm; code cuối `2e6e524`. Đo riêng, bằng chứng đỏ, C1–C4 chạy lại trên code cuối (mục
-"Chạy lại trên CODE CUỐI"). Còn: soát vòng 3 — KHÔNG ĐẠT thì không sửa thêm, chép báo cáo, push, DỪNG (chủ quán dặn).
+**DỪNG (09.10) — soát vòng 3 KHÔNG ĐẠT** (báo cáo chép nguyên ở cuối file). Theo lời chủ quán: không sửa thêm; chat soát thay
+(như HOC-2b). Code cuối `2e6e524`; số nghiệm thu ở mục "Chạy lại trên CODE CUỐI" (các số khác trong file có thể là của lần chạy
+trước — người soát vòng 3 lỗi 5 đã liệt kê chỗ lệch).
 - [x] Bản gốc lưu ở thư mục nháp ngoài kho. `server/`, `client/`, `tu_chay/` KHÔNG đổi (`git diff --stat 9521cec -- server client tu_chay` rỗng).
 - [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Giả lập 67,1 s → **58,3 s** (18 · 10 ĐẠT).
 - [x] Siết KB10 + bằng chứng đỏ trên gốc (mục "Bằng chứng KB10" dưới).
@@ -543,3 +544,91 @@ C4 và bằng chứng đỏ trên gốc (bài thử đổi — SỐ CA sẽ thà
 - KB26 bỏ đơn đổi tiền mặt → CK; `viec/LUOI-1/dot_bien.py`: `VS-SRV-doi-ck-giu-tien-mat` mong đợi SỐNG (ghi lý do + việc sau
   phải đổi thành BẮT); Phát hiện 13. `thu_gia_lap` 93,4 s (< 96 s). Chú thích S4 (`kiem_tra_truoc_khi_giao.js`) theo số đo cuối.
 - Chạy lại đủ trên code cuối `2e6e524`: mục "Chạy lại trên CODE CUỐI".
+
+## Soát độc lập — vòng 3 (`/ra-soat`, agent general-purpose mới, 09.10) — chép nguyên báo cáo
+
+> Chủ quán dặn: soát lần 3 KHÔNG ĐẠT thì KHÔNG sửa thêm — chép nguyên báo cáo, push, DỪNG (chat soát thay như HOC-2b).
+> Không có vòng sửa nào sau báo cáo này.
+
+KHÔNG ĐẠT
+
+Phạm vi soát: code cuối 2e6e524, HEAD 51e080f. `git status` sạch, `git log origin/viec/LUOI-1..HEAD` rỗng. `git diff --stat 9521cec HEAD` trên server, client, tu_chay, .claude, .github, package.json, CHECKLIST_CODE.md, CLAUDE.md, KHUON_LOI.md, viec/AUDIT-1, viec/HOC-1, viec/HOC-2 và sổ việc đều rỗng. Tôi không sửa file nào trong kho. Đột biến của tôi chạy trên bản chép thật trong scratchpad.
+
+Tôi chạy tuần tự, không lệnh nào song song:
+- `npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0.
+- `thu_gia_lap --chi-du-lieu-tay`: 64 đạt.
+- Giả lập: 80,6 s, "27 kịch bản · 16 bất biến · ĐẠT".
+- `--day-du`: 266,6 s, PASS 65 · FAIL 0 · CẢNH BÁO 0.
+- AUDIT-1 `C2F-orders-39-insert-quay`, `C2F-packages-05-update-quay`, `C2F-orders-24-delete-quay`: cả 3 BẮT, kho thật không đổi.
+- LUOI-1 `VS-SRV-doi-ck-giu-tien-mat`, `BV-I12-tran`, `BV-I7-d-no-phai-co-loi`, `VS-I8-qua-chi-tren`: 4/4 đúng mong đợi (SỐNG, BẮT, BẮT, BẮT).
+
+**Lỗi vòng 2 — đã sửa thật chưa:**
+1. I16 nhánh CK: có ca tay (`I16 đổi sang chuyển khoản mà tiền mặt chưa về 0`), `BV-I16-nhanh-ck` BẮT. Phía máy chủ thì CHƯA PHỦ theo Q10 (a), đã ghi ở Phát hiện 13; tôi chạy lại, `VS-SRV-doi-ck-giu-tien-mat` SỐNG như mong đợi. Đã sửa đúng theo lời chốt.
+2. I13 vế chặn `usage_limit > 0`: có mã C không giới hạn (0) trong bộ sạch, `BV-I13-bo-gioi-han-0` có trong bộ. Đã sửa.
+3. ke_hoach.md :66 và :93–96: đã sửa (dòng KB21 ở :65, I8 ở :96).
+4. I7 `n !== 1`: đã bỏ, có chú thích tại dòng. Nhưng cùng dạng "vế không giết được" vẫn còn ở chỗ khác — xem lỗi 2 dưới.
+
+LỖI TÌM ĐƯỢC:
+1. `cong_cu/gia_lap/bat_bien.js` (I12, vế `so(r.tran) !== so(r.tran_qua)`) và `cong_cu/thu_gia_lap.js` (ca "I12 mã mất trần giảm (0 thay vì 2.000)") — trần giảm chỉ thử MỘT phía, và lệch xa (0 so với 2000). Phiếu C3 đòi lệch ÍT, cả hai phía. **Khuôn K3.**
+   - Tôi chạy hai đột biến trên dữ liệu tay, cả hai SỐNG: `so(r.tran) < so(r.tran_qua)` và `Math.abs(...) > 1000`.
+   - Phía bị bỏ ngỏ là phía mất tiền: mã có trần CAO hơn quà nghĩa là khách được giảm nhiều hơn.
+2. Còn ba vế chặn hoặc vế thừa không đột biến nào giết được, cũng không có lời giải thích tại dòng. Đây đúng là bài học vòng 2 ("xoá đi hoặc ghi lý do ngay tại dòng"). Tôi chạy cả ba đột biến bỏ vế, cả ba SỐNG. **Khuôn K3.**
+   - I7: `!r.van_tay ||`. Ca "I7 dòng nợ không vân tay" tên thì nói thử vế này, nhưng thật ra ca đó bị `!loi.has` bắt.
+   - I8: `r.gia != null &&` không có ca sạch nào đi qua.
+   - I17: `r.tid == null ||` thừa, vì `r.type` lúc đó đã là null.
+   - Nhẹ hơn: `COALESCE(type,'')` ở I8 và `COALESCE(customer_phone,'')` ở I15 cũng không có ca nào. Đổi COALESCE ở I8 thì SỐNG; đổi ở I15 sang `IS NOT NULL` cũng SỐNG.
+3. `cong_cu/gia_lap/kich_ban.js` KB25 (mong "hai người cùng bấm → không gửi thêm") — ca này vô giá trị. **Khuôn K3** (ca "phải KHÔNG X" mà đầu vào không đủ điều kiện kích hoạt X).
+   - Lệnh bấm chồng `[r3, r4]` chạy sau khi r1 đã đẩy hết nợ và r2 ra `xong` 0, tức sổ nợ đã rỗng.
+   - Tôi bỏ khoá `if (dangChay) return …` ở `server/utils/doSoNo.js:39` rồi chạy `--den-kb 25`: "25 kịch bản · 16 bất biến · ĐẠT", SỐNG.
+   - Khoá chống hai người bấm cùng lúc vì vậy không có lưới. Phần "bấm lại không trừ hai lần" (tuần tự) thì có lưới. Muốn ca chồng có giá trị, lệnh bấm chồng phải là lần đẩy ĐẦU, lúc còn 3 dòng nợ; khi đó I7 sẽ đếm SX nhận 2 lần.
+4. I12 phía máy chủ chưa phủ mà không ghi CHƯA PHỦ — cùng dạng với Phát hiện 13. **Khuôn K4.**
+   - KB19 tạo quà không có `max_discount`, nên `rewards.js:46` lưu 0. Quà là loại `fixed`.
+   - Vì vậy các đột biến sau ở `loyalty.js:183` cho kết quả y hệt trong giả lập: bỏ `reward.max_discount || 0` (mã % mất trần, giảm không giới hạn), hay viết cứng `'fixed'` cho loại mã.
+   - Vế trần chỉ được thử trên dữ liệu tay. trang_thai (dòng vòng sửa 3 về I12) và ke_hoach mục 11b không ghi điều này.
+5. viec/LUOI-1/trang_thai.md còn nhiều câu cũ lệch với code cuối và với chính mục "Chạy lại trên CODE CUỐI" (:46–48). **Khuôn K4 (tài liệu).**
+   - :223 (mục E, ghi là "code cuối 2e6e524"): ghi "thu_gia_lap 102 đạt", trong khi thật là 104.
+   - :193–194 (C3, "Lần chạy cuối"): ghi "67 · BẮT 66 · SỐNG 0", trong khi thật là 73 · BẮT 71 · LẠC 1 · SỐNG 1.
+   - :20: ghi "60 ca dữ liệu tay", thật là 62 ca LUOI-1 (64 nếu tính cả I2).
+   - :27–29: cột "head cuối" là số của 31afeb0 (80,5 s · 93,7 s 102/0 · 266,2 s).
+   - :205: bảng "chỗ đổi → đột biến" còn dòng "KB26 đổi tiền mặt → CK", là chỗ đổi đã bỏ.
+   - :34: ghi "C3 163 s", lần chạy cuối là 258 s.
+6. viec/LUOI-1/ke_hoach.md. **Khuôn K1/K4 (tài liệu).**
+   - :147 ghi "Dùng lại máy chạy của viec/AUDIT-1/dot_bien.py (nạp bằng runpy…)". Sai: `viec/LUOI-1/dot_bien.py` có máy chạy riêng, không có runpy.
+   - :111–112 (I16) và :200 (danh sách "Không phủ") không nhắc chiều CK phía máy chủ (Phát hiện 13), xoá đơn mua thẻ (Phát hiện 10), hay vế trần I12 (lỗi 4).
+
+NGHI NGỜ:
+- I13 (`bat_bien.js`) so loại và trị giá trên đơn với mã HIỆN TẠI. `PUT /discount-codes/:id` (`discount-codes.js:266–291`) cho chủ đổi loại, trị giá, mã, `usage_limit` của mã đã dùng, kể cả hạ `usage_limit` dưới `used_count`. Khi đó I13 sẽ đỏ oan trên một luồng quản trị hợp lệ. Chú thích "Giới hạn" của I13 không ghi điều này. I8 vế đổi điểm cũng so với `points_cost` hiện tại (`PUT /rewards/:id`, `rewards.js:75`) mà chú thích không ghi; I12 thì có ghi. Hiện chưa kịch bản nào làm vậy, nên đây là rủi ro K5 cho các việc sau.
+- Ba ca tay có mẫu kết luận yếu, không nói được vế nào đã bắn: `/mã MA1/` (I12 SĐT khác), `/yêu cầu hoàn #1/` (I17 đơn khác, SĐT khác). Hiện có đột biến BV tương ứng bù lại.
+- Thời gian: thu_gia_lap 93,4 s, sát ngưỡng 96 s. Máy CI chưa đo. Tự đẩy sổ nợ (`doSoNo.js:114–121`) sẽ chạy nếu một lượt giả lập vượt 180 s; dot_bien cho phép tới 300 s nên KB25/KB27 có thể đỏ oan khi máy quá tải. Đã ghi, chưa thấy xảy ra.
+
+NGHIỆM THU:    15/16 mục có bằng chứng · mục thiếu: C3 (I12 trần chỉ thử một phía và lệch xa; 3 vế không giết được — lỗi 1, 2)
+- A0 ✓ ke_hoach.md:6–15 (67,1 s · 74,9 s · 201,8 s, 4 lõi).
+- A1 ✓ chay.js: `treMs = TRE_MS` trước mỗi kịch bản, `treMs = 0` trước vòng bất biến; số đo bù 58,3 s và trên 025106b.
+- A2 ✓ tôi đo: giả lập 80,6 s; thu_gia_lap nằm trong `--day-du` và không ra CẢNH BÁO.
+- B1 ✓ KB19 + I8 vế đổi điểm + I12 (phía máy chủ của trần chưa phủ — lỗi 4).
+- B2 ✓ KB20 + I13, theo Q1 (a) và Q6 (a).
+- B3 ✓ KB21–23 + I14/I15; Q7, Q8, Q9 đã ghi.
+- B4 ✓ KB24, KB25, KB27 + I7 + công tắc; ca bấm chồng vô giá trị (lỗi 3).
+- B5 ✓ theo Q10 (a): đối soát, duyệt hoàn, increment-usage, đổi sang tiền mặt; chiều CK CHƯA PHỦ đã ghi.
+- B6 ✓ kiem_tra_truoc_khi_giao.js: 27 / 16, chú thích S4 theo số đo cuối.
+- C1 ✓ hồ sơ ghi 21/21; tôi chạy lại 3/21, cả 3 BẮT.
+- C2 ✓ 40 tên in đủ; số cộng khớp (62 BẮT = 40 + 22; 45 SỐNG = 23 + 22).
+- C3 ✗ lỗi 1, 2.
+- C4 ✓ theo hồ sơ.
+- D1 ✓ cha của 9521cec là 769adfe.
+- D2 ✓ ghi CHƯA KIỂM.
+- E ✓ tôi chạy lại, xanh và 0 CẢNH BÁO; nhưng dòng E trong trang_thai ghi số cũ (lỗi 5).
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy lại đủ C1+C2 (87 đột biến, ~32 phút), C3 (73) và C4. Chỉ chạy mẫu 3/21 của C1 và 4/73 của C3.
+- Chưa đối chiếu từng tên trong 40 tên C2 với danh sách 45 SỐNG gốc: HOC-2b D5 không liệt kê tên, chỉ kiểm được số cộng.
+- Không xem được GitHub: D2 và thời gian trên máy CI.
+- Đột biến bỏ trần `loyalty.js:183` chỉ suy từ code (KB19 gửi quà không có `max_discount`, `rewards.js:46` lưu 0), CHƯA CHẠY.
+- Chưa xem KB25/KB27 có đỏ oan khi giả lập vượt 180 s hay không.
+
+BÀI HỌC:
+- KHOÁ: thêm vào `dot_bien.py` một bước tự sinh đột biến "bỏ từng vế `||` / `&&`" cho mọi biểu thức lọc trong `bat_bien.js`. Vế nào SỐNG thì hoặc xoá, hoặc phải có chú thích "thừa vì …" tại dòng thì bước kiểm mới qua. Đây là lần thứ ba vế chết lọt qua (vòng 1 I13, vòng 2 I7, vòng 3 I7/I8/I17).
+- KHOÁ: mỗi phép so bằng trên cột tiền (trần, trị giá, số tiền) phải có hai ca tay ±1 quanh giá trị chuẩn. Có thể đếm tự động: mỗi `!==` trên cột tiền phải có ít nhất 2 ca mang tên vế đó.
+- NGUYÊN TẮC (K3): ca "chồng nhau / bấm cùng lúc" phải chạy khi còn việc để làm (sổ nợ chưa rỗng, mã chưa dùng). Bằng chứng cho ca đó là đột biến bỏ khoá chống chồng phải ĐỎ (ở đây: `dangChay` của `doSoNo.js`).
+- NGUYÊN TẮC (K4): vế bất biến chỉ thử trên dữ liệu tay mà kịch bản không bao giờ chạm tới (trần I12, loại % của quà, chiều CK của I16) thì phải ghi "CHƯA PHỦ phía máy chủ", đúng như Phát hiện 13. Tìm bằng cách hỏi "dữ liệu kịch bản có giá trị khác mặc định cho cột này không?".
+- NGUYÊN TẮC (K4 tài liệu): sau mỗi lần chạy lại số nghiệm thu, grep cả trang_thai lẫn ke_hoach tìm mọi chỗ nhắc số cũ (102, 67, 93,7, 80,5, 266,2, "head cuối") rồi thay hoặc ghi "(cũ)". Vòng này để sót 6 chỗ, có chỗ ngay trong dòng nghiệm thu E.
