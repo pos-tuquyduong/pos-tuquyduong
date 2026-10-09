@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 23,
-  "cap_nhat": "2026-10-07",
+  "phien_ban_so": 24,
+  "cap_nhat": "2026-10-08",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -369,7 +369,7 @@
     },
     {
       "ma": "LUOI-1",
-      "ten": "Va LUOI tien/kho (chot 05.10, chu quan chon (a): sau HOC-2, TRUOC P26c — P26c/P20b/P22-P24 sua dung cac duong nay): them kich ban gia lap + bat bien/phep canh cho 4 lo NANG AUDIT-1 — AU-G1 /loyalty/redeem (moi voucher_grant co dung mot dong redeem tru diem khop, discount_value = reward), AU-G2 ban co ap voucher dung-mot-lan (used_count tang, <= usage_limit), AU-G3 mua goi/the, lay tu goi, huy don mua goi/the (huy -> goi/the bi go, hoan dung), AU-G6 SX tra loi -> moi dong don hoac tru kho duoc hoac co dung mot dong stock_pending. Nghiem thu: moi dot bien C2F tuong ung trong viec/AUDIT-1/dot_bien.py chuyen SONG -> BAT. Chi them luoi, KHONG sua logic tien; KB lo ra code dang sai thi dung, ghi Cau hoi. | + AU-G4 NHE-tien (chuyen tu HOC-2, 05.10): vi doi soat tao-moi (C2F-wallets-08), link so hoan (C2F-refunds-05), doi cach tra (C2F-don-mo-rong-01), /increment-usage (C2F-discount-codes-05) | LUU Y 05.10: gia lap ~68-80 s, thu_gia_lap han 110 s / bo kiem 120 s — them KB phai do thoi gian; vuot thi hoi chu quan, KHONG noi han",
+      "ten": "Va LUOI tien/kho (chot 05.10, chu quan chon (a): sau HOC-2, TRUOC P26c — P26c/P20b/P22-P24 sua dung cac duong nay): them kich ban gia lap + bat bien/phep canh cho 4 lo NANG AUDIT-1 — AU-G1 /loyalty/redeem (moi voucher_grant co dung mot dong redeem tru diem khop, discount_value = reward), AU-G2 ban co ap voucher dung-mot-lan (used_count tang, <= usage_limit), AU-G3 mua goi/the, lay tu goi, huy don mua goi/the (huy -> goi/the bi go, hoan dung), AU-G6 SX tra loi -> moi dong don hoac tru kho duoc hoac co dung mot dong stock_pending. Nghiem thu: moi dot bien C2F tuong ung trong viec/AUDIT-1/dot_bien.py chuyen SONG -> BAT. Chi them luoi, KHONG sua logic tien; KB lo ra code dang sai thi dung, ghi Cau hoi. | + AU-G4 NHE-tien (chuyen tu HOC-2, 05.10): vi doi soat tao-moi (C2F-wallets-08), link so hoan (C2F-refunds-05), doi cach tra (C2F-don-mo-rong-01), /increment-usage (C2F-discount-codes-05) | LUU Y 05.10: gia lap ~68-80 s, thu_gia_lap han 110 s / bo kiem 120 s — them KB phai do thoi gian; vuot thi hoi chu quan, KHONG noi han | PHIEU 08.10: viec/LUOI-1/phieu.md tren nhanh viec/LUOI-1 (cho duyet ke hoach). Chot Q-TG 08.10: bat bien kiem KHONG cong tre 40 ms, lam truoc khi them KB (chat do may 1 loi: gia lap 68 -> 58 s, thu_gia_lap 97 -> 78 s); cam noi han. Nghiem thu: 21 dot bien (20 C2F + C2-loyalty-redeem-tru-0) SONG -> BAT, 40 C2F cu van BAT",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -378,7 +378,7 @@
     },
     {
       "ma": "AUDIT-2",
-      "ten": "Audit dot 2 (sau LUOI-1 + HOC-2): chay lai toan bo viec/AUDIT-1/dot_bien.py tren HEAD + phan CHUA KIEM cua AUDIT-1 (thu_P20 liveness AU-G5, bundle D2-D5, 30 ma nguoi gac chua co lenh lach, logic loyalty/goi). Dat khi khong con loi NANG. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG.",
+      "ten": "Audit dot 2 (sau LUOI-1 + HOC-2): chay lai toan bo viec/AUDIT-1/dot_bien.py tren HEAD + phan CHUA KIEM cua AUDIT-1 (thu_P20 liveness AU-G5, bundle D2-D5, 30 ma nguoi gac chua co lenh lach, logic loyalty/goi). Dat khi khong con loi NANG. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG. | + danh sach chuyen tu HOC-2b D5(3) (71 AUDIT-1 + 14 HOC-1 + 23 HOC-2, du ten trong viec/HOC-2b/trang_thai.md); thu_P20 liveness DA lam o HOC-2b C5; chay khong tham so bo nhom G3 — nho chay G3",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -396,12 +396,12 @@
     },
     {
       "ma": "HOC-2b",
-      "ten": "Phan con lai cua HOC-2 (tach 05.10, lam SAU khi HOC-2 gop, TRUOC LUOI-1): bo kiem + gia lap — T2-T4/F2 giu canh bao + ghi ly do (1b); bo I10, banh coc bat bien 11 -> 10 (2a); canh bao khi gia lap gan han (khong bao oan); thu_P26b M6 === 1 + ca Q9 vi me; KB17-Q9 kiem tao don; thu_P20 con song (AU-G5); dot bien cu P26b I10-bo, TU-CHAY-4 tai_cho sang ban sao; xoa cong_cu/thu_p1.js (3a); KHUON_LOI.md <= 100 dong, giu tran 120 (4a); CLAUDE.md AU-F1/F2; chay lai CA BO dot bien, dem du. Dau vao: viec/HOC-2/phieu.md ban dau (commit ba72a3f) muc C, D, E1-E2 + ke_hoach.md cung muc | PHIEU 07.10: viec/HOC-2b/phieu.md tren nhanh viec/HOC-2b (cho duyet ke hoach; KHONG doi tu_chay/ nen khong can cai_dat.sh). D5 do thoi gian that: qua ~150 phut thi chu quan chon tach hoac thu hep D5 (phan con lai sang AUDIT-2)",
+      "ten": "Phan con lai cua HOC-2 (tach 05.10, lam SAU khi HOC-2 gop, TRUOC LUOI-1): bo kiem + gia lap — T2-T4/F2 giu canh bao + ghi ly do (1b); bo I10, banh coc bat bien 11 -> 10 (2a); canh bao khi gia lap gan han (khong bao oan); thu_P26b M6 === 1 + ca Q9 vi me; KB17-Q9 kiem tao don; thu_P20 con song (AU-G5); dot bien cu P26b I10-bo, TU-CHAY-4 tai_cho sang ban sao; xoa cong_cu/thu_p1.js (3a); KHUON_LOI.md <= 100 dong, giu tran 120 (4a); CLAUDE.md AU-F1/F2; chay lai CA BO dot bien, dem du. Dau vao: viec/HOC-2/phieu.md ban dau (commit ba72a3f) muc C, D, E1-E2 + ke_hoach.md cung muc | PHIEU 07.10: viec/HOC-2b/phieu.md tren nhanh viec/HOC-2b (cho duyet ke hoach; KHONG doi tu_chay/ nen khong can cai_dat.sh). D5 do thoi gian that: qua ~150 phut thi chu quan chon tach hoac thu hep D5 (phan con lai sang AUDIT-2) | XONG 08.10 (PR #11, caabb73): bo I10 (banh coc bat bien 10); canh bao khi gia lap / thu_gia_lap xanh ma > 80 % han (96 s, khoa dung chu han * 0.8); thu_P26b M6 === 1 + ca vi me; thu_P20 con song (C5-P20-hoan-bao-huy); xoa cong_cu/thu_p1.js; KHUON_LOI.md 120 -> 92 dong; CLAUDE.md nhom E. D5 cach (b): phan con lai sang AUDIT-2, ten trong viec/HOC-2b/trang_thai.md muc D5 (3). Chat soat thay vong may 4 (sua_HOC2b.py). Phat hien bo khung con mo: viec/HOC-2b/trang_thai.md + ban giao ban 16",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "HOC-2b",
+      "commit": "caabb73",
+      "ngay": "2026-10-08"
     },
     {
       "ma": "P26c",
