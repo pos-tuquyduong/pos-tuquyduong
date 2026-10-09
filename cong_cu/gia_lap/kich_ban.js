@@ -494,8 +494,11 @@ const KICH_BAN = [
     const no = await c.so("SELECT COUNT(*) FROM pos_stock_pending WHERE status = 'pending' AND order_id IN (?, ?)", [A.id, C.id]);
     c.mong('bán + huỷ lúc SX lỗi → đơn vẫn tạo, huỷ 200, 3 dòng nợ kho chờ đẩy', A.status === 'completed' && h.status === 200 && no === 3,
       `${A.status} / ${c.ma(h)} · ${no} dòng nợ`);
+    c.kbSxLoi = c.sxGia.kb;   // KB25 soát: chay.js đánh số kịch bản và tự tắt lỗi trước kịch bản sau
   } },
   { ten: 'đẩy sổ nợ kho (SX đã hết lỗi); bấm lại; hai người cùng bấm', chay: async (c) => {
+    c.mong('chay.js: công tắc SX tự tắt, kịch bản này đánh số ngay sau KB bật lỗi', !c.sxGia.loi && c.kbSxLoi > 0 && c.sxGia.kb === c.kbSxLoi + 1,
+      `lỗi ${c.sxGia.loi} · KB bật lỗi ${c.kbSxLoi} · KB này ${c.sxGia.kb}`);
     const truoc = c.nhanKho.length;
     const day = () => c.goi('nv', 'POST', '/so-no/doi-ngay', {});
     const r1 = await day(), r2 = await day();
