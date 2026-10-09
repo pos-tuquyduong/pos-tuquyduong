@@ -20,6 +20,7 @@ const chay = (ten, args) => {
   const r = spawnSync(process.execPath, args, { cwd: GOC, env: SACH, encoding: 'utf8', maxBuffer: 1 << 26 });
   const dong = `${r.stdout}${r.stderr}`.trim().split('\n');
   console.log(`${ten}: ${((Date.now() - t0) / 1000).toFixed(1)} s · thoát ${r.status} · ${dong.slice(-1)[0].trim()}`);
+  dong.filter((l) => /ĐẾM|CẢNH BÁO:|⚠/.test(l)).forEach((l) => console.log('  ' + l.trim()));
   return dong;
 };
 const lam = process.argv.slice(2).length ? process.argv.slice(2) : ['gl', 'kb'];
