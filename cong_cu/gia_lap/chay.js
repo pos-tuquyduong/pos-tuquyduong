@@ -8,8 +8,10 @@
  *
  *  Bật NGUYÊN server/index.js thật (đúng route, middleware, thứ tự mount như
  *  production) trên một file kho TẠM, trỏ SX vào một SX giả ghi lại vân tay,
- *  thêm trễ ~40 ms vào MỌI lệnh tới kho (bài học P19), chạy kich_ban.js như
- *  nhân viên bấm, và sau MỖI kịch bản kiểm bat_bien.js (SQL chỉ đọc).
+ *  thêm trễ ~40 ms vào MỌI lệnh tới kho trong lúc chạy kịch bản (bài học P19),
+ *  chạy kich_ban.js như nhân viên bấm, và sau MỖI kịch bản kiểm bat_bien.js
+ *  (SQL chỉ đọc, KHÔNG cộng trễ — LUOI-1 A1: kiểm sổ đọc tuần tự, không có gì
+ *  chồng nhau). Trễ bật lại và SX giả hết lỗi TRƯỚC mỗi kịch bản.
  *
  *  AN TOÀN (A1, A2): thấy biến môi trường của máy thật → TỪ CHỐI, thoát 3.
  *  Không đọc .env, không chạm data/, không nối Turso. Kho tạm xoá khi xong,
@@ -62,14 +64,18 @@ async function main() {
   console.log = () => {}; console.warn = () => {}; console.error = () => {};
 
   // B2 · SX giả: trả tồn, GHI mọi lệnh trừ/hoàn kho kèm vân tay, chống trùng như SX thật (sxApi.js:174).
+  // LUOI-1 B4: công tắc lỗi — kịch bản gọi ctx.batSxLoi(); MẶC ĐỊNH tắt, tự tắt trước mỗi kịch bản. Lúc lỗi: trả 503,
+  // KHÔNG nhận, ghi lần lỗi (vân tay + kịch bản) vào sxGia.hong để bất biến I7 đối chiếu sổ nợ kho.
   const express = require(tim('express'));
   const nhanKho = [];
+  const sxGia = { loi: false, kb: 0, hong: [], kbBat: new Set() };
   const sx = express();
   sx.use(express.json());
   sx.get('/api/finished-products/check-stock', (q, r) => r.json({ sufficient: true, stock: 999 }));
   for (const chieu of ['out', 'in']) {
     sx.post('/api/pos/stock/' + chieu, (q, r) => {
       const vt = q.body.van_tay || null;
+      if (sxGia.loi) { sxGia.hong.push({ chieu, van_tay: vt, kb: sxGia.kb }); return r.status(503).json({ error: 'SX giả đang lỗi' }); }
       const lap = vt && nhanKho.some((x) => x.van_tay === vt);
       nhanKho.push({ chieu, van_tay: vt, so_luong: q.body.quantity });
       r.json(lap ? { success: true, da_lam_roi: true, lam_luc: 'truoc' } : { success: true });
@@ -144,7 +150,8 @@ async function main() {
 
   const jwt = require(tim('jsonwebtoken'));
   const q = async (sql, a = []) => db.query(sql, a);
-  const ctx = { db, q, moc, nhanKho, doLenh, soQuay: { thu: new Map(), doi: new Map() }, http: [] };
+  const ctx = { db, q, moc, nhanKho, doLenh, sxGia, soQuay: { thu: new Map(), doi: new Map(), tangMa: new Map(), giaoGoi: new Map() },
+    http: [], batSxLoi: () => { sxGia.loi = true; sxGia.kbBat.add(sxGia.kb); } };
   const goi = async (ai, method, url, body) => {
     const headers = { 'Content-Type': 'application/json' };
     if (ai === 'dv') headers['X-Service-Key'] = bienGia.POS_SERVICE_API_KEY;
@@ -163,7 +170,6 @@ async function main() {
   const nv = await db.run(`INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_gia_lap', 'x', 'Nhân viên 2', 'staff', 1)`);
   ctx.token = { chu: jwt.sign({ userId: chu.id }, bienGia.JWT_SECRET), nv: jwt.sign({ userId: Number(nv.lastInsertRowid) }, bienGia.JWT_SECRET) };
   await dungDuLieu(ctx);   // B4 — tự khẳng định, sai thì ném lỗi → sập
-  treMs = TRE_MS;
 
   const lech = [];
   const daThay = new Set();
@@ -172,8 +178,12 @@ async function main() {
   for (const [i, kb] of KICH_BAN.entries()) {
     if (i + 1 > DEN_KB) break;
     soKB++;
+    treMs = TRE_MS;   // A1: trễ bật lại TRƯỚC mỗi kịch bản
+    sxGia.loi = false;   // B4: SX giả hết lỗi trước mỗi kịch bản
+    sxGia.kb = i + 1;
     ctx.http = [];
     try { await kb.chay(ctx); } catch (e) { ctx.http.push('SẬP giữa kịch bản: ' + e.message); }
+    treMs = 0;   // A1: bất biến không cộng trễ
     for (const h of ctx.http) lech.push(`KB${i + 1} → HTTP: ${h}`);
     for (const ten of tenBB) {
       for (const l of await BAT_BIEN[ten](q, ctx)) {
