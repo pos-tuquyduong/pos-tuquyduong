@@ -266,3 +266,57 @@ với đột biến "trễ không bật lại" — ghi tên đột biến + kế
 2. "Công tắc không tự tắt" không có ca bắt (KB24 tự tắt) → tách: KB24 bật lỗi không tắt, KB25 đẩy sổ nợ nhờ tự tắt.
 3. B1 "tích − đổi khớp sổ" thiếu → vế I8 mở rộng. 4. Thiếu mục B6/C2/D2 → mục 11b.
 5. `wallets-08`: HTTP giống hệt khi bỏ INSERT → KB26 SELECT `pos_wallets`. 6. Ghi `orders-31` + nhánh sổ nợ chưa phủ.
+
+## Soát độc lập — vòng 1 (`/ra-soat`, agent general-purpose, 09.10) — chép nguyên báo cáo
+
+KHÔNG ĐẠT
+
+Tôi đã đọc phiếu, trang_thai.md, ke_hoach.md, bang_chung_do.txt, dot_bien.py, diff của 5 file code, và đường tiền ở orders.js, loyalty.js, packages.js, discount-codes.js, wallets.js, refunds.js, don-mo-rong.js, doSoNo.js, index.js. Tôi tự chạy các lệnh sau trên HEAD 3a66365, lần lượt từng lệnh, không chạy song song:
+- `npm test`: PASS 61, 0 CẢNH BÁO.
+- `node cong_cu/thu_gia_lap.js --chi-du-lieu-tay`: 62 đạt, 0 hỏng.
+- `node cong_cu/gia_lap/chay.js`: "27 kịch bản · 16 bất biến · ĐẠT", mất khoảng 81 s.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 65 · FAIL 0 · CẢNH BÁO 0. Trong lần này thu_gia_lap chạy 93,3 s.
+
+Tôi không sửa file nào trong kho. `git log origin/viec/LUOI-1..HEAD` rỗng.
+
+LỖI TÌM ĐƯỢC:
+1. cong_cu/gia_lap/bat_bien.js:203–204 (I13) cùng cong_cu/thu_gia_lap.js, khung I13 và 4 ca I13 — đột biến bỏ MỘT điều kiện WHERE vẫn SỐNG. Tôi đã chạy thử trong thư mục nháp hai bản: bỏ riêng `AND o.discount_type = d.discount_type`, và bỏ riêng `AND o.discount_value = d.discount_value`. Cả hai bản cho kết quả giống hệt bản gốc trên đủ 4 ca dữ liệu tay. Nguyên nhân: hai đơn "gõ mã nhưng không được áp" (số 2: NULL/0, số 4: percent/10) lệch CẢ loại lẫn trị giá, nên chỉ bỏ một vế thì không ca nào đổi. Đột biến `BV-I13-loai-ma` bỏ cả hai vế cùng lúc nên che mất chỗ này. Phiếu C3 đòi "bỏ một điều kiện WHERE … phải BẮT". Khuôn K3.
+2. cong_cu/thu_gia_lap.js, ca 'I12 không có mã giảm giá' (`DELETE FROM pos_discount_codes`) — một ca vi phạm cùng lúc 4 phép: so_ma, discount_type, discount_value, usage_limit. Vế `so(r.so_ma) !== 1` ở bat_bien.js:193 vì vậy không đột biến nào giết được, và trong dot_bien.py cũng không có đột biến cho vế này. Khuôn K3 (ca gộp).
+3. Đường xoá đơn mua thẻ chưa được phủ, cũng không ghi CHƯA PHỦ hay Phát hiện. Ở orders.js:1462–1590, đường XOÁ không có câu nào chạm `pos_membership_purchases`. Trong khi đó đường huỷ có xoá dòng thẻ (:1368–1374). Đường xoá lại hoàn ví (:1494–1498). Hậu quả: chủ xoá thẳng một đơn mua thẻ chưa huỷ thì khách được hoàn tiền mà vẫn giữ hạng. Màn hình cho phép làm vậy: Orders.jsx:242 và :1213 cho chọn xoá với đơn chưa huỷ. I15 đã có vế "đơn không còn", có cả ca tay, nhưng không kịch bản nào chạy đường này. Theo luật của phiếu, chạy kịch bản này sẽ lộ code sai, tức phải DỪNG và ghi `## Câu hỏi`. Phiếu B3 cũng bắt "phủ được thì phủ, không thì ghi CHƯA PHỦ + lý do". Hiện cả trang_thai.md lẫn ke_hoach.md mục 11b đều không nhắc tới. Khuôn K4.
+4. cong_cu/gia_lap/chay.js:183 (`sxGia.kb = i + 1`) — đọc code mà suy ra, CHƯA CHẠY. Nếu bỏ dòng này, mọi lần lỗi đều mang kb 0, và `batSxLoi` cũng thêm 0 vào kbBat. Khi đó vế (e) của I7 không bao giờ đỏ, và đột biến này SỐNG. Danh sách C3 không có đột biến nào cho dòng này. Khuôn K3, mức nhẹ.
+5. viec/LUOI-1/trang_thai.md thiếu bằng chứng cho D2 và E. Không có dòng D2 ghi "CHƯA KIỂM" (chỉ ke_hoach mục 11b có). Không ghi kết quả `npm test`. Dòng `--day-du` chỉ ghi "thoát 0", không ghi số CẢNH BÁO, trong khi thoát 0 không có nghĩa là 0 cảnh báo. Lần tôi chạy thì thật sự là 0 CẢNH BÁO, nhưng hồ sơ thiếu. Khuôn K6/K1 về hồ sơ.
+6. viec/LUOI-1/ke_hoach.md:101–102, :148 và mục 11b vẫn mô tả I13 bằng điều kiện `discount_amount > 0`. Code đã đổi sang so loại + trị giá ở commit c91101c, nhưng tài liệu không sửa theo. Ngoài ra số dòng trích loyalty.js lệch 1: ghi `:169`/`:178`, thực tế là :170/:179. Khuôn K4 về tài liệu.
+
+NGHI NGỜ:
+- KB21 (kich_ban.js, ca "hai nhân viên huỷ đơn mua gói") khẳng định ví được cộng ĐỦ giá gói, dù gói đã giao 2/3 lượt. Hai đơn lấy 0đ vẫn còn hiệu lực, tức khách được 2 ly miễn phí. Server làm đúng như vậy (orders.js:1331–1335 hoàn trọn `balance_amount`; :1350–1355 chỉ đánh dấu gói `cancelled`). Nhưng tôi không thấy quyết định nào của chủ quán cho chuyện này, và P26c trong TIEN_DO_POS.json:407 cũng không liệt kê. Kịch bản đang đóng đinh một hành vi tiền chưa được chốt. Nên hỏi chủ quán.
+- Đường song song lưới chưa canh — đọc code, CHƯA CHẠY: một đơn vừa mua gói mới (`package_buy`) vừa lấy từ gói cũ (`customer_package_id`). Sales.jsx:744–751 gửi được cả hai, vì `addPkgToCart` ở :486–498 không tắt `activePkgId`. Server cộng lượt lần đầu cho gói MỚI và trỏ đơn sang gói mới (orders.js:975–985), rồi :1021–1037 lại cộng cho gói CŨ, nên một ly bị trừ ở hai gói. I14 sẽ bắt được nếu có kịch bản chạy đường này, nhưng hiện không có, và cũng không ghi Phát hiện.
+- Thời gian: thu_gia_lap đo được 93,3 s (của tôi) và 92,1 s (của việc này), trên ngưỡng 96 s, tức chỉ còn dư khoảng 3 %. Máy GitHub CI cho `cong-chay` có thể chậm hơn, khi đó sẽ ra CẢNH BÁO, hoặc vượt hạn 120 s. Chưa kiểm.
+- Ở 57 ca đỏ trên gốc, các ca I12–I17 đỏ chỉ vì "SẬP: BAT_BIEN[bb] is not a function", tức kiểu "thiếu hàm" mà K3 cảnh báo. Bằng chứng thật cho các ca này nằm ở C3, không ở bang_chung_do. Chấp nhận được nhưng cần biết.
+- Câu "55 BẮT + 2 đúng mong đợi" của C3 trong trang_thai mơ hồ: dot_bien.py có 56 đột biến mong BẮT và 1 mong LẠC. Không có nhật ký thô của lần chạy.
+- A1 trong trang_thai: sau A1 chỉ đo lại giả lập (58,3 s). thu_gia_lap và `--day-du` sau A1 (với 18 kịch bản) đều để "—".
+- Giới hạn của I12 (chủ XOÁ mã của quà chưa dùng thì đỏ) và của I13 (xoá đơn có mã) chỉ ghi một phần trong chú thích.
+
+Trả lời từng mục được giao:
+- K3: bài thử có chạy trên gốc và đỏ 57/102 (bang_chung_do.txt). Bài kiểm sự vắng mặt của mẫu nguy hiểm (SQL trên sổ), không kiểm marker. Có hai lỗ: (1) và (2) ở trên, thêm (4).
+- K4: lưới chưa canh 3 chỗ: xoá đơn mua thẻ, mua gói mới + lấy gói cũ cùng đơn, và `PUT /customer-packages/:id/cancel` (packages.js:186; chỗ này đã ghi CHƯA KIỂM). Chỉ một chỗ được ghi.
+- K5: không thấy bất biến nào đỏ oan trong giả lập. Các ca gói có order_id NULL, gói cancelled, mã không áp đều có ca sạch. Bất biến chỉ chạy trên kho tạm, nên dữ liệu cũ của production không ảnh hưởng.
+- K1: xem lỗi (6). Các khẳng định quyền và màn hình gọi tôi đã kiểm: database.js:951 và Orders.jsx:263 đúng.
+- P1: client/, server/, tu_chay/, .claude/, .github/, package.json, CHECKLIST_CODE.md, CLAUDE.md, viec/AUDIT-1, TIEN_DO_POS.json đều không đổi (`git diff --stat` rỗng). `--day-du` báo dist khớp src.
+
+NGHIỆM THU: 11/16 mục có bằng chứng · mục thiếu: A1 (chưa đo lại thu_gia_lap và --day-du sau A1), B3 (đường XOÁ đơn mua thẻ không phủ, không ghi CHƯA PHỦ), C3 (bỏ một điều kiện WHERE của I13 vẫn SỐNG), D2 (trang_thai không ghi), E (trang_thai không ghi npm test và số CẢNH BÁO; lần tôi chạy thì xanh, 0 CẢNH BÁO).
+Có bằng chứng: A0 (ke_hoach mục 0), A2 (ke_hoach mục 12 và bảng số đo), B1 (KB19 + I8/I12), B2 (KB20 + I13, theo Q1/Q6 chủ quán đã chốt), B4 (KB24/25/27 + I7), B5 (KB26, KB20 increment, I16, I17), B6 (kiem_tra:753–754), C1 (21/21), C2 (40/40), C4 (bảng), D1.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy lại C1/C2 (87 đột biến, khoảng 32 phút), C3 (57 đột biến) hay C4. Bảng kết quả của các mục này tôi chưa tự xác nhận lại.
+- Không xem được GitHub, tức D2 và thời gian trên máy CI.
+- Đột biến `sxGia.kb` và lỗi trừ hai gói chỉ suy ra từ code, chưa chạy.
+- Không đối chiếu từng tên 40/86 C2F với viec/HOC-2b/trang_thai.md mục D5. Phần tôi đã đối chiếu: đủ 57 tên trong dot_bien.py có mặt trong trang_thai.md (A17).
+
+BÀI HỌC:
+- KHOÁ:
+  - Mỗi vế `AND` trong WHERE của một bất biến phải có một đột biến bỏ RIÊNG vế đó. Ca dữ liệu tay phải có đầu vào lệch đúng một vế. Có thể thêm một phép trong dot_bien.py: tự sinh đột biến "bỏ từng điều kiện".
+  - Thêm đột biến bỏ `sxGia.kb = i + 1`.
+  - Thêm kịch bản xoá đơn mua thẻ. Chạy nó sẽ đỏ, nên DỪNG và hỏi chủ quán.
+- NGUYÊN TẮC (KHUON_LOI K3): một đột biến bỏ CẢ HAI vế cùng lúc không chứng minh được vế nào. Ca "lệch đúng một phép" phải chọn đầu vào sao cho các vế khác đều đúng. Ví dụ: đơn cùng loại, khác trị giá; và đơn khác loại, cùng trị giá.
+- NGUYÊN TẮC (K4): khi phủ "huỷ X" thì phải liệt kê đủ cả "xoá X" cho mọi đối tượng (gói, thẻ, mã, điểm). Đối tượng nào không phủ thì ghi CHƯA PHỦ ngay trong trang_thai.
+- NGUYÊN TẮC: "thoát 0" không phải bằng chứng cho "0 CẢNH BÁO". Phải chép nguyên dòng `ĐẾM` vào hồ sơ.
