@@ -10,16 +10,188 @@ caabb73 Merge pull request #11 from pos-tuquyduong/viec/HOC-2b
 Có commit `PHIEU: LUOI-1`, cha là commit sổ v24 (769adfe). Máy: 4 lõi (`/proc/cpuinfo`).
 
 ## Bước đang làm
-Bước 4–5 (09.10) — **DỪNG ở Q6** (kịch bản lộ lỗi đã biết P26d (10), cần chủ quán chọn). Đã làm:
-- [x] Bản gốc lưu ở thư mục nháp (ngoài kho).
-- [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Đo riêng: giả lập **67,1 s → 58,3 s**, 18 · 10 ĐẠT.
-- [x] Siết KB10: trung vị trễ chỉ trên lệnh của chính KB10 (bằng chứng đỏ với đột biến "trễ không bật lại": làm sau Q6).
-- [x] Công tắc SX lỗi (`chay.js`), I7 mở rộng, I8 vế đổi điểm, I12–I17 (`bat_bien.js`). 18 KB cũ + 16 bất biến: **ĐẠT, 56,7 s**
-      (K5 — không bất biến mới nào đỏ oan trên kịch bản cũ).
-- [x] KB19–KB27 (`kich_ban.js`). Giả lập 27 · 16: **78,7 s, 1 lệch** — đúng ca chồng mã của KB20 (Q6). Mọi KB khác ĐẠT.
-      Từng KB mới (ms): KB19 2386 · KB20 2462 · KB21 7627 · KB22 2145 · KB23 3430 · KB24 1761 · KB25 555 · KB26 580 · KB27 1246.
-- [x] `viec/LUOI-1/do_thoi_gian.js` — công cụ đo chạy riêng (A0/A2).
-- [ ] Chưa: `thu_gia_lap.js` (DONG_DAT + ca dữ liệu tay), bánh cóc B6, `dot_bien.py`, bằng chứng đỏ, C1–C4.
+Bước 4–9 xong (09.10). Còn: bước 8 soát độc lập `/ra-soat`, bước 10–11 báo cáo + bài học.
+- [x] Bản gốc lưu ở thư mục nháp ngoài kho. `server/`, `client/`, `tu_chay/` KHÔNG đổi (`git diff --stat 9521cec -- server client tu_chay` rỗng).
+- [x] A1 (`chay.js`): trễ bật lại TRƯỚC mỗi kịch bản, tắt khi kiểm bất biến. Giả lập 67,1 s → **58,3 s** (18 · 10 ĐẠT).
+- [x] Siết KB10 + bằng chứng đỏ trên gốc (mục "Bằng chứng KB10" dưới).
+- [x] Công tắc SX lỗi (`chay.js`), I7 mở rộng, I8 vế đổi điểm, I12–I17 (`bat_bien.js`). 18 KB cũ + 16 bất biến: ĐẠT (K5).
+- [x] KB19–KB27 (`kich_ban.js`); KB20 ca chồng mã theo Q6 (a) siết.
+- [x] `thu_gia_lap.js`: dòng tổng 27 · 16, 60 ca dữ liệu tay (bộ sạch + lệch đúng một phép, hai phía), cờ `--chi-du-lieu-tay`.
+- [x] B6 bánh cóc 18 → 27, 10 → 16; chú thích S4 theo số đo thật.
+- [x] `dot_bien.py` (C3) · C1 + C2 (87, một lần chạy — Q4 a) · C4.
+
+## Số đo chạy RIÊNG (máy mây 4 lõi, `node viec/LUOI-1/do_thoi_gian.js …`)
+| Lệnh | Gốc 9521cec | Sau A1 (18 KB) | HEAD (27 KB · 16 BB) | Ngưỡng 80 % |
+|---|---|---|---|---|
+| giả lập `chay.js` | 67,1 s | 58,3 s | **80,9 s** (78,7 s lần trước) | 96 s |
+| `thu_gia_lap.js` | 74,9 s (42/0) | — | **92,1 s** (102/0; 91,7 s lần trước) | 96 s — SÁT (95,9 %) |
+| `kiem_tra --day-du` | 201,8 s | — | 281,3 s, thoát 0 | (không có hạn riêng) |
+Từng KB mới (ms): KB19 2386 · KB20 2462 · KB21 7627 · KB22 2145 · KB23 3430 · KB24 1761 · KB25 555 · KB26 580 · KB27 1246.
+Vòng bất biến mỗi KB: ~572 ms (gốc) → 2–8 ms (A1). Đột biến: C1+C2 1915 s · C3 163 s · C4 (TU-CHAY-4 + P26b + HOC-2b + AUDIT-1 D1/G3)
+~75 phút (D1/G3 654 s).
+
+## Bằng chứng KB10 (chủ quán dặn 09.10) — `viec/LUOI-1/dot_bien.py`, cách chạy `goc10`, chép ở `bang_chung_do.txt`
+Đột biến "trễ không bật lại" trên GỐC 9521cec (tắt trễ sau mỗi kịch bản, không bật lại), `--den-kb 10`:
+- `GOC-KB10-cu-tre-khong-bat-lai` (KB10 CŨ) → **LẠC**: chỉ ca chồng đỏ; ca "trễ kho đang bật" vẫn XANH (trung vị tính trên cả phiên).
+- `GOC-KB10-siet-tre-khong-bat-lai` (KB10 SIẾT) → **BẮT**: đỏ CẢ hai ca — "trung vị 0 ms trên 0 lệnh của KB10".
+Trên HEAD: `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau` → BẮT cả hai ca KB10.
+
+## C1 — 21 đột biến SỐNG trên gốc → BẮT (chạy 09.10, `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4`, 1915 s, "✓ kho thật không đổi")
+
+| Đột biến | Kết quả | Dòng bắt |
+|---|---|---|
+| C2F-loyalty-01-insert-khach-app | BẮT | KB19 → HTTP: đổi lần hai khi đã hết điểm → 400: HTTP 200 |
+| C2F-loyalty-02-insert-khach-app | BẮT | KB19 → HTTP: validate mã đổi điểm: HTTP 400 · Mã chiết khấu không tồn tại |
+| C2-loyalty-redeem-tru-0 | BẮT | KB19 → I8: dòng đổi điểm #30: 0 điểm, 1 quà trỏ tới, quà giá 3 điểm |
+| C2F-orders-05-update-quay | BẮT | KB19 → I13: mã …: đã dùng 0/1, đơn đã áp 1 |
+| C2F-orders-07-insert-quay | BẮT | KB24 → HTTP: … 1 dòng nợ (cần 3) |
+| C2F-orders-27-insert-quay | BẮT | KB24 → HTTP: … 2 dòng nợ (cần 3) |
+| C2F-orders-39-insert-quay | BẮT | KB27 → HTTP: … 1 dòng nợ (cần 2) |
+| C2F-orders-10-update-quay | BẮT | KB9 → I14: gói #2: đã giao 1, đơn lấy từ gói 0 |
+| C2F-orders-11-insert-quay | BẮT | KB22 → HTTP: 0 dòng mua thẻ |
+| C2F-orders-21-update-quay | BẮT | KB21 → HTTP: lấy từ gói của đơn mua đã huỷ: HTTP 200 |
+| C2F-orders-22-delete-quay | BẮT | KB21 → HTTP: gói không còn lượt…: gói còn |
+| C2F-orders-23-update-quay | BẮT | KB21 → HTTP: … đơn còn trỏ gói |
+| C2F-orders-24-delete-quay | BẮT | KB22 → HTTP: dòng mua thẻ còn 1 |
+| C2F-orders-25-update-quay | BẮT | KB21 → HTTP: huỷ đơn lấy 1 ly: giao 3 (cần 2) |
+| C2F-orders-30-update-quay | BẮT | KB23 → HTTP: xoá đơn mua gói: 1 đơn trỏ |
+| C2F-orders-32-update-quay | BẮT | KB23 → HTTP: xoá đơn lấy: giao 2 (cần 1) |
+| C2F-packages-05-update-quay | BẮT | KB26 → HTTP: /deliver: 1 → 1 |
+| C2F-wallets-08-insert-quay | BẮT | KB26 → HTTP: đối soát khách chưa có ví: ví null |
+| C2F-refunds-05-update-quay | BẮT | KB12 → I17: yêu cầu hoàn #2001: gắn dòng sổ (không có) |
+| C2F-don-mo-rong-01-update-quay | BẮT | KB2 → I16: nhật ký đổi sang cash 30000, đơn ghi tiền mặt 0 · CK 30000 |
+| C2F-discount-codes-05-update-quay | BẮT | KB20 → I13: mã KB20TANGTAY: đã dùng 0/5, quầy tăng tay 1 |
+
+Thêm (ngoài 21): `C2F-orders-31-delete-quay`, `C2F-orders-38-delete-quay` SỐNG → BẮT (KB23 xoá đơn mua gói).
+
+## C2 — 40 C2F đã BẮT trên gốc VẪN BẮT (cùng lần chạy; 86 C2F − 45 SỐNG − 1 LẠC theo `viec/HOC-2b/trang_thai.md` D5)
+40/40 BẮT: `C2F-orders-01-ghiVi-quay`, `C2F-orders-03-update-quay`, `C2F-orders-04-insert-quay`, `C2F-orders-06-insert-quay`, `C2F-orders-08-insert-quay`, `C2F-orders-09-update-quay`, `C2F-orders-12-update-quay`, `C2F-orders-15-insert-quay`, `C2F-orders-16-update-quay`, `C2F-orders-17-insert-quay`, `C2F-orders-18-update-quay`, `C2F-orders-19-ghiVi-quay`, `C2F-orders-20-ghiVi-quay`, `C2F-orders-26-update-quay`, `C2F-orders-28-ghiVi-quay`, `C2F-orders-29-ghiVi-quay`, `C2F-orders-33-delete-quay`, `C2F-orders-34-delete-quay`, `C2F-refunds-01-insert-quay`, `C2F-refunds-02-update-quay`, `C2F-refunds-03-update-quay`, `C2F-refunds-04-ghiVi-quay`, `C2F-refunds-06-ghiVi-quay`, `C2F-refunds-07-update-quay`, `C2F-wallets-01-update-quay`, `C2F-wallets-02-insert-quay`, `C2F-wallets-03-insert-quay`, `C2F-wallets-04-ghiVi-quay`, `C2F-wallets-05-ghiVi-quay`, `C2F-wallets-06-ghiVi-quay`, `C2F-wallets-07-update-quay`, `C2F-damages-01-ghiVi-quan-tri`, `C2F-damages-02-insert-quan-tri`, `C2F-signup-codes-01-update-khach-app`, `C2F-signup-codes-02-insert-khach-app`, `C2F-signup-codes-03-update-khach-app`, `C2F-signup-codes-04-insert-khach-app`, `C2F-discount-codes-01-insert-quan-tri`, `C2F-rewards-01-insert-quan-tri`, `C2F-loyalty-03-insert-khach-app`.
+Tổng lần chạy: C2F BẮT 62 · SỐNG 23 · LẠC 1 (`C2F-orders-02-insert-quay`, như gốc) · HỎNG 0 · TREO 0; C2 BẮT 1. SỐNG → BẮT: 22.
+23 SỐNG còn lại: quản trị (packages/discount-codes/rewards/signup-codes/customers-v2/damages-03), `orders-13/14` (đăng ký khách
+sang SX), `orders-35/36/37` (xoá đơn dọn bảng phụ, owner) — đúng như AUDIT-1 xếp NHẸ, ngoài phiếu.
+<details><summary>Bảng đủ 87</summary>
+
+- BẮT `C2-loyalty-redeem-tru-0`
+- SỐNG `C2F-customers-v2-01-insert-khong-ro`
+- SỐNG `C2F-customers-v2-02-update-quan-tri`
+- SỐNG `C2F-customers-v2-03-insert-quan-tri`
+- SỐNG `C2F-customers-v2-04-update-quan-tri`
+- SỐNG `C2F-customers-v2-05-insert-quan-tri`
+- BẮT `C2F-damages-01-ghiVi-quan-tri`
+- BẮT `C2F-damages-02-insert-quan-tri`
+- SỐNG `C2F-damages-03-update-quan-tri`
+- BẮT `C2F-discount-codes-01-insert-quan-tri`
+- SỐNG `C2F-discount-codes-02-update-quan-tri`
+- SỐNG `C2F-discount-codes-03-update-quan-tri`
+- SỐNG `C2F-discount-codes-04-delete-quan-tri`
+- BẮT `C2F-discount-codes-05-update-quay`
+- BẮT `C2F-don-mo-rong-01-update-quay`
+- BẮT `C2F-loyalty-01-insert-khach-app`
+- BẮT `C2F-loyalty-02-insert-khach-app`
+- BẮT `C2F-loyalty-03-insert-khach-app`
+- BẮT `C2F-orders-01-ghiVi-quay`
+- LẠC `C2F-orders-02-insert-quay`
+- BẮT `C2F-orders-03-update-quay`
+- BẮT `C2F-orders-04-insert-quay`
+- BẮT `C2F-orders-05-update-quay`
+- BẮT `C2F-orders-06-insert-quay`
+- BẮT `C2F-orders-07-insert-quay`
+- BẮT `C2F-orders-08-insert-quay`
+- BẮT `C2F-orders-09-update-quay`
+- BẮT `C2F-orders-10-update-quay`
+- BẮT `C2F-orders-11-insert-quay`
+- BẮT `C2F-orders-12-update-quay`
+- SỐNG `C2F-orders-13-update-quay`
+- SỐNG `C2F-orders-14-insert-quay`
+- BẮT `C2F-orders-15-insert-quay`
+- BẮT `C2F-orders-16-update-quay`
+- BẮT `C2F-orders-17-insert-quay`
+- BẮT `C2F-orders-18-update-quay`
+- BẮT `C2F-orders-19-ghiVi-quay`
+- BẮT `C2F-orders-20-ghiVi-quay`
+- BẮT `C2F-orders-21-update-quay`
+- BẮT `C2F-orders-22-delete-quay`
+- BẮT `C2F-orders-23-update-quay`
+- BẮT `C2F-orders-24-delete-quay`
+- BẮT `C2F-orders-25-update-quay`
+- BẮT `C2F-orders-26-update-quay`
+- BẮT `C2F-orders-27-insert-quay`
+- BẮT `C2F-orders-28-ghiVi-quay`
+- BẮT `C2F-orders-29-ghiVi-quay`
+- BẮT `C2F-orders-30-update-quay`
+- BẮT `C2F-orders-31-delete-quay`
+- BẮT `C2F-orders-32-update-quay`
+- BẮT `C2F-orders-33-delete-quay`
+- BẮT `C2F-orders-34-delete-quay`
+- SỐNG `C2F-orders-35-delete-quay`
+- SỐNG `C2F-orders-36-delete-quay`
+- SỐNG `C2F-orders-37-delete-quay`
+- BẮT `C2F-orders-38-delete-quay`
+- BẮT `C2F-orders-39-insert-quay`
+- SỐNG `C2F-packages-01-insert-quan-tri`
+- SỐNG `C2F-packages-02-update-quan-tri`
+- SỐNG `C2F-packages-03-update-quan-tri`
+- SỐNG `C2F-packages-04-delete-quan-tri`
+- BẮT `C2F-packages-05-update-quay`
+- SỐNG `C2F-packages-06-update-quan-tri`
+- BẮT `C2F-refunds-01-insert-quay`
+- BẮT `C2F-refunds-02-update-quay`
+- BẮT `C2F-refunds-03-update-quay`
+- BẮT `C2F-refunds-04-ghiVi-quay`
+- BẮT `C2F-refunds-05-update-quay`
+- BẮT `C2F-refunds-06-ghiVi-quay`
+- BẮT `C2F-refunds-07-update-quay`
+- BẮT `C2F-rewards-01-insert-quan-tri`
+- SỐNG `C2F-rewards-02-update-quan-tri`
+- SỐNG `C2F-rewards-03-update-quan-tri`
+- BẮT `C2F-signup-codes-01-update-khach-app`
+- BẮT `C2F-signup-codes-02-insert-khach-app`
+- BẮT `C2F-signup-codes-03-update-khach-app`
+- BẮT `C2F-signup-codes-04-insert-khach-app`
+- SỐNG `C2F-signup-codes-05-update-quan-tri`
+- SỐNG `C2F-signup-codes-06-delete-quan-tri`
+- BẮT `C2F-wallets-01-update-quay`
+- BẮT `C2F-wallets-02-insert-quay`
+- BẮT `C2F-wallets-03-insert-quay`
+- BẮT `C2F-wallets-04-ghiVi-quay`
+- BẮT `C2F-wallets-05-ghiVi-quay`
+- BẮT `C2F-wallets-06-ghiVi-quay`
+- BẮT `C2F-wallets-07-update-quay`
+- BẮT `C2F-wallets-08-insert-quay`
+</details>
+
+## C3 — đột biến của việc này (`python3 viec/LUOI-1/dot_bien.py -j 4`): 57 đột biến, 55 BẮT + 2 đúng mong đợi
+Lần 1: 2 SỐNG ngoài mong đợi → sửa bất biến (không sửa bài thử): `VS-I8-qua-chi-tren` (vế "số quà" bị vế "trừ đúng giá" che —
+giờ chỉ so điểm khi có quà), `BV-I16-sang` (vế thừa — đổi sai cách thì cột kia luôn ≠ 0; bỏ vế và đột biến). Lần 2 các đột
+biến liên quan: 8/8 BẮT. Kiểm sạch 6 cách chạy trước khi chấm: đều thoát 0.
+
+Bảng chỗ đổi → đột biến:
+| Chỗ đổi | Đột biến |
+|---|---|
+| `chay.js` A1 trễ bật lại | `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau`, `GOC-KB10-cu-tre-khong-bat-lai`, `GOC-KB10-siet-tre-khong-bat-lai` |
+| `chay.js` công tắc SX | `BV-B4-sx-khong-tu-tat`, `VS-B4-sx-mac-dinh-bat`, `VS-B4-bat-khong-ghi-kb`, `VS-B4-loi-van-nhan` |
+| I7 mở rộng | `VS-I7-tong-chi-tren`, `VS-I7-tong-chi-duoi`, `BV-I7-b-no-da-xong`, `BV-I7-c-loi-phai-co-no`, `VS-I7-c-no-chi-duoi`, `BV-I7-d-no-phai-co-loi`, `BV-I7-e-kb-bat` |
+| I8 vế đổi điểm | `VS-I8-diem-chi-tren`, `VS-I8-diem-chi-duoi`, `VS-I8-qua-chi-duoi`, `VS-I8-qua-chi-tren`, `BV-I8-loai-la` |
+| I12 | `BV-I12-loai-dong`, `BV-I12-sdt`, `VS-I12-diem-chi-tren`, `VS-I12-diem-chi-duoi`, `BV-I12-loai-ma`, `VS-I12-tri-gia-chi-tren`, `VS-I12-tri-gia-chi-duoi`, `VS-I12-dung-chi-duoi`, `VS-I12-dung-chi-tren` |
+| I13 | `VS-I13-dung-chi-tren`, `VS-I13-dung-chi-duoi`, `VS-I13-gioi-han-cong-1`, `BV-I13-so-tay`, `BV-I13-loai-ma` |
+| I14 | `VS-I14-vuot-tong-cong-1`, `VS-I14-giao-chi-tren`, `VS-I14-giao-chi-duoi`, `BV-I14-so-tay`, `BV-I14-tinh-ca-don-huy`, `BV-I14-tinh-ca-mon-co-gia`, `BV-I14-goi-don-huy`, `BV-I14-goi-don-xoa`, `BV-I14-tro-goi`, `BV-I14-mua-lay-ngay` |
+| I15 | `VS-I15-the-chi-tren`, `VS-I15-the-chi-duoi`, `BV-I15-tinh-ca-don-huy`, `BV-I15-mua-don-huy`, `BV-I15-mua-don-xoa` |
+| I16 | `VS-I16-tien-chi-tren`, `VS-I16-tien-chi-duoi`, `BV-I16-cot-kia`, `BV-I16-dong-cuoi` |
+| I17 | `BV-I17-loai-dong`, `BV-I17-don`, `BV-I17-sdt`, `VS-I17-tien-lech-1` |
+| KB19–KB27 / I12–I17 trên máy chủ thật | 21 đột biến C1 (bảng C1) |
+
+Mọi tên đột biến trong `viec/LUOI-1/dot_bien.py` (57): `GOC-KB10-cu-tre-khong-bat-lai`, `GOC-KB10-siet-tre-khong-bat-lai`, `BV-A1-tre-khong-bat-lai`, `VS-A1-tre-chi-bat-kb-dau`, `BV-B4-sx-khong-tu-tat`, `VS-B4-sx-mac-dinh-bat`, `VS-B4-bat-khong-ghi-kb`, `VS-B4-loi-van-nhan`, `VS-I7-tong-chi-tren`, `VS-I7-tong-chi-duoi`, `BV-I7-b-no-da-xong`, `BV-I7-c-loi-phai-co-no`, `VS-I7-c-no-chi-duoi`, `BV-I7-d-no-phai-co-loi`, `BV-I7-e-kb-bat`, `VS-I8-diem-chi-tren`, `VS-I8-diem-chi-duoi`, `VS-I8-qua-chi-duoi`, `VS-I8-qua-chi-tren`, `BV-I8-loai-la`, `BV-I12-loai-dong`, `BV-I12-sdt`, `VS-I12-diem-chi-tren`, `VS-I12-diem-chi-duoi`, `BV-I12-loai-ma`, `VS-I12-tri-gia-chi-tren`, `VS-I12-tri-gia-chi-duoi`, `VS-I12-dung-chi-duoi`, `VS-I12-dung-chi-tren`, `VS-I13-dung-chi-tren`, `VS-I13-dung-chi-duoi`, `VS-I13-gioi-han-cong-1`, `BV-I13-so-tay`, `BV-I13-loai-ma`, `VS-I14-vuot-tong-cong-1`, `VS-I14-giao-chi-tren`, `VS-I14-giao-chi-duoi`, `BV-I14-so-tay`, `BV-I14-tinh-ca-don-huy`, `BV-I14-tinh-ca-mon-co-gia`, `BV-I14-goi-don-huy`, `BV-I14-goi-don-xoa`, `BV-I14-tro-goi`, `BV-I14-mua-lay-ngay`, `VS-I15-the-chi-tren`, `VS-I15-the-chi-duoi`, `BV-I15-tinh-ca-don-huy`, `BV-I15-mua-don-huy`, `BV-I15-mua-don-xoa`, `VS-I16-tien-chi-tren`, `VS-I16-tien-chi-duoi`, `BV-I16-cot-kia`, `BV-I16-dong-cuoi`, `BV-I17-loai-dong`, `BV-I17-don`, `BV-I17-sdt`, `VS-I17-tien-lech-1`.
+
+## C4 — bộ đột biến cũ chạm file việc này sửa (Q4 a: chỉ đột biến chạy giả lập / thu_gia_lap / bộ kiểm hoặc có neo trong file đổi)
+Neo trước khi chạy: `python3 viec/HOC-2b/kiem_neo.py` → AUDIT-1 173/174 (HỎNG = `G3-sai-chuoi` cố ý), P26b 59/59, HOC-1 20/20,
+HOC-2 26/26, TU-CHAY-4 10/10, HOC-2b 26/26 — không neo nào rữa.
+| Bộ | Chạy | Kết quả | So D5 HOC-2b |
+|---|---|---|---|
+| TU-CHAY-4 | đủ 10 | XANH — 0 không đạt (M0 xanh, 9 đỏ đúng chỗ) | như cũ |
+| P26b | 18 đột biến chạy giả lập (kb14–kb18, gl13); 41 cái `thu` bỏ (chỉ chạy thu_P26b, không neo file đổi) | 18 bị bắt · 0 không | như cũ |
+| HOC-2b | 25 (bỏ 3 cái `p26b`: M0-p26b, VS-q9-me-lon-hon-bang-0, BV-q9-bo-hoan-me) | 25 đạt · 0 không | như cũ |
+| AUDIT-1 D1 (57) + G3 (4) | đủ, -j 4, 654 s | D1 BẮT 55 · LẠC 2 (`!D1-E11-P20`, `!D1-E11-P26a`); G3 BẮT 1 · SỐNG 1 (`G3-vo-hai`) · HỎNG 1 (`G3-sai-chuoi`) · LẠC 1 (`G3-sap`) | như cũ; kho thật không đổi |
+Không chạy (Q4 a): AUDIT-1 A3/B1 (đo `tu_chay/`, không đổi), HOC-1, HOC-2 (đo `tu_chay/`).
 
 ## Chủ quán duyệt kế hoạch (b9a0a27)
 Q1 (a) · Q2 (a) · Q3 (a) — màn Bán hàng `Sales.jsx:416/:541` đã chặn lấy quá lượt ở MỘT quầy; lỗ thật chỉ khi hai quầy chồng
@@ -28,7 +200,7 @@ thu_gia_lap / bộ kiểm hoặc neo trong file việc này sửa · Q5 đồng 
 Dặn thêm: (1) I8 vế điểm ghi rõ cách xử lý điểm hết hạn, ca điểm hết hạn ghi CHƯA KIỂM; (2) ca siết KB10 phải ĐỎ trên gốc
 với đột biến "trễ không bật lại" — ghi tên đột biến + kết quả ở đây; (3) mọi số đo chạy RIÊNG. Làm tiếp từ bước 4.
 
-## Câu hỏi — Q6 (MỚI, chờ chủ quán)
+## Câu hỏi — Q6 (chủ quán chọn (a) có siết, 09.10)
 
 - **Q6 — ca "hai đơn cùng mã dùng-một-lần chồng nhau → 200 + 400 `DISCOUNT_CODE_LIMIT_REACHED`" (Q1 a) KHÔNG chạy được trên
   code hiện tại.** Chạy thật 09.10: `HTTP 200 / HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code`.
@@ -84,8 +256,9 @@ với đột biến "trễ không bật lại" — ghi tên đột biến + kế
 6. Hạng thẻ mặc định có "Kim cương" (`database.js:1144`, chỉ chạy khi bảng rỗng) — trái CLAUDE.md §5.6.
 7. Tự đẩy sổ nợ mỗi 3 phút (`index.js:76`, `doSoNo.js:120`) đẩy cả nợ của đơn ĐÃ XOÁ → SX nhận vân tay của đơn không còn
    (cùng gốc P26c (4)). Vì vậy KB27 (SX lỗi lúc xoá) phải là kịch bản cuối.
-9. Ca chồng mã giảm giá vấp P26d (10) — xem Q6. Hệ quả rộng hơn: cổng `DISCOUNT_CODE_LIMIT_REACHED` (`orders.js:880–893`)
-   gần như không bao giờ tới được khi hai quầy chồng nhau (đơn sau luôn 500 vì trùng mã đơn trước đó).
+9. Ca chồng mã giảm giá vấp P26d (10) — Q6 (a) siết. Cổng `DISCOUNT_CODE_LIMIT_REACHED` (`orders.js:880–893`) gần như không
+   bao giờ tới được khi hai quầy chồng nhau (đơn sau 500 vì trùng mã đơn). **P26d (10) sửa xong thì siết KB20 về đúng 200 + 400
+   `DISCOUNT_CODE_LIMIT_REACHED` và thêm đột biến bỏ kiểm lại trong giao dịch** (bỏ `freshCode` ở `orders.js:880–893` phải BẮT).
 8. `C2F-orders-31-delete-quay` (`orders.js:1515`, xoá gói khi xoá đơn mua) đang SỐNG — KB23 + I14 sẽ chạm (thêm, ngoài 21 cái).
 
 ## Soát kế hoạch (agent phụ, chỉ đọc) — CẦN SỬA 6 điểm, đã sửa trong ke_hoach.md
