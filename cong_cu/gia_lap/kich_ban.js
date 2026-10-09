@@ -380,9 +380,31 @@ const KICH_BAN = [
     const t = await tao('KB20MOTLAN', 1);
     const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB20' };
     const ban = () => c.goi('chu', 'POST', '/orders', { ...kh, items: [c.mon(0)], discount_code: 'KB20MOTLAN', payment_method: 'cash', cash_amount: 20000 });
+    // Q6 = (a) siết, chủ quán chốt 09.10: mã đơn sinh NGOÀI giao dịch (helpers.js:24–46, orders.js:759) → đơn thua vấp UNIQUE
+    // pos_orders.code TRƯỚC phép kiểm lại mã trong giao dịch (orders.js:880–893) = P26d (10). Đơn thua CHỈ được là một trong
+    // hai dạng dưới; nhánh kiểm lại trong giao dịch CHƯA KIỂM. P26d sửa xong (10) → siết về đúng 200 + 400.
+    const dem = async () => [await c.so('SELECT COUNT(*) FROM pos_balance_transactions'), await c.so('SELECT COUNT(*) FROM pos_point_transactions'),
+      await c.so('SELECT COUNT(*) FROM pos_stock_pending'), c.nhanKho.length];
+    const truoc = await dem();
     const [r1, r2] = await c.chong(ban, ban);
-    c.mong('tạo mã 200; hai đơn cùng mã dùng-một-lần chồng nhau → 200 + 400 DISCOUNT_CODE_LIMIT_REACHED', t.status === 200 && r1?.status === 200
-      && r2.status === 400 && r2.code === 'DISCOUNT_CODE_LIMIT_REACHED', `${c.ma(t)} / ${r1 ? c.ma(r1) : 'móc không chạy'} / ${c.ma(r2)}`);
+    const ra = [r1, r2].filter(Boolean);
+    const thang = ra.filter((r) => r.status === 200);
+    const thua = ra.filter((r) => r.status !== 200);
+    const thuaDung = thua.length === 1 && ((thua[0].status === 400 && thua[0].code === 'DISCOUNT_CODE_LIMIT_REACHED')
+      || (thua[0].status === 500 && String(thua[0].error || '').includes('pos_orders.code')));
+    const id = thang[0]?.order?.id;
+    const sau = await dem();
+    const mangMa = await c.so("SELECT COUNT(*) FROM pos_orders WHERE UPPER(discount_code) = 'KB20MOTLAN'");
+    const daDung = await c.so("SELECT used_count FROM pos_discount_codes WHERE code = 'KB20MOTLAN'");
+    // Dấu vết đơn thua: ví / điểm / nợ kho / lệnh kho SX mới đều phải thuộc đơn thắng (đơn thắng: tiền mặt, có SĐT, 1 món SX).
+    const diemMoi = await c.so('SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ?', [id]);
+    const khoMoi = c.nhanKho.slice(truoc[3]);
+    c.mong('tạo mã 200; hai đơn cùng mã dùng-một-lần chồng nhau → đúng một 200, đơn kia CHỈ 400 DISCOUNT_CODE_LIMIT_REACHED hoặc 500 '
+      + 'pos_orders.code; một đơn mang mã, used_count = 1; đơn thua không để lại dòng ví / điểm / nợ kho / lệnh kho', t.status === 200
+      && ra.length === 2 && thang.length === 1 && thuaDung && mangMa === 1 && daDung === 1 && sau[0] === truoc[0]
+      && sau[1] === truoc[1] + diemMoi && diemMoi === 1 && sau[2] === truoc[2] && khoMoi.length === 1 && khoMoi[0].van_tay === `POS:${id}:out:0`,
+    `${c.ma(t)} / ${r1 ? c.ma(r1) : 'móc không chạy'} / ${c.ma(r2)} · ${mangMa} đơn mang mã · used_count ${daDung} · ví/điểm/nợ/kho `
+      + `${truoc.join(',')} → ${sau.join(',')} · ${khoMoi.map((k) => k.van_tay).join(' ')}`);
     // Q1 = (a), chủ quán chốt 09.10: màn hình chặn ở validate (400, không code); gửi thẳng mã đã hết lượt thì máy chủ bỏ mã, tính đủ giá.
     const v = await c.goi('chu', 'POST', '/discount-codes/validate', { code: 'KB20MOTLAN', order_subtotal: 25000 });
     const lai = await c.goi('chu', 'POST', '/orders', { ...kh, items: [c.mon(0)], discount_code: 'KB20MOTLAN', payment_method: 'cash', cash_amount: 25000 });
