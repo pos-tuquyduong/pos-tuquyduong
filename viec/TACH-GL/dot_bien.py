@@ -20,6 +20,8 @@ CH, KB = 'cong_cu/gia_lap/chay.js', 'cong_cu/gia_lap/kich_ban.js'
 LY, OR = 'server/routes/loyalty.js', 'server/routes/orders.js'
 L1, L3 = '[[2, 15, 17, 28]', '[1, 4, 5, 6, 7, 8,'
 DEM = "  for (const [n, c] of dem) if (c !== 1) lech.push(`chia lượt → KB${n} chạy ${c} lần`);\n"
+TIN_HIEU = ("if (LUOT_K) {\n  for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // cha / bộ kiểm hết giờ gửi SIGTERM → vẫn dọn\n"
+            "  process.on('disconnect', () => process.exit(2));   // TACH-GL: cha chết (kể cả SIGKILL) → kênh IPC đứt → tự thoát + dọn kho\n}\n")
 KET = "  viet(lech.length ? `${tongCha} · KHÔNG ĐẠT (${lech.length} lệch)` : `${tongCha} · ĐẠT`);\n  process.exit(lech.length ? 1 : 0);\n"
 
 # (tên, cách chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], [mẫu — PHẢI khớp hết], kết quả mong đợi)
@@ -41,6 +43,10 @@ DOT_BIEN = [
   ('BV-cha-khong-dung-con-SIGTERM', 'thugl', [(CH, "    for (const r of kq) if (r.ma === undefined) r.con.kill('SIGTERM');\n", '', 1)], [r'✗ T3 '], 'BẮT'),
   ('BV-cha-khong-dung-con-khi-sap', 'thugl', [(CH, '      else if (ma !== 0 && ma !== 1) dungHet(', '      else if (false) dungHet(', 1)], [r'✗ T4 '], 'BẮT'),
   ('BV-con-khong-theo-doi-cha', 'thugl', [(CH, "  process.on('disconnect', () => process.exit(2));", '', 1)], [r'✗ T5 '], 'BẮT'),
+  # Thứ tự cũ (tạo kho rồi mới cài xử lý tín hiệu) + chờ 500 ms ở khe giữa → tất định: tín hiệu tới khi kho đã có mà chưa có xử lý.
+  # Không chờ thì khe chỉ vài µs–ms (chập chờn: 1 lần sót 2 kho trong 6 lần thu_gia_lap lúc máy tải nặng — trang_thai.md).
+  ('VS-kho-truoc-tin-hieu', 'thugl', [(CH, TIN_HIEU, '', 1), (CH, "if (LUOT_K) process.on('exit', ",
+    "if (LUOT_K) { const t = Date.now() + 500; while (Date.now() < t); }\n" + TIN_HIEU + "if (LUOT_K) process.on('exit', ", 1)], [r'✗ T6 '], 'BẮT'),
   ('VS-luot-tuan-tu', 'thugl', [(CH, '  await Promise.all(chon.map(mo));\n', '  for (const l of chon) await mo(l);\n', 1)], [r'✗ T1 '], 'BẮT'),
   ('VS-dong-lech-so-trong-luot', 'thugl', [(CH, '        lech.push(`KB${i + 1} → ${ten}: ${l}`);', '        lech.push(`KB${daChay.length} → ${ten}: ${l}`);', 1)],
    [r'✗ M1 '], 'BẮT'),
