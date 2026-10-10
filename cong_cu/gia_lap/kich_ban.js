@@ -591,7 +591,7 @@ const KICH_BAN = [
 // TACH-GL — chia lượt: mỗi lượt một tiến trình, các lượt chạy CÙNG LÚC (chay.js); mỗi KB đúng một lượt (chay.js kiểm lúc chạy),
 // trong lượt chạy theo số tăng. Phụ thuộc PHẢI cùng lượt, KB nhỏ trước: {1, 7, 14, 23, 27} (c.billDaThu → KH.moi đã claim), {24, 25}
 // liền nhau và trước 27, {4, 8} (dòng debt_payment của KH.quen — M3 của thu_gia_lap chỉ bắt ở KB8 khi đã có). KB mới: vào lượt
-// ngắn nhất trừ khi dựa vào KB khác; đổi LUOT thì chạy lại E2 của thu_gia_lap (viec/TACH-GL/do_chia_e2.js). Bảng đủ + số đo:
+// ngắn nhất trừ khi dựa vào KB khác; đổi LUOT thì chạy lại thu_gia_lap (E2) — thử trước bằng viec/TACH-GL/do_chia_e2.js. Bảng + số đo:
 // viec/TACH-GL/ke_hoach.md mục 2–3.
 const LUOT = [[2, 15, 17, 28], [3, 10, 16, 18, 21], [1, 4, 5, 6, 7, 8, 14, 23, 24, 25, 26, 27], [9, 11, 12, 13, 19, 20, 22, 29]];
 
