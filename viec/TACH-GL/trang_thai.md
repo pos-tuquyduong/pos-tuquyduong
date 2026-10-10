@@ -27,7 +27,7 @@ E3 có sẵn (`cuoi()` chứa TỪ CHỐI — cha kiểm A1 trước khi sinh co
 T3/T4 thêm vế "mọi lượt bị dừng (đóng ≠ 0)" TRƯỚC lần ghi bằng chứng cuối (thiếu vế này thì `BV-cha-khong-dung-con-khi-sap`
 SỐNG: các lượt khác chạy hết rồi cha vẫn thoát 2) — bằng chứng đỏ chép từ lần chạy SAU khi thêm.
 
-## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, 318 s: 16 đột biến · BẮT 16 · đúng mong đợi 16/16)
+## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, head sau vòng sửa 1, 359 s: 19 đột biến · BẮT 19 · đúng mong đợi 19/19)
 | Chỗ đổi | Đột biến | Bắt bằng |
 |---|---|---|
 | cha sinh mọi lượt (`chon`) | `BV-cha-bo-luot` | E1 (25 KB, 4 lệch) + T2 |
@@ -46,6 +46,9 @@ SỐNG: các lượt khác chạy hết rồi cha vẫn thoát 2) — bằng ch�
 | `orders.js:620` áp trần khi bán | `BV-SRV-ban-bo-ap-tran` | KB29 HTTP (bán 35.000) |
 | `orders.js:621` chỉ áp trần khi VƯỢT | `VS-SRV-tran-luon-ap` | KB29 HTTP (bán 10.000, ca dưới trần) |
 | con cài xử lý tín hiệu TRƯỚC khi tạo kho | `VS-kho-truoc-tin-hieu` | T6 (sót kho) |
+| `orders.js:621` ngưỡng trần (ca ngay TRÊN 1đ) | `VS-SRV-tran-doi-nguong-tren` | KB29 HTTP (quà trần 7.499) |
+| `orders.js:621` ngưỡng trần (ca ngay DƯỚI 1đ) | `VS-SRV-tran-doi-nguong-duoi` | KB29 HTTP (quà trần 7.501) |
+| `--den-kb 0` = lượt rỗng | `BV-den-kb-0-luot-rong` | T0 |
 Không có phần dựng đầu lượt (B2 ii) → không có đột biến "bỏ dựng đầu lượt".
 
 ## Soát kế hoạch (agent phụ, chỉ đọc, 10.10) — CẦN SỬA 7 điểm, đã sửa trong ke_hoach.md
