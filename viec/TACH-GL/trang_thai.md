@@ -186,6 +186,65 @@ A2 — ước máy chat 1 lõi: giả lập ~25 s (CPU 7,4 s ≪ 22,8 s chờ); 
 - BẮT `C2F-wallets-08-insert-quay`
 </details>
 
+## Soát độc lập — vòng 1 (`/ra-soat`, agent general-purpose, 10.10) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+Kết luận: phần code chính đúng, chạy xanh. Khi chạy lại tôi thấy: `node cong_cu/gia_lap/chay.js` → `Giả lập: 29 kịch bản · 16 bất biến · ĐẠT`, thoát 0; `node cong_cu/thu_gia_lap.js` → 116 đạt · 0 hỏng; `python3 viec/P26b/dot_bien.py I1-nhanh-refunded-false` (bản sao gl13 ở thư mục khác) → bị bắt. Không đạt vì: C3 ghi sai số đo, lưới tiền KB29 có một lỗ thật (đột biến tôi dựng vẫn SỐNG), một công cụ đo mà phiếu có nêu tên bị hỏng mà không ghi lại.
+
+LỖI TÌM ĐƯỢC:
+- cong_cu/gia_lap/kich_ban.js:566–572 (KB29) — phép trần chỉ có hai ca ở xa ngưỡng: 17.500 so với trần 7.000, và 5.000. Không có ca sát ngay trên hay ngay dưới trần. Tôi dựng đột biến dời ngưỡng `finalDiscountAmount > codeRecord.max_discount` → `… > codeRecord.max_discount + 3000` (server/routes/orders.js:621), làm trên bản sao trong os.tmpdir, đã kiểm realpath trước khi ghi. Chạy `chay.js --may-chu <bản sao> --den-kb 29` → thoát 0, `Giả lập: 8 kịch bản · 16 bất biến · ĐẠT`, tức là SỐNG. Như vậy tên đột biến `VS-SRV-tran-luon-ap` ("chỉ áp trần khi VƯỢT") hứa nhiều hơn thứ nó thật sự khoá. Đề xuất thêm ca 14.002 → giảm 7.000 và 13.998 → giảm 6.999. Đây là thêm ngoài Q2 đã duyệt nên phải hỏi chủ quán. — K3 (phép ngưỡng phải có ca ngay trên + ngay dưới)
+- kiem_tra_truoc_khi_giao.js:756 — chú thích S4 ghi "giả lập 22,9–23,0 s". Số đo A1 trong trang_thai.md (bảng A) là 22,9 · 22,7 · 22,8 s, tức khoảng đúng là 22,7–22,9. C3 đòi chú thích "theo số đo A1 thật". — K1
+- viec/LUOI-1/do_thoi_gian.js:41 — neo `'  const tong = `Giả lập:'` đã rữa vì dòng tổng trong con nay là `Lượt …` (chay.js:265). Chạy `node viec/LUOI-1/do_thoi_gian.js kb` trên head → ném lỗi "neo đo không khớp". Phiếu A0 nêu đích danh công cụ này, P26c sẽ cần đo lại từng KB. Kể cả khi sửa neo, cha (chay.js:99–106) cũng không chuyển tiếp dòng `DO KB…` của con. File nằm ngoài Phạm vi, nhưng không được ghi vào `## Phát hiện` (D5 có luật tương tự cho neo rữa ngoài Phạm vi). — K4
+- cong_cu/gia_lap/chay.js:65–67 — `--den-kb 0` đổi nghĩa. Trước là "khởi động + dựng dữ liệu, 0 KB, ĐẠT", phiếu dùng nó làm số đo "lượt rỗng" và ước CPU ở ke_hoach §4 dựa vào đó. Nay không sinh con nào, in `✗ chia lượt → KB0 chạy 0 lần`, thoát 1 (tôi đã chạy). ke_hoach §6 không nhắc. Không bộ tự động nào gọi (đã grep viec/). — K5 (luồng đo bị chặn, không ghi)
+- commit f6e8e9f — thiếu dòng trống giữa tiêu đề và hai dòng Co-Authored-By/Claude-Session, nên chúng dính vào tiêu đề và hiện cả trong `git log --oneline`. — K7 (giao nhận)
+
+NGHI NGỜ:
+- chay.js:79 — `spawn` không có `con.on('error')`. Nếu sinh con lỗi (EAGAIN lúc máy tải nặng) thì cha văng lỗi không bắt, thoát 1 với dòng cuối là stack trace. Như vậy trái yêu cầu của chủ quán "mọi lối thoát, dòng cuối là dòng kết luận"; `cha().catch(sap)` không bắt được lỗi phát qua sự kiện. Hướng hỏng an toàn (bộ kiểm vẫn FAIL), nhưng là một lối thoát chưa phủ.
+- chay.js:89 — lối "con TỪ CHỐI → cha thoát 3 + dòng cuối TỪ CHỐI" không có ca thử, cũng không có đột biến. trang_thai.md ghi "Lối TỪ CHỐI: E3 có sẵn", nhưng E3 chỉ phủ cha từ chối. Với cùng môi trường thì lối này gần như không xảy ra. Xoá dòng 89 thì không bài nào đỏ.
+- chay.js:74 — SIGKILL sau 10 s sẽ để sót `gia_lap_*`. Trên máy 1 lõi chạy thu_gia_lap (~37 tiến trình node), con đang trong khối đồng bộ `require(index.js)` có thể không kịp xử lý SIGTERM trong 10 s; T5 cũng chỉ chờ 15 s. Có thể đỏ thất thường ở T3/T4/T6/sập trên máy chat. Chưa đo được: người gác chặn taskset.
+- Sự cố sót kho: lỗi gốc là khe vài µs giữa `mkdtempSync` và `process.on`. Đột biến tất định chèn thêm 500 ms chờ bận, nên chỉ chứng minh T6 bắt được khe RỘNG; bản thứ tự cũ thật thì T6 gần như không bắt được. Lý do "các con sập đồng thời nên tín hiệu rơi đúng khe" là hợp lý. Bằng chứng 8/8 lần sạch chỉ là phụ.
+- Tôi thử giết cha bằng SIGKILL ngay khi in đủ 4 pid: con tự thoát trong ≤ 2 s, không sót thư mục. Nghi ngờ con mồ côi ở khe sớm vì vậy đã loại.
+
+NGHIỆM THU:    19/21 mục có bằng chứng · mục thiếu: C3 (chú thích S4 lệch số đo A1), E2 (check PR — CHƯA KIỂM, chấp nhận được, nhưng trang_thai.md chưa ghi dòng "E2 CHƯA KIỂM")
+(… từng mục A0–F có bằng chứng như trang_thai.md; P1 không đụng client/; đường tiền: server tự tra trần — orders.js:613–624, loyalty.js:183.)
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy lại đủ D2 (80), D3 (87), D4 (16), D5. Lý do: thời gian, và không chạy chồng lệnh khác.
+- Không chạy `--day-du`.
+- Không đo trên máy 1 lõi (taskset bị chặn).
+- Không xem được check PR `cong` / `cong-chay`.
+- Không dựng được lỗi `spawn` để kiểm lối văng lỗi của cha.
+
+BÀI HỌC:
+- KHOÁ: KB29 thêm ca ngay trên / ngay dưới trần, kèm đột biến "dời ngưỡng" (+N) trong viec/TACH-GL/dot_bien.py (phải hỏi chủ quán).
+- KHOÁ: kiem_neo (HOC-2b) nên rà cả công cụ đo `viec/*/do_*.js` có neo vào file luật, không chỉ dot_bien.py.
+- KHOÁ: thêm `con.on('error')` → dòng SẬP, kèm đột biến/ca cho lối "con TỪ CHỐI".
+- NGUYÊN TẮC (K4): đổi định dạng dòng ra của file luật thì grep MỌI neo trong viec/ (cả công cụ đo), và ghi lại mọi giá trị đối số đổi nghĩa (`--den-kb 0`).
+- NGUYÊN TẮC (K1): con số trong chú thích bộ kiểm phải chép từ bảng đo đã ghi, không chép từ một lần đo khác.
+```
+(Phần NGHIỆM THU từng mục đã rút gọn một dòng — bản đủ: mọi mục A0–F "có", trừ C3 và E2 như trên.)
+
+## Vòng sửa 1/3 (sau soát vòng 1, 10.10)
+| Lỗi | Xử lý |
+|---|---|
+| KB29 thiếu ca sát trần (K3) | Không hỏi lại: luật K3 của kho (ngưỡng → ca ngay trên + ngay dưới), trong Phạm vi, giữ nguyên hai ca đã duyệt. Thêm quà 50 % trần 7.499 / 7.501 + đơn 15.000 (50 % = 7.500): NGAY TRÊN 1đ → giảm 7.499 · thu 7.501; NGAY DƯỚI 1đ → giảm 7.500 · thu 7.500. Đột biến `VS-SRV-tran-doi-nguong-tren` (`> max + 1`), `VS-SRV-tran-doi-nguong-duoi` (`> max − 2`) BẮT; đột biến +3000 của người soát chặt hơn +1 nên cũng bị ca ngay trên bắt. |
+| S4 lệch số đo (K1) | Đo lại SAU vòng sửa (KB29 dài thêm), chép đúng bảng A mới vào chú thích. |
+| `do_thoi_gian.js` neo rữa (ngoài Phạm vi) | Phát hiện 2. |
+| `--den-kb 0` đổi nghĩa (K5) | Khôi phục: `--den-kb 0` = một lượt rỗng (khởi động + dựng, 0 KB) → `Giả lập: 0 kịch bản · 16 bất biến · ĐẠT`. Ca T0 + đột biến `BV-den-kb-0-luot-rong` (BẮT). |
+| commit `f6e8e9f` dính trailer vào tiêu đề | Người gác chặn `git commit --amend` (GIT-COMMIT-CO) — giữ nguyên; tiêu đề vẫn mở bằng mã việc. Các commit sau đúng dạng. |
+| NGHI NGỜ `spawn` không `on('error')` | Thêm `con.on('error')` → dòng SẬP, thoát 2. Không dựng được lỗi sinh tiến trình → CHƯA KIỂM. |
+| NGHI NGỜ lối con TỪ CHỐI | Không tới được với cùng môi trường (cha kiểm A1 cùng biến trước khi sinh con) → CHƯA KIỂM, giữ mã (bảng mã thoát kế hoạch đã duyệt). |
+| NGHI NGỜ SIGKILL sau 10 s trên 1 lõi | CHƯA KIỂM trên 1 lõi (taskset bị chặn) — chat đo; máy mây chưa lần nào chạm 10 s. |
+| NGHI NGỜ T6 chỉ bắt khe rộng | Đúng — ghi rõ: khe thật vài µs không dựng tất định được; bằng chứng chính là đột biến chờ 500 ms + thứ tự mới (xử lý tín hiệu cài trước khi tạo kho → không còn khe). |
+| E2 thiếu dòng CHƯA KIỂM | Thêm (mục Báo cáo). |
+Sự cố trong vòng sửa: chính lần sửa `--den-kb 0` làm rữa neo của `BV-cha-bo-luot` (HỎNG 1/19 ở lần chạy lại) — sửa neo (chuỗi ngắn, riêng), chạy lại → BẮT.
+
+## A — số đo sau vòng sửa 1 (head `486f56c`, chạy riêng)
+giả lập 24,8 · 24,5 · 25,0 s (CPU 7,7–9,0 s, 29 KB ĐẠT) · `thu_gia_lap` 41,5 · 40,1 · 36,8 s (CPU 38,7–44,7 s, 117 đạt) · `--day-du` 147,3 s
+PASS 65 · FAIL 0 · CẢNH BÁO 0. D2 80/80 (90 s) · D3 C2 BẮT 1 · C2F 62/23/1 — đối chiếu máy 87/87 không lệch · D4 18/19 rồi
+`BV-cha-bo-luot` (neo sửa) BẮT → 19/19 (chạy lại đủ ở mục cuối). Bằng chứng đỏ gốc: 110 đạt · 7 hỏng, SỐ CA 117.
+
 ## Câu hỏi
 Xem `ke_hoach.md` mục 10 (Q1–Q2) — trả lời cùng lời duyệt kế hoạch.
 
@@ -194,3 +253,10 @@ Xem `ke_hoach.md` mục 10 (Q1–Q2) — trả lời cùng lời duyệt kế ho
    quà (`:581`) chỉ gửi `is_active`. Máy chủ nhận được trần (`server/routes/rewards.js:32`, `:47`, `:65`) nhưng từ màn hình
    KHÔNG đặt được trần cho quà % → quà % tạo ở quầy luôn KHÔNG trần (khách đổi quà 50 % mua đơn lớn được giảm 50 % không giới
    hạn). Nghiệp vụ — chủ quán quyết có cần ô "giảm tối đa" trên màn thêm quà không.
+2. `viec/LUOI-1/do_thoi_gian.js:41` (ngoài Phạm vi): neo `  const tong = \`Giả lập:` rữa — dòng tổng trong lượt con nay là
+   `Lượt k: …` (`cong_cu/gia_lap/chay.js`), và cha không chuyển tiếp dòng `DO KB…` của con → `node viec/LUOI-1/do_thoi_gian.js kb`
+   ném "neo đo không khớp". Đo từng KB sau chia lượt: dùng `viec/TACH-GL/do_chia.js <KB>` (bản sao, mỗi nhóm một tiến trình) hoặc
+   việc sau sửa `do_thoi_gian.js` (chèn mốc vào bản sao chay.js và chạy với `--luot k`). P26c sẽ cần.
+3. `kiem_neo.py` (HOC-2b) chỉ rà `dot_bien.py` của 6 bộ cũ — không rà công cụ đo `viec/*/do_*.js` và bộ mới (`viec/TACH-GL/`,
+   `viec/LUOI-1/`). Neo rữa ở đó chỉ lộ khi chạy (soát vòng 1 bắt `do_thoi_gian.js`; vòng sửa 1 làm rữa `BV-cha-bo-luot`). Đề xuất
+   (ngoài Phạm vi): kiem_neo đọc thêm LUOI-1 + TACH-GL và mọi `do_*.js` có bảng neo.
