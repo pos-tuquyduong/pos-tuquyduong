@@ -501,17 +501,20 @@ const KICH_BAN = [
       `${A.status} / ${c.ma(h)} · ${no} dòng nợ`);
     c.kbSxLoi = c.sxGia.kb;   // KB25 soát: chay.js đánh số kịch bản và tự tắt lỗi trước kịch bản sau
   } },
-  { ten: 'đẩy sổ nợ kho (SX đã hết lỗi); bấm lại; hai người cùng bấm', chay: async (c) => {
+  { ten: 'đẩy sổ nợ kho (SX đã hết lỗi): hai người cùng bấm; bấm lại', chay: async (c) => {
     c.mong('chay.js: công tắc SX tự tắt, kịch bản này đánh số ngay sau KB bật lỗi', !c.sxGia.loi && c.kbSxLoi > 0 && c.sxGia.kb === c.kbSxLoi + 1,
       `lỗi ${c.sxGia.loi} · KB bật lỗi ${c.kbSxLoi} · KB này ${c.sxGia.kb}`);
     const truoc = c.nhanKho.length;
     const day = () => c.goi('nv', 'POST', '/so-no/doi-ngay', {});
-    const r1 = await day(), r2 = await day();
-    const [r3, r4] = await Promise.all([day(), day()]);
+    // Hai người cùng bấm ở lần đẩy ĐẦU (còn 3 dòng nợ) — khoá dangChay (doSoNo.js:39) phải để đúng một lượt gửi; soát LUOI-1
+    // vòng 3 lỗi 3: bấm chồng lúc sổ nợ đã rỗng thì bỏ khoá vẫn xanh. Đột biến VS-SRV-bo-khoa-dangChay phải ĐỎ.
+    const [r1, r2] = await Promise.all([day(), day()]);
+    const r3 = await day();
     const con = await c.so("SELECT COUNT(*) FROM pos_stock_pending WHERE status <> 'resolved'");
-    c.mong('đẩy → 200, xong 3; bấm lại → xong 0; hai người cùng bấm → không gửi thêm; SX nhận đúng 3 lệnh, sổ nợ hết', r1.status === 200
-      && r1.xong === 3 && [r2, r3, r4].every((r) => r.status === 200 && !r.xong) && c.nhanKho.length === truoc + 3 && con === 0,
-    `${[r1, r2, r3, r4].map((r) => `${c.ma(r)} xong ${r.xong}`).join(' / ')} · SX nhận thêm ${c.nhanKho.length - truoc} · còn nợ ${con}`);
+    const xong = [r1, r2].map((r) => r.xong || 0).sort();
+    c.mong('hai người cùng bấm đẩy (còn 3 nợ) → cả hai 200, đúng một lượt xong 3, lượt kia không gửi; bấm lại → xong 0; SX nhận đúng 3, sổ nợ hết',
+      [r1, r2, r3].every((r) => r.status === 200) && xong[0] === 0 && xong[1] === 3 && !r3.xong && c.nhanKho.length === truoc + 3 && con === 0,
+    `${[r1, r2, r3].map((r) => `${c.ma(r)} xong ${r.xong}`).join(' / ')} · SX nhận thêm ${c.nhanKho.length - truoc} · còn nợ ${con}`);
   } },
   { ten: 'đối soát ví khách chưa có ví; giao tay 1 ly từ gói (/deliver)', chay: async (c) => {
     const coVi = await c.so('SELECT COUNT(*) FROM pos_wallets WHERE phone = ?', [KH.no]);

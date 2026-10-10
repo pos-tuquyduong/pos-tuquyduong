@@ -103,7 +103,12 @@ const BAT_BIEN = {
     for (const [vt, n] of dem) if (!can.has(vt)) lech.push(`SX nhận vân tay lạ ${vt} × ${n}`);
     // (b) chỉ soát SX nhận: số dòng nợ ≥ 2 cùng vân tay đã bị vế "mỗi vân tay lỗi ⇔ đúng một dòng nợ" và "nợ phải có lần lỗi" bắt.
     for (const [vt, n] of daXong) if (dem.get(vt) !== 1) lech.push(`nợ kho ${vt} đã xong ${n} dòng, SX nhận ${dem.get(vt) || 0} lần`);
-    for (const r of no) if (!r.van_tay || !loi.has(r.van_tay)) lech.push(`nợ kho ${r.van_tay} (${r.order_code}) không có lần SX lỗi tương ứng`);
+    // Nợ kho KHÔNG vân tay luôn lệch: sổ nợ không đẩy lại an toàn được (doSoNo.js chuyển can_xem). Phép riêng vì SX giả ghi
+    // `van_tay || null` (chay.js:77) — lệnh lỗi không vân tay làm `loi` chứa null (soát vòng 3 lỗi 2; chat sửa 10.10 — ca tay riêng).
+    for (const r of no) {
+      if (!r.van_tay) lech.push(`nợ kho KHÔNG vân tay (${r.order_code}) — không đẩy lại an toàn được`);
+      else if (!loi.has(r.van_tay)) lech.push(`nợ kho ${r.van_tay} (${r.order_code}) không có lần SX lỗi tương ứng`);
+    }
     for (const vt of loi) if (soNo.get(vt) !== 1) lech.push(`SX báo lỗi vân tay ${vt}, sổ nợ kho có ${soNo.get(vt) || 0} dòng`);
     for (const h of hong) if (!ctx.sxGia.kbBat.has(h.kb)) lech.push(`SX lỗi ở kịch bản ${h.kb} không bật công tắc lỗi (vân tay ${h.van_tay})`);
     return lech;
@@ -134,7 +139,9 @@ const BAT_BIEN = {
         (SELECT r.points_cost FROM pos_voucher_grants g JOIN pos_reward_catalog r ON r.id = g.reward_id WHERE g.point_tx_id = t.id) AS gia
       FROM pos_point_transactions t WHERE t.type = 'redeem'`);
     for (const r of doi) {
-      if (so(r.so_qua) !== 1 || (r.gia != null && so(r.points) !== -so(r.gia))) {
+      // Không quà trỏ tới thì gia = null → so() = 0 → điểm ≠ 0 vẫn lệch; vế `r.gia != null &&` thừa (soát vòng 3 lỗi 2), đã bỏ.
+      // Vế số quà vẫn cần: dòng đổi 0 điểm không quà thì chỉ vế này bắt (ca tay riêng).
+      if (so(r.so_qua) !== 1 || so(r.points) !== -so(r.gia)) {
         lech.push(`dòng đổi điểm #${r.id} (${r.customer_phone}): ${so(r.points)} điểm, ${so(r.so_qua)} quà trỏ tới, quà giá ${so(r.gia)} điểm`);
       }
     }
@@ -182,6 +189,8 @@ const BAT_BIEN = {
   // I12 (AU-G1) — mỗi quà đã đổi trỏ đúng dòng 'redeem' cùng SĐT trừ đúng giá quà; mã đẻ ra có loại / trị giá / trần giảm = quà
   // (loyalty.js:179–183), dùng 1 lần. Hạn mã (valid_to) KHÔNG soát (tính từ ngày đổi — CHƯA KIỂM).
   // So với quà HIỆN TẠI: chủ sửa quà sau khi đổi thì đỏ (không kịch bản nào sửa quà).
+  // Trần giảm + loại %: phía MÁY CHỦ CHƯA PHỦ (KB19 chỉ có quà cố định không trần — loyalty.js:183 bỏ trần / viết cứng 'fixed'
+  // vẫn xanh); vế trần thử bằng dữ liệu tay ±1 (soát vòng 3 lỗi 1, 4). Việc chia giả lập 2 lượt thêm quà % có trần.
   async I12(q) {
     const ds = await q(`SELECT g.id, g.code, g.customer_phone AS sdt, t.type, t.customer_phone AS sdt_tx, t.points,
         r.points_cost, r.discount_type AS loai_qua, r.discount_value AS tri_gia_qua, r.max_discount AS tran_qua,
@@ -201,7 +210,8 @@ const BAT_BIEN = {
   // đơn KHÔNG trả lượt (orders.js:1296–1590 không đụng pos_discount_codes) nên đếm đơn MỌI trạng thái. "Đã áp" = mã trên đơn VÀ
   // loại + trị giá chiết khấu của đơn = của mã: máy chủ lưu discount_code cả khi mã KHÔNG được áp (orders.js:450), lúc đó loại/trị
   // giá lấy từ hồ sơ khách (orders.js:504–520) hoặc trống. Giới hạn: hồ sơ khách trùng đúng loại + trị giá của mã gõ mà không áp;
-  // xoá đơn đã áp mã làm mất dòng đơn (không kịch bản nào làm hai việc này).
+  // xoá đơn đã áp mã làm mất dòng đơn (không kịch bản nào làm hai việc này). So với loại / trị giá mã HIỆN TẠI: chủ sửa mã đã
+  // dùng (PUT /discount-codes/:id) thì đỏ oan — không kịch bản nào sửa mã; kịch bản sau thêm việc đó phải đổi phép này.
   async I13(q, ctx) {
     const ds = await q(`SELECT d.code, d.usage_limit, d.used_count,
         (SELECT COUNT(*) FROM pos_orders o WHERE UPPER(o.discount_code) = UPPER(d.code) AND o.discount_type = d.discount_type
@@ -270,7 +280,8 @@ const BAT_BIEN = {
     const ds = await q(`SELECT r.id, r.order_id, r.customer_phone, r.refund_amount, t.id AS tid, t.type, t.order_id AS t_don,
         t.customer_phone AS t_sdt, t.amount FROM pos_refund_requests r LEFT JOIN pos_balance_transactions t ON t.id = r.balance_transaction_id
       WHERE r.status = 'approved'`);
-    return ds.filter((r) => r.tid == null || r.type !== 'refund' || so(r.t_don) !== so(r.order_id) || r.t_sdt !== r.customer_phone
+    // Không gắn dòng sổ thì t.type = NULL ≠ 'refund' → lệch; vế `r.tid == null ||` thừa (soát vòng 3 lỗi 2), đã bỏ.
+    return ds.filter((r) => r.type !== 'refund' || so(r.t_don) !== so(r.order_id) || r.t_sdt !== r.customer_phone
       || Math.abs(so(r.amount) - so(r.refund_amount)) > 0.5)
       .map((r) => `yêu cầu hoàn #${r.id} (đơn #${r.order_id}): gắn dòng sổ ${r.tid == null ? '(không có)' : `#${r.tid} ${r.type} ${so(r.amount)}`}, hoàn ${so(r.refund_amount)}`);
   },

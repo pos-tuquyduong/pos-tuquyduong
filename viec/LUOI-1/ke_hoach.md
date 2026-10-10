@@ -109,7 +109,8 @@ SX giả: `const sxGia = { loi: false, hong: [], kbBat: new Set() }`. Khi `loi` 
 - **I15 thẻ:** đơn không huỷ có món `THE-…` (`product_id <= -1000000`) và có SĐT ⇒ đúng một `pos_membership_purchases` cùng
   `order_id`; mỗi dòng mua thẻ ⇒ đơn còn và không huỷ.
 - **I16 đổi cách trả:** đơn có nhật ký `doi` ⇒ dòng `doi` cuối: `sang` = cách trả hiện tại (`cash_amount > 0` ⇔ `cash`),
-  `so_tien` = `cash_amount + transfer_amount`. (Phủ KB2 có sẵn → bắt `don-mo-rong-01` không cần KB mới.)
+  `so_tien` = `cash_amount + transfer_amount`. (Phủ KB2 có sẵn → bắt `don-mo-rong-01` không cần KB mới.) Chiều đổi tiền mặt →
+  chuyển khoản phía MÁY CHỦ **CHƯA PHỦ** (Q10 a, Phát hiện 13); nhánh CK của I16 soát bằng dữ liệu tay.
 - **I17 duyệt hoàn:** yêu cầu `approved` ⇒ `balance_transaction_id` trỏ dòng `refund` cùng `order_id`, cùng SĐT, `amount =
   refund_amount`. (Phủ KB12/13/16/17 có sẵn → bắt `refunds-05`.)
 
@@ -144,7 +145,8 @@ Tên C2F sinh theo thứ tự câu trong `server/` — việc này không đổi
 
 ## 7. C3 — đột biến của chính việc này (`viec/LUOI-1/dot_bien.py`, bản sao)
 
-Dùng lại máy chạy của `viec/AUDIT-1/dot_bien.py` (nạp bằng `runpy`, không sửa file đó), bảng đột biến riêng. Mỗi tên một
+`viec/LUOI-1/dot_bien.py` có máy chạy RIÊNG (chép thật `server/`, `cong_cu/`, `tu_chay/cau_hinh.json` vào thư mục tạm, cách chạy
+theo bảng `LENH`; không dùng `runpy`, không sửa `viec/AUDIT-1/dot_bien.py`) — sửa theo soát vòng 3 lỗi 6. Mỗi tên một
 dòng tuple, ghi NGUYÊN VĂN vào `trang_thai.md` (A17). Dự kiến (tên chốt khi viết):
 - Nới mỗi bất biến cả hai phía: I7 (`!== 1` → `> 1`, `< 1`; bỏ (c); bỏ (e)), I12 (bỏ điều kiện `type='redeem'`; `points = −cost`
   → `<=`; `usage_limit = 1` → `>= 1`), I13 (`=` → `<=`, `>=`; bỏ RIÊNG từng vế loại / trị giá), I14 (`≤ total` → `≤ total + 1`;
@@ -200,7 +202,9 @@ nằm ở bảng C1 (chạy `dot_bien.py` của AUDIT-1 trước và sau).
 - **Không phủ (ghi CHƯA KIỂM):** nhánh thử lại thất bại / `can_xem` / nợ không vân tay của sổ nợ (`doSoNo.js:56–65`, `:87–95`);
   `PUT /customer-packages/:id/cancel` (`packages.js:187`, quyền `manage_users`); tạo/xoá mã ở `signup-codes.js` (quản trị);
   I13 khi xoá đơn có mã (dòng đơn mất hẳn — không KB nào làm) và khi khách có chiết khấu riêng gõ mã không áp
-  (loại + trị giá hồ sơ khách trùng đúng mã gõ mà không áp) — giới hạn đã biết của I13.
+  (loại + trị giá hồ sơ khách trùng đúng mã gõ mà không áp) — giới hạn đã biết của I13. **CHƯA PHỦ** (soát vòng 3 lỗi 6): xoá đơn
+  mua thẻ (Phát hiện 10, Q7 a); chiều đổi tiền mặt → CK phía máy chủ (Phát hiện 13, Q10 a); trần giảm + loại % của mã đổi điểm
+  phía máy chủ (Phát hiện 14 — chỉ dữ liệu tay); chủ sửa quà / mã đã dùng (Phát hiện 15).
 
 ## 12. Thời gian máy (từ số đo mục 0)
 

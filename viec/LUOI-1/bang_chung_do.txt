@@ -1,12 +1,13 @@
-LUOI-1 — bằng chứng ĐỎ trên gốc (09.10.2026, máy mây 4 lõi, chạy RIÊNG). Chạy lại trên code cuối 2e6e524 (sau Q10 a).
+LUOI-1 — bằng chứng ĐỎ trên gốc. Chạy lại 10.10.2026 (CHAT soát thay vòng 4, máy chat 1 lõi, chạy RIÊNG) với bài thử của bản sửa
+của chat (109 ca). Lần trước (máy, 2e6e524): 45 đạt · 59 hỏng, SỐ CA 104.
 
-SỐ CA cong_cu/thu_gia_lap.js: 104
+SỐ CA cong_cu/thu_gia_lap.js: 109
 
 == cong_cu/thu_gia_lap.js của việc này chạy trên GỐC 9521cec ==
 Cách dựng: thư mục nháp ngoài kho; `git archive 9521cec cong_cu server tu_chay/cau_hinh.json kiem_tra_truoc_khi_giao.js
 package.json`, node_modules nối (chỉ đọc), chép thu_gia_lap.js của HEAD đè lên (cmp khớp byte); chạy `node cong_cu/thu_gia_lap.js`.
 server/ client/ tu_chay/ của việc này KHÔNG đổi so với gốc (git diff --stat 9521cec -- server client tu_chay rỗng).
-Kết quả: thoát 1 · 45 đạt · 59 hỏng. Trên HEAD: thoát 0 · 104 đạt · 0 hỏng (do_thoi_gian.js thugl, 93,4 s).
+Kết quả: thoát 1 · 45 đạt · 64 hỏng. Trên bản sửa của chat: thoát 0 · 109 đạt · 0 hỏng (máy chat 95,3 s).
 Lưu ý (người soát vòng 1): ca I12–I17 đỏ trên gốc chỉ vì thiếu hàm; bằng chứng các bất biến đó BẮT lỗi thật nằm ở C3
 (viec/LUOI-1/dot_bien.py) và C1 (21 đột biến máy chủ).
 Các ca hỏng trên gốc:
@@ -20,12 +21,15 @@ Các ca hỏng trên gốc:
   ✗ I7 SX lỗi một lần mà 2 dòng nợ cùng vân tay  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi","nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
   ✗ I7 dòng nợ không có lần SX lỗi  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
   ✗ I7 dòng nợ không vân tay  — ["nợ kho null (D1) dù SX giả không lỗi"]
+  ✗ I7 dòng nợ không vân tay, SX giả cũng ghi lỗi không vân tay  — ["nợ kho null (D1) dù SX giả không lỗi"]
   ✗ I7 SX lỗi ở kịch bản không bật công tắc  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
   ✗ I8 đổi trừ 2 điểm (ít hơn giá)  — []
   ✗ I8 đổi trừ 4 điểm (nhiều hơn giá)  — []
   ✗ I8 dòng đổi không quà nào trỏ tới  — []
+  ✗ I8 dòng đổi 0 điểm không quà nào trỏ tới (chỉ vế số quà)  — []
   ✗ I8 hai quà trỏ một dòng đổi  — []
   ✗ I8 loại dòng điểm lạ  — []
+  ✗ I8 dòng điểm không có loại (NULL)  — []
   ✗ I12 sạch: quà ↔ dòng redeem cùng SĐT, mã đúng trị giá, dùng 1 lần — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 quà trỏ dòng không phải redeem — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 dòng redeem của SĐT khác — SẬP: BAT_BIEN[bb] is not a function  — null
@@ -33,6 +37,8 @@ Các ca hỏng trên gốc:
   ✗ I12 dòng redeem −4 (nhiều hơn giá) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã trùng hai dòng (chỉ vế số mã) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã mất trần giảm (0 thay vì 2.000) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trần 1.999 (thấp hơn quà 1) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trần 2.001 (cao hơn quà 1 — khách được giảm thêm) — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã trị giá 4.999 — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã trị giá 5.001 — SẬP: BAT_BIEN[bb] is not a function  — null
   ✗ I12 mã loại % thay cố định — SẬP: BAT_BIEN[bb] is not a function  — null
