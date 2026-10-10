@@ -19,7 +19,7 @@
  *  E4  (đột biến vào chính giả lập) chạy tay: --gia-lap <bản sao đã phá>.
  *  T1–T5 (TACH-GL) giả lập chia lượt: các lượt chạy CÙNG LÚC, mỗi KB đúng một lần, cha bị SIGTERM / một lượt sập / cha
  *      bị SIGKILL → không sót tiến trình con, không sót gia_lap_*; dòng cuối luôn là dòng kết luận (cuoi() đọc dòng cuối).
- *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7: --kho lạ → TỪ CHỐI.
+ *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7–T9: --kho / --luot lạ → TỪ CHỐI.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
@@ -253,8 +253,13 @@ async function main() {
   // ── E1 + A2 + E2 chạy song song (mỗi lần một tiến trình, kho tạm, cổng riêng) ──
   const saos = DOT_BIEN.map(([ma, file, goc, thay, soLan]) => banSao(ma, file, goc, thay, soLan));
   fs.writeFileSync(path.join(rong, 'giu.txt'), 'không được xoá');
-  const [e1, sap, rongKb, khoLa, t3, t4, t5, t6, ...dotBien] = await Promise.all([
+  const NGOAI = path.join(TAM, 'ngoai', 'gia_lap_abcdef');   // tên đúng, thư mục cha KHÔNG phải TMPDIR của con (TAM)
+  const T8 = path.join(TAM, 't8');                          // TMPDIR riêng của ca T8: kho lạ không lẫn vào phép A2 đếm gia_lap_* ở TAM
+  const KHAC = path.join(T8, 'gia_lap_KHAC01');             // hợp lệ mọi vế — chỉ sai ở chỗ người gọi đưa cho CHA
+  for (const d of [NGOAI, KHAC]) { fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'giu.txt'), 'không được xoá'); }
+  const [e1, sap, rongKb, khoLa, khoNgoai, khoCha, t3, t4, t5, t6, ...dotBien] = await Promise.all([
     chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']), chayGL(['--luot', '1', '--kho', rong]),
+    chayGL(['--luot', '1', '--kho', NGOAI]), chayGL(['--kho', KHAC, '--den-kb', '0'], { TMPDIR: T8 }),
     chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
     ...saos.map((s, i) => (s.loi ? null : chayGL(['--may-chu', s.mayChu, '--den-kb', String(DOT_BIEN[i][5])]))),
   ]);
@@ -264,6 +269,7 @@ async function main() {
   const tongs = e1.ra.split('\n').filter((l) => /Giả lập: \d+ kịch bản/.test(l));
   k('đúng MỘT dòng "Giả lập: … kịch bản" (bánh cóc của bộ kiểm lấy dòng khớp ĐẦU TIÊN)', tongs.length === 1, tongs.join(' | ') || '(không có)');
   console.log('\n[T] giả lập chia lượt (TACH-GL)');
+  const luotHong = await Promise.all([['--luot', '0'], ['--luot', 'x'], ['--luot']].map((a) => chayGL(a)));
   k('T1 các lượt chạy CÙNG LÚC: khi mọi lượt đã mở kho, đủ L ≥ 2 pid còn sống', e1.daXet && e1.cungLuc && e1.L >= 2, moTaT(e1));
   const daChay = [...e1.ra.matchAll(/^Lượt \d+: KB ([\d,]+)/gm)].flatMap((m) => m[1].split(',').map(Number)).sort((a, b) => a - b);
   k(`T2 mỗi KB 1…${SO_KB} chạy đúng một lần (gộp dòng "Lượt k: KB …")`, daChay.join() === Array.from({ length: SO_KB }, (_, i) => i + 1).join(),
@@ -283,8 +289,15 @@ async function main() {
   k('T5 cha bị SIGKILL (như hẹn 110 s) → mọi con tự thoát trong 15 s, không sót gia_lap_*', t5.daXet && !t5.conSong.length && !t5.sot.length, moTaT(t5));
   k('T6 SIGTERM mọi lượt ngay khi kho đầu tiên vừa tạo → cha thoát 2, dòng cuối là dòng SẬP, mọi con đã chết, không sót gia_lap_*',
     t6.daXet && t6.status === 2 && SAP.test(cuoi(t6)) && !t6.conSong.length && !t6.sot.length, moTaT(t6));
-  k('T7 --kho ngoài thư mục tạm (đường bất kỳ sẽ bị xoá lúc thoát) → thoát 3, TỪ CHỐI, thư mục đó còn nguyên', khoLa.status === 3
+  // T7–T9 (soát vòng 3): mỗi ca vi phạm ĐÚNG MỘT vế; thư mục bị từ chối phải còn nguyên (con xoá --kho lúc thoát).
+  k('T7a lượt nhận --kho tên đúng gia_lap_xxxxxx nhưng NGOÀI thư mục tạm → thoát 3, TỪ CHỐI, thư mục còn nguyên', khoNgoai.status === 3
+    && /TỪ CHỐI/.test(cuoi(khoNgoai)) && fs.existsSync(path.join(NGOAI, 'giu.txt')), moTa(khoNgoai));
+  k('T7b lượt nhận --kho TRONG thư mục tạm nhưng tên sai → thoát 3, TỪ CHỐI, thư mục còn nguyên', khoLa.status === 3
     && /TỪ CHỐI/.test(cuoi(khoLa)) && fs.existsSync(path.join(rong, 'giu.txt')), moTa(khoLa));
+  k('T8 CHA nhận --kho hợp lệ (kho gia_lap_ của giả lập khác cùng thư mục tạm) → thoát 3, TỪ CHỐI, kho đó còn nguyên', khoCha.status === 3
+    && /TỪ CHỐI/.test(cuoi(khoCha)) && fs.existsSync(path.join(KHAC, 'giu.txt')), moTa(khoCha));
+  ['0', 'x', '(thiếu)'].forEach((g, i) => k(`T9 --luot ${g} → thoát 3, TỪ CHỐI (không rơi về chế độ cha — tự sinh lại mãi)`,
+    luotHong[i].status === 3 && /TỪ CHỐI/.test(cuoi(luotHong[i])), moTa(luotHong[i])));
   console.log('\n[A2] kho tạm, data/');
   k('máy chủ hỏng (--may-chu thư mục rỗng) → giả lập sập, thoát 2, dòng cuối là dòng SẬP', sap.status === 2 && SAP.test(cuoi(sap)), moTa(sap));
   k(`data/ không đổi (${dataTruoc.slice(0, 40)})`, chup() === dataTruoc, chup().slice(0, 80));
