@@ -121,7 +121,7 @@ Gán lượt: **một mảng `LUOT` trong `kich_ban.js`** (A) thay vì thêm tr�
 **Thiết kế A (`chay.js`):**
 1. A1 (`:37–51`) và `--chi-kiem-an-toan` GIỮ NGUYÊN ở đầu file → chạy ở CẢ cha lẫn mọi con (con = cùng file) TRƯỚC mọi
    `require` của máy chủ. Cha bị từ chối thì thoát 3 trước khi sinh con.
-2. Không có `--luot` → **cha**: KHÔNG tạo kho tạm, không nạp máy chủ. `require('./kich_ban.js')` chỉ để đọc `LUOT` + số kịch bản
+2. Không có `--luot` → **cha**: không nạp máy chủ. *(Sửa sau duyệt — vòng sửa 2: cha TẠO kho tạm cho từng lượt (`--kho`) và DỌN lúc thoát; con bị SIGKILL / chết trước khi cài xử lý tín hiệu không tự dọn được. Vòng sửa 3: chế độ theo SỰ CÓ MẶT của `--luot`, `--luot` phải là số nguyên ≥ 1, cha nhận `--kho` từ người gọi → TỪ CHỐI; `--kho` của lượt phải là `gia_lap_xxxxxx` ngay trong thư mục tạm.)* `require('./kich_ban.js')` chỉ để đọc `LUOT` + số kịch bản
    (file không `require` máy chủ). Sinh MỌI lượt cùng lúc: `spawn(process.execPath, [__filename, ...argv, '--luot', k],
    { env: process.env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })` (`__filename` → bản sao giả lập ở thư mục khác vẫn sinh đúng
    bản sao); in ngay `Giả lập: lượt k/L pid <pid> · KB …` (bài thử đọc pid). Xong hết thì in mọi dòng `✗ KB<n> → …` của con (thứ tự
@@ -147,7 +147,7 @@ Gán lượt: **một mảng `LUOT` trong `kich_ban.js`** (A) thay vì thêm tr�
 | 0 | mọi con thoát 0 VÀ mỗi KB phải chạy chạy đúng một lần |
 | 1 | không con nào sập, có con thoát 1 (lệch bất biến / HTTP) HOẶC lệch "chia lượt" (thiếu / trùng KB, M khác nhau) |
 | 2 | một con thoát 2 / chết vì tín hiệu / con thoát mã lạ; cha bị SIGTERM/SIGINT; cha sập |
-| 3 | A1 từ chối (cha kiểm trước khi sinh con; con thoát 3 → cha thoát 3) |
+| 3 | A1 từ chối (cha kiểm trước khi sinh con; con thoát 3 → cha thoát 3) · *(sau duyệt)* `--luot` không phải số nguyên ≥ 1 · cha nhận `--kho` · lượt nhận `--kho` không phải `gia_lap_xxxxxx` trong thư mục tạm |
 
 ## 6. B5 — `--den-kb n`: chọn bản RÚT NGẮN
 "Chỉ chạy lượt chứa KB n, tới hết KB n". Đúng vì: (a) bảng mục 2 — mọi phụ thuộc của một KB (kể cả trạng thái cần để đột biến
