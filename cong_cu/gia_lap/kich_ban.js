@@ -569,6 +569,22 @@ const KICH_BAN = [
     const [b2, r2] = await ban(c.monKhongSx, d2.data?.code, 5000);
     c.mong('bán 10.000 + mã quà 50 % (5.000 DƯỚI trần) → 200, giảm 5.000, thu 5.000', b2.status === 200
       && Number(r2?.discount_amount) === 5000 && Number(r2?.total) === 5000, `${c.ma(b2)} · ${JSON.stringify(r2)}`);
+    // K3 (soát vòng 1): ngưỡng trần ±1đ — quà 50 % trần 7.499 / 7.501, đơn 15.000 (50 % = 7.500): NGAY TRÊN trần → giảm 7.499;
+    // NGAY DƯỚI trần → giảm 7.500. Bắt đột biến dời ngưỡng `> max_discount ± n` (orders.js:621). Tích thêm 6 điểm (còn 2 + 6 = 8).
+    await c.taoDon('KB29 tích thêm', { ...kh, items: [c.mon(2, 2)], payment_method: 'cash', cash_amount: 60000 });
+    const quaTran = (tran) => c.goi('chu', 'POST', '/rewards', { name: `Quà KB29 trần ${tran}`, points_cost: 3, discount_type: 'percent',
+      discount_value: 50, max_discount: tran, valid_days: 30 });
+    const doiQua = (q) => c.goi('nv', 'POST', '/loyalty/redeem', { phone: kh.customer_phone, reward_id: q.id });
+    const q3 = await quaTran(7499), q4 = await quaTran(7501);
+    const d3 = await doiQua(q3), d4 = await doiQua(q4);
+    const [b3, r3] = await ban(c.mon(3), d3.data?.code, 7501);
+    c.mong('quà trần 7.499: tạo + đổi 200; bán 15.000 (7.500 NGAY TRÊN trần 1đ) → 200, giảm 7.499, thu 7.501', q3.status === 200
+      && d3.status === 200 && b3.status === 200 && Number(r3?.discount_amount) === 7499 && Number(r3?.total) === 7501,
+    `${c.ma(q3)} / ${c.ma(d3)} / ${c.ma(b3)} · ${JSON.stringify(r3)}`);
+    const [b4, r4] = await ban(c.mon(3), d4.data?.code, 7500);
+    c.mong('quà trần 7.501: tạo + đổi 200; bán 15.000 (7.500 NGAY DƯỚI trần 1đ) → 200, giảm 7.500, thu 7.500', q4.status === 200
+      && d4.status === 200 && b4.status === 200 && Number(r4?.discount_amount) === 7500 && Number(r4?.total) === 7500,
+    `${c.ma(q4)} / ${c.ma(d4)} / ${c.ma(b4)} · ${JSON.stringify(r4)}`);
   } },
 ];
 
