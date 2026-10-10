@@ -81,6 +81,8 @@ async function cha() {
     const r = { k, con, ra: '' };
     kq.push(r);
     viet(`  lượt ${k}/${LUOT.length} pid ${con.pid} · KB ${luot.join(',')}`);
+    con.stdout.setEncoding('utf8');   // khúc 64 KB không cắt giữa ký tự nhiều byte (→, ✗, Lượt) — mất dòng lệch thì đột biến ra LẠC
+    con.stderr.setEncoding('utf8');
     con.stdout.on('data', (d) => { r.ra += d; });
     con.stderr.on('data', (d) => { r.ra += d; });
     // Không sinh được con (vd EAGAIN lúc máy tải nặng): vẫn kết thúc bằng dòng SẬP — lỗi phát qua sự kiện, cha().catch không bắt.
@@ -95,7 +97,11 @@ async function cha() {
     });
   });
   await Promise.all(chon.map(mo));
-  if (ket) { viet(ket.dong); process.exit(ket.ma); }
+  if (ket) {   // dừng sớm: vẫn in dòng lệch của các lượt đã xong (chẩn đoán), dòng kết luận ở CUỐI
+    kq.forEach((r) => r.ra.split('\n').filter((l) => /^\s*✗ /.test(l)).forEach((l) => viet('  ' + l.trim())));
+    viet(ket.dong);
+    process.exit(ket.ma);
+  }
   const lech = [];
   const dem = new Map(phai.map((n) => [n, 0]));
   const bb = new Set();
