@@ -1,0 +1,84 @@
+LUOI-1 — bằng chứng ĐỎ trên gốc. Chạy lại 10.10.2026 (CHAT soát thay vòng 4, máy chat 1 lõi, chạy RIÊNG) với bài thử của bản sửa
+của chat (109 ca). Lần trước (máy, 2e6e524): 45 đạt · 59 hỏng, SỐ CA 104.
+
+SỐ CA cong_cu/thu_gia_lap.js: 109
+
+== cong_cu/thu_gia_lap.js của việc này chạy trên GỐC 9521cec ==
+Cách dựng: thư mục nháp ngoài kho; `git archive 9521cec cong_cu server tu_chay/cau_hinh.json kiem_tra_truoc_khi_giao.js
+package.json`, node_modules nối (chỉ đọc), chép thu_gia_lap.js của HEAD đè lên (cmp khớp byte); chạy `node cong_cu/thu_gia_lap.js`.
+server/ client/ tu_chay/ của việc này KHÔNG đổi so với gốc (git diff --stat 9521cec -- server client tu_chay rỗng).
+Kết quả: thoát 1 · 45 đạt · 64 hỏng. Trên bản sửa của chat: thoát 0 · 109 đạt · 0 hỏng (máy chat 95,3 s).
+Lưu ý (người soát vòng 1): ca I12–I17 đỏ trên gốc chỉ vì thiếu hàm; bằng chứng các bất biến đó BẮT lỗi thật nằm ở C3
+(viec/LUOI-1/dot_bien.py) và C1 (21 đột biến máy chủ).
+Các ca hỏng trên gốc:
+  ✗ thoát 0, dòng tổng đúng "Giả lập: 27 kịch bản · 16 bất biến · ĐẠT"  — thoát 0 · Giả lập: 18 kịch bản · 10 bất biến · ĐẠT
+  ✗ I7 sạch: SX lỗi → đúng 1 dòng nợ chờ đẩy  — ["vân tay POS:1:out:0 (đơn D1) SX nhận 0 lần","nợ kho POS:1:out:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 sạch: nợ đã đẩy xong + SX nhận 1  — ["nợ kho POS:1:out:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 sạch: đơn đã xoá — lỗi out + in, mỗi cái 1 dòng nợ  — ["nợ kho POS:9:out:0 (D1) dù SX giả không lỗi","nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 SX nhận 1 VÀ còn nợ chờ đẩy  — ["nợ kho POS:1:out:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 nợ đã xong nhưng SX nhận 0 (đơn đã xoá)  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 SX lỗi (đơn đã xoá) mà không có dòng nợ  — []
+  ✗ I7 SX lỗi một lần mà 2 dòng nợ cùng vân tay  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi","nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 dòng nợ không có lần SX lỗi  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
+  ✗ I7 dòng nợ không vân tay  — ["nợ kho null (D1) dù SX giả không lỗi"]
+  ✗ I7 dòng nợ không vân tay, SX giả cũng ghi lỗi không vân tay  — ["nợ kho null (D1) dù SX giả không lỗi"]
+  ✗ I7 SX lỗi ở kịch bản không bật công tắc  — ["nợ kho POS:9:in:0 (D1) dù SX giả không lỗi"]
+  ✗ I8 đổi trừ 2 điểm (ít hơn giá)  — []
+  ✗ I8 đổi trừ 4 điểm (nhiều hơn giá)  — []
+  ✗ I8 dòng đổi không quà nào trỏ tới  — []
+  ✗ I8 dòng đổi 0 điểm không quà nào trỏ tới (chỉ vế số quà)  — []
+  ✗ I8 hai quà trỏ một dòng đổi  — []
+  ✗ I8 loại dòng điểm lạ  — []
+  ✗ I8 dòng điểm không có loại (NULL)  — []
+  ✗ I12 sạch: quà ↔ dòng redeem cùng SĐT, mã đúng trị giá, dùng 1 lần — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 quà trỏ dòng không phải redeem — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 dòng redeem của SĐT khác — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 dòng redeem −2 (ít hơn giá) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 dòng redeem −4 (nhiều hơn giá) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trùng hai dòng (chỉ vế số mã) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã mất trần giảm (0 thay vì 2.000) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trần 1.999 (thấp hơn quà 1) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trần 2.001 (cao hơn quà 1 — khách được giảm thêm) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trị giá 4.999 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã trị giá 5.001 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã loại % thay cố định — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã dùng tối đa 2 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I12 mã dùng tối đa 0 (không giới hạn) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I13 sạch: đơn đã áp + lượt tay; đơn gõ mã không áp (trống / cùng loại khác trị giá / khác loại cùng trị giá) không tính; mã không giới hạn dùng 2 lần — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I13 dùng 0, có 1 đơn đã áp (phía dưới) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I13 dùng 3, 1 đơn + 1 tay (phía trên) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I13 vượt giới hạn dù khớp số đơn — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 sạch: mua lấy ngay, lấy (+ thẻ 0đ), lấy đã huỷ, gói tay + /deliver, gói huỷ, đơn lẻ, mua không lấy ngay — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 đã giao 4 > đơn 3 (phía trên) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 đã giao 2 < đơn 3 (phía dưới) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 /deliver không ghi sổ quầy — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 đã giao vượt tổng — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 gói của đơn mua đã huỷ còn dùng được — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 gói của đơn mua đã xoá còn dùng được — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 đơn trỏ gói không còn — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I14 đơn mua gói lấy ngay không trỏ gói của nó — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I15 sạch: đơn thẻ có 1 dòng mua; đơn thẻ đã huỷ / không SĐT / đơn thường không có — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I15 đơn thẻ 0 dòng mua (phía dưới) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I15 đơn thẻ 2 dòng mua (phía trên) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I15 dòng mua thẻ của đơn đã huỷ — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I15 dòng mua thẻ của đơn không còn — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I16 sạch: dòng đổi CUỐI khớp tiền trên đơn (đổi sang tiền mặt; đổi sang chuyển khoản) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I16 đổi sang chuyển khoản mà tiền mặt chưa về 0 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I16 đơn vẫn chuyển khoản sau khi đổi sang tiền mặt — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I16 số tiền đổi 24.999 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I16 số tiền đổi 25.001 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I16 đổi sang tiền mặt mà CK chưa về 0 — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 sạch: duyệt gắn đúng dòng refund; yêu cầu chờ không cần — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 duyệt không gắn dòng sổ — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 gắn dòng không phải refund — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 gắn dòng của đơn khác — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 gắn dòng của SĐT khác — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 dòng sổ 29.999 (ít hơn) — SẬP: BAT_BIEN[bb] is not a function  — null
+  ✗ I17 dòng sổ 30.001 (nhiều hơn) — SẬP: BAT_BIEN[bb] is not a function  — null
+
+== Bằng chứng KB10 siết (chủ quán dặn 09.10) — viec/LUOI-1/dot_bien.py, cách chạy goc10 ==
+Đột biến "trễ không bật lại" trên GỐC = tắt trễ sau mỗi kịch bản (như A1) mà không bật lại trước kịch bản sau; --den-kb 10.
+GOC-KB10-cu-tre-khong-bat-lai   : KB10 CŨ — chỉ ca chồng đỏ, ca "trễ kho đang bật" vẫn XANH (trung vị trên cả phiên) → LẠC.
+GOC-KB10-siet-tre-khong-bat-lai : KB10 SIẾT của việc này — đỏ CẢ hai ca → BẮT.
+✓ LẠC  (mong LẠC)  GOC-KB10-cu-tre-khong-bat-lai  (3 s) · ✗ KB10 → HTTP: hai lệnh thu chồng nhau → đúng một 200 + một 409 DA_THU_ROI: HTTP 200 / HTTP 400 · Đơn hàng đã được thanh toán đầy đủ · thiếu mẫu: KB10 → HTTP: trễ kho đang bật
+✓ BẮT  (mong BẮT)  GOC-KB10-siet-tre-khong-bat-lai  (3 s) · ✗ KB10 → HTTP: hai lệnh thu chồng nhau → đúng một 200 + một 409 DA_THU_ROI: HTTP 200 / HTTP 400 · Đơn hàng đã được thanh toán đầy đủ | ✗ KB10 → HTTP: trễ kho đang bật (trung vị một lệnh của KB10 ≥ 35 ms): trung vị 0 ms trên 0 lệnh của KB10
