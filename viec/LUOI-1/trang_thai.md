@@ -674,6 +674,21 @@ Số đo (máy CHAT 1 lõi, chạy RIÊNG, tuần tự — máy chat chậm hơn
 Còn lại cho máy (sau khi script đặt bản sửa lên nhánh — CHỈ CHẠY, KHÔNG SỬA): đo RIÊNG trên máy mây (giả lập, `thu_gia_lap`,
 `--day-du` phải 0 CẢNH BÁO), C1 + C2 (87) và C4 trên HEAD mới; ghi số vào mục này. Lệch thì DỪNG, báo.
 
+**Máy mây chạy (10.10.2026, HEAD `b7b4401`, máy 4 lõi, chạy RIÊNG, tuần tự — CHỈ CHẠY, không sửa file nào ngoài mục này):**
+| Lệnh | Kết quả |
+|---|---|
+| `npm test` | PASS 61 · FAIL 0 · CẢNH BÁO 0 |
+| giả lập (`node viec/LUOI-1/do_thoi_gian.js gl`) | **78,5 s** · thoát 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT |
+| `thu_gia_lap` (`… thugl`) | **87,4 s** (< 96 s) · thoát 0 · 109 đạt · 0 hỏng |
+| `--day-du` (`… kiem`) | **223,4 s** · thoát 0 · ĐẾM: PASS 65 · FAIL 0 · **CẢNH BÁO 0** |
+| C3 `python3 viec/LUOI-1/dot_bien.py -j 4` | tổng 80 · BẮT 78 · LẠC 1 · SỐNG 1 · HỎNG 0 · TREO 0 · **đúng mong đợi 80/80** · 247 s · thoát 0 (LẠC = `GOC-KB10-cu-tre-khong-bat-lai`, SỐNG = `VS-SRV-doi-ck-giu-tien-mat` — cả hai mong đợi đúng như vậy) |
+| C1 + C2 `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4` | C1 **21/21 BẮT** · C2 **40/40 vẫn BẮT** · C2F BẮT 62 · SỐNG 23 · HỎNG 0 · LẠC 1 (`C2F-orders-02-insert-quay`, như gốc) · TREO 0; C2 BẮT 1 · 1826 s · "✓ kho thật không đổi" · thoát 0 |
+| C4 TU-CHAY-4 `python3 viec/TU-CHAY-4/dot_bien.py` | XANH — 0 đột biến không đạt (10/10 ✓) · thoát 0 |
+| C4 P26b (18 đột biến chạy giả lập) | 18 đột biến bị bắt · 0 KHÔNG bị bắt (trên 18) · thoát 0 |
+| C4 HOC-2b (25, bỏ 3 cái `p26b`) | 25 đạt · 0 không đạt · thoát 0 |
+| C4 AUDIT-1 `G3 D1 -j 4` | D1 BẮT 55 · LẠC 2 (`!D1-E11-P20`, `!D1-E11-P26a` — như gốc) · G3 BẮT 1 · SỐNG 1 (`G3-vo-hai`) · HỎNG 1 (`G3-sai-chuoi`) · LẠC 1 (`G3-sap`) — đúng thiết kế · 371 s · "✓ kho thật không đổi" · thoát 0 |
+Lệch mong đợi: **không có**.
+
 **Báo cáo 7 mục (chat):** (1) Đã làm: lưới cho AU-G1/G2/G3/G6 + AU-G4 — 9 kịch bản (KB19–27), 6 bất biến mới + I7/I8 mở rộng, A1
 (bất biến không cộng trễ), công tắc SX lỗi; KHÔNG sửa logic tiền. (2) Nghiệm thu: C1 21/21 BẮT, C3 đúng mong đợi, bài thử xanh.
 (3) CHƯA PHỦ: Phát hiện 10, 13, 14, 15 + ca chồng mã 400 trong giao dịch (Phát hiện 9). (4) Lỗi tiền lộ ra, gom P26c/P26d:
