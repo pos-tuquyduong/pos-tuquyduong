@@ -20,8 +20,6 @@ CH, KB = 'cong_cu/gia_lap/chay.js', 'cong_cu/gia_lap/kich_ban.js'
 LY, OR = 'server/routes/loyalty.js', 'server/routes/orders.js'
 L1, L3 = '[[2, 15, 17, 28]', '[1, 4, 5, 6, 7, 8,'
 DEM = "  for (const [n, c] of dem) if (c !== 1) lech.push(`chia lượt → KB${n} chạy ${c} lần`);\n"
-TIN_HIEU = ("if (LUOT_K) {\n  for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // cha / bộ kiểm hết giờ gửi SIGTERM → vẫn dọn\n"
-            "  process.on('disconnect', () => process.exit(2));   // TACH-GL: cha chết (kể cả SIGKILL) → kênh IPC đứt → tự thoát + dọn kho\n}\n")
 KET = "  viet(lech.length ? `${tongCha} · KHÔNG ĐẠT (${lech.length} lệch)` : `${tongCha} · ĐẠT`);\n  process.exit(lech.length ? 1 : 0);\n"
 
 # (tên, cách chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], [mẫu — PHẢI khớp hết], kết quả mong đợi)
@@ -43,10 +41,11 @@ DOT_BIEN = [
   ('BV-cha-khong-dung-con-SIGTERM', 'thugl', [(CH, "    for (const r of kq) if (r.ma === undefined) r.con.kill('SIGTERM');\n", '', 1)], [r'✗ T3 '], 'BẮT'),
   ('BV-cha-khong-dung-con-khi-sap', 'thugl', [(CH, '      else if (ma !== 0 && ma !== 1) dungHet(', '      else if (false) dungHet(', 1)], [r'✗ T4 '], 'BẮT'),
   ('BV-con-khong-theo-doi-cha', 'thugl', [(CH, "  process.on('disconnect', () => process.exit(2));", '', 1)], [r'✗ T5 '], 'BẮT'),
-  # Thứ tự cũ (tạo kho rồi mới cài xử lý tín hiệu) + chờ 500 ms ở khe giữa → tất định: tín hiệu tới khi kho đã có mà chưa có xử lý.
-  # Không chờ thì khe chỉ vài µs–ms (chập chờn: 1 lần sót 2 kho trong 6 lần thu_gia_lap lúc máy tải nặng — trang_thai.md).
-  ('VS-kho-truoc-tin-hieu', 'thugl', [(CH, TIN_HIEU, '', 1), (CH, "if (LUOT_K) process.on('exit', ",
-    "if (LUOT_K) { const t = Date.now() + 500; while (Date.now() < t); }\n" + TIN_HIEU + "if (LUOT_K) process.on('exit', ", 1)], [r'✗ T6 '], 'BẮT'),
+  # Soát vòng 2 (chập chờn tái hiện dưới tải: con bị SIGKILL sau 10 s / chết trước khi cài xử lý tín hiệu → sót kho): cha tạo + dọn
+  # kho từng lượt. Bỏ phần dọn của cha → T6 TẤT ĐỊNH (kho có trước khi con kịp khởi động, con chết theo mặc định — không ai dọn).
+  ('BV-cha-khong-don-kho', 'thugl', [(CH, "  process.on('exit', () => khoCon.forEach(", "  if (0) process.on('exit', () => khoCon.forEach(", 1)], [r'✗ T6 '], 'BẮT'),
+  # A2: --kho phải là gia_lap_xxxxxx ngay trong thư mục tạm (con xoá nó lúc thoát) — bỏ phép → con nhận thư mục lạ, T7 bắt.
+  ('BV-kho-khong-kiem', 'thugl', [(CH, 'if (KHO && !(path.dirname', 'if (0 && KHO && !(path.dirname', 1)], [r'✗ T7 '], 'BẮT'),
   # Soát vòng 1 (K5): --den-kb 0 = lượt rỗng (khởi động + dựng) như trước chia lượt — bỏ nhánh đó thì T0 bắt.
   ('BV-den-kb-0-luot-rong', 'thugl', [(CH, 'const chon = DEN_KB < 1 ? LUOT.slice(0, 1) : rut', 'const chon = rut', 1),
     (CH, 'const phai = DEN_KB < 1 ? [] : rut', 'const phai = rut', 1)], [r'✗ T0 '], 'BẮT'),
@@ -55,7 +54,7 @@ DOT_BIEN = [
   ('VS-luot-thieu-bat-bien', 'thugl', [(CH, 'const tenBB = Object.keys(BAT_BIEN);', 'const tenBB = Object.keys(BAT_BIEN).slice(0, LUOT_K === 2 ? 8 : 99);', 1)],
    [r'✗ thoát 0, dòng tổng đúng .* — thoát 1 · Giả lập: 29 kịch bản · 16 bất biến', r'chia lượt → số bất biến các lượt khác nhau'], 'BẮT'),
   ('VS-con-giau-dong-lech', 'thugl', [(CH, "  if (lech.length) { lech.forEach((l) => viet('  ✗ ' + l)); viet(", '  if (lech.length) { viet(', 1)],
-   [r'✗ M1 .*chia lượt → lượt \d thoát 1 không kèm kết quả'], 'BẮT'),
+   [r'✗ M1 .* — thoát 1 · Giả lập: 0 kịch bản · 0 bất biến · KHÔNG ĐẠT .*không có dòng lệch bất biến'], 'BẮT'),   # cha không tin lượt thoát 1 không kèm dòng lệch
   ('VS-luot-tuan-tu', 'thugl', [(CH, '  await Promise.all(chon.map(mo));\n', '  for (const l of chon) await mo(l);\n', 1)], [r'✗ T1 '], 'BẮT'),
   ('VS-dong-lech-so-trong-luot', 'thugl', [(CH, '        lech.push(`KB${i + 1} → ${ten}: ${l}`);', '        lech.push(`KB${daChay.length} → ${ten}: ${l}`);', 1)],
    [r'✗ M1 '], 'BẮT'),
@@ -127,7 +126,7 @@ def cham(db):
 
 def main():
   a = sys.argv[1:]
-  j = 3
+  j = 2   # 3 thu_gia_lap cùng lúc làm C3 (đo giờ) đỏ oan — đo 10.10
   if '-j' in a: i = a.index('-j'); j = int(a[i + 1]); del a[i:i + 2]
   if len({d[0] for d in DOT_BIEN}) != len(DOT_BIEN): print('tên đột biến trùng'); return 2
   ds = [d for d in DOT_BIEN if not a or any(t == d[0] or (t.endswith('*') and d[0].startswith(t[:-1])) for t in a)]
