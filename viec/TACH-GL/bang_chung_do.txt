@@ -2,17 +2,18 @@
 # Bài thử đã sửa (thu_gia_lap.js, kiem_tra_truoc_khi_giao.js, viec/LUOI-1/dot_bien.py) chạy trên cong_cu/gia_lap/ của gốc 2237259
 # (chưa sửa chay.js / kich_ban.js).
 
-## node viec/TACH-GL/chay_goc.js — thu_gia_lap của HEAD trên cong_cu/gia_lap/ gốc 2237259: 7 ca ĐỎ (E1 dòng tổng 29,
-## T1–T6 chia lượt; T0 --den-kb 0 xanh cả hai phía — ca K5). Chạy lại sau vòng sửa 1 (thêm T0 — A16).
+## node viec/TACH-GL/chay_goc.js — thu_gia_lap của HEAD trên cong_cu/gia_lap/ gốc 2237259: 8 ca ĐỎ (E1 dòng tổng 29,
+## T1–T7 chia lượt; T0 --den-kb 0 xanh cả hai phía — ca K5). Chạy lại sau vòng sửa 2 (T7, vế SIGTERM của T3/T4 — A16).
 thu_gia_lap (HEAD) trên gia_lap gốc 2237259 · thoát 1
   ✗ thoát 0, dòng tổng đúng "Giả lập: 29 kịch bản · 16 bất biến · ĐẠT"  — thoát 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT
   ✗ T1 các lượt chạy CÙNG LÚC: khi mọi lượt đã mở kho, đủ L ≥ 2 pid còn sống  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT
   ✗ T2 mỗi KB 1…29 chạy đúng một lần (gộp dòng "Lượt k: KB …")  — (không có dòng Lượt)
-  ✗ T3 cha bị SIGTERM → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0), mọi con đã chết, không sót gia_lap_*  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT · đóng: (không có)
-  ✗ T4 một lượt bị SIGTERM (sập) → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0), mọi con đã chết, không sót gia_lap_*  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT · đóng: (không có)
+  ✗ T3 cha bị SIGTERM → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0, ít nhất một lượt tự thoát nhờ SIGTERM), mọi con đã chết, không sót gia_lap_*  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT · đóng: (không có)
+  ✗ T4 một lượt bị SIGTERM (sập) → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0, ít nhất một lượt tự thoát nhờ SIGTERM), mọi con đã chết, không sót gia_lap_*  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT · đóng: (không có)
   ✗ T5 cha bị SIGKILL (như hẹn 110 s) → mọi con tự thoát trong 15 s, không sót gia_lap_*  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT
   ✗ T6 SIGTERM mọi lượt ngay khi kho đầu tiên vừa tạo → cha thoát 2, dòng cuối là dòng SẬP, mọi con đã chết, không sót gia_lap_*  — thoát 0 · 0 lượt · pid (không có) · đã làm false · cùng lúc false · con còn sống 0 · sót 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT
-  110 đạt · 7 hỏng
+  ✗ T7 --kho ngoài thư mục tạm (đường bất kỳ sẽ bị xoá lúc thoát) → thoát 3, TỪ CHỐI, thư mục đó còn nguyên  — thoát 0 · Giả lập: 27 kịch bản · 16 bất biến · ĐẠT
+  110 đạt · 8 hỏng
 
 ## node kiem_tra_truoc_khi_giao.js --day-du — bánh cóc 29 ĐỎ (giả lập gốc 27 kịch bản)
   ✗ bánh cóc giả lập: ≥ 29 kịch bản, ≥ 16 bất biến  → Giả lập: 27 kịch bản · 16 bất biến
@@ -23,4 +24,4 @@ LUOI-1 dot_bien: 1 đột biến · -j 4 · kiểm sạch 1 cách chạy (kb28)
 ✗ SỐNG (mong BẮT)  VS-SRV-doi-ck-giu-tien-mat  (80 s) · thoát 0
   tổng 1 · BẮT 0 · LẠC 0 · SỐNG 1 · HỎNG 0 · TREO 0 · đúng mong đợi 0/1 · 159 s
 
-SỐ CA cong_cu/thu_gia_lap.js: 117
+SỐ CA cong_cu/thu_gia_lap.js: 118
