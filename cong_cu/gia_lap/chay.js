@@ -67,6 +67,10 @@ async function cha() {
   const chon = DEN_KB < 1 ? LUOT.slice(0, 1) : rut ? LUOT.filter((l) => l.includes(DEN_KB)) : LUOT;
   const phai = DEN_KB < 1 ? [] : rut ? [...new Set([DEN_KB, ...chon.flat().filter((n) => n <= DEN_KB)])] : KICH_BAN.map((_, i) => i + 1);
   const kq = [];
+  // Kho tạm của từng lượt: CHA tạo, CHA xoá lúc thoát (con vẫn tự xoá khi cha chết — T5). Con bị SIGKILL (không đáp SIGTERM trong
+  // 10 s lúc máy tải nặng — đang trong khối đồng bộ nạp máy chủ) hay chết trước khi cài xử lý tín hiệu thì không tự dọn được.
+  const khoCon = [];
+  process.on('exit', () => khoCon.forEach((d) => { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* bỏ qua */ } }));
   let ket = null;   // dừng sớm: { dong: dòng kết luận, ma: mã thoát }
   const dungHet = (dong, ma) => {
     if (ket) return;
@@ -77,7 +81,9 @@ async function cha() {
   for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => dungHet(`Giả lập: SẬP — cha nhận ${tin}, đã dừng mọi lượt`, 2));
   const mo = (luot) => new Promise((xong) => {
     const k = LUOT.indexOf(luot) + 1;
-    const con = spawn(process.execPath, [__filename, ...process.argv.slice(2), '--luot', String(k)], { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+    const kho = fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_'));
+    khoCon.push(kho);
+    const con = spawn(process.execPath, [__filename, ...process.argv.slice(2), '--luot', String(k), '--kho', kho], { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
     const r = { k, con, ra: '' };
     kq.push(r);
     viet(`  lượt ${k}/${LUOT.length} pid ${con.pid} · KB ${luot.join(',')}`);
@@ -122,13 +128,16 @@ async function cha() {
 }
 
 // ── A2 · kho tạm (chỉ tiến trình lượt), xoá kể cả khi sập ──────────────────
-// Thứ tự CÓ CHỦ Ý: cài xử lý tín hiệu TRƯỚC khi tạo kho. Tín hiệu tới lúc kho đã có mà chưa có xử lý → tiến trình chết ngay, sót
-// kho (cha SIGTERM các lượt khi một lượt sập — thu_gia_lap T6). Xử lý JS chỉ chạy sau khối đồng bộ này, lúc đã có xử lý 'exit'.
+// Kho do cha tạo (--kho) — chỉ nhận thư mục `gia_lap_xxxxxx` nằm NGAY trong thư mục tạm (sẽ bị xoá lúc thoát: không bao giờ nhận
+// đường khác). Chạy thẳng `--luot k` không có --kho (công cụ đo) thì tự tạo. Cài xử lý tín hiệu TRƯỚC khi tạo kho (không khe).
+const KHO = thamSo('--kho', '');
+if (KHO && !(path.dirname(path.resolve(KHO)) === path.resolve(os.tmpdir()) && /^gia_lap_\w{6}$/.test(path.basename(KHO))
+  && fs.statSync(KHO, { throwIfNoEntry: false })?.isDirectory())) { viet(`Giả lập: TỪ CHỐI chạy — --kho không phải kho tạm gia_lap_ của thư mục tạm: ${KHO}`); process.exit(3); }
 if (LUOT_K) {
   for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // cha / bộ kiểm hết giờ gửi SIGTERM → vẫn dọn
   process.on('disconnect', () => process.exit(2));   // TACH-GL: cha chết (kể cả SIGKILL) → kênh IPC đứt → tự thoát + dọn kho
 }
-const THU_MUC = LUOT_K ? fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
+const THU_MUC = LUOT_K ? KHO || fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
 if (LUOT_K) process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
 const sap = (e) => { viet(`Giả lập: SẬP — ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' · ') : e}`); process.exit(2); };
 
