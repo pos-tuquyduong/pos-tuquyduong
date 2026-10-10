@@ -63,8 +63,9 @@ async function cha() {
   const { spawn } = require('child_process');
   const { KICH_BAN, LUOT } = require('./kich_ban.js');
   const rut = DEN_KB <= KICH_BAN.length;
-  const chon = rut ? LUOT.filter((l) => l.includes(DEN_KB)) : LUOT;
-  const phai = rut ? [...new Set([DEN_KB, ...chon.flat().filter((n) => n <= DEN_KB)])] : KICH_BAN.map((_, i) => i + 1);
+  // --den-kb 0 (hay âm): lượt RỖNG — một lượt chỉ khởi động + dựng dữ liệu, 0 kịch bản (đo khởi động; giữ nghĩa trước chia lượt).
+  const chon = DEN_KB < 1 ? LUOT.slice(0, 1) : rut ? LUOT.filter((l) => l.includes(DEN_KB)) : LUOT;
+  const phai = DEN_KB < 1 ? [] : rut ? [...new Set([DEN_KB, ...chon.flat().filter((n) => n <= DEN_KB)])] : KICH_BAN.map((_, i) => i + 1);
   const kq = [];
   let ket = null;   // dừng sớm: { dong: dòng kết luận, ma: mã thoát }
   const dungHet = (dong, ma) => {
@@ -82,6 +83,8 @@ async function cha() {
     viet(`  lượt ${k}/${LUOT.length} pid ${con.pid} · KB ${luot.join(',')}`);
     con.stdout.on('data', (d) => { r.ra += d; });
     con.stderr.on('data', (d) => { r.ra += d; });
+    // Không sinh được con (vd EAGAIN lúc máy tải nặng): vẫn kết thúc bằng dòng SẬP — lỗi phát qua sự kiện, cha().catch không bắt.
+    con.on('error', (e) => { if (r.ma === undefined) r.ma = 'loi'; dungHet(`Giả lập: SẬP — không sinh được lượt ${k}: ${e.message}`, 2); xong(); });
     con.on('close', (ma, tin) => {
       r.ma = ma ?? tin;
       viet(`  lượt ${k} đóng: ${r.ma}`);
