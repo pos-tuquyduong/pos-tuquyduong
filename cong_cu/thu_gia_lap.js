@@ -19,7 +19,7 @@
  *  E4  (đột biến vào chính giả lập) chạy tay: --gia-lap <bản sao đã phá>.
  *  T1–T5 (TACH-GL) giả lập chia lượt: các lượt chạy CÙNG LÚC, mỗi KB đúng một lần, cha bị SIGTERM / một lượt sập / cha
  *      bị SIGKILL → không sót tiến trình con, không sót gia_lap_*; dòng cuối luôn là dòng kết luận (cuoi() đọc dòng cuối).
- *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (con cài xử lý tín hiệu TRƯỚC khi tạo kho).
+ *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7: --kho lạ → TỪ CHỐI.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
@@ -90,7 +90,8 @@ const chayTheoDoi = (ten, viec) => new Promise((xong) => {
     if (viec === 'SIGTERM con') process.kill(pid[0], 'SIGTERM');
     if (viec === 'SIGKILL cha') c.kill('SIGKILL');
   }, 100);
-  // T6: SIGTERM MỌI con ngay khi thư mục kho đầu tiên xuất hiện (con vừa tạo kho) — khe giữa "tạo kho" và "cài xử lý tín hiệu".
+  // T6: SIGTERM MỌI con ngay khi thư mục kho đầu tiên xuất hiện (cha tạo kho trước khi sinh con) — con chết trước khi cài xử lý tín
+  // hiệu thì không tự dọn được: cha phải dọn.
   const som = viec === 'SIGTERM sớm' && setInterval(() => {
     if (daXet || !L || pid.length < L || !gl().length) return;
     daXet = true;
@@ -251,8 +252,9 @@ async function main() {
 
   // ── E1 + A2 + E2 chạy song song (mỗi lần một tiến trình, kho tạm, cổng riêng) ──
   const saos = DOT_BIEN.map(([ma, file, goc, thay, soLan]) => banSao(ma, file, goc, thay, soLan));
-  const [e1, sap, rongKb, t3, t4, t5, t6, ...dotBien] = await Promise.all([
-    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']),
+  fs.writeFileSync(path.join(rong, 'giu.txt'), 'không được xoá');
+  const [e1, sap, rongKb, khoLa, t3, t4, t5, t6, ...dotBien] = await Promise.all([
+    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']), chayGL(['--luot', '1', '--kho', rong]),
     chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
     ...saos.map((s, i) => (s.loi ? null : chayGL(['--may-chu', s.mayChu, '--den-kb', String(DOT_BIEN[i][5])]))),
   ]);
@@ -278,6 +280,8 @@ async function main() {
   k('T5 cha bị SIGKILL (như hẹn 110 s) → mọi con tự thoát trong 15 s, không sót gia_lap_*', t5.daXet && !t5.conSong.length && !t5.sot.length, moTaT(t5));
   k('T6 SIGTERM mọi lượt ngay khi kho đầu tiên vừa tạo → cha thoát 2, dòng cuối là dòng SẬP, mọi con đã chết, không sót gia_lap_*',
     t6.daXet && t6.status === 2 && SAP.test(cuoi(t6)) && !t6.conSong.length && !t6.sot.length, moTaT(t6));
+  k('T7 --kho ngoài thư mục tạm (đường bất kỳ sẽ bị xoá lúc thoát) → thoát 3, TỪ CHỐI, thư mục đó còn nguyên', khoLa.status === 3
+    && /TỪ CHỐI/.test(cuoi(khoLa)) && fs.existsSync(path.join(rong, 'giu.txt')), moTa(khoLa));
   console.log('\n[A2] kho tạm, data/');
   k('máy chủ hỏng (--may-chu thư mục rỗng) → giả lập sập, thoát 2, dòng cuối là dòng SẬP', sap.status === 2 && SAP.test(cuoi(sap)), moTa(sap));
   k(`data/ không đổi (${dataTruoc.slice(0, 40)})`, chup() === dataTruoc, chup().slice(0, 80));
