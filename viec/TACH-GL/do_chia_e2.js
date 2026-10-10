@@ -27,6 +27,9 @@ let s = fs.readFileSync(p, 'utf8');
 const neo = '    if (i + 1 > DEN_KB) break;\n';
 if (s.split(neo).length !== 2) throw new Error('neo không khớp');
 fs.writeFileSync(p, s.replace(neo, neo + "    if (!String(process.env.GL_CHI).split(',').map(Number).includes(i + 1)) continue;\n"));
+// Sau chia lượt: chạy THẲNG tiến trình lượt (--luot 1, LUOT ghi đè = mọi KB) — GL_CHI quyết lượt, không qua cha (cha đòi đủ LUOT
+// đã commit → lệch "chạy 0 lần" làm vế thoát 1 luôn đúng). Gốc bỏ qua --luot.
+fs.appendFileSync(path.join(gl, 'kich_ban.js'), '\nmodule.exports.LUOT = [module.exports.KICH_BAN.map((_, i) => i + 1)];   // do_chia_e2: một lượt\n');
 
 const chay = ([ma, file, goc, thay, soLan, kb, bb]) => new Promise((xong) => {
   const thu = path.join(TAM, ma.split(' ')[0]);
@@ -39,7 +42,7 @@ const chay = ([ma, file, goc, thay, soLan, kb, bb]) => new Promise((xong) => {
   fs.writeFileSync(f, nd.split(goc).join(thay));
   const luot = LUOT.find((l) => l.includes(kb));
   const chi = luot.filter((x) => x <= kb).join(',');
-  const c = spawn(process.execPath, [p, '--may-chu', path.join(thu, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')],
+  const c = spawn(process.execPath, [p, '--luot', '1', '--may-chu', path.join(thu, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')],
     { cwd: GOC, env: { ...SACH, GL_CHI: chi } });
   let ra = '';
   c.stdout.on('data', (d) => { ra += d; });
