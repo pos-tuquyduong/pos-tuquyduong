@@ -27,8 +27,8 @@ KET = "  viet(lech.length ? `${tongCha} · KHÔNG ĐẠT (${lech.length} lệch)
 # (tên, cách chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], [mẫu — PHẢI khớp hết], kết quả mong đợi)
 DOT_BIEN = [
   # ── chay.js / kich_ban.js — cơ chế chia lượt, bắt bằng ca của thu_gia_lap ──
-  ('BV-cha-bo-luot', 'thugl', [(CH, 'const chon = rut ? LUOT.filter((l) => l.includes(DEN_KB)) : LUOT;',
-                                'const chon = rut ? LUOT.filter((l) => l.includes(DEN_KB)) : LUOT.slice(1);', 1)],
+  ('BV-cha-bo-luot', 'thugl', [(CH, 'LUOT.filter((l) => l.includes(DEN_KB)) : LUOT;',
+                                'LUOT.filter((l) => l.includes(DEN_KB)) : LUOT.slice(1);', 1)],
    [r'✗ thoát 0, dòng tổng đúng', r'✗ T2 '], 'BẮT'),
   ('VS-kb-hai-luot', 'thugl', [(KB, L1, '[[2, 5, 15, 17, 28]', 1)], [r'✗ thoát 0, dòng tổng đúng', r'chia lượt → KB5 chạy 2 lần'], 'BẮT'),
   # KB5 hai lượt + KB6 không lượt nào: N vẫn 29 — dòng tổng chỉ đỏ nhờ phép "đúng một lần" của cha.
