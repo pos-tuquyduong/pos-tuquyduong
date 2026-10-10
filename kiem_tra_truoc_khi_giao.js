@@ -753,8 +753,8 @@ const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /
 const NGUONG_KICH_BAN = 29;   // 18 → 27: LUOI-1 thêm KB19–KB27 (đổi điểm, mã, gói, thẻ, nợ kho SX); 27 → 29: TACH-GL thêm KB28–KB29
 const NGUONG_BAT_BIEN = 16;   // 10 → 16: LUOI-1 thêm I12–I17. (11 → 10 ở HOC-2b: bỏ I10, I10 ⊂ I11 — chủ quán chốt 2a.)
 // S4 — đo CHẠY RIÊNG trên máy mây 4 lõi. LUOI-1 (09.10): 27 KB nối tiếp — giả lập 80–85 s, thu_gia_lap 90–94 s (sát ngưỡng).
-// TACH-GL (10.10): chia 4 lượt chạy cùng lúc (chay.js cha/con, LUOT trong kich_ban.js) + KB28–29 → giả lập 24,4 s (3 lần),
-// thu_gia_lap 36,2–37,3 s (5 lần; CPU cả tiến trình con 34,8–37,3 s = sàn thời gian trên máy 1 lõi). CHỈ chạy ở --day-du (cổng cong-chay
+// TACH-GL (10.10): chia 4 lượt chạy cùng lúc (chay.js cha/con, LUOT trong kich_ban.js) + KB28–29 → giả lập 24,3–24,4 s (3 lần),
+// thu_gia_lap 36,9–38,4 s (5 lần; CPU cả tiến trình con 36,5–39,7 s = sàn thời gian trên máy 1 lõi). CHỈ chạy ở --day-du (cổng cong-chay
 // chạy --day-du); hạn 120 s, xanh mà quá 80 % (96 s) → CẢNH BÁO (HOC-2b C3). Thêm kịch bản thì đo lại, vượt → hỏi chủ quán, KHÔNG nới.
 {
   if (DAY_DU) {
