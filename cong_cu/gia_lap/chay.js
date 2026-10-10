@@ -53,12 +53,19 @@ const lyDo = kiemAnToan();
 if (lyDo) { viet(`Giả lập: TỪ CHỐI chạy — ${lyDo}`); process.exit(3); }
 if (process.argv.includes('--chi-kiem-an-toan')) { viet('Giả lập: an toàn: qua'); process.exit(0); }
 
-// ── TACH-GL · CHA (không có --luot): không kho tạm, không nạp máy chủ. Sinh MỌI lượt (LUOT, kich_ban.js) CÙNG LÚC — mỗi lượt một
+// ── TACH-GL · chế độ: CÓ --luot = tiến trình lượt (con), KHÔNG = cha — theo SỰ CÓ MẶT, không theo giá trị (giá trị hỏng mà rơi về
+// cha thì cha tự sinh lại chính nó mãi — soát vòng 3). --luot phải là số nguyên ≥ 1. --kho chỉ dành cho lượt: cha nhận --kho từ
+// người gọi thì TỪ CHỐI (cha chuyển nguyên đối số xuống con, thamSo lấy lần ĐẦU → --kho lạ sẽ đè kho cha tạo rồi bị xoá).
+const LA_CON = process.argv.includes('--luot');
+const LUOT_K = LA_CON ? Number(thamSo('--luot', '')) : 0;
+if (LA_CON && !/^[1-9]\d*$/.test(String(thamSo('--luot', '')))) { viet(`Giả lập: TỪ CHỐI chạy — --luot phải là số nguyên ≥ 1: ${thamSo('--luot', '(thiếu)')}`); process.exit(3); }
+if (!LA_CON && process.argv.includes('--kho')) { viet('Giả lập: TỪ CHỐI chạy — --kho chỉ dành cho tiến trình lượt (cha tự tạo kho cho từng lượt)'); process.exit(3); }
+
+// ── TACH-GL · CHA (không có --luot): không nạp máy chủ; tạo kho tạm cho từng lượt và dọn lúc thoát. Sinh MỌI lượt (LUOT, kich_ban.js) CÙNG LÚC — mỗi lượt một
 // tiến trình = chính file này + --luot k, nên A1 ở trên chạy lại trong con TRƯỚC mọi require máy chủ. --den-kb n: chỉ lượt chứa
 // KB n, tới KB n (mọi phụ thuộc của một KB nằm trong lượt của nó, ở KB nhỏ hơn — viec/TACH-GL/ke_hoach.md mục 2, 6). Gộp: dòng
 // lệch của con (SỐ GỐC), mỗi KB phải chạy đúng một lần, số bất biến lấy từ con; dòng CUỐI luôn là dòng kết luận (thu_gia_lap đọc
 // dòng cuối). Cha bị SIGTERM/SIGINT hoặc một lượt sập → SIGTERM mọi lượt còn chạy (con dọn kho), chờ, quá 10 s thì SIGKILL.
-const LUOT_K = Number(thamSo('--luot', 0));
 async function cha() {
   const { spawn } = require('child_process');
   const { KICH_BAN, LUOT } = require('./kich_ban.js');
@@ -133,12 +140,12 @@ async function cha() {
 const KHO = thamSo('--kho', '');
 if (KHO && !(path.dirname(path.resolve(KHO)) === path.resolve(os.tmpdir()) && /^gia_lap_\w{6}$/.test(path.basename(KHO))
   && fs.statSync(KHO, { throwIfNoEntry: false })?.isDirectory())) { viet(`Giả lập: TỪ CHỐI chạy — --kho không phải kho tạm gia_lap_ của thư mục tạm: ${KHO}`); process.exit(3); }
-if (LUOT_K) {
+if (LA_CON) {
   for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // cha / bộ kiểm hết giờ gửi SIGTERM → vẫn dọn
   process.on('disconnect', () => process.exit(2));   // TACH-GL: cha chết (kể cả SIGKILL) → kênh IPC đứt → tự thoát + dọn kho
 }
-const THU_MUC = LUOT_K ? KHO || fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
-if (LUOT_K) process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
+const THU_MUC = LA_CON ? KHO || fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
+if (LA_CON) process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
 const sap = (e) => { viet(`Giả lập: SẬP — ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' · ') : e}`); process.exit(2); };
 
 async function main() {
@@ -286,5 +293,5 @@ async function main() {
   process.exit(0);
 }
 
-if (LUOT_K) main().catch(sap);
+if (LA_CON) main().catch(sap);
 else cha().catch(sap);
