@@ -750,7 +750,7 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 // S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG (trừ lần hạ có chủ quán chốt). Việc sau thêm kịch bản mới, không
 // xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
-const NGUONG_KICH_BAN = 27;   // 18 → 27: LUOI-1 thêm KB19–KB27 (đổi điểm, mã, gói, thẻ, nợ kho SX)
+const NGUONG_KICH_BAN = 29;   // 18 → 27: LUOI-1 thêm KB19–KB27 (đổi điểm, mã, gói, thẻ, nợ kho SX); 27 → 29: TACH-GL thêm KB28–KB29
 const NGUONG_BAT_BIEN = 16;   // 10 → 16: LUOI-1 thêm I12–I17. (11 → 10 ở HOC-2b: bỏ I10, I10 ⊂ I11 — chủ quán chốt 2a.)
 // S4 — đo CHẠY RIÊNG trên máy mây 4 lõi (LUOI-1, 09.10.2026): giả lập 67 s → 58 s sau A1 (bất biến không cộng trễ) → 80–85 s
 // với 27 kịch bản; thu_gia_lap 75 s → 66 s sau A1 → 90–94 s với 27 kịch bản (lần cuối 93,4 s). CHỈ chạy ở --day-du (cổng cong-chay chạy --day-du); hạn 120 s, xanh mà quá
