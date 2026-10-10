@@ -45,7 +45,7 @@ DOT_BIEN = [
   # kho từng lượt. Bỏ phần dọn của cha → T6 TẤT ĐỊNH (kho có trước khi con kịp khởi động, con chết theo mặc định — không ai dọn).
   ('BV-cha-khong-don-kho', 'thugl', [(CH, "  process.on('exit', () => khoCon.forEach(", "  if (0) process.on('exit', () => khoCon.forEach(", 1)], [r'✗ T6 '], 'BẮT'),
   # A2: --kho phải là gia_lap_xxxxxx ngay trong thư mục tạm (con xoá nó lúc thoát) — bỏ phép → con nhận thư mục lạ, T7 bắt.
-  ('BV-kho-khong-kiem', 'thugl', [(CH, 'if (KHO && !(path.dirname', 'if (0 && KHO && !(path.dirname', 1)], [r'✗ T7 '], 'BẮT'),
+  ('BV-kho-khong-kiem', 'thugl', [(CH, 'if (KHO && !(path.dirname', 'if (0 && KHO && !(path.dirname', 1)], [r'✗ T7a ', r'✗ T7b '], 'BẮT'),
   # Soát vòng 1 (K5): --den-kb 0 = lượt rỗng (khởi động + dựng) như trước chia lượt — bỏ nhánh đó thì T0 bắt.
   ('BV-den-kb-0-luot-rong', 'thugl', [(CH, 'const chon = DEN_KB < 1 ? LUOT.slice(0, 1) : rut', 'const chon = rut', 1),
     (CH, 'const phai = DEN_KB < 1 ? [] : rut', 'const phai = rut', 1)], [r'✗ T0 '], 'BẮT'),
@@ -55,6 +55,12 @@ DOT_BIEN = [
    [r'✗ thoát 0, dòng tổng đúng .* — thoát 1 · Giả lập: 29 kịch bản · 16 bất biến', r'chia lượt → số bất biến các lượt khác nhau'], 'BẮT'),
   ('VS-con-giau-dong-lech', 'thugl', [(CH, "  if (lech.length) { lech.forEach((l) => viet('  ✗ ' + l)); viet(", '  if (lech.length) { viet(', 1)],
    [r'✗ M1 .* — thoát 1 · Giả lập: 0 kịch bản · 0 bất biến · KHÔNG ĐẠT .*không có dòng lệch bất biến'], 'BẮT'),   # cha không tin lượt thoát 1 không kèm dòng lệch
+  # Soát vòng 3: mỗi vế của phép --kho / --luot một đột biến (BV-kho-khong-kiem gỡ cả khối nên che vế thư mục tạm — SỐNG khi chỉ có T7 cũ).
+  ('BV-kho-bo-ve-thu-muc-tam', 'thugl', [(CH, 'path.dirname(path.resolve(KHO)) === path.resolve(os.tmpdir()) && ', '', 1)], [r'✗ T7a '], 'BẮT'),
+  ('BV-kho-bo-ve-ten', 'thugl', [(CH, ' && /^gia_lap_\\w{6}$/.test(path.basename(KHO))', '', 1)], [r'✗ T7b '], 'BẮT'),
+  ('BV-cha-nhan-kho', 'thugl', [(CH, "if (!LA_CON && process.argv.includes('--kho'))", "if (0 && !LA_CON && process.argv.includes('--kho'))", 1)], [r'✗ T8 '], 'BẮT'),
+  # Không tự sinh lại mãi kể cả khi bỏ phép: chế độ theo SỰ CÓ MẶT của --luot → con với lượt không có → sập (thoát 2), T9 đòi thoát 3.
+  ('BV-luot-khong-kiem', 'thugl', [(CH, 'if (LA_CON && !/^[1-9]', 'if (0 && LA_CON && !/^[1-9]', 1)], [r'✗ T9 --luot 0 ', r'✗ T9 --luot x '], 'BẮT'),
   ('VS-luot-tuan-tu', 'thugl', [(CH, '  await Promise.all(chon.map(mo));\n', '  for (const l of chon) await mo(l);\n', 1)], [r'✗ T1 '], 'BẮT'),
   ('VS-dong-lech-so-trong-luot', 'thugl', [(CH, '        lech.push(`KB${i + 1} → ${ten}: ${l}`);', '        lech.push(`KB${daChay.length} → ${ten}: ${l}`);', 1)],
    [r'✗ M1 '], 'BẮT'),
