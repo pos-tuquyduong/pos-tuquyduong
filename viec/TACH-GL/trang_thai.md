@@ -17,20 +17,22 @@ T5 SIGKILL). Thêm: ở MỌI lối thoát dòng cuối cha in là dòng kết l
 Chat đã thử trên bản sao máy 1 lõi: 4 lượt cùng lúc ĐẠT, lượt dài nhất 26,6 s; 5 đột biến máy chủ BẮT.
 
 ## Bước đang làm
-Bước 8 (soát độc lập vòng 3 — vòng cuối, `so_vong_sua_toi_da` 3). Mọi số dưới đây là của HEAD cuối (sau vòng sửa 2, `ca2255e`);
+Bước 8 — soát kiểm chứng sau vòng sửa 3/3 (vòng sửa CUỐI). Mọi số dưới đây là của HEAD cuối (sau vòng sửa 3, `e1633d6`);
 số của các lần trước nằm trong mục vòng soát/vòng sửa, ghi "(cũ)".
 
 ## Bài thử (bước 4) — đỏ trên gốc, xanh trên head
 `viec/TACH-GL/bang_chung_do.txt` (`node viec/TACH-GL/chay_goc.js` — `thu_gia_lap` của HEAD trên `cong_cu/gia_lap/` gốc 2237259):
-trên gốc **110 đạt · 8 hỏng** (E1 dòng tổng 29; T1–T7 chia lượt); trên head **118 đạt · 0 hỏng** (`SỐ CA cong_cu/thu_gia_lap.js:
-118`). Ca xanh cả hai phía có chủ ý (K5): "đúng MỘT dòng tổng", "--may-chu rỗng → dòng cuối SẬP", T0 `--den-kb 0`. Bánh cóc 29:
+trên gốc **110 đạt · 13 hỏng** (E1 dòng tổng 29; T1–T6, T7a, T7b, T8, T9 ×3); trên head **123 đạt · 0 hỏng** (`SỐ CA
+cong_cu/thu_gia_lap.js: 123`). Ca xanh cả hai phía có chủ ý (K5): "đúng MỘT dòng tổng", "--may-chu rỗng → dòng cuối SẬP", T0 `--den-kb 0`. Bánh cóc 29:
 đỏ trên gốc (27). LUOI-1 `VS-SRV-doi-ck-giu-tien-mat`: gốc SỐNG (mong BẮT).
 Lối dòng cuối (yêu cầu chủ quán): tổng — E1 (`cuoi(e1) === DONG_DAT`); SẬP — ca `--may-chu` rỗng + T3/T4/T6 (`SAP.test(cuoi())`);
-TỪ CHỐI — E3 (cha) + T7 (con: `--kho` lạ). Lối "con TỪ CHỐI vì môi trường" và "spawn lỗi": CHƯA KIỂM (không tới được / không dựng được).
+TỪ CHỐI — cha: E3 (A1), T8 (`--kho`), T9 (`--luot` hỏng); lượt chạy thẳng: T7a/T7b. Lối "con thoát 3 → cha thoát 3" và "spawn lỗi":
+CHƯA KIỂM (không tới được — cha kiểm A1/`--luot`/`--kho` trước khi sinh con với cùng môi trường / không dựng được).
 T3/T4 thêm vế "mọi lượt bị dừng (đóng ≠ 0)" (không có thì `BV-cha-khong-dung-con-khi-sap` SỐNG) và vế "ít nhất một lượt tự thoát nhờ
-SIGTERM (đóng 2)" (không có thì `BV-cha-khong-dung-con-SIGTERM` SỐNG sau khi cha tự dọn kho — vòng sửa 2).
+SIGTERM (đóng 2)" (không có thì `BV-cha-khong-dung-con-SIGTERM` SỐNG sau khi cha tự dọn kho — vòng sửa 2; vế này chỉ có tác
+dụng ở T3 — ở T4 lượt bị bài thử SIGTERM luôn đóng 2).
 
-## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, HEAD cuối, 506 s: 22 đột biến · BẮT 22 · đúng mong đợi 22/22)
+## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, HEAD cuối, 568 s: 26 đột biến · BẮT 26 · đúng mong đợi 26/26)
 | Chỗ đổi | Đột biến | Bắt bằng |
 |---|---|---|
 | cha sinh mọi lượt (`chon`) | `BV-cha-bo-luot` | E1 (25 KB, 4 lệch) + T2 |
@@ -45,7 +47,11 @@ SIGTERM (đóng 2)" (không có thì `BV-cha-khong-dung-con-SIGTERM` SỐNG sau 
 | một lượt sập → dừng con khác | `BV-cha-khong-dung-con-khi-sap` | T4 (thoát 1, đóng 0) |
 | con theo dõi cha (`disconnect`) | `BV-con-khong-theo-doi-cha` | T5 (con còn sống sau 15 s) |
 | cha tạo + dọn kho từng lượt | `BV-cha-khong-don-kho` | T6 (tất định: kho có trước khi con khởi động) |
-| `--kho` chỉ nhận `gia_lap_xxxxxx` trong thư mục tạm | `BV-kho-khong-kiem` | T7 (thư mục lạ bị nhận) |
+| `--kho` của lượt — cả khối phép | `BV-kho-khong-kiem` | T7a + T7b |
+| `--kho` — vế "ngay trong thư mục tạm" | `BV-kho-bo-ve-thu-muc-tam` | T7a |
+| `--kho` — vế tên `gia_lap_xxxxxx` | `BV-kho-bo-ve-ten` | T7b |
+| cha từ chối `--kho` của người gọi | `BV-cha-nhan-kho` | T8 (kho của giả lập khác bị xoá) |
+| `--luot` phải là số nguyên ≥ 1 | `BV-luot-khong-kiem` | T9 (sập thoát 2 thay vì TỪ CHỐI — không đệ quy) |
 | `--den-kb 0` = lượt rỗng | `BV-den-kb-0-luot-rong` | T0 |
 | các lượt CÙNG LÚC | `VS-luot-tuan-tu` | T1 (đã làm false — không dùng ngưỡng giờ) |
 | dòng lệch giữ SỐ GỐC | `VS-dong-lech-so-trong-luot` | E2 M1 (`KB2 → I6` thay `KB10`) |
@@ -82,12 +88,12 @@ lúc thoát**; con vẫn tự xoá khi cha chết (T5); con chỉ nhận `--kho`
 ## A — số đo (máy mây 4 lõi, chạy riêng, `node viec/TACH-GL/do_cpu.js` — CPU = user + sys của mọi tiến trình con được chờ)
 | | Gốc (A0) | HEAD cuối (A1) | Mục tiêu |
 |---|---|---|---|
-| giả lập | 79,8 s · CPU 4,1 s · 27 KB | **24,4 · 24,4 · 24,4 s** · CPU 7,8–8,0 s · 29 KB ĐẠT | ≤ 60 s |
-| `thu_gia_lap` | 89,6 s · 109 đạt | **36,4 · 37,2 · 36,2 · 37,3 · 36,4 s** (5 lần) · CPU 34,8–37,3 s · 118 đạt | ≤ 72 s |
-| `--day-du` | 252,5 s · 0 CẢNH BÁO | **149,0 s** · PASS 65 · FAIL 0 · **CẢNH BÁO 0** | 0 CẢNH BÁO |
+| giả lập | 79,8 s · CPU 4,1 s · 27 KB | **24,4 · 24,3 · 24,4 s** · CPU 7,7–8,2 s · 29 KB ĐẠT | ≤ 60 s |
+| `thu_gia_lap` | 89,6 s · 109 đạt | **37,1 · 38,1 · 37,2 · 38,4 · 36,9 s** (5 lần) · CPU 36,5–39,7 s · 123 đạt | ≤ 72 s |
+| `--day-du` | 252,5 s · 0 CẢNH BÁO | **150,0 s** · PASS 65 · FAIL 0 · **CẢNH BÁO 0** | 0 CẢNH BÁO |
 `npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0. Chú thích S4 (`kiem_tra_truoc_khi_giao.js`) chép đúng bảng này.
-A2 — ước máy chat 1 lõi: giả lập ≈ lượt dài nhất (CPU 7,8–8,0 s ≪ 24,4 s chờ) → ~26–28 s (chat đo bản sao: lượt dài nhất 26,6 s).
-`thu_gia_lap`: tổng CPU 34,8–37,3 s là SÀN trên 1 lõi; chờ chồng lên một phần → ước ~45–60 s (< 72 s, nhưng hẹp hơn máy mây).
+A2 — ước máy chat 1 lõi: giả lập ≈ lượt dài nhất (CPU 7,7–8,2 s ≪ 24,4 s chờ) → ~26–28 s (chat đo bản sao: lượt dài nhất 26,6 s).
+`thu_gia_lap`: tổng CPU 36,5–39,7 s là SÀN trên 1 lõi; chờ chồng lên một phần → ước ~45–60 s (< 72 s, nhưng hẹp hơn máy mây).
 CHƯA KIỂM trên 1 lõi (người gác chặn `taskset`) — chat đo xác nhận. Nghi ngờ của soát vòng 1–2 "SIGKILL sau 10 s trên 1 lõi" nay
 không còn sót kho (cha dọn); T3/T4 chỉ đòi ít nhất MỘT lượt đáp SIGTERM.
 
@@ -97,13 +103,13 @@ không còn sót kho (cha dọn); T3/T4 chỉ đòi ít nhất MỘT lượt đ�
 HEAD cuối: 4 · 5 · 12 · 8 kịch bản, đều ĐẠT).
 
 ## D — đột biến (đếm đủ, chạy riêng, HEAD cuối)
-- **D1** `thu_gia_lap` E2: 13/13 (trong 118 đạt).
-- **D2** `python3 viec/LUOI-1/dot_bien.py -j 4`: 80 · BẮT 79 · LẠC 1 · đúng mong đợi **80/80** · 93 s. `VS-SRV-doi-ck-giu-tien-mat`
+- **D1** `thu_gia_lap` E2: 13/13 (trong 123 đạt).
+- **D2** `python3 viec/LUOI-1/dot_bien.py -j 4`: 80 · BẮT 79 · LẠC 1 · đúng mong đợi **80/80** · 90 s. `VS-SRV-doi-ck-giu-tien-mat`
   **BẮT** (`KB28 → I16`); `GOC-KB10-cu-tre-khong-bat-lai` LẠC như gốc.
 - **D3** `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4`: C2 BẮT 1 · C2F BẮT 62 · SỐNG 23 · LẠC 1
-  (`C2F-orders-02-insert-quay`, như gốc) · 644 s · kho thật không đổi. Đối chiếu bằng máy với "Bảng đủ 87" của
-  `viec/LUOI-1/trang_thai.md` (ba lần chạy: sau làm, sau vòng sửa 1, HEAD cuối): **87/87 cùng trạng thái, 0 lệch** — không đổi LUOT.
-- **D4** 22/22 (bảng trên).
+  (`C2F-orders-02-insert-quay`, như gốc) · 638 s · kho thật không đổi. Đối chiếu bằng máy với "Bảng đủ 87" của
+  `viec/LUOI-1/trang_thai.md` (bốn lần chạy: sau làm, sau vòng sửa 1, sau vòng sửa 2, HEAD cuối): **87/87 cùng trạng thái, 0 lệch** — không đổi LUOT.
+- **D4** 26/26 (bảng trên).
 - **D5** `python3 viec/HOC-2b/kiem_neo.py`: mọi bộ 0 HỎNG trừ `G3-sai-chuoi` (cố ý). TU-CHAY-4: XANH 10/10 (E4c bắt nhờ số bất biến
   lấy từ con; E4d bắt nhờ N = 10 + T2). P26b: 59/59 bị bắt. HOC-2b: 28 đạt · 0 không đạt. AUDIT-1 D1: BẮT 55 · LẠC 2
   (`!D1-E11-P20`, `!D1-E11-P26a` — như gốc, HOC-2b P5) · kho không đổi. AUDIT-1 G3: BẮT 1 · SỐNG 1 (`G3-vo-hai`) · HỎNG 1
@@ -327,6 +333,66 @@ Sự cố trong vòng sửa (K4, lặp): (a) đoạn thay thế trong `dot_bien.
 (`BV-den-kb-0-luot-rong`, `VS-luot-thieu-bat-bien`, `VS-con-giau-dong-lech`) — phát hiện vì lần chạy chỉ ra 2/3 tên, khôi phục từ HEAD;
 (b) mẫu `VS-con-giau-dong-lech` ban đầu dò dòng mà E2 không in (E2 chỉ in dòng `→ I<n>`) → LẠC, sửa theo dòng thật.
 Bằng chứng đỏ chạy lại trên gốc sau vòng sửa 2: 110 đạt · 8 hỏng; `SỐ CA` 118 (A16).
+
+## Soát độc lập — vòng 3 (`/ra-soat`, agent general-purpose mới, 10.10) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+Tôi chạy lại trên HEAD 5977572, mỗi lệnh chạy riêng:
+- `node cong_cu/gia_lap/chay.js`: `Giả lập: 29 kịch bản · 16 bất biến · ĐẠT`.
+- `node cong_cu/thu_gia_lap.js`: 118 đạt · 0 hỏng, khớp `SỐ CA 118`.
+- `npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0.
+- `--day-du`: PASS 65 · FAIL 0 · CẢNH BÁO 0, trong đó thu_gia_lap chạy 37,5 s.
+- `kiem_neo.py`: 0 HỎNG, trừ `G3-sai-chuoi` (cố ý).
+- Đếm neo `viec/TACH-GL/dot_bien.py`: 22/22 khớp.
+
+Phần chạy đúng không còn gì để chê. Nhưng chính vòng sửa 2 (`--kho`) để lại một lỗ an toàn A2 có thật, và bài thử T7 chỉ khoá được một nửa phép kiểm `--kho`.
+
+LỖI TÌM ĐƯỢC:
+- cong_cu/gia_lap/chay.js:86 (cùng :34 và :133–135) — Cha chuyển nguyên `process.argv.slice(2)` cho con rồi mới nối `--luot k --kho <kho cha tạo>`. Nhưng `thamSo` (:34) lấy lần xuất hiện ĐẦU TIÊN của mỗi tham số, nên con nhận `--kho` do người gọi gửi, không nhận kho cha vừa tạo. Phép kiểm `--kho` ở :134 lại chạy ở cấp module, tức là chạy cả ở cha. Vì vậy `--kho` gửi cho cha được kiểm cho qua, rồi chuyển xuống mọi con.
+  Đã chứng minh bằng chay.js THẬT, không sửa gì (scratchpad/demo_kho.js): `node chay.js --kho $TMPDIR/gia_lap_KHAC01 --den-kb 0` → thoát 0 · ĐẠT, và thư mục "của tiến trình khác" bị XOÁ cùng file đánh dấu bên trong. Chạy đủ thì cả 4 lượt dùng chung một kho.db, cả 4 thoát 1, thư mục lạ vẫn bị xoá.
+  Câu hỏi A2 của phiếu ("cha/con có xoá được thư mục của tiến trình khác không?") có câu trả lời là CÓ: kho `gia_lap_*` của một giả lập khác đang chạy cùng TMPDIR (thu_gia_lap, bộ đột biến -j) sẽ bị xoá. — K4 (thêm `--kho` ở con, quên đường chuyển argv của cha) + B4.
+- cong_cu/gia_lap/chay.js:61 + :86 — Cũng do chuyển argv như trên, nên cha tự sinh lại chính nó mãi (fork bomb). `--luot 0`, `--luot x`, hay `--luot` thiếu giá trị đều cho `LUOT_K` = 0/NaN → chạy như cha. Con của nó nhận `--luot <giá trị hỏng> … --luot k`, lấy giá trị đầu nên cũng chạy như cha → đệ quy không đáy: 4^n tiến trình, mỗi tiến trình một mkdtemp. Riêng `--den-kb 0` chỉ một con mỗi cấp nên là chuỗi vô hạn.
+  Đã chứng minh trên bản sao trong os.tmpdir có chặn độ sâu 3 (scratchpad/demo_luot.js): cha in lồng 3 cấp `✗ chia lượt → lượt 1 thoát … không kèm kết quả`. Không có ca thử, không có đột biến nào cho trường hợp này. Bản thân lối `--luot` có từ c75971d. — K4/K7.
+- cong_cu/thu_gia_lap.js:286 (T7) cùng :184, :54 — Tên ca ghi "--kho ngoài thư mục tạm", nhưng `rong` = `TAM/may_chu_rong` mà TMPDIR của con chính là `TAM`, tức là nằm TRONG thư mục tạm. T7 chỉ thử vế tên `gia_lap_xxxxxx`, không thử vế "thư mục cha là thư mục tạm" (chay.js:134).
+  Đột biến tự dựng (dùng nguyên `cham()` của viec/TACH-GL/dot_bien.py, có kiểm realpath): bỏ RIÊNG vế thư mục tạm → **SỐNG** (thu_gia_lap thoát 0). Bỏ RIÊNG vế tên → BẮT ở T7. Nghĩa là `--kho /bất/kỳ/gia_lap_abcdef` có thể bị `rmSync` mà không bài nào đỏ. `BV-kho-khong-kiem` bỏ cả khối nên che mất chỗ hở này. Dòng D4 ở trang_thai.md:48 ("chỉ nhận gia_lap_xxxxxx trong thư mục tạm … T7") hứa nhiều hơn thứ T7 thật sự khoá. — K3 (ca chặn vi phạm hai vế; tên ca khác chỗ kiểm).
+- cong_cu/gia_lap/chay.js:56 — Chú thích "CHA (không có --luot): không kho tạm" trái với :70–:85 (từ 28380c0 cha tạo kho từng lượt). viec/TACH-GL/ke_hoach.md:124 ("cha: KHÔNG tạo kho tạm") cũng cũ, file chưa sửa lần nào từ d1ee840. Bảng mã thoát ở ke_hoach.md:146–151 chưa có lối `--kho` từ chối. — K4 (sửa thiết kế mà không grep câu cùng nghĩa).
+- viec/TACH-GL/trang_thai.md:29 — Câu "TỪ CHỐI — … + T7 (con: `--kho` lạ)" được tính là phủ lối dòng cuối của CHA. Nhưng T7 gọi thẳng `--luot 1` (thu_gia_lap.js:257), không đi qua cha. Lối cha :100 (`ma === 3 → dungHet(cuoiCon, 3)`) vẫn chưa có ca nào tới được. — K1.
+
+NGHI NGỜ:
+- T4 (thu_gia_lap.js:271–279): vế "ít nhất một lượt đóng 2" luôn đúng sẵn, vì chính lượt bài thử SIGTERM (pid[0]) tự thoát 2 nhờ chay.js:137. Vế này chỉ có tác dụng ở T3, khác với trang_thai.md:30–31 nói cần cho cả T3/T4. Chưa thấy đột biến cụ thể nào lọt qua, vì `dungHet` dùng chung với T3.
+- T3/T4 đòi có ít nhất một lượt đáp SIGTERM trong 10 s. Máy 1 lõi tải nặng có thể làm mọi lượt đóng SIGKILL → đỏ oan. Chưa đo được, người gác chặn `taskset`.
+- chay.js:95: `con.on('error')` cũng phát ra khi `kill()` thất bại, lúc đó có thể gọi `xong()` trước `close`. Ảnh hưởng rất nhỏ; chưa dựng được.
+- Lần đầu tôi đếm neo LUOI-1 thì báo `GOC-KB10-siet-tre-khong-bat-lai` lệch. Đó là tôi soát nhầm: neo đó áp lên git archive của gốc cũ, không áp lên HEAD (K2 của tôi). Không phải lỗi.
+
+NGHIỆM THU:    20/21 mục có bằng chứng và đạt · B4 có bằng chứng nhưng bị lỗi thứ nhất bác (A2: cha/con xoá được thư mục `gia_lap_*` của tiến trình khác; tham số `--luot` hỏng gây đệ quy). (từng mục còn lại: có.)
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy lại đủ D2 (80), D3 (87), D4 (22) và D5 (TU-CHAY-4, P26b, HOC-2b, AUDIT-1 D1/G3); chỉ chạy kiem_neo và đếm neo.
+- Không chạy fork bomb thật mà không có chặn độ sâu (nguy hiểm cho máy).
+- Không đo trên máy 1 lõi.
+- Không xem được check PR.
+- Không dựng được lối cha :100 (con TỪ CHỐI) hay lỗi spawn.
+- K5 đã thử và qua: TMPDIR tương đối `rel/`, và TMPDIR tuyệt đối có `/` cuối (`--den-kb 28` ĐẠT, không sót).
+
+BÀI HỌC:
+- KHOÁ: cha không chuyển tiếp tham số nội bộ. Lọc `--luot`/`--kho` khỏi argv trước khi sinh con, và cha TỪ CHỐI (thoát 3) khi người gọi gửi `--kho`, hoặc `--luot` không phải số nguyên 1..L. Kèm ca thử `--luot 0`, `--luot x`, `--luot` thiếu giá trị, và cha nhận `--kho` hợp lệ → từ chối, thư mục còn nguyên.
+- KHOÁ: tách T7 thành hai ca, mỗi ca vi phạm ĐÚNG MỘT vế: tên đúng nhưng nằm ngoài TMPDIR; trong TMPDIR nhưng tên sai. Thêm đột biến bỏ riêng từng vế vào dot_bien.py.
+- NGUYÊN TẮC (K4): thêm tham số cha→con thì rà mọi đường argv đi qua: chuyển tiếp, lấy lần đầu hay lần cuối, phép kiểm chạy ở cấp module (cả cha lẫn con). Đổi thiết kế đã duyệt thì grep chú thích và ke_hoach tìm mọi câu cùng nghĩa ("cha không tạo kho").
+- NGUYÊN TẮC (K3): tên ca có chữ "ngoài X" thì đầu vào phải thật sự nằm ngoài X. Tự kiểm bằng cách in đường thật so với TMPDIR của con.
+```
+
+## Vòng sửa 3/3 (sau soát vòng 3, 10.10) — vòng sửa CUỐI, mỗi dòng kèm commit
+| Lỗi / nghi ngờ | Xử lý | Commit |
+|---|---|---|
+| `--kho` người gọi đè kho cha tạo → xoá kho của giả lập khác (A2, K4) | Cha nhận `--kho` → TỪ CHỐI (thoát 3). Không còn cách nào để `--kho` lạ tới con qua cha. T8 + `BV-cha-nhan-kho`. | `a42f5e4`, `ace7848`, `d324342` |
+| `--luot` hỏng → cha tự sinh lại mãi (K4/K7) | Chế độ theo SỰ CÓ MẶT của `--luot` (`LA_CON`), mọi chỗ `if (LUOT_K)` → `LA_CON`; `--luot` phải là số nguyên ≥ 1, không thì TỪ CHỐI. Bỏ phép kiểm (đột biến `BV-luot-khong-kiem`) cũng không đệ quy: con với lượt không có → sập thoát 2 → T9 (đòi 3) bắt. | `a42f5e4`, `ace7848`, `d324342` |
+| T7 chỉ khoá một vế (K3) | T7a (tên đúng, ngoài TMPDIR) · T7b (trong TMPDIR, tên sai) — mỗi ca vi phạm ĐÚNG một vế; đột biến `BV-kho-bo-ve-thu-muc-tam` (T7a), `BV-kho-bo-ve-ten` (T7b). Mẫu `BV-kho-khong-kiem` đổi `✗ T7 ` → `✗ T7a `, `✗ T7b ` (đổi tên ca làm rữa mẫu — bắt được ở lần chạy, LẠC → sửa → BẮT). | `ace7848`, `d324342` |
+| Chú thích chay.js / ke_hoach.md "cha không tạo kho", bảng mã thoát (K4) | Sửa chú thích; ke_hoach ghi "(Sửa sau duyệt — vòng sửa 2, 3)" ở thiết kế + bảng mã thoát. | `a42f5e4`, `e1633d6` |
+| trang_thai: T7 tính là lối TỪ CHỐI của cha (K1) | Lối TỪ CHỐI của CHA nay có T8 + T9 + E3; lối "con thoát 3 → cha thoát 3" (`dungHet(cuoiCon, 3)`) không tới được (cha đã kiểm A1, `--luot`, `--kho` trước khi sinh con với cùng môi trường) → CHƯA KIỂM. | commit trang_thai vòng 3 |
+| NGHI NGỜ vế "đóng 2" chỉ có tác dụng ở T3 | Đúng — ở T4 lượt bị bài thử SIGTERM luôn đóng 2; vế này khoá T3 (`BV-cha-khong-dung-con-SIGTERM`). Ghi rõ ở mục Bài thử. | commit trang_thai vòng 3 |
+| NGHI NGỜ 1 lõi mọi lượt SIGKILL → T3 đỏ oan | CHƯA KIỂM (taskset bị chặn); máy mây dưới tải 3× song song: 12/12 sạch. Chat đo. | — |
+| NGHI NGỜ `on('error')` khi `kill()` lỗi | Ảnh hưởng: `xong()` gọi sớm, cha có thể kết thúc trước khi con đó đóng — con vẫn tự dọn (disconnect), cha dọn kho lúc thoát. CHƯA KIỂM (không dựng được). | — |
 
 ## E2 — check PR
 2 check `cong` + `cong-chay`: **CHƯA KIỂM** — máy không xem được check của PR, và việc này không tạo PR (luật `/lam-viec`). Không đổi
