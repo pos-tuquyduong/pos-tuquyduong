@@ -251,8 +251,8 @@ async function main() {
 
   // ── E1 + A2 + E2 chạy song song (mỗi lần một tiến trình, kho tạm, cổng riêng) ──
   const saos = DOT_BIEN.map(([ma, file, goc, thay, soLan]) => banSao(ma, file, goc, thay, soLan));
-  const [e1, sap, t3, t4, t5, t6, ...dotBien] = await Promise.all([
-    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]),
+  const [e1, sap, rongKb, t3, t4, t5, t6, ...dotBien] = await Promise.all([
+    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']),
     chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
     ...saos.map((s, i) => (s.loi ? null : chayGL(['--may-chu', s.mayChu, '--den-kb', String(DOT_BIEN[i][5])]))),
   ]);
@@ -273,6 +273,8 @@ async function main() {
       && r.status === 2 && SAP.test(cuoi(r)) && dong.length === r.L && !dong.includes('0') && !r.conSong.length && !r.sot.length,
     `${moTaT(r)} · đóng: ${dong.join(',') || '(không có)'}`);
   }
+  k('T0 --den-kb 0 (lượt rỗng: khởi động + dựng dữ liệu, đo khởi động) → thoát 0, "Giả lập: 0 kịch bản · 16 bất biến · ĐẠT"',
+    rongKb.status === 0 && cuoi(rongKb) === 'Giả lập: 0 kịch bản · 16 bất biến · ĐẠT', moTa(rongKb));
   k('T5 cha bị SIGKILL (như hẹn 110 s) → mọi con tự thoát trong 15 s, không sót gia_lap_*', t5.daXet && !t5.conSong.length && !t5.sot.length, moTaT(t5));
   k('T6 SIGTERM mọi lượt ngay khi kho đầu tiên vừa tạo → cha thoát 2, dòng cuối là dòng SẬP, mọi con đã chết, không sót gia_lap_*',
     t6.daXet && t6.status === 2 && SAP.test(cuoi(t6)) && !t6.conSong.length && !t6.sot.length, moTaT(t6));
