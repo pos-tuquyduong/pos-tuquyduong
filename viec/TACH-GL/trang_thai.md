@@ -17,7 +17,8 @@ T5 SIGKILL). Thêm: ở MỌI lối thoát dòng cuối cha in là dòng kết l
 Chat đã thử trên bản sao máy 1 lõi: 4 lượt cùng lúc ĐẠT, lượt dài nhất 26,6 s; 5 đột biến máy chủ BẮT.
 
 ## Bước đang làm
-Bước 8 — soát kiểm chứng sau vòng sửa 3/3 (vòng sửa CUỐI). Mọi số dưới đây là của HEAD cuối (sau vòng sửa 3, `e1633d6`);
+**DỪNG — chờ chủ quán trả lời Q3** (`## Câu hỏi`): soát kiểm chứng sau vòng sửa 3/3 KHÔNG ĐẠT, đã hết số vòng sửa. Mọi số dưới
+đây là của HEAD cuối (sau vòng sửa 3, `e1633d6`);
 số của các lần trước nằm trong mục vòng soát/vòng sửa, ghi "(cũ)".
 
 ## Bài thử (bước 4) — đỏ trên gốc, xanh trên head
@@ -398,8 +399,84 @@ BÀI HỌC:
 2 check `cong` + `cong-chay`: **CHƯA KIỂM** — máy không xem được check của PR, và việc này không tạo PR (luật `/lam-viec`). Không đổi
 `tu_chay/` → không cần `cai_dat.sh`.
 
+## Soát kiểm chứng — sau vòng sửa 3/3 (`/ra-soat`, agent general-purpose mới, 10.10) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+Phần code chạy đúng. Lý do không đạt: thay đổi chính của vòng sửa 3 (chọn chế độ cha/con theo sự có mặt của `--luot`) không có bài thử nào khoá. Tôi dựng đột biến đưa nó về lỗi cũ, cả bộ vẫn 123/123 xanh.
+
+Các lệnh tôi chạy lại trên HEAD 200264d, lần lượt từng lệnh, máy 4 lõi:
+- `node cong_cu/gia_lap/chay.js`: 4 lượt, `Giả lập: 29 kịch bản · 16 bất biến · ĐẠT`, thoát 0.
+- `node cong_cu/thu_gia_lap.js`: 123 đạt · 0 hỏng, khớp `SỐ CA 123`.
+- `npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0.
+- `--day-du`: PASS 65 · FAIL 0 · CẢNH BÁO 0, thu_gia_lap trong đó 38,4 s, dist khớp src.
+- D2 `python3 viec/LUOI-1/dot_bien.py -j 4`: 80/80 đúng mong đợi. `VS-SRV-doi-ck-giu-tien-mat` BẮT (`KB28 → I16`), `GOC-KB10-cu-tre-khong-bat-lai` LẠC như gốc.
+- D4, năm đột biến của vòng sửa 3 (`BV-kho-khong-kiem`, `BV-kho-bo-ve-thu-muc-tam`, `BV-kho-bo-ve-ten`, `BV-cha-nhan-kho`, `BV-luot-khong-kiem`): 5/5 BẮT, 169 s.
+- `kiem_neo.py`: 0 HỎNG, trừ `G3-sai-chuoi` (cố ý). Tự đếm neo: TACH-GL 26/26, LUOI-1 78/78 (bỏ GOC-*), lệch 0.
+- A17: cả 26 tên đột biến có nguyên văn trong trang_thai.md.
+- `do_chia.js 2 28` chạy được trên HEAD (2 lượt ĐẠT, CPU 1,0 s mỗi lượt).
+- `--chi-kiem-an-toan` → "an toàn: qua". `--den-kb 10` → chỉ lượt 2, KB 3,10, ĐẠT.
+- Không sót thư mục `gia_lap_*`, `tachgl_*` hay `thu_gl_*` trong /tmp.
+
+LỖI TÌM ĐƯỢC:
+- cong_cu/thu_gia_lap.js:299–300 (T9), đối chiếu cong_cu/gia_lap/chay.js:59 và :62 — Tên ca T9 hứa "không rơi về chế độ cha", nhưng ca chỉ kiểm thoát 3 + chữ `/TỪ CHỐI/`. Tôi dựng đột biến đúng lỗi cũ, chọn chế độ theo GIÁ TRỊ: `const LA_CON = Number(thamSo('--luot', '')) > 0;`. Bản sao nằm trong scratchpad, đã kiểm realpath, có `server/` chép thật. Kết quả:
+  - `chay.js --luot x`, `--luot 0` và `--luot` thiếu giá trị đều rơi về chế độ cha và sinh đủ 4 lượt (in `lượt 1/4 pid …`). Mỗi con có `--kho` nên bị :62 từ chối, cha thoát 3 với dòng "TỪ CHỐI chạy — --kho chỉ dành cho tiến trình lượt".
+  - `node cong_cu/thu_gia_lap.js --gia-lap <bản sao>` → **123 đạt · 0 hỏng**, cả 3 ca T9 xanh. Đột biến SỐNG.
+  - Hệ quả: thay đổi chính của vòng sửa 3 không được bài nào khoá. Không còn đệ quy chỉ là nhờ phép từ chối `--kho` ở cha (:62) tình cờ chặn từ cấp hai. Bảng D4 không có dòng nào cho "chế độ theo sự có mặt"; `BV-luot-khong-kiem` chỉ gỡ phép regex ở :61.
+  - Cách sửa: thêm vế "không có dòng `lượt k/L pid`" vào T9, kèm đột biến chọn chế độ theo giá trị.
+  - Khuôn: K3 (tên ca nói một đằng, máy kiểm một nẻo; mỗi ca chặn phải khớp câu kết luận, không chỉ chữ TỪ CHỐI chung).
+- cong_cu/gia_lap/chay.js:61 + :269/:273 — `--luot` là số nguyên nhưng lớn hơn số lượt thì không bị từ chối. Tôi chạy thật:
+  - `--luot 5 --den-kb 0` → `Lượt 5: KB  · 16 bất biến · ĐẠT`, thoát 0. Một lượt không tồn tại mà báo ĐẠT.
+  - `--luot 5 --den-kb 3` → `SẬP — TypeError … reading 'includes'`, thoát 2, thay vì TỪ CHỐI thoát 3.
+  - Hướng hỏng an toàn: không xoá gì, không đệ quy, không sót kho. Chỉ lộ khi gọi thẳng `--luot`.
+  - Báo cáo vòng 3 đề xuất khoá "1..L", vòng sửa 3 chỉ làm "≥ 1" mà trang_thai không ghi lý do bỏ chặn trên.
+  - Khuôn: K4 (sửa nửa vời phép kiểm giá trị), mức nhẹ.
+
+NGHI NGỜ:
+- chay.js:61 — `--luot` thiếu giá trị in "…≥ 1: undefined" chứ không phải "(thiếu)", vì `thamSo` trả `argv[i+1]` khi cờ có mặt. Chỉ là chữ hiển thị.
+- chay.js:140–142 — Gọi thẳng `--luot k --kho <kho gia_lap_xxxxxx có thật của một giả lập khác cùng TMPDIR>` vẫn được nhận, và kho đó bị `rmSync` lúc thoát. Đường qua cha đã bịt (T8). Hiện không công cụ nào gọi kiểu này, nhưng phép kiểm không phân biệt "kho cha vừa tạo" với "kho của người khác". Có thể khoá thêm bằng IPC (`process.send` có mặt) hoặc một thẻ trong kho.
+- chay.js:140 — `--luot 1 --kho` thiếu giá trị thì lặng lẽ tự tạo kho. Hướng an toàn, nhưng không báo gì.
+- trang_thai.md, Bài thử + bảng vòng sửa 3 dòng 5 — ghi lối "con thoát 3 → cha thoát 3" (chay.js:107) là "không tới được → CHƯA KIỂM". Đúng với code thật. Nhưng đột biến của tôi cho thấy lối này tới được tất định qua bản sao `--gia-lap` (4 con thoát 3, cha in dòng TỪ CHỐI của con, thoát 3). Có thể khoá bằng đột biến kiểu E4 thay vì để CHƯA KIỂM.
+- T7a/T7b/T8 cũng chỉ so `/TỪ CHỐI/` chung. Hiện vẫn bắt được nhờ vế "thư mục còn nguyên", nhưng không phân biệt phép từ chối nào đã chạy (cùng khuôn với lỗi 1, nhẹ hơn).
+- ke_hoach.md §5 mục 2 ghi cha in `Giả lập: lượt k/L pid …`; thực tế là `  lượt k/L pid …` (chay.js:96). Bảng §8 không có T6–T9. Câu cũ trong kế hoạch đã duyệt, trang_thai đã phủ T6–T9.
+
+NGHIỆM THU:    21/21 mục có bằng chứng (E2 ghi CHƯA KIỂM, chấp nhận được) · mục thiếu: không có. Nhưng lỗi 1 bác lời khẳng định của vòng sửa 3 ở B4/D4: phép "không rơi về chế độ cha" không được khoá.
+(từng mục A0–F: có — xem báo cáo; đường tiền: không có lỗi tiền; P1: không đụng client/.)
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy lại đủ D3 (87 đột biến, khoảng 640 s), 21 đột biến D4 còn lại, và D5 đủ bộ (TU-CHAY-4, P26b, HOC-2b, AUDIT-1 D1/G3). Chỉ đọc mẫu: mọi mẫu `--den-kb` của bộ cũ là KB n cùng n.
+- Không đo trên máy 1 lõi (taskset bị người gác chặn).
+- Không xem được check PR `cong` / `cong-chay`.
+- Không chạy đột biến kép "chọn chế độ theo giá trị + bỏ :62". Đó sẽ là đệ quy thật, nguy hiểm cho máy.
+- Không dựng được lỗi `spawn`.
+
+BÀI HỌC:
+- KHOÁ (K3): ca "không rơi về chế độ X" phải kiểm DẤU VẾT của X (ở đây: không có dòng `lượt k/L pid`), không chỉ kiểm mã thoát + chữ kết luận chung. Kèm đột biến đưa đúng lỗi cũ trở lại (chọn chế độ theo giá trị) vào viec/TACH-GL/dot_bien.py.
+- KHOÁ: `--luot` phải nằm trong 1..LUOT.length, nếu không thì TỪ CHỐI; ca T9 thêm `--luot 5` (cả khi có `--den-kb 0`).
+- NGUYÊN TẮC (K3/K4): sửa lỗi của vòng soát thì đột biến phải TÁI HIỆN đúng lỗi được báo, không chỉ gỡ phép kiểm mới thêm. Gỡ phép thì chỉ đo phép đó; còn thiết kế chặn lỗi (chọn chế độ theo sự có mặt) vẫn không được khoá.
+- NGUYÊN TẮC (K3): tất cả các ca từ chối (T7a/T7b/T8/T9) nên so đúng câu từ chối của phép đang thử, để phép khác từ chối thay không làm ca xanh oan.
+```
+(Phần NGHIỆM THU từng mục đã rút gọn — bản đủ: 21/21 có bằng chứng, E2 CHƯA KIỂM.)
+
 ## Câu hỏi
-Xem `ke_hoach.md` mục 10 (Q1–Q2) — trả lời cùng lời duyệt kế hoạch.
+- **Q3 — đã dùng hết 3 vòng sửa (`so_vong_sua_toi_da` 3), soát kiểm chứng sau vòng sửa 3 vẫn KHÔNG ĐẠT** (báo cáo chép nguyên ở trên).
+  Code chạy đúng trên mọi phép (giả lập 29 KB ĐẠT 24,3–24,4 s; `thu_gia_lap` 123 đạt 36,9–38,4 s; `--day-du` 0 CẢNH BÁO; D1–D5 đủ,
+  không giảm lưới). Hai lỗi còn lại đều thuộc lưới tự kiểm của chính việc này, KHÔNG phải lỗ của quầy, và hướng hỏng an toàn:
+  1. (K3) T9 không khoá được "chế độ theo SỰ CÓ MẶT của `--luot`": đột biến chọn chế độ theo giá trị vẫn 123/123 xanh (đệ quy vẫn
+     bị chặn — nhờ phép cha từ chối `--kho` ở cấp hai, không nhờ bài thử).
+  2. (K4, nhẹ) `--luot` > số lượt không bị TỪ CHỐI (`--luot 5 --den-kb 0` báo ĐẠT; `--den-kb 3` sập thoát 2). Chỉ lộ khi gọi thẳng.
+  Đề xuất vòng sửa 4 (ước ~15 dòng + 2 đột biến, ~1 giờ máy chạy lại D1–D5):
+  - `chay.js:61`: `--luot` phải là số nguyên 1..`LUOT.length` (đọc `LUOT` từ `kich_ban.js` — không nạp máy chủ), in "(thiếu)" khi
+    thiếu giá trị.
+  - `thu_gia_lap.js` T9: thêm `--luot 5` (và `--luot 5 --den-kb 0`); mọi ca T7a/T7b/T8/T9 so ĐÚNG câu từ chối của phép đang thử và
+    T9 thêm vế "không có dòng `lượt k/L pid`" (không rơi về chế độ cha).
+  - `viec/TACH-GL/dot_bien.py`: `VS-che-do-theo-gia-tri` (`const LA_CON = Number(thamSo('--luot', '')) > 0;` → T9 bắt nhờ vế dấu
+    vết cha), `BV-luot-bo-chan-tren` (→ T9 `--luot 5`).
+  - Nghi ngờ `--luot k --kho <kho gia_lap_ có thật của người khác>` gọi THẲNG (không qua cha): đề xuất con chỉ nhận `--kho` khi có kênh
+    IPC (`process.send` — tức là cha sinh), không thì TỪ CHỐI; công cụ đo (`do_chia*.js`) không truyền `--kho` nên không bị chặn.
+  Chọn: (a) **cho phép vòng sửa 4** như trên **(đề xuất)**; (b) giữ nguyên, gom hai lỗi vào việc sau (P26c chạm `chay.js` trước).
+  Máy DỪNG ở đây — không tự sửa thêm.
+- Q1, Q2 (kế hoạch mục 10): đã trả lời cùng lời duyệt — xem mục "Chủ quán duyệt kế hoạch".
 
 ## Phát hiện (ngoài phạm vi — KHÔNG sửa)
 1. Màn quản trị thêm quà (`client/src/pages/Settings.jsx:565–571`) gửi `POST /api/pos/rewards` KHÔNG kèm `max_discount`; sửa
@@ -416,3 +493,52 @@ Xem `ke_hoach.md` mục 10 (Q1–Q2) — trả lời cùng lời duyệt kế ho
 4. `cong_cu/thu_gia_lap.js:62` (`chayGL`) cộng Buffer vào chuỗi không `setEncoding('utf8')` — cùng khuôn soát vòng 2 nêu ở `chay.js`
    (đã sửa ở `chay.js`). Đầu ra giả lập con > 64 KB có thể cắt giữa ký tự nhiều byte → mẫu đột biến ra LẠC. Có từ trước việc này;
    file trong Phạm vi nhưng không đụng vì không dựng được ca đỏ tất định — đề xuất gom vào việc sau.
+
+## Bài học (bước 11)
+Sự cố của việc này: (1) kế hoạch chọn cách chia làm M3 SỐNG (soát kế hoạch bắt); (2) sót `gia_lap_*` chập chờn — sửa hai lần mới
+tận gốc; (3) mỗi vòng sửa sinh lỗi mới trong chính phần vừa sửa: neo rữa (`BV-cha-bo-luot` sau sửa `--den-kb 0`), mẫu rữa
+(`BV-kho-khong-kiem` sau tách T7), xoá nhầm 3 đột biến khi thay khối theo hai neo, `--kho` mở lỗ A2, T9 không khoá thiết kế mới;
+(4) hồ sơ còn số cũ sau khi chạy lại (vòng 2); (5) người gác chặn: `nproc`, `for`, `bash -c`, `taskset`, `cd` giữa lệnh, chữ
+SECRET/environ trong lệnh, `git commit --amend` (commit `f6e8e9f` dính trailer vào tiêu đề — giữ nguyên).
+
+| Bài | Ngăn | Lý do / đề xuất |
+|---|---|---|
+| Bằng chứng "mỗi lượt chạy riêng ĐẠT" không chứng minh đột biến cũ còn bắt (M3) | **KHOÁ** (đã làm) | `do_chia_e2.js` + chú thích `LUOT` (`kich_ban.js`): đổi LUOT thì chạy E2 trước. Ngoài Phạm vi đề xuất: bộ kiểm có phép "đổi `LUOT` mà không chạy `thu_gia_lap`" — không làm được tĩnh, giữ ở chú thích. |
+| Sửa lỗi vòng soát mà đột biến không tái hiện ĐÚNG lỗi được báo (chỉ gỡ phép mới) | **NGUYÊN TẮC** — K3 | Đề xuất thêm một dòng vào K3 của `KHUON_LOI.md`: "Sửa lỗi người soát báo → đột biến phải đưa ĐÚNG lỗi cũ trở lại (vd chọn chế độ theo giá trị), không chỉ gỡ phép vừa thêm. Đã gây: TACH-GL T9 xanh với lỗi đệ quy cũ." Chưa ghi — chờ chủ quán duyệt cùng Q3 (KHUON_LOI 92/120 dòng). |
+| Thêm tham số cha → con: argv chuyển tiếp + "lấy lần đầu" + phép kiểm cấp module chạy cả ở cha | **NGUYÊN TẮC** — K4 | Đề xuất dòng K4: "Thêm cờ nội bộ cha→con → rà mọi đường argv: cha có chuyển tiếp cờ của người gọi không, `thamSo` lấy lần nào, phép kiểm cấp module có chạy ở cha không. Đã gây: TACH-GL `--kho` xoá kho của giả lập khác." Chưa ghi — chờ duyệt. |
+| Đổi tên ca / dòng chính sửa → neo + mẫu đột biến của chính việc rữa (lặp 2 lần) | **KHOÁ** (đề xuất, ngoài Phạm vi) | `viec/HOC-2b/kiem_neo.py` đọc thêm `viec/TACH-GL/`, `viec/LUOI-1/` và rà MẪU (không chỉ neo) bằng một lần chạy sạch — hoặc mỗi `dot_bien.py` có `--kiem-neo` chạy trong `npm test`. Phát hiện 3. |
+| Chạy lại bằng chứng mà hồ sơ còn số cũ | **NGUYÊN TẮC** — đã có ở K4 ("chạy lại bằng chứng → grep hồ sơ tìm mọi câu trích con số cũ") | Không thêm; lần này vi phạm luật đã có. |
+| Thay khối văn bản theo hai neo xoá nhầm phần giữa | **BỎ** | Một lần, bắt ngay ở lần chạy (thiếu tên). |
+| Người gác chặn `taskset` → không đo được 1 lõi | **BỎ** | Chat đo; không cần mở luật. |
+| Commit dính trailer (`f6e8e9f`), không amend được | **BỎ** | Một lần; các commit sau đúng dạng (dòng trống trước trailer). |
+Dọn: lời dặn K3 "Lỗi thất thường: … dựng đột biến đỏ TẤT ĐỊNH" đã được dùng đúng ở sự cố sót kho (`BV-cha-khong-don-kho`) — giữ.
+
+## Báo cáo 7 mục
+```
+VIỆC:        TACH-GL — Chia giả lập quầy thành nhiều lượt chạy song song (+ KB28 đổi tiền mặt → CK, KB29 quà % có trần)
+ĐÃ SỬA:      cong_cu/gia_lap/chay.js — cha (không --luot) sinh 4 lượt CÙNG LÚC, tạo + dọn kho từng lượt, gộp kết quả (số gốc,
+             mỗi KB đúng một lần, M từ con, một dòng kết luận ở cuối), dừng con khi SIGTERM/sập, --den-kb rút ngắn, --den-kb 0
+             lượt rỗng, --luot/--kho có kiểm; con: A1 trước mọi require, xử lý tín hiệu + disconnect trước khi có kho
+             cong_cu/gia_lap/kich_ban.js — LUOT (4 lượt, C'), KB28 (tiền mặt → CK), KB29 (quà 50 % trần: vượt / dưới / ±1đ)
+             cong_cu/thu_gia_lap.js — DONG_DAT 29, một dòng tổng, T0–T9, ca SẬP dòng cuối
+             kiem_tra_truoc_khi_giao.js — NGUONG_KICH_BAN 27 → 29, chú thích S4 theo số đo
+             viec/LUOI-1/dot_bien.py — VS-SRV-doi-ck-giu-tien-mat mong BẮT ở KB28 (kb28)
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ ở thu_gia_lap 13 ca (E1, T1–T9; bang_chung_do.txt, 110 đạt · 13 hỏng), bánh cóc 29
+             (27 < 29), LUOI-1 VS-SRV SỐNG; sau khi vá → XANH (123 đạt; --day-du 0 CẢNH BÁO; LUOI-1 80/80)
+ĐÃ RÀ K4:    grep "--den-kb|'kb" trong viec/*/dot_bien.py → mọi mẫu KB n cùng n, đã xử lý (LUOI-1 kb26 → kb28); neo của 6 bộ cũ
+             (kiem_neo) → 0 rữa trừ G3-sai-chuoi cố ý; lối thoát của cha (tổng / KHÔNG ĐẠT / SẬP / TỪ CHỐI / spawn lỗi) → dòng
+             kết luận ở cuối; còn mở: T9 không khoá chế độ theo sự có mặt + --luot > L (Q3)
+CHƯA KIỂM:   máy chat 1 lõi (taskset bị chặn — ước giả lập ~26–28 s, thu_gia_lap ~45–60 s, sàn CPU 36,5–39,7 s); check PR cong /
+             cong-chay; lối "con thoát 3 → cha thoát 3" và "spawn lỗi" (không dựng được); setEncoding (không dựng được đầu ra
+             > 64 KB cắt giữa ký tự tất định); T3/T4 trên 1 lõi tải nặng (đòi ít nhất một lượt đáp SIGTERM trong 10 s);
+             soát kiểm chứng cuối KHÔNG ĐẠT — 2 lỗi lưới tự kiểm (Q3); Phát hiện 1 (màn quà thiếu ô trần) là nghiệp vụ
+GIT:         (xem git log --oneline -2 ở cuối mục này)
+BÀI HỌC:     KHOÁ 2 (1 đã làm: do_chia_e2 + chú thích LUOT; 1 đề xuất: kiem_neo rà bộ mới + mẫu) · NGUYÊN TẮC 3 (2 đề xuất K3/K4
+             chờ duyệt, 1 đã có ở K4) · BỎ 3 — chi tiết ở ## Bài học
+```
+Nghiệm thu — đếm từng mục: A0 ✓ (ke_hoach §1) · A1 ✓ (bảng A: 24,3–24,4 s ≤ 60; 36,9–38,4 s ≤ 72; 0 CẢNH BÁO) · A2 ✓ ước +
+CPU, 1 lõi CHƯA KIỂM · B1 ✓ (ke_hoach §2 + 4 lượt chạy riêng ĐẠT) · B2 ✓ (4 phương án đo, C') · B3 ✓ (E1 + một dòng tổng) ·
+B4 ✓ có lỗ lưới tự kiểm (Q3) · B5 ✓ (ke_hoach §6, T0) · B5b ✓ (không file mới trong cong_cu/gia_lap/) · B6 ✓ (D1–D3) · C1 ✓
+(KB28, LUOI-1 BẮT) · C2 ✓ (KB29, 6 đột biến máy chủ BẮT; Q1 a) · C3 ✓ (29; S4) · D1 ✓ 13/13 · D2 ✓ 80/80 · D3 ✓ 87/87 0 lệch ·
+D4 ✓ 26/26 (thiếu đột biến "chế độ theo giá trị" — Q3) · D5 ✓ · E1 ✓ · E2 CHƯA KIỂM · F ✓ (npm test, --day-du, thu_gia_lap xanh).
+**Chưa xong:** soát kiểm chứng KHÔNG ĐẠT, hết số vòng sửa → chờ chủ quán trả lời Q3.
