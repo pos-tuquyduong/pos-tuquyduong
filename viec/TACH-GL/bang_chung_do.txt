@@ -19,3 +19,5 @@
 LUOI-1 dot_bien: 1 đột biến · -j 4 · kiểm sạch 1 cách chạy (kb28)
 ✗ SỐNG (mong BẮT)  VS-SRV-doi-ck-giu-tien-mat  (80 s) · thoát 0
   tổng 1 · BẮT 0 · LẠC 0 · SỐNG 1 · HỎNG 0 · TREO 0 · đúng mong đợi 0/1 · 159 s
+
+SỐ CA cong_cu/thu_gia_lap.js: 115
