@@ -113,12 +113,14 @@ async function cha() {
 }
 
 // ── A2 · kho tạm (chỉ tiến trình lượt), xoá kể cả khi sập ──────────────────
-const THU_MUC = LUOT_K ? fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
+// Thứ tự CÓ CHỦ Ý: cài xử lý tín hiệu TRƯỚC khi tạo kho. Tín hiệu tới lúc kho đã có mà chưa có xử lý → tiến trình chết ngay, sót
+// kho (cha SIGTERM các lượt khi một lượt sập — thu_gia_lap T6). Xử lý JS chỉ chạy sau khối đồng bộ này, lúc đã có xử lý 'exit'.
 if (LUOT_K) {
-  process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
   for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // cha / bộ kiểm hết giờ gửi SIGTERM → vẫn dọn
   process.on('disconnect', () => process.exit(2));   // TACH-GL: cha chết (kể cả SIGKILL) → kênh IPC đứt → tự thoát + dọn kho
 }
+const THU_MUC = LUOT_K ? fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
+if (LUOT_K) process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
 const sap = (e) => { viet(`Giả lập: SẬP — ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' · ') : e}`); process.exit(2); };
 
 async function main() {
