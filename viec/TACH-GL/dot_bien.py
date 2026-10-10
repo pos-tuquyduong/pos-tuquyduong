@@ -50,6 +50,12 @@ DOT_BIEN = [
   # Soát vòng 1 (K5): --den-kb 0 = lượt rỗng (khởi động + dựng) như trước chia lượt — bỏ nhánh đó thì T0 bắt.
   ('BV-den-kb-0-luot-rong', 'thugl', [(CH, 'const chon = DEN_KB < 1 ? LUOT.slice(0, 1) : rut', 'const chon = rut', 1),
     (CH, 'const phai = DEN_KB < 1 ? [] : rut', 'const phai = rut', 1)], [r'✗ T0 '], 'BẮT'),
+  # Soát vòng 2: hai phép của cha chưa có đột biến. Một lượt kiểm thiếu bất biến (8) → chỉ phép "số bất biến các lượt khác nhau" bắt
+  # (cha lấy M của lượt đầu = 16 → dòng tổng vẫn đúng chữ). Con giấu dòng lệch mà thoát 1 → phép "thoát 1 không kèm kết quả" + E2.
+  ('VS-luot-thieu-bat-bien', 'thugl', [(CH, 'const tenBB = Object.keys(BAT_BIEN);', 'const tenBB = Object.keys(BAT_BIEN).slice(0, LUOT_K === 2 ? 8 : 99);', 1)],
+   [r'✗ thoát 0, dòng tổng đúng .* — thoát 1 · Giả lập: 29 kịch bản · 16 bất biến', r'chia lượt → số bất biến các lượt khác nhau'], 'BẮT'),
+  ('VS-con-giau-dong-lech', 'thugl', [(CH, "  if (lech.length) { lech.forEach((l) => viet('  ✗ ' + l)); viet(", '  if (lech.length) { viet(', 1)],
+   [r'✗ M1 .*chia lượt → lượt \d thoát 1 không kèm kết quả'], 'BẮT'),
   ('VS-luot-tuan-tu', 'thugl', [(CH, '  await Promise.all(chon.map(mo));\n', '  for (const l of chon) await mo(l);\n', 1)], [r'✗ T1 '], 'BẮT'),
   ('VS-dong-lech-so-trong-luot', 'thugl', [(CH, '        lech.push(`KB${i + 1} → ${ten}: ${l}`);', '        lech.push(`KB${daChay.length} → ${ten}: ${l}`);', 1)],
    [r'✗ M1 '], 'BẮT'),
