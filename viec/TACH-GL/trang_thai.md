@@ -17,17 +17,20 @@ T5 SIGKILL). Thêm: ở MỌI lối thoát dòng cuối cha in là dòng kết l
 Chat đã thử trên bản sao máy 1 lõi: 4 lượt cùng lúc ĐẠT, lượt dài nhất 26,6 s; 5 đột biến máy chủ BẮT.
 
 ## Bước đang làm
-Bước 8 (soát độc lập `/ra-soat`).
+Bước 8 (soát độc lập vòng 3 — vòng cuối, `so_vong_sua_toi_da` 3). Mọi số dưới đây là của HEAD cuối (sau vòng sửa 2, `ca2255e`);
+số của các lần trước nằm trong mục vòng soát/vòng sửa, ghi "(cũ)".
 
 ## Bài thử (bước 4) — đỏ trên gốc, xanh trên head
-`viec/TACH-GL/bang_chung_do.txt`. `thu_gia_lap`: trên gốc 109 đạt · 6 hỏng (E1 dòng tổng 29, T1–T5); trên head 115 đạt · 0 hỏng
-(`SỐ CA cong_cu/thu_gia_lap.js: 115`). Bánh cóc 29: đỏ trên gốc (27). LUOI-1 `VS-SRV-doi-ck-giu-tien-mat`: gốc SỐNG (mong BẮT).
-Lối SẬP dòng cuối: ca `máy chủ hỏng (--may-chu thư mục rỗng) → … dòng cuối là dòng SẬP` + T3/T4 (dòng cuối SẬP). Lối TỪ CHỐI:
-E3 có sẵn (`cuoi()` chứa TỪ CHỐI — cha kiểm A1 trước khi sinh con). Lối tổng: E1 (`cuoi(e1) === DONG_DAT`).
-T3/T4 thêm vế "mọi lượt bị dừng (đóng ≠ 0)" TRƯỚC lần ghi bằng chứng cuối (thiếu vế này thì `BV-cha-khong-dung-con-khi-sap`
-SỐNG: các lượt khác chạy hết rồi cha vẫn thoát 2) — bằng chứng đỏ chép từ lần chạy SAU khi thêm.
+`viec/TACH-GL/bang_chung_do.txt` (`node viec/TACH-GL/chay_goc.js` — `thu_gia_lap` của HEAD trên `cong_cu/gia_lap/` gốc 2237259):
+trên gốc **110 đạt · 8 hỏng** (E1 dòng tổng 29; T1–T7 chia lượt); trên head **118 đạt · 0 hỏng** (`SỐ CA cong_cu/thu_gia_lap.js:
+118`). Ca xanh cả hai phía có chủ ý (K5): "đúng MỘT dòng tổng", "--may-chu rỗng → dòng cuối SẬP", T0 `--den-kb 0`. Bánh cóc 29:
+đỏ trên gốc (27). LUOI-1 `VS-SRV-doi-ck-giu-tien-mat`: gốc SỐNG (mong BẮT).
+Lối dòng cuối (yêu cầu chủ quán): tổng — E1 (`cuoi(e1) === DONG_DAT`); SẬP — ca `--may-chu` rỗng + T3/T4/T6 (`SAP.test(cuoi())`);
+TỪ CHỐI — E3 (cha) + T7 (con: `--kho` lạ). Lối "con TỪ CHỐI vì môi trường" và "spawn lỗi": CHƯA KIỂM (không tới được / không dựng được).
+T3/T4 thêm vế "mọi lượt bị dừng (đóng ≠ 0)" (không có thì `BV-cha-khong-dung-con-khi-sap` SỐNG) và vế "ít nhất một lượt tự thoát nhờ
+SIGTERM (đóng 2)" (không có thì `BV-cha-khong-dung-con-SIGTERM` SỐNG sau khi cha tự dọn kho — vòng sửa 2).
 
-## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, head sau vòng sửa 1, 359 s: 19 đột biến · BẮT 19 · đúng mong đợi 19/19)
+## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, HEAD cuối, 506 s: 22 đột biến · BẮT 22 · đúng mong đợi 22/22)
 | Chỗ đổi | Đột biến | Bắt bằng |
 |---|---|---|
 | cha sinh mọi lượt (`chon`) | `BV-cha-bo-luot` | E1 (25 KB, 4 lệch) + T2 |
@@ -36,25 +39,30 @@ SỐNG: các lượt khác chạy hết rồi cha vẫn thoát 2) — bằng ch�
 | phép "đúng một lần" của cha | `BV-cha-kiem-mot-lan` | T2 (`1,2,3,4,5,5,7,…`) |
 | mã thoát / kết luận của cha | `VS-cha-nuot-ma-thoat` | E2 M1, M13 (thoát 0) |
 | cha không in lại dòng tổng của con | `VS-cha-in-lai-tong-con` | E1 "đúng MỘT dòng" |
-| cha SIGTERM → dừng con | `BV-cha-khong-dung-con-SIGTERM` | T3 |
+| phép "số bất biến các lượt khác nhau" | `VS-luot-thieu-bat-bien` | E1 thoát 1 dù dòng tổng đúng chữ |
+| phép "lượt thoát 1 không kèm dòng lệch" | `VS-con-giau-dong-lech` | E2 M1 (`0 kịch bản · 0 bất biến · KHÔNG ĐẠT`) |
+| cha SIGTERM → dừng con | `BV-cha-khong-dung-con-SIGTERM` | T3 (mọi lượt đóng SIGKILL, không lượt nào đóng 2) |
 | một lượt sập → dừng con khác | `BV-cha-khong-dung-con-khi-sap` | T4 (thoát 1, đóng 0) |
 | con theo dõi cha (`disconnect`) | `BV-con-khong-theo-doi-cha` | T5 (con còn sống sau 15 s) |
+| cha tạo + dọn kho từng lượt | `BV-cha-khong-don-kho` | T6 (tất định: kho có trước khi con khởi động) |
+| `--kho` chỉ nhận `gia_lap_xxxxxx` trong thư mục tạm | `BV-kho-khong-kiem` | T7 (thư mục lạ bị nhận) |
+| `--den-kb 0` = lượt rỗng | `BV-den-kb-0-luot-rong` | T0 |
 | các lượt CÙNG LÚC | `VS-luot-tuan-tu` | T1 (đã làm false — không dùng ngưỡng giờ) |
 | dòng lệch giữ SỐ GỐC | `VS-dong-lech-so-trong-luot` | E2 M1 (`KB2 → I6` thay `KB10`) |
 | `loyalty.js:183` loại mã = loại quà | `VS-SRV-qua-viet-cung-fixed` | KB29 HTTP 400 + I12 |
 | `loyalty.js:183` trần mã = trần quà | `VS-SRV-qua-bo-tran` | KB29 HTTP 400 + I12 |
 | `orders.js:620` áp trần khi bán | `BV-SRV-ban-bo-ap-tran` | KB29 HTTP (bán 35.000) |
 | `orders.js:621` chỉ áp trần khi VƯỢT | `VS-SRV-tran-luon-ap` | KB29 HTTP (bán 10.000, ca dưới trần) |
-| con cài xử lý tín hiệu TRƯỚC khi tạo kho | `VS-kho-truoc-tin-hieu` | T6 (sót kho) |
 | `orders.js:621` ngưỡng trần (ca ngay TRÊN 1đ) | `VS-SRV-tran-doi-nguong-tren` | KB29 HTTP (quà trần 7.499) |
 | `orders.js:621` ngưỡng trần (ca ngay DƯỚI 1đ) | `VS-SRV-tran-doi-nguong-duoi` | KB29 HTTP (quà trần 7.501) |
-| `--den-kb 0` = lượt rỗng | `BV-den-kb-0-luot-rong` | T0 |
-Không có phần dựng đầu lượt (B2 ii) → không có đột biến "bỏ dựng đầu lượt".
+Không có phần dựng đầu lượt (B2 ii) → không có đột biến "bỏ dựng đầu lượt". `VS-kho-truoc-tin-hieu` (vòng sửa thứ tự cài tín hiệu)
+đã BỎ ở vòng sửa 2: cha tự dọn kho nên thứ tự trong con không còn quyết định sót kho — đột biến đó thành SỐNG đúng thiết kế.
 
 ## Soát kế hoạch (agent phụ, chỉ đọc, 10.10) — CẦN SỬA 7 điểm, đã sửa trong ke_hoach.md
 1. Cách chia C cũ tách KB4 (lượt 3) / KB8 (lượt 4) → M3 (đối soát cộng debt_payment, `thu_gia_lap` E2) SỐNG: KB4 ghi dòng
    `debt_payment` của KH.quen (`server/routes/orders.js:1257`), M3 chỉ lệch ở KB8 khi dòng đó có. Bằng chứng: `do_chia_e2.js` trên C
-   → 12/13 (M3 SỐNG), trên C' (KB8 sang lượt 3) → 13/13 BẮT. Đổi sang C'; bảng B1 thêm cột "cần để đột biến vẫn bắt".
+   → 12/13 (M3 SỐNG), trên C' (KB8 sang lượt 3) → 13/13 BẮT (chạy lại trên HEAD sau vòng sửa 2: vẫn 12/13 và 13/13). Đổi sang C';
+   bảng B1 thêm cột "cần để đột biến vẫn bắt".
 2. Thêm phép B6 trước khi chốt cách chia (`do_chia_e2.js`); C2F 87 chạy ở D3 sau khi làm — SỐNG mới thì đổi `LUOT`, không nới.
 3. Ghi rõ: M lấy từ con (giữ E4c), cha không in lại dòng tổng của con (bánh cóc lấy kết quả khớp đầu), ca "đúng một dòng tổng".
 4. LUOI-1: thêm 28 vào vòng `LENH` (`dot_bien.py:140`).
@@ -62,43 +70,46 @@ Không có phần dựng đầu lượt (B2 ii) → không có đột biến "b�
 6. Ước CPU 1 lõi cộng tiến trình con của T1–T5.
 7. KB28 sang lượt 1 (bỏ ràng buộc "sau KB27").
 
-## Sự cố giữa chừng — sót `gia_lap_*` chập chờn (K4, đã sửa)
-Đo A1 lần 3 của `thu_gia_lap`: 114 đạt · 1 hỏng; chạy lại 3 lần: 1 lần hỏng `mọi thư mục gia_lap_* đã xoá, kể cả lần sập` (sót 2
-kho) — 2/6 lần. Truy nguyên: con tạo kho (`mkdtempSync`) TRƯỚC khi cài xử lý SIGTERM; lần `--may-chu` rỗng một lượt sập → cha
-SIGTERM các lượt khác, tín hiệu rơi đúng khe → con chết theo mặc định, sót kho. Sửa `chay.js`: cài xử lý tín hiệu + `disconnect`
-TRƯỚC `mkdtempSync` (xử lý JS chỉ chạy sau khối đồng bộ, khi đã có xử lý `exit`). Thêm ca T6 (SIGTERM mọi lượt ngay khi kho đầu tiên
-vừa tạo) + đột biến TẤT ĐỊNH `VS-kho-truoc-tin-hieu` (thứ tự cũ + chờ 500 ms ở khe → T6 bắt). Bằng chứng đỏ chạy lại trên gốc
-(`viec/TACH-GL/chay_goc.js`: 109 đạt · 7 hỏng), `SỐ CA` 115 → 116 (A16). Sau sửa: 8/8 lần `thu_gia_lap` sạch (cùng khung đã thấy lỗi
-2/6 — chỉ là bằng chứng phụ; bằng chứng chính là đột biến tất định).
+## Sự cố — sót `gia_lap_*` chập chờn (K4) — sửa hai lần, gốc rễ đóng ở vòng sửa 2
+(1) Đo A1: `thu_gia_lap` 2/6 lần hỏng ca A2 "mọi thư mục gia_lap_* đã xoá" (sót kho). Lần sửa đầu: con cài xử lý tín hiệu TRƯỚC
+`mkdtempSync` + T6 + đột biến tất định (khe 500 ms). (2) Vòng sửa 2: dưới tải nặng (3 `thu_gia_lap` cùng lúc) T6 đỏ 6/9, T3 có
+`đóng: 2,2,2,SIGKILL` — con đang trong khối đồng bộ nạp máy chủ không đáp SIGTERM trong 10 s → cha SIGKILL → con không tự dọn được;
+con chết trước khi cài xử lý tín hiệu cũng vậy. Sửa tận gốc, không phụ thuộc thời gian: **cha tạo kho từng lượt (`--kho`) và cha xoá
+lúc thoát**; con vẫn tự xoá khi cha chết (T5); con chỉ nhận `--kho` là `gia_lap_xxxxxx` ngay trong thư mục tạm (T7 — A2: không nhận
+đường bậy rồi `rmSync`). Sau sửa, cùng khung tải nặng: 6/6 + 6/6 sạch (bằng chứng phụ); bằng chứng chính: `BV-cha-khong-don-kho`
+(T6 tất định) và `BV-kho-khong-kiem` (T7) BẮT.
 
 ## A — số đo (máy mây 4 lõi, chạy riêng, `node viec/TACH-GL/do_cpu.js` — CPU = user + sys của mọi tiến trình con được chờ)
-| | Gốc (A0) | Head `f6e8e9f` (A1, 3 lần) | Mục tiêu |
+| | Gốc (A0) | HEAD cuối (A1) | Mục tiêu |
 |---|---|---|---|
-| giả lập | 79,8 s · CPU 4,1 s · 27 KB | **22,9 · 22,7 · 22,8 s** · CPU 7,0–7,7 s · 29 KB ĐẠT | ≤ 60 s |
-| `thu_gia_lap` | 89,6 s · 109 đạt | **35,5 · 37,0 · 37,2 · 34,9 · 35,6 · 35,6 · 36,0 · 36,1 s** (8 lần) · CPU 34,7–39,6 s · 116 đạt | ≤ 72 s |
-| `--day-du` | 252,5 s · 0 CẢNH BÁO | **140,1 s** · PASS 65 · FAIL 0 · **CẢNH BÁO 0** | 0 CẢNH BÁO |
-A2 — ước máy chat 1 lõi: giả lập ~25 s (CPU 7,4 s ≪ 22,8 s chờ); `thu_gia_lap` sàn = tổng CPU ~35–40 s, cộng chờ chồng lên → ước
-~45–55 s (< 72 s). CHƯA KIỂM trên 1 lõi (người gác chặn `taskset`) — chat đo xác nhận (chat đã đo bản sao: lượt dài nhất 26,6 s).
-`npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0.
+| giả lập | 79,8 s · CPU 4,1 s · 27 KB | **24,4 · 24,4 · 24,4 s** · CPU 7,8–8,0 s · 29 KB ĐẠT | ≤ 60 s |
+| `thu_gia_lap` | 89,6 s · 109 đạt | **36,4 · 37,2 · 36,2 · 37,3 · 36,4 s** (5 lần) · CPU 34,8–37,3 s · 118 đạt | ≤ 72 s |
+| `--day-du` | 252,5 s · 0 CẢNH BÁO | **149,0 s** · PASS 65 · FAIL 0 · **CẢNH BÁO 0** | 0 CẢNH BÁO |
+`npm test`: PASS 61 · FAIL 0 · CẢNH BÁO 0. Chú thích S4 (`kiem_tra_truoc_khi_giao.js`) chép đúng bảng này.
+A2 — ước máy chat 1 lõi: giả lập ≈ lượt dài nhất (CPU 7,8–8,0 s ≪ 24,4 s chờ) → ~26–28 s (chat đo bản sao: lượt dài nhất 26,6 s).
+`thu_gia_lap`: tổng CPU 34,8–37,3 s là SÀN trên 1 lõi; chờ chồng lên một phần → ước ~45–60 s (< 72 s, nhưng hẹp hơn máy mây).
+CHƯA KIỂM trên 1 lõi (người gác chặn `taskset`) — chat đo xác nhận. Nghi ngờ của soát vòng 1–2 "SIGKILL sau 10 s trên 1 lõi" nay
+không còn sót kho (cha dọn); T3/T4 chỉ đòi ít nhất MỘT lượt đáp SIGTERM.
 
 ## B1 — mỗi lượt chạy RIÊNG trên code thật (`node cong_cu/gia_lap/chay.js --den-kb <KB cuối của lượt>`)
 `--den-kb 28` → Lượt 1: KB 2,15,17,28 ĐẠT · `--den-kb 21` → Lượt 2: KB 3,10,16,18,21 ĐẠT · `--den-kb 27` → Lượt 3: KB
-1,4,5,6,7,8,14,23,24,25,26,27 ĐẠT · `--den-kb 29` → Lượt 4: KB 9,11,12,13,19,20,22,29 ĐẠT (mỗi lần 16 bất biến).
+1,4,5,6,7,8,14,23,24,25,26,27 ĐẠT · `--den-kb 29` → Lượt 4: KB 9,11,12,13,19,20,22,29 ĐẠT (mỗi lần 16 bất biến; chạy lại cả 4 trên
+HEAD cuối: 4 · 5 · 12 · 8 kịch bản, đều ĐẠT).
 
-## D — đột biến (đếm đủ, chạy riêng)
-- **D1** `thu_gia_lap` E2: 13/13 (trong 116 đạt; trước khi chốt cách chia: `do_chia_e2.js` trên C' 13/13, trên C 12/13 — M3 SỐNG).
-- **D2** `python3 viec/LUOI-1/dot_bien.py -j 4`: 80 · BẮT 79 · LẠC 1 · đúng mong đợi **80/80** · 88 s. `VS-SRV-doi-ck-giu-tien-mat`
+## D — đột biến (đếm đủ, chạy riêng, HEAD cuối)
+- **D1** `thu_gia_lap` E2: 13/13 (trong 118 đạt).
+- **D2** `python3 viec/LUOI-1/dot_bien.py -j 4`: 80 · BẮT 79 · LẠC 1 · đúng mong đợi **80/80** · 93 s. `VS-SRV-doi-ck-giu-tien-mat`
   **BẮT** (`KB28 → I16`); `GOC-KB10-cu-tre-khong-bat-lai` LẠC như gốc.
 - **D3** `python3 viec/AUDIT-1/dot_bien.py C2F C2-loyalty-redeem-tru-0 -j 4`: C2 BẮT 1 · C2F BẮT 62 · SỐNG 23 · LẠC 1
-  (`C2F-orders-02-insert-quay`, như gốc) · 605 s · kho thật không đổi. Đối chiếu bằng máy với "Bảng đủ 87" của
-  `viec/LUOI-1/trang_thai.md`: **87/87 tên cùng trạng thái, 0 lệch** — không BẮT nào chuyển SỐNG, không cần đổi LUOT.
-- **D4** `python3 viec/TACH-GL/dot_bien.py`: 16 · BẮT 16 · đúng mong đợi **16/16** · 318 s (bảng dưới mục D4).
+  (`C2F-orders-02-insert-quay`, như gốc) · 644 s · kho thật không đổi. Đối chiếu bằng máy với "Bảng đủ 87" của
+  `viec/LUOI-1/trang_thai.md` (ba lần chạy: sau làm, sau vòng sửa 1, HEAD cuối): **87/87 cùng trạng thái, 0 lệch** — không đổi LUOT.
+- **D4** 22/22 (bảng trên).
 - **D5** `python3 viec/HOC-2b/kiem_neo.py`: mọi bộ 0 HỎNG trừ `G3-sai-chuoi` (cố ý). TU-CHAY-4: XANH 10/10 (E4c bắt nhờ số bất biến
   lấy từ con; E4d bắt nhờ N = 10 + T2). P26b: 59/59 bị bắt. HOC-2b: 28 đạt · 0 không đạt. AUDIT-1 D1: BẮT 55 · LẠC 2
   (`!D1-E11-P20`, `!D1-E11-P26a` — như gốc, HOC-2b P5) · kho không đổi. AUDIT-1 G3: BẮT 1 · SỐNG 1 (`G3-vo-hai`) · HỎNG 1
-  (`G3-sai-chuoi`) · LẠC 1 (`G3-sap`) — như LUOI-1 C4. Neo rữa: 0 → không phải sửa bộ nào.
+  (`G3-sai-chuoi`) · LẠC 1 (`G3-sap`) — như LUOI-1 C4. Neo rữa của bộ cũ: 0.
 
-<details><summary>Bảng đủ 87 (D3, head)</summary>
+<details><summary>Bảng đủ 87 (D3, HEAD cuối — giống hệt hai lần trước)</summary>
 
 - BẮT `C2-loyalty-redeem-tru-0`
 - SỐNG `C2F-customers-v2-01-insert-khong-ro`
@@ -243,10 +254,83 @@ BÀI HỌC:
 | E2 thiếu dòng CHƯA KIỂM | Thêm (mục Báo cáo). |
 Sự cố trong vòng sửa: chính lần sửa `--den-kb 0` làm rữa neo của `BV-cha-bo-luot` (HỎNG 1/19 ở lần chạy lại) — sửa neo (chuỗi ngắn, riêng), chạy lại → BẮT.
 
-## A — số đo sau vòng sửa 1 (head `486f56c`, chạy riêng)
+## (cũ) A — số đo sau vòng sửa 1 (head `486f56c`, chạy riêng) — thay bằng mục A ở trên
 giả lập 24,8 · 24,5 · 25,0 s (CPU 7,7–9,0 s, 29 KB ĐẠT) · `thu_gia_lap` 41,5 · 40,1 · 36,8 s (CPU 38,7–44,7 s, 117 đạt) · `--day-du` 147,3 s
 PASS 65 · FAIL 0 · CẢNH BÁO 0. D2 80/80 (90 s) · D3 C2 BẮT 1 · C2F 62/23/1 — đối chiếu máy 87/87 không lệch · D4 18/19 rồi
 `BV-cha-bo-luot` (neo sửa) BẮT → 19/19 (chạy lại đủ ở mục cuối). Bằng chứng đỏ gốc: 110 đạt · 7 hỏng, SỐ CA 117.
+
+## Soát độc lập — vòng 2 (`/ra-soat`, agent general-purpose mới, 10.10) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+Code chạy đúng. Tôi chạy lại trên HEAD d39ad0c, mỗi lệnh chạy riêng, không chồng lệnh nào:
+- `node cong_cu/gia_lap/chay.js` → `Giả lập: 29 kịch bản · 16 bất biến · ĐẠT`, thoát 0.
+- `thu_gia_lap` → 117 đạt · 0 hỏng.
+- `npm test` → PASS 61 · FAIL 0 · CẢNH BÁO 0.
+- `--day-du` → PASS 65 · FAIL 0 · CẢNH BÁO 0, `thu_gia_lap` trong đó chạy 37,5 s.
+- D4 `python3 viec/TACH-GL/dot_bien.py` → 19/19 BẮT, 365 s.
+- D2 `python3 viec/LUOI-1/dot_bien.py -j 4` → 80/80 đúng mong đợi, `VS-SRV-doi-ck-giu-tien-mat` BẮT.
+- `kiem_neo.py` → 0 HỎNG trừ `G3-sai-chuoi`.
+- Neo của TACH-GL (19) và LUOI-1 (80): script của tôi đếm lại, 0 lệch.
+
+Lý do không đạt: một chỗ báo "đã sửa" nhưng chưa làm (E2), hồ sơ còn số cũ trái với số mới, và Phát hiện 2 chỉ một công cụ đo không chạy được trên HEAD.
+
+LỖI TÌM ĐƯỢC:
+- viec/TACH-GL/trang_thai.md:243 — bảng Vòng sửa ghi "E2 thiếu dòng CHƯA KIỂM | Thêm (mục Báo cáo)". Grep `Báo cáo|cong-chay` cả file: không có mục Báo cáo nào. "cong-chay" chỉ nằm trong báo cáo vòng 1 được chép lại (:212, :219). Dòng "E2: 2 check cong + cong-chay — CHƯA KIỂM" vẫn chưa ghi, tức báo sửa mà chưa sửa. — K1
+- viec/TACH-GL/trang_thai.md — sau khi chạy lại bằng chứng, các câu trích số cũ không được sửa theo:
+  - :22–23 "trên gốc 109 đạt · 6 hỏng … trên head 115 đạt · 0 hỏng (SỐ CA … 115)". Thật ra bang_chung_do.txt ghi 110/7 và SỐ CA 117; tôi chạy ra 117.
+  - :89 D1 "trong 116 đạt".
+  - :97 D4 "16 · BẮT 16 · đúng mong đợi 16/16 · 318 s", trong khi tiêu đề :30 ghi 19/19 · 359 s.
+  - :80–81 A2 "giả lập … CPU 7,4 s", "sàn = tổng CPU ~35–40 s". Số đo sau vòng sửa ở :247 là CPU giả lập 7,7–9,0 s và CPU thu_gia_lap 38,7–44,7 s, nên sàn đã cao hơn số ghi. Ước 45–55 s nay sát sàn mà không có lời giải thích.
+  KHUON_LOI K4 có luật đúng chỗ này: "chạy lại bằng chứng → grep hồ sơ tìm mọi câu trích con số cũ". — K4
+- viec/TACH-GL/trang_thai.md:259 (Phát hiện 2) — dòng này bảo "Đo từng KB sau chia lượt: dùng `viec/TACH-GL/do_chia.js <KB>`". Tôi chạy `node viec/TACH-GL/do_chia.js 2` trên HEAD: ra `Giả lập: 1 kịch bản · 16 bất biến · KHÔNG ĐẠT (28 lệch)` (`✗ chia lượt → KB1 chạy 0 lần` …), và `CPU 0.1 s` chỉ là CPU của tiến trình cha. Lý do: do_chia.js:24–33 chép chay.js của HEAD rồi chèn bộ lọc vào vòng của con. Cha vẫn sinh đủ 4 lượt và đòi đủ 29 KB, còn dòng CPU của con không bao giờ được chuyển lên cha. Công cụ được khuyến nghị cho P26c mà chưa chạy thử trên HEAD. — K1, và K4 (công cụ đo rữa ngay sau chính thay đổi của việc này, cùng dạng với do_thoi_gian.js)
+
+NGHI NGỜ:
+- cong_cu/gia_lap/kich_ban.js:590 (chú thích LUOT) dặn "đổi LUOT thì chạy lại E2 … (viec/TACH-GL/do_chia_e2.js)". Trên HEAD công cụ này chạy phần GIAO giữa LUOT đã commit và LUOT đề xuất, không chạy riêng LUOT đề xuất. Thêm nữa, vế "thoát 1" trong điều kiện BẮT luôn đúng, vì lệch "chạy 0 lần" (do_chia_e2.js:48). Tôi chạy với LUOT hiện tại ra 13/13, nhưng kết quả đó không chứng minh được gì cho một LUOT mới. Nên trỏ thẳng tới E2 của thu_gia_lap.
+- chay.js:111 (`bb.size > 1` — các lượt báo số bất biến khác nhau) và vế thứ hai ở chay.js:106 (`r.ma === 1` mà không có dòng ✗) không có ca thử nào, cũng không có đột biến nào. Xoá hai dòng này đi thì chắc không bài nào đỏ, vì mọi con nạp cùng một bat_bien.js. Tôi chưa dựng đột biến để kiểm.
+- chay.js:84–85 cộng Buffer vào chuỗi (`r.ra += d`), không `setEncoding('utf8')`. Đầu ra con dài hơn 64 KB, ví dụ khi đột biến máy chủ làm lệch mọi đơn, thì có thể bị cắt giữa một ký tự nhiều byte ("→", "✗", "Lượt"). Khi đó mất một dòng lệch hoặc mất dòng `Lượt k:`. Hướng hỏng vẫn an toàn (thoát ≠ 0), nhưng đột biến có thể chuyển thành LẠC. thu_gia_lap.js:62 có cùng khuôn từ trước.
+- chay.js:98 — khi dừng sớm (một lượt SẬP), mọi dòng ✗ của các lượt đã xong KHÔNG ĐẠT trước đó đều bị bỏ. Mất thông tin chẩn đoán; bộ đột biến dò mẫu có thể ra LẠC thay vì BẮT nếu chỉ một lượt sập.
+- Ba điều vòng 1 đã nêu, vẫn CHƯA KIỂM như trang_thai.md ghi: lối con TỪ CHỐI (chay.js:92), lỗi `spawn` (chay.js:87), và SIGKILL sau 10 s sót `gia_lap_*` trên máy 1 lõi (chay.js:75).
+- Trong lần chạy D4 của tôi, `VS-luot-tuan-tu` bị hẹn 110 s SIGKILL (thoát SIGKILL, sót `gia_lap_*` trong TMPDIR của bản sao). T1 vẫn bắt nhờ `đã làm false`, nhưng sát ngưỡng: 123 s cho cả lần chạy đột biến.
+
+NGHIỆM THU:    20/21 mục có bằng chứng · mục thiếu: E2 (dòng "check cong + cong-chay — CHƯA KIỂM" chưa ghi vào trang_thai.md, dù :243 nói đã thêm)
+(từng mục A0–F "có" — A2 có nhưng số sàn cũ; C3 S4 :755–758 khớp trang_thai:247; đường tiền: KB28 tiền mặt 0 · CK 30.000, máy chủ tự tính soTien (don-mo-rong.js:133–151); KB29 4 ca 7.000/28.000, 5.000/5.000, 7.499/7.501, 7.500/7.500, máy chủ tự tra trần (orders.js:610–623, loyalty.js:183); P1 không đụng client/; Cấm: TRE_MS 40, hạn 120/110, han * 0.8 giữ.)
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy lại D3 (87 đột biến, ~605 s) và D5 đủ (TU-CHAY-4, P26b, HOC-2b, AUDIT-1 D1/G3). Chỉ chạy kiem_neo.
+- Không đo trên máy 1 lõi (người gác chặn taskset). Ước A2 và nghi ngờ SIGKILL 10 s chưa kiểm.
+- Không xem được check PR (cong / cong-chay).
+- Không dựng được lỗi `spawn` hay lối con TỪ CHỐI.
+- Không dựng đột biến cho chay.js:106 và :111.
+
+BÀI HỌC:
+- NGUYÊN TẮC (K1): mỗi dòng "đã sửa" trong bảng vòng sửa phải kèm commit hoặc file:dòng của chỗ sửa. Người soát grep chỗ đó trước khi tin. (Lần này "Thêm (mục Báo cáo)" không có thật.)
+- KHOÁ (K4, lặp lại ở hai vòng liên tiếp): dot_bien.py và bài thử in con số tổng, rồi một phép kiểm hồ sơ so mọi câu "đúng mong đợi n/n", "SỐ CA", "n đạt" trong trang_thai.md với lần chạy cuối. Hoặc tối thiểu: sau mỗi lần chạy lại, grep cả file tìm số cũ và xoá hay đánh dấu "(cũ)".
+- NGUYÊN TẮC (K1/K4): công cụ đo nêu trong Phát hiện hay chú thích cho việc sau phải được chạy thử trên HEAD trong lượt đó, kèm dòng ra. Công cụ chỉ dùng "trước khi sửa" (do_chia.js, do_chia_e2.js) phải ghi rõ ở đầu file là KHÔNG dùng sau chia lượt.
+- KHOÁ (nhỏ): chay.js `con.stdout.setEncoding('utf8')` / `con.stderr.setEncoding('utf8')`, kèm ca thử đầu ra con lớn hơn 64 KB có ký tự nhiều byte.
+```
+(Phần NGHIỆM THU từng mục đã rút gọn — bản đủ: mọi mục "có", trừ E2.)
+
+## Vòng sửa 2/3 (sau soát vòng 2, 10.10) — mỗi dòng kèm commit
+| Lỗi / nghi ngờ | Xử lý | Commit |
+|---|---|---|
+| E2 báo "đã thêm" mà chưa thêm (K1) | Thêm mục `## E2` dưới đây (dòng CHƯA KIỂM thật). | commit trang_thai vòng 2 |
+| Số cũ còn trong hồ sơ (K4) | Viết lại các mục Bài thử, D4, A, B1, D theo HEAD cuối; số các lần trước chỉ còn trong mục vòng soát/vòng sửa, ghi "(cũ)". Grep lại `109 đạt\|115\|116 đạt\|16/16\|19/19\|7,4 s\|35–40` sau khi viết. | commit trang_thai vòng 2 |
+| Phát hiện 2 chỉ công cụ không chạy trên HEAD (K1/K4) | `do_chia.js`, `do_chia_e2.js` chạy THẲNG tiến trình lượt của bản sao (`--luot 1`, LUOT ghi đè = mọi KB) — chạy thử trên HEAD: `do_chia.js 2` → `Lượt 1: KB 2 · ĐẠT`, CPU 1,0 s; `do_chia_e2.js` C' 13/13, C 12/13 (M3 SỐNG). | `bc5a183`, `48f5b52` |
+| NGHI NGỜ chú thích LUOT trỏ công cụ hỏng | Chú thích trỏ `thu_gia_lap` (E2), công cụ là bước thử trước. | `d2f6ad5` |
+| NGHI NGỜ `bb.size > 1`, `r.ma === 1` không ✗ chưa có đột biến | `VS-luot-thieu-bat-bien`, `VS-con-giau-dong-lech` (BẮT). | `26b5bd6`, `1a2f36f` |
+| NGHI NGỜ Buffer không `setEncoding` | `con.stdout/stderr.setEncoding('utf8')`. CHƯA KIỂM bằng ca (không dựng được đầu ra > 64 KB cắt giữa ký tự một cách tất định). `thu_gia_lap.js:62` cùng khuôn từ trước — ngoài thay đổi của việc này, ghi Phát hiện 4. | `a67a16b` |
+| NGHI NGỜ dừng sớm bỏ dòng ✗ | Dừng sớm vẫn in dòng lệch của các lượt đã xong, dòng kết luận ở CUỐI. | `a67a16b` |
+| NGHI NGỜ SIGKILL sau 10 s sót kho (vòng 1 + 2) | TÁI HIỆN được dưới tải nặng (T6 6/9, T3 `…,SIGKILL`) → sửa tận gốc: cha tạo + dọn kho, `--kho` có kiểm, T7, `BV-cha-khong-don-kho`, `BV-kho-khong-kiem`; T3/T4 thêm vế "ít nhất một lượt đóng 2" (không thì `BV-cha-khong-dung-con-SIGTERM` SỐNG). | `28380c0`, `8e8113f`, `1a2f36f`, `4ada441` |
+| NGHI NGỜ `VS-luot-tuan-tu` sát hẹn 110 s | Vẫn BẮT nhờ T1 (không phụ thuộc hẹn); dot_bien mặc định `-j 2` (3 `thu_gia_lap` cùng lúc làm C3 đỏ oan — đo 2/9). | `1a2f36f` |
+Sự cố trong vòng sửa (K4, lặp): (a) đoạn thay thế trong `dot_bien.py` cắt theo hai neo đã xoá nhầm 3 đột biến nằm giữa
+(`BV-den-kb-0-luot-rong`, `VS-luot-thieu-bat-bien`, `VS-con-giau-dong-lech`) — phát hiện vì lần chạy chỉ ra 2/3 tên, khôi phục từ HEAD;
+(b) mẫu `VS-con-giau-dong-lech` ban đầu dò dòng mà E2 không in (E2 chỉ in dòng `→ I<n>`) → LẠC, sửa theo dòng thật.
+Bằng chứng đỏ chạy lại trên gốc sau vòng sửa 2: 110 đạt · 8 hỏng; `SỐ CA` 118 (A16).
+
+## E2 — check PR
+2 check `cong` + `cong-chay`: **CHƯA KIỂM** — máy không xem được check của PR, và việc này không tạo PR (luật `/lam-viec`). Không đổi
+`tu_chay/` → không cần `cai_dat.sh`.
 
 ## Câu hỏi
 Xem `ke_hoach.md` mục 10 (Q1–Q2) — trả lời cùng lời duyệt kế hoạch.
@@ -263,3 +347,6 @@ Xem `ke_hoach.md` mục 10 (Q1–Q2) — trả lời cùng lời duyệt kế ho
 3. `kiem_neo.py` (HOC-2b) chỉ rà `dot_bien.py` của 6 bộ cũ — không rà công cụ đo `viec/*/do_*.js` và bộ mới (`viec/TACH-GL/`,
    `viec/LUOI-1/`). Neo rữa ở đó chỉ lộ khi chạy (soát vòng 1 bắt `do_thoi_gian.js`; vòng sửa 1 làm rữa `BV-cha-bo-luot`). Đề xuất
    (ngoài Phạm vi): kiem_neo đọc thêm LUOI-1 + TACH-GL và mọi `do_*.js` có bảng neo.
+4. `cong_cu/thu_gia_lap.js:62` (`chayGL`) cộng Buffer vào chuỗi không `setEncoding('utf8')` — cùng khuôn soát vòng 2 nêu ở `chay.js`
+   (đã sửa ở `chay.js`). Đầu ra giả lập con > 64 KB có thể cắt giữa ký tự nhiều byte → mẫu đột biến ra LẠC. Có từ trước việc này;
+   file trong Phạm vi nhưng không đụng vì không dựng được ca đỏ tất định — đề xuất gom vào việc sau.
