@@ -270,9 +270,12 @@ async function main() {
     daChay.join(',') || '(không có dòng Lượt)');
   for (const [ten, r] of [['T3 cha bị SIGTERM', t3], ['T4 một lượt bị SIGTERM (sập)', t4]]) {
     // Mọi lượt bị DỪNG (đóng ≠ 0) — không được chạy hết rồi mới thoát: cha in `lượt k đóng: <mã | tín hiệu>` khi mỗi con đóng.
+    // Ít nhất một lượt tự thoát nhờ SIGTERM (đóng 2): cha chỉ SIGKILL sau 10 s thì mọi lượt đóng SIGKILL (cha vẫn dọn kho — vế
+    // "không sót" không phân biệt được). Không đòi CẢ L lượt đóng 2: máy tải nặng có lượt quá 10 s mới đáp → SIGKILL là đúng.
     const dong = [...r.ra.matchAll(/lượt \d+ đóng: (\S+)/g)].map((m) => m[1]);
-    k(`${ten} → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0), mọi con đã chết, không sót gia_lap_*`, r.daXet
-      && r.status === 2 && SAP.test(cuoi(r)) && dong.length === r.L && !dong.includes('0') && !r.conSong.length && !r.sot.length,
+    k(`${ten} → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0, ít nhất một lượt tự thoát nhờ SIGTERM), mọi con đã chết, không sót gia_lap_*`,
+      r.daXet && r.status === 2 && SAP.test(cuoi(r)) && dong.length === r.L && !dong.includes('0') && dong.includes('2')
+      && !r.conSong.length && !r.sot.length,
     `${moTaT(r)} · đóng: ${dong.join(',') || '(không có)'}`);
   }
   k('T0 --den-kb 0 (lượt rỗng: khởi động + dựng dữ liệu, đo khởi động) → thoát 0, "Giả lập: 0 kịch bản · 16 bất biến · ĐẠT"',
