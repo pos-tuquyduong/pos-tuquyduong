@@ -7,6 +7,7 @@
  *
  * LUẬT: việc sau THÊM kịch bản mới vào cuối, KHÔNG xoá kịch bản cũ — chúng là
  * lưới chống lỗi quay lại. Bộ kiểm có bánh cóc số kịch bản (chỉ được tăng).
+ * Kịch bản mới phải vào đúng MỘT lượt trong LUOT (cuối file — TACH-GL).
  */
 const KH = { quen: '0900000001', no: '0900000002', moi: '0900000003' };
 const GIA = [25000, 20000, 30000, 15000, 35000];
@@ -530,7 +531,7 @@ const KICH_BAN = [
     if (gt.status === 200) c.soQuay.giaoGoi.set(g, (c.soQuay.giaoGoi.get(g) || 0) + 1);
     c.mong('giao tay 1 ly từ gói còn lượt (/deliver) → 200, gói +1', gt.status === 200 && await giao() === truoc + 1, `${c.ma(gt)} · ${truoc} → ${await giao()}`);
   } },
-  // KB27 PHẢI LÀ KỊCH BẢN CUỐI: nợ kho của đơn ĐÃ XOÁ mà được đẩy (nút, hoặc tự đẩy 3 phút — index.js:76) thì SX nhận vân tay
+  // KB27 PHẢI LÀ KỊCH BẢN CUỐI CỦA LƯỢT NÓ (LUOT): nợ kho của đơn ĐÃ XOÁ mà được đẩy (nút, hoặc tự đẩy 3 phút — index.js:76) thì SX nhận vân tay
   // của đơn không còn → I7 "vân tay lạ" = lỗi đã biết P26c (4). Kịch bản thêm SAU KB27 không được đẩy sổ nợ.
   { ten: 'SX lỗi: bán rồi chủ xoá đơn → nợ kho out + in', chay: async (c) => {
     c.batSxLoi();
@@ -539,6 +540,43 @@ const KICH_BAN = [
     const no = await c.so('SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ?', [d.id]);
     c.mong('bán lúc SX lỗi, chủ xoá đơn → 200, 2 dòng nợ kho (out lúc bán + in lúc xoá)', x.status === 200 && no === 2, `${c.ma(x)} · ${no} dòng nợ`);
   } },
+  // ── TACH-GL: hai phần LUOI-1 phải bỏ vì thời gian (Phát hiện 13, 14) — thêm lại sau khi chia lượt. ──
+  { ten: 'tiền mặt rồi đổi sang chuyển khoản', chay: async (c) => {
+    const d = await c.taoDon('KB28', { items: [c.mon(2)], payment_method: 'cash', cash_amount: 30000 });
+    const r = await c.doi(d.id, 'transfer', 'khách chuyển khoản lại');
+    const sau = await c.db.queryOne('SELECT cash_amount, transfer_amount FROM pos_orders WHERE id = ?', [d.id]);
+    c.mong('đơn tiền mặt 30.000 đổi sang chuyển khoản → 200, tiền mặt 0 · CK 30.000', r.status === 200 && Number(sau?.cash_amount) === 0
+      && Number(sau?.transfer_amount) === 30000, `${c.ma(r)} · ${JSON.stringify(sau)}`);
+  } },
+  // Quà % có trần: tạo bằng POST /rewards — route của màn quản trị (Settings.jsx:565), nhưng màn hình KHÔNG gửi max_discount
+  // (Q1 = a, chủ quán chốt 10.10: phủ đường máy chủ qua API; màn hình thiếu ô trần = Phát hiện 1 của TACH-GL).
+  { ten: 'quà % có trần: đổi điểm 2 lần, bán đơn vượt trần và dưới trần', chay: async (c) => {
+    const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB29' };
+    const qua = await c.goi('chu', 'POST', '/rewards', { name: 'Quà KB29', points_cost: 3, discount_type: 'percent', discount_value: 50,
+      max_discount: 7000, valid_days: 30 });
+    await c.taoDon('KB29 tích điểm', { ...kh, items: [c.mon(2, 2)], payment_method: 'cash', cash_amount: 60000 });
+    const doi = () => c.goi('nv', 'POST', '/loyalty/redeem', { phone: kh.customer_phone, reward_id: qua.id });
+    const d1 = await doi(), d2 = await doi();
+    c.mong('tạo quà 50 % trần 7.000 → 200; tích 6 điểm, đổi 2 lần → 200, 200, còn 0 điểm', qua.status === 200 && d1.status === 200
+      && d2.status === 200 && d2.data?.points_left === 0, `${c.ma(qua)} / ${c.ma(d1)} / ${c.ma(d2)} · còn ${d2.data?.points_left}`);
+    const ban = async (mon, ma, tien) => {
+      const b = await c.goi('nv', 'POST', '/orders', { ...kh, items: [mon], discount_code: ma, payment_method: 'cash', cash_amount: tien });
+      return [b, b.order?.id ? await c.db.queryOne('SELECT total, discount_amount FROM pos_orders WHERE id = ?', [b.order.id]) : null];
+    };
+    const [b1, r1] = await ban(c.mon(4), d1.data?.code, 28000);
+    c.mong('bán 35.000 + mã quà 50 % (17.500 VƯỢT trần) → 200, giảm đúng trần 7.000, thu 28.000', b1.status === 200
+      && Number(r1?.discount_amount) === 7000 && Number(r1?.total) === 28000, `${c.ma(b1)} · ${JSON.stringify(r1)}`);
+    const [b2, r2] = await ban(c.monKhongSx, d2.data?.code, 5000);
+    c.mong('bán 10.000 + mã quà 50 % (5.000 DƯỚI trần) → 200, giảm 5.000, thu 5.000', b2.status === 200
+      && Number(r2?.discount_amount) === 5000 && Number(r2?.total) === 5000, `${c.ma(b2)} · ${JSON.stringify(r2)}`);
+  } },
 ];
 
-module.exports = { KICH_BAN, dungDuLieu, KH };
+// TACH-GL — chia lượt: mỗi lượt một tiến trình, các lượt chạy CÙNG LÚC (chay.js); mỗi KB đúng một lượt (chay.js kiểm lúc chạy),
+// trong lượt chạy theo số tăng. Phụ thuộc PHẢI cùng lượt, KB nhỏ trước: {1, 7, 14, 23, 27} (c.billDaThu → KH.moi đã claim), {24, 25}
+// liền nhau và trước 27, {4, 8} (dòng debt_payment của KH.quen — M3 của thu_gia_lap chỉ bắt ở KB8 khi đã có). KB mới: vào lượt
+// ngắn nhất trừ khi dựa vào KB khác; đổi LUOT thì chạy lại E2 của thu_gia_lap (viec/TACH-GL/do_chia_e2.js). Bảng đủ + số đo:
+// viec/TACH-GL/ke_hoach.md mục 2–3.
+const LUOT = [[2, 15, 17, 28], [3, 10, 16, 18, 21], [1, 4, 5, 6, 7, 8, 14, 23, 24, 25, 26, 27], [9, 11, 12, 13, 19, 20, 22, 29]];
+
+module.exports = { KICH_BAN, dungDuLieu, KH, LUOT };
