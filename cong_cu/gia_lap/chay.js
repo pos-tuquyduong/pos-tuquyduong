@@ -18,7 +18,10 @@
  *  kể cả khi sập. File này giữ phần an toàn — kịch bản và bất biến nằm ở
  *  file riêng để việc sau sửa chúng mà không mở được phần này (F3).
  *
- *  Thoát: 0 ĐẠT · 1 KHÔNG ĐẠT (lệch bất biến / HTTP) · 2 sập · 3 từ chối chạy.
+ *  CHIA LƯỢT (TACH-GL): kịch bản chia thành các lượt (LUOT trong kich_ban.js). Tiến trình CHA sinh mọi lượt CÙNG LÚC, mỗi
+ *  lượt một tiến trình con (--luot k: kho tạm, máy chủ, SX giả riêng) — thời gian chủ yếu là CHỜ trễ, không tốn CPU.
+ *
+ *  Thoát: 0 ĐẠT · 1 KHÔNG ĐẠT (lệch bất biến / HTTP / chia lượt) · 2 sập (một lượt sập, cha bị SIGTERM) · 3 từ chối chạy.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -50,10 +53,72 @@ const lyDo = kiemAnToan();
 if (lyDo) { viet(`Giả lập: TỪ CHỐI chạy — ${lyDo}`); process.exit(3); }
 if (process.argv.includes('--chi-kiem-an-toan')) { viet('Giả lập: an toàn: qua'); process.exit(0); }
 
-// ── A2 · kho tạm, xoá kể cả khi sập ─────────────────────────────────────────
-const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_'));
-process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
-for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // bộ kiểm hết giờ gửi SIGTERM → vẫn dọn
+// ── TACH-GL · CHA (không có --luot): không kho tạm, không nạp máy chủ. Sinh MỌI lượt (LUOT, kich_ban.js) CÙNG LÚC — mỗi lượt một
+// tiến trình = chính file này + --luot k, nên A1 ở trên chạy lại trong con TRƯỚC mọi require máy chủ. --den-kb n: chỉ lượt chứa
+// KB n, tới KB n (mọi phụ thuộc của một KB nằm trong lượt của nó, ở KB nhỏ hơn — viec/TACH-GL/ke_hoach.md mục 2, 6). Gộp: dòng
+// lệch của con (SỐ GỐC), mỗi KB phải chạy đúng một lần, số bất biến lấy từ con; dòng CUỐI luôn là dòng kết luận (thu_gia_lap đọc
+// dòng cuối). Cha bị SIGTERM/SIGINT hoặc một lượt sập → SIGTERM mọi lượt còn chạy (con dọn kho), chờ, quá 10 s thì SIGKILL.
+const LUOT_K = Number(thamSo('--luot', 0));
+async function cha() {
+  const { spawn } = require('child_process');
+  const { KICH_BAN, LUOT } = require('./kich_ban.js');
+  const rut = DEN_KB <= KICH_BAN.length;
+  const chon = rut ? LUOT.filter((l) => l.includes(DEN_KB)) : LUOT;
+  const phai = rut ? [...new Set([DEN_KB, ...chon.flat().filter((n) => n <= DEN_KB)])] : KICH_BAN.map((_, i) => i + 1);
+  const kq = [];
+  let ket = null;   // dừng sớm: { dong: dòng kết luận, ma: mã thoát }
+  const dungHet = (dong, ma) => {
+    if (ket) return;
+    ket = { dong, ma };
+    for (const r of kq) if (r.ma === undefined) r.con.kill('SIGTERM');
+    setTimeout(() => kq.forEach((r) => r.ma === undefined && r.con.kill('SIGKILL')), 10000).unref();
+  };
+  for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => dungHet(`Giả lập: SẬP — cha nhận ${tin}, đã dừng mọi lượt`, 2));
+  const mo = (luot) => new Promise((xong) => {
+    const k = LUOT.indexOf(luot) + 1;
+    const con = spawn(process.execPath, [__filename, ...process.argv.slice(2), '--luot', String(k)], { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+    const r = { k, con, ra: '' };
+    kq.push(r);
+    viet(`  lượt ${k}/${LUOT.length} pid ${con.pid} · KB ${luot.join(',')}`);
+    con.stdout.on('data', (d) => { r.ra += d; });
+    con.stderr.on('data', (d) => { r.ra += d; });
+    con.on('close', (ma, tin) => {
+      r.ma = ma ?? tin;
+      viet(`  lượt ${k} đóng: ${r.ma}`);
+      const cuoiCon = r.ra.trim().split('\n').pop();
+      if (ma === 3) dungHet(cuoiCon, 3);
+      else if (ma !== 0 && ma !== 1) dungHet(/^Giả lập: SẬP/.test(cuoiCon) ? cuoiCon : `Giả lập: SẬP — lượt ${k} ${ma === null ? 'chết vì ' + tin : 'thoát ' + ma}`, 2);
+      xong();
+    });
+  });
+  await Promise.all(chon.map(mo));
+  if (ket) { viet(ket.dong); process.exit(ket.ma); }
+  const lech = [];
+  const dem = new Map(phai.map((n) => [n, 0]));
+  const bb = new Set();
+  for (const r of kq) {
+    const t = r.ra.match(/^Lượt \d+: KB ([\d,]*) · (\d+) bất biến.*$/m);
+    if (t) viet(t[0]);
+    r.ra.split('\n').filter((l) => /^\s*✗ /.test(l)).forEach((l) => lech.push(l.trim().slice(2)));
+    if (!t || (r.ma === 1 && !/^\s*✗ /m.test(r.ra))) { lech.push(`chia lượt → lượt ${r.k} thoát ${r.ma} không kèm kết quả`); continue; }
+    for (const n of t[1].split(',').filter(Boolean)) dem.set(+n, (dem.get(+n) || 0) + 1);
+    bb.add(+t[2]);
+  }
+  for (const [n, c] of dem) if (c !== 1) lech.push(`chia lượt → KB${n} chạy ${c} lần`);
+  if (bb.size > 1) lech.push(`chia lượt → số bất biến các lượt khác nhau: ${[...bb].join(', ')}`);
+  const tongCha = `Giả lập: ${[...dem.values()].reduce((s, c) => s + c, 0)} kịch bản · ${[...bb][0] ?? 0} bất biến`;
+  lech.forEach((l) => viet('  ✗ ' + l));
+  viet(lech.length ? `${tongCha} · KHÔNG ĐẠT (${lech.length} lệch)` : `${tongCha} · ĐẠT`);
+  process.exit(lech.length ? 1 : 0);
+}
+
+// ── A2 · kho tạm (chỉ tiến trình lượt), xoá kể cả khi sập ──────────────────
+const THU_MUC = LUOT_K ? fs.mkdtempSync(path.join(os.tmpdir(), 'gia_lap_')) : '';
+if (LUOT_K) {
+  process.on('exit', () => { try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ } });
+  for (const tin of ['SIGTERM', 'SIGINT']) process.on(tin, () => process.exit(2));   // cha / bộ kiểm hết giờ gửi SIGTERM → vẫn dọn
+  process.on('disconnect', () => process.exit(2));   // TACH-GL: cha chết (kể cả SIGKILL) → kênh IPC đứt → tự thoát + dọn kho
+}
 const sap = (e) => { viet(`Giả lập: SẬP — ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' · ') : e}`); process.exit(2); };
 
 async function main() {
@@ -164,7 +229,7 @@ async function main() {
   ctx.goi = goi;
   ctx.mong = (ten, dung, nhan) => { if (!dung) ctx.http.push(`${ten}: ${nhan}`); return dung; };
 
-  const { KICH_BAN, dungDuLieu } = require('./kich_ban.js');
+  const { KICH_BAN, dungDuLieu, LUOT } = require('./kich_ban.js');
   const { BAT_BIEN } = require('./bat_bien.js');
   const chu = await db.queryOne("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const nv = await db.run(`INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_gia_lap', 'x', 'Nhân viên 2', 'staff', 1)`);
@@ -174,10 +239,12 @@ async function main() {
   const lech = [];
   const daThay = new Set();
   const tenBB = Object.keys(BAT_BIEN);
-  let soKB = 0;
+  const luot = LUOT[LUOT_K - 1];
+  const daChay = [];
   for (const [i, kb] of KICH_BAN.entries()) {
     if (i + 1 > DEN_KB) break;
-    soKB++;
+    if (!luot.includes(i + 1)) continue;   // TACH-GL: chỉ KB của lượt này, giữ SỐ GỐC i + 1
+    daChay.push(i + 1);
     treMs = TRE_MS;   // A1: trễ bật lại TRƯỚC mỗi kịch bản
     sxGia.loi = false;   // B4: SX giả hết lỗi trước mỗi kịch bản
     sxGia.kb = i + 1;
@@ -193,10 +260,11 @@ async function main() {
       }
     }
   }
-  const tong = `Giả lập: ${soKB} kịch bản · ${tenBB.length} bất biến`;
+  const tong = `Lượt ${LUOT_K}: KB ${daChay.join(',')} · ${tenBB.length} bất biến`;   // cha gộp các lượt thành dòng tổng
   if (lech.length) { lech.forEach((l) => viet('  ✗ ' + l)); viet(`${tong} · KHÔNG ĐẠT (${lech.length} lệch)`); process.exit(1); }
   viet(`${tong} · ĐẠT`);
   process.exit(0);
 }
 
-main().catch(sap);
+if (LUOT_K) main().catch(sap);
+else cha().catch(sap);
