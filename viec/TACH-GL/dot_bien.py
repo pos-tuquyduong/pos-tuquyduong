@@ -47,6 +47,9 @@ DOT_BIEN = [
   # Không chờ thì khe chỉ vài µs–ms (chập chờn: 1 lần sót 2 kho trong 6 lần thu_gia_lap lúc máy tải nặng — trang_thai.md).
   ('VS-kho-truoc-tin-hieu', 'thugl', [(CH, TIN_HIEU, '', 1), (CH, "if (LUOT_K) process.on('exit', ",
     "if (LUOT_K) { const t = Date.now() + 500; while (Date.now() < t); }\n" + TIN_HIEU + "if (LUOT_K) process.on('exit', ", 1)], [r'✗ T6 '], 'BẮT'),
+  # Soát vòng 1 (K5): --den-kb 0 = lượt rỗng (khởi động + dựng) như trước chia lượt — bỏ nhánh đó thì T0 bắt.
+  ('BV-den-kb-0-luot-rong', 'thugl', [(CH, 'const chon = DEN_KB < 1 ? LUOT.slice(0, 1) : rut', 'const chon = rut', 1),
+    (CH, 'const phai = DEN_KB < 1 ? [] : rut', 'const phai = rut', 1)], [r'✗ T0 '], 'BẮT'),
   ('VS-luot-tuan-tu', 'thugl', [(CH, '  await Promise.all(chon.map(mo));\n', '  for (const l of chon) await mo(l);\n', 1)], [r'✗ T1 '], 'BẮT'),
   ('VS-dong-lech-so-trong-luot', 'thugl', [(CH, '        lech.push(`KB${i + 1} → ${ten}: ${l}`);', '        lech.push(`KB${daChay.length} → ${ten}: ${l}`);', 1)],
    [r'✗ M1 '], 'BẮT'),
@@ -55,6 +58,11 @@ DOT_BIEN = [
    [r'KB29 → HTTP: ', r'KB29 → I12: '], 'BẮT'),
   ('VS-SRV-qua-bo-tran', 'gl29', [(LY, 'reward.max_discount || 0,', '0,', 1)], [r'KB29 → HTTP: bán 35\.000', r'KB29 → I12: '], 'BẮT'),
   ('BV-SRV-ban-bo-ap-tran', 'gl29', [(OR, 'codeRecord?.max_discount > 0 &&', 'false &&', 1)], [r'KB29 → HTTP: bán 35\.000'], 'BẮT'),
+  # Soát vòng 1: dời ngưỡng trần ±n (dựng tay: +3000 SỐNG khi KB29 chỉ có ca xa ngưỡng) — ca 15.000 ±1đ quanh trần bắt.
+  ('VS-SRV-tran-doi-nguong-tren', 'gl29', [(OR, 'finalDiscountAmount > codeRecord.max_discount', 'finalDiscountAmount > codeRecord.max_discount + 1', 1)],
+   [r'KB29 → HTTP: quà trần 7\.499'], 'BẮT'),
+  ('VS-SRV-tran-doi-nguong-duoi', 'gl29', [(OR, 'finalDiscountAmount > codeRecord.max_discount', 'finalDiscountAmount > codeRecord.max_discount - 2', 1)],
+   [r'KB29 → HTTP: quà trần 7\.501'], 'BẮT'),
   ('VS-SRV-tran-luon-ap', 'gl29', [(OR, 'finalDiscountAmount > codeRecord.max_discount', 'true', 1)], [r'KB29 → HTTP: bán 10\.000'], 'BẮT'),
 ]
 
