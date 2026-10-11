@@ -32,6 +32,9 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
   "nới phép". Giá trị MẶC ĐỊNH là hành vi — khoá bằng ca KHÔNG truyền đối số, không chỉ soi chữ ký hàm (HOC-2b C3g, C3h).
   "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ.
 - **Chặn:** con số "đạt" phải kèm lần chạy lại trên HEAD; đột biến neo chuỗi NGẮN, RIÊNG (neo dài rữa sau vài việc).
+- **Chặn (TACH-GL):** sửa lỗi người soát báo → đột biến phải đưa ĐÚNG lỗi cũ trở lại, không chỉ gỡ phép vừa thêm (T9). Ca TỪ
+  CHỐI so đúng câu của phép đang thử + dấu vết không xảy ra (T9 vòng 3: không dòng `lượt k/L pid`). Ca tín hiệu / thời gian
+  không chạy chung đợt nặng; nghi thì chạy lặp ≥ 3 lần (T3 đỏ oan 1/3).
   Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi trên bản chưa vá — dựng đột biến đỏ
   TẤT ĐỊNH, không được thì ghi **CHƯA KIỂM**, không đếm là phép.
 
@@ -44,6 +47,8 @@ Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ th�
   là chỗ vá riêng. "Cùng khuôn" phải giống ở **mọi loại đầu vào** (HOC-1: `Dirent.isFile()` bỏ symlink, `statSync` giữ).
 - **Chặn:** tài liệu hứa theo ĐỐI TƯỢNG thì phép chặn gắn theo đối tượng, không theo một nhánh kết quả. Sửa / phủ định
   một câu tài liệu → grep CẢ FILE tìm câu cùng nghĩa; chạy lại bằng chứng → grep hồ sơ tìm mọi câu trích con số cũ.
+- **Chặn:** thêm cờ nội bộ cha→con → rà MỌI đường argv: chuyển tiếp nguyên đối số, lấy lần đầu, phép cấp module chạy cả ở cha
+  (TACH-GL `--kho`: cha nhận `--kho` lạ, chuyển xuống con rồi xoá kho của giả lập khác).
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Đã lên production: chặn đơn khai "lấy từ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
@@ -67,7 +72,8 @@ Middleware đặt sau route · `setError` trong hàm cập nhật của `setCart
 commit không thành mà vẫn push → "Everything up-to-date".
 - **Dấu hiệu:** tên bảng, cột, script, lệnh viết theo trí nhớ.
 - **Chặn:** tra trong code, không nhớ từ kho kia. Sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong
-  `git log origin/viec/<MÃ>..HEAD` phải rỗng.
+  `git log origin/viec/<MÃ>..HEAD` phải rỗng. Dòng mới ở ĐỈNH file (ngoài try) → tự hỏi nó ném thì thoát mã gì (TACH-GL T10:
+  `require('./kich_ban.js')` hỏng văng thô thoát 1 = nhầm KHÔNG ĐẠT).
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
 Đã gây: bộ kiểm báo `POST /orders` chưa có cổng phân quyền; kết luận "nó khắt khe quá". Sai: khách có gói TRÀ khai lấy
