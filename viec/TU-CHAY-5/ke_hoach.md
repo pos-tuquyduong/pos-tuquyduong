@@ -26,7 +26,7 @@ này; bảng ở mục 10.
 | `node tu_chay/thu_cong_cu.js` | 4,1 s | 85 phép · 0 chỗ hỏng |
 | `node cong_cu/thu_gia_lap.js` | 41,7 s | 126 đạt · 0 hỏng |
 | `node kiem_tra_truoc_khi_giao.js --day-du` | 154,4 s | PASS 65 · FAIL 0 · CẢNH BÁO 0 |
-| `python3 viec/TACH-GL/dot_bien.py -j 4` | SO_DB_TACH | SO_DB_TACH_KQ |
+| `python3 viec/TACH-GL/dot_bien.py -j 4` | 562 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
 | `python3 viec/LUOI-1/dot_bien.py -j 4` | chưa đo ở việc này (LUOI-1 `trang_thai.md:684` ghi 247 s) — đo ở bước 6 | |
 | `node viec/LUOI-1/do_thoi_gian.js kb` | — | **ném lỗi** "neo đo không khớp: const tong = \`Giả lập:" → D4 đỏ trên gốc |
 
@@ -37,11 +37,11 @@ này; bảng ở mục 10.
 | Bài thử đỏ trên gốc (4 bài) | 7,3 + 66,3 + 4,1 + 41,7 s = 119 s | 2 |
 | Vòng sửa: chạy lại 4 bài + `--day-du` | giả định 6 vòng × (119 + 154) s | 27 |
 | F: `thu_gia_lap` thêm 3 lần riêng | 3 × 41,7 s | 2 |
-| F: đột biến cũ TACH-GL + LUOI-1 | SO_DB_TACH + 247 s | DB_P |
+| F: đột biến cũ TACH-GL + LUOI-1 | 562 + 247 s | 13,5 |
 | Đột biến của việc (mục 7, 15 cái) | 6 × 7,3 (gác) + 3 × 66,3 (cổng) + 5 × 41,7 (gl) + 1 × 4,1 s ≈ 450 s | 8 |
 | `/ra-soat`: tối đa 3 vòng, mỗi vòng chạy lại 4 bài + `--day-du` | 3 × 273 s, chưa tính thời gian đọc của agent | 14 |
 | D4 chạy thật (4 lượt tuần tự) | chưa đo được trên gốc (công cụ hỏng), ước theo thời gian bằng giả lập đủ, ~42 s | 2 |
-| **Tổng** | | **TONG** |
+| **Tổng** | | **~69** |
 
 ---
 
@@ -317,7 +317,7 @@ Bỏ `VS-D1-ipc-sau-ten` của bản trước: nó sẽ SỐNG (không ca nào p
 - **Q4 B1 "file đang được theo dõi"** do git tự đảm bảo, người gác không gọi git; có ca git thật khoá. Đồng ý?
 - **Q5 C2 cảnh báo luôn bật với PR thêm luật người gác** (dòng tổng `thu_nguoi_gac` đếm cả phép theo số luật). Giữ đúng phiếu (so cả
   số), hay chỉ so phần "a/B ca"?
-- **Q6 Thời gian máy:** TONG phút (mục 1), dưới ngưỡng ~180 phút nên không đề xuất tách.
+- **Q6 Thời gian máy:** ~69 phút (mục 1), dưới ngưỡng ~180 phút nên không đề xuất tách.
 - **Q7 B5 / Phát hiện:** `tu_chay/cai_thu_vien.sh` (ngoài Phạm vi) im lặng khi HEAD tách rời. Chỉ ghi Phát hiện, không sửa.
 
 ## 10. Agent phụ soát kế hoạch (11.10.2026) — đã sửa vào bản này
