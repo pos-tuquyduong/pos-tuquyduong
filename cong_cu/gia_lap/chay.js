@@ -58,7 +58,12 @@ if (process.argv.includes('--chi-kiem-an-toan')) { viet('Giả lập: an toàn: 
 // người gọi thì TỪ CHỐI (cha chuyển nguyên đối số xuống con, thamSo lấy lần ĐẦU → --kho lạ sẽ đè kho cha tạo rồi bị xoá).
 const LA_CON = process.argv.includes('--luot');
 const LUOT_K = LA_CON ? Number(thamSo('--luot', '')) : 0;
-if (LA_CON && !/^[1-9]\d*$/.test(String(thamSo('--luot', '')))) { viet(`Giả lập: TỪ CHỐI chạy — --luot phải là số nguyên ≥ 1: ${thamSo('--luot', '(thiếu)')}`); process.exit(3); }
+if (LA_CON && !/^[1-9]\d*$/.test(String(thamSo('--luot', '')))) { viet(`Giả lập: TỪ CHỐI chạy — --luot phải là số nguyên ≥ 1: ${thamSo('--luot') ?? '(thiếu)'}`); process.exit(3); }
+// --luot vượt số lượt (chat soát thay vòng 4): LUOT[k - 1] không có → không được chạy (kich_ban.js không require gì — nạp sớm an toàn).
+// Nạp hỏng (cú pháp, thiếu LUOT) = SẬP thoát 2 như mọi lỗi nạp khác — KHÔNG để văng thô (node thoát 1 = nhầm thành KHÔNG ĐẠT).
+let SO_LUOT = 0;
+try { SO_LUOT = require('./kich_ban.js').LUOT.length; } catch (e) { viet(`Giả lập: SẬP — nạp kich_ban.js: ${String(e && e.message).split('\n')[0]}`); process.exit(2); }
+if (LA_CON && LUOT_K > SO_LUOT) { viet(`Giả lập: TỪ CHỐI chạy — --luot ${LUOT_K} vượt số lượt (${SO_LUOT})`); process.exit(3); }
 if (!LA_CON && process.argv.includes('--kho')) { viet('Giả lập: TỪ CHỐI chạy — --kho chỉ dành cho tiến trình lượt (cha tự tạo kho cho từng lượt)'); process.exit(3); }
 
 // ── TACH-GL · CHA (không có --luot): không nạp máy chủ; tạo kho tạm cho từng lượt và dọn lúc thoát. Sinh MỌI lượt (LUOT, kich_ban.js) CÙNG LÚC — mỗi lượt một

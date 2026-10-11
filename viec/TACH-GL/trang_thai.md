@@ -17,8 +17,9 @@ T5 SIGKILL). Thêm: ở MỌI lối thoát dòng cuối cha in là dòng kết l
 Chat đã thử trên bản sao máy 1 lõi: 4 lượt cùng lúc ĐẠT, lượt dài nhất 26,6 s; 5 đột biến máy chủ BẮT.
 
 ## Bước đang làm
-**DỪNG — chờ chủ quán trả lời Q3** (`## Câu hỏi`): soát kiểm chứng sau vòng sửa 3/3 KHÔNG ĐẠT, đã hết số vòng sửa. Mọi số dưới
-đây là của HEAD cuối (sau vòng sửa 3, `e1633d6`);
+**Chat soát thay vòng 4 (10.10)** — Q3 trả lời theo luật (máy hết 3 vòng sửa → chat soát thay, không vòng sửa 4 của máy): chat sửa
+2 lỗi Q3 trên clone, chạy lại, chủ quán đặt bằng `sua_TACHGL.py`. Máy CHỈ chạy đo xác nhận trên máy mây (không sửa). Số của chat
+soát thay: mục "Chat soát thay vòng 4" (cuối file, trước `## Câu hỏi`). Các mục dưới ghi số của HEAD vòng sửa 3 (`e1633d6`) —
 số của các lần trước nằm trong mục vòng soát/vòng sửa, ghi "(cũ)".
 
 ## Bài thử (bước 4) — đỏ trên gốc, xanh trên head
@@ -33,7 +34,7 @@ T3/T4 thêm vế "mọi lượt bị dừng (đóng ≠ 0)" (không có thì `BV
 SIGTERM (đóng 2)" (không có thì `BV-cha-khong-dung-con-SIGTERM` SỐNG sau khi cha tự dọn kho — vòng sửa 2; vế này chỉ có tác
 dụng ở T3 — ở T4 lượt bị bài thử SIGTERM luôn đóng 2).
 
-## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`, HEAD cuối, 568 s: 26 đột biến · BẮT 26 · đúng mong đợi 26/26)
+## D4 — chỗ đổi → đột biến (`python3 viec/TACH-GL/dot_bien.py`; (cũ) vòng sửa 3: 26/26 — chat soát thay vòng 4: 29 đột biến · BẮT 29 · đúng mong đợi 29/29)
 | Chỗ đổi | Đột biến | Bắt bằng |
 |---|---|---|
 | cha sinh mọi lượt (`chon`) | `BV-cha-bo-luot` | E1 (25 KB, 4 lệch) + T2 |
@@ -53,6 +54,9 @@ dụng ở T3 — ở T4 lượt bị bài thử SIGTERM luôn đóng 2).
 | `--kho` — vế tên `gia_lap_xxxxxx` | `BV-kho-bo-ve-ten` | T7b |
 | cha từ chối `--kho` của người gọi | `BV-cha-nhan-kho` | T8 (kho của giả lập khác bị xoá) |
 | `--luot` phải là số nguyên ≥ 1 | `BV-luot-khong-kiem` | T9 (sập thoát 2 thay vì TỪ CHỐI — không đệ quy) |
+| chế độ cha/con theo SỰ CÓ MẶT của `--luot` (chat soát thay vòng 4) | `VS-che-do-theo-gia-tri` | T9 (đưa lại lỗi cũ: `--luot` hỏng rơi về cha, cha sinh lượt, con bị phép `--kho` chặn hộ → vẫn TỪ CHỐI nhưng sai lý do + có dòng `pid`) |
+| `--luot` ≤ số lượt (chat soát thay vòng 4) | `BV-luot-vuot-khong-kiem` | T9b (`--luot 5 --den-kb 0` → ĐẠT thay vì TỪ CHỐI) |
+| nạp `kich_ban.js` sớm được bọc → hỏng = SẬP thoát 2 (chat soát thay vòng 4) | `BV-kich-ban-hong-van-tho` | T10 (văng thô, node thoát 1 = nhầm KHÔNG ĐẠT) |
 | `--den-kb 0` = lượt rỗng | `BV-den-kb-0-luot-rong` | T0 |
 | các lượt CÙNG LÚC | `VS-luot-tuan-tu` | T1 (đã làm false — không dùng ngưỡng giờ) |
 | dòng lệch giữ SỐ GỐC | `VS-dong-lech-so-trong-luot` | E2 M1 (`KB2 → I6` thay `KB10`) |
@@ -458,6 +462,34 @@ BÀI HỌC:
 ```
 (Phần NGHIỆM THU từng mục đã rút gọn — bản đủ: 21/21 có bằng chứng, E2 CHƯA KIỂM.)
 
+## Chat soát thay vòng 4 (10.10.2026) — sửa 2 lỗi Q3, chạy lại trên máy chat (1 lõi, chạy riêng)
+Nền: `6d80395`. Chủ quán đặt bằng `sua_TACHGL.py` (một commit "TACH-GL: chat soat thay vong 4 …"). Sửa:
+- `cong_cu/gia_lap/chay.js`: `--luot` vượt số lượt → TỪ CHỐI (`SO_LUOT` đọc từ `kich_ban.js` — file không `require` gì, nạp sớm an
+  toàn); thiếu giá trị in "(thiếu)" thay "undefined". Nạp sớm được bọc `try`: `kich_ban.js` hỏng → `Giả lập: SẬP — nạp kich_ban.js`
+  thoát 2 (chat soát lại bản của chính mình: bản đầu không bọc → node văng thô, thoát 1 = nhầm KHÔNG ĐẠT; bản máy `6d80395` vốn đúng
+  vì nạp trong `main().catch(sap)`).
+- `cong_cu/thu_gia_lap.js`: T9 khoá CÁCH từ chối — lý do nêu `--luot` VÀ không có dòng `lượt k/L pid` (lỗi 1: chat dựng lại đúng lỗi
+  cũ — chế độ theo giá trị — T9 cũ XANH, T9 mới ĐỎ); T9b `--luot <số lượt + 1> --den-kb 0` → TỪ CHỐI; T9c biên `--luot <số lượt>
+  --den-kb 0` → ĐẠT (K3: hai phía); T7a/T7b/T8 so ĐÚNG câu từ chối của phép đang thử (nguyên tắc máy đề xuất ở Bài học); số lượt đọc
+  `(LUOT || []).length` để bằng chứng đỏ trên gia_lap gốc (chưa có LUOT) đỏ đúng ca, không sập cả bài; T10 `kich_ban.js` hỏng cú
+  pháp (bản sao gia_lap trong thư mục tạm của bài) → thoát 2, dòng cuối SẬP (`chayGL` nhận thêm tham số file chạy).
+- `cong_cu/thu_gia_lap.js` (ĐỎ OAN, chat tìm khi mô phỏng cổng CHẠY): T3–T6 chạy CHUNG đợt với ~20 giả lập khác (E1, A2, T0, T7, T8,
+  13 đột biến E2) → lượt con kẹt khởi động (nạp máy chủ, vài % CPU mỗi tiến trình) quá 10 s mới đáp SIGTERM → cha SIGKILL cả 4 lượt
+  (`đóng: SIGKILL,SIGKILL,SIGKILL,SIGKILL`) → T3 đỏ dù code đúng. Đo trên bản clone của cổng, máy chat 1 lõi: ĐỎ 1/3 lần (và lần mô
+  phỏng cổng CHẠY). Sửa: T3–T6 chạy SAU đợt nặng (một `Promise.all` riêng) — không đổi phép nào, không nới 10 s; 4/4 lần xanh, thời
+  gian không đổi (~68 s 1 lõi — T3–T6 dừng sớm). Máy đã ghi "T3/T4 trên 1 lõi tải nặng" ở CHƯA KIỂM — nay đã kiểm.
+- `viec/TACH-GL/dot_bien.py`: + `VS-che-do-theo-gia-tri`, `BV-luot-vuot-khong-kiem`, `BV-kich-ban-hong-van-tho`.
+- `viec/TACH-GL/bang_chung_do.txt`: chạy lại `chay_goc.js` — gốc **111 đạt · 15 hỏng** (T0, T10 xanh cả hai phía); `SỐ CA cong_cu/thu_gia_lap.js: 126`.
+
+Kết quả trên bản CUỐI (máy chat 1 lõi, chạy riêng): `thu_gia_lap` **126 đạt · 0 hỏng**; D4 **29/29 BẮT** (26 cũ + 3 mới, chạy
+lại đủ trên bản cuối, 1023 s); `--day-du` **PASS 65 · FAIL 0 · CẢNH BÁO 0**; `kiem_neo.py`: 6 bộ cũ 0 neo rữa trừ `G3-sai-chuoi`
+(cố ý); `--luot 5 --den-kb 0` → 3 TỪ CHỐI, `--luot 4 --den-kb 0` → 0, `--luot x`/`0`/`1x`/thiếu → 3 TỪ CHỐI nêu `--luot`.
+KHÔNG làm đề xuất "con chỉ nhận `--kho` khi có kênh IPC": chỉ lộ khi người gọi THẲNG `--luot k --kho <kho của giả lập khác>`
+(không công cụ nào làm thế), và phép đó sẽ từ chối T7a/T7b TRƯỚC phép đường dẫn → hai ca đó xanh nhờ phép khác (đúng khuôn lỗi
+vừa sửa). Ghi Phát hiện 5 cho việc bộ khung.
+Máy (phiên mới hoặc cùng phiên): CHỈ chạy đo xác nhận trên máy mây, chạy riêng — `thu_gia_lap` (126 đạt), giả lập ×3, `--day-du`
+(0 CẢNH BÁO), `python3 viec/TACH-GL/dot_bien.py` (29/29), `python3 viec/LUOI-1/dot_bien.py` (80/80) — ghi số vào mục này, KHÔNG sửa.
+
 ## Câu hỏi
 - **Q3 — đã dùng hết 3 vòng sửa (`so_vong_sua_toi_da` 3), soát kiểm chứng sau vòng sửa 3 vẫn KHÔNG ĐẠT** (báo cáo chép nguyên ở trên).
   Code chạy đúng trên mọi phép (giả lập 29 KB ĐẠT 24,3–24,4 s; `thu_gia_lap` 123 đạt 36,9–38,4 s; `--day-du` 0 CẢNH BÁO; D1–D5 đủ,
@@ -476,6 +508,7 @@ BÀI HỌC:
     IPC (`process.send` — tức là cha sinh), không thì TỪ CHỐI; công cụ đo (`do_chia*.js`) không truyền `--kho` nên không bị chặn.
   Chọn: (a) **cho phép vòng sửa 4** như trên **(đề xuất)**; (b) giữ nguyên, gom hai lỗi vào việc sau (P26c chạm `chay.js` trước).
   Máy DỪNG ở đây — không tự sửa thêm.
+  **→ Trả lời 10.10:** theo luật đã chốt (LUOI-1), chat soát thay vòng 4 — xem mục "Chat soát thay vòng 4".
 - Q1, Q2 (kế hoạch mục 10): đã trả lời cùng lời duyệt — xem mục "Chủ quán duyệt kế hoạch".
 
 ## Phát hiện (ngoài phạm vi — KHÔNG sửa)
@@ -493,6 +526,10 @@ BÀI HỌC:
 4. `cong_cu/thu_gia_lap.js:62` (`chayGL`) cộng Buffer vào chuỗi không `setEncoding('utf8')` — cùng khuôn soát vòng 2 nêu ở `chay.js`
    (đã sửa ở `chay.js`). Đầu ra giả lập con > 64 KB có thể cắt giữa ký tự nhiều byte → mẫu đột biến ra LẠC. Có từ trước việc này;
    file trong Phạm vi nhưng không đụng vì không dựng được ca đỏ tất định — đề xuất gom vào việc sau.
+5. (chat soát thay vòng 4) `chay.js`: lượt gọi THẲNG `--luot k --kho <kho gia_lap_ có thật của một giả lập khác cùng thư mục tạm>`
+   sẽ dùng rồi XOÁ kho đó lúc thoát (phép `--kho` chỉ kiểm vị trí + tên). Không công cụ nào gọi thế; cha đã từ chối `--kho` của người
+   gọi (T8). Đề xuất cho việc bộ khung: con chỉ nhận `--kho` khi có kênh IPC (cha sinh), và T7a/T7b sinh lượt CÓ kênh IPC để mỗi ca
+   vẫn chỉ vi phạm đúng một vế.
 
 ## Bài học (bước 11)
 Sự cố của việc này: (1) kế hoạch chọn cách chia làm M3 SỐNG (soát kế hoạch bắt); (2) sót `gia_lap_*` chập chờn — sửa hai lần mới

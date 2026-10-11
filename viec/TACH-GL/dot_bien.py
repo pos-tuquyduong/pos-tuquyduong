@@ -61,6 +61,16 @@ DOT_BIEN = [
   ('BV-cha-nhan-kho', 'thugl', [(CH, "if (!LA_CON && process.argv.includes('--kho'))", "if (0 && !LA_CON && process.argv.includes('--kho'))", 1)], [r'✗ T8 '], 'BẮT'),
   # Không tự sinh lại mãi kể cả khi bỏ phép: chế độ theo SỰ CÓ MẶT của --luot → con với lượt không có → sập (thoát 2), T9 đòi thoát 3.
   ('BV-luot-khong-kiem', 'thugl', [(CH, 'if (LA_CON && !/^[1-9]', 'if (0 && LA_CON && !/^[1-9]', 1)], [r'✗ T9 --luot 0 ', r'✗ T9 --luot x '], 'BẮT'),
+  # Chat soát thay vòng 4 (soát kiểm chứng vòng 3 KHÔNG ĐẠT): (1) đưa lại đúng lỗi cũ — chọn chế độ theo GIÁ TRỊ --luot → --luot hỏng
+  # rơi về cha, cha sinh con, con bị phép --kho chặn hộ (vẫn thoát 3 · TỪ CHỐI) — T9 nay đòi lý do --luot + không dòng pid nào;
+  # (2) --luot vượt số lượt không bị từ chối (--luot 5 --den-kb 0 → ĐẠT) — T9b.
+  ('VS-che-do-theo-gia-tri', 'thugl', [(CH, "const LA_CON = process.argv.includes('--luot');", "const LA_CON = Number(thamSo('--luot', '')) >= 1;", 1)],
+   [r'✗ T9 --luot 0 ', r'✗ T9 --luot x '], 'BẮT'),
+  ('BV-luot-vuot-khong-kiem', 'thugl', [(CH, 'if (LA_CON && LUOT_K > SO_LUOT)', 'if (0 && LA_CON && LUOT_K > SO_LUOT)', 1)], [r'✗ T9b '], 'BẮT'),
+  # Chat soát thay vòng 4 (soát lại bản của chính chat): nạp kich_ban.js sớm (để kiểm --luot ≤ số lượt) mà không bọc → kich_ban.js hỏng
+  # văng thô, node thoát 1 (= KHÔNG ĐẠT) thay vì SẬP thoát 2 — T10 bắt.
+  ('BV-kich-ban-hong-van-tho', 'thugl', [(CH, "try { SO_LUOT = require('./kich_ban.js').LUOT.length; } catch (e) {",
+                                          "{ SO_LUOT = require('./kich_ban.js').LUOT.length; } if (0) {", 1)], [r'✗ T10 '], 'BẮT'),
   ('VS-luot-tuan-tu', 'thugl', [(CH, '  await Promise.all(chon.map(mo));\n', '  for (const l of chon) await mo(l);\n', 1)], [r'✗ T1 '], 'BẮT'),
   ('VS-dong-lech-so-trong-luot', 'thugl', [(CH, '        lech.push(`KB${i + 1} → ${ten}: ${l}`);', '        lech.push(`KB${daChay.length} → ${ten}: ${l}`);', 1)],
    [r'✗ M1 '], 'BẮT'),
