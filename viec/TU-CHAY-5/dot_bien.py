@@ -62,7 +62,7 @@ DOT_BIEN = [
   ('VS-C1-tinh-ca-commit-ho-so', 'cong', [(CG, 'const sau = khop.length === 1 ? doiCode(khop[0]) : [];',
                                            "const sau = khop.length === 1 ? git(thuMuc, 'rev-list', `${khop[0]}..${head}`).split('\\n').filter(Boolean) : [];", 1)],
    [r'✗ TU-CHAY-5 A19 K5 commit hồ sơ sau lần kiểm: phải ĐẠT'], 'BẮT'),
-  ('VS-C1-commit-nay-moi-noi', 'cong', [(CG, '\n        && coDong(sau[0]) && !coDong(khop[0]))) {', ')) {', 1)],
+  ('VS-C1-commit-nay-moi-noi', 'cong', [(CG, '\n        && coDong(sau[0]))) {', ')) {', 1)],
    [r'✗ TU-CHAY-5 A19 "\+ commit này" ghi ở commit hồ sơ SAU commit code: phải ĐỎ'], 'BẮT'),
   # soát vòng 2: hai vế từng SỐNG — đọc dòng CUỐI, loại cong.yml
   ('VS-C1-doc-dong-dau', 'cong', [(CG, "( \\+ commit này)?$/gm)].pop();", "( \\+ commit này)?$/gm)][0];", 1)],

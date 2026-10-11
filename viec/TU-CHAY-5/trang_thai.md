@@ -100,22 +100,23 @@ BÀI HỌC:
 | ke_hoach "bước 10" | Giữ — hồ sơ kế hoạch đã duyệt (lịch sử); bản sống là skill 11.4 |
 | Bảng chỗ vá thiếu tên | Thêm 4 dòng (vòng 1 + vòng 2) |
 
-## Số đo trên HEAD 455b169 (11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt — không lệnh nào song song)
+## Số đo trên HEAD 0b6bd26 (sau soát vòng 2; 11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt — không lệnh nào song song)
 
 | Lệnh | Thời gian | Kết quả |
 |---|---|---|
-| `node tu_chay/thu_nguoi_gac.js` | 9,1 s | 925/925 ca người gác · 178 phép khác · XANH |
-| `node tu_chay/thu_cong.js` | 87,6 s | 307 phép · 0 chỗ hỏng |
-| `node tu_chay/thu_cong_cu.js` | 4,2 s | 98 phép · 0 chỗ hỏng |
-| `node cong_cu/thu_gia_lap.js` ×3 (lần 1 trong đợt đo, lần 2, 3 riêng) | 40,0 s (lần 1) | 130 đạt · 0 hỏng · cả 3 lần |
+| `node tu_chay/thu_nguoi_gac.js` | 8,5 s | 924/924 ca người gác · 179 phép khác · XANH |
+| `node tu_chay/thu_cong.js` | 86,8 s | 309 phép · 0 chỗ hỏng |
+| `node tu_chay/thu_cong_cu.js` | 4,3 s | 99 phép · 0 chỗ hỏng |
+| `node cong_cu/thu_gia_lap.js` ×3 (lần 1 trong đợt đo, lần 2, 3 riêng) | 39,4 s (lần 1) | 130 đạt · 0 hỏng · cả 3 lần |
 | `npm test` | — | PASS 59 · FAIL 0 · CẢNH BÁO 2 |
-| `node kiem_tra_truoc_khi_giao.js --day-du` | 181,9 s | PASS 63 · FAIL 0 · CẢNH BÁO 2 |
-| `node viec/LUOI-1/do_thoi_gian.js kb` | lượt 1–4: 22,6 · 21,9 · 22,6 · 24,2 s | thoát 0 · 29 dòng `DO KB` |
-| `python3 viec/TU-CHAY-5/dot_bien.py -j 2` | 564 s | 22 · BẮT 21 · TREO 1 (mong TREO) · đúng mong đợi 22/22 |
-| `python3 viec/TU-CHAY-5/dot_bien.py 'BV-D3*'` lần 2, lần 3 (Q3) | 86 s, 90 s | lần 1 (trong đợt 22): BẮT 2/2 · lần 2: BẮT 2/2 · lần 3: BẮT 2/2 |
-| `python3 viec/TACH-GL/dot_bien.py -j 4` | 576 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
-| `python3 viec/LUOI-1/dot_bien.py -j 4` | 90 s | 80 · BẮT 79 · LẠC 1 (mong LẠC) · đúng mong đợi 80/80 |
-| `python3 viec/TU-CHAY-5/chay_goc.py` (gốc 5ad35ea) | — | 4/4 bài ĐỎ: gác 799/925 · cổng 25 hỏng · công cụ 13 hỏng · giả lập 1 hỏng (T7c) |
+| `node kiem_tra_truoc_khi_giao.js --day-du` | 170,8 s | PASS 63 · FAIL 0 · CẢNH BÁO 2 |
+| `node viec/LUOI-1/do_thoi_gian.js kb` | lượt 1–4: 22,3 · 21,7 · 22,6 · 24,0 s | thoát 0 · 29 dòng `DO KB` |
+| `python3 viec/TU-CHAY-5/dot_bien.py -j 2` | 547 s | 25 · BẮT 24 · HỎNG 1 (`VS-C1-commit-nay-moi-noi`: neo rữa vì vòng 2 bỏ vế `!coDong(khop[0])` — K2, sửa neo) |
+| `python3 viec/TU-CHAY-5/dot_bien.py VS-C1-commit-nay-moi-noi` (neo mới) | 161 s | BẮT 1/1 → cả bộ 25/25 đúng mong đợi |
+| `python3 viec/TU-CHAY-5/dot_bien.py 'BV-D3*'` lần 2, lần 3 (Q3) | 89 s, 88 s | lần 1 (trong đợt 25): BẮT 2/2 · lần 2: BẮT 2/2 · lần 3: BẮT 2/2 |
+| `python3 viec/TACH-GL/dot_bien.py -j 4` | 554 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
+| `python3 viec/LUOI-1/dot_bien.py -j 4` | 88 s | 80 · BẮT 79 · LẠC 1 (mong LẠC) · đúng mong đợi 80/80 |
+| `python3 viec/TU-CHAY-5/chay_goc.py` (gốc 5ad35ea) | — | 4/4 bài ĐỎ: gác 799/924 · cổng 25 hỏng · công cụ 13 hỏng · giả lập 1 hỏng (T7c) |
 
 Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn (bản cài `.claude/` lệch nguồn `tu_chay/`, chủ quán cài sau soát cuối):
 - `.claude/tu_chay/ khớp từng byte với tu_chay/` — lệch: MAU_PHIEU.md, PHIEN_BAN, THIET_KE.md, cong.js, nguoi_gac.js,
@@ -131,7 +132,7 @@ Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn
 | B3 | `thu_nguoi_gac` khối "TU-CHAY-5 B3" (CHO / GIT-KEO từng vế, nhánh, kho lồng, nháp, ngoài kho, HEAD tách rời, main, không phiếu); BV-B3-bo-keo, VS-B3-pull-thieu-ff-only, VS-B3-keo-moi-nhanh, VS-B3-keo-bo-khoLong |
 | B4 | `thu_cong_cu` "TU-CHAY-5 B4 skill bước 1" ×3 + luật stop hook; `thu_nguoi_gac` "TU-CHAY-5 B4: mọi lệnh git ở bước 1 của skill → CHO" |
 | B5 | `ke_hoach.md` mục 2 B5 + Phát hiện 1 |
-| C1 | `thu_cong` 12 ca "TU-CHAY-5 A19" + vòng tắt A19 (6 ca); `thu_cong_cu` "TU-CHAY-5 C1 skill"; BV-C1-bo-A19, VS-C1-tinh-ca-commit-ho-so, VS-C1-commit-nay-moi-noi, VS-C1-khong-loai-claude, VS-C1-skill-ghi-o-buoc-10 |
+| C1 | `thu_cong` 14 ca "TU-CHAY-5 A19" + vòng tắt A19 (6 ca); `thu_cong_cu` "TU-CHAY-5 C1 skill" + "TU-CHAY-5 C1: cong.js / THIET_KE / MAU_PHIEU"; BV-C1-bo-A19, VS-C1-tinh-ca-commit-ho-so, VS-C1-commit-nay-moi-noi, VS-C1-khong-loai-claude, VS-C1-skill-ghi-o-buoc-10, VS-C1-doc-dong-dau, VS-C1-khong-loai-cong-yml, VS-C1-thong-bao-buoc-10 |
 | C2 | `thu_cong` 6 ca "TU-CHAY-5 C2"; BV-C2-bo-canh-bao, VS-C2-so-ca-phep |
 | C3 | `thu_cong_cu` "TU-CHAY-5 C3/E1 THIET_KE B15" (A18 không chạy đột biến) |
 | D1 | `thu_gia_lap` T7c (đỏ trên gốc) + T7a/T7b có IPC; BV-D1-bo-ipc |
@@ -147,7 +148,7 @@ Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn
 
 ## Đang ở
 
-Bước 8 — soát độc lập vòng 2 (sau vòng sửa 1).
+Bước 8 — soát độc lập vòng 3 (sau vòng sửa 2).
 
 ## Phát hiện
 
