@@ -86,7 +86,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
     4. Bước 11 đổi file ngoài `viec/$0/` (KHOÁ, `KHUON_LOI.md`) → commit rồi chạy lại bước 6 (KHOÁ là bài `thu_*.js` mới / sửa
        thì làm cả bước 4: đỏ trên gốc, `SỐ CA` trong `bang_chung_do.txt`). LUÔN — đổi hay không — SAU lần kiểm cuối mới ghi
        dòng `HEAD ĐÃ KIỂM: <git rev-parse --short HEAD>` vào `trang_thai.md` (cổng A19 — mọi commit đổi file ngoài `viec/$0/`
-       phải nằm TRƯỚC SHA này). Commit vừa đổi code vừa ghi `trang_thai.md` (chat soát thay) thì ghi
+       phải nằm TRƯỚC SHA này). Một dòng riêng ở CUỐI file, đúng nguyên dạng đó (không gạch đầu dòng, không backtick) —
+       cổng đọc dòng cuối khớp `^HEAD ĐÃ KIỂM: <SHA>$`; kiểm lại thì thêm dòng mới, không sửa dòng cũ. Commit vừa đổi code vừa ghi `trang_thai.md` (chat soát thay) thì ghi
        `HEAD ĐÃ KIỂM: <SHA cha> + commit này`.
     5. Ghi mục `## Bài học` của `trang_thai.md`, commit, push, rồi in báo cáo 7 mục trong câu trả lời.
        Đề xuất ngoài Phạm vi máy KHÔNG tự làm — chat soát duyệt, gom vào việc sau hoặc phiếu `HOC-<n>`.

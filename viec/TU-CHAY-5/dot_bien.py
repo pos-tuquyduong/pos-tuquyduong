@@ -76,6 +76,13 @@ DOT_BIEN = [
   ('VS-C1-skill-ghi-o-buoc-10', 'cc', [(SK, '    không lấy mẫu; còn mục thiếu bằng chứng thì chưa xong.\n',
                                        '    không lấy mẫu; còn mục thiếu bằng chứng thì chưa xong. Ghi `HEAD ĐÃ KIỂM: <SHA>` sau lần kiểm cuối.\n', 1)],
    [r'✗ TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM'], 'BẮT'),
+  # bước 11 (soát vòng 4): phép quét "bước 10" mở rộng sang MỌI file tu_chay/ — chú thích bài thử cũng bị bắt
+  ('VS-C1-chu-thich-thu-cong-buoc-10', 'cc', [('tu_chay/thu_cong.js', 'như skill bước 11.4 dặn', 'như skill bước 10 dặn', 1)],
+   [r'✗ TU-CHAY-5 C1: mọi file tu_chay/ .*tu_chay/thu_cong\.js:'], 'BẮT'),
+  ('VS-SK-11-dieu-kien', 'cc', [(SK, 'LUÔN — đổi hay không — SAU lần kiểm cuối mới ghi', 'SAU lần kiểm cuối đó mới ghi', 1)],
+   [r'✗ TU-CHAY-5 C1 skill 11.4: ghi HEAD ĐÃ KIỂM LUÔN'], 'BẮT'),
+  ('VS-SK-12-bo-loai-hoi', 'cc', [(SK, 'có dòng KHÔNG mở đầu `??` (file đã theo dõi đang sửa dở)', 'có dòng nào', 1)],
+   [r'✗ TU-CHAY-5 B4 skill 1.2'], 'BẮT'),
   # ── C2 cảnh báo A16 ──
   ('BV-C2-bo-canh-bao', 'cong', [(CG, 'if (g !== null && h !== null && g !== h) {', 'if (false) {', 1)],
    [r'✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "CẢNH BÁO A16"'], 'BẮT'),
@@ -100,6 +107,9 @@ DOT_BIEN = [
   # soát vòng 3: một lượt sập (bản sao chay.js: lượt 2 thoát 2 trước KB đầu) → công cụ phải thoát ≠ 0, không in thiếu mà thoát 0
   ('VS-D4-luot-sap', 'd4', [(CH, '    try { await kb.chay(ctx); }', "    if (LUOT_K === 2) process.exit(2);\n    try { await kb.chay(ctx); }", 1)],
    [r'chỉ \d+/29 dòng DO KB'], 'BẮT'),
+  # soát vòng 4: lượt 4 thoát 1 SAU khi đã in đủ DO KB (đếm dòng không bắt được) → công cụ phải thoát ≠ 0
+  ('VS-D4-luot-thoat-1', 'd4', [(CH, "  const tong = `Lượt ${LUOT_K}", "  if (LUOT_K === 4) process.exit(1);\n  const tong = `Lượt ${LUOT_K}", 1)],
+   [r'lượt đo thoát ≠ 0: lượt 4/4'], 'BẮT'),
   ('BV-D4-neo-cu', 'd4', [(DO, "const a3 = '  const tong = `Lượt ';", "const a3 = '  const tong = `Giả lập:';", 1)],
    [r'neo đo không khớp: +const tong = `Giả lập:'], 'BẮT'),
 ]

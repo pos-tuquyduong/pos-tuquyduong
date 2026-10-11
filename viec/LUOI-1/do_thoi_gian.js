@@ -16,9 +16,11 @@ const { spawnSync } = require('child_process');
 
 const GOC = path.join(__dirname, '..', '..');
 const SACH = Object.fromEntries(Object.entries(process.env).filter(([t]) => /^(PATH|HOME|LANG|LC_ALL)$/.test(t)));
+const thoatHong = [];   // TU-CHAY-5 (soát vòng 4): lượt đo thoát ≠ 0 thì số đo không tin được
 const chay = (ten, args) => {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, args, { cwd: GOC, env: SACH, encoding: 'utf8', maxBuffer: 1 << 26 });
+  if (r.status !== 0) thoatHong.push(`${ten} thoát ${r.status}`);
   const dong = `${r.stdout}${r.stderr}`.trim().split('\n');
   console.log(`${ten}: ${((Date.now() - t0) / 1000).toFixed(1)} s · thoát ${r.status} · ${dong.slice(-1)[0].trim()}`);
   dong.filter((l) => /ĐẾM|CẢNH BÁO:|⚠/.test(l)).forEach((l) => console.log('  ' + l.trim()));
@@ -47,6 +49,7 @@ if (lam.includes('kb')) {
     const { LUOT } = require(path.join(tam, 'kich_ban.js'));
     const ra = LUOT.flatMap((_, i) => chay(`lượt ${i + 1}/${LUOT.length} (bản đo từng KB)`, [p, '--luot', String(i + 1), '--may-chu',
       path.join(GOC, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')]));
+    if (thoatHong.length) throw new Error(`lượt đo thoát ≠ 0: ${thoatHong.join(', ')}`);
     const doKb = ra.filter((l) => l.startsWith('DO ')).length;
     if (doKb !== LUOT.flat().length) throw new Error(`chỉ ${doKb}/${LUOT.flat().length} dòng DO KB — có lượt sập (xem dòng "thoát" ở trên)`);
     ra.filter((l) => l.startsWith('DO ')).sort((a, b) => parseInt(a.slice(5), 10) - parseInt(b.slice(5), 10)).forEach((l) => console.log('  ' + l));

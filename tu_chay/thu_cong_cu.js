@@ -437,6 +437,12 @@ function baiTaiLieu() {
     .flatMap(([f, s]) => String(s || '').split('\n').map((l, i) => [f, i + 1, l])).filter(([, , l]) => l.includes('HEAD ĐÃ KIỂM') && /bước 10\b/.test(l));
   chac('TU-CHAY-5 C1: mọi file tu_chay/ nhắc HEAD ĐÃ KIỂM không trỏ "bước 10" (skill ghi ở bước 11.4)', !nhacSai.length,
     nhacSai.map(([f, n]) => `${f}:${n}`).join(', '));
+  // Bước 11 (KHOÁ, soát vòng 4): câu skill sửa bằng lời ở vòng 3 phải có phép canh (C16) — 11.4 ghi LUÔN, đúng hình thức dòng;
+  // 1.2 chỉ dừng kéo khi có file ĐÃ THEO DÕI sửa dở (dòng không mở đầu ??).
+  chac('TU-CHAY-5 C1 skill 11.4: ghi HEAD ĐÃ KIỂM LUÔN (đổi hay không), một dòng riêng ở CUỐI file, không gạch đầu dòng / backtick',
+    /LUÔN — đổi hay không/.test(s11) && /dòng riêng ở CUỐI file/.test(s11) && /không gạch đầu dòng, không backtick/.test(s11));
+  chac('TU-CHAY-5 B4 skill 1.2: cây "sửa dở" = dòng KHÔNG mở đầu `??` (file chưa theo dõi không chặn kéo)',
+    /KHÔNG mở đầu `\?\?`/.test(b1), b1.slice(0, 200));
   const t15 = muc(tk, '## B15', '## B16'), t3 = muc(tk, '## B3.', '## B4.'), t10 = muc(tk, '## B10.', '## B11.');
   chac('TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng',
     ['[A19]', 'HEAD ĐÃ KIỂM', 'CẢNH BÁO A16'].every((x) => t15.includes(x)) && /A18[^\n]*không chạy đột biến/.test(t15), t15.slice(0, 120));

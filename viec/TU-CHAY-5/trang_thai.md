@@ -55,6 +55,9 @@ befc6ad Merge pull request #13 from pos-tuquyduong/viec/TACH-GL
 | D3 `chayTheoDoi` setEncoding (K4) | `thu_gia_lap` D3 | `BV-D3-theodoi-bo-setEncoding` |
 | D4 neo `Lượt ` | `do_thoi_gian.js kb` | `BV-D4-neo-cu` |
 | D4 lượt sập → thoát ≠ 0 (soát vòng 3) | `do_thoi_gian.js kb` | `VS-D4-luot-sap` |
+| D4 lượt thoát ≠ 0 sau khi in đủ DO KB (bước 11) | `do_thoi_gian.js kb` | `VS-D4-luot-thoat-1` |
+| Phép quét "bước 10" mọi file tu_chay/ (bước 11) | `thu_cong_cu` | `VS-C1-chu-thich-thu-cong-buoc-10` |
+| Skill 11.4 LUÔN + hình thức dòng; 1.2 loại "??" (bước 11) | `thu_cong_cu` | `VS-SK-11-dieu-kien`, `VS-SK-12-bo-loai-hoi` |
 | C2 một hàm `soCa(…, chiCa)`: bỏ màu · dòng CUỐI · phép → null (soát vòng 3) | `thu_cong` | `VS-C2-bo-mau`, `VS-C2-dong-dau`, `VS-C2-phep-khong-null` |
 
 ## Soát độc lập — vòng 2 (`/ra-soat`, agent độc lập mới, nguyên văn rút gọn dấu đầu dòng)
@@ -150,6 +153,43 @@ BÀI HỌC:
 | `git rm` symlink đã theo dõi | Ghi Phát hiện 5 (lỗ lý thuyết, kho 0 symlink theo dõi) |
 | C2 so với số ở head | Tương đương nhờ A16 (SỐ CA = số ở head) — ghi rõ ở THIET_KE B15 đã nêu "số CA khác số ở head" |
 
+## Soát độc lập — vòng 4 (`/ra-soat`, agent độc lập mới, HEAD 23814a0) — ĐẠT
+
+```
+ĐẠT
+LỖI TÌM ĐƯỢC:  không có
+NGHI NGỜ:
+- viec/LUOI-1/do_thoi_gian.js:50–51 — chỉ đếm dòng DO KB, không xét mã thoát từng lượt; vòng 3 sửa một nửa ghi chú
+  "mã thoát / số 29" (K4). Đột biến tự dựng: lượt 4 thoát 1 sau khi đã in DO KB → công cụ vẫn thoát 0.
+- tu_chay/skill_lam_viec.md:87 ("LUÔN — đổi hay không") và :30 ("dòng KHÔNG mở đầu ??") — sửa bằng LỜI, không KHOÁ (C16);
+  đột biến trả câu cũ → thu_cong_cu vẫn XANH (K3).
+- Phép quét "bước 10" mở rộng sang mọi file tu_chay/ không có đột biến có tên trong dot_bien.py (thử tay: bắt được).
+- tu_chay/cong.js:200 — A19 chỉ nhận dòng đúng dạng ^HEAD ĐÃ KIỂM: <sha>$; skill 11.4 không nói hình thức dòng (riêng dòng, không
+  gạch đầu dòng / backtick, thêm ở CUỐI khi kiểm lại). Máy ghi lệch thì A19 đỏ — tự sửa được (K5 chữ nghĩa).
+- trang_thai.md:277–283 — Phát hiện 5, 6 nằm dưới "### Đã sửa ở vòng 1", không trong "## Phát hiện".
+- Giữ từ vòng 3: cong.js khop.length !== 1 không có ca (phòng thủ); git rm symlink (Phát hiện 5, 0 symlink theo dõi).
+NGHIỆM THU: 16/16 (B1–B5, C1–C3, D1–D4, E1–E3, F) · mục thiếu: không. 14 ca A19, 9 ca C2, E1–E3 trong thu_cong_cu.
+CHƯA SOÁT ĐƯỢC: chưa chạy lại đủ dot_bien.py 29 (chỉ 7 đột biến đổi ở vòng 3: 7/7 BẮT); TACH-GL, LUOI-1, D3 ×3 chưa chạy lại
+(23814a0 chỉ đổi viec/TU-CHAY-5/); chưa fetch/pull thật, chưa chạy skill bước 1 trên phiên nạp bản cũ (người gác đang cài 1.4.0);
+cổng thật trên GitHub; A19 trên PR thật sau khi chủ quán cài 1.5.0; mẫu nhận kết quả của các bộ đột biến (D5 dời AUDIT-2).
+BÀI HỌC:
+- KHOÁ: thu_cong_cu — skill 11.4 "LUÔN"/không điều kiện; skill 1.2 loại "??"; kèm đột biến trả câu cũ (C16).
+- KHOÁ: đột biến có tên cho mỗi lần MỞ RỘNG phép tự quét, ghi vào bảng chỗ vá.
+- NGUYÊN TẮC (K4): nghi ngờ có hai vế → bảng "Đã sửa" ghi từng vế: sửa hoặc lý do bỏ.
+- NGUYÊN TẮC (K5): cổng đọc dòng theo mẫu chặt (^…$) → skill phải nói đúng hình thức dòng.
+- BỎ: Phát hiện 5–6 lạc mục — lỗi trình bày một lần.
+```
+
+### Bước 11 — KHOÁ làm luôn (file trong Phạm vi) sau vòng 4
+
+| Nghi ngờ vòng 4 | KHOÁ |
+|---|---|
+| do_thoi_gian chưa xét mã thoát từng lượt | `chay()` gom lượt thoát ≠ 0 → ném "lượt đo thoát ≠ 0"; đột biến `VS-D4-luot-thoat-1` (lượt 4 thoát 1 sau khi in đủ DO KB) |
+| Skill 11.4 "LUÔN", 1.2 "??" chỉ là lời | Phép `thu_cong_cu` "TU-CHAY-5 C1 skill 11.4: … LUÔN … dòng riêng ở CUỐI file …" + "TU-CHAY-5 B4 skill 1.2"; đột biến `VS-SK-11-dieu-kien`, `VS-SK-12-bo-loai-hoi` |
+| Phép quét "bước 10" mở rộng không có đột biến có tên | `VS-C1-chu-thich-thu-cong-buoc-10` |
+| Skill không nói hình thức dòng HEAD ĐÃ KIỂM | Skill 11.4: "một dòng riêng ở CUỐI file, đúng nguyên dạng (không gạch đầu dòng, không backtick); kiểm lại thì thêm dòng mới" — có trong phép trên |
+| Phát hiện 5, 6 lạc mục | Dời về `## Phát hiện` |
+
 ## Số đo trên HEAD 92dcdb1 (sau soát vòng 3 — vòng sửa cuối; 11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt)
 
 | Lệnh | Thời gian | Kết quả |
@@ -201,7 +241,7 @@ Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn
 
 ## Đang ở
 
-Bước 8 — soát độc lập vòng 4 (sau vòng sửa 3 — vòng sửa cuối được phép; KHÔNG ĐẠT nữa thì ghi Câu hỏi và dừng).
+Bước 11 — soát vòng 4 ĐẠT; làm KHOÁ trong Phạm vi, chạy lại bước 6, rồi ghi HEAD ĐÃ KIỂM + báo cáo 7 mục.
 
 ## Phát hiện
 
@@ -223,6 +263,12 @@ Bước 8 — soát độc lập vòng 4 (sau vòng sửa 3 — vòng sửa cu�
 4. **A19 và "Update branch" / gộp main** (thiết kế có chủ ý, `ke_hoach.md` mục C1, có ca thử): mọi lần gộp main vào nhánh
    SAU lần kiểm làm A19 đỏ tới khi máy kiểm lại và ghi lại dòng `HEAD ĐÃ KIỂM`. Main có commit TIEN-DO thường xuyên — chủ quán
    cân nhắc: gộp main TRƯỚC khi máy kiểm cuối, hoặc chấp nhận một lượt kiểm lại sau mỗi lần gộp.
+5. **`git rm` một symlink đã theo dõi** (soát vòng 3): `ghiDuoc` xét đích sau realpath (`nguoi_gac.js` `thuc`), không xét chính
+   đường link — link NGOÀI Phạm vi trỏ vào file TRONG Phạm vi sẽ được CHO xoá. Hiện kho có 0 symlink được theo dõi
+   (`git ls-files -s`, chế độ 120000) và máy không tạo được link ngoài Phạm vi → lỗ lý thuyết. Đề xuất (việc sau): rm xét
+   `lstat` — đường là symlink thì xét chính đường link.
+6. **HOC-2 `VS-E3-phien-ban-cu`** neo `tu-chay 1.4.0` rữa tất yếu vì E3 đổi phiên bản — việc sau đổi neo sang `tu-chay 1.5.0`
+   (viec/HOC-2/dot_bien.py ngoài Phạm vi).
 
 ## Soát độc lập — vòng 1 (`/ra-soat`, agent độc lập, nguyên văn)
 
@@ -273,13 +319,6 @@ BÀI HỌC:
 | KHUON_LOI thứ tự gạch | Gạch TACH-GL đặt sau câu "Lỗi thất thường…" |
 | Phát hiện K4 / nhánh / A19 + gộp main | Phát hiện 2–4 |
 | `thu_nguoi_gac.js` setEncoding ở `choTreo` không có ca | Ghi CHƯA KIỂM (đầu ra người gác là JSON ngắn; không dựng được ca cắt khúc tất định) |
-
-5. **`git rm` một symlink đã theo dõi** (soát vòng 3): `ghiDuoc` xét đích sau realpath (`nguoi_gac.js` `thuc`), không xét chính
-   đường link — link NGOÀI Phạm vi trỏ vào file TRONG Phạm vi sẽ được CHO xoá. Hiện kho có 0 symlink được theo dõi
-   (`git ls-files -s`, chế độ 120000) và máy không tạo được link ngoài Phạm vi → lỗ lý thuyết. Đề xuất (việc sau): rm xét
-   `lstat` — đường là symlink thì xét chính đường link.
-6. **HOC-2 `VS-E3-phien-ban-cu`** neo `tu-chay 1.4.0` rữa tất yếu vì E3 đổi phiên bản — việc sau đổi neo sang `tu-chay 1.5.0`
-   (viec/HOC-2/dot_bien.py ngoài Phạm vi).
 
 ## Câu hỏi
 
