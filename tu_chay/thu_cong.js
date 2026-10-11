@@ -5,6 +5,7 @@
 //    (base SHA, head SHA, tên nhánh), gọi tu_chay/cong.js hai chế độ tinh / chay như trên GitHub.
 //    Đột biến: cong({ tat }) tắt từng kiểm A6–A18 → ca chặn tương ứng phải thành ĐẠT (bài bắt được).
 // HOC-2: A16 bằng chứng đỏ khớp số ca · A17 tên đột biến có trong trang_thai · A18 VÁ SAI bắt buộc; A2 mỗi khoá cấu hình có người đọc.
+// TU-CHAY-5: A19 dòng "HEAD ĐÃ KIỂM" (C1) · A16 cảnh báo số ca trên gốc ≠ ở head (C2).
 // B: kiemYml() soi tu_chay/cong_github.yml (B1–B4, Q3) + chạy thật bước chặn fork (A15); mỗi đột biến
 //    chữ phải ra đúng mã lỗi.
 // Mọi lệnh git chạy trong kho tạm, đã bỏ GIT_* (pre-commit đặt GIT_INDEX_FILE) và CLAUDE*.
@@ -86,7 +87,13 @@ function caiDat() {
   return r;
 }
 // Dựng một PR: các commit [tiêu đề, { file: nội dung | null (xoá) } | hàm]. Trả head SHA, cây đứng ở head.
-function pr(buoc) {
+// TU-CHAY-5 C1: mặc định thêm commit hồ sơ cuối ghi "HEAD ĐÃ KIỂM: <head trước đó>" như skill bước 10 dặn (A19 qua) —
+// ca A19 tắt bằng kiem: false và tự dựng trang_thai.md.
+const ghiKiem = (sha, them = '') => {
+  const p = path.join(G, 'viec/X/trang_thai.md');
+  viet(G, 'viec/X/trang_thai.md', (doc(p) || '') + `HEAD ĐÃ KIỂM: ${sha.slice(0, 7)}${them}\n`);
+};
+function pr(buoc, kiem = true) {
   git(G, 'checkout', '-q', '-f', '--detach', BASE);
   git(G, 'clean', '-fdq');
   for (const [tieuDe, doi] of buoc) {
@@ -95,6 +102,7 @@ function pr(buoc) {
     git(G, 'add', '-A');
     if (git(G, 'status', '--porcelain')) git(G, 'commit', '-q', '-m', tieuDe); // hàm tự commit (vd. gộp) thì thôi
   }
+  if (kiem) { ghiKiem(git(G, 'rev-parse', 'HEAD')); git(G, 'add', '-A'); git(G, 'commit', '-q', '-m', 'ho so: HEAD DA KIEM'); }
   return git(G, 'rev-parse', 'HEAD');
 }
 const datVe = (sha) => { git(G, 'checkout', '-q', '-f', '--detach', sha); git(G, 'clean', '-fdq'); };
@@ -104,9 +112,9 @@ function goi(cheDo, head, nhanh = 'viec/X') {
 }
 const PR = {}; // tên ca → head, cho phần đột biến
 // che: 'ca' = tinh rồi chay (đạt khi cả hai đạt), hoặc 'tinh' / 'chay'
-function ca(ten, buoc, mong, { che = 'ca', chua = [], khong = [], nhanh = 'viec/X' } = {}) {
+function ca(ten, buoc, mong, { che = 'ca', chua = [], khong = [], nhanh = 'viec/X', kiem = true } = {}) {
   let head;
-  try { head = pr(buoc); } catch (e) { chac(`${ten}: dựng PR`, false, e.message); return; }
+  try { head = pr(buoc, kiem); } catch (e) { chac(`${ten}: dựng PR`, false, e.message); return; }
   PR[ten] = head;
   const kq = [];
   for (const c of che === 'ca' ? ['tinh', 'chay'] : [che]) { datVe(head); kq.push(goi(c, head, nhanh)); }
@@ -389,6 +397,61 @@ function baiCong() {
     chac('tinh đọc phiếu bằng git show: phiếu sửa trên đĩa (chưa commit) mở thêm phạm vi → vẫn ĐỎ', !t.ok && t.ra.includes('docs/ngoai.md'), t.ra);
   }
 
+  // TU-CHAY-5 C1 (A19): trang_thai.md ở head có "HEAD ĐÃ KIỂM: <SHA>" không cũ hơn commit cuối đổi file ngoài viec/<MÃ>/
+  // (trừ .claude/ và cong.yml — chủ quán cài sau lần kiểm). Mỗi ca phá đúng một vế; README.md: đổi ngoài viec/X mà không phải code (A12).
+  const sha = () => git(G, 'rev-parse', 'HEAD');
+  const R = (n) => ({ 'README.md': `a19 ${n}\n` });
+  let c0 = null, c1 = null;
+  const nho = (f) => () => { f(); git(G, 'add', '-A'); git(G, 'commit', '-q', '-m', 'buoc'); };
+  const A19 = { che: 'tinh', kiem: false };
+  ca('TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM', [['r', R(1)]], 'ĐỎ', { ...A19, chua: ['[A19]', 'thiếu dòng "HEAD ĐÃ KIỂM'] });
+  ca('TU-CHAY-5 A19 SHA cũ hơn commit đổi code', [['r1', R(1)], ['k', () => ghiKiem(sha())], ['r2', R(2)]], 'ĐỎ',
+    { ...A19, chua: ['[A19]', 'cũ hơn'] });
+  ca('TU-CHAY-5 A19 SHA không thuộc PR (SHA gốc)', [['r', R(1)], ['k', () => ghiKiem(BASE)]], 'ĐỎ',
+    { ...A19, chua: ['[A19]', 'không thuộc PR'] });
+  ca('TU-CHAY-5 A19 K5 SHA = commit đổi code cuối', [['r', R(1)], ['k', () => ghiKiem(sha())]], 'ĐẠT', A19);
+  ca('TU-CHAY-5 A19 K5 commit hồ sơ sau lần kiểm', [['r', R(1)], ['k', () => ghiKiem(sha())], ['ke', { 'viec/X/ke_hoach.md': 'sau\n' }]],
+    'ĐẠT', A19);
+  ca('TU-CHAY-5 A19 K5 "+ commit này" (chat soát thay: đổi code + trang_thai cùng commit)', [['r0', R(0)],
+    ['r1', () => { ghiKiem(sha(), ' + commit này'); viet(G, 'README.md', 'a19 1\n'); }]], 'ĐẠT', A19);
+  ca('TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code', [['r0', R(0)], ['r1', nho(() => { c0 = sha(); viet(G, 'README.md', 'x\n'); })],
+    ['k', () => ghiKiem(c0, ' + commit này')]], 'ĐỎ', { ...A19, chua: ['[A19]', 'commit này'] });
+  // đúng MỘT commit đổi code sau SHA, dòng xuất hiện ở chính commit đó, nhưng cha của nó là commit hồ sơ ≠ SHA ghi
+  ca('TU-CHAY-5 A19 "+ commit này" cha sai', [['r0', R(0)], ['h', nho(() => { c0 = sha(); viet(G, 'viec/X/ke_hoach.md', 'h\n'); })],
+    ['r2', () => { ghiKiem(c0, ' + commit này'); viet(G, 'README.md', 'c\n'); }]], 'ĐỎ', { ...A19, chua: ['[A19]', 'commit này'] });
+  ca('TU-CHAY-5 A19 K5 PR chỉ hồ sơ viec/X/ → không áp', [['h', { 'viec/X/ke_hoach.md': 'k\n' }]], 'ĐẠT', A19);
+  // máy sửa tu_chay/ (bản cài .claude/ lệch), ghi HEAD ĐÃ KIỂM, rồi chủ quán chạy cai_dat.sh → commit đổi .claude/ sau lần kiểm
+  ca('TU-CHAY-5 A19 K5 chủ quán cài .claude/ sau lần kiểm', [
+    ['m', () => viet(G, 'tu_chay/MAU_PHIEU.md', doc(path.join(G, 'tu_chay/MAU_PHIEU.md')) + 'x\n')], ['k', () => ghiKiem(sha())],
+    ['cai_dat.sh', () => { const r = caiDat(); if (r.status !== 0) throw new Error(r.stderr + r.stdout); }]], 'ĐẠT', A19);
+  const gopMain = () => {
+    const cu = sha();
+    git(G, 'checkout', '-q', '--detach', BASE);
+    viet(G, 'tu_chay/mau/a.md', 'main mới\n'); git(G, 'add', '-A'); git(G, 'commit', '-q', '-m', 'main moi');
+    const m = sha();
+    git(G, 'checkout', '-q', '--detach', cu);
+    git(G, 'merge', '-q', '--no-ff', '-m', 'gop main', m);
+    c1 = sha();
+  };
+  ca('TU-CHAY-5 A19 gộp main SAU lần kiểm', [['r', R(1)], ['k', () => ghiKiem(sha())], ['gop', gopMain]], 'ĐỎ',
+    { ...A19, chua: ['[A19]', 'cũ hơn'] });
+  ca('TU-CHAY-5 A19 K5 SHA = commit gộp main', [['r', R(1)], ['gop', gopMain], ['k', () => ghiKiem(c1)]], 'ĐẠT', A19);
+  // TU-CHAY-5 C2 (A16 thêm, chủ quán chốt Q5): số CA trên gốc ≠ ở head → CẢNH BÁO (không đỏ). Chỉ so phần số ca:
+  // "a đạt · b hỏng" → a + b; "x/B ca người gác" → B (bỏ "phép khác"); "N phép · M chỗ hỏng" không tách được số ca → không so.
+  const hai = (goc, head) => `const v = require('fs').existsSync('server/moi.js');\nconsole.log(v ? ${JSON.stringify(head)} : ${JSON.stringify(goc)});\n`
+    + 'process.exit(v ? 0 : 1);\n';
+  const C2 = (ten, goc, head, n, mong) => ca('TU-CHAY-5 C2 ' + ten, [['a', { 'cong_cu/thu_a.js': hai(goc, head), ...sv,
+    ...BC(`SỐ CA cong_cu/thu_a.js: ${n}\n`) }]], 'ĐẠT', { che: 'chay', ...mong });
+  C2('gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số', '1 đạt · 1 hỏng', '3 đạt · 0 hỏng', 3,
+    { chua: ['CẢNH BÁO A16', 'cong_cu/thu_a.js', 'gốc in 2 ca', '3 ca ở head'] });
+  C2('K5 gốc 3 ca, head 3 ca → không cảnh báo', '1 đạt · 2 hỏng', '3 đạt · 0 hỏng', 3, { khong: ['CẢNH BÁO'] });
+  C2('K5 gốc không in dòng tổng → không cảnh báo', 'sập giữa chừng', '3 đạt · 0 hỏng', 3, { khong: ['CẢNH BÁO'] });
+  C2('K5 dạng "phép · chỗ hỏng" không tách được số ca → không so', 'thu: 2 phép · 1 chỗ hỏng', 'thu: 3 phép · 0 chỗ hỏng', 3,
+    { khong: ['CẢNH BÁO'] });
+  C2('dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo', 'thu: 5/7 ca người gác đúng mã · 2 phép khác',
+    'thu: 8/8 ca người gác đúng mã · 3 phép khác', 11, { chua: ['CẢNH BÁO A16', 'gốc in 7 ca', '8 ca ở head'] });
+  C2('K5 dạng người gác: chỉ số phép khác đổi → không cảnh báo', 'thu: 5/8 ca người gác đúng mã · 2 phép khác',
+    'thu: 8/8 ca người gác đúng mã · 3 phép khác', 11, { khong: ['CẢNH BÁO'] });
   // Đột biến: tắt từng kiểm → ca chặn tương ứng thành ĐẠT (nghĩa là bài thử ở trên bắt được kiểm đó)
   let mod = null;
   try { mod = require(CONG); } catch (e) { chac('nạp được tu_chay/cong.js', false, e.message); }
@@ -405,7 +468,11 @@ function baiCong() {
     ['A12', 'A12 đổi code, không bài thử, không miễn', 'tinh'], ['A13', 'A13 npm test đỏ', 'chay'], ['A14', 'A14 HEAD ≠ head', 'chay'],
     ['A16', 'HOC-2 A16 thêm 1 ca vào bài thử, giữ bằng chứng cũ (1 ca)', 'chay'], ['A16', 'HOC-2 A16 bài đỏ không in dòng tổng', 'chay'],
     ['A17', 'HOC-2 A17 tên đột biến M2 chưa ghi (trang_thai chỉ có M20)', 'tinh'],
-    ['A18', 'HOC-2 A18 đổi server/ mà không có dot_bien.py', 'tinh'], ['A18', 'HOC-2 A18 đổi client/src/ cũng áp', 'tinh']];
+    ['A18', 'HOC-2 A18 đổi server/ mà không có dot_bien.py', 'tinh'], ['A18', 'HOC-2 A18 đổi client/src/ cũng áp', 'tinh'],
+    ['A19', 'TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM', 'tinh'], ['A19', 'TU-CHAY-5 A19 SHA cũ hơn commit đổi code', 'tinh'],
+    ['A19', 'TU-CHAY-5 A19 SHA không thuộc PR (SHA gốc)', 'tinh'],
+    ['A19', 'TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code', 'tinh'],
+    ['A19', 'TU-CHAY-5 A19 "+ commit này" cha sai', 'tinh'], ['A19', 'TU-CHAY-5 A19 gộp main SAU lần kiểm', 'tinh']];
   if (mod && typeof mod.cong === 'function') {
     for (const [ma, ten, cheDo] of DB) {
       if (!PR[ten]) { chac(`đột biến ${ma}: thiếu ca "${ten}"`, false); continue; }

@@ -80,6 +80,18 @@ function soCa(ra) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử
   }
   return n;
 }
+// TU-CHAY-5 C2 (chủ quán chốt Q5): chỉ phần SỐ CA của dòng tổng CUỐI — "a đạt · b hỏng" → a + b, "x/B ca người gác … · C phép
+// khác" → B (bỏ số phép: thêm luật người gác là thêm phép). "N phép · M chỗ hỏng" không tách được số ca → null (không so).
+function soCaRieng(ra) {
+  let n = null;
+  for (const d of String(ra).replace(/\x1b\[[0-9;]*m/g, '').split('\n')) {
+    let x;
+    if ((x = /(\d+) đạt · (\d+) hỏng/.exec(d))) n = +x[1] + +x[2];
+    else if (/\d+ phép · \d+ chỗ hỏng/.test(d)) n = null;
+    else if ((x = /\d+\/(\d+) ca người gác[^·\n]*· \d+ phép khác/.exec(d))) n = +x[1];
+  }
+  return n;
+}
 
 function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   const lyDo = [], ghi = [];
@@ -187,6 +199,26 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       doLy('A18', `PR đổi code chạy thật (${doiChay.slice(0, 3).join(', ')}${doiChay.length > 3 ? ', …' : ''}) mà ${bDB === null
         ? `không có viec/${ma}/dot_bien.py` : `viec/${ma}/dot_bien.py không có tên nào mở đầu VS-`} — cần ≥ 1 đột biến VS- (vá sai)`);
     }
+    // A19 (TU-CHAY-5 C1) — PR đổi file ngoài viec/<MÃ>/ (trừ .claude/ và cong.yml: chủ quán cài SAU lần kiểm của máy) thì dòng CUỐI
+    // "HEAD ĐÃ KIỂM: <SHA>" của trang_thai.md ở head: SHA khớp đúng một commit của PR, và không commit nào đổi code sau nó — theo đồ
+    // thị (rev-list), không theo ngày: commit gộp main cũng tính. Dạng "<SHA cha> + commit này" (chat soát thay: đổi code và
+    // trang_thai.md cùng commit): đúng MỘT commit C đổi code sau SHA, cha của C là SHA, và chính C thêm dòng đó.
+    const PS = ['--', '.', `:(exclude)viec/${ma}/`, ':(exclude).claude/', ':(exclude).github/workflows/cong.yml'];
+    const doiCode = (tu) => git(thuMuc, 'rev-list', `${tu}..${head}`, ...PS).split('\n').filter(Boolean);
+    if (doiCode(moc).length) {
+      const dong = [...tt.matchAll(/^HEAD ĐÃ KIỂM: ([0-9a-f]{7,40})( \+ commit này)?$/gm)].pop();
+      const khop = dong ? git(thuMuc, 'rev-list', `${moc}..${head}`).split('\n').filter((s) => s && s.startsWith(dong[1])) : [];
+      const sau = khop.length === 1 ? doiCode(khop[0]) : [];
+      const coDong = (sha) => String(blob(thuMuc, sha, `viec/${ma}/trang_thai.md`) || '').normalize('NFC').split('\n').includes(dong[0]);
+      if (!dong) doLy('A19', `viec/${ma}/trang_thai.md thiếu dòng "HEAD ĐÃ KIỂM: <SHA>" — ghi SAU lần kiểm cuối (skill bước 10)`);
+      else if (khop.length !== 1) doLy('A19', `"${dong[0]}": SHA không thuộc PR (không khớp đúng một commit của ${moc.slice(0, 7)}..head)`);
+      else if (!dong[2] && sau.length) {
+        doLy('A19', `"${dong[0]}" cũ hơn commit ${sau[0].slice(0, 7)} đổi code — chạy lại bước kiểm rồi ghi lại dòng này`);
+      } else if (dong[2] && !(sau.length === 1 && git(thuMuc, 'rev-parse', sau[0] + '^').trim() === khop[0]
+        && coDong(sau[0]) && !coDong(khop[0]))) {
+        doLy('A19', `"${dong[0]}": dạng "+ commit này" chỉ hợp lệ khi ĐÚNG MỘT commit đổi code sau ${dong[1]}, là con trực tiếp của nó, và chính commit đó thêm dòng này`);
+      }
+    }
     return kq();
   }
 
@@ -237,7 +269,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
     }
     // A11 — bài thử mới / sửa phải ĐỎ trên code gốc (git archive mốc + bài thử của head + node_modules vừa cài)
     let doHopLe = 0;
-    const daMien = [], doGoc = [], daRa = new Map();
+    const daMien = [], doGoc = [], daRa = new Map(), caGoc = new Map();
     baiThu.forEach((p, i) => {
       const goc = path.join(tam, 'goc' + i);
       giaiNen(thuMuc, moc, goc);
@@ -250,6 +282,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
         }
       }
       const r = chayLenh(process.execPath, [p], { cwd: goc, timeout: 300000 });
+      caGoc.set(p, soCaRieng(String(r.stdout) + String(r.stderr)));
       const thieu = /Cannot find module '([^'./][^']*)'/.exec(String(r.stdout) + String(r.stderr));
       if (mienCu.has(p)) daMien.push(p); // (d) theo FILE ghi trong mục, xanh hay đỏ trên gốc (soát vòng 2)
       if (r.status === 0 && mienCu.has(p)) ghi.push(`miễn A11 (bài thử cũ sửa): ${p} — ${mienCu.get(p)}`); // không tính doHopLe: A12 giữ
@@ -286,6 +319,11 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
           if (!ghiCa.has(p)) doLy('A16', `${P_BC} thiếu dòng "SỐ CA ${p}: <N>"`);
           else if (n === null) doLy('A16', `bài thử \`${p}\` không in dòng tổng (… đạt · … hỏng | … phép · … chỗ hỏng | a/B ca người gác … · C phép khác) trên code PR`);
           else if (n !== ghiCa.get(p)) doLy('A16', `${P_BC} ghi "SỐ CA ${p}: ${ghiCa.get(p)}" ≠ ${n} ca ở head — N là số ca bài in khi chạy trên code đã vá: chạy lại bài, chép lại số đó`);
+          // TU-CHAY-5 C2: CẢNH BÁO, không đỏ — bài đỏ trên gốc có thể dừng sớm (khi đó gốc thường không in dòng tổng: không so)
+          const g = caGoc.get(p), h = soCaRieng(daRa.get(p));
+          if (g !== null && h !== null && g !== h) {
+            ghi.push(`CẢNH BÁO A16: \`${p}\` chạy trên gốc in ${g} ca ≠ ${h} ca ở head — bài dừng sớm trên gốc thì bỏ qua; không thì xem lại bằng chứng đỏ (dạng "… phép · … chỗ hỏng" không tách được số ca nên không so)`);
+          }
         }
       }
     }
