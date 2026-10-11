@@ -1,0 +1,92 @@
+# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (11.10.2026, máy mây 4 lõi)
+# Lệnh: python3 viec/TU-CHAY-5/chay_goc.py   (git archive 5ad35ea + bài thử của HEAD + node_modules nối — như cổng A11)
+# SỐ CA = số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, chạy riêng): thu_nguoi_gac 933 ca + 177 phép khác;
+# thu_cong 307 phép; thu_cong_cu 98 phép; thu_gia_lap 130 đạt · 0 hỏng.
+SỐ CA tu_chay/thu_nguoi_gac.js: 1110
+SỐ CA tu_chay/thu_cong.js: 307
+SỐ CA tu_chay/thu_cong_cu.js: 98
+SỐ CA cong_cu/thu_gia_lap.js: 130
+#
+# Ca hồi quy XANH trên gốc — bằng chứng là đột biến (python3 viec/TU-CHAY-5/dot_bien.py):
+#   D2 (lượt TỪ CHỐI → cha dừng hết, thoát 3)  ← BV-D2-bo-dung-het-3 BẮT
+#   D3 (chayGL / chayTheoDoi đọc utf8; lỗi nằm trong chính thu_gia_lap.js nên chạy trên gốc vẫn dùng bản đã vá) ← BV-D3-chayGL-bo-setEncoding,
+#      BV-D3-theodoi-bo-setEncoding BẮT 3/3 lần (Q3)
+# D4 (viec/LUOI-1/do_thoi_gian.js kb — công cụ đo, không phải bài thu_*.js): trên gốc ném "neo đo không khớp:   const tong = `Giả lập:"
+#   (thoát 1); trên HEAD in đủ 29 dòng DO KB. Đột biến BV-D4-neo-cu BẮT.
+#
+== tu_chay/thu_nguoi_gac.js trên gốc 5ad35ea: thoát 1 · thu_nguoi_gac: 801/927 ca người gác đúng mã · 175 phép khác
+   ✗ ca công cụ cho qua TaskStop: mong CHO, ra CHAN:CC-LA
+   ✗ ca Bash "git rm server/a.js": mong CHO, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -q server/a.js viec/X/ke_hoach.md": mong CHO, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm viec/X/b.js": mong CHO, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm tu_chay/nguoi_gac.js": mong CHO, ra CHAN:GIT-LENH
+   ✗ ca Bash "cd viec/X && git rm b.js": mong CHO, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm server/a.js && git commit -m x": mong CHO, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -q": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --quiet server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -r server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -f server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --cached server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -n server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -rq server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -qr server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -- server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --pathspec-from-file=x": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --pathspec-from-file x": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --force server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --dry-run server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm --ignore-unmatch server/a.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm -r viec/X": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm viec/X": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm server/": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm viec/X/*.js": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm 'viec/X/a?.js'": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm 'viec/X/[ab].js'": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm 'viec/X/a\\.js'": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ ca Bash "git rm ':(glob)viec/X/a.js'": mong CHAN:GIT-RM, ra CHAN:GIT-LENH
+   ✗ … và 97 ca hỏng khác
+   ✗ TU-CHAY-5 B4: bước 1 của skill có git fetch origin viec/$0 và git pull --no-rebase --ff-only origin viec/$0 — git branch --show-current | git log --oneline -3
+   ✗ PHIEN_BAN = tu-chay 1.5.0 — tu-chay 1.4.0
+== tu_chay/thu_cong.js trên gốc 5ad35ea: thoát 1 · thu_cong: 307 phép · 25 chỗ hỏng
+   ✗ TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM: lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM: lý do có "thiếu dòng "HEAD ĐÃ KIỂM" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 SHA cũ hơn commit đổi code: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 SHA cũ hơn commit đổi code: lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 SHA cũ hơn commit đổi code: lý do có "cũ hơn" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 SHA không thuộc PR (SHA gốc): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 SHA không thuộc PR (SHA gốc): lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 SHA không thuộc PR (SHA gốc): lý do có "không thuộc PR" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code: lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code: lý do có "commit này" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 "+ commit này" cha sai: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 "+ commit này" cha sai: lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 "+ commit này" cha sai: lý do có "commit này" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 gộp main SAU lần kiểm: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 gộp main SAU lần kiểm: lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 A19 gộp main SAU lần kiểm: lý do có "cũ hơn" — ✓ CỔNG TĨNH ĐẠT
+   ✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "CẢNH BÁO A16" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "cong_cu/thu_a.js" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "gốc in 2 ca" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "3 ca ở head" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo: lý do có "CẢNH BÁO A16" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo: lý do có "gốc in 7 ca" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo: lý do có "8 ca ở head" — ✓ CỔNG CHẠY ĐẠT
+== tu_chay/thu_cong_cu.js trên gốc 5ad35ea: thoát 1 · thu_cong_cu: 98 phép · 13 chỗ hỏng
+   ✗ TU-CHAY-5 B4 skill bước 1: fetch nhánh việc → so HEAD với FETCH_HEAD (merge-base --is-ancestor) → pull --no-rebase --ff-only —
+   ✗ TU-CHAY-5 B4 skill bước 1: sửa dở → không kéo; lệch hai phía → DỪNG báo chủ quán; hai SHA —
+   ✗ TU-CHAY-5 B4 skill bước 1: ghi trang_thai.md SAU khi fetch/kéo (ghi trước thì cây bẩn, pull bị từ chối)
+   ✗ TU-CHAY-5 B4 skill luật cứng: stop hook đòi git config / đổi tác giả / --amend / rebase → không làm, ghi trang_thai.md
+   ✗ TU-CHAY-5 C1 skill bước 10: ghi "HEAD ĐÃ KIỂM: <SHA>" vào trang_thai.md sau lần kiểm cuối, dạng "+ commit này" —
+   ✗ TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng — ## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.
+   ✗ TU-CHAY-5 E1 THIET_KE: không còn số đo / bánh cóc cũ, trỏ NGUONG_KICH_BAN / NGUONG_BAT_BIEN
+   ✗ TU-CHAY-5 E1 THIET_KE B10: chia lượt (LUOT, --luot) và --kho chỉ qua kênh IPC
+   ✗ TU-CHAY-5 E1 THIET_KE B3: git rm, TaskStop, git fetch, git pull --no-rebase --ff-only — ## B3. Người gác `nguoi_gac.js` (hook PreToolUse)
+   ✗ TU-CHAY-5 E1 THIET_KE: bỏ câu trái bản vá ("TaskStop … đều bị chặn", "người gác cấm `fetch`")
+   ✗ TU-CHAY-5 E2 KHUON_LOI: 5 bài học TACH-GL (ĐÚNG lỗi cũ · đường argv · dấu vết · lặp ≥ 3 · ĐỈNH file)
+   ✗ TU-CHAY-5 E3 PHIEN_BAN = tu-chay 1.5.0
+   ✗ TU-CHAY-5 E3 MAU_PHIEU nhắc dòng HEAD ĐÃ KIỂM (A19)
+== cong_cu/thu_gia_lap.js trên gốc 5ad35ea: thoát 1 · 129 đạt · 1 hỏng
+   ✗ T7c lượt KHÔNG có kênh IPC nhận --kho hợp lệ → thoát 3, TỪ CHỐI (--kho chỉ nhận từ tiến trình cha), kho còn nguyên  — thoát 0 · Lượt 1: KB  · 16 bất biến · ĐẠT
