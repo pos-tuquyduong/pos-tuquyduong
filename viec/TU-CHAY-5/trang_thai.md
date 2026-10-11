@@ -100,6 +100,54 @@ BÀI HỌC:
 | ke_hoach "bước 10" | Giữ — hồ sơ kế hoạch đã duyệt (lịch sử); bản sống là skill 11.4 |
 | Bảng chỗ vá thiếu tên | Thêm 4 dòng (vòng 1 + vòng 2) |
 
+## Soát độc lập — vòng 3 (`/ra-soat`, agent độc lập mới, nguyên văn rút gọn dấu đầu dòng)
+
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- tu_chay/cong.js:85–94 (soCaRieng, C2) — ba vế không ca nào giết (K3): X1 bỏ lọc mã màu → SỐNG; X2 đọc dòng ĐẦU (.reverse())
+  → SỐNG; X3 bỏ "phép · chỗ hỏng → null" → SỐNG. Sáu ca C2 đều một dòng, không mã màu.
+- viec/HOC-2/dot_bien.py:21, :23, :49 và viec/AUDIT-1/dot_bien.py:58 — PR làm rữa neo đột biến cũ đang BẮT, hồ sơ không ghi
+  (K4). kiem_neo.py: gốc HOC-2 26/26, AUDIT-1 173/174 → HEAD 23/26, 172/174. VS-A16-dong-dau / VS-A16-bo-mau: soCaRieng chép
+  nguyên dòng lọc màu → khớp 2 lần; A3-CCLA-them-la: neo "'SubagentHandback']);" gãy vì thêm TaskStop; VS-E3-phien-ban-cu: đổi
+  1.5.0 (đương nhiên). Phiếu F đòi ghi rõ đột biến nào đổi mong đợi và vì sao.
+- tu_chay/thu_cong.js:90 — chú thích còn "như skill bước 10 dặn"; phép "không trỏ bước 10" chỉ quét cong.js, THIET_KE, MAU_PHIEU (K4).
+NGHI NGỜ:
+- cong.js:215 khop.length !== 1 → === 0 SỐNG (SHA viết tắt mơ hồ — phòng thủ, không có ca).
+- skill 11.4 viết theo điều kiện: bước 11 không đổi file ngoài viec/ thì không rõ có ghi HEAD ĐÃ KIỂM không (K5).
+- git rm symlink đã theo dõi: ghiDuoc xét đích realpath, không xét đường link — lỗ lý thuyết (kho có 0 symlink được theo dõi).
+- Skill 1.2 git status --short (hiện cả ??) lệch câu chữ với hook (git diff --quiet HEAD).
+- trang_thai.md "cùng 925 ca (xem bằng chứng vòng 1)" — bằng chứng đã bị ghi đè, nay 924.
+- C2 so số ca gốc với số ở head (không với dòng SỐ CA) — tương đương nhờ A16.
+- do_thoi_gian.js kb không kiểm mã thoát từng lượt / số 29 — lượt sập thì in thiếu mà thoát 0.
+NGHIỆM THU: 15/16 · thiếu F (đột biến cũ HOC-2 ×3, AUDIT-1 ×1 rữa neo không ghi); C2 còn lỗi nội dung.
+CHƯA SOÁT ĐƯỢC: không chạy lại --day-du, npm test, dot_bien 25, TACH-GL 29, LUOI-1 80, D3 ×3, do_thoi_gian kb; không fetch/pull
+thật (người gác đã cài là bản 1.4.0, chặn fetch); cổng thật trên GitHub; A19 + gộp main chờ chủ quán.
+BÀI HỌC:
+- KHOÁ: ca C2 mã màu / hai dòng tổng / "đạt·hỏng" rồi "phép·chỗ hỏng" + đột biến X1–X3; gộp soCaRieng vào soCa.
+- KHOÁ: kiem_neo.py trên gốc và HEAD là bước bắt buộc của F khi sửa tu_chay/ hoặc cong_cu/; neo HỎNG mới → ghi trang_thai.
+- NGUYÊN TẮC (K4): chép một khối code đã có đột biến neo → neo cũ khớp 2 lần và chết im lặng; grep viec/*/dot_bien.py trước khi chép.
+- NGUYÊN TẮC (K4): phép tự quét "không còn câu cũ" phải quét mọi file trong Phạm vi, không chỉ danh sách đã biết.
+```
+
+### Đã sửa ở vòng 3 (vòng sửa cuối được phép — commit 92dcdb1)
+
+| Lỗi / nghi ngờ | Sửa |
+|---|---|
+| `soCaRieng` 3 vế không ca giết + chép dòng lọc màu | Gộp vào MỘT hàm `soCa(ra, chiCa)`; 3 ca C2 mới (mã màu, hai dòng tổng, "đạt·hỏng" rồi "phép·chỗ hỏng"); đột biến `VS-C2-bo-mau`, `VS-C2-dong-dau`, `VS-C2-phep-khong-null` |
+| Neo HOC-2 VS-A16 ×2 khớp 2 lần | Hết bản chép → khớp 1 lần (kiem_neo HOC-2 25/26); chạy lại hai đột biến (mục Số đo) |
+| Neo AUDIT-1 A3-CCLA-them-la gãy | `TaskStop` đứng trước `SubagentHandback` → neo khớp lại (AUDIT-1 173/174 = như gốc); chạy lại đột biến |
+| HOC-2 `VS-E3-phien-ban-cu` | Rữa TẤT YẾU (phiếu E3 đổi `tu-chay 1.4.0` → `1.5.0`; neo đọc đúng chuỗi phiên bản cũ) — đổi mong đợi: HỎNG neo, không chạy được; đề xuất việc sau đổi neo sang `tu-chay 1.5.0` (viec/HOC-2 ngoài Phạm vi) |
+| AUDIT-1 `G3-sai-chuoi` | Rữa CÓ TỪ GỐC 5ad35ea (cố ý, phiếu D5 nêu) — không do PR |
+| Chú thích `thu_cong.js` "bước 10"; phép chỉ quét 3 file | Sửa chú thích; phép quét MỌI file trực tiếp trong `tu_chay/` (trừ chính `thu_cong_cu.js`) |
+| Skill 11.4 viết theo điều kiện | "LUÔN — đổi hay không — SAU lần kiểm cuối mới ghi" |
+| Skill 1.2 "file đã theo dõi" | "có dòng KHÔNG mở đầu `??`", nêu hook `git diff --quiet HEAD` |
+| `do_thoi_gian.js` lượt sập vẫn thoát 0 | Đếm dòng `DO KB` = số KB trong `LUOT`, thiếu → ném lỗi; đột biến `VS-D4-luot-sap` (bản sao `chay.js` cho lượt 2 thoát 2) |
+| trang_thai "925 (xem bằng chứng vòng 1)" | Ghi rõ: vòng 1 925 = 925, sau vòng 2 924 = 924 (bằng chứng hiện tại) |
+| `khop.length !== 1` không có ca | Giữ — phòng thủ (SHA 7 ký tự va chạm trong một PR); ghi CHƯA KIỂM |
+| `git rm` symlink đã theo dõi | Ghi Phát hiện 5 (lỗ lý thuyết, kho 0 symlink theo dõi) |
+| C2 so với số ở head | Tương đương nhờ A16 (SỐ CA = số ở head) — ghi rõ ở THIET_KE B15 đã nêu "số CA khác số ở head" |
+
 ## Số đo trên HEAD 0b6bd26 (sau soát vòng 2; 11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt — không lệnh nào song song)
 
 | Lệnh | Thời gian | Kết quả |
@@ -148,7 +196,7 @@ Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn
 
 ## Đang ở
 
-Bước 8 — soát độc lập vòng 3 (sau vòng sửa 2).
+Bước 6 — chạy lại bằng chứng sau vòng sửa 3 (vòng sửa cuối được phép), rồi soát vòng 4.
 
 ## Phát hiện
 
@@ -213,13 +261,20 @@ BÀI HỌC:
 | Lỗi / nghi ngờ | Sửa |
 |---|---|
 | Skill bước 10 ghi HEAD ĐÃ KIỂM trước bước 11 | Dòng chuyển vào bước 11.4, sau KHOÁ / NGUYÊN TẮC và "chạy lại bước 6"; phép mới trong `thu_cong_cu` (bước 10 không có dòng, bước 11 có sau KHOÁ/NGUYÊN TẮC); đột biến `VS-C1-skill-ghi-o-buoc-10` |
-| Số ca `thu_nguoi_gac` theo nội dung skill (927 ≠ 933) | Vòng B4 gộp thành MỘT phép `chac`; gốc / head nay cùng 925 ca (xem bằng chứng vòng 1) |
+| Số ca `thu_nguoi_gac` theo nội dung skill (927 ≠ 933) | Vòng B4 gộp thành MỘT phép `chac`; gốc / head cùng số ca (vòng 1: 925 = 925; sau vòng 2: 924 = 924 — `bang_chung_do.txt`) |
 | THIET_KE chép số | Bỏ số; trỏ `trang_thai.md` của TU-CHAY-5 (mục "Số đo trên HEAD" dưới) |
 | F thiếu hồ sơ | Mục "Nghiệm thu — đếm" + "Số đo trên HEAD" dưới |
 | Tên ca D2 | "mọi lượt đóng ≠ 0" + chú thích: vòng SIGTERM do T3/T4/T6 canh |
 | KHUON_LOI thứ tự gạch | Gạch TACH-GL đặt sau câu "Lỗi thất thường…" |
 | Phát hiện K4 / nhánh / A19 + gộp main | Phát hiện 2–4 |
 | `thu_nguoi_gac.js` setEncoding ở `choTreo` không có ca | Ghi CHƯA KIỂM (đầu ra người gác là JSON ngắn; không dựng được ca cắt khúc tất định) |
+
+5. **`git rm` một symlink đã theo dõi** (soát vòng 3): `ghiDuoc` xét đích sau realpath (`nguoi_gac.js` `thuc`), không xét chính
+   đường link — link NGOÀI Phạm vi trỏ vào file TRONG Phạm vi sẽ được CHO xoá. Hiện kho có 0 symlink được theo dõi
+   (`git ls-files -s`, chế độ 120000) và máy không tạo được link ngoài Phạm vi → lỗ lý thuyết. Đề xuất (việc sau): rm xét
+   `lstat` — đường là symlink thì xét chính đường link.
+6. **HOC-2 `VS-E3-phien-ban-cu`** neo `tu-chay 1.4.0` rữa tất yếu vì E3 đổi phiên bản — việc sau đổi neo sang `tu-chay 1.5.0`
+   (viec/HOC-2/dot_bien.py ngoài Phạm vi).
 
 ## Câu hỏi
 
