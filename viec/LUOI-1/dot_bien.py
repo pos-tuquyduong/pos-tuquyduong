@@ -45,11 +45,10 @@ DOT_BIEN = [
   ('VS-B4-bat-khong-ghi-kb', 'kb24', [(CH, 'sxGia.loi = true; sxGia.kbBat.add(sxGia.kb);', 'sxGia.loi = true;', 1)],
    [r'KB24 → I7: SX lỗi ở kịch bản 24 không bật công tắc'], 'BẮT'),
   ('BV-B4-kb-khong-gan', 'kb25', [(CH, '    sxGia.kb = i + 1;\n', '', 1)], [r'KB25 → HTTP: chay.js: công tắc SX tự tắt'], 'BẮT'),
-  # Máy chủ (soát vòng 2): đổi sang chuyển khoản mà giữ nguyên tiền mặt → đơn ghi gấp đôi. Q10 = (a), chủ quán chốt 09.10:
-  # KHÔNG có kịch bản đổi tiền mặt → CK (thu_gia_lap vượt 96 s) → đột biến này SỐNG, chiều CK phía máy chủ CHƯA PHỦ. Việc chia
-  # giả lập 2 lượt (chen trước P26c) thêm lại đơn đó; nghiệm thu của việc ấy: đổi mong đợi dưới đây thành 'BẮT'.
-  ('VS-SRV-doi-ck-giu-tien-mat', 'kb26', [('server/routes/don-mo-rong.js', "[sang === 'cash' ? soTien : 0,", "[sang === 'cash' ? soTien : tm,", 1)],
-   [r'KB26 → I16: đơn .*: nhật ký đổi sang transfer'], 'SỐNG'),
+  # Máy chủ (soát vòng 2): đổi sang chuyển khoản mà giữ nguyên tiền mặt → đơn ghi gấp đôi. Q10 = (a), chủ quán chốt 09.10: khi đó
+  # KHÔNG có kịch bản đổi tiền mặt → CK (SỐNG). TACH-GL chia giả lập 4 lượt rồi thêm KB28 (tiền mặt → CK) → mong đợi BẮT.
+  ('VS-SRV-doi-ck-giu-tien-mat', 'kb28', [('server/routes/don-mo-rong.js', "[sang === 'cash' ? soTien : 0,", "[sang === 'cash' ? soTien : tm,", 1)],
+   [r'KB28 → I16: đơn .*: nhật ký đổi sang transfer'], 'BẮT'),
   # Máy chủ (soát vòng 3 lỗi 3, chat soát thay 10.10): bỏ khoá chống hai người cùng bấm đẩy sổ nợ → SX nhận gấp đôi.
   ('VS-SRV-bo-khoa-dangChay', 'kb25', [('server/utils/doSoNo.js', "  if (dangChay) return { boQua: 'dang chay' };\n", '', 1)],
    [r'KB25 → HTTP: hai người cùng bấm đẩy', r'KB25 → I7: vân tay .* SX nhận 2 lần'], 'BẮT'),
@@ -137,7 +136,7 @@ DOT_BIEN = [
 
 N = lambda *a: ['node', *a]
 LENH = {'tay': ('dau', N(TG, '--chi-du-lieu-tay'), 120), 'goc10': ('nen', N(CH, '--den-kb', '10'), 300)}
-for _k in (1, 10, 24, 25, 26): LENH[f'kb{_k}'] = ('dau', N(CH, '--den-kb', str(_k)), 300)
+for _k in (1, 10, 24, 25, 28): LENH[f'kb{_k}'] = ('dau', N(CH, '--den-kb', str(_k)), 300)
 LENH['gl'] = ('dau', N(CH), 300)
 
 

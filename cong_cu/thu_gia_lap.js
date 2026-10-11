@@ -17,6 +17,9 @@
  *  LUOI-1  I7 mở rộng, I8 vế đổi điểm, I12–I17 trên kho dữ liệu tay: bộ SẠCH → 0 lệch (K5); mỗi ca lệch ĐÚNG MỘT
  *      phép, cả hai phía (bắt đột biến "nới phép" của bat_bien.js), khớp câu kết luận.
  *  E4  (đột biến vào chính giả lập) chạy tay: --gia-lap <bản sao đã phá>.
+ *  T1–T5 (TACH-GL) giả lập chia lượt: các lượt chạy CÙNG LÚC, mỗi KB đúng một lần, cha bị SIGTERM / một lượt sập / cha
+ *      bị SIGKILL → không sót tiến trình con, không sót gia_lap_*; dòng cuối luôn là dòng kết luận (cuoi() đọc dòng cuối).
+ *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7–T9: --kho / --luot lạ → TỪ CHỐI.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
@@ -36,7 +39,8 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const DONG_DAT = 'Giả lập: 27 kịch bản · 16 bất biến · ĐẠT';
+const SO_KB = 29;
+const DONG_DAT = `Giả lập: ${SO_KB} kịch bản · 16 bất biến · ĐẠT`;
 
 let dat = 0;
 const hong = [];
@@ -52,8 +56,8 @@ const ket = () => {
 // Môi trường sạch (Q1 b, chủ quán chốt 02.10.2026). TMPDIR riêng để đếm được thư mục tạm của giả lập.
 const SACH = Object.fromEntries(Object.entries(process.env).filter(([t]) => /^(PATH|HOME|LANG|LC_ALL|SYSTEMROOT)$/.test(t)));
 SACH.TMPDIR = TAM;
-const chayGL = (args = [], them = {}) => new Promise((xong) => {
-  const c = spawn(process.execPath, [CHAY, ...args], { cwd: GOC, env: { ...SACH, ...them } });
+const chayGL = (args = [], them = {}, tep = CHAY) => new Promise((xong) => {
+  const c = spawn(process.execPath, [tep, ...args], { cwd: GOC, env: { ...SACH, ...them } });
   let ra = '';
   c.stdout.on('data', (d) => { ra += d; });
   c.stderr.on('data', (d) => { ra += d; });
@@ -61,6 +65,50 @@ const chayGL = (args = [], them = {}) => new Promise((xong) => {
   c.on('close', (status) => { clearTimeout(hen); xong({ status, ra: ra.replace(/\x1b\[[0-9;]*m/g, '') }); });
 });
 const cuoi = (r) => r.ra.trim().split('\n').pop();
+// TACH-GL: chạy giả lập ĐỦ, theo dõi dòng `lượt k/L pid P` của cha. viec: null (chạy hết) · 'SIGTERM cha' · 'SIGTERM con' ·
+// 'SIGKILL cha' — làm khi mọi lượt đã mở kho (đủ L thư mục gia_lap_* có kho.db: con đã cài xử lý tín hiệu). cungLuc = lúc đó
+// đủ L pid còn sống — lượt chạy tuần tự thì lượt trước đã xoá kho → không bao giờ đủ L (không dùng ngưỡng giờ). TMPDIR riêng.
+const song = (pid) => {
+  try { process.kill(pid, 0); } catch { return false; }
+  try { return !/^\d+ \(.*\) Z/.test(fs.readFileSync(`/proc/${pid}/stat`, 'utf8')); } catch { return true; }   // xác chết (zombie) = đã chết
+};
+const chayTheoDoi = (ten, viec) => new Promise((xong) => {
+  const tmp = path.join(TAM, ten);
+  fs.mkdirSync(tmp);
+  const c = spawn(process.execPath, [CHAY], { cwd: GOC, env: { ...SACH, TMPDIR: tmp } });
+  const pid = [];
+  let ra = '', L = 0, daXet = false, cungLuc = false;
+  const doc = (d) => { ra += d; for (const m of ra.matchAll(/lượt \d+\/(\d+) pid (\d+)/g)) if (!pid.includes(+m[2])) { pid.push(+m[2]); L = +m[1]; } };
+  c.stdout.on('data', doc);
+  c.stderr.on('data', doc);
+  const gl = () => fs.readdirSync(tmp).filter((f) => f.startsWith('gia_lap_'));
+  const nhin = setInterval(() => {
+    if (daXet || viec === 'SIGTERM sớm' || !L || pid.length < L || gl().filter((f) => fs.existsSync(path.join(tmp, f, 'kho.db'))).length < L) return;
+    daXet = true;
+    cungLuc = pid.every(song);
+    if (viec === 'SIGTERM cha') c.kill('SIGTERM');
+    if (viec === 'SIGTERM con') process.kill(pid[0], 'SIGTERM');
+    if (viec === 'SIGKILL cha') c.kill('SIGKILL');
+  }, 100);
+  // T6: SIGTERM MỌI con ngay khi thư mục kho đầu tiên xuất hiện (cha tạo kho trước khi sinh con) — con chết trước khi cài xử lý tín
+  // hiệu thì không tự dọn được: cha phải dọn.
+  const som = viec === 'SIGTERM sớm' && setInterval(() => {
+    if (daXet || !L || pid.length < L || !gl().length) return;
+    daXet = true;
+    pid.forEach((p) => { try { process.kill(p, 'SIGTERM'); } catch { /* đã chết */ } });
+  }, 5);
+  const hen = setTimeout(() => c.kill('SIGKILL'), 110000);
+  c.on('close', async (status, tin) => {
+    clearInterval(nhin); clearInterval(som); clearTimeout(hen);
+    const het = Date.now() + (viec === 'SIGKILL cha' ? 15000 : 0);   // con mồ côi tự thoát khi mất kênh với cha
+    let sot = gl(), conSong = pid.filter(song);
+    while ((sot.length || conSong.length) && Date.now() < het) { await new Promise((ok) => setTimeout(ok, 200)); sot = gl(); conSong = pid.filter(song); }
+    xong({ status, tin, ra: ra.replace(/\x1b\[[0-9;]*m/g, ''), L, pid, daXet, cungLuc, sot, conSong });
+  });
+});
+const moTaT = (r) => `thoát ${r.status ?? r.tin} · ${r.L} lượt · pid ${r.pid.join(',') || '(không có)'} · đã làm ${r.daXet} · cùng lúc ${r.cungLuc} · `
+  + `con còn sống ${r.conSong.join(',') || 0} · sót ${r.sot.join(',') || 0} · ${cuoi(r)}`;
+const SAP = /^Giả lập: SẬP — /;
 const moTa = (r) => `thoát ${r.status} · ${cuoi(r)}`;
 
 // Đột biến: [mã, file trong server/, chuỗi gốc, chuỗi thay, số lần phải khớp, kịch bản, bất biến phải lệch]
@@ -204,15 +252,76 @@ async function main() {
 
   // ── E1 + A2 + E2 chạy song song (mỗi lần một tiến trình, kho tạm, cổng riêng) ──
   const saos = DOT_BIEN.map(([ma, file, goc, thay, soLan]) => banSao(ma, file, goc, thay, soLan));
-  const [e1, sap, ...dotBien] = await Promise.all([
-    chayGL(), chayGL(['--may-chu', rong]),
+  fs.writeFileSync(path.join(rong, 'giu.txt'), 'không được xoá');
+  const NGOAI = path.join(TAM, 'ngoai', 'gia_lap_abcdef');   // tên đúng, thư mục cha KHÔNG phải TMPDIR của con (TAM)
+  const T8 = path.join(TAM, 't8');                          // TMPDIR riêng của ca T8: kho lạ không lẫn vào phép A2 đếm gia_lap_* ở TAM
+  const KHAC = path.join(T8, 'gia_lap_KHAC01');             // hợp lệ mọi vế — chỉ sai ở chỗ người gọi đưa cho CHA
+  for (const d of [NGOAI, KHAC]) { fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'giu.txt'), 'không được xoá'); }
+  const [e1, sap, rongKb, khoLa, khoNgoai, khoCha, ...dotBien] = await Promise.all([
+    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']), chayGL(['--luot', '1', '--kho', rong]),
+    chayGL(['--luot', '1', '--kho', NGOAI]), chayGL(['--kho', KHAC, '--den-kb', '0'], { TMPDIR: T8 }),
     ...saos.map((s, i) => (s.loi ? null : chayGL(['--may-chu', s.mayChu, '--den-kb', String(DOT_BIEN[i][5])]))),
+  ]);
+  // T3–T6 chạy SAU đợt nặng (chat soát thay vòng 4): chạy chung ~20 giả lập thì lượt con kẹt khởi động (nạp máy chủ đồng bộ, vài % CPU
+  // mỗi tiến trình) quá 10 s mới đáp SIGTERM → cha SIGKILL mọi lượt → T3/T4 ĐỎ OAN (máy chat 1 lõi: 1/3 lần; máy mây 4 lõi hiếm).
+  const [t3, t4, t5, t6] = await Promise.all([
+    chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
   ]);
   console.log('\n[E1] giả lập trên code thật');
   k(`thoát 0, dòng tổng đúng "${DONG_DAT}"`, e1.status === 0 && cuoi(e1) === DONG_DAT,
     moTa(e1) + (e1.status ? '\n' + e1.ra.split('\n').filter((l) => / → /.test(l)).slice(0, 8).join('\n') : ''));
+  const tongs = e1.ra.split('\n').filter((l) => /Giả lập: \d+ kịch bản/.test(l));
+  k('đúng MỘT dòng "Giả lập: … kịch bản" (bánh cóc của bộ kiểm lấy dòng khớp ĐẦU TIÊN)', tongs.length === 1, tongs.join(' | ') || '(không có)');
+  console.log('\n[T] giả lập chia lượt (TACH-GL)');
+  // `|| []`: bằng chứng đỏ chạy bài này trên gia_lap GỐC (chưa có LUOT) — đỏ đúng ca, không sập cả bài (A16).
+  const SO_LUOT = (require(path.join(GL, 'kich_ban.js')).LUOT || []).length;
+  const luotHong = await Promise.all([['--luot', '0'], ['--luot', 'x'], ['--luot']].map((a) => chayGL(a)));
+  const [luotVuot, luotBien] = await Promise.all([String(SO_LUOT + 1), String(SO_LUOT)].map((n) => chayGL(['--luot', n, '--den-kb', '0'])));
+  k('T1 các lượt chạy CÙNG LÚC: khi mọi lượt đã mở kho, đủ L ≥ 2 pid còn sống', e1.daXet && e1.cungLuc && e1.L >= 2, moTaT(e1));
+  const daChay = [...e1.ra.matchAll(/^Lượt \d+: KB ([\d,]+)/gm)].flatMap((m) => m[1].split(',').map(Number)).sort((a, b) => a - b);
+  k(`T2 mỗi KB 1…${SO_KB} chạy đúng một lần (gộp dòng "Lượt k: KB …")`, daChay.join() === Array.from({ length: SO_KB }, (_, i) => i + 1).join(),
+    daChay.join(',') || '(không có dòng Lượt)');
+  for (const [ten, r] of [['T3 cha bị SIGTERM', t3], ['T4 một lượt bị SIGTERM (sập)', t4]]) {
+    // Mọi lượt bị DỪNG (đóng ≠ 0) — không được chạy hết rồi mới thoát: cha in `lượt k đóng: <mã | tín hiệu>` khi mỗi con đóng.
+    // Ít nhất một lượt tự thoát nhờ SIGTERM (đóng 2): cha chỉ SIGKILL sau 10 s thì mọi lượt đóng SIGKILL (cha vẫn dọn kho — vế
+    // "không sót" không phân biệt được). Không đòi CẢ L lượt đóng 2: máy tải nặng có lượt quá 10 s mới đáp → SIGKILL là đúng.
+    const dong = [...r.ra.matchAll(/lượt \d+ đóng: (\S+)/g)].map((m) => m[1]);
+    k(`${ten} → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0, ít nhất một lượt tự thoát nhờ SIGTERM), mọi con đã chết, không sót gia_lap_*`,
+      r.daXet && r.status === 2 && SAP.test(cuoi(r)) && dong.length === r.L && !dong.includes('0') && dong.includes('2')
+      && !r.conSong.length && !r.sot.length,
+    `${moTaT(r)} · đóng: ${dong.join(',') || '(không có)'}`);
+  }
+  k('T0 --den-kb 0 (lượt rỗng: khởi động + dựng dữ liệu, đo khởi động) → thoát 0, "Giả lập: 0 kịch bản · 16 bất biến · ĐẠT"',
+    rongKb.status === 0 && cuoi(rongKb) === 'Giả lập: 0 kịch bản · 16 bất biến · ĐẠT', moTa(rongKb));
+  k('T5 cha bị SIGKILL (như hẹn 110 s) → mọi con tự thoát trong 15 s, không sót gia_lap_*', t5.daXet && !t5.conSong.length && !t5.sot.length, moTaT(t5));
+  k('T6 SIGTERM mọi lượt ngay khi kho đầu tiên vừa tạo → cha thoát 2, dòng cuối là dòng SẬP, mọi con đã chết, không sót gia_lap_*',
+    t6.daXet && t6.status === 2 && SAP.test(cuoi(t6)) && !t6.conSong.length && !t6.sot.length, moTaT(t6));
+  // T7–T9 (soát vòng 3): mỗi ca vi phạm ĐÚNG MỘT vế; thư mục bị từ chối phải còn nguyên (con xoá --kho lúc thoát).
+  // Chat soát thay vòng 4: mọi ca từ chối so ĐÚNG câu của phép đang thử (phép khác từ chối thay thì đỏ).
+  const KHO_SAI = /TỪ CHỐI chạy — --kho không phải kho tạm gia_lap_/;
+  k('T7a lượt nhận --kho tên đúng gia_lap_xxxxxx nhưng NGOÀI thư mục tạm → thoát 3, TỪ CHỐI (--kho không phải kho tạm), thư mục còn nguyên', khoNgoai.status === 3
+    && KHO_SAI.test(cuoi(khoNgoai)) && fs.existsSync(path.join(NGOAI, 'giu.txt')), moTa(khoNgoai));
+  k('T7b lượt nhận --kho TRONG thư mục tạm nhưng tên sai → thoát 3, TỪ CHỐI (--kho không phải kho tạm), thư mục còn nguyên', khoLa.status === 3
+    && KHO_SAI.test(cuoi(khoLa)) && fs.existsSync(path.join(rong, 'giu.txt')), moTa(khoLa));
+  k('T8 CHA nhận --kho hợp lệ (kho gia_lap_ của giả lập khác cùng thư mục tạm) → thoát 3, TỪ CHỐI (--kho chỉ dành cho lượt), kho đó còn nguyên', khoCha.status === 3
+    && /TỪ CHỐI chạy — --kho chỉ dành cho tiến trình lượt/.test(cuoi(khoCha)) && fs.existsSync(path.join(KHAC, 'giu.txt')), moTa(khoCha));
+  // Chat soát thay vòng 4: khoá CÁCH từ chối — đúng lý do --luot, và KHÔNG sinh lượt nào (chế độ chọn theo giá trị thì --luot hỏng
+  // rơi về cha, cha sinh con, con lại bị phép --kho chặn hộ → vẫn thoát 3 · TỪ CHỐI nhưng đã có dòng `lượt k/L pid`).
+  const tuChoiLuot = (r) => r.status === 3 && /TỪ CHỐI.*--luot/.test(cuoi(r)) && !/ pid \d+/.test(r.ra);
+  ['0', 'x', '(thiếu)'].forEach((g, i) => k(`T9 --luot ${g} → thoát 3, TỪ CHỐI nêu --luot, không sinh lượt nào (không rơi về chế độ cha)`,
+    tuChoiLuot(luotHong[i]), moTa(luotHong[i])));
+  k(`T9b --luot ${SO_LUOT + 1} (vượt ${SO_LUOT} lượt) → thoát 3, TỪ CHỐI nêu --luot, không sinh lượt nào`, tuChoiLuot(luotVuot), moTa(luotVuot));
+  k(`T9c --luot ${SO_LUOT} --den-kb 0 (biên) → thoát 0, "Lượt ${SO_LUOT}: KB  · 16 bất biến · ĐẠT"`,
+    luotBien.status === 0 && cuoi(luotBien) === `Lượt ${SO_LUOT}: KB  · 16 bất biến · ĐẠT`, moTa(luotBien));
+  // T10 (chat soát thay vòng 4): kich_ban.js nạp hỏng → SẬP thoát 2 như mọi lỗi nạp — không văng thô (node thoát 1 = nhầm KHÔNG ĐẠT).
+  const GL_HONG = path.join(TAM, 'gl_hong');
+  fs.cpSync(GL, GL_HONG, { recursive: true });
+  fs.appendFileSync(path.join(GL_HONG, 'kich_ban.js'), '\nconst x = ;\n');
+  const kbHong = await chayGL(['--may-chu', path.join(GOC, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')], {},
+    path.join(GL_HONG, 'chay.js'));
+  k('T10 kich_ban.js hỏng cú pháp → thoát 2, dòng cuối là dòng SẬP (không văng thô thoát 1)', kbHong.status === 2 && SAP.test(cuoi(kbHong)), moTa(kbHong));
   console.log('\n[A2] kho tạm, data/');
-  k('máy chủ hỏng (--may-chu thư mục rỗng) → giả lập sập, thoát 2', sap.status === 2, moTa(sap));
+  k('máy chủ hỏng (--may-chu thư mục rỗng) → giả lập sập, thoát 2, dòng cuối là dòng SẬP', sap.status === 2 && SAP.test(cuoi(sap)), moTa(sap));
   k(`data/ không đổi (${dataTruoc.slice(0, 40)})`, chup() === dataTruoc, chup().slice(0, 80));
   const sot = fs.readdirSync(TAM).filter((f) => f.startsWith('gia_lap_'));
   k('mọi thư mục gia_lap_* đã xoá, kể cả lần sập', sot.length === 0, sot.join(', '));
