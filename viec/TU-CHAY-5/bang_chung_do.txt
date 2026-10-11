@@ -1,20 +1,21 @@
-# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (11.10.2026, máy mây 4 lõi)
+# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (chạy lại sau soát vòng 1 — HEAD 455b169, 11.10.2026, máy mây 4 lõi)
 # Lệnh: python3 viec/TU-CHAY-5/chay_goc.py   (git archive 5ad35ea + bài thử của HEAD + node_modules nối — như cổng A11)
-# SỐ CA = số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, chạy riêng): thu_nguoi_gac 933 ca + 177 phép khác;
-# thu_cong 307 phép; thu_cong_cu 98 phép; thu_gia_lap 130 đạt · 0 hỏng.
-SỐ CA tu_chay/thu_nguoi_gac.js: 1110
+# SỐ CA = số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, chạy riêng): thu_nguoi_gac 925 ca + 178 phép khác;
+# thu_cong 307 phép; thu_cong_cu 98 phép; thu_gia_lap 130 đạt · 0 hỏng. Số CA người gác trên gốc (925) = trên head (925):
+# vòng B4 gộp thành một phép ở soát vòng 1, số ca không còn đổi theo nội dung skill (C2 không cảnh báo oan).
+SỐ CA tu_chay/thu_nguoi_gac.js: 1103
 SỐ CA tu_chay/thu_cong.js: 307
 SỐ CA tu_chay/thu_cong_cu.js: 98
 SỐ CA cong_cu/thu_gia_lap.js: 130
 #
 # Ca hồi quy XANH trên gốc — bằng chứng là đột biến (python3 viec/TU-CHAY-5/dot_bien.py):
-#   D2 (lượt TỪ CHỐI → cha dừng hết, thoát 3)  ← BV-D2-bo-dung-het-3 BẮT
-#   D3 (chayGL / chayTheoDoi đọc utf8; lỗi nằm trong chính thu_gia_lap.js nên chạy trên gốc vẫn dùng bản đã vá) ← BV-D3-chayGL-bo-setEncoding,
-#      BV-D3-theodoi-bo-setEncoding BẮT 3/3 lần (Q3)
-# D4 (viec/LUOI-1/do_thoi_gian.js kb — công cụ đo, không phải bài thu_*.js): trên gốc ném "neo đo không khớp:   const tong = `Giả lập:"
-#   (thoát 1); trên HEAD in đủ 29 dòng DO KB. Đột biến BV-D4-neo-cu BẮT.
+#   D2 (lượt TỪ CHỐI → cha thoát 3)  ← BV-D2-bo-dung-het-3 BẮT
+#   D3 (chayGL / chayTheoDoi đọc utf8; lỗi nằm trong chính thu_gia_lap.js nên chạy trên gốc vẫn dùng bản đã vá)
+#      ← BV-D3-chayGL-bo-setEncoding, BV-D3-theodoi-bo-setEncoding: BẮT ở cả 3 lần chạy (trang_thai.md, mục Số đo)
+# D4 (viec/LUOI-1/do_thoi_gian.js kb — công cụ đo, không phải bài thu_*.js): trên gốc ném "neo đo không khớp:   const tong =
+#   `Giả lập:" (thoát 1); trên HEAD in đủ 29 dòng DO KB. Đột biến BV-D4-neo-cu BẮT.
 #
-== tu_chay/thu_nguoi_gac.js trên gốc 5ad35ea: thoát 1 · thu_nguoi_gac: 801/927 ca người gác đúng mã · 175 phép khác
+== tu_chay/thu_nguoi_gac.js trên gốc 5ad35ea: thoát 1 · thu_nguoi_gac: 799/925 ca người gác đúng mã · 176 phép khác
    ✗ ca công cụ cho qua TaskStop: mong CHO, ra CHAN:CC-LA
    ✗ ca Bash "git rm server/a.js": mong CHO, ra CHAN:GIT-LENH
    ✗ ca Bash "git rm -q server/a.js viec/X/ke_hoach.md": mong CHO, ra CHAN:GIT-LENH
@@ -79,7 +80,7 @@ SỐ CA cong_cu/thu_gia_lap.js: 130
    ✗ TU-CHAY-5 B4 skill bước 1: sửa dở → không kéo; lệch hai phía → DỪNG báo chủ quán; hai SHA —
    ✗ TU-CHAY-5 B4 skill bước 1: ghi trang_thai.md SAU khi fetch/kéo (ghi trước thì cây bẩn, pull bị từ chối)
    ✗ TU-CHAY-5 B4 skill luật cứng: stop hook đòi git config / đổi tác giả / --amend / rebase → không làm, ghi trang_thai.md
-   ✗ TU-CHAY-5 C1 skill bước 10: ghi "HEAD ĐÃ KIỂM: <SHA>" vào trang_thai.md sau lần kiểm cuối, dạng "+ commit này" —
+   ✗ TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM: <SHA>" ghi ở bước 11 SAU KHOÁ / NGUYÊN TẮC, sau khi chạy lại bước 6 (kiểm cuối), có dạng "+ commit này"; bước 10 không ghi —
    ✗ TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng — ## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.
    ✗ TU-CHAY-5 E1 THIET_KE: không còn số đo / bánh cóc cũ, trỏ NGUONG_KICH_BAN / NGUONG_BAT_BIEN
    ✗ TU-CHAY-5 E1 THIET_KE B10: chia lượt (LUOT, --luot) và --kho chỉ qua kênh IPC
