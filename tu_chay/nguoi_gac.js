@@ -55,8 +55,10 @@ const LUAT = [
   ['B-GHI-PHU', 'đích ghi của sort -o, uniq, xxd được xét như sửa file'],
   ['B-GHI-TOUCH', 'đích của touch / chmod được xét như sửa file'],
   ['GIT-TUYCHON', 'git không được kèm -C, -c, --git-dir, --work-tree… — cd vào thư mục rồi gọi git'],
-  ['GIT-LENH', 'lệnh git con không có trong danh sách (merge, reset, rebase, stash, config, fetch, pull… bị cấm) — gộp là việc của chủ quán'],
+  ['GIT-LENH', 'lệnh git con không có trong danh sách (merge, reset, rebase, stash, config… bị cấm; fetch / pull chỉ đúng dạng của GIT-KEO) — gộp là việc của chủ quán'],
   ['GIT-PUSH', 'push chỉ được đúng dạng: git push -u origin viec/<MÃ> — MÃ là nhánh đang đứng, nhánh có phiếu kèm ## Phạm vi, chạy trong kho; không ép, không xoá, không refspec, không đụng main'],
+  ['GIT-KEO', 'kéo nhánh chỉ đúng hai dạng: git fetch [-q] origin viec/<MÃ> và git pull --no-rebase --ff-only [-q] origin viec/<MÃ> — MÃ là nhánh đang đứng, có phiếu, chạy trong kho; không refspec, không cờ khác (merge, rebase vẫn cấm)'],
+  ['GIT-RM', 'git rm chỉ đúng dạng: git rm [-q] <file…> — tên file viết thẳng, không thư mục, không glob (* ? [ ] \\), không -r/-f/--cached/--, không trong kho git lồng; mỗi file xét như sửa file (Phạm vi, file luật, file cấm, phiếu)'],
   ['GIT-OUTPUT', 'git --output / --ext-diff / grep -O bị chặn — dùng > vào nháp'],
   ['GIT-ADD', 'git add phải kèm tên file cụ thể, viết thẳng (không -A, -u, -f, ., thư mục, --pathspec-from-file, ký tự đại diện * ? [ ] \\ kể cả trong nháy)'],
   ['GIT-COMMIT-CO', 'git commit không được kèm -n/--no-verify/--amend/-a/-i/-o/--pathspec-from-file; tên file sau commit viết thẳng (không thư mục, không * ? [ ] \\)'],
@@ -102,9 +104,10 @@ Object.assign(MO_TA, {
 
 // SubagentHandback: công cụ agent phụ nộp báo cáo về phiên chính (TU-CHAY-3 D1 — tên lấy từ nhật ký người gác 01.10.2026,
 // CC-LA chặn thì báo cáo không về). Chỉ đúng tên này, không mẫu chung.
+// TaskStop (TU-CHAY-5 B2): dừng tác vụ nền do CHÍNH phiên mở (lệnh nền treo) — không chạy lệnh, không ghi file.
 const CONG_CU_DOC = new Set(['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode',
   'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput',
-  'SubagentHandback']);
+  'SubagentHandback', 'TaskStop']);
 const CONG_CU_SUA = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const CHO_CHAY = new Set(('git node npm python3 ls cat head tail wc grep sed awk sort uniq cut diff find echo printf date pwd '
   + 'du df mkdir cp mv rm tar ln sleep curl kill cd test true timeout tee touch chmod sha256sum md5sum stat file basename '
@@ -518,28 +521,37 @@ const loMoiTruong = (ma) => !!ma && /process\.env(?![.\[])/.test(ma);
 //   · mọi từ bắt đầu bằng - phải nằm trong PUSH_CO, ở bất kỳ vị trí nào (git nhận tuỳ chọn cả sau refspec);
 //   · thư mục chạy (sau cd) nằm trong kho — push từ bản clone trong nháp bị chặn.
 // Không đạt → GIT-PUSH. main còn được lớp 1 (deny Bash(git push *main*)) và GitHub chặn thêm.
-function xetPush(r, nc, cwd) {
-  if (!luat('GIT-PUSH')) return null;
-  const vt = [];
+// TU-CHAY-5 B3: fetch / pull đi CÙNG hàm (mã GIT-KEO): fetch cờ chỉ -q; pull cờ chỉ -q, --no-rebase, --ff-only và BẮT BUỘC cả hai
+// cờ sau (thứ tự tự do) — --ff-only không viết lại lịch sử, không tạo commit gộp; lệch hai phía thì git tự từ chối.
+const KEO_CO = { fetch: [new Set(['-q']), []], pull: [new Set(['-q', '--no-rebase', '--ff-only']), ['--no-rebase', '--ff-only']] };
+function xetDongBo(ma, mau, coCho, coPhai, r, nc, cwd) {
+  const vt = [], co = new Set();
   for (const w of r) {
-    if (!w.chu) return chan('GIT-PUSH', 'đối số không viết thẳng: ' + w.tho);
+    if (!w.chu) return chan(ma, 'đối số không viết thẳng: ' + w.tho);
     if (w.val.startsWith('-')) {
-      if (!PUSH_CO.has(w.val)) return chan('GIT-PUSH', 'tuỳ chọn không cho: ' + w.tho);
+      if (!coCho.has(w.val)) return chan(ma, 'tuỳ chọn không cho: ' + w.tho);
+      co.add(w.val);
     } else vt.push(w.val);
   }
-  if (!nc.ma) return chan('GIT-PUSH', `nhánh đang đứng không phải viec/<MÃ>: ${nc.nhanh || '(HEAD tách rời)'}`);
-  if (!nc.phamVi) return chan('GIT-PUSH', `viec/${nc.ma}/phieu.md chưa có hoặc thiếu mục ## Phạm vi`);
+  const thieu = coPhai.filter((c) => !co.has(c));
+  if (thieu.length) return chan(ma, 'thiếu ' + thieu.join(' '));
+  if (!nc.ma) return chan(ma, `nhánh đang đứng không phải viec/<MÃ>: ${nc.nhanh || '(HEAD tách rời)'}`);
+  if (!nc.phamVi) return chan(ma, `viec/${nc.ma}/phieu.md chưa có hoặc thiếu mục ## Phạm vi`);
   const dung = `viec/${nc.ma}`;
   if (vt.length !== 2 || vt[0] !== 'origin' || vt[1] !== dung) {
-    return chan('GIT-PUSH', `phải đúng: git push -u origin ${dung} — nhận được: ${r.map((w) => w.tho).join(' ') || '(trống)'}`);
+    return chan(ma, `phải đúng: ${mau} origin ${dung} — nhận được: ${r.map((w) => w.tho).join(' ') || '(trống)'}`);
   }
   const d = thuc(path.resolve(nc.goc, cwd.d));
-  if (!laCon(d, nc.goc) || KHUNG.test(relKho(d, nc))) return chan('GIT-PUSH', 'chỉ push từ trong kho, không từ thư mục nháp: ' + d);
-  // Kho git LỒNG (có .git — thư mục hay file gitdir — ở d hoặc thư mục cha nào dưới gốc): git sẽ push kho đó, không phải kho này.
-  for (let x = d; x !== nc.goc; x = path.dirname(x)) {
-    let co = false;
-    try { fs.lstatSync(path.join(x, '.git')); co = true; } catch {}
-    if (co) return chan('GIT-PUSH', 'thư mục nằm trong một kho git lồng: ' + relKho(x, nc));
+  if (!laCon(d, nc.goc) || KHUNG.test(relKho(d, nc))) return chan(ma, 'chỉ chạy từ trong kho, không từ thư mục nháp: ' + d);
+  const x = khoLong(d, nc);
+  return x ? chan(ma, 'thư mục nằm trong một kho git lồng: ' + x) : null;
+}
+// Kho git LỒNG (có .git — thư mục hay file gitdir — ở d hoặc thư mục cha nào dưới gốc): git sẽ làm việc với kho đó, không phải kho
+// này. Dùng cho push, fetch, pull, rm. GIT-COMMIT-NHANH cố ý không xét: commit trong kho lồng không đụng kho này, PR không mang theo.
+// Dừng khi ra khỏi gốc (d ngoài kho thì vòng không bao giờ gặp gốc — TU-CHAY-5 soát kế hoạch).
+function khoLong(d, nc) {
+  for (let x = d; laCon(x, nc.goc) && x !== nc.goc; x = path.dirname(x)) {
+    try { fs.lstatSync(path.join(x, '.git')); return relKho(x, nc); } catch {}
   }
   return null;
 }
@@ -556,20 +568,28 @@ function xetPush(r, nc, cwd) {
 const tenThang = (w, cwd) => w.chu && !/[*?[\]\\]/.test(w.val) && !w.val.startsWith(':') && !w.val.endsWith('/')
   && !laDir(path.resolve(cwd.d, w.val));
 const HOANTAC_CO = new Set(['--staged', '-S', '--worktree', '-W', '-q', '--quiet']);
-function xetHoanTac(r, coTuyChon, nc, cwd) {
+// TU-CHAY-5 B1 — git rm [-q] <file…> đi CÙNG hàm (mã GIT-RM): không nhận `--`, không trong kho git lồng, và mỗi file xét như SỬA
+// file (ghiDuoc hoanTac = false — miễn G-HOANTAC chỉ dành cho trả file về bản commit, xoá thì không). "File đã theo dõi": git tự
+// đảm bảo (một pathspec không khớp → cả lệnh hỏng, không xoá gì); bài thử khoá điều đó bằng git thật.
+const RM_CO = new Set(['-q']);
+function xetHoanTac(r, coTuyChon, nc, cwd, ma = 'GIT-HOANTAC', coCho = HOANTAC_CO) {
+  const hoanTac = ma === 'GIT-HOANTAC';
+  const bat = hoanTac ? luat('GIT-HOANTAC') : luat('GIT-RM');
   const tep = [];
   let het = !coTuyChon;
   for (const w of r) {
-    if (!het && w.val === '--') { het = true; continue; }
+    if (!het && hoanTac && w.val === '--') { het = true; continue; }
     if (!het && w.val.startsWith('-') && w.val.length > 1) {
-      if (luat('GIT-HOANTAC') && !HOANTAC_CO.has(w.val)) return chan('GIT-HOANTAC', 'tuỳ chọn không cho: ' + w.tho);
+      if (bat && !coCho.has(w.val)) return chan(ma, 'tuỳ chọn không cho: ' + w.tho);
     } else tep.push(w);
   }
-  if (luat('GIT-HOANTAC')) {
-    if (!tep.length) return chan('GIT-HOANTAC', 'thiếu tên file');
-    for (const w of tep) if (!tenThang(w, cwd)) return chan('GIT-HOANTAC', w.tho);
+  if (bat) {
+    if (!tep.length) return chan(ma, 'thiếu tên file');
+    for (const w of tep) if (!tenThang(w, cwd)) return chan(ma, w.tho);
+    const x = !hoanTac && khoLong(thuc(path.resolve(nc.goc, cwd.d)), nc);
+    if (x) return chan(ma, 'thư mục nằm trong một kho git lồng: ' + x);
   }
-  return dauTien(tep, (w) => (w.chu ? ghiDuoc(w.val, nc, cwd.d, false, true) : khongChu(w)));
+  return dauTien(tep, (w) => (w.chu ? ghiDuoc(w.val, nc, cwd.d, false, hoanTac) : khongChu(w)));
 }
 
 const LUAT_CON = {
@@ -581,7 +601,12 @@ const LUAT_CON = {
       if (['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env'].includes(a[i].val)) i++;
     }
     const sub = a[i];
-    if (sub && sub.chu && sub.val === 'push') return xetPush(a.slice(i + 1), nc, cwd);
+    if (sub && sub.chu && sub.val === 'push') return luat('GIT-PUSH') ? xetDongBo('GIT-PUSH', 'git push -u', PUSH_CO, [], a.slice(i + 1), nc, cwd) : null;
+    if (sub && sub.chu && Object.hasOwn(KEO_CO, sub.val)) {
+      const [cho, phai] = KEO_CO[sub.val];
+      return luat('GIT-KEO') ? xetDongBo('GIT-KEO', ['git', sub.val, ...phai].join(' '), cho, phai, a.slice(i + 1), nc, cwd) : null;
+    }
+    if (sub && sub.chu && sub.val === 'rm') return xetHoanTac(a.slice(i + 1), true, nc, cwd, 'GIT-RM', RM_CO);
     if (sub && sub.chu && sub.val === 'restore') return xetHoanTac(a.slice(i + 1), true, nc, cwd);
     if (!sub || !sub.chu || !GIT_CHO.has(sub.val)) return luat('GIT-LENH') ? chan('GIT-LENH', sub ? sub.tho : '(trống)') : null;
     const r = a.slice(i + 1);
