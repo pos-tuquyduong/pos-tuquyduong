@@ -106,7 +106,10 @@ DOT_BIEN = [
   # ── D4 công cụ đo ──
   # soát vòng 3: một lượt sập (bản sao chay.js: lượt 2 thoát 2 trước KB đầu) → công cụ phải thoát ≠ 0, không in thiếu mà thoát 0
   ('VS-D4-luot-sap', 'd4', [(CH, '    try { await kb.chay(ctx); }', "    if (LUOT_K === 2) process.exit(2);\n    try { await kb.chay(ctx); }", 1)],
-   [r'chỉ \d+/29 dòng DO KB'], 'BẮT'),
+   [r'lượt đo thoát ≠ 0: lượt 2/4'], 'BẮT'),
+  # phép ĐẾM riêng (bước 11): lượt 2 bỏ qua KB3 nhưng vẫn thoát 0 → chỉ phép đếm DO KB bắt được
+  ('VS-D4-luot-bo-kb', 'd4', [(CH, '    if (!luot.includes(i + 1)) continue;', '    if (!luot.includes(i + 1) || (LUOT_K === 2 && i === 2)) continue;', 1)],
+   [r'chỉ 28/29 dòng DO KB'], 'BẮT'),
   # soát vòng 4: lượt 4 thoát 1 SAU khi đã in đủ DO KB (đếm dòng không bắt được) → công cụ phải thoát ≠ 0
   ('VS-D4-luot-thoat-1', 'd4', [(CH, "  const tong = `Lượt ${LUOT_K}", "  if (LUOT_K === 4) process.exit(1);\n  const tong = `Lượt ${LUOT_K}", 1)],
    [r'lượt đo thoát ≠ 0: lượt 4/4'], 'BẮT'),

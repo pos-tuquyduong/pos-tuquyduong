@@ -56,6 +56,7 @@ befc6ad Merge pull request #13 from pos-tuquyduong/viec/TACH-GL
 | D4 neo `Lượt ` | `do_thoi_gian.js kb` | `BV-D4-neo-cu` |
 | D4 lượt sập → thoát ≠ 0 (soát vòng 3) | `do_thoi_gian.js kb` | `VS-D4-luot-sap` |
 | D4 lượt thoát ≠ 0 sau khi in đủ DO KB (bước 11) | `do_thoi_gian.js kb` | `VS-D4-luot-thoat-1` |
+| D4 đếm DO KB = số KB của LUOT (lượt thoát 0 mà sót KB — bước 11) | `do_thoi_gian.js kb` | `VS-D4-luot-bo-kb` |
 | Phép quét "bước 10" mọi file tu_chay/ (bước 11) | `thu_cong_cu` | `VS-C1-chu-thich-thu-cong-buoc-10` |
 | Skill 11.4 LUÔN + hình thức dòng; 1.2 loại "??" (bước 11) | `thu_cong_cu` | `VS-SK-11-dieu-kien`, `VS-SK-12-bo-loai-hoi` |
 | C2 một hàm `soCa(…, chiCa)`: bỏ màu · dòng CUỐI · phép → null (soát vòng 3) | `thu_cong` | `VS-C2-bo-mau`, `VS-C2-dong-dau`, `VS-C2-phep-khong-null` |
@@ -190,26 +191,27 @@ BÀI HỌC:
 | Skill không nói hình thức dòng HEAD ĐÃ KIỂM | Skill 11.4: "một dòng riêng ở CUỐI file, đúng nguyên dạng (không gạch đầu dòng, không backtick); kiểm lại thì thêm dòng mới" — có trong phép trên |
 | Phát hiện 5, 6 lạc mục | Dời về `## Phát hiện` |
 
-## Số đo trên HEAD 92dcdb1 (sau soát vòng 3 — vòng sửa cuối; 11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt)
+## Số đo lần kiểm CUỐI — nội dung 7beb982 (sau soát vòng 4 ĐẠT + KHOÁ / NGUYÊN TẮC bước 11; 11.10.2026, máy mây 4 lõi, RIÊNG)
+
+`KHUON_LOI.md` (7beb982) ghi vào cây TRƯỚC khi đợt này tới `thu_cong_cu` / `npm test` / `--day-du`; sau 7beb982 chỉ đổi `viec/TU-CHAY-5/`.
 
 | Lệnh | Thời gian | Kết quả |
 |---|---|---|
-| `node tu_chay/thu_nguoi_gac.js` | 8,0 s | 924/924 ca người gác · 179 phép khác · XANH |
-| `node tu_chay/thu_cong.js` | 94,3 s | 318 phép · 0 chỗ hỏng |
-| `node tu_chay/thu_cong_cu.js` | 4,3 s | 99 phép · 0 chỗ hỏng |
-| `node cong_cu/thu_gia_lap.js` ×3 (lần 1 trong đợt đo, lần 2, 3 riêng) | 39,9 s (lần 1) | 130 đạt · 0 hỏng · cả 3 lần |
+| `node tu_chay/thu_nguoi_gac.js` | 8,6 s | 924/924 ca người gác · 179 phép khác · XANH |
+| `node tu_chay/thu_cong.js` | 94,8 s | 318 phép · 0 chỗ hỏng |
+| `node tu_chay/thu_cong_cu.js` | 4,6 s | 101 phép · 0 chỗ hỏng |
+| `node cong_cu/thu_gia_lap.js` ×3 (lần 1 trong đợt đo, lần 2, 3 riêng) | 39,5 s (lần 1) | 130 đạt · 0 hỏng · cả 3 lần |
 | `npm test` | — | PASS 59 · FAIL 0 · CẢNH BÁO 2 |
-| `node kiem_tra_truoc_khi_giao.js --day-du` | 178,6 s | PASS 63 · FAIL 0 · CẢNH BÁO 2 |
-| `node viec/LUOI-1/do_thoi_gian.js kb` | lượt 1–4: 22,7 · 21,7 · 22,6 · 23,9 s | thoát 0 · 29 dòng `DO KB` (công cụ nay tự đếm 29) |
-| `python3 viec/TU-CHAY-5/dot_bien.py -j 2` | 795 s | 29 · BẮT 28 · LẠC 1 (`VS-C1-thong-bao-buoc-10`: bài ĐỎ đúng phép, nhưng mẫu còn tìm TÊN CŨ của phép đã đổi ở vòng 3 — K2; sửa mẫu) |
-| `python3 viec/TU-CHAY-5/dot_bien.py VS-C1-thong-bao-buoc-10 VS-C1-skill-ghi-o-buoc-10` (mẫu mới) | 8 s | BẮT 2/2 → cả bộ 29/29 đúng mong đợi |
-| `python3 viec/TU-CHAY-5/dot_bien.py 'BV-D3*'` lần 2, lần 3 (Q3) | 87 s, 91 s | lần 1 (trong đợt 29): BẮT 2/2 · lần 2: BẮT 2/2 · lần 3: BẮT 2/2 |
-| `python3 viec/HOC-2/dot_bien.py VS-A16-dong-dau VS-A16-bo-mau` | 18 s | cả hai ĐỎ đúng chỗ (neo khôi phục ở vòng 3) |
-| `python3 viec/AUDIT-1/dot_bien.py A3-CCLA-them-la` | — | BẮT 1 (neo khôi phục ở vòng 3) |
-| `python3 viec/HOC-2b/kiem_neo.py` | vài giây | HEAD: AUDIT-1 173/174 (HỎNG `G3-sai-chuoi` — có từ gốc), HOC-2 25/26 (HỎNG `VS-E3-phien-ban-cu` — tất yếu, E3 đổi phiên bản; Phát hiện 6), P26b 59/59, HOC-1 20/20, TU-CHAY-4 10/10, HOC-2b 26/26. Gốc 5ad35ea (soát vòng 3 đo): AUDIT-1 173/174, HOC-2 26/26 |
-| `python3 viec/TACH-GL/dot_bien.py -j 4` | 556 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
-| `python3 viec/LUOI-1/dot_bien.py -j 4` | 91 s | 80 · BẮT 79 · LẠC 1 (mong LẠC) · đúng mong đợi 80/80 |
-| `python3 viec/TU-CHAY-5/chay_goc.py` (gốc 5ad35ea) | — | 4/4 bài ĐỎ: gác 799/924 · cổng 29 hỏng · công cụ 13 hỏng · giả lập 1 hỏng (T7c) |
+| `node kiem_tra_truoc_khi_giao.js --day-du` | 181,6 s | PASS 63 · FAIL 0 · CẢNH BÁO 2 |
+| `node viec/LUOI-1/do_thoi_gian.js kb` | lượt 1–4: 22,5 · 21,8 · 22,9 · 24,1 s | thoát 0 · 29 dòng `DO KB` (công cụ tự kiểm mã thoát từng lượt + đếm 29) |
+| `python3 viec/TU-CHAY-5/dot_bien.py -j 2` | 823 s | 33 · BẮT 32 · LẠC 1 (`VS-D4-luot-sap`: công cụ thoát ≠ 0 nhưng do phép MỚI "lượt thoát ≠ 0" bắt trước, mẫu cũ "chỉ n/29" không khớp — K2; sửa mẫu, thêm `VS-D4-luot-bo-kb` cho phép đếm) |
+| `python3 viec/TU-CHAY-5/dot_bien.py VS-D4-luot-sap VS-D4-luot-bo-kb` | 181 s | BẮT 2/2 → cả bộ 34/34 đúng mong đợi |
+| D3 (Q3) | — | `BV-D3` ×2 BẮT trong đợt 33 trên đây; 3 lần riêng trên 92dcdb1 (đều BẮT 2/2) — `thu_gia_lap.js` không đổi từ 92dcdb1 |
+| `python3 viec/HOC-2b/kiem_neo.py` | vài giây | AUDIT-1 173/174 (HỎNG `G3-sai-chuoi` có từ gốc), HOC-2 25/26 (HỎNG `VS-E3-phien-ban-cu` tất yếu — Phát hiện 6), P26b 59/59, HOC-1 20/20, TU-CHAY-4 10/10, HOC-2b 26/26 |
+| HOC-2 `VS-A16-dong-dau`, `VS-A16-bo-mau`; AUDIT-1 `A3-CCLA-them-la` | — | BẮT (chạy trên 92dcdb1; `cong.js`, `nguoi_gac.js` không đổi từ đó) |
+| `python3 viec/TACH-GL/dot_bien.py -j 4` | 560 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
+| `python3 viec/LUOI-1/dot_bien.py -j 4` | 89 s | 80 · BẮT 79 · LẠC 1 (mong LẠC) · đúng mong đợi 80/80 |
+| `python3 viec/TU-CHAY-5/chay_goc.py` (gốc 5ad35ea) | — | 4/4 bài ĐỎ: gác 799/924 · cổng 29 hỏng · công cụ 15 hỏng · giả lập 1 hỏng (T7c) |
 
 Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn (bản cài `.claude/` lệch nguồn `tu_chay/`, chủ quán cài sau soát cuối):
 - `.claude/tu_chay/ khớp từng byte với tu_chay/` — lệch: MAU_PHIEU.md, PHIEN_BAN, THIET_KE.md, cong.js, nguoi_gac.js,
@@ -241,7 +243,7 @@ Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn
 
 ## Đang ở
 
-Bước 11 — soát vòng 4 ĐẠT; làm KHOÁ trong Phạm vi, chạy lại bước 6, rồi ghi HEAD ĐÃ KIỂM + báo cáo 7 mục.
+XONG — dừng. Không merge, không tạo PR. Chủ quán: chạy script cài trên nhánh (Q1), rồi soát cuối.
 
 ## Phát hiện
 
@@ -323,3 +325,69 @@ BÀI HỌC:
 ## Câu hỏi
 
 (Q1–Q7 của `ke_hoach.md` mục 9 đã được trả lời ở lời duyệt.)
+
+## Bài học
+
+Sự cố của việc (bước 11.1):
+- Soát độc lập: 4 vòng — vòng 1–3 KHÔNG ĐẠT, vòng 4 ĐẠT (dùng đủ 3 vòng sửa). Hai lỗi do CHÍNH vòng sửa gây ra (vòng 2: thông báo
+  A19 còn "bước 10"; vòng 3 phát hiện vòng 2 chép khối lọc màu làm rữa neo HOC-2). Mẫu đột biến của chính việc LẠC/HỎNG 3 lần
+  sau khi đổi tên phép / bỏ vế / thêm phép chặn trước (`VS-C1-commit-nay-moi-noi`, `VS-C1-thong-bao-buoc-10`, `VS-D4-luot-sap`).
+- Người gác chặn 34 lệnh trong phiên (kể cả agent phụ): B-CHUONGTRINH 10 (`until`, `while`, `nproc`, `ps`), B-BIMAT-CHU 6
+  (`ps e`…), B-PHANTICH 5 (`$(( ))`, `$'…'`, `:(glob)` không nháy), GIT-LENH 3 (`git remote`, `git reflog`, `git fetch` — bản
+  1.4.0 đang cài), B-CD-VITRI 3, B-MANOI 3 (heredoc / `node -e` nhắc file bảo vệ → chuyển sang script trong nháp), B-DICHCHU 2,
+  SED-I 1, CC-LA 1. Không lệnh nào lách; mọi chỗ làm theo lý do người gác.
+- Kế hoạch: agent soát kế hoạch bắt 13 điểm (FIFO không tất định → `/dev/fd/3`; A19 chặn commit cài `.claude/`…).
+
+| Bài | Ngăn | Lý do / chỗ |
+|---|---|---|
+| Skill ghi HEAD ĐÃ KIỂM trước bước 11 (vòng 1) | **KHOÁ** (đã làm) | `thu_cong_cu` "C1 skill … bước 10 không ghi" + đột biến `VS-C1-skill-ghi-o-buoc-10` |
+| Số ca bài thử sinh từ nội dung skill (vòng 1) | **KHOÁ** (đã làm) + **NGUYÊN TẮC** | B4 gộp một phép; `KHUON_LOI.md` K3 "(TU-CHAY-5) số ca không SINH từ file PR sửa" |
+| Thông báo cổng / tài liệu / chú thích còn "bước 10" (vòng 2, 3) | **KHOÁ** (đã làm) + **NGUYÊN TẮC** | `thu_cong_cu` quét MỌI file `tu_chay/`; `VS-C1-thong-bao-buoc-10`, `VS-C1-chu-thich-thu-cong-buoc-10`; K4 "(TU-CHAY-5) grep khắp nơi" |
+| Vế phép mới không có ca giết (`.pop()`, `cong.yml`, 3 vế C2, mã thoát D4) | **KHOÁ** (đã làm) + **NGUYÊN TẮC** | ca + đột biến có tên cho từng vế; K3 "(TU-CHAY-5) mỗi luồng 'không bị chặn' trỏ tới một ca + đột biến" |
+| Chép khối code làm rữa neo đột biến cũ (vòng 3) | **NGUYÊN TẮC** (đã ghi) + đề xuất KHOÁ ngoài Phạm vi | K4 "(TU-CHAY-5) … `kiem_neo.py` trên gốc và HEAD". Đề xuất (AUDIT-2, cùng D5): `tu_chay/lenh_ra_soat.md` + skill bước 6 đòi chạy `python3 viec/HOC-2b/kiem_neo.py` và ghi neo HỎNG mới; ca đỏ: PR có neo khớp 2 lần |
+| Sửa câu skill bằng LỜI (vòng 4) | **KHOÁ** (đã làm) | `thu_cong_cu` "skill 11.4 LUÔN …", "skill 1.2 …"; `VS-SK-11-dieu-kien`, `VS-SK-12-bo-loai-hoi` |
+| Mẫu đột biến của chính việc lạc sau khi đổi phép | **NGUYÊN TẮC** (gộp vào K4 TU-CHAY-5: "đổi tên một phép → grep … mẫu + neo `viec/*/dot_bien.py`") | 3 lần trong việc này |
+| Hình thức dòng HEAD ĐÃ KIỂM (cổng đọc `^…$`) | **KHOÁ** (đã làm) | skill 11.4 + phép `thu_cong_cu` "dòng riêng ở CUỐI file" |
+| Phát hiện lạc mục trong trang_thai | **BỎ** | lỗi trình bày một lần |
+| Lệnh bị người gác chặn (`until`, `ps`, heredoc nhắc file bảo vệ) | **BỎ** | luật đúng ý; đã có đường thay (script trong nháp, Monitor/notification); không lách |
+
+Dọn (bước 11.3): lời dặn K3 "con số 'đạt' phải kèm lần chạy lại trên HEAD" nay có cổng A16 + A19 làm thay một phần (số ca, SHA đã
+kiểm) — ĐỀ XUẤT rút gọn câu đó ở việc sau (không tự xoá). `KHUON_LOI.md` 104 dòng ≤ 120.
+
+## Báo cáo 7 mục
+
+```
+VIỆC:        TU-CHAY-5 — siết lưới bất biến, vá lỗ người gác / cổng / công cụ, máy tự nhận nhánh có commit mới
+             (nhóm A, D5, D6 DỜI sang AUDIT-2 theo lời chốt chủ quán 11.10)
+ĐÃ SỬA:      tu_chay/nguoi_gac.js — B1 git rm [-q] <file…> (GIT-RM, xetHoanTac dùng chung, ghiDuoc như SỬA file, khoLong);
+               B2 TaskStop cho qua; B3 git fetch [-q] / git pull --no-rebase --ff-only [-q] origin viec/<MÃ> (GIT-KEO, xetDongBo
+               chung với push; khoLong dừng ngoài kho)
+             tu_chay/cong.js — C1 A19 HEAD ĐÃ KIỂM (rev-list theo đồ thị; loại .claude/ + cong.yml; dạng "+ commit này");
+               C2 CẢNH BÁO A16 số CA gốc ≠ head (soCa một hàm, chiCa)
+             tu_chay/skill_lam_viec.md — B4 bước 1 fetch → so FETCH_HEAD → pull --ff-only, hai SHA; luật stop hook; C1 11.4
+             cong_cu/gia_lap/chay.js — D1 --kho chỉ qua IPC (dòng riêng)
+             cong_cu/thu_gia_lap.js — D1 T7c, D2 /dev/fd/3, D3 setEncoding (chayGL, chayTheoDoi) + ca
+             viec/LUOI-1/do_thoi_gian.js — D4 chạy từng lượt, neo "Lượt ", kiểm mã thoát + đếm 29 DO KB
+             tu_chay/thu_nguoi_gac.js, thu_cong.js, thu_cong_cu.js — ca B/C/E; tu_chay/THIET_KE.md, MAU_PHIEU.md, PHIEN_BAN 1.5.0,
+               KHUON_LOI.md — E1–E3
+BÀI THỬ:     chạy trên gốc 5ad35ea (chay_goc.py, như cổng A11) → ĐỎ: gác 799/924 · cổng 29 hỏng · công cụ 15 hỏng · giả lập T7c;
+             sau khi vá → XANH: 924/924 + 179 · 318 · 101 · 130. D2, D3 ca hồi quy (xanh trên gốc) — bằng chứng là đột biến.
+             Đột biến của việc 34/34 đúng mong đợi; D3 BẮT 3/3 lần (Q3).
+ĐÃ RÀ K4:    grep "ra += d" trong thu_gia_lap.js, thu_nguoi_gac.js → 3 chỗ (chayGL, chayTheoDoi, choTreo), đã xử lý; ngoài Phạm vi
+             viec/TACH-GL/do_chia*.js → Phát hiện 2. grep "khoLong|laCon(d, nc.goc)" → push/fetch/pull/rm chung một hàm;
+             GIT-COMMIT-NHANH cố ý không. grep "HEAD ĐÃ KIỂM.*bước 10" mọi file tu_chay/ → 0 (phép thu_cong_cu canh).
+             kiem_neo.py → neo cũ về như gốc trừ VS-E3-phien-ban-cu (tất yếu, Phát hiện 6).
+CHƯA KIỂM:   - git fetch / git pull THẬT qua proxy máy mây, và skill bước 1 trên một phiên nạp bản cũ thật — người gác đang cài
+               là 1.4.0 (chặn fetch); chỉ kiểm bằng xet() + git merge-base thật.
+             - Cổng A19 / C2 trên PR thật GitHub: PR này chấm bằng luật main 1.4.0; A8 đỏ tới khi chủ quán cài trên nhánh (Q1).
+             - cong.js khop.length !== 1 (SHA viết tắt mơ hồ) — phòng thủ, không có ca.
+             - setEncoding ở choTreo (thu_nguoi_gac.js) — không dựng được ca cắt khúc tất định (đầu ra JSON ngắn).
+             - D3 dựa trên khe 300 ms (Q3) — không tất định tuyệt đối; khúc gộp thì ca xanh oan, không đỏ oan.
+             - git rm một symlink đã theo dõi (Phát hiện 5) — lỗ lý thuyết, kho 0 symlink theo dõi.
+             - Vì sao phiên TACH-GL nạp 2237259: chưa rõ (B5) — B4 xử lý hậu quả.
+GIT:         commit cuối đổi file ngoài viec/TU-CHAY-5/: 7beb982; commit hồ sơ này ở trên nó (git log --oneline -2 in trong
+             câu trả lời). Không merge, không PR.
+BÀI HỌC:     KHOÁ 6 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+HEAD ĐÃ KIỂM: 7beb982

@@ -1,11 +1,11 @@
-# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (chạy lại sau soát vòng 3 — HEAD 92dcdb1, 11.10.2026, máy mây 4 lõi)
+# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (chạy lại sau bước 11 — nội dung 7beb982, 11.10.2026, máy mây 4 lõi)
 # Lệnh: python3 viec/TU-CHAY-5/chay_goc.py   (git archive 5ad35ea + bài thử của HEAD + node_modules nối — như cổng A11)
 # SỐ CA = số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, chạy riêng): thu_nguoi_gac 924 ca + 179 phép khác;
-# thu_cong 318 phép; thu_cong_cu 99 phép; thu_gia_lap 130 đạt · 0 hỏng. Số CA người gác trên gốc (924) = trên head (924):
+# thu_cong 318 phép; thu_cong_cu 101 phép; thu_gia_lap 130 đạt · 0 hỏng. Số CA người gác trên gốc (924) = trên head (924):
 # vòng B4 gộp thành một phép ở soát vòng 1, số ca không còn đổi theo nội dung skill (C2 không cảnh báo oan).
 SỐ CA tu_chay/thu_nguoi_gac.js: 1103
 SỐ CA tu_chay/thu_cong.js: 318
-SỐ CA tu_chay/thu_cong_cu.js: 99
+SỐ CA tu_chay/thu_cong_cu.js: 101
 SỐ CA cong_cu/thu_gia_lap.js: 130
 #
 # Ca hồi quy XANH trên gốc — bằng chứng là đột biến (python3 viec/TU-CHAY-5/dot_bien.py):
@@ -80,12 +80,14 @@ SỐ CA cong_cu/thu_gia_lap.js: 130
    ✗ TU-CHAY-5 C2 gốc in kèm mã màu → vẫn đọc được số ca, cảnh báo: lý do có "gốc in 2 ca" — ✓ CỔNG CHẠY ĐẠT
    ✗ TU-CHAY-5 C2 gốc in hai dòng tổng → lấy dòng CUỐI: lý do có "CẢNH BÁO A16" — ✓ CỔNG CHẠY ĐẠT
    ✗ TU-CHAY-5 C2 gốc in hai dòng tổng → lấy dòng CUỐI: lý do có "gốc in 2 ca" — ✓ CỔNG CHẠY ĐẠT
-== tu_chay/thu_cong_cu.js trên gốc 5ad35ea: thoát 1 · thu_cong_cu: 99 phép · 13 chỗ hỏng
+== tu_chay/thu_cong_cu.js trên gốc 5ad35ea: thoát 1 · thu_cong_cu: 101 phép · 15 chỗ hỏng
    ✗ TU-CHAY-5 B4 skill bước 1: fetch nhánh việc → so HEAD với FETCH_HEAD (merge-base --is-ancestor) → pull --no-rebase --ff-only —
    ✗ TU-CHAY-5 B4 skill bước 1: sửa dở → không kéo; lệch hai phía → DỪNG báo chủ quán; hai SHA —
    ✗ TU-CHAY-5 B4 skill bước 1: ghi trang_thai.md SAU khi fetch/kéo (ghi trước thì cây bẩn, pull bị từ chối)
    ✗ TU-CHAY-5 B4 skill luật cứng: stop hook đòi git config / đổi tác giả / --amend / rebase → không làm, ghi trang_thai.md
    ✗ TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM: <SHA>" ghi ở bước 11 SAU KHOÁ / NGUYÊN TẮC, sau khi chạy lại bước 6 (kiểm cuối), có dạng "+ commit này"; bước 10 không ghi —
+   ✗ TU-CHAY-5 C1 skill 11.4: ghi HEAD ĐÃ KIỂM LUÔN (đổi hay không), một dòng riêng ở CUỐI file, không gạch đầu dòng / backtick
+   ✗ TU-CHAY-5 B4 skill 1.2: cây "sửa dở" = dòng KHÔNG mở đầu `??` (file chưa theo dõi không chặn kéo) —
    ✗ TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng — ## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.
    ✗ TU-CHAY-5 E1 THIET_KE: không còn số đo / bánh cóc cũ, trỏ NGUONG_KICH_BAN / NGUONG_BAT_BIEN
    ✗ TU-CHAY-5 E1 THIET_KE B10: chia lượt (LUOT, --luot) và --kho chỉ qua kênh IPC
