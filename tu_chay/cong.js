@@ -202,7 +202,8 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
     // A19 (TU-CHAY-5 C1) — PR đổi file ngoài viec/<MÃ>/ (trừ .claude/ và cong.yml: chủ quán cài SAU lần kiểm của máy) thì dòng CUỐI
     // "HEAD ĐÃ KIỂM: <SHA>" của trang_thai.md ở head: SHA khớp đúng một commit của PR, và không commit nào đổi code sau nó — theo đồ
     // thị (rev-list), không theo ngày: commit gộp main cũng tính. Dạng "<SHA cha> + commit này" (chat soát thay: đổi code và
-    // trang_thai.md cùng commit): đúng MỘT commit C đổi code sau SHA, cha của C là SHA, và chính C thêm dòng đó.
+    // trang_thai.md cùng commit): đúng MỘT commit C đổi code sau SHA, cha của C là SHA, và trang_thai.md ở C có dòng đó (cha
+    // của C không thể chứa sẵn dòng ghi SHA của chính nó — soát vòng 2: vế "không có ở cha" là code chết, đã bỏ).
     const PS = ['--', '.', `:(exclude)viec/${ma}/`, ':(exclude).claude/', ':(exclude).github/workflows/cong.yml'];
     const doiCode = (tu) => git(thuMuc, 'rev-list', `${tu}..${head}`, ...PS).split('\n').filter(Boolean);
     if (doiCode(moc).length) {
@@ -210,12 +211,12 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
       const khop = dong ? git(thuMuc, 'rev-list', `${moc}..${head}`).split('\n').filter((s) => s && s.startsWith(dong[1])) : [];
       const sau = khop.length === 1 ? doiCode(khop[0]) : [];
       const coDong = (sha) => String(blob(thuMuc, sha, `viec/${ma}/trang_thai.md`) || '').normalize('NFC').split('\n').includes(dong[0]);
-      if (!dong) doLy('A19', `viec/${ma}/trang_thai.md thiếu dòng "HEAD ĐÃ KIỂM: <SHA>" — ghi SAU lần kiểm cuối (skill bước 10)`);
+      if (!dong) doLy('A19', `viec/${ma}/trang_thai.md thiếu dòng "HEAD ĐÃ KIỂM: <SHA>" — ghi SAU lần kiểm cuối, sau mọi sửa của bước 11 (skill bước 11.4)`);
       else if (khop.length !== 1) doLy('A19', `"${dong[0]}": SHA không thuộc PR (không khớp đúng một commit của ${moc.slice(0, 7)}..head)`);
       else if (!dong[2] && sau.length) {
         doLy('A19', `"${dong[0]}" cũ hơn commit ${sau[0].slice(0, 7)} đổi code — chạy lại bước kiểm rồi ghi lại dòng này`);
       } else if (dong[2] && !(sau.length === 1 && git(thuMuc, 'rev-parse', sau[0] + '^').trim() === khop[0]
-        && coDong(sau[0]) && !coDong(khop[0]))) {
+        && coDong(sau[0]))) {
         doLy('A19', `"${dong[0]}": dạng "+ commit này" chỉ hợp lệ khi ĐÚNG MỘT commit đổi code sau ${dong[1]}, là con trực tiếp của nó, và chính commit đó thêm dòng này`);
       }
     }

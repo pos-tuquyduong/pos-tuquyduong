@@ -215,7 +215,6 @@ B('git rm TIEN_DO_POS.json', 'G1-CAM');
 B('git rm ../ngoai.txt', 'G0-NGOAI');
 B('git rm /etc/passwd', 'G0-NGOAI');
 B('git rm server/ln_ngoai/x', 'G0-NGOAI');
-B('git rm a.js', 'G0-NGOAI', { cwd: NGOAI });   // khoLong dừng ở ngoài kho (không treo), rồi ghiDuoc chặn
 B('git rm $F', 'GIT-RM');
 B('git rm server/a.js', 'G2-VIEC', { goc: KHO_MAIN });
 B('git rm server/a.js', 'G2-VIEC', { goc: KHO_TACH });
@@ -788,6 +787,12 @@ async function tienTrinh() {
   const tatCa = [];
   let r = goi(vao('Read', { file_path: 'x' }), env); tatCa.push(r);
   chac('tiến trình: Read → exit 0, không in gì', r.status === 0 && r.stdout === '', `exit ${r.status} · ${r.stdout}`);
+  // TU-CHAY-5 (soát vòng 2): git rm với cwd NGOÀI kho — khoLong phải dừng khi ra khỏi gốc (không thì path.dirname('/') mãi);
+  // tiến trình thật có hạn 10 s nên đột biến bỏ chốt dừng ra câu kết luận này, không treo cả bài.
+  r = goi(vao('Bash', { command: 'git rm a.js' }, { cwd: NGOAI }), env); tatCa.push(r);
+  chac('tiến trình: git rm với cwd ngoài kho → exit 2, [G0-NGOAI] trong 10 s (không treo)', r.status === 2
+    && /\[G0-NGOAI\]/.test(String(r.json && r.json.hookSpecificOutput && r.json.hookSpecificOutput.permissionDecisionReason)),
+    `exit ${r.status} · ${String(r.stdout).slice(0, 200)}`);
   r = goi(vao('TaskCreate', { subject: 'x' }), env); tatCa.push(r);
   chac('tiến trình: TaskCreate → exit 0', r.status === 0);
   r = goi(vao('Bash', { command: 'git push origin main' }), env); tatCa.push(r);

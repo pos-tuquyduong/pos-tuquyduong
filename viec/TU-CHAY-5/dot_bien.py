@@ -41,8 +41,9 @@ DOT_BIEN = [
    [r'✗ ca Bash "git rm server/b.js": mong CHAN:G5-NGOAIPV, ra CHO'], 'BẮT'),
   ('VS-B1-rm-bo-khoLong', 'gac', [(NG, 'const x = !hoanTac && khoLong(', 'const x = false && khoLong(', 1)],
    [r'✗ ca Bash "cd viec/X/long && git rm a.js": mong CHAN:GIT-RM, ra CHO'], 'BẮT'),
-  # khoLong không dừng ở ngoài kho → path.dirname('/') = '/' mãi: git rm với cwd ngoài kho treo người gác (bài thử treo = bắt)
-  ('VS-B1-khoLong-bo-dung-ngoai-kho', 'gac', [(NG, 'laCon(x, nc.goc) && x !== nc.goc', 'x !== nc.goc', 1)], [], 'TREO'),
+  # khoLong không dừng ở ngoài kho → path.dirname('/') = '/' mãi: tiến trình người gác treo, ca tiến trình thật (hạn 10 s) đỏ
+  ('VS-B1-khoLong-bo-dung-ngoai-kho', 'gac', [(NG, 'laCon(x, nc.goc) && x !== nc.goc', 'x !== nc.goc', 1)],
+   [r'✗ tiến trình: git rm với cwd ngoài kho'], 'BẮT'),
   # ── B2 TaskStop ──
   ('BV-B2-bo-TaskStop', 'gac', [(NG, "  'SubagentHandback', 'TaskStop']);", "  'SubagentHandback']);", 1)],
    [r'✗ ca công cụ cho qua TaskStop: mong CHO, ra CHAN:CC-LA', r'✗ ca khoá tập CONG_CU_DOC'], 'BẮT'),
@@ -63,6 +64,12 @@ DOT_BIEN = [
    [r'✗ TU-CHAY-5 A19 K5 commit hồ sơ sau lần kiểm: phải ĐẠT'], 'BẮT'),
   ('VS-C1-commit-nay-moi-noi', 'cong', [(CG, '\n        && coDong(sau[0]) && !coDong(khop[0]))) {', ')) {', 1)],
    [r'✗ TU-CHAY-5 A19 "\+ commit này" ghi ở commit hồ sơ SAU commit code: phải ĐỎ'], 'BẮT'),
+  # soát vòng 2: hai vế từng SỐNG — đọc dòng CUỐI, loại cong.yml
+  ('VS-C1-doc-dong-dau', 'cong', [(CG, "( \\+ commit này)?$/gm)].pop();", "( \\+ commit này)?$/gm)][0];", 1)],
+   [r'✗ TU-CHAY-5 A19 K5 hai dòng HEAD ĐÃ KIỂM: dòng đầu cũ, dòng cuối đúng: phải ĐẠT'], 'BẮT'),
+  ('VS-C1-khong-loai-cong-yml', 'cong', [(CG, ", ':(exclude).github/workflows/cong.yml'", '', 1)],
+   [r'✗ TU-CHAY-5 A19 K5 chủ quán cài đổi cả cong.yml sau lần kiểm: phải ĐẠT'], 'BẮT'),
+  ('VS-C1-thong-bao-buoc-10', 'cc', [(CG, '(skill bước 11.4)', '(skill bước 10)', 1)], [r'✗ TU-CHAY-5 C1: cong.js'], 'BẮT'),
   ('VS-C1-khong-loai-claude', 'cong', [(CG, "':(exclude).claude/', ", '', 1)],
    [r'✗ TU-CHAY-5 A19 K5 chủ quán cài \.claude/ sau lần kiểm: phải ĐẠT'], 'BẮT'),
   # soát vòng 1: dòng HEAD ĐÃ KIỂM ghi ở bước 10 (trước bước 11 đổi KHUON_LOI / KHOÁ) → A19 tự đỏ trên luồng của chính skill

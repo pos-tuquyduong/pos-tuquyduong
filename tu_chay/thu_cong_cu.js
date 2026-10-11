@@ -430,6 +430,11 @@ function baiTaiLieu() {
   chac('TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM: <SHA>" ghi ở bước 11 SAU KHOÁ / NGUYÊN TẮC, sau khi chạy lại bước 6 (kiểm cuối), có dạng "+ commit này"; bước 10 không ghi',
     iK >= 0 && iN > iK && iH > iN && s11.includes('+ commit này') && /chạy lại bước 6[^]*kiểm cuối/.test(s11.slice(iN))
     && !s10.includes('HEAD ĐÃ KIỂM'), s11.slice(Math.max(iH, 0), iH + 200));
+  // Soát vòng 2: dời bước ghi HEAD ĐÃ KIỂM (10 → 11.4) mà thông báo A19 của cổng + THIET_KE còn trỏ "bước 10" — K4.
+  const nhacSai = [['tu_chay/cong.js', doc(path.join(__dirname, 'cong.js'))], ['tu_chay/THIET_KE.md', tk], ['tu_chay/MAU_PHIEU.md', mp]]
+    .flatMap(([f, s]) => String(s || '').split('\n').map((l, i) => [f, i + 1, l])).filter(([, , l]) => l.includes('HEAD ĐÃ KIỂM') && /bước 10\b/.test(l));
+  chac('TU-CHAY-5 C1: cong.js / THIET_KE / MAU_PHIEU nhắc HEAD ĐÃ KIỂM không trỏ "bước 10" (skill ghi ở bước 11.4)', !nhacSai.length,
+    nhacSai.map(([f, n]) => `${f}:${n}`).join(', '));
   const t15 = muc(tk, '## B15', '## B16'), t3 = muc(tk, '## B3.', '## B4.'), t10 = muc(tk, '## B10.', '## B11.');
   chac('TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng',
     ['[A19]', 'HEAD ĐÃ KIỂM', 'CẢNH BÁO A16'].every((x) => t15.includes(x)) && /A18[^\n]*không chạy đột biến/.test(t15), t15.slice(0, 120));

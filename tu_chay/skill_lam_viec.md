@@ -27,7 +27,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
 
 1. **Đối chiếu bản chụp, tự đi tới bản mới** (máy mây từng mở từ bản chụp cũ — TACH-GL nạp `2237259`). Đúng thứ tự:
    1. `git branch --show-current` — không phải `viec/$0` → dừng, báo chủ quán.
-   2. `git status --short` — có file đã theo dõi đang sửa dở → không kéo (cùng luật hook mở phiên), sang 4.
+   2. `git status --short` — có file đã theo dõi đang sửa dở → không kéo (cùng luật hook mở phiên), sang 4; thay hai SHA ghi
+      "không kéo: cây sửa dở" + SHA HEAD.
    3. `git fetch origin viec/$0`, ghi nhớ hai SHA (`git rev-parse --short HEAD FETCH_HEAD`), rồi so bằng
       `git merge-base --is-ancestor HEAD FETCH_HEAD` và `git merge-base --is-ancestor FETCH_HEAD HEAD`:
       bằng nhau, hoặc FETCH_HEAD là tổ tiên của HEAD (máy có commit chưa push) → tiếp;
@@ -81,7 +82,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
        - **BỎ** — chỉ xảy ra một lần. Một dòng lý do.
     3. Dọn: lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` đã có phép kiểm làm thay thì đề xuất xoá.
        `KHUON_LOI.md` không vượt `khuon_loi_toi_da` của `cau_hinh.json` — vượt thì gộp, không nới số.
-    4. Bước 11 đổi file ngoài `viec/$0/` (KHOÁ, `KHUON_LOI.md`) → commit rồi chạy lại bước 6. SAU lần kiểm cuối đó mới ghi
+    4. Bước 11 đổi file ngoài `viec/$0/` (KHOÁ, `KHUON_LOI.md`) → commit rồi chạy lại bước 6 (KHOÁ là bài `thu_*.js` mới / sửa
+       thì làm cả bước 4: đỏ trên gốc, `SỐ CA` trong `bang_chung_do.txt`). SAU lần kiểm cuối đó mới ghi
        dòng `HEAD ĐÃ KIỂM: <git rev-parse --short HEAD>` vào `trang_thai.md` (cổng A19 — mọi commit đổi file ngoài `viec/$0/`
        phải nằm TRƯỚC SHA này). Commit vừa đổi code vừa ghi `trang_thai.md` (chat soát thay) thì ghi
        `HEAD ĐÃ KIỂM: <SHA cha> + commit này`.

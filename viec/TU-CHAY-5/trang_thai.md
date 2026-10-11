@@ -33,7 +33,7 @@ befc6ad Merge pull request #13 from pos-tuquyduong/viec/TACH-GL
 | B1 lọc cờ rm (chỉ `-q`) | `thu_nguoi_gac` | `VS-B1-rm-cho-moi-co` |
 | B1 rm xét như SỬA file (không miễn hoàn tác) | `thu_nguoi_gac` | `VS-B1-rm-mien-hoantac` |
 | B1 rm không trong kho lồng | `thu_nguoi_gac` | `VS-B1-rm-bo-khoLong` |
-| `khoLong` dừng khi ra ngoài kho | `thu_nguoi_gac` (treo) | `VS-B1-khoLong-bo-dung-ngoai-kho` |
+| `khoLong` dừng khi ra ngoài kho | `thu_nguoi_gac` (tiến trình thật, hạn 10 s) | `VS-B1-khoLong-bo-dung-ngoai-kho` |
 | B2 `TaskStop` trong `CONG_CU_DOC` | `thu_nguoi_gac` | `BV-B2-bo-TaskStop` |
 | B3 nhánh fetch/pull | `thu_nguoi_gac` | `BV-B3-bo-keo` |
 | B3 pull bắt buộc `--ff-only` | `thu_nguoi_gac` | `VS-B3-pull-thieu-ff-only` |
@@ -43,6 +43,10 @@ befc6ad Merge pull request #13 from pos-tuquyduong/viec/TACH-GL
 | C1 chỉ commit đổi CODE sau SHA mới tính | `thu_cong` | `VS-C1-tinh-ca-commit-ho-so` |
 | C1 "+ commit này" phải do chính commit đó thêm | `thu_cong` | `VS-C1-commit-nay-moi-noi` |
 | C1 loại `.claude/` (chủ quán cài sau kiểm) | `thu_cong` | `VS-C1-khong-loai-claude` |
+| C1 skill ghi HEAD ĐÃ KIỂM ở bước 11.4, không ở bước 10 (soát vòng 1) | `thu_cong_cu` | `VS-C1-skill-ghi-o-buoc-10` |
+| C1 cổng đọc dòng CUỐI (soát vòng 2) | `thu_cong` | `VS-C1-doc-dong-dau` |
+| C1 loại `cong.yml` (soát vòng 2) | `thu_cong` | `VS-C1-khong-loai-cong-yml` |
+| C1 thông báo A19 trỏ đúng bước skill (soát vòng 2) | `thu_cong_cu` | `VS-C1-thong-bao-buoc-10` |
 | C2 cảnh báo A16 | `thu_cong` | `BV-C2-bo-canh-bao` |
 | C2 chỉ so số CA (Q5) | `thu_cong` | `VS-C2-so-ca-phep` |
 | D1 `--kho` chỉ qua IPC (`chay.js`) | `thu_gia_lap` T7c | `BV-D1-bo-ipc` |
@@ -50,6 +54,51 @@ befc6ad Merge pull request #13 from pos-tuquyduong/viec/TACH-GL
 | D3 `chayGL` setEncoding | `thu_gia_lap` D3 | `BV-D3-chayGL-bo-setEncoding` |
 | D3 `chayTheoDoi` setEncoding (K4) | `thu_gia_lap` D3 | `BV-D3-theodoi-bo-setEncoding` |
 | D4 neo `Lượt ` | `do_thoi_gian.js kb` | `BV-D4-neo-cu` |
+
+## Soát độc lập — vòng 2 (`/ra-soat`, agent độc lập mới, nguyên văn rút gọn dấu đầu dòng)
+
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- tu_chay/cong.js:213 và tu_chay/THIET_KE.md:873 — vòng sửa 1 dời HEAD ĐÃ KIỂM sang skill bước 11.4, nhưng thông báo ĐỎ của
+  A19 vẫn bảo "(skill bước 10)" và THIET_KE B15 vẫn ghi "Skill bước 10 ghi dòng này" → máy làm theo thông báo thì lỗi vòng 1
+  quay lại. Phép thu_cong_cu B15 không bắt câu sai. Lỗi do chính vòng sửa — K4.
+- tu_chay/cong.js:209 — A19 hứa đọc dòng CUỐI (.pop()) nhưng không ca nào có hai dòng; đột biến .pop()→[0] SỐNG. Luồng thật
+  (kiểm lại sau soát, thêm dòng mới) bị đe doạ — K3 + K5.
+- tu_chay/cong.js:206 — vế ':(exclude).github/workflows/cong.yml' không được khoá; đột biến bỏ vế SỐNG; ke_hoach §8 khẳng định
+  đã canh luồng "cài .claude/ + cong.yml" mà không có ca — K3 + K1.
+NGHI NGỜ:
+- cong.js:217–218 vế !coDong(khop[0]) gần như không tới được (cha chứa sẵn dòng ghi SHA của chính nó) — code chết, đột biến SỐNG.
+- dot_bien.py VS-B1-khoLong-bo-dung-ngoai-kho mong TREO, không mẫu — bắt vì treo, không vì câu kết luận (K3).
+- Skill 11.4 chỉ bảo chạy lại bước 6; KHOÁ là bài thu_*.js mới/sửa thì còn cần đỏ trên gốc + SỐ CA (A11/A16).
+- Skill 1.2: cây bẩn nhảy sang 4 — "hai SHA" chưa có, chưa nói ghi gì.
+- Lỗ có từ trước (Phát hiện 3): checkout -b viec/Y && git pull … được CHO.
+- ke_hoach.md:153, :276 vẫn nói "skill bước 10" (hồ sơ lịch sử).
+- Bảng "Chỗ vá → đột biến" thiếu VS-C1-skill-ghi-o-buoc-10.
+NGHIỆM THU: 16/16 mục có bằng chứng (C1, E1 còn lỗi nội dung 1–3). Mục thiếu: không có.
+CHƯA SOÁT ĐƯỢC: chưa chạy lại --day-du, dot_bien.py 22, TACH-GL 29, LUOI-1 80, D3 ×3; chưa fetch/pull thật qua proxy, skill
+bước 1 trên phiên nạp bản cũ thật; lớp 1 chỉ thử merge-base; cổng thật trên GitHub (PR chấm bằng luật main 1.4.0).
+BÀI HỌC:
+- KHOÁ: thu_cong_cu — mọi chỗ ngoài skill nhắc HEAD ĐÃ KIỂM (cong.js, THIET_KE, MAU_PHIEU) không trỏ "bước 10".
+- KHOÁ: ca thu_cong "hai dòng, dòng cuối đúng → ĐẠT" và "chủ quán cài đổi cong.yml sau lần kiểm → ĐẠT" + đột biến pop→[0], bỏ
+  exclude cong.yml.
+- NGUYÊN TẮC (K4): dời một bước quy trình → grep số bước đó trong thông báo lỗi, tài liệu, mẫu phiếu.
+- NGUYÊN TẮC (K3/K5/K1): mỗi luồng hợp lệ kế hoạch liệt kê "không bị chặn" phải trỏ tới một ca + đột biến gỡ đúng vế ra BẮT.
+```
+
+### Đã sửa ở vòng 2
+
+| Lỗi / nghi ngờ | Sửa |
+|---|---|
+| Thông báo A19 + THIET_KE B15 trỏ "bước 10" | Trỏ "bước 11.4"; phép `thu_cong_cu` "TU-CHAY-5 C1: cong.js / THIET_KE / MAU_PHIEU … không trỏ bước 10"; đột biến `VS-C1-thong-bao-buoc-10` |
+| `.pop()` không có ca | Ca `thu_cong` "hai dòng HEAD ĐÃ KIỂM: dòng đầu cũ, dòng cuối đúng → ĐẠT"; đột biến `VS-C1-doc-dong-dau` |
+| exclude `cong.yml` không có ca | Ca `thu_cong` "chủ quán cài đổi cả cong.yml sau lần kiểm → ĐẠT"; đột biến `VS-C1-khong-loai-cong-yml` |
+| Vế `!coDong(khop[0])` chết | Bỏ vế, chú thích lý do (`cong.js`), THIET_KE nói đúng điều cổng kiểm |
+| Đột biến mong TREO | Ca in-process đổi thành ca TIẾN TRÌNH THẬT (hạn 10 s) "git rm với cwd ngoài kho → [G0-NGOAI]"; đột biến khớp câu kết luận |
+| Skill 11.4 thiếu bước 4 cho bài thử mới | Thêm "KHOÁ là bài thu_*.js mới / sửa thì làm cả bước 4" |
+| Skill 1.2 cây bẩn | Thêm: ghi "không kéo: cây sửa dở" + SHA HEAD thay hai SHA |
+| ke_hoach "bước 10" | Giữ — hồ sơ kế hoạch đã duyệt (lịch sử); bản sống là skill 11.4 |
+| Bảng chỗ vá thiếu tên | Thêm 4 dòng (vòng 1 + vòng 2) |
 
 ## Số đo trên HEAD 455b169 (11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt — không lệnh nào song song)
 

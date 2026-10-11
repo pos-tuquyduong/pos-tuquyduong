@@ -424,6 +424,17 @@ function baiCong() {
   ca('TU-CHAY-5 A19 K5 chủ quán cài .claude/ sau lần kiểm', [
     ['m', () => viet(G, 'tu_chay/MAU_PHIEU.md', doc(path.join(G, 'tu_chay/MAU_PHIEU.md')) + 'x\n')], ['k', () => ghiKiem(sha())],
     ['cai_dat.sh', () => { const r = caiDat(); if (r.status !== 0) throw new Error(r.stderr + r.stdout); }]], 'ĐẠT', A19);
+  // Soát vòng 2: kiểm lại sau soát → thêm dòng mới; cổng đọc dòng CUỐI (đọc dòng đầu thì đỏ oan)
+  ca('TU-CHAY-5 A19 K5 hai dòng HEAD ĐÃ KIỂM: dòng đầu cũ, dòng cuối đúng', [['r1', R(1)], ['k1', () => ghiKiem(sha())], ['r2', R(2)],
+    ['k2', () => ghiKiem(sha())]], 'ĐẠT', A19);
+  // Soát vòng 2: chủ quán cài làm đổi cả .github/workflows/cong.yml (nguồn tu_chay/cong_github.yml đổi) sau lần kiểm
+  ca('TU-CHAY-5 A19 K5 chủ quán cài đổi cả cong.yml sau lần kiểm', [
+    ['PHIEU: X yml', { 'viec/X/phieu.md': PHIEU.replace('- README.md', '- README.md\n- tu_chay/cong_github.yml') }],
+    ['y', () => { // cong_github.yml là code (A12) → kèm bài thử như mọi ca đổi code; ca chỉ phá vế A19
+      viet(G, 'tu_chay/cong_github.yml', doc(path.join(G, 'tu_chay/cong_github.yml')) + '# a19\n');
+      for (const [f, nd] of Object.entries(moi)) viet(G, f, nd);
+    }], ['k', () => ghiKiem(sha())],
+    ['cai_dat.sh', () => { const r = caiDat(); if (r.status !== 0) throw new Error(r.stderr + r.stdout); }]], 'ĐẠT', A19);
   const gopMain = () => {
     const cu = sha();
     git(G, 'checkout', '-q', '--detach', BASE);

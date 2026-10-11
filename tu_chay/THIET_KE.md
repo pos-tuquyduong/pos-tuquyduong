@@ -869,8 +869,10 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - **[A19] `HEAD ĐÃ KIỂM`** (tĩnh): PR đổi file ngoài `viec/<MÃ>/` (trừ `.claude/` và `.github/workflows/cong.yml` — chủ quán cài
   SAU lần kiểm của máy) thì dòng CUỐI `HEAD ĐÃ KIỂM: <SHA 7–40>` của `trang_thai.md` ở head phải là một commit của PR, và
   `git rev-list <SHA>..head -- <code>` rỗng (theo đồ thị, không theo ngày — commit gộp main sau lần kiểm cũng tính). Dạng chat
-  soát thay `HEAD ĐÃ KIỂM: <SHA cha> + commit này`: đúng MỘT commit đổi code sau SHA, là con trực tiếp của SHA, và chính commit
-  đó thêm dòng. Skill bước 10 ghi dòng này sau lần kiểm cuối. PR chỉ đổi hồ sơ thì không áp.
+  soát thay `HEAD ĐÃ KIỂM: <SHA cha> + commit này`: đúng MỘT commit đổi code sau SHA, là con trực tiếp của SHA, và
+  `trang_thai.md` ở chính commit đó có dòng. Skill bước 11.4 ghi dòng này SAU mọi sửa của bước 11 (KHOÁ, `KHUON_LOI.md`) và lần
+  kiểm cuối — ghi ở bước 10 thì bước 11 đổi file ngoài `viec/<MÃ>/` làm A19 tự đỏ (soát vòng 1). Kiểm lại sau soát thì thêm dòng
+  mới: cổng đọc dòng CUỐI. PR chỉ đổi hồ sơ thì không áp.
 - **CẢNH BÁO A16** (chạy): bài đỏ trên gốc in số CA khác số ở head → `CẢNH BÁO A16` (không đỏ: bài đỏ trên gốc có thể dừng sớm).
   Chỉ so phần SỐ CA (chủ quán chốt Q5): `a đạt · b hỏng` → a + b; `x/B ca người gác … · C phép khác` → B; dạng
   `N phép · M chỗ hỏng` không tách được số ca → không so.
