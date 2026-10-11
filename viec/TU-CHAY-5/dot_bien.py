@@ -69,7 +69,7 @@ DOT_BIEN = [
    [r'✗ TU-CHAY-5 A19 K5 hai dòng HEAD ĐÃ KIỂM: dòng đầu cũ, dòng cuối đúng: phải ĐẠT'], 'BẮT'),
   ('VS-C1-khong-loai-cong-yml', 'cong', [(CG, ", ':(exclude).github/workflows/cong.yml'", '', 1)],
    [r'✗ TU-CHAY-5 A19 K5 chủ quán cài đổi cả cong.yml sau lần kiểm: phải ĐẠT'], 'BẮT'),
-  ('VS-C1-thong-bao-buoc-10', 'cc', [(CG, '(skill bước 11.4)', '(skill bước 10)', 1)], [r'✗ TU-CHAY-5 C1: cong.js'], 'BẮT'),
+  ('VS-C1-thong-bao-buoc-10', 'cc', [(CG, '(skill bước 11.4)', '(skill bước 10)', 1)], [r'✗ TU-CHAY-5 C1: mọi file tu_chay/ nhắc HEAD ĐÃ KIỂM .*tu_chay/cong\.js:'], 'BẮT'),
   ('VS-C1-khong-loai-claude', 'cong', [(CG, "':(exclude).claude/', ", '', 1)],
    [r'✗ TU-CHAY-5 A19 K5 chủ quán cài \.claude/ sau lần kiểm: phải ĐẠT'], 'BẮT'),
   # soát vòng 1: dòng HEAD ĐÃ KIỂM ghi ở bước 10 (trước bước 11 đổi KHUON_LOI / KHOÁ) → A19 tự đỏ trên luồng của chính skill

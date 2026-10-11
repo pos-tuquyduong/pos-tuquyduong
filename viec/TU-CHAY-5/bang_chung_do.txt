@@ -1,10 +1,10 @@
-# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (chạy lại sau soát vòng 2 — HEAD 0b6bd26, 11.10.2026, máy mây 4 lõi)
+# TU-CHAY-5 — bằng chứng ĐỎ trên gốc 5ad35ea (chạy lại sau soát vòng 3 — HEAD 92dcdb1, 11.10.2026, máy mây 4 lõi)
 # Lệnh: python3 viec/TU-CHAY-5/chay_goc.py   (git archive 5ad35ea + bài thử của HEAD + node_modules nối — như cổng A11)
 # SỐ CA = số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, chạy riêng): thu_nguoi_gac 924 ca + 179 phép khác;
-# thu_cong 309 phép; thu_cong_cu 99 phép; thu_gia_lap 130 đạt · 0 hỏng. Số CA người gác trên gốc (924) = trên head (924):
+# thu_cong 318 phép; thu_cong_cu 99 phép; thu_gia_lap 130 đạt · 0 hỏng. Số CA người gác trên gốc (924) = trên head (924):
 # vòng B4 gộp thành một phép ở soát vòng 1, số ca không còn đổi theo nội dung skill (C2 không cảnh báo oan).
 SỐ CA tu_chay/thu_nguoi_gac.js: 1103
-SỐ CA tu_chay/thu_cong.js: 309
+SỐ CA tu_chay/thu_cong.js: 318
 SỐ CA tu_chay/thu_cong_cu.js: 99
 SỐ CA cong_cu/thu_gia_lap.js: 130
 #
@@ -50,7 +50,7 @@ SỐ CA cong_cu/thu_gia_lap.js: 130
    ✗ TU-CHAY-5 B4: bước 1 của skill có git fetch origin viec/$0 và git pull --no-rebase --ff-only origin viec/$0 — git branch --show-current | git log --oneline -3
    ✗ PHIEN_BAN = tu-chay 1.5.0 — tu-chay 1.4.0
    ✗ tiến trình: git rm với cwd ngoài kho → exit 2, [G0-NGOAI] trong 10 s (không treo) — exit 2 · {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[GIT-LENH] người 
-== tu_chay/thu_cong.js trên gốc 5ad35ea: thoát 1 · thu_cong: 309 phép · 25 chỗ hỏng
+== tu_chay/thu_cong.js trên gốc 5ad35ea: thoát 1 · thu_cong: 318 phép · 29 chỗ hỏng
    ✗ TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
    ✗ TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM: lý do có "[A19]" — ✓ CỔNG TĨNH ĐẠT
    ✗ TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM: lý do có "thiếu dòng "HEAD ĐÃ KIỂM" — ✓ CỔNG TĨNH ĐẠT
@@ -76,6 +76,10 @@ SỐ CA cong_cu/thu_gia_lap.js: 130
    ✗ TU-CHAY-5 C2 dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo: lý do có "CẢNH BÁO A16" — ✓ CỔNG CHẠY ĐẠT
    ✗ TU-CHAY-5 C2 dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo: lý do có "gốc in 7 ca" — ✓ CỔNG CHẠY ĐẠT
    ✗ TU-CHAY-5 C2 dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo: lý do có "8 ca ở head" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc in kèm mã màu → vẫn đọc được số ca, cảnh báo: lý do có "CẢNH BÁO A16" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc in kèm mã màu → vẫn đọc được số ca, cảnh báo: lý do có "gốc in 2 ca" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc in hai dòng tổng → lấy dòng CUỐI: lý do có "CẢNH BÁO A16" — ✓ CỔNG CHẠY ĐẠT
+   ✗ TU-CHAY-5 C2 gốc in hai dòng tổng → lấy dòng CUỐI: lý do có "gốc in 2 ca" — ✓ CỔNG CHẠY ĐẠT
 == tu_chay/thu_cong_cu.js trên gốc 5ad35ea: thoát 1 · thu_cong_cu: 99 phép · 13 chỗ hỏng
    ✗ TU-CHAY-5 B4 skill bước 1: fetch nhánh việc → so HEAD với FETCH_HEAD (merge-base --is-ancestor) → pull --no-rebase --ff-only —
    ✗ TU-CHAY-5 B4 skill bước 1: sửa dở → không kéo; lệch hai phía → DỪNG báo chủ quán; hai SHA —

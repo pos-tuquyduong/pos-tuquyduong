@@ -54,6 +54,8 @@ befc6ad Merge pull request #13 from pos-tuquyduong/viec/TACH-GL
 | D3 `chayGL` setEncoding | `thu_gia_lap` D3 | `BV-D3-chayGL-bo-setEncoding` |
 | D3 `chayTheoDoi` setEncoding (K4) | `thu_gia_lap` D3 | `BV-D3-theodoi-bo-setEncoding` |
 | D4 neo `Lượt ` | `do_thoi_gian.js kb` | `BV-D4-neo-cu` |
+| D4 lượt sập → thoát ≠ 0 (soát vòng 3) | `do_thoi_gian.js kb` | `VS-D4-luot-sap` |
+| C2 một hàm `soCa(…, chiCa)`: bỏ màu · dòng CUỐI · phép → null (soát vòng 3) | `thu_cong` | `VS-C2-bo-mau`, `VS-C2-dong-dau`, `VS-C2-phep-khong-null` |
 
 ## Soát độc lập — vòng 2 (`/ra-soat`, agent độc lập mới, nguyên văn rút gọn dấu đầu dòng)
 
@@ -148,23 +150,26 @@ BÀI HỌC:
 | `git rm` symlink đã theo dõi | Ghi Phát hiện 5 (lỗ lý thuyết, kho 0 symlink theo dõi) |
 | C2 so với số ở head | Tương đương nhờ A16 (SỐ CA = số ở head) — ghi rõ ở THIET_KE B15 đã nêu "số CA khác số ở head" |
 
-## Số đo trên HEAD 0b6bd26 (sau soát vòng 2; 11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt — không lệnh nào song song)
+## Số đo trên HEAD 92dcdb1 (sau soát vòng 3 — vòng sửa cuối; 11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt)
 
 | Lệnh | Thời gian | Kết quả |
 |---|---|---|
-| `node tu_chay/thu_nguoi_gac.js` | 8,5 s | 924/924 ca người gác · 179 phép khác · XANH |
-| `node tu_chay/thu_cong.js` | 86,8 s | 309 phép · 0 chỗ hỏng |
+| `node tu_chay/thu_nguoi_gac.js` | 8,0 s | 924/924 ca người gác · 179 phép khác · XANH |
+| `node tu_chay/thu_cong.js` | 94,3 s | 318 phép · 0 chỗ hỏng |
 | `node tu_chay/thu_cong_cu.js` | 4,3 s | 99 phép · 0 chỗ hỏng |
-| `node cong_cu/thu_gia_lap.js` ×3 (lần 1 trong đợt đo, lần 2, 3 riêng) | 39,4 s (lần 1) | 130 đạt · 0 hỏng · cả 3 lần |
+| `node cong_cu/thu_gia_lap.js` ×3 (lần 1 trong đợt đo, lần 2, 3 riêng) | 39,9 s (lần 1) | 130 đạt · 0 hỏng · cả 3 lần |
 | `npm test` | — | PASS 59 · FAIL 0 · CẢNH BÁO 2 |
-| `node kiem_tra_truoc_khi_giao.js --day-du` | 170,8 s | PASS 63 · FAIL 0 · CẢNH BÁO 2 |
-| `node viec/LUOI-1/do_thoi_gian.js kb` | lượt 1–4: 22,3 · 21,7 · 22,6 · 24,0 s | thoát 0 · 29 dòng `DO KB` |
-| `python3 viec/TU-CHAY-5/dot_bien.py -j 2` | 547 s | 25 · BẮT 24 · HỎNG 1 (`VS-C1-commit-nay-moi-noi`: neo rữa vì vòng 2 bỏ vế `!coDong(khop[0])` — K2, sửa neo) |
-| `python3 viec/TU-CHAY-5/dot_bien.py VS-C1-commit-nay-moi-noi` (neo mới) | 161 s | BẮT 1/1 → cả bộ 25/25 đúng mong đợi |
-| `python3 viec/TU-CHAY-5/dot_bien.py 'BV-D3*'` lần 2, lần 3 (Q3) | 89 s, 88 s | lần 1 (trong đợt 25): BẮT 2/2 · lần 2: BẮT 2/2 · lần 3: BẮT 2/2 |
-| `python3 viec/TACH-GL/dot_bien.py -j 4` | 554 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
-| `python3 viec/LUOI-1/dot_bien.py -j 4` | 88 s | 80 · BẮT 79 · LẠC 1 (mong LẠC) · đúng mong đợi 80/80 |
-| `python3 viec/TU-CHAY-5/chay_goc.py` (gốc 5ad35ea) | — | 4/4 bài ĐỎ: gác 799/924 · cổng 25 hỏng · công cụ 13 hỏng · giả lập 1 hỏng (T7c) |
+| `node kiem_tra_truoc_khi_giao.js --day-du` | 178,6 s | PASS 63 · FAIL 0 · CẢNH BÁO 2 |
+| `node viec/LUOI-1/do_thoi_gian.js kb` | lượt 1–4: 22,7 · 21,7 · 22,6 · 23,9 s | thoát 0 · 29 dòng `DO KB` (công cụ nay tự đếm 29) |
+| `python3 viec/TU-CHAY-5/dot_bien.py -j 2` | 795 s | 29 · BẮT 28 · LẠC 1 (`VS-C1-thong-bao-buoc-10`: bài ĐỎ đúng phép, nhưng mẫu còn tìm TÊN CŨ của phép đã đổi ở vòng 3 — K2; sửa mẫu) |
+| `python3 viec/TU-CHAY-5/dot_bien.py VS-C1-thong-bao-buoc-10 VS-C1-skill-ghi-o-buoc-10` (mẫu mới) | 8 s | BẮT 2/2 → cả bộ 29/29 đúng mong đợi |
+| `python3 viec/TU-CHAY-5/dot_bien.py 'BV-D3*'` lần 2, lần 3 (Q3) | 87 s, 91 s | lần 1 (trong đợt 29): BẮT 2/2 · lần 2: BẮT 2/2 · lần 3: BẮT 2/2 |
+| `python3 viec/HOC-2/dot_bien.py VS-A16-dong-dau VS-A16-bo-mau` | 18 s | cả hai ĐỎ đúng chỗ (neo khôi phục ở vòng 3) |
+| `python3 viec/AUDIT-1/dot_bien.py A3-CCLA-them-la` | — | BẮT 1 (neo khôi phục ở vòng 3) |
+| `python3 viec/HOC-2b/kiem_neo.py` | vài giây | HEAD: AUDIT-1 173/174 (HỎNG `G3-sai-chuoi` — có từ gốc), HOC-2 25/26 (HỎNG `VS-E3-phien-ban-cu` — tất yếu, E3 đổi phiên bản; Phát hiện 6), P26b 59/59, HOC-1 20/20, TU-CHAY-4 10/10, HOC-2b 26/26. Gốc 5ad35ea (soát vòng 3 đo): AUDIT-1 173/174, HOC-2 26/26 |
+| `python3 viec/TACH-GL/dot_bien.py -j 4` | 556 s | 29 · BẮT 29 · đúng mong đợi 29/29 |
+| `python3 viec/LUOI-1/dot_bien.py -j 4` | 91 s | 80 · BẮT 79 · LẠC 1 (mong LẠC) · đúng mong đợi 80/80 |
+| `python3 viec/TU-CHAY-5/chay_goc.py` (gốc 5ad35ea) | — | 4/4 bài ĐỎ: gác 799/924 · cổng 29 hỏng · công cụ 13 hỏng · giả lập 1 hỏng (T7c) |
 
 Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn (bản cài `.claude/` lệch nguồn `tu_chay/`, chủ quán cài sau soát cuối):
 - `.claude/tu_chay/ khớp từng byte với tu_chay/` — lệch: MAU_PHIEU.md, PHIEN_BAN, THIET_KE.md, cong.js, nguoi_gac.js,
@@ -181,22 +186,22 @@ Hai CẢNH BÁO của `npm test` / `--day-du` — đúng loại phiếu F miễn
 | B4 | `thu_cong_cu` "TU-CHAY-5 B4 skill bước 1" ×3 + luật stop hook; `thu_nguoi_gac` "TU-CHAY-5 B4: mọi lệnh git ở bước 1 của skill → CHO" |
 | B5 | `ke_hoach.md` mục 2 B5 + Phát hiện 1 |
 | C1 | `thu_cong` 14 ca "TU-CHAY-5 A19" + vòng tắt A19 (6 ca); `thu_cong_cu` "TU-CHAY-5 C1 skill" + "TU-CHAY-5 C1: cong.js / THIET_KE / MAU_PHIEU"; BV-C1-bo-A19, VS-C1-tinh-ca-commit-ho-so, VS-C1-commit-nay-moi-noi, VS-C1-khong-loai-claude, VS-C1-skill-ghi-o-buoc-10, VS-C1-doc-dong-dau, VS-C1-khong-loai-cong-yml, VS-C1-thong-bao-buoc-10 |
-| C2 | `thu_cong` 6 ca "TU-CHAY-5 C2"; BV-C2-bo-canh-bao, VS-C2-so-ca-phep |
+| C2 | `thu_cong` 9 ca "TU-CHAY-5 C2"; BV-C2-bo-canh-bao, VS-C2-so-ca-phep, VS-C2-bo-mau, VS-C2-dong-dau, VS-C2-phep-khong-null |
 | C3 | `thu_cong_cu` "TU-CHAY-5 C3/E1 THIET_KE B15" (A18 không chạy đột biến) |
 | D1 | `thu_gia_lap` T7c (đỏ trên gốc) + T7a/T7b có IPC; BV-D1-bo-ipc |
 | D2 | `thu_gia_lap` D2 (`/dev/fd/3`); BV-D2-bo-dung-het-3 |
 | D3 | `thu_gia_lap` D3 chayGL + chayTheoDoi; BV-D3 ×2 BẮT 3/3 lần |
-| D4 | `node viec/LUOI-1/do_thoi_gian.js kb` → 29 dòng DO KB (gốc ném lỗi neo); BV-D4-neo-cu |
+| D4 | `node viec/LUOI-1/do_thoi_gian.js kb` → 29 dòng DO KB (gốc ném lỗi neo); BV-D4-neo-cu, VS-D4-luot-sap |
 | E1 | `thu_cong_cu` "TU-CHAY-5 E1" ×4 |
 | E2 | `thu_cong_cu` "TU-CHAY-5 E2 KHUON_LOI" + F3 ≤ 120 dòng (KHUON_LOI.md 98 dòng) |
 | E3 | `thu_cong_cu` "TU-CHAY-5 E3" ×2; `thu_nguoi_gac` "PHIEN_BAN = tu-chay 1.5.0" |
-| F | mục Số đo trên HEAD (trên) + `bang_chung_do.txt` |
+| F | mục Số đo trên HEAD (trên) + `bang_chung_do.txt`; đột biến cũ: TACH-GL 29/29, LUOI-1 80/80, HOC-2 VS-A16 ×2 và AUDIT-1 A3-CCLA chạy lại BẮT; đổi mong đợi: HOC-2 `VS-E3-phien-ban-cu` (neo `tu-chay 1.4.0` hết khớp vì E3 — Phát hiện 6) |
 
 16/16 mục có bằng chứng. Ca đỏ trước của nhóm B, C, D: `bang_chung_do.txt`, chạy lại bằng `python3 viec/TU-CHAY-5/chay_goc.py`.
 
 ## Đang ở
 
-Bước 6 — chạy lại bằng chứng sau vòng sửa 3 (vòng sửa cuối được phép), rồi soát vòng 4.
+Bước 8 — soát độc lập vòng 4 (sau vòng sửa 3 — vòng sửa cuối được phép; KHÔNG ĐẠT nữa thì ghi Câu hỏi và dừng).
 
 ## Phát hiện
 
