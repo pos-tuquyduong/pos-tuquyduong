@@ -45,7 +45,7 @@ DOT_BIEN = [
   ('VS-B1-khoLong-bo-dung-ngoai-kho', 'gac', [(NG, 'laCon(x, nc.goc) && x !== nc.goc', 'x !== nc.goc', 1)],
    [r'✗ tiến trình: git rm với cwd ngoài kho'], 'BẮT'),
   # ── B2 TaskStop ──
-  ('BV-B2-bo-TaskStop', 'gac', [(NG, "  'SubagentHandback', 'TaskStop']);", "  'SubagentHandback']);", 1)],
+  ('BV-B2-bo-TaskStop', 'gac', [(NG, "'TaskOutput', 'TaskStop',\n", "'TaskOutput',\n", 1)],
    [r'✗ ca công cụ cho qua TaskStop: mong CHO, ra CHAN:CC-LA', r'✗ ca khoá tập CONG_CU_DOC'], 'BẮT'),
   # ── B3 fetch / pull ──
   ('BV-B3-bo-keo', 'gac', [(NG, 'if (sub && sub.chu && Object.hasOwn(KEO_CO, sub.val)) {', 'if (false) {', 1)],
@@ -79,7 +79,14 @@ DOT_BIEN = [
   # ── C2 cảnh báo A16 ──
   ('BV-C2-bo-canh-bao', 'cong', [(CG, 'if (g !== null && h !== null && g !== h) {', 'if (false) {', 1)],
    [r'✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "CẢNH BÁO A16"'], 'BẮT'),
-  ('VS-C2-so-ca-phep', 'cong', [(CG, 'caGoc.set(p, soCaRieng(', 'caGoc.set(p, soCa(', 1), (CG, 'h = soCaRieng(daRa', 'h = soCa(daRa', 1)],
+  # soát vòng 3: ba vế của soCa(…, chiCa) — bỏ mã màu · đọc dòng ĐẦU · dạng phép không thành null
+  ('VS-C2-bo-mau', 'cong', [(CG, "String(ra).replace(/\\x1b\\[[0-9;]*m/g, '')", 'String(ra)', 1)],
+   [r'✗ TU-CHAY-5 C2 gốc in kèm mã màu'], 'BẮT'),
+  ('VS-C2-dong-dau', 'cong', [(CG, ".split('\\n')) {\n    let x;", ".split('\\n').reverse()) {\n    let x;", 1)],
+   [r'✗ TU-CHAY-5 C2 gốc in hai dòng tổng'], 'BẮT'),
+  ('VS-C2-phep-khong-null', 'cong', [(CG, 'n = chiCa ? null : +x[1];', 'n = +x[1];', 1)],
+   [r'✗ TU-CHAY-5 C2 K5 gốc in dòng "đạt · hỏng" rồi dòng "phép · chỗ hỏng"'], 'BẮT'),
+  ('VS-C2-so-ca-phep', 'cong', [(CG, 'n = +x[1] + (chiCa ? 0 : +x[2]);', 'n = +x[1] + +x[2];', 1)],
    [r'✗ TU-CHAY-5 C2 K5 dạng người gác: chỉ số phép khác đổi → không cảnh báo: KHÔNG có "CẢNH BÁO"'], 'BẮT'),
   # ── D1–D3 giả lập ──
   ('BV-D1-bo-ipc', 'gl', [(CH, IPC, '', 1)], [r'✗ T7c '], 'BẮT'),
@@ -90,6 +97,9 @@ DOT_BIEN = [
   ('BV-D3-theodoi-bo-setEncoding', 'gl', [(TG, "  c.stdout.setEncoding('utf8');   // TU-CHAY-5 D3 (K4)", '  // TU-CHAY-5 D3 (K4)', 1)],
    [r"✗ D3 chayTheoDoi \(cùng khuôn\)"], 'BẮT'),
   # ── D4 công cụ đo ──
+  # soát vòng 3: một lượt sập (bản sao chay.js: lượt 2 thoát 2 trước KB đầu) → công cụ phải thoát ≠ 0, không in thiếu mà thoát 0
+  ('VS-D4-luot-sap', 'd4', [(CH, '    try { await kb.chay(ctx); }', "    if (LUOT_K === 2) process.exit(2);\n    try { await kb.chay(ctx); }", 1)],
+   [r'chỉ \d+/29 dòng DO KB'], 'BẮT'),
   ('BV-D4-neo-cu', 'd4', [(DO, "const a3 = '  const tong = `Lượt ';", "const a3 = '  const tong = `Giả lập:';", 1)],
    [r'neo đo không khớp: +const tong = `Giả lập:'], 'BẮT'),
 ]

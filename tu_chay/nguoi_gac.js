@@ -104,10 +104,11 @@ Object.assign(MO_TA, {
 
 // SubagentHandback: công cụ agent phụ nộp báo cáo về phiên chính (TU-CHAY-3 D1 — tên lấy từ nhật ký người gác 01.10.2026,
 // CC-LA chặn thì báo cáo không về). Chỉ đúng tên này, không mẫu chung.
-// TaskStop (TU-CHAY-5 B2): dừng tác vụ nền do CHÍNH phiên mở (lệnh nền treo) — không chạy lệnh, không ghi file.
+// TaskStop (TU-CHAY-5 B2): dừng tác vụ nền do CHÍNH phiên mở (lệnh nền treo) — không chạy lệnh, không ghi file. Đứng TRƯỚC
+// SubagentHandback: neo đột biến AUDIT-1 A3-CCLA-them-la đọc nguyên chuỗi cuối tập (tên đó + đóng ngoặc) — soát vòng 3.
 const CONG_CU_DOC = new Set(['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode',
-  'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput',
-  'SubagentHandback', 'TaskStop']);
+  'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput', 'TaskStop',
+  'SubagentHandback']);
 const CONG_CU_SUA = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const CHO_CHAY = new Set(('git node npm python3 ls cat head tail wc grep sed awk sort uniq cut diff find echo printf date pwd '
   + 'du df mkdir cp mv rm tar ln sleep curl kill cd test true timeout tee touch chmod sha256sum md5sum stat file basename '

@@ -70,25 +70,15 @@ function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "
   return ra;
 }
 
-function soCa(ra) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử in (bỏ mã màu) — ba dạng đang có trong kho; không có → null
+function soCa(ra, chiCa = false) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử in (bỏ mã màu) — ba dạng đang có trong kho; không có → null
+  // TU-CHAY-5 C2 (chủ quán chốt Q5) — chiCa: chỉ phần SỐ CA: "x/B ca người gác … · C phép khác" → B (thêm luật người gác là thêm
+  // phép); "N phép · M chỗ hỏng" không tách được số ca → null (không so). MỘT hàm cho A16 và C2 (soát vòng 3: bản chép làm rữa neo HOC-2).
   let n = null;
   for (const d of String(ra).replace(/\x1b\[[0-9;]*m/g, '').split('\n')) {
     let x;
     if ((x = /(\d+) đạt · (\d+) hỏng/.exec(d))) n = +x[1] + +x[2];
-    else if ((x = /(\d+) phép · \d+ chỗ hỏng/.exec(d))) n = +x[1];
-    else if ((x = /\d+\/(\d+) ca người gác[^·\n]*· (\d+) phép khác/.exec(d))) n = +x[1] + +x[2];
-  }
-  return n;
-}
-// TU-CHAY-5 C2 (chủ quán chốt Q5): chỉ phần SỐ CA của dòng tổng CUỐI — "a đạt · b hỏng" → a + b, "x/B ca người gác … · C phép
-// khác" → B (bỏ số phép: thêm luật người gác là thêm phép). "N phép · M chỗ hỏng" không tách được số ca → null (không so).
-function soCaRieng(ra) {
-  let n = null;
-  for (const d of String(ra).replace(/\x1b\[[0-9;]*m/g, '').split('\n')) {
-    let x;
-    if ((x = /(\d+) đạt · (\d+) hỏng/.exec(d))) n = +x[1] + +x[2];
-    else if (/\d+ phép · \d+ chỗ hỏng/.test(d)) n = null;
-    else if ((x = /\d+\/(\d+) ca người gác[^·\n]*· \d+ phép khác/.exec(d))) n = +x[1];
+    else if ((x = /(\d+) phép · \d+ chỗ hỏng/.exec(d))) n = chiCa ? null : +x[1];
+    else if ((x = /\d+\/(\d+) ca người gác[^·\n]*· (\d+) phép khác/.exec(d))) n = +x[1] + (chiCa ? 0 : +x[2]);
   }
   return n;
 }
@@ -283,7 +273,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
         }
       }
       const r = chayLenh(process.execPath, [p], { cwd: goc, timeout: 300000 });
-      caGoc.set(p, soCaRieng(String(r.stdout) + String(r.stderr)));
+      caGoc.set(p, soCa(String(r.stdout) + String(r.stderr), true));
       const thieu = /Cannot find module '([^'./][^']*)'/.exec(String(r.stdout) + String(r.stderr));
       if (mienCu.has(p)) daMien.push(p); // (d) theo FILE ghi trong mục, xanh hay đỏ trên gốc (soát vòng 2)
       if (r.status === 0 && mienCu.has(p)) ghi.push(`miễn A11 (bài thử cũ sửa): ${p} — ${mienCu.get(p)}`); // không tính doHopLe: A12 giữ
@@ -321,7 +311,7 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
           else if (n === null) doLy('A16', `bài thử \`${p}\` không in dòng tổng (… đạt · … hỏng | … phép · … chỗ hỏng | a/B ca người gác … · C phép khác) trên code PR`);
           else if (n !== ghiCa.get(p)) doLy('A16', `${P_BC} ghi "SỐ CA ${p}: ${ghiCa.get(p)}" ≠ ${n} ca ở head — N là số ca bài in khi chạy trên code đã vá: chạy lại bài, chép lại số đó`);
           // TU-CHAY-5 C2: CẢNH BÁO, không đỏ — bài đỏ trên gốc có thể dừng sớm (khi đó gốc thường không in dòng tổng: không so)
-          const g = caGoc.get(p), h = soCaRieng(daRa.get(p));
+          const g = caGoc.get(p), h = soCa(daRa.get(p), true);
           if (g !== null && h !== null && g !== h) {
             ghi.push(`CẢNH BÁO A16: \`${p}\` chạy trên gốc in ${g} ca ≠ ${h} ca ở head — bài dừng sớm trên gốc thì bỏ qua; không thì xem lại bằng chứng đỏ (dạng "… phép · … chỗ hỏng" không tách được số ca nên không so)`);
           }

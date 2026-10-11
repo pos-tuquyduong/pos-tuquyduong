@@ -47,6 +47,8 @@ if (lam.includes('kb')) {
     const { LUOT } = require(path.join(tam, 'kich_ban.js'));
     const ra = LUOT.flatMap((_, i) => chay(`lượt ${i + 1}/${LUOT.length} (bản đo từng KB)`, [p, '--luot', String(i + 1), '--may-chu',
       path.join(GOC, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')]));
+    const doKb = ra.filter((l) => l.startsWith('DO ')).length;
+    if (doKb !== LUOT.flat().length) throw new Error(`chỉ ${doKb}/${LUOT.flat().length} dòng DO KB — có lượt sập (xem dòng "thoát" ở trên)`);
     ra.filter((l) => l.startsWith('DO ')).sort((a, b) => parseInt(a.slice(5), 10) - parseInt(b.slice(5), 10)).forEach((l) => console.log('  ' + l));
   } finally { fs.rmSync(tam, { recursive: true, force: true }); }
 }

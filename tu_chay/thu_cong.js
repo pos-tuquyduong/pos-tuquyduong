@@ -87,7 +87,7 @@ function caiDat() {
   return r;
 }
 // Dựng một PR: các commit [tiêu đề, { file: nội dung | null (xoá) } | hàm]. Trả head SHA, cây đứng ở head.
-// TU-CHAY-5 C1: mặc định thêm commit hồ sơ cuối ghi "HEAD ĐÃ KIỂM: <head trước đó>" như skill bước 10 dặn (A19 qua) —
+// TU-CHAY-5 C1: mặc định thêm commit hồ sơ cuối ghi "HEAD ĐÃ KIỂM: <head trước đó>" như skill bước 11.4 dặn (A19 qua) —
 // ca A19 tắt bằng kiem: false và tự dựng trang_thai.md.
 const ghiKiem = (sha, them = '') => {
   const p = path.join(G, 'viec/X/trang_thai.md');
@@ -461,6 +461,13 @@ function baiCong() {
     { khong: ['CẢNH BÁO'] });
   C2('dạng người gác: ca gốc 7 ≠ ca head 8 → cảnh báo', 'thu: 5/7 ca người gác đúng mã · 2 phép khác',
     'thu: 8/8 ca người gác đúng mã · 3 phép khác', 11, { chua: ['CẢNH BÁO A16', 'gốc in 7 ca', '8 ca ở head'] });
+  // Soát vòng 3: ba vế của soCa(…, true) mà sáu ca trên không giết — bỏ mã màu · dòng tổng CUỐI · dạng phép → không so
+  C2('gốc in kèm mã màu → vẫn đọc được số ca, cảnh báo', '\x1b[32mthu: \x1b[1m1\x1b[0m đạt · 1 hỏng\x1b[0m', '3 đạt · 0 hỏng', 3,
+    { chua: ['CẢNH BÁO A16', 'gốc in 2 ca'] });
+  C2('gốc in hai dòng tổng → lấy dòng CUỐI', '9 đạt · 9 hỏng\n1 đạt · 1 hỏng', '3 đạt · 0 hỏng', 3,
+    { chua: ['CẢNH BÁO A16', 'gốc in 2 ca'], khong: ['gốc in 18 ca'] });
+  C2('K5 gốc in dòng "đạt · hỏng" rồi dòng "phép · chỗ hỏng" (cuối) → không so', '1 đạt · 1 hỏng\nthu: 2 phép · 1 chỗ hỏng', '3 đạt · 0 hỏng',
+    3, { khong: ['CẢNH BÁO'] });
   C2('K5 dạng người gác: chỉ số phép khác đổi → không cảnh báo', 'thu: 5/8 ca người gác đúng mã · 2 phép khác',
     'thu: 8/8 ca người gác đúng mã · 3 phép khác', 11, { khong: ['CẢNH BÁO'] });
   // Đột biến: tắt từng kiểm → ca chặn tương ứng thành ĐẠT (nghĩa là bài thử ở trên bắt được kiểm đó)
