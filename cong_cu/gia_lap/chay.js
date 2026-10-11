@@ -143,6 +143,9 @@ async function cha() {
 // Kho do cha tạo (--kho) — chỉ nhận thư mục `gia_lap_xxxxxx` nằm NGAY trong thư mục tạm (sẽ bị xoá lúc thoát: không bao giờ nhận
 // đường khác). Chạy thẳng `--luot k` không có --kho (công cụ đo) thì tự tạo. Cài xử lý tín hiệu TRƯỚC khi tạo kho (không khe).
 const KHO = thamSo('--kho', '');
+// TU-CHAY-5 D1: --kho chỉ từ CHA (sinh lượt có kênh IPC — process.send). Gọi thẳng `--luot k --kho <kho của giả lập khác>` thì kho đó
+// bị xoá lúc thoát → TỪ CHỐI. Dòng riêng: neo đột biến TACH-GL đọc nguyên dòng dưới. `--luot k` không --kho (công cụ đo) vẫn chạy.
+if (KHO && !process.send) { viet('Giả lập: TỪ CHỐI chạy — --kho chỉ nhận từ tiến trình cha (kênh IPC)'); process.exit(3); }
 if (KHO && !(path.dirname(path.resolve(KHO)) === path.resolve(os.tmpdir()) && /^gia_lap_\w{6}$/.test(path.basename(KHO))
   && fs.statSync(KHO, { throwIfNoEntry: false })?.isDirectory())) { viet(`Giả lập: TỪ CHỐI chạy — --kho không phải kho tạm gia_lap_ của thư mục tạm: ${KHO}`); process.exit(3); }
 if (LA_CON) {

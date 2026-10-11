@@ -20,6 +20,7 @@
  *  T1–T5 (TACH-GL) giả lập chia lượt: các lượt chạy CÙNG LÚC, mỗi KB đúng một lần, cha bị SIGTERM / một lượt sập / cha
  *      bị SIGKILL → không sót tiến trình con, không sót gia_lap_*; dòng cuối luôn là dòng kết luận (cuoi() đọc dòng cuối).
  *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7–T9: --kho / --luot lạ → TỪ CHỐI.
+ *  D1–D3 (TU-CHAY-5) --kho chỉ qua kênh IPC · lượt con TỪ CHỐI → cha dừng mọi lượt, thoát 3 · đầu ra con đọc bằng utf8.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
@@ -56,9 +57,11 @@ const ket = () => {
 // Môi trường sạch (Q1 b, chủ quán chốt 02.10.2026). TMPDIR riêng để đếm được thư mục tạm của giả lập.
 const SACH = Object.fromEntries(Object.entries(process.env).filter(([t]) => /^(PATH|HOME|LANG|LC_ALL|SYSTEMROOT)$/.test(t)));
 SACH.TMPDIR = TAM;
-const chayGL = (args = [], them = {}, tep = CHAY) => new Promise((xong) => {
-  const c = spawn(process.execPath, [tep, ...args], { cwd: GOC, env: { ...SACH, ...them } });
+const chayGL = (args = [], them = {}, tep = CHAY, stdio = undefined) => new Promise((xong) => {
+  const c = spawn(process.execPath, [tep, ...args], { cwd: GOC, env: { ...SACH, ...them }, ...(stdio ? { stdio } : {}) });
   let ra = '';
+  c.stdout.setEncoding('utf8');   // TU-CHAY-5 D3: Buffer cộng từng khúc cắt đôi ký tự nhiều byte (→ \uFFFD)
+  c.stderr.setEncoding('utf8');
   c.stdout.on('data', (d) => { ra += d; });
   c.stderr.on('data', (d) => { ra += d; });
   const hen = setTimeout(() => c.kill('SIGKILL'), 110000);
@@ -72,13 +75,15 @@ const song = (pid) => {
   try { process.kill(pid, 0); } catch { return false; }
   try { return !/^\d+ \(.*\) Z/.test(fs.readFileSync(`/proc/${pid}/stat`, 'utf8')); } catch { return true; }   // xác chết (zombie) = đã chết
 };
-const chayTheoDoi = (ten, viec) => new Promise((xong) => {
+const chayTheoDoi = (ten, viec, tep = CHAY) => new Promise((xong) => {
   const tmp = path.join(TAM, ten);
   fs.mkdirSync(tmp);
-  const c = spawn(process.execPath, [CHAY], { cwd: GOC, env: { ...SACH, TMPDIR: tmp } });
+  const c = spawn(process.execPath, [tep], { cwd: GOC, env: { ...SACH, TMPDIR: tmp } });
   const pid = [];
   let ra = '', L = 0, daXet = false, cungLuc = false;
   const doc = (d) => { ra += d; for (const m of ra.matchAll(/lượt \d+\/(\d+) pid (\d+)/g)) if (!pid.includes(+m[2])) { pid.push(+m[2]); L = +m[1]; } };
+  c.stdout.setEncoding('utf8');   // TU-CHAY-5 D3 (K4): cùng khuôn với chayGL
+  c.stderr.setEncoding('utf8');
   c.stdout.on('data', doc);
   c.stderr.on('data', doc);
   const gl = () => fs.readdirSync(tmp).filter((f) => f.startsWith('gia_lap_'));
@@ -257,9 +262,10 @@ async function main() {
   const T8 = path.join(TAM, 't8');                          // TMPDIR riêng của ca T8: kho lạ không lẫn vào phép A2 đếm gia_lap_* ở TAM
   const KHAC = path.join(T8, 'gia_lap_KHAC01');             // hợp lệ mọi vế — chỉ sai ở chỗ người gọi đưa cho CHA
   for (const d of [NGOAI, KHAC]) { fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'giu.txt'), 'không được xoá'); }
+  const IPC = ['pipe', 'pipe', 'pipe', 'ipc'];   // TU-CHAY-5 D1: lượt do cha sinh luôn có kênh IPC — T7a/T7b chỉ sai vế tên / thư mục
   const [e1, sap, rongKb, khoLa, khoNgoai, khoCha, ...dotBien] = await Promise.all([
-    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']), chayGL(['--luot', '1', '--kho', rong]),
-    chayGL(['--luot', '1', '--kho', NGOAI]), chayGL(['--kho', KHAC, '--den-kb', '0'], { TMPDIR: T8 }),
+    chayTheoDoi('e1', null), chayGL(['--may-chu', rong]), chayGL(['--den-kb', '0']), chayGL(['--luot', '1', '--kho', rong], {}, CHAY, IPC),
+    chayGL(['--luot', '1', '--kho', NGOAI], {}, CHAY, IPC), chayGL(['--kho', KHAC, '--den-kb', '0'], { TMPDIR: T8 }),
     ...saos.map((s, i) => (s.loi ? null : chayGL(['--may-chu', s.mayChu, '--den-kb', String(DOT_BIEN[i][5])]))),
   ]);
   // T3–T6 chạy SAU đợt nặng (chat soát thay vòng 4): chạy chung ~20 giả lập thì lượt con kẹt khởi động (nạp máy chủ đồng bộ, vài % CPU
@@ -320,6 +326,35 @@ async function main() {
   const kbHong = await chayGL(['--may-chu', path.join(GOC, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')], {},
     path.join(GL_HONG, 'chay.js'));
   k('T10 kich_ban.js hỏng cú pháp → thoát 2, dòng cuối là dòng SẬP (không văng thô thoát 1)', kbHong.status === 2 && SAP.test(cuoi(kbHong)), moTa(kbHong));
+  console.log('\n[D] TU-CHAY-5');
+  // D1: lượt gọi thẳng (KHÔNG kênh IPC) với --kho HỢP LỆ mọi vế khác (gia_lap_ ngay trong TMPDIR riêng của ca) → TỪ CHỐI, kho còn nguyên.
+  // TMPDIR riêng: kho bị giữ lại không lẫn vào phép "mọi gia_lap_* trong TAM đã xoá".
+  const T7C = path.join(TAM, 't7c'), KHO7 = path.join(T7C, 'gia_lap_T7C001');
+  fs.mkdirSync(KHO7, { recursive: true }); fs.writeFileSync(path.join(KHO7, 'giu.txt'), 'không được xoá');
+  // D2: cha đọc --cau-hinh /dev/fd/3 = file cấu hình thật (qua A1); con nhận nguyên đối số nhưng fd 3 của con là kênh IPC → đọc lỗi
+  // → mọi lượt TỪ CHỐI thoát 3. Không cửa sau trong chay.js (chủ quán duyệt Q2).
+  const TD2 = path.join(TAM, 'd2');
+  fs.mkdirSync(TD2);
+  const fdCH = fs.openSync(path.join(GOC, 'tu_chay', 'cau_hinh.json'), 'r');
+  // D3: con giả in 'Lượt' cắt giữa 3 byte của 'ợ' thành hai lần ghi cách 300 ms (chủ quán duyệt Q3: khe, không tất định tuyệt đối).
+  const GIA = path.join(TAM, 'con_cat_doi.js');
+  fs.writeFileSync(GIA, "const b = Buffer.from('Lượt\\n');\nprocess.stdout.write(b.subarray(0, 4));\n"
+    + 'setTimeout(() => process.stdout.write(b.subarray(4)), 300);\n');
+  const [khoIpc, d2, d3a, d3b] = await Promise.all([
+    chayGL(['--luot', '1', '--kho', KHO7, '--den-kb', '0'], { TMPDIR: T7C }),
+    chayGL(['--cau-hinh', '/dev/fd/3'], { TMPDIR: TD2 }, CHAY, ['pipe', 'pipe', 'pipe', fdCH]),
+    chayGL([], {}, GIA), chayTheoDoi('d3', null, GIA),
+  ]);
+  fs.closeSync(fdCH);
+  k('T7c lượt KHÔNG có kênh IPC nhận --kho hợp lệ → thoát 3, TỪ CHỐI (--kho chỉ nhận từ tiến trình cha), kho còn nguyên', khoIpc.status === 3
+    && /TỪ CHỐI chạy — --kho chỉ nhận từ tiến trình cha \(kênh IPC\)/.test(cuoi(khoIpc)) && fs.existsSync(path.join(KHO7, 'giu.txt')), moTa(khoIpc));
+  const dongD2 = [...d2.ra.matchAll(/lượt \d+ đóng: (\S+)/g)].map((m) => m[1]), soLuotD2 = [...d2.ra.matchAll(/lượt \d+\/\d+ pid/g)].length;
+  k('D2 lượt con TỪ CHỐI (cấu hình đọc lỗi) → cha thoát 3, dòng cuối là dòng TỪ CHỐI của con, mọi lượt dừng (đóng ≠ 0), không sót gia_lap_*',
+    d2.status === 3 && /^Giả lập: TỪ CHỐI chạy — không đọc được ten_mien_production trong \/dev\/fd\/3$/.test(cuoi(d2)) && soLuotD2 >= 2
+    && dongD2.length === soLuotD2 && !dongD2.includes('0') && !fs.readdirSync(TD2).length,
+    `${moTa(d2)} · ${soLuotD2} lượt · đóng: ${dongD2.join(',') || '(không có)'} · sót ${fs.readdirSync(TD2).join(',') || 0}`);
+  k("D3 chayGL: con in 'Lượt' cắt đôi ký tự qua hai lần ghi → đọc đúng 'Lượt'", d3a.ra === 'Lượt\n', JSON.stringify(d3a.ra));
+  k("D3 chayTheoDoi (cùng khuôn): đọc đúng 'Lượt'", d3b.ra === 'Lượt\n', JSON.stringify(d3b.ra));
   console.log('\n[A2] kho tạm, data/');
   k('máy chủ hỏng (--may-chu thư mục rỗng) → giả lập sập, thoát 2, dòng cuối là dòng SẬP', sap.status === 2 && SAP.test(cuoi(sap)), moTa(sap));
   k(`data/ không đổi (${dataTruoc.slice(0, 40)})`, chup() === dataTruoc, chup().slice(0, 80));
