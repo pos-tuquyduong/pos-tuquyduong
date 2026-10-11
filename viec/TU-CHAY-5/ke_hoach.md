@@ -3,199 +3,250 @@
 Nền: `5ad35ea PHIEU: TU-CHAY-5` (cha `c18ee16` sổ v26 ← `befc6ad` Merge PR #13 TACH-GL), tu-chay 1.4.0. Máy mây 4 lõi
 (`node -p "require('os').cpus().length"`).
 
-**Phạm vi kế hoạch theo lời chốt chủ quán 11.10:** nhóm A (A1–A4), D5, D6 DỜI sang AUDIT-2 — kế hoạch này KHÔNG có mục nào cho
-chúng. Mục F chỉ áp cho B, C, D1–D4, E. Hệ quả cho các mục còn lại (chỉ cắt phần trỏ tới mục đã dời, không cắt gì khác):
-- E1: B10 KHÔNG thêm `dot_bien_bb.py` (thuộc A1); vẫn thêm cách chia lượt.
-- E3: `MAU_PHIEU.md` chỉ nhắc dòng `HEAD ĐÃ KIỂM` (C1); KHÔNG nhắc `dot_bien_bb.py` (A4).
-- `tu_chay/lenh_ra_soat.md` (chỉ A4 cần) → không sửa. `cong_cu/gia_lap/dot_bien_bb.py`, `cong_cu/gia_lap/bat_bien.js`,
-  `viec/HOC-2b/kiem_neo.py`, `cong_cu/ban_sao_goc.py` → không đụng.
+**Phạm vi kế hoạch theo lời chốt chủ quán 11.10:** nhóm A (A1–A4), D5, D6 DỜI sang AUDIT-2. Kế hoạch này KHÔNG có mục nào cho
+chúng, và mục F chỉ áp cho B, C, D1–D4, E. Ở các mục còn lại chỉ cắt phần trỏ tới mục đã dời:
+- E1: B10 KHÔNG thêm `dot_bien_bb.py` (thuộc A1), vẫn thêm cách chia lượt.
+- E3: `MAU_PHIEU.md` chỉ nhắc dòng `HEAD ĐÃ KIỂM` (C1), KHÔNG nhắc `dot_bien_bb.py` (A4).
+- Không đụng các file chỉ nhóm đã dời cần: `tu_chay/lenh_ra_soat.md` (A4), `cong_cu/gia_lap/dot_bien_bb.py`,
+  `cong_cu/gia_lap/bat_bien.js`, `viec/HOC-2b/kiem_neo.py`, `cong_cu/ban_sao_goc.py`.
 
-Mọi số dòng dưới đây đọc trong lượt này (K1).
+Mọi số dòng dưới đây đọc trong lượt này (K1). Kế hoạch đã qua một agent phụ soát chỉ đọc. Agent nêu 13 điểm, đã sửa hết vào bản
+này; bảng ở mục 10.
 
 ---
 
-## 1. Số đo trên gốc 5ad35ea (11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt — `scratchpad/do.js`)
+## 1. Số đo trên gốc 5ad35ea (11.10.2026, máy mây 4 lõi, chạy RIÊNG lần lượt)
+
+Đo bằng `scratchpad/do.js`: `spawnSync`, không lệnh nào chạy song song, kết quả ở `scratchpad/do_thoi_gian.txt`.
 
 | Lệnh | Thời gian | Kết quả |
 |---|---|---|
 | `node tu_chay/thu_nguoi_gac.js` | 7,3 s | 798/798 ca người gác · 173 phép khác · XANH |
 | `node tu_chay/thu_cong.js` | 66,3 s | 260 phép · 0 chỗ hỏng |
 | `node tu_chay/thu_cong_cu.js` | 4,1 s | 85 phép · 0 chỗ hỏng |
-| `node cong_cu/thu_gia_lap.js` | SO_THUGL | SO_THUGL_KQ |
-| `node kiem_tra_truoc_khi_giao.js --day-du` | SO_DAYDU | SO_DAYDU_KQ |
+| `node cong_cu/thu_gia_lap.js` | 41,7 s | 126 đạt · 0 hỏng |
+| `node kiem_tra_truoc_khi_giao.js --day-du` | 154,4 s | PASS 65 · FAIL 0 · CẢNH BÁO 0 |
 | `python3 viec/TACH-GL/dot_bien.py -j 4` | SO_DB_TACH | SO_DB_TACH_KQ |
-| `python3 viec/LUOI-1/dot_bien.py -j 4` | (LUOI-1 trang_thai:684 ghi 247 s; đo lại ở bước 6) | |
-| `node viec/LUOI-1/do_thoi_gian.js kb` | — | **ném lỗi** "neo đo không khớp: const tong = \`Giả lập:" (D4 đỏ trên gốc) |
+| `python3 viec/LUOI-1/dot_bien.py -j 4` | chưa đo ở việc này (LUOI-1 `trang_thai.md:684` ghi 247 s) — đo ở bước 6 | |
+| `node viec/LUOI-1/do_thoi_gian.js kb` | — | **ném lỗi** "neo đo không khớp: const tong = \`Giả lập:" → D4 đỏ trên gốc |
 
-### Ước lượng thời gian máy cho cả việc (từ số đo trên, không đoán)
+### Ước lượng thời gian máy (thời gian mỗi lần chạy là số ĐO ở trên; số lần là giả định của kế hoạch)
 
-| Khâu | Số lần × thời gian | Phút |
+| Khâu | Phép tính | Phút |
 |---|---|---|
-| Bài thử đỏ trên gốc: thu_nguoi_gac + thu_cong + thu_cong_cu + thu_gia_lap | 1 × (7 + 66 + 4 + THUGL) s | ~TONG_DO |
-| Vòng sửa (mỗi vòng chạy lại bài đổi + npm test) | ~6 vòng × (~2,5 phút) | ~15 |
-| Kiểm cuối: `npm test`, `--day-du` | 1 × DAYDU | ~DAYDU_P |
-| F: ca tín hiệu/thời gian ×3 (thu_gia_lap đủ ×3, chạy riêng) | 3 × THUGL | ~THUGL3 |
-| F: đột biến cũ TACH-GL 29 + LUOI-1 80 | DB_TACH + ~4 phút | ~DB_P |
-| Đột biến của việc (`viec/TU-CHAY-5/dot_bien.py`, mục 7) ~12 đột biến | thu_nguoi_gac/thu_cong/thu_gia_lap theo từng cái | ~DB_VIEC |
-| `/ra-soat` × tối đa 3 vòng (mỗi vòng chạy lại bộ đổi) | | ~30 |
-| `do_thoi_gian.js kb` thật (D4) | 1 × ~90 s | ~2 |
-| **Tổng** | | **~TONG** |
+| Bài thử đỏ trên gốc (4 bài) | 7,3 + 66,3 + 4,1 + 41,7 s = 119 s | 2 |
+| Vòng sửa: chạy lại 4 bài + `--day-du` | giả định 6 vòng × (119 + 154) s | 27 |
+| F: `thu_gia_lap` thêm 3 lần riêng | 3 × 41,7 s | 2 |
+| F: đột biến cũ TACH-GL + LUOI-1 | SO_DB_TACH + 247 s | DB_P |
+| Đột biến của việc (mục 7, 15 cái) | 6 × 7,3 (gác) + 3 × 66,3 (cổng) + 5 × 41,7 (gl) + 1 × 4,1 s ≈ 450 s | 8 |
+| `/ra-soat`: tối đa 3 vòng, mỗi vòng chạy lại 4 bài + `--day-du` | 3 × 273 s, chưa tính thời gian đọc của agent | 14 |
+| D4 chạy thật (4 lượt tuần tự) | chưa đo được trên gốc (công cụ hỏng), ước theo thời gian bằng giả lập đủ, ~42 s | 2 |
+| **Tổng** | | **TONG** |
 
 ---
 
 ## 2. B — người gác (`tu_chay/nguoi_gac.js`, ca trong `tu_chay/thu_nguoi_gac.js`)
 
-Code thật: `LUAT_CON.git` (`nguoi_gac.js:579–635`): `push` → `xetPush` (`:521–548`), `restore` → `xetHoanTac` (`:559–572`), còn lại
-phải có trong `GIT_CHO` (`:112–113`) nếu không → `GIT-LENH` (`:586`). `rm`, `fetch`, `pull` không có trong `GIT_CHO` → hôm nay
-CHẶN GIT-LENH (đúng như chat chạy thử). `TaskStop` không có trong `CONG_CU_DOC` (`:105–107`) → `CC-LA` (`:934`); bài thử hiện
-khoá điều đó ở `thu_nguoi_gac.js:132` (`TaskStop` trong danh sách phải CC-LA).
+Code thật hôm nay:
+- `LUAT_CON.git` (`nguoi_gac.js:579–635`): `push` → `xetPush` (`:521–548`); `restore` → `xetHoanTac` (`:559–572`); lệnh con
+  khác phải có trong `GIT_CHO` (`:112–113`), không thì `GIT-LENH` (`:586`). `rm`, `fetch`, `pull` không có trong `GIT_CHO` nên
+  hôm nay bị chặn.
+- `TaskStop` không có trong `CONG_CU_DOC` (`:105–107`) nên bị `CC-LA` (`:934`).
+- Ca cũ phải đổi mong đợi khi vá: `thu_nguoi_gac.js:132` (TaskStop đang trong danh sách CC-LA) → sang CHO; `:640–641` (phép
+  khoá tập `CONG_CU_DOC`) → thêm `TaskStop`. `:194–195`: `git rm server/a.js` đang mong GIT-LENH; `server/a.js` nằm trong Phạm
+  vi phiếu thử (`:57`) nên sau vá thành CHO — đổi ca thành file NGOÀI Phạm vi (giữ ý "rm bị chặn"). `git fetch origin`,
+  `git pull origin viec/X` → mong `GIT-KEO`.
 
 ### B1 `git rm`
-- **PA-A (chọn):** nhánh mới trong `LUAT_CON.git` trước phép `GIT_CHO`: `rm` → `xetRm(r, nc, cwd)`, mã luật mới `GIT-RM`:
-  tuỳ chọn chỉ `-q` / `--quiet` (đúng nguyên chữ — không `-r`, `-f`, `--cached`, `-n`, `--`, `--pathspec-from-file`, gộp `-rq`, dạng
-  `=`); ≥ 1 tên file; mỗi tên đi qua `tenThang` (`:556`, đã có: không glob `* ? [ ] \`, không `:` magic, không `/` cuối, không thư
-  mục) rồi `ghiDuoc(w.val, nc, cwd.d, false)` (`:171` — MỘT hàm cho mọi đường ghi: khung `.claude/` `.git/`, file cấm, bí mật,
-  `phieu.md`, file luật phải ghi đúng tên, ngoài Phạm vi, ngoài kho, liên kết cứng). Thêm phép "thư mục đứng không trong kho git
-  lồng" — tách từ `xetPush` (`:537–542`) thành hàm chung `khoLong(d, nc)` dùng cho push, rm, fetch, pull (K4: một chỗ).
-  "File đang được theo dõi": git tự đảm bảo — `git rm` với một pathspec không khớp file đã theo dõi thì báo lỗi và KHÔNG xoá gì
-  (cả lệnh). Người gác không gọi git (cả file không có `spawn`), không thêm. Ca thử chạy git THẬT trên kho thử để khoá điều này.
-  ~25 dòng (hàm 18 + tách `khoLong` 6 + nhánh 1).
-- PA-B: thêm `rm` vào `GIT_CHO` rồi viết phép riêng như `add` (`:591–605`). Cùng số dòng nhưng không dùng `ghiDuoc` → hai bộ luật
-  phạm vi song song (K4). Loại.
+- **PA-A (chọn):** mở rộng `xetHoanTac` (`:559–572`) thành hàm chung với 3 tham số: tập cờ cho phép, mã luật, có được miễn
+  `G-HOANTAC` không. `git rm` gọi với cờ = {`-q`} (chỉ đúng chữ phiếu cho, KHÔNG `--quiet`), mã `GIT-RM`, `coTuyChon` = true
+  nhưng KHÔNG nhận `--`, và `ghiDuoc(…, hoanTac = false)` — để `G-HOANTAC` (`:183`) không mở đường xoá file ngoài Phạm vi.
+  Phần tên file dùng lại `tenThang` (`:556`): không glob, không `:`, không `/` cuối, không thư mục. `ghiDuoc` (`:171`) giữ mọi
+  luật đích: khung, file cấm, bí mật, `phieu.md`, file luật không ghi đúng tên, ngoài Phạm vi, ngoài kho, liên kết cứng.
+  Thêm phép "không đứng trong kho git lồng" (xem B3: `khoLong`). ~8 dòng.
+- "Mỗi file đang được theo dõi": git tự đảm bảo. Một pathspec không khớp file đã theo dõi thì `git rm` báo lỗi và không xoá gì
+  của cả lệnh. Người gác không gọi git (cả file không có `spawn`), nên không thêm phép. Có ca git thật khoá điều này (mục 6).
+- PA-B: hàm `xetRm` riêng ~18 dòng, gần như chép lại `xetHoanTac` → hai bản song song (K4). Loại.
 
 ### B2 `TaskStop`
-- **PA-A (chọn):** thêm `'TaskStop'` vào `CONG_CU_DOC` (`:105–107`) kèm chú thích một dòng. 1–2 dòng. Dời `TaskStop` ở
-  `thu_nguoi_gac.js:132` từ danh sách CC-LA sang danh sách CHO (`:130–131`).
-- PA-B: tập riêng `CONG_CU_DUNG`. Thêm dòng, không lợi gì. Loại.
+**PA-A (chọn):** thêm `'TaskStop'` vào `CONG_CU_DOC` kèm chú thích một dòng; đổi hai ca cũ đã nêu ở trên. 2 dòng. PA-B (tập
+riêng) dài hơn mà không được gì thêm. Loại.
 
 ### B3 `git fetch` / `git pull` đúng hai dạng
-- **PA-A (chọn):** một hàm `xetKeo(lenh, r, nc, cwd)`, mã luật mới `GIT-KEO`. Gom phần chung với `xetPush` (`:521–548`): đối số
-  viết thẳng, positional đúng `origin viec/<MÃ đang đứng>`, phải có `nc.ma` + `nc.phamVi`, `cwd` trong kho, không trong
-  `.claude`/`.git`, không kho lồng. Khác nhau ở tập cờ:
-  - `fetch`: cờ cho {`-q`, `--quiet`}; không cờ bắt buộc.
-  - `pull`: cờ cho {`-q`, `--quiet`, `--no-rebase`, `--ff-only`}; BẮT BUỘC cả `--no-rebase` và `--ff-only`, thứ tự tự do.
-  Cách làm: tách thân `xetPush` thành `xetDongBo(ma, coCho, coPhai, r, nc, cwd)`; push gọi với (`GIT-PUSH`, `PUSH_CO`, []),
-  fetch (`GIT-KEO`, {-q,--quiet}, []), pull (`GIT-KEO`, {…}, [`--no-rebase`, `--ff-only`]). Thông báo push giữ nguyên chữ (bài
-  thử push đang so câu). ~20 dòng thêm/đổi.
-  Không mở `git merge` (lớp 1 deny `Bash(git merge *)` — `.claude/settings.json:36`, nguồn `cai_dat.js:28`, giữ nguyên).
-  `-c`, `--git-dir`… trước lệnh con đã bị GIT-TUYCHON (`:580–584`); biến `GIT_*` đã bị B-GAN (`BIEN_NGUY` `:117`).
-- PA-B: hai hàm riêng `xetFetch`, `xetPull` chép phép kho từ `xetPush`. +40 dòng, ba bản phép "trong kho / kho lồng" (K4). Loại.
+- **PA-A (chọn):** tách thân `xetPush` thành `xetDongBo(ma, lenh, coCho, coPhai, r, nc, cwd)`:
+  - push gọi với (`GIT-PUSH`, `PUSH_CO`, []), giữ nguyên hành vi;
+  - fetch gọi với (`GIT-KEO`, {`-q`}, []);
+  - pull gọi với (`GIT-KEO`, {`-q`, `--no-rebase`, `--ff-only`}, [`--no-rebase`, `--ff-only`]) — cả hai cờ bắt buộc, thứ tự tự do.
+  - Không `--quiet`: phiếu ghi "không tuỳ chọn khác ngoài `-q`".
+  - Câu báo đổi theo lệnh: `phải đúng: git ${lệnh} … origin viec/<MÃ>`. Bài thử push chỉ so MÃ luật (`thu_nguoi_gac.js:99–103`),
+    không so câu.
+- Phần chung giữ thứ tự của `xetPush`:
+  1. Đối số viết thẳng; mỗi cờ đúng nguyên chữ; positional đúng `origin viec/<MÃ đang đứng>`.
+  2. Phải có `nc.ma` và `nc.phamVi`.
+  3. `laCon(d, nc.goc)` đứng TRƯỚC, rồi mới tới vòng kho lồng. Vòng `for (x = d; x !== nc.goc; …)` (`:539`) chạy mãi nếu `d`
+     ngoài kho.
+  4. Vòng kho lồng tách thành `khoLong(d, nc)`, dùng cho push, rm, fetch, pull.
+- `GIT-COMMIT-NHANH` (`:625`) KHÔNG đưa vào `khoLong`. Commit trong kho lồng không đụng kho này, và PR không mang theo nó. Cố ý,
+  ghi chú thích.
+- ~20 dòng thêm/đổi.
+- Không mở `git merge`: lớp 1 deny `Bash(git merge *)` (`.claude/settings.json:36`) giữ nguyên. `-c`, `--git-dir` trước lệnh con
+  đã bị `GIT-TUYCHON` (`:580–584`); biến `GIT_*` đã bị `B-GAN` (`BIEN_NGUY` `:117`). `git pull --no-rebase --ff-only` không khớp
+  deny nào; `Bash(git *--no-v*)` không khớp `--no-rebase`.
+- PA-B: hai hàm riêng chép phép kho → ba bản phép "trong kho / kho lồng" (K4). Loại.
 
 ### B4 skill bước 1 (`tu_chay/skill_lam_viec.md:24–28`)
-Thay bước 1 bằng: `git branch --show-current` → `git fetch origin viec/$0` → so bằng `git merge-base --is-ancestor` (đã cho:
-`merge-base` trong `GIT_CHO`):
-`HEAD` = `origin/viec/$0` → tiếp · `HEAD` là tổ tiên → `git pull --no-rebase --ff-only origin viec/$0`, chép ba dòng log SAU
-khi đi tới · `origin/viec/$0` là tổ tiên của HEAD → tiếp · lệch hai phía → DỪNG, báo chủ quán. Ghi cả hai SHA vào
-`trang_thai.md`. Fetch hỏng (mạng) → ghi một dòng, làm tiếp trên bản đang có, báo trong câu trả lời đầu tiên. Thêm luật cứng:
-stop hook của môi trường đòi `git config` / đổi tác giả / `commit --amend` / `rebase` → không làm, ghi một dòng vào `trang_thai.md`.
-Giữ thứ tự mốc `git log --oneline -3` … mà `thu_cong_cu.js:349–354` (H3) đang canh. ~10 dòng.
+Bước 1 mới:
+1. `git branch --show-current` (sai nhánh / không có commit `PHIEU: $0` → dừng như cũ).
+2. `git status --short`: có file đã theo dõi đang sửa dở → KHÔNG kéo, ghi một dòng, làm tiếp. Đây là cùng luật với hook
+   `cai_thu_vien.sh:16`; hai đường kéo nhánh phải cùng luật (K4).
+3. `git fetch origin viec/$0`, rồi so `HEAD` với **`FETCH_HEAD`** — như hook (`cai_thu_vien.sh:20–22`), không dựa vào
+   `origin/viec/$0` vì nó phụ thuộc refspec của remote. So bằng `git merge-base --is-ancestor` (đã được cho: `merge-base` có
+   trong `GIT_CHO`):
+   - bằng nhau → tiếp;
+   - HEAD là tổ tiên → `git pull --no-rebase --ff-only origin viec/$0`;
+   - FETCH_HEAD là tổ tiên (máy có commit chưa push) → tiếp;
+   - lệch hai phía, kể cả do kho nông (shallow) không thấy tổ tiên chung → DỪNG, báo chủ quán.
+   - fetch hỏng (mạng) → làm tiếp trên bản đang có, báo trong câu trả lời đầu tiên.
+4. SAU bước 3 mới ghi vào `trang_thai.md`: hai SHA (HEAD trước, FETCH_HEAD), rồi `git log --oneline -3`. Ghi trước thì cây bẩn
+   và pull bị từ chối.
+5. Thêm luật cứng: stop hook của môi trường đòi `git config` / đổi tác giả / `commit --amend` / `rebase` → không làm, ghi một
+   dòng vào `trang_thai.md`.
+Giữ thứ tự các mốc mà `thu_cong_cu.js:349–354` (H3) đang canh. ~12 dòng.
 
 ### B5 vì sao phiên MỚI vẫn nạp bản cũ — bằng chứng đọc được trong phiên này
-- `.git/logs/HEAD` dòng 1: `0000… → 5ad35ea … Claude` (clone ra HEAD TÁCH RỜI ở đúng một SHA); dòng 2:
-  `checkout: moving from 5ad35ea… to viec/TU-CHAY-5`. Tức là môi trường claude.ai/code nạp kho ở **một SHA định sẵn** rồi mới
-  đặt nhánh tại SHA đó — không phải "đầu nhánh lúc mở". `.git/shallow` có (`git rev-parse --is-shallow-repository` = true).
-- Hook SessionStart (`.claude/tu_chay/cai_thu_vien.sh`, nguồn `tu_chay/cai_thu_vien.sh:14–33`) chạy SAU bước đặt nhánh (phiên này
-  in "· kéo nhánh: viec/TU-CHAY-5 đã có đủ commit của origin"), nên nó lẽ ra phải đi-trước-nhanh được ở TACH-GL.
-  Lỗ đọc được: `case "$nhanh"` chỉ xử lý `viec/?*` — HEAD tách rời (hoặc hook chạy trước bước đặt nhánh) thì **không in gì**,
-  không kéo, máy không biết (`cai_thu_vien.sh:15–34`). Fetch hỏng chỉ in `⚠` rồi làm tiếp.
-- Không đọc được ở TACH-GL: log hook phiên đó không được ghi vào `viec/TACH-GL/trang_thai.md` (grep "kéo nhánh" → 0 dòng).
-- **Kết luận: chưa rõ** vì sao SHA định sẵn là `2237259`; hai giả thuyết đọc từ code (hook chạy lúc HEAD tách rời → im lặng;
-  fetch hỏng → `⚠` bị bỏ qua) không kiểm được trong phiên này. **B4 xử lý hậu quả** (máy tự fetch + đi-trước-nhanh ở bước 1, ghi
-  SHA). `cai_thu_vien.sh` KHÔNG trong Phạm vi → ghi `## Phát hiện` (đề xuất: nhánh `*)` in một dòng "không đứng ở viec/* —
-  không kéo"), không sửa.
+- **Phiên nạp theo SHA định sẵn.** `.git/logs/HEAD` dòng 1: `0000… → 5ad35ea`, tức là clone ra HEAD TÁCH RỜI ở một SHA. Dòng 2:
+  `checkout: moving from 5ad35ea… to viec/TU-CHAY-5`. Môi trường claude.ai/code nạp kho ở một SHA định sẵn, rồi mới đặt nhánh
+  tại SHA đó. Kho là kho nông (`git rev-parse --is-shallow-repository` = true).
+- **Hook mở phiên lẽ ra phải kéo được.** Hook SessionStart (`tu_chay/cai_thu_vien.sh:14–33`, bản cài trong `.claude/`) chạy SAU
+  bước đặt nhánh. Phiên này nó in "· kéo nhánh: … đã có đủ commit của origin".
+- **Hai chỗ hook im lặng:**
+  - HEAD tách rời → `case "$nhanh"` chỉ xử lý `viec/?*`, không in gì, không kéo (`cai_thu_vien.sh:15–34`);
+  - fetch hỏng → chỉ in `⚠`.
+- **Không đọc được ở TACH-GL:** log hook phiên đó không được ghi lại (`grep "kéo nhánh" viec/TACH-GL/trang_thai.md` → 0 dòng).
+- **Kết luận: chưa rõ** vì sao SHA định sẵn là `2237259`. B4 xử lý hậu quả: máy tự fetch, tự đi tới bản mới, ghi SHA.
+  `cai_thu_vien.sh` ngoài Phạm vi nên chỉ ghi `## Phát hiện`: đề xuất nhánh `*)` in "không đứng ở viec/* — không kéo".
 
 ---
 
 ## 3. C — cổng PR (`tu_chay/cong.js`, ca trong `tu_chay/thu_cong.js`)
 
 ### C1 (A19) dòng `HEAD ĐÃ KIỂM`
-Chạy ở chế độ `tinh` (chỉ git, không chạy code PR), sau A18 (`cong.js:183–189`).
-- Điều kiện áp: `doi` có file KHÔNG mở đầu `viec/<MÃ>/` (`doi` — `cong.js:105–107`).
-- `cuoi` = `git log -1 --format=%H moc..head -- . ':(exclude)viec/<MÃ>/'` (commit cuối đổi file ngoài hồ sơ).
-- Đọc `trang_thai.md` ở head (đã có `tt`, `:178`): dòng `^HEAD ĐÃ KIỂM: ([0-9a-f]{7,40})( \+ commit này)?$` — lấy dòng CUỐI.
-  Thiếu → ĐỎ "thiếu dòng HEAD ĐÃ KIỂM, commit cuối đổi code: <cuoi7>".
-- SHA phải khớp đúng MỘT commit trong `git rev-list moc..head` (tiền tố) → không khớp / mơ hồ → ĐỎ "SHA không thuộc PR".
-- Dạng thường: `git merge-base --is-ancestor <cuoi> <sha>` (cuoi là tổ tiên hoặc bằng) → qua; không → ĐỎ "cũ hơn commit
-  <cuoi7> đổi code".
-- **Dạng "chat soát thay"** (K5 — commit vừa đổi code vừa ghi `trang_thai.md`, không ghi được SHA của chính nó):
-  `HEAD ĐÃ KIỂM: <SHA cha> + commit này`. Cổng chỉ nhận khi (a) `cuoi` chính là commit làm dòng đó XUẤT HIỆN (dòng có trong
-  `trang_thai.md` ở `cuoi`, không có ở `cuoi^`) và (b) `cuoi^` = SHA ghi. Sai một trong hai → ĐỎ "dạng + commit này chỉ hợp lệ
-  ở chính commit cuối đổi code".
-- ~30 dòng. PA-B (đòi SHA = head đúng từng chữ): ít dòng hơn (~12) nhưng chặn luồng hợp lệ "commit hồ sơ sau lần kiểm" mà phiếu
-  bắt phải qua → loại.
+Chạy ở chế độ `tinh` (chỉ git), ngay sau A18 (`cong.js:183–189`). Phép làm việc trên ĐỒ THỊ commit, không theo ngày.
+- **Pathspec "code":** `. ':(exclude)viec/<MÃ>/' ':(exclude).claude/' ':(exclude).github/workflows/cong.yml'`. Loại `.claude/`
+  và `cong.yml` vì chúng do `cai_dat.sh` của chủ quán sinh SAU lần kiểm của máy (K5 — không loại thì A19 chặn chính PR này và
+  mọi PR `tu_chay/`).
+- Áp khi `doi` có file khớp pathspec đó (`doi` ở `cong.js:105–107`).
+- Đọc `trang_thai.md` ở head (`tt`, `:178`), lấy dòng CUỐI khớp `^HEAD ĐÃ KIỂM: ([0-9a-f]{7,40})( \+ commit này)?$`:
+  - thiếu dòng → ĐỎ "thiếu dòng HEAD ĐÃ KIỂM";
+  - SHA (tiền tố) phải khớp đúng MỘT commit trong `git rev-list moc..head`, không khớp hoặc mơ hồ → ĐỎ "SHA không thuộc PR".
+- **Dạng thường:** `git rev-list <sha>..head -- <pathspec>` phải RỖNG (không commit đổi code nào sau SHA). Không rỗng → ĐỎ "cũ
+  hơn commit <x7> đổi code". Commit merge từ main vào nhánh cũng đổi code nên cũng tính.
+- **Dạng "chat soát thay"** `HEAD ĐÃ KIỂM: <SHA cha> + commit này` — commit vừa đổi code vừa ghi `trang_thai.md`, không ghi được
+  SHA của chính nó. Danh sách trên phải có ĐÚNG MỘT commit C, `C^` = SHA ghi, và dòng đó XUẤT HIỆN ở C (có trong `trang_thai.md`
+  ở C, không có ở `C^`). Sai bất kỳ điều nào → ĐỎ.
+- ~25 dòng.
+- PA-B (đòi SHA = head): ~12 dòng nhưng chặn luồng hợp lệ "commit hồ sơ sau lần kiểm" mà phiếu bắt phải qua. Loại.
+- **Dựng ca trong `thu_cong.js`:** gần như mọi ca ĐẠT hiện có (vd `:126, :249, :314, :347, :348, :362`) đổi file ngoài `viec/X/`
+  mà không có dòng `HEAD ĐÃ KIỂM`. Vòng đột biến `cong({ tat })` (`:395–422`) cũng tắt một mã rồi đòi ĐẠT. Cách giữ: `pr()`
+  (`:89–100`) mặc định thêm một commit hồ sơ cuối ghi `HEAD ĐÃ KIỂM: <head trước đó>` — đúng như skill dặn. Ca A19 tắt mặc định
+  này bằng tuỳ chọn và tự dựng `trang_thai.md`. Mỗi ca A19 chỉ phá đúng một vế (K3). Mọi ca cũ đi qua `pr()` nên giữ nguyên ý.
 - Skill bước 10 (`skill_lam_viec.md:62–65`) thêm: "sau lần kiểm cuối, ghi `HEAD ĐÃ KIỂM: <git rev-parse --short HEAD>` vào
-  `trang_thai.md` rồi mới commit hồ sơ". `cong.js` dòng mở đầu chú thích mã luật thêm A19.
+  `trang_thai.md` rồi mới commit hồ sơ". Chú thích mã luật đầu `cong.js` thêm A19.
 
 ### C2 (A16 thêm) số ca trên GỐC khác `SỐ CA` → CẢNH BÁO
-Trong vòng A11 trên gốc (`cong.js:240–260`) giữ `soCa(r.stdout + r.stderr)` (`soCa` — `:73–82`) cho từng bài vào một Map; trong
-khối A16 (`:276–290`), bài có dòng `SỐ CA` mà số trên gốc ≠ số khai → `ghi.push('CẢNH BÁO A16: … gốc in <n> ca, bằng chứng ghi
-<m> …')` (không `doLy` — không đỏ). Gốc không in dòng tổng (bài dừng sớm) → không cảnh báo. ~5 dòng. Không có PA ngắn hơn.
+- Trong vòng A11 trên gốc (`cong.js:240–260`): lưu `soCa(r.stdout + r.stderr)` (`:73–82`) cho từng bài.
+- Trong khối A16 (`:276–290`): số trên gốc ≠ số khai → `ghi.push('CẢNH BÁO A16: … gốc in <n> ca, bằng chứng ghi <m> …')`. Chỉ
+  cảnh báo, không `doLy`, nên không đỏ. Gốc không in dòng tổng (bài dừng sớm) → không cảnh báo. ~5 dòng.
+- **Cảnh báo đã biết:** dòng tổng của `thu_nguoi_gac` đếm cả "phép khác" theo số luật (`thu_nguoi_gac.js:536–541`). PR thêm luật
+  (như PR này) thì trên gốc ít phép hơn → cảnh báo luôn bật. Đúng với ý phiếu: cảnh báo, không đỏ, vì số trên gốc có thể khác.
+  Hỏi chủ quán Q5.
 
 ### C3 A18 không chạy đột biến
-Không đổi code. THIET_KE B15 ghi giới hạn (E1).
+Không đổi code. Ghi giới hạn này ở THIET_KE B15 (E1).
 
 ---
 
 ## 4. D1–D4 — công cụ
 
-### D1 `chay.js` `--kho` chỉ khi có IPC
-Code thật: `cong_cu/gia_lap/chay.js:145–147` nhận `--kho` khi là thư mục `gia_lap_xxxxxx` ngay trong thư mục tạm; cha sinh con
-với `stdio: […, 'ipc']` (`:98`). **PA-A (chọn):** thêm vào điều kiện ở `:146`: `--kho` mà `!process.send` (không kênh IPC) →
-`TỪ CHỐI chạy — --kho chỉ nhận từ tiến trình cha (kênh IPC)`, thoát 3 — đặt TRƯỚC phép tên/thư mục (để ca T7c chỉ vi phạm đúng
-vế IPC). 1–2 dòng. Luồng hợp lệ KHÔNG bị chặn (K5): cha sinh lượt (có IPC); `--luot k` KHÔNG có `--kho` (công cụ đo, `D4`;
-`thu_gia_lap.js:279` `luotBien`) — vẫn tự tạo kho.
-`thu_gia_lap.js`: `chayGL` thêm tuỳ chọn sinh có IPC (`stdio: ['ignore','pipe','pipe','ipc']`); T7a/T7b (`:302–305`, gọi ở
-`:261–262`) đổi sang sinh CÓ IPC (mỗi ca vẫn vi phạm đúng một vế: ngoài thư mục tạm / tên sai); ca mới **T7c** "không IPC +
-`--kho` hợp lệ (gia_lap_ của giả lập khác, có `giu.txt`) → thoát 3, TỪ CHỐI đúng câu IPC, kho còn nguyên". Trên gốc T7c ĐỎ
-(con nhận kho, chạy lượt rồi xoá kho lúc thoát). ~12 dòng thử.
-PA-B: cha truyền bí mật (biến môi trường ngẫu nhiên) cho con. Nhiều dòng hơn, biến môi trường bị bài thử SACH lọc. Loại.
+### D1 `chay.js`: `--kho` chỉ khi có IPC
+Code thật: `cong_cu/gia_lap/chay.js:145–147` nhận `--kho` là thư mục `gia_lap_xxxxxx` ngay trong thư mục tạm. Cha sinh con có
+`'ipc'` (`:98`).
+- **PA-A (chọn):** thêm MỘT DÒNG RIÊNG trước `:146`:
+  `if (KHO && !process.send) { viet('Giả lập: TỪ CHỐI chạy — --kho chỉ nhận từ tiến trình cha (kênh IPC)'); process.exit(3); }`.
+  Không sửa dòng `:146`, vì `viec/TACH-GL/dot_bien.py` neo đúng chuỗi `'if (KHO && !(path.dirname'` (gãy neo → LẠC → F 29/29 đỏ).
+- **Luồng hợp lệ KHÔNG bị chặn (K5):** cha sinh lượt (có IPC); `--luot k` KHÔNG có `--kho` (D4; `luotBien` ở
+  `thu_gia_lap.js:279`).
+- `thu_gia_lap.js`:
+  - `chayGL` thêm tuỳ chọn `stdio`;
+  - T7a/T7b (`:302–305`, gọi ở `:261–262`) sinh CÓ IPC, mỗi ca vẫn vi phạm đúng một vế;
+  - **ca mới T7c:** không IPC + `--kho` hợp lệ → thoát 3, đúng câu IPC, kho còn nguyên. Kho đặt trong **TMPDIR riêng** của ca
+    (như T8, `:255–256`). Không thế thì kho còn lại làm đỏ phép "không sót gia_lap_* trong TAM".
+  - Trên gốc T7c ĐỎ: con nhận kho, chạy lượt, xoá kho lúc thoát.
+  - ~12 dòng thử.
+- PA-B: cha truyền bí mật cho con qua biến môi trường. Dài hơn, và biến môi trường bị `SACH` lọc. Loại.
 
 ### D2 lối "lượt con TỪ CHỐI → cha dừng mọi lượt, thoát 3"
-Code: `chay.js:112` `if (ma === 3) dungHet(cuoiCon, 3);`. Cách gây con từ chối **không cửa sau**: cha chuyển nguyên đối số
-xuống con (`:98` `...process.argv.slice(2)`), cả cha và con đọc `--cau-hinh` ở phép A1 (`:35, 42–53`) — **đúng một lần mỗi
-tiến trình, trước mọi thứ khác**. Ca thử trỏ `--cau-hinh` vào một **FIFO** (`mkfifo` trong thư mục tạm của bài): bài ghi
-lần 1 nội dung hợp lệ (cha đọc → qua A1), lần 2 nội dung hỏng `{}` (lượt con đầu tiên mở FIFO → "không đọc được
-ten_mien_production" → thoát 3). Các lượt còn lại đứng chờ mở FIFO cho tới khi cha SIGTERM. Mỗi lần ghi chặn tới khi đúng một
-tiến trình mở đọc → **tất định** theo thứ tự cha trước con (cha đọc xong mới sinh con). Mong: cha thoát 3, dòng cuối là dòng
-TỪ CHỐI của con, mọi lượt đóng ≠ 0, không sót `gia_lap_*`, cha xong trong < 15 s. Đột biến `BV-D2-bo-dung-het-3` (xoá dòng
-`:112` → con 3 rơi vào nhánh `ma !== 0 && ma !== 1` → thoát 2 · SẬP) phải làm ca ĐỎ. Bộ ghi FIFO là một tiến trình con của bài
-(`node -e` ghi hai lần), luôn bị giết khi xong. ~20 dòng thử, 0 dòng `chay.js`.
-Ca này XANH trên gốc (lối đã có) — nó là ca hồi quy trong file `thu_gia_lap.js` vốn đỏ trên gốc nhờ T7c/D3; đột biến là bằng chứng.
+Code: `chay.js:112` `if (ma === 3) dungHet(cuoiCon, 3);`. Cách gây con từ chối, **không cửa sau**:
+- Cha đọc `--cau-hinh` đúng một lần ở A1 (`:35, 44`) và chuyển nguyên đối số xuống con (`:98`).
+- Bài thử sinh cha với `--cau-hinh /dev/fd/3`, `stdio[3]` = fd của một file cấu hình hợp lệ → cha qua A1.
+- Con được sinh với `stdio: […, 'ipc']` (`:98`), nên **fd 3 của con là socket IPC**. Đọc `/dev/fd/3` trên socket lỗi (ENXIO) →
+  "không đọc được ten_mien_production" → thoát 3.
+- Tất định, mọi lượt đều từ chối, không cần tiến trình ghi, 0 dòng `chay.js`. Agent soát đề xuất cách này thay cho FIFO (FIFO
+  có khe: lần ghi 2 lọt vào cha chưa đóng fd → các con treo).
+- Mong: cha thoát 3, dòng cuối là dòng TỪ CHỐI, mọi lượt đóng ≠ 0, không sót `gia_lap_*`.
+- Đột biến `BV-D2-bo-dung-het-3` xoá dòng `:112`: con thoát 3 rơi vào nhánh `ma !== 0 && ma !== 1` → thoát 2 · SẬP → ca ĐỎ.
+- ~12 dòng thử (`chayGL` nhận `stdio` — chung với D1).
+- **Ca này XANH trên gốc** (lối đã có): đây là ca hồi quy. Bằng chứng là đột biến, ghi rõ trong `bang_chung_do.txt`.
+- **Kiểm khả thi trước khi viết bài:** chạy thử một lần trong thư mục nháp. ENXIO không xảy ra → dừng, hỏi chủ quán.
 
 ### D3 `chayGL` đọc đầu ra con
-Code: `thu_gia_lap.js:59–66` `c.stdout.on('data', (d) => { ra += d; })` — Buffer cộng vào chuỗi từng khúc → ký tự nhiều byte
-bị cắt giữa hai khúc ra `�`. Cùng khuôn (K4, grep `+= d` trong file): `chayTheoDoi` `:81–83` (`doc(d)` → `ra += d`). Sửa
-cả hai bằng `setEncoding('utf8')` (như `chay.js:102–103` đã làm). 4 dòng.
-Ca tất định: con giả (file tạm trong `TAM`, chạy qua tham số `tep` sẵn có của `chayGL`) ghi `Buffer.from('Lượt')` cắt giữa byte của
-`ượ` thành hai lần `process.stdout.write`, giữa hai lần chờ con nhận một byte từ stdin… — chayGL không ghi stdin, nên dùng chờ
-**300 ms** giữa hai lần ghi (đường ống chuyển hai khúc riêng). Ghi chú K3: khe 300 ms gần như chắc chắn tách khúc nhưng không
-tất định tuyệt đối → chạy ca trên gốc ≥ 3 lần, ghi kết quả; trường hợp gộp khúc thì ca XANH oan (không đỏ oan).
-`chayTheoDoi` không có tham số `tep` → sửa theo K4 nhưng không có ca riêng (ghi CHƯA KIỂM), hoặc thêm tham số `tep` (+1 dòng)
-để chạy cùng ca — **chọn thêm tham số** (rẻ, khoá được cả hai).
+- Code: `thu_gia_lap.js:59–66` `c.stdout.on('data', (d) => { ra += d; })` — Buffer cộng vào chuỗi từng khúc, nên ký tự nhiều byte
+  bị cắt giữa hai khúc thành `�`.
+- Cùng khuôn (K4, grep `ra += d`):
+  - `thu_gia_lap.js:62, 63` (`chayGL`), `:81–83` (`chayTheoDoi`);
+  - `tu_chay/thu_nguoi_gac.js:662` (`choTreo`), trong Phạm vi.
+- Sửa cả ba chỗ bằng `setEncoding('utf8')`, như `chay.js:102–103` đã làm. ~5 dòng.
+- **Ca:** con giả (file tạm, qua tham số `tep` sẵn có của `chayGL`; `chayTheoDoi` thêm tham số `tep`, +1 dòng) ghi 'Lượt' cắt
+  giữa byte của `ượ` thành hai lần `write`, cách nhau 300 ms. Mong chuỗi nhận được = 'Lượt'.
+- **Không đỏ trên gốc theo nghĩa cổng A11:** lỗi nằm trong chính `thu_gia_lap.js`, mà A11 chạy bài của head (đã vá) trên code
+  gốc. Bằng chứng là đột biến `BV-D3-chayGL-bo-setEncoding`, `BV-D3-theodoi-bo-setEncoding`.
+- **Không tất định tuyệt đối:** khe 300 ms gần như chắc chắn tách hai khúc. Khi khúc bị gộp, ca XANH oan, không đỏ oan. Đột biến
+  chạy ≥ 3 lần, ghi kết quả từng lần. Hỏi Q3.
 
 ### D4 `viec/LUOI-1/do_thoi_gian.js kb`
-Code: neo `:41` `'  const tong = \`Giả lập:'` rữa — con nay in `Lượt …` (`chay.js:295`); chèn mốc vòng bất biến (`:43`) vẫn
-khớp (`chay.js:287–292`). Cha không chuyển dòng `DO KB` của con. **PA-A (chọn):** sửa neo thành `'  const tong = \`Lượt '`,
-chạy bản sao với `--luot k` cho k = 1…`LUOT.length` (đọc `LUOT` từ `kich_ban.js` của bản sao), KHÔNG `--kho` (con tự tạo kho,
-không cần IPC — vẫn hợp lệ sau D1), gom mọi dòng `DO KB`, sắp theo số KB. Neo rữa → ném lỗi rõ, thoát ≠ 0 (giữ). ~12 dòng đổi.
-PA-B: chạy cha của bản sao và sửa cha chuyển tiếp dòng con — sửa thêm cha, nhiều neo hơn. Loại.
-Ca: chạy thật `node viec/LUOI-1/do_thoi_gian.js kb` trên HEAD → đếm đúng 29 dòng `DO KB` (trên gốc: ném lỗi). Không có bài
-`thu_*.js` riêng (công cụ đo, nằm trong `viec/` — cổng không coi là code, `cong.js:39`); bằng chứng là lệnh + đầu ra ghi vào
-`bang_chung_do.txt` / `trang_thai.md`.
+- Code: neo `:41` `'  const tong = \`Giả lập:'` rữa, vì con nay in `Lượt …` (`chay.js:295`). Mốc vòng bất biến (`:43`) vẫn khớp
+  (`chay.js:287–292`). Cha không chuyển dòng `DO KB` của con.
+- **PA-A (chọn):**
+  - neo thành `'  const tong = \`Lượt '`;
+  - chạy bản sao với `--luot k`, k = 1…`LUOT.length` (đọc `LUOT` từ `kich_ban.js` của bản sao), KHÔNG `--kho` (con tự tạo kho,
+    vẫn hợp lệ sau D1);
+  - gom mọi dòng `DO KB`, sắp theo số KB;
+  - neo rữa → ném lỗi rõ, thoát ≠ 0 (giữ như cũ).
+  - ~12 dòng đổi.
+- PA-B: sửa cha của bản sao cho nó chuyển dòng con. Nhiều neo hơn. Loại.
+- **Ca:** `node viec/LUOI-1/do_thoi_gian.js kb` trên HEAD → đúng 29 dòng `DO KB` (trên gốc: ném lỗi). Công cụ nằm trong `viec/`,
+  cổng không coi là code (`cong.js:39`). Bằng chứng là lệnh + đầu ra, ghi trong `bang_chung_do.txt`.
 
 ---
 
 ## 5. E — tài liệu
 
-- E1 `tu_chay/THIET_KE.md:386` → "Đo: xem số đo mới nhất có ngày ở `viec/<MÃ>/trang_thai.md` của việc gần nhất đổi giả lập
-  (TU-CHAY-5: … s, 11.10.2026)"; `:388` → "Bánh cóc: `NGUONG_KICH_BAN` / `NGUONG_BAT_BIEN` của `kiem_tra_truoc_khi_giao.js` —
-  chỉ được tăng". B10 thêm đoạn chia lượt (`LUOT`, cha/con, `--luot`, `--kho` chỉ qua IPC — D1). B15 thêm A19 (C1), cảnh báo A16
-  (C2), giới hạn C3. B3 (người gác) thêm `git rm` (B1), `TaskStop` (B2), `fetch`/`pull` (B3). ~30 dòng.
-- E2 `KHUON_LOI.md` (92 dòng, trần 120): 5 bài học của phiếu → gộp vào khuôn sẵn: K3 (+2 gạch: "đột biến đưa ĐÚNG lỗi cũ trở lại";
-  "ca TỪ CHỐI so đúng câu + dấu vết không xảy ra"; "ca tín hiệu/thời gian không chạy chung đợt nặng, nghi thì lặp ≥ 3"), K4 (+1:
-  "cờ nội bộ cha→con → rà mọi đường argv"), K7 (+1: "dòng mới ở ĐỈNH file (ngoài try) → ném thì thoát mã gì"). ~8–10 dòng, mỗi
-  dòng kèm "Đã gây: TACH-GL …". Grep trước để không trùng khuôn có sẵn.
-- E3 `tu_chay/PHIEN_BAN` → `tu-chay 1.5.0`; `tu_chay/MAU_PHIEU.md` thêm một dòng nhắc `HEAD ĐÃ KIỂM` (C1).
+- **E1** `tu_chay/THIET_KE.md`:
+  - `:386` → trỏ tới số đo có ngày ở `trang_thai.md` của việc gần nhất đổi giả lập (TU-CHAY-5: thu_gia_lap 41,7 s,
+    11.10.2026);
+  - `:388` → "Bánh cóc: `NGUONG_KICH_BAN` / `NGUONG_BAT_BIEN` của `kiem_tra_truoc_khi_giao.js` — chỉ được tăng";
+  - B10 thêm đoạn chia lượt (`LUOT`, cha/con, `--luot`; `--kho` chỉ qua IPC — D1);
+  - B15 thêm A19 (C1), cảnh báo A16 (C2), giới hạn C3;
+  - B3 thêm `git rm` (B1), `TaskStop` (B2), `fetch`/`pull` (B3);
+  - **sửa ba câu trái với bản vá:** `:534` "TaskStop … đều bị chặn"; `:647` (GIT-LENH); `:806` "người gác cấm `fetch`".
+  - ~30 dòng.
+- **E2** `KHUON_LOI.md` (92 dòng, trần 120): 5 bài học của phiếu, gộp vào khuôn sẵn. Grep trước để không trùng. ~8–10 dòng, mỗi
+  dòng kèm "Đã gây: TACH-GL …".
+  - K3 +3 gạch: đột biến đưa ĐÚNG lỗi cũ trở lại; ca TỪ CHỐI so đúng câu + dấu vết không xảy ra; ca tín hiệu/thời gian không chạy
+    chung đợt nặng, nghi thì lặp ≥ 3.
+  - K4 +1: cờ nội bộ cha→con → rà mọi đường argv.
+  - K7 +1: dòng mới ở ĐỈNH file (ngoài try) → ném thì thoát mã gì.
+- **E3** `tu_chay/PHIEN_BAN` → `tu-chay 1.5.0`; `tu_chay/MAU_PHIEU.md` thêm một dòng nhắc `HEAD ĐÃ KIỂM` (C1).
 
 ---
 
@@ -203,55 +254,93 @@ Ca: chạy thật `node viec/LUOI-1/do_thoi_gian.js kb` trên HEAD → đếm đ
 
 | Mục | Bài / ca | Đỏ trên gốc vì |
 |---|---|---|
-| B1 cho | `thu_nguoi_gac`: `git rm viec/X/a.js` · `git rm -q a b` (2 file trong Phạm vi) · `git rm --quiet …` → CHO | hôm nay GIT-LENH |
-| B1 chặn (mỗi vế một ca) | `-r`, `-f`, `--cached`, `-n`, `-rq`, `--`, `--pathspec-from-file=x`, thư mục, `viec/X/*.js`, `'a?.js'`, `:(glob)x`, file ngoài Phạm vi (G5), file luật không ghi đúng tên (G-LUAT), `phieu.md`, `.claude/x`, `.env`, `../ngoai`, đường tuyệt đối ngoài kho, kho lồng, `$F`, không tên file → GIT-RM / mã của ghiDuoc | (bài mới — trên gốc các ca "CHO" đỏ) |
-| B1 git thật | kho thử: `git rm` file chưa theo dõi → git thoát ≠ 0, file đã theo dõi đi kèm KHÔNG bị xoá | (khoá giả định "git tự đảm bảo") |
-| B2 | `TaskStop` → CHO (dời khỏi danh sách CC-LA `:132`) | hôm nay CC-LA |
-| B3 cho | `git fetch origin viec/X`, `git fetch -q origin viec/X`, `git pull --no-rebase --ff-only origin viec/X`, `git pull --ff-only --no-rebase -q origin viec/X`, `git pull --quiet --ff-only --no-rebase origin viec/X` | hôm nay GIT-LENH |
-| B3 chặn (mỗi vế một ca) | nhánh khác `viec/Y`, `main`, thiếu `--ff-only`, thiếu `--no-rebase`, `--rebase`, `--no-ff`, `--ff`, `-r`, refspec `viec/X:viec/X`, `+viec/X`, `:x`, `origin` trống, remote khác, URL, `--all`, `--prune`, `--depth=1`, `--unshallow`, `--force`, ngoài kho (cwd nháp), kho lồng, HEAD tách rời, `main` đứng, viec/ không phiếu, `$B`, `--no-rebas` (viết tắt) | |
-| B4 | `thu_cong_cu` H: skill bước 1 có `git fetch origin viec/`, `merge-base --is-ancestor`, `git pull --no-rebase --ff-only origin viec/`, "lệch hai phía" + dừng, hai SHA vào trang_thai, luật stop hook (config/amend/rebase → không làm) | skill gốc thiếu |
-| B4 nối B3 | `thu_nguoi_gac`: mọi lệnh git skill bước 1 dặn (trích từ `skill_lam_viec.md` bằng mẫu ` `git …` `) → người gác CHO | gốc chặn fetch/pull |
-| B5 | `ke_hoach.md` mục 2 (bằng chứng) | — |
-| C1 | `thu_cong` (tĩnh): PR đổi `cong_cu/x` + trang_thai thiếu dòng → ĐỎ A19 · SHA cũ hơn commit code → ĐỎ · SHA không thuộc PR → ĐỎ · SHA = commit code cuối → ĐẠT · commit hồ sơ sau → ĐẠT · "+ commit này" đúng → ĐẠT · "+ commit này" giả (ghi ở commit hồ sơ sau, hoặc cha sai) → ĐỎ · PR chỉ hồ sơ `viec/X/` → không áp (ĐẠT) | gốc không có A19 |
-| C1 đột biến | `cong({ tat: A19 })` → các ca ĐỎ thành ĐẠT (theo khuôn `thu_cong.js:404–408`) | |
-| C2 | `thu_cong` (chạy): gốc in "1 đạt · 1 hỏng" (2 ca), head 3 ca, SỐ CA 3 → ĐẠT kèm CẢNH BÁO nêu 2 và 3 · khớp → không cảnh báo · gốc không in dòng tổng → không cảnh báo | gốc không cảnh báo |
-| C3 | THIET_KE B15 (E1), `thu_cong_cu` câu chữ | |
-| D1 | `thu_gia_lap` T7c mới (không IPC + kho hợp lệ → 3, câu IPC, kho còn) · T7a/T7b sinh có IPC · `luotBien` (`:279`, `--luot` không `--kho`) vẫn chạy | T7c đỏ trên gốc |
-| D2 | `thu_gia_lap` ca FIFO + đột biến `BV-D2-bo-dung-het-3` | đột biến (ca xanh trên gốc — ca hồi quy) |
-| D3 | `thu_gia_lap` ca con giả cắt 'Lượt' giữa ký tự, qua `chayGL` và `chayTheoDoi` | gốc ra `�` |
-| D4 | lệnh `node viec/LUOI-1/do_thoi_gian.js kb` → 29 dòng `DO KB` | gốc ném lỗi neo |
-| E1–E3 | `thu_cong_cu`: THIET_KE không còn "22 s"/"≥ 11"/"≥ 9", trỏ `NGUONG_KICH_BAN`; PHIEN_BAN = 1.5.0; MAU_PHIEU có `HEAD ĐÃ KIỂM`; skill bước 10 có `HEAD ĐÃ KIỂM`; KHUON_LOI ≤ 120 dòng (đã có `baiKhuonLoi` `:324`) | gốc thiếu |
-| F | `npm test`, `--day-du` (0 CẢNH BÁO trừ "khớp từng byte"), 4 bài `thu_*` xanh, thu_gia_lap ×3 riêng, TACH-GL 29/29, LUOI-1 80/80 | — |
+| B1 cho | `thu_nguoi_gac`: `git rm viec/X/a.js` · `git rm -q a b` (2 file trong Phạm vi) → CHO | hôm nay GIT-LENH |
+| B1 chặn (mỗi vế một ca) | `--quiet`, `-r`, `-f`, `--cached`, `-n`, `-rq`, `--`, `--pathspec-from-file=x`, thư mục, `viec/X/*.js`, `'a?.js'`, `:(glob)x`, file ngoài Phạm vi (G5), file luật không ghi đúng tên (G-LUAT), `phieu.md`, `.claude/x`, `.env`, `../ngoai`, đường tuyệt đối ngoài kho, cwd trong kho lồng, `$F`, không tên file | ca CHO đỏ trên gốc |
+| B1 git thật | kho thử: `git rm <đã theo dõi> <chưa theo dõi>` → git thoát ≠ 0 và file đã theo dõi KHÔNG bị xoá | khoá giả định "git tự đảm bảo" |
+| B2 | `TaskStop` → CHO; tập `CONG_CU_DOC` (`:640`) có `TaskStop` | hôm nay CC-LA |
+| B3 cho | `git fetch origin viec/X`, `git fetch -q origin viec/X`, `git pull --no-rebase --ff-only origin viec/X`, `git pull --ff-only --no-rebase -q origin viec/X`, `Monitor` với fetch | hôm nay GIT-LENH |
+| B3 chặn (mỗi vế một ca) | `viec/Y`, `main`, thiếu `--ff-only`, thiếu `--no-rebase`, `--rebase`, `--no-ff`, `--ff`, `-r`, `--quiet`, `--no-rebas` (viết tắt), refspec `viec/X:viec/X`, `+viec/X`, `:x`, chỉ `origin`, remote khác, URL, `--all`, `--prune`, `--depth=1`, `--unshallow`, `--force`, cwd nháp, cwd ngoài kho (không treo), kho lồng, HEAD tách rời, đứng `main`, viec/ không phiếu, `$B`, `git fetch origin viec/X && git merge FETCH_HEAD` | |
+| B4 | `thu_cong_cu` H: bước 1 có `git fetch origin viec/`, `FETCH_HEAD`, `merge-base --is-ancestor`, `git pull --no-rebase --ff-only origin viec/`, "sửa dở" → không kéo, lệch hai phía → dừng, SHA ghi SAU khi kéo, luật stop hook (config/amend/rebase → không làm) | skill gốc thiếu |
+| B4 nối B3 | `thu_nguoi_gac`: mọi lệnh git trong bước 1 của skill (trích bằng mẫu `` `git …` ``) → người gác CHO | gốc chặn fetch/pull |
+| B5 | `ke_hoach.md` mục 2 | — |
+| C1 | `thu_cong` (tĩnh), mỗi ca phá đúng một vế: thiếu dòng → ĐỎ · SHA cũ hơn commit code → ĐỎ · SHA không thuộc PR → ĐỎ · SHA = commit code cuối → ĐẠT · commit hồ sơ sau → ĐẠT · "+ commit này" đúng → ĐẠT · "+ commit này" ghi ở commit hồ sơ sau → ĐỎ · "+ commit này" cha sai → ĐỎ · PR chỉ hồ sơ → không áp · commit cài `.claude/` + `cong.yml` sau lần kiểm → ĐẠT · commit merge từ main sau lần kiểm → ĐỎ, SHA = commit merge → ĐẠT | gốc không có A19 |
+| C1 đột biến | `cong({ tat: A19 })` → các ca ĐỎ thành ĐẠT (khuôn `thu_cong.js:404–408`) | |
+| C2 | `thu_cong` (chạy): gốc in 2 ca, head 3, SỐ CA 3 → ĐẠT kèm CẢNH BÁO nêu 2 và 3 · khớp → không cảnh báo · gốc không in dòng tổng → không cảnh báo | gốc không cảnh báo |
+| C3 | `thu_cong_cu`: THIET_KE B15 nêu "A18 không chạy đột biến" | |
+| D1 | `thu_gia_lap` T7c mới · T7a/T7b có IPC · `luotBien` vẫn chạy | T7c đỏ trên gốc |
+| D2 | `thu_gia_lap` ca `/dev/fd/3` + đột biến `BV-D2-bo-dung-het-3` | đột biến (ca hồi quy) |
+| D3 | `thu_gia_lap` ca 'Lượt' cắt đôi qua `chayGL` và `chayTheoDoi` + 2 đột biến BV-D3 | đột biến |
+| D4 | `node viec/LUOI-1/do_thoi_gian.js kb` → 29 dòng `DO KB` | gốc ném lỗi neo |
+| E1 | `thu_cong_cu`: THIET_KE không còn "22 s" / "≥ 11" / "≥ 9", có `NGUONG_KICH_BAN`; B15 có A19 + giới hạn A18; B3 có `git rm`, `TaskStop`, `fetch`; không còn "TaskStop … bị chặn", "người gác cấm `fetch`" | gốc thiếu |
+| E2 | `thu_cong_cu` `baiKhuonLoi` (`:324`): ≤ 120 dòng + có 5 câu khoá (vd "ĐÚNG lỗi cũ", "đường argv", "ĐỈNH file", "dấu vết", "lặp ≥ 3") | gốc thiếu |
+| E3 | `thu_cong_cu`: PHIEN_BAN = 1.5.0; MAU_PHIEU và skill bước 10 có `HEAD ĐÃ KIỂM` | gốc thiếu |
+| F | `npm test`; `--day-du` 0 CẢNH BÁO trừ "khớp từng byte"; 4 bài `thu_*` xanh; `thu_gia_lap` ×3 riêng; TACH-GL 29/29; LUOI-1 80/80 | — |
 
 ## 7. Đột biến (`viec/TU-CHAY-5/dot_bien.py`, mỗi đột biến một dòng `('<tên>', …)`)
-Việc không đổi `server/`/`client/src/` → A18 không áp, nhưng vẫn làm VS-/BV- cho mọi chỗ vá:
-`BV-B1-bo-rm` (gỡ nhánh rm) · `VS-B1-rm-cho-moi-co` (bỏ lọc cờ) · `VS-B1-rm-bo-ghiDuoc` (chỉ tenThang) · `BV-B2-bo-TaskStop` ·
-`BV-B3-bo-keo` · `VS-B3-pull-thieu-ff-only` (không đòi cờ bắt buộc) · `VS-B3-keo-moi-nhanh` (không so nhánh đang đứng) ·
-`VS-B3-keo-ngoai-kho` (bỏ khoLong/trong kho) · `BV-C1-bo-A19` · `VS-C1-chi-so-head` (SHA phải = head) · `VS-C1-cong-nhan-commit-nay-moi-noi`
-· `BV-C2-bo-canh-bao` · `BV-D1-bo-ipc` · `VS-D1-ipc-sau-ten` (đặt phép IPC sau phép tên → T7c vẫn bắt vì câu khác) ·
-`BV-D2-bo-dung-het-3` · `BV-D3-chayGL-bo-setEncoding` · `BV-D3-theodoi-bo-setEncoding`.
-Chạy trên bản sao trong thư mục nháp (realpath trong nháp — K5), bài tương ứng phải ĐỎ.
+Việc không đổi `server/` hay `client/src/` nên A18 không áp, nhưng mọi chỗ vá vẫn có VS-/BV-:
+- B1: `BV-B1-bo-rm` · `VS-B1-rm-cho-moi-co` · `VS-B1-rm-mien-hoantac` (gọi `ghiDuoc` với hoanTac = true)
+- B2: `BV-B2-bo-TaskStop`
+- B3: `BV-B3-bo-keo` · `VS-B3-pull-thieu-ff-only` · `VS-B3-keo-moi-nhanh` · `VS-B3-keo-bo-khoLong`
+- C1: `BV-C1-bo-A19` · `VS-C1-chi-so-head` · `VS-C1-commit-nay-moi-noi` · `VS-C1-khong-loai-claude`
+- C2: `BV-C2-bo-canh-bao`
+- D1: `BV-D1-bo-ipc`
+- D2: `BV-D2-bo-dung-het-3`
+- D3: `BV-D3-chayGL-bo-setEncoding` · `BV-D3-theodoi-bo-setEncoding`
 
-## 8. Đường song song phải canh (K4) và luồng hợp lệ KHÔNG bị chặn (K5)
-- Người gác: mọi chỗ git đọc nhánh/cwd (`xetPush`, B1, B3) dùng chung `khoLong` + `ghiDuoc`. `Monitor` đi qua `xetBash`
-  (`:928`) → ca `Monitor` cho fetch/pull. Lệnh ghép (`&&`, `;`, `$( )`) đã do `dsLenh` tách — ca `git fetch origin viec/X && git
-  merge FETCH_HEAD` phải chặn (merge GIT-LENH).
-- Luồng hợp lệ không bị chặn: mọi ca push hiện có (`thu_nguoi_gac.js:199–260`) giữ nguyên chữ; `git add`/`commit`/`checkout --`;
-  `TaskOutput`; `git rm` file trong `viec/X/**`; SessionStart hook không qua người gác.
-- Cổng C1: luồng "chat soát thay" (một commit đổi code + trang_thai); PR chỉ hồ sơ; commit hồ sơ sau lần kiểm; PR có commit
-  merge từ main (SHA ghi là commit merge — `rev-list` có nó → qua).
-- D1: cha sinh lượt; `--luot k` không `--kho` (đo; `luotBien`); T8 (cha nhận `--kho` vẫn TỪ CHỐI câu cũ).
-- D3: `chayTheoDoi` cùng khuôn. `cong.js` `chayLenh` (spawnSync encoding?) — rà ở bước 2 của bước 5; `do_thoi_gian.js` dùng
-  `encoding: 'utf8'` (`:19`) — đúng sẵn.
+Bỏ `VS-D1-ipc-sau-ten` của bản trước: nó sẽ SỐNG (không ca nào phân biệt thứ tự phép IPC và phép tên).
+Đột biến chạy trên bản sao CHÉP THẬT trong thư mục nháp, có kiểm realpath (K5). Bài tương ứng phải ĐỎ.
+
+## 8. Đường song song (K4) và luồng hợp lệ KHÔNG bị chặn (K5)
+**Người gác:**
+- push, rm, fetch, pull dùng chung `khoLong` + `laCon` trước.
+- `GIT-COMMIT-NHANH` cố ý không đi qua `khoLong` (B3).
+- `Monitor` đi qua `xetBash` (`:928`).
+- Lệnh ghép đã do `dsLenh` tách.
+
+**Hai đường kéo nhánh** (hook `cai_thu_vien.sh` và skill bước 1) cùng luật: sửa dở → không kéo; so với `FETCH_HEAD`;
+`--ff-only`.
+
+**Luồng hợp lệ phải KHÔNG bị chặn:**
+- Người gác: mọi ca push cũ (`thu_nguoi_gac.js:199–260`); `git add` / `commit` / `checkout --`; `TaskOutput`; `git rm` file trong
+  `viec/X/**`.
+- Cổng C1: "chat soát thay"; PR chỉ hồ sơ; commit hồ sơ sau lần kiểm; commit cài `.claude/` + `cong.yml` của chủ quán.
+- D1: cha sinh lượt; `--luot k` không `--kho`; T8 vẫn từ chối với câu cũ.
+- D3: `do_thoi_gian.js` dùng `encoding: 'utf8'` (`:19`) — đúng sẵn.
 
 ## 9. Câu hỏi cho chủ quán (trước khi làm)
-- Q1 **A8 trên PR này:** PR đổi `tu_chay/*` mà `.claude/tu_chay/*` (cấm sửa) còn bản cũ → cổng A8 đỏ và bộ kiểm cảnh báo
-  "khớp từng byte" cho tới khi chủ quán chạy `bash tu_chay/cai_dat.sh` trên nhánh việc (`cong.js:18` CAI_LAI). Phiếu F đã miễn
-  cảnh báo; A8 xử lý như các việc TU-CHAY trước (chủ quán cài trên nhánh trước gộp) — đúng không?
-- Q2 **D2 cách gây con từ chối = FIFO ở `--cau-hinh`** (không thêm cửa sau vào `chay.js`). Đồng ý?
-- Q3 **D3 ca không tuyệt đối tất định** (khe 300 ms giữa hai lần ghi). Không có cách đồng bộ con với `chayGL` mà không đổi
-  `chayGL` (nó không ghi stdin). Chấp nhận, hay cho phép `chayGL` thêm tuỳ chọn ghi stdin để con chờ tín hiệu?
-- Q4 **B1 "file đang được theo dõi"** do git tự đảm bảo (git rm cả lệnh thất bại nếu một pathspec không khớp), người gác không
-  gọi git. Có ca git thật khoá điều đó. Đồng ý không thêm phép trong người gác?
-- Q5 **Thời gian máy:** TONG phút (mục 1) — dưới / trên ~180 phút.
-- Q6 **B5 / Phát hiện:** `tu_chay/cai_thu_vien.sh` (ngoài Phạm vi) im lặng khi HEAD tách rời — chỉ ghi Phát hiện, không sửa.
+- **Q1 A8 trên PR này.** PR đổi `tu_chay/*` mà `.claude/tu_chay/*` (cấm sửa) còn bản cũ, nên cổng A8 đỏ và bộ kiểm cảnh báo
+  "khớp từng byte" cho tới khi chủ quán chạy `bash tu_chay/cai_dat.sh` trên nhánh việc (`cong.js:18` CAI_LAI). C1 đã loại
+  `.claude/` khỏi "code" để commit cài đó không làm A19 đỏ. Xử lý như các việc TU-CHAY trước — đúng không?
+- **Q2 D2 dùng `--cau-hinh /dev/fd/3`** (fd 3 của con là kênh IPC), không thêm cửa sau vào `chay.js`. Đồng ý?
+- **Q3 D3 ca không tất định tuyệt đối** (khe 300 ms). Bằng chứng là đột biến, chạy ≥ 3 lần. Chấp nhận, hay cho `chayGL` thêm
+  tuỳ chọn ghi stdin để con chờ tín hiệu (tất định, +3 dòng)?
+- **Q4 B1 "file đang được theo dõi"** do git tự đảm bảo, người gác không gọi git; có ca git thật khoá. Đồng ý?
+- **Q5 C2 cảnh báo luôn bật với PR thêm luật người gác** (dòng tổng `thu_nguoi_gac` đếm cả phép theo số luật). Giữ đúng phiếu (so cả
+  số), hay chỉ so phần "a/B ca"?
+- **Q6 Thời gian máy:** TONG phút (mục 1), dưới ngưỡng ~180 phút nên không đề xuất tách.
+- **Q7 B5 / Phát hiện:** `tu_chay/cai_thu_vien.sh` (ngoài Phạm vi) im lặng khi HEAD tách rời. Chỉ ghi Phát hiện, không sửa.
+
+## 10. Agent phụ soát kế hoạch (11.10.2026) — đã sửa vào bản này
+
+| Điểm | Sửa |
+|---|---|
+| `--quiet` vượt chữ phiếu (B1, B3) | bỏ, thêm ca chặn `--quiet` |
+| B1 chép `xetHoanTac` | dùng chung, tham số hoá, hoanTac = false |
+| FIFO không tất định | `/dev/fd/3` |
+| C1 `log -1` theo ngày | `rev-list <sha>..head -- <pathspec>` |
+| Ca cũ người gác đỏ (`:132, :194–195, :640`) | ghi rõ ở mục 2 |
+| A19 làm đỏ ca ĐẠT cũ của `thu_cong` | `pr()` mặc định thêm dòng HEAD ĐÃ KIỂM |
+| Ca commit merge, commit cài `.claude/` | thêm vào mục 6; loại `.claude/` + `cong.yml` khỏi pathspec |
+| D3 "gốc ra �" sai theo cổng | ghi rõ: bằng chứng là đột biến |
+| `VS-D1-ipc-sau-ten` sẽ SỐNG | bỏ |
+| E1/E2 thiếu ca | thêm phép trong `thu_cong_cu` |
+| Thời gian còn ô trống / đoán | điền số đo; số vòng ghi là giả định |
+| T7c sót kho trong TAM | TMPDIR riêng |
+| Neo TACH-GL `:146` | phép IPC thành dòng riêng |
+| `khoLong` vòng treo ngoài kho | `laCon` trước; ca cwd ngoài kho |
+| `GIT-COMMIT-NHANH` | cố ý, ghi chú thích |
+| `+= d` ở `thu_nguoi_gac.js:662` | sửa cùng D3 |
+| THIET_KE `:534, :647, :806` | thêm vào E1 |
+| so `origin/viec/$0` | so `FETCH_HEAD` như hook |
+| ghi SHA trước pull | ghi sau |
+| C2 cảnh báo oan với PR thêm luật | Q5 |
