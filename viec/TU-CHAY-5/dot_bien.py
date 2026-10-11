@@ -7,6 +7,7 @@ Mỗi đột biến: chép THẬT (không nối) các thư mục bài thử cầ
 phải khớp ĐÚNG số lần ghi sẵn, không thì HỎNG — K3), kiểm đích ghi nằm trong thư mục tạm (realpath — K5/HOC-2b), rồi chạy bài:
   gac   : node tu_chay/thu_nguoi_gac.js      (B1–B3)       cong : node tu_chay/thu_cong.js   (C1, C2)
   gl    : node cong_cu/thu_gia_lap.js        (D1–D3)       d4   : node viec/LUOI-1/do_thoi_gian.js kb (D4)
+  cc    : node tu_chay/thu_cong_cu.js        (skill / tài liệu)
   BẮT = thoát ≠ 0 VÀ MỌI mẫu đều khớp một dòng ra     LẠC = thoát ≠ 0 nhưng thiếu mẫu     SỐNG = thoát 0     TREO = quá giờ
 Trước khi chấm, mỗi cách chạy chạy KHÔNG đột biến một lần → phải thoát 0 (đỏ thì dừng, thoát 4). Lệch mong đợi → thoát 1.
 Khung chép từ viec/TACH-GL/dot_bien.py.
@@ -24,7 +25,9 @@ LENH = {
   'cong': (['node', 'tu_chay/thu_cong.js'], 600),
   'gl': (['node', 'cong_cu/thu_gia_lap.js'], 300),
   'd4': (['node', 'viec/LUOI-1/do_thoi_gian.js', 'kb'], 300),
+  'cc': (['node', 'tu_chay/thu_cong_cu.js'], 120),
 }
+SK = 'tu_chay/skill_lam_viec.md'
 IPC = "if (KHO && !process.send) { viet('Giả lập: TỪ CHỐI chạy — --kho chỉ nhận từ tiến trình cha (kênh IPC)'); process.exit(3); }\n"
 
 # (tên, cách chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], [mẫu — PHẢI khớp hết], kết quả mong đợi)
@@ -62,6 +65,10 @@ DOT_BIEN = [
    [r'✗ TU-CHAY-5 A19 "\+ commit này" ghi ở commit hồ sơ SAU commit code: phải ĐỎ'], 'BẮT'),
   ('VS-C1-khong-loai-claude', 'cong', [(CG, "':(exclude).claude/', ", '', 1)],
    [r'✗ TU-CHAY-5 A19 K5 chủ quán cài \.claude/ sau lần kiểm: phải ĐẠT'], 'BẮT'),
+  # soát vòng 1: dòng HEAD ĐÃ KIỂM ghi ở bước 10 (trước bước 11 đổi KHUON_LOI / KHOÁ) → A19 tự đỏ trên luồng của chính skill
+  ('VS-C1-skill-ghi-o-buoc-10', 'cc', [(SK, '    không lấy mẫu; còn mục thiếu bằng chứng thì chưa xong.\n',
+                                       '    không lấy mẫu; còn mục thiếu bằng chứng thì chưa xong. Ghi `HEAD ĐÃ KIỂM: <SHA>` sau lần kiểm cuối.\n', 1)],
+   [r'✗ TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM'], 'BẮT'),
   # ── C2 cảnh báo A16 ──
   ('BV-C2-bo-canh-bao', 'cong', [(CG, 'if (g !== null && h !== null && g !== h) {', 'if (false) {', 1)],
    [r'✗ TU-CHAY-5 C2 gốc 2 ca, head 3 ca → cảnh báo nêu cả hai số: lý do có "CẢNH BÁO A16"'], 'BẮT'),

@@ -69,9 +69,6 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
     ĐÃ RÀ K4 · CHƯA KIỂM · GIT · BÀI HỌC. Mục CHƯA KIỂM nói thẳng điều máy không kiểm được.
     Trước khi báo xong, ĐẾM từng mục nghiệm thu của phiếu: mỗi mục một dòng kèm bằng chứng (bài thử, ca, lệnh) —
     không lấy mẫu; còn mục thiếu bằng chứng thì chưa xong.
-    Sau lần kiểm cuối (bước 6, kể cả vòng sửa của bước 8) ghi dòng `HEAD ĐÃ KIỂM: <git rev-parse --short HEAD>` vào
-    `trang_thai.md` rồi mới commit hồ sơ (cổng A19). Commit vừa đổi code vừa ghi `trang_thai.md` (chat soát thay) thì ghi
-    `HEAD ĐÃ KIỂM: <SHA cha> + commit này`.
 11. **Rút kinh nghiệm** (đầu vào cho BÀI HỌC):
     1. Gom sự cố của việc này: bài thử đỏ bất ngờ; lệnh bị người gác chặn (mã luật + vì sao — đọc
        `.tu_chay_nhat_ky.jsonl`); lỗi agent soát bắt (dòng `BÀI HỌC:` của `/ra-soat`); vượt ngân sách;
@@ -84,6 +81,10 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
        - **BỎ** — chỉ xảy ra một lần. Một dòng lý do.
     3. Dọn: lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` đã có phép kiểm làm thay thì đề xuất xoá.
        `KHUON_LOI.md` không vượt `khuon_loi_toi_da` của `cau_hinh.json` — vượt thì gộp, không nới số.
-    4. Ghi mục `## Bài học` của `trang_thai.md`, commit, push, rồi in báo cáo 7 mục trong câu trả lời.
+    4. Bước 11 đổi file ngoài `viec/$0/` (KHOÁ, `KHUON_LOI.md`) → commit rồi chạy lại bước 6. SAU lần kiểm cuối đó mới ghi
+       dòng `HEAD ĐÃ KIỂM: <git rev-parse --short HEAD>` vào `trang_thai.md` (cổng A19 — mọi commit đổi file ngoài `viec/$0/`
+       phải nằm TRƯỚC SHA này). Commit vừa đổi code vừa ghi `trang_thai.md` (chat soát thay) thì ghi
+       `HEAD ĐÃ KIỂM: <SHA cha> + commit này`.
+    5. Ghi mục `## Bài học` của `trang_thai.md`, commit, push, rồi in báo cáo 7 mục trong câu trả lời.
        Đề xuất ngoài Phạm vi máy KHÔNG tự làm — chat soát duyệt, gom vào việc sau hoặc phiếu `HOC-<n>`.
     **Dừng.** Không merge, không tạo PR.

@@ -392,9 +392,9 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 **Cách nối thật (TU-CHAY-4, 02.10.2026):** `node cong_cu/gia_lap/chay.js` — ba file: `chay.js` (an toàn + sân khấu + in kết
 quả), `kich_ban.js`, `bat_bien.js`. Bộ kiểm gọi ở **`--day-du`** (nhóm S) với **môi trường đã lọc sạch** — giả lập không bao
 giờ cầm khoá thật, kể cả trên Replit; cổng `cong-chay` chạy `--day-du` nên PR nào cũng qua giả lập. Không có khoá
-cấu hình riêng cho giả lập (B2). Đo: số đo có ngày ở `viec/<MÃ>/trang_thai.md` của việc gần nhất đổi giả lập — tài liệu
-không chép số (số chép tay trôi: bản trước ghi 22 s / 24 s khi thật đã khác). TU-CHAY-5 (11.10.2026, máy mây 4 lõi):
-`thu_gia_lap.js` 41,7 s; từng lượt 22–24 s (`node viec/LUOI-1/do_thoi_gian.js kb`). Quá 15 s nên không vào bản nhanh / pre-commit.
+cấu hình riêng cho giả lập (B2). Đo: số đo có ngày ở `viec/<MÃ>/trang_thai.md` của việc gần nhất đổi giả lập (gần nhất:
+TU-CHAY-5) — tài liệu không chép số (số chép tay trôi: bản trước ghi 22 s / 24 s khi thật đã khác). Từng KB:
+`node viec/LUOI-1/do_thoi_gian.js kb`. Giả lập và `thu_gia_lap.js` quá 15 s nên không vào bản nhanh / pre-commit.
 Cả ba file và `thu_gia_lap.js` là **file luật** (`file_luat`): việc sau muốn sửa phải ghi ĐÚNG TÊN file trong phiếu.
 Bánh cóc: `NGUONG_KICH_BAN` / `NGUONG_BAT_BIEN` của `kiem_tra_truoc_khi_giao.js` (đọc số ở đó, không chép) — chỉ được tăng.
 

@@ -261,14 +261,18 @@ B('git pull --no-rebase --ff-only origin viec/H', 'CHO', { goc: KHO_H });
 B('git -C . fetch origin viec/X', 'GIT-TUYCHON');
 B('git -c pull.rebase=true pull --no-rebase --ff-only origin viec/X', 'GIT-TUYCHON');
 B('GIT_DIR=x git fetch origin viec/X', 'B-GAN');
-// B4 nối B3: mọi lệnh git ở bước 1 của skill (đặt X vào $0) → người gác CHO; skill phải có lệnh fetch VÀ pull
+// B4 nối B3: mọi lệnh git ở bước 1 của skill (đặt X vào $0) → người gác CHO; skill phải có lệnh fetch VÀ pull.
+// MỘT phép, không sinh ca theo từng lệnh (soát vòng 1): số ca của bài không được đổi theo nội dung skill — cổng C2 so số CA gốc / head.
 {
   const sk = fs.readFileSync(path.join(__dirname, 'skill_lam_viec.md'), 'utf8');
   const b1 = (/\n1\. \*\*[\s\S]*?(?=\n2\. \*\*)/.exec(sk) || [''])[0];
   const lenh = [...b1.matchAll(/`(git [^`]+)`/g)].map((m) => m[1].replace(/\$0/g, 'X'));
   chac('TU-CHAY-5 B4: bước 1 của skill có git fetch origin viec/$0 và git pull --no-rebase --ff-only origin viec/$0',
     lenh.includes('git fetch origin viec/X') && lenh.includes('git pull --no-rebase --ff-only origin viec/X'), lenh.join(' | '));
-  for (const l of lenh) B(l, 'CHO');
+  const sai = lenh.filter((l) => {
+    try { const r = gac.xet(vao('Bash', { command: l }), { CLAUDE_PROJECT_DIR: KHO, HOME }); return !r || r.quyet !== 'CHO'; } catch { return true; }
+  });
+  chac('TU-CHAY-5 B4: mọi lệnh git ở bước 1 của skill → người gác CHO', lenh.length >= 2 && !sai.length, sai.join(' | ') || lenh.join(' | '));
 }
 
 // ── TU-CHAY-2a: push ĐÚNG nhánh việc đang đứng — chỉ `git push [-u|--set-upstream|-q|-v] origin viec/<MÃ>`

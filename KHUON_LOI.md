@@ -32,11 +32,11 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
   "nới phép". Giá trị MẶC ĐỊNH là hành vi — khoá bằng ca KHÔNG truyền đối số, không chỉ soi chữ ký hàm (HOC-2b C3g, C3h).
   "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ.
 - **Chặn:** con số "đạt" phải kèm lần chạy lại trên HEAD; đột biến neo chuỗi NGẮN, RIÊNG (neo dài rữa sau vài việc).
+  Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi trên bản chưa vá — dựng đột biến đỏ
+  TẤT ĐỊNH, không được thì ghi **CHƯA KIỂM**, không đếm là phép.
 - **Chặn (TACH-GL):** sửa lỗi người soát báo → đột biến phải đưa ĐÚNG lỗi cũ trở lại, không chỉ gỡ phép vừa thêm (T9). Ca TỪ
   CHỐI so đúng câu của phép đang thử + dấu vết không xảy ra (T9 vòng 3: không dòng `lượt k/L pid`). Ca tín hiệu / thời gian
   không chạy chung đợt nặng; nghi thì chạy lặp ≥ 3 lần (T3 đỏ oan 1/3).
-  Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi trên bản chưa vá — dựng đột biến đỏ
-  TẤT ĐỊNH, không được thì ghi **CHƯA KIỂM**, không đếm là phép.
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ thứ hai thường trong cùng hàm hoặc cách chưa tới 150 dòng.

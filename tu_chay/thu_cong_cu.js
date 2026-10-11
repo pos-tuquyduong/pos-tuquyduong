@@ -424,9 +424,12 @@ function baiTaiLieu() {
   chac('TU-CHAY-5 B4 skill bước 1: ghi trang_thai.md SAU khi fetch/kéo (ghi trước thì cây bẩn, pull bị từ chối)', iF >= 0 && iT > iF);
   chac('TU-CHAY-5 B4 skill luật cứng: stop hook đòi git config / đổi tác giả / --amend / rebase → không làm, ghi trang_thai.md',
     /stop hook[^\n]*git config[^\n]*tác giả[^\n]*amend[^\n]*rebase[^\n]*không làm/.test(than));
-  const s10 = muc(sk, '\n10. **', '\n11. **');
-  chac('TU-CHAY-5 C1 skill bước 10: ghi "HEAD ĐÃ KIỂM: <SHA>" vào trang_thai.md sau lần kiểm cuối, dạng "+ commit này"',
-    s10.includes('HEAD ĐÃ KIỂM: ') && s10.includes('+ commit này') && /kiểm cuối/.test(s10), s10.slice(0, 200));
+  // Soát vòng 1: bước 11 làm KHOÁ / NGUYÊN TẮC (đổi file ngoài viec/<MÃ>/) — dòng HEAD ĐÃ KIỂM ghi ở bước 10 thì A19 tự đỏ.
+  const s10 = muc(sk, '\n10. **', '\n11. **'), s11 = muc(sk, '\n11. **', '**Dừng.**');
+  const iK = s11.indexOf('**KHOÁ**'), iN = s11.indexOf('**NGUYÊN TẮC**'), iH = s11.indexOf('HEAD ĐÃ KIỂM: ');
+  chac('TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM: <SHA>" ghi ở bước 11 SAU KHOÁ / NGUYÊN TẮC, sau khi chạy lại bước 6 (kiểm cuối), có dạng "+ commit này"; bước 10 không ghi',
+    iK >= 0 && iN > iK && iH > iN && s11.includes('+ commit này') && /chạy lại bước 6[^]*kiểm cuối/.test(s11.slice(iN))
+    && !s10.includes('HEAD ĐÃ KIỂM'), s11.slice(Math.max(iH, 0), iH + 200));
   const t15 = muc(tk, '## B15', '## B16'), t3 = muc(tk, '## B3.', '## B4.'), t10 = muc(tk, '## B10.', '## B11.');
   chac('TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng',
     ['[A19]', 'HEAD ĐÃ KIỂM', 'CẢNH BÁO A16'].every((x) => t15.includes(x)) && /A18[^\n]*không chạy đột biến/.test(t15), t15.slice(0, 120));

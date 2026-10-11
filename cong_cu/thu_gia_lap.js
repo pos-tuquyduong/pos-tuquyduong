@@ -349,7 +349,8 @@ async function main() {
   k('T7c lượt KHÔNG có kênh IPC nhận --kho hợp lệ → thoát 3, TỪ CHỐI (--kho chỉ nhận từ tiến trình cha), kho còn nguyên', khoIpc.status === 3
     && /TỪ CHỐI chạy — --kho chỉ nhận từ tiến trình cha \(kênh IPC\)/.test(cuoi(khoIpc)) && fs.existsSync(path.join(KHO7, 'giu.txt')), moTa(khoIpc));
   const dongD2 = [...d2.ra.matchAll(/lượt \d+ đóng: (\S+)/g)].map((m) => m[1]), soLuotD2 = [...d2.ra.matchAll(/lượt \d+\/\d+ pid/g)].length;
-  k('D2 lượt con TỪ CHỐI (cấu hình đọc lỗi) → cha thoát 3, dòng cuối là dòng TỪ CHỐI của con, mọi lượt dừng (đóng ≠ 0), không sót gia_lap_*',
+  // Lượt nào cũng tự từ chối (fd 3 = IPC) — vòng SIGTERM của dungHet do T3/T4/T6 canh, ca này canh lối `ma === 3` → thoát 3.
+  k('D2 lượt con TỪ CHỐI (cấu hình đọc lỗi) → cha thoát 3, dòng cuối là dòng TỪ CHỐI của con, mọi lượt đóng ≠ 0, không sót gia_lap_*',
     d2.status === 3 && /^Giả lập: TỪ CHỐI chạy — không đọc được ten_mien_production trong \/dev\/fd\/3$/.test(cuoi(d2)) && soLuotD2 >= 2
     && dongD2.length === soLuotD2 && !dongD2.includes('0') && !fs.readdirSync(TD2).length,
     `${moTa(d2)} · ${soLuotD2} lượt · đóng: ${dongD2.join(',') || '(không có)'} · sót ${fs.readdirSync(TD2).join(',') || 0}`);
