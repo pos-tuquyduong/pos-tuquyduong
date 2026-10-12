@@ -254,4 +254,4 @@ Không tên nào đổi kết quả so với lần trước. Từng tên ("=" l�
 
 HOC-1: 3 đối chứng XANH + 17 ĐỎ đúng chỗ theo công cụ HOC-1 (14 tên chuyển từ HOC-2b + MC, MC2, MC3) = 16 BẮT + 1 LẠC
 theo định nghĩa AUDIT (MA3 đỏ vì cổng sập). HOC-2: 3 đối chứng XANH + 22/23 ĐỎ đúng
-chỗ + 1 HỎNG tất yếu. Khác lần trước (chỉ kiểm neo): lần đầu chạy thật — mọi đột biến chuyển sang đều đỏ đúng ca, trừ MA3 đỏ vì sập (LẠC, AU2-5).
+chỗ + 1 HỎNG tất yếu. Khác lần trước (chỉ kiểm neo): lần đầu chạy thật — mọi đột biến chuyển sang đều đỏ đúng ca, trừ MA3 đỏ vì sập (LẠC, AU2-5) và `VS-E3-phien-ban-cu` HỎNG (neo 1.4.0, AU2-6).

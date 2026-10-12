@@ -61,3 +61,14 @@ LẠC   G3  G3-sap  (0 s) · [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả
      HỎNG BB-I1-js-3-bo-ve: tên trôi: ảnh "r.status === 'completed'" ↔ sinh lại "r.status === 'xong'"
 
 == 9. (sửa vòng 2) lach.js trên HEAD: CHẶN 14 · LỌT ĐÃ BIẾT 1 · LỌT 0 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0 → thoát 0 (ca đỏ ở mục 7: SAI MÃ → thoát 1).
+
+== 10. (sửa vòng 3) anh_kho() mới của dot_bien_bb.py — bản sao kg2 (git archive HEAD + .git chép vào nháp), không chạm kho thật:
+   lặp lại không đổi → True
+   pyc mới trong __pycache__ chưa có → anh_kho đổi: True
+   file mới trong data/ (bị .gitignore che) → anh_kho đổi: True
+   ghi đè file đã có (đổi mtime) → anh_kho đổi: True
+   node_modules (thiết kế bỏ qua) → anh_kho đổi: False
+   (mục 1 ở trên in câu báo của bản anh_kho cũ "(git status)"; bản mới in "(git status + đường bị .gitignore che, trừ node_modules)").
+
+== 11. (sửa vòng 3) dot_bien.py atexit — bản sao bỏ client/dist: `python3 …/dot_bien.py D2K-vo-hai` và `python3 …/kiem_neo.py` sập
+   (FileNotFoundError client/dist/assets) như cũ; ls /tmp | grep -c audit1_ → 0 sau cả hai (bản cũ: người soát vòng 3 thấy sót 1 / lần).

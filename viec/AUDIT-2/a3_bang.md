@@ -62,7 +62,8 @@ GIT-KEO 8 · GIT-OUTPUT 3 · B-CD-VITRI 2 · GIT-CHECKOUT 2 · GIT-ARCHIVE 2 · 
 GIT-HOANTAC 1 · SED-WE 1). 15 mã KHÔNG có ca nào nhắc tên → mỗi mã một lệnh lách tối thiểu (`lach.json`), `lach.js` chép
 `nguoi_gac.js` vào thư mục tạm, nạp bản sao, gọi `xet()` — không thực thi lệnh nào. Mỗi mục ghi mã chặn chấp nhận (`mong`); 5 mục
 loại "chặn" (luật tự chặn) còn chạy lại với ĐÚNG luật đó tắt (`xet(…, tat)`) → phải đổi kết quả (soát vòng 1: bản đầu dùng đích là
-file bí mật nên B-BIMAT-FILE chặn hộ — ba mã không được thử thật; đã đổi đích). **CHẶN 14 · LỌT 1 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0.**
+file bí mật nên B-BIMAT-FILE chặn hộ — ba mã không được thử thật; đã đổi đích). **CHẶN 14 · LỌT ĐÃ BIẾT 1 (CC-DOC, `biet_lot`) · LỌT 0 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0
+(tắt luật nhắm phải ra ĐÚNG CHO).**
 
 | mã | lệnh lách (dữ liệu) | kết quả (`mong` · tắt luật nhắm) |
 |---|---|---|

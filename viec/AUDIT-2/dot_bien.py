@@ -8,13 +8,14 @@ Dùng lại NGUYÊN khung `viec/AUDIT-1/dot_bien.py` (bản sao, kiểm sạch, 
 bảng đột biến, thêm cách chạy kb19–kb29, lọc thêm `viec/AUDIT-2/` khỏi ảnh git status, tự gắn SIGINT/SIGTERM.
 A3P ngược nghĩa: thêm một ca vào BẢN SAO kich_ban.js khẳng định hành vi ĐÚNG; BẮT = máy chủ thật làm SAI (code quầy sai).
 """
-import importlib.util, os, signal, sys
+import atexit, importlib.util, os, shutil, signal, sys
 sys.dont_write_bytecode = True   # importlib nạp khung AUDIT-1: không đẻ __pycache__ trong kho (soát vòng 1)
 
 DAY = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location('khung_audit1', os.path.join(DAY, '..', 'AUDIT-1', 'dot_bien.py'))
 K = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(K)   # khung tạo K.GOC_TAM lúc nạp — main() / don() của khung tự xoá
+atexit.register(shutil.rmtree, K.GOC_TAM, True)   # nạp bảng dưới đây hỏng (vd thiếu client/dist) vẫn xoá — soát vòng 3
 GOC = K.GOC
 
 for _k in range(19, 30):

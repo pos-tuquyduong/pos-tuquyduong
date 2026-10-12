@@ -51,7 +51,7 @@ for (const t of THU) {
   if (kq === 'CHẶN' && t.loai === 'chan') {
     const tat = xet(t, new Set([t.ma]));
     them = ` · tắt ${t.ma} → ${tat}`;
-    if (tat === ma) kq = 'TẮT KHÔNG ĐỔI';
+    if (tat !== 'CHO') kq = 'TẮT KHÔNG ĐỔI';   // phải ra ĐÚNG CHO — NG-LOI (người gác sập) cũng "khác" nhưng không chứng minh gì (soát vòng 3)
   }
   dem[kq]++;
   console.log(`${kq} [nhắm ${t.ma} · ${t.loai}] ${t.mo} → ${ma === 'CHO' ? 'CHO' : 'CHAN:' + ma} (mong ${t.mong.join('|')})${them}`);
