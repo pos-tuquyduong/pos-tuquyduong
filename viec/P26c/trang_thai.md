@@ -220,7 +220,7 @@ BÀI HỌC:
 | 3 mã giảm-1-món chia đều | KHÔNG sửa — nghiệp vụ chưa chốt, không phải hồi quy (trước P26c trần theo giá gốc, đền quá NHIỀU hơn) → Câu hỏi 2 | — |
 | 4 total_spent âm khi hoàn gói trả tiền mặt | `hoanVi`: phần ≤ số khách trả bằng ví ghi dòng `cash` có giảm total_spent; phần vượt (tiền mặt / CK, H2) ghi dòng riêng `hoan_goi`, KHÔNG đụng total_spent. I18 không tính dòng `hoan_goi`; I11 nay canh lại được phần ví của đơn mua gói | thu_P26c A5c2 (sổ 100.000 cash + 80.000 hoan_goi, total_spent 0), A5d (total_spent không đổi); thu_gia_lap ca tay I18 hoan_goi; VS-H2-hoan-goi-giam-total-spent, VS-H2-mot-dong-hoan-goi BẮT |
 | 5 Hoàn kho SX trước rồi huỷ / xoá → SX nhận về hai lần | KHÔNG sửa — có từ trước, ngoài B3 (phiếu: "trên đơn đã huỷ") → Phát hiện 10 | — |
-| 6 D1 phép tĩnh = marker | phép tĩnh nay đòi giá trị gửi LẤY TỪ `rewardForm.max_discount` (D1a); thêm ca động đúng số phiếu: quà 50 % trần 50.000 tạo bằng thân màn hình gửi → đổi điểm → đơn 500.000 giảm 50.000 (D1b) | VS-D1-marker-suong (`max_discount: 0`) BẮT |
+| 6 D1 phép tĩnh = marker | phép tĩnh nay đòi giá trị gửi LẤY TỪ `rewardForm.max_discount` (D1a); thêm ca động đúng số phiếu: quà 50 % trần 50.000 (thân lệnh GÕ TAY theo các trường màn hình gửi — sửa câu ở vòng 2, lỗi 3) → đổi điểm → đơn 500.000 giảm 50.000 (D1b) | VS-D1-marker-suong (`max_discount: 0`) BẮT |
 | 7 A3 chặn oan gia hạn | chặn chỉ khi đơn CÓ món lấy từ gói (`items.some(from_package)`) | thu_P26c A3b (K5 gia hạn → 200); VS-A3-chan-ca-gia-han BẮT |
 | Đơn giản: quyền mặc định trùng | bỏ 3 dòng `refund_package` khỏi danh sách mặc định — vòng INSERT OR IGNORE chạy mọi lần khởi động đã đủ | Q4a, Q4b xanh |
 | Nghi ngờ: gói cài 0 lượt | → Câu hỏi 3 (dữ liệu cũ, K5) | — |
@@ -274,3 +274,130 @@ Cây gốc + bài head: 65 đạt · 1 hỏng (chỉ C1e), thoát 1 → A11 hợ
     vẫn chia tỉ lệ: giá trị gói đã dùng có thể lệch vài nghìn. Làm đúng cần cột giảm theo dòng (đổi cấu trúc DB) → P26d.
 15. PUT gói chỉ bật / tắt (không gửi số lượt) vẫn cho BẬT gói cũ 0 lượt — gói đó bật lên vẫn không bán được (400 `GOI_CHUA_CAI_LUOT`).
     Đúng câu trả lời Câu hỏi 3 (chủ quán tự kiểm gói đang bật); ghi để biết.
+
+## Soát độc lập — vòng 2 (chép nguyên báo cáo)
+
+```
+KHÔNG ĐẠT
+Tóm tắt: bộ kiểm đầy đủ xanh, nhưng còn 2 lỗi thật. Lỗi 1 đã chạy và thấy ĐỎ trên HEAD: xoá đơn làm SX thiếu hàng vĩnh viễn khi SX
+hết giờ chờ (timeout). Lỗi 2 đã thử đột biến: bài thử D1 vẫn để lọt màn hình gửi sai, và hồ sơ ghi sai về cách làm ca D1b.
+
+Đã chạy trên HEAD 7b1a88f: thu_P26c 74 đạt · 0 hỏng. Trên cây 2ff8437 (bản sau vòng 1): 70 đạt · 4 hỏng, đúng A7a, A7b, A7c, B1f
+như hồ sơ ghi. thu_P26b 66 đạt · 0 hỏng. --day-du PASS 66 · FAIL 0 · CẢNH BÁO 0 (gồm thu_P26c 2,5 s, chay.js 33,4 s, thu_gia_lap
+48,7 s, dist khớp src). Giả lập đo chạy riêng từng lượt: lượt 1 33,4 s · lượt 2 29,2 s · lượt 3 23,9 s · lượt 4 24,6 s — đều dưới
+180 s. 8 đột biến của vòng 2 (gồm BV-B1f, VS-B1f, VS-A7-chan-ca-bat-tat, BV-A7c, BV-B1-den-dong-goi, VS-D1-marker-suong,
+VS-C2-huy-out-khong-xet-in, VS-H2-hoan-goi-giam-total-spent): bắt 8/8.
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/orders.js:1531-1544 + :1604 (C2) — xoá đơn đánh `huy` nợ `out` và bỏ gửi `in`, dựa trên giả định "nợ out còn
+   pending = hàng chưa tới SX". Giả định này sai.
+   - Theo server/utils/sxApi.js:41-61, SX không trả lời trong 8 s thì POS báo lỗi, dù SX có thể đã trừ kho rồi. Lúc đó đơn bán
+     (orders.js:976-985) vẫn ghi một dòng nợ `pending`.
+   - Cách làm có từ trước dựa vào vân tay: sxApi.js:155-157 ghi rõ "gửi lại bao nhiêu lần cũng vô hại".
+   - Đã chạy (scratchpad/s2/t.js, SX giả "đã làm rồi mới báo lỗi"): bán → xoá đơn completed. HEAD: SX nhận [out POS:1060:out:0],
+     không in, không còn nợ chờ → SX thiếu 1 vĩnh viễn. Server gốc 35f76b4: SX nhận out + in, còn 1 nợ out (đẩy lại bị SX bỏ qua vì
+     trùng vân tay) → ròng 0.
+   - Cùng dạng ở nhánh mới vá vòng này: đơn đã huỷ, nợ `in` thật sự lỗi nhưng nợ `out` đã tới SX mà POS báo hết giờ → hai dòng nợ đều
+     `huy` → SX −1.
+   - Đây là hồi quy do P26c. Khuôn K1 (tiền đề "pending = chưa tới" không đọc từ code) và K4 (đường hai chiều: chỉ dựng nhánh "lỗi =
+     chưa làm").
+   - Cách đơn giản mà đúng: xoá đơn giữ cách cũ — đẩy cả out lẫn in, SX tự bỏ lệnh trùng vân tay. Như vậy bỏ được boQuaKho,
+     replace(':out:', ':in:') và câu tra thêm. Nhưng làm vậy trái chữ C2 / H6 trong phiếu ("không còn tự đẩy") → cần đưa thành câu
+     hỏi cho chủ quán, không tự chọn.
+2. cong_cu/thu_P26c.js:564-578 (D1, K3) — lỗi 6 của vòng 1 mới vá một nửa.
+   - Đã thử đột biến đảo nhánh ở client/src/pages/Settings.jsx:572: `max_discount: discount_type === 'percent' ? 0 :
+     (parseInt(rewardForm.max_discount) || 0)`. Kết quả D1a ✓, D1b ✓, 74 đạt · 0 hỏng.
+   - Màn hình gửi trần 0 cho quà loại % — đúng trường hợp duy nhất cần trần — mà bài vẫn xanh.
+   - Lý do: regex D1a (`max_discount\s*:[^,]*rewardForm\.max_discount`) chỉ đòi tên ô có mặt. D1b gõ tay thân lệnh gửi, không lấy từ
+     màn hình, và D1b vốn xanh cả trên gốc (bang_chung_do.txt:13).
+   - Gọn hơn: gửi luôn `max_discount: parseInt(rewardForm.max_discount) || 0` (ô chỉ hiện khi chọn %; server lưu số), rồi phép tĩnh
+     khớp đúng biểu thức đó. Hoặc D1b dựng thân lệnh gửi từ chính chuỗi trong Settings.jsx.
+3. cong_cu/thu_P26c.js:570 và viec/P26c/trang_thai.md:223 (K1) — ghi "quà … tạo bằng ĐÚNG thân màn hình gửi". Sai: thân lệnh ở
+   thu_P26c.js:572 là gõ tay.
+
+NGHI NGỜ:
+- thu_P26c.js:341 (A7c): phép tĩnh chỉ đòi có chuỗi `parseInt(pkgForm.total_qty) >= 1` trong savePkg. Một dòng suông không `return`
+  vẫn xanh. Nhẹ, vì server đã chặn (A7a/A7b).
+- bat_bien.js:188 (I11) và :303 (I18) bỏ qua MỌI dòng hoan_goi, không chỉ của đơn mua gói. Nếu sau này hoan_goi bị ghi nhầm trên đơn
+  thường thì chỉ I19 bắt được, và chỉ khi đơn còn. Đơn mua gói đã xoá thì dòng hoan_goi không có quy tắc đối soát nào (Phát hiện 6) —
+  điều 5 trong định hướng chủ quán vẫn còn lỗ.
+- server/utils/tienDaTra.js:527-531: trần đền mã giảm-1-món tra discount_scope theo mã HIỆN TẠI. Nếu chủ đổi phạm vi mã (PUT
+  discount-codes.js:232) sau khi bán, trần quay về chia đều (lỗi 3 vòng 1 trở lại). Chưa đọc PUT xem có cho đổi discount_scope không.
+- Thẻ hội viên ở GOI_THE_KHONG_DEN (damages.js:77) không có ca thử riêng — B1e chỉ thử dòng gói.
+
+Kiểm từng lỗi vòng 1:
+- Lỗi 1: đã xử lý cho nhánh SX báo lỗi thật — C2f ở thu_P26c.js:522-532 đỏ dưới VS-C2. Nhưng sinh lỗi mới (Lỗi 1 ở trên).
+- Lỗi 2: đúng — damages.js:77-79. Đơn mua gói có món thường thì vẫn đền được: ca tự dựng SOAT2b → 200, SOAT2c tổng nhận ≤ 120.000.
+- Lỗi 4: đúng — orders.js:1301-1315 tách dòng hoan_goi không đụng total_spent. A5c2 kiểm sổ; I18 bỏ dòng hoan_goi.
+- Lỗi 6: chưa đủ (Lỗi 2 ở trên).
+- Lỗi 7: đúng — orders.js:186, có A3b.
+- Lỗi 3 và 5: giữ là Câu hỏi 2 / Phát hiện 10. Câu hỏi 2 đã làm theo lời chủ quán (tienDaTra.js:521-532, B1f).
+- Câu hỏi 3: packages.js:400-418, có A7a-c. Bật/tắt gói cũ 0 lượt vẫn 200.
+
+K4: grep pos_stock_pending trong orders.js → 9 chỗ (bán :980, huỷ :1465, xoá :1532/:1539/:1542/:1614). Đường bán và huỷ ghi nợ khi có
+bất kỳ lỗi nào, còn xoá thì hiểu nợ là "chưa tới" — chưa ai rà chỗ này. Grep hoan_goi → 1 chỗ ghi (orders.js:1309), 2 chỗ trong bất
+biến (I11, I18).
+
+K5: các luồng hợp lệ đã thử và vẫn qua: gia hạn gói (A3b); mua gói lấy ngay (A2e); đền món thường trong đơn mua gói (SOAT2b); bật/tắt
+gói cũ 0 lượt (A7b); "Chỉ ghi nhận" (B2b, B3b, B4b); quản lý có quyền huỷ đơn mua gói (A5i). Không thấy chặn oan mới. Có một chỗ chủ
+quán đã chấp nhận: dòng không được giảm trong đơn có mã giảm-1-món bị trần thấp.
+
+Đường tiền (P3/P4): không có trường tiền nào server tin client. soTienHoan đọc đơn trong giao dịch (tienDaTra.js:543-560); số lượt
+gói lấy từ pos_packages (orders.js:380).
+
+P1: dist khớp src (--day-du); client/dist/index.html trỏ tới index-CC9JuO1w.js.
+
+NGHIỆM THU: 25/26 mục có bằng chứng · mục thiếu: D1
+- A1 ✓ A1a-c · A2 ✓ A2a-e · A3 ✓ A3, A3b · A4 ✓ · A5 ✓ A5a-k · A6 ✓ A6a-c
+- B1 ✓ B1a-f · B2 ✓ (+ thu_P26b C1e) · B3 ✓ · B4 ✓ · B5 ✓ B5a-d
+- C1 ✓ · C2 có ca C2a-f, nhưng hành vi sai ở nhánh hết giờ (Lỗi 1) · C3 ✓ · C4 ✓ · C5 ✓ (+ KB32)
+- D1 ✗: bài không bắt được màn hình gửi sai (Lỗi 2) · D2 ✓ · D3 ✓ · D4 ✓ · D5 ✓
+- E1 ✓ I18/I19 + c.mong · E2 ✓ ngưỡng 32/18, mỗi lượt ≤ 33,4 s (tôi đo; hồ sơ không ghi số đo sau vá) · E3 ✓ (tôi chạy 8 đột biến
+  vòng 2; hồ sơ ghi 87/87 + 7)
+- G ✓ A1a, B3a/b, C5, A5c, A3 · H ✓ --day-du 66/0/0, thu_P26b 66, thu_gia_lap xanh
+
+CHƯA SOÁT ĐƯỢC: Không chạy lại đủ viec/P26c/dot_bien.py (khoảng 94 đột biến) và các bộ đột biến cũ (LUOI-1, TACH-GL, P26b) — chỉ chạy 8.
+Không xem dữ liệu production: gói 0 lượt đang bật, mã giảm-1-món đang dùng, nợ kho đang pending. Không có SX thật để xác nhận SX bỏ
+lệnh trùng vân tay — dựa vào chú thích ở sxApi.js:155-157. thu_P20, thu_P26a chỉ chạy qua --day-du.
+
+BÀI HỌC:
+- KHOÁ: ca C2 "SX đã làm nhưng báo hết giờ" — SX giả ghi nhận rồi mới ném lỗi. Bán → xoá, và bán → huỷ → xoá: SX ròng = 0 khi tính cả
+  việc SX bỏ lệnh trùng vân tay. Thêm đột biến bắt việc đánh huy nợ out ở đơn completed.
+- KHOÁ: D1 — phép tĩnh khớp đúng biểu thức gửi, hoặc ca động lấy thân lệnh từ Settings.jsx. Thêm đột biến đảo nhánh
+  `percent ? 0 : …` và phải bắt được.
+- NGUYÊN TẮC (K1/K4): "lỗi gọi ra ngoài" không có nghĩa là "bên kia chưa làm". Hết giờ là trạng thái chưa biết. Mọi quyết định huỷ /
+  bỏ một vế dựa trên dòng nợ phải xét cả "đã làm mà báo lỗi". Khi gửi lại vốn vô hại (có vân tay), đừng thay nó bằng huỷ.
+- NGUYÊN TẮC (K1): hồ sơ ghi ca "theo đúng thân màn hình gửi" thì bài phải ĐỌC thân đó từ mã nguồn — gõ tay là khẳng định không có
+  căn cứ.
+```
+
+## Xử lý soát vòng 2 (vòng sửa 2/3)
+| Lỗi | Xử lý | Bằng chứng |
+|---|---|---|
+| 1 C2 khi SX "đã làm mà báo hết giờ" → xoá đơn làm SX thiếu vĩnh viễn (HỒI QUY P26c) | KHÔNG tự sửa — cách đúng + đơn giản nhất trái chữ C2 / H6 của phiếu → **Câu hỏi 4** | — |
+| 2 D1 phép tĩnh để lọt đảo nhánh `percent ? 0 : …` | `Settings.jsx` gửi `max_discount: parseInt(rewardForm.max_discount) \|\| 0` (ô chỉ hiện khi %; máy chủ chỉ áp trần cho mã %, orders.js:614–624); D1a khớp ĐÚNG biểu thức đó | VS-D1-marker-suong, VS-D1-dao-nhanh-percent, BV-D1-bo-gui-max BẮT |
+| 3 K1 "tạo bằng ĐÚNG thân màn hình gửi" | sửa câu ở `thu_P26c.js` (D1b) và dòng bảng vòng 1: thân lệnh GÕ TAY, giá trị màn hình gửi do D1a khoá; D1b xanh cả trên gốc | — |
+| Nghi ngờ A7c dòng suông | phép tĩnh đòi `if (!(…>= 1)) { … return; }` | VS-A7c-khong-return BẮT |
+| Nghi ngờ I11 / I18 bỏ qua mọi `hoan_goi`; đơn mua gói đã xoá | giữ — Phát hiện 6 (đề xuất DOI-SOAT-1) | — |
+| Nghi ngờ trần mã 1 món theo `discount_scope` HIỆN TẠI | Phát hiện 16 | — |
+| Nghi ngờ thẻ ở `GOI_THE_KHONG_DEN` không ca riêng | Phát hiện 17 (cùng điều kiện `product_id < 0`, ca gói B1e + đột biến BV-B1-den-dong-goi phủ điều kiện) | — |
+thu_P26c head 74 đạt · 0 hỏng; trên gốc `b9b3928` 20 đạt · 54 hỏng (bang_chung_do.txt).
+
+## Câu hỏi (vòng 2)
+4. **C2 — xoá đơn và nợ kho SX khi SX "đã làm mà báo lỗi / hết giờ"** (soát vòng 2 lỗi 1, HỒI QUY do P26c). POS coi SX lỗi khi quá 8 s
+   không trả lời (`sxApi.js:41-61`) dù SX có thể ĐÃ trừ kho; dòng nợ `out` vẫn `pending`. Bản P26c hiện nay hiểu "nợ out pending =
+   hàng chưa tới SX" → xoá đơn đánh `huy` nợ out và KHÔNG gửi in → nếu SX thật ra đã trừ thì SX thiếu 1 vĩnh viễn (agent soát chạy
+   thật, SX giả "làm rồi mới báo lỗi": HEAD SX ròng −1, gốc 0). Ba cách:
+   - **(a) Đề xuất — giữ cách cũ của xoá đơn**: xoá vẫn gửi `in` và để sổ nợ đẩy cả out lẫn in; SX bỏ lệnh trùng vân tay
+     (`sxApi.js:155-157`) nên ròng luôn = 0 dù SX đã làm hay chưa. Đơn giản nhất (bỏ `boQuaKho`, `replace(':out:', ':in:')`, câu tra
+     thêm). Đổi lại: nợ kho của đơn đã xoá VẪN tự đẩy (trái chữ C2 "KHÔNG còn bị tự đẩy"); I7 đã chấp nhận vân tay của đơn đã xoá khi
+     qua đúng một dòng nợ đã xong (H6).
+   - (b) Giữ `huy` nhưng chỉ khi chắc SX chưa làm — POS không biết được (cần SX trả lời tra vân tay — ngoài phạm vi, việc SX).
+   - (c) Xoá đơn có nợ kho chưa xong → chặn (400 "đẩy sổ nợ trước rồi xoá") — chặn luồng hợp lệ khi SX đang lỗi.
+   Máy KHÔNG tự chọn. Chọn (a) thì C2 phần nợ kho của phiếu đổi thành "xoá đơn không làm SX lệch (ròng 0), kể cả khi SX báo lỗi".
+
+## Phát hiện (thêm, vòng 2)
+16. Trần đền mã giảm 1 món tra `discount_scope` theo mã HIỆN TẠI (`tienDaTra.js`) — chủ đổi phạm vi mã sau khi bán thì trần về chia
+    đều. Làm đúng cùng P26d (ghi giảm theo dòng lúc bán). Chưa đọc PUT `discount-codes.js` xem có cho đổi phạm vi.
+17. Báo sự cố trên dòng THẺ hội viên (`product_id ≤ −1000000`) bị chặn cùng điều kiện `product_id < 0` với dòng gói; chỉ có ca thử
+    cho dòng gói (B1e).
