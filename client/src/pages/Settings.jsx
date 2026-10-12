@@ -354,6 +354,8 @@ export default function Settings() {
   };
   const savePkg = async () => {
     if (!pkgForm.code || !pkgForm.name) { setMessage('Lỗi: Mã và tên bắt buộc'); return; }
+    // P26c (Câu hỏi 3): số lượt bán theo gói đã cài — không cho lưu gói dưới 1 lượt (máy chủ cũng chặn).
+    if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }
     setSaving(true);
     try {
       const url = editingPkg ? `/api/pos/packages/${editingPkg.id}` : '/api/pos/packages';
@@ -1185,7 +1187,7 @@ export default function Settings() {
                         <div style={{ flex: 2 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Giá bán (VND)</label>
                           <input className="input" type="number" min="0" value={pkgForm.price} onChange={e => setPkgForm({ ...pkgForm, price: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Tổng SL SP</label>
-                          <input className="input" type="number" min="0" value={pkgForm.total_qty} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
+                          <input className="input" type="number" min="1" value={pkgForm.total_qty} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>ĐVT</label>
                           <input className="input" value={pkgForm.unit} onChange={e => setPkgForm({ ...pkgForm, unit: e.target.value })} /></div>
                       </div>
