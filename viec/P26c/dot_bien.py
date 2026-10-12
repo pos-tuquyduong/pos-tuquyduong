@@ -55,8 +55,10 @@ DOT_BIEN = [
   ('BV-A7c-man-hinh', 'cli', [(SET, "    if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }\n", "", 1)], r'✗ A7c'),
   ('BV-B1-den-dong-goi', 'thu', [(D, 'if (tra.some((d) => Number(d.product_id) < 0)) {', 'if (false) {', 1)], r'✗ B1e'),
   ('VS-A3-chan-ca-gia-han', 'thu', [(O, 'if (customer_package_id && package_buy && items.some((i) => i.from_package)) {', 'if (customer_package_id && package_buy) {', 1)], r'✗ A3b'),
-  ('VS-D1-marker-suong', 'cli', [(SET, "        max_discount: rewardForm.discount_type === 'percent' ? (parseInt(rewardForm.max_discount) || 0) : 0,",
-                                 "        max_discount: 0,", 1)], r'✗ D1a'),
+  ('VS-D1-marker-suong', 'cli', [(SET, "        max_discount: parseInt(rewardForm.max_discount) || 0,", "        max_discount: 0,", 1)], r'✗ D1a'),
+  ('VS-D1-dao-nhanh-percent', 'cli', [(SET, "        max_discount: parseInt(rewardForm.max_discount) || 0,",
+                                       "        max_discount: rewardForm.discount_type === 'percent' ? 0 : (parseInt(rewardForm.max_discount) || 0),", 1)], r'✗ D1a'),
+  ('VS-A7c-khong-return', 'cli', [(SET, "{ setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }", "{ setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); }", 1)], r'✗ A7c'),
   # ── H4: trừ tiền đã đền ──
   ('BV-H4-bo-tru-den', 'thu', [(T, "tong = Math.max(0, tong - Number(den.n));", "tong = Math.max(0, tong);", 1)], r'✗ B5a'),
   ('VS-H4-chi-tru-o-don-goi', 'thu', [(T, "tong = Math.max(0, tong - Number(den.n));", "tong = Math.max(0, goi.length ? tong - Number(den.n) : tong);", 1)], r'✗ B5a'),
@@ -114,7 +116,7 @@ DOT_BIEN = [
   ('BV-C4-bo-tong-hoan', 'thu', [(R, "      tong_hoan: kq.tong_hoan", "      tong_hoan_bo: kq.tong_hoan", 1)], r'✗ C4'),
   ('BV-C5-bo-go-the', 'thu', [(O, 'await tx.run("DELETE FROM pos_membership_purchases WHERE order_id = ?", [order.id]);   // P26c (C5): như huỷ đơn', '', 1)], r'✗ C5'),
   # ── D: mã giảm giá, quà, hạng ──
-  ('BV-D1-bo-gui-max', 'cli', [(SET, "        max_discount: rewardForm.discount_type === 'percent'", "        tran_bo: rewardForm.discount_type === 'percent'", 1)], r'✗ D1'),
+  ('BV-D1-bo-gui-max', 'cli', [(SET, "        max_discount: parseInt(rewardForm.max_discount) || 0,", "", 1)], r'✗ D1a'),
   ('BV-D2-bo-tra-luot-huy', 'thu', [(O, '        await hoanVi(tx, order, req.user.username, now, "hủy");\n        await traLuotMa(tx, order);',
                                      '        await hoanVi(tx, order, req.user.username, now, "hủy");', 1)], r'✗ D2 mã 1 lượt dùng → huỷ'),
   ('BV-D2-bo-tra-luot-xoa', 'thu', [(O, '        await hoanVi(tx, order, req.user.username, now, "xóa");\n        await traLuotMa(tx, order);',
