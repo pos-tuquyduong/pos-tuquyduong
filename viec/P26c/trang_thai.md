@@ -132,3 +132,82 @@ P26b chạy lại trên HEAD: 48 / 59 BẮT. 11 không bắt — đều vì code
 9. Đơn có gói mua kèm phí ship: `tienDaTraTheoDong` trừ phí ship khỏi số chia cho dòng, nhưng `soTienHoan` hoàn
    `total − nợ − giá trị gói đã dùng` (gồm cả phí ship) — huỷ đơn mua gói có ship thì hoàn cả phí ship. Theo đúng chữ H2 ("tổng
    khách đã trả cho đơn"); chủ quán biết để quyết.
+
+## Soát độc lập — vòng 1 (chép nguyên báo cáo)
+
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/routes/orders.js:1524-1534 (C2) — Xoá đơn đánh `huy` MỌI nợ `out` còn chờ mà KHÔNG xét chiều `in` ĐÃ tới SX chưa. Đường:
+   bán lúc SX lỗi (nợ out POS:id:out:0 pending) → SX sống lại → nhân viên huỷ: orders.js:1446-1457 gửi inStockReturn thẳng, THÀNH
+   CÔNG, không có dòng nợ `in` → chủ xoá: out→huy. SX được cộng 1 mà không bao giờ bị trừ. Chạy thật (scratchpad/soat_c2.js, SX
+   giả bật/tắt): HEAD `sxNhan [["in",1,"POS:1:in:0"]]`, nợ out → `huy`, SX ròng +1; server gốc 35f76b4: out vẫn `pending`, SX ròng 0.
+   Hồi quy do P26c — khuôn K4 (đường huỷ-rồi-xoá khi SX đã sống); thu_P26c tắt SX hoàn toàn (thu_P26c.js:10) nên không thể dựng ca
+   này; C2b/C2d/C2e + VS-C2-* không phủ. Sửa đúng + đơn giản: với đơn `cancelled`, chỉ huỷ `out` khi dòng `in` cùng món CÒN chờ;
+   không có thì để nguyên `out`.
+2. server/routes/damages.js:153-183 (Q4/K4) — "Hoàn tiền" sự cố trên DÒNG GÓI của đơn mua gói (dòng gói có product_code = mã gói,
+   unit_price = giá gói) → hoàn trọn giá gói trong khi gói VẪN dùng được, không cần quyền `refund_package`, trần theo giá đã trả chứ
+   không theo giá trị còn lại. Chạy (scratchpad/soat_them.js ca 1): mua gói 300.000 tiền mặt → đền 300.000 → 200, ví 0 → 300.000,
+   rồi lấy 10 ly → 200. Mặc định chỉ owner (manage_orders không có trong danh sách quyền mặc định database.js:935-965); nếu chủ
+   cấp manage_orders cho quản lý thì quản lý lách được cổng Q4. Cùng khuôn lỗ Q4 vừa vá ở huỷ/xoá, chưa có trong Phát hiện.
+3. server/utils/tienDaTra.js:10-17 + orders.js:871-878 (Q2/B1) — giảm mã giảm-1-món (`discount_scope='item'`, orders.js:609-623)
+   chỉ nằm trong tổng giảm đơn, `signup_unit_price` không ghi xuống DB → `tienDaTraTheoDong` chia đều phần giảm cho mọi dòng. Ví dụ:
+   A 100.000 (mã giảm A 50.000) + B 100.000, khách trả 150.000 → trần đền A = 75.000 nhưng khách chỉ trả 50.000 cho A (đền quá
+   25.000); trần B = 75.000 nhưng khách trả 100.000 (chặn oan). Suy từ code, chưa chạy. K4/K5.
+4. server/routes/orders.js:1306-1309 (H2) — đơn mua gói hoàn cả phần tiền mặt vào ví nhưng ghi `cot: total_spent, soCot: -con`.
+   Chạy (ca 2): gói 300.000 tiền mặt, owner huỷ → ví `{"balance":300000,"total_topup":0,"total_spent":-300000}`. total_spent âm hiện
+   ở customers-v2.js:443 và kéo lệch `all_time_spent` (reports.js:228). I18 (bat_bien.js:293-305) định nghĩa total_spent = mua −
+   hoàn nên coi số âm là đúng — quy tắc đối soát chưa đúng nghĩa (điều 5).
+5. server/routes/damages.js:158 (B3/K4) — chỉ chặn thứ tự "huỷ trước, Hoàn kho SX sau". Thứ tự ngược: "Hoàn kho SX" trước
+   (damages.js:204-213 gọi `/api/pos/stock/return` KHÔNG vân tay) rồi huỷ (orders.js:1446) / xoá (orders.js:1588) → SX nhận hàng về
+   hai lần. Chưa có trong Phát hiện.
+6. cong_cu/thu_P26c.js:492-498 (D1/K3) — phép tĩnh chỉ kiểm có chuỗi `max_discount:` trong thân lệnh gửi = kiểm marker. Đã thử
+   marker suông `max_discount: 0,` trong bản sao client → `✓ D1 … 65 đạt · 0 hỏng`. Ca số tiền của phiếu (quà 50 % trần 50.000, đơn
+   500.000 → giảm 50.000) không có bài nào chạy đúng số đó (kich_ban.js:586-589 dùng trần 7.000 và chỉ phía máy chủ — có từ trước).
+7. server/routes/orders.js:186-189 (A3/K5) — chặn `customer_package_id && package_buy` không xét có món lấy từ gói cũ. Sales.jsx:744
+   gửi `activePkgId` mỗi khi nhân viên đã bật gói cũ; addPkgToCart (Sales.jsx:485-493) không tắt gói cũ → luồng "bật gói cũ, không
+   lấy gì, mua gói mới" (khách gia hạn) nay 400. Không có ca "phải KHÔNG bị chặn" cho luồng này. Gọn hơn: chỉ chặn khi
+   `layTuGoi > 0`.
+
+NGHI NGỜ:
+- orders.js:381-382 (K5, dữ liệu cũ): `pos_packages.total_qty` DEFAULT 0 (database.js:828), packages.js:44 lưu `total_qty || 0`. Gói
+  cài 0 lượt trước đây vẫn bán được nhờ màn hình gửi 30 (Sales.jsx:489, 746); nay 400 GOI_CHUA_CAI_LUOT — quầy không bán được gói đó.
+  trang_thai Phát hiện 8 coi là "chỉ lời hiển thị sai", không nêu thành câu hỏi cho chủ quán. Cần chạy trên production
+  `SELECT code FROM pos_packages WHERE is_active=1 AND COALESCE(total_qty,0)<=0`.
+- doSoNo.js:79-81 `SET status='resolved' WHERE id=?` không điều kiện trạng thái: sổ nợ đang đẩy đúng dòng out mà lệnh xoá chuyển
+  `huy` và bỏ gửi in → SX bị trừ không được cộng lại. Chạy đua, chưa dựng được.
+- refunds.js:165-168: đã đền đủ phần ví → `con` = 0 nhưng vẫn ghi dòng sổ `refund 0` và báo "Đã hoàn 0đ". Chạy (ca 3): sổ
+  `[purchase -20000, compensation 20000, refund 0]`. Không sai tiền, dòng sổ rác.
+- Đơn mua gói đã XOÁ: dòng `hoan_goi` không còn gì đối chiếu (I11 bỏ qua, I19 chỉ đơn còn). Tính năng tiền mới chưa có quy tắc đối
+  soát — hồ sơ ghi nhận ở Phát hiện 6 nhưng vẫn là lỗ của điều 5.
+
+NGHIỆM THU: 24/26 mục có bằng chứng · mục thiếu: D1, C2
+- A1 ✓ (A1a-c) · A2 ✓ (A2a-e) · A3 ✓ · A4 ✓ · A5 ✓ (A5a-k) · A6 ✓ (A6a-c)
+- B1 ✓ (B1a-d đúng số phiếu) · B2 ✓ · B3 ✓ · B4 ✓ · B5 ✓ (B5a-d)
+- C1 ✓ · C2 ✗ (có ca C2a-e nhưng sai ở nhánh huỷ-khi-SX-sống-rồi-xoá, lỗi 1) · C3 ✓ (C3 + VS-C3-dau-soCot) · C4 ✓ · C5 ✓ (C5 + KB32)
+- D1 ✗ (lỗi 6) · D2 ✓ · D3 ✓ · D4 ✓ · D5 ✓
+- E1 ✓ · E2 ✓ (bánh cóc 32/18; chay.js 33,5 s; không ghi số đo từng lượt sau vá trong hồ sơ) · E3 ✓ (theo hồ sơ; tôi chạy lại 4/4 BẮT)
+- G ✓ (đối chiếu ke_hoach.md:133) · H ✓ (`--day-du` PASS 66 · FAIL 0 · CẢNH BÁO 0, gồm thu_P26c, thu_P26b, thu_gia_lap; dist khớp src)
+K3: thu_P26c trên server gốc 35f76b4 (client HEAD) 20 đạt · 45 hỏng, thoát 1 — cộng 2 phép tĩnh client thì khớp 18/47 hồ sơ. Ca động
+kiểm số tiền / trạng thái thật, không marker; điểm yếu duy nhất D1. P1: không lỗi. Đường tiền: không trường tiền nào tin client. K1: các
+câu kiểm lại trong trang_thai khớp code.
+
+CHƯA SOÁT ĐƯỢC: chưa chạy lại toàn bộ đột biến cũ và dot_bien.py đủ 80 (chỉ 4); chưa chạy `npm test` riêng (đã `--day-du`); chưa xem
+dữ liệu production (gói 0 lượt, đơn trạng thái khác completed, mã giảm-1-món đang dùng); không dựng được chạy đua doSoNo/xoá; lỗi 3
+chưa chạy thật.
+
+Đơn giản (mục 8): database.js:969-972 thêm refund_package vào danh sách mặc định trong khi vòng INSERT OR IGNORE :983-986 đã đủ — bỏ 3
+dòng. orders.js:1343-1351 chép logic checkPermission (auth.js:83-112) — auth.js ngoài Phạm vi → Phát hiện. Ghi ví mẹ/con hai nơi:
+hoanVi (orders.js:1303-1315) và refunds.js:164-172 — có thể đặt hoanVi ở tienDaTra.js dùng chung. C2 dựng vân tay bằng
+replace(':out:', ':in:') + boQuaKho — dễ gãy, chính là chỗ sinh lỗi 1.
+
+BÀI HỌC:
+- KHOÁ: bài thử C2 phải có SX giả bật/tắt được (bán lúc lỗi → SX sống → huỷ → xoá, SX ròng = 0); thêm đột biến "huỷ out không xét in".
+- KHOÁ: ca báo sự cố "Hoàn tiền" trên dòng gói phải 400 (hoặc theo Q4); ca "Hoàn kho SX rồi huỷ/xoá → SX nhận đúng một lần".
+- KHOÁ: D1 cần ca động — POST /rewards qua đúng thân lệnh màn hình gửi rồi đơn 500.000 giảm 50.000 — hoặc phép tĩnh kiểm giá trị gửi
+  lấy từ `rewardForm.max_discount`.
+- NGUYÊN TẮC (K3/K4): đường hai chiều (out/in, đền/huỷ) mà huỷ/gỡ một vế → liệt kê mọi tổ hợp "vế kia đã tới đích chưa", mỗi tổ hợp
+  một ca; bài thử tắt hẳn bên ngoài (SX tắt) chỉ phủ nhánh "chưa tới".
+- NGUYÊN TẮC (K5): điều kiện chặn xét đúng hành vi nguy hiểm (có lấy lượt), không xét sự có mặt của trường; dữ liệu cũ có giá trị mặc
+  định 0 → câu hỏi cho chủ quán, không để thành Phát hiện "chỉ hiển thị".
+```
