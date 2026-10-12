@@ -230,7 +230,7 @@ quản lý có quyền huỷ đơn mua gói · thu nợ đơn `completed` · d�
    409, kho không đổi) — mỗi route một ca, không mỗi nhánh (một route một giao dịch).
 4. **K4 — đếm ly từ gói**: cộng theo `from_package` (`orders.js:1024`), trừ theo `unit_price = 0` (`:1383`, `:1522`). Đã xác
    minh: món 0đ chỉ có thể là món lấy từ gói — `orders.js:292` chặn `price <= 0` khi không `from_package`, giá dòng lấy từ
-   `product.price` (`:350`), giảm mã 1-món không đổi `unit_price` (`:610`). Hai cách đếm trùng nhau → không sửa.
+   `product.price` (`:349`), giảm mã 1-món không đổi `unit_price` (`:610`). Hai cách đếm trùng nhau → không sửa.
 5. **K4 — duyệt hoàn cũng làm đơn mất hiệu lực** (`refunds.js:157`): H7 hỏi luôn cho đường duyệt hoàn (đề xuất: trả lượt mã như
    huỷ). Q2/B5 (H4) đã gồm duyệt hoàn.
 6. **K4 — `return_stock` khi nợ `out` của món còn chờ** (hàng chưa ra khỏi SX mà hoàn về) → hoàn kho hai lần khi sổ nợ đẩy. Ngoài
