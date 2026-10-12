@@ -6,13 +6,22 @@
 /**
  * Mỗi dòng của đơn kèm `da_tra`: giá sau flash / hạng × số lượng, chia theo tỉ lệ tiền hàng khách trả (total − phí ship) —
  * nên gồm cả giảm cấp đơn (mã, giảm tay). Làm tròn xuống: tổng các dòng không bao giờ vượt số khách trả.
+ * `chanTren` (trần đền — damages.js): đơn có mã giảm 1 MÓN thì không biết món nào được giảm (giảm không ghi xuống dòng) →
+ * MỌI dòng "đã trả = giá dòng − toàn bộ giảm của mã" — không bao giờ đền quá (chủ quán chốt Câu hỏi 2, 12.10; làm đúng cần cột
+ * giảm theo dòng → P26d).
  */
-async function tienDaTraTheoDong(tx, order) {
+async function tienDaTraTheoDong(tx, order, chanTren = false) {
   const dong = await tx.query(`SELECT product_id, product_code, quantity, unit_price, flash_unit_price, tier_unit_price
     FROM pos_order_items WHERE order_id = ? ORDER BY id`, [order.id]);
   const gia = dong.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
   const tong = gia.reduce((a, b) => a + b, 0);
   const tra = Math.min(tong, Math.max(0, Number(order.total || 0) - Number(order.shipping_fee || 0)));
+  const ma = chanTren && order.discount_code
+    ? await tx.queryOne('SELECT discount_scope FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [order.discount_code]) : null;
+  if (ma?.discount_scope === 'item') {
+    const giam = Number(order.discount || 0) - Number(order.flash_discount || 0) - Number(order.tier_discount || 0);
+    return dong.map((d, i) => ({ ...d, da_tra: Math.max(0, gia[i] - giam) }));
+  }
   return dong.map((d, i) => ({ ...d, da_tra: tong > 0 ? Math.floor((gia[i] * tra) / tong) : 0 }));
 }
 
