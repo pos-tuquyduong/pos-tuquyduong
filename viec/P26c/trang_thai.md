@@ -111,7 +111,7 @@ P26b chạy lại trên HEAD: 48 / 59 BẮT. 11 không bắt — đều vì code
   và `VS-E3-phien-ban-cu` (HOC-2) HỎNG cả trên gốc — có từ trước, không phải việc này.
 
 ## Câu hỏi
-1. **`## Bài thử cũ sửa` cho `cong_cu/thu_P26b.js`** — bài đã có, sửa 3 ca (thêm `refund_amount`, mục trên) và vẫn XANH trên code
+1. **[ĐÃ TRẢ LỜI 12.10 — chủ quán: KHÔNG thêm mục miễn; thêm ca Q3 vào thu_P26b — xem "Xử lý vòng 1"]** `## Bài thử cũ sửa` cho `cong_cu/thu_P26b.js` — bài đã có, sửa 3 ca (thêm `refund_amount`, mục trên) và vẫn XANH trên code
    gốc (chạy cây `b9b3928` + bài head: 65 đạt · 0 hỏng) → cổng A11 sẽ đỏ nếu phiếu không miễn. Đề nghị chủ quán thêm vào phiếu:
    `## Bài thử cũ sửa` / `- cong_cu/thu_P26b.js — Q3 bỏ "gõ 0 = đền đủ": 3 ca báo hỏng hoàn tiền phải gửi kèm số tiền`.
    Máy KHÔNG tự sửa phiếu.
@@ -211,3 +211,42 @@ BÀI HỌC:
 - NGUYÊN TẮC (K5): điều kiện chặn xét đúng hành vi nguy hiểm (có lấy lượt), không xét sự có mặt của trường; dữ liệu cũ có giá trị mặc
   định 0 → câu hỏi cho chủ quán, không để thành Phát hiện "chỉ hiển thị".
 ```
+
+## Xử lý soát vòng 1 (vòng sửa 1/3)
+| Lỗi | Xử lý | Bằng chứng |
+|---|---|---|
+| 1 C2 huỷ-khi-SX-sống-rồi-xoá: out → huy, SX ròng +1 (HỒI QUY) | `orders.js` xoá: đơn `cancelled` mà `in` cùng món KHÔNG còn nợ (đã tới SX) → giữ nguyên nợ `out` để đẩy; chỉ huỷ cặp out+in khi `in` còn nợ. thu_P26c thay SX tắt hẳn bằng SX GIẢ bật/tắt | thu_P26c C2f (SX ròng = 0, nợ out còn chờ); đột biến VS-C2-huy-out-khong-xet-in BẮT |
+| 2 đền sự cố trên DÒNG GÓI lách cổng Q4 | `damages.js`: "Hoàn tiền" trên dòng `product_id < 0` (gói / thẻ, orders.js:376, :397) → 400 `GOI_THE_KHONG_DEN` — theo Q4 (hoàn gói chỉ qua huỷ / xoá có quyền); "Chỉ ghi nhận" vẫn được | thu_P26c B1e; BV-B1-den-dong-goi BẮT |
+| 3 mã giảm-1-món chia đều | KHÔNG sửa — nghiệp vụ chưa chốt, không phải hồi quy (trước P26c trần theo giá gốc, đền quá NHIỀU hơn) → Câu hỏi 2 | — |
+| 4 total_spent âm khi hoàn gói trả tiền mặt | `hoanVi`: phần ≤ số khách trả bằng ví ghi dòng `cash` có giảm total_spent; phần vượt (tiền mặt / CK, H2) ghi dòng riêng `hoan_goi`, KHÔNG đụng total_spent. I18 không tính dòng `hoan_goi`; I11 nay canh lại được phần ví của đơn mua gói | thu_P26c A5c2 (sổ 100.000 cash + 80.000 hoan_goi, total_spent 0), A5d (total_spent không đổi); thu_gia_lap ca tay I18 hoan_goi; VS-H2-hoan-goi-giam-total-spent, VS-H2-mot-dong-hoan-goi BẮT |
+| 5 Hoàn kho SX trước rồi huỷ / xoá → SX nhận về hai lần | KHÔNG sửa — có từ trước, ngoài B3 (phiếu: "trên đơn đã huỷ") → Phát hiện 10 | — |
+| 6 D1 phép tĩnh = marker | phép tĩnh nay đòi giá trị gửi LẤY TỪ `rewardForm.max_discount` (D1a); thêm ca động đúng số phiếu: quà 50 % trần 50.000 tạo bằng thân màn hình gửi → đổi điểm → đơn 500.000 giảm 50.000 (D1b) | VS-D1-marker-suong (`max_discount: 0`) BẮT |
+| 7 A3 chặn oan gia hạn | chặn chỉ khi đơn CÓ món lấy từ gói (`items.some(from_package)`) | thu_P26c A3b (K5 gia hạn → 200); VS-A3-chan-ca-gia-han BẮT |
+| Đơn giản: quyền mặc định trùng | bỏ 3 dòng `refund_package` khỏi danh sách mặc định — vòng INSERT OR IGNORE chạy mọi lần khởi động đã đủ | Q4a, Q4b xanh |
+| Nghi ngờ: gói cài 0 lượt | → Câu hỏi 3 (dữ liệu cũ, K5) | — |
+| Nghi ngờ: chạy đua doSoNo / xoá; dòng sổ `refund 0` | → Phát hiện 11, 12 | — |
+| Đơn giản: hoanVi dùng chung với duyệt hoàn | KHÔNG gộp — duyệt hoàn cần ghi lại `refund_amount` + gắn `balance_transaction_id` (I17), khác huỷ / xoá; gộp thêm nhánh | — |
+
+Trả lời Câu hỏi 1 (chủ quán 12.10): thêm `thu_P26b` C1e — đơn RIÊNG, "Hoàn tiền" gửi 0 / không gửi số → 400, không dòng sổ ví nào.
+Cây gốc + bài head: 65 đạt · 1 hỏng (chỉ C1e), thoát 1 → A11 hợp lệ; head 66 đạt. Đột biến BV-B2-bo-chan-so-0-thu-P26b BẮT.
+(Lần đầu đặt C1e chung đơn C1 → trên gốc C1c, C4a đỏ lây — tách đơn riêng, K3.)
+
+## Câu hỏi (mới, vòng 1)
+2. **Mã giảm-1-món + báo sự cố** (soát vòng 1 lỗi 3): giảm của mã 1 món không ghi xuống dòng (`signup_unit_price` chỉ hiển thị),
+   nên `tienDaTraTheoDong` chia đều phần giảm cho mọi dòng. Ví dụ A 100.000 (mã giảm A 50.000) + B 100.000, trả 150.000 → trần đền A
+   75.000 (khách trả 50.000), B 75.000 (khách trả 100.000). Đề xuất đơn giản: tạm thời coi mọi dòng của đơn có mã 1-món là "đã trả =
+   giá dòng − toàn bộ giảm" (không bao giờ đền quá, có thể chặn oan B — quản lý dùng "Chỉ ghi nhận"); làm đúng cần thêm cột giảm theo
+   dòng (đổi cấu trúc DB — phiếu cấm nếu chưa duyệt). Chủ quán chọn; hiện để nguyên chia đều.
+3. **Gói cài 0 lượt (dữ liệu cũ, K5)**: `pos_packages.total_qty` DEFAULT 0 (database.js:828), màn quản lý gói lưu `total_qty || 0`.
+   Trước P26c gói 0 lượt vẫn bán được (màn hình gửi số mặc định 30); nay A6 → 400 `GOI_CHUA_CAI_LUOT`, quầy không bán được gói đó tới
+   khi sửa gói. Trước khi gộp cần chạy trên production: `SELECT code, name FROM pos_packages WHERE is_active = 1 AND COALESCE(total_qty, 0) <= 0;`
+   — có dòng nào thì cài số lượt cho gói đó trước, hoặc chủ quán chọn cho bán với số khác.
+
+## Phát hiện (thêm, vòng 1)
+10. "Hoàn kho SX" (báo sự cố, `damages.js` gọi `/api/pos/stock/return` không vân tay) RỒI huỷ / xoá đơn → SX nhận hàng về hai lần.
+    Có từ trước; B3 chỉ chặn chiều ngược (huỷ rồi hoàn kho). Đề xuất: huỷ / xoá trừ số đã hoàn kho qua báo sự cố khỏi lệnh `in`.
+11. `doSoNo.js:79-81` `SET status = 'resolved' WHERE id = ?` không điều kiện trạng thái — sổ nợ đang đẩy đúng dòng out mà lệnh xoá
+    chuyển `huy` + bỏ gửi in → SX trừ không cộng lại. Chạy đua, chưa dựng được ca (CHƯA KIỂM).
+12. Duyệt hoàn khi tiền đã đền ≥ phần ví → ghi dòng sổ `refund 0` (I17 cần dòng gắn yêu cầu) và báo "Đã hoàn 0đ". Không sai tiền.
+13. `orders.js` (cổng Q4 trong huỷ đơn) chép logic `checkPermission` (`middleware/auth.js:83-112`, ngoài Phạm vi) — đề xuất việc sau
+    xuất một hàm `coQuyen(role, quyen)` dùng chung.
