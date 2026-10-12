@@ -7,9 +7,10 @@
  *      node cong_cu/thu_P26c.js [--may-chu <thư mục server>] [--client <thư mục client>]
  *  --may-chu / --client: chạy trên bản sao server/ / client/ (đột biến, viec/P26c/dot_bien.py).
  *
- *  Khuôn thu_P26b.js: database.js thật + libsql thật trên kho TẠM. SX GIẢ (thay utils/sxApi.js trước khi nạp route): mặc định
- *  `sx.song = false` = SX lỗi (bán / huỷ / xoá đẻ dòng nợ kho — như SX tắt); bật `sx.song` thì SX nhận và ghi vào `sx.nhan`
- *  (soát vòng 1 lỗi 1: SX tắt hẳn chỉ phủ nhánh "chưa tới SX" — ca C2f cần SX sống lại giữa chừng).
+ *  Khuôn thu_P26b.js: database.js thật + libsql thật trên kho TẠM. SX GIẢ (thay utils/sxApi.js trước khi nạp route), ba chế độ
+ *  `sx.che`: 'loi' (mặc định — báo lỗi, KHÔNG làm; bán / huỷ / xoá đẻ dòng nợ kho), 'song' (làm), 'het_gio' (LÀM rồi mới báo lỗi —
+ *  quá 8 s, sxApi.js:41-61). Như SX thật, SX giả bỏ lệnh TRÙNG vân tay (sxApi.js:155-157); `sx.daLam` giữ +sl / −sl theo vân tay.
+ *  Soát vòng 1 lỗi 1 + vòng 2 lỗi 1: SX tắt hẳn chỉ phủ nhánh "chưa tới SX" — ca C2 đo SX RÒNG = 0 sau khi đẩy sổ nợ.
  *  Công tắc co.banCauDau: câu ĐẦU trong giao dịch kế tiếp ném SQLITE_BUSY (Turso gửi BEGIN lười — ca K1b của P26b).
  *  Ba người: chủ (owner), quản lý (manager), nhân viên (staff). Chỉ so status / code / kho — không dò chữ (E12).
  *  Hai phép tĩnh đọc <client>/src/pages (mặc định client/ của kho): D1 Settings.jsx, A6 Sales.jsx.
@@ -56,12 +57,18 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
 
-  const sx = { song: false, nhan: [] };
+  const sx = { che: 'loi', daLam: new Map() };
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
-  const sxGia = (chieu) => async (...a) => { if (!sx.song) throw new Error('SX lỗi (giả)'); sx.nhan.push([chieu, a[a.length - 1]]); return { ok: true }; };
+  const sxGia = (chieu) => async (loai, id, sl, ma, vt) => {
+    if (sx.che === 'loi') throw new Error('SX lỗi (giả)');
+    if (vt && !sx.daLam.has(vt)) sx.daLam.set(vt, chieu === 'in' ? Number(sl) : -Number(sl));   // trùng vân tay → SX bỏ qua
+    if (sx.che === 'het_gio') throw new Error('SX không phản hồi (giả — đã làm)');
+    return { ok: true };
+  };
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => true, checkStock: async () => ({ sufficient: true, stock: 999 }),
-    outStockFIFO: sxGia('out'), inStockReturn: sxGia('in'), callSxApi: sxGia('tra') };
+    outStockFIFO: sxGia('out'), inStockReturn: sxGia('in'),
+    callSxApi: async () => { if (sx.che === 'loi') throw new Error('SX lỗi (giả)'); return { ok: true }; } };
 
   const co = { banCauDau: false };
   const txGoc = db.beginTransaction;
@@ -492,45 +499,42 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[C2] xoá đơn: không còn mã bill mồ côi; nợ kho out chưa tới SX thành huy, không gửi in');
+  muc('[C2] xoá đơn: không còn mã bill mồ côi; kho SX RÒNG = 0 trong mọi trường hợp (Câu hỏi 4 = a)');
   {
     const d = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
     await db.run("INSERT INTO pos_signup_codes (code, order_id, issued_at) VALUES ('MB_CHUA_DUNG', ?, datetime('now'))", [d]);
-    const outTruoc = await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status = 'pending'", [d]);
     const x = await xoa(d);
     const conMa = await so("SELECT COUNT(*) FROM pos_signup_codes WHERE code = 'MB_CHUA_DUNG'");
     k('C2a xoá đơn có mã bill CHƯA dùng → mã bị xoá', x.status === 200 && conMa === 0, `${moTa(x)} · còn ${conMa}`);
-    const cho = await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status IN ('pending', 'can_xem')", [d]);
-    const huyNo = await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status = 'huy'", [d]);
-    k('C2b bán lúc SX lỗi (nợ out) rồi xoá → nợ out thành huy, không thêm nợ in, không còn nợ chờ đẩy', outTruoc === 1 && huyNo === 1 && cho === 0,
-      `nợ out trước ${outTruoc} · huy ${huyNo} · còn chờ ${cho}`);
     const d2 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
     await db.run("INSERT INTO pos_signup_codes (code, order_id, issued_at, claimed_at, claimed_phone) VALUES ('MB_DA_DUNG', ?, datetime('now'), datetime('now'), '0900000099')", [d2]);
     await xoa(d2);
     k('C2c (K5, H5) mã bill ĐÃ dùng giữ làm vết', await so("SELECT COUNT(*) FROM pos_signup_codes WHERE code = 'MB_DA_DUNG'") === 1);
-    const d3 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
-    await db.run("UPDATE pos_stock_pending SET status = 'resolved' WHERE order_id = ? AND direction = 'out'", [d3]);   // out đã tới SX
-    await huy(d3);   // SX tắt → nợ in chờ
-    await xoa(d3);
-    k('C2d (K5, H6) đơn huỷ (out đã tới SX, in còn nợ) rồi xoá → nợ in VẪN chờ đẩy',
-      await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'in' AND status = 'pending'", [d3]) === 1);
-    const d4 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
-    await huy(d4);   // SX tắt: out lúc bán VÀ in lúc huỷ đều nợ — hàng chưa từng ra khỏi SX
-    await xoa(d4);
-    k('C2e bán + huỷ lúc SX lỗi rồi xoá → nợ out VÀ nợ in cùng món thành huy, không còn nợ chờ đẩy (K4: đường huỷ-rồi-xoá)',
-      await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status = 'huy'", [d4]) === 2
-        && await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status IN ('pending', 'can_xem')", [d4]) === 0);
-    // Soát vòng 1 lỗi 1: bán lúc SX lỗi (nợ out) → SX SỐNG lại → huỷ (in tới SX thẳng) → xoá. SX ròng (in − out − out còn nợ) = 0.
-    const d5 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
-    sx.song = true;
-    const nhan0 = sx.nhan.length;
-    const h5 = await huy(d5), x5 = await xoa(d5);
-    sx.song = false;
-    const nhan = sx.nhan.slice(nhan0).filter(([, vt]) => String(vt).startsWith(`POS:${d5}:`));
-    const choOut = await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status = 'pending'", [d5]);
-    const rong = nhan.filter(([c]) => c === 'in').length - nhan.filter(([c]) => c === 'out').length - choOut;
-    k('C2f bán lúc SX lỗi → SX sống → huỷ (in tới SX) → xoá: nợ out VẪN chờ đẩy, SX ròng = 0', h5.status === 200 && x5.status === 200
-      && choOut === 1 && rong === 0, `${moTa(h5)} / ${moTa(x5)} · SX nhận ${JSON.stringify(nhan)} · nợ out chờ ${choOut} · ròng ${rong}`);
+    // Kho SX ròng: mỗi ca bán (→ huỷ) → xoá theo chế độ SX từng bước, rồi SX sống và ĐẨY SỔ NỢ tới hết; SX ròng của đơn phải = 0,
+    // không còn nợ chờ. Chủ quán chốt Câu hỏi 4 = (a): C2 / H6 hiểu là "kho SX ròng đúng trong mọi trường hợp", không phải "không đẩy".
+    const doSoNo = require(path.join(MAY_CHU, 'utils', 'doSoNo.js')).doSoNo;   // nạp SAU khi thay sxApi
+    const rong = (id) => [...sx.daLam].filter(([vt]) => vt.startsWith(`POS:${id}:`)).reduce((t, [, v]) => t + v, 0);
+    const caKho = async (ten, cheBan, cheHuy, cheXoa) => {
+      sx.che = cheBan;
+      const id = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
+      let h = { status: 200 };
+      if (cheHuy) { sx.che = cheHuy; h = await huy(id); }
+      sx.che = cheXoa;
+      const xx = await xoa(id);
+      sx.che = 'song';
+      imLang();
+      try { for (let i = 0; i < 100 && (await doSoNo()).daDoc > 0; i++); } finally { noiLai(); }
+      sx.che = 'loi';
+      const cho = await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status IN ('pending', 'can_xem')", [id]);
+      k(ten, h.status === 200 && xx.status === 200 && rong(id) === 0 && cho === 0,
+        `${moTa(h)} / ${moTa(xx)} · SX ròng ${rong(id)} · ${JSON.stringify([...sx.daLam].filter(([vt]) => vt.startsWith(`POS:${id}:`)))} · nợ chờ ${cho}`);
+    };
+    await caKho('C2b bán lúc SX lỗi → xoá lúc SX lỗi → đẩy sổ nợ: SX ròng 0', 'loi', null, 'loi');
+    await caKho('C2e bán + huỷ lúc SX lỗi → xoá → đẩy sổ nợ: SX ròng 0', 'loi', 'loi', 'loi');
+    await caKho('C2f bán lúc SX lỗi → SX sống → huỷ (in tới SX) → xoá → đẩy: SX ròng 0 (soát vòng 1 lỗi 1)', 'loi', 'song', 'song');
+    await caKho('C2g bán lúc SX HẾT GIỜ (đã trừ mà báo lỗi) → xoá → đẩy: SX ròng 0 (soát vòng 2 lỗi 1)', 'het_gio', null, 'song');
+    await caKho('C2h bán lúc SX hết giờ → huỷ lúc SX lỗi → xoá → đẩy: SX ròng 0 (soát vòng 2 lỗi 1, nhánh đơn đã huỷ)', 'het_gio', 'loi', 'loi');
+    await caKho('C2i (K5) bán + xoá lúc SX sống: SX ròng 0, không nợ', 'song', null, 'song');
   }
 
   // ═════════════════════════════════════════════════════════════════════════
