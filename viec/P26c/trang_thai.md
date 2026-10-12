@@ -384,7 +384,7 @@ BÀI HỌC:
 thu_P26c head 74 đạt · 0 hỏng; trên gốc `b9b3928` 20 đạt · 54 hỏng (bang_chung_do.txt).
 
 ## Câu hỏi (vòng 2)
-4. **C2 — xoá đơn và nợ kho SX khi SX "đã làm mà báo lỗi / hết giờ"** (soát vòng 2 lỗi 1, HỒI QUY do P26c). POS coi SX lỗi khi quá 8 s
+4. **[ĐÃ TRẢ LỜI 12.10 — chủ quán chọn (a); làm ở vòng sửa 3]** **C2 — xoá đơn và nợ kho SX khi SX "đã làm mà báo lỗi / hết giờ"** (soát vòng 2 lỗi 1, HỒI QUY do P26c). POS coi SX lỗi khi quá 8 s
    không trả lời (`sxApi.js:41-61`) dù SX có thể ĐÃ trừ kho; dòng nợ `out` vẫn `pending`. Bản P26c hiện nay hiểu "nợ out pending =
    hàng chưa tới SX" → xoá đơn đánh `huy` nợ out và KHÔNG gửi in → nếu SX thật ra đã trừ thì SX thiếu 1 vĩnh viễn (agent soát chạy
    thật, SX giả "làm rồi mới báo lỗi": HEAD SX ròng −1, gốc 0). Ba cách:
@@ -401,3 +401,25 @@ thu_P26c head 74 đạt · 0 hỏng; trên gốc `b9b3928` 20 đạt · 54 hỏn
     đều. Làm đúng cùng P26d (ghi giảm theo dòng lúc bán). Chưa đọc PUT `discount-codes.js` xem có cho đổi phạm vi.
 17. Báo sự cố trên dòng THẺ hội viên (`product_id ≤ −1000000`) bị chặn cùng điều kiện `product_id < 0` với dòng gói; chỉ có ca thử
     cho dòng gói (B1e).
+
+## Làm tiếp — vòng sửa 3/3 (chủ quán trả lời Câu hỏi 4 = (a), 12.10)
+- Bước 1: HEAD `38eb298` · FETCH_HEAD `38eb298` (bằng nhau). `git log --oneline -3`:
+  ```
+  38eb298 P26c: chep bao cao soat vong 2, xu ly vong 2, Cau hoi 4 (C2 no kho khi SX bao het gio), Phat hien 16-17
+  1131cbf P26c soat v2: bang chung do thu_P26c chay lai
+  c5192d4 P26c soat v2: dot bien D1 dao nhanh, A7c khong return
+  ```
+- **Cách hiểu C2 / H6 (chủ quán chốt):** mục tiêu là **kho SX ròng đúng trong MỌI trường hợp**, KHÔNG phải "nợ kho của đơn đã xoá
+  không được đẩy". Xoá đơn giữ cách cũ: vẫn gửi `in`, sổ nợ đẩy cả `out` lẫn `in`; SX bỏ lệnh trùng vân tay (`sxApi.js:155-157`)
+  nên ròng = 0 dù SX đã làm hay chưa, đã báo lỗi hay hết giờ. Phần mã bill của C2 (xoá mã chưa dùng, H5) giữ nguyên.
+- **Sửa:** `orders.js` xoá đơn — gỡ khối huỷ nợ `out` + `boQuaKho` (−21 dòng), thêm 2 dòng chú thích lý do ở chỗ gửi `in`.
+- **Bài thử:** `thu_P26c` SX giả 3 chế độ (`loi` / `song` / `het_gio` = làm rồi mới báo lỗi) + bỏ trùng vân tay; ca C2b, C2e, C2f,
+  C2g, C2h, C2i đo SX RÒNG của đơn = 0 sau khi đẩy sổ nợ tới hết (`doSoNo`). Trên HEAD `38eb298` (trước vòng 3): **74 đạt · 2 hỏng —
+  đúng C2g (bán hết giờ → xoá) và C2h (bán hết giờ → huỷ lỗi → xoá), SX ròng −1**; sau sửa 76 / 76. Trên gốc `b9b3928` các ca C2 ròng
+  XANH (gốc gửi đủ out + in — đúng như cách (a) giữ lại) → canh hồi quy. Ca C2d cũ (kiểm "nợ in VẪN chờ đẩy" bằng dữ liệu tay) thay bằng
+  các ca ròng (đo kết quả, không đo cách làm).
+- **Giả lập:** KB27 về mong đợi cũ — xoá đơn bán lúc SX lỗi → 2 dòng nợ chờ đẩy (out lúc bán + in lúc xoá); I7 chấp nhận vân tay của
+  đơn đã xoá khi qua đúng một dòng nợ ĐÃ xong (giữ thay đổi ở I7). 32 KB · 18 bất biến · ĐẠT.
+- **Đột biến C2:** bỏ BV-C2-bo-huy-no-out, VS-C2-huy-out-khong-xet-in, VS-C2-huy-ca-no-in-da-toi-sx, VS-C2-khong-huy-no-in-cung-mon,
+  VS-C2-van-gui-in (neo vào khối đã gỡ — chủ quán chốt bỏ cách làm đó). Thêm **VS-C2-xoa-huy-no-out** (đưa ĐÚNG lỗi vòng 2 trở lại:
+  xoá đánh huy nợ out + bỏ gửi in → ✗ C2g) và **BV-C2-xoa-khong-gui-in** (xoá không gửi in → ✗ C2b). Đều BẮT.
