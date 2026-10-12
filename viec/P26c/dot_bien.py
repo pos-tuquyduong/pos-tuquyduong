@@ -29,6 +29,7 @@ DOT_BIEN = [
   # ── B2 (Q3): hoàn tiền phải > 0 ──
   ('BV-B2-bo-chan-so-0', 'thu', [(D, "if (!(soGui > 0)) return", "if (false) return", 1)], r'✗ B2a'),
   ('VS-B2-chi-chan-so-am', 'thu', [(D, "if (!(soGui > 0)) return", "if (soGui < 0) return", 1)], r'✗ B2a'),
+  ('BV-B2-bo-chan-so-0-thu-P26b', 'thub', [(D, "if (!(soGui > 0)) return", "if (false) return", 1)], r'✗ C1e'),
   # ── B1 (Q2): trần theo số đã trả ──
   ('BV-B1-tran-gia-goc', 'thu', [(D, "Math.max(...tra.map((d) => d.da_tra / Number(d.quantity)))", "Math.max(...tra.map((d) => Number(d.unit_price)))", 1),
                                  (D, "tra.reduce((t, d) => t + d.da_tra, 0)", "tra.reduce((t, d) => t + Number(d.unit_price) * Number(d.quantity), 0)", 1)], r'✗ B1a'),
@@ -40,7 +41,13 @@ DOT_BIEN = [
   ('VS-H2-chi-phan-vi', 'thu', [(T, "    tong = Number(order.total || 0) - Number(order.debt_amount || 0) - Math.ceil(daDung);",
                                     "    tong = Math.min(viDaTra, Number(order.total || 0) - Number(order.debt_amount || 0) - Math.ceil(daDung));", 1)], r'✗ A5c'),
   ('VS-H2-me-khong-nhan-truoc', 'thu', [(T, "const me = order.parent_phone ? Math.min(Number(order.parent_balance_amount || 0), tong) : 0;", "const me = 0;", 1)], r'✗ A5g'),
-  ('VS-H2-khong-ghi-hoan-goi', 'kb23', [(O, 'cachTra: coGoi ? "hoan_goi" : "cash"', 'cachTra: "cash"', 1)], r'KB23 → (HTTP: xoá đơn mua gói trả tiền mặt|I11)'),
+  ('VS-H2-khong-ghi-hoan-goi', 'kb23', [(O, '[con - tuVi, "hoan_goi", null]', '[con - tuVi, "cash", null]', 1)], r'KB23 → (HTTP: xoá đơn mua gói trả tiền mặt|I11)'),
+  ('VS-H2-hoan-goi-giam-total-spent', 'thu', [(O, '[con - tuVi, "hoan_goi", null]', '[con - tuVi, "hoan_goi", "total_spent"]', 1)], r'✗ A5c2'),
+  ('VS-H2-mot-dong-hoan-goi', 'thu', [(O, 'const tuVi = coGoi ? Math.min(con, Number(order.balance_amount || 0)) : con;', 'const tuVi = coGoi ? 0 : con;', 1)], r'✗ A5c2'),
+  ('BV-B1-den-dong-goi', 'thu', [(D, 'if (tra.some((d) => Number(d.product_id) < 0)) {', 'if (false) {', 1)], r'✗ B1e'),
+  ('VS-A3-chan-ca-gia-han', 'thu', [(O, 'if (customer_package_id && package_buy && items.some((i) => i.from_package)) {', 'if (customer_package_id && package_buy) {', 1)], r'✗ A3b'),
+  ('VS-D1-marker-suong', 'cli', [(SET, "        max_discount: rewardForm.discount_type === 'percent' ? (parseInt(rewardForm.max_discount) || 0) : 0,",
+                                 "        max_discount: 0,", 1)], r'✗ D1a'),
   # ── H4: trừ tiền đã đền ──
   ('BV-H4-bo-tru-den', 'thu', [(T, "tong = Math.max(0, tong - Number(den.n));", "tong = Math.max(0, tong);", 1)], r'✗ B5a'),
   ('VS-H4-chi-tru-o-don-goi', 'thu', [(T, "tong = Math.max(0, tong - Number(den.n));", "tong = Math.max(0, goi.length ? tong - Number(den.n) : tong);", 1)], r'✗ B5a'),
@@ -65,8 +72,9 @@ DOT_BIEN = [
   ('VS-A2-lay-ngay-so-man-hinh', 'thu', [(O, "if (orderItems.reduce((s, i) => s + (i.from_package ? i.quantity : 0), 0) > soLuotGoi) {",
                                           "if (orderItems.reduce((s, i) => s + (i.from_package ? i.quantity : 0), 0) > package_buy.total_qty) {", 1)], r'✗ A6b'),
   # ── A3: vừa mua vừa lấy ──
-  ('BV-A3-bo-chan', 'thu', [(O, "    if (customer_package_id && package_buy) {", "    if (false) {", 1)], r'✗ A3'),
-  ('VS-A3-so-nham-ma-goi', 'thu', [(O, "    if (customer_package_id && package_buy) {", "    if (customer_package_id && package_buy?.package_id === customer_package_id) {", 1)], r'✗ A3'),
+  ('BV-A3-bo-chan', 'thu', [(O, "    if (customer_package_id && package_buy && items.some((i) => i.from_package)) {", "    if (false) {", 1)], r'✗ A3 '),
+  ('VS-A3-so-nham-ma-goi', 'thu', [(O, "    if (customer_package_id && package_buy && items.some((i) => i.from_package)) {",
+                                    "    if (customer_package_id && package_buy?.package_id === customer_package_id) {", 1)], r'✗ A3 '),
   # ── A4: /deliver đã bỏ ──
   ('BV-A4-deliver-song-lai', 'thu', [(P, "// P26c (A4): BỎ PUT /customer-packages/:id/deliver",
     "router.put('/customer-packages/:id/deliver', authenticate, async (req, res) => { await run('UPDATE pos_customer_packages SET delivered_qty = "
@@ -83,10 +91,11 @@ DOT_BIEN = [
   # ── C2: mã bill + nợ kho khi xoá ──
   ('BV-C2-bo-xoa-ma-bill', 'thu', [(O, 'await tx.run("DELETE FROM pos_signup_codes WHERE order_id = ? AND claimed_at IS NULL AND diem_nhan_luc IS NULL", [order.id]);', '', 1)], r'✗ C2a'),
   ('VS-C2-xoa-ca-ma-da-dung', 'thu', [(O, '"DELETE FROM pos_signup_codes WHERE order_id = ? AND claimed_at IS NULL AND diem_nhan_luc IS NULL"', '"DELETE FROM pos_signup_codes WHERE order_id = ?"', 1)], r'✗ C2c'),
-  ('BV-C2-bo-huy-no-out', 'thu', [(O, "      for (const vt of noOut.flatMap((r) => [r.van_tay, r.van_tay.replace(\":out:\", \":in:\")])) {", "      for (const vt of []) {", 1)], r'✗ C2b'),
+  ('BV-C2-bo-huy-no-out', 'thu', [(O, "      for (const { van_tay: vtOut } of noOut) {", "      for (const { van_tay: vtOut } of []) {", 1)], r'✗ C2b'),
+  ('VS-C2-huy-out-khong-xet-in', 'thu', [(O, 'if (order.status === "cancelled" && !(await tx.queryOne(', 'if (false && !(await tx.queryOne(', 1)], r'✗ C2f'),
   ('VS-C2-huy-ca-no-in-da-toi-sx', 'thu', [(O, "\"SELECT van_tay FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status IN ('pending', 'can_xem') AND van_tay IS NOT NULL\"",
                                              "\"SELECT REPLACE(van_tay, ':in:', ':out:') AS van_tay FROM pos_stock_pending WHERE order_id = ? AND status IN ('pending', 'can_xem') AND van_tay IS NOT NULL\"", 1)], r'✗ C2d'),
-  ('VS-C2-khong-huy-no-in-cung-mon', 'thu', [(O, "noOut.flatMap((r) => [r.van_tay, r.van_tay.replace(\":out:\", \":in:\")])", "noOut.map((r) => r.van_tay)", 1)], r'✗ C2e'),
+  ('VS-C2-khong-huy-no-in-cung-mon', 'thu', [(O, "for (const vt of [vtOut, vtIn]) {", "for (const vt of [vtOut]) {", 1)], r'✗ C2e'),
   ('VS-C2-van-gui-in', 'thu', [(O, "          if (boQuaKho.has(vanTay)) continue;   // P26c (C2): `out` chưa từng tới SX\n", "", 1)], r'✗ C2b'),
   # ── C3 / C4 / C5 ──
   ('BV-C3-bo-cot-con', 'thu', [(R, "ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now, cot: 'total_spent', soCot: -con });",
