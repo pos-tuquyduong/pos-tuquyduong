@@ -177,8 +177,9 @@ const BAT_BIEN = {
     return lech;
   },
   // I11 (P26b, Q9) — theo TỪNG ví (ví khách + ví mẹ): mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
-  // P26c (H2 = 1B): hoàn đơn MUA gói đưa cả phần tiền mặt / CK vào ví khách — dòng đó ghi cách 'hoan_goi' và KHÔNG tính ở đây;
-  // I19 canh theo cả đơn (đơn còn). Đơn mua gói đã XOÁ: không còn dữ liệu để canh dòng 'hoan_goi' — CHƯA KIỂM (P26c Phát hiện).
+  // P26c (H2 = 1B): hoàn đơn MUA gói đưa cả phần tiền mặt / CK vào ví khách — phần VƯỢT số đã trả bằng ví ghi dòng riêng cách
+  // 'hoan_goi' và KHÔNG tính ở đây (phần ví vẫn canh như mọi đơn); I19 canh theo cả đơn (đơn còn). Đơn mua gói đã XOÁ: dòng 'hoan_goi'
+  // không còn gì để đối chiếu — CHƯA KIỂM (P26c Phát hiện 6).
   // Đọc theo SỔ nên đơn đã xoá vẫn soát. Đền bù báo hỏng ('compensation') không tính: nó đền cả đơn trả tiền mặt.
   // (I10 gộp mọi ví đã bỏ ở HOC-2b, chủ quán chốt 2a: với số tiền đồng NGUYÊN — mọi kịch bản giả lập gửi số nguyên — tổng các
   // ví lệch > 0,5 ⇒ có một ví lệch ≥ 1 ⇒ I11 lệch, nên I10 ⊂ I11. Tiền lẻ < 1đ chia nhiều ví thì I10 thấy mà I11 không.)
@@ -292,13 +293,15 @@ const BAT_BIEN = {
   },
   // ── P26c ──
   // I18 (C3) — cột tổng của ví khớp sổ: total_topup = nạp + điều chỉnh dương; total_spent = mua − hoàn + điều chỉnh âm (ghiVi `cot`,
+  // dòng hoàn 'hoan_goi' — phần tiền mặt / CK của đơn mua gói vào ví, H2 — không tính: nó chưa từng là tiền chi từ ví;
   // wallets.js:118/:150/:189, orders.js tạo / huỷ / xoá, refunds.js duyệt). Đền bù không tính. Dữ liệu production trước P26c sẽ lệch
   // (duyệt hoàn cũ không giảm total_spent) — DOI-SOAT-1 cần mốc ngày.
   async I18(q) {
     const ds = await q(`SELECT w.phone, w.total_topup, w.total_spent,
         (SELECT COALESCE(SUM(CASE WHEN t.type = 'topup' OR (t.type = 'adjust' AND t.amount > 0) THEN t.amount ELSE 0 END), 0)
           FROM pos_balance_transactions t WHERE t.customer_phone = w.phone) AS nap,
-        (SELECT COALESCE(SUM(CASE WHEN t.type IN ('purchase', 'refund') OR (t.type = 'adjust' AND t.amount < 0) THEN -t.amount ELSE 0 END), 0)
+        (SELECT COALESCE(SUM(CASE WHEN t.type = 'purchase' OR (t.type = 'refund' AND COALESCE(t.payment_method, '') <> 'hoan_goi')
+          OR (t.type = 'adjust' AND t.amount < 0) THEN -t.amount ELSE 0 END), 0)
           FROM pos_balance_transactions t WHERE t.customer_phone = w.phone) AS tieu
       FROM pos_wallets w`);
     return ds.filter((r) => Math.abs(so(r.total_topup) - so(r.nap)) > 0.5 || Math.abs(so(r.total_spent) - so(r.tieu)) > 0.5)
