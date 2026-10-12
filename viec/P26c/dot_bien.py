@@ -109,6 +109,44 @@ DOT_BIEN = [
   ('BV-D4-bo-voucher-used', 'thu', [(O, "\"UPDATE pos_voucher_grants SET status = 'used', used_order_id = ?, used_at = ? WHERE UPPER(code) = UPPER(?) AND status = 'available'\"",
                                      "\"UPDATE pos_voucher_grants SET used_at = ? WHERE ? IS NOT NULL AND UPPER(code) = UPPER(?) AND status = 'available'\"", 1)], r'✗ D4'),
   ('BV-D5-co-kim-cuong', 'thu', [(DB, "      ['Bạch Kim', 2000000, 8, 2],   // P26c (D5)", "      ['Bạch Kim', 2000000, 8, 2],\n      ['Kim cương', 5000000, 10, 3],   // P26c (D5)", 1)], r'✗ D5'),
+  # ── CHUYỂN từ viec/P26b/dot_bien.py: 11 đột biến cũ neo vào code P26c viết lại (9 không áp được, 2 nhắm đoạn đã ra khỏi đường
+  #    tiền). Cùng ý đồ, neo mới, cùng ca bắt của thu_P26b (bảng ở trang_thai.md "Đột biến cũ đổi"). ──
+  ('VS-me-hoan-gap-doi-huy', 'thub', [(O, 'await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: me, orderId: order.id,',
+                                         'await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: 2 * me, orderId: order.id,', 1)], r'✗ M2 '),
+  ('VS-me-hoan-gap-doi-xoa', 'thub', [(O, 'await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: me, orderId: order.id,',
+                                         'await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: viec === "xóa" ? 2 * me : me, orderId: order.id,', 1)], r'✗ M3 '),
+  ('BV-Q9-bo-hoan-me', 'thub', [(R, '      if (me > 0) {\n        await ghiVi(tx, { phone: don.parent_phone,', '      if (false) {\n        await ghiVi(tx, { phone: don.parent_phone,', 1)], r'✗ M5 '),
+  ('VS-Q9-hoan-me-vao-vi-con', 'thub', [(R, 'await ghiVi(tx, { phone: don.parent_phone,', 'await ghiVi(tx, { phone: refund.customer_phone,', 1)], r'✗ M5 '),
+  ('VS-Q9-hoan-me-ngoai-tx', 'thub', [(R, 'await ghiVi(tx, { phone: don.parent_phone,',
+    "await ghiVi({ queryOne: require('../database').queryOne, run: require('../database').run }, { phone: don.parent_phone,", 1)], r'✗ M5 '),
+  ('VS-Q9-hoan-me-khong-qua-cong-don', 'thub', [
+    (R, "    const kq = await trongGiaoDich(async (tx) => {\n      const refund = await tx.queryOne('SELECT * FROM pos_refund_requests WHERE id = ?', [req.params.id]);",
+        "    await trongGiaoDich(async (t2) => { const r0 = await t2.queryOne('SELECT order_id FROM pos_refund_requests WHERE id = ?', [req.params.id]);\n"
+        "      const me0 = r0 && await t2.queryOne('SELECT parent_phone, parent_balance_amount FROM pos_orders WHERE id = ?', [r0.order_id]);\n"
+        "      if (me0?.parent_phone && Number(me0.parent_balance_amount) > 0) await ghiVi(t2, { phone: me0.parent_phone, loai: 'refund', "
+        "soTien: Number(me0.parent_balance_amount), orderId: r0.order_id, nguoi: 'x' }); });\n"
+        "    const kq = await trongGiaoDich(async (tx) => {\n      const refund = await tx.queryOne('SELECT * FROM pos_refund_requests WHERE id = ?', [req.params.id]);", 1),
+    (R, '      if (me > 0) {\n        await ghiVi(tx, { phone: don.parent_phone,', '      if (false) {\n        await ghiVi(tx, { phone: don.parent_phone,', 1)], r'✗ M8 '),
+  ('BV-duyet-cong-don-khong-kiem-changes', 'thub', [(R, 'if (doi.changes !== 1) return loi(400, \'Đơn không còn', 'if (false) return loi(400, \'Đơn không còn', 1)], r'✗ A2a'),
+  ('BV-hong-bo-tran', 'thub', [(D, 'if (finalRefund > tranLan || finalRefund > tranTong) {', 'if (false) {', 1)], r'✗ C1a'),
+  ('BV-hong-bo-tran-cong-don', 'thub', [(D, 'if (finalRefund > tranLan || finalRefund > tranTong) {', 'if (finalRefund > tranLan) {', 1)], r'✗ C6b'),
+  ('VS-hong-tran-theo-man-hinh', 'thub', [(D, 'const tranLan = Math.floor(soLuong * Math.max(...tra.map((d) => d.da_tra / Number(d.quantity))));',
+                                             'const tranLan = Math.floor(soLuong * Number(req.body.unit_price || Math.max(...tra.map((d) => d.da_tra / Number(d.quantity)))));', 1)], r'✗ C1b'),
+  # ── CHUYỂN từ viec/TACH-GL/dot_bien.py: 4 đột biến neo vào LUOT cũ / dòng tổng "29 kịch bản · 16 bất biến" (P26c thêm KB30–32,
+  #    I18–I19 vào LUOT). Cùng ý đồ, neo LUOT mới, cùng ca bắt của thu_gia_lap. ──
+  ('VS-kb-hai-luot', 'thugl', [('kich_ban.js', '[[2, 15, 17, 28, 30, 31]', '[[2, 5, 15, 17, 28, 30, 31]', 1)], r'chia lượt → KB5 chạy 2 lần'),
+  ('VS-luot-trung-thieu', 'thugl', [('kich_ban.js', '[[2, 15, 17, 28, 30, 31]', '[[2, 5, 15, 17, 28, 30, 31]', 1),
+                                    ('kich_ban.js', '[1, 4, 5, 6, 7, 8,', '[1, 4, 5, 7, 8,', 1)], r'chia lượt → KB6 chạy 0 lần'),
+  ('BV-cha-kiem-mot-lan', 'thugl', [('chay.js', "  for (const [n, c] of dem) if (c !== 1) lech.push(`chia lượt → KB${n} chạy ${c} lần`);\n", '', 1),
+                                    ('kich_ban.js', '[[2, 15, 17, 28, 30, 31]', '[[2, 5, 15, 17, 28, 30, 31]', 1),
+                                    ('kich_ban.js', '[1, 4, 5, 6, 7, 8,', '[1, 4, 5, 7, 8,', 1)], r'✗ T2 '),
+  ('VS-luot-thieu-bat-bien', 'thugl', [('chay.js', 'const tenBB = Object.keys(BAT_BIEN);', 'const tenBB = Object.keys(BAT_BIEN).slice(0, LUOT_K === 2 ? 8 : 99);', 1)],
+   r'chia lượt → số bất biến các lượt khác nhau'),
+  # ── CHUYỂN từ AUDIT-1 (G3-da-biet: neo câu UPDATE thu nợ — C1 đổi) và HOC-2b (VS-q9-me-lon-hon-bang-0: neo `me?.parent_phone`;
+  #    BV-q9-bo-hoan-me = BV-Q9-bo-hoan-me ở trên). kiem_neo.py trên gốc b9b3928: các neo này khớp; trên HEAD rữa vì P26c. ──
+  ('BV-G3-da-biet-thu-no', 'kb10', [(O, "WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status = 'completed'`", 'WHERE id = ? AND ? IS NOT NULL`', 1)], r'KB10 → I6:'),
+  ('VS-q9-me-lon-hon-bang-0', 'thub', [(T, "const me = order.parent_phone ? Math.min(Number(order.parent_balance_amount || 0), tong) : 0;",
+                                          "const me = order.parent_phone ? Math.max(1, Math.min(Number(order.parent_balance_amount || 0), tong)) : 0;", 1)], r'✗ M9 '),
   # ── bất biến (thu_gia_lap, ca dữ liệu tay) ──
   ('BV-I18-bo', 'thugl', [('bat_bien.js', "    return ds.filter((r) => Math.abs(so(r.total_topup) - so(r.nap)) > 0.5 || Math.abs(so(r.total_spent) - so(r.tieu)) > 0.5)",
                             "    return ds.filter((r) => false)", 1)], r'✗ I18 tổng chi 35\.001'),
