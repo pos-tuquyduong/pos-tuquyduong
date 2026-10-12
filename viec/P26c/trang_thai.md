@@ -232,12 +232,12 @@ Cây gốc + bài head: 65 đạt · 1 hỏng (chỉ C1e), thoát 1 → A11 hợ
 (Lần đầu đặt C1e chung đơn C1 → trên gốc C1c, C4a đỏ lây — tách đơn riêng, K3.)
 
 ## Câu hỏi (mới, vòng 1)
-2. **Mã giảm-1-món + báo sự cố** (soát vòng 1 lỗi 3): giảm của mã 1 món không ghi xuống dòng (`signup_unit_price` chỉ hiển thị),
+2. **[ĐÃ TRẢ LỜI 12.10 — đồng ý đề xuất tạm; làm ở vòng 2]** **Mã giảm-1-món + báo sự cố** (soát vòng 1 lỗi 3): giảm của mã 1 món không ghi xuống dòng (`signup_unit_price` chỉ hiển thị),
    nên `tienDaTraTheoDong` chia đều phần giảm cho mọi dòng. Ví dụ A 100.000 (mã giảm A 50.000) + B 100.000, trả 150.000 → trần đền A
    75.000 (khách trả 50.000), B 75.000 (khách trả 100.000). Đề xuất đơn giản: tạm thời coi mọi dòng của đơn có mã 1-món là "đã trả =
    giá dòng − toàn bộ giảm" (không bao giờ đền quá, có thể chặn oan B — quản lý dùng "Chỉ ghi nhận"); làm đúng cần thêm cột giảm theo
    dòng (đổi cấu trúc DB — phiếu cấm nếu chưa duyệt). Chủ quán chọn; hiện để nguyên chia đều.
-3. **Gói cài 0 lượt (dữ liệu cũ, K5)**: `pos_packages.total_qty` DEFAULT 0 (database.js:828), màn quản lý gói lưu `total_qty || 0`.
+3. **[ĐÃ TRẢ LỜI 12.10 — chủ quán tự kiểm gói đang bật trên màn Cài đặt trước khi gộp; thêm chặn gốc ở vòng 2]** **Gói cài 0 lượt (dữ liệu cũ, K5)**: `pos_packages.total_qty` DEFAULT 0 (database.js:828), màn quản lý gói lưu `total_qty || 0`.
    Trước P26c gói 0 lượt vẫn bán được (màn hình gửi số mặc định 30); nay A6 → 400 `GOI_CHUA_CAI_LUOT`, quầy không bán được gói đó tới
    khi sửa gói. Trước khi gộp cần chạy trên production: `SELECT code, name FROM pos_packages WHERE is_active = 1 AND COALESCE(total_qty, 0) <= 0;`
    — có dòng nào thì cài số lượt cho gói đó trước, hoặc chủ quán chọn cho bán với số khác.
@@ -250,3 +250,27 @@ Cây gốc + bài head: 65 đạt · 1 hỏng (chỉ C1e), thoát 1 → A11 hợ
 12. Duyệt hoàn khi tiền đã đền ≥ phần ví → ghi dòng sổ `refund 0` (I17 cần dòng gắn yêu cầu) và báo "Đã hoàn 0đ". Không sai tiền.
 13. `orders.js` (cổng Q4 trong huỷ đơn) chép logic `checkPermission` (`middleware/auth.js:83-112`, ngoài Phạm vi) — đề xuất việc sau
     xuất một hàm `coQuyen(role, quyen)` dùng chung.
+
+## Làm tiếp — vòng 2 (chủ quán trả lời Câu hỏi 2, 3 — 12.10)
+- Bước 1: HEAD `2ff8437` · FETCH_HEAD `2ff8437` (bằng nhau). `git log --oneline -3`:
+  ```
+  2ff8437 P26c soat v1: xu ly vong 1, Cau hoi 2-3, Phat hien 10-13
+  e3688eb P26c soat v1: bang chung do ban cuoi (thu_P26c 70, thu_gia_lap 145, thu_P26b 66)
+  d3fbc0b P26c soat v1: dot bien 87/87
+  ```
+- Câu hỏi 2 → `tienDaTra.js` `tienDaTraTheoDong(tx, order, chanTren)`: chỉ trần đền (`damages.js`) gọi `chanTren = true`; đơn có mã
+  `discount_scope = 'item'` → mọi dòng "đã trả = giá dòng − toàn bộ giảm của mã". Hoàn huỷ / xoá (soTienHoan) giữ chia tỉ lệ — xem
+  Phát hiện 14. Ca: thu_P26c B1f (A 50.000 giảm 25.000 qua mã nhóm + B 30.000, trả 55.000 → đền A 25.001 400, 25.000 200).
+- Câu hỏi 3 → `packages.js` POST: Tổng SL SP phải là số nguyên ≥ 1 (400 `GOI_LUOT_KHONG_HOP_LE`, lời rõ); PUT: chỉ xét khi có
+  gửi số lượt (bật / tắt gói không gửi — K5 dữ liệu cũ); `Settings.jsx` savePkg chặn < 1 trước khi gửi, ô `min="1"`. Ca: A7a, A7b
+  (gồm K5 bật/tắt gói cũ 0 lượt → 200), A7c.
+- Bằng chứng đỏ: thu_P26c trên server + client `2ff8437` → 70 đạt · 4 hỏng (đúng A7a, A7b, A7c, B1f); trên gốc `b9b3928` → 20 đạt
+  · 54 hỏng; head 74 đạt. Đột biến mới (đều BẮT): BV-B1f-bo-chan-tren · VS-B1f-chia-deu · BV-A7-bo-chan-post · BV-A7-bo-chan-put ·
+  VS-A7-chan-ca-bat-tat · VS-A7-cho-luot-0 · BV-A7c-man-hinh.
+
+## Phát hiện (thêm, vòng 2)
+14. **Giảm theo dòng → P26d** (chủ quán chốt Câu hỏi 2): mã giảm 1 món không ghi phần giảm xuống dòng (`signup_unit_price` chỉ hiển
+    thị). Trần đền nay dùng cận an toàn (không đền quá, có thể chặn oan dòng không được giảm). Hoàn huỷ / xoá ĐƠN MUA GÓI có mã 1 món
+    vẫn chia tỉ lệ: giá trị gói đã dùng có thể lệch vài nghìn. Làm đúng cần cột giảm theo dòng (đổi cấu trúc DB) → P26d.
+15. PUT gói chỉ bật / tắt (không gửi số lượt) vẫn cho BẬT gói cũ 0 lượt — gói đó bật lên vẫn không bán được (400 `GOI_CHUA_CAI_LUOT`).
+    Đúng câu trả lời Câu hỏi 3 (chủ quán tự kiểm gói đang bật); ghi để biết.
