@@ -1,4 +1,4 @@
-# P26c — bằng chứng ĐỎ trên code GỐC b9b3928, bài thử BẢN CUỐI (cổng A11 / A16) — chạy lại sau vòng sửa 1 và Câu hỏi 2–3 (A7, B1f).
+# P26c — bằng chứng ĐỎ trên code GỐC b9b3928, bài thử BẢN CUỐI (cổng A11 / A16) — chạy lại sau vòng sửa 2 (D1a, A7c siết).
 SỐ CA cong_cu/thu_P26c.js: 74
 SỐ CA cong_cu/thu_gia_lap.js: 145
 SỐ CA cong_cu/thu_P26b.js: 66
@@ -55,7 +55,7 @@ THỬ P26c — lỗ tiền / gói / kho còn lại
 [A7] gói phải có ít nhất 1 lượt (Câu hỏi 3, chủ quán chốt 12.10)
   ✗ A7a thêm gói 0 lượt / không gửi số lượt → 400 GOI_LUOT_KHONG_HOP_LE, 400; 1 lượt → 200  — HTTP 200 / HTTP 200 / HTTP 200
   ✗ A7b sửa gói về 0 lượt → 400; sửa lên 5 lượt → 200, lưu 5; (K5) bật / tắt gói cũ 0 lượt (không gửi số lượt) → 200  — HTTP 200 / HTTP 200 / HTTP 200
-  ✗ A7c Settings.jsx savePkg chặn Tổng SL SP < 1 TRƯỚC khi gửi
+  ✗ A7c Settings.jsx savePkg chặn Tổng SL SP < 1 TRƯỚC khi gửi (điều kiện + return)
 
 [B1] trần "Hoàn tiền" theo số khách ĐÃ TRẢ (flash / hạng / giảm đơn)
   ✗ B1a món 30.000 giá flash 25.000: đền 25.001 → 400 VUOT_GIA; 25.000 → 200, ví +25.000  — HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tối đa: 0 · ví 25001
@@ -106,7 +106,7 @@ THỬ P26c — lỗ tiền / gói / kho còn lại
   ✗ C5 xoá đơn mua thẻ → 200, 0 dòng pos_membership_purchases  — HTTP 200
 
 [D1] màn thêm quà gửi "Giảm tối đa" (max_discount)
-  ✗ D1a Settings.jsx: thân POST /api/pos/rewards gửi max_discount lấy từ ô rewardForm.max_discount  — pkgApi('POST', '/api/pos/rewards', {
+  ✗ D1a Settings.jsx: thân POST /api/pos/rewards gửi `max_discount: parseInt(rewardForm.max_discount) || 0`  — pkgApi('POST', '/api/pos/rewards', {
         name: rewardForm.name.trim(),
         points_cost: cost,
         discount_type: rewardForm.discount_type,
