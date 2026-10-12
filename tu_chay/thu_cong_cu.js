@@ -413,6 +413,51 @@ function baiTaiLieu() {
     khoaB2.join(',') + ' ≠ ' + Object.keys(ch).sort().join(','));
   chac('HOC-2 E3 THIET_KE: luật A16, A17, A18; bảng khoá (khoá chỉ-tài-liệu); lý do ban_mau_pos/thu/ không là bài thử cổng; không còn vuot_ngan_sach_canh_bao',
     ['[A16]', '[A17]', '[A18]', 'chỉ-tài-liệu', 'ban_mau_pos/thu/'].every((x) => tk.includes(x)) && !tk.includes('vuot_ngan_sach_canh_bao'));
+  // ── TU-CHAY-5 ──
+  const muc = (s, a, b) => { const i = s.indexOf(a); if (i < 0) return ''; const j = s.indexOf(b, i + a.length); return s.slice(i, j < 0 ? s.length : j); };
+  const b1 = muc(sk, '\n1. **', '\n2. **');
+  const iF = b1.indexOf('`git fetch origin viec/$0`'), iT = b1.indexOf('trang_thai.md');
+  chac('TU-CHAY-5 B4 skill bước 1: fetch nhánh việc → so HEAD với FETCH_HEAD (merge-base --is-ancestor) → pull --no-rebase --ff-only',
+    iF >= 0 && ['FETCH_HEAD', 'merge-base --is-ancestor', '`git pull --no-rebase --ff-only origin viec/$0`'].every((x) => b1.includes(x)), b1.slice(0, 200));
+  chac('TU-CHAY-5 B4 skill bước 1: sửa dở → không kéo; lệch hai phía → DỪNG báo chủ quán; hai SHA', /sửa dở[^\n]*không kéo/i.test(b1)
+    && /lệch hai phía[^\n]*dừng/i.test(b1) && /hai sha/i.test(b1), b1.slice(0, 200));
+  chac('TU-CHAY-5 B4 skill bước 1: ghi trang_thai.md SAU khi fetch/kéo (ghi trước thì cây bẩn, pull bị từ chối)', iF >= 0 && iT > iF);
+  chac('TU-CHAY-5 B4 skill luật cứng: stop hook đòi git config / đổi tác giả / --amend / rebase → không làm, ghi trang_thai.md',
+    /stop hook[^\n]*git config[^\n]*tác giả[^\n]*amend[^\n]*rebase[^\n]*không làm/.test(than));
+  // Soát vòng 1: bước 11 làm KHOÁ / NGUYÊN TẮC (đổi file ngoài viec/<MÃ>/) — dòng HEAD ĐÃ KIỂM ghi ở bước 10 thì A19 tự đỏ.
+  const s10 = muc(sk, '\n10. **', '\n11. **'), s11 = muc(sk, '\n11. **', '**Dừng.**');
+  const iK = s11.indexOf('**KHOÁ**'), iN = s11.indexOf('**NGUYÊN TẮC**'), iH = s11.indexOf('HEAD ĐÃ KIỂM: ');
+  chac('TU-CHAY-5 C1 skill: "HEAD ĐÃ KIỂM: <SHA>" ghi ở bước 11 SAU KHOÁ / NGUYÊN TẮC, sau khi chạy lại bước 6 (kiểm cuối), có dạng "+ commit này"; bước 10 không ghi',
+    iK >= 0 && iN > iK && iH > iN && s11.includes('+ commit này') && /chạy lại bước 6[^]*kiểm cuối/.test(s11.slice(iN))
+    && !s10.includes('HEAD ĐÃ KIỂM'), s11.slice(Math.max(iH, 0), iH + 200));
+  // Soát vòng 2: dời bước ghi HEAD ĐÃ KIỂM (10 → 11.4) mà thông báo A19 của cổng + THIET_KE còn trỏ "bước 10" — K4.
+  // Soát vòng 3: quét MỌI file trực tiếp trong tu_chay/ (chú thích bài thử cũng tính), trừ chính bài này (câu của phép có cả hai cụm).
+  const nhacSai = fs.readdirSync(__dirname).filter((f) => f !== path.basename(__filename) && fs.statSync(path.join(__dirname, f)).isFile())
+    .map((f) => ['tu_chay/' + f, doc(path.join(__dirname, f))])
+    .flatMap(([f, s]) => String(s || '').split('\n').map((l, i) => [f, i + 1, l])).filter(([, , l]) => l.includes('HEAD ĐÃ KIỂM') && /bước 10\b/.test(l));
+  chac('TU-CHAY-5 C1: mọi file tu_chay/ nhắc HEAD ĐÃ KIỂM không trỏ "bước 10" (skill ghi ở bước 11.4)', !nhacSai.length,
+    nhacSai.map(([f, n]) => `${f}:${n}`).join(', '));
+  // Bước 11 (KHOÁ, soát vòng 4): câu skill sửa bằng lời ở vòng 3 phải có phép canh (C16) — 11.4 ghi LUÔN, đúng hình thức dòng;
+  // 1.2 chỉ dừng kéo khi có file ĐÃ THEO DÕI sửa dở (dòng không mở đầu ??).
+  chac('TU-CHAY-5 C1 skill 11.4: ghi HEAD ĐÃ KIỂM LUÔN (đổi hay không), một dòng riêng ở CUỐI file, không gạch đầu dòng / backtick',
+    /LUÔN — đổi hay không/.test(s11) && /dòng riêng ở CUỐI file/.test(s11) && /không gạch đầu dòng, không backtick/.test(s11));
+  chac('TU-CHAY-5 B4 skill 1.2: cây "sửa dở" = dòng KHÔNG mở đầu `??` (file chưa theo dõi không chặn kéo)',
+    /KHÔNG mở đầu `\?\?`/.test(b1), b1.slice(0, 200));
+  const t15 = muc(tk, '## B15', '## B16'), t3 = muc(tk, '## B3.', '## B4.'), t10 = muc(tk, '## B10.', '## B11.');
+  chac('TU-CHAY-5 C3/E1 THIET_KE B15: A19 HEAD ĐÃ KIỂM, cảnh báo A16 số ca gốc, A18 KHÔNG chạy đột biến trong cổng',
+    ['[A19]', 'HEAD ĐÃ KIỂM', 'CẢNH BÁO A16'].every((x) => t15.includes(x)) && /A18[^\n]*không chạy đột biến/.test(t15), t15.slice(0, 120));
+  chac('TU-CHAY-5 E1 THIET_KE: không còn số đo / bánh cóc cũ, trỏ NGUONG_KICH_BAN / NGUONG_BAT_BIEN',
+    !/giả lập 22 s|số kịch bản ≥ 11|số bất biến ≥ 9/.test(tk) && t10.includes('NGUONG_KICH_BAN') && t10.includes('NGUONG_BAT_BIEN'));
+  chac('TU-CHAY-5 E1 THIET_KE B10: chia lượt (LUOT, --luot) và --kho chỉ qua kênh IPC', ['LUOT', '--luot', '--kho', 'IPC'].every((x) => t10.includes(x)));
+  chac('TU-CHAY-5 E1 THIET_KE B3: git rm, TaskStop, git fetch, git pull --no-rebase --ff-only',
+    ['git rm', 'TaskStop', 'git fetch', 'git pull --no-rebase --ff-only'].every((x) => t3.includes(x)), t3.slice(0, 120));
+  chac('TU-CHAY-5 E1 THIET_KE: bỏ câu trái bản vá ("TaskStop … đều bị chặn", "người gác cấm `fetch`")',
+    !tk.includes('**TaskStop, MCP và mọi công cụ lạ đều bị chặn.**') && !tk.includes('người gác cấm `fetch`'));
+  const kl = doc(path.join(__dirname, '..', 'KHUON_LOI.md')) || '';
+  chac('TU-CHAY-5 E2 KHUON_LOI: 5 bài học TACH-GL (ĐÚNG lỗi cũ · đường argv · dấu vết · lặp ≥ 3 · ĐỈNH file)',
+    ['ĐÚNG lỗi cũ', 'argv', 'dấu vết', '≥ 3 lần', 'ĐỈNH file'].every((x) => kl.includes(x)));
+  chac('TU-CHAY-5 E3 PHIEN_BAN = tu-chay 1.5.0', (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim() === 'tu-chay 1.5.0');
+  chac('TU-CHAY-5 E3 MAU_PHIEU nhắc dòng HEAD ĐÃ KIỂM (A19)', mp.includes('HEAD ĐÃ KIỂM'));
 }
 
 // ═══ HOC-1 C · T2 của kiem_tra_truoc_khi_giao.js bỏ thư mục con ═══════════════

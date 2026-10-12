@@ -128,8 +128,8 @@ ca('cau_hinh.json thiếu tep_bash_them', 'Read', {}, 'NG-CAUHINH', { goc: KHO_T
 // Công cụ
 for (const cc of ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode',
   'AskUserQuestion', 'Skill', 'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet',
-  'TaskList', 'TaskOutput']) ca('công cụ cho qua ' + cc, cc, {}, 'CHO');
-for (const cc of ['TaskStop', 'mcp__x__y', 'mcp__claude_ai_Gmail__authenticate', 'Artifact', 'PowerShell',
+  'TaskList', 'TaskOutput', 'TaskStop']) ca('công cụ cho qua ' + cc, cc, {}, 'CHO');
+for (const cc of ['mcp__x__y', 'mcp__claude_ai_Gmail__authenticate', 'Artifact', 'PowerShell',
   'EnterWorktree', 'Workflow', 'CronCreate', 'SendMessage', 'CongCuLa', 'SubagentHandbackX', 'subagenthandback',
   'SubagentHandbac']) ca('công cụ lạ ' + cc, cc, { command: 'ls' }, 'CC-LA');
 // TU-CHAY-3 D1: agent phụ nộp báo cáo bằng SubagentHandback (nhật ký người gác 01.10.2026, CC-LA chặn) — cho ĐÚNG tên này
@@ -191,8 +191,88 @@ for (const l of ['git push', 'ls && git push', 'ls; git push', 'ls\ngit push',
   'cat <<EOF\n$(git push)\nEOF']) B(l, 'GIT-PUSH');
 for (const l of [
   'git merge viec/Y', 'git reset --hard', 'git rebase main', 'git stash', 'git switch main', 'git config core.hooksPath x',
-  'git remote -v', 'git tag v1', 'git rm server/a.js', 'git clean -fd', 'git update-ref x y',
-  'git push origin viec/X; git merge main', 'git fetch origin', 'git pull origin viec/X']) B(l, 'GIT-LENH');
+  'git remote -v', 'git tag v1', 'git clean -fd', 'git update-ref x y',
+  'git push origin viec/X; git merge main', 'git fetch origin viec/X && git merge FETCH_HEAD']) B(l, 'GIT-LENH');
+
+// ── TU-CHAY-5 B1: git rm [-q] <file…> — mỗi file xét như SỬA file (ghiDuoc, không miễn hoàn tác), không trong kho lồng
+for (const l of ['git rm server/a.js', 'git rm -q server/a.js viec/X/ke_hoach.md', 'git rm viec/X/b.js', 'git rm tu_chay/nguoi_gac.js',
+  'cd viec/X && git rm b.js', 'git rm server/a.js && git commit -m x']) B(l, 'CHO');
+for (const l of ['git rm', 'git rm -q', 'git rm --quiet server/a.js', 'git rm -r server/a.js', 'git rm -f server/a.js',
+  'git rm --cached server/a.js', 'git rm -n server/a.js', 'git rm -rq server/a.js', 'git rm -qr server/a.js', 'git rm -- server/a.js',
+  'git rm --pathspec-from-file=x', 'git rm --pathspec-from-file x', 'git rm --force server/a.js', 'git rm --dry-run server/a.js',
+  'git rm --ignore-unmatch server/a.js', 'git rm -r viec/X', 'git rm viec/X', 'git rm server/', 'git rm viec/X/*.js',
+  "git rm 'viec/X/a?.js'", "git rm 'viec/X/[ab].js'", "git rm 'viec/X/a\\.js'", "git rm ':(glob)viec/X/a.js'", 'git rm :/server/a.js',
+  'cd viec/X/long && git rm a.js', 'cd viec/X/long/con && git rm a.js', 'cd server/long2 && git rm x.js']) B(l, 'GIT-RM');
+B('git rm server/b.js', 'G5-NGOAIPV');
+B('git rm server/a.js server/b.js', 'G5-NGOAIPV');
+B('git rm ban_mau_pos/x.html', 'G-LUAT');
+B('git rm viec/X/phieu.md', 'G1-PHIEU');
+B('git rm viec/X/bien_ban_soat.json', 'G1-PHIEU');
+B('git rm .claude/settings.json', 'G1-KHUNG');
+B('git rm .tu_chay_nhat_ky.jsonl', 'G1-KHUNG');
+B('git rm .env', 'B-BIMAT-FILE');   // lớp bí mật chặn trước ghiDuoc — vẫn chặn
+B('git rm TIEN_DO_POS.json', 'G1-CAM');
+B('git rm ../ngoai.txt', 'G0-NGOAI');
+B('git rm /etc/passwd', 'G0-NGOAI');
+B('git rm server/ln_ngoai/x', 'G0-NGOAI');
+B('git rm $F', 'GIT-RM');
+B('git rm server/a.js', 'G2-VIEC', { goc: KHO_MAIN });
+B('git rm server/a.js', 'G2-VIEC', { goc: KHO_TACH });
+B('git rm server/a.js', 'G2-PHIEU', { goc: KHO_Y });
+
+// ── TU-CHAY-5 B3: ĐÚNG hai dạng kéo nhánh việc đang đứng — git fetch [-q] origin viec/<MÃ> và
+// git pull --no-rebase --ff-only [-q] origin viec/<MÃ> (hai cờ bắt buộc, thứ tự tự do). Mỗi ca chặn phá đúng một vế.
+for (const l of ['git fetch origin viec/X', 'git fetch -q origin viec/X', 'git fetch origin viec/X -q',
+  'git pull --no-rebase --ff-only origin viec/X', 'git pull --ff-only --no-rebase origin viec/X',
+  'git pull --ff-only --no-rebase -q origin viec/X', 'git pull -q --no-rebase origin viec/X --ff-only',
+  "git fetch 'origin' \"viec/X\"", 'cd viec/X && git fetch origin viec/X', 'timeout 60 git fetch -q origin viec/X',
+  'git fetch origin viec/X && git merge-base --is-ancestor HEAD FETCH_HEAD']) B(l, 'CHO');
+ca('Monitor fetch nhánh việc', 'Monitor', { command: 'git fetch origin viec/X' }, 'CHO');
+for (const l of ['git fetch', 'git fetch origin', 'git fetch origin viec/Y', 'git fetch origin main', 'git fetch origin viec/x',
+  'git fetch upstream viec/X', 'git fetch https://github.com/a/b viec/X', 'git fetch . viec/X', 'git fetch origin viec/X viec/X',
+  'git fetch origin viec/X:viec/X', 'git fetch origin +viec/X', 'git fetch origin :viec/X', 'git fetch origin viec/X:main',
+  'git fetch origin refs/heads/viec/X', 'git fetch --quiet origin viec/X', 'git fetch --all', 'git fetch --prune origin viec/X',
+  'git fetch --depth=1 origin viec/X', 'git fetch --unshallow origin viec/X', 'git fetch --force origin viec/X',
+  'git fetch -f origin viec/X', 'git fetch --upload-pack=x origin viec/X', 'git fetch --tags origin viec/X',
+  'git fetch -qf origin viec/X', 'git fetch origin viec/$B', 'git fetch origin `echo viec/X`',
+  'git pull', 'git pull origin viec/X', 'git pull --ff-only origin viec/X', 'git pull --no-rebase origin viec/X',
+  'git pull --rebase --ff-only origin viec/X', 'git pull --no-rebase --ff-only --rebase origin viec/X',
+  'git pull --no-rebase --no-ff origin viec/X', 'git pull --no-rebase --ff origin viec/X', 'git pull -r --ff-only origin viec/X',
+  'git pull --no-rebase --ff-only --quiet origin viec/X', 'git pull --no-rebas --ff-only origin viec/X',
+  'git pull --no-rebase --ff-onl origin viec/X', 'git pull --no-rebase=x --ff-only origin viec/X',
+  'git pull --no-rebase --ff-only origin main', 'git pull --no-rebase --ff-only origin viec/Y',
+  'git pull --no-rebase --ff-only origin viec/X:viec/X', 'git pull --no-rebase --ff-only origin +viec/X',
+  'git pull --no-rebase --ff-only upstream viec/X', 'git pull --no-rebase --ff-only origin', 'git pull --no-rebase --ff-only',
+  'git pull --no-rebase --ff-only --autostash origin viec/X', 'git pull --no-rebase --ff-only -s ours origin viec/X',
+  'git pull --no-rebase --ff-only --no-verify origin viec/X', 'git pull --no-rebase --ff-only -- origin viec/X',
+  'cd viec/X/long && git fetch origin viec/X', 'cd viec/X/long/con && git pull --no-rebase --ff-only origin viec/X',
+  'cd server/long2 && git fetch origin viec/X', 'cd ' + N + ' && git fetch origin viec/X']) B(l, 'GIT-KEO');
+B('git fetch origin viec/X', 'GIT-KEO', { cwd: NGOAI });
+B('git pull --no-rebase --ff-only origin viec/X', 'GIT-KEO', { cwd: N });
+for (const g of [KHO_MAIN, KHO_TACH]) {
+  B('git fetch origin viec/X', 'GIT-KEO', { goc: g });
+  B('git pull --no-rebase --ff-only origin viec/X', 'GIT-KEO', { goc: g });
+}
+B('git fetch origin main', 'GIT-KEO', { goc: KHO_MAIN });
+B('git fetch origin viec/Y', 'GIT-KEO', { goc: KHO_Y });
+B('git fetch origin viec/Z', 'GIT-KEO', { goc: KHO_Z });
+B('git pull --no-rebase --ff-only origin viec/H', 'CHO', { goc: KHO_H });
+B('git -C . fetch origin viec/X', 'GIT-TUYCHON');
+B('git -c pull.rebase=true pull --no-rebase --ff-only origin viec/X', 'GIT-TUYCHON');
+B('GIT_DIR=x git fetch origin viec/X', 'B-GAN');
+// B4 nối B3: mọi lệnh git ở bước 1 của skill (đặt X vào $0) → người gác CHO; skill phải có lệnh fetch VÀ pull.
+// MỘT phép, không sinh ca theo từng lệnh (soát vòng 1): số ca của bài không được đổi theo nội dung skill — cổng C2 so số CA gốc / head.
+{
+  const sk = fs.readFileSync(path.join(__dirname, 'skill_lam_viec.md'), 'utf8');
+  const b1 = (/\n1\. \*\*[\s\S]*?(?=\n2\. \*\*)/.exec(sk) || [''])[0];
+  const lenh = [...b1.matchAll(/`(git [^`]+)`/g)].map((m) => m[1].replace(/\$0/g, 'X'));
+  chac('TU-CHAY-5 B4: bước 1 của skill có git fetch origin viec/$0 và git pull --no-rebase --ff-only origin viec/$0',
+    lenh.includes('git fetch origin viec/X') && lenh.includes('git pull --no-rebase --ff-only origin viec/X'), lenh.join(' | '));
+  const sai = lenh.filter((l) => {
+    try { const r = gac.xet(vao('Bash', { command: l }), { CLAUDE_PROJECT_DIR: KHO, HOME }); return !r || r.quyet !== 'CHO'; } catch { return true; }
+  });
+  chac('TU-CHAY-5 B4: mọi lệnh git ở bước 1 của skill → người gác CHO', lenh.length >= 2 && !sai.length, sai.join(' | ') || lenh.join(' | '));
+}
 
 // ── TU-CHAY-2a: push ĐÚNG nhánh việc đang đứng — chỉ `git push [-u|--set-upstream|-q|-v] origin viec/<MÃ>`
 // KHO đứng ở viec/X, phiếu X có ## Phạm vi.
@@ -626,7 +706,7 @@ if (coXet) {
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.4.0', pb === 'tu-chay 1.4.0', pb || '(không có)');
+  chac('PHIEN_BAN = tu-chay 1.5.0', pb === 'tu-chay 1.5.0', pb || '(không có)');
 }
 // HOC-2 B1 (AU-A1): tập công cụ chỉ-đọc / sửa file KHOÁ bằng tập cố định. Thêm một tên lạ (vd 'Bash2') là mở lỗ mà không ca hành vi
 // nào thấy (đột biến AUDIT-1 A3-CCLA-them-la từng SỐNG). Đọc literal trong mã nguồn của chính người gác đang thử (--nguoi-gac).
@@ -638,7 +718,7 @@ if (coXet) {
     return m ? [...m[1].matchAll(/'([^']*)'/g)].map((x) => x[1]).sort() : null;
   };
   const DOC = ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch', 'Agent', 'TodoWrite', 'ExitPlanMode', 'AskUserQuestion', 'Skill',
-    'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput', 'SubagentHandback'];
+    'ToolSearch', 'EnterPlanMode', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TaskOutput', 'SubagentHandback', 'TaskStop'];
   const SUA = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
   for (const [ten, mong] of [['CONG_CU_DOC', DOC], ['CONG_CU_SUA', SUA]]) {
     const co = tap(ten);
@@ -659,6 +739,7 @@ function choTreo(env) {
     const t0 = Date.now();
     const p = spawn(process.execPath, [GAC], { env, stdio: ['pipe', 'pipe', 'pipe'] });
     let ra = '';
+    p.stdout.setEncoding('utf8');   // TU-CHAY-5 D3 (K4): khúc không cắt giữa ký tự nhiều byte
     p.stdout.on('data', (d) => { ra += d; });
     const hen = setTimeout(() => { p.kill('SIGKILL'); xong({ status: 'treo', ra, ms: Date.now() - t0 }); }, 4000);
     p.on('exit', (code) => { clearTimeout(hen); p.stdin.destroy(); xong({ status: code, ra, ms: Date.now() - t0 }); });
@@ -706,6 +787,12 @@ async function tienTrinh() {
   const tatCa = [];
   let r = goi(vao('Read', { file_path: 'x' }), env); tatCa.push(r);
   chac('tiến trình: Read → exit 0, không in gì', r.status === 0 && r.stdout === '', `exit ${r.status} · ${r.stdout}`);
+  // TU-CHAY-5 (soát vòng 2): git rm với cwd NGOÀI kho — khoLong phải dừng khi ra khỏi gốc (không thì path.dirname('/') mãi);
+  // tiến trình thật có hạn 10 s nên đột biến bỏ chốt dừng ra câu kết luận này, không treo cả bài.
+  r = goi(vao('Bash', { command: 'git rm a.js' }, { cwd: NGOAI }), env); tatCa.push(r);
+  chac('tiến trình: git rm với cwd ngoài kho → exit 2, [G0-NGOAI] trong 10 s (không treo)', r.status === 2
+    && /\[G0-NGOAI\]/.test(String(r.json && r.json.hookSpecificOutput && r.json.hookSpecificOutput.permissionDecisionReason)),
+    `exit ${r.status} · ${String(r.stdout).slice(0, 200)}`);
   r = goi(vao('TaskCreate', { subject: 'x' }), env); tatCa.push(r);
   chac('tiến trình: TaskCreate → exit 0', r.status === 0);
   r = goi(vao('Bash', { command: 'git push origin main' }), env); tatCa.push(r);
@@ -787,6 +874,18 @@ function envSach(them = {}) {
     GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t', ...them };
 }
 const git = (cwd, ...a) => spawnSync('git', a, { cwd, env: envSach(), encoding: 'utf8', timeout: 20000 });
+// TU-CHAY-5 B1 (Q4): người gác không xét "file đã theo dõi" — git tự đảm bảo. Khoá giả định đó bằng git THẬT.
+{
+  const g = path.join(TAM, 'kho_git_rm');
+  fs.mkdirSync(g);
+  git(g, 'init', '-q', '-b', 'viec/R');
+  viet(g, 'theo_doi.js', 'x'); viet(g, 'chua_theo_doi.js', 'x');
+  git(g, 'add', 'theo_doi.js'); git(g, 'commit', '-q', '-m', 'goc');
+  const r = git(g, 'rm', '-q', 'theo_doi.js', 'chua_theo_doi.js');
+  chac('TU-CHAY-5 B1: git rm <đã theo dõi> <chưa theo dõi> → git thoát ≠ 0, không xoá file nào (cả đĩa lẫn chỉ mục)',
+    r.status !== 0 && fs.existsSync(path.join(g, 'theo_doi.js')) && git(g, 'ls-files').stdout === 'theo_doi.js\n',
+    `thoát ${r.status} · ${r.stderr}`);
+}
 function khoCai(ten, { settings = SETTINGS_GOC, prePush = null } = {}) {
   const g = path.join(TAM, ten);
   fs.mkdirSync(path.join(g, 'tu_chay'), { recursive: true });

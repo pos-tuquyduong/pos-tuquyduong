@@ -264,6 +264,15 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 | `curl` | Ra ngoài `localhost`/`127.0.0.1`; hoặc gọi tới `ten_mien_production` |
 | Mọi lệnh | Có chữ `.env`, `TOKEN`, `SECRET`, `API_KEY`; ghi (`>`, `>>`, `tee`) vào `.claude/`, `phieu.md`, `bien_ban_soat.json`, `file_cam`; `claude` kèm `--dangerously-skip-permissions`/`bypassPermissions`; `turso` |
 
+**TU-CHAY-5 (tu-chay 1.5.0) — ba dạng mới, hẹp nhất có thể:**
+- `git rm [-q] <file…>` (GIT-RM): tên file viết thẳng, không thư mục, không glob, không `-r`/`-f`/`--cached`/`--`, không trong
+  kho git lồng; mỗi file đi qua `ghiDuoc` như SỬA file (Phạm vi, file luật ghi đúng tên, file cấm, phiếu, `.claude/`). "File đã
+  theo dõi" do git tự bảo đảm (một pathspec không khớp → cả lệnh hỏng) — bài thử khoá bằng git thật.
+- `git fetch [-q] origin viec/<MÃ>` và `git pull --no-rebase --ff-only [-q] origin viec/<MÃ>` (GIT-KEO; MÃ = nhánh đang đứng, có
+  phiếu, chạy trong kho, không kho lồng): skill bước 1 tự đi-trước-nhanh khi phiên nạp bản cũ. `--ff-only` không viết lại lịch
+  sử, không tạo commit gộp; lệch hai phía thì git từ chối. `git merge` vẫn bị lớp 1 (`Bash(git merge *)`) và GIT-LENH chặn.
+- Công cụ `TaskStop` cho qua: chỉ dừng tác vụ nền do chính phiên mở (lệnh nền treo).
+
 **Lưới thứ hai:** lệnh như `node -e` vẫn có thể ghi file mà người gác không nhìn thấy. Chỗ hở đó được **cổng** bắt (B8, phép 2: mọi file đã đổi phải nằm trong phạm vi). Người gác chặn sớm, cổng chặn chắc.
 
 ## B4. Lớp 1 — `settings.json`
@@ -383,9 +392,18 @@ So bằng đường dẫn đã chuẩn hoá. Đường dẫn có `..` hoặc sym
 **Cách nối thật (TU-CHAY-4, 02.10.2026):** `node cong_cu/gia_lap/chay.js` — ba file: `chay.js` (an toàn + sân khấu + in kết
 quả), `kich_ban.js`, `bat_bien.js`. Bộ kiểm gọi ở **`--day-du`** (nhóm S) với **môi trường đã lọc sạch** — giả lập không bao
 giờ cầm khoá thật, kể cả trên Replit; cổng `cong-chay` chạy `--day-du` nên PR nào cũng qua giả lập. Không có khoá
-cấu hình riêng cho giả lập (B2). Đo: giả lập 22 s, `cong_cu/thu_gia_lap.js` 24 s (> 15 s nên không vào bản nhanh / pre-commit).
+cấu hình riêng cho giả lập (B2). Đo: số đo có ngày ở `viec/<MÃ>/trang_thai.md` của việc gần nhất đổi giả lập (gần nhất:
+TU-CHAY-5) — tài liệu không chép số (số chép tay trôi: bản trước ghi 22 s / 24 s khi thật đã khác). Từng KB:
+`node viec/LUOI-1/do_thoi_gian.js kb`. Giả lập và `thu_gia_lap.js` quá 15 s nên không vào bản nhanh / pre-commit.
 Cả ba file và `thu_gia_lap.js` là **file luật** (`file_luat`): việc sau muốn sửa phải ghi ĐÚNG TÊN file trong phiếu.
-Bánh cóc: số kịch bản ≥ 11, số bất biến ≥ 9 — chỉ được tăng.
+Bánh cóc: `NGUONG_KICH_BAN` / `NGUONG_BAT_BIEN` của `kiem_tra_truoc_khi_giao.js` (đọc số ở đó, không chép) — chỉ được tăng.
+
+**Chia lượt (TACH-GL, TU-CHAY-5):** kịch bản chia thành các lượt (`LUOT` cuối `kich_ban.js`). Tiến trình CHA (không `--luot`)
+tạo kho tạm cho từng lượt rồi sinh MỌI lượt cùng lúc, mỗi lượt là chính `chay.js` + `--luot k --kho <kho>`, có kênh IPC; cha
+gộp các dòng `Lượt k: …` thành dòng tổng. `--kho` chỉ nhận từ cha — lượt KHÔNG có kênh IPC mà nhận `--kho` thì TỪ CHỐI thoát 3
+(D1: gọi thẳng với kho của giả lập khác sẽ xoá kho đó lúc thoát). `--luot k` không `--kho` (công cụ đo) vẫn chạy, tự tạo kho.
+Một lượt TỪ CHỐI (thoát 3) → cha dừng mọi lượt, thoát 3, dòng cuối là dòng TỪ CHỐI của lượt (D2 — bài thử gây bằng
+`--cau-hinh /dev/fd/3`: fd 3 của lượt là kênh IPC, không thêm cửa sau vào `chay.js`).
 
 **An toàn trước hết:**
 - Thấy biến môi trường trỏ tới `ten_mien_production` hoặc có khoá thật → **từ chối chạy**.
@@ -531,7 +549,7 @@ nằm ở `viec/TU-CHAY-1/ke_hoach.md`.
      AskUserQuestion, Skill;
    - thêm ngày 28.09: ToolSearch, EnterPlanMode, TaskCreate/Update/Get/List/Output.
 
-   Monitor được xét như Bash. **TaskStop, MCP và mọi công cụ lạ đều bị chặn.**
+   Monitor được xét như Bash. **MCP và mọi công cụ lạ đều bị chặn** (TaskStop cho qua từ TU-CHAY-5 B2).
 5. **git và npm theo danh sách lệnh CHO PHÉP**, không theo danh sách cấm (xem B3 trong mã).
 6. **Thêm `file_luat`:** các file luật chỉ sửa được khi Phạm vi ghi ĐÚNG TÊN file.
    **Thêm `file_bi_mat`** cho luật Bash nhắc tới file bí mật. `TIEN_DO_*.json` vào `file_cam`.
@@ -643,8 +661,8 @@ nằm ở `viec/TU-CHAY-1/ke_hoach.md`.
   cả hai chiều đều có thể trượt.
 - **Ghép biến có chủ ý:** `F=.e; cat ${F}nv` lọt luật file bí mật. Hệ thống chặn
   sai sót và đi tắt, không chống AI cố tình gian lận (A10).
-- **`git push --no-verify`** bỏ qua pre-push. Lớp 1 (deny `git push`) và người gác
-  (GIT-LENH) vẫn chặn.
+- **`git push --no-verify`** bỏ qua pre-push. Lớp 1 (deny `git *--no-v*`) và người gác
+  (GIT-PUSH: cờ ngoài `PUSH_CO`) vẫn chặn.
 - **Hook quá `timeout` thì KHÔNG chặn** (tài liệu hooks). Người gác tự hẹn giờ 5 s
   để bù, nên stdin treo thì bị chặn.
 - **TOCTOU:** symlink bị đổi sau khi người gác đã xét.
@@ -803,7 +821,8 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
    - Một vị từ `tenThang` (chữ viết thẳng, không `* ? [ ] \`, không `:`, không thư mục) cho hoàn tác, `git add`,
      pathspec của `git commit`; chặn thêm `--pathspec-from-file`. `git add <thư mục>` đổi từ CHO thành GIT-ADD.
 7. **`/ra-soat` thuộc bộ khung**: soát CẢ NHÁNH từ cha của commit `PHIEU: <MÃ>` đầu tiên (máy mây không có ref
-   `main`, người gác cấm `fetch` — chủ quán duyệt Q4); nộp bằng `SubagentHandback`; mẫu có dòng `BÀI HỌC:`.
+   `main`; lúc đó mọi `fetch` đều bị người gác chặn — chủ quán duyệt Q4; từ TU-CHAY-5 chỉ mở `git fetch [-q] origin viec/<MÃ>`);
+   nộp bằng `SubagentHandback`; mẫu có dòng `BÀI HỌC:`.
 8. **bước 11 rút kinh nghiệm** trong skill: gom sự cố → KHOÁ / NGUYÊN TẮC / BỎ → dọn lời dặn đã có phép kiểm
    thay → `## Bài học` của `trang_thai.md`. Báo cáo CLAUDE.md §7 thành 7 mục (thêm BÀI HỌC). `KHUON_LOI.md` có
    ngân sách `khuon_loi_toi_da: 120` dòng (bài thử F3 trong `thu_cong_cu.js`).
@@ -844,6 +863,22 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   trên nhánh việc. Sửa tay `.claude/hooks/*.cjs`, `.claude/settings.json` hay file `.claude/` khác (kể cả để vá nhanh)
   → cổng chặn A8 ("không do trình cài quản" hoặc "lệch kết quả cai_dat.js"). Muốn đổi thứ trong `.claude/` mà trình
   cài chưa quản: làm phiếu sửa `tu_chay/` (thêm `ban_cai`) trước.
+
+### TU-CHAY-5 (11.10.2026, tu-chay 1.5.0)
+
+- **[A19] `HEAD ĐÃ KIỂM`** (tĩnh): PR đổi file ngoài `viec/<MÃ>/` (trừ `.claude/` và `.github/workflows/cong.yml` — chủ quán cài
+  SAU lần kiểm của máy) thì dòng CUỐI `HEAD ĐÃ KIỂM: <SHA 7–40>` của `trang_thai.md` ở head phải là một commit của PR, và
+  `git rev-list <SHA>..head -- <code>` rỗng (theo đồ thị, không theo ngày — commit gộp main sau lần kiểm cũng tính). Dạng chat
+  soát thay `HEAD ĐÃ KIỂM: <SHA cha> + commit này`: đúng MỘT commit đổi code sau SHA, là con trực tiếp của SHA, và
+  `trang_thai.md` ở chính commit đó có dòng. Skill bước 11.4 ghi dòng này SAU mọi sửa của bước 11 (KHOÁ, `KHUON_LOI.md`) và lần
+  kiểm cuối — ghi ở bước 10 thì bước 11 đổi file ngoài `viec/<MÃ>/` làm A19 tự đỏ (soát vòng 1). Kiểm lại sau soát thì thêm dòng
+  mới: cổng đọc dòng CUỐI. PR chỉ đổi hồ sơ thì không áp.
+- **CẢNH BÁO A16** (chạy): bài đỏ trên gốc in số CA khác số ở head → `CẢNH BÁO A16` (không đỏ: bài đỏ trên gốc có thể dừng sớm).
+  Chỉ so phần SỐ CA (chủ quán chốt Q5): `a đạt · b hỏng` → a + b; `x/B ca người gác … · C phép khác` → B; dạng
+  `N phép · M chỗ hỏng` không tách được số ca → không so.
+- **Giới hạn C3 (chat đã chốt):** cổng A18 không chạy đột biến — chạy `dot_bien.py` là chạy code PR hàng chục phút. Lớp canh
+  đột biến là `/ra-soat` + chat soát cuối.
+- Chính PR TU-CHAY-5 chấm bằng luật main (tu-chay 1.4.0): A19 chưa áp cho nó; A8 đỏ tới khi chủ quán cài trên nhánh.
 
 ## B16. HOC-2 — khoá hồ sơ ở cổng, khoá cấu hình, người gác (05.10.2026, tu-chay 1.4.0)
 

@@ -36,7 +36,9 @@ không — <lý do>
 <Hồ sơ máy ghi, cổng PR kiểm (HOC-2): viec/<MÃ>/bang_chung_do.txt có một dòng "SỐ CA <bài thử>: <N>" cho mỗi bài thử
  đỏ trên gốc, N = tổng số ca bài in khi chạy trên code đã vá (A16). PR đổi server/ hoặc client/src/ → viec/<MÃ>/dot_bien.py có ≥ 1 đột biến tên
  VS-… (vá sai, A18; khuyên thêm BV-… bỏ vá), mỗi đột biến một dòng ('<tên>', …); mọi tên (NGUYÊN chuỗi đầu) ghi trong trang_thai.md (A17).
- Phiếu miễn ## Bài thử đỏ thì A16 và A18 không áp.>
+ Phiếu miễn ## Bài thử đỏ thì A16 và A18 không áp.
+ PR đổi file ngoài viec/<MÃ>/ → trang_thai.md có dòng "HEAD ĐÃ KIỂM: <SHA>" ghi SAU lần kiểm cuối, không cũ hơn commit đổi code
+ cuối (A19, TU-CHAY-5); chat soát thay đổi code + trang_thai cùng commit thì ghi "HEAD ĐÃ KIỂM: <SHA cha> + commit này".>
 
 ## Bài thử cũ sửa
 <TUỲ CHỌN (HOC-1) — bài thử ĐÃ CÓ ở main mà việc này sửa (vd thêm ca hồi quy) và vẫn xanh trên code gốc. Mỗi dòng một file:>

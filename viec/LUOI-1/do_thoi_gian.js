@@ -4,7 +4,8 @@
  *   node viec/LUOI-1/do_thoi_gian.js [gl] [thugl] [kb] [kiem]      (mặc định: gl kb)
  *     gl    node cong_cu/gia_lap/chay.js
  *     thugl node cong_cu/thu_gia_lap.js
- *     kb    bản sao giả lập trong thư mục tạm, chèn mốc giờ quanh từng kịch bản + vòng bất biến (không ghi vào cong_cu/)
+ *     kb    bản sao giả lập trong thư mục tạm, chèn mốc giờ quanh từng kịch bản + vòng bất biến (không ghi vào cong_cu/);
+ *           TU-CHAY-5 D4: chạy TỪNG lượt `--luot k` (cha không chuyển dòng DO KB của con), không --kho → lượt tự tạo kho
  *     kiem  node kiem_tra_truoc_khi_giao.js --day-du
  * Môi trường đã lọc sạch như bộ kiểm gọi (chỉ PATH, HOME, LANG, LC_ALL).
  */
@@ -15,9 +16,11 @@ const { spawnSync } = require('child_process');
 
 const GOC = path.join(__dirname, '..', '..');
 const SACH = Object.fromEntries(Object.entries(process.env).filter(([t]) => /^(PATH|HOME|LANG|LC_ALL)$/.test(t)));
+const thoatHong = [];   // TU-CHAY-5 (soát vòng 4): lượt đo thoát ≠ 0 thì số đo không tin được
 const chay = (ten, args) => {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, args, { cwd: GOC, env: SACH, encoding: 'utf8', maxBuffer: 1 << 26 });
+  if (r.status !== 0) thoatHong.push(`${ten} thoát ${r.status}`);
   const dong = `${r.stdout}${r.stderr}`.trim().split('\n');
   console.log(`${ten}: ${((Date.now() - t0) / 1000).toFixed(1)} s · thoát ${r.status} · ${dong.slice(-1)[0].trim()}`);
   dong.filter((l) => /ĐẾM|CẢNH BÁO:|⚠/.test(l)).forEach((l) => console.log('  ' + l.trim()));
@@ -38,13 +41,18 @@ if (lam.includes('kb')) {
       if (s.split(a).length !== 2) throw new Error('neo đo không khớp đúng 1 lần: ' + a);
       s = s.replace(a, b + a);
     }
-    const a3 = '  const tong = `Giả lập:';
+    const a3 = '  const tong = `Lượt ';   // dòng tổng của tiến trình lượt (chia lượt TACH-GL)
     if (s.split(a3).length !== 2) throw new Error('neo đo không khớp: ' + a3);
     s = s.replace(/(\n    for \(const ten of tenBB\) \{[\s\S]*?\n    \}\n)(  \}\n)/, '$1    viet(`DO KB${i + 1} kb ${t1 - t0} ms · bb ${Date.now() - t1} ms`);\n$2');
     if (!s.includes('DO KB')) throw new Error('không chèn được mốc vòng bất biến');
     fs.writeFileSync(p, s);
-    const ra = chay('giả lập (bản đo từng KB)', [p, '--may-chu', path.join(GOC, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')]);
-    ra.filter((l) => l.startsWith('DO ')).forEach((l) => console.log('  ' + l));
+    const { LUOT } = require(path.join(tam, 'kich_ban.js'));
+    const ra = LUOT.flatMap((_, i) => chay(`lượt ${i + 1}/${LUOT.length} (bản đo từng KB)`, [p, '--luot', String(i + 1), '--may-chu',
+      path.join(GOC, 'server'), '--cau-hinh', path.join(GOC, 'tu_chay', 'cau_hinh.json')]));
+    if (thoatHong.length) throw new Error(`lượt đo thoát ≠ 0: ${thoatHong.join(', ')}`);
+    const doKb = ra.filter((l) => l.startsWith('DO ')).length;
+    if (doKb !== LUOT.flat().length) throw new Error(`chỉ ${doKb}/${LUOT.flat().length} dòng DO KB — có lượt sập (xem dòng "thoát" ở trên)`);
+    ra.filter((l) => l.startsWith('DO ')).sort((a, b) => parseInt(a.slice(5), 10) - parseInt(b.slice(5), 10)).forEach((l) => console.log('  ' + l));
   } finally { fs.rmSync(tam, { recursive: true, force: true }); }
 }
 if (lam.includes('kiem')) chay('kiem_tra --day-du', ['kiem_tra_truoc_khi_giao.js', '--day-du']);

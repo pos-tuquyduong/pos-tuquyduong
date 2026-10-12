@@ -34,6 +34,12 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
 - **Chặn:** con số "đạt" phải kèm lần chạy lại trên HEAD; đột biến neo chuỗi NGẮN, RIÊNG (neo dài rữa sau vài việc).
   Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi trên bản chưa vá — dựng đột biến đỏ
   TẤT ĐỊNH, không được thì ghi **CHƯA KIỂM**, không đếm là phép.
+- **Chặn (TACH-GL):** sửa lỗi người soát báo → đột biến phải đưa ĐÚNG lỗi cũ trở lại, không chỉ gỡ phép vừa thêm (T9). Ca TỪ
+  CHỐI so đúng câu của phép đang thử + dấu vết không xảy ra (T9 vòng 3: không dòng `lượt k/L pid`). Ca tín hiệu / thời gian
+  không chạy chung đợt nặng; nghi thì chạy lặp ≥ 3 lần (T3 đỏ oan 1/3).
+- **Chặn (TU-CHAY-5):** số ca của bài thử không được SINH từ nội dung file PR sửa (ca theo từng lệnh trong skill → gốc 927, head
+  933, cổng so số ca báo oan). Mỗi luồng kế hoạch ghi "phải KHÔNG bị chặn" trỏ tới MỘT ca + đột biến gỡ đúng vế đó ra BẮT
+  (A19 `.pop()`, loại `cong.yml` ghi trong kế hoạch mà không ca — đột biến SỐNG).
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ thứ hai thường trong cùng hàm hoặc cách chưa tới 150 dòng.
@@ -44,6 +50,11 @@ Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ th�
   là chỗ vá riêng. "Cùng khuôn" phải giống ở **mọi loại đầu vào** (HOC-1: `Dirent.isFile()` bỏ symlink, `statSync` giữ).
 - **Chặn:** tài liệu hứa theo ĐỐI TƯỢNG thì phép chặn gắn theo đối tượng, không theo một nhánh kết quả. Sửa / phủ định
   một câu tài liệu → grep CẢ FILE tìm câu cùng nghĩa; chạy lại bằng chứng → grep hồ sơ tìm mọi câu trích con số cũ.
+- **Chặn:** thêm cờ nội bộ cha→con → rà MỌI đường argv: chuyển tiếp nguyên đối số, lấy lần đầu, phép cấp module chạy cả ở cha
+  (TACH-GL `--kho`: cha nhận `--kho` lạ, chuyển xuống con rồi xoá kho của giả lập khác).
+- **Chặn (TU-CHAY-5):** dời một bước quy trình / đổi tên một phép / chép một khối code → grep khắp nơi: thông báo lỗi của cổng,
+  tài liệu, chú thích bài thử, mẫu + neo `viec/*/dot_bien.py` (`python3 viec/HOC-2b/kiem_neo.py` trên gốc và HEAD). Đã gây: thông
+  báo A19 còn "bước 10"; khối lọc màu chép sang hàm mới → neo HOC-2 khớp 2 lần, chết im lặng; đổi tên phép → mẫu đột biến LẠC.
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Đã lên production: chặn đơn khai "lấy từ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
@@ -67,7 +78,8 @@ Middleware đặt sau route · `setError` trong hàm cập nhật của `setCart
 commit không thành mà vẫn push → "Everything up-to-date".
 - **Dấu hiệu:** tên bảng, cột, script, lệnh viết theo trí nhớ.
 - **Chặn:** tra trong code, không nhớ từ kho kia. Sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong
-  `git log origin/viec/<MÃ>..HEAD` phải rỗng.
+  `git log origin/viec/<MÃ>..HEAD` phải rỗng. Dòng mới ở ĐỈNH file (ngoài try) → tự hỏi nó ném thì thoát mã gì (TACH-GL T10:
+  `require('./kich_ban.js')` hỏng văng thô thoát 1 = nhầm KHÔNG ĐẠT).
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
 Đã gây: bộ kiểm báo `POST /orders` chưa có cổng phân quyền; kết luận "nó khắt khe quá". Sai: khách có gói TRÀ khai lấy
