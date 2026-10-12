@@ -1222,16 +1222,8 @@ export default function Sales() {
                   {item.is_pkg && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                       <span style={{ fontSize: '0.7rem', color: '#7c3aed' }}>SL SP:</span>
-                      <input type="number" min="1" value={buyQty} onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        const pkgCartQty = cart.filter(c => c.fromPkg).reduce((s, c) => s + c.quantity, 0);
-                        if (val < pkgCartQty && pkgCartQty > 0) {
-                          setError(`Đã chọn ${pkgCartQty} SP giao. Không thể giảm dưới ${pkgCartQty}.`);
-                          return;
-                        }
-                        setBuyQty(e.target.value);
-                      }}
-                        style={{ width: '50px', padding: '2px 4px', borderRadius: 4, border: '1px solid #c4b5fd', fontSize: '0.75rem', textAlign: 'center' }} />
+                      {/* P26c (A6): số lượt theo gói đã cài — máy chủ không nhận số sửa ở quầy */}
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{buyQty}</span>
                       <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>{item.unit || 'SP'}</span>
                     </div>
                   )}
