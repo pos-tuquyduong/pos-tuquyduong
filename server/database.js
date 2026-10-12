@@ -966,6 +966,10 @@ async function seedDefaultData() {
       ['manager', 'view_all_orders', 1],
       ['manager', 'manage_promotions', 1],
       ['manager', 'manage_permissions', 0],
+      // P26c (Q4): hoàn gói trả trước (huỷ / xoá đơn mua gói) — mặc định chỉ owner (H9)
+      ['owner', 'refund_package', 1],
+      ['staff', 'refund_package', 0],
+      ['manager', 'refund_package', 0],
     ];
 
     for (const [role, permission, allowed] of permissions) {
@@ -975,6 +979,10 @@ async function seedDefaultData() {
       `, [role, permission, allowed]);
     }
     console.log('✅ Đã tạo phân quyền mặc định');
+  }
+  // P26c (Q4): kho ĐANG CHẠY (bảng quyền đã có dữ liệu) cũng có quyền mới — INSERT OR IGNORE không đè quyền chủ quán đã chỉnh.
+  for (const [role, allowed] of [['owner', 1], ['staff', 0], ['manager', 0]]) {
+    await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, 'refund_package', ?)`, [role, allowed]);
   }
 
   // Tạo sản phẩm mẫu
@@ -1140,8 +1148,7 @@ async function seedDefaultData() {
   if (Number(tierCnt.rows[0].c) === 0) {
     const tierDefaults = [
       ['Vàng', 500000, 5, 1],
-      ['Bạch Kim', 2000000, 8, 2],
-      ['Kim cương', 5000000, 10, 3],
+      ['Bạch Kim', 2000000, 8, 2],   // P26c (D5): chỉ hai hạng — CLAUDE.md §5.6
     ];
     for (const [name, price, pct, so] of tierDefaults) {
       await run(`
