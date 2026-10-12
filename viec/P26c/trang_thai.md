@@ -644,3 +644,5 @@ GIT-ADD -u, B-MANOI). Phần thử vượt ngân sách (×1,4 — chủ quán ch
    sửa ngay; không gây sai kết luận.
 2. Người gác chặn `cd` giữa lệnh / `time` / `for` — luật đã có, hướng dẫn trong lời chặn đủ; chỉ tốn một lần gõ lại.
 Dọn: không lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` được phép kiểm mới làm thay trong việc này.
+
+HEAD ĐÃ KIỂM: e5a801c
