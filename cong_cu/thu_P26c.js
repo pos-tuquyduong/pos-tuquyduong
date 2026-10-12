@@ -94,7 +94,7 @@ async function main() {
   };
   const goi = (method, url, body) => goiAi('chu', method, url, body);
   const moTa = (r) => `HTTP ${r.status}${r.code ? ' · ' + r.code : ''}${r.error ? ' · ' + r.error : ''}`;
-  const vi = (sdt) => so('SELECT COALESCE(balance, 0) FROM pos_wallets WHERE phone = ?', [sdt]);
+  const vi = (sdt) => so('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0)', [sdt]);   // chưa có ví = 0
 
   for (const [i, bang] of ['pos_orders', 'pos_refund_requests', 'pos_balance_transactions', 'pos_damage_logs',
     'pos_customer_packages', 'pos_stock_pending', 'pos_discount_codes', 'pos_packages'].entries()) {
