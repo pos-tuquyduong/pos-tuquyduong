@@ -17,7 +17,7 @@ async function tienDaTraTheoDong(tx, order) {
 }
 
 /**
- * Khoản hoàn VÍ khi huỷ / xoá / duyệt hoàn → { me, con }.
+ * Khoản hoàn VÍ khi huỷ / xoá / duyệt hoàn → { me, con, coGoi }.
  * - Đơn có gói mua: khách đã trả (total − nợ) − giá trị gói đã dùng (giá đã trả gói × lượt đã lấy ÷ tổng lượt) — Q4, H2.
  *   Đơn khác: `viDaTra` (phần đơn đã trả bằng ví — như trước P26c).
  * - Trừ số đã đền của đơn (báo sự cố "Hoàn tiền"), không dưới 0 — H4.
@@ -39,7 +39,18 @@ async function soTienHoan(tx, order, viDaTra) {
     [order.id]);
   tong = Math.max(0, tong - Number(den.n));
   const me = order.parent_phone ? Math.min(Number(order.parent_balance_amount || 0), tong) : 0;
-  return { me, con: tong - me };
+  return { me, con: tong - me, coGoi: goi.length > 0 };
 }
 
-module.exports = { tienDaTraTheoDong, soTienHoan };
+/**
+ * Đơn đã áp mã bị huỷ / xoá / duyệt hoàn → trả một lượt mã (không dưới 0), voucher đổi điểm về `available`; điểm không hoàn
+ * (H7 = 4A). Đơn cũ (trước P26c máy chủ lưu mã cả khi không áp) chỉ trả khi loại + trị giá giảm của đơn khớp mã.
+ */
+async function traLuotMa(tx, order) {
+  if (!order.discount_code) return;
+  await tx.run(`UPDATE pos_discount_codes SET used_count = MAX(0, used_count - 1)
+    WHERE UPPER(code) = UPPER(?) AND discount_type = ? AND discount_value = ?`, [order.discount_code, order.discount_type, order.discount_value]);
+  await tx.run(`UPDATE pos_voucher_grants SET status = 'available', used_order_id = NULL, used_at = NULL WHERE used_order_id = ?`, [order.id]);
+}
+
+module.exports = { tienDaTraTheoDong, soTienHoan, traLuotMa };
