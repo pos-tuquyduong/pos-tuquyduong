@@ -966,10 +966,6 @@ async function seedDefaultData() {
       ['manager', 'view_all_orders', 1],
       ['manager', 'manage_promotions', 1],
       ['manager', 'manage_permissions', 0],
-      // P26c (Q4): hoàn gói trả trước (huỷ / xoá đơn mua gói) — mặc định chỉ owner (H9)
-      ['owner', 'refund_package', 1],
-      ['staff', 'refund_package', 0],
-      ['manager', 'refund_package', 0],
     ];
 
     for (const [role, permission, allowed] of permissions) {
@@ -980,7 +976,8 @@ async function seedDefaultData() {
     }
     console.log('✅ Đã tạo phân quyền mặc định');
   }
-  // P26c (Q4): kho ĐANG CHẠY (bảng quyền đã có dữ liệu) cũng có quyền mới — INSERT OR IGNORE không đè quyền chủ quán đã chỉnh.
+  // P26c (Q4): quyền hoàn gói trả trước (huỷ / xoá đơn mua gói) — mặc định chỉ owner (H9). Chạy MỌI lần khởi động: kho mới và kho
+  // ĐANG CHẠY (bảng quyền đã có dữ liệu) đều có; INSERT OR IGNORE không đè quyền chủ quán đã chỉnh.
   for (const [role, allowed] of [['owner', 1], ['staff', 0], ['manager', 0]]) {
     await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, 'refund_package', ?)`, [role, allowed]);
   }
