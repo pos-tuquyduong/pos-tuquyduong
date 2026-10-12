@@ -34,6 +34,27 @@ P20b, P22–P24) dựa trên các đường này. Đích: xong 14.10 (song song 
 Chỗ nào 4 quyết định chưa phủ (vd đơn mua gói kèm món khác; phần trả tiền mặt / CK — máy chỉ ghi, người trả tay) → kế hoạch
 đề xuất cách đơn giản nhất trong `## Câu hỏi`, KHÔNG tự chọn.
 
+## Chủ quán trả lời kế hoạch 8a025fa (12.10 — chép đúng; làm theo, không hỏi lại)
+- H1: CÓ — hàm "tiền khách đã trả từng dòng" đặt ở `server/utils/tienDaTra.js` (đã thêm vào Phạm vi).
+- H2 = **1B**: huỷ / xoá đơn mua gói → tiền hoàn = tổng khách đã trả cho đơn − giá trị gói ĐÃ DÙNG (giá đã trả gói × lượt đã lấy
+  ÷ tổng lượt), không dưới 0, và TOÀN BỘ vào VÍ — không có phần "trả tay": phần đơn trả bằng ví mẹ hoàn về ví mẹ (tối đa số mẹ đã trả), phần
+  còn lại (kể cả phần khách trả tiền mặt / CK) vào ví khách của đơn. Ví dụ: gói 300.000 trả ví 100.000 + tiền mặt 200.000,
+  lấy 4/10 → ví khách +180.000. Ghi bằng `ghiVi` như huỷ thường. Đơn KHÔNG có gói: giữ nguyên cách huỷ hiện nay.
+- H3 = **2A**: "Hoàn tiền" (`refund`) trên đơn chưa thu đủ (`payment_status` ≠ `paid`) → 400 (lời: thu tiền đơn trước rồi mới
+  đền); "Chỉ ghi nhận" vẫn 200; trả nợ đủ xong thì "Hoàn tiền" 200.
+- H4 = **3A**: đã đền rồi mới huỷ / xoá / duyệt hoàn → khoản hoàn ví trừ đi số đã đền của đơn (không dưới 0). Ví dụ: đơn 50.000
+  trả ví, đã đền 10.000 → huỷ hoàn 40.000. Tổng khách nhận lại ≤ số đã trả (I19).
+- H5 (chat chốt): xoá đơn → xoá mã bill CHƯA dùng; mã ĐÃ dùng giữ làm vết; I2 chỉ coi mã chưa dùng là mồ côi.
+- H6 (chat chốt): ĐỒNG Ý ngoại lệ — nợ kho `in` của đơn đã huỷ rồi bị xoá VẪN đẩy sang SX (vân tay giữ nguyên); chỉ nợ `out`
+  chưa tới SX mới thành `huy` và không gửi. Câu "KHÔNG còn bị tự đẩy" ở C2 hiểu theo ngoại lệ này.
+- H7 = **4A**: huỷ / xoá / duyệt hoàn đơn đã áp mã → `used_count − 1` (không dưới 0), voucher đổi điểm về `available`; điểm
+  KHÔNG hoàn. Đơn cũ trước D3: chỉ trả lượt khi giảm của đơn khớp mã (như kế hoạch).
+- H8: KHÔNG tách. Vòng giữa chỉ chạy bài thử + đột biến của chỗ vừa sửa; bộ đột biến cũ (LUOI-1, TACH-GL, P26b) chạy ĐỦ một lần
+  ở vòng cuối trước khi báo xong. Commit + push sau mỗi phần (A, Q4, B, C, D); hết hạn mức → `/lam-viec P26c tiep`.
+- H9 = **5A**: quyền `refund_package` chỉ owner; KHÔNG thêm vào màn Phân quyền (`server/routes/users.js` giữ nguyên).
+- Phát hiện 1 của kế hoạch = **6A**: làm trong P26c — mục A6 dưới. Phát hiện 2–6: giữ là Phát hiện, KHÔNG làm ở đây.
+- Phần thử ~560 dòng (×1,4 phiếu): chấp nhận.
+
 ## Nghiệm thu
 Mỗi mục: ca thử ĐỎ trên gốc → XANH sau vá (bài mới `cong_cu/thu_P26c.js` hoặc kịch bản giả lập), kèm số tiền cụ thể.
 
@@ -44,6 +65,9 @@ Mỗi mục: ca thử ĐỎ trên gốc → XANH sau vá (bài mới `cong_cu/th
 - A4 (LUOI-1 4) `PUT /packages/customer-packages/:id/deliver` bỏ (như `POST /buy` ở P26b) — sau vá gọi trả 404.
 - A5 (Q4) Huỷ / xoá đơn mua gói: không có quyền mới → 403, không đổi gì; có quyền → hoàn đúng giá trị còn lại (ca 300.000 /
   10 lượt / lấy 4 → 180.000; chưa lấy → hoàn đủ; lấy hết → 0), gói bị gỡ / huỷ như hiện nay.
+- A6 (6A) Số lượt gói khi MUA lấy theo gói đã cài (`pos_packages.total_qty`; mua nhiều gói thì mỗi gói một dòng mang đúng số
+  này, như hiện nay), máy chủ bỏ qua số màn hình gửi; màn Bán hàng không cho sửa ô số lượt. Ca: gói cài 10 lượt, màn hình gửi 100 → gói khách 10 lượt ← gốc 100; Q4 và trần lấy
+  ngay (A2) tính theo số này.
 
 ### B. Báo sự cố đơn (`server/routes/damages.js`, màn Đơn hàng `Orders.jsx`)
 - B1 (Q2) Trần "Hoàn tiền" theo số khách ĐÃ TRẢ: đơn giảm flash / hạng / mã đơn → đền tối đa đúng số trả (ca: món 30.000 giá
@@ -103,6 +127,7 @@ còn hiệu lực, hoàn tiền dưới trần, dùng mã / quà hợp lệ, own
 - server/routes/discount-codes.js
 - server/routes/membership.js
 - server/utils/doSoNo.js
+- server/utils/tienDaTra.js
 - server/database.js
 - client/src/pages/Settings.jsx
 - client/src/pages/Orders.jsx
