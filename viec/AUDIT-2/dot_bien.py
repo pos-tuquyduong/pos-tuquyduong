@@ -9,6 +9,7 @@ bảng đột biến, thêm cách chạy kb19–kb29, lọc thêm `viec/AUDIT-2/
 A3P ngược nghĩa: thêm một ca vào BẢN SAO kich_ban.js khẳng định hành vi ĐÚNG; BẮT = máy chủ thật làm SAI (code quầy sai).
 """
 import importlib.util, os, signal, sys
+sys.dont_write_bytecode = True   # importlib nạp khung AUDIT-1: không đẻ __pycache__ trong kho (soát vòng 1)
 
 DAY = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location('khung_audit1', os.path.join(DAY, '..', 'AUDIT-1', 'dot_bien.py'))

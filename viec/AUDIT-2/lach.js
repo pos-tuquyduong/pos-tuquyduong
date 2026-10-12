@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // AUDIT-2 A3 — lệnh lách TỐI THIỂU cho các mã người gác chưa có ca nhắc tên trong tu_chay/thu_nguoi_gac.js (bảng lach.json).
 // KHÔNG thực thi lệnh nào: chép tu_chay/nguoi_gac.js vào thư mục tạm, nạp BẢN SAO đó, đưa từng mục lach.json (dữ liệu JSON đầu vào
-// hook) vào xet() trên một kho giả (khuôn viec/AUDIT-1/lach.js). In CHẶN|LỌT từng mục; LỌT = phát hiện. Chạy ở GỐC kho:
+// hook) vào xet() trên một kho giả (khuôn viec/AUDIT-1/lach.js). Mỗi mục: `mong` = mã chặn chấp nhận; loại "chan" (luật tự chặn)
+// còn chạy lại với ĐÚNG luật đó tắt (`xet(…, tat)`) — kết quả phải ĐỔI, chứng minh chính luật nhắm là thứ chặn (soát vòng 1: ba mục
+// từng bị B-BIMAT-FILE chặn hộ). LỌT / CHẶN sai mã / tắt mà không đổi = phát hiện, thoát 1. Chạy ở GỐC kho:
 //   node viec/AUDIT-2/lach.js
 'use strict';
 const fs = require('fs');
@@ -31,18 +33,27 @@ viet(KHO, '.env', 'SECRET\n');
 viet(KHO, 'tu_chay/nguoi_gac.js', 'x');
 const NHAP = path.join(TAM, 'nhap'); viet(NHAP, 'x', 'x');
 const HOME = path.join(TAM, 'home'); fs.mkdirSync(path.join(HOME, '.claude', 'plans'), { recursive: true });
-const thay = (v) => (typeof v === 'string' ? v.replace('@NHAP', NHAP).replace('@HOME', HOME) : v);
+const thay = (v) => (typeof v === 'string' ? v.replace('@NHAP', NHAP).replace('@HOME', HOME).replace('@BIMAT', '.env') : v);
 
-let lot = 0;
-for (const t of THU) {
+const xet = (t, tat) => {
   const vao = Object.fromEntries(Object.entries(t.vao).map(([k, v]) => [k, thay(v)]));
-  let kq;
   try {
-    const r = gac.xet(JSON.stringify({ cwd: KHO, scratchpad_dir: NHAP, tool_name: t.cong_cu, tool_input: vao }), { CLAUDE_PROJECT_DIR: KHO, HOME });
-    kq = r && r.quyet === 'CHO' ? 'CHO' : 'CHAN:' + (r && r.ma);
-  } catch (e) { kq = 'LỖI:' + e.message; }
-  if (kq === 'CHO') lot++;
-  console.log(`${kq === 'CHO' ? 'LỌT ' : 'CHẶN'} [nhắm ${t.ma}] ${t.mo} → ${kq}`);
+    const r = gac.xet(JSON.stringify({ cwd: KHO, scratchpad_dir: NHAP, tool_name: t.cong_cu, tool_input: vao }), { CLAUDE_PROJECT_DIR: KHO, HOME }, tat);
+    return r && r.quyet === 'CHO' ? 'CHO' : (r && r.ma);
+  } catch (e) { return 'LỖI:' + e.message; }
+};
+const dem = { 'CHẶN': 0, 'LỌT': 0, 'SAI MÃ': 0, 'TẮT KHÔNG ĐỔI': 0 };
+for (const t of THU) {
+  const ma = xet(t, new Set());
+  let kq = ma === 'CHO' ? 'LỌT' : (t.mong.includes('*') || t.mong.includes(ma)) ? 'CHẶN' : 'SAI MÃ';
+  let them = '';
+  if (kq === 'CHẶN' && t.loai === 'chan') {
+    const tat = xet(t, new Set([t.ma]));
+    them = ` · tắt ${t.ma} → ${tat}`;
+    if (tat === ma) kq = 'TẮT KHÔNG ĐỔI';
+  }
+  dem[kq]++;
+  console.log(`${kq} [nhắm ${t.ma} · ${t.loai}] ${t.mo} → ${ma === 'CHO' ? 'CHO' : 'CHAN:' + ma} (mong ${t.mong.join('|')})${them}`);
 }
-console.log(`\n  ${THU.length - lot}/${THU.length} lệnh lách bị chặn · ${lot} LỌT`);
-process.exit(lot ? 1 : 0);
+console.log('\n  ' + Object.entries(dem).map(([k, v]) => `${k} ${v}`).join(' · ') + ` (trên ${THU.length})`);
+process.exit(dem['CHẶN'] === THU.length ? 0 : 1);

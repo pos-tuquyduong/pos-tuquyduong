@@ -6,6 +6,7 @@
 # kiem_tra_truoc_khi_giao.js, viec/LUOI-1/do_thoi_gian.js) hoặc trong chuỗi chính đột biến đó chèn vào. Thiếu → "mẫu nghi rữa"
 # (câu in đã đổi chữ) — xem tay (K2), không đếm HỎNG. So theo TỪ vì nguồn in câu bằng `${}` nên không so được cả câu.
 import glob, importlib.util, json, os, re, shutil, subprocess, sys
+sys.dont_write_bytecode = True   # nạp bộ khác bằng importlib: không đẻ __pycache__ trong kho (soát vòng 1)
 
 GOC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Rữa CỐ Ý (tên → lý do). Không có ở đây mà HỎNG = phát hiện.
@@ -92,9 +93,14 @@ shutil.rmtree(m2.K.GOC_TAM, ignore_errors=True)
 for t in m2.K.DOT_BIEN:
     ghi('AUDIT-2', t[0], tep_ds(t[3]), [t[4]] if t[1] in ('B3', 'A3B', 'A3P') else [], chen=' '.join(str(d[2]) for d in t[3]))
 bb = nap('AUDIT-2', tep='dot_bien_bb.py')
-s_bb, db_bb, _ = bb.sinh()
-for d in db_bb:
-    kq.setdefault('AUDIT-2 bb', []).append((d['ten'], [] if s_bb[d['a']:d['b']] == d['cu'] else [f'neo tại bat_bien.js:{d["dong"]} lệch']))
+_, db_bb, _ = bb.sinh()
+# Tên SINH LẠI phải trỏ đúng vế đã ghi trong ẢNH neo (dot_bien_bb.py --liet-ke --json viec/AUDIT-2/bb_neo.json) — bat_bien.js đổi thì
+# tên trôi sang vế khác (b2_bang.md ghi nhầm) → HỎNG "tên trôi". Không so với chính lần sinh (soát vòng 1: tự so luôn xanh).
+anh = json.load(open(os.path.join(GOC, 'viec', 'AUDIT-2', 'bb_neo.json'), encoding='utf-8'))
+moi = {d['ten']: [d['dong'], d['cu']] for d in db_bb}
+for t in sorted(set(anh) | set(moi), key=lambda x: (x not in anh, x)):
+    loi = [] if anh.get(t) == moi.get(t) else [f'tên trôi: ảnh {anh.get(t, ["không có"])[:1]} ↔ sinh lại {moi.get(t, ["không có"])[:1]}']
+    kq.setdefault('AUDIT-2 bb', []).append((t, loi))
 for d in bb.D2:
     ghi('AUDIT-2 bb', d['ten'], [(bb.BB, d['cu'], 1)])
 
@@ -102,7 +108,7 @@ for d in bb.D2:
 for p in sorted(glob.glob(os.path.join(GOC, 'viec', '*', 'do_*.js'))):
     src, ten = open(p, encoding='utf-8').read(), os.path.relpath(p, GOC)
     mang = re.findall(r'(?:const neo = |of )(\[\s*\[[\s\S]*?\]\s*\])(?=\)? ?[;{\n])', src) + re.findall(r'const (?:neo|a3) = (\'(?:[^\'\\]|\\.)*\')', src)
-    if not mang: kq.setdefault('do_*.js', []).append((ten + ' (không có bảng neo)', [])); continue
+    if not mang: print(f'(do_*.js: {ten} không có bảng neo — không tính)'); continue
     gt = json.loads(subprocess.run(['node', '-e', 'console.log(JSON.stringify([' + ','.join(mang) + ']))'], capture_output=True, text=True,
                                    check=True).stdout)
     for x in gt:

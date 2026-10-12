@@ -9,7 +9,9 @@ bằng chứng công cụ không nói dối: `bang_chung_do.txt`.
 **Còn NẶNG ⇒ đợt này CHƯA đạt điểm dừng.** 1 NẶNG-code đã biết (lấy vượt lượt gói — LUOI-1 Phát hiện 5, nay có bằng chứng CHẠY,
 trúng P26c) + 1 nhóm NẶNG-lưới mới (5 phép chặn / phép tính tiền-điểm-gói ở đường quầy mà lưới KHÔNG bắt khi hỏng). Mọi đột biến cũ
 đang BẮT vẫn BẮT (A1: 174 + 20 + 26, không tên nào đổi kết quả). 23 C2F còn SỐNG: 0 NẶNG. Bộ sinh đột biến bất biến mới: 148 →
-100 BẮT · 48 SỐNG (0 code sai, 4 vế thừa, 44 thiếu ca dữ liệu tay). Ca chồng nhau: 23 dòng, 2 SỐNG đều có lý do (khoá hai lớp / P26d).
+100 BẮT · 48 SỐNG (0 code sai, 4 vế thừa, 44 thiếu ca dữ liệu tay). Ca chồng nhau: 23 dòng — 18 có đột biến bỏ khoá BẮT, 1 chỉ SỐNG
+(KB20, P26d), 4 không có khoá riêng của route để bỏ (KB17 :292/:293/:298/:300 — ghi chú 2 `b3_bang.md`). Thêm 1 câu hỏi nghiệp vụ tiền
+(AU2-11: số lượt gói do quầy gõ tay).
 
 ## Bảng phát hiện
 
@@ -24,7 +26,8 @@ trúng P26c) + 1 nhóm NẶNG-lưới mới (5 phép chặn / phép tính tiền
 | AU2-7 | NHẸ (đã ghi thiết kế) | `tu_chay/nguoi_gac.js:953` CC-DOC cho mọi `Read` — đọc file bí mật bằng Read LỌT người gác; lớp 1 `.claude/settings.json:28–30` deny canh (`THIET_KE.md:669`) | `node viec/AUDIT-2/lach.js` → 1 LỌT | (tuỳ chọn) người gác chặn Read đường khớp `file_bi_mat` — lớp đôi như Bash `B-BIMAT-FILE`; ca `thu_nguoi_gac` "Read <file bí mật> → CHAN" | không |
 | AU2-8 | NHẸ | `viec/P26b/dot_bien.py` `doi-soat-bo-tx` đỏ vì "móc không chạy" (bỏ giao dịch thì không còn chồng) | `python3 viec/P26b/dot_bien.py doi-soat-bo-tx` | mẫu bắt câu ví (`ví -25000` lệch) thay vì mọi dòng KB17 | không |
 | AU2-9 | NHẸ (đã biết) | `orders.js:883–893` kiểm lại mã trong giao dịch — `BK-KB20-bo-kiem-lai-ma` SỐNG (UNIQUE mã đơn vấp trước — `kich_ban.js:384–386`); 3 đột biến B3 BẮT qua 500 UNIQUE | `python3 viec/AUDIT-2/dot_bien.py BK-KB20-bo-kiem-lai-ma` | khi P26d sửa mã đơn: siết KB20 về 200 + 400, chạy lại `BK-KB20…`, `BK-KB11-claim-bo-chiem`, `me-bo-khongAm`, `tao-don-chi-kiem-ngoai-tx` | không (P26d) |
-| AU2-10 | NHẸ (chặn D3) | `tu_chay/thu_cong.js` chạy riêng 120 / 121 s (HEAD), 126 s (gốc `4d175bc`) ≥ hạn 120 s của `kiem_tra_truoc_khi_giao.js` → `--day-du` ĐỎ "ETIMEDOUT" cả trên gốc; 11.10 đo 94,8 s | `node tu_chay/thu_cong.js` (đo giờ) | KHÔNG nới hạn: chủ quán đo trên máy mình / GitHub; vẫn ≥ 96 s (80 %) → việc chia `thu_cong.js` thành lượt song song (khuôn TACH-GL) | không — nhưng P26c sẽ vướng cùng `--day-du` |
+| AU2-10 | NHẸ (chặn D3 + pre-commit) | `tu_chay/thu_cong.js` chạy riêng 119 / 120 / 121 s (HEAD), 126 s (gốc `4d175bc`) — sát / quá hạn 120 s (`kiem_tra_truoc_khi_giao.js:478`); bộ kiểm chạy nó ở CẢ bản nhanh (`:553`) ⇒ `npm test` + hook pre-commit đỏ ngẫu nhiên (của tôi 61/0; người soát 60/1 "ETIMEDOUT"), `--day-du` ĐỎ; 11.10 đo 94,8 s | `node tu_chay/thu_cong.js` (đo giờ) | KHÔNG nới hạn: chủ quán đo trên máy mình / GitHub; vẫn ≥ 96 s (80 %) → việc chia `thu_cong.js` thành lượt song song (khuôn TACH-GL) | không — nhưng P26c và mọi việc vướng cùng phép |
+| **AU2-11** | **chờ chủ quán** (NẶNG nếu không cố ý) | `orders.js:968` lưu `package_buy.total_qty` client gửi; giá gói cố định `:374`; màn Bán hàng có ô "SL SP" sửa tay (`Sales.jsx:1225–1232`, gửi `:747`) ⇒ bán gói giá N lượt mà ghi M lượt tuỳ ý. Cùng loại `/packages/buy` P26a ghi (`viec/P26a/trang_thai.md:98–102`) | đọc code (không cần chạy) | nếu KHÔNG cố ý: máy chủ lấy `total_qty` từ `pos_packages` (bỏ trường client), ca KB9 "gửi total_qty 99 → gói ghi đúng số của gói"; nếu cố ý: ghi luật + quy tắc đối soát (số lượt bán ≠ số lượt gói) | **CÓ** (P26c sửa đường gói) |
 
 Chi tiết NHẸ còn lại của A3L (không vào bảng — xem `a3_bang.md`): hạn điểm theo quý, hệ số mặc định, `conLai <= 0` chồng với phép
 trạng thái, `/deliver` số âm (không màn hình gọi).
@@ -37,13 +40,13 @@ trạng thái, `/deliver` số âm (không màn hình gọi).
 | A1 AUDIT-1 B1 cổng | 8 | 0 | 0 | 0 | 8/8 |
 | A1 AUDIT-1 C2 + C2F | 65 | 23 | 0 | 1 | 65/89 (23 SỐNG = A2, 0 NẶNG) |
 | A1 AUDIT-1 D1 bộ kiểm | 55 | 0 | 0 | 2 | 55/57 (LẠC `!D1-E11-P20/P26a` như cũ) |
-| A1 HOC-1 / HOC-2 (trừ 6 đối chứng) | 17 + 22 | 0 | 0 + 1 | 0 | 39/39 (MA3 BẮT-vì-sập — AU2-5) |
+| A1 HOC-1 / HOC-2 (trừ 6 đối chứng) | 16 + 22 | 0 | 0 + 1 | 1 + 0 | 38/39 (LẠC = MA3 đỏ vì cổng sập — AU2-5) |
 | A3 bundle D2–D5 | 4 | 0 | 0 | 0 | 4/4 |
-| A3 logic loyalty / gói | 9 | 8 | 0 | 0 | 9/17 (5 NẶNG-lưới — AU2-2) |
-| A3 lách (15 mã) | 14 CHẶN | 1 LỌT | — | — | 14/15 (LỌT đã ghi thiết kế — AU2-7) |
+| A3 logic loyalty / gói | 9 | 9 | 0 | 0 | 9/18 (5 NẶNG-lưới — AU2-2; 4 NHẸ) |
+| A3 lách (15 mã) | 14 CHẶN đúng mã | 1 LỌT | — | — | 14/15 (5 mục loại "chặn": tắt luật nhắm → CHO; LỌT đã ghi thiết kế — AU2-7) |
 | B1/B2 `dot_bien_bb.py` | 100 | 48 | 0 | 0 | 100/148 (4 thừa, 44 thiếu ca tay — AU2-3) |
-| B3 ca chồng (23 dòng, đột biến bỏ khoá) | 4 mới + 19 dẫn | 2 | 0 | 0 | 23/25 (2 SỐNG có lý do — `b3_bang.md`) |
-| C1 neo mọi bộ (`kiem_neo.py`) | 645 neo khớp (649 − 4 rữa cố ý) | — | 0 (+4 rữa cố ý) | — | 0 HỎNG ngoài danh sách cố ý; 0 mẫu nghi rữa |
+| B3 ca chồng (23 dòng; 4 dòng không có khoá riêng) | 4 mới + 20 dẫn | 2 | 0 | 0 | 24/26 (2 SỐNG có lý do — `b3_bang.md`) |
+| C1 neo mọi bộ (`kiem_neo.py`; 148 tên `dot_bien_bb.py` so với ảnh `bb_neo.json`) | 644 neo khớp (648 − 4 rữa cố ý) | — | 0 (+4 rữa cố ý) | — | 0 HỎNG ngoài danh sách cố ý; 0 mẫu nghi rữa |
 
 ## Đề xuất (không sửa ở việc này)
 - **B4** — `tu_chay/skill_lam_viec.md` bước 4, thêm: "Việc đổi `cong_cu/gia_lap/bat_bien.js` → chạy `python3 viec/AUDIT-2/dot_bien_bb.py
@@ -59,4 +62,6 @@ trạng thái, `/deliver` số âm (không màn hình gọi).
 ## K5 — luồng hợp lệ không bị ảnh hưởng
 Việc không đổi code chạy thật. Công cụ chỉ ghi vào bản sao trong thư mục tạm (`dot_bien_bb.py` kiểm `realpath` đích); mỗi lần chạy
 so `git status` trước/sau ("✓ kho thật không đổi"); thử ngắt SIGINT giữa chừng cả `dot_bien_bb.py` (giây 20) và `dot_bien.py`
-(giây 3) → 0 thư mục tạm sót. Không ghi file nào trong `viec/AUDIT-2/` khi bộ đo chạy (lời duyệt 12.10).
+(giây 3) → 0 thư mục tạm sót. Không ghi file nào trong `viec/AUDIT-2/` khi bộ đo chạy (lời duyệt 12.10). NGOẠI LỆ (soát vòng 1):
+nạp module bằng importlib đã đẻ `viec/AUDIT-1/__pycache__/`, `viec/AUDIT-2/__pycache__/` (bị `.gitignore:38` che nên phép `git status`
+mù) — đã tắt ghi bytecode (`sys.dont_write_bytecode`); hai thư mục cũ người gác không cho máy xoá (RM-NHAP) → chủ quán xoá tay.

@@ -39,3 +39,14 @@ LẠC   G3  G3-sap  (0 s) · [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả
 
 == 5. Ngắt giữa chừng (D3) — timeout -s INT 20 python3 viec/AUDIT-2/dot_bien_bb.py --chi D2-da-biet; timeout -s INT 3 python3
    viec/AUDIT-2/dot_bien.py D2K-da-biet → cả hai thoát 124; ls /tmp | grep -c "au2bb_|audit1_|au2lach_|gia_lap_|thu_gl_" → 0; git status sạch.
+
+== 6. (sửa vòng 1) kiem_neo.py so tên dot_bien_bb với ẢNH bb_neo.json — bản sao kho (git archive HEAD + công cụ mới) chèn
+   `r.code !== 'x' &&` vào I1 của bat_bien.js bản sao → thoát 1:
+   AUDIT-2 bb: 153 đột biến · neo khớp 143 · HỎNG 9 · rữa cố ý 1
+     HỎNG BB-I1-js-2-bo-ve: tên trôi: ảnh [30] ↔ sinh lại [30]
+     HỎNG BB-I1-js-4-bo-ve: tên trôi: ảnh [31] ↔ sinh lại [30]
+   (trên HEAD thật: AUDIT-2 bb 151/152 — chỉ D2-sai-chuoi rữa cố ý; thoát 0)
+
+== 7. (sửa vòng 1) lach.js so mã chặn (`mong`) + tắt luật nhắm — HEAD: CHẶN 14 · LỌT 1 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0 (5/5 mục "chặn":
+   tắt → CHO). Ca đỏ: bản nháp đổi đích mục CP-DICH về file bí mật (như bản đầu) →
+   "SAI MÃ [nhắm CP-DICH · chan] cp đè file ngoài phạm vi → CHAN:B-BIMAT-FILE (mong G5-NGOAIPV)" · CHẶN 13 · LỌT 1 · SAI MÃ 1.

@@ -2,6 +2,7 @@
 """AUDIT-2 B1 — TỰ SINH đột biến từ cong_cu/gia_lap/bat_bien.js, chạy trên BẢN SAO. Chạy ở GỐC kho:
 
     python3 viec/AUDIT-2/dot_bien_bb.py [--liet-ke] [--chi <tiền tố>…] [-j N] [--json <file ngoài kho>]
+    --liet-ke --json <file>: ghi ẢNH NEO {tên: [dòng, chuỗi gốc]} — `viec/AUDIT-2/bb_neo.json`, kiem_neo.py so tên sinh lại với ảnh này.
 
 Sinh (mỗi bất biến I<n>, theo vị trí trong khối `async I<n>(`):
   bo-ve  — mỗi vế của một chuỗi `||` / `&&` (JS) hay `OR` / `AND` (SQL, trong chuỗi `…`): vế của || / OR → false / 1=0
@@ -11,7 +12,7 @@ Sinh (mỗi bất biến I<n>, theo vị trí trong khối `async I<n>(`):
            (danh sách TIEN dưới đây, khớp trọn từ): hai đột biến MỘT CHIỀU — chỉ còn bắt lệch dương / chỉ lệch âm.
 Chấm (bản sao server/ + cong_cu/ + tu_chay/cau_hinh.json, đích ghi phải nằm trong thư mục tạm):
   tầng 1 `node cong_cu/thu_gia_lap.js --chi-du-lieu-tay` → thoát ≠ 0 và dòng `✗ I<n> …` (trọn từ) không có "SẬP" = BẮT;
-  tầng 2 (tầng 1 xanh) `node cong_cu/gia_lap/chay.js` → dòng `→ I<n>:` = BẮT (siết làm đỏ dữ liệu đúng).
+  tầng 2 (tầng 1 CHƯA BẮT — xanh, hoặc đỏ không khớp I<n>) `node cong_cu/gia_lap/chay.js` → dòng `→ I<n>:` = BẮT (siết làm đỏ dữ liệu đúng).
   Thoát ≠ 0 mà không khớp đúng I<n> (sập, cú pháp, bất biến khác) = LẠC · mọi tầng xanh = SỐNG · neo không khớp = HỎNG.
 D2 (công cụ không nói dối): `--chi D2-` — sai chuỗi → HỎNG · đã biết → BẮT · vô hại → SỐNG · sập → LẠC.
 """
@@ -299,6 +300,7 @@ def main():
     for d in db: print(f"{d['ten']:28} bat_bien.js:{d['dong']:<4} {d['cu'][:70]!r} → {d['moi'][:60]!r} {d['ghi']}")
     for x in bo_qua: print('  bỏ qua:', x)
     print(f'\n  {len(db)} đột biến sinh · {len(bo_qua)} chỗ bỏ qua · D2 {len(D2)}')
+    if ra_json: json.dump({d['ten']: [d['dong'], d['cu']] for d in db}, open(ra_json, 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
     return 0
   ds = [d for d in db + D2 if not chi or any(d['ten'].startswith(c) for c in chi)]
   if not ds: print('không có đột biến nào khớp', chi); return 2
