@@ -253,3 +253,6 @@ chỗ cùng lý do + mọi file tóm tắt · NGUYÊN TẮC (K5) vá cả phép 
 | nghi: không có pre-commit | xác nhận: chỉ file mẫu trong thư mục hook — ghi ở AU2-10 + CHƯA KIỂM |
 | nghi: canhGan | đề xuất khoá báo trước ở AU2-10 (kèm đổi ca C3f) |
 | nghi: ảnh không chụp `moi` / 10 mục "cho" của lách / 4 ca KB17 | giữ — ghi CHƯA KIỂM / lý do: mục "cho" thử rằng luật CHO không cho quá đà, bị luật khác chặn là kết quả ĐÚNG (tắt luật CHO không có nghĩa) |
+
+`npm test` chạy lại trên `a903c02` (12.10, sau vòng sửa 2): thoát 0 · ĐẾM PASS 61 · FAIL 0 · CẢNH BÁO 0 — lần này `thu_cong.js` dưới hạn; vẫn sát
+hạn (lần người soát vòng 1: FAIL 1) — D3 vẫn chờ chủ quán (Câu hỏi 1).
