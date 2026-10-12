@@ -542,16 +542,15 @@ const KICH_BAN = [
     if (gt.status === 200) c.soQuay.giaoGoi.set(g, (c.soQuay.giaoGoi.get(g) || 0) + 1);
     c.mong('giao tay 1 ly từ gói (/deliver) → 404, gói không đổi', gt.status === 404 && await giao() === truoc, `${c.ma(gt)} · ${truoc} → ${await giao()}`);
   } },
-  // P26c (C2): xoá đơn → nợ `out` chưa tới SX thành 'huy', không gửi `in` — sổ nợ không còn gì của đơn đã xoá để đẩy, nên KB27
-  // KHÔNG còn phải là kịch bản cuối của lượt.
-  { ten: 'SX lỗi: bán rồi chủ xoá đơn → nợ kho out thành huy, không thêm in', chay: async (c) => {
+  // P26c (chủ quán chốt Câu hỏi 4 = a): xoá đơn vẫn gửi `in`, nợ kho của đơn đã xoá vẫn đẩy — SX bỏ trùng vân tay nên ròng đúng;
+  // I7 chấp nhận vân tay của đơn đã xoá khi qua đúng một dòng nợ ĐÃ xong. KB27 không còn phải là kịch bản cuối của lượt.
+  { ten: 'SX lỗi: bán rồi chủ xoá đơn → nợ kho out + in', chay: async (c) => {
     c.batSxLoi();
     const d = await c.taoDon('KB27', { customer_phone: KH.moi, customer_name: 'Khách mới', items: [c.mon(2)], payment_method: 'cash', cash_amount: 30000 });
     const x = await c.goi('chu', 'DELETE', `/orders/${d.id}`);
-    const no = await c.so('SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ?', [d.id]);
-    const huy = await c.so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status = 'huy'", [d.id]);
-    c.mong('bán lúc SX lỗi, chủ xoá đơn → 200, đúng 1 dòng nợ kho (out, huy), không nợ in', x.status === 200 && no === 1 && huy === 1,
-      `${c.ma(x)} · ${no} dòng nợ · ${huy} huy`);
+    const no = await c.so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status = 'pending'", [d.id]);
+    c.mong('bán lúc SX lỗi, chủ xoá đơn → 200, 2 dòng nợ kho chờ đẩy (out lúc bán + in lúc xoá)', x.status === 200 && no === 2,
+      `${c.ma(x)} · ${no} dòng nợ`);
   } },
   // ── TACH-GL: hai phần LUOI-1 phải bỏ vì thời gian (Phát hiện 13, 14) — thêm lại sau khi chia lượt. ──
   { ten: 'tiền mặt rồi đổi sang chuyển khoản', chay: async (c) => {
