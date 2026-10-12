@@ -59,7 +59,7 @@ export default function Settings() {
   // Reward catalog (LOY-2a)
   const [rewards, setRewards] = useState([]);
   const [rewardForm, setRewardForm] = useState({
-    name: '', points_cost: '', discount_type: 'fixed', discount_value: '', valid_days: '30',
+    name: '', points_cost: '', discount_type: 'fixed', discount_value: '', max_discount: '', valid_days: '30',
   });
 
   // Packages state
@@ -567,10 +567,11 @@ export default function Settings() {
         points_cost: cost,
         discount_type: rewardForm.discount_type,
         discount_value: value,
+        max_discount: rewardForm.discount_type === 'percent' ? (parseInt(rewardForm.max_discount) || 0) : 0, // P26c (Q1): như Mã giảm giá
         valid_days: parseInt(rewardForm.valid_days) || 30,
       });
       if (!data.success) throw new Error(data.error);
-      setRewardForm({ name: '', points_cost: '', discount_type: 'fixed', discount_value: '', valid_days: '30' });
+      setRewardForm({ name: '', points_cost: '', discount_type: 'fixed', discount_value: '', max_discount: '', valid_days: '30' });
       await loadRewards();
       setMessage('Đã thêm quà!');
       setTimeout(() => setMessage(''), 3000);
@@ -1841,6 +1842,13 @@ export default function Settings() {
                   <input type="number" className="input" style={{ width: 90, textAlign: 'right' }} min="1"
                     value={rewardForm.discount_value} onChange={e => setRewardForm({ ...rewardForm, discount_value: e.target.value })} />
                 </div>
+                {rewardForm.discount_type === 'percent' && (
+                  <div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Giảm tối đa (đ)</div>
+                    <input type="number" className="input" style={{ width: 100, textAlign: 'right' }} min="0" placeholder="0 = không giới hạn"
+                      value={rewardForm.max_discount} onChange={e => setRewardForm({ ...rewardForm, max_discount: e.target.value })} />
+                  </div>
+                )}
                 <div>
                   <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Hạn (ngày)</div>
                   <input type="number" className="input" style={{ width: 80, textAlign: 'right' }} min="1"
