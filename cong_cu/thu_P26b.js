@@ -277,7 +277,7 @@ async function main() {
     const d = await donTien(s2, [mon(0, 2)]);   // 2 × 25.000
     const ma = sp[0].code;
     const a = await baoHong(d, { product_code: ma, quantity: 1, action: 'return_stock', return_to_stock: true });
-    const b = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund' });
+    const b = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 25000 });   // P26c Q3: hoàn tiền phải có số
     const c = await baoHong(d, { product_code: ma, quantity: 1, action: 'none' });
     k('C2a món qty 2: báo return_stock 1 → 200, refund 1 → 200, none 1 → 400 VUOT_SO_LUONG',
       a.status === 200 && b.status === 200 && c.status === 400 && c.code === 'VUOT_SO_LUONG', `${moTa(a)} / ${moTa(b)} / ${moTa(c)}`);
@@ -296,7 +296,7 @@ async function main() {
   {
     const d = await donTien(s2, [mon(1)]); const v = await vi(s2);
     co.camNgoai = /INSERT INTO pos_damage_logs/;
-    const a = await baoHong(d, { product_code: sp[1].code, quantity: 1, action: 'refund' });
+    const a = await baoHong(d, { product_code: sp[1].code, quantity: 1, action: 'refund', refund_amount: 20000 });   // P26c Q3
     co.camNgoai = null;
     k('C4b dòng log báo hỏng ghi TRONG giao dịch cùng ví + sổ (ghi ngoài giao dịch bị cấm) → 200, ví +20.000, có log',
       a.status === 200 && await vi(s2) === v + 20000 && await so('SELECT COUNT(*) FROM pos_damage_logs WHERE order_id = ?', [d]) === 1,
@@ -314,7 +314,7 @@ async function main() {
     const a = await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 25000 });
     k('C6a đơn 1 dòng từ gói + 1 dòng trả tiền cùng mã → đền đúng giá dòng trả tiền 25.000 → 200 (K5)', a.status === 200 && await vi(s2) === v + 25000,
       `${moTa(a)} · ví ${v} → ${await vi(s2)}`);
-    const b = await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund' });
+    const b = await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 25000 });   // P26c Q3
     k('C6b báo tiếp món còn lại (từ gói) đền 25.000 → 400 VUOT_GIA (tổng đền ≤ tổng giá các dòng = 25.000)',
       b.status === 400 && b.code === 'VUOT_GIA' && await vi(s2) === v + 25000, `${moTa(b)} · ví → ${await vi(s2)}`);
   }
