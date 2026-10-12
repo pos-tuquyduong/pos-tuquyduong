@@ -170,7 +170,7 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
         if (order.payment_status !== 'paid') return loi(400, 'Đơn chưa thu đủ — thu tiền đơn trước rồi mới đền', 'DON_CHUA_THU');
         if (!(soGui > 0)) return loi(400, 'Hoàn tiền phải có số tiền lớn hơn 0 — không hoàn thì chọn "Chỉ ghi nhận"', 'TIEN_DEN_PHAI_LON_HON_0');
         // P26c (Q2): trần theo số khách ĐÃ TRẢ cho các dòng cùng mã (sau flash / hạng / giảm đơn), không theo giá gốc.
-        const tra = (await tienDaTraTheoDong(tx, order)).filter((d) => d.product_code === product_code);
+        const tra = (await tienDaTraTheoDong(tx, order, true)).filter((d) => d.product_code === product_code);
         // Q4: gói / thẻ trả trước (product_id < 0, orders.js:376, :397) không đền qua báo sự cố — hoàn chỉ qua Huỷ / Xoá đơn có quyền.
         if (tra.some((d) => Number(d.product_id) < 0)) {
           return loi(400, 'Gói / thẻ trả trước không đền qua báo sự cố — dùng Huỷ đơn (cần quyền hoàn gói)', 'GOI_THE_KHONG_DEN');
