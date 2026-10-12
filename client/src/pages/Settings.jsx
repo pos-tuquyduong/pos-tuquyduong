@@ -569,7 +569,7 @@ export default function Settings() {
         points_cost: cost,
         discount_type: rewardForm.discount_type,
         discount_value: value,
-        max_discount: rewardForm.discount_type === 'percent' ? (parseInt(rewardForm.max_discount) || 0) : 0, // P26c (Q1): như Mã giảm giá
+        max_discount: parseInt(rewardForm.max_discount) || 0, // P26c (Q1): như Mã giảm giá — ô chỉ hiện khi chọn %; trần chỉ áp cho mã %
         valid_days: parseInt(rewardForm.valid_days) || 30,
       });
       if (!data.success) throw new Error(data.error);
