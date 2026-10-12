@@ -322,6 +322,26 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[A7] gói phải có ít nhất 1 lượt (Câu hỏi 3, chủ quán chốt 12.10)');
+  {
+    const tao = (luot) => goi('POST', '/packages', { code: 'GOI_A7_' + (luot ?? 'X'), name: 'Gói A7', price: 100000, unit: 'ly',
+      ...(luot === undefined ? {} : { total_qty: luot }) });
+    const [r0, rx, r1] = [await tao(0), await tao(undefined), await tao(1)];
+    k('A7a thêm gói 0 lượt / không gửi số lượt → 400 GOI_LUOT_KHONG_HOP_LE, 400; 1 lượt → 200', r0.status === 400 && r0.code === 'GOI_LUOT_KHONG_HOP_LE'
+      && rx.status === 400 && rx.code === 'GOI_LUOT_KHONG_HOP_LE' && r1.status === 200, `${moTa(r0)} / ${moTa(rx)} / ${moTa(r1)}`);
+    const id0 = await taoGoi(100000, 0);   // dữ liệu cũ: gói 0 lượt có sẵn trong kho
+    const s0 = await goi('PUT', `/packages/${id0}`, { total_qty: 0, name: 'Gói cũ' });
+    const s5 = await goi('PUT', `/packages/${id0}`, { total_qty: 5, name: 'Gói cũ' });
+    const bat = await goi('PUT', `/packages/${await taoGoi(100000, 0)}`, { is_active: 0 });
+    k('A7b sửa gói về 0 lượt → 400; sửa lên 5 lượt → 200, lưu 5; (K5) bật / tắt gói cũ 0 lượt (không gửi số lượt) → 200',
+      s0.status === 400 && s0.code === 'GOI_LUOT_KHONG_HOP_LE' && s5.status === 200
+        && await so('SELECT total_qty FROM pos_packages WHERE id = ?', [id0]) === 5 && bat.status === 200, `${moTa(s0)} / ${moTa(s5)} / ${moTa(bat)}`);
+    const src = fs.readFileSync(path.join(CLIENT, 'src', 'pages', 'Settings.jsx'), 'utf8');
+    const luu = (src.match(/const savePkg = async[\s\S]*?setSaving\(true\)/) || [''])[0];
+    k('A7c Settings.jsx savePkg chặn Tổng SL SP < 1 TRƯỚC khi gửi', /parseInt\(pkgForm\.total_qty\)\s*>=\s*1/.test(luu), luu ? '' : 'không thấy savePkg');
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[B1] trần "Hoàn tiền" theo số khách ĐÃ TRẢ (flash / hạng / giảm đơn)');
   {
     const sdt = sdtMoi();
@@ -360,6 +380,19 @@ async function main() {
     const e = await baoHong(g.don, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 300000 });
     k('B1e hoàn tiền sự cố trên dòng GÓI của đơn mua gói → 400 GOI_THE_KHONG_DEN, ví không đổi', e.status === 400 && e.code === 'GOI_THE_KHONG_DEN'
       && await vi(g.sdt) === g.vi0, `${moTa(e)} · ví ${g.vi0} → ${await vi(g.sdt)}`);
+    // Câu hỏi 2 (chủ quán chốt 12.10): mã giảm 1 MÓN — món A 50.000 (giảm 25.000 qua mã nhóm) + B 30.000, khách trả 55.000.
+    // Không biết dòng nào được giảm → mọi dòng "đã trả = giá dòng − toàn bộ giảm": trần A 25.000 (chia đều thì 34.375 — đền quá).
+    await db.run("INSERT INTO pos_product_groups (id, code, name) VALUES (77, 'NHOM_P26C', 'Nhóm thử P26c')");
+    await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (77, ?, ?)', [sp[2].sx_product_type, sp[2].sx_product_id]);
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active,
+      discount_scope, applicable_group_id) VALUES ('GIAM1MON', 'fixed', 25000, 0, 0, 0, 0, 1, 'item', 77)`);
+    const m1 = await goi('POST', '/orders', { customer_phone: sdt, items: [mon(2), mon(3)], discount_code: 'GIAM1MON', payment_method: 'cash', cash_amount: 55000 });
+    const v1 = await vi(sdt);
+    const f1 = await baoHong(m1.order?.id, { product_code: sp[2].code, quantity: 1, action: 'refund', refund_amount: 25001 });
+    const f2 = await baoHong(m1.order?.id, { product_code: sp[2].code, quantity: 1, action: 'refund', refund_amount: 25000 });
+    k('B1f đơn mã giảm 1 món (A 50.000 − 25.000 + B 30.000, trả 55.000): đền A 25.001 → 400 VUOT_GIA; 25.000 → 200, ví +25.000',
+      m1.status === 200 && Number(m1.order?.total) === 55000 && f1.status === 400 && f1.code === 'VUOT_GIA' && f2.status === 200 && await vi(sdt) === v1 + 25000,
+      `${moTa(m1)} · tổng ${m1.order?.total} · ${moTa(f1)} / ${moTa(f2)} · ví ${v1} → ${await vi(sdt)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
