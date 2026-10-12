@@ -275,7 +275,17 @@ def cham(d):
 
 
 def anh_kho():
-  return subprocess.run(['git', 'status', '--porcelain', '--untracked-files=all'], cwd=GOC, capture_output=True, text=True).stdout
+  # git status (theo dõi + chưa theo dõi) VÀ mọi đường bị .gitignore che (data/, __pycache__/…): tên + số file + mtime lớn nhất — phép
+  # chỉ so git status mù với chúng (soát vòng 2). Bỏ node_modules (chỉ đọc, quá lớn) và nhật ký người gác (hook ghi mọi lệnh — K8).
+  git = lambda *a: subprocess.run(['git', 'status', '--porcelain', *a], cwd=GOC, capture_output=True, text=True).stdout
+  an = []
+  for l in git('--ignored').splitlines():
+    rel = l[3:].rstrip('/')
+    if not l.startswith('!!') or rel.endswith('node_modules') or rel.startswith('.tu_chay_nhat_ky'): continue
+    p = os.path.join(GOC, rel)
+    tep = [os.path.join(g, f) for g, _, fs in os.walk(p) for f in fs] if os.path.isdir(p) else [p]
+    an.append(f'{rel}:{len(tep)}:{max((os.stat(f).st_mtime_ns for f in tep if os.path.exists(f)), default=0)}')
+  return git('--untracked-files=all') + '\n'.join(an)
 
 
 def don(*_):
@@ -324,8 +334,8 @@ def main():
   dem = {x: sum(r['kq'] == x for r in kq) for x in ('BẮT', 'SỐNG', 'HỎNG', 'LẠC')}
   print(f"\n  tổng {len(kq)} · " + ' · '.join(f'{x} {v}' for x, v in dem.items()) + f' · {round(time.time() - t0)} s')
   if ra_json: json.dump(kq, open(ra_json, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-  if anh_kho() != truoc or os.path.exists(GOC_TAM): print('  ✗ KHO BẨN — git status đổi hoặc thư mục tạm còn sót'); return 3
-  print('  ✓ kho thật không đổi (git status); thư mục tạm đã xoá')
+  if anh_kho() != truoc or os.path.exists(GOC_TAM): print('  ✗ KHO BẨN — git status / đường bị .gitignore che đổi, hoặc thư mục tạm còn sót'); return 3
+  print('  ✓ kho thật không đổi (git status + đường bị .gitignore che, trừ node_modules); thư mục tạm đã xoá')
   return 0
 
 

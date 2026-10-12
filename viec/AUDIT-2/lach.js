@@ -3,7 +3,8 @@
 // KHÔNG thực thi lệnh nào: chép tu_chay/nguoi_gac.js vào thư mục tạm, nạp BẢN SAO đó, đưa từng mục lach.json (dữ liệu JSON đầu vào
 // hook) vào xet() trên một kho giả (khuôn viec/AUDIT-1/lach.js). Mỗi mục: `mong` = mã chặn chấp nhận; loại "chan" (luật tự chặn)
 // còn chạy lại với ĐÚNG luật đó tắt (`xet(…, tat)`) — kết quả phải ĐỔI, chứng minh chính luật nhắm là thứ chặn (soát vòng 1: ba mục
-// từng bị B-BIMAT-FILE chặn hộ). LỌT / CHẶN sai mã / tắt mà không đổi = phát hiện, thoát 1. Chạy ở GỐC kho:
+// từng bị B-BIMAT-FILE chặn hộ). LỌT / CHẶN sai mã / tắt mà không đổi = phát hiện, thoát 1. Mục có `biet_lot` (LỌT đã ghi thiết kế)
+// mà LỌT thì đếm riêng, không làm đỏ — HEAD thoát 0, hồi quy mới mới thoát 1 (soát vòng 2). Chạy ở GỐC kho:
 //   node viec/AUDIT-2/lach.js
 'use strict';
 const fs = require('fs');
@@ -42,10 +43,10 @@ const xet = (t, tat) => {
     return r && r.quyet === 'CHO' ? 'CHO' : (r && r.ma);
   } catch (e) { return 'LỖI:' + e.message; }
 };
-const dem = { 'CHẶN': 0, 'LỌT': 0, 'SAI MÃ': 0, 'TẮT KHÔNG ĐỔI': 0 };
+const dem = { 'CHẶN': 0, 'LỌT ĐÃ BIẾT': 0, 'LỌT': 0, 'SAI MÃ': 0, 'TẮT KHÔNG ĐỔI': 0 };
 for (const t of THU) {
   const ma = xet(t, new Set());
-  let kq = ma === 'CHO' ? 'LỌT' : (t.mong.includes('*') || t.mong.includes(ma)) ? 'CHẶN' : 'SAI MÃ';
+  let kq = ma === 'CHO' ? (t.biet_lot ? 'LỌT ĐÃ BIẾT' : 'LỌT') : t.mong.includes(ma) ? 'CHẶN' : 'SAI MÃ';
   let them = '';
   if (kq === 'CHẶN' && t.loai === 'chan') {
     const tat = xet(t, new Set([t.ma]));
@@ -56,4 +57,4 @@ for (const t of THU) {
   console.log(`${kq} [nhắm ${t.ma} · ${t.loai}] ${t.mo} → ${ma === 'CHO' ? 'CHO' : 'CHAN:' + ma} (mong ${t.mong.join('|')})${them}`);
 }
 console.log('\n  ' + Object.entries(dem).map(([k, v]) => `${k} ${v}`).join(' · ') + ` (trên ${THU.length})`);
-process.exit(dem['CHẶN'] === THU.length ? 0 : 1);
+process.exit(dem['LỌT'] + dem['SAI MÃ'] + dem['TẮT KHÔNG ĐỔI'] ? 1 : 0);

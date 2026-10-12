@@ -20,7 +20,7 @@ tới đúng KB đó (`--den-kb n`, bản sao `server/`). Kết quả: lần ch�
 | KB17:291 | nạp chồng lên bán ví | ghiVi đọc + cộng TƯƠNG ĐỐI trong giao dịch `wallets.js:62–67` | `nap-ghi-tuyet-doi-tu-so-ngoai-tx`, `nap-so-truoc-doc-ngoai-tx` (P26b) | BẮT · BẮT | `python3 viec/P26b/dot_bien.py <tên>` |
 | KB17:292 | trừ tay +… chồng lên nạp | như trên (route trừ tay không đọc gì ngoài giao dịch) | — không có khoá riêng của route để bỏ (ghi chú 2) | — | — |
 | KB17:293 | điều chỉnh + chồng lên nạp | như trên | — (ghi chú 2) | — | — |
-| KB17:295 | đối soát chồng lên bán ví | đối soát trong `trongGiaoDich` `wallets.js:245` | `doi-soat-bo-tx`, `doi-soat-doc-tong-ngoai-tx` (P26b) | BẮT (`doi-soat-bo-tx` đỏ vì "móc không chạy" — ghi chú 4) · BẮT | `python3 viec/P26b/dot_bien.py <tên>` |
+| KB17:295 | đối soát chồng lên bán ví | đối soát trong `trongGiaoDich` `wallets.js:245` | `doi-soat-bo-tx`, `doi-soat-doc-tong-ngoai-tx` (P26b) | LẠC-giống (`doi-soat-bo-tx` đỏ vì "móc không chạy", không vì tiền — ghi chú 4) · BẮT | `python3 viec/P26b/dot_bien.py <tên>` |
 | KB17:298 | duyệt hoàn chồng lên nạp | như KB17:291 (ghiVi) | — (ghi chú 2) | — | — |
 | KB17:300 | báo hỏng đền chồng lên nạp | như KB17:291 (ghiVi) | — (ghi chú 2) | — | — |
 | KB17:306 (vòng, 2 ca) | trừ tay hết / điều chỉnh âm hết chồng lên bán ví | `khongAm` `wallets.js:65, 151, 191` | `ghiVi-bo-khongAm`, `tru-tay-chi-kiem-ngoai-tx`, `dieu-chinh-bo-khongAm` (P26b) | BẮT ×3 | `python3 viec/P26b/dot_bien.py <tên>` |

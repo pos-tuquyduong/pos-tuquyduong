@@ -50,3 +50,14 @@ LẠC   G3  G3-sap  (0 s) · [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả
 == 7. (sửa vòng 1) lach.js so mã chặn (`mong`) + tắt luật nhắm — HEAD: CHẶN 14 · LỌT 1 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0 (5/5 mục "chặn":
    tắt → CHO). Ca đỏ: bản nháp đổi đích mục CP-DICH về file bí mật (như bản đầu) →
    "SAI MÃ [nhắm CP-DICH · chan] cp đè file ngoài phạm vi → CHAN:B-BIMAT-FILE (mong G5-NGOAIPV)" · CHẶN 13 · LỌT 1 · SAI MÃ 1.
+
+== 8. (sửa vòng 2) "tên trôi" so CHUỖI — bản sao kho:
+   (a) chèn một dòng chú thích trước I1 → thoát 0:
+   (AUDIT-2 bb: 148 tên chỉ dời dòng, cùng vế — không tính HỎNG: BB-I1-js-1-bo-ve 30→31, BB-I1-js-2-bo-ve 30→31, BB-I1-js-3-bo-ve 30→31, BB-I1-js-4-bo-ve 31→32, BB-I1-js-5-bo-ve 32→33
+   AUDIT-2 bb: 152 đột biến (0 không neo — đối chứng) · neo khớp 151/152 · HỎNG 0 · rữa cố ý 1
+   (b) rồi đổi `r.status === 'completed'` → `'xong'` → thoát 1:
+   AUDIT-2 bb: 152 đột biến (0 không neo — đối chứng) · neo khớp 149/152 · HỎNG 2 · rữa cố ý 1
+     HỎNG BB-I1-js-2-bo-ve: tên trôi: ảnh "(r.status === 'completed'\n      || (r.status === '" ↔ sinh lại "(r.status === 'xong'\n      || (r.status === 'cance"
+     HỎNG BB-I1-js-3-bo-ve: tên trôi: ảnh "r.status === 'completed'" ↔ sinh lại "r.status === 'xong'"
+
+== 9. (sửa vòng 2) lach.js trên HEAD: CHẶN 14 · LỌT ĐÃ BIẾT 1 · LỌT 0 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0 → thoát 0 (ca đỏ ở mục 7: SAI MÃ → thoát 1).

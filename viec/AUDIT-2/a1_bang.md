@@ -252,5 +252,6 @@ Không tên nào đổi kết quả so với lần trước. Từng tên ("=" l�
 | `VS-E3-skill-bo-VS` | thu_cong_cu.js | ĐỎ đúng chỗ |  |
 | `VS-E3-ra-soat-bo-dem` | thu_cong_cu.js | ĐỎ đúng chỗ |  |
 
-HOC-1: 3 đối chứng XANH + 17/17 ĐỎ đúng chỗ (14 tên chuyển từ HOC-2b + MC, MC2, MC3). HOC-2: 3 đối chứng XANH + 22/23 ĐỎ đúng
-chỗ + 1 HỎNG tất yếu. Khác lần trước (chỉ kiểm neo): không — lần đầu chạy thật, mọi đột biến chuyển sang đều BẮT (MA3 xem ghi chú).
+HOC-1: 3 đối chứng XANH + 17 ĐỎ đúng chỗ theo công cụ HOC-1 (14 tên chuyển từ HOC-2b + MC, MC2, MC3) = 16 BẮT + 1 LẠC
+theo định nghĩa AUDIT (MA3 đỏ vì cổng sập). HOC-2: 3 đối chứng XANH + 22/23 ĐỎ đúng
+chỗ + 1 HỎNG tất yếu. Khác lần trước (chỉ kiểm neo): lần đầu chạy thật — mọi đột biến chuyển sang đều đỏ đúng ca, trừ MA3 đỏ vì sập (LẠC, AU2-5).

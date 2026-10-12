@@ -58,7 +58,7 @@ def ghi(bo, ten, ds, maus=(), regex=True, chen=''):   # ds: [(file từ gốc kh
             continue
         c = dem(f, cu)
         if c != n: loi.append(f'{f}: khớp {c} lần, cần {n}')
-    kq.setdefault(bo, []).append((ten, loi))
+    kq.setdefault(bo, []).append((ten, loi, bool(ds)))   # ds rỗng = đối chứng / đột biến không neo — không đếm "neo khớp"
     for m in maus:
         thieu = sorted(w for w in tu_mau(m, regex) if w not in TU_NGUON and w not in TU(chen))
         if thieu: rua.append(f'{bo} {ten}: mẫu {m!r} — không thấy trong nguồn: {thieu}')
@@ -98,9 +98,13 @@ _, db_bb, _ = bb.sinh()
 # tên trôi sang vế khác (b2_bang.md ghi nhầm) → HỎNG "tên trôi". Không so với chính lần sinh (soát vòng 1: tự so luôn xanh).
 anh = json.load(open(os.path.join(GOC, 'viec', 'AUDIT-2', 'bb_neo.json'), encoding='utf-8'))
 moi = {d['ten']: [d['dong'], d['cu']] for d in db_bb}
+doi_dong = []   # cùng chuỗi, chỉ dời dòng (code dời) — báo riêng, KHÔNG HỎNG (soát vòng 2: so số dòng thì báo oan hàng loạt)
 for t in sorted(set(anh) | set(moi), key=lambda x: (x not in anh, x)):
-    loi = [] if anh.get(t) == moi.get(t) else [f'tên trôi: ảnh {anh.get(t, ["không có"])[:1]} ↔ sinh lại {moi.get(t, ["không có"])[:1]}']
-    kq.setdefault('AUDIT-2 bb', []).append((t, loi))
+    a, m = anh.get(t), moi.get(t)
+    loi = [] if a and m and a[1] == m[1] else [f'tên trôi: ảnh {a[1][:50] if a else "(không có)"!r} ↔ sinh lại {m[1][:50] if m else "(không có)"!r}']
+    if not loi and a[0] != m[0]: doi_dong.append(f'{t} {a[0]}→{m[0]}')
+    kq.setdefault('AUDIT-2 bb', []).append((t, loi, True))
+if doi_dong: print(f'(AUDIT-2 bb: {len(doi_dong)} tên chỉ dời dòng, cùng vế — không tính HỎNG: {", ".join(doi_dong[:5])}…)')
 for d in bb.D2:
     ghi('AUDIT-2 bb', d['ten'], [(bb.BB, d['cu'], 1)])
 
@@ -117,11 +121,12 @@ for p in sorted(glob.glob(os.path.join(GOC, 'viec', '*', 'do_*.js'))):
 
 hong = 0
 for bo, ds in kq.items():
-    h = [(t, l) for t, l in ds if l]
+    h = [(t, l) for t, l, _ in ds if l]
     co_y = [(t, l) for t, l in h if (bo, t) in RUA_CO_Y]
     hong += len(h) - len(co_y)
-    print(f'{bo}: {len(ds)} đột biến · neo khớp {len(ds) - len(h)} · HỎNG {len(h) - len(co_y)} · rữa cố ý {len(co_y)}')
-    if bo == 'do_*.js': print('  ' + ' · '.join(t for t, _ in ds))
+    co_neo = sum(c for _, _, c in ds)
+    print(f'{bo}: {len(ds)} đột biến ({len(ds) - co_neo} không neo — đối chứng) · neo khớp {co_neo - len(h)}/{co_neo} · HỎNG {len(h) - len(co_y)} · rữa cố ý {len(co_y)}')
+    if bo == 'do_*.js': print('  ' + ' · '.join(t for t, _, _ in ds))
     for t, l in h: print(f'  {"rữa cố ý" if (bo, t) in RUA_CO_Y else "HỎNG"} {t}: {"; ".join(l)}' + (f' — {RUA_CO_Y[(bo, t)]}' if (bo, t) in RUA_CO_Y else ''))
 print(f'\nMẫu nghi rữa (xem tay, không đếm HỎNG): {len(rua)}')
 for x in rua: print('  ' + x)

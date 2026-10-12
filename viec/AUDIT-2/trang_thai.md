@@ -19,7 +19,7 @@
 - [x] Nhóm A (A1 `a1_bang.md` · A2 `a2_bang.md` · A3 `a3_bang.md`, `lach.js`, `lach.json`)
 - [x] Nhóm B (B1 `dot_bien_bb.py` · B2 `b2_bang.md` · B3 `b3_bang.md` · B4 đề xuất ở `bao_cao.md`)
 - [x] Nhóm C (C1 `kiem_neo.py` chạy trên HEAD + bản sao chứng minh; C2 không cần — đề xuất ở `bao_cao.md`)
-- [~] Nhóm D (D1 `bao_cao.md` 62 dòng · D2 `bang_chung_do.txt` · D3: `npm test` và `--day-du` đều vướng `thu_cong.js` sát/quá hạn 120 s — cả trên gốc, xem Câu hỏi 1)
+- [~] Nhóm D (D1 `bao_cao.md` ≤ 70 dòng · D2 `bang_chung_do.txt` · D3: `npm test` và `--day-du` đều vướng `thu_cong.js` sát/quá hạn 120 s — cả trên gốc, xem Câu hỏi 1)
 
 ## Số đo lúc lập kế hoạch
 Xem `ke_hoach.md` mục 0 (đo riêng trong lượt này, máy mây 4 lõi).
@@ -45,7 +45,7 @@ bằng `--liet-ke`, 148 tên) — SỐNG ghi đủ trong `b2_bang.md`.
 ## Kết quả nhóm C, D
 | lệnh | kết quả |
 |---|---|
-| `python3 viec/AUDIT-2/kiem_neo.py` (HEAD) | thoát 0 — AUDIT-1 173/174, P26b 59/59, HOC-1 20/20, HOC-2 25/26, TU-CHAY-4 10/10, HOC-2b 26/26, LUOI-1 80/80, TACH-GL 29/29, TU-CHAY-5 34/34, AUDIT-2 31/32, AUDIT-2 bb 151/152 (bản sửa vòng 1: so với ảnh `bb_neo.json`), do_*.js 6/6 (`do_cpu.js` không có bảng — không tính); HỎNG chỉ 4 rữa cố ý (`G3-sai-chuoi`, `VS-E3-phien-ban-cu`, `D2K-sai-chuoi`, `D2-sai-chuoi`); mẫu nghi rữa 0 |
+| `python3 viec/AUDIT-2/kiem_neo.py` (HEAD) | (bản sửa vòng 2) thoát 0 — neo khớp / mục CÓ neo: AUDIT-1 173/174, P26b 59/59, HOC-1 17/17 (+3 đối chứng), HOC-2 22/23 (+3), TU-CHAY-4 9/9 (+1), HOC-2b 20/20 (+6), LUOI-1 78/78 (+2 GOC-*), TACH-GL 29/29, TU-CHAY-5 34/34, AUDIT-2 31/32, AUDIT-2 bb 151/152 (so CHUỖI với ảnh `bb_neo.json`), do_*.js 6/6 (`do_cpu.js` không có bảng) ⇒ 629/633; HỎNG chỉ 4 rữa cố ý (`G3-sai-chuoi`, `VS-E3-phien-ban-cu`, `D2K-sai-chuoi`, `D2-sai-chuoi`); mẫu nghi rữa 0 |
 | `kiem_neo.py` trên bản sao kho đổi neo + đổi chữ | thoát 1 — 2 HỎNG + 2 mẫu nghi rữa (`bang_chung_do.txt` mục 4) |
 | `npm test` | lần của tôi: thoát 0 · ĐẾM PASS 61 · FAIL 0 · CẢNH BÁO 0; lần người soát: PASS 60 · FAIL 1 (`thu_cong.js` 120.1 s ETIMEDOUT) — sát hạn, đỏ ngẫu nhiên |
 | `node kiem_tra_truoc_khi_giao.js --day-du` | thoát 1 · ĐẾM PASS 64 · FAIL 1 · CẢNH BÁO 0 — FAIL duy nhất: `bài chạy thật tu_chay/thu_cong.js xanh (120.1 s) → spawnSync … ETIMEDOUT` |
@@ -62,7 +62,8 @@ bằng `--liet-ke`, 148 tên) — SỐNG ghi đủ trong `b2_bang.md`.
 2. **Số lượt gói do quầy gõ tay có CỐ Ý không?** `orders.js:968` lưu `package_buy.total_qty` client gửi, giá vẫn là giá gói (`:374`); màn
    Bán hàng có ô "SL SP" sửa tay (`Sales.jsx:1225–1232`). Không cố ý → NẶNG-code (bán gói N lượt giá cố định mà ghi M lượt), đưa vào P26c;
    cố ý → cần luật + quy tắc đối soát. Máy không tự xếp (câu hỏi nghiệp vụ). Ghi AU2-11.
-3. Hai thư mục bytecode `viec/AUDIT-1/__pycache__/`, `viec/AUDIT-2/__pycache__/` do công cụ của việc này đẻ ra (`.gitignore` che); người gác
+3. Ba thư mục bytecode `viec/AUDIT-1/__pycache__/`, `viec/AUDIT-2/__pycache__/`, `viec/P26b/__pycache__/` (02:32 — lúc lập kế hoạch tôi chạy
+   `viec/HOC-2b/kiem_neo.py`, nó nạp `viec/HOC-2b/dot_bien.py:18–19` → P26b) do việc này đẻ ra (`.gitignore` che); người gác
    không cho máy xoá (RM-NHAP) — xin chủ quán xoá tay. Công cụ đã tắt ghi bytecode.
 
 ## Sự cố trong lượt lập kế hoạch (đầu vào bước 11)
@@ -185,10 +186,70 @@ BÀI HỌC:
 | 7 bytecode | `sys.dont_write_bytecode = True` ở `dot_bien.py`, `kiem_neo.py` (bản sao chạy lại: 0 `__pycache__`); thư mục cũ → Câu hỏi 3 |
 | 8 vượt ngân sách | lý do dưới đây |
 | nghi 1 `package_buy.total_qty` | AU2-11 + Câu hỏi 2 |
-| nghi 2 B3 4 ca KB17 | giữ lý do (route không đọc gì ngoài giao dịch — không có khoá riêng để bỏ; phiếu B3 cho phép "ghi lý do"); tóm tắt `bao_cao.md` nêu rõ 4 dòng; đếm dẫn 20 |
+| nghi 2 B3 4 ca KB17 | giữ lý do (route không đọc gì ngoài giao dịch — không có khoá riêng để bỏ; kế hoạch đã duyệt `ke_hoach.md:143` "Ca không có khoá tương ứng để bỏ → ghi lý do" — soát vòng 2 sửa nguồn trích); tóm tắt `bao_cao.md` nêu rõ 4 dòng; đếm dẫn 20 |
 | nghi 3 docstring tầng 2 | sửa docstring: tầng 2 chạy khi tầng 1 CHƯA BẮT |
 
 **Ngân sách (lỗi 8):** `dot_bien_bb.py` 334 dòng (ngân sách 150–250): bộ quét phải tự tách JS / chuỗi SQL / `${}` / chú thích, dò biên vế
 theo ngoặc cho cả JS và SQL (~120 dòng) — phiếu cấm thư viện mới nên không dùng trình phân tích có sẵn; phần chạy (bản sao, hai tầng, kiểm
 sạch, tín hiệu, `--json`) ~90 dòng; D2 + liệt kê ~40. `kiem_neo.py` 128 dòng (+72 so bản HOC-2b): thêm 4 bộ mới, rà MẪU, neo `do_*.js`, so ảnh
 `bb_neo.json` — mỗi phần là một mục nghiệm thu C1. Không tách được mà không bỏ mục.
+
+## Soát độc lập `/ra-soat` — vòng 2 (12.10, trên `7455eb2`) — báo cáo chép nguyên (rút gọn trình bày, giữ nội dung)
+```
+KHÔNG ĐẠT
+Lý do chính: D3 vẫn chưa đạt (đang chờ chủ quán, nằm ngoài phạm vi việc). Ngoài ra còn 6 lỗi nhẹ mới, thuộc khuôn K4/K3: số liệu và câu
+chữ còn sót sau vòng sửa 1, và hai phép mới báo sai cách. Đường tiền không bị đụng. Phát hiện NẶNG AU2-1 tôi chạy lại vẫn BẮT.
+
+KIỂM TỪNG LỖI VÒNG 1: 1 ĐÃ SỬA hồ sơ (kiem_tra:478 hạn 120000, :553 ngoài if (DAY_DU); D3 vẫn đỏ, chờ chủ quán). 2 ĐÃ SỬA (A3L 18, B3 6,
+tổng 32; ba file khớp 9/9). 3 ĐÃ SỬA THẬT (--liet-ke --json ra giống từng byte bb_neo.json; đổi chữ một vế → thoát 1, 1 HỎNG; chèn dòng ở
+cuối → thoát 0) — còn lỗi 3, 5 mới. 4 ĐÃ SỬA THẬT (CHẶN 14 · LỌT 1 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0; 3 đột biến bản sao: SAI MÃ, SAI MÃ, LỌT)
+— còn lỗi 4. 5 ĐÃ SỬA (do_*.js 6/6) — còn sót cùng khuôn, lỗi 1. 6 ĐÃ SỬA ở bao_cao.md:43, trang_thai.md:31–32 — còn sót a1_bang.md:255–256
+và doi-soat-bo-tx (lỗi 2). 7 ĐÃ SỬA (dont_write_bytecode dot_bien.py:12, kiem_neo.py:9; .pyc không đổi giờ) — phép "kho sạch" vẫn mù với
+.gitignore (lỗi 6). 8 lý do ngân sách hợp lý (334, 128, 59, 94 dòng). Nghi 1 AU2-11 có, trích dẫn đúng. Nghi 2 giữ lý do, căn cứ
+ke_hoach.md:143 nhưng trích sai nguồn (lỗi 7). Nghi 3 ĐÃ SỬA dot_bien_bb.py:15.
+
+LỖI TÌM ĐƯỢC:
+1. kiem_neo.py:118–123 (ghi() :53–61) — K4: mục không có neo (ds rỗng) vẫn đếm "neo khớp": 15 mục (HOC-1 3, HOC-2 3, TU-CHAY-4 1, HOC-2b 6
+   M0-*, LUOI-1 2 GOC-KB10-*) → "644 neo khớp" (bao_cao.md:49) thật ra 629; "HOC-1 20/20", "HOC-2b 26/26" (trang_thai.md:48) thổi phồng.
+2. a1_bang.md:255–256 — K4: vẫn "HOC-1 … 17/17 ĐỎ đúng chỗ", "mọi đột biến chuyển sang đều BẮT", trái "16 BẮT + 1 LẠC". Cùng khuôn: b3_bang.md:23,
+   bao_cao.md:48 ("20 dẫn" tính BẮT) vẫn đếm doi-soat-bo-tx là BẮT dù ghi chú 4 / AU2-8 nói đỏ vì "móc không chạy" — B3 phải 23 BẮT + 1 LẠC-giống.
+3. kiem_neo.py:102 — K2 / K8 chiều ngược: câu báo chỉ in số dòng ([:1]); chèn MỘT dòng chú thích trước I1 → 148 HỎNG "tên trôi", thoát 1 dù
+   tên nào cũng trỏ đúng vế cũ. Nên so chuỗi trước, lệch dòng báo riêng; in cả hai chuỗi.
+4. lach.js:59 — K3: HEAD thoát 1 vĩnh viễn vì CC-DOC LỌT đã biết (mong ["*"] vô nghĩa); đột biến cũng thoát 1 — mã thoát không phân biệt
+   hồi quy. Đánh dấu CC-DOC "biết LỌT" để HEAD thoát 0.
+5. bao_cao.md:52–56 (B4) — K4: không nhắc bb_neo.json; sau sửa bat_bien.js hợp lệ thì lối ra duy nhất là sinh lại ảnh — không luật nào buộc
+   "sinh lại ảnh ⇒ chạy đủ dot_bien_bb.py + cập nhật b2_bang.md".
+6. dot_bien_bb.py:277–278, :327–328 — K5: anh_kho chỉ so git status, mù với .gitignore (data/, __pycache__); khung AUDIT-1 còn so data/.
+   bao_cao.md:63–64 vẫn dùng "✓ kho thật không đổi" làm bảo đảm.
+7. K1 nhẹ: trang_thai.md:188 "phiếu B3 cho phép 'ghi lý do'" — phieu.md:29–30 không có, câu ở ke_hoach.md:143; trang_thai.md:22 "62 dòng" → 67.
+
+NGHI NGỜ: viec/P26b/__pycache__/dot_bien.cpython-313.pyc 02:32:05 (sau PHIEU 02:27) — Câu hỏi 3 chỉ kê hai thư mục; thủ phạm khả dĩ
+viec/HOC-2b/dot_bien.py:18. .git/hooks trong bản sao KHÔNG có pre-commit — commit AUDIT-2 không qua tầng 3; AU2-10 nói "pre-commit đỏ ngẫu
+nhiên" mà không nói điều này. AU2-10 đề xuất là lời dặn: thu_cong.js gọi không có canhGan (kiem_tra :553; chỉ :761, :765 bật cảnh báo 80 %)
+— khoá đơn giản: bật canhGan cho bài thật tu_chay. Ảnh bb_neo.json không chụp `moi`. 4 ca KB17 lý do yếu (P26b đã dựng được kiểu nap-ghi-
+tuyet-doi-tu-so-ngoai-tx). 10 mục "cho" của lach.json không chứng minh luật "cho" được xét tới.
+
+NGHIỆM THU: 11/12 · thiếu D3 (npm test chưa chạy lại trên 7455eb2; không nêu khoá canhGan, không nêu commit không có hook gác).
+Đường tiền: git diff 4d175bc^ HEAD -- server client 0 dòng. P1: client/src không đổi. Cổng tĩnh: node tu_chay/cong.js tinh . 43c793e
+7455eb2 viec/AUDIT-2 → "✓ CỔNG TĨNH ĐẠT".
+CHƯA SOÁT ĐƯỢC: npm test / --day-du / thu_cong.js; bộ dài; SIGINT; ai đẻ P26b __pycache__; 256 dòng a1_bang / a2_bang theo tên; "tầng 1 bắt
+80 / tầng 2 bắt 20".
+BÀI HỌC: KHOÁ đếm "neo khớp" chỉ mục có neo · KHOÁ công cụ tự chứng minh thoát 0 trên HEAD (điều đã biết đánh dấu trong dữ liệu) · KHOÁ ảnh
+neo so chuỗi + B4 gắn "sinh lại ảnh ⇒ chạy đủ + cập nhật b2_bang.md" · NGUYÊN TẮC (K4) đổi phân loại vì "đỏ đúng ca sai lý do" thì grep mọi
+chỗ cùng lý do + mọi file tóm tắt · NGUYÊN TẮC (K5) vá cả phép mù, không chỉ nguồn bẩn · NGUYÊN TẮC (K6) kiểm .git/hooks/pre-commit có cài.
+```
+
+### Đã sửa theo vòng 2 (vòng sửa 2/3)
+| lỗi vòng 2 | xử lý |
+|---|---|
+| 1 mục không neo đếm "neo khớp" | `kiem_neo.py` đếm riêng mục có neo (`ghi()` ghi cờ `bool(ds)`); in "(n không neo — đối chứng) · neo khớp x/y" → 629/633 |
+| 2 MA3 / doi-soat-bo-tx sót | `a1_bang.md` cuối: 16 BẮT + 1 LẠC; `b3_bang.md` KB17:295 → LẠC-giống; `bao_cao.md` B3: 23 BẮT · 2 SỐNG · 1 LẠC = 23/26 |
+| 3 "tên trôi" so số dòng | so CHUỖI; cùng chuỗi khác dòng chỉ in "dời dòng", không HỎNG; câu báo in cả hai chuỗi. Bản sao: chèn 1 dòng chú thích trước I1 → thoát 0 (148 dời dòng); đổi `'completed'` → `'xong'` → thoát 1, 2 HỎNG in đủ chuỗi |
+| 4 lach.js thoát 1 vĩnh viễn | CC-DOC `biet_lot` → "LỌT ĐÃ BIẾT" không làm đỏ; HEAD thoát 0 (CHẶN 14 · LỌT ĐÃ BIẾT 1 · LỌT 0 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0) |
+| 5 B4 không nhắc ảnh | đề xuất B4 thêm luật "sinh lại `bb_neo.json` chỉ cùng commit chạy đủ `dot_bien_bb.py` + cập nhật `b2_bang.md`" |
+| 6 phép kho sạch mù .gitignore | `dot_bien_bb.py` `anh_kho` so thêm mọi đường `git status --ignored` (trừ node_modules, nhật ký người gác): số file + mtime lớn nhất; `--chi D2-` → "✓"; ca đỏ CHƯA KIỂM (người gác chặn `git init` — không dựng được kho giả; không chạm kho thật) |
+| 7 trích dẫn / số đếm | nguồn "ghi lý do" = `ke_hoach.md:143`; số dòng `bao_cao.md` |
+| nghi: P26b `__pycache__` | do tôi (lúc lập kế hoạch) — Câu hỏi 3 |
+| nghi: không có pre-commit | xác nhận: chỉ file mẫu trong thư mục hook — ghi ở AU2-10 + CHƯA KIỂM |
+| nghi: canhGan | đề xuất khoá báo trước ở AU2-10 (kèm đổi ca C3f) |
+| nghi: ảnh không chụp `moi` / 10 mục "cho" của lách / 4 ca KB17 | giữ — ghi CHƯA KIỂM / lý do: mục "cho" thử rằng luật CHO không cho quá đà, bị luật khác chặn là kết quả ĐÚNG (tắt luật CHO không có nghĩa) |
