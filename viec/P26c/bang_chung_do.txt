@@ -1,0 +1,109 @@
+# P26c — bằng chứng ĐỎ: node cong_cu/thu_P26c.js chạy trên code GỐC (HEAD 14f8e3f, server/ chưa vá), thoát 1
+# 18 ca xanh trên gốc đều là ca K5 (phải KHÔNG bị chặn) hoặc K1b (kho bận) — canh hồi quy, không phải ca đỏ.
+
+
+THỬ P26c — lỗ tiền / gói / kho còn lại
+
+[A1] huỷ rồi xoá đơn giao từ gói → delivered_qty chỉ hoàn MỘT lần
+  ✗ A1a giao 5 (3 + 2), huỷ đơn 2 ly → còn 3; xoá đơn đó → vẫn 3  — HTTP 200 / HTTP 200 · 3 / HTTP 200 · 1
+  ✗ A1b (K5) xoá thẳng đơn giao từ gói còn hiệu lực → trừ đúng 2 (5 → 3)  — HTTP 200 · 1
+  ✗ A1c (K5) đơn giao từ gói đã duyệt hoàn → xoá vẫn trừ 1 ly (4 → 3) — duyệt hoàn không đụng gói  — HTTP 200 / HTTP 200 · 1
+
+[A2] lấy quá lượt gói theo SỐ LƯỢNG; hai quầy chồng nhau
+  ✗ A2a còn 2 lượt, lấy 3 → 400 GOI_HET_LUOT, giao vẫn 8  — HTTP 200 · giao 11
+  ✗ A2b (K5) còn 2, lấy 1 → 200, giao 9  — HTTP 400 · GOI_HET_HIEU_LUC · Goi cua khach dang o trang thai "completed", khong dung duoc. · 11
+  ✗ A2c hai quầy cùng lấy lượt cuối → đúng một 200, giao = 10 (≤ tổng)  — HTTP 400 · GOI_HET_HIEU_LUC · Goi cua khach dang o trang thai "completed", khong dung duoc. / HTTP 400 · GOI_HET_HIEU_LUC · Goi cua khach dang o trang thai "completed", khong dung duoc. · giao 11
+  ✗ A2d mua gói 10 lượt lấy ngay 11 → 400, không tạo gói  — HTTP 200
+  ✓ A2e (K5) mua gói 10 lượt lấy ngay đủ 10 → 200, giao 10
+
+[A3] một đơn vừa MUA gói mới vừa LẤY từ gói cũ → 400, không trừ lượt gói nào
+  ✗ A3 → 400 GOI_MUA_VA_LAY_CUNG_DON, gói cũ vẫn giao 2, không thêm gói  — HTTP 200 · giao 3
+
+[A4] PUT /packages/customer-packages/:id/deliver đã bỏ
+  ✗ A4 → 404, gói không đổi  — HTTP 200 · giao 2
+
+[A5] huỷ / xoá đơn mua gói (Q4 + H2 = 1B): chỉ người có quyền; hoàn giá trị còn lại, TOÀN BỘ vào ví
+  ✗ A5a nhân viên huỷ đơn mua gói → 403, đơn / gói / ví không đổi  — HTTP 200 · {"status":"completed","goi":"active:4"} → {"status":"cancelled","goi":"cancelled:4"} · ví 900000 → 1000000
+  ✗ A5b quản lý CHƯA được cấp quyền huỷ đơn mua gói → 403  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó
+  ✗ A5c owner huỷ: gói 300.000 trả ví 100.000 + tiền mặt 200.000, lấy 4/10 → ví +180.000, gói cancelled  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó · ví 900000 → 1000000
+  ✗ A5d chưa lấy, trả tiền mặt 300.000 → owner huỷ: ví +300.000, gói bị gỡ  — HTTP 200 · ví 1000000 → 1000000
+  ✗ A5e lấy hết 10/10, trả ví 300.000 → owner huỷ: ví +0  — HTTP 200 · ví 700000 → 1000000
+  ✗ A5f gói 300.000 + món 25.000 trả ví 325.000, lấy 4 → owner huỷ: ví +205.000  — HTTP 200 · ví 675000 → 1000000
+  ✗ A5g ví mẹ 100.000 + ví con 200.000, lấy 4 → mẹ +100.000, con +80.000  — HTTP 200 · mẹ 0 → 100000 · con 800000 → 1000000
+  ✗ A5h owner xoá đơn mua gói trả ví 100.000 + tiền mặt 200.000, lấy 4 → ví +180.000, gói bị xoá  — HTTP 200 · ví 900000 → 1000000
+  ✗ A5i (K5) quản lý được cấp refund_package → huỷ 200, ví +180.000  — HTTP 200 · ví 900000 → 1000000
+  ✗ A5j owner huỷ chồng owner xoá cùng đơn mua gói → ví +180.000 đúng một lần  — HTTP 404 · Không tìm thấy đơn hàng / HTTP 200 · ví 900000 → 1000000
+  ✓ A5k (K5) nhân viên huỷ đơn mua THẺ, đơn LẤY từ gói → 200, 200 (cổng chỉ bắt đơn MUA gói)
+
+[A6] số lượt gói khi mua theo gói đã cài, bỏ qua số màn hình gửi
+  ✗ A6a gói cài 10 lượt, màn hình gửi 100 → gói khách 10 lượt  — HTTP 200 · 100 lượt
+  ✗ A6b màn hình gửi 100 lượt, lấy ngay 11 (gói cài 10) → 400  — HTTP 200
+  ✗ A6c Sales.jsx: ô số lượt gói không còn là ô nhập (không có <input … value={buyQty})
+
+[B1] trần "Hoàn tiền" theo số khách ĐÃ TRẢ (flash / hạng / giảm đơn)
+  ✗ B1a món 30.000 giá flash 25.000: đền 25.001 → 400 VUOT_GIA; 25.000 → 200, ví +25.000  — HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tối đa: 0 · ví 25001
+  ✗ B1b món 25.000 giá hạng 22.500: đền 22.501 → 400 VUOT_GIA  — HTTP 200
+  ✗ B1c đơn 2 dòng 50.000 + 2×25.000 giảm đơn 20.000 (trả 80.000): mỗi dòng trần 40.000 — 40.001 → 400, 40.000 → 200; tổng ví +80.000  — HTTP 200 · HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tối đa: 0 / HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tối đa: 0 · ví 47502 → 127504
+  ✓ B1d (K5) đơn không giảm: đền đúng giá 2 × 20.000 → 200, ví +40.000
+
+[B2] "Hoàn tiền" phải có số > 0 (Q3); "Chỉ ghi nhận" vẫn ghi được
+  ✗ B2a hoàn tiền số 0 / trống → 400, 400, ví không đổi, không thêm log  — HTTP 200 / HTTP 200 · ví 50000
+  ✓ B2b (K5) chỉ ghi nhận → 200
+
+[B3] "Hoàn kho SX" trên đơn đã huỷ → chặn (huỷ đã hoàn kho)
+  ✗ B3a đơn đã huỷ → hoàn kho SX 400 DON_DA_HUY_KHO, không thêm log  — HTTP 200
+  ✓ B3b (K5) đơn đã huỷ → chỉ ghi nhận 200
+  ✓ B3c (K5) đơn còn hiệu lực → hoàn kho SX 200
+  ✓ B3d (K5) đơn đã duyệt hoàn (không trả kho) → hoàn kho SX 200
+
+[B4] "Hoàn tiền" trên đơn CHƯA THU → chặn (H3 = 2A)
+  ✗ B4a đơn ghi nợ 50.000 → hoàn tiền 10.000 400 DON_CHUA_THU, ví không đổi  — HTTP 200 · ví 10000
+  ✓ B4b (K5) đơn nợ → chỉ ghi nhận 200
+  ✓ B4c (K5) thu nợ đủ rồi hoàn tiền 10.000 → 200, ví +10.000
+
+[B5] đã đền rồi huỷ / xoá / duyệt hoàn → khoản hoàn ví trừ số đã đền (H4 = 3A)
+  ✗ B5a đơn ví 50.000, đã đền 10.000 → huỷ: ví +40.000  — HTTP 200 · ví 10000 → 60000
+  ✗ B5b … → xoá: ví +40.000  — HTTP 200 · ví 10000 → 60000
+  ✗ B5c … → duyệt hoàn: ví +40.000, yêu cầu ghi 40.000  — HTTP 200 · ví 10000 → 60000 · yêu cầu 50000
+  ✓ B5d (K5) đơn tiền mặt đã đền 10.000 → huỷ 200, ví không đổi (không âm)
+
+[C1] thu nợ đơn đã hoàn → chặn
+  ✗ C1a đơn nợ đã duyệt hoàn → thu nợ 400, đơn không đổi  — HTTP 200 · {"status":"refunded","debt_amount":0,"cash_amount":15000}
+  ✓ C1b (K5) thu nợ đơn completed → 200
+
+[C2] xoá đơn: không còn mã bill mồ côi; nợ kho out chưa tới SX thành huy, không gửi in
+  ✗ C2a xoá đơn có mã bill CHƯA dùng → mã bị xoá  — HTTP 200 · còn 1
+  ✗ C2b bán lúc SX lỗi (nợ out) rồi xoá → nợ out thành huy, không thêm nợ in, không còn nợ chờ đẩy  — nợ out trước 1 · huy 0 · còn chờ 2
+  ✓ C2c (K5, H5) mã bill ĐÃ dùng giữ làm vết
+  ✓ C2d (K5, H6) đơn huỷ (out đã tới SX, in còn nợ) rồi xoá → nợ in VẪN chờ đẩy
+
+[C3 + C4] duyệt hoàn giảm total_spent (con + mẹ); thông báo có tổng hoàn
+  ✗ C3 duyệt hoàn 5.000 con + 20.000 mẹ → total_spent con −5.000, mẹ −20.000  — HTTP 200 · con 5000 → 5000 · mẹ 20000 → 20000
+  ✗ C4 phản hồi duyệt có tong_hoan = 25.000  — {"success":true,"message":"Đã hoàn 5,000đ vào số dư","new_balance":5000,"status":200}
+
+[C5] xoá đơn mua thẻ → gỡ dòng mua thẻ
+  ✗ C5 xoá đơn mua thẻ → 200, 0 dòng pos_membership_purchases  — HTTP 200
+
+[D1] màn thêm quà gửi "Giảm tối đa" (max_discount)
+  ✗ D1 Settings.jsx addReward gửi max_discount
+
+[D2 + D3 + D4] mã giảm giá: trả lượt khi huỷ / xoá / duyệt hoàn; chỉ lưu mã khi áp; voucher used
+  ✗ D2 mã 1 lượt dùng → huỷ đơn → used_count 0, dùng lại được (đơn mới giảm 5.000)  — HTTP 200 / HTTP 200 / HTTP 200 · giảm 0 · đã dùng 1
+  ✗ D2 mã 1 lượt dùng → xoá đơn → used_count 0, dùng lại được (đơn mới giảm 5.000)  — HTTP 200 / HTTP 200 / HTTP 200 · giảm 0 · đã dùng 1
+  ✗ D2 mã 1 lượt dùng → duyệt hoàn đơn → used_count 0, dùng lại được (đơn mới giảm 5.000)  — HTTP 200 / HTTP 200 / HTTP 200 · giảm 0 · đã dùng 1
+  ✓ D2b (K5 dữ liệu cũ) đơn lưu mã mà loại / trị giá không khớp mã → huỷ KHÔNG trả lượt
+  ✗ D3 gõ mã hết hạn → đơn 200, discount_code NULL  — HTTP 200 · {"discount_code":"MA_HET_HAN"}
+  ✗ D4 dùng voucher đổi điểm → grant used, used_order_id = đơn  — {"status":"available","used_order_id":null}
+  ✓ D2c huỷ đơn dùng voucher → grant về available
+
+[D5] hạng thẻ mặc định: chỉ Vàng, Bạch Kim
+  ✗ D5 kho mới khởi tạo → hạng = Vàng, Bạch Kim  — ["Vàng","Bạch Kim","Kim cương"]
+  ✗ Q4 quyền refund_package có trên kho mới: owner 1, manager 0, staff 0  — []
+
+[K1b] kho bận ở câu đầu (Turso) trên các nhánh mới → 409 KHO_BAN, kho không đổi
+  ✓ K1b huỷ đơn mua gói: BUSY ở câu đầu → 409 KHO_BAN, kho không đổi
+  ✓ K1b xoá đơn mua gói: BUSY ở câu đầu → 409 KHO_BAN, kho không đổi
+  ✓ K1b lấy từ gói: BUSY ở câu đầu → 409 KHO_BAN, kho không đổi
+
+  18 đạt · 45 hỏng
+
