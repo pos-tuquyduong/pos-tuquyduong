@@ -63,7 +63,7 @@ Code: `damages.js` (cả file), `orders.js` 185–390, 440–660, 760–1060, 11
 | A6 số lượt theo gói đã cài | orders.js + Sales.jsx | BV-A6-so-man-hinh · VS-A6-chi-sua-ten-dong · BV-A6-o-nhap-so-luot |
 | C1 thu nợ chỉ đơn completed | orders.js | BV-C1-cong-cancelled · VS-C1-chi-sua-cong-update |
 | C2 mã bill chưa dùng | orders.js | BV-C2-bo-xoa-ma-bill · VS-C2-xoa-ca-ma-da-dung |
-| C2 nợ kho của đơn xoá | orders.js | BV-C2-bo-huy-no-out · VS-C2-huy-ca-no-in-da-toi-sx · VS-C2-khong-huy-no-in-cung-mon · VS-C2-van-gui-in |
+| C2 nợ kho của đơn xoá (vòng 3, Câu hỏi 4 = a: giữ cách cũ, kho SX ròng 0) | orders.js | VS-C2-xoa-huy-no-out · BV-C2-xoa-khong-gui-in (5 đột biến của cách làm cũ — huỷ nợ out — đã bỏ cùng code, xem "Làm tiếp — vòng sửa 3/3") |
 | C3 duyệt hoàn giảm total_spent | refunds.js | BV-C3-bo-cot-con · VS-C3-dau-soCot · VS-C3-dau-soCot-gia-lap |
 | C4 tổng hoàn | refunds.js | BV-C4-bo-tong-hoan |
 | C5 xoá đơn mua thẻ | orders.js | BV-C5-bo-go-the |
@@ -94,13 +94,14 @@ P26b chạy lại trên HEAD: 48 / 59 BẮT. 11 không bắt — đều vì code
 - `cong_cu/thu_P26b.js` C2a, C4b, C6b: gửi "Hoàn tiền" KHÔNG kèm số (dựa vào "gõ 0 = đền đủ" — Q3 bỏ) → thêm `refund_amount`
   (25.000 / 20.000 / 25.000 — đúng số máy chủ trước đây tự điền). Khẳng định không đổi. Bài này XANH trên gốc → xem Câu hỏi 1.
 - Giả lập: KB17 (báo hỏng kèm số), KB21 (gói tự cài 3 lượt — A6; nhân viên huỷ đơn mua gói 403, chủ huỷ chồng → hoàn 1/3 giá,
-  gói chưa giao hoàn trọn), KB23 (thêm khẳng định 240.000 vào ví, cách `hoan_goi`), KB26 (`/deliver` → 404), KB27 (1 dòng nợ
-  `huy`, không nợ in; bỏ ràng buộc "kịch bản cuối lượt"). Không bớt `c.mong` nào (KB21 thêm 1).
+  gói chưa giao hoàn trọn), KB23 (thêm khẳng định 240.000 vào ví, cách `hoan_goi`), KB26 (`/deliver` → 404), KB27 (vòng 3: về
+  mong đợi cũ — 2 dòng nợ chờ đẩy, out lúc bán + in lúc xoá; bỏ ràng buộc "kịch bản cuối lượt"). Không bớt `c.mong` nào (KB21 thêm 1).
 - Bất biến đổi theo quyết định: I2 (H5 — mã đã dùng không tính mồ côi), I7 (H6 — vân tay của đơn đã xoá hợp lệ khi qua đúng một
   dòng nợ ĐÃ xong), I11 (H2 — dòng `hoan_goi` không tính, I19 canh theo đơn), I13 (H7 — chỉ đếm đơn `completed`). Mỗi đổi có ca tay
   sạch + ca lệch + đột biến (bảng trên).
 
 ### Bộ đột biến chạy trên HEAD (vòng cuối, H8)
+**[Số CŨ — lần chạy trước soát vòng 1. Lần chạy cuối trên HEAD `6441651` (sau vòng sửa 3): mục "Bộ đột biến — lần chạy cuối" ở cuối file.]**
 - `python3 viec/P26c/dot_bien.py` → **80 bị bắt · 0 không (trên 80)** (64 riêng P26c + 16 chuyển từ bộ cũ).
 - `viec/LUOI-1/dot_bien.py` → **đúng mong đợi 80/80** (BẮT 79 · LẠC 1 mong LẠC).
 - `viec/TACH-GL/dot_bien.py` → 25/29 đúng mong đợi; 4 lệch đều do neo `LUOT` / dòng "29 kịch bản · 16 bất biến" (P26c thêm KB30–32,
@@ -245,7 +246,7 @@ Cây gốc + bài head: 65 đạt · 1 hỏng (chỉ C1e), thoát 1 → A11 hợ
 ## Phát hiện (thêm, vòng 1)
 10. "Hoàn kho SX" (báo sự cố, `damages.js` gọi `/api/pos/stock/return` không vân tay) RỒI huỷ / xoá đơn → SX nhận hàng về hai lần.
     Có từ trước; B3 chỉ chặn chiều ngược (huỷ rồi hoàn kho). Đề xuất: huỷ / xoá trừ số đã hoàn kho qua báo sự cố khỏi lệnh `in`.
-11. `doSoNo.js:79-81` `SET status = 'resolved' WHERE id = ?` không điều kiện trạng thái — sổ nợ đang đẩy đúng dòng out mà lệnh xoá
+11. [ĐÓNG ở vòng 3 — code "xoá đánh huy nợ out" đã gỡ (Câu hỏi 4 = a), không còn chạy đua này] `doSoNo.js:79-81` `SET status = 'resolved' WHERE id = ?` không điều kiện trạng thái — sổ nợ đang đẩy đúng dòng out mà lệnh xoá
     chuyển `huy` + bỏ gửi in → SX trừ không cộng lại. Chạy đua, chưa dựng được ca (CHƯA KIỂM).
 12. Duyệt hoàn khi tiền đã đền ≥ phần ví → ghi dòng sổ `refund 0` (I17 cần dòng gắn yêu cầu) và báo "Đã hoàn 0đ". Không sai tiền.
 13. `orders.js` (cổng Q4 trong huỷ đơn) chép logic `checkPermission` (`middleware/auth.js:83-112`, ngoài Phạm vi) — đề xuất việc sau
@@ -409,8 +410,10 @@ thu_P26c head 74 đạt · 0 hỏng; trên gốc `b9b3928` 20 đạt · 54 hỏn
   1131cbf P26c soat v2: bang chung do thu_P26c chay lai
   c5192d4 P26c soat v2: dot bien D1 dao nhanh, A7c khong return
   ```
-- **Cách hiểu C2 / H6 (chủ quán chốt):** mục tiêu là **kho SX ròng đúng trong MỌI trường hợp**, KHÔNG phải "nợ kho của đơn đã xoá
-  không được đẩy". Xoá đơn giữ cách cũ: vẫn gửi `in`, sổ nợ đẩy cả `out` lẫn `in`; SX bỏ lệnh trùng vân tay (`sxApi.js:155-157`)
+- **Cách hiểu C2 / H6 (chủ quán chốt):** mục tiêu là **kho SX ròng đúng khi bán / huỷ / xoá đơn, dù SX đã làm hay chưa, đã báo lỗi
+  hay hết giờ** (soát vòng 3 lỗi 3: thu hẹp câu — "mọi trường hợp" rộng hơn thứ mã bảo đảm), KHÔNG phải "nợ kho của đơn đã xoá không
+  được đẩy". NGOẠI LỆ còn mở: báo sự cố "Hoàn kho SX" (gọi SX không vân tay) RỒI xoá / huỷ đơn → SX cộng dư — Phát hiện 10, có từ
+  trước P26c, rơi vào C2 theo cách hiểu mới → đề xuất phiếu sau (xem Bài học). Xoá đơn giữ cách cũ: vẫn gửi `in`, sổ nợ đẩy cả `out` lẫn `in`; SX bỏ lệnh trùng vân tay (`sxApi.js:155-157`)
   nên ròng = 0 dù SX đã làm hay chưa, đã báo lỗi hay hết giờ. Phần mã bill của C2 (xoá mã chưa dùng, H5) giữ nguyên.
 - **Sửa:** `orders.js` xoá đơn — gỡ khối huỷ nợ `out` + `boQuaKho` (−21 dòng), thêm 2 dòng chú thích lý do ở chỗ gửi `in`.
 - **Bài thử:** `thu_P26c` SX giả 3 chế độ (`loi` / `song` / `het_gio` = làm rồi mới báo lỗi) + bỏ trùng vân tay; ca C2b, C2e, C2f,
@@ -423,3 +426,127 @@ thu_P26c head 74 đạt · 0 hỏng; trên gốc `b9b3928` 20 đạt · 54 hỏn
 - **Đột biến C2:** bỏ BV-C2-bo-huy-no-out, VS-C2-huy-out-khong-xet-in, VS-C2-huy-ca-no-in-da-toi-sx, VS-C2-khong-huy-no-in-cung-mon,
   VS-C2-van-gui-in (neo vào khối đã gỡ — chủ quán chốt bỏ cách làm đó). Thêm **VS-C2-xoa-huy-no-out** (đưa ĐÚNG lỗi vòng 2 trở lại:
   xoá đánh huy nợ out + bỏ gửi in → ✗ C2g) và **BV-C2-xoa-khong-gui-in** (xoá không gửi in → ✗ C2b). Đều BẮT.
+
+## Soát độc lập — vòng 3 (chép nguyên báo cáo)
+
+```
+ĐẠT. Mã máy chủ, bài thử và 26/26 mục nghiệm thu đều đạt. Hồ sơ còn 3 chỗ sai phải sửa trước khi báo xong (lỗi 1–3 dưới đây). Không
+chỗ nào cần sửa mã.
+
+Đã chạy trên HEAD 6441651:
+- thu_P26c: 76 đạt · 0 hỏng.
+- Trên cây 38eb298 (trước vòng 3): 74 đạt · 2 hỏng, đúng C2g và C2h, SX ròng −1, vân tay [["POS:1060:out:0",-1]].
+- Trên gốc b9b3928: 24 đạt · 52 hỏng. Các ca C2b–C2i xanh trên gốc, đúng như hồ sơ ghi.
+- viec/P26c/dot_bien.py: 93 bị bắt · 0 không bị bắt (trên 93).
+- viec/LUOI-1: đúng mong đợi 80/80.
+- viec/TACH-GL: 25/29. 4 đột biến lệch là đúng 4 cái đã chuyển sang P26c.
+- viec/P26b: 48/59. 11 không áp được / không bắt là đúng 11 cái đã chuyển.
+- --day-du: PASS 66 · FAIL 0 · CẢNH BÁO 0. Trong đó: thu_P26c 2,9 s, chay.js 33,1 s, thu_gia_lap 46,3 s, dist khớp src.
+
+Kiểm 3 lỗi vòng 2:
+- Lỗi 1 (C2, SX hết giờ): đã xử lý đúng.
+  - orders.js:1577–1606: xoá đơn luôn gửi in, nợ kho cả hai chiều vẫn đẩy. Đã gỡ hết khối đánh huy và boQuaKho (grep 'huy' trong
+    server/ chỉ còn don-mo-rong.js:91, không liên quan).
+  - SX giả ở thu_P26c.js:63–71 làm ĐÚNG lỗi cũ: ghi nhận trước rồi mới ném lỗi, và bỏ lệnh trùng vân tay.
+  - Ca C2b–C2i (thu_P26c.js:518–537) đo SX ròng = 0 và không còn nợ chờ, sau khi đẩy sổ nợ bằng doSoNo thật.
+  - Đột biến VS-C2-xoa-huy-no-out đưa đúng lỗi cũ trở lại và bị C2g bắt. BV-C2-xoa-khong-gui-in bị C2b bắt.
+- Lỗi 2 (D1): đã xử lý đúng.
+  - Settings.jsx:572 gửi `max_discount: parseInt(rewardForm.max_discount) || 0`. D1a (thu_P26c.js:574–575) khớp đúng biểu thức đó.
+  - Đột biến đảo nhánh VS-D1-dao-nhanh-percent bị bắt.
+- Lỗi 3 (K1): đã sửa câu. thu_P26c.js:576–577 nay ghi thân lệnh gõ tay, D1b xanh cả trên gốc.
+
+LỖI TÌM ĐƯỢC:
+1. viec/P26c/trang_thai.md:66, :98, :248–249 — hồ sơ còn tả cách làm C2 đã gỡ ở vòng 3 — K4 (sửa một câu tài liệu thì phải grep cả
+   file tìm câu cùng nghĩa).
+   - :66 vẫn liệt kê BV-C2-bo-huy-no-out, VS-C2-huy-ca-no-in-da-toi-sx, VS-C2-khong-huy-no-in-cung-mon, VS-C2-van-gui-in. Các đột
+     biến này đã xoá khỏi dot_bien.py; tên đúng là VS-C2-xoa-huy-no-out và BV-C2-xoa-khong-gui-in.
+   - :98 ghi KB27 "1 dòng nợ huy, không nợ in". Thật ra kich_ban.js:545–554 nay khẳng định 2 dòng nợ chờ đẩy.
+   - :248–249 Phát hiện 11 (chạy đua doSoNo với "lệnh xoá chuyển huy") tả mã không còn tồn tại. Cần đóng hoặc ghi lại.
+2. viec/P26c/trang_thai.md:102–108 — mục "Bộ đột biến chạy trên HEAD (vòng cuối, H8)" ghi số của lần chạy TRƯỚC vòng soát 1 ("80 bị
+   bắt … trên 80"). Mục "Làm tiếp — vòng sửa 3/3" (:405–425) không ghi lần chạy lại đủ bộ cũ trên HEAD cuối như H8 đòi. Tôi đã chạy
+   lại và kết quả khớp (số ở trên), nhưng hồ sơ thì chưa có — K1.
+3. viec/P26c/trang_thai.md:410 — câu "kho SX ròng đúng trong MỌI trường hợp" rộng hơn thứ mã bảo đảm — K1/K4.
+   - Xoá đơn sau khi đã báo sự cố "Hoàn kho SX" vẫn làm SX cộng dư.
+   - Lý do: damages.js:205–217 gọi /api/pos/stock/return không vân tay; rồi orders.js:1579–1590 gửi in đủ số lượng → SX ròng +1 mỗi
+     món đã hoàn kho.
+   - Đây là Phát hiện 10, có từ trước P26c. Nhưng nó được hoãn TRƯỚC khi chủ quán đổi cách hiểu C2 thành "ròng đúng mọi trường hợp".
+   - Cần một trong hai: thu hẹp câu thành "dù SX đã làm hay chưa, đã báo lỗi hay hết giờ", hoặc đưa Phát hiện 10 thành câu hỏi cho chủ
+     quán. Không tự sửa mã.
+
+NGHI NGỜ:
+- cong_cu/gia_lap/bat_bien.js:104–105 (I7, K3): phép nới `!daXong.has(vt)` cho qua MỌI vân tay có dòng nợ đã xong, không chỉ của đơn
+  đã xoá. Một lệnh in gửi nhầm qua sổ nợ cho đơn còn tồn tại mà không bị huỷ sẽ không bị báo "vân tay lạ". Chú thích :104 cũng đã cũ:
+  vẫn nói "đơn huỷ rồi bị xoá", trong khi nay mọi đơn bị xoá đều đẩy nợ. Gọn và chặt hơn: chỉ miễn khi order_id của vân tay không còn
+  trong pos_orders. Hiện chưa có đường mã nào sinh ra trường hợp đó, nên chưa kết luận là lỗi.
+- client/src/pages/Sales.jsx:489: `setBuyQty(String(pkg.total_qty || 30))`. Gói cài 0 lượt thì màn hình hiện "30" trong khi máy chủ
+  trả 400 GOI_CHUA_CAI_LUOT. Đây là số cứng có từ trước, nhưng A6 đổi nghĩa ô này.
+- Sales.jsx:747 vẫn gửi total_qty mà máy chủ đã bỏ qua (orders.js:380). Bỏ đi thì gọn hơn.
+- Cách làm (a) đúng chỉ khi SX thật bỏ lệnh trùng vân tay ở CẢ chiều in. sxApi.js:153–158 chỉ hứa điều này trong chú thích của
+  outStockFIFO; inStockReturn chỉ dẫn lại "xem chú thích ở outStockFIFO". Từ kho POS không kiểm được.
+
+NGHIỆM THU: 26/26 mục có bằng chứng · mục thiếu: không có.
+- A1: A1a–c · A2: A2a–e · A3: A3, A3b · A4: A4 · A5: A5a–k · A6: A6a–c (thêm A7a–c theo Câu hỏi 3).
+- B1: B1a–f · B2: B2a–b + thu_P26b C1e · B3: B3a–d · B4: B4a–c · B5: B5a–d.
+- C1: C1a–b · C2: C2a, C2c (mã bill) + C2b, C2e–C2i (SX ròng; xem lỗi 3 về phạm vi câu chữ) · C3 · C4 · C5 (+ KB32).
+- D1: D1a (khớp đúng biểu thức) + D1b · D2: D2 ×3, D2b, D2c · D3 · D4 · D5 (+ Q4a/Q4b).
+- E1: I18, I19 + các c.mong KB30–32 · E2: ngưỡng 32/18; chay.js 33,1 s cả 4 lượt chạy cùng lúc, mỗi lượt dưới 180 s · E3: 93/93 +
+  các bộ cũ như trên.
+- G: A1a, B3a/b, C5, A5c, A3 · H: --day-du 66/0/0 (gồm thu_P20, P21, P26a, P26b, P26c, giả lập, thu_gia_lap, dist khớp).
+
+K4: grep pos_stock_pending / inStockReturn trong orders.js. Bán, huỷ, xoá nay cùng một khuôn: lỗi thì ghi nợ có vân tay, đẩy lại vô
+hại. Còn hai lệch, đã nêu ở trên: đường damages return_stock không vân tay (lỗi 3) và chú thích I7.
+
+K5: các luồng hợp lệ có ca và vẫn qua: bán thường; lấy từ gói trong lượt (A2b); mua gói lấy ngay (A2e); gia hạn (A3b); nhân viên huỷ
+đơn mua thẻ / đơn lấy từ gói (A5k); quản lý có quyền huỷ đơn mua gói (A5i); "Chỉ ghi nhận" (B2b, B3b, B4b); hoàn kho trên đơn còn
+hiệu lực / đã duyệt hoàn (B3c/d); bán + xoá lúc SX sống (C2i); bật/tắt gói cũ 0 lượt (A7b); dữ liệu mã cũ (D2b). Không thấy chặn oan
+mới. Gói 0 lượt không bán được là đã có chủ quán chốt (Câu hỏi 3).
+
+Đường tiền (P3/P4): không có trường tiền nào máy chủ tin số client gửi. soTienHoan (tienDaTra.js) đọc đơn, gói, dòng đền trong giao
+dịch. refund_amount của yêu cầu hoàn lấy từ order.balance_amount (refunds.js:129). Số lượt gói lấy từ pos_packages (orders.js:380).
+Trần đền tính theo tienDaTraTheoDong.
+
+P1: vòng 3 không đụng client/src. --day-du báo dist khớp src.
+
+Đơn giản / đối soát: Mã vòng 3 gọn hơn trước: bỏ 21 dòng, xoá đơn quay về cách cũ. Còn lỗ đối soát: dòng hoàn hoan_goi của đơn mua gói
+đã XOÁ không có quy tắc đối soát nào. I11 bỏ qua dòng này, I19 chỉ xét đơn còn. Đây là Phát hiện 6, đề xuất làm ở DOI-SOAT-1. Tính
+năng tiền này chưa có đối soát đủ theo điều 5 của chủ quán; cần chủ quán biết khi gộp. Duyệt hoàn có thể ghi một dòng sổ 0đ và báo
+"Đã hoàn 0đ" (Phát hiện 12). Không sai tiền.
+
+CHƯA SOÁT ĐƯỢC: SX thật có bỏ lệnh in trùng vân tay hay không (kho SX không có ở đây). Dữ liệu production: gói 0 lượt đang bật, nợ
+kho đang chờ, mã giảm 1 món đang dùng. App KH / SX có gọi PUT /customer-packages/:id/deliver (đã bỏ) hay không. Trong kho này grep
+chỉ ra 0 chỗ gọi. Không đo riêng từng lượt giả lập; chỉ có tổng 33,1 s khi 4 lượt chạy cùng lúc.
+
+BÀI HỌC:
+- NGUYÊN TẮC (K4, thêm vào KHUON_LOI): khi chủ quán ĐỔI CÁCH HIỂU một mục nghiệm thu, rà lại mọi Phát hiện đã hoãn dưới cách hiểu cũ.
+  Ví dụ ở việc này: Phát hiện 10 rơi vào C2 mới. Đồng thời grep trang_thai tìm bảng đột biến và mong đợi KB của cách làm vừa gỡ.
+- KHOÁ (bài thử): một ca "báo sự cố Hoàn kho SX → xoá đơn → SX ròng = 0". Hiện ca này sẽ ĐỎ; chờ chủ quán quyết rồi mới vá.
+- KHOÁ (bất biến): I7 chỉ miễn vân tay khi đơn của nó không còn trong pos_orders; thêm ca tay "nợ in đã xong của đơn còn, chưa huỷ →
+  lệch".
+- KHOÁ (người gác): mục "vòng cuối, H8" trong trang_thai phải ghi sha HEAD của lần chạy bộ đột biến. Người gác so sha đó với HEAD lúc
+  báo xong.
+```
+
+## Xử lý soát vòng 3 (ĐẠT — chỉ sửa hồ sơ)
+- Lỗi 1 (K4): bảng chỗ vá → đột biến dòng C2 đổi sang VS-C2-xoa-huy-no-out · BV-C2-xoa-khong-gui-in; câu KB27 về mong đợi đúng (2 nợ
+  chờ đẩy); Phát hiện 11 đóng (mã nó tả đã gỡ). Grep cả file `huy` / `boQuaKho`: các câu còn lại đều nằm trong báo cáo soát chép
+  nguyên hoặc mục lịch sử vòng 1–2 (giữ nguyên làm vết).
+- Lỗi 2 (K1): mục H8 cũ đánh dấu "số cũ"; số lần chạy cuối ghi dưới đây.
+- Lỗi 3 (K1/K4): thu hẹp câu cách hiểu C2 + nêu rõ ngoại lệ Phát hiện 10.
+- Nghi ngờ I7 (miễn mọi vân tay có nợ đã xong): đề xuất KHOÁ ở Bài học — không sửa trong vòng này (đã hết vòng sửa; bất biến hiện đúng
+  với mọi đường mã đang có, chưa có ca đỏ).
+- Nghi ngờ Sales.jsx:489 (`|| 30`), Sales.jsx:747 (gửi `total_qty` thừa), SX thật bỏ trùng vân tay chiều `in`: Phát hiện 18, 19 + CHƯA KIỂM.
+
+## Phát hiện (thêm, vòng 3)
+18. `Sales.jsx:489` `pkg.total_qty || 30` (gói 0 lượt hiện "30") và `Sales.jsx:747` vẫn gửi `total_qty` mà máy chủ bỏ qua (A6) — thừa,
+    không sai tiền; gọn lại ở việc sau đụng màn Bán hàng.
+19. Cách (a) đúng chỉ khi SX thật bỏ lệnh TRÙNG vân tay ở CẢ chiều `in` (`sxApi.js:153-158` chỉ nói ở chiều out). Cần xác nhận bên SX.
+
+## Bộ đột biến — lần chạy cuối (HEAD `6441651`, sau vòng sửa 3)
+- `python3 viec/P26c/dot_bien.py` → **93 bị bắt · 0 không (trên 93)**.
+- `viec/LUOI-1/dot_bien.py` → **đúng mong đợi 80/80** (BẮT 79 · LẠC 1 mong LẠC) · 91 s.
+- `viec/TACH-GL/dot_bien.py` → 25/29 — 4 lệch đúng 4 đột biến đã chuyển sang P26c (VS-kb-hai-luot, VS-luot-trung-thieu,
+  BV-cha-kiem-mot-lan, VS-luot-thieu-bat-bien — đều BẮT trong bộ P26c) · 755 s.
+- `viec/P26b/dot_bien.py` → 48/59 — 11 không bắt đúng 11 đột biến đã chuyển (bảng "Đột biến cũ đổi").
+- `viec/HOC-2b/kiem_neo.py` → như lần trước: neo rữa do P26c đã chuyển; `G3-sai-chuoi`, `VS-E3-phien-ban-cu` hỏng cả trên gốc.
+- `npm test` PASS 62 · FAIL 0 · CẢNH BÁO 0; `node kiem_tra_truoc_khi_giao.js --day-du` PASS 66 · FAIL 0 · CẢNH BÁO 0 (thu_gia_lap 46–50 s,
+  giả lập 33 s; mỗi lượt giả lập đo riêng ở soát vòng 2: 33,4 / 29,2 / 23,9 / 24,6 s < 180 s).
