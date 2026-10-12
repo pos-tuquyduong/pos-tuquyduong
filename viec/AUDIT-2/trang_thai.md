@@ -318,3 +318,73 @@ NGUYÊN TẮC (K3) đừng ghi "CHƯA KIỂM — không dựng được" trướ
 | 5 nhãn "LỌT 1" | "LỌT ĐÃ BIẾT 1" ở `a3_bang.md`, `bao_cao.md`; ca đỏ của `anh_kho` mới: bản sao `kg2` (git archive + chép `.git` vào nháp) — `bang_chung_do.txt` mục 10 |
 | 6 lach "tắt → khác là được" | đòi ĐÚNG `CHO`; HEAD vẫn CHẶN 14 · LỌT ĐÃ BIẾT 1 · 0 · 0 · 0, thoát 0 |
 | nghi: tên trùng chuỗi đổi chỗ, node_modules symlink, lọc viec/AUDIT-2 ở ảnh git status, KB17:292, LUOI-1 goc* | ghi CHƯA KIỂM / Bài học (không sửa thêm — vòng cuối, ưu tiên không mở rộng) |
+
+## Nghiệm thu — đếm từng mục (không lấy mẫu)
+| mục | bằng chứng | trạng thái |
+|---|---|---|
+| A1 | `a1_bang.md` (174 AUDIT-1 + 20 HOC-1 + 26 HOC-2 từng tên, so lần trước); lệnh + thời gian ở bảng "Kết quả nhóm A, B" | có |
+| A2 | `a2_bang.md` — 23 C2F, 0 NẶNG, 10 NHẸ-tiền + đề xuất một KB | có |
+| A3 | `a3_bang.md` — bundle D2–D5 4/4 BẮT; loyalty/gói 18 (9 BẮT · 9 SỐNG, 5 NẶNG-lưới); thăm dò A3P BẮT (AU2-1); lách 15 mã `lach.js`/`lach.json` | có |
+| B1 | `dot_bien_bb.py` (`--liet-ke` 148 tên tất định + dòng, `--chi`, `-j`, `--json`; BẮT chỉ khi đúng I<n>, sập = LẠC); ảnh `bb_neo.json` | có |
+| B2 | `b2_bang.md` — 148 → 100 BẮT · 48 SỐNG: (a) 44 · (b) 4 · (c) 0 | có |
+| B3 | `b3_bang.md` — 23 dòng ca chồng; 26 đột biến (6 mới + 20 dẫn): 23 BẮT · 2 SỐNG có lý do · 1 LẠC-giống; 4 dòng KB17 không có khoá riêng (lý do, `ke_hoach.md:143`) | có |
+| B4 | `bao_cao.md` mục Đề xuất (skill bước 4 + lenh_ra_soat + luật sinh lại ảnh) | có |
+| C1 | `kiem_neo.py` — 629/633 neo khớp, 4 rữa cố ý đánh dấu, 0 mẫu nghi rữa; ca đỏ `bang_chung_do.txt` mục 4, 6, 8 | có |
+| C2 | `bao_cao.md` mục Đề xuất (không cần — lý do) | có |
+| D1 | `bao_cao.md` 72 dòng ≤ 200, AU2-1 … AU2-11, tỷ lệ theo nhóm | có |
+| D2 | `bang_chung_do.txt` (HỎNG/BẮT/SỐNG/LẠC của cả hai công cụ + mục 4–11); 32 tên `dot_bien.py` + 4 D2 ở mục "Tên đột biến" | có |
+| D3 | `npm test` trên `decb701`: PASS 61 · FAIL 0 (nhưng sát hạn — lần người soát vòng 1 FAIL 1); `--day-du` ĐỎ (`thu_cong.js` ≥ 120 s, cả trên gốc); `git status` sạch sau mỗi lần chạy, thư mục tạm xoá cả khi ngắt / nạp hỏng; `git diff --stat 4d175bc..HEAD -- ':!viec/AUDIT-2/'` rỗng | **THIẾU — chờ chủ quán (Câu hỏi 1)** |
+→ 11/12 mục có bằng chứng; D3 không đạt được trong Phạm vi (cần sửa ngoài `viec/AUDIT-2/` hoặc đo trên máy khác).
+
+## Báo cáo 7 mục
+```
+VIỆC:        AUDIT-2 — Audit đợt 2: chạy lại lưới, phủ phần AUDIT-1 chưa kiểm, xem còn lỗ NẶNG không
+ĐÃ SỬA:      không đổi code chạy thật (git diff 4d175bc..HEAD -- ':!viec/AUDIT-2/' rỗng). Thêm trong viec/AUDIT-2/: dot_bien_bb.py (B1,
+             344 dòng), dot_bien.py (A3 + B3, bọc khung AUDIT-1, 95 dòng), kiem_neo.py (C1, 133 dòng), lach.js + lach.json (A3), bb_neo.json
+             (ảnh neo), bảng a1/a2/a3/b2/b3, bao_cao.md (72 dòng), bang_chung_do.txt.
+BÀI THỬ:     phiếu "Bài thử đỏ: không". Công cụ đo tự chứng minh (D2, bang_chung_do.txt): dot_bien_bb.py D2 → HỎNG · BẮT · SỐNG · LẠC;
+             dot_bien.py D2K → HỎNG · BẮT · SỐNG; kiem_neo.py bản sao đổi neo / chữ / vế → thoát 1 (HỎNG, mẫu nghi rữa, tên trôi), chỉ dời
+             dòng → thoát 0; lach.js đích sai → SAI MÃ; anh_kho bản sao: pyc mới / data/ / ghi đè → đổi. Kết quả chính: AU2-1 NẶNG-code
+             (lấy vượt lượt gói — HTTP 200, đã biết, trúng P26c) · AU2-2 NẶNG-lưới (5 đột biến A3L SỐNG ở đường quầy) · AU2-11 chờ chủ quán.
+ĐÃ RÀ K4:    soát 3 vòng bắt 21 lỗi cùng khuôn (số liệu / câu tổng sót ở file tóm tắt, phép tự so, đếm mục không neo, luật khác chặn hộ,
+             bytecode + thư mục tạm); đã sửa hết trong phạm vi; grep "mọi … BẮT", "n/n", "LỌT 1", số dòng lần cuối sau vòng 3.
+CHƯA KIỂM:   D3 — --day-du đỏ và npm test / pre-commit sát hạn vì tu_chay/thu_cong.js 119–126 s ≥ 120 s (cả trên gốc) — chờ chủ quán;
+             bản sao máy mây KHÔNG cài hook pre-commit — các commit của việc này không qua tầng 3 (npm test chạy tay trước mỗi đợt);
+             chưa chạy lại ĐỦ các bộ dài sau vòng sửa (A1 174, HOC-1/2, dot_bien_bb 148, dot_bien.py 32) — công cụ đo của chúng không đổi
+             phần chấm từ lần chạy đủ, chỉ D2/D2K và mẫu chạy lại; ảnh bb_neo.json không chụp chuỗi thay — đổi luật sinh mà tên giữ
+             nguyên thì không bị bắt; hai tên cùng chuỗi trong một bất biến đổi chỗ cho nhau có thể tráo tên lặng lẽ; phép "kho sạch" bỏ
+             node_modules (symlink "chỉ đọc" không ép); khung AUDIT-1 dùng lại chỉ so git status + data/ + .vite; rà MẪU của kiem_neo.py
+             theo TỪ ≥ 4 chữ cái (mẫu không có từ như "→ I8:" không được rà); "tầng 1 bắt 80 / tầng 2 bắt 20" đếm từ đầu ra, người soát
+             chưa kiểm lại; 10 mục "cho" của lach.json không chứng minh luật CHO được xét tới; 4 ca KB17 không đột biến; AU2-11 cố ý hay
+             không — câu hỏi nghiệp vụ; ba thư mục __pycache__ trong kho và ba /tmp/thu_cong_* / cong_* sót — máy không được xoá.
+GIT:         decb701 AUDIT-2: sua theo ra-soat vong 3 — atexit don GOC_TAM, lach tat phai ra CHO, ca do anh_kho, so lieu / cau tong, AU2-10…
+             59b2c36 AUDIT-2: ghi npm test tren a903c02
+BÀI HỌC:     KHOÁ 4 (đề xuất — ngoài Phạm vi) · NGUYÊN TẮC 4 (đề xuất KHUON_LOI) · BỎ 2 — chi tiết ở ## Bài học dưới
+```
+
+## Bài học
+Gom sự cố: người gác chặn 11 lệnh (B-CHUONGTRINH nproc/until/for, B-PHANTICH $((…))/${x%%…}/$'…', B-CD-VITRI ×3, B-CD, GIT-TUYCHON
+--version, GIT-LENH init, B-BIMAT-CHU, B-MANOI ×5 — mã viết thẳng nhắc tên file bí mật / sổ việc / khung); 3 lỗi K3 tự bắt trong công cụ
+(regex do_chia, luật bí danh I7, chọn chữ "React" để thử); 21 lỗi soát bắt qua 3 vòng; vượt ngân sách dot_bien_bb.py / kiem_neo.py (lý do
+ghi); 3 câu hỏi chủ quán. Xếp:
+- **KHOÁ (đề xuất, ngoài Phạm vi — chat soát duyệt):**
+  1. `tu_chay/thu_cong.js` dọn thư mục tạm bằng `process.on('exit')` + móc SIGTERM; ca `thu_cong_cu.js` "SIGTERM giữa chừng → không sót
+     /tmp/thu_cong_*" (đỏ trên gốc: sót). + `kiem_tra_truoc_khi_giao.js:549–553` bật `canhGan` cho bài thật tu_chay (đổi ca C3f `thu_gia_lap.js`).
+  2. Công cụ đột biến dùng chung (khi dời `dot_bien_bb.py` về `cong_cu/gia_lap/`): ảnh neo so CHUỖI, "kho sạch" soi đường `.gitignore` che,
+     `atexit` dọn thư mục tạm tạo lúc nạp, tắt bytecode — ca đỏ như `bang_chung_do.txt` mục 6, 8, 10, 11.
+  3. Công cụ tự chứng minh phải thoát 0 trên HEAD — điều đã biết đánh dấu trong DỮ LIỆU (`biet_lot`), phép "tắt luật thì phải ra CHO";
+     ca đỏ: đột biến LỌT / SAI MÃ đổi mã thoát (`lach.js` đã làm trong Phạm vi).
+  4. Số tổng trong `bao_cao.md` / `trang_thai.md` sinh bằng máy từ `--json` của lần chạy (17/18, 7/6, 645/629 đều do gõ tay) — đề xuất
+     `--tom-tat` in sẵn dòng tổng để chép, người soát so với `--json`.
+- **NGUYÊN TẮC (đề xuất `KHUON_LOI.md` — phiếu cấm sửa ở việc này):**
+  1. K1 — "đọc TÊN phép không phải đọc phép": D4 bundle tên "POS-ERRHANDLING-v1" mà tìm `sessionExpiredHandled` (soát kế hoạch bắt).
+  2. K4 — đổi phân loại một tên (MA3, doi-soat-bo-tx) hoặc con số → grep tên đó + câu tổng quát ("mọi … vẫn BẮT", "n/n", "LỌT 1") +
+     số mô tả chính file (wc -l) trong MỌI hồ sơ cùng commit (soát vòng 2, 3).
+  3. K4 — một phép quá hạn ở `--day-du`: grep xem bước đó có chạy ở bản nhanh / pre-commit, và xét dọn dẹp khi bị giết (soát vòng 1, 3).
+  4. K5 — "git status trước/sau" mù với file bị `.gitignore` che (bytecode, data/) và với thư mục tạm của tiến trình con bị giết; nạp
+     module bằng importlib → `sys.dont_write_bytecode` (soát vòng 1, 2).
+- **BỎ:**
+  1. Lỗi chọn chữ "React" khi thử mẫu rữa (chữ nằm trong chuỗi đột biến chèn) — một lần, đã ghi ở `bang_chung_do.txt` mục 4.
+  2. Ghi số dòng `a3_bang.md` theo trí nhớ — đã thuộc K1 sẵn có; một lần.
+Dọn: không đề xuất xoá lời dặn nào (không có phép mới thay được lời dặn hiện có trong `KHUON_LOI.md` / `CLAUDE.md`).
+HEAD ĐÃ KIỂM: decb701
