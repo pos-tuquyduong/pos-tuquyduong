@@ -183,7 +183,7 @@ router.post("/", authenticate, async (req, res) => {
       return res.status(400).json({ error: "Cần chọn khách hàng trước khi mua thẻ hội viên" });
     }
     // P26c (A3): một đơn vừa MUA gói mới vừa LẤY từ gói cũ thì trừ lượt cả hai gói — không cho, tách làm hai đơn.
-    if (customer_package_id && package_buy) {
+    if (customer_package_id && package_buy && items.some((i) => i.from_package)) {   // gia hạn (bật gói cũ, không lấy) vẫn được
       return res.status(400).json({ error: "Một đơn không thể vừa mua gói mới vừa lấy từ gói cũ — hãy tách làm hai đơn",
         code: "GOI_MUA_VA_LAY_CUNG_DON" });
     }
@@ -1303,10 +1303,14 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
 async function hoanVi(tx, order, nguoi, luc, viec) {
   const meTra = order.parent_phone ? Number(order.parent_balance_amount || 0) : 0;
   const { me, con, coGoi } = await soTienHoan(tx, order, Number(order.balance_amount || 0) + meTra);
-  // Đơn mua gói: phần ví khách gồm cả phần trả tiền mặt / CK (H2) → sổ ghi cách 'hoan_goi' để đối soát tách được (I11, I19).
-  if (con > 0 && order.customer_phone) {
-    await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: "refund", soTien: con, orderId: order.id,
-      cachTra: coGoi ? "hoan_goi" : "cash", ghiChu: `Hoàn tiền ${viec} đơn ${order.code}`, nguoi, luc, cot: "total_spent", soCot: -con });
+  // Đơn mua gói: phần vượt số khách trả bằng ví (= phần tiền mặt / CK, H2) ghi dòng riêng cách 'hoan_goi', KHÔNG giảm total_spent
+  // (nó chưa từng là tiền chi từ ví — soát vòng 1 lỗi 4). Đối soát: I11 canh phần ví, I19 canh cả đơn.
+  const tuVi = coGoi ? Math.min(con, Number(order.balance_amount || 0)) : con;
+  for (const [soTien, cachTra, cot] of [[tuVi, "cash", "total_spent"], [con - tuVi, "hoan_goi", null]]) {
+    if (soTien > 0 && order.customer_phone) {
+      await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: "refund", soTien, orderId: order.id, cachTra,
+        ghiChu: `Hoàn tiền ${viec} đơn ${order.code}`, nguoi, luc, cot, soCot: -soTien });
+    }
   }
   if (me > 0) {
     await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: me, orderId: order.id,
@@ -1522,15 +1526,22 @@ router.delete("/:id", authenticate, async (req, res) => {
       }
 
       // P26c (C2): nợ kho `out` chưa tới SX → 'huy', kèm nợ `in` cùng món (hàng chưa từng ra khỏi SX — hai chiều triệt tiêu);
-      // sau commit KHÔNG gửi `in` cho những món đó. Nợ `in` mà `out` đã tới SX giữ nguyên — vẫn đẩy (H6).
+      // sau commit KHÔNG gửi `in` cho những món đó. Nợ `in` mà `out` đã tới SX giữ nguyên — vẫn đẩy (H6); `in` đã tới SX mà
+      // `out` còn nợ → giữ `out` để đẩy.
       const noOut = await tx.query(
         "SELECT van_tay FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status IN ('pending', 'can_xem') AND van_tay IS NOT NULL",
         [order.id],
       );
-      for (const vt of noOut.flatMap((r) => [r.van_tay, r.van_tay.replace(":out:", ":in:")])) {
-        boQuaKho.add(vt);
-        await tx.run("UPDATE pos_stock_pending SET status = 'huy' WHERE order_id = ? AND van_tay = ? AND status IN ('pending', 'can_xem')",
-          [order.id, vt]);
+      for (const { van_tay: vtOut } of noOut) {
+        const vtIn = vtOut.replace(":out:", ":in:");
+        // Đơn đã huỷ mà `in` đã TỚI SX (không còn nợ in) → `out` vẫn phải đẩy, không huỷ (soát vòng 1 lỗi 1: SX ròng +1).
+        if (order.status === "cancelled" && !(await tx.queryOne(
+          "SELECT 1 FROM pos_stock_pending WHERE order_id = ? AND van_tay = ? AND status IN ('pending', 'can_xem')", [order.id, vtIn]))) continue;
+        for (const vt of [vtOut, vtIn]) {
+          boQuaKho.add(vt);
+          await tx.run("UPDATE pos_stock_pending SET status = 'huy' WHERE order_id = ? AND van_tay = ? AND status IN ('pending', 'can_xem')",
+            [order.id, vt]);
+        }
       }
 
       // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══
