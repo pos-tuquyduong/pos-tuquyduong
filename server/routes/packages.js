@@ -167,22 +167,8 @@ router.get('/customer-packages/:id/deliveries', authenticate, async (req, res) =
 
 // P26b (D): BỎ POST /buy — không màn hình nào gọi, tạo gói KHÔNG thu tiền. Gói bán qua POST /orders (package_buy).
 
-// PUT /customer-packages/:id/deliver — Atomic update delivered_qty
-router.put('/customer-packages/:id/deliver', authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { delivered_qty } = req.body;
-    if (!delivered_qty || delivered_qty <= 0) return res.status(400).json({ success: false, error: 'Số lượng không hợp lệ' });
-    await run(
-      `UPDATE pos_customer_packages SET delivered_qty = delivered_qty + ?,
-         status = CASE WHEN delivered_qty + ? >= total_qty THEN 'completed' ELSE 'active' END,
-         updated_at = ? WHERE id = ?`,
-      [delivered_qty, delivered_qty, new Date().toISOString(), id]);
-    const updated = await queryOne('SELECT * FROM pos_customer_packages WHERE id = ?', [id]);
-    if (!updated) return res.status(404).json({ success: false, error: 'Không tìm thấy gói KH' });
-    res.json({ success: true, data: { delivered_qty: updated.delivered_qty, status: updated.status } });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
+// P26c (A4): BỎ PUT /customer-packages/:id/deliver — không màn hình gọi, cộng lượt không trần, không tạo đơn. Lấy từ gói qua
+// POST /orders (customer_package_id).
 
 // PUT /customer-packages/:id/cancel — Hủy gói
 router.put('/customer-packages/:id/cancel', authenticate, checkPermission('manage_users'), async (req, res) => {
