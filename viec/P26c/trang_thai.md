@@ -550,3 +550,97 @@ BÀI HỌC:
 - `viec/HOC-2b/kiem_neo.py` → như lần trước: neo rữa do P26c đã chuyển; `G3-sai-chuoi`, `VS-E3-phien-ban-cu` hỏng cả trên gốc.
 - `npm test` PASS 62 · FAIL 0 · CẢNH BÁO 0; `node kiem_tra_truoc_khi_giao.js --day-du` PASS 66 · FAIL 0 · CẢNH BÁO 0 (thu_gia_lap 46–50 s,
   giả lập 33 s; mỗi lượt giả lập đo riêng ở soát vòng 2: 33,4 / 29,2 / 23,9 / 24,6 s < 180 s).
+
+## Nghiệm thu — đếm từng mục (bằng chứng trên HEAD; số ca của `cong_cu/thu_P26c.js` trừ khi ghi khác)
+| Mục | Bằng chứng |
+|---|---|
+| A1 huỷ rồi xoá đơn giao từ gói → hoàn 1 lần | A1a (giao 5, huỷ 2 → 3, xoá → 3), A1b, A1c (K5); BV-A1-xoa-bo-cong-trang-thai, VS-A1-chan-ca-don-da-hoan |
+| A2 lấy quá lượt / hai quầy chồng | A2a (còn 2 lấy 3 → 400 GOI_HET_LUOT), A2c (Promise.all → đúng một 200), A2d, A2b/A2e (K5); KB30; BV-A2-bo-tran, VS-A2-bo-kiem-changes |
+| A3 vừa mua vừa lấy → 400 | A3, A3b (K5 gia hạn); KB30; BV-A3-bo-chan, VS-A3-so-nham-ma-goi, VS-A3-chan-ca-gia-han |
+| A4 /deliver → 404 | A4; KB26; BV-A4-deliver-song-lai |
+| A5 Q4 huỷ / xoá đơn mua gói | A5a (nv 403), A5b, A5c (300.000/10/lấy 4 → +180.000), A5c2 (sổ cash + hoan_goi, total_spent 0), A5d (chưa lấy → +300.000), A5e (lấy hết → +0), A5f, A5g (mẹ +100.000 con +80.000), A5h (xoá +180.000), A5i, A5j (chồng), A5k (K5); Q4a/Q4b; KB21, KB23, KB30 |
+| A6 số lượt theo gói đã cài | A6a (gửi 100 → 10), A6b, A6c (Sales.jsx không còn ô nhập); BV-A6-*, VS-A6-chi-sua-ten-dong |
+| A7 (Câu hỏi 3) gói ≥ 1 lượt | A7a, A7b (K5 bật/tắt gói cũ 0 lượt → 200), A7c; BV-A7-*, VS-A7-*, VS-A7c-khong-return |
+| B1 trần theo số đã trả | B1a (flash 25.000 / 25.001), B1b (hạng), B1c (giảm đơn 20.000 → mỗi dòng 40.000, tổng 80.000), B1d (K5), B1e (dòng gói 400), B1f (mã 1 món, Câu hỏi 2); KB31; BV-B1-*, VS-B1-* |
+| B2 hoàn tiền số 0 → 400 | B2a, B2b (K5 chỉ ghi nhận); thu_P26b C1e (đỏ trên gốc); BV-B2-bo-chan-so-0, VS-B2-chi-chan-so-am, BV-B2-bo-chan-so-0-thu-P26b |
+| B3 hoàn kho SX đơn đã huỷ | B3a, B3b/B3c/B3d (K5); KB31; BV-B3-bo-chan-hoan-kho, VS-B3-chan-ca-don-da-hoan |
+| B4 đền đơn chưa thu → 400 (H3) | B4a, B4b, B4c (K5 thu nợ đủ rồi đền); KB31; BV-B4-bo-chan-chua-thu, VS-B4-chan-theo-cach-tra-no |
+| B5 đền rồi huỷ / xoá / duyệt (H4) | B5a/B5b/B5c (+40.000, yêu cầu ghi 40.000), B5d (K5 tiền mặt); KB31; I19; BV-H4-bo-tru-den, VS-H4-chi-tru-o-don-goi |
+| C1 thu nợ đơn đã hoàn → chặn | C1a, C1b (K5); BV-C1-cong-cancelled, VS-C1-chi-sua-cong-update, BV-G3-da-biet-thu-no |
+| C2 mã bill mồ côi + kho SX của đơn xoá | C2a (mã chưa dùng bị xoá), C2c (K5 mã đã dùng giữ, H5), C2b/C2e/C2f/C2g/C2h/C2i (SX ròng 0 — Câu hỏi 4 = a; C2g/C2h đỏ trên 38eb298); KB32 + I2; VS-C2-xoa-huy-no-out, BV-C2-xoa-khong-gui-in, BV-C2-bo-xoa-ma-bill, VS-C2-xoa-ca-ma-da-dung |
+| C3 duyệt hoàn giảm total_spent + phép canh | C3; I18 (ca tay + KB32); VS-C3-dau-soCot, VS-C3-dau-soCot-gia-lap (đổi dấu soCot BẮT), BV-C3-bo-cot-con |
+| C4 thông báo gồm ví mẹ | C4 (tong_hoan 25.000); BV-C4-bo-tong-hoan |
+| C5 xoá đơn mua thẻ gỡ dòng mua thẻ | C5; KB32 + I15; BV-C5-bo-go-the |
+| D1 ô Giảm tối đa | D1a (khớp đúng biểu thức gửi), D1b (quà 50 % trần 50.000, đơn 500.000 → giảm 50.000); BV-D1-bo-gui-max, VS-D1-marker-suong, VS-D1-dao-nhanh-percent |
+| D2 trả lượt mã (H7) | D2 ×3 (huỷ / xoá / duyệt), D2b (K5 dữ liệu cũ), D2c (voucher về available); KB32 + I13; BV-D2-*, VS-D2-* |
+| D3 chỉ lưu mã khi áp | D3; BV-D3-luu-ma-go |
+| D4 voucher used | D4; BV-D4-bo-voucher-used |
+| D5 bỏ Kim cương | D5; BV-D5-co-kim-cuong |
+| E1 bất biến / c.mong | I18, I19 mới; c.mong KB30–32; I2/I7/I11/I13 sửa theo H5/H6/H2/H7 (ca tay thu_gia_lap) |
+| E2 KB vào LUOT, < 180 s, ngưỡng | LUOT 4 lượt (KB30, 31 lượt 1; KB32 lượt 2); đo riêng 33,4 / 29,2 / 23,9 / 24,6 s; NGUONG_KICH_BAN 32, NGUONG_BAT_BIEN 18; DONG_DAT + T9c 18 bất biến |
+| E3 đột biến | P26c 93/93; LUOI-1 80/80; TACH-GL 25/29 + 4 chuyển (BẮT); P26b 48/59 + 11 chuyển (BẮT) |
+| G 5 quy tắc tạm | (1) giao từ gói chỉ Huỷ → A1a/A1b; (2) đơn đã huỷ không báo sự cố → B3a + B3b; (3) đơn mua thẻ chỉ Huỷ → C5; (4) không huỷ đơn mua gói đã lấy → A5c/A5j; (5) không vừa mua vừa lấy → A3 |
+| H toàn bộ | `npm test` PASS 62 · FAIL 0 · CẢNH BÁO 0; `--day-du` PASS 66 · FAIL 0 · CẢNH BÁO 0 (thu_P20, P21, P26a, P26b, P26c, giả lập, thu_gia_lap, dist khớp src) |
+
+## Báo cáo 7 mục
+```
+VIỆC:        P26c — Vá các lỗ tiền / gói / kho còn lại sau P26b, theo 4 quyết định chủ quán (Q1–Q4) + trả lời H1–H9, 6A, Câu hỏi 1–4
+ĐÃ SỬA:      server/utils/tienDaTra.js (mới) — tiền khách đã trả theo dòng (Q2; chanTren cho mã 1 món), soTienHoan (Q4/H2/H4,
+             ví mẹ trước), traLuotMa (H7)
+             server/routes/orders.js — A1 xoá sau huỷ không hoàn gói lần hai; A2 trừ lượt trong giao dịch có trần + lấy ngay ≤ lượt;
+             A3 chặn vừa mua vừa lấy (chỉ khi có món từ gói); A6 số lượt theo gói đã cài; Q4 quyền refund_package khi huỷ đơn mua
+             gói + hoanVi (tách dòng cash / hoan_goi); C1 thu nợ chỉ đơn completed; C2 xoá mã bill chưa dùng; C5 gỡ mua thẻ khi xoá;
+             D2 trả lượt mã; D3 chỉ lưu mã khi áp; D4 voucher used
+             server/routes/damages.js — Q2 trần theo số đã trả; Q3 phải > 0; H3 chặn đơn chưa thu; B3 chặn hoàn kho đơn đã huỷ;
+             không đền dòng gói / thẻ
+             server/routes/refunds.js — duyệt hoàn: trừ tiền đã đền, total_spent con + mẹ, tong_hoan, trả lượt mã
+             server/routes/packages.js — bỏ PUT /deliver (A4); POST/PUT gói chặn < 1 lượt (Câu hỏi 3)
+             server/database.js — quyền refund_package (mọi lần khởi động, INSERT OR IGNORE); hạng mặc định bỏ Kim cương
+             client/src/pages/Settings.jsx (ô Giảm tối đa; chặn gói < 1 lượt), Orders.jsx (gợi ý số đền theo giá đã trả, min 1),
+             Sales.jsx (ô số lượt chỉ hiện); client/dist build lại
+             cong_cu/gia_lap — KB30–32 mới, KB17/21/23/26/27 đổi mong đợi; I18, I19 mới; I2/I7/I11/I13 theo H5/H6/H2/H7
+             kiem_tra_truoc_khi_giao.js — ngưỡng 32 KB / 18 bất biến; thêm thu_P26c vào bài chạy thật
+BÀI THỬ:     cong_cu/thu_P26c.js (mới, 76 ca): gốc b9b3928 → 24 đạt · 52 hỏng (ĐỎ); HEAD → 76 đạt · 0 hỏng (XANH). C2g/C2h đỏ trên
+             38eb298 (trước vòng sửa 3). thu_P26b C1e (Q3): gốc 65 · 1 hỏng → HEAD 66 · 0. thu_gia_lap: gốc 120 · 25 hỏng → HEAD
+             145 · 0. Giả lập trên server gốc: 31 lệch → HEAD 32 KB · 18 bất biến · ĐẠT. Đột biến P26c 93/93 BẮT.
+ĐÃ RÀ K4:    grep "ghiVi(" server/routes → 11 chỗ gọi; mọi khoản hoàn (huỷ, xoá, duyệt) qua soTienHoan, mọi chỗ trừ tiền đã đền.
+             grep "delivered_qty" orders.js → cộng (tạo đơn, trong giao dịch) + trừ (huỷ, xoá) — xoá có cổng trạng thái.
+             grep "pos_stock_pending|inStockReturn" orders.js → bán / huỷ / xoá cùng khuôn (lỗi → nợ có vân tay, đẩy lại vô hại).
+             grep "discount_code" huỷ / xoá / duyệt → cả 3 trả lượt (traLuotMa). grep "total_qty" → bán + POST/PUT gói.
+             Đột biến cũ neo vào code P26c viết lại: 16 chuyển sang dot_bien.py P26c (bảng "Đột biến cũ đổi").
+CHƯA KIỂM:   - SX thật có bỏ lệnh TRÙNG vân tay ở CẢ chiều `in` không (sxApi.js:153-158 chỉ nói chiều out) — cách (a) của C2 dựa vào đó.
+             - Báo sự cố "Hoàn kho SX" rồi huỷ / xoá đơn → SX cộng dư (Phát hiện 10, có từ trước) — C2 "ròng đúng" chưa phủ ca này.
+             - Dòng hoàn `hoan_goi` của đơn mua gói ĐÃ XOÁ không có bất biến đối soát (Phát hiện 6) — điều 5 còn lỗ, đề xuất DOI-SOAT-1.
+             - Dữ liệu production: gói đang bật cài 0 lượt (chủ quán tự kiểm trước khi gộp — Câu hỏi 3), I18 sẽ lệch trên dữ liệu cũ
+               (duyệt hoàn trước P26c không giảm total_spent), mã giảm 1 món đang dùng, nợ kho đang chờ.
+             - BUSY thật trên Turso; hai đơn bấm cùng lúc trùng mã đơn (P26d) — chồng thật của A2 chỉ ở thu_P26c A2c.
+             - App KH / SX có gọi PUT /customer-packages/:id/deliver (đã bỏ) không — grep kho POS: 0 chỗ.
+             - Hook pre-commit KHÔNG có trong máy mây này (.git/hooks/pre-commit vắng) — bộ kiểm chạy tay trước mỗi đợt commit.
+GIT:         (git log --oneline -2 ở dòng cuối báo cáo trong câu trả lời — chép sau commit này)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học dưới đây
+```
+
+## Bài học
+Sự cố của việc: soát vòng 1 bắt hồi quy C2 (huỷ-khi-SX-sống-rồi-xoá), đền trên dòng gói lách Q4, total_spent âm, D1 xanh oan, A3 chặn
+oan gia hạn; vòng 2 bắt hồi quy C2 khi SX hết giờ + D1 vẫn để lọt đảo nhánh; vòng 3 bắt hồ sơ cũ. 3 vòng sửa (đủ hạn). 11 lần người
+gác chặn (B-CHUONGTRINH ×4: time / for / until — đo và chờ bằng script node; B-CD-VITRI ×3: cd giữa lệnh; B-DICHCHU, GIT-LENH stash,
+GIT-ADD -u, B-MANOI). Phần thử vượt ngân sách (×1,4 — chủ quán chấp nhận); 3 câu hỏi nghiệp vụ phải dừng.
+
+**KHOÁ** (đều ngoài phần đã soát ĐẠT / ngoài Phạm vi → ĐỀ XUẤT, máy không tự làm):
+1. `cong_cu/gia_lap/bat_bien.js` I7: chỉ miễn "vân tay lạ" khi `order_id` của vân tay KHÔNG còn trong `pos_orders` (nay miễn mọi vân tay
+   có nợ đã xong); ca tay đỏ trước: "nợ in đã xong của đơn còn, chưa huỷ, SX nhận 1 → lệch". Trong Phạm vi nhưng đã hết vòng sửa → việc sau.
+2. Người gác / cổng (`tu_chay/`, ngoài Phạm vi): mục "bộ đột biến lần chạy cuối" trong trang_thai phải ghi SHA HEAD của lần chạy; cổng so
+   SHA đó với các commit đổi code sau nó (như A19). Ca đỏ: commit đổi `server/` sau SHA ghi.
+**NGUYÊN TẮC** (đề xuất thêm vào `KHUON_LOI.md` — ngoài Phạm vi):
+1. K4 — "lỗi gọi ra ngoài ≠ bên kia chưa làm": quyết định huỷ / bỏ một vế dựa trên dòng nợ phải xét cả "đã làm mà báo lỗi / hết giờ";
+   gửi lại có vân tay vốn vô hại thì đừng thay bằng huỷ. Đã gây: P26c vòng 1–2 (SX ròng ±1). Dấu hiệu: bài thử chỉ có SX "tắt hẳn".
+   Chặn: SX giả 3 chế độ (lỗi / sống / làm-rồi-báo-lỗi), ca đo kết quả RÒNG, không đo cách làm.
+2. K3 — phép tĩnh màn hình phải khớp ĐÚNG biểu thức gửi (giá trị lấy từ ô, không điều kiện), không chỉ tên trường; mỗi phép tĩnh một đột
+   biến "marker suông" + một "đảo nhánh". Đã gây: D1 qua 2 vòng soát.
+3. K4 — chủ quán ĐỔI CÁCH HIỂU một mục nghiệm thu → rà lại mọi Phát hiện đã hoãn dưới cách hiểu cũ + grep hồ sơ tìm bảng đột biến /
+   mong đợi KB của cách làm vừa gỡ. Đã gây: Phát hiện 10 rơi vào C2 mới; bảng đột biến C2 cũ còn trong hồ sơ (soát vòng 3).
+**BỎ**:
+1. Neo đột biến python lệch khoảng trắng / khối code trùng ở hai route (VS-C2-xoa-huy-no-out khớp 2) — đột biến tự báo "không áp được",
+   sửa ngay; không gây sai kết luận.
+2. Người gác chặn `cd` giữa lệnh / `time` / `for` — luật đã có, hướng dẫn trong lời chặn đủ; chỉ tốn một lần gõ lại.
+Dọn: không lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` được phép kiểm mới làm thay trong việc này.
