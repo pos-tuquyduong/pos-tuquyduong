@@ -20,16 +20,18 @@ from concurrent.futures import ThreadPoolExecutor
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 BB = 'cong_cu/gia_lap/bat_bien.js'
-# Tên tiền / lượng / điểm: tên trọn (hoặc một mảnh khi tách theo '_'); bỏ bí danh bảng (tên đứng trước '.') và chữ trong '…'.
+# Tên tiền / lượng / điểm: tên trọn (hoặc một mảnh khi tách theo '_'); bỏ chữ trong '…' và bí danh bảng: SQL = mọi tên đứng
+# trước '.', JS = tên MỘT chữ cái đứng trước '.' (r., g.) — `dem.get(vt)` vẫn là biến đếm.
 GOC_TIEN = set('amount total balance price points cost qty quantity debt value count limit tien diem'.split())
 TIEN = GOC_TIEN | set('''so_sach da_ghi da_lay da_nhan so_qua so_ma so_don tri_gia_qua tran tran_qua hoan tra gia n tay length
   tongLog dung doi dem soNo chuaXong g flash'''.split())
 
 
-def la_tien(x):
+def la_tien(x, ma):
   x = re.sub(r"'[^']*'", ' ', x)
+  bi_danh = r'[A-Za-z_]\w*(?![\w.])' if ma == 't' else r'[A-Za-z_]\w+(?=[^\w])|[A-Za-z_](?![\w.])'
   return any(t in TIEN or (not t.endswith('_id') and any(m in GOC_TIEN for m in t.split('_')))
-             for t in re.findall(r'[A-Za-z_]\w*(?![\w.])', x))
+             for t in re.findall(bi_danh, x + ' '))
 MAC_DINH = re.compile(r"^(-?\d+(\.\d+)?|''|\"\"|`[^`]*`|\{\}|\[\]|null|undefined)$")
 MO, DONG = '([{', ')]}'
 
@@ -184,7 +186,7 @@ def sinh():
         if x <= p < y: a, b = x, y
       trai, phai = s[a:p].strip(), s[p + len(op):b].strip()
       b = s.index(phai, p) + len(phai)
-      if not (la_tien(trai) or la_tien(phai)) or re.search(r"^'|'$", trai) or re.search(r"^'|'$", phai) or phai in ('null', 'NULL'):
+      if not (la_tien(trai, ma) or la_tien(phai, ma)) or re.search(r"^'|'$", trai) or re.search(r"^'|'$", phai) or phai in ('null', 'NULL'):
         bo_qua.append(f'{bb} bat_bien.js:{dong(p)} so {op} không trên tiền/lượng/điểm: {trai[:40]} {op} {phai[:40]}'); continue
       t = trai + phai
       null = ' (có thể null)' if '.get(' in t or (ma == 't' and 'COALESCE' not in t) else ''
