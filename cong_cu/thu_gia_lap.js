@@ -40,8 +40,8 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
-const SO_KB = 29;
-const DONG_DAT = `Giả lập: ${SO_KB} kịch bản · 16 bất biến · ĐẠT`;
+const SO_KB = 32;   // P26c: + KB30–KB32
+const DONG_DAT = `Giả lập: ${SO_KB} kịch bản · 18 bất biến · ĐẠT`;
 
 let dat = 0;
 const hong = [];
@@ -119,7 +119,7 @@ const moTa = (r) => `thoát ${r.status} · ${cuoi(r)}`;
 // Đột biến: [mã, file trong server/, chuỗi gốc, chuỗi thay, số lần phải khớp, kịch bản, bất biến phải lệch]
 const DOT_BIEN = [
   ['M1 pay-debt bỏ chặn thu hai lần', 'routes/orders.js',
-    "WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status != 'cancelled'`", 'WHERE id = ? AND ? IS NOT NULL`', 1, 10, 'I6'],
+    "WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status = 'completed'`", 'WHERE id = ? AND ? IS NOT NULL`', 1, 10, 'I6'],
   ['M2 mã bill bỏ điều kiện đã thanh toán', 'routes/signup-codes.js',
     ' && don.payment_status === TRANG_THAI_DUNG_MA.payment_status', '', 1, 7, 'I1'],
   ['M3 đối soát ví cộng debt_payment (lỗi P21)', 'routes/wallets.js',
@@ -142,7 +142,7 @@ const DOT_BIEN = [
   ['M12 xoá đơn hoàn ví bất kể trạng thái', 'routes/orders.js',
     'if (order.status === "completed") {', 'if (true) {', 1, 14, 'I11'],
   ['M13 duyệt hoàn trả phần ví mẹ vào ví con (Q9)', 'routes/refunds.js',
-    'await ghiVi(tx, { phone: me.parent_phone,', 'await ghiVi(tx, { phone: refund.customer_phone,', 1, 17, 'I11'],
+    'await ghiVi(tx, { phone: don.parent_phone,', 'await ghiVi(tx, { phone: refund.customer_phone,', 1, 17, 'I11'],
 ];
 
 function banSao(ma, file, goc, thay, soLan) {
@@ -297,8 +297,8 @@ async function main() {
       && !r.conSong.length && !r.sot.length,
     `${moTaT(r)} · đóng: ${dong.join(',') || '(không có)'}`);
   }
-  k('T0 --den-kb 0 (lượt rỗng: khởi động + dựng dữ liệu, đo khởi động) → thoát 0, "Giả lập: 0 kịch bản · 16 bất biến · ĐẠT"',
-    rongKb.status === 0 && cuoi(rongKb) === 'Giả lập: 0 kịch bản · 16 bất biến · ĐẠT', moTa(rongKb));
+  k('T0 --den-kb 0 (lượt rỗng: khởi động + dựng dữ liệu, đo khởi động) → thoát 0, "Giả lập: 0 kịch bản · 18 bất biến · ĐẠT"',
+    rongKb.status === 0 && cuoi(rongKb) === 'Giả lập: 0 kịch bản · 18 bất biến · ĐẠT', moTa(rongKb));
   k('T5 cha bị SIGKILL (như hẹn 110 s) → mọi con tự thoát trong 15 s, không sót gia_lap_*', t5.daXet && !t5.conSong.length && !t5.sot.length, moTaT(t5));
   k('T6 SIGTERM mọi lượt ngay khi kho đầu tiên vừa tạo → cha thoát 2, dòng cuối là dòng SẬP, mọi con đã chết, không sót gia_lap_*',
     t6.daXet && t6.status === 2 && SAP.test(cuoi(t6)) && !t6.conSong.length && !t6.sot.length, moTaT(t6));
@@ -317,8 +317,8 @@ async function main() {
   ['0', 'x', '(thiếu)'].forEach((g, i) => k(`T9 --luot ${g} → thoát 3, TỪ CHỐI nêu --luot, không sinh lượt nào (không rơi về chế độ cha)`,
     tuChoiLuot(luotHong[i]), moTa(luotHong[i])));
   k(`T9b --luot ${SO_LUOT + 1} (vượt ${SO_LUOT} lượt) → thoát 3, TỪ CHỐI nêu --luot, không sinh lượt nào`, tuChoiLuot(luotVuot), moTa(luotVuot));
-  k(`T9c --luot ${SO_LUOT} --den-kb 0 (biên) → thoát 0, "Lượt ${SO_LUOT}: KB  · 16 bất biến · ĐẠT"`,
-    luotBien.status === 0 && cuoi(luotBien) === `Lượt ${SO_LUOT}: KB  · 16 bất biến · ĐẠT`, moTa(luotBien));
+  k(`T9c --luot ${SO_LUOT} --den-kb 0 (biên) → thoát 0, "Lượt ${SO_LUOT}: KB  · 18 bất biến · ĐẠT"`,
+    luotBien.status === 0 && cuoi(luotBien) === `Lượt ${SO_LUOT}: KB  · 18 bất biến · ĐẠT`, moTa(luotBien));
   // T10 (chat soát thay vòng 4): kich_ban.js nạp hỏng → SẬP thoát 2 như mọi lỗi nạp — không văng thô (node thoát 1 = nhầm KHÔNG ĐẠT).
   const GL_HONG = path.join(TAM, 'gl_hong');
   fs.cpSync(GL, GL_HONG, { recursive: true });
@@ -379,12 +379,15 @@ async function duLieuTay() {
   const kho = createClient({ url: 'file:' + path.join(TAM, 'i2.db') });
   const q = async (sql, a = []) => (await kho.execute({ sql, args: a })).rows;
   await q('CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT)');
-  await q('CREATE TABLE pos_signup_codes (id INTEGER PRIMARY KEY, code TEXT, order_id INTEGER)');
+  await q('CREATE TABLE pos_signup_codes (id INTEGER PRIMARY KEY, code TEXT, order_id INTEGER, claimed_at TEXT, diem_nhan_luc TEXT)');
   await q("INSERT INTO pos_orders (id, code) VALUES (1, 'D1')");
   await q("INSERT INTO pos_signup_codes (code, order_id) VALUES ('MA1', 1)");
+  // P26c (H5): xoá đơn giữ mã ĐÃ dùng làm vết — không tính mồ côi (đã claim / đã nhân điểm).
+  await q("INSERT INTO pos_signup_codes (code, order_id, claimed_at) VALUES ('DUNG1', 98, '2026-10-12')");
+  await q("INSERT INTO pos_signup_codes (code, order_id, diem_nhan_luc) VALUES ('DUNG2', 98, '2026-10-12')");
   const { BAT_BIEN } = require(path.join(GL, 'bat_bien.js'));
   const sach = await BAT_BIEN.I2(q, {});
-  k('mã gắn đơn có thật → I2 ra 0 dòng', sach.length === 0, JSON.stringify(sach));
+  k('mã gắn đơn có thật; mã ĐÃ dùng của đơn đã xoá → I2 ra 0 dòng', sach.length === 0, JSON.stringify(sach));
   await q("INSERT INTO pos_signup_codes (code, order_id) VALUES ('MA2', NULL), ('MA3', 99)");
   const moCoi = await BAT_BIEN.I2(q, {});
   k('mã order_id NULL + mã trỏ đơn không có → I2 ra đúng 2 dòng', moCoi.length === 2, JSON.stringify(moCoi));
@@ -406,10 +409,12 @@ async function duLieuTay() {
       "INSERT INTO pos_point_transactions VALUES (1, 'S', 'redeem', -3, NULL)", "INSERT INTO pos_reward_catalog VALUES (1, 3, 'fixed', 5000, 2000)",
       "INSERT INTO pos_voucher_grants VALUES (1, 'MA1', 'S', 1, 1)"],
     I13: ['CREATE TABLE pos_discount_codes (code TEXT, usage_limit INTEGER, used_count INTEGER, discount_type TEXT, discount_value REAL)',
-      'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, discount_code TEXT, discount_type TEXT, discount_value REAL, discount_amount REAL)',
+      "CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, discount_code TEXT, discount_type TEXT, discount_value REAL, discount_amount REAL, status TEXT DEFAULT 'completed')",
       "INSERT INTO pos_discount_codes VALUES ('A', 1, 1, 'percent', 10), ('B', 5, 2, 'fixed', 5000), ('C', 0, 2, 'fixed', 3000)",
-      "INSERT INTO pos_orders VALUES (7, 'C', 'fixed', 3000, 3000), (8, 'C', 'fixed', 3000, 3000)",
-      "INSERT INTO pos_orders VALUES (1, 'a', 'percent', 10, 2500), (2, 'A', NULL, 0, 0), (3, 'B', 'fixed', 5000, 5000), (4, 'A', 'percent', 5, 1250), (6, 'A', 'fixed', 10, 10)"],
+      "INSERT INTO pos_orders (id, discount_code, discount_type, discount_value, discount_amount) VALUES (7, 'C', 'fixed', 3000, 3000), (8, 'C', 'fixed', 3000, 3000)",
+      "INSERT INTO pos_orders (id, discount_code, discount_type, discount_value, discount_amount) VALUES (1, 'a', 'percent', 10, 2500), (2, 'A', NULL, 0, 0), (3, 'B', 'fixed', 5000, 5000), (4, 'A', 'percent', 5, 1250), (6, 'A', 'fixed', 10, 10)",
+      // P26c (H7): đơn đã huỷ / đã hoàn đã TRẢ lượt — không tính.
+      "INSERT INTO pos_orders VALUES (9, 'B', 'fixed', 5000, 5000, 'cancelled'), (10, 'B', 'fixed', 5000, 5000, 'refunded')"],
     I14: ['CREATE TABLE pos_customer_packages (id INTEGER PRIMARY KEY, status TEXT, total_qty INTEGER, delivered_qty INTEGER, order_id INTEGER)',
       'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, status TEXT, customer_package_id INTEGER)',
       'CREATE TABLE pos_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, unit_price REAL, quantity INTEGER)',
@@ -431,6 +436,18 @@ async function duLieuTay() {
       "INSERT INTO pos_refund_requests VALUES (1, 7, 'S', 30000, 'approved', 9), (2, 8, 'S', 5000, 'pending', NULL)",
       "INSERT INTO pos_balance_transactions VALUES (9, 'refund', 7, 'S', 30000)"],
   };
+  // P26c: I11 (dòng 'hoan_goi'), I18 (cột tổng ví), I19 (khách nhận ≤ đã trả).
+  KHUNG.I11 = ['CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, order_id INTEGER, customer_phone TEXT, amount REAL, payment_method TEXT)',
+    "INSERT INTO pos_balance_transactions VALUES (1, 'purchase', 7, 'S', -100000, 'cash'), (2, 'refund', 7, 'S', 100000, 'cash'), (3, 'refund', 7, 'S', 80000, 'hoan_goi')"];
+  KHUNG.I18 = ['CREATE TABLE pos_wallets (phone TEXT, total_topup REAL, total_spent REAL)',
+    'CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, customer_phone TEXT, amount REAL)',
+    "INSERT INTO pos_wallets VALUES ('S', 105000, 35000)",
+    "INSERT INTO pos_balance_transactions (type, customer_phone, amount) VALUES ('topup', 'S', 100000), ('adjust', 'S', 5000), ('purchase', 'S', -50000),"
+      + " ('refund', 'S', 20000), ('adjust', 'S', -5000), ('compensation', 'S', 7000), ('debt_payment', 'S', 9000)"];
+  KHUNG.I19 = ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, debt_amount REAL)',
+    'CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, order_id INTEGER, amount REAL)',
+    "INSERT INTO pos_orders VALUES (1, 'D1', 50000, 0), (2, 'D2', 50000, 30000)",
+    "INSERT INTO pos_balance_transactions (type, order_id, amount) VALUES ('compensation', 1, 10000), ('refund', 1, 40000), ('compensation', 2, 20000), ('purchase', 1, -50000)"];
   KHUNG.I12 = KHUNG.I8.slice(2).concat(['CREATE TABLE pos_discount_codes (code TEXT, discount_type TEXT, discount_value REAL, usage_limit INTEGER, max_discount REAL)',
     "INSERT INTO pos_discount_codes VALUES ('MA1', 'fixed', 5000, 1, 2000)"]);
   const VT = 'POS:1:out:0';
@@ -443,6 +460,9 @@ async function duLieuTay() {
     ['I7 sạch: nợ đã đẩy xong + SX nhận 1', 'I7', 'I7', [no(VT, 'resolved')], null, sx([VT], [[VT, 5]])],
     ['I7 sạch: đơn đã xoá — lỗi out + in, mỗi cái 1 dòng nợ', 'I7', 'I7', [no('POS:9:out:0'), no('POS:9:in:0')], null,
       { ...sx([VT], [['POS:9:out:0', 5], ['POS:9:in:0', 6]], [5, 6]) }],
+    ['I7 sạch (P26c, H6): đơn huỷ rồi xoá — nợ in đã đẩy xong, SX nhận đúng 1', 'I7', 'I7', [no('POS:9:in:0', 'resolved')], null,
+      sx([VT, 'POS:9:in:0'], [['POS:9:in:0', 5]])],
+    ['I7 SX nhận vân tay lạ (không đơn, không dòng nợ)', 'I7', 'I7', [], /SX nhận vân tay lạ POS:9:in:0/, sx([VT, 'POS:9:in:0'], [])],
     ['I7 SX nhận 2 lần (phía trên)', 'I7', 'I7', [], /SX nhận 2 lần/, sx([VT, VT], [])],
     ['I7 SX nhận 0, không nợ (phía dưới)', 'I7', 'I7', [], /SX nhận 0 lần$/, sx([], [])],
     ['I7 SX nhận 1 VÀ còn nợ chờ đẩy', 'I7', 'I7', [no(VT)], /nợ kho chưa xong 1 dòng/, sx([VT], [[VT, 5]])],
@@ -479,7 +499,9 @@ async function duLieuTay() {
     ['I13 sạch: đơn đã áp + lượt tay; đơn gõ mã không áp (trống / cùng loại khác trị giá / khác loại cùng trị giá) không tính; mã không giới hạn dùng 2 lần', 'I13', 'I13', [], null, QUAY([['B', 1]])],
     ['I13 dùng 0, có 1 đơn đã áp (phía dưới)', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 0 WHERE code = 'A'"], /mã A: đã dùng 0\/1, đơn đã áp 1/, QUAY([['B', 1]])],
     ['I13 dùng 3, 1 đơn + 1 tay (phía trên)', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 3 WHERE code = 'B'"], /mã B: đã dùng 3\/5, đơn đã áp 1 \+ quầy tăng tay 1/, QUAY([['B', 1]])],
-    ['I13 vượt giới hạn dù khớp số đơn', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 2 WHERE code = 'A'", "INSERT INTO pos_orders VALUES (5, 'A', 'percent', 10, 2500)"], /mã A: đã dùng 2\/1, đơn đã áp 2/, QUAY([['B', 1]])],
+    ['I13 vượt giới hạn dù khớp số đơn', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 2 WHERE code = 'A'", "INSERT INTO pos_orders (id, discount_code, discount_type, discount_value, discount_amount) VALUES (5, 'A', 'percent', 10, 2500)"], /mã A: đã dùng 2\/1, đơn đã áp 2/, QUAY([['B', 1]])],
+    ['I13 (P26c) huỷ / hoàn mà KHÔNG trả lượt: dùng 3, 1 đơn còn + 1 tay', 'I13', 'I13', ["UPDATE pos_discount_codes SET used_count = 3 WHERE code = 'B'"],
+      /mã B: đã dùng 3\/5, đơn đã áp 1 \+ quầy tăng tay 1/, QUAY([['B', 1]])],
     ['I14 sạch: mua lấy ngay, lấy (+ thẻ 0đ), lấy đã huỷ, gói tay + /deliver, gói huỷ, đơn lẻ, mua không lấy ngay', 'I14', 'I14', [], null, QUAY([], [[2, 1]])],
     ['I14 đã giao 4 > đơn 3 (phía trên)', 'I14', 'I14', ['UPDATE pos_customer_packages SET delivered_qty = 4 WHERE id = 1'], /gói #1: đã giao 4, đơn lấy từ gói 3/, QUAY([], [[2, 1]])],
     ['I14 đã giao 2 < đơn 3 (phía dưới)', 'I14', 'I14', ['UPDATE pos_customer_packages SET delivered_qty = 2 WHERE id = 1'], /gói #1: đã giao 2, đơn lấy từ gói 3/, QUAY([], [[2, 1]])],
@@ -508,6 +530,21 @@ async function duLieuTay() {
     ['I17 gắn dòng của SĐT khác', 'I17', 'I17', ["UPDATE pos_balance_transactions SET customer_phone = 'KHAC'"], /yêu cầu hoàn #1/, {}],
     ['I17 dòng sổ 29.999 (ít hơn)', 'I17', 'I17', ['UPDATE pos_balance_transactions SET amount = 29999'], /refund 29999, hoàn 30000/, {}],
     ['I17 dòng sổ 30.001 (nhiều hơn)', 'I17', 'I17', ['UPDATE pos_balance_transactions SET amount = 30001'], /refund 30001, hoàn 30000/, {}],
+    ['I11 sạch (P26c, H2): hoàn ví = ví đã trả; phần tiền mặt của đơn mua gói ghi hoan_goi không tính', 'I11', 'I11', [], null, {}],
+    ['I11 hoàn 100.001 > ví đã trả 100.000 (dòng thường)', 'I11', 'I11', ['UPDATE pos_balance_transactions SET amount = 100001 WHERE id = 2'],
+      /hoàn 100\.001đ > ví này đã trả 100\.000đ/, {}],
+    ['I11 dòng hoan_goi ghi nhầm cách thường → tính vào', 'I11', 'I11', ["UPDATE pos_balance_transactions SET payment_method = 'cash' WHERE id = 3"],
+      /hoàn 180\.000đ > ví này đã trả 100\.000đ/, {}],
+    ['I18 sạch: nạp 100.000 + điều chỉnh +5.000; chi 50.000 − hoàn 20.000 + điều chỉnh −5.000; đền / trả nợ không tính', 'I18', 'I18', [], null, {}],
+    ['I18 tổng chi 35.001 (phía trên)', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = 35001'], /tổng chi 35\.001đ \(sổ 35\.000đ\)/, {}],
+    ['I18 tổng chi 34.999 (phía dưới)', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = 34999'], /tổng chi 34\.999đ \(sổ 35\.000đ\)/, {}],
+    ['I18 hoàn không giảm tổng chi (đổi dấu soCot) → 75.000', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = 75000'], /tổng chi 75\.000đ/, {}],
+    ['I18 tổng nạp 105.001', 'I18', 'I18', ['UPDATE pos_wallets SET total_topup = 105001'], /tổng nạp 105\.001đ \(sổ 105\.000đ\)/, {}],
+    ['I19 sạch: đơn 50.000 đền 10.000 + hoàn 40.000 = đã trả; đơn nợ 30.000 đền 20.000 = đã trả 20.000', 'I19', 'I19', [], null, {}],
+    ['I19 hoàn 40.001 → nhận 50.001 > 50.000', 'I19', 'I19', ["UPDATE pos_balance_transactions SET amount = 40001 WHERE type = 'refund'"],
+      /đơn D1: khách nhận lại 50\.001đ > đã trả 50\.000đ/, {}],
+    ['I19 đơn còn nợ: đền 20.001 > đã trả 20.000', 'I19', 'I19', ["UPDATE pos_balance_transactions SET amount = 20001 WHERE order_id = 2"],
+      /đơn D2: khách nhận lại 20\.001đ > đã trả 20\.000đ/, {}],
   ];
   for (const [i, [tenCa, bb, khung, them, mau, ctx]] of CA.entries()) {
     let ten = tenCa;
