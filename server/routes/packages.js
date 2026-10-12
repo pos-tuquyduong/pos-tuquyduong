@@ -29,11 +29,16 @@ router.get('/', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// P26c (Câu hỏi 3, chủ quán chốt 12.10): gói phải có ít nhất 1 lượt — số lượt khi bán lấy theo gói đã cài (A6).
+const LUOT_SAI = { success: false, code: 'GOI_LUOT_KHONG_HOP_LE', error: 'Tổng SL SP của gói phải là số nguyên từ 1 trở lên' };
+const luotHopLe = (v) => Number.isInteger(Number(v)) && Number(v) >= 1;
+
 // POST / — Thêm template
 router.post('/', authenticate, checkPermission('manage_users'), async (req, res) => {
   try {
     const { code, name, description, price, unit, total_qty, package_items, is_active, sort_order } = req.body;
     if (!code || !name) return res.status(400).json({ success: false, error: 'Mã và tên gói bắt buộc' });
+    if (!luotHopLe(total_qty)) return res.status(400).json(LUOT_SAI);
     const dup = await queryOne('SELECT id FROM pos_packages WHERE code = ?', [code.trim().toUpperCase()]);
     if (dup) return res.status(400).json({ success: false, error: `Mã "${code}" đã tồn tại` });
     const now = new Date().toISOString();
@@ -58,6 +63,8 @@ router.put('/:id', authenticate, checkPermission('manage_users'), async (req, re
 
     const activeUsers = await countActiveUsers(id);
     const { code, name, description, price, unit, total_qty, package_items, is_active, sort_order } = req.body;
+    // Chỉ xét khi có gửi số lượt — bật / tắt gói (togglePkg) không gửi, vẫn chạy như cũ.
+    if (total_qty !== undefined && !luotHopLe(total_qty)) return res.status(400).json(LUOT_SAI);
 
     // 🔒 Lock: có KH đang dùng → chỉ cho toggle is_active/sort_order
     if (activeUsers > 0) {
