@@ -4,13 +4,13 @@
  *  THỬ P26c — lỗ tiền / gói / kho còn lại sau P26b (4 quyết định chủ quán 12.10)
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRƯỚC KHI VÁ (K3). Chạy ở GỐC kho POS:
- *      node cong_cu/thu_P26c.js [--may-chu <thư mục server>]
- *  --may-chu: chạy trên bản sao server/ (đột biến, viec/P26c/dot_bien.py).
+ *      node cong_cu/thu_P26c.js [--may-chu <thư mục server>] [--client <thư mục client>]
+ *  --may-chu / --client: chạy trên bản sao server/ / client/ (đột biến, viec/P26c/dot_bien.py).
  *
  *  Khuôn thu_P26b.js: database.js thật + libsql thật trên kho TẠM, SX tắt (bán / hoàn kho đẻ dòng nợ kho — dùng để soát C2).
  *  Công tắc co.banCauDau: câu ĐẦU trong giao dịch kế tiếp ném SQLITE_BUSY (Turso gửi BEGIN lười — ca K1b của P26b).
  *  Ba người: chủ (owner), quản lý (manager), nhân viên (staff). Chỉ so status / code / kho — không dò chữ (E12).
- *  Hai phép tĩnh đọc client/src của KHO (không theo --may-chu): D1 Settings.jsx, A6 Sales.jsx.
+ *  Hai phép tĩnh đọc <client>/src/pages (mặc định client/ của kho): D1 Settings.jsx, A6 Sales.jsx.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -20,6 +20,8 @@ const path = require('path');
 const GOC = path.join(__dirname, '..');
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
+const iCL = process.argv.indexOf('--client');
+const CLIENT = path.resolve(iCL > 0 ? process.argv[iCL + 1] : path.join(GOC, 'client'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p26c_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -295,7 +297,7 @@ async function main() {
     k('A6a gói cài 10 lượt, màn hình gửi 100 → gói khách 10 lượt', m.status === 200 && luot === 10, `${moTa(m)} · ${luot} lượt`);
     const m2 = await muaGoi(sdt, goiId, 100, { cash_amount: 300000 }, { items: [mon(0, 11, true)] });
     k('A6b màn hình gửi 100 lượt, lấy ngay 11 (gói cài 10) → 400', m2.status === 400, moTa(m2));
-    const src = fs.readFileSync(path.join(GOC, 'client', 'src', 'pages', 'Sales.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(CLIENT, 'src', 'pages', 'Sales.jsx'), 'utf8');
     k('A6c Sales.jsx: ô số lượt gói không còn là ô nhập (không có <input … value={buyQty})', !/<input[^>]*value=\{buyQty\}/.test(src));
   }
 
@@ -489,9 +491,10 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D1] màn thêm quà gửi "Giảm tối đa" (max_discount)');
   {
-    const src = fs.readFileSync(path.join(GOC, 'client', 'src', 'pages', 'Settings.jsx'), 'utf8');
-    const than = (src.match(/const addReward = async[\s\S]*?\n  };/) || [''])[0];
-    k('D1 Settings.jsx addReward gửi max_discount', /max_discount\s*:/.test(than), than ? '' : 'không thấy addReward');
+    const src = fs.readFileSync(path.join(CLIENT, 'src', 'pages', 'Settings.jsx'), 'utf8');
+    // Chỉ soi THÂN lệnh gửi (dòng reset form cũng có chữ max_discount — soi cả hàm thì xanh oan, đột biến BV-D1 sống).
+    const goiDi = (src.match(/pkgApi\('POST', '\/api\/pos\/rewards', \{[^}]*\}\)/) || [''])[0];
+    k('D1 Settings.jsx: thân POST /api/pos/rewards gửi max_discount', /max_discount\s*:/.test(goiDi), goiDi ? '' : 'không thấy lệnh gửi');
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -543,8 +546,15 @@ async function main() {
     const ds = (await db.query('SELECT name FROM pos_membership_tiers ORDER BY sort_order')).map((r) => r.name);
     k('D5 kho mới khởi tạo → hạng = Vàng, Bạch Kim', JSON.stringify(ds) === JSON.stringify(['Vàng', 'Bạch Kim']), JSON.stringify(ds));
     const quyen = await db.query("SELECT role, allowed FROM pos_permissions WHERE permission = 'refund_package' ORDER BY role");
-    k('Q4 quyền refund_package có trên kho mới: owner 1, manager 0, staff 0',
+    k('Q4a quyền refund_package có trên kho mới: owner 1, manager 0, staff 0',
       JSON.stringify(quyen.map((r) => r.role + ':' + r.allowed)) === JSON.stringify(['manager:0', 'owner:1', 'staff:0']), JSON.stringify(quyen));
+    // Kho ĐANG CHẠY: bảng quyền đã có dữ liệu nhưng chưa có quyền mới → khởi động lại phải chèn; quyền chủ quán đã chỉnh giữ nguyên.
+    await db.run("DELETE FROM pos_permissions WHERE permission = 'refund_package' AND role IN ('owner', 'staff')");
+    await db.run("UPDATE pos_permissions SET allowed = 1 WHERE permission = 'refund_package' AND role = 'manager'");
+    imLang(); await db.initDatabase(); noiLai();
+    const q2 = await db.query("SELECT role, allowed FROM pos_permissions WHERE permission = 'refund_package' ORDER BY role");
+    k('Q4b kho đang chạy thiếu quyền mới → khởi động lại chèn owner 1 / staff 0, giữ manager 1 chủ quán đã cấp',
+      JSON.stringify(q2.map((r) => r.role + ':' + r.allowed)) === JSON.stringify(['manager:1', 'owner:1', 'staff:0']), JSON.stringify(q2));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
