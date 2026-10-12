@@ -338,7 +338,8 @@ async function main() {
         && await so('SELECT total_qty FROM pos_packages WHERE id = ?', [id0]) === 5 && bat.status === 200, `${moTa(s0)} / ${moTa(s5)} / ${moTa(bat)}`);
     const src = fs.readFileSync(path.join(CLIENT, 'src', 'pages', 'Settings.jsx'), 'utf8');
     const luu = (src.match(/const savePkg = async[\s\S]*?setSaving\(true\)/) || [''])[0];
-    k('A7c Settings.jsx savePkg chặn Tổng SL SP < 1 TRƯỚC khi gửi', /parseInt\(pkgForm\.total_qty\)\s*>=\s*1/.test(luu), luu ? '' : 'không thấy savePkg');
+    k('A7c Settings.jsx savePkg chặn Tổng SL SP < 1 TRƯỚC khi gửi (điều kiện + return)',
+      /if \(!\(parseInt\(pkgForm\.total_qty\) >= 1\)\) \{[^}]*return; \}/.test(luu), luu ? '' : 'không thấy savePkg');
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -564,10 +565,12 @@ async function main() {
     const src = fs.readFileSync(path.join(CLIENT, 'src', 'pages', 'Settings.jsx'), 'utf8');
     // Chỉ soi THÂN lệnh gửi (dòng reset form cũng có chữ max_discount — soi cả hàm thì xanh oan, đột biến BV-D1 sống).
     const goiDi = (src.match(/pkgApi\('POST', '\/api\/pos\/rewards', \{[^}]*\}\)/) || [''])[0];
-    // Soát vòng 1 lỗi 6: giá trị gửi phải LẤY TỪ ô nhập (rewardForm.max_discount), không chỉ có tên trường (`max_discount: 0` xanh oan).
-    k('D1a Settings.jsx: thân POST /api/pos/rewards gửi max_discount lấy từ ô rewardForm.max_discount',
-      /max_discount\s*:[^,]*rewardForm\.max_discount/.test(goiDi), goiDi || 'không thấy lệnh gửi');
-    // Ca số tiền của phiếu (Q1): quà 50 % trần 50.000 tạo bằng ĐÚNG thân màn hình gửi → đổi điểm → đơn 500.000 → giảm 50.000.
+    // Soát vòng 1 lỗi 6 + vòng 2 lỗi 2: khớp ĐÚNG biểu thức gửi (số gõ ở ô, không điều kiện) — `max_discount: 0` hay đảo nhánh
+    // `percent ? 0 : …` đều đỏ.
+    k('D1a Settings.jsx: thân POST /api/pos/rewards gửi `max_discount: parseInt(rewardForm.max_discount) || 0`',
+      /max_discount:\s*parseInt\(rewardForm\.max_discount\)\s*\|\|\s*0\s*,/.test(goiDi), goiDi || 'không thấy lệnh gửi');
+    // Ca số tiền của phiếu (Q1), phía MÁY CHỦ: thân lệnh gõ tay theo đúng các trường màn hình gửi (giá trị màn hình gửi do D1a khoá) —
+    // quà 50 % trần 50.000 → đổi điểm → đơn 500.000 → giảm 50.000. Xanh cả trên gốc (máy chủ đúng sẵn) — canh hồi quy.
     const sdt = sdtMoi(); await nap(sdt, 500000);
     const q = await goi('POST', '/rewards', { name: 'Quà 50% P26c', points_cost: 1, discount_type: 'percent', discount_value: 50, max_discount: 50000, valid_days: 30 });
     await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_at) VALUES (?, 'earn', 5, 'thử P26c', datetime('now'))", [sdt]);
