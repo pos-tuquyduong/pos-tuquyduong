@@ -1503,7 +1503,6 @@ router.delete("/:id", authenticate, async (req, res) => {
     // (kể cả vừa bị huỷ ngay trước lệnh xoá) không được cộng ví lần nữa.
     const tx = await beginTransaction();
     let order, orderItems;
-    const boQuaKho = new Set();
     try {
       order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
       if (!order) {
@@ -1523,25 +1522,6 @@ router.delete("/:id", authenticate, async (req, res) => {
       if (order.status === "completed") {
         await hoanVi(tx, order, req.user.username, now, "xóa");
         await traLuotMa(tx, order);
-      }
-
-      // P26c (C2): nợ kho `out` chưa tới SX → 'huy', kèm nợ `in` cùng món (hàng chưa từng ra khỏi SX — hai chiều triệt tiêu);
-      // sau commit KHÔNG gửi `in` cho những món đó. Nợ `in` mà `out` đã tới SX giữ nguyên — vẫn đẩy (H6); `in` đã tới SX mà
-      // `out` còn nợ → giữ `out` để đẩy.
-      const noOut = await tx.query(
-        "SELECT van_tay FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status IN ('pending', 'can_xem') AND van_tay IS NOT NULL",
-        [order.id],
-      );
-      for (const { van_tay: vtOut } of noOut) {
-        const vtIn = vtOut.replace(":out:", ":in:");
-        // Đơn đã huỷ mà `in` đã TỚI SX (không còn nợ in) → `out` vẫn phải đẩy, không huỷ (soát vòng 1 lỗi 1: SX ròng +1).
-        if (order.status === "cancelled" && !(await tx.queryOne(
-          "SELECT 1 FROM pos_stock_pending WHERE order_id = ? AND van_tay = ? AND status IN ('pending', 'can_xem')", [order.id, vtIn]))) continue;
-        for (const vt of [vtOut, vtIn]) {
-          boQuaKho.add(vt);
-          await tx.run("UPDATE pos_stock_pending SET status = 'huy' WHERE order_id = ? AND van_tay = ? AND status IN ('pending', 'can_xem')",
-            [order.id, vt]);
-        }
       }
 
       // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══
@@ -1594,14 +1574,14 @@ router.delete("/:id", authenticate, async (req, res) => {
       throw txErr;
     }
 
-    // Hoàn kho SX (bên ngoài transaction)
+    // Hoàn kho SX (bên ngoài transaction). P26c (chủ quán chốt Câu hỏi 4 = a): xoá luôn gửi `in`, nợ kho của đơn (out / in) vẫn
+    // đẩy như mọi nợ — SX bỏ lệnh trùng vân tay (sxApi.js:155-157) nên kho SX RÒNG đúng dù SX đã làm mà báo lỗi / hết giờ.
     if (order.status !== "cancelled") {
       for (const [sttMon, item] of orderItems.entries()) {
         if (item.sx_product_type && item.quantity > 0) {
           // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
           // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
           const vanTay = `POS:${order.id}:in:${sttMon}`;
-          if (boQuaKho.has(vanTay)) continue;   // P26c (C2): `out` chưa từng tới SX
           try {
             await inStockReturn(
               item.sx_product_type, item.sx_product_id,
