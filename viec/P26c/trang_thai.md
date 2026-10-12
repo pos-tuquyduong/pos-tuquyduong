@@ -25,3 +25,13 @@ Code: `damages.js` (cả file), `orders.js` 185–390, 440–660, 760–1060, 11
 ## Người gác chặn (lượt này)
 - `B-DICHCHU`: ghi ra `$S/...` (đích có biến) → viết thẳng đường dẫn.
 - `B-CHUONGTRINH`: `time`, vòng `for` của shell → đo bằng script node trong thư mục nháp.
+
+## Làm tiếp sau duyệt (12.10) — bước 1
+- `git status --short` sạch. fetch → HEAD `b9b3928` · FETCH_HEAD `b9b3928` (bằng nhau; hook mở phiên đã kéo 8a025fa → b9b3928).
+- `git log --oneline -3`:
+  ```
+  b9b3928 PHIEU: P26c
+  8a025fa P26c: ke hoach — sua so dong orders.js:349
+  db5f101 P26c: ke hoach (cho duyet) + trang thai buoc 1-3
+  ```
+- Đọc phiếu mục "Chủ quán trả lời kế hoạch" (H1–H9, 6A). Ca có số tiền bổ sung: `ke_hoach.md` mục 13.

@@ -248,3 +248,25 @@ Tuỳ chọn soát nêu (đã làm): bỏ chặn sớm ở `Sales.jsx`, bỏ dò
 Phát hiện thêm (mục 10):
 6. Báo sự cố "Hoàn kho SX" trên món mà nợ kho `out` của nó còn chờ (SX lỗi lúc bán) → khi sổ nợ đẩy, SX trừ một lần mà đã cộng
    một lần trước đó → hàng chưa từng ra khỏi SX được cộng về. Ngoài nghiệm thu B3.
+
+## 13. Sau duyệt (phiếu `b9b3928`, "Chủ quán trả lời kế hoạch") — quy tắc chốt + ca có số tiền
+
+**Quy tắc tiền hoàn chung** (H2 = 1B, H4 = 3A — một hàm `soTienHoan` trong `server/utils/tienDaTra.js`, dùng ở huỷ, xoá, duyệt):
+- `tong` = đơn có gói mua: `(total − debt_amount) − Σ_gói ceil(giá đã trả gói × delivered ÷ total_qty)`; đơn khác: phần ví đã trả
+  (`balance_amount + parent_balance_amount` — huỷ / xoá; duyệt hoàn: `refund_amount` + phần mẹ, như hiện nay).
+- trừ tiền đã đền của đơn (`SUM(refund_amount)` của `pos_damage_logs` action `refund`), không dưới 0.
+- chia: ví mẹ nhận `min(parent_balance_amount, tong)`, ví khách của đơn nhận phần còn lại. (Tương đương "trừ tiền đền vào ví
+  con trước" — kiểm tay mọi trường hợp `C ≤ b` / `C > b`.) Đơn không gói, không đền → y như hiện nay.
+- Duyệt hoàn: ghi lại `refund_amount` của yêu cầu = số ví con THỰC nhận (I17 so dòng sổ với `refund_amount`).
+
+**Ca có số tiền bổ sung vào bảng mục 7** (thu_P26c; đỏ trên gốc ← vì sao):
+
+| Mục | Ca |
+|---|---|
+| A5 | gói 300.000 / 10 lượt trả ví 100.000 + tiền mặt 200.000, lấy 4 → owner huỷ: ví khách +180.000 ← gốc +100.000. Chưa lấy, trả tiền mặt 300.000 → +300.000 ← gốc +0. Lấy hết 10 → +0 ← gốc +ví đã trả. Gói 300.000 + món 25.000 trả ví 325.000, lấy 4 → +205.000 ← gốc +325.000. Ví mẹ 100.000 + ví con 200.000, lấy 4 → mẹ +100.000, con +80.000 ← gốc con +200.000. Xoá (owner) đơn trả ví 100.000 + tiền mặt 200.000 lấy 4 → +180.000 ← gốc +100.000. Nhân viên huỷ → 403, ví / gói / đơn không đổi ← gốc 200. Quản lý có dòng `refund_package` allowed → 200 (K5) |
+| A6 | gói cài 10 lượt, màn hình gửi `total_qty: 100` → gói khách 10 lượt ← gốc 100. Mua gói 10 lượt lấy ngay 11 → 400 ← gốc 200. `Sales.jsx`: ô "SL SP" không còn là ô nhập (phép tĩnh — ô `<input … value={buyQty}` vắng mặt) |
+| B4 | đơn ghi nợ 25.000 → "Hoàn tiền" 10.000 → 400 `DON_CHUA_THU`, ví không đổi ← gốc 200 +10.000. "Chỉ ghi nhận" → 200. Thu nợ đủ rồi "Hoàn tiền" 10.000 → 200, ví +10.000 |
+| B5 | đơn 50.000 trả ví, đền 10.000 → huỷ: ví +40.000 ← gốc +50.000. Cùng ca cho xoá (+40.000) và duyệt hoàn (+40.000, yêu cầu ghi 40.000) ← gốc +50.000. Đơn tiền mặt 50.000 đã đền 10.000 → huỷ: ví +0 (không âm) |
+| D2 | mã 1 lượt dùng trên đơn → huỷ đơn → `used_count` 0, dùng lại cho đơn mới → 200 ← gốc 400 `DON_HET_LUOT`/không áp. Cùng ca cho xoá và duyệt hoàn. Voucher đổi điểm: dùng → `used` (D4) → huỷ → `available`. Đơn cũ lưu mã không áp (loại / trị giá khác mã) → huỷ không trả lượt (K5 dữ liệu cũ) |
+
+Ca hai người cùng bấm (đụng tiền): owner huỷ chồng owner xoá đơn mua gói → đúng một lần hoàn 180.000; hai quầy lấy lượt cuối.
