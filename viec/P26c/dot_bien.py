@@ -101,13 +101,16 @@ DOT_BIEN = [
   ('VS-C1-chi-sua-cong-update', 'thu', [(O, 'if (order.status !== "completed") {   // P26c (C1)', 'if (order.status === "cancelled") {   // P26c (C1)', 1)], r'✗ C1a'),
   # ── C2: mã bill + nợ kho khi xoá ──
   ('BV-C2-bo-xoa-ma-bill', 'thu', [(O, 'await tx.run("DELETE FROM pos_signup_codes WHERE order_id = ? AND claimed_at IS NULL AND diem_nhan_luc IS NULL", [order.id]);', '', 1)], r'✗ C2a'),
+  # Câu hỏi 4 = (a): đột biến đưa ĐÚNG lỗi cũ trở lại (xoá đánh huy nợ out + bỏ gửi in) — ca SX hết giờ phải đỏ.
+  ('VS-C2-xoa-huy-no-out', 'thu', [(O, '      // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══',
+    "      for (const r of await tx.query(\"SELECT van_tay FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status = 'pending'\", [order.id])) {\n"
+    "        await tx.run(\"UPDATE pos_stock_pending SET status = 'huy' WHERE order_id = ? AND van_tay IN (?, ?)\", [order.id, r.van_tay, r.van_tay.replace(':out:', ':in:')]);\n"
+    "        order.boQua = [...(order.boQua || []), r.van_tay.replace(':out:', ':in:')];\n      }\n      // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══", 1),
+    (O, '          const vanTay = `POS:${order.id}:in:${sttMon}`;\n          try {\n            await inStockReturn(\n              item.sx_product_type, item.sx_product_id,\n              item.quantity, order.code, vanTay,',
+        '          const vanTay = `POS:${order.id}:in:${sttMon}`;\n          if ((order.boQua || []).includes(vanTay)) continue;\n          try {\n            await inStockReturn(\n              item.sx_product_type, item.sx_product_id,\n              item.quantity, order.code, vanTay,', 2)], r'✗ C2g'),   # khối gửi in của huỷ + xoá giống hệt: thay cả hai, chỉ xoá có boQua
+  ('BV-C2-xoa-khong-gui-in', 'thu', [(O, '    if (order.status !== "cancelled") {\n      for (const [sttMon, item] of orderItems.entries()) {',
+                                       '    if (false) {\n      for (const [sttMon, item] of orderItems.entries()) {', 1)], r'✗ C2b'),
   ('VS-C2-xoa-ca-ma-da-dung', 'thu', [(O, '"DELETE FROM pos_signup_codes WHERE order_id = ? AND claimed_at IS NULL AND diem_nhan_luc IS NULL"', '"DELETE FROM pos_signup_codes WHERE order_id = ?"', 1)], r'✗ C2c'),
-  ('BV-C2-bo-huy-no-out', 'thu', [(O, "      for (const { van_tay: vtOut } of noOut) {", "      for (const { van_tay: vtOut } of []) {", 1)], r'✗ C2b'),
-  ('VS-C2-huy-out-khong-xet-in', 'thu', [(O, 'if (order.status === "cancelled" && !(await tx.queryOne(', 'if (false && !(await tx.queryOne(', 1)], r'✗ C2f'),
-  ('VS-C2-huy-ca-no-in-da-toi-sx', 'thu', [(O, "\"SELECT van_tay FROM pos_stock_pending WHERE order_id = ? AND direction = 'out' AND status IN ('pending', 'can_xem') AND van_tay IS NOT NULL\"",
-                                             "\"SELECT REPLACE(van_tay, ':in:', ':out:') AS van_tay FROM pos_stock_pending WHERE order_id = ? AND status IN ('pending', 'can_xem') AND van_tay IS NOT NULL\"", 1)], r'✗ C2d'),
-  ('VS-C2-khong-huy-no-in-cung-mon', 'thu', [(O, "for (const vt of [vtOut, vtIn]) {", "for (const vt of [vtOut]) {", 1)], r'✗ C2e'),
-  ('VS-C2-van-gui-in', 'thu', [(O, "          if (boQuaKho.has(vanTay)) continue;   // P26c (C2): `out` chưa từng tới SX\n", "", 1)], r'✗ C2b'),
   # ── C3 / C4 / C5 ──
   ('BV-C3-bo-cot-con', 'thu', [(R, "ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now, cot: 'total_spent', soCot: -con });",
                                 "ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now });", 1)], r'✗ C3'),
