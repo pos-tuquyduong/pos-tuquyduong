@@ -1,5 +1,5 @@
 /**
- * GIẢ LẬP QUẦY (TU-CHAY-4) — 16 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
+ * GIẢ LẬP QUẦY (TU-CHAY-4) — 18 bất biến sổ sách. SQL CHỈ ĐỌC trên kho tạm.
  *
  * Mỗi hàm I<n>(q, ctx) trả mảng chuỗi mô tả dòng lệch — rỗng = đạt. Mô tả phải
  * ỔN ĐỊNH (có mã đơn, số tiền) vì chay.js chỉ in lần đầu một lệch xuất hiện.
@@ -32,9 +32,10 @@ const BAT_BIEN = {
       || (r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung)))))
       .map((r) => `mã ${r.code} đã dùng trên đơn ${r.don} (${r.status} · ${r.payment_status})`);
   },
-  // I2 — không có mã bill mồ côi (không gắn đơn, hoặc đơn không còn).
+  // I2 — không có mã bill CHƯA dùng mồ côi (không gắn đơn, hoặc đơn không còn). P26c (H5): xoá đơn giữ mã ĐÃ dùng làm vết.
   async I2(q) {
-    const ds = await q(`SELECT s.code, s.order_id FROM pos_signup_codes s LEFT JOIN pos_orders o ON o.id = s.order_id WHERE o.id IS NULL`);
+    const ds = await q(`SELECT s.code, s.order_id FROM pos_signup_codes s LEFT JOIN pos_orders o ON o.id = s.order_id
+      WHERE o.id IS NULL AND s.claimed_at IS NULL AND s.diem_nhan_luc IS NULL`);
     return ds.map((r) => `mã ${r.code} mồ côi (order_id ${r.order_id})`);
   },
   // I3 — không có đơn ở trạng thái lạ; trạng thái tiền khớp số nợ.
@@ -100,7 +101,8 @@ const BAT_BIEN = {
         lech.push(`vân tay ${vt} (đơn ${don}) SX nhận ${dem.get(vt) || 0} lần` + (chuaXong.get(vt) ? `, nợ kho chưa xong ${chuaXong.get(vt)} dòng` : ''));
       }
     }
-    for (const [vt, n] of dem) if (!can.has(vt)) lech.push(`SX nhận vân tay lạ ${vt} × ${n}`);
+    // P26c (H6): đơn huỷ rồi bị xoá — nợ `in` vẫn đẩy, nên vân tay của đơn không còn được nhận qua đúng một dòng nợ ĐÃ xong.
+    for (const [vt, n] of dem) if (!can.has(vt) && !daXong.has(vt)) lech.push(`SX nhận vân tay lạ ${vt} × ${n}`);
     // (b) chỉ soát SX nhận: số dòng nợ ≥ 2 cùng vân tay đã bị vế "mỗi vân tay lỗi ⇔ đúng một dòng nợ" và "nợ phải có lần lỗi" bắt.
     for (const [vt, n] of daXong) if (dem.get(vt) !== 1) lech.push(`nợ kho ${vt} đã xong ${n} dòng, SX nhận ${dem.get(vt) || 0} lần`);
     // Nợ kho KHÔNG vân tay luôn lệch: sổ nợ không đẩy lại an toàn được (doSoNo.js chuyển can_xem). Phép riêng vì SX giả ghi
@@ -175,11 +177,14 @@ const BAT_BIEN = {
     return lech;
   },
   // I11 (P26b, Q9) — theo TỪNG ví (ví khách + ví mẹ): mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
+  // P26c (H2 = 1B): hoàn đơn MUA gói đưa cả phần tiền mặt / CK vào ví khách — dòng đó ghi cách 'hoan_goi' và KHÔNG tính ở đây;
+  // I19 canh theo cả đơn (đơn còn). Đơn mua gói đã XOÁ: không còn dữ liệu để canh dòng 'hoan_goi' — CHƯA KIỂM (P26c Phát hiện).
   // Đọc theo SỔ nên đơn đã xoá vẫn soát. Đền bù báo hỏng ('compensation') không tính: nó đền cả đơn trả tiền mặt.
   // (I10 gộp mọi ví đã bỏ ở HOC-2b, chủ quán chốt 2a: với số tiền đồng NGUYÊN — mọi kịch bản giả lập gửi số nguyên — tổng các
   // ví lệch > 0,5 ⇒ có một ví lệch ≥ 1 ⇒ I11 lệch, nên I10 ⊂ I11. Tiền lẻ < 1đ chia nhiều ví thì I10 thấy mà I11 không.)
   async I11(q) {
-    const ds = await q(`SELECT order_id, customer_phone, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
+    const ds = await q(`SELECT order_id, customer_phone,
+        SUM(CASE WHEN type = 'refund' AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount ELSE 0 END) AS hoan,
         -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra
       FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id, customer_phone`);
     return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)
@@ -206,15 +211,15 @@ const BAT_BIEN = {
       .map((r) => `quà #${r.id} mã ${r.code}: dòng điểm ${r.type} ${so(r.points)} (giá ${so(r.points_cost)}), ${so(r.so_ma)} mã `
         + `${r.discount_type} ${so(r.discount_value)} (quà ${r.loai_qua} ${so(r.tri_gia_qua)}), trần ${so(r.tran)} (quà ${so(r.tran_qua)}), dùng tối đa ${r.usage_limit}`);
   },
-  // I13 (AU-G2) — used_count ≤ usage_limit; used_count = số đơn ĐÃ ÁP mã + số lần /increment-usage trả 200 (sổ quầy). Huỷ / xoá
-  // đơn KHÔNG trả lượt (orders.js:1296–1590 không đụng pos_discount_codes) nên đếm đơn MỌI trạng thái. "Đã áp" = mã trên đơn VÀ
+  // I13 (AU-G2) — used_count ≤ usage_limit; used_count = số đơn CÒN HIỆU LỰC (completed) ĐÃ ÁP mã + số lần /increment-usage trả
+  // 200 (sổ quầy). P26c (H7 = 4A): huỷ / xoá / duyệt hoàn đơn đã áp mã TRẢ lượt (tienDaTra.js traLuotMa). "Đã áp" = mã trên đơn VÀ
   // loại + trị giá chiết khấu của đơn = của mã: máy chủ lưu discount_code cả khi mã KHÔNG được áp (orders.js:450), lúc đó loại/trị
   // giá lấy từ hồ sơ khách (orders.js:504–520) hoặc trống. Giới hạn: hồ sơ khách trùng đúng loại + trị giá của mã gõ mà không áp;
   // xoá đơn đã áp mã làm mất dòng đơn (không kịch bản nào làm hai việc này). So với loại / trị giá mã HIỆN TẠI: chủ sửa mã đã
   // dùng (PUT /discount-codes/:id) thì đỏ oan — không kịch bản nào sửa mã; kịch bản sau thêm việc đó phải đổi phép này.
   async I13(q, ctx) {
     const ds = await q(`SELECT d.code, d.usage_limit, d.used_count,
-        (SELECT COUNT(*) FROM pos_orders o WHERE UPPER(o.discount_code) = UPPER(d.code) AND o.discount_type = d.discount_type
+        (SELECT COUNT(*) FROM pos_orders o WHERE o.status = 'completed' AND UPPER(o.discount_code) = UPPER(d.code) AND o.discount_type = d.discount_type
           AND o.discount_value = d.discount_value) AS so_don
       FROM pos_discount_codes d`);
     return ds.flatMap((r) => {
@@ -284,6 +289,28 @@ const BAT_BIEN = {
     return ds.filter((r) => r.type !== 'refund' || so(r.t_don) !== so(r.order_id) || r.t_sdt !== r.customer_phone
       || Math.abs(so(r.amount) - so(r.refund_amount)) > 0.5)
       .map((r) => `yêu cầu hoàn #${r.id} (đơn #${r.order_id}): gắn dòng sổ ${r.tid == null ? '(không có)' : `#${r.tid} ${r.type} ${so(r.amount)}`}, hoàn ${so(r.refund_amount)}`);
+  },
+  // ── P26c ──
+  // I18 (C3) — cột tổng của ví khớp sổ: total_topup = nạp + điều chỉnh dương; total_spent = mua − hoàn + điều chỉnh âm (ghiVi `cot`,
+  // wallets.js:118/:150/:189, orders.js tạo / huỷ / xoá, refunds.js duyệt). Đền bù không tính. Dữ liệu production trước P26c sẽ lệch
+  // (duyệt hoàn cũ không giảm total_spent) — DOI-SOAT-1 cần mốc ngày.
+  async I18(q) {
+    const ds = await q(`SELECT w.phone, w.total_topup, w.total_spent,
+        (SELECT COALESCE(SUM(CASE WHEN t.type = 'topup' OR (t.type = 'adjust' AND t.amount > 0) THEN t.amount ELSE 0 END), 0)
+          FROM pos_balance_transactions t WHERE t.customer_phone = w.phone) AS nap,
+        (SELECT COALESCE(SUM(CASE WHEN t.type IN ('purchase', 'refund') OR (t.type = 'adjust' AND t.amount < 0) THEN -t.amount ELSE 0 END), 0)
+          FROM pos_balance_transactions t WHERE t.customer_phone = w.phone) AS tieu
+      FROM pos_wallets w`);
+    return ds.filter((r) => Math.abs(so(r.total_topup) - so(r.nap)) > 0.5 || Math.abs(so(r.total_spent) - so(r.tieu)) > 0.5)
+      .map((r) => `ví ${r.phone}: tổng nạp ${tien(r.total_topup)} (sổ ${tien(r.nap)}), tổng chi ${tien(r.total_spent)} (sổ ${tien(r.tieu)})`);
+  },
+  // I19 (B5, Q4, H2, H4) — mỗi đơn CÒN: tổng khách nhận lại (hoàn + đền, mọi ví) ≤ số khách đã trả (tổng − nợ còn lại).
+  async I19(q) {
+    const ds = await q(`SELECT o.code, o.total - COALESCE(o.debt_amount, 0) AS da_tra,
+        (SELECT COALESCE(SUM(t.amount), 0) FROM pos_balance_transactions t WHERE t.order_id = o.id AND t.type IN ('refund', 'compensation')) AS nhan
+      FROM pos_orders o`);
+    return ds.filter((r) => so(r.nhan) > so(r.da_tra) + 0.5)
+      .map((r) => `đơn ${r.code}: khách nhận lại ${tien(r.nhan)} > đã trả ${tien(r.da_tra)}`);
   },
 };
 
