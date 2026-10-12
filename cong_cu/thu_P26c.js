@@ -266,7 +266,7 @@ async function main() {
     const h7 = await huy(g7.don, 'manager');
     k('A5i (K5) quản lý được cấp refund_package → huỷ 200, ví +180.000', h7.status === 200 && await vi(g7.sdt) === g7.vi0 + 180000,
       `${moTa(h7)} · ví ${g7.vi0} → ${await vi(g7.sdt)}`);
-    await db.run("DELETE FROM pos_permissions WHERE role = 'manager' AND permission = 'refund_package'");
+    await db.run("UPDATE pos_permissions SET allowed = 0 WHERE role = 'manager' AND permission = 'refund_package'");
 
     const g8 = await goiDaLay(tron, 4);
     const [p1, p2] = await Promise.all([huy(g8.don), xoa(g8.don)]);
@@ -452,6 +452,12 @@ async function main() {
     await xoa(d3);
     k('C2d (K5, H6) đơn huỷ (out đã tới SX, in còn nợ) rồi xoá → nợ in VẪN chờ đẩy',
       await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'in' AND status = 'pending'", [d3]) === 1);
+    const d4 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
+    await huy(d4);   // SX tắt: out lúc bán VÀ in lúc huỷ đều nợ — hàng chưa từng ra khỏi SX
+    await xoa(d4);
+    k('C2e bán + huỷ lúc SX lỗi rồi xoá → nợ out VÀ nợ in cùng món thành huy, không còn nợ chờ đẩy (K4: đường huỷ-rồi-xoá)',
+      await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status = 'huy'", [d4]) === 2
+        && await so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND status IN ('pending', 'can_xem')", [d4]) === 0);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
