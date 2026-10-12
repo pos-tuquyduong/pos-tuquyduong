@@ -18,7 +18,8 @@
   AUDIT-2` · `43c793e TIEN-DO + LUAT…`.
 - [x] Nhóm A (A1 `a1_bang.md` · A2 `a2_bang.md` · A3 `a3_bang.md`, `lach.js`, `lach.json`)
 - [x] Nhóm B (B1 `dot_bien_bb.py` · B2 `b2_bang.md` · B3 `b3_bang.md` · B4 đề xuất ở `bao_cao.md`)
-- [ ] Nhóm C · [ ] Nhóm D
+- [x] Nhóm C (C1 `kiem_neo.py` chạy trên HEAD + bản sao chứng minh; C2 không cần — đề xuất ở `bao_cao.md`)
+- [~] Nhóm D (D1 `bao_cao.md` 62 dòng · D2 `bang_chung_do.txt` · D3: `npm test` xanh, `--day-du` ĐỎ vì `thu_cong.js` quá hạn — cả trên gốc, xem Câu hỏi)
 
 ## Số đo lúc lập kế hoạch
 Xem `ke_hoach.md` mục 0 (đo riêng trong lượt này, máy mây 4 lõi).
@@ -41,8 +42,22 @@ Xem `ke_hoach.md` mục 0 (đo riêng trong lượt này, máy mây 4 lõi).
 D2 của `dot_bien_bb.py`: `D2-sai-chuoi`, `D2-da-biet`, `D2-vo-hai`, `D2-sap`. Đột biến `BB-I<n>-…` do `dot_bien_bb.py` SINH (tất định, liệt kê
 bằng `--liet-ke`, 148 tên) — SỐNG ghi đủ trong `b2_bang.md`.
 
+## Kết quả nhóm C, D
+| lệnh | kết quả |
+|---|---|
+| `python3 viec/AUDIT-2/kiem_neo.py` (HEAD) | thoát 0 — AUDIT-1 173/174, P26b 59/59, HOC-1 20/20, HOC-2 25/26, TU-CHAY-4 10/10, HOC-2b 26/26, LUOI-1 80/80, TACH-GL 29/29, TU-CHAY-5 34/34, AUDIT-2 31/32, AUDIT-2 bb 151/152, do_*.js 7/7; HỎNG chỉ 4 rữa cố ý (`G3-sai-chuoi`, `VS-E3-phien-ban-cu`, `D2K-sai-chuoi`, `D2-sai-chuoi`); mẫu nghi rữa 0 |
+| `kiem_neo.py` trên bản sao kho đổi neo + đổi chữ | thoát 1 — 2 HỎNG + 2 mẫu nghi rữa (`bang_chung_do.txt` mục 4) |
+| `npm test` | thoát 0 · ĐẾM PASS 61 · FAIL 0 · CẢNH BÁO 0 |
+| `node kiem_tra_truoc_khi_giao.js --day-du` | thoát 1 · ĐẾM PASS 64 · FAIL 1 · CẢNH BÁO 0 — FAIL duy nhất: `bài chạy thật tu_chay/thu_cong.js xanh (120.1 s) → spawnSync … ETIMEDOUT` |
+| `node tu_chay/thu_cong.js` riêng ×3 | 120 s (HEAD) · 126 s (gốc `4d175bc`, git archive vào nháp) · 121 s (HEAD) — 318 phép · 0 chỗ hỏng; 11.10 TU-CHAY-5 đo 94,8 s |
+| ngắt SIGINT `dot_bien_bb.py` (20 s), `dot_bien.py` (3 s) | 0 thư mục tạm sót, `git status` sạch |
+| `git diff --stat 4d175bc..HEAD -- ':!viec/AUDIT-2/'` | rỗng |
+
 ## Câu hỏi
-(không có — lời duyệt 12.10 đã chốt 3 điểm mục 7)
+1. **D3 `--day-du` không xanh được trên máy mây hôm nay, cả trên gốc `4d175bc`:** `tu_chay/thu_cong.js` chạy RIÊNG 120–126 s (3 lần) ≥ hạn
+   120 s của bộ kiểm → FAIL "ETIMEDOUT". Không do việc này (gốc không có file AUDIT-2 vẫn 126 s); sửa nằm ngoài Phạm vi và luật cấm nới
+   hạn. Xin chủ quán chọn: (a) chạy `--day-du` trên máy chủ quán / check GitHub để xem có phải chỉ máy mây chậm; (b) mở việc chia
+   `thu_cong.js` thành lượt song song (khuôn TACH-GL) trước P26c — P26c sẽ vướng cùng phép. Ghi AU2-10.
 
 ## Sự cố trong lượt lập kế hoạch (đầu vào bước 11)
 - Đo mẫu AUDIT-1 in "✗ KHO BẨN": truy nguyên → chỉ do `viec/AUDIT-2/ke_hoach.md`, `trang_thai.md` tôi tạo TRONG lúc đo
@@ -59,4 +74,7 @@ bằng `--liet-ke`, 148 tên) — SỐNG ghi đủ trong `b2_bang.md`.
 - Ghi số dòng `a3_bang.md` theo trí nhớ → 7 chỗ lệch 1–2 dòng; script so từng dòng bắt được, đã sửa (K1).
 
 ## Phát hiện
-(chưa có — việc chưa chạy đo)
+Bảng đủ ở `bao_cao.md` (AU2-1 … AU2-10). Tóm tắt: **AU2-1 NẶNG-code** lấy vượt lượt gói (đã biết LUOI-1 Phát hiện 5, nay có bằng chứng
+chạy, trúng P26c) · **AU2-2 NẶNG-lưới** 5 phép chặn / tính tiền-điểm-gói ở quầy không có ca bắt (2 trúng P26c) · AU2-3 … AU2-10 NHẸ
+(44 vế bất biến thiếu ca dữ liệu tay; 10 thao tác chủ; MA3 đỏ vì sập; neo 1.4.0; Read file bí mật chỉ lớp 1 canh; `doi-soat-bo-tx` đỏ vì
+móc không chạy; KB20 kiểm lại mã chưa kiểm được (P26d); `thu_cong.js` ≥ hạn 120 s).

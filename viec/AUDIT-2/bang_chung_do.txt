@@ -1,0 +1,41 @@
+AUDIT-2 — bằng chứng công cụ đo KHÔNG nói dối (D2). Phiếu: "## Bài thử đỏ: không" (việc chỉ kiểm + báo cáo) — không có bài thử đỏ,
+không có dòng SỐ CA. Mỗi công cụ: một đột biến cố ý sai chuỗi → HỎNG; một đã biết → BẮT; một vô hại → SỐNG (+ một sập → LẠC).
+
+== 1. viec/AUDIT-2/dot_bien_bb.py (bản cuối, sau khi sửa bộ sinh) — python3 viec/AUDIT-2/dot_bien_bb.py --chi BB-I7-js --chi D2- -j 4 (12.10)
+AUDIT-2 dot_bien_bb: 10 đột biến · -j 4 · kiểm sạch 3 bản
+HỎNG  D2-sai-chuoi  (bat_bien.js:-, 0 s) · chuỗi gốc khớp 0 lần, cần 1
+BẮT   D2-da-biet  (bat_bien.js:-, 3 s) · [cong_cu/thu_gia_lap.js] ✗ I7 nợ đã xong nhưng SX nhận 0 (đơn đã xoá)  — []
+SỐNG  D2-vo-hai  (bat_bien.js:-, 29 s) · mọi tầng xanh
+LẠC   D2-sap  (bat_bien.js:-, 4 s) · [cong_cu/thu_gia_lap.js thoát 1] ✗ bài thử sập  — <tạm>/kho/cong_cu/gia_lap/bat_bien.js:95 | [cong_cu/gia_lap/chay.js thoát 2] Giả lập: SẬP — <tạm>/kho/cong_cu/gia_lap/bat_bien.js:95 ·     const hong = ctx.sxGia.hong;}}}{{ 
+  tổng 10 · BẮT 7 · SỐNG 1 · HỎNG 1 · LẠC 1 · 64 s
+  ✓ kho thật không đổi (git status); thư mục tạm đã xoá
+
+== 2. viec/AUDIT-2/dot_bien.py (khung AUDIT-1 dùng lại) — python3 viec/AUDIT-2/dot_bien.py -j 3 (12.10, trích 3 dòng D2K + tổng)
+HỎNG  D2K D2K-sai-chuoi  (0 s) · server/routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+BẮT   D2K D2K-da-biet  (4 s) · [cong_cu/gia_lap/chay.js --den-kb 10] ✗ KB10 → HTTP: hai lệnh thu chồng nhau → đúng một 200 + một 409 DA_THU_ROI: HTTP 200 / HTTP 200
+SỐNG  D2K D2K-vo-hai  (4 s) · mọi lệnh thoát 0
+  D2K BẮT 1 · SỐNG 1 · HỎNG 1 · LẠC 0 · TREO 0
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-1/, data/, .vite); thư mục tạm đã xoá
+
+== 3. viec/AUDIT-1/dot_bien.py G3 (khung gốc) — trong lần chạy A1 đủ 174 (12.10)
+HỎNG  G3  G3-sai-chuoi  (0 s) · server/routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+BẮT   G3  G3-da-biet  (3 s) · [cong_cu/gia_lap/chay.js --den-kb 10] ✗ KB10 → I6: đơn ORD-20261012-003: đã ghi 50.000đ ≠ tổng 25.000đ, lệch 25.000đ
+SỐNG  G3  G3-vo-hai  (34 s) · mọi lệnh thoát 0
+LẠC   G3  G3-sap  (0 s) · [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả lập: SẬP — <tạm>/kho/server/routes/orders.js:823 ·       }}}{{{ ·       ^
+  G3  BẮT 1 · SỐNG 1 · HỎNG 1 · LẠC 1 · TREO 0
+
+== 4. viec/AUDIT-2/kiem_neo.py — (a) trên HEAD: thoát 0; (b) trên BẢN SAO kho (git archive HEAD vào nháp) đổi neo
+   `if (kqThu.changes !== 1) {` → `!=` ở server/routes/orders.js và chữ "Bundle" → "Bunddle" trong kiem_tra_truoc_khi_giao.js:
+(a) AUDIT-2: 32 đột biến · neo khớp 31 · HỎNG 0 · rữa cố ý 1
+(a) Mẫu nghi rữa (xem tay, không đếm HỎNG): 0
+(b) AUDIT-2: 32 đột biến · neo khớp 29 · HỎNG 2 · rữa cố ý 1
+(b)   HỎNG D2K-da-biet: server/routes/orders.js: khớp 0 lần, cần 1
+(b)   HỎNG BK-KB10-thu-bo-changes: server/routes/orders.js: khớp 0 lần, cần 1
+(b) Mẫu nghi rữa (xem tay, không đếm HỎNG): 2
+(b)   AUDIT-2 A3B-D2-bundle-dev: mẫu '✗ Bundle KHÔNG phải bản dev của React' — không thấy trong nguồn: ['Bundle']
+(b)   AUDIT-2 A3B-D4-bo-dau-vet: mẫu '✗ Bundle có dấu vết POS-ERRHANDLING-v1' — không thấy trong nguồn: ['Bundle']
+(b) thoát 1. Lần thử đầu đổi chữ "React" → KHÔNG ra mẫu nghi rữa: "React" có trong chính chuỗi đột biến A3B-D2 chèn vào
+    (luật cho phép) — chọn sai chữ thử, không phải công cụ luôn xanh; thử lại bằng "Bundle" ở trên.
+
+== 5. Ngắt giữa chừng (D3) — timeout -s INT 20 python3 viec/AUDIT-2/dot_bien_bb.py --chi D2-da-biet; timeout -s INT 3 python3
+   viec/AUDIT-2/dot_bien.py D2K-da-biet → cả hai thoát 124; ls /tmp | grep -c "au2bb_|audit1_|au2lach_|gia_lap_|thu_gl_" → 0; git status sạch.
