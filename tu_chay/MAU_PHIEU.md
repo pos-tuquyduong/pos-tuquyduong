@@ -51,6 +51,8 @@ không — <lý do>
 
 ## Ngân sách
 <Khoảng số dòng thêm/bớt, ví dụ "~80 dòng code + ~150 dòng thử". Vượt 1,5 lần thì phải giải thích.>
+**Phương án đơn giản nhất đã xét:** <cách gọn nhất đạt Mục tiêu; không chọn cách đó thì nói vì sao — định hướng
+chủ quán trong CLAUDE.md>
 
 ## Đổi cấu trúc DB
 không

@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 26,
-  "cap_nhat": "2026-10-11",
+  "phien_ban_so": 27,
+  "cap_nhat": "2026-10-12",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -387,16 +387,16 @@
     },
     {
       "ma": "TU-CHAY-5",
-      "ten": "Viec bo khung (chen 11.10: sau TACH-GL, TRUOC AUDIT-2 / P26c; mot lan cai_dat.sh, tu-chay 1.5.0): (A) cong cu cong_cu/gia_lap/dot_bien_bb.py tu sinh dot bien bo tung ve ||/&&/OR/AND + so bang tien mot chieu cho bat_bien.js, 0 SONG chua xu ly; ca chong nhau phai chay khi con viec (dot bien bo khoa DO); (B) nguoi gac: git rm file trong Pham vi, TaskStop, git fetch + merge --ff-only dung nhanh viec cua minh -> /lam-viec buoc 1 tu di toi ban GitHub (phien claude.ai/code nap ban cu — TACH-GL); (C) cong: A19 trang_thai ghi HEAD DA KIEM >= commit cuoi doi code, A16 canh bao SO CA lech so ca tren goc, A18 van khong chay dot bien (ghi gioi han); (D) chay.js --kho chi khi co IPC, ca luot con TU CHOI -> cha thoat 3, thu_gia_lap setEncoding, do_thoi_gian.js kb chay lai, kiem_neo.py ra LUOI-1/TACH-GL/do_*.js, ban_sao_goc.py che do ca kho; (E) THIET_KE so cu, KHUON_LOI 5 bai hoc TACH-GL. PHIEU 11.10: viec/TU-CHAY-5/phieu.md tren nhanh viec/TU-CHAY-5 (cho duyet ke hoach)",
+      "ten": "Viec bo khung (chen 11.10: sau TACH-GL, TRUOC AUDIT-2 / P26c; mot lan cai_dat.sh, tu-chay 1.5.0): (A) cong cu cong_cu/gia_lap/dot_bien_bb.py tu sinh dot bien bo tung ve ||/&&/OR/AND + so bang tien mot chieu cho bat_bien.js, 0 SONG chua xu ly; ca chong nhau phai chay khi con viec (dot bien bo khoa DO); (B) nguoi gac: git rm file trong Pham vi, TaskStop, git fetch + merge --ff-only dung nhanh viec cua minh -> /lam-viec buoc 1 tu di toi ban GitHub (phien claude.ai/code nap ban cu — TACH-GL); (C) cong: A19 trang_thai ghi HEAD DA KIEM >= commit cuoi doi code, A16 canh bao SO CA lech so ca tren goc, A18 van khong chay dot bien (ghi gioi han); (D) chay.js --kho chi khi co IPC, ca luot con TU CHOI -> cha thoat 3, thu_gia_lap setEncoding, do_thoi_gian.js kb chay lai, kiem_neo.py ra LUOI-1/TACH-GL/do_*.js, ban_sao_goc.py che do ca kho; (E) THIET_KE so cu, KHUON_LOI 5 bai hoc TACH-GL. PHIEU 11.10: viec/TU-CHAY-5/phieu.md tren nhanh viec/TU-CHAY-5 (cho duyet ke hoach) | XONG 12.10 (PR #14, 6c281f5; cai 1.5.0 a3ea9cf): B1 git rm, B2 TaskStop, B3 git fetch / pull --no-rebase --ff-only dung nhanh viec, B4 /lam-viec buoc 1 tu di toi ban GitHub; C1 A19 HEAD DA KIEM, C2 canh bao SO CA; D1 --kho chi qua IPC, D2 luot con tu choi, D3 utf8, D4 do_thoi_gian.js kb; E1-E3. Nhom A + D5 + D6 doi sang AUDIT-2 (11.10). May 3 vong soat KHONG DAT -> vong 4 DAT; dot bien 34/34, TACH-GL 29/29, LUOI-1 80/80. CHUA KIEM: fetch/pull that qua proxy claude.ai/code + skill buoc 1 tren phien that (xem o phien may dau tien). Phat hien 1, 2 -> DON-DEP-v1; 4 -> luat khong gop main vao nhanh viec; 6 -> AUDIT-2 (viec/TU-CHAY-5/trang_thai.md)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-5",
+      "commit": "6c281f5",
+      "ngay": "2026-10-12"
     },
     {
       "ma": "AUDIT-2",
-      "ten": "Audit dot 2 (sau LUOI-1 + HOC-2): chay lai toan bo viec/AUDIT-1/dot_bien.py tren HEAD + phan CHUA KIEM cua AUDIT-1 (thu_P20 liveness AU-G5, bundle D2-D5, 30 ma nguoi gac chua co lenh lach, logic loyalty/goi). Dat khi khong con loi NANG. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG. | + danh sach chuyen tu HOC-2b D5(3) (71 AUDIT-1 + 14 HOC-1 + 23 HOC-2, du ten trong viec/HOC-2b/trang_thai.md); thu_P20 liveness DA lam o HOC-2b C5; chay khong tham so bo nhom G3 — nho chay G3 | Lam SAU TACH-GL + viec bo khung (10.10). + 23 C2F con SONG sau LUOI-1 (Bang du 87 o viec/LUOI-1/trang_thai.md muc C2)",
+      "ten": "Audit dot 2 (sau LUOI-1 + HOC-2): chay lai toan bo viec/AUDIT-1/dot_bien.py tren HEAD + phan CHUA KIEM cua AUDIT-1 (thu_P20 liveness AU-G5, bundle D2-D5, 30 ma nguoi gac chua co lenh lach, logic loyalty/goi). Dat khi khong con loi NANG. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG. | + danh sach chuyen tu HOC-2b D5(3) (71 AUDIT-1 + 14 HOC-1 + 23 HOC-2, du ten trong viec/HOC-2b/trang_thai.md); thu_P20 liveness DA lam o HOC-2b C5; chay khong tham so bo nhom G3 — nho chay G3 | Lam SAU TACH-GL + viec bo khung (10.10). + 23 C2F con SONG sau LUOI-1 (Bang du 87 o viec/LUOI-1/trang_thai.md muc C2) | 12.10: + doi tu TU-CHAY-5 nhom A (dot_bien_bb.py dat trong viec/AUDIT-2/), D5, D6 + Phat hien 6 (neo VS-E3-phien-ban-cu HOC-2 -> 1.5.0); kiem_neo.py BAT BUOC chay. CHI KIEM + BAO CAO trong viec/AUDIT-2/, chay song song P26c. PHIEU 12.10: viec/AUDIT-2/phieu.md tren nhanh viec/AUDIT-2 (cho duyet ke hoach)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -423,7 +423,16 @@
     },
     {
       "ma": "P26c",
-      "ten": "Va lo tien/kho con lai sau P26b (Phat hien P26b, lam sau HOC-2, truoc P20b): (14) xoa don giao tu goi da huy tru delivered_qty lan 2 -> hoan goi 2 lan; (16) bao hong return_stock tren don da huy hoan kho SX lan 2; (12) pay-debt cho thu no don refunded; (20) bao hong hoan tien tren don chua thu van cong vi; (ke hoach 8) den bu roi huy/duyet hoan -> khach nhan ca hai; (4) xoa don khong don ma bill + van tay kho (I2/I7); (1, 22, 24) total_spent khi duyet hoan + vi me, them phep canh cot tong; (23) thong bao duyet hoan ghi ca phan vi me (refunds.js, khong can client). CHU QUAN CHOT khi lam phieu: (13) tran den bu theo gia khach thuc tra (flash/hang/ma giam) hay gia niem yet; (6) go 0 o man bao hong = khong den (hien den du gia). QUY TAC TAM o quay tu 03.10: don giao tu goi chi Huy, KHONG Xoa; don da huy khong bao hong | + Phat hien LUOI-1 (viec/LUOI-1/trang_thai.md, so trong ngoac): (1) huy/xoa don khong tra luot ma giam gia; (2) POST /orders luu discount_code ca khi ma khong duoc ap -> bao cao \"don co ma\" dem sai; (3) pos_voucher_grants.status khong bao gio sang used; (4) PUT /packages/customer-packages/:id/deliver khong tran, khong tao don, khong man hinh goi -> de xuat BO; (5) lay qua luot goi khi hai quay chong / goi thang API; (6) hang the mac dinh co \"Kim cuong\" (database.js:1144); (7) tu day so no 3 phut day ca no cua don DA XOA; (10) xoa don mua the khong go pos_membership_purchases; (11) mot don vua mua goi moi vua lay goi cu -> tru luot hai goi; (12) CHU QUAN CHOT khi lam phieu: huy don mua goi da giao mot phan hoan bao nhieu. Xong thi go 3 quy tac tam moi o quay (10.10) | + TACH-GL Phat hien 1 (11.10): man them qua Settings.jsx:565-571 khong gui max_discount -> qua % khong dat duoc tran o man hinh (qua 50 % + don 500.000 -> giam 250.000); CHU QUAN CHOT khi lam phieu: quan co dung qua giam % khong, co can o \"giam toi da\". Them bat bien thi sua CA T9c va DONG_DAT cua thu_gia_lap (ghi cung \"16 bat bien\"); them KB thi gan vao LUOT (kich_ban.js), giu moi luot < 180 s",
+      "ten": "Va lo tien/kho con lai sau P26b (Phat hien P26b, lam sau HOC-2, truoc P20b): (14) xoa don giao tu goi da huy tru delivered_qty lan 2 -> hoan goi 2 lan; (16) bao hong return_stock tren don da huy hoan kho SX lan 2; (12) pay-debt cho thu no don refunded; (20) bao hong hoan tien tren don chua thu van cong vi; (ke hoach 8) den bu roi huy/duyet hoan -> khach nhan ca hai; (4) xoa don khong don ma bill + van tay kho (I2/I7); (1, 22, 24) total_spent khi duyet hoan + vi me, them phep canh cot tong; (23) thong bao duyet hoan ghi ca phan vi me (refunds.js, khong can client). CHU QUAN CHOT khi lam phieu: (13) tran den bu theo gia khach thuc tra (flash/hang/ma giam) hay gia niem yet; (6) go 0 o man bao hong = khong den (hien den du gia). QUY TAC TAM o quay tu 03.10: don giao tu goi chi Huy, KHONG Xoa; don da huy khong bao hong | + Phat hien LUOI-1 (viec/LUOI-1/trang_thai.md, so trong ngoac): (1) huy/xoa don khong tra luot ma giam gia; (2) POST /orders luu discount_code ca khi ma khong duoc ap -> bao cao \"don co ma\" dem sai; (3) pos_voucher_grants.status khong bao gio sang used; (4) PUT /packages/customer-packages/:id/deliver khong tran, khong tao don, khong man hinh goi -> de xuat BO; (5) lay qua luot goi khi hai quay chong / goi thang API; (6) hang the mac dinh co \"Kim cuong\" (database.js:1144); (7) tu day so no 3 phut day ca no cua don DA XOA; (10) xoa don mua the khong go pos_membership_purchases; (11) mot don vua mua goi moi vua lay goi cu -> tru luot hai goi; (12) CHU QUAN CHOT khi lam phieu: huy don mua goi da giao mot phan hoan bao nhieu. Xong thi go 3 quy tac tam moi o quay (10.10) | + TACH-GL Phat hien 1 (11.10): man them qua Settings.jsx:565-571 khong gui max_discount -> qua % khong dat duoc tran o man hinh (qua 50 % + don 500.000 -> giam 250.000); CHU QUAN CHOT khi lam phieu: quan co dung qua giam % khong, co can o \"giam toi da\". Them bat bien thi sua CA T9c va DONG_DAT cua thu_gia_lap (ghi cung \"16 bat bien\"); them KB thi gan vao LUOT (kich_ban.js), giu moi luot < 180 s | CHU QUAN CHOT 12.10: (Q1) qua doi diem giam % co o \"Giam toi da\" (max_discount) nhu Ma giam gia, man Cai dat -> Qua doi diem; (Q2) bao su co -> Hoan tien: hoan dung so khach DA TRA (flash/hang/giam don), vao vi; (Q3) chon B: Hoan tien bat buoc so > 0, khong hoan thi \"Chi ghi nhan\"; (Q4) goi tra truoc mua roi KHONG hoan, ngoai le hoan gia tri con lai = gia da tra x luot con / tong luot, chi nguoi co quyen rieng (mac dinh owner). PHIEU 12.10: viec/P26c/phieu.md tren nhanh viec/P26c (cho duyet ke hoach)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "DOI-SOAT-1",
+      "ten": "Doi soat tien (nguyen tac chu quan 12.10: he thong tien phai doi soat hang ngay / tuan / thang; lam SAU P26c, TRUOC P20b; dung tien -> duyet ke hoach): chay CHINH cac bat bien cua gia lap tren DU LIEU THAT, CHI DOC; man \"Doi soat\" trong POS (xanh/do, chi ro don/khoan lech); ngay: tu chay + o \"tien ket dem duoc\" (quay CHUA co buoc dem ket cuoi ngay); tuan: tong CK so sao ke ngan hang (nguoi, ~5 phut; payOS sau se tu); thang: bao cao tong + kiem ke kho that. Chi BAO, khong tu sua so. Lech do phan mem -> thanh ca thu moi. Truoc khi ghi phieu: thu tung bat bien tren BAN SAO du lieu that (bat bien viet cho du lieu gia co the bao oan voi du lieu cu truoc cac ban va). Luat: tinh nang tien moi phai kem quy tac doi soat tuong ung (CLAUDE.md)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -441,7 +450,7 @@
     },
     {
       "ma": "DON-DEP-v1",
-      "ten": "Bo attached_assets/ khoi git (69 file, 43 MB) sau khi kiem client khong dung @assets; xoa 19 file patch_*.py | + (10.10) CHECKLIST_CODE.md:16 \"26 phep\"; con nhac thu_p1 o CHECKLIST_CODE.md, lui_KHOTHU_v2.sh, patch_pos_khothu_v2.py; viec/AUDIT-1/dot_bien.py: kieu thugl thieu kiem_tra...js (P3), chay khong tham so bo G3 (P4), !D1-E11-P20 / !D1-E11-P26a LAC (P5), so ca nhat ky nguoi gac -> \"KHO BAN\" oan khi chay song song; viec/LUOI-1/trang_thai.md cau \"69 ca ... (62 truoc do)\" sai — 69 va 62 deu la TONG",
+      "ten": "Bo attached_assets/ khoi git (69 file, 43 MB) sau khi kiem client khong dung @assets; xoa 19 file patch_*.py | + (10.10) CHECKLIST_CODE.md:16 \"26 phep\"; con nhac thu_p1 o CHECKLIST_CODE.md, lui_KHOTHU_v2.sh, patch_pos_khothu_v2.py; viec/AUDIT-1/dot_bien.py: kieu thugl thieu kiem_tra...js (P3), chay khong tham so bo G3 (P4), !D1-E11-P20 / !D1-E11-P26a LAC (P5), so ca nhat ky nguoi gac -> \"KHO BAN\" oan khi chay song song; viec/LUOI-1/trang_thai.md cau \"69 ca ... (62 truoc do)\" sai — 69 va 62 deu la TONG | + Phat hien TU-CHAY-5 (12.10): (1) tu_chay/cai_thu_vien.sh im lang khi HEAD tach roi (them nhanh *) in canh bao + ca trong thu_cong_cu.js); (2) viec/TACH-GL/do_chia.js, do_chia_e2.js cong Buffer khong setEncoding",
       "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,

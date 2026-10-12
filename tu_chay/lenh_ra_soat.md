@@ -51,6 +51,9 @@ Soát theo đúng thứ tự, mỗi mục phải trả lời bằng **file:dòng
 6. **P1 — `client/dist/`.** Có sửa `client/src/` mà chưa build lại không?
 7. **Nghiệm thu — đếm, không lấy mẫu.** Đối chiếu ĐỦ từng mục nghiệm thu của phiếu (A1, A2, …), mỗi mục một
    dòng: có bằng chứng (file:dòng bài thử / ca / lệnh) hay thiếu. Liệt kê mọi mục thiếu; còn mục thiếu → KHÔNG ĐẠT.
+8. **Đơn giản — định hướng chủ quán (`CLAUDE.md`).** Có phần nào phức tạp hơn cần thiết, đặt sai chỗ, rườm rà
+   hay lan man ra ngoài mục tiêu của phiếu không? Mỗi chỗ: file:dòng + cách gọn hơn mà vẫn đúng. Tính năng tiền mới
+   chưa kèm quy tắc đối soát tương ứng → ghi rõ.
 
 Trả về đúng định dạng:
 
