@@ -440,10 +440,12 @@ async function duLieuTay() {
   KHUNG.I11 = ['CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, order_id INTEGER, customer_phone TEXT, amount REAL, payment_method TEXT)',
     "INSERT INTO pos_balance_transactions VALUES (1, 'purchase', 7, 'S', -100000, 'cash'), (2, 'refund', 7, 'S', 100000, 'cash'), (3, 'refund', 7, 'S', 80000, 'hoan_goi')"];
   KHUNG.I18 = ['CREATE TABLE pos_wallets (phone TEXT, total_topup REAL, total_spent REAL)',
-    'CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, customer_phone TEXT, amount REAL)',
+    'CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, customer_phone TEXT, amount REAL, payment_method TEXT)',
     "INSERT INTO pos_wallets VALUES ('S', 105000, 35000)",
     "INSERT INTO pos_balance_transactions (type, customer_phone, amount) VALUES ('topup', 'S', 100000), ('adjust', 'S', 5000), ('purchase', 'S', -50000),"
-      + " ('refund', 'S', 20000), ('adjust', 'S', -5000), ('compensation', 'S', 7000), ('debt_payment', 'S', 9000)"];
+      + " ('refund', 'S', 20000), ('adjust', 'S', -5000), ('compensation', 'S', 7000), ('debt_payment', 'S', 9000)",
+    // H2: phần tiền mặt của đơn mua gói hoàn vào ví — dòng 'hoan_goi' không giảm tổng chi (soát vòng 1 lỗi 4).
+    "INSERT INTO pos_balance_transactions (type, customer_phone, amount, payment_method) VALUES ('refund', 'S', 80000, 'hoan_goi')"];
   KHUNG.I19 = ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, debt_amount REAL)',
     'CREATE TABLE pos_balance_transactions (id INTEGER PRIMARY KEY, type TEXT, order_id INTEGER, amount REAL)',
     "INSERT INTO pos_orders VALUES (1, 'D1', 50000, 0), (2, 'D2', 50000, 30000)",
@@ -535,7 +537,8 @@ async function duLieuTay() {
       /hoàn 100\.001đ > ví này đã trả 100\.000đ/, {}],
     ['I11 dòng hoan_goi ghi nhầm cách thường → tính vào', 'I11', 'I11', ["UPDATE pos_balance_transactions SET payment_method = 'cash' WHERE id = 3"],
       /hoàn 180\.000đ > ví này đã trả 100\.000đ/, {}],
-    ['I18 sạch: nạp 100.000 + điều chỉnh +5.000; chi 50.000 − hoàn 20.000 + điều chỉnh −5.000; đền / trả nợ không tính', 'I18', 'I18', [], null, {}],
+    ['I18 sạch: nạp 100.000 + điều chỉnh +5.000; chi 50.000 − hoàn 20.000 + điều chỉnh −5.000; đền / trả nợ / hoan_goi không tính', 'I18', 'I18', [], null, {}],
+    ['I18 hoàn hoan_goi mà giảm tổng chi (−45.000)', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = -45000'], /tổng chi -45\.000đ \(sổ 35\.000đ\)/, {}],
     ['I18 tổng chi 35.001 (phía trên)', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = 35001'], /tổng chi 35\.001đ \(sổ 35\.000đ\)/, {}],
     ['I18 tổng chi 34.999 (phía dưới)', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = 34999'], /tổng chi 34\.999đ \(sổ 35\.000đ\)/, {}],
     ['I18 hoàn không giảm tổng chi (đổi dấu soCot) → 75.000', 'I18', 'I18', ['UPDATE pos_wallets SET total_spent = 75000'], /tổng chi 75\.000đ/, {}],
