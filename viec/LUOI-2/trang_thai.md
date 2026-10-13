@@ -108,8 +108,8 @@ m2 (`Math.floor → Math.ceil` trong `tienDaTraTheoDong`, 1 đ) — theo phiếu
   `kiem_neo.py`: bù một phần — 7 dòng AUDIT-2 đổi / thêm đều áp được (HỎNG 0, `bang_chung_do.txt`); mọi bộ khác không đổi file neo
   ngoài `thu_P26c.js` (chỉ THÊM dòng; neo P26c vẫn khớp — 93/93 không HỎNG).
 - N7 `python3 viec/TACH-GL/dot_bien.py` → 29 · BẮT 25 · LẠC 1 · HỎNG 3 · đúng mong đợi 25/29 (755 s, đo ở `0714b66`; TACH-GL không chạy `thu_P26c.js` nên vòng sửa không đổi kết quả). Lệch = đúng 4 đột biến P26c
-  đã ghi (`viec/P26c/trang_thai.md:547`: VS-kb-hai-luot, VS-luot-trung-thieu, BV-cha-kiem-mot-lan HỎNG neo; VS-luot-thieu-bat-bien
-  LẠC) — việc này không đổi `kich_ban.js` / `thu_gia_lap.js` (`git diff --stat fd919fd HEAD`), TACH-GL không chạy `thu_P26c.js`.
+  đã ghi tên (`viec/P26c/trang_thai.md:547–548`); cách chia — VS-kb-hai-luot, VS-luot-trung-thieu, BV-cha-kiem-mot-lan HỎNG neo;
+  VS-luot-thieu-bat-bien LẠC — là từ lần chạy của LUOI-2 (`0714b66`), không phải từ bản ghi P26c) — việc này không đổi `kich_ban.js` / `thu_gia_lap.js` (`git diff --stat fd919fd HEAD`), TACH-GL không chạy `thu_P26c.js`.
 - Hook pre-commit (tầng 3) không cài ở máy mây này (chỉ `*.sample`) — đã tự chạy `npm test` trước commit.
 
 ## Soát độc lập vòng 1 (/ra-soat, agent general-purpose, HEAD ec243b1) — báo cáo nguyên văn
@@ -246,3 +246,94 @@ Chờ chủ quán trả lời Câu hỏi 2 (thêm `## Bài thử đỏ` vào phi
   - `python3 viec/AUDIT-2/dot_bien.py <7 tên> -j 4` → A3L BẮT 7 · SỐNG 0 · HỎNG 0 · LẠC 0 · TREO 0 · ✓ kho thật không đổi (134 s)
   - `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93)
   - `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 66 · FAIL 0 · CẢNH BÁO 0
+
+## Soát cuối (/ra-soat, HEAD f61c6cf) — báo cáo (giữ kết luận, rút gọn phần lặp)
+```
+ĐẠT
+LỖI TÌM ĐƯỢC: không. Cổng tĩnh `node tu_chay/cong.js tinh <kho> 7f8656d HEAD viec/LUOI-2` → 1 lý do A19 (chờ dòng HEAD ĐÃ KIỂM) +
+"miễn bài thử đỏ (phiếu ## Bài thử đỏ)". A5 qua (phieu.md:35–36 khớp cong.js:58) · A6 qua · A7 qua · A11 miễn (mucBaiThuCu, thu_P26c
+84/0 trên PR) · A12 qua nhờ mien (:285) · A16 bỏ qua (có mien) · A17 qua (không có viec/LUOI-2/dot_bien.py) · A18 không áp · A19 cần dòng
+trần "HEAD ĐÃ KIỂM: <SHA>" (lần khớp CUỐI), SHA trong 7f8656d..head sau 1faaa92 (commit cuối đổi file ngoài viec/LUOI-2/), không dùng
+"+ commit này"; nên ghi f61c6cf.
+K3: tự chạy lại `python3 viec/AUDIT-2/dot_bien.py <7 tên> -j 4` trên f61c6cf → BẮT 7, đúng câu ✗ L1a/L2a/L3a/L4a/L5a/A1c/L6a, kho không
+đổi (128 s). K4/K5/K1/P3/P4/P1 đạt (số dòng hồ sơ kiểm đúng). --day-du 66/0/0 tự chạy lại.
+NGHI NGỜ: trang_thai.md:111 chia HỎNG/LẠC dẫn :547 (dòng đó chỉ có tên); ke_hoach.md:11 "status = 'completed'" là điều kiện WHERE;
+ke_hoach.md:21 "khuôn A5i" gần đúng; ke_hoach.md:1 còn "(chờ duyệt)"; c2luoi dựng bằng chỉ số K.LENH['c2full'][1][0] — AUDIT-1 đổi
+cấu trúc thì rữa, nhưng kiem_sach + mẫu ✗ L<n> lộ ra.
+NGHIỆM THU: 8/8 (N0–N7) · mục thiếu: không (N7 LUOI-1 chỉ có lý lẽ bù).
+CHƯA SOÁT ĐƯỢC: cổng chế độ `chay` đầu-cuối (A11 trên git archive mốc, HOC-1(d)); LUOI-1, kiem_neo (kho nông); TACH-GL, P26c không tự
+chạy lại; origin/main (nếu main đã tiến thì A11 trên gốc chạy với code main mới — chưa kiểm); hook pre-commit; dòng A19 chưa có.
+BÀI HỌC: NGUYÊN TẮC (K1/K6) — trước khi xin chủ quán sửa phiếu để qua cổng, chạy `node tu_chay/cong.js tinh …` (chỉ đọc git, ~1 s).
+NGUYÊN TẮC (A19) — dòng trần, không backtick, không "+ commit này", commit chỉ đụng viec/LUOI-2/. KHOÁ (việc sau) — A3L-tier-flash-van-giam.
+```
+Xử lý: 4 NGHI NGỜ hồ sơ đầu → sửa câu (`ke_hoach.md:1, 11, 21`; `trang_thai.md` dòng TACH-GL ghi rõ cách chia là của LUOI-2). Chỉ đổi
+`viec/LUOI-2/` → không đụng điều kiện A19. NGHI NGỜ c2luoi → giữ (đã có kiem_sach + mẫu riêng lộ ra; dựng lại tay là lặp danh sách).
+
+## Báo cáo
+```
+VIỆC:        LUOI-2 — Vá lưới: bắt 5 đột biến NẶNG-lưới của AUDIT-2 + 1 của chat soát P26c (chỉ thêm bài thử, 0 dòng code quầy)
+ĐÃ SỬA:      cong_cu/thu_P26c.js:652–722 — khối [L] 8 ca: L1a–L6a (bắt N1–N6) + L1b, L2b (K5, chống xanh oan); :88 gắn route signup-codes
+             viec/AUDIT-2/dot_bien.py:23–25 — cách chạy c2luoi = c2full + thu_P26c (--client <kho>/client); 5 dòng A3L N1–N5 đổi sang
+             c2luoi + mẫu đúng ca `✗ L<n> `; :76, :79 — 2 đột biến mới A3L-goi-xoa-dem-ca-mon-tra-tien (K4 đường xoá), A3L-hoan-goi-bo-tru-no (N6)
+BÀI THỬ:     ca hồi quy (code đúng → thu_P26c xanh trên gốc, phiếu ## Bài thử cũ sửa + ## Bài thử đỏ "không"); đỏ chứng minh bằng đột biến:
+             trước khối [L] (fb2d172) → 6 SỐNG + A1c BẮT; sau → BẮT 7/7 đúng ca (✗ L1a, L2a, L3a, L4a, L5a, A1c, L6a); chạy lại trên
+             HEAD d3a6d52 → BẮT 7, kho không đổi (bang_chung_do.txt; trang_thai.md "Làm tiếp lần 3")
+ĐÃ RÀ K4:    N5 bộ lọc `i.product_id > 0 && (i.unit_price === 0 …)` trong orders.js → 2 chỗ (:1412 huỷ, :1543 xoá), cả hai có đột biến BẮT;
+             soTienHoan → 3 nơi gọi (orders.js:1305 qua hoanVi cho huỷ + xoá, refunds.js:164 — đơn có gói bị chặn trước ở :118, :157);
+             `!flashApplied` → 2 chỗ (:783 canh bằng L2a; :545 giảm hạng CHƯA canh → Phát hiện 2); N1, N3, N4 mỗi phép một chỗ
+CHƯA KIỂM:   viec/LUOI-1/dot_bien.py + viec/AUDIT-2/kiem_neo.py KHÔNG chạy được (kho nông thiếu 9521cec, người gác chặn --deepen) — chỉ có lý lẽ
+             bù (LUOI-1 không nạp thu_P26c, server/cong_cu không đổi từ lần 80/80); TACH-GL 25/29 đo ở 0714b66 (lệch = 4 đột biến P26c
+             đã biết); cổng tu_chay/cong.js chế độ `chay` đầu-cuối chưa chạy (chỉ `tinh`); nếu main đã tiến (GOI-1) thì A11 trên gốc mới
+             chưa kiểm; hook pre-commit không cài ở máy mây (đã tự chạy npm test trước commit); m2 (Math.floor/ceil 1 đ) và nhánh nhân điểm
+             đơn không SĐT không có ca (ngoài phiếu)
+GIT:         f61c6cf LUOI-2: trang thai — lam tiep lan 3, buoc 6 chay lai tren HEAD d3a6d52
+             d3a6d52 PHIEU: LUOI-2
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài học
+```
+
+Nghiệm thu — đếm từng mục:
+- N0 — `trang_thai.md` mục N0: 5 A3L SỐNG trên fd919fd, neo khớp, không neo lại.
+- N1 — L1a; `A3L-redeem-thieu-1-diem` SỐNG → BẮT `✗ L1a` (điểm −1, voucher 1).
+- N2 — L2a (+ L2b K5); `A3L-earn-flash-van-cong` → BẮT `✗ L2a` (điểm 2).
+- N3 — L3a (khẳng định 5 điểm lúc bán); `A3L-nhandiem-cong-doi` → BẮT `✗ L3a` (tổng 15).
+- N4 — L4a; `A3L-goi-bo-kiem-chu` → BẮT `✗ L4a` (HTTP 200, giao 2).
+- N5 — L5a; `A3L-goi-huy-dem-ca-mon-tra-tien` → BẮT `✗ L5a` (còn 1); đường xoá `A3L-goi-xoa-dem-ca-mon-tra-tien` → BẮT `✗ A1c`.
+- N6 — L6a; mua gói ghi nợ được (m6 200); `A3L-hoan-goi-bo-tru-no` → BẮT `✗ L6a` (ví 300.000).
+- N7 — P26c 93/93 (HEAD d3a6d52) · TACH-GL 25/29 như bản ghi · LUOI-1 lý lẽ bù (CHƯA KIỂM) · không thêm KB / bất biến (LUOT, T9c,
+  DONG_DAT, NGUONG không phát sinh) · npm test 62/0/0, --day-du 66/0/0, 0 CẢNH BÁO.
+
+## Bài học
+Sự cố gom: (1) Câu hỏi sửa phiếu xin thiếu — chỉ đọc A11, sót A12 (soát vòng 3 bắt) → thêm một lượt hỏi chủ quán. (2) Hồ sơ sửa câu
+người soát chỉ ra mà không grep câu cùng nghĩa (vòng 2: loyalty còn ở :39/:41; vòng 3: còn ở :21). (3) Kế hoạch hứa "ghi Phát hiện
+nếu…" mà không ghi (vòng 1, 2). (4) Bộ đột biến LUOI-1 + kiem_neo không chạy được trên kho nông. (5) Bộ chạy `c2full` của AUDIT-1 không
+chạy thu_P26c → mọi phán "SỐNG" của C2F/A3L sau P26c bỏ qua 76 ca P26c. (6) dot_bien báo KHO BẨN vì tôi sửa hồ sơ trong lúc nó chạy.
+(7) Người gác chặn cú pháp (B-CHUONGTRINH ×3 `time`/`for`, B-PHANTICH ×2 `$(( ))`/`$'…'`, B-CD-VITRI ×3, B-MANOI ×1, CC-LA ×1,
+GIT-KEO ×1 `--deepen`). (8) Số dòng trong hồ sơ lệch 1 (vòng 2, 3). (9) Phát hiện 2: luật flash–giảm hạng không có ca.
+
+- **KHOÁ** (đề xuất — ngoài Phạm vi, máy KHÔNG tự làm):
+  - (1) `tu_chay/skill_lam_viec.md` bước 4: sau câu "báo chủ quán thêm mục ## Bài thử cũ sửa" thêm "chạy `node tu_chay/cong.js tinh <kho>
+    <mốc> HEAD viec/<MÃ>`; PR không còn bài nào đỏ trên gốc thì xin thêm `## Bài thử đỏ` (A12)". Hoặc phép trong cong.js `tinh`: phiếu có
+    Bài thử cũ sửa, không có Bài thử đỏ, mọi bài đổi đều được miễn → cảnh báo. Ca đỏ: phiếu LUOI-2 ở 0ee508e (chỉ Bài thử cũ sửa) → phải
+    cảnh báo / A12.
+  - (5) `viec/AUDIT-1/dot_bien.py:222` `c2full` thêm `cong_cu/thu_P26c.js --client <kho>/client` (như `c2luoi`), rồi chạy lại C2F + A3L
+    còn SỐNG. Ca đỏ: `A3L-hoan-goi-bo-tru-no` qua `c2full` hiện SỐNG, phải BẮT.
+  - (9) Đột biến `A3L-tier-flash-van-giam` (`orders.js:545` `!flashApplied && phone` → `phone`) + ca "khách có hạng mua món flash →
+    tier_discount 0" (Phát hiện 2). Ca đỏ: đột biến hiện 84/84 xanh.
+- **NGUYÊN TẮC** (đề xuất cho `KHUON_LOI.md` — ngoài Phạm vi; 104/120 dòng, đủ chỗ):
+  - (2)+(3) bổ sung ví dụ vào K4 dòng "Sửa / phủ định một câu tài liệu → grep CẢ FILE": "Đã gây (LUOI-2): bỏ đặt lại tích điểm khỏi bài
+    thử, sửa đúng câu người soát chỉ, sót câu cùng nghĩa ở ô rủi ro (2 vòng soát); kế hoạch hứa 'ghi Phát hiện nếu…' không ghi. Chặn: grep
+    theo TỪ KHOÁ hành vi, và mỗi câu 'ghi Phát hiện nếu…' phải có dòng ## Phát hiện hoặc 'đã đọc, không lỗ' + file:dòng."
+  - (4) vào K3: "Bộ đột biến không chạy được (kho nông…) → không chỉ ghi CHƯA KIỂM: ghi lý lẽ bù kiểm được (`git diff --stat <mốc bản ghi
+    cũ> <gốc> -- <thư mục bản sao>` rỗng + bộ đó không nạp file đã đổi); không bù được mới là thiếu." Kèm đề xuất KHOÁ phụ: bộ đột biến
+    đọc gốc bằng `git show <SHA>` lưu ảnh file vào `viec/<MÃ>/` (như `bb_neo.json`) để chạy được trên kho nông.
+  - (1) vào K1: "Khẳng định về cổng mà chưa chạy cổng — LUOI-2 đọc A11, sót A12 ngay 6 dòng dưới (`cong.js:279` ghi 'A12 giữ'). Chặn:
+    chạy `cong.js tinh` trước khi kết luận cổng qua."
+- **BỎ**:
+  - (6) KHO BẨN do tự sửa file khi bộ đo chạy — một lần, công cụ báo đúng; đã chạy lại trên cây sạch.
+  - (7) người gác chặn cú pháp — mỗi lần viết lại lệnh đơn giản là qua; lý do in rõ, không cần khoá thêm.
+  - (8) số dòng lệch 1 — người soát bắt và đã sửa; K1 đã có lời dặn.
+- Dọn: không thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` có phép kiểm làm thay mới ở việc này.
+- Bước 11 không đổi file ngoài `viec/LUOI-2/` → không chạy lại bước 6. Lần kiểm cuối: bước 6 trên d3a6d52 + soát cuối trên f61c6cf
+  (f61c6cf chỉ thêm trang_thai.md so với d3a6d52).
+
+HEAD ĐÃ KIỂM: f61c6cf
