@@ -32,6 +32,9 @@ phải ca khác chặn hộ — so câu lỗi).
   `LUOT`, mỗi lượt < 180 s (đo chạy RIÊNG); thêm bất biến → sửa CẢ T9c, `DONG_DAT` (`thu_gia_lap.js`) và `NGUONG_*`
   (`kiem_tra_truoc_khi_giao.js`, chỉ tăng). `npm test`, `--day-du` xanh, 0 CẢNH BÁO.
 
+## Bài thử cũ sửa
+- cong_cu/thu_P26c.js — LUOI-2 chỉ thêm ca hồi quy cho code ĐANG ĐÚNG nên xanh trên gốc; đỏ chứng minh bằng đột biến N1–N6
+
 ## Phạm vi
 - viec/LUOI-2/**
 - viec/AUDIT-2/dot_bien.py
