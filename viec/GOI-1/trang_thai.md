@@ -356,3 +356,9 @@ BÀI HỌC:
 - Nghi ngờ "ke_hoach lệch tên": ghi chú ở `ke_hoach.md` mục 14 (tên thật trong code / dot_bien.py).
 - Nghi ngờ khác (package_items dạng chuỗi JSON; cộng SL loại viết hai lần ở Settings.jsx) → Phát hiện / không đổi.
 - Bài thử đổi sau bằng chứng → gốc 15 đạt · 36 hỏng, bản vá 51 đạt · 0 hỏng, `SỐ CA … 51` (A16). `dot_bien.py`: 48/48.
+
+## Bước 6 — kiểm lại sau soát vòng 3 (HEAD `28ff098`)
+- `npm test`: thoát 0 · PASS 63 · FAIL 0 · CẢNH BÁO 0.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: thoát 0 · PASS 67 · FAIL 0 · CẢNH BÁO 0 · "dist đã commit KHỚP với src hiện tại" ·
+  "bài chạy thật cong_cu/thu_GOI1.js xanh".
+- `python3 viec/GOI-1/dot_bien.py`: 48/48 bị bắt. `python3 viec/P26c/dot_bien.py`: 93/93 bị bắt. `kiem_neo.py`: y nguyên mốc.
