@@ -268,3 +268,9 @@ BÀI HỌC:
   bước 6 vòng 2 bên dưới.
 - Nghi ngờ "ca A2f": kế hoạch hứa A2f; trong bài, ý đó nằm ở A2c (`delivered_items` theo `product_code`, CT1 + CT2) và A2h.
 - Bài thử đổi sau bằng chứng → chạy lại gốc (15 đạt · 35 hỏng) và bản vá (50 đạt · 0 hỏng), `bang_chung_do.txt` `SỐ CA … 50` (A16).
+
+## Bước 6 — kiểm lại sau soát vòng 2 (HEAD `91ec65c`)
+- `npm test`: thoát 0 · PASS 63 · FAIL 0 · CẢNH BÁO 0.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: thoát 0 · PASS 67 · FAIL 0 · CẢNH BÁO 0 · "dist đã commit KHỚP với src hiện tại" ·
+  "bài chạy thật cong_cu/thu_GOI1.js xanh".
+- `python3 viec/GOI-1/dot_bien.py`: 45/45 bị bắt. `python3 viec/P26c/dot_bien.py`: 93/93 bị bắt. `kiem_neo.py`: y nguyên mốc.
