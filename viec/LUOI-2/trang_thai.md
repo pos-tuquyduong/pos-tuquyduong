@@ -42,5 +42,14 @@ Không ngoài Phạm vi; không có cách ngắn hơn đáng kể. Đã sửa th
 L3a khẳng định có dòng earn trước khi nhận điểm (chống xanh oan); flash chỉ bật quanh L2a (chống sập L5a). Thêm Phát hiện 1.
 Tên đột biến mới sẽ dùng: `A3L-hoan-goi-bo-tru-no`, `A3L-goi-xoa-dem-ca-mon-tra-tien`.
 
-## Dừng
+## Làm tiếp (13.10, chủ quán duyệt kế hoạch 5897b49; Câu hỏi 1 đã trả lời: phiếu có ## Bài thử cũ sửa)
+- bước 1: HEAD `5897b49` · FETCH_HEAD `0ee508e` — HEAD là tổ tiên → `git pull --ff-only`. `git log --oneline -3`:
+  ```
+  0ee508e PHIEU: LUOI-2
+  5897b49 LUOI-2: ke hoach sua theo soat (L3a chong xanh oan, flash chi quanh L2a, c2luoi o AUDIT-2) + Cau hoi 1 + Phat hien 1
+  c96236d LUOI-2: ke hoach (cho duyet) + trang thai N0
+  ```
+- Phát hiện 1: chủ quán dặn ghi lại, không sửa ở việc này.
+
+## Dừng (lượt trước)
 Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3, chờ chủ quán duyệt + trả lời Câu hỏi 1.
