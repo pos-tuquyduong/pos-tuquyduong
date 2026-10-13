@@ -36,9 +36,10 @@ I14 hiện chưa có — các đột biến sống vì THIẾU DỮ LIỆU, khô
 Không đổi `c2full` (các A3L khác dùng nó — giữ nguyên kết quả cũ).
 
 ## 2. Ca thử ↔ nghiệm thu (1-1)
-Cài đặt trong khối: `loyalty_enabled=true`, `loyalty_earn_per_amount=10000`, `nhandiem_enabled=1`, `nhandiem_he_so=2`. Flash 20 %
+Cài đặt trong khối: `nhandiem_enabled=1`, `nhandiem_he_so=2`; tích điểm dùng mặc định của kho (`database.js:1085–1086`: bật, 10.000đ =
+1 điểm — soát vòng 1 bỏ đặt lại thừa; L2b canh nó đang bật). Flash 20 %
 cho `sp[0]`, khung giờ = giờ VN hiện tại → +2 giờ, CHỈ bật quanh L2a và tắt ngay sau L2a (soát kế hoạch: bật suốt khối thì món
-`sp[0]` của L5a lệch tổng → 400 `orders.js:756–763`, sập). Tích điểm trả về như cũ sau L3a. Thứ tự: L1 → L2 → L3 → L4 → L5 → L6.
+`sp[0]` của L5a lệch tổng → 400 `orders.js:756–763`, sập). Cài đặt nhân điểm + flash trả về như cũ sau L3a. Thứ tự: L1 → L2 → L3 → L4 → L5 → L6.
 
 | NT | đột biến | ca | khẳng định (đỏ khi đột biến) |
 |---|---|---|---|
@@ -73,7 +74,7 @@ Chép cả hai vào `bang_chung_do.txt`. m2 (`Math.floor → Math.ceil`, 1 đ) �
 
 ## 4. Luồng hợp lệ phải KHÔNG bị chặn (K5)
 Việc không đổi code quầy → không phép chặn mới. Ca K5 có giá trị chống xanh oan: L1b (đủ điểm thì đổi được), L2b (đơn không flash
-vẫn cộng điểm). Lấy gói đúng chủ: đã có A1a / A2b. Cài đặt chung trả lại cuối khối để ca sau (D1b, K1b) chạy như cũ — `npm test`
+vẫn cộng điểm). Lấy gói đúng chủ: đã có A1a / A2b. Cài đặt chung trả lại sau L3a để ca sau ([K1b] — ca duy nhất sau khối) chạy như cũ — `npm test`
 toàn bộ xanh chứng minh.
 
 ## 5. Câu hỏi cần chủ quán (CHẶN bước 4)
