@@ -304,6 +304,11 @@ router.post("/", authenticate, async (req, res) => {
           .json({ error: `Sản phẩm ${product.name} chưa có giá bán` });
       }
 
+      // GOI-1 (A2, soát vòng 2): món lấy từ gói phải SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo loại.
+      if (item.from_package && !(Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1)) {
+        return res.status(400).json({ error: `SL lấy từ gói của ${product.name} phải là số nguyên từ 1 trở lên`, code: "GOI_SL_KHONG_HOP_LE" });
+      }
+
       // Kiểm tra tồn kho từ SX (cả gói và lẻ đều cần)
       try {
         const stockCheck = await checkStock(
