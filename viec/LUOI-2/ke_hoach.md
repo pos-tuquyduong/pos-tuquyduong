@@ -8,7 +8,7 @@ Nền: HEAD `fd919fd`. Chỉ thêm ca thử + đột biến; 0 dòng `server/`, 
   `thu_P26c.js`. Đo nháp: N1–N6 trên bản sao `server/` → `thu_P26c.js` vẫn `76 đạt · 0 hỏng` → cả sáu SỐNG qua mọi bài hiện có.
 - `thu_P26c.js` chạy 3 s (76 ca), đã đăng ký trong bộ kiểm (`kiem_tra_truoc_khi_giao.js:492`) → thêm ca ở đây KHÔNG đụng bộ kiểm.
 - N6 dựng được: `POST /orders` không chặn mua gói ghi nợ (`orders.js:735–745` chỉ đặt `payment_status`; đối chiếu tổng
-  `:752–763` cộng cả `finalDebtAmount`); huỷ chỉ cần `status = 'completed'` (`:1355–1366`). Ca sẽ chứng minh bằng HTTP 200.
+  `:752–763` cộng cả `finalDebtAmount`); huỷ đơn mua gói cần owner / quyền `refund_package` (`:1346–1355`) rồi `status = 'completed'` (`:1356–1368`). Ca sẽ chứng minh bằng HTTP 200.
 
 ## 1. Phương án
 
@@ -18,7 +18,7 @@ Nền: HEAD `fd919fd`. Chỉ thêm ca thử + đột biến; 0 dòng `server/`, 
 | chỗ | `cong_cu/thu_P26c.js`: một khối `[L]` trước `[K1b]` (6 ca bắt + 2 ca K5) + gắn route `signup-codes` vào danh sách `:88` | `cong_cu/gia_lap/kich_ban.js`: thêm ca vào KB15 / KB11 / KB19 / KB21 + KB mới cho flash và gói nợ |
 | số file / dòng | 1 file · ~60–75 dòng | 1–3 file (KB mới → `LUOT`, `NGUONG_KICH_BAN`, T9c, `DONG_DAT`) · ~90–140 dòng |
 | tốc độ | +~1 s trên 3 s | mỗi đột biến chạy giả lập ~35 s; KB mới phải đo lượt < 180 s |
-| rủi ro | đụng cài đặt chung (loyalty / flash / nhân điểm) của kho thử → đặt trong khối, trả về như cũ cuối khối (khuôn A5i `:292–297`) | thêm KB làm giả lập dài thêm, gần hạn 110 s con; đụng cùng chỗ GOI-1 không — nhưng nhiều file hơn |
+| rủi ro | đụng cài đặt chung (nhân điểm / flash) của kho thử → chụp lại, đặt trong khối, trả về như cũ sau L3a (khuôn A5i `:292–297`) | thêm KB làm giả lập dài thêm, gần hạn 110 s con; đụng cùng chỗ GOI-1 không — nhưng nhiều file hơn |
 
 Chọn A: ít dòng nhất, phiếu ưu tiên `thu_P26c.js`, không thêm bất biến (không bất biến nào bắt được ≥ 2 đột biến cùng loại mà I8 /
 I14 hiện chưa có — các đột biến sống vì THIẾU DỮ LIỆU, không vì thiếu bất biến) → `bat_bien.js`, `thu_gia_lap.js`, `kich_ban.js`,
@@ -31,7 +31,7 @@ I14 hiện chưa có — các đột biến sống vì THIẾU DỮ LIỆU, khô
 | dòng | ~10 | ~10 |
 | lý do | vẫn đo cả giả lập + P26a/b như AUDIT-2 (SỐNG trước là SỐNG qua MỌI bài), mẫu riêng chứng minh "đỏ ĐÚNG ca, không ca khác chặn hộ" | nhanh hơn nhưng bằng chứng SỐNG trước hẹp hơn |
 
-`--client` tuyệt đối: bản sao `sv` không có `client/` (`viec/AUDIT-1/dot_bien.py:246–248`), mà `thu_P26c.js` đọc
+`--client` tuyệt đối: bản sao `sv` không có `client/` (`viec/AUDIT-1/dot_bien.py:248–249`), mà `thu_P26c.js` đọc
 `client/src/pages/*.jsx` (A6c, A7c, D1a) → thiếu cờ thì sập. Chỉ đọc. `kiem_sach` (chạy bản sạch 3 lần) chứng minh.
 Không đổi `c2full` (các A3L khác dùng nó — giữ nguyên kết quả cũ).
 
@@ -80,7 +80,7 @@ toàn bộ xanh chứng minh.
 ## 5. Câu hỏi cần chủ quán (CHẶN bước 4)
 Cổng A11 (`tu_chay/cong.js:261–280`): bài thử bị sửa phải ĐỎ trên code gốc, trừ khi phiếu có mục `## Bài thử cũ sửa`
 (`tu_chay/cong.js:61–63, 252–259, 279`). Ca của việc này là ca HỒI QUY — code quầy đang đúng nên `thu_P26c.js` XANH trên gốc;
-"đỏ" chỉ có qua đột biến. Theo skill bước 4: không tự sửa phiếu, không dựng ca đỏ giả → **xin chủ quán thêm vào phiếu:**
+"đỏ" chỉ có qua đột biến. Theo skill bước 4: không tự sửa phiếu, không dựng ca đỏ giả → **xin chủ quán thêm vào phiếu** (THIẾU — soát vòng 3: còn cần `## Bài thử đỏ` cho A12, xem `trang_thai.md` Câu hỏi 2):
 ```
 ## Bài thử cũ sửa
 - cong_cu/thu_P26c.js — LUOI-2 thêm ca hồi quy cho code ĐÚNG; đỏ chứng minh bằng đột biến (bang_chung_do.txt)
