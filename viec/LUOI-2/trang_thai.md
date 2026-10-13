@@ -78,22 +78,25 @@ Chỗ canh → đột biến (`viec/AUDIT-2/dot_bien.py`, cách chạy `c2luoi` 
 cũng cho từng đột biến đỏ ĐÚNG ca, đúng lý do (N1: điểm −1, voucher 1 · N2: điểm 2 · N3: tổng 15 · N4: 200, giao 2 · N5: còn 1 ·
 N6: ví 300.000). N1 làm đỏ thêm L1b (điểm đã âm) — hệ quả, không phải ca chặn hộ: L1a đỏ trước.
 m2 (`Math.floor → Math.ceil` trong `tienDaTraTheoDong`, 1 đ) — theo phiếu chỉ ghi, không bắt.
-Phát hiện 1 (mã bill trên đơn flash) — chủ quán dặn ghi lại, không sửa ở việc này.
 
 ## Bước 6 — kiểm
 - `node cong_cu/thu_P26c.js` → 84 đạt · 0 hỏng (76 + 8), ~4 s.
 - `npm test` → PASS 62 · FAIL 0 · CẢNH BÁO 0. `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 66 · FAIL 0 · CẢNH BÁO 0.
-- N7 `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93) — bằng bản ghi P26c (`viec/P26c/trang_thai.md:545`).
+- N7 `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93) — bằng bản ghi P26c (`viec/P26c/trang_thai.md:545`) Đo ở `0714b66` (trước vòng
+  sửa 1); người soát vòng 2 chạy lại trên HEAD `9efb702` (sau commit đổi `thu_P26c.js` của vòng sửa): vẫn 93 · 0 không.
+- K4 N6 (kế hoạch mục 3 hứa "ghi Phát hiện nếu đọc thấy lỗ"): ĐÃ ĐỌC, KHÔNG LỖ — duyệt hoàn đơn có gói bị chặn hẳn, cả lúc tạo
+  (`server/routes/refunds.js:118`) lẫn lúc duyệt (`:157`), mã `DON_CO_GOI` (`:20–25`) → `soTienHoan` ở `refunds.js:164` không bao giờ
+  chạy với đơn mua gói (còn nợ hay không).
 - N7 `viec/LUOI-1/dot_bien.py` và `viec/AUDIT-2/kiem_neo.py` KHÔNG CHẠY ĐƯỢC ở máy này: kho nông thiếu commit `9521cec`
-  (`viec/LUOI-1/dot_bien.py:16, 24` `git show 9521cec:...` → 128); người gác chặn `git fetch --deepen` (GIT-KEO).
+  (`viec/LUOI-1/dot_bien.py:17, 24` `git show 9521cec:...` → 128); người gác chặn `git fetch --deepen` (GIT-KEO).
   **Lý lẽ bù (soát vòng 1, đã kiểm lại):** (a) LUOI-1 chỉ chạy `cong_cu/gia_lap/chay.js` và `cong_cu/thu_gia_lap.js`
-  (`viec/LUOI-1/dot_bien.py:17, 138–141`); (b) không file nào trong `cong_cu/`, `tu_chay/`, `viec/LUOI-1/` NẠP `thu_P26c.js`
+  (`viec/LUOI-1/dot_bien.py:18, 138–140`); (b) không file nào trong `cong_cu/`, `tu_chay/`, `viec/LUOI-1/` NẠP `thu_P26c.js`
   (`grep -rln thu_P26c` → chỉ `kich_ban.js` — một dòng chú thích — và chính nó); (c) `git diff --stat 6441651 fd919fd -- server cong_cu`
   rỗng, mà `6441651` đã ghi "`viec/LUOI-1/dot_bien.py` → đúng mong đợi 80/80" (`git show 6441651:viec/P26c/trang_thai.md` dòng 105);
   LUOI-2 chỉ đổi `cong_cu/thu_P26c.js` trong hai thư mục đó → 80/80 giữ nguyên theo cấu trúc. Vẫn là CHƯA CHẠY trên HEAD.
   `kiem_neo.py`: bù một phần — 7 dòng AUDIT-2 đổi / thêm đều áp được (HỎNG 0, `bang_chung_do.txt`); mọi bộ khác không đổi file neo
   ngoài `thu_P26c.js` (chỉ THÊM dòng; neo P26c vẫn khớp — 93/93 không HỎNG).
-- N7 `python3 viec/TACH-GL/dot_bien.py` → 29 · BẮT 25 · LẠC 1 · HỎNG 3 · đúng mong đợi 25/29 (755 s). Lệch = đúng 4 đột biến P26c
+- N7 `python3 viec/TACH-GL/dot_bien.py` → 29 · BẮT 25 · LẠC 1 · HỎNG 3 · đúng mong đợi 25/29 (755 s, đo ở `0714b66`; TACH-GL không chạy `thu_P26c.js` nên vòng sửa không đổi kết quả). Lệch = đúng 4 đột biến P26c
   đã ghi (`viec/P26c/trang_thai.md:547`: VS-kb-hai-luot, VS-luot-trung-thieu, BV-cha-kiem-mot-lan HỎNG neo; VS-luot-thieu-bat-bien
   LẠC) — việc này không đổi `kich_ban.js` / `thu_gia_lap.js` (`git diff --stat fd919fd HEAD`), TACH-GL không chạy `thu_P26c.js`.
 - Hook pre-commit (tầng 3) không cài ở máy mây này (chỉ `*.sample`) — đã tự chạy `npm test` trước commit.
@@ -148,9 +151,40 @@ BÀI HỌC:
 (Rút gọn phần mở đầu và chi tiết lặp của mục NGHIỆM THU / CHƯA SOÁT; nội dung kết luận giữ nguyên.)
 
 ### Xử lý vòng sửa 1
-- LỖI 1 → ghi lý lẽ bù LUOI-1 ở Bước 6 (đã tự kiểm lại: `viec/LUOI-1/dot_bien.py:16–17, 138–141`; `git diff --stat 6441651 fd919fd --
+- LỖI 1 → ghi lý lẽ bù LUOI-1 ở Bước 6 (đã tự kiểm lại: `viec/LUOI-1/dot_bien.py:17–18, 138–140` (số dòng sửa ở vòng 2); `git diff --stat 6441651 fd919fd --
   server cong_cu` rỗng; `git show 6441651:viec/P26c/trang_thai.md` dòng 105 "đúng mong đợi 80/80").
 - LỖI 2 → Phát hiện 2. NGHI NGỜ 1 → Phát hiện 3. LỖI 3 → bù một phần ghi ở Bước 6. LỖI 4 → sửa `ke_hoach.md`.
 - ĐƠN GIẢN → làm cả ba ở `thu_P26c.js` (chú thích neo tên đột biến, `datCaiDat`, bỏ đặt lại tích điểm — L2b vẫn canh tích điểm bật).
 - NGHI NGỜ 2, 3 (nhánh không SĐT, ceil/floor) → ngoài 6 đột biến của phiếu, chỉ ghi (m2 phiếu cho phép). NGHI NGỜ 4 (không try/finally)
   → giữ: bài dừng khi ca ném lỗi, không đổi kết quả; thêm try/finally là thêm dòng không chặn được gì.
+
+## Soát độc lập vòng 2 (/ra-soat, HEAD 9efb702) — báo cáo (giữ kết luận, rút gọn phần lặp)
+```
+ĐẠT / KHÔNG ĐẠT: KHÔNG ĐẠT — chỉ lỗi hồ sơ; code thử + đột biến đạt, 6 ca L1a–L6a vẫn đỏ đúng câu, không ca nào xanh oan.
+LỖI TÌM ĐƯỢC:
+- viec/LUOI-2/ke_hoach.md:39, :41 — vòng sửa bỏ đặt lại tích điểm nhưng kế hoạch vẫn ghi "loyalty_enabled=true…" và "Tích điểm trả về
+  như cũ sau L3a" — K4 (tài liệu), K1.
+- viec/LUOI-2/ke_hoach.md:76 — "ca sau (D1b, K1b)": D1b (thu_P26c.js:586) nằm TRƯỚC khối [L] (:652); chỉ [K1b] (:724) sau — K1.
+- viec/LUOI-2/trang_thai.md:88, :90, :151 — số dòng viec/LUOI-1/dot_bien.py lệch 1 (NEN :17, git show :24; CH/TG :18; LENH 138–140) — K1.
+NGHI NGỜ:
+- ke_hoach.md:64–65 hứa "duyệt hoàn đơn gói CÒN NỢ … ghi Phát hiện nếu đọc thấy lỗ" — hồ sơ không nói đã đọc refunds.js:164 chưa.
+- trang_thai.md:86 P26c 93/93 đo trước commit vòng sửa 8e72c82; người soát chạy lại trên HEAD 9efb702: 93 · 0 — đúng, nhưng hồ sơ chưa ghi.
+- TACH-GL 25/29 cũng đo trước vòng sửa; không chạy thu_P26c nên giữ theo cấu trúc; chưa chạy lại.
+SOÁT: K3 tự chạy thu26c.py: N1→L1a (+L1b hệ quả), N2→L2a, N3→L3a, N4→L4a, N5→L5a, N6→L6a; thêm V1 `balance <= cost` đỏ riêng L1b (biên
+trên + dưới đều có ca), V3 trừ nợ 2 lần đỏ L6a, V2 orders.js:545 84/84 (khớp Phát hiện 2). Khung giờ flash qua nửa đêm đúng
+(flashState.js:18–19). K4: Phát hiện 2, 3 đúng; lý lẽ bù LUOI-1 kiểm bằng lệnh (bản sao LUOI-1 chỉ chép server, cong_cu,
+tu_chay/cau_hinh.json — viec/LUOI-1/dot_bien.py:150–154; diff 6441651..HEAD trên các thư mục đó chỉ thu_P26c.js). K5: chụp 7 khoá, trả
+sau L3a; chỉ K1b sau khối. P3/P4, P1: không đổi server/, client/. npm test 62/0/0, --day-du 66/0/0, thu_P26c 84/0.
+ĐƠN GIẢN: trang_thai.md lặp câu "Phát hiện 1 — chủ quán dặn ghi lại" (:49, :59, :81); báo cáo vòng 1 chép dài.
+NGHIỆM THU: 8/8 (N0–N7) có bằng chứng · mục thiếu: không.
+CHƯA SOÁT ĐƯỢC: TACH-GL và cả bộ AUDIT-2 c2luoi chưa chạy lại trên HEAD; LUOI-1, kiem_neo (kho nông); cổng A11; hook pre-commit;
+đường duyệt hoàn đơn gói còn nợ chưa dựng ca.
+BÀI HỌC: NGUYÊN TẮC (K4 hồ sơ) — vòng sửa đổi hành vi bài thử thì grep ke_hoach.md + trang_thai.md tìm mọi câu tả hành vi cũ.
+NGUYÊN TẮC (K3) — con số N7 đo trước commit đổi bài thử phải ghi "đo ở <commit>" hoặc chạy lại trên HEAD.
+KHOÁ (việc sau): A3L-tier-flash-van-giam (orders.js:545) + ca canh.
+```
+### Xử lý vòng sửa 2
+- ke_hoach.md:39, :41, :76 sửa (grep cả file `loyalty_enabled`, `Tích điểm trả về`, `D1b, K1b` — 0 còn sót).
+- trang_thai.md số dòng LUOI-1 sửa; câu lặp Phát hiện 1 bỏ một chỗ; ghi "đo ở `0714b66`" cho P26c, TACH-GL.
+- NGHI NGỜ 1 → đã đọc `refunds.js:20–27, 118, 157`: đơn có gói bị chặn hẳn ở duyệt hoàn → không lỗ, ghi ở Bước 6.
+- Bộ AUDIT-2 c2luoi ĐÃ chạy lại trên cây sạch sau vòng sửa 1 (`a58e3a8`, cây = HEAD vòng sửa 1 về code): BẮT 7 (`bang_chung_do.txt`).
