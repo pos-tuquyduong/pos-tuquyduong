@@ -44,7 +44,9 @@ Phương án B (bỏ): thêm cột `from_package` vào `pos_order_items` — đ�
   `orderItems.from_package` theo khoá; vượt → `tx.rollback()` + 400 `GOI_HET_LUOT_LOAI`, lời "`<mã>` chỉ còn `<n>` trong gói".
   Cùng giao dịch "write" với phép chặn tổng → hai quầy cùng bấm: một đơn thua.
 - **Mua gói + lấy ngay (K4 — đường song song)**: cạnh phép chặn tổng dòng 383, `vuotTheoLoai(dsGoi, [], xin)` (gói chưa tồn tại,
-  đã lấy = 0, không cần giao dịch).
+  đã lấy = 0). Chỉ PHÉP KIỂM chạy trước giao dịch; tạo gói + trừ lượt vẫn chạy SAU khi chốt (`orders.js:994–1026`, có sẵn,
+  không đổi). Mua nhiều gói (`pkg_qty > 1`): phần lấy ngay đổ hết vào gói đầu (`:1007`) → trần theo loại tính trên MỘT gói.
+- Lỗi 400 kèm trường `loai` (mã loại) + `con` (số còn) để bài thử so cấu trúc, không dò chữ (E12).
 - `packages.js` GET /customer/:phone: `delivered_items = await daLayTheoLoai({query}, pkg.id)` — một công thức, sửa luôn lỗi đếm
   đơn đã huỷ cho màn Bán hàng.
 
@@ -71,7 +73,9 @@ Máy chủ GET /customer-packages/all thêm hai cột (một câu, không N+1):
   đều đã `normalizePhone`: `orders.js:509`, `customers-v2.js:52`), dự phòng tên trên đơn mua gói `ob` (`cp.order_id`). Không có
   thì để trống — không bịa (H.8).
 - `last_delivery_at` = `MAX(o.created_at)` của đơn thoả `DIEU_KIEN_LAY_TU_GOI` (dùng chung chuỗi ở mục 1).
-- thêm tham số `?package_id=` (lọc theo gói ở máy chủ — hoặc lọc ở màn hình, xem 4B).
+- KHÔNG thêm tham số lọc ở máy chủ — lọc theo gói ở màn hình (ngắn hơn; soát kế hoạch).
+- GET /customer-packages/:id/deliveries (`packages.js:162–173`) dùng cùng `DIEU_KIEN_LAY_TU_GOI` → lịch sử giao bỏ đơn đã huỷ /
+  món có giá, khớp "lần lấy gần nhất" (một công thức cho cả ba chỗ đếm).
 
 Màn hình:
 - `Reports.jsx`: `useSearchParams` → `tab=packages` mở thẳng tab, `goi=<id>` lọc gói (hiện chip "Gói: <tên> ✕" để bỏ lọc).
@@ -83,8 +87,8 @@ Màn hình:
   2 `fetch` trần → `api.get` / `api.put` (api.js kiểm `res.ok`) → hạ `NGUONG_FETCH` 34 → 32.
 - **Phương án B (bỏ):** giữ thẻ nhóm theo SĐT, nhét thêm cột vào từng gói — sắp theo "lần lấy gần nhất" từng gói không khớp với
   nhóm theo khách, phải sắp nhóm theo gói cũ nhất; nhiều dòng hơn, khó đọc hơn.
-- `Settings.jsx:1150`: "🔒 N KH" thành `<Link to={`/reports?tab=packages&goi=${pkg.id}`}>`. Khi mở từ liên kết, bộ lọc trạng thái đặt
-  sẵn "Đang giao" để số dòng khớp N (N đếm `status='active'`, `packages.js:23`); bấm "Tất cả" xem cả gói xong/dừng.
+- `Settings.jsx:1150`: "🔒 N KH" thành `<Link to={`/reports?tab=packages&goi=${pkg.id}`}>`. Mở từ liên kết chỉ lọc theo gói, bộ lọc trạng thái
+  để "Tất cả" như mặc định (ngắn nhất — không mục nghiệm thu nào đòi đặt sẵn; xem C2).
 - `Customers.jsx`: `useSearchParams` đọc `phone`; khi danh sách tải xong, tìm khách có `phone` trùng (đã chuẩn hoá) →
   `openDetailModal`. Không thấy (SX sập + chưa đệm) → báo "Không tìm thấy khách <SĐT>" (không mở modal giả).
 
@@ -93,9 +97,8 @@ Màn hình:
 Route PUT /customer-packages/:id/cancel:
 - `checkPermission('refund_package')` (thay `manage_users`) — owner luôn qua, vai trò khác chỉ khi chủ quán cấp.
 - `reason` (hoặc `notes`) `trim()` rỗng → 400 `GOI_THIEU_LY_DO`.
-- `status !== 'active'` → 400 (`completed` như nay + thêm `cancelled`).
-- `UPDATE … SET status='cancelled', notes=?, updated_at=? WHERE id=? AND status='active'`; `changes !== 1` → 400 (hai người cùng
-  bấm: một người thua). `notes` = ghi chú cũ (nếu có) + `Dừng gói: <lý do> — <username> <now> (đã lấy d/t)`.
+- Đọc gói chỉ để 404 + dựng `notes`. `UPDATE … SET status='cancelled', notes=?, updated_at=? WHERE id=? AND status='active'`;
+  `changes !== 1` → 400 `GOI_KHONG_DUNG_DUOC` — một phép chặn cả gói đã xong, đã dừng lẫn hai người cùng bấm. `notes` = ghi chú cũ (nếu có) + `Dừng gói: <lý do> — <username> <now> (đã lấy d/t)`.
 - KHÔNG đụng ví, sổ tiền, `delivered_qty`, đơn. Lấy hàng sau đó → `GOI_HET_HIEU_LUC` (`orders.js:222–226`, có sẵn).
 
 Màn hình: nút "Dừng gói" chỉ hiện ở gói `active` và khi `hasPermission('refund_package')`; bấm → `window.prompt` lý do (rỗng thì
@@ -112,29 +115,36 @@ manager / staff) + `--may-chu` / `--client` cho đột biến. Thêm vào danh s
 | A1 | A1a POST gói 6 loại 5+5+5+5+5+6, gửi `total_qty` 30 | 200, `pos_packages.total_qty` = 31 |
 | | A1b PUT gói chưa khoá đổi danh sách (3+4), gửi 99 | 200, lưu 7 |
 | | A1c POST gói KHÔNG danh sách, gửi 12 / gửi 0 | 200 lưu 12 / 400 `GOI_LUOT_KHONG_HOP_LE` |
+| | A1f PUT gói KHÔNG danh sách đổi tổng 8 → lưu 8; đổi 0 → 400 | đạt |
 | | A1d loại tích SL 0 / SL −2 / SL 1.5 | 400 `GOI_LOAI_SL_SAI`, không có dòng gói mới |
-| | A1e tĩnh Settings.jsx: ô Tổng `readOnly` khi có loại; savePkg không còn `filter(i => i.qty > 0)`, có chặn SL ≤ 0 + return | đạt |
+| | A1e tĩnh Settings.jsx: ô Tổng `readOnly` khi có loại; ô hiện giá trị tổng tự tính (`reduce` SL loại); savePkg không còn `filter(i => i.qty > 0)`, có chặn SL ≤ 0 + return | đạt |
 | A2 | A2a CT1 cài 5, đã lấy 3 (đơn thật qua POST /orders), xin 3 | 400 `GOI_HET_LUOT_LOAI`, `delivered_qty` không đổi, ví không đổi |
 | | A2b cùng gói xin 2 | 200, gói đã lấy CT1 = 5 |
 | | A2c đơn lấy 3 CT1 bị HUỶ → `delivered_items` CT1 = 0 và xin 5 → 200 (gốc: đếm cả đơn huỷ) | đạt |
 | | A2d hai quầy cùng bấm (Promise.all) CT1 cài 5, đã lấy 3, mỗi đơn xin 2, tổng còn dư | đúng một 200 + một 400; CT1 đã lấy = 5 |
 | | A2e mua gói + lấy ngay 6 CT1 (CT1 cài 5, tổng gói 31) | 400 `GOI_HET_LUOT_LOAI`, không tạo gói / đơn |
+| | A2g mua 2 gói (`pkg_qty` 2) + lấy ngay 6 CT1 (CT1 cài 5) | 400 `GOI_HET_LUOT_LOAI` (trần 5, không phải 10) |
+| | A2h món `unit_price` NULL (chèn thẳng DB) trong đơn gắn gói được đếm là đã lấy (cùng cách huỷ/xoá trả lượt) | đạt |
+| | A2i lỗi 400 có `loai` = mã CT1, `con` = 2 | đạt |
 | | A2f `delivered_items` của GET /customer/:phone khớp `daLayTheoLoai` (cùng số, có `product_code`) | đạt |
 | A3 | A3a POST giá 0 / giá −1 | 400 `GOI_GIA_KHONG_HOP_LE` |
 | | A3b PUT gói chưa khoá đổi giá về 0 | 400 |
 | | A3c tĩnh Settings.jsx savePkg chặn giá ≤ 0 + return | đạt |
 | A4 | A4a GET /customer-packages/all có `customer_name` (từ `pos_customers`; khách không có trong bảng → tên trên đơn mua gói) và `last_delivery_at` = ngày đơn lấy cuối, bỏ đơn huỷ | đạt |
-| | A4b tĩnh Reports.jsx: đọc `tab`/`goi` từ URL; có `Link` tới `/customers?phone=`; tìm theo `customer_name`; > 100 % tô đỏ; có sắp theo `last_delivery_at` | đạt |
+| | A4e khách KHÔNG có trong `pos_customers` → `customer_name` = tên trên đơn mua gói; không có cả hai → rỗng (không bịa) | đạt |
+| | A4f lịch sử giao bỏ đơn đã huỷ, khớp `last_delivery_at` | đạt |
+| | A4b tĩnh Reports.jsx: đọc `tab`/`goi` từ URL; có `Link` tới `/customers?phone=`; lọc theo `goi` (`package_id`); tìm theo `customer_name` + `customer_phone`; có cột ngày mua + trạng thái; > 100 % tô đỏ; có sắp theo `last_delivery_at` | đạt |
 | | A4c tĩnh Settings.jsx: "N KH" là Link tới `/reports?tab=packages&goi=` | đạt |
 | | A4d tĩnh Customers.jsx: đọc `phone` từ URL rồi gọi `openDetailModal` | đạt |
 | A5 | A5a staff / manager dừng gói | 403 |
 | | A5b owner lý do rỗng / toàn dấu cách | 400 `GOI_THIEU_LY_DO`, gói vẫn active |
-| | A5c owner lý do "khách thôi" | 200, `cancelled`, `notes` chứa lý do + `owner`; ví / sổ ví / `delivered_qty` / số đơn không đổi |
+| | A5c owner lý do "khách thôi" | 200, `cancelled`, `notes` chứa lý do + `owner` + thời điểm (`updated_at` của gói); ví / sổ ví / `delivered_qty` / số đơn không đổi |
 | | A5d dừng lại gói đã dừng / gói `completed` | 400 / 400 |
 | | A5e hai owner cùng dừng (Promise.all) | một 200 + một 400 |
 | | A5f lấy hàng từ gói đã dừng | 400 `GOI_HET_HIEU_LUC` |
+| | A5h tĩnh Reports.jsx: nút "Dừng gói" chỉ hiện với `hasPermission('refund_package')` + gói active; lý do rỗng thì không gửi | đạt |
 | | A5g manager được cấp `refund_package` → 200 (K5: quyền cấp được) | đạt |
-| A6 | (K5 — phải KHÔNG bị chặn, XANH cả gốc lẫn sau vá) bán gói mới có danh sách → 200, cp.total_qty = tổng loại; lấy trong giới hạn từng loại → 200; gói KHÔNG danh sách lấy loại bất kỳ → 200; huỷ đơn lấy hàng → `delivered_qty` và `delivered_items` CT1 đều giảm đúng; bật/tắt gói có KH (giá 0 cũ, không gửi giá) → 200; mua gói + lấy ngay trong giới hạn loại → 200 | đạt |
+| A6 | (K5 — phải KHÔNG bị chặn, XANH cả gốc lẫn sau vá) bán gói mới có danh sách → 200, cp.total_qty = tổng loại; lấy trong giới hạn từng loại → 200; gói KHÔNG danh sách lấy loại bất kỳ → 200; huỷ đơn lấy hàng → `delivered_qty` và `delivered_items` CT1 đều giảm đúng; bật/tắt gói có KH (giá 0 cũ, không gửi giá) → 200; mua gói + lấy ngay trong giới hạn loại → 200; gia hạn (`customer_package_id` + `package_buy`, không lấy) → 200; xoá gói chưa dùng → 200; gói cũ có `total_qty` lệch tổng loại vẫn bán / lấy được, dữ liệu không bị sửa | đạt |
 | A7 | `npm test`, `--day-du` xanh 0 CẢNH BÁO; build client; `dot_bien.py` (mục 7); chạy lại `viec/P26c/dot_bien.py` | đạt |
 | A8 | `trang_thai.md` có mục "Đối soát Dừng gói" | có |
 
@@ -149,19 +159,22 @@ Ca hai người cùng bấm (đường tiền): A2d, A5e.
 | giá ≤ 0 | `VS-GOI1-GIA-AM` chỉ chặn `< 0` | `BV-GOI1-GIA` gỡ phép |
 | chặn theo loại | `VS-GOI1-LOAI-NGOAI-TX` kiểm bằng `query` trước giao dịch (A2d bắt) | `BV-GOI1-LOAI` gỡ phép trong tx |
 | mua + lấy ngay | `VS-GOI1-MUA-TONG` chỉ kiểm tổng | `BV-GOI1-MUA-LOAI` gỡ phép |
-| đếm đã lấy | `VS-GOI1-DEM-HUY` bỏ `status != 'cancelled'` | `BV-GOI1-DEM` Sales `delivered_items` về câu SQL cũ |
+| đếm đã lấy | `VS-GOI1-DEM-HUY` bỏ `status != 'cancelled'` | `BV-GOI1-DEM` `delivered_items` (`packages.js` GET /customer/:phone) về câu SQL cũ |
 | tên khách / lần lấy | `VS-GOI1-TEN-DON` chỉ lấy tên đơn mua (bỏ JOIN khách) | `BV-GOI1-LAN-LAY` gỡ `last_delivery_at` |
-| dừng gói | `VS-GOI1-DUNG-QUYEN` về `manage_users`; `VS-GOI1-DUNG-DUA` bỏ `AND status='active'` | `BV-GOI1-LYDO` gỡ kiểm lý do; `BV-GOI1-DUNG-TT` gỡ chặn đã dừng |
-| màn hình | `VS-GOI1-O-TONG` ô Tổng sửa được | `BV-GOI1-LINK` (Settings), `BV-GOI1-URL` (Reports), `BV-GOI1-DO` (> 100 %), `BV-GOI1-KH-URL` (Customers) |
+| dừng gói | `VS-GOI1-DUNG-QUYEN` về `manage_users`; `VS-GOI1-DUNG-DUA` bỏ `AND status='active'` | `BV-GOI1-LYDO` gỡ kiểm lý do |
+| lịch sử giao | `VS-GOI1-LS-HUY` lịch sử giao tính cả đơn huỷ | `BV-GOI1-LS` về câu SQL cũ |
+| màn hình | `VS-GOI1-O-TONG` ô Tổng sửa được; `VS-GOI1-NUT-QUYEN` nút Dừng hiện với mọi người | `BV-GOI1-NUT` gỡ nút, `BV-GOI1-LINK` (Settings), `BV-GOI1-URL` (Reports), `BV-GOI1-DO` (> 100 %), `BV-GOI1-KH-URL` (Customers) |
 
 Đột biến P26c: chạy lại `viec/P26c/dot_bien.py` trên HEAD; dự kiến không đổi mong đợi (bài P26c tạo gói KHÔNG danh sách, giá
-100.000 — `thu_P26c.js:146, 334`). Đổi thì ghi rõ cái nào và vì sao.
+100.000 — `thu_P26c.js:146, 334`). Nếu có đột biến P26c phải đổi mong đợi: `viec/P26c/dot_bien.py` NGOÀI Phạm vi → DỪNG, ghi `## Câu hỏi`.
 
 ## 8. Các đường song song cần canh (K4)
 
 - Ba chỗ nhận "món lấy từ gói": huỷ (`orders.js:1411`), xoá (`:1542`), đếm mới (`goiKhach.js`) — dùng cùng điều kiện; huỷ/xoá
   KHÔNG sửa (ngoài mục tiêu, đang đúng), chỉ cùng điều kiện món.
-- Hai đường lấy từ gói: gói cũ (`customer_package_id`, trong tx) + mua và lấy ngay (`package_buy`, trước tx).
+- Hai đường lấy từ gói: gói cũ (`customer_package_id`, kiểm trong tx) + mua và lấy ngay (`package_buy`: kiểm trước tx, tạo gói +
+  trừ lượt sau khi chốt — có sẵn).
+- Ba chỗ đếm "đã lấy": `delivered_items`, `last_delivery_at`, lịch sử giao — cùng `DIEU_KIEN_LAY_TU_GOI`.
 - Hai đường lưu gói: POST + PUT — dùng chung `chuanHoaGoi`.
 - Ba màn đọc "đã lấy theo loại": Sales.jsx (giữ nguyên dạng `delivered_items`), máy chủ chặn, Reports (chỉ tổng).
 - `fetch` trần: mọi gọi mới trong Reports đi qua `api.js`.
@@ -171,7 +184,9 @@ Ca hai người cùng bấm (đường tiền): A2d, A5e.
 bán gói mới · lấy trong giới hạn từng loại · gói không danh sách lấy loại nào cũng được · mua gói + lấy ngay trong giới hạn ·
 gia hạn (`customer_package_id` + `package_buy`, không lấy — `orders.js:186`) · huỷ đơn lấy hàng trả lượt · bật/tắt gói có KH
 (kể cả gói cũ giá 0 / tổng trống — không gửi giá/tổng) · xoá gói chưa dùng · gói cũ đã lưu `package_items` có SL > 0 nhưng
-`total_qty` lệch: KHÔNG tự sửa dữ liệu cũ (chỉ tính lại khi lưu lần sau) · khách đã lấy vượt (150 %) vẫn lấy được loại CÒN dư.
+`total_qty` lệch: KHÔNG tự sửa dữ liệu cũ (chỉ tính lại khi lưu lần sau).
+(Khách đã lấy vượt 150 %: `delivered_qty ≥ total_qty` → đã `completed` / `GOI_HET_LUOT` (`orders.js:222, 228`) — không lấy thêm
+được, như nay; không phải luồng cần giữ.)
 
 ## 10. Ngân sách
 
@@ -187,4 +202,9 @@ khung 150–250 + ~250 của phiếu.
 - C4 (Phát hiện, không làm) Gói NTD đang khoá (14 KH) mà "Tổng SL SP" trống → từ P26c không bán thêm được (`GOI_CHUA_CAI_LUOT`,
   `orders.js:382`) cho tới khi tạo gói mới; GOI-1 không đổi luật khoá. Nếu muốn cho phép "tính lại tổng từ danh sách" trên gói
   đang khoá (không ảnh hưởng khách cũ — số lượt mỗi khách lưu riêng ở `pos_customer_packages.total_qty`) thì cần chủ quán chốt.
+- C6 Huỷ đơn MUA gói của gói đã DỪNG (`orders.js:1376–1388`, đường hoàn tiền P26c — Cấm sửa): ghi đè `notes` (mất lý do dừng);
+  gói chưa lấy lần nào thì XOÁ hẳn dòng gói. Xoá đơn mua gói (`:1527–1536`) cũng xoá hẳn gói. Trái tinh thần Q5 "giữ lịch sử"?
+  GOI-1 không đụng (tiền hoàn P26c bị Cấm) — đề xuất việc sau nếu chủ quán muốn.
+- C7 (Phát hiện) `package_buy` không kèm SĐT: không tạo gói (`orders.js:994` `&& phone`) nhưng món lấy ngay vẫn 0đ, không chỗ nào
+  chặn trước. Để việc sau.
 - C5 (Phát hiện, không làm) "💰 DT gói" ở Reports (`Reports.jsx:77`) cộng cả gói đã dừng / đã huỷ — đối soát cần tách (DOI-SOAT-1).

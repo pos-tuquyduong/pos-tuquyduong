@@ -21,3 +21,7 @@ Code: `packages.js` (cả file), `orders.js` 160–400, 760–900, 990–1030, 1
 
 ## Bước 3 — kế hoạch
 `ke_hoach.md`. Phiếu dặn **chờ duyệt kế hoạch** → commit, push, DỪNG. Câu hỏi cho chủ quán ở `ke_hoach.md` mục 11.
+- Agent phụ (chỉ đọc) soát kế hoạch theo 4 câu → đã sửa: bỏ lọc gói ở máy chủ; không đặt sẵn lọc "Đang giao"; dừng gói một phép
+  `UPDATE … AND status='active'`; thêm ca A1f, A2g–A2i, A4e–A4f, A5h, A6 (gia hạn, xoá gói, tổng lệch); lịch sử giao dùng chung
+  điều kiện đếm; bỏ câu sai "khách 150 % vẫn lấy được"; sửa vị trí `BV-GOI1-DEM`; đột biến P26c đổi mong đợi → DỪNG (ngoài Phạm vi);
+  thêm C6 (huỷ / xoá đơn mua gói của gói đã dừng), C7 (`package_buy` không SĐT).
