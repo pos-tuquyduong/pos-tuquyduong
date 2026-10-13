@@ -651,18 +651,18 @@ async function main() {
   // Ca HỒI QUY: code quầy đang đúng — mỗi ca đỏ khi đột biến A3L tương ứng (viec/AUDIT-2/dot_bien.py, cách chạy c2luoi).
   muc('[L] LUOI-2 — biên đổi điểm, điểm đơn flash, nhân điểm mã bill, gói đúng chủ, huỷ đơn gói + món lẻ, hoàn gói còn nợ');
   {
-    const KHOA = ['loyalty_enabled', 'loyalty_earn_per_amount', 'nhandiem_enabled', 'nhandiem_he_so', 'flash_enabled', 'flash_start',
-      'flash_end', 'flash_percent', 'flash_product_keys'];
+    // Tích điểm dùng mặc định của kho (database.js: bật, 10.000đ = 1 điểm) — L2b canh nó đang bật.
+    const KHOA = ['nhandiem_enabled', 'nhandiem_he_so', 'flash_enabled', 'flash_start', 'flash_end', 'flash_percent', 'flash_product_keys'];
     const cu = await db.query(`SELECT key, value FROM pos_settings WHERE key IN (${KHOA.map(() => '?').join(',')})`, KHOA);
-    const dat = (key, v) => db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', [key, String(v)]);
-    for (const [key, v] of [['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', 10000], ['nhandiem_enabled', 1], ['nhandiem_he_so', 2]]) await dat(key, v);
+    const datCaiDat = (key, v) => db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', [key, String(v)]);
+    for (const [key, v] of [['nhandiem_enabled', 1], ['nhandiem_he_so', 2]]) await datCaiDat(key, v);
     const diem = (sdt) => so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE customer_phone = ?', [sdt]);
     const diemDon = (id) => so("SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [id]);
     const ban = (sdt, i, tien) => goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(i)],
       payment_method: 'cash', cash_amount: tien });
     const themDiem = (sdt, n) => db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_at) VALUES (?, 'earn', ?, 'thử LUOI-2', datetime('now'))", [sdt, n]);
 
-    // N1 — loyalty.js:163 `balance < cost`: biên ĐÚNG cost − 1.
+    // N1 (A3L-redeem-thieu-1-diem) — đổi điểm `balance < cost`: biên ĐÚNG cost − 1.
     const q = await goi('POST', '/rewards', { name: 'Quà 3 điểm LUOI-2', points_cost: 3, discount_type: 'percent', discount_value: 10, valid_days: 30 });
     const s1 = sdtMoi(); await themDiem(s1, 2);
     const d1 = await goi('POST', '/loyalty/redeem', { phone: s1, reward_id: q.id });
@@ -673,20 +673,20 @@ async function main() {
     const d1b = await goi('POST', '/loyalty/redeem', { phone: s1, reward_id: q.id });
     k('L1b (K5) đủ 3 điểm → đổi 200, điểm 0', d1b.status === 200 && await diem(s1) === 0, `${moTa(d1b)} · điểm ${await diem(s1)}`);
 
-    // N2 — orders.js:783 `!flashApplied` (F2): đơn có giảm flash KHÔNG cộng điểm. Flash chỉ bật quanh L2a (giờ VN: giờ này → +2 giờ).
+    // N2 (A3L-earn-flash-van-cong) — `!flashApplied` (F2): đơn có giảm flash KHÔNG cộng điểm. Flash chỉ bật quanh L2a (giờ VN: giờ này → +2 giờ).
     const gio = Number(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).slice(11, 13));
     for (const [key, v] of [['flash_enabled', 'true'], ['flash_start', `${String(gio).padStart(2, '0')}:00`],
       ['flash_end', `${String((gio + 2) % 24).padStart(2, '0')}:00`], ['flash_percent', 20],
-      ['flash_product_keys', JSON.stringify([`${sp[0].sx_product_type}_${sp[0].sx_product_id}`])]]) await dat(key, v);
+      ['flash_product_keys', JSON.stringify([`${sp[0].sx_product_type}_${sp[0].sx_product_id}`])]]) await datCaiDat(key, v);
     const f = await ban(sdtMoi(), 0, 20000);
-    await dat('flash_enabled', 'false');
+    await datCaiDat('flash_enabled', 'false');
     k('L2a đơn có SĐT, món flash 25.000 − 20 % → 200, flash 5.000, 0 điểm', f.status === 200 && Number(f.order?.flash_discount) === 5000
       && await diemDon(f.order?.id) === 0, `${moTa(f)} · flash ${f.order?.flash_discount} · điểm ${await diemDon(f.order?.id)}`);
     const f2 = await ban(sdtMoi(), 1, 20000);
     k('L2b (K5) đơn có SĐT, món KHÔNG flash 20.000 → 2 điểm (tích điểm đang bật — L2a không xanh oan)', f2.status === 200
       && await diemDon(f2.order?.id) === 2, `${moTa(f2)} · điểm ${await diemDon(f2.order?.id)}`);
 
-    // N3 — signup-codes.js:213: đơn ĐÃ có điểm lúc bán → nhân điểm mã bill chỉ cộng BÙ, tổng = điểm gốc × hệ số.
+    // N3 (A3L-nhandiem-cong-doi) — đơn ĐÃ có điểm lúc bán → nhân điểm mã bill chỉ cộng BÙ, tổng = điểm gốc × hệ số.
     const s3 = sdtMoi();
     const b3 = await ban(s3, 2, 50000);
     const luc = await diem(s3);
@@ -694,15 +694,15 @@ async function main() {
     k('L3a bán 50.000 có SĐT (5 điểm lúc bán) → nhận điểm mã bill 200, tổng 5 × 2 = 10', b3.status === 200 && luc === 5 && n3.status === 200
       && await diem(s3) === 10, `${moTa(b3)} · lúc bán ${luc} / ${moTa(n3)} · tổng ${await diem(s3)}`);
     for (const key of KHOA) await db.run('DELETE FROM pos_settings WHERE key = ?', [key]);
-    for (const r of cu) await dat(r.key, r.value);
+    for (const r of cu) await datCaiDat(r.key, r.value);
 
-    // N4 — orders.js:214: gói phải ĐÚNG CHỦ.
+    // N4 (A3L-goi-bo-kiem-chu) — gói phải ĐÚNG CHỦ.
     const g4 = await goiDaLay({ cash_amount: 300000 }, 1);
     const l4 = await lay(sdtMoi(), g4.cp, 1);
     k('L4a lấy gói của khách A bằng SĐT khác → 400 GOI_KHONG_DUNG_CHU, gói A vẫn giao 1', l4.status === 400 && l4.code === 'GOI_KHONG_DUNG_CHU'
       && await daGiao(g4.cp) === 1, `${moTa(l4)} · giao ${await daGiao(g4.cp)}`);
 
-    // N5 — orders.js:1412: huỷ đơn lấy gói chỉ trả lượt cho món LẤY TỪ GÓI, không đếm món trả tiền.
+    // N5 (A3L-goi-huy-dem-ca-mon-tra-tien) — huỷ đơn lấy gói chỉ trả lượt cho món LẤY TỪ GÓI, không đếm món trả tiền.
     const g5 = await goiDaLay({ cash_amount: 300000 }, 2);
     const l5 = await goi('POST', '/orders', { customer_phone: g5.sdt, customer_name: 'Khách P26c', items: [mon(0, 1, true), mon(1)],
       customer_package_id: g5.cp, payment_method: 'cash', cash_amount: 20000 });
@@ -711,7 +711,7 @@ async function main() {
     k('L5a gói giao 2; đơn 1 ly gói + 1 món lẻ → giao 3; huỷ → giao 2 (trả đúng 1 lượt)', l5.status === 200 && sau5 === 3 && h5.status === 200
       && await daGiao(g5.cp) === 2, `${moTa(l5)} · ${sau5} / ${moTa(h5)} · ${await daGiao(g5.cp)}`);
 
-    // N6 — tienDaTra.js:45: hoàn đơn mua gói trừ phần còn NỢ (khách chưa trả thì không hoàn).
+    // N6 (A3L-hoan-goi-bo-tru-no) — soTienHoan: hoàn đơn mua gói trừ phần còn NỢ (khách chưa trả thì không hoàn).
     const s6 = sdtMoi();
     const m6 = await muaGoi(s6, await taoGoi(300000, 10), 10, { cash_amount: 100000, debt_amount: 200000 });
     const h6 = await huy(m6.order?.id);
