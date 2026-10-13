@@ -32,6 +32,17 @@ SỐNG  A3L A3L-goi-huy-dem-ca-mon-tra-tien  (39 s) · mọi lệnh thoát 0
    thử bị sửa phải ĐỎ trên gốc; ca của LUOI-2 là ca hồi quy, code đang đúng nên xanh trên gốc, đỏ chỉ qua đột biến. Chi tiết
    `ke_hoach.md` mục 5. Máy không tự sửa phiếu.
 
+## Câu hỏi 2 (soát vòng 3 — CHẶN giao: cổng A12)
+Câu hỏi 1 xin THIẾU. `tu_chay/cong.js:39` tính `cong_cu/thu_P26c.js` là code → `coCode`; bài được miễn A11 mà xanh trên gốc KHÔNG
+cộng `doHopLe` (`:279` "A12 giữ"); `:285` `if (coCode && !mien && !doHopLe) doLy('A12', …)`; `mucMien` (`:52–59`) chỉ đọc mục
+`## Bài thử đỏ` dòng "không — <lý do>". `tu_chay/MAU_PHIEU.md:48`: "Miễn này KHÔNG thay A12 … hoặc mục ## Bài thử đỏ".
+LUOI-2 không có bài nào đỏ trên code gốc (mọi ca là hồi quy) → **xin chủ quán thêm vào phiếu** (máy không tự sửa phiếu):
+```
+## Bài thử đỏ
+- không — LUOI-2 chỉ thêm ca hồi quy cho code ĐANG ĐÚNG; đỏ chứng minh bằng đột biến N1–N6 (bang_chung_do.txt)
+```
+Hệ quả cần biết: có mục này thì A18 (đột biến VS-) cũng không áp — việc không đổi `server/`, `client/src/` nên A18 vốn không áp.
+
 ## Phát hiện
 1. `server/routes/signup-codes.js:197` — `/nhan-diem` tính `diemGoc = floor(don.total / per)` không xét đơn có flash; luật F2
    (`orders.js:782–783`) không cộng điểm cho đơn flash lúc bán, nhưng mã bill của đơn đó vẫn nhân `diemGoc × heSo`. Chưa chạy;
@@ -92,7 +103,7 @@ m2 (`Math.floor → Math.ceil` trong `tienDaTraTheoDong`, 1 đ) — theo phiếu
   **Lý lẽ bù (soát vòng 1, đã kiểm lại):** (a) LUOI-1 chỉ chạy `cong_cu/gia_lap/chay.js` và `cong_cu/thu_gia_lap.js`
   (`viec/LUOI-1/dot_bien.py:18, 138–140`); (b) không file nào trong `cong_cu/`, `tu_chay/`, `viec/LUOI-1/` NẠP `thu_P26c.js`
   (`grep -rln thu_P26c` → chỉ `kich_ban.js` — một dòng chú thích — và chính nó); (c) `git diff --stat 6441651 fd919fd -- server cong_cu`
-  rỗng, mà `6441651` đã ghi "`viec/LUOI-1/dot_bien.py` → đúng mong đợi 80/80" (`git show 6441651:viec/P26c/trang_thai.md` dòng 105);
+  rỗng, mà `6441651` đã ghi "`viec/LUOI-1/dot_bien.py` → đúng mong đợi 80/80" (`viec/P26c/trang_thai.md:543–546` "lần chạy cuối (HEAD `6441651`)" — sửa căn cứ ở vòng 3);
   LUOI-2 chỉ đổi `cong_cu/thu_P26c.js` trong hai thư mục đó → 80/80 giữ nguyên theo cấu trúc. Vẫn là CHƯA CHẠY trên HEAD.
   `kiem_neo.py`: bù một phần — 7 dòng AUDIT-2 đổi / thêm đều áp được (HỎNG 0, `bang_chung_do.txt`); mọi bộ khác không đổi file neo
   ngoài `thu_P26c.js` (chỉ THÊM dòng; neo P26c vẫn khớp — 93/93 không HỎNG).
@@ -188,3 +199,36 @@ KHOÁ (việc sau): A3L-tier-flash-van-giam (orders.js:545) + ca canh.
 - trang_thai.md số dòng LUOI-1 sửa; câu lặp Phát hiện 1 bỏ một chỗ; ghi "đo ở `0714b66`" cho P26c, TACH-GL.
 - NGHI NGỜ 1 → đã đọc `refunds.js:20–27, 118, 157`: đơn có gói bị chặn hẳn ở duyệt hoàn → không lỗ, ghi ở Bước 6.
 - Bộ AUDIT-2 c2luoi ĐÃ chạy lại trên cây sạch sau vòng sửa 1 (`a58e3a8`, cây = HEAD vòng sửa 1 về code): BẮT 7 (`bang_chung_do.txt`).
+
+## Soát độc lập vòng 3 (/ra-soat, HEAD 369c402) — báo cáo (giữ kết luận, rút gọn phần lặp)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- viec/LUOI-2/ke_hoach.md:80–87 (cùng trang_thai.md Câu hỏi 1): xin chủ quán CHỈ "## Bài thử cũ sửa" là không đủ — cổng đỏ A12.
+  tu_chay/cong.js:39 laCode → thu_P26c.js là code, coCode = true (:112); mucMien (:52–59) null vì phiếu không có "## Bài thử đỏ";
+  bài miễn xanh trên gốc không cộng doHopLe (:279 "A12 giữ"); :285 doLy('A12'). tu_chay/MAU_PHIEU.md:48 "Miễn này KHÔNG thay A12".
+  tu_chay/thu_cong.js:270–290: mọi ca HOC-1 ĐẠT đều kèm một bài đỏ hợp lệ khác. → Câu hỏi xin "## Bài thử đỏ / không — …". K1 + K6.
+- viec/LUOI-2/ke_hoach.md:21: ô rủi ro còn "loyalty … trả về như cũ cuối khối" — code không đặt loyalty (thu_P26c.js:654), trả sau L3a
+  (:696–697). K4 (grep theo NGHĨA) + K1.
+- viec/LUOI-2/ke_hoach.md:34: dẫn viec/AUDIT-1/dot_bien.py:246–248; đúng là :248–249. K1 (nhẹ).
+NGHI NGỜ: ke_hoach.md:11 bỏ qua cổng owner/refund_package (orders.js:1346–1355), UPDATE ở :1356–1368 — L6a dùng owner nên đúng;
+viec/AUDIT-2/dot_bien.py:51 chú thích nhóm A3L cũ; trang_thai.md:95 căn cứ 80/80 nên dẫn viec/P26c/trang_thai.md:543–545; :99–100
+phân loại HỎNG/LẠC dẫn :547 (dòng đó chỉ liệt kê tên).
+SOÁT: K3 thu26c.py trên HEAD N1–N6 đỏ đúng ca, đúng lý do; khung thật A3L-hoan-goi-bo-tru-no + A3L-goi-xoa-dem-ca-mon-tra-tien → BẮT 2.
+K4/K5/K1/P3/P4/P1 đạt (số dòng kiểm đúng liệt kê đủ). --day-du 66/0/0 chạy lại.
+NGHIỆM THU: 8/8 (N0–N7) có bằng chứng · mục thiếu: không. KHÔNG ĐẠT vì LỖI 1 (A12 sẽ chặn PR) và LỖI 2.
+CHƯA SOÁT ĐƯỢC: chưa chạy cổng tu_chay/cong.js đầu-cuối (kết luận A12 từ đọc code :39, 52–59, 112–113, 279, 285 + mô phỏng điều kiện
++ MAU_PHIEU.md:48); LUOI-1, kiem_neo (kho nông); TACH-GL, P26c, 5/7 c2luoi không chạy lại bằng khung thật; hook pre-commit.
+BÀI HỌC: NGUYÊN TẮC (K1) — xin chủ quán sửa phiếu để qua cổng thì đọc HẾT các phép cổng chạm tới file (A11, A12, A16, A19) + MAU_PHIEU.md,
+không dừng ở chú thích một dòng. KHOÁ (ngoài Phạm vi) — skill lam-viec bước 4 thêm vế "PR không còn bài nào đỏ trên gốc thì xin thêm
+## Bài thử đỏ (A12)", hoặc phép tự kiểm: phiếu có Bài thử cũ sửa, không có Bài thử đỏ, mọi bài đổi đều được miễn → cảnh báo từ bước 4.
+NGUYÊN TẮC (K4 hồ sơ) — sửa câu tài liệu thì grep theo NGHĨA ("trả về", "khối", "loyalty").
+```
+### Xử lý vòng sửa 3 (vòng cuối theo so_vong_sua_toi_da)
+- LỖI 1 (đã tự đọc lại `tu_chay/cong.js:39, 52–59, 283–285`, `tu_chay/MAU_PHIEU.md:44–50`) → **Câu hỏi 2**, máy không tự sửa phiếu.
+- LỖI 2, 3 + NGHI NGỜ :11, chú thích `viec/AUDIT-2/dot_bien.py:51`, căn cứ 80/80 → sửa. Grep theo nghĩa `cuối khối|trả về|loyalty` trong
+  ke_hoach.md: chỉ còn câu đã sửa.
+
+## Dừng (vòng 3)
+Chờ chủ quán trả lời Câu hỏi 2 (thêm `## Bài thử đỏ` vào phiếu). Khi làm tiếp: chạy lại bước 6 trên HEAD, soát lại, rồi bước 10–11
+(báo cáo 7 mục, Bài học, dòng HEAD ĐÃ KIỂM). Code thử + đột biến đã đạt cả ba vòng soát; mọi lỗi còn lại là hồ sơ / phiếu.
