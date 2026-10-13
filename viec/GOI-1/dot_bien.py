@@ -82,6 +82,9 @@ DOT_BIEN = [
   ('VS-GOI1-KH-CHU-THICH-CUOI', 'cli', [(CUS, "    setSearchParams({}, { replace: true });\n", "    void 0; // setSearchParams({}, { replace: true });\n", 1)], r'✗ A4d'),
   ('VS-GOI1-O-TONG-CHUOI', 'cli', [(SET, " readOnly={pkgForm.package_items.length > 0} ", ' data-ghi="readOnly={pkgForm.package_items.length > 0}" ', 1)], r'✗ A1e'),
   ('VS-GOI1-O-TONG-CHU-THICH', 'cli', [(SET, "readOnly={pkgForm.package_items.length > 0}", "{/* readOnly={pkgForm.package_items.length > 0} */}", 1)], r'✗ A1e'),
+  # Q-A (chat soát thay 13.10): gỡ readOnly khỏi thẻ, để chữ đó ở chú thích cuối một dòng code khác
+  ('VS-GOI1-O-TONG-CUOI-DONG', 'cli', [(SET, " readOnly={pkgForm.package_items.length > 0} ", " ", 1),
+                                      (SET, "  const savePkg = async", "  const _x = 0; // readOnly={pkgForm.package_items.length > 0} \n  const savePkg = async", 1)], r'✗ A1e'),
   ('BV-GOI1-KH-MOT-LAN', 'cli', [(CUS, "    setSearchParams({}, { replace: true });\n", "", 1)], r'✗ A4d'),
   ('BV-GOI1-KH-URL', 'cli', [(CUS, "if (kh) openDetailModal(kh);", "if (kh) setSelectedCustomer(kh);", 1)], r'✗ A4d'),
   ('VS-GOI1-NUT-QUYEN', 'cli', [(REP, "hasPermission('refund_package') && pkg.status === 'active' &&", "pkg.status === 'active' &&", 1)], r'✗ A5h'),

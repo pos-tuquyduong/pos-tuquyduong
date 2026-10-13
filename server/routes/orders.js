@@ -305,7 +305,8 @@ router.post("/", authenticate, async (req, res) => {
       }
 
       // GOI-1 (A2, soát vòng 2–3): món lấy từ gói phải SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo
-      // loại. Từ đây chỉ dùng `sl` (số đã kiểm) — SL dạng chuỗi (" 5") mà ghi / cộng bản gốc thì nối chuỗi, bỏ qua trừ lượt.
+      // loại. Ghi / cộng lượt dùng `sl` (số đã kiểm) — SL dạng chuỗi (" 5") mà ghi / cộng bản gốc thì nối chuỗi, bỏ qua trừ lượt;
+      // `checkStock` và lời báo vẫn đọc `item.quantity` — vô hại vì đã kiểm nguyên ≥ 1 ở trên (chat soát thay 13.10).
       const sl = Number(item.quantity);
       if (item.from_package && !(Number.isInteger(sl) && sl >= 1)) {
         return res.status(400).json({ error: `SL lấy từ gói của ${product.name} phải là số nguyên từ 1 trở lên`, code: "GOI_SL_KHONG_HOP_LE" });

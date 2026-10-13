@@ -47,7 +47,8 @@ const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
 // Phép tĩnh soi mã SAU khi bỏ chú thích CẢ DÒNG (`//…`) và khối (`/* … */`, `{/* … */}`); chú thích cuối dòng / chuỗi thuộc tính
-// không bỏ được ở đây — các phép soi dòng vá thì NEO ĐẦU DÒNG hoặc đòi khoảng trắng trước thuộc tính (A1e, A4d) (K3, E2).
+// không bỏ được ở đây — A1e soi ĐÚNG thẻ <input> của ô Tổng (bỏ chuỗi trong ngoặc kép, chỉ xét đoạn giữa `<input` và `/>`);
+// A4d neo đầu dòng (K3, E2). Chat soát thay (Q-A) 13.10.
 const boChuThich = (s) => s.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '').replace(/^\s*\/\/.*$/gm, '');
 const docTrang = (ten) => { try { return boChuThich(fs.readFileSync(path.join(CLIENT, 'src', 'pages', ten), 'utf8')); } catch { return ''; } };
 
@@ -185,10 +186,19 @@ async function main() {
         && await so('SELECT COUNT(*) FROM pos_packages') === truoc, moTa(d));
     }
     const src = docTrang('Settings.jsx');
+    // Q-A (chat soát thay): đúng MỘT dòng mang ô Tổng; readOnly phải nằm TRONG thẻ <input> đó (giữa `<input` và `/>`),
+    // sau khi bỏ chuỗi trong ngoặc kép — chú thích cuối dòng hay chuỗi thuộc tính ghi hộ không còn làm xanh oan.
+    const oTongKhoa = (s) => {
+      const ds = s.split('\n').filter((d) => d.includes('value={pkgForm.total_qty}'));
+      if (ds.length !== 1) return false;
+      const d = ds[0].replace(/"[^"]*"/g, '""');
+      const dau = d.indexOf('<input'), cuoi = d.indexOf('/>', dau);
+      return dau >= 0 && cuoi > dau && /\sreadOnly=\{pkgForm\.package_items\.length > 0\}[\s/]/.test(d.slice(dau, cuoi + 1));
+    };
     const luu = (src.match(/const savePkg = async[\s\S]*?setSaving\(true\)/) || [''])[0];
     const gui = (src.match(/const body = \{\s*\.\.\.pkgForm[\s\S]*?\};/) || [''])[0];
     k('A1e Settings.jsx: ô Tổng readOnly khi có loại; đổi loại thì tổng = cộng SL; savePkg chặn loại SL < 1 + return; không lọc âm thầm',
-      /\sreadOnly=\{pkgForm\.package_items\.length > 0\}\s/.test(src)
+      oTongKhoa(src)
         && /const doiLoai = \(items\) => setPkgForm\(\{ \.\.\.pkgForm, package_items: items, total_qty: items\.length \? items\.reduce\(\(s, i\) => s \+ \(i\.qty \|\| 0\), 0\) : pkgForm\.total_qty \}\);/.test(src)
         && (src.match(/doiLoai\(/g) || []).length >= 3
         && /if \(pkgForm\.package_items\.some\(i => !\(Number\.isInteger\(i\.qty\) && i\.qty >= 1\)\)\) \{[^}]*return; \}/.test(luu)

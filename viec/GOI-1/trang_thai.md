@@ -452,3 +452,20 @@ tiếp, chưa viết báo cáo 7 mục / bài học. Chủ quán quyết:
   mục tiêu của phiếu.
 - Hiện trạng để chủ quán đánh giá: HEAD `acfc8ca` — `npm test` 63/0/0, `--day-du` 67/0/0, `thu_GOI1.js` 51/0 (gốc 15/36), đột biến
   GOI-1 48/48, P26c 93/93. Máy chủ (A1–A3, A5) người soát vòng 4 không tìm thêm lỗi; A8 đúng với code.
+
+## Chat soát thay (13.10.2026 — máy hết 3 vòng sửa; luật LUOI-1: chat soát thay, không cho máy vòng 4)
+- Chat chốt (đã báo chủ quán 13.10): **Q-A** sửa ngay trong lần soát thay này; **Q-B** (`pkg_qty` tin nguyên + món lẻ SL âm — đường tiền có từ trước,
+  ngoài mục tiêu phiếu) → việc riêng ngay sau GOI-1 / LUOI-2, không gom vào GOI-1.
+- Q-A: `cong_cu/thu_GOI1.js` A1e soi ĐÚNG MỘT dòng mang ô Tổng (`value={pkgForm.total_qty}`), bỏ chuỗi trong ngoặc kép, chỉ xét đoạn
+  giữa `<input` và `/>`; chú thích đầu file sửa cho đúng. Đột biến mới `VS-GOI1-O-TONG-CUOI-DONG` (gỡ readOnly khỏi thẻ, để chữ đó ở
+  chú thích cuối một dòng code khác): phép CŨ để lọt (xanh), phép mới BẮT. 4 đột biến ô Tổng (`VS-GOI1-O-TONG`, `-CHUOI`,
+  `-CHU-THICH`, `-CUOI-DONG`) đều BẮT.
+- Lỗi 3 vòng 4: chú thích `server/routes/orders.js` "Từ đây chỉ dùng `sl`" sửa cho đúng (ghi / cộng lượt dùng `sl`; `checkStock` và lời
+  báo vẫn đọc `item.quantity`, vô hại). Chỉ đổi chú thích — không neo đột biến nào (đã grep `viec/*/dot_bien.py`).
+- Chạy lại trên bản CUỐI (máy chat 1 lõi): `thu_GOI1.js` 51 đạt · 0 hỏng; `viec/GOI-1/dot_bien.py` đủ: 49/49 BẮT; `--day-du` PASS 67 ·
+  FAIL 0 · CẢNH BÁO 0; cổng tĩnh ĐẠT. Hai đột biến của chat trên `server/utils/goiKhach.js`: bỏ `o.status != 'cancelled'` → 4 ca đỏ;
+  `>` → `>=` (chặn oan khi lấy đúng số còn) → bài thử thoát ≠ 0 (sập ở lời báo số — vẫn là bắt; ghi để AUDIT-3 xem cho đỏ sạch).
+- Đọc code tiền: `goiKhach.js` (một điều kiện đếm dùng chung), `orders.js` (SL nguyên ≥ 1 cho món lấy từ gói; chặn theo loại cả
+  đường mua + lấy ngay lẫn lấy từ gói cũ, cái sau trong CÙNG giao dịch) — đúng phiếu và kế hoạch đã duyệt.
+
+HEAD ĐÃ KIỂM: b093283 + commit này
