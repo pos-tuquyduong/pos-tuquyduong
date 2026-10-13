@@ -87,8 +87,8 @@ Màn hình:
   2 `fetch` trần → `api.get` / `api.put` (api.js kiểm `res.ok`) → hạ `NGUONG_FETCH` 34 → 32.
 - **Phương án B (bỏ):** giữ thẻ nhóm theo SĐT, nhét thêm cột vào từng gói — sắp theo "lần lấy gần nhất" từng gói không khớp với
   nhóm theo khách, phải sắp nhóm theo gói cũ nhất; nhiều dòng hơn, khó đọc hơn.
-- `Settings.jsx:1150`: "🔒 N KH" thành `<Link to={`/reports?tab=packages&goi=${pkg.id}`}>`. Mở từ liên kết chỉ lọc theo gói, bộ lọc trạng thái
-  để "Tất cả" như mặc định (ngắn nhất — không mục nghiệm thu nào đòi đặt sẵn; xem C2).
+- `Settings.jsx:1150`: "🔒 N KH" thành `<Link to={`/reports?tab=packages&goi=${pkg.id}`}>`. Mở từ liên kết lọc theo gói VÀ đặt sẵn lọc
+  "Đang giao" cho khớp số N (chủ quán chốt C2, 13.10).
 - `Customers.jsx`: `useSearchParams` đọc `phone`; khi danh sách tải xong, tìm khách có `phone` trùng (đã chuẩn hoá) →
   `openDetailModal`. Không thấy (SX sập + chưa đệm) → báo "Không tìm thấy khách <SĐT>" (không mở modal giả).
 
@@ -208,3 +208,14 @@ khung 150–250 + ~250 của phiếu.
 - C7 (Phát hiện) `package_buy` không kèm SĐT: không tạo gói (`orders.js:994` `&& phone`) nhưng món lấy ngay vẫn 0đ, không chỗ nào
   chặn trước. Để việc sau.
 - C5 (Phát hiện, không làm) "💰 DT gói" ở Reports (`Reports.jsx:77`) cộng cả gói đã dừng / đã huỷ — đối soát cần tách (DOI-SOAT-1).
+
+## 12. Chủ quán duyệt kế hoạch `21736a8` (13.10)
+- C1 đồng ý bảng phẳng. C2 mở từ "N KH" đặt sẵn lọc "Đang giao". C3 có — chưa lấy lần nào tính theo ngày mua.
+- C4 không đổi luật khoá (đã có NTD30, NTD cũ ngừng bán). C5, C6, C7 → `## Phát hiện` của `trang_thai.md`, không làm.
+
+## 13. Giữ neo đột biến P26c (K4 / TU-CHAY-5) — `viec/P26c/dot_bien.py` NGOÀI Phạm vi
+Các chuỗi P26c đang neo phải còn NGUYÊN, đúng số lần: `packages.js` `if (!luotHopLe(total_qty)) return res.status(400).json(LUOT_SAI);`,
+`if (total_qty !== undefined && !luotHopLe(total_qty)) return res.status(400).json(LUOT_SAI);`, `Number.isInteger(Number(v)) && Number(v) >= 1`;
+`Settings.jsx` `if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }`.
+Vì vậy: tổng tự tính được GÁN vào `total_qty` TRƯỚC hai phép P26c (máy chủ), và ô Tổng trên form được cập nhật mỗi lần đổi loại
+(phép P26c ở savePkg đọc đúng số). Sau vá: so neo từng đột biến P26c bằng script nháp + chạy lại `viec/P26c/dot_bien.py`.
