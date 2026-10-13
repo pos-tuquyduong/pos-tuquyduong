@@ -46,7 +46,8 @@ const muc = (t) => console.log('\n' + t);
 const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
-// Phép tĩnh soi mã SAU khi bỏ chú thích (`//…` cả dòng, `/* … */`, `{/* … */}`) — marker suông trong chú thích không làm xanh (K3, E2).
+// Phép tĩnh soi mã SAU khi bỏ chú thích CẢ DÒNG (`//…`) và khối (`/* … */`, `{/* … */}`); chú thích cuối dòng / chuỗi thuộc tính
+// không bỏ được ở đây — các phép soi dòng vá thì NEO ĐẦU DÒNG hoặc đòi khoảng trắng trước thuộc tính (A1e, A4d) (K3, E2).
 const boChuThich = (s) => s.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '').replace(/^\s*\/\/.*$/gm, '');
 const docTrang = (ten) => { try { return boChuThich(fs.readFileSync(path.join(CLIENT, 'src', 'pages', ten), 'utf8')); } catch { return ''; } };
 
@@ -187,7 +188,7 @@ async function main() {
     const luu = (src.match(/const savePkg = async[\s\S]*?setSaving\(true\)/) || [''])[0];
     const gui = (src.match(/const body = \{\s*\.\.\.pkgForm[\s\S]*?\};/) || [''])[0];
     k('A1e Settings.jsx: ô Tổng readOnly khi có loại; đổi loại thì tổng = cộng SL; savePkg chặn loại SL < 1 + return; không lọc âm thầm',
-      /readOnly=\{pkgForm\.package_items\.length > 0\}/.test(src)
+      /\sreadOnly=\{pkgForm\.package_items\.length > 0\}\s/.test(src)
         && /const doiLoai = \(items\) => setPkgForm\(\{ \.\.\.pkgForm, package_items: items, total_qty: items\.length \? items\.reduce\(\(s, i\) => s \+ \(i\.qty \|\| 0\), 0\) : pkgForm\.total_qty \}\);/.test(src)
         && (src.match(/doiLoai\(/g) || []).length >= 3
         && /if \(pkgForm\.package_items\.some\(i => !\(Number\.isInteger\(i\.qty\) && i\.qty >= 1\)\)\) \{[^}]*return; \}/.test(luu)
@@ -256,6 +257,19 @@ async function main() {
       [a7, a0, ale].every((r) => r.status === 400 && r.code === 'GOI_SL_KHONG_HOP_LE') && await so('SELECT COUNT(*) FROM pos_orders') === truocAm
         && await daLayLoai(am.cp, 0) === 3, `${moTa(a7)} / ${moTa(a0)} / ${moTa(ale)} · CT1 ${await daLayLoai(am.cp, 0)}`);
 
+    const sdtC = sdtMoi();
+    const mc = await muaGoi(sdtC, await taoGoi(), { items: [{ ...mon(0, 0), quantity: ' 5' }] });
+    const cpC = await goiCua(mc.order?.id);
+    const lc = await lay(sdtC, cpC, [[0, 5]]);
+    const tdo = await goi('POST', '/packages', { code: ma(), name: 'Gói tự do A2k', price: 300000, unit: 'túi', total_qty: 10 });
+    const sdtD = sdtMoi();
+    const cpD = await goiCua((await muaGoi(sdtD, tdo.data?.id)).order?.id);
+    const ld = await goiAi('chu', 'POST', '/orders', { customer_phone: sdtD, customer_name: 'Khách GOI1', items: [{ ...mon(6, 0), quantity: ' 7' }],
+      customer_package_id: cpD, payment_method: 'cash', cash_amount: 0 });
+    k('A2k SL dạng chuỗi " 5" khi mua + lấy ngay → gói ghi giao 5, lấy tiếp 5 CT1 → 400 GOI_HET_LUOT_LOAI; gói KHÔNG danh sách lấy " 7" → giao 7',
+      mc.status === 200 && await daGiao(cpC) === 5 && lc.status === 400 && lc.code === 'GOI_HET_LUOT_LOAI' && ld.status === 200 && await daGiao(cpD) === 7,
+      `${moTa(mc)} · giao ${await daGiao(cpC)} / ${moTa(lc)} / ${moTa(ld)} · giao ${await daGiao(cpD)}`);
+
     const sdt = sdtMoi();
     const goiE = await taoGoi();
     const e = await muaGoi(sdt, goiE, { items: [mon(0, 6)] });
@@ -321,7 +335,8 @@ async function main() {
     k('A4d Customers.jsx: đọc phone từ URL, tải xong danh sách thì mở đúng khách (openDetailModal) MỘT lần — xoá tham số trước khi mở',
       /const sdtMo = searchParams\.get\('phone'\)/.test(kh) && /const kh = customers\.find\(c => c\.phone === sdtMo\);/.test(moKh)
         && /if \(kh\) openDetailModal\(kh\);/.test(moKh)
-        && moKh.indexOf("setSearchParams({}, { replace: true });") >= 0 && moKh.indexOf("setSearchParams({}, { replace: true });") < moKh.indexOf('openDetailModal'));
+        && /^\s*setSearchParams\(\{\}, \{ replace: true \}\);\s*$/m.test(moKh)
+        && moKh.search(/^\s*setSearchParams\(\{\}, \{ replace: true \}\);\s*$/m) < moKh.indexOf('openDetailModal'));
   }
 
   // ═════════════════════════════════════════════════════════════════════════

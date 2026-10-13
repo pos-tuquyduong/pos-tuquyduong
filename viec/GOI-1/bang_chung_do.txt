@@ -1,11 +1,11 @@
 # GOI-1 — bằng chứng đỏ (K3)
 
-SỐ CA cong_cu/thu_GOI1.js: 50
+SỐ CA cong_cu/thu_GOI1.js: 51
 
 ## Chạy trên GỐC 21736a8 (server + client/src của nhánh trước khi vá, git archive vào thư mục nháp)
 Lệnh: node cong_cu/thu_GOI1.js --may-chu <nháp>/goc_ban/server --client <nháp>/goc_ban/client  → thoát 1
 Ca xanh trên gốc chỉ là ca (K5) luồng hợp lệ / phép có sẵn: A1c, A1f, A5a, A5d2, A5f, A5g, A6a, A6b, A6c, A6d, A6e, A6f, A6g, A6h, A6i.
-Chạy lại sau soát vòng 2 (thêm A2j — SL âm / 0 / lẻ; phép tĩnh bỏ chú thích trước khi soi) — cổng A16.
+Chạy lại sau soát vòng 3 (thêm A2k — SL dạng chuỗi; A1e / A4d neo đầu dòng / khoảng trắng) — cổng A16.
 
 THỬ GOI-1 — gói sản phẩm
 [A1] tổng tự tính từ danh sách loại (Q1)
@@ -26,6 +26,7 @@ THỬ GOI-1 — gói sản phẩm
   ✗ A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5  — HTTP 200 / HTTP 200 · CT1 7
   ✗ A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400  — HTTP 200 / HTTP 200 · CT1 6 · không có câu đọc ngoài giao dịch
   ✗ A2j lấy từ gói có dòng SL âm / 0 / lẻ (CT1 7 + CT1 −5; CT2 0; CT1 1.5) → 400 GOI_SL_KHONG_HOP_LE, không đơn mới, CT1 vẫn 3  — HTTP 200 / HTTP 200 / HTTP 200 · CT1 8.5
+  ✗ A2k SL dạng chuỗi " 5" khi mua + lấy ngay → gói ghi giao 5, lấy tiếp 5 CT1 → 400 GOI_HET_LUOT_LOAI; gói KHÔNG danh sách lấy " 7" → giao 7  — HTTP 200 · giao 5 / HTTP 200 / HTTP 200 · giao 0
   ✗ A2e mua gói (CT1 cài 5, tổng 10) + lấy ngay 6 CT1 → 400 GOI_HET_LUOT_LOAI, không tạo gói  — HTTP 200
   ✗ A2g mua 2 gói + lấy ngay 6 CT1 → 400 GOI_HET_LUOT_LOAI (trần 5 của MỘT gói, không phải 10)  — HTTP 200
 [A3] không lưu gói giá 0đ (Q2)
@@ -47,7 +48,7 @@ THỬ GOI-1 — gói sản phẩm
   ✗ A5a2 quản lý có manage_users nhưng KHÔNG có refund_package → 403  — HTTP 200
   ✗ A5b chủ quán, lý do rỗng → 400 GOI_THIEU_LY_DO, gói vẫn active  — HTTP 200
   ✗ A5b2 chủ quán, lý do toàn dấu cách → 400 GOI_THIEU_LY_DO  — HTTP 200
-  ✗ A5c chủ quán dừng "khách thôi" → 200, cancelled, notes có lý do + người + thời điểm; đơn / sổ ví / ví / đã giao không đổi  — HTTP 200 · {"status":"cancelled","notes":"Hủy gói (đã giao 2/10)","updated_at":"2026-10-13T09:08:56.470Z","delivered_qty":2}
+  ✗ A5c chủ quán dừng "khách thôi" → 200, cancelled, notes có lý do + người + thời điểm; đơn / sổ ví / ví / đã giao không đổi  — HTTP 200 · {"status":"cancelled","notes":"Hủy gói (đã giao 2/10)","updated_at":"2026-10-13T09:26:48.996Z","delivered_qty":2}
   ✗ A5d dừng lại gói đã dừng → 400, notes giữ lý do đầu  — HTTP 200
   ✓ A5d2 (K5 — gốc cũng chặn) dừng gói đã hoàn thành → 400, vẫn completed
   ✗ A5e hai chủ quán cùng dừng một gói → đúng một 200  — HTTP 200 / HTTP 200
@@ -64,7 +65,7 @@ THỬ GOI-1 — gói sản phẩm
   ✓ A6g gia hạn (bật gói cũ, không lấy, mua gói mới) → 200, gói cũ vẫn giao 1
   ✓ A6h xoá gói chưa ai mua → 200, mất dòng
   ✓ A6i gói cũ tổng 30 lệch danh sách (10) vẫn bán được, lấy trong giới hạn loại được; gói của khách lưu 30 lượt như đã cài
-  15 đạt · 35 hỏng
+  15 đạt · 36 hỏng
 
 ## Chạy trên code ĐÃ VÁ (cây làm việc)
-Lệnh: node cong_cu/thu_GOI1.js  → thoát 0 · 50 đạt · 0 hỏng
+Lệnh: node cong_cu/thu_GOI1.js  → thoát 0 · 51 đạt · 0 hỏng

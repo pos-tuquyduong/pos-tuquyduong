@@ -219,3 +219,9 @@ Các chuỗi P26c đang neo phải còn NGUYÊN, đúng số lần: `packages.js
 `Settings.jsx` `if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }`.
 Vì vậy: tổng tự tính được GÁN vào `total_qty` TRƯỚC hai phép P26c (máy chủ), và ô Tổng trên form được cập nhật mỗi lần đổi loại
 (phép P26c ở savePkg đọc đúng số). Sau vá: so neo từng đột biến P26c bằng script nháp + chạy lại `viec/P26c/dot_bien.py`.
+
+## 14. Tên thật khi làm (ghi sau soát vòng 3 — kế hoạch đã duyệt giữ nguyên)
+- Mục 3 / 8 "`chuanHoaGoi(body, existing)`" → code thật: `tongTheoLoai(ds)` trong `packages.js`, POST và PUT cùng gọi.
+- Mục 7: tên đột biến thật là bảng ở `trang_thai.md` bước 5 / `dot_bien.py` (vd VS-GOI1-SL-LOC → VS-GOI1-SL-CHI-AM,
+  VS-GOI1-MUA-TONG → VS-GOI1-MUA-NHAN-GOI, VS-GOI1-LS-HUY + BV-GOI1-LAN-LAY → BV-GOI1-LS + VS-GOI1-LAN-LAY-HUY, BV-GOI1-NUT →
+  VS-GOI1-NUT-QUYEN + BV-GOI1-NUT-LYDO).
