@@ -48,7 +48,7 @@ Code: `packages.js` (cả file), `orders.js` 160–400, 760–900, 990–1030, 1
 - Đổi bài sau lần đỏ đầu (A16): làm chặt A2d (bên thua phải là 400 `GOI_HET_LUOT_LOAI`), thêm A2d2, sửa A5a (đọc trạng thái
   trước khi gọi quản lý), A6d bỏ vế đã phủ ở A2c. Đã chạy lại cả gốc lẫn bản vá, chép lại `bang_chung_do.txt`.
 
-## Bước 5 — chỗ vá → đột biến (`viec/GOI-1/dot_bien.py`, 41 đột biến sau soát vòng 1)
+## Bước 5 — chỗ vá → đột biến (`viec/GOI-1/dot_bien.py`, 45 đột biến sau soát vòng 2)
 | Chỗ vá | Đột biến |
 |---|---|
 | tổng tự tính — POST (`packages.js`) | BV-GOI1-TONG, VS-GOI1-TONG-GUI |
@@ -56,6 +56,8 @@ Code: `packages.js` (cả file), `orders.js` 160–400, 760–900, 990–1030, 1
 | SL loại ≥ 1 | BV-GOI1-SL, VS-GOI1-SL-CHI-AM |
 | giá > 0 — POST / PUT | BV-GOI1-GIA, VS-GOI1-GIA-AM, BV-GOI1-GIA-PUT |
 | chặn theo loại trong giao dịch (`orders.js` + `goiKhach.js`) | BV-GOI1-LOAI, VS-GOI1-LOAI-SO-SAI, VS-GOI1-LOAI-TRUOC-TX |
+| món lấy từ gói SL nguyên ≥ 1 (soát vòng 2) | BV-GOI1-SL-AM, VS-GOI1-SL-AM-CHI-0 |
+| phép tĩnh bỏ chú thích (soát vòng 2) | VS-GOI1-KH-CHU-THICH, VS-GOI1-O-TONG-CHU-THICH |
 | mua gói + lấy ngay | BV-GOI1-MUA-LOAI, VS-GOI1-MUA-NHAN-GOI |
 | một cách đếm "đã lấy" | VS-GOI1-DEM-HUY, VS-GOI1-DEM-NULL, BV-GOI1-DEM |
 | tên khách / lần lấy gần nhất / lịch sử giao | BV-GOI1-TEN, VS-GOI1-TEN-DON, VS-GOI1-LAN-LAY-HUY, BV-GOI1-LS |
@@ -83,6 +85,10 @@ Code: `packages.js` (cả file), `orders.js` 160–400, 760–900, 990–1030, 1
   ghi "không") → Phát hiện, chủ quán quyết.
 
 ## Phát hiện
+- (soát vòng 2 — ĐƯỜNG TIỀN, ưu tiên cao, có từ trước GOI-1) POST /orders không kiểm `quantity` của món LẺ: gọi API thẳng với
+  `[CT3 ×2, CT4 ×−1]` thì máy chủ tự tính tổng 25.000đ cho 2 túi 50.000đ (người soát đo, lời 400 "không khớp tổng … 25.000đ"
+  — tức gửi đúng 25.000đ là qua). GOI-1 chỉ khoá món LẤY TỪ GÓI (`GOI_SL_KHONG_HOP_LE`, ca A2j); chặn cho mọi món là đổi đường
+  tiền chung của đơn lẻ → chủ quán quyết, nên mở việc riêng (cần rà mọi nguồn gọi POST /orders trước — K5).
 - (soát vòng 1, lỗi 2) Huỷ / xoá đơn LẤY HÀNG của gói ĐÃ DỪNG vẫn trừ `delivered_qty` + đổi `updated_at` của gói (`orders.js`,
   nhánh "giao từ gói" của huỷ và xoá — không lọc `status`). Có nên chặn / giữ nguyên, và có cần cột ngày dừng riêng để đối soát
   theo kỳ không — chủ quán quyết (vùng "CHƯA rà" CLAUDE.md §8; đổi DB). GOI-1 không đụng.
@@ -172,9 +178,93 @@ BÀI HỌC:
 ### Sửa sau vòng 1
 - Lỗi 1 (K7): `Customers.jsx` — effect xoá tham số `phone` (`setSearchParams({}, { replace: true })`) TRƯỚC khi mở → chỉ mở một lần;
   danh sách rỗng (SX lỗi) thì không đè lời "Không thể tải". Ca A4d thêm vế "xoá tham số trước khi mở" (vẫn là phép tĩnh — giới hạn
-  ghi ở CHƯA KIỂM); đột biến mới `BV-GOI1-KH-MOT-LAN` (bắt). Build lại `client/dist`.
+  ghi ở mục CHƯA KIỂM của `## Báo cáo` cuối file); đột biến mới `BV-GOI1-KH-MOT-LAN` (bắt). Build lại `client/dist`.
 - Lỗi 2 (K1 + K4): viết lại mục "Đối soát Dừng gói" theo dữ liệu có cấu trúc + ảnh chụp, không theo `updated_at` / tiền tố `notes`;
   đường huỷ / xoá đơn lấy hàng của gói đã dừng → Phát hiện (chủ quán quyết, không tự sửa).
 - Lỗi 3 (K3): đổi tên ca A6i cho đúng điều nó kiểm; hạn chế "gói cũ lệch tổng" → Phát hiện.
 - Bài thử đổi sau bằng chứng → chạy lại gốc (15 đạt · 34 hỏng) và bản vá (49 đạt · 0 hỏng), chép lại `bang_chung_do.txt` (A16).
   Bỏ nhãn "(K5)" ở A2d — nó ĐỎ trên gốc (gốc không chặn theo loại: cả hai quầy 200).
+
+## Bước 8 — soát độc lập vòng 2 (agent general-purpose, HEAD `eddb278`) — báo cáo chép nguyên
+```
+KHÔNG ĐẠT
+
+Tôi đã chạy lại trên HEAD eddb278, mỗi lệnh một lần. Cây làm việc vẫn sạch sau khi chạy (`git status --short` rỗng).
+- `node cong_cu/thu_GOI1.js`: 49 đạt · 0 hỏng.
+- `python3 viec/GOI-1/dot_bien.py`: 41/41 đột biến bị bắt.
+- `python3 viec/P26c/dot_bien.py`: 93/93 bị bắt, chạy trên eddb278.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 67 · FAIL 0 · CẢNH BÁO 0. Có dòng "dist đã commit KHỚP với src hiện tại".
+- Bundle `client/dist/assets/index-aaHAaqG3.js` (index.html trỏ đúng) có đoạn `$({},{replace:!0});const Y=s.find(...)`, tức đã chứa bản sửa lỗi 1.
+
+Kiểm 3 lỗi của vòng 1:
+- Lỗi 1, sửa đúng. `Customers.jsx:163–171` xoá tham số trước khi mở. Lúc đầu `loading` = true (`Customers.jsx:15`) nên effect không chạy với danh sách rỗng. Xoá xong thì `sdtMo` = null, lần chạy sau dừng ngay. Trong trang chỉ chỗ này dùng `useSearchParams`, nên `setSearchParams({})` không xoá nhầm tham số nào khác.
+- Lỗi 2, viết lại đúng với code. Lệnh dừng chỉ đổi status, notes, updated_at (`packages.js:216`). Huỷ đơn mua gói: gói thành `cancelled` hoặc bị xoá (`orders.js:1388–1398`). Phần ví hoàn bằng `loai:"refund"` (`orders.js:1328`). Nhận ra gói dừng bằng "gói cancelled + đơn mua completed" là đứng vững.
+- Lỗi 3, đổi tên ca A6i đúng. Tên mới khớp điều ca kiểm (`thu_GOI1.js:406`).
+
+LỖI TÌM ĐƯỢC:
+1. `server/utils/goiKhach.js:22–27` (vuotTheoLoai) + `server/routes/orders.js:281–365`: chặn theo loại bị lách bằng dòng số lượng ÂM — khuôn K4 + K3.
+   - POST /orders không kiểm `item.quantity`. Tôi grep `quantity <|isInteger(.*quantity|quantity > 0` trong orders.js: chỉ có `:1469` và `:1598`, đều ở đường huỷ/xoá.
+   - `vuotTheoLoai` cộng gộp "xin" theo loại, kể cả số âm. Tôi chạy thử bằng bản sao harness thu_GOI1 trong thư mục nháp, server thật HEAD:
+     - Gói CT1 cài 5, đã lấy 3. Gửi `items: [CT1 ×7, CT1 ×−5]` → HTTP 200. Đơn ghi hai dòng 7 và −5, quầy giao 7 túi. "Đã lấy" CT1 hiện 5 (số ròng), che mất phần vượt.
+     - `CT1 ×5 + CT2 ×−4` → 200. `delivered_qty` chỉ tăng 1, CT2 bị đếm −4, nên sau này lấy CT2 vượt mức cài được. Phép tổng (lỗ có từ P26c) cũng lách được theo cách này.
+   - Phiếu ghi mục tiêu "lấy hàng không vượt từng loại kể cả gọi API thẳng" và A2 "Máy chủ chặn lấy vượt TỪNG LOẠI". Phép mới không đạt điều đó với loại đầu vào này. KHUON_LOI K4: "Cùng khuôn phải giống ở mọi loại đầu vào". Bài thử không có ca số lượng ≤ 0 hoặc lẻ.
+   - Luồng hợp lệ (K5): màn hình không bao giờ gửi SL ≤ 0 (`Sales.jsx:532–535`: `newQty <= 0` thì bỏ món). Mọi chỗ thêm món đều là `quantity: 1` hoặc `+1` (`Sales.jsx:454/473/499/520`).
+   - Cách gọn: trong vòng lặp món, chặn `!(Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1)` → 400. Thêm ca đỏ trên gốc + đột biến. Phải kiểm K5 cho các nguồn khác gọi POST /orders (tôi chưa rà).
+   - Đường tiền, có từ trước GOI-1: `items: [CT3 ×2 (lẻ), CT4 ×−1 (lẻ)]` cho máy chủ tự tính tổng 25.000đ cho 2 túi 50.000đ (lời 400 "không khớp tổng đơn hàng thật (25.000đ)"). Đây là lỗ tiền lẻ qua API. Chặn ở vòng lặp món thì bịt luôn. Nếu coi là ngoài Phạm vi thì phải ghi Phát hiện để chủ quán quyết.
+2. `cong_cu/thu_GOI1.js:309–313` (A4d): bài thử của bản sửa lỗi 1 vẫn xanh khi chỉ có marker suông — khuôn K3.
+   - Tôi đổi dòng `setSearchParams({}, { replace: true });` thành chú thích `// setSearchParams(...)` trong bản sao `client/src/pages` ở nháp. Chạy `--client <nháp>` → 49 đạt · 0 hỏng, A4d ✓, trong khi lỗi mở lại modal của vòng 1 đã quay lại.
+   - KHUON_LOI K3 bắt phá thử nhánh "marker suông", và TACH-GL bắt đột biến đưa đúng lỗi cũ trở lại. Đột biến `BV-GOI1-KH-MOT-LAN` chỉ xoá dòng, nên không phủ nhánh này.
+   - Cách gọn: bỏ các dòng `^\s*//.*$` trước khi soi (dùng chung cho mọi phép tĩnh của bài), thêm một đột biến "biến dòng thành chú thích".
+3. `viec/GOI-1/trang_thai.md:175`: khẳng định không có căn cứ — khuôn K1.
+   - Dòng này ghi "(vẫn là phép tĩnh — giới hạn ghi ở CHƯA KIỂM)". `grep -n "CHƯA KIỂM" viec/GOI-1/trang_thai.md` chỉ ra đúng dòng 175, không có mục CHƯA KIỂM nào.
+   - Hồ sơ cũng không ghi lần chạy `npm test` / `--day-du` / P26c trên eddb278: Bước 6 (`:106`) và câu P26c ở Bước 5 đều ghi HEAD 8ded1bf. Lần chạy của tôi bù vào (67/0/0, 93/93).
+
+NGHI NGỜ:
+- Phép tĩnh A1e, A3c, A4b, A4b2, A4c, A4c2, A5h (`thu_GOI1.js:187–192, 271–272, 295–308, 355–358`) cùng điểm yếu với A4d: soi chuỗi có mặt nên marker suông làm xanh được. Phiếu cho phép "như A7 của P26c", vòng 1 xếp vào nghi ngờ. Tôi chỉ chứng minh trực tiếp cho A4d.
+- Hai cách khớp loại. `delivered_items` gom theo khoá sx và lấy `MAX(p.code)` (`goiKhach.js:14–18`), còn Sales.jsx khớp theo `product_code === product.code` (`Sales.jsx:423, 544`). Nếu hai dòng `pos_products` chung một khoá sx mà khác mã, màn hình có thể hiện 0 đã lấy. Máy chủ vẫn chặn đúng nên không mất tiền.
+- Kế hoạch hứa ca A2f (`ke_hoach.md` mục 6: "delivered_items khớp daLayTheoLoai") nhưng bài không có ca tên A2f. Phần này được A2c, A2h phủ một phần qua `daLayCuaKhach`.
+- Dừng gói ghi số cũ. Route đọc `cp` (`packages.js:211`) ngoài phép UPDATE có điều kiện. Một đơn lấy hàng chen giữa thì `notes` ghi "đã lấy d/t" cũ. Chỉ là chữ, không ảnh hưởng tiền.
+- Customers.jsx:166: SX lỗi thì tham số vẫn bị xoá, nên tải lại trang không thử mở khách lại được. Nhỏ.
+- Bấm "✕" bỏ lọc gói (`Reports.jsx`, `setSearchParams({ tab: 'packages' })`) thì lọc vẫn là "Đang giao". Nhỏ, đúng C2 khi mở.
+- Danh sách loại trùng khoá (chỉ có khi gọi API thẳng) vẫn chưa chặn. Đã ghi Phát hiện.
+
+Trả lời theo từng mục soát:
+1. K3. Gốc 15 đạt · 34 hỏng (`bang_chung_do.txt`), sau vá 49/0. Ca máy chủ so status, code và kho, không dò chữ. A2d2 dựng khe hở tất định, đọc ngoài giao dịch thì đỏ. Phép màn hình chỉ soi có mặt, marker suông làm A4d xanh (lỗi 2).
+2. K4. grep `unit_price = 0|unit_price === 0|IS NULL|product_id > 0` → 3 chỗ: `orders.js:1429` (huỷ), `:1560` (xoá), `goiKhach.js:8–9`. Điều kiện khớp nhau. Hai đường lấy từ gói đều đã chặn: gói cũ trong giao dịch (`orders.js:842–851`), mua + lấy ngay (`:389–391`). Ba chỗ đếm dùng chung `dieuKienLayTuGoi` (`packages.js:159, 173, 192`). Còn hở: loại đầu vào số lượng âm (lỗi 1).
+3. K5. Các luồng hợp lệ đều xanh: bán gói A6a · lấy trong giới hạn A6b · gói không danh sách A6c · huỷ đơn lấy hàng A6d + A2c · bật/tắt gói cũ giá 0 A6e · mua + lấy ngay A6f · gia hạn A6g (`orders.js:187` chỉ chặn khi có from_package) · xoá gói A6h · gói cũ lệch tổng A6i · quản lý được cấp quyền A5g · bật/tắt không gửi tổng hay giá (`packages.js:82`). Không thấy luồng nào bị chặn oan. Quản lý chỉ có `manage_users` thì mất quyền dừng gói, đúng Q5.
+4. K1. Lỗi 3. Mục 0 của `ke_hoach.md` dẫn file:dòng trên 93163f3, nay đã trôi, chấp nhận được.
+5. Đường tiền. Giá gói tra DB (`orders.js:379`), trần theo loại lấy `package_items` từ DB (`:249–263`), lượt tổng lấy từ DB. Dừng gói không đụng ví hay sổ (A5c `chup()`). Nhưng `item.quantity` là số client gửi mà máy chủ tin không kiểm: lách được chặn theo loại (GOI-1) và giảm được tiền đơn lẻ (có từ trước) — lỗi 1.
+6. P1. Client/src đổi ở aaa97d5 và eaabd6f, cả hai kèm dist. `--day-du` báo KHỚP, bundle có chuỗi sửa mới.
+7. Nghiệm thu. Xem dòng NGHIỆM THU bên dưới.
+8. Đơn giản. Phần máy chủ gọn: một util 37 dòng, POST và PUT dùng chung `tongTheoLoai`. Nhỏ: phép tính tổng các loại viết hai lần trong `Settings.jsx` (openPkgModal ~dòng 347 và `doiLoai` ~dòng 358). Gọn hơn: một hàm `tongLoai(items)`. Nhỏ: `monDuocLayTuGoi` suy ra được từ `dsGoi` (`orders.js:244–270`). "Dừng gói" có quy tắc đối soát (A8) đúng với code. Chưa có cột ngày dừng nên chưa cộng theo kỳ được, đã ghi Phát hiện.
+
+NGHIỆM THU: 8/8 mục có bằng chứng · mục có bằng chứng nhưng hỏng nội dung: A2 (lách được bằng số lượng âm khi gọi API thẳng — lỗi 1)
+- A1: A1a–A1f. · A2: A2a–A2i, A2d2. Thiếu ca số lượng ≤ 0. · A3: A3a–A3c. · A4: A4a–A4f. A4d chỉ là phép tĩnh, marker suông qua được (lỗi 2). · A5: A5a–A5h. · A6: A6a–A6i. · A7: hồ sơ thiếu lần chạy trên eddb278. Lần chạy của tôi bù vào: --day-du 67/0/0, GOI-1 41/41, P26c 93/93, dist khớp. · A8: `trang_thai.md` mục "Đối soát Dừng gói", đúng với code.
+
+CHƯA SOÁT ĐƯỢC:
+- Turso production thật: khoá ghi khi hai quầy cùng bấm. A2d, A2d2, A5e chỉ chạy trên libsql cục bộ.
+- Giao diện trong trình duyệt thật: luồng "N KH" → Báo cáo → tên khách → Khách hàng mở một lần, `readOnly` ô Tổng, `window.prompt`.
+- Các nguồn khác gọi POST /orders (app khách, khoá dịch vụ) có gửi số lượng lẻ hay ≤ 0 hợp lệ không. Cần rà trước khi thêm phép chặn số lượng (K5).
+- Dữ liệu production: gói lệch tổng, `package_items` SL 0 hoặc trùng loại, sản phẩm chung khoá sx khác mã.
+- Không dựng lại bundle độc lập (người gác chặn `npx`). Chỉ dựa vào phép so băm của `--day-du` và grep bundle.
+
+BÀI HỌC:
+- KHOÁ: thêm ca vào thu_GOI1, đỏ trên HEAD hiện tại: "lấy từ gói với dòng SL âm hoặc 0 cùng loại → 400, không đơn mới". Kèm đột biến gỡ phép kiểm số lượng.
+- KHOÁ: mọi phép tĩnh soi màn hình bỏ dòng chú thích trước khi so. Đột biến chuẩn "biến dòng vá thành chú thích" cho mỗi phép tĩnh (marker suông, K3).
+- NGUYÊN TẮC (K4, đưa vào KHUON_LOI.md): viết phép chặn theo TỔNG/SỐ CỘNG của dữ liệu client gửi thì trước hết khoá miền giá trị từng phần tử (nguyên, ≥ 1). Cộng gộp mà không khoá dấu thì một dòng âm triệt tiêu phần vượt.
+- NGUYÊN TẮC (K1): trang_thai dẫn tới một mục ("ghi ở CHƯA KIỂM") thì mục đó phải có thật. Sau mỗi vòng sửa phải ghi lại lần chạy A7 trên HEAD mới.
+- Phát hiện (đường tiền, ngoài GOI-1, cần chủ quán quyết): POST /orders nhận số lượng âm cho món lẻ, máy chủ tự tính tổng thấp hơn giá thật (2 túi giá 25.000đ). Nên thành việc riêng ưu tiên cao nếu không vá trong GOI-1.
+```
+
+### Sửa sau vòng 2
+- Lỗi 1 (K4 + K3): `orders.js` vòng lặp món — món lấy từ gói SL phải nguyên ≥ 1, sai → 400 `GOI_SL_KHONG_HOP_LE` (trước mọi phép
+  cộng "xin"). Ca mới A2j (CT1 7 + CT1 −5; CT2 0; CT1 1.5 → 400, không đơn mới) — ĐỎ trên gốc. Đột biến `BV-GOI1-SL-AM`,
+  `VS-GOI1-SL-AM-CHI-0` (bắt). K5: món lấy từ gói chỉ do màn Bán hàng gửi (`Sales.jsx` `from_package: item.fromPkg`, SL luôn
+  nguyên ≥ 1 — người soát dẫn `Sales.jsx:454/473/499/520/532–535`). Món LẺ SL âm (có từ trước) → Phát hiện, không làm.
+- Lỗi 2 (K3): mọi phép tĩnh của `thu_GOI1.js` soi mã SAU khi bỏ chú thích (`boChuThich`: `//` cả dòng, `/* */`, `{/* */}`).
+  Đột biến marker suông mới: `VS-GOI1-KH-CHU-THICH` (dòng xoá tham số thành chú thích), `VS-GOI1-O-TONG-CHU-THICH` (readOnly
+  thành chú thích JSX) — bắt.
+- Lỗi 3 (K1): câu "ghi ở CHƯA KIỂM" sửa thành trỏ tới `## Báo cáo` cuối file (có mục CHƯA KIỂM). Lần chạy A7 trên HEAD mới ghi ở
+  bước 6 vòng 2 bên dưới.
+- Nghi ngờ "ca A2f": kế hoạch hứa A2f; trong bài, ý đó nằm ở A2c (`delivered_items` theo `product_code`, CT1 + CT2) và A2h.
+- Bài thử đổi sau bằng chứng → chạy lại gốc (15 đạt · 35 hỏng) và bản vá (50 đạt · 0 hỏng), `bang_chung_do.txt` `SỐ CA … 50` (A16).

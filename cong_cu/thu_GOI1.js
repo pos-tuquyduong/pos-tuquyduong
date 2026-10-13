@@ -46,7 +46,9 @@ const muc = (t) => console.log('\n' + t);
 const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
-const docTrang = (ten) => { try { return fs.readFileSync(path.join(CLIENT, 'src', 'pages', ten), 'utf8'); } catch { return ''; } };
+// Phép tĩnh soi mã SAU khi bỏ chú thích (`//…` cả dòng, `/* … */`, `{/* … */}`) — marker suông trong chú thích không làm xanh (K3, E2).
+const boChuThich = (s) => s.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '').replace(/^\s*\/\/.*$/gm, '');
+const docTrang = (ten) => { try { return boChuThich(fs.readFileSync(path.join(CLIENT, 'src', 'pages', ten), 'utf8')); } catch { return ''; } };
 
 async function main() {
   imLang();
@@ -244,6 +246,15 @@ async function main() {
     k('A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400',
       await daLayLoai(q.cp, 0) <= 5 && (conChen ? q1.status === 200 : q1.status === 400) && q2.status === 400,
       `${moTa(q1)} / ${moTa(q2)} · CT1 ${await daLayLoai(q.cp, 0)} · ${conChen ? 'không có câu đọc ngoài giao dịch' : 'đọc NGOÀI giao dịch'}`);
+
+    const am = await coGoi(3);
+    const truocAm = await so('SELECT COUNT(*) FROM pos_orders');
+    const a7 = await lay(am.sdt, am.cp, [[0, 7], [0, -5]]);
+    const a0 = await lay(am.sdt, am.cp, [[0, 2], [1, 0]]);
+    const ale = await lay(am.sdt, am.cp, [[0, 1.5]]);
+    k('A2j lấy từ gói có dòng SL âm / 0 / lẻ (CT1 7 + CT1 −5; CT2 0; CT1 1.5) → 400 GOI_SL_KHONG_HOP_LE, không đơn mới, CT1 vẫn 3',
+      [a7, a0, ale].every((r) => r.status === 400 && r.code === 'GOI_SL_KHONG_HOP_LE') && await so('SELECT COUNT(*) FROM pos_orders') === truocAm
+        && await daLayLoai(am.cp, 0) === 3, `${moTa(a7)} / ${moTa(a0)} / ${moTa(ale)} · CT1 ${await daLayLoai(am.cp, 0)}`);
 
     const sdt = sdtMoi();
     const goiE = await taoGoi();

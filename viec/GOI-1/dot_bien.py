@@ -37,6 +37,9 @@ DOT_BIEN = [
                                      "    { const m = orderItems.filter((i) => i.from_package); const v = customer_package_id && m.length && dsGoi.length\n"
                                      "      ? vuotTheoLoai(dsGoi, await daLayTheoLoai({ query }, customer_package_id), m) : null; if (v) return res.status(400).json(v); }\n"
                                      "    const tx = await beginTransaction();\n    let orderId;", 1)], r'✗ A2d2'),
+  ('BV-GOI1-SL-AM', 'thu', [(O, "if (item.from_package && !(Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1)) {", "if (false) {", 1)], r'✗ A2j'),
+  ('VS-GOI1-SL-AM-CHI-0', 'thu', [(O, "if (item.from_package && !(Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1)) {",
+                                   "if (item.from_package && Number(item.quantity) === 0) {", 1)], r'✗ A2j'),
   ('BV-GOI1-MUA-LOAI', 'thu', [(O, "      if (vuotMua) return res.status(400).json(vuotMua);\n", "", 1)], r'✗ A2e'),
   ('VS-GOI1-MUA-NHAN-GOI', 'thu', [(O, "const vuotMua = vuotTheoLoai(dsGoi, [],",
                                     "const vuotMua = vuotTheoLoai(dsGoi.map((g) => ({ ...g, qty: g.qty * (package_buy.pkg_qty || 1) })), [],", 1)], r'✗ A2g'),
@@ -74,6 +77,8 @@ DOT_BIEN = [
   ('BV-GOI1-DANG-GIAO', 'cli', [(REP, "useState(goiLoc ? 'active' : 'all')", "useState('all')", 1)], r'✗ A4c2'),
   ('BV-GOI1-DO', 'cli', [(REP, "const vuot = pct > 100;", "const vuot = false;", 1)], r'✗ A4b2'),
   ('VS-GOI1-SAP-CHUA-LAY', 'cli', [(REP, "String(p.last_delivery_at || p.created_at)", "String(p.last_delivery_at || '')", 1)], r'✗ A4b2'),
+  ('VS-GOI1-KH-CHU-THICH', 'cli', [(CUS, "    setSearchParams({}, { replace: true });\n", "    // setSearchParams({}, { replace: true });\n", 1)], r'✗ A4d'),
+  ('VS-GOI1-O-TONG-CHU-THICH', 'cli', [(SET, "readOnly={pkgForm.package_items.length > 0}", "{/* readOnly={pkgForm.package_items.length > 0} */}", 1)], r'✗ A1e'),
   ('BV-GOI1-KH-MOT-LAN', 'cli', [(CUS, "    setSearchParams({}, { replace: true });\n", "", 1)], r'✗ A4d'),
   ('BV-GOI1-KH-URL', 'cli', [(CUS, "if (kh) openDetailModal(kh);", "if (kh) setSelectedCustomer(kh);", 1)], r'✗ A4d'),
   ('VS-GOI1-NUT-QUYEN', 'cli', [(REP, "hasPermission('refund_package') && pkg.status === 'active' &&", "pkg.status === 'active' &&", 1)], r'✗ A5h'),
