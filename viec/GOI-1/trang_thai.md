@@ -87,6 +87,11 @@ Code: `packages.js` (cả file), `orders.js` 160–400, 760–900, 990–1030, 1
   ghi "không") → Phát hiện, chủ quán quyết.
 
 ## Phát hiện
+- (soát vòng 4 — ĐƯỜNG TIỀN, ưu tiên cao, có từ trước GOI-1) `package_buy.pkg_qty` (số gói mua) máy chủ tin nguyên: nhân với giá gói
+  tra DB và làm cận vòng tạo gói (`orders.js` khối "Mua gói → thêm line item" và khối "tạo customer_package khi mua gói"). Người
+  soát đo: `pkg_qty 0.01` + lấy ngay 5 CT1 trả 3.000đ → 200 (gói 10 lượt); `1.01` → 2 gói; `-1` kèm 12 túi lẻ trả 0đ → 200.
+  Màn Bán hàng gửi `pkg_qty: cart.find(c => c.is_pkg).quantity || 1` (`Sales.jsx:748`, số nguyên ≥ 1). Cùng khuôn với món lẻ SL âm
+  ở trên — việc sau phải rà MỌI trường số lượng của POST /orders (`quantity`, `pkg_qty`, …), không chỉ một trường.
 - (soát vòng 3, nghi ngờ) `packages.js` POST / PUT nhận `package_items` dạng CHUỖI JSON (chỉ khi gọi API thẳng, quyền
   manage_users) thì không tính lại tổng và `orders.js` coi như gói không danh sách. Có từ trước. Việc sau.
 - (soát vòng 2 — ĐƯỜNG TIỀN, ưu tiên cao, có từ trước GOI-1) POST /orders không kiểm `quantity` của món LẺ: gọi API thẳng với
@@ -362,3 +367,88 @@ BÀI HỌC:
 - `node kiem_tra_truoc_khi_giao.js --day-du`: thoát 0 · PASS 67 · FAIL 0 · CẢNH BÁO 0 · "dist đã commit KHỚP với src hiện tại" ·
   "bài chạy thật cong_cu/thu_GOI1.js xanh".
 - `python3 viec/GOI-1/dot_bien.py`: 48/48 bị bắt. `python3 viec/P26c/dot_bien.py`: 93/93 bị bắt. `kiem_neo.py`: y nguyên mốc.
+
+## Bước 8 — soát độc lập vòng 4 (agent general-purpose, HEAD `acfc8ca`) — báo cáo chép nguyên
+```
+KHÔNG ĐẠT
+
+Lần chạy lại trên HEAD acfc8ca (mỗi lệnh một lần, `git status --short` vẫn rỗng sau khi chạy):
+- `node cong_cu/thu_GOI1.js`: 51 đạt · 0 hỏng.
+- Trên gốc 21736a8 (server + client/src lấy bằng `git archive` vào nháp): 15 đạt · 36 hỏng, khớp trang_thai.md:358.
+- Trên server của 91ec65c (trước bản sửa vòng 3): 50 đạt · 1 hỏng, đúng ca A2k ĐỎ.
+- `python3 viec/GOI-1/dot_bien.py`: 48/48 bị bắt.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 67 · FAIL 0 · CẢNH BÁO 0, có dòng "dist đã commit KHỚP với src hiện tại". `git diff eaabd6f HEAD -- client` rỗng.
+- Không chạy lại `npm test` và P26c. Hai số này lấy từ trang_thai.md:361–364.
+
+Kiểm hai lỗi vòng 3:
+- Lỗi 1 (SL dạng chuỗi) đã sửa đúng ở đường món. orders.js:309 có `const sl = Number(item.quantity)`. Dòng :366 và :374 dùng `sl`. Nhờ đó các phép cộng ở :393, :907, :1032 và vòng `vuotTheoLoai` (goiKhach.js:24) đều nhận số. Bản sửa không làm tệ thêm chỗ nào: món lẻ thiếu SL hoặc SL "2abc" ra 500 "Only finite numbers", và trên 91ec65c cũng y hệt (tôi đo cả hai).
+- Lỗi 2 (marker suông) mới sửa được cho A4d, chưa sửa xong cho A1e. Xem LỖI 1.
+
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_GOI1.js:191 (A1e) — phép `/\sreadOnly=\{pkgForm\.package_items\.length > 0\}\s/` vẫn xanh khi chỉ có marker suông. Khuôn K3 + K1.
+   - Đây là lỗi 2 của vòng 3, mới sửa được một nửa.
+   - Tôi chứng minh trên bản sao `client/src` ở thư mục nháp (`--client <nháp>`). Cả hai bản đều bỏ `readOnly` khỏi ô Tổng ở Settings.jsx:1195, tức ô Tổng gõ tay được: lỗi thật của màn hình, trái A1 "ô không sửa được". Cả hai đều cho 51 đạt · 0 hỏng, A1e ✓:
+     - (a) Thêm chú thích cuối dòng ở chỗ khác trong file: `const _x = 1; // readOnly={pkgForm.package_items.length > 0}`. Chữ `\s` khớp dấu cách sau `//`, còn `\s` cuối khớp dấu xuống dòng.
+     - (b) Chuỗi thuộc tính có dấu cách đầu: `data-ghi=" readOnly={pkgForm.package_items.length > 0} "`.
+   - Hai câu sau khẳng định quá điều phép làm được (K1): chú thích thu_GOI1.js:49–50 ("đòi khoảng trắng trước thuộc tính (A1e…)") và trang_thai.md:353.
+   - dot_bien.py có dạng `{/* */}` (VS-GOI1-O-TONG-CHU-THICH, :84) và dạng chuỗi không dấu cách (VS-GOI1-O-TONG-CHUOI, :83) cho A1e. Nó thiếu đúng dạng thứ ba mà bài học vòng 3 nêu: "chú thích cuối dòng".
+   - Cách gọn: tách đúng thẻ `<input …value={pkgForm.total_qty}…>` bằng `/<input[^>]*value=\{pkgForm\.total_qty\}[^>]*>/g`. Đòi khớp đúng 1 lần và thẻ đó chứa `readOnly={pkgForm.package_items.length > 0}`. Marker trong chú thích sẽ làm thành 2 lần khớp, còn vắng `readOnly` thì đỏ. Thêm đột biến (a).
+   - A4d (thu_GOI1.js:336–339) thì neo đầu dòng đúng. Cả hai đột biến chú thích cuối dòng / cả dòng đều bị bắt.
+2. server/routes/orders.js:399–400 và :1019–1021 — `package_buy.pkg_qty` là số lượng client gửi. Máy chủ nhân nó với giá gói tra từ DB và dùng làm số vòng tạo gói, mà không kiểm gì. Khuôn K4 (đường song song với lỗi 1 vòng 3, cùng route, cách chỗ vá `vuotMua` :397 đúng 2 dòng). Đường tiền.
+   - Đo bằng bản sao harness thu_GOI1 trong nháp, server thật HEAD (gói 300.000đ, CT1 5 + CT2 5):
+     - `pkg_qty: 0.01`, kèm lấy ngay 5 CT1, trả 3.000đ → 200. Khách có 1 gói 10 lượt, đã giao 5, mà chỉ trả 3.000đ.
+     - `pkg_qty: 1.01`, trả 303.000đ → 200. Tạo 2 gói (vòng `i < 1.01` chạy 2 lần).
+     - `pkg_qty: "1.5"`, trả 450.000đ → 2 gói.
+     - `pkg_qty: -1` kèm 12 túi CT3 lẻ (300.000đ), trả 0đ → 200. Đơn total 0, 12 túi ra cửa, không tạo gói nào.
+   - Trên 91ec65c ra y hệt. Dòng :399 có từ trước nhánh (blame ^d3ff03f), vậy GOI-1 không gây ra lỗ này.
+   - Lỗ này KHÔNG có trong `## Phát hiện`. Phát hiện chỉ ghi "món LẺ SL âm" (`item.quantity`). Một việc sau chỉ rà `item.quantity` sẽ bỏ sót `pkg_qty`.
+   - Tối thiểu phải ghi vào Phát hiện (đường tiền, ưu tiên cao) để chủ quán quyết. Cách gọn nếu chủ quán cho vá: `const pkgQty = Number(package_buy.pkg_qty ?? 1)`, chặn khi không phải số nguyên ≥ 1 → 400, rồi dùng đúng `pkgQty` ở cả :400 và :1019.
+   - Cần rà K5 trước: Sales.jsx gửi `pkg_qty` thế nào. Tôi chưa đọc.
+3. server/routes/orders.js:308 so với :319 và :323 (nhỏ, K1) — chú thích ghi "Từ đây chỉ dùng `sl`", nhưng hai dòng ngay dưới vẫn truyền `item.quantity` gốc cho `checkStock` và câu báo lỗi. Không hại: checkStock chỉ để báo, được bọc try/catch (CLAUDE.md §5.3), và số đi qua URLSearchParams (sxApi.js:80–86). Nhưng chú thích hứa quá điều code làm. Sửa: dùng `sl` hoặc sửa lời chú thích.
+
+NGHI NGỜ:
+- A4d (thu_GOI1.js:336–339) neo đầu dòng nên chặn được chú thích cuối dòng. Dòng xoá tham số nằm trong template literal nhiều dòng, hoặc trong `if (false) { … }`, vẫn qua được. Cách này gượng, không tính là lỗi.
+- Các phép tĩnh khác (A1e vế doiLoai/savePkg, A3c, A4b, A4b2, A4c, A4c2, A5h) vẫn soi chuỗi có mặt. Hồ sơ đã ghi CHƯA KIỂM; phiếu cho phép như A7 P26c.
+- Settings.jsx cộng SL các loại viết hai lần (:347 trong openPkgModal và :358 `doiLoai`). Ba vòng trước đã nêu, chưa gom. Nhỏ.
+- Settings.jsx:362 dùng `Number.isInteger(i.qty)` chặt. Nếu dữ liệu cũ có `qty` dạng chuỗi "5", chủ quán sẽ không lưu sửa được gói đó. Máy chủ dùng `Number()` nên dễ hơn. Chưa rà dữ liệu thật.
+
+Theo từng mục soát:
+1. K3. Gốc 15/36 → HEAD 51/0. A2k ĐỎ trên 91ec65c, cả hai vế đều đỏ (mua: giao không ghi; gói không danh sách: giao 0). Đột biến VS-GOI1-SL-GHI-GOC bị bắt. Ca máy chủ so status, code và kho. Phép tĩnh A1e: marker suông vẫn làm xanh (LỖI 1).
+2. K4. `grep -n quantity server/routes/orders.js`: trong POST có các chỗ :309, :319, :323, :374, :393, :451, :578, :901, :907, :998, :1009, :1032. Sau vá, mọi chỗ cộng/ghi đều đọc `orderItems` (đã là số). Còn lại :319 và :323 là gốc (LỖI 3, vô hại). Cùng khuôn "số lượng client gửi" còn `package_buy.pkg_qty` ở :399–400 và :1019–1021, chưa xử lý và chưa ghi (LỖI 2). Ba chỗ đếm `dieuKienLayTuGoi` (goiKhach.js:8; packages.js:159, 173–174, 192) và hai đường huỷ/xoá vẫn khớp nhau.
+3. K5. Điều kiện mới vòng 3 (chuẩn hoá `sl`) không chặn thêm luồng nào. Món lẻ " 2" → 200, lưu quantity 2 (integer), tổng 50.000đ. Món lẻ thiếu SL ra 500 y như trước. Luồng hợp lệ A6a–A6i, A5g xanh. `GOI_SL_KHONG_HOP_LE` chỉ chạm món from_package, mà chỉ Sales.jsx gửi loại món này (vòng 3 đã grep).
+4. K1. thu_GOI1.js:49–50 và trang_thai.md:353 hứa A1e chặn được marker suông nhờ "khoảng trắng" (sai, LỖI 1). Chú thích orders.js:308 (LỖI 3). Mục 0 của ke_hoach.md dẫn dòng trên 93163f3, đã trôi, chấp nhận được. Mục 14 ghi lại tên thật.
+5. Đường tiền. Giá gói tra DB (orders.js:387–400). Trần theo loại lấy `package_items` từ DB (:249–270). Lượt tổng lấy từ DB. Dừng gói chỉ đổi status, notes, updated_at (packages.js:213–216). Riêng `pkg_qty` thì máy chủ tin client: bán được gói với 1 % giá, hoặc lấy hàng lẻ 0đ (LỖI 2, có từ trước, chưa ghi Phát hiện).
+6. P1. client/src chỉ đổi ở aaa97d5 và eaabd6f, cả hai kèm dist. `--day-du` báo KHỚP.
+7. Nghiệm thu: xem dòng dưới.
+8. Đơn giản. Máy chủ gọn: util 37 dòng; POST và PUT dùng chung `tongTheoLoai` (packages.js:38–43). Bản sửa vòng 3 chỉ 3 dòng, đúng chỗ. Phép A1e nên soi đúng thẻ input (cách ở LỖI 1), không soi cả file. A8 có quy tắc đối soát cho "Dừng gói" (trang_thai.md:76–87), đúng với code.
+
+NGHIỆM THU:    8/8 mục có bằng chứng · mục có bằng chứng nhưng hỏng nội dung: A1 (vế "ô không sửa được": A1e xanh với marker suông, LỖI 1)
+- A1: A1a–A1f. · A2: A2a–A2k, A2d2. · A3: A3a–A3c. · A4: A4a–A4f. · A5: A5a–A5h. · A6: A6a–A6i. · A7: --day-du 67/0/0 và dot_bien 48/48 do tôi chạy; npm test 63/0/0 và P26c 93/93 theo trang_thai.md:361–364. · A8: trang_thai.md:76–87.
+
+CHƯA SOÁT ĐƯỢC:
+- Turso production: khoá ghi khi hai quầy cùng bấm (A2d, A2d2, A5e chỉ chạy trên libsql cục bộ).
+- Trình duyệt thật: luồng N KH → Báo cáo → Khách hàng, `readOnly`, `window.prompt`.
+- Sales.jsx gửi `pkg_qty` thế nào (cần cho K5 trước khi vá LỖI 2). Tôi chưa đọc.
+- Dữ liệu production: gói lệch tổng, `qty` dạng chuỗi hoặc 0, loại trùng.
+- Không dựng lại bundle độc lập (người gác chặn `npx`); không chạy lại `npm test` và P26c.
+
+BÀI HỌC:
+- KHOÁ: phép tĩnh cho một thuộc tính JSX phải tách đúng phần tử (regex thẻ có định danh riêng, đòi khớp đúng 1 lần) rồi soi thuộc tính trong thẻ đó, không soi cả file. Bộ đột biến marker suông chuẩn có ĐỦ ba dạng (cả dòng, cuối dòng, chuỗi thuộc tính) cho MỖI phép tĩnh đã neo. Vòng 3 thêm cho A4d nhưng sót dạng cuối dòng cho A1e.
+- KHOÁ: thêm ca thu_GOI1 (hoặc bài của việc sau) "mua gói với `pkg_qty` 0.01 / 1.01 / −1 → 400, không đơn mới, không gói mới", sau khi chủ quán duyệt vá.
+- NGUYÊN TẮC (K4, đưa vào KHUON_LOI.md): sửa một lỗ "tin số lượng client gửi" thì grep MỌI trường số lượng trong cùng thân route (`quantity`, `pkg_qty`, `qty`, `total_qty`…), không chỉ trường vừa bị bắt. Trường nào nhân với giá DB, hoặc làm cận vòng lặp tạo bản ghi, là đường tiền.
+- NGUYÊN TẮC (K1): sửa lỗi người soát báo cho N phép thì báo cáo sửa phải nêu đủng dạng đột biến đã thử cho TỪNG phép. Không viết câu gộp "(A1e, A4d) neo đầu dòng hoặc đòi khoảng trắng" khi hai phép được bảo vệ khác nhau.
+```
+
+## Câu hỏi
+Soát vòng 4 KHÔNG ĐẠT và đã dùng hết 3 vòng sửa (`so_vong_sua_toi_da` = 3, `tu_chay/cau_hinh.json`) → DỪNG ở bước 8, không tự sửa
+tiếp, chưa viết báo cáo 7 mục / bài học. Chủ quán quyết:
+- Q-A (lỗi 1 vòng 4, bài thử — K3): phép tĩnh A1e (ô Tổng `readOnly`) vẫn xanh khi `readOnly` bị gỡ khỏi ô mà có marker ở chú thích
+  cuối dòng / chuỗi thuộc tính có dấu cách. Mã màn hình hiện tại ĐÚNG (`Settings.jsx` ô Tổng có `readOnly={pkgForm.package_items.length > 0}`);
+  chỉ phép kiểm yếu. Cho phép thêm MỘT vòng sửa để A1e soi đúng thẻ `<input … value={pkgForm.total_qty} …>` (khớp đúng 1 lần) + đột
+  biến "chú thích cuối dòng", đồng thời sửa câu chú thích `thu_GOI1.js` / `trang_thai.md` hứa quá (K1) và lời chú thích "Từ đây chỉ
+  dùng `sl`" ở `orders.js` (lỗi 3 — `checkStock` / lời báo vẫn dùng `item.quantity`, vô hại)? Hay chấp nhận như phép tĩnh A7 của P26c?
+- Q-B (lỗi 2 vòng 4, ĐƯỜNG TIỀN có từ trước): vá `pkg_qty` (số nguyên ≥ 1, dùng một biến cho cả tiền và số gói) trong GOI-1, hay mở
+  việc riêng cùng với "món lẻ SL âm" (Phát hiện)? `orders.js` nằm trong Phạm vi, nhưng đây là đường tiền mua gói chung, không phải
+  mục tiêu của phiếu.
+- Hiện trạng để chủ quán đánh giá: HEAD `acfc8ca` — `npm test` 63/0/0, `--day-du` 67/0/0, `thu_GOI1.js` 51/0 (gốc 15/36), đột biến
+  GOI-1 48/48, P26c 93/93. Máy chủ (A1–A3, A5) người soát vòng 4 không tìm thêm lỗi; A8 đúng với code.
