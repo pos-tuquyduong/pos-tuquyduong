@@ -304,8 +304,10 @@ router.post("/", authenticate, async (req, res) => {
           .json({ error: `Sản phẩm ${product.name} chưa có giá bán` });
       }
 
-      // GOI-1 (A2, soát vòng 2): món lấy từ gói phải SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo loại.
-      if (item.from_package && !(Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1)) {
+      // GOI-1 (A2, soát vòng 2–3): món lấy từ gói phải SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo
+      // loại. Từ đây chỉ dùng `sl` (số đã kiểm) — SL dạng chuỗi (" 5") mà ghi / cộng bản gốc thì nối chuỗi, bỏ qua trừ lượt.
+      const sl = Number(item.quantity);
+      if (item.from_package && !(Number.isInteger(sl) && sl >= 1)) {
         return res.status(400).json({ error: `SL lấy từ gói của ${product.name} phải là số nguyên từ 1 trở lên`, code: "GOI_SL_KHONG_HOP_LE" });
       }
 
@@ -361,7 +363,7 @@ router.post("/", authenticate, async (req, res) => {
 
       // Mix mode: SP từ gói → 0đ, SP lẻ → giá thường
       const unitPrice = layTuGoi ? 0 : product.price;
-      const itemTotal = unitPrice * item.quantity;
+      const itemTotal = unitPrice * sl;
       subtotal += itemTotal;
 
       orderItems.push({
@@ -369,7 +371,7 @@ router.post("/", authenticate, async (req, res) => {
         product_code: product.code,
         product_name: product.name,
         unit: product.unit || 'túi',
-        quantity: item.quantity,
+        quantity: sl,
         unit_price: unitPrice,
         total_price: itemTotal,
         sx_product_type: product.sx_product_type,
