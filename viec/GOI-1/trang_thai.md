@@ -67,6 +67,7 @@ Code: `packages.js` (cả file), `orders.js` 160–400, 760–900, 990–1030, 1
 - Đột biến đầu tiên cho chỗ "trong giao dịch" (`VS-GOI1-LOAI-NGOAI-TX`: đọc bằng `query` ngay trong khối giao dịch) SỐNG — kho
   thử tự xếp hàng; thay bằng `VS-GOI1-LOAI-TRUOC-TX` (đúng phương án B đã loại) + ca A2d2 tất định → bắt.
 - Neo P26c: 93 đột biến của `viec/P26c/dot_bien.py` neo khớp đủ trên cây đã vá (script nháp đếm chuỗi). `kiem_neo.py` y nguyên mốc.
+- Chạy lại TOÀN BỘ `python3 viec/P26c/dot_bien.py` trên HEAD `8ded1bf`: **93 đột biến bị bắt · 0 KHÔNG bị bắt** — không cái nào đổi mong đợi.
 
 ## Đối soát "Dừng gói" (A8 — CLAUDE.md điều 5, chỉ ghi quy tắc)
 - Gói dừng KHÔNG phát sinh tiền: không dòng `pos_balance_transactions`, không đổi `pos_wallets`, không đổi đơn mua gói (bài thử A5c).
