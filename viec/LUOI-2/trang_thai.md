@@ -232,3 +232,17 @@ NGUYÊN TẮC (K4 hồ sơ) — sửa câu tài liệu thì grep theo NGHĨA ("t
 ## Dừng (vòng 3)
 Chờ chủ quán trả lời Câu hỏi 2 (thêm `## Bài thử đỏ` vào phiếu). Khi làm tiếp: chạy lại bước 6 trên HEAD, soát lại, rồi bước 10–11
 (báo cáo 7 mục, Bài học, dòng HEAD ĐÃ KIỂM). Code thử + đột biến đã đạt cả ba vòng soát; mọi lỗi còn lại là hồ sơ / phiếu.
+
+## Làm tiếp lần 3 (13.10 — Câu hỏi 2 đã trả lời: phiếu có `## Bài thử đỏ` "không — …", commit d3a6d52)
+- bước 1: HEAD `d3a6d52` · FETCH_HEAD `d3a6d52` — bằng nhau (hook mở phiên đã kéo 2c20a78 → d3a6d52). `git log --oneline -3`:
+  ```
+  d3a6d52 PHIEU: LUOI-2
+  2c20a78 LUOI-2: trang thai — bao cao soat vong 3, Cau hoi 2 (cong A12 can ## Bai thu do), dung
+  add0426 LUOI-2: ke hoach — sua theo soat vong 3 (o rui ro, so dong, cong huy don goi)
+  ```
+- `phieu.md:35–36` dòng "không — LUOI-2 chỉ thêm ca hồi quy …" khớp `mucMien` (`tu_chay/cong.js:58`, gạch đầu dòng tuỳ chọn).
+- Bước 6 chạy lại trên HEAD `d3a6d52` (cây sạch, không sửa file nào trong lúc chạy):
+  - `npm test` → PASS 62 · FAIL 0 · CẢNH BÁO 0 · `node cong_cu/thu_P26c.js` → 84 đạt · 0 hỏng
+  - `python3 viec/AUDIT-2/dot_bien.py <7 tên> -j 4` → A3L BẮT 7 · SỐNG 0 · HỎNG 0 · LẠC 0 · TREO 0 · ✓ kho thật không đổi (134 s)
+  - `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93)
+  - `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 66 · FAIL 0 · CẢNH BÁO 0
