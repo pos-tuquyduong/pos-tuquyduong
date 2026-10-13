@@ -1,5 +1,6 @@
 // Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup + HÓA ĐƠN (Phase A)
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
@@ -342,7 +343,8 @@ export default function Settings() {
     const existingItems = pkg?.package_items ? (typeof pkg.package_items === 'string' ? JSON.parse(pkg.package_items) : pkg.package_items) : [];
     setPkgForm(pkg ? {
       code: pkg.code, name: pkg.name, description: pkg.description || '', price: pkg.price || '',
-      unit: pkg.unit || 'túi', total_qty: pkg.total_qty || '', package_items: existingItems, is_active: !!pkg.is_active
+      unit: pkg.unit || 'túi', package_items: existingItems, is_active: !!pkg.is_active,
+      total_qty: existingItems.length ? existingItems.reduce((s, i) => s + (i.qty || 0), 0) : (pkg.total_qty || '')
     } : { code: '', name: '', description: '', price: '', unit: 'túi', total_qty: '', package_items: [], is_active: true });
     setShowPkgModal(true);
     // Load products for checklist
@@ -352,8 +354,12 @@ export default function Settings() {
       }).catch(() => {});
     }
   };
+  // GOI-1 (Q1): gói có danh sách loại → Tổng SL SP = cộng SL các loại, không gõ tay (máy chủ cũng tự tính lại).
+  const doiLoai = (items) => setPkgForm({ ...pkgForm, package_items: items, total_qty: items.length ? items.reduce((s, i) => s + (i.qty || 0), 0) : pkgForm.total_qty });
   const savePkg = async () => {
     if (!pkgForm.code || !pkgForm.name) { setMessage('Lỗi: Mã và tên bắt buộc'); return; }
+    if (!(parseFloat(pkgForm.price) > 0)) { setMessage('Lỗi: Giá bán của gói phải lớn hơn 0đ'); return; }
+    if (pkgForm.package_items.some(i => !(Number.isInteger(i.qty) && i.qty >= 1))) { setMessage('Lỗi: SP đã tích trong gói phải có SL từ 1 trở lên'); return; }
     // P26c (Câu hỏi 3): số lượt bán theo gói đã cài — không cho lưu gói dưới 1 lượt (máy chủ cũng chặn).
     if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }
     setSaving(true);
@@ -363,7 +369,6 @@ export default function Settings() {
         ...pkgForm,
         price: parseFloat(pkgForm.price) || 0,
         total_qty: parseInt(pkgForm.total_qty) || 0,
-        package_items: pkgForm.package_items.filter(i => i.qty > 0),
       };
       const data = await pkgApi(editingPkg ? 'PUT' : 'POST', url, body);
       if (!data.success) throw new Error(data.error);
@@ -1147,7 +1152,7 @@ export default function Settings() {
                         <td><strong style={{ color: '#7c3aed' }}>📦 {pkg.code}</strong></td>
                         <td>
                           {pkg.name}
-                          {locked && <span style={{ fontSize: '0.7rem', marginLeft: '0.25rem', color: '#f59e0b' }}>🔒 {pkg.active_users} KH</span>}
+                          {locked && <Link to={`/reports?tab=packages&goi=${pkg.id}`} style={{ fontSize: '0.7rem', marginLeft: '0.25rem', color: '#f59e0b' }}>🔒 {pkg.active_users} KH</Link>}
                         </td>
                         <td><span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600, fontSize: '0.8rem' }}>{pkg.total_qty || '-'}</span></td>
                         <td><strong style={{ color: '#2563eb' }}>{(pkg.price || 0).toLocaleString()}đ</strong></td>
@@ -1187,7 +1192,7 @@ export default function Settings() {
                         <div style={{ flex: 2 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Giá bán (VND)</label>
                           <input className="input" type="number" min="0" value={pkgForm.price} onChange={e => setPkgForm({ ...pkgForm, price: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Tổng SL SP</label>
-                          <input className="input" type="number" min="1" value={pkgForm.total_qty} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
+                          <input className="input" type="number" min="1" value={pkgForm.total_qty} readOnly={pkgForm.package_items.length > 0} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>ĐVT</label>
                           <input className="input" value={pkgForm.unit} onChange={e => setPkgForm({ ...pkgForm, unit: e.target.value })} /></div>
                       </div>
@@ -1203,15 +1208,15 @@ export default function Settings() {
                                 <input type="checkbox" checked={!!existing}
                                   onChange={e => {
                                     if (e.target.checked) {
-                                      setPkgForm({ ...pkgForm, package_items: [...pkgForm.package_items, { sx_product_type: p.sx_product_type, sx_product_id: p.sx_product_id, code: p.code, name: p.name, qty: 0 }] });
+                                      doiLoai([...pkgForm.package_items, { sx_product_type: p.sx_product_type, sx_product_id: p.sx_product_id, code: p.code, name: p.name, qty: 0 }]);
                                     } else {
-                                      setPkgForm({ ...pkgForm, package_items: pkgForm.package_items.filter(i => `${i.sx_product_type}_${i.sx_product_id}` !== key) });
+                                      doiLoai(pkgForm.package_items.filter(i => `${i.sx_product_type}_${i.sx_product_id}` !== key));
                                     }
                                   }} />
                                 <span style={{ flex: 1, fontSize: '0.8rem' }}>{p.icon || '📦'} {p.code} — {p.name}</span>
                                 {existing && (
                                   <input type="number" min="0" value={existing.qty || ''} placeholder="SL"
-                                    onChange={e => setPkgForm({ ...pkgForm, package_items: pkgForm.package_items.map(i => `${i.sx_product_type}_${i.sx_product_id}` === key ? { ...i, qty: parseInt(e.target.value) || 0 } : i) })}
+                                    onChange={e => doiLoai(pkgForm.package_items.map(i => `${i.sx_product_type}_${i.sx_product_id}` === key ? { ...i, qty: parseInt(e.target.value) || 0 } : i))}
                                     style={{ width: '55px', padding: '2px 4px', borderRadius: 4, border: '1px solid #c4b5fd', fontSize: '0.8rem', textAlign: 'center' }} />
                                 )}
                               </div>

@@ -1,6 +1,8 @@
 // Reports.jsx - Phase B: Thêm báo cáo chiết khấu + shipping + Gói SP
-import { useState, useEffect, useMemo } from 'react';
-import { reportsApi } from '../utils/api';
+import { useState, useEffect, useMemo, Fragment } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { api, reportsApi } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
 
 export default function Reports() {
@@ -12,13 +14,17 @@ export default function Reports() {
     to: new Date().toISOString().slice(0, 10)
   });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('daily'); // daily, discount, packages
+  // GOI-1 (Q3): /reports?tab=packages&goi=<mã gói> mở thẳng tab Gói SP, lọc sẵn gói đó + "Đang giao" (khớp "🔒 N KH" ở Cài đặt).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const goiLoc = Number(searchParams.get('goi')) || null;
+  const { hasPermission } = useAuth();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'packages' ? 'packages' : 'daily'); // daily, discount, packages
 
   // Packages state
   const [pkgData, setPkgData] = useState([]);
-  const [pkgFilter, setPkgFilter] = useState('all');
+  const [pkgFilter, setPkgFilter] = useState(goiLoc ? 'active' : 'all');
   const [pkgSearch, setPkgSearch] = useState('');
-  const [pkgOpen, setPkgOpen] = useState({});
+  const [pkgSort, setPkgSort] = useState('moi'); // moi = thứ tự máy chủ (đang giao trước, mới mua trước) · lau = lâu chưa lấy lên đầu
   const [pkgDetailOpen, setPkgDetailOpen] = useState({});
   const [pkgDeliveries, setPkgDeliveries] = useState({});
 
@@ -52,9 +58,7 @@ export default function Reports() {
   const loadPackageData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('pos_token');
-      const res = await fetch('/api/pos/packages/customer-packages/all', { headers: { 'Authorization': 'Bearer ' + token } });
-      const data = await res.json();
+      const data = await api.get('/packages/customer-packages/all');
       if (data.success) setPkgData(data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -63,33 +67,48 @@ export default function Reports() {
   const loadDeliveries = async (cpId) => {
     if (pkgDeliveries[cpId]) return;
     try {
-      const token = localStorage.getItem('pos_token');
-      const res = await fetch(`/api/pos/packages/customer-packages/${cpId}/deliveries`, { headers: { 'Authorization': 'Bearer ' + token } });
-      const data = await res.json();
+      const data = await api.get(`/packages/customer-packages/${cpId}/deliveries`);
       if (data.success) setPkgDeliveries(prev => ({ ...prev, [cpId]: data.data }));
     } catch (err) { console.error(err); }
   };
 
-  const pkgStats = useMemo(() => {
-    const t = pkgData.length, a = pkgData.filter(p => p.status === 'active').length;
-    const c = pkgData.filter(p => p.status === 'completed').length;
-    const n = pkgData.filter(p => { const pct = Math.round((p.delivered_qty / p.total_qty) * 100); return pct >= 80 && pct < 100; }).length;
-    const rev = pkgData.reduce((s, p) => s + (p.pkg_price || 0), 0);
-    const tSP = pkgData.reduce((s, p) => s + p.total_qty, 0);
-    const dSP = pkgData.reduce((s, p) => s + p.delivered_qty, 0);
-    return { t, a, c, n, rev, tSP, dSP, pct: tSP > 0 ? Math.round((dSP / tSP) * 100) : 0, custs: new Set(pkgData.map(p => p.customer_phone)).size };
-  }, [pkgData]);
+  // GOI-1 (Q5): dừng gói — bắt lý do, KHÔNG hoàn tiền (hoàn tiền chỉ qua huỷ đơn mua gói). Máy chủ chặn quyền + trạng thái.
+  const dungGoi = async (pkg) => {
+    const lyDo = window.prompt(`Dừng gói "${pkg.pkg_name}" của ${pkg.customer_name || pkg.customer_phone} — KHÔNG hoàn tiền. Lý do:`);
+    if (!lyDo || !lyDo.trim()) return;
+    try {
+      await api.put(`/packages/customer-packages/${pkg.id}/cancel`, { reason: lyDo.trim() });
+      await loadPackageData();
+    } catch (err) { alert('Lỗi: ' + err.message); }
+  };
 
-  const pkgGrouped = useMemo(() => {
-    let data = [...pkgData];
+  const pkgCuaGoi = useMemo(() => goiLoc ? pkgData.filter(p => Number(p.package_id) === goiLoc) : pkgData, [pkgData, goiLoc]);
+
+  const pkgStats = useMemo(() => {
+    const d = pkgCuaGoi;
+    const t = d.length, a = d.filter(p => p.status === 'active').length;
+    const c = d.filter(p => p.status === 'completed').length;
+    const n = d.filter(p => { const pct = Math.round((p.delivered_qty / p.total_qty) * 100); return pct >= 80 && pct < 100; }).length;
+    const rev = d.reduce((s, p) => s + (p.pkg_price || 0), 0);
+    const tSP = d.reduce((s, p) => s + p.total_qty, 0);
+    const dSP = d.reduce((s, p) => s + p.delivered_qty, 0);
+    return { t, a, c, n, rev, tSP, dSP, pct: tSP > 0 ? Math.round((dSP / tSP) * 100) : 0, custs: new Set(d.map(p => p.customer_phone)).size };
+  }, [pkgCuaGoi]);
+
+  // GOI-1 (Q4): một dòng một gói; tìm theo tên khách / SĐT / tên gói; "Lâu chưa lấy": gói chưa lấy lần nào tính theo ngày mua (C3).
+  const pkgList = useMemo(() => {
+    let data = pkgCuaGoi;
     if (pkgFilter === 'active') data = data.filter(p => p.status === 'active');
     else if (pkgFilter === 'near') data = data.filter(p => { const pct = Math.round((p.delivered_qty / p.total_qty) * 100); return pct >= 80 && pct < 100; });
     else if (pkgFilter === 'done') data = data.filter(p => p.status === 'completed');
-    if (pkgSearch) { const s = pkgSearch.toLowerCase(); data = data.filter(p => (p.customer_phone || '').includes(s) || (p.pkg_name || '').toLowerCase().includes(s)); }
-    const map = {};
-    data.forEach(p => { const ph = p.customer_phone; if (!map[ph]) map[ph] = { phone: ph, pkgs: [], rev: 0 }; map[ph].pkgs.push(p); map[ph].rev += (p.pkg_price || 0); });
-    return Object.values(map).sort((a, b) => b.pkgs.length - a.pkgs.length);
-  }, [pkgData, pkgFilter, pkgSearch]);
+    if (pkgSearch) {
+      const s = pkgSearch.toLowerCase();
+      data = data.filter(p => (p.customer_phone || '').includes(s) || (p.customer_name || '').toLowerCase().includes(s) || (p.pkg_name || '').toLowerCase().includes(s));
+    }
+    const lanCuoi = (p) => String(p.last_delivery_at || p.created_at);
+    return pkgSort === 'lau' ? [...data].sort((a, b) => lanCuoi(a).localeCompare(lanCuoi(b))) : data;
+  }, [pkgCuaGoi, pkgFilter, pkgSearch, pkgSort]);
+  const TRANG_THAI = { active: '🔄 Đang giao', completed: '✅ Xong', cancelled: '⛔ Đã dừng' };
 
   const formatPrice = (p) => (p || 0).toLocaleString() + 'đ';
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
@@ -359,68 +378,64 @@ export default function Reports() {
               </div>
 
               <div className="card mb-1" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input value={pkgSearch} onChange={e => setPkgSearch(e.target.value)} placeholder="🔍 Tìm SĐT, gói..." className="input" style={{ flex: '1 1 180px', maxWidth: 240 }} />
+                <input value={pkgSearch} onChange={e => setPkgSearch(e.target.value)} placeholder="🔍 Tìm tên, SĐT, gói..." className="input" style={{ flex: '1 1 180px', maxWidth: 240 }} />
                 {[{ k: 'all', l: 'Tất cả' }, { k: 'active', l: 'Đang giao' }, { k: 'near', l: '⚡ Sắp hết' }, { k: 'done', l: '✅ Xong' }].map(f => (
                   <button key={f.k} onClick={() => setPkgFilter(f.k)} className={`btn ${pkgFilter === f.k ? 'btn-primary' : 'btn-outline'}`}
                     style={pkgFilter === f.k ? { background: '#7c3aed', borderColor: '#7c3aed' } : {}}>{f.l}</button>
                 ))}
+                <button onClick={() => setPkgSort(pkgSort === 'lau' ? 'moi' : 'lau')} className={`btn ${pkgSort === 'lau' ? 'btn-primary' : 'btn-outline'}`}
+                  style={pkgSort === 'lau' ? { background: '#7c3aed', borderColor: '#7c3aed' } : {}}>⏳ Lâu chưa lấy</button>
+                {goiLoc && <button onClick={() => setSearchParams({ tab: 'packages' })} className="btn btn-outline">
+                  Gói: {pkgCuaGoi[0]?.pkg_name || '#' + goiLoc} ✕</button>}
               </div>
 
-              {pkgGrouped.length === 0 ? <div className="card" style={{ textAlign: 'center', color: '#999' }}>Không có gói nào</div> : pkgGrouped.map(cust => {
-                const isO = pkgOpen[cust.phone] !== false;
-                const cD = cust.pkgs.reduce((s, p) => s + p.delivered_qty, 0), cT = cust.pkgs.reduce((s, p) => s + p.total_qty, 0), cP = cT > 0 ? Math.round((cD / cT) * 100) : 0;
-                return (
-                  <div key={cust.phone} className="card mb-1" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div onClick={() => setPkgOpen(p => ({ ...p, [cust.phone]: !isO }))} style={{ padding: '0.75rem 1rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isO ? 'rgba(124,58,237,0.04)' : 'white' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{(cust.phone || '').slice(-2)}</div>
-                        <div><strong>{cust.phone}</strong> <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: 10, background: '#f3e8ff', color: '#7c3aed', fontWeight: 600 }}>{cust.pkgs.length} gói</span></div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed' }}>{cP}%</span>
-                        <div style={{ width: 60, height: 4, borderRadius: 2, background: '#f3f4f6' }}><div style={{ width: `${cP}%`, height: '100%', borderRadius: 2, background: '#7c3aed' }} /></div>
-                        <strong style={{ color: '#B91C1C' }}>{formatPrice(cust.rev)}</strong>
-                        <span style={{ color: '#999', transform: isO ? 'rotate(180deg)' : '', display: 'inline-block', transition: 'transform 0.2s' }}>▼</span>
-                      </div>
-                    </div>
-                    {isO && <div style={{ padding: '0.5rem 0.75rem' }}>
-                      {cust.pkgs.map(pkg => {
-                        const pct = Math.round((pkg.delivered_qty / pkg.total_qty) * 100), rem = pkg.total_qty - pkg.delivered_qty;
-                        const done = pct >= 100, near = pct >= 80 && !done, bc = done ? '#22c55e' : near ? '#f59e0b' : '#7c3aed';
+              {pkgList.length === 0 ? <div className="card" style={{ textAlign: 'center', color: '#999' }}>Không có gói nào</div> : (
+                <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                  <table className="table">
+                    <thead><tr><th>Khách</th><th>Gói</th><th>Đã lấy</th><th>Ngày mua</th><th>Lần lấy gần nhất</th><th>Trạng thái</th><th></th></tr></thead>
+                    <tbody>
+                      {pkgList.map(pkg => {
+                        const pct = pkg.total_qty > 0 ? Math.round((pkg.delivered_qty / pkg.total_qty) * 100) : 0;
+                        const vuot = pct > 100;
                         const dO = pkgDetailOpen[pkg.id], dels = pkgDeliveries[pkg.id] || [];
                         return (
-                          <div key={pkg.id} style={{ margin: '3px 0', borderRadius: 8, border: `1.5px solid ${done ? '#bbf7d0' : near ? '#fde68a' : '#e9d5ff'}`, overflow: 'hidden' }}>
-                            <div onClick={() => { setPkgDetailOpen(p => ({ ...p, [pkg.id]: !dO })); if (!dO) loadDeliveries(pkg.id); }}
-                              style={{ padding: '0.5rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: done ? '#f0fdf4' : near ? '#fffbeb' : '#faf5ff' }}>
-                              <div>
-                                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>📦 {pkg.pkg_name} </span>
-                                <span style={{ fontSize: '0.65rem', padding: '1px 7px', borderRadius: 10, fontWeight: 600, background: done ? '#dcfce7' : near ? '#fef3c7' : '#dbeafe', color: done ? '#166534' : near ? '#92400e' : '#1e40af' }}>{done ? '✅' : near ? '⚡' : '🔄'}</span>
-                                <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: 1 }}>{fmtDate(pkg.created_at)} · {formatPrice(pkg.pkg_price)}</div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <strong style={{ color: bc }}>{pct}%</strong>
-                                <div style={{ width: 40, height: 4, borderRadius: 2, background: '#f3f4f6' }}><div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', borderRadius: 2, background: bc }} /></div>
-                                <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>{pkg.delivered_qty}/{pkg.total_qty}</span>
-                              </div>
-                            </div>
-                            {near && <div style={{ padding: '2px 10px', background: '#fffbeb', fontSize: '0.7rem', color: '#92400e' }}>⚡ Còn {rem} — nhắc gia hạn</div>}
-                            {dO && <div style={{ padding: '0.4rem 0.75rem', background: '#fafafa', borderTop: '1px solid #f3f4f6', fontSize: '0.8rem' }}>
-                              {dels.length === 0 ? <div style={{ color: '#999', textAlign: 'center', padding: '0.3rem' }}>Chưa giao</div> : dels.map((d, j) => (
-                                <div key={j} style={{ display: 'flex', gap: 5, padding: '2px 0', borderBottom: j < dels.length - 1 ? '1px solid #f0f0f0' : 'none', fontSize: '0.75rem' }}>
+                          <Fragment key={pkg.id}>
+                            <tr onClick={() => { setPkgDetailOpen(p => ({ ...p, [pkg.id]: !dO })); if (!dO) loadDeliveries(pkg.id); }}
+                              style={{ cursor: 'pointer', background: vuot ? '#fef2f2' : undefined }}>
+                              <td>
+                                <Link to={`/customers?phone=${encodeURIComponent(pkg.customer_phone)}`} onClick={e => e.stopPropagation()}><strong>{pkg.customer_name || '—'}</strong></Link>
+                                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{pkg.customer_phone}</div>
+                              </td>
+                              <td>📦 {pkg.pkg_name}</td>
+                              <td style={{ color: vuot ? '#dc2626' : '#7c3aed', fontWeight: 700, whiteSpace: 'nowrap' }}>{pkg.delivered_qty}/{pkg.total_qty} · {pct}%</td>
+                              <td>{fmtDate(pkg.created_at)}</td>
+                              <td>{pkg.last_delivery_at ? fmtDate(pkg.last_delivery_at) : 'chưa lấy'}</td>
+                              <td style={{ whiteSpace: 'nowrap' }}>{TRANG_THAI[pkg.status] || pkg.status}</td>
+                              <td>
+                                {hasPermission('refund_package') && pkg.status === 'active' && (
+                                  <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', color: '#dc2626', whiteSpace: 'nowrap' }}
+                                    onClick={e => { e.stopPropagation(); dungGoi(pkg); }}>Dừng gói</button>
+                                )}
+                              </td>
+                            </tr>
+                            {dO && <tr><td colSpan={7} style={{ background: '#fafafa', fontSize: '0.75rem' }}>
+                              {pkg.status === 'cancelled' && pkg.notes && <div style={{ color: '#92400e', whiteSpace: 'pre-line', marginBottom: 4 }}>{pkg.notes}</div>}
+                              {dels.length === 0 ? <div style={{ color: '#999', textAlign: 'center' }}>Chưa giao</div> : dels.map((d, j) => (
+                                <div key={j} style={{ display: 'flex', gap: 5, padding: '2px 0' }}>
                                   <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0 4px', borderRadius: 3, fontWeight: 700 }}>#{j + 1}</span>
                                   <span>{fmtDate(d.created_at)}</span>
-                                  <span style={{ flex: 1, color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.items}</span>
+                                  <span style={{ flex: 1, color: '#666' }}>{d.items}</span>
                                   <strong style={{ color: '#7c3aed' }}>{d.total_qty}</strong>
                                 </div>
                               ))}
-                            </div>}
-                          </div>
+                            </td></tr>}
+                          </Fragment>
                         );
                       })}
-                    </div>}
-                  </div>
-                );
-              })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )
         )}
