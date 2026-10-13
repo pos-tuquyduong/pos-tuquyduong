@@ -74,6 +74,7 @@ DOT_BIEN = [
   ('BV-GOI1-DANG-GIAO', 'cli', [(REP, "useState(goiLoc ? 'active' : 'all')", "useState('all')", 1)], r'✗ A4c2'),
   ('BV-GOI1-DO', 'cli', [(REP, "const vuot = pct > 100;", "const vuot = false;", 1)], r'✗ A4b2'),
   ('VS-GOI1-SAP-CHUA-LAY', 'cli', [(REP, "String(p.last_delivery_at || p.created_at)", "String(p.last_delivery_at || '')", 1)], r'✗ A4b2'),
+  ('BV-GOI1-KH-MOT-LAN', 'cli', [(CUS, "    setSearchParams({}, { replace: true });\n", "", 1)], r'✗ A4d'),
   ('BV-GOI1-KH-URL', 'cli', [(CUS, "if (kh) openDetailModal(kh);", "if (kh) setSelectedCustomer(kh);", 1)], r'✗ A4d'),
   ('VS-GOI1-NUT-QUYEN', 'cli', [(REP, "hasPermission('refund_package') && pkg.status === 'active' &&", "pkg.status === 'active' &&", 1)], r'✗ A5h'),
   ('BV-GOI1-NUT-LYDO', 'cli', [(REP, "if (!lyDo || !lyDo.trim()) return;", "if (lyDo === null) return;", 1)], r'✗ A5h'),

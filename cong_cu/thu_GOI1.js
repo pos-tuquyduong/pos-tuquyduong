@@ -226,7 +226,7 @@ async function main() {
     const [d1, d2] = await Promise.all([lay(d.sdt, d.cp, [[0, 2]]), lay(d.sdt, d.cp, [[0, 2]])]);
     const tot = [d1, d2].filter((r) => r.status === 200).length;
     const thua = [d1, d2].filter((r) => r.status === 400 && r.code === 'GOI_HET_LUOT_LOAI').length;
-    k('A2d (K5 — kho thử tự xếp hàng) hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5',
+    k('A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5',
       tot === 1 && thua === 1 && await daLayLoai(d.cp, 0) === 5, `${moTa(d1)} / ${moTa(d2)} · CT1 ${await daLayLoai(d.cp, 0)}`);
     const q = await coGoi(3);
     khe.chen = async () => {   // quầy 2: một đơn lấy 2 CT1 đã ghi xong (đúng như POST /orders ghi)
@@ -306,9 +306,11 @@ async function main() {
     k('A4c2 Reports.jsx: mở từ "N KH" (có goi) thì đặt sẵn lọc "Đang giao" (chủ quán chốt C2)',
       /useState\(goiLoc \? 'active' : 'all'\)/.test(rp));
     const kh = docTrang('Customers.jsx');
-    k('A4d Customers.jsx: đọc phone từ URL, tải xong danh sách thì mở đúng khách (openDetailModal)',
-      /const sdtMo = searchParams\.get\('phone'\)/.test(kh) && /const kh = customers\.find\(c => c\.phone === sdtMo\);/.test(kh)
-        && /if \(kh\) openDetailModal\(kh\);/.test(kh));
+    const moKh = (kh.match(/useEffect\(\(\) => \{\s*if \(!sdtMo \|\| loading\) return;[\s\S]*?\}, \[sdtMo, loading\]\);/) || [''])[0];
+    k('A4d Customers.jsx: đọc phone từ URL, tải xong danh sách thì mở đúng khách (openDetailModal) MỘT lần — xoá tham số trước khi mở',
+      /const sdtMo = searchParams\.get\('phone'\)/.test(kh) && /const kh = customers\.find\(c => c\.phone === sdtMo\);/.test(moKh)
+        && /if \(kh\) openDetailModal\(kh\);/.test(moKh)
+        && moKh.indexOf("setSearchParams({}, { replace: true });") >= 0 && moKh.indexOf("setSearchParams({}, { replace: true });") < moKh.indexOf('openDetailModal'));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -401,7 +403,7 @@ async function main() {
     const m4 = await muaGoi(sdt4, cu, { cash_amount: 0 });
     const cp4 = await goiCua(m4.order?.id);
     const l4 = await lay(sdt4, cp4, [[0, 2]]);
-    k('A6i gói cũ tổng 30 lệch danh sách vẫn bán / lấy được (khách nhận 30 lượt như đã cài)', m4.status === 200 && l4.status === 200
+    k('A6i gói cũ tổng 30 lệch danh sách (10) vẫn bán được, lấy trong giới hạn loại được; gói của khách lưu 30 lượt như đã cài', m4.status === 200 && l4.status === 200
       && await so('SELECT total_qty FROM pos_customer_packages WHERE id = ?', [cp4]) === 30, `${moTa(m4)} / ${moTa(l4)}`);
   }
 
