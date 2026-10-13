@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 34;
+const NGUONG_FETCH = 32;
 {
   let n = 0;
   const theoFile = {};
@@ -489,7 +489,7 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   }
   return ra;
 }
-for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js']) chayBaiThat(bai);
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js', 'cong_cu/thu_GOI1.js']) chayBaiThat(bai);
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong

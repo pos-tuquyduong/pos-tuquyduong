@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { customersV2Api, registrationsApi } from '../utils/api';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, Percent, FileText } from 'lucide-react';
 
@@ -156,6 +157,18 @@ export default function Customers() {
     setError('');
     loadMembershipStatus(customer.phone);
   };
+
+  // GOI-1 (Q4): /customers?phone=<SĐT> (bấm tên khách ở Báo cáo → Gói SP) — tải xong danh sách thì mở đúng khách đó, MỘT lần:
+  // xoá tham số ngay, để các lần tải lại sau (lưu khách, đổi quà) không mở lại modal.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sdtMo = searchParams.get('phone');
+  useEffect(() => {
+    if (!sdtMo || loading) return;
+    setSearchParams({}, { replace: true });
+    const kh = customers.find(c => c.phone === sdtMo);
+    if (kh) openDetailModal(kh);
+    else if (customers.length) setError(`Không tìm thấy khách ${sdtMo} trong danh sách`);
+  }, [sdtMo, loading]);
 
   // ─── LOY-2: đổi quà tại quầy — dùng ĐÚNG 3 API mà app KH sẽ gọi (không viết logic riêng) ───
   const loyaltyApi = async (method, url, body) => {
