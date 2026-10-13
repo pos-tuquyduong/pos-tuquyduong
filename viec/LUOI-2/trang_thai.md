@@ -36,6 +36,13 @@ SỐNG  A3L A3L-goi-huy-dem-ca-mon-tra-tien  (39 s) · mọi lệnh thoát 0
 1. `server/routes/signup-codes.js:197` — `/nhan-diem` tính `diemGoc = floor(don.total / per)` không xét đơn có flash; luật F2
    (`orders.js:782–783`) không cộng điểm cho đơn flash lúc bán, nhưng mã bill của đơn đó vẫn nhân `diemGoc × heSo`. Chưa chạy;
    cố ý hay không là câu hỏi nghiệp vụ. Không sửa (phiếu cấm `server/`).
+2. (K4 của N2, kế hoạch mục 3 đã hứa ghi) `server/routes/orders.js:545` `if (!flashApplied && phone)` — luật "đơn flash không giảm
+   hạng" CHƯA có ca nào canh: người soát đo đổi thành `if (phone)` → `thu_P26c` vẫn 84/84; ngoài khối [L] không bài nào bật flash
+   (`thu_P20.js:97`, `thu_P21.js:77`, `kich_ban.js:63` đặt `flash_enabled=false`). Đề xuất việc sau: đột biến `A3L-tier-flash-van-giam`
+   + ca "khách có hạng mua món flash → tier_discount 0". Không mở rộng LUOI-2.
+3. (người soát) `server/routes/orders.js:1148` in hệ số nhân điểm trên bill bằng `Number(c.nhandiem_he_so) || 2`, còn
+   `signup-codes.js:108` cộng điểm thật bằng `heSo >= 1 ? heSo : 2` — hai luật cho cùng một giá trị: hệ số < 1 (vd 0.5) thì bill in
+   "gấp 0.5" mà máy cộng ×2. Chưa đọc màn Cài đặt có chặn giá trị < 1 không. Không sửa.
 
 ## Soát kế hoạch (agent phụ, chỉ đọc)
 Không ngoài Phạm vi; không có cách ngắn hơn đáng kể. Đã sửa theo soát: `c2luoi` khai trong `viec/AUDIT-2/dot_bien.py`, giữ tầng 2;
@@ -78,8 +85,72 @@ Phát hiện 1 (mã bill trên đơn flash) — chủ quán dặn ghi lại, kh�
 - `npm test` → PASS 62 · FAIL 0 · CẢNH BÁO 0. `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 66 · FAIL 0 · CẢNH BÁO 0.
 - N7 `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93) — bằng bản ghi P26c (`viec/P26c/trang_thai.md:545`).
 - N7 `viec/LUOI-1/dot_bien.py` và `viec/AUDIT-2/kiem_neo.py` KHÔNG CHẠY ĐƯỢC ở máy này: kho nông thiếu commit `9521cec`
-  (`viec/LUOI-1/dot_bien.py:24` `git show 9521cec:...` → 128); người gác chặn `git fetch --deepen` (GIT-KEO). → CHƯA KIỂM.
+  (`viec/LUOI-1/dot_bien.py:16, 24` `git show 9521cec:...` → 128); người gác chặn `git fetch --deepen` (GIT-KEO).
+  **Lý lẽ bù (soát vòng 1, đã kiểm lại):** (a) LUOI-1 chỉ chạy `cong_cu/gia_lap/chay.js` và `cong_cu/thu_gia_lap.js`
+  (`viec/LUOI-1/dot_bien.py:17, 138–141`); (b) không file nào trong `cong_cu/`, `tu_chay/`, `viec/LUOI-1/` NẠP `thu_P26c.js`
+  (`grep -rln thu_P26c` → chỉ `kich_ban.js` — một dòng chú thích — và chính nó); (c) `git diff --stat 6441651 fd919fd -- server cong_cu`
+  rỗng, mà `6441651` đã ghi "`viec/LUOI-1/dot_bien.py` → đúng mong đợi 80/80" (`git show 6441651:viec/P26c/trang_thai.md` dòng 105);
+  LUOI-2 chỉ đổi `cong_cu/thu_P26c.js` trong hai thư mục đó → 80/80 giữ nguyên theo cấu trúc. Vẫn là CHƯA CHẠY trên HEAD.
+  `kiem_neo.py`: bù một phần — 7 dòng AUDIT-2 đổi / thêm đều áp được (HỎNG 0, `bang_chung_do.txt`); mọi bộ khác không đổi file neo
+  ngoài `thu_P26c.js` (chỉ THÊM dòng; neo P26c vẫn khớp — 93/93 không HỎNG).
 - N7 `python3 viec/TACH-GL/dot_bien.py` → 29 · BẮT 25 · LẠC 1 · HỎNG 3 · đúng mong đợi 25/29 (755 s). Lệch = đúng 4 đột biến P26c
   đã ghi (`viec/P26c/trang_thai.md:547`: VS-kb-hai-luot, VS-luot-trung-thieu, BV-cha-kiem-mot-lan HỎNG neo; VS-luot-thieu-bat-bien
   LẠC) — việc này không đổi `kich_ban.js` / `thu_gia_lap.js` (`git diff --stat fd919fd HEAD`), TACH-GL không chạy `thu_P26c.js`.
 - Hook pre-commit (tầng 3) không cài ở máy mây này (chỉ `*.sample`) — đã tự chạy `npm test` trước commit.
+
+## Soát độc lập vòng 1 (/ra-soat, agent general-purpose, HEAD ec243b1) — báo cáo nguyên văn
+```
+ĐẠT / KHÔNG ĐẠT: KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+- viec/LUOI-2/trang_thai.md:80 — N7: LUOI-1 ghi "CHƯA KIỂM" mà không nêu lý lẽ bù, nên theo phiếu (phieu.md:31) mục này vẫn thiếu.
+  Lý lẽ bù CÓ THẬT, tôi đã kiểm:
+  (a) viec/LUOI-1/dot_bien.py:18,138–140 chỉ chạy cong_cu/gia_lap/chay.js và cong_cu/thu_gia_lap.js, trên bản sao server/ + cong_cu/.
+  (b) Không file nào trong cong_cu/ hay tu_chay/ nạp thu_P26c.js; chỉ có một dòng chú thích ở kich_ban.js:627.
+  (c) `git diff --stat 6441651 fd919fd -- server cong_cu` rỗng, và LUOI-2 chỉ đổi cong_cu/thu_P26c.js.
+  → Kết quả 80/80 ghi ở viec/P26c/trang_thai.md:546 giữ nguyên theo cấu trúc. Phải ghi lý lẽ này vào hồ sơ — K1/K3 (hồ sơ).
+- viec/LUOI-2/ke_hoach.md:66 — kế hoạch hứa: "N2: `!flashApplied` còn ở giảm hạng orders.js:545 … chỉ ghi Phát hiện nếu chưa có ca".
+  Mục ## Phát hiện (trang_thai.md:35–38) không có dòng này. Đã đo: đổi orders.js:545 `if (!flashApplied && phone)` → `if (phone)` thì
+  thu_P26c vẫn 84/84. Ngoài khối [L], không bài nào bật flash (thu_P20.js:97, thu_P21.js:77, kich_ban.js:63 đều đặt flash_enabled=false).
+  → Đường song song chưa được canh mà cũng không ghi lại — K4.
+- viec/LUOI-2/ke_hoach.md:54 — N7 tự hứa thêm "`python3 viec/AUDIT-2/kiem_neo.py` 0 HỎNG mới", nhưng trang_thai.md:80 ghi không chạy
+  được. Không phải yêu cầu của phiếu, nhưng là lời hứa chưa giữ. Bù được một phần: 7 dòng AUDIT-2 vừa đổi đều đã chạy, HỎNG 0
+  (bang_chung_do.txt:26–27) — K1.
+- viec/LUOI-2/ke_hoach.md:51 — L5a ghi "1 món lẻ (25.000 tiền mặt)". Code thật (thu_P26c.js:707–708) dùng mon(1) = 20.000 và
+  cash_amount 20000. Lệch số liệu, không ảnh hưởng ca — K1.
+
+NGHI NGỜ:
+- Ngoài phạm vi, đề xuất ghi Phát hiện — server/routes/orders.js:1148 tính `heSo = Number(c.nhandiem_he_so) || 2` để in chữ trên bill;
+  signup-codes.js:108 dùng `Number.isFinite(heSo) && heSo >= 1 ? heSo : 2` để cộng điểm thật. he_so < 1 (vd 0.5): bill in "gấp 0.5"
+  mà máy cộng ×2. Chưa đọc Settings có chặn giá trị này lúc lưu không.
+- Nhánh không SĐT lúc bán (signup-codes.js:214, daCong = null): đột biến diemGoc*heSo → diemGoc*(heSo−1) vẫn 84/84 với thu_P26c. Có thể
+  giả lập bắt; không chạy để xác nhận. Ngoài 6 đột biến của phiếu.
+- tienDaTra.js:45 Math.ceil(daDung) → Math.floor vẫn 84/84. Lệch 1 đồng, cùng loại m2 mà phiếu cho phép chỉ ghi.
+- K5: khối [L] trả cài đặt bằng DELETE rồi INSERT lại (thu_P26c.js:696–697), không bọc try/finally. Một ca ném lỗi giữa khối thì cài đặt
+  không được trả; bài đằng nào cũng dừng nên không đổi kết quả. updated_at bị đặt lại — vô hại.
+
+NGHIỆM THU: 7/8 mục có bằng chứng · mục thiếu: N7 (một phần — LUOI-1 thiếu lý lẽ trong hồ sơ). N0–N6 có (tự chạy lại bằng bản sao
+server/ + thu_P26c: 7 đột biến đỏ đúng ca, đúng câu; mỗi đột biến chỉ đỏ ca của nó, riêng N1 thêm L1b). P26c 93/93, npm test 62/0/0,
+--day-du 66/0/0 tự chạy lại.
+
+CHƯA SOÁT ĐƯỢC: không chạy lại TACH-GL (755 s) và cả bộ AUDIT-2 c2luoi; không chạy được LUOI-1, kiem_neo (kho nông); không chạy cổng A11
+với mục ## Bài thử cũ sửa; hook pre-commit không cài; diff không đụng server/ client/ (P3/P4, P1 không phát sinh).
+
+ĐƠN GIẢN: thu_P26c.js chú thích ghi số dòng (trôi) → neo bằng tên đột biến; `const dat` che bộ đếm `let dat` (dòng 44) → đổi `datCaiDat`;
+đặt lại loyalty_enabled / earn 10000 thừa (database.js:1085–1086 mặc định đúng vậy).
+
+BÀI HỌC:
+- NGUYÊN TẮC (K4): mỗi câu "ghi Phát hiện nếu …" trong ke_hoach.md phải có dòng ở ## Phát hiện, hoặc "đã có ca X" kèm file:dòng.
+- NGUYÊN TẮC (K1/K3): bộ đột biến không chạy được (kho nông) → ghi lý lẽ bù kiểm được (diff rỗng từ mốc bản ghi cũ + bộ đó không nạp
+  file đã đổi); không bù được mới là thiếu.
+- KHOÁ (có thể): đột biến A3L-tier-flash-van-giam (orders.js:545) + ca L2c — để việc sau quyết.
+```
+(Rút gọn phần mở đầu và chi tiết lặp của mục NGHIỆM THU / CHƯA SOÁT; nội dung kết luận giữ nguyên.)
+
+### Xử lý vòng sửa 1
+- LỖI 1 → ghi lý lẽ bù LUOI-1 ở Bước 6 (đã tự kiểm lại: `viec/LUOI-1/dot_bien.py:16–17, 138–141`; `git diff --stat 6441651 fd919fd --
+  server cong_cu` rỗng; `git show 6441651:viec/P26c/trang_thai.md` dòng 105 "đúng mong đợi 80/80").
+- LỖI 2 → Phát hiện 2. NGHI NGỜ 1 → Phát hiện 3. LỖI 3 → bù một phần ghi ở Bước 6. LỖI 4 → sửa `ke_hoach.md`.
+- ĐƠN GIẢN → làm cả ba ở `thu_P26c.js` (chú thích neo tên đột biến, `datCaiDat`, bỏ đặt lại tích điểm — L2b vẫn canh tích điểm bật).
+- NGHI NGỜ 2, 3 (nhánh không SĐT, ceil/floor) → ngoài 6 đột biến của phiếu, chỉ ghi (m2 phiếu cho phép). NGHI NGỜ 4 (không try/finally)
+  → giữ: bài dừng khi ca ném lỗi, không đổi kết quả; thêm try/finally là thêm dòng không chặn được gì.
