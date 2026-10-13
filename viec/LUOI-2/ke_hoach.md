@@ -48,7 +48,7 @@ cho `sp[0]`, khung giờ = giờ VN hiện tại → +2 giờ, CHỈ bật quanh
 |  | (K5) | **L2b** cùng cài đặt, món KHÔNG flash (`sp[1]` 20.000) → 2 điểm — chứng minh tích điểm đang bật (không có ca này thì L2a xanh oan, K3) | |
 | N3 | `A3L-nhandiem-cong-doi` | **L3a** bán `sp[2]` 50.000 có SĐT → KHẲNG ĐỊNH đơn có dòng `earn` 5 điểm (không có thì `daCong = null`, gốc và đột biến cùng cộng `diemGoc × heSo` — xanh oan, `signup-codes.js:208–214`) → `/signup-codes/nhan-diem` mã bill của đơn, cùng SĐT → 200; tổng điểm của đơn = 5 × 2 = 10 | đột biến: 15 |
 | N4 | `A3L-goi-bo-kiem-chu` | **L4a** gói của khách A, đơn SĐT B gửi `customer_package_id` gói A → 400 `GOI_KHONG_DUNG_CHU`, `delivered_qty` không đổi | đột biến: 200, gói A bị trừ |
-| N5 | `A3L-goi-huy-dem-ca-mon-tra-tien` | **L5a** gói đã giao 2; đơn 1 ly gói + 1 món lẻ (25.000 tiền mặt) → giao 3; huỷ → giao 2 | đột biến: 1 |
+| N5 | `A3L-goi-huy-dem-ca-mon-tra-tien` | **L5a** gói đã giao 2; đơn 1 ly gói + 1 món lẻ `sp[1]` (20.000 tiền mặt — sửa theo soát vòng 1: bản đầu ghi 25.000, code dùng `mon(1)`) → giao 3; huỷ → giao 2 | đột biến: 1 |
 | N6 | `A3L-hoan-goi-bo-tru-no` (mới, `server/utils/tienDaTra.js:45`) | **L6a** gói 300.000 / 10 lượt, tiền mặt 100.000 + nợ 200.000, chưa lấy → mua 200; owner huỷ 200; ví +100.000, tổng hoàn của đơn 100.000 | đột biến: +300.000 |
 | N0 | 5 A3L | chạy lại trên HEAD — đã làm, `trang_thai.md` | |
 | N7 | | `python3 viec/P26c/dot_bien.py`, `viec/LUOI-1/dot_bien.py`, `viec/TACH-GL/dot_bien.py` đủ: số BẮT không giảm; `npm test`, `--day-du` xanh 0 CẢNH BÁO; `python3 viec/AUDIT-2/kiem_neo.py` 0 HỎNG mới | |
