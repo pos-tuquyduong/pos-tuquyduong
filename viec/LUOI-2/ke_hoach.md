@@ -1,4 +1,4 @@
-# LUOI-2 — kế hoạch (chờ duyệt)
+# LUOI-2 — kế hoạch (chủ quán duyệt 5897b49)
 
 Nền: HEAD `fd919fd`. Chỉ thêm ca thử + đột biến; 0 dòng `server/`, `client/`. Số dòng dưới đọc trong lượt này.
 
@@ -8,7 +8,7 @@ Nền: HEAD `fd919fd`. Chỉ thêm ca thử + đột biến; 0 dòng `server/`, 
   `thu_P26c.js`. Đo nháp: N1–N6 trên bản sao `server/` → `thu_P26c.js` vẫn `76 đạt · 0 hỏng` → cả sáu SỐNG qua mọi bài hiện có.
 - `thu_P26c.js` chạy 3 s (76 ca), đã đăng ký trong bộ kiểm (`kiem_tra_truoc_khi_giao.js:492`) → thêm ca ở đây KHÔNG đụng bộ kiểm.
 - N6 dựng được: `POST /orders` không chặn mua gói ghi nợ (`orders.js:735–745` chỉ đặt `payment_status`; đối chiếu tổng
-  `:752–763` cộng cả `finalDebtAmount`); huỷ đơn mua gói cần owner / quyền `refund_package` (`:1346–1355`) rồi `status = 'completed'` (`:1356–1368`). Ca sẽ chứng minh bằng HTTP 200.
+  `:752–763` cộng cả `finalDebtAmount`); huỷ đơn mua gói cần owner / quyền `refund_package` (`:1346–1355`) rồi UPDATE sang `cancelled` với điều kiện `status = 'completed'` (`:1356–1368`). Ca sẽ chứng minh bằng HTTP 200.
 
 ## 1. Phương án
 
@@ -18,7 +18,7 @@ Nền: HEAD `fd919fd`. Chỉ thêm ca thử + đột biến; 0 dòng `server/`, 
 | chỗ | `cong_cu/thu_P26c.js`: một khối `[L]` trước `[K1b]` (6 ca bắt + 2 ca K5) + gắn route `signup-codes` vào danh sách `:88` | `cong_cu/gia_lap/kich_ban.js`: thêm ca vào KB15 / KB11 / KB19 / KB21 + KB mới cho flash và gói nợ |
 | số file / dòng | 1 file · ~60–75 dòng | 1–3 file (KB mới → `LUOT`, `NGUONG_KICH_BAN`, T9c, `DONG_DAT`) · ~90–140 dòng |
 | tốc độ | +~1 s trên 3 s | mỗi đột biến chạy giả lập ~35 s; KB mới phải đo lượt < 180 s |
-| rủi ro | đụng cài đặt chung (nhân điểm / flash) của kho thử → chụp lại, đặt trong khối, trả về như cũ sau L3a (khuôn A5i `:292–297`) | thêm KB làm giả lập dài thêm, gần hạn 110 s con; đụng cùng chỗ GOI-1 không — nhưng nhiều file hơn |
+| rủi ro | đụng cài đặt chung (nhân điểm / flash) của kho thử → chụp lại, đặt trong khối, trả về như cũ sau L3a (cùng ý A5i `:292–297`: đổi cấu hình chung rồi trả lại) | thêm KB làm giả lập dài thêm, gần hạn 110 s con; đụng cùng chỗ GOI-1 không — nhưng nhiều file hơn |
 
 Chọn A: ít dòng nhất, phiếu ưu tiên `thu_P26c.js`, không thêm bất biến (không bất biến nào bắt được ≥ 2 đột biến cùng loại mà I8 /
 I14 hiện chưa có — các đột biến sống vì THIẾU DỮ LIỆU, không vì thiếu bất biến) → `bat_bien.js`, `thu_gia_lap.js`, `kich_ban.js`,
