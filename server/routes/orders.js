@@ -26,6 +26,7 @@ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi } = require("./wallets"); // P26b: chỗ duy nhất ghi ví
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
+const { daLayTheoLoai, vuotTheoLoai } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
 
@@ -241,6 +242,7 @@ router.post("/", authenticate, async (req, res) => {
     // null = goi khong khai danh sach mon -> KHONG kiem, cho qua nhu cu
     //        (goi cu tao truoc khi co tinh nang nay van ban binh thuong).
     let monDuocLayTuGoi = null;
+    let dsGoi = [];   // GOI-1: danh sách loại kèm SL đã cài — chặn theo loại
     {
       let dsJson = null;
       if (customer_package_id) {
@@ -262,6 +264,7 @@ router.post("/", authenticate, async (req, res) => {
         try {
           const ds = typeof dsJson === "string" ? JSON.parse(dsJson) : dsJson;
           if (Array.isArray(ds) && ds.length) {
+            dsGoi = ds;
             monDuocLayTuGoi = new Set(
               ds.map((i) => `${i.sx_product_type}_${i.sx_product_id}`),
             );
@@ -383,6 +386,9 @@ router.post("/", authenticate, async (req, res) => {
       if (orderItems.reduce((s, i) => s + (i.from_package ? i.quantity : 0), 0) > soLuotGoi) {
         return res.status(400).json({ error: `Gói chỉ có ${soLuotGoi} lượt — lấy ngay vượt số lượt`, code: 'GOI_HET_LUOT' });
       }
+      // GOI-1 (A2): lấy ngay cũng không vượt từng loại — gói chưa có, đã lấy = 0; mua nhiều gói thì lấy ngay đổ vào gói đầu.
+      const vuotMua = vuotTheoLoai(dsGoi, [], orderItems.filter((i) => i.from_package));
+      if (vuotMua) return res.status(400).json(vuotMua);
       const pkgQty = package_buy.pkg_qty || 1;
       subtotal += pkg.price * pkgQty;
       orderItems.push({
@@ -831,6 +837,17 @@ router.post("/", authenticate, async (req, res) => {
         }
         if (tru.khach) balanceAfter = r.sau;
         dongSo.push(r.id);
+      }
+
+      // GOI-1 (A2): từng loại không vượt số đã cài — đếm trong CÙNG giao dịch với phép trừ lượt tổng (P26c A2, bên dưới), TRƯỚC
+      // khi ghi đơn này (ghi rồi thì đếm cả chính nó). Hai quầy cùng lấy thì đơn sau thua.
+      const monTuGoi = orderItems.filter((i) => i.from_package);
+      if (customer_package_id && monTuGoi.length && dsGoi.length) {
+        const vuot = vuotTheoLoai(dsGoi, await daLayTheoLoai(tx, customer_package_id), monTuGoi);
+        if (vuot) {
+          await tx.rollback();
+          return res.status(400).json(vuot);
+        }
       }
 
       // 1. Tạo đơn hàng
