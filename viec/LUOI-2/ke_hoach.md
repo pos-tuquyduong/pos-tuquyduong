@@ -27,7 +27,7 @@ I14 hiện chưa có — các đột biến sống vì THIẾU DỮ LIỆU, khô
 ### Phần B — bộ đột biến `viec/AUDIT-2/dot_bien.py`
 | | A (chọn) | B |
 |---|---|---|
-| cách | thêm cách chạy `c2luoi` = tầng 1 của `c2full` + `node cong_cu/thu_P26c.js --client <GOC>/client`; 5 đột biến N1–N5 đổi `c2full` → `c2luoi` và mẫu `✗ ` → `✗ L<n>` (đúng ca); thêm 2 dòng: N6 `A3L-hoan-goi-bo-tru-no`, K4 `A3L-goi-xoa-dem-ca-mon-tra-tien` | cách chạy chỉ `thu_P26c` (3 s) |
+| cách | thêm `K.LENH['c2luoi']` NGAY TRONG `viec/AUDIT-2/dot_bien.py` (khuôn dòng 22; KHÔNG sửa `viec/AUDIT-1/` — ngoài Phạm vi) = tầng 1 của `c2full` + `node cong_cu/thu_P26c.js --client <GOC>/client`, GIỮ tầng 2 (`thu_P20`, `thu_P21`); 5 đột biến N1–N5 đổi `c2full` → `c2luoi` và mẫu `✗ ` → `✗ L<n>` (đúng ca); thêm 2 dòng: N6 `A3L-hoan-goi-bo-tru-no`, K4 `A3L-goi-xoa-dem-ca-mon-tra-tien` | cách chạy chỉ `thu_P26c` (3 s) |
 | dòng | ~10 | ~10 |
 | lý do | vẫn đo cả giả lập + P26a/b như AUDIT-2 (SỐNG trước là SỐNG qua MỌI bài), mẫu riêng chứng minh "đỏ ĐÚNG ca, không ca khác chặn hộ" | nhanh hơn nhưng bằng chứng SỐNG trước hẹp hơn |
 
@@ -36,9 +36,9 @@ I14 hiện chưa có — các đột biến sống vì THIẾU DỮ LIỆU, khô
 Không đổi `c2full` (các A3L khác dùng nó — giữ nguyên kết quả cũ).
 
 ## 2. Ca thử ↔ nghiệm thu (1-1)
-Cài đặt trong khối: `loyalty_enabled=true`, `loyalty_earn_per_amount=10000`, `nhandiem_enabled=1`, `nhandiem_he_so=2`; flash bật
-20 % cho `sp[0]`, khung giờ = giờ VN hiện tại → +2 giờ (tránh mốc 23:59 / qua đêm sai). Cuối khối trả `flash_enabled=false`,
-`loyalty_enabled` như cũ.
+Cài đặt trong khối: `loyalty_enabled=true`, `loyalty_earn_per_amount=10000`, `nhandiem_enabled=1`, `nhandiem_he_so=2`. Flash 20 %
+cho `sp[0]`, khung giờ = giờ VN hiện tại → +2 giờ, CHỈ bật quanh L2a và tắt ngay sau L2a (soát kế hoạch: bật suốt khối thì món
+`sp[0]` của L5a lệch tổng → 400 `orders.js:756–763`, sập). Tích điểm trả về như cũ sau L3a. Thứ tự: L1 → L2 → L3 → L4 → L5 → L6.
 
 | NT | đột biến | ca | khẳng định (đỏ khi đột biến) |
 |---|---|---|---|
@@ -46,7 +46,7 @@ Cài đặt trong khối: `loyalty_enabled=true`, `loyalty_earn_per_amount=10000
 |  | (K5) | **L1b** thêm 1 điểm (= 3) → 200, điểm 0 — chứng minh L1a không đỏ vì quà hỏng | |
 | N2 | `A3L-earn-flash-van-cong` | **L2a** đơn có SĐT, món flash → 200, `flash_discount > 0`, 0 dòng `earn` của đơn | đột biến: có dòng earn |
 |  | (K5) | **L2b** cùng cài đặt, món KHÔNG flash (`sp[1]` 20.000) → 2 điểm — chứng minh tích điểm đang bật (không có ca này thì L2a xanh oan, K3) | |
-| N3 | `A3L-nhandiem-cong-doi` | **L3a** bán `sp[2]` 50.000 có SĐT (5 điểm lúc bán) → `/signup-codes/nhan-diem` mã bill của đơn, cùng SĐT → 200; tổng điểm của đơn = 5 × 2 = 10 | đột biến: 15 |
+| N3 | `A3L-nhandiem-cong-doi` | **L3a** bán `sp[2]` 50.000 có SĐT → KHẲNG ĐỊNH đơn có dòng `earn` 5 điểm (không có thì `daCong = null`, gốc và đột biến cùng cộng `diemGoc × heSo` — xanh oan, `signup-codes.js:208–214`) → `/signup-codes/nhan-diem` mã bill của đơn, cùng SĐT → 200; tổng điểm của đơn = 5 × 2 = 10 | đột biến: 15 |
 | N4 | `A3L-goi-bo-kiem-chu` | **L4a** gói của khách A, đơn SĐT B gửi `customer_package_id` gói A → 400 `GOI_KHONG_DUNG_CHU`, `delivered_qty` không đổi | đột biến: 200, gói A bị trừ |
 | N5 | `A3L-goi-huy-dem-ca-mon-tra-tien` | **L5a** gói đã giao 2; đơn 1 ly gói + 1 món lẻ (25.000 tiền mặt) → giao 3; huỷ → giao 2 | đột biến: 1 |
 | N6 | `A3L-hoan-goi-bo-tru-no` (mới, `server/utils/tienDaTra.js:45`) | **L6a** gói 300.000 / 10 lượt, tiền mặt 100.000 + nợ 200.000, chưa lấy → mua 200; owner huỷ 200; ví +100.000, tổng hoàn của đơn 100.000 | đột biến: +300.000 |
@@ -67,6 +67,9 @@ Chép cả hai vào `bang_chung_do.txt`. m2 (`Math.floor → Math.ceil`, 1 đ) �
   nếu chưa có ca.
 - N4: lấy gói chỉ còn một cổng (`/deliver` đã bỏ — A4). N1: đổi điểm chỉ một chỗ so `balance < cost`. N3: nhánh `daCong = null`
   (đơn không SĐT) không bị đột biến chạm — không thêm ca.
+
+- Soát kế hoạch (agent phụ) thấy: `/nhan-diem` tính `diemGoc` từ `don.total` không xét flash (`signup-codes.js:197`) → đơn flash có
+  SĐT (lúc bán 0 điểm) vẫn được nhân điểm qua mã bill. Code quầy, câu hỏi nghiệp vụ → ghi `## Phát hiện`, không sửa.
 
 ## 4. Luồng hợp lệ phải KHÔNG bị chặn (K5)
 Việc không đổi code quầy → không phép chặn mới. Ca K5 có giá trị chống xanh oan: L1b (đủ điểm thì đổi được), L2b (đơn không flash

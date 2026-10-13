@@ -28,7 +28,19 @@ SỐNG  A3L A3L-goi-huy-dem-ca-mon-tra-tien  (39 s) · mọi lệnh thoát 0
   + `node cong_cu/thu_P26c.js --may-chu <bản sao>`): N1–N6 (gồm N6 `tienDaTra.js` bỏ `− debt_amount`) đều `76 đạt · 0 hỏng` → SỐNG.
 
 ## Câu hỏi
-(chưa có)
+1. (CHẶN bước 4) Phiếu cần mục `## Bài thử cũ sửa` cho `cong_cu/thu_P26c.js` — cổng A11 (`tu_chay/cong.js:261–280`) đòi bài
+   thử bị sửa phải ĐỎ trên gốc; ca của LUOI-2 là ca hồi quy, code đang đúng nên xanh trên gốc, đỏ chỉ qua đột biến. Chi tiết
+   `ke_hoach.md` mục 5. Máy không tự sửa phiếu.
 
 ## Phát hiện
-(chưa có)
+1. `server/routes/signup-codes.js:197` — `/nhan-diem` tính `diemGoc = floor(don.total / per)` không xét đơn có flash; luật F2
+   (`orders.js:782–783`) không cộng điểm cho đơn flash lúc bán, nhưng mã bill của đơn đó vẫn nhân `diemGoc × heSo`. Chưa chạy;
+   cố ý hay không là câu hỏi nghiệp vụ. Không sửa (phiếu cấm `server/`).
+
+## Soát kế hoạch (agent phụ, chỉ đọc)
+Không ngoài Phạm vi; không có cách ngắn hơn đáng kể. Đã sửa theo soát: `c2luoi` khai trong `viec/AUDIT-2/dot_bien.py`, giữ tầng 2;
+L3a khẳng định có dòng earn trước khi nhận điểm (chống xanh oan); flash chỉ bật quanh L2a (chống sập L5a). Thêm Phát hiện 1.
+Tên đột biến mới sẽ dùng: `A3L-hoan-goi-bo-tru-no`, `A3L-goi-xoa-dem-ca-mon-tra-tien`.
+
+## Dừng
+Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3, chờ chủ quán duyệt + trả lời Câu hỏi 1.
