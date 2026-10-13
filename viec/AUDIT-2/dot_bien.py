@@ -48,7 +48,7 @@ K.DOT_BIEN = [
   ('A3B-D5-src-chua-build', 'A3B', 'kiemdd', [('client/src/pages/DiscountCodes.jsx', 'placeholder="Tìm mã..."', 'placeholder="Tìm mã giảm..."', 1)],
    r'✗ dist đã commit KHỚP với src hiện tại'),
 
-  # ── A3L: logic loyalty / gói (sai PHÉP TÍNH / PHÉP CHẶN, không bỏ câu ghi) — chạy như C2F (giả lập + thu_P26a/b, rồi P20/P21) ──
+  # ── A3L: logic loyalty / gói (sai PHÉP TÍNH / PHÉP CHẶN, không bỏ câu ghi) — chạy như C2F (giả lập + thu_P26a/b, rồi P20/P21); LUOI-2: 7 dòng chạy c2luoi (+ thu_P26c) ──
   ('A3L-redeem-thieu-1-diem', 'A3L', 'c2luoi', [(LY, 'if (balance < cost) {', 'if (balance < cost - 1) {', 1)], r'✗ L1a '),
   ('A3L-redeem-bo-chan-diem', 'A3L', 'c2full', [(LY, 'if (balance < cost) {', 'if (false) {', 1)], r'✗ '),
   ('A3L-redeem-bo-han-diem', 'A3L', 'c2full', [(LY, 'AND (expires_at IS NULL OR expires_at > ?)', 'AND (1 OR expires_at > ?)', 1)], r'✗ '),
