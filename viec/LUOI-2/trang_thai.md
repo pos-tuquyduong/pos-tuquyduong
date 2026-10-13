@@ -79,4 +79,7 @@ Phát hiện 1 (mã bill trên đơn flash) — chủ quán dặn ghi lại, kh�
 - N7 `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93) — bằng bản ghi P26c (`viec/P26c/trang_thai.md:545`).
 - N7 `viec/LUOI-1/dot_bien.py` và `viec/AUDIT-2/kiem_neo.py` KHÔNG CHẠY ĐƯỢC ở máy này: kho nông thiếu commit `9521cec`
   (`viec/LUOI-1/dot_bien.py:24` `git show 9521cec:...` → 128); người gác chặn `git fetch --deepen` (GIT-KEO). → CHƯA KIỂM.
+- N7 `python3 viec/TACH-GL/dot_bien.py` → 29 · BẮT 25 · LẠC 1 · HỎNG 3 · đúng mong đợi 25/29 (755 s). Lệch = đúng 4 đột biến P26c
+  đã ghi (`viec/P26c/trang_thai.md:547`: VS-kb-hai-luot, VS-luot-trung-thieu, BV-cha-kiem-mot-lan HỎNG neo; VS-luot-thieu-bat-bien
+  LẠC) — việc này không đổi `kich_ban.js` / `thu_gia_lap.js` (`git diff --stat fd919fd HEAD`), TACH-GL không chạy `thu_P26c.js`.
 - Hook pre-commit (tầng 3) không cài ở máy mây này (chỉ `*.sample`) — đã tự chạy `npm test` trước commit.
