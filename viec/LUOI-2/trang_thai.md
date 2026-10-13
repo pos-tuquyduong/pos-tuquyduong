@@ -53,3 +53,30 @@ Tên đột biến mới sẽ dùng: `A3L-hoan-goi-bo-tru-no`, `A3L-goi-xoa-dem-
 
 ## Dừng (lượt trước)
 Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3, chờ chủ quán duyệt + trả lời Câu hỏi 1.
+
+## Bước 4–5 — ca hồi quy + đột biến (không sửa code quầy)
+Chỗ canh → đột biến (`viec/AUDIT-2/dot_bien.py`, cách chạy `c2luoi` = c2full + `thu_P26c.js --client <kho>/client`):
+
+| NT | chỗ code (đọc HEAD) | đột biến | ca bắt | trước | sau |
+|---|---|---|---|---|---|
+| N1 | `loyalty.js:163` | `A3L-redeem-thieu-1-diem` | L1a | SỐNG | BẮT `✗ L1a` |
+| N2 | `orders.js:783` | `A3L-earn-flash-van-cong` | L2a | SỐNG | BẮT `✗ L2a` |
+| N3 | `signup-codes.js:213` | `A3L-nhandiem-cong-doi` | L3a | SỐNG | BẮT `✗ L3a` |
+| N4 | `orders.js:214` | `A3L-goi-bo-kiem-chu` | L4a | SỐNG | BẮT `✗ L4a` |
+| N5 | `orders.js:1412` (huỷ) | `A3L-goi-huy-dem-ca-mon-tra-tien` | L5a | SỐNG | BẮT `✗ L5a` |
+| K4 | `orders.js:1543` (xoá) | `A3L-goi-xoa-dem-ca-mon-tra-tien` (mới) | A1c (sẵn có) | BẮT | BẮT `✗ A1c` |
+| N6 | `tienDaTra.js:45` | `A3L-hoan-goi-bo-tru-no` (mới) | L6a | SỐNG | BẮT `✗ L6a` |
+
+Đầy đủ: `bang_chung_do.txt` (trước: 6 SỐNG · 1 BẮT; sau: BẮT 7 · SỐNG 0 · HỎNG 0 · LẠC 0). Công cụ nháp (bản sao server/ + thu_P26c)
+cũng cho từng đột biến đỏ ĐÚNG ca, đúng lý do (N1: điểm −1, voucher 1 · N2: điểm 2 · N3: tổng 15 · N4: 200, giao 2 · N5: còn 1 ·
+N6: ví 300.000). N1 làm đỏ thêm L1b (điểm đã âm) — hệ quả, không phải ca chặn hộ: L1a đỏ trước.
+m2 (`Math.floor → Math.ceil` trong `tienDaTraTheoDong`, 1 đ) — theo phiếu chỉ ghi, không bắt.
+Phát hiện 1 (mã bill trên đơn flash) — chủ quán dặn ghi lại, không sửa ở việc này.
+
+## Bước 6 — kiểm
+- `node cong_cu/thu_P26c.js` → 84 đạt · 0 hỏng (76 + 8), ~4 s.
+- `npm test` → PASS 62 · FAIL 0 · CẢNH BÁO 0. `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 66 · FAIL 0 · CẢNH BÁO 0.
+- N7 `python3 viec/P26c/dot_bien.py` → 93 đột biến bị bắt · 0 KHÔNG (trên 93) — bằng bản ghi P26c (`viec/P26c/trang_thai.md:545`).
+- N7 `viec/LUOI-1/dot_bien.py` và `viec/AUDIT-2/kiem_neo.py` KHÔNG CHẠY ĐƯỢC ở máy này: kho nông thiếu commit `9521cec`
+  (`viec/LUOI-1/dot_bien.py:24` `git show 9521cec:...` → 128); người gác chặn `git fetch --deepen` (GIT-KEO). → CHƯA KIỂM.
+- Hook pre-commit (tầng 3) không cài ở máy mây này (chỉ `*.sample`) — đã tự chạy `npm test` trước commit.
