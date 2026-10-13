@@ -265,6 +265,16 @@ async function main() {
     k('C1b màn hình gửi kèm giá giả 999.999 → vẫn 400 VUOT_GIA (trần theo giá trong kho)', b.status === 400 && b.code === 'VUOT_GIA' && await vi(s2) === v, moTa(b));
     const am = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: -5000 });
     k('C1d đền số âm → 400, không thêm dòng log', am.status === 400 && await so('SELECT COUNT(*) FROM pos_damage_logs WHERE order_id = ?', [d]) === nLog, moTa(am));
+    // P26c Q3 (chủ quán chốt 12.10): "Hoàn tiền" BẮT BUỘC số > 0 — gửi 0 / không gửi số → 400, ví không đổi (trước P26c: đền ĐỦ giá).
+    //   Đơn RIÊNG + ví riêng: trên gốc ca này đền đủ — dùng chung đơn thì C1c / C4a đỏ lây (K3: mỗi ca vi phạm đúng một phép).
+    const sQ3 = sdtMoi();   // khách chưa có ví — vi() ra NaN, nên đếm dòng sổ ví
+    const dongVi = (sdt) => so('SELECT COUNT(*) FROM pos_balance_transactions WHERE customer_phone = ?', [sdt]);
+    const dQ3 = await donTien(sQ3, [mon(1, 2)]);
+    const q0 = await baoHong(dQ3, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 0 });
+    const qt = await baoHong(dQ3, { product_code: ma, quantity: 1, action: 'refund' });
+    k('C1e hoàn tiền gửi 0 / không gửi số → 400, 400, không dòng sổ ví nào, không thêm dòng log', q0.status === 400 && qt.status === 400
+      && await dongVi(sQ3) === 0 && await so('SELECT COUNT(*) FROM pos_damage_logs WHERE order_id = ?', [dQ3]) === 0,
+    `${moTa(q0)} / ${moTa(qt)} · ${await dongVi(sQ3)} dòng sổ ví`);
     const vc = await vi(s2);
     const c1 = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 7000 });
     const c2 = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 20000 });
@@ -277,7 +287,7 @@ async function main() {
     const d = await donTien(s2, [mon(0, 2)]);   // 2 × 25.000
     const ma = sp[0].code;
     const a = await baoHong(d, { product_code: ma, quantity: 1, action: 'return_stock', return_to_stock: true });
-    const b = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund' });
+    const b = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 25000 });   // P26c Q3: hoàn tiền phải có số
     const c = await baoHong(d, { product_code: ma, quantity: 1, action: 'none' });
     k('C2a món qty 2: báo return_stock 1 → 200, refund 1 → 200, none 1 → 400 VUOT_SO_LUONG',
       a.status === 200 && b.status === 200 && c.status === 400 && c.code === 'VUOT_SO_LUONG', `${moTa(a)} / ${moTa(b)} / ${moTa(c)}`);
@@ -296,7 +306,7 @@ async function main() {
   {
     const d = await donTien(s2, [mon(1)]); const v = await vi(s2);
     co.camNgoai = /INSERT INTO pos_damage_logs/;
-    const a = await baoHong(d, { product_code: sp[1].code, quantity: 1, action: 'refund' });
+    const a = await baoHong(d, { product_code: sp[1].code, quantity: 1, action: 'refund', refund_amount: 20000 });   // P26c Q3
     co.camNgoai = null;
     k('C4b dòng log báo hỏng ghi TRONG giao dịch cùng ví + sổ (ghi ngoài giao dịch bị cấm) → 200, ví +20.000, có log',
       a.status === 200 && await vi(s2) === v + 20000 && await so('SELECT COUNT(*) FROM pos_damage_logs WHERE order_id = ?', [d]) === 1,
@@ -314,7 +324,7 @@ async function main() {
     const a = await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 25000 });
     k('C6a đơn 1 dòng từ gói + 1 dòng trả tiền cùng mã → đền đúng giá dòng trả tiền 25.000 → 200 (K5)', a.status === 200 && await vi(s2) === v + 25000,
       `${moTa(a)} · ví ${v} → ${await vi(s2)}`);
-    const b = await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund' });
+    const b = await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 25000 });   // P26c Q3
     k('C6b báo tiếp món còn lại (từ gói) đền 25.000 → 400 VUOT_GIA (tổng đền ≤ tổng giá các dòng = 25.000)',
       b.status === 400 && b.code === 'VUOT_GIA' && await vi(s2) === v + 25000, `${moTa(b)} · ví → ${await vi(s2)}`);
   }

@@ -292,13 +292,16 @@ export default function Orders() {
   };
   const DAMAGE_ACTIONS = { 'refund': 'Hoàn tiền', 'return_stock': 'Hoàn kho SX', 'none': 'Chỉ ghi nhận' };
 
+  // P26c (Q2): gợi ý số đền theo giá khách ĐÃ TRẢ một ly (flash / hạng); đơn có giảm cấp đơn thì máy chủ báo số tối đa.
+  const giaDaTra = (it) => it?.flash_unit_price || it?.tier_unit_price || it?.unit_price || 0;
+
   const openDamageModal = (order) => {
     const firstItem = order.items?.[0];
     setDamageForm({
       order_id: order.id, order_code: order.code, items: order.items || [],
       product_code: firstItem?.product_code || '', quantity: 1, max_qty: firstItem?.quantity || 1,
       reason: 'damaged', reason_note: '', action: 'refund', 
-      refund_amount: (firstItem?.unit_price || 0) * 1
+      refund_amount: giaDaTra(firstItem)
     });
     setShowDamageModal(true);
   };
@@ -1343,7 +1346,7 @@ export default function Orders() {
                 <select value={damageForm.product_code} onChange={(e) => {
                   const item = damageForm.items?.find(i => i.product_code === e.target.value);
                   setDamageForm({ ...damageForm, product_code: e.target.value, max_qty: item?.quantity || 1, 
-                    quantity: 1, refund_amount: item?.unit_price || 0 });
+                    quantity: 1, refund_amount: giaDaTra(item) });
                 }} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }}>
                   {(damageForm.items || []).map(item => (
                     <option key={item.product_code} value={item.product_code}>{item.product_code} - {item.product_name} (SL: {item.quantity})</option>
@@ -1357,7 +1360,7 @@ export default function Orders() {
                   onChange={(e) => {
                     const qty = Math.min(parseInt(e.target.value) || 1, damageForm.max_qty);
                     const item = damageForm.items?.find(i => i.product_code === damageForm.product_code);
-                    setDamageForm({ ...damageForm, quantity: qty, refund_amount: (item?.unit_price || 0) * qty });
+                    setDamageForm({ ...damageForm, quantity: qty, refund_amount: giaDaTra(item) * qty });
                   }} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }} />
               </div>
               {/* Lý do */}
@@ -1380,7 +1383,7 @@ export default function Orders() {
               {damageForm.action === 'refund' && (
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Số tiền hoàn</label>
-                  <input type="number" min="0" value={damageForm.refund_amount}
+                  <input type="number" min="1" value={damageForm.refund_amount}
                     onChange={(e) => setDamageForm({ ...damageForm, refund_amount: parseInt(e.target.value) || 0 })}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd' }} />
                 </div>

@@ -59,7 +59,7 @@ export default function Settings() {
   // Reward catalog (LOY-2a)
   const [rewards, setRewards] = useState([]);
   const [rewardForm, setRewardForm] = useState({
-    name: '', points_cost: '', discount_type: 'fixed', discount_value: '', valid_days: '30',
+    name: '', points_cost: '', discount_type: 'fixed', discount_value: '', max_discount: '', valid_days: '30',
   });
 
   // Packages state
@@ -354,6 +354,8 @@ export default function Settings() {
   };
   const savePkg = async () => {
     if (!pkgForm.code || !pkgForm.name) { setMessage('Lỗi: Mã và tên bắt buộc'); return; }
+    // P26c (Câu hỏi 3): số lượt bán theo gói đã cài — không cho lưu gói dưới 1 lượt (máy chủ cũng chặn).
+    if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }
     setSaving(true);
     try {
       const url = editingPkg ? `/api/pos/packages/${editingPkg.id}` : '/api/pos/packages';
@@ -567,10 +569,11 @@ export default function Settings() {
         points_cost: cost,
         discount_type: rewardForm.discount_type,
         discount_value: value,
+        max_discount: parseInt(rewardForm.max_discount) || 0, // P26c (Q1): như Mã giảm giá — ô chỉ hiện khi chọn %; trần chỉ áp cho mã %
         valid_days: parseInt(rewardForm.valid_days) || 30,
       });
       if (!data.success) throw new Error(data.error);
-      setRewardForm({ name: '', points_cost: '', discount_type: 'fixed', discount_value: '', valid_days: '30' });
+      setRewardForm({ name: '', points_cost: '', discount_type: 'fixed', discount_value: '', max_discount: '', valid_days: '30' });
       await loadRewards();
       setMessage('Đã thêm quà!');
       setTimeout(() => setMessage(''), 3000);
@@ -1184,7 +1187,7 @@ export default function Settings() {
                         <div style={{ flex: 2 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Giá bán (VND)</label>
                           <input className="input" type="number" min="0" value={pkgForm.price} onChange={e => setPkgForm({ ...pkgForm, price: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Tổng SL SP</label>
-                          <input className="input" type="number" min="0" value={pkgForm.total_qty} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
+                          <input className="input" type="number" min="1" value={pkgForm.total_qty} onChange={e => setPkgForm({ ...pkgForm, total_qty: e.target.value })} /></div>
                         <div style={{ flex: 1 }}><label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>ĐVT</label>
                           <input className="input" value={pkgForm.unit} onChange={e => setPkgForm({ ...pkgForm, unit: e.target.value })} /></div>
                       </div>
@@ -1841,6 +1844,13 @@ export default function Settings() {
                   <input type="number" className="input" style={{ width: 90, textAlign: 'right' }} min="1"
                     value={rewardForm.discount_value} onChange={e => setRewardForm({ ...rewardForm, discount_value: e.target.value })} />
                 </div>
+                {rewardForm.discount_type === 'percent' && (
+                  <div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Giảm tối đa (đ)</div>
+                    <input type="number" className="input" style={{ width: 100, textAlign: 'right' }} min="0" placeholder="0 = không giới hạn"
+                      value={rewardForm.max_discount} onChange={e => setRewardForm({ ...rewardForm, max_discount: e.target.value })} />
+                  </div>
+                )}
                 <div>
                   <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>Hạn (ngày)</div>
                   <input type="number" className="input" style={{ width: 80, textAlign: 'right' }} min="1"

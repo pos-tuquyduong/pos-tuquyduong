@@ -11,6 +11,7 @@ const { authenticate, checkPermission } = require('../middleware/auth');
 const { query, queryOne, run } = require('../database');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
+const { tienDaTraTheoDong } = require('../utils/tienDaTra');
 
 const DAMAGE_REASONS = {
   'damaged': 'Hỏng khi vận chuyển',
@@ -143,27 +144,41 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
     }
 
     // P26b: MÁY CHỦ quyết số tiền đền (chủ quán chốt C1 + Q6 03.10.2026). Gom MỌI dòng cùng mã trong đơn: cộng dồn số lượng
-    // đã báo (mọi action) ≤ tổng số lượng; tiền mỗi lần ≤ số lượng × đơn giá CAO NHẤT các dòng đó; tổng tiền đền cộng dồn
-    // ≤ tổng giá các dòng (món lấy từ gói giá 0 → không đền tiền). Đọc + ghi ví + sổ + log trong CÙNG một giao dịch ghi.
+    // đã báo (mọi action) ≤ tổng số lượng; tiền mỗi lần ≤ số lượng × số ĐÃ TRẢ cho một ly CAO NHẤT các dòng đó; tổng tiền đền
+    // cộng dồn ≤ tổng số đã trả các dòng (P26c Q2; món lấy từ gói giá 0 → không đền tiền). P26c Q3: "Hoàn tiền" phải > 0;
+    // H3: chỉ đơn đã thu đủ. Đọc + ghi ví + sổ + log trong CÙNG một giao dịch ghi.
     const loi = (status, error, code) => ({ huy: true, status, body: { error, code } });
     const kq = await trongGiaoDich(async (tx) => {
       const order = await tx.queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);
       if (!order) return loi(404, 'Không tìm thấy đơn hàng');
       const dong = await tx.queryOne(`SELECT MIN(product_name) AS ten, COALESCE(SUM(quantity), 0) AS sl,
-          COALESCE(MAX(unit_price), 0) AS gia, COALESCE(SUM(unit_price * quantity), 0) AS tien, COUNT(*) AS n
+          COALESCE(MAX(unit_price), 0) AS gia, COUNT(*) AS n
         FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
       if (!Number(dong.n)) return loi(400, 'Sản phẩm không có trong đơn hàng');
+      if ((action === 'return_stock' || return_to_stock) && order.status === 'cancelled') {
+        return loi(400, 'Đơn đã huỷ — huỷ đơn đã hoàn kho SX rồi', 'DON_DA_HUY_KHO');
+      }
       const da = await tx.queryOne(`SELECT COALESCE(SUM(quantity), 0) AS sl, COALESCE(SUM(refund_amount), 0) AS tien
         FROM pos_damage_logs WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
       const conLai = Number(dong.sl) - Number(da.sl);
       if (soLuong > conLai) return loi(400, `Số lượng tối đa: ${Math.max(0, conLai)}`, 'VUOT_SO_LUONG');
       const gia = Number(dong.gia);
       const damage_value = gia * soLuong;
-      const finalRefund = action === 'refund' ? (soGui || damage_value) : 0;
+      const finalRefund = action === 'refund' ? soGui : 0;
       if (action === 'refund') {
         if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ / đã hoàn — không đền tiền được', 'DON_KHONG_DEN_DUOC');
-        if (finalRefund > damage_value || Number(da.tien) + finalRefund > Number(dong.tien)) {
-          return loi(400, `Tiền đền tối đa: ${Math.max(0, Math.min(damage_value, Number(dong.tien) - Number(da.tien))).toLocaleString()}đ`, 'VUOT_GIA');
+        if (order.payment_status !== 'paid') return loi(400, 'Đơn chưa thu đủ — thu tiền đơn trước rồi mới đền', 'DON_CHUA_THU');
+        if (!(soGui > 0)) return loi(400, 'Hoàn tiền phải có số tiền lớn hơn 0 — không hoàn thì chọn "Chỉ ghi nhận"', 'TIEN_DEN_PHAI_LON_HON_0');
+        // P26c (Q2): trần theo số khách ĐÃ TRẢ cho các dòng cùng mã (sau flash / hạng / giảm đơn), không theo giá gốc.
+        const tra = (await tienDaTraTheoDong(tx, order, true)).filter((d) => d.product_code === product_code);
+        // Q4: gói / thẻ trả trước (product_id < 0, orders.js:376, :397) không đền qua báo sự cố — hoàn chỉ qua Huỷ / Xoá đơn có quyền.
+        if (tra.some((d) => Number(d.product_id) < 0)) {
+          return loi(400, 'Gói / thẻ trả trước không đền qua báo sự cố — dùng Huỷ đơn (cần quyền hoàn gói)', 'GOI_THE_KHONG_DEN');
+        }
+        const tranLan = Math.floor(soLuong * Math.max(...tra.map((d) => d.da_tra / Number(d.quantity))));
+        const tranTong = tra.reduce((t, d) => t + d.da_tra, 0) - Number(da.tien);
+        if (finalRefund > tranLan || finalRefund > tranTong) {
+          return loi(400, `Tiền đền tối đa: ${Math.max(0, Math.min(tranLan, tranTong)).toLocaleString()}đ`, 'VUOT_GIA');
         }
         if (finalRefund > 0 && order.customer_phone) {
           await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,

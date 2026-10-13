@@ -489,7 +489,7 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   }
   return ra;
 }
-for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js']) chayBaiThat(bai);
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js']) chayBaiThat(bai);
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
@@ -750,8 +750,8 @@ nhom('S · GIẢ LẬP QUẦY (TU-CHAY-4) — một ngày bán hàng trên máy 
 // S2 — bánh cóc: số kịch bản / bất biến chỉ được TĂNG (trừ lần hạ có chủ quán chốt). Việc sau thêm kịch bản mới, không
 // xoá kịch bản cũ.
 const MT_SACH = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|LANG|LC_ALL|SYSTEMROOT)$/.test(k)));
-const NGUONG_KICH_BAN = 29;   // 18 → 27: LUOI-1 thêm KB19–KB27 (đổi điểm, mã, gói, thẻ, nợ kho SX); 27 → 29: TACH-GL thêm KB28–KB29
-const NGUONG_BAT_BIEN = 16;   // 10 → 16: LUOI-1 thêm I12–I17. (11 → 10 ở HOC-2b: bỏ I10, I10 ⊂ I11 — chủ quán chốt 2a.)
+const NGUONG_KICH_BAN = 32;   // 18 → 27: LUOI-1 thêm KB19–KB27 (đổi điểm, mã, gói, thẻ, nợ kho SX); 27 → 29: TACH-GL thêm KB28–KB29; 29 → 32: P26c thêm KB30–KB32
+const NGUONG_BAT_BIEN = 18;   // 10 → 16: LUOI-1 thêm I12–I17; 16 → 18: P26c thêm I18–I19. (11 → 10 ở HOC-2b: bỏ I10, I10 ⊂ I11 — chủ quán chốt 2a.)
 // S4 — đo CHẠY RIÊNG trên máy mây 4 lõi. LUOI-1 (09.10): 27 KB nối tiếp — giả lập 80–85 s, thu_gia_lap 90–94 s (sát ngưỡng).
 // TACH-GL (10.10): chia 4 lượt chạy cùng lúc (chay.js cha/con, LUOT trong kich_ban.js) + KB28–29 → giả lập 24,3–24,4 s (3 lần),
 // thu_gia_lap 36,9–38,4 s (5 lần; CPU cả tiến trình con 36,5–39,7 s = sàn thời gian trên máy 1 lõi). CHỈ chạy ở --day-du (cổng cong-chay

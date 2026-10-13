@@ -13,6 +13,7 @@ const { query } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
+const { soTienHoan, traLuotMa } = require('../utils/tienDaTra');
 
 const router = express.Router();
 
@@ -154,26 +155,30 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), asy
         WHERE id = ? AND status = 'pending'`, [req.user.username, now, refund.id]);
       if (chiem.changes !== 1) return loi(400, 'Yêu cầu này đã được xử lý', 'YEU_CAU_DA_XU_LY');
       if (await coGoi(tx, refund.order_id)) return { huy: true, ...DON_CO_GOI };
-      const don = await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ? AND status = 'completed'`, [refund.order_id]);
-      if (don.changes !== 1) return loi(400, 'Đơn không còn ở trạng thái hoàn được (đã huỷ / đã hoàn)', 'DON_KHONG_CON_HOAN_DUOC');
-      const vi = await ghiVi(tx, { phone: refund.customer_phone, loai: 'refund', soTien: refund.refund_amount, orderId: refund.order_id,
-        ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now });
-      await tx.run('UPDATE pos_refund_requests SET balance_transaction_id = ? WHERE id = ?', [vi.id, refund.id]);
+      const doi = await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ? AND status = 'completed'`, [refund.order_id]);
+      if (doi.changes !== 1) return loi(400, 'Đơn không còn ở trạng thái hoàn được (đã huỷ / đã hoàn)', 'DON_KHONG_CON_HOAN_DUOC');
       // Q9 = (a) (chủ quán chốt 03.10.2026): trả CẢ phần ví mẹ — cùng giao dịch, SAU cổng đơn, số đọc trong giao dịch.
-      // Yêu cầu vẫn chỉ ghi phần ví con (refund_amount); huỷ / xoá đơn đã hoàn không hoàn thêm (A1, A3).
-      const me = await tx.queryOne('SELECT parent_phone, parent_balance_amount, code FROM pos_orders WHERE id = ?', [refund.order_id]);
-      if (me?.parent_phone && Number(me.parent_balance_amount) > 0) {
-        await ghiVi(tx, { phone: me.parent_phone, loai: 'refund', soTien: Number(me.parent_balance_amount), orderId: refund.order_id,
-          ghiChu: `Hoàn tiền mẹ đơn ${me.code} (duyệt)`, nguoi: req.user.username, luc: now });
+      // P26c: trừ số đã đền (H4), ví mẹ nhận trước (soTienHoan); yêu cầu ghi lại phần ví con THỰC nhận (I17); giảm total_spent
+      // như huỷ đơn (C3); trả lượt mã (H7). Huỷ / xoá đơn đã hoàn không hoàn thêm (A1, A3).
+      const don = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [refund.order_id]);
+      const { me, con } = await soTienHoan(tx, don, Number(refund.refund_amount) + (don.parent_phone ? Number(don.parent_balance_amount || 0) : 0));
+      const vi = await ghiVi(tx, { phone: refund.customer_phone, loai: 'refund', soTien: con, orderId: refund.order_id,
+        ghiChu: 'Hoàn tiền đơn hàng (duyệt)', nguoi: req.user.username, luc: now, cot: 'total_spent', soCot: -con });
+      await tx.run('UPDATE pos_refund_requests SET balance_transaction_id = ?, refund_amount = ? WHERE id = ?', [vi.id, con, refund.id]);
+      if (me > 0) {
+        await ghiVi(tx, { phone: don.parent_phone, loai: 'refund', soTien: me, orderId: refund.order_id,
+          ghiChu: `Hoàn tiền mẹ đơn ${don.code} (duyệt)`, nguoi: req.user.username, luc: now, cot: 'total_spent', soCot: -me });
       }
-      return { ...vi, refund_amount: refund.refund_amount };
+      await traLuotMa(tx, don);
+      return { ...vi, refund_amount: con, tong_hoan: con + me };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
 
     res.json({
       success: true,
-      message: `Đã hoàn ${kq.refund_amount.toLocaleString()}đ vào số dư`,
-      new_balance: kq.sau
+      message: `Đã hoàn ${kq.tong_hoan.toLocaleString()}đ vào số dư` + (kq.tong_hoan > kq.refund_amount ? ' (gồm phần ví mẹ)' : ''),
+      new_balance: kq.sau,
+      tong_hoan: kq.tong_hoan
     });
   } catch (err) {
     loiGhi(res, err);
