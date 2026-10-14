@@ -184,7 +184,7 @@ router.post("/", authenticate, async (req, res) => {
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
     }
-    if (membership_buy && membership_buy.tier_id && !customer_phone) {
+    if (membership_buy && membership_buy.tier_id && !normalizePhone(customer_phone)) {   // SO-LUONG-1: SĐT đã chuẩn hoá — khối ghi thẻ đòi `phone`
       return res.status(400).json({ error: "Cần chọn khách hàng trước khi mua thẻ hội viên" });
     }
     // P26c (A3): một đơn vừa MUA gói mới vừa LẤY từ gói cũ thì trừ lượt cả hai gói — không cho, tách làm hai đơn.
@@ -193,9 +193,10 @@ router.post("/", authenticate, async (req, res) => {
         code: "GOI_MUA_VA_LAY_CUNG_DON" });
     }
     // SO-LUONG-1: mua gói phải đủ mã gói + SĐT khách — `package_buy: {}` lọt cổng `!package_buy` ở vòng món (`{}` truthy) nên món từ
-    // gói 0đ mà không gói nào bị trừ lượt; thiếu SĐT thì thu tiền mà không tạo gói khách (khối tạo gói đòi `phone`). Số gói nguyên ≥ 1
+    // gói 0đ mà không gói nào bị trừ lượt; thiếu SĐT thì thu tiền mà không tạo gói khách (khối tạo gói đòi `phone` = SĐT ĐÃ CHUẨN HOÁ —
+    // kiểm giá trị thô thì `" "` lọt, soát độc lập vòng 1 bắt). Số gói nguyên ≥ 1
     // (`0.002` → gói 600đ), thiếu → 1 như cũ; `0` / "" nay 400. MỘT biến `pkgQty` cho cả tiền gói và vòng tạo gói (hết đường song song).
-    if (package_buy && !(package_buy.package_id && customer_phone)) {
+    if (package_buy && !(package_buy.package_id && normalizePhone(customer_phone))) {
       return res.status(400).json({ error: "Mua gói cần chọn gói và khách hàng", code: "GOI_MUA_THIEU_THONG_TIN" });
     }
     const pkgQty = Number(package_buy?.pkg_qty ?? 1);

@@ -1,5 +1,6 @@
-# SO-LUONG-1 — bằng chứng ĐỎ trên code CHƯA vá (orders.js của HEAD 6d72cd8, chạy qua --may-chu bản sao; cong_cu/thu_P26c.js mục [S] bản cuối, 14.10.2026)
+# SO-LUONG-1 — bằng chứng ĐỎ trên code CHƯA vá (orders.js của b823f72 chép qua `git show` vào bản sao server/, chạy --may-chu; cong_cu/thu_P26c.js bản cuối, 14.10.2026)
 # Lệnh: node cong_cu/thu_P26c.js --may-chu <bản sao server/ với orders.js gốc> — trích mục [S1] / [S2] / [S3 + S4] và dòng tổng; 84 ca cũ đều ✓ (số ✗ phần cũ: 0).
+# Sau vá (HEAD): 105 đạt · 0 hỏng
 
 [S1] món lẻ: quantity phải nguyên ≥ 1
   ✗ S1a món 50.000 + món 25.000 × 0 (gốc tạo đơn 50.000đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 50000
@@ -20,11 +21,14 @@
   ✓ S2f (K5) pkg_qty 2 → 200, 2 gói khách, tổng 600.000
   ✗ S2g package_buy: {} + 2 ly khai từ gói (gốc tạo đơn 0đ, không trừ lượt) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, kho không đổi  — HTTP 200
   ✗ S2h mua gói 300.000 không SĐT (gốc thu 300.000 mà không tạo gói) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, không gói  — HTTP 200
+  ✗ S2i mua gói 300.000 với SĐT " " (gốc thu 300.000 mà không tạo gói) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, không gói  — HTTP 200
 
 [S3 + S4] món lấy từ gói giữ mã GOI_SL_KHONG_HOP_LE (GOI-1); luồng hợp lệ: 10 ly, mua thẻ
   ✓ S3 lấy từ gói 0,5 ly → 400 GOI_SL_KHONG_HOP_LE, giao vẫn 2
   ✓ S4a (K5) bán 10 ly 25.000 → 200, tổng 250.000
   ✓ S4b (K5) 1 ly 25.000 + mua thẻ 500.000 → 200, tổng 525.000
+  ✗ S4c mua thẻ với SĐT " " (gốc thu 525.000 mà không ghi thẻ) → 400, không đơn  — HTTP 200
 
-  91 đạt · 12 hỏng
-SỐ CA cong_cu/thu_P26c.js: 103
+  91 đạt · 14 hỏng
+
+SỐ CA cong_cu/thu_P26c.js: 105

@@ -19,7 +19,8 @@ MON = "      if (!soNguyenDuong(sl)) {"
 MA = 'code: item.from_package ? "GOI_SL_KHONG_HOP_LE" : "SL_KHONG_HOP_LE"'
 GOI_SL = "    if (package_buy && !soNguyenDuong(pkgQty)) {"
 GOI_SO = "const pkgQty = Number(package_buy?.pkg_qty ?? 1);"
-GOI_TT = "    if (package_buy && !(package_buy.package_id && customer_phone)) {"
+GOI_TT = "    if (package_buy && !(package_buy.package_id && normalizePhone(customer_phone))) {"
+THE_TT = "    if (membership_buy && membership_buy.tier_id && !normalizePhone(customer_phone)) {"
 
 # (tên, chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong đầu ra)
 #   chạy: 'p26c' = node cong_cu/thu_P26c.js --may-chu <bản sao server> · 'thu' = node cong_cu/thu_GOI1.js --may-chu <bản sao server>
@@ -47,7 +48,10 @@ DOT_BIEN = [
   ('VS-SOLUONG1-GOI-THIEU-CHI-MA', 'p26c', [(O, GOI_TT, "    if (package_buy && !package_buy.package_id) {", 1)], r'✗ S2h'),
   # K5: siết quá tay — đòi thêm `total_qty` (trường máy chủ không dùng, P26c A6) → mua gói đủ thông tin bị chặn oan. (Mẫu đầu đòi `items.length`
   # làm helper mua gói của bài sập ở [A1] trước khi tới S2e → "ném", không tính là bắt.)
-  ('VS-SOLUONG1-GOI-THIEU-SIET', 'p26c', [(O, GOI_TT, "    if (package_buy && !(package_buy.package_id && customer_phone && package_buy.total_qty)) {", 1)], r'✗ S2e'),
+  ('VS-SOLUONG1-GOI-THIEU-SIET', 'p26c', [(O, GOI_TT, "    if (package_buy && !(package_buy.package_id && normalizePhone(customer_phone) && package_buy.total_qty)) {", 1)], r'✗ S2e'),
+  # Soát độc lập vòng 1: cổng kiểm SĐT THÔ trong khi khối tạo gói / ghi thẻ dùng `phone` đã chuẩn hoá → " " lọt (cổng gói, và cổng thẻ cùng khuôn)
+  ('VS-SOLUONG1-GOI-THIEU-SDT-THO', 'p26c', [(O, GOI_TT, "    if (package_buy && !(package_buy.package_id && customer_phone)) {", 1)], r'✗ S2i'),
+  ('VS-SOLUONG1-THE-SDT-THO', 'p26c', [(O, THE_TT, "    if (membership_buy && membership_buy.tier_id && !customer_phone) {", 1)], r'✗ S4c'),
 ]
 
 BAI = { 'p26c': 'cong_cu/thu_P26c.js', 'thu': 'cong_cu/thu_GOI1.js' }
@@ -85,6 +89,8 @@ def chay1(db):
     loi = ap(thu, cap)
     if loi: return ten, False, loi
     ma, ra = chay_bai(cach, thu)
+    sap = [l.strip() for l in ra.splitlines() if 'Bài thử sập' in l]   # ném trước khi tới ca → KHÔNG tính là bắt (sự cố mẫu SIET đầu)
+    if sap: return ten, False, 'bài thử SẬP (không phải đột biến bị bắt): ' + sap[0][:140]
     trung = [l.strip() for l in ra.splitlines() if re.search(bat, l)]
     return ten, ma != 0 and bool(trung), (trung[0][:160] if trung else f'thoát {ma}, KHÔNG thấy /{bat}/ · ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:120])
   finally:

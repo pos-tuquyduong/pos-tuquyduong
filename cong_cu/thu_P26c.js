@@ -790,6 +790,10 @@ async function main() {
     const h = await mua({ customer_phone: undefined, package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 1 } }, 300000);
     k('S2h mua gói 300.000 không SĐT (gốc thu 300.000 mà không tạo gói) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, không gói',
       h.status === 400 && h.code === 'GOI_MUA_THIEU_THONG_TIN' && await demDon() === d0 && await demGoi() === g0, moTa(h));
+    // Soát độc lập vòng 1: cổng kiểm SĐT thô, khối tạo gói dùng normalizePhone → " " lọt cổng mà không tạo gói.
+    const i = await mua({ customer_phone: ' ', package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 1 } }, 300000);
+    k('S2i mua gói 300.000 với SĐT " " (gốc thu 300.000 mà không tạo gói) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, không gói',
+      i.status === 400 && i.code === 'GOI_MUA_THIEU_THONG_TIN' && await demDon() === d0 && await demGoi() === g0, moTa(i));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -806,6 +810,12 @@ async function main() {
       payment_method: 'cash', cash_amount: tien });
     k(`S4b (K5) 1 ly 25.000 + mua thẻ ${Number(the.card_price).toLocaleString('vi-VN')} → 200, tổng ${tien.toLocaleString('vi-VN')}`,
       mt.status === 200 && Number(mt.order?.total) === tien, moTa(mt));
+    // Cùng khuôn cổng mua thẻ (:187 ↔ :1067 `membershipTier && phone`): SĐT " " → gốc thu tiền thẻ mà không ghi thẻ.
+    const dThe = await so('SELECT COUNT(*) FROM pos_orders');
+    const mk = await goi('POST', '/orders', { customer_phone: ' ', customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id },
+      payment_method: 'cash', cash_amount: tien });
+    k(`S4c mua thẻ với SĐT " " (gốc thu ${tien.toLocaleString('vi-VN')} mà không ghi thẻ) → 400, không đơn`,
+      mk.status === 400 && await so('SELECT COUNT(*) FROM pos_orders') === dThe, moTa(mk));
   }
 
   sv.close();
