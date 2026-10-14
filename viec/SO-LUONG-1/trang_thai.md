@@ -69,3 +69,8 @@ Xem mục "## Câu hỏi" cuối `ke_hoach.md` (3 câu: đột biến GOI-1 lạ
   Câu hỏi 1 = (b): dựng lại là `BV-SOLUONG1-MON-THU-GOI1`, `VS-SOLUONG1-MON-CHI-0-THU-GOI1`, đều BẮT qua thu_GOI1 A2j) và 7 có từ trước
   (`VS-GOI1-DUNG-QUYEN`, `VS-GOI1-DUNG-DUA` neo `packages.js`; `VS-GOI1-LOC-GOI`, `BV-GOI1-TIM-TEN`, `BV-GOI1-DANG-GIAO`, `VS-GOI1-SAP-CHUA-LAY`,
   `BV-GOI1-NUT-LYDO` neo `Reports.jsx` — hai file SO-LUONG-1 không đụng; GOI-2 đã ghi nhận là lạc và dựng lại một phần).
+
+## Soát độc lập `/ra-soat` (bước 8)
+- Lần 1 (agent general-purpose, 31 lượt công cụ, ~9 phút): kết thúc mà KHÔNG gọi `SubagentHandback` → **báo cáo không về**. Nhắc nộp bằng
+  `SendMessage` bị người gác chặn (CC-LA — công cụ ngoài danh sách). Khởi chạy lần 2 với dặn "hành động cuối PHẢI là SubagentHandback,
+  báo cáo ≤ 60 dòng, quá 25 lượt thì nộp phần đã có".
