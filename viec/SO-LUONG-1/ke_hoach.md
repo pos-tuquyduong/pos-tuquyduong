@@ -114,4 +114,7 @@ Code ~+7 / −3 dòng (phiếu 15–30) · thử ~60 dòng, 18 ca (phiếu ~60) 
   `kh`) — mọi lời gọi đều đủ `package_id` + SĐT → không ca hợp lệ nào bị chặn. Màn hình: `addPkgToCart` (Sales.jsx:486) đòi chọn khách
   trước; `handleClearCustomer` (:385–396) KHÔNG gỡ gói khỏi giỏ → bỏ chọn khách sau khi thêm gói thì gửi `package_buy` không SĐT: trước
   thu tiền mà không tạo gói, nay 400 lời rõ (đúng ý chủ quán; sửa màn hình → Phát hiện).
-- Thực tế bước 4–5: 19 ca mới (S1a–h, S2a–h, S3, S4a–b) → `thu_P26c.js` 84 → 103 ca; gốc 12 ✗; vá +14/−3 dòng code (kể cả 6 dòng chú thích).
+- Thực tế bước 4–8 (số từ `git diff --numstat b823f72^`, không đếm tay — soát vòng 1 bắt lệch): `orders.js` +22/−8 (trong đó 9 dòng chú thích thêm, 3 bỏ → code thật +13/−5); `thu_P26c.js` +73 (21 ca: S1a–h, S2a–i, S3, S4a–c) → 84 → 105 ca; gốc 14 ✗.
+- Soát độc lập vòng 1 (bước 8) bắt: cổng mới kiểm `customer_phone` THÔ trong khi khối tạo gói (:1033) / ghi thẻ (:1067) dùng `phone` = `normalizePhone()` →
+  SĐT `" "` qua cổng, thu tiền mà không tạo gói / thẻ. Vá: cả hai cổng (:187 thẻ — cùng khuôn K4, :199 gói) kiểm `normalizePhone(customer_phone)`; ca S2i, S4c;
+  đột biến `VS-SOLUONG1-GOI-THIEU-SDT-THO`, `VS-SOLUONG1-THE-SDT-THO`.
