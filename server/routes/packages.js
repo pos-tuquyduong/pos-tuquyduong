@@ -201,7 +201,7 @@ router.get('/customer-packages/theo-khach', authenticate, async (req, res) => {
     if (phone) { dk.push('cp.customer_phone = ?'); params.push(phone); }
     const ds = await query(SQL_GOI_KHACH + (dk.length ? ' WHERE ' + dk.join(' AND ') : '') + SAP_GOI_KHACH, params);
     res.json({ success: true, data: gomTheoKhach(ds).filter(locKhach) });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { loiGhi(res, err); }   // có lệnh ghi (nắn Q3): kho bận → 409 KHO_BAN, không phải 500
 });
 
 // GET /customer-packages/:id/hoan-du-kien — số tiền sẽ hoàn nếu kết thúc gói bây giờ (hiện trong hộp xác nhận TRƯỚC khi bấm).

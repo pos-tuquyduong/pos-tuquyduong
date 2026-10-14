@@ -74,7 +74,7 @@ hoàn quá, cùng chiều `soTienHoan` làm tròn LÊN phần đã dùng). Cách
 **Hàm ghi dùng chung (yêu cầu A3):** tách thân ghi của `hoanVi` (`orders.js:1331–1343`) thành `ghiHoan(tx, order, { me, tuVi,
 tienMat }, { nguoi, luc, ghiChu, ghiChuMe })` đặt cạnh `ghiVi` trong `wallets.js` (~+15, `orders.js` −10): `tuVi` → dòng `cash`
 + `total_spent`, `tienMat` → dòng `hoan_goi` không `total_spent`, `me` → ví mẹ + `total_spent` mẹ. `hoanVi` chỉ còn tính
-`soTienHoan` + gọi `ghiHoan` với ĐÚNG chuỗi ghi chú cũ → huỷ / xoá đơn không đổi một số nào (P26c 93/93 phải giữ nguyên).
+`soTienHoan` + gọi `ghiHoan` với ĐÚNG chuỗi ghi chú cũ → huỷ / xoá đơn không đổi một số nào (P26c 84/84 (số chạy lại trên máy này; GOI-1 ghi 93 trên máy khác) phải giữ nguyên).
 B (bỏ): gọi `hoanVi` từ packages.js — nó tính theo cả đơn, không theo một gói.
 
 ## 3. Không hoàn hai lần (A4) — một điều kiện, hai chỗ gọi
@@ -128,7 +128,7 @@ bài thử ~+250 trong `thu_GOI1.js`. Trong ngân sách phiếu (200–300 code)
 | A4 | B4a kết thúc có hoàn → huỷ đơn mua → 400 `GOI_DA_KET_THUC`, ví không đổi; B4b như trên với xoá đơn; B4c kết thúc không hoàn → huỷ / xoá → 400; B4d **cùng lúc** Kết thúc ‖ Huỷ đơn → tổng ví nhận ≤ một khoản | huỷ vẫn 200 + hoàn lần hai |
 | A5 | B5a `hoan: false` → 200, ví / sổ ví không đổi, notes "không hoàn"; A5a–A5g GOI-1 giữ nguyên; B5b phép tĩnh: nút "Kết thúc gói…" nằm TRONG khối mở ra (không ở dòng), có điều kiện `refund_package`; hộp: hai lựa chọn, chữ "Không mở lại được", chưa chọn / chưa lý do → không gọi `api.put` | chưa có hộp |
 | A6 | B6a Settings.jsx: tên gói trong `Link` `/reports?tab=packages&goi=${pkg.id}`; B6b Reports.jsx tên khách → `/customers?phone=` (giữ GOI-1); B6c Customers.jsx: `Link` `/reports?tab=packages&phone=`; B6d Reports.jsx: `Link` `/orders?code=` ở ngày mua và lần giao; B6e Orders.jsx đọc `searchParams.get('code')` vào `searchCode`; ca đường dẫn = B1f (máy chủ lọc đúng theo `goi`/`phone`) | chưa có |
-| A7 (K5) | B7a huỷ đơn mua gói CHƯA kết thúc → 200, số hoàn đúng như P26c (so số); B7b xoá đơn mua gói chưa kết thúc → 200; B7c xoá đơn ĐÃ huỷ có gói đã giao → 200 (không bị A4 chặn); B7d huỷ đơn đã huỷ → lời cũ `DON_KHONG_HUY_DUOC`; B7e lấy từ gói vẫn 200; B7f mua gói + lấy ngay 200; `thu_P26c.js` 93/93, GOI-1 51 ca cũ xanh (trừ A5h đổi có chủ ý) | xanh cả gốc (K5) |
+| A7 (K5) | B7a huỷ đơn mua gói CHƯA kết thúc → 200, số hoàn đúng như P26c (so số); B7b xoá đơn mua gói chưa kết thúc → 200; B7c xoá đơn ĐÃ huỷ có gói đã giao → 200 (không bị A4 chặn); B7d huỷ đơn đã huỷ → lời cũ `DON_KHONG_HUY_DUOC`; B7e lấy từ gói vẫn 200; B7f mua gói + lấy ngay 200; `thu_P26c.js` 84/84 (số chạy lại trên máy này; GOI-1 ghi 93 trên máy khác), GOI-1 51 ca cũ xanh (trừ A5h đổi có chủ ý) | xanh cả gốc (K5) |
 | A8 | build `client/`, `npm test`, `--day-du` 0 cảnh báo; `dot_bien.py`: mục 7 | — |
 | A9 | quy tắc đối soát ghi ở `trang_thai.md` (mục 8) | — |
 

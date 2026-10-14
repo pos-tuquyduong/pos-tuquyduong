@@ -35,10 +35,12 @@ function vuotTheoLoai(dsGoi, daLay, monLay) {
 }
 
 // ── GOI-2 (chủ quán chốt Q1, Q2, Q-D, Q-E 13–14.10.2026) — báo cáo gói MỖI KHÁCH MỘT DÒNG ──
+const { getNow } = require('./helpers');
 const NGAY_LAU_CHUA_LAY = 30;   // "lâu chưa lấy" khi quá số ngày này kể từ lần lấy gần nhất (chưa lấy: từ ngày mua) — hằng một chỗ (Q-E)
 
-/** Danh sách gói (một dòng một gói, có `last_delivery_at`) → mỗi khách một dòng. "Còn lại" và mốc lấy chỉ tính gói đang dùng. */
-function gomTheoKhach(dsGoi, bayGio = Date.now()) {
+/** Danh sách gói (một dòng một gói, có `last_delivery_at`) → mỗi khách một dòng. "Còn lại" và mốc lấy chỉ tính gói đang dùng.
+ *  `bayGio` cùng quy ước với `created_at` của đơn / gói (getNow: giờ VN không hậu tố) — Render chạy TZ UTC, `Date.now()` lệch 7 giờ ở ngưỡng. */
+function gomTheoKhach(dsGoi, bayGio = new Date(getNow()).getTime()) {
   const theo = new Map();
   for (const g of dsGoi) {
     if (!theo.has(g.customer_phone)) {
