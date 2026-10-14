@@ -20,12 +20,16 @@ GOC = K.GOC
 
 for _k in range(19, 30):
   K.LENH[f'kb{_k}'] = ('sv', [[K.N('cong_cu/gia_lap/chay.js', '--den-kb', str(_k))]], 300)
+# LUOI-2: c2full + thu_P26c (bản sao 'sv' không có client/ → --client trỏ client/ của kho, chỉ đọc)
+K.LENH['c2luoi'] = ('sv', [K.LENH['c2full'][1][0] + [K.N('cong_cu/thu_P26c.js', '--client', os.path.join(GOC, 'client'))],
+                          K.LENH['c2full'][1][1]], 300)
 _anh_cu = K.anh_kho
 K.anh_kho = lambda: '\n'.join(l for l in _anh_cu().split('\n') if not l[3:].startswith('viec/AUDIT-2/'))
 
 BUNDLE = 'client/dist/assets/' + next(f for f in sorted(os.listdir(os.path.join(GOC, 'client/dist/assets'))) if f.endswith('.js'))
 O, LY, SC, RF, PK, KB = ('server/routes/orders.js', 'server/routes/loyalty.js', 'server/routes/signup-codes.js',
                          'server/routes/refunds.js', 'server/routes/packages.js', 'cong_cu/gia_lap/kich_ban.js')
+TDT = 'server/utils/tienDaTra.js'
 # (tên, nhóm, cách chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp[, chỉ thay lần thứ k])], mẫu phải thấy)
 K.DOT_BIEN = [
   # ── D2K: khung dùng lại vẫn không nói dối khi chạy qua bảng AUDIT-2 ──
@@ -44,18 +48,18 @@ K.DOT_BIEN = [
   ('A3B-D5-src-chua-build', 'A3B', 'kiemdd', [('client/src/pages/DiscountCodes.jsx', 'placeholder="Tìm mã..."', 'placeholder="Tìm mã giảm..."', 1)],
    r'✗ dist đã commit KHỚP với src hiện tại'),
 
-  # ── A3L: logic loyalty / gói (sai PHÉP TÍNH / PHÉP CHẶN, không bỏ câu ghi) — chạy như C2F (giả lập + thu_P26a/b, rồi P20/P21) ──
-  ('A3L-redeem-thieu-1-diem', 'A3L', 'c2full', [(LY, 'if (balance < cost) {', 'if (balance < cost - 1) {', 1)], r'✗ '),
+  # ── A3L: logic loyalty / gói (sai PHÉP TÍNH / PHÉP CHẶN, không bỏ câu ghi) — chạy như C2F (giả lập + thu_P26a/b, rồi P20/P21); LUOI-2: 7 dòng chạy c2luoi (+ thu_P26c) ──
+  ('A3L-redeem-thieu-1-diem', 'A3L', 'c2luoi', [(LY, 'if (balance < cost) {', 'if (balance < cost - 1) {', 1)], r'✗ L1a '),
   ('A3L-redeem-bo-chan-diem', 'A3L', 'c2full', [(LY, 'if (balance < cost) {', 'if (false) {', 1)], r'✗ '),
   ('A3L-redeem-bo-han-diem', 'A3L', 'c2full', [(LY, 'AND (expires_at IS NULL OR expires_at > ?)', 'AND (1 OR expires_at > ?)', 1)], r'✗ '),
   ('A3L-redeem-tru-them-1', 'A3L', 'c2full', [(LY, '[phone, -cost,', '[phone, -cost - 1,', 1)], r'✗ '),
   ('A3L-redeem-ma-dung-2-lan', 'A3L', 'c2full', [(LY, 'VALUES (?, ?, ?, 0, ?, 1, 0, ?, ?, 1, ?, ?, ?)',
                                                    'VALUES (?, ?, ?, 0, ?, 2, 0, ?, ?, 1, ?, ?, ?)', 1)], r'✗ '),
   ('A3L-earn-lam-tron-len', 'A3L', 'c2full', [(O, 'loyaltyEarnPoints = Math.floor(total / per);', 'loyaltyEarnPoints = Math.ceil(total / per);', 1)], r'✗ '),
-  ('A3L-earn-flash-van-cong', 'A3L', 'c2full', [(O, 'if (phone && total > 0 && !flashApplied) {', 'if (phone && total > 0) {', 1)], r'✗ '),
-  ('A3L-nhandiem-cong-doi', 'A3L', 'c2full', [(SC, '? Math.round(diemGoc * (ch.heSo - 1))', '? Math.round(diemGoc * ch.heSo)', 1)], r'✗ '),
+  ('A3L-earn-flash-van-cong', 'A3L', 'c2luoi', [(O, 'if (phone && total > 0 && !flashApplied) {', 'if (phone && total > 0) {', 1)], r'✗ L2a '),
+  ('A3L-nhandiem-cong-doi', 'A3L', 'c2luoi', [(SC, '? Math.round(diemGoc * (ch.heSo - 1))', '? Math.round(diemGoc * ch.heSo)', 1)], r'✗ L3a '),
   ('A3L-nhandiem-he-so-mac-dinh', 'A3L', 'c2full', [(SC, 'heSo >= 1 ? heSo : 2,', 'heSo >= 1 ? heSo : 3,', 1)], r'✗ '),
-  ('A3L-goi-bo-kiem-chu', 'A3L', 'c2full', [(O, 'if (!sdtDon || sdtDon !== sdtGoi) {', 'if (!sdtDon) {', 1)], r'✗ '),
+  ('A3L-goi-bo-kiem-chu', 'A3L', 'c2luoi', [(O, 'if (!sdtDon || sdtDon !== sdtGoi) {', 'if (!sdtDon) {', 1)], r'✗ L4a '),
   ('A3L-goi-bo-kiem-trang-thai', 'A3L', 'c2full', [(O, 'if (goiKH.status !== "active") {', 'if (false) {', 1)], r'✗ '),
   ('A3L-goi-bo-kiem-con-lai', 'A3L', 'c2full', [(O, 'if (conLai <= 0) {', 'if (false) {', 1)], r'✗ '),
   ('A3L-goi-giao-them-1', 'A3L', 'c2full', [(O, '[deliveredQty, deliveredQty, now, customer_package_id]',
@@ -66,8 +70,14 @@ K.DOT_BIEN = [
                                                          'SET delivered_qty = MAX(0, delivered_qty - 0 * ?),', 2, 0)], r'✗ '),
   ('A3L-goi-xoa-lay-khong-tra-luot', 'A3L', 'c2full', [(O, 'SET delivered_qty = MAX(0, delivered_qty - ?),',
                                                          'SET delivered_qty = MAX(0, delivered_qty - 0 * ?),', 2, 1)], r'✗ '),
-  ('A3L-goi-huy-dem-ca-mon-tra-tien', 'A3L', 'c2full', [(O, '.filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))',
-                                                          '.filter(i => i.product_id > 0)', 2, 0)], r'✗ '),
+  ('A3L-goi-huy-dem-ca-mon-tra-tien', 'A3L', 'c2luoi', [(O, '.filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))',
+                                                          '.filter(i => i.product_id > 0)', 2, 0)], r'✗ L5a '),
+  # LUOI-2 (K4): cùng bộ lọc ở đường XOÁ (lần khớp 1) — A1c của thu_P26c đã phủ (1 ly gói + 1 món, duyệt hoàn rồi xoá)
+  ('A3L-goi-xoa-dem-ca-mon-tra-tien', 'A3L', 'c2luoi', [(O, '.filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))',
+                                                          '.filter(i => i.product_id > 0)', 2, 1)], r'✗ A1c '),
+  # LUOI-2 N6 (chat soát P26c, m1): hoàn đơn mua gói quên trừ phần còn NỢ → hoàn cả tiền khách chưa trả
+  ('A3L-hoan-goi-bo-tru-no', 'A3L', 'c2luoi', [(TDT, 'Number(order.total || 0) - Number(order.debt_amount || 0) - Math.ceil(daDung)',
+                                                 'Number(order.total || 0) - Math.ceil(daDung)', 1)], r'✗ L6a '),
   ('A3L-deliver-bo-chan-am', 'A3L', 'c2full', [(PK, 'if (!delivered_qty || delivered_qty <= 0)', 'if (!delivered_qty)', 1)], r'✗ '),
 
   # ── A3P: thăm dò code quầy (ngược nghĩa — BẮT = máy chủ làm sai). orders.js:222–228 chỉ chặn gói HẾT lượt (conLai <= 0),
