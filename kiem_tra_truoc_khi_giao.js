@@ -550,7 +550,24 @@ chayBaiThat('tu_chay/thu_nguoi_gac.js');
 // T1b — TU-CHAY-2: xem_thu.sh, cai_thu_vien.sh, mẫu phiếu, skill (kho tạm + remote bare, npm giả)
 chayBaiThat('tu_chay/thu_cong_cu.js');
 // T1c — TU-CHAY-3: cổng PR cong.js (kho tạm, đột biến A6–A14) + file workflow cong_github.yml (B1–B6)
-chayBaiThat('tu_chay/thu_cong.js');
+// TOC-DO-1: thu_cong.js (67 s chạy riêng, 150–325 s khi máy bận) chỉ kiểm bộ khung cổng. Chạy khi --day-du, khi đổi tu_chay/ .claude/
+// .github/ so với gốc chung với origin/main (đã commit · vùng chờ · cây làm việc · file mới), hoặc khi không xác định được (an toàn).
+// Bài thử: cong_cu/thu_TOCDO1.js cắt đúng khối này (từ function lyDoChayThuCong( tới dòng "bỏ qua thu_cong.js") chạy trên kho git tạm.
+function lyDoChayThuCong() {
+  if (DAY_DU) return '--day-du';
+  const KHUNG = ['tu_chay', '.claude', '.github'];
+  const g = (...a) => spawnSync('git', ['--no-optional-locks', ...a], { cwd: GOC, encoding: 'utf8', timeout: 30000 });
+  const mb = g('merge-base', 'HEAD', 'origin/main');
+  if (mb.status !== 0) return 'không xác định được gốc chung với origin/main';
+  const da = g('diff', '--name-only', mb.stdout.trim(), 'HEAD', '--', ...KHUNG);     // đã commit trên nhánh
+  const dang = g('status', '--porcelain', '--untracked-files=all', '--', ...KHUNG); // vùng chờ + cây làm việc + file mới (đè cấu hình)
+  if (da.status !== 0 || dang.status !== 0) return 'git hỏng';
+  const f = (da.stdout + dang.stdout).trim().split('\n')[0];
+  return f ? 'đổi ' + f : null;
+}
+const lyDoThuCong = lyDoChayThuCong();
+if (lyDoThuCong) { dong.push(`  – chạy thu_cong.js: ${lyDoThuCong}`); chayBaiThat('tu_chay/thu_cong.js'); }
+else dong.push('  – bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github');
 
 // T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/
 // (trừ cai_dat.*, trình cài không chép sang). Lệch = hook đang chạy mã khác
