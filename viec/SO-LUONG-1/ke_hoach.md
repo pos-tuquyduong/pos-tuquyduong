@@ -100,3 +100,18 @@ Code ~+7 / −3 dòng (phiếu 15–30) · thử ~60 dòng, 18 ca (phiếu ~60) 
 1. **Hai đột biến GOI-1 sẽ lạc** (`BV-GOI1-SL-AM`, `VS-GOI1-SL-AM-CHI-0`, `viec/GOI-1/dot_bien.py:40–41`) vì A3 (gom một phép) làm dòng neo biến mất, trong khi A5 ghi "đột biến GOI-1 vẫn BẮT" — hai vế của phiếu mâu thuẫn, máy KHÔNG tự chọn. (a) thêm `viec/GOI-1/dot_bien.py` vào Phạm vi, sửa 2 neo sang dòng mới (2 dòng) — GOI-1 chạy vẫn đủ, nhưng vượt Phạm vi hiện tại; (b) giữ file GOI-1, dựng lại 2 đột biến trong `viec/SO-LUONG-1/dot_bien.py` (khuôn GOI-2 Q-F, đã ghi ở mục 3) và chấp nhận GOI-1 báo 2 "không áp được" — trái chữ A5.
 2. **Trần `pkg_qty`**: chưa thêm. Nếu muốn, đề xuất ≤ 20 (con số cần chủ quán chốt) — thêm 1 điều kiện + 1 ca + 1 đột biến.
 3. `pkg_qty: 0` và `""` trước đây âm thầm thành 1 gói — nay 400. Màn hình không gửi hai giá trị này (Sales.jsx:748 `|| 1`). Xác nhận đổi hành vi này là đúng ý.
+
+## Chốt của chủ quán (14.10.2026, duyệt bản 2 = `6d72cd8`) — kế hoạch thực thi
+- Câu hỏi 1 → **(b)**: không sửa `viec/GOI-1/`; dựng lại 2 đột biến GOI-1 lạc trong `viec/SO-LUONG-1/dot_bien.py` (`BV-SOLUONG1-MON-THU-GOI1`,
+  `VS-SOLUONG1-MON-CHI-0-THU-GOI1`, runner `thu_GOI1.js`), ghi rõ 2 "không áp được" của GOI-1 trong `trang_thai.md`.
+- Câu hỏi 2 → **không** đặt trần `pkg_qty`. Câu hỏi 3 → đồng ý `pkg_qty` 0 / "" → 400.
+- **Thêm** (vá cả 2 phát hiện, cùng chỗ kiểm đầu route, không thêm file): có `package_buy` thì bắt buộc `package_buy.package_id` VÀ
+  `customer_phone`, thiếu → 400 `GOI_MUA_THIEU_THONG_TIN` (như phép mua thẻ :183). Ca S2g (`package_buy: {}` + món từ gói) và S2h (có
+  `package_id`, thiếu SĐT) — đỏ trên gốc; đột biến `BV-SOLUONG1-GOI-THIEU`, `VS-SOLUONG1-GOI-THIEU-CHI-MA`, siết quá tay
+  `VS-SOLUONG1-GOI-THIEU-SIET` (đòi thêm `total_qty`, trường máy chủ không dùng → S2e đủ thông tin bị chặn oan → BẮT).
+- K5 trước khi sửa (grep `package_buy` trong `cong_cu/*.js`, `cong_cu/gia_lap/*.js`): thu_GOI1 `muaGoi` :132 (`customer_phone: sdt`), :291/:591/:621
+  qua `muaGoi`; thu_P26b:238; thu_P26c `muaGoi` :148; kich_ban.js :157, :428, :484, :607, :615, :623 (đều có `customer_phone` qua `KH.*` /
+  `kh`) — mọi lời gọi đều đủ `package_id` + SĐT → không ca hợp lệ nào bị chặn. Màn hình: `addPkgToCart` (Sales.jsx:486) đòi chọn khách
+  trước; `handleClearCustomer` (:385–396) KHÔNG gỡ gói khỏi giỏ → bỏ chọn khách sau khi thêm gói thì gửi `package_buy` không SĐT: trước
+  thu tiền mà không tạo gói, nay 400 lời rõ (đúng ý chủ quán; sửa màn hình → Phát hiện).
+- Thực tế bước 4–5: 19 ca mới (S1a–h, S2a–h, S3, S4a–b) → `thu_P26c.js` 84 → 103 ca; gốc 12 ✗; vá +14/−3 dòng code (kể cả 6 dòng chú thích).
