@@ -62,4 +62,32 @@ async function traLuotMa(tx, order) {
   await tx.run(`UPDATE pos_voucher_grants SET status = 'available', used_order_id = NULL, used_at = NULL WHERE used_order_id = ?`, [order.id]);
 }
 
-module.exports = { tienDaTraTheoDong, soTienHoan, traLuotMa };
+/**
+ * GOI-2 (Q4a; chủ quán chốt Q-A, Q-B 14.10.2026) — hoàn phần còn lại của MỘT gói khách khi kết thúc gói →
+ * { tong, me, vi, tien_mat, don } hoặc { loi, error }.
+ * - gốc = giá khách ĐÃ TRẢ cho gói (da_tra của dòng gói ÷ số gói trên dòng — một dòng mua nhiều gói chia đều) × túi còn ÷ tổng túi,
+ *   làm tròn xuống (không bao giờ hoàn quá; cùng chiều soTienHoan làm tròn LÊN phần đã dùng);
+ * - trần cộng dồn theo đơn mua: ≤ (total − nợ) − đã hoàn − đã đền của đơn (I19); đơn còn nợ → không hoàn (Q-B);
+ * - ví mẹ TRƯỚC, tối đa phần mẹ đã trả chưa hoàn (1B); phần khách trả bằng ví tối đa `balance_amount` chưa hoàn (dòng 'cash', giảm
+ *   total_spent — I11); còn lại là tiền mặt / CK → dòng 'hoan_goi'. Huỷ / xoá / duyệt hoàn đều bị chặn khi đơn có gói đã kết thúc
+ *   (orders.js A4, refunds.js DON_CO_GOI) nên mọi dòng hoàn của đơn này đều do kết thúc gói → cộng dồn đúng.
+ */
+async function soTienHoanGoi(tx, cp) {
+  const don = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [cp.order_id]);
+  const dong = don && don.status === 'completed' ? (await tienDaTraTheoDong(tx, don)).find((d) => Number(d.product_id) === -Number(cp.package_id)) : null;
+  if (!dong || !(Number(cp.total_qty) > 0)) return { loi: 'GOI_KHONG_CO_DON_MUA', error: 'Không tìm thấy đơn mua gói còn hiệu lực — chỉ kết thúc KHÔNG hoàn được' };
+  if (Number(don.debt_amount || 0) > 0) return { loi: 'DON_CON_NO', error: 'Đơn mua gói còn nợ — thu nợ trước, hoặc chọn Không hoàn' };
+  const con = Math.max(0, Number(cp.total_qty) - Number(cp.delivered_qty));
+  const goc = Math.floor(((dong.da_tra / Number(dong.quantity)) * con) / Number(cp.total_qty));
+  const so = await tx.queryOne(`SELECT
+      COALESCE(SUM(CASE WHEN type IN ('refund', 'compensation') THEN amount END), 0) AS nhan,
+      COALESCE(SUM(CASE WHEN type = 'refund' AND customer_phone = ? THEN amount END), 0) AS me,
+      COALESCE(SUM(CASE WHEN type = 'refund' AND customer_phone = ? AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount END), 0) AS vi
+    FROM pos_balance_transactions WHERE order_id = ?`, [don.parent_phone || '', don.customer_phone, don.id]);
+  const tong = Math.max(0, Math.min(goc, Number(don.total || 0) - Number(so.nhan)));
+  const me = don.parent_phone ? Math.max(0, Math.min(Number(don.parent_balance_amount || 0) - Number(so.me), tong)) : 0;
+  const vi = Math.max(0, Math.min(Number(don.balance_amount || 0) - Number(so.vi), tong - me));
+  return { tong, me, vi, tien_mat: tong - me - vi, don };
+}
+
+module.exports = { tienDaTraTheoDong, soTienHoan, soTienHoanGoi, traLuotMa };

@@ -1,0 +1,137 @@
+# Bằng chứng ĐỎ — cong_cu/thu_GOI1.js chạy trên bản GỐC (server/ + client/src của HEAD b313af9, trước khi vá GOI-2)
+# Lệnh: node cong_cu/thu_GOI1.js --may-chu <bản sao server gốc> --client <bản sao client gốc>  (python3 scratchpad/chay_goc.py)
+
+
+THỬ GOI-1 — gói sản phẩm
+
+[A1] tổng tự tính từ danh sách loại (Q1)
+  ✓ A1a thêm gói 5+5+5+5+5+6, gửi tổng 30 → 200, lưu 31
+  ✓ A1b sửa gói chưa có khách: danh sách 3+4, gửi tổng 99 → 200, lưu 7
+  ✓ A1c (K5) gói KHÔNG danh sách: gửi 12 → 200 lưu 12; gửi 0 → 400 GOI_LUOT_KHONG_HOP_LE
+  ✓ A1f (K5) sửa gói KHÔNG danh sách: 8 → 200 lưu 8; 0 → 400
+  ✓ A1d loại tích mà SL 0 → 400 GOI_LOAI_SL_SAI, không thêm gói
+  ✓ A1d loại tích mà SL −2 → 400 GOI_LOAI_SL_SAI, không thêm gói
+  ✓ A1d loại tích mà SL 1.5 → 400 GOI_LOAI_SL_SAI, không thêm gói
+  ✓ A1e Settings.jsx: ô Tổng readOnly khi có loại; đổi loại thì tổng = cộng SL; savePkg chặn loại SL < 1 + return; không lọc âm thầm
+
+[A2] máy chủ chặn lấy vượt TỪNG LOẠI (Q1)
+  ✓ A2a CT1 cài 5, đã lấy 3, xin 3 → 400 GOI_HET_LUOT_LOAI, đã giao vẫn 3
+  ✓ A2i lỗi nêu loại + số còn: loai = CT1, con = 2
+  ✓ A2b (K5 sau A2a) xin 2 → 200, CT1 đã lấy = 5, tổng giao 5
+  ✓ A2c đơn lấy 3 CT1 bị HUỶ → delivered_items CT1 = 0 (CT2 = 2, theo product_code); xin 5 CT1 → 200
+  ✓ A2h món unit_price NULL trong đơn gắn gói được đếm (cùng cách huỷ / xoá trả lượt): CT1 = 4
+  ✓ A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5
+  ✓ A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400
+  ✓ A2j lấy từ gói có dòng SL âm / 0 / lẻ (CT1 7 + CT1 −5; CT2 0; CT1 1.5) → 400 GOI_SL_KHONG_HOP_LE, không đơn mới, CT1 vẫn 3
+  ✓ A2k SL dạng chuỗi " 5" khi mua + lấy ngay → gói ghi giao 5, lấy tiếp 5 CT1 → 400 GOI_HET_LUOT_LOAI; gói KHÔNG danh sách lấy " 7" → giao 7
+  ✓ A2e mua gói (CT1 cài 5, tổng 10) + lấy ngay 6 CT1 → 400 GOI_HET_LUOT_LOAI, không tạo gói
+  ✓ A2g mua 2 gói + lấy ngay 6 CT1 → 400 GOI_HET_LUOT_LOAI (trần 5 của MỘT gói, không phải 10)
+
+[A3] không lưu gói giá 0đ (Q2)
+  ✓ A3a thêm gói giá 0 → 400 GOI_GIA_KHONG_HOP_LE
+  ✓ A3a2 thêm gói giá −1 → 400 GOI_GIA_KHONG_HOP_LE
+  ✓ A3b sửa gói chưa có khách về giá 0 → 400, giá vẫn 300.000
+  ✓ A3c Settings.jsx savePkg chặn giá ≤ 0 TRƯỚC khi gửi (điều kiện + return)
+
+[A4] danh sách gói của khách: tên, lần lấy gần nhất, mở từ "N KH" (Q3, Q4)
+  ✓ A4a có customer_name từ bảng khách (JOIN theo SĐT) và last_delivery_at = đơn lấy cuối CÒN hiệu lực (bỏ đơn huỷ)
+  ✓ A4e khách không có trong bảng khách → tên trên đơn mua gói; chưa lấy lần nào → last_delivery_at rỗng
+  ✓ A4f lịch sử giao bỏ đơn đã huỷ → 1 lần (khớp last_delivery_at)
+  ✗ A4b Reports.jsx: mở thẳng tab + lọc gói từ URL (GOI-2: gửi goi lên máy chủ); tên khách là Link tới /customers?phone=; tìm theo tên + SĐT
+  ✗ A4b2 Reports.jsx: ngày mua + lần lấy gần nhất + trạng thái của gói; lần lấy gần nhất của KHÁCH (moc_lay, GOI-2); > 100 % tô đỏ
+  ✓ A4c Settings.jsx: "N KH" là Link tới /reports?tab=packages&goi=<mã gói>
+  ✗ A4c2 Reports.jsx: mở từ "N KH" (có goi) thì lọc "Đang dùng" (C2; GOI-2 Q2: mặc định luôn Đang dùng)
+  ✓ A4d Customers.jsx: đọc phone từ URL, tải xong danh sách thì mở đúng khách (openDetailModal) MỘT lần — xoá tham số trước khi mở
+
+[A5] Dừng gói: chỉ người có quyền hoàn gói, bắt lý do, không đụng tiền (Q5)
+  ✓ A5a (K5 — gốc cũng chặn) nhân viên dừng gói → 403
+  ✓ A5a2 quản lý có manage_users nhưng KHÔNG có refund_package → 403
+  ✓ A5b chủ quán, lý do rỗng → 400 GOI_THIEU_LY_DO, gói vẫn active
+  ✓ A5b2 chủ quán, lý do toàn dấu cách → 400 GOI_THIEU_LY_DO
+  ✓ A5c chủ quán dừng "khách thôi" → 200, cancelled, notes có lý do + người + thời điểm; đơn / sổ ví / ví / đã giao không đổi
+  ✓ A5d dừng lại gói đã dừng → 400, notes giữ lý do đầu
+  ✓ A5d2 (K5 — gốc cũng chặn) dừng gói đã hoàn thành → 400, vẫn completed
+  ✓ A5e hai chủ quán cùng dừng một gói → đúng một 200
+  ✓ A5f (K5 — có sẵn) lấy hàng từ gói đã dừng → 400 GOI_HET_HIEU_LUC
+  ✓ A5g (K5) quản lý được chủ quán cấp refund_package → 200
+  ✗ A5h Reports.jsx: nút kết thúc gói chỉ khi có quyền refund_package + gói active (GOI-2: hộp xác nhận thay window.prompt, lý do rỗng không gửi — B5c)
+
+[A6] luồng hợp lệ KHÔNG bị chặn (K5)
+  ✓ A6a bán gói mới có danh sách (5 + 6) → 200, gói của khách 11 lượt
+  ✓ A6b lấy đúng giới hạn từng loại (CT1 5, CT2 6) → 200, completed
+  ✓ A6c gói KHÔNG danh sách lấy loại bất kỳ (CT7 7 + CT8 3) → 200
+  ✓ A6d huỷ đơn lấy 4 CT1 → đã giao 0, lấy lại 5 CT1 → 200, giao 5
+  ✓ A6e bật / tắt gói cũ (giá 0, tổng 30 lệch danh sách 10) → 200, dữ liệu cũ không bị sửa (tổng vẫn 30)
+  ✓ A6f mua gói + lấy ngay trong giới hạn loại (CT1 5, CT2 2) → 200, giao 7
+  ✓ A6g gia hạn (bật gói cũ, không lấy, mua gói mới) → 200, gói cũ vẫn giao 1
+  ✓ A6h xoá gói chưa ai mua → 200, mất dòng
+  ✓ A6i gói cũ tổng 30 lệch danh sách (10) vẫn bán được, lấy trong giới hạn loại được; gói của khách lưu 30 lượt như đã cài
+
+[B1] GOI-2: mỗi khách một dòng — còn lại, lâu chưa lấy, 3 lọc, lọc theo gói / khách (Q1, Q2)
+  ✗ B1a khách 3 gói (10/30 đang dùng · 0/30 đang dùng · 5/5 xong) → MỘT dòng: so_goi 3, so_dang_dung 2, con_lai 50, có danh sách gói  — {"dong":0}
+  ✗ B1b gói đã kết thúc KHÔNG cộng "còn lại": 50 → 20, so_dang_dung 1, so_goi vẫn 3  — HTTP 200 · {}
+  ✗ B1c "lâu chưa lấy" > 30 ngày, chưa lấy tính theo ngày mua: 31 ngày → lau + ngay_chua_lay 31; 30 ngày → không (ngay trên / ngay dưới)  — {"y":[null,null],"z":[null,null]}
+  ✗ B1c2 đã lấy thì tính theo LẦN LẤY gần nhất: mua 60 lấy 31 → lau; mua 60 lấy 5 → không  — {}
+  ✗ B1d mặc định = Đang dùng: có X, Y, Z (gói active), KHÔNG có Q (chỉ gói đã kết thúc)  — {"q":false}
+  ✗ B1d2 loc=lau: chỉ Y, W — không Z, V, X  — {"y":false,"w":false,"z":false,"v":false,"x":false}
+  ✗ B1d3 loc=xong: khách có gói xong / kết thúc (X, Q) — không khách chỉ đang dùng (Y)  — {"x":false,"q":false,"y":false}
+  ✗ B1f ?goi=<gói 7 túi> → chỉ khách có gói đó (X), danh sách gói chỉ gói đó; ?phone=<Y> → đúng một dòng Y  — {"goi":[],"sdt":[]}
+  ✗ B1h mỗi gói trong dòng khách có mã đơn mua (order_code) để bấm sang màn Đơn hàng
+  ✗ B1g Reports.jsx: gọi theo-khach với loc + goi + phone từ URL; ĐÚNG 3 nút lọc dang_dung / lau / xong (không "all", "near"); tìm tên + SĐT tại màn  — [{ k: 'all', l: 'Tất cả' }, { k: 'active', l: 'Đang giao' }, { k: 'near', l: '⚡ Sắp hết' }, { k: 'done', l: '✅ Xong' }].map(f => (
+
+[B2] GOI-2: gói active mà đã lấy đủ → Đã xong, kể cả dữ liệu cũ (Q3)
+  ✗ B2a sau khi mở Báo cáo (theo-khach): gói active 5/5 → completed; gói 4/5 vẫn active; không mất dòng nào  — active / active
+  ✗ B2b kết thúc gói active mà đã đủ 5/5 (chưa nắn) → 400, không thành cancelled  — HTTP 200
+  ✗ B2c Reports.jsx: completed hiện "Đã xong", cancelled hiện "Đã kết thúc"
+
+[B3] GOI-2: Kết thúc gói — hoàn phần còn lại theo giá ĐÃ TRẢ, ví mẹ trước, trần cộng dồn, một lần (Q4a, Q-A, Q-B)
+  ✗ B3a hoan-du-kien: 1.350.000, đã lấy 10/30 → tong 900.000 = tien_mat 900.000, vi 0, me 0  — HTTP 404 · undefined
+  ✗ B3a2 kết thúc có hoàn → 200; ví +900.000 (dòng hoan_goi, total_spent không đổi); gói cancelled; notes: lý do + người + thời điểm + 900000  — HTTP 200 · ví 0 · {"status":"cancelled","notes":"Dừng gói: khách chuyển nhà — admin 2026-10-14T05:24:32.572Z (đã lấy 10/30)","delivered_qty":10}
+  ✗ B3k dòng ví ghi mã gói khách #cp + mã đơn mua (đối soát)  — undefined
+  ✗ B3b chưa lấy lần nào → hoàn đủ giá đã trả 1.350.000  — HTTP 200 · ví 0
+  ✗ B3c mua có giảm 10 % (trả 1.215.000), đã lấy 10/30 → hoàn theo giá ĐÃ TRẢ 1.215.000 × 20/30 = 810.000 (giá niêm yết ra 900.000)  — undefined · ví 0
+  ✗ B3d một dòng mua 2 gói (2.700.000) → kết thúc gói thứ hai hoàn MỘT NỬA 1.350.000; gói thứ nhất vẫn active  — HTTP 200 · undefined · HTTP 200 · ví 0
+  ✗ B3e trả ví mẹ 500.000 + ví con 400.000 + tiền mặt 450.000, chưa lấy → mẹ +500.000 (về ví mẹ), con +400.000 dòng cash (giảm total_spent) + 450.000 dòng hoan_goi  — undefined · HTTP 200 · mẹ 0 · con 0 · cash con 0 · chi con 400000
+  ✗ B3e2 đã lấy 20/30 → chỉ hoàn 450.000: VÍ MẸ TRƯỚC (mẹ +450.000), ví con 0, tiền mặt 0 (Q-A: mẹ trước tối đa phần mẹ đã trả)  — undefined · HTTP 200 · mẹ 0 · con 0
+  ✗ B3l kết thúc LẦN LƯỢT 2 gói cùng đơn (mẹ 500.000 + ví 400.000 + mặt 1.800.000): lần 2 mẹ 0, ví 0, mặt 1.350.000 (trần cộng dồn); tổng mẹ 500.000, cash con 400.000, hoan_goi 1.800.000  — HTTP 200 · undefined · mẹ 0 · cash con 0 · hoan_goi 0
+  ✗ B3m đền bù món lẻ (25.000) SAU khi kết thúc gói (1.350.000) trên đơn 1.375.000 → 200, khách nhận đúng 1.375.000 (I19 vẫn đúng)  — HTTP 200 · HTTP 200 · HTTP 200 · ví 25000
+  ✗ B3g nhân viên / quản lý (không refund_package) → 403 (cả hoan-du-kien); chủ quán thiếu lý do → 400 GOI_THIEU_LY_DO; ví không đổi, gói active  — HTTP 403 · PERMISSION_DENIED · Bạn không có quyền thực hiện thao tác này / HTTP 403 · PERMISSION_DENIED · Bạn không có quyền thực hiện thao tác này / HTTP 400 · GOI_THIEU_LY_DO · Phải nhập lý do dừng gói
+  ✗ B3h so_tien gửi lên lệch số máy chủ tính (900.000 ≠ 1.350.000) → 409 GOI_HOAN_DOI_SO kèm số mới; ví không đổi, gói active  — HTTP 200 · undefined
+  ✗ B3n (Q-B) đơn mua gói còn NỢ: hoan-du-kien 400 DON_CON_NO; kết thúc có hoàn → 400 DON_CON_NO, gói active; kết thúc KHÔNG hoàn → 200  — HTTP 404 / HTTP 200 / HTTP 400 · GOI_KHONG_DUNG_DUOC · Gói không còn đang giao — không dừng được
+  ✗ B3o đơn mua không còn hiệu lực (đã huỷ) mà gói còn active → hoan-du-kien / kết thúc có hoàn 400 GOI_KHONG_CO_DON_MUA, ví 0; kết thúc không hoàn → 200  — HTTP 404 / HTTP 200 / HTTP 400 · GOI_KHONG_DUNG_DUOC · Gói không còn đang giao — không dừng được
+  ✗ B3i hai chủ quán cùng bấm kết thúc có hoàn → đúng một 200, ví +1.350.000 đúng MỘT lần  — HTTP 200 / HTTP 400 · GOI_KHONG_DUNG_DUOC · Gói không còn đang giao — không dừng được · ví 0
+  ✓ B3j bất biến đối soát I11 (mỗi ví ≤ đã trả) + I19 (mỗi đơn: nhận ≤ đã trả) sạch sau mọi ca hoàn
+
+[B4] GOI-2: không hoàn hai lần — đơn mua có gói đã kết thúc thì Huỷ / Xoá đơn bị chặn (A4)
+  ✗ B4a kết thúc có hoàn (900.000) rồi HUỶ đơn mua → 400 GOI_DA_KET_THUC đúng câu; đơn vẫn completed; ví không đổi  — HTTP 200 · HTTP 200 · ví 900000
+  ✗ B4b … rồi XOÁ đơn mua → 400 GOI_DA_KET_THUC, đơn còn, ví không đổi  — HTTP 200 · ví 900000
+  ✗ B4c kết thúc KHÔNG hoàn rồi huỷ / xoá đơn mua → 400 GOI_DA_KET_THUC cả hai, ví không đổi  — HTTP 200 / HTTP 200
+  ✗ B4d CÙNG LÚC kết thúc có hoàn ‖ huỷ đơn mua → đúng một 200, khách nhận đúng MỘT khoản 900.000  — HTTP 200 / HTTP 200 · ví 900000
+
+[B5] GOI-2: Kết thúc không hoàn (Q4b) + hộp xác nhận ở màn Báo cáo
+  ✗ B5a hoan: false → 200, cancelled, notes "không hoàn" + lý do; sổ ví / ví không đổi  — HTTP 200 · Dừng gói: khách bỏ — admin 2026-10-14T05:24:33.080Z (đã lấy 0/30)
+  ✗ B5b Reports.jsx: nút "Kết thúc gói…" chỉ khi refund_package + gói active còn túi, nằm TRONG phần mở ra; hộp 2 lựa chọn (hoàn / không hoàn) + "không mở lại được"; hết window.prompt / "Dừng gói"  — không thấy hộp xác nhận
+  ✗ B5c Reports.jsx xacNhanKetThuc: chưa chọn / chưa lý do → ghi lỗi tại chỗ (setKetThuc loi) + return TRƯỚC api.put; lỗi hiện trong hộp; gửi so_tien đã xem  — không thấy xacNhanKetThuc
+
+[B6] GOI-2: 4 đường bấm giữa các màn (Q5)
+  ✗ B6a Settings.jsx: TÊN gói là Link tới /reports?tab=packages&goi=<mã gói> (ngoài "🔒 N KH")
+  ✗ B6b Reports.jsx: tên khách là Link tới /customers?phone= (giữ từ GOI-1)
+  ✗ B6c Customers.jsx: chi tiết khách có "Gói đang dùng: N gói · còn X túi →" là Link tới /reports?tab=packages&phone=<SĐT>, chỉ khi N > 0, số lấy từ theo-khach
+  ✗ B6d Reports.jsx: ngày mua và từng lần giao là Link tới /orders?code=<mã đơn>&ngay=<ngày đơn>
+  ✗ B6e Orders.jsx: đọc ?code= vào ô tìm và ?ngay= vào khoảng ngày (màn chỉ tải đơn theo ngày)
+
+[B7] GOI-2: luồng hợp lệ KHÔNG bị chặn (K5) + Q-C huỷ đơn lấy không trả túi về gói đã kết thúc
+  ✓ B7a (K5) huỷ đơn mua gói CHƯA kết thúc → 200, hoàn như P26c: 1.350.000 − đã dùng 450.000 = 900.000; gói cancelled
+  ✓ B7b (K5) xoá đơn mua gói chưa kết thúc, chưa lấy → 200, hoàn 1.350.000, gói bị xoá
+  ✓ B7c (K5) xoá đơn mua ĐÃ HUỶ (gói cancelled do chính lệnh huỷ) → 200, ví không cộng thêm
+  ✓ B7d (K5) huỷ đơn mua gói đã huỷ → 400 DON_KHONG_HUY_DUOC (lời cũ, không phải GOI_DA_KET_THUC)
+  ✓ B7e (K5) lấy từ gói đang dùng → 200, giao 5
+  ✗ B7g (Q-C) huỷ đơn LẤY 10 túi từ gói ĐÃ KẾT THÚC → 200 (được huỷ) nhưng gói vẫn cancelled 10/30 — không trả túi; ví không đổi  — HTTP 200 · HTTP 200 · {"status":"cancelled","notes":"Dừng gói: thử — admin 2026-10-14T05:24:33.245Z (đã lấy 10/30)","delivered_qty":0} · ví 0
+  ✗ B7g2 (Q-C) xoá đơn lấy từ gói đã kết thúc → 200, gói vẫn cancelled 10/30  — HTTP 200 · {"status":"cancelled","notes":"Dừng gói: thử — admin 2026-10-14T05:24:33.284Z (đã lấy 10/30)","delivered_qty":0}
+  ✓ B7h (K5) huỷ đơn lấy đủ 5/5 (gói Đã xong) → gói về active 0/5 như cũ
+  ✓ B7j I11 + I19 sạch sau mọi ca GOI-2
+
+  55 đạt · 46 hỏng
+
+
+SỐ CA cong_cu/thu_GOI1.js: 101

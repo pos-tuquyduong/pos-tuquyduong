@@ -2,6 +2,8 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  *  THỬ GOI-1 — gói sản phẩm: tổng tự khớp từng loại, chặn theo loại ở máy chủ, xem / dừng gói (chủ quán chốt 13.10)
+ *  + GOI-2 (mục B1–B7, chủ quán chốt 13–14.10): mỗi khách một dòng, Kết thúc gói hoàn / không hoàn, chặn hoàn hai lần, 4 đường bấm.
+ *  GOI-2 đổi có chủ ý 4 phép tĩnh GOI-1 (A4b, A4b2, A4c2, A5h) theo màn mới — ghi ở viec/GOI-2/trang_thai.md.
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRƯỚC KHI VÁ (K3). Chạy ở GỐC kho POS:
  *      node cong_cu/thu_GOI1.js [--may-chu <thư mục server>] [--client <thư mục client>]
@@ -79,7 +81,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'wallets', 'packages']) app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
+  for (const r of ['orders', 'wallets', 'packages', 'damages']) app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   noiLai();
@@ -327,19 +329,19 @@ async function main() {
     k('A4f lịch sử giao bỏ đơn đã huỷ → 1 lần (khớp last_delivery_at)', ls.length === 1, `${ls.length} lần`);
 
     const rp = docTrang('Reports.jsx');
-    k('A4b Reports.jsx: mở thẳng tab + lọc gói từ URL; tên khách là Link tới /customers?phone=; tìm theo tên + SĐT',
-      /searchParams\.get\('tab'\)/.test(rp) && /searchParams\.get\('goi'\)/.test(rp) && /package_id\) === goiLoc/.test(rp)
-        && /to=\{`\/customers\?phone=\$\{encodeURIComponent\(pkg\.customer_phone\)\}`\}/.test(rp)
+    k('A4b Reports.jsx: mở thẳng tab + lọc gói từ URL (GOI-2: gửi goi lên máy chủ); tên khách là Link tới /customers?phone=; tìm theo tên + SĐT',
+      /searchParams\.get\('tab'\)/.test(rp) && /searchParams\.get\('goi'\)/.test(rp) && /qs\.set\('goi', goiLoc\)/.test(rp)
+        && /to=\{`\/customers\?phone=\$\{encodeURIComponent\(kh\.customer_phone\)\}`\}/.test(rp)
         && /\(p\.customer_name \|\| ''\)\.toLowerCase\(\)\.includes\(s\)/.test(rp) && /\(p\.customer_phone \|\| ''\)\.includes\(s\)/.test(rp));
-    k('A4b2 Reports.jsx: cột ngày mua + lần lấy gần nhất + trạng thái; sắp "Lâu chưa lấy" (chưa lấy tính theo ngày mua); > 100 % tô đỏ',
+    k('A4b2 Reports.jsx: ngày mua + lần lấy gần nhất + trạng thái của gói; lần lấy gần nhất của KHÁCH (moc_lay, GOI-2); > 100 % tô đỏ',
       /fmtDate\(pkg\.created_at\)/.test(rp) && /pkg\.last_delivery_at \? fmtDate\(pkg\.last_delivery_at\) : 'chưa lấy'/.test(rp)
-        && /TRANG_THAI\[pkg\.status\]/.test(rp) && /\(p\.last_delivery_at \|\| p\.created_at\)/.test(rp) && /const vuot = pct > 100/.test(rp)
+        && /TRANG_THAI\[pkg\.status\]/.test(rp) && /kh\.moc_lay \? fmtDate\(kh\.moc_lay\)/.test(rp) && /const vuot = pct > 100/.test(rp)
         && /vuot \? '#dc2626'/.test(rp));
     const st = docTrang('Settings.jsx');
     k('A4c Settings.jsx: "N KH" là Link tới /reports?tab=packages&goi=<mã gói>',
       /<Link to=\{`\/reports\?tab=packages&goi=\$\{pkg\.id\}`\}[^>]*>🔒 \{pkg\.active_users\} KH<\/Link>/.test(st));
-    k('A4c2 Reports.jsx: mở từ "N KH" (có goi) thì đặt sẵn lọc "Đang giao" (chủ quán chốt C2)',
-      /useState\(goiLoc \? 'active' : 'all'\)/.test(rp));
+    k('A4c2 Reports.jsx: mở từ "N KH" (có goi) thì lọc "Đang dùng" (C2; GOI-2 Q2: mặc định luôn Đang dùng)',
+      /useState\('dang_dung'\)/.test(rp));
     const kh = docTrang('Customers.jsx');
     const moKh = (kh.match(/useEffect\(\(\) => \{\s*if \(!sdtMo \|\| loading\) return;[\s\S]*?\}, \[sdtMo, loading\]\);/) || [''])[0];
     k('A4d Customers.jsx: đọc phone từ URL, tải xong danh sách thì mở đúng khách (openDetailModal) MỘT lần — xoá tham số trước khi mở',
@@ -390,10 +392,9 @@ async function main() {
     await db.run("UPDATE pos_permissions SET allowed = 0 WHERE role = 'manager' AND permission = 'refund_package'");
     k('A5g (K5) quản lý được chủ quán cấp refund_package → 200', rm.status === 200 && (await tt(m.cp)).status === 'cancelled', moTa(rm));
     const rp = docTrang('Reports.jsx');
-    k('A5h Reports.jsx: nút "Dừng gói" chỉ khi có quyền refund_package + gói active; lý do rỗng thì không gửi',
-      /hasPermission\('refund_package'\) && pkg\.status === 'active' &&/.test(rp)
-        && /const lyDo = window\.prompt\([^)]*\);\s*if \(!lyDo \|\| !lyDo\.trim\(\)\) return;/.test(rp)
-        && /api\.put\(`\/packages\/customer-packages\/\$\{pkg\.id\}\/cancel`, \{ reason: lyDo\.trim\(\) \}\)/.test(rp));
+    k('A5h Reports.jsx: nút kết thúc gói chỉ khi có quyền refund_package + gói active (GOI-2: hộp xác nhận thay window.prompt, lý do rỗng không gửi — B5c)',
+      /hasPermission\('refund_package'\) && pkg\.status === 'active' && pkg\.delivered_qty < pkg\.total_qty/.test(rp)
+        && !/window\.prompt/.test(rp) && /reason: kt\.lyDo\.trim\(\)/.test(rp));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -441,6 +442,368 @@ async function main() {
     const l4 = await lay(sdt4, cp4, [[0, 2]]);
     k('A6i gói cũ tổng 30 lệch danh sách (10) vẫn bán được, lấy trong giới hạn loại được; gói của khách lưu 30 lượt như đã cài', m4.status === 200 && l4.status === 200
       && await so('SELECT total_qty FROM pos_customer_packages WHERE id = ?', [cp4]) === 30, `${moTa(m4)} / ${moTa(l4)}`);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  //  GOI-2 — báo cáo gói mỗi khách một dòng, "Kết thúc gói" (hoàn / không hoàn), chặn hoàn hai lần, 4 đường bấm (chủ quán chốt
+  //  13–14.10: Q-A ví mẹ trước + trần cộng dồn theo đơn, Q-B đơn còn nợ không hoàn, Q-C huỷ đơn lấy không trả túi về gói đã kết thúc).
+  // ═════════════════════════════════════════════════════════════════════════
+  const theoKhach = async (qs = '') => goi('GET', `/packages/customer-packages/theo-khach${qs ? '?' + qs : ''}`);
+  const khach = async (sdt, qs) => ((await theoKhach(qs)).data || []).find((x) => x.customer_phone === sdt);
+  const ketThuc = (cp, body, ai = 'chu') => goiAi(ai, 'PUT', `/packages/customer-packages/${cp}/cancel`, body);
+  const duKien = (cp) => goi('GET', `/packages/customer-packages/${cp}/hoan-du-kien`);
+  const vi = (sdt) => so('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0)', [sdt]);
+  const tieu = (sdt) => so('SELECT COALESCE((SELECT total_spent FROM pos_wallets WHERE phone = ?), 0)', [sdt]);
+  const soDong = (don, cach, sdt = null) => so(`SELECT COALESCE(SUM(amount), 0) FROM pos_balance_transactions WHERE order_id = ? AND type = 'refund'
+    AND COALESCE(payment_method, '') = ? AND (? IS NULL OR customer_phone = ?)`, [don, cach, sdt, sdt]);
+  const ttGoi = (cp) => mot('SELECT status, notes, delivered_qty FROM pos_customer_packages WHERE id = ?', [cp]);
+  const ttDon = (id) => mot('SELECT status FROM pos_orders WHERE id = ?', [id]);
+  const nap = async (sdt, tien) => {
+    const r = await goi('POST', '/wallets/topup', { phone: sdt, amount: tien, customer_name: 'Khách GOI2', payment_method: 'cash' });
+    if (r.status !== 200) throw new Error('không nạp được ví: ' + moTa(r));
+  };
+  // Gói 30 túi (CT1 15 + CT2 15) giá 1.350.000 — đúng ví dụ của phiếu (lấy 10/30 → hoàn 900.000).
+  const G30 = await taoGoi([loai(0, 15), loai(1, 15)], { price: 1350000, name: 'Gói 30 túi' });
+  const mua30 = async (sdt, them = {}) => {
+    const m = await muaGoi(sdt, G30, { cash_amount: 1350000, ...them });
+    if (m.status !== 200) throw new Error('không mua được gói 30: ' + moTa(m));
+    return { don: m.order.id, ma: m.order.code, cp: await goiCua(m.order.id) };
+  };
+  const { BAT_BIEN } = require(path.join(GOC, 'cong_cu', 'gia_lap', 'bat_bien.js'));
+  const batBien = async () => [...await BAT_BIEN.I11((s) => db.query(s)), ...await BAT_BIEN.I19((s) => db.query(s))];
+
+  muc('[B1] GOI-2: mỗi khách một dòng — còn lại, lâu chưa lấy, 3 lọc, lọc theo gói / khách (Q1, Q2)');
+  {
+    const x = sdtMoi();
+    const x1 = await mua30(x);
+    if ((await lay(x, x1.cp, [[0, 10]])).status !== 200) throw new Error('B1: không lấy được 10 CT1');
+    const x2 = await mua30(x);
+    const g5 = await taoGoi([loai(0, 5)]);
+    const x3 = await goiCua((await muaGoi(x, g5)).order?.id);
+    if ((await lay(x, x3, [[0, 5]])).status !== 200) throw new Error('B1: không lấy được 5 CT1');
+    const kx = await khach(x);
+    const soDongX = ((await theoKhach()).data || []).filter((r) => r.customer_phone === x).length;
+    k('B1a khách 3 gói (10/30 đang dùng · 0/30 đang dùng · 5/5 xong) → MỘT dòng: so_goi 3, so_dang_dung 2, con_lai 50, có danh sách gói',
+      soDongX === 1 && kx?.so_goi === 3 && kx.so_dang_dung === 2 && kx.con_lai === 50 && Array.isArray(kx.goi) && kx.goi.length === 3,
+      JSON.stringify({ dong: soDongX, so_goi: kx?.so_goi, dd: kx?.so_dang_dung, con: kx?.con_lai }));
+    const dung = await ketThuc(x2.cp, { reason: 'thử B1b' });
+    const kxb = await khach(x);
+    k('B1b gói đã kết thúc KHÔNG cộng "còn lại": 50 → 20, so_dang_dung 1, so_goi vẫn 3', dung.status === 200 && kxb?.con_lai === 20
+      && kxb.so_dang_dung === 1 && kxb.so_goi === 3, `${moTa(dung)} · ${JSON.stringify({ con: kxb?.con_lai, dd: kxb?.so_dang_dung })}`);
+
+    const luc = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 19).replace('T', ' ');
+    const khachMoc = async (ngayMua, ngayLay) => {   // gói mua `ngayMua` ngày trước; có `ngayLay` → một đơn lấy 1 CT1 `ngayLay` ngày trước
+      const g = await coGoi(ngayLay == null ? 0 : 1);
+      await db.run('UPDATE pos_customer_packages SET created_at = ? WHERE id = ?', [luc(ngayMua), g.cp]);
+      if (ngayLay != null) await db.run('UPDATE pos_orders SET created_at = ? WHERE id = ?', [luc(ngayLay), g.donLay]);
+      return g.sdt;
+    };
+    const y = await khachMoc(31), z = await khachMoc(30), w = await khachMoc(60, 31), v = await khachMoc(60, 5);
+    const ky = await khach(y), kz = await khach(z), kw = await khach(w), kv = await khach(v);
+    k('B1c "lâu chưa lấy" > 30 ngày, chưa lấy tính theo ngày mua: 31 ngày → lau + ngay_chua_lay 31; 30 ngày → không (ngay trên / ngay dưới)',
+      ky?.lau === true && ky.ngay_chua_lay === 31 && kz?.lau === false && kz.ngay_chua_lay === 30,
+      JSON.stringify({ y: [ky?.lau, ky?.ngay_chua_lay], z: [kz?.lau, kz?.ngay_chua_lay] }));
+    k('B1c2 đã lấy thì tính theo LẦN LẤY gần nhất: mua 60 lấy 31 → lau; mua 60 lấy 5 → không', kw?.lau === true && kv?.lau === false,
+      JSON.stringify({ w: kw?.lau, v: kv?.lau }));
+    const q = (await coGoi(0)).sdt;
+    await ketThuc((await mot('SELECT id FROM pos_customer_packages WHERE customer_phone = ?', [q])).id, { reason: 'thử B1d' });
+    const sdtCua = async (qs) => ((await theoKhach(qs)).data || []).map((r) => r.customer_phone);
+    const macDinh = await sdtCua(''), dangDung = await sdtCua('loc=dang_dung'), lau = await sdtCua('loc=lau'), xong = await sdtCua('loc=xong');
+    k('B1d mặc định = Đang dùng: có X, Y, Z (gói active), KHÔNG có Q (chỉ gói đã kết thúc)', macDinh.includes(x) && macDinh.includes(y)
+      && macDinh.includes(z) && !macDinh.includes(q) && JSON.stringify(macDinh) === JSON.stringify(dangDung), JSON.stringify({ q: macDinh.includes(q) }));
+    k('B1d2 loc=lau: chỉ Y, W — không Z, V, X', lau.includes(y) && lau.includes(w) && !lau.includes(z) && !lau.includes(v) && !lau.includes(x),
+      JSON.stringify({ y: lau.includes(y), w: lau.includes(w), z: lau.includes(z), v: lau.includes(v), x: lau.includes(x) }));
+    k('B1d3 loc=xong: khách có gói xong / kết thúc (X, Q) — không khách chỉ đang dùng (Y)', xong.includes(x) && xong.includes(q) && !xong.includes(y),
+      JSON.stringify({ x: xong.includes(x), q: xong.includes(q), y: xong.includes(y) }));
+    const g7 = await taoGoi([loai(0, 7)]);   // gói chỉ X mua, đang dùng — lọc theo gói giữ lọc Đang dùng (như "🔒 N KH")
+    await muaGoi(x, g7);
+    const theoGoi = (await theoKhach(`goi=${g7}`)).data || [];
+    const theoSdt = (await theoKhach(`phone=${y}`)).data || [];
+    k('B1f ?goi=<gói 7 túi> → chỉ khách có gói đó (X), danh sách gói chỉ gói đó; ?phone=<Y> → đúng một dòng Y',
+      theoGoi.length === 1 && theoGoi[0].customer_phone === x && theoGoi[0].so_goi === 1 && theoSdt.length === 1 && theoSdt[0].customer_phone === y,
+      JSON.stringify({ goi: theoGoi.map((r) => [r.customer_phone, r.so_goi]), sdt: theoSdt.map((r) => r.customer_phone) }));
+    k('B1h mỗi gói trong dòng khách có mã đơn mua (order_code) để bấm sang màn Đơn hàng', kx?.goi?.every((g) => g.order_code) === true
+      && kx.goi.some((g) => g.order_code === x1.ma), JSON.stringify(kx?.goi?.map((g) => g.order_code)));
+    const rp = docTrang('Reports.jsx');
+    const nutLoc = (rp.match(/\[\{ k: '[^']+', l: '[^']+' \}(?:, \{ k: '[^']+', l: '[^']+' \})*\]\.map\(f => \(/) || [''])[0];
+    k('B1g Reports.jsx: gọi theo-khach với loc + goi + phone từ URL; ĐÚNG 3 nút lọc dang_dung / lau / xong (không "all", "near"); tìm tên + SĐT tại màn',
+      /api\.get\(`\/packages\/customer-packages\/theo-khach\?\$\{qs\}`\)/.test(rp) && /qs\.set\('goi', goiLoc\)/.test(rp) && /qs\.set\('phone', sdtLoc\)/.test(rp)
+        && /const sdtLoc = searchParams\.get\('phone'\)/.test(rp) && /useState\('dang_dung'\)/.test(rp)
+        && (nutLoc.match(/k: '/g) || []).length === 3 && /k: 'dang_dung'/.test(nutLoc) && /k: 'lau'/.test(nutLoc) && /k: 'xong'/.test(nutLoc)
+        && !/k: 'all'|k: 'near'/.test(rp) && /\(p\.customer_name \|\| ''\)\.toLowerCase\(\)\.includes\(s\)/.test(rp) && /\(p\.customer_phone \|\| ''\)\.includes\(s\)/.test(rp),
+      nutLoc || 'không thấy mảng nút lọc');
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B2] GOI-2: gói active mà đã lấy đủ → Đã xong, kể cả dữ liệu cũ (Q3)');
+  {
+    const cu = await coGoi(0, [loai(0, 5)]);
+    await db.run("UPDATE pos_customer_packages SET delivered_qty = 5 WHERE id = ?", [cu.cp]);   // dữ liệu cũ: đủ 5/5 mà vẫn 'active'
+    const gan = await coGoi(4, [loai(0, 5)]);
+    const truoc = await so('SELECT COUNT(*) FROM pos_customer_packages');
+    await theoKhach();
+    k('B2a sau khi mở Báo cáo (theo-khach): gói active 5/5 → completed; gói 4/5 vẫn active; không mất dòng nào',
+      (await ttGoi(cu.cp)).status === 'completed' && (await ttGoi(gan.cp)).status === 'active' && await so('SELECT COUNT(*) FROM pos_customer_packages') === truoc,
+      `${(await ttGoi(cu.cp)).status} / ${(await ttGoi(gan.cp)).status}`);
+    const cu2 = await coGoi(0, [loai(0, 5)]);
+    await db.run("UPDATE pos_customer_packages SET delivered_qty = 5 WHERE id = ?", [cu2.cp]);
+    const r = await ketThuc(cu2.cp, { reason: 'thử B2b', hoan: false });
+    k('B2b kết thúc gói active mà đã đủ 5/5 (chưa nắn) → 400, không thành cancelled', r.status === 400 && (await ttGoi(cu2.cp)).status !== 'cancelled', moTa(r));
+    const rp = docTrang('Reports.jsx');
+    k('B2c Reports.jsx: completed hiện "Đã xong", cancelled hiện "Đã kết thúc"',
+      /const TRANG_THAI = \{ active: '[^']*Đang dùng', completed: '[^']*Đã xong', cancelled: '[^']*Đã kết thúc' \};/.test(rp));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B3] GOI-2: Kết thúc gói — hoàn phần còn lại theo giá ĐÃ TRẢ, ví mẹ trước, trần cộng dồn, một lần (Q4a, Q-A, Q-B)');
+  {
+    const a = sdtMoi();
+    const ga = await mua30(a);
+    if ((await lay(a, ga.cp, [[0, 10]])).status !== 200) throw new Error('B3: không lấy được 10 CT1');
+    const dk = await duKien(ga.cp);
+    k('B3a hoan-du-kien: 1.350.000, đã lấy 10/30 → tong 900.000 = tien_mat 900.000, vi 0, me 0', dk.status === 200 && dk.data?.tong === 900000
+      && dk.data.tien_mat === 900000 && dk.data.vi === 0 && dk.data.me === 0, `${moTa(dk)} · ${JSON.stringify(dk.data)}`);
+    const viA = await vi(a);
+    const r = await ketThuc(ga.cp, { reason: 'khách chuyển nhà', hoan: true, so_tien: 900000 });
+    const s = await ttGoi(ga.cp);
+    k('B3a2 kết thúc có hoàn → 200; ví +900.000 (dòng hoan_goi, total_spent không đổi); gói cancelled; notes: lý do + người + thời điểm + 900000',
+      r.status === 200 && await vi(a) === viA + 900000 && await soDong(ga.don, 'hoan_goi') === 900000 && await soDong(ga.don, 'cash') === 0
+        && await tieu(a) === 0 && s.status === 'cancelled' && /khách chuyển nhà/.test(s.notes) && String(s.notes).includes(chu.username)
+        && /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s.notes) && String(s.notes).includes('900000'),
+      `${moTa(r)} · ví ${await vi(a)} · ${JSON.stringify(s)}`);
+    const dongVi = await mot("SELECT notes FROM pos_balance_transactions WHERE order_id = ? AND type = 'refund'", [ga.don]);
+    k('B3k dòng ví ghi mã gói khách #cp + mã đơn mua (đối soát)', String(dongVi?.notes).includes(`#${ga.cp}`) && String(dongVi?.notes).includes(ga.ma), String(dongVi?.notes));
+
+    const b = sdtMoi();
+    const gb = await mua30(b);
+    const rb = await ketThuc(gb.cp, { reason: 'chưa lấy', hoan: true, so_tien: 1350000 });
+    k('B3b chưa lấy lần nào → hoàn đủ giá đã trả 1.350.000', rb.status === 200 && await vi(b) === 1350000, `${moTa(rb)} · ví ${await vi(b)}`);
+
+    const c = sdtMoi();   // chiết khấu đơn do máy chủ tra từ hồ sơ khách (orders.js, LO 2) — không tin tờ khai
+    await db.run("INSERT INTO pos_customers (phone, name, sx_status, discount_type, discount_value) VALUES (?, 'Khách CK GOI2', 'active', 'percent', 10)", [c]);
+    const gc = await mua30(c, { cash_amount: 1215000 });
+    if ((await lay(c, gc.cp, [[0, 10]])).status !== 200) throw new Error('B3c: không lấy được 10 CT1');
+    const dkc = await duKien(gc.cp);
+    k('B3c mua có giảm 10 % (trả 1.215.000), đã lấy 10/30 → hoàn theo giá ĐÃ TRẢ 1.215.000 × 20/30 = 810.000 (giá niêm yết ra 900.000)', dkc.data?.tong === 810000
+      && (await ketThuc(gc.cp, { reason: 'thử', hoan: true, so_tien: 810000 })).status === 200 && await vi(c) === 810000, `${JSON.stringify(dkc.data)} · ví ${await vi(c)}`);
+
+    const d = sdtMoi();
+    const md = await muaGoi(d, G30, { package_buy: { package_id: G30, total_qty: 30, pkg_qty: 2 }, cash_amount: 2700000 });
+    const cpsD = (await db.query('SELECT id FROM pos_customer_packages WHERE order_id = ? ORDER BY id', [md.order?.id])).map((r) => r.id);
+    const dkd = await duKien(cpsD[1]);
+    const rd = await ketThuc(cpsD[1], { reason: 'thử', hoan: true, so_tien: 1350000 });
+    k('B3d một dòng mua 2 gói (2.700.000) → kết thúc gói thứ hai hoàn MỘT NỬA 1.350.000; gói thứ nhất vẫn active', md.status === 200 && cpsD.length === 2
+      && dkd.data?.tong === 1350000 && rd.status === 200 && await vi(d) === 1350000 && (await ttGoi(cpsD[0])).status === 'active',
+      `${moTa(md)} · ${JSON.stringify(dkd.data)} · ${moTa(rd)} · ví ${await vi(d)}`);
+
+    const me = sdtMoi(), con = sdtMoi();
+    await nap(me, 500000); await nap(con, 400000);
+    const ge = await mua30(con, { cash_amount: 450000, balance_amount: 400000, parent_phone: me, parent_balance_amount: 500000 });
+    const dke = await duKien(ge.cp);
+    const re = await ketThuc(ge.cp, { reason: 'thử', hoan: true, so_tien: 1350000 });
+    k('B3e trả ví mẹ 500.000 + ví con 400.000 + tiền mặt 450.000, chưa lấy → mẹ +500.000 (về ví mẹ), con +400.000 dòng cash (giảm total_spent) + 450.000 dòng hoan_goi',
+      dke.data?.me === 500000 && dke.data.vi === 400000 && dke.data.tien_mat === 450000 && re.status === 200 && await vi(me) === 500000 && await vi(con) === 850000
+        && await soDong(ge.don, 'cash', con) === 400000 && await soDong(ge.don, 'hoan_goi', con) === 450000 && await tieu(con) === 0 && await tieu(me) === 0,
+      `${JSON.stringify(dke.data)} · ${moTa(re)} · mẹ ${await vi(me)} · con ${await vi(con)} · cash con ${await soDong(ge.don, 'cash', con)} · chi con ${await tieu(con)}`);
+
+    const me1 = sdtMoi(), con1 = sdtMoi();
+    await nap(me1, 500000); await nap(con1, 400000);
+    const ge2 = await mua30(con1, { cash_amount: 450000, balance_amount: 400000, parent_phone: me1, parent_balance_amount: 500000 });
+    if ((await lay(con1, ge2.cp, [[0, 15], [1, 5]])).status !== 200) throw new Error('B3e2: không lấy được 20 túi');
+    const dke2 = await duKien(ge2.cp);
+    const re2 = await ketThuc(ge2.cp, { reason: 'thử', hoan: true, so_tien: 450000 });
+    k('B3e2 đã lấy 20/30 → chỉ hoàn 450.000: VÍ MẸ TRƯỚC (mẹ +450.000), ví con 0, tiền mặt 0 (Q-A: mẹ trước tối đa phần mẹ đã trả)',
+      dke2.data?.tong === 450000 && dke2.data.me === 450000 && dke2.data.vi === 0 && dke2.data.tien_mat === 0 && re2.status === 200
+        && await vi(me1) === 450000 && await vi(con1) === 0, `${JSON.stringify(dke2.data)} · ${moTa(re2)} · mẹ ${await vi(me1)} · con ${await vi(con1)}`);
+
+    const me2 = sdtMoi(), con2 = sdtMoi();
+    await nap(me2, 500000); await nap(con2, 400000);
+    const ml = await muaGoi(con2, G30, { package_buy: { package_id: G30, total_qty: 30, pkg_qty: 2 }, cash_amount: 1800000, balance_amount: 400000,
+      parent_phone: me2, parent_balance_amount: 500000 });
+    const cpsL = (await db.query('SELECT id FROM pos_customer_packages WHERE order_id = ? ORDER BY id', [ml.order?.id])).map((r) => r.id);
+    const l1 = await ketThuc(cpsL[0], { reason: 'thử', hoan: true, so_tien: 1350000 });
+    const dkl = await duKien(cpsL[1]);
+    const l2 = await ketThuc(cpsL[1], { reason: 'thử', hoan: true, so_tien: 1350000 });
+    k('B3l kết thúc LẦN LƯỢT 2 gói cùng đơn (mẹ 500.000 + ví 400.000 + mặt 1.800.000): lần 2 mẹ 0, ví 0, mặt 1.350.000 (trần cộng dồn); tổng mẹ 500.000, cash con 400.000, hoan_goi 1.800.000',
+      ml.status === 200 && l1.status === 200 && dkl.data?.me === 0 && dkl.data.vi === 0 && dkl.data.tien_mat === 1350000 && l2.status === 200
+        && await vi(me2) === 500000 && await soDong(ml.order?.id, 'cash', con2) === 400000 && await soDong(ml.order?.id, 'hoan_goi', con2) === 1800000,
+      `${moTa(ml)} · ${JSON.stringify(dkl.data)} · mẹ ${await vi(me2)} · cash con ${await soDong(ml.order?.id, 'cash', con2)} · hoan_goi ${await soDong(ml.order?.id, 'hoan_goi', con2)}`);
+
+    const f = sdtMoi();
+    const mf = await muaGoi(f, G30, { items: [mon(2, 1, false)], cash_amount: 1375000 });
+    const cpF = await goiCua(mf.order?.id);
+    const rf = await ketThuc(cpF, { reason: 'thử', hoan: true, so_tien: 1350000 });
+    const den = await goi('POST', '/damages', { order_id: mf.order?.id, product_code: sp[2].code, quantity: 1, reason: 'hỏng', action: 'refund', refund_amount: 25000 });
+    k('B3m đền bù món lẻ (25.000) SAU khi kết thúc gói (1.350.000) trên đơn 1.375.000 → 200, khách nhận đúng 1.375.000 (I19 vẫn đúng)',
+      mf.status === 200 && rf.status === 200 && den.status === 200 && await vi(f) === 1375000, `${moTa(mf)} · ${moTa(rf)} · ${moTa(den)} · ví ${await vi(f)}`);
+
+    const g = sdtMoi();
+    const gg = await mua30(g);
+    const nv = await ketThuc(gg.cp, { reason: 'thử', hoan: true, so_tien: 1350000 }, 'staff');
+    const ql = await ketThuc(gg.cp, { reason: 'thử', hoan: true, so_tien: 1350000 }, 'manager');
+    const thieu = await ketThuc(gg.cp, { hoan: true, so_tien: 1350000 });
+    const dkNv = await goiAi('staff', 'GET', `/packages/customer-packages/${gg.cp}/hoan-du-kien`);
+    k('B3g nhân viên / quản lý (không refund_package) → 403 (cả hoan-du-kien); chủ quán thiếu lý do → 400 GOI_THIEU_LY_DO; ví không đổi, gói active',
+      nv.status === 403 && ql.status === 403 && dkNv.status === 403 && thieu.status === 400 && thieu.code === 'GOI_THIEU_LY_DO' && await vi(g) === 0 && (await ttGoi(gg.cp)).status === 'active',
+      `${moTa(nv)} / ${moTa(ql)} / ${moTa(thieu)}`);
+    const lech = await ketThuc(gg.cp, { reason: 'thử', hoan: true, so_tien: 900000 });
+    k('B3h so_tien gửi lên lệch số máy chủ tính (900.000 ≠ 1.350.000) → 409 GOI_HOAN_DOI_SO kèm số mới; ví không đổi, gói active',
+      lech.status === 409 && lech.code === 'GOI_HOAN_DOI_SO' && lech.hoan_du_kien?.tong === 1350000 && await vi(g) === 0 && (await ttGoi(gg.cp)).status === 'active',
+      `${moTa(lech)} · ${JSON.stringify(lech.hoan_du_kien)}`);
+
+    const n = sdtMoi();
+    const gn = await mua30(n, { payment_method: 'debt', cash_amount: 0, debt_amount: 1350000 });
+    const dkn = await duKien(gn.cp);
+    const rn = await ketThuc(gn.cp, { reason: 'thử', hoan: true });
+    const rn2 = await ketThuc(gn.cp, { reason: 'thử', hoan: false });
+    k('B3n (Q-B) đơn mua gói còn NỢ: hoan-du-kien 400 DON_CON_NO; kết thúc có hoàn → 400 DON_CON_NO, gói active; kết thúc KHÔNG hoàn → 200',
+      dkn.status === 400 && dkn.code === 'DON_CON_NO' && rn.status === 400 && rn.code === 'DON_CON_NO' && rn2.status === 200
+        && (await ttGoi(gn.cp)).status === 'cancelled' && await vi(n) === 0, `${moTa(dkn)} / ${moTa(rn)} / ${moTa(rn2)}`);
+
+    const o = sdtMoi();
+    const go = await mua30(o);
+    await db.run("UPDATE pos_orders SET status = 'cancelled' WHERE id = ?", [go.don]);   // dữ liệu lệch: đơn mua đã huỷ mà gói còn active
+    const dko = await duKien(go.cp);
+    const ro = await ketThuc(go.cp, { reason: 'thử', hoan: true });
+    const ro2 = await ketThuc(go.cp, { reason: 'thử', hoan: false });
+    k('B3o đơn mua không còn hiệu lực (đã huỷ) mà gói còn active → hoan-du-kien / kết thúc có hoàn 400 GOI_KHONG_CO_DON_MUA, ví 0; kết thúc không hoàn → 200',
+      dko.status === 400 && dko.code === 'GOI_KHONG_CO_DON_MUA' && ro.status === 400 && ro.code === 'GOI_KHONG_CO_DON_MUA' && await vi(o) === 0 && ro2.status === 200,
+      `${moTa(dko)} / ${moTa(ro)} / ${moTa(ro2)}`);
+
+    const h = sdtMoi();
+    const gh = await mua30(h);
+    const [h1, h2] = await Promise.all([ketThuc(gh.cp, { reason: 'quầy 1', hoan: true, so_tien: 1350000 }), ketThuc(gh.cp, { reason: 'quầy 2', hoan: true, so_tien: 1350000 })]);
+    k('B3i hai chủ quán cùng bấm kết thúc có hoàn → đúng một 200, ví +1.350.000 đúng MỘT lần',
+      [h1, h2].filter((x) => x.status === 200).length === 1 && await vi(h) === 1350000, `${moTa(h1)} / ${moTa(h2)} · ví ${await vi(h)}`);
+
+    const lechBB = await batBien();
+    k('B3j bất biến đối soát I11 (mỗi ví ≤ đã trả) + I19 (mỗi đơn: nhận ≤ đã trả) sạch sau mọi ca hoàn', lechBB.length === 0, lechBB.slice(0, 3).join(' | '));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B4] GOI-2: không hoàn hai lần — đơn mua có gói đã kết thúc thì Huỷ / Xoá đơn bị chặn (A4)');
+  {
+    const CAU = 'Gói đã kết thúc — xử lý ở Báo cáo → Gói SP';
+    const a = sdtMoi();
+    const ga = await mua30(a);
+    await lay(a, ga.cp, [[0, 10]]);
+    const kt = await ketThuc(ga.cp, { reason: 'thử', hoan: true, so_tien: 900000 });
+    const viA = await vi(a);
+    const hy = await huy(ga.don);
+    k('B4a kết thúc có hoàn (900.000) rồi HUỶ đơn mua → 400 GOI_DA_KET_THUC đúng câu; đơn vẫn completed; ví không đổi',
+      kt.status === 200 && hy.status === 400 && hy.code === 'GOI_DA_KET_THUC' && hy.error === CAU && (await ttDon(ga.don)).status === 'completed' && await vi(a) === viA,
+      `${moTa(kt)} · ${moTa(hy)} · ví ${await vi(a)}`);
+    const xo = await goi('DELETE', `/orders/${ga.don}`);
+    k('B4b … rồi XOÁ đơn mua → 400 GOI_DA_KET_THUC, đơn còn, ví không đổi', xo.status === 400 && xo.code === 'GOI_DA_KET_THUC' && xo.error === CAU
+      && (await ttDon(ga.don))?.status === 'completed' && await vi(a) === viA, `${moTa(xo)} · ví ${await vi(a)}`);
+    const b = sdtMoi();
+    const gb = await mua30(b);
+    await ketThuc(gb.cp, { reason: 'thử', hoan: false });
+    const hb = await huy(gb.don), xb = await goi('DELETE', `/orders/${gb.don}`);
+    k('B4c kết thúc KHÔNG hoàn rồi huỷ / xoá đơn mua → 400 GOI_DA_KET_THUC cả hai, ví không đổi', hb.status === 400 && hb.code === 'GOI_DA_KET_THUC'
+      && xb.status === 400 && xb.code === 'GOI_DA_KET_THUC' && await vi(b) === 0, `${moTa(hb)} / ${moTa(xb)}`);
+    const d = sdtMoi();
+    const gd = await mua30(d);
+    await lay(d, gd.cp, [[0, 10]]);
+    const [d1, d2] = await Promise.all([ketThuc(gd.cp, { reason: 'quầy 1', hoan: true, so_tien: 900000 }), huy(gd.don)]);
+    k('B4d CÙNG LÚC kết thúc có hoàn ‖ huỷ đơn mua → đúng một 200, khách nhận đúng MỘT khoản 900.000',
+      [d1, d2].filter((x) => x.status === 200).length === 1 && await vi(d) === 900000, `${moTa(d1)} / ${moTa(d2)} · ví ${await vi(d)}`);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B5] GOI-2: Kết thúc không hoàn (Q4b) + hộp xác nhận ở màn Báo cáo');
+  {
+    const a = sdtMoi();
+    const ga = await mua30(a);
+    const chup = async () => JSON.stringify(await mot(`SELECT (SELECT COUNT(*) FROM pos_balance_transactions) AS so, (SELECT COALESCE(SUM(balance), 0) FROM pos_wallets) AS vi`));
+    const truoc = await chup();
+    const r = await ketThuc(ga.cp, { reason: 'khách bỏ', hoan: false });
+    const s = await ttGoi(ga.cp);
+    k('B5a hoan: false → 200, cancelled, notes "không hoàn" + lý do; sổ ví / ví không đổi', r.status === 200 && s.status === 'cancelled'
+      && /không hoàn/.test(s.notes) && /khách bỏ/.test(s.notes) && await chup() === truoc, `${moTa(r)} · ${s.notes}`);
+    const rp = docTrang('Reports.jsx');
+    const hop = (rp.match(/\{ketThuc\?\.cp === pkg\.id && \([\s\S]*?Xác nhận kết thúc/) || [''])[0];
+    k('B5b Reports.jsx: nút "Kết thúc gói…" chỉ khi refund_package + gói active còn túi, nằm TRONG phần mở ra; hộp 2 lựa chọn (hoàn / không hoàn) + "không mở lại được"; hết window.prompt / "Dừng gói"',
+      /\{dO && <div[\s\S]*?hasPermission\('refund_package'\) && pkg\.status === 'active' && pkg\.delivered_qty < pkg\.total_qty && ketThuc\?\.cp !== pkg\.id &&[\s\S]*?onClick=\{\(\) => moKetThuc\(pkg\)\}>Kết thúc gói…<\/button>/.test(rp)
+        && hop !== '' && /checked=\{ketThuc\.hoan === true\}/.test(hop) && /checked=\{ketThuc\.hoan === false\}/.test(hop) && /không mở lại được/.test(hop)
+        && /Hoàn phần còn lại vào ví khách: <strong>\{ketThuc\.duKien \? formatPrice\(ketThuc\.duKien\.tong\)/.test(hop) && !/window\.prompt|Dừng gói/.test(rp),
+      hop ? '' : 'không thấy hộp xác nhận');
+    const xn = (rp.match(/const xacNhanKetThuc = async \(\) => \{[\s\S]*?\n  \};/) || [''])[0];
+    k('B5c Reports.jsx xacNhanKetThuc: chưa chọn / chưa lý do → ghi lỗi tại chỗ (setKetThuc loi) + return TRƯỚC api.put; lỗi hiện trong hộp; gửi so_tien đã xem',
+      /if \(kt\.hoan === null\) return setKetThuc\(\{ \.\.\.kt, loi: '[^']+' \}\);/.test(xn) && /if \(!kt\.lyDo\.trim\(\)\) return setKetThuc\(\{ \.\.\.kt, loi: '[^']+' \}\);/.test(xn)
+        && xn.indexOf('kt.hoan === null') < xn.indexOf('api.put') && /api\.put\(`\/packages\/customer-packages\/\$\{kt\.cp\}\/cancel`, \{ reason: kt\.lyDo\.trim\(\), hoan: kt\.hoan, so_tien: kt\.hoan \? kt\.duKien\?\.tong : undefined \}\)/.test(xn)
+        && /\{ketThuc\.loi && <div/.test(hop), xn ? '' : 'không thấy xacNhanKetThuc');
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B6] GOI-2: 4 đường bấm giữa các màn (Q5)');
+  {
+    const st = docTrang('Settings.jsx'), rp = docTrang('Reports.jsx'), kh = docTrang('Customers.jsx'), od = docTrang('Orders.jsx');
+    k('B6a Settings.jsx: TÊN gói là Link tới /reports?tab=packages&goi=<mã gói> (ngoài "🔒 N KH")',
+      /<Link style=\{\{ color: 'inherit' \}\} to=\{`\/reports\?tab=packages&goi=\$\{pkg\.id\}`\}>\{pkg\.name\}<\/Link>/.test(st));
+    k('B6b Reports.jsx: tên khách là Link tới /customers?phone= (giữ từ GOI-1)', /to=\{`\/customers\?phone=\$\{encodeURIComponent\(kh\.customer_phone\)\}`\}/.test(rp));
+    k('B6c Customers.jsx: chi tiết khách có "Gói đang dùng: N gói · còn X túi →" là Link tới /reports?tab=packages&phone=<SĐT>, chỉ khi N > 0, số lấy từ theo-khach',
+      /\{goiDangDung\?\.so_dang_dung > 0 && \(/.test(kh) && /<Link to=\{`\/reports\?tab=packages&phone=\$\{encodeURIComponent\(selectedCustomer\.phone\)\}`\}/.test(kh)
+        && /Gói đang dùng: \{goiDangDung\.so_dang_dung\} gói · còn \{goiDangDung\.con_lai\} túi →/.test(kh)
+        && /api\.get\(`\/packages\/customer-packages\/theo-khach\?phone=\$\{encodeURIComponent\(customer\.phone\)\}`\)/.test(kh));
+    k('B6d Reports.jsx: ngày mua và từng lần giao là Link tới /orders?code=<mã đơn>&ngay=<ngày đơn>',
+      /<Link to=\{`\/orders\?code=\$\{encodeURIComponent\(pkg\.order_code \|\| ''\)\}&ngay=\$\{ngay\(pkg\.created_at\)\}`\}/.test(rp)
+        && /<Link to=\{`\/orders\?code=\$\{encodeURIComponent\(d\.order_code\)\}&ngay=\$\{ngay\(d\.created_at\)\}`\}/.test(rp));
+    k('B6e Orders.jsx: đọc ?code= vào ô tìm và ?ngay= vào khoảng ngày (màn chỉ tải đơn theo ngày)',
+      /useState\(searchParams\.get\('code'\) \|\| ''\)/.test(od) && /const ngayMo = searchParams\.get\('ngay'\) \|\| today;/.test(od)
+        && /useState\(ngayMo\)/.test(od) && (od.match(/useState\(ngayMo\)/g) || []).length === 2 && /useSearchParams/.test(od));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[B7] GOI-2: luồng hợp lệ KHÔNG bị chặn (K5) + Q-C huỷ đơn lấy không trả túi về gói đã kết thúc');
+  {
+    const a = sdtMoi();
+    const ga = await mua30(a);
+    await lay(a, ga.cp, [[0, 10]]);
+    const hy = await huy(ga.don);
+    k('B7a (K5) huỷ đơn mua gói CHƯA kết thúc → 200, hoàn như P26c: 1.350.000 − đã dùng 450.000 = 900.000; gói cancelled', hy.status === 200
+      && await vi(a) === 900000 && (await ttGoi(ga.cp)).status === 'cancelled', `${moTa(hy)} · ví ${await vi(a)}`);
+    const b = sdtMoi();
+    const gb = await mua30(b);
+    const xb = await goi('DELETE', `/orders/${gb.don}`);
+    k('B7b (K5) xoá đơn mua gói chưa kết thúc, chưa lấy → 200, hoàn 1.350.000, gói bị xoá', xb.status === 200 && await vi(b) === 1350000
+      && (await ttGoi(gb.cp)) == null, `${moTa(xb)} · ví ${await vi(b)}`);
+    const xa = await goi('DELETE', `/orders/${ga.don}`);
+    k('B7c (K5) xoá đơn mua ĐÃ HUỶ (gói cancelled do chính lệnh huỷ) → 200, ví không cộng thêm', xa.status === 200 && await vi(a) === 900000, `${moTa(xa)} · ví ${await vi(a)}`);
+    const c = sdtMoi();
+    const gc = await mua30(c);
+    await huy(gc.don);
+    const hc = await huy(gc.don);
+    k('B7d (K5) huỷ đơn mua gói đã huỷ → 400 DON_KHONG_HUY_DUOC (lời cũ, không phải GOI_DA_KET_THUC)', hc.status === 400 && hc.code === 'DON_KHONG_HUY_DUOC', moTa(hc));
+    const e = await coGoi(3);
+    const le = await lay(e.sdt, e.cp, [[1, 2]]);
+    const dl = Number((await ttGoi(e.cp)).delivered_qty);
+    k('B7e (K5) lấy từ gói đang dùng → 200, giao 5', le.status === 200 && dl === 5, `${moTa(le)} · giao ${dl}`);
+
+    const g = sdtMoi();
+    const gg = await mua30(g);
+    const lg = await lay(g, gg.cp, [[0, 10]]);
+    const kt = await ketThuc(gg.cp, { reason: 'thử', hoan: true, so_tien: 900000 });
+    const hg = await huy(lg.order?.id);
+    const sg = await ttGoi(gg.cp);
+    k('B7g (Q-C) huỷ đơn LẤY 10 túi từ gói ĐÃ KẾT THÚC → 200 (được huỷ) nhưng gói vẫn cancelled 10/30 — không trả túi; ví không đổi',
+      kt.status === 200 && hg.status === 200 && sg.status === 'cancelled' && Number(sg.delivered_qty) === 10 && await vi(g) === 900000,
+      `${moTa(kt)} · ${moTa(hg)} · ${JSON.stringify(sg)} · ví ${await vi(g)}`);
+    const g2 = sdtMoi();
+    const gg2 = await mua30(g2);
+    const lg2 = await lay(g2, gg2.cp, [[0, 10]]);
+    await ketThuc(gg2.cp, { reason: 'thử', hoan: false });
+    const xg = await goi('DELETE', `/orders/${lg2.order?.id}`);
+    const sg2 = await ttGoi(gg2.cp);
+    k('B7g2 (Q-C) xoá đơn lấy từ gói đã kết thúc → 200, gói vẫn cancelled 10/30', xg.status === 200 && sg2.status === 'cancelled' && Number(sg2.delivered_qty) === 10,
+      `${moTa(xg)} · ${JSON.stringify(sg2)}`);
+    const h = await coGoi(5, [loai(0, 5)]);
+    const hh = await huy(h.donLay);
+    const sh = await ttGoi(h.cp);
+    k('B7h (K5) huỷ đơn lấy đủ 5/5 (gói Đã xong) → gói về active 0/5 như cũ', hh.status === 200 && sh.status === 'active' && Number(sh.delivered_qty) === 0,
+      `${moTa(hh)} · ${JSON.stringify(sh)}`);
+    const lechBB = await batBien();
+    k('B7j I11 + I19 sạch sau mọi ca GOI-2', lechBB.length === 0, lechBB.slice(0, 3).join(' | '));
   }
 
   sv.close();

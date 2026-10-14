@@ -10,6 +10,7 @@
  * - Xóa/Hủy đơn (Owner only)
  */
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ordersApi, productsApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
@@ -22,9 +23,12 @@ export default function Orders() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const today = new Date().toISOString().slice(0, 10);
-  const [datePreset, setDatePreset] = useState('today');
-  const [dateFrom, setDateFrom] = useState(today);
-  const [dateTo, setDateTo] = useState(today);
+  // GOI-2 (Q5.4): /orders?code=<mã đơn>&ngay=<YYYY-MM-DD> (từ Báo cáo → Gói SP) — điền sẵn ô tìm và mở đúng NGÀY của đơn (màn chỉ tải đơn theo ngày).
+  const [searchParams] = useSearchParams();
+  const ngayMo = searchParams.get('ngay') || today;
+  const [datePreset, setDatePreset] = useState(searchParams.get('ngay') ? 'custom' : 'today');
+  const [dateFrom, setDateFrom] = useState(ngayMo);
+  const [dateTo, setDateTo] = useState(ngayMo);
   
   // State cho popup
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -43,7 +47,7 @@ export default function Orders() {
 
   // State cho filter
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'paid' | 'pending' | 'partial' | 'cancelled'
-  const [searchCode, setSearchCode] = useState(''); // Tìm theo mã đơn
+  const [searchCode, setSearchCode] = useState(searchParams.get('code') || ''); // Tìm theo mã đơn (GOI-2: điền sẵn từ ?code=)
   const [filterProduct, setFilterProduct] = useState(''); // Lọc theo SP
   const [productsList, setProductsList] = useState([]);
 

@@ -76,6 +76,23 @@ async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cach
   return { truoc, sau, id: r.lastInsertRowid };
 }
 
+/**
+ * P26c / GOI-2 — ghi MỘT khoản hoàn của đơn vào ví, chỗ duy nhất cho cả huỷ / xoá đơn (orders.js `hoanVi`) lẫn kết thúc gói
+ * (packages.js): `tuVi` = phần khách đã trả bằng ví → dòng 'cash', giảm total_spent; `tienMat` = phần tiền mặt / CK đưa vào ví (H2 = 1B)
+ * → dòng 'hoan_goi', KHÔNG giảm total_spent (chưa từng là tiền chi từ ví); `me` → ví mẹ, giảm total_spent mẹ. Đối soát: I11 phần ví, I19 cả đơn.
+ */
+async function ghiHoan(tx, order, { me, tuVi, tienMat }, { nguoi, luc, ghiChu, ghiChuMe }) {
+  for (const [soTien, cachTra, cot] of [[tuVi, 'cash', 'total_spent'], [tienMat, 'hoan_goi', null]]) {
+    if (soTien > 0 && order.customer_phone) {
+      await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: 'refund', soTien, orderId: order.id, cachTra,
+        ghiChu, nguoi, luc, cot, soCot: -soTien });
+    }
+  }
+  if (me > 0) {
+    await ghiVi(tx, { phone: order.parent_phone, loai: 'refund', soTien: me, orderId: order.id, ghiChu: ghiChuMe, nguoi, luc, cot: 'total_spent', soCot: -me });
+  }
+}
+
 /** P26b (chủ quán chốt Q1 03.10.2026): kho bận → 409 KHO_BAN — giao dịch đã rollback, lệnh này chưa ghi gì. Lỗi khác → 500. */
 function loiGhi(res, err) {
   if (err && err.code === 'SQLITE_BUSY') {
@@ -302,3 +319,4 @@ module.exports = router;
 module.exports.ghiVi = ghiVi;
 module.exports.loiGhi = loiGhi;
 module.exports.trongGiaoDich = trongGiaoDich;
+module.exports.ghiHoan = ghiHoan;

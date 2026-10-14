@@ -1151,7 +1151,7 @@ export default function Settings() {
                       <tr key={pkg.id} style={{ opacity: pkg.is_active ? 1 : 0.5 }}>
                         <td><strong style={{ color: '#7c3aed' }}>📦 {pkg.code}</strong></td>
                         <td>
-                          {pkg.name}
+                          <Link style={{ color: 'inherit' }} to={`/reports?tab=packages&goi=${pkg.id}`}>{pkg.name}</Link>{/* GOI-2 (Q5.1): bấm tên → Báo cáo lọc gói */}
                           {locked && <Link to={`/reports?tab=packages&goi=${pkg.id}`} style={{ fontSize: '0.7rem', marginLeft: '0.25rem', color: '#f59e0b' }}>🔒 {pkg.active_users} KH</Link>}
                         </td>
                         <td><span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600, fontSize: '0.8rem' }}>{pkg.total_qty || '-'}</span></td>

@@ -34,4 +34,43 @@ function vuotTheoLoai(dsGoi, daLay, monLay) {
   return null;
 }
 
-module.exports = { dieuKienLayTuGoi, daLayTheoLoai, vuotTheoLoai };
+// ── GOI-2 (chủ quán chốt Q1, Q2, Q-D, Q-E 13–14.10.2026) — báo cáo gói MỖI KHÁCH MỘT DÒNG ──
+const { getNow } = require('./helpers');
+const NGAY_LAU_CHUA_LAY = 30;   // "lâu chưa lấy" khi quá số ngày này kể từ lần lấy gần nhất (chưa lấy: từ ngày mua) — hằng một chỗ (Q-E)
+
+/** Danh sách gói (một dòng một gói, có `last_delivery_at`) → mỗi khách một dòng. "Còn lại" và mốc lấy chỉ tính gói đang dùng.
+ *  `bayGio` cùng quy ước với `created_at` của đơn / gói (getNow: giờ VN không hậu tố) — Render chạy TZ UTC, `Date.now()` lệch 7 giờ ở ngưỡng. */
+function gomTheoKhach(dsGoi, bayGio = new Date(getNow()).getTime()) {
+  const theo = new Map();
+  for (const g of dsGoi) {
+    if (!theo.has(g.customer_phone)) {
+      theo.set(g.customer_phone, { customer_phone: g.customer_phone, customer_name: g.customer_name, so_goi: 0, so_dang_dung: 0, con_lai: 0, moc_lay: null, goi: [] });
+    }
+    const kh = theo.get(g.customer_phone);
+    kh.so_goi++;
+    kh.goi.push(g);
+    if (g.status !== 'active') continue;
+    kh.so_dang_dung++;
+    kh.con_lai += Math.max(0, Number(g.total_qty) - Number(g.delivered_qty));
+    const moc = g.last_delivery_at || g.created_at;
+    if (!kh.moc_lay || new Date(moc) > new Date(kh.moc_lay)) kh.moc_lay = moc;
+  }
+  for (const kh of theo.values()) {
+    kh.ngay_chua_lay = kh.moc_lay ? Math.floor((bayGio - new Date(kh.moc_lay).getTime()) / 86400000) : null;
+    kh.lau = kh.ngay_chua_lay !== null && kh.ngay_chua_lay > NGAY_LAU_CHUA_LAY;
+  }
+  return [...theo.values()];
+}
+
+/** Ba lọc của màn (Q2): `dang_dung` (mặc định) · `lau` · `xong` = có gói đã xong / đã kết thúc (Q-D). */
+const LOC_KHACH = {
+  dang_dung: (kh) => kh.so_dang_dung > 0,
+  lau: (kh) => kh.lau,
+  xong: (kh) => kh.so_dang_dung < kh.so_goi,
+};
+
+/** GOI-2 (A4): đơn mua có gói đã kết thúc ở Báo cáo → Gói SP — tiền đã chốt theo gói, huỷ / xoá đơn không được hoàn lần hai. */
+const goiDaKetThuc = (db, orderId) => db.queryOne("SELECT 1 FROM pos_customer_packages WHERE order_id = ? AND status = 'cancelled' LIMIT 1", [orderId]);
+const LOI_GOI_DA_KET_THUC = { error: 'Gói đã kết thúc — xử lý ở Báo cáo → Gói SP', code: 'GOI_DA_KET_THUC' };
+
+module.exports = { dieuKienLayTuGoi, daLayTheoLoai, vuotTheoLoai, gomTheoKhach, LOC_KHACH, goiDaKetThuc, LOI_GOI_DA_KET_THUC };
