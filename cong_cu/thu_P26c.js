@@ -745,6 +745,69 @@ async function main() {
     }
   }
 
+  // ═════════════════════════════════════════════════════════════════════════
+  // SO-LUONG-1 (chủ quán chốt 14.10): mọi số lượng máy chủ nhận — `quantity` món, `pkg_qty` gói — phải là số NGUYÊN ≥ 1 (chuỗi số
+  // nguyên vẫn nhận); mua gói phải đủ mã gói + SĐT khách. Mỗi ca chặn gửi `cash_amount` = số tiền SAI mà GỐC tự tính (orders.js
+  // :773 đòi tiền trả khớp tổng — gửi số đúng thì gốc cũng 400 vì lệch tổng → xanh oan, K3). So status / code / số đếm, không dò chữ.
+  muc('[S1] món lẻ: quantity phải nguyên ≥ 1');
+  {
+    const demDon = () => so('SELECT COUNT(*) FROM pos_orders');
+    const demKho = () => so('SELECT COUNT(*) FROM pos_stock_pending');
+    const ban = (sl, tien) => goi('POST', '/orders', { customer_name: 'Khách S1', items: [mon(2), mon(0, sl)], payment_method: 'cash', cash_amount: tien });
+    for (const [chu, sl, tien, goc] of [['a', 0, 50000], ['b', -1, 25000], ['c', 0.5, 62500], ['d', 1.5, 87500], ['e', '2a', 50000, '500 NaN vào DB'], ['f', '', 50000]]) {
+      const d0 = await demDon(), k0 = await demKho();
+      const r = await ban(sl, tien);
+      k(`S1${chu} món 50.000 + món 25.000 × ${JSON.stringify(sl)} (gốc ${goc || 'tạo đơn ' + tien.toLocaleString('vi-VN') + 'đ'}) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi`,
+        r.status === 400 && r.code === 'SL_KHONG_HOP_LE' && await demDon() === d0 && await demKho() === k0, `${moTa(r)} · tổng ${r.order?.total}`);
+    }
+    const a = await ban(2, 100000), b = await ban('2', 100000);
+    k('S1g (K5) quantity 2 → 200, tổng 100.000', a.status === 200 && Number(a.order?.total) === 100000, moTa(a));
+    k('S1h (K5) quantity "2" (chuỗi số nguyên) → 200, tổng 100.000', b.status === 200 && Number(b.order?.total) === 100000, moTa(b));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[S2] mua gói: pkg_qty nguyên ≥ 1 (thiếu → 1); phải đủ mã gói + SĐT khách');
+  {
+    const goiId = await taoGoi(300000, 10);
+    const demDon = () => so('SELECT COUNT(*) FROM pos_orders');
+    const demGoi = (donId) => so('SELECT COUNT(*) FROM pos_customer_packages' + (donId ? ' WHERE order_id = ?' : ''), donId ? [donId] : []);
+    const mua = (body, tien) => goi('POST', '/orders', { customer_phone: sdtMoi(), customer_name: 'Khách S2', items: [], payment_method: 'cash', cash_amount: tien, ...body });
+    for (const [chu, v, tien] of [['a', 0, 300000], ['b', 0.002, 600], ['c', -1, 0], ['d', 1.5, 450000]]) {
+      const d0 = await demDon(), g0 = await demGoi();
+      const r = await mua({ package_buy: { package_id: goiId, total_qty: 10, pkg_qty: v } }, tien);
+      k(`S2${chu} gói 300.000 × pkg_qty ${v} (gốc tính ${tien.toLocaleString('vi-VN')}đ) → 400 SL_KHONG_HOP_LE, không đơn, không gói mới`,
+        r.status === 400 && r.code === 'SL_KHONG_HOP_LE' && await demDon() === d0 && await demGoi() === g0, `${moTa(r)} · tổng ${r.order?.total}`);
+    }
+    const e = await mua({ package_buy: { package_id: goiId } }, 300000);   // thiếu cả total_qty — máy chủ không dùng (P26c A6)
+    k('S2e (K5) chỉ gửi package_id (thiếu pkg_qty, total_qty) → 200, 1 gói khách, tổng 300.000', e.status === 200 && Number(e.order?.total) === 300000 && await demGoi(e.order?.id) === 1, moTa(e));
+    const f = await mua({ package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 2 } }, 600000);
+    k('S2f (K5) pkg_qty 2 → 200, 2 gói khách, tổng 600.000', f.status === 200 && Number(f.order?.total) === 600000 && await demGoi(f.order?.id) === 2, moTa(f));
+    // Hai phát hiện (chủ quán chốt vá 14.10): `package_buy: {}` lọt cổng :338 (`{}` truthy) → món từ gói 0đ không trừ lượt; thiếu SĐT → thu tiền mà không tạo gói (:1019).
+    const d0 = await demDon(), k0 = await so('SELECT COUNT(*) FROM pos_stock_pending'), g0 = await demGoi();
+    const g = await mua({ items: [mon(0, 2, true)], package_buy: {} }, 0);
+    k('S2g package_buy: {} + 2 ly khai từ gói (gốc tạo đơn 0đ, không trừ lượt) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, kho không đổi',
+      g.status === 400 && g.code === 'GOI_MUA_THIEU_THONG_TIN' && await demDon() === d0 && await so('SELECT COUNT(*) FROM pos_stock_pending') === k0, moTa(g));
+    const h = await mua({ customer_phone: undefined, package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 1 } }, 300000);
+    k('S2h mua gói 300.000 không SĐT (gốc thu 300.000 mà không tạo gói) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, không gói',
+      h.status === 400 && h.code === 'GOI_MUA_THIEU_THONG_TIN' && await demDon() === d0 && await demGoi() === g0, moTa(h));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[S3 + S4] món lấy từ gói giữ mã GOI_SL_KHONG_HOP_LE (GOI-1); luồng hợp lệ: 10 ly, mua thẻ');
+  {
+    const gl = await goiDaLay({ cash_amount: 300000 }, 2);
+    const l = await lay(gl.sdt, gl.cp, 0.5);
+    k('S3 lấy từ gói 0,5 ly → 400 GOI_SL_KHONG_HOP_LE, giao vẫn 2', l.status === 400 && l.code === 'GOI_SL_KHONG_HOP_LE' && await daGiao(gl.cp) === 2, moTa(l));
+    const m10 = await goi('POST', '/orders', { customer_name: 'Khách S4', items: [mon(0, 10)], payment_method: 'cash', cash_amount: 250000 });
+    k('S4a (K5) bán 10 ly 25.000 → 200, tổng 250.000', m10.status === 200 && Number(m10.order?.total) === 250000, moTa(m10));
+    const the = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
+    const tien = 25000 + Number(the.card_price);
+    const mt = await goi('POST', '/orders', { customer_phone: sdtMoi(), customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id },
+      payment_method: 'cash', cash_amount: tien });
+    k(`S4b (K5) 1 ly 25.000 + mua thẻ ${Number(the.card_price).toLocaleString('vi-VN')} → 200, tổng ${tien.toLocaleString('vi-VN')}`,
+      mt.status === 200 && Number(mt.order?.total) === tien, moTa(mt));
+  }
+
   sv.close();
   console.log(`\n  ${dat} đạt · ${hong} hỏng\n`);
   try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ }

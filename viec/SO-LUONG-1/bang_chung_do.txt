@@ -1,0 +1,30 @@
+# SO-LUONG-1 — bằng chứng ĐỎ trên code CHƯA vá (orders.js của HEAD 6d72cd8, chạy qua --may-chu bản sao; cong_cu/thu_P26c.js mục [S] bản cuối, 14.10.2026)
+# Lệnh: node cong_cu/thu_P26c.js --may-chu <bản sao server/ với orders.js gốc> — trích mục [S1] / [S2] / [S3 + S4] và dòng tổng; 84 ca cũ đều ✓ (số ✗ phần cũ: 0).
+
+[S1] món lẻ: quantity phải nguyên ≥ 1
+  ✗ S1a món 50.000 + món 25.000 × 0 (gốc tạo đơn 50.000đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 50000
+  ✗ S1b món 50.000 + món 25.000 × -1 (gốc tạo đơn 25.000đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 25000
+  ✗ S1c món 50.000 + món 25.000 × 0.5 (gốc tạo đơn 62.500đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 62500
+  ✗ S1d món 50.000 + món 25.000 × 1.5 (gốc tạo đơn 87.500đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 87500
+  ✗ S1e món 50.000 + món 25.000 × "2a" (gốc 500 NaN vào DB) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 500 · Only finite numbers (not Infinity or NaN) can be passed as arguments · tổng undefined
+  ✗ S1f món 50.000 + món 25.000 × "" (gốc tạo đơn 50.000đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 50000
+  ✓ S1g (K5) quantity 2 → 200, tổng 100.000
+  ✓ S1h (K5) quantity "2" (chuỗi số nguyên) → 200, tổng 100.000
+
+[S2] mua gói: pkg_qty nguyên ≥ 1 (thiếu → 1); phải đủ mã gói + SĐT khách
+  ✗ S2a gói 300.000 × pkg_qty 0 (gốc tính 300.000đ) → 400 SL_KHONG_HOP_LE, không đơn, không gói mới  — HTTP 200 · tổng 300000
+  ✗ S2b gói 300.000 × pkg_qty 0.002 (gốc tính 600đ) → 400 SL_KHONG_HOP_LE, không đơn, không gói mới  — HTTP 200 · tổng 600
+  ✗ S2c gói 300.000 × pkg_qty -1 (gốc tính 0đ) → 400 SL_KHONG_HOP_LE, không đơn, không gói mới  — HTTP 200 · tổng 0
+  ✗ S2d gói 300.000 × pkg_qty 1.5 (gốc tính 450.000đ) → 400 SL_KHONG_HOP_LE, không đơn, không gói mới  — HTTP 200 · tổng 450000
+  ✓ S2e (K5) chỉ gửi package_id (thiếu pkg_qty, total_qty) → 200, 1 gói khách, tổng 300.000
+  ✓ S2f (K5) pkg_qty 2 → 200, 2 gói khách, tổng 600.000
+  ✗ S2g package_buy: {} + 2 ly khai từ gói (gốc tạo đơn 0đ, không trừ lượt) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, kho không đổi  — HTTP 200
+  ✗ S2h mua gói 300.000 không SĐT (gốc thu 300.000 mà không tạo gói) → 400 GOI_MUA_THIEU_THONG_TIN, không đơn, không gói  — HTTP 200
+
+[S3 + S4] món lấy từ gói giữ mã GOI_SL_KHONG_HOP_LE (GOI-1); luồng hợp lệ: 10 ly, mua thẻ
+  ✓ S3 lấy từ gói 0,5 ly → 400 GOI_SL_KHONG_HOP_LE, giao vẫn 2
+  ✓ S4a (K5) bán 10 ly 25.000 → 200, tổng 250.000
+  ✓ S4b (K5) 1 ly 25.000 + mua thẻ 500.000 → 200, tổng 525.000
+
+  91 đạt · 12 hỏng
+SỐ CA cong_cu/thu_P26c.js: 103
