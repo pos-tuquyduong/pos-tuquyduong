@@ -20,37 +20,40 @@ export default function Reports() {
   const { hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'packages' ? 'packages' : 'daily'); // daily, discount, packages
 
-  // Packages state
+  // GOI-2 (Q1, Q2): máy chủ gom MỖI KHÁCH MỘT DÒNG (`theo-khach`) + lọc Đang dùng / Lâu chưa lấy / Đã xong; ?goi= (từ Cài đặt) và ?phone=
+  // (từ chi tiết khách) lọc sẵn; tìm tên / SĐT tại màn. Gói: Đã xong (lấy đủ) · Đã kết thúc (chủ quán kết thúc, Q4).
+  const sdtLoc = searchParams.get('phone') || null;
   const [pkgData, setPkgData] = useState([]);
-  const [pkgFilter, setPkgFilter] = useState(goiLoc ? 'active' : 'all');
+  const [pkgFilter, setPkgFilter] = useState('dang_dung');
   const [pkgSearch, setPkgSearch] = useState('');
-  const [pkgSort, setPkgSort] = useState('moi'); // moi = thứ tự máy chủ (đang giao trước, mới mua trước) · lau = lâu chưa lấy lên đầu
+  const [pkgKhachOpen, setPkgKhachOpen] = useState({});
   const [pkgDetailOpen, setPkgDetailOpen] = useState({});
   const [pkgDeliveries, setPkgDeliveries] = useState({});
+  const [ketThuc, setKetThuc] = useState(null);   // hộp "Kết thúc gói…": { cp, hoan, lyDo, duKien, loiDuKien, loi }
 
-  useEffect(() => { 
+  useEffect(() => {
     if (activeTab === 'daily') {
-      loadReport(); 
+      loadReport();
     } else if (activeTab === 'discount') {
       loadDiscountReport();
     } else if (activeTab === 'packages') {
       loadPackageData();
     }
-  }, [date, dateRange, activeTab]);
+  }, [date, dateRange, activeTab, pkgFilter, goiLoc, sdtLoc]);
 
   const loadReport = async () => {
     setLoading(true);
-    try { const data = await reportsApi.daily(date); setReport(data); } 
+    try { const data = await reportsApi.daily(date); setReport(data); }
     catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
   const loadDiscountReport = async () => {
     setLoading(true);
-    try { 
-      const data = await reportsApi.discounts({ from: dateRange.from, to: dateRange.to }); 
-      setDiscountReport(data); 
-    } 
+    try {
+      const data = await reportsApi.discounts({ from: dateRange.from, to: dateRange.to });
+      setDiscountReport(data);
+    }
     catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -58,7 +61,10 @@ export default function Reports() {
   const loadPackageData = async () => {
     setLoading(true);
     try {
-      const data = await api.get('/packages/customer-packages/all');
+      const qs = new URLSearchParams({ loc: pkgFilter });
+      if (goiLoc) qs.set('goi', goiLoc);
+      if (sdtLoc) qs.set('phone', sdtLoc);
+      const data = await api.get(`/packages/customer-packages/theo-khach?${qs}`);
       if (data.success) setPkgData(data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -72,43 +78,40 @@ export default function Reports() {
     } catch (err) { console.error(err); }
   };
 
-  // GOI-1 (Q5): dừng gói — bắt lý do, KHÔNG hoàn tiền (hoàn tiền chỉ qua huỷ đơn mua gói). Máy chủ chặn quyền + trạng thái.
-  const dungGoi = async (pkg) => {
-    const lyDo = window.prompt(`Dừng gói "${pkg.pkg_name}" của ${pkg.customer_name || pkg.customer_phone} — KHÔNG hoàn tiền. Lý do:`);
-    if (!lyDo || !lyDo.trim()) return;
+  // GOI-2 (Q4): "Kết thúc gói…" — hộp 2 lựa chọn + lý do. Số tiền hoàn do máy chủ tính, hiện TRƯỚC khi xác nhận và gửi lại để máy chủ
+  // đối chiếu (có người lấy hàng giữa chừng → 409, hiện số mới, bắt chọn lại). Máy chủ chặn quyền, trạng thái, hai người cùng bấm.
+  const taiDuKien = async (cp) => {
     try {
-      await api.put(`/packages/customer-packages/${pkg.id}/cancel`, { reason: lyDo.trim() });
-      await loadPackageData();
-    } catch (err) { alert('Lỗi: ' + err.message); }
+      const r = await api.get(`/packages/customer-packages/${cp}/hoan-du-kien`);
+      setKetThuc(kt => kt?.cp === cp ? { ...kt, duKien: r.data, loiDuKien: '' } : kt);
+    } catch (err) { setKetThuc(kt => kt?.cp === cp ? { ...kt, duKien: null, loiDuKien: err.message } : kt); }
+  };
+  const moKetThuc = (pkg) => { setKetThuc({ cp: pkg.id, hoan: null, lyDo: '', duKien: null, loiDuKien: '', loi: '' }); taiDuKien(pkg.id); };
+  const xacNhanKetThuc = async () => {
+    const kt = ketThuc;
+    if (kt.hoan === null) return setKetThuc({ ...kt, loi: 'Chọn một trong hai cách xử lý' });
+    if (!kt.lyDo.trim()) return setKetThuc({ ...kt, loi: 'Phải nhập lý do' });
+    try {
+      await api.put(`/packages/customer-packages/${kt.cp}/cancel`, { reason: kt.lyDo.trim(), hoan: kt.hoan, so_tien: kt.hoan ? kt.duKien?.tong : undefined });
+      setKetThuc(null);
+      loadPackageData();
+    } catch (err) {
+      setKetThuc({ ...kt, loi: err.message, hoan: err.code === 'GOI_HOAN_DOI_SO' ? null : kt.hoan });
+      if (err.code === 'GOI_HOAN_DOI_SO') taiDuKien(kt.cp);
+    }
   };
 
-  const pkgCuaGoi = useMemo(() => goiLoc ? pkgData.filter(p => Number(p.package_id) === goiLoc) : pkgData, [pkgData, goiLoc]);
+  const pkgStats = useMemo(() => ({
+    kh: pkgData.length, goi: pkgData.reduce((s, p) => s + p.so_goi, 0), con: pkgData.reduce((s, p) => s + p.con_lai, 0), lau: pkgData.filter(p => p.lau).length,
+  }), [pkgData]);
 
-  const pkgStats = useMemo(() => {
-    const d = pkgCuaGoi;
-    const t = d.length, a = d.filter(p => p.status === 'active').length;
-    const c = d.filter(p => p.status === 'completed').length;
-    const n = d.filter(p => { const pct = Math.round((p.delivered_qty / p.total_qty) * 100); return pct >= 80 && pct < 100; }).length;
-    const rev = d.reduce((s, p) => s + (p.pkg_price || 0), 0);
-    const tSP = d.reduce((s, p) => s + p.total_qty, 0);
-    const dSP = d.reduce((s, p) => s + p.delivered_qty, 0);
-    return { t, a, c, n, rev, tSP, dSP, pct: tSP > 0 ? Math.round((dSP / tSP) * 100) : 0, custs: new Set(d.map(p => p.customer_phone)).size };
-  }, [pkgCuaGoi]);
-
-  // GOI-1 (Q4): một dòng một gói; tìm theo tên khách / SĐT / tên gói; "Lâu chưa lấy": gói chưa lấy lần nào tính theo ngày mua (C3).
+  // Tìm tên khách / SĐT trong danh sách máy chủ đã lọc.
   const pkgList = useMemo(() => {
-    let data = pkgCuaGoi;
-    if (pkgFilter === 'active') data = data.filter(p => p.status === 'active');
-    else if (pkgFilter === 'near') data = data.filter(p => { const pct = Math.round((p.delivered_qty / p.total_qty) * 100); return pct >= 80 && pct < 100; });
-    else if (pkgFilter === 'done') data = data.filter(p => p.status === 'completed');
-    if (pkgSearch) {
-      const s = pkgSearch.toLowerCase();
-      data = data.filter(p => (p.customer_phone || '').includes(s) || (p.customer_name || '').toLowerCase().includes(s) || (p.pkg_name || '').toLowerCase().includes(s));
-    }
-    const lanCuoi = (p) => String(p.last_delivery_at || p.created_at);
-    return pkgSort === 'lau' ? [...data].sort((a, b) => lanCuoi(a).localeCompare(lanCuoi(b))) : data;
-  }, [pkgCuaGoi, pkgFilter, pkgSearch, pkgSort]);
-  const TRANG_THAI = { active: '🔄 Đang giao', completed: '✅ Xong', cancelled: '⛔ Đã dừng' };
+    if (!pkgSearch) return pkgData;
+    const s = pkgSearch.toLowerCase();
+    return pkgData.filter(p => (p.customer_phone || '').includes(s) || (p.customer_name || '').toLowerCase().includes(s));
+  }, [pkgData, pkgSearch]);
+  const TRANG_THAI = { active: '🔄 Đang dùng', completed: '✅ Đã xong', cancelled: '⛔ Đã kết thúc' };
 
   const formatPrice = (p) => (p || 0).toLocaleString() + 'đ';
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
@@ -364,70 +367,98 @@ export default function Reports() {
           loading ? <div className="loading">Đang tải...</div> : (
             <>
               <div className="grid grid-4 mb-2">
-                <div className="stat-card"><div className="stat-label">📦 Tổng gói</div><div className="stat-value" style={{ color: '#7c3aed' }}>{pkgStats.t}</div><div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{pkgStats.custs} khách</div></div>
-                <div className="stat-card"><div className="stat-label">🚚 Đang giao</div><div className="stat-value" style={{ color: '#3b82f6' }}>{pkgStats.a}</div>{pkgStats.n > 0 && <div style={{ fontSize: '0.75rem', color: '#f59e0b' }}>⚡ {pkgStats.n} sắp hết</div>}</div>
-                <div className="stat-card"><div className="stat-label">✅ Hoàn thành</div><div className="stat-value text-success">{pkgStats.c}</div></div>
-                <div className="stat-card"><div className="stat-label">💰 DT gói</div><div className="stat-value text-danger">{formatPrice(pkgStats.rev)}</div><div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{pkgStats.dSP}/{pkgStats.tSP} SP</div></div>
-              </div>
-
-              <div className="card mb-1" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontWeight: 600, color: '#7c3aed' }}>📈 Tiến độ</span>
-                <div style={{ flex: 1, height: 8, borderRadius: 4, background: '#f3f4f6' }}><div style={{ height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, #7c3aed, #c084fc)', width: `${pkgStats.pct}%` }} /></div>
-                <strong style={{ color: '#7c3aed' }}>{pkgStats.pct}%</strong>
-                <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{pkgStats.dSP}/{pkgStats.tSP}</span>
+                <div className="stat-card"><div className="stat-label">👥 Khách</div><div className="stat-value" style={{ color: '#7c3aed' }}>{pkgStats.kh}</div></div>
+                <div className="stat-card"><div className="stat-label">📦 Gói</div><div className="stat-value" style={{ color: '#3b82f6' }}>{pkgStats.goi}</div></div>
+                <div className="stat-card"><div className="stat-label">🛍 Còn lại</div><div className="stat-value text-success">{pkgStats.con} túi</div></div>
+                <div className="stat-card"><div className="stat-label">⏳ Lâu chưa lấy</div><div className="stat-value" style={{ color: pkgStats.lau ? '#f59e0b' : '#6b7280' }}>{pkgStats.lau}</div></div>
               </div>
 
               <div className="card mb-1" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input value={pkgSearch} onChange={e => setPkgSearch(e.target.value)} placeholder="🔍 Tìm tên, SĐT, gói..." className="input" style={{ flex: '1 1 180px', maxWidth: 240 }} />
-                {[{ k: 'all', l: 'Tất cả' }, { k: 'active', l: 'Đang giao' }, { k: 'near', l: '⚡ Sắp hết' }, { k: 'done', l: '✅ Xong' }].map(f => (
+                <input value={pkgSearch} onChange={e => setPkgSearch(e.target.value)} placeholder="🔍 Tìm tên, SĐT..." className="input" style={{ flex: '1 1 180px', maxWidth: 240 }} />
+                {[{ k: 'dang_dung', l: 'Đang dùng' }, { k: 'lau', l: '⏳ Lâu chưa lấy' }, { k: 'xong', l: '✅ Đã xong / đã kết thúc' }].map(f => (
                   <button key={f.k} onClick={() => setPkgFilter(f.k)} className={`btn ${pkgFilter === f.k ? 'btn-primary' : 'btn-outline'}`}
                     style={pkgFilter === f.k ? { background: '#7c3aed', borderColor: '#7c3aed' } : {}}>{f.l}</button>
                 ))}
-                <button onClick={() => setPkgSort(pkgSort === 'lau' ? 'moi' : 'lau')} className={`btn ${pkgSort === 'lau' ? 'btn-primary' : 'btn-outline'}`}
-                  style={pkgSort === 'lau' ? { background: '#7c3aed', borderColor: '#7c3aed' } : {}}>⏳ Lâu chưa lấy</button>
                 {goiLoc && <button onClick={() => setSearchParams({ tab: 'packages' })} className="btn btn-outline">
-                  Gói: {pkgCuaGoi[0]?.pkg_name || '#' + goiLoc} ✕</button>}
+                  Gói: {pkgData[0]?.goi[0]?.pkg_name || '#' + goiLoc} ✕</button>}
+                {sdtLoc && <button onClick={() => setSearchParams({ tab: 'packages' })} className="btn btn-outline">
+                  Khách: {pkgData[0]?.customer_name || sdtLoc} ✕</button>}
               </div>
 
-              {pkgList.length === 0 ? <div className="card" style={{ textAlign: 'center', color: '#999' }}>Không có gói nào</div> : (
+              {pkgList.length === 0 ? <div className="card" style={{ textAlign: 'center', color: '#999' }}>Không có khách nào</div> : (
                 <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
                   <table className="table">
-                    <thead><tr><th>Khách</th><th>Gói</th><th>Đã lấy</th><th>Ngày mua</th><th>Lần lấy gần nhất</th><th>Trạng thái</th><th></th></tr></thead>
+                    <thead><tr><th>Khách</th><th>Số gói</th><th>Còn lại</th><th>Lần lấy gần nhất</th></tr></thead>
                     <tbody>
-                      {pkgList.map(pkg => {
-                        const pct = pkg.total_qty > 0 ? Math.round((pkg.delivered_qty / pkg.total_qty) * 100) : 0;
-                        const vuot = pct > 100;
-                        const dO = pkgDetailOpen[pkg.id], dels = pkgDeliveries[pkg.id] || [];
+                      {pkgList.map(kh => {
+                        const mo = pkgKhachOpen[kh.customer_phone];
                         return (
-                          <Fragment key={pkg.id}>
-                            <tr onClick={() => { setPkgDetailOpen(p => ({ ...p, [pkg.id]: !dO })); if (!dO) loadDeliveries(pkg.id); }}
-                              style={{ cursor: 'pointer', background: vuot ? '#fef2f2' : undefined }}>
+                          <Fragment key={kh.customer_phone}>
+                            <tr onClick={() => setPkgKhachOpen(p => ({ ...p, [kh.customer_phone]: !mo }))} style={{ cursor: 'pointer', background: kh.lau ? '#fffbeb' : undefined }}>
                               <td>
-                                <Link to={`/customers?phone=${encodeURIComponent(pkg.customer_phone)}`} onClick={e => e.stopPropagation()}><strong>{pkg.customer_name || '—'}</strong></Link>
-                                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{pkg.customer_phone}</div>
+                                <Link to={`/customers?phone=${encodeURIComponent(kh.customer_phone)}`} onClick={e => e.stopPropagation()}><strong>{kh.customer_name || '—'}</strong></Link>
+                                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{kh.customer_phone}</div>
                               </td>
-                              <td>📦 {pkg.pkg_name}</td>
-                              <td style={{ color: vuot ? '#dc2626' : '#7c3aed', fontWeight: 700, whiteSpace: 'nowrap' }}>{pkg.delivered_qty}/{pkg.total_qty} · {pct}%</td>
-                              <td>{fmtDate(pkg.created_at)}</td>
-                              <td>{pkg.last_delivery_at ? fmtDate(pkg.last_delivery_at) : 'chưa lấy'}</td>
-                              <td style={{ whiteSpace: 'nowrap' }}>{TRANG_THAI[pkg.status] || pkg.status}</td>
-                              <td>
-                                {hasPermission('refund_package') && pkg.status === 'active' && (
-                                  <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', color: '#dc2626', whiteSpace: 'nowrap' }}
-                                    onClick={e => { e.stopPropagation(); dungGoi(pkg); }}>Dừng gói</button>
-                                )}
-                              </td>
+                              <td style={{ whiteSpace: 'nowrap' }}>{kh.so_goi} gói{kh.so_dang_dung !== kh.so_goi && <span style={{ fontSize: '0.75rem', color: '#6b7280' }}> · {kh.so_dang_dung} đang dùng</span>}</td>
+                              <td style={{ color: '#7c3aed', fontWeight: 700, whiteSpace: 'nowrap' }}>{kh.con_lai} túi</td>
+                              <td>{kh.moc_lay ? fmtDate(kh.moc_lay) : '—'}
+                                {kh.lau && <span style={{ color: '#b45309', fontWeight: 600, marginLeft: 6 }}>⏳ {Math.floor(kh.ngay_chua_lay / 30)} tháng chưa lấy</span>}</td>
                             </tr>
-                            {dO && <tr><td colSpan={7} style={{ background: '#fafafa', fontSize: '0.75rem' }}>
-                              {pkg.status === 'cancelled' && pkg.notes && <div style={{ color: '#92400e', whiteSpace: 'pre-line', marginBottom: 4 }}>{pkg.notes}</div>}
-                              {dels.length === 0 ? <div style={{ color: '#999', textAlign: 'center' }}>Chưa giao</div> : dels.map((d, j) => (
-                                <div key={j} style={{ display: 'flex', gap: 5, padding: '2px 0' }}>
-                                  <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0 4px', borderRadius: 3, fontWeight: 700 }}>#{j + 1}</span>
-                                  <span>{fmtDate(d.created_at)}</span>
-                                  <span style={{ flex: 1, color: '#666' }}>{d.items}</span>
-                                  <strong style={{ color: '#7c3aed' }}>{d.total_qty}</strong>
-                                </div>
-                              ))}
+                            {mo && <tr><td colSpan={4} style={{ background: '#fafafa', padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
+                              {kh.goi.map(pkg => {
+                                const pct = pkg.total_qty > 0 ? Math.round((pkg.delivered_qty / pkg.total_qty) * 100) : 0;
+                                const vuot = pct > 100;
+                                const dO = pkgDetailOpen[pkg.id], dels = pkgDeliveries[pkg.id] || [];
+                                const ngay = (t) => String(t).slice(0, 10);
+                                return (
+                                  <div key={pkg.id} style={{ borderBottom: '1px solid #eee', padding: '0.35rem 0' }}>
+                                    <div onClick={() => { setPkgDetailOpen(p => ({ ...p, [pkg.id]: !dO })); if (!dO) loadDeliveries(pkg.id); }}
+                                      style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', flexWrap: 'wrap' }}>
+                                      <strong>📦 {pkg.pkg_name}</strong>
+                                      <span>mua <Link to={`/orders?code=${encodeURIComponent(pkg.order_code || '')}&ngay=${ngay(pkg.created_at)}`} onClick={e => e.stopPropagation()}>{fmtDate(pkg.created_at)}</Link></span>
+                                      <span>{formatPrice(pkg.pkg_price)}</span>
+                                      <span style={{ color: vuot ? '#dc2626' : '#7c3aed', fontWeight: 700, whiteSpace: 'nowrap' }}>{pkg.delivered_qty}/{pkg.total_qty} · {pct}%</span>
+                                      <span>{pkg.last_delivery_at ? fmtDate(pkg.last_delivery_at) : 'chưa lấy'}</span>
+                                      <span style={{ whiteSpace: 'nowrap' }}>{TRANG_THAI[pkg.status] || pkg.status}</span>
+                                    </div>
+                                    {dO && <div style={{ fontSize: '0.75rem', marginTop: 4, paddingLeft: 8 }}>
+                                      {pkg.notes && <div style={{ color: '#92400e', whiteSpace: 'pre-line', marginBottom: 4 }}>{pkg.notes}</div>}
+                                      {dels.length === 0 ? <div style={{ color: '#999' }}>Chưa giao</div> : dels.map((d, j) => (
+                                        <div key={j} style={{ display: 'flex', gap: 5, padding: '2px 0' }}>
+                                          <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0 4px', borderRadius: 3, fontWeight: 700 }}>#{j + 1}</span>
+                                          <Link to={`/orders?code=${encodeURIComponent(d.order_code)}&ngay=${ngay(d.created_at)}`}>{fmtDate(d.created_at)}</Link>
+                                          <span style={{ flex: 1, color: '#666' }}>{d.items}</span>
+                                          <strong style={{ color: '#7c3aed' }}>{d.total_qty}</strong>
+                                        </div>
+                                      ))}
+                                      {hasPermission('refund_package') && pkg.status === 'active' && pkg.delivered_qty < pkg.total_qty && ketThuc?.cp !== pkg.id && (
+                                        <button className="btn btn-outline" style={{ marginTop: 6, padding: '0.2rem 0.5rem', fontSize: '0.75rem', color: '#dc2626' }}
+                                          onClick={() => moKetThuc(pkg)}>Kết thúc gói…</button>
+                                      )}
+                                      {ketThuc?.cp === pkg.id && (
+                                        <div style={{ marginTop: 6, padding: 8, background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 6, fontSize: '0.8rem' }}>
+                                          <div style={{ fontWeight: 700, color: '#9a3412' }}>Kết thúc gói "{pkg.pkg_name}" — không mở lại được. Chọn một cách xử lý:</div>
+                                          <label style={{ display: 'block', marginTop: 4 }}>
+                                            <input type="radio" name="kt_hoan" checked={ketThuc.hoan === true} disabled={!ketThuc.duKien} onChange={() => setKetThuc({ ...ketThuc, hoan: true, loi: '' })} />
+                                            {' '}Hoàn phần còn lại vào ví khách: <strong>{ketThuc.duKien ? formatPrice(ketThuc.duKien.tong) : (ketThuc.loiDuKien || 'đang tính…')}</strong>
+                                          </label>
+                                          <label style={{ display: 'block', marginTop: 4 }}>
+                                            <input type="radio" name="kt_hoan" checked={ketThuc.hoan === false} onChange={() => setKetThuc({ ...ketThuc, hoan: false, loi: '' })} />
+                                            {' '}Không hoàn tiền (khách bỏ, dùng thử, đã giao ngoài máy)
+                                          </label>
+                                          <input className="input" style={{ marginTop: 6, width: '100%' }} placeholder="Lý do (bắt buộc)" value={ketThuc.lyDo}
+                                            onChange={e => setKetThuc({ ...ketThuc, lyDo: e.target.value, loi: '' })} />
+                                          {ketThuc.loi && <div style={{ color: '#dc2626', marginTop: 4, fontWeight: 600 }}>{ketThuc.loi}</div>}
+                                          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                            <button className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={xacNhanKetThuc}>Xác nhận kết thúc</button>
+                                            <button className="btn btn-outline" onClick={() => setKetThuc(null)}>Thôi</button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>}
+                                  </div>
+                                );
+                              })}
                             </td></tr>}
                           </Fragment>
                         );

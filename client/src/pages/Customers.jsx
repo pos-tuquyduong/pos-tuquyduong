@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { customersV2Api, registrationsApi } from '../utils/api';
+import { Link, useSearchParams } from 'react-router-dom';
+import { api, customersV2Api, registrationsApi } from '../utils/api';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, Percent, FileText } from 'lucide-react';
 
 export default function Customers() {
@@ -141,8 +141,12 @@ export default function Customers() {
   };
 
   // Mở modal chi tiết khi click vào row
+  const [goiDangDung, setGoiDangDung] = useState(null);   // GOI-2 (Q5.3): dòng khách ở theo-khach (so_dang_dung, con_lai) — cùng số với Báo cáo
   const openDetailModal = (customer) => {
     setSelectedCustomer(customer);
+    setGoiDangDung(null);
+    api.get(`/packages/customer-packages/theo-khach?phone=${encodeURIComponent(customer.phone)}`)
+      .then(r => setGoiDangDung((r.data || [])[0] || null)).catch(() => setGoiDangDung(null));
     setShowRedeem(false);
     setRedeemResult(null);
     setRewards([]);
@@ -708,6 +712,14 @@ export default function Customers() {
                     )}
                   </div>
                 </div>
+
+                {goiDangDung?.so_dang_dung > 0 && (
+                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
+                    <Link to={`/reports?tab=packages&phone=${encodeURIComponent(selectedCustomer.phone)}`} style={{ color: '#7c3aed', fontWeight: 600 }}>
+                      📦 Gói đang dùng: {goiDangDung.so_dang_dung} gói · còn {goiDangDung.con_lai} túi →
+                    </Link>
+                  </div>
+                )}
 
                 {/* TIER-1c: hạng thành viên hiện tại */}
                 <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
