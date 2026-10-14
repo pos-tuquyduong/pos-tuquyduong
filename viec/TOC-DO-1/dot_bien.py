@@ -26,6 +26,10 @@ DOT_BIEN = [
   ('VS-TOCDO1-KHONG-ORIGIN-BO-QUA', [("if (mb.status !== 0) return 'không xác định được gốc chung với origin/main';",
                                      "if (mb.status !== 0) return null;", 1)], r'✗ T8 '),
   ('VS-TOCDO1-SO-THANG-ORIGIN', [("g('diff', '--name-only', mb.stdout.trim(), 'HEAD',", "g('diff', '--name-only', 'origin/main', 'HEAD',", 1)], r'✗ T10'),
+  # soát vòng 1: lời gọi trần sót NGOÀI khối (hồi quy khi giải xung đột merge quanh dòng 553 cũ) → bộ kiểm luôn chạy, các ca T vẫn xanh
+  ('BV-TOCDO1-GOI-TRAN-NGOAI-KHOI', [("else dong.push('  – bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github');\n",
+                                      "else dong.push('  – bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github');\nchayBaiThat('tu_chay/thu_cong.js');\n", 1)],
+   r'✗ E1 '),
 ]
 
 
