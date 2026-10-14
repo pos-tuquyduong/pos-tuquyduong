@@ -1,8 +1,20 @@
 # TOC-DO-1 — bằng chứng đỏ (K3)
 
-SỐ CA cong_cu/thu_TOCDO1.js: 15
+SỐ CA cong_cu/thu_TOCDO1.js: 17
 
-## Lần 2 (bài thử ĐÃ ĐỔI sau lần ghi đầu — cổng A16: chạy lại cả gốc lẫn bản vá)
+## Lần 3 (bài thử ĐỔI sau soát vòng 1 — A16: chạy lại cả gốc lẫn bản vá)
+Đổi gì: E0 tách E0a/E0b (neo đầu / neo cuối); thêm E1 "toàn bộ kiểm đúng MỘT lời gọi thu_cong.js và nằm trong khối" (lỗ K3 ngoài khối
+agent soát tìm ra). 15 → 17 ca.
+
+$ node cong_cu/thu_TOCDO1.js --kiem <nháp>/kiem_tra_truoc_khi_giao.js.truoc_TOCDO1      (gốc e2a357a)
+thu_TOCDO1: 14 đạt · 3 hỏng
+  ✗ T1 … ✗ T2 … ✗ T10 … (ba dòng như lần 2)
+thoát 1
+
+Trên bản ĐÃ VÁ: `node cong_cu/thu_TOCDO1.js` → thu_TOCDO1: 17 đạt · 0 hỏng (thoát 0) → SỐ CA 17.
+`python3 viec/TOC-DO-1/dot_bien.py` → đối chứng xanh · 10 đột biến bị bắt · 0 KHÔNG bị bắt (BV-TOCDO1-GOI-TRAN-NGOAI-KHOI → ✗ E1).
+
+## Lần 2 (SỐ CA 15 — đã thay bằng lần 3) (bài thử ĐÃ ĐỔI sau lần ghi đầu — cổng A16: chạy lại cả gốc lẫn bản vá)
 Đổi gì: bộ cắt khối neo ĐẦU DÒNG `^function lyDoChayThuCong(` thay cho `indexOf` (indexOf bắt trúng chú thích trong bộ kiểm → ném ở
 mọi ca, đỏ oan lần 1). Gốc = bản sao `kiem_tra_truoc_khi_giao.js` của e2a357a (chưa vá) trong thư mục nháp, chạy qua `--kiem`.
 
