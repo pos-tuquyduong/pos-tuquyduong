@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 28,
+  "phien_ban_so": 29,
   "cap_nhat": "2026-10-13",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -207,7 +207,7 @@
     },
     {
       "ma": "P22",
-      "ten": "Diem thuong chi cong khi thu du: don paid luc tao cong ngay; don cho thu/con no cong o pay-debt khi thanh paid, chi khi don CHUA co dong earn (F2). pay-debt: UPDATE don + dong debt_payment + cong diem trong MOT transaction (diem loi khong hong lan thu), log thu ghi SAU CUNG voi meta truoc-khi-thu dung thuc te. CHO CHU QUAN QUYET 1 viec: diem am khi khach da tieu diem — ap cho hoan thu P13e va huy don P24; CHU QUAN CHOT 02.10: DIEM AM khi khach da tieu diem (ap cho P24, P13e); phai sua bat bien I8 cua gia lap",
+      "ten": "Diem thuong chi cong khi thu du: don paid luc tao cong ngay; don cho thu/con no cong o pay-debt khi thanh paid, chi khi don CHUA co dong earn (F2). pay-debt: UPDATE don + dong debt_payment + cong diem trong MOT transaction (diem loi khong hong lan thu), log thu ghi SAU CUNG voi meta truoc-khi-thu dung thuc te. CHO CHU QUAN QUYET 1 viec: diem am khi khach da tieu diem — ap cho hoan thu P13e va huy don P24; CHU QUAN CHOT 02.10: DIEM AM khi khach da tieu diem (ap cho P24, P13e); phai sua bat bien I8 cua gia lap | CHU QUAN CHOT 13.10: don giam gia Flash nhan diem bang ma in tren bill cung 0 diem (thong nhat luc ban) — signup-codes.js /nhan-diem chua xet flash (LUOI-2 Phat hien 1). + LUOI-2 Phat hien 2 (orders.js:545 flash khong giam hang chua co ca), 3 (he so nhan diem bill orders.js:1148 vs signup-codes.js:108 lech khi he so < 1)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -432,7 +432,25 @@
     },
     {
       "ma": "GOI-1",
-      "ten": "Goi san pham (chu quan chot 13.10): tong SL SP tu tinh = tong SL cac loai; may chu chan lay vuot TUNG loai; khong cho gia 0d; \"N KH\" -> Bao cao / Goi SP loc san; danh sach co ten khach, ngay mua, lan lay cuoi, > 100 % to do; Dung goi (chi chu quan, khong hoan, giu lich su). KHONG lam Tam dung (chu quan: goi chi tru khi lay, it nut). Song song LUOI-2. PHIEU 13.10: viec/GOI-1/phieu.md (cho duyet ke hoach)",
+      "ten": "Goi san pham (chu quan chot 13.10): tong SL SP tu tinh = tong SL cac loai; may chu chan lay vuot TUNG loai; khong cho gia 0d; \"N KH\" -> Bao cao / Goi SP loc san; danh sach co ten khach, ngay mua, lan lay cuoi, > 100 % to do; Dung goi (chi chu quan, khong hoan, giu lich su). KHONG lam Tam dung (chu quan: goi chi tru khi lay, it nut). Song song LUOI-2. PHIEU 13.10: viec/GOI-1/phieu.md (cho duyet ke hoach) | XONG 13.10 (PR #17, 28f65d1; chat soat thay e7f0b57 sau 4 vong may): tong SL SP tu tinh, chan lay vuot tung loai o may chu (cung giao dich), khong gia 0d, \"N KH\" -> Bao cao/Goi SP loc san, ten khach, Dung goi (refund_package + ly do). thu_GOI1 51, dot bien GOI-1 49/49. Q-B (pkg_qty + mon le SL am/le qua API) -> SO-LUONG-1. Chu quan xem man sau GOI-1: roi rac, nhieu nut -> GOI-2",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "GOI-1",
+      "commit": "28f65d1",
+      "ngay": "2026-10-13"
+    },
+    {
+      "ma": "LUOI-2",
+      "ten": "Va luoi (chi them bai thu): 5 dot bien NANG-luoi AU2-2 (doi qua thieu 1 diem, don flash van cong diem, nhan diem ma bill cong doi, lay goi cua khach khac, huy don goi + mon le tra thua luot) + chat soat P26c m1 (huy don mua goi con no hoan ca phan chua tra) SONG -> BAT. Song song GOI-1. PHIEU 13.10: viec/LUOI-2/phieu.md (cho duyet ke hoach) | XONG 13.10 (PR #18, c591b9e): 8 ca vao thu_P26c (L1a-L6a + 2 doi chung), 7 dot bien A3L BAT (c2luoi = c2full + thu_P26c). Chat soat cuoi tren ban ghep voi GOI-1: 7/7 BAT. Phat hien 2 (flash khong giam hang chua co ca), 3 (he so bill vs cong that lech khi < 1) -> P22",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "LUOI-2",
+      "commit": "c591b9e",
+      "ngay": "2026-10-13"
+    },
+    {
+      "ma": "GOI-2",
+      "ten": "Bao cao goi (chu quan duyet demo 13.10): moi khach mot dong (con lai tui, lan lay gan nhat, \"... thang chua lay\"), 3 loc (Dang dung / Lau chua lay / Da xong); goi du luot hien Da xong (sua du lieu cu); \"Ket thuc goi...\" (chi chu quan, ly do) 2 lua chon: hoan phan con lai vao vi (so tien hien truoc) / khong hoan; chan huy-xoa don mua goi da ket thuc (khong hoan 2 lan); 4 duong bam (ten goi -> khach, ten khach -> Khach hang, Khach hang -> goi cua khach, ngay mua/lan giao -> Don hang). Song song TOC-DO-1. PHIEU 13.10: viec/GOI-2/phieu.md (cho duyet ke hoach)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -440,8 +458,17 @@
       "ngay": null
     },
     {
-      "ma": "LUOI-2",
-      "ten": "Va luoi (chi them bai thu): 5 dot bien NANG-luoi AU2-2 (doi qua thieu 1 diem, don flash van cong diem, nhan diem ma bill cong doi, lay goi cua khach khac, huy don goi + mon le tra thua luot) + chat soat P26c m1 (huy don mua goi con no hoan ca phan chua tra) SONG -> BAT. Song song GOI-1. PHIEU 13.10: viec/LUOI-2/phieu.md (cho duyet ke hoach)",
+      "ma": "TOC-DO-1",
+      "ten": "Commit tren Replit truot ngau nhien (3 lan 12-13.10): thu_cong.js trong hook pre-commit do khi may cham. Tim nguyen nhan that; bo kiem chi chay thu_cong.js khi --day-du hoac doi tu_chay/.claude/.github (khong xac dinh -> chay). Khong noi han. Song song GOI-2. PHIEU 13.10: viec/TOC-DO-1/phieu.md (cho duyet ke hoach)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "SO-LUONG-1",
+      "ten": "Duong tien qua API (GOI-1 Q-B, Phat hien): may chu tin nguyen pkg_qty (mua goi le / 0.01 -> tra 3.000d) va so luong mon le (am / le -> giam tien don). Chan: so luong + pkg_qty phai nguyen >= 1 o may chu (man Ban hang da gui so nguyen). Lam sau GOI-2 + TOC-DO-1, truoc AUDIT-3. Dung tien -> duyet ke hoach.",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -450,7 +477,7 @@
     },
     {
       "ma": "AUDIT-3",
-      "ten": "Audit dot 3 (sau LUOI-2 + GOI-1): chay lai bo cong cu AUDIT-2 (dot_bien.py A3L + B3, dot_bien_bb.py, kiem_neo.py, lach.js) + viec/AUDIT-1/dot_bien.py (ca G3) tren HEAD; them dot bien cho GOI-1. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG.",
+      "ten": "Audit dot 3 (sau LUOI-2 + GOI-1): chay lai bo cong cu AUDIT-2 (dot_bien.py A3L + B3, dot_bien_bb.py, kiem_neo.py, lach.js) + viec/AUDIT-1/dot_bien.py (ca G3) tren HEAD; them dot bien cho GOI-1. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG. | 13.10: bo chay c2full cua AUDIT-1 KHONG chay thu_P26c -> dung c2luoi (viec/AUDIT-2/dot_bien.py) khi ket luan SONG; them dot bien GOI-2, TOC-DO-1",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
