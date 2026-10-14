@@ -6,7 +6,9 @@ const express = require('express');
 const router = express.Router();
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { dieuKienLayTuGoi, daLayTheoLoai } = require('../utils/goiKhach');
+const { dieuKienLayTuGoi, daLayTheoLoai, gomTheoKhach, LOC_KHACH } = require('../utils/goiKhach');
+const { loiGhi, trongGiaoDich, ghiHoan } = require('./wallets');   // GOI-2: kết thúc gói có hoàn ghi ví qua cùng một hàm với huỷ đơn
+const { soTienHoanGoi } = require('../utils/tienDaTra');
 
 // Helper: đếm KH đang dùng gói
 const countActiveUsers = async (packageId) => {
@@ -163,21 +165,53 @@ router.get('/customer/:phone', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// GET /customer-packages/all — Tất cả gói (Reports)
+// GOI-1 (Q4): một dòng một gói — tên khách (bảng khách theo SĐT đã chuẩn hoá, dự phòng tên trên đơn mua gói), lần lấy gần nhất;
+// GOI-2: mã đơn mua (`order_code`, bấm sang màn Đơn hàng). MỘT câu cho cả `/all` lẫn `/theo-khach`.
+const SQL_GOI_KHACH = `SELECT cp.*, p.code as pkg_code, p.name as pkg_name, p.price as pkg_price,
+         p.unit as pkg_unit, p.package_items as pkg_items, COALESCE(c.name, ob.customer_name) as customer_name, ob.code as order_code,
+         (SELECT MAX(o.created_at) FROM pos_orders o JOIN pos_order_items oi ON oi.order_id = o.id
+           WHERE ${dieuKienLayTuGoi('cp.id')}) as last_delivery_at
+  FROM pos_customer_packages cp JOIN pos_packages p ON cp.package_id = p.id
+  LEFT JOIN pos_customers c ON c.phone = cp.customer_phone LEFT JOIN pos_orders ob ON ob.id = cp.order_id`;
+const SAP_GOI_KHACH = " ORDER BY cp.status = 'active' DESC, cp.created_at DESC";
+
+// GET /customer-packages/all — Tất cả gói, một dòng một gói
 router.get('/customer-packages/all', authenticate, async (req, res) => {
   try {
     const { status } = req.query;
-    // GOI-1 (Q4): tên khách (bảng khách theo SĐT đã chuẩn hoá, dự phòng tên trên đơn mua gói) + lần lấy gần nhất.
-    let sql = `SELECT cp.*, p.code as pkg_code, p.name as pkg_name, p.price as pkg_price,
-                      p.unit as pkg_unit, p.package_items as pkg_items, COALESCE(c.name, ob.customer_name) as customer_name,
-                      (SELECT MAX(o.created_at) FROM pos_orders o JOIN pos_order_items oi ON oi.order_id = o.id
-                        WHERE ${dieuKienLayTuGoi('cp.id')}) as last_delivery_at
-               FROM pos_customer_packages cp JOIN pos_packages p ON cp.package_id = p.id
-               LEFT JOIN pos_customers c ON c.phone = cp.customer_phone LEFT JOIN pos_orders ob ON ob.id = cp.order_id`;
     const params = [];
+    let sql = SQL_GOI_KHACH;
     if (status && status !== 'all') { sql += ' WHERE cp.status = ?'; params.push(status); }
-    sql += " ORDER BY cp.status = 'active' DESC, cp.created_at DESC";
-    res.json({ success: true, data: await query(sql, params) });
+    res.json({ success: true, data: await query(sql + SAP_GOI_KHACH, params) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// GET /customer-packages/theo-khach — Báo cáo → Gói SP (GOI-2, Q1–Q3): MỖI KHÁCH MỘT DÒNG kèm danh sách gói; lọc `loc` (dang_dung
+// mặc định · lau · xong), `goi` (từ Cài đặt → tên gói), `phone` (từ chi tiết khách). Tìm tên / SĐT làm ở màn.
+router.get('/customer-packages/theo-khach', authenticate, async (req, res) => {
+  try {
+    // Q3: gói đang dùng mà đã lấy đủ → Đã xong (nắn dữ liệu cũ, điều kiện chặt, chạy lại vô hại; code mới không sinh ra lệch này nữa).
+    await run("UPDATE pos_customer_packages SET status = 'completed', updated_at = ? WHERE status = 'active' AND delivered_qty >= total_qty",
+      [new Date().toISOString()]);
+    const { loc = 'dang_dung', goi, phone } = req.query;
+    const locKhach = Object.hasOwn(LOC_KHACH, loc) ? LOC_KHACH[loc] : null;
+    if (!locKhach) return res.status(400).json({ success: false, error: `Bộ lọc "${loc}" không có — dùng dang_dung, lau hoặc xong` });
+    const dk = [], params = [];
+    if (goi) { dk.push('cp.package_id = ?'); params.push(goi); }
+    if (phone) { dk.push('cp.customer_phone = ?'); params.push(phone); }
+    const ds = await query(SQL_GOI_KHACH + (dk.length ? ' WHERE ' + dk.join(' AND ') : '') + SAP_GOI_KHACH, params);
+    res.json({ success: true, data: gomTheoKhach(ds).filter(locKhach) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// GET /customer-packages/:id/hoan-du-kien — số tiền sẽ hoàn nếu kết thúc gói bây giờ (hiện trong hộp xác nhận TRƯỚC khi bấm).
+router.get('/customer-packages/:id/hoan-du-kien', authenticate, checkPermission('refund_package'), async (req, res) => {
+  try {
+    const cp = await queryOne('SELECT * FROM pos_customer_packages WHERE id = ?', [req.params.id]);
+    if (!cp) return res.status(404).json({ success: false, error: 'Không tìm thấy gói KH' });
+    const { don, loi, error, ...tien } = await soTienHoanGoi({ query, queryOne }, cp);
+    if (loi) return res.status(400).json({ success: false, code: loi, error });
+    res.json({ success: true, data: tien });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -200,23 +234,44 @@ router.get('/customer-packages/:id/deliveries', authenticate, async (req, res) =
 // P26c (A4): BỎ PUT /customer-packages/:id/deliver — không màn hình gọi, cộng lượt không trần, không tạo đơn. Lấy từ gói qua
 // POST /orders (customer_package_id).
 
-// PUT /customer-packages/:id/cancel — Dừng gói (GOI-1, Q5): chỉ quyền hoàn gói, bắt lý do, KHÔNG hoàn tiền, KHÔNG xoá — giữ
-// lịch sử để đối soát. Hoàn tiền chỉ một đường: huỷ đơn mua gói (P26c Q4).
+// PUT /customer-packages/:id/cancel — Kết thúc gói (GOI-1 Q5 "Dừng gói"; GOI-2 Q4 thêm `hoan`): chỉ quyền hoàn gói, bắt lý do, KHÔNG xoá —
+// giữ lịch sử để đối soát. `hoan: true` → hoàn phần còn lại vào ví theo soTienHoanGoi, ghi ví bằng ghiHoan như huỷ đơn; không gửi / false →
+// không hoàn (như GOI-1). Mọi thứ trong MỘT giao dịch; cổng `status = 'active' AND delivered_qty < total_qty` chặn gói đã xong, đã kết thúc
+// và hai người cùng bấm (chỉ một lần hoàn). `so_tien` client gửi chỉ để ĐỐI CHIẾU với số máy chủ tính (lệch → 409, không ghi gì).
 router.put('/customer-packages/:id/cancel', authenticate, checkPermission('refund_package'), async (req, res) => {
   try {
     const { id } = req.params;
     const lyDo = String(req.body.reason || '').trim();
-    if (!lyDo) return res.status(400).json({ success: false, code: 'GOI_THIEU_LY_DO', error: 'Phải nhập lý do dừng gói' });
-    const cp = await queryOne('SELECT * FROM pos_customer_packages WHERE id = ?', [id]);
-    if (!cp) return res.status(404).json({ success: false, error: 'Không tìm thấy gói KH' });
+    const hoan = req.body.hoan === true;
+    if (!lyDo) return res.status(400).json({ success: false, code: 'GOI_THIEU_LY_DO', error: 'Phải nhập lý do kết thúc gói' });
     const now = new Date().toISOString();
-    const ghi = `${cp.notes ? cp.notes + '\n' : ''}Dừng gói: ${lyDo} — ${req.user.username} ${now} (đã lấy ${cp.delivered_qty}/${cp.total_qty})`;
-    // Một phép chặn cả gói đã xong, đã dừng lẫn hai người cùng bấm.
-    const doi = await run("UPDATE pos_customer_packages SET status = 'cancelled', notes = ?, updated_at = ? WHERE id = ? AND status = 'active'",
-      [ghi, now, id]);
-    if (doi.changes !== 1) return res.status(400).json({ success: false, code: 'GOI_KHONG_DUNG_DUOC', error: 'Gói không còn đang giao — không dừng được' });
-    res.json({ success: true, message: `Đã dừng gói (đã lấy ${cp.delivered_qty}/${cp.total_qty})` });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+    const kq = await trongGiaoDich(async (tx) => {
+      const cp = await tx.queryOne('SELECT * FROM pos_customer_packages WHERE id = ?', [id]);
+      if (!cp) return { huy: true, status: 404, body: { success: false, error: 'Không tìm thấy gói KH' } };
+      let tien = { tong: 0 };
+      if (hoan) {
+        tien = await soTienHoanGoi(tx, cp);
+        if (tien.loi) return { huy: true, status: 400, body: { success: false, code: tien.loi, error: tien.error } };
+        if (req.body.so_tien !== undefined && Number(req.body.so_tien) !== tien.tong) {
+          const { don, ...hoan_du_kien } = tien;
+          return { huy: true, status: 409, body: { success: false, code: 'GOI_HOAN_DOI_SO', hoan_du_kien,
+            error: `Số tiền hoàn đã đổi thành ${tien.tong.toLocaleString('vi-VN')}đ — xem lại rồi bấm lại` } };
+        }
+      }
+      const ghi = `${cp.notes ? cp.notes + '\n' : ''}Kết thúc gói (${hoan ? 'hoàn ' + tien.tong + 'đ' : 'không hoàn'}): ${lyDo} — ${req.user.username} ${now} (đã lấy ${cp.delivered_qty}/${cp.total_qty})`;
+      const doi = await tx.run(`UPDATE pos_customer_packages SET status = 'cancelled', notes = ?, updated_at = ?
+        WHERE id = ? AND status = 'active' AND delivered_qty < total_qty`, [ghi, now, id]);
+      if (doi.changes !== 1) return { huy: true, status: 400, body: { success: false, code: 'GOI_KHONG_DUNG_DUOC', error: 'Gói không còn đang dùng — không kết thúc được' } };
+      if (hoan && tien.tong > 0) {
+        await ghiHoan(tx, tien.don, { me: tien.me, tuVi: tien.vi, tienMat: tien.tien_mat }, { nguoi: req.user.username, luc: now,
+          ghiChu: `Hoàn kết thúc gói KH #${cp.id} (đơn ${tien.don.code})`,
+          ghiChuMe: `Hoàn tiền mẹ kết thúc gói KH #${cp.id} (đơn ${tien.don.code}, KH: ${tien.don.customer_name})` });
+      }
+      return { cp, hoan: tien.tong };
+    });
+    if (kq.huy) return res.status(kq.status).json(kq.body);
+    res.json({ success: true, hoan: kq.hoan, message: `Đã kết thúc gói (đã lấy ${kq.cp.delivered_qty}/${kq.cp.total_qty})${hoan ? ` — hoàn ${kq.hoan.toLocaleString('vi-VN')}đ vào ví` : ''}` });
+  } catch (err) { loiGhi(res, err); }
 });
 
 module.exports = router;

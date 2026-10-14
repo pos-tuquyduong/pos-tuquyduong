@@ -24,9 +24,9 @@ const {
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
-const { ghiVi, loiGhi } = require("./wallets"); // P26b: chỗ duy nhất ghi ví
+const { ghiVi, loiGhi, ghiHoan } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
-const { daLayTheoLoai, vuotTheoLoai } = require("../utils/goiKhach"); // GOI-1
+const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
 
@@ -1331,16 +1331,8 @@ async function hoanVi(tx, order, nguoi, luc, viec) {
   // Đơn mua gói: phần vượt số khách trả bằng ví (= phần tiền mặt / CK, H2) ghi dòng riêng cách 'hoan_goi', KHÔNG giảm total_spent
   // (nó chưa từng là tiền chi từ ví — soát vòng 1 lỗi 4). Đối soát: I11 canh phần ví, I19 canh cả đơn.
   const tuVi = coGoi ? Math.min(con, Number(order.balance_amount || 0)) : con;
-  for (const [soTien, cachTra, cot] of [[tuVi, "cash", "total_spent"], [con - tuVi, "hoan_goi", null]]) {
-    if (soTien > 0 && order.customer_phone) {
-      await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: "refund", soTien, orderId: order.id, cachTra,
-        ghiChu: `Hoàn tiền ${viec} đơn ${order.code}`, nguoi, luc, cot, soCot: -soTien });
-    }
-  }
-  if (me > 0) {
-    await ghiVi(tx, { phone: order.parent_phone, loai: "refund", soTien: me, orderId: order.id,
-      ghiChu: `Hoàn tiền mẹ ${viec} đơn ${order.code} (KH: ${order.customer_name})`, nguoi, luc, cot: "total_spent", soCot: -me });
-  }
+  await ghiHoan(tx, order, { me, tuVi, tienMat: con - tuVi }, { nguoi, luc, ghiChu: `Hoàn tiền ${viec} đơn ${order.code}`,
+    ghiChuMe: `Hoàn tiền mẹ ${viec} đơn ${order.code} (KH: ${order.customer_name})` });
 }
 
 /**
@@ -1393,6 +1385,11 @@ router.put(
           });
         }
 
+        // GOI-2 (A4): gói của đơn đã kết thúc ở Báo cáo → Gói SP → tiền đã chốt theo gói, không huỷ (= không hoàn lần hai).
+        if (cancelBuyPkgs.length && await goiDaKetThuc(tx, order.id)) {
+          await tx.rollback();
+          return res.status(400).json(LOI_GOI_DA_KET_THUC);
+        }
         // Hoàn lại vào ví khách / mẹ — P26b: qua ghiVi (tương đối, trong giao dịch này). P26c: số tiền theo soTienHoan.
         await hoanVi(tx, order, req.user.username, now, "hủy");
         await traLuotMa(tx, order);
@@ -1436,13 +1433,13 @@ router.put(
           const deliveredQty = (cancelItems || [])
             .filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))
             .reduce((s, i) => s + i.quantity, 0);
-          if (deliveredQty > 0) {
+          if (deliveredQty > 0) {   // GOI-2 (Q-C): gói đã kết thúc (cancelled) KHÔNG nhận lại túi — tiền đã chốt lúc kết thúc
             await tx.run(
               `UPDATE pos_customer_packages 
                SET delivered_qty = MAX(0, delivered_qty - ?),
                    status = CASE WHEN status = 'completed' THEN 'active' ELSE status END,
                    updated_at = ?
-               WHERE id = ?`,
+               WHERE id = ? AND status != 'cancelled'`,
               [deliveredQty, now, order.customer_package_id]
             );
             console.log(`📦 Hủy đơn giao: hoàn lại -${deliveredQty} SP cho package #${order.customer_package_id}`);
@@ -1545,6 +1542,10 @@ router.delete("/:id", authenticate, async (req, res) => {
       );
 
       if (order.status === "completed") {
+        if (await goiDaKetThuc(tx, order.id)) {   // GOI-2 (A4): như huỷ — gói đã kết thúc thì không xoá đơn mua
+          await tx.rollback();
+          return res.status(400).json(LOI_GOI_DA_KET_THUC);
+        }
         await hoanVi(tx, order, req.user.username, now, "xóa");
         await traLuotMa(tx, order);
       }
@@ -1567,13 +1568,13 @@ router.delete("/:id", authenticate, async (req, res) => {
         const deliveredQty = orderItems
           .filter(i => i.product_id > 0 && (i.unit_price === 0 || i.unit_price === null))
           .reduce((s, i) => s + i.quantity, 0);
-        if (deliveredQty > 0) {
+        if (deliveredQty > 0) {   // GOI-2 (Q-C): như huỷ — không trả túi về gói đã kết thúc
           await tx.run(
             `UPDATE pos_customer_packages 
              SET delivered_qty = MAX(0, delivered_qty - ?),
                  status = CASE WHEN status = 'completed' THEN 'active' ELSE status END,
                  updated_at = ?
-             WHERE id = ?`,
+             WHERE id = ? AND status != 'cancelled'`,
             [deliveredQty, now, order.customer_package_id]
           );
           console.log(`📦 Hoàn lại -${deliveredQty} SP cho package #${order.customer_package_id}`);
