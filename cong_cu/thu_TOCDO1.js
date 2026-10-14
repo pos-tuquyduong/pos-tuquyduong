@@ -21,9 +21,16 @@ const k = (ten, dk, ghi = '') => { if (dk) dat++; else hong.push(ten + (ghi ? ' 
 // ── Khối thật ──────────────────────────────────────────────────────────────
 const kt = fs.readFileSync(KIEM, 'utf8');
 const a = kt.search(/^function lyDoChayThuCong\(/m); // neo ĐẦU DÒNG: chú thích trong bộ kiểm cũng nhắc tên hàm (đỏ oan lần 1)
-const khoi = a >= 0 ? kt.slice(a, kt.indexOf('\n', kt.indexOf('bỏ qua thu_cong.js', a)) + 1)
+const b = a < 0 ? -1 : kt.indexOf('bỏ qua thu_cong.js', a);
+const khoi = a >= 0 ? (b < 0 ? '' : kt.slice(a, kt.indexOf('\n', b) + 1))
   : (kt.split('\n').find((d) => /^\s*chayBaiThat\('tu_chay\/thu_cong\.js'\)/.test(d)) || '');
-k('E0 cắt được khối gọi thu_cong.js từ bộ kiểm', !!khoi, 'không thấy function lyDoChayThuCong( lẫn dòng gọi trần');
+k('E0a thấy đầu khối (function lyDoChayThuCong( ở đầu dòng) hoặc dòng gọi trần (bản gốc)', a >= 0 || !!khoi,
+  'không thấy function lyDoChayThuCong( ở đầu dòng, cũng không thấy dòng gọi trần');
+k('E0b có đầu khối thì phải có neo cuối "bỏ qua thu_cong.js" sau nó', a < 0 || b >= 0, 'có hàm nhưng thiếu dòng else "bỏ qua thu_cong.js"');
+// E1 (soát vòng 1, E13): lời gọi trần sót NGOÀI khối thì bộ kiểm luôn chạy mà các ca dưới vẫn xanh — toàn file đúng 1 lời gọi, nằm trong khối
+const GOI = "chayBaiThat('tu_chay/thu_cong.js')";
+k('E1 toàn bộ kiểm đúng MỘT lời gọi thu_cong.js và nó nằm trong khối cắt', kt.split(GOI).length === 2 && khoi.includes(GOI),
+  `${kt.split(GOI).length - 1} lời gọi trong file · trong khối: ${khoi.includes(GOI)}`);
 const BO = 'bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github';
 // Chạy khối với GOC = kho tạm; spawnSync bọc môi trường sạch. Trả { goi: số lần gọi chayBaiThat, dong }.
 function chay(goc, dayDu, env) {
