@@ -6,16 +6,16 @@ Số dòng dưới đây đọc trong lượt này trên HEAD `be1a404` (= main 
 
 | Chỗ | Đang làm |
 |---|---|
-| `packages.js:147–163` GET /customer-packages/all | một dòng một gói, có `customer_name`, `last_delivery_at` (dùng `dieuKienLayTuGoi`) |
-| `packages.js:166–177` GET …/:id/deliveries | lịch sử giao: `o.id`, `order_code`, `created_at`, món |
-| `packages.js:187–205` PUT …/:id/cancel | "Dừng gói": `refund_package`, bắt lý do, `UPDATE … WHERE id=? AND status='active'`, KHÔNG đụng tiền |
+| `packages.js:167–182` GET /customer-packages/all | một dòng một gói, có `customer_name`, `last_delivery_at` (dùng `dieuKienLayTuGoi`) |
+| `packages.js:185–196` GET …/:id/deliveries | lịch sử giao: `o.id`, `order_code`, `created_at`, món |
+| `packages.js:205–220` PUT …/:id/cancel | "Dừng gói": `refund_package`, bắt lý do, `UPDATE … WHERE id=? AND status='active'`, KHÔNG đụng tiền |
 | `orders.js:907–920` | lấy từ gói: lấy đủ → `status='completed'` (tự xong) |
 | `orders.js:1018–1047` | mua gói (+ lấy ngay): `pkg_qty` gói, mỗi gói `order_id` = đơn mua; lấy đủ ngay → `completed` |
 | `orders.js:1326–1344` `hoanVi` | `soTienHoan` → ví mẹ trước; phần ví khách: dòng `cash` + giảm `total_spent` (= `tuVi`), phần vượt dòng `hoan_goi`, KHÔNG giảm `total_spent` |
 | `orders.js:1351–1415` huỷ đơn | cổng `UPDATE pos_orders … WHERE status='completed'`; đơn mua gói: quyền `refund_package`, gói đã giao → `cancelled`, chưa giao → xoá |
 | `orders.js:1432–1449`, `:1566–1580` | huỷ / xoá đơn LẤY từ gói: trả lượt, `completed` → `active` — **gói `cancelled` vẫn bị trả lượt** (Câu hỏi Q-C) |
 | `orders.js:1516–1562` xoá đơn | chỉ owner; `completed` → `hoanVi`; xoá mọi gói của đơn |
-| `refunds.js:20–28, 172` | đơn có gói KHÔNG hoàn qua yêu cầu (`DON_CO_GOI`) — đường song song đã đóng sẵn, không phải sửa |
+| `refunds.js:20–28, 118, 157` | đơn có gói KHÔNG hoàn qua yêu cầu (`DON_CO_GOI`) — chặn cả lúc TẠO (:118) lẫn DUYỆT (:157); đường song song đã đóng sẵn, không phải sửa |
 | `tienDaTra.js:16–28` `tienDaTraTheoDong` | giá đã trả mỗi dòng (sau flash / hạng, chia theo tỉ lệ total − ship, làm tròn xuống); dòng gói có `product_id = −package_id` |
 | `tienDaTra.js:35–52` `soTienHoan` | đơn có gói: đã trả (total − nợ) − giá trị đã dùng, trừ tiền đã đền; ví mẹ trước |
 | `wallets.js:60–77` `ghiVi` | chỗ duy nhất ghi ví |
@@ -23,7 +23,7 @@ Số dòng dưới đây đọc trong lượt này trên HEAD `be1a404` (= main 
 | `Reports.jsx:17–25, 59–110, 363–440` | đọc `?tab=packages&goi=`; lọc Tất cả / Đang giao / Sắp hết / Xong + nút sắp xếp "Lâu chưa lấy"; nút "Dừng gói" trên MỌI dòng active (`window.prompt`) |
 | `Settings.jsx:1154–1155` | tên gói là chữ; chỉ "🔒 N KH" là `Link` sang Báo cáo |
 | `Customers.jsx:144–157, 161–170` | đọc `?phone=`; chi tiết khách KHÔNG có dòng gói nào |
-| `Orders.jsx:46, 180–187` | ô tìm `searchCode` (lọc mã / SĐT / tên), không đọc đường dẫn |
+| `Orders.jsx:24–27, 46, 180–187` | chỉ tải đơn theo khoảng ngày (mặc định HÔM NAY, `orders.js:58–69` lọc `DATE(created_at)`); ô tìm `searchCode` lọc trong danh sách đã tải; không đọc đường dẫn |
 | `thu_GOI1.js:353–396` | A5 thử "Dừng gói"; A5h soi `window.prompt` + chữ "Dừng gói" ở Reports.jsx — **sẽ đổi** (hành vi CỐ Ý đổi, A8) |
 
 ## 1. Danh sách gom theo khách (A1, A2) — máy chủ gom
@@ -103,11 +103,13 @@ B (bỏ): gọi `hoanVi` từ packages.js — nó tính theo cả đơn, không 
   / "Không hoàn tiền" — ô lý do, dòng "Không mở lại được"; chưa chọn / chưa lý do → lời báo đỏ tại chỗ, không gửi. 409 đổi số →
   hiện số mới, bắt bấm lại. Thay `window.prompt` của "Dừng gói".
 - **Settings.jsx (~+2):** tên gói bọc `Link` `/reports?tab=packages&goi=<id>` (như "🔒 N KH").
-- **Customers.jsx (~+12):** mở chi tiết khách → gọi `GET /packages/customer/:phone` (có sẵn), hiện "Gói đang dùng: N gói · còn
+- **Customers.jsx (~+12):** mở chi tiết khách → gọi `GET /packages/customer-packages/theo-khach?phone=<SĐT>` (cùng số với Báo cáo;
+  không dùng `/customer/:phone` — nó chạy `daLayTheoLoai` từng gói, thừa), hiện "Gói đang dùng: N gói · còn
   X túi →" (`Link` `/reports?tab=packages&phone=<SĐT>`); 0 gói active thì không hiện.
-- **Orders.jsx (~+3):** `useSearchParams`, `?code=` → điền sẵn `searchCode` lúc mở.
-- **Reports.jsx chi tiết gói:** ngày mua → `Link` `/orders?code=<mã đơn mua>` (thêm `order_code` vào SELECT dùng chung, JOIN `ob`
-  có sẵn); từng lần giao → `/orders?code=<order_code>` (`deliveries` đã trả `order_code`).
+- **Orders.jsx (~+6):** `useSearchParams`, `?code=<mã>&ngay=<YYYY-MM-DD>` → điền sẵn `searchCode` VÀ đặt `dateFrom = dateTo = ngay`
+  (màn chỉ tải đơn theo ngày, mặc định hôm nay — chỉ điền mã thì đơn mua tháng trước không hiện; soát kế hoạch bắt). Không đổi máy chủ.
+- **Reports.jsx chi tiết gói:** ngày mua → `Link` `/orders?code=<mã đơn mua>&ngay=<ngày mua>` (thêm `order_code` vào SELECT dùng chung, JOIN `ob`
+  có sẵn); từng lần giao → `/orders?code=<order_code>&ngay=<ngày giao>` (`deliveries` đã trả `order_code`).
 - Màn Bán hàng (`Sales.jsx`) KHÔNG đụng (Q5). Không thêm `fetch` trần — dùng `api` (bánh cóc).
 - Sau sửa: `(cd client && npm run build)`, commit `client/dist/` (P1).
 
@@ -130,6 +132,21 @@ bài thử ~+250 trong `thu_GOI1.js`. Trong ngân sách phiếu (200–300 code)
 | A8 | build `client/`, `npm test`, `--day-du` 0 cảnh báo; `dot_bien.py`: mục 7 | — |
 | A9 | quy tắc đối soát ghi ở `trang_thai.md` (mục 8) | — |
 
+**Ca bổ sung sau soát kế hoạch (thêm vào bảng trên):**
+- A2: B2c phép tĩnh Reports.jsx: `completed` → "Đã xong", `cancelled` → "Đã kết thúc" (soi đúng bảng TRANG_THAI).
+- A3: B3k dòng ví có `#<cp.id>` trong ghi chú; notes gói có thời điểm (khớp mẫu ngày giờ). B3l kết thúc LẦN LƯỢT 2 gói cùng một đơn
+  (ví mẹ + ví một phần) → tổng về ví mẹ ≤ phần mẹ đã trả, dòng `cash` ≤ `balance_amount`, I11 / I19 sạch (trần cộng dồn Q-A).
+  B3m đền bù SAU khi kết thúc (damages.js:168–186 đền món khác cùng đơn) → I19 vẫn sạch.
+- A4: B4e lỗi 400 kèm đúng câu "Gói đã kết thúc — xử lý ở Báo cáo → Gói SP" (so nguyên câu, ngoài mã).
+- A5: B5c phép tĩnh: chưa chọn / chưa lý do → `set…Loi(...)` hiện trong hộp (phần tử báo lỗi nằm trong khối hộp), không chỉ "không gọi api.put".
+- A6: B6f Reports.jsx đọc `searchParams.get('phone')` và gửi `phone=` lên `theo-khach`; B6g Customers.jsx dòng "Gói đang dùng: N gói ·
+  còn X túi →" chỉ khi N > 0; B6h Orders.jsx đọc `ngay` vào `dateFrom`/`dateTo`.
+- A8: chạy lại `viec/P26c/dot_bien.py` + `viec/GOI-1/dot_bien.py` và `python3 viec/HOC-2b/kiem_neo.py`; ghi từng đột biến LẠC.
+
+**Đề xuất soát đã KHÔNG nhận (kèm lý do):** đưa `hoan_du_kien` vào `theo-khach` cho mọi gói active thay route riêng — mỗi gói một lần
+`tienDaTraTheoDong` (vài trăm câu trên Turso mỗi lần mở Báo cáo); route riêng chỉ chạy khi mở hộp. Giữ phép 409 `so_tien` — phiếu đòi
+số tiền hiện TRƯỚC khi xác nhận; không có 409 thì có người lấy hàng giữa chừng là chủ quán xác nhận một số, máy hoàn số khác.
+
 ## 7. Đột biến dự kiến (`viec/GOI-2/dot_bien.py`) — mỗi chỗ vá ≥ 1 VS + 1 BV
 
 | Chỗ vá | VS (vá sai) | BV (bỏ vá) |
@@ -145,13 +162,18 @@ bài thử ~+250 trong `thu_GOI1.js`. Trong ngân sách phiếu (200–300 code)
 | hộp xác nhận | `VS-GOI2-HOP-KHONG-BAT-CHON` | `BV-GOI2-NUT-TREN-DONG` (nút về lại dòng) |
 | đường bấm | `VS-GOI2-ORDERS-KHONG-DOC-CODE` | `BV-GOI2-LINK-TEN-GOI` |
 
+Tách `ghiHoan` khỏi `orders.js` làm LẠC 3 đột biến P26c neo vào `orders.js:1333–1334` (`viec/P26c/dot_bien.py:44–46`:
+`VS-H2-khong-ghi-hoan-goi`, `VS-H2-hoan-goi-giam-total-spent`, `VS-H2-mot-dong-hoan-goi`) — `viec/P26c/` ngoài Phạm vi, không sửa:
+`viec/GOI-2/dot_bien.py` dựng lại đúng ba lỗi đó trên chỗ mới (`wallets.js`) và phải BẮT bằng `thu_P26c.js`; ghi trong
+`trang_thai.md` để chủ quán chuyển neo P26c (Câu hỏi Q-F).
 Đột biến GOI-1 neo vào Reports.jsx "Dừng gói" / `window.prompt` sẽ LẠC (hành vi CỐ Ý đổi) — chạy `kiem_neo.py`, ghi rõ từng cái
 trong `trang_thai.md`, không sửa `viec/GOI-1/`.
 
 ## 8. Đường song song phải canh (K4)
 
 `hoanVi` huỷ ↔ xoá (cùng `ghiHoan`); chặn A4 huỷ ↔ xoá; duyệt hoàn `refunds.js` (đã chặn — ca B7: không cần sửa, ghi lại);
-huỷ / xoá đơn LẤY từ gói đã kết thúc (Q-C); `/all` ↔ `theo-khach` (một câu SELECT dùng chung); `countActiveUsers` + `active_users`
+huỷ / xoá đơn LẤY từ gói đã kết thúc (Q-C); đền bù sau kết thúc (B3m); `Sales.jsx:376` đọc `/customer/:phone` — thấy
+`completed` sau nắn Q3 (đúng: gói đủ không lấy được nữa), không sửa; `/all` ↔ `theo-khach` (một câu SELECT dùng chung); `countActiveUsers` + `active_users`
 nhờ nắn Q3 ở dữ liệu.
 
 ## 9. Luồng hợp lệ KHÔNG bị chặn (K5)

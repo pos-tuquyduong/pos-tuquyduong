@@ -33,6 +33,15 @@
 - **Q-E — ngưỡng 30 ngày.** Để một hằng có tên ở `server/utils/goiKhach.js` (máy chủ trả cờ `lau`, màn hình không viết số). CLAUDE.md
   cấm số cứng nghiệp vụ — chủ quán muốn đưa vào Cài đặt (việc sau, cần màn Cài đặt) hay chấp nhận hằng một chỗ?
 
+- **Q-F — neo đột biến P26c.** Tách thân ghi của `hoanVi` sang `wallets.js` (phiếu A3 đòi MỘT hàm dùng chung) làm lạc 3 đột biến
+  `viec/P26c/dot_bien.py:44–46`. Máy dựng lại đúng ba lỗi đó trong `viec/GOI-2/dot_bien.py`; chủ quán / chat chuyển neo P26c sau (ngoài
+  Phạm vi). Đồng ý không? (Cách khác: để `ghiHoan` trong `orders.js` và `packages.js` require `orders.js` — giữ neo nhưng route
+  require route, rối hơn.)
+
+## Soát kế hoạch (agent chỉ đọc, 14.10) — đã nhận: sửa số dòng mục 0; đường bấm 4 thêm `&ngay=` (Orders.jsx chỉ tải theo ngày);
+Customers dùng `theo-khach?phone=`; thêm ca B2c, B3k–m, B4e, B5c, B6f–h, chạy lại đột biến P26c; Q-F. Không nhận: gộp `hoan_du_kien`
+vào danh sách, bỏ 409 (lý do ở `ke_hoach.md` mục 6).
+
 ## Quy tắc đối soát "Kết thúc gói có hoàn" (A9 — chỉ ghi, DOI-SOAT-1 làm màn)
 - Mỗi ngày: Σ `amount` các dòng `pos_balance_transactions` loại `refund` có ghi chú `Hoàn kết thúc gói KH #…` trong ngày
   = Σ số tiền ghi trong notes `Kết thúc gói (hoàn <n>đ …)` của các gói `cancelled` có `updated_at` trong ngày.
