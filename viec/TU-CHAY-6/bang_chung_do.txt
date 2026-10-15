@@ -1,16 +1,19 @@
 # TU-CHAY-6 — bằng chứng ĐỎ trên code gốc dfeaa57 (bài thử của head chạy trên code CHƯA vá), 15.10.2026, máy mây 4 lõi
+# Lần 2 (A16): thu_cong.js thêm ca .claude/settings.json sau vòng đột biến 2 → chạy lại trên cong.js chưa vá (bản sao, cong.js.truoc_TUCHAY6) và trên HEAD.
 
 ## tu_chay/thu_cong.js trên gốc (cong.js chưa vá) — chỉ các dòng ✗ và dòng tổng
-thu_cong: 330 phép · 6 chỗ hỏng
-  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay, :268): lý do có "cong_cu/thu_a.js" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
+thu_cong: 334 phép · 7 chỗ hỏng
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay — chỗ ghi bài thử vào cây gốc): lý do có "cong_cu/thu_a.js" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
 ✗ CỔNG ĐỎ (CHẠY) — 1 lý do
-  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay, :268): KHÔNG có "Received null" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay — chỗ ghi bài thử vào cây gốc): KHÔNG có "Received null" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
 ✗ CỔNG ĐỎ (CHẠY) — 1 lý do
-  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file tu_chay/cau_hinh.json (chế độ tinh, :138 — ném không bị try/catch nuốt): lý do có "tu_chay/cau_hinh.json" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: Cannot read properties of null (reading 'ban_cai')
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file tu_chay/cau_hinh.json (chế độ tinh — A8 đọc cấu hình, ném không bị try/catch nuốt): lý do có "tu_chay/cau_hinh.json" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: Cannot read properties of null (reading 'ban_cai')
 ✗ CỔNG ĐỎ (TĨNH) — 1 lý do
-  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (:266) → cổng ĐỎ nêu "git archive", không ĐẠT oan: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
-  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (:266) → cổng ĐỎ nêu "git archive", không ĐẠT oan: lý do có "git archive" — ✓ CỔNG CHẠY ĐẠT
-  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (:266) → cổng ĐỎ nêu "git archive", không ĐẠT oan: đúng 1 dòng "✗ [" (một lý do rõ, không sập nhiều tầng) — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file .claude/settings.json (chế độ tinh — chỉ A8 đọc, qua try/catch) → một dòng ✗ [CONG], không [A8]: KHÔNG có "[A8]" — ✗ [A8] bản cài lệch nguồn: .claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac), .claude/settings.json: thiếu den
+✗ CỔNG ĐỎ (TĨNH) — 1 lý do
+  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: lý do có "git archive" — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: đúng 1 dòng "✗ [" (một lý do rõ, không sập nhiều tầng) — ✓ CỔNG CHẠY ĐẠT
 thoát 1
 
 ## cong_cu/thu_TOCDO1.js trên gốc (kiem_tra_truoc_khi_giao.js chưa có E14)
@@ -35,7 +38,7 @@ thu_nguoi_gac: 924/924 ca người gác đúng mã · 179 phép khác
 thoát 1
 
 ## Số ca khi chạy trên code ĐÃ VÁ (A16 — dòng tổng của bài ở head; thu_nguoi_gac = 924 ca người gác + 179 phép khác)
-SỐ CA tu_chay/thu_cong.js: 330
+SỐ CA tu_chay/thu_cong.js: 334
 SỐ CA cong_cu/thu_TOCDO1.js: 42
 SỐ CA tu_chay/thu_cong_cu.js: 105
 SỐ CA tu_chay/thu_nguoi_gac.js: 1103

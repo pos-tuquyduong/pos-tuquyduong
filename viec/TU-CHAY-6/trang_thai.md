@@ -95,3 +95,17 @@ dfeaa57 PHIEU: TU-CHAY-6
 | KHUON_LOI K4 | `BV-TUCHAY6-KHUONLOI-K4` | — | A4 |
 | PHIEN_BAN | `BV-TUCHAY6-PHIENBAN-CU` | — | A6 ở `thu_cong_cu.js` VÀ `thu_nguoi_gac.js` |
 | THIET_KE B15 | `BV-TUCHAY6-THIETKE-B15` | — | A6 THIET_KE |
+
+### Đột biến — ba lần chạy (`dot_bien.py`)
+- Lần 1: **đối chứng `thu_cong` ĐỎ** trên bản sao (bản thật xanh) → DỪNG đúng K3. Truy nguyên: `thu_cong.js:643–647` B5 băm
+  `.github/workflows/keep-alive.yml` qua `__dirname/..` — bản sao thiếu file. Sửa: chép thêm file này (commit `dot_bien.py`).
+- Lần 2: 12/18 bắt. 6 "KHÔNG bắt" truy nguyên: (a) 3 ca bị xếp nhầm vì bộ lọc sập/ném khớp chữ "sập"/"ném" trong TÊN ca (`ARCHIVE-NUOT`,
+  `KHUONLOI-K4`, `NEM-128`) → lọc theo dạng `<bài> sập: ` / `khối ném: `; riêng `NEM-128` còn làm `baiCong` sập thật ở đoạn gọi `cong()`
+  trong tiến trình (không bọc try) → bọc, phép đột-biến-tắt đỏ thay vì sập cả bài; (b) `BLOB-TRONG-TRY` sống: ca `cau_hinh.json` bị che
+  vì `cong.js` đọc lại cùng file ở bước so bản cài → thêm ca `.claude/settings.json` (chỉ A8 đọc qua try) `khong: ['[A8]']`, đột biến
+  hoàn cả hai chỗ try; (c) `QUEN-INSERT` neo khớp 2 lần (E12 cùng regex) → neo nguyên dòng `const GHI`; (d) `THIETKE-B15` đột biến
+  không gỡ neo nào → gỡ cụm `git cat-file hỏng`.
+- Lần 3 (HEAD `thu_cong.js` 334 phép): **đối chứng 4/4 xanh · 18/18 bị bắt · 0 không bắt**. Bằng chứng đỏ ghi lại lần 2 (A16): gốc 334 phép ·
+  7 hỏng, head 334 · 0.
+- Hook dừng của môi trường (`kiem_truoc_khi_dung.cjs`) chạy `npm test` chồng lên chuỗi nền → `thu_cong.js` trong hook 120,1 s ETIMEDOUT
+  (chạy riêng 73 s). Không nới hạn; chạy lại riêng ở bước 6 (bên dưới).
