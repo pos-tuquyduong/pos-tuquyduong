@@ -48,3 +48,50 @@ dfeaa57 PHIEU: TU-CHAY-6
    không in số dòng nên chưa lộ. Phép A2 dùng hàm cắt riêng giữ `\n`, không sửa `boGhiChu`.
 3. Phiếu / TOC-DO-1 ghi "`git cat-file` thoát 1" khi file không có — đo được **128** (`scratchpad/thu_gitgia.js`). Kế hoạch phân biệt theo
    `status === 0` / `status === null || error` / còn lại.
+
+## Làm tiếp (15.10, chủ quán duyệt kế hoạch 4709f5a; Q1 → PA-2 · Q2 → K3/K7 · Q3 → PA-A mục 4 · Q4 → làm A1b, chỉ BV-)
+
+- Bước 1: nhánh `viec/TU-CHAY-6`, cây sạch, HEAD = FETCH_HEAD = `415a7e7`, không kéo. `git log --oneline -3`:
+
+```
+415a7e7 TU-CHAY-6: trang thai buoc 1-3 — SHA doi chieu, so do A5, 4 cau hoi (Q1 A2 3/51 route, Q2 K3/K7, Q3 skill, Q4 A1b), 3 phat hien
+4709f5a TU-CHAY-6: ke hoach (cho duyet) — A1 blob/giaiNen, A2 phep tinh route ghi, A3 skill buoc 4, A4 KHUON_LOI, A5 so do, A6 1.6.0; 11 diem soat da gop
+dfeaa57 PHIEU: TU-CHAY-6
+```
+- Phiếu ghi sai một số đo: "file không có" = `git cat-file` thoát **1** — thật ra thoát **128** (đo `scratchpad/thu_gitgia.js`:
+  `fatal: path … does not exist`); bị giết → `status null` + `signal SIGKILL`; không có git → `status null` + `error ENOENT`. Chú thích
+  `cong.js:30` viết theo số đo này.
+
+## Bước 4–6 (15.10)
+
+- Bài thử đỏ trên gốc (`bang_chung_do.txt`): `thu_cong.js` 330 phép · **6 hỏng** (A1 chay "Received null" + không nêu đường dẫn; A1 tinh
+  "Cannot read properties of null (reading 'ban_cai')"; A1b cổng **ĐẠT oan** trên cây rỗng) · `thu_TOCDO1.js` 17 đạt · **3 hỏng** (R0/R0b/R0c)
+  · `thu_cong_cu.js` 105 phép · **5 hỏng** (A3 ×2, A4, A6 ×2) · `thu_nguoi_gac.js` **1 hỏng** (PHIEN_BAN). Sau vá: 330/0 · 42/0 · 105/0 ·
+  924 ca + 179 phép XANH.
+- Lệch so với kế hoạch (soát điểm 4 chọn "thân route tới `router.` kế tiếp"): chạy trên `server/` thật thì hàm phụ giữa hai route
+  (`wallets.js:60–119` ghiVi/ghiHoan/loiGhi/trongGiaoDich) bị gộp vào GET `/:phone` → báo oan `wallets.js:67, :271`, (b) 52. Sửa: thân route
+  kết ở dòng `});` hoặc `);` cột 0 (orders.js:1357 đóng `},\n);`), chặn ở `router.` kế tiếp; ca R10b đổi thành "hàm phụ CÓ lệnh ghi
+  không thuộc route trước"; thêm ca R10c cho dạng `},\n);`. Kết quả thật: (a) `packages.js:194, products.js:57, sync.js:147` · (b) 51.
+- `npm test` trên HEAD cây làm việc: **PASS 61 · FAIL 0 · CẢNH BÁO 4** = 1 cảnh báo (a) ba route GET (chốt Q1) + 3 cảnh báo "khớp từng byte"
+  (`.claude/tu_chay/` lệch 8 file, SKILL.md, ra-soat.md — chờ chủ quán `bash tu_chay/cai_dat.sh`; máy không chép sang `.claude/`).
+  `thu_cong.js` trong bộ kiểm 73,3 s (< 120 s). `cong.js tinh . dfeaa57^ HEAD viec/TU-CHAY-6` → ĐẠT (file chưa commit không được soi).
+- `python3 viec/HOC-2b/kiem_neo.py`: HỎNG có sẵn trên gốc, không do việc này — HOC-2 `VS-E3-phien-ban-cu` neo "tu-chay 1.4.0" (gốc đã
+  1.5.0), HOC-2b/khác neo `refunds.js`, `damages.js` (việc này không đụng). Không có neo nào đụng dòng TU-CHAY-6 sửa.
+- Người gác chặn thêm trong lượt này: `B-PHANTICH` (`$'…'` trong grep), `B-TENCHU` (nhóm `{ … } > file`), `B-CHUONGTRINH` (`for`) —
+  đều cách viết lệnh, viết lại thành script trong scratchpad.
+
+### Chỗ vá → đột biến (`viec/TU-CHAY-6/dot_bien.py`, 18 đột biến; A7: A1b chỉ BV- theo chốt Q4)
+
+| Chỗ vá | BV- | VS- | Ca bắt |
+|---|---|---|---|
+| `cong.js` blob ném khi git không chạy được | `BV-TUCHAY6-BLOB-NULL` | `VS-TUCHAY6-BLOB-NUOT-SIGNAL` · `VS-TUCHAY6-BLOB-NEM-128` | A1 chay · A1 chay · A14 `khong [CONG]` |
+| `cong.js` blob ngoài `try` (A8 đọc cau_hinh / settings) | `BV-TUCHAY6-BLOB-TRONG-TRY` | — (ném đã khoá ở blob) | A1 tinh cau_hinh.json |
+| `cong.js` giaiNen cây gốc ném (A1b) | `BV-TUCHAY6-ARCHIVE-NUOT` | — (một đường, chốt Q4) | A1b |
+| `kiem_tra` E14 gọi quét | `BV-TUCHAY6-A2-BO-GOI` | — | R0b |
+| `kiem_tra` quetRouteGhi | — | `VS-TUCHAY6-A2-QUEN-INSERT` · `VS-TUCHAY6-A2-MIEN-THEO-FILE` · `VS-TUCHAY6-A2-QUEN-TXRUN` · `VS-TUCHAY6-A2-CUNG-DONG` · `VS-TUCHAY6-A2-NUOT-HAM-PHU` | R2 · R3d · R2b · R1b · R10b |
+| `kiem_tra` xetBanhCoc | — | `VS-TUCHAY6-A2-NGUONG-LON-HON-BANG` | R11 |
+| skill bước 4 | `BV-TUCHAY6-SKILL-B4` | `VS-TUCHAY6-SKILL-CHAY-THAY-TINH` | A3 skill |
+| lenh_ra_soat | `BV-TUCHAY6-RASOAT-CUOI` | — | A3 ra-soát |
+| KHUON_LOI K4 | `BV-TUCHAY6-KHUONLOI-K4` | — | A4 |
+| PHIEN_BAN | `BV-TUCHAY6-PHIENBAN-CU` | — | A6 ở `thu_cong_cu.js` VÀ `thu_nguoi_gac.js` |
+| THIET_KE B15 | `BV-TUCHAY6-THIETKE-B15` | — | A6 THIET_KE |
