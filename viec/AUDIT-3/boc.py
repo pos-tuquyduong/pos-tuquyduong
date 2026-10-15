@@ -15,14 +15,16 @@ LẠC = thoát ≠ 0 không mẫu · SỐNG = thoát 0. Bộ khuôn GOI-1: nạp
 `chay1` + `ap` CỦA bộ (bản sao, lệnh, dọn tạm đều của bộ). Đối chứng = `chay1` với danh sách đổi rỗng → phải thoát 0 và dòng tổng khớp
 số đo mục 0 của ke_hoach.md (DOI_CHUNG), lệch thì DỪNG thoát 4. Cuối: git status (ngoài viec/AUDIT-3/) không đổi, không thì thoát 3.
 """
-import contextlib, importlib.util, io, os, re, signal, shutil, subprocess, sys, threading
+import atexit, contextlib, importlib.util, io, os, re, signal, shutil, subprocess, sys, tempfile, threading
 from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 VIEC = os.path.join(GOC, 'viec')
 SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP|SẬP giữa kịch bản|Node\.js v\d')   # thu_*.js · chay.js nạp/dựng · kịch bản ném · node văng thô
-TONG = re.compile(r'\d+ đạt · 0 hỏng|· ĐẠT\b|Qua hết|PASS \d+|✓ XANH')   # dòng tổng của mỗi bài: thoát 0 mà không có = sập mã 0 (soát vòng 2)
+HET = re.compile(r'\d+ đạt · \d+ hỏng|· (?:KHÔNG )?ĐẠT\b|Qua hết|CÓ LỖI|PASS \d+|✓ XANH|ĐỎ — \d+ chỗ hỏng')   # bài chạy HẾT (xanh hay đỏ): thu_*.js ·
+TAM = tempfile.mkdtemp(prefix='audit3_boc_')   # chay.js · kiem_tra · thu_nguoi_gac / thu_cong. Thiếu = harness chết giữa chừng (sập mã 0 / mã 1 không dấu — soát vòng 2, 3)
+atexit.register(shutil.rmtree, TAM, True)   # TMPDIR cho mọi bài con: bài chết giữa chừng không dọn thư mục tạm của nó → vẫn nằm trong TAM, xoá khi thoát (soát vòng 3)
 DOI_CHUNG = {'cong_cu/thu_P26c.js': 105, 'cong_cu/thu_GOI1.js': 101, 'cong_cu/thu_P26b.js': 66, 'cong_cu/thu_gia_lap.js': 145}
 O, CH = 'routes/orders.js', 'cong_cu/gia_lap/chay.js'
 KHUON = ('P26b', 'P26c', 'GOI-1', 'GOI-2')
@@ -37,6 +39,7 @@ class Vo:   # vỏ thay `subprocess` trong không gian tên của bộ: chạy t
   TimeoutExpired = subprocess.TimeoutExpired
   def __init__(self): self.tl = threading.local()
   def run(self, *a, **k):
+    k.setdefault('env', {**os.environ, 'TMPDIR': TAM})
     r = subprocess.run(*a, **k); self.tl.r = r; return r
 
 
@@ -53,9 +56,17 @@ def ra_cua(r): return re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
 
 
 def co_sap(ra):   # dấu sập theo DÒNG = HARNESS của lệnh chết. Không tính: ca T3…T10 của thu_gia_lap (kiểm hành vi sập, mô tả có 'Giả lập:
-  for l in ra.splitlines():   # SẬP'); dòng '✗ bài chạy thật …' của kiem_tra_truoc_khi_giao.js (bộ kiểm chạy hết và BÁO bài con sập = ✗ của phép, BẮT đúng)
+  for l in ra.splitlines():   # SẬP'); dòng '✗ bài chạy thật …' của kiem_tra_truoc_khi_giao.js (bộ kiểm chạy hết và BÁO bài con sập — xem sap_cua)
     if SAP.search(l) and not re.search(r'✗ T\d|✗ bài chạy thật', l): return l.strip()[:160]
   return ''
+
+
+def sap_cua(ma, ra, chi=''):   # MỘT luật sập cho cham / boc_khung (soát vòng 3): (1) dấu sập trong đầu ra; (2) thoát 2; (3) không có dòng
+  # "chạy hết" (sập mã 0 / mã 1 không dấu — kể cả khi đã in ✗); (4) DÒNG KHỚP mẫu mang dấu sập (vd kiem_tra báo bài con sập ngay trong dòng ✗).
+  # Phiếu chưa chốt "bộ kiểm chạy hết nhưng bài con sập" = HỎNG hay BẮT → mục Câu hỏi; ở đây: khớp phép TĨNH riêng = BẮT, khớp dòng báo sập = HỎNG-sập.
+  d = '' if ra is None else (co_sap(ra) or (ma == 2 and '(thoát 2)') or (not HET.search(ra) and f'thoát {ma} KHÔNG có dòng chạy hết') or '')
+  if not d and chi and SAP.search(chi) and not re.search(r'✗ T\d', chi): d = 'dòng khớp mang dấu sập: ' + chi[:120]   # ra=None: chỉ soi vế (4)
+  return d
 
 
 def cham(ns, vo, db):
@@ -65,9 +76,8 @@ def cham(ns, vo, db):
   r = vo.tl.r
   if r is None: return ten, 'HỎNG', chi   # ap của bộ từ chối (neo không khớp / đích ngoài tạm) — bài chưa chạy
   ra = ra_cua(r)
-  # thoát 2 = sập của thu_*.js / chay.js; thoát 3 (chay.js TỪ CHỐI) không phải sập; thoát 0 mà không có dòng tổng = sập mã 0 (process.exit)
-  if co_sap(ra) or r.returncode == 2: return ten, 'HỎNG-sập', (co_sap(ra) or '(thoát 2)') + f' · thoát {r.returncode}'
-  if r.returncode == 0 and not TONG.search(ra): return ten, 'HỎNG-sập', 'thoát 0 KHÔNG có dòng tổng · dòng cuối: ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:120]
+  d = sap_cua(r.returncode, ra, chi)   # thoát 3 (chay.js TỪ CHỐI) không phải sập: có dòng chạy hết? không → vẫn sập (harness không chạy)
+  if d: return ten, 'HỎNG-sập', d[:160] + f' · thoát {r.returncode} · dòng cuối: ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:80]
   return ten, ('BẮT' if dat else 'LẠC' if r.returncode != 0 else 'SỐNG'), chi
 
 
@@ -132,13 +142,14 @@ def boc_khung(m2):   # khung AUDIT-1 chỉ giữ dòng khớp ĐẦU (dot_bien.p
   cl, ch = K.chay_lenh, K.cham
   def chay_lenh(argv, *a, **k):
     ma, ra, g = cl(argv, *a, **k)
-    dau = co_sap(ra) or (ma == 2 and '(thoát 2)') or (ma == 0 and not TONG.search(ra) and 'thoát 0 không dòng tổng') or ''
+    dau = sap_cua(ma, ra)
     if dau: tl.sap = getattr(tl, 'sap', '') + f' [{" ".join(argv[1:3])}: {dau}]'
     return ma, ra, g
   def cham(db, that=None):
     tl.sap = ''
     r = ch(db, that)
-    if tl.sap and r['kq'] in ('BẮT', 'SỐNG', 'LẠC'): r['kq'] = 'HỎNG-sập'; r['chi'] = 'sập' + tl.sap[:200] + ' | ' + r['chi'][:160]
+    if r['kq'] in ('BẮT', 'SỐNG', 'LẠC') and (tl.sap or sap_cua(0, None, r['chi'])):   # vế (4): dòng khớp mang dấu sập (ra=None — đầu ra đã soi ở chay_lenh)
+      r['kq'] = 'HỎNG-sập'; r['chi'] = 'sập' + (tl.sap or ' [dòng khớp mang dấu sập]')[:200] + ' | ' + r['chi'][:160]
     return r
   K.chay_lenh, K.cham = chay_lenh, cham
 
@@ -165,7 +176,8 @@ def sap():
   m2.K.DOT_BIEN += [('NEM-AUDIT2', 'D2K', 'gl', sv(NEM_KHUON), r'✗ '),           # kịch bản ném → khung ghi BẮT 'SẬP giữa kịch bản'
                     ('DOSAP-AUDIT2', 'D2K', 'p26b', sv(DOSAP_KHUON), r'✗ '),     # ✗ M2 rồi thu_P26b sập: khung ghi BẮT (dòng đầu) — bọc khung xếp lại
                     ('SAP0-AUDIT2', 'D2K', 'p26b', sv(SAP0_KHUON), r'✗ ')]       # thoát 0 không dòng tổng: khung ghi SỐNG — bọc khung xếp lại
-  _, ra = goi_main(m2.K.main, ['SAP-AUDIT2', 'NEM-AUDIT2', 'DOSAP-AUDIT2', 'SAP0-AUDIT2', '-j', '2'])
+  ma, ra = goi_main(m2.K.main, ['SAP-AUDIT2', 'NEM-AUDIT2', 'DOSAP-AUDIT2', 'SAP0-AUDIT2', '-j', '2'])
+  if ma: xau.append(('khung AUDIT-1', f'thoát {ma}', 'KHO BẨN / dừng'))   # mã thoát của khung cũng là tín hiệu (soát vòng 3)
   for l in ra.splitlines():
     m = re.match(r'(BẮT|SỐNG)\s+D2K (SAP-AUDIT2|NEM-AUDIT2|DOSAP-AUDIT2|SAP0-AUDIT2)', l)
     if m: xau.append(('AUDIT-2', m.group(2), m.group(1)))   # qua bọc khung mọi ca sập phải ra HỎNG-sập; còn BẮT / SỐNG = bọc khung hỏng
@@ -187,7 +199,8 @@ def xep(tep):
     for l in open(p, encoding='utf-8'):
       m = re.match(r'[✓✗]?\s*(BẮT|SỐNG|HỎNG|LẠC|TREO)\b', l)
       if not m: continue
-      # BẮT nhờ dòng sập cũng là sập (soát vòng 1). Ca T3…T10 của thu_gia_lap KIỂM hành vi sập nên mô tả có 'Giả lập: SẬP' — không phải sập của bài.
+      # = vế (4) của sap_cua: dòng khớp mang dấu sập (trừ ca T3…T10 thu_gia_lap). Nhật ký không có mã thoát / dòng chạy hết → --xep chỉ là CẬN DƯỚI;
+      # chấm đủ phải chạy lại qua --khung / --c2luoi / --audit2 (soát vòng 2, 3).
       k = 'HỎNG-sập' if m.group(1) in ('LẠC', 'BẮT') and SAP.search(l) and not re.search(r'✗ T\d', l) else m.group(1)
       dem[k] = dem.get(k, 0) + 1
       if k == 'HỎNG-sập': print('HỎNG-sập ← ' + l.rstrip()[:200])
