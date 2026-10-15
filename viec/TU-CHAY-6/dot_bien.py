@@ -3,7 +3,7 @@
     python3 viec/TU-CHAY-6/dot_bien.py [tên...]
 
 Khuôn viec/TOC-DO-1/dot_bien.py, thêm:
-- BẢN SAO CHÉP THẬT (không symlink — K5 HOC-2b): tu_chay/* + KHUON_LOI.md + CLAUDE.md + kiem_tra_truoc_khi_giao.js vào thư mục tạm;
+- BẢN SAO CHÉP THẬT (không symlink — K5 HOC-2b): tu_chay/* + KHUON_LOI.md + CLAUDE.md + kiem_tra_truoc_khi_giao.js + keep-alive.yml vào thư mục tạm;
   tự kiểm realpath đích nằm trong thư mục tạm và ngoài kho. Bài tu_chay/thu_cong.js, thu_cong_cu.js, thu_nguoi_gac.js chạy TỪ bản sao
   (đọc __dirname); cong_cu/thu_TOCDO1.js chạy ở kho thật với --kiem <bản sao bộ kiểm>.
 - ĐỐI CHỨNG mỗi bài (bản chưa đột biến phải xanh) — bài đang sập thì mọi "bị bắt" là oan (K3, TOC-DO-1 Phát hiện 3).
@@ -13,7 +13,8 @@ Không đụng file thật.
 import os, re, shutil, subprocess, sys, tempfile
 
 GOC = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-CHEP = ['KHUON_LOI.md', 'CLAUDE.md', 'kiem_tra_truoc_khi_giao.js']  # + mọi FILE trực tiếp trong tu_chay/
+CHEP = ['KHUON_LOI.md', 'CLAUDE.md', 'kiem_tra_truoc_khi_giao.js', '.github/workflows/keep-alive.yml']  # + mọi FILE trực tiếp trong tu_chay/
+# keep-alive.yml: thu_cong.js B5 băm file này qua __dirname/.. — thiếu thì đối chứng đỏ (lần chạy 1 của việc này bắt đúng, K3)
 BAI = {  # tên bài → (lệnh theo bản sao, regex dòng tổng, giây tối đa)
   'thu_cong': (lambda b: ['node', os.path.join(b, 'tu_chay', 'thu_cong.js')], r'^thu_cong: \d+ phép · \d+ chỗ hỏng', 600),
   'thu_cong_cu': (lambda b: ['node', os.path.join(b, 'tu_chay', 'thu_cong_cu.js')], r'^thu_cong_cu: \d+ phép · \d+ chỗ hỏng', 120),
@@ -82,7 +83,9 @@ def ban_sao():  # chép THẬT vào thư mục tạm, kiểm realpath
     if os.path.isfile(p):
       shutil.copyfile(p, os.path.join(tam, 'tu_chay', f), follow_symlinks=True)
       shutil.copymode(p, os.path.join(tam, 'tu_chay', f))
-  for f in CHEP: shutil.copyfile(os.path.join(GOC, f), os.path.join(tam, f))
+  for f in CHEP:
+    os.makedirs(os.path.dirname(os.path.join(tam, f)), exist_ok=True)
+    shutil.copyfile(os.path.join(GOC, f), os.path.join(tam, f))
   return tam
 
 
