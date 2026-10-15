@@ -170,7 +170,7 @@ for bo, ds in kq.items():
     if bo == 'do_*.js': print('  ' + ' · '.join(t for t, _, _ in ds))
     for t, l in h: print(f'  {"đã thay / cố ý" if (bo, t) in RUA_CO_Y else "HỎNG"} {t}: {"; ".join(l)}' + (f' — {RUA_CO_Y[(bo, t)]}' if (bo, t) in RUA_CO_Y else ''))
 thua = [k for k in RUA_CO_Y if not any(t == k[1] and l for t, l, _ in kq.get(k[0], []))]
-if thua: print(f'\nRUA_CO_Y có {len(thua)} tên KHÔNG còn hỏng (neo lại khớp — xem tay): {thua}')
+if thua: print(f'\nRUA_CO_Y có {len(thua)} tên KHÔNG còn hỏng (neo lại khớp) → bỏ khỏi danh sách, thoát 1: {thua}')
 print(f'\nMẫu nghi rữa (xem tay, không đếm HỎNG): {len(rua)}')
 for x in rua: print('  ' + x)
-sys.exit(1 if hong else 0)
+sys.exit(1 if hong or thua else 0)   # tên thừa trong RUA_CO_Y cũng đỏ (soát vòng 1)
