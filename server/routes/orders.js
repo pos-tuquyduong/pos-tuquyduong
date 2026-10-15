@@ -32,6 +32,10 @@ const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus
 
 const router = express.Router();
 
+// SO-LUONG-1: mọi số lượng POST /orders nhận (`quantity` món, `pkg_qty` gói) phải là số NGUYÊN ≥ 1 — quán bán theo ly / túi / hộp,
+// không bán số lẻ (chủ quán chốt 14.10). Chuỗi số nguyên ("2", " 5") vẫn nhận vì màn hình / bài thử cũ có gửi chuỗi.
+const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
+
 /**
  * GET /api/pos/orders
  * Danh sách đơn hàng
@@ -180,13 +184,24 @@ router.post("/", authenticate, async (req, res) => {
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
     }
-    if (membership_buy && membership_buy.tier_id && !customer_phone) {
+    if (membership_buy && membership_buy.tier_id && !normalizePhone(customer_phone)) {   // SO-LUONG-1: SĐT đã chuẩn hoá — khối ghi thẻ đòi `phone`
       return res.status(400).json({ error: "Cần chọn khách hàng trước khi mua thẻ hội viên" });
     }
     // P26c (A3): một đơn vừa MUA gói mới vừa LẤY từ gói cũ thì trừ lượt cả hai gói — không cho, tách làm hai đơn.
     if (customer_package_id && package_buy && items.some((i) => i.from_package)) {   // gia hạn (bật gói cũ, không lấy) vẫn được
       return res.status(400).json({ error: "Một đơn không thể vừa mua gói mới vừa lấy từ gói cũ — hãy tách làm hai đơn",
         code: "GOI_MUA_VA_LAY_CUNG_DON" });
+    }
+    // SO-LUONG-1: mua gói phải đủ mã gói + SĐT khách — `package_buy: {}` lọt cổng `!package_buy` ở vòng món (`{}` truthy) nên món từ
+    // gói 0đ mà không gói nào bị trừ lượt; thiếu SĐT thì thu tiền mà không tạo gói khách (khối tạo gói đòi `phone` = SĐT ĐÃ CHUẨN HOÁ —
+    // kiểm giá trị thô thì `" "` lọt, soát độc lập vòng 1 bắt). Số gói nguyên ≥ 1
+    // (`0.002` → gói 600đ), thiếu → 1 như cũ; `0` / "" nay 400. MỘT biến `pkgQty` cho cả tiền gói và vòng tạo gói (hết đường song song).
+    if (package_buy && !(package_buy.package_id && normalizePhone(customer_phone))) {
+      return res.status(400).json({ error: "Mua gói cần chọn gói và khách hàng", code: "GOI_MUA_THIEU_THONG_TIN" });
+    }
+    const pkgQty = Number(package_buy?.pkg_qty ?? 1);
+    if (package_buy && !soNguyenDuong(pkgQty)) {
+      return res.status(400).json({ error: "Số gói mua phải là số nguyên từ 1", code: "SL_KHONG_HOP_LE" });
     }
 
     // Lấy thông tin sản phẩm và tính tổng
@@ -304,12 +319,13 @@ router.post("/", authenticate, async (req, res) => {
           .json({ error: `Sản phẩm ${product.name} chưa có giá bán` });
       }
 
-      // GOI-1 (A2, soát vòng 2–3): món lấy từ gói phải SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo
-      // loại. Ghi / cộng lượt dùng `sl` (số đã kiểm) — SL dạng chuỗi (" 5") mà ghi / cộng bản gốc thì nối chuỗi, bỏ qua trừ lượt;
-      // `checkStock` và lời báo vẫn đọc `item.quantity` — vô hại vì đã kiểm nguyên ≥ 1 ở trên (chat soát thay 13.10).
+      // GOI-1 (A2): món lấy từ gói SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo loại. SO-LUONG-1: mở
+      // cho MỌI món (0,5 / −1 làm tiền đơn giảm), một phép; mã GOI-1 giữ cho món từ gói. Ghi / cộng lượt dùng `sl` (số đã kiểm) — SL
+      // dạng chuỗi (" 5") mà ghi bản gốc thì nối chuỗi; `checkStock` và lời báo vẫn đọc `item.quantity` — vô hại vì đã kiểm ở trên.
       const sl = Number(item.quantity);
-      if (item.from_package && !(Number.isInteger(sl) && sl >= 1)) {
-        return res.status(400).json({ error: `SL lấy từ gói của ${product.name} phải là số nguyên từ 1 trở lên`, code: "GOI_SL_KHONG_HOP_LE" });
+      if (!soNguyenDuong(sl)) {
+        return res.status(400).json({ error: `Số lượng của ${product.name} phải là số nguyên từ 1`,
+          code: item.from_package ? "GOI_SL_KHONG_HOP_LE" : "SL_KHONG_HOP_LE" });
       }
 
       // Kiểm tra tồn kho từ SX (cả gói và lẻ đều cần)
@@ -397,7 +413,6 @@ router.post("/", authenticate, async (req, res) => {
       // GOI-1 (A2): lấy ngay cũng không vượt từng loại — gói chưa có, đã lấy = 0; mua nhiều gói thì lấy ngay đổ vào gói đầu.
       const vuotMua = vuotTheoLoai(dsGoi, [], orderItems.filter((i) => i.from_package));
       if (vuotMua) return res.status(400).json(vuotMua);
-      const pkgQty = package_buy.pkg_qty || 1;
       subtotal += pkg.price * pkgQty;
       orderItems.push({
         product_id: -pkg.id,
@@ -1017,7 +1032,6 @@ router.post("/", authenticate, async (req, res) => {
 
     // Gói: tạo customer_package khi mua gói (hỗ trợ mua nhiều gói)
     if (package_buy && package_buy.package_id && phone) {
-      const pkgQty = package_buy.pkg_qty || 1;
       try {
         for (let i = 0; i < pkgQty; i++) {
           const cpResult = await run(
