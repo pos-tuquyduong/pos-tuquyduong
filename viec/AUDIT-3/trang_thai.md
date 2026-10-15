@@ -60,7 +60,7 @@
 ## A5 · `viec/AUDIT-3/kiem_neo.py` (176 dòng, +43 so bản AUDIT-2) — chạy trên HEAD 35fa701 + file lượt này, thoát 0
 - Nạp thêm GOI-1 49 · GOI-2 59 · P26c 93 · SO-LUONG-1 17 · TOC-DO-1 10 · AUDIT-3 25; LUOI-1 nạp được trên kho nông (dòng `git show` → `''`,
   2 `GOC-*` không rà như AUDIT-2). LUOI-2 không có `dot_bien*.py` / `do_*.js` (đột biến LUOI-2 = AUDIT-2 A3L, đã rà).
-- Neo khớp / mục có neo: AUDIT-1 173/175 · P26b 50/59 · P26c 89/93 · GOI-1 40/49 · GOI-2 59/59 · SO-LUONG-1 17/17 · AUDIT-3 24/25 ·
+- Neo khớp / mục có neo: AUDIT-1 173/175 · P26b 50/59 · P26c 89/93 · GOI-1 40/49 · GOI-2 59/59 · SO-LUONG-1 17/17 · AUDIT-3 25/26 ·
   TOC-DO-1 10/10 · HOC-1 17/17 · HOC-2 22/23 · TU-CHAY-4 9/9 · HOC-2b 18/20 · LUOI-1 78/78 · TACH-GL 26/29 · TU-CHAY-5 34/34 · AUDIT-2 30/34 ·
   AUDIT-2 bb 178/179 so ảnh AUDIT-3 — ĐỒNG NGHĨA vì ảnh sinh từ chính HEAD (soát vòng 1): phép thật là dòng so ảnh AUDIT-2 bên dưới · do_*.js 6/6. **HỎNG ngoài danh sách: 0**; mẫu nghi rữa: 0. Mọi tên rữa đều có lý do "đã thay bằng …"
   trong `RUA_CO_Y` (P26b 9 → P26c; P26c 4 → GOI-2; GOI-1 7 → GOI-2 + 2 → SO-LUONG-1; TACH-GL 3 → P26c; AUDIT-1 `G3-da-biet`, HOC-2b 2 → P26c;
@@ -85,11 +85,11 @@
 | AUDIT-2 A3L B3 A3P D2K (30; vòng 2: qua bọc khung, kết quả y hệt) | `boc.py --audit2 A3L B3 A3P D2K -j 3` | 409 s | A3L BẮT 15 · SỐNG 3 · HỎNG 2 / A3P SỐNG 1 / B3 BẮT 3 · SỐNG 2 · LẠC 1 / D2K HỎNG 2 · SỐNG 1 | A3L 5 NẶNG-lưới AU2-2 → BẮT; A3P SỐNG = AU2-1 đóng; `D2K-da-biet` HỎNG (AU3-2); 2 HỎNG (AU3-3); `BK-KB21` BẮT → LẠC (AU3-4); A3B bỏ (không đụng tiền) |
 | LUOI-1 78 HEAD | `boc.py --luoi1 -j 4` | 88 s | 78/78 đúng mong đợi | 2 `GOC-*` CHƯA KIỂM (kho nông, lời duyệt (b)) |
 | TACH-GL 29 | `viec/TACH-GL/dot_bien.py` | 753 s | BẮT 25 · HỎNG 3 · LẠC 1 | như LUOI-2 ghi (4 đã thay P26c) |
-| AUDIT-1 trừ C2F 88 (vòng 2: qua bọc khung) | `boc.py --khung G3 A3 B1 C2 D1 -j 3` | 990 s (+202 s chấm lại 5 D1 sau khi tinh luật) | A3 16 · B1 8 · C2 3 · D1 55 + 2 LẠC; G3 HỎNG 2 · SỐNG 1 · HỎNG-sập 1 | `G3-da-biet` HỎNG (đã thay); 5 D1 (`D1-E1-unitprice`, `D1-E8-backup`, `D1-E2-authz-tho`, `D1-E1b-tra-gia`, `!D1-E11-P26b`) có bài con sập nhưng `kiem_tra` chạy hết và BÁO → BẮT (luật: sập = harness chết); khung in "✗ KHO BẨN" (xem ghi chú dưới) — còn lại y AUDIT-2 |
+| AUDIT-1 trừ C2F 88 (vòng 3: qua bọc khung, luật `sap_cua`) | `boc.py --khung G3 A3 B1 C2 D1 -j 3` | 986 s | A3 16 · B1 8 · C2 3 · D1 54 + HỎNG-sập 1 + LẠC 2; G3 HỎNG 2 · SỐNG 1 · HỎNG-sập 1 | `G3-da-biet` HỎNG (đã thay); `!D1-E11-P26b` HỎNG-sập (dòng ✗ của `kiem_tra` mang `✖ Bài thử sập` của thu_P26b — vế 4, soát vòng 3 bác luật "harness chết" của vòng 2); 4 `D1-E*` còn lại BẮT nhờ phép tĩnh riêng; `!D1-E11-P20/P26a` LẠC như AUDIT-2 |
 | C2F 87 + A3L c2full 13 bằng `c2luoi` (vòng 2: qua bọc khung) | `boc.py --c2luoi -j 3` | 1197 s | C2F BẮT 59 · SỐNG 22 · HỎNG-sập 6; A3L BẮT 8 · SỐNG 3 · HỎNG 2 | HỎNG-sập: `orders-02`, `wallets-01/02/06` (giả lập không dựng được dữ liệu), `orders-10` (SẬP giữa kịch bản), **`wallets-05` đỏ-rồi-sập ẩn** (thu_P26b ✗ M2 rồi sập) — vòng 1 ghi BẮT cả 4 wallets; 22 SỐNG không đổi | 22 SỐNG = 23 cũ − 2 BẮT nhờ thu_P26c + 1 câu mới GOI-2 (AU3-19); tên C2F trượt theo vị trí (AU3-7) |
 | bb 175 + 4 D2 | `viec/AUDIT-2/dot_bien_bb.py -j 4` | 742 s | BẮT 125 · SỐNG 50 · HỎNG 1 · LẠC 3 | 50 = 48 cũ + 2 mới (AU3-18); LẠC 2 `BB-I2-sql-2/3` thực chất bắt (AU3-5); `D2-sap` LẠC-sập |
 | A4 AUDIT-3 25 | `viec/AUDIT-3/dot_bien.py` | 32 s | BẮT 11 · SỐNG 11 · HỎNG 3 | 10 SỐNG tiền / gói = NẶNG-lưới (AU3-8…17), 1 SỐNG = D2 vô hại; HỎNG = D2 sai chuỗi, D2 sập, `HUY-ME-TRA-0` sập sau ✗ M2/M3 (AU3-6) |
-Tổng thời gian máy 12 bước: 4.938 s ≈ 82 phút (kế hoạch ước ~85); vòng 2 chấm lại khung + --sap + npm test: 2.867 s + 202 s ≈ 51 phút.
+Tổng thời gian máy 12 bước: 4.938 s ≈ 82 phút (kế hoạch ước ~85); vòng 2 chấm lại khung + --sap + npm test: 2.867 s + 202 s ≈ 51 phút. Vòng 3 chạy lại TUẦN TỰ 10 bước (`chay_vong3.py`, HEAD 9de6829): 3.682 s ≈ 61 phút — mọi bộ qua `cham` / `boc_khung` + A4 + `npm test`; P26b · P26c · GOI-1 · GOI-2 · c2luoi · AUDIT-2 y vòng 2 từng tên, AUDIT-1 chỉ đổi `!D1-E11-P26b`.
 **KHO BẨN (vòng 2):** khung AUDIT-1 in "✗ KHO BẨN" ở hai lần chạy (`--sap` và `--khung`) đúng lúc tôi đang sửa / commit file trong `viec/AUDIT-3/`
 song song; lớp bọc ngoài (lọc `viec/AUDIT-3/`) và `git status` của script điều khiển đều sạch, `data/` không đổi, không thư mục tạm sót. Thử lại
 riêng (script nháp `kho_ban.py`: cùng 2 ca, không sửa file) → "ảnh kho giống nhau"; thử sửa file theo dõi / tạo file lạ trong `viec/AUDIT-3/`
@@ -358,3 +358,90 @@ BÀI HỌC:
   744ab60 vẫn áp vì code chạy thật không đổi — `git diff --stat 744ab60 HEAD -- ':!viec/AUDIT-3/'` rỗng). `git status` sạch.
 
 HEAD ĐÃ KIỂM: 4f8e1f1
+
+## Bước 8 · soát độc lập vòng 3 (`/ra-soat`, agent general-purpose mới, HEAD ea0b90f) — chép nguyên
+```
+KHÔNG ĐẠT
+
+(Soát vòng 3 nhánh viec/AUDIT-3, HEAD ea0b90f, mốc a13d8ad. Xác nhận: `git diff --stat a13d8ad^ HEAD -- ':!viec/AUDIT-3/'` RỖNG; `git diff --stat 744ab60 HEAD -- ':!viec/AUDIT-3/'` và `4f8e1f1 HEAD -- ':!viec/AUDIT-3/'` rỗng (code chạy thật không đổi từ HEAD --day-du 67/0 và npm test 63/0). `git status --short` RỖNG trước và sau MỌI lệnh. Đã chạy tuần tự: `boc.py --xep` trên file nháp ngoài kho; `kiem_neo.py` ×2 (thoát 0, 18 bộ, 0 HỎNG ngoài danh sách, 0 tên thừa); `dot_bien.py D2-AU3-sap-0 D2-AU3-vo-hai` (HỎNG sập mã 0 · SỐNG — khớp bang_chung mục 7); `node viec/AUDIT-2/lach.js` (CHẶN 14 · LỌT ĐÃ BIẾT 1 · LỌT 0); `boc.py --audit2 D2K -j 3` (kiểm sạch kb10 qua bọc XANH, HỎNG 2 · SỐNG 1, "✓ kho thật không đổi" — KHÔNG có KHO BẨN khi chạy yên); 4 script nháp NGOÀI kho nạp boc.py/dot_bien.py làm module (/tmp/claude-0/-home-user-pos-tuquyduong/7e7af215-2d4b-5d78-b3f7-7b7110d21339/scratchpad/soat3_vangtho.py, soat3_vangtho2.py, soat3_vangtho3.py, soat3_sap1.py). Không sửa file nào trong kho.)
+
+1. BẢY LỖI VÒNG 2 ĐÃ SỬA ĐÚNG CHƯA (diff 68274ad..HEAD -- viec/AUDIT-3/):
+- (1) boc_khung — ĐÚNG về cơ chế: boc.py:130–143 thay `K.chay_lenh`/`K.cham`; khung gọi hai tên này qua biến toàn cục (viec/AUDIT-1/dot_bien.py:316 trong `cham`, :340 trong `kiem_sach`, :393/:397 trong `main`) nên bắt đủ mọi lệnh con kể cả kiểm sạch; `tl.sap` reset ở :139 đầu mỗi `cham`, thread-local nên -j an toàn; thoát 3 chay.js không tính sập (đúng chủ ý). NHƯNG luật "sập = harness chết; `✗ bài chạy thật` của kiem_tra = BẮT" là ĐỊNH NGHĨA MỚI do agent tự đặt, trái chữ phiếu ("đột biến làm BÀI THỬ sập = HỎNG") và KHÔNG nhất quán với AU3-6 — xem LỖI 2. Bài con sập mà kiem_tra thoát 0 thì không thể xảy ra (kiem_tra_truoc_khi_giao.js:481–485 `xanh = r.status === 0 && !r.error`, sập → ✗ → thoát 1).
+- (2) SỐNG cần dòng tổng — `TONG` boc.py:25 khớp mọi bài trong khung: thu_P20.js:322, thu_P21.js:181, thu_P26a.js:135, thu_P26b.js:444, thu_P26c.js:822, thu_GOI1.js:810, thu_gia_lap.js:53 ("N đạt · M hỏng"), chay.js:138/:300 ("· ĐẠT"), kiem_tra:801/:810 ("PASS n"/"Qua hết"), thu_nguoi_gac.js:1138 và thu_cong.js:707 ("✓ XANH"); `congcu` không dùng trong bảng. `--audit2 D2K` kiểm sạch kb10 xanh qua bọc. ✓. NHƯNG chỉ sửa NỬA — BẮT không đòi dòng tổng (LỖI 1).
+- (3) ✓ AU3-20 bao_cao.md:41; bb 123/175 bao_cao.md:61 (đếm máy a2_bang: danh sách BẮT 125 gồm `D2-da-biet`, `D2-vo-hai` ở vị trí 124–125 → 123 đúng).
+- (4) ✓ A4 10/20 bao_cao.md:66 (26 tên = 21 + 5 D2; 10 BẮT / (21 − 1 sập) đúng).
+- (5) ✓ trang_thai.md:159 "SO-LUONG-1 chỗ mới chỉ VS-".
+- (6) ✓ a2_bang.md:30 (`C2F-orders-10`) và :37 (`wallets-05`) có cột vì sao.
+- (7) ✓ `Node\.js v\d` vào SAP (boc.py:24); thử `--xep` file nháp: dòng `✓ LẠC (mong LẠC) SAP-LUOI-1 … Node.js v22.22.0 · thiếu mẫu` → HỎNG-sập.
+
+LỖI TÌM ĐƯỢC:
+1. viec/AUDIT-3/boc.py:69–71 và viec/AUDIT-3/dot_bien.py:92–98 — "SẬP MÃ 1 KHÔNG DẤU" → CẢ HAI công cụ chấm BẮT. CHẠY THẬT (soat3_sap1.py): đột biến `D2-AU3-da-biet` (✗ S1a–c thật) + `process.exit(1);` chèn sau `if (membership_buy && membership_buy.tier_id && !normalizePhone(customer_phone)) {` (orders.js, nhánh S4c chạy SAU S1) → thu_P26c in 7 ✗, chết thoát 1 KHÔNG "✖ Bài thử sập", KHÔNG "Node.js v", KHÔNG dòng tổng → dot_bien.py chay1: `BẮT · ✗ S1a …`; boc.py cham: `BẮT · ✗ S1a …`. Vì dòng tổng chỉ bị đòi khi `returncode == 0` (boc.py:70, dot_bien.py:96–97); đường BẮT (dot_bien.py:95 trước :96; boc.py:71) không đòi. Phiếu: sập (mã thoát lạ) = HỎNG, KHÔNG BẮT. Cùng khuôn với "sập mã 0" vòng 2 nhưng ở chiều BẮT oan — K4 (sửa một chiều) + K3.
+2. viec/AUDIT-3/dot_bien.py:92 chỉ dò `'Bài thử sập'` — VĂNG THÔ (ném ngoài vòng request) sau một ✗ → A4 chấm BẮT. CHẠY THẬT (soat3_vangtho3.py): da-biet + `process.nextTick(() => { throw new Error(…) })` ở cùng neo → thu_P26c thoát 1, in stack + `Node.js v22.22.0`, không dòng tổng → dot_bien.py: `BẮT · ✗ S1a …`; boc.py cham: `HỎNG-sập · Node.js v22.22.0 · thoát 1` (đúng). Dấu `Node\.js v\d` (sửa lỗi 7 vòng 2) chỉ vào boc.py:24, không vào dot_bien.py — K4. (trang_thai.md:302 ghi ca này là CHƯA KIỂM "ở mọi công cụ" — nay là lỗi thật ở công cụ A4.)
+3. viec/AUDIT-3/boc.py:57 (`co_sap` loại `✗ bài chạy thật`) + bao_cao.md:16 ("Sập = HARNESS chết") + :56 ("82/84 — y AUDIT-2") + a2_bang.md:20 (`!D1-E11-P26b` trong BẮT) ↔ a2_bang.md:37 (`C2F-wallets-05-ghiVi-quay` HỎNG-sập) + bang_chung_do.txt:122–123 — MỘT hành vi (thu_P26b in ✗ rồi `✖ Bài thử sập`) được dán HAI nhãn tuỳ vỏ bọc: qua `c2luoi`/`p26b` = HỎNG-sập (AU3-6, wallets-05, DOSAP-AUDIT2), qua `kiem` = BẮT. Với 4 D1-E* (`D1-E1-unitprice`, `D1-E8-backup`, `D1-E2-authz-tho`, `D1-E1b-tra-gia`) BẮT là đúng vì mẫu khớp PHÉP TĨNH riêng (viec/AUDIT-1 DOT_BIEN: mẫu `✗ orders.js KHÔNG tính tiền theo item.unit_price` …); riêng `!D1-E11-P26b` mẫu là `✗ bài chạy thật cong_cu/thu_P26b.js` — chính dòng kiem_tra báo bài con sập (kiem_tra:483 ghép mọi dòng ✗/✖ của bài con vào) → đây là "đỏ-rồi-sập" đúng định nghĩa AU3-6, phải HỎNG-sập; đúng ra AUDIT-1 = 81/83 như sau vòng sửa 1. Luật "harness chết" KHÔNG có trong phiếu, agent tự chốt thay chủ quán (CLAUDE.md mục 9: chưa chốt → hỏi). — K1 + K4 (loại trừ viết quá rộng: đúng cho 4, sai cho 1).
+4. viec/AUDIT-3/boc.py:191 (`xep`) ↔ :57 (`co_sap`) — HAI luật sập: `xep` có regex riêng chỉ loại `✗ T\d`, KHÔNG loại `✗ bài chạy thật`, không gọi `co_sap`. CHẠY THẬT `--xep` file nháp: dòng `BẮT D1 !D1-E11-P26b … ✗ bài chạy thật … ✖ Bài thử sập` → `--xep` xếp HỎNG-sập, trong khi `boc_khung` giữ BẮT. trang_thai.md:317 "`co_sap` một luật cho `cham` và `--xep`" là SAI. — K4 + K1.
+5. viec/AUDIT-3/boc.py:39–40 (`Vo.run` không đặt TMPDIR) và dot_bien.py:79–81 (`chay_bai` không đặt TMPDIR) ↔ khung AUDIT-1 có `moi_truong` (viec/AUDIT-1/dot_bien.py:285–290 TMPDIR = tam/tmp) — bài chết (process.exit trong route, văng thô) không chạy `fs.rmSync(THU_MUC)` (thu_P26c.js:823/:831) → /tmp còn `thu_p26c_*/kho.db` (360 KB). Thấy thật: /tmp có `thu_p26c_{gvO2F8 12:10:48, UvNDjR 12:10:49, YKTlV9 12:18:27, AauWKW 12:19:27}`, `thu_p26b_Q70f8g 12:19:18`, `thu_goi1_{BxlshX 12:19:32, pKrd8L 12:19:37}` + 4 `thu_goi1_*` 08:45 — khớp giờ các lần chạy D2 sập mã 0 / `--sap` vòng 2 của agent (bang_chung mục 2, 7). bao_cao.md:81 "0 thư mục tạm sót" và bang_chung_do.txt:92 chỉ soi `/tmp/goi1_db_*`. Phiếu D3 "(thư mục tạm xoá kể cả khi bị ngắt)" không đạt vế này. — K3 (phép kiểm soi sai prefix) · NHẸ. (Các ca sập của tôi cũng để lại 6 `thu_p26c_*` 13:29–13:3x + `/tmp/audit1_7q51vrw7` 13:23 — người gác chặn `rm` ngoài thư mục nháp nên tôi KHÔNG xoá được; chủ quán dọn.)
+6. viec/AUDIT-3/boc.py:168 `_, ra = goi_main(m2.K.main, …)` bỏ mã thoát của khung → `--sap` in "ĐẠT" dù khung trả 3: bang_chung_do.txt:61 "✗ KHO BẨN" nằm giữa khối bằng chứng mục 2 được kết luận ĐẠT (:74). Kết luận của công cụ bỏ qua một tín hiệu đỏ — K3 · NHẸ (chạy yên `--audit2 D2K` không KHO BẨN → giả thuyết "commit song song" của agent hợp lý nhưng vẫn CHƯA KIỂM).
+7. Số liệu (K1, NHẸ): bao_cao.md:67 "1.067 neo khớp / 1.105 mục có neo" — cộng máy từ đầu ra `kiem_neo.py` 18 dòng "neo khớp a/b" = 881/917, không ra được 1.067/1.105 từ bất kỳ cách cộng nào (cộng "N đột biến" = 932); trang_thai.md:60 "AUDIT-3 24/25" đã cũ (nay 26 tên, 25/26 sau khi thêm `D2-AU3-sap-0`).
+
+(Đã kiểm và KHÔNG thấy lỗi: đếm máy a2_bang.md 11 mục khớp dòng Tổng và bảng bao_cao:56–65 — AUDIT-1 82/84 (theo luật hiện hành), C2F 59/81 (87 − 6 sập; 67 BẮT c2luoi = 59 + 8 A3L), A3L 15/18, AUDIT-2 30, bb 125 gồm 2 D2 → 123/175, P26b 48/50, P26c 88/88, GOI-1 40/40, TACH-GL 25/26, A4 26 = 11 BẮT + 11 SỐNG + 1 HỎNG + 3 sập; a2_bang bb "Tổng 179" nhất quán (2 dòng D2 trong bảng là chú giải trùng tên với danh sách BẮT). A3: ca thu_P26c.js:199 A2a, :210 A2d, :324 A6a, :326 A6b đúng. `k()` của thu_gia_lap.js:48 chỉ in moTa khi ✗ → dòng ✓ T không chứa "Giả lập: SẬP"; `--chi-du-lieu-tay` (thu_gia_lap.js:183) chỉ chạy I2 + LUOI-1 nên dòng ghép ' | ' của bb không có `✗ T\d` trên thực tế. kiem_neo.py:176 thoát 1 khi `thua` ✓; chạy lại không sót `audit1_*` (thư mục 13:23 là của script đếm nhóm của tôi).)
+
+NGHI NGỜ:
+- boc.py:70 / dot_bien.py:96 chỉ đòi CÓ dòng tổng, không đòi N = DOI_CHUNG (KHOÁ (1) vòng 2 ghi "với N = DOI_CHUNG", trang_thai.md:265 cài thành "có dòng tổng"): nháp giả đầu ra `3 đạt · 0 hỏng` thoát 0 → `cham` trả SỐNG. Chưa dựng được đột biến THẬT làm thu_P26c bỏ bớt ca mà vẫn thoát 0 (thu_P26c không tự kiểm số ca — chỉ `process.exit(hong ? 1 : 0)` :824) → giữ ở NGHI NGỜ.
+- 10 BẮT của A4 và 88 BẮT P26c qua bọc chưa được xác nhận "có dòng tổng" (nhật ký nháp không trong kho) — sau LỖI 1 mọi BẮT thoát 1 không tổng đều đáng ngờ về nguyên tắc, dù các đột biến VS-/BV- ở tienDaTra/goiKhach khó gây exit giữa chừng.
+- bb (dot_bien_bb.py) vẫn không qua bọc → đỏ-rồi-sập / sập mã 0 / sập mã 1 ẩn trong 125 BẮT CHƯA KIỂM (agent đã ghi).
+- Nháp soat3_vangtho.py (setTimeout 0) thoát 1 không "Node.js v", không rõ vì sao bài không dọn thư mục — không dùng làm bằng chứng; ca nextTick (soat3_vangtho3.py) là bằng chứng.
+
+NGHIỆM THU: 6/9 mục có bằng chứng · mục thiếu: A1 (lỗi 1, 2 — vẫn có dạng sập ra BẮT ở cả hai công cụ; lỗi 3/4 — định nghĩa sập hai luật, tự đặt thay phiếu), D2 (bang_chung "bài thử sập → HỎNG" chỉ đúng cho sập có dấu hoặc thoát 0/2; sập mã 1 và văng thô ở A4 → BẮT), D3 (vế "thư mục tạm xoá" — lỗi 5; phần git status / diff ngoài viec/AUDIT-3 ĐẠT, npm test 63/0 + --day-du 67/0 tin theo trang_thai vì diff code rỗng). Đủ: A2 (số liệu đếm máy khớp; chỉ 82/84 ↔ 81/83 phụ thuộc lỗi 3), A3, A4 (25+1 tên, đối chứng, SỐNG tiền = NẶNG liệt kê đủ; công cụ có lỗi 1–2 nhưng chưa thấy ảnh hưởng tới 10 SỐNG), A5 (chạy lại thoát 0), A6 (chạy lại khớp), D1 (82 dòng, đủ cột; số :67 sai — lỗi 7).
+
+ĐƠN GIẢN (boc.py 224 / ngân sách 60–120): nói thẳng — ngân sách KHÔNG đạt với phạm vi hiện tại vì soát vòng 2 đòi thêm bọc khung + chấm lại A2 (`boc_khung`, `--khung/--audit2/--c2luoi`, ~55 dòng). Bỏ được mà vẫn đạt nghiệm thu: docstring 17 → ~6 dòng; `sap()` :155–181 thành bảng dữ liệu (bộ, cách, cặp vá, kỳ vọng) + một vòng chấm (−10); `nap_luoi1` + nhánh `--luoi1` (:111–118, :212–215, −12) sang script nháp A2 vì LUOI-1 không phải bộ khuôn và kết quả đã ghi; `doi_chung` dò tên bài từ `r.args` (:78–79) thay bằng bảng cách → bài (−3). Còn ~170–180 dòng; muốn ≤ 120 phải đưa `boc_khung` vào `viec/AUDIT-1/dot_bien.py` (ngoài Phạm vi, agent đã đề xuất). Quan trọng hơn giảm dòng: gom MỘT hàm `sap_cua(ma, ra)` trả HỎNG-sập cho `cham`, `boc_khung` và `xep` (bịt lỗi 1, 4 cùng lúc, −8 dòng).
+
+CHƯA SOÁT ĐƯỢC: không chạy lại `npm test` / `--day-du` (tin trang_thai + diff code rỗng); không chạy đủ A2 (AUDIT-1, c2luoi, bb, TACH-GL, P26b, P26c — hàng chục phút) nên từng tên chỉ đối chiếu nội bộ; không đếm được bao nhiêu BẮT hiện có là "sập mã 1 không tổng" (nhật ký nháp không trong kho, khung không in dòng tổng); 2 GOC-* LUOI-1 (kho nông); KHO BẨN chỉ kiểm chiều "chạy yên thì sạch"; SIGINT (bang_chung mục 5) không lặp; thời gian máy.
+
+BÀI HỌC:
+- KHOÁ: (1) boc.py `cham` + `boc_khung.chay_lenh` + dot_bien.py `chay1`: MỌI kết quả (BẮT lẫn SỐNG) đòi dòng tổng khớp DOI_CHUNG (N đạt · M hỏng, hoặc `· ĐẠT`/`Qua hết`/`✓ XANH`); thiếu = HỎNG-sập — ca đỏ: soat3_sap1.py phải HỎNG-sập ở cả hai, soat3_vangtho3.py phải HỎNG ở dot_bien.py; dot_bien.py:92 dò bằng `SAP` của boc.py (kể cả `Node\.js v\d`). (2) MỘT hàm sập dùng chung cho `cham`/`boc_khung`/`xep`; BẮT → HỎNG-sập khi dòng khớp mang dấu sập HOẶC lệnh sinh dòng đó chết (thoát 2 / dấu / không tổng) — `!D1-E11-P26b` thành HỎNG-sập (81/83) HOẶC hỏi chủ quán chốt luật "harness chết" rồi ghi vào phiếu AUDIT-4, không tự quyết. (3) `Vo.run` và `chay_bai` đặt TMPDIR = thư mục tạm của công cụ (như `moi_truong` AUDIT-1) — ca đỏ: `SAP0-P26c` chạy xong không còn `/tmp/thu_p26c_*`; D3 soi thêm `os.tmpdir()`.
+- NGUYÊN TẮC (đề xuất gộp KHUON_LOI): K3 — "công cụ không nói dối" phải phủ sập KHÔNG DẤU (thoát ≠ 0 mà không dòng tổng), không chỉ sập có dấu/thoát 0/thoát 2; K4 — thêm một dấu sập hay một luật thì grep MỌI công cụ cùng việc (boc.py / dot_bien.py / xep) chứ không chỉ file vừa sửa; K1 — định nghĩa trong phiếu (bài thử sập = HỎNG) không được tái định nghĩa trong báo cáo; chỗ phiếu chưa rõ (harness ↔ bài con) là câu hỏi cho chủ quán.
+- BỎ: lỗi 6, 7 (sửa chữ/số); dòng ghép ' | ' có `✗ T\d` (không xảy ra với `--chi-du-lieu-tay`).
+```
+
+### Sửa sau soát (vòng sửa 3/3)
+- Lỗi 1 + 2 + 4 → `boc.py` MỘT hàm `sap_cua(ma, ra, chi)` cho `cham` và `boc_khung` (chay_lenh + cham), `--xep` ghi rõ là vế (4) của cùng luật, cận
+  dưới: (1) dấu sập theo dòng (`SAP`, trừ `✗ T\d` / `✗ bài chạy thật` ở vế này) · (2) thoát 2 · (3) KHÔNG có dòng "chạy hết" (`HET`: `N đạt · M hỏng`,
+  `· ĐẠT` / `· KHÔNG ĐẠT`, `Qua hết` / `CÓ LỖI`, `PASS n`, `✓ XANH` / `ĐỎ — n chỗ hỏng`) — áp cho MỌI kết quả, BẮT lẫn SỐNG · (4) dòng khớp mang dấu
+  sập (trừ `✗ T\d`). `dot_bien.py` cùng luật: `SAP` (kể cả `Node\.js v\d`) + `HET` + thoát 2 → HỎNG trước khi xét BẮT. Ca đỏ của người soát
+  (`soat3_sap1.py`, `soat3_vangtho3.py`, nháp) → HỎNG-sập / HỎNG ở cả hai (`bang_chung_do.txt` 9).
+- Lỗi 3 → luật "harness chết" bỏ; `!D1-E11-P26b` HỎNG-sập (vế 4), AUDIT-1 81/83; 4 `D1-E*` khớp phép tĩnh riêng giữ BẮT. Chốt hẳn → mục Câu hỏi.
+- Lỗi 5 → `Vo.run` đặt `TMPDIR` = `TAM` (mkdtemp, xoá ở atexit); `chay_bai` đặt `TMPDIR` = thư mục tạm của đột biến. Vòng 3 chạy đủ: 0 thư mục mới.
+- Lỗi 6 → `--sap` nhận mã thoát của khung; ≠ 0 → xấu. Lỗi 7 → A5 881/917 (bao_cao.md), AUDIT-3 25/26 (A5 ở trên).
+- Lỗi TỰ GÂY khi áp (K7): vế (4) gọi `sap_cua(1, 'ĐẠT', chi)` nhưng `'ĐẠT'` không khớp `HET` → mọi kết quả khung thành HỎNG-sập; `--audit2 D2K` DỪNG
+  ở kiểm sạch → sửa `ra=None` (chỉ soi vế 4); `sap_cua` thử 14 dạng đầu ra → 14/14.
+- Chạy lại TUẦN TỰ sau khi commit công cụ (`chay_vong3.py`, HEAD 9de6829, 3.682 s, không sửa / commit trong lúc chạy): `--sap` ĐẠT (khung thoát 0) ·
+  A4 11/11/4 · P26b 48/1/9/0/1 · P26c 88/0/4/1 · GOI-1 40/9 · GOI-2 59 · khung AUDIT-1 81 BẮT · HỎNG-sập 2 (`G3-sap`, `!D1-E11-P26b`) · LẠC 2 ·
+  c2luoi 67/25/6 sập/2 (y vòng 2 từng tên) · AUDIT-2 18/7/4/1 (y vòng 2 từng tên) · `npm test` 63/0; `git status` 0 dòng sau mỗi bước; KHÔNG "KHO BẨN".
+  `a2_bang.md` sinh lại từ log vòng 3 (bb · SO-LUONG-1 · LUOI-1 · TACH-GL không qua luật mới → giữ log vòng 2).
+
+### Câu hỏi cho chủ quán (chờ chốt — không tự quyết, CLAUDE.md mục 9)
+1. **Luật sập khi BỘ KIỂM chạy hết nhưng BÁO bài con sập** (`kiem_tra_truoc_khi_giao.js` in `✗ bài chạy thật … → ✖ Bài thử sập`): phiếu chỉ nói
+   "đột biến làm bài thử sập = HỎNG". Vòng 2 tôi tự áp "harness chết mới là sập" (→ BẮT), người soát vòng 3 bác. Nay áp HỎNG-sập (dòng khớp mang
+   dấu sập). Đề nghị chốt vào phiếu AUDIT-4 một trong hai: (a) HỎNG-sập như hiện tại (81/83) · (b) BẮT khi bộ kiểm chạy hết (82/84).
+2. **18 thư mục tạm sót ở `/tmp`** từ các lần chạy sập TRƯỚC vòng 3 (`thu_p26c_*` ×10, `thu_goi1_*` ×6, `thu_p26b_Q70f8g`, `audit1_7q51vrw7`, mỗi
+   cái ~360 KB `kho.db`): người gác chặn `rm` ngoài thư mục nháp nên tôi không xoá được — chủ quán dọn bằng `rm -rf /tmp/thu_p26c_* /tmp/thu_goi1_*
+   /tmp/thu_p26b_* /tmp/audit1_*` khi không có bộ đo nào chạy.
+
+### Bài học bổ sung sau soát vòng 3
+- Sự cố: (i) sửa luật sập NỬA chiều lần hai — vòng 2 đòi dòng tổng chỉ khi thoát 0, để sập mã 1 không dấu thành BẮT (K4 cùng khuôn với vòng 2);
+  (ii) thêm dấu `Node\.js v\d` vào boc.py mà quên dot_bien.py (K4); (iii) tự đặt định nghĩa thay phiếu (K1) — chỗ chưa chốt phải là Câu hỏi;
+  (iv) `--xep` và `co_sap` hai luật (K4); (v) phép "0 thư mục sót" soi sai tiền tố (K3); (vi) `--sap` bỏ mã thoát khung (K3); (vii) tự gây: sentinel
+  `'ĐẠT'` không khớp `HET` — đối chứng của công cụ bắt ngay (K7, bằng chứng mục 9).
+- **KHOÁ** (đã làm, trong Phạm vi): `sap_cua` một hàm · `HET` cho mọi kết quả · `SAP` chung hai công cụ · TMPDIR · mã thoát khung · ca đỏ của người
+  soát chạy lại trên HEAD. Đề xuất AUDIT-4: đưa `sap_cua` + ca 14 dạng đầu ra vào khung chung `viec/AUDIT-1/dot_bien.py` (ngoài Phạm vi).
+- **NGUYÊN TẮC** (đề xuất gộp `KHUON_LOI.md`): K3 — phép "công cụ không nói dối" phải phủ sập KHÔNG DẤU (thoát ≠ 0 mà không dòng chạy hết);
+  K4 — thêm một dấu / một luật thì grep MỌI công cụ cùng việc; K1 — định nghĩa trong phiếu không được tái định nghĩa trong báo cáo.
+- **BỎ**: lỗi 6, 7 (chữ / số); số 19 thoáng qua khi đếm thư mục tạm ngay lúc tiến trình thoát (CHƯA KIỂM nguyên nhân, không ảnh hưởng kết quả).
+
+### Kiểm lại sau vòng sửa 3 (bước 6)
+- `python3 viec/AUDIT-3/dot_bien.py` 5 D2 → HỎNG · BẮT · SỐNG · HỎNG · HỎNG; `boc.py GOI-1 BV-GOI1-TONG` → BẮT; `boc.py --audit2 D2K` → HỎNG 2 · SỐNG 1;
+  `soat3_sap1.py` → HỎNG (A4) / HỎNG-sập (boc); `soat3_vangtho3.py` → HỎNG / HỎNG-sập. Chạy đủ 10 bước `chay_vong3.py` (số ở "Sửa sau soát").
+- `npm test` → thoát 0 · ĐẾM PASS 63 · FAIL 0 · CẢNH BÁO 0 (HEAD 9de6829 = HEAD của mọi lần đo vòng 3; mọi commit từ a13d8ad chỉ đổi `viec/AUDIT-3/`;
+  `--day-du` 67/0 ở 744ab60 vẫn áp vì code chạy thật không đổi — `git diff --stat 744ab60 HEAD -- ':!viec/AUDIT-3/'` rỗng). `git status` sạch.
+
+HEAD ĐÃ KIỂM: 9de6829
