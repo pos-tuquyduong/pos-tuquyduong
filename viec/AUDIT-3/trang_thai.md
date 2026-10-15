@@ -267,3 +267,8 @@ BÀI HỌC:
   vẫn áp vì code chạy thật không đổi). `git status` sạch.
 
 HEAD ĐÃ KIỂM: b9426a9
+
+## Bước 8 · soát độc lập vòng 2 (`/ra-soat`, agent general-purpose, HEAD 1510449)
+- Agent soát vòng 2 bị dừng giữa chừng vì giới hạn phiên của máy (HTTP 429 "session limit · resets 12pm UTC") → **báo cáo không về**.
+  Theo luật `/ra-soat` bước 3: KHÔNG tự kết luận ĐẠT thay người soát. Trạng thái: 8 lỗi vòng 1 đã sửa (mục "Sửa sau soát" + "Kiểm lại"),
+  chưa có xác nhận độc lập vòng 2 — chủ quán / chat soát chạy lại `/ra-soat AUDIT-3` khi hạn mức mở (vòng sửa còn 2/3).
