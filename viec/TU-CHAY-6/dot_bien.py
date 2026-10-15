@@ -42,16 +42,21 @@ DOT_BIEN = [
    r'✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a\.js'),
   ('VS-TUCHAY6-BLOB-NEM-128', CONG, [("if (r.status === null || r.error) throw", "if (r.status !== 0) throw", 1)], ['thu_cong'],
    r'✗ A14 không có viec/<MÃ>/phieu\.md: KHÔNG có "\[CONG\]"'),
+  # cau_hinh.json còn được đọc lại ở bước so bản cài (cap) nên ca cau_hinh không cô lập được chỗ try — ca settings.json (chỉ A8 đọc) mới cô lập
   ('BV-TUCHAY6-BLOB-TRONG-TRY', CONG, [("      const bCH = blob(thuMuc, head, 'tu_chay/cau_hinh.json'); // blob NGOÀI try: git hỏng phải ném ra, không bị nuốt (TU-CHAY-6 A1)\n"
                                         "      let chH = {};\n      if (bCH !== null) try { chH = JSON.parse(bCH) || {}; } catch {}",
-                                        "      let chH = {};\n      try { chH = JSON.parse(blob(thuMuc, head, 'tu_chay/cau_hinh.json')); } catch {}", 1)],
-   ['thu_cong'], r'✗ TU-CHAY-6 A1 git giả tự giết ở cat-file tu_chay/cau_hinh\.json'),
+                                        "      let chH = {};\n      try { chH = JSON.parse(blob(thuMuc, head, 'tu_chay/cau_hinh.json')); } catch {}", 1),
+                                       ("      const bS = blob(thuMuc, head, '.claude/settings.json'); // blob NGOÀI try (TU-CHAY-6 A1)\n"
+                                        "      let s = null;\n      if (bS !== null) try { s = JSON.parse(bS); } catch {}",
+                                        "      let s = null;\n      try { s = JSON.parse(blob(thuMuc, head, '.claude/settings.json')); } catch {}", 1)],
+   ['thu_cong'], r'✗ TU-CHAY-6 A1 git giả tự giết ở cat-file \.claude/settings\.json'),
   ('BV-TUCHAY6-ARCHIVE-NUOT', CONG, [("      if (!giaiNen(thuMuc, moc, goc)) throw new Error(`git archive ${moc.slice(0, 7)} hỏng — không dựng được cây gốc`);\n",
                                       "      giaiNen(thuMuc, moc, goc);\n", 1)], ['thu_cong'], r'✗ TU-CHAY-6 A1b git giả tự giết ở archive'),
   # ── A2 kiem_tra E14 ──
   ('BV-TUCHAY6-A2-BO-GOI', KIEM, [("  const { getGhi, khongLoiGhi } = quetRouteGhi((f) => doc('server/routes/' + f), ten);",
                                    "  const { getGhi, khongLoiGhi } = { getGhi: [], khongLoiGhi: [] };", 1)], ['thu_TOCDO1'], r'✗ R0b '),
-  ('VS-TUCHAY6-A2-QUEN-INSERT', KIEM, [("|INSERT(?:\\s+OR\\s+\\w+)?\\s+INTO|", "|", 1)], ['thu_TOCDO1'], r'✗ R2 '),
+  ('VS-TUCHAY6-A2-QUEN-INSERT', KIEM, [("  const GHI = /\\b(?:UPDATE(?:\\s+OR\\s+\\w+)?|INSERT(?:\\s+OR\\s+\\w+)?\\s+INTO|REPLACE\\s+INTO|DELETE\\s+FROM)\\b/i;",
+                                        "  const GHI = /\\b(?:UPDATE(?:\\s+OR\\s+\\w+)?|REPLACE\\s+INTO|DELETE\\s+FROM)\\b/i;", 1)], ['thu_TOCDO1'], r'✗ R2 '),
   ('VS-TUCHAY6-A2-MIEN-THEO-FILE', KIEM, [("![iGhi, iRun, iRun - 1].some((i) => i >= r.i && MIEN.test(tho[i]))", "!tho.some((d) => MIEN.test(d))", 1)],
    ['thu_TOCDO1'], r'✗ R3d '),
   ('VS-TUCHAY6-A2-QUEN-TXRUN', KIEM, [("/\\brun\\(/", "/^\\s*(?:await\\s+)?run\\(/", 2)], ['thu_TOCDO1'], r'✗ R2b '),
@@ -67,8 +72,7 @@ DOT_BIEN = [
    ['thu_cong_cu'], r'✗ TU-CHAY-6 A3 lenh_ra_soat'),
   ('BV-TUCHAY6-KHUONLOI-K4', 'KHUON_LOI.md', [(K4, '', 1)], ['thu_cong_cu'], r'✗ TU-CHAY-6 A4 KHUON_LOI'),
   ('BV-TUCHAY6-PHIENBAN-CU', 'tu_chay/PHIEN_BAN', [("tu-chay 1.6.0", "tu-chay 1.5.0", 1)], ['thu_cong_cu', 'thu_nguoi_gac'], r'✗ .*PHIEN_BAN = tu-chay 1\.6\.0'),
-  ('BV-TUCHAY6-THIETKE-B15', 'tu_chay/THIET_KE.md', [("### TU-CHAY-6 (15.10.2026, tu-chay 1.6.0)", "### TU-CHAY-6 (15.10.2026)", 1),
-                                                      ("- **A1 `blob()` không trả `null` khi git không chạy được**", "- **A1 blob không trả null khi git không chạy được**", 1)],
+  ('BV-TUCHAY6-THIETKE-B15', 'tu_chay/THIET_KE.md', [("→ ném `git cat-file hỏng", "→ ném lỗi (`cat-file", 1)],
    ['thu_cong_cu'], r'✗ TU-CHAY-6 A6 THIET_KE B15'),
 ]
 
@@ -127,7 +131,7 @@ def chay1(db):
       ma, ra, co_tong = chay_bai(b, tam)
       dong = ra.splitlines()
       trung = [l.strip() for l in dong if re.search(bat, l)]
-      nem = [l.strip() for l in dong if re.search(r'\b(sập|ném)\b', l)]
+      nem = [l.strip() for l in dong if re.search(r'\bsập: |\bném: ', l)]  # dạng "<bài> sập: " / "khối ném: " — không khớp chữ sập/ném trong TÊN ca
       if nem: return ten, False, f'{b}: bài thử SẬP/NÉM (không phải đột biến bị bắt): ' + nem[0][:140]
       if not co_tong: return ten, False, f'{b}: bài không in dòng tổng (thoát {ma}) ≠ bắt: ' + (dong or ['(không in gì)'])[-1][:120]
       if ma == 0 or not trung:

@@ -487,6 +487,9 @@ function baiCong() {
     { che: 'chay', env: gitGia('^cat-file blob \\S+:cong_cu/thu_a\\.js$'), chua: ['cong_cu/thu_a.js'], khong: ['Received null'], soLyDo: 1 });
   ca('TU-CHAY-6 A1 git giả tự giết ở cat-file tu_chay/cau_hinh.json (chế độ tinh — A8 đọc cấu hình, ném không bị try/catch nuốt)', A1_PR, 'ĐỎ',
     { che: 'tinh', env: gitGia('^cat-file blob \\S+:tu_chay/cau_hinh\\.json$'), chua: ['tu_chay/cau_hinh.json'], soLyDo: 1 });
+  // Chỗ CHỈ đọc qua try/catch (A8 đọc .claude/settings.json): lỗi git phải ném ra thành [CONG], không bị nuốt thành [A8] "mất hook người gác"
+  ca('TU-CHAY-6 A1 git giả tự giết ở cat-file .claude/settings.json (chế độ tinh — chỉ A8 đọc, qua try/catch) → một dòng ✗ [CONG], không [A8]', A1_PR, 'ĐỎ',
+    { che: 'tinh', env: gitGia('^cat-file blob \\S+:\\.claude/settings\\.json$'), chua: ['.claude/settings.json'], khong: ['[A8]'], soLyDo: 1 });
   // A1b: git archive (dựng cây gốc, không đường dẫn) hỏng → gốc dựng cây RỖNG, bài thử đỏ trên cây rỗng được tính "đỏ hợp lệ" → cổng ĐẠT oan
   ca('TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan', A1_PR, 'ĐỎ',
     { che: 'chay', env: gitGia('^archive --format=tar \\S+$'), chua: ['git archive'], soLyDo: 1 });
@@ -521,7 +524,9 @@ function baiCong() {
       for (const k of Object.keys(process.env)) delete process.env[k];
       Object.assign(process.env, env);
       let kq;
-      try { kq = mod.cong({ cheDo, thuMuc: G, base: BASE, head: PR[ten], nhanh: 'viec/X', tat: new Set([ma]) }); } finally {
+      try { kq = mod.cong({ cheDo, thuMuc: G, base: BASE, head: PR[ten], nhanh: 'viec/X', tat: new Set([ma]) }); }
+      catch (e) { kq = { ok: false, lyDo: ['cong() văng lỗi: ' + e.message] }; } // TU-CHAY-6: cong() ném (blob ném nhầm 128) → phép này đỏ, không sập cả bài
+      finally {
         for (const k of Object.keys(process.env)) delete process.env[k];
         Object.assign(process.env, cu);
       }
