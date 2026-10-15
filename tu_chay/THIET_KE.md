@@ -891,8 +891,9 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - **A2 phép tĩnh E14** (`kiem_tra_truoc_khi_giao.js`, không chạy route): (a) route GET có lệnh ghi → MỘT cảnh báo gộp `file:dòng`, miễn
   khi `// GET-ghi: <lý do>` trên dòng từ khoá / dòng `run(` / dòng ngay trên `run(`; (b) route ghi không gọi `loiGhi(` → bánh cóc cảnh
   báo `NGUONG_ROUTE_GHI_KHONG_LOIGHI` (51 lúc đặt, chỉ được giảm; mọc thêm → cảnh báo liệt kê, không FAIL — chủ quán chốt Q1). Thân
-  route tới `});`/`);` cột 0, hàm phụ giữa hai route không tính. Bài thử: `cong_cu/thu_TOCDO1.js` mục R cắt hai hàm `xetBanhCoc` +
-  `quetRouteGhi` chạy trên routes giả + K5 server thật.
+  route tới `});`/`);` cột 0, hàm phụ giữa hai route không tính. Giới hạn: chỉ lệnh ghi nằm TRONG thân route — ghi qua hàm phụ (customers-v2.js
+  GET → `fetchSXCustomers` → INSERT) không thấy. Bài thử: `cong_cu/thu_TOCDO1.js` mục R cắt hai hàm `xetBanhCoc` + `quetRouteGhi` chạy trên
+  routes giả + K5 server thật.
 - **A3 skill bước 4 / ra-soát:** trước khi xin sửa phiếu, tự xét A11/A12 chế độ chay từ `bang_chung_do.txt` và gom MỘT câu hỏi; `node
   tu_chay/cong.js tinh . <mốc>^ HEAD viec/<MÃ>` chỉ kiểm Phạm vi/A7/A17 với file đã commit (`[A19]`/`[A8]` ở bước này là bình thường).
   `SubagentHandback` là hành động CUỐI CÙNG, BẮT BUỘC của agent soát.

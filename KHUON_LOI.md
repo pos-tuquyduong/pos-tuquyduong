@@ -43,7 +43,8 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
   933, cổng so số ca báo oan). Mỗi luồng kế hoạch ghi "phải KHÔNG bị chặn" trỏ tới MỘT ca + đột biến gỡ đúng vế đó ra BẮT
   (A19 `.pop()`, loại `cong.yml` ghi trong kế hoạch mà không ca — đột biến SỐNG).
 - **Chặn (TOC-DO-1, GOI-2):** bộ đột biến phải có ĐỐI CHỨNG (bản chưa đột biến xanh) và loại dòng ném / không in dòng tổng — bài thử
-  sập ≠ BẮT (9/9 "bị bắt" khi bài đang sập). Ca một PHÉP TÍNH chọn số để trần / làm tròn phía sau không che lỗi (B3c: 0,002, không 0,5).
+  sập ≠ BẮT (9/9 "bị bắt" khi bài đang sập). Ca một PHÉP TÍNH chọn số để trần / làm tròn phía sau không che lỗi (GOI-2 B3c: trần kéo
+  1.350.000 về 1.215.000 nên vá sai công thức vẫn ra đúng số).
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ thứ hai thường trong cùng hàm hoặc cách chưa tới 150 dòng.
