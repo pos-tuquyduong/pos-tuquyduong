@@ -199,3 +199,10 @@ h. Ghi `ke_hoach.md` / `trang_thai.md` lúc `--day-du` đang đo (không ảnh h
 ### 3. Dọn
 `KHUON_LOI.md` 120/120: không thêm mục; đề xuất gộp vào K1 / K3 / K4 như trên. Không lời dặn nào trong `CLAUDE.md` / `KHUON_LOI.md` đã có phép
 làm thay mà phát hiện ở việc này (việc không đụng bộ kiểm chính).
+
+## D3 · kiểm cuối (script nháp `d3.py`, tuần tự, HEAD 744ab60 — mọi commit từ a13d8ad chỉ đổi `viec/AUDIT-3/`)
+- `npm test` → thoát 0 · ĐẾM PASS 63 · FAIL 0 · CẢNH BÁO 0 (96,6 s).
+- `node kiem_tra_truoc_khi_giao.js --day-du` → thoát 0 · "dist đã commit KHỚP với src hiện tại" · ĐẾM PASS 67 · FAIL 0 · CẢNH BÁO 0 (187,2 s).
+- `git status --porcelain` sau đo: rỗng; `git diff --stat a13d8ad..HEAD -- ':!viec/AUDIT-3/'` rỗng.
+
+HEAD ĐÃ KIỂM: 744ab60
