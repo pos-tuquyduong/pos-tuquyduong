@@ -52,9 +52,9 @@ def nap_khuon(bo):
 def ra_cua(r): return re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
 
 
-def co_sap(ra):   # dấu sập theo DÒNG; ca T3…T10 của thu_gia_lap kiểm hành vi sập nên mô tả có 'Giả lập: SẬP' — không tính
-  for l in ra.splitlines():
-    if SAP.search(l) and not re.search(r'✗ T\d', l): return l.strip()[:160]
+def co_sap(ra):   # dấu sập theo DÒNG = HARNESS của lệnh chết. Không tính: ca T3…T10 của thu_gia_lap (kiểm hành vi sập, mô tả có 'Giả lập:
+  for l in ra.splitlines():   # SẬP'); dòng '✗ bài chạy thật …' của kiem_tra_truoc_khi_giao.js (bộ kiểm chạy hết và BÁO bài con sập = ✗ của phép, BẮT đúng)
+    if SAP.search(l) and not re.search(r'✗ T\d|✗ bài chạy thật', l): return l.strip()[:160]
   return ''
 
 
