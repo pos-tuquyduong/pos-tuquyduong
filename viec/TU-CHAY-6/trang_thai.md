@@ -109,3 +109,18 @@ dfeaa57 PHIEU: TU-CHAY-6
   7 hỏng, head 334 · 0.
 - Hook dừng của môi trường (`kiem_truoc_khi_dung.cjs`) chạy `npm test` chồng lên chuỗi nền → `thu_cong.js` trong hook 120,1 s ETIMEDOUT
   (chạy riêng 73 s). Không nới hạn; chạy lại riêng ở bước 6 (bên dưới).
+
+### Bước 6 — kiểm trên HEAD 2e43901 (chạy RIÊNG, tuần tự)
+- `npm test`: **PASS 61 · FAIL 0 · CẢNH BÁO 4** · `--day-du`: **PASS 65 · FAIL 0 · CẢNH BÁO 4**. Bốn cảnh báo = 1 cảnh báo E14 (a) ba route
+  GET có ghi (chốt Q1) + 3 cảnh báo "khớp từng byte" (`.claude/tu_chay/` 8 file, SKILL.md, ra-soat.md) — chờ chủ quán `bash tu_chay/cai_dat.sh`.
+- A5 đo lại 3 lần riêng trên HEAD: `thu_nguoi_gac.js` 11,3 / 11,9 / 10,2 s · `thu_cong_cu.js` 5,3 / 5,1 / 5,7 s → vẫn < 30 s, **không đổi**.
+- **Máy mây chậm đi trong ngày — báo chủ quán, không nới hạn:** `thu_cong.js` HEAD chạy riêng 116,8 s (trong `npm test` 112–117 s, hạn
+  120 s); đo lại NGAY SAU đó bản `thu_cong.js` + `cong.js` GỐC dfeaa57 (318 phép) trên cùng máy: **112,9 s** (sáng nay 67,9 s). Mọi bài
+  đều chậm ~1,7× (A5 6 s → 11 s), không có tiến trình lạ (`ps -A`). Phần việc này thêm ≈ 4 s (4 ca cổng mới). Hook dừng của môi trường chạy
+  `npm test` khi máy chậm → `thu_cong.js` ETIMEDOUT 120,1 s một lần (xem trên). Cùng hiện tượng TOC-DO-1 ghi (máy mây AUDIT-2 119–126 s).
+  → Phát hiện: chia `thu_cong.js` thành lượt song song (AU2-10) — phiếu đã dặn "nếu A5 đo thấy cần thì ghi Phát hiện", không làm ở đây.
+- `cong.js tinh . dfeaa57^ HEAD viec/TU-CHAY-6` trên HEAD đã commit: chỉ `✗ [A8]` (bản cài lệch, chờ cài) + `✗ [A19]` (chưa tới 11.4) —
+  đúng hai dòng câu skill mới nói là bình thường ở bước này.
+- Số dòng (`git diff --numstat dfeaa57..HEAD`): code bộ khung +55 −3 (`cong.js` +10 −3, `kiem_tra` +45) · thử JS +112 −8 ·
+  `dot_bien.py` 155 · luật/skill +16 −2 · THIET_KE +19. Thử vượt ngân sách "~120 dòng" vì khuôn đột biến có đối chứng + bản sao chép thật
+  và 23 ca R cho phép tĩnh mới.
