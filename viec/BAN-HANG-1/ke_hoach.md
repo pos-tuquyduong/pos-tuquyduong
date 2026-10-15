@@ -1,6 +1,6 @@
 # BAN-HANG-1 — kế hoạch (CHỜ DUYỆT — chưa viết bài thử, chưa sửa code)
 
-Số dòng dưới đây đọc trong lượt này trên HEAD `328a4eb` (= main sau sổ v32 + phiếu). Bản 1.
+Số dòng dưới đây đọc trong lượt này trên HEAD `328a4eb` (= main sau sổ v32 + phiếu). Bản 2 — đã sửa theo soát độc lập (6 điểm, chi tiết ở `trang_thai.md`).
 
 ## 0. Hiện trạng đọc được (K1 — file:dòng lượt này)
 
@@ -24,21 +24,22 @@ Số dòng dưới đây đọc trong lượt này trên HEAD `328a4eb` (= main 
 | `viec/SO-LUONG-1/dot_bien.py:23, 54` | `VS-SOLUONG1-THE-SDT-THO` neo NGUYÊN dòng :187 → thay cổng là đột biến này "không áp được" (ngoài Phạm vi — Câu hỏi 2). `viec/P26c`, `GOI-1`, `GOI-2` không neo `membership_buy` / `auth.js`. |
 | K5 người gọi `membership_buy` | `kich_ban.js:471` KB22, `:672` KB32 (đủ `tier_id` + SĐT, `items: []`); `Sales.jsx:751`; thu_P26c S4b/S4c. Không ai gửi thẻ thiếu `tier_id`. |
 
-## 1. A1 — `client/src/pages/Sales.jsx` `handleClearCustomer` (+5 dòng)
+## 1. A1 — `client/src/pages/Sales.jsx` `handleClearCustomer` (+4 dòng)
 
 **Phương án A (chọn):** đầu hàm (:386, trước `setCustomer(null)`), theo khuôn `removeFromCart` :562–564 + câu báo khuôn :367:
 ```js
 if (cart.some(c => c.is_pkg)) {   // BAN-HANG-1: gói là của khách — bỏ chọn khách thì gỡ gói (và món 0đ lấy ngay từ gói đó) khỏi giỏ
   setCart(cart.filter(c => !c.is_pkg && !c.fromPkg));
-  if (category === 'pkg') setCategory('all');
   setError('Đã gỡ gói khỏi giỏ vì bỏ chọn khách');
 }
 ```
 Món lẻ, số dư, nợ: các `set…` còn lại giữ nguyên. Không nút mới. Build `client/dist`.
 Lọc cả `fromPkg` vì (a) khuôn có sẵn của file (:556, :562) và (b) khi giỏ có `is_pkg` thì mọi `fromPkg` đều là món 0đ của gói đó (:929) —
-để lại là đơn 0đ không gói → máy chủ 400 → nhân viên gặp đúng lỗi khó hiểu mà phiếu muốn bỏ. Phiếu ghi "dòng `is_pkg`" — xin xác nhận (Câu hỏi 1).
+để lại thì `Sales.jsx:716` gửi `from_package: true` không kèm `package_buy` → `orders.js:354` 400 `TU_GOI_NHUNG_THIEU_GOI` → nhân viên gặp đúng
+lỗi khó hiểu mà phiếu muốn bỏ. Phiếu ghi "dòng `is_pkg`" — xin xác nhận (Câu hỏi 1). Không reset `category`: `addPkgToCart` :504 đã chuyển tab
+sang `'all'` ngay khi thêm gói, không nghiệm thu nào đòi (soát độc lập bỏ 1 dòng).
 
-**Phương án B (bỏ):** đúng chữ phiếu, chỉ `filter(c => !c.is_pkg)` (3 dòng, không reset `category`). Ít 2 dòng nhưng để món 0đ mồ côi.
+**Phương án B (bỏ):** đúng chữ phiếu, chỉ `filter(c => !c.is_pkg)` (3 dòng). Ít 1 dòng nhưng để món 0đ mồ côi → 400 ở :354.
 
 Bài thử: **không có phép máy** cho A1 — phép tĩnh "có chuỗi `!c.is_pkg` trong thân hàm" là kiểm sự có mặt của bản vá (E13, cấm), và sự vắng
 mặt mẫu nguy hiểm không diễn tả được. Thử tay 1 thao tác (ghi vào `trang_thai.md` theo A4): chọn khách → tab Gói → bấm 1 gói → bấm ✕ bỏ
@@ -69,37 +70,37 @@ So `status` / `code` / số đếm / `order.total` / số giây của token — 
 | Nghiệm thu | Ca | Trên gốc |
 |---|---|---|
 | A2 chặn | T1a `membership_buy: {}` + `mon(0)` (25.000), `cash_amount: 25000` → 400 `THE_MUA_THIEU_THONG_TIN`, `COUNT(pos_orders)` không đổi | ĐỎ (gốc 200 đơn thường) |
-| A2 chặn | T1b `membership_buy: {}` + `items: []`, `cash_amount: 0` → 400 `THE_MUA_THIEU_THONG_TIN`, không đơn | dự đoán ĐỎ (đơn rỗng 0đ) — chép đầu ra thật |
+| A2 (bằng chứng phụ, cùng nhánh cổng với T1a — không đột biến nào cần riêng nó) | T1b `membership_buy: {}` + `items: []`, `cash_amount: 0` → 400 `THE_MUA_THIEU_THONG_TIN`, không đơn | ĐỎ theo code (soát độc lập đọc :182→:878: không phép nào chặn `orderItems` rỗng / tổng 0; tiền 0 khớp :788) — chép đầu ra thật |
 | A2 `{tier_id}` không SĐT | S4c (ca cũ, :815–818): thêm `mk.code === 'THE_MUA_THIEU_THONG_TIN'`, tên ca ghi mã | ĐỎ (gốc 400 không `code`) — là "đổi mã lỗi của S4c", phiếu cho phép |
 | A2 K5 | T2a mua thẻ riêng `items: []` + `{ tier_id }` + SĐT, `cash_amount: card_price` → 200, `total = card_price` | xanh (hồi quy, khoá :182) |
 | A2 K5 | T2b `membership_buy: null` + `mon(0)` → 200, `total = 25.000`; mua thẻ + món = S4b (cũ) | xanh |
-| A3 mặc định | T3a `delete process.env.JWT_EXPIRES_IN` → `POST /auth/login {admin, admin123}` → 200; `jwt.decode(token)`: `exp − iat ≥ 29 × 86400` | ĐỎ (gốc 28.800 s) |
-| A3 ưu tiên biến | T3b `process.env.JWT_EXPIRES_IN = '8h'` → login → `exp − iat === 28800`; `finally` xoá biến lại | xanh |
+| A3 mặc định | T3a `delete process.env.JWT_EXPIRES_IN` → `POST /auth/login {admin, admin123}`: so `status === 200` TRƯỚC, rồi `jwt.decode(token)`: `exp − iat ≥ 29 × 86400` (login hỏng → ca ✗, không ném — bài sập thì đột biến không đếm là bắt, `dot_bien.py` khuôn :92) | ĐỎ (gốc 28.800 s) |
+| A3 ưu tiên biến | T3b `process.env.JWT_EXPIRES_IN = '2h'` → login → `exp − iat === 7200`; `finally` xoá biến lại. Dùng `2h` chứ không `8h` (phiếu) vì `8h` trùng mặc định CŨ — trên gốc không phân biệt "đọc biến" với "rơi về mặc định" (K3) | xanh |
 | A4 | `npm test`, `(cd client && npm run build)`, `node kiem_tra_truoc_khi_giao.js --day-du` xanh; `dot_bien.py` đủ VS/BV; thử tay A1 ghi `trang_thai.md` | — |
 
 Ca hai người cùng bấm: cổng A2 chạy trước giao dịch, chỉ đọc body của chính yêu cầu → không tranh chấp; A3 không đụng tiền. Không thêm ca giả.
 `bang_chung_do.txt`: đầu ra gốc (T1a, T1b, S4c, T3a đỏ) + `SỐ CA cong_cu/thu_P26c.js: 111` (105 + 6 — chép lại số THẬT sau khi chạy trên code đã vá).
 Điều kiện DỪNG của A3 (không bỏ được biến): KHÔNG gặp — `auth.js:64` đọc `process.env` trong handler, bài chạy cùng tiến trình.
 
-## 5. Đột biến `viec/BAN-HANG-1/dot_bien.py` (khuôn `viec/SO-LUONG-1/dot_bien.py`, chép `server/` ra thư mục tạm, runner `thu_P26c.js --may-chu`) — 8 đột biến
+## 5. Đột biến `viec/BAN-HANG-1/dot_bien.py` (khuôn `viec/SO-LUONG-1/dot_bien.py`, chép `server/` ra thư mục tạm, runner `thu_P26c.js --may-chu`) — 7 đột biến
 
 | Chỗ vá | Đột biến (tên NGUYÊN chuỗi) | Ca bắt |
 |---|---|---|
 | orders.js cổng thẻ | `BV-BANHANG1-THE-CONG` (`if (membership_buy && !(…)) {` → `if (false) {`) | T1a |
 | | `VS-BANHANG1-THE-CONG-CU` (dựng lại cổng cũ `membership_buy && membership_buy.tier_id && !normalizePhone(customer_phone)`) | T1a |
-| | `VS-BANHANG1-THE-CHI-HANG` (chỉ đòi `tier_id`, bỏ SĐT) | S4c |
 | | `VS-BANHANG1-THE-SDT-THO` (`normalizePhone(customer_phone)` → `customer_phone` — cũng là `VS-SOLUONG1-THE-SDT-THO` dựng lại, Câu hỏi 2) | S4c |
-| | K5 `VS-BANHANG1-THE-SIET-DOI-MON` (thêm `&& items.length` — mua thẻ riêng bị chặn oan) | T2a |
-| | K5 `VS-BANHANG1-THE-NULL-CHAN` (`membership_buy &&` → `('membership_buy' in req.body) &&` — gửi `null` bị chặn) | T2b |
+| | K5 `VS-BANHANG1-THE-SIET-DOI-MON`: `if (membership_buy && !(membership_buy.tier_id && normalizePhone(customer_phone))) {` → `if (membership_buy && !(membership_buy.tier_id && normalizePhone(customer_phone) && items.length)) {` — `items.length` nằm TRONG `!(…)` (ngoài ngoặc là NỚI cổng, T2a vẫn xanh); `items` mặc định `[]` (:150) nên không ném | T2a |
+| | K5 `VS-BANHANG1-THE-NULL-CHAN` (`membership_buy &&` → `('membership_buy' in req.body) &&`; `req.body` trong tầm vực — handler :145, phân rã :147–179). Gửi `null` → `null.tier_id` ném TypeError → `catch` :1209 → 5xx, T2b ✗ (bị bắt bằng 5xx, không phải 400). Không ca nào khác gửi khoá `membership_buy` (chỉ S4b/S4c, đủ `tier_id`) | T2b |
 | auth.js :64 | `BV-BANHANG1-HAN-DN-8H` (`'30d'` → `'8h'`) | T3a |
 | | `VS-BANHANG1-HAN-DN-BO-BIEN` (`process.env.JWT_EXPIRES_IN \|\| '30d'` → `'30d'` — bỏ ưu tiên biến) | T3b |
 | Sales.jsx A1 | **không có** — bài chạy thật không chạy React; ghi CHƯA KIỂM. |
 
-Đối chứng trước (bản sao chưa đột biến phải 0 hỏng). Chạy lại `viec/SO-LUONG-1/dot_bien.py`: dự kiến 1 "không áp được" (`VS-SOLUONG1-THE-SDT-THO`), 17 còn lại bị bắt; `viec/P26c`, `GOI-1`, `GOI-2` không đổi.
+Đối chứng trước (bản sao chưa đột biến phải 0 hỏng). Chạy lại `viec/SO-LUONG-1/dot_bien.py` (17 đột biến, `:29–54`): dự kiến 1 "không áp được" (`VS-SOLUONG1-THE-SDT-THO`), 16 còn lại bị bắt → script đó **thoát mã 1 vĩnh viễn** sau A2 (không nằm trong `npm test` — `kiem_tra_truoc_khi_giao.js:492` chỉ chạy các bài `thu_*`); ghi rõ trong `trang_thai.md` (Câu hỏi 2). `viec/P26c`, `GOI-1`, `GOI-2` không đổi. `VS-BANHANG1-THE-CHI-HANG` (chỉ đòi `tier_id`) bỏ vì cùng ca bắt S4c với `SDT-THO` (soát độc lập).
 
 ## 6. Đường song song (K4) và luồng hợp lệ (K5)
 
-- K4 A1: ba chỗ gỡ gói trong `Sales.jsx` (:533–556, :562–564, chỗ mới) cùng lọc `fromPkg` + reset `category`. `handleSelectCustomer` :360 giữ `is_pkg` — chủ ý (gói mua cho khách mới), không đụng.
+- K4 A1: ba chỗ gỡ gói trong `Sales.jsx` (:533–556, :562–564, chỗ mới) cùng lọc `fromPkg`. `handleSelectCustomer` :360 giữ `is_pkg` — chủ ý (gói mua cho khách mới), không đụng.
+- **K4 A1 bị sót ở bản 1 (soát độc lập bắt):** bỏ chọn khách khi giỏ có món lấy từ **gói cũ đang bật** (`activePkgId`, không mua gói): `handleClearCustomer` xoá `activePkgId` (:395) nhưng để lại `fromPkg` → gửi `from_package: true` (:716) với `customer_package_id: null` (:744) → `orders.js:354` 400 `TU_GOI_NHUNG_THIEU_GOI`. Cùng dạng lỗi phiếu; `handleSelectCustomer` :360–367 đã xử lý cho đổi khách. Điều kiện `cart.some(c => c.is_pkg)` KHÔNG phủ → Câu hỏi 3.
 - K4 A2: `grep membership_buy orders.js` → :178, :182, :187, :433 — :182 và :433 là tập con sau cổng, giữ. `grep normalizePhone` cổng gói :199 — không đổi (cấm).
 - K4 A3: `grep expiresIn server client/src` → 1 chỗ. `AuthContext.jsx` cấm.
 - K5 phải KHÔNG bị chặn — mỗi luồng một ca + đột biến siết: mua thẻ + món (S4b), mua thẻ riêng `items: []` (T2a ← `SIET-DOI-MON`; kich_ban KB22/KB32), đơn không thẻ `null` (T2b ← `NULL-CHAN`) và không gửi khoá (S1g…), mua gói (S2e/S2f), lấy từ gói (A2b), đăng nhập có biến `8h` (T3b ← `BO-BIEN`). Dữ liệu cũ trên production: cổng chỉ xét body yêu cầu mới, không đọc DB.
@@ -107,14 +108,16 @@ Ca hai người cùng bấm: cổng A2 chạy trước giao dịch, chỉ đọc
 
 ## 7. Ngân sách
 
-Code: `Sales.jsx` +5 · `orders.js` +3/−3 (1 dòng chú thích) · `auth.js` ±1 → ~9 dòng (phiếu 15–25). Thử: ~32 dòng, 6 ca mới + 1 sửa (phiếu ~50). `dot_bien.py` ~55 dòng, 8 đột biến.
+Code: `Sales.jsx` +4 · `orders.js` +3/−3 (1 dòng chú thích) · `auth.js` ±1 → ~8 dòng (phiếu 15–25). Thử: ~32 dòng, 6 ca mới + 1 sửa (phiếu ~50). `dot_bien.py` ~55 dòng, 7 đột biến.
 
 ## Câu hỏi (chờ chủ quán chốt trước khi làm)
 
 1. **A1 lọc cả `fromPkg`** (món 0đ lấy ngay từ gói đang mua) cùng dòng `is_pkg`, theo khuôn `removeFromCart` :562 — phiếu chỉ ghi `is_pkg`. Đề xuất: có (lý do mục 1). Không thì làm phương án B.
 2. **`viec/SO-LUONG-1/dot_bien.py:23` neo nguyên dòng :187** → sau A2 báo 1 "không áp được" (ngoài Phạm vi). Đề xuất (b) như tiền lệ SO-LUONG-1 Q1: không sửa file cũ, dựng lại thành `VS-BANHANG1-THE-SDT-THO`, ghi rõ trong `trang_thai.md`. (a) thêm file vào Phạm vi, sửa 1 neo.
+3. **Món lấy từ gói CŨ (`activePkgId`) khi bỏ chọn khách** (mục 6, K4 sót): đề xuất mở điều kiện A1 thành `cart.some(c => c.is_pkg || c.fromPkg)`, lọc như cũ, câu báo
+   "Đã gỡ gói và món lấy từ gói khỏi giỏ vì bỏ chọn khách" — 0 dòng thêm, cùng khuôn :360–367. Không thì giữ đúng phiếu (`is_pkg`) và ghi Phát hiện cho việc sau.
 
 ## Phát hiện (ngoài Phạm vi — không sửa)
 
 - `Sales.jsx:509` thẻ hội viên trong giỏ cũng ở lại khi bỏ chọn khách (cùng dạng lỗi phiếu, cho thẻ) → gửi lên 400 `THE_MUA_THIEU_THONG_TIN`. Cùng khuôn A1, +3 dòng — chủ quán duyệt thì gộp vào việc này hoặc việc sau.
-- `orders.js` không có phép chặn `orderItems` rỗng sau các cổng đầu route (T1b lộ ra qua `membership_buy: {}`); sau A2 còn đường nào tới đơn rỗng không thì chưa rà — ghi để AUDIT-3 rà.
+- `orders.js` :208→:878 không có phép chặn `orderItems` rỗng / tổng 0 (T1b lộ ra qua `membership_buy: {}`); sau A2 còn đường nào tới đơn rỗng không thì chưa rà — ghi để AUDIT-3 rà.
