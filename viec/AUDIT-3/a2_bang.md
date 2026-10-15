@@ -1,26 +1,27 @@
-# AUDIT-3 A2 — kết quả từng tên trên HEAD (code chạy thật = 31a5810; sinh bằng script từ nhật ký lần chạy 15.10.2026, máy mây)
+# AUDIT-3 A2 — kết quả từng tên trên HEAD (code chạy thật = 31a5810; sinh bằng script từ nhật ký lần chạy 15.10.2026, máy mây — bộ qua bọc chạy lại ở vòng sửa 3)
 
-Nhãn theo AUDIT-3: **HỎNG-sập** = bộ cũ ghi LẠC / BẮT / "bị bắt" nhưng dòng khớp hay đầu ra có dấu sập (`Bài thử sập`, `Giả lập: SẬP`, `SẬP giữa kịch bản` — `--xep` / lớp bọc, soát vòng 1). Mỗi tên không BẮT có
+Nhãn theo AUDIT-3: **HỎNG-sập** = bộ cũ ghi LẠC / BẮT / "bị bắt" nhưng lệnh sinh dòng khớp CHẾT: dấu sập (`Bài thử sập`, `Giả lập: SẬP`, `SẬP giữa kịch bản`, `Node.js v`), thoát 2, KHÔNG có dòng chạy hết (sập mã 0 / mã 1 không dấu), hay dòng khớp mang dấu sập (`sap_cua` của `boc.py`, soát vòng 1–3). Mỗi tên không BẮT có
 cột "vì sao / so AUDIT-2". Tên BẮT liệt kê gọn cuối mỗi bộ. Lệnh chạy lại ở từng mục; nhật ký gốc để ở thư mục nháp (không chép vào kho).
 
-## AUDIT-1 trừ C2F (88 = G3 4 · A3 16 · B1 8 · C2 3 · D1 57) — qua bọc khung (vòng 2)
-`python3 viec/AUDIT-3/boc.py --khung G3 A3 B1 C2 D1 -j 3`
+## AUDIT-1 trừ C2F (88 = G3 4 · A3 16 · B1 8 · C2 3 · D1 57) — qua bọc khung (vòng 3)
+`python3 viec/AUDIT-3/boc.py --khung G3 A3 B1 C2 D1 -j 3 (986 s)`
 
-Tổng 88 · BẮT 82 · HỎNG 2 · HỎNG-sập 1 · LẠC 2 · SỐNG 1
+Tổng 88 · BẮT 81 · HỎNG 2 · HỎNG-sập 2 · LẠC 2 · SỐNG 1
 
 | tên | nhãn | đầu ra (rút gọn) | vì sao / so AUDIT-2 |
 |---|---|---|---|
 | `G3-sai-chuoi` | HỎNG | server/routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | cố ý (công cụ tự chứng minh) — như AUDIT-2 |
 | `G3-da-biet` | HỎNG | server/routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | neo câu thu nợ rữa vì P26c C1 (`status != 'cancelled'` → `= 'completed'`); đã thay bằng P26c `BV-G3-da-biet-thu-no` (BẮT ở mục P26c) |
 | `G3-vo-hai` | SỐNG | mọi lệnh thoát 0 | cố ý — như AUDIT-2 |
-| `G3-sap` | HỎNG-sập | sập [cong_cu/gia_lap/chay.js --den-kb: Giả lập: SẬP — /tmp/audit1_kr3tl0g_/db_uujs83hw/kho/server/routes/orders.js:876 · | cố ý: khung AUDIT-1 ghi LẠC, AUDIT-3 xếp HỎNG-sập (`--xep`) — như AUDIT-2 |
+| `G3-sap` | HỎNG-sập | sập [cong_cu/gia_lap/chay.js --den-kb: Giả lập: SẬP — /tmp/audit1_6xeoxvvn/db_2y0u4jji/kho/server/routes/orders.js:876 · | cố ý: khung AUDIT-1 ghi LẠC, AUDIT-3 xếp HỎNG-sập (`--xep`) — như AUDIT-2 |
 | `!D1-E11-P20` | LẠC | [kiem_tra_truoc_khi_giao.js thoát 1] ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md. | LẠC như AUDIT-2 (bộ kiểm đỏ nhưng câu ✗ của phép khác) — không đổi |
 | `!D1-E11-P26a` | LẠC | [kiem_tra_truoc_khi_giao.js thoát 1] ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md. | LẠC như AUDIT-2 — không đổi |
+| `!D1-E11-P26b` | HỎNG-sập | sập [dòng khớp mang dấu sập] / [kiem_tra_truoc_khi_giao.js] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.1 s)  → ✗ A1b hu | HỎNG-sập (vòng 3, vế 4 của `sap_cua`): dòng khớp là chính dòng `kiem_tra` BÁO bài con `thu_P26b` ✗ A1b RỒI `✖ Bài thử sập: SO_DU_KHONG_DU` = đỏ-rồi-sập (AU3-6). Vòng 2 chấm BẮT theo luật tự đặt 'harness chết' — soát vòng 3 bác; luật chốt cho AUDIT-4 ở mục Câu hỏi |
 
-BẮT: `A3-GITADD-bo-A`, `A3-GITCOMMIT-bo-a`, `A3-GITPUSH-moi-nhanh`, `A3-SED-i-ngan`, `A3-RM-bo-realpath`, `A3-CURL-moi-host`, `A3-LN-dao-s`, `A3-G1CAM-theoten`, `A3-FINDCAM-bo-delete`, `A3-NPM-them-install`, `A3-MKDIR-bo-khung`, `A3-TARX-moi-dich`, `A3-FILEC-bo-ngan`, `A3-BGAN-bo-PATH`, `A3-CCLA-them-la`, `A3-GHIDUOC-bo-khung`, `B1-A11-dao-goc`, `B1-A11-bo-xanh-PR`, `B1-A6-bo-phamvi`, `B1-A10-bo-filecam`, `B1-A7-noi-tieude`, `B1-A12-bo`, `B1-laBaiThu-noi-slash`, `B1-A14-bo-dang-nhanh`, `C2-orders-bo-diem-ban`, `C2-sc-bo-diem-ma`, `C2-loyalty-redeem-tru-0`, `D1-A1-fffd`, `D1-B1-json-tran`, `D1-C1-them-fetch`, `D1-E1-unitprice`, `D1-E7-paydebt`, `D1-E8-backup`, `D1-E12-vi-ngoai`, `D1-K1-env-tho`, `D1-S3-vi-lech`, `D1-F3-test-thieu`, `D1-A2-server-cu-phap`, `D1-A2c-client-cu-phap`, `D1-B2-login-2-cho`, `D1-B-handleSE`, `D1-B-co-song-song`, `D1-B-pathname`, `D1-B-deadcodes-thieu`, `D1-B-eb-getDerived`, `D1-B-eb-ton-tai`, `D1-B-main-boc`, `D1-B-layout-boc`, `D1-B-key`, `D1-B-ahref-api`, `D1-B-pos6-loginTime`, `D1-D-build-prod`, `D1-E-gia-0`, `D1-E2-authz-tho`, `D1-E-trangthai-dungma`, `D1-E-danhsach-trang`, `D1-E-claim-chiem`, `D1-E-ndiem-chiem`, `D1-E-vi-tuongdoi`, `D1-E-vi-trang5`, `D1-K-4ca`, `D1-K-data`, `D1-F-attached`, `D1-F-dist`, `D1-E1b-tra-gia`, `D1-E9-claim-kiem`, `D1-E9-ndiem-kiem`, `D1-E9-claim-dung`, `D1-E9-ndiem-dung`, `D1-E10-doisoat-tx`, `D1-E10-doisoat-trang`, `D1-B-deadcodes-service`, `D1-B-pos5-query`, `!D1-E11-P21`, `!D1-E11-P26b`, `!D1-T1-nguoi-gac`, `!D1-T1b-cong-cu`, `!D1-T1c-cong`, `B1-A8-noi`, `B1-A9-noi`, `B1-A13-bo-daydu`, `B1-A15-dao-fork`
+BẮT: `A3-GITADD-bo-A`, `A3-GITCOMMIT-bo-a`, `A3-GITPUSH-moi-nhanh`, `A3-SED-i-ngan`, `A3-RM-bo-realpath`, `A3-CURL-moi-host`, `A3-LN-dao-s`, `A3-G1CAM-theoten`, `A3-FINDCAM-bo-delete`, `A3-NPM-them-install`, `A3-MKDIR-bo-khung`, `A3-TARX-moi-dich`, `A3-FILEC-bo-ngan`, `A3-BGAN-bo-PATH`, `A3-CCLA-them-la`, `A3-GHIDUOC-bo-khung`, `B1-A11-dao-goc`, `B1-A11-bo-xanh-PR`, `B1-A6-bo-phamvi`, `B1-A10-bo-filecam`, `B1-A7-noi-tieude`, `B1-A12-bo`, `B1-laBaiThu-noi-slash`, `B1-A14-bo-dang-nhanh`, `C2-orders-bo-diem-ban`, `C2-sc-bo-diem-ma`, `C2-loyalty-redeem-tru-0`, `D1-A1-fffd`, `D1-B1-json-tran`, `D1-C1-them-fetch`, `D1-E1-unitprice`, `D1-E7-paydebt`, `D1-E8-backup`, `D1-E12-vi-ngoai`, `D1-K1-env-tho`, `D1-S3-vi-lech`, `D1-F3-test-thieu`, `D1-A2-server-cu-phap`, `D1-A2c-client-cu-phap`, `D1-B2-login-2-cho`, `D1-B-handleSE`, `D1-B-co-song-song`, `D1-B-pathname`, `D1-B-deadcodes-thieu`, `D1-B-eb-getDerived`, `D1-B-eb-ton-tai`, `D1-B-main-boc`, `D1-B-layout-boc`, `D1-B-key`, `D1-B-ahref-api`, `D1-B-pos6-loginTime`, `D1-D-build-prod`, `D1-E-gia-0`, `D1-E2-authz-tho`, `D1-E-trangthai-dungma`, `D1-E-danhsach-trang`, `D1-E-claim-chiem`, `D1-E-ndiem-chiem`, `D1-E-vi-tuongdoi`, `D1-E-vi-trang5`, `D1-K-4ca`, `D1-K-data`, `D1-F-attached`, `D1-F-dist`, `D1-E1b-tra-gia`, `D1-E9-claim-kiem`, `D1-E9-ndiem-kiem`, `D1-E9-claim-dung`, `D1-E9-ndiem-dung`, `D1-E10-doisoat-tx`, `D1-E10-doisoat-trang`, `D1-B-deadcodes-service`, `D1-B-pos5-query`, `!D1-E11-P21`, `!D1-T1-nguoi-gac`, `!D1-T1b-cong-cu`, `!D1-T1c-cong`, `B1-A8-noi`, `B1-A9-noi`, `B1-A13-bo-daydu`, `B1-A15-dao-fork`
 
-## AUDIT-1 C2F (87) + AUDIT-2 A3L còn c2full (13) — cách `c2luoi`, qua bọc khung (vòng 2)
-`python3 viec/AUDIT-3/boc.py --c2luoi -j 3`
+## AUDIT-1 C2F (87) + AUDIT-2 A3L còn c2full (13) — cách `c2luoi`, qua bọc khung (vòng 3)
+`python3 viec/AUDIT-3/boc.py --c2luoi -j 3 (1214 s)`
 
 Tổng 100 · BẮT 67 · HỎNG 2 · HỎNG-sập 6 · SỐNG 25
 
@@ -34,7 +35,7 @@ Tổng 100 · BẮT 67 · HỎNG 2 · HỎNG-sập 6 · SỐNG 25
 | `C2F-orders-34-delete-quay` | SỐNG | mọi lệnh thoát 0 | = AUDIT-2 `-37-delete` (pos_invoice_logs mồ côi) — NHẸ |
 | `C2F-wallets-01-update-quay` | HỎNG-sập | sập [cong_cu/gia_lap/chay.js: Giả lập: SẬP — Error: dữ liệu mẫu sai: ví khách quen ≠ 200.000 (HTTP 200) ·     at dungDuL | HỎNG-sập (vòng 2, bọc khung): bỏ UPDATE ví → giả lập không dựng được dữ liệu mẫu ('ví khách quen ≠ 200.000', `Giả lập: SẬP`) — AUDIT-2 / vòng 1 ghi BẮT (dòng khớp đầu từ thu_P26c A1c); lưới không phủ nổi vì bỏ câu này thì không có ví (NHẸ, như `-02-insert`) |
 | `C2F-wallets-02-insert-quay` | HỎNG-sập | sập [cong_cu/gia_lap/chay.js: Giả lập: SẬP — Error: dữ liệu mẫu sai: ví khách quen ≠ 200.000 (HTTP 200) ·     at dungDuL | HỎNG-sập (vòng 2): như `-01` — bỏ INSERT ví → dựng dữ liệu sập (NHẸ) |
-| `C2F-wallets-05-ghiVi-quay` | HỎNG-sập | sập [cong_cu/thu_P26b.js: ✖ Bài thử sập: không tạo được đơn: HTTP 400 · SO_DU_KHONG_DU · Số dư mẹ không đủ. Hiện có: 5,0 | HỎNG-sập (vòng 2): bỏ ghiVi hoàn ví mẹ → thu_P26b ✗ M2 RỒI `✖ Bài thử sập: SO_DU_KHONG_DU` — đúng dạng đỏ-rồi-sập người soát vòng 2 dựng (AU3-6 / AU3-21); vòng 1 BẮT |
+| `C2F-wallets-05-ghiVi-quay` | HỎNG-sập | sập [cong_cu/thu_P26b.js: ✖ Bài thử sập: không tạo được đơn: HTTP 400 · SO_DU_KHONG_DU · Số dư mẹ không đủ. Hiện có: 5,0 | HỎNG-sập (vòng 2, 3 — bọc khung): bỏ ghiVi hoàn ví mẹ → thu_P26b ✗ M2 RỒI `✖ Bài thử sập: SO_DU_KHONG_DU` (đỏ-rồi-sập, AU3-6) |
 | `C2F-wallets-06-ghiVi-quay` | HỎNG-sập | sập [cong_cu/gia_lap/chay.js: Giả lập: SẬP — Error: dữ liệu mẫu sai: ví khách quen ≠ 200.000 (HTTP 200) ·     at dungDuL | HỎNG-sập (vòng 2): bỏ ghiVi (nạp) → giả lập không dựng được dữ liệu mẫu (NHẸ, như `-01`) |
 | `C2F-damages-03-update-quan-tri` | SỐNG | mọi lệnh thoát 0 | như AUDIT-2 (cờ returned_to_stock) — NHẸ |
 | `C2F-packages-01-insert-quan-tri` | SỐNG | mọi lệnh thoát 0 | như AUDIT-2 — NHẸ |
@@ -62,8 +63,8 @@ Tổng 100 · BẮT 67 · HỎNG 2 · HỎNG-sập 6 · SỐNG 25
 
 BẮT: `C2F-orders-01-ghiVi-quay`, `C2F-orders-03-update-quay`, `C2F-orders-04-insert-quay`, `C2F-orders-05-update-quay`, `C2F-orders-06-update-quay`, `C2F-orders-07-update-quay`, `C2F-orders-08-insert-quay`, `C2F-orders-09-insert-quay`, `C2F-orders-11-update-quay`, `C2F-orders-12-update-quay`, `C2F-orders-13-insert-quay`, `C2F-orders-16-insert-quay`, `C2F-orders-17-update-quay`, `C2F-orders-18-insert-quay`, `C2F-orders-19-update-quay`, `C2F-orders-20-update-quay`, `C2F-orders-21-delete-quay`, `C2F-orders-22-update-quay`, `C2F-orders-23-delete-quay`, `C2F-orders-24-update-quay`, `C2F-orders-25-update-quay`, `C2F-orders-26-insert-quay`, `C2F-orders-27-update-quay`, `C2F-orders-28-delete-quay`, `C2F-orders-29-update-quay`, `C2F-orders-30-delete-quay`, `C2F-orders-31-delete-quay`, `C2F-orders-32-delete-quay`, `C2F-orders-35-delete-quay`, `C2F-orders-36-delete-quay`, `C2F-orders-37-delete-quay`, `C2F-orders-38-insert-quay`, `C2F-refunds-01-insert-quay`, `C2F-refunds-02-update-quay`, `C2F-refunds-03-update-quay`, `C2F-refunds-04-ghiVi-quay`, `C2F-refunds-05-update-quay`, `C2F-refunds-06-ghiVi-quay`, `C2F-refunds-07-update-quay`, `C2F-wallets-03-insert-quay`, `C2F-wallets-04-ghiVi-quay`, `C2F-wallets-07-ghiVi-quay`, `C2F-wallets-08-ghiVi-quay`, `C2F-wallets-09-update-quay`, `C2F-wallets-10-insert-quay`, `C2F-damages-01-ghiVi-quan-tri`, `C2F-damages-02-insert-quan-tri`, `C2F-packages-02-update-quan-tri`, `C2F-signup-codes-01-update-khach-app`, `C2F-signup-codes-02-insert-khach-app`, `C2F-signup-codes-03-update-khach-app`, `C2F-signup-codes-04-insert-khach-app`, `C2F-discount-codes-01-insert-quan-tri`, `C2F-discount-codes-05-update-quay`, `C2F-rewards-01-insert-quan-tri`, `C2F-loyalty-01-insert-khach-app`, `C2F-loyalty-02-insert-khach-app`, `C2F-loyalty-03-insert-khach-app`, `C2F-don-mo-rong-01-update-quay`, `A3L-redeem-bo-chan-diem`, `A3L-redeem-tru-them-1`, `A3L-redeem-ma-dung-2-lan`, `A3L-earn-lam-tron-len`, `A3L-goi-bo-kiem-trang-thai`, `A3L-goi-lay-ngay-them-1`, `A3L-goi-huy-lay-khong-tra-luot`, `A3L-goi-xoa-lay-khong-tra-luot`
 
-## AUDIT-2 A3L · B3 · A3P · D2K (30; bỏ A3B) — qua bọc khung (vòng 2)
-`python3 viec/AUDIT-3/boc.py --audit2 A3L B3 A3P D2K -j 3`
+## AUDIT-2 A3L · B3 · A3P · D2K (30; bỏ A3B) — qua bọc khung (vòng 3)
+`python3 viec/AUDIT-3/boc.py --audit2 A3L B3 A3P D2K -j 3 (438 s)`
 
 Tổng 30 · BẮT 18 · HỎNG 4 · LẠC 1 · SỐNG 7
 
@@ -150,8 +151,8 @@ Tổng 179 · BẮT 125 · HỎNG 1 · HỎNG-sập 1 · LẠC 2 · SỐNG 50
 
 BẮT: `BB-I1-js-3-bo-ve`, `BB-I1-js-4-bo-ve`, `BB-I1-js-5-bo-ve`, `BB-I2-sql-1-bo-ve`, `BB-I3-sql-5-bo-ve`, `BB-I3-sql-6-bo-ve`, `BB-I3-sql-7-bo-ve`, `BB-I3-sql-8-bo-ve`, `BB-I4-sql-1-bo-ve`, `BB-I4-sql-2-bo-ve`, `BB-I7-sql-1-bo-ve`, `BB-I7-sql-2-bo-ve`, `BB-I7-js-1-bo-ve`, `BB-I7-js-2-bo-ve`, `BB-I7-js-1-duong`, `BB-I7-js-1-am`, `BB-I7-js-2-duong`, `BB-I7-js-2-am`, `BB-I7-js-3-duong`, `BB-I7-js-3-am`, `BB-I8-sql-1-bo-ve`, `BB-I8-sql-2-bo-ve`, `BB-I8-js-2-bo-ve`, `BB-I8-js-6-bo-ve`, `BB-I8-js-7-bo-ve`, `BB-I8-js-3-duong`, `BB-I8-js-3-am`, `BB-I8-js-4-duong`, `BB-I8-js-4-am`, `BB-I9-js-1-bo-ve`, `BB-I9-js-2-bo-ve`, `BB-I9-js-5-bo-ve`, `BB-I9-js-6-bo-ve`, `BB-I9-js-7-bo-ve`, `BB-I9-js-8-bo-ve`, `BB-I11-sql-1-bo-ve`, `BB-I11-sql-2-bo-ve`, `BB-I12-js-1-bo-ve`, `BB-I12-js-2-bo-ve`, `BB-I12-js-3-bo-ve`, `BB-I12-js-4-bo-ve`, `BB-I12-js-5-bo-ve`, `BB-I12-js-6-bo-ve`, `BB-I12-js-7-bo-ve`, `BB-I12-js-8-bo-ve`, `BB-I12-js-1-duong`, `BB-I12-js-1-am`, `BB-I12-js-2-am`, `BB-I12-js-3-duong`, `BB-I12-js-3-am`, `BB-I12-js-4-duong`, `BB-I12-js-4-am`, `BB-I12-js-5-duong`, `BB-I12-js-5-am`, `BB-I13-sql-1-bo-ve`, `BB-I13-sql-2-bo-ve`, `BB-I13-sql-3-bo-ve`, `BB-I13-sql-4-bo-ve`, `BB-I13-js-1-bo-ve`, `BB-I13-js-2-bo-ve`, `BB-I13-js-3-bo-ve`, `BB-I13-js-4-bo-ve`, `BB-I13-sql-1-duong`, `BB-I13-js-1-duong`, `BB-I13-js-1-am`, `BB-I14-sql-1-bo-ve`, `BB-I14-sql-2-bo-ve`, `BB-I14-sql-3-bo-ve`, `BB-I14-sql-4-bo-ve`, `BB-I14-js-1-bo-ve`, `BB-I14-js-2-bo-ve`, `BB-I14-js-3-bo-ve`, `BB-I14-js-4-bo-ve`, `BB-I14-js-5-bo-ve`, `BB-I14-js-6-bo-ve`, `BB-I14-js-7-bo-ve`, `BB-I14-sql-5-bo-ve`, `BB-I14-sql-6-bo-ve`, `BB-I14-sql-7-bo-ve`, `BB-I14-sql-8-bo-ve`, `BB-I14-sql-9-bo-ve`, `BB-I14-sql-1-am`, `BB-I14-js-1-duong`, `BB-I14-js-1-am`, `BB-I15-sql-1-bo-ve`, `BB-I15-sql-2-bo-ve`, `BB-I15-sql-3-bo-ve`, `BB-I15-sql-4-bo-ve`, `BB-I15-sql-5-bo-ve`, `BB-I15-sql-6-bo-ve`, `BB-I15-sql-7-bo-ve`, `BB-I15-js-1-duong`, `BB-I15-js-1-am`, `BB-I16-sql-2-bo-ve`, `BB-I16-sql-3-bo-ve`, `BB-I16-js-1-bo-ve`, `BB-I16-js-2-bo-ve`, `BB-I16-js-1-duong`, `BB-I16-js-1-am`, `BB-I16-js-2-am`, `BB-I17-js-1-bo-ve`, `BB-I17-js-2-bo-ve`, `BB-I17-js-3-bo-ve`, `BB-I17-js-4-bo-ve`, `BB-I17-js-1-duong`, `BB-I17-js-1-am`, `BB-I18-sql-1-bo-ve`, `BB-I18-sql-2-bo-ve`, `BB-I18-sql-3-bo-ve`, `BB-I18-sql-4-bo-ve`, `BB-I18-sql-5-bo-ve`, `BB-I18-sql-6-bo-ve`, `BB-I18-sql-7-bo-ve`, `BB-I18-sql-8-bo-ve`, `BB-I18-sql-9-bo-ve`, `BB-I18-sql-11-bo-ve`, `BB-I18-js-1-bo-ve`, `BB-I18-js-2-bo-ve`, `BB-I18-js-1-am`, `BB-I18-js-2-duong`, `BB-I18-js-2-am`, `BB-I19-sql-1-bo-ve`, `BB-I19-sql-2-bo-ve`, `D2-da-biet`, `D2-vo-hai`
 
-## P26b (59) — qua lớp bọc
-`python3 viec/AUDIT-3/boc.py P26b -j 4 (172 s)`
+## P26b (59) — qua lớp bọc (vòng 3)
+`python3 viec/AUDIT-3/boc.py P26b -j 4 (175 s)`
 
 Tổng 59 · BẮT 48 · HỎNG 9 · LẠC 1 · SỐNG 1
 
@@ -171,8 +172,8 @@ Tổng 59 · BẮT 48 · HỎNG 9 · LẠC 1 · SỐNG 1
 
 BẮT: `huy-bo-cong`, `huy-khong-kiem-changes`, `huy-kiem-ngoai-tx`, `huy-bo-tu-choi-yeu-cau`, `huy-tu-choi-ngoai-tx`, `xoa-hoan-bat-ke-trang-thai`, `xoa-doc-don-ngoai-tx`, `tao-don-chi-kiem-ngoai-tx`, `me-tao-don-khong-tru`, `me-bo-khongAm`, `yc-bo-kiem-trung`, `yc-kiem-trung-ngoai-tx`, `duyet-bo-chiem-yeu-cau`, `duyet-khong-kiem-changes`, `duyet-bo-cong-don`, `tu-choi-bo-dieu-kien`, `tu-choi-khong-kiem-changes`, `Q8-bo-chan-goi`, `Q8-chi-chan-luc-tao`, `nap-ghi-tuyet-doi-tu-so-ngoai-tx`, `nap-so-truoc-doc-ngoai-tx`, `ghiVi-bo-khongAm`, `tru-tay-chi-kiem-ngoai-tx`, `dieu-chinh-bo-khongAm`, `doi-soat-bo-tx`, `doi-soat-doc-tong-ngoai-tx`, `hong-bo-cong-don-so-luong`, `hong-cong-don-ngoai-tx`, `hong-bo-chan-don-huy`, `hong-quen-refunded`, `hong-log-ngoai-tx`, `hong-bo-order-id-so`, `huy-catch-doc-order-code`, `xoa-catch-doc-order-code`, `packages-buy-dung-lai`, `I1-nhanh-refunded-false`, `K1-bo-409-tạo-đơn`, `K1-bo-409-huỷ-đơn`, `K1-bo-409-xoá-đơn`, `K1-bo-409-tạo-yêu-cầu-hoàn`, `K1-bo-409-duyệt-hoàn`, `K1-bo-409-từ-chối-hoàn`, `K1-bo-409-nạp-ví`, `K1-bo-409-trừ-tay`, `K1-bo-409-điều-chỉnh`, `K1-bo-409-đối-soát`, `K1-bo-409-đối-soát-toàn-bộ`, `K1-bo-409-báo-hỏng`
 
-## P26c (93) — qua lớp bọc
-`python3 viec/AUDIT-3/boc.py P26c -j 4 (426 s)`
+## P26c (93) — qua lớp bọc (vòng 3)
+`python3 viec/AUDIT-3/boc.py P26c -j 4 (425 s)`
 
 Tổng 93 · BẮT 88 · HỎNG 4 · HỎNG-sập 1
 
@@ -182,12 +183,12 @@ Tổng 93 · BẮT 88 · HỎNG 4 · HỎNG-sập 1
 | `VS-H2-hoan-goi-giam-total-spent` | HỎNG | routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | đã thay: GOI-2 cùng tên (BẮT) |
 | `VS-me-hoan-gap-doi-huy` | HỎNG | routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | đã thay: GOI-2 cùng tên (BẮT) |
 | `VS-me-hoan-gap-doi-xoa` | HỎNG | routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | đã thay: GOI-2 cùng tên (BẮT) |
-| `VS-Q9-hoan-me-ngoai-tx` | HỎNG-sập | Bài thử sập · thoát 2 | **AU3-6** HỎNG-sập: ✗ M5 đỏ đúng ca (HTTP 500 'run() ngoài giao dịch') RỒI bài sập (ca sau phụ thuộc) → bộ P26c cũ đếm 'bị bắt' (SO-LUONG-1 ghi 89/93), theo định nghĩa AUDIT-3 là HỎNG; NHẸ-công cụ: thu_P26b nên không sập sau M5 |
+| `VS-Q9-hoan-me-ngoai-tx` | HỎNG-sập | ✖ Bài thử sập: không hoàn được đơn: HTTP 200 / HTTP 500 · run() ngoài giao dịch trong lúc giao dịch đang mở: UPDATE pos_ | **AU3-6** HỎNG-sập: ✗ M5 đỏ đúng ca (HTTP 500 'run() ngoài giao dịch') RỒI bài sập (ca sau phụ thuộc) → bộ P26c cũ đếm 'bị bắt' (SO-LUONG-1 ghi 89/93), theo định nghĩa AUDIT-3 là HỎNG; NHẸ-công cụ: thu_P26b nên không sập sau M5 |
 
 BẮT: `BV-B3-bo-chan-hoan-kho`, `VS-B3-chan-ca-don-da-hoan`, `BV-B4-bo-chan-chua-thu`, `VS-B4-chan-theo-cach-tra-no`, `BV-B2-bo-chan-so-0`, `VS-B2-chi-chan-so-am`, `BV-B2-bo-chan-so-0-thu-P26b`, `BV-B1-tran-gia-goc`, `VS-B1-tran-theo-dong-dau`, `VS-B1-chia-bo-giam-don`, `BV-Q4-hoan-tron`, `VS-Q4-luot-con-lai-dao`, `VS-H2-chi-phan-vi`, `VS-H2-me-khong-nhan-truoc`, `VS-H2-mot-dong-hoan-goi`, `BV-B1f-bo-chan-tren`, `VS-B1f-chia-deu`, `BV-A7-bo-chan-post`, `BV-A7-bo-chan-put`, `VS-A7-chan-ca-bat-tat`, `VS-A7-cho-luot-0`, `BV-A7c-man-hinh`, `BV-B1-den-dong-goi`, `VS-A3-chan-ca-gia-han`, `VS-D1-marker-suong`, `VS-D1-dao-nhanh-percent`, `VS-A7c-khong-return`, `BV-H4-bo-tru-den`, `VS-H4-chi-tru-o-don-goi`, `BV-Q4-bo-quyen`, `VS-Q4-quyen-cancel_order`, `VS-Q4-chan-ca-don-lay-tu-goi`, `BV-Q4-quyen-chi-kho-moi`, `VS-Q4-quyen-de-quyen-da-chinh`, `BV-A1-xoa-bo-cong-trang-thai`, `VS-A1-chan-ca-don-da-hoan`, `BV-A2-bo-tran`, `VS-A2-bo-kiem-changes`, `BV-A2-lay-ngay-bo-tran`, `VS-A2-lay-ngay-so-man-hinh`, `BV-A3-bo-chan`, `VS-A3-so-nham-ma-goi`, `BV-A4-deliver-song-lai`, `BV-A6-so-man-hinh`, `VS-A6-chi-sua-ten-dong`, `BV-A6-o-nhap-so-luot`, `BV-C1-cong-cancelled`, `VS-C1-chi-sua-cong-update`, `BV-C2-bo-xoa-ma-bill`, `VS-C2-xoa-huy-no-out`, `BV-C2-xoa-khong-gui-in`, `VS-C2-xoa-ca-ma-da-dung`, `BV-C3-bo-cot-con`, `VS-C3-dau-soCot`, `VS-C3-dau-soCot-gia-lap`, `BV-C4-bo-tong-hoan`, `BV-C5-bo-go-the`, `BV-D1-bo-gui-max`, `BV-D2-bo-tra-luot-huy`, `BV-D2-bo-tra-luot-xoa`, `BV-D2-bo-tra-luot-duyet`, `VS-D2-tra-ca-don-cu`, `VS-D2-khong-tra-voucher`, `BV-D3-luu-ma-go`, `BV-D4-bo-voucher-used`, `BV-D5-co-kim-cuong`, `BV-Q9-bo-hoan-me`, `VS-Q9-hoan-me-vao-vi-con`, `VS-Q9-hoan-me-khong-qua-cong-don`, `BV-duyet-cong-don-khong-kiem-changes`, `BV-hong-bo-tran`, `BV-hong-bo-tran-cong-don`, `VS-hong-tran-theo-man-hinh`, `VS-kb-hai-luot`, `VS-luot-trung-thieu`, `BV-cha-kiem-mot-lan`, `VS-luot-thieu-bat-bien`, `BV-G3-da-biet-thu-no`, `VS-q9-me-lon-hon-bang-0`, `BV-I18-bo`, `VS-I18-chi-so-nap`, `BV-I19-bo`, `VS-I19-bo-qua-no`, `VS-I11-bo-moi-dong-hoan`, `BV-I11-tinh-ca-hoan-goi`, `VS-I2-tinh-ca-ma-da-dung`, `VS-I13-dem-moi-trang-thai`, `VS-I7-nhan-moi-van-tay-la`
 
-## GOI-1 (49) — qua lớp bọc
-`python3 viec/AUDIT-3/boc.py GOI-1 -j 4 (43 s)`
+## GOI-1 (49) — qua lớp bọc (vòng 3)
+`python3 viec/AUDIT-3/boc.py GOI-1 -j 4 (48 s)`
 
 Tổng 49 · BẮT 40 · HỎNG 9
 
@@ -205,8 +206,8 @@ Tổng 49 · BẮT 40 · HỎNG 9
 
 BẮT: `BV-GOI1-TONG`, `VS-GOI1-TONG-GUI`, `BV-GOI1-TONG-PUT`, `BV-GOI1-SL`, `VS-GOI1-SL-CHI-AM`, `BV-GOI1-GIA`, `VS-GOI1-GIA-AM`, `BV-GOI1-GIA-PUT`, `BV-GOI1-LOAI`, `VS-GOI1-LOAI-SO-SAI`, `VS-GOI1-LOAI-TRUOC-TX`, `VS-GOI1-SL-GHI-GOC`, `BV-GOI1-MUA-LOAI`, `VS-GOI1-MUA-NHAN-GOI`, `VS-GOI1-DEM-HUY`, `VS-GOI1-DEM-NULL`, `BV-GOI1-DEM`, `BV-GOI1-TEN`, `VS-GOI1-TEN-DON`, `VS-GOI1-LAN-LAY-HUY`, `BV-GOI1-LS`, `BV-GOI1-LYDO`, `VS-GOI1-LYDO-KHONG-TRIM`, `BV-GOI1-DUNG-CHANGES`, `VS-GOI1-O-TONG`, `BV-GOI1-TU-TINH`, `BV-GOI1-SL-MAN`, `VS-GOI1-LOC-AM-THAM`, `BV-GOI1-GIA-MAN`, `BV-GOI1-LINK`, `BV-GOI1-URL`, `BV-GOI1-DO`, `VS-GOI1-KH-CHU-THICH`, `VS-GOI1-KH-CHU-THICH-CUOI`, `VS-GOI1-O-TONG-CHUOI`, `VS-GOI1-O-TONG-CHU-THICH`, `VS-GOI1-O-TONG-CUOI-DONG`, `BV-GOI1-KH-MOT-LAN`, `BV-GOI1-KH-URL`, `VS-GOI1-NUT-QUYEN`
 
-## GOI-2 (59) — qua lớp bọc
-`python3 viec/AUDIT-3/boc.py GOI-2 -j 4 (63 s)`
+## GOI-2 (59) — qua lớp bọc (vòng 3)
+`python3 viec/AUDIT-3/boc.py GOI-2 -j 4 (77 s)`
 
 Tổng 59 · BẮT 59
 

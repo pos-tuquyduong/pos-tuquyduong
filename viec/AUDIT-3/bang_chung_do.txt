@@ -121,3 +121,31 @@ HỎNG-sập  C2F C2F-wallets-01-update-quay  (4 s) · sập [cong_cu/gia_lap/ch
   (vòng 1: BẮT từ dòng ✗ A1c của thu_P26c; thật ra giả lập không dựng được dữ liệu — cùng -02 / -06)
 BẮT   D1  !D1-E11-P26b  (90 s) · [kiem_tra_truoc_khi_giao.js] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (0.8 s)  → ✗ A1b huỷ đơn ví completed → 200, ví +25.000, đúng 1 dòng hoàn  — HTTP 200 ·
   (bộ kiểm chạy hết, phép "bài chạy thật xanh" đỏ → BẮT; trước khi tinh luật, bọc khung xếp HỎNG-sập vì trong dòng ✗ của kiem_tra có "✖ Bài thử sập" của bài con)
+
+== 9. Soát vòng 3 — sập MÃ 1 KHÔNG DẤU và node VĂNG THÔ sau ✗ phải là HỎNG(-sập) ở CẢ HAI công cụ; MỘT luật `sap_cua` (boc.py) / `SAP`+`HET`
+   (dot_bien.py). Luật mục 8 "kiem_tra BÁO bài con sập = BẮT" bị soát vòng 3 bác (tự đặt thay phiếu) → `!D1-E11-P26b` nay HỎNG-sập (81/83);
+   chốt hẳn chờ chủ quán (trang_thai.md Câu hỏi). Ca đỏ của người soát (nháp soat3_sap1.py / soat3_vangtho3.py — không trong kho), chạy lại trên HEAD 9de6829:
+  == 1. viec/AUDIT-3/dot_bien.py chay1 (A4) ==
+    HỎNG  SOAT3-sap-ma-1-sau-do: bài thử SẬP (không phải đột biến bị bắt): thoát 1 KHÔNG có dòng tổng ·   ✓ S4b (K5) 1 ly 25.000 + mua thẻ 500.000 → 200, tổng 525.000
+  == 2. viec/AUDIT-3/boc.py cham (bọc P26c, cách thu = thu_P26c) ==
+    HỎNG-sập  SOAT3-sap-ma-1-sau-do: thoát 1 KHÔNG có dòng chạy hết · thoát 1 · dòng cuối:   ✓ S4b (K5) 1 ly 25.000 + mua thẻ 500.000 → 200, tổng 525.000
+    mã thoát bài: 1 · "Bài thử sập"? False · "Node.js v"? False · dòng tổng? False · số ✗: 7
+  == 1. viec/AUDIT-3/dot_bien.py chay1 (A4) ==
+    HỎNG  SOAT3-vang-tho-sau-do: bài thử SẬP (không phải đột biến bị bắt): Node.js v22.22.0
+  == 2. viec/AUDIT-3/boc.py cham (bọc P26c, cách thu = thu_P26c) ==
+    HỎNG-sập  SOAT3-vang-tho-sau-do: Node.js v22.22.0 · thoát 1 · dòng cuối: Node.js v22.22.0
+  (bản vòng 2: cả hai ca → BẮT ở dot_bien.py; sap1 → BẮT ở boc.py — chỉ đòi dòng tổng khi thoát 0)
+  `sap_cua` thử 14 dạng đầu ra (kiểm sạch khung · dòng ✗ kiem_tra báo bài con sập · ca T3 thu_gia_lap · thoát 0/1 có tổng · thoát 1 / thoát 0 không
+  tổng · thoát 2 · Node.js v · chay.js ĐẠT / KHÔNG ĐẠT / SẬP giữa kịch bản · Qua hết · ĐỎ — n chỗ hỏng) → 14 đạt · 0 hỏng.
+  Lỗi TỰ GÂY khi áp vòng 3 (bắt được nhờ đối chứng của chính công cụ): vế (4) gọi `sap_cua(1, 'ĐẠT', chi)` — chuỗi 'ĐẠT' không khớp HET
+  (cần `· ĐẠT`) → MỌI kết quả khung kể cả kiểm sạch thành HỎNG-sập; `boc.py --audit2 D2K` DỪNG:
+  AUDIT-1 dot_bien: 3 đột biến · -j 3 · kiểm sạch 1 loại
+    ✗ KIỂM SẠCH sạch:kb10: HỎNG-sập · sập [dòng khớp mang dấu sập] | mọi lệnh thoát 0
+    DỪNG — bản sao không đột biến đã đỏ, không chấm gì
+  mã thoát 4
+  → sửa `ra=None` = chỉ soi vế (4); chạy lại D2K: HỎNG 2 · SỐNG 1 (như vòng 2).
+  `boc.py --sap` vòng 3 (162 s, khung thoát 0 được kiểm — lỗi 6): dòng cuối:
+  
+    --sap: 0 bộ báo BẮT / SỐNG khi bài thử sập — ĐẠT (không bộ nào)
+  TMPDIR: 10 bước vòng 3 (chay_vong3.log) — thư mục tạm ngoài 18 cái sót từ trước: 0 sau khi mỗi bước xong (đếm ngay lúc tiến trình thoát có
+  lúc 19 = thư mục đang được dọn; CHƯA KIỂM nguyên nhân chính xác của số thoáng qua đó).
