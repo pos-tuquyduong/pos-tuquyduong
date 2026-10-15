@@ -48,6 +48,14 @@ dfeaa57 PHIEU: TU-CHAY-6
    không in số dòng nên chưa lộ. Phép A2 dùng hàm cắt riêng giữ `\n`, không sửa `boGhiChu`.
 3. Phiếu / TOC-DO-1 ghi "`git cat-file` thoát 1" khi file không có — đo được **128** (`scratchpad/thu_gitgia.js`). Kế hoạch phân biệt theo
    `status === 0` / `status === null || error` / còn lại.
+4. (soát vòng 1) `server/routes/customers-v2.js:109, :201, :397, :459` — bốn route GET gọi `fetchSXCustomers()` (:23) → `cacheCustomersToLocal()`
+   (:36) → `run(INSERT INTO pos_customers …)` (:57–58): GET có lệnh ghi QUA HÀM PHỤ, phép E14 (chỉ soi thân route) không thấy. Cùng cơ chế:
+   wallets.js POST ghi qua `ghiVi`/`reconcileWallet` không tính là "route ghi" ở (b) (cả 5 đều đã `loiGhi`, số 51 không đổi). Việc quầy quyết.
+5. (soát vòng 1) `tu_chay/cong.js:236` `giaiNen(thuMuc, head, cai, 'tu_chay')` vẫn bỏ qua kết quả: `tu_chay/` chắc có ở head nên thất bại chỉ
+   là git/tar hỏng → hệ quả `cai_dat.js` không có → `[A8] cai_dat.js của PR chạy hỏng` (ĐỎ nhưng lý do lạc hướng, không ĐẠT oan). Cùng khuôn A1b, 1 dòng.
+6. (soát vòng 1) `cong_cu/thu_TOCDO1.js` không nằm trong `npm test` / `lenh_bai_thu` / `file_luat` → 23 ca R chỉ chạy khi PR sửa chính nó hoặc
+   chạy tay (tiền lệ TOC-DO-1). Miễn `// GET-ghi:` xét dòng từ khoá / dòng `run(` / dòng trên `run(`: dạng `const sql = 'UPDATE…'; run(sql)` (từ
+   khoá TRƯỚC `run(`) thì chú thích ngay trên từ khoá không miễn — ba route thật hôm nay không ở dạng này.
 
 ## Làm tiếp (15.10, chủ quán duyệt kế hoạch 4709f5a; Q1 → PA-2 · Q2 → K3/K7 · Q3 → PA-A mục 4 · Q4 → làm A1b, chỉ BV-)
 
@@ -80,24 +88,30 @@ dfeaa57 PHIEU: TU-CHAY-6
 - Người gác chặn thêm trong lượt này: `B-PHANTICH` (`$'…'` trong grep), `B-TENCHU` (nhóm `{ … } > file`), `B-CHUONGTRINH` (`for`) —
   đều cách viết lệnh, viết lại thành script trong scratchpad.
 
-### Chỗ vá → đột biến (`viec/TU-CHAY-6/dot_bien.py`, 18 đột biến; A7: A1b chỉ BV- theo chốt Q4)
+### Chỗ vá → đột biến (`viec/TU-CHAY-6/dot_bien.py`, 18 đột biến)
+
+**Lệch chữ A7 "mỗi chỗ vá ≥ 1 VS- + BV-" — nói thẳng (soát vòng 1):** (1) A1b chỉ BV- (chủ quán miễn, Q4); (2) hai chỗ `blob` ngoài try
+chỉ BV- — "vá sai" ở đây chỉ có một dạng là để lại trong try, chính là BV; (3) dòng gọi E14 chỉ BV-, hai hàm E14 chỉ VS- — `BV-A2-BO-GOI` đã
+là "bỏ vá" của cả khối; (4) các chỗ vá là CHỮ (lenh_ra_soat, KHUON_LOI K4, PHIEN_BAN, THIET_KE) chỉ BV- — "vá sai" cho chữ không có nghĩa
+tất định, riêng skill có VS- (`chay` thay `tinh`); (5) bốn câu KHUON_LOI K1/K3/K3/K7 không có đột biến riêng — phép A4 canh 6 neo, chỉ K4
+có BV. Chủ quán chốt: chấp nhận hay đòi thêm.
 
 | Chỗ vá | BV- | VS- | Ca bắt |
 |---|---|---|---|
 | `cong.js` blob ném khi git không chạy được | `BV-TUCHAY6-BLOB-NULL` | `VS-TUCHAY6-BLOB-NUOT-SIGNAL` · `VS-TUCHAY6-BLOB-NEM-128` | A1 chay · A1 chay · A14 `khong [CONG]` |
 | `cong.js` blob ngoài `try` (A8 đọc cau_hinh / settings) | `BV-TUCHAY6-BLOB-TRONG-TRY` | — (ném đã khoá ở blob) | A1 tinh cau_hinh.json |
 | `cong.js` giaiNen cây gốc ném (A1b) | `BV-TUCHAY6-ARCHIVE-NUOT` | — (một đường, chốt Q4) | A1b |
-| `kiem_tra` E14 gọi quét | `BV-TUCHAY6-A2-BO-GOI` | — | R0b |
-| `kiem_tra` quetRouteGhi | — | `VS-TUCHAY6-A2-QUEN-INSERT` · `VS-TUCHAY6-A2-MIEN-THEO-FILE` · `VS-TUCHAY6-A2-QUEN-TXRUN` · `VS-TUCHAY6-A2-CUNG-DONG` · `VS-TUCHAY6-A2-NUOT-HAM-PHU` | R2 · R3d · R2b · R1b · R10b |
-| `kiem_tra` xetBanhCoc | — | `VS-TUCHAY6-A2-NGUONG-LON-HON-BANG` | R11 |
+| `kiem_tra` E14 gọi quét | `BV-TUCHAY6-A2-BO-GOI` | — (BV đã là bỏ vá cả khối) | R0b |
+| `kiem_tra` quetRouteGhi | — (BV-A2-BO-GOI che) | `VS-TUCHAY6-A2-QUEN-INSERT` · `VS-TUCHAY6-A2-MIEN-THEO-FILE` · `VS-TUCHAY6-A2-QUEN-TXRUN` · `VS-TUCHAY6-A2-CUNG-DONG` · `VS-TUCHAY6-A2-NUOT-HAM-PHU` | R2 · R3d · R2b · R1b · R10b |
+| `kiem_tra` xetBanhCoc | — (BV-A2-BO-GOI che) | `VS-TUCHAY6-A2-NGUONG-LON-HON-BANG` | R11 |
 | skill bước 4 | `BV-TUCHAY6-SKILL-B4` | `VS-TUCHAY6-SKILL-CHAY-THAY-TINH` | A3 skill |
-| lenh_ra_soat | `BV-TUCHAY6-RASOAT-CUOI` | — | A3 ra-soát |
-| KHUON_LOI K4 | `BV-TUCHAY6-KHUONLOI-K4` | — | A4 |
-| PHIEN_BAN | `BV-TUCHAY6-PHIENBAN-CU` | — | A6 ở `thu_cong_cu.js` VÀ `thu_nguoi_gac.js` |
-| THIET_KE B15 | `BV-TUCHAY6-THIETKE-B15` | — | A6 THIET_KE |
+| lenh_ra_soat | `BV-TUCHAY6-RASOAT-CUOI` | — (chữ) | A3 ra-soát |
+| KHUON_LOI K4 (K1/K3/K7 không đột biến riêng) | `BV-TUCHAY6-KHUONLOI-K4` | — (chữ) | A4 |
+| PHIEN_BAN | `BV-TUCHAY6-PHIENBAN-CU` | — (chữ) | A6 ở `thu_cong_cu.js` VÀ `thu_nguoi_gac.js` |
+| THIET_KE B15 | `BV-TUCHAY6-THIETKE-B15` | — (chữ) | A6 THIET_KE |
 
 ### Đột biến — ba lần chạy (`dot_bien.py`)
-- Lần 1: **đối chứng `thu_cong` ĐỎ** trên bản sao (bản thật xanh) → DỪNG đúng K3. Truy nguyên: `thu_cong.js:643–647` B5 băm
+- Lần 1: **đối chứng `thu_cong` ĐỎ** trên bản sao (bản thật xanh) → DỪNG đúng K3. Truy nguyên: `thu_cong.js:648–652` B5 băm
   `.github/workflows/keep-alive.yml` qua `__dirname/..` — bản sao thiếu file. Sửa: chép thêm file này (commit `dot_bien.py`).
 - Lần 2: 12/18 bắt. 6 "KHÔNG bắt" truy nguyên: (a) 3 ca bị xếp nhầm vì bộ lọc sập/ném khớp chữ "sập"/"ném" trong TÊN ca (`ARCHIVE-NUOT`,
   `KHUONLOI-K4`, `NEM-128`) → lọc theo dạng `<bài> sập: ` / `khối ném: `; riêng `NEM-128` còn làm `baiCong` sập thật ở đoạn gọi `cong()`
@@ -124,3 +138,50 @@ dfeaa57 PHIEU: TU-CHAY-6
 - Số dòng (`git diff --numstat dfeaa57..HEAD`): code bộ khung +55 −3 (`cong.js` +10 −3, `kiem_tra` +45) · thử JS +112 −8 ·
   `dot_bien.py` 155 · luật/skill +16 −2 · THIET_KE +19. Thử vượt ngân sách "~120 dòng" vì khuôn đột biến có đối chứng + bản sao chép thật
   và 23 ca R cho phép tĩnh mới.
+
+## Bước 8 — soát độc lập (agent general-purpose, 37 lượt công cụ, nộp bằng SubagentHandback) — chép nguyên
+
+```
+KHÔNG ĐẠT (nhẹ — code bộ khung đúng, bài thử có giá trị; còn 3 chỗ hồ sơ/luật sai dẫn chứng hoặc nói quá code, sửa ≈ 4 dòng rồi ĐẠT)
+
+LỖI TÌM ĐƯỢC:
+1. KHUON_LOI.md:46 — câu K3 mới ghi "(B3c: 0,002, không 0,5)" dẫn SAI việc gốc: GOI-2 B3c là "giá niêm yết 1.350.000 bị trần `total − đã nhận` kéo về 1.215.000 → vá sai công thức vẫn ra đúng số" (viec/GOI-2/trang_thai.md:215, :227); số 0,002 là ca `pkg_qty` S2b của SO-LUONG-1 (viec/SO-LUONG-1/trang_thai.md:172, :190 — bài học khác: hợp lệ hoá số lẻ, không phải "trần che lỗi"). Việc này vừa thêm K1 "chú thích/luật cũng là khẳng định" rồi tự vi phạm ở dòng cách đó 30 dòng. Sửa: "(GOI-2 B3c: chọn số dưới trần, 1.350.000 bị trần kéo về 1.215.000 nên đột biến vẫn xanh)". Phép A4 (thu_cong_cu.js:467) neo 'không che lỗi' không vỡ. — K1.
+2. kiem_tra_truoc_khi_giao.js:523 (+ tu_chay/THIET_KE.md:891, trang_thai Q1 "3 route GET có lệnh ghi") — chú thích nói "(a) route GET có lệnh ghi" nhưng code chỉ bắt `run(` + từ khoá NẰM TRONG THÂN route (:548–552). Đọc server thật: customers-v2.js:109, :201, :397, :459 (4 route GET) gọi `fetchSXCustomers()` :23 → `cacheCustomersToLocal()` :36 → `run(INSERT INTO pos_customers …)` :57–58 = GET có lệnh ghi qua hàm phụ, E14 KHÔNG thấy (script quét trong scratchpad xác nhận: (a) chỉ packages.js:194, products.js:57, sync.js:147). Đúng chữ phiếu A2 ("route GET có run( với UPDATE|INSERT|DELETE") nên không đòi sửa phép; nhưng chú thích + THIET_KE + trang_thai phải ghi giới hạn "chỉ lệnh ghi trực tiếp trong thân route, không theo hàm phụ" và ghi Phát hiện 4 route customers-v2 cho việc quầy. (Cùng cơ chế: wallets.js:121/:152/:187/:284/:300 POST ghi qua `ghiVi`/`reconcileWallet` không được tính "route ghi" ở (b) — không đổi số 51 vì cả 5 đều `loiGhi(` :141/:177/:217/:291/:314.) — K1 (+ K4: phép theo thân route, đường ghi qua hàm phụ là đường song song chưa ghi nhận).
+3. viec/TU-CHAY-6/trang_thai.md bảng "Chỗ vá → đột biến" — A7 phiếu đòi "mỗi chỗ vá ≥ 1 VS- + BV-", chủ quán chỉ miễn VS- cho A1b (Q4). Thực tế: E14 dòng gọi (BV, không VS), `quetRouteGhi`/`xetBanhCoc` (VS, không BV riêng — BV-BO-GOI che được, chấp nhận), lenh_ra_soat / KHUON_LOI K4 / PHIEN_BAN / THIET_KE (chỉ BV, ô VS để "—" trống không lý do), và 4 câu KHUON_LOI K1/K3/K3/K7 không có đột biến nào (phép A4 canh 6 neo, chỉ K4 có BV). Với chữ thì VS- vô nghĩa — nhưng phải NÓI THẲNG trong trang_thai (như đã làm cho A1b) để chủ quán chốt, không để ô trống. — K3/K1 (hồ sơ).
+
+NGHI NGỜ:
+- tu_chay/cong.js:236 `giaiNen(thuMuc, head, cai, 'tu_chay')` vẫn bỏ qua kết quả: `tu_chay/` CHẮC CHẮN có ở head (được :233 bảo vệ) nên thất bại ở đây luôn là git/tar hỏng — hệ quả: `cai_dat.js` không tồn tại → :239 báo `[A8] cai_dat.js của PR chạy hỏng` (ĐỎ nhưng lý do lạc hướng, không phải ĐẠT oan như :273). :235 (`.claude` ở mốc, 128 hợp lệ) đúng là phải bỏ qua. Cùng khuôn A1b, 1 dòng — ke_hoach mục 2 ghi ":230 giữ" với lập luận "đã trong nhánh blob !== null" là lập luận cho việc NÉM chứ không phải giữ. Không chặn ĐẠT (không ĐẠT oan).
+- viec/TU-CHAY-6/ke_hoach.md mục 2 "Hai chỗ nuốt ném": ghi gốc "`JSON.parse(null)` → `{}` → cổng ĐẠT, không ✗" — sai: `JSON.parse(null)` = `null` → `chH.ban_cai` TypeError :144 → `[CONG]` sập (bang_chung_do.txt dòng A1 tinh xác nhận "Cannot read properties of null (reading 'ban_cai')"). trang_thai đúng, ke_hoach sai — K1 nhỏ.
+- trang_thai "thu_cong.js:643–647 B5 băm keep-alive.yml" → thật là :648–652 (:641–647 là A15). Trôi dòng, K1 nhỏ.
+- cong_cu/thu_TOCDO1.js không nằm trong `npm test` / `lenh_bai_thu` / `file_luat` (grep: chỉ chú thích kiem_tra:529, :600) → 23 ca R chỉ chạy khi PR SỬA chính nó hoặc chạy tay; sửa `quetRouteGhi` sau này không có lưới tự động. Tiền lệ TOC-DO-1, không phải lỗi của việc này.
+- kiem_tra:552 miễn `GET-ghi` xét `[iGhi, iRun, iRun-1]`: khi từ khoá đứng TRƯỚC `run(` (dạng `const sql = 'UPDATE…'; run(sql)`), `iRun` lùi tới dòng `router.` → chú thích "ngay trên lệnh" (iGhi−1) KHÔNG miễn, còn chú thích trên dòng `router.get(` lại miễn. Ba route thật hiện nay không ở dạng này (packages :194 cùng dòng; products run :56/kw :57; sync run :146/kw :147) nên không chặn oan hôm nay.
+
+NGHIỆM THU: 7/7 mục có bằng chứng · mục thiếu: không (A7 có vết lệch chữ ở Lỗi 3 — chờ chủ quán chốt).
+- A1: cong.js:33–37 ném khi `status === null || error`, 128 → null; :141–143, :156–158 blob ngoài try; :273 A1b. Ca thu_cong.js:486–496 (4 ca, `khong: ['Received null']` = vắng mẫu nguy hiểm E13, `soLyDo: 1`, `chua` là đường dẫn không phải câu của mình E12); K5 ca A14 :274–275 `khong: ['[CONG]']` (128 vẫn null, cong.js:106). Đỏ trên gốc: bang_chung_do.txt 7 hỏng/334 khớp code gốc (tôi đối chiếu: gốc `? r.stdout : null` → writeFileSync(null)). Tôi chạy lại HEAD: 334 phép · 0 hỏng. Ba chỗ ghi null cũ nay :275/:332/:334 — p ∈ baiThu (st ≠ 'D') / daMien (blob(moc) ≠ null ở :263) → không còn đường nhận null.
+- A2: kiem_tra:531–565 (xetBanhCoc, quetRouteGhi, gọi 1 lần). Ca thu_TOCDO1.js:118–186 R0–R11b + K5 (tôi chạy: 42 đạt · 0 hỏng; gốc 3 hỏng R0/R0b/R0c đúng vì hàm chưa có). Quét server thật (script riêng): (a) 3 chỗ, (b) 51; ranh giới 136 route cột 0 — kết theo `});`/`);` cột 0 TRÙNG kết theo đếm ngoặc ở CẢ 136 route, không `router.` thụt đầu dòng, không `router.use/all/route`; orders.js:1357–1520 `},\n);` đúng. Marker suông: R3c (lý do rỗng vẫn báo), R3d (GET-ghi ở route khác không miễn) + đột biến MIEN-THEO-FILE bị bắt (tôi chạy). Chú thích giữ `\n`: :540 thay từng ký tự trừ `\n`, `tho[i]`/`sach[i]` thẳng hàng; R6 canh.
+- A3: skill_lam_viec.md:56–60 (trong mục `4. **`, muc(sk,'\n4. **','\n5. **') thu_cong_cu.js:462–464); lenh_ra_soat.md:71–73; phép thu_cong_cu.js:465–466. H3/F1 không vỡ (105/0 tôi chạy; H3 MOC không chứa chữ mới; F1 neo `\n11. ` không khớp "11.4)").
+- A4: KHUON_LOI.md 112 dòng (≤120), K1:17, K3:45–46, K4:62–63, K7:89–90 (Q2 chốt K3/K7); phép thu_cong_cu.js:467–468. Dẫn chứng orders.js:198 ✓ (nay :199, SO-LUONG-1 trang_thai:91); B3c ✗ (Lỗi 1).
+- A5: số đo 6/3 s rồi 11/5 s < 30 s → không đổi, đúng phiếu.
+- A6: PHIEN_BAN 1.6.0; thu_cong_cu.js:459 + thu_nguoi_gac.js:709 (grep toàn kho: chỉ `.claude/tu_chay/*` còn 1.5.0 — cấm sửa, đúng); THIET_KE.md:883–900; phép :469–470.
+- A7: thu_TOCDO1 42/0, thu_cong_cu 105/0, thu_cong 334/0 (tôi chạy riêng, tuần tự); dot_bien.py: 18 neo khớp đúng n (kiểm tĩnh), đối chứng + 3 đột biến rẻ tôi chạy 3/3 bị bắt; bộ lọc sập `\bsập: |\bném: ` khớp đúng dạng in của thu_cong.js:722, thu_cong_cu.js:509, thu_nguoi_gac.js:1124, thu_TOCDO1.js:71/:104; bản sao chép thật + realpath (dot_bien.py:80–93). kiem_neo.py HỎNG 3 neo cũ đều ở server/refunds/damages/PHIEN_BAN 1.4.0 — diff không đụng server → có sẵn trên gốc.
+- Đường tiền / P1: `git diff dfeaa57^ HEAD --stat -- server client` rỗng → không trường tiền, không cần build dist. A7 cổng: phiếu chỉ đổi ở `dfeaa57 PHIEU: TU-CHAY-6`.
+
+CHƯA SOÁT ĐƯỢC: không chạy `npm test`/`--day-du` (4 phút, trang_thai ghi 61/0/4 và 65/0/4) và không chạy 15 đột biến còn lại (6 đột biến thu_cong ≈ 115 s/lần — chỉ kiểm tĩnh neo); không chạy được bài thử trên gốc (không checkout) — đỏ trên gốc đối chiếu bằng đọc code gốc qua diff + bang_chung_do.txt; không kiểm được thu_cong 117 s sát hạn 120 s trên máy GitHub (A13 có thể ETIMEDOUT — đã báo chủ quán trong trang_thai, không nới).
+
+BÀI HỌC:
+- KHOÁ: phép chữ cho KHUON_LOI nên neo CẢ mã việc + con số dẫn chứng của câu mới (vd 'GOI-2' gần 'trần') — dẫn chứng sai việc gốc hiện không phép nào bắt (Lỗi 1).
+- KHOÁ: ca K5 server thật của thu_TOCDO1 hoặc một phép tĩnh nhỏ nên liệt kê "route GET gọi hàm phụ có ghi" (grep tên hàm có `run(`+từ khoá ở cột 0 rồi tìm trong thân GET) — hoặc ghi rõ giới hạn vào chú thích E14 (Lỗi 2).
+- NGUYÊN TẮC (K1): câu "đo được X" phải trỏ đúng việc có số X; chép ví dụ từ phiếu sang luật vẫn phải mở hồ sơ việc gốc kiểm lại con số (phiếu cũng là hồ sơ, không phải code).
+- NGUYÊN TẮC (K4): phép tĩnh định nghĩa theo "thân route" → ghi ngay giới hạn "không theo hàm phụ" và liệt kê hàm phụ có ghi trong file làm Phát hiện; đường ghi qua helper là đường song song của mọi phép quét route.
+- BỎ: không cần thêm ca cho :236 nếu chủ quán coi A8 "cai_dat.js chạy hỏng" là đủ rõ — chỉ ghi Phát hiện.
+```
+
+### Sửa sau soát vòng 1 (đã kiểm lại ba lỗi bằng code: customers-v2.js:23/:36/:57–58/:109/:201/:397/:459; thu_cong.js:652; GOI-2 trang_thai:206, :227)
+- Lỗi 1 → `KHUON_LOI.md` K3: "(GOI-2 B3c: trần kéo 1.350.000 về 1.215.000 nên vá sai công thức vẫn ra đúng số)" (113/120 dòng). Phiếu A4 ghi ví dụ
+  "0,002 chứ không 0,5" — ví dụ của phiếu lẫn việc (SO-LUONG-1), máy chép theo mà không mở hồ sơ gốc → đúng K1 vừa viết; sửa theo hồ sơ GOI-2.
+- Lỗi 2 → chú thích E14 (`kiem_tra`) + THIET_KE B15 ghi giới hạn "chỉ lệnh ghi NẰM TRONG thân route, không theo hàm phụ"; Phát hiện 4
+  (customers-v2.js). Không đổi phép (đúng chữ phiếu A2).
+- Lỗi 3 → bảng đột biến: đoạn "Lệch chữ A7 — nói thẳng" + lý do ở từng ô VS- trống. Chờ chủ quán chốt.
+- Nghi ngờ: `ke_hoach.md` câu `JSON.parse(null)` sửa đúng; số dòng B5 → :648–652; `:236` và thu_TOCDO1 ngoài `npm test`, miễn GET-ghi dạng từ khoá
+  trước `run(` → Phát hiện 5, 6. Không đổi code chạy.
+- Chạy lại sau sửa: `thu_cong_cu.js` 105/0 · `thu_TOCDO1.js` 42/0 · `npm test` (bên dưới).

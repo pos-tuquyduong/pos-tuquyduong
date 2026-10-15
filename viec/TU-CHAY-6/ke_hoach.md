@@ -70,7 +70,7 @@ Code thật: `blob` `:30–33` → `r.status === 0 ? r.stdout : null`; 18 chỗ 
 - **Hai chỗ nuốt ném (soát điểm 7, K4):** `:138` và `:152` bọc `JSON.parse(blob(…))` trong `try { } catch {}` → sau vá, lỗi
   "git cat-file hỏng" bị nuốt, A8 tĩnh chạy tiếp với dữ liệu thiếu. Sửa 2 dòng: lấy `blob` ra ngoài `try`, chỉ `JSON.parse` khi
   `!== null`. Ca: git giả giết ở `cat-file … :tu_chay/cau_hinh.json` chế độ `tinh` → một dòng `✗ [` nêu `cau_hinh.json` (đỏ trên gốc:
-  gốc trả null → `JSON.parse(null)` → `{}` → cổng ĐẠT, không ✗).
+  gốc trả null → `JSON.parse(null)` = `null` → `chH.ban_cai` TypeError → `[CONG]` không nêu đường dẫn — soát vòng 1 sửa câu này).
 - `git()` `:25–29` đã ném khi `status !== 0` (kể cả null) — không đổi. `kiem_tra_truoc_khi_giao.js:556–567` `lyDoChayThuCong` đã coi git
   hỏng là "chạy" (an toàn) — không đổi.
 - **Chú thích** `cong.js:30` ghi đúng ba trường hợp đo được (status 0 / null+error / 128) — A4 K1.
