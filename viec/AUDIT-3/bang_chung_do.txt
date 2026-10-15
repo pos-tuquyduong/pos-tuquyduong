@@ -112,3 +112,12 @@ $ python3 viec/AUDIT-3/dot_bien.py D2-AU3-sai-chuoi D2-AU3-da-biet D2-AU3-vo-hai
   HỎNG  D2-AU3-sap: bài thử SẬP (không phải đột biến bị bắt): ✖ Bài thử sập: Missing catch or finally after try
   HỎNG  D2-AU3-sap-0: thoát 0 KHÔNG có dòng tổng (sập mã 0): [A1] huỷ rồi xoá đơn giao từ gói → delivered_qty chỉ hoàn MỘT lần
   (bản vòng 1 chấm D2-AU3-sap-0 là SỐNG — người soát vòng 2 dựng ca sap0.py; nay SỐNG chỉ khi có dòng `N đạt · 0 hỏng`)
+
+== 8. Soát vòng 2 — KHUNG AUDIT-1 chấm lại qua bọc (boc_khung: đọc cả đầu ra + mã thoát mỗi lệnh con; luật: sập = HARNESS chết,
+   kiem_tra BÁO bài con sập = ✗ của phép → BẮT). Trích v2_c2luoi.txt / v2_AUDIT-1_D1_5.txt (15.10):
+HỎNG-sập  C2F C2F-wallets-05-ghiVi-quay  (37 s) · sập [cong_cu/thu_P26b.js: ✖ Bài thử sập: không tạo được đơn: HTTP 400 · SO_DU_KHONG_DU · Số dư mẹ không đủ. Hiện có: 5,000đ] | [cong_cu/thu_P26b.js] ✗
+  (vòng 1, khung chưa bọc: "BẮT · [cong_cu/thu_P26b.js] ✗ M2 huỷ đơn trả ví mẹ → 200 …" — đỏ-rồi-sập ẩn đúng như người soát vòng 2 dự báo)
+HỎNG-sập  C2F C2F-wallets-01-update-quay  (4 s) · sập [cong_cu/gia_lap/chay.js: Giả lập: SẬP — Error: dữ liệu mẫu sai: ví khách quen ≠ 200.000 (HTTP 200)
+  (vòng 1: BẮT từ dòng ✗ A1c của thu_P26c; thật ra giả lập không dựng được dữ liệu — cùng -02 / -06)
+BẮT   D1  !D1-E11-P26b  (90 s) · [kiem_tra_truoc_khi_giao.js] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (0.8 s)  → ✗ A1b huỷ đơn ví completed → 200, ví +25.000, đúng 1 dòng hoàn  — HTTP 200 ·
+  (bộ kiểm chạy hết, phép "bài chạy thật xanh" đỏ → BẮT; trước khi tinh luật, bọc khung xếp HỎNG-sập vì trong dòng ✗ của kiem_tra có "✖ Bài thử sập" của bài con)
