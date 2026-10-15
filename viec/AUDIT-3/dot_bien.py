@@ -5,8 +5,8 @@ cổng mua gói / thẻ), ở chỗ bộ của CHÍNH việc đó chưa đột b
     python3 viec/AUDIT-3/dot_bien.py [tên...]
 
 Khuôn viec/SO-LUONG-1/dot_bien.py: chép server/ ra thư mục tạm, thay chuỗi (phải khớp ĐÚNG số lần — không khớp là HỎNG, K3), chạy bài thử trên
-bản sao. ĐỐI CHỨNG trước: bản sao chưa đột biến phải 0 hỏng với mỗi bài dùng tới. BẮT = thoát ≠ 0 + dòng khớp mẫu + KHÔNG có dòng `Bài thử
-sập` (sập = HỎNG, không bắt). SỐNG ở đột biến đụng tiền / ví / gói = NẶNG (bao_cao.md). Không đụng server/ thật, data/, Turso.
+bản sao. ĐỐI CHỨNG trước: bản sao chưa đột biến phải 0 hỏng với mỗi bài dùng tới. BẮT = thoát ≠ 0 + dòng khớp mẫu + bài chạy HẾT (dòng
+`N đạt · M hỏng`) + không dấu sập `SAP` (sập = HỎNG, không bắt — soát vòng 3). SỐNG ở đột biến đụng tiền / ví / gói = NẶNG (bao_cao.md). Không đụng server/ thật, data/, Turso.
 """
 import os, re, shutil, subprocess, sys, tempfile
 from concurrent.futures import ThreadPoolExecutor
