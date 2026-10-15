@@ -1,0 +1,74 @@
+AUDIT-3 — bằng chứng công cụ đo KHÔNG nói dối (D2). Phiếu: "## Bài thử đỏ: không" (việc chỉ kiểm + báo cáo) — không có bài thử đỏ,
+không có dòng SỐ CA. Mỗi công cụ: cố ý sai chuỗi → HỎNG; đã biết → BẮT; vô hại → SỐNG; bài thử SẬP → HỎNG (không BẮT). HEAD code = 31a5810.
+
+== 1. viec/AUDIT-3/dot_bien.py (A4) — python3 viec/AUDIT-3/dot_bien.py (4 dòng D2 trích từ lần chạy đủ 25, 15.10, 32 s)
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_P26c.js: 105 đạt · 0 hỏng
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_GOI1.js: 101 đạt · 0 hỏng
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_P26b.js: 66 đạt · 0 hỏng
+  HỎNG  D2-AU3-sai-chuoi: routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  BẮT   D2-AU3-da-biet: ✗ S1c món 50.000 + món 25.000 × 0.5 (gốc tạo đơn 62.500đ) → 400 SL_KHONG_HOP_LE, không đơn, kho không đổi  — HTTP 200 · tổng 62500
+  SỐNG  D2-AU3-vo-hai: thoát 0, KHÔNG thấy /✗ / ·   105 đạt · 0 hỏng
+  HỎNG  D2-AU3-sap: bài thử SẬP (không phải đột biến bị bắt): ✖ Bài thử sập: Missing catch or finally after try
+
+== 2. viec/AUDIT-3/boc.py --sap — mỗi bộ một đột biến cố ý SẬP (+ một sai chuỗi) → không bộ nào BẮT (nguyên văn, bỏ dòng ca ✓ của bài con)
+AUDIT-3 bọc P26b: 2 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_P26b.js): 66 đạt · 0 hỏng
+HỎNG-sập  SAP-P26b  · Bài thử sập · thoát 2
+HỎNG      SAI-P26b  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+
+  P26b: tổng 2 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 1 · LẠC 0
+AUDIT-3 bọc P26c: 2 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_P26c.js): 105 đạt · 0 hỏng
+HỎNG-sập  SAP-P26c  · Bài thử sập · thoát 2
+HỎNG      SAI-P26c  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+
+  P26c: tổng 2 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 1 · LẠC 0
+AUDIT-3 bọc GOI-1: 2 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): 101 đạt · 0 hỏng
+HỎNG-sập  SAP-GOI-1  · Bài thử sập · thoát 2
+HỎNG      SAI-GOI-1  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+
+  GOI-1: tổng 2 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 1 · LẠC 0
+AUDIT-3 bọc GOI-2: 2 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): 101 đạt · 0 hỏng
+HỎNG-sập  SAP-GOI-2  · Bài thử sập · thoát 2
+HỎNG      SAI-GOI-2  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+
+  GOI-2: tổng 2 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 1 · LẠC 0
+AUDIT-1 dot_bien: 1 đột biến · -j 1 · kiểm sạch 1 loại
+LẠC   D2K SAP-AUDIT2  (3 s) · [cong_cu/gia_lap/chay.js thoát 2] Giả lập: SẬP — /tmp/audit1_sc4ygzf0/db_ssheqp0a/kho/server/routes/orders.js:876 ·       }}}{{{ ·       ^ | [cong_cu/thu_P26a.js thoát 2] ✖ Bài thử sập: Missing catch or finally after try | [cong_cu/thu_P26b.js thoát 2] ✖ Bài thử sập: Mi
+
+  tổng 1 · thời gian 50 s
+  D2K BẮT 0 · SỐNG 0 · HỎNG 0 · LẠC 1 · TREO 0
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-1/, data/, .vite); thư mục tạm đã xoá
+(LUOI-1: kho nông — KB10_GOC rỗng trong bộ nhớ, 2 GOC-* không chạy = CHƯA KIỂM)
+LUOI-1 dot_bien: 1 đột biến · -j 1 · kiểm sạch 1 cách chạy (kb1)
+✓ LẠC  (mong LẠC)  SAP-LUOI-1  (0 s) · Node.js v22.22.0 · thiếu mẫu: KB\d+ → 
+
+  tổng 1 · BẮT 0 · LẠC 1 · SỐNG 0 · HỎNG 0 · TREO 0 · đúng mong đợi 1/1 · 2 s
+TACH-GL dot_bien: 1 đột biến · -j 1 · kiểm sạch 1 cách chạy (gl29)
+✓ LẠC  (mong LẠC)  SAP-TACH-GL  (0 s) · Node.js v22.22.0 · thiếu mẫu: KB\d+ →  · 
+
+  tổng 1 · BẮT 0 · LẠC 1 · SỐNG 0 · HỎNG 0 · TREO 0 · đúng mong đợi 1/1 · 25 s
+SO-LUONG-1 SAP-SOLUONG1 → không bắt · bài thử SẬP (không phải đột biến bị bắt): ✖ Bài thử sập: Missing catch or finally after try
+
+  --sap: 0 bộ báo BẮT khi bài thử sập — ĐẠT (không bộ nào)
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-3/)
+thoát 0
+
+== 3. viec/AUDIT-3/boc.py GOI-1 BV-GOI1-TONG — đột biến đã biết qua lớp bọc → đối chứng đếm số + BẮT (nguyên văn, 15.10)
+AUDIT-3 bọc GOI-1: 1 đột biến · -j 4 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): 101 đạt · 0 hỏng
+BẮT       BV-GOI1-TONG  · ✗ A1a thêm gói 5+5+5+5+5+6, gửi tổng 30 → 200, lưu 31  — HTTP 200
+
+  GOI-1: tổng 1 · BẮT 1 · SỐNG 0 · HỎNG 0 · HỎNG-sập 0 · LẠC 0
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-3/)
+
+== 4. viec/AUDIT-3/kiem_neo.py — lần chạy ĐẦU (trước khi sửa RUA_CO_Y) báo HỎNG 2 ngoài danh sách (công cụ không xanh oan):
+AUDIT-2: 34 đột biến (0 không neo — đối chứng) · neo khớp 30/34 · HỎNG 2 · đã thay / cố ý 2
+  HỎNG A3L-goi-giao-them-1: server/routes/orders.js: khớp 0 lần, cần 1
+  HỎNG A3L-deliver-bo-chan-am: server/routes/packages.js: khớp 0 lần, cần 1
+RUA_CO_Y có 3 tên KHÔNG còn hỏng (neo lại khớp — xem tay): [('P26b', 'hong-tran-theo-man-hinh'), ('P26b', 'hong-lay-dong-dau'), ('TACH-GL', 'VS-luot-thieu-bat-bien')]
+→ thoát 1. Sau khi ghi lý do "đã thay" cho 2 tên và bỏ 3 tên khỏi RUA_CO_Y: thoát 0 (trang_thai.md A5).
+
+== 5. D3 ngắt giữa chừng — timeout -s INT 15 python3 viec/AUDIT-3/boc.py GOI-1 → thoát 124, 0 thư mục /tmp/goi1_db_* sót, git status sạch.
