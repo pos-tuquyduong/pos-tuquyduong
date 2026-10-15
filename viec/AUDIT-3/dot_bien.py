@@ -13,6 +13,8 @@ from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP|SẬP giữa kịch bản|Node\.js v\d')   # cùng boc.py (soát vòng 3): dấu harness chết, kể cả node văng thô
+HET = re.compile(r'\d+ đạt · \d+ hỏng')   # bài chạy HẾT (xanh hay đỏ); thiếu = sập mã 0 / mã 1 không dấu → HỎNG, không BẮT
 O, T, G, W, R, D = 'routes/orders.js', 'utils/tienDaTra.js', 'utils/goiKhach.js', 'routes/wallets.js', 'routes/refunds.js', 'routes/damages.js'
 
 # (tên, chạy, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong đầu ra)
@@ -76,8 +78,8 @@ def ban_sao(tam):  # chép server/ thật ra thư mục tạm, node_modules ch�
   return thu
 
 
-def chay_bai(cach, thu):  # → (mã thoát, đầu ra đã bỏ mã màu)
-  r = subprocess.run(['node', BAI[cach], '--may-chu', thu], cwd=GOC, capture_output=True, text=True, timeout=300)
+def chay_bai(cach, thu):  # → (mã thoát, đầu ra đã bỏ mã màu); TMPDIR = thư mục tạm của đột biến → bài chết giữa chừng không để sót /tmp/thu_* (soát vòng 3)
+  r = subprocess.run(['node', BAI[cach], '--may-chu', thu], cwd=GOC, capture_output=True, text=True, timeout=300, env={**os.environ, 'TMPDIR': os.path.dirname(thu)})
   return r.returncode, re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
 
 
@@ -89,12 +91,11 @@ def chay1(db):  # → (tên, kết quả BẮT/SỐNG/HỎNG/LẠC, chi tiết)
     loi = ap(thu, cap)
     if loi: return ten, 'HỎNG', loi
     ma, ra = chay_bai(cach, thu)
-    sap = [l.strip() for l in ra.splitlines() if 'Bài thử sập' in l]
-    if sap: return ten, 'HỎNG', 'bài thử SẬP (không phải đột biến bị bắt): ' + sap[0][:140]
+    sap = [l.strip() for l in ra.splitlines() if SAP.search(l)]   # harness chết (ném, văng thô) → KHÔNG tính là bắt, dù đã in ✗ trước đó (soát vòng 1, 2, 3)
+    if sap or ma == 2 or not HET.search(ra):
+      return ten, 'HỎNG', 'bài thử SẬP (không phải đột biến bị bắt): ' + (sap[0][:140] if sap else f'thoát {ma} KHÔNG có dòng tổng · ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:100])
     trung = [l.strip() for l in ra.splitlines() if re.search(bat, l)]
     if ma != 0 and trung: return ten, 'BẮT', trung[0][:160]
-    tong = re.search(r'(\d+) đạt · 0 hỏng', ra)   # SỐNG chỉ khi bài chạy HẾT và xanh — thoát 0 không dòng tổng = sập mã 0 (soát vòng 2)
-    if ma == 0 and not tong: return ten, 'HỎNG', 'thoát 0 KHÔNG có dòng tổng (sập mã 0): ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:120]
     return ten, ('SỐNG' if ma == 0 else 'LẠC'), f'thoát {ma}, KHÔNG thấy /{bat}/ · ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:120]
   finally:
     shutil.rmtree(tam, ignore_errors=True)
