@@ -1,0 +1,702 @@
+{
+"BB-I1-sql-1-bo-ve": [
+27,
+"r.order_id = o.id"
+],
+"BB-I1-sql-2-bo-ve": [
+27,
+"r.status = 'approved'"
+],
+"BB-I1-sql-3-bo-ve": [
+29,
+"s.claimed_at IS NOT NULL"
+],
+"BB-I1-sql-4-bo-ve": [
+29,
+"s.diem_nhan_luc IS NOT NULL"
+],
+"BB-I1-js-1-bo-ve": [
+30,
+"r.payment_status === 'paid'"
+],
+"BB-I1-js-2-bo-ve": [
+30,
+"(r.status === 'completed'\n      || (r.status === 'cancelled' && String(r.cancelled_at) >= String(r.luc_dung))\n      || (r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung)))"
+],
+"BB-I1-js-3-bo-ve": [
+30,
+"r.status === 'completed'"
+],
+"BB-I1-js-4-bo-ve": [
+31,
+"(r.status === 'cancelled' && String(r.cancelled_at) >= String(r.luc_dung))"
+],
+"BB-I1-js-5-bo-ve": [
+32,
+"(r.status === 'refunded' && String(r.luc_hoan) >= String(r.luc_dung))"
+],
+"BB-I1-js-6-bo-ve": [
+31,
+"r.status === 'cancelled'"
+],
+"BB-I1-js-7-bo-ve": [
+31,
+"String(r.cancelled_at) >= String(r.luc_dung)"
+],
+"BB-I1-js-8-bo-ve": [
+32,
+"r.status === 'refunded'"
+],
+"BB-I1-js-9-bo-ve": [
+32,
+"String(r.luc_hoan) >= String(r.luc_dung)"
+],
+"BB-I2-sql-1-bo-ve": [
+38,
+"o.id IS NULL"
+],
+"BB-I2-sql-2-bo-ve": [
+38,
+"s.claimed_at IS NULL"
+],
+"BB-I2-sql-3-bo-ve": [
+38,
+"s.diem_nhan_luc IS NULL"
+],
+"BB-I3-sql-1-bo-ve": [
+44,
+"COALESCE(payment_status, '') NOT IN ('paid', 'partial', 'pending')"
+],
+"BB-I3-sql-2-bo-ve": [
+45,
+"COALESCE(status, '') NOT IN ('completed', 'cancelled', 'refunded')"
+],
+"BB-I3-sql-3-bo-ve": [
+46,
+"(payment_status = 'paid' AND COALESCE(debt_amount, 0) <> 0)"
+],
+"BB-I3-sql-4-bo-ve": [
+47,
+"(payment_status IN ('partial', 'pending') AND COALESCE(debt_amount, 0) <= 0)"
+],
+"BB-I3-sql-5-bo-ve": [
+46,
+"payment_status = 'paid'"
+],
+"BB-I3-sql-6-bo-ve": [
+46,
+"COALESCE(debt_amount, 0) <> 0"
+],
+"BB-I3-sql-7-bo-ve": [
+47,
+"payment_status IN ('partial', 'pending')"
+],
+"BB-I3-sql-8-bo-ve": [
+47,
+"COALESCE(debt_amount, 0) <= 0"
+],
+"BB-I3-sql-1-duong": [
+46,
+"COALESCE(debt_amount, 0) <> 0"
+],
+"BB-I3-sql-1-am": [
+46,
+"COALESCE(debt_amount, 0) <> 0"
+],
+"BB-I4-sql-1-bo-ve": [
+54,
+"t.customer_phone = p.phone"
+],
+"BB-I4-sql-2-bo-ve": [
+54,
+"t.type IN (${IN(LOAI_TINH_VAO_VI)})"
+],
+"BB-I4-js-1-duong": [
+58,
+"Math.abs(so(r.balance) - so(r.so_sach)) > 0.5"
+],
+"BB-I4-js-1-am": [
+58,
+"Math.abs(so(r.balance) - so(r.so_sach)) > 0.5"
+],
+"BB-I6-js-1-duong": [
+71,
+"Math.abs(so(r.da_ghi) - so(r.total)) > 1"
+],
+"BB-I6-js-1-am": [
+71,
+"Math.abs(so(r.da_ghi) - so(r.total)) > 1"
+],
+"BB-I7-sql-1-bo-ve": [
+82,
+"x.order_id = oi.order_id"
+],
+"BB-I7-sql-2-bo-ve": [
+82,
+"x.id < oi.id"
+],
+"BB-I7-js-1-bo-ve": [
+105,
+"!can.has(vt)"
+],
+"BB-I7-js-2-bo-ve": [
+105,
+"!daXong.has(vt)"
+],
+"BB-I7-js-1-duong": [
+100,
+"(dem.get(vt) || 0) + (chuaXong.get(vt) || 0) !== 1"
+],
+"BB-I7-js-1-am": [
+100,
+"(dem.get(vt) || 0) + (chuaXong.get(vt) || 0) !== 1"
+],
+"BB-I7-js-2-duong": [
+107,
+"dem.get(vt) !== 1"
+],
+"BB-I7-js-2-am": [
+107,
+"dem.get(vt) !== 1"
+],
+"BB-I7-js-3-duong": [
+114,
+"soNo.get(vt) !== 1"
+],
+"BB-I7-js-3-am": [
+114,
+"soNo.get(vt) !== 1"
+],
+"BB-I8-sql-1-bo-ve": [
+127,
+"s.order_id = o.id"
+],
+"BB-I8-sql-2-bo-ve": [
+127,
+"s.diem_nhan_luc IS NOT NULL"
+],
+"BB-I8-js-1-bo-ve": [
+131,
+"cfg.loyalty_enabled === 'true'"
+],
+"BB-I8-js-2-bo-ve": [
+131,
+"!!r.customer_phone"
+],
+"BB-I8-js-3-bo-ve": [
+131,
+"so(r.total) > 0"
+],
+"BB-I8-js-4-bo-ve": [
+131,
+"so(r.flash) === 0"
+],
+"BB-I8-js-5-bo-ve": [
+131,
+"g > 0"
+],
+"BB-I8-js-6-bo-ve": [
+146,
+"so(r.so_qua) !== 1"
+],
+"BB-I8-js-7-bo-ve": [
+146,
+"so(r.points) !== -so(r.gia)"
+],
+"BB-I8-js-1-duong": [
+131,
+"so(r.flash) === 0"
+],
+"BB-I8-js-1-am": [
+131,
+"so(r.flash) === 0"
+],
+"BB-I8-js-2-duong": [
+133,
+"so(r.diem) === dung"
+],
+"BB-I8-js-2-am": [
+133,
+"so(r.diem) === dung"
+],
+"BB-I8-js-3-duong": [
+146,
+"so(r.so_qua) !== 1"
+],
+"BB-I8-js-3-am": [
+146,
+"so(r.so_qua) !== 1"
+],
+"BB-I8-js-4-duong": [
+146,
+"so(r.points) !== -so(r.gia)"
+],
+"BB-I8-js-4-am": [
+146,
+"so(r.points) !== -so(r.gia)"
+],
+"BB-I9-js-1-bo-ve": [
+164,
+"Number(l.order_id) === id"
+],
+"BB-I9-js-2-bo-ve": [
+164,
+"l.loai === 'thu'"
+],
+"BB-I9-js-3-bo-ve": [
+168,
+"thu.length !== quay.length"
+],
+"BB-I9-js-4-bo-ve": [
+168,
+"tongLog !== tong(quay)"
+],
+"BB-I9-js-5-bo-ve": [
+171,
+"Number(l.order_id) === id"
+],
+"BB-I9-js-6-bo-ve": [
+171,
+"l.loai === 'doi'"
+],
+"BB-I9-js-7-bo-ve": [
+173,
+"don.get(id)?.customer_phone"
+],
+"BB-I9-js-8-bo-ve": [
+173,
+"(no.get(id) || 0) !== thu.length"
+],
+"BB-I9-js-1-duong": [
+168,
+"thu.length !== quay.length"
+],
+"BB-I9-js-1-am": [
+168,
+"thu.length !== quay.length"
+],
+"BB-I9-js-2-duong": [
+168,
+"tongLog !== tong(quay)"
+],
+"BB-I9-js-2-am": [
+168,
+"tongLog !== tong(quay)"
+],
+"BB-I9-js-3-duong": [
+172,
+"doi !== (ctx.soQuay.doi.get(id) || 0)"
+],
+"BB-I9-js-3-am": [
+172,
+"doi !== (ctx.soQuay.doi.get(id) || 0)"
+],
+"BB-I9-js-4-duong": [
+173,
+"(no.get(id) || 0) !== thu.length"
+],
+"BB-I9-js-4-am": [
+173,
+"(no.get(id) || 0) !== thu.length"
+],
+"BB-I11-sql-1-bo-ve": [
+188,
+"type = 'refund'"
+],
+"BB-I11-sql-2-bo-ve": [
+188,
+"COALESCE(payment_method, '') <> 'hoan_goi'"
+],
+"BB-I12-js-1-bo-ve": [
+210,
+"r.type !== 'redeem'"
+],
+"BB-I12-js-2-bo-ve": [
+210,
+"r.sdt_tx !== r.sdt"
+],
+"BB-I12-js-3-bo-ve": [
+210,
+"so(r.points) !== -so(r.points_cost)"
+],
+"BB-I12-js-4-bo-ve": [
+210,
+"so(r.so_ma) !== 1"
+],
+"BB-I12-js-5-bo-ve": [
+211,
+"r.discount_type !== r.loai_qua"
+],
+"BB-I12-js-6-bo-ve": [
+211,
+"so(r.discount_value) !== so(r.tri_gia_qua)"
+],
+"BB-I12-js-7-bo-ve": [
+211,
+"so(r.tran) !== so(r.tran_qua)"
+],
+"BB-I12-js-8-bo-ve": [
+211,
+"so(r.usage_limit) !== 1"
+],
+"BB-I12-js-1-duong": [
+210,
+"so(r.points) !== -so(r.points_cost)"
+],
+"BB-I12-js-1-am": [
+210,
+"so(r.points) !== -so(r.points_cost)"
+],
+"BB-I12-js-2-duong": [
+210,
+"so(r.so_ma) !== 1"
+],
+"BB-I12-js-2-am": [
+210,
+"so(r.so_ma) !== 1"
+],
+"BB-I12-js-3-duong": [
+211,
+"so(r.discount_value) !== so(r.tri_gia_qua)"
+],
+"BB-I12-js-3-am": [
+211,
+"so(r.discount_value) !== so(r.tri_gia_qua)"
+],
+"BB-I12-js-4-duong": [
+211,
+"so(r.tran) !== so(r.tran_qua)"
+],
+"BB-I12-js-4-am": [
+211,
+"so(r.tran) !== so(r.tran_qua)"
+],
+"BB-I12-js-5-duong": [
+211,
+"so(r.usage_limit) !== 1"
+],
+"BB-I12-js-5-am": [
+211,
+"so(r.usage_limit) !== 1"
+],
+"BB-I13-sql-1-bo-ve": [
+223,
+"o.status = 'completed'"
+],
+"BB-I13-sql-2-bo-ve": [
+223,
+"UPPER(o.discount_code) = UPPER(d.code)"
+],
+"BB-I13-sql-3-bo-ve": [
+223,
+"o.discount_type = d.discount_type"
+],
+"BB-I13-sql-4-bo-ve": [
+224,
+"o.discount_value = d.discount_value"
+],
+"BB-I13-js-1-bo-ve": [
+228,
+"so(r.usage_limit) > 0"
+],
+"BB-I13-js-2-bo-ve": [
+228,
+"so(r.used_count) > so(r.usage_limit)"
+],
+"BB-I13-js-3-bo-ve": [
+228,
+"(so(r.usage_limit) > 0 && so(r.used_count) > so(r.usage_limit))"
+],
+"BB-I13-js-4-bo-ve": [
+228,
+"so(r.used_count) !== so(r.so_don) + tay"
+],
+"BB-I13-sql-1-duong": [
+224,
+"o.discount_value = d.discount_value"
+],
+"BB-I13-sql-1-am": [
+224,
+"o.discount_value = d.discount_value"
+],
+"BB-I13-js-1-duong": [
+228,
+"so(r.used_count) !== so(r.so_don) + tay"
+],
+"BB-I13-js-1-am": [
+228,
+"so(r.used_count) !== so(r.so_don) + tay"
+],
+"BB-I14-sql-1-bo-ve": [
+238,
+"x.customer_package_id = cp.id"
+],
+"BB-I14-sql-2-bo-ve": [
+238,
+"x.status <> 'cancelled'"
+],
+"BB-I14-sql-3-bo-ve": [
+238,
+"oi.product_id > 0"
+],
+"BB-I14-sql-4-bo-ve": [
+238,
+"COALESCE(oi.unit_price, 0) = 0"
+],
+"BB-I14-js-1-bo-ve": [
+244,
+"g.status !== 'cancelled'"
+],
+"BB-I14-js-2-bo-ve": [
+244,
+"so(g.delivered_qty) !== so(g.da_lay) + tay"
+],
+"BB-I14-js-3-bo-ve": [
+247,
+"g.order_id != null"
+],
+"BB-I14-js-4-bo-ve": [
+247,
+"(g.co_don == null || g.tt_don === 'cancelled')"
+],
+"BB-I14-js-5-bo-ve": [
+247,
+"g.status !== 'cancelled'"
+],
+"BB-I14-js-6-bo-ve": [
+247,
+"g.co_don == null"
+],
+"BB-I14-js-7-bo-ve": [
+247,
+"g.tt_don === 'cancelled'"
+],
+"BB-I14-sql-5-bo-ve": [
+252,
+"o.customer_package_id IS NOT NULL"
+],
+"BB-I14-sql-6-bo-ve": [
+252,
+"cp.id IS NULL"
+],
+"BB-I14-sql-7-bo-ve": [
+254,
+"EXISTS (SELECT 1 FROM pos_customer_packages cp WHERE cp.order_id = o.id)"
+],
+"BB-I14-sql-8-bo-ve": [
+255,
+"EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id > 0 AND COALESCE(oi.unit_price, 0) = 0)"
+],
+"BB-I14-sql-9-bo-ve": [
+255,
+"oi.order_id = o.id"
+],
+"BB-I14-sql-10-bo-ve": [
+255,
+"oi.product_id > 0"
+],
+"BB-I14-sql-11-bo-ve": [
+255,
+"COALESCE(oi.unit_price, 0) = 0"
+],
+"BB-I14-sql-1-duong": [
+238,
+"COALESCE(oi.unit_price, 0) = 0"
+],
+"BB-I14-sql-1-am": [
+238,
+"COALESCE(oi.unit_price, 0) = 0"
+],
+"BB-I14-js-1-duong": [
+244,
+"so(g.delivered_qty) !== so(g.da_lay) + tay"
+],
+"BB-I14-js-1-am": [
+244,
+"so(g.delivered_qty) !== so(g.da_lay) + tay"
+],
+"BB-I14-sql-2-duong": [
+255,
+"COALESCE(oi.unit_price, 0) = 0"
+],
+"BB-I14-sql-2-am": [
+255,
+"COALESCE(oi.unit_price, 0) = 0"
+],
+"BB-I15-sql-1-bo-ve": [
+264,
+"o.status <> 'cancelled'"
+],
+"BB-I15-sql-2-bo-ve": [
+264,
+"COALESCE(o.customer_phone, '') <> ''"
+],
+"BB-I15-sql-3-bo-ve": [
+265,
+"EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id <= -1000000)"
+],
+"BB-I15-sql-4-bo-ve": [
+265,
+"oi.order_id = o.id"
+],
+"BB-I15-sql-5-bo-ve": [
+265,
+"oi.product_id <= -1000000"
+],
+"BB-I15-sql-6-bo-ve": [
+267,
+"o.id IS NULL"
+],
+"BB-I15-sql-7-bo-ve": [
+267,
+"o.status = 'cancelled'"
+],
+"BB-I15-js-1-duong": [
+268,
+"so(r.n) !== 1"
+],
+"BB-I15-js-1-am": [
+268,
+"so(r.n) !== 1"
+],
+"BB-I16-sql-1-bo-ve": [
+275,
+"l.loai = 'doi'"
+],
+"BB-I16-sql-2-bo-ve": [
+275,
+"l.id = (SELECT MAX(x.id) FROM pos_order_log x WHERE x.order_id = l.order_id AND x.loai = 'doi')"
+],
+"BB-I16-sql-3-bo-ve": [
+275,
+"x.order_id = l.order_id"
+],
+"BB-I16-sql-4-bo-ve": [
+275,
+"x.loai = 'doi'"
+],
+"BB-I16-js-1-bo-ve": [
+279,
+"so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)"
+],
+"BB-I16-js-2-bo-ve": [
+280,
+"so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0"
+],
+"BB-I16-js-1-duong": [
+279,
+"so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)"
+],
+"BB-I16-js-1-am": [
+279,
+"so(ct.so_tien) === so(r.cash_amount) + so(r.transfer_amount)"
+],
+"BB-I16-js-2-duong": [
+280,
+"so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0"
+],
+"BB-I16-js-2-am": [
+280,
+"so(ct.sang === 'cash' ? r.transfer_amount : r.cash_amount) === 0"
+],
+"BB-I17-js-1-bo-ve": [
+290,
+"r.type !== 'refund'"
+],
+"BB-I17-js-2-bo-ve": [
+290,
+"so(r.t_don) !== so(r.order_id)"
+],
+"BB-I17-js-3-bo-ve": [
+290,
+"r.t_sdt !== r.customer_phone"
+],
+"BB-I17-js-4-bo-ve": [
+291,
+"Math.abs(so(r.amount) - so(r.refund_amount)) > 0.5"
+],
+"BB-I17-js-1-duong": [
+291,
+"Math.abs(so(r.amount) - so(r.refund_amount)) > 0.5"
+],
+"BB-I17-js-1-am": [
+291,
+"Math.abs(so(r.amount) - so(r.refund_amount)) > 0.5"
+],
+"BB-I18-sql-1-bo-ve": [
+301,
+"t.type = 'topup'"
+],
+"BB-I18-sql-2-bo-ve": [
+301,
+"(t.type = 'adjust' AND t.amount > 0)"
+],
+"BB-I18-sql-3-bo-ve": [
+301,
+"t.type = 'adjust'"
+],
+"BB-I18-sql-4-bo-ve": [
+301,
+"t.amount > 0"
+],
+"BB-I18-sql-5-bo-ve": [
+303,
+"t.type = 'purchase'"
+],
+"BB-I18-sql-6-bo-ve": [
+303,
+"(t.type = 'refund' AND COALESCE(t.payment_method, '') <> 'hoan_goi')"
+],
+"BB-I18-sql-7-bo-ve": [
+304,
+"(t.type = 'adjust' AND t.amount < 0)"
+],
+"BB-I18-sql-8-bo-ve": [
+303,
+"t.type = 'refund'"
+],
+"BB-I18-sql-9-bo-ve": [
+303,
+"COALESCE(t.payment_method, '') <> 'hoan_goi'"
+],
+"BB-I18-sql-10-bo-ve": [
+304,
+"t.type = 'adjust'"
+],
+"BB-I18-sql-11-bo-ve": [
+304,
+"t.amount < 0"
+],
+"BB-I18-js-1-bo-ve": [
+307,
+"Math.abs(so(r.total_topup) - so(r.nap)) > 0.5"
+],
+"BB-I18-js-2-bo-ve": [
+307,
+"Math.abs(so(r.total_spent) - so(r.tieu)) > 0.5"
+],
+"BB-I18-js-1-duong": [
+307,
+"Math.abs(so(r.total_topup) - so(r.nap)) > 0.5"
+],
+"BB-I18-js-1-am": [
+307,
+"Math.abs(so(r.total_topup) - so(r.nap)) > 0.5"
+],
+"BB-I18-js-2-duong": [
+307,
+"Math.abs(so(r.total_spent) - so(r.tieu)) > 0.5"
+],
+"BB-I18-js-2-am": [
+307,
+"Math.abs(so(r.total_spent) - so(r.tieu)) > 0.5"
+],
+"BB-I19-sql-1-bo-ve": [
+313,
+"t.order_id = o.id"
+],
+"BB-I19-sql-2-bo-ve": [
+313,
+"t.type IN ('refund', 'compensation')"
+]
+}
