@@ -2,8 +2,9 @@
 """AUDIT-3 A1 — lớp bọc ĐỐI CHỨNG cho các bộ đột biến cũ (KHÔNG sửa file bộ cũ). Chạy ở GỐC kho:
 
     python3 viec/AUDIT-3/boc.py <P26b|P26c|GOI-1|GOI-2> [tên…] [-j N]   # bộ khuôn GOI-1 qua lớp bọc: đối chứng đếm số, sập = HỎNG
-    python3 viec/AUDIT-3/boc.py --sap            # mỗi bộ một đột biến cố ý SẬP (+ một sai chuỗi) → phải HỎNG / LẠC-sập, không BẮT
-    python3 viec/AUDIT-3/boc.py --xep <file…>    # đầu ra bộ khung AUDIT-1 / LUOI-1 / TACH-GL: dòng LẠC có dấu sập → HỎNG-sập
+    python3 viec/AUDIT-3/boc.py --sap            # mỗi bộ: sập lúc nạp (cú pháp) + sai chuỗi + NÉM giữa ca (throw trong route) + đỏ-rồi-sập
+                                                 #   (P26b/P26c) → không bộ nào ra BẮT mà không có dấu sập (soát vòng 1)
+    python3 viec/AUDIT-3/boc.py --xep <file…>    # đầu ra bộ khung AUDIT-1 / LUOI-1 / TACH-GL / bb: dòng BẮT hay LẠC có dấu sập → HỎNG-sập
     python3 viec/AUDIT-3/boc.py --c2luoi [tên…] [-j N] [--json <nháp>]   # C2F của AUDIT-1 + A3L c2full của AUDIT-2, cách c2luoi
     python3 viec/AUDIT-3/boc.py --luoi1 [tên…] [-j N]   # LUOI-1 trên kho nông: dòng `git show 9521cec` → '' trong bộ nhớ, bỏ GOC-*
 
@@ -18,12 +19,14 @@ sys.dont_write_bytecode = True
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 VIEC = os.path.join(GOC, 'viec')
-SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP')
+SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP|SẬP giữa kịch bản')   # thu_*.js · chay.js nạp/dựng · chay.js kịch bản ném (soát vòng 1)
 DOI_CHUNG = {'cong_cu/thu_P26c.js': 105, 'cong_cu/thu_GOI1.js': 101, 'cong_cu/thu_P26b.js': 66, 'cong_cu/thu_gia_lap.js': 145}
 O, CH = 'routes/orders.js', 'cong_cu/gia_lap/chay.js'
 KHUON = ('P26b', 'P26c', 'GOI-1', 'GOI-2')
 SAP_KHUON = [(O, '// 1. Tạo đơn hàng', '}}}{{{', 1)]   # orders.js hỏng cú pháp → máy chủ không nạp → bài thử sập
 SAI_KHUON = [(O, 'CHUOI_KHONG_CO_TRONG_FILE_AUDIT3', 'x', 1)]
+NEM_KHUON = [(O, 'subtotal += pkg.price * pkgQty;', 'throw new Error("AUDIT-3 ném giữa ca");', 1)]   # route ném → thu_*: 500 (ca đỏ, bài đi tiếp); chay.js: 'SẬP giữa kịch bản'
+DOSAP_KHUON = [(O, 'const meTra = order.parent_phone ? Number(order.parent_balance_amount || 0) : 0;', 'const meTra = 0;', 1)]   # thu_P26b: ✗ M2/M3 rồi sập (AU3-6)
 
 
 class Vo:   # vỏ thay `subprocess` trong không gian tên của bộ: chạy thật, giữ kết quả theo luồng
@@ -52,6 +55,7 @@ def cham(ns, vo, db):
   r = vo.tl.r
   if r is None: return ten, 'HỎNG', chi   # ap của bộ từ chối (neo không khớp / đích ngoài tạm) — bài chưa chạy
   ra = ra_cua(r)
+  # thoát 2 = sập của thu_*.js / chay.js; thoát 3 (chay.js TỪ CHỐI) không phải sập
   if SAP.search(ra) or r.returncode == 2: return ten, 'HỎNG-sập', (SAP.search(ra) or re.search(r'.*', ra)).group(0)[:160] + f' · thoát {r.returncode}'
   return ten, ('BẮT' if dat else 'LẠC' if r.returncode != 0 else 'SỐNG'), chi
 
@@ -123,18 +127,27 @@ def nap_m2():
 def sap():
   xau = []
   for bo in KHUON:
-    _, kq = chay_khuon(bo, ['__khong_co__'], 2, them=[(f'SAP-{bo}', 'thu', SAP_KHUON, r'✗ '), (f'SAI-{bo}', 'thu', SAI_KHUON, r'✗ ')])
-    xau += [(bo, t, k) for t, k, _ in kq if k == 'BẮT']
+    them = [(f'SAP-{bo}', 'thu', SAP_KHUON, r'✗ '), (f'SAI-{bo}', 'thu', SAI_KHUON, r'✗ '), (f'NEM-{bo}', 'thu', NEM_KHUON, r'✗ ')]
+    if bo == 'P26b': them.append(('DOSAP-P26b', 'thu', DOSAP_KHUON, r'✗ M2 '))
+    _, kq = chay_khuon(bo, ['VS-Q9-hoan-me-ngoai-tx'] if bo == 'P26c' else ['__khong_co__'], 2, them=them)   # P26c: đỏ-rồi-sập có sẵn
+    xau += [(bo, t, k) for t, k, _ in kq if k == 'BẮT' and t.startswith(('SAP-', 'SAI-', 'DOSAP-', 'VS-Q9'))]   # NEM- ở thu_*: 500 là ca đỏ thật, bài không sập → BẮT đúng
   m2 = nap_m2()
   m2.K.DOT_BIEN.append(('SAP-AUDIT2', 'D2K', 'c2luoi', [('server/' + O, '// 1. Tạo đơn hàng', '}}}{{{', 1)], r'✗ '))
-  _, ra = goi_main(m2.K.main, ['SAP-AUDIT2', '-j', '1']); xau += [('AUDIT-2', 'SAP-AUDIT2', 'BẮT') for l in ra.splitlines() if l.startswith('BẮT ') and 'SAP-AUDIT2' in l]
+  m2.K.DOT_BIEN.append(('NEM-AUDIT2', 'D2K', 'gl', [('server/' + d[0], d[1], d[2], d[3]) for d in NEM_KHUON], r'✗ '))   # kịch bản ném → khung ghi BẮT, phải xếp lại
+  _, ra = goi_main(m2.K.main, ['SAP-AUDIT2', 'NEM-AUDIT2', '-j', '2'])
+  for l in ra.splitlines():
+    if l.startswith('BẮT ') and ('SAP-AUDIT2' in l or 'NEM-AUDIT2' in l):
+      if SAP.search(l): print('  (xếp lại HỎNG-sập — khung ghi BẮT nhưng dòng khớp là dấu sập) ← ' + l[:120])
+      elif 'SAP-AUDIT2' in l: xau.append(('AUDIT-2', 'SAP-AUDIT2', 'BẮT'))
+      else: print('  NEM-AUDIT2: BẮT thật — dòng khớp là bất biến / HTTP, không phải dấu sập ← ' + l[:120])
   for bo, ns, cach in (('LUOI-1', nap_luoi1(), 'kb1'), ('TACH-GL', vars(nap_module('TACH-GL')), 'gl29')):
     ns['DOT_BIEN'].append((f'SAP-{bo}', cach, [(CH, 'const sxGia = { loi: false,', '}}}{{{', 1)], [r'KB\d+ → '], 'LẠC'))
-    _, ra = goi_main(ns['main'], [f'SAP-{bo}', '-j', '1']); xau += [(bo, f'SAP-{bo}', 'BẮT') for l in ra.splitlines() if re.match(r'[✓✗] BẮT', l)]
+    _, ra = goi_main(ns['main'], [f'SAP-{bo}', '-j', '1']); xau += [(bo, f'SAP-{bo}', 'BẮT') for l in ra.splitlines() if re.match(r'[✓✗] BẮT', l) and not SAP.search(l)]
   sl = nap_module('SO-LUONG-1')
-  ten, dat, chi = sl.chay1(('SAP-SOLUONG1', 'p26c', SAP_KHUON, r'✗ '))
-  print(f"SO-LUONG-1 SAP-SOLUONG1 → {'bị bắt (SAI)' if dat else 'không bắt'} · {chi[:160]}")
-  if dat: xau.append(('SO-LUONG-1', ten, 'BẮT'))
+  for ten, cap in (('SAP-SOLUONG1', SAP_KHUON), ('NEM-SOLUONG1', NEM_KHUON)):
+    ten, dat, chi = sl.chay1((ten, 'p26c', cap, r'✗ '))
+    print(f"SO-LUONG-1 {ten} → {'bị bắt' if dat else 'không bắt'} · {chi[:160]}")
+    if dat and ten.startswith('SAP-'): xau.append(('SO-LUONG-1', ten, 'BẮT'))
   print(f'\n  --sap: {len(xau)} bộ báo BẮT khi bài thử sập ' + ('— ĐẠT (không bộ nào)' if not xau else '— KHÔNG ĐẠT: ' + ', '.join(f'{b} {t}' for b, t, _ in xau)))
   return 1 if xau else 0
 
@@ -145,7 +158,8 @@ def xep(tep):
     for l in open(p, encoding='utf-8'):
       m = re.match(r'[✓✗]?\s*(BẮT|SỐNG|HỎNG|LẠC|TREO)\b', l)
       if not m: continue
-      k = 'HỎNG-sập' if m.group(1) == 'LẠC' and (SAP.search(l) or 'SẬP' in l) else m.group(1)
+      # BẮT nhờ dòng sập cũng là sập (soát vòng 1). Ca T3…T10 của thu_gia_lap KIỂM hành vi sập nên mô tả có 'Giả lập: SẬP' — không phải sập của bài.
+      k = 'HỎNG-sập' if m.group(1) in ('LẠC', 'BẮT') and SAP.search(l) and not re.search(r'✗ T\d', l) else m.group(1)
       dem[k] = dem.get(k, 0) + 1
       if k == 'HỎNG-sập': print('HỎNG-sập ← ' + l.rstrip()[:200])
   print('  --xep: ' + ' · '.join(f'{k} {v}' for k, v in sorted(dem.items()))); return 0
