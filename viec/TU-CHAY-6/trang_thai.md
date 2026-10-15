@@ -111,7 +111,7 @@ có BV. Chủ quán chốt: chấp nhận hay đòi thêm.
 | THIET_KE B15 | `BV-TUCHAY6-THIETKE-B15` | — (chữ) | A6 THIET_KE |
 
 ### Đột biến — ba lần chạy (`dot_bien.py`)
-- Lần 1: **đối chứng `thu_cong` ĐỎ** trên bản sao (bản thật xanh) → DỪNG đúng K3. Truy nguyên: `thu_cong.js:648–652` B5 băm
+- Lần 1: **đối chứng `thu_cong` ĐỎ** trên bản sao (bản thật xanh) → DỪNG đúng K3. Truy nguyên: `thu_cong.js:647–651` B5 băm
   `.github/workflows/keep-alive.yml` qua `__dirname/..` — bản sao thiếu file. Sửa: chép thêm file này (commit `dot_bien.py`).
 - Lần 2: 12/18 bắt. 6 "KHÔNG bắt" truy nguyên: (a) 3 ca bị xếp nhầm vì bộ lọc sập/ném khớp chữ "sập"/"ném" trong TÊN ca (`ARCHIVE-NUOT`,
   `KHUONLOI-K4`, `NEM-128`) → lọc theo dạng `<bài> sập: ` / `khối ném: `; riêng `NEM-128` còn làm `baiCong` sập thật ở đoạn gọi `cong()`
@@ -185,3 +185,72 @@ BÀI HỌC:
 - Nghi ngờ: `ke_hoach.md` câu `JSON.parse(null)` sửa đúng; số dòng B5 → :648–652; `:236` và thu_TOCDO1 ngoài `npm test`, miễn GET-ghi dạng từ khoá
   trước `run(` → Phát hiện 5, 6. Không đổi code chạy.
 - Chạy lại sau sửa: `thu_cong_cu.js` 105/0 · `thu_TOCDO1.js` 42/0 · `npm test` (bên dưới).
+
+## Câu hỏi 5 (sau bước 8 — chờ chủ quán; KHÔNG chặn giao hồ sơ, nhưng `npm test` trên máy này đang sát/qua hạn)
+
+`thu_cong.js` trên máy mây này trong NGÀY chậm dần: gốc dfeaa57 (318 phép) 67,9 s sáng → 112,9 s → 111,3 s chiều; HEAD (334 phép, git giả
+node) 116,8 → 122,9 s **một mình** → `npm test` đỏ `ETIMEDOUT 120 s` (3 lần: 2 lần do hook dừng chạy chồng, 1 lần một mình). Việc này
+thêm ≈ 4–12 s (4 lần cổng chạy với git giả; nhiễu ±5 s). Đã làm trong phạm vi: git giả đổi node → bash (như `thu_cong_cu.js`) → HEAD
+**117,5 s** một mình (334/0). Không nới hạn 120 s (phiếu Cấm, K8); không chia lượt song song (phiếu dặn chỉ ghi Phát hiện). Chủ quán chọn:
+(a) chấp nhận — máy GitHub của cổng đo TU-CHAY-5 66 s, bộ kiểm trong `cong.js chay` vẫn hạn 120 s/bài nên ngày máy chậm sẽ đỏ như hôm nay;
+(b) mở việc chia `thu_cong.js` thành lượt song song (AU2-10, khuôn TACH-GL) — Phát hiện 7; (c) cách khác chủ quán chốt. Hook dừng
+`kiem_truoc_khi_dung.cjs` tự chạy `npm test` mỗi lần máy dừng → chồng với bài đang đo (ETIMEDOUT 120,1 s ×2) — ghi nhận, không sửa `.claude/`.
+
+## Bước 8 — soát vòng 2 (agent mới, chỉ đọc; `SendMessage` nối tiếp agent cũ bị người gác chặn CC-LA như SO-LUONG-1) — chép nguyên
+
+```
+ĐẠT (ba lỗi vòng 1 đã sửa đúng; 1 việc phải làm CÙNG commit git giả bash đang chờ — số dòng B5 sẽ trôi 1)
+
+LỖI TÌM ĐƯỢC:
+- `viec/TU-CHAY-6/trang_thai.md:114` (và :155, :185 trích lại) ghi B5 `thu_cong.js:648–652` — ĐÚNG ở HEAD cc5432d (`git show HEAD:tu_chay/thu_cong.js` → :648/:652), nhưng working tree đã đổi git giả node→bash (−1 dòng: bỏ 5 thêm 4, `git diff -- tu_chay/thu_cong.js`) → B5 nay ở **:647–651** (`grep -n "// B5:" tu_chay/thu_cong.js` → 647, chac → 651). Commit bash mà không sửa thì tái phạm đúng lỗi trôi dòng vòng 1 (K1). Sửa 3 chỗ trong cùng commit.
+- Trong script bash git giả: không.
+
+ĐÃ SOÁT ĐÚNG (file:dòng đọc lượt này):
+1. K3: `KHUON_LOI.md:45–47` "(GOI-2 B3c: trần kéo 1.350.000 về 1.215.000 nên vá sai công thức vẫn ra đúng số)" khớp `viec/GOI-2/trang_thai.md:215` ("giá niêm yết 1.350.000 bị kéo về 1.215.000") và `:227–228` ("vá sai công thức vẫn ra đúng số nhờ trần"). `wc -l` = 113 ≤ 120. Bullet 45–47 gồm 2 câu: câu 1 dòng 45–46, câu 2 dòng 46–47 → mỗi câu ≤ 2 dòng (phiếu :33). Neo A4 'không che lỗi' còn (`thu_cong_cu.js:467–468`; tôi chạy `thu_cong_cu` 105/0).
+2. E14: `kiem_tra_truoc_khi_giao.js:530–531` có "GIỚI HẠN … chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (customers-v2.js …) không bắt"; `tu_chay/THIET_KE.md:894–895` "Giới hạn: chỉ lệnh ghi nằm TRONG thân route — ghi qua hàm phụ … không thấy". `grep -n "quetRouteGhi(\|xetBanhCoc("` → đúng 2 lần mỗi tên (:533/:564, :536/:561), chú thích mới không chứa. Tôi chạy `node cong_cu/thu_TOCDO1.js` → **42 đạt · 0 hỏng** (R0b đạt).
+3. trang_thai: đoạn "Lệch chữ A7 — nói thẳng" (`:92–96`) nêu đủ 5 điểm vòng 1 đòi (A1b Q4; blob ngoài try; E14 dòng gọi/2 hàm; 4 chỗ chữ; K1/K3/K3/K7 không đột biến) + ô VS- trống đều có lý do. Phiếu A7 `phieu.md:39` đúng chữ "≥ 1 VS- + BV-"; Q4 `trang_thai:60`. Phát hiện 4: `server/routes/customers-v2.js:23` fetchSXCustomers, `:36` gọi cacheCustomersToLocal, `:57–58` `run(INSERT INTO pos_customers`, GET `:109/:201/:397/:459` (gọi ở :116/:203/:404/:466) ✓; wallets.js POST `:121/:152/:187/:284/:300`, loiGhi `:141/:177/:217/:291/:314` ✓. Phát hiện 5: `tu_chay/cong.js:233` guard cai_dat.js, `:236` `giaiNen(thuMuc, head, cai, 'tu_chay')` bỏ kết quả, `:239` "cai_dat.js của PR chạy hỏng" ✓. Phát hiện 6: `package.json:9` test = kiem_tra; `cau_hinh.json:2` lenh_bai_thu ["npm test"]; `:6` file_luat không có thu_TOCDO1 (grep rỗng); miễn GET-ghi `kiem_tra:551–552`: từ khoá trước `run(` → `iRun` lùi tới `r.i`, xét `[iGhi, r.i, r.i−1]` (r.i−1 bị loại vì `< r.i`) → chú thích ngay trên từ khoá không miễn ✓. ke_hoach `:73` "JSON.parse(null) = null → chH.ban_cai TypeError → [CONG] không nêu đường dẫn" đúng: gốc `git show dfeaa57:tu_chay/cong.js` :138–139, `bang_chung_do.txt` dòng 10 "Cannot read properties of null (reading 'ban_cai')".
+4. Git giả bash `tu_chay/thu_cong.js:109–115` (CHƯA commit): `[[ "$*" =~ $GIET_KHOP ]]` — vế phải không ngoặc kép ✓, vế trái ngoặc kép ✓; ERE `[.]`, `[^ ]+` đúng (:486/:488/:491/:494); `kill -KILL $$` trước `exec` → cha thấy `status null` + SIGKILL, khớp `cong.js:33` `r.status === null || r.error`; `exec "$GIT_THAT" "$@"` truyền nguyên mã thoát (bản node map null→1 — bash sát hơn); `GIT_THAT` tính `:112` TRƯỚC khi chèn gitgia vào PATH ✓; `envSach` `:30` lọc `GIT_` nhưng `gitGia` `:115` thêm lại GIT_THAT sau spread ✓; `cong.js:23` envCon không lọc PATH/GIET_KHOP ✓; mẫu archive `[^ ]+$` chỉ khớp lệnh không đường dẫn (`cong.js:45` có `...duong`) ✓; chmod 755 `:114` ✓. Chú thích "như thu_cong_cu.js" đúng (`thu_cong_cu.js:34` git giả bash); "~40 ms/lần" đo 59/40/45 ms; "~30 lần" tĩnh 35 chỗ gọi git/blob/giaiNen — xấp xỉ chấp nhận. Phạm vi phiếu `:44` có `tu_chay/thu_cong.js`; Cấm `:70` không nới 120 s — không vi phạm; `:57` không chia lượt song song — giữ.
+
+NGHI NGỜ:
+- Bằng chứng đỏ trên gốc (`bang_chung_do.txt` lần 2) ghi với git giả NODE; bản bash chưa chạy lại trên gốc. A16 chỉ so SỐ CA (334 không đổi) nên không bắt. Tự chứng: ca A1 'ĐỎ' cần kill xảy ra mới đạt, nên "HEAD 334/0 bash" trong Câu hỏi 5 (nếu đúng) đã chứng kill hoạt động — nhưng tôi không chạy được thu_cong để xác nhận con số đó.
+- "Câu hỏi 5" ghi "gốc dfeaa57 (318 phép)" — không kiểm được số 318 (không chạy gốc).
+- Chú thích `thu_cong.js:109–111` và trang_thai Câu hỏi 5 có nhiều con số đo (123 s, 117,5 s, ~5 s) — khẳng định K1 từ số đo một máy một ngày; đã ghi "nhiễu ±5 s", chấp nhận.
+
+CHƯA SOÁT ĐƯỢC: không chạy `thu_cong.js`, `npm test`, `--day-du` (theo lệnh — máy đang đo); không chạy đột biến; không checkout gốc. Hành vi kill của bash giả chỉ soát bằng đọc code + cơ chế spawnSync, chưa thấy dòng ✗/✓ thật.
+
+BÀI HỌC:
+- KHOÁ (K1 trôi dòng): hồ sơ trích `file:dòng` của file ĐANG sửa trong cùng việc → kiểm lại số dòng ở bước commit cuối, không ở bước viết (vòng 1 vừa sửa 643→648, bash lại đẩy về 647).
+- NGUYÊN TẮC (K3/A16): đổi CƠ CHẾ của bài thử (git giả node→bash) không đổi số ca nên A16 im lặng; cần một câu trong trang_thai nói rõ vì sao HEAD xanh tự chứng cơ chế mới hoạt động (ca ĐỎ chỉ đạt khi kill xảy ra).
+- BỎ: không đòi chạy lại bằng chứng đỏ trên gốc cho đổi bash — ca ĐỎ tự chứng; chỉ ghi một dòng vào trang_thai.
+```
+
+Sau vòng 2: B5 → `:647–651` (3 chỗ); bằng chứng đỏ với git giả bash VẪN chạy lại trên gốc (bản sao `cong.js` chưa vá) + 5 đột biến `thu_cong` chạy
+lại — kết quả ở mục "Kiểm cuối" dưới; A16 im lặng vì SỐ CA 334 không đổi, nên tự chứng ở đây: ca A1/A1b chỉ ĐẠT khi SIGKILL thật xảy ra
+(gốc 7 hỏng / HEAD 0 hỏng với cùng git giả bash).
+
+## Bài học (bước 11)
+
+Sự cố gom được: (1) đối chứng `dot_bien.py` đỏ vì bản sao thiếu `keep-alive.yml`; (2) bộ lọc sập/ném khớp chữ trong TÊN ca → 3 đột biến báo
+"không bắt" oan; (3) `baiCong` sập khi `cong()` ném trong tiến trình (đột biến NEM-128); (4) `BLOB-TRONG-TRY` sống vì đường đọc lại cùng file
+che; (5) neo `QUEN-INSERT` khớp 2 lần; (6) đột biến `THIETKE-B15` không gỡ neo nào; (7) người soát bắt dẫn chứng B3c chép sai từ phiếu, phép
+E14 chưa ghi giới hạn hàm phụ, ô VS- trống không lý do, số dòng B5 trôi hai lần; (8) máy mây chậm 1,7× trong ngày → `thu_cong.js` sát/qua hạn
+120 s; (9) hook dừng chạy `npm test` chồng lên bài đang đo; (10) người gác chặn 7 lệnh: B-DICHCHU, B-CHUONGTRINH ×2 (`for`), B-PHANTICH
+(`$'…'`), B-TENCHU (`{ } > file`), B-BIMAT-CHU (`ps -eo`), CC-LA (`SendMessage` nối agent soát); (11) agent soát kế hoạch đề xuất ranh giới
+thân route "tới `router.` kế tiếp" sai cho `wallets.js` — ca K5 server thật bắt; (12) thử vượt ngân sách "~120 dòng" (JS +112 + py 155).
+
+- **KHOÁ (đã làm, trong Phạm vi):** (2) `dot_bien.py` lọc sập/ném theo dạng in `<bài> sập: ` / `khối ném: `; (3) `thu_cong.js` bọc `cong()`
+  trong đoạn đột-biến-tắt → phép đỏ thay vì sập cả bài; (7a) phép A4 `thu_cong_cu.js` neo thêm `GOI-2 B3c` — dẫn chứng sai việc gốc nay có phép bắt.
+- **KHOÁ (đề xuất, ngoài chữ phiếu — chủ quán gom việc sau):** (7b) phép tĩnh "route GET gọi hàm phụ có lệnh ghi" (`kiem_tra`, ca đỏ:
+  `customers-v2.js` 4 route GET → `fetchSXCustomers` → INSERT — Phát hiện 4); (1)+(2) đưa đối chứng + lọc sập vào khuôn `dot_bien.py` chung
+  (GOI-1/P26c/TACH-GL — TOC-DO-1 Phát hiện 3 đã nêu); (10) CC-LA: cho `SendMessage` nối tiếp đúng agent soát đã mở (SO-LUONG-1 cùng sự cố).
+- **NGUYÊN TẮC (đã ghi `KHUON_LOI.md`, 116/120):** K1 "phiếu cũng là hồ sơ — ví dụ chép từ phiếu phải mở hồ sơ gốc" (7); K1 "số dòng trích
+  của file đang sửa kiểm lại ở commit cuối" (7); K4 "phép theo thân route → ghi giới hạn hàm phụ" (7b).
+- **BỎ:** (1) một lần, cơ chế đối chứng đã bắt đúng; (4)(5)(6) K3 đã có câu "cô lập một phép", "neo NGẮN RIÊNG", "đột biến gỡ đúng vế" — chỉ là
+  chưa làm đúng; (8) → Câu hỏi 5 + Phát hiện 7; (9) → Phát hiện 8 (hook môi trường, ngoài phạm vi); (10) sáu luật người gác chặn đúng cách viết
+  lệnh của máy; (11) KHOÁ có sẵn (ca K5) làm đúng việc; (12) đã nêu lý do ở bước 6.
+- **Dọn (11.3):** không đề xuất xoá lời dặn nào — câu K3 "đối chứng" mới có phép trong `dot_bien.py` của hai việc, chưa có ở khuôn chung.
+
+## Phát hiện (bổ sung)
+7. `thu_cong.js` 111–123 s trên máy mây chậm (hạn 120 s): chia lượt song song (AU2-10, khuôn TACH-GL `--luot`) — phiếu dặn chỉ ghi, không làm.
+8. Hook dừng `.claude/hooks/kiem_truoc_khi_dung.cjs` chạy `npm test` mỗi lần máy dừng, kể cả khi một `npm test`/bài thử khác đang chạy → hai
+   `thu_cong.js` chồng nhau cùng ETIMEDOUT. Ngoài phạm vi (`.claude/`).

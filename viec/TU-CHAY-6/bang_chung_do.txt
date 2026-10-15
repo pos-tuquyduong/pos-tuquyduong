@@ -1,5 +1,6 @@
 # TU-CHAY-6 — bằng chứng ĐỎ trên code gốc dfeaa57 (bài thử của head chạy trên code CHƯA vá), 15.10.2026, máy mây 4 lõi
 # Lần 2 (A16): thu_cong.js thêm ca .claude/settings.json sau vòng đột biến 2 → chạy lại trên cong.js chưa vá (bản sao, cong.js.truoc_TUCHAY6) và trên HEAD.
+# Lần 3: git giả đổi node → bash (sau soát) → chạy lại trên gốc (dưới, 7 hỏng/334, 119,6 s) và HEAD (334 · 0, 117,5 s); SỐ CA không đổi.
 
 ## tu_chay/thu_cong.js trên gốc (cong.js chưa vá) — chỉ các dòng ✗ và dòng tổng
 thu_cong: 334 phép · 7 chỗ hỏng
@@ -14,7 +15,7 @@ thu_cong: 334 phép · 7 chỗ hỏng
   ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
   ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: lý do có "git archive" — ✓ CỔNG CHẠY ĐẠT
   ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: đúng 1 dòng "✗ [" (một lý do rõ, không sập nhiều tầng) — ✓ CỔNG CHẠY ĐẠT
-thoát 1
+thoát 1 · 119.6 s
 
 ## cong_cu/thu_TOCDO1.js trên gốc (kiem_tra_truoc_khi_giao.js chưa có E14)
 thu_TOCDO1: 17 đạt · 3 hỏng
