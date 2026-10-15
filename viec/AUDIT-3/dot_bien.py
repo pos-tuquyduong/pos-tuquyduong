@@ -23,6 +23,7 @@ DOT_BIEN = [
   ('D2-AU3-da-biet', 'p26c', [(O, '      if (!soNguyenDuong(sl)) {', '      if (false) {', 1)], r'✗ S1c'),
   ('D2-AU3-vo-hai', 'p26c', [(O, '// 1. Tạo đơn hàng', '// 1. Tao don hang (AUDIT-3 vo hai)', 1)], r'✗ '),
   ('D2-AU3-sap', 'p26c', [(O, '// 1. Tạo đơn hàng', '}}}{{{', 1)], r'✗ '),
+  ('D2-AU3-sap-0', 'p26c', [(O, '// 1. Tạo đơn hàng', 'process.exit(0);', 1)], r'✗ '),   # máy chủ trong tiến trình bài → thoát 0 không dòng tổng (soát vòng 2)
   # ── P26c: hoàn tiền / đền (tienDaTra.js, damages.js, refunds.js, orders.js hoanVi) ──
   ('BV-AU3-P26C-DATRA-BO-TRU-SHIP', 'p26c', [(T, 'Number(order.total || 0) - Number(order.shipping_fee || 0)', 'Number(order.total || 0)', 1)], r'✗ '),
   ('VS-AU3-P26C-DATRA-GIA-GOC', 'p26c', [(T, 'Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0)', 'Number(d.unit_price || 0)', 1)], r'✗ B1'),
@@ -92,6 +93,8 @@ def chay1(db):  # → (tên, kết quả BẮT/SỐNG/HỎNG/LẠC, chi tiết)
     if sap: return ten, 'HỎNG', 'bài thử SẬP (không phải đột biến bị bắt): ' + sap[0][:140]
     trung = [l.strip() for l in ra.splitlines() if re.search(bat, l)]
     if ma != 0 and trung: return ten, 'BẮT', trung[0][:160]
+    tong = re.search(r'(\d+) đạt · 0 hỏng', ra)   # SỐNG chỉ khi bài chạy HẾT và xanh — thoát 0 không dòng tổng = sập mã 0 (soát vòng 2)
+    if ma == 0 and not tong: return ten, 'HỎNG', 'thoát 0 KHÔNG có dòng tổng (sập mã 0): ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:120]
     return ten, ('SỐNG' if ma == 0 else 'LẠC'), f'thoát {ma}, KHÔNG thấy /{bat}/ · ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:120]
   finally:
     shutil.rmtree(tam, ignore_errors=True)
