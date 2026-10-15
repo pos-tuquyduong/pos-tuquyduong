@@ -444,4 +444,68 @@ BÀI HỌC:
 - `npm test` → thoát 0 · ĐẾM PASS 63 · FAIL 0 · CẢNH BÁO 0 (HEAD 9de6829 = HEAD của mọi lần đo vòng 3; mọi commit từ a13d8ad chỉ đổi `viec/AUDIT-3/`;
   `--day-du` 67/0 ở 744ab60 vẫn áp vì code chạy thật không đổi — `git diff --stat 744ab60 HEAD -- ':!viec/AUDIT-3/'` rỗng). `git status` sạch.
 
+## Bước 8 · soát độc lập vòng 4 (`/ra-soat`, agent general-purpose mới, HEAD 31fcfea — kiểm lại sau vòng sửa 3/3) — chép nguyên
+```
+KHÔNG ĐẠT
+
+(Soát vòng 4 nhánh viec/AUDIT-3, HEAD 31fcfea, mốc a13d8ad. Xác nhận: `git diff --stat a13d8ad^ HEAD -- ':!viec/AUDIT-3/'` RỖNG; `git diff --stat 9de6829 HEAD` chỉ 5 file trong viec/AUDIT-3/ (dot_bien.py chỉ đổi docstring); `git status --short` RỖNG trước/sau MỌI lệnh; /tmp vẫn đúng 18 thư mục cũ (mốc giờ ≤ 13:34) sau mọi lệnh của tôi. Đã chạy tuần tự: `kiem_neo.py` (thoát 0), 2 script nháp mới NGOÀI kho: /tmp/claude-0/-home-user-pos-tuquyduong/7e7af215-2d4b-5d78-b3f7-7b7110d21339/scratchpad/soat4_dosap_kiem.py (~100 s) và soat4_p21.py (~10 s); đọc nhật ký v3_*.txt, chay_vong3.log, tam_sot_giua.txt để đếm máy. Không sửa file nào trong kho.)
+
+1. BẢY LỖI VÒNG 3 ĐÃ SỬA ĐÚNG CHƯA (diff ea0b90f..HEAD -- viec/AUDIT-3/):
+- (1) ✓ boc.py:64–69 `sap_cua` áp cho mọi kết quả (cham :79 không còn rẽ theo `dat`); dot_bien.py:95 `sap or ma == 2 or not HET` trước khi xét BẮT. `HET` (boc.py:25) đối chiếu bài thật: thu_P20:322 / P21:181 / P26a:135 / P26b:444 / P26c:822 / GOI1:810 / thu_gia_lap:53 "N đạt · M hỏng"; chay.js:138,:299,:300 "· KHÔNG ĐẠT"/"· ĐẠT"; kiem_tra:807/:810 "CÓ LỖI"/"Qua hết"; thu_nguoi_gac:1135/:1138, thu_cong:702/:705 "ĐỎ — n chỗ hỏng"/"✓ XANH" — cách trong bảng khung (gac, cong, gl, kbN, c2, c2full, kiem, kiemdd, thugl) đều phủ. 81 BẮT trong v3_AUDIT-1.txt: 54 D1 (lines 36–80) khớp mẫu phép tĩnh riêng, không BẮT nào bị xếp sập oan. NHƯNG vế (4) hở — LỖI 1 dưới.
+- (2) ✓ dot_bien.py:16 `SAP` đủ dấu kể cả `Node\.js v\d`; bang_chung mục 9 ca vangtho3 → HỎNG.
+- (3) ✓ v3_AUDIT-1.txt:82 `!D1-E11-P26b` HỎNG-sập "[dòng khớp mang dấu sập]"; 4 `D1-E*` BẮT nhờ mẫu phép tĩnh riêng (:36 unitprice, :38 backup, :59 authz-tho, :70 tra-gia) — đúng; luật "harness chết" đã rút khỏi co_sap chú thích và đưa vào trang_thai.md Câu hỏi 1 — đúng quy trình. NHƯNG cái lọc `✗ bài chạy thật` ở co_sap:60 là tàn dư của luật đã rút → LỖI 1.
+- (4) ✓ xep :196–207 chỉ là vế (4), ghi rõ CẬN DƯỚI; cùng regex trừ `✗ T\d` như sap_cua:68.
+- (5) ✓ Vo.run :42 `setdefault('env', TMPDIR=TAM)` — 4 bộ khuôn không truyền env (P26b/dot_bien.py:182, P26c:221, GOI-1:121, GOI-2:153) nên có tác dụng; bài dùng `os.tmpdir()` (thu_P26b.js:31, P26c:28, GOI1:27). chay_bai :82 TMPDIR = thư mục đột biến. Bằng chứng "0 thư mục mới": /tmp hiện 18 thư mục, mốc giờ mới nhất 13:34 (trước vòng 3 17:12–18:14) → đúng ở trạng thái cuối. Số 19: xem NGHI NGỜ.
+- (6) ✓ boc.py:179–180 nhận mã thoát khung → xau; v3_sap.txt: 0 "KHO BẨN", ĐẠT.
+- (7) ✓ cộng máy từ `kiem_neo.py` 18 dòng "neo khớp a/b" = 881/917, AUDIT-3 25/26 — khớp bao_cao.md:67 và trang_thai.
+- Lỗi tự gây (sentinel 'ĐẠT'): sửa `ra=None` ở :151 đúng — vế 1–3 đã soi ở chay_lenh :145 trên đầu ra ĐỦ của từng lệnh con (thread-local, reset :149), `ma=None` (TREO) không bị đổi nhãn; không bỏ sót gì ở nhánh ra=None. Lỗ không nằm ở ra=None mà ở việc vế (4) chỉ có `chi` đã cắt.
+
+LỖI TÌM ĐƯỢC:
+1. viec/AUDIT-3/boc.py:60 (`co_sap` loại dòng `✗ bài chạy thật`) + :151 (vế 4 chỉ soi `r['chi']`, mà khung cắt `trung[0][:220]` — viec/AUDIT-1/dot_bien.py:328) — qua cách `kiem`/`kiemdd` (53 D1 AUDIT-1 + 4 AUDIT-2 = 57/118 đột biến khung), bài con in ≥ 2 dòng ✗ rồi sập → `✖ Bài thử sập` nằm ngoài 220 ký tự → vế 1 bị lọc, vế 4 mù → BẮT. CHẠY THẬT (soat4_dosap_kiem.py): chính `DOSAP_KHUON` (meTra = 0 — đột biến mà `--sap` xếp HỎNG-sập qua cách p26b, bang_chung_do.txt mục 2) đưa qua cách `kiem` của khung ĐÃ BỌC → `BẮT · [kiem_tra] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.9 s) → ✗ M2 … | ✗ M3 …`; dòng thật dài 352, `✖` ở vị trí 255; `sap_cua(0, None, dòng[:220])` = '' còn với dòng đủ = 'dòng khớp mang dấu sập'. Một hành vi (thu_P26b ✗ M2/M3 rồi sập) hai nhãn tuỳ cách chạy — đúng khuôn lỗi 3 vòng 3 tái diễn ở chỗ mới; `--sap` không có ca nào đi qua cách kiem nên "ĐẠT (không bộ nào)" không phủ. Thêm: dưới kiem, bài con sập MÃ 1 không dấu cũng vô hình về nguyên tắc (kiem_tra_truoc_khi_giao.js:485–486 chỉ in `thoát mã N` khi bài con KHÔNG có dòng ✗) — vế 3 không áp được cho bài con. ẢNH HƯỞNG SỐ: KHÔNG — `!D1-E11-P21` là BẮT duy nhất trong 81 có mẫu là dòng bài-chạy-thật; chạy thẳng thu_P21.js trên bản sao sv có cùng đột biến (soat4_p21.py) → "9 đạt · 5 hỏng", thoát 1, không dấu → BẮT đúng; 81/83 và mọi bảng giữ nguyên. Nếu chủ quán chốt Câu hỏi 1 = (b) thì lỗi này tự hết (BẮT là đúng); chốt (a) thì bỏ lọc `✗ bài chạy thật` ở :60 là đủ (vế 1 nhìn đầu ra đủ), và --sap cần một ca cách kiem. — K4 (rút luật mà để lại bộ lọc đi kèm) + K3 (vế kiểm trên chuỗi đã cắt).
+2. viec/AUDIT-3/boc.py:33 chú thích "route ném → thu_*: 500 (ca đỏ, bài đi tiếp)" và :172 "NEM- ở thu_*: 500 là ca đỏ thật, bài không sập → BẮT đúng" SAI với kết quả thật: bang_chung_do.txt mục 2 NEM-P26b/P26c/GOI-1/GOI-2 = `✖ Bài thử sập … HTTP 500 · thoát 2`. Vì NEM- bị loại khỏi `xau` (:172), nếu NEM- ra BẮT thì `--sap` vẫn in ĐẠT — ca "phải HỎNG" không được canh. — K1 (chú thích theo trí nhớ) + K3 (nhẹ, hiện kết quả vẫn đúng).
+3. viec/AUDIT-3/boc.py:25 `HET` có `· ĐẠT\b` khớp TÊN ca T0/T9c của cong_cu/thu_gia_lap.js:300, :320 (`… · 18 bất biến · ĐẠT"` in trên dòng ✓ theo k() :48) → vế 3 vô hiệu cho cách `thugl` (P26c/TACH-GL). Không đổi số đo (thu_gia_lap không bị đột biến; sập thật của nó là văng thô có dấu) — lỗi định nghĩa, nhẹ. — K3 (phép tiền tố ↔ ca chuỗi nằm giữa).
+4. Chữ/số (K1, nhẹ): bao_cao.md:14 "10 bộ × 4 dạng sập + 2 dạng soát vòng 3 dựng" — thật ra LUOI-1/TACH-GL 1 dạng, SO-LUONG-1 2 dạng, AUDIT-1 (G3-sap)/bb (D2-sap) 1 dạng; 2 dạng vòng 3 chỉ chạy ở P26c cách thu + A4 (bang_chung mục 9). trang_thai.md:51 "boc.py 179 dòng" đã cũ (nay 237).
+
+NGHI NGỜ:
+- Số 19 thoáng qua: chay_vong3.py `sot()` đếm cả `audit3_*` → TAM `audit3_boc_*` của chính boc.py bị đếm (tam_sot_giua.txt có `audit3_boc_dky5lgb4`), nhưng log cho thấy 19 tồn tại suốt a4 (39 s) + P26b (175 s) rồi về 18 ở P26c, và 18→19 sau npm test — không khớp lời giải "đang được dọn"; tôi cũng chưa truy được. Trạng thái cuối: 18 thư mục cũ, 0 mới → vế D3 đạt ở trạng thái cuối, nguyên nhân dao động vẫn CHƯA KIỂM (đã ghi).
+- `xep` :200 regex `HỎNG\b` sẽ đếm "HỎNG-sập" của chính bọc thành HỎNG nếu áp `--xep` lên đầu ra bọc (a2_bang sinh bằng sinh_a2_bang_v3.py, không qua --xep → chưa ảnh hưởng).
+- bb 125 BẮT không qua bọc (đã ghi CHƯA KIỂM); 54 D1 BẮT nhờ phép tĩnh — bài con có sập hay không không ai biết, nhưng theo luật "phép tĩnh riêng = BẮT" thì không cần.
+- "Kiểm lại sau vòng sửa 3": v3_d2k.txt (17:11:32) chạy 14 s TRƯỚC commit 9de6829 (17:11:46) trên cây làm việc tương đương — chỉ ghi cho chính xác.
+
+NGHIỆM THU: 7/9 mục có bằng chứng · mục thiếu: A1 (lỗi 1 — cùng đột biến hai nhãn tuỳ cách; `--sap` không phủ cách kiem/kiemdd), D2 ("bài thử sập → HỎNG" không giữ được qua kiem — chạy thật). Đủ: A2 (đếm máy v3_*.txt khớp a2_bang "Tổng" và bảng bao_cao: AUDIT-1 81/HỎNG 2/sập 2/LẠC 2/SỐNG 1 → 81/83; c2luoi C2F 59/22/6 + A3L 8/3/2 → 59/81; AUDIT-2 18/7/4/1 với A3L 15/3/2, B3 3/2/1, A3P 1 SỐNG, D2K 2 HỎNG 1 SỐNG; P26b 48/1/9/1 → 48/50; P26c 88/4/1 → 88/88; GOI-1 40/9; GOI-2 59; A4 11/11/4 → 10/20; bb 125/50/1/3 → 123/175; TACH-GL 25/3/1 → 25/26; SO-LUONG-1 17; LUOI-1 78; HEAD 9de6829 cho cả 10 bước chay_vong3.log 17:12–18:14, 3 commit sau chỉ hồ sơ + docstring), A3 (thu_P26c.js:199 A2a, :210 A2d, :324 A6a, :326 A6b đọc lượt này), A4 (26 tên, đối chứng 105/101/66), A5 (chạy lại thoát 0, 881/917, 25/26, 0 mẫu rữa, 0 tên thừa), A6 (theo vòng 3, không chạy lại), D1 (85 dòng, đủ cột, số đã sửa), D3 (npm test 63/0 v3_npm_test.txt; --day-du 67/0 ở 744ab60 còn giá trị vì diff code rỗng — xác nhận; git status rỗng mọi bước; 0 thư mục tạm mới; 18 cũ chờ chủ quán — Câu hỏi 2).
+
+ĐƠN GIẢN (boc.py 237 / ngân sách 60–120): nói thẳng — KHÔNG đạt. Bỏ được mà vẫn đạt nghiệm thu: docstring :2–17 → ~6 dòng; `nap_luoi1` + nhánh `--luoi1` (:121–128, :225–228, −12) sang script nháp A2; `sap()` :166–193 thành bảng dữ liệu + một vòng chấm (−10); `doi_chung` dò tên bài qua `r.args` :88–89 → bảng cách→bài (−3); bỏ lọc `✗ bài chạy thật` ở :60 thì nhánh ra=None :67–68 và vế 4 :151 thừa (−3, đồng thời bịt lỗi 1 nếu chốt (a)). Còn ~190 dòng; ≤ 120 chỉ khi `boc_khung` + `--khung/--audit2/--c2luoi` vào viec/AUDIT-1/dot_bien.py (ngoài Phạm vi, đã đề xuất).
+
+CHƯA SOÁT ĐƯỢC: không chạy lại A2 đầy đủ (--sap/--khung/--c2luoi/bb/TACH-GL — nhiều phút) nên từng tên chỉ đối chiếu nhật ký nháp; `lach.js` không chạy lại; 2 GOC-* LUOI-1 (kho nông); nguyên nhân số 19; sập MÃ 1 không dấu của bài con DƯỚI kiem không dựng ca (bọc không thể thấy — kiem_tra nuốt mã thoát bài con); 18 thư mục tạm cũ không xoá được (người gác chặn rm ngoài nháp); thời gian máy.
+
+BÀI HỌC:
+- KHOÁ: (1) chốt Câu hỏi 1 trước: nếu (a) → bỏ lọc `✗ bài chạy thật` ở boc.py:60 (vế 1 soi đầu ra đủ, không dựa `chi` cắt 220) và `--sap` thêm ca cách kiem (DOSAP_KHUON qua kiem phải HỎNG-sập — ca đỏ: soat4_dosap_kiem.py hiện BẮT); nếu (b) → ghi vào phiếu AUDIT-4 và bỏ vế 4. (2) `--sap`: NEM- cũng vào `xau` (phải HỎNG-sập, không loại trừ); sửa chú thích :33/:172 theo kết quả thật.
+- NGUYÊN TẮC (đề xuất gộp KHUON_LOI): K4 — rút một luật thì grep cả bộ lọc / nhánh viết ra VÌ luật đó (lọc ở co_sap là tàn dư của "harness chết"); K3 — vế kiểm chạy trên chuỗi ĐÃ CẮT (220) không phải vế kiểm, và mỗi CÁCH CHẠY có trong bảng (kiem/kiemdd) phải có ca "công cụ không nói dối" riêng; K5 chiều soát: khi tìm lỗ công cụ, hỏi ngay "số đã báo có đổi không" và chứng minh bằng ca chạy (thu_P21 chạy thẳng) để tách lỗi công cụ khỏi lỗi số.
+- BỎ: lỗi 3 (HET thugl — không đổi số), lỗi 4 (chữ), xep `HỎNG\b`, mốc 14 s v3_d2k.
+```
+
+### Sửa sau soát vòng 4: KHÔNG — hết 3 vòng sửa (`so_vong_sua_toi_da` = 3, SKILL bước 8) → ghi `## Câu hỏi` và DỪNG
+- Người soát xác nhận: 7 lỗi vòng 3 đã sửa đúng; MỌI số đo (81/83, 59/81, 15/18, 123/175, 88/88, 10/20, 881/917) KHÔNG đổi vì lỗi 1 (đã
+  chứng minh bằng `soat4_p21.py`: `!D1-E11-P21` chạy thẳng thu_P21 → 9 đạt · 5 hỏng, thoát 1, không dấu = BẮT đúng). Nghiệm thu 7/9: thiếu A1, D2
+  ở MỘT cách chạy (`kiem` / `kiemdd` của khung AUDIT-1 — 57/118 đột biến khung).
+- Lỗi 1 (NẶNG-công cụ, chưa sửa): `boc.py` `co_sap` còn lọc `✗ bài chạy thật` (tàn dư luật "harness chết" đã rút ở vòng 3 — K4) và vế (4) chỉ soi
+  `chi` mà khung AUDIT-1 cắt `trung[0][:220]` (`viec/AUDIT-1/dot_bien.py:328`) → bài con in ≥ 2 dòng ✗ rồi sập dưới cách `kiem` = BẮT (ca đỏ
+  `soat4_dosap_kiem.py`: DOSAP_KHUON qua `kiem` → BẮT, qua `p26b` → HỎNG-sập). Cùng khuôn lỗi 3 vòng 3 ở chỗ mới. Đề xuất sửa (1 dòng + 1 ca):
+  bỏ lọc `✗ bài chạy thật` ở `co_sap` (vế 1 soi ĐẦU RA ĐỦ, không cần vế 4), `--sap` thêm `DOSAP-KIEM` (cách `kiem`, phải HỎNG-sập) — chỉ khi
+  chủ quán chốt Câu hỏi 1 = (a); chốt (b) thì BẮT là đúng và bỏ vế (4).
+- Lỗi 2 (NHẸ-công cụ, chưa sửa): `--sap` loại `NEM-` khỏi `xau` với chú thích sai ("bài đi tiếp") — thật ra 4 bộ khuôn đều `✖ Bài thử sập` thoát 2
+  (`bang_chung_do.txt` 2); nếu NEM- ra BẮT, `--sap` vẫn ĐẠT. Đề xuất: NEM- vào `xau`, sửa chú thích :33 / :172.
+- Lỗi 3 (NHẸ): `HET` `· ĐẠT\b` khớp TÊN ca T0 / T9c của `thu_gia_lap.js` → vế 3 vô hiệu cho cách `thugl` (không đổi số: thu_gia_lap không bị
+  đột biến, sập thật của nó là văng thô có dấu). Đề xuất: đòi `· ĐẠT` ở ĐẦU dòng hoặc kèm số kịch bản. Lỗi 4 (chữ): `bao_cao.md:14` "10 bộ × 4 dạng"
+  phải là "4 bộ khuôn × 4 dạng (+ 2 dạng vòng 3 ở P26c / A4), khung AUDIT-1 4 dạng, LUOI-1 / TACH-GL / bb / G3 1 dạng, SO-LUONG-1 2 dạng";
+  `trang_thai.md` A1 tiêu đề "179 dòng" nay 237 — để nguyên, sửa ở AUDIT-4 cùng lỗi 1–3.
+
+## Câu hỏi (chờ chủ quán — việc DỪNG ở đây, không tự quyết)
+1. **Luật sập khi bộ kiểm chạy hết nhưng BÁO bài con sập** (xem mục "Câu hỏi cho chủ quán" ở vòng 3): (a) HỎNG-sập (hiện áp, 81/83) hay (b) BẮT
+   (82/84)? Lỗi 1 vòng 4 phụ thuộc câu này: (a) → bỏ lọc `✗ bài chạy thật` + ca `DOSAP-KIEM`; (b) → bỏ vế (4), ghi luật vào phiếu AUDIT-4.
+2. **Cho phép vòng sửa 4** (ngoài `so_vong_sua_toi_da` = 3) để vá lỗi 1–3 vòng 4 ngay trong `viec/AUDIT-3/` (ước ~30 phút + chạy lại `--sap`
+   và `--khung D1` ~20 phút), hay **đóng AUDIT-3 ở trạng thái này** (kết luận bao_cao.md giữ nguyên: 0 NẶNG-code, 10 NẶNG-lưới, chưa đạt điểm dừng;
+   nghiệm thu 7/9 theo soát vòng 4) và đưa lỗi 1–3 + 18 thư mục tạm vào phiếu AUDIT-4?
+3. **18 thư mục tạm sót ở `/tmp`** (câu hỏi 2 vòng 3) — chủ quán dọn.
+
 HEAD ĐÃ KIỂM: 9de6829
