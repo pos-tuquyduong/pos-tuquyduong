@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 30,
-  "cap_nhat": "2026-10-14",
+  "phien_ban_so": 31,
+  "cap_nhat": "2026-10-15",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -468,16 +468,16 @@
     },
     {
       "ma": "SO-LUONG-1",
-      "ten": "Duong tien qua API (GOI-1 Q-B, Phat hien): may chu tin nguyen pkg_qty (mua goi le / 0.01 -> tra 3.000d) va so luong mon le (am / le -> giam tien don). Chan: so luong + pkg_qty phai nguyen >= 1 o may chu (man Ban hang da gui so nguyen). Lam sau GOI-2 + TOC-DO-1, truoc AUDIT-3. Dung tien -> duyet ke hoach. | PHIEU 14.10: viec/SO-LUONG-1/phieu.md tren nhanh viec/SO-LUONG-1 (cho duyet ke hoach; chu quan xac nhan quan khong ban so luong le)",
+      "ten": "Duong tien qua API (GOI-1 Q-B, Phat hien): may chu tin nguyen pkg_qty (mua goi le / 0.01 -> tra 3.000d) va so luong mon le (am / le -> giam tien don). Chan: so luong + pkg_qty phai nguyen >= 1 o may chu (man Ban hang da gui so nguyen). Lam sau GOI-2 + TOC-DO-1, truoc AUDIT-3. Dung tien -> duyet ke hoach. | PHIEU 14.10: viec/SO-LUONG-1/phieu.md tren nhanh viec/SO-LUONG-1 (cho duyet ke hoach; chu quan xac nhan quan khong ban so luong le) | XONG 15.10 (PR #21, 31a5810; HEAD may 42711ba, soat doc lap vong 2 DAT, chat soat cuoi DAT: 105/0 thu_P26c, 14 do tren goc, 17/17 dot bien): soNguyenDuong cho moi quantity + pkg_qty (1 bien pkgQty cho tien va vong tao goi); mua goi phai co package_id + SDT da chuan hoa (GOI_MUA_THIEU_THONG_TIN; va lo package_buy {} lay hang 0d va mua goi khong SDT thu tien khong tao goi); cong the dung SDT da chuan hoa. Chu quan chot: khong ban so le; khong tran pkg_qty; 2 dot bien GOI-1 lac -> dung lai trong SO-LUONG-1. De xuat may -> BAN-HANG-1, TU-CHAY-6 (6)(7)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "SO-LUONG-1",
+      "commit": "31a5810",
+      "ngay": "2026-10-15"
     },
     {
       "ma": "AUDIT-3",
-      "ten": "Audit dot 3 (sau LUOI-2 + GOI-1): chay lai bo cong cu AUDIT-2 (dot_bien.py A3L + B3, dot_bien_bb.py, kiem_neo.py, lach.js) + viec/AUDIT-1/dot_bien.py (ca G3) tren HEAD; them dot bien cho GOI-1. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG. | 13.10: bo chay c2full cua AUDIT-1 KHONG chay thu_P26c -> dung c2luoi (viec/AUDIT-2/dot_bien.py) khi ket luan SONG; them dot bien GOI-2, TOC-DO-1 | 14.10: + dot bien GOI-2 (45), TOC-DO-1 (10, co doi chung); kiem_neo.py mo rong GOI-1, P26c, LUOI-2, AUDIT-2 (de xuat GOI-2); dot bien P26c lac vi tach ghiHoan (3, da dung lai trong GOI-2) -> ghi ro",
+      "ten": "Audit dot 3 (sau LUOI-2 + GOI-1): chay lai bo cong cu AUDIT-2 (dot_bien.py A3L + B3, dot_bien_bb.py, kiem_neo.py, lach.js) + viec/AUDIT-1/dot_bien.py (ca G3) tren HEAD; them dot bien cho GOI-1. Diem dung chuong trinh audit: HAI dot lien tiep khong NANG. | 13.10: bo chay c2full cua AUDIT-1 KHONG chay thu_P26c -> dung c2luoi (viec/AUDIT-2/dot_bien.py) khi ket luan SONG; them dot bien GOI-2, TOC-DO-1 | 14.10: + dot bien GOI-2 (45), TOC-DO-1 (10, co doi chung); kiem_neo.py mo rong GOI-1, P26c, LUOI-2, AUDIT-2 (de xuat GOI-2); dot bien P26c lac vi tach ghiHoan (3, da dung lai trong GOI-2) -> ghi ro | PHIEU 15.10: viec/AUDIT-3/phieu.md tren nhanh viec/AUDIT-3 (cho duyet ke hoach): doi chung truoc (A1), chay lai du (A2), dong so AU2-1/AU2-2/AU2-11 (A3), dot bien doc lap cho P26c/GOI-1/GOI-2/SO-LUONG-1 (A4), kiem_neo (A5), lach (A6)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -486,7 +486,7 @@
     },
     {
       "ma": "TU-CHAY-6",
-      "ten": "Bo khung (sau AUDIT-3; sua tu_chay/ -> chu quan cai bang khuon_cai.py): (1) cong.js blob() tra null khi git cat-file hong -> cong sap \"Received null\" (TOC-DO-1 A1, kich ban git gia co san); can nhac chia thu_cong.js; (2) skill /lam-viec buoc 4: chay node tu_chay/cong.js tinh truoc khi xin chu quan sua phieu (LUOI-2 hoi 2 lan); (3) KHUON_LOI.md: K3 dot bien phai co doi chung + loai dong nem; K1 chu thich; ca phep tinh chon so de tran khong che; so thoi gian dung getNow; (4) bo kiem: phep tinh \"route GET co lenh ghi / catch khong qua loiGhi\" (GOI-2 de xuat); (5) TOC-DO-1 Phat hien 2: cung dieu kien cho thu_nguoi_gac.js / thu_cong_cu.js neu do thay cham",
+      "ten": "Bo khung (sau AUDIT-3; sua tu_chay/ -> chu quan cai bang khuon_cai.py): (1) cong.js blob() tra null khi git cat-file hong -> cong sap \"Received null\" (TOC-DO-1 A1, kich ban git gia co san); can nhac chia thu_cong.js; (2) skill /lam-viec buoc 4: chay node tu_chay/cong.js tinh truoc khi xin chu quan sua phieu (LUOI-2 hoi 2 lan); (3) KHUON_LOI.md: K3 dot bien phai co doi chung + loai dong nem; K1 chu thich; ca phep tinh chon so de tran khong che; so thoi gian dung getNow; (4) bo kiem: phep tinh \"route GET co lenh ghi / catch khong qua loiGhi\" (GOI-2 de xuat); (5) TOC-DO-1 Phat hien 2: cung dieu kien cho thu_nguoi_gac.js / thu_cong_cu.js neu do thay cham | 15.10 (SO-LUONG-1, chu quan duyet): (6) KHUON_LOI.md K4: cong \"bat buoc co X\" phai kiem CUNG bieu thuc voi cho dung X (vd SDT da chuan hoa, khong phai gia tri tho — \" \" lot); (7) tu_chay/lenh_ra_soat.md: agent soat goi SubagentHandback lam hanh dong cuoi (SO-LUONG-1 lan 1 ket thuc khong nop bao cao)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -496,6 +496,15 @@
     {
       "ma": "DANG-NHAP-1",
       "ten": "Giu dang nhap POS (chu quan bao 12.10: hau nhu lan nao vao app cung phai dang nhap lai; khong dung tien): (1) token het han 8h (server/routes/auth.js:64, doc JWT_EXPIRES_IN) -> mac dinh 30 ngay, khoa tai khoan van cat phien; (2) AuthContext.jsx checkAuth xoa token voi MOI loi (mang, Render dang ngu day, 5xx, 502 HTML) -> chi xoa khi phien that su chet (SESSION_DEAD_CODES), con lai tu thu lai + nut \"Thu lai\". Lam tam 12.10: chu quan dat JWT_EXPIRES_IN=30d tren Render. Mo SAU GOI-1 gop (cung build lai client/dist). SX lam xong 12.10 bang patch_sx_V (687fa8c, 30 ngay).",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "BAN-HANG-1",
+      "ten": "Man Ban hang + cong the (SO-LUONG-1 de xuat, chu quan duyet 15.10): (1) Sales.jsx: bo chon khach khi gio co goi (is_pkg) -> go goi khoi gio + bao \"Mua goi can chon khach\" (nay may chu tra 400 GOI_MUA_THIEU_THONG_TIN o luong do); (2) orders.js: membership_buy co mat phai co tier_id (cung khuon cong goi) - membership_buy {} hien tao don 0d rong. Viec nho, dung duong don -> duyet ke hoach",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
