@@ -71,7 +71,7 @@ Số đo cũ để so (KHÔNG dùng thay số đo): AUDIT-1 đủ 174 `-j 3` = 1
    nhãn sau xếp. Đối chứng "đếm số" của các bộ này = bảng mục 0 (mỗi bài chạy trên HEAD không đột biến, có số ca) + `kiem_sach` của khung
    (thoát 0) — ghi rõ vào `a2_bang.md`, không viết thêm đối chứng.
 4. `python3 viec/AUDIT-3/boc.py --c2luoi [tên…]` (~15 dòng): nạp `m2`, gán `m2.K.DOT_BIEN` = 87 dòng C2F của AUDIT-1 với cách chạy
-   `c2full → c2luoi` (+ các dòng A3L của AUDIT-2 còn `c2full`, 14 dòng), bọc thêm `anh_kho` lọc `viec/AUDIT-3/`, gọi `m2.K.main()`. Chạy
+   `c2full → c2luoi` (+ các dòng A3L của AUDIT-2 còn `c2full`, 13 dòng), bọc thêm `anh_kho` lọc `viec/AUDIT-3/`, gọi `m2.K.main()`. Chạy
    MỘT lần thay cho "c2full rồi chạy lại SỐNG" (c2luoi = c2full + `thu_P26c` 3,4 s — soát độc lập).
 
 ### A2 — chạy lại ĐỦ trên HEAD (tuần tự, đo riêng; `--json` / nhật ký ra thư mục nháp)
