@@ -106,12 +106,11 @@ function pr(buoc, kiem = true) {
   return git(G, 'rev-parse', 'HEAD');
 }
 const datVe = (sha) => { git(G, 'checkout', '-q', '-f', '--detach', sha); git(G, 'clean', '-fdq'); };
-// TU-CHAY-6 A1: git giả đứng ĐẦU PATH — lệnh có đối số (nối bằng khoảng trắng) khớp regex GIET_KHOP thì tự SIGKILL (máy bận không giữ
-// được tiến trình git — TOC-DO-1 A1 tái hiện 89 dòng "Received null"); mọi lệnh khác chuyển nguyên cho git thật. gitGia() trả env cho goi().
+// TU-CHAY-6 A1: git giả đứng ĐẦU PATH — lệnh có đối số (nối bằng khoảng trắng) khớp ERE GIET_KHOP thì tự SIGKILL (máy bận không giữ
+// được tiến trình git — TOC-DO-1 A1 tái hiện 89 dòng "Received null"); mọi lệnh khác exec git thật. Bash (như thu_cong_cu.js), không node:
+// mỗi lần cổng chạy gọi git ~30 lần, node khởi động ~40 ms/lần làm bài chậm thêm ~5 s (máy mây chậm đã 123 s, hạn 120 s). gitGia() trả env.
 const GIT_THAT = String(spawnSync('bash', ['-c', 'command -v git'], { encoding: 'utf8' }).stdout).trim();
-viet(TAM, 'gitgia/git', ['#!/usr/bin/env node', "const { spawnSync } = require('child_process');", 'const a = process.argv.slice(2);',
-  "if (new RegExp(process.env.GIET_KHOP).test(a.join(' '))) process.kill(process.pid, 'SIGKILL');",
-  "const r = spawnSync(process.env.GIT_THAT, a, { stdio: 'inherit' });", 'process.exit(r.status === null ? 1 : r.status);', ''].join('\n'));
+viet(TAM, 'gitgia/git', ['#!/usr/bin/env bash', 'if [[ "$*" =~ $GIET_KHOP ]]; then kill -KILL $$; fi', 'exec "$GIT_THAT" "$@"', ''].join('\n'));
 fs.chmodSync(path.join(TAM, 'gitgia/git'), 0o755);
 const gitGia = (giet) => ({ ...envSach(), PATH: path.join(TAM, 'gitgia') + path.delimiter + process.env.PATH, GIT_THAT, GIET_KHOP: giet });
 function goi(cheDo, head, nhanh = 'viec/X', env = envSach()) {
@@ -484,15 +483,15 @@ function baiCong() {
   // không "Received null" (gốc: blob trả null → writeFileSync(null) ở chỗ ghi bài thử vào cây gốc → TypeError). File KHÔNG CÓ ở sha (128) vẫn null.
   const A1_PR = [['them moi', { 'cong_cu/thu_a.js': THU_HOP_LE, ...sv }]];
   ca('TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay — chỗ ghi bài thử vào cây gốc)', A1_PR, 'ĐỎ',
-    { che: 'chay', env: gitGia('^cat-file blob \\S+:cong_cu/thu_a\\.js$'), chua: ['cong_cu/thu_a.js'], khong: ['Received null'], soLyDo: 1 });
+    { che: 'chay', env: gitGia('^cat-file blob [^ ]+:cong_cu/thu_a[.]js$'), chua: ['cong_cu/thu_a.js'], khong: ['Received null'], soLyDo: 1 });
   ca('TU-CHAY-6 A1 git giả tự giết ở cat-file tu_chay/cau_hinh.json (chế độ tinh — A8 đọc cấu hình, ném không bị try/catch nuốt)', A1_PR, 'ĐỎ',
-    { che: 'tinh', env: gitGia('^cat-file blob \\S+:tu_chay/cau_hinh\\.json$'), chua: ['tu_chay/cau_hinh.json'], soLyDo: 1 });
+    { che: 'tinh', env: gitGia('^cat-file blob [^ ]+:tu_chay/cau_hinh[.]json$'), chua: ['tu_chay/cau_hinh.json'], soLyDo: 1 });
   // Chỗ CHỈ đọc qua try/catch (A8 đọc .claude/settings.json): lỗi git phải ném ra thành [CONG], không bị nuốt thành [A8] "mất hook người gác"
   ca('TU-CHAY-6 A1 git giả tự giết ở cat-file .claude/settings.json (chế độ tinh — chỉ A8 đọc, qua try/catch) → một dòng ✗ [CONG], không [A8]', A1_PR, 'ĐỎ',
-    { che: 'tinh', env: gitGia('^cat-file blob \\S+:\\.claude/settings\\.json$'), chua: ['.claude/settings.json'], khong: ['[A8]'], soLyDo: 1 });
+    { che: 'tinh', env: gitGia('^cat-file blob [^ ]+:[.]claude/settings[.]json$'), chua: ['.claude/settings.json'], khong: ['[A8]'], soLyDo: 1 });
   // A1b: git archive (dựng cây gốc, không đường dẫn) hỏng → gốc dựng cây RỖNG, bài thử đỏ trên cây rỗng được tính "đỏ hợp lệ" → cổng ĐẠT oan
   ca('TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan', A1_PR, 'ĐỎ',
-    { che: 'chay', env: gitGia('^archive --format=tar \\S+$'), chua: ['git archive'], soLyDo: 1 });
+    { che: 'chay', env: gitGia('^archive --format=tar [^ ]+$'), chua: ['git archive'], soLyDo: 1 });
 
   // Đột biến: tắt từng kiểm → ca chặn tương ứng thành ĐẠT (nghĩa là bài thử ở trên bắt được kiểm đó)
   let mod = null;

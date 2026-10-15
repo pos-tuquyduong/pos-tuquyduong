@@ -15,7 +15,8 @@ xếp 4 việc đã xong vào danh sách còn phải làm.
 - **Chặn:** mọi khẳng định kèm **tên file + số dòng vừa đọc trong lượt này**, không có thì nói "chưa đọc". Xếp đường
   tiền theo cái khách chạm ở quầy + middleware + khoá trong thân hàm; nhánh hỏng (SX lỗi, mạng) đụng kho/tiền là NẶNG.
 - **Chặn (TU-CHAY-6):** Chú thích trong code cũng là khẳng định — sai thì sửa cùng dòng vá (phiếu + chú thích ghi `cat-file` thoát 1,
-  đo được 128).
+  đo được 128). Phiếu cũng là hồ sơ: ví dụ chép từ phiếu sang luật phải mở hồ sơ việc gốc kiểm lại (B3c GOI-2 bị ghi số của SO-LUONG-1).
+  Số dòng trích của file ĐANG sửa trong cùng việc: kiểm lại ở commit cuối (B5 `thu_cong.js` 643 → 648 → 647 trong một việc).
 
 ## K2 · Phép chốt báo ĐỎ trong khi code đúng
 Đã 12 lần — thường do soi nhầm file, hoặc còn tìm tên biến của bản cũ.
@@ -62,6 +63,8 @@ Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ th�
   báo A19 còn "bước 10"; khối lọc màu chép sang hàm mới → neo HOC-2 khớp 2 lần, chết im lặng; đổi tên phép → mẫu đột biến LẠC.
 - **Chặn (SO-LUONG-1):** cổng "bắt buộc có X" kiểm CÙNG biểu thức với chỗ dùng X — SĐT đã chuẩn hoá, không phải giá trị thô (`" "` lọt
   qua `customer_phone` thô ở orders.js:198; chép cổng có sẵn thì chép luôn lỗ của nó).
+- **Chặn (TU-CHAY-6):** phép tĩnh định nghĩa theo "thân route" → ghi ngay giới hạn "không theo hàm phụ" và liệt kê hàm phụ có ghi
+  (customers-v2.js GET → `fetchSXCustomers` → INSERT): đường ghi qua hàm phụ là đường song song của mọi phép quét route.
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Đã lên production: chặn đơn khai "lấy từ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
