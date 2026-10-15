@@ -254,3 +254,60 @@ thân route "tới `router.` kế tiếp" sai cho `wallets.js` — ca K5 server 
 7. `thu_cong.js` 111–123 s trên máy mây chậm (hạn 120 s): chia lượt song song (AU2-10, khuôn TACH-GL `--luot`) — phiếu dặn chỉ ghi, không làm.
 8. Hook dừng `.claude/hooks/kiem_truoc_khi_dung.cjs` chạy `npm test` mỗi lần máy dừng, kể cả khi một `npm test`/bài thử khác đang chạy → hai
    `thu_cong.js` chồng nhau cùng ETIMEDOUT. Ngoài phạm vi (`.claude/`).
+
+## Kiểm cuối (HEAD 7443b0c — code cuối ở 395b142, sau đó chỉ hồ sơ)
+- Bằng chứng đỏ lần 3 (git giả bash) trên `cong.js` chưa vá: `thu_cong.js` 334 phép · **7 hỏng** (119,6 s); HEAD 334 · 0 (117,5 s).
+- `dot_bien.py` 5 đột biến `thu_cong` chạy lại với git giả bash: đối chứng xanh · **5/5 bị bắt** (13 đột biến còn lại không đụng
+  `thu_cong.js`, kết quả lần 3 giữ: 18/18).
+- `npm test` một mình (sau mọi sửa, cây sạch = 7443b0c): **PASS 61 · FAIL 0 · CẢNH BÁO 4** — `thu_cong.js` 84,4 s (máy nhanh lại; số
+  đo trong ngày 73 → 117 → 84 s, Câu hỏi 5 vẫn đứng). `--day-du` chạy trên 2e43901 (65/0/4); từ đó chỉ đổi chú thích `kiem_tra`,
+  `KHUON_LOI.md`, git giả của `thu_cong.js`, neo phép A4 — không đụng `client/`, không chạy lại `--day-du`.
+- `thu_cong_cu.js` 105/0 · `thu_TOCDO1.js` 42/0 · `thu_nguoi_gac.js` 924 ca + 179 phép XANH (trong `npm test` trên).
+
+## Nghiệm thu — đếm từng mục (bằng chứng trên HEAD)
+- **A1** ĐỦ: `cong.js` blob ném khi `status === null || error`, 128 → null; `bCH`/`bS` ngoài try; `:266` archive ném. Ca `thu_cong.js`
+  A1 chay (chua đường dẫn, khong "Received null", soLyDo 1), A1 tinh cau_hinh, A1 tinh settings (khong [A8]), A1b (chua "git archive"),
+  A14 khong [CONG]. Gốc 7 hỏng → HEAD 0. Đột biến 5/5. Số 1 → 128 ghi rõ (phiếu sai số).
+- **A2** ĐỦ: E14 `kiem_tra` (a) một cảnh báo gộp = `packages.js:194, products.js:57, sync.js:147`; (b) bánh cóc `NGUONG_ROUTE_GHI_KHONG_LOIGHI = 51`
+  → đúng ngưỡng, pass. Ca `thu_TOCDO1.js` R0–R11b + K5 server thật 42/0 (gốc 3 hỏng). Đột biến 7/7. Giới hạn hàm phụ ghi ở chú thích + Phát hiện 4.
+- **A3** ĐỦ: skill bước 4 (tự xét A11/A12 từ `bang_chung_do.txt`, một câu hỏi, `cong.js tinh`, `[A19]/[A8]` bình thường); ra-soát
+  `SubagentHandback` CUỐI CÙNG, BẮT BUỘC. Phép `thu_cong_cu.js` ×2 (gốc đỏ). Đột biến 3/3. Người gác CHO `node tu_chay/cong.js tinh …` (nhật ký).
+- **A4** ĐỦ: `KHUON_LOI.md` 116/120 — K1 (+3 câu), K3 (+2 câu), K4 (+2 câu), K7 (+1 câu); phép A4 7 neo (gốc đỏ). Q2 chốt K3/K7.
+- **A5** ĐỦ: đo riêng 3 lần hai mốc (6/3 s sáng · 11/5 s chiều) < 30 s → không đổi code, ghi số đo.
+- **A6** ĐỦ: `PHIEN_BAN` 1.6.0; THIET_KE B15 mục TU-CHAY-6; phép `thu_cong_cu.js` + `thu_nguoi_gac.js:709` (gốc đỏ). Cảnh báo khớp byte ×3 chờ cài.
+- **A7** ĐỦ (có lệch chữ đã nói thẳng): `npm test` 61/0/4, `--day-du` 65/0/4; `dot_bien.py` 18/18 có đối chứng; VS- thiếu ở các chỗ chữ /
+  một đường — mục "Lệch chữ A7", chủ quán chốt.
+
+## Báo cáo 7 mục
+
+```
+VIỆC:        TU-CHAY-6 — Bộ khung: cổng không sập khi git hỏng, phép tĩnh mới, luật K1/K3/K4, skill bước 4, bài bộ khung chạy có điều kiện
+ĐÃ SỬA:      tu_chay/cong.js:30–37 — blob() ném "git cat-file hỏng (<sha>:<p>): <lý do>" khi status null / error; 128 → null (chú thích đúng số đo)
+             tu_chay/cong.js:141–143, :156–158 — blob ra ngoài try (JSON.parse chỉ khi !== null) · :273 — giaiNen cây gốc thất bại → ném (A1b)
+             kiem_tra_truoc_khi_giao.js:523–565 — E14: NGUONG_ROUTE_GHI_KHONG_LOIGHI = 51, xetBanhCoc, quetRouteGhi, một cảnh báo gộp (a), bánh cóc cảnh báo (b)
+             tu_chay/skill_lam_viec.md:56–60 — bước 4 tự xét A11/A12 + cong.js tinh · tu_chay/lenh_ra_soat.md:71–73 — SubagentHandback CUỐI, BẮT BUỘC
+             KHUON_LOI.md K1/K3/K4/K7 (+12 dòng, 116/120) · tu_chay/PHIEN_BAN 1.6.0 · tu_chay/THIET_KE.md:883–901 mục TU-CHAY-6
+             bài thử: tu_chay/thu_cong.js (gitGia bash, 4 ca TU-CHAY-6, ca A14 khong [CONG], soLyDo, bọc cong() đoạn đột biến) · cong_cu/thu_TOCDO1.js (R0–R11b, K5)
+             · tu_chay/thu_cong_cu.js (A3 ×2, A4, A6 ×2) · tu_chay/thu_nguoi_gac.js:709 (1.6.0) · viec/TU-CHAY-6/dot_bien.py (18 đột biến, đối chứng, lọc sập)
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ: thu_cong.js 334 phép · 7 hỏng (A1 "Received null" / không nêu đường dẫn, A1 tinh "reading 'ban_cai'",
+             settings.json thành [A8], A1b cổng ĐẠT oan) · thu_TOCDO1.js 17 đạt · 3 hỏng (R0/R0b/R0c) · thu_cong_cu.js 105 phép · 5 hỏng ·
+             thu_nguoi_gac.js 1 hỏng (PHIEN_BAN); sau khi vá → XANH: 334/0 · 42/0 · 105/0 · 924 ca + 179 phép. Đột biến 18/18 bị bắt, đối chứng 4/4 xanh.
+ĐÃ RÀ K4:    grep "blob(" cong.js → 18 chỗ, một hàm → một chỗ vá; grep "JSON.parse(blob" → 2 chỗ, vá cả hai; grep "giaiNen(" → 3 chỗ gọi:
+             :266 ném, :229 cố ý bỏ qua (128 hợp lệ), :236 ghi Phát hiện 5 · grep "1.5.0" → thu_cong_cu.js:459 + thu_nguoi_gac.js:709, sửa cả hai
+             (.claude/tu_chay/* cấm) · grep "quetRouteGhi(\|xetBanhCoc(" kiem_tra → đúng 2 mỗi tên · thân route 136/136 kết `});`/`);` cột 0
+             (orders.js:1357 `},\n);`) · "6 mục"/"bước 10" không mọc · kiem_neo.py: 3 neo HỎNG có sẵn trên gốc (refunds/damages/PHIEN_BAN 1.4.0)
+CHƯA KIỂM:   - Máy GitHub của cổng: thu_cong.js 84–123 s trong ngày trên máy mây này (hạn 120 s, không nới) — ngày máy chậm cổng chay sẽ đỏ
+               ETIMEDOUT như 3 lần hôm nay (Câu hỏi 5, Phát hiện 7). Số đo một máy, một ngày, nhiễu ±5 s.
+             - Hành vi thật trên Replit "lúc bận không sinh được git" (TOC-DO-1 CHƯA KIỂM) — chỉ tái hiện bằng git giả SIGKILL/ENOENT.
+             - Route GET ghi QUA HÀM PHỤ (customers-v2.js ×4) — phép E14 không thấy, đúng chữ phiếu; chưa có phép (Phát hiện 4).
+             - Miễn `// GET-ghi:` dạng từ khoá đứng TRƯỚC run( (Phát hiện 6) — chưa có ca; ba route thật không ở dạng này.
+             - Chỗ vá là CHỮ chỉ có BV-, không VS- (lệch chữ A7 — chờ chủ quán); K1/K3/K7 câu mới không có đột biến riêng (phép A4 neo 7 cụm).
+             - Người gác với lệnh skill bước 4 chỉ kiểm bằng nhật ký (CHO 12 lần), không thêm ca vào thu_nguoi_gac (tránh A11 bài cũ sửa xanh).
+             - `--day-du` không chạy lại sau 2e43901 (từ đó chỉ đổi chú thích / luật / git giả bash / neo phép).
+             - `.claude/` chưa cài (3 cảnh báo khớp byte) — chủ quán chạy `bash tu_chay/cai_dat.sh`; cổng A8 đỏ tới lúc đó.
+GIT:         7443b0c TU-CHAY-6: ho so — bang chung do lan 3 (bash), bao cao soat vong 2, Bai hoc, Cau hoi 5 (thu_cong sat han 120 s), Phat hien 7-8
+             395b142 TU-CHAY-6: thu_cong.js git gia bash (bot ~5 s, 334/0); KHUON_LOI K1 (phieu cung la ho so, so dong troi) + K4 (ham phu) — 116/120; phep A4 neo 'GOI-2 B3c'
+BÀI HỌC:     KHOÁ 3 (làm) + 3 (đề xuất) · NGUYÊN TẮC 3 (đã ghi KHUON_LOI) · BỎ 7 — chi tiết ở ## Bài học (bước 11)
+```
+
+HEAD ĐÃ KIỂM: 7443b0c
