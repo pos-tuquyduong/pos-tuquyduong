@@ -1,12 +1,12 @@
 # AUDIT-3 A2 — kết quả từng tên trên HEAD (code chạy thật = 31a5810; sinh bằng script từ nhật ký lần chạy 15.10.2026, máy mây)
 
-Nhãn theo AUDIT-3: **HỎNG-sập** = bộ cũ ghi LẠC / "bị bắt" nhưng đầu ra có dấu bài thử sập (`--xep` / lớp bọc). Mỗi tên không BẮT có
+Nhãn theo AUDIT-3: **HỎNG-sập** = bộ cũ ghi LẠC / BẮT / "bị bắt" nhưng dòng khớp hay đầu ra có dấu sập (`Bài thử sập`, `Giả lập: SẬP`, `SẬP giữa kịch bản` — `--xep` / lớp bọc, soát vòng 1). Mỗi tên không BẮT có
 cột "vì sao / so AUDIT-2". Tên BẮT liệt kê gọn cuối mỗi bộ. Lệnh chạy lại ở từng mục; nhật ký gốc để ở thư mục nháp (không chép vào kho).
 
 ## AUDIT-1 trừ C2F (88 = G3 4 · A3 16 · B1 8 · C2 3 · D1 57)
 `python3 viec/AUDIT-1/dot_bien.py G3 A3 B1 C2 D1 -j 3 (988 s)`
 
-Tổng 88 · BẮT 82 · HỎNG 2 · HỎNG-sập 1 · LẠC 2 · SỐNG 1
+Tổng 88 · BẮT 81 · HỎNG 2 · HỎNG-sập 2 · LẠC 2 · SỐNG 1
 
 | tên | nhãn | đầu ra (rút gọn) | vì sao / so AUDIT-2 |
 |---|---|---|---|
@@ -16,17 +16,19 @@ Tổng 88 · BẮT 82 · HỎNG 2 · HỎNG-sập 1 · LẠC 2 · SỐNG 1
 | `G3-sap` | HỎNG-sập | [cong_cu/gia_lap/chay.js --den-kb 1 thoát 2] Giả lập: SẬP — /tmp/audit1_ppl_5zjm/db_a6_rv6mj/kho/server/routes/orders.js | cố ý: khung AUDIT-1 ghi LẠC, AUDIT-3 xếp HỎNG-sập (`--xep`) — như AUDIT-2 |
 | `!D1-E11-P20` | LẠC | [kiem_tra_truoc_khi_giao.js thoát 1] ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md. | LẠC như AUDIT-2 (bộ kiểm đỏ nhưng câu ✗ của phép khác) — không đổi |
 | `!D1-E11-P26a` | LẠC | [kiem_tra_truoc_khi_giao.js thoát 1] ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md. | LẠC như AUDIT-2 — không đổi |
+| `!D1-E11-P26b` | HỎNG-sập | [kiem_tra_truoc_khi_giao.js] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.1 s)  → ✗ A1b huỷ đơn ví completed → 200, ví +2 |  |
 
-BẮT: `A3-GITADD-bo-A`, `A3-GITCOMMIT-bo-a`, `A3-GITPUSH-moi-nhanh`, `A3-SED-i-ngan`, `A3-RM-bo-realpath`, `A3-CURL-moi-host`, `A3-LN-dao-s`, `A3-G1CAM-theoten`, `A3-FINDCAM-bo-delete`, `A3-NPM-them-install`, `A3-MKDIR-bo-khung`, `A3-TARX-moi-dich`, `A3-FILEC-bo-ngan`, `A3-BGAN-bo-PATH`, `A3-CCLA-them-la`, `A3-GHIDUOC-bo-khung`, `B1-A11-dao-goc`, `B1-A11-bo-xanh-PR`, `B1-A6-bo-phamvi`, `B1-A10-bo-filecam`, `B1-A7-noi-tieude`, `B1-A12-bo`, `B1-laBaiThu-noi-slash`, `B1-A14-bo-dang-nhanh`, `C2-orders-bo-diem-ban`, `C2-sc-bo-diem-ma`, `C2-loyalty-redeem-tru-0`, `D1-A1-fffd`, `D1-B1-json-tran`, `D1-C1-them-fetch`, `D1-E1-unitprice`, `D1-E7-paydebt`, `D1-E8-backup`, `D1-E12-vi-ngoai`, `D1-K1-env-tho`, `D1-S3-vi-lech`, `D1-F3-test-thieu`, `D1-A2-server-cu-phap`, `D1-A2c-client-cu-phap`, `D1-B2-login-2-cho`, `D1-B-handleSE`, `D1-B-co-song-song`, `D1-B-pathname`, `D1-B-deadcodes-thieu`, `D1-B-eb-getDerived`, `D1-B-eb-ton-tai`, `D1-B-main-boc`, `D1-B-layout-boc`, `D1-B-key`, `D1-B-ahref-api`, `D1-B-pos6-loginTime`, `D1-D-build-prod`, `D1-E-gia-0`, `D1-E2-authz-tho`, `D1-E-trangthai-dungma`, `D1-E-danhsach-trang`, `D1-E-claim-chiem`, `D1-E-ndiem-chiem`, `D1-E-vi-tuongdoi`, `D1-E-vi-trang5`, `D1-K-4ca`, `D1-K-data`, `D1-F-attached`, `D1-F-dist`, `D1-E1b-tra-gia`, `D1-E9-claim-kiem`, `D1-E9-ndiem-kiem`, `D1-E9-claim-dung`, `D1-E9-ndiem-dung`, `D1-E10-doisoat-tx`, `D1-E10-doisoat-trang`, `D1-B-deadcodes-service`, `D1-B-pos5-query`, `!D1-E11-P21`, `!D1-E11-P26b`, `!D1-T1-nguoi-gac`, `!D1-T1b-cong-cu`, `!D1-T1c-cong`, `B1-A8-noi`, `B1-A9-noi`, `B1-A13-bo-daydu`, `B1-A15-dao-fork`
+BẮT: `A3-GITADD-bo-A`, `A3-GITCOMMIT-bo-a`, `A3-GITPUSH-moi-nhanh`, `A3-SED-i-ngan`, `A3-RM-bo-realpath`, `A3-CURL-moi-host`, `A3-LN-dao-s`, `A3-G1CAM-theoten`, `A3-FINDCAM-bo-delete`, `A3-NPM-them-install`, `A3-MKDIR-bo-khung`, `A3-TARX-moi-dich`, `A3-FILEC-bo-ngan`, `A3-BGAN-bo-PATH`, `A3-CCLA-them-la`, `A3-GHIDUOC-bo-khung`, `B1-A11-dao-goc`, `B1-A11-bo-xanh-PR`, `B1-A6-bo-phamvi`, `B1-A10-bo-filecam`, `B1-A7-noi-tieude`, `B1-A12-bo`, `B1-laBaiThu-noi-slash`, `B1-A14-bo-dang-nhanh`, `C2-orders-bo-diem-ban`, `C2-sc-bo-diem-ma`, `C2-loyalty-redeem-tru-0`, `D1-A1-fffd`, `D1-B1-json-tran`, `D1-C1-them-fetch`, `D1-E1-unitprice`, `D1-E7-paydebt`, `D1-E8-backup`, `D1-E12-vi-ngoai`, `D1-K1-env-tho`, `D1-S3-vi-lech`, `D1-F3-test-thieu`, `D1-A2-server-cu-phap`, `D1-A2c-client-cu-phap`, `D1-B2-login-2-cho`, `D1-B-handleSE`, `D1-B-co-song-song`, `D1-B-pathname`, `D1-B-deadcodes-thieu`, `D1-B-eb-getDerived`, `D1-B-eb-ton-tai`, `D1-B-main-boc`, `D1-B-layout-boc`, `D1-B-key`, `D1-B-ahref-api`, `D1-B-pos6-loginTime`, `D1-D-build-prod`, `D1-E-gia-0`, `D1-E2-authz-tho`, `D1-E-trangthai-dungma`, `D1-E-danhsach-trang`, `D1-E-claim-chiem`, `D1-E-ndiem-chiem`, `D1-E-vi-tuongdoi`, `D1-E-vi-trang5`, `D1-K-4ca`, `D1-K-data`, `D1-F-attached`, `D1-F-dist`, `D1-E1b-tra-gia`, `D1-E9-claim-kiem`, `D1-E9-ndiem-kiem`, `D1-E9-claim-dung`, `D1-E9-ndiem-dung`, `D1-E10-doisoat-tx`, `D1-E10-doisoat-trang`, `D1-B-deadcodes-service`, `D1-B-pos5-query`, `!D1-E11-P21`, `!D1-T1-nguoi-gac`, `!D1-T1b-cong-cu`, `!D1-T1c-cong`, `B1-A8-noi`, `B1-A9-noi`, `B1-A13-bo-daydu`, `B1-A15-dao-fork`
 
 ## AUDIT-1 C2F (87) + AUDIT-2 A3L còn c2full (13) — cách `c2luoi`
 `python3 viec/AUDIT-3/boc.py --c2luoi -j 3 (1199 s)`
 
-Tổng 100 · BẮT 72 · HỎNG 2 · HỎNG-sập 1 · SỐNG 25
+Tổng 100 · BẮT 71 · HỎNG 2 · HỎNG-sập 2 · SỐNG 25
 
 | tên | nhãn | đầu ra (rút gọn) | vì sao / so AUDIT-2 |
 |---|---|---|---|
 | `C2F-orders-02-insert-quay` | HỎNG-sập | [cong_cu/gia_lap/chay.js thoát 2] Giả lập: SẬP — Error: không tạo được đơn "nợ mẫu": HTTP 500 SQLITE_CONSTRAINT_FOREIGNK | bỏ INSERT pos_orders → giả lập không dựng được đơn mẫu (SẬP) — AUDIT-2 cũng LẠC; AUDIT-3 xếp HỎNG-sập; lưới không phủ nổi vì bỏ câu này thì không có đơn nào (NHẸ) |
+| `C2F-orders-10-insert-quay` | HỎNG-sập | [cong_cu/gia_lap/chay.js] ✗ KB30 → HTTP: SẬP giữa kịch bản: Only finite numbers (not Infinity or NaN) can be passed as a |  |
 | `C2F-orders-14-update-quay` | SỐNG | mọi lệnh thoát 0 | = AUDIT-2 `C2F-orders-13-update-quay` (ghi chú phiếu đăng ký SX) — tên C2F đánh số theo VỊ TRÍ, trượt vì orders.js đổi; NHẸ như a2_bang AUDIT-2 |
 | `C2F-orders-15-insert-quay` | SỐNG | mọi lệnh thoát 0 | = AUDIT-2 `-14-insert` (tạo phiếu đăng ký SX) — NHẸ |
 | `C2F-orders-33-delete-quay` | SỐNG | mọi lệnh thoát 0 | = AUDIT-2 `-36-delete` (pos_promotion_usage mồ côi khi xoá) — NHẸ |
@@ -55,7 +57,7 @@ Tổng 100 · BẮT 72 · HỎNG 2 · HỎNG-sập 1 · SỐNG 25
 | `A3L-goi-giao-them-1` | HỎNG | server/routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | **AU3-3**: neo `[deliveredQty, deliveredQty, now, customer_package_id]` 0 lần — P26c A2 dời trừ lượt vào giao dịch; hồ sơ không ghi; cùng ý P26c `BV-A2-bo-tran` (BẮT) |
 | `A3L-deliver-bo-chan-am` | HỎNG | server/routes/packages.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được | **AU3-3**: PUT /deliver đã bỏ (P26c A4) — hồ sơ không ghi; cùng ý P26c `BV-A4-deliver-song-lai` (BẮT) |
 
-BẮT: `C2F-orders-01-ghiVi-quay`, `C2F-orders-03-update-quay`, `C2F-orders-04-insert-quay`, `C2F-orders-05-update-quay`, `C2F-orders-06-update-quay`, `C2F-orders-07-update-quay`, `C2F-orders-08-insert-quay`, `C2F-orders-09-insert-quay`, `C2F-orders-10-insert-quay`, `C2F-orders-11-update-quay`, `C2F-orders-12-update-quay`, `C2F-orders-13-insert-quay`, `C2F-orders-16-insert-quay`, `C2F-orders-17-update-quay`, `C2F-orders-18-insert-quay`, `C2F-orders-19-update-quay`, `C2F-orders-20-update-quay`, `C2F-orders-21-delete-quay`, `C2F-orders-22-update-quay`, `C2F-orders-23-delete-quay`, `C2F-orders-24-update-quay`, `C2F-orders-25-update-quay`, `C2F-orders-26-insert-quay`, `C2F-orders-27-update-quay`, `C2F-orders-28-delete-quay`, `C2F-orders-29-update-quay`, `C2F-orders-30-delete-quay`, `C2F-orders-31-delete-quay`, `C2F-orders-32-delete-quay`, `C2F-orders-35-delete-quay`, `C2F-orders-36-delete-quay`, `C2F-orders-37-delete-quay`, `C2F-orders-38-insert-quay`, `C2F-refunds-01-insert-quay`, `C2F-refunds-02-update-quay`, `C2F-refunds-03-update-quay`, `C2F-refunds-04-ghiVi-quay`, `C2F-refunds-05-update-quay`, `C2F-refunds-06-ghiVi-quay`, `C2F-refunds-07-update-quay`, `C2F-wallets-01-update-quay`, `C2F-wallets-02-insert-quay`, `C2F-wallets-03-insert-quay`, `C2F-wallets-04-ghiVi-quay`, `C2F-wallets-05-ghiVi-quay`, `C2F-wallets-06-ghiVi-quay`, `C2F-wallets-07-ghiVi-quay`, `C2F-wallets-08-ghiVi-quay`, `C2F-wallets-09-update-quay`, `C2F-wallets-10-insert-quay`, `C2F-damages-01-ghiVi-quan-tri`, `C2F-damages-02-insert-quan-tri`, `C2F-packages-02-update-quan-tri`, `C2F-signup-codes-01-update-khach-app`, `C2F-signup-codes-02-insert-khach-app`, `C2F-signup-codes-03-update-khach-app`, `C2F-signup-codes-04-insert-khach-app`, `C2F-discount-codes-01-insert-quan-tri`, `C2F-discount-codes-05-update-quay`, `C2F-rewards-01-insert-quan-tri`, `C2F-loyalty-01-insert-khach-app`, `C2F-loyalty-02-insert-khach-app`, `C2F-loyalty-03-insert-khach-app`, `C2F-don-mo-rong-01-update-quay`, `A3L-redeem-bo-chan-diem`, `A3L-redeem-tru-them-1`, `A3L-redeem-ma-dung-2-lan`, `A3L-earn-lam-tron-len`, `A3L-goi-bo-kiem-trang-thai`, `A3L-goi-lay-ngay-them-1`, `A3L-goi-huy-lay-khong-tra-luot`, `A3L-goi-xoa-lay-khong-tra-luot`
+BẮT: `C2F-orders-01-ghiVi-quay`, `C2F-orders-03-update-quay`, `C2F-orders-04-insert-quay`, `C2F-orders-05-update-quay`, `C2F-orders-06-update-quay`, `C2F-orders-07-update-quay`, `C2F-orders-08-insert-quay`, `C2F-orders-09-insert-quay`, `C2F-orders-11-update-quay`, `C2F-orders-12-update-quay`, `C2F-orders-13-insert-quay`, `C2F-orders-16-insert-quay`, `C2F-orders-17-update-quay`, `C2F-orders-18-insert-quay`, `C2F-orders-19-update-quay`, `C2F-orders-20-update-quay`, `C2F-orders-21-delete-quay`, `C2F-orders-22-update-quay`, `C2F-orders-23-delete-quay`, `C2F-orders-24-update-quay`, `C2F-orders-25-update-quay`, `C2F-orders-26-insert-quay`, `C2F-orders-27-update-quay`, `C2F-orders-28-delete-quay`, `C2F-orders-29-update-quay`, `C2F-orders-30-delete-quay`, `C2F-orders-31-delete-quay`, `C2F-orders-32-delete-quay`, `C2F-orders-35-delete-quay`, `C2F-orders-36-delete-quay`, `C2F-orders-37-delete-quay`, `C2F-orders-38-insert-quay`, `C2F-refunds-01-insert-quay`, `C2F-refunds-02-update-quay`, `C2F-refunds-03-update-quay`, `C2F-refunds-04-ghiVi-quay`, `C2F-refunds-05-update-quay`, `C2F-refunds-06-ghiVi-quay`, `C2F-refunds-07-update-quay`, `C2F-wallets-01-update-quay`, `C2F-wallets-02-insert-quay`, `C2F-wallets-03-insert-quay`, `C2F-wallets-04-ghiVi-quay`, `C2F-wallets-05-ghiVi-quay`, `C2F-wallets-06-ghiVi-quay`, `C2F-wallets-07-ghiVi-quay`, `C2F-wallets-08-ghiVi-quay`, `C2F-wallets-09-update-quay`, `C2F-wallets-10-insert-quay`, `C2F-damages-01-ghiVi-quan-tri`, `C2F-damages-02-insert-quan-tri`, `C2F-packages-02-update-quan-tri`, `C2F-signup-codes-01-update-khach-app`, `C2F-signup-codes-02-insert-khach-app`, `C2F-signup-codes-03-update-khach-app`, `C2F-signup-codes-04-insert-khach-app`, `C2F-discount-codes-01-insert-quan-tri`, `C2F-discount-codes-05-update-quay`, `C2F-rewards-01-insert-quan-tri`, `C2F-loyalty-01-insert-khach-app`, `C2F-loyalty-02-insert-khach-app`, `C2F-loyalty-03-insert-khach-app`, `C2F-don-mo-rong-01-update-quay`, `A3L-redeem-bo-chan-diem`, `A3L-redeem-tru-them-1`, `A3L-redeem-ma-dung-2-lan`, `A3L-earn-lam-tron-len`, `A3L-goi-bo-kiem-trang-thai`, `A3L-goi-lay-ngay-them-1`, `A3L-goi-huy-lay-khong-tra-luot`, `A3L-goi-xoa-lay-khong-tra-luot`
 
 ## AUDIT-2 A3L · B3 · A3P · D2K (30; bỏ A3B)
 `python3 viec/AUDIT-2/dot_bien.py A3L B3 A3P D2K -j 3 (406 s)`
@@ -86,56 +88,56 @@ Tổng 179 · BẮT 125 · HỎNG 1 · HỎNG-sập 1 · LẠC 2 · SỐNG 50
 
 | tên | nhãn | đầu ra (rút gọn) | vì sao / so AUDIT-2 |
 |---|---|---|---|
-| `BB-I1-sql-1-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-sql-2-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-sql-3-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-sql-4-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-js-1-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-js-2-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-js-6-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-js-7-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-js-8-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I1-js-9-bo-ve` | SỐNG | mọi tầng xanh |  |
+| `BB-I1-sql-1-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-sql-2-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-sql-3-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-sql-4-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-js-1-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-js-2-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-js-6-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-js-7-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-js-8-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I1-js-9-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
 | `BB-I2-sql-2-bo-ve` | LẠC | [cong_cu/thu_gia_lap.js thoát 1] ✗ mã gắn đơn có thật; mã ĐÃ dùng của đơn đã xoá → I2 ra 0 dòng  — ["mã DUNG1 mồ côi (or | LẠC-mẫu: thu_gia_lap đỏ đúng ca tay I2 của P26c ('✗ mã gắn đơn có thật…') nhưng tên ca không bắt đầu bằng `I2` nên bộ sinh không nhận — thực chất BẮT; AU3-5 NHẸ (đặt tên ca tay theo `I<n>`) |
 | `BB-I2-sql-3-bo-ve` | LẠC | [cong_cu/thu_gia_lap.js thoát 1] ✗ mã gắn đơn có thật; mã ĐÃ dùng của đơn đã xoá → I2 ra 0 dòng  — ["mã DUNG2 mồ côi (or | như trên — AU3-5 |
-| `BB-I3-sql-1-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I3-sql-2-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I3-sql-3-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I3-sql-4-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I3-sql-1-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I3-sql-1-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I4-js-1-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I4-js-1-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I6-js-1-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I6-js-1-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-1-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-3-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-4-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-5-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-1-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-1-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-2-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I8-js-2-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-3-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-4-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-1-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-1-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-2-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-2-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-3-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-3-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-4-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I9-js-4-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I12-js-2-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I13-sql-1-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I14-sql-10-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I14-sql-11-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I14-sql-1-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I14-sql-2-duong` | SỐNG | mọi tầng xanh |  |
-| `BB-I14-sql-2-am` | SỐNG | mọi tầng xanh |  |
-| `BB-I16-sql-1-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I16-sql-4-bo-ve` | SỐNG | mọi tầng xanh |  |
-| `BB-I16-js-2-duong` | SỐNG | mọi tầng xanh |  |
+| `BB-I3-sql-1-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I3-sql-2-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I3-sql-3-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I3-sql-4-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I3-sql-1-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I3-sql-1-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I4-js-1-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I4-js-1-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I6-js-1-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I6-js-1-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-1-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-3-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-4-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-5-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-1-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-1-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-2-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I8-js-2-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-3-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-4-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-1-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-1-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-2-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-2-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-3-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-3-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-4-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I9-js-4-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I12-js-2-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I13-sql-1-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I14-sql-10-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I14-sql-11-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I14-sql-1-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I14-sql-2-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I14-sql-2-am` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I16-sql-1-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I16-sql-4-bo-ve` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
+| `BB-I16-js-2-duong` | SỐNG | mọi tầng xanh | như AUDIT-2 (b2_bang.md: (a) thiếu ca tay / (b) vế thừa) — NHẸ |
 | `BB-I18-sql-10-bo-ve` | SỐNG | mọi tầng xanh | MỚI (I18 từ P26c): vế `t.type = 'adjust'` trong `(adjust AND amount < 0)` → 1=1: số âm chỉ có ở purchase (đã đếm) và adjust → (b) vế thừa về mặt dữ liệu thật, giữ cho rõ nghĩa — NHẸ |
 | `BB-I18-js-1-duong` | SỐNG | mọi tầng xanh | MỚI: `Math.abs(total_topup − nạp) > 0.5` chỉ còn bắt chiều total_topup > nạp → (a) thiếu ca tay 'tổng nạp 99.999 < sổ' — NHẸ, đề xuất ca thu_gia_lap |
 | `D2-sai-chuoi` | HỎNG | chuỗi gốc khớp 0 lần, cần 1 | cố ý — như AUDIT-2 |
