@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""AUDIT-3 A1 — lớp bọc ĐỐI CHỨNG cho các bộ đột biến cũ (KHÔNG sửa file bộ cũ). Chạy ở GỐC kho:
+
+    python3 viec/AUDIT-3/boc.py <P26b|P26c|GOI-1|GOI-2> [tên…] [-j N]   # bộ khuôn GOI-1 qua lớp bọc: đối chứng đếm số, sập = HỎNG
+    python3 viec/AUDIT-3/boc.py --sap            # mỗi bộ một đột biến cố ý SẬP (+ một sai chuỗi) → phải HỎNG / LẠC-sập, không BẮT
+    python3 viec/AUDIT-3/boc.py --xep <file…>    # đầu ra bộ khung AUDIT-1 / LUOI-1 / TACH-GL: dòng LẠC có dấu sập → HỎNG-sập
+    python3 viec/AUDIT-3/boc.py --c2luoi [tên…] [-j N] [--json <nháp>]   # C2F của AUDIT-1 + A3L c2full của AUDIT-2, cách c2luoi
+    python3 viec/AUDIT-3/boc.py --luoi1 [tên…] [-j N]   # LUOI-1 trên kho nông: dòng `git show 9521cec` → '' trong bộ nhớ, bỏ GOC-*
+
+Chấm theo AUDIT-3: HỎNG = neo không áp được / bài thử SẬP (`Bài thử sập`, `Giả lập: SẬP`) · BẮT = bộ báo đạt và không sập ·
+LẠC = thoát ≠ 0 không mẫu · SỐNG = thoát 0. Bộ khuôn GOI-1: nạp nguồn cắt tới `if __name__`, thay `subprocess` bằng vỏ giữ đầu ra, gọi
+`chay1` + `ap` CỦA bộ (bản sao, lệnh, dọn tạm đều của bộ). Đối chứng = `chay1` với danh sách đổi rỗng → phải thoát 0 và dòng tổng khớp
+số đo mục 0 của ke_hoach.md (DOI_CHUNG), lệch thì DỪNG thoát 4. Cuối: git status (ngoài viec/AUDIT-3/) không đổi, không thì thoát 3.
+"""
+import contextlib, importlib.util, io, os, re, signal, shutil, subprocess, sys, threading
+from concurrent.futures import ThreadPoolExecutor
+sys.dont_write_bytecode = True
+
+GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+VIEC = os.path.join(GOC, 'viec')
+SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP')
+DOI_CHUNG = {'cong_cu/thu_P26c.js': 105, 'cong_cu/thu_GOI1.js': 101, 'cong_cu/thu_P26b.js': 66, 'cong_cu/thu_gia_lap.js': 145}
+O, CH = 'routes/orders.js', 'cong_cu/gia_lap/chay.js'
+KHUON = ('P26b', 'P26c', 'GOI-1', 'GOI-2')
+SAP_KHUON = [(O, '// 1. Tạo đơn hàng', '}}}{{{', 1)]   # orders.js hỏng cú pháp → máy chủ không nạp → bài thử sập
+SAI_KHUON = [(O, 'CHUOI_KHONG_CO_TRONG_FILE_AUDIT3', 'x', 1)]
+
+
+class Vo:   # vỏ thay `subprocess` trong không gian tên của bộ: chạy thật, giữ kết quả theo luồng
+  TimeoutExpired = subprocess.TimeoutExpired
+  def __init__(self): self.tl = threading.local()
+  def run(self, *a, **k):
+    r = subprocess.run(*a, **k); self.tl.r = r; return r
+
+
+def nap_khuon(bo):
+  p = os.path.join(VIEC, bo, 'dot_bien.py')
+  src = open(p, encoding='utf-8').read()
+  ns = {'__file__': p, '__name__': f'boc_{bo}'}
+  exec(compile(src[:src.index('\nif __name__')], p, 'exec'), ns)
+  ns['subprocess'] = vo = Vo()
+  return ns, vo
+
+
+def ra_cua(r): return re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
+
+
+def cham(ns, vo, db):
+  vo.tl.r = None
+  try: ten, dat, chi = ns['chay1'](db)
+  except Exception as e: return db[0], 'HỎNG', f'bọc: chay1 ném {e}'
+  r = vo.tl.r
+  if r is None: return ten, 'HỎNG', chi   # ap của bộ từ chối (neo không khớp / đích ngoài tạm) — bài chưa chạy
+  ra = ra_cua(r)
+  if SAP.search(ra) or r.returncode == 2: return ten, 'HỎNG-sập', (SAP.search(ra) or re.search(r'.*', ra)).group(0)[:160] + f' · thoát {r.returncode}'
+  return ten, ('BẮT' if dat else 'LẠC' if r.returncode != 0 else 'SỐNG'), chi
+
+
+def doi_chung(ns, vo, cach):
+  ten, kq, chi = cham(ns, vo, (f'sạch:{cach}', cach, [], r'$^'))
+  r, ra = vo.tl.r, ra_cua(vo.tl.r) if vo.tl.r else ''
+  tong = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
+  bai = next((a for a in (r.args if r else []) if str(a).startswith('cong_cu/') or str(a).endswith('chay.js')), '?')
+  bai = os.path.relpath(bai, GOC) if os.path.isabs(str(bai)) else str(bai)
+  if tong: ok = int(tong.group(2)) == 0 and (bai not in DOI_CHUNG or int(tong.group(1)) == DOI_CHUNG[bai]); mo = tong.group(0)
+  else: ok = bool(re.search(r'Giả lập: \d+ kịch bản · \d+ bất biến · ĐẠT|KB\d+ · \d+ bất biến · ĐẠT', ra)); mo = (ra.strip().splitlines() or ['(không in gì)'])[-1][:120]
+  ok = ok and kq == 'SỐNG'
+  print(('  ✓ ' if ok else '  ✗ ') + f'đối chứng {cach} ({bai}): {mo}' + ('' if ok else f' — {kq} · {chi}'))
+  return ok
+
+
+def anh_kho():
+  st = subprocess.run(['git', 'status', '--porcelain', '--untracked-files=all'], cwd=GOC, capture_output=True, text=True).stdout
+  return '\n'.join(l for l in st.splitlines() if not l[3:].startswith('viec/AUDIT-3/'))
+
+
+def chay_khuon(bo, ten_chon, j, them=()):
+  ns, vo = nap_khuon(bo)
+  ds = [d for d in ns['DOT_BIEN'] if not ten_chon or d[0] in ten_chon] + list(them)
+  if not ds: print('không có đột biến nào khớp', ten_chon); return 2, []
+  print(f'AUDIT-3 bọc {bo}: {len(ds)} đột biến · -j {j} · đối chứng {sorted({d[1] for d in ds})}', flush=True)
+  if not all([doi_chung(ns, vo, c) for c in sorted({d[1] for d in ds})]):
+    print('  DỪNG — đối chứng đỏ hoặc lệch số đo, không chấm gì'); return 4, []
+  with ThreadPoolExecutor(max_workers=j) as ex: kq = list(ex.map(lambda d: cham(ns, vo, d), ds))
+  for ten, k, chi in kq: print(f'{k:9} {ten}  · {chi[:200]}', flush=True)
+  dem = {x: sum(k == x for _, k, _ in kq) for x in ('BẮT', 'SỐNG', 'HỎNG', 'HỎNG-sập', 'LẠC')}
+  print(f'\n  {bo}: tổng {len(kq)} · ' + ' · '.join(f'{x} {v}' for x, v in dem.items()))
+  return 0, kq
+
+
+def nap_module(bo, tep='dot_bien.py'):
+  sp = importlib.util.spec_from_file_location(f'boc_{bo}'.replace('-', '_'), os.path.join(VIEC, bo, tep))
+  m = importlib.util.module_from_spec(sp); sp.loader.exec_module(m); return m
+
+
+def nap_luoi1():   # kho nông không có 9521cec: KB10_GOC = '' (chỉ GOC-* cần, không chạy) — không sửa file LUOI-1
+  p = os.path.join(VIEC, 'LUOI-1', 'dot_bien.py')
+  src = open(p, encoding='utf-8').read()
+  if subprocess.run(['git', 'cat-file', '-e', '9521cec'], cwd=GOC, capture_output=True).returncode != 0:
+    src = re.sub(r'^KB10_GOC = .*$', "KB10_GOC = ''   # boc.py: kho nông, không có 9521cec", src, count=1, flags=re.M)
+    print('(LUOI-1: kho nông — KB10_GOC rỗng trong bộ nhớ, 2 GOC-* không chạy = CHƯA KIỂM)')
+  ns = {'__file__': p, '__name__': 'boc_luoi1'}
+  exec(compile(src, p, 'exec'), ns); return ns
+
+
+def goi_main(ham, argv):   # gọi main() của bộ với argv riêng, in nguyên đầu ra, trả (mã, đầu ra)
+  cu, sys.argv = sys.argv, ['dot_bien.py', *argv]
+  buf = io.StringIO()
+  try:
+    with contextlib.redirect_stdout(buf): ma = ham()
+  finally: sys.argv = cu
+  print(buf.getvalue(), end='', flush=True); return ma, buf.getvalue()
+
+
+def nap_m2():
+  m2 = nap_module('AUDIT-2')
+  cu = m2.K.anh_kho
+  m2.K.anh_kho = lambda: '\n'.join(l for l in cu().split('\n') if not l[3:].startswith('viec/AUDIT-3/'))
+  for s in (signal.SIGINT, signal.SIGTERM): signal.signal(s, m2.K.don)
+  return m2
+
+
+def sap():
+  xau = []
+  for bo in KHUON:
+    _, kq = chay_khuon(bo, ['__khong_co__'], 2, them=[(f'SAP-{bo}', 'thu', SAP_KHUON, r'✗ '), (f'SAI-{bo}', 'thu', SAI_KHUON, r'✗ ')])
+    xau += [(bo, t, k) for t, k, _ in kq if k == 'BẮT']
+  m2 = nap_m2()
+  m2.K.DOT_BIEN.append(('SAP-AUDIT2', 'D2K', 'c2luoi', [('server/' + O, '// 1. Tạo đơn hàng', '}}}{{{', 1)], r'✗ '))
+  _, ra = goi_main(m2.K.main, ['SAP-AUDIT2', '-j', '1']); xau += [('AUDIT-2', 'SAP-AUDIT2', 'BẮT') for l in ra.splitlines() if l.startswith('BẮT ') and 'SAP-AUDIT2' in l]
+  for bo, ns, cach in (('LUOI-1', nap_luoi1(), 'kb1'), ('TACH-GL', vars(nap_module('TACH-GL')), 'gl29')):
+    ns['DOT_BIEN'].append((f'SAP-{bo}', cach, [(CH, 'const sxGia = { loi: false,', '}}}{{{', 1)], [r'KB\d+ → '], 'LẠC'))
+    _, ra = goi_main(ns['main'], [f'SAP-{bo}', '-j', '1']); xau += [(bo, f'SAP-{bo}', 'BẮT') for l in ra.splitlines() if re.match(r'[✓✗] BẮT', l)]
+  sl = nap_module('SO-LUONG-1')
+  ten, dat, chi = sl.chay1(('SAP-SOLUONG1', 'p26c', SAP_KHUON, r'✗ '))
+  print(f"SO-LUONG-1 SAP-SOLUONG1 → {'bị bắt (SAI)' if dat else 'không bắt'} · {chi[:160]}")
+  if dat: xau.append(('SO-LUONG-1', ten, 'BẮT'))
+  print(f'\n  --sap: {len(xau)} bộ báo BẮT khi bài thử sập ' + ('— ĐẠT (không bộ nào)' if not xau else '— KHÔNG ĐẠT: ' + ', '.join(f'{b} {t}' for b, t, _ in xau)))
+  return 1 if xau else 0
+
+
+def xep(tep):
+  dem = {}
+  for p in tep:
+    for l in open(p, encoding='utf-8'):
+      m = re.match(r'[✓✗]?\s*(BẮT|SỐNG|HỎNG|LẠC|TREO)\b', l)
+      if not m: continue
+      k = 'HỎNG-sập' if m.group(1) == 'LẠC' and (SAP.search(l) or 'SẬP' in l) else m.group(1)
+      dem[k] = dem.get(k, 0) + 1
+      if k == 'HỎNG-sập': print('HỎNG-sập ← ' + l.rstrip()[:200])
+  print('  --xep: ' + ' · '.join(f'{k} {v}' for k, v in sorted(dem.items()))); return 0
+
+
+def main():
+  a = sys.argv[1:]
+  j = 4
+  if '-j' in a: i = a.index('-j'); j = int(a[i + 1]); del a[i:i + 2]
+  if not a: print(__doc__); return 2
+  truoc = anh_kho()
+  if a[0] == '--sap': ma = sap()
+  elif a[0] == '--xep': return xep(a[1:])
+  elif a[0] == '--c2luoi':
+    k1 = nap_module('AUDIT-1'); shutil.rmtree(k1.GOC_TAM, ignore_errors=True)
+    m2 = nap_m2()
+    m2.K.DOT_BIEN = [(n, g, 'c2luoi', d, m) for n, g, c, d, m in k1.DOT_BIEN + m2.K.DOT_BIEN if (g == 'C2F' or (g == 'A3L' and c == 'c2full'))]
+    ma, _ = goi_main(m2.K.main, a[1:] + ['-j', str(j)])
+  elif a[0] == '--luoi1':
+    ns = nap_luoi1()
+    ten = [d[0] for d in ns['DOT_BIEN'] if not d[0].startswith('GOC-') and (len(a) == 1 or d[0] in a[1:])]
+    ma, _ = goi_main(ns['main'], ten + ['-j', str(j)])
+  elif a[0] in KHUON: ma, _ = chay_khuon(a[0], a[1:], j)
+  else: print('không hiểu', a[0]); return 2
+  if anh_kho() != truoc: print('  ✗ KHO BẨN — git status ngoài viec/AUDIT-3/ đổi'); return 3
+  print('  ✓ kho thật không đổi (git status ngoài viec/AUDIT-3/)'); return ma
+
+
+if __name__ == '__main__':
+  for s in (signal.SIGINT, signal.SIGTERM): signal.signal(s, lambda *_: sys.exit(130))
+  sys.exit(main())
