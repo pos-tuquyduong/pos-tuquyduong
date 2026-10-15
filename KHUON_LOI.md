@@ -14,6 +14,8 @@ xếp 4 việc đã xong vào danh sách còn phải làm.
   "chưa có trong kịch bản").
 - **Chặn:** mọi khẳng định kèm **tên file + số dòng vừa đọc trong lượt này**, không có thì nói "chưa đọc". Xếp đường
   tiền theo cái khách chạm ở quầy + middleware + khoá trong thân hàm; nhánh hỏng (SX lỗi, mạng) đụng kho/tiền là NẶNG.
+- **Chặn (TU-CHAY-6):** Chú thích trong code cũng là khẳng định — sai thì sửa cùng dòng vá (phiếu + chú thích ghi `cat-file` thoát 1,
+  đo được 128).
 
 ## K2 · Phép chốt báo ĐỎ trong khi code đúng
 Đã 12 lần — thường do soi nhầm file, hoặc còn tìm tên biến của bản cũ.
@@ -40,6 +42,8 @@ nên không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ 
 - **Chặn (TU-CHAY-5):** số ca của bài thử không được SINH từ nội dung file PR sửa (ca theo từng lệnh trong skill → gốc 927, head
   933, cổng so số ca báo oan). Mỗi luồng kế hoạch ghi "phải KHÔNG bị chặn" trỏ tới MỘT ca + đột biến gỡ đúng vế đó ra BẮT
   (A19 `.pop()`, loại `cong.yml` ghi trong kế hoạch mà không ca — đột biến SỐNG).
+- **Chặn (TOC-DO-1, GOI-2):** bộ đột biến phải có ĐỐI CHỨNG (bản chưa đột biến xanh) và loại dòng ném / không in dòng tổng — bài thử
+  sập ≠ BẮT (9/9 "bị bắt" khi bài đang sập). Ca một PHÉP TÍNH chọn số để trần / làm tròn phía sau không che lỗi (B3c: 0,002, không 0,5).
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ thứ hai thường trong cùng hàm hoặc cách chưa tới 150 dòng.
@@ -55,6 +59,8 @@ Sửa một đường, để nguyên đường kia làm cùng việc. Chỗ th�
 - **Chặn (TU-CHAY-5):** dời một bước quy trình / đổi tên một phép / chép một khối code → grep khắp nơi: thông báo lỗi của cổng,
   tài liệu, chú thích bài thử, mẫu + neo `viec/*/dot_bien.py` (`python3 viec/HOC-2b/kiem_neo.py` trên gốc và HEAD). Đã gây: thông
   báo A19 còn "bước 10"; khối lọc màu chép sang hàm mới → neo HOC-2 khớp 2 lần, chết im lặng; đổi tên phép → mẫu đột biến LẠC.
+- **Chặn (SO-LUONG-1):** cổng "bắt buộc có X" kiểm CÙNG biểu thức với chỗ dùng X — SĐT đã chuẩn hoá, không phải giá trị thô (`" "` lọt
+  qua `customer_phone` thô ở orders.js:198; chép cổng có sẵn thì chép luôn lỗ của nó).
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Đã lên production: chặn đơn khai "lấy từ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi
@@ -80,6 +86,8 @@ commit không thành mà vẫn push → "Everything up-to-date".
 - **Chặn:** tra trong code, không nhớ từ kho kia. Sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong
   `git log origin/viec/<MÃ>..HEAD` phải rỗng. Dòng mới ở ĐỈNH file (ngoài try) → tự hỏi nó ném thì thoát mã gì (TACH-GL T10:
   `require('./kich_ban.js')` hỏng văng thô thoát 1 = nhầm KHÔNG ĐẠT).
+- **Chặn (GOI-2):** số thời gian trong code quầy dựng bằng `getNow`, cùng quy ước với cột (Render TZ UTC: `new Date(moc)` trên chuỗi giờ
+  VN không hậu tố lệch 7 giờ ở ngưỡng 30 ngày).
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
 Đã gây: bộ kiểm báo `POST /orders` chưa có cổng phân quyền; kết luận "nó khắt khe quá". Sai: khách có gói TRÀ khai lấy

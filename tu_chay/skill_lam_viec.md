@@ -53,6 +53,11 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    `viec/$0/bang_chung_do.txt`. Xanh ngay trên bản chưa sửa = bài thử vô giá trị, viết lại.
    Sửa một bài thử ĐÃ CÓ mà nó vẫn xanh trên code gốc (thêm ca hồi quy): ghi `## Câu hỏi`, báo chủ quán thêm mục
    `## Bài thử cũ sửa` vào phiếu — không tự sửa phiếu, không tự lách bằng ca đỏ giả.
+   Trước khi xin chủ quán sửa phiếu (thiếu `## Bài thử đỏ`, `## Bài thử cũ sửa`, Phạm vi): (i) tự xét từ `bang_chung_do.txt` hai phép
+   cổng `chay` sẽ bắt — bài cũ sửa mà xanh trên gốc → cần `## Bài thử cũ sửa` (A11); không bài nào đỏ trên gốc → cần `## Bài thử đỏ`
+   (A12) — gom MỘT câu hỏi đủ cả hai (LUOI-2 hỏi 2 lần); (ii) chạy `node tu_chay/cong.js tinh . <mốc>^ HEAD viec/$0` (mốc = commit
+   `PHIEU: $0` đầu tiên, lệnh ở `/ra-soat` bước 1) để kiểm Phạm vi / A7 / A17 với file ĐÃ commit, dẫn NGUYÊN dòng ✗ liên quan vào
+   câu hỏi; `✗ [A19]` (chưa tới 11.4) và `✗ [A8]` (việc sửa `tu_chay/`, chủ quán cài sau) ở bước này là bình thường, không hỏi.
    `bang_chung_do.txt` có một dòng `SỐ CA <bài thử>: <N>` cho mỗi bài đỏ (N = tổng số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ); đổi bài
    sau khi ghi → chạy lại trên gốc (bằng chứng đỏ) và trên code đã vá (số ca), chép lại cả hai (cổng A16).
    Đổi code chạy thật (`server/`, `client/src/`): `viec/$0/dot_bien.py` có ít nhất một đột biến `VS-…` (vá sai — bản vá

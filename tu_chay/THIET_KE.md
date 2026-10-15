@@ -880,6 +880,25 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   đột biến là `/ra-soat` + chat soát cuối.
 - Chính PR TU-CHAY-5 chấm bằng luật main (tu-chay 1.4.0): A19 chưa áp cho nó; A8 đỏ tới khi chủ quán cài trên nhánh.
 
+### TU-CHAY-6 (15.10.2026, tu-chay 1.6.0)
+
+- **A1 `blob()` không trả `null` khi git không chạy được** (`cong.js`): đo thật — có file → `status 0`; file không có ở sha → `status 128`
+  (không phải 1) → `null` như cũ; bị giết (`status null` + `signal`) hoặc không có git (`error ENOENT`) → ném `git cat-file hỏng
+  (<sha>:<đường dẫn>): <lý do>` → catch cuối file in MỘT dòng `✗ [CONG] …`, thoát 1 (trước: `null` đi vào `writeFileSync` → "Received
+  null", TOC-DO-1 A1). Hai chỗ `JSON.parse(blob(…))` lấy `blob` ra NGOÀI `try` để lỗi git không bị nuốt. **A1b:** chỗ dựng cây gốc cho
+  A11 (`git archive` không đường dẫn) thất bại → ném `git archive <mốc> hỏng` — trước đó cây gốc RỖNG làm bài thử đỏ oan được tính "đỏ
+  hợp lệ" → cổng ĐẠT oan (nặng hơn sập). Bài thử: `thu_cong.js` git giả đầu PATH tự SIGKILL theo regex đối số.
+- **A2 phép tĩnh E14** (`kiem_tra_truoc_khi_giao.js`, không chạy route): (a) route GET có lệnh ghi → MỘT cảnh báo gộp `file:dòng`, miễn
+  khi `// GET-ghi: <lý do>` trên dòng từ khoá / dòng `run(` / dòng ngay trên `run(`; (b) route ghi không gọi `loiGhi(` → bánh cóc cảnh
+  báo `NGUONG_ROUTE_GHI_KHONG_LOIGHI` (51 lúc đặt, chỉ được giảm; mọc thêm → cảnh báo liệt kê, không FAIL — chủ quán chốt Q1). Thân
+  route tới `});`/`);` cột 0, hàm phụ giữa hai route không tính. Bài thử: `cong_cu/thu_TOCDO1.js` mục R cắt hai hàm `xetBanhCoc` +
+  `quetRouteGhi` chạy trên routes giả + K5 server thật.
+- **A3 skill bước 4 / ra-soát:** trước khi xin sửa phiếu, tự xét A11/A12 chế độ chay từ `bang_chung_do.txt` và gom MỘT câu hỏi; `node
+  tu_chay/cong.js tinh . <mốc>^ HEAD viec/<MÃ>` chỉ kiểm Phạm vi/A7/A17 với file đã commit (`[A19]`/`[A8]` ở bước này là bình thường).
+  `SubagentHandback` là hành động CUỐI CÙNG, BẮT BUỘC của agent soát.
+- A5 đo riêng: `thu_nguoi_gac.js` ≈ 6 s, `thu_cong_cu.js` ≈ 3 s → giữ chạy mỗi commit. Chính PR TU-CHAY-6 chấm bằng luật main (1.5.0);
+  A8 và cảnh báo "khớp từng byte" đỏ tới khi chủ quán cài bằng `cai_dat.sh`.
+
 ## B16. HOC-2 — khoá hồ sơ ở cổng, khoá cấu hình, người gác (05.10.2026, tu-chay 1.4.0)
 
 Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q4): `viec/HOC-2/ke_hoach.md`. Bài thử: `thu_cong.js` (A1–A5),
