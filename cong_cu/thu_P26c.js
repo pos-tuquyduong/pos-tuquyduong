@@ -852,7 +852,7 @@ async function main() {
     try {
       delete process.env.JWT_EXPIRES_IN;
       const a = await dangNhap();
-      k('T3a không có biến môi trường → đăng nhập 200, hạn ≥ 29 ngày (gốc 8 h = 28.800 s)', a.status === 200 && a.giay >= 29 * 86400, `HTTP ${a.status} · ${a.giay} s`);
+      k('T3a không có biến môi trường → đăng nhập 200, hạn ĐÚNG 30 ngày = 2.592.000 s (gốc 8 h = 28.800 s)', a.status === 200 && a.giay === 30 * 86400, `HTTP ${a.status} · ${a.giay} s`);   // so BẰNG, không ngưỡng một chiều (K3)
       process.env.JWT_EXPIRES_IN = '2h';   // 2h chứ không 8h: 8h trùng mặc định CŨ, không phân biệt được "đọc biến" với "rơi về mặc định" (K3)
       const b = await dangNhap();
       k('T3b (K5) biến môi trường 2h → hạn đúng 7.200 s (biến ưu tiên)', b.status === 200 && b.giay === 7200, `HTTP ${b.status} · ${b.giay} s`);

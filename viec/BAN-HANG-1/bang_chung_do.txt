@@ -1,11 +1,11 @@
-# BAN-HANG-1 — bằng chứng đỏ: cong_cu/thu_P26c.js chạy trên code CHƯA vá (HEAD 4aa5935 + bài thử mới), 15.10.2026
-# lệnh: node cong_cu/thu_P26c.js — chỉ chép các dòng ✗, tiêu đề mục mới và dòng tổng
+# BAN-HANG-1 — bằng chứng đỏ (A16, chạy lại sau soát độc lập sửa T3a thành so BẰNG 30 ngày): cong_cu/thu_P26c.js HEAD chạy trên server CHƯA vá
+# (bản sao server/ với orders.js + auth.js lấy từ git show 328a4eb^:…, --may-chu), 15.10.2026 — chỉ chép dòng ✗, tiêu đề mục mới, dòng tổng
 [S3 + S4] món lấy từ gói giữ mã GOI_SL_KHONG_HOP_LE (GOI-1); luồng hợp lệ: 10 ly, mua thẻ
   ✗ S4c mua thẻ với SĐT " " (gốc thu 525.000 mà không ghi thẻ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Cần chọn khách hàng trước khi mua thẻ hội viên
 [T1 + T2] mua thẻ thiếu hạng → 400 THE_MUA_THIEU_THONG_TIN, không đơn; luồng hợp lệ: thẻ riêng, không thẻ
   ✗ T1a membership_buy: {} + 1 ly 25.000 (gốc tạo đơn thường 25.000) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 200 · tổng 25000
   ✗ T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 200 · tổng 0
 [T3] hạn đăng nhập: mặc định 30 ngày (auth.js), biến môi trường JWT_EXPIRES_IN ưu tiên
-  ✗ T3a không có biến môi trường → đăng nhập 200, hạn ≥ 29 ngày (gốc 8 h = 28.800 s)  — HTTP 200 · 28800 s
+  ✗ T3a không có biến môi trường → đăng nhập 200, hạn ĐÚNG 30 ngày = 2.592.000 s (gốc 8 h = 28.800 s)  — HTTP 200 · 28800 s
   107 đạt · 4 hỏng
 SỐ CA cong_cu/thu_P26c.js: 111
