@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }   // BAN-HANG-1 (DANG-NHAP-1): mặc định 30 ngày, biến môi trường vẫn ưu tiên
     );
 
     // Lấy permissions
