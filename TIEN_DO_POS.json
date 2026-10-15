@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 31,
+  "phien_ban_so": 32,
   "cap_nhat": "2026-10-15",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -486,7 +486,7 @@
     },
     {
       "ma": "TU-CHAY-6",
-      "ten": "Bo khung (sau AUDIT-3; sua tu_chay/ -> chu quan cai bang khuon_cai.py): (1) cong.js blob() tra null khi git cat-file hong -> cong sap \"Received null\" (TOC-DO-1 A1, kich ban git gia co san); can nhac chia thu_cong.js; (2) skill /lam-viec buoc 4: chay node tu_chay/cong.js tinh truoc khi xin chu quan sua phieu (LUOI-2 hoi 2 lan); (3) KHUON_LOI.md: K3 dot bien phai co doi chung + loai dong nem; K1 chu thich; ca phep tinh chon so de tran khong che; so thoi gian dung getNow; (4) bo kiem: phep tinh \"route GET co lenh ghi / catch khong qua loiGhi\" (GOI-2 de xuat); (5) TOC-DO-1 Phat hien 2: cung dieu kien cho thu_nguoi_gac.js / thu_cong_cu.js neu do thay cham | 15.10 (SO-LUONG-1, chu quan duyet): (6) KHUON_LOI.md K4: cong \"bat buoc co X\" phai kiem CUNG bieu thuc voi cho dung X (vd SDT da chuan hoa, khong phai gia tri tho — \" \" lot); (7) tu_chay/lenh_ra_soat.md: agent soat goi SubagentHandback lam hanh dong cuoi (SO-LUONG-1 lan 1 ket thuc khong nop bao cao)",
+      "ten": "Bo khung (sau AUDIT-3; sua tu_chay/ -> chu quan cai bang khuon_cai.py): (1) cong.js blob() tra null khi git cat-file hong -> cong sap \"Received null\" (TOC-DO-1 A1, kich ban git gia co san); can nhac chia thu_cong.js; (2) skill /lam-viec buoc 4: chay node tu_chay/cong.js tinh truoc khi xin chu quan sua phieu (LUOI-2 hoi 2 lan); (3) KHUON_LOI.md: K3 dot bien phai co doi chung + loai dong nem; K1 chu thich; ca phep tinh chon so de tran khong che; so thoi gian dung getNow; (4) bo kiem: phep tinh \"route GET co lenh ghi / catch khong qua loiGhi\" (GOI-2 de xuat); (5) TOC-DO-1 Phat hien 2: cung dieu kien cho thu_nguoi_gac.js / thu_cong_cu.js neu do thay cham | 15.10 (SO-LUONG-1, chu quan duyet): (6) KHUON_LOI.md K4: cong \"bat buoc co X\" phai kiem CUNG bieu thuc voi cho dung X (vd SDT da chuan hoa, khong phai gia tri tho — \" \" lot); (7) tu_chay/lenh_ra_soat.md: agent soat goi SubagentHandback lam hanh dong cuoi (SO-LUONG-1 lan 1 ket thuc khong nop bao cao) | PHIEU 15.10: viec/TU-CHAY-6/phieu.md tren nhanh viec/TU-CHAY-6 (cho duyet ke hoach; song song AUDIT-3, BAN-HANG-1): A1 blob() nem loi ro + ca git gia; A2 phep tinh GET co lenh ghi / catch khong qua loiGhi; A3 skill buoc 4 chay cong.js tinh truoc khi hoi, lenh_ra_soat SubagentHandback cuoi; A4 KHUON_LOI K1/K3/K4; A5 thu_nguoi_gac/thu_cong_cu do roi quyet; A6 tu-chay 1.6.0 -> chu quan cai bang khuon_cai.py sau gop",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -495,16 +495,16 @@
     },
     {
       "ma": "DANG-NHAP-1",
-      "ten": "Giu dang nhap POS (chu quan bao 12.10: hau nhu lan nao vao app cung phai dang nhap lai; khong dung tien): (1) token het han 8h (server/routes/auth.js:64, doc JWT_EXPIRES_IN) -> mac dinh 30 ngay, khoa tai khoan van cat phien; (2) AuthContext.jsx checkAuth xoa token voi MOI loi (mang, Render dang ngu day, 5xx, 502 HTML) -> chi xoa khi phien that su chet (SESSION_DEAD_CODES), con lai tu thu lai + nut \"Thu lai\". Lam tam 12.10: chu quan dat JWT_EXPIRES_IN=30d tren Render. Mo SAU GOI-1 gop (cung build lai client/dist). SX lam xong 12.10 bang patch_sx_V (687fa8c, 30 ngay).",
+      "ten": "(gop vao BAN-HANG-1 15.10 - chu quan chon A: tu khi dat JWT_EXPIRES_IN=30d tren Render 12.10 khong con bi vang; chi giu phan (1) mac dinh 30d, phan (2) AuthContext BO) Giu dang nhap POS (chu quan bao 12.10: hau nhu lan nao vao app cung phai dang nhap lai; khong dung tien): (1) token het han 8h (server/routes/auth.js:64, doc JWT_EXPIRES_IN) -> mac dinh 30 ngay, khoa tai khoan van cat phien; (2) AuthContext.jsx checkAuth xoa token voi MOI loi (mang, Render dang ngu day, 5xx, 502 HTML) -> chi xoa khi phien that su chet (SESSION_DEAD_CODES), con lai tu thu lai + nut \"Thu lai\". Lam tam 12.10: chu quan dat JWT_EXPIRES_IN=30d tren Render. Mo SAU GOI-1 gop (cung build lai client/dist). SX lam xong 12.10 bang patch_sx_V (687fa8c, 30 ngay).",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
       "ma": "BAN-HANG-1",
-      "ten": "Man Ban hang + cong the (SO-LUONG-1 de xuat, chu quan duyet 15.10): (1) Sales.jsx: bo chon khach khi gio co goi (is_pkg) -> go goi khoi gio + bao \"Mua goi can chon khach\" (nay may chu tra 400 GOI_MUA_THIEU_THONG_TIN o luong do); (2) orders.js: membership_buy co mat phai co tier_id (cung khuon cong goi) - membership_buy {} hien tao don 0d rong. Viec nho, dung duong don -> duyet ke hoach",
+      "ten": "Man Ban hang + cong the (SO-LUONG-1 de xuat, chu quan duyet 15.10): (1) Sales.jsx: bo chon khach khi gio co goi (is_pkg) -> go goi khoi gio + bao \"Mua goi can chon khach\" (nay may chu tra 400 GOI_MUA_THIEU_THONG_TIN o luong do); (2) orders.js: membership_buy co mat phai co tier_id (cung khuon cong goi) - membership_buy {} hien tao don 0d rong. Viec nho, dung duong don -> duyet ke hoach | PHIEU 15.10: viec/BAN-HANG-1/phieu.md tren nhanh viec/BAN-HANG-1 (cho duyet ke hoach; song song AUDIT-3, TU-CHAY-6): + (3) gop DANG-NHAP-1 phan (1): auth.js mac dinh 30d (chu quan chon A)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
