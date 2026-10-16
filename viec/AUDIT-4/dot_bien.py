@@ -52,7 +52,8 @@ DOT_BIEN = [
   ('BV-AU4-L3-B3P-BO-SAN-0', ('thu', 'p26c'), [(T, 'Math.max(0, Math.min(goc, Number(don.total || 0) - Number(so.nhan)))', 'Math.min(goc, Number(don.total || 0) - Number(so.nhan))', 1)], r'✗ '),
 ]
 
-MONG = {'D2-AU4-sai-chuoi': 'HỎNG', 'D2-AU4-vo-hai': 'SỐNG', 'D2-AU4-sap': 'HỎNG-sập', 'D2-AU4-sap-0': 'HỎNG-sập'}   # hợp đồng D2; còn lại mong BẮT
+MONG = {'D2-AU4-sai-chuoi': 'HỎNG', 'D2-AU4-vo-hai': 'SỐNG', 'D2-AU4-sap': 'HỎNG-sập', 'D2-AU4-sap-0': 'HỎNG-sập',   # hợp đồng D2; còn lại mong BẮT
+        'VS-SOLUONG1-THE-SDT-THO': 'HỎNG'}   # --bo: neo cổng thẻ cũ, đã thay = BAN-HANG-1 `VS-BANHANG1-THE-SDT-THO` (kiem_neo.py RUA_CO_Y — soát vòng 2)
 
 # MỘT luật sập + MỘT cách dựng bản sao: nạp từ boc.py (soát vòng 1 — không chép). boc.py tạo TAM, atexit xoá.
 _sp = importlib.util.spec_from_file_location('boc_audit4', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'boc.py'))
@@ -93,7 +94,7 @@ def chay1(db):   # → (tên, nhãn, [chi tiết])
       if s: return ten, 'HỎNG-sập', [f'[{c}] bài thử SẬP (không phải bị bắt): {s}'] + [f'[{c}] (trước khi sập) {l[:200]}' for l in do]
       if ma != 0 and any(re.search(mau, l) for l in do): bat = True
       elif ma != 0: lac = True
-      tong = TONG.search(ra).group(0)
+      tong = (TONG.search(ra) or re.search(r'.+', ra) or re.search('', '')).group(0)[:80]   # dòng tổng 'n đạt · m hỏng'; thiếu thì dòng đầu (soát vòng 2)
       chi += [f'[{c}] thoát {ma} · {tong}'] + [f'[{c}] {l[:230]}' for l in do]
     return ten, 'BẮT' if bat else 'LẠC' if lac else 'SỐNG', chi
   finally:
