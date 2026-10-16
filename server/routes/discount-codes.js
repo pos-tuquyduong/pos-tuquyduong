@@ -10,6 +10,7 @@ const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, getToday } = require('../utils/helpers');
 const { findEligibleItemForGroup, computeItemDiscountAmount } = require('../utils/itemScopeDiscount');
+const { kiemDonCuaMa } = require('./signup-codes'); // MA-GIAM-1: /validate dùng CÙNG phép kiểm đơn gốc với POST /orders
 
 const router = express.Router();
 
@@ -75,6 +76,17 @@ router.post('/validate', authenticate, async (req, res) => {
 
     if (!discountCode) {
       return res.status(400).json({ error: 'Mã chiết khấu không tồn tại hoặc đã hết hiệu lực' });
+    }
+
+    // MA-GIAM-1 (A2): voucher sinh từ mã in bill — cùng câu tra + cùng hàm kiểm đơn gốc với cổng P20b của POST /orders (orders.js),
+    // để màn Bán hàng báo hỏng ngay lúc kiểm mã thay vì lúc tạo đơn. Tra bằng mã CHUẨN trong kho, không bằng chữ người gõ.
+    const maBill = await queryOne(
+      'SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL',
+      [discountCode.code]
+    );
+    if (maBill) {
+      const kqDon = await kiemDonCuaMa(maBill);
+      if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: 'MA_DON_GOC_KHONG_HOP_LE' });
     }
 
     // Kiểm tra ngày hiệu lực
@@ -253,6 +265,11 @@ router.put('/:id', authenticate, checkPermission('manage_promotions'), async (re
 
     // Kiểm tra mã trùng (nếu đổi mã)
     if (code && code.trim().toUpperCase() !== existing.code) {
+      // MA-GIAM-1 (A8): voucher mã in bill không đổi tên — cổng đơn gốc tra theo chữ mã, đổi tên là lách cổng. Trường khác sửa như cũ.
+      const maBill = await queryOne('SELECT id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?)', [existing.code]);
+      if (maBill) {
+        return res.status(400).json({ error: 'Mã này sinh từ mã in bill — không đổi tên được', code: 'MA_BILL_KHONG_DOI_TEN' });
+      }
       const duplicate = await queryOne(
         'SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?) AND id != ?', 
         [code.trim(), id]
@@ -308,22 +325,19 @@ router.delete('/:id', authenticate, checkPermission('manage_promotions'), async 
   try {
     const { id } = req.params;
 
-    const existing = await queryOne('SELECT * FROM pos_discount_codes WHERE id = ?', [id]);
-    if (!existing) {
-      return res.status(404).json({ error: 'Không tìm thấy mã chiết khấu' });
-    }
-
-    // Kiểm tra đã sử dụng chưa
-    if (existing.used_count > 0) {
-      // Chỉ vô hiệu hóa, không xóa
-      await run('UPDATE pos_discount_codes SET is_active = 0, updated_at = ? WHERE id = ?', [getNow(), id]);
+    // MA-GIAM-1 (A1): "đã dùng hay chưa" chốt trong CÙNG câu xoá — phép kiểm tách rời để lọt đơn dùng mã chen giữa (mã đã dùng bị xoá
+    // cứng). NULL tính như 0, như /reset (signup-codes.js). Không xoá được → chỉ vô hiệu hoá; không có dòng nào → 404.
+    const xoa = await run('DELETE FROM pos_discount_codes WHERE id = ? AND COALESCE(used_count, 0) = 0', [id]);
+    if (xoa.changes === 0) {
+      const tat = await run('UPDATE pos_discount_codes SET is_active = 0, updated_at = ? WHERE id = ?', [getNow(), id]);
+      if (tat.changes === 0) {
+        return res.status(404).json({ error: 'Không tìm thấy mã chiết khấu' });
+      }
       return res.json({
         success: true,
         message: 'Mã đã được sử dụng, đã vô hiệu hóa thay vì xóa'
       });
     }
-
-    await run('DELETE FROM pos_discount_codes WHERE id = ?', [id]);
 
     res.json({
       success: true,
@@ -338,7 +352,7 @@ router.delete('/:id', authenticate, checkPermission('manage_promotions'), async 
  * POST /api/pos/discount-codes/:id/increment-usage
  * Tăng số lần sử dụng (gọi khi tạo đơn hàng thành công)
  */
-router.post('/:id/increment-usage', authenticate, async (req, res) => {
+router.post('/:id/increment-usage', authenticate, checkPermission('manage_promotions'), async (req, res) => { // MA-GIAM-1 (A6)
   try {
     const { id } = req.params;
 
