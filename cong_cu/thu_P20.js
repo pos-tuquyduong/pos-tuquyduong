@@ -323,7 +323,6 @@ async function main() {
   {
     // Dùng mã ở POST /orders THẬT. Phép đối chiếu tiền của orders.js đòi cash_amount = tổng SAU giảm: mã 10 % trên
     // món 25.000 → 22.500. Cổng P20b trả 400 TRƯỚC phép đối chiếu, nên ca chặn không phụ thuộc số tiền gửi.
-    const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
     const MA_LOI = 'MA_DON_GOC_KHONG_HOP_LE';
     const dungMa = (ma, tien) => goi('POST', '/orders', { items: [mon()], payment_method: 'cash', cash_amount: tien, discount_code: ma });
     const soDon = async () => Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_orders')).n);
@@ -332,8 +331,7 @@ async function main() {
       return r ? Number(r.used_count) : null;
     };
     const maTay = (ma) => db.run(
-      `INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active, created_at)
-       VALUES (?, 'percent', 10, 0, 0, 1, ?)`, [ma, getNow()]);
+      `INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active) VALUES (?, 'percent', 10, 0, 0, 1)`, [ma]);
     // Đơn gốc đã thanh toán, claim xong → voucher THẬT mang đúng mã bill.
     const donDaClaim = async (ten, body) => {
       const d = await taoDon(ten, body);
