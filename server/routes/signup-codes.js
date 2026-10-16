@@ -490,10 +490,11 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
     const tx = await beginTransaction();
     try {
       // P20c: gỡ ĐÚNG lần claim đã đọc ở trên (cùng claimed_at VÀ claimed_phone — getNow() chỉ tới giây, một mình
-      // claimed_at không phân biệt được hai lần claim trong cùng giây). Hai lần hoàn tác chồng nhau, hoặc hoàn tác rồi
-      // khách claim lại xen giữa → lần sau thấy 0 dòng và dừng, không gỡ claim / xoá voucher của lần claim mới.
+      // claimed_at không phân biệt được hai lần claim trong cùng giây; `IS ?` để dòng claimed_phone NULL vẫn khớp). Hai lần
+      // hoàn tác chồng nhau, hoặc hoàn tác rồi khách claim lại xen giữa → lần sau thấy 0 dòng và dừng, không gỡ claim / xoá
+      // voucher của lần claim mới. Giới hạn: CÙNG SĐT claim lại trong CÙNG giây thì không phân biệt được.
       const go = await tx.run(
-        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ? AND claimed_at = ? AND claimed_phone = ?',
+        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?',
         [signupRow.id, signupRow.claimed_at, signupRow.claimed_phone]
       );
       if (go.changes === 0) {
