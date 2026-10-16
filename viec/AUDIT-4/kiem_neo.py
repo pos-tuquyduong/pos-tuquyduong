@@ -110,7 +110,7 @@ for t in nap('AUDIT-1', '\n# ═══ Bản sao + lệnh'):
 for t in nap('P26b', '\ndef ap('):
     ghi('P26b', t[0], [(('cong_cu/gia_lap/' if d[0] == 'bat_bien.js' else 'server/') + d[0], d[1], d[3]) for d in t[2]], [t[3]],
         chen=' '.join(str(d[2]) for d in t[2]))
-for bo, cat in (('P26c', '\ndef ap('), ('GOI-1', '\ndef ap('), ('GOI-2', '\ndef ap('), ('SO-LUONG-1', '\ndef ap('), ('AUDIT-3', '\ndef ap('), ('AUDIT-4', '\nTAM = ')):
+for bo, cat in (('P26c', '\ndef ap('), ('GOI-1', '\ndef ap('), ('GOI-2', '\ndef ap('), ('SO-LUONG-1', '\ndef ap('), ('AUDIT-3', '\ndef ap('), ('AUDIT-4', '\nMONG = ')):
     for t in nap(bo, cat):   # AUDIT-4: cách có thể là bộ (p26c, thu) → server/
         ghi(bo, t[0], [(tien_to(t[1]) + d[0], d[1], d[3]) for d in t[2]], [t[3]], chen=' '.join(str(d[2]) for d in t[2]))
 for t in nap('BAN-HANG-1', '\ndef ap('):   # (tên, [(file từ server/, cũ, mới, n)], mẫu)
