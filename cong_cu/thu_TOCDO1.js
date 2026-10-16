@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // thu_TOCDO1.js — TOC-DO-1: bộ kiểm chỉ chạy tu_chay/thu_cong.js khi có thể cần (phiếu A2, A3).
 // TU-CHAY-6 A2 (mục R): phép tĩnh route ghi — cắt khối hai hàm xetBanhCoc + quetRouteGhi của bộ kiểm, chạy trên routes GIẢ (hàm docFile).
+// TU-CHAY-7 A1 (mục C): lời gọi thu_cong.js bật cảnh báo gần hạn; A3 (mục D): chú thích số dòng cứng — cắt vùng thật, chạy trên file giả.
 // Cắt khối THẬT từ kiem_tra_truoc_khi_giao.js — từ `function lyDoChayThuCong(` tới hết dòng "bỏ qua thu_cong.js"; bản gốc chưa có hàm
 // → khối = dòng gọi trần (luôn chạy → T1, T2, T10 đỏ) — rồi chạy trên kho git tạm, mỗi ca phá ĐÚNG một điều kiện.
 // Chạy: node cong_cu/thu_TOCDO1.js [--kiem <bản sao bộ kiểm>]   (--kiem: cho viec/TOC-DO-1/dot_bien.py)
@@ -29,15 +30,15 @@ k('E0a thấy đầu khối (function lyDoChayThuCong( ở đầu dòng) hoặc 
   'không thấy function lyDoChayThuCong( ở đầu dòng, cũng không thấy dòng gọi trần');
 k('E0b có đầu khối thì phải có neo cuối "bỏ qua thu_cong.js" sau nó', a < 0 || b >= 0, 'có hàm nhưng thiếu dòng else "bỏ qua thu_cong.js"');
 // E1 (soát vòng 1, E13): lời gọi trần sót NGOÀI khối thì bộ kiểm luôn chạy mà các ca dưới vẫn xanh — toàn file đúng 1 lời gọi, nằm trong khối
-const GOI = "chayBaiThat('tu_chay/thu_cong.js')";
+const GOI = "chayBaiThat('tu_chay/thu_cong.js'";   // tiền tố: TU-CHAY-7 A1 thêm đối số
 k('E1 toàn bộ kiểm đúng MỘT lời gọi thu_cong.js và nó nằm trong khối cắt', kt.split(GOI).length === 2 && khoi.includes(GOI),
   `${kt.split(GOI).length - 1} lời gọi trong file · trong khối: ${khoi.includes(GOI)}`);
 const BO = 'bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github';
 // Chạy khối với GOC = kho tạm; spawnSync bọc môi trường sạch. Trả { goi: số lần gọi chayBaiThat, dong }.
-function chay(goc, dayDu, env) {
+function chay(goc, dayDu, env, goi = () => {}) {
   const kq = { goi: 0, dong: [] };
   const sp = (c, ds, o) => spawnSync(c, ds, { ...o, env });
-  new Function('spawnSync', 'GOC', 'DAY_DU', 'chayBaiThat', 'dong', khoi)(sp, goc, dayDu, () => kq.goi++, kq.dong);
+  new Function('spawnSync', 'GOC', 'DAY_DU', 'chayBaiThat', 'dong', khoi)(sp, goc, dayDu, (...a) => { kq.goi++; return goi(...a); }, kq.dong);
   return kq;
 }
 
@@ -183,6 +184,92 @@ hook('T11b hook pre-commit thật: git commit -a', ['-a']);
         && that.getGhi.every((x) => /^(packages|products|sync)\.js:/.test(x)) && that.khongLoiGhi.length <= nguong,
         `(a) ${that.getGhi.join(', ')} · (b) ${that.khongLoiGhi.length} / ngưỡng ${nguong}`);
     } catch (e) { k('K5 server/routes thật: khối không ném', false, e.message); }
+  }
+}
+
+// ── C (TU-CHAY-7 A1): khối THẬT gọi thu_cong.js → hàm chayBaiThat THẬT chạy bài giả ngủ 4,25 s với hạn giả 5 s (85 %), cờ + hạn lấy
+// từ lời gọi thật. Bài ngủ cố định nên không rơi dưới 80 % khi máy bận; dưới ngưỡng / bài đỏ / cờ tắt: C3g, C3c, C3d của thu_gia_lap.js.
+{
+  const a3 = kt.search(/^function chayBaiThat\(/m);
+  const khoiC = a3 < 0 ? '' : kt.slice(a3, kt.indexOf('\n}\n', a3) + 3);
+  fs.writeFileSync(path.join(TAM, 'ngu85.js'), 'setTimeout(() => {}, 4250);\n');
+  const canh = [], xanh = [], goi = [];
+  let that = null;
+  try {
+    that = new Function('spawnSync', 'path', 'GOC', 'chac', 'canhBao', khoiC + '\nreturn chayBaiThat;')(spawnSync, path, TAM,
+      (t, d) => xanh.push(d), (t, g) => canh.push(`${t} — ${g}`));
+  } catch (e) { k('C0 dựng được hàm chayBaiThat thật', false, e.message); }
+  if (that) {
+    const vo = (bai, env, han, co) => { goi.push({ bai, han, co }); return that('ngu85.js', MT, 5000, co); };
+    try { chay(kho(), true, MT, vo); } catch (e) { goi.push({ bai: 'khối ném: ' + e.message }); }
+    const g = goi[0] || {};
+    k('C1 --day-du: lời gọi thật thu_cong.js + bài xanh 85 % hạn → đúng 1 cảnh báo gần hạn có số giây',
+      goi.length === 1 && g.bai === 'tu_chay/thu_cong.js' && xanh.join() === 'true' && canh.length === 1
+        && /chạy \d+\.\d s > 80 % hạn 5 s/.test(canh[0]), `gọi ${JSON.stringify(goi)} · xanh ${xanh.join()} · cảnh báo: ${canh.join(' | ') || '(không)'}`);
+    k('C2 lời gọi thật không nới hạn (bỏ trống hoặc 120000)', goi.length === 1 && [undefined, 120000].includes(g.han), JSON.stringify(goi));
+  }
+}
+
+// ── D (TU-CHAY-7 A3): chú thích số dòng cứng — cắt vùng THẬT từ `const NGUONG_DONG_CUNG =` tới hết khối gọi, chạy với doc / liet giả ──
+{
+  const a4 = kt.search(/^const NGUONG_DONG_CUNG = \d+;/m);
+  const b4 = a4 < 0 ? -1 : kt.indexOf('\n{\n', a4);
+  const vung = b4 < 0 ? '' : kt.slice(a4, kt.indexOf('\n}\n', b4) + 3);
+  const N = +((/^const NGUONG_DONG_CUNG = (\d+);/m.exec(kt) || [])[1]);
+  k('D0 có vùng A3 (const NGUONG_DONG_CUNG = <số> ở đầu dòng, khối gọi sau nó) và ngưỡng ≥ 2', !!vung && N >= 2, `ngưỡng ${N}`);
+  // ghép chuỗi: chính bài này không thêm dòng khớp vào kho thật (phép quét cả cong_cu/thu_*.js)
+  const DC = '(' + ':1234)', P12 = '(' + ':12)', DAI = ':12' + '–34', NGAN = ':12' + '-34', DAI2 = ':5' + '–9';
+  const goc = (n) => Array.from({ length: n }, (_, i) => `x(${i}); // xem a.js` + DC).join('\n') + '\n';
+  const chayD = (files) => {
+    const kq = { canh: [], pass: [], fail: [] };
+    const liet = (d, duoi) => Object.keys(files).filter((f) => f.startsWith(d + '/') && duoi.some((x) => f.endsWith(x)));
+    try {
+      new Function('doc', 'liet', 'canhBao', 'pass', 'fail', 'chac', vung)((f) => files[f] ?? '', liet, (t, g) => kq.canh.push(`${t} — ${g}`),
+        (t, g) => kq.pass.push(`${t} — ${g}`), (t, g) => kq.fail.push(`${t} — ${g}`), (t, d, g) => (d ? kq.pass : kq.fail).push(`${t} — ${g}`));
+    } catch (e) { kq.fail.push('vùng ném: ' + e.message); }
+    kq.ds = kq.canh.join(' ');
+    return kq;
+  };
+  const moTaD = (r) => `cảnh báo: ${r.canh.join(' | ') || '(không)'} · fail: ${r.fail.join(' | ') || '(không)'} · pass: ${r.pass.join(' | ')}`;
+  const tatCa = [];
+  if (vung && N >= 2) {
+    let r = chayD({ 'server/goc.js': goc(N) });
+    tatCa.push(r);
+    k('D1 đúng ngưỡng → 0 cảnh báo', r.canh.length === 0 && r.fail.length === 0, moTaD(r));
+    r = chayD({ 'server/goc.js': goc(N), 'server/moi.js': 'a();\nb(); // trỏ orders.js' + DC + '\n' });
+    tatCa.push(r);
+    k('D2 thêm 1 chú thích (:1234) → 1 cảnh báo nêu server/moi.js:2', r.canh.length === 1 && r.ds.includes('server/moi.js:2'), moTaD(r));
+    r = chayD({ 'server/goc.js': goc(N - 1) });
+    tatCa.push(r);
+    k('D5 bớt 1 → 0 cảnh báo, nhắc HẠ NGUONG_DONG_CUNG', r.canh.length === 0 && r.pass.some((p) => p.includes(`HẠ NGUONG_DONG_CUNG xuống ${N - 1}`)), moTaD(r));
+    const nen = { 'server/goc.js': goc(N + 1) };   // luôn vượt → cảnh báo liệt kê mọi dòng được đếm
+    r = chayD({ ...nen, 'server/d3.js': `// a.js${DAI}\n// b.js${NGAN}\n// lúc 10 giờ\n` });
+    tatCa.push(r);
+    k('D3 dạng :12–34 (gạch dài) và :12-34 đều đếm', r.ds.includes('server/d3.js:1') && r.ds.includes('server/d3.js:2') && !r.ds.includes('server/d3.js:3'), moTaD(r));
+    r = chayD({ ...nen, 'server/d4.js': `const s = 'x${P12}';\n/` + `* xem ${P12} *` + `/\n * dòng giữa khối ${P12}\n{/` + `* jsx ${P12} *` + `/}\n` });
+    tatCa.push(r);
+    k('D4 chữ trong chuỗi mã không đếm; /* */, dòng " * ", {/* */} đếm', !r.ds.includes('server/d4.js:1') && ['2', '3', '4'].every((d) => r.ds.includes('server/d4.js:' + d)), moTaD(r));
+    r = chayD({ 'server/goc.js': goc(N - 1), 'server/d7.js': '// a.js' + DC + ' và b.js' + DAI2 + '\n' });
+    tatCa.push(r);
+    k('D7 hai lần khớp trên MỘT dòng → đếm 1 dòng (đúng ngưỡng, 0 cảnh báo)', r.canh.length === 0, moTaD(r));
+    const VUNG = { 'server/a/b.js': 1, 'client/src/x.jsx': 1, 'client/src/y.js': 1, 'cong_cu/thu_x.js': 1, 'tu_chay/x.js': 1,
+      'cong_cu/khac.js': 0, 'cong_cu/gia_lap/thu_y.js': 0, 'tu_chay/con/z.js': 0, 'client/x.js': 0 };
+    r = chayD({ ...nen, ...Object.fromEntries(Object.keys(VUNG).map((f) => [f, '// a.js' + DC + '\n'])) });
+    tatCa.push(r);
+    const lech = Object.entries(VUNG).filter(([f, co]) => r.ds.includes(f + ':1') !== !!co).map(([f]) => f);
+    k('D8 quét đúng bốn vùng: server/**, client/src/**/*.{js,jsx}, cong_cu/thu_*.js, tu_chay/*.js — không cong_cu khác, không thư mục con tu_chay/',
+      !lech.length, `lệch: ${lech.join(', ')} · ${moTaD(r)}`);
+    k('D9 không FAIL ở mọi ca (chỉ cảnh báo / nhắc hạ)', tatCa.every((x) => x.fail.length === 0), tatCa.map((x) => x.fail.join(' | ')).join(' ; '));
+    // D6 — kho THẬT: đếm ≤ ngưỡng (≤: việc khác dọn chú thích thì chỉ nhắc hạ, không đỏ bài này)
+    const di = (d, duoi) => { const ra = []; (function w(x) {
+      let ds = []; try { ds = fs.readdirSync(path.join(GOC, x), { withFileTypes: true }); } catch { return; }
+      for (const e of ds) { if (['node_modules', 'dist', '.git'].includes(e.name)) continue; const p = path.join(x, e.name);
+        if (e.isDirectory()) w(p); else if (duoi.some((y) => e.name.endsWith(y))) ra.push(p); }
+    })(d); return ra; };
+    const files = {};
+    for (const d of ['server', 'client/src', 'cong_cu', 'tu_chay']) for (const f of di(d, ['.js', '.jsx'])) files[f] = fs.readFileSync(path.join(GOC, f), 'utf8');
+    r = chayD(files);
+    k('D6 kho thật: chú thích số dòng cứng ≤ NGUONG_DONG_CUNG (0 cảnh báo, 0 fail)', r.canh.length === 0 && r.fail.length === 0, moTaD(r));
   }
 }
 
