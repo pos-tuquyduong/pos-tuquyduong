@@ -14,12 +14,12 @@ Nền: HEAD `8303c1b`. Chỉ thêm ca hồi quy + bộ đột biến của việ
   - AU3-11/12 `goiKhach.js:24, :26`: mọi ca hiện có chỉ một dòng mỗi loại; chưa ca nào có loại cài SL 0 (tạo mới đã bị GOI-1 chặn →
     chỉ có ở **dữ liệu cũ**; `orders.js:267–278` đọc `package_items` của `pos_packages` lúc lấy).
   - AU3-13/14 `tienDaTra.js:87, :83`: **qua API hiện nay trần `total − đã nhận` KHÔNG BAO GIỜ chặn** — đền bị trần ở `damages.js:173–178`
-    theo `da_tra` của dòng món (chanTren ≤ chia tỉ lệ), gói không đền được (`GOI_THE_KHONG_DEN` :175), duyệt hoàn chặn đơn có gói
+    theo `da_tra` của dòng món (chanTren ≤ chia tỉ lệ), gói không đền được (`GOI_THE_KHONG_DEN` :176), duyệt hoàn chặn đơn có gói
     (`refunds.js:118, :157`), huỷ / xoá chặn sau kết thúc (A4). Mà Σ `da_tra` các dòng ≤ `total − ship` ⇒ `total − đã nhận ≥ da_tra`
     dòng gói ≥ `goc`. Cũng đúng khi một dòng nhiều gói kết thúc lần lượt (Σ hoàn các gói ≤ `da_tra` dòng gói) và khi phạm vi mã bị
     đổi sau lúc bán (`chanTren` vẫn ≤ chia tỉ lệ). Mọi nơi khác ghi sổ gắn `order_id` là `topup` / `purchase` / `adjust` / `debt_payment`
     — không tính vào "đã nhận" (agent soát kế hoạch rà, không thấy phản ví dụ). Trần chỉ chặn khi sổ có khoản đền VƯỢT `da_tra` — đúng là **dữ liệu cũ**: trước P26c (12.10) trần đền là giá
-    gốc (`damages.js:171` chú thích "không theo giá gốc"), trước P26b (03.10) do máy khách quyết. → mục 5, Câu hỏi 1.
+    gốc (`damages.js:172` chú thích "không theo giá gốc"), trước P26b (03.10) do máy khách quyết. → mục 5, Câu hỏi 1.
   - AU3-15/17 `orders.js:424`, `tienDaTra.js:43`: chưa ca huỷ đơn mua NHIỀU gói một dòng đã lấy. AU3-15 (`quantity: 1`) chỉ đổi số
     khi đơn có **giảm**: không giảm thì `300.000 × 1/(1×10) = 600.000 × 1/(2×10)` → cần giảm. AU3-17 lộ cả khi không giảm.
   - AU3-16 `orders.js:426` `total_price` dòng gói: không gì trong `tienDaTra.js` đọc cột này; chỉ báo cáo (`reports.js:67, :175`
