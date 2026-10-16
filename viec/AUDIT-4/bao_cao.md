@@ -9,7 +9,9 @@ Q2 (a) SỐNG ở chỗ tiền = NẶNG-lưới, không hạ mức, kèm đườ
 **CHƯA đạt điểm dừng: 0 NẶNG-code, 7 NẶNG-lưới** (A3: 7/14 đột biến độc lập ở đường tiền / gói SỐNG — 3 làm tròn ≤ 1đ, 1 chỉ qua API thẳng, 3 nhánh
 dữ liệu hiếm; chủ quán chốt Q2 = a nên không hạ mức). 10 lỗ lưới AUDIT-3 (AU3-8…17) ĐÃ khoá thật: 10/10 BẮT, đỏ đúng ca LUOI-3, câu lỗi và số
 quan sát trùng nguyên văn bằng chứng LUOI-3. Đường tiền mới P20b / BAN-HANG-1: bộ của việc 4/4 · 7/7, độc lập 6/7 BẮT (1 SỐNG = AU4-1). Công cụ
-đo không nói dối: 3 lỗi AU3-22…24 vá, mỗi vá một ca đỏ (luật cũ sai / mới đúng trên cùng đầu vào), `--sap` 0 bộ BẮT / SỐNG khi sập. A6: không đường
+đo không nói dối: 3 lỗi AU3-22…24 vá, mỗi vá một ca đỏ (luật cũ sai / mới đúng trên cùng đầu vào), `--sap` 0 bộ BẮT / SỐNG khi sập; soát vòng 1
+bắt thêm lỗ cùng dạng AU3-22 trong luật bản 1 (phép trừ `✗ T\d` nuốt dòng gộp `✗ bài chạy thật … ✗ T1a … | ✖ Bài thử sập` của kiem_tra) → vá, ca đỏ
+thứ năm trong `--tu-thu`, chạy lại 57 tên khung cách kiem / kiemdd: y hệt (lỗ không che BẮT nào). A6: không đường
 nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 
 ## Bảng phát hiện (mọi file:dòng đọc trên HEAD `0ee7346` lượt này)
@@ -21,9 +23,9 @@ nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 | **AU4-3** | **NẶNG-lưới** | `tienDaTra.js:45` `- Math.ceil(daDung)` — đổi `Math.floor` (hoàn dư 1đ) SỐNG | `… VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG` → SỐNG | Gói số lượt không chia hết giá. `thu_P26c.js` [M]: gói 300.000 / 7 lượt, lấy 1, owner huỷ → ví + 300.000 − ⌈300.000 / 7⌉ = **257.142** (đột biến 257.143) |
 | **AU4-4** | **NẶNG-lưới** | `tienDaTra.js:81` `const goc = Math.floor(` (kết thúc gói) — đổi `Math.ceil` SỐNG; chỗ làm tròn thứ ba, chưa bộ nào đột biến (soát kế hoạch, K4) | `… VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN` → SỐNG | `thu_GOI1.js` B3: gói 300.000 / 7, lấy 1, kết thúc gói có hoàn → tong = ⌊300.000 × 6 / 7⌋ = **257.142** (đột biến 257.143); `hoan-du-kien` cùng số |
 | **AU4-5** | **NẶNG-lưới** | `tienDaTra.js:19` `chanTren && order.discount_code` — bỏ `chanTren` (trần mã-1-món áp cả huỷ / kết thúc gói) SỐNG | `… VS-AU4-L3-CHAN-TREN-CA-HOAN` → SỐNG | Đơn mua gói + món có mã giảm 1 món. `thu_P26c.js` [M]: gói 300.000 / 10 + món 25.000, mã 1 món giảm 5.000 → total 320.000; lấy 1, owner huỷ → ví + 320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉ = **290.461** (đột biến: gói 300.000 − 5.000 → 290.500). CHƯA chạy: đơn gói + mã 1 món có qua cổng hiện tại không — xác nhận khi viết ca |
-| **AU4-6** | **NẶNG-lưới** (chiều chặn oan, gói) | `goiKhach.js:11` khoá loại `${sx_product_type}_${sx_product_id}` — bỏ kiểu SỐNG | `… VS-AU4-L3-KHOA-LOAI-BO-KIEU` → SỐNG | Hai kiểu SX trùng `sx_product_id` (id theo bảng từng kiểu bên SX). `thu_GOI1.js` A2: gói cài CT1 (kiểu A, id 1) 2 + NE1 (kiểu B, id 1) 5, đã lấy 4 NE1, lấy 2 CT1 → 200 (đột biến: "đã lấy" CT1 đọc nhầm dòng NE1 = 4 → còn −2 → 400) |
-| **AU4-7** | **NẶNG-lưới** | `tienDaTra.js:87` `Math.max(0, Math.min(goc, total − nhận))` — bỏ sàn 0 SỐNG | `… BV-AU4-L3-B3P-BO-SAN-0` → SỐNG | Chỉ khi "đã nhận" > total: dữ liệu đền TRƯỚC P26c (đền theo giá gốc, như B3p) + giảm lớn. `thu_GOI1.js` B3p': gói 300.000 + 2 món 25.000, mã giảm 320.000 → total 30.000, đền cũ 2 × 25.000; kết thúc gói có hoàn → tong **0**, không dòng hoàn âm (đột biến −20.000 → ví khách bị TRỪ) |
-| AU4-8 | NHẸ-công cụ (AU3-6 tái diễn) | `goiKhach.js:29` đổi `>=` (chặn oan lấy đúng số còn): thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 đúng ca rồi `✖ Bài thử sập: Only finite numbers…` sau A2j | `… VS-AU4-L3-LOAI-CHAN-BANG` → HỎNG-sập | `thu_GOI1.js` khối A2: dựng dữ liệu ca sau không phụ thuộc ca trước thành công (in ✗ rồi đi tiếp) → đột biến chuyển BẮT |
+| **AU4-6** | **NẶNG-lưới** (chiều chặn oan, gói) | `goiKhach.js:11` khoá loại `${sx_product_type}_${sx_product_id}` — bỏ kiểu SỐNG | `… VS-AU4-L3-KHOA-LOAI-BO-KIEU` → SỐNG | Hai kiểu SX trùng `sx_product_id` (id theo bảng từng kiểu bên SX). `thu_GOI1.js` A2: gói cài CT1 (kiểu A, id 1) 2 + NE1 (kiểu B, id 1) 5; dựng "đã lấy 4 NE1" bằng INSERT trực tiếp đơn giao từ gói (khuôn B3p — qua `POST /orders` thì chính bước dựng đã bị đột biến chặn: `xin["1"]` gộp hai loại, 4 > 2 → bài sập, soát vòng 1); lấy 2 CT1 qua `POST /orders` → 200 (đột biến: "đã lấy" CT1 đọc nhầm dòng NE1 = 4 → còn −2 → 400). Chiều ngược (mất lượt — `find` lấy dòng đầu, `goiKhach.js:27`) tuỳ thứ tự GROUP BY: ca thứ hai đảo vai CT1 / NE1 |
+| **AU4-7** | **NẶNG-lưới** | `tienDaTra.js:87` `Math.max(0, Math.min(goc, total − nhận))` — bỏ sàn 0 SỐNG | `… BV-AU4-L3-B3P-BO-SAN-0` → SỐNG | Chỉ khi "đã nhận" > total: dữ liệu đền TRƯỚC P26c (đền theo giá gốc, như B3p) + giảm lớn. `thu_GOI1.js` B3p': gói 300.000 + 2 món 25.000, mã giảm 320.000 → total 30.000, đền cũ 2 × 25.000; kết thúc gói có hoàn → phản hồi `hoan` **0**, ghi chú gói "hoàn 0đ". Đột biến: tong −20.000 nhưng `packages.js:265` `tien.tong > 0` chặn `ghiHoan` → SỔ KHÔNG ĐỔI; sai là phản hồi `hoan: −20000`, ghi chú "hoàn -20000đ" (`:261`) và lời báo "hoàn … vào ví" (`:273`) lệch sổ (soát vòng 1 — bản 1 ghi nhầm "ví bị trừ"; vế "không dòng hoàn âm" xanh cả hai bên nên bỏ) |
+| AU4-8 | NHẸ-công cụ (AU3-6 tái diễn) | `goiKhach.js:29` đổi `>=` (chặn oan lấy đúng số còn): thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 đúng ca rồi `✖ Bài thử sập: Only finite numbers…` sau A2j | `… VS-AU4-L3-LOAI-CHAN-BANG` → HỎNG-sập (dòng ✗ trước khi sập: `bang_chung_do.txt` mục 5) | `thu_GOI1.js` khối A2: dựng dữ liệu ca sau không phụ thuộc ca trước thành công (in ✗ rồi đi tiếp) → đột biến chuyển BẮT |
 | AU4-9 | NHẸ (hồ sơ) | `viec/AUDIT-3/dot_bien.py` `BV-AU3-SL-THE-BO-CONG` neo cổng thẻ cũ — BAN-HANG-1 thay cổng (`orders.js:190`) mà hồ sơ không ghi bản thay (như AU3-3) | `python3 viec/AUDIT-3/kiem_neo.py` → HỎNG 2 | ghi "đã thay = `BV-BANHANG1-THE-CONG`" ở việc đụng `viec/AUDIT-3/` kế; `viec/AUDIT-4/kiem_neo.py` đã ghi |
 | AU4-10 | NHẸ-công cụ | `viec/AUDIT-3/dot_bien.py` mẫu `✗ B1` / `✗ (S2\|A5)` / `✗ A5` của 5 tên AU3-8…17 không khớp tên ca LUOI-3 (`M2a`, `M4a`…) → LẠC-mẫu dù đỏ đúng ca | `python3 viec/AUDIT-3/dot_bien.py` → LẠC 5 | dùng `viec/LUOI-3/dot_bien.py` (mẫu = tên ca) làm bộ chính; hoặc đổi mẫu AUDIT-3 (cấm ở việc này) |
 | AU4-11 | NHẸ-luật (Câu hỏi 4) | vá AU3-22 đúng cột "cách vá" → 4 `D1-E*` (phép tĩnh riêng bắt, thu_P26c đồng thời sập) BẮT → HỎNG-sập: AUDIT-1 77/79 thay 81/83 | `python3 viec/AUDIT-4/boc.py --khung D1` | chủ quán chọn cách đọc luật (a); không đổi kết luận NẶNG |
@@ -32,6 +34,11 @@ nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 | AU4-14 | NHẸ (K4 P20b) | `discount-codes.js:63` `/validate` không qua cổng P20b → màn Bán hàng báo voucher hợp lệ, `POST /orders` 400 lúc tạo đơn; `:341` `/:id/increment-usage` tăng `used_count` chỉ cần đăng nhập | đọc code (không chạy) | `/validate` gọi `kiemDonCuaMa` như `orders.js:516–519`; ca: voucher đơn gốc đã huỷ → `/validate` 400 |
 | AU4-15 | NGHI (chưa chứng minh) | cổng P20b `orders.js:516–519` chạy NGOÀI giao dịch (`:1005` commit) → huỷ đơn gốc đúng lúc dùng voucher có thể lọt | đọc code; không dựng được tất định → CHƯA KIỂM, không đếm | kiểm lại trạng thái đơn gốc trong giao dịch hoặc ca chồng (khuôn KB10/KB11) |
 | AU4-16 | Câu hỏi chính sách | A6: mua thẻ 500.000 được +500 điểm, mua gói 300.000 được +300 điểm (`orders.js:827` cộng điểm theo `total`, không theo loại hàng) | `node viec/AUDIT-4/don_rong.js` | chủ quán chốt: có tích điểm khi mua thẻ / gói không; đối soát điểm theo quyết định đó |
+
+Mức các SỐNG CŨ ở chỗ tiền / gói (soát vòng 1 nghi ngờ): Q2 (a) áp cho đột biến ĐỘC LẬP của việc này (phiếu A3). SỐNG cũ giữ mức AUDIT-2 / AUDIT-3 đã
+xét kèm lý do — `A3L-goi-bo-kiem-con-lai`, `A3L-redeem-bo-han-diem`, `A3L-nhandiem-he-so-mac-dinh`, `BK-KB16` (khoá hai lớp), `BK-KB20` (AU2-9 P26d),
+P26b `hong-tran-theo-man-hinh` (đã thay P26c), 22 C2F (AU3-19, NHẸ) — không xếp lại ở đây; nếu chủ quán áp Q2 cho cả SỐNG cũ thì "7 NẶNG" là cận dưới.
+Kết luận "chưa đạt" không đổi. Mã AU4-n chỉ đặt ở bảng này (file khác dẫn theo).
 
 Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`BK-KB21` LẠC), AU3-5 (bb I2 LẠC ×2), AU3-6 (`VS-AU3-P26C-HUY-ME-TRA-0`,
 `VS-Q9-hoan-me-ngoai-tx` đỏ-rồi-sập), AU3-18 (bb SỐNG mới ×2), AU3-19 + 21 C2F SỐNG (NHẸ), AU3-20 (bb `D2-vo-hai` BẮT trái hợp đồng), AU2-9 (KB20 SỐNG).
@@ -56,7 +63,7 @@ Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`B
 
 ## Đề xuất khoá (một việc vá lưới kiểu LUOI-3, trước AUDIT-5)
 7 ca ở cột "đề xuất khoá" AU4-1…7 (`thu_P20.js` 1 · `thu_P26c.js` 3 · `thu_GOI1.js` 3); ca đỏ = 7 đột biến `viec/AUDIT-4/dot_bien.py` chuyển BẮT
-(`python3 viec/AUDIT-4/dot_bien.py` → SỐNG chỉ còn `D2-AU4-vo-hai`). Số đã tự tính trên gốc VÀ đột biến (bài học LUOI-3); AU4-5 cần xác nhận cổng
+(`python3 viec/AUDIT-4/dot_bien.py` → "đúng mong 19/19", thoát 0 — vòng sửa 1 thêm `MONG`, hiện 11/19 thoát 1). Số đã tự tính trên gốc VÀ đột biến (bài học LUOI-3); AU4-5 cần xác nhận cổng
 chấp nhận đơn gói + mã 1 món trước. Kèm AU4-8 (thu_GOI1 A2 đi tiếp khi ca đỏ) để `VS-AU4-L3-LOAI-CHAN-BANG` chuyển BẮT.
 
 ## Đề xuất bộ khung (không làm ở việc này)
