@@ -1,7 +1,8 @@
 # P20c — kế hoạch v1 (CHỜ DUYỆT — chưa viết bài thử, chưa sửa code)
 
-> **Sau soát vòng 1–2 (16.10):** bảng ca (mục 5) và bảng đột biến (mục 6) dưới đây là bản v1. Danh sách ĐANG CHẠY (ca H1–H6 gồm H3d–H3h, H4b;
-> 18 đột biến) và bản vá /reset hiện hành ghi ở `trang_thai.md` (mục "vòng sửa 1", "vòng sửa 2"). Câu sai đã gạch tại chỗ.
+> **Sau soát vòng 1–4 và vòng sửa 4 (16.10):** bảng ca (mục 5) và bảng đột biến (mục 6) dưới đây là bản v1. Danh sách ĐANG CHẠY (ca H1–H6
+> gồm H3d–H3j, H4b; **21 đột biến** — ghi chú cũ "18" sai từ vòng sửa 3 (đã 20), vòng sửa 4 thêm `VS-A3-so-toi-phut`) và bản vá /reset hiện
+> hành ghi ở `trang_thai.md` (mục "vòng sửa 1" … "vòng sửa 4"). Câu sai đã gạch tại chỗ.
 
 Số dòng dưới đây đọc trong lượt này trên HEAD `2353fe9` (= main `0ee7346` + sổ việc v34 `783a1dd` + `PHIEU: P20c`).
 
@@ -89,7 +90,8 @@ làm voucher mới xuất hiện; mã tay trùng chữ cũng tạo được (`di
 đúng lần claim đã đọc (`AND claimed_at = ? AND claimed_phone IS ?` — soát vòng 2: `IS` cho dòng claimed_phone NULL, H3h), 0 dòng → 409; RỒI DELETE dùng `COALESCE(used_count, 0) = 0` (cùng nghĩa phép
 kiểm ngoài với NULL — H3f). Bản nháp trước (xoá `:465–473`, thêm `tx.queryOne` hỏi "còn
 voucher") dài gấp đôi — agent soát chỉ ra. Còn một cửa hẹp: voucher bị XOÁ TAY (`discount-codes.js:326`) đúng giữa `:467` và giao dịch →
-400 thay vì 200; bấm lại là qua — chấp nhận, ghi CHƯA KIỂM.
+400 thay vì 200; bấm lại là qua — chấp nhận, ghi CHƯA KIỂM. **(Vòng sửa 4: dựng tất định được — không xếp CHƯA KIỂM; chủ quán chọn b1,
+có ca khoá H3i, ghi ở "Giới hạn đã biết" trong `trang_thai.md`. "Bấm lại là qua": đúng — lần bấm sau `voucherRow` null.)**
 
 ## 4. A4 — mã lỗi
 

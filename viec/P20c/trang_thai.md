@@ -184,8 +184,15 @@ BÀI HỌC:       KHOÁ: thêm vào thu_P20 [H] ca (a) cùng SĐT nhận điểm
   claim / nhận điểm. P20b đã chốt giữ nguyên; không có ca thử.
 - Đua thật trên Turso (giao dịch "write" qua HTTP, hai máy): chỉ thử bằng móc tất định trên file libsql cục bộ.
 - Dữ liệu production: SĐT đã trùng do đua cũ, `used_count` NULL, voucher trước 09.08 còn hạn — chưa đếm (Phát hiện 6, 7).
-- App KH (người gọi `/claim` qua `X-Service-Key`) ngoài kho: chưa biết có rẽ nhánh theo status 400 cũ của "mã đã sử dụng" (nay 409) không.
-- `/reset` khi CÙNG SĐT claim lại trong CÙNG GIÂY với lần hoàn tác chồng (getNow chỉ tới giây) — không dựng được ca tất định phân biệt.
+- App KH (người gọi `/claim` qua `X-Service-Key`) ngoài kho: chưa biết có đọc mã 400 cũ của `/claim` "mã đã sử dụng" không (nay 409
+  `MA_DA_DUNG`); "SĐT đã nhận" vẫn 400, chỉ thêm `code: 'SDT_DA_NHAN'`.
+
+## Giới hạn đã biết (có ca khoá — không phải "chưa kiểm")
+- H3i (chủ quán chọn b1): voucher CHƯA dùng bị xoá tay (màn Mã chiết khấu) đúng giữa phép kiểm sớm của `/reset` và giao dịch → 400 "Voucher
+  này vừa được dùng…" (lời báo sai, dữ liệu đúng: không gỡ claim). Bấm hoàn tác lại là qua (`voucherRow` null). Gốc trả 200.
+- H3j: CÙNG SĐT claim lại trong CÙNG giây với lần hoàn tác chồng (getNow chỉ tới giây) → khoá `claimed_at + claimed_phone` không phân biệt,
+  hoàn tác B gỡ luôn lần claim mới; trạng thái cuối nhất quán (không claim, không voucher, khách claim lại được). Dòng cũ ghi "không dựng được
+  ca tất định" là SAI (K1) — dựng được bằng móc như H3d; nay có ca khoá. Chặn hẳn cần cột phiên bản (đổi cấu trúc DB — ngoài phiếu).
 
 ## Bước 8 — soát độc lập `/ra-soat` vòng 2 (16.10, agent soát trên HEAD `3da0928`) — chép nguyên báo cáo
 ```
@@ -407,3 +414,39 @@ BÀI HỌC:       KHOÁ (K3): vế so bằng trên cột thời gian → ca "nga
    (c) Ghi chú đầu `ke_hoach.md`: 18 → 20 đột biến, trỏ cả vòng sửa 3.
    Chủ quán cho phép thêm MỘT vòng sửa (và chọn b1 / b2) không? Nếu có: `/lam-viec P20c tiep` kèm lựa chọn.
    (Lưu ý: số liệu W3/W4/Z/Z2 ở trên là của agent soát, máy chưa tự chạy lại.)
+
+## Bước 1 (tiếp, vòng sửa 4) — đối chiếu lại
+HEAD `5a08938` · FETCH_HEAD `5a08938` — bằng nhau, không kéo. Chủ quán cho thêm MỘT vòng sửa (vòng 4) — chỉ bài thử + hồ sơ, KHÔNG đổi code
+chạy thật: (a) H3g ±1 giây quanh mốc cố định + 1 đột biến "so tới phút"; (b) b1 — giữ hành vi, ca khoá 400 khi voucher bị xoá tay lúc hoàn
+tác, ghi giới hạn; (c) ke_hoach 18 → 20; tự đo lại W3, W4, Z, Z2; thêm CHƯA KIỂM App KH.
+```
+5a08938 P20c: soat vong 4 KHONG DAT sau 3 vong sua — chep bao cao, ghi Cau hoi, DUNG (so_vong_sua_toi_da 3)
+1bb072d P20c: trang thai — kiem tren 68cebb4: 20/20 BAT, --day-du 68/0, AUDIT-1 D1 8/8, AUDIT-2 KB11 2/2, P20b 4/4
+68cebb4 P20c soat vong 3: bao cao soat chep nguyen, 20 dot bien (>= / <=), bang chung v4 (109/20 goc, SO CA 129), Phat hien 1 dung COALESCE
+```
+
+## Bước 4–6 (vòng sửa 4, 16.10)
+- **Tự đo lại trước khi sửa bài thử** (bản sao ngoài kho, bài thử = `thu_P20.js` của `5a08938`, công cụ ở thư mục nháp `do_lai/do_lai.py`):
+  - W3 (`substr(claimed_at, 1, 16) = substr(?, 1, 16)` — so tới phút): **129 đạt · 0 hỏng → SỐNG**.
+  - W4 (`substr(…, 1, 10)` — so tới ngày): **129 đạt · 0 hỏng → SỐNG**.
+  - Z (móc xoá voucher chưa dùng giữa phép kiểm sớm và giao dịch của /reset): HEAD → **HTTP 400** "Voucher này vừa được dùng trong 1 đơn
+    hàng — không hoàn tác.", dòng vẫn claimed; GỐC 2353fe9 → **HTTP 200**, claimed_at null.
+  - Z2 (ghim claimed_at = 2026-10-16T10:00:00, cùng SĐT claim lại ép …10:00:01): HEAD → hoàn tác B **409**, voucher 1 (xanh); HEAD + W3 → **200,
+    voucher 0 (ĐỎ)**; HEAD + W4 → 200, voucher 0 (ĐỎ); GỐC → 200, voucher 0 (ĐỎ). Khớp số của agent soát vòng 4.
+- (a) H3g: ghim claimed_at lần đầu = T0 `2026-10-16T10:00:00`, ép lần claim lại = T0 + 1 giây và T0 − 1 giây (thay 2099 / 2000; không dùng giờ
+  thật + 1 giây — rơi vào giây :59 thì thất thường). Đột biến mới `VS-A3-so-toi-phut` (= W3). Với bài mới: W3 → **130 · 2** (đỏ ở "H3g muộn hơn
+  1 giây"), W4 → **128 · 4** (đỏ cả hai phía).
+- (b) b1: ca H3i khoá hành vi 400 + dòng vẫn claimed; ghi "Giới hạn đã biết".
+- Thêm (cùng cách xử lý b1, ngoài ba mục chủ quán nêu — chỉ bài thử): ca H3j khoá giới hạn "cùng SĐT cùng giây"; dòng CHƯA KIỂM cũ ghi "không
+  dựng được ca tất định" là sai → chuyển sang "Giới hạn đã biết".
+- (c) Ghi chú đầu `ke_hoach.md`: ghi đúng số hiện hành **21** đột biến (chủ quán dặn 18 → 20 = số sau vòng sửa 3; vòng này thêm 1). Lời hứa
+  "ghi CHƯA KIỂM" ở `ke_hoach.md:92` ghi chú đã thực hiện bằng H3i; `:162` (A5) đã có trong CHƯA KIỂM.
+- CHƯA KIỂM App KH: viết lại theo lời chủ quán (dòng đã có từ vòng sửa 1).
+- Bài thử: GỐC 2353fe9 (bản sao ngoài kho) **113 đạt · 22 hỏng** (thêm H3g ±1 giây ×4, H3i ×2 đỏ; H3j xanh — khoá giới hạn); code HEAD **135 đạt
+  · 0 hỏng** — `bang_chung_do.txt` v5, `SỐ CA … 135`. `server/` KHÔNG đổi ở vòng này.
+
+### Chỗ vá → đột biến thêm ở vòng sửa 4
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| A3 khoá `claimed_at = ?` đúng tới giây | `VS-A3-so-toi-phut` | ✗ H3g muộn hơn 1 giây: hoàn tác B |
+(`VS-A3-gio-lon-hon`, `VS-A3-gio-nho-hon` đổi mẫu theo nhãn mới "muộn hơn 1 giây" / "sớm hơn 1 giây".)
