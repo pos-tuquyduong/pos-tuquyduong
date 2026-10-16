@@ -37,6 +37,8 @@ số dòng cứng bị phát hiện; KHUON_LOI gọn lại còn chỗ ghi bài h
 - tu_chay/thu_cong.js
 - tu_chay/THIET_KE.md
 - tu_chay/PHIEN_BAN
+- tu_chay/thu_cong_cu.js
+- tu_chay/thu_nguoi_gac.js
 - kiem_tra_truoc_khi_giao.js
 - cong_cu/thu_TOCDO1.js
 - cong_cu/thu_gia_lap.js
@@ -57,4 +59,6 @@ không
 - Không sửa `.claude/`, `.github/`, `tu_chay/nguoi_gac.js`, `tu_chay/cong.js`, `tu_chay/cai_dat.js`, `tu_chay/cau_hinh.json`,
   `tu_chay/skill_lam_viec.md`, `tu_chay/lenh_ra_soat.md`, `tu_chay/MAU_PHIEU.md`, `server/`, `client/`, `cong_cu/gia_lap/**`,
   `cong_cu/thu_P26c.js`, `thu_GOI1.js`, `thu_P26a.js`, `thu_P20.js`, `viec/AUDIT-4/**`, sổ việc.
+- `tu_chay/thu_cong_cu.js`, `tu_chay/thu_nguoi_gac.js`: CHỈ sửa dòng ghim PHIEN_BAN `tu-chay 1.6.0` → `1.7.0` (chủ quán mở Phạm vi 16.10,
+  Câu hỏi 1 — thu_cong_cu.js:459, thu_nguoi_gac.js:709); không đổi gì khác trong hai file này.
 - Không nới hạn 120 s / 110 s. Không bỏ bài thử nào. Chỉ push đúng `git push -u origin viec/TU-CHAY-7`. Không đụng `main`, không merge, không tạo PR.
