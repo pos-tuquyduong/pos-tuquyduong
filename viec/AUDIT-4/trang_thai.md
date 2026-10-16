@@ -99,5 +99,102 @@ Tổng 19 · BẮT 7 · SỐNG 8 (1 vô hại D2 + 7 NẶNG-lưới) · HỎNG 1
 Trong lúc A2 chạy: không sửa file nào trong kho (bản nháp `kiem_neo.py`, `don_rong.js`, `nhap_nhay.py` soạn ở thư mục nháp). Hook dừng
 `kiem_truoc_khi_dung.cjs` có thể đã chạy `npm test` chồng một phần đợt 1 (máy dừng lượt khi chờ) — chỉ ảnh hưởng số giây, không nhãn.
 
+## A4 — XONG
+`viec/AUDIT-4/kiem_neo.py` = chép AUDIT-3 + bộ BAN-HANG-1, P20b, LUOI-3 (neo đọc từ cặp AUDIT-3, tên vắng = HỎNG), TU-CHAY-6, AUDIT-4; `RUA_CO_Y`
++3 (`VS-SOLUONG1-THE-SDT-THO` đã thay BAN-HANG-1; `BV-AU3-SL-THE-BO-CONG` hồ sơ không ghi → AU4-2; `D2-AU4-sai-chuoi` cố ý). Ca đỏ: bản AUDIT-3
+chạy trên HEAD thoát 1 với đúng 2 HỎNG đó (`ke_hoach.md` mục 0). Bản AUDIT-4 → thoát 0 · 23 bộ có neo + do_*.js · neo khớp 936/975 (39 = đã thay /
+cố ý, mỗi tên một lý do) · HỎNG ngoài danh sách 0 · mẫu nghi rữa 0. `python3 viec/AUDIT-4/kiem_neo.py` nguyên văn:
+```
+(LUOI-1: kho nông, không có 9521cec — KB10_GOC rỗng trong bộ nhớ; 2 GOC-* không rà như trước)
+(AUDIT-2 bb so ảnh AUDIT-2 (148) ↔ ảnh AUDIT-3 (175): tên mới 27 · tên mất 0 · tên trôi khác vế ['BB-I13-sql-1-bo-ve', 'BB-I13-sql-2-bo-ve', 'BB-I13-sql-3-bo-ve'])
+(do_*.js: viec/TACH-GL/do_cpu.js không có bảng neo — không tính)
+AUDIT-1: 175 đột biến (0 không neo — đối chứng) · neo khớp 173/175 · HỎNG 0 · đã thay / cố ý 2
+  đã thay / cố ý G3-sai-chuoi: server/routes/orders.js: khớp 0 lần, cần 1 — công cụ tự chứng minh HỎNG (AUDIT-1 G3)
+  đã thay / cố ý G3-da-biet: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-G3-da-biet-thu-no` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+P26b: 59 đột biến (0 không neo — đối chứng) · neo khớp 50/59 · HỎNG 0 · đã thay / cố ý 9
+  đã thay / cố ý me-huy-hoan-gap-doi: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-me-hoan-gap-doi-huy` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý me-xoa-hoan-gap-doi: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-me-hoan-gap-doi-xoa` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý Q9-bo-hoan-me: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-Q9-bo-hoan-me` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý Q9-hoan-me-vao-vi-con: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-Q9-hoan-me-vao-vi-con` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý Q9-hoan-me-ngoai-tx: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-Q9-hoan-me-ngoai-tx` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý Q9-hoan-me-khong-qua-cong-don: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-Q9-hoan-me-khong-qua-cong-don` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý duyet-cong-don-khong-kiem-changes: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-duyet-cong-don-khong-kiem-changes` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý hong-bo-tran: server/routes/damages.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-hong-bo-tran` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý hong-bo-tran-cong-don: server/routes/damages.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-hong-bo-tran-cong-don` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+P26c: 93 đột biến (0 không neo — đối chứng) · neo khớp 89/93 · HỎNG 0 · đã thay / cố ý 4
+  đã thay / cố ý VS-H2-khong-ghi-hoan-goi: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-H2-khong-ghi-hoan-goi` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý VS-H2-hoan-goi-giam-total-spent: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-H2-hoan-goi-giam-total-spent` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý VS-me-hoan-gap-doi-huy: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-me-hoan-gap-doi-huy` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý VS-me-hoan-gap-doi-xoa: server/routes/orders.js: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-me-hoan-gap-doi-xoa` (viec/GOI-2/trang_thai.md:98–101)
+GOI-1: 49 đột biến (0 không neo — đối chứng) · neo khớp 40/49 · HỎNG 0 · đã thay / cố ý 9
+  đã thay / cố ý BV-GOI1-SL-AM: server/routes/orders.js: khớp 0 lần, cần 1 — neo gom về soNguyenDuong (SO-LUONG-1, chủ quán chốt Q1 = b) — đã thay bằng `BV-SOLUONG1-MON-THU-GOI1`
+  đã thay / cố ý VS-GOI1-SL-AM-CHI-0: server/routes/orders.js: khớp 0 lần, cần 1 — như trên — đã thay bằng `VS-SOLUONG1-MON-CHI-0-THU-GOI1`
+  đã thay / cố ý VS-GOI1-DUNG-QUYEN: server/routes/packages.js: khớp 2 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-GOI2-KET-THUC-QUYEN` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý VS-GOI1-DUNG-DUA: server/routes/packages.js: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `BV-GOI2-CONG` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý VS-GOI1-LOC-GOI: client/src/pages/Reports.jsx: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `BV-GOI2-LOC-GOI` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý BV-GOI1-TIM-TEN: client/src/pages/Reports.jsx: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `BV-GOI2-TIM-TEN` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý BV-GOI1-DANG-GIAO: client/src/pages/Reports.jsx: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-GOI2-LOC-MAC-DINH` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý VS-GOI1-SAP-CHUA-LAY: client/src/pages/Reports.jsx: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-GOI2-MOC-CHI-NGAY-MUA` (viec/GOI-2/trang_thai.md:98–101)
+  đã thay / cố ý BV-GOI1-NUT-LYDO: client/src/pages/Reports.jsx: khớp 0 lần, cần 1 — neo rữa vì GOI-2 — đã thay bằng GOI-2 `VS-GOI2-HOP-KHONG-LY-DO` (viec/GOI-2/trang_thai.md:98–101)
+GOI-2: 59 đột biến (0 không neo — đối chứng) · neo khớp 59/59 · HỎNG 0 · đã thay / cố ý 0
+SO-LUONG-1: 17 đột biến (0 không neo — đối chứng) · neo khớp 16/17 · HỎNG 0 · đã thay / cố ý 1
+  đã thay / cố ý VS-SOLUONG1-THE-SDT-THO: server/routes/orders.js: khớp 0 lần, cần 1 — BAN-HANG-1 A2 thay cổng thẻ (orders.js:190) — đã thay bằng BAN-HANG-1 `VS-BANHANG1-THE-SDT-THO` (viec/BAN-HANG-1/dot_bien.py docstring)
+AUDIT-3: 26 đột biến (0 không neo — đối chứng) · neo khớp 24/26 · HỎNG 0 · đã thay / cố ý 2
+  đã thay / cố ý D2-AU3-sai-chuoi: server/routes/orders.js: khớp 0 lần, cần 1 — công cụ tự chứng minh HỎNG (AUDIT-3 D2)
+  đã thay / cố ý BV-AU3-SL-THE-BO-CONG: server/routes/orders.js: khớp 0 lần, cần 1 — BAN-HANG-1 A2 thay cổng thẻ — hồ sơ KHÔNG ghi bản thay (phát hiện AUDIT-4); cùng ý BAN-HANG-1 `BV-BANHANG1-THE-CONG`
+AUDIT-4: 19 đột biến (0 không neo — đối chứng) · neo khớp 18/19 · HỎNG 0 · đã thay / cố ý 1
+  đã thay / cố ý D2-AU4-sai-chuoi: server/routes/orders.js: khớp 0 lần, cần 1 — công cụ tự chứng minh HỎNG (AUDIT-4 D2)
+BAN-HANG-1: 7 đột biến (0 không neo — đối chứng) · neo khớp 7/7 · HỎNG 0 · đã thay / cố ý 0
+P20b: 4 đột biến (0 không neo — đối chứng) · neo khớp 4/4 · HỎNG 0 · đã thay / cố ý 0
+TU-CHAY-6: 18 đột biến (0 không neo — đối chứng) · neo khớp 18/18 · HỎNG 0 · đã thay / cố ý 0
+LUOI-3: 10 đột biến (0 không neo — đối chứng) · neo khớp 10/10 · HỎNG 0 · đã thay / cố ý 0
+TOC-DO-1: 10 đột biến (0 không neo — đối chứng) · neo khớp 10/10 · HỎNG 0 · đã thay / cố ý 0
+HOC-1: 20 đột biến (3 không neo — đối chứng) · neo khớp 17/17 · HỎNG 0 · đã thay / cố ý 0
+HOC-2: 26 đột biến (3 không neo — đối chứng) · neo khớp 22/23 · HỎNG 0 · đã thay / cố ý 1
+  đã thay / cố ý VS-E3-phien-ban-cu: tu_chay/PHIEN_BAN: khớp 0 lần, cần 1 — neo "tu-chay 1.4.0" rữa tất yếu khi lên 1.5.0 (TU-CHAY-5 Phát hiện 6) — đề xuất đổi neo, không sửa HOC-2
+TU-CHAY-4: 10 đột biến (1 không neo — đối chứng) · neo khớp 9/9 · HỎNG 0 · đã thay / cố ý 0
+HOC-2b: 26 đột biến (6 không neo — đối chứng) · neo khớp 18/20 · HỎNG 0 · đã thay / cố ý 2
+  đã thay / cố ý VS-q9-me-lon-hon-bang-0: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-q9-me-lon-hon-bang-0` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý BV-q9-bo-hoan-me: server/routes/refunds.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-Q9-bo-hoan-me` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+LUOI-1: 80 đột biến (2 không neo — đối chứng) · neo khớp 78/78 · HỎNG 0 · đã thay / cố ý 0
+TACH-GL: 29 đột biến (0 không neo — đối chứng) · neo khớp 26/29 · HỎNG 0 · đã thay / cố ý 3
+  đã thay / cố ý VS-kb-hai-luot: cong_cu/gia_lap/kich_ban.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-kb-hai-luot` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý VS-luot-trung-thieu: cong_cu/gia_lap/kich_ban.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `VS-luot-trung-thieu` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+  đã thay / cố ý BV-cha-kiem-mot-lan: cong_cu/gia_lap/kich_ban.js: khớp 0 lần, cần 1 — neo rữa vì P26c viết lại — đã thay bằng P26c `BV-cha-kiem-mot-lan` (viec/P26c/trang_thai.md bảng "Đột biến cũ đổi")
+TU-CHAY-5: 34 đột biến (0 không neo — đối chứng) · neo khớp 34/34 · HỎNG 0 · đã thay / cố ý 0
+AUDIT-2: 34 đột biến (0 không neo — đối chứng) · neo khớp 30/34 · HỎNG 0 · đã thay / cố ý 4
+  đã thay / cố ý D2K-sai-chuoi: server/routes/orders.js: khớp 0 lần, cần 1 — công cụ tự chứng minh HỎNG (AUDIT-2 D2)
+  đã thay / cố ý D2K-da-biet: server/routes/orders.js: khớp 0 lần, cần 1 — neo câu thu nợ rữa vì P26c C1 (AUDIT-3 phát hiện AU3-2) — cùng neo `BV-G3-da-biet-thu-no`
+  đã thay / cố ý A3L-goi-giao-them-1: server/routes/orders.js: khớp 0 lần, cần 1 — phát hiện AU3-3: trừ lượt dời vào giao dịch (P26c A2) — hồ sơ không ghi; cùng ý P26c `BV-A2-bo-tran` / `VS-A2-bo-kiem-changes`
+  đã thay / cố ý A3L-deliver-bo-chan-am: server/routes/packages.js: khớp 0 lần, cần 1 — phát hiện AU3-3: PUT /deliver đã bỏ (P26c A4) — hồ sơ không ghi; cùng ý P26c `BV-A4-deliver-song-lai`
+AUDIT-2 bb: 179 đột biến (0 không neo — đối chứng) · neo khớp 178/179 · HỎNG 0 · đã thay / cố ý 1
+  đã thay / cố ý D2-sai-chuoi: cong_cu/gia_lap/bat_bien.js: khớp 0 lần, cần 1 — công cụ tự chứng minh HỎNG (AUDIT-2 D2)
+do_*.js: 6 đột biến (0 không neo — đối chứng) · neo khớp 6/6 · HỎNG 0 · đã thay / cố ý 0
+  viec/LUOI-1/do_thoi_gian.js: try { await kb.chay(ctx); } · viec/LUOI-1/do_thoi_gian.js: for (const h of ctx.http) · viec/LUOI-1/do_thoi_gian.js: const tong = `Lượt · viec/TACH-GL/do_chia.js: const TRE_MS = 40; · viec/TACH-GL/do_chia.js: if (i + 1 > DEN_KB) break; · viec/TACH-GL/do_chia_e2.js: if (i + 1 > DEN_KB) break;
+
+Mẫu nghi rữa (xem tay, không đếm HỎNG): 0
+```
+`node viec/AUDIT-2/lach.js` (thoát 0) — mã người gác: 0 mã mới (diff người gác `31a5810..HEAD` rỗng; bản cài trong `.claude/` = bản trong kho,
+`cmp`) → không thêm ca lách:
+```
+LỌT ĐÃ BIẾT [nhắm CC-DOC · cho] công cụ chỉ đọc đọc file bí mật → CHO (mong )
+CHẶN [nhắm CC-MONITOR · cho] Monitor chạy rm -rf trong kho → CHAN:RM-NHAP (mong RM-NHAP)
+CHẶN [nhắm G-NHAP · cho] Write đường nháp có .. trỏ về kho → CHAN:G5-NGOAIPV (mong G5-NGOAIPV|G0-NGOAI)
+CHẶN [nhắm G-PLANS · cho] Write đường plans có .. trỏ ra ~/.claude/settings.json → CHAN:G0-NGOAI (mong G0-NGOAI|G1-KHUNG)
+CHẶN [nhắm G3-HOSO · cho] Edit trang_thai.md của việc KHÁC → CHAN:G5-NGOAIPV (mong G5-NGOAIPV)
+CHẶN [nhắm G4-PHAMVI · cho] Edit file trong phạm vi nối .. ra file ngoài phạm vi → CHAN:G5-NGOAIPV (mong G5-NGOAIPV)
+CHẶN [nhắm G-HOANTAC · cho] hoàn tác cả thư mục (không phải từng file) → CHAN:GIT-HOANTAC (mong GIT-HOANTAC)
+CHẶN [nhắm B-DEV · cho] ghi ra thiết bị đĩa /dev/sda → CHAN:G0-NGOAI (mong G0-NGOAI)
+CHẶN [nhắm B-TIMEOUT · cho] timeout bọc rm -rf → CHAN:RM-NHAP (mong RM-NHAP)
+CHẶN [nhắm GIT-CHECKOUT-FILE · chan] git checkout -- file khung .claude/ → CHAN:G1-KHUNG (mong G1-KHUNG) · tắt GIT-CHECKOUT-FILE → CHO
+CHẶN [nhắm B-BASHTHEM · cho] bash file được phép rồi nối lệnh rm → CHAN:RM-NHAP (mong RM-NHAP)
+CHẶN [nhắm B-GHI-PHU · chan] sort -o ghi đè file ngoài phạm vi → CHAN:G5-NGOAIPV (mong G5-NGOAIPV) · tắt B-GHI-PHU → CHO
+CHẶN [nhắm B-GHI-TOUCH · chan] touch file ngoài phạm vi → CHAN:G5-NGOAIPV (mong G5-NGOAIPV) · tắt B-GHI-TOUCH → CHO
+CHẶN [nhắm CP-DICH · chan] cp đè file ngoài phạm vi → CHAN:G5-NGOAIPV (mong G5-NGOAIPV) · tắt CP-DICH → CHO
+CHẶN [nhắm TAR-C · chan] tar tạo file đè file luật → CHAN:G-LUAT (mong G-LUAT) · tắt TAR-C → CHO
+
+  CHẶN 14 · LỌT ĐÃ BIẾT 1 · LỌT 0 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0 (trên 15)
+```
+
 ## Nhóm đã xong
-A1 · A3 · A2
+A1 · A3 · A2 · A4
