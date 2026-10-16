@@ -3,7 +3,8 @@
 Đo 16.10.2026 trên máy mây (kho CHỤP NÔNG); code chạy thật = `0ee7346` (việc KHÔNG đổi byte nào ngoài `viec/AUDIT-4/` —
 `git diff --stat d8e256e HEAD -- ':!viec/AUDIT-4/'` rỗng). Chi tiết: `a2_bang.md` (A2 từng tên), `trang_thai.md` (A1…A6, D3), `bang_chung_do.txt`
 (D2 + ca đỏ A1). Công cụ: `boc.py` (A1 + bọc A2), `dot_bien.py` (A3 + `--bo`), `kiem_neo.py` (A4), `don_rong.js` (A6). Lời duyệt 16.10: Q1 (a) bọc đủ;
-Q2 (a) SỐNG ở chỗ tiền = NẶNG-lưới, không hạ mức, kèm đường thật; Q3 A3 làm chiều ngược (`IS NULL`); thời gian máy thật ~2 h 15 (< 180 phút, không cắt).
+Q2 (a) SỐNG ở chỗ tiền = NẶNG-lưới, không hạ mức, kèm đường thật; Q3 A3 làm chiều ngược (`IS NULL`); thời gian máy thật ~2 h 15 (< 180 phút, không cắt). Chốt đóng việc 16.10: Q4 ghi 77/79 (AU4-11); Q5 có —
+Q2 (a) áp cho mọi SỐNG ở chỗ tiền, kể cả SỐNG cũ (AU4-21); Q6 (b) đóng việc, không vòng sửa 4 — lỗi luật sập thành AU4-17…20; AU4-16 chủ quán chốt riêng.
 
 ## Kết luận một dòng
 **CHƯA đạt điểm dừng: 0 NẶNG-code, 7 NẶNG-lưới** (A3: 7/14 đột biến độc lập ở đường tiền / gói SỐNG — 3 làm tròn ≤ 1đ, 1 chỉ qua API thẳng, 3 nhánh
@@ -13,7 +14,8 @@ quan sát trùng nguyên văn bằng chứng LUOI-3. Đường tiền mới P20b
 bắt thêm lỗ cùng dạng AU3-22 trong luật bản 1 (phép trừ `✗ T\d` nuốt dòng gộp `✗ bài chạy thật … ✗ T1a … | ✖ Bài thử sập` của kiem_tra) → vá, ca đỏ
 thứ năm trong `--tu-thu`; soát vòng 2 bắt thêm 3 (vế trừ ca T chưa có ca đỏ "phải KHÔNG sập", dòng gộp `--day-du` của thu_gia_lap ✗ T3
 chấm sập oan, dấu sập khối `baiX sập:` của thu_cong / thu_cong_cu vắng); soát vòng 3 thêm 2 (dòng gộp kiem_tra khi bài con sập không in ✗ —
-chỉ còn `thoát mã N`; ngoại lệ phải theo NỘI DUNG chi tiết dòng ca, không theo tên ca T) → vá, `--tu-thu` 10/10 (`--khung D1` chạy lại: y hệt); chạy lại khung AUDIT-1 trừ C2F (88 tên — cách chạy đếm từ `DOT_BIEN`: kiem 53 · gac 16 · cong 12 · gl 3 · kb1 2 · kb10 1 · c2 1 (D1 = 53 kiem + 4 cong); 1151 s) theo luật vòng 2: y hệt từng tên (lỗ không che BẮT nào). 4 tên kiem / kiemdd của AUDIT-2 A3B ngoài A2 theo phiếu (A3L + B3) — không chạy. A6: không đường
+chỉ còn `thoát mã N`; ngoại lệ phải theo NỘI DUNG chi tiết dòng ca, không theo tên ca T) → vá, `--tu-thu` 10/10 (`--khung D1` chạy lại: y hệt); chạy lại khung AUDIT-1 trừ C2F (88 tên — cách chạy đếm từ `DOT_BIEN`: kiem 53 · gac 16 · cong 12 · gl 3 · kb1 2 · kb10 1 · c2 1 (D1 = 53 kiem + 4 cong); 1151 s) theo luật vòng 2: y hệt từng tên (lỗ không che BẮT nào). Soát vòng 4 bắt thêm 4 lỗi luật sập / hồ sơ (một là hồi quy của vòng sửa 3) — hết
+3 vòng sửa, chủ quán chốt đóng việc: AU4-17…20, chuyển việc khung chung; mọi số A2 đo bằng luật bản 1, không phụ thuộc các lỗi này. 4 tên kiem / kiemdd của AUDIT-2 A3B ngoài A2 theo phiếu (A3L + B3) — không chạy. A6: không đường
 nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 
 ## Bảng phát hiện (mọi file:dòng đọc trên HEAD `0ee7346` lượt này)
@@ -21,7 +23,7 @@ nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 | mã | mức | ở HEAD | lệnh thấy lại | đường thật (Q2 a) · đề xuất khoá — ca đỏ ĐÃ TỰ TÍNH trên gốc và trên đột biến |
 |---|---|---|---|---|
 | **AU4-1** | **NẶNG-lưới** | `orders.js:512–515` cổng P20b tra `pos_signup_codes` bằng `codeRecord.code`; đột biến tra bằng `discount_code` thô (chưa trim) SỐNG — thu_P20 [G] chỉ gửi mã chuẩn | `python3 viec/AUDIT-4/dot_bien.py VS-AU4-P20B-TRA-MA-THO` → SỐNG 75/0 | Quầy gửi mã chuẩn lấy từ `/validate` (`Sales.jsx:735`) → chỉ lộ khi gọi API thẳng. `thu_P20.js` [G] thêm G8: voucher của đơn gốc ĐÃ HUỶ, gửi `discount_code` = `'  ' + ma + '  '` → 400 `MA_DON_GOC_KHONG_HOP_LE`, không đơn mới (đột biến: `:504` trim nên tìm thấy voucher, `UPPER(' MA ')` ≠ `MA` → bỏ cổng → 200 + giảm) |
-| **AU4-2** | **NẶNG-lưới** | `tienDaTra.js:25` `Math.floor((gia[i] * tra) / tong)` — đổi `Math.ceil` SỐNG: mọi ca đền / huỷ đều chia hết | `… VS-AU4-L3-DATRA-LAM-TRON-LEN` → SỐNG (p26c 118/0, thu 105/0) | Đơn có giảm cấp đơn mà tổng không chia hết (thường gặp). `thu_P26c.js` [M]: món 25.000 + món 30.000, mã giảm 10.000 → total 45.000; trần dòng 25.000 = ⌊25.000 × 45.000 / 55.000⌋ = **20.454** (đột biến 20.455): đền 20.455 → 400 VUOT_GIA, 20.454 → 200 |
+| **AU4-2** | **NẶNG-lưới** | `tienDaTra.js:25` `Math.floor((gia[i] * tra) / tong)` — đổi `Math.ceil` SỐNG: mọi ca đền / huỷ đều chia hết | `… VS-AU4-L3-DATRA-LAM-TRON-LEN` → SỐNG (p26c 118/0, thu 105/0) | Đơn có giảm CẤP ĐƠN mà tổng không chia hết (thường gặp). Chỉ mã cấp đơn: mã một món (`:21–23`, khi `chanTren`) trừ thẳng, không làm tròn. `thu_P26c.js` [M]: món 25.000 + món 30.000, mã giảm 10.000 → total 45.000; trần dòng 25.000 = ⌊25.000 × 45.000 / 55.000⌋ = **20.454** (đột biến 20.455): đền 20.455 → 400 VUOT_GIA, 20.454 → 200 |
 | **AU4-3** | **NẶNG-lưới** | `tienDaTra.js:45` `- Math.ceil(daDung)` — đổi `Math.floor` (hoàn dư 1đ) SỐNG | `… VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG` → SỐNG | Gói số lượt không chia hết giá. `thu_P26c.js` [M]: gói 300.000 / 7 lượt, lấy 1, owner huỷ → ví + 300.000 − ⌈300.000 / 7⌉ = **257.142** (đột biến 257.143) |
 | **AU4-4** | **NẶNG-lưới** | `tienDaTra.js:81` `const goc = Math.floor(` (kết thúc gói) — đổi `Math.ceil` SỐNG; chỗ làm tròn thứ ba, chưa bộ nào đột biến (soát kế hoạch, K4) | `… VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN` → SỐNG | `thu_GOI1.js` B3: gói 300.000 / 7, lấy 1, kết thúc gói có hoàn → tong = ⌊300.000 × 6 / 7⌋ = **257.142** (đột biến 257.143); `hoan-du-kien` cùng số |
 | **AU4-5** | **NẶNG-lưới** | `tienDaTra.js:19` `chanTren && order.discount_code` — bỏ `chanTren` (trần mã-1-món áp cả huỷ / kết thúc gói) SỐNG | `… VS-AU4-L3-CHAN-TREN-CA-HOAN` → SỐNG | Đơn mua gói + món có mã giảm 1 món. `thu_P26c.js` [M]: gói 300.000 / 10 + món 25.000, mã 1 món giảm 5.000 → total 320.000; lấy 1, owner huỷ → ví + 320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉ = **290.461** (đột biến: gói 300.000 − 5.000 → 290.500). CHƯA chạy: đơn gói + mã 1 món có qua cổng hiện tại không — xác nhận khi viết ca |
@@ -30,20 +32,37 @@ nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 | AU4-8 | NHẸ-công cụ (AU3-6 tái diễn) | `goiKhach.js:29` đổi `>=` (chặn oan lấy đúng số còn): thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 đúng ca rồi `✖ Bài thử sập: Only finite numbers…` | `… VS-AU4-L3-LOAI-CHAN-BANG` → HỎNG-sập (dòng ✗ trước khi sập: `bang_chung_do.txt` mục 5) | `thu_GOI1.js` khối A2: dựng dữ liệu ca sau không phụ thuộc ca trước thành công (in ✗ rồi đi tiếp) → đột biến chuyển BẮT |
 | AU4-9 | NHẸ (hồ sơ) | `viec/AUDIT-3/dot_bien.py` `BV-AU3-SL-THE-BO-CONG` neo cổng thẻ cũ — BAN-HANG-1 thay cổng (`orders.js:190`) mà hồ sơ không ghi bản thay (như AU3-3) | `python3 viec/AUDIT-3/kiem_neo.py` → HỎNG 2 | ghi "đã thay = `BV-BANHANG1-THE-CONG`" ở việc đụng `viec/AUDIT-3/` kế; `viec/AUDIT-4/kiem_neo.py` đã ghi |
 | AU4-10 | NHẸ-công cụ | `viec/AUDIT-3/dot_bien.py` mẫu `✗ B1` / `✗ (S2\|A5)` / `✗ A5` của 5 tên AU3-8…17 không khớp tên ca LUOI-3 (`M2a`, `M4a`…) → LẠC-mẫu dù đỏ đúng ca | `python3 viec/AUDIT-3/dot_bien.py` → LẠC 5 | dùng `viec/LUOI-3/dot_bien.py` (mẫu = tên ca) làm bộ chính; hoặc đổi mẫu AUDIT-3 (cấm ở việc này) |
-| AU4-11 | NHẸ-luật (Câu hỏi 4) | vá AU3-22 đúng cột "cách vá" → 4 `D1-E*` (phép tĩnh riêng bắt, thu_P26c đồng thời sập) BẮT → HỎNG-sập: AUDIT-1 77/79 thay 81/83 | `python3 viec/AUDIT-4/boc.py --khung D1` | chủ quán chọn cách đọc luật (a); không đổi kết luận NẶNG |
+| AU4-11 | NHẸ-luật (đã chốt) | AUDIT-1 nay **77/79** = 77 / (88 − 2 HỎNG − 6 HỎNG-sập − 1 cố ý). Khác 81/83 của AUDIT-3 vì vá AU3-22: luật mới soi dòng `✗ bài chạy thật cong_cu/thu_P26c.js …` nơi kiem_tra báo bài con sập (AUDIT-3 lọc bỏ dòng này) → 4 `D1-E*` (phép tĩnh riêng bắt, thu_P26c đồng thời sập) BẮT → HỎNG-sập | `python3 viec/AUDIT-4/boc.py --khung D1` | chủ quán chốt 16.10 ghi 77/79 (luật (a) theo chữ); không đổi kết luận NẶNG |
 | AU4-12 | NHẸ-công cụ | `kiem_tra_truoc_khi_giao.js:616` chạy `thu_cong.js` hạn 120 s (`:478`) không truyền `canhGan` → không cảnh báo "> 80 %" (`:487`); `:600` tự ghi "150–325 s khi máy bận". A5: bận nhẹ 103,3 s (86 %) | `nhap_nhay.py` (trang_thai A5) | Đề xuất bộ khung (1) |
 | AU4-13 | NHẸ-công cụ | `tu_chay/thu_cong.js:24` `TAM` dọn duy nhất ở `:723` — bị giết / ném thì sót `/tmp/thu_cong_*`; `cong_cu/thu_gia_lap.js` SIGTERM để sót `/tmp/thu_gl_zTxA7g` (A5) | `ls /tmp` sau A5 | dọn ở `process.on('exit')` + bắt SIGINT / SIGTERM (khuôn `viec/AUDIT-4/don_rong.js`); ca đỏ: SIGTERM giữa bài → 0 thư mục sót |
 | AU4-14 | NHẸ (K4 P20b) | `discount-codes.js:63` `/validate` không qua cổng P20b → màn Bán hàng báo voucher hợp lệ, `POST /orders` 400 lúc tạo đơn; `:341` `/:id/increment-usage` tăng `used_count` chỉ cần đăng nhập | đọc code (không chạy) | `/validate` gọi `kiemDonCuaMa` như `orders.js:516–519`; ca: voucher đơn gốc đã huỷ → `/validate` 400 |
 | AU4-15 | NGHI (chưa chứng minh) | cổng P20b `orders.js:516–519` chạy NGOÀI giao dịch (`:1005` commit) → huỷ đơn gốc đúng lúc dùng voucher có thể lọt | đọc code; không dựng được tất định → CHƯA KIỂM, không đếm | kiểm lại trạng thái đơn gốc trong giao dịch hoặc ca chồng (khuôn KB10/KB11) |
-| AU4-16 | Câu hỏi chính sách | A6: mua thẻ 500.000 được +500 điểm, mua gói 300.000 được +300 điểm (`orders.js:827` cộng điểm theo `total`, không theo loại hàng) | `node viec/AUDIT-4/don_rong.js` | chủ quán chốt: có tích điểm khi mua thẻ / gói không; đối soát điểm theo quyết định đó |
+| AU4-16 | Phát hiện chính sách (chủ quán chốt riêng) | A6: mua thẻ 500.000 được +500 điểm, mua gói 300.000 được +300 điểm (`orders.js:827` cộng điểm theo `total`, không theo loại hàng) | `node viec/AUDIT-4/don_rong.js` | chỉ ghi phát hiện, không đề xuất khoá ở việc này; chủ quán chốt có tích điểm khi mua thẻ / gói không, rồi đối soát điểm theo đó |
+| AU4-17 | NHẸ-công cụ (hồi quy vòng sửa 3 — soát 4 lỗi 1) | `boc.py:66–67` `chi_tiet` (dùng ở `:77`) miễn dấu sập nằm trong chi tiết dòng ca — miễn cả khi hệ BỊ ĐỘT BIẾN PHÁ: `SAP-TACH-GL` (`:222–225`) chạy bằng cách `thugl` → 47 dòng ✗ "— thoát 1 · Node.js v22…" → không sập → `BẮT (mong LẠC)`; `--sap` chỉ thử cách `gl29`. Cùng khuôn: `tu_chay/thu_cong.js:21`, `:131` nhúng đầu ra cong.js (chưa đo) | soát vòng 4 (`trang_thai.md` mục "/ra-soat vòng 4") — đột biến `SAP-TACH-GL` qua `boc_dict` với cách `thugl` | Việc khung chung: hẹp ngoại lệ về đúng ca TỰ MONG SẬP (tên ca thu_gia_lap đọc từ code: T3…T10, E1, "máy chủ hỏng"), không miễn `Node.js v`; `--sap` chạy mỗi dạng sập qua MỌI cách bộ dùng (`thugl`, `gac`, `cong`, `kiemdd`); ca đỏ: `SAP-TACH-GL` qua `thugl` → HỎNG-sập. KHÔNG đưa `boc.py` bản này vào khung chung trước khi vá. A2 không đổi (TACH-GL đo bằng luật bản 1, bắt được dạng này) |
+| AU4-18 | NHẸ-công cụ (soát 4 lỗi 2) | `boc.py:73` chỉ bắt dòng gộp kiem_tra KHÔNG có ✗; "in ✗ rồi sập" (chay.js dừng sớm `cong_cu/gia_lap/chay.js:115–119`; thu_* văng thô ngoài `main().catch`) qua `kiem_tra_truoc_khi_giao.js:482–486` (giữ dòng ✗/✖, bỏ mã thoát khi đã có ✗) không phân biệt được với "đỏ đúng ca" | đọc code (đường dừng sớm phụ thuộc thời gian) | CHƯA KIỂM cho cách `kiem` / `kiemdd` (53 tên D1, A3B-D5); nếu che thì chỉ BẮT → HỎNG-sập như AU4-11. Việc khung: cách `kiem` chạy bài con trực tiếp, hoặc đề xuất chủ quán cho kiem_tra giữ mã thoát cạnh dòng ✗ |
+| AU4-19 | NHẸ-công cụ (soát 4 lỗi 3) | 6 điều kiện luật sập gỡ / nới không ca nào đỏ: `chi_tiet` nới thành ` — ` ở bất kỳ đâu, bỏ `ETIMEDOUT`, bỏ `null`, fullmatch → search, bỏ ✓ (chết), `Node.js v` / `Giả lập: SẬP` (thừa với vế không-`HET`); ETIMEDOUT chấm HỎNG-sập trái docstring `boc.py:11` "TREO = quá giờ". Nghi: `HET` vế `\d+ đạt · \d+ hỏng` không neo đầu dòng (`:24`); `dot_bien.py:79` `timeout=300` ném làm sập cả bộ thay vì TREO | đột biến luật trên 9 đầu vào thật của `--tu-thu` (soát vòng 4) | Việc khung: mỗi điều kiện một ca "nới" bị bắt trong `--tu-thu`; ETIMEDOUT / `TimeoutExpired` → TREO |
+| AU4-20 | NHẸ-hồ sơ (soát 4 lỗi 4) | `trang_thai.md` "8/8" thiếu 10/10, "75 dòng" (thật 84), trỏ mục Bài học chưa có; `a2_bang.md` "luật sập vòng 3" dễ nhầm với vòng sửa 3; lập luận vòng sửa 3 không nhắc bỏ vế `ma == 2` / `--bo`; `boc.py` 368 dòng chưa có lý do | đọc hồ sơ | ĐÃ SỬA lúc đóng việc (trong `viec/AUDIT-4/`): số, tham chiếu, mục Bài học (gồm ngân sách `boc.py`); số chạy lại vòng 3 ở `trang_thai.md` mục Vòng sửa 3 |
+| AU4-21 | **NẶNG-lưới (SỐNG cũ, Q5)** | 19 đột biến SỐNG đo lại ở A2, đã biết từ AUDIT-2 / AUDIT-3 (trước xếp NHẸ), nay xếp theo Q2 (a) — danh sách + đường thật dưới bảng | `python3 viec/AUDIT-4/boc.py --c2luoi <tên>` · `--audit2 <tên>` | Việc vá lưới sau AU4-1…7 (dưới bảng) |
 
-Mức các SỐNG CŨ ở chỗ tiền / gói (soát vòng 1 nghi ngờ): Q2 (a) áp cho đột biến ĐỘC LẬP của việc này (phiếu A3). SỐNG cũ giữ mức AUDIT-2 / AUDIT-3 đã
-xét kèm lý do — `A3L-goi-bo-kiem-con-lai`, `A3L-redeem-bo-han-diem`, `A3L-nhandiem-he-so-mac-dinh`, `BK-KB16` (khoá hai lớp), `BK-KB20` (AU2-9 P26d),
-P26b `hong-tran-theo-man-hinh` (đã thay P26c), 22 C2F (AU3-19, NHẸ) — không xếp lại ở đây; nếu chủ quán áp Q2 cho cả SỐNG cũ thì "7 NẶNG" là cận dưới.
-Kết luận "chưa đạt" không đổi. Mã AU4-n chỉ đặt ở bảng này (file khác dẫn theo).
+**AU4-21** (Q5 — tiêu chí NẶNG `viec/AUDIT-1/phieu.md:16`: lệnh bị gỡ / nới có thể làm sai tiền, ví, điểm, gói, kho, mã giảm, chiết khấu, ở quầy
+hoặc qua màn quản trị; số dòng đọc lượt này). C2F = gỡ một lệnh ghi (`viec/AUDIT-1/dot_bien.py:199`), SỐNG dưới lưới `c2luoi` (c2full + thu_P26c — `viec/AUDIT-2/dot_bien.py:24`;
+bài ngoài lưới đó chưa chạy với chúng — CHƯA KIỂM):
+- kho: `damages-03` `damages.js:218` (đánh dấu hàng hỏng đã trả về kho);
+- gói: `packages-01/03/04` `packages.js:61, :136, :139` (tạo / ngưng / xoá gói — ngưng mà vẫn bán), `packages-06` `:262` (kết thúc gói có hoàn mà gói vẫn `active` → hoàn ví rồi vẫn lấy được hàng);
+- mã giảm / voucher: `discount-codes-02/03/04` `discount-codes.js:265, :319, :326` (sửa / tắt / xoá mã mà mã cũ vẫn dùng được);
+  `signup-codes-05/06` `signup-codes.js:477, :484` (hoàn tác nhận mã: mã không nhận lại được / voucher không bị xoá, vẫn dùng được — stub trả `changes: 1`, `viec/AUDIT-1/dot_bien.py:148`);
+- điểm: `rewards-02/03` `rewards.js:74, :87` (sửa giá điểm / tắt quà); chiết khấu khách: `customers-v2-04/05` `customers-v2.js:369, :376`;
+- AUDIT-2 A3L: `redeem-bo-han-diem` `loyalty.js:31` (điểm hết hạn vẫn đổi — chế độ `quarter`), `nhandiem-he-so-mac-dinh` `signup-codes.js:108`,
+  `goi-bo-kiem-con-lai` `orders.js:248` (gói hết lượt mà trạng thái lệch vẫn giao); B3: `BK-KB16-duyet-bo-cong-don` `refunds.js:158` (lớp 2 của khoá
+  hai lớp — lớp 1 giữ, nhưng gỡ lớp 2 không bài nào thấy), `BK-KB20-bo-kiem-lai-ma` `orders.js:969` (UNIQUE mã đơn vấp trước — AU2-9, chờ P26d).
+Không xếp: C2F `packages-05` (thu_GOI1 B2a bắt, ngoài `c2luoi` — AU3-19); không chạm tiền: C2F `orders-14/15` (`pos_registrations` ghi chú), `orders-33` (`pos_promotion_usage` — grep `server/`: không ai đọc),
+`orders-34` (`pos_invoice_logs` — đánh số / liệt kê hoá đơn in, `settings.js:215–221, :296–298`), `customers-v2-01/02/03` (tên, địa chỉ, đồng bộ SX);
+P26b `hong-tran-theo-man-hinh` (đường đã thay bằng P26c, P26c 88/88 BẮT); bb 50 SỐNG (đột biến trên `cong_cu/gia_lap/bat_bien.js` — công cụ đối soát,
+không phải code quầy: lỗ của lưới đối soát, NHẸ như AU3-18). Kết luận một dòng giữ nguyên theo chốt (7 NẶNG-lưới MỚI AU4-1…7);
+tổng NẶNG-lưới đang mở = 7 + 19. Mã AU4-n chỉ đặt ở bảng này (file khác dẫn theo).
 
 Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`BK-KB21` LẠC), AU3-5 (bb I2 LẠC ×2), AU3-6 (`VS-AU3-P26C-HUY-ME-TRA-0`,
-`VS-Q9-hoan-me-ngoai-tx` đỏ-rồi-sập), AU3-18 (bb SỐNG mới ×2), AU3-19 + 21 C2F SỐNG (NHẸ), AU3-20 (bb `D2-vo-hai` BẮT trái hợp đồng), AU2-9 (KB20 SỐNG).
+`VS-Q9-hoan-me-ngoai-tx` đỏ-rồi-sập), AU3-18 (bb SỐNG mới ×2), AU3-19 + 21 C2F SỐNG (nay 14 NẶNG-lưới theo Q5 — AU4-21), AU3-20 (bb `D2-vo-hai` BẮT trái hợp đồng), AU2-9 (KB20 SỐNG — AU4-21).
 
 ## Tỷ lệ BẮT / SỐNG / HỎNG / LẠC theo nhóm (tỷ lệ BẮT = BẮT / (tổng − HỎNG − HỎNG-sập − cố ý); so AUDIT-3)
 
@@ -51,8 +70,8 @@ Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`B
 |---|---|---|---|---|---|---|---|
 | A1 `--sap` 4 bộ khuôn × 4 dạng + DOSAP + khung 5 dạng + LUOI-1 / TACH-GL | **0** BẮT / SỐNG | — | 4 sai chuỗi | mọi dạng (gồm NEM-, `!DOSAP-KIEM`) | 0 | ĐẠT · `--tu-thu` 10/10 | ĐẠT (3 lỗ AU3-22…24) |
 | AUDIT-1 trừ C2F (88, khung đã bọc) | 77 | 1 (cố ý) | 2 | 6 (`G3-sap` cố ý, `!D1-E11-P26b`, 4 `D1-E*` — AU4-11) | 2 (`!D1-E11-P20/P26a`) | 77/79 (luật AUDIT-3: 81/83) | 81/83 |
-| C2F (87, c2luoi) | 59 | 22 (NHẸ) | 0 | 6 | 0 | 59/81 | 59/81 |
-| AUDIT-2 A3L (20, kể cả 13 c2luoi) · B3 (6) | 15 · 3 | 3 · 2 | 2 · 0 | 0 | 0 · 1 | 15/18 · 3/6 | 15/18 · 3/6 |
+| C2F (87, c2luoi) | 59 | 22 (14 NẶNG-lưới Q5 · 8 NHẸ) | 0 | 6 | 0 | 59/81 | 59/81 |
+| AUDIT-2 A3L (20, kể cả 13 c2luoi) · B3 (6) | 15 · 3 | 3 · 2 (NẶNG-lưới Q5) | 2 · 0 | 0 | 0 · 1 | 15/18 · 3/6 | 15/18 · 3/6 |
 | bb (175 sinh + 4 D2), qua bọc lần đầu | 123 (+ D2 da-biet, vo-hai) | 50 | D2 sai chuỗi | D2 sập | 2 (AU3-5) | 123/175 | 123/175 (ngoài bọc) |
 | P26b · P26c · GOI-1 · GOI-2 | 48 · 88 · 40 · 59 | 1 · 0 · 0 · 0 | 9 · 4 · 9 · 0 | 0 · 1 · 0 · 0 | 1 · 0 · 0 · 0 | 48/50 · 88/88 · 40/40 · 59/59 | như nhau |
 | SO-LUONG-1 · BAN-HANG-1 · P20b | 16 · 7 · 4 | 0 | 1 (đã thay BAN-HANG-1) · 0 · 0 | 0 | 0 | 16/16 · 7/7 · 4/4 | 17/17 · — · — |
@@ -66,7 +85,8 @@ Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`B
 ## Đề xuất khoá (một việc vá lưới kiểu LUOI-3, trước AUDIT-5)
 7 ca ở cột "đề xuất khoá" AU4-1…7 (`thu_P20.js` 1 · `thu_P26c.js` 3 · `thu_GOI1.js` 3); ca đỏ = 7 đột biến `viec/AUDIT-4/dot_bien.py` chuyển BẮT
 (`python3 viec/AUDIT-4/dot_bien.py` → "đúng mong 19/19", thoát 0 — vòng sửa 1 thêm `MONG`, hiện 11/19 thoát 1). Số đã tự tính trên gốc VÀ đột biến (bài học LUOI-3); AU4-5 cần xác nhận cổng
-chấp nhận đơn gói + mã 1 món trước. Kèm AU4-8 (thu_GOI1 A2 đi tiếp khi ca đỏ) để `VS-AU4-L3-LOAI-CHAN-BANG` chuyển BẮT.
+chấp nhận đơn gói + mã 1 món trước. Kèm AU4-8 (thu_GOI1 A2 đi tiếp khi ca đỏ) để `VS-AU4-L3-LOAI-CHAN-BANG` chuyển BẮT. Sau đó AU4-21 (19 SỐNG cũ): mỗi lệnh ghi C2F một ca đọc
+lại hàng sau route (ca đỏ = đúng tên C2F chuyển BẮT qua `boc.py --c2luoi`); KB16 một ca chỉ còn lớp 2; KB20 đi cùng P26d. Chưa tự tính số — làm ở việc đó.
 
 ## Đề xuất bộ khung (không làm ở việc này)
 1. TU-CHAY-6 Q5: chia `thu_cong.js` thành lượt song song (khuôn TACH-GL) VÀ truyền `canhGan` ở `kiem_tra_truoc_khi_giao.js:616` — A5 bận nhẹ 86 %
@@ -74,7 +94,7 @@ chấp nhận đơn gói + mã 1 món trước. Kèm AU4-8 (thu_GOI1 A2 đi ti�
 2. BAN-HANG-1: phép tĩnh cảnh báo số dòng cứng trong chú thích `server/`, `client/src/` (`(:NNNN)`, `dòng NNNN`, `:NNN–NNN`), bánh cóc như
    `NGUONG_FETCH` (đếm hiện trạng trước). Ca đỏ: `orders.js` bản `9294d40` có "(:1068)" trỏ sai ngay lúc commit (K3/K4: chú thích là khẳng định).
 3. `sap_cua` + bọc đối chứng (`boc.py`) đưa vào khung chung `cong_cu/` — mọi bộ `viec/*/dot_bien.py` mới dùng chung luật sập; tên lạ / chọn 0 → thoát 2
-   (LUOI-3 KHOÁ 1).
+   (LUOI-3 KHOÁ 1) — vá AU4-17…19 TRƯỚC (ca đỏ ghi ở từng mục), không đưa bản hiện tại vào khung chung.
 4. Bài dài (`thu_P26b`, `thu_P26c`, `thu_GOI1`) in ✗ rồi đi tiếp thay vì ném khi dựng dữ liệu ca sau (AU3-6, AU4-8); `thu_cong.js`, `thu_gia_lap.js`
    dọn thư mục tạm khi bị giết (AU4-13).
 
