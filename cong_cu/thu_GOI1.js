@@ -697,6 +697,7 @@ async function main() {
     const p = sdtMoi();
     await db.run("INSERT INTO pos_customers (phone, name, sx_status, discount_type, discount_value) VALUES (?, 'Khách CK LUOI3', 'active', 'percent', 10)", [p]);
     const gp = await mua30(p, { items: [mon(2, 1, false)], cash_amount: 1237500 });
+    await db.run("UPDATE pos_orders SET created_at = '2026-09-30 08:00:00' WHERE id = ?", [gp.don]);   // đơn cũ: mua trước, đền sau, cả hai trước P26c
     await db.run(`INSERT INTO pos_damage_logs (order_id, order_code, customer_phone, product_code, product_name, quantity, unit_price, damage_value,
       reason, action, refund_amount, returned_to_stock, created_at) VALUES (?, ?, ?, ?, ?, 1, 25000, 25000, 'damaged', 'refund', 25000, 0, '2026-10-01 09:00:00')`,
     [gp.don, gp.ma, p, sp[2].code, sp[2].name]);
@@ -705,7 +706,7 @@ async function main() {
       nguoi: 'thu', luc: '2026-10-01 09:00:00' }));
     const dkp = await duKien(gp.cp);
     const rp = await ketThuc(gp.cp, { reason: 'thử', hoan: true, so_tien: 1212500 });
-    k('B3p (dữ liệu trước P26c 12.10, còn trên production) giảm 10 %: gói 1.350.000 + CT3 25.000 → tổng 1.237.500; sổ có đền CŨ 25.000 theo giá gốc (đã trả 22.500) → kết thúc: hoàn 1.212.500 (trần total − đã nhận, không 1.215.000), khách nhận đúng 1.237.500',
+    k('B3p dữ liệu trước P26c 12.10: gói + CT3 giảm 10 % (1.237.500), đền cũ 25.000 > đã trả 22.500 → kết thúc hoàn 1.212.500, khách nhận đúng total',
       dkp.data?.tong === 1212500 && rp.status === 200 && await vi(p) === 1237500, `${JSON.stringify(dkp.data)} · ${moTa(rp)} · ví ${await vi(p)}`);
   }
 
