@@ -309,8 +309,9 @@ async function main() {
     // LUOI-4 — AU4-6: khoá loại phân biệt KIỂU SX (id SX đánh theo từng kiểu: juice 1 ≠ tea 1). "Đã lấy" dựng bằng INSERT (khuôn A2d2 — qua
     // POST /orders thì bước dựng đã bị đột biến chặn). daLayTheoLoai không ORDER BY → A2p / A2p2 đảo vai, dòng loại KIA chèn TRƯỚC.
     const ne = { id: Number((await db.run(`INSERT INTO pos_products (code, name, category, price, unit, sx_product_type, sx_product_id, is_active)
-      VALUES ('NE1_LUOI4', 'Trà thử LUOI-4', 'tea', 25000, 'ly', 'tea', 1, 1)`)).lastInsertRowid), code: 'NE1_LUOI4', name: 'Trà thử LUOI-4', sx_product_type: 'tea', sx_product_id: 1 };
-    const loaiNe = (qty) => ({ sx_product_type: 'tea', sx_product_id: 1, code: ne.code, name: ne.name, qty });
+      VALUES ('NE1_LUOI4', 'Trà thử LUOI-4', 'tea', 25000, 'ly', 'tea', ?, 1)`, [sp[0].sx_product_id])).lastInsertRowid), code: 'NE1_LUOI4',
+      name: 'Trà thử LUOI-4', sx_product_type: 'tea', sx_product_id: sp[0].sx_product_id };   // CÙNG id SX với CT1, khác kiểu (soát vòng 1)
+    const loaiNe = (qty) => ({ sx_product_type: ne.sx_product_type, sx_product_id: ne.sx_product_id, code: ne.code, name: ne.name, qty });
     const chenDaLay = async (g, p, sl) => {   // một đơn lấy từ gói ĐÃ ghi (đúng như POST /orders ghi)
       const id = Number((await db.run(`INSERT INTO pos_orders (code, customer_phone, customer_name, subtotal, total, payment_method, payment_status,
         customer_package_id, status, created_by, created_at) VALUES (?, ?, 'Khách GOI1', 0, 0, 'cash', 'paid', ?, 'completed', 'thu', '2026-01-03 08:00:00')`,
