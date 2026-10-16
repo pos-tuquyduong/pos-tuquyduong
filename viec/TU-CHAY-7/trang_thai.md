@@ -12,6 +12,24 @@
 - `ke_hoach.md` bản 1 commit 25f1429 (hook Stop đòi commit file chưa theo dõi trước khi soát xong); bản 2 sửa theo soát.
 - Phiếu dặn "Chờ duyệt kế hoạch" → DỪNG. Thêm: hai chỗ CHẶN cần chủ quán quyết (Q1, Q2).
 
+## Làm tiếp (tiep) — 16.10.2026
+- Bước 1: HEAD f6fa48d · FETCH_HEAD 839ba54 → HEAD là tổ tiên → `git pull --no-rebase --ff-only` → 839ba54
+  (839ba54 PHIEU: TU-CHAY-7 mo Pham vi (Cau hoi 1: 2 dong ghim PHIEN_BAN) · f6fa48d TU-CHAY-7: ke hoach ban 2 … · 25f1429 TU-CHAY-7: ke hoach …).
+- Chủ quán chốt: Q1 → thêm `tu_chay/thu_cong_cu.js`, `tu_chay/thu_nguoi_gac.js` vào Phạm vi, CHỈ đổi dòng ghim PHIEN_BAN. Q2 → (a). Chia lượt
+  thu_cong: chỉ ghi Phát hiện. Bài thử ~100 dòng: chấp nhận. Giữ nguyên 12 cụm chữ KHUON_LOI mà thu_cong_cu.js kiểm.
+- Đếm lại A3 theo DÒNG với regex thật của bộ kiểm: 4 dòng (`server/routes/orders.js:1633`, `cong_cu/thu_P26c.js` dòng 12, 357, 846) →
+  `NGUONG_DONG_CUNG = 4` (bản trước ghi "4 lần khớp, :12 có 2 lần" — dòng 846 cũng khớp, nên theo dòng vẫn 4).
+
+### Lệch so với kế hoạch bản 2 (ghi rõ)
+1. `thu_gia_lap.js` A2 cần THÊM bước dừng giả lập con khi bị ngắt (`CON` + `NGAT`, ~10 dòng) — bản chỉ có exit + tín hiệu (khuôn don_rong.js)
+   chạy 3 lần: SIGTERM/SIGINT sót `thu_gl_*` 1/3, 2/3, 1/3 lần (giả lập con còn ghi vào TAM sau khi dọn); thêm dừng con → exit 1 thay 130 ở
+   3/6 ca (luồng chính chạy tới `ket()` trước) → cờ `NGAT`. Sau cả hai: 3/3 lần xanh (148 đạt). Hạn thật của bộ kiểm khi bị ngắt: thêm tối đa
+   10 s chờ con (SIGKILL sau 10 s) — có giới hạn, không phải nới vô hạn như hàm nghe tín hiệu ở bài đồng bộ.
+2. `thu_TOCDO1.js` regex dòng gọi trần (bản trước TOC-DO-1) KHÔNG đổi — chỉ dùng khi bộ kiểm chưa có `lyDoChayThuCong`; neo `GOI` (E1) đổi
+   sang tiền tố, đủ.
+3. Ca "con cháu lúc giết đã chết" (DON) xanh cả trên gốc (mồ côi tự chết < 2 s) → không phải bằng chứng cho vế dừng con; đột biến bỏ dừng
+   con KHÔNG tất định (sót 1/3–2/3) → CHƯA KIỂM, không đưa vào dot_bien.py (K3).
+
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.
 - `node cong_cu/thu_TOCDO1.js`: 1,7 s (42 đạt) — bộ kiểm không gọi bài này qua `chayBaiThat` (chỉ nhắc ở chú thích `kiem_tra :529`, `:602`).

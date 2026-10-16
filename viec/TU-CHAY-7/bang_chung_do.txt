@@ -1,0 +1,29 @@
+TU-CHAY-7 — bằng chứng ĐỎ trên code gốc (16.10.2026)
+
+Gốc = `git archive 839ba54` (chưa vá) + phần THỬ của ba bài, GỠ phần VÁ (viec/TU-CHAY-7: dựng bằng script nháp dung_goc.py —
+thu_cong.js bỏ vòng dọn pid / tên TAM kèm pid / process.on('exit'), trả lại rmSync cuối; thu_gia_lap.js bỏ exit + bắt tín hiệu + CON/NGAT,
+trả lại rmSync trong ket(); kiem_tra_truoc_khi_giao.js nguyên bản gốc). node_modules liên kết chỉ đọc. Chạy ở thư mục bản sao:
+
+$ node cong_cu/thu_TOCDO1.js   → thoát 1
+thu_TOCDO1: 43 đạt · 2 hỏng
+  ✗ C1 --day-du: lời gọi thật thu_cong.js + bài xanh 85 % hạn → đúng 1 cảnh báo gần hạn có số giây — gọi [{"bai":"tu_chay/thu_cong.js"}] · xanh true · cảnh báo: (không)
+  ✗ D0 có vùng A3 (const NGUONG_DONG_CUNG = <số> ở đầu dòng, khối gọi sau nó) và ngưỡng ≥ 2 — ngưỡng NaN
+
+$ node cong_cu/thu_gia_lap.js   → thoát 1
+  ✗ C3f bộ kiểm: CHỈ giả lập + thu_gia_lap + thu_cong bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8  — bật: 'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js' · 6 lời gọi · cờ không phải chữ true/false: (không) · chữ han * 0.8: 1 lần
+  ✗ DON SIGTERM giữa bài (giả lập con đang chạy) → thoát 130, mọi con cháu lúc giết đã chết, 0 thu_gl_* sót  — thoát null (SIGTERM) · đã thấy giả lập con: true · con cháu lúc giết 3, còn sống 0 · sót: thu_gl_v6WigD
+  ✗ DON SIGINT giữa bài (giả lập con đang chạy) → thoát 130, mọi con cháu lúc giết đã chết, 0 thu_gl_* sót  — thoát null (SIGINT) · đã thấy giả lập con: true · con cháu lúc giết 14, còn sống 0 · sót: thu_gl_kBpAl6
+  145 đạt · 3 hỏng
+
+$ node tu_chay/thu_cong.js   → thoát 1
+thu_cong: 336 phép · 2 chỗ hỏng
+  ✗ TU-CHAY-7 A2 con het: thoát 0, đã tạo TAM (thu_cong_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống — thoát 0 · TAM con: /tmp/thu_cong_qdPKqP/tmp_con/thu_cong_d15Y3u · còn: thu_cong_15959_x, thu_cong_1671_x, thu_cong_d15Y3u
+  ✗ TU-CHAY-7 A2 con nem: thoát 1, đã tạo TAM (thu_cong_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống — thoát 1 · TAM con: /tmp/thu_cong_qdPKqP/tmp_con/thu_cong_RzvLF2 · còn: thu_cong_15959_x, thu_cong_1671_x, thu_cong_RzvLF2, thu_cong_d15Y3u
+  ĐỎ — 2 chỗ hỏng
+
+Ghi: ca "DON chạy hết (--chi-du-lieu-tay)" XANH trên gốc — đúng ý: ca K5 (đường thoát bình thường vẫn dọn), đột biến VS-TUCHAY7-DON-GL-QUEN-EXIT bắt nó.
+Phép "con cháu còn sống 0" xanh cả trên gốc (giả lập mồ côi tự chết < 2 s) — không đếm là bằng chứng cho vế "dừng con"; xem CHƯA KIỂM trong trang_thai.md.
+
+SỐ CA cong_cu/thu_TOCDO1.js: 54
+SỐ CA cong_cu/thu_gia_lap.js: 148
+SỐ CA tu_chay/thu_cong.js: 336
