@@ -88,6 +88,7 @@ const chayDon = (tin) => new Promise((xong) => {
   const T = path.join(TAM, 'don_' + (tin || 'het'));
   fs.mkdirSync(T);
   const c = spawn(process.execPath, [__filename, ...(tin ? [] : ['--chi-du-lieu-tay'])], { cwd: GOC, env: { ...SACH, TMPDIR: T, THU_GL_CON: '1' }, stdio: 'ignore' });
+  CON.add(c); c.on('close', () => CON.delete(c)); if (NGAT) c.kill('SIGTERM');   // K4: mọi chỗ spawn đều vào CON (soát vòng 1)
   const coGL = (d, sau) => { try {
     return fs.readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() && (e.name.startsWith('gia_lap_') || (sau && coGL(path.join(d, e.name), sau - 1))));
   } catch { return false; } };

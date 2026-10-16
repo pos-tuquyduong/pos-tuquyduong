@@ -903,13 +903,13 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 ### TU-CHAY-7 (16.10.2026, tu-chay 1.7.0)
 
 - **A1** bộ kiểm chạy `thu_cong.js` với cờ `canhGan` (hạn 120 s giữ nguyên): xanh mà quá 80 % hạn → CẢNH BÁO nêu số giây. Đo chạy
-  riêng 88,9–89,5 s (75 %) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
+  riêng 88,9–92,7 s (74–77 %, số đo ghi ở viec/TU-CHAY-7/trang_thai.md) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
   hàm `chayBaiThat` THẬT trên bài giả 85 % hạn giả; `thu_gia_lap.js` C3f khoá tập ba bài bật cờ.
 - **A2** thư mục tạm khi bị ngắt. `thu_gia_lap.js` (bất đồng bộ): `process.on('exit')` dọn TAM, SIGINT/SIGTERM → dừng giả lập con
   (SIGTERM, 10 s rồi SIGKILL) rồi thoát 130 — không dừng con thì con ghi lại vào TAM sau khi dọn (đo 2/3 lần sót). `thu_cong.js` (đồng
   bộ liền một mạch): hàm nghe tín hiệu không chạy kịp và còn gỡ chết-ngay mặc định (= nới hạn `spawnSync`) → chỉ `exit` (cả khi ném),
   TAM đặt `thu_cong_<pid>_`, đầu lần chạy dọn thư mục của pid ĐÃ CHẾT (chủ quán chốt Q2a). Bài thử: mỗi bài tự chạy chính nó làm con
-  (cờ env chặn đệ quy, TMPDIR riêng).
+  (cờ env chặn đệ quy, TMPDIR riêng; thu_cong chỉ nhận cờ kèm ĐÚNG pid cha — cờ lọt từ shell không làm bài thoát 0 sớm).
 - **A3 phép tĩnh E15** chú thích trỏ số dòng cứng (dạng ngoặc-hai-chấm-số và khoảng số sau hai chấm) trong `server/**`, `client/src/**`,
   `cong_cu/thu_*.js`, `tu_chay/*.js`: bánh cóc theo DÒNG `NGUONG_DONG_CUNG` (4 lúc đặt), mọc → CẢNH BÁO liệt kê `file:dòng`, giảm → nhắc
   hạ; không FAIL. Bài thử: `thu_TOCDO1.js` mục D cắt vùng từ hằng tới hết khối gọi, chạy với `doc` / `liet` giả + kho thật.
