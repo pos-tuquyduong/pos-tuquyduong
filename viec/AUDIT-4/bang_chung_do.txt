@@ -294,3 +294,27 @@ $ python3 viec/LUOI-3/dot_bien.py
           ✗ M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000  — HTTP 200 · tổng 540000 · HTTP 200 · HTTP 200 · ví 486000 · tổng hoàn 486000
 
   tổng 10 · BẮT 10 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+## 7. Vòng sửa 2 — `python3 viec/AUDIT-4/boc.py --tu-thu` (thoát 0, 354,7 s): 8 phép. Mới: (a) thu_gia_lap ĐỎ THẬT ✗ T3 mang "Giả lập: SẬP" → KHÔNG
+## sập; "gỡ CA_T" (bỏ vế trừ) → sập = ca đỏ của vế trừ; (b) cùng đầu ra qua dòng gộp --day-du (kiem_tra :483–486, dựng từ đầu ra thật) → không sập
+## (luật vòng 1 chấm sập — soát vòng 2 đo); (c) khối baiT2 của thu_cong_cu ném (bản sao TU-CHAY-6) → cũ không sập · mới sập.
+$ python3 viec/AUDIT-4/boc.py --tu-thu
+# thoát 0 · 354.7 s
+  (thu_gia_lap thật: thoát 0 · 145 đạt · 0 hỏng · cắt 1 dòng · còn T0: True)
+  ĐẠT AU3-24 thu_gia_lap thoát 0 không dòng tổng: cũ → không sập · mới → sập (mong sập)
+  (chay.js KB29 có đột biến: thoát 1 · Giả lập: 8 kịch bản · 18 bất biến · KHÔNG ĐẠT (2 lệch))
+  ĐẠT K5 HET: chay.js KHÔNG ĐẠT (n lệch) thoát 1: cũ → không sập · mới → không sập (mong không sập)
+  (DOSAP-KIEM khung: cũ BẮT · mới HỎNG-sập · sập [kiem_tra_truoc_khi_giao.js: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.8 s)  → ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — )
+  ĐẠT AU3-22 DOSAP-KIEM qua khung cách kiem (K.cham thật): cũ → BẮT · mới → HỎNG-sập (mong HỎNG-sập)
+  (dòng gộp T1a: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.8 s)  → ✗ T1a huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví mẹ 100000 → 75000 )
+  ĐẠT vòng 1: dòng gộp kiem_tra ✗ T1a … | ✖ Bài thử sập: cũ → không sập · mới → sập (mong sập)
+  (TACH-GL bản sao: áp được)
+  (thu_gia_lap đột biến: thoát 1 · ✗ T3 cha bị SIGTERM → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0, ít nhất một lượt tự thoát nhờ SIGTERM), mọi con đã chết, không s)
+  ĐẠT vòng 2: thu_gia_lap đỏ thật ✗ T3 … Giả lập: SẬP (gỡ CA_T → sập): cũ → không sập · mới → không sập (mong không sập)
+  ĐẠT vòng 2: dòng gộp --day-du của thu_gia_lap ✗ T3 (đỏ thật): cũ → không sập · mới → không sập (mong không sập)
+  (thu_cong_cu khối ném: thoát 1 · ✗ baiT2 sập: AUDIT-4 khối sập ·   ĐỎ — 1 chỗ hỏng)
+  ĐẠT vòng 2: khối thu_cong_cu ném (✗ baiT2 sập: …): cũ → không sập · mới → sập (mong sập)
+  ĐẠT AU3-23 NEM- ra BẮT → --sap phải KHÔNG ĐẠT: cũ → ĐẠT · mới → KHÔNG ĐẠT (mong KHÔNG ĐẠT)
+
+  --tu-thu: 8/8 phép luật mới đúng
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
