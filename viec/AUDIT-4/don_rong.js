@@ -33,7 +33,8 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
-  require.cache[duongSX].exports = { ...require(duongSX), isSxConfigured: () => true, checkStock: async () => ({ sufficient: true, stock: 999 }),
+  const sxThat = require(duongSX);   // nạp TRƯỚC: vế trái require.cache[…] tính trước vế phải
+  require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => true, checkStock: async () => ({ sufficient: true, stock: 999 }),
     outStockFIFO: async () => ({ ok: true }), inStockReturn: async () => ({ ok: true }), callSxApi: async () => ({ ok: true }) };
   const app = express();
   app.use(express.json());
@@ -97,4 +98,4 @@ async function main() {
   await db.closeDatabase?.();
 }
 
-main().then(() => process.exit(0), (e) => { console.log('✖ A6 sập: ' + (e && e.stack || e)); process.exit(2); });
+main().then(() => process.exit(0), (e) => { process.stderr.write('✖ A6 sập: ' + (e && e.stack || e) + '\n'); process.exit(2); });   // console có thể đang bị tắt
