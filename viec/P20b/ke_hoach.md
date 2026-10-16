@@ -1,4 +1,7 @@
-# P20b — kế hoạch (CHỜ DUYỆT — chưa viết bài thử, chưa sửa code)
+# P20b — kế hoạch v2 (CHỜ DUYỆT — chưa viết bài thử, chưa sửa code)
+
+v2 sau soát độc lập (16.10): thêm `AND claimed_at IS NOT NULL` (K5 trùng chữ giữa ba nguồn mã), sửa số tiền các ca theo phép đối chiếu
+`orders.js:783–791`, thêm ca G7, bớt 2 đột biến thừa, đủ danh sách AUDIT-1 D1.
 
 Số dòng dưới đây đọc trong lượt này trên HEAD `568b044` (= main `09ddeb0` + phiếu `PHIEU: P20b`).
 
@@ -40,7 +43,7 @@ Thêm, ngay trong `if (codeRecord) {` (`:506`), TRƯỚC `const today` (`:511`) 
 ```js
 // P20b: voucher sinh từ mã in bill (cùng `code` với pos_signup_codes) chỉ dùng được khi đơn gốc còn completed + paid —
 // cùng hàm kiểm với /claim, /nhan-diem. Mã chủ quán tạo tay không có dòng signup → như cũ.
-const maBill = await queryOne("SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?)", [codeRecord.code]);
+const maBill = await queryOne("SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL", [codeRecord.code]);
 if (maBill) {
   const kqDon = await kiemDonCuaMa(maBill);
   if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: "MA_DON_GOC_KHONG_HOP_LE" });
@@ -49,6 +52,12 @@ if (maBill) {
 
 - Tra bằng `codeRecord.code` (chuỗi đúng của voucher vừa khớp) — cùng biểu thức `UPPER(code)` như `/claim` (`:310`), `/nhan-diem` (`:134`).
 - `SELECT order_id` đủ: `kiemDonCuaMa` chỉ đọc `dong.order_id` (`signup-codes.js:48`).
+- **`AND claimed_at IS NOT NULL` (K5, soát độc lập):** ba nguồn mã dùng chung `generateVoucherCode()` 6 ký tự (`utils/voucherCode.js:8–13`) nhưng
+  mỗi nguồn chỉ kiểm trùng trong bảng mình — voucher đổi điểm `loyalty.js:152` và mã tay `discount-codes.js:194` chỉ tra `pos_discount_codes`, mã
+  bill `orders.js:1138` chỉ tra `pos_signup_codes`. Mã tay / voucher điểm có thể trùng chữ với một mã bill CHƯA claim của đơn chờ thu hoặc đã huỷ →
+  tra theo chữ không thôi sẽ chặn nhầm. Voucher sinh từ /claim thì dòng signup luôn có `claimed_at` (`:381–389` chiếm mã rồi mới INSERT voucher;
+  /claim từ chối 409 nếu `pos_discount_codes` đã có mã `:358–367`; `/reset` gỡ `claimed_at` và XOÁ voucher `:478–484`) → điều kiện này khớp đúng
+  voucher claim, không khớp mã trùng chữ. Lệch một vế so với chữ phiếu A2 — nêu ở Câu hỏi 1.
 - Mọi `.loi` (kể cả `MA_KHONG_GAN_DON` 400, `KHONG_THAY_DON` 404) → 400 `MA_DON_GOC_KHONG_HOP_LE`, `error` chép từ hàm — đúng quyết định phiếu.
 - Trả về TRƯỚC `:843` → không đơn, không tăng `used_count`, không giao dịch mới.
 
@@ -67,17 +76,19 @@ tạo đơn thứ hai áp `discount_code` (`:166` là chỗ duy nhất đọc t�
 ## 3. Phần A3 — ca thử, ánh xạ 1-1 với Nghiệm thu
 
 Thêm mục `[G] P20b` vào cuối `cong_cu/thu_P20.js` (trước `sv.close()` `:321`), dùng lại `taoDon`, `claim`, `goi`, `mon`, `napVi` có sẵn
-(`:56–130`). Helper mới `dungMa(ma)` = `POST /orders` với `discount_code: ma`, tiền mặt 25.000 (`sp.price = 25000` `:100`; signup 10 %
-`:93` → giảm 2.500). Mọi ca so `status` + `code` + số đếm DB, không dò chữ (E12).
+(`:56–130`). Helper mới `dungMa(ma, tien)` = `POST /orders` với `discount_code: ma`, `payment_method: 'cash'`, `cash_amount: tien`. Phép đối chiếu
+`orders.js:783–791` từ chối 400 khi tiền gửi lệch tổng thật quá 1đ → ca mong đợi giảm gửi **22.500** (`sp.price = 25000` `:100`, signup 10 % `:93`),
+ca mong đợi không giảm gửi 25.000. Ca 400 của cổng mới trả về ở `:506+`, TRƯỚC phép đối chiếu, nên số tiền không ảnh hưởng tới ca chặn.
+Mọi ca so `status` + `code` + số đếm DB, không dò chữ (E12).
 
 | Nghiệm thu | Ca | Mong đợi (sau vá) | Trên gốc |
 |---|---|---|---|
-| A3(a) | G1: đơn gốc tiền mặt (paid) → claim 200 → `PUT /orders/:id/cancel` 200 → `dungMa` | 400 `MA_DON_GOC_KHONG_HOP_LE`; `COUNT(pos_orders)` không đổi; `used_count` = 0 | 200 + `discount_code` = mã → **ĐỎ** |
-| A3(b) | G2: đơn gốc trả ví → claim → `POST /refunds` + `/approve` (như [B2] `:176–187`, status `refunded`, payment_status vẫn `paid`) → `dungMa` | 400 cùng mã lỗi; `used_count` 0 | 200 → ĐỎ |
-| A3(b) "trạng thái lạ" | G3: đơn gốc paid → claim → `UPDATE pos_orders SET payment_status = 'pending'` trực tiếp (không có route nào đưa paid → chưa trả; đây là "trạng thái lạ" của phiếu) → `dungMa` | 400 cùng mã lỗi | 200 → ĐỎ |
-| A3(c) K5 | G4: đơn gốc paid → claim → `dungMa` | 200; `pos_orders.discount_code` = mã; `total` = 22.500; `used_count` = 1 | xanh (canh không chặn nhầm) |
-| A3(d) K5 | G5: INSERT tay `pos_discount_codes` (`P20BTAY`, percent 10, is_active 1, không dòng signup) → `dungMa` | 200; `used_count` = 1 | xanh |
-| K5 thêm | G6: G4 lần 2 trên CÙNG mã (usage_limit 1 của voucher claim `:396`) | 200 nhưng KHÔNG giảm (luật cũ `:518–521`), `used_count` vẫn 1 — bảo đảm cổng mới không đổi hành vi mã hết lượt | xanh |
+| A3(a) | G1: đơn gốc tiền mặt (paid) → claim 200 → `PUT /orders/:id/cancel` 200 → `dungMa(ma, 22500)` | 400 `MA_DON_GOC_KHONG_HOP_LE`; `COUNT(pos_orders)` không đổi; `used_count` = 0 | 200, `discount_code` = mã, total 22.500 → **ĐỎ** |
+| A3(b) | G2: đơn gốc trả ví → claim → `POST /refunds` + `/approve` (như [B2] `:176–187`, status `refunded`, payment_status vẫn `paid`) → `dungMa(ma, 22500)` | 400 cùng mã lỗi; `used_count` 0 | 200 → ĐỎ |
+| A3(b) "trạng thái lạ" | G3: đơn gốc paid → claim → `UPDATE pos_orders SET payment_status = 'pending'` trực tiếp (không có route nào đưa paid → chưa trả; đây là "trạng thái lạ" của phiếu; 3 dòng) → `dungMa(ma, 22500)` | 400 cùng mã lỗi | 200 → ĐỎ |
+| A3(c) K5 | G4: đơn gốc paid → claim → `dungMa(ma, 22500)` | 200; `pos_orders.discount_code` = mã; `total` = 22.500; `used_count` = 1 | xanh (canh không chặn nhầm) |
+| A3(d) K5 | G5: INSERT tay `pos_discount_codes` (`P20BTAY`, percent 10, is_active 1, không dòng signup) → `dungMa('P20BTAY', 22500)` | 200; `used_count` = 1 | xanh |
+| K5 trùng chữ | G7: đơn chờ thu (pending) phát mã bill X CHƯA claim → INSERT tay `pos_discount_codes` code = X (percent 10) → `dungMa(X, 22500)` | 200; `used_count` = 1 (mã tay trùng chữ mã bill chưa claim KHÔNG bị chặn) | xanh — ĐỎ nếu vá thiếu `claimed_at IS NOT NULL` |
 | A1 | thu_P20 mục [A]–[F], thu_P21: số ca y cũ (so dòng tổng trước / sau) | xanh | xanh |
 
 Hai người cùng bấm (tiền): hai quầy dùng CÙNG voucher cùng lúc → đã có khoá `:949–961` (đọc lại `used_count` trong giao dịch), việc này không
@@ -92,8 +103,7 @@ symlink `node_modules`, chạy `node cong_cu/thu_P20.js` TRONG bản sao vì thu
 | A2 | `BV-A2-bo-tra-signup`: `if (maBill) {` → `if (false) {` | ✗ G1 |
 | A2 | `VS-A2-chi-chan-don-huy`: thay `await kiemDonCuaMa(maBill)` bằng tra `status === 'cancelled'` tại chỗ (viết lại danh sách đen) | ✗ G2 |
 | A2 | `VS-A2-chan-ca-ma-tay`: `if (maBill) {` → `if (!maBill) return res.status(400).json({ code: "MA_DON_GOC_KHONG_HOP_LE" }); {` | ✗ G5 |
-| A2 | `VS-A2-bo-qua-ket-qua`: `if (kqDon.loi) return` → `if (false) return` | ✗ G1 |
-| A1 | `BV-A1-bo-xuat-ham`: xoá dòng `module.exports.kiemDonCuaMa` | thu_P20 sập khi nạp (`kiemDonCuaMa is not a function` lúc dùng mã) → ✗ G1 (TypeError → 500) |
+| A2 | `VS-A2-tra-ca-ma-chua-claim`: bỏ ` AND claimed_at IS NOT NULL` | ✗ G7 |
 
 Neo ngắn, riêng (K3). Mỗi tên là nguyên chuỗi, không sinh bằng vòng lặp (A17).
 
@@ -108,19 +118,22 @@ Thử tay 1 thao tác (ghi vào CHƯA KIỂM vì máy không bấm được): bi
 ## 5. Bằng chứng "đột biến cũ vẫn BẮT" (A4)
 
 Chạy trước và sau vá, chép dòng kết quả vào `trang_thai.md`:
-- `python3 viec/AUDIT-1/dot_bien.py D1-E-trangthai-dungma D1-E-danhsach-trang D1-E9-claim-kiem D1-E9-ndiem-kiem`
+- `npm test` và `node kiem_tra_truoc_khi_giao.js --day-du` (ghi dòng tổng + kết quả M2, M5 của thu_gia_lap).
+- `python3 viec/AUDIT-1/dot_bien.py D1-E-trangthai-dungma D1-E-danhsach-trang D1-E-claim-chiem D1-E-ndiem-chiem D1-E9-claim-kiem D1-E9-ndiem-kiem D1-E9-claim-dung D1-E9-ndiem-dung '!D1-E11-P20'`
+  (mọi đột biến D1 neo vào `signup-codes.js` hoặc thu_P20 — `dot_bien.py:109–112, 121–124, 129`).
 - `python3 viec/P26c/dot_bien.py BV-C2-bo-xoa-ma-bill VS-C2-xoa-ca-ma-da-dung BV-D3-luu-ma-go`
 Với phương án A, neo không đổi → kỳ vọng BẮT y cũ; không cần neo lại.
 
 ## 6. Ngân sách
 
 Code chạy thật: ~10 dòng (`orders.js` 8 + require 1, `signup-codes.js` 1) — dưới ngân sách 25–40 của phiếu (phiếu tính cả tách hàm).
-Thử: ~70 dòng trong `thu_P20.js`. `dot_bien.py` ~70 dòng (hồ sơ việc).
+Thử: ~75 dòng trong `thu_P20.js` (7 ca). `dot_bien.py` ~70 dòng (hồ sơ việc).
 
 ## 7. Câu hỏi cho chủ quán (chờ trước khi làm bước 4)
 
 1. **A1:** chấp nhận phương án A (giữ hàm trong `signup-codes.js`, `module.exports.kiemDonCuaMa`, KHÔNG tạo `server/utils/maBill.js`) vì lý do
    mục 0? Nếu đồng ý, Nghiệm thu A1 đọc là "xuất hàm, hành vi /claim, /nhan-diem không đổi" và A4 bỏ vế "neo lại, ghi trước / sau".
+   Cùng câu này: A2 tra `pos_signup_codes` thêm `AND claimed_at IS NOT NULL` (mục 2, K5 trùng chữ) — đồng ý?
 2. **TOCTOU huỷ-giữa-chừng:** chấp nhận không chặn cửa sổ vài ms giữa kiểm và commit (cùng cách `/claim`)? Chặn cần thêm 1 SELECT + 1 kiểm trong
    giao dịch (~5 dòng) và một ca móc `mocTruocTx` như [E] — đề xuất: KHÔNG, giữ đúng phiếu "không thêm giao dịch mới".
 3. **A5:** phiếu ghi "hiện ở ô mã giảm" — thực tế hiện ở thanh lỗi chung (mục 4). Chấp nhận, hay muốn sửa phiếu cho đúng chữ? (Không đổi code.)
@@ -129,5 +142,6 @@ Thử: ~70 dòng trong `thu_P20.js`. `dot_bien.py` ~70 dòng (hồ sơ việc).
 
 - `discount-codes.js:72` `/validate` vẫn báo ✓ với voucher của đơn gốc đã huỷ → nhân viên thấy ✓ rồi bị 400 lúc In. Phiếu đã chốt không chặn
   ở đây; nếu muốn báo sớm thì một việc riêng gọi cùng `kiemDonCuaMa` (3 dòng).
+- `discount-codes.js:341–351` `POST /:id/increment-usage` tăng `used_count` không qua đơn; `client/src` không gọi — không phải lỗ, ghi để biết.
 - `orders.js:1608` xoá đơn giữ dòng `pos_signup_codes` đã claim nhưng xoá `pos_orders` → `kiemDonCuaMa` trả 404 `KHONG_THAY_DON` → sau vá, voucher
   của đơn đã XOÁ cũng bị chặn (400 MA_DON_GOC_KHONG_HOP_LE) — đúng mục tiêu, ghi để biết; không thêm ca vì xoá đơn chỉ owner và cùng nhánh `.loi`.

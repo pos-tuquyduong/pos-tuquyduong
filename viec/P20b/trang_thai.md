@@ -10,6 +10,9 @@ HEAD `568b044` · FETCH_HEAD `568b044` — bằng nhau, không kéo.
 
 ## Bước 2–3 — đọc code, kế hoạch
 Kế hoạch ở `ke_hoach.md`. Phiếu dặn chờ duyệt kế hoạch → dừng sau khi push.
+Soát độc lập (agent chỉ đọc, 16.10) bắt 2 lỗi lập luận ở v1 → v2: (1) đoán HTTP của ca mà chưa đọc phép đối chiếu tiền `orders.js:783–791`
+(tiền gửi phải bằng tổng sau giảm); (2) coi `code` là duy nhất giữa ba nguồn mã trong khi mỗi nguồn chỉ kiểm trùng trong bảng mình →
+thêm `AND claimed_at IS NOT NULL` + ca G7. Ghi để xếp ngăn ở bước 11 (BÀI HỌC).
 
 ## Câu hỏi
 - Người gác chặn `bash cai_git_hook.sh` (B-CHUONGTRINH: `bash` không trong danh sách) → hook pre-commit CHƯA cài ở máy mây này;
