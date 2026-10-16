@@ -58,14 +58,16 @@ DOT_BIEN = [
   ('BV-TUCHAY7-DON-EXIT-THUCONG', TC, [("process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true }); } catch {} });\n", '', 1)], ['thu_cong'], A2C),
   ('BV-TUCHAY7-DON-PID-CHET', TC, [(DON_PID, '', 1)], ['thu_cong'], A2C),
   ('VS-TUCHAY7-DON-CA-PID-SONG', TC, [("try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try {", "{ try {", 1)], ['thu_cong'], A2C),
-  # soát vòng 1 lỗi 3: chế độ con nhận biến không kèm pid cha (đúng bản trước vòng sửa) → THU_CONG_CON lọt từ shell làm bài thoát 0 sớm
-  ('VS-TUCHAY7-CON-KHONG-KIEM-CHA', TC, [("if (CHE_CON && +CHE_CON[2] === process.ppid) {", "if (process.env.THU_CONG_CON) {", 1)], ['thu_cong'],
-   r'✗ TU-CHAY-7 A2 THU_CONG_CON lạc'),
   ('VS-TUCHAY7-DON-TAM-KHONG-PID', TC, [("`thu_cong_${process.pid}_`", "'thu_cong_'", 1)], ['thu_cong'], A2C),
   # ── A2 thu_gia_lap.js: exit + SIGINT/SIGTERM ──
   ('BV-TUCHAY7-DON-GL-TINHIEU', GL, [("for (const t of ['SIGINT', 'SIGTERM']) {\n  process.on(t, () => {", "for (const t of []) {\n  process.on(t, () => {", 1)],
    ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
   ('VS-TUCHAY7-DON-GL-CHI-SIGINT', GL, [("for (const t of ['SIGINT', 'SIGTERM']) {", "for (const t of ['SIGINT']) {", 1)], ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
+  # dừng giả lập con khi bị ngắt (soát vòng 2 lỗi 6): không dừng → handler chờ đủ 10 s (đo bản vá: đóng sau 2,3–2,4 s) → ca "< 9 s" ĐỎ tất định
+  ('BV-TUCHAY7-DON-GL-KHONG-DUNG-CON', GL, [("    for (const c of CON) c.kill('SIGTERM');\n    setInterval(", "    setInterval(", 1)], ['thu_gia_lap'],
+   r'✗ DON SIGTERM giữa bài'),
+  ('VS-TUCHAY7-DON-GL-DUNG-MOT-CON', GL, [("    for (const c of CON) c.kill('SIGTERM');\n    setInterval(", "    for (const c of [...CON].slice(0, 1)) c.kill('SIGTERM');\n    setInterval(", 1)],
+   ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
   ('VS-TUCHAY7-DON-GL-QUEN-EXIT', GL, [("process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true, maxRetries: 5 }); } catch { /* bỏ qua */ } });\n", '', 1)],
    ['thu_gia_lap'], r'✗ DON chạy hết'),
   # ── A3 kiem_tra E15: chú thích số dòng cứng ──
@@ -152,7 +154,9 @@ def chay1(db):
       ma, ra, co_tong = chay_bai(b, tam)
       dong = ra.splitlines()
       trung = [l.strip() for l in dong if re.search(bat, l)]
-      nem = [l.strip() for l in dong if re.search(r'\bsập: |\bném: |✗ bài thử sập\b', l)]  # "<bài> sập: " / "khối ném: " / thu_gia_lap "✗ bài thử sập" — tạm, tới TU-CHAY-8 (mã thoát 2)
+      # NGOẠI LỆ TẠM với KHUON_LOI K3 "luật sập rõ — không dò chuỗi": các bài thu_* chưa có mã thoát sập riêng (TU-CHAY-8 đặt quy ước
+      # mã thoát 2) nên còn dò dòng sập: "<bài> sập: " / "khối ném: " / thu_gia_lap "✗ bài thử sập". Bỏ khi TU-CHAY-8 xong.
+      nem = [l.strip() for l in dong if re.search(r'\bsập: |\bném: |✗ bài thử sập\b', l)]
       if nem: return ten, False, f'{b}: bài thử SẬP/NÉM (không phải đột biến bị bắt): ' + nem[0][:140]
       if not co_tong: return ten, False, f'{b}: bài không in dòng tổng (thoát {ma}) ≠ bắt: ' + (dong or ['(không in gì)'])[-1][:120]
       if ma == 0 or not trung:

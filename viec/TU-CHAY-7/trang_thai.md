@@ -36,10 +36,13 @@
 | A1 kiem_tra lời gọi thu_cong | BV-TUCHAY7-CANH-THUCONG · VS-TUCHAY7-CANH-FALSE · VS-TUCHAY7-HAN-NOI | thu_TOCDO1 C1 · C1 · C2 |
 | A2 thu_cong.js exit / pid | BV-TUCHAY7-DON-EXIT-THUCONG · BV-TUCHAY7-DON-PID-CHET · VS-TUCHAY7-DON-CA-PID-SONG · VS-TUCHAY7-DON-TAM-KHONG-PID | thu_cong "TU-CHAY-7 A2 con het" |
 | A2 thu_gia_lap.js tín hiệu / exit | BV-TUCHAY7-DON-GL-TINHIEU · VS-TUCHAY7-DON-GL-CHI-SIGINT · VS-TUCHAY7-DON-GL-QUEN-EXIT | DON SIGTERM · DON SIGTERM · DON chạy hết |
+| A2 thu_gia_lap.js dừng giả lập con (vòng sửa 2) | BV-TUCHAY7-DON-GL-KHONG-DUNG-CON · VS-TUCHAY7-DON-GL-DUNG-MOT-CON | DON SIGTERM "< 9 s" (bản vá đóng sau 2,3–2,4 s; không dừng con → chờ đủ 10 s) |
 | A3 kiem_tra E15 | BV-TUCHAY7-DONG-CUNG-BO-CANH · VS-TUCHAY7-DONG-CUNG-GACH · VS-TUCHAY7-DONG-CUNG-NGUONG · VS-TUCHAY7-DONG-CUNG-LAN · VS-TUCHAY7-DONG-CUNG-FAIL · VS-TUCHAY7-DONG-CUNG-VUNG · VS-TUCHAY7-DONG-CUNG-CA-DONG | D2 · D3 · D1 · D7 · D9 · D8 · D4 |
 | A4 KHUON_LOI (chữ) | BV-TUCHAY7-KHUONLOI-SO-BANG · BV-TUCHAY7-KHUONLOI-VI-TU · BV-TUCHAY7-KHUONLOI-TUNG-TEN · BV-TUCHAY7-KHUONLOI-101-DONG | kiem_chu (bài trong dot_bien.py) |
 | A5 PHIEN_BAN / THIET_KE (chữ) | BV-TUCHAY7-PHIENBAN-CU · BV-TUCHAY7-THIETKE | thu_cong_cu E3 + thu_nguoi_gac · kiem_chu |
-Không đưa vào (không tất định — K3, ghi CHƯA KIỂM): bỏ bước dừng giả lập con (sót 1/3–2/3 lần), bỏ cờ `NGAT` (thoát 1 thay 130 ở 3/6 ca).
+Không đưa vào (không tất định — K3, ghi CHƯA KIỂM): bỏ cờ `NGAT` (thoát 1 thay 130 ở 3/6 ca); `CON.add` ở chayDon (chỉ có tác dụng khi bị
+ngắt đúng đợt DON). Vế dừng con: từ vòng sửa 2 CÓ đột biến tất định (dòng trên). VS-TUCHAY7-CON-KHONG-KIEM-CHA (vòng sửa 1) đã bỏ — cơ chế
+biến môi trường + pid cha được thay bằng cờ argv ở vòng sửa 2.
 
 ### Kiểm (bước 6)
 - `node kiem_tra_truoc_khi_giao.js --day-du` → thoát 0 · PASS 68 · FAIL 0 · CẢNH BÁO 2: (1) route GET có lệnh ghi (có sẵn, TU-CHAY-6);
@@ -93,7 +96,8 @@ BÀI HỌC: KHOÁ — bộ kiểm chạy bài thật nên đòi dòng tổng ho�
 ### Xử lý vòng sửa 1 (1/3)
 1. **Lỗi 1, 2, 5** — KHUON_LOI viết lại theo ĐOẠN, gói bằng công cụ ở khổ cố định 126 ký tự (dài nhất 126 < 136 của gốc; 9 dòng > 125 so với
    13 ở gốc). Đo công bằng: gốc gói cùng khổ = 119 dòng → bản mới 100 dòng = giảm THẬT 19 dòng (bản vòng 0: 111 ở cùng khổ — agent soát đúng).
-   Năm câu lại mỗi câu một dòng. Tự soát thêm (ngoài báo cáo): bản vòng 0 còn mất 7 ý khác — đã khôi phục (xem bảng dưới, cột "khôi phục").
+   Năm câu lại mỗi câu một dòng. Tự soát thêm (ngoài báo cáo): bản vòng 0 còn mất 7 ý khác — đã khôi phục (xem bảng dưới, cột "khôi phục");
+   commit 0ee95d1 ghi "8 ý" = 1 (lỗi 2) + 7.
 2. **Lỗi 3** — chế độ con chỉ nhận `THU_CONG_CON=<het|nem>:<pid cha>` và `process.ppid` khớp; ca mới "THU_CONG_CON lạc (không pid cha) →
    không vào chế độ con" (chạy SAU hai lượt het/nem — đặt trước thì lần chạy đầu đỏ oan: con bị giết chưa chết hẳn, lượt het chưa dọn được
    thư mục của nó; và ca bản đầu quên tạo TMPDIR của con → con nào cũng chết ở mkdtemp, đỏ oan cả trên bản vá — K3, đã sửa). Đỏ trên gốc
@@ -135,20 +139,66 @@ BÀI HỌC: KHOÁ — bộ kiểm chạy bài thật nên đòi dòng tổng ho�
 | 37–39 K3 | bỏ "con số 'đạt' phải kèm lần chạy lại trên HEAD" (← A19, ghi ở lời mở), "(neo dài rữa sau vài việc)" | A19 cưỡng chế; lý do của câu, không phải luật — khôi phục "không đếm là phép" |
 | 40–42 K3 TACH-GL | bỏ "(T9)", "(T9 vòng 3:" | mã ca cũ; giữ ví dụ `lượt k/L pid` |
 | 43–45 K3 TU-CHAY-5 | bỏ "(ca theo từng lệnh trong skill →", "cổng so số ca báo oan", "A19 `.pop()`" | giữ con số 927/933 và `cong.yml` — ví dụ còn đủ |
-| 46–48 K3 | gộp câu phiếu "bộ đột biến chạy được TỪNG TÊN + ĐỐI CHỨNG + luật sập rõ — không dò chuỗi (AU4-17)"; bỏ "nên vá sai công thức vẫn ra đúng số" | giải thích của con số đã nêu |
+| 46–48 K3 | gộp câu phiếu "bộ đột biến chạy được TỪNG TÊN, có ĐỐI CHỨNG và luật sập rõ (bài sập ≠ BẮT, không in dòng tổng ≠ BẮT) — không dò chuỗi; chỗ còn dò (chờ TU-CHAY-8) ghi ngoại lệ tạm"; bỏ "nên vá sai công thức vẫn ra đúng số" | giải thích của con số đã nêu; vế "không in dòng tổng" khôi phục ở vòng sửa 2 |
 | 51–53 K4 | thân + Dấu hiệu gộp lại; thêm ví dụ TU-CHAY-7 (2/3 chỗ spawn) | cùng nghĩa |
 | 57–58 K4 | thêm "bỏ một lời dặn vì 'máy đã làm' thì phép phải phủ ĐỦ đối tượng" | bài học soát vòng 1 (lỗi 2); khôi phục "không theo một nhánh kết quả" |
-| 59–60 K4 argv | mở rộng sang biến môi trường; ví dụ TACH-GL rút gọn + TU-CHAY-7 THU_CONG_CON | bài học soát vòng 1 (lỗi 3) |
-| 61–63 K4 | bỏ "khối lọc màu chép sang hàm mới →", "đổi tên phép → mẫu đột biến LẠC" | còn hai ví dụ cùng loại |
+| 59–60 K4 argv | giữ đủ 3 vế (chuyển tiếp nguyên đối số, lấy lần đầu, phép cấp module chạy cả ở cha); ví dụ TACH-GL rút gọn; thêm "cờ qua biến môi trường thì kế thừa từ shell — dùng argv (TU-CHAY-7)" | vòng sửa 1 làm rơi "lấy lần đầu" — khôi phục ở vòng 2 |
+| 61–63 K4 | bỏ "khối lọc màu chép sang hàm mới →" | còn ba ví dụ cùng loại; "mẫu +" và "đổi tên phép → mẫu đột biến LẠC" khôi phục ở vòng 2 |
 | 64–65 K4 SO-LUONG-1 | gộp với câu phiếu "MỘT vị từ cho cả 'có gì để làm' và 'làm'"; bỏ "SĐT đã chuẩn hoá, không phải giá trị thô", "ở orders.js:198" | ví dụ `" "` lọt qua `customer_phone` thô đã nói đủ; khôi phục "chép cổng có sẵn thì chép luôn lỗ của nó" |
-| 66–67 K4 TU-CHAY-6 | rút còn 2 dòng | cùng nghĩa |
+| 66–67 K4 TU-CHAY-6 | bỏ "→ INSERT" | giữ "ghi ngay giới hạn", "liệt kê hàm phụ có ghi", "đường song song của mọi phép quét route" (vòng 1 làm rơi — khôi phục ở vòng 2) |
 | 73–75 K5 | — | khôi phục "luồng đổi chính thứ làm chuẩn so sánh" |
 | 76–78 K5 | bỏ "(có bản sao chỉ chép tu_chay/ hoặc server/)" | ví dụ |
 | 80–83 K6 | Dấu hiệu "giao xong mới chạy bộ kiểm" → "cổng PR (A13) + hook pre-commit khi đã cài — máy mây KHÔNG có hook: tự chạy `npm test` trước commit" | cổng A13 (cong.js chạy lenh_bai_thu trên code PR) cưỡng chế ở PR; hook chỉ ở máy đã chạy `cai_git_hook.sh`; thêm "công cụ của việc theo luật việc vừa ghi" (soát lỗi 6) |
 | 85–92 K7 | gộp Dấu hiệu vào Chặn; "bảo chạy npm run kiem ở POS" → "lệnh theo trí nhớ kho kia (CLAUDE.md §3)"; bỏ "→ Everything up-to-date", "require('./kich_ban.js') hỏng văng thô" | trùng CLAUDE.md §3; chi tiết ví dụ |
-| 93–94 K7 GOI-2 | bỏ "ở ngưỡng 30 ngày" | chi tiết ví dụ |
-| 101–102 K8 | "chiều ngược" gộp vào Chặn; bỏ "đo lúc máy chạy việc khác ra" | giữ con số 91 s / 51 s |
+| 93–94 K7 GOI-2 | gộp vào gạch Chặn trên; bỏ "ở ngưỡng 30 ngày", "trong code", "chuỗi" | chi tiết ví dụ; giữ `getNow`, cùng quy ước với cột, lệch 7 giờ |
+| 101–102 K8 | "chiều ngược" gộp vào Chặn | giữ ngữ cảnh "HOC-2b: đo lúc máy chạy việc khác ra 91 s thay vì 51 s" (vòng 1 làm mất — khôi phục ở vòng 2) |
 | 114–116 | "Phát hiện lỗi mới: …mở K9 — ghi ngay" gộp vào dòng cuối | trùng skill bước 11.2 |
+
+## /ra-soat vòng 2 — báo cáo agent soát (chép nguyên, rút dòng trống)
+```
+KHÔNG ĐẠT
+Tình trạng 8 lỗi vòng 1: lỗi 2 sửa đúng (KHUON_LOI 13-15); lỗi 3 sửa, vá đúng lỗ (thu_cong 36-37) — còn 2 lỗi mới (4, 5); lỗi 4 sửa (3/3 spawn có
+CON.add); lỗi 5 sửa thật (gói cả hai ở khổ 126: gốc 120, HEAD 100; dài nhất 136 → 126; > 125 ký tự 13 → 9); lỗi 7 sửa; lỗi 1 có nhưng sai vài
+dòng (lỗi 3); lỗi 6 chỉ bị che (lỗi 1); lỗi 8 sửa xong lại lệch số đo mới (lỗi 2).
+LỖI TÌM ĐƯỢC:
+1. KHUON_LOI.md:39-40 + dot_bien.py:155 — lỗi 6 vòng 1 bị che: câu phiếu "luật sập rõ (bài sập ≠ BẮT) — không dò chuỗi" thu hẹp thành "không dò
+   chuỗi trong chi tiết dòng ca (AU4-17)"; dot_bien vẫn vi phạm (thu_TOCDO1:72 đưa 'khối ném: ' vào chi tiết dòng ca, regex \bném: khớp đúng
+   nó); trang_thai ý 4 "không dò chi tiết ca" sai; AU4-17 hiểu ngược chiều (boc.py MIỄN dấu sập trong chi tiết ca → bỏ sót bài sập). K8, K1.
+2. tu_chay/THIET_KE.md:906 — "88,9–92,7 s (74–77 %)" trong khi cùng vòng đo 94 s = 78 %; số cũ còn ở trang_thai 187 (92,7) và 188 (89,5). K4, K1.
+3. KHUON_LOI.md — A4 vẫn mất nghĩa, bảng không ghi: :55 bỏ "lấy lần đầu" (gốc :59; thu_gia_lap:41 dùng argv.indexOf); :57-58 bỏ "mẫu" và "đổi
+   tên phép → mẫu đột biến LẠC"; :60 bỏ "liệt kê hàm phụ có ghi", "đường song song của mọi phép quét route" (bảng ghi "rút còn 2 dòng | cùng
+   nghĩa" — thật 1 dòng, nghĩa khác); :39 bỏ "không in dòng tổng ≠ BẮT" (gốc :46; dot_bien:157 vẫn dùng); :89 "91 s thay vì 51 s" mất ngữ cảnh. K1, K4.
+4. tu_chay/thu_cong.js:748 — ca "lạc" để lại tiến trình mồ côi: SIGTERM con sau 3 s, cháu trong spawnSync không bị giết (thử thật: cong.js tinh
+   …/thu_cong_<pid con>_…/kho còn chạy ppid 1, TAM con sót); chú thích 746-747 tự nhận rồi dời ca xuống cuối = giấu, không sửa; tốn ~3 s. K3, K4.
+5. tu_chay/thu_cong.js:37 — vế `+CHE_CON[2] === process.ppid` không ca nào khoá (ca "lạc" truyền 'het' không pid); đột biến thay vế so bằng true
+   SỐNG; thiếu ca het:<pid sai>. K3.
+6. Phiếu A6 — CON/NGAT (thu_gia_lap 47-56) và CON.add mới (75, 91, 115) không có VS-/BV- nào. K3/K6.
+NGHI NGỜ: gốc gói 126 ra 120 (trang_thai ghi 119) — kết luận không đổi; "8 ý" (commit) vs "7 ý" (trang_thai); THU_GL_CON lọt từ shell khi chạy
+  tay bỏ 3 ca DON (bộ kiểm lọc qua MT_SACH kiem_tra:841); dot_bien.py:118 os.putenv chỉ an toàn vì chạy tuần tự; /tmp/thu_gl_p24O0w còn.
+NGHIỆM THU: 4/6 · thiếu: A4 (mất nghĩa + bảng sai; câu luật sập thu hẹp), A6 (CON/NGAT không đột biến).
+CHƯA SOÁT ĐƯỢC: không chạy npm test / --day-du / thu_cong / thu_gia_lap / dot_bien (lúc soát có thu_cong khác chạy, pid 771); không thử giết
+  thu_gia_lap thật trong đợt DON; tiền, P1 không áp dụng; K5 không thấy luồng hợp lệ bị chặn.
+ĐƠN GIẢN: chế độ con dùng cờ argv (--con-het / --con-nem) — argv không kế thừa từ shell, bỏ được vế so pid và ca "lạc" (lỗi 4, 5 tự hết);
+  dot_bien:155 ghi thẳng "luật sập tạm dò chuỗi tới TU-CHAY-8", giữ nguyên câu phiếu.
+BÀI HỌC: KHOÁ — ca "chạy N giây rồi giết" trong bài đồng bộ phải giết cả nhóm tiến trình hoặc tránh; KHOÁ — một đột biến cho mỗi vế của cổng nhiều
+  điều kiện; NGUYÊN TẮC K8 — người soát báo công cụ trái luật thì sửa công cụ hoặc ghi ngoại lệ tạm có hạn, không viết lại luật cho vừa công cụ;
+  NGUYÊN TẮC K4/K1 — rút gọn tài liệu thì so từng vế liệt kê của câu gốc ("gộp cùng nghĩa" hay rơi đúng một vế); NGUYÊN TẮC K3 — đỏ oan do tiến
+  trình sót thì sửa cho hết sót, không dời thứ tự ca để không thấy.
+```
+
+### Xử lý vòng sửa 2 (2/3)
+1. **Lỗi 4, 5** — làm theo gợi ý ĐƠN GIẢN: chế độ con của thu_cong qua cờ argv `--con-het` / `--con-nem`; bỏ biến THU_CONG_CON, vế so pid và ca
+   "lạc" (hết mồ côi, bớt ~3 s). Bộ kiểm gọi thu_cong không đối số → không vào chế độ con được. Đã kiểm `ps aux`: không còn tiến trình
+   thu_cong / cong.js / gia_lap nào sót sau soát. pid 771 lúc soát: không xác định được nguồn (phiên chính không chạy gì lúc đó; có thể là
+   con "lạc" của lần chạy trước — đúng lỗi 4).
+2. **Lỗi 1** — KHUON_LOI giữ ĐÚNG câu phiếu "luật sập rõ (bài sập ≠ BẮT …) — không dò chuỗi" + "chỗ còn dò (chờ TU-CHAY-8) ghi ngoại lệ tạm";
+   dot_bien.py ghi NGOẠI LỆ TẠM ngay dòng dò. Câu "đúng cái dot_bien đang làm" ở Xử lý vòng 1 ý 4 là SAI — giữ lại làm vết, sửa ở đây.
+3. **Lỗi 2** — THIET_KE "88,9–94 s (74–78 %)"; Phát hiện dòng 187/188 sửa; các số khác trong trang_thai là số đo có ghi lần đo (giữ).
+4. **Lỗi 3** — khôi phục 5 vế (bảng A4 cập nhật từng dòng); lấy chỗ bằng bỏ ví dụ TU-CHAY-7 tự thêm (K3 "DON sót 2/3", K4 "2/3 chỗ spawn",
+   "THU_CONG_CON lọt") và gộp GOI-2 vào gạch Chặn K7. Vẫn 100 dòng ở khổ 126.
+5. **Lỗi 6** — ca DON đòi "đóng < 9 s sau tín hiệu": đo bản vá 2 252 / 2 435 ms; bỏ bước dừng con thì handler chờ đủ 10 s (setTimeout) → đỏ TẤT
+   ĐỊNH. Thêm BV-TUCHAY7-DON-GL-KHONG-DUNG-CON, VS-TUCHAY7-DON-GL-DUNG-MOT-CON. NGAT và CON.add ở chayDon: vẫn CHƯA KIỂM (ghi ở bảng đột biến).
+6. Nghi ngờ os.putenv: đúng — chỉ an toàn vì dot_bien chạy tuần tự; ghi ở đây, không song song hoá.
 
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.
@@ -184,8 +234,8 @@ BÀI HỌC: KHOÁ — bộ kiểm chạy bài thật nên đòi dòng tổng ho�
 - (TU-CHAY-7) Neo rữa do đổi chữ lời gọi thu_cong: `viec/HOC-2b/dot_bien.py` VS-C3-bat-qua-bien, `viec/TOC-DO-1/dot_bien.py` dòng 31 — hồ sơ
   đã đóng; nếu cần chạy lại hai bộ đó thì sửa neo sang tiền tố `chayBaiThat('tu_chay/thu_cong.js'`.
 - (TU-CHAY-7) A3 đếm 3 dòng trong `cong_cu/thu_P26c.js` (việc song song LUOI-4) — LUOI-4 dọn thì bộ kiểm nhắc hạ `NGUONG_DONG_CUNG`.
-- (TU-CHAY-7) `thu_gia_lap.js` thêm ~12 s (62 s ≈ 52 % hạn); chia lượt thu_cong (92,7 s ≈ 77 %) — việc sau, theo chủ quán chốt.
-- thu_cong.js 89,5 s chạy riêng = 75 % hạn; máy bận nhẹ là vượt 80 % → cảnh báo A1 sẽ hiện thường. Chia lượt thu_cong (TU-CHAY-6 Q5) nên vào
+- (TU-CHAY-7) `thu_gia_lap.js` thêm ~12 s (58,9–62,6 s ≈ 49–52 % hạn); chia lượt thu_cong (88,9–94 s ≈ 74–78 % qua các lần đo) — việc sau, theo chủ quán chốt.
+- thu_cong.js 89,5 s chạy riêng ở GỐC (75 % hạn), 88,9–94 s sau vá; máy bận nhẹ là vượt 80 % → cảnh báo A1 sẽ hiện thường. Chia lượt thu_cong (TU-CHAY-6 Q5) nên vào
   việc sau — KHÔNG làm ở việc này (phiếu: Ngân sách).
 - Cùng khuôn "TAM chỉ dọn ở cuối": `cong_cu/thu_TOCDO1.js:17/:189`, `tu_chay/thu_nguoi_gac.js:1126` — ngoài nghiệm thu A2.
 - `thu_gia_lap.js` bị giết thì giả lập con đang chạy thành mồ côi (tự sập khi TMPDIR mất) — ngoài nghiệm thu.

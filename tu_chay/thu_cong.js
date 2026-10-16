@@ -31,10 +31,10 @@ const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), `thu_cong_${pr
 process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true }); } catch {} });
 fs.mkdirSync(path.join(TAM, 'home'));
 const DAU = path.join(TAM, 'da_chay_code_pr');
-// TU-CHAY-7 A2 — con tự thử của baiDonTam: in TAM (cha đối chứng con đã tạo thư mục), rồi `het` thoát 0 ngay / `nem` ném. Chỉ nhận
-// khi biến mang ĐÚNG pid cha (`het:<pid cha>`): biến lọt từ shell (bộ kiểm chạy bài với môi trường kế thừa) không làm bài thoát 0 sớm.
-const CHE_CON = /^(het|nem):(\d+)$/.exec(process.env.THU_CONG_CON || '');
-if (CHE_CON && +CHE_CON[2] === process.ppid) { console.log('TAM ' + TAM); if (CHE_CON[1] === 'nem') throw new Error('nem thu'); process.exit(0); }
+// TU-CHAY-7 A2 — con tự thử của baiDonTam: in TAM (cha đối chứng con đã tạo thư mục), rồi `--con-het` thoát 0 ngay / `--con-nem` ném.
+// Cờ argv, không biến môi trường: argv không kế thừa từ shell → bộ kiểm (gọi không đối số) không bao giờ vào chế độ này (soát vòng 1–2).
+const CHE_CON = { '--con-het': 'het', '--con-nem': 'nem' }[process.argv[2]];
+if (CHE_CON) { console.log('TAM ' + TAM); if (CHE_CON === 'nem') throw new Error('nem thu'); process.exit(0); }
 
 function envSach(them = {}) {
   const e = {};
@@ -736,18 +736,13 @@ function baiDonTam() {
   const cu = `thu_cong_${chet}_x`, song = `thu_cong_${process.pid}_x`;
   for (const [che, ma] of [['het', 0], ['nem', 1]]) {
     for (const d of [cu, song]) fs.mkdirSync(path.join(T, d), { recursive: true });
-    const r = spawnSync(process.execPath, [__filename], { env: envSach({ TMPDIR: T, THU_CONG_CON: `${che}:${process.pid}` }), encoding: 'utf8', timeout: 20000 });
+    const r = spawnSync(process.execPath, [__filename, '--con-' + che], { env: envSach({ TMPDIR: T }), encoding: 'utf8', timeout: 20000 });
     const tam = /^TAM (.+)$/m.exec(r.stdout || '');
     const con = fs.readdirSync(T).filter((d) => d.startsWith('thu_cong_')).sort();   // node có thể tạo thư mục khác trong TMPDIR
     chac(`TU-CHAY-7 A2 con ${che}: thoát ${ma}, đã tạo TAM (thu_cong_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống`,
       r.status === ma && !!tam && path.dirname(tam[1]) === T && path.basename(tam[1]).startsWith(`thu_cong_${r.pid}_`) && con.join() === song,
       `thoát ${r.status}${r.signal ? ' (' + r.signal + ')' : ''} · TAM con: ${tam ? tam[1] : '(không in)'} · còn: ${con.join(', ') || '(rỗng)'}`);
   }
-  // biến lạc (không pid cha, như lọt từ shell) → con chạy bài ĐỦ như thường: sau 3 s vẫn chạy, chưa in TAM. Chạy SAU hai lượt trên: đặt
-  // trước thì lượt het kế tiếp chưa dọn được thư mục của nó (đo 1 lần — con bị giết chưa chết hẳn) → đỏ oan. TMPDIR đã có (tạo ở lượt trên).
-  const la = spawnSync(process.execPath, [__filename], { env: envSach({ TMPDIR: T, THU_CONG_CON: 'het' }), encoding: 'utf8', timeout: 3000 });
-  chac('TU-CHAY-7 A2 THU_CONG_CON lạc (không pid cha) → không vào chế độ con: không in TAM, còn chạy tới hạn 3 s',
-    la.signal === 'SIGTERM' && !/^TAM /m.test(la.stdout || ''), `thoát ${la.status} · tín hiệu ${la.signal} · ${String(la.stdout).slice(0, 120)}`);
 }
 
 for (const bai of [baiYml, baiCong, baiNapCauHinh, baiKhoaCauHinh, baiDonTam]) {

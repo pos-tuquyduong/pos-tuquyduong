@@ -92,15 +92,17 @@ const chayDon = (tin) => new Promise((xong) => {
   const coGL = (d, sau) => { try {
     return fs.readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() && (e.name.startsWith('gia_lap_') || (sau && coGL(path.join(d, e.name), sau - 1))));
   } catch { return false; } };
-  let thay = false;
-  const nhin = tin && setInterval(() => { if (!thay && coGL(T, 2)) { thay = true; c.kill(tin); } }, 100);
+  let thay = false, tGiet = 0;
+  const nhin = tin && setInterval(() => { if (!thay && coGL(T, 2)) { thay = true; tGiet = Date.now(); c.kill(tin); } }, 100);
   const hen = setTimeout(() => c.kill('SIGKILL'), 90000);
   c.on('close', (status, tinHieu) => {
     clearInterval(nhin); clearTimeout(hen);
-    setTimeout(() => xong({ status, tinHieu, thay, sot: fs.readdirSync(T).filter((f) => f.startsWith('thu_gl_')) }), 2000);
+    const cham = tGiet ? Date.now() - tGiet : null;   // từ tín hiệu tới khi con đóng: không dừng giả lập con → handler chờ đủ 10 s
+    setTimeout(() => xong({ status, tinHieu, thay, cham, sot: fs.readdirSync(T).filter((f) => f.startsWith('thu_gl_')) }), 2000);
   });
 });
-const moTaDon = (r) => `thoát ${r.status}${r.tinHieu ? ' (' + r.tinHieu + ')' : ''} · đã thấy giả lập con: ${r.thay} · sót: ${r.sot.join(', ') || '(không)'}`;
+const moTaDon = (r) => `thoát ${r.status}${r.tinHieu ? ' (' + r.tinHieu + ')' : ''} · đã thấy giả lập con: ${r.thay} · đóng sau tín hiệu ${r.cham} ms`
+  + ` · sót: ${r.sot.join(', ') || '(không)'}`;
 // TACH-GL: chạy giả lập ĐỦ, theo dõi dòng `lượt k/L pid P` của cha. viec: null (chạy hết) · 'SIGTERM cha' · 'SIGTERM con' ·
 // 'SIGKILL cha' — làm khi mọi lượt đã mở kho (đủ L thư mục gia_lap_* có kho.db: con đã cài xử lý tín hiệu). cungLuc = lúc đó
 // đủ L pid còn sống — lượt chạy tuần tự thì lượt trước đã xoá kho → không bao giờ đủ L (không dùng ngưỡng giờ). TMPDIR riêng.
@@ -311,7 +313,8 @@ async function main() {
     const [dTerm, dInt, dHet] = await Promise.all([chayDon('SIGTERM'), chayDon('SIGINT'), chayDon(null)]);
     console.log('\n[DON] TU-CHAY-7 A2 — bài này bị ngắt không sót thư mục tạm');
     for (const [t, r] of [['SIGTERM', dTerm], ['SIGINT', dInt]]) {
-      k(`DON ${t} giữa bài (giả lập con đang chạy) → thoát 130, 0 thu_gl_* sót`, r.thay && r.status === 130 && !r.sot.length, moTaDon(r));
+      k(`DON ${t} giữa bài (giả lập con đang chạy) → thoát 130 trong < 9 s (dừng giả lập con, không chờ hạn 10 s), 0 thu_gl_* sót`,
+        r.thay && r.status === 130 && r.cham < 9000 && !r.sot.length, moTaDon(r));
     }
     k('DON chạy hết (--chi-du-lieu-tay, thoát qua ket()) → thoát 0, 0 thu_gl_* sót', dHet.status === 0 && !dHet.sot.length, moTaDon(dHet));
   }

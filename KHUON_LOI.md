@@ -31,18 +31,18 @@ không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ `disc
   (HOC-2b). "Kịch bản X phủ nhánh Y" chỉ nói khi đột biến xoá Y làm giả lập ĐỎ.
 - **Chặn:** đột biến neo chuỗi NGẮN, RIÊNG. Lỗi thất thường: "N/N lần sạch" chỉ là bằng chứng khi cùng khung đã cho thấy lỗi
   trên bản chưa vá — dựng đột biến đỏ TẤT ĐỊNH, không được thì ghi **CHƯA KIỂM**, không đếm là phép. Ca tín hiệu / thời gian
-  không chạy chung đợt nặng; nghi thì chạy lặp ≥ 3 lần (T3 đỏ oan 1/3; TU-CHAY-7 DON sót 2/3).
+  không chạy chung đợt nặng; nghi thì chạy lặp ≥ 3 lần (T3 đỏ oan 1/3).
 - **Chặn (TACH-GL):** sửa lỗi người soát báo → đột biến đưa ĐÚNG lỗi cũ trở lại, không chỉ gỡ phép vừa thêm. Ca TỪ CHỐI so
   đúng câu của phép đang thử + dấu vết không xảy ra (không dòng `lượt k/L pid`).
 - **Chặn (TU-CHAY-5):** số ca không được SINH từ nội dung file PR sửa (gốc 927, head 933). Mỗi luồng "phải KHÔNG bị chặn" của
   kế hoạch trỏ tới MỘT ca + đột biến gỡ vế đó ra BẮT (`cong.yml` không ca — SỐNG).
-- **Chặn (TOC-DO-1, GOI-2, AUDIT-4):** bộ đột biến chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản chưa đột biến xanh) và luật sập rõ —
-  bài thử sập ≠ BẮT (9/9 "bị bắt" khi bài đang sập); không dò chuỗi trong chi tiết dòng ca (AU4-17). Ca PHÉP TÍNH chọn số để
-  trần / làm tròn không che lỗi (GOI-2 B3c: trần kéo 1.350.000 về 1.215.000).
+- **Chặn (TOC-DO-1, GOI-2, AUDIT-4):** bộ đột biến chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản chưa đột biến xanh) và luật sập rõ
+  (bài sập ≠ BẮT, không in dòng tổng ≠ BẮT — 9/9 "bị bắt" khi bài đang sập) — không dò chuỗi; chỗ còn dò (chờ TU-CHAY-8) ghi
+  ngoại lệ tạm. Ca PHÉP TÍNH chọn số để trần / làm tròn không che lỗi (GOI-2 B3c: trần kéo 1.350.000 về 1.215.000).
 
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc — thường trong cùng hàm hoặc cách chưa tới 150 dòng. Đã gây: P26b gắn cổng
-cho khoản hoàn ví mà xoá đơn vẫn hoàn gói 2 lần; TU-CHAY-7 theo dõi tiến trình con ở 2/3 chỗ `spawn`.
+cho khoản hoàn ví mà xoá đơn vẫn hoàn gói 2 lần.
 - **Dấu hiệu:** vừa tìm ra một lỗi dạng X → gần như chắc chắn có chỗ thứ hai cùng dạng X.
 - **Chặn:** `grep` cả file tìm mọi chỗ cùng khuôn **trước khi viết dòng sửa đầu tiên**: dời câu đọc vào `try` → rà
   `catch`/`finally`; gắn cổng một khoản hoàn → mọi khoản hoàn khác (gói, thẻ, kho, điểm); gom về hàm chung → mỗi CHỖ GỌI là
@@ -52,12 +52,13 @@ cho khoản hoàn ví mà xoá đơn vẫn hoàn gói 2 lần; TU-CHAY-7 theo d�
 - **Chặn:** tài liệu hứa theo ĐỐI TƯỢNG thì phép chặn gắn theo đối tượng, không theo một nhánh kết quả; bỏ một lời dặn vì "máy
   đã làm" thì phép đó phải phủ ĐỦ đối tượng lời dặn hứa. Sửa / phủ định một câu tài liệu → grep CẢ FILE tìm câu cùng nghĩa;
   chạy lại bằng chứng → grep hồ sơ tìm mọi câu trích con số cũ.
-- **Chặn:** thêm cờ nội bộ cha→con (argv, biến môi trường) → rà MỌI đường vào: chuyển tiếp nguyên đối số, kế thừa môi trường,
-  phép cấp module chạy cả ở cha (TACH-GL `--kho` xoá kho giả lập khác; TU-CHAY-7 `THU_CONG_CON` lọt từ shell thì thoát 0 sớm).
+- **Chặn:** thêm cờ nội bộ cha→con → rà MỌI đường argv: chuyển tiếp nguyên đối số, lấy lần đầu, phép cấp module chạy cả ở cha
+  (TACH-GL `--kho` xoá kho giả lập khác). Cờ qua biến môi trường thì kế thừa từ shell — dùng argv (TU-CHAY-7).
 - **Chặn (TU-CHAY-5):** dời một bước / đổi tên một phép / chép một khối code → grep khắp nơi: thông báo lỗi của cổng, tài
-  liệu, chú thích bài thử, neo `viec/*/dot_bien.py` (`python3 viec/HOC-2b/kiem_neo.py` trên gốc và HEAD). Đã gây: thông báo
-  A19 còn "bước 10"; neo HOC-2 khớp 2 lần, chết im lặng.
-- **Chặn (TU-CHAY-6):** quét "thân route" không thấy ghi qua hàm phụ (customers-v2.js GET → `fetchSXCustomers`) — ghi rõ.
+  liệu, chú thích bài thử, mẫu + neo `viec/*/dot_bien.py` (`python3 viec/HOC-2b/kiem_neo.py` trên gốc và HEAD). Đã gây: thông
+  báo A19 còn "bước 10"; neo HOC-2 khớp 2 lần, chết im lặng; đổi tên phép → mẫu đột biến LẠC.
+- **Chặn (TU-CHAY-6):** phép quét "thân route" → ghi ngay giới hạn "không theo hàm phụ", liệt kê hàm phụ có ghi
+  (customers-v2.js GET → `fetchSXCustomers`): ghi qua hàm phụ là đường song song của mọi phép quét route.
 
 ## K5 · Patch chặn nhầm luồng hợp lệ
 Đã lên production: chặn đơn khai "lấy từ gói" mà không kèm mã gói — nhưng luồng **mua gói rồi lấy hàng ngay** cũng gửi đúng
@@ -77,17 +78,16 @@ tự chạy `npm test` trước commit. Đọc mục G `CHECKLIST_CODE.md` (máy
 Middleware đặt sau route · `setError` trong hàm cập nhật của `setCart` · quên `dotenv` · sai tên bảng (`customer_packages`
 thay vì `pos_customer_packages`) · lệnh theo trí nhớ kho kia (CLAUDE.md §3) · commit không thành mà vẫn push.
 - **Chặn:** tên bảng, cột, script, lệnh tra trong code. Sau `git commit` phải thấy dòng `[viec/<MÃ> <mã>]`; push xong `git log
-  origin/viec/<MÃ>..HEAD` rỗng. Dòng mới ở ĐỈNH file (ngoài try) → nó ném thì thoát mã gì (TACH-GL T10).
-- **Chặn (GOI-2):** số thời gian trong code quầy dựng bằng `getNow`, cùng quy ước với cột (Render TZ UTC: `new Date(moc)` trên
-  chuỗi giờ VN không hậu tố lệch 7 giờ).
+  origin/viec/<MÃ>..HEAD` rỗng. Dòng mới ở ĐỈNH file (ngoài try) → nó ném thì thoát mã gì (TACH-GL T10). GOI-2: thời gian ở
+  quầy dựng bằng `getNow`, cùng quy ước với cột (Render TZ UTC: `new Date(moc)` trên giờ VN không hậu tố lệch 7 giờ).
 
 ## K8 · Đổ cho bộ kiểm bắt oan, trong khi lỗi nằm ở mã của mình
 Đã gây: bộ kiểm báo `POST /orders` chưa có cổng phân quyền; kết luận "nó khắt khe quá". Sai: khách có gói TRÀ khai lấy NƯỚC ÉP
 từ gói, server vẫn cho 0 đồng. Sửa đúng thì cảnh báo tự tắt, **không đụng một dòng** bộ kiểm.
 - **Dấu hiệu:** "phép kiểm này bắt oan", "khắt khe quá", "đã chặn ở chỗ khác rồi" — nhất là kèm đề nghị sửa phép kiểm.
 - **Chặn:** phép kiểm của chủ quán **mặc định là đúng** — tìm cho ra **lỗ nó cảnh báo** trước khi nghĩ đến nới. Chiều ngược:
-  phép tự-kiểm báo oan lúc bình thường dạy người bỏ qua nó — ngưỡng theo số đo CHẠY RIÊNG (91 s thay vì 51 s — HOC-2b); sát
-  ngưỡng thì báo chủ quán, không nới.
+  phép tự-kiểm báo oan lúc bình thường dạy người bỏ qua nó — ngưỡng theo số đo CHẠY RIÊNG (HOC-2b: đo lúc máy chạy việc khác
+  ra 91 s thay vì 51 s); sát ngưỡng thì báo chủ quán, không nới.
 
 ## NĂM CÂU TỰ HỎI TRƯỚC KHI BÁO "XONG" — bắt buộc trả lời từng câu
 
