@@ -1,4 +1,4 @@
-# LUOI-3 — kế hoạch (CHỜ DUYỆT)
+# LUOI-3 — kế hoạch (CHỜ DUYỆT — đã sửa theo soát kế hoạch, xem `trang_thai.md`)
 
 Nền: HEAD `8303c1b`. Chỉ thêm ca hồi quy + bộ đột biến của việc; 0 dòng `server/`, `client/`. Số dòng dưới đọc trong lượt này.
 
@@ -16,7 +16,9 @@ Nền: HEAD `8303c1b`. Chỉ thêm ca hồi quy + bộ đột biến của việ
   - AU3-13/14 `tienDaTra.js:87, :83`: **qua API hiện nay trần `total − đã nhận` KHÔNG BAO GIỜ chặn** — đền bị trần ở `damages.js:173–178`
     theo `da_tra` của dòng món (chanTren ≤ chia tỉ lệ), gói không đền được (`GOI_THE_KHONG_DEN` :175), duyệt hoàn chặn đơn có gói
     (`refunds.js:118, :157`), huỷ / xoá chặn sau kết thúc (A4). Mà Σ `da_tra` các dòng ≤ `total − ship` ⇒ `total − đã nhận ≥ da_tra`
-    dòng gói ≥ `goc`. Trần chỉ chặn khi sổ có khoản đền VƯỢT `da_tra` — đúng là **dữ liệu cũ**: trước P26c (12.10) trần đền là giá
+    dòng gói ≥ `goc`. Cũng đúng khi một dòng nhiều gói kết thúc lần lượt (Σ hoàn các gói ≤ `da_tra` dòng gói) và khi phạm vi mã bị
+    đổi sau lúc bán (`chanTren` vẫn ≤ chia tỉ lệ). Mọi nơi khác ghi sổ gắn `order_id` là `topup` / `purchase` / `adjust` / `debt_payment`
+    — không tính vào "đã nhận" (agent soát kế hoạch rà, không thấy phản ví dụ). Trần chỉ chặn khi sổ có khoản đền VƯỢT `da_tra` — đúng là **dữ liệu cũ**: trước P26c (12.10) trần đền là giá
     gốc (`damages.js:171` chú thích "không theo giá gốc"), trước P26b (03.10) do máy khách quyết. → mục 5, Câu hỏi 1.
   - AU3-15/17 `orders.js:424`, `tienDaTra.js:43`: chưa ca huỷ đơn mua NHIỀU gói một dòng đã lấy. AU3-15 (`quantity: 1`) chỉ đổi số
     khi đơn có **giảm**: không giảm thì `300.000 × 1/(1×10) = 600.000 × 1/(2×10)` → cần giảm. AU3-17 lộ cả khi không giảm.
@@ -40,14 +42,18 @@ Chọn A: ít dòng nhất, đúng ưu tiên phiếu (`thu_P26c.js` / `thu_GOI1.
 ### Phần B — bằng chứng đột biến `viec/LUOI-3/dot_bien.py`
 | | A (chọn) | B |
 |---|---|---|
-| cách | file mới ~35 dòng: nạp `viec/AUDIT-3/dot_bien.py` bằng `importlib` (chỉ ĐỌC — dùng `ap`, `ban_sao`, `chay_bai`, `doi_chung`, `SAP`, `HET` và cặp thay chuỗi theo tên); 10 dòng `('<tên>', '<bài>', r'✗ <ca> ')` — mẫu ĐÚNG ca; in MỌI dòng ✗ của từng đột biến (thấy ca nào khác cùng đỏ) | chép nguyên 10 cặp thay chuỗi + máy chạy sang file mới (~80 dòng, hai nguồn neo dễ lệch) |
+| cách | file mới ~35 dòng: đặt `sys.dont_write_bytecode = True` TRƯỚC khi nạp (khuôn `viec/AUDIT-2/dot_bien.py:12` — không đẻ `__pycache__` trong
+`viec/AUDIT-3/` bị Cấm), rồi nạp `viec/AUDIT-3/dot_bien.py` bằng `importlib` (chỉ ĐỌC — dùng `ap`, `ban_sao`, `chay_bai`, `doi_chung`, `SAP`, `HET` và cặp thay chuỗi theo tên); 10 dòng `('<tên>', '<bài>', r'✗ <ca> ')` — mẫu ĐÚNG ca; in MỌI dòng ✗ của từng đột biến (thấy ca nào khác cùng đỏ) | chép nguyên 10 cặp thay chuỗi + máy chạy sang file mới (~80 dòng, hai nguồn neo dễ lệch) |
 | lý do | một nguồn neo (AUDIT-3), mẫu chặt chứng minh "đỏ ĐÚNG ca, không ca khác chặn hộ"; tên đột biến là NGUYÊN chuỗi đầu dòng (A17) | — |
 
 Không sửa `viec/AUDIT-3/dot_bien.py` (Cấm). Mẫu ở đó rộng (`✗ ` cho AU3-8) → không đủ chứng minh đúng ca, nên cần file riêng.
 
 ## 2. Ca thử ↔ nghiệm thu (1-1)
 Mã giảm riêng của khối `[M]`: `GIAM10_LUOI3` percent 10, scope đơn, không trần. Mỗi ca khẳng định **tổng đơn** trước (mã không áp
-→ tổng sai → ca đỏ có lý do, không xanh oan). Flash dựng bằng UPDATE dữ liệu như B1a / B1b (`thu_P26c.js:357–360`).
+→ tổng sai → ca đỏ có lý do, không xanh oan). Flash dựng bằng UPDATE dữ liệu như B1a / B1b (`thu_P26c.js:357–360`) — KHÁC khuôn B1a ở hai chỗ (soát kế hoạch):
+M2a lọc `flash_unit_price` theo `product_id = sp[0].id` (B1a cập nhật MỌI dòng → dòng 30.000 cũng thành giá flash, M2b hỏng);
+M3a đặt `discount = discount_amount = 31.000` (mã 25.000 + flash 6.000 — cột `discount` là TỔNG giảm, `orders.js:696`), `flash_discount = 6.000`,
+`flash_unit_price = 24.000` CHỈ dòng B (đặt `discount = 6.000` như B1a thì gốc tính giảm 0, trần A 50.000 → ca đỏ ngay trên gốc).
 
 | NT | đột biến (`viec/AUDIT-3/dot_bien.py`) | ca | khẳng định | đột biến làm |
 |---|---|---|---|---|
@@ -59,7 +65,7 @@ Mã giảm riêng của khối `[M]`: `GIAM10_LUOI3` percent 10, scope đơn, kh
 | N4 | `VS-AU3-GOI1-LOAI-KHONG-CONG-DON` | **A2l** CT1 cài 5, đã lấy 2 (còn 3); đơn 2 dòng CT1 2 + CT1 2 → 400 `GOI_HET_LUOT_LOAI`, giao vẫn 2 | cộng dồn 4 > 3 | xin = 2 → 200 |
 |  | (K5) | **A2m** cùng gói, 2 dòng CT1 1 + CT1 2 (= đúng 3 còn) → 200, CT1 đã lấy 5 — chứng minh A2l không đỏ vì "2 dòng cùng loại" bị chặn chung | | |
 | N5 | `VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN` | **A2n** gói mới; UPDATE `pos_packages.package_items` = [CT1 0, CT2 5] (dữ liệu cũ, trước GOI-1 A1d); lấy CT1 1 → 200, CT1 đã lấy 1 | loại SL 0 không bị chặn | 400 |
-| N6 | `BV-AU3-GOI2-BO-TRAN-DA-NHAN` | **B3p** khách có giảm 10 % (hồ sơ, như B3c); mua gói 1.350.000 + CT3 25.000 → tổng 1.237.500; sổ có khoản đền CŨ 25.000 (giá gốc — ghi qua `ghiVi` để ví khớp sổ, như dữ liệu trước P26c); kết thúc có hoàn → `hoan-du-kien` 1.212.500 và ví +1.212.500; tổng khách nhận = 1.237.500 = total (I19) | trần total − đã nhận | 1.215.000 |
+| N6 | `BV-AU3-GOI2-BO-TRAN-DA-NHAN` | **B3p** khách có giảm 10 % (hồ sơ, như B3c); mua gói 1.350.000 + CT3 25.000 → tổng 1.237.500; sổ có khoản đền CŨ 25.000 (giá gốc, như dữ liệu trước P26c — một dòng `pos_damage_logs` action `refund` + `ghiVi` loại `compensation` trong `trongGiaoDich` của `wallets.js:319–321` để ví khớp sổ; đặt CUỐI khối B3, sau B3j); kết thúc có hoàn → `hoan-du-kien` 1.212.500 và ví +1.212.500; tổng khách nhận = 1.237.500 = total (I19) | trần total − đã nhận | 1.215.000 |
 | N7 | `VS-AU3-GOI2-NHAN-BO-DEN` | cùng **B3p** | "đã nhận" gồm đền | 1.215.000 |
 | N8 | `VS-AU3-SL-DONG-GOI-SL-1` | **M4a** một dòng mua 2 gói (300.000 × 2), mã 10 % → tổng 540.000; lấy 1 ở gói đầu; owner huỷ → ví +513.000 (= 540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000 — hoàn MỘT lần | | 510.000 |
 | N9 | `VS-AU3-SL-DONG-GOI-TONG-1` | **M4b** cùng đơn, trước khi huỷ: dòng gói `quantity` 2 và `SUM(oi.total_price)` = `subtotal` = 600.000 (cột báo cáo cộng — `reports.js:67, :175`) | | SUM 300.000 |
@@ -76,9 +82,11 @@ mới → chạy lại → BẮT × 10, đúng mẫu; ghi `SỐ CA thu_P26c.js: 
 (tên · SỐNG trước · BẮT sau · ca đỏ · câu lỗi) vào `trang_thai.md`.
 
 ## 3. Đường song song (K4)
-- N1, N2, N3 nằm trong `tienDaTraTheoDong` — dùng chung cho đền (`damages.js:173`, chanTren), hoàn huỷ / xoá / duyệt hoàn
-  (`soTienHoan`, `orders.js:1346`, `refunds.js:164`) và kết thúc gói (`soTienHoanGoi`, `packages.js:212, :253`). Đột biến ở hàm chung →
-  một ca bắt là đủ chứng minh; N1 có HAI ca (đền + huỷ) vì phiếu ghi cả hai vế. Kết thúc gói có ship: không thêm ca (cùng hàm).
+- N1, N2 nằm trong `tienDaTraTheoDong` — dùng cho đền (`damages.js:173`, chanTren), hoàn huỷ / xoá đơn CÓ GÓI (`soTienHoan` chỉ gọi
+  khi có gói — `tienDaTra.js:38–39`; `orders.js:1346`) và kết thúc gói (`soTienHoanGoi`, `packages.js:212, :253`). Duyệt hoàn
+  (`refunds.js:164`) KHÔNG tới đường này: đơn có gói bị chặn (`refunds.js:118, :157`), đơn không gói không gọi hàm. Đột biến ở hàm chung →
+  một ca bắt là đủ; N1 có HAI ca (đền + huỷ) vì phiếu ghi cả hai vế. Kết thúc gói có ship: không thêm ca (cùng hàm).
+- N3 (`giam`, `tienDaTra.js:22`) chỉ ở nhánh `chanTren` → chỉ đường đền (`damages.js:173`) — M3a là đường duy nhất.
 - N8, N10 nằm ở `soTienHoan` — huỷ và xoá cùng qua `hoanVi` (`orders.js:1342–1346`); duyệt hoàn đơn có gói bị chặn
   (`refunds.js:118, :157`). Kết thúc gói của dòng nhiều gói chia `/ dong.quantity` (`tienDaTra.js:81`) — đã có B3d (`thu_GOI1.js`
   một dòng 2 gói, kết thúc gói 2 hoàn MỘT nửa); không thêm.
