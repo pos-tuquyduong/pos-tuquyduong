@@ -9,16 +9,16 @@ Khuôn viec/AUDIT-3/dot_bien.py: chép THẬT server/ + cong_cu/ (+ tu_chay/cau_
 chuỗi (khớp ĐÚNG số lần — không thì HỎNG, K3), chạy bài trên bản sao: 'p26c' / 'thu' / 'thub' = thu_P26c / thu_GOI1 / thu_P26b `--may-chu`,
 'p20' = thu_P20.js chạy TRONG bản sao (không nhận --may-chu). Một đột biến khai nhiều cách thì chạy mọi bài (BẮT khi một bài bắt).
 ĐỐI CHỨNG mỗi cách: bản sao chưa đột biến thoát 0 VÀ số ca khớp `BAI` — lệch thì DỪNG thoát 4. Nhãn: HỎNG = neo không áp được ·
-HỎNG-sập = bài sập (dấu `SAP`, thoát 2, không dòng tổng) · BẮT = thoát ≠ 0 + dòng ✗ khớp mẫu · LẠC = thoát ≠ 0 không khớp · SỐNG = thoát 0.
+HỎNG-sập = bài sập (`sap_cua` của boc.py: dấu sập, thoát 2, không dòng chạy hết) · BẮT = thoát ≠ 0 + dòng ✗ khớp mẫu · LẠC = thoát ≠ 0 không khớp · SỐNG = thoát 0.
 SỐNG ở chỗ tiền / ví / gói / kho = NẶNG-lưới (chủ quán chốt Câu hỏi 2 = a). Tên lạ / chọn 0 → thoát 2. SIGINT / SIGTERM → dọn tạm, thoát 130.
+Thoát 0 KHI VÀ CHỈ KHI mọi nhãn đúng `MONG` (D2 theo hợp đồng, còn lại BẮT); luật sập + bản sao nạp từ boc.py (một định nghĩa).
 """
-import atexit, importlib.util, os, re, shutil, signal, subprocess, sys, tempfile
+import importlib.util, os, re, shutil, signal, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP|SẬP giữa kịch bản|Node\.js v\d')
-HET = re.compile(r'\d+ đạt · \d+ hỏng')
+TONG = re.compile(r'\d+ đạt · \d+ hỏng')
 O, T, G, A = 'routes/orders.js', 'utils/tienDaTra.js', 'utils/goiKhach.js', 'routes/auth.js'
 BAI = {'p26c': ('cong_cu/thu_P26c.js', 118), 'thu': ('cong_cu/thu_GOI1.js', 105), 'thub': ('cong_cu/thu_P26b.js', 66), 'p20': ('cong_cu/thu_P20.js', 75)}
 P20_CONG = 'if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: "MA_DON_GOC_KHONG_HOP_LE" });'
@@ -52,16 +52,13 @@ DOT_BIEN = [
   ('BV-AU4-L3-B3P-BO-SAN-0', ('thu', 'p26c'), [(T, 'Math.max(0, Math.min(goc, Number(don.total || 0) - Number(so.nhan)))', 'Math.min(goc, Number(don.total || 0) - Number(so.nhan))', 1)], r'✗ '),
 ]
 
-TAM = os.path.realpath(tempfile.mkdtemp(prefix='audit4_db_'))
-atexit.register(shutil.rmtree, TAM, True)
+MONG = {'D2-AU4-sai-chuoi': 'HỎNG', 'D2-AU4-vo-hai': 'SỐNG', 'D2-AU4-sap': 'HỎNG-sập', 'D2-AU4-sap-0': 'HỎNG-sập'}   # hợp đồng D2; còn lại mong BẮT
 
-
-def ban_sao():
-  k = tempfile.mkdtemp(prefix='kho_', dir=TAM)
-  for x in ('server', 'cong_cu'): shutil.copytree(os.path.join(GOC, x), os.path.join(k, x), symlinks=True)
-  os.makedirs(os.path.join(k, 'tu_chay')); shutil.copyfile(os.path.join(GOC, 'tu_chay', 'cau_hinh.json'), os.path.join(k, 'tu_chay', 'cau_hinh.json'))
-  os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(k, 'node_modules'))
-  return k
+# MỘT luật sập + MỘT cách dựng bản sao: nạp từ boc.py (soát vòng 1 — không chép). boc.py tạo TAM, atexit xoá.
+_sp = importlib.util.spec_from_file_location('boc_audit4', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'boc.py'))
+B = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(B)
+TAM = os.path.realpath(B.TAM)
+ban_sao, sap_cua = B.ban_sao_sc, B.sap_cua
 
 
 def ap(k, cap):
@@ -81,14 +78,6 @@ def chay_bai(cach, k):   # → (mã thoát, đầu ra bỏ mã màu); TMPDIR = b
   return r.returncode, re.sub(r'\x1b\[[0-9;]*m', '', r.stdout + r.stderr)
 
 
-def sap_cua(ma, ra):
-  d = [l.strip() for l in ra.splitlines() if SAP.search(l)]
-  if d: return d[0][:140]
-  if ma == 2: return 'thoát 2'
-  if not HET.search(ra): return f'thoát {ma} KHÔNG có dòng tổng · ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:100]
-  return ''
-
-
 def chay1(db):   # → (tên, nhãn, [chi tiết])
   ten, cach, cap, mau = db
   ds = (cach,) if isinstance(cach, str) else cach
@@ -100,11 +89,11 @@ def chay1(db):   # → (tên, nhãn, [chi tiết])
     for c in ds:
       ma, ra = chay_bai(c, k)
       s = sap_cua(ma, ra)
-      if s: return ten, 'HỎNG-sập', [f'[{c}] bài thử SẬP (không phải bị bắt): {s}']
       do = [l.strip() for l in ra.splitlines() if l.strip().startswith('✗ ')]
+      if s: return ten, 'HỎNG-sập', [f'[{c}] bài thử SẬP (không phải bị bắt): {s}'] + [f'[{c}] (trước khi sập) {l[:200]}' for l in do]
       if ma != 0 and any(re.search(mau, l) for l in do): bat = True
       elif ma != 0: lac = True
-      tong = HET.search(ra).group(0)
+      tong = TONG.search(ra).group(0)
       chi += [f'[{c}] thoát {ma} · {tong}'] + [f'[{c}] {l[:230]}' for l in do]
     return ten, 'BẮT' if bat else 'LẠC' if lac else 'SỐNG', chi
   finally:
@@ -149,11 +138,12 @@ def main():
   if not all([doi_chung(c) for c in cach]): print('\n  DỪNG — đối chứng đỏ / lệch số ca, không chấm (K3)'); return 4
   with ThreadPoolExecutor(max_workers=4) as ex: kq = list(ex.map(chay1, chon))
   for ten, k, chi in kq:
-    print(f'  {k:8} {ten}')
-    for l in chi[:8]: print(f'           {l}')
+    print(f"  {k:8} {ten}" + ('' if k == MONG.get(ten, 'BẮT') else f"   ← mong {MONG.get(ten, 'BẮT')}"))
+    for l in chi[:10]: print(f'           {l}')
   dem = {x: sum(k == x for _, k, _ in kq) for x in ('BẮT', 'SỐNG', 'HỎNG', 'HỎNG-sập', 'LẠC')}
-  print(f'\n  tổng {len(kq)} · ' + ' · '.join(f'{x} {v}' for x, v in dem.items()), flush=True)
-  return 1 if dem['SỐNG'] + dem['LẠC'] else 0
+  dung = sum(k == MONG.get(t, 'BẮT') for t, k, _ in kq)
+  print(f'\n  tổng {len(kq)} · ' + ' · '.join(f'{x} {v}' for x, v in dem.items()) + f' · đúng mong {dung}/{len(kq)}', flush=True)
+  return 0 if dung == len(kq) else 1   # thoát 0 KHI VÀ CHỈ KHI mọi nhãn đúng mong (D2 theo hợp đồng, còn lại BẮT) — soát vòng 1
 
 
 if __name__ == '__main__':
