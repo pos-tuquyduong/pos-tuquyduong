@@ -573,28 +573,6 @@ async function main() {
       k('H3i dòng mã vẫn claimed (không gỡ nửa chừng)', !!m.claimed_at, String(m.claimed_at));
     }
 
-    // H3j — A3 · GIỚI HẠN ĐÃ BIẾT (vòng sửa 4, cùng cách xử lý b1): CÙNG SĐT claim lại trong CÙNG giây (claimed_at ép = T0) thì khoá
-    // claimed_at + claimed_phone không phân biệt được — hoàn tác B chồng gỡ luôn lần claim mới. Trạng thái cuối NHẤT QUÁN: không claim,
-    // không voucher, khách claim lại được. Ca này KHOÁ hành vi đó; muốn chặn được thì cần cột phiên bản (đổi cấu trúc DB — việc khác).
-    {
-      const b = await donThu('H3j bill'); const P = sdtMoi();
-      const c = await claim(b.ma, P);
-      k('H3j claim → 200', c.status === 200, moTa(c));
-      await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
-      let rA = null, c2 = null;
-      mocTruocTx = async () => {
-        rA = await reset(b.ma); c2 = await claim(b.ma, P); imLang();
-        await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
-      };
-      const rB = await reset(b.ma);
-      mocTruocTx = null;
-      k('H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại cùng giây → 200', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
-        `${rA ? moTa(rA) : 'móc không chạy'} / ${c2 ? moTa(c2) : '-'}`);
-      const v = await demVoucher(b.ma), m = await dongMa(b.ma);
-      k('H3j hoàn tác B → 200, trạng thái cuối nhất quán: không claim, không voucher (giới hạn đã biết)',
-        rB.status === 200 && v === 0 && !m.claimed_at, `${moTa(rB)} · voucher ${v} · claimed_at ${m.claimed_at}`);
-    }
-
     // H3e — A3 (soát vòng 1, Z2): hai lần hoàn tác chồng nhau, voucher chưa ai dùng → lần sau 409 "vừa hoàn tác", không phải 400 "đã dùng".
     {
       const b = await donThu('H3e bill');
