@@ -23,10 +23,16 @@ DOT_BIEN = [
   ('VS-A2-bo-co', [(S, '(? = 0 OR NOT EXISTS', '(? = -1 OR NOT EXISTS', 1)], r'✗ H2b chiLanDau tắt: người đến sau'),
   ('BV-A3-bo-dieu-kien', [(S, "WHERE code = ? AND COALESCE(used_count, 0) = 0'", "WHERE code = ?'", 1)], r'✗ H3 hoàn tác voucher vừa được dùng'),
   ('VS-A3-null-lech', [(S, 'AND COALESCE(used_count, 0) = 0', 'AND used_count = 0', 1)], r'✗ H3f hoàn tác voucher used_count NULL'),
-  ('BV-A3-bo-khoa-claim', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone = ?'", "WHERE id = ? AND ? IS NOT NULL AND ? IS NOT NULL'", 1)],
+  ('BV-A3-bo-khoa-claim', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?'", "WHERE id = ? AND ? IS NOT NULL AND ? IS NOT NULL'", 1)],
     r'✗ H3d hoàn tác B'),
-  ('VS-A3-khoa-chi-gio', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone = ?'", "WHERE id = ? AND claimed_at = ? AND ? IS NOT NULL'", 1)],
+  ('VS-A3-khoa-chi-gio', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?'", "WHERE id = ? AND claimed_at = ? AND (? IS NULL OR 1)'", 1)],
     r'✗ H3d hoàn tác B'),
+  ('VS-A3-khoa-chi-sdt', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?'", "WHERE id = ? AND (? IS NULL OR 1) AND claimed_phone IS ?'", 1)],
+    r'✗ H3g hoàn tác B'),
+  ('VS-A3-sdt-bang', [(S, "AND claimed_phone IS ?'", "AND claimed_phone = ?'", 1)], r'✗ H3h hoàn tác dòng claimed_phone NULL'),
+  ('BV-A2-bo-bao-chiem', [(S, "return baoChiemHong(res, dong.id, 'diem_nhan_luc',",
+    "return res.status(400).json({ success: false, code: 'MA_DA_NHAN_DIEM' }); (res, dong.id, 'diem_nhan_luc',", 1)],
+    r'✗ H6 /nhan-diem khi dòng mã vừa bị xoá'),
   ('VS-A1-cheo-cot', [(S, 'WHERE claimed_phone = ? AND id <> ?', 'WHERE ? IN (claimed_phone, diem_nhan_phone) AND id <> ?', 1)],
     r'✗ H4b cùng SĐT: nhận điểm mã A'),
   ('VS-A2-cheo-cot', [(S, 'WHERE diem_nhan_phone = ? AND id <> ?', 'WHERE ? IN (claimed_phone, diem_nhan_phone) AND id <> ?', 1)],
@@ -83,7 +89,8 @@ def main():
       if loi: print(f'  HỎNG  {ten} — {loi}'); shutil.rmtree(k); continue
       ma, ra = chay(k); shutil.rmtree(k)
       khop = [l.strip() for l in ra.splitlines() if re.search(mau, l)]
-      if ma != 0 and khop: bat += 1; print(f'  BẮT   {ten} — {khop[0][:100]}')
+      if not re.search(r'\d+ đạt · \d+ hỏng', ra): print(f'  SẬP   {ten} — thoát {ma}, không có dòng tổng (bài thử sập ≠ BẮT)')
+      elif ma != 0 and khop: bat += 1; print(f'  BẮT   {ten} — {khop[0][:100]}')
       elif ma != 0: print(f'  LẠC   {ten} — thoát {ma}, không dòng nào khớp /{mau}/')
       else: print(f'  SỐNG  {ten} — bài thử vẫn xanh')
   finally:

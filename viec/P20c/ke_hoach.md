@@ -1,5 +1,8 @@
 # P20c — kế hoạch v1 (CHỜ DUYỆT — chưa viết bài thử, chưa sửa code)
 
+> **Sau soát vòng 1–2 (16.10):** bảng ca (mục 5) và bảng đột biến (mục 6) dưới đây là bản v1. Danh sách ĐANG CHẠY (ca H1–H6 gồm H3d–H3h, H4b;
+> 18 đột biến) và bản vá /reset hiện hành ghi ở `trang_thai.md` (mục "vòng sửa 1", "vòng sửa 2"). Câu sai đã gạch tại chỗ.
+
 Số dòng dưới đây đọc trong lượt này trên HEAD `2353fe9` (= main `0ee7346` + sổ việc v34 `783a1dd` + `PHIEU: P20c`).
 
 ## 0. Phát hiện làm đổi cách viết — chuỗi SQL chiếm mã đang bị NEO ở file Cấm / ngoài Phạm vi
@@ -76,14 +79,14 @@ dữ liệu claim trước 09.08.2026 (voucher mang mã KHÁC, `signup-codes.js:
 
 | | **A: giữ phép đọc voucher ngoài giao dịch; DELETE có điều kiện + `changes` trong giao dịch (chọn — v1 sau soát)** | B: đúng chữ phiếu `changes = 0` → 400 |
 |---|---|---|
-| trong giao dịch | ĐẦU giao dịch: `const xoa = await tx.run('DELETE … WHERE code = ? AND used_count = 0')`; `if (voucherRow && xoa.changes === 0)` → rollback, 400 (lời báo cũ `:471`); rồi UPDATE gỡ claimed như cũ | `changes = 0` → 400 |
+| trong giao dịch | ~~ĐẦU giao dịch: `const xoa = await tx.run('DELETE … WHERE code = ? AND used_count = 0')`; `if (voucherRow && xoa.changes === 0)` → rollback, 400 (lời báo cũ `:471`); rồi UPDATE gỡ claimed như cũ~~ **(cũ — xem sửa sau soát ngay dưới bảng)** | `changes = 0` → 400 |
 | dòng | ~+4 (giữ `:467–473` làm lời báo sớm; `voucherRow` có từ `:467`) | ~4 |
 | voucher không tồn tại | `voucherRow` null → 200, gỡ claimed như hôm nay | **400 — chặn nhầm** |
 
-**Chọn A.** Đổi thứ tự trong giao dịch: DELETE → kiểm → UPDATE (rollback không phải hoàn UPDATE). ~~Đủ vì voucher không thể XUẤT HIỆN
+**Chọn A.** ~~Đổi thứ tự trong giao dịch: DELETE → kiểm → UPDATE (rollback không phải hoàn UPDATE).~~ ~~Đủ vì voucher không thể XUẤT HIỆN
 sau `:467` khi dòng signup đang claimed~~ — **SAI (soát vòng 1, K1):** hai lần hoàn tác chồng nhau + khách claim lại xen giữa (ca Z1 → H3d)
 làm voucher mới xuất hiện; mã tay trùng chữ cũng tạo được (`discount-codes.js:195–215`). Bản vá sau soát: UPDATE gỡ claim lên ĐẦU giao dịch, gắn
-đúng lần claim đã đọc (`AND claimed_at = ? AND claimed_phone = ?`), 0 dòng → 409; DELETE dùng `COALESCE(used_count, 0) = 0` (cùng nghĩa phép
+đúng lần claim đã đọc (`AND claimed_at = ? AND claimed_phone IS ?` — soát vòng 2: `IS` cho dòng claimed_phone NULL, H3h), 0 dòng → 409; RỒI DELETE dùng `COALESCE(used_count, 0) = 0` (cùng nghĩa phép
 kiểm ngoài với NULL — H3f). Bản nháp trước (xoá `:465–473`, thêm `tx.queryOne` hỏi "còn
 voucher") dài gấp đôi — agent soát chỉ ra. Còn một cửa hẹp: voucher bị XOÁ TAY (`discount-codes.js:326`) đúng giữa `:467` và giao dịch →
 400 thay vì 200; bấm lại là qua — chấp nhận, ghi CHƯA KIỂM.
@@ -130,7 +133,7 @@ Bài cả bài ĐỎ trên gốc (H1, H2, H3, H4) → không cần `## Bài th�
 | A1/A4 | `VS-A1-mot-ma-loi` `baoChiemHong` bỏ nhánh SĐT (luôn báo mã đã dùng) | H1 (code) |
 | A2 | `BV-A2-bo-chan-sdt` gỡ dòng nối của /nhan-diem | H2 |
 | A2 | `VS-A2-bo-co` bỏ `? = 0 OR` (chặn cả khi tắt) — kèm bỏ tham số cờ | H2b |
-| A3 | `BV-A3-bo-dieu-kien` `AND used_count = 0` → `''` | H3 |
+| A3 | `BV-A3-bo-dieu-kien` `AND used_count = 0` → `''` (neo nay là `AND COALESCE(used_count, 0) = 0`) | H3 |
 | A3 | `VS-A3-changes-0-chan` bỏ vế `voucherRow &&` (chặn mọi `changes = 0` — đúng chữ phiếu) | H3c |
 | A4 | `BV-A4-claim-bo-ma` `:317` trả lại 400 không `code` | H4 |
 
@@ -145,7 +148,7 @@ Chạy AUDIT-1 với `--json` thì đường ra đặt trong `viec/P20c/` (`viec
   lên bill không) — đọc thì không phải đường song song của phép chặn.
 - `grep -rn "DELETE FROM pos_discount_codes" server/` → 2 chỗ: `signup-codes.js:484` (vá ở A3) và **`discount-codes.js:315–326` CÙNG KHUÔN**
   (kiểm `existing.used_count > 0` NGOÀI giao dịch rồi `DELETE … WHERE id = ?` không điều kiện). Ngoài Phạm vi → **Phát hiện**, không sửa;
-  đề xuất: `DELETE … WHERE id = ? AND used_count = 0`, `changes = 0` → rơi về nhánh vô hiệu hoá. Đường này cũng là lý do ca H3c có thật
+  đề xuất: `DELETE … WHERE id = ? AND COALESCE(used_count, 0) = 0`, `changes = 0` → rơi về nhánh vô hiệu hoá. Đường này cũng là lý do ca H3c có thật
   (chủ quán xoá tay voucher chưa dùng ở màn Mã chiết khấu → dòng signup còn claimed mà không còn voucher).
 - **Ngoài Phạm vi (Phát hiện, không sửa):** `orders.js:962–979` POST /orders đọc lại voucher trong giao dịch, `freshCode` null (voucher vừa bị
   reset xoá giữa lúc đọc ngoài giao dịch `:502–505` và giao dịch) → vẫn cho giảm giá, `UPDATE used_count` 0 dòng. Cửa sổ hẹp, chỉ khi chủ quán bấm

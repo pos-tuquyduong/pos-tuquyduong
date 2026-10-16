@@ -43,6 +43,11 @@ lượt trước, không đọc lại (K1); (3) thêm 2 Phát hiện. Ghi để 
    đề xuất `SELECT claimed_phone, COUNT(*) FROM pos_signup_codes WHERE claimed_phone IS NOT NULL GROUP BY 1 HAVING COUNT(*) > 1` (và cặp
    diem_nhan_phone) vào DOI-SOAT-1 / bất biến giả lập.
 
+8. (soát vòng 2) `/reset` — `voucherRow` (`signup-codes.js:482`) và DELETE (`:510` vùng) so `code = ?` PHÂN BIỆT hoa thường, `orders.js:502`
+   dùng `UPPER()`. Có sẵn; mã bill luôn chữ hoa nên chỉ lộ khi chủ quán xoá tay voucher rồi tạo mã tay trùng chữ khác hoa thường.
+9. (soát vòng 2) Không có index `diem_nhan_phone` (`database.js:1247–1257`) — NOT EXISTS ở /nhan-diem quét bảng trong khoá ghi. Bảng nhỏ;
+   phép kiểm sớm vốn quét như vậy.
+
 ## Bước 1 (tiếp, 16.10) — đối chiếu lại
 HEAD `e6ec483` · FETCH_HEAD `e6ec483` — bằng nhau, không kéo. Chủ quán duyệt kế hoạch v1: Câu hỏi 1 → GIỮ `MA_DA_NHAN_DIEM` 400 ở
 /nhan-diem; `MA_DA_DUNG` 409 chỉ /claim; `SDT_DA_NHAN` cả hai. Câu hỏi 2 → duyệt cả ba (nối chuỗi, reset `voucherRow && changes === 0`,
@@ -170,9 +175,83 @@ BÀI HỌC:       KHOÁ: thêm vào thu_P20 [H] ca (a) cùng SĐT nhận điểm
 (`BV-A3-bo-dieu-kien` đổi neo theo chuỗi mới `AND COALESCE(used_count, 0) = 0`.)
 
 ## CHƯA KIỂM
+- baoChiemHong đọc lại dòng NGOÀI giao dịch sau rollback: một lần hoàn tác chen đúng giữa → lời báo 400 SDT_DA_NHAN thay 409 (dữ liệu đúng).
 - A5: `kiemDonCuaMa` vẫn chạy NGOÀI giao dịch (`signup-codes.js:184`, `:350`) — đơn bị huỷ / hoàn giữa lúc kiểm và UPDATE chiếm mã vẫn cho
   claim / nhận điểm. P20b đã chốt giữ nguyên; không có ca thử.
 - Đua thật trên Turso (giao dịch "write" qua HTTP, hai máy): chỉ thử bằng móc tất định trên file libsql cục bộ.
 - Dữ liệu production: SĐT đã trùng do đua cũ, `used_count` NULL, voucher trước 09.08 còn hạn — chưa đếm (Phát hiện 6, 7).
 - App KH (người gọi `/claim` qua `X-Service-Key`) ngoài kho: chưa biết có rẽ nhánh theo status 400 cũ của "mã đã sử dụng" (nay 409) không.
 - `/reset` khi CÙNG SĐT claim lại trong CÙNG GIÂY với lần hoàn tác chồng (getNow chỉ tới giây) — không dựng được ca tất định phân biệt.
+
+## Bước 8 — soát độc lập `/ra-soat` vòng 2 (16.10, agent soát trên HEAD `3da0928`) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+(Code bản vá vòng 1 đúng — 6 lỗi vòng 1 đã sửa trong signup-codes.js, không thấy lỗi hành vi mới. KHÔNG ĐẠT vì bài thử: khoá mới ở /reset
+`AND claimed_at = ? AND claimed_phone = ?` mới canh một nửa, và một trong "15/15 BẮT" là bắt nhờ may — K3.)
+Kiểm lỗi vòng 1: 1, 2 (Z1, Z2) đã sửa :495–502, H3d/H3e đỏ gốc xanh HEAD · Z3 đã sửa :510 COALESCE, H3f canh · 3 đã sửa H4b :563–571 ·
+4 đã sửa NHƯNG chỉ /claim (H6 :573–580) · 5 đã sửa (:218, :369) · 6 mới sửa một nửa (LỖI 4 dưới).
+LỖI TÌM ĐƯỢC:  1. cong_cu/thu_P20.js:501–517 (H3d) — vế `claimed_at = ?` của khoá /reset không ca nào canh: đột biến X1 thay `claimed_at = ?`
+                  bằng `? IS NOT NULL` (chỉ khoá theo SĐT) → 118/0, SỐNG. Luồng bỏ ngỏ chính là mục đích nút hoàn tác ("SĐT có thể claim lại",
+                  Settings.jsx:429): hoàn tác A → CÙNG SĐT claim lại → hoàn tác B chồng. H3d chỉ thử claim lại bằng SĐT KHÁC (P2). — K3
+               2. viec/P20c/dot_bien.py:30 (VS-A3-khoa-chi-gio) bắt nhờ may: H3d chỉ đỏ khi claim đầu và claim lại cùng GIÂY (getNow,
+                  helpers.js:135). Đo 5 lần: cách nhau 14–20 ms; chèn chờ 1,1 s trước claim lại trong bản sao → đột biến SỐNG (118/0, 2/2), code
+                  thật vẫn xanh. ~2 % lần chạy sẽ SỐNG. Sửa: trong móc H3d sau claim(b.ma, P2) `db.run` đặt lại claimed_at = giá trị cũ (giả lập
+                  cùng giây TẤT ĐỊNH); thêm ca claim lại CÙNG SĐT với claimed_at ép khác giá trị cũ để giết X1. — K3 (tất định)
+               3. cong_cu/thu_P20.js:573–580 — H6 chỉ phủ /claim; chỗ gọi baoChiemHong ở /nhan-diem (signup-codes.js:266–267) không ca nào phủ:
+                  đột biến X5 làm /nhan-diem trả 500 khi dòng mã vừa bị xoá → 118/0, SỐNG. — K4 (mỗi chỗ gọi hàm chung là một chỗ vá riêng)
+               4. viec/P20c/ke_hoach.md:79 và :83 còn câu cũ trái code: "ĐẦU giao dịch: DELETE … `AND used_count = 0` … rồi UPDATE gỡ claimed
+                  như cũ" và "Đổi thứ tự trong giao dịch: DELETE → kiểm → UPDATE" không bị gạch; code :495–513 UPDATE trước, DELETE sau,
+                  COALESCE. Bản sửa chỉ gạch một câu, không grep cả file. — K1/K4 (TU-CHAY-6)
+               5. viec/P20c/dot_bien.py:86 (nhẹ) — BẮT = "thoát ≠ 0 + dòng ✗ khớp", không đòi dòng tổng `N đạt · M hỏng`; thu_P20.js sập (thoát 2,
+                  :596) sau khi in dòng ✗ vẫn đếm BẮT. Khung chép từ P20b; AUDIT-3/dot_bien.py:17 có khuôn `HET`. Lần chạy này không ca nào đếm
+                  sai (đối chứng 118/0, mỗi đột biến in đúng dòng ✗). — K3 (TOC-DO-1)
+NGHI NGỜ:      - /reset đổi hành vi với dòng claimed_at có giá trị mà claimed_phone NULL: code mới 409 mãi mãi (`claimed_phone = NULL` không
+                 bao giờ đúng), gốc 200. Màn hình không liệt kê (lọc claimed_phone IS NOT NULL :454, Settings.jsx:425), /claim luôn ghi cả hai
+                 cột (:398). Chưa đếm trên Turso. Khoá được bằng `claimed_phone IS ?`.
+               - Chú thích signup-codes.js:492–494 hứa "lần sau thấy 0 dòng và dừng" — không đúng khi CÙNG SĐT claim lại cùng giây; đã ghi
+                 CHƯA KIỂM ở trang_thai.md nhưng chú thích code chưa nêu giới hạn.
+               - baoChiemHong (:74–81) đọc lại NGOÀI giao dịch sau rollback: /claim thua vì người khác chiếm cùng mã, rồi một lần hoàn tác chen
+                 trước lần đọc lại → báo 400 SDT_DA_NHAN thay 409. Chỉ sai lời báo.
+               - Không index diem_nhan_phone (database.js:1247–1257): NOT EXISTS /nhan-diem quét bảng trong khoá ghi; phép kiểm sớm vốn quét
+                 vậy; bảng nhỏ.
+               - Ngoài phạm vi, có sẵn: voucherRow (:482) và DELETE (:510) so `code = ?` phân biệt hoa thường, orders.js:502 dùng UPPER(); xoá
+                 tay voucher rồi tạo mã tay trùng chữ → nút hoàn tác xoá nhầm mã tay đó.
+               - App KH: /claim "mã đã dùng" 400 → 409 — đã ghi CHƯA KIỂM.
+NGHIỆM THU:    6/6 mục có bằng chứng · mục thiếu: không (A3 có ca, nhưng khoá có lỗ canh ở LỖI 1–2). A1 H1 :411–424 đỏ 3 phép gốc (chạy
+               lại) · A2 H2 đỏ 3 gốc, H2b K5 · A3 H3, H3b–H3f · A4 H4 (409 MA_DA_DUNG, 400 SDT_DA_NHAN ×2, MA_DA_NHAN_DIEM giữ) · A5 H5 [c],
+               CHƯA KIỂM kiemDonCuaMa :184/:350, [b] Phát hiện 5 · A6 tự chạy trên 3da0928: npm test PASS 64 · FAIL 0 · CẢNH BÁO 1 có sẵn;
+               --day-du PASS 68 · FAIL 0 (thu_P20 2,4 s, gia_lap 33,8 s, thu_gia_lap 50,6 s); P20c dot_bien 15/15 (một ca nhờ trùng giây);
+               P20b đối chứng 118/0, 4/4; neo AUDIT-1 D1, AUDIT-2 KB11, M5 khớp đúng số lần (1,1,1,1,1,1,2).
+               Bản sao ngoài kho signup-codes.js 2353fe9: 103 · 15 (H1, H2, H3, H3d, H3e, H4, H6) khớp bang_chung_do v2; HEAD 118 · 0.
+               Đột biến soát: X3 (đảo cờ chiLanDau), X6 (tham số SĐT sai), X7 (bỏ vế xoá voucher) bị bắt; X1, X5 SỐNG; X4 (bỏ phép kiểm sớm
+               used_count > 0 :483) SỐNG nhưng tương đương hành vi, chỉ khác lời báo.
+               K4: grep server/ `claimed_phone = ?|diem_nhan_phone = ?|DELETE FROM pos_discount_codes|used_count > 0` → 7 chỗ signup-codes.js
+               đã xử lý; orders.js:1142 chỉ đọc; discount-codes.js:317/326 Phát hiện 1; :218, :369 Phát hiện 3, 4.
+               K5: H2b, H4b, [E], [F], H3b, H3c, H3f, H5 qua; NOT EXISTS trùng biểu thức phép kiểm sớm (:171, :341) — không chặn thêm dữ liệu cũ.
+               Đơn giản: code gọn (+68/−19, hàm phụ 2 chỗ); phép kiểm sớm used_count > 0 (:482–488) thừa về hành vi, giữ cho lời báo — được.
+CHƯA SOÁT ĐƯỢC: AUDIT-1 D1 (8 tên) và AUDIT-2 KB11 không chạy lại sau vòng sửa 1 (bằng chứng trên c6ca9a3; chỉ kiểm neo còn khớp);
+               Turso production (claimed_phone NULL, SĐT trùng, used_count NULL); đua thật qua HTTP trên Turso; App KH.
+BÀI HỌC:       KHOÁ: khoá nhiều vế (`AND a = ? AND b = ?`) → mỗi vế một ca đỏ TẤT ĐỊNH + một đột biến gỡ ĐÚNG vế đó; vế dựa vào đồng hồ
+               (giây) ép giá trị bằng db.run trong móc, không trông vào chạy nhanh cùng giây (ghi vào K3 "lỗi thất thường"). KHOÁ: dot_bien.py
+               đòi dòng tổng `\d+ đạt · \d+ hỏng` (khuôn AUDIT-3 HET) trước khi đếm BẮT — đưa vào khung chung (P20b, P20c đều thiếu).
+               NGUYÊN TẮC (K4): sửa câu kế hoạch bị chỉ sai → grep CẢ mục tìm câu cùng nghĩa; ca cho một nhánh hàm dùng chung phải có ở MỖI
+               chỗ gọi (H6 thiếu /nhan-diem).
+               Bản sao + đột biến của agent: scratchpad/v2/ (goc, head, t1, dot.py X1–X7), ngoài kho.
+```
+
+## Bước 5–6 (vòng sửa 2, 16.10) — sửa theo soát vòng 2
+- Lỗi 1, 2 (K3 tất định): H3d — móc ÉP claimed_at của lần claim mới = giá trị cũ (giả lập cùng giây, không trông vào tốc độ) → chỉ vế
+  claimed_phone phân biệt; ca mới H3g — CÙNG SĐT claim lại, claimed_at ép khác → chỉ vế claimed_at phân biệt. Đột biến mới: `VS-A3-khoa-chi-sdt`
+  (X1 của soát). `VS-A3-khoa-chi-gio` giờ bắt TẤT ĐỊNH.
+- Nghi ngờ claimed_phone NULL: ca H3h (claimed_at có, claimed_phone NULL → hoàn tác 200 như gốc) ĐỎ trên HEAD `3da0928` (409) → sửa khoá thành
+  `claimed_phone IS ?`; đột biến `VS-A3-sdt-bang` (`IS` → `=`). Chú thích code nêu giới hạn "CÙNG SĐT claim lại trong CÙNG giây".
+- Lỗi 3 (K4): H6 thêm /nhan-diem (dòng mã bị xoá giữa phép kiểm và giao dịch → 404); đột biến `BV-A2-bo-bao-chiem` (chỗ gọi /nhan-diem trả
+  thẳng 400 thay vì qua baoChiemHong).
+- Lỗi 4 (K1/K4): grep CẢ `ke_hoach.md` theo "used_count = 0 | DELETE → | ĐẦU giao dịch | gỡ claimed như cũ | claimed_at = ?" → gạch :79, :83,
+  sửa :86 (`IS ?`), :133 (neo COALESCE), :148 (đề xuất discount-codes dùng COALESCE), thêm ghi chú đầu file: bảng ca / đột biến mục 5, 6 là v1.
+- Lỗi 5 (K3 TOC-DO-1): `dot_bien.py` đòi dòng tổng `\d+ đạt · \d+ hỏng` trước khi đếm BẮT — không có thì in SẬP (khuôn AUDIT-3 HET).
+- Bài thử: GỐC 2353fe9 (bản sao ngoài kho) **107 đạt · 18 hỏng** (thêm H3g ×2, H6 /nhan-diem đỏ; H3h xanh — K5); HEAD `3da0928` trước vòng
+  sửa: 124 · 1 (H3h); sau vá: **125 đạt · 0 hỏng** — `bang_chung_do.txt` v3, `SỐ CA … 125`.
+- `node kiem_tra_truoc_khi_giao.js`: PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+- Nghi ngờ còn lại, KHÔNG sửa: baoChiemHong đọc lại ngoài giao dịch (chỉ có thể sai lời báo khi một lần hoàn tác chen đúng giữa rollback và
+  câu đọc) → CHƯA KIỂM; thiếu index diem_nhan_phone (bảng nhỏ) → Phát hiện 9; `code = ?` phân biệt hoa thường ở /reset → Phát hiện 8.
