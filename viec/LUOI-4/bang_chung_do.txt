@@ -1,0 +1,34 @@
+# LUOI-4 — bằng chứng. Phiếu: 0 dòng code quầy; đỏ chứng minh bằng 7 đột biến AUDIT-4 (## Bài thử đỏ, ## Bài thử cũ sửa).
+
+## 1. TRƯỚC — bài CHƯA có ca LUOI-4 (HEAD 095c3f1 + viec/LUOI-4/dot_bien.py): 6 SỐNG + 1 HỎNG-sập, đối chứng xanh
+$ python3 viec/LUOI-4/dot_bien.py --truoc
+# thoát 1
+LUOI-4 dot_bien: 7 đột biến
+  ✓ đối chứng p26c (cong_cu/thu_P26c.js): thoát 0 · 118 đạt · 0 hỏng (mong 118 đạt · 0 hỏng)
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): thoát 0 · 105 đạt · 0 hỏng (mong 105 đạt · 0 hỏng)
+  SỐNG     VS-AU4-L3-DATRA-LAM-TRON-LEN (mẫu /✗ N1a /)
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG (mẫu /✗ N2a /)
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN (mẫu /✗ B3q /)
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-CHAN-TREN-CA-HOAN (mẫu /✗ N4a /)
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-KHOA-LOAI-BO-KIEU (mẫu /✗ A2o / + /✗ A2p2? /)
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+  SỐNG     BV-AU4-L3-B3P-BO-SAN-0 (mẫu /✗ B3r /)
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+  HỎNG-sập VS-AU4-L3-LOAI-CHAN-BANG (mẫu /✗ A2b /)
+           [thu] bài thử SẬP: ✖ Bài thử sập: Only finite numbers (not Infinity or NaN) can be passed as arguments
+           [thu] ✗ A2b (K5 sau A2a) xin 2 → 200, CT1 đã lấy = 5, tổng giao 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói · CT1 3 · giao 3
+           [thu] ✗ A2c đơn lấy 3 CT1 bị HUỶ → delivered_items CT1 = 0 (CT2 = 2, theo product_code); xin 5 CT1 → 200  — HTTP 200 · CT1 0 · CT2 2 · HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói / HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói · CT1 3
+           [thu] ✗ A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói / HTTP 200 · CT1 4 · khôn
+
+  tổng 7 · BẮT 0 · SỐNG 6 · HỎNG 0 · HỎNG-sập 1 · LẠC 0
