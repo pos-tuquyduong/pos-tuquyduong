@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 34,
-  "cap_nhat": "2026-10-17",
+  "phien_ban_so": 35,
+  "cap_nhat": "2026-10-16",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -198,7 +198,16 @@
     },
     {
       "ma": "P20c",
-      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b; GHI CHU: kiemDonCuaMa chay ngoai giao dich (signup-codes.js:174, :339) — don huy/hoan giua luc kiem va UPDATE; GHI CHU: thong nhat ma loi ma-da-dung (/claim :317, :390, /nhan-diem :253); GHI CHU [a] (soat lan 3, 27.09): /:id/reset (server/routes/signup-codes.js) kiem claimed_at va used_count NGOAI giao dich roi DELETE pos_discount_codes khong co AND used_count = 0 — co the xoa voucher dang dung do; GHI CHU [b]: phep kiem tinh /nhan-diem trong kiem_tra_truoc_khi_giao.js bi lua khi cau chan nam trong chuoi JS hoac sau -- trong SQL (boGhiChu chi bo comment JS); nghi phep /claim cung vay, CHUA pha thu; de xuat THEM phep moi, KHONG noi phep cu; GHI CHU [c]: thu_P20.js chua co ca ma tro toi don da bi xoa (nhanh kiemDonCuaMa tra 404 KHONG_THAY_DON); production co 9 ma nhu vay, da xet 27.09, khong can xu ly du lieu; GHI CHU [d]: /nhan-diem khong xet claimed_at — neu bat ca voucher lan nhan diem thi mot ma bill lay duoc ca hai. CHO CHU QUAN QUYET: y muon hay loi; CHU QUAN CHOT 02.10 [d]: moi ma in tren bill chi cho MOT khuyen mai; voucher hay nhan diem do Cai dat quyet; loai gan vao ma LUC IN, doi cai dat sau khong doi ma da in | PHIEU 17.10: viec/P20c/phieu.md tren nhanh viec/P20c (cho duyet ke hoach; song song AUDIT-4): NOT EXISTS trong UPDATE chiem ma (/claim, /nhan-diem chiLanDau), reset DELETE AND used_count = 0 trong giao dich, ma loi MA_DA_DUNG / SDT_DA_NHAN thong nhat, [c] ca K5 404; [b] chi de xuat; [d] TACH -> P20d",
+      "ten": "Luat moi SDT chi nhan uu dai mot lan kiem ngoai giao dich — /claim (signup-codes.js:329-335) va /nhan-diem khi chiLanDau (:159-171): dua dieu kien NOT EXISTS vao UPDATE trong giao dich + ca thu moc; lam sau P20b; GHI CHU: kiemDonCuaMa chay ngoai giao dich (signup-codes.js:174, :339) — don huy/hoan giua luc kiem va UPDATE; GHI CHU: thong nhat ma loi ma-da-dung (/claim :317, :390, /nhan-diem :253); GHI CHU [a] (soat lan 3, 27.09): /:id/reset (server/routes/signup-codes.js) kiem claimed_at va used_count NGOAI giao dich roi DELETE pos_discount_codes khong co AND used_count = 0 — co the xoa voucher dang dung do; GHI CHU [b]: phep kiem tinh /nhan-diem trong kiem_tra_truoc_khi_giao.js bi lua khi cau chan nam trong chuoi JS hoac sau -- trong SQL (boGhiChu chi bo comment JS); nghi phep /claim cung vay, CHUA pha thu; de xuat THEM phep moi, KHONG noi phep cu; GHI CHU [c]: thu_P20.js chua co ca ma tro toi don da bi xoa (nhanh kiemDonCuaMa tra 404 KHONG_THAY_DON); production co 9 ma nhu vay, da xet 27.09, khong can xu ly du lieu; GHI CHU [d]: /nhan-diem khong xet claimed_at — neu bat ca voucher lan nhan diem thi mot ma bill lay duoc ca hai. CHO CHU QUAN QUYET: y muon hay loi; CHU QUAN CHOT 02.10 [d]: moi ma in tren bill chi cho MOT khuyen mai; voucher hay nhan diem do Cai dat quyet; loai gan vao ma LUC IN, doi cai dat sau khong doi ma da in | PHIEU 17.10: viec/P20c/phieu.md tren nhanh viec/P20c (cho duyet ke hoach; song song AUDIT-4): NOT EXISTS trong UPDATE chiem ma (/claim, /nhan-diem chiLanDau), reset DELETE AND used_count = 0 trong giao dich, ma loi MA_DA_DUNG / SDT_DA_NHAN thong nhat, [c] ca K5 404; [b] chi de xuat; [d] TACH -> P20d | XONG 16.10 (PR #27, d47b81c; HEAD may e380b8c, 6 vong soat - vong 6 chi 1 cau ho so, chat soat DAT: thu_P20 132/0, goc do 22, 21/21 dot bien): NOT EXISTS noi SAU chuoi UPDATE chiem ma (/claim, /nhan-diem chiLanDau), baoChiemHong bao dung ly do, /reset go dung lan claim da doc (claimed_at + claimed_phone IS ?) va chi xoa voucher COALESCE(used_count,0)=0, ma loi MA_DA_DUNG 409 / SDT_DA_NHAN; giu MA_DA_NHAN_DIEM 400. Gioi han: cung SDT claim lai trong cung giay -> /reset DELETE theo voucherRow.id (MA-GIAM-1). 11 phat hien -> MA-GIAM-1 (1,2,4,8,10,11), DOI-SOAT-1 (7). CHUA KIEM: App KH co doc ma 400 cu cua /claim khong (nay 409)",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "P20c",
+      "commit": "d47b81c",
+      "ngay": "2026-10-16"
+    },
+    {
+      "ma": "MA-GIAM-1",
+      "ten": "Ma giam / voucher (P20c phat hien 1,2,4,8,10,11 + AU4-1, AU4-14): DELETE ma giam chot used_count trong cau ghi, /validate qua cong don goc nhu POST /orders, freshCode null -> 400 khong giam, /reset DELETE theo voucherRow.id + khong phan biet hoa thuong + loi bao, /:id/increment-usage quyen, ca ma co khoang trang (AU4-1). PHIEU 16.10: viec/MA-GIAM-1/phieu.md tren nhanh viec/MA-GIAM-1 (cho duyet ke hoach; song song LUOI-4, TU-CHAY-7)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -531,7 +540,43 @@
     },
     {
       "ma": "AUDIT-4",
-      "ten": "Audit dot 4 (sau LUOI-3 gop): chay lai cong cu AUDIT-3 (boc.py, dot_bien.py 21+5, kiem_neo.py, lach.js) + bo dot bien tung viec tren HEAD; 10 NANG-luoi AU3-8..17 phai BAT sau LUOI-3; va 3 loi cong cu AU3-22..24 (boc.py) truoc khi do; ra: phep thu_cong.js nhap nhay tren Replit (TU-CHAY-6 cai lan 1 hong \"Received null\", lan 2 qua), de xuat BAN-HANG-1 (phep tinh chu thich :NNNN, K3 nguong tat dinh so bang, K4 mot vi tu), orders.js don rong tong 0, \"chia luot thu_cong song song\" (TU-CHAY-6 Q5) neu con sat han. Dat = 0 NANG (ca code lan luoi) -> diem dung chuong trinh audit (AUDIT-3 0 NANG-code). CHI KIEM + BAO CAO trong viec/AUDIT-4/ | PHIEU 17.10: viec/AUDIT-4/phieu.md tren nhanh viec/AUDIT-4 (cho duyet ke hoach; song song P20c, khong chung file): A1 va boc.py AU3-22..24; A2 chay lai du (10 AU3-8..17 phai BAT); A3 dot bien doc lap P20b/BAN-HANG-1/LUOI-3; A4 kiem_neo + lach; A5 thu_cong nhap nhay (8 lan); A6 don rong tong 0; dat = 0 NANG -> diem dung",
+      "ten": "Audit dot 4 (sau LUOI-3 gop): chay lai cong cu AUDIT-3 (boc.py, dot_bien.py 21+5, kiem_neo.py, lach.js) + bo dot bien tung viec tren HEAD; 10 NANG-luoi AU3-8..17 phai BAT sau LUOI-3; va 3 loi cong cu AU3-22..24 (boc.py) truoc khi do; ra: phep thu_cong.js nhap nhay tren Replit (TU-CHAY-6 cai lan 1 hong \"Received null\", lan 2 qua), de xuat BAN-HANG-1 (phep tinh chu thich :NNNN, K3 nguong tat dinh so bang, K4 mot vi tu), orders.js don rong tong 0, \"chia luot thu_cong song song\" (TU-CHAY-6 Q5) neu con sat han. Dat = 0 NANG (ca code lan luoi) -> diem dung chuong trinh audit (AUDIT-3 0 NANG-code). CHI KIEM + BAO CAO trong viec/AUDIT-4/ | PHIEU 17.10: viec/AUDIT-4/phieu.md tren nhanh viec/AUDIT-4 (cho duyet ke hoach; song song P20c, khong chung file): A1 va boc.py AU3-22..24; A2 chay lai du (10 AU3-8..17 phai BAT); A3 dot bien doc lap P20b/BAN-HANG-1/LUOI-3; A4 kiem_neo + lach; A5 thu_cong nhap nhay (8 lan); A6 don rong tong 0; dat = 0 NANG -> diem dung | XONG 16.10 (PR #28, ddc42d2; HEAD may 7444310, 3 vong sua, soat vong 4 chi loi cong cu, chat soat DAT): 0 NANG-code, 7 NANG-luoi AU4-1..7 (3 lam tron 1d tienDaTra.js:25/:45/:81, cong P20b ma co khoang trang, tran ma 1 mon ap sang huy/ket thuc goi, khoa loai goi bo kieu SX, san 0 ket thuc goi) + AU4-21 19 SONG cu xep NANG theo Q5 -> LUOI-4 (AU4-2..8), MA-GIAM-1 (AU4-1, AU4-14), LUOI-5 (AU4-21); 10 lo AUDIT-3 da khoa that (10/10 BAT); AU4-12/13 -> TU-CHAY-7; AU4-17..19 loi luat sap boc.py -> khong dua vao khung, de xuat ma thoat 2 = sap (TU-CHAY-8); AUDIT-1 nay 77/79 (luat vá AU3-22). AU4-16 CHU QUAN CHOT 16.10 = A: mua the / goi tich diem theo tien thuc tra luc mua, lay mon tu goi khong tich them - giu code; chua dat diem dung -> AUDIT-5 sau LUOI-4/LUOI-5",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "AUDIT-4",
+      "commit": "ddc42d2",
+      "ngay": "2026-10-16"
+    },
+    {
+      "ma": "LUOI-4",
+      "ten": "Va luoi: bat 6 dot bien NANG-luoi AU4-2..7 cua AUDIT-4 (+ AU4-8 thu_GOI1 A2 khong sap theo ca truoc) - chi them bai thu, 0 dong code quay. PHIEU 16.10: viec/LUOI-4/phieu.md tren nhanh viec/LUOI-4 (cho duyet ke hoach; song song MA-GIAM-1, TU-CHAY-7)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "LUOI-5",
+      "ten": "Va luoi: 19 dot bien SONG cu xep NANG theo Q5 AUDIT-4 (AU4-21): 14 C2F go lenh ghi (kho, goi, ma giam, voucher, diem, chiet khau khach) - moi lenh ghi mot ca doc lai hang sau route; 3 A3L (redeem-bo-han-diem loyalty.js, nhandiem-he-so, goi-bo-kiem-con-lai); KB16 (lop 2 khoa hai lop refunds.js). KB20 di cung P26d. Lam SAU LUOI-4 gop (cung thu_P26c / thu_GOI1). Chi them bai thu",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "AUDIT-5",
+      "ten": "Audit dot 5 (sau LUOI-4 + LUOI-5 + MA-GIAM-1 gop): chay lai cong cu AUDIT-4 (boc.py DA VA AU4-17..19 truoc, dot_bien.py, kiem_neo.py) + bo tung viec tren HEAD; 7 + 19 NANG-luoi phai BAT; dot bien doc lap cho MA-GIAM-1. Dat = 0 NANG -> diem dung chuong trinh audit (AUDIT-3, AUDIT-4 deu 0 NANG-code). CHI KIEM + BAO CAO trong viec/AUDIT-5/",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-7",
+      "ten": "Bo khung 1.7.0: canhGan cho thu_cong (AU4-12: may ban 103 s = 86% han, khong canh bao), don thu muc tam khi bi giet (AU4-13), phep tinh chu thich so dong cung (:NNNN) (BAN-HANG-1), KHUON_LOI <= 100 dong + K3 nguong so bang + K4 mot vi tu + K3 doi chung/luat sap. KHONG: ma thoat 2 = sap (TU-CHAY-8, dung moi thu_*), chia luot thu_cong (TU-CHAY-6 Q5), boc.py vao khung. PHIEU 16.10: viec/TU-CHAY-7/phieu.md tren nhanh viec/TU-CHAY-7 (cho duyet ke hoach; song song LUOI-4, MA-GIAM-1); sau gop chu quan cai khuon_cai.py",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -540,7 +585,7 @@
     },
     {
       "ma": "DOI-SOAT-1",
-      "ten": "Doi soat tien (nguyen tac chu quan 12.10: he thong tien phai doi soat hang ngay / tuan / thang; lam SAU P26c, TRUOC P20b; dung tien -> duyet ke hoach): chay CHINH cac bat bien cua gia lap tren DU LIEU THAT, CHI DOC; man \"Doi soat\" trong POS (xanh/do, chi ro don/khoan lech); ngay: tu chay + o \"tien ket dem duoc\" (quay CHUA co buoc dem ket cuoi ngay); tuan: tong CK so sao ke ngan hang (nguoi, ~5 phut; payOS sau se tu); thang: bao cao tong + kiem ke kho that. Chi BAO, khong tu sua so. Lech do phan mem -> thanh ca thu moi. Truoc khi ghi phieu: thu tung bat bien tren BAN SAO du lieu that (bat bien viet cho du lieu gia co the bao oan voi du lieu cu truoc cac ban va). Luat: tinh nang tien moi phai kem quy tac doi soat tuong ung (CLAUDE.md)",
+      "ten": "Doi soat tien (nguyen tac chu quan 12.10: he thong tien phai doi soat hang ngay / tuan / thang; lam SAU P26c, TRUOC P20b; dung tien -> duyet ke hoach): chay CHINH cac bat bien cua gia lap tren DU LIEU THAT, CHI DOC; man \"Doi soat\" trong POS (xanh/do, chi ro don/khoan lech); ngay: tu chay + o \"tien ket dem duoc\" (quay CHUA co buoc dem ket cuoi ngay); tuan: tong CK so sao ke ngan hang (nguoi, ~5 phut; payOS sau se tu); thang: bao cao tong + kiem ke kho that. Chi BAO, khong tu sua so. Lech do phan mem -> thanh ca thu moi. Truoc khi ghi phieu: thu tung bat bien tren BAN SAO du lieu that (bat bien viet cho du lieu gia co the bao oan voi du lieu cu truoc cac ban va). Luat: tinh nang tien moi phai kem quy tac doi soat tuong ung (CLAUDE.md) | 16.10: + dem SDT co >= 2 dong claimed_phone / diem_nhan_phone tren Turso (dau vet dua cu, P20c phat hien 7); + doi soat diem: don mua the / goi tich diem theo tien thuc tra (AU4-16 chot A)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
