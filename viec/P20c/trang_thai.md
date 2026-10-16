@@ -64,3 +64,18 @@ e6ec483 P20c ke hoach v1: NOT EXISTS noi sau chuoi SQL cu (7 neo o file Cam), re
 | A3 vế `voucherRow &&` | `VS-A3-changes-0-chan` | ✗ H3c hoàn tác khi không còn voucher |
 | A4 /claim mã đã claim | `BV-A4-claim-bo-ma` | ✗ H4 /claim mã đã claim |
 | A4 /claim SĐT đã claim | `BV-A4-claim-bo-ma-sdt` | ✗ H4 /claim bằng SĐT đã claim |
+
+## Bước 6 — kiểm (16.10, trên HEAD `6fec386`)
+- `node kiem_tra_truoc_khi_giao.js` (= `npm test`): 64 phép · qua hết.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: **PASS 68 · FAIL 0 · CẢNH BÁO 1** — cảnh báo "route GET có lệnh ghi (3) — packages.js:194,
+  products.js:57, sync.js:147": ba file việc này không đụng, có từ trước. `thu_P20.js` xanh (1.7 s); `thu_gia_lap.js` xanh (53.4 s) — gồm M2, M5
+  neo `signup-codes.js` vẫn áp được và bị bắt.
+- Đột biến cũ chạy lại (phiếu A6) — không neo nào rữa, không cần neo lại:
+  - `python3 viec/AUDIT-1/dot_bien.py <8 tên D1>`: **D1 BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0** (D1-E-trangthai-dungma, D1-E-danhsach-trang,
+    D1-E-claim-chiem, D1-E-ndiem-chiem, D1-E9-claim-kiem, D1-E9-ndiem-kiem, D1-E9-claim-dung, D1-E9-ndiem-dung); "kho thật không đổi".
+  - `python3 viec/AUDIT-2/dot_bien.py BK-KB11-claim-bo-chiem BK-KB11-nhandiem-bo-chiem`: **B3 BẮT 2 · SỐNG 0**.
+  - `python3 viec/P20b/dot_bien.py`: đối chứng 105 đạt · 0 hỏng; **4/4 BẮT** (BV-A2-bo-tra-signup, VS-A2-chi-chan-don-huy,
+    VS-A2-chan-ca-ma-tay, VS-A2-tra-ca-ma-chua-claim).
+- `node tu_chay/cong.js tinh . 2353fe9^ HEAD viec/P20c`: chỉ `✗ [A19]` (thiếu dòng HEAD ĐÃ KIỂM — bình thường trước bước 11.4).
+- Tự rà: không code chết; `baoChiemHong` dùng ở 2 chỗ (không phải hàm dùng một lần); `signup-codes.js` +41 / −19 dòng (gồm ~17 dòng chú
+  thích) — trong ngân sách 30–50; `thu_P20.js` +134 (phiếu ~80 — vượt vì 8 ca / 30 phép, mỗi ca đua cần móc + 3–4 phép bất biến).
