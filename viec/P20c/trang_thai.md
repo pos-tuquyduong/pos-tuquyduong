@@ -444,7 +444,7 @@ tác, ghi giới hạn; (c) ke_hoach 18 → 20; tự đo lại W3, W4, Z, Z2; th
 - Thêm (cùng cách xử lý b1, ngoài ba mục chủ quán nêu — chỉ bài thử): ca H3j khoá giới hạn "cùng SĐT cùng giây"; dòng CHƯA KIỂM cũ ghi "không
   dựng được ca tất định" là sai → chuyển sang "Giới hạn đã biết".
 - (c) Ghi chú đầu `ke_hoach.md`: ghi đúng số hiện hành **21** đột biến (chủ quán dặn 18 → 20 = số sau vòng sửa 3; vòng này thêm 1). Lời hứa
-  "ghi CHƯA KIỂM" ở `ke_hoach.md:92` ~~~~ **(:93 ở HEAD — số dòng của 5a08938, file sửa cùng commit)** ghi chú đã thực hiện bằng H3i; `:162` **(:164 ở HEAD)** (A5) đã có trong CHƯA KIỂM.
+  "ghi CHƯA KIỂM" ở `ke_hoach.md:92` **(:93 ở HEAD — số dòng của 5a08938, file sửa cùng commit)** ghi chú đã thực hiện bằng H3i; `:162` **(:164 ở HEAD)** (A5) đã có trong CHƯA KIỂM.
 - CHƯA KIỂM App KH: viết lại theo lời chủ quán (dòng đã có từ vòng sửa 1).
 - Bài thử: GỐC 2353fe9 (bản sao ngoài kho) **113 đạt · 22 hỏng** (thêm H3g ±1 giây ×4, H3i ×2 đỏ; H3j xanh — khoá giới hạn); code HEAD **135 đạt
   · 0 hỏng** — `bang_chung_do.txt` v5, `SỐ CA … 135`. `server/` KHÔNG đổi ở vòng này.
