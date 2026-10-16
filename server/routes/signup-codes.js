@@ -496,3 +496,4 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 });
 
 module.exports = router;
+module.exports.kiemDonCuaMa = kiemDonCuaMa; // P20b: POST /orders dùng CÙNG phép kiểm đơn gốc (khuôn wallets.js)
