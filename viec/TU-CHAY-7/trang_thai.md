@@ -253,7 +253,10 @@ BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của
 2. **Lỗi 3, 4** — bảng A4 dòng 51–53 sửa, thêm dòng 54–56; KHUON_LOI khôi phục "`statSync` giữ" và "trong cùng file" (vẫn 100 dòng khổ 126).
 3. **Lỗi 1, 6 — KHÔNG sửa, hỏi chủ quán (Q3)**: hai lỗi dính nhau (cách xử lý tín hiệu của thu_gia_lap quyết định ca DON đo gì). Đây là chỗ phiếu
    chưa chốt (Cấm "không nới hạn" × A2 "bắt SIGINT/SIGTERM"); tôi đã tự quyết ở vòng 0 — sai luật cứng của skill. Dừng ở đây.
-4. Nghi ngờ E15 đếm giờ dạng `7:00-22:00`: đúng — chỉ CẢNH BÁO; ghi Phát hiện. Tên VS-…-QUEN-EXIT: giữ (đổi tên = đổi bảng A17, không thêm giá trị).
+4. Kiểm sau vòng sửa 3: 8 đột biến (2 mới + 5 chữ + KHONG-DUNG-CON) 8/8 bị bắt, đối chứng thu_cong / thu_gia_lap (149) / kiem_chu xanh; `--day-du`
+   thoát 0 · PASS 68 · FAIL 0 · CẢNH BÁO 2; thu_cong 95,5 s trong --day-du, 96 s chạy riêng (337 phép) = ĐÚNG ngưỡng cảnh báo 80 % — lần sau
+   máy bận là kêu (đúng thiết kế A1; chia lượt thu_cong ở Phát hiện nay là việc cần làm sớm).
+5. Nghi ngờ E15 đếm giờ dạng `7:00-22:00`: đúng — chỉ CẢNH BÁO; ghi Phát hiện. Tên VS-…-QUEN-EXIT: giữ (đổi tên = đổi bảng A17, không thêm giá trị).
 
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.

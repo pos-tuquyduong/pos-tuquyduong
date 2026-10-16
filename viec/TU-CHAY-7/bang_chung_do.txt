@@ -25,9 +25,12 @@ Ghi: ca "DON chạy hết (--chi-du-lieu-tay)" XANH trên gốc — đúng ý: c
 Phép "con cháu còn sống" đã BỎ ở vòng sửa 1 (xanh cả trên gốc — không phải bằng chứng; đỏ oan khi giết lúc chưa có con). Vế "dừng con": CHƯA KIỂM.
 
 SỐ CA cong_cu/thu_TOCDO1.js: 54
-SỐ CA cong_cu/thu_gia_lap.js: 148
-SỐ CA tu_chay/thu_cong.js: 336
+SỐ CA cong_cu/thu_gia_lap.js: 149
+SỐ CA tu_chay/thu_cong.js: 337
 
 Trên code đã vá (vòng sửa 2): thu_cong 336 phép · 0 chỗ hỏng (92,9 s chạy riêng); thu_gia_lap 148 đạt · 0 hỏng (DON đóng sau 2,3–2,4 s); thu_TOCDO1 54 đạt · 0 hỏng.
 Cổng A11 chạy bài cong_cu/ bản HEAD trên gốc: thu_gia_lap HEAD (đã có vá DON) vẫn ĐỎ nhờ C3f (kiem_tra gốc không bật cờ thu_cong);
 thu_TOCDO1 ĐỎ ở C1, D0. tu_chay/thu_cong.js không thuộc thu_muc_bai_thu (cong_cu/) — bằng chứng ở đây.
+Vòng sửa 3: mỗi bài thêm 1 phép tĩnh "chế độ con không vào bằng biến môi trường *_CON" → thu_cong 337 phép · 0 (96 s chạy riêng), thu_gia_lap
+149 đạt · 0. Hai phép này XANH trên bản gốc dựng (hạ tầng thử giữ cờ argv) — bằng chứng là đột biến VS-TUCHAY7-CON-QUA-ENV / VS-TUCHAY7-GL-CON-QUA-ENV
+(đưa đúng cơ chế biến môi trường của vòng 0–1 trở lại → đỏ). Các ca đỏ trên gốc ở trên không đổi.
