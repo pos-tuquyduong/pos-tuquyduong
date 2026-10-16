@@ -104,3 +104,40 @@ Chi tiết nguyên văn: `bang_chung_do.txt`. Ca khác cùng đỏ (A2m, M4b) l�
   BAN-HANG-1 7/7 · LUOI-2 7/7 (`✓ kho thật không đổi`) — BẰNG nền; danh sách 14 "không áp được" giống hệt (diff rỗng).
 - `node tu_chay/cong.js tinh . 8303c1b^ HEAD viec/LUOI-3`: chỉ `✗ [A19]` (chưa ghi HEAD ĐÃ KIỂM — bình thường trước 11.4).
 - Số dòng: `thu_P26c.js` +61, `thu_GOI1.js` +29, `viec/LUOI-3/dot_bien.py` 65 → 155, trong khung 150–250; 0 dòng code quầy.
+
+## Bước 8 — /ra-soat vòng 1 (agent độc lập, trên HEAD 4dd17a6) — báo cáo nguyên văn
+```
+ĐẠT. Các lỗi dưới đây đều nhỏ, không làm thiếu mục nghiệm thu nào. Nên sửa lỗi 1 trước khi gộp, việc sửa không đụng code quầy.
+
+Tự chạy lại trên HEAD 4dd17a6: thu_P26c 118/0, thu_GOI1 105/0; dot_bien.py đối chứng xanh, 10 BẮT, thoát 0; npm test PASS 64 ·
+FAIL 0 · CẢNH BÁO 1; --day-du PASS 68 · FAIL 0 · CẢNH BÁO 1; N11 P26c 89/93 · GOI-1 40/49 · GOI-2 59/59 · SO-LUONG-1 16/17 ·
+BAN-HANG-1 7/7, 14 "không áp được" đúng tên; script nháp in đủ dòng ✗: M4a 510000 / 486000, B3p {"tong":1215000} + 409
+GOI_HOAN_DOI_SO, M3a "Tiền đền tối đa: 19,000đ".
+
+LỖI TÌM ĐƯỢC:
+1. viec/LUOI-3/dot_bien.py:53, :65 — gõ sai tên đột biến thì không chạy gì mà vẫn xanh ("tổng 0 · BẮT 0 …", thoát 0) — K3.
+   Sửa: if not chon or any(a not in CAP for a in sys.argv[1:]): sys.exit(2).
+2. trang_thai.md:36 ↔ ke_hoach.md:113 — thời gian chạy 10 đột biến trỏ vòng, không ghi số đo — K1.
+3. dot_bien.py:43 cắt dòng ✗ ở 150 ký tự → bang_chung_do.txt không chứa số lỗi thật (B3p, M3a, M4a, A2n) — K1.
+4. ke_hoach.md:22 dẫn damages.js:171 (thật :172); ke_hoach.md:17 dẫn GOI_THE_KHONG_DEN :175 (thật :176) — K1 nhỏ.
+5. thu_GOI1.js:701, :705 — B3p ghi đền ngày 2026-10-01 nhưng đơn mua tạo giờ hiện tại → đền trước khi mua — K1 nhỏ.
+
+NGHI NGỜ:
+- Mẫu ✗ M1[ab] / ✗ M2[ab] nhận một trong hai ca — M1b mất sức bắt vẫn báo BẮT nhờ M1a; muốn khoá cả hai vế cần hai mẫu.
+- Lập luận "qua API trần kết thúc gói không chặn": không thấy phản ví dụ (mã 1 món), chưa chứng minh mọi tổ hợp.
+- M3 phụ thuộc GIAM1MON / nhóm 77 của [B1] — dời B1 thì M3a ĐỎ (kiểm tổng 55.000), hướng hỏng an toàn.
+
+K3 ca thêm, kiểm số tiền thật, biên trên/dưới đủ, chấm sập = HỎNG đúng; K4 0 chỗ sót (tienDaTraTheoDong 3 chỗ gọi, soTienHoan 2,
+vuotTheoLoai 2, / dong.quantity có B3d); K5 không phép chặn mới, ca không ảnh hưởng ca sau; đường tiền / P1 không đụng server, client.
+Đơn giản: dot_bien.py:33–47 viết lại phần chấm của AUDIT-3 (có thể gọi A.chay1, mất phần in mọi ✗); tên ca B3p ~250 ký tự → rút gọn.
+
+NGHIỆM THU: 12/12 mục có bằng chứng · mục thiếu: không có.
+CHƯA SOÁT ĐƯỢC: bộ LUOI-2 (7 A3L) không chạy lại; trạng thái TRƯỚC (89172f3) không tự chạy lại; lịch sử "trước P26c trần đền
+theo giá gốc" (kho nông); thời gian npm test đo khi máy chạy song song.
+BÀI HỌC:
+- KHOÁ: mọi dot_bien.py nhận danh sách tên phải thoát ≠ 0 khi argv có tên lạ / chọn 0 đột biến (phép cổng tu_chay: chạy
+  <dot_bien.py> __TEN_KHONG_CO__ phải thoát ≠ 0).
+- NGUYÊN TẮC (K3): "chạy rỗng ≠ xanh" — bộ chấm phải có ca đầu vào rỗng / gõ sai, và ca đó đỏ.
+- NGUYÊN TẮC (K1): file bằng chứng chứa nguyên văn số liệu bảng hồ sơ trích; không cắt dòng lỗi; không để hai hồ sơ trỏ vòng.
+```
+(Báo cáo gốc dài hơn ở phần trả lời từng mục; trên đây giữ nguyên mọi lỗi, nghi ngờ, nghiệm thu, chưa soát, bài học.)
