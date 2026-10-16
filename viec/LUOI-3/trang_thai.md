@@ -208,9 +208,9 @@ Dọn: chưa thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` có phé
 ## Báo cáo 7 mục
 ```
 VIỆC:        LUOI-3 — Vá lưới: bắt 10 đột biến NẶNG-lưới của AUDIT-3 (AU3-8…17), chỉ thêm bài thử
-ĐÃ SỬA:      cong_cu/thu_P26c.js:723–782 — khối [M]: M1a/M1b ship + mã 10 % (N1), M2a/M2b 2 dòng có flash (N2), M3a flash + mã 1 món (N3),
+ĐÃ SỬA:      cong_cu/thu_P26c.js:723–783 — khối [M]: M1a/M1b ship + mã 10 % (N1), M2a/M2b 2 dòng có flash (N2), M3a flash + mã 1 món (N3),
              M4a/M4b một dòng 2 gói có giảm (N8–N10);
-             cong_cu/thu_GOI1.js:293–308 — A2l/A2m/A2n (N4, N5); :694–710 — B3p dữ liệu đền trước P26c (N6, N7);
+             cong_cu/thu_GOI1.js:294–307 — A2l/A2m/A2n (N4, N5); :695–710 — B3p dữ liệu đền trước P26c (N6, N7);
              viec/LUOI-3/dot_bien.py — 10 đột biến (neo đọc từ viec/AUDIT-3/), mẫu đúng tên ca, tên lạ thoát 2. 0 dòng server/, client/.
 BÀI THỬ:     chạy trên bản chưa thêm ca (89172f3) → 10 đột biến SỐNG (thu_P26c 111/0, thu_GOI1 101/0); sau khi thêm ca (99b2fdb) → BẮT 10/10,
              mỗi cái đỏ đúng ca mang tên (N1, N2 đỏ cả hai vế); code gốc xanh: P26c 118/0, GOI1 105/0 — bang_chung_do.txt
