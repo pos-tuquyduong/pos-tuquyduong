@@ -903,7 +903,7 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 ### TU-CHAY-7 (16.10.2026, tu-chay 1.7.0)
 
 - **A1** bộ kiểm chạy `thu_cong.js` với cờ `canhGan` (hạn 120 s giữ nguyên): xanh mà quá 80 % hạn → CẢNH BÁO nêu số giây. Đo chạy
-  riêng 88,9–94 s (74–78 %, số đo ghi ở viec/TU-CHAY-7/trang_thai.md) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
+  riêng 88,9–94,6 s (74–79 %, số đo ghi ở viec/TU-CHAY-7/trang_thai.md) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
   hàm `chayBaiThat` THẬT trên bài giả 85 % hạn giả; `thu_gia_lap.js` C3f khoá tập ba bài bật cờ.
 - **A2** thư mục tạm khi bị ngắt. `thu_gia_lap.js` (bất đồng bộ): `process.on('exit')` dọn TAM, SIGINT/SIGTERM → dừng giả lập con
   (SIGTERM, 10 s rồi SIGKILL) rồi thoát 130 — không dừng con thì con ghi lại vào TAM sau khi dọn (đo 2/3 lần sót). `thu_cong.js` (đồng

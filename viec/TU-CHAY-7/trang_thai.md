@@ -198,7 +198,11 @@ BÀI HỌC: KHOÁ — ca "chạy N giây rồi giết" trong bài đồng bộ p
    "THU_CONG_CON lọt") và gộp GOI-2 vào gạch Chặn K7. Vẫn 100 dòng ở khổ 126.
 5. **Lỗi 6** — ca DON đòi "đóng < 9 s sau tín hiệu": đo bản vá 2 252 / 2 435 ms; bỏ bước dừng con thì handler chờ đủ 10 s (setTimeout) → đỏ TẤT
    ĐỊNH. Thêm BV-TUCHAY7-DON-GL-KHONG-DUNG-CON, VS-TUCHAY7-DON-GL-DUNG-MOT-CON. NGAT và CON.add ở chayDon: vẫn CHƯA KIỂM (ghi ở bảng đột biến).
-6. Nghi ngờ os.putenv: đúng — chỉ an toàn vì dot_bien chạy tuần tự; ghi ở đây, không song song hoá.
+6. Kiểm sau vòng sửa 2: `python3 viec/TU-CHAY-7/dot_bien.py` → 25 bị bắt · 0 KHÔNG bị bắt (trên 25), đối chứng 6 bài xanh; chạy tay
+   BV-TUCHAY7-DON-GL-KHONG-DUNG-CON: đóng sau 10 610 / 10 768 ms (đỏ đúng lý do). `--day-du`: thoát 0 · PASS 68 · FAIL 0 · CẢNH BÁO 2 (GET-ghi
+   có sẵn + khớp byte chờ cài); thu_cong 94,6 s (79 %, sát 96 s), giả lập 33,9 s, thu_gia_lap 61,4 s. THIET_KE → "88,9–94,6 s (74–79 %)"
+   (mục 3 trên ghi 94 s là trước lần đo này). 0 thư mục tạm mới (còn /tmp/thu_gl_p24O0w cũ chờ chủ quán dọn).
+7. Nghi ngờ os.putenv: đúng — chỉ an toàn vì dot_bien chạy tuần tự; ghi ở đây, không song song hoá.
 
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.
@@ -234,8 +238,8 @@ BÀI HỌC: KHOÁ — ca "chạy N giây rồi giết" trong bài đồng bộ p
 - (TU-CHAY-7) Neo rữa do đổi chữ lời gọi thu_cong: `viec/HOC-2b/dot_bien.py` VS-C3-bat-qua-bien, `viec/TOC-DO-1/dot_bien.py` dòng 31 — hồ sơ
   đã đóng; nếu cần chạy lại hai bộ đó thì sửa neo sang tiền tố `chayBaiThat('tu_chay/thu_cong.js'`.
 - (TU-CHAY-7) A3 đếm 3 dòng trong `cong_cu/thu_P26c.js` (việc song song LUOI-4) — LUOI-4 dọn thì bộ kiểm nhắc hạ `NGUONG_DONG_CUNG`.
-- (TU-CHAY-7) `thu_gia_lap.js` thêm ~12 s (58,9–62,6 s ≈ 49–52 % hạn); chia lượt thu_cong (88,9–94 s ≈ 74–78 % qua các lần đo) — việc sau, theo chủ quán chốt.
-- thu_cong.js 89,5 s chạy riêng ở GỐC (75 % hạn), 88,9–94 s sau vá; máy bận nhẹ là vượt 80 % → cảnh báo A1 sẽ hiện thường. Chia lượt thu_cong (TU-CHAY-6 Q5) nên vào
+- (TU-CHAY-7) `thu_gia_lap.js` thêm ~12 s (58,9–62,6 s ≈ 49–52 % hạn); chia lượt thu_cong (88,9–94,6 s ≈ 74–79 % qua các lần đo) — việc sau, theo chủ quán chốt.
+- thu_cong.js 89,5 s chạy riêng ở GỐC (75 % hạn), 88,9–94,6 s sau vá; máy bận nhẹ là vượt 80 % → cảnh báo A1 sẽ hiện thường. Chia lượt thu_cong (TU-CHAY-6 Q5) nên vào
   việc sau — KHÔNG làm ở việc này (phiếu: Ngân sách).
 - Cùng khuôn "TAM chỉ dọn ở cuối": `cong_cu/thu_TOCDO1.js:17/:189`, `tu_chay/thu_nguoi_gac.js:1126` — ngoài nghiệm thu A2.
 - `thu_gia_lap.js` bị giết thì giả lập con đang chạy thành mồ côi (tự sập khi TMPDIR mất) — ngoài nghiệm thu.
