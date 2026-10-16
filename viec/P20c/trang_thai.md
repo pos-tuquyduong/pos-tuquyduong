@@ -255,3 +255,9 @@ BÀI HỌC:       KHOÁ: khoá nhiều vế (`AND a = ? AND b = ?`) → mỗi v�
 - `node kiem_tra_truoc_khi_giao.js`: PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
 - Nghi ngờ còn lại, KHÔNG sửa: baoChiemHong đọc lại ngoài giao dịch (chỉ có thể sai lời báo khi một lần hoàn tác chen đúng giữa rollback và
   câu đọc) → CHƯA KIỂM; thiếu index diem_nhan_phone (bảng nhỏ) → Phát hiện 9; `code = ?` phân biệt hoa thường ở /reset → Phát hiện 8.
+
+## Bước 6 (sau vòng sửa 2, trên HEAD `8353ce1`)
+- `python3 viec/P20c/dot_bien.py`: đối chứng 125 đạt · 0 hỏng; **18/18 BẮT** (có phép dòng tổng — không SẬP nào).
+- `node kiem_tra_truoc_khi_giao.js --day-du`: **PASS 68 · FAIL 0 · CẢNH BÁO 1** (có sẵn); thu_P20 3.1 s, thu_gia_lap 50.5 s.
+- Đột biến cũ chạy lại trên HEAD này: AUDIT-1 **D1 BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0** ("kho thật không đổi"); AUDIT-2 **B3 BẮT 2 · SỐNG 0**;
+  P20b đối chứng 125/0, **4/4 BẮT**.
