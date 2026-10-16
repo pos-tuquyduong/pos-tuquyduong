@@ -19,10 +19,11 @@ CAY = ['cong_cu', 'server']   # + mọi FILE trực tiếp trong tu_chay/
 KIEM_CHU = r"""
 const fs = require('fs'), p = require('path'), b = process.argv[1];
 const kl = fs.readFileSync(p.join(b, 'KHUON_LOI.md'), 'utf8'), tk = fs.readFileSync(p.join(b, 'tu_chay/THIET_KE.md'), 'utf8');
+const kc = kl.replace(/\s+/g, ' ');   // câu dài bị gói xuống dòng (khổ 126) — so chữ trên bản gộp khoảng trắng
 const ca = [['KHUON_LOI ≤ 100 dòng', kl.replace(/\n$/, '').split('\n').length <= 100],
-  ['KHUON_LOI K3 ngưỡng hằng số tất định so bằng', kl.includes('Ngưỡng về hằng số TẤT ĐỊNH thì so bằng, không so một chiều')],
-  ['KHUON_LOI K4 một vị từ', kl.includes('MỘT vị từ cho cả "có gì để làm" và "làm"')],
-  ['KHUON_LOI K3 bộ đột biến từng tên + đối chứng + luật sập, không dò chuỗi', /chạy được TỪNG TÊN, có ĐỐI CHỨNG[^]*luật sập rõ[^]*không dò chuỗi/.test(kl)],
+  ['KHUON_LOI K3 ngưỡng hằng số tất định so bằng', kc.includes('Ngưỡng về hằng số TẤT ĐỊNH thì so bằng, không so một chiều')],
+  ['KHUON_LOI K4 một vị từ', kc.includes('MỘT vị từ cho cả "có gì để làm" và "làm"')],
+  ['KHUON_LOI K3 bộ đột biến từng tên + đối chứng + luật sập, không dò chuỗi', /chạy được TỪNG TÊN, có ĐỐI CHỨNG[^]*luật sập rõ[^]*không dò chuỗi/.test(kc)],
   ['THIET_KE có mục TU-CHAY-7 A1–A3', /### TU-CHAY-7 \(16\.10\.2026, tu-chay 1\.7\.0\)[^]*\*\*A1\*\*[^]*\*\*A2\*\*[^]*\*\*A3 phép tĩnh E15\*\*/.test(tk)]];
 for (const [t, d] of ca) if (!d) console.log('  ✗ ' + t);
 const h = ca.filter(([, d]) => !d).length;
@@ -44,7 +45,7 @@ KL = 'KHUON_LOI.md'
 GOI = "chayBaiThat('tu_chay/thu_cong.js', undefined, 120000, true)"
 MOC = "    canhBao(`chú thích trỏ số dòng cứng ≤ ${NGUONG_DONG_CUNG}`"
 DON_PID = ("for (const d of fs.readdirSync(os.tmpdir())) {\n  const pid = +(/^thu_cong_(\\d+)_/.exec(d) || [])[1];\n  if (!pid) continue;\n"
-           "  try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); }\n}\n")
+           "  try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch {} }\n}\n")
 A2C = r'✗ TU-CHAY-7 A2 con het'
 
 # (tên, file, [(chuỗi gốc, chuỗi thay, số lần khớp)], [bài], regex dòng phải thấy)
@@ -54,9 +55,12 @@ DOT_BIEN = [
   ('VS-TUCHAY7-CANH-FALSE', KIEM, [(GOI, "chayBaiThat('tu_chay/thu_cong.js', undefined, 120000, false)", 1)], ['thu_TOCDO1'], r'✗ C1 '),
   ('VS-TUCHAY7-HAN-NOI', KIEM, [(GOI, "chayBaiThat('tu_chay/thu_cong.js', undefined, 150000, true)", 1)], ['thu_TOCDO1'], r'✗ C2 '),
   # ── A2 thu_cong.js (Q2a): exit + pid ──
-  ('BV-TUCHAY7-DON-EXIT-THUCONG', TC, [("process.on('exit', () => fs.rmSync(TAM, { recursive: true, force: true }));\n", '', 1)], ['thu_cong'], A2C),
+  ('BV-TUCHAY7-DON-EXIT-THUCONG', TC, [("process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true }); } catch {} });\n", '', 1)], ['thu_cong'], A2C),
   ('BV-TUCHAY7-DON-PID-CHET', TC, [(DON_PID, '', 1)], ['thu_cong'], A2C),
-  ('VS-TUCHAY7-DON-CA-PID-SONG', TC, [("try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') fs.rmSync(", "{ fs.rmSync(", 1)], ['thu_cong'], A2C),
+  ('VS-TUCHAY7-DON-CA-PID-SONG', TC, [("try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try {", "{ try {", 1)], ['thu_cong'], A2C),
+  # soát vòng 1 lỗi 3: chế độ con nhận biến không kèm pid cha (đúng bản trước vòng sửa) → THU_CONG_CON lọt từ shell làm bài thoát 0 sớm
+  ('VS-TUCHAY7-CON-KHONG-KIEM-CHA', TC, [("if (CHE_CON && +CHE_CON[2] === process.ppid) {", "if (process.env.THU_CONG_CON) {", 1)], ['thu_cong'],
+   r'✗ TU-CHAY-7 A2 THU_CONG_CON lạc'),
   ('VS-TUCHAY7-DON-TAM-KHONG-PID', TC, [("`thu_cong_${process.pid}_`", "'thu_cong_'", 1)], ['thu_cong'], A2C),
   # ── A2 thu_gia_lap.js: exit + SIGINT/SIGTERM ──
   ('BV-TUCHAY7-DON-GL-TINHIEU', GL, [("for (const t of ['SIGINT', 'SIGTERM']) {\n  process.on(t, () => {", "for (const t of []) {\n  process.on(t, () => {", 1)],
@@ -75,8 +79,8 @@ DOT_BIEN = [
   ('VS-TUCHAY7-DONG-CUNG-VUNG', KIEM, [("|cong_cu\\/thu_[^/]+\\.js|", "|cong_cu\\/.+\\.js|", 1)], ['thu_TOCDO1'], r'✗ D8 '),
   ('VS-TUCHAY7-DONG-CUNG-CA-DONG', KIEM, [("const m = /\\/[/*](.*)$|^\\s*\\*(.*)$/.exec(d);", "const m = /(.*)/.exec(d);", 1)], ['thu_TOCDO1'], r'✗ D4 '),
   # ── A4 KHUON_LOI.md (chữ) ──
-  ('BV-TUCHAY7-KHUONLOI-SO-BANG', KL, [("Ngưỡng về hằng số TẤT ĐỊNH thì so bằng, không so một chiều (BAN-HANG-1). ", '', 1)], ['kiem_chu'], r'✗ KHUON_LOI K3 ngưỡng'),
-  ('BV-TUCHAY7-KHUONLOI-VI-TU', KL, [('- **Chặn:** MỘT vị từ cho cả "có gì để làm" và "làm" — hai biểu thức cho cùng một câu hỏi sẽ lệch nhau (BAN-HANG-1).\n', '', 1)],
+  ('BV-TUCHAY7-KHUONLOI-SO-BANG', KL, [("hằng số TẤT ĐỊNH thì so bằng, không so một chiều. ", '', 1)], ['kiem_chu'], r'✗ KHUON_LOI K3 ngưỡng'),
+  ('BV-TUCHAY7-KHUONLOI-VI-TU', KL, [('MỘT vị từ cho cả "có gì để làm" và "làm"', 'một hàm', 1)],
    ['kiem_chu'], r'✗ KHUON_LOI K4 một vị từ'),
   ('BV-TUCHAY7-KHUONLOI-TUNG-TEN', KL, [("chạy được TỪNG TÊN, có ĐỐI CHỨNG", "có ĐỐI CHỨNG", 1)], ['kiem_chu'], r'✗ KHUON_LOI K3 bộ đột biến'),
   ('BV-TUCHAY7-KHUONLOI-101-DONG', KL, [("## K2 · ", "\n## K2 · ", 1)], ['kiem_chu'], r'✗ KHUON_LOI ≤ 100 dòng'),
@@ -108,6 +112,10 @@ def ban_sao():  # chép THẬT vào thư mục tạm, kiểm realpath
 def chay_bai(ten, b):
   lenh, tong, han = BAI[ten]
   try:
+    # TMPDIR trong bản sao: đột biến gỡ phần dọn (VS-…-QUEN-EXIT) làm sót thư mục tạm — sót trong bản sao thì rmtree xoá cùng (lần chạy 1
+    # sót /tmp/thu_gl_p24O0w vì bài dùng /tmp chung). putenv: tiến trình con (env mặc định) thừa hưởng.
+    os.makedirs(os.path.join(b, 'tmp'), exist_ok=True)
+    os.putenv('TMPDIR', os.path.join(b, 'tmp'))
     r = subprocess.run(lenh(b), cwd=GOC, capture_output=True, text=True, timeout=han)
     ma, ra = r.returncode, r.stdout + r.stderr
   except subprocess.TimeoutExpired as e:
@@ -144,7 +152,7 @@ def chay1(db):
       ma, ra, co_tong = chay_bai(b, tam)
       dong = ra.splitlines()
       trung = [l.strip() for l in dong if re.search(bat, l)]
-      nem = [l.strip() for l in dong if re.search(r'\bsập: |\bném: ', l)]  # dạng "<bài> sập: " / "khối ném: " — không khớp chữ trong TÊN ca
+      nem = [l.strip() for l in dong if re.search(r'\bsập: |\bném: |✗ bài thử sập\b', l)]  # "<bài> sập: " / "khối ném: " / thu_gia_lap "✗ bài thử sập" — tạm, tới TU-CHAY-8 (mã thoát 2)
       if nem: return ten, False, f'{b}: bài thử SẬP/NÉM (không phải đột biến bị bắt): ' + nem[0][:140]
       if not co_tong: return ten, False, f'{b}: bài không in dòng tổng (thoát {ma}) ≠ bắt: ' + (dong or ['(không in gì)'])[-1][:120]
       if ma == 0 or not trung:
