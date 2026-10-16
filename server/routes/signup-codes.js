@@ -479,7 +479,7 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
     // An toàn: không hoàn tác nếu voucher đã THẬT SỰ được dùng trong 1 đơn hàng (used_count > 0)
     // — tránh xoá mất dấu vết 1 giao dịch thật đã xảy ra chỉ vì bấm nhầm nút hoàn tác.
-    const voucherRow = await queryOne('SELECT id, used_count FROM pos_discount_codes WHERE code = ?', [signupRow.code]);
+    const voucherRow = await queryOne('SELECT id, used_count FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [signupRow.code]);
     if (voucherRow && voucherRow.used_count > 0) {
       return res.status(400).json({
         success: false,
@@ -492,7 +492,8 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
       // P20c: gỡ ĐÚNG lần claim đã đọc ở trên (cùng claimed_at VÀ claimed_phone — getNow() chỉ tới giây, một mình
       // claimed_at không phân biệt được hai lần claim trong cùng giây; `IS ?` để dòng claimed_phone NULL vẫn khớp). Hai lần
       // hoàn tác chồng nhau, hoặc hoàn tác rồi khách claim lại xen giữa → lần sau thấy 0 dòng và dừng, không gỡ claim / xoá
-      // voucher của lần claim mới. Giới hạn: CÙNG SĐT claim lại trong CÙNG giây thì không phân biệt được.
+      // voucher của lần claim mới. CÙNG SĐT claim lại trong CÙNG giây thì câu này không phân biệt được — câu xoá voucher theo id
+      // bên dưới chặn (MA-GIAM-1).
       const go = await tx.run(
         'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?',
         [signupRow.id, signupRow.claimed_at, signupRow.claimed_phone]
@@ -507,8 +508,11 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
       // P20c: chỉ xoá voucher CHƯA dùng — phép kiểm ở trên nằm NGOÀI giao dịch, voucher có thể vừa được dùng ở
       // POST /orders. COALESCE: NULL tính như 0 — như phép kiểm `used_count > 0` ở trên (NULL qua phép đó). Có voucher mà không
       // xoá được → dừng. Không có voucher CÙNG MÃ (xoá tay; claim trước 09.08 phát voucher mã khác — không đụng tới)
-      // → hoàn tác như cũ.
-      const xoa = await tx.run('DELETE FROM pos_discount_codes WHERE code = ? AND COALESCE(used_count, 0) = 0', [signupRow.code]);
+      // → bỏ bước xoá, hoàn tác như cũ. MA-GIAM-1: xoá theo ID voucher đọc ở trên, không theo mã — voucher cùng chữ của lần claim
+      // khác (cùng giây) hoặc chen vào giữa chừng không bị xoá nhầm.
+      const xoa = voucherRow
+        ? await tx.run('DELETE FROM pos_discount_codes WHERE id = ? AND COALESCE(used_count, 0) = 0', [voucherRow.id])
+        : { changes: 0 };
       if (voucherRow && xoa.changes === 0) {
         await tx.rollback();
         return res.status(400).json({ success: false, error: 'Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.' });
@@ -519,7 +523,8 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
       throw txErr;
     }
 
-    res.json({ success: true, message: `Đã hoàn tác — SĐT ${signupRow.claimed_phone} có thể claim lại, voucher cũ đã xoá` });
+    const ai = signupRow.claimed_phone ? `SĐT ${signupRow.claimed_phone}` : 'mã này';
+    res.json({ success: true, message: `Đã hoàn tác — ${ai} có thể claim lại${voucherRow ? ', voucher cũ đã xoá' : ''}` });
   } catch (err) {
     console.error('Reset signup code error:', err.message);
     res.status(500).json({ success: false, error: err.message });
