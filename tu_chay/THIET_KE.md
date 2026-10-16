@@ -900,6 +900,21 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - A5 đo riêng: `thu_nguoi_gac.js` ≈ 6 s, `thu_cong_cu.js` ≈ 3 s → giữ chạy mỗi commit. Chính PR TU-CHAY-6 chấm bằng luật main (1.5.0);
   A8 và cảnh báo "khớp từng byte" đỏ tới khi chủ quán cài bằng `cai_dat.sh`.
 
+### TU-CHAY-7 (16.10.2026, tu-chay 1.7.0)
+
+- **A1** bộ kiểm chạy `thu_cong.js` với cờ `canhGan` (hạn 120 s giữ nguyên): xanh mà quá 80 % hạn → CẢNH BÁO nêu số giây. Đo chạy
+  riêng 88,9–89,5 s (75 %) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
+  hàm `chayBaiThat` THẬT trên bài giả 85 % hạn giả; `thu_gia_lap.js` C3f khoá tập ba bài bật cờ.
+- **A2** thư mục tạm khi bị ngắt. `thu_gia_lap.js` (bất đồng bộ): `process.on('exit')` dọn TAM, SIGINT/SIGTERM → dừng giả lập con
+  (SIGTERM, 10 s rồi SIGKILL) rồi thoát 130 — không dừng con thì con ghi lại vào TAM sau khi dọn (đo 2/3 lần sót). `thu_cong.js` (đồng
+  bộ liền một mạch): hàm nghe tín hiệu không chạy kịp và còn gỡ chết-ngay mặc định (= nới hạn `spawnSync`) → chỉ `exit` (cả khi ném),
+  TAM đặt `thu_cong_<pid>_`, đầu lần chạy dọn thư mục của pid ĐÃ CHẾT (chủ quán chốt Q2a). Bài thử: mỗi bài tự chạy chính nó làm con
+  (cờ env chặn đệ quy, TMPDIR riêng).
+- **A3 phép tĩnh E15** chú thích trỏ số dòng cứng (dạng ngoặc-hai-chấm-số và khoảng số sau hai chấm) trong `server/**`, `client/src/**`,
+  `cong_cu/thu_*.js`, `tu_chay/*.js`: bánh cóc theo DÒNG `NGUONG_DONG_CUNG` (4 lúc đặt), mọc → CẢNH BÁO liệt kê `file:dòng`, giảm → nhắc
+  hạ; không FAIL. Bài thử: `thu_TOCDO1.js` mục D cắt vùng từ hằng tới hết khối gọi, chạy với `doc` / `liet` giả + kho thật.
+- Chính PR này chấm bằng luật main (1.6.0); cảnh báo "khớp từng byte" (T2) tới khi chủ quán cài bằng `cai_dat.sh`.
+
 ## B16. HOC-2 — khoá hồ sơ ở cổng, khoá cấu hình, người gác (05.10.2026, tu-chay 1.4.0)
 
 Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q4): `viec/HOC-2/ke_hoach.md`. Bài thử: `thu_cong.js` (A1–A5),

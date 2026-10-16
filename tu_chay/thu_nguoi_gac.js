@@ -706,7 +706,7 @@ if (coXet) {
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.6.0', pb === 'tu-chay 1.6.0', pb || '(không có)'); // TU-CHAY-6 A6
+  chac('PHIEN_BAN = tu-chay 1.7.0', pb === 'tu-chay 1.7.0', pb || '(không có)'); // TU-CHAY-7 A5
 }
 // HOC-2 B1 (AU-A1): tập công cụ chỉ-đọc / sửa file KHOÁ bằng tập cố định. Thêm một tên lạ (vd 'Bash2') là mở lỗ mà không ca hành vi
 // nào thấy (đột biến AUDIT-1 A3-CCLA-them-la từng SỐNG). Đọc literal trong mã nguồn của chính người gác đang thử (--nguoi-gac).
