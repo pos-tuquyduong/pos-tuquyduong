@@ -318,6 +318,83 @@ async function main() {
     await phaiQua('đơn kết hợp SAU KHI thu nốt nợ', dNo);
   }
 
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid');
+  {
+    // Dùng mã ở POST /orders THẬT. Phép đối chiếu tiền của orders.js đòi cash_amount = tổng SAU giảm: mã 10 % trên
+    // món 25.000 → 22.500. Cổng P20b trả 400 TRƯỚC phép đối chiếu, nên ca chặn không phụ thuộc số tiền gửi.
+    const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
+    const MA_LOI = 'MA_DON_GOC_KHONG_HOP_LE';
+    const dungMa = (ma, tien) => goi('POST', '/orders', { items: [mon()], payment_method: 'cash', cash_amount: tien, discount_code: ma });
+    const soDon = async () => Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_orders')).n);
+    const luotDung = async (ma) => {
+      const r = await db.queryOne('SELECT used_count FROM pos_discount_codes WHERE UPPER(code) = ?', [String(ma).toUpperCase()]);
+      return r ? Number(r.used_count) : null;
+    };
+    const maTay = (ma) => db.run(
+      `INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active, created_at)
+       VALUES (?, 'percent', 10, 0, 0, 1, ?)`, [ma, getNow()]);
+    // Đơn gốc đã thanh toán, claim xong → voucher THẬT mang đúng mã bill.
+    const donDaClaim = async (ten, body) => {
+      const d = await taoDon(ten, body);
+      const c = await claim(d.ma);
+      k(`${ten}: claim → 200`, c.status === 200, moTa(c));
+      return d;
+    };
+    const phaiChan = async (ten, d) => {
+      const truoc = await soDon();
+      const r = await dungMa(d.ma, 22500);
+      k(`${ten}: dùng voucher → 400 ${MA_LOI}`, r.status === 400 && r.code === MA_LOI, moTa(r));
+      const sau = await soDon();
+      k(`${ten}: không có đơn mới`, sau === truoc, `trước ${truoc} · sau ${sau}`);
+      const n = await luotDung(d.ma);
+      k(`${ten}: used_count voucher = 0`, n === 0, String(n));
+    };
+    const phaiGiam = async (ten, ma) => {
+      const r = await dungMa(ma, 22500);
+      k(`${ten}: dùng mã → 200`, r.status === 200 && r.success === true, moTa(r));
+      const o = r.order ? await db.queryOne('SELECT discount_code, total FROM pos_orders WHERE id = ?', [r.order.id]) : null;
+      k(`${ten}: đơn ghi mã, total 22.500`,
+        !!o && String(o.discount_code).toUpperCase() === String(ma).toUpperCase() && Number(o.total) === 22500,
+        o ? `${o.discount_code} · ${o.total}` : '(không có đơn)');
+      const n = await luotDung(ma);
+      k(`${ten}: used_count = 1`, n === 1, String(n));
+    };
+
+    // G1 — đơn gốc bị HUỶ sau khi claim.
+    const g1 = await donDaClaim('G1 gốc tiền mặt', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    const h = await goi('PUT', `/orders/${g1.id}/cancel`, { reason: 'thử P20b' });
+    k('G1: huỷ đơn gốc → 200', h.status === 200, moTa(h));
+    await phaiChan('G1 đơn gốc đã huỷ', g1);
+
+    // G2 — đơn gốc HOÀN TIỀN qua route thật (status refunded, payment_status vẫn paid).
+    const sdtG2 = sdtMoi(); await napVi(sdtG2, 100000);
+    const g2 = await donDaClaim('G2 gốc trả ví',
+      { customer_phone: sdtG2, customer_name: 'Khách G2', items: [mon()], payment_method: 'balance', balance_amount: 25000 });
+    const yc = await goi('POST', '/refunds', { order_id: g2.id, reason: 'thử P20b' });
+    const duyet = typeof yc.refund_id === 'number' ? await goi('POST', `/refunds/${yc.refund_id}/approve`, {}) : { status: 0 };
+    k('G2: tạo + duyệt hoàn tiền → 200', yc.status === 200 && duyet.status === 200, `${moTa(yc)} / ${moTa(duyet)}`);
+    await phaiChan('G2 đơn gốc đã hoàn', g2);
+
+    // G3 — trạng thái lạ: payment_status rời khỏi paid (không route nào làm vậy — đặt thẳng trong DB).
+    const g3 = await donDaClaim('G3 gốc tiền mặt', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    await db.run("UPDATE pos_orders SET payment_status = 'pending' WHERE id = ?", [g3.id]);
+    await phaiChan('G3 đơn gốc payment_status ≠ paid', g3);
+
+    // G4 — K5: đơn gốc còn completed + paid → giảm đúng như trước.
+    const g4 = await donDaClaim('G4 gốc tiền mặt', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    await phaiGiam('G4 đơn gốc hợp lệ', g4.ma);
+
+    // G5 — K5: mã chủ quán tạo tay, không có dòng pos_signup_codes.
+    await maTay('P20BTAY');
+    await phaiGiam('G5 mã tay', 'P20BTAY');
+
+    // G7 — K5: mã tay TRÙNG CHỮ với mã bill CHƯA claim của đơn chờ thu (ba nguồn mã chỉ kiểm trùng trong bảng mình).
+    const g7 = await taoDon('G7 chờ thu', { items: [mon()], payment_method: 'cho_thu', debt_amount: 25000 });
+    await maTay(g7.ma);
+    await phaiGiam('G7 mã tay trùng chữ mã bill chưa claim', g7.ma);
+  }
+
   sv.close();
   console.log(`\n  ${C.dam}${dat} đạt · ${hong} hỏng${C.het}\n`);
   try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ }
