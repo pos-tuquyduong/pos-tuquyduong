@@ -486,7 +486,7 @@ async function main() {
       k('H3b claim lại cùng mã, cùng SĐT → 200', c2.status === 200, moTa(c2));
     }
 
-    // H3c — A3 · K5: dòng đã claim mà KHÔNG còn voucher (dữ liệu trước 09.08 / xoá tay ở màn Mã chiết khấu) → hoàn tác được.
+    // H3c — A3 · K5: dòng đã claim mà KHÔNG còn voucher CÙNG MÃ (xoá tay ở màn Mã chiết khấu; claim trước 09.08 phát voucher mã khác) → hoàn tác được.
     {
       const b = await donThu('H3c bill');
       const c = await claim(b.ma);
@@ -496,6 +496,50 @@ async function main() {
       k('H3c hoàn tác khi không còn voucher → 200', r.status === 200 && r.success === true, moTa(r));
       const m = await dongMa(b.ma);
       k('H3c dòng mã hết claimed', !m.claimed_at, String(m.claimed_at));
+    }
+
+    // H3d — A3 (soát vòng 1, Z1): hoàn tác B đã qua phép kiểm sớm; chen giữa: hoàn tác A xong, khách P2 claim LẠI cùng mã.
+    // B phải dừng — không được gỡ claim / xoá voucher của lần claim mới.
+    {
+      const b = await donThu('H3d bill'); const P2 = sdtMoi();
+      const c = await claim(b.ma);
+      k('H3d claim lần đầu → 200', c.status === 200, moTa(c));
+      let rA = null, c2 = null;
+      mocTruocTx = async () => { rA = await reset(b.ma); c2 = await claim(b.ma, P2); imLang(); };
+      const rB = await reset(b.ma);
+      mocTruocTx = null;
+      k('H3d móc chạy: hoàn tác A → 200, claim lại → 200', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
+        `${rA ? moTa(rA) : 'móc không chạy'} / ${c2 ? moTa(c2) : '-'}`);
+      k('H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409', rB.status === 409, moTa(rB));
+      const v = await demVoucher(b.ma);
+      const m = await db.queryOne('SELECT claimed_phone FROM pos_signup_codes WHERE UPPER(code) = ?', [hoa(b.ma)]);
+      k(`H3d voucher của lần claim mới còn, mã vẫn ghi ${P2}`, v === 1 && !!m && m.claimed_phone === P2,
+        `voucher ${v} · claimed_phone ${m && m.claimed_phone}`);
+    }
+
+    // H3e — A3 (soát vòng 1, Z2): hai lần hoàn tác chồng nhau, voucher chưa ai dùng → lần sau 409 "vừa hoàn tác", không phải 400 "đã dùng".
+    {
+      const b = await donThu('H3e bill');
+      const c = await claim(b.ma);
+      k('H3e claim → 200', c.status === 200, moTa(c));
+      let rA = null;
+      mocTruocTx = async () => { rA = await reset(b.ma); imLang(); };
+      const rB = await reset(b.ma);
+      mocTruocTx = null;
+      k('H3e móc chạy: hoàn tác A → 200', !!rA && rA.status === 200, rA ? moTa(rA) : 'móc không chạy');
+      k('H3e hoàn tác B chồng lên → 409', rB.status === 409, moTa(rB));
+    }
+
+    // H3f — A3 · K5 (soát vòng 1, Z3): voucher used_count NULL — phép kiểm sớm `used_count > 0` coi là CHƯA dùng; vế trong giao dịch phải cùng nghĩa.
+    {
+      const b = await donThu('H3f bill');
+      const c = await claim(b.ma);
+      k('H3f claim → 200', c.status === 200, moTa(c));
+      await db.run('UPDATE pos_discount_codes SET used_count = NULL WHERE UPPER(code) = ?', [hoa(b.ma)]);
+      const r = await reset(b.ma);
+      k('H3f hoàn tác voucher used_count NULL → 200', r.status === 200 && r.success === true, moTa(r));
+      const v = await demVoucher(b.ma);
+      k('H3f voucher bị xoá', v === 0, `có ${v}`);
     }
 
     // H4 — A4: mã lỗi (tuần tự, không đua).
@@ -514,6 +558,25 @@ async function main() {
       const r4 = await nhanDiem(b3.ma);
       k('H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)',
         r4.status === 400 && r4.code === 'MA_DA_NHAN_DIEM', moTa(r4));
+    }
+
+    // H4b — K5 (soát vòng 1): MỘT SĐT dùng hai cửa với hai mã khác nhau — chặn SĐT chỉ soi cột của chính cửa đó.
+    {
+      const b1 = await donThu('H4b bill 1'), b2 = await donThu('H4b bill 2'), b3 = await donThu('H4b bill 3'), b4 = await donThu('H4b bill 4');
+      const P = sdtMoi(), Q = sdtMoi();
+      const n1 = await nhanDiem(b1.ma, P), c1 = await claim(b2.ma, P);
+      k('H4b cùng SĐT: nhận điểm mã A → 200, rồi claim mã B → 200', n1.status === 200 && c1.status === 200, `${moTa(n1)} / ${moTa(c1)}`);
+      const c2 = await claim(b3.ma, Q), n2 = await nhanDiem(b4.ma, Q);
+      k('H4b cùng SĐT: claim mã A → 200, rồi nhận điểm mã B → 200', c2.status === 200 && n2.status === 200, `${moTa(c2)} / ${moTa(n2)}`);
+    }
+
+    // H6 — A1 (soát vòng 1): dòng mã bị xoá giữa phép kiểm và giao dịch (P26c xoá mã chưa dùng khi xoá đơn, orders.js:1621) → 404, không 500.
+    {
+      const b = await donThu('H6 bill');
+      mocTruocTx = async () => { await db.run('DELETE FROM pos_signup_codes WHERE UPPER(code) = ?', [hoa(b.ma)]); };
+      const r = await claim(b.ma);
+      mocTruocTx = null;
+      k('H6 /claim khi dòng mã vừa bị xoá → 404', r.status === 404, moTa(r));
     }
 
     // H5 — GHI CHÚ [c] · K5: mã trỏ tới đơn không còn → 404 KHONG_THAY_DON ở cả hai cửa.
