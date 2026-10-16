@@ -196,5 +196,38 @@ CHẶN [nhắm TAR-C · chan] tar tạo file đè file luật → CHAN:G-LUAT (m
   CHẶN 14 · LỌT ĐÃ BIẾT 1 · LỌT 0 · SAI MÃ 0 · TẮT KHÔNG ĐỔI 0 (trên 15)
 ```
 
+## A5 — XONG (phép nhấp nháy `thu_cong.js`; `nhap_nhay.py` nháp — 5 lần liên tiếp máy rảnh, rồi 3 lần khi một vòng `node cong_cu/thu_gia_lap.js`
+chạy lặp song song; HEAD nhánh `be839c3` sau A4, `tu_chay/` = `0ee7346`)
+```
+thư mục /tmp/thu_cong_* trước: 0
+lần 1 · rảnh · thoát 0 · 84.7 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 2 · rảnh · thoát 0 · 91.1 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 3 · rảnh · thoát 0 · 95.3 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 4 · rảnh · thoát 0 · 88.4 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 5 · rảnh · thoát 0 · 88.9 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 6 · BẬN · thoát 0 · 98.0 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 7 · BẬN · thoát 0 · 98.5 s · thu_cong: 334 phép · 0 chỗ hỏng
+lần 8 · BẬN · thoát 0 · 103.3 s · thu_cong: 334 phép · 0 chỗ hỏng
+thư mục /tmp/thu_cong_* sau: 1
+
+[exited with code 0]
+```
+| lần | máy | thoát | phép · hỏng | giây |
+|---|---|---|---|---|
+| 1 · 2 · 3 · 4 · 5 | rảnh | 0 ×5 | 334 · 0 ×5 | 84,7 · 91,1 · 95,3 · 88,4 · 88,9 |
+| 6 · 7 · 8 | bận (1 thu_gia_lap lặp) | 0 ×3 | 334 · 0 ×3 | 98,0 · 98,5 · 103,3 |
+8 / 8 xanh, 0 dòng ✗ → không nhấp nháy trong 8 lần (8 lần sạch KHÔNG chứng minh hết nhấp nháy — chưa có đột biến đỏ tất định cho dạng này, K3).
+Đọc `tu_chay/thu_cong.js` (731 dòng) — chỗ phụ thuộc thời gian / thư mục tạm:
+- `:24` `TAM` = `mkdtemp` riêng mỗi lần (không dùng chung giữa các lần chạy); dọn DUY NHẤT ở `:723` cuối tệp — không `process.on('exit')`, không bắt
+  tín hiệu → bài bị giết / ném ngoài ca thì sót `/tmp/thu_cong_*` (NHẸ-công cụ). Cùng dạng ở `cong_cu/thu_gia_lap.js`: SIGTERM vòng tạo tải của A5 để
+  sót `/tmp/thu_gl_zTxA7g` (08:50) — người gác chặn `rm` ngoài nháp (RM-NHAP); lệnh dọn cho chủ quán: `rm -rf /tmp/thu_gl_zTxA7g`. Lúc đếm cuối
+  `nhap_nhay.py` thấy 1 `/tmp/thu_cong_*`, vài phút sau không còn (không rõ tiến trình nào — có thể hook dừng chạy `npm test`), ghi nguyên.
+- Không phép nào so giờ / ngày; chỉ hạn `spawnSync`: git `:35` 30 s, cài đặt `:85` 60 s, cổng `:117` 300 s, nạp `:708` 30 s (git giả `:113` tự SIGKILL
+  là CỐ Ý, theo ERE).
+- Hạn ngoài bài: `kiem_tra_truoc_khi_giao.js:616` chạy `thu_cong.js` qua `chayBaiThat` hạn mặc định 120 s (`:478`); cảnh báo "gần hạn > 80 %" (`:487–488`) chỉ bật khi
+  `canhGan = true` mà `:616` KHÔNG truyền → không có cảnh báo sớm; chú thích `:600` tự ghi "150–325 s khi máy bận" > 120 s. Hôm nay bận nhẹ 103,3 s =
+  86 % hạn, im lặng; máy bận hơn → `--day-du` đỏ ETIMEDOUT
+  (TU-CHAY-6 Câu hỏi 5 đã gặp 122,9 s). Phát hiện AU4 (NHẸ-công cụ) → "Đề xuất bộ khung": chia lượt `thu_cong` (TU-CHAY-6 Q5 b).
+
 ## Nhóm đã xong
-A1 · A3 · A2 · A4
+A1 · A3 · A2 · A4 · A5
