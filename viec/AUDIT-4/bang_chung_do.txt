@@ -151,3 +151,146 @@ AUDIT-4 dot_bien: 19 đột biến
            [p26c] thoát 0 · 118 đạt · 0 hỏng
 
   tổng 19 · BẮT 7 · SỐNG 8 · HỎNG 1 · HỎNG-sập 3 · LẠC 0
+
+## 4. Vòng sửa 1 (sau /ra-soat vòng 1) — `python3 viec/AUDIT-4/boc.py --tu-thu` (boc.py `46…`→ sau vá, thoát 0, 299 s): 5 phép.
+# Thêm ca "dòng gộp kiem_tra ✗ T1a … | ✖ Bài thử sập" (soát vòng 1 lỗi 1: phép trừ `✗ T\d` nuốt dòng gộp — kiem_tra_truoc_khi_giao.js:483–486):
+# luật cũ "không sập", luật mới "sập". Người soát chạy luật AUDIT-4 bản 1 trên cùng dạng dòng → '' (không sập) — chép ở trang_thai.md vòng 1.
+# AU3-22 nay đi qua K.cham THẬT của khung (bọc cũ A3.boc_khung → BẮT, bọc mới boc_lenh → HỎNG-sập).
+$ python3 viec/AUDIT-4/boc.py --tu-thu
+# thoát 0 · 299.1 s
+  (thu_gia_lap thật: thoát 0 · 145 đạt · 0 hỏng · cắt 1 dòng · còn T0: True)
+  ĐẠT AU3-24 thu_gia_lap thoát 0 không dòng tổng: cũ → không sập · mới → sập (mong sập)
+  (chay.js KB29 có đột biến: thoát 1 · Giả lập: 8 kịch bản · 18 bất biến · KHÔNG ĐẠT (2 lệch))
+  ĐẠT K5 HET: chay.js KHÔNG ĐẠT (n lệch) thoát 1: cũ → không sập · mới → không sập (mong không sập)
+  (DOSAP-KIEM khung: cũ BẮT · mới HỎNG-sập · sập [kiem_tra_truoc_khi_giao.js: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (2.3 s)  → ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — )
+  ĐẠT AU3-22 DOSAP-KIEM qua khung cách kiem (K.cham thật): cũ → BẮT · mới → HỎNG-sập (mong HỎNG-sập)
+  (dòng gộp T1a: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (2.3 s)  → ✗ T1a huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví mẹ 100000 → 75000 )
+  ĐẠT vòng 1: dòng gộp kiem_tra ✗ T1a … | ✖ Bài thử sập: cũ → không sập · mới → sập (mong sập)
+  ĐẠT AU3-23 NEM- ra BẮT → --sap phải KHÔNG ĐẠT: cũ → ĐẠT · mới → KHÔNG ĐẠT (mong KHÔNG ĐẠT)
+
+  --tu-thu: 5/5 phép luật mới đúng
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
+
+## 5. Vòng sửa 1 — `python3 viec/AUDIT-4/dot_bien.py` (thoát 1 = có nhãn lệch MONG; luật sập + bản sao nạp từ boc.py). Kết quả y hệt mục 3;
+## nay máy tự đếm "đúng mong 11/19" (D2 5/5 đúng hợp đồng, 6 BẮT; lệch = 7 SỐNG NẶNG-lưới + LOAI-CHAN-BANG HỎNG-sập) và HỎNG-sập in dòng ✗ trước khi sập.
+$ python3 viec/AUDIT-4/dot_bien.py
+# thoát 1 · 41.2 s
+AUDIT-4 dot_bien: 19 đột biến
+  ✓ đối chứng p20 (cong_cu/thu_P20.js): thoát 0 · 75 đạt · 0 hỏng (mong 75 đạt · 0 hỏng)
+  ✓ đối chứng p26c (cong_cu/thu_P26c.js): thoát 0 · 118 đạt · 0 hỏng (mong 118 đạt · 0 hỏng)
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): thoát 0 · 105 đạt · 0 hỏng (mong 105 đạt · 0 hỏng)
+  HỎNG     D2-AU4-sai-chuoi
+           routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  BẮT      D2-AU4-da-biet
+           [p20] thoát 1 · 66 đạt · 9 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: không có đơn mới  — trước 22 · sau 23
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0  — 1
+  SỐNG     D2-AU4-vo-hai
+           [p20] thoát 0 · 75 đạt · 0 hỏng
+  HỎNG-sập D2-AU4-sap
+           [p20] bài thử SẬP (không phải bị bắt): ✖ Bài thử sập: Missing catch or finally after try
+  HỎNG-sập D2-AU4-sap-0
+           [p20] bài thử SẬP (không phải bị bắt): thoát 0 KHÔNG có dòng chạy hết
+  BẮT      VS-AU4-P20B-CHI-TRA-MA-CHUA-CLAIM
+           [p20] thoát 1 · 63 đạt · 12 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: không có đơn mới  — trước 22 · sau 23
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0  — 1
+  BẮT      VS-AU4-P20B-DOI-MA-LOI
+           [p20] thoát 1 · 72 đạt · 3 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 400 · DON_DA_HUY · Đơn của mã này đã bị huỷ, mã không dùng được.
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 400 · DON_DA_HOAN · Đơn của mã này đã được hoàn tiền, mã không dùng được.
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 400 · BILL_CHUA_THANH_TOAN · Mã dùng được sau khi bill được thanh toán.
+  BẮT      BV-AU4-P20B-CHAN-SAU-GIAO-DICH
+           [p20] thoát 1 · 69 đạt · 6 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: không có đơn mới  — trước 22 · sau 23
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0  — 1
+  SỐNG     VS-AU4-P20B-TRA-MA-THO   ← mong BẮT
+           [p20] thoát 0 · 75 đạt · 0 hỏng
+  BẮT      VS-AU4-BH1-THE-KIEM-OBJ
+           [p26c] thoát 1 · 116 đạt · 2 hỏng
+           [p26c] ✗ T1a membership_buy: {} + 1 ly 25.000 (gốc tạo đơn thường 25.000) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 200 · tổng 25000
+           [p26c] ✗ T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 200 · tổng 0
+  BẮT      VS-AU4-BH1-DOI-MA-LOI
+           [p26c] thoát 1 · 115 đạt · 3 hỏng
+           [p26c] ✗ S4c mua thẻ với SĐT " " (gốc thu 525.000 mà không ghi thẻ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Mua thẻ cần chọn hạng thẻ và khách hàng
+           [p26c] ✗ T1a membership_buy: {} + 1 ly 25.000 (gốc tạo đơn thường 25.000) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Mua thẻ cần chọn hạng thẻ và khách hàng · tổng undefined
+           [p26c] ✗ T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Mua thẻ cần chọn hạng thẻ và khách hàng · tổng undefined
+  BẮT      VS-AU4-BH1-HAN-29D
+           [p26c] thoát 1 · 117 đạt · 1 hỏng
+           [p26c] ✗ T3a không có biến môi trường → đăng nhập 200, hạn ĐÚNG 30 ngày = 2.592.000 s (gốc 8 h = 28.800 s)  — HTTP 200 · 2505600 s
+  SỐNG     VS-AU4-L3-DATRA-LAM-TRON-LEN   ← mong BẮT
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG   ← mong BẮT
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN   ← mong BẮT
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-CHAN-TREN-CA-HOAN   ← mong BẮT
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  HỎNG-sập VS-AU4-L3-LOAI-CHAN-BANG   ← mong BẮT
+           [thu] bài thử SẬP (không phải bị bắt): ✖ Bài thử sập: Only finite numbers (not Infinity or NaN) can be passed as arguments
+           [thu] (trước khi sập) ✗ A2b (K5 sau A2a) xin 2 → 200, CT1 đã lấy = 5, tổng giao 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói · CT1 3 · giao 3
+           [thu] (trước khi sập) ✗ A2c đơn lấy 3 CT1 bị HUỶ → delivered_items CT1 = 0 (CT2 = 2, theo product_code); xin 5 CT1 → 200  — HTTP 200 · CT1 0 · CT2 2 · HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] (trước khi sập) ✗ A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói / HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 
+           [thu] (trước khi sập) ✗ A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong
+  SỐNG     VS-AU4-L3-KHOA-LOAI-BO-KIEU   ← mong BẮT
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+  SỐNG     BV-AU4-L3-B3P-BO-SAN-0   ← mong BẮT
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+
+  tổng 19 · BẮT 7 · SỐNG 8 · HỎNG 1 · HỎNG-sập 3 · LẠC 0 · đúng mong 11/19
+
+## 6. A2 LUOI-3 — `python3 viec/LUOI-3/dot_bien.py` nguyên văn (HEAD, 20,5 s) — đối chiếu với viec/LUOI-3/bang_chung_do.txt mục SAU (`a2_bang.md` đầu)
+$ python3 viec/LUOI-3/dot_bien.py
+# thoát 0 · 20.5 s
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_P26c.js: 118 đạt · 0 hỏng
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_GOI1.js: 105 đạt · 0 hỏng
+  BẮT   BV-AU3-P26C-DATRA-BO-TRU-SHIP (mẫu /✗ M1a / + /✗ M1b /)
+          ✗ M1a món 50.000 + ship 10.000, mã 10 % → tổng 55.000; đền 45.001 → 400 VUOT_GIA, 45.000 → 200, ví +45.000 (trần = total − ship)  — HTTP 200 · tổng 55000 · HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tối đa: 0 · ví 0 → 45001
+          ✗ M1b gói 300.000 + ship 10.000, mã 10 % → tổng 280.000; lấy 1/10, owner huỷ → ví +253.000 (280.000 − ⌈270.000 × 1/10⌉ — hoàn GỒM ship)  — tổng 280000 · HTTP 200 · ví 1000000 → 1252000
+  BẮT   VS-AU3-P26C-DATRA-GIA-GOC (mẫu /✗ M2a / + /✗ M2b /)
+          ✗ M2a đơn 2 dòng (món 25.000 giá flash 20.000 + món 30.000, trả 50.000): đền dòng flash 20.001 → 400 VUOT_GIA, 20.000 → 200  — HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tối đa: 0
+          ✗ M2b (K5) cùng đơn, đền dòng thường đủ 30.000 → 200; ví tổng +50.000  — HTTP 400 · VUOT_GIA · Tiền đền tối đa: 27,272đ · ví 45000 → 65001
+  BẮT   VS-AU3-P26C-DEN-GIAM-BO-FLASH (mẫu /✗ M3a /)
+          ✗ M3a mã 1 món (A 50.000 − 25.000) + B 30.000 giá flash 24.000, trả 49.000: đền A 25.001 → 400, 25.000 → 200 (không chặn oan), ví +25.000  — HTTP 200 · HTTP 400 · VUOT_GIA · Tiền đền tối đa: 19,000đ / HTTP 400 · VUOT_GIA · Tiền đền tối đa: 19,000đ · ví 95000 → 95000
+  BẮT   VS-AU3-GOI1-LOAI-KHONG-CONG-DON (mẫu /✗ A2l /)
+          ✗ A2l CT1 cài 5, đã lấy 2 (còn 3); một đơn 2 dòng CT1 2 + CT1 2 → 400 GOI_HET_LUOT_LOAI, đã giao vẫn 2  — HTTP 200 · giao 6
+          ✗ A2m (K5) cùng gói, 2 dòng CT1 1 + CT1 2 (= đúng 3 còn) → 200, CT1 đã lấy 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 0 trong gói · CT1 6
+  BẮT   VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN (mẫu /✗ A2n /)
+          ✗ A2n gói cũ cài CT1 0 + CT2 5 (dữ liệu trước GOI-1) → lấy 1 CT1 → 200 (loại SL 0 không chặn), CT1 đã lấy 1  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 0 trong gói · CT1 0
+  BẮT   BV-AU3-GOI2-BO-TRAN-DA-NHAN (mẫu /✗ B3p /)
+          ✗ B3p dữ liệu trước P26c 12.10: gói + CT3 giảm 10 % (1.237.500), đền cũ 25.000 > đã trả 22.500 → kết thúc hoàn 1.212.500, khách nhận đúng total  — {"tong":1215000,"me":0,"vi":0,"tien_mat":1215000} · HTTP 409 · GOI_HOAN_DOI_SO · Số tiền hoàn đã đổi thành 1.215.000đ — xem lại rồi bấm lại · ví 25000
+  BẮT   VS-AU3-GOI2-NHAN-BO-DEN (mẫu /✗ B3p /)
+          ✗ B3p dữ liệu trước P26c 12.10: gói + CT3 giảm 10 % (1.237.500), đền cũ 25.000 > đã trả 22.500 → kết thúc hoàn 1.212.500, khách nhận đúng total  — {"tong":1215000,"me":0,"vi":0,"tien_mat":1215000} · HTTP 409 · GOI_HOAN_DOI_SO · Số tiền hoàn đã đổi thành 1.215.000đ — xem lại rồi bấm lại · ví 25000
+  BẮT   VS-AU3-SL-DONG-GOI-SL-1 (mẫu /✗ M4a /)
+          ✗ M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000  — HTTP 200 · tổng 540000 · HTTP 200 · HTTP 200 · ví 510000 · tổng hoàn 510000
+          ✗ M4b cùng đơn (đọc trước khi huỷ): dòng gói quantity 2; SUM(total_price) các dòng = subtotal = 600.000 (báo cáo doanh thu cộng cột này)  — {"quantity":1,"subtotal":600000,"tien":600000}
+  BẮT   VS-AU3-SL-DONG-GOI-TONG-1 (mẫu /✗ M4b /)
+          ✗ M4b cùng đơn (đọc trước khi huỷ): dòng gói quantity 2; SUM(total_price) các dòng = subtotal = 600.000 (báo cáo doanh thu cộng cột này)  — {"quantity":2,"subtotal":600000,"tien":300000}
+  BẮT   VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL (mẫu /✗ M4a /)
+          ✗ M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000  — HTTP 200 · tổng 540000 · HTTP 200 · HTTP 200 · ví 486000 · tổng hoàn 486000
+
+  tổng 10 · BẮT 10 · SỐNG 0 · HỎNG 0 · LẠC 0
