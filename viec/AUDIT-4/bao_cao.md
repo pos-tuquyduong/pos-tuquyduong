@@ -12,7 +12,8 @@ quan sát trùng nguyên văn bằng chứng LUOI-3. Đường tiền mới P20b
 đo không nói dối: 3 lỗi AU3-22…24 vá, mỗi vá một ca đỏ (luật cũ sai / mới đúng trên cùng đầu vào), `--sap` 0 bộ BẮT / SỐNG khi sập; soát vòng 1
 bắt thêm lỗ cùng dạng AU3-22 trong luật bản 1 (phép trừ `✗ T\d` nuốt dòng gộp `✗ bài chạy thật … ✗ T1a … | ✖ Bài thử sập` của kiem_tra) → vá, ca đỏ
 thứ năm trong `--tu-thu`; soát vòng 2 bắt thêm 3 (vế trừ ca T chưa có ca đỏ "phải KHÔNG sập", dòng gộp `--day-du` của thu_gia_lap ✗ T3
-chấm sập oan, dấu sập khối `baiX sập:` của thu_cong / thu_cong_cu vắng) → vá, `--tu-thu` 8/8; chạy lại khung AUDIT-1 trừ C2F (88 tên — D1: 53 cách kiem + 4 cong; G3 / A3 / B1 / C2: kb, gac, cong, congcu…; 1151 s) theo luật vòng 2: y hệt từng tên (lỗ không che BẮT nào). 4 tên kiem / kiemdd của AUDIT-2 A3B ngoài A2 theo phiếu (A3L + B3) — không chạy. A6: không đường
+chấm sập oan, dấu sập khối `baiX sập:` của thu_cong / thu_cong_cu vắng); soát vòng 3 thêm 2 (dòng gộp kiem_tra khi bài con sập không in ✗ —
+chỉ còn `thoát mã N`; ngoại lệ phải theo NỘI DUNG chi tiết dòng ca, không theo tên ca T) → vá, `--tu-thu` 10/10 (`--khung D1` chạy lại: y hệt); chạy lại khung AUDIT-1 trừ C2F (88 tên — cách chạy đếm từ `DOT_BIEN`: kiem 53 · gac 16 · cong 12 · gl 3 · kb1 2 · kb10 1 · c2 1 (D1 = 53 kiem + 4 cong); 1151 s) theo luật vòng 2: y hệt từng tên (lỗ không che BẮT nào). 4 tên kiem / kiemdd của AUDIT-2 A3B ngoài A2 theo phiếu (A3L + B3) — không chạy. A6: không đường
 nào tạo đơn 0 dòng; đơn tổng 0 vào sổ đúng.
 
 ## Bảng phát hiện (mọi file:dòng đọc trên HEAD `0ee7346` lượt này)
@@ -48,7 +49,7 @@ Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`B
 
 | nhóm | BẮT | SỐNG | HỎNG (đã thay / cố ý) | HỎNG-sập | LẠC | tỷ lệ AUDIT-4 | AUDIT-3 |
 |---|---|---|---|---|---|---|---|
-| A1 `--sap` 4 bộ khuôn × 4 dạng + DOSAP + khung 5 dạng + LUOI-1 / TACH-GL | **0** BẮT / SỐNG | — | 4 sai chuỗi | mọi dạng (gồm NEM-, `!DOSAP-KIEM`) | 0 | ĐẠT · `--tu-thu` 8/8 | ĐẠT (3 lỗ AU3-22…24) |
+| A1 `--sap` 4 bộ khuôn × 4 dạng + DOSAP + khung 5 dạng + LUOI-1 / TACH-GL | **0** BẮT / SỐNG | — | 4 sai chuỗi | mọi dạng (gồm NEM-, `!DOSAP-KIEM`) | 0 | ĐẠT · `--tu-thu` 10/10 | ĐẠT (3 lỗ AU3-22…24) |
 | AUDIT-1 trừ C2F (88, khung đã bọc) | 77 | 1 (cố ý) | 2 | 6 (`G3-sap` cố ý, `!D1-E11-P26b`, 4 `D1-E*` — AU4-11) | 2 (`!D1-E11-P20/P26a`) | 77/79 (luật AUDIT-3: 81/83) | 81/83 |
 | C2F (87, c2luoi) | 59 | 22 (NHẸ) | 0 | 6 | 0 | 59/81 | 59/81 |
 | AUDIT-2 A3L (20, kể cả 13 c2luoi) · B3 (6) | 15 · 3 | 3 · 2 | 2 · 0 | 0 | 0 · 1 | 15/18 · 3/6 | 15/18 · 3/6 |
@@ -58,7 +59,7 @@ Còn mở từ AUDIT-3, đo lại y hệt (không đề xuất lại): AU3-4 (`B
 | LUOI-1 (78) · TACH-GL (29) | 78 · 25 | 0 | 0 · 3 | 0 | 0 · 1 (đã thay) | 78/78 · 25/26 | như nhau |
 | AUDIT-3 `dot_bien.py` (21 + 5 D2) | 15 (+ 5 LẠC-mẫu = BẮT đúng ca LUOI-3) | 1 (D2) | 1 D2 + 1 AU4-9 | 3 (2 D2 + AU3-6) | 5 (AU4-10) | 20/20 đột biến tiền | 10/20 |
 | LUOI-3 (10) | 10 | 0 | 0 | 0 | 0 | 10/10, câu lỗi trùng | — (0/10 trước LUOI-3) |
-| A3 AUDIT-4 (14 + 5 D2) | 6 (P20b 3 · BAN-HANG-1 3) + D2 1 | **7 NẶNG-lưới** + D2 1 | D2 1 | 1 (AU4-8) + 2 D2 | 0 | 6/13 | 10/20 |
+| A3 AUDIT-4 (14 + 5 D2) | 6 (P20b 3 · BAN-HANG-1 3) + D2 1 | **7 NẶNG-lưới** + D2 1 | D2 1 | 1 (AU4-8) + 2 D2 | 0 | 7/14 | 10/20 |
 | A4 neo (`kiem_neo.py`, 22 bộ + do_*.js) | 936 khớp / 975 có neo | — | 39 đã thay / cố ý | — | — | 0 HỎNG ngoài danh sách · 0 mẫu nghi rữa | 881/917 |
 | lách (`viec/AUDIT-2/lach.js`, 15 mã, 0 mã mới) | CHẶN 14 | LỌT ĐÃ BIẾT 1 (AU2-7) | — | — | — | như cũ | như cũ |
 
