@@ -69,3 +69,85 @@ TACH-GL dot_bien: 1 đột biến · -j 1 · kiểm sạch 1 cách chạy (gl29)
   tổng 1 · BẮT 0 · LẠC 0 · SỐNG 0 · HỎNG 0 · TREO 0 · đúng mong đợi 0/1 · 25 s
   --sap: 0 bộ báo BẮT / SỐNG khi bài thử sập — ĐẠT (không bộ nào)
   ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
+
+## 3. D2 + A3 — `python3 viec/AUDIT-4/dot_bien.py` (thoát 1 vì có SỐNG, 35,6 s): sai chuỗi → HỎNG · đã biết → BẮT · vô hại → SỐNG ·
+## sập / sập mã 0 → HỎNG-sập (nhãn KHÁC HỎNG). Tên lạ → thoát 2: `python3 viec/AUDIT-4/dot_bien.py __KHONG_CO__` → "tên đột biến lạ … không chạy rỗng"
+AUDIT-4 dot_bien: 19 đột biến
+  ✓ đối chứng p20 (cong_cu/thu_P20.js): thoát 0 · 75 đạt · 0 hỏng (mong 75 đạt · 0 hỏng)
+  ✓ đối chứng p26c (cong_cu/thu_P26c.js): thoát 0 · 118 đạt · 0 hỏng (mong 118 đạt · 0 hỏng)
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): thoát 0 · 105 đạt · 0 hỏng (mong 105 đạt · 0 hỏng)
+  HỎNG     D2-AU4-sai-chuoi
+           routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  BẮT      D2-AU4-da-biet
+           [p20] thoát 1 · 66 đạt · 9 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+  SỐNG     D2-AU4-vo-hai
+           [p20] thoát 0 · 75 đạt · 0 hỏng
+  HỎNG-sập D2-AU4-sap
+           [p20] bài thử SẬP (không phải bị bắt): ✖ Bài thử sập: Missing catch or finally after try
+  HỎNG-sập D2-AU4-sap-0
+           [p20] bài thử SẬP (không phải bị bắt): thoát 0 KHÔNG có dòng tổng · [A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  BẮT      VS-AU4-P20B-CHI-TRA-MA-CHUA-CLAIM
+           [p20] thoát 1 · 63 đạt · 12 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+  BẮT      VS-AU4-P20B-DOI-MA-LOI
+           [p20] thoát 1 · 72 đạt · 3 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 400 · DON_DA_HUY · Đơn của mã này đã bị huỷ, mã không dùng được.
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 400 · DON_DA_HOAN · Đơn của mã này đã được hoàn tiền, mã không dùng được.
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 400 · BILL_CHUA_THANH_TOAN · Mã dùng được sau khi bill được thanh toán.
+  BẮT      BV-AU4-P20B-CHAN-SAU-GIAO-DICH
+           [p20] thoát 1 · 69 đạt · 6 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: không có đơn mới  — trước 22 · sau 23
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0  — 1
+  SỐNG     VS-AU4-P20B-TRA-MA-THO
+           [p20] thoát 0 · 75 đạt · 0 hỏng
+  BẮT      VS-AU4-BH1-THE-KIEM-OBJ
+           [p26c] thoát 1 · 116 đạt · 2 hỏng
+           [p26c] ✗ T1a membership_buy: {} + 1 ly 25.000 (gốc tạo đơn thường 25.000) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 200 · tổng 25000
+           [p26c] ✗ T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 200 · tổng 0
+  BẮT      VS-AU4-BH1-DOI-MA-LOI
+           [p26c] thoát 1 · 115 đạt · 3 hỏng
+           [p26c] ✗ S4c mua thẻ với SĐT " " (gốc thu 525.000 mà không ghi thẻ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Mua thẻ cần chọn hạng thẻ và khách hàng
+           [p26c] ✗ T1a membership_buy: {} + 1 ly 25.000 (gốc tạo đơn thường 25.000) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Mua thẻ cần chọn hạng thẻ và khách hàng · tổng undefined
+           [p26c] ✗ T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn  — HTTP 400 · Mua thẻ cần chọn hạng thẻ và khách hàng · tổng undefined
+  BẮT      VS-AU4-BH1-HAN-29D
+           [p26c] thoát 1 · 117 đạt · 1 hỏng
+           [p26c] ✗ T3a không có biến môi trường → đăng nhập 200, hạn ĐÚNG 30 ngày = 2.592.000 s (gốc 8 h = 28.800 s)  — HTTP 200 · 2505600 s
+  SỐNG     VS-AU4-L3-DATRA-LAM-TRON-LEN
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  SỐNG     VS-AU4-L3-CHAN-TREN-CA-HOAN
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+  HỎNG-sập VS-AU4-L3-LOAI-CHAN-BANG
+           [thu] bài thử SẬP (không phải bị bắt): ✖ Bài thử sập: Only finite numbers (not Infinity or NaN) can be passed as arguments
+  SỐNG     VS-AU4-L3-KHOA-LOAI-BO-KIEU
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+  SỐNG     BV-AU4-L3-B3P-BO-SAN-0
+           [thu] thoát 0 · 105 đạt · 0 hỏng
+           [p26c] thoát 0 · 118 đạt · 0 hỏng
+
+  tổng 19 · BẮT 7 · SỐNG 8 · HỎNG 1 · HỎNG-sập 3 · LẠC 0
