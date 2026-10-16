@@ -262,7 +262,7 @@ AUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, k
 | `items: []` + `membership_buy: {}` / `package_buy: {}` | đã có ca: T1b (`thu_P26c.js:896`), S2g (`:849`) → 400, không đơn; A2 chạy lại bộ BAN-HANG-1 / SO-LUONG-1 BẮT | — |
 | R5 1 món + mã 100 % | 200, đơn completed total 0 (subtotal 25.000, 1 dòng), 0 điểm (`orders.js:827` `total > 0`), 0 dòng ví; báo cáo +1 đơn, doanh thu +0, giảm +25.000 | — sổ đúng (mã do chủ quán tạo) |
 | R6 chỉ mua thẻ 500.000 | 200, đơn 1 dòng thẻ, doanh thu +500.000, **+500 điểm** | K5 qua; điểm khi mua thẻ = câu hỏi chính sách → Phát hiện |
-| R8a mua gói 300.000 / R8b lấy 1 ly 0đ | 200 / 200; gói +300 điểm lúc mua, lấy 0 điểm; R8b KHÔNG vào đếm đơn báo cáo (thiết kế `reports.js:43`) | K5 qua; như R6 |
+| R8a mua gói 300.000 / R8b lấy 1 ly 0đ | 200 / 200; gói +300 điểm lúc mua, lấy 0 điểm; R8b KHÔNG vào đếm đơn báo cáo (thiết kế `reports.js:41`) | K5 qua; như R6 |
 Đối chiếu báo cáo: Δ doanh thu 800.000 = tổng total 4 đơn; Δ đơn 3 = 4 − 1 đơn giao từ gói 0đ. **0 NẶNG-code, 0 rác** ở A6 (không đường nào tạo đơn
 0 dòng). Điểm khi mua thẻ / gói: không quyết thay chủ quán — ghi Phát hiện (đối soát: điểm theo `total`, không theo loại hàng).
 
