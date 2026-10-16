@@ -523,24 +523,26 @@ async function main() {
     }
 
     // H3g — A3 (soát vòng 2, X1): như H3d nhưng CÙNG SĐT claim lại (đúng mục đích nút hoàn tác), claimed_at ép KHÁC giá trị cũ —
-    // chỉ còn vế claimed_at phân biệt.
-    {
-      const b = await donThu('H3g bill'); const P = sdtMoi();
+    // chỉ còn vế claimed_at phân biệt. Soát vòng 3 (K3, phép so bằng): ép CẢ hai phía — MUỘN hơn (thực tế: claim lại luôn sau) và SỚM hơn.
+    const hoanTacChongCungSdt = async (phia, lucEp) => {
+      const b = await donThu(`H3g ${phia} bill`); const P = sdtMoi();
       const c = await claim(b.ma, P);
-      k('H3g claim lần đầu → 200', c.status === 200, moTa(c));
+      k(`H3g ${phia}: claim lần đầu → 200`, c.status === 200, moTa(c));
       let rA = null, c2 = null;
       mocTruocTx = async () => {
         rA = await reset(b.ma); c2 = await claim(b.ma, P); imLang();
-        await db.run("UPDATE pos_signup_codes SET claimed_at = '2000-01-01T00:00:00' WHERE UPPER(code) = ?", [hoa(b.ma)]);
+        await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [lucEp, hoa(b.ma)]);
       };
       const rB = await reset(b.ma);
       mocTruocTx = null;
-      k('H3g móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
+      k(`H3g ${phia}: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200`, !!rA && rA.status === 200 && !!c2 && c2.status === 200,
         `${rA ? moTa(rA) : 'móc không chạy'} / ${c2 ? moTa(c2) : '-'}`);
-      k('H3g hoàn tác B (lần claim cũ, cùng SĐT) → 409', rB.status === 409, moTa(rB));
+      k(`H3g ${phia}: hoàn tác B (lần claim cũ, cùng SĐT) → 409`, rB.status === 409, moTa(rB));
       const v = await demVoucher(b.ma), m = await dongMa(b.ma);
-      k('H3g voucher của lần claim mới còn, mã vẫn claimed', v === 1 && !!m.claimed_at, `voucher ${v} · claimed_at ${m.claimed_at}`);
-    }
+      k(`H3g ${phia}: voucher của lần claim mới còn, mã vẫn claimed`, v === 1 && !!m.claimed_at, `voucher ${v} · claimed_at ${m.claimed_at}`);
+    };
+    await hoanTacChongCungSdt('muộn hơn', '2099-12-31T23:59:59');
+    await hoanTacChongCungSdt('sớm hơn', '2000-01-01T00:00:00');
 
     // H3h — A3 · K5 (soát vòng 2): dòng có claimed_at mà claimed_phone NULL (dữ liệu lạ, màn hình không liệt kê) → hoàn tác được như gốc.
     {
