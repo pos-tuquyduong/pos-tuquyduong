@@ -71,6 +71,16 @@ async function kiemDonCuaMa(dong) {
   return { loi: { status: 400, code: 'BILL_CHUA_THANH_TOAN', error: 'Mã dùng được sau khi bill được thanh toán.' } };
 }
 
+// P20c — câu chiếm mã được 0 dòng có HAI lý do: mã vừa bị người khác chiếm, hoặc SĐT vừa nhận qua một
+// mã KHÁC (phép chặn SĐT nằm ngay trong câu UPDATE). Đọc lại dòng SAU rollback để báo đúng lý do.
+// `cotLuc` chỉ nhận hằng viết trong code ('claimed_at' / 'diem_nhan_luc'), không lấy từ request.
+async function baoChiemHong(res, id, cotLuc, daDung) {
+  const d = await queryOne(`SELECT ${cotLuc} AS luc FROM pos_signup_codes WHERE id = ?`, [id]);
+  if (!d) return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
+  if (d.luc) return res.status(daDung.status).json({ success: false, error: daDung.error, code: daDung.code });
+  return res.status(400).json({ success: false, error: 'Số điện thoại này đã nhận ưu đãi này từ một mã bill khác.', code: 'SDT_DA_NHAN' });
+}
+
 async function getSignupConfig() {
   const rows = await query(
     "SELECT key, value FROM pos_settings WHERE key LIKE 'signup_%'"
@@ -243,18 +253,18 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
       // dung (phep kiem o tren nam NGOAI giao dich), nhung chi MOT nguoi UPDATE
       // duoc — nguoi kia thay changes = 0 va bi chan. Khong co no thi ca hai
       // cung duoc cong diem.
+      // P20c: chiLanDau — SĐT chưa nhận qua mã KHÁC cũng chốt NGAY trong câu này (phép kiểm SĐT ở trên nằm
+      // ngoài giao dịch). Nối SAU chuỗi cũ: chuỗi `… AND diem_nhan_luc IS NULL` đang bị phép kiểm + đột biến neo.
       const chiem = await tx.run(
         `UPDATE pos_signup_codes SET diem_nhan_luc = ?, diem_nhan_phone = ?
-          WHERE id = ? AND diem_nhan_luc IS NULL`,
-        [now, phone, dong.id],
+          WHERE id = ? AND diem_nhan_luc IS NULL` +
+          ' AND (? = 0 OR NOT EXISTS (SELECT 1 FROM pos_signup_codes WHERE diem_nhan_phone = ? AND id <> ?))',
+        [now, phone, dong.id, ch.chiLanDau ? 1 : 0, phone, dong.id],
       );
       if (!chiem || chiem.changes === 0) {
         await tx.rollback();
-        return res.status(400).json({
-          success: false,
-          error: 'Mã này vừa được dùng để nhận điểm.',
-          code: 'MA_DA_NHAN_DIEM',
-        });
+        return baoChiemHong(res, dong.id, 'diem_nhan_luc',
+          { status: 400, code: 'MA_DA_NHAN_DIEM', error: 'Mã này vừa được dùng để nhận điểm.' });
       }
       await tx.run(
         `INSERT INTO pos_point_transactions
@@ -314,7 +324,7 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
     }
     if (signupRow.claimed_at) {
-      return res.status(400).json({ success: false, error: 'Mã này đã được sử dụng' });
+      return res.status(409).json({ success: false, error: 'Mã này đã được sử dụng', code: 'MA_DA_DUNG' });
     }
 
     // Hạn 24h rolling từ lúc in — so sánh bằng mili-giây, không phụ thuộc múi giờ chuỗi.
@@ -326,12 +336,13 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
     }
 
     // Chặn theo SĐT (không theo mã) — 1 SĐT chỉ claim được đúng 1 lần trong đời, bất kể mã nào.
+    // Phép này chỉ để báo sớm; câu chiếm mã trong giao dịch mới là chốt (P20c).
     const claimedBefore = await queryOne(
       'SELECT id FROM pos_signup_codes WHERE claimed_phone = ? LIMIT 1',
       [phone]
     );
     if (claimedBefore) {
-      return res.status(400).json({ success: false, error: 'Số điện thoại này đã từng nhận ưu đãi khách mới' });
+      return res.status(400).json({ success: false, error: 'Số điện thoại này đã từng nhận ưu đãi khách mới', code: 'SDT_DA_NHAN' });
     }
 
     // POS-P20-v1: gắn đơn · chưa huỷ · ĐÃ THANH TOÁN — cùng một hàm với /nhan-diem.
@@ -381,13 +392,17 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
       // POS-P20-v2: CHIẾM MÃ bằng `AND claimed_at IS NULL` + đọc changes — cùng
       // khuôn /nhan-diem. Phép kiểm claimed_at ở trên nằm NGOÀI giao dịch; hai
       // người claim cùng lúc đều qua được nó, chỉ lệnh UPDATE này phân xử.
+      // P20c: SĐT chưa claim qua mã KHÁC cũng chốt ở đây (cùng điều kiện với phép kiểm SĐT ở trên). Nối SAU
+      // chuỗi cũ: chuỗi `… AND claimed_at IS NULL` đang bị phép kiểm + đột biến neo.
       const chiem = await tx.run(
-        'UPDATE pos_signup_codes SET claimed_at = ?, claimed_phone = ? WHERE id = ? AND claimed_at IS NULL',
-        [now, phone, signupRow.id]
+        'UPDATE pos_signup_codes SET claimed_at = ?, claimed_phone = ? WHERE id = ? AND claimed_at IS NULL' +
+          ' AND NOT EXISTS (SELECT 1 FROM pos_signup_codes WHERE claimed_phone = ? AND id <> ?)',
+        [now, phone, signupRow.id, phone, signupRow.id]
       );
       if (!chiem || chiem.changes !== 1) {
         await tx.rollback();
-        return res.status(409).json({ success: false, error: 'Mã này vừa được sử dụng.', code: 'MA_DA_DUNG' });
+        return baoChiemHong(res, signupRow.id, 'claimed_at',
+          { status: 409, code: 'MA_DA_DUNG', error: 'Mã này vừa được sử dụng.' });
       }
       await tx.run(
         `INSERT INTO pos_discount_codes (
@@ -449,9 +464,9 @@ router.get('/', authenticate, checkPermission('manage_settings'), async (req, re
 
 // POST /api/pos/signup-codes/:id/reset — HOÀN TÁC 1 lần claim (dọn dữ liệu test).
 // Làm 2 việc NGUYÊN TỬ trong 1 transaction: (1) gỡ claimed_at/claimed_phone khỏi
-// pos_signup_codes để SĐT claim lại được, (2) VÔ HIỆU HOÁ (is_active=0, không xoá cứng —
-// giữ vết để tra soát) voucher đã phát ra lúc claim — nếu không làm bước 2, voucher cũ
-// vẫn còn dùng được dù đã "hoàn tác", vì bước thanh toán không hề biết tới bảng này.
+// pos_signup_codes để SĐT claim lại được, (2) XOÁ voucher đã phát ra lúc claim (chỉ khi voucher
+// CHƯA dùng — P20c) — nếu không làm bước 2, voucher cũ vẫn còn dùng được dù đã "hoàn tác",
+// vì bước thanh toán không hề biết tới bảng này.
 router.post('/:id/reset', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
     const signupRow = await queryOne('SELECT * FROM pos_signup_codes WHERE id = ?', [req.params.id]);
@@ -474,14 +489,30 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
     const tx = await beginTransaction();
     try {
-      await tx.run(
-        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ?',
-        [signupRow.id]
+      // P20c: gỡ ĐÚNG lần claim đã đọc ở trên (cùng claimed_at VÀ claimed_phone — getNow() chỉ tới giây, một mình
+      // claimed_at không phân biệt được hai lần claim trong cùng giây; `IS ?` để dòng claimed_phone NULL vẫn khớp). Hai lần
+      // hoàn tác chồng nhau, hoặc hoàn tác rồi khách claim lại xen giữa → lần sau thấy 0 dòng và dừng, không gỡ claim / xoá
+      // voucher của lần claim mới. Giới hạn: CÙNG SĐT claim lại trong CÙNG giây thì không phân biệt được.
+      const go = await tx.run(
+        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?',
+        [signupRow.id, signupRow.claimed_at, signupRow.claimed_phone]
       );
+      if (go.changes === 0) {
+        await tx.rollback();
+        return res.status(409).json({ success: false, error: 'Mã này vừa được hoàn tác hoặc claim lại — tải lại danh sách rồi thử lại.' });
+      }
       // XOÁ HẲN (không chỉ vô hiệu hoá) — vì mã voucher = đúng mã in-bill (thiết kế "1 mã
       // xuyên suốt"), nếu chỉ tắt is_active thì dòng cũ vẫn tồn tại, sẽ bị lớp chống-trùng-mã
       // (chặn claim nếu mã đã có trong pos_discount_codes) chặn nhầm khi claim lại lần 2.
-      await tx.run('DELETE FROM pos_discount_codes WHERE code = ?', [signupRow.code]);
+      // P20c: chỉ xoá voucher CHƯA dùng — phép kiểm ở trên nằm NGOÀI giao dịch, voucher có thể vừa được dùng ở
+      // POST /orders. COALESCE: NULL tính như 0 — như phép kiểm `used_count > 0` ở trên (NULL qua phép đó). Có voucher mà không
+      // xoá được → dừng. Không có voucher CÙNG MÃ (xoá tay; claim trước 09.08 phát voucher mã khác — không đụng tới)
+      // → hoàn tác như cũ.
+      const xoa = await tx.run('DELETE FROM pos_discount_codes WHERE code = ? AND COALESCE(used_count, 0) = 0', [signupRow.code]);
+      if (voucherRow && xoa.changes === 0) {
+        await tx.rollback();
+        return res.status(400).json({ success: false, error: 'Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.' });
+      }
       await tx.commit();
     } catch (txErr) {
       await tx.rollback();

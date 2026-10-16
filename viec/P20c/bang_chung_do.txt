@@ -1,0 +1,914 @@
+# P20c — bằng chứng đỏ: cong_cu/thu_P20.js (đã thêm mục [H]) chạy trên code GỐC
+# server/routes/signup-codes.js = HEAD e6ec483 (chưa vá). Lệnh: node cong_cu/thu_P20.js · 16.10.2026 · mã thoát 1
+# Đỏ đúng chỗ dự kiến (ke_hoach.md mục 5): H1, H2, H3, H4 (11 phép). Ca K5 H2b, H3b, H3c, H5 xanh trên gốc.
+
+
+[A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  ✓ đơn "mang ra bàn chưa thu" có payment_status = pending (máy chủ tự tính)
+  ✓ /claim với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ đơn trả kết hợp còn nợ có payment_status = partial
+  ✓ /claim với đơn kết hợp còn nợ → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với đơn ghi nợ → 400 BILL_CHUA_THANH_TOAN
+
+[B] Đơn ĐÃ HUỶ → /claim phải chặn (trước đây /claim không đọc đơn)
+  ✓ huỷ đơn qua PUT /cancel thật
+  ✓ /claim với đơn đã huỷ → 400 DON_DA_HUY
+
+[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN
+  ✓ hoàn tiền 1: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 1: DB status = refunded, payment_status = paid
+  ✓ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN
+  ✓ hoàn tiền 2: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 2: DB status = refunded, payment_status = paid
+  ✓ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN
+
+[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher
+  ✓ móc chạy: người chen vào claim được → 200
+  ✓ người đến sau → 409 MA_DA_DUNG
+  ✓ đúng 1 voucher trong pos_discount_codes
+  ✓ mã ghi đúng SĐT người chen vào (0910000012), không bị người sau (0910000013) ghi đè
+
+[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm
+  ✓ móc chạy: người chen vào nhận điểm được → 200
+  ✓ người đến sau → 400 MA_DA_NHAN_DIEM
+  ✓ đúng 1 dòng pos_point_transactions của đơn
+  ✓ mã ghi đúng SĐT người chen vào (0910000014), không bị người sau (0910000015) ghi đè
+
+[C] Mã KHÔNG gắn đơn → /claim phải chặn như /nhan-diem vẫn chặn
+  ✓ /claim với mã order_id NULL → 400 MA_KHONG_GAN_DON
+
+[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)
+  ✓ thu ngay tiền mặt: payment_status = paid
+  ✓ thu ngay tiền mặt: /claim → 200
+  ✓ thu ngay tiền mặt: /nhan-diem → 200
+  ✓ thu ngay chuyển khoản: payment_status = paid
+  ✓ thu ngay chuyển khoản: /claim → 200
+  ✓ thu ngay chuyển khoản: /nhan-diem → 200
+  ✓ trả bằng ví: payment_status = paid
+  ✓ trả bằng ví: /claim → 200
+  ✓ trả bằng ví: /nhan-diem → 200
+  ✓ có chiết khấu: payment_status = paid
+  ✓ có chiết khấu: /claim → 200
+  ✓ có chiết khấu: /nhan-diem → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): payment_status = paid
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /claim → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /nhan-diem → 200
+  ✓ lấy từ gói 0đ: payment_status = paid
+  ✓ lấy từ gói 0đ: /claim → 200
+  ✓ lấy từ gói 0đ: /nhan-diem → DON_KHONG_DU_DIEM (luật CŨ, không phải P20)
+  ✓ pay-debt bill chờ thu → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: payment_status = paid
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /claim → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /nhan-diem → 200
+  ✓ pay-debt thu nốt đơn kết hợp → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: payment_status = paid
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /claim → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /nhan-diem → 200
+
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✓ G1 gốc tiền mặt: claim → 200
+  ✓ G1: huỷ đơn gốc → 200
+  ✓ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G1 đơn gốc đã huỷ: không có đơn mới
+  ✓ G1 đơn gốc đã huỷ: used_count voucher = 0
+  ✓ G2 gốc trả ví: claim → 200
+  ✓ G2: tạo + duyệt hoàn tiền → 200
+  ✓ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G2 đơn gốc đã hoàn: không có đơn mới
+  ✓ G2 đơn gốc đã hoàn: used_count voucher = 0
+  ✓ G3 gốc tiền mặt: claim → 200
+  ✓ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G3 đơn gốc payment_status ≠ paid: không có đơn mới
+  ✓ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0
+  ✓ G4 gốc tiền mặt: claim → 200
+  ✓ G4 đơn gốc hợp lệ: dùng mã → 200
+  ✓ G4 đơn gốc hợp lệ: đơn ghi mã, total 22.500
+  ✓ G4 đơn gốc hợp lệ: used_count = 1
+  ✓ G5 mã tay: dùng mã → 200
+  ✓ G5 mã tay: đơn ghi mã, total 22.500
+  ✓ G5 mã tay: used_count = 1
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: dùng mã → 200
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: đơn ghi mã, total 22.500
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: used_count = 1
+
+[H] P20c — một SĐT một lần (kiểm TRONG câu chiếm mã) · hoàn tác không xoá voucher đang dùng · mã lỗi thống nhất
+  ✓ H1 móc chạy: claim mã thứ hai cùng SĐT → 200
+  ✗ H1 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H1 SĐT có đúng 1 dòng claimed  — có 2
+  ✗ H1 mã bill 1 không có voucher  — có 1
+  ✓ H2 móc chạy: nhận điểm mã thứ hai cùng SĐT → 200
+  ✗ H2 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H2 SĐT có đúng 1 dòng earn  — có 2
+  ✗ H2 điểm của SĐT = đúng một lần cộng  — tổng 8 · một lần 4
+  ✓ H2b chiLanDau tắt: móc → 200
+  ✓ H2b chiLanDau tắt: người đến sau → 200
+  ✓ H2b chiLanDau tắt: SĐT có 2 dòng earn
+  ✓ H3 claim → 200
+  ✓ H3 móc chạy: dùng voucher ở POST /orders → 200
+  ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+  ✗ H3 voucher còn, used_count = 1  — (voucher bị xoá)
+  ✗ H3 dòng mã vẫn claimed  — null
+  ✓ H3b claim → 200
+  ✓ H3b hoàn tác voucher chưa dùng → 200
+  ✓ H3b voucher bị xoá, dòng mã hết claimed
+  ✓ H3b claim lại cùng mã, cùng SĐT → 200
+  ✓ H3c claim → 200
+  ✓ H3c hoàn tác khi không còn voucher → 200
+  ✓ H3c dòng mã hết claimed
+  ✓ H4 dữ liệu nền: claim + nhận điểm → 200, 200
+  ✗ H4 /claim mã đã claim → 409 MA_DA_DUNG  — HTTP 400 · Mã này đã được sử dụng
+  ✗ H4 /claim bằng SĐT đã claim → 400 SDT_DA_NHAN  — HTTP 400 · Số điện thoại này đã từng nhận ưu đãi khách mới
+  ✓ H4 /nhan-diem bằng SĐT đã nhận → 400 SDT_DA_NHAN
+  ✓ H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)
+  ✓ H5 /claim mã trỏ đơn không còn → 404 KHONG_THAY_DON
+  ✓ H5 /nhan-diem mã trỏ đơn không còn → 404 KHONG_THAY_DON
+
+  94 đạt · 11 hỏng
+
+
+# (v1 — số ca cũ 105, thay bằng dòng SỐ CA ở cuối file sau khi thêm ca soát vòng 1)
+
+
+# ═══ v2 sau soát vòng 1 (16.10): thêm H3d, H3e, H3f, H4b, H6 (13 phép). Chạy lại trên code GỐC (signup-codes.js của 2353fe9, bản sao
+# ngoài kho: chép server/ + cong_cu/, symlink node_modules). Lệnh: node cong_cu/thu_P20.js · mã thoát 1. Ca K5 H3f, H4b xanh trên gốc.
+
+
+[A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  ✓ đơn "mang ra bàn chưa thu" có payment_status = pending (máy chủ tự tính)
+  ✓ /claim với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ đơn trả kết hợp còn nợ có payment_status = partial
+  ✓ /claim với đơn kết hợp còn nợ → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với đơn ghi nợ → 400 BILL_CHUA_THANH_TOAN
+
+[B] Đơn ĐÃ HUỶ → /claim phải chặn (trước đây /claim không đọc đơn)
+  ✓ huỷ đơn qua PUT /cancel thật
+  ✓ /claim với đơn đã huỷ → 400 DON_DA_HUY
+
+[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN
+  ✓ hoàn tiền 1: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 1: DB status = refunded, payment_status = paid
+  ✓ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN
+  ✓ hoàn tiền 2: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 2: DB status = refunded, payment_status = paid
+  ✓ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN
+
+[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher
+  ✓ móc chạy: người chen vào claim được → 200
+  ✓ người đến sau → 409 MA_DA_DUNG
+  ✓ đúng 1 voucher trong pos_discount_codes
+  ✓ mã ghi đúng SĐT người chen vào (0910000012), không bị người sau (0910000013) ghi đè
+
+[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm
+  ✓ móc chạy: người chen vào nhận điểm được → 200
+  ✓ người đến sau → 400 MA_DA_NHAN_DIEM
+  ✓ đúng 1 dòng pos_point_transactions của đơn
+  ✓ mã ghi đúng SĐT người chen vào (0910000014), không bị người sau (0910000015) ghi đè
+
+[C] Mã KHÔNG gắn đơn → /claim phải chặn như /nhan-diem vẫn chặn
+  ✓ /claim với mã order_id NULL → 400 MA_KHONG_GAN_DON
+
+[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)
+  ✓ thu ngay tiền mặt: payment_status = paid
+  ✓ thu ngay tiền mặt: /claim → 200
+  ✓ thu ngay tiền mặt: /nhan-diem → 200
+  ✓ thu ngay chuyển khoản: payment_status = paid
+  ✓ thu ngay chuyển khoản: /claim → 200
+  ✓ thu ngay chuyển khoản: /nhan-diem → 200
+  ✓ trả bằng ví: payment_status = paid
+  ✓ trả bằng ví: /claim → 200
+  ✓ trả bằng ví: /nhan-diem → 200
+  ✓ có chiết khấu: payment_status = paid
+  ✓ có chiết khấu: /claim → 200
+  ✓ có chiết khấu: /nhan-diem → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): payment_status = paid
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /claim → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /nhan-diem → 200
+  ✓ lấy từ gói 0đ: payment_status = paid
+  ✓ lấy từ gói 0đ: /claim → 200
+  ✓ lấy từ gói 0đ: /nhan-diem → DON_KHONG_DU_DIEM (luật CŨ, không phải P20)
+  ✓ pay-debt bill chờ thu → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: payment_status = paid
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /claim → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /nhan-diem → 200
+  ✓ pay-debt thu nốt đơn kết hợp → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: payment_status = paid
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /claim → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /nhan-diem → 200
+
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✓ G1 gốc tiền mặt: claim → 200
+  ✓ G1: huỷ đơn gốc → 200
+  ✓ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G1 đơn gốc đã huỷ: không có đơn mới
+  ✓ G1 đơn gốc đã huỷ: used_count voucher = 0
+  ✓ G2 gốc trả ví: claim → 200
+  ✓ G2: tạo + duyệt hoàn tiền → 200
+  ✓ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G2 đơn gốc đã hoàn: không có đơn mới
+  ✓ G2 đơn gốc đã hoàn: used_count voucher = 0
+  ✓ G3 gốc tiền mặt: claim → 200
+  ✓ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G3 đơn gốc payment_status ≠ paid: không có đơn mới
+  ✓ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0
+  ✓ G4 gốc tiền mặt: claim → 200
+  ✓ G4 đơn gốc hợp lệ: dùng mã → 200
+  ✓ G4 đơn gốc hợp lệ: đơn ghi mã, total 22.500
+  ✓ G4 đơn gốc hợp lệ: used_count = 1
+  ✓ G5 mã tay: dùng mã → 200
+  ✓ G5 mã tay: đơn ghi mã, total 22.500
+  ✓ G5 mã tay: used_count = 1
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: dùng mã → 200
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: đơn ghi mã, total 22.500
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: used_count = 1
+
+[H] P20c — một SĐT một lần (kiểm TRONG câu chiếm mã) · hoàn tác không xoá voucher đang dùng · mã lỗi thống nhất
+  ✓ H1 móc chạy: claim mã thứ hai cùng SĐT → 200
+  ✗ H1 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H1 SĐT có đúng 1 dòng claimed  — có 2
+  ✗ H1 mã bill 1 không có voucher  — có 1
+  ✓ H2 móc chạy: nhận điểm mã thứ hai cùng SĐT → 200
+  ✗ H2 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H2 SĐT có đúng 1 dòng earn  — có 2
+  ✗ H2 điểm của SĐT = đúng một lần cộng  — tổng 8 · một lần 4
+  ✓ H2b chiLanDau tắt: móc → 200
+  ✓ H2b chiLanDau tắt: người đến sau → 200
+  ✓ H2b chiLanDau tắt: SĐT có 2 dòng earn
+  ✓ H3 claim → 200
+  ✓ H3 móc chạy: dùng voucher ở POST /orders → 200
+  ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+  ✗ H3 voucher còn, used_count = 1  — (voucher bị xoá)
+  ✗ H3 dòng mã vẫn claimed  — null
+  ✓ H3b claim → 200
+  ✓ H3b hoàn tác voucher chưa dùng → 200
+  ✓ H3b voucher bị xoá, dòng mã hết claimed
+  ✓ H3b claim lại cùng mã, cùng SĐT → 200
+  ✓ H3c claim → 200
+  ✓ H3c hoàn tác khi không còn voucher → 200
+  ✓ H3c dòng mã hết claimed
+  ✓ H3d claim lần đầu → 200
+  ✓ H3d móc chạy: hoàn tác A → 200, claim lại → 200
+  ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 200
+  ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000049  — voucher 0 · claimed_phone null
+  ✓ H3e claim → 200
+  ✓ H3e móc chạy: hoàn tác A → 200
+  ✗ H3e hoàn tác B chồng lên → 409  — HTTP 200
+  ✓ H3f claim → 200
+  ✓ H3f hoàn tác voucher used_count NULL → 200
+  ✓ H3f voucher bị xoá
+  ✓ H4 dữ liệu nền: claim + nhận điểm → 200, 200
+  ✗ H4 /claim mã đã claim → 409 MA_DA_DUNG  — HTTP 400 · Mã này đã được sử dụng
+  ✗ H4 /claim bằng SĐT đã claim → 400 SDT_DA_NHAN  — HTTP 400 · Số điện thoại này đã từng nhận ưu đãi khách mới
+  ✓ H4 /nhan-diem bằng SĐT đã nhận → 400 SDT_DA_NHAN
+  ✓ H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)
+  ✓ H4b cùng SĐT: nhận điểm mã A → 200, rồi claim mã B → 200
+  ✓ H4b cùng SĐT: claim mã A → 200, rồi nhận điểm mã B → 200
+  ✗ H6 /claim khi dòng mã vừa bị xoá → 404  — HTTP 409 · MA_DA_DUNG · Mã này vừa được sử dụng.
+  ✓ H5 /claim mã trỏ đơn không còn → 404 KHONG_THAY_DON
+  ✓ H5 /nhan-diem mã trỏ đơn không còn → 404 KHONG_THAY_DON
+
+  103 đạt · 15 hỏng
+
+
+# (v2 — số ca cũ 118, thay bằng dòng SỐ CA ở cuối file sau soát vòng 2)
+
+
+# ═══ v3 sau soát vòng 2 (16.10): H3d ép claimed_at cùng giây (tất định), thêm H3g, H3h, H6 /nhan-diem (7 phép). Chạy lại trên code GỐC
+# (signup-codes.js của 2353fe9, bản sao ngoài kho). Lệnh: node cong_cu/thu_P20.js · mã thoát 1. Ca K5 H3f, H3h, H4b xanh trên gốc.
+
+
+[A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  ✓ đơn "mang ra bàn chưa thu" có payment_status = pending (máy chủ tự tính)
+  ✓ /claim với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ đơn trả kết hợp còn nợ có payment_status = partial
+  ✓ /claim với đơn kết hợp còn nợ → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với đơn ghi nợ → 400 BILL_CHUA_THANH_TOAN
+
+[B] Đơn ĐÃ HUỶ → /claim phải chặn (trước đây /claim không đọc đơn)
+  ✓ huỷ đơn qua PUT /cancel thật
+  ✓ /claim với đơn đã huỷ → 400 DON_DA_HUY
+
+[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN
+  ✓ hoàn tiền 1: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 1: DB status = refunded, payment_status = paid
+  ✓ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN
+  ✓ hoàn tiền 2: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 2: DB status = refunded, payment_status = paid
+  ✓ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN
+
+[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher
+  ✓ móc chạy: người chen vào claim được → 200
+  ✓ người đến sau → 409 MA_DA_DUNG
+  ✓ đúng 1 voucher trong pos_discount_codes
+  ✓ mã ghi đúng SĐT người chen vào (0910000012), không bị người sau (0910000013) ghi đè
+
+[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm
+  ✓ móc chạy: người chen vào nhận điểm được → 200
+  ✓ người đến sau → 400 MA_DA_NHAN_DIEM
+  ✓ đúng 1 dòng pos_point_transactions của đơn
+  ✓ mã ghi đúng SĐT người chen vào (0910000014), không bị người sau (0910000015) ghi đè
+
+[C] Mã KHÔNG gắn đơn → /claim phải chặn như /nhan-diem vẫn chặn
+  ✓ /claim với mã order_id NULL → 400 MA_KHONG_GAN_DON
+
+[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)
+  ✓ thu ngay tiền mặt: payment_status = paid
+  ✓ thu ngay tiền mặt: /claim → 200
+  ✓ thu ngay tiền mặt: /nhan-diem → 200
+  ✓ thu ngay chuyển khoản: payment_status = paid
+  ✓ thu ngay chuyển khoản: /claim → 200
+  ✓ thu ngay chuyển khoản: /nhan-diem → 200
+  ✓ trả bằng ví: payment_status = paid
+  ✓ trả bằng ví: /claim → 200
+  ✓ trả bằng ví: /nhan-diem → 200
+  ✓ có chiết khấu: payment_status = paid
+  ✓ có chiết khấu: /claim → 200
+  ✓ có chiết khấu: /nhan-diem → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): payment_status = paid
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /claim → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /nhan-diem → 200
+  ✓ lấy từ gói 0đ: payment_status = paid
+  ✓ lấy từ gói 0đ: /claim → 200
+  ✓ lấy từ gói 0đ: /nhan-diem → DON_KHONG_DU_DIEM (luật CŨ, không phải P20)
+  ✓ pay-debt bill chờ thu → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: payment_status = paid
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /claim → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /nhan-diem → 200
+  ✓ pay-debt thu nốt đơn kết hợp → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: payment_status = paid
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /claim → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /nhan-diem → 200
+
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✓ G1 gốc tiền mặt: claim → 200
+  ✓ G1: huỷ đơn gốc → 200
+  ✓ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G1 đơn gốc đã huỷ: không có đơn mới
+  ✓ G1 đơn gốc đã huỷ: used_count voucher = 0
+  ✓ G2 gốc trả ví: claim → 200
+  ✓ G2: tạo + duyệt hoàn tiền → 200
+  ✓ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G2 đơn gốc đã hoàn: không có đơn mới
+  ✓ G2 đơn gốc đã hoàn: used_count voucher = 0
+  ✓ G3 gốc tiền mặt: claim → 200
+  ✓ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G3 đơn gốc payment_status ≠ paid: không có đơn mới
+  ✓ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0
+  ✓ G4 gốc tiền mặt: claim → 200
+  ✓ G4 đơn gốc hợp lệ: dùng mã → 200
+  ✓ G4 đơn gốc hợp lệ: đơn ghi mã, total 22.500
+  ✓ G4 đơn gốc hợp lệ: used_count = 1
+  ✓ G5 mã tay: dùng mã → 200
+  ✓ G5 mã tay: đơn ghi mã, total 22.500
+  ✓ G5 mã tay: used_count = 1
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: dùng mã → 200
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: đơn ghi mã, total 22.500
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: used_count = 1
+
+[H] P20c — một SĐT một lần (kiểm TRONG câu chiếm mã) · hoàn tác không xoá voucher đang dùng · mã lỗi thống nhất
+  ✓ H1 móc chạy: claim mã thứ hai cùng SĐT → 200
+  ✗ H1 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H1 SĐT có đúng 1 dòng claimed  — có 2
+  ✗ H1 mã bill 1 không có voucher  — có 1
+  ✓ H2 móc chạy: nhận điểm mã thứ hai cùng SĐT → 200
+  ✗ H2 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H2 SĐT có đúng 1 dòng earn  — có 2
+  ✗ H2 điểm của SĐT = đúng một lần cộng  — tổng 8 · một lần 4
+  ✓ H2b chiLanDau tắt: móc → 200
+  ✓ H2b chiLanDau tắt: người đến sau → 200
+  ✓ H2b chiLanDau tắt: SĐT có 2 dòng earn
+  ✓ H3 claim → 200
+  ✓ H3 móc chạy: dùng voucher ở POST /orders → 200
+  ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+  ✗ H3 voucher còn, used_count = 1  — (voucher bị xoá)
+  ✗ H3 dòng mã vẫn claimed  — null
+  ✓ H3b claim → 200
+  ✓ H3b hoàn tác voucher chưa dùng → 200
+  ✓ H3b voucher bị xoá, dòng mã hết claimed
+  ✓ H3b claim lại cùng mã, cùng SĐT → 200
+  ✓ H3c claim → 200
+  ✓ H3c hoàn tác khi không còn voucher → 200
+  ✓ H3c dòng mã hết claimed
+  ✓ H3d claim lần đầu → 200
+  ✓ H3d móc chạy: hoàn tác A → 200, claim lại → 200
+  ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 200
+  ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000049  — voucher 0 · claimed_phone null
+  ✓ H3g claim lần đầu → 200
+  ✓ H3g móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3h claim → 200
+  ✓ H3h hoàn tác dòng claimed_phone NULL → 200
+  ✓ H3e claim → 200
+  ✓ H3e móc chạy: hoàn tác A → 200
+  ✗ H3e hoàn tác B chồng lên → 409  — HTTP 200
+  ✓ H3f claim → 200
+  ✓ H3f hoàn tác voucher used_count NULL → 200
+  ✓ H3f voucher bị xoá
+  ✓ H4 dữ liệu nền: claim + nhận điểm → 200, 200
+  ✗ H4 /claim mã đã claim → 409 MA_DA_DUNG  — HTTP 400 · Mã này đã được sử dụng
+  ✗ H4 /claim bằng SĐT đã claim → 400 SDT_DA_NHAN  — HTTP 400 · Số điện thoại này đã từng nhận ưu đãi khách mới
+  ✓ H4 /nhan-diem bằng SĐT đã nhận → 400 SDT_DA_NHAN
+  ✓ H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)
+  ✓ H4b cùng SĐT: nhận điểm mã A → 200, rồi claim mã B → 200
+  ✓ H4b cùng SĐT: claim mã A → 200, rồi nhận điểm mã B → 200
+  ✗ H6 /claim khi dòng mã vừa bị xoá → 404  — HTTP 409 · MA_DA_DUNG · Mã này vừa được sử dụng.
+  ✗ H6 /nhan-diem khi dòng mã vừa bị xoá → 404  — HTTP 400 · MA_DA_NHAN_DIEM · Mã này vừa được dùng để nhận điểm.
+  ✓ H5 /claim mã trỏ đơn không còn → 404 KHONG_THAY_DON
+  ✓ H5 /nhan-diem mã trỏ đơn không còn → 404 KHONG_THAY_DON
+
+  107 đạt · 18 hỏng
+
+
+# (v3 — số ca cũ 125, thay bằng dòng SỐ CA ở cuối file sau soát vòng 3)
+
+
+# ═══ v4 sau soát vòng 3 (16.10): H3g ép claimed_at CẢ hai phía (muộn hơn '2099-12-31T23:59:59', sớm hơn '2000-01-01T00:00:00').
+# Chạy lại trên code GỐC (signup-codes.js của 2353fe9, bản sao ngoài kho). Lệnh: node cong_cu/thu_P20.js · mã thoát 1.
+
+
+[A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  ✓ đơn "mang ra bàn chưa thu" có payment_status = pending (máy chủ tự tính)
+  ✓ /claim với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ đơn trả kết hợp còn nợ có payment_status = partial
+  ✓ /claim với đơn kết hợp còn nợ → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với đơn ghi nợ → 400 BILL_CHUA_THANH_TOAN
+
+[B] Đơn ĐÃ HUỶ → /claim phải chặn (trước đây /claim không đọc đơn)
+  ✓ huỷ đơn qua PUT /cancel thật
+  ✓ /claim với đơn đã huỷ → 400 DON_DA_HUY
+
+[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN
+  ✓ hoàn tiền 1: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 1: DB status = refunded, payment_status = paid
+  ✓ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN
+  ✓ hoàn tiền 2: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 2: DB status = refunded, payment_status = paid
+  ✓ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN
+
+[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher
+  ✓ móc chạy: người chen vào claim được → 200
+  ✓ người đến sau → 409 MA_DA_DUNG
+  ✓ đúng 1 voucher trong pos_discount_codes
+  ✓ mã ghi đúng SĐT người chen vào (0910000012), không bị người sau (0910000013) ghi đè
+
+[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm
+  ✓ móc chạy: người chen vào nhận điểm được → 200
+  ✓ người đến sau → 400 MA_DA_NHAN_DIEM
+  ✓ đúng 1 dòng pos_point_transactions của đơn
+  ✓ mã ghi đúng SĐT người chen vào (0910000014), không bị người sau (0910000015) ghi đè
+
+[C] Mã KHÔNG gắn đơn → /claim phải chặn như /nhan-diem vẫn chặn
+  ✓ /claim với mã order_id NULL → 400 MA_KHONG_GAN_DON
+
+[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)
+  ✓ thu ngay tiền mặt: payment_status = paid
+  ✓ thu ngay tiền mặt: /claim → 200
+  ✓ thu ngay tiền mặt: /nhan-diem → 200
+  ✓ thu ngay chuyển khoản: payment_status = paid
+  ✓ thu ngay chuyển khoản: /claim → 200
+  ✓ thu ngay chuyển khoản: /nhan-diem → 200
+  ✓ trả bằng ví: payment_status = paid
+  ✓ trả bằng ví: /claim → 200
+  ✓ trả bằng ví: /nhan-diem → 200
+  ✓ có chiết khấu: payment_status = paid
+  ✓ có chiết khấu: /claim → 200
+  ✓ có chiết khấu: /nhan-diem → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): payment_status = paid
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /claim → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /nhan-diem → 200
+  ✓ lấy từ gói 0đ: payment_status = paid
+  ✓ lấy từ gói 0đ: /claim → 200
+  ✓ lấy từ gói 0đ: /nhan-diem → DON_KHONG_DU_DIEM (luật CŨ, không phải P20)
+  ✓ pay-debt bill chờ thu → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: payment_status = paid
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /claim → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /nhan-diem → 200
+  ✓ pay-debt thu nốt đơn kết hợp → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: payment_status = paid
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /claim → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /nhan-diem → 200
+
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✓ G1 gốc tiền mặt: claim → 200
+  ✓ G1: huỷ đơn gốc → 200
+  ✓ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G1 đơn gốc đã huỷ: không có đơn mới
+  ✓ G1 đơn gốc đã huỷ: used_count voucher = 0
+  ✓ G2 gốc trả ví: claim → 200
+  ✓ G2: tạo + duyệt hoàn tiền → 200
+  ✓ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G2 đơn gốc đã hoàn: không có đơn mới
+  ✓ G2 đơn gốc đã hoàn: used_count voucher = 0
+  ✓ G3 gốc tiền mặt: claim → 200
+  ✓ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G3 đơn gốc payment_status ≠ paid: không có đơn mới
+  ✓ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0
+  ✓ G4 gốc tiền mặt: claim → 200
+  ✓ G4 đơn gốc hợp lệ: dùng mã → 200
+  ✓ G4 đơn gốc hợp lệ: đơn ghi mã, total 22.500
+  ✓ G4 đơn gốc hợp lệ: used_count = 1
+  ✓ G5 mã tay: dùng mã → 200
+  ✓ G5 mã tay: đơn ghi mã, total 22.500
+  ✓ G5 mã tay: used_count = 1
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: dùng mã → 200
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: đơn ghi mã, total 22.500
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: used_count = 1
+
+[H] P20c — một SĐT một lần (kiểm TRONG câu chiếm mã) · hoàn tác không xoá voucher đang dùng · mã lỗi thống nhất
+  ✓ H1 móc chạy: claim mã thứ hai cùng SĐT → 200
+  ✗ H1 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H1 SĐT có đúng 1 dòng claimed  — có 2
+  ✗ H1 mã bill 1 không có voucher  — có 1
+  ✓ H2 móc chạy: nhận điểm mã thứ hai cùng SĐT → 200
+  ✗ H2 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H2 SĐT có đúng 1 dòng earn  — có 2
+  ✗ H2 điểm của SĐT = đúng một lần cộng  — tổng 8 · một lần 4
+  ✓ H2b chiLanDau tắt: móc → 200
+  ✓ H2b chiLanDau tắt: người đến sau → 200
+  ✓ H2b chiLanDau tắt: SĐT có 2 dòng earn
+  ✓ H3 claim → 200
+  ✓ H3 móc chạy: dùng voucher ở POST /orders → 200
+  ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+  ✗ H3 voucher còn, used_count = 1  — (voucher bị xoá)
+  ✗ H3 dòng mã vẫn claimed  — null
+  ✓ H3b claim → 200
+  ✓ H3b hoàn tác voucher chưa dùng → 200
+  ✓ H3b voucher bị xoá, dòng mã hết claimed
+  ✓ H3b claim lại cùng mã, cùng SĐT → 200
+  ✓ H3c claim → 200
+  ✓ H3c hoàn tác khi không còn voucher → 200
+  ✓ H3c dòng mã hết claimed
+  ✓ H3d claim lần đầu → 200
+  ✓ H3d móc chạy: hoàn tác A → 200, claim lại → 200
+  ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 200
+  ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000049  — voucher 0 · claimed_phone null
+  ✓ H3g muộn hơn: claim lần đầu → 200
+  ✓ H3g muộn hơn: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g muộn hơn: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g muộn hơn: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3g sớm hơn: claim lần đầu → 200
+  ✓ H3g sớm hơn: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g sớm hơn: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g sớm hơn: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3h claim → 200
+  ✓ H3h hoàn tác dòng claimed_phone NULL → 200
+  ✓ H3e claim → 200
+  ✓ H3e móc chạy: hoàn tác A → 200
+  ✗ H3e hoàn tác B chồng lên → 409  — HTTP 200
+  ✓ H3f claim → 200
+  ✓ H3f hoàn tác voucher used_count NULL → 200
+  ✓ H3f voucher bị xoá
+  ✓ H4 dữ liệu nền: claim + nhận điểm → 200, 200
+  ✗ H4 /claim mã đã claim → 409 MA_DA_DUNG  — HTTP 400 · Mã này đã được sử dụng
+  ✗ H4 /claim bằng SĐT đã claim → 400 SDT_DA_NHAN  — HTTP 400 · Số điện thoại này đã từng nhận ưu đãi khách mới
+  ✓ H4 /nhan-diem bằng SĐT đã nhận → 400 SDT_DA_NHAN
+  ✓ H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)
+  ✓ H4b cùng SĐT: nhận điểm mã A → 200, rồi claim mã B → 200
+  ✓ H4b cùng SĐT: claim mã A → 200, rồi nhận điểm mã B → 200
+  ✗ H6 /claim khi dòng mã vừa bị xoá → 404  — HTTP 409 · MA_DA_DUNG · Mã này vừa được sử dụng.
+  ✗ H6 /nhan-diem khi dòng mã vừa bị xoá → 404  — HTTP 400 · MA_DA_NHAN_DIEM · Mã này vừa được dùng để nhận điểm.
+  ✓ H5 /claim mã trỏ đơn không còn → 404 KHONG_THAY_DON
+  ✓ H5 /nhan-diem mã trỏ đơn không còn → 404 KHONG_THAY_DON
+
+  109 đạt · 20 hỏng
+
+
+# (v4 — số ca cũ 129, thay bằng dòng SỐ CA ở cuối file sau vòng sửa 4)
+
+
+# ═══ v5 vòng sửa 4 (chủ quán cho thêm một vòng, chỉ bài thử + hồ sơ): H3g ép ±1 giây quanh mốc ghim T0 = 2026-10-16T10:00:00
+# (thay 2099 / 2000); thêm H3i (giới hạn đã biết b1: voucher xoá tay giữa chừng → 400) và H3j (giới hạn đã biết: cùng SĐT cùng giây).
+# Chạy lại trên code GỐC (signup-codes.js của 2353fe9, bản sao ngoài kho). Lệnh: node cong_cu/thu_P20.js · mã thoát 1.
+# H3g ±1 giây ×4 và H3i ×2 đỏ trên gốc; H3j xanh trên gốc (khoá giới hạn — gốc cũng gỡ lần claim mới).
+
+
+[A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  ✓ đơn "mang ra bàn chưa thu" có payment_status = pending (máy chủ tự tính)
+  ✓ /claim với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ đơn trả kết hợp còn nợ có payment_status = partial
+  ✓ /claim với đơn kết hợp còn nợ → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với đơn ghi nợ → 400 BILL_CHUA_THANH_TOAN
+
+[B] Đơn ĐÃ HUỶ → /claim phải chặn (trước đây /claim không đọc đơn)
+  ✓ huỷ đơn qua PUT /cancel thật
+  ✓ /claim với đơn đã huỷ → 400 DON_DA_HUY
+
+[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN
+  ✓ hoàn tiền 1: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 1: DB status = refunded, payment_status = paid
+  ✓ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN
+  ✓ hoàn tiền 2: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 2: DB status = refunded, payment_status = paid
+  ✓ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN
+
+[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher
+  ✓ móc chạy: người chen vào claim được → 200
+  ✓ người đến sau → 409 MA_DA_DUNG
+  ✓ đúng 1 voucher trong pos_discount_codes
+  ✓ mã ghi đúng SĐT người chen vào (0910000012), không bị người sau (0910000013) ghi đè
+
+[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm
+  ✓ móc chạy: người chen vào nhận điểm được → 200
+  ✓ người đến sau → 400 MA_DA_NHAN_DIEM
+  ✓ đúng 1 dòng pos_point_transactions của đơn
+  ✓ mã ghi đúng SĐT người chen vào (0910000014), không bị người sau (0910000015) ghi đè
+
+[C] Mã KHÔNG gắn đơn → /claim phải chặn như /nhan-diem vẫn chặn
+  ✓ /claim với mã order_id NULL → 400 MA_KHONG_GAN_DON
+
+[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)
+  ✓ thu ngay tiền mặt: payment_status = paid
+  ✓ thu ngay tiền mặt: /claim → 200
+  ✓ thu ngay tiền mặt: /nhan-diem → 200
+  ✓ thu ngay chuyển khoản: payment_status = paid
+  ✓ thu ngay chuyển khoản: /claim → 200
+  ✓ thu ngay chuyển khoản: /nhan-diem → 200
+  ✓ trả bằng ví: payment_status = paid
+  ✓ trả bằng ví: /claim → 200
+  ✓ trả bằng ví: /nhan-diem → 200
+  ✓ có chiết khấu: payment_status = paid
+  ✓ có chiết khấu: /claim → 200
+  ✓ có chiết khấu: /nhan-diem → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): payment_status = paid
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /claim → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /nhan-diem → 200
+  ✓ lấy từ gói 0đ: payment_status = paid
+  ✓ lấy từ gói 0đ: /claim → 200
+  ✓ lấy từ gói 0đ: /nhan-diem → DON_KHONG_DU_DIEM (luật CŨ, không phải P20)
+  ✓ pay-debt bill chờ thu → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: payment_status = paid
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /claim → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /nhan-diem → 200
+  ✓ pay-debt thu nốt đơn kết hợp → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: payment_status = paid
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /claim → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /nhan-diem → 200
+
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✓ G1 gốc tiền mặt: claim → 200
+  ✓ G1: huỷ đơn gốc → 200
+  ✓ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G1 đơn gốc đã huỷ: không có đơn mới
+  ✓ G1 đơn gốc đã huỷ: used_count voucher = 0
+  ✓ G2 gốc trả ví: claim → 200
+  ✓ G2: tạo + duyệt hoàn tiền → 200
+  ✓ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G2 đơn gốc đã hoàn: không có đơn mới
+  ✓ G2 đơn gốc đã hoàn: used_count voucher = 0
+  ✓ G3 gốc tiền mặt: claim → 200
+  ✓ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G3 đơn gốc payment_status ≠ paid: không có đơn mới
+  ✓ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0
+  ✓ G4 gốc tiền mặt: claim → 200
+  ✓ G4 đơn gốc hợp lệ: dùng mã → 200
+  ✓ G4 đơn gốc hợp lệ: đơn ghi mã, total 22.500
+  ✓ G4 đơn gốc hợp lệ: used_count = 1
+  ✓ G5 mã tay: dùng mã → 200
+  ✓ G5 mã tay: đơn ghi mã, total 22.500
+  ✓ G5 mã tay: used_count = 1
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: dùng mã → 200
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: đơn ghi mã, total 22.500
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: used_count = 1
+
+[H] P20c — một SĐT một lần (kiểm TRONG câu chiếm mã) · hoàn tác không xoá voucher đang dùng · mã lỗi thống nhất
+  ✓ H1 móc chạy: claim mã thứ hai cùng SĐT → 200
+  ✗ H1 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H1 SĐT có đúng 1 dòng claimed  — có 2
+  ✗ H1 mã bill 1 không có voucher  — có 1
+  ✓ H2 móc chạy: nhận điểm mã thứ hai cùng SĐT → 200
+  ✗ H2 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H2 SĐT có đúng 1 dòng earn  — có 2
+  ✗ H2 điểm của SĐT = đúng một lần cộng  — tổng 8 · một lần 4
+  ✓ H2b chiLanDau tắt: móc → 200
+  ✓ H2b chiLanDau tắt: người đến sau → 200
+  ✓ H2b chiLanDau tắt: SĐT có 2 dòng earn
+  ✓ H3 claim → 200
+  ✓ H3 móc chạy: dùng voucher ở POST /orders → 200
+  ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+  ✗ H3 voucher còn, used_count = 1  — (voucher bị xoá)
+  ✗ H3 dòng mã vẫn claimed  — null
+  ✓ H3b claim → 200
+  ✓ H3b hoàn tác voucher chưa dùng → 200
+  ✓ H3b voucher bị xoá, dòng mã hết claimed
+  ✓ H3b claim lại cùng mã, cùng SĐT → 200
+  ✓ H3c claim → 200
+  ✓ H3c hoàn tác khi không còn voucher → 200
+  ✓ H3c dòng mã hết claimed
+  ✓ H3d claim lần đầu → 200
+  ✓ H3d móc chạy: hoàn tác A → 200, claim lại → 200
+  ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 200
+  ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000049  — voucher 0 · claimed_phone null
+  ✓ H3g muộn hơn 1 giây: claim lần đầu → 200
+  ✓ H3g muộn hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g muộn hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g muộn hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3g sớm hơn 1 giây: claim lần đầu → 200
+  ✓ H3g sớm hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g sớm hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g sớm hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3h claim → 200
+  ✓ H3h hoàn tác dòng claimed_phone NULL → 200
+  ✓ H3i claim → 200
+  ✗ H3i voucher bị xoá tay giữa phép kiểm và giao dịch → 400 (giới hạn đã biết, b1)  — HTTP 200
+  ✗ H3i dòng mã vẫn claimed (không gỡ nửa chừng)  — null
+  ✓ H3j claim → 200
+  ✓ H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại cùng giây → 200
+  ✓ H3j hoàn tác B → 200, trạng thái cuối nhất quán: không claim, không voucher (giới hạn đã biết)
+  ✓ H3e claim → 200
+  ✓ H3e móc chạy: hoàn tác A → 200
+  ✗ H3e hoàn tác B chồng lên → 409  — HTTP 200
+  ✓ H3f claim → 200
+  ✓ H3f hoàn tác voucher used_count NULL → 200
+  ✓ H3f voucher bị xoá
+  ✓ H4 dữ liệu nền: claim + nhận điểm → 200, 200
+  ✗ H4 /claim mã đã claim → 409 MA_DA_DUNG  — HTTP 400 · Mã này đã được sử dụng
+  ✗ H4 /claim bằng SĐT đã claim → 400 SDT_DA_NHAN  — HTTP 400 · Số điện thoại này đã từng nhận ưu đãi khách mới
+  ✓ H4 /nhan-diem bằng SĐT đã nhận → 400 SDT_DA_NHAN
+  ✓ H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)
+  ✓ H4b cùng SĐT: nhận điểm mã A → 200, rồi claim mã B → 200
+  ✓ H4b cùng SĐT: claim mã A → 200, rồi nhận điểm mã B → 200
+  ✗ H6 /claim khi dòng mã vừa bị xoá → 404  — HTTP 409 · MA_DA_DUNG · Mã này vừa được sử dụng.
+  ✗ H6 /nhan-diem khi dòng mã vừa bị xoá → 404  — HTTP 400 · MA_DA_NHAN_DIEM · Mã này vừa được dùng để nhận điểm.
+  ✓ H5 /claim mã trỏ đơn không còn → 404 KHONG_THAY_DON
+  ✓ H5 /nhan-diem mã trỏ đơn không còn → 404 KHONG_THAY_DON
+
+  113 đạt · 22 hỏng
+
+
+# (v5 — số ca cũ 135, thay bằng dòng SỐ CA ở cuối file sau vòng sửa 5)
+
+
+# ═══ v6 vòng sửa 5 (chủ quán chốt j3: bỏ ca H3j — 3 phép; chỉ bài thử + hồ sơ, server/ không đổi). Chạy lại trên code GỐC
+# (signup-codes.js của 2353fe9, bản sao ngoài kho). Lệnh: node cong_cu/thu_P20.js · mã thoát 1. Tập ✗ giữ nguyên 22 (H3j xanh trên gốc).
+
+
+[A] Bill CHƯA thanh toán → phải bị chặn, mã BILL_CHUA_THANH_TOAN
+  ✓ đơn "mang ra bàn chưa thu" có payment_status = pending (máy chủ tự tính)
+  ✓ /claim với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với bill chờ thu → 400 BILL_CHUA_THANH_TOAN
+  ✓ đơn trả kết hợp còn nợ có payment_status = partial
+  ✓ /claim với đơn kết hợp còn nợ → 400 BILL_CHUA_THANH_TOAN
+  ✓ /nhan-diem với đơn ghi nợ → 400 BILL_CHUA_THANH_TOAN
+
+[B] Đơn ĐÃ HUỶ → /claim phải chặn (trước đây /claim không đọc đơn)
+  ✓ huỷ đơn qua PUT /cancel thật
+  ✓ /claim với đơn đã huỷ → 400 DON_DA_HUY
+
+[B2] Đơn ĐÃ HOÀN TIỀN (status refunded, payment_status vẫn paid) → phải chặn DON_DA_HOAN
+  ✓ hoàn tiền 1: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 1: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 1: DB status = refunded, payment_status = paid
+  ✓ /claim với đơn đã hoàn tiền → 400 DON_DA_HOAN
+  ✓ hoàn tiền 2: POST /refunds → 200, refund_id là số
+  ✓ hoàn tiền 2: duyệt hoàn tiền qua route thật → 200
+  ✓ hoàn tiền 2: DB status = refunded, payment_status = paid
+  ✓ /nhan-diem với đơn đã hoàn tiền → 400 DON_DA_HOAN
+
+[E] Race: người khác claim CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 409 MA_DA_DUNG, đúng 1 voucher
+  ✓ móc chạy: người chen vào claim được → 200
+  ✓ người đến sau → 409 MA_DA_DUNG
+  ✓ đúng 1 voucher trong pos_discount_codes
+  ✓ mã ghi đúng SĐT người chen vào (0910000012), không bị người sau (0910000013) ghi đè
+
+[F] Race: người khác nhận điểm CÙNG MÃ lúc mình đã qua phép kiểm ngoài giao dịch → 400 MA_DA_NHAN_DIEM, đúng 1 dòng điểm
+  ✓ móc chạy: người chen vào nhận điểm được → 200
+  ✓ người đến sau → 400 MA_DA_NHAN_DIEM
+  ✓ đúng 1 dòng pos_point_transactions của đơn
+  ✓ mã ghi đúng SĐT người chen vào (0910000014), không bị người sau (0910000015) ghi đè
+
+[C] Mã KHÔNG gắn đơn → /claim phải chặn như /nhan-diem vẫn chặn
+  ✓ /claim với mã order_id NULL → 400 MA_KHONG_GAN_DON
+
+[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)
+  ✓ thu ngay tiền mặt: payment_status = paid
+  ✓ thu ngay tiền mặt: /claim → 200
+  ✓ thu ngay tiền mặt: /nhan-diem → 200
+  ✓ thu ngay chuyển khoản: payment_status = paid
+  ✓ thu ngay chuyển khoản: /claim → 200
+  ✓ thu ngay chuyển khoản: /nhan-diem → 200
+  ✓ trả bằng ví: payment_status = paid
+  ✓ trả bằng ví: /claim → 200
+  ✓ trả bằng ví: /nhan-diem → 200
+  ✓ có chiết khấu: payment_status = paid
+  ✓ có chiết khấu: /claim → 200
+  ✓ có chiết khấu: /nhan-diem → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): payment_status = paid
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /claim → 200
+  ✓ trả kết hợp đủ tiền (ví + tiền mặt): /nhan-diem → 200
+  ✓ lấy từ gói 0đ: payment_status = paid
+  ✓ lấy từ gói 0đ: /claim → 200
+  ✓ lấy từ gói 0đ: /nhan-diem → DON_KHONG_DU_DIEM (luật CŨ, không phải P20)
+  ✓ pay-debt bill chờ thu → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: payment_status = paid
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /claim → 200
+  ✓ bill chờ thu SAU KHI pay-debt thu đủ: /nhan-diem → 200
+  ✓ pay-debt thu nốt đơn kết hợp → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: payment_status = paid
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /claim → 200
+  ✓ đơn kết hợp SAU KHI thu nốt nợ: /nhan-diem → 200
+
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✓ G1 gốc tiền mặt: claim → 200
+  ✓ G1: huỷ đơn gốc → 200
+  ✓ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G1 đơn gốc đã huỷ: không có đơn mới
+  ✓ G1 đơn gốc đã huỷ: used_count voucher = 0
+  ✓ G2 gốc trả ví: claim → 200
+  ✓ G2: tạo + duyệt hoàn tiền → 200
+  ✓ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G2 đơn gốc đã hoàn: không có đơn mới
+  ✓ G2 đơn gốc đã hoàn: used_count voucher = 0
+  ✓ G3 gốc tiền mặt: claim → 200
+  ✓ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE
+  ✓ G3 đơn gốc payment_status ≠ paid: không có đơn mới
+  ✓ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0
+  ✓ G4 gốc tiền mặt: claim → 200
+  ✓ G4 đơn gốc hợp lệ: dùng mã → 200
+  ✓ G4 đơn gốc hợp lệ: đơn ghi mã, total 22.500
+  ✓ G4 đơn gốc hợp lệ: used_count = 1
+  ✓ G5 mã tay: dùng mã → 200
+  ✓ G5 mã tay: đơn ghi mã, total 22.500
+  ✓ G5 mã tay: used_count = 1
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: dùng mã → 200
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: đơn ghi mã, total 22.500
+  ✓ G7 mã tay trùng chữ mã bill chưa claim: used_count = 1
+
+[H] P20c — một SĐT một lần (kiểm TRONG câu chiếm mã) · hoàn tác không xoá voucher đang dùng · mã lỗi thống nhất
+  ✓ H1 móc chạy: claim mã thứ hai cùng SĐT → 200
+  ✗ H1 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H1 SĐT có đúng 1 dòng claimed  — có 2
+  ✗ H1 mã bill 1 không có voucher  — có 1
+  ✓ H2 móc chạy: nhận điểm mã thứ hai cùng SĐT → 200
+  ✗ H2 người đến sau (cùng SĐT, mã khác) → 400 SDT_DA_NHAN  — HTTP 200
+  ✗ H2 SĐT có đúng 1 dòng earn  — có 2
+  ✗ H2 điểm của SĐT = đúng một lần cộng  — tổng 8 · một lần 4
+  ✓ H2b chiLanDau tắt: móc → 200
+  ✓ H2b chiLanDau tắt: người đến sau → 200
+  ✓ H2b chiLanDau tắt: SĐT có 2 dòng earn
+  ✓ H3 claim → 200
+  ✓ H3 móc chạy: dùng voucher ở POST /orders → 200
+  ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+  ✗ H3 voucher còn, used_count = 1  — (voucher bị xoá)
+  ✗ H3 dòng mã vẫn claimed  — null
+  ✓ H3b claim → 200
+  ✓ H3b hoàn tác voucher chưa dùng → 200
+  ✓ H3b voucher bị xoá, dòng mã hết claimed
+  ✓ H3b claim lại cùng mã, cùng SĐT → 200
+  ✓ H3c claim → 200
+  ✓ H3c hoàn tác khi không còn voucher → 200
+  ✓ H3c dòng mã hết claimed
+  ✓ H3d claim lần đầu → 200
+  ✓ H3d móc chạy: hoàn tác A → 200, claim lại → 200
+  ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 200
+  ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000049  — voucher 0 · claimed_phone null
+  ✓ H3g muộn hơn 1 giây: claim lần đầu → 200
+  ✓ H3g muộn hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g muộn hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g muộn hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3g sớm hơn 1 giây: claim lần đầu → 200
+  ✓ H3g sớm hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200
+  ✗ H3g sớm hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 200
+  ✗ H3g sớm hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✓ H3h claim → 200
+  ✓ H3h hoàn tác dòng claimed_phone NULL → 200
+  ✓ H3i claim → 200
+  ✗ H3i voucher bị xoá tay giữa phép kiểm và giao dịch → 400 (giới hạn đã biết, b1)  — HTTP 200
+  ✗ H3i dòng mã vẫn claimed (không gỡ nửa chừng)  — null
+  ✓ H3e claim → 200
+  ✓ H3e móc chạy: hoàn tác A → 200
+  ✗ H3e hoàn tác B chồng lên → 409  — HTTP 200
+  ✓ H3f claim → 200
+  ✓ H3f hoàn tác voucher used_count NULL → 200
+  ✓ H3f voucher bị xoá
+  ✓ H4 dữ liệu nền: claim + nhận điểm → 200, 200
+  ✗ H4 /claim mã đã claim → 409 MA_DA_DUNG  — HTTP 400 · Mã này đã được sử dụng
+  ✗ H4 /claim bằng SĐT đã claim → 400 SDT_DA_NHAN  — HTTP 400 · Số điện thoại này đã từng nhận ưu đãi khách mới
+  ✓ H4 /nhan-diem bằng SĐT đã nhận → 400 SDT_DA_NHAN
+  ✓ H4 /nhan-diem mã đã nhận điểm → 400 MA_DA_NHAN_DIEM (chủ quán giữ, kich_ban.js:192)
+  ✓ H4b cùng SĐT: nhận điểm mã A → 200, rồi claim mã B → 200
+  ✓ H4b cùng SĐT: claim mã A → 200, rồi nhận điểm mã B → 200
+  ✗ H6 /claim khi dòng mã vừa bị xoá → 404  — HTTP 409 · MA_DA_DUNG · Mã này vừa được sử dụng.
+  ✗ H6 /nhan-diem khi dòng mã vừa bị xoá → 404  — HTTP 400 · MA_DA_NHAN_DIEM · Mã này vừa được dùng để nhận điểm.
+  ✓ H5 /claim mã trỏ đơn không còn → 404 KHONG_THAY_DON
+  ✓ H5 /nhan-diem mã trỏ đơn không còn → 404 KHONG_THAY_DON
+
+  110 đạt · 22 hỏng
+
+
+SỐ CA cong_cu/thu_P20.js: 132
+# (dòng tổng trên code ĐÃ VÁ v6: "132 đạt · 0 hỏng")
