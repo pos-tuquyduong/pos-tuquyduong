@@ -333,3 +333,8 @@ BÀI HỌC:       KHOÁ (K3): vế so bằng mà giá trị thật đi theo th�
 - Bài thử: GỐC 2353fe9 (bản sao ngoài kho) **109 đạt · 20 hỏng** (H3g muộn hơn ×2, sớm hơn ×2 đỏ); sau vá: **129 đạt · 0 hỏng** —
   `bang_chung_do.txt` v4, `SỐ CA … 129`. Code chạy thật không đổi ở vòng này (chỉ một dòng chú thích).
 - `node kiem_tra_truoc_khi_giao.js`: PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+
+## Bước 6 (sau vòng sửa 3, trên HEAD `68cebb4`)
+- `python3 viec/P20c/dot_bien.py`: đối chứng 129 đạt · 0 hỏng; **20/20 BẮT** (không SẬP / LẠC / SỐNG / HỎNG).
+- `node kiem_tra_truoc_khi_giao.js --day-du`: **PASS 68 · FAIL 0 · CẢNH BÁO 1** (có sẵn).
+- Đột biến cũ: AUDIT-1 **D1 BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0** ("kho thật không đổi"); AUDIT-2 **B3 BẮT 2 · SỐNG 0**; P20b đối chứng 129/0, **4/4 BẮT**.
