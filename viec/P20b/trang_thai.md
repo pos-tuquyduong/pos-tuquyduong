@@ -85,8 +85,91 @@ bài thử trên bản gốc (66 đạt · 9 hỏng, y cũ) và HEAD (75 đạt 
 ## Câu hỏi
 - Người gác chặn `bash cai_git_hook.sh` (B-CHUONGTRINH: `bash` không trong danh sách) → hook pre-commit CHƯA cài ở máy mây này;
   bước 3 chỉ commit file trong `viec/P20b/`, bộ kiểm sẽ chạy ở bước 6. Chủ quán muốn cho phép thì thêm vào `tep_bash_them`.
-Xem `ke_hoach.md` mục 7 (3 câu): A1 phương án A vì E9 / thu_gia_lap M2 / AUDIT-1 D1 đều neo vào `signup-codes.js` (file Cấm, ngoài Phạm vi);
-TOCTOU huỷ giữa chừng; chữ "ô mã giảm" ở A5.
+- 3 câu của `ke_hoach.md` mục 7 (A1 phương án A; TOCTOU huỷ giữa chừng; chữ "ô mã giảm" ở A5) — chủ quán đã chốt 16.10 khi duyệt v2.
 
-## Phát hiện
-Xem `ke_hoach.md` mục 8.
+## Phát hiện (ngoài phạm vi, không sửa)
+- `ke_hoach.md` mục 8: `/validate` (`discount-codes.js:72`) vẫn báo ✓ với voucher của đơn gốc đã huỷ; `increment-usage` không ai gọi; xoá đơn → 404 → 400.
+- Soát độc lập: chủ quán XOÁ CỨNG voucher claim (`discount-codes.js:326`, chỉ khi used_count = 0) mà dòng signup vẫn giữ `claimed_at` → mã tay /
+  voucher đổi điểm sinh đúng 6 chữ ấy sẽ bị cổng gắn vào đơn gốc cũ (~1/887 triệu, mã tay cần cố ý). Nếu muốn bịt: DELETE của discount-codes
+  gỡ `claimed_at` như `/reset` — việc riêng.
+- Soát độc lập: `UPPER(code) = UPPER(?)` trên `pos_signup_codes` không dùng `idx_signup_code` (`database.js:1247`) — cùng khuôn /claim, /nhan-diem
+  đang chạy; mã bill luôn chữ hoa (`voucherCode.js:9`). Bảng nhỏ, chấp nhận.
+- Đối soát (định hướng 5): một câu SQL cho đối soát ngày — voucher claim có `used_count > 0` mà đơn gốc không completed + paid:
+  `SELECT s.code FROM pos_signup_codes s JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(s.code) JOIN pos_orders o ON o.id = s.order_id
+  WHERE s.claimed_at IS NOT NULL AND d.used_count > 0 AND NOT (o.status = 'completed' AND o.payment_status = 'paid')` — kỳ vọng 0 dòng mới từ
+  sau khi vá (dòng có trước vá là dữ liệu cũ). Chưa có chỗ đặt trong bộ đối soát hiện có → việc riêng nếu chủ quán muốn.
+
+## Bước 10 — nghiệm thu, đếm từng mục (code cuối ở commit 0c19685)
+| Mục | Bằng chứng |
+|---|---|
+| A1 (phương án A thay tách file) | `signup-codes.js:499` xuất hàm; `/nhan-diem` `:174`, `/claim` `:339` không đổi; thu_P20 [A]–[F] 51 phép + thu_P21 xanh (npm test 2 lần) |
+| A2 cổng sau `codeRecord` | `orders.js:507–519` (+ require `:32`); `.loi` → 400 `MA_DON_GOC_KHONG_HOP_LE`, `error` từ hàm (`:518`); không đơn / used_count 0: G1–G3 phép 2–3; mã tay như cũ: G5; không giao dịch mới: cổng trước `beginTransaction` `:856` |
+| A3(a) đơn gốc huỷ | thu_P20 G1 (`:364–368`) — đỏ trên gốc (`bang_chung_do.txt`), xanh sau vá |
+| A3(b) đơn gốc hoàn / payment_status ≠ paid | G2 (`/refunds` + approve, `:370–377`) và G3 (`:379–382`) — đỏ trên gốc, xanh sau vá |
+| A3(c) K5 đơn gốc còn hợp lệ | G4 (`:384–386`): 200, discount_code = mã, total 22.500, used_count 1 |
+| A3(d) K5 mã thường | G5 (`:388–390`); thêm G7 trùng chữ mã bill chưa claim (`:392–395`) |
+| A4 npm test / --day-du | PASS 64 · FAIL 0 (hai lần: bước 6 và sau khi gọn bài thử); --day-du PASS 68 · FAIL 0 trên 709e68c và chạy lại trên code cuối (xem dòng HEAD ĐÃ KIỂM) |
+| A4 đột biến | `dot_bien.py` 1 BV + 3 VS, đối chứng 75/0, 4/4 BẮT (hai lần); AUDIT-1 D1 8 BẮT + `!D1-E11-P20` LẠC y cũ; P26c 3/3 BẮT; không cần neo lại (không tách file) |
+| A5 màn hình | không đụng `client/src`; lời 400 qua `Sales.jsx:761` → `api.js:141` → `Sales.jsx:830 setError` = thanh lỗi chung; thử tay 1 thao tác ở CHƯA KIỂM |
+
+## Báo cáo 7 mục
+```
+VIỆC:        P20b — Voucher sinh từ mã in bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+ĐÃ SỬA:      server/routes/signup-codes.js:499 — module.exports.kiemDonCuaMa (phương án A, không tách file)
+             server/routes/orders.js:32 — require; :507–519 — trong if (codeRecord): tra pos_signup_codes cùng mã ĐÃ claim → kiemDonCuaMa
+             → .loi → 400 MA_DON_GOC_KHONG_HOP_LE trước giao dịch (không đơn, used_count không tăng); mã không dòng signup → như cũ
+             cong_cu/thu_P20.js:322–395 — mục [G], 6 ca / 24 phép (G1–G5, G7)
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ ở G1, G2, G3 (9 phép: HTTP 200, có đơn mới, used_count 1) — 66 đạt · 9 hỏng; sau khi vá → XANH
+             75 đạt · 0 hỏng; đột biến viec/P20b/dot_bien.py 4/4 BẮT (đối chứng xanh)
+ĐÃ RÀ K4:    grep "FROM pos_discount_codes" server/ → 13 chỗ; theo TÊN mã lúc dùng: orders.js:503 (vá), discount-codes.js:72 (/validate —
+             phiếu chốt không chặn), tienDaTra.js:20 (chỉ đọc scope). grep "pos_signup_codes" theo mã: signup-codes.js:134, :310 (đã qua
+             kiemDonCuaMa), orders.js:513 (mới), :1151 (tra trùng lúc phát). discount_code từ body: orders.js:167 duy nhất → xử lý hết.
+CHƯA KIỂM:   (1) Màn hình — máy không bấm được. Thử tay 1 thao tác: bill tiền mặt → claim mã trên App → huỷ bill → quầy nhập mã, Áp dụng
+             (✓ vì /validate không kiểm đơn gốc) → bấm In → thanh lỗi chung hiện "Đơn của mã này đã bị huỷ, mã không dùng được.", không đơn mới.
+             (2) Cửa sổ huỷ đơn gốc giữa lúc kiểm (:513) và commit (:856+): vài ms, không chặn — chủ quán chấp nhận, cùng cách /claim.
+             (3) Dữ liệu cũ trên Turso: voucher claim trước P20-v1 (25.09) từ bill chưa trả, hoặc của đơn đã XOÁ, nay bị chặn 400 — đúng mục
+             tiêu phiếu nhưng là đổi hành vi với dữ liệu cũ; không đọc được production nên không biết có bao nhiêu mã như vậy.
+             (4) Mã tay / voucher điểm trùng chữ với mã bill ĐÃ claim sau khi chủ quán xoá cứng voucher — không chặn (Phát hiện).
+             (5) Hook pre-commit không cài được (người gác chặn bash) — thay bằng chạy tay npm test trước mỗi commit code, kết quả ghi bước 6.
+GIT:         xem mục "## Git cuối" bên dưới (git log --oneline -2 sau commit cuối)
+BÀI HỌC:     KHOÁ 0 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài học
+```
+
+## Bài học (bước 11)
+Sự cố gom được: (a) phiếu A1 đụng 3 file Cấm — phải hỏi, chờ duyệt; (b) soát kế hoạch bắt 2 lỗi lập luận (đoán HTTP của ca chưa đọc phép
+đối chiếu tiền; coi `code` duy nhất giữa 3 nguồn mã); (c) soát code bắt đếm tay 22 ≠ 24 phép; (d) người gác chặn 9 lệnh + 1 lệnh bị từ chối
+quyền (B-BIMAT-CHU grep -r từ gốc; AWK-GHI; B-CHUONGTRINH bash; GIT-TUYCHON; B-TENCHU `$(date)`; B-PHANTICH; B-DICHCHU ×2 đích qua biến;
+B-CD-VITRI; B-MANOI heredoc nhắc file bảo vệ; `rm -rf` + `ln -s` trong một lệnh) — nhật ký người gác 16.10; (e) AUDIT-1 báo KHO BẨN vì tôi sửa
+file trong lúc nó chạy.
+
+- **NGUYÊN TẮC (K4, đề xuất thêm vào gạch "Chặn (TU-CHAY-5)" — ngoài Phạm vi, chủ quán duyệt):** "Áp dụng cả khi LẬP PHIẾU: phiếu đòi tách /
+  dời / đổi tên hàm phải grep tên hàm trong bộ kiểm tĩnh, `thu_gia_lap.js` và `viec/*/dot_bien.py` trước khi ghi Phạm vi — P20b A1 đòi tách
+  `kiemDonCuaMa` ra utils trong khi E9 (:420), M2 (thu_gia_lap:123) và AUDIT-1 D1 (:109) đều neo vào `signup-codes.js`, ba file đều bị Cấm →
+  phải hỏi lại, đổi phương án." (a)
+- **NGUYÊN TẮC (K1, đề xuất thêm một gạch):** "Đoán kết quả HTTP của một ca = khẳng định về code: đọc HẾT các cổng giữa chỗ vá và lệnh ghi
+  (P20b: phép đối chiếu tiền `orders.js:783–791` làm ca 'phải 200' ra 400 vì gửi 25.000 thay vì 22.500 — bài vẫn đỏ nhưng đỏ SAI LÝ DO)." (b1)
+- **NGUYÊN TẮC (K5, đề xuất thêm một gạch):** "Gắn nguồn A với bảng B theo CHỮ mã → kiểm xem mỗi nguồn có kiểm trùng CHÉO bảng không; không
+  thì kèm điều kiện trạng thái và kê đường xoá cứng làm điều kiện ấy rữa (P20b: mã bill / voucher điểm / mã tay cùng `generateVoucherCode`,
+  mỗi nguồn chỉ tra bảng mình → cổng phải thêm `claimed_at IS NOT NULL`; xoá cứng voucher `discount-codes.js:326` làm nó rữa)." (b2)
+- **BỎ** (c): E4 (CHECKLIST) đã dặn "ĐẾM, đừng ĐOÁN" và cổng A16 đã canh `SỐ CA` của cả bài; lỗi nằm ở một con số trong văn hồ sơ, viết trước
+  khi chạy. Soát độc lập đề xuất KHOÁ (chép dòng tổng gốc + HEAD thay vì đếm tay) — chủ quán quyết; tôi xếp BỎ vì phép hiện có đủ bắt khi số
+  đó vào `bang_chung_do.txt`.
+- **BỎ** (d): mọi lệnh bị chặn đều có luật sẵn của người gác, làm lại được ngay bằng lệnh đơn giản hơn; không lệnh nào cần nới. Riêng
+  `bash cai_git_hook.sh` → câu hỏi `tep_bash_them` ở ## Câu hỏi.
+- **BỎ** (e): không sửa kho khi `viec/AUDIT-1/dot_bien.py` đang chạy (nó so `git status` trước / sau) — một lần, nhớ là đủ.
+- Dọn: không thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mà việc này cho thấy đã có phép máy làm thay.
+- Bước 11 không đổi file ngoài `viec/P20b/` (3 đề xuất NGUYÊN TẮC chờ chủ quán duyệt, không tự sửa `KHUON_LOI.md`).
+
+## Kiểm cuối (bước 11.4) — HEAD 591bcf0, code cuối 0c19685
+- `npm test` (sau gọn bài thử, cây = 0c19685): PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+- `node kiem_tra_truoc_khi_giao.js --day-du` lần 2 trên code cuối: PASS 68 · FAIL 0 · thoát 0; giả lập 32,7 s, thu_gia_lap 46,1 s.
+- `python3 viec/P20b/dot_bien.py` lần 2 (bài thử gọn): đối chứng 75/0, 4/4 BẮT.
+
+## Git cuối
+```
+591bcf0 P20b trang thai: bao cao /ra-soat vong 1, AUDIT-1 D1 8 bat + 1 LAC y cu, P26c 3/3 bat, sua dem 24 phep
+0c19685 P20b soat vong 1: gon bai thu [G] (bo require helpers, created_at mac dinh); chay lai goc 66/9, HEAD 75/0; dot bien 4/4
+```
+(commit cuối cùng chỉ ghi `trang_thai.md` — bước 10–11.)
+
+HEAD ĐÃ KIỂM: 591bcf0
