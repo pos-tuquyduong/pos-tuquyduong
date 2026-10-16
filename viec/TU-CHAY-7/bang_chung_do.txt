@@ -1,18 +1,19 @@
 TU-CHAY-7 — bằng chứng ĐỎ trên code gốc (16.10.2026)
 
 Gốc = `git archive 839ba54` (chưa vá; thu_gia_lap + thu_cong chạy lại sau vòng sửa 1 và 2 — bài thử đổi, cổng A16) + phần THỬ của ba bài, GỠ phần VÁ (viec/TU-CHAY-7: dựng bằng script nháp dung_goc.py —
-thu_cong.js bỏ vòng dọn pid / tên TAM kèm pid / process.on('exit'), trả lại rmSync cuối; thu_gia_lap.js bỏ exit + bắt tín hiệu + CON/NGAT,
-trả lại rmSync trong ket(); kiem_tra_truoc_khi_giao.js nguyên bản gốc). node_modules liên kết chỉ đọc. Chạy ở thư mục bản sao:
+thu_cong.js bỏ vòng dọn pid / tên TAM kèm pid / process.on('exit'), trả lại rmSync cuối; thu_gia_lap.js bỏ vòng dọn pid / tên TAM kèm pid / exit
+(vòng sửa 4; trước đó: bỏ exit + bắt tín hiệu + CON/NGAT), trả lại rmSync trong ket(); kiem_tra_truoc_khi_giao.js nguyên bản gốc). node_modules liên kết chỉ đọc. Chạy ở thư mục bản sao:
 
 $ node cong_cu/thu_TOCDO1.js   → thoát 1
 thu_TOCDO1: 43 đạt · 2 hỏng
   ✗ C1 --day-du: lời gọi thật thu_cong.js + bài xanh 85 % hạn → đúng 1 cảnh báo gần hạn có số giây — gọi [{"bai":"tu_chay/thu_cong.js"}] · xanh true · cảnh báo: (không)
   ✗ D0 có vùng A3 (const NGUONG_DONG_CUNG = <số> ở đầu dòng, khối gọi sau nó) và ngưỡng ≥ 2 — ngưỡng NaN
 
-$ node cong_cu/thu_gia_lap.js   → thoát 1   (LẦN 4 — vòng sửa 2: ca DON thêm "trong < 9 s" — vế dừng giả lập con)
+$ node cong_cu/thu_gia_lap.js   → thoát 1   (LẦN 5 — vòng sửa 4, chủ quán chốt Q3c: như thu_cong — bỏ bắt tín hiệu; gốc dựng bỏ vòng dọn
+  pid chết / tên TAM kèm pid / exit, trả rmSync vào ket())
   ✗ C3f bộ kiểm: CHỈ giả lập + thu_gia_lap + thu_cong bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8  — bật: 'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js' · 6 lời gọi · cờ không phải chữ true/false: (không) · chữ han * 0.8: 1 lần
-  ✗ DON SIGTERM giữa bài (giả lập con đang chạy) → thoát 130 trong < 9 s (dừng giả lập con, không chờ hạn 10 s), 0 thu_gl_* sót  — thoát null (SIGTERM) · đã thấy giả lập con: true · đóng sau tín hiệu 30 ms · sót: thu_gl_T56L85
-  ✗ DON SIGINT giữa bài (giả lập con đang chạy) → thoát 130 trong < 9 s (dừng giả lập con, không chờ hạn 10 s), 0 thu_gl_* sót  — thoát null (SIGINT) · đã thấy giả lập con: true · đóng sau tín hiệu 33 ms · sót: thu_gl_ktjlCM
+  ✗ DON con het: thoát 0, đã tạo TAM (thu_gl_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống  — thoát 0 · TAM con: /tmp/thu_gl_YoNCYd/tmp_con/thu_gl_O4NJFr · còn: thu_gl_1254_x, thu_gl_1956_x, thu_gl_O4NJFr
+  ✗ DON con nem: thoát 1, đã tạo TAM (thu_gl_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống  — thoát 1 · TAM con: /tmp/thu_gl_YoNCYd/tmp_con/thu_gl_yftBzZ · còn: thu_gl_1254_x, thu_gl_1956_x, thu_gl_O4NJFr, thu_gl_yftBzZ
   145 đạt · 3 hỏng
 
 $ node tu_chay/thu_cong.js   → thoát 1   (LẦN 4 — vòng sửa 2: chế độ con qua argv, bỏ ca "THU_CONG_CON lạc")
@@ -21,11 +22,10 @@ thu_cong: 336 phép · 2 chỗ hỏng
   ✗ TU-CHAY-7 A2 con nem: thoát 1, đã tạo TAM (thu_cong_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống — thoát 1 · TAM con: /tmp/thu_cong_GPnTdm/tmp_con/thu_cong_rKLq7v · còn: thu_cong_1164_x, thu_cong_15458_x, thu_cong_YRdJlP, thu_cong_rKLq7v
   ĐỎ — 2 chỗ hỏng
 
-Ghi: ca "DON chạy hết (--chi-du-lieu-tay)" XANH trên gốc — đúng ý: ca K5 (đường thoát bình thường vẫn dọn), đột biến VS-TUCHAY7-DON-GL-QUEN-EXIT bắt nó.
-Phép "con cháu còn sống" đã BỎ ở vòng sửa 1 (xanh cả trên gốc — không phải bằng chứng; đỏ oan khi giết lúc chưa có con). Vế "dừng con": CHƯA KIỂM.
+Ghi: các ca DON tín hiệu (SIGTERM / SIGINT / "< 9 s" / chạy hết) của vòng 0–3 đã BỎ ở vòng sửa 4 (Q3c) — thay bằng ca "con het / nem" như thu_cong.
 
 SỐ CA cong_cu/thu_TOCDO1.js: 54
-SỐ CA cong_cu/thu_gia_lap.js: 149
+SỐ CA cong_cu/thu_gia_lap.js: 148
 SỐ CA tu_chay/thu_cong.js: 337
 
 Trên code đã vá (vòng sửa 2): thu_cong 336 phép · 0 chỗ hỏng (92,9 s chạy riêng); thu_gia_lap 148 đạt · 0 hỏng (DON đóng sau 2,3–2,4 s); thu_TOCDO1 54 đạt · 0 hỏng.
@@ -34,3 +34,5 @@ thu_TOCDO1 ĐỎ ở C1, D0. tu_chay/thu_cong.js không thuộc thu_muc_bai_thu 
 Vòng sửa 3: mỗi bài thêm 1 phép tĩnh "chế độ con không vào bằng biến môi trường *_CON" → thu_cong 337 phép · 0 (96 s chạy riêng), thu_gia_lap
 149 đạt · 0. Hai phép này XANH trên bản gốc dựng (hạ tầng thử giữ cờ argv) — bằng chứng là đột biến VS-TUCHAY7-CON-QUA-ENV / VS-TUCHAY7-GL-CON-QUA-ENV
 (đưa đúng cơ chế biến môi trường của vòng 0–1 trở lại → đỏ). Các ca đỏ trên gốc ở trên không đổi.
+Vòng sửa 4 (Q3c): thu_gia_lap trên code đã vá 148 đạt · 0 hỏng (DON: phép tĩnh + con het + con nem thay 4 ca tín hiệu); trên gốc dựng
+đỏ C3f + DON con het + DON con nem (145 đạt · 3 hỏng, trên).

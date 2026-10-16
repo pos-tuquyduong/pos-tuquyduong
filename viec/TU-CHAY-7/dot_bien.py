@@ -47,6 +47,8 @@ MOC = "    canhBao(`chú thích trỏ số dòng cứng ≤ ${NGUONG_DONG_CUNG}`
 DON_PID = ("for (const d of fs.readdirSync(os.tmpdir())) {\n  const pid = +(/^thu_cong_(\\d+)_/.exec(d) || [])[1];\n  if (!pid) continue;\n"
            "  try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch {} }\n}\n")
 A2C = r'✗ TU-CHAY-7 A2 con het'
+A2G = r'✗ DON con het'
+DON_PID_GL = DON_PID.replace('thu_cong_', 'thu_gl_')
 
 # (tên, file, [(chuỗi gốc, chuỗi thay, số lần khớp)], [bài], regex dòng phải thấy)
 DOT_BIEN = [
@@ -61,19 +63,12 @@ DOT_BIEN = [
   ('VS-TUCHAY7-DON-TAM-KHONG-PID', TC, [("`thu_cong_${process.pid}_`", "'thu_cong_'", 1)], ['thu_cong'], A2C),
   # soát vòng 3 lỗi 5: chế độ con vào bằng biến môi trường (đúng cơ chế cũ của vòng 0–1) → phép tĩnh bắt
   ('VS-TUCHAY7-CON-QUA-ENV', TC, [("[process.argv[2]]", "[process.env.THU_CONG_CON]", 1)], ['thu_cong'], r'✗ TU-CHAY-7 A2 chế độ con chỉ vào bằng cờ argv'),
-  # ── A2 thu_gia_lap.js: exit + SIGINT/SIGTERM ──
-  ('BV-TUCHAY7-DON-GL-TINHIEU', GL, [("for (const t of ['SIGINT', 'SIGTERM']) {\n  process.on(t, () => {", "for (const t of []) {\n  process.on(t, () => {", 1)],
-   ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
-  ('VS-TUCHAY7-DON-GL-CHI-SIGINT', GL, [("for (const t of ['SIGINT', 'SIGTERM']) {", "for (const t of ['SIGINT']) {", 1)], ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
-  # dừng giả lập con khi bị ngắt (soát vòng 2 lỗi 6): không dừng → handler chờ đủ 10 s (đo bản vá: đóng sau 2,3–2,4 s) → ca "< 9 s" ĐỎ tất định
-  ('BV-TUCHAY7-DON-GL-KHONG-DUNG-CON', GL, [("    for (const c of CON) c.kill('SIGTERM');\n    setInterval(", "    setInterval(", 1)], ['thu_gia_lap'],
-   r'✗ DON SIGTERM giữa bài'),
-  ('VS-TUCHAY7-DON-GL-DUNG-MOT-CON', GL, [("    for (const c of CON) c.kill('SIGTERM');\n    setInterval(", "    for (const c of [...CON].slice(0, 1)) c.kill('SIGTERM');\n    setInterval(", 1)],
-   ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
-  ('VS-TUCHAY7-GL-CON-QUA-ENV', GL, [("if (!process.argv.includes('--con')) {", "if (!process.env.THU_GL_CON) {", 1)], ['thu_gia_lap'],
-   r'✗ DON chế độ con chỉ vào bằng cờ argv'),
-  ('VS-TUCHAY7-DON-GL-QUEN-EXIT', GL, [("process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true, maxRetries: 5 }); } catch { /* bỏ qua */ } });\n", '', 1)],
-   ['thu_gia_lap'], r'✗ DON chạy hết'),
+  # ── A2 thu_gia_lap.js (Q3c — như thu_cong): exit + pid ──
+  ('BV-TUCHAY7-DON-EXIT-GL', GL, [("process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true }); } catch {} });\n", '', 1)], ['thu_gia_lap'], A2G),
+  ('BV-TUCHAY7-DON-PID-CHET-GL', GL, [(DON_PID_GL, '', 1)], ['thu_gia_lap'], A2G),
+  ('VS-TUCHAY7-DON-CA-PID-SONG-GL', GL, [("try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try {", "{ try {", 1)], ['thu_gia_lap'], A2G),
+  ('VS-TUCHAY7-DON-TAM-KHONG-PID-GL', GL, [("`thu_gl_${process.pid}_`", "'thu_gl_'", 1)], ['thu_gia_lap'], A2G),
+  ('VS-TUCHAY7-GL-CON-QUA-ENV', GL, [("[process.argv[2]]", "[process.env.THU_GL_CON]", 1)], ['thu_gia_lap'], r'✗ DON chế độ con chỉ vào bằng cờ argv'),
   # ── A3 kiem_tra E15: chú thích số dòng cứng ──
   ('BV-TUCHAY7-DONG-CUNG-BO-CANH', KIEM, [(MOC, "    pass(`chú thích trỏ số dòng cứng ≤ ${NGUONG_DONG_CUNG}`", 1)], ['thu_TOCDO1'], r'✗ D2 '),
   ('VS-TUCHAY7-DONG-CUNG-GACH', KIEM, [("const SO = /\\(:\\d+\\)|:\\d+[–-]\\d+/;", "const SO = /\\(:\\d+\\)|:\\d+-\\d+/;", 1)], ['thu_TOCDO1'], r'✗ D3 '),

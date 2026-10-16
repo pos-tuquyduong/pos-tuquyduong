@@ -905,13 +905,12 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 - **A1** bộ kiểm chạy `thu_cong.js` với cờ `canhGan` (hạn 120 s giữ nguyên): xanh mà quá 80 % hạn → CẢNH BÁO nêu số giây. Đo chạy
   riêng 88,9–94,6 s (74–79 %, số đo ghi ở viec/TU-CHAY-7/trang_thai.md) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
   hàm `chayBaiThat` THẬT trên bài giả 85 % hạn giả; `thu_gia_lap.js` C3f khoá tập ba bài bật cờ.
-- **A2** thư mục tạm khi bị ngắt. `thu_gia_lap.js` (bất đồng bộ): `process.on('exit')` dọn TAM, SIGINT/SIGTERM → dừng giả lập con
-  (SIGTERM, 10 s rồi SIGKILL) rồi thoát 130 — không dừng con thì con ghi lại vào TAM sau khi dọn (đo 2/3 lần sót). `thu_cong.js` (đồng
-  bộ liền một mạch): hàm nghe tín hiệu không chạy kịp và còn gỡ chết-ngay mặc định (= nới hạn `spawnSync`) → chỉ `exit` (cả khi ném),
-  TAM đặt `thu_cong_<pid>_`, đầu lần chạy dọn thư mục của pid ĐÃ CHẾT (chủ quán chốt Q2a). Bài thử: mỗi bài tự chạy chính nó làm con
-  (TMPDIR riêng; chế độ con của thu_cong qua cờ argv `--con-het`/`--con-nem` — biến môi trường thì lọt từ shell, làm bài thoát 0
-  sớm — cả hai bài khoá bằng phép tĩnh "không đọc biến môi trường *_CON"; thu_gia_lap dùng cờ `--con`). Ca DON đòi đóng < 9 s sau tín hiệu: không dừng con thì
-  handler chờ đủ 10 s.
+- **A2** thư mục tạm khi bị ngắt — `thu_cong.js` và `thu_gia_lap.js` CÙNG một cách (chủ quán chốt Q2a, Q3c): KHÔNG bắt tín hiệu
+  (thu_cong đồng bộ: hàm nghe không chạy kịp; cả hai: bắt tín hiệu thì gỡ chết-ngay mặc định → `spawnSync` của bộ kiểm hết hạn vẫn phải
+  chờ bài dọn con = nới hạn 120 s), chỉ `process.on('exit')` (cả khi ném); TAM đặt `thu_cong_<pid>_` / `thu_gl_<pid>_`, đầu lần chạy dọn
+  thư mục của pid ĐÃ CHẾT, giữ của pid còn sống. Bị giết thì sót tới lần chạy sau. Bài thử: mỗi bài tự chạy chính nó làm con qua cờ argv
+  `--con-het` / `--con-nem` (TMPDIR riêng có sẵn thư mục của pid chết + pid sống); phép tĩnh "không đọc biến môi trường *_CON" — biến
+  thì lọt từ shell / cổng, làm bài thoát 0 sớm.
 - **A3 phép tĩnh E15** chú thích trỏ số dòng cứng (dạng ngoặc-hai-chấm-số và khoảng số sau hai chấm) trong `server/**`, `client/src/**`,
   `cong_cu/thu_*.js`, `tu_chay/*.js`: bánh cóc theo DÒNG `NGUONG_DONG_CUNG` (4 lúc đặt), mọc → CẢNH BÁO liệt kê `file:dòng`, giảm → nhắc
   hạ; không FAIL. Bài thử: `thu_TOCDO1.js` mục D cắt vùng từ hằng tới hết khối gọi, chạy với `doc` / `liet` giả + kho thật.

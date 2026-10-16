@@ -35,8 +35,9 @@
 |---|---|---|
 | A1 kiem_tra lời gọi thu_cong | BV-TUCHAY7-CANH-THUCONG · VS-TUCHAY7-CANH-FALSE · VS-TUCHAY7-HAN-NOI | thu_TOCDO1 C1 · C1 · C2 |
 | A2 thu_cong.js exit / pid | BV-TUCHAY7-DON-EXIT-THUCONG · BV-TUCHAY7-DON-PID-CHET · VS-TUCHAY7-DON-CA-PID-SONG · VS-TUCHAY7-DON-TAM-KHONG-PID | thu_cong "TU-CHAY-7 A2 con het" |
-| A2 thu_gia_lap.js tín hiệu / exit | BV-TUCHAY7-DON-GL-TINHIEU · VS-TUCHAY7-DON-GL-CHI-SIGINT · VS-TUCHAY7-DON-GL-QUEN-EXIT | DON SIGTERM · DON SIGTERM · DON chạy hết |
-| A2 thu_gia_lap.js dừng giả lập con (vòng sửa 2) | BV-TUCHAY7-DON-GL-KHONG-DUNG-CON · VS-TUCHAY7-DON-GL-DUNG-MOT-CON | DON SIGTERM "< 9 s" (bản vá đóng sau 2,3–2,4 s; không dừng con → chờ đủ 10 s) |
+| A2 thu_gia_lap.js exit / pid (vòng sửa 4, Q3c) | BV-TUCHAY7-DON-EXIT-GL · BV-TUCHAY7-DON-PID-CHET-GL · VS-TUCHAY7-DON-CA-PID-SONG-GL · VS-TUCHAY7-DON-TAM-KHONG-PID-GL | thu_gia_lap "DON con het" |
+| chế độ con qua argv (vòng sửa 3) | VS-TUCHAY7-CON-QUA-ENV · VS-TUCHAY7-GL-CON-QUA-ENV | thu_cong / thu_gia_lap phép tĩnh "không đọc biến môi trường *_CON" |
+| (đã bỏ ở vòng sửa 4 — cơ chế tín hiệu không còn) | VS-TUCHAY7-DON-GL-CHI-SIGINT · BV-TUCHAY7-DON-GL-TINHIEU · VS-TUCHAY7-DON-GL-QUEN-EXIT · BV-TUCHAY7-DON-GL-KHONG-DUNG-CON · VS-TUCHAY7-DON-GL-DUNG-MOT-CON | — |
 | A3 kiem_tra E15 | BV-TUCHAY7-DONG-CUNG-BO-CANH · VS-TUCHAY7-DONG-CUNG-GACH · VS-TUCHAY7-DONG-CUNG-NGUONG · VS-TUCHAY7-DONG-CUNG-LAN · VS-TUCHAY7-DONG-CUNG-FAIL · VS-TUCHAY7-DONG-CUNG-VUNG · VS-TUCHAY7-DONG-CUNG-CA-DONG | D2 · D3 · D1 · D7 · D9 · D8 · D4 |
 | A4 KHUON_LOI (chữ) | BV-TUCHAY7-KHUONLOI-SO-BANG · BV-TUCHAY7-KHUONLOI-VI-TU · BV-TUCHAY7-KHUONLOI-TUNG-TEN · BV-TUCHAY7-KHUONLOI-101-DONG | kiem_chu (bài trong dot_bien.py) |
 | A5 PHIEN_BAN / THIET_KE (chữ) | BV-TUCHAY7-PHIENBAN-CU · BV-TUCHAY7-THIETKE | thu_cong_cu E3 + thu_nguoi_gac · kiem_chu |
@@ -258,6 +259,16 @@ BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của
    máy bận là kêu (đúng thiết kế A1; chia lượt thu_cong ở Phát hiện nay là việc cần làm sớm).
 5. Nghi ngờ E15 đếm giờ dạng `7:00-22:00`: đúng — chỉ CẢNH BÁO; ghi Phát hiện. Tên VS-…-QUEN-EXIT: giữ (đổi tên = đổi bảng A17, không thêm giá trị).
 
+## Vòng sửa 4 (chủ quán chốt Q3 = c, 16.10.2026)
+- Bước 1: HEAD 6aed984 · FETCH_HEAD 6aed984 → bằng nhau, không kéo (6aed984 TU-CHAY-7 soat vong 3: ket qua kiem … · 90bc4ba … · 0e0d631 …).
+- `cong_cu/thu_gia_lap.js`: bỏ CON / NGAT / bắt SIGINT-SIGTERM / chayDon / moTaDon / 4 ca DON tín hiệu; thêm khuôn thu_cong.js: vòng dọn
+  `thu_gl_<pid chết>_*` đầu bài, TAM `thu_gl_<pid>_`, `process.on('exit')`, chế độ con `--con-het` / `--con-nem`, ca "DON con het / nem"
+  (TMPDIR riêng có sẵn thư mục pid chết + pid sống). −19 dòng ròng. Không còn nới hạn: bị giết thì chết ngay (hành vi mặc định), sót tới
+  lần chạy sau. Gốc dựng: ĐỎ C3f + DON con het + DON con nem (bang_chung_do LẦN 5); bản vá 148 đạt · 0.
+- Lỗi soát vòng 3 số 1 (ca "< 9 s" đỏ oan máy 1 lõi) và 6 (nới hạn) HẾT theo cơ chế — không còn ca đo giờ, không còn handler.
+- dot_bien.py: bỏ 5 đột biến tín hiệu, thêm 4 đột biến exit/pid cho thu_gia_lap (khuôn thu_cong) — 26 tên, mọi neo khớp đúng số lần.
+- THIET_KE A2 viết lại: hai bài cùng một cách.
+
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.
 - `node cong_cu/thu_TOCDO1.js`: 1,7 s (42 đạt) — bộ kiểm không gọi bài này qua `chayBaiThat` (chỉ nhắc ở chú thích `kiem_tra :529`, `:602`).
@@ -275,7 +286,7 @@ BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của
 8. C1 dùng cặp 4,25 s / 5 s (bản 1: 1,7 / 2 s dư quá mỏng).
 
 ## Câu hỏi
-- **Q3 (A2 thu_gia_lap.js × Cấm "Không nới hạn 120 s/110 s") — soát vòng 1 đã nêu, vòng 3 chỉ ra tôi TỰ QUYẾT, chưa hỏi:** thu_gia_lap bắt
+- **Q3 — ĐÃ CHỐT (c), lệch chữ phiếu A2 được duyệt, cho thêm một vòng sửa + soát (vòng 4) — (A2 thu_gia_lap.js × Cấm "Không nới hạn 120 s/110 s") — soát vòng 1 đã nêu, vòng 3 chỉ ra tôi TỰ QUYẾT, chưa hỏi:** thu_gia_lap bắt
   SIGINT/SIGTERM (đúng phiếu A2, chủ quán chốt "làm đúng phiếu" ở lượt tiep), nhưng muốn không sót thư mục thì handler phải DỪNG giả lập con và
   CHỜ chúng đóng (đo: 2,3–2,4 s; tối đa 10 s rồi SIGKILL). Khi bộ kiểm hết hạn 120 s (`spawnSync` gửi SIGTERM) bài còn chạy thêm tới 10 s → hạn
   thật tới 130 s. Không chờ thì sót `thu_gl_*` (đo: 1/3–2/3 lần). Ca DON "< 9 s" còn có thể đỏ oan trên máy 1 lõi (con kẹt khởi động > 10 s — chú
