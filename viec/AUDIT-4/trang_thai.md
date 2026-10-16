@@ -266,5 +266,15 @@ AUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, k
 Đối chiếu báo cáo: Δ doanh thu 800.000 = tổng total 4 đơn; Δ đơn 3 = 4 − 1 đơn giao từ gói 0đ. **0 NẶNG-code, 0 rác** ở A6 (không đường nào tạo đơn
 0 dòng). Điểm khi mua thẻ / gói: không quyết thay chủ quán — ghi Phát hiện (đối soát: điểm theo `total`, không theo loại hàng).
 
+## D — XONG (D1 `bao_cao.md` 75 dòng · D2 `bang_chung_do.txt` · D3 dưới)
+- `npm test` (HEAD `abb73b8`, 121,8 s): thoát 0 · "Qua hết" · ĐẾM PASS 64 · FAIL 0 · CẢNH BÁO 1 — cảnh báo có sẵn "route GET có lệnh ghi (3) —
+  packages.js:194, products.js:57, sync.js:147" (LUOI-3 cũng ghi; việc này không đổi `server/`).
+- `node kiem_tra_truoc_khi_giao.js --day-du` (204,8 s): thoát 0 · "Qua hết" · PASS 68 · FAIL 0 · CẢNH BÁO 1 (cùng cảnh báo).
+- `git diff --stat d8e256e HEAD -- ':!viec/AUDIT-4/'` rỗng; `git diff --stat d8e256e HEAD -- viec/AUDIT-3` rỗng; `git status --short` rỗng sau mọi lệnh.
+- Thử ngắt (`ngat.py` nháp — tín hiệu gửi giữa chừng, đếm `/tmp` trước / sau, so `git status`):
+  `boc.py GOI-1` SIGINT / SIGTERM sau 15 s → thoát 130 · 0 sót · git sạch; `dot_bien.py` SIGINT / SIGTERM sau 15 s → 130 · 0 · sạch;
+  `don_rong.js` SIGINT / SIGTERM sau 0,3 s và 0,8 s → 130 · 0 · sạch (lần đầu ngắt ở 1,5 s thì bài đã chạy xong — thoát 0, ca không kích hoạt
+  được, K3 → làm lại sớm hơn). Sót duy nhất cả việc: `/tmp/thu_gl_zTxA7g` (A5, AU4-13) — chủ quán dọn `rm -rf /tmp/thu_gl_zTxA7g`.
+
 ## Nhóm đã xong
-A1 · A3 · A2 · A4 · A5 · A6
+A1 · A3 · A2 · A4 · A5 · A6 · D1 · D2 · D3
