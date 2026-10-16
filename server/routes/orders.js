@@ -29,6 +29,7 @@ const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
+const { kiemDonCuaMa } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem
 
 const router = express.Router();
 
@@ -504,6 +505,18 @@ router.post("/", authenticate, async (req, res) => {
       );
 
       if (codeRecord) {
+        // P20b: voucher sinh từ mã in bill (cùng `code` với dòng pos_signup_codes ĐÃ claim) chỉ dùng được khi đơn gốc còn
+        // completed + paid — cùng hàm kiểm với /claim, /nhan-diem. `claimed_at IS NOT NULL`: mã tay / voucher đổi điểm có thể
+        // trùng chữ với mã bill chưa claim (mỗi nguồn chỉ kiểm trùng trong bảng mình) — không được chặn nhầm. Trả về TRƯỚC
+        // giao dịch → không tạo đơn, used_count không tăng.
+        const maBill = await queryOne(
+          "SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL",
+          [codeRecord.code],
+        );
+        if (maBill) {
+          const kqDon = await kiemDonCuaMa(maBill);
+          if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: "MA_DON_GOC_KHONG_HOP_LE" });
+        }
         // Kiểm tra hiệu lực
         // BUG-FIX (09.08.2026): trước đây dùng new Date().toISOString() = giờ UTC, lệch 7 tiếng
         // so với giờ Việt Nam — sửa bằng cách dùng đúng hàm dùng chung getToday() (đã có sẵn

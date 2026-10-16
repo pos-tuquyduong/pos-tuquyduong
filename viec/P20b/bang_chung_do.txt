@@ -1,0 +1,15 @@
+# P20b — bằng chứng ĐỎ: node cong_cu/thu_P20.js trên code gốc (server/routes/orders.js + signup-codes.js của 568b044, chưa vá) — thoát 1
+# Lần chạy lại 16.10 sau khi gọn bài thử theo soát độc lập (bỏ require helpers / getNow trong [G]) — số y lần đầu (66 đạt · 9 hỏng).
+# Chỉ giữ dòng ✗, tiêu đề mục [G] và dòng tổng; G4/G5/G7 (K5) xanh trên gốc như dự tính.
+[G] P20b — voucher sinh từ mã bill chỉ dùng được ở POST /orders khi đơn gốc còn completed + paid
+  ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+  ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+  ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+  ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+  ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+  ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+  ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+  ✗ G3 đơn gốc payment_status ≠ paid: không có đơn mới  — trước 22 · sau 23
+  ✗ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0  — 1
+  66 đạt · 9 hỏng
+SỐ CA cong_cu/thu_P20.js: 75
