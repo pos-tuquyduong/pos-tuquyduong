@@ -36,7 +36,7 @@ Chọn A — đúng chỗ `bao_cao.md` AUDIT-4 đề xuất; N2 + N3 cùng DỮ 
 ### Phần B — N7 (AU4-8: bài không sập khi một ca lấy-từ-gói đỏ)
 | | A (chọn) | B |
 |---|---|---|
-| cách | (1) `so` (`thu_GOI1.js:90`) trả `NaN` khi có tham số `undefined` / `null` hoặc số không hữu hạn (1 dòng) — A2k, A6f và mọi ca đọc theo id rỗng đi tiếp, ca vẫn ✗ vì `NaN !== x`; (2) helper `dung(r, ten)`: lấy-từ-gói ở bước dựng hỏng → in `✗ dựng <ten>` (đếm hỏng) rồi đi tiếp, thay 6 `throw` CÙNG KHUÔN (K4): `:150` coGoi (kèm `:151` chỉ gán `donLay` khi 200), `:497` B1, `:626` B3e2 — ba chỗ NỔ dưới đột biến; `:493`, `:576`, `:599` (lấy 10/15, không chạm biên) đổi cho đồng khuôn, ngoài phần bắt buộc | bọc từng khối A2 bằng `try/catch` → không cứu B1 / B3e2 (khối khác), ~20 dòng |
+| cách | (1) `so` (`thu_GOI1.js:90`) trả `NaN` khi có tham số `undefined` hoặc số không hữu hạn (KHÔNG chặn `null`: `soDong` `:504–505` truyền `sdt` mặc định null hợp lệ — sửa ở bước 5, soát vòng 1 bắt hồ sơ lệch) (1 dòng) — A2k, A6f và mọi ca đọc theo id rỗng đi tiếp, ca vẫn ✗ vì `NaN !== x`; (2) helper `dung(r, ten)`: lấy-từ-gói ở bước dựng hỏng → in `✗ dựng <ten>` (đếm hỏng) rồi đi tiếp, thay 6 `throw` CÙNG KHUÔN (K4): `:150` coGoi (kèm `:151` chỉ gán `donLay` khi 200), `:497` B1, `:626` B3e2 — ba chỗ NỔ dưới đột biến; `:493`, `:576`, `:599` (lấy 10/15, không chạm biên) đổi cho đồng khuôn, ngoài phần bắt buộc | bọc từng khối A2 bằng `try/catch` → không cứu B1 / B3e2 (khối khác), ~20 dòng |
 | số dòng | ~8 | ~20 |
 | số ca | KHÔNG đổi khi xanh (`dung` chỉ in khi hỏng) | như A |
 
@@ -117,5 +117,5 @@ cài đặt chung (trừ B3r cố ý lệch I19 — đặt cuối bài, sau mọ
    đột biến (`:150`, `:497`, `:626`); `:493`, `:576`, `:599` giữ đổi cho đồng khuôn K4, ghi rõ ngoài phần bắt buộc. A2p2 thừa về lý thuyết
    (SQLite GROUP BY theo khoá) — giữ làm bảo hiểm.
 3. Số học: N1–N6 tự tính lại khớp. Lỗi chặn: B3r làm B7j (I19) đỏ trên gốc → dời B3r ra cuối bài. N5: chèn dòng loại KIA trước ở cả hai
-   ca; lập luận theo thứ tự khoá. N7: thêm A6f, A5d2, B7h, `:151`; `so` chặn cả `undefined`; ghi trước các ca đỏ thêm đúng thiết kế.
+   ca; lập luận theo thứ tự khoá. N7: thêm A6f, A5d2, B7h, `:151`; `so` chặn cả `undefined` (không chặn `null` — xem Phần B); ghi trước các ca đỏ thêm đúng thiết kế.
 4. Song song: A6f (AU4-8); mặt gộp `xin` của AU4-6 → Phát hiện.

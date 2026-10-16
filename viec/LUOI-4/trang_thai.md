@@ -75,13 +75,55 @@ Chỗ "vá" (ca) → đột biến (A17, A18 — mọi tên đột biến của 
 ## Bước 6 — kiểm
 - `npm test` PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn trên nền); `node kiem_tra_truoc_khi_giao.js --day-du` PASS 68 · FAIL 0 · CẢNH BÁO 1.
 - Đo riêng 3 lần (hạn 120 s, 80 % = 96 s): P26c 4,09 / 4,54 / 4,12 s · GOI1 3,70 / 3,57 / 3,59 s.
-- Diff `c9595f5..HEAD`: thu_GOI1 +93 −9, thu_P26c +40, dot_bien.py +74 = 198 dòng (ngân sách 120–200; kế hoạch ước 130 — GOI1 vượt ước
+- Diff `c9595f5..HEAD` (`git diff --numstat`): thu_GOI1 +84 −9, thu_P26c +40, dot_bien.py +74 = 198 dòng thêm (soát vòng 1 sửa: bản đầu ghi "+93" lấy nhầm tổng dòng đổi) (ngân sách 120–200; kế hoạch ước 130 — GOI1 vượt ước
   vì helper dựng loại `tea` + INSERT "đã lấy" + chống id rỗng). 0 dòng `server/`, `client/`, `viec/AUDIT-4/`.
+
+## Bước 8 — /ra-soat vòng 1 (agent độc lập, nguyên văn)
+```
+ĐẠT
+LỖI TÌM ĐƯỢC:
+- cong_cu/thu_GOI1.js:312–313 — NE1 viết cứng `sx_product_id: 1`; ca dựa vào việc CT1 (sp[0]) cũng có id SX = 1 mà KHÔNG khẳng định điều đó. Hạt giống đổi id CT1 thì A2o/A2p/A2p2 vẫn xanh trên gốc nhưng thôi canh khoá loại → xanh oan im lặng. Gọn: dùng `sp[0].sx_product_id` cho NE1 — K3 (đầu vào phải đủ điều kiện kích hoạt). Hiện đúng: đột biến làm A2o đỏ, tức id CT1 = 1.
+- viec/LUOI-4/ke_hoach.md:39 (và :120 "chặn cả undefined") — ghi `so` trả NaN khi tham số `undefined / null`, code thu_GOI1.js:90–91 chỉ chặn `undefined` và số không hữu hạn. Code đúng (chặn null sẽ phá `soDong` :504–505, sdt mặc định null), nhưng hồ sơ lệch code và trang_thai không ghi chỗ đổi — K1.
+- viec/LUOI-4/trang_thai.md mục Bước 6 — ghi "thu_GOI1 +93 −9"; `git diff --numstat c9595f5 HEAD` ra 84 thêm · 9 bớt (93 là tổng dòng đổi). Tổng 198 vẫn đúng (84+40+74) — K1 (số trích sai nhãn).
+NGHI NGỜ:
+- coGoi trả `donLay: null` khi dựng hỏng (thu_GOI1.js:152). `so` không chặn null, nên một ca sau này gọi `so(..., [g.donLay])` với COUNT/SUM sẽ ra 0 và có thể xanh oan. Hiện chưa có (donLay chỉ đi vào `huy` :225/:466/:874 và `db.run` :365/:545); bài vẫn đỏ nhờ dòng "✗ dựng".
+- Đường sập còn lại cùng khuôn AU4-8: `ttGoi`/`mot` nhận NaN thì libsql ném; `(await ttGoi(x)).status` khi không có dòng thì TypeError (:458, :594, :853). Dưới 7 đột biến không bị kích hoạt (ngắn mạch `&&` hoặc cp lấy từ coGoi hợp lệ); dưới đột biến khác chưa rà.
+- thu_P26c.js:155–165 `goiDaLay` còn ném — đã ghi Phát hiện, đúng phạm vi phiếu.
+NGHIỆM THU:    9/9 mục có bằng chứng · mục thiếu: không
+- N0: bảng trong trang_thai, tôi chạy lại TRƯỚC khớp.
+- N1–N6: mỗi ca đỏ đúng mẫu dưới đột biến của nó. Số tự tính lại khớp: 20.454 / 257.142 / 257.142 / 290.461 / A2o 2→200, A2p 400 / sàn 0 (−20.000 trên đột biến).
+- N7: BẮT, 95 đạt · 19 hỏng, không sập. Hai phần của bản sửa đã được chứng minh riêng.
+- N8: 3/8 bộ chạy lại khớp, `npm test` xanh. Số thời gian và `--day-du` chỉ đọc từ trang_thai.
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy lại N8 các bộ GOI-2, SO-LUONG-1, BAN-HANG-1, AUDIT-3, LUOI-2 (AUDIT-2 -j 4).
+- Chưa chạy `node kiem_tra_truoc_khi_giao.js --day-du`.
+- Chưa đo lại thời gian 3 lần.
+- Chưa thử các đột biến "nới phép" khác ngoài 7 tên + 3 phép tôi tự dựng (vd làm tròn Math.round: theo phép tính sẽ bị N1a/N2a/B3q bắt, nhưng chưa chạy).
+- Mục 5 (đường tiền) và 6 (P1): `git diff --stat c9595f5^ HEAD -- server client viec/AUDIT-4 tu_chay kiem_tra_truoc_khi_giao.js KHUON_LOI.md` rỗng → 0 dòng code quầy, không đụng client/src, dist không cần build.
+BÀI HỌC:
+- KHOÁ (bài thử): ca phân biệt hai loại theo khoá ghép phải dựng đầu vào TỪ dữ liệu của loại kia (`sp[0].sx_product_id`), không viết cứng số trùng — hoặc khẳng định điều kiện trùng ngay trong ca.
+- NGUYÊN TẮC (K3/N7): helper "ca hỏng không làm sập bài" phải được chứng minh RIÊNG từng phần — gỡ một phần, giữ phần kia, chạy dưới đột biến; ca "bảo hiểm" (A2p2) cần một đột biến tất định làm nó đỏ, không ghi "thừa về lý thuyết".
+- NGUYÊN TẮC (K1): khi code đi lệch kế hoạch (null ra khỏi phép chặn của `so`), ghi chỗ lệch vào trang_thai cùng commit; số dòng diff lấy từ `--numstat`, không từ `--stat`.
+```
+Kèm (ngoài khung): đã tự chạy `--truoc` trên `git archive 0a03b24` (6 SỐNG + 1 HỎNG-sập — khớp), N8 P26c / GOI-1 / LUOI-3 (bằng nền); ba đột biến
+tự dựng: chỉ trả `so` cũ → SẬP; chỉ trả `throw` coGoi → SẬP (cả hai phần N7 cần); khoaLoai bỏ kiểu + `daLayTheoLoai` ORDER BY kiểu DESC → A2o +
+A2p2 ĐỎ, A2p xanh (A2p2 là bảo hiểm thật). Rườm rà (mục 8): `layP` / `daLayP` (thu_GOI1.js:322–325) gần trùng `lay` / `daLayLoai` (:136–140).
+
+### Vòng sửa 1 (`381d9ae` + commit này)
+- Lỗi 1: NE1 lấy `sp[0].sx_product_id` (thu_GOI1.js:311–314) → GOI1 110/0; `dot_bien.py` 7/7 BẮT (`bang_chung_do.txt` mục 3).
+- Lỗi 2: `ke_hoach.md` Phần B + mục 7 ghi đúng `so` KHÔNG chặn `null` (lệch kế hoạch đổi ở bước 5 vì `soDong` truyền null hợp lệ).
+- Lỗi 3: số dòng theo `--numstat` (mục Bước 6).
+- Rườm rà `layP` / `daLayP`: KHÔNG gộp — gộp phải sửa `lay` / `daLayLoai` cũ mà hàng chục ca cũ dùng (rủi ro đổi nghĩa ca cũ lớn hơn 4 dòng
+  trùng); để việc dọn sau (Phát hiện).
+- Nghi ngờ `donLay: null` / `ttGoi` NaN: chưa ca nào bị kích hoạt dưới 7 đột biến; cùng khuôn AU4-8 rộng hơn N7 → Phát hiện (LUOI-5).
 
 ## Câu hỏi
 (không có)
 
 ## Phát hiện
+- (soát vòng 1) `thu_GOI1.js` còn đường sập cùng khuôn AU4-8 ngoài 7 đột biến: `ttGoi` / `mot` nhận NaN thì libsql ném; `(await ttGoi(x)).status`
+  khi không có dòng → TypeError (:458, :594, :853); `coGoi` trả `donLay: null` — `so(..., [null])` ra 0 có thể xanh oan nếu ca sau dùng.
+- (soát vòng 1) `layP` / `daLayP` (thu_GOI1.js:322–325) gần trùng `lay` / `daLayLoai` (:136–140) — dọn khi có việc sửa helper GOI1.
 - `thu_P26c.js:155–164` `goiDaLay` ném khi lấy-từ-gói ở bước dựng — cùng khuôn AU4-8 (ca đỏ làm cả bài sập) nhưng ngoài N7 (phiếu chỉ
   nêu thu_GOI1 A2); để LUOI-5 / việc sau.
 - `viec/AUDIT-4/boc.py` `DOI_CHUNG` và `viec/AUDIT-4/dot_bien.py` `BAI` là hằng số ca (118 / 105): sau LUOI-4 thêm ca, chạy thẳng hai file
