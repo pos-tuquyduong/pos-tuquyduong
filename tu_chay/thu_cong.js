@@ -21,9 +21,18 @@ let soPhep = 0;
 const chac = (ten, dk, ghi = '') => { soPhep++; if (!dk) hong.push(ten + (ghi ? ' — ' + String(ghi).slice(0, 400) : '')); };
 const doc = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch { return null; } };
 const CONG = path.join(__dirname, 'cong.js');
-const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_cong_')));
+// TU-CHAY-7 A2 (Q2a): TAM mang pid; dọn ở 'exit' (cả khi ném). Bị giết thì lần chạy sau dọn thư mục của pid đã chết.
+for (const d of fs.readdirSync(os.tmpdir())) {
+  const pid = +(/^thu_cong_(\d+)_/.exec(d) || [])[1];
+  if (!pid) continue;
+  try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); }
+}
+const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), `thu_cong_${process.pid}_`)));
+process.on('exit', () => fs.rmSync(TAM, { recursive: true, force: true }));
 fs.mkdirSync(path.join(TAM, 'home'));
 const DAU = path.join(TAM, 'da_chay_code_pr');
+// TU-CHAY-7 A2 — con tự thử của baiDonTam: in TAM (cha đối chứng con đã tạo thư mục), rồi `het` thoát 0 ngay / `nem` ném.
+if (process.env.THU_CONG_CON) { console.log('TAM ' + TAM); if (process.env.THU_CONG_CON === 'nem') throw new Error('nem thu'); process.exit(0); }
 
 function envSach(them = {}) {
   const e = {};
@@ -717,10 +726,26 @@ function baiNapCauHinh() {
   }
 }
 
-for (const bai of [baiYml, baiCong, baiNapCauHinh, baiKhoaCauHinh]) {
+// ═══ TU-CHAY-7 A2 · thư mục tạm: dọn khi thoát / ném; đầu lần chạy dọn thư mục của pid ĐÃ CHẾT, giữ của pid còn sống ═══
+// Bài đồng bộ: hàm nghe SIGINT/SIGTERM không chạy kịp (còn gỡ chết-ngay → nới hạn của bộ kiểm) — lần chạy sau dọn thay (chủ quán chốt Q2a).
+function baiDonTam() {
+  const T = path.join(TAM, 'tmp_con');
+  const chet = spawnSync(process.execPath, ['-e', '']).pid;   // đã thoát khi spawnSync trả về
+  const cu = `thu_cong_${chet}_x`, song = `thu_cong_${process.pid}_x`;
+  for (const [che, ma] of [['het', 0], ['nem', 1]]) {
+    for (const d of [cu, song]) fs.mkdirSync(path.join(T, d), { recursive: true });
+    const r = spawnSync(process.execPath, [__filename], { env: envSach({ TMPDIR: T, THU_CONG_CON: che }), encoding: 'utf8', timeout: 20000 });
+    const tam = /^TAM (.+)$/m.exec(r.stdout || '');
+    const con = fs.readdirSync(T).sort();
+    chac(`TU-CHAY-7 A2 con ${che}: thoát ${ma}, đã tạo TAM (thu_cong_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống`,
+      r.status === ma && !!tam && path.dirname(tam[1]) === T && path.basename(tam[1]).startsWith(`thu_cong_${r.pid}_`) && con.join() === song,
+      `thoát ${r.status}${r.signal ? ' (' + r.signal + ')' : ''} · TAM con: ${tam ? tam[1] : '(không in)'} · còn: ${con.join(', ') || '(rỗng)'}`);
+  }
+}
+
+for (const bai of [baiYml, baiCong, baiNapCauHinh, baiKhoaCauHinh, baiDonTam]) {
   try { bai(); } catch (e) { hong.push(`${bai.name} sập: ` + String(e && e.message || e).split('\n')[0]); }
 }
-fs.rmSync(TAM, { recursive: true, force: true });
 console.log(`thu_cong: ${soPhep} phép · ${hong.length} chỗ hỏng`);
 if (hong.length) {
   for (const h of hong) console.log('  ✗ ' + h);

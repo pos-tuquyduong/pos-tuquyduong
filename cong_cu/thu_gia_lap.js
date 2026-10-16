@@ -22,7 +22,9 @@
  *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7–T9: --kho / --luot lạ → TỪ CHỐI.
  *  D1–D3 (TU-CHAY-5) --kho chỉ qua kênh IPC · lượt con TỪ CHỐI → cha dừng mọi lượt, thoát 3 · đầu ra con đọc bằng utf8.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
- *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
+ *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này + thu_cong.js — TU-CHAY-7 A1).
+ *  DON (TU-CHAY-7 A2) bài này bị SIGTERM / SIGINT giữa chừng (giả lập con đang chạy) → thoát 130, không sót thu_gl_*;
+ *      chạy hết (--chi-du-lieu-tay) → không sót. Con tự thử chạy với THU_GL_CON=1 (bỏ ca DON — chặn đệ quy).
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
  *      tạm — server/ là liên kết về kho thật thì từng ghi XUYÊN (HOC-2b, 08.10).
  *
@@ -40,6 +42,18 @@ const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
 const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
+process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true, maxRetries: 5 }); } catch { /* bỏ qua */ } });
+// TU-CHAY-7 A2: bị ngắt → dừng mọi giả lập con (còn sống thì ghi lại vào TAM sau khi dọn — đo 2/3 lần sót), rồi 'exit' dọn TAM.
+const CON = new Set();
+let NGAT = false;   // đang bị ngắt: luồng chính chạy tiếp tới ket() vẫn thoát 130, con sinh sau đó bị dừng ngay
+for (const t of ['SIGINT', 'SIGTERM']) {
+  process.on(t, () => {
+    NGAT = true;
+    for (const c of CON) c.kill('SIGTERM');
+    setInterval(() => { if (!CON.size) process.exit(130); }, 50);
+    setTimeout(() => { for (const c of CON) c.kill('SIGKILL'); process.exit(130); }, 10000);
+  });
+}
 const SO_KB = 32;   // P26c: + KB30–KB32
 const DONG_DAT = `Giả lập: ${SO_KB} kịch bản · 18 bất biến · ĐẠT`;
 
@@ -49,9 +63,8 @@ const k = (ten, dung, them = '') => {
   if (dung) { dat++; console.log(`  ✓ ${ten}`); } else { hong.push(ten); console.log(`  ✗ ${ten}${them ? '  — ' + them : ''}`); }
 };
 const ket = () => {
-  try { fs.rmSync(TAM, { recursive: true, force: true }); } catch { /* bỏ qua */ }
   console.log(`\n  ${dat} đạt · ${hong.length} hỏng\n`);
-  process.exit(hong.length ? 1 : 0);
+  process.exit(NGAT ? 130 : hong.length ? 1 : 0);
 };
 
 // Môi trường sạch (Q1 b, chủ quán chốt 02.10.2026). TMPDIR riêng để đếm được thư mục tạm của giả lập.
@@ -59,6 +72,7 @@ const SACH = Object.fromEntries(Object.entries(process.env).filter(([t]) => /^(P
 SACH.TMPDIR = TAM;
 const chayGL = (args = [], them = {}, tep = CHAY, stdio = undefined) => new Promise((xong) => {
   const c = spawn(process.execPath, [tep, ...args], { cwd: GOC, env: { ...SACH, ...them }, ...(stdio ? { stdio } : {}) });
+  CON.add(c); c.on('close', () => CON.delete(c)); if (NGAT) c.kill('SIGTERM');
   let ra = '';
   c.stdout.setEncoding('utf8');   // TU-CHAY-5 D3: Buffer cộng từng khúc cắt đôi ký tự nhiều byte (→ \uFFFD)
   c.stderr.setEncoding('utf8');
@@ -68,6 +82,34 @@ const chayGL = (args = [], them = {}, tep = CHAY, stdio = undefined) => new Prom
   c.on('close', (status) => { clearTimeout(hen); xong({ status, ra: ra.replace(/\x1b\[[0-9;]*m/g, '') }); });
 });
 const cuoi = (r) => r.ra.trim().split('\n').pop();
+// TU-CHAY-7 A2 (DON): chạy CHÍNH bài này làm con (THU_GL_CON=1, TMPDIR riêng). tin: giết bằng tín hiệu đó khi giả lập con đang chạy (có
+// gia_lap_* trong thu_gl_*, sâu ≤ 2) · null: chạy hết --chi-du-lieu-tay. Đóng rồi chờ 2 s (giả lập con có thể còn ghi) mới đếm thu_gl_*.
+const chayDon = (tin) => new Promise((xong) => {
+  const T = path.join(TAM, 'don_' + (tin || 'het'));
+  fs.mkdirSync(T);
+  const c = spawn(process.execPath, [__filename, ...(tin ? [] : ['--chi-du-lieu-tay'])], { cwd: GOC, env: { ...SACH, TMPDIR: T, THU_GL_CON: '1' }, stdio: 'ignore' });
+  const coGL = (d, sau) => { try {
+    return fs.readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() && (e.name.startsWith('gia_lap_') || (sau && coGL(path.join(d, e.name), sau - 1))));
+  } catch { return false; } };
+  let thay = false, chau = [];
+  const nhin = tin && setInterval(() => { if (!thay && coGL(T, 2)) { thay = true; chau = conChau(c.pid); c.kill(tin); } }, 100);
+  const hen = setTimeout(() => c.kill('SIGKILL'), 90000);
+  c.on('close', (status, tinHieu) => {
+    clearInterval(nhin); clearTimeout(hen);
+    setTimeout(() => xong({ status, tinHieu, thay, chau, conSong: chau.filter(song), sot: fs.readdirSync(T).filter((f) => f.startsWith('thu_gl_')) }), 2000);
+  });
+});
+const moTaDon = (r) => `thoát ${r.status}${r.tinHieu ? ' (' + r.tinHieu + ')' : ''} · đã thấy giả lập con: ${r.thay} · con cháu lúc giết ${r.chau.length}, `
+  + `còn sống ${r.conSong.join(',') || 0} · sót: ${r.sot.join(', ') || '(không)'}`;
+// mọi tiến trình con cháu của pid (đọc ppid trong /proc/<p>/stat)
+const conChau = (goc) => {
+  const bang = fs.readdirSync('/proc').filter((x) => /^\d+$/.test(x)).map((p) => {
+    try { return [+p, +fs.readFileSync(`/proc/${p}/stat`, 'utf8').replace(/^.*\) /, '').split(' ')[1]]; } catch { return null; }
+  }).filter(Boolean);
+  const ra = [];
+  for (let moi = [goc]; moi.length;) { moi = bang.filter(([, cha]) => moi.includes(cha)).map(([p]) => p); ra.push(...moi); }
+  return ra;
+};
 // TACH-GL: chạy giả lập ĐỦ, theo dõi dòng `lượt k/L pid P` của cha. viec: null (chạy hết) · 'SIGTERM cha' · 'SIGTERM con' ·
 // 'SIGKILL cha' — làm khi mọi lượt đã mở kho (đủ L thư mục gia_lap_* có kho.db: con đã cài xử lý tín hiệu). cungLuc = lúc đó
 // đủ L pid còn sống — lượt chạy tuần tự thì lượt trước đã xoá kho → không bao giờ đủ L (không dùng ngưỡng giờ). TMPDIR riêng.
@@ -79,6 +121,7 @@ const chayTheoDoi = (ten, viec, tep = CHAY) => new Promise((xong) => {
   const tmp = path.join(TAM, ten);
   fs.mkdirSync(tmp);
   const c = spawn(process.execPath, [tep], { cwd: GOC, env: { ...SACH, TMPDIR: tmp } });
+  CON.add(c); c.on('close', () => CON.delete(c)); if (NGAT) c.kill('SIGTERM');
   const pid = [];
   let ra = '', L = 0, daXet = false, cungLuc = false;
   const doc = (d) => { ra += d; for (const m of ra.matchAll(/lượt \d+\/(\d+) pid (\d+)/g)) if (!pid.includes(+m[2])) { pid.push(+m[2]); L = +m[1]; } };
@@ -212,7 +255,7 @@ async function main() {
   // C3g + C3a kẹp tỉ lệ ngưỡng trong (70 %, 90 %); C3h khoá cờ MẶC ĐỊNH bằng hành vi (gọi 3 đối số, không truyền cờ).
   k('C3g bài xanh 3,5 s (70 % hạn giả 5 s, dưới ngưỡng 80 %), cờ bật → xanh, 0 cảnh báo', c3[4].chac.join() === 'true' && !c3[4].canh.length, mo3(c3[4]));
   k('C3h bài xanh 4,5 s, hạn giả 5 s, KHÔNG truyền cờ (mặc định) → xanh, 0 cảnh báo', c3[5].chac.join() === 'true' && !c3[5].canh.length, mo3(c3[5]));
-  // C3f: lời gọi THẬT trong bộ kiểm — đúng hai lời gọi bật cờ (giả lập + bài này), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
+  // C3f: lời gọi THẬT trong bộ kiểm — đúng ba lời gọi bật cờ (giả lập + bài này + thu_cong.js), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
   // (lồng ngoặc, xuống dòng đều được); đối số cờ (thứ tư) chỉ được là chữ true/false viết thẳng — bật qua biến là ĐỎ.
   const doiSo = (i) => { // đối số cấp ngoài của lời gọi mở ngoặc tại i
     const ra = ['']; let sau = 0;
@@ -230,8 +273,8 @@ async function main() {
   const bat = goi.filter((a) => a && a[3] === 'true').map((a) => a[0]).sort().join(' ');
   // Ngưỡng đúng chữ `han * 0.8` (chủ quán chốt 80 %): C3a/C3g chỉ kẹp tỉ lệ trong (70 %, 90 %) — soát chat 08.10 cài 0,75 / 0,85 vẫn SỐNG.
   const nguong80 = (khoi.match(/\bhan \* 0\.8(?![\d.])/g) || []).length;
-  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8',
-    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js'" && !lech.length && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt)
+  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap + thu_cong bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8',
+    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js' 'tu_chay/thu_cong.js'" && !lech.length && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt)
       && nguong80 === 1,
     `bật: ${bat || '(không)'} · ${goi.length} lời gọi · cờ không phải chữ true/false: ${lech.map((a) => (a || ['?'])[0]).join(', ') || '(không)'} · chữ han * 0.8: ${nguong80} lần`);
 
@@ -273,6 +316,15 @@ async function main() {
   const [t3, t4, t5, t6] = await Promise.all([
     chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
   ]);
+  if (!process.env.THU_GL_CON) {   // DON chạy SAU đợt T (ca tín hiệu không chạy chung đợt nặng — K3)
+    const [dTerm, dInt, dHet] = await Promise.all([chayDon('SIGTERM'), chayDon('SIGINT'), chayDon(null)]);
+    console.log('\n[DON] TU-CHAY-7 A2 — bài này bị ngắt không sót thư mục tạm');
+    for (const [t, r] of [['SIGTERM', dTerm], ['SIGINT', dInt]]) {
+      k(`DON ${t} giữa bài (giả lập con đang chạy) → thoát 130, mọi con cháu lúc giết đã chết, 0 thu_gl_* sót`,
+        r.thay && r.status === 130 && r.chau.length > 0 && !r.conSong.length && !r.sot.length, moTaDon(r));
+    }
+    k('DON chạy hết (--chi-du-lieu-tay, thoát qua ket()) → thoát 0, 0 thu_gl_* sót', dHet.status === 0 && !dHet.sot.length, moTaDon(dHet));
+  }
   console.log('\n[E1] giả lập trên code thật');
   k(`thoát 0, dòng tổng đúng "${DONG_DAT}"`, e1.status === 0 && cuoi(e1) === DONG_DAT,
     moTa(e1) + (e1.status ? '\n' + e1.ra.split('\n').filter((l) => / → /.test(l)).slice(0, 8).join('\n') : ''));
