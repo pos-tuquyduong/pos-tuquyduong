@@ -39,6 +39,12 @@ thêm `AND claimed_at IS NOT NULL` + ca G7. Ghi để xếp ngăn ở bước 11
 | A2 `AND claimed_at IS NOT NULL` | `VS-A2-tra-ca-ma-chua-claim` | ✗ G7 |
 Tên đột biến: BV-A2-bo-tra-signup, VS-A2-chi-chan-don-huy, VS-A2-chan-ca-ma-tay, VS-A2-tra-ca-ma-chua-claim.
 
+## Bước 6 — kiểm (16.10, HEAD 709e68c)
+- `npm test`: PASS 64 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn: GET có lệnh ghi ở packages.js:194, products.js:57, sync.js:147 — không thuộc việc này).
+  thu_P20 1,0 s · thu_P21 0,8 s · thu_P26a/b/c · thu_GOI1 xanh.
+- `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 68 · FAIL 0 · thoát 0; giả lập `chay.js` 33,2 s, `thu_gia_lap.js` 46,5 s (M2 neo signup-codes.js vẫn áp được).
+- Không đụng `client/src/` → không build.
+
 ## Câu hỏi
 - Người gác chặn `bash cai_git_hook.sh` (B-CHUONGTRINH: `bash` không trong danh sách) → hook pre-commit CHƯA cài ở máy mây này;
   bước 3 chỉ commit file trong `viec/P20b/`, bộ kiểm sẽ chạy ở bước 6. Chủ quán muốn cho phép thì thêm vào `tep_bash_them`.
