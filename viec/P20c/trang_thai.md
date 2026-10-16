@@ -338,3 +338,72 @@ BÀI HỌC:       KHOÁ (K3): vế so bằng mà giá trị thật đi theo th�
 - `python3 viec/P20c/dot_bien.py`: đối chứng 129 đạt · 0 hỏng; **20/20 BẮT** (không SẬP / LẠC / SỐNG / HỎNG).
 - `node kiem_tra_truoc_khi_giao.js --day-du`: **PASS 68 · FAIL 0 · CẢNH BÁO 1** (có sẵn).
 - Đột biến cũ: AUDIT-1 **D1 BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0** ("kho thật không đổi"); AUDIT-2 **B3 BẮT 2 · SỐNG 0**; P20b đối chứng 129/0, **4/4 BẮT**.
+
+## Bước 8 — soát độc lập `/ra-soat` vòng 4 (16.10, agent soát trên HEAD `1bb072d`) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+(Code signup-codes.js đúng; cả 4 việc vòng 3 đã sửa thật. KHÔNG ĐẠT vì một lỗ trong bài thử: H3g ép claimed_at ở hai giá trị cực xa nên không
+canh độ chính xác của vế `claimed_at = ?`. Dựng lại được tất định, sửa ~3 dòng thử + 1 đột biến. Kèm 2 câu hồ sơ lệch. Không cần đụng code chạy thật.)
+Kiểm lỗi vòng 3 (HEAD 1bb072d): H3g ép cả hai phía đã sửa — `hoanTacChongCungSdt` thu_P20.js:527–543, gọi :544 '2099-12-31T23:59:59', :545
+'2000-01-01T00:00:00'; VS-A3-gio-lon-hon / VS-A3-gio-nho-hon (dot_bien.py:38–41) BẮT đúng "H3g muộn hơn" / "H3g sớm hơn" · Phát hiện 1 COALESCE
+đã sửa (trang_thai.md:29) · chú thích COALESCE đã sửa (signup-codes.js:508; `git diff 4f3cc88 HEAD -- server/` chỉ đúng dòng chú thích này) ·
+docstring dot_bien nêu phép dòng tổng (dot_bien.py:5–7).
+LỖI TÌM ĐƯỢC:  1. cong_cu/thu_P20.js:544–545 (H3g) — K3 (phép so bằng → ca ngay trên + ngay dưới). Hai giá trị ép (2099, 2000) cách giá trị cũ
+                  hàng chục năm → chỉ giết `>=` / `<=`, không canh độ chính xác của vế `claimed_at = ?` (signup-codes.js:497). Hai đột biến trên
+                  bản sao ngoài kho đều SỐNG (129 · 0): W3 `substr(claimed_at, 1, 16) = substr(?, 1, 16)` (tới phút), W4 `substr(claimed_at, 1,
+                  10) = substr(?, 1, 10)` (tới ngày). Không tương đương: hoàn tác A → cùng SĐT claim lại trong vòng một phút (khách đứng ngay
+                  quầy) → hoàn tác B cũ chạy tiếp; với W3, B gỡ claim + xoá voucher của lần claim mới. Ca dò tất định Z2 (scratchpad/v4/probe):
+                  ghim claimed_at lần đầu '2026-10-16T10:00:00', ép lần claim lại '…10:00:01' → HEAD xanh, W3 ĐỎ (HTTP 200, voucher 0). Sửa:
+                  trong hoanTacChongCungSdt ghim claimed_at lần đầu về mốc cố định T0, ép lần claim lại = T0 + 1 giây và T0 − 1 giây (không dùng
+                  luc0 + 1 giây — thất thường khi luc0 rơi vào giây :59); thêm đột biến cắt độ chính xác vào dot_bien.py.
+               2. viec/P20c/ke_hoach.md:91–92 — K1/K4: kế hoạch ghi "voucher bị XOÁ TAY đúng giữa `:467` và giao dịch → 400 thay vì 200 …
+                  chấp nhận, ghi CHƯA KIỂM"; mục CHƯA KIỂM trang_thai.md:181–188 không có dòng này. Dựng tất định được: ca dò Z (móc mocTruocTx
+                  xoá voucher chưa dùng) trên HEAD → HTTP 400 "Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.", dòng vẫn claimed;
+                  gốc 200. Lời báo cho chủ quán sai (voucher không ai dùng), dữ liệu không sai. Hành vi nằm trong kế hoạch v1 đã duyệt, nhưng
+                  lời hứa ghi giới hạn chưa thực hiện, và không phải "không kiểm được".
+               3. viec/P20c/ke_hoach.md:3–4 — K1 (TU-CHAY-5): ghi chú đầu file vẫn "Danh sách ĐANG CHẠY (… 18 đột biến)" và chỉ trỏ "vòng sửa 1,
+                  2"; DOT_BIEN có 20 mục (dot_bien.py:17–60). Nhẹ.
+NGHI NGỜ:      - Đột biến xếp tương đương / gượng ép: W8 thêm `AND claimed_at IS NOT NULL` vào NOT EXISTS /claim (chỉ signup-codes.js ghi hai cột,
+                 luôn cả hai); W10 DELETE thêm `AND is_active = 1` (gượng ép); W9 viết hỏng cú pháp, không tính.
+               - Còn từ vòng trước, không đổi: baoChiemHong (:77–82) đọc lại ngoài giao dịch (CHƯA KIỂM); thiếu index diem_nhan_phone (Phát hiện
+                 9); `code = ?` phân biệt hoa thường (Phát hiện 8); lời báo /reset "SĐT null" (Phát hiện 10); phép kiểm sớm `used_count > 0`
+                 (:483) và `COALESCE(...) = 0` (:511) lệch khi âm; chú thích :508 nay đúng phạm vi NULL.
+               - Đơn giản: thu_P20.js +240 dòng so ngân sách ~80 dòng thử (tăng qua 3 vòng soát); signup-codes.js +50/−19, hàm phụ 2 chỗ (:266, :405) — gọn.
+NGHIỆM THU:    6/6 mục có bằng chứng · mục thiếu: không (A3 còn lỗ canh ở LỖI 1). A1 code :398–406 (nối sau chuỗi neo, neo khớp 1 lần); H1
+               :411–424 ĐỎ 3 trên bản sao `git show 2353fe9`; K5 H4b :600–608, [E] · A2 code :258–268 (cờ chiLanDau, giữ 400 MA_DA_NHAN_DIEM);
+               H2 :426–439 ĐỎ 3; H2b :441–454 K5 xanh · A3 code :496–515 (go khoá claimed_at + claimed_phone IS ?, DELETE COALESCE, voucherRow &&
+               xoa.changes === 0); ĐỎ gốc H3 ×3, H3d ×2, H3g ×4, H3e ×1; K5 xanh H3b, H3c, H3f, H3h · A4 :327 (409 MA_DA_DUNG), :345 (400
+               SDT_DA_NHAN); /nhan-diem :143, :256 giữ MA_DA_NHAN_DIEM; H4 :582–598 ĐỎ 2 · A5 H5 :625–633 [c]; CHƯA KIỂM kiemDonCuaMa
+               trang_thai.md:183; [b] Phát hiện 5 · A6 tự chạy trên HEAD: bản sao gốc 109 · 20 khớp bang_chung_do.txt:585, SỐ CA 129 (:588);
+               HEAD 129 · 0; --day-du PASS 68 · FAIL 0 · CẢNH BÁO 1 có sẵn, dist khớp src; P20c dot_bien đối chứng 129/0, 20/20 BẮT; AUDIT-2 KB11
+               BẮT 2 · SỐNG 0; P20b 4/4; git status sạch sau mọi lần chạy.
+               K3: mỗi đột biến dot_bien.py đưa đúng lỗi trở lại (VS-A3-sdt-bang = code cũ `= ?`; BV-A2-bo-bao-chiem = 400 gốc). Đột biến soát bị
+               bắt: W1 (bỏ chặn sau DELETE), W2 (/nhan-diem `id = ?`), W5/W6 (bỏ rollback — bài thử sập với 409 khoá ghi), W7 (rollback → commit,
+               bắt ở H3). Không ca nào đỏ nhờ thời điểm (H3d ép luc0, H3g ép hằng số).
+               K4: grep `claimed_phone|diem_nhan_phone|DELETE FROM pos_discount_codes|used_count > 0|claimed_at = NULL` server/ (trừ database.js) →
+               21 dòng: signup-codes.js 2 câu chiếm mã, 2 phép kiểm sớm, 2 chỗ gọi baoChiemHong, cặp UPDATE/DELETE /reset — xử lý hết;
+               orders.js:1142 chỉ đọc, :1620 chú thích; discount-codes.js:317/326 → Phát hiện 1 (COALESCE); không route nào gỡ diem_nhan_*.
+               K5: NOT EXISTS :399, :261 không chặt hơn phép sớm :341, :171 → không chặn thêm dữ liệu cũ; cửa duy nhất đổi hành vi là LỖI 2.
+               Tiền: voucher mỗi SĐT chốt một lần trong giao dịch; bảng điểm chỉ INSERT; orders.js không đổi. P1: diff client/ rỗng.
+CHƯA SOÁT ĐƯỢC: AUDIT-1 D1 không chạy lại (590 s) — code chạy thật không đổi từ 4f3cc88 (chỉ một dòng chú thích), neo D1 / M5 khớp 1 lần;
+               đua thật HTTP trên Turso; dữ liệu production (SĐT trùng, used_count NULL/âm, claimed_phone NULL); App KH (400 → 409).
+BÀI HỌC:       KHOÁ (K3): vế so bằng trên cột thời gian → ca "ngay trên + ngay dưới" theo ĐƠN VỊ NHỎ NHẤT (±1 giây quanh một mốc ghim cố định)
+               + đột biến cắt độ chính xác (`substr` tới phút / ngày). Ép giá trị cực xa chỉ giết `>=` / `<=`. Vòng 3 sửa theo chữ "cả hai phía"
+               mà bỏ chữ "ngay". NGUYÊN TẮC (K1/K4): câu "chấp nhận, ghi CHƯA KIỂM" trong kế hoạch là lời hứa — bước 6 grep `CHƯA KIỂM` trong
+               ke_hoach.md đối chiếu mục CHƯA KIỂM của trang_thai; cửa dựng tất định được bằng móc có sẵn thì viết ca khoá hành vi đã chấp nhận,
+               không xếp CHƯA KIỂM. Mỗi vòng sửa cập nhật ghi chú đầu ke_hoach.md (số đột biến, vòng).
+               Bản sao, đột biến, ca dò của agent: scratchpad/v4/goc, v4/head, v4/probe (ca Z, Z2; đang mang W3), v4/dot4.py (W1–W10) — ngoài kho.
+```
+
+## Câu hỏi
+1. **Đã hết 3 vòng sửa (`tu_chay/cau_hinh.json` `so_vong_sua_toi_da: 3`) mà soát vòng 4 vẫn KHÔNG ĐẠT — máy DỪNG theo luật bước 8, chưa làm
+   bước 9–11 (báo cáo 7 mục, rút kinh nghiệm, `HEAD ĐÃ KIỂM`).** Ba điểm còn lại đều KHÔNG đụng code chạy thật (`signup-codes.js` đúng theo cả
+   bốn vòng soát), ước ~10 dòng thử + 1–2 đột biến + 2 câu hồ sơ:
+   (a) H3g: ghim claimed_at lần đầu về mốc cố định T0, ép lần claim lại T0 ± 1 giây; thêm đột biến cắt độ chính xác (`substr` tới phút).
+   (b) Cửa "voucher bị xoá tay đúng giữa phép kiểm sớm và giao dịch → 400 'vừa được dùng' thay vì 200": hành vi nằm trong kế hoạch v1 đã duyệt,
+       nhưng lời báo sai cho chủ quán. Chọn một: **(b1)** giữ hành vi, thêm ca thử KHOÁ hành vi đã chấp nhận + dòng CHƯA KIỂM / ghi giới hạn;
+       hay **(b2)** sửa code để lần này trả 200 (vd khi `xoa.changes === 0` đọc lại trong giao dịch: không còn voucher → hoàn tác như cũ) — đổi
+       code chạy thật, cần soát lại.
+   (c) Ghi chú đầu `ke_hoach.md`: 18 → 20 đột biến, trỏ cả vòng sửa 3.
+   Chủ quán cho phép thêm MỘT vòng sửa (và chọn b1 / b2) không? Nếu có: `/lam-viec P20c tiep` kèm lựa chọn.
+   (Lưu ý: số liệu W3/W4/Z/Z2 ở trên là của agent soát, máy chưa tự chạy lại.)
