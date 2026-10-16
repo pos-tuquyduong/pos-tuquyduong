@@ -2,8 +2,9 @@
 
 Sinh bằng script từ nhật ký hai đợt chạy TUẦN TỰ (`chay.py a2`, `chay.py a2b` — thư mục nháp, không chép vào kho), cột AUDIT-3 đọc từ
 `viec/AUDIT-3/a2_bang.md`. Mọi bộ qua bọc đối chứng (Câu hỏi 1 = a): khuôn GOI-1 + khung AUDIT-1 / AUDIT-2 + bb + LUOI-1 + TACH-GL qua
-`viec/AUDIT-4/boc.py`; SO-LUONG-1 / BAN-HANG-1 / P20b qua `viec/AUDIT-4/dot_bien.py --bo` (đối chứng đếm số + luật sập vòng 3); AUDIT-3 / LUOI-3
-`dot_bien.py` có sẵn đối chứng + luật sập vòng 3 → chạy thẳng. Nhãn: HỎNG-sập = `sap_cua` bản AUDIT-4 (đã vá AU3-22…24). Bảng mỗi bộ chỉ liệt kê
+`viec/AUDIT-4/boc.py`; SO-LUONG-1 / BAN-HANG-1 / P20b qua `viec/AUDIT-4/dot_bien.py --bo` (đối chứng đếm số + luật sập soát vòng 3 CỦA AUDIT-3); AUDIT-3 / LUOI-3
+`dot_bien.py` có sẵn đối chứng + luật sập soát vòng 3 của AUDIT-3 → chạy thẳng. Nhãn: HỎNG-sập = `sap_cua` bản AUDIT-4 BẢN 1 (`6f0225f`, đã vá
+AU3-22…24) — vòng sửa 1–3 của AUDIT-4 sửa luật sau khi đo; khung D1 / 88 tên chạy lại sau mỗi vòng: y hệt (`trang_thai.md` mục Vòng sửa). Bảng mỗi bộ chỉ liệt kê
 tên KHÔNG BẮT hoặc khác AUDIT-3; tên BẮT liệt kê gọn cuối mục. Tổng thời gian máy 5456 s ≈ 91 phút (15 bước); `git status` sạch sau
 CẢ 15 bước (`chay.py` so trước / sau từng bước).
 
