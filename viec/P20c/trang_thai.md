@@ -31,7 +31,17 @@ lượt trước, không đọc lại (K1); (3) thêm 2 Phát hiện. Ghi để 
    `UPDATE used_count` 0 dòng. Cửa hẹp (chủ quán bấm hoàn tác / xoá mã đúng lúc khách dùng).
 3. `signup-codes.js:218–224` (số dòng sau vá; trước vá :208–214) /nhan-diem đọc `daCong` ngoài giao dịch — lệch cộng bù nếu sau này điểm cộng ở pay-debt (P22) chạy song song.
 4. `signup-codes.js:369–378` (số dòng sau vá; trước vá :358–367) /claim tra trùng `pos_discount_codes` ngoài giao dịch — race chỉ được UNIQUE đỡ, ra 500 thay vì 409.
-5. GHI CHÚ [b] (phép tĩnh E9 bị lừa bởi chuỗi trong chuỗi / `--` SQL) — đề xuất cụ thể ghi ở bước 11, không sửa bộ kiểm.
+5. GHI CHÚ [b] (phép tĩnh E9 bị lừa bởi chuỗi trong chuỗi / `--` SQL) — **đề xuất (A5, không sửa bộ kiểm):** THÊM một phép mới trong
+   `kiem_tra_truoc_khi_giao.js` nhóm E9: lấy NGUYÊN đối số SQL của `tx.run(` chiếm mã (gồm mọi đoạn nối `' … ' + ' … '`), bỏ chú thích SQL
+   `--…` / `/* */` rồi mới đòi `AND claimed_at IS NULL` + `NOT EXISTS (… claimed_phone = ? …)` (và cặp diem_nhan_*). Ca đỏ: bản sao có
+   `… WHERE id = ? -- AND claimed_at IS NULL'` và bản sao nối `+ ' OR 1=1'` sau chuỗi neo (soát vòng 1: phép :446/:463 hiện chỉ neo TIỀN TỐ
+   chuỗi, phần nối P20c không được canh tĩnh — chỉ bài động [E], [F], [H], KB11 canh). Không nới phép cũ.
+6. (soát vòng 1) `/reset` không xoá voucher của dòng claim TRƯỚC 09.08.2026 — voucher đó mang mã KHÁC mã in bill (`signup-codes.js:9–12`), reset
+   chỉ xoá theo `code = signupRow.code` → SĐT claim lại được trong khi voucher cũ (nếu còn hạn) vẫn dùng được. Hành vi có sẵn; valid_days mặc
+   định 30 nên thực tế chắc đã hết hạn — chủ quán xét có cần câu đếm trên Turso không.
+7. (soát vòng 1) Đối soát: chưa có câu đếm SĐT có ≥ 2 dòng `claimed_phone` / `diem_nhan_phone` (dấu vết đua cũ trước P20c) trên dữ liệu thật —
+   đề xuất `SELECT claimed_phone, COUNT(*) FROM pos_signup_codes WHERE claimed_phone IS NOT NULL GROUP BY 1 HAVING COUNT(*) > 1` (và cặp
+   diem_nhan_phone) vào DOI-SOAT-1 / bất biến giả lập.
 
 ## Bước 1 (tiếp, 16.10) — đối chiếu lại
 HEAD `e6ec483` · FETCH_HEAD `e6ec483` — bằng nhau, không kéo. Chủ quán duyệt kế hoạch v1: Câu hỏi 1 → GIỮ `MA_DA_NHAN_DIEM` 400 ở
@@ -134,3 +144,35 @@ BÀI HỌC:       KHOÁ: thêm vào thu_P20 [H] ca (a) cùng SĐT nhận điểm
                neo tiền tố chuỗi SQL (:446/:463) cần thêm phép canh phần nối sau dấu nháy, hoặc ghi rõ giới hạn (cùng loại GHI CHÚ [b]).
                Bản sao + bài dò của agent: scratchpad/goc, scratchpad/head, scratchpad/probe_section.js (ngoài kho).
 ```
+
+## Bước 5–6 (vòng sửa 1, 16.10) — sửa theo soát
+- Lỗi 1 + 2 (Z1, Z2): `/reset` — UPDATE gỡ claim lên ĐẦU giao dịch, gắn đúng lần claim đã đọc `AND claimed_at = ? AND claimed_phone = ?`,
+  0 dòng → rollback 409 "vừa được hoàn tác hoặc claim lại". Lần thử đầu chỉ `claimed_at = ?` → H3d VẪN ĐỎ: truy nguyên `helpers.js:135` —
+  `getNow()` chỉ tới GIÂY, hoàn tác A + claim lại trong cùng giây ghi cùng `claimed_at` → thêm `claimed_phone`. (Cùng SĐT claim lại trong cùng
+  giây vẫn lọt — trạng thái cuối nhất quán: không claim, không voucher; ghi CHƯA KIỂM.)
+- Nghi ngờ NULL (Z3): DELETE `COALESCE(used_count, 0) = 0` — cùng nghĩa với phép kiểm ngoài `used_count > 0` (khuôn `loyalty.js:95`).
+- Lỗi 3 (K5): ca H4b — một SĐT nhận điểm mã A rồi claim mã B, và ngược lại → 200/200. Lỗi 4 (K3): ca H6 — dòng mã bị xoá giữa phép kiểm và
+  giao dịch → 404. Lỗi 5, 6 (K1): sửa số dòng Phát hiện 3, 4; gạch + sửa hai câu sai trong `ke_hoach.md` (mục 3, mục 5). Chú thích reset
+  sửa "không có voucher" → "không có voucher CÙNG MÃ" (Phát hiện 6). A5: thêm CHƯA KIỂM (dưới) + đề xuất [b] (Phát hiện 5).
+- Bài thử: trên code GỐC (2353fe9, bản sao ngoài kho) **103 đạt · 15 hỏng** (thêm H3d ×2, H3e, H6 đỏ; H3f, H4b xanh — K5); trên HEAD trước
+  vòng sửa: 113 · 5 (H3d ×2, H3e, H3f ×2); sau vá: **118 đạt · 0 hỏng** — `bang_chung_do.txt` v2, `SỐ CA … 118`.
+- `node kiem_tra_truoc_khi_giao.js`: 64 phép · qua hết (CẢNH BÁO 1 có sẵn). `viec/P20c/dot_bien.py`: đối chứng 118/0, **15/15 BẮT**.
+
+### Chỗ vá → đột biến thêm ở vòng 1
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| A3 DELETE COALESCE | `VS-A3-null-lech` | ✗ H3f hoàn tác voucher used_count NULL |
+| A3 khoá đúng lần claim | `BV-A3-bo-khoa-claim` | ✗ H3d hoàn tác B |
+| A3 khoá chỉ theo giờ | `VS-A3-khoa-chi-gio` | ✗ H3d hoàn tác B |
+| A1 NOT EXISTS đúng cột | `VS-A1-cheo-cot` | ✗ H4b cùng SĐT: nhận điểm mã A |
+| A2 NOT EXISTS đúng cột | `VS-A2-cheo-cot` | ✗ H4b cùng SĐT: claim mã A |
+| baoChiemHong nhánh 404 | `BV-A1-bo-404` | ✗ H6 /claim khi dòng mã vừa bị xoá |
+(`BV-A3-bo-dieu-kien` đổi neo theo chuỗi mới `AND COALESCE(used_count, 0) = 0`.)
+
+## CHƯA KIỂM
+- A5: `kiemDonCuaMa` vẫn chạy NGOÀI giao dịch (`signup-codes.js:184`, `:350`) — đơn bị huỷ / hoàn giữa lúc kiểm và UPDATE chiếm mã vẫn cho
+  claim / nhận điểm. P20b đã chốt giữ nguyên; không có ca thử.
+- Đua thật trên Turso (giao dịch "write" qua HTTP, hai máy): chỉ thử bằng móc tất định trên file libsql cục bộ.
+- Dữ liệu production: SĐT đã trùng do đua cũ, `used_count` NULL, voucher trước 09.08 còn hạn — chưa đếm (Phát hiện 6, 7).
+- App KH (người gọi `/claim` qua `X-Service-Key`) ngoài kho: chưa biết có rẽ nhánh theo status 400 cũ của "mã đã sử dụng" (nay 409) không.
+- `/reset` khi CÙNG SĐT claim lại trong CÙNG GIÂY với lần hoàn tác chồng (getNow chỉ tới giây) — không dựng được ca tất định phân biệt.
