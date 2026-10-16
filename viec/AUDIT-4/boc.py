@@ -196,12 +196,12 @@ def sap():
                     ('NEM-AUDIT2', 'D2K', 'gl', sv(NEM_KHUON), r'✗ '),           # kịch bản ném → khung ghi BẮT 'SẬP giữa kịch bản'
                     ('DOSAP-AUDIT2', 'D2K', 'p26b', sv(DOSAP_KHUON), r'✗ '),     # ✗ M2 rồi thu_P26b sập: khung ghi BẮT (dòng đầu)
                     ('SAP0-AUDIT2', 'D2K', 'p26b', sv(SAP0_KHUON), r'✗ '),       # thoát 0 không dòng tổng: khung ghi SỐNG
-                    ('DOSAP-KIEM', 'D2K', 'kiem', sv(DOSAP_KHUON), r'✗ ')]       # AU3-22: kiem_tra chạy hết, báo thu_P26b sập ở dòng ✗
-  ten = ['SAP-AUDIT2', 'NEM-AUDIT2', 'DOSAP-AUDIT2', 'SAP0-AUDIT2', 'DOSAP-KIEM']
+                    ('!DOSAP-KIEM', 'D2K', 'kiem', sv(DOSAP_KHUON), r'✗ ')]      # AU3-22: kiem_tra chạy hết, báo thu_P26b sập ở dòng ✗ ('!' = bài chạy thật thật)
+  ten = ['SAP-AUDIT2', 'NEM-AUDIT2', 'DOSAP-AUDIT2', 'SAP0-AUDIT2', '!DOSAP-KIEM']
   ma, ra = goi_main(m2.K.main, ten + ['-j', '2'])
   if ma: xau.append(('khung AUDIT-1', f'thoát {ma}', 'KHO BẨN / dừng'))
   for l in ra.splitlines():
-    m = re.match(r'(BẮT|SỐNG)\s+D2K (' + '|'.join(ten) + r')\b', l)
+    m = re.match(r'(BẮT|SỐNG)\s+D2K (' + '|'.join(map(re.escape, ten)) + r')\b', l)
     if m: xau.append(('AUDIT-2', m.group(2), m.group(1)))
   for bo, ns, cach in (('LUOI-1', boc_dict(nap_luoi1()), 'kb1'), ('TACH-GL', boc_dict(vars(nap_module('TACH-GL'))), 'gl29')):
     ns['DOT_BIEN'].append((f'SAP-{bo}', cach, [(CH, 'const sxGia = { loi: false,', '}}}{{{', 1)], [r'KB\d+ → '], 'LẠC'))
@@ -214,6 +214,7 @@ def sap():
 def ban_sao_sc(doi=()):   # chép THẬT server/ + cong_cu/ vào TAM (khuôn viec/P20b/dot_bien.py:24–29), áp đổi — cho --tu-thu
   k = tempfile.mkdtemp(prefix='kho_', dir=TAM)
   for x in ('server', 'cong_cu'): shutil.copytree(os.path.join(GOC, x), os.path.join(k, x), symlinks=True)
+  os.makedirs(os.path.join(k, 'tu_chay')); shutil.copyfile(os.path.join(GOC, 'tu_chay', 'cau_hinh.json'), os.path.join(k, 'tu_chay', 'cau_hinh.json'))   # chay.js đọc ten_mien_production
   os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(k, 'node_modules'))
   for f, cu, moi in doi:
     p = os.path.join(k, f); s = open(p, encoding='utf-8').read()
@@ -248,7 +249,7 @@ def tu_thu():   # ca đỏ A1: luật CŨ (viec/AUDIT-3/boc.py) và MỚI chấm
   # AU3-22: DOSAP_KHUON qua khung cách `kiem` — kiem_tra chạy hết, dòng ✗ báo thu_P26b sập; quyết định của bọc khung = sap_cua(lệnh) hoặc vế (4)
   m2 = nap_module('AUDIT-2'); K = m2.K
   tam = tempfile.mkdtemp(prefix='kiem_', dir=TAM)
-  kk = K.dung_ban_sao('kho', tam, False)
+  kk = K.dung_ban_sao('kho', tam, True)   # True = giữ bài chạy thật (khung thay bằng bài rỗng nếu tên không mở đầu '!' — AUDIT-1 :257)
   loi = K.ap(kk, [('server/' + d[0], d[1], d[2], d[3]) for d in DOSAP_KHUON])
   argv = K.LENH['kiem'][1][0][0]
   ma, ra, _ = K.chay_lenh(argv, kk, K.moi_truong(tam), 900)
