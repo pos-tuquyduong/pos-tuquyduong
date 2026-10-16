@@ -52,6 +52,14 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // MA-GIAM-1 (A1): MÓC chạy một lần ngay TRƯỚC câu `DELETE FROM pos_discount_codes` của route — dựng tất định cảnh "đơn vừa dùng mã"
+  // chen giữa phép kiểm và câu xoá. Gắn TRƯỚC khi nạp route (discount-codes.js lấy `run` lúc nạp). Bình thường null → đi thẳng hàm gốc.
+  let mocXoaMa = null;
+  const runGoc = db.run;
+  db.run = async (sql, ...thamSo) => {
+    if (mocXoaMa && /^\s*DELETE FROM pos_discount_codes/.test(sql)) { const m = mocXoaMa; mocXoaMa = null; await m(); }
+    return runGoc(sql, ...thamSo);
+  };
   const app = express();
   app.use(express.json());
   for (const r of ['orders', 'refunds', 'discount-codes', 'settings', 'packages', 'rewards', 'loyalty', 'tiers']) {
@@ -63,11 +71,13 @@ async function main() {
 
   const chu = await db.queryOne("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const token = jwt.sign({ userId: chu.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  const goi = async (method, url, body) => {
+  const nv = Number((await db.run("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_p26a', 'x', 'NV P26a', 'staff', 1)")).lastInsertRowid);
+  const tokenNv = jwt.sign({ userId: nv }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const goi = async (method, url, body, tk = token) => {
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token } });
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk } });
       let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
       return { status: r.status, ...j };
     } finally { noiLai(); }
@@ -130,6 +140,48 @@ async function main() {
   const hang = await goi('GET', '/tiers');
   const c9 = await goi('PUT', '/tiers', { ...hang.data, tiers: hang.data?.tiers });
   k('C9 PUT /tiers lưu lại hạng có sẵn → 200', hang.status === 200 && c9.status === 200, `${moTa(hang)} / ${moTa(c9)}`);
+
+  console.log('\n[MA-GIAM-1 A1] DELETE /discount-codes/:id — "đã dùng hay chưa" chốt trong CÙNG câu xoá');
+  const taoMa = async (code, daDung) => Number((await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit,
+    used_count, is_active) VALUES (?, 'fixed', 5000, 0, ?, 1)`, [code, daDung])).lastInsertRowid);
+  const dongMaGiam = (id) => db.queryOne('SELECT is_active, used_count FROM pos_discount_codes WHERE id = ?', [id]);
+  {
+    const id = await taoMa('MG1_DUA', 0);
+    let mocChay = false;
+    mocXoaMa = async () => { mocChay = true; await runGoc('UPDATE pos_discount_codes SET used_count = 1 WHERE id = ?', [id]); };
+    const r = await goi('DELETE', `/discount-codes/${id}`);
+    mocXoaMa = null;
+    const d = await dongMaGiam(id);
+    k('M1 móc chạy: đơn dùng mã chen giữa phép kiểm và câu xoá', mocChay);
+    k('M1 xoá mã vừa được dùng → 200, mã CÒN, is_active = 0', r.status === 200 && !!d && Number(d.is_active) === 0 && Number(d.used_count) === 1,
+      `${moTa(r)} · ${d ? `is_active ${d.is_active} · used ${d.used_count}` : 'mã bị xoá cứng'}`);
+  }
+  {
+    const id = await taoMa('MG1_CHUA', 0);
+    const r = await goi('DELETE', `/discount-codes/${id}`);
+    k('M2 xoá mã chưa dùng → 200, dòng mất (K5)', r.status === 200 && !(await dongMaGiam(id)), moTa(r));
+    const id3 = await taoMa('MG1_NULL', null);
+    const r3 = await goi('DELETE', `/discount-codes/${id3}`);
+    k('M3 xoá mã used_count NULL → 200, dòng mất (như gốc)', r3.status === 200 && !(await dongMaGiam(id3)), moTa(r3));
+    const id4 = await taoMa('MG1_DADUNG', 1);
+    const r4 = await goi('DELETE', `/discount-codes/${id4}`);
+    const d4 = await dongMaGiam(id4);
+    k('M4 xoá mã đã dùng → 200, mã còn, is_active = 0', r4.status === 200 && !!d4 && Number(d4.is_active) === 0, `${moTa(r4)} · ${JSON.stringify(d4)}`);
+    const r5 = await goi('DELETE', '/discount-codes/99999999');
+    k('M5 xoá id không có → 404', r5.status === 404, moTa(r5));
+  }
+
+  console.log('\n[MA-GIAM-1 A6] POST /discount-codes/:id/increment-usage cần quyền manage_promotions');
+  {
+    const id = await taoMa('MG1_TANG', 0);
+    const r6 = await goi('POST', `/discount-codes/${id}/increment-usage`, {}, tokenNv);
+    const d6 = await dongMaGiam(id);
+    k('M6 nhân viên (staff) tăng lượt → 403, used_count không đổi', r6.status === 403 && Number(d6.used_count) === 0, `${moTa(r6)} · used ${d6.used_count}`);
+    const r7 = await goi('POST', `/discount-codes/${id}/increment-usage`, {});
+    const d7 = await dongMaGiam(id);
+    k('M7 chủ tăng lượt → 200, used_count tăng đúng 1 (K5, giả lập KB20)', r7.status === 200 && Number(d7.used_count) === Number(d6.used_count) + 1,
+      `${moTa(r7)} · used ${d6.used_count} → ${d7.used_count}`);
+  }
 
   sv.close();
   console.log(`\n  ${dat} đạt · ${hong} hỏng\n`);
