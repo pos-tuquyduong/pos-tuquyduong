@@ -4,7 +4,7 @@ Số dòng dưới đây đọc trong lượt này (HEAD `16d8899`).
 
 ## Code thật đã đọc
 - `server/routes/discount-codes.js:307–335` DELETE /:id: `queryOne` lấy mã → `existing.used_count > 0` → UPDATE vô hiệu; không thì
-  `DELETE … WHERE id = ?` KHÔNG điều kiện (`:328`). Phép kiểm và câu xoá tách rời → đơn tăng `used_count` chen giữa thì mã đã dùng bị xoá cứng.
+  `DELETE … WHERE id = ?` KHÔNG điều kiện (`:326`). Phép kiểm và câu xoá tách rời → đơn tăng `used_count` chen giữa thì mã đã dùng bị xoá cứng.
 - `discount-codes.js:63–90` /validate: tìm mã `UPPER(code) = UPPER(?) AND is_active = 1` bằng `code.trim()`, kiểm ngày, lượt — KHÔNG qua cổng P20b.
 - `discount-codes.js:341–351` /:id/increment-usage: chỉ `authenticate`.
 - `server/routes/orders.js:502–519` cổng P20b: tra `pos_signup_codes … claimed_at IS NOT NULL` bằng `[codeRecord.code]` (`:514`) → `kiemDonCuaMa`.
@@ -37,7 +37,8 @@ Số dòng dưới đây đọc trong lượt này (HEAD `16d8899`).
   "Hàm kiểm đơn gốc" (`kiemDonCuaMa`) vẫn là MỘT chỗ ở cả A.
 
 ### A3 · freshCode null / vô hiệu (orders.js:962–979)
-- **A (chọn):** câu đọc thêm `is_active`; trước phép lượt: `if (!freshCode || !freshCode.is_active) { rollback; 400 MA_GIAM_KHONG_CON }`. ~6 dòng.
+- **A (chọn, sau soát):** câu đọc `freshCode` thêm `AND is_active = 1` (`orders.js:963`), trước phép lượt: `if (!freshCode) { rollback; 400
+  MA_GIAM_KHONG_CON }`. ~5 dòng. Giữ nguyên chuỗi `freshCode.used_count >= freshCode.usage_limit` (neo AUDIT-2 `BK-KB20-bo-kiem-lai-ma`).
 - **B:** thay đọc-rồi-tăng bằng một `UPDATE … WHERE id = ? AND is_active = 1 AND (usage_limit <= 0 OR used_count < usage_limit)` + `changes`.
   Gọn hơn nhưng gộp hai lỗi (hết lượt / mã mất) vào một mã lỗi — đổi hành vi `DISCOUNT_CODE_LIMIT_REACHED` đang có. Không chọn.
 
@@ -66,12 +67,12 @@ Số dòng dưới đây đọc trong lượt này (HEAD `16d8899`).
 | A2 | `thu_P20.js` [G] G1/G2/G3 thêm `/validate` → 400 `MA_DON_GOC_KHONG_HOP_LE` (mount thêm route discount-codes) | ĐỎ (200 valid) | XANH |
 | A2 K5 | G4 (đơn gốc paid) · G5 (mã tay) · G7 (mã tay trùng chữ bill chưa claim) `/validate` → 200 `valid` | xanh | xanh |
 | A3 | [G] G9 mã tay, `mocTruocTx` xoá mã → POST /orders 400 `MA_GIAM_KHONG_CON`, không đơn mới · G10 như G9 nhưng móc đặt `is_active = 0` | ĐỎ (200 có giảm) | XANH |
-| A3 K5 | G4/G5/G7 dùng mã → 200 có giảm (đã có) · KB20/KB31/KB32 giả lập (hết lượt vẫn `DISCOUNT_CODE_LIMIT_REACHED`) | xanh | xanh |
+| A3 K5 | G4/G5/G7 dùng mã → 200 có giảm (đã có) · G11 mã tay `usage_limit 1`, móc đặt `used_count = 1` → 400 `DISCOUNT_CODE_LIMIT_REACHED`, không đơn (KB20 giả lập KHÔNG phủ nhánh này — `kich_ban.js:384–386` ghi CHƯA KIỂM, nhận cả 500) | xanh | xanh |
 | A4 | [G] G8 voucher đơn gốc đã huỷ, gửi `'  ' + ma + '  '` → 400 `MA_DON_GOC_KHONG_HOP_LE`, không đơn mới | xanh (giữ) — đột biến `VS-A4-tra-ma-tho` phải BẮT | xanh |
 | A5 id | [H] H3j cùng SĐT, CÙNG giây (như H3g, `lucEp = T0`): móc hoàn tác A + claim lại → hoàn tác B → 400, voucher của lần claim mới còn, mã vẫn claimed | ĐỎ (B xoá voucher mới, 200) | XANH |
 | A5 null | [H] H3k không voucher lúc kiểm; móc chèn voucher cùng mã (`used_count 0`) → hoàn tác → 200, voucher chèn vẫn còn, mã hết claimed | ĐỎ (xoá theo code) | XANH |
 | A5 hoa | [H] H3l voucher đổi thành chữ thường + `used_count = 1` → hoàn tác → 400, mã vẫn claimed | ĐỎ (200, gỡ claim) | XANH |
-| A5 lời | H3h thêm: `message` không chứa `null` · H3c thêm: `message` không chứa "đã xoá" | ĐỎ | XANH |
+| A5 lời | H3h thêm: `message` không chứa `null` · H3c thêm: `message` không chứa `voucher` (không phụ thuộc chỗ đặt dấu). Ngoại lệ E12 có ghi chú trong bài (`thu_P20.js:18` "không dò chữ"): ở đây chính lời báo là thứ được sửa | ĐỎ | XANH |
 | A5 K5 | H3, H3b–H3i y nguyên | xanh | xanh |
 | A6 | `thu_P26a.js` [C] M6 nhân viên (`staff`, tạo bằng INSERT) gọi `/increment-usage` → 403, `used_count` không đổi · M7 chủ → 200 (K5) | ĐỎ (200) | XANH |
 | A7 | `npm test`, `--day-du`; `dot_bien.py` (dưới); đột biến cũ P20b, P20c, AUDIT-1 D1 + C2F discount-codes, AUDIT-4 P20B chạy lại | — | — |
@@ -93,11 +94,23 @@ Số dòng dưới đây đọc trong lượt này (HEAD `16d8899`).
 
 ## Đột biến `viec/MA-GIAM-1/dot_bien.py` (khuôn P20b: bản sao thật, đối chứng xanh trước)
 VS-A1-null-lech · BV-A1-bo-dieu-kien · VS-A1-khong-vo-hieu · BV-A2-bo-cong-validate · VS-A2-tra-ca-chua-claim · BV-A3-bo-kiem-null ·
-VS-A3-chi-null · VS-A4-tra-ma-tho · BV-A5-xoa-theo-code · VS-A5-null-van-xoa · VS-A5-phan-biet-hoa · BV-A5-loi-bao-null · BV-A6-bo-quyen ·
+VS-A3-bo-is-active · BV-A3-bo-loi-het-luot · VS-A4-tra-ma-tho (bản sao của AUDIT-4 `VS-AU4-P20B-TRA-MA-THO` — giữ trong bộ này để A4 có đột biến chạy được trong việc) · BV-A5-xoa-theo-code · VS-A5-null-van-xoa · VS-A5-phan-biet-hoa · BV-A5-loi-bao-null · BV-A6-bo-quyen ·
 BV-P20C-A3-bo-dieu-kien (port neo rữa của `viec/P20c/dot_bien.py:24`, câu DELETE đổi `code` → `id`).
 
-Neo cũ dự kiến rữa: chỉ P20c `BV-A3-bo-dieu-kien` (ghi trước / sau, port như trên). AUDIT-1 C2F đánh số lệnh ghi của discount-codes.js
-có thể dịch (A1 bớt một `run`, thêm câu) — chạy lại, ghi tên trước / sau.
+Neo cũ dự kiến rữa: P20c `BV-A3-bo-dieu-kien` (ghi trước / sau, port như trên). AUDIT-1 C2F đặt tên theo số thứ tự VÀ loại quyền của route
+(`viec/AUDIT-1/dot_bien.py:166`): A1 đổi số câu ghi của DELETE, A6 đổi loại `/increment-usage` từ `quay` sang `quan-tri` — chạy lại, ghi bảng tên
+trước / sau. Chạy lại cả AUDIT-2 (neo `BK-KB20-bo-kiem-lai-ma` nằm trong khối A3) và AUDIT-4 P20B.
+Đối chứng `p20` của AUDIT-4 (`viec/AUDIT-4/dot_bien.py:24` ghim 75 ca) ĐÃ lệch trước việc này: `node cong_cu/thu_P20.js` trên `16d8899` →
+`132 đạt · 0 hỏng` (đo lượt này, ~3 s, hạn `kiem_tra` 120 s). Không sửa `viec/AUDIT-4/` (ngoài Phạm vi) — ghi Phát hiện; chạy đột biến
+AUDIT-4 P20B bằng cách khác nếu đối chứng chặn (ghi CHƯA KIỂM nếu không chạy được).
+
+## Phát hiện từ soát kế hoạch (ngoài phiếu — không sửa)
+1. `discount-codes.js:232–296` PUT /:id cho đổi `code` và bật lại `is_active` của voucher mã bill → đổi tên là lách cổng P20b (tra theo chữ mã),
+   bật lại là hồi sinh mã đã vô hiệu.
+2. `server/utils/tienDaTra.js:58–62` `traLuotMa` giảm `used_count` theo `UPPER(code)` + loại + trị giá, không theo id — cùng khuôn A5: mã bị xoá
+   rồi tạo lại cùng chữ thì huỷ đơn cũ trừ lượt của mã mới.
+3. `orders.js:672–675` đọc lại `max_discount` theo id ngoài giao dịch — mã mất giữa chừng thì bỏ trần; A3 rollback nên vô hại sau vá.
+4. `viec/AUDIT-4/dot_bien.py:24` ghim `thu_P20.js` 75 ca, thực tế 132 — đối chứng p20 của AUDIT-4 hỏng từ trước.
 
 ## Xin duyệt (lệch chữ phiếu)
 1. A1 không mở giao dịch (phương án A) — lý do ở trên. Chủ quán muốn đúng chữ "trong giao dịch" thì làm B (+8 dòng).
