@@ -29,8 +29,8 @@ lượt trước, không đọc lại (K1); (3) thêm 2 Phát hiện. Ghi để 
    điều kiện. Đề xuất: `AND used_count = 0`, `changes = 0` → nhánh vô hiệu hoá.
 2. `server/routes/orders.js:962–979` — `freshCode` null (voucher vừa bị xoá giữa lúc đọc `:502–505` và giao dịch) → vẫn giảm giá,
    `UPDATE used_count` 0 dòng. Cửa hẹp (chủ quán bấm hoàn tác / xoá mã đúng lúc khách dùng).
-3. `signup-codes.js:208–214` /nhan-diem đọc `daCong` ngoài giao dịch — lệch cộng bù nếu sau này điểm cộng ở pay-debt (P22) chạy song song.
-4. `signup-codes.js:358–367` /claim tra trùng `pos_discount_codes` ngoài giao dịch — race chỉ được UNIQUE đỡ, ra 500 thay vì 409.
+3. `signup-codes.js:218–224` (số dòng sau vá; trước vá :208–214) /nhan-diem đọc `daCong` ngoài giao dịch — lệch cộng bù nếu sau này điểm cộng ở pay-debt (P22) chạy song song.
+4. `signup-codes.js:369–378` (số dòng sau vá; trước vá :358–367) /claim tra trùng `pos_discount_codes` ngoài giao dịch — race chỉ được UNIQUE đỡ, ra 500 thay vì 409.
 5. GHI CHÚ [b] (phép tĩnh E9 bị lừa bởi chuỗi trong chuỗi / `--` SQL) — đề xuất cụ thể ghi ở bước 11, không sửa bộ kiểm.
 
 ## Bước 1 (tiếp, 16.10) — đối chiếu lại
@@ -79,3 +79,58 @@ e6ec483 P20c ke hoach v1: NOT EXISTS noi sau chuoi SQL cu (7 neo o file Cam), re
 - `node tu_chay/cong.js tinh . 2353fe9^ HEAD viec/P20c`: chỉ `✗ [A19]` (thiếu dòng HEAD ĐÃ KIỂM — bình thường trước bước 11.4).
 - Tự rà: không code chết; `baoChiemHong` dùng ở 2 chỗ (không phải hàm dùng một lần); `signup-codes.js` +41 / −19 dòng (gồm ~17 dòng chú
   thích) — trong ngân sách 30–50; `thu_P20.js` +134 (phiếu ~80 — vượt vì 8 ca / 30 phép, mỗi ca đua cần móc + 3–4 phép bất biến).
+
+## Bước 8 — soát độc lập `/ra-soat` vòng 1 (16.10, agent soát trên HEAD `c6ca9a3`) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:  1. server/routes/signup-codes.js:476 + :503–506 — /reset VẪN mang đúng khuôn "kiểm ngoài giao dịch, ghi trong giao dịch
+                  không điều kiện": phép kiểm `claimed_at` (:476) ngoài giao dịch, rồi `UPDATE … SET claimed_at = NULL … WHERE id = ?` (:503)
+                  và `DELETE … WHERE code = ?` (:498) không gắn với lần claim đã đọc. Ca dò Z1 (tất định, móc): reset B qua phép kiểm sớm →
+                  reset A xong → khách P2 claim lại cùng mã (200, có voucher) → reset B tiếp tục, trả 200, XOÁ voucher của P2 và gỡ claim
+                  của P2. ĐỎ cả trên gốc lẫn HEAD (lỗi có sẵn, nhưng trong route phiếu giao "hoàn tác mã an toàn"). Không mất tiền quán
+                  (voucher đã dùng used_count 1 vẫn được chặn) nhưng khách được báo có voucher rồi mất. Sửa gọn: `UPDATE … WHERE id = ? AND
+                  claimed_at = ?` (signupRow.claimed_at) ĐẦU giao dịch, changes = 0 → rollback 409 — bịt luôn lỗi 2. — K4
+               2. server/routes/signup-codes.js:499–501 — HỒI QUY do bản vá: hai lần reset chồng nhau (hai tab / hai máy — Settings.jsx:1806
+                  chỉ khoá nút trong cùng tab), voucher chưa ai dùng → lần thứ hai nhận 400 "Voucher này vừa được dùng trong 1 đơn hàng — không
+                  hoàn tác." trong khi voucher bị lần thứ nhất XOÁ, không ai dùng. Ca dò Z2: gốc XANH (200), HEAD ĐỎ. Dữ liệu không sai, lời
+                  báo sai cho chủ quán. Sửa ở lỗi 1 chữa luôn. — K5 (lời báo)
+               3. cong_cu/thu_P20.js [H] (:397–528) — không có ca "MỘT SĐT nhận điểm qua mã A rồi claim mã B" (hoặc ngược lại). Tôi cài đột
+                  biến đổi hai câu NOT EXISTS thành `? IN (claimed_phone, diem_nhan_phone)` (chặn nhầm luồng hợp lệ đó) → thu_P20.js thoát 0
+                  (SỐNG). Kèm K1: ke_hoach.md:118 ghi "một SĐT claim mã A rồi nhận điểm mã B → không chặn nhau (H4 có)" — H4 (:501–517) dùng P
+                  chỉ để claim và Q chỉ để nhận điểm; [D] (:263–270) dùng SĐT mới mỗi lần gọi. — K5/K3
+               4. server/routes/signup-codes.js:79 — nhánh `if (!d) return 404` của baoChiemHong không có ca phủ: xoá dòng này thu_P20.js vẫn
+                  thoát 0 (SỐNG). Nhánh có thật (P26c xoá dòng mã orders.js:1621 chen giữa phép kiểm và giao dịch); bỏ nhánh → 500 thay 404. — K3
+               5. viec/P20c/trang_thai.md:32–33 — Phát hiện 3 ghi `signup-codes.js:208–214` (nay :218–221), Phát hiện 4 ghi `:358–367` (nay
+                  :369–378): bản vá dời code ~10 dòng, file đang sửa trong chính việc này. — K1 (TU-CHAY-6)
+               6. ke_hoach.md mục 3 "voucher không thể XUẤT HIỆN sau :467 khi dòng signup đang claimed" — sai: Z1 cho thấy xuất hiện lại được
+                  qua reset chồng nhau + claim lại; discount-codes.js:195–215 cũng tạo được mã tay trùng chữ. — K1
+NGHI NGỜ:      - signup-codes.js:483 vs :498 — hai vế không đối xứng khi used_count NULL: vế ngoài `used_count > 0` cho NULL qua, vế trong
+                 `used_count = 0` không xoá NULL → 400. Ca dò Z3: gốc 200, HEAD 400. Lược đồ DEFAULT 0 (database.js:620) và 3 chỗ INSERT không
+                 để NULL — chưa chứng minh NULL tồn tại trên production; nhưng loyalty.js:95 có phòng `COALESCE(d.used_count, 0)`. Sửa 1 chữ:
+                 `COALESCE(used_count, 0) = 0`.
+               - signup-codes.js:495–497 chú thích "claim trước 09.08 mang mã khác → KHÔNG có voucher" — thật ra voucher VẪN CÓ, chỉ mang mã
+                 khác; reset không xoá nó → SĐT claim lại được trong khi voucher cũ còn hạn (hành vi có sẵn; valid_days mặc định 30 nên thực tế
+                 chắc đã hết hạn). H3c (:489) gọi đó là "dữ liệu trước 09.08" để biện minh — ca chỉ dựng xoá tay.
+               - Mã trả về /claim mã đã claim 400 → 409 (:327): App KH ngoài kho, không xác minh được có rẽ theo 400 không.
+               - Phép tĩnh kiem_tra_truoc_khi_giao.js:446/:463 neo theo TIỀN TỐ chuỗi; giờ có chuỗi nối sau dấu nháy → phép tĩnh không canh
+                 phần nối (nối thêm `' OR 1=1'` vẫn qua phép tĩnh). Phần động ([E], [F], KB11) vẫn bắt. Cùng loại GHI CHÚ [b].
+NGHIỆM THU:    5/6 mục có bằng chứng · mục thiếu: A5 (phần ghi): [c] có H5 :519–527; thiếu dòng CHƯA KIỂM kiemDonCuaMa ngoài giao dịch
+               và đề xuất [b] — mới ở ke_hoach mục 7 / hẹn "bước 11"; trang_thai.md chưa có mục CHƯA KIỂM.
+               A1 CÓ (H1 :411–424, chạy lại trên bản chưa vá: ĐỎ 3 phép) · A2 CÓ (H2 :426–439 đỏ gốc, H2b :441–454 K5) · A3 CÓ (H3 :456–474
+               đỏ 3 phép gốc, H3b, H3c — nhưng xem lỗi 1, 2) · A4 CÓ (H4 :501–517 đỏ 2 phép gốc; client/src chỉ gọi GET + reset
+               Settings.jsx:425, :432, không đọc `code`) · A6 CÓ (tự chạy lại trên HEAD: npm test PASS 64 · FAIL 0 · CẢNH BÁO 1 có sẵn;
+               --day-du PASS 68 · FAIL 0, giả lập 34.2 s, thu_gia_lap 53.3 s, dist khớp src; P20c dot_bien đối chứng 105/0, 9/9 BẮT; P20b
+               105/0, 4/4 BẮT; AUDIT-1 D1 8 tên BẮT — lần chạy cắt ở 590 s sau 47 BẮT, !D1-E11-P20 và !D1-E11-P26a LẠC đúng mốc
+               viec/AUDIT-1/bao_cao.md:74, :77, không hồi quy; AUDIT-2 KB11 không tự chạy, chỉ có số ở trang_thai.md:76).
+CHƯA SOÁT ĐƯỢC: Turso production (SĐT trùng, used_count NULL, voucher trước 09.08 còn hạn); App KH ngoài kho (phụ thuộc status 400?);
+               đua thật qua mạng trên Turso (giao dịch "write" qua HTTP) — chỉ thử móc tất định trên file libsql; AUDIT-1 D1 bị cắt 590 s,
+               AUDIT-2 không tự chạy.
+BÀI HỌC:       KHOÁ: thêm vào thu_P20 [H] ca (a) cùng SĐT nhận điểm mã A rồi claim mã B → 200 (giết đột biến chéo cột); (b) hai reset
+               chồng nhau có claim lại xen giữa (Z1, Z2); (c) dòng mã bị xoá giữa phép kiểm và giao dịch → 404 (giết đột biến bỏ :79).
+               NGUYÊN TẮC (K4): đưa một phép kiểm vào giao dịch → rà MỌI câu ghi trong cùng giao dịch; UPDATE/DELETE theo `id`/`code` phải gắn
+               ĐÚNG phiên bản dòng đã đọc ngoài giao dịch (`AND claimed_at = ?`). NGUYÊN TẮC (K5): hai vế cùng điều kiện, một ngoài một trong
+               giao dịch, phải cùng biểu thức kể cả NULL (`> 0` vs `= 0` lệch ở NULL — COALESCE như loyalty.js:95). NGUYÊN TẮC (K1): "ca X phủ
+               luồng Y" trong kế hoạch chỉ ghi khi đột biến xoá Y làm X ĐỎ (ke_hoach.md:118 "H4 có" mà không có). Đề xuất bộ kiểm: phép tĩnh
+               neo tiền tố chuỗi SQL (:446/:463) cần thêm phép canh phần nối sau dấu nháy, hoặc ghi rõ giới hạn (cùng loại GHI CHÚ [b]).
+               Bản sao + bài dò của agent: scratchpad/goc, scratchpad/head, scratchpad/probe_section.js (ngoài kho).
+```

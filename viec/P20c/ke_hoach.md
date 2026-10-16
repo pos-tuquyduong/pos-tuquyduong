@@ -80,8 +80,11 @@ dữ liệu claim trước 09.08.2026 (voucher mang mã KHÁC, `signup-codes.js:
 | dòng | ~+4 (giữ `:467–473` làm lời báo sớm; `voucherRow` có từ `:467`) | ~4 |
 | voucher không tồn tại | `voucherRow` null → 200, gỡ claimed như hôm nay | **400 — chặn nhầm** |
 
-**Chọn A.** Đổi thứ tự trong giao dịch: DELETE → kiểm → UPDATE (rollback không phải hoàn UPDATE). Đủ vì voucher không thể XUẤT HIỆN
-sau `:467` khi dòng signup đang claimed (`/claim` chặn ở `:316` và `:358–367`). Bản nháp trước (xoá `:465–473`, thêm `tx.queryOne` hỏi "còn
+**Chọn A.** Đổi thứ tự trong giao dịch: DELETE → kiểm → UPDATE (rollback không phải hoàn UPDATE). ~~Đủ vì voucher không thể XUẤT HIỆN
+sau `:467` khi dòng signup đang claimed~~ — **SAI (soát vòng 1, K1):** hai lần hoàn tác chồng nhau + khách claim lại xen giữa (ca Z1 → H3d)
+làm voucher mới xuất hiện; mã tay trùng chữ cũng tạo được (`discount-codes.js:195–215`). Bản vá sau soát: UPDATE gỡ claim lên ĐẦU giao dịch, gắn
+đúng lần claim đã đọc (`AND claimed_at = ? AND claimed_phone = ?`), 0 dòng → 409; DELETE dùng `COALESCE(used_count, 0) = 0` (cùng nghĩa phép
+kiểm ngoài với NULL — H3f). Bản nháp trước (xoá `:465–473`, thêm `tx.queryOne` hỏi "còn
 voucher") dài gấp đôi — agent soát chỉ ra. Còn một cửa hẹp: voucher bị XOÁ TAY (`discount-codes.js:326`) đúng giữa `:467` và giao dịch →
 400 thay vì 200; bấm lại là qua — chấp nhận, ghi CHƯA KIỂM.
 
@@ -115,7 +118,7 @@ cục bộ chạy tuần tự, người thứ hai bị phép kiểm sớm chặn
 
 Luồng hợp lệ phải KHÔNG bị chặn (K5): H2b (chiLanDau tắt), H3b, H3c, H5; ca [E]/[F] có sẵn — hai SĐT KHÁC nhau tranh CÙNG mã → vẫn
 đúng `MA_DA_DUNG` 409 / `MA_DA_NHAN_DIEM` 400 (đường `baoChiemHong` nhánh `d.luc`); [D] — một mã, claim + nhận điểm bằng hai SĐT khác nhau
-→ 200/200 (hai cột độc lập, `NOT EXISTS` chỉ soi cột của chính route). Cũng có: một SĐT claim mã A rồi nhận điểm mã B → không chặn nhau (H4 có).
+→ 200/200 (hai cột độc lập, `NOT EXISTS` chỉ soi cột của chính route). Cũng có: một SĐT claim mã A rồi nhận điểm mã B → không chặn nhau (~~H4 có~~ — SAI, soát vòng 1: H4 dùng hai SĐT khác nhau; thêm H4b).
 Bài cả bài ĐỎ trên gốc (H1, H2, H3, H4) → không cần `## Bài thử cũ sửa`; H2b/H3b/H3c/H5 là ca K5 thêm vào cùng mục.
 
 ## 6. Đột biến — `viec/P20c/dot_bien.py` (khuôn `viec/P20b/dot_bien.py`), có đối chứng (bản không đột biến xanh)
