@@ -731,6 +731,9 @@ function baiNapCauHinh() {
 // ═══ TU-CHAY-7 A2 · thư mục tạm: dọn khi thoát / ném; đầu lần chạy dọn thư mục của pid ĐÃ CHẾT, giữ của pid còn sống ═══
 // Bài đồng bộ: hàm nghe SIGINT/SIGTERM không chạy kịp (còn gỡ chết-ngay → nới hạn của bộ kiểm) — lần chạy sau dọn thay (chủ quán chốt Q2a).
 function baiDonTam() {
+  // soát vòng 3 lỗi 5: chế độ con vào bằng biến môi trường thì biến lọt từ shell làm bài thoát 0 sớm (bộ kiểm gọi với môi trường kế thừa)
+  chac('TU-CHAY-7 A2 chế độ con chỉ vào bằng cờ argv — bài không đọc biến môi trường *_CON',
+    !/process\.env\.\w*_CON\b/.test(fs.readFileSync(__filename, 'utf8')));
   const T = path.join(TAM, 'tmp_con');
   const chet = spawnSync(process.execPath, ['-e', '']).pid;   // đã thoát khi spawnSync trả về
   const cu = `thu_cong_${chet}_x`, song = `thu_cong_${process.pid}_x`;

@@ -43,10 +43,10 @@ không bao giờ chạy); bài thử chỉ phủ `discount_value` mà bỏ `disc
 ## K4 · Sửa nửa vời — quên đường song song
 Sửa một đường, để nguyên đường kia làm cùng việc — thường trong cùng hàm hoặc cách chưa tới 150 dòng. Đã gây: P26b gắn cổng
 cho khoản hoàn ví mà xoá đơn vẫn hoàn gói 2 lần.
-- **Dấu hiệu:** vừa tìm ra một lỗi dạng X → gần như chắc chắn có chỗ thứ hai cùng dạng X.
+- **Dấu hiệu:** vừa tìm ra một lỗi dạng X → gần như chắc chắn có chỗ thứ hai cùng dạng X trong cùng file.
 - **Chặn:** `grep` cả file tìm mọi chỗ cùng khuôn **trước khi viết dòng sửa đầu tiên**: dời câu đọc vào `try` → rà
   `catch`/`finally`; gắn cổng một khoản hoàn → mọi khoản hoàn khác (gói, thẻ, kho, điểm); gom về hàm chung → mỗi CHỖ GỌI là
-  chỗ vá riêng. "Cùng khuôn" phải giống ở **mọi loại đầu vào** (HOC-1: `Dirent.isFile()` bỏ symlink).
+  chỗ vá riêng. "Cùng khuôn" phải giống ở **mọi loại đầu vào** (HOC-1: `Dirent.isFile()` bỏ symlink, `statSync` giữ).
 - **Chặn:** cổng "bắt buộc có X" kiểm CÙNG biểu thức với chỗ dùng X (SO-LUONG-1: `" "` lọt qua `customer_phone` thô); chép
   cổng có sẵn thì chép luôn lỗ của nó. MỘT vị từ cho cả "có gì để làm" và "làm" — hai biểu thức sẽ lệch nhau (BAN-HANG-1).
 - **Chặn:** tài liệu hứa theo ĐỐI TƯỢNG thì phép chặn gắn theo đối tượng, không theo một nhánh kết quả; bỏ một lời dặn vì "máy

@@ -140,7 +140,8 @@ BÀI HỌC: KHOÁ — bộ kiểm chạy bài thật nên đòi dòng tổng ho�
 | 40–42 K3 TACH-GL | bỏ "(T9)", "(T9 vòng 3:" | mã ca cũ; giữ ví dụ `lượt k/L pid` |
 | 43–45 K3 TU-CHAY-5 | bỏ "(ca theo từng lệnh trong skill →", "cổng so số ca báo oan", "A19 `.pop()`" | giữ con số 927/933 và `cong.yml` — ví dụ còn đủ |
 | 46–48 K3 | gộp câu phiếu "bộ đột biến chạy được TỪNG TÊN, có ĐỐI CHỨNG và luật sập rõ (bài sập ≠ BẮT, không in dòng tổng ≠ BẮT) — không dò chuỗi; chỗ còn dò (chờ TU-CHAY-8) ghi ngoại lệ tạm"; bỏ "nên vá sai công thức vẫn ra đúng số" | giải thích của con số đã nêu; vế "không in dòng tổng" khôi phục ở vòng sửa 2 |
-| 51–53 K4 | thân + Dấu hiệu gộp lại; thêm ví dụ TU-CHAY-7 (2/3 chỗ spawn) | cùng nghĩa |
+| 51–53 K4 | thân giữ nguyên, "Chỗ thứ hai thường trong cùng hàm hoặc cách chưa tới 150 dòng" thành "— thường trong cùng hàm …" (một câu); Dấu hiệu giữ "… cùng dạng X trong cùng file" | cùng nghĩa (ví dụ TU-CHAY-7 "2/3 chỗ spawn" thêm ở vòng 1, BỎ ở vòng 2; "trong cùng file" rơi ở vòng 1, khôi phục ở vòng 3) |
+| 54–56 K4 | giữ đủ; "`statSync` giữ" rơi ở vòng 1 — khôi phục ở vòng 3 | soát vòng 3 lỗi 4 |
 | 57–58 K4 | thêm "bỏ một lời dặn vì 'máy đã làm' thì phép phải phủ ĐỦ đối tượng" | bài học soát vòng 1 (lỗi 2); khôi phục "không theo một nhánh kết quả" |
 | 59–60 K4 argv | giữ đủ 3 vế (chuyển tiếp nguyên đối số, lấy lần đầu, phép cấp module chạy cả ở cha); ví dụ TACH-GL rút gọn; thêm "cờ qua biến môi trường thì kế thừa từ shell — dùng argv (TU-CHAY-7)" | vòng sửa 1 làm rơi "lấy lần đầu" — khôi phục ở vòng 2 |
 | 61–63 K4 | bỏ "khối lọc màu chép sang hàm mới →" | còn ba ví dụ cùng loại; "mẫu +" và "đổi tên phép → mẫu đột biến LẠC" khôi phục ở vòng 2 |
@@ -204,6 +205,56 @@ BÀI HỌC: KHOÁ — ca "chạy N giây rồi giết" trong bài đồng bộ p
    (mục 3 trên ghi 94 s là trước lần đo này). 0 thư mục tạm mới (còn /tmp/thu_gl_p24O0w cũ chờ chủ quán dọn).
 7. Nghi ngờ os.putenv: đúng — chỉ an toàn vì dot_bien chạy tuần tự; ghi ở đây, không song song hoá.
 
+## /ra-soat vòng 3 — báo cáo agent soát (chép nguyên, rút dòng trống)
+```
+KHÔNG ĐẠT (lỗi còn lại đều nhỏ: hồ sơ, độ chắc của bài thử, một câu Cấm chưa hỏi chủ quán. Không lỗi nào chạm tiền hay quầy.)
+(a) sáu lỗi vòng 2: 1 luật sập ĐÃ SỬA ĐÚNG (KHUON_LOI 39-41 đúng câu phiếu + ngoại lệ tạm; dot_bien 157-159 ghi ngoại lệ; regex \bném: khớp
+'khối ném: ' của C1 theo hướng an toàn — chấp nhận); 2 số đo ĐÃ SỬA (THIET_KE 906 "88,9–94,6 s (74–79 %)"); 3 năm vế ĐÃ KHÔI PHỤC ĐỦ (:40, :55,
+:57-59, :60-61, :89-90) — bảng A4 vẫn sai (lỗi 3 dưới); 4 mồ côi ca "lạc" ĐÃ SỬA THẬT (bỏ ca, cờ argv thu_cong 34-37); 5 vế so pid hết vì cơ chế
+thay — nhưng tính chất lỗi 3 vòng 1 đòi không còn phép nào giữ (lỗi 5 dưới); 6 dừng con có ca "< 9 s" + 2 đột biến tất định (25/25 neo khớp trên
+HEAD); NGAT và CON.add chayDon CHƯA KIỂM — lý do xác đáng (bỏ NGAT đỏ 3/6; thử CON.add cần thêm một tầng tiến trình ~60 s).
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_gia_lap.js:313 + :316-317 — ca "đóng < 9 s sau tín hiệu" đo khi máy nặng: dTerm và dInt chạy CÙNG LÚC (Promise.all), mỗi con bị
+   giết đúng lúc đợt nặng (~19 giả lập) khởi động; chú thích :307-309 ghi máy 1 lõi lượt con kẹt khởi động quá 10 s mới đáp SIGTERM → bản vá cũng
+   ≥ 10 s → ĐỎ OAN. Số đo chỉ từ máy 4 lõi (2,25–2,44 s). Trái KHUON_LOI 33-34. K3 (đỏ oan), K8 chiều ngược. Gọn: chạy dTerm rồi dInt tuần tự,
+   hoặc khoá "dừng con" bằng dấu vết (handler in số con đã gửi SIGTERM) thay đo giờ.
+2. cong_cu/thu_gia_lap.js:90 + :312 — vẫn cờ biến môi trường THU_GL_CON: lọt từ shell thì lặng lẽ bỏ 3 ca DON (145 ca vẫn xanh). Vòng 2 vừa ghi
+   KHUON_LOI:56 "dùng argv" và :75 "công cụ của việc theo luật việc vừa ghi". Lý do miễn ở THIET_KE 911-912 chỉ đúng cho kiem_tra:854 (MT_SACH),
+   không đúng cho cổng (cong.js:23-24 envCon kế thừa mọi biến trừ GITHUB_/ACTIONS_/CLAUDE; A11 chạy thu_gia_lap) và chạy tay. K4/K6. Gọn: cờ argv --con.
+3. viec/TU-CHAY-7/trang_thai.md:143 — bảng A4 vẫn ghi "thêm ví dụ TU-CHAY-7 (2/3 chỗ spawn)" — ví dụ đã bỏ ở vòng 2 (:197 nói "bảng A4 cập nhật
+   từng dòng"). K4, K1.
+4. KHUON_LOI.md:49 — bỏ vế "`statSync` giữ" (gốc :56) — chỉ ra API đúng; bảng A4 không có dòng cho gốc 54-56 (grep statSync trang_thai → 0).
+   "khuôn K4: … trong cùng file" (gốc :53) cũng bỏ mà bảng không ghi. K1/K4.
+5. tu_chay/thu_cong.js:34-37 — sửa lỗi 3 vòng 1 (thoát 0 sớm khi cờ lọt từ shell) giờ không ca / đột biến nào giữ; đổi lại process.env.X chỉ đỏ
+   vì lý do khác (con chạy đệ quy tới hạn 20 s) — trái KHUON_LOI:35. Gọn: phép tĩnh "thu_cong.js không đọc process.env để vào chế độ con". K3.
+6. cong_cu/thu_gia_lap.js:51-53 (có từ vòng 0, chưa từng hỏi) — handler SIGTERM gỡ chết-ngay: kiem_tra:854 hết hạn 120 s gửi SIGTERM, bài chạy
+   thêm tới 10 s → hạn thật tới 130 s. Phiếu Cấm "Không nới hạn 120 s". thu_cong cùng cơ chế đã coi là "nới hạn (Cấm)" và hỏi chủ quán (Q2); thu_gia_lap
+   tự quyết ("có giới hạn"), không vào Câu hỏi. Vòng 1 đã nêu, chưa ai xử lý. K1/K6: chỗ chưa chốt mà tự quyết.
+NGHI NGỜ: lỗi 1 chưa đo được trên máy 1 lõi (taskset bị chặn); E15 `:\d+[–-]\d+` đếm cả giờ "// mở 7:00-22:00" — không ca, nguồn báo oan về sau;
+  thu_cong 25-29 dọn theo process.kill(pid,0) — /tmp chung giữa hai không gian pid có thể xoá TAM sống (chưa thấy cách xảy ra ở đây); dot_bien gọi
+  VS-…-QUEN-EXIT là "vá sai" — thật là bỏ vá exit (tên).
+NGHIỆM THU: 5/6 · thiếu: A4 (danh sách dòng bỏ sai/thiếu + mất một vế nghĩa — lỗi 3, 4). A1 ✓ (chạy lại thu_TOCDO1 54 đạt); A2 ✓ (kèm lỗi 1, 6);
+  A3 ✓; A5 ✓; A6 ✓ theo hồ sơ (25/25, PASS 68; CHƯA KIỂM có lý do xác đáng).
+CHƯA SOÁT ĐƯỢC: không chạy npm test / --day-du / thu_cong / thu_gia_lap / dot_bien; không đo DON máy 1 lõi; không dựng lại bản gốc (dung_goc.py
+  không có trong kho); không giết thu_gia_lap thật trong đợt DON; đã tự dọn.
+ĐƠN GIẢN: một kiểu cờ argv cho cả hai bài; DON tuần tự thay đo giờ khi máy nặng; KHUON_LOI:15 hai cặp ngoặc liền nhau nên gộp.
+BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của bài, không chỉ mã thoát 0 (gốc chung lỗi 3 vòng 1, lỗi 2 & 5 vòng 3: mọi kiểu "thoát
+  0 sớm" xanh oan); KHOÁ — thu_cong_cu / người gác thêm phép tĩnh "bài thu_* không vào chế độ con bằng process.env"; NGUYÊN TẮC (K3) — ca có ngưỡng
+  thời gian chỉ đo khi không có tiến trình nặng song song, kể cả bên trong con đang đo; chuộng dấu vết hơn đồng hồ; NGUYÊN TẮC (K1/K4) — rút gọn
+  tài liệu thì đối chiếu bảng "dòng bỏ" với diff theo từng dòng gốc (ba vòng liền lòi một vế rơi); NGUYÊN TẮC (K6) — đánh đổi đã hỏi chủ quán ở
+  chỗ A thì cùng đánh đổi ở chỗ B cũng phải hỏi.
+```
+
+### Xử lý vòng sửa 3 (3/3 — vòng cuối)
+1. **Lỗi 2** — thu_gia_lap vào chế độ con bằng cờ argv `--con` (bỏ THU_GL_CON); **lỗi 5** — cả hai bài có phép tĩnh "không đọc biến môi trường
+   *_CON" (thu_cong trong baiDonTam, thu_gia_lap ngay trước khối DON). Đột biến đưa ĐÚNG lỗi cũ trở lại: VS-TUCHAY7-CON-QUA-ENV,
+   VS-TUCHAY7-GL-CON-QUA-ENV. Hai phép tĩnh này XANH trên bản gốc dựng (dung_goc giữ chế độ con argv — hạ tầng thử): chúng canh hồi quy của
+   chính khung thử, bằng chứng là hai đột biến trên (K5-kiểu ca "phải giữ"), không tính là bài đỏ.
+2. **Lỗi 3, 4** — bảng A4 dòng 51–53 sửa, thêm dòng 54–56; KHUON_LOI khôi phục "`statSync` giữ" và "trong cùng file" (vẫn 100 dòng khổ 126).
+3. **Lỗi 1, 6 — KHÔNG sửa, hỏi chủ quán (Q3)**: hai lỗi dính nhau (cách xử lý tín hiệu của thu_gia_lap quyết định ca DON đo gì). Đây là chỗ phiếu
+   chưa chốt (Cấm "không nới hạn" × A2 "bắt SIGINT/SIGTERM"); tôi đã tự quyết ở vòng 0 — sai luật cứng của skill. Dừng ở đây.
+4. Nghi ngờ E15 đếm giờ dạng `7:00-22:00`: đúng — chỉ CẢNH BÁO; ghi Phát hiện. Tên VS-…-QUEN-EXIT: giữ (đổi tên = đổi bảng A17, không thêm giá trị).
+
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.
 - `node cong_cu/thu_TOCDO1.js`: 1,7 s (42 đạt) — bộ kiểm không gọi bài này qua `chayBaiThat` (chỉ nhắc ở chú thích `kiem_tra :529`, `:602`).
@@ -221,10 +272,22 @@ BÀI HỌC: KHOÁ — ca "chạy N giây rồi giết" trong bài đồng bộ p
 8. C1 dùng cặp 4,25 s / 5 s (bản 1: 1,7 / 2 s dư quá mỏng).
 
 ## Câu hỏi
-- **Q1 (Phạm vi — A5):** đổi `tu_chay/PHIEN_BAN` sang `tu-chay 1.7.0` thì `tu_chay/thu_cong_cu.js:459` và `tu_chay/thu_nguoi_gac.js:709` (cả hai
+- **Q3 (A2 thu_gia_lap.js × Cấm "Không nới hạn 120 s/110 s") — soát vòng 1 đã nêu, vòng 3 chỉ ra tôi TỰ QUYẾT, chưa hỏi:** thu_gia_lap bắt
+  SIGINT/SIGTERM (đúng phiếu A2, chủ quán chốt "làm đúng phiếu" ở lượt tiep), nhưng muốn không sót thư mục thì handler phải DỪNG giả lập con và
+  CHỜ chúng đóng (đo: 2,3–2,4 s; tối đa 10 s rồi SIGKILL). Khi bộ kiểm hết hạn 120 s (`spawnSync` gửi SIGTERM) bài còn chạy thêm tới 10 s → hạn
+  thật tới 130 s. Không chờ thì sót `thu_gl_*` (đo: 1/3–2/3 lần). Ca DON "< 9 s" còn có thể đỏ oan trên máy 1 lõi (con kẹt khởi động > 10 s — chú
+  thích T3–T6) — chưa đo được ở đây. Ba cách:
+  (a) Giữ như hiện tại — chấp nhận hạn thật tới 130 s khi bị ngắt (kết quả vẫn là FAIL "quá giờ", không nới điều kiện qua); sửa ca DON chạy
+      SIGTERM rồi SIGINT tuần tự + khoá "dừng con" bằng dấu vết (handler in số con đã gửi SIGTERM) thay vì đo giờ.
+  (b) Không chờ: handler SIGKILL mọi con rồi thoát ngay — không nới hạn, nhưng có thể sót thư mục (lần chạy sau không dọn).
+  (c) Như thu_cong (Q2a): bỏ bắt tín hiệu; TAM mang pid, đầu lần chạy dọn thư mục `thu_gl_<pid chết>_*` — không nới hạn, không sót lâu, hai bài
+      cùng một cách, bớt ~20 dòng (CON, NGAT, handler, ca DON tín hiệu → ca pid chết/sống như thu_cong). Trái chữ phiếu A2 ("bắt SIGINT/SIGTERM").
+  Máy đề xuất (c) — đơn giản nhất, không nới hạn, đồng nhất hai bài; nhưng đổi chữ phiếu nên cần chủ quán chốt. Chọn xong: lượt `tiep` làm, chạy lại
+  bước 6 và `/ra-soat` (cần chủ quán cho thêm vòng soát — đã dùng 3/3).
+- **Q1 (Phạm vi — A5) — ĐÃ CHỐT (839ba54: thêm 2 file vào Phạm vi):** đổi `tu_chay/PHIEN_BAN` sang `tu-chay 1.7.0` thì `tu_chay/thu_cong_cu.js:459` và `tu_chay/thu_nguoi_gac.js:709` (cả hai
   chạy trong `npm test`) đỏ vì đòi đúng chữ `tu-chay 1.6.0`. Hai file ngoài Phạm vi. Đề xuất: thêm cả hai vào `## Phạm vi`, mỗi file sửa một
   dòng (1.6.0 → 1.7.0, ghi "TU-CHAY-7 A5"). Không thêm thì A5 + A6 không đạt cùng lúc.
-- **Q2 (A2 thu_cong.js — cách làm khác phiếu):** `thu_cong.js` chạy đồng bộ liền một mạch, Node chỉ chạy hàm nghe SIGINT/SIGTERM khi vòng sự kiện
+- **Q2 (A2 thu_cong.js — cách làm khác phiếu) — ĐÃ CHỐT (a):** `thu_cong.js` chạy đồng bộ liền một mạch, Node chỉ chạy hàm nghe SIGINT/SIGTERM khi vòng sự kiện
   quay → hàm nghe không bao giờ chạy trước khi bài xong. Cài hàm nghe còn GỠ chết-ngay mặc định: hết hạn 120 s, `spawnSync` của bộ kiểm gửi
   SIGTERM mà con vẫn chạy tới hết = nới hạn (Cấm), Ctrl-C không dừng được. Đề xuất: (a) `process.on('exit')` (bắt đường ném) + TAM đặt tên kèm
   pid, đầu bài dọn các `thu_cong_<pid>_*` của pid ĐÃ CHẾT; không cài hàm nghe tín hiệu. Ca đỏ: thư mục giả của pid chết → bị dọn; của pid
@@ -232,6 +295,8 @@ BÀI HỌC: KHOÁ — ca "chạy N giây rồi giết" trong bài đồng bộ p
   Máy chọn (a) nếu chủ quán duyệt; phiếu ghi "dọn ở exit + bắt SIGINT / SIGTERM" nên cần chủ quán chốt.
 
 ## Phát hiện
+- (TU-CHAY-7, soát vòng 3) E15 mẫu `:\d+[–-]\d+` đếm cả giờ trong chú thích (`// mở 7:00-22:00`) — hiện 0 chỗ, chỉ CẢNH BÁO; nếu báo oan thì
+  thêm ca + siết mẫu (việc sau).
 - (TU-CHAY-7, quan trọng) Máy mây KHÔNG có hook pre-commit (`.git/hooks` chỉ `*.sample`): tầng 3 của CLAUDE.md §2 không chạy khi máy
   commit — commit đỏ vẫn vào được nhánh, chỉ cổng PR (A13) chặn. Đề xuất khung: SessionStart cài hook (hoặc người gác đòi `npm test` xanh gần
   nhất trước `git commit`); ca đỏ: phiên mới, sửa làm bộ kiểm đỏ, `git commit` → phải bị chặn.

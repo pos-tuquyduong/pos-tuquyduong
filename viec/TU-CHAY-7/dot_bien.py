@@ -59,6 +59,8 @@ DOT_BIEN = [
   ('BV-TUCHAY7-DON-PID-CHET', TC, [(DON_PID, '', 1)], ['thu_cong'], A2C),
   ('VS-TUCHAY7-DON-CA-PID-SONG', TC, [("try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try {", "{ try {", 1)], ['thu_cong'], A2C),
   ('VS-TUCHAY7-DON-TAM-KHONG-PID', TC, [("`thu_cong_${process.pid}_`", "'thu_cong_'", 1)], ['thu_cong'], A2C),
+  # soát vòng 3 lỗi 5: chế độ con vào bằng biến môi trường (đúng cơ chế cũ của vòng 0–1) → phép tĩnh bắt
+  ('VS-TUCHAY7-CON-QUA-ENV', TC, [("[process.argv[2]]", "[process.env.THU_CONG_CON]", 1)], ['thu_cong'], r'✗ TU-CHAY-7 A2 chế độ con chỉ vào bằng cờ argv'),
   # ── A2 thu_gia_lap.js: exit + SIGINT/SIGTERM ──
   ('BV-TUCHAY7-DON-GL-TINHIEU', GL, [("for (const t of ['SIGINT', 'SIGTERM']) {\n  process.on(t, () => {", "for (const t of []) {\n  process.on(t, () => {", 1)],
    ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
@@ -68,6 +70,8 @@ DOT_BIEN = [
    r'✗ DON SIGTERM giữa bài'),
   ('VS-TUCHAY7-DON-GL-DUNG-MOT-CON', GL, [("    for (const c of CON) c.kill('SIGTERM');\n    setInterval(", "    for (const c of [...CON].slice(0, 1)) c.kill('SIGTERM');\n    setInterval(", 1)],
    ['thu_gia_lap'], r'✗ DON SIGTERM giữa bài'),
+  ('VS-TUCHAY7-GL-CON-QUA-ENV', GL, [("if (!process.argv.includes('--con')) {", "if (!process.env.THU_GL_CON) {", 1)], ['thu_gia_lap'],
+   r'✗ DON chế độ con chỉ vào bằng cờ argv'),
   ('VS-TUCHAY7-DON-GL-QUEN-EXIT', GL, [("process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true, maxRetries: 5 }); } catch { /* bỏ qua */ } });\n", '', 1)],
    ['thu_gia_lap'], r'✗ DON chạy hết'),
   # ── A3 kiem_tra E15: chú thích số dòng cứng ──

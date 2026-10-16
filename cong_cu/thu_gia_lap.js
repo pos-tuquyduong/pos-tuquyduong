@@ -24,7 +24,7 @@
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
  *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này + thu_cong.js — TU-CHAY-7 A1).
  *  DON (TU-CHAY-7 A2) bài này bị SIGTERM / SIGINT giữa chừng (giả lập con đang chạy) → thoát 130, không sót thu_gl_*;
- *      chạy hết (--chi-du-lieu-tay) → không sót. Con tự thử chạy với THU_GL_CON=1 (bỏ ca DON — chặn đệ quy).
+ *      chạy hết (--chi-du-lieu-tay) → không sót. Con tự thử chạy với cờ argv --con (bỏ ca DON — chặn đệ quy).
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
  *      tạm — server/ là liên kết về kho thật thì từng ghi XUYÊN (HOC-2b, 08.10).
  *
@@ -82,12 +82,12 @@ const chayGL = (args = [], them = {}, tep = CHAY, stdio = undefined) => new Prom
   c.on('close', (status) => { clearTimeout(hen); xong({ status, ra: ra.replace(/\x1b\[[0-9;]*m/g, '') }); });
 });
 const cuoi = (r) => r.ra.trim().split('\n').pop();
-// TU-CHAY-7 A2 (DON): chạy CHÍNH bài này làm con (THU_GL_CON=1, TMPDIR riêng). tin: giết bằng tín hiệu đó khi giả lập con đang chạy (có
+// TU-CHAY-7 A2 (DON): chạy CHÍNH bài này làm con (cờ argv --con, TMPDIR riêng). tin: giết bằng tín hiệu đó khi giả lập con đang chạy (có
 // gia_lap_* trong thu_gl_*, sâu ≤ 2) · null: chạy hết --chi-du-lieu-tay. Đóng rồi chờ 2 s (giả lập con có thể còn ghi) mới đếm thu_gl_*.
 const chayDon = (tin) => new Promise((xong) => {
   const T = path.join(TAM, 'don_' + (tin || 'het'));
   fs.mkdirSync(T);
-  const c = spawn(process.execPath, [__filename, ...(tin ? [] : ['--chi-du-lieu-tay'])], { cwd: GOC, env: { ...SACH, TMPDIR: T, THU_GL_CON: '1' }, stdio: 'ignore' });
+  const c = spawn(process.execPath, [__filename, '--con', ...(tin ? [] : ['--chi-du-lieu-tay'])], { cwd: GOC, env: { ...SACH, TMPDIR: T }, stdio: 'ignore' });
   CON.add(c); c.on('close', () => CON.delete(c)); if (NGAT) c.kill('SIGTERM');   // K4: mọi chỗ spawn đều vào CON (soát vòng 1)
   const coGL = (d, sau) => { try {
     return fs.readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() && (e.name.startsWith('gia_lap_') || (sau && coGL(path.join(d, e.name), sau - 1))));
@@ -309,7 +309,9 @@ async function main() {
   const [t3, t4, t5, t6] = await Promise.all([
     chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
   ]);
-  if (!process.env.THU_GL_CON) {   // DON chạy SAU đợt T (ca tín hiệu không chạy chung đợt nặng — K3)
+  // Cờ argv, không biến môi trường: biến lọt từ shell / cổng (envCon kế thừa) sẽ âm thầm bỏ 3 ca DON (soát vòng 3).
+  k('DON chế độ con chỉ vào bằng cờ argv — bài không đọc biến môi trường *_CON', !/process\.env\.\w*_CON\b/.test(fs.readFileSync(__filename, 'utf8')));
+  if (!process.argv.includes('--con')) {   // DON chạy SAU đợt T (ca tín hiệu không chạy chung đợt nặng — K3)
     const [dTerm, dInt, dHet] = await Promise.all([chayDon('SIGTERM'), chayDon('SIGINT'), chayDon(null)]);
     console.log('\n[DON] TU-CHAY-7 A2 — bài này bị ngắt không sót thư mục tạm');
     for (const [t, r] of [['SIGTERM', dTerm], ['SIGINT', dInt]]) {

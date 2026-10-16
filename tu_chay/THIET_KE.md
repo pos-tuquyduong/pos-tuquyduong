@@ -910,7 +910,7 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   bộ liền một mạch): hàm nghe tín hiệu không chạy kịp và còn gỡ chết-ngay mặc định (= nới hạn `spawnSync`) → chỉ `exit` (cả khi ném),
   TAM đặt `thu_cong_<pid>_`, đầu lần chạy dọn thư mục của pid ĐÃ CHẾT (chủ quán chốt Q2a). Bài thử: mỗi bài tự chạy chính nó làm con
   (TMPDIR riêng; chế độ con của thu_cong qua cờ argv `--con-het`/`--con-nem` — biến môi trường thì lọt từ shell, làm bài thoát 0
-  sớm; thu_gia_lap dùng THU_GL_CON vì bộ kiểm chạy nó với môi trường đã lọc). Ca DON đòi đóng < 9 s sau tín hiệu: không dừng con thì
+  sớm — cả hai bài khoá bằng phép tĩnh "không đọc biến môi trường *_CON"; thu_gia_lap dùng cờ `--con`). Ca DON đòi đóng < 9 s sau tín hiệu: không dừng con thì
   handler chờ đủ 10 s.
 - **A3 phép tĩnh E15** chú thích trỏ số dòng cứng (dạng ngoặc-hai-chấm-số và khoảng số sau hai chấm) trong `server/**`, `client/src/**`,
   `cong_cu/thu_*.js`, `tu_chay/*.js`: bánh cóc theo DÒNG `NGUONG_DONG_CUNG` (4 lúc đặt), mọc → CẢNH BÁO liệt kê `file:dòng`, giảm → nhắc
