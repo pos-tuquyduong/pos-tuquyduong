@@ -78,6 +78,7 @@ async function main() {
   app.use('/api/pos/orders', require(path.join(GOC, 'server', 'routes', 'orders.js')));
   app.use('/api/pos/signup-codes', require(path.join(GOC, 'server', 'routes', 'signup-codes.js')));
   app.use('/api/pos/refunds', require(path.join(GOC, 'server', 'routes', 'refunds.js')));
+  app.use('/api/pos/discount-codes', require(path.join(GOC, 'server', 'routes', 'discount-codes.js')));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   noiLai();
@@ -339,7 +340,11 @@ async function main() {
       k(`${ten}: claim → 200`, c.status === 200, moTa(c));
       return d;
     };
+    // MA-GIAM-1 A2: /validate qua CÙNG cổng đơn gốc — màn Bán hàng báo hỏng ngay lúc kiểm mã, không đợi tạo đơn.
+    const kiemMa = (ma) => goi('POST', '/discount-codes/validate', { code: ma, order_subtotal: 25000, items: [] });
     const phaiChan = async (ten, d) => {
+      const v = await kiemMa(d.ma);
+      k(`${ten}: /validate → 400 ${MA_LOI}`, v.status === 400 && v.code === MA_LOI, moTa(v));
       const truoc = await soDon();
       const r = await dungMa(d.ma, 22500);
       k(`${ten}: dùng voucher → 400 ${MA_LOI}`, r.status === 400 && r.code === MA_LOI, moTa(r));
@@ -349,6 +354,8 @@ async function main() {
       k(`${ten}: used_count voucher = 0`, n === 0, String(n));
     };
     const phaiGiam = async (ten, ma) => {
+      const v = await kiemMa(ma);
+      k(`${ten}: /validate → 200 hợp lệ`, v.status === 200 && v.valid === true, moTa(v));
       const r = await dungMa(ma, 22500);
       k(`${ten}: dùng mã → 200`, r.status === 200 && r.success === true, moTa(r));
       const o = r.order ? await db.queryOne('SELECT discount_code, total FROM pos_orders WHERE id = ?', [r.order.id]) : null;
@@ -391,6 +398,77 @@ async function main() {
     const g7 = await taoDon('G7 chờ thu', { items: [mon()], payment_method: 'cho_thu', debt_amount: 25000 });
     await maTay(g7.ma);
     await phaiGiam('G7 mã tay trùng chữ mã bill chưa claim', g7.ma);
+
+    // G8 — MA-GIAM-1 A4 (AU4-1): voucher của đơn gốc ĐÃ HUỶ, gửi kèm khoảng trắng hai đầu → cổng vẫn tra bằng mã CHUẨN (codeRecord.code).
+    const g8 = await donDaClaim('G8 gốc tiền mặt', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    const h8 = await goi('PUT', `/orders/${g8.id}/cancel`, { reason: 'thử MA-GIAM-1' });
+    k('G8: huỷ đơn gốc → 200', h8.status === 200, moTa(h8));
+    {
+      const truoc = await soDon();
+      const v = await kiemMa('  ' + g8.ma + '  ');
+      k(`G8 mã có khoảng trắng, đơn gốc đã huỷ: /validate → 400 ${MA_LOI}`, v.status === 400 && v.code === MA_LOI, moTa(v));
+      const r = await dungMa('  ' + g8.ma + '  ', 22500);
+      k(`G8 mã có khoảng trắng, đơn gốc đã huỷ: dùng voucher → 400 ${MA_LOI}`, r.status === 400 && r.code === MA_LOI, moTa(r));
+      const sau = await soDon();
+      k('G8: không có đơn mới', sau === truoc, `trước ${truoc} · sau ${sau}`);
+    }
+
+    // G9 / G10 — MA-GIAM-1 A3: mã bị xoá / vô hiệu GIỮA phép kiểm (ngoài giao dịch) và giao dịch → 400 MA_GIAM_KHONG_CON, không đơn.
+    const maMatGiuaChung = async (ten, ma, lamMat) => {
+      await maTay(ma);
+      const truoc = await soDon();
+      let mocChay = false;
+      mocTruocTx = async () => { mocChay = true; await lamMat(); };
+      const r = await dungMa(ma, 22500);
+      mocTruocTx = null;
+      k(`${ten}: móc chạy`, mocChay);
+      k(`${ten}: dùng mã → 400 MA_GIAM_KHONG_CON`, r.status === 400 && r.code === 'MA_GIAM_KHONG_CON', moTa(r));
+      const sau = await soDon();
+      k(`${ten}: không có đơn mới`, sau === truoc, `trước ${truoc} · sau ${sau}`);
+    };
+    await maMatGiuaChung('G9 mã bị xoá giữa chừng', 'MG1XOA', () => db.run("DELETE FROM pos_discount_codes WHERE code = 'MG1XOA'"));
+    await maMatGiuaChung('G10 mã bị vô hiệu giữa chừng', 'MG1TAT', () => db.run("UPDATE pos_discount_codes SET is_active = 0 WHERE code = 'MG1TAT'"));
+
+    // G11 — K5 (A3): mã hết lượt giữa chừng vẫn trả mã lỗi CŨ (giả lập KB20 không phủ nhánh này — kich_ban.js:384–386).
+    {
+      await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active)
+        VALUES ('MG1HETLUOT', 'percent', 10, 1, 0, 1)`);
+      const truoc = await soDon();
+      mocTruocTx = () => db.run("UPDATE pos_discount_codes SET used_count = 1 WHERE code = 'MG1HETLUOT'");
+      const r = await dungMa('MG1HETLUOT', 22500);
+      mocTruocTx = null;
+      k('G11 mã hết lượt giữa chừng → 400 DISCOUNT_CODE_LIMIT_REACHED', r.status === 400 && r.code === 'DISCOUNT_CODE_LIMIT_REACHED', moTa(r));
+      const sau = await soDon();
+      k('G11: không có đơn mới', sau === truoc, `trước ${truoc} · sau ${sau}`);
+    }
+
+    // G12–G14 — MA-GIAM-1 A8: voucher mã bill KHÔNG đổi tên được (đổi tên = lách cổng P20b, cổng tra theo chữ mã).
+    const dongGiam = (ma) => db.queryOne('SELECT id, code, is_active, discount_value FROM pos_discount_codes WHERE UPPER(code) = ?',
+      [String(ma).toUpperCase()]);
+    const g12 = await donDaClaim('G12 gốc tiền mặt', { items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    const v12 = await dongGiam(g12.ma);
+    {
+      const r = await goi('PUT', `/discount-codes/${v12.id}`, { code: 'MG1DOITEN' });
+      k('G12 voucher mã bill: PUT đổi tên → 400 MA_BILL_KHONG_DOI_TEN', r.status === 400 && r.code === 'MA_BILL_KHONG_DOI_TEN', moTa(r));
+      const sau = await db.queryOne('SELECT code FROM pos_discount_codes WHERE id = ?', [v12.id]);
+      k('G12 voucher mã bill: code không đổi', sau.code === v12.code, `${v12.code} → ${sau.code}`);
+    }
+    {
+      // K5: màn hình gửi lại ĐÚNG mã cùng các trường khác — tắt rồi bật lại + đổi giá trị vẫn như cũ.
+      const tat = await goi('PUT', `/discount-codes/${v12.id}`, { code: v12.code, is_active: 0 });
+      const bat = await goi('PUT', `/discount-codes/${v12.id}`, { code: v12.code, is_active: 1, discount_value: 15 });
+      const d = await db.queryOne('SELECT is_active, discount_value FROM pos_discount_codes WHERE id = ?', [v12.id]);
+      k('G13 voucher mã bill: PUT giữ mã, tắt rồi bật lại + đổi giá trị → 200, 200',
+        tat.status === 200 && bat.status === 200 && Number(d.is_active) === 1 && Number(d.discount_value) === 15,
+        `${moTa(tat)} / ${moTa(bat)} · ${JSON.stringify(d)}`);
+    }
+    {
+      await maTay('P20BDOITEN');
+      const v = await dongGiam('P20BDOITEN');
+      const r = await goi('PUT', `/discount-codes/${v.id}`, { code: 'P20BTENMOI' });
+      const sau = await db.queryOne('SELECT code FROM pos_discount_codes WHERE id = ?', [v.id]);
+      k('G14 mã tay đổi tên → 200, mã mới', r.status === 200 && sau.code === 'P20BTENMOI', `${moTa(r)} · ${sau.code}`);
+    }
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -494,6 +572,8 @@ async function main() {
       await db.run('DELETE FROM pos_discount_codes WHERE UPPER(code) = ?', [hoa(b.ma)]);
       const r = await reset(b.ma);
       k('H3c hoàn tác khi không còn voucher → 200', r.status === 200 && r.success === true, moTa(r));
+      // MA-GIAM-1 A5 (P20c Phát hiện 10): ngoại lệ E12 — ở đây chính lời báo là thứ được sửa. Không voucher thì không báo "voucher cũ đã xoá".
+      k('H3c lời báo không nhắc voucher', !String(r.message).includes('voucher'), String(r.message));
       const m = await dongMa(b.ma);
       k('H3c dòng mã hết claimed', !m.claimed_at, String(m.claimed_at));
     }
@@ -556,6 +636,7 @@ async function main() {
       await db.run('UPDATE pos_signup_codes SET claimed_phone = NULL WHERE UPPER(code) = ?', [hoa(b.ma)]);
       const r = await reset(b.ma);
       k('H3h hoàn tác dòng claimed_phone NULL → 200', r.status === 200 && r.success === true, moTa(r));
+      k('H3h lời báo không in "null" (ngoại lệ E12 — lời báo là thứ được sửa)', !String(r.message).includes('null'), String(r.message));
     }
 
     // H3i — A3 · GIỚI HẠN ĐÃ BIẾT (soát vòng 4, ca Z; chủ quán chọn b1 — giữ hành vi): voucher CHƯA dùng bị xoá tay (màn Mã chiết khấu)
@@ -571,6 +652,58 @@ async function main() {
       k('H3i voucher bị xoá tay giữa phép kiểm và giao dịch → 400 (giới hạn đã biết, b1)', r.status === 400, moTa(r));
       const m = await dongMa(b.ma);
       k('H3i dòng mã vẫn claimed (không gỡ nửa chừng)', !!m.claimed_at, String(m.claimed_at));
+    }
+
+    // H3j — MA-GIAM-1 A5 (P20c Phát hiện 11): như H3g nhưng CÙNG giây, CÙNG SĐT — câu gỡ claim không phân biệt được, nhưng voucher đã là
+    // của lần claim MỚI (id khác) → xoá theo id voucher đọc lúc kiểm được 0 dòng → 400, không gỡ claim, voucher mới còn.
+    {
+      const b = await donThu('H3j bill'); const P = sdtMoi();
+      const c = await claim(b.ma, P);
+      k('H3j claim lần đầu → 200', c.status === 200, moTa(c));
+      await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
+      let rA = null, c2 = null;
+      mocTruocTx = async () => {
+        rA = await reset(b.ma); c2 = await claim(b.ma, P); imLang();
+        await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
+      };
+      const rB = await reset(b.ma);
+      mocTruocTx = null;
+      k('H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200 (cùng giây)', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
+        `${rA ? moTa(rA) : 'móc không chạy'} / ${c2 ? moTa(c2) : '-'}`);
+      k('H3j hoàn tác B (cùng giây, cùng SĐT) → 400', rB.status === 400, moTa(rB));
+      const v = await demVoucher(b.ma), m = await dongMa(b.ma);
+      k('H3j voucher của lần claim mới còn, mã vẫn claimed', v === 1 && !!m.claimed_at, `voucher ${v} · claimed_at ${m.claimed_at}`);
+    }
+
+    // H3k — MA-GIAM-1 A5: không có voucher lúc kiểm → bỏ bước xoá nhưng vẫn gỡ claim. Voucher cùng chữ chen vào giữa chừng (không thuộc
+    // lần claim này) phải còn nguyên.
+    {
+      const b = await donThu('H3k bill');
+      const c = await claim(b.ma);
+      k('H3k claim → 200', c.status === 200, moTa(c));
+      await db.run('DELETE FROM pos_discount_codes WHERE UPPER(code) = ?', [hoa(b.ma)]);
+      mocTruocTx = () => db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active)
+        VALUES (?, 'percent', 10, 0, 0, 1)`, [hoa(b.ma)]);
+      const r = await reset(b.ma);
+      mocTruocTx = null;
+      const m = await dongMa(b.ma);
+      k('H3k không voucher lúc kiểm → hoàn tác 200, mã hết claimed', r.status === 200 && !m.claimed_at, `${moTa(r)} · claimed_at ${m.claimed_at}`);
+      const v = await demVoucher(b.ma);
+      k('H3k voucher chen vào giữa chừng còn nguyên', v === 1, `có ${v}`);
+    }
+
+    // H3l — MA-GIAM-1 A5 (P20c Phát hiện 8): voucher ĐÃ DÙNG mang mã khác hoa thường → vẫn nhận ra, hoàn tác 400, không gỡ claim.
+    {
+      const b = await donThu('H3l bill');
+      const c = await claim(b.ma);
+      k('H3l claim → 200', c.status === 200, moTa(c));
+      await db.run('UPDATE pos_discount_codes SET code = LOWER(code), used_count = 1 WHERE UPPER(code) = ?', [hoa(b.ma)]);
+      const tho = await db.queryOne('SELECT code FROM pos_discount_codes WHERE UPPER(code) = ?', [hoa(b.ma)]);
+      k('H3l dữ liệu nền: mã voucher khác hoa thường mã bill', !!tho && tho.code !== hoa(b.ma), tho ? tho.code : '(không voucher)');
+      const r = await reset(b.ma);
+      k('H3l hoàn tác voucher đã dùng (khác hoa thường) → 400', r.status === 400, moTa(r));
+      const m = await dongMa(b.ma);
+      k('H3l dòng mã vẫn claimed', !!m.claimed_at, String(m.claimed_at));
     }
 
     // H3e — A3 (soát vòng 1, Z2): hai lần hoàn tác chồng nhau, voucher chưa ai dùng → lần sau 409 "vừa hoàn tác", không phải 400 "đã dùng".
