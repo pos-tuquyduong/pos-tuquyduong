@@ -2,7 +2,7 @@
 // AUDIT-4 A6 — đơn rỗng / tổng 0 / chỉ mua thẻ ở POST /orders: có tạo đơn không, đơn đó vào báo cáo / điểm / ví ra sao. Chạy ở GỐC kho:
 //   node viec/AUDIT-4/don_rong.js
 // Chép server/ vào thư mục tạm (bản sao máy chủ), kho SQLite tạm, SX giả (khuôn cong_cu/thu_P26c.js:20–90). KHÔNG đụng server/ thật, data/, Turso.
-// `items: []` + `membership_buy: {}` / `package_buy: {}` đã có ca T1b (thu_P26c.js:896), S2g (:849) — không lặp. Chỉ ĐO, không kết luận mức
+// `items: []` + `membership_buy: {}` có ca T1b (thu_P26c.js:896); `package_buy: {}` thì S2g (:849) gửi kèm món — đo cả hai ở đây (R2, R3). Chỉ ĐO, không kết luận mức
 // (mức ghi ở trang_thai.md / bao_cao.md). Thoát 0 khi chạy hết, 2 khi sập.
 'use strict';
 const fs = require('fs');
@@ -79,6 +79,8 @@ async function main() {
   };
   console.log('\nAUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, kho tạm)');
   await ca('R1 items: [] (không gói, không thẻ)', { items: [], cash_amount: 0 });
+  await ca('R2 items: [] + membership_buy: {}', { items: [], membership_buy: {}, customer_phone: '0927900004', cash_amount: 0 });
+  await ca('R3 items: [] + package_buy: {}', { items: [], package_buy: {}, customer_phone: '0927900005', cash_amount: 0 });
   await ca('R5 1 món 25.000 + mã giảm 100 % (tổng 0), có SĐT', { items: [mon()], discount_code: 'AU4FREE', customer_phone: '0927900001', cash_amount: 0 });
   await ca(`R6 (K5) chỉ mua thẻ ${hang.card_price}, items: []`, { items: [], membership_buy: { tier_id: hang.id }, customer_phone: '0927900002', cash_amount: hang.card_price });
   const mua = await ca('R8a (K5) mua gói 300.000, items: []', { items: [], package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 1 }, customer_phone: '0927900003', cash_amount: 300000 });
