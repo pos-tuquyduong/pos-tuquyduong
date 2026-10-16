@@ -25,7 +25,7 @@ VS-AU4-L3-CHAN-TREN-CA-HOAN VS-AU4-L3-LOAI-CHAN-BANG VS-AU4-L3-KHOA-LOAI-BO-KIEU
 | BV-AU4-L3-B3P-BO-SAN-0 | SỐNG | thu 105/0 · p26c 118/0 |
 
 ## Bước 3 — kế hoạch
-`ke_hoach.md`. Phiếu dặn "Chờ duyệt kế hoạch" → commit, push, DỪNG ở đây.
+`ke_hoach.md`; agent chỉ đọc soát 4 câu → 1 lỗi chặn (B3r làm B7j đỏ trên gốc) + 3 lỗi vừa, đã sửa (ke_hoach mục 7). Phiếu dặn "Chờ duyệt kế hoạch" → commit, push, DỪNG ở đây.
 
 ## Câu hỏi
 (không có — chờ chủ quán duyệt kế hoạch)
@@ -35,3 +35,5 @@ VS-AU4-L3-CHAN-TREN-CA-HOAN VS-AU4-L3-LOAI-CHAN-BANG VS-AU4-L3-KHOA-LOAI-BO-KIEU
   nêu thu_GOI1 A2); để LUOI-5 / việc sau.
 - `viec/AUDIT-4/boc.py` `DOI_CHUNG` và `viec/AUDIT-4/dot_bien.py` `BAI` là hằng số ca (118 / 105): sau LUOI-4 thêm ca, chạy thẳng hai file
   đó sẽ DỪNG thoát 4 "lệch số ca". Đúng thiết kế đối chứng; không sửa (Cấm) — việc sau nên đọc số ca từ dòng tổng của bài.
+- AU4-6 (`VS-AU4-L3-KHOA-LOAI-BO-KIEU`) có mặt "gộp `xin` khác kiểu" ở đường mua + lấy ngay (`orders.js:417`, `daLay = []`) — LUOI-4 giết
+  đột biến qua mặt `find` (A2o / A2p); mặt gộp `xin` chưa ca riêng (mua gói + lấy ngay CT1 2 + tea 2 khi CT1 cài 2) — việc sau.
