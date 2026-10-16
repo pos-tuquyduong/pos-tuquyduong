@@ -291,6 +291,20 @@ async function main() {
     const g2 = await muaGoi(sdt2, goiE, { items: [mon(0, 6)], package_buy: { package_id: goiE, total_qty: 10, pkg_qty: 2 }, cash_amount: 600000 });
     k('A2g mua 2 gói + lấy ngay 6 CT1 → 400 GOI_HET_LUOT_LOAI (trần 5 của MỘT gói, không phải 10)', g2.status === 400
       && g2.code === 'GOI_HET_LUOT_LOAI' && await so('SELECT COUNT(*) FROM pos_customer_packages WHERE customer_phone = ?', [sdt2]) === 0, moTa(g2));
+    // LUOI-3 — AU3-11: trần loại CỘNG DỒN mọi dòng cùng loại (vd 2 ghi chú ly = 2 dòng); AU3-12: loại cài SL 0 (gói cũ) không chặn.
+    const cd = await coGoi(2);
+    const cdA = await lay(cd.sdt, cd.cp, [[0, 2], [0, 2]]);
+    k('A2l CT1 cài 5, đã lấy 2 (còn 3); một đơn 2 dòng CT1 2 + CT1 2 → 400 GOI_HET_LUOT_LOAI, đã giao vẫn 2', cdA.status === 400
+      && cdA.code === 'GOI_HET_LUOT_LOAI' && await daGiao(cd.cp) === 2, `${moTa(cdA)} · giao ${await daGiao(cd.cp)}`);
+    const cdB = await lay(cd.sdt, cd.cp, [[0, 1], [0, 2]]);
+    k('A2m (K5) cùng gói, 2 dòng CT1 1 + CT1 2 (= đúng 3 còn) → 200, CT1 đã lấy 5', cdB.status === 200 && await daLayLoai(cd.cp, 0) === 5,
+      `${moTa(cdB)} · CT1 ${await daLayLoai(cd.cp, 0)}`);
+    const cu0 = await coGoi(0);
+    await db.run('UPDATE pos_packages SET package_items = ? WHERE id = (SELECT package_id FROM pos_customer_packages WHERE id = ?)',
+      [JSON.stringify([loai(0, 0), loai(1, 5)]), cu0.cp]);   // dữ liệu cũ: trước GOI-1 A1d gói lưu được loại SL 0 (nay tạo / sửa bị chặn)
+    const cu1 = await lay(cu0.sdt, cu0.cp, [[0, 1]]);
+    k('A2n gói cũ cài CT1 0 + CT2 5 (dữ liệu trước GOI-1) → lấy 1 CT1 → 200 (loại SL 0 không chặn), CT1 đã lấy 1', cu1.status === 200
+      && await daLayLoai(cu0.cp, 0) === 1, `${moTa(cu1)} · CT1 ${await daLayLoai(cu0.cp, 0)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -678,6 +692,21 @@ async function main() {
 
     const lechBB = await batBien();
     k('B3j bất biến đối soát I11 (mỗi ví ≤ đã trả) + I19 (mỗi đơn: nhận ≤ đã trả) sạch sau mọi ca hoàn', lechBB.length === 0, lechBB.slice(0, 3).join(' | '));
+    // LUOI-3 — AU3-13 / AU3-14: trần "hoàn ≤ total − đã nhận (hoàn + ĐỀN)" chỉ chặn khi sổ có khoản đền VƯỢT số đã trả của dòng — đó là
+    // DỮ LIỆU TRƯỚC P26c 12.10 (trần đền theo giá gốc), còn trên production; qua API hiện nay không dựng được (viec/LUOI-3/ke_hoach.md mục 0).
+    const p = sdtMoi();
+    await db.run("INSERT INTO pos_customers (phone, name, sx_status, discount_type, discount_value) VALUES (?, 'Khách CK LUOI3', 'active', 'percent', 10)", [p]);
+    const gp = await mua30(p, { items: [mon(2, 1, false)], cash_amount: 1237500 });
+    await db.run(`INSERT INTO pos_damage_logs (order_id, order_code, customer_phone, product_code, product_name, quantity, unit_price, damage_value,
+      reason, action, refund_amount, returned_to_stock, created_at) VALUES (?, ?, ?, ?, ?, 1, 25000, 25000, 'damaged', 'refund', 25000, 0, '2026-10-01 09:00:00')`,
+    [gp.don, gp.ma, p, sp[2].code, sp[2].name]);
+    const { ghiVi, trongGiaoDich } = require(path.join(MAY_CHU, 'routes', 'wallets.js'));   // ví khớp sổ như đền thật
+    await trongGiaoDich((tx) => ghiVi(tx, { phone: p, loai: 'compensation', soTien: 25000, orderId: gp.don, ghiChu: 'Đền bù cũ trước P26c (giá gốc)',
+      nguoi: 'thu', luc: '2026-10-01 09:00:00' }));
+    const dkp = await duKien(gp.cp);
+    const rp = await ketThuc(gp.cp, { reason: 'thử', hoan: true, so_tien: 1212500 });
+    k('B3p (dữ liệu trước P26c 12.10, còn trên production) giảm 10 %: gói 1.350.000 + CT3 25.000 → tổng 1.237.500; sổ có đền CŨ 25.000 theo giá gốc (đã trả 22.500) → kết thúc: hoàn 1.212.500 (trần total − đã nhận, không 1.215.000), khách nhận đúng 1.237.500',
+      dkp.data?.tong === 1212500 && rp.status === 200 && await vi(p) === 1237500, `${JSON.stringify(dkp.data)} · ${moTa(rp)} · ví ${await vi(p)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
