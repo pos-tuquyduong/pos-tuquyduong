@@ -456,8 +456,19 @@ function baiTaiLieu() {
   const kl = doc(path.join(__dirname, '..', 'KHUON_LOI.md')) || '';
   chac('TU-CHAY-5 E2 KHUON_LOI: 5 bài học TACH-GL (ĐÚNG lỗi cũ · đường argv · dấu vết · lặp ≥ 3 · ĐỈNH file)',
     ['ĐÚNG lỗi cũ', 'argv', 'dấu vết', '≥ 3 lần', 'ĐỈNH file'].every((x) => kl.includes(x)));
-  chac('TU-CHAY-5 E3 PHIEN_BAN = tu-chay 1.5.0', (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim() === 'tu-chay 1.5.0');
+  chac('TU-CHAY-5 E3 / TU-CHAY-6 A6 PHIEN_BAN = tu-chay 1.6.0', (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim() === 'tu-chay 1.6.0');
   chac('TU-CHAY-5 E3 MAU_PHIEU nhắc dòng HEAD ĐÃ KIỂM (A19)', mp.includes('HEAD ĐÃ KIỂM'));
+  // ── TU-CHAY-6 ── (so trên `sk` nguyên, không phải `than` đã toLowerCase)
+  const b4 = muc(sk, '\n4. **', '\n5. **');
+  chac('TU-CHAY-6 A3 skill bước 4: trước khi hỏi chủ quán tự xét A11/A12 chế độ chay từ bang_chung_do.txt, gom MỘT câu hỏi; cong.js tinh dẫn dòng ✗; [A19]/[A8] ở bước này là bình thường',
+    ['bang_chung_do.txt', 'A11', 'A12', 'MỘT câu hỏi', 'tu_chay/cong.js tinh', 'dòng ✗', '[A19]', '[A8]', 'bình thường'].every((x) => b4.includes(x)), b4.slice(0, 200));
+  chac('TU-CHAY-6 A3 lenh_ra_soat: SubagentHandback là hành động CUỐI CÙNG, BẮT BUỘC; không nộp = chưa soát',
+    /SubagentHandback[^\n]*CUỐI CÙNG[^\n]*BẮT BUỘC/.test(rs) && rs.includes('không nộp = chưa soát'));
+  chac('TU-CHAY-6 A4 KHUON_LOI: K1 chú thích là khẳng định · K3 ĐỐI CHỨNG + sập ≠ BẮT · K3 trần / làm tròn không che lỗi · K4 CÙNG biểu thức · K7 getNow',
+    ['Chú thích trong code cũng là khẳng định', 'ĐỐI CHỨNG', 'sập ≠ BẮT', 'không che lỗi', 'GOI-2 B3c', 'CÙNG biểu thức', 'getNow'].every((x) => kl.includes(x)));
+  // soát vòng 1: dẫn chứng sai việc gốc không phép nào bắt → câu mới của KHUON_LOI neo CẢ mã việc + con số ('GOI-2 B3c')
+  chac('TU-CHAY-6 A6 THIET_KE B15: blob ném "git cat-file hỏng" (128 = không có), git archive :266, phép GET-ghi + NGUONG_ROUTE_GHI_KHONG_LOIGHI, skill bước 4 cong.js tinh',
+    ['git cat-file hỏng', '128', 'git archive', 'GET-ghi', 'NGUONG_ROUTE_GHI_KHONG_LOIGHI', 'cong.js tinh'].every((x) => t15.includes(x)), t15.slice(0, 120));
 }
 
 // ═══ HOC-1 C · T2 của kiem_tra_truoc_khi_giao.js bỏ thư mục con ═══════════════
