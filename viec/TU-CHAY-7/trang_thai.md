@@ -268,6 +268,9 @@ BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của
 - Lỗi soát vòng 3 số 1 (ca "< 9 s" đỏ oan máy 1 lõi) và 6 (nới hạn) HẾT theo cơ chế — không còn ca đo giờ, không còn handler.
 - dot_bien.py: bỏ 5 đột biến tín hiệu, thêm 4 đột biến exit/pid cho thu_gia_lap (khuôn thu_cong) — 26 tên, mọi neo khớp đúng số lần.
 - THIET_KE A2 viết lại: hai bài cùng một cách.
+- Kiểm vòng sửa 4: `python3 viec/TU-CHAY-7/dot_bien.py` → 26 bị bắt · 0 KHÔNG bị bắt (trên 26), đối chứng 6 bài xanh. `--day-du` → thoát 0 ·
+  PASS 68 · FAIL 0 · CẢNH BÁO 2 (GET-ghi có sẵn + khớp byte chờ cài); thu_cong 82,2 s (lần này máy rảnh hơn — dải đo cả việc 82,2–96 s), giả
+  lập 33,3 s, thu_gia_lap 50,4 s (= gốc 50,5 s: 4 ca DON tín hiệu nặng đã bỏ). Không thư mục tạm mới (còn /tmp/thu_gl_p24O0w kiểu tên cũ).
 
 ## Số đo (máy mây 4 lõi, chạy riêng, gốc 6cb52fa)
 - `node tu_chay/thu_cong.js`: 89,5 s (334 phép, xanh) = 75 % hạn 120 s.
