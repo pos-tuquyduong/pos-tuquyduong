@@ -32,3 +32,62 @@ LUOI-4 dot_bien: 7 đột biến
            [thu] ✗ A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói / HTTP 200 · CT1 4 · khôn
 
   tổng 7 · BẮT 0 · SỐNG 6 · HỎNG 0 · HỎNG-sập 1 · LẠC 0
+
+## 2. SAU — đã thêm ca (thu_P26c.js [N] N1a/N2a/N4a; thu_GOI1.js A2o/A2p/A2p2, B3q, [B8] B3r, N7 so()+dungGoi): 7 BẮT, đối chứng 121 / 110
+$ python3 viec/LUOI-4/dot_bien.py
+# thoát 0
+LUOI-4 dot_bien: 7 đột biến
+  ✓ đối chứng p26c (cong_cu/thu_P26c.js): thoát 0 · 121 đạt · 0 hỏng (mong 121 đạt · 0 hỏng)
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): thoát 0 · 110 đạt · 0 hỏng (mong 110 đạt · 0 hỏng)
+  BẮT      VS-AU4-L3-DATRA-LAM-TRON-LEN (mẫu /✗ N1a /)
+           [p26c] thoát 1 · 120 đạt · 1 hỏng
+           [p26c] ✗ N1a món 25.000 + 30.000, mã giảm đơn 10.000 → tổng 45.000; đền món 25.000: 20.455 → 400 VUOT_GIA, 20.454 → 200, ví +20.454 (⌊25.000 × 45.000 / 55.000⌋)  — HTTP 200 · tổng 45000 · HTTP 200 / HTTP 400 · VUOT_SO_LUONG · Số lượng tố
+           [thu] thoát 0 · 110 đạt · 0 hỏng
+  BẮT      VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG (mẫu /✗ N2a /)
+           [p26c] thoát 1 · 119 đạt · 2 hỏng
+           [p26c] ✗ N2a gói 300.000 / 7 lượt (trả 300.000), lấy 1 → owner huỷ: ví +257.142 (300.000 − ⌈300.000 × 1/7⌉ = 300.000 − 42.858)  — HTTP 200 · HTTP 200 · HTTP 200 · ví 257143
+           [p26c] ✗ N4a gói 300.000 / 10 + món 25.000, mã giảm 1 món 5.000 → tổng 320.000; lấy 1 → owner huỷ: ví +290.461 (320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉)  — HTTP 200 · tổng 320000 · HTTP 200 · HTTP 200 · ví 290462
+           [thu] thoát 0 · 110 đạt · 0 hỏng
+  BẮT      VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN (mẫu /✗ B3q /)
+           [p26c] thoát 0 · 121 đạt · 0 hỏng
+           [thu] thoát 1 · 109 đạt · 1 hỏng
+           [thu] ✗ B3q gói 7 túi (CT1 4 + CT2 3) 300.000, lấy 1 → hoan-du-kien 257.142 (⌊300.000 × 6/7⌋); kết thúc có hoàn → 200, ví +257.142  — HTTP 200 · HTTP 200 · {"tong":257143,"me":0,"vi":0,"tien_mat":257143} · HTTP 409 · GOI_HOAN_DOI_SO · S
+  BẮT      VS-AU4-L3-CHAN-TREN-CA-HOAN (mẫu /✗ N4a /)
+           [p26c] thoát 1 · 120 đạt · 1 hỏng
+           [p26c] ✗ N4a gói 300.000 / 10 + món 25.000, mã giảm 1 món 5.000 → tổng 320.000; lấy 1 → owner huỷ: ví +290.461 (320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉)  — HTTP 200 · tổng 320000 · HTTP 200 · HTTP 200 · ví 290500
+           [thu] thoát 0 · 110 đạt · 0 hỏng
+  BẮT      VS-AU4-L3-KHOA-LOAI-BO-KIEU (mẫu /✗ A2o / + /✗ A2p2? /)
+           [thu] thoát 1 · 108 đạt · 2 hỏng
+           [thu] ✗ A2o gói CT1 (juice 1) cài 2 + NE1 (tea 1) cài 5, đã lấy 4 NE1 → lấy 2 CT1 → 200, CT1 đã lấy 2 (không chặn oan vì loại khác kiểu)  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 0 trong gói · CT1 0
+           [thu] ✗ A2p NE1 cài 2 + CT1 cài 5, đã lấy CT1 1 + NE1 2 → lấy 1 NE1 → 400 GOI_HET_LUOT_LOAI, NE1 vẫn 2 (không giao vượt)  — HTTP 200 · NE1 3
+           [p26c] thoát 0 · 121 đạt · 0 hỏng
+  BẮT      BV-AU4-L3-B3P-BO-SAN-0 (mẫu /✗ B3r /)
+           [thu] thoát 1 · 109 đạt · 1 hỏng
+           [thu] ✗ B3r gói 300.000 + 2 CT3, mã giảm 320.000 → tổng 30.000; đền cũ 50.000 (lệch I19) → hoan-du-kien 0, kết thúc có hoàn → 200 hoan 0, ghi chú "hoàn 0đ", sổ + ví không đổi  — HTTP 200 · tổng 30000 · lệch I19 true · {"tong":-20000,"me
+           [p26c] thoát 0 · 121 đạt · 0 hỏng
+  BẮT      VS-AU4-L3-LOAI-CHAN-BANG (mẫu /✗ A2b /)
+           [thu] thoát 1 · 95 đạt · 19 hỏng
+           [thu] ✗ A2b (K5 sau A2a) xin 2 → 200, CT1 đã lấy = 5, tổng giao 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói · CT1 3 · giao 3
+           [thu] ✗ A2c đơn lấy 3 CT1 bị HUỶ → delivered_items CT1 = 0 (CT2 = 2, theo product_code); xin 5 CT1 → 200  — HTTP 200 · CT1 0 · CT2 2 · HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói / HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói · CT1 3
+           [thu] ✗ A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói / HTTP 200 · CT1 4 · khôn
+           [thu] ✗ A2k SL dạng chuỗi " 5" khi mua + lấy ngay → gói ghi giao 5, lấy tiếp 5 CT1 → 400 GOI_HET_LUOT_LOAI; gói KHÔNG danh sách lấy " 7" → giao 7  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói · giao NaN / HTTP 400 · TU_GOI_N
+           [thu] ✗ A2m (K5) cùng gói, 2 dòng CT1 1 + CT1 2 (= đúng 3 còn) → 200, CT1 đã lấy 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 3 trong gói · CT1 2
+           [thu] ✗ A2o gói CT1 (juice 1) cài 2 + NE1 (tea 1) cài 5, đã lấy 4 NE1 → lấy 2 CT1 → 200, CT1 đã lấy 2 (không chặn oan vì loại khác kiểu)  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 2 trong gói · CT1 0
+           [thu] ✗ dựng coGoi lấy 5 CT1  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ A5d2 (K5 — gốc cũng chặn) dừng gói đã hoàn thành → 400, vẫn completed  — HTTP 200
+           [thu] ✗ A6b lấy đúng giới hạn từng loại (CT1 5, CT2 6) → 200, completed  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ A6d huỷ đơn lấy 4 CT1 → đã giao 0, lấy lại 5 CT1 → 200, giao 5  — HTTP 200
+           [thu] ✗ A6f mua gói + lấy ngay trong giới hạn loại (CT1 5, CT2 2) → 200, giao 7  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ dựng B1 lấy 5 CT1  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ B1a khách 3 gói (10/30 đang dùng · 0/30 đang dùng · 5/5 xong) → MỘT dòng: so_goi 3, so_dang_dung 2, con_lai 50, có danh sách gói  — {"dong":1,"so_goi":3,"dd":3,"con":55}
+           [thu] ✗ B1b gói đã kết thúc KHÔNG cộng "còn lại": 50 → 20, so_dang_dung 1, so_goi vẫn 3  — HTTP 200 · {"con":25,"dd":2}
+           [thu] ✗ dựng B3e2 lấy 20 túi  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 15 trong gói
+           [thu] ✗ B3e2 đã lấy 20/30 → chỉ hoàn 450.000: VÍ MẸ TRƯỚC (mẹ +450.000), ví con 0, tiền mặt 0 (Q-A: mẹ trước tối đa phần mẹ đã trả)  — {"tong":1350000,"me":500000,"vi":400000,"tien_mat":450000} · HTTP 409 · GOI_HOAN_DOI_SO · Số tiền hoà
+           [thu] ✗ dựng coGoi lấy 5 CT1  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 5 trong gói
+           [thu] ✗ B7h (K5) huỷ đơn lấy đủ 5/5 (gói Đã xong) → gói về active 0/5 như cũ  — HTTP 404 · Không tìm thấy đơn hàng · {"status":"active","notes":null,"delivered_qty":0}
+
+  tổng 7 · BẮT 7 · SỐNG 0 · HỎNG 0 · HỎNG-sập 0 · LẠC 0
+
+SỐ CA cong_cu/thu_P26c.js: 121
+SỐ CA cong_cu/thu_GOI1.js: 110
