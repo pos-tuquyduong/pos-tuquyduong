@@ -903,7 +903,7 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
 ### TU-CHAY-7 (16.10.2026, tu-chay 1.7.0)
 
 - **A1** bộ kiểm chạy `thu_cong.js` với cờ `canhGan` (hạn 120 s giữ nguyên): xanh mà quá 80 % hạn → CẢNH BÁO nêu số giây. Đo chạy
-  riêng 88,9–94,6 s (74–79 %, số đo ghi ở viec/TU-CHAY-7/trang_thai.md) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
+  riêng sát 80 % hạn (số đo từng lần: viec/TU-CHAY-7/trang_thai.md — không chép dải số vào đây) → máy bận nhẹ là kêu; chia lượt thu_cong là việc sau. Bài thử: `thu_TOCDO1.js` mục C chạy khối gọi THẬT với
   hàm `chayBaiThat` THẬT trên bài giả 85 % hạn giả; `thu_gia_lap.js` C3f khoá tập ba bài bật cờ.
 - **A2** thư mục tạm khi bị ngắt — `thu_cong.js` và `thu_gia_lap.js` CÙNG một cách (chủ quán chốt Q2a, Q3c): KHÔNG bắt tín hiệu
   (thu_cong đồng bộ: hàm nghe không chạy kịp; cả hai: bắt tín hiệu thì gỡ chết-ngay mặc định → `spawnSync` của bộ kiểm hết hạn vẫn phải

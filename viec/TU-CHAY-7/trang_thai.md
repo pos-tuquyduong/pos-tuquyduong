@@ -30,7 +30,8 @@
 3. Ca "con cháu lúc giết đã chết" (DON) xanh cả trên gốc (mồ côi tự chết < 2 s) → không phải bằng chứng cho vế dừng con; đột biến bỏ dừng
    con KHÔNG tất định (sót 1/3–2/3) → CHƯA KIỂM, không đưa vào dot_bien.py (K3).
 
-### Đột biến — `python3 viec/TU-CHAY-7/dot_bien.py` → 23 bị bắt · 0 KHÔNG bị bắt (trên 23); đối chứng 6 bài xanh trước
+### Đột biến — `python3 viec/TU-CHAY-7/dot_bien.py` → lần cuối (vòng sửa 4) 26 bị bắt · 0 KHÔNG bị bắt (trên 26); đối chứng 6 bài xanh trước
+(lần đầu: 23/23; bảng dưới là bản cuối, kể cả các dòng đã bỏ)
 | chỗ vá | đột biến | ca bắt |
 |---|---|---|
 | A1 kiem_tra lời gọi thu_cong | BV-TUCHAY7-CANH-THUCONG · VS-TUCHAY7-CANH-FALSE · VS-TUCHAY7-HAN-NOI | thu_TOCDO1 C1 · C1 · C2 |
@@ -41,9 +42,8 @@
 | A3 kiem_tra E15 | BV-TUCHAY7-DONG-CUNG-BO-CANH · VS-TUCHAY7-DONG-CUNG-GACH · VS-TUCHAY7-DONG-CUNG-NGUONG · VS-TUCHAY7-DONG-CUNG-LAN · VS-TUCHAY7-DONG-CUNG-FAIL · VS-TUCHAY7-DONG-CUNG-VUNG · VS-TUCHAY7-DONG-CUNG-CA-DONG | D2 · D3 · D1 · D7 · D9 · D8 · D4 |
 | A4 KHUON_LOI (chữ) | BV-TUCHAY7-KHUONLOI-SO-BANG · BV-TUCHAY7-KHUONLOI-VI-TU · BV-TUCHAY7-KHUONLOI-TUNG-TEN · BV-TUCHAY7-KHUONLOI-101-DONG | kiem_chu (bài trong dot_bien.py) |
 | A5 PHIEN_BAN / THIET_KE (chữ) | BV-TUCHAY7-PHIENBAN-CU · BV-TUCHAY7-THIETKE | thu_cong_cu E3 + thu_nguoi_gac · kiem_chu |
-Không đưa vào (không tất định — K3, ghi CHƯA KIỂM): bỏ cờ `NGAT` (thoát 1 thay 130 ở 3/6 ca); `CON.add` ở chayDon (chỉ có tác dụng khi bị
-ngắt đúng đợt DON). Vế dừng con: từ vòng sửa 2 CÓ đột biến tất định (dòng trên). VS-TUCHAY7-CON-KHONG-KIEM-CHA (vòng sửa 1) đã bỏ — cơ chế
-biến môi trường + pid cha được thay bằng cờ argv ở vòng sửa 2.
+~~Không đưa vào: bỏ cờ `NGAT`; `CON.add` ở chayDon; vế dừng con có đột biến từ vòng 2~~ — CŨ: vòng sửa 4 (Q3c) bỏ hẳn CON / NGAT / bắt tín
+hiệu, nên không còn chỗ vá nào thiếu đột biến. VS-TUCHAY7-CON-KHONG-KIEM-CHA (vòng sửa 1) đã bỏ ở vòng 2 (thay bằng cờ argv).
 
 ### Kiểm (bước 6)
 - `node kiem_tra_truoc_khi_giao.js --day-du` → thoát 0 · PASS 68 · FAIL 0 · CẢNH BÁO 2: (1) route GET có lệnh ghi (có sẵn, TU-CHAY-6);
@@ -320,10 +320,11 @@ BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của
 - (TU-CHAY-7) Neo rữa do đổi chữ lời gọi thu_cong: `viec/HOC-2b/dot_bien.py` VS-C3-bat-qua-bien, `viec/TOC-DO-1/dot_bien.py` dòng 31 — hồ sơ
   đã đóng; nếu cần chạy lại hai bộ đó thì sửa neo sang tiền tố `chayBaiThat('tu_chay/thu_cong.js'`.
 - (TU-CHAY-7) A3 đếm 3 dòng trong `cong_cu/thu_P26c.js` (việc song song LUOI-4) — LUOI-4 dọn thì bộ kiểm nhắc hạ `NGUONG_DONG_CUNG`.
-- (TU-CHAY-7) `thu_gia_lap.js` thêm ~12 s (58,9–62,6 s ≈ 49–52 % hạn); chia lượt thu_cong (88,9–94,6 s ≈ 74–79 % qua các lần đo) — việc sau, theo chủ quán chốt.
+- (TU-CHAY-7) `thu_gia_lap.js` sau vòng sửa 4 = gốc (50,4 s vs 50,5 s; vòng 1–3 có ca DON tín hiệu: 58,9–62,6 s); chia lượt thu_cong (88,9–94,6 s ≈ 74–79 % qua các lần đo) — việc sau, theo chủ quán chốt.
 - thu_cong.js 89,5 s chạy riêng ở GỐC (75 % hạn), 88,9–94,6 s sau vá; máy bận nhẹ là vượt 80 % → cảnh báo A1 sẽ hiện thường. Chia lượt thu_cong (TU-CHAY-6 Q5) nên vào
   việc sau — KHÔNG làm ở việc này (phiếu: Ngân sách).
 - Cùng khuôn "TAM chỉ dọn ở cuối": `cong_cu/thu_TOCDO1.js:17/:189`, `tu_chay/thu_nguoi_gac.js:1126` — ngoài nghiệm thu A2.
-- `thu_gia_lap.js` bị giết thì giả lập con đang chạy thành mồ côi (tự sập khi TMPDIR mất) — ngoài nghiệm thu.
+- `thu_gia_lap.js` bị giết thì giả lập con đang chạy thành mồ côi — sau vòng sửa 4 TMPDIR KHÔNG bị xoá lúc bị giết; soát vòng 4 thử thật
+  (SIGTERM giây 8): 33 tiến trình gia_lap lúc giết, 17 sau 0,5 s, 0 sau 5 s; sót đúng thư mục thu_gl_<pid>_*; lần chạy sau dọn sạch. Ngoài nghiệm thu.
 - Hồ sơ cũ neo chữ lời gọi `chayBaiThat('tu_chay/thu_cong.js');`: `viec/HOC-2b/dot_bien.py:61`, `viec/TOC-DO-1/dot_bien.py:31` — đổi `:616`
   làm hai đột biến cũ đó LẠC (chạy `python3 viec/HOC-2b/kiem_neo.py` khi làm, ghi kết quả).
