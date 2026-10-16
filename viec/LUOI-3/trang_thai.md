@@ -141,3 +141,92 @@ BÀI HỌC:
 - NGUYÊN TẮC (K1): file bằng chứng chứa nguyên văn số liệu bảng hồ sơ trích; không cắt dòng lỗi; không để hai hồ sơ trỏ vòng.
 ```
 (Báo cáo gốc dài hơn ở phần trả lời từng mục; trên đây giữ nguyên mọi lỗi, nghi ngờ, nghiệm thu, chưa soát, bài học.)
+
+## Vòng sửa 1 (theo /ra-soat vòng 1 — ĐẠT kèm 5 lỗi nhỏ + 1 nghi ngờ; sửa hết, 0 dòng code quầy)
+| lỗi soát | sửa | commit | kiểm |
+|---|---|---|---|
+| 1 `dot_bien.py` tên lạ → chạy rỗng, thoát 0 | tên lạ / chọn 0 → thoát 2 | 1cba9cb | trước: `dot_bien.py TEN-GO-NHAM` → "tổng 0 …", thoát 0; sau: thoát 2 (cả khi trộn 1 tên đúng + 1 tên lạ) |
+| 2 thời gian 10 đột biến trỏ vòng | đo: 14 s cho cả 10 (4 luồng, gồm 2 đối chứng) | a5520c5 | `bang_chung_do.txt` phần SAU |
+| 3 dòng ✗ bị cắt 150 ký tự | in nguyên văn | 1cba9cb, a5520c5 | `bang_chung_do.txt`: M3a "Tiền đền tối đa: 19,000đ", B3p, M4a đủ số |
+| 4 dẫn chứng lệch một dòng | `damages.js:172`, `:176` | 99b2fdb | đọc lại `damages.js:172`, `:176` |
+| 5 B3p đền trước khi mua | đơn mua đặt ngày 2026-09-30 (trước khoản đền 2026-10-01, cả hai trước P26c); tên ca rút gọn | c2997a4 | GOI1 105/0 |
+| nghi ngờ: mẫu `M1[ab]` nhận một vế | N1, N2 đòi CẢ HAI ca (`[M1a, M1b]`, `[M2a, M2b]`) | 1cba9cb | 10/10 BẮT trên 99b2fdb |
+Không theo gợi ý "gọi thẳng `A.chay1`": hàm đó chỉ in dòng ✗ khớp đầu tiên — mất bằng chứng "ca nào cùng đỏ" và số lỗi nguyên văn (lỗi 3).
+
+Kiểm lại sau vòng sửa (HEAD a5520c5; code / bài thử không đổi sau c2997a4):
+- `npm test` PASS 64 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn, `server/` không đổi); `--day-du` PASS 68 · FAIL 0 · CẢNH BÁO 1.
+- Đo riêng 3 lần: `thu_P26c.js` 3,3 · 3,0 · 3,5 s (118 ca); `thu_GOI1.js` 2,7 · 2,6 · 2,4 s (105 ca) — < 3 % hạn 120 s.
+- `python3 viec/LUOI-3/dot_bien.py` → BẮT 10 · SỐNG 0 · HỎNG 0 · LẠC 0, thoát 0 (14 s).
+- Bộ cũ chạy `thu_GOI1.js` chạy lại: GOI-1 40/49 (9 "không áp được" như nền), GOI-2 59/59 — bằng nền. P26c / SO-LUONG-1 / BAN-HANG-1 /
+  LUOI-2 không chạy lại sau vòng sửa (`thu_P26c.js` không đổi sau 8de7727; số trên HEAD 4dd17a6 ở mục Bước 6 và người soát tự chạy lại).
+Không soát vòng 2: vòng 1 ĐẠT; vòng sửa chỉ đụng `viec/LUOI-3/`, tên + ngày một ca thử — đã kiểm lại đủ ở trên.
+
+## Đếm nghiệm thu (mỗi mục một dòng)
+- N0 — `trang_thai.md` mục N0: 10 tên SỐNG trên 8303c1b, đối chứng xanh; neo không rữa, `viec/AUDIT-3/` không đổi (`git diff 8303c1b^ HEAD -- viec/AUDIT-3` rỗng).
+- N1 — M1a `thu_P26c.js:736`, M1b `:742`; đột biến `BV-AU3-P26C-DATRA-BO-TRU-SHIP` BẮT cả hai (đền 45.001 → 200; huỷ ví +252.000).
+- N2 — M2a `:752`, M2b `:755`; `VS-AU3-P26C-DATRA-GIA-GOC` BẮT cả hai (trần dòng thường 27.272).
+- N3 — M3a `:765`; `VS-AU3-P26C-DEN-GIAM-BO-FLASH` BẮT ("Tiền đền tối đa: 19,000đ").
+- N4 — A2l `thu_GOI1.js:297` (+ K5 A2m `:300`); `VS-AU3-GOI1-LOAI-KHONG-CONG-DON` BẮT (200, giao 6).
+- N5 — A2n `thu_GOI1.js:306`; `VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN` BẮT (400 "CT1 chỉ còn 0").
+- N6 — B3p `thu_GOI1.js:709` (dữ liệu trước P26c — chủ quán chọn A); `BV-AU3-GOI2-BO-TRAN-DA-NHAN` BẮT (tong 1.215.000).
+- N7 — cùng B3p; `VS-AU3-GOI2-NHAN-BO-DEN` BẮT (tong 1.215.000).
+- N8 — M4a `thu_P26c.js:777`; `VS-AU3-SL-DONG-GOI-SL-1` BẮT (ví 510.000).
+- N9 — M4b `thu_P26c.js:780` (ca, không bất biến — bất biến chỉ bắt N9, `ke_hoach.md` mục 0); `VS-AU3-SL-DONG-GOI-TONG-1` BẮT.
+- N10 — M4a; `VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL` BẮT (ví 486.000).
+- N11 — mục Bước 6 + Vòng sửa 1: 6 bộ cũ bằng nền, "không áp được" không tăng (diff danh sách rỗng); không thêm bất biến → `DONG_DAT` /
+  `NGUONG_*` không đổi; `npm test`, `--day-du` xanh; mỗi bài đo riêng 3 lần < 80 % hạn.
+→ 12 / 12 mục có bằng chứng. Ca "hai người cùng bấm": việc không thêm đường tiền mới; chồng nhau đã có A5j (`thu_P26c.js`) và B3i (`thu_GOI1.js`).
+
+## Phát hiện
+1. `viec/AUDIT-3/dot_bien.py` cùng lỗ "tên lạ → chạy rỗng, thoát 0" (người soát nêu; `viec/AUDIT-3/` bị Cấm) — chưa đo các bộ
+   `viec/*/dot_bien.py` khác. Đề xuất ở Bài học (KHOÁ 1).
+
+## Bài học
+Sự cố của việc: người gác chặn 7 lệnh của phiên chính + 6 của agent phụ (`.tu_chay_nhat_ky.jsonl` 16.10: B-CHUONGTRINH `time`, `for` ×2;
+B-PHANTICH `$(( ))`, `$"…"`; SED-I `sed -i`; CC-LA ReadNotifications; agent: B-CD-VITRI, GIT-TUYCHON, B-CHUONGTRINH ×3, B-PHANTICH);
+soát kế hoạch bắt 2 ca sẽ ĐỎ trên gốc vì chép khuôn dữ liệu B1a (M2a cập nhật mọi dòng, M3a `discount` chỉ = flash) + `__pycache__`
+vào thư mục Cấm; máy tự thấy ca đề xuất AU3-8 / AU3-15 của AUDIT-3 xanh oan (thiếu giảm); /ra-soat bắt chạy rỗng báo xanh, bằng chứng
+cắt dòng, hồ sơ trỏ vòng; "KHO BẨN" ở lần đo nền LUOI-2 do máy sửa file khi bộ đang chạy.
+
+KHOÁ 2 (ngoài Phạm vi → đề xuất, máy không tự làm):
+1. `tu_chay/cong.js` (hoặc bộ kiểm): mọi `viec/*/dot_bien.py` thay đổi trong PR chạy với tên `__TEN_KHONG_CO__` phải thoát ≠ 0.
+   Ca đỏ: `viec/AUDIT-3/dot_bien.py __TEN_KHONG_CO__` hiện in "tổng 0 …" thoát 0 (cùng dạng `viec/LUOI-3/dot_bien.py` trước 1cba9cb).
+2. Công cụ đo thời gian người gác cho qua (vd `node tu_chay/do_gio.js <bài> 3`) — phiếu nào cũng đòi "đo riêng 3 lần" mà `time` / `for`
+   bị chặn (3 lần trong việc này, cả agent phụ). Ca đỏ: lệnh chưa tồn tại; phép cổng: bảng số đo trong `trang_thai.md` khớp đầu ra công cụ.
+NGUYÊN TẮC 3 (`KHUON_LOI.md` ngoài Phạm vi → đề xuất, chủ quán / chat soát ghi):
+1. K3 thêm "Chặn (LUOI-3)": cột "ca đỏ đề xuất" của báo cáo AUDIT là GỢI Ý — tự tính số trên gốc VÀ trên đột biến trước khi chép (AU3-8
+   đề xuất đơn ship KHÔNG giảm: `min(50.000, 60.000)` như nhau → xanh oan; AU3-15 cũng chỉ lộ khi có giảm). Bộ chấm phải có ca đầu vào
+   rỗng / gõ sai và ca đó ĐỎ ("chạy rỗng ≠ xanh").
+2. K4 (cạnh SO-LUONG-1 "chép cổng thì chép luôn lỗ"): chép khuôn DỮ LIỆU GIẢ của ca cũ (UPDATE như B1a) sang ca mới → kiểm lại điều kiện
+   ca cũ ngầm dựa vào (B1a một dòng, không mã) — LUOI-3 M2a / M3a suýt đỏ trên gốc.
+3. K1 thêm: file bằng chứng phải chứa NGUYÊN VĂN số mà bảng hồ sơ trích (không cắt dòng lỗi); không để hai hồ sơ trỏ vòng thay một số đo.
+BỎ 2:
+1. "KHO BẨN" do sửa file khi bộ đột biến đang chạy — một lần, đã ghi rõ; lần đo thật sau đó không sửa file → sạch.
+2. `sed -i`, `$(( ))`, `ReadNotifications` bị chặn — luật người gác đúng, làm theo hướng dẫn (Python / node -e), không lặp lại sau lần đầu.
+Dọn: chưa thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` có phép kiểm làm thay mới từ việc này.
+
+## Báo cáo 7 mục
+```
+VIỆC:        LUOI-3 — Vá lưới: bắt 10 đột biến NẶNG-lưới của AUDIT-3 (AU3-8…17), chỉ thêm bài thử
+ĐÃ SỬA:      cong_cu/thu_P26c.js:723–782 — khối [M]: M1a/M1b ship + mã 10 % (N1), M2a/M2b 2 dòng có flash (N2), M3a flash + mã 1 món (N3),
+             M4a/M4b một dòng 2 gói có giảm (N8–N10);
+             cong_cu/thu_GOI1.js:293–308 — A2l/A2m/A2n (N4, N5); :694–710 — B3p dữ liệu đền trước P26c (N6, N7);
+             viec/LUOI-3/dot_bien.py — 10 đột biến (neo đọc từ viec/AUDIT-3/), mẫu đúng tên ca, tên lạ thoát 2. 0 dòng server/, client/.
+BÀI THỬ:     chạy trên bản chưa thêm ca (89172f3) → 10 đột biến SỐNG (thu_P26c 111/0, thu_GOI1 101/0); sau khi thêm ca (99b2fdb) → BẮT 10/10,
+             mỗi cái đỏ đúng ca mang tên (N1, N2 đỏ cả hai vế); code gốc xanh: P26c 118/0, GOI1 105/0 — bang_chung_do.txt
+ĐÃ RÀ K4:    grep "tienDaTraTheoDong" server → 3 chỗ gọi (damages.js:173, tienDaTra.js:39, :77); "soTienHoan(" → 2 (orders.js:1346,
+             refunds.js:164 — đơn có gói bị chặn :118, :157); "vuotTheoLoai(" → 2 (orders.js:416, :871); "/ Number(dong.quantity)" → 1
+             (tienDaTra.js:81, B3d canh). Đột biến ở thân hàm chung → một ca bắt đủ; 0 chỗ sót.
+CHƯA KIỂM:   (1) logic "N1/N2 đòi cả hai mẫu" chưa thử bằng cách gỡ M1b khỏi bài (không sửa bài để thử) — chỉ đọc dot_bien.py:46;
+             (2) tiền đề B3p "trước P26c trần đền theo giá gốc" chỉ dựa chú thích damages.js:172 — kho nông, không xem được lịch sử;
+             hình dạng dòng sổ / log đền cũ thật trên production (Turso) chưa đối chiếu;
+             (3) "qua API trần kết thúc gói không bao giờ chặn" chứng minh bằng đọc code + 2 agent, không vét cạn mọi tổ hợp;
+             (4) P26c / SO-LUONG-1 / BAN-HANG-1 / LUOI-2 không chạy lại sau vòng sửa 1 (thu_P26c.js không đổi từ 8de7727);
+             (5) mọi chạy trên SQLite tạm, không đụng Turso / quầy thật;
+             (6) viec/AUDIT-3/dot_bien.py cùng lỗ chạy rỗng (Cấm sửa) — Phát hiện 1.
+GIT:         a5520c5 LUOI-3: bang chung do — SAU chay lai tren 99b2fdb, dong loi nguyen van, 14 s
+             99b2fdb LUOI-3: ke hoach sua dan chung damages.js:172, :176 (soat vong 1)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học của trang_thai.md (bước 11 /lam-viec)
+```
+
+HEAD ĐÃ KIỂM: a5520c5
