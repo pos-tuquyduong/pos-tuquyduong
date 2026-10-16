@@ -6,10 +6,9 @@
     python3 viec/AUDIT-4/boc.py --tu-thu         # ca đỏ AU3-22 / 23 / 24 + K5 `HET`: luật CŨ (viec/AUDIT-3/boc.py, chỉ đọc) và MỚI chấm CÙNG đầu vào
     python3 viec/AUDIT-4/boc.py --khung <nhóm|tên…> · --c2luoi [tên…] · --audit2 <nhóm|tên…>   # khung AUDIT-1 / AUDIT-2 ĐÃ BỌC
     python3 viec/AUDIT-4/boc.py --bb [--chi <tiền tố>…] · --luoi1 [tên…] · --tachgl [tên…]          # bb / LUOI-1 / TACH-GL ĐÃ BỌC
-    python3 viec/AUDIT-4/boc.py --xep <file…>    # đầu ra cũ: dòng BẮT / LẠC mang dấu sập → HỎNG-sập (cận dưới)
 
-Chấm (luật sập (a), chủ quán chốt 16.10): HỎNG = neo không áp được · HỎNG-sập = `sap_cua` (dấu sập trong đầu ra · thoát 2 · không dòng "chạy hết" ·
-dòng khớp mang dấu sập) · BẮT = bộ báo đạt và không sập · LẠC = thoát ≠ 0 không mẫu · SỐNG = thoát 0 · TREO = quá giờ. Cuối: git status không đổi
+Chấm (luật sập (a), chủ quán chốt 16.10): HỎNG = neo không áp được · HỎNG-sập = `sap_cua` (dấu sập trong đầu ra ĐỦ · thoát 2 · không dòng
+"chạy hết") · BẮT = bộ báo đạt và không sập · LẠC = thoát ≠ 0 không mẫu · SỐNG = thoát 0 · TREO = quá giờ. Cuối: git status không đổi
 (ngoài viec/AUDIT-4/), không thì thoát 3. SO-LUONG-1 / BAN-HANG-1 / P20b chạy qua `viec/AUDIT-4/dot_bien.py --bo` (đối chứng + cùng luật sập).
 """
 import atexit, contextlib, importlib.util, io, os, re, shutil, signal, subprocess, sys, tempfile, threading, types
@@ -18,7 +17,8 @@ sys.dont_write_bytecode = True   # nạp viec/AUDIT-3/boc.py, bộ cũ: không �
 
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 VIEC = os.path.join(GOC, 'viec')
-SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP|SẬP giữa kịch bản|Node\.js v\d')   # thu_*.js · chay.js nạp/dựng · kịch bản ném · node văng thô
+SAP = re.compile(r'Bài thử sập|bài thử sập|Giả lập: SẬP|SẬP giữa kịch bản|Node\.js v\d|\bbai[A-Z]\w* sập: ')   # thu_*.js · chay.js nạp/dựng · kịch bản ném ·
+# node văng thô · một KHỐI của thu_cong / thu_cong_cu ném (`${bai.name} sập: `, thu_cong.js:721, thu_cong_cu.js:510 — soát vòng 2)
 # Dòng "chạy HẾT" (xanh hay đỏ). AU3-24: dòng tổng chay.js neo NGUYÊN dòng (chay.js:136–138, :298–300) — `· ĐẠT` trơn khớp cả TÊN ca T0 / T9c
 # của thu_gia_lap.js:300, :320 nên thu_gia_lap thoát 0 không dòng tổng vẫn "chạy hết" (soát vòng 4 AUDIT-3). Có `KHÔNG ĐẠT (n lệch)` (soát kế hoạch).
 HET = re.compile(r'\d+ đạt · \d+ hỏng|^\s*(?:Giả lập: \d+ kịch bản|Lượt \d+: KB[^\n]*) · \d+ bất biến · (?:ĐẠT|KHÔNG ĐẠT \(\d+ lệch\))\s*$'
@@ -56,13 +56,18 @@ def nap_khuon(bo):
 def ra_cua(r): return re.sub(r'\x1b\[[0-9;]*m', '', (r.stdout or '') + (r.stderr or ''))
 
 
-CA_T = re.compile(r'^\s*[✓✗] T\d+[a-z]? ')   # dòng CỦA bài cho ca T (thu_gia_lap T3…T10 mô tả có 'Giả lập: SẬP'). Neo ĐẦU dòng: dòng gộp của
-# kiem_tra ('✗ bài chạy thật … → ✗ T1a … | ✖ Bài thử sập', kiem_tra_truoc_khi_giao.js:483–486) KHÔNG được trừ (soát vòng 1 — thu_P26c có ca T1a…T3b)
+CA_T = re.compile(r'^\s*[✓✗] T\d+[a-z]? ')   # một dòng CỦA bài cho ca T (thu_gia_lap T3…T10 mô tả có 'Giả lập: SẬP' — thu_gia_lap.js:114–117)
+GOP = re.compile(r'^.*?bài chạy thật \S+ xanh \([^)]*\)\s*→\s*')   # đầu dòng gộp của kiem_tra (kiem_tra_truoc_khi_giao.js:483–486)
 
 
-def co_sap(ra):   # dấu sập theo DÒNG; AU3-22: không trừ dòng '✗ bài chạy thật …' — bộ kiểm báo bài con sập = HỎNG-sập (luật (a))
-  for l in ra.splitlines():
-    if SAP.search(l) and not CA_T.match(l): return l.strip()[:160]
+def doan(l):   # dòng → các DÒNG GỐC của bài: dòng gộp kiem_tra bỏ đầu '… bài chạy thật <bài> xanh (… s)  → ' rồi tách ' | ' (soát vòng 1 + 2)
+  return GOP.sub('', l).split(' | ') if GOP.match(l) else [l]
+
+
+def co_sap(ra):   # dấu sập theo DÒNG GỐC; chỉ trừ dòng ca T của chính bài (thu_gia_lap đỏ thật mang 'Giả lập: SẬP'), kể cả khi nằm trong dòng gộp
+  for l in ra.splitlines():   # AU3-22: dòng '✗ bài chạy thật …' báo bài con sập = HỎNG-sập (luật (a)); thu_P26c '✗ T1a … | ✖ Bài thử sập' → đoạn 2 sập
+    for d in doan(l):
+      if SAP.search(d) and not CA_T.match(d): return l.strip()[:160]
   return ''
 
 
@@ -221,7 +226,7 @@ def ban_sao_sc(doi=()):   # chép THẬT server/ + cong_cu/ vào TAM (khuôn vie
   os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(k, 'node_modules'))
   for f, cu, moi in doi:
     p = os.path.join(k, f); s = open(p, encoding='utf-8').read()
-    assert s.count(cu) == 1 and os.path.realpath(p).startswith(os.path.realpath(TAM)), f'{f}: neo / đích sai'
+    if s.count(cu) != 1 or not os.path.realpath(p).startswith(os.path.realpath(TAM) + os.sep): raise SystemExit(f'{f}: neo / đích sai — DỪNG')
     open(p, 'w', encoding='utf-8').write(s.replace(cu, moi))
   return k
 
@@ -265,6 +270,35 @@ def tu_thu():   # ca đỏ A1: luật CŨ (viec/AUDIT-3/boc.py) và MỚI chấm
   ma, ra = ghiLai['r'][0], ghiLai['r'][1].replace('✗ M2 ', '✗ T1a ')
   print(f"  (dòng gộp T1a: {next((l.strip()[:150] for l in ra.splitlines() if '✗ T1a' in l and 'bài chạy thật' in l), 'KHÔNG thấy')})")
   ghi('vòng 1: dòng gộp kiem_tra ✗ T1a … | ✖ Bài thử sập', la(A3.sap_cua(ma, ra)), la(sap_cua(ma, ra)), 'sập')
+  # Soát vòng 2 (a) K5 CA_T: thu_gia_lap ĐỎ THẬT ở ca T (đột biến TACH-GL `BV-cha-khong-dung-con-SIGTERM`) — dòng ✗ T3 mang 'Giả lập: SẬP' phải KHÔNG sập;
+  # gỡ CA_T (đột biến của chính luật) phải ra sập → vế trừ có ca đỏ
+  tg = nap_module('TACH-GL')
+  dbt = next(d for d in tg.DOT_BIEN if d[0] == 'BV-cha-khong-dung-con-SIGTERM')
+  tam = tempfile.mkdtemp(prefix='tg_', dir=TAM)
+  k = tg.dung_ban_sao(tam)
+  print(f"  (TACH-GL bản sao: áp {tg.ap(k, dbt[2], tam) or 'được'})")
+  ma, ra = chay(tg.LENH['thugl'][0], k)
+  t3 = next((l.strip() for l in ra.splitlines() if CA_T.match(l) and SAP.search(l)), 'KHÔNG thấy dòng ✗ T… mang dấu sập')
+  print(f'  (thu_gia_lap đột biến: thoát {ma} · {t3[:150]})')
+  go = any(SAP.search(d) for l in ra.splitlines() for d in doan(l))   # = co_sap khi gỡ vế `not CA_T.match(d)` (đột biến của luật)
+  ghi('vòng 2: thu_gia_lap đỏ thật ✗ T3 … Giả lập: SẬP (gỡ CA_T → ' + la(go) + ')', la(A3.sap_cua(ma, ra)), la(sap_cua(ma, ra)) if go else 'gỡ CA_T vẫn không sập', 'không sập')
+  # (b) cùng đầu ra đó đi qua kiem_tra --day-du (:829): dòng gộp '✗ bài chạy thật cong_cu/thu_gia_lap.js xanh (…)  → <✗/✖ nối ' | '>' (:483–486)
+  hong = [l.strip() for l in ra.splitlines() if re.search('[✗✖]', l)]
+  gop = f"  ✗ bài chạy thật cong_cu/thu_gia_lap.js xanh (50.0 s)  → {' | '.join(hong)}\n  ✗ CÓ LỖI — sửa xong rồi commit.\n"
+  ghi('vòng 2: dòng gộp --day-du của thu_gia_lap ✗ T3 (đỏ thật)', la(A3.sap_cua(1, gop)), la(sap_cua(1, gop)), 'không sập')
+  # (c) một KHỐI của thu_cong_cu ném → '✗ baiT2 sập: …' (thu_cong_cu.js:510): bản sao chép thật của TU-CHAY-6 (`ban_sao`), chèn throw đầu baiT2
+  t6 = nap_module('TU-CHAY-6')
+  b = t6.ban_sao()
+  try:
+    f = os.path.join(b, 'tu_chay', 'thu_cong_cu.js')
+    src = open(f, encoding='utf-8').read()
+    if src.count('function baiT2() {') != 1: raise SystemExit('thu_cong_cu.js: neo baiT2 sai — DỪNG')
+    open(f, 'w', encoding='utf-8').write(src.replace('function baiT2() {', 'function baiT2() { throw new Error("AUDIT-4 khối sập");'))
+    ma, ra = chay(['node', f], GOC)
+  finally:
+    shutil.rmtree(b, ignore_errors=True)
+  print(f"  (thu_cong_cu khối ném: thoát {ma} · {next((l.strip()[:120] for l in ra.splitlines() if 'baiT2 sập' in l), 'KHÔNG thấy baiT2 sập')} · {(ra.strip().splitlines() or [''])[-1][:80]})")
+  ghi('vòng 2: khối thu_cong_cu ném (✗ baiT2 sập: …)', la(A3.sap_cua(ma, ra)), la(sap_cua(ma, ra)), 'sập')
   # AU3-23: sap() của CẢ HAI bản với cùng bộ giả — chay_khuon trả NEM- ra BẮT, mọi bộ khác rỗng
   gia = dict(chay_khuon=lambda bo, *a, **k: (0, [(f'NEM-{bo}', 'BẮT', '')]),
              nap_m2=lambda: types.SimpleNamespace(K=types.SimpleNamespace(DOT_BIEN=[], main=lambda: 0)), goi_main=lambda *a: (0, ''),
@@ -282,17 +316,6 @@ def tu_thu():   # ca đỏ A1: luật CŨ (viec/AUDIT-3/boc.py) và MỚI chấm
   return 0 if all(phep) else 1
 
 
-def xep(tep):
-  dem = {}
-  for p in tep:
-    for l in open(p, encoding='utf-8'):
-      m = re.match(r'[✓✗]?\s*(BẮT|SỐNG|HỎNG|LẠC|TREO)\b', l)
-      if not m: continue
-      k = 'HỎNG-sập' if m.group(1) in ('LẠC', 'BẮT') and SAP.search(l) and not CA_T.match(l) else m.group(1)   # cận dưới (không mã thoát)
-      dem[k] = dem.get(k, 0) + 1
-      if k == 'HỎNG-sập': print('HỎNG-sập ← ' + l.rstrip()[:200])
-  print('  --xep: ' + ' · '.join(f'{k} {v}' for k, v in sorted(dem.items()))); return 0
-
 
 def main():
   a = sys.argv[1:]
@@ -302,7 +325,6 @@ def main():
   truoc = anh_kho()
   if a[0] == '--sap': ma = sap()
   elif a[0] == '--tu-thu': ma = tu_thu()
-  elif a[0] == '--xep': return xep(a[1:])
   elif a[0] in ('--c2luoi', '--khung', '--audit2'):   # bảng AUDIT-1 / AUDIT-2 chạy qua khung ĐÃ BỌC
     m2 = nap_m2()
     if a[0] != '--audit2':
