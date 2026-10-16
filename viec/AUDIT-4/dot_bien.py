@@ -9,9 +9,10 @@ Khuôn viec/AUDIT-3/dot_bien.py: chép THẬT server/ + cong_cu/ (+ tu_chay/cau_
 chuỗi (khớp ĐÚNG số lần — không thì HỎNG, K3), chạy bài trên bản sao: 'p26c' / 'thu' / 'thub' = thu_P26c / thu_GOI1 / thu_P26b `--may-chu`,
 'p20' = thu_P20.js chạy TRONG bản sao (không nhận --may-chu). Một đột biến khai nhiều cách thì chạy mọi bài (BẮT khi một bài bắt).
 ĐỐI CHỨNG mỗi cách: bản sao chưa đột biến thoát 0 VÀ số ca khớp `BAI` — lệch thì DỪNG thoát 4. Nhãn: HỎNG = neo không áp được ·
-HỎNG-sập = bài sập (`sap_cua` của boc.py: dấu sập, thoát 2, không dòng chạy hết) · BẮT = thoát ≠ 0 + dòng ✗ khớp mẫu · LẠC = thoát ≠ 0 không khớp · SỐNG = thoát 0.
+HỎNG-sập = bài sập (`sap_cua` của boc.py) · BẮT = thoát ≠ 0 + dòng ✗ khớp mẫu · LẠC = thoát ≠ 0 không khớp · SỐNG = thoát 0.
 SỐNG ở chỗ tiền / ví / gói / kho = NẶNG-lưới (chủ quán chốt Câu hỏi 2 = a). Tên lạ / chọn 0 → thoát 2. SIGINT / SIGTERM → dọn tạm, thoát 130.
-Thoát 0 KHI VÀ CHỈ KHI mọi nhãn đúng `MONG` (D2 theo hợp đồng, còn lại BẮT); luật sập + bản sao nạp từ boc.py (một định nghĩa).
+Riêng hợp đồng D2: `python3 viec/AUDIT-4/dot_bien.py D2-AU4-sai-chuoi D2-AU4-da-biet D2-AU4-vo-hai D2-AU4-sap D2-AU4-sap-0` (thoát chỉ
+phụ thuộc D2). Thoát 0 KHI VÀ CHỈ KHI mọi nhãn đúng `MONG` (D2 theo hợp đồng, còn lại BẮT); luật sập + bản sao nạp từ boc.py (một định nghĩa).
 """
 import importlib.util, os, re, shutil, signal, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
