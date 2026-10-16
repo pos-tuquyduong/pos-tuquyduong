@@ -55,7 +55,7 @@ cách đọc cho các đợt sau.
 - `viec/AUDIT-4/boc.py` chép AUDIT-3 rồi vá: AU3-22 `co_sap` hết lọc `✗ bài chạy thật` (vế 4 giữ, vô hại); AU3-23 `gom_xau` có NEM-, chú thích
   sửa theo kết quả (NEM- ở 4 bộ khuôn = `✖ Bài thử sập … HTTP 500` thoát 2); AU3-24 `HET` neo nguyên dòng tổng chay.js (`chay.js:136–138, :298–300`),
   gồm `KHÔNG ĐẠT (n lệch)`, cờ `re.M`. Thêm `--tu-thu`, bọc chung `boc_lenh` (khung AUDIT-1 + bb), `boc_dict` (LUOI-1 / TACH-GL), `--bb`, `--tachgl`.
-- `--tu-thu` 4/4 (thoát 0): ba ca đỏ — luật cũ sai, luật mới đúng, cùng đầu vào thật; K5 `HET` đúng ở cả hai. `--sap` 0 bộ BẮT / SỐNG (thoát 0,
+- `--tu-thu` 4/4 lúc đầu (sau vòng sửa 1: 5/5, vòng sửa 2: 8/8 — mục Vòng sửa): ba ca đỏ — luật cũ sai, luật mới đúng, cùng đầu vào thật; K5 `HET` đúng ở cả hai. `--sap` 0 bộ BẮT / SỐNG (thoát 0,
   309 s phần khung). `git status` ngoài `viec/AUDIT-4/` không đổi sau mỗi lệnh.
 - Số dòng: `boc.py` 323 (AUDIT-3 237 → +86) — VƯỢT ước 50 của kế hoạch bản 2 (~30 phiếu): `--tu-thu` ~55 dòng (dựng đầu vào thật cho 4 phép:
   thu_gia_lap đủ, chay.js có đột biến, khung `kiem`, bộ giả cho `sap()`), bọc ~30. Ghi ở Bài học.
@@ -79,7 +79,7 @@ VS-AU4-L3-LOAI-CHAN-BANG · VS-AU4-L3-KHOA-LOAI-BO-KIEU · BV-AU4-L3-B3P-BO-SAN-
 | LUOI-3 | VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG | **SỐNG** | M1b, M4a, A5* chia hết | **NẶNG-lưới** |
 | LUOI-3 | VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN | **SỐNG** | B3* chia hết | **NẶNG-lưới** |
 | LUOI-3 | VS-AU4-L3-CHAN-TREN-CA-HOAN | **SỐNG** | không ca gói + mã 1 món ở huỷ / kết thúc gói | **NẶNG-lưới** |
-| LUOI-3 | VS-AU4-L3-LOAI-CHAN-BANG | HỎNG-sập | thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 (đúng ca) rồi `✖ Bài thử sập: Only finite numbers…` sau A2j — đỏ-rồi-sập như AU3-6 | NHẸ-công cụ (bài dài ném khi ca trước đỏ) |
+| LUOI-3 | VS-AU4-L3-LOAI-CHAN-BANG | HỎNG-sập | thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 (đúng ca) rồi `✖ Bài thử sập: Only finite numbers…` (`bang_chung_do.txt` mục 5) — đỏ-rồi-sập như AU3-6 | NHẸ-công cụ (bài dài ném khi ca trước đỏ) |
 | LUOI-3 | VS-AU4-L3-KHOA-LOAI-BO-KIEU | **SỐNG** | không ca hai kiểu cùng `sx_product_id` | **NẶNG-lưới** (gói) |
 | LUOI-3 | BV-AU4-L3-B3P-BO-SAN-0 | **SỐNG** | B3p nhận = total, không > total | **NẶNG-lưới** |
 Tổng 19 · BẮT 7 · SỐNG 8 (1 vô hại D2 + 7 NẶNG-lưới) · HỎNG 1 (cố ý) · HỎNG-sập 3 (2 D2 cố ý + LOAI-CHAN-BANG) · LẠC 0. Đường thật + ca đề xuất (tự tính) → `bao_cao.md`.
@@ -102,7 +102,7 @@ Trong lúc A2 chạy: không sửa file nào trong kho (bản nháp `kiem_neo.py
 ## A4 — XONG
 `viec/AUDIT-4/kiem_neo.py` = chép AUDIT-3 + bộ BAN-HANG-1, P20b, LUOI-3 (neo đọc từ cặp AUDIT-3, tên vắng = HỎNG), TU-CHAY-6, AUDIT-4; `RUA_CO_Y`
 +3 (`VS-SOLUONG1-THE-SDT-THO` đã thay BAN-HANG-1; `BV-AU3-SL-THE-BO-CONG` hồ sơ không ghi → AU4-9; `D2-AU4-sai-chuoi` cố ý). Ca đỏ: bản AUDIT-3
-chạy trên HEAD thoát 1 với đúng 2 HỎNG đó (`ke_hoach.md` mục 0). Bản AUDIT-4 → thoát 0 · 23 bộ có neo + do_*.js · neo khớp 936/975 (39 = đã thay /
+chạy trên HEAD thoát 1 với đúng 2 HỎNG đó (`ke_hoach.md` mục 0). Bản AUDIT-4 → thoát 0 · 22 bộ có neo + do_*.js · neo khớp 936/975 (39 = đã thay /
 cố ý, mỗi tên một lý do) · HỎNG ngoài danh sách 0 · mẫu nghi rữa 0. `python3 viec/AUDIT-4/kiem_neo.py` nguyên văn:
 ```
 (LUOI-1: kho nông, không có 9521cec — KB10_GOC rỗng trong bộ nhớ; 2 GOC-* không rà như trước)
@@ -378,7 +378,7 @@ K1 — mã phát hiện (AU4-n) đặt một lần ở bao_cao.md rồi mới d�
 ## Vòng sửa 1 (theo /ra-soat vòng 1 — 9 lỗi, sửa hết; tôi kiểm từng lỗi trên code trước khi sửa)
 | lỗi soát | kiểm lại | sửa |
 |---|---|---|
-| 1 phép trừ `✗ T\d` nuốt dòng gộp kiem_tra | ĐÚNG: `kiem_tra_truoc_khi_giao.js:483–486` nối ✗/✖ của bài con bằng `' \| '` | `boc.py` `CA_T` neo ĐẦU dòng (`[✓✗] T…` của chính bài); bỏ vế (4) (thừa — 0 kết quả A2 nhờ vế (4): grep nhật ký "dòng khớp mang dấu sập" = 0); `--tu-thu` thêm ca dòng gộp ✗ T1a (cũ không sập · mới sập) → 5/5; chạy lại `--khung D1` (57 tên kiem / kiemdd, 763 s): BẮT 50 · HỎNG-sập 5 · LẠC 2 — y hệt; `--sap` ĐẠT |
+| 1 phép trừ `✗ T\d` nuốt dòng gộp kiem_tra | ĐÚNG: `kiem_tra_truoc_khi_giao.js:483–486` nối ✗/✖ của bài con bằng `' \| '` | `boc.py` `CA_T` neo ĐẦU dòng (`[✓✗] T…` của chính bài); bỏ vế (4) (thừa — 0 kết quả A2 nhờ vế (4): grep nhật ký "dòng khớp mang dấu sập" = 0); `--tu-thu` thêm ca dòng gộp ✗ T1a (cũ không sập · mới sập) → 5/5; chạy lại `--khung D1` (57 tên nhóm D1 = 53 kiem + 4 cong, 763 s): BẮT 50 · HỎNG-sập 5 · LẠC 2 — y hệt; `--sap` ĐẠT |
 | 2 AU4-7 "ví bị trừ" sai | ĐÚNG: `packages.js:265` `tien.tong > 0` chặn `ghiHoan`; sai chỉ ở `:261` ghi chú, `:273` phản hồi / lời báo | `bao_cao.md` AU4-7: đường thật + ca "hoan 0 / ghi chú hoàn 0đ"; mức giữ NẶNG-lưới (Q2 a) |
 | 3 AU4-6 ca dựng qua POST bị đột biến chặn | ĐÚNG: `goiKhach.js:24` gộp `xin["1"]` | ca dựng "đã lấy NE1" bằng INSERT trực tiếp (khuôn B3p) + ca đảo chiều (mất lượt) |
 | 4 mã thoát `dot_bien.py` vô nghĩa | ĐÚNG (`D2-AU4-vo-hai` luôn SỐNG) | `MONG` (D2 theo hợp đồng, còn lại BẮT), thoát 0 khi và chỉ khi đúng mong; hiện "đúng mong 11/19" thoát 1; `--bo` BAN-HANG-1 7/7, P20b 4/4 thoát 0, SO-LUONG-1 16/17 thoát 1 (tên đã thay) |
@@ -468,3 +468,60 @@ BÀI HỌC:
   theo CÁCH chạy (grep), không theo nhóm; con số "đã chạy lại N" phải khớp đúng tập bị ảnh hưởng.
 - BỎ: không có.
 ```
+
+## Vòng sửa 2 (theo /ra-soat vòng 2 — 9 lỗi + 5 nghi ngờ; tôi kiểm trên code: thu_gia_lap.js:114–117, kiem_tra :483–486 / :829,
+## thu_cong.js:721, thu_cong_cu.js:510 — đúng cả)
+| lỗi soát | sửa |
+|---|---|
+| 1 vế trừ ca T không ca "phải KHÔNG sập" | `--tu-thu` thêm ca: thu_gia_lap ĐỎ THẬT (đột biến TACH-GL `BV-cha-khong-dung-con-SIGTERM`, ✗ T3 mang "Giả lập: SẬP") → không sập; gỡ vế trừ → sập (ca đỏ của chính vế) |
+| 2 `--xep` hỏng sau vòng 1 | bỏ `--xep` (không kết quả nào dùng) |
+| 3 dòng gộp `--day-du` thu_gia_lap ✗ T3 chấm sập oan | phép trừ ca T theo ĐOẠN (`doan`: bỏ đầu "… bài chạy thật <bài> xanh (…)  →", tách ` \| `) — ca mới: dòng gộp từ đầu ra thật → không sập; ca vòng 1 (✗ T1a … \| ✖ Bài thử sập) vẫn sập |
+| 4 "57 tên kiem / kiemdd" sai | sửa chữ (D1 = 53 kiem + 4 cong); chạy lại khung AUDIT-1 trừ C2F ĐỦ 88 tên theo luật vòng 2 (1151 s): y hệt từng tên. A3B (4 kiem / kiemdd) ngoài A2 theo phiếu — ghi rõ |
+| 5 `bao_cao.md:50` 4/4 | → 8/8 |
+| 6 chú thích đầu `boc.py` còn vế (4) | sửa docstring |
+| 7 `--bo SO-LUONG-1` luôn thoát 1 | `MONG` thêm `VS-SOLUONG1-THE-SDT-THO: HỎNG` (đã thay) → đúng mong 17/17, thoát 0 |
+| 8 AU4-6 chiều ngược chưa tự tính | dùng ca soát tự tính (X sau / Y trước, đã lấy X 2 + Y 1, lấy 1 X: gốc 400, đột biến 200) + ghi `goiKhach.js:18` không ORDER BY |
+| 9 A6 thiếu R2/R3 nguyên văn; "23 bộ" | chép đầu ra `don_rong.js` vòng 1 dưới; "22 bộ + do_*.js" |
+| nghi ngờ: dấu sập khối `baiX sập:` | ĐÚNG — `SAP` thêm `\bbai[A-Z]\w* sập: ` (chỉ 2 nơi sinh, grep); ca `--tu-thu`: khối baiT2 của thu_cong_cu ném → cũ không sập · mới sập |
+| nghi ngờ: `TONG.search(...)` ném khi vắng | dòng tổng vắng → lấy dòng đầu, không ném |
+| nghi ngờ: `assert` realpath thiếu `os.sep` | `ban_sao_sc` kiểm `realpath + os.sep`, `SystemExit` (không assert) |
+| nghi ngờ: "sau A2j" không bằng chứng | bỏ chữ; bằng chứng ✗ trước sập ở `bang_chung_do.txt` mục 5 |
+| nghi ngờ: mức SỐNG cũ | Câu hỏi 5 (không chặn) |
+Chạy lại sau vòng 2 (tuần tự `chay.py v2`, git sạch mọi bước): `--tu-thu` 354,7 s 8/8 · A3 40,2 s y hệt (đúng mong 11/19) · `--bo SO-LUONG-1` 17/17 thoát 0 ·
+`--sap` 382,3 s ĐẠT · `--khung G3 A3 B1 C2 D1` 1151,4 s y hệt từng tên (77 · 6 sập · 2 · 2 · 1).
+
+A6 — `node viec/AUDIT-4/don_rong.js` sau vòng sửa 1 (có R2, R3), nguyên văn:
+```
+$ node viec/AUDIT-4/don_rong.js
+# thoát 0 · 1.2 s
+
+AUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, kho tạm)
+  R1 items: [] (không gói, không thẻ) → HTTP 400 · Đơn hàng phải có ít nhất 1 sản phẩm · không tạo đơn
+  R2 items: [] + membership_buy: {} → HTTP 400 · THE_MUA_THIEU_THONG_TIN · Mua thẻ cần chọn hạng thẻ và khách hàng · không tạo đơn
+  R3 items: [] + package_buy: {} → HTTP 400 · GOI_MUA_THIEU_THONG_TIN · Mua gói cần chọn gói và khách hàng · không tạo đơn
+  R5 1 món 25.000 + mã giảm 100 % (tổng 0), có SĐT → HTTP 200 · đơn #1 completed · subtotal 25000 · total 0 · 1 dòng · điểm 0 · sổ ví 0 dòng 0
+  R6 (K5) chỉ mua thẻ 500000, items: [] → HTTP 200 · đơn #2 completed · subtotal 500000 · total 500000 · 1 dòng · điểm 500 · sổ ví 0 dòng 0
+  R8a (K5) mua gói 300.000, items: [] → HTTP 200 · đơn #3 completed · subtotal 300000 · total 300000 · 1 dòng · điểm 300 · sổ ví 0 dòng 0
+  R8b (K5) lấy 1 ly từ gói (0đ) → HTTP 200 · đơn #4 completed · subtotal 0 · total 0 · 1 dòng · điểm 0 · sổ ví 0 dòng 0
+
+  báo cáo /reports/daily (HTTP 200 → 200), sau − trước:
+    total_orders: 0 → 3 (Δ 3)
+    completed_orders: 0 → 3 (Δ 3)
+    cancelled_orders: 0 → 0 (Δ 0)
+    total_revenue: 0 → 800000 (Δ 800000)
+    cash_revenue: 0 → 800000 (Δ 800000)
+    transfer_revenue: 0 → 0 (Δ 0)
+    balance_revenue: 0 → 0 (Δ 0)
+    total_discount: 0 → 25000 (Δ 25000)
+    total_shipping: 0 → 0 (Δ 0)
+    orders_with_discount_code: 0 → 1 (Δ 1)
+  đối chiếu: 4 đơn tạo · tổng total 800000 · đơn báo cáo phải đếm (trừ giao từ gói 0đ) 3
+
+  A6 chạy hết
+```
+
+## Câu hỏi 5 (sau soát vòng 2 — KHÔNG chặn, kết luận "chưa đạt" không đổi)
+Q2 (a) "SỐNG ở chỗ tiền = NẶNG-lưới" máy áp cho đột biến ĐỘC LẬP của việc này (phiếu A3). Các SỐNG CŨ ở chỗ tiền / gói (A3L `goi-bo-kiem-con-lai`,
+`redeem-bo-han-diem`, `nhandiem-he-so-mac-dinh`; B3 KB16, KB20; P26b `hong-tran-theo-man-hinh`; 22 C2F) giữ mức AUDIT-2 / AUDIT-3 đã xét kèm lý do.
+Chủ quán có áp Q2 (a) cho cả SỐNG cũ không? Có → "7 NẶNG" là cận dưới (bao_cao.md đã ghi).
+
