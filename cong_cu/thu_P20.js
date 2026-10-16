@@ -499,13 +499,18 @@ async function main() {
     }
 
     // H3d — A3 (soát vòng 1, Z1): hoàn tác B đã qua phép kiểm sớm; chen giữa: hoàn tác A xong, khách P2 claim LẠI cùng mã.
-    // B phải dừng — không được gỡ claim / xoá voucher của lần claim mới.
+    // B phải dừng — không được gỡ claim / xoá voucher của lần claim mới. Soát vòng 2: getNow() chỉ tới giây — ÉP claimed_at của lần
+    // claim mới bằng giá trị cũ (cùng giây, TẤT ĐỊNH) để chỉ còn vế claimed_phone phân biệt.
     {
       const b = await donThu('H3d bill'); const P2 = sdtMoi();
       const c = await claim(b.ma);
       k('H3d claim lần đầu → 200', c.status === 200, moTa(c));
+      const luc0 = (await dongMa(b.ma)).claimed_at;
       let rA = null, c2 = null;
-      mocTruocTx = async () => { rA = await reset(b.ma); c2 = await claim(b.ma, P2); imLang(); };
+      mocTruocTx = async () => {
+        rA = await reset(b.ma); c2 = await claim(b.ma, P2); imLang();
+        await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [luc0, hoa(b.ma)]);
+      };
       const rB = await reset(b.ma);
       mocTruocTx = null;
       k('H3d móc chạy: hoàn tác A → 200, claim lại → 200', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
@@ -515,6 +520,36 @@ async function main() {
       const m = await db.queryOne('SELECT claimed_phone FROM pos_signup_codes WHERE UPPER(code) = ?', [hoa(b.ma)]);
       k(`H3d voucher của lần claim mới còn, mã vẫn ghi ${P2}`, v === 1 && !!m && m.claimed_phone === P2,
         `voucher ${v} · claimed_phone ${m && m.claimed_phone}`);
+    }
+
+    // H3g — A3 (soát vòng 2, X1): như H3d nhưng CÙNG SĐT claim lại (đúng mục đích nút hoàn tác), claimed_at ép KHÁC giá trị cũ —
+    // chỉ còn vế claimed_at phân biệt.
+    {
+      const b = await donThu('H3g bill'); const P = sdtMoi();
+      const c = await claim(b.ma, P);
+      k('H3g claim lần đầu → 200', c.status === 200, moTa(c));
+      let rA = null, c2 = null;
+      mocTruocTx = async () => {
+        rA = await reset(b.ma); c2 = await claim(b.ma, P); imLang();
+        await db.run("UPDATE pos_signup_codes SET claimed_at = '2000-01-01T00:00:00' WHERE UPPER(code) = ?", [hoa(b.ma)]);
+      };
+      const rB = await reset(b.ma);
+      mocTruocTx = null;
+      k('H3g móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
+        `${rA ? moTa(rA) : 'móc không chạy'} / ${c2 ? moTa(c2) : '-'}`);
+      k('H3g hoàn tác B (lần claim cũ, cùng SĐT) → 409', rB.status === 409, moTa(rB));
+      const v = await demVoucher(b.ma), m = await dongMa(b.ma);
+      k('H3g voucher của lần claim mới còn, mã vẫn claimed', v === 1 && !!m.claimed_at, `voucher ${v} · claimed_at ${m.claimed_at}`);
+    }
+
+    // H3h — A3 · K5 (soát vòng 2): dòng có claimed_at mà claimed_phone NULL (dữ liệu lạ, màn hình không liệt kê) → hoàn tác được như gốc.
+    {
+      const b = await donThu('H3h bill');
+      const c = await claim(b.ma);
+      k('H3h claim → 200', c.status === 200, moTa(c));
+      await db.run('UPDATE pos_signup_codes SET claimed_phone = NULL WHERE UPPER(code) = ?', [hoa(b.ma)]);
+      const r = await reset(b.ma);
+      k('H3h hoàn tác dòng claimed_phone NULL → 200', r.status === 200 && r.success === true, moTa(r));
     }
 
     // H3e — A3 (soát vòng 1, Z2): hai lần hoàn tác chồng nhau, voucher chưa ai dùng → lần sau 409 "vừa hoàn tác", không phải 400 "đã dùng".
@@ -577,6 +612,12 @@ async function main() {
       const r = await claim(b.ma);
       mocTruocTx = null;
       k('H6 /claim khi dòng mã vừa bị xoá → 404', r.status === 404, moTa(r));
+      // Soát vòng 2 (K4): mỗi chỗ gọi baoChiemHong là một chỗ vá riêng — /nhan-diem cũng phải có ca.
+      const b2 = await donThu('H6 bill 2');
+      mocTruocTx = async () => { await db.run('DELETE FROM pos_signup_codes WHERE UPPER(code) = ?', [hoa(b2.ma)]); };
+      const r2 = await nhanDiem(b2.ma);
+      mocTruocTx = null;
+      k('H6 /nhan-diem khi dòng mã vừa bị xoá → 404', r2.status === 404, moTa(r2));
     }
 
     // H5 — GHI CHÚ [c] · K5: mã trỏ tới đơn không còn → 404 KHONG_THAY_DON ở cả hai cửa.
