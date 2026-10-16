@@ -33,6 +33,13 @@ Ba câu ở `ke_hoach.md` mục 12 (ngân sách `boc.py` ~50 dòng so ~30 của 
 ## Dừng
 Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3 sau khi commit + push `ke_hoach.md` bản 2. Làm tiếp: `/lam-viec AUDIT-4 tiep`.
 
+## Câu hỏi 4 (sau A2 — KHÔNG chặn, kết luận NẶNG không đổi theo cả hai cách)
+Vá AU3-22 đúng cột "cách vá" (bỏ lọc dòng `✗ bài chạy thật` ở `co_sap`) làm 4 đột biến khung AUDIT-1 `D1-E1-unitprice`, `D1-E8-backup`,
+`D1-E2-authz-tho`, `D1-E1b-tra-gia` chuyển BẮT → HỎNG-sập: phép TĨNH riêng của `kiem_tra` bắt chúng, nhưng cùng lần chạy thu_P26c (bài chạy
+thật) SẬP (`item is not defined`, `no such table`). Chữ luật (a) "bộ kiểm chạy hết nhưng báo bài con sập = HỎNG-sập" → nhãn mới; nhưng 16.10
+chủ quán giữ AUDIT-1 81/83 (cách AUDIT-3: "khớp phép tĩnh riêng = BẮT"). Máy báo theo luật (a) chữ (77/83) và ghi kèm 81/83; chủ quán chọn
+cách đọc cho các đợt sau.
+
 ## Làm tiếp (16.10, chủ quán duyệt kế hoạch — Q1 (a) bọc đủ · Q2 (a) SỐNG tiền = NẶNG-lưới, kèm đường thật · Q3 mặc định IS NULL · > 180 phút cắt như mục 11)
 - bước 1: HEAD `4cac62a` · FETCH_HEAD `4cac62a` — bằng nhau, không kéo. `git log --oneline -3`:
   ```
@@ -77,5 +84,20 @@ VS-AU4-L3-LOAI-CHAN-BANG · VS-AU4-L3-KHOA-LOAI-BO-KIEU · BV-AU4-L3-B3P-BO-SAN-
 | LUOI-3 | BV-AU4-L3-B3P-BO-SAN-0 | **SỐNG** | B3p nhận = total, không > total | **NẶNG-lưới** |
 Tổng 19 · BẮT 7 · SỐNG 8 (1 vô hại D2 + 7 NẶNG-lưới) · HỎNG 1 (cố ý) · HỎNG-sập 3 (2 D2 cố ý + LOAI-CHAN-BANG) · LẠC 0. Đường thật + ca đề xuất (tự tính) → `bao_cao.md`.
 
+## A2 — XONG (`a2_bang.md`) — 15 bước tuần tự, 5.456 s ≈ 91 phút, `git status` sạch sau cả 15 bước
+| bộ | kết quả HEAD | AUDIT-3 | N11 LUOI-3 | vì sao khác |
+|---|---|---|---|---|
+| AUDIT-3 `dot_bien.py` 26 | BẮT 15 · LẠC 5 · HỎNG 5 · SỐNG 1 | (10 SỐNG) | — | 10 AU3-8…17 hết SỐNG; 5 LẠC-mẫu (mẫu AUDIT-3 ≠ tên ca LUOI-3); `BV-AU3-SL-THE-BO-CONG` HỎNG (AU4-2); D2 cố ý |
+| LUOI-3 10 | BẮT 10 — câu lỗi + số quan sát = `viec/LUOI-3/bang_chung_do.txt` SAU | — | 10/10 | — |
+| AUDIT-1 trừ C2F 88 | BẮT 77 · HỎNG-sập 6 · HỎNG 2 · LẠC 2 · SỐNG 1 | 81 · 2 sập | — | 4 `D1-E*` BẮT → HỎNG-sập do vá AU3-22 (Câu hỏi 4) |
+| C2F 87 + A3L c2full 13 | BẮT 67 · SỐNG 25 · HỎNG-sập 6 · HỎNG 2 | y hệt | — | 0 tên khác (P20b chỉ thêm SELECT → tên C2F không trượt) |
+| AUDIT-2 A3L + B3 26 | BẮT 18 · SỐNG 5 · HỎNG 2 · LẠC 1 | y hệt | LUOI-2 7/7 | — |
+| bb 179 (qua bọc lần đầu) | BẮT 125 · SỐNG 50 · LẠC 2 · HỎNG 1 · HỎNG-sập 1 | 125 · 50 · 3 LẠC | — | `D2-sap` LẠC → HỎNG-sập (đúng); 0 đỏ-rồi-sập ẩn |
+| P26b 59 · P26c 93 · GOI-1 49 · GOI-2 59 | 48 · 88 (+1 sập AU3-6) · 40 · 59 | y hệt | — · 89/93 · 40/49 · 59/59 | P26c N11 89 đếm cả `VS-Q9-hoan-me-ngoai-tx` (đỏ-rồi-sập) là bắt |
+| SO-LUONG-1 17 · BAN-HANG-1 7 · P20b 4 | 16 · 7 · 4 | 17 · — · — | 16/17 · 7/7 · — | `VS-SOLUONG1-THE-SDT-THO` đã thay (BAN-HANG-1) |
+| LUOI-1 78 · TACH-GL 29 | 78 · 25 (+3 HỎNG, 1 LẠC đã thay) | y hệt | — | 2 GOC-* CHƯA KIỂM (kho nông) |
+Trong lúc A2 chạy: không sửa file nào trong kho (bản nháp `kiem_neo.py`, `don_rong.js`, `nhap_nhay.py` soạn ở thư mục nháp). Hook dừng
+`kiem_truoc_khi_dung.cjs` có thể đã chạy `npm test` chồng một phần đợt 1 (máy dừng lượt khi chờ) — chỉ ảnh hưởng số giây, không nhãn.
+
 ## Nhóm đã xong
-A1 · A3
+A1 · A3 · A2
