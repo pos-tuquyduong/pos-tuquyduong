@@ -328,3 +328,101 @@ BÀI HỌC: KHOÁ — chayBaiThat (kiem_tra:478) đòi thấy dòng tổng của
   (SIGTERM giây 8): 33 tiến trình gia_lap lúc giết, 17 sau 0,5 s, 0 sau 5 s; sót đúng thư mục thu_gl_<pid>_*; lần chạy sau dọn sạch. Ngoài nghiệm thu.
 - Hồ sơ cũ neo chữ lời gọi `chayBaiThat('tu_chay/thu_cong.js');`: `viec/HOC-2b/dot_bien.py:61`, `viec/TOC-DO-1/dot_bien.py:31` — đổi `:616`
   làm hai đột biến cũ đó LẠC (chạy `python3 viec/HOC-2b/kiem_neo.py` khi làm, ghi kết quả).
+
+## /ra-soat vòng 4 — kết luận ĐẠT (chép nguyên phần kết luận + lỗi)
+```
+ĐẠT (không còn lỗi (H). Còn 4 lỗi (S) chỉ ở hồ sơ, nên sửa trước khi giao. Không lỗi nào chạm tiền hay quầy.)
+(a) lỗi 1 vòng 3 (ca "< 9 s" đỏ oan) hết hẳn — ca, chayDon, moTaDon, CON, NGAT, handler đều bỏ (thu_gia_lap −47/+28); ca mới (thu_gia_lap
+289-302) không đo giờ. Lỗi 6 (nới hạn 130 s) hết hẳn — không còn process.on SIGINT/SIGTERM. Lỗi 2–5 vòng 3 vẫn đúng trên HEAD.
+LỖI TÌM ĐƯỢC (đều S):
+1. trang_thai.md:33, :44-46 — tiêu đề bảng đột biến "23 (trên 23)" trong khi 26 tên; chú thích dưới bảng còn nói NGAT / CON.add / dừng con (đã bỏ). K4.
+2. THIET_KE.md:906 — "88,9–94,6 s (74–79 %)" trong khi đo 96 s (vòng 3), dải 82,2–96 s (vòng 4) — lần thứ ba cùng khuôn. K4/K1.
+3. trang_thai Phát hiện "thu_gia_lap thêm ~12 s (58,9–62,6 s)" — cũ; vòng 4 đo 50,4 s = gốc (người soát chạy 51 s, có thu_cong khác song song). K4.
+4. trang_thai Phát hiện "mồ côi (tự sập khi TMPDIR mất)" — lý do đã sai (TMPDIR không còn bị xoá khi bị giết). Thử thật: SIGTERM giây 8 → sót đúng
+   thu_gl_<pid>_*; 33 tiến trình gia_lap lúc giết, 17 sau 0,5 s, 0 sau 5 s; lần chạy sau (--con-het) dọn sạch. ke_hoach.md:39 còn nhắc THU_GL_CON (vết cũ). K1.
+NGHI NGỜ: process.kill(pid,0) với /tmp chung giữa hai không gian pid (ở đây cùng không gian); phép tĩnh không bắt process.env['X_CON'] / destructuring
+  (đột biến đưa đúng lỗi cũ vẫn bị bắt); /tmp/thu_gl_p24O0w tên cũ không khớp regex dọn — chủ quán xoá tay.
+NGHIỆM THU: 6/6 · thiếu: không.
+CHƯA SOÁT ĐƯỢC: không chạy npm test / --day-du / thu_cong / dot_bien (26/26, 337 ca theo hồ sơ); số 51 s không phải đo riêng; đã tự dọn nháp.
+BÀI HỌC: KHOÁ — đối chiếu "N bị bắt (trên N)" trong trang_thai với số tên dot_bien.py; NGUYÊN TẮC (K4, hồ sơ) — đổi cơ chế thì grep hồ sơ tìm mọi
+  CHƯA KIỂM / Phát hiện / số đo về cơ chế cũ; số đo chỉ ghi một chỗ, THIET_KE trỏ tới đó; NGUYÊN TẮC (K3, giữ) — khoá bằng dấu vết thay đồng hồ.
+```
+Xử lý: cả 4 điểm (S) sửa ở commit f03a6a4 — tiêu đề bảng đột biến (26/26, lần đầu 23/23), chú thích cũ gạch; THIET_KE không chép dải số, trỏ về
+trang_thai; hai dòng Phát hiện cập nhật. ke_hoach.md giữ nguyên (kế hoạch đã duyệt bản 2 — vết, không phải hiện trạng).
+
+## Bài học
+Sự cố của việc (nguồn: 4 báo cáo soát, nhật ký người gác `.tu_chay_nhat_ky.jsonl` — đếm cả file: B-CD-VITRI 13 · B-BIMAT-CHU 12 · B-CHUONGTRINH 8 ·
+B-DICHCHU 3 · GIT-LENH 1 · GIT-TUYCHON 1 · B-PHANTICH 1 · B-MANOI 1; trong phiên này tự thấy B-CD-VITRI ~8, B-BIMAT-CHU 4, B-CHUONGTRINH 4,
+B-DICHCHU 1, GIT-LENH 1 (stash), B-MANOI 1):
+
+**KHOÁ (đã làm, trong Phạm vi)**
+1. Chế độ con bằng biến môi trường lọt từ shell → bài thoát 0 sớm, xanh oan (soát vòng 1 lỗi 3) → cả thu_cong.js và thu_gia_lap.js chỉ vào chế độ
+   con bằng cờ argv + phép tĩnh "không đọc biến môi trường *_CON"; đột biến VS-TUCHAY7-CON-QUA-ENV / VS-TUCHAY7-GL-CON-QUA-ENV đỏ.
+2. dot_bien.py rò thư mục tạm ra /tmp chung (đột biến gỡ phần dọn) → mọi bài chạy với TMPDIR trong bản sao (os.putenv; chỉ an toàn vì chạy tuần tự).
+
+**KHOÁ (đề xuất — ngoài Phạm vi / ngoài phiếu, chat soát duyệt)**
+3. `kiem_tra_truoc_khi_giao.js` chayBaiThat đòi thấy DÒNG TỔNG của bài (không chỉ mã thoát 0) — gốc chung của mọi kiểu "thoát 0 sớm"; ca đỏ: bài giả
+   in một dòng rồi exit(0) → phải FAIL. Đụng quy ước dòng tổng mọi thu_* → gộp vào TU-CHAY-8.
+4. `tu_chay/thu_cong_cu.js` F3 thêm trần độ dài dòng KHUON_LOI (≤ 136 ký tự = dài nhất của gốc) — ngân sách đếm dòng ăn gian được bằng nới khổ
+   (soát vòng 1 lỗi 5); ca đỏ: một dòng 141 ký tự.
+5. Máy mây không có hook pre-commit (tầng 3 không chạy khi máy commit): SessionStart cài `.git/hooks/pre-commit` hoặc người gác đòi `npm test` xanh
+   gần nhất trước `git commit`; ca đỏ: phiên mới, bộ kiểm đỏ, `git commit` → bị chặn.
+6. Cổng / bộ kiểm đối chiếu "N bị bắt (trên N)" trong trang_thai với số tên trong dot_bien.py (soát vòng 4 lỗi 1).
+7. `cong_cu/thu_TOCDO1.js` (1,7–4 s) vào bộ kiểm — mục C/D (khoá A1, A3) hiện chỉ chạy tay / dot_bien (soát vòng 1 nghi ngờ).
+
+**NGUYÊN TẮC (đề xuất cho KHUON_LOI — file đang ở đúng 100 dòng = trần phiếu A4, thêm thì phải gộp; chat soát chọn)**
+8. K1 — Trước khi hứa "bắt tín hiệu / dọn khi bị giết", đọc bài là đồng bộ hay bất đồng bộ: bài đồng bộ không bao giờ chạy hàm nghe tín hiệu, cài
+   vào còn gỡ chết-ngay = nới hạn (ke_hoach bản 1, soát kế hoạch bắt).
+9. K6 — Cùng một đánh đổi ở hai chỗ (nới hạn ở thu_cong → hỏi Q2; ở thu_gia_lap → tự quyết) thì hỏi cả hai (soát vòng 3 lỗi 6 → Q3).
+10. K3 — Khoá bằng dấu vết (thư mục còn/mất, pid sống/chết, chuỗi in) thay đồng hồ; đỏ oan do tiến trình sót / thứ tự ca thì sửa cho hết sót,
+    không dời thứ tự để không thấy (ca "lạc", ca "< 9 s", conChau).
+11. K4 — Rút gọn tài liệu: so từng VẾ liệt kê của câu gốc với câu mới (ba vòng liền rơi một vế: "lấy lần đầu", "`statSync` giữ", "không in dòng
+    tổng"); đổi cơ chế → grep hồ sơ mọi CHƯA KIỂM / Phát hiện / số đo về cơ chế cũ; số đo chỉ ghi MỘT chỗ.
+
+**BỎ**
+12. Lệnh bị người gác chặn vì viết `cd` sau lệnh khác / chữ `environ` / `ps e` / vòng `for` — lỗi viết lệnh, gác đã chặn đúng và chỉ rõ cách; không
+    cần luật mới (đã có luật). Lặp nhiều nhưng không gây hại.
+13. Ca "lạc" quên tạo TMPDIR của con (đỏ oan cả trên bản vá) — một lần, đã bỏ ca khi đổi sang argv.
+
+## Báo cáo
+```
+VIỆC:        TU-CHAY-7 — Bộ khung: cảnh báo sớm bài chạy sát hạn, dọn thư mục tạm khi bị giết, phép tĩnh chú thích số dòng cứng, rút gọn KHUON_LOI
+ĐÃ SỬA:      kiem_tra_truoc_khi_giao.js:641 — thu_cong.js chạy với cờ canhGan (hạn 120 s giữ) → xanh mà > 80 % hạn thì CẢNH BÁO nêu số giây (A1)
+             kiem_tra_truoc_khi_giao.js:570-593 — phép tĩnh E15 quetDongCung + NGUONG_DONG_CUNG = 4 (theo dòng; mọc → CẢNH BÁO liệt kê; giảm → nhắc hạ; không FAIL) (A3)
+             tu_chay/thu_cong.js:25-37 — TAM thu_cong_<pid>_, đầu bài dọn thư mục pid ĐÃ CHẾT, exit dọn (cả khi ném), chế độ con cờ argv (A2, Q2a)
+             cong_cu/thu_gia_lap.js:44-54 — cùng khuôn với thu_cong (Q3c: bỏ bắt tín hiệu, không nới hạn) (A2)
+             KHUON_LOI.md — 116 → 100 dòng (khổ 126 như gốc: 119/120 → 100), thêm 3 câu phiếu, giữ 12 cụm thu_cong_cu kiểm, bảng từng chỗ bỏ ở trang_thai (A4)
+             tu_chay/PHIEN_BAN → tu-chay 1.7.0; tu_chay/thu_cong_cu.js:459, tu_chay/thu_nguoi_gac.js:709 — 2 dòng ghim (Q1); tu_chay/THIET_KE.md:903-917 (A5)
+             Bài thử: cong_cu/thu_TOCDO1.js:33 (neo tiền tố), :190-211 mục C, :213-274 mục D; cong_cu/thu_gia_lap.js:244 C3f, :287-302 DON;
+             tu_chay/thu_cong.js:733-749 baiDonTam
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ ở thu_TOCDO1 C1 + D0; thu_gia_lap C3f + DON con het + DON con nem; thu_cong A2 con het + con nem
+             (bang_chung_do.txt, lần cuối LẦN 4–5); sau khi vá → XANH: thu_TOCDO1 54 · 0, thu_gia_lap 148 · 0, thu_cong 337 · 0;
+             dot_bien.py 26/26 bị bắt (đối chứng 6 bài xanh); --day-du thoát 0 PASS 68 · FAIL 0 · CẢNH BÁO 2; npm test (f03a6a4) PASS 64 · FAIL 0 · CẢNH BÁO 2
+ĐÃ RÀ K4:    grep "chayBaiThat('tu_chay/thu_cong.js'" → kiem_tra 1 lời gọi + thu_TOCDO1 E1 + thu_gia_lap C3f + hồ sơ HOC-2b / TOC-DO-1 (rữa, ghi Phát hiện);
+             grep "fs.rmSync(TAM" / "mkdtempSync" trong 2 bài A2 → mọi chỗ dọn qua exit; grep "spawn(" thu_gia_lap → 2 (không còn tập CON);
+             grep "THU_.*_CON|process.env.*_CON" → 0 trong code (phép tĩnh canh); grep "PHIEN_BAN|1.6.0" tu_chay/*.js → 2 dòng ghim đã đổi;
+             grep số đo cũ trong THIET_KE / trang_thai → sửa, THIET_KE trỏ về trang_thai
+CHƯA KIỂM:   - Thời gian trên Replit / máy 1 lõi: thu_cong chạy riêng ở đây 77,9–96 s (65–80 % hạn) — trên máy yếu cảnh báo A1 sẽ hiện thường (đúng thiết kế, KHÔNG nới).
+             - Cổng PR chế độ `chay` (A11/A13/A16, npm ci, git archive) không chạy ở đây — chỉ `cong.js tinh` (✗ A8 chờ cài, ✗ A19 trước dòng dưới).
+             - Bị SIGKILL / giết giữa chừng: thư mục thu_cong_<pid>_ / thu_gl_<pid>_ sót tới lần chạy sau (thiết kế Q2a/Q3c); giả lập con của thu_gia_lap
+               mồ côi vài giây (soát vòng 4 đo 0 sau 5 s) — không có ca.
+             - /tmp dùng chung giữa hai không gian pid: process.kill(pid,0) có thể xoá TAM của lần chạy còn sống ở không gian kia — không dựng được ở đây.
+             - E15 đếm cả giờ dạng "7:00-22:00" trong chú thích (hiện 0 chỗ) — không ca.
+             - Phép tĩnh *_CON không bắt process.env['X_CON'] / destructuring.
+             - .claude/tu_chay/ lệch nguồn tới khi chủ quán chạy `bash tu_chay/cai_dat.sh` (CẢNH BÁO T2 + ✗ A8).
+             - /tmp/thu_gl_p24O0w (tên cũ, từ lần chạy dot_bien đầu) còn — người gác chặn rm ngoài nháp; chủ quán: rm -rf /tmp/thu_gl_p24O0w
+             - Ngân sách: code khung ~47 dòng (phiếu 50–90) nhưng bài thử ~140 dòng (phiếu ~80, chủ quán chấp nhận ~100) — vượt vì ca D3–D9, C1–C2, DON.
+GIT:         f03a6a4 TU-CHAY-7 soat vong 4 (DAT): sua 4 diem ho so (bang dot bien, THIET_KE khong chep dai so, Phat hien thu_gia_lap)
+             f4d493a TU-CHAY-7 vong sua 4: ket qua kiem (26/26, --day-du xanh)
+BÀI HỌC:     KHOÁ 7 (2 đã làm, 5 đề xuất) · NGUYÊN TẮC 4 (đề xuất — KHUON_LOI ở trần 100) · BỎ 2 — chi tiết ở ## Bài học
+```
+
+### Đếm nghiệm thu (mỗi mục một dòng)
+- A1 — kiem_tra:641 bật cờ; thu_TOCDO1 C1 (đỏ gốc, xanh vá), C2 (không nới hạn); thu_gia_lap C3f khoá tập ba bài bật cờ; vế thu_TOCDO1 > 30 s không áp (1,7–4 s, không gọi qua chayBaiThat). ✓
+- A2 — thu_cong baiDonTam con het / nem (đỏ gốc); thu_gia_lap DON con het / nem (đỏ gốc LẦN 5); lệch chữ "bắt SIGINT/SIGTERM" — chủ quán duyệt Q2a, Q3c. ✓
+- A3 — E15 kiem_tra:570-593; thu_TOCDO1 D0–D9 (D2 = ca đỏ "(:1234)" → kêu; D9 không FAIL; D6 kho thật ≤ ngưỡng); bánh cóc nhắc hạ (D5). ✓
+- A4 — KHUON_LOI 100 dòng (wc), F3 thu_cong_cu xanh; 3 câu phiếu (kiem_chu + 3 đột biến BV-…-KHUONLOI); bảng từng chỗ bỏ / gộp + lý do (trang_thai "A4"). ✓
+- A5 — PHIEN_BAN tu-chay 1.7.0 (BV-TUCHAY7-PHIENBAN-CU bắt ở thu_cong_cu + thu_nguoi_gac); THIET_KE mục TU-CHAY-7 (BV-TUCHAY7-THIETKE); cảnh báo khớp byte ghi rõ, không chép sang .claude/. ✓
+- A6 — npm test + --day-du xanh (chỉ CẢNH BÁO khớp byte + GET-ghi có sẵn); dot_bien.py 26 tên, mỗi chỗ vá ≥ 1 VS- + BV- (chữ: chỉ BV-), đối chứng. ✓
+
+HEAD ĐÃ KIỂM: f03a6a4
