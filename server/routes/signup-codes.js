@@ -505,7 +505,7 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
       // xuyên suốt"), nếu chỉ tắt is_active thì dòng cũ vẫn tồn tại, sẽ bị lớp chống-trùng-mã
       // (chặn claim nếu mã đã có trong pos_discount_codes) chặn nhầm khi claim lại lần 2.
       // P20c: chỉ xoá voucher CHƯA dùng — phép kiểm ở trên nằm NGOÀI giao dịch, voucher có thể vừa được dùng ở
-      // POST /orders. COALESCE: cùng nghĩa với phép kiểm `used_count > 0` ở trên, kể cả NULL. Có voucher mà không
+      // POST /orders. COALESCE: NULL tính như 0 — như phép kiểm `used_count > 0` ở trên (NULL qua phép đó). Có voucher mà không
       // xoá được → dừng. Không có voucher CÙNG MÃ (xoá tay; claim trước 09.08 phát voucher mã khác — không đụng tới)
       // → hoàn tác như cũ.
       const xoa = await tx.run('DELETE FROM pos_discount_codes WHERE code = ? AND COALESCE(used_count, 0) = 0', [signupRow.code]);
