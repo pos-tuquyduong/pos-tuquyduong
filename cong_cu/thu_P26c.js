@@ -721,6 +721,67 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
+  // Ca HỒI QUY LUOI-3: code quầy đang đúng — mỗi ca đỏ khi đột biến AU3-8…10, 15…17 tương ứng (viec/LUOI-3/dot_bien.py).
+  muc('[M] LUOI-3 — trần đền / hoàn đơn có ship, đơn 2 dòng có flash, flash + mã 1 món, một dòng mua 2 gói');
+  {
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
+      VALUES ('GIAM10_LUOI3', 'percent', 10, 0, 0, 0, 0, 1)`);
+    const sdt = sdtMoi();
+    // N1 (BV-AU3-P26C-DATRA-BO-TRU-SHIP) — tiền hàng đã trả = total − ship; bỏ "− ship" chỉ lộ khi đơn CÓ GIẢM (không giảm: min(tổng hàng, total) như nhau).
+    const d1 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(2)], shipping_fee: 10000,
+      discount_code: 'GIAM10_LUOI3', payment_method: 'cash', cash_amount: 55000 });
+    const v1 = await vi(sdt);
+    const a1 = await baoHong(d1.order?.id, { product_code: sp[2].code, quantity: 1, action: 'refund', refund_amount: 45001 });
+    const b1 = await baoHong(d1.order?.id, { product_code: sp[2].code, quantity: 1, action: 'refund', refund_amount: 45000 });
+    k('M1a món 50.000 + ship 10.000, mã 10 % → tổng 55.000; đền 45.001 → 400 VUOT_GIA, 45.000 → 200, ví +45.000 (trần = total − ship)',
+      Number(d1.order?.total) === 55000 && a1.status === 400 && a1.code === 'VUOT_GIA' && b1.status === 200 && await vi(sdt) === v1 + 45000,
+      `${moTa(d1)} · tổng ${d1.order?.total} · ${moTa(a1)} / ${moTa(b1)} · ví ${v1} → ${await vi(sdt)}`);
+    const g1 = await goiDaLay({ cash_amount: 280000 }, 1, { shipping_fee: 10000, discount_code: 'GIAM10_LUOI3' });
+    const tong1 = await so('SELECT total FROM pos_orders WHERE id = ?', [g1.don]);
+    const h1 = await huy(g1.don);
+    k('M1b gói 300.000 + ship 10.000, mã 10 % → tổng 280.000; lấy 1/10, owner huỷ → ví +253.000 (280.000 − ⌈270.000 × 1/10⌉ — hoàn GỒM ship)',
+      tong1 === 280000 && h1.status === 200 && await vi(g1.sdt) === g1.vi0 + 253000, `tổng ${tong1} · ${moTa(h1)} · ví ${g1.vi0} → ${await vi(g1.sdt)}`);
+
+    // N2 (VS-AU3-P26C-DATRA-GIA-GOC) — giá đã trả theo TỪNG dòng. Dữ liệu như đơn bán lúc flash (B1a) nhưng CHỈ dòng flash đổi giá.
+    const d2 = await taoDon({ customer_phone: sdt, items: [mon(0), mon(3)], payment_method: 'cash', cash_amount: 55000 });
+    await db.run('UPDATE pos_orders SET total = 50000, discount = 5000, discount_amount = 5000, flash_discount = 5000, cash_amount = 50000 WHERE id = ?', [d2]);
+    await db.run('UPDATE pos_order_items SET flash_unit_price = 20000 WHERE order_id = ? AND product_id = ?', [d2, sp[0].id]);
+    const v2 = await vi(sdt);
+    const a2 = await baoHong(d2, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 20001 });
+    const b2 = await baoHong(d2, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 20000 });
+    k('M2a đơn 2 dòng (món 25.000 giá flash 20.000 + món 30.000, trả 50.000): đền dòng flash 20.001 → 400 VUOT_GIA, 20.000 → 200',
+      a2.status === 400 && a2.code === 'VUOT_GIA' && b2.status === 200, `${moTa(a2)} / ${moTa(b2)}`);
+    const c2 = await baoHong(d2, { product_code: sp[3].code, quantity: 1, action: 'refund', refund_amount: 30000 });
+    k('M2b (K5) cùng đơn, đền dòng thường đủ 30.000 → 200; ví tổng +50.000', c2.status === 200 && await vi(sdt) === v2 + 50000,
+      `${moTa(c2)} · ví ${v2} → ${await vi(sdt)}`);
+
+    // N3 (VS-AU3-P26C-DEN-GIAM-BO-FLASH) — mã 1 món + flash: giảm của mã = discount − flash − hạng (cột discount là TỔNG giảm, orders.js).
+    const m3 = await goi('POST', '/orders', { customer_phone: sdt, items: [mon(2), mon(3)], discount_code: 'GIAM1MON', payment_method: 'cash', cash_amount: 55000 });
+    await db.run('UPDATE pos_orders SET total = 49000, discount = 31000, discount_amount = 31000, flash_discount = 6000, cash_amount = 49000 WHERE id = ?', [m3.order?.id]);
+    await db.run('UPDATE pos_order_items SET flash_unit_price = 24000 WHERE order_id = ? AND product_id = ?', [m3.order?.id, sp[3].id]);
+    const v3 = await vi(sdt);
+    const a3 = await baoHong(m3.order?.id, { product_code: sp[2].code, quantity: 1, action: 'refund', refund_amount: 25001 });
+    const b3 = await baoHong(m3.order?.id, { product_code: sp[2].code, quantity: 1, action: 'refund', refund_amount: 25000 });
+    k('M3a mã 1 món (A 50.000 − 25.000) + B 30.000 giá flash 24.000, trả 49.000: đền A 25.001 → 400, 25.000 → 200 (không chặn oan), ví +25.000',
+      Number(m3.order?.total) === 55000 && a3.status === 400 && a3.code === 'VUOT_GIA' && b3.status === 200 && await vi(sdt) === v3 + 25000,
+      `${moTa(m3)} · ${moTa(a3)} / ${moTa(b3)} · ví ${v3} → ${await vi(sdt)}`);
+
+    // N8 (VS-AU3-SL-DONG-GOI-SL-1), N9 (…-TONG-1), N10 (VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL) — MỘT dòng mua 2 gói: số lượng dòng, tiền dòng,
+    // mẫu số "đã dùng" quantity × total_qty. Có giảm: dòng ghi 1 gói thì đã trả mỗi gói 300.000 thay vì 270.000 (không giảm thì như nhau).
+    const s4 = sdtMoi(), goi4 = await taoGoi(300000, 10);
+    const m4 = await muaGoi(s4, goi4, 10, { cash_amount: 540000 }, { package_buy: { package_id: goi4, total_qty: 10, pkg_qty: 2 }, discount_code: 'GIAM10_LUOI3' });
+    const dong4 = await mot(`SELECT oi.quantity, o.subtotal, (SELECT SUM(total_price) FROM pos_order_items WHERE order_id = o.id) AS tien
+      FROM pos_orders o JOIN pos_order_items oi ON oi.order_id = o.id AND oi.product_id < 0 WHERE o.id = ?`, [m4.order?.id]);
+    const l4 = await lay(s4, await goiCua(m4.order?.id), 1);
+    const h4 = await huy(m4.order?.id);
+    k('M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000',
+      Number(m4.order?.total) === 540000 && l4.status === 200 && h4.status === 200 && await vi(s4) === 513000 && await tongHoan(m4.order?.id) === 513000,
+      `${moTa(m4)} · tổng ${m4.order?.total} · ${moTa(l4)} · ${moTa(h4)} · ví ${await vi(s4)} · tổng hoàn ${await tongHoan(m4.order?.id)}`);
+    k('M4b cùng đơn (đọc trước khi huỷ): dòng gói quantity 2; SUM(total_price) các dòng = subtotal = 600.000 (báo cáo doanh thu cộng cột này)',
+      Number(dong4?.quantity) === 2 && Number(dong4?.tien) === 600000 && Number(dong4?.subtotal) === 600000, JSON.stringify(dong4));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[K1b] kho bận ở câu đầu (Turso) trên các nhánh mới → 409 KHO_BAN, kho không đổi');
   {
     const chup = async () => JSON.stringify(await mot(`SELECT (SELECT COUNT(*) FROM pos_orders) AS don, (SELECT GROUP_CONCAT(status) FROM pos_orders) AS tt,
