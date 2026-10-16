@@ -278,3 +278,99 @@ AUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, k
 
 ## Nhóm đã xong
 A1 · A3 · A2 · A4 · A5 · A6 · D1 · D2 · D3
+
+## Bước 8 — /ra-soat vòng 1 (agent general-purpose độc lập, chỉ đọc, HEAD `66f966f`) — báo cáo chép nguyên
+
+```
+KHÔNG ĐẠT
+
+Kết luận của audit, "chưa đạt điểm dừng", vẫn đứng vững: các lỗi dưới đây chỉ làm số NẶNG tăng thêm, không làm giảm. Nhưng còn 1 lỗ trong công cụ đo, đúng chỗ việc này khẳng định "công cụ không nói dối" (bao_cao.md:12). Ngoài ra có 2 ca "đề xuất khoá" tự tính sai đường chạy thật, và vài số liệu hoặc mã tham chiếu lệch nhau.
+
+Những gì tôi đã đọc hoặc chạy lại ở lượt này:
+- `boc.py --tu-thu`: thoát 0, 4/4 phép. Kết quả từng dòng trùng `bang_chung_do.txt:10–18`.
+- `kiem_neo.py`: thoát 0. Đầu ra trùng nguyên văn `trang_thai.md:108–175` (đã `diff`).
+- Sau mỗi lệnh, `git status --short` rỗng.
+- Thư mục tạm còn sót chỉ có `/tmp/thu_gl_zTxA7g`, đã được ghi lại ở AU4-13.
+
+LỖI TÌM ĐƯỢC
+
+1. Luật sập vẫn còn lỗ, cùng dạng AU3-22 (K4 + K3)
+- Vị trí: `viec/AUDIT-4/boc.py:61` (cùng khuôn ở `:67` và `:285`).
+- Luật vẫn bỏ qua mọi dòng khớp `✗ T\d`. Chú thích ở `:59` nói phép trừ này chỉ dành cho ca T3…T10 của thu_gia_lap. Nhưng từ BAN-HANG-1, `thu_P26c.js` cũng có ca T1a, T1b, T2a, T2b, T3a, T3b (`:893–919`).
+- Bộ kiểm gộp mọi dòng ✗/✖ của bài con thành một dòng, nối bằng `' | '` (`kiem_tra_truoc_khi_giao.js:484–486`).
+- Hệ quả: thu_P26c hỏng một ca T rồi sập thì dòng gộp vừa chứa `✗ T1a` vừa chứa `✖ Bài thử sập`, và cả dòng bị bỏ qua.
+- Tôi chạy thử `sap_cua` mới trên dòng `✗ bài chạy thật cong_cu/thu_P26c.js … → ✗ T1a … | ✖ Bài thử sập …` kèm dòng tổng thật `✗ CÓ LỖI`, thoát 1. Kết quả: `''`, tức không sập, và vế (4) cũng ra `''`. Cùng dòng đó nhưng thay bằng `✗ S4c` thì ra sập.
+- Lỗ này mở cho mọi đột biến khung chạy cách `kiem`/`kiemdd`, kể cả tên không có `!`. Lý do: `BAI_THAT` (`viec/AUDIT-1/dot_bien.py:207`) không có thu_P26c, nên khung luôn chạy thu_P26c thật.
+- `--tu-thu` không có ca nào cho dạng này.
+
+2. AU4-7 mô tả sai đường chạy thật (K1)
+- Vị trí: `bao_cao.md:25`.
+- Báo cáo ghi "đột biến −20.000 → ví khách bị TRỪ". Code thật thì khác:
+  - Ở `tienDaTra.js:89`, phần ví bị kẹp `Math.max(0, …)`, nên khoản âm rơi vào `tien_mat`, không vào ví.
+  - Quan trọng hơn, `packages.js:265` có `if (hoan && tien.tong > 0)`. Với đột biến, tong = −20.000, nên `ghiHoan` không chạy và không dòng tiền nào được ghi.
+- Tác động thật chỉ là phản hồi `hoan: −20000`, ghi chú "hoàn -20000đ" và thông báo "hoàn … vào ví" sai so với sổ.
+- Ca đề xuất "không dòng hoàn âm" xanh trên cả gốc lẫn đột biến (K3). Chỉ vế "tong 0" là phân biệt được.
+
+3. AU4-6: ca đề xuất sẽ ra HỎNG-sập, không phải BẮT (K3, giống bài học GOI-2 / TOC-DO-1)
+- Vị trí: `bao_cao.md:24`.
+- Khi khoá loại là `${id}`, `xin["1"]` gộp cả CT1 lẫn NE1 (`goiKhach.js:24–29`).
+- Vì vậy ngay bước dựng "đã lấy 4 NE1" qua `POST /orders` đã bị 400: 4 lớn hơn 2 là số còn của CT1. Báo cáo lại nói 400 xảy ra ở bước "lấy 2 CT1".
+- Nếu dựng dữ liệu bằng `coGoi`/`lay` thì gặp `throw` (`thu_GOI1.js:145–150`), tức bài sập. Điều này trái với `bao_cao.md:58`: "7 đột biến chuyển BẮT".
+
+4. `dot_bien.py` dùng mã thoát vô nghĩa — luật là "lời dặn", không phải khoá (K3 + C16)
+- Vị trí: `viec/AUDIT-4/dot_bien.py:156`.
+- `return 1 if SỐNG + LẠC`. Vì `D2-AU4-vo-hai` theo hợp đồng luôn SỐNG, chạy mặc định luôn thoát 1. Kể cả sau khi khoá đủ 7 ca (`bao_cao.md:59`), lệnh vẫn thoát 1.
+- Ngược lại, HỎNG-sập không làm đổi mã thoát: `--bo` có HỎNG vẫn thoát 0 (`a2_bang.md:248`).
+- Hợp đồng D2 (sập phải ra HỎNG-sập, đã biết phải ra BẮT) không được máy tự khẳng định, chỉ do người đọc nhãn. Khác hẳn `boc.py --sap`, vốn có danh sách `xau` và thoát 1.
+
+5. Mã AU4 tham chiếu chéo sai (K1/K4)
+- `a2_bang.md:13`, `:315` và `trang_thai.md:90`, `:104` gọi `BV-AU3-SL-THE-BO-CONG` là "AU4-2".
+- Trong `bao_cao.md:27` đó là AU4-9; còn AU4-2 lại là chỗ làm tròn NẶNG ở `tienDaTra.js:25`.
+
+6. Tỷ lệ AUDIT-1 lệch nhau giữa hai file (K1)
+- `trang_thai.md:40` ghi "77/83", còn `bao_cao.md:29` và `:44` ghi "77/79".
+- Theo công thức ở `bao_cao.md:39` (88 − 2 − 6 − 1 = 79), con số đúng là 77/79.
+
+7. Dẫn ca S2g cho trường hợp `items: []` + `package_buy: {}` là không đúng (K1)
+- Vị trí: `trang_thai.md:262`, `don_rong.js:5`.
+- S2g (`thu_P26c.js:848–849`) gửi `items: [mon(0, 2, true)]`, không phải `items: []`.
+- Cổng `orders.js:202` không phụ thuộc `items`, nên đúng là bị chặn. Nhưng câu "đã có ca" không đúng nguyên văn.
+
+8. "MỘT luật sập" thật ra là hai bản (K4 + C15)
+- `ke_hoach.md:31` và `boc.py:13` khẳng định "cùng luật sập". Thực tế `dot_bien.py:20–21` và `:84–89` là bản chép riêng, đã khác nhau ở ba điểm: không có phép trừ `✗ T\d`, không có vế (4), `HET` chỉ có `đạt · hỏng`.
+- Bản sao máy chủ cũng bị chép đôi: `boc.py:214–223` và `dot_bien.py:59–64`.
+
+9. "Khác AUDIT-3: 0 tên" sai ở mục AUDIT-3 `dot_bien.py` và LUOI-3 (K1)
+- Vị trí: `a2_bang.md:318`, `:325`.
+- Cột AUDIT-3 để "—", trong khi 10 tên AU3-8…17 đã đổi từ SỐNG sang BẮT/LẠC. Đây là câu do script sinh ra khi không có dữ liệu để so.
+
+NGHI NGỜ
+- Mức NẶNG áp dụng chưa đồng đều. Lời duyệt Q2 (a) "SỐNG ở chỗ tiền = NẶNG-lưới, không hạ mức" chỉ được áp cho A3. Các SỐNG cũ ở chỗ tiền/gói vẫn giữ mức NHẸ theo AUDIT-3 mà không nêu lại lý do: `A3L-goi-bo-kiem-con-lai`, `A3L-redeem-bo-han-diem`, `A3L-nhandiem-he-so-mac-dinh`, `BK-KB16`, `BK-KB20` (`a2_bang.md:103–110`); P26b `hong-tran-theo-man-hinh` ở chỗ đền (`a2_bang.md:196`); 22 C2F `orders-*`/`wallets-*`. Số "7 NẶNG-lưới" có thể là cận dưới. Kết luận "chưa đạt" thì không đổi.
+- AU4-6 gọi là "chiều chặn oan" là chưa đủ. Khi `daLay` có cả hai dòng cùng `id`, `find` lấy dòng đầu tiên (`goiKhach.js:27`). Tuỳ thứ tự GROUP BY, CT1 có thể được giao vượt (mất hàng của gói), không chỉ bị chặn oan.
+- Một khẳng định chưa có bằng chứng trong kho. Câu "thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 rồi sập" (`trang_thai.md:82`) không có trong `bang_chung_do.txt:145`, vì `dot_bien.py:103` chỉ in dòng sập.
+- Câu lỗi LUOI-3 "trùng nguyên văn" (`a2_bang.md:16–29`) dựa trên `so_luoi3.py` nằm ở nháp, không có trong kho. Tôi không kiểm lại được.
+- Ca AU3-22 trong `--tu-thu` (`boc.py:260`) tự viết lại cách chấm của khung, không đi qua `boc_lenh`. Đường thật được che bởi `--sap` (`bang_chung_do.txt:59`), nhưng phía luật cũ chỉ được chứng minh trên bản viết lại này.
+
+NGHIỆM THU: 9/9 mục có bằng chứng · mục thiếu: không có
+(A1 bang_chung_do.txt:10–71, --tu-thu chạy lại 4/4, git diff viec/AUDIT-3 rỗng — còn lỗi 1 · A2 a2_bang.md đủ 15 bộ · A3 bang_chung_do.txt:75–153,
+trang_thai.md:63–85 · A4 kiem_neo chạy lại trùng nguyên văn, lach.js CHẶN 14 · A5 8 lần đo, số dòng thu_cong.js 24/35/85/113/117/708/723 đã kiểm ·
+A6 don_rong.js + bảng — lỗi 7 · D1 bao_cao.md 75 dòng đủ phần · D2 bang_chung_do.txt:73–153 — lỗi 4 · D3 trang_thai.md:270–277, git diff ngoài
+viec/AUDIT-4 rỗng.) P1: git diff -- client rỗng. Số dòng HEAD đọc lại đều khớp (orders.js 183/190/191/504/512–519/827/1005/1006 · tienDaTra.js
+19/25/39/45/77/81/87 · goiKhach.js 11/29 · discount-codes.js 63/341 · reports.js 41 · auth.js 64 · kiem_tra 478/487/600/616 · Sales.jsx 735 ·
+"(:1068)" của 9294d40). Số tự tính AU4-2…5 tính lại đúng: 20.454/20.455; 257.142/257.143 (hai lần); 290.461/290.500.
+
+Gọn hơn: boc.py 323 dòng (+86), vượt cả ~50 đã duyệt ở Q1 mà không hỏi lại — bỏ vế (4) ở :67 và :151 (cột "cách vá" AUDIT-3 ghi thừa); --tu-thu
+:249–261 nên đi qua boc_lenh thật. dot_bien.py: dùng boc.sap_cua và boc.ban_sao_sc, bỏ :20–21, :59–64, :84–89; thêm cột "mong", thoát 0 khi và chỉ
+khi mọi kết quả đúng mong (sửa luôn lỗi 4). don_rong.js 101 dòng (ước ~70): im() là nguyên nhân 2 lần sập đầu; chạy máy chủ ở tiến trình con hoặc
+dùng lại khung khởi động thu_P26c.
+
+CHƯA SOÁT ĐƯỢC: không chạy lại A2 nặng (khung, c2luoi, bb, tachgl) và A5; nhật ký thô A2 ở nháp. Không biết BẮT nào trong 77 (AUDIT-1) / 59 (C2F)
+bị che bởi lỗ `✗ T\d` — cần chạy lại nhóm kiem/kiemdd sau khi vá. Không chạy lại A3, A6, npm test / --day-du, thử ngắt.
+
+BÀI HỌC:
+KHOÁ: (1) --tu-thu thêm ca dòng gộp kiem_tra có `✗ T1a … | ✖ Bài thử sập` phải ra sập; thu hẹp phép trừ `✗ T\d+ ` chỉ cho đầu ra thu_gia_lap.js.
+(2) dot_bien.py có cột "mong", thoát ≠ 0 khi nhãn nào lệch mong (gồm D2, HỎNG-sập). (3) Luật sập một định nghĩa (import, không chép).
+NGUYÊN TẮC: K4 — ngoại lệ đặt theo tên ca (`✗ T\d`) rữa khi việc khác thêm ca trùng tiền tố; gắn theo BÀI, rà chỗ gộp dòng (join(' | ')).
+K3 (bổ sung GOI-2) — tự tính ca đỏ phải đi đột biến qua cả bước dựng dữ liệu và lớp chặn phía sau (tong > 0, Math.max(0, …)).
+K1 — mã phát hiện (AU4-n) đặt một lần ở bao_cao.md rồi mới dẫn sang file khác.
+```
