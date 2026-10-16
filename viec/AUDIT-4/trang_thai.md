@@ -53,5 +53,29 @@ Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3 sau khi comm
 - Số dòng: `boc.py` 323 (AUDIT-3 237 → +86) — VƯỢT ước 50 của kế hoạch bản 2 (~30 phiếu): `--tu-thu` ~55 dòng (dựng đầu vào thật cho 4 phép:
   thu_gia_lap đủ, chay.js có đột biến, khung `kiem`, bộ giả cho `sap()`), bọc ~30. Ghi ở Bài học.
 
+## A3 — XONG (làm TRƯỚC A2 vì A2 dùng `dot_bien.py --bo`) — `python3 viec/AUDIT-4/dot_bien.py` (HEAD 6f0225f, 35,6 s, thoát 1 vì có SỐNG)
+Đối chứng: p20 75/0 · p26c 118/0 · thu 105/0 (khớp `BAI`). Tên lạ `__KHONG_CO__` → thoát 2 (không chạy rỗng). Mọi tên đột biến (A17):
+D2-AU4-sai-chuoi · D2-AU4-da-biet · D2-AU4-vo-hai · D2-AU4-sap · D2-AU4-sap-0 · VS-AU4-P20B-CHI-TRA-MA-CHUA-CLAIM · VS-AU4-P20B-DOI-MA-LOI ·
+BV-AU4-P20B-CHAN-SAU-GIAO-DICH · VS-AU4-P20B-TRA-MA-THO · VS-AU4-BH1-THE-KIEM-OBJ · VS-AU4-BH1-DOI-MA-LOI · VS-AU4-BH1-HAN-29D ·
+VS-AU4-L3-DATRA-LAM-TRON-LEN · VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG · VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN · VS-AU4-L3-CHAN-TREN-CA-HOAN ·
+VS-AU4-L3-LOAI-CHAN-BANG · VS-AU4-L3-KHOA-LOAI-BO-KIEU · BV-AU4-L3-B3P-BO-SAN-0
+
+| việc | tên | kết quả | ca / chi tiết | mức |
+|---|---|---|---|---|
+| D2 | sai-chuoi · da-biet · vo-hai · sap · sap-0 | HỎNG · BẮT (G1–G3) · SỐNG · HỎNG-sập · HỎNG-sập | đúng hợp đồng D2, 5/5 | — |
+| P20b | VS-AU4-P20B-CHI-TRA-MA-CHUA-CLAIM | BẮT | G1–G3, G7 (63/12) | — |
+| P20b | VS-AU4-P20B-DOI-MA-LOI | BẮT | G1, G2, G3 "HTTP 400 · DON_DA_HUY" | — |
+| P20b | BV-AU4-P20B-CHAN-SAU-GIAO-DICH | BẮT | G1–G3 "không có đơn mới", "used_count = 0" | — |
+| P20b | VS-AU4-P20B-TRA-MA-THO | **SỐNG** 75/0 | không ca mã có khoảng trắng | **NẶNG-lưới** (chốt Q2 = a) |
+| BAN-HANG-1 | VS-AU4-BH1-THE-KIEM-OBJ · VS-AU4-BH1-DOI-MA-LOI · VS-AU4-BH1-HAN-29D | BẮT · BẮT · BẮT | T1a/T1b · S4c/T1a/T1b · T3a (2.505.600 s) | — |
+| LUOI-3 | VS-AU4-L3-DATRA-LAM-TRON-LEN | **SỐNG** (p26c 118/0, thu 105/0) | ca hiện có chia hết | **NẶNG-lưới** |
+| LUOI-3 | VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG | **SỐNG** | M1b, M4a, A5* chia hết | **NẶNG-lưới** |
+| LUOI-3 | VS-AU4-L3-HOAN-GOI-LAM-TRON-LEN | **SỐNG** | B3* chia hết | **NẶNG-lưới** |
+| LUOI-3 | VS-AU4-L3-CHAN-TREN-CA-HOAN | **SỐNG** | không ca gói + mã 1 món ở huỷ / kết thúc gói | **NẶNG-lưới** |
+| LUOI-3 | VS-AU4-L3-LOAI-CHAN-BANG | HỎNG-sập | thu_GOI1 in ✗ A2b, A2c, A2d, A2d2 (đúng ca) rồi `✖ Bài thử sập: Only finite numbers…` sau A2j — đỏ-rồi-sập như AU3-6 | NHẸ-công cụ (bài dài ném khi ca trước đỏ) |
+| LUOI-3 | VS-AU4-L3-KHOA-LOAI-BO-KIEU | **SỐNG** | không ca hai kiểu cùng `sx_product_id` | **NẶNG-lưới** (gói) |
+| LUOI-3 | BV-AU4-L3-B3P-BO-SAN-0 | **SỐNG** | B3p nhận = total, không > total | **NẶNG-lưới** |
+Tổng 19 · BẮT 7 · SỐNG 8 (1 vô hại D2 + 7 NẶNG-lưới) · HỎNG 1 (cố ý) · HỎNG-sập 3 (2 D2 cố ý + LOAI-CHAN-BANG) · LẠC 0. Đường thật + ca đề xuất (tự tính) → `bao_cao.md`.
+
 ## Nhóm đã xong
-A1
+A1 · A3
