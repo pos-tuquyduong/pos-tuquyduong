@@ -1,0 +1,36 @@
+MA-GIAM-1 — bằng chứng đỏ (16.10.2026).
+Bài thử BẢN CUỐI chạy trong bản sao ở thư mục nháp: server/ + cong_cu/ của HEAD, riêng 3 file routes (discount-codes.js, signup-codes.js,
+orders.js) thay bằng bản GỐC 16d8899. Lệnh trong bản sao: node cong_cu/thu_P20.js · node cong_cu/thu_P26a.js.
+Trên code đã vá: thu_P20 169 đạt · 0 hỏng, thu_P26a 16 đạt · 0 hỏng.
+
+== cong_cu/thu_P20.js trên GỐC ==
+  ✗ G1 đơn gốc đã huỷ: /validate → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200 · NG8WGQ
+  ✗ G2 đơn gốc đã hoàn: /validate → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200 · 6G73ME
+  ✗ G3 đơn gốc payment_status ≠ paid: /validate → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200 · BHSR4T
+  ✗ G8 mã có khoảng trắng, đơn gốc đã huỷ: /validate → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200 · 7QYY3G
+  ✗ G9 mã bị xoá giữa chừng: dùng mã → 400 MA_GIAM_KHONG_CON  — HTTP 200
+  ✗ G9 mã bị xoá giữa chừng: không có đơn mới  — trước 26 · sau 27
+  ✗ G10 mã bị vô hiệu giữa chừng: dùng mã → 400 MA_GIAM_KHONG_CON  — HTTP 200
+  ✗ G10 mã bị vô hiệu giữa chừng: không có đơn mới  — trước 27 · sau 28
+  ✗ G12 voucher mã bill: PUT đổi tên → 400 MA_BILL_KHONG_DOI_TEN  — HTTP 200
+  ✗ G12 voucher mã bill: code không đổi  — XAJCP3 → MG1DOITEN
+  ✗ H3c lời báo không nhắc voucher  — Đã hoàn tác — SĐT 0910000050 có thể claim lại, voucher cũ đã xoá
+  ✗ H3h lời báo không in "null" (ngoại lệ E12 — lời báo là thứ được sửa)  — Đã hoàn tác — SĐT null có thể claim lại, voucher cũ đã xoá
+  ✗ H3j hoàn tác B (cùng giây, cùng SĐT) → 400  — HTTP 200
+  ✗ H3j voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at null
+  ✗ H3k voucher chen vào giữa chừng còn nguyên  — có 0
+  ✗ H3l hoàn tác voucher đã dùng (khác hoa thường) → 400  — HTTP 200
+  ✗ H3l dòng mã vẫn claimed  — null
+  152 đạt · 17 hỏng
+THOÁT 1
+
+== cong_cu/thu_P26a.js trên GỐC ==
+  ✗ M1 xoá mã vừa được dùng → 200, mã CÒN, is_active = 0  — HTTP 200 · mã bị xoá cứng
+  ✗ M6 nhân viên (staff) tăng lượt → 403, used_count không đổi  — HTTP 200 · used 1
+  14 đạt · 2 hỏng
+THOÁT 1
+
+Ca xanh trên gốc (K5 / khoá hành vi giữ nguyên): G4/G5/G7 /validate 200, G8 dùng voucher 400 (A4 — giữ), G11, G13, G14, M2–M5, M7.
+
+SỐ CA cong_cu/thu_P20.js: 169
+SỐ CA cong_cu/thu_P26a.js: 16
