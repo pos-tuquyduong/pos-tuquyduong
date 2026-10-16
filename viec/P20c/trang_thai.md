@@ -450,3 +450,9 @@ tác, ghi giới hạn; (c) ke_hoach 18 → 20; tự đo lại W3, W4, Z, Z2; th
 |---|---|---|
 | A3 khoá `claimed_at = ?` đúng tới giây | `VS-A3-so-toi-phut` | ✗ H3g muộn hơn 1 giây: hoàn tác B |
 (`VS-A3-gio-lon-hon`, `VS-A3-gio-nho-hon` đổi mẫu theo nhãn mới "muộn hơn 1 giây" / "sớm hơn 1 giây".)
+
+## Bước 6 (sau vòng sửa 4, trên HEAD `a78440b`)
+- `node kiem_tra_truoc_khi_giao.js` (trước commit): PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+- `python3 viec/P20c/dot_bien.py`: đối chứng 135 đạt · 0 hỏng; **21/21 BẮT** (`VS-A3-so-toi-phut` bắt ở "H3g muộn hơn 1 giây").
+- `node kiem_tra_truoc_khi_giao.js --day-du`: **PASS 68 · FAIL 0 · CẢNH BÁO 1** (có sẵn); thu_P20 2.2 s, thu_gia_lap 48.1 s, dist khớp src.
+- Đột biến cũ: AUDIT-1 **D1 BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0** ("kho thật không đổi"); AUDIT-2 **B3 BẮT 2 · SỐNG 0**; P20b đối chứng 135/0, **4/4 BẮT**.
