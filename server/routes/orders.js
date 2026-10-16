@@ -184,8 +184,10 @@ router.post("/", authenticate, async (req, res) => {
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
     }
-    if (membership_buy && membership_buy.tier_id && !normalizePhone(customer_phone)) {   // SO-LUONG-1: SĐT đã chuẩn hoá — khối ghi thẻ đòi `phone`
-      return res.status(400).json({ error: "Cần chọn khách hàng trước khi mua thẻ hội viên" });
+    // BAN-HANG-1: có `membership_buy` thì phải đủ hạng thẻ + SĐT đã chuẩn hoá (cùng khuôn cổng gói dưới) — cổng cũ chỉ chạy khi có `tier_id`
+    // nên `{}` lọt: 1 món → đơn thường, `items: []` → đơn rỗng 0đ. SĐT chuẩn hoá vì khối ghi thẻ (`membershipTier && phone`) đòi `phone` (SO-LUONG-1).
+    if (membership_buy && !(membership_buy.tier_id && normalizePhone(customer_phone))) {
+      return res.status(400).json({ error: "Mua thẻ cần chọn hạng thẻ và khách hàng", code: "THE_MUA_THIEU_THONG_TIN" });
     }
     // P26c (A3): một đơn vừa MUA gói mới vừa LẤY từ gói cũ thì trừ lượt cả hai gói — không cho, tách làm hai đơn.
     if (customer_package_id && package_buy && items.some((i) => i.from_package)) {   // gia hạn (bật gói cũ, không lấy) vẫn được

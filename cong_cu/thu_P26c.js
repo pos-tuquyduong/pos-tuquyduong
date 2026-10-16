@@ -85,7 +85,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'refunds', 'wallets', 'damages', 'packages', 'rewards', 'loyalty', 'signup-codes']) {
+  for (const r of ['orders', 'refunds', 'wallets', 'damages', 'packages', 'rewards', 'loyalty', 'signup-codes', 'auth']) {
     app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -814,8 +814,51 @@ async function main() {
     const dThe = await so('SELECT COUNT(*) FROM pos_orders');
     const mk = await goi('POST', '/orders', { customer_phone: ' ', customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id },
       payment_method: 'cash', cash_amount: tien });
-    k(`S4c mua thẻ với SĐT " " (gốc thu ${tien.toLocaleString('vi-VN')} mà không ghi thẻ) → 400, không đơn`,
-      mk.status === 400 && await so('SELECT COUNT(*) FROM pos_orders') === dThe, moTa(mk));
+    k(`S4c mua thẻ với SĐT " " (gốc thu ${tien.toLocaleString('vi-VN')} mà không ghi thẻ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn`,
+      mk.status === 400 && mk.code === 'THE_MUA_THIEU_THONG_TIN' && await so('SELECT COUNT(*) FROM pos_orders') === dThe, moTa(mk));   // BAN-HANG-1: thêm mã
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // BAN-HANG-1 (chủ quán chốt 15.10): có `membership_buy` thì phải đủ hạng thẻ + SĐT đã chuẩn hoá (cùng khuôn cổng gói S2g–S2i) — cổng cũ
+  // chỉ chạy khi có `tier_id` nên `{}` lọt. Hạn đăng nhập mặc định 30 ngày, biến môi trường vẫn ưu tiên. So status / code / số đếm / số giây.
+  muc('[T1 + T2] mua thẻ thiếu hạng → 400 THE_MUA_THIEU_THONG_TIN, không đơn; luồng hợp lệ: thẻ riêng, không thẻ');
+  {
+    const demDon = () => so('SELECT COUNT(*) FROM pos_orders');
+    const hang = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
+    const gia = Number(hang.card_price);
+    const muaThe = (body, tien) => goi('POST', '/orders', { customer_phone: sdtMoi(), customer_name: 'Khách T1', items: [mon(0)], payment_method: 'cash', cash_amount: tien, ...body });
+    const d0 = await demDon();
+    const a = await muaThe({ membership_buy: {} }, 25000);
+    k('T1a membership_buy: {} + 1 ly 25.000 (gốc tạo đơn thường 25.000) → 400 THE_MUA_THIEU_THONG_TIN, không đơn',
+      a.status === 400 && a.code === 'THE_MUA_THIEU_THONG_TIN' && await demDon() === d0, `${moTa(a)} · tổng ${a.order?.total}`);
+    const b = await muaThe({ items: [], membership_buy: {} }, 0);
+    k('T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn',
+      b.status === 400 && b.code === 'THE_MUA_THIEU_THONG_TIN' && await demDon() === d0, `${moTa(b)} · tổng ${b.order?.total}`);
+    const c = await muaThe({ items: [], membership_buy: { tier_id: hang.id } }, gia);
+    k(`T2a (K5) mua thẻ riêng, items [] → 200, tổng ${gia.toLocaleString('vi-VN')}`, c.status === 200 && Number(c.order?.total) === gia, moTa(c));
+    const d = await muaThe({ customer_phone: undefined, membership_buy: null }, 25000);
+    k('T2b (K5) membership_buy: null + 1 ly, không SĐT → 200, tổng 25.000', d.status === 200 && Number(d.order?.total) === 25000, moTa(d));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[T3] hạn đăng nhập: mặc định 30 ngày (auth.js), biến môi trường JWT_EXPIRES_IN ưu tiên');
+  {
+    const dangNhap = async () => {   // admin/admin123 do database.js seedDefaultData tạo trong kho tạm; so status TRƯỚC, không ném khi thiếu token
+      const r = await goi('POST', '/auth/login', { username: 'admin', password: 'admin123' });
+      const t = r.token ? jwt.decode(r.token) : null;
+      return { status: r.status, giay: t ? t.exp - t.iat : NaN };
+    };
+    const bienCu = process.env.JWT_EXPIRES_IN;
+    try {
+      delete process.env.JWT_EXPIRES_IN;
+      const a = await dangNhap();
+      k('T3a không có biến môi trường → đăng nhập 200, hạn ĐÚNG 30 ngày = 2.592.000 s (gốc 8 h = 28.800 s)', a.status === 200 && a.giay === 30 * 86400, `HTTP ${a.status} · ${a.giay} s`);   // so BẰNG, không ngưỡng một chiều (K3)
+      process.env.JWT_EXPIRES_IN = '2h';   // 2h chứ không 8h: 8h trùng mặc định CŨ, không phân biệt được "đọc biến" với "rơi về mặc định" (K3)
+      const b = await dangNhap();
+      k('T3b (K5) biến môi trường 2h → hạn đúng 7.200 s (biến ưu tiên)', b.status === 200 && b.giay === 7200, `HTTP ${b.status} · ${b.giay} s`);
+    } finally {
+      if (bienCu === undefined) delete process.env.JWT_EXPIRES_IN; else process.env.JWT_EXPIRES_IN = bienCu;
+    }
   }
 
   sv.close();

@@ -383,6 +383,13 @@ export default function Sales() {
 
   // Xử lý khi bỏ chọn khách hàng
   const handleClearCustomer = () => {
+    // BAN-HANG-1: gói, thẻ, món lấy từ gói đều là của KHÁCH — bỏ chọn khách thì gỡ khỏi giỏ (khuôn removeFromCart / handleSelectCustomer),
+    // kẻo bấm In mới gặp 400 của máy chủ. Món lẻ giữ nguyên. Nhân viên chọn lại khách rồi thêm lại.
+    const monLe = cart.filter(c => !c.is_pkg && !c.fromPkg && !c.is_membership);   // MỘT vị từ cho cả "có gì để gỡ" và "gỡ"
+    if (monLe.length !== cart.length) {
+      setCart(monLe);
+      setError('Đã gỡ gói, thẻ và món lấy từ gói khỏi giỏ vì bỏ chọn khách');
+    }
     setCustomer(null);
     setMembershipInfo(null);
     setUseBalance(false);
