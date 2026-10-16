@@ -1,0 +1,63 @@
+# LUOI-3 — bằng chứng đỏ (ca HỒI QUY: code quầy đúng, đỏ chứng minh bằng 10 đột biến AU3-8…17 — phiếu ## Bài thử đỏ / ## Bài thử cũ sửa)
+# Lệnh: python3 viec/LUOI-3/dot_bien.py   (cặp thay chuỗi đọc từ viec/AUDIT-3/dot_bien.py; mẫu = tên ca LUOI-3)
+
+## TRƯỚC — commit 89172f3 (dot_bien.py đã có, thu_P26c.js / thu_GOI1.js CHƯA có ca LUOI-3)
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_P26c.js: 111 đạt · 0 hỏng
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_GOI1.js: 101 đạt · 0 hỏng
+  SỐNG  BV-AU3-P26C-DATRA-BO-TRU-SHIP (mẫu /✗ M1[ab] /)
+          thoát 0, không dòng ✗ · 111 đạt · 0 hỏng
+  SỐNG  VS-AU3-P26C-DATRA-GIA-GOC (mẫu /✗ M2[ab] /)
+          thoát 0, không dòng ✗ · 111 đạt · 0 hỏng
+  SỐNG  VS-AU3-P26C-DEN-GIAM-BO-FLASH (mẫu /✗ M3a /)
+          thoát 0, không dòng ✗ · 111 đạt · 0 hỏng
+  SỐNG  VS-AU3-GOI1-LOAI-KHONG-CONG-DON (mẫu /✗ A2l /)
+          thoát 0, không dòng ✗ · 101 đạt · 0 hỏng
+  SỐNG  VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN (mẫu /✗ A2n /)
+          thoát 0, không dòng ✗ · 101 đạt · 0 hỏng
+  SỐNG  BV-AU3-GOI2-BO-TRAN-DA-NHAN (mẫu /✗ B3p /)
+          thoát 0, không dòng ✗ · 101 đạt · 0 hỏng
+  SỐNG  VS-AU3-GOI2-NHAN-BO-DEN (mẫu /✗ B3p /)
+          thoát 0, không dòng ✗ · 101 đạt · 0 hỏng
+  SỐNG  VS-AU3-SL-DONG-GOI-SL-1 (mẫu /✗ M4a /)
+          thoát 0, không dòng ✗ · 111 đạt · 0 hỏng
+  SỐNG  VS-AU3-SL-DONG-GOI-TONG-1 (mẫu /✗ M4b /)
+          thoát 0, không dòng ✗ · 111 đạt · 0 hỏng
+  SỐNG  VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL (mẫu /✗ M4a /)
+          thoát 0, không dòng ✗ · 111 đạt · 0 hỏng
+
+  tổng 10 · BẮT 0 · SỐNG 10 · HỎNG 0 · LẠC 0
+thoát 1
+
+## SAU — commit 2dd9ce9 (thu_P26c.js khối [M] + thu_GOI1.js A2l/A2m/A2n/B3p)
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_P26c.js: 118 đạt · 0 hỏng
+  ✓ đối chứng (bản sao chưa đột biến phải xanh): cong_cu/thu_GOI1.js: 105 đạt · 0 hỏng
+  BẮT   BV-AU3-P26C-DATRA-BO-TRU-SHIP (mẫu /✗ M1[ab] /)
+          ✗ M1a món 50.000 + ship 10.000, mã 10 % → tổng 55.000; đền 45.001 → 400 VUOT_GIA, 45.000 → 200, ví +45.000 (trần = total − ship)  — HTTP 200 · tổng 55
+          ✗ M1b gói 300.000 + ship 10.000, mã 10 % → tổng 280.000; lấy 1/10, owner huỷ → ví +253.000 (280.000 − ⌈270.000 × 1/10⌉ — hoàn GỒM ship)  — tổng 280000
+  BẮT   VS-AU3-P26C-DATRA-GIA-GOC (mẫu /✗ M2[ab] /)
+          ✗ M2a đơn 2 dòng (món 25.000 giá flash 20.000 + món 30.000, trả 50.000): đền dòng flash 20.001 → 400 VUOT_GIA, 20.000 → 200  — HTTP 200 / HTTP 400 · V
+          ✗ M2b (K5) cùng đơn, đền dòng thường đủ 30.000 → 200; ví tổng +50.000  — HTTP 400 · VUOT_GIA · Tiền đền tối đa: 27,272đ · ví 45000 → 65001
+  BẮT   VS-AU3-P26C-DEN-GIAM-BO-FLASH (mẫu /✗ M3a /)
+          ✗ M3a mã 1 món (A 50.000 − 25.000) + B 30.000 giá flash 24.000, trả 49.000: đền A 25.001 → 400, 25.000 → 200 (không chặn oan), ví +25.000  — HTTP 200 
+  BẮT   VS-AU3-GOI1-LOAI-KHONG-CONG-DON (mẫu /✗ A2l /)
+          ✗ A2l CT1 cài 5, đã lấy 2 (còn 3); một đơn 2 dòng CT1 2 + CT1 2 → 400 GOI_HET_LUOT_LOAI, đã giao vẫn 2  — HTTP 200 · giao 6
+          ✗ A2m (K5) cùng gói, 2 dòng CT1 1 + CT1 2 (= đúng 3 còn) → 200, CT1 đã lấy 5  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 0 trong gói · CT1 6
+  BẮT   VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN (mẫu /✗ A2n /)
+          ✗ A2n gói cũ cài CT1 0 + CT2 5 (dữ liệu trước GOI-1) → lấy 1 CT1 → 200 (loại SL 0 không chặn), CT1 đã lấy 1  — HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ 
+  BẮT   BV-AU3-GOI2-BO-TRAN-DA-NHAN (mẫu /✗ B3p /)
+          ✗ B3p (dữ liệu trước P26c 12.10, còn trên production) giảm 10 %: gói 1.350.000 + CT3 25.000 → tổng 1.237.500; sổ có đền CŨ 25.000 theo giá gốc (đã trả
+  BẮT   VS-AU3-GOI2-NHAN-BO-DEN (mẫu /✗ B3p /)
+          ✗ B3p (dữ liệu trước P26c 12.10, còn trên production) giảm 10 %: gói 1.350.000 + CT3 25.000 → tổng 1.237.500; sổ có đền CŨ 25.000 theo giá gốc (đã trả
+  BẮT   VS-AU3-SL-DONG-GOI-SL-1 (mẫu /✗ M4a /)
+          ✗ M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000  — HTTP 200 
+          ✗ M4b cùng đơn (đọc trước khi huỷ): dòng gói quantity 2; SUM(total_price) các dòng = subtotal = 600.000 (báo cáo doanh thu cộng cột này)  — {"quantity
+  BẮT   VS-AU3-SL-DONG-GOI-TONG-1 (mẫu /✗ M4b /)
+          ✗ M4b cùng đơn (đọc trước khi huỷ): dòng gói quantity 2; SUM(total_price) các dòng = subtotal = 600.000 (báo cáo doanh thu cộng cột này)  — {"quantity
+  BẮT   VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL (mẫu /✗ M4a /)
+          ✗ M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000  — HTTP 200 
+
+  tổng 10 · BẮT 10 · SỐNG 0 · HỎNG 0 · LẠC 0
+thoát 0
+
+SỐ CA cong_cu/thu_P26c.js: 118
+SỐ CA cong_cu/thu_GOI1.js: 105
