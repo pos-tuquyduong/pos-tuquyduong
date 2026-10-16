@@ -10,8 +10,10 @@ CẢ 15 bước (`chay.py` so trước / sau từng bước).
 Tóm tắt khác AUDIT-3 (mọi bộ): (1) 4 `D1-E*` của khung AUDIT-1 BẮT → HỎNG-sập do vá AU3-22 (Câu hỏi 4 — luật (a) chữ vs 81/83 đã giữ);
 (2) `VS-SOLUONG1-THE-SDT-THO` BẮT → HỎNG (đã thay BAN-HANG-1); (3) bb lần đầu qua bọc: chỉ `D2-sap` LẠC → HỎNG-sập, 0 đỏ-rồi-sập ẩn; `D2-vo-hai`
 vẫn BẮT trái hợp đồng (AU3-20, chưa khoá); (4) AUDIT-3 `dot_bien.py`: 10 AU3-8…17 hết SỐNG (5 BẮT theo mẫu AUDIT-3 + 5 LẠC-mẫu, cả 10 BẮT đúng
-ca LUOI-3); `BV-AU3-SL-THE-BO-CONG` HỎNG (AU4-2). Còn lại từng tên = AUDIT-3 (P26b 48 · P26c 88 + 1 sập · GOI-1 40 · GOI-2 59 · C2F 59/81 ·
+ca LUOI-3); `BV-AU3-SL-THE-BO-CONG` HỎNG (AU4-9). Còn lại từng tên = AUDIT-3 (P26b 48 · P26c 88 + 1 sập · GOI-1 40 · GOI-2 59 · C2F 59/81 ·
 A3L 15/18 · B3 3 · LUOI-1 78 · TACH-GL 25). Mới chạy: BAN-HANG-1 7/7, P20b 4/4 (= N11 LUOI-3 / hồ sơ P20b).
+Vòng sửa 1 (luật sập không còn bỏ qua dòng gộp `✗ T…` của kiem_tra): chạy lại `boc.py --khung D1 -j 3` (57 tên cách kiem / kiemdd, 763 s) →
+BẮT 50 · HỎNG-sập 5 · LẠC 2 — y hệt từng tên lần đầu (lỗ không che BẮT nào); `--bo` ×3 y hệt (mã thoát nay theo MONG).
 
 ## LUOI-3 — so câu lỗi với `viec/LUOI-3/bang_chung_do.txt` mục SAU (`so_luoi3.py` nháp: câu ca trước "  — " và số quan sát sau đó)
 ```
@@ -261,7 +263,7 @@ BẮT: `VS-SOLUONG1-BO-NGUYEN`, `BV-SOLUONG1-MON`, `VS-SOLUONG1-MON-CHI-TU-GOI`,
 
 Tổng 7 · BẮT 7
 
-Khác AUDIT-3: 0 tên.
+Khác AUDIT-3: KHÔNG so từng tên được (`viec/AUDIT-3/a2_bang.md` không có mục này) — AUDIT-3 đo bộ này ở A4: 10 AU3-8…17 SỐNG (`viec/AUDIT-3/bao_cao.md` AU3-8…17), nay hết SỐNG.
 BẮT: `BV-BANHANG1-THE-CONG`, `VS-BANHANG1-THE-CONG-CU`, `VS-BANHANG1-THE-SDT-THO`, `VS-BANHANG1-THE-SIET-DOI-MON`, `VS-BANHANG1-THE-NULL-CHAN`, `BV-BANHANG1-HAN-DN-8H`, `VS-BANHANG1-HAN-DN-BO-BIEN`
 
 ## P20b (4) — `dot_bien.py --bo P20b` (AUDIT-3 chưa chạy)
@@ -269,7 +271,7 @@ BẮT: `BV-BANHANG1-THE-CONG`, `VS-BANHANG1-THE-CONG-CU`, `VS-BANHANG1-THE-SDT-T
 
 Tổng 4 · BẮT 4
 
-Khác AUDIT-3: 0 tên.
+Khác AUDIT-3: KHÔNG so từng tên được (`viec/AUDIT-3/a2_bang.md` không có mục này) — AUDIT-3 đo bộ này ở A4: 10 AU3-8…17 SỐNG (`viec/AUDIT-3/bao_cao.md` AU3-8…17), nay hết SỐNG.
 BẮT: `BV-A2-bo-tra-signup`, `VS-A2-chi-chan-don-huy`, `VS-A2-chan-ca-ma-tay`, `VS-A2-tra-ca-ma-chua-claim`
 
 ## LUOI-1 (78 trên HEAD; 2 GOC-* CHƯA KIỂM — kho nông) — qua bọc `boc_dict`
@@ -312,9 +314,9 @@ Tổng 26 · BẮT 15 · HỎNG 5 · LẠC 5 · SỐNG 1
 | `VS-AU3-SL-DONG-GOI-SL-1` | LẠC | — |   116 đạt · 2 hỏng | LẠC-mẫu: mẫu AUDIT-3 (`✗ B1` / `✗ (S2|A5)…`) không theo tên ca LUOI-3; đỏ ĐÚNG ca LUOI-3 ở mục LUOI-3 (BẮT, câu lỗi = bằng chứng LUOI-3) |
 | `VS-AU3-SL-DONG-GOI-TONG-1` | LẠC | — |   117 đạt · 1 hỏng | LẠC-mẫu: mẫu AUDIT-3 (`✗ B1` / `✗ (S2|A5)…`) không theo tên ca LUOI-3; đỏ ĐÚNG ca LUOI-3 ở mục LUOI-3 (BẮT, câu lỗi = bằng chứng LUOI-3) |
 | `VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL` | LẠC | — |   117 đạt · 1 hỏng | LẠC-mẫu: mẫu AUDIT-3 (`✗ B1` / `✗ (S2|A5)…`) không theo tên ca LUOI-3; đỏ ĐÚNG ca LUOI-3 ở mục LUOI-3 (BẮT, câu lỗi = bằng chứng LUOI-3) |
-| `BV-AU3-SL-THE-BO-CONG` | HỎNG | — |  | neo cổng thẻ cũ — BAN-HANG-1 thay cổng; bản thay chức năng `BV-BANHANG1-THE-CONG` (BẮT); hồ sơ KHÔNG ghi → phát hiện AU4-2 |
+| `BV-AU3-SL-THE-BO-CONG` | HỎNG | — |  | neo cổng thẻ cũ — BAN-HANG-1 thay cổng; bản thay chức năng `BV-BANHANG1-THE-CONG` (BẮT); hồ sơ KHÔNG ghi → phát hiện AU4-9 |
 
-Khác AUDIT-3: 0 tên.
+Khác AUDIT-3: KHÔNG so từng tên được (`viec/AUDIT-3/a2_bang.md` không có mục này) — AUDIT-3 đo bộ này ở A4: 10 AU3-8…17 SỐNG (`viec/AUDIT-3/bao_cao.md` AU3-8…17), nay hết SỐNG.
 BẮT: `D2-AU3-da-biet`, `BV-AU3-P26C-DATRA-BO-TRU-SHIP`, `VS-AU3-P26C-DEN-TRAN-CA-DON`, `VS-AU3-P26C-DUYET-VI-DA-TRA-CHI-CON`, `VS-AU3-GOI1-LOAI-KHONG-CONG-DON`, `BV-AU3-GOI1-LOAI-BO-DA-LAY`, `VS-AU3-GOI1-DEM-DONG-THAY-SL`, `VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN`, `BV-AU3-GOI2-BO-TRAN-DA-NHAN`, `VS-AU3-GOI2-HOAN-CA-DA-LAY`, `VS-AU3-GOI2-NHAN-BO-DEN`, `VS-AU3-GOI2-GHI-HOAN-PHAN-VI-HOAN-GOI`, `VS-AU3-SL-TIEN-MOT-GOI`, `VS-AU3-SL-TAO-MOT-GOI`, `BV-AU3-SL-HAM-LUON-DUNG`
 
 ## LUOI-3 `dot_bien.py` (10, mẫu = tên ca LUOI-3)
@@ -322,5 +324,5 @@ BẮT: `D2-AU3-da-biet`, `BV-AU3-P26C-DATRA-BO-TRU-SHIP`, `VS-AU3-P26C-DEN-TRAN-
 
 Tổng 10 · BẮT 10
 
-Khác AUDIT-3: 0 tên.
+Khác AUDIT-3: KHÔNG so từng tên được (`viec/AUDIT-3/a2_bang.md` không có mục này) — AUDIT-3 đo bộ này ở A4: 10 AU3-8…17 SỐNG (`viec/AUDIT-3/bao_cao.md` AU3-8…17), nay hết SỐNG.
 BẮT: `BV-AU3-P26C-DATRA-BO-TRU-SHIP`, `VS-AU3-P26C-DATRA-GIA-GOC`, `VS-AU3-P26C-DEN-GIAM-BO-FLASH`, `VS-AU3-GOI1-LOAI-KHONG-CONG-DON`, `VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN`, `BV-AU3-GOI2-BO-TRAN-DA-NHAN`, `VS-AU3-GOI2-NHAN-BO-DEN`, `VS-AU3-SL-DONG-GOI-SL-1`, `VS-AU3-SL-DONG-GOI-TONG-1`, `VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL`
