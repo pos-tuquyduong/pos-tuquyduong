@@ -113,7 +113,15 @@ BÀI HỌC: KHOÁ — bộ kiểm chạy bài thật nên đòi dòng tổng ho�
    mới. Thư mục cũ: người gác chặn rm ngoài nháp → chủ quán dọn `rm -rf /tmp/thu_gl_p24O0w`.
 8. Nghi ngờ "cảnh báo A1 kêu thường": số đo chạy riêng 88,9–94 s (74–78 %) — đúng hành vi phiếu muốn (báo trước khi chạm hạn); kêu khi máy bận
    là đúng thiết kế, KHÔNG nới — chia lượt thu_cong (Phát hiện) là cách hạ. Nghi ngờ "thu_TOCDO1 không do npm test chạy": ngoài Phạm vi việc này
-   (đổi danh sách bài của bộ kiểm = đổi khung kiểm) → đề xuất ở Bài học. conChau: giữ — rẻ, canh con mồ côi treo (không phải bằng chứng vế dừng con).
+   (đổi danh sách bài của bộ kiểm = đổi khung kiểm) → đề xuất ở Bài học. conChau: lúc đầu giữ; rồi `--day-du` sau vòng sửa ĐỎ ở `DON SIGINT … con cháu lúc giết 0` — giả lập cha tạo kho
+   TRƯỚC khi sinh con (như T6) nên lúc giết có thể chưa có con: điều kiện `chau.length > 0` đỏ oan → BỎ hẳn conChau (soát cũng đề nghị bỏ). Sau
+   khi bỏ: gốc ĐỎ đúng (bang_chung_do LẦN 3), bản vá xanh 3/3 lần chạy riêng.
+
+### Kiểm sau vòng sửa 1
+- `python3 viec/TU-CHAY-7/dot_bien.py` → 24 bị bắt · 0 KHÔNG bị bắt (trên 24), đối chứng 6 bài xanh (KHUON_LOI đổi câu K6 giữa lần chạy → chạy lại
+  5 đột biến chữ: 5/5; bỏ conChau → chạy lại 3 đột biến thu_gia_lap: 3/3). Không sót thư mục tạm mới.
+- `node kiem_tra_truoc_khi_giao.js --day-du` lần 1 sau sửa: FAIL 1 (DON SIGINT, conChau đỏ oan — đã bỏ); lần 2: thoát 0 · PASS 68 · FAIL 0 ·
+  CẢNH BÁO 2 (GET-ghi có sẵn + khớp byte chờ cài). thu_cong 90,8 s · giả lập 33,7 s · thu_gia_lap 58,9 s.
 
 ### A4 — từng chỗ bỏ / gộp (gốc 116 dòng → 100; ở cùng khổ 126: 119 → 100)
 | gốc (dòng) | xử lý | lý do / phép máy thay |

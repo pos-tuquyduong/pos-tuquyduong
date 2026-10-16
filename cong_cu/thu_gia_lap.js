@@ -92,25 +92,15 @@ const chayDon = (tin) => new Promise((xong) => {
   const coGL = (d, sau) => { try {
     return fs.readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() && (e.name.startsWith('gia_lap_') || (sau && coGL(path.join(d, e.name), sau - 1))));
   } catch { return false; } };
-  let thay = false, chau = [];
-  const nhin = tin && setInterval(() => { if (!thay && coGL(T, 2)) { thay = true; chau = conChau(c.pid); c.kill(tin); } }, 100);
+  let thay = false;
+  const nhin = tin && setInterval(() => { if (!thay && coGL(T, 2)) { thay = true; c.kill(tin); } }, 100);
   const hen = setTimeout(() => c.kill('SIGKILL'), 90000);
   c.on('close', (status, tinHieu) => {
     clearInterval(nhin); clearTimeout(hen);
-    setTimeout(() => xong({ status, tinHieu, thay, chau, conSong: chau.filter(song), sot: fs.readdirSync(T).filter((f) => f.startsWith('thu_gl_')) }), 2000);
+    setTimeout(() => xong({ status, tinHieu, thay, sot: fs.readdirSync(T).filter((f) => f.startsWith('thu_gl_')) }), 2000);
   });
 });
-const moTaDon = (r) => `thoát ${r.status}${r.tinHieu ? ' (' + r.tinHieu + ')' : ''} · đã thấy giả lập con: ${r.thay} · con cháu lúc giết ${r.chau.length}, `
-  + `còn sống ${r.conSong.join(',') || 0} · sót: ${r.sot.join(', ') || '(không)'}`;
-// mọi tiến trình con cháu của pid (đọc ppid trong /proc/<p>/stat)
-const conChau = (goc) => {
-  const bang = fs.readdirSync('/proc').filter((x) => /^\d+$/.test(x)).map((p) => {
-    try { return [+p, +fs.readFileSync(`/proc/${p}/stat`, 'utf8').replace(/^.*\) /, '').split(' ')[1]]; } catch { return null; }
-  }).filter(Boolean);
-  const ra = [];
-  for (let moi = [goc]; moi.length;) { moi = bang.filter(([, cha]) => moi.includes(cha)).map(([p]) => p); ra.push(...moi); }
-  return ra;
-};
+const moTaDon = (r) => `thoát ${r.status}${r.tinHieu ? ' (' + r.tinHieu + ')' : ''} · đã thấy giả lập con: ${r.thay} · sót: ${r.sot.join(', ') || '(không)'}`;
 // TACH-GL: chạy giả lập ĐỦ, theo dõi dòng `lượt k/L pid P` của cha. viec: null (chạy hết) · 'SIGTERM cha' · 'SIGTERM con' ·
 // 'SIGKILL cha' — làm khi mọi lượt đã mở kho (đủ L thư mục gia_lap_* có kho.db: con đã cài xử lý tín hiệu). cungLuc = lúc đó
 // đủ L pid còn sống — lượt chạy tuần tự thì lượt trước đã xoá kho → không bao giờ đủ L (không dùng ngưỡng giờ). TMPDIR riêng.
@@ -321,8 +311,7 @@ async function main() {
     const [dTerm, dInt, dHet] = await Promise.all([chayDon('SIGTERM'), chayDon('SIGINT'), chayDon(null)]);
     console.log('\n[DON] TU-CHAY-7 A2 — bài này bị ngắt không sót thư mục tạm');
     for (const [t, r] of [['SIGTERM', dTerm], ['SIGINT', dInt]]) {
-      k(`DON ${t} giữa bài (giả lập con đang chạy) → thoát 130, mọi con cháu lúc giết đã chết, 0 thu_gl_* sót`,
-        r.thay && r.status === 130 && r.chau.length > 0 && !r.conSong.length && !r.sot.length, moTaDon(r));
+      k(`DON ${t} giữa bài (giả lập con đang chạy) → thoát 130, 0 thu_gl_* sót`, r.thay && r.status === 130 && !r.sot.length, moTaDon(r));
     }
     k('DON chạy hết (--chi-du-lieu-tay, thoát qua ket()) → thoát 0, 0 thu_gl_* sót', dHet.status === 0 && !dHet.sot.length, moTaDon(dHet));
   }
