@@ -394,3 +394,77 @@ Chạy lại sau vòng 1 (tuần tự, `chay.py v1`, git sạch mọi bước): 
 (AUDIT-4 18/19) · `don_rong.js` thoát 0 (R1–R3 400, R5–R8 như cũ) · `--sap` 383 s ĐẠT · `--khung D1` 763 s y hệt.
 Không theo: tách `don_rong.js` sang tiến trình con (101 dòng; im() đã gỡ được lỗi nuốt dòng sập bằng stderr) — giữ, ghi Bài học.
 
+## Bước 8 — /ra-soat vòng 2 (agent general-purpose MỚI, độc lập, chỉ đọc, HEAD `26cfd2f`) — báo cáo chép nguyên
+
+```
+KHÔNG ĐẠT
+
+Kết luận chính của audit vẫn đứng: "chưa đạt điểm dừng". Các lỗi dưới đây không làm số NẶNG giảm đi. Nhưng vòng sửa 1 lại để lộ lỗ mới đúng ở chỗ việc này khẳng định "công cụ đo không nói dối", và vài con số đã cũ.
+
+Những gì tôi đã chạy lại ở lượt này (HEAD 26cfd2f). Sau mỗi lệnh, `git status --short` đều rỗng; trong /tmp chỉ còn thư mục đã ghi nhận /tmp/thu_gl_zTxA7g.
+- `boc.py --tu-thu`: thoát 0, 5/5. Từng dòng trùng `bang_chung_do.txt:161–171`.
+- `kiem_neo.py`: thoát 0. Đầu ra trùng nguyên văn `trang_thai.md:107–175` (đã diff); tổng neo khớp 936/975.
+- `don_rong.js`: thoát 0. R1/R2/R3 trả 400 và không tạo đơn; R5–R8 cho kết quả như bảng.
+- Thử ngắt `dot_bien.py` sau vòng sửa (vì nay nó dùng TAM của boc.py), cả SIGTERM lẫn SIGINT ở giây thứ 6: thoát 130, không sót thư mục nào, git sạch. Trước đó chưa ai ghi lại phép thử này sau vòng sửa.
+- Script nháp `thu_sap.py` chấm `sap_cua` (luật mới, AUDIT-4) và luật cũ AUDIT-3 trên 16 dạng dòng thật: dòng tổng của chay.js (`Giả lập: …`, `Lượt k: KB …`, `KHÔNG ĐẠT (n lệch)`), thu_gia_lap T3, dòng gộp của kiem_tra, thu_P26c T1a, thu_cong, thu_cong_cu, thu_nguoi_gac.
+
+LỖI TÌM ĐƯỢC:
+1. `viec/AUDIT-4/boc.py:59–65`, `:234–282` — không có ca nào khoá vế "phải KHÔNG sập" của `CA_T` — K3.
+   - Dòng ✗ T3/T4/T6/T10 của thu_gia_lap khi đỏ thật có chứa "Giả lập: SẬP": mô tả `moTaT`/`moTa` gắn thêm `cuoi(r)` (`thu_gia_lap.js:114–117`).
+   - Mẫu bắt các tên TACH-GL dựa đúng vào những dòng này (`viec/TACH-GL/dot_bien.py:41–60`).
+   - Gỡ hẳn `CA_T` thì `--tu-thu` vẫn 5/5. Tôi đã đo: gỡ `CA_T` thì dòng "✗ T3 … Giả lập: SẬP" bị chấm thành sập.
+   - Tức là 25 BẮT của TACH-GL chỉ dựa vào một vế không có ca đỏ.
+2. `viec/AUDIT-4/boc.py:291` (`--xep`) — vòng sửa làm hỏng, cùng khuôn K4 ("đổi phép thì mọi chỗ gọi là một chỗ vá riêng").
+   - `CA_T` neo đầu dòng nên không bao giờ khớp dòng nhật ký (dòng nhật ký mở đầu bằng "✓ BẮT …").
+   - Tôi đã đo trên cùng một dòng TACH-GL "✓ BẮT BV-cha-khong-dung-con-SIGTERM · ✗ T3 … Giả lập: SẬP": AUDIT-3 ra `--xep: BẮT 1`, AUDIT-4 ra `HỎNG-sập 1` (sai).
+   - Hiện chưa kết quả nào dùng `--xep`, nên tác động là NHẸ.
+3. `viec/AUDIT-4/boc.py:59` — chấm sập oan trên dòng gộp của `--day-du` — K5.
+   - `kiem_tra_truoc_khi_giao.js:829` chạy thu_gia_lap; `:483–486` nối các dòng ✗ của bài con thành một dòng.
+   - Dòng gộp "✗ bài chạy thật cong_cu/thu_gia_lap.js … → ✗ T3 … Giả lập: SẬP" là đỏ thật, nhưng luật mới chấm sập. Luật cũ chấm không sập.
+   - Cùng một dòng ✗ T3 thì chạy thẳng không sập, đi qua kiem_tra lại sập.
+   - Hiện chỉ có 1 tên dùng `kiemdd` là `A3B-D5` (`viec/AUDIT-2/dot_bien.py:48`, chỉ đụng client), nên chưa có tên nào bị ảnh hưởng.
+4. `bao_cao.md:14`, `a2_bang.md:15`, `trang_thai.md:381` — câu "chạy lại 57 tên khung cách kiem / kiemdd" sai — K1 + K4.
+   - Nhóm D1 có 53 tên `kiem` cộng 4 tên `cong` (grep `'D1', 'kiem'` = 53, `'D1', 'cong'` = 4).
+   - 4 tên thật sự dùng kiem/kiemdd của AUDIT-2 A3B chưa chạy lại theo luật mới: `A3B-D2`, `A3B-D3`, `A3B-D4` (kiem) và `A3B-D5` (kiemdd), `viec/AUDIT-2/dot_bien.py:43–48`.
+5. `bao_cao.md:50` — dòng A1 vẫn ghi "`--tu-thu` 4/4", trong khi `:13–14` và `bang_chung_do.txt:171` ghi 5/5 — K1/K4 (chạy lại nhưng chưa grep hết câu trích số cũ).
+6. `viec/AUDIT-4/boc.py:11–12` — chú thích đầu file vẫn ghi luật sập có vế "dòng khớp mang dấu sập", nhưng `:69–71` đã bỏ vế này — K1 (chú thích cũng là khẳng định, TU-CHAY-6).
+7. `viec/AUDIT-4/dot_bien.py:144–146` — mã thoát của `--bo SO-LUONG-1` luôn là 1 — K3/K4, cùng khuôn lỗi 4 vòng 1 nhưng ở chế độ `--bo`.
+   - Tên đã thay `VS-SOLUONG1-THE-SDT-THO` ra HỎNG, mà `MONG` không biết danh sách đã thay (`RUA_CO_Y` chỉ nằm ở kiem_neo.py).
+   - Bản sửa lỗi 4 mới áp cho chế độ mặc định.
+8. `bao_cao.md:26` (AU4-6) — ca chiều ngược chưa tự tính — K3 (bài học GOI-2).
+   - Ca chính đúng. Tôi đã tự tính: gốc 200; đột biến làm CT1 đọc nhầm dòng NE1 = 4, còn −2, ra 400. Bước dựng bằng INSERT tránh được đột biến. Lớp chặn sau (`orders.js:247`, `:941`) không đổi kết quả.
+   - "Ca thứ hai đảo vai CT1/NE1" hiểu theo chữ (đã lấy 4 CT1, lấy 2 NE1) vẫn ra 400, tức vẫn là chặn oan, không phải "mất lượt".
+   - Muốn ra chiều giao vượt cần hai dòng "đã lấy", và dòng của loại xin lấy không đứng đầu trong GROUP BY. Ví dụ: X(kiểu sau, id 1) cài 2 + Y(kiểu trước, id 1) cài 5; đã lấy X 2 + Y 1; lấy 1 X. Gốc ra 400; đột biến ra 200, X giao 3/2.
+   - `goiKhach.js:18` không có ORDER BY, nên ca phải cố định thứ tự hoặc thử cả hai thứ tự.
+   - AU4-7 tôi tự tính lại đúng: gốc tong 0, đột biến −20.000; `packages.js:265` chặn `ghiHoan`; ca phân biệt được qua phản hồi `hoan` và ghi chú ở `:261`/`:273`.
+9. `trang_thai.md` khối A6 nguyên văn (sau `:236`) — thiếu R2/R3, nên lời "chạy thật" ở `:381` không có đầu ra trong kho (bản tôi chạy lại thì khớp). Thêm nữa, "23 bộ có neo + do_*.js" (`bao_cao.md:61`, `trang_thai.md:105`) thực ra là 22 bộ + do_*.js = 23 nhóm. Cả hai thuộc K1.
+
+NGHI NGỜ:
+- Dấu sập `SAP` (`boc.py:21`, chép từ AUDIT-3) không phủ dạng sập của cả một khối "<tên khối> sập: …" ở `tu_chay/thu_cong.js:721` và `thu_cong_cu.js:510`. Script đo: chạy thẳng và qua dòng gộp đều ra "không sập". Chưa biết BẮT nào trong nhóm A3/B1/`!D1-T1*` là bắt nhờ khối sập (nhật ký ở nháp).
+- `dot_bien.py:96` gọi `TONG.search(ra).group(0)`: nếu `HET` khớp nhờ vế khác (`PASS n`, `✓ XANH`) mà không có dòng "n đạt · n hỏng" thì AttributeError làm sập cả lệnh.
+- `boc.py:224` kiểm realpath bằng `assert` và không có `os.sep`; trong khi `dot_bien.py:67` có `os.sep`. Hai phép kiểm cùng việc nhưng chặt khác nhau.
+- "rồi sập sau A2j" (`bao_cao.md:28`, `trang_thai.md:82`) không có bằng chứng: `bang_chung_do.txt:252–256` chỉ in dòng ✗.
+- Mức các SỐNG cũ ở chỗ tiền giữ theo AUDIT-2/3 (`bao_cao.md:38–41`). Chủ quán có áp Q2 (a) cho các SỐNG này không thì cần chủ quán xác nhận; kết luận "chưa đạt" không đổi.
+
+NGHIỆM THU: 9/9 mục có bằng chứng · mục thiếu: không có (nhưng còn lỗi ở A1, A2, A6, D1).
+- A1: bang_chung_do.txt mục 1, 2, 4; --tu-thu chạy lại 5/5; diff viec/AUDIT-3 rỗng. Còn lỗi 1 và 2. · A2: a2_bang.md đủ 15 bước. Còn lỗi 4.
+- A3: bang_chung_do.txt:174–264, đúng mong 11/19, cộng lại khớp bao_cao.md:60. · A4: kiem_neo chạy lại trùng nguyên văn; lach.js CHẶN 14.
+- A5: 8 lần đo; số dòng thu_cong.js:24 và :723 đã kiểm. · A6: don_rong.js chạy lại, khớp bảng. Còn lỗi 9. · D1: bao_cao.md 82 dòng, đủ phần. Còn lỗi 5.
+- D2: bang_chung_do.txt mục 3 và 5, hợp đồng MONG. · D3: npm test/--day-du chạy ở abb73b8; kiem_tra không quét viec/ (grep), nên vòng sửa không
+  ảnh hưởng. Diff ngoài viec/AUDIT-4 rỗng. Thử ngắt sau vòng sửa: sạch. · P1: git diff d8e256e^ HEAD -- client server rỗng.
+- Số dòng HEAD đọc lại đều khớp (packages.js 261/265/273; kiem_tra 478/483–486/487/600/616/829; thu_P26c 848–849/896; goiKhach 11/24/27/29; orders.js
+  183/190/202/247/504/512–519/827/884/941/1005; tienDaTra 19/25/45/81/87; auth.js 64; reports.js 41; discount-codes.js 63/341; Sales.jsx 735).
+  Số tự tính đều đúng: AU4-2 20.454/20.455; AU4-3, AU4-4 257.142/257.143; AU4-5 290.461/290.500.
+
+CHƯA SOÁT ĐƯỢC: không chạy lại A2 nặng, A5, --sap, npm test; chưa biết 4 tên A3B kiem/kiemdd ra nhãn gì theo luật mới; chưa biết BẮT nào của
+tu_chay là bắt nhờ khối sập (nhật ký thô ở nháp); so_luoi3.py ở nháp — câu lỗi LUOI-3 chỉ so được với bang_chung_do.txt mục 6.
+
+BÀI HỌC:
+- KHOÁ: (1) --tu-thu thêm ca "phải KHÔNG sập": đầu ra thật của thu_gia_lap có dòng ✗ T3 đỏ mang "Giả lập: SẬP", thoát 1, có dòng tổng; thêm đột
+  biến gỡ CA_T để chứng minh ca đó ra ĐỎ. (2) Ca dòng gộp --day-du của thu_gia_lap ✗ T: định nghĩa ngoại lệ theo BÀI (→ ✗ T… sau "bài chạy thật
+  cong_cu/thu_gia_lap.js"), hoặc ghi rõ là sập có chủ ý. (3) Bỏ --xep, hoặc thêm ca cho nó.
+- NGUYÊN TẮC: K4 — ngoại lệ neo đầu dòng chỉ đúng với dòng gốc của bài; mỗi nơi dòng đó xuất hiện lại (dòng gộp kiem_tra, nhật ký --xep) là một
+  chỗ vá riêng. K3 — vá một phép trừ thì phải có ca cho CẢ HAI vế: dòng bị trừ oan, và dòng phải được trừ. K1 — chạy lại một tập con thì đếm tên
+  theo CÁCH chạy (grep), không theo nhóm; con số "đã chạy lại N" phải khớp đúng tập bị ảnh hưởng.
+- BỎ: không có.
+```
