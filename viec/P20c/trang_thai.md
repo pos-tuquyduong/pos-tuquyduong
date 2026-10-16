@@ -158,7 +158,7 @@ BÀI HỌC:       KHOÁ: thêm vào thu_P20 [H] ca (a) cùng SĐT nhận điểm
 - Lỗi 1 + 2 (Z1, Z2): `/reset` — UPDATE gỡ claim lên ĐẦU giao dịch, gắn đúng lần claim đã đọc `AND claimed_at = ? AND claimed_phone = ?`,
   0 dòng → rollback 409 "vừa được hoàn tác hoặc claim lại". Lần thử đầu chỉ `claimed_at = ?` → H3d VẪN ĐỎ: truy nguyên `helpers.js:135` —
   `getNow()` chỉ tới GIÂY, hoàn tác A + claim lại trong cùng giây ghi cùng `claimed_at` → thêm `claimed_phone`. (Cùng SĐT claim lại trong cùng
-  giây vẫn lọt — trạng thái cuối nhất quán: không claim, không voucher; ghi CHƯA KIỂM.)
+  giây vẫn lọt — trạng thái cuối nhất quán: không claim, không voucher; ~~ghi CHƯA KIỂM~~ → nay ở mục "Giới hạn đã biết", vòng sửa 5.)
 - Nghi ngờ NULL (Z3): DELETE `COALESCE(used_count, 0) = 0` — cùng nghĩa với phép kiểm ngoài `used_count > 0` (khuôn `loyalty.js:95`).
 - Lỗi 3 (K5): ca H4b — một SĐT nhận điểm mã A rồi claim mã B, và ngược lại → 200/200. Lỗi 4 (K3): ca H6 — dòng mã bị xoá giữa phép kiểm và
   giao dịch → 404. Lỗi 5, 6 (K1): sửa số dòng Phát hiện 3, 4; gạch + sửa hai câu sai trong `ke_hoach.md` (mục 3, mục 5). Chú thích reset
@@ -187,15 +187,15 @@ BÀI HỌC:       KHOÁ: thêm vào thu_P20 [H] ca (a) cùng SĐT nhận điểm
 - App KH (người gọi `/claim` qua `X-Service-Key`) ngoài kho: chưa biết có đọc mã 400 cũ của `/claim` "mã đã sử dụng" không (nay 409
   `MA_DA_DUNG`); "SĐT đã nhận" vẫn 400, chỉ thêm `code: 'SDT_DA_NHAN'`.
 
-## Giới hạn đã biết (có ca khoá — không phải "chưa kiểm")
+## Giới hạn đã biết (chủ quán đã chấp nhận — không phải "chưa kiểm")
 - H3i (chủ quán chọn b1): voucher CHƯA dùng bị xoá tay (màn Mã chiết khấu) đúng giữa phép kiểm sớm của `/reset` và giao dịch → 400 "Voucher
   này vừa được dùng…" (lời báo sai, dữ liệu đúng: không gỡ claim). Bấm hoàn tác lại là qua (`voucherRow` null). Gốc trả 200.
-- H3j: CÙNG SĐT claim lại trong CÙNG giây với lần hoàn tác chồng (getNow chỉ tới giây) → khoá `claimed_at + claimed_phone` không phân biệt,
-  hoàn tác B gỡ luôn lần claim mới; trạng thái cuối nhất quán (không claim, không voucher, khách claim lại được). Dòng cũ ghi "không dựng được
-  ca tất định" là SAI (K1) — dựng được bằng móc như H3d; nay có ca khoá. ~~Chặn hẳn cần cột phiên bản (đổi cấu trúc DB — ngoài phiếu).~~
-  **SAI (soát vòng 5, K1):** chặn được KHÔNG cần đổi cấu trúc — `pos_discount_codes.id` là `INTEGER PRIMARY KEY AUTOINCREMENT`
-  (`database.js:613`), `/reset` đã đọc `voucherRow.id` (`signup-codes.js:482`) mà DELETE (`:511`) vẫn xoá theo `code`. Chú thích cùng nội
-  dung ở `cong_cu/thu_P20.js:578` CŨNG SAI — chưa sửa (đã dừng theo lệnh chủ quán; xem Câu hỏi).
+- Cùng SĐT claim lại trong cùng giây (chủ quán chốt j3 — KHÔNG có ca khoá): `/reset` không phân biệt được hai lần claim. Điều kiện chính xác
+  (soát vòng 5): lần claim lại trùng GIÂY với lần claim ĐẦU (claimed_at bằng nhau, getNow chỉ tới giây — `helpers.js:135`) và cùng SĐT, tức cả
+  chuỗi claim → hoàn tác A → claim lại xảy ra trong một giây; khi đó hoàn tác B chồng gỡ luôn lần claim mới (trạng thái cuối: không claim, không
+  voucher, khách claim lại được). Cách khoá: DELETE theo `voucherRow.id` (`pos_discount_codes.id` AUTOINCREMENT — `database.js:613`; `/reset`
+  đã đọc `voucherRow.id` ở `signup-codes.js:482`) — để việc sau. (Vòng sửa 4 từng thêm ca khoá H3j kèm câu SAI "cần cột phiên bản / đổi cấu
+  trúc DB"; vòng sửa 5 bỏ H3j theo lệnh chủ quán, chú thích sai ở `thu_P20.js` bỏ theo.)
 
 ## Bước 8 — soát độc lập `/ra-soat` vòng 2 (16.10, agent soát trên HEAD `3da0928`) — chép nguyên báo cáo
 ```
@@ -542,3 +542,24 @@ BÀI HỌC:       NGUYÊN TẮC (K1): câu "chỉ chặn được nếu đổi c
    ke_hoach) đã gạch tại chỗ trong lượt này.
    Chủ quán chọn j1 / j2 / j3 và cho thêm một vòng sửa không? Nếu có: `/lam-viec P20c tiep` kèm lựa chọn. Bước 9–11 (báo cáo 7 mục, bài học,
    `HEAD ĐÃ KIỂM`) chưa làm.
+
+## Bước 1 (tiếp, vòng sửa 5) — đối chiếu lại
+HEAD `373bd10` · FETCH_HEAD `373bd10` — bằng nhau, không kéo. Chủ quán chốt **j3**: bỏ ca H3j, ghi giới hạn "cùng SĐT claim lại trong cùng giây:
+/reset không phân biệt được hai lần claim; cách khoá: DELETE theo voucherRow.id — để việc sau". Vòng sửa 5 CHỈ hồ sơ + bài thử, KHÔNG đổi server/.
+Soát vòng 6 CHỈ trên diff vòng này; vòng 6 chỉ còn điểm hồ sơ không liên quan tiền → ghi nguyên văn, vẫn kết thúc.
+```
+373bd10 P20c: trang thai — bo dau gach rong thua
+38cf5ae P20c: soat vong 5 KHONG DAT (ho so: cau sai ve H3j, so W3/W4, so dong) — chep bao cao, may tu do lai, gach cau sai, ghi Cau hoi, DUNG
+569f4b0 P20c: trang thai — kiem tren a78440b: 21/21 BAT, --day-du 68/0, AUDIT-1 D1 8/8, AUDIT-2 KB11 2/2, P20b 4/4
+```
+
+## Bước 4–6 (vòng sửa 5, 16.10)
+- `cong_cu/thu_P20.js`: bỏ khối H3j (3 phép) — chú thích sai "cần cột phiên bản / đổi cấu trúc DB" (`:578` cũ) đi theo khối. grep `H3j|cột phiên
+  bản` trong `cong_cu/thu_P20.js`, `viec/P20c/ke_hoach.md`, `viec/P20c/dot_bien.py` → 0 chỗ. `dot_bien.py` không có mẫu nào trỏ H3j.
+- `trang_thai.md`: mục "Giới hạn đã biết" viết lại theo lời chủ quán (điều kiện chính xác theo soát vòng 5 + cách khoá DELETE theo
+  `voucherRow.id` — để việc sau); dòng nhật ký vòng sửa 1 (`:161`) gạch "ghi CHƯA KIỂM" → trỏ "Giới hạn đã biết".
+- `ke_hoach.md`: tựa bỏ "CHỜ DUYỆT — chưa viết bài thử, chưa sửa code" → "chủ quán đã duyệt `e6ec483`…"; ghi chú đầu "H3d–H3j" → "H3d–H3i".
+- `server/`: KHÔNG đổi (`git diff 373bd10 -- server/` rỗng).
+- Bài thử (cổng A16): GỐC 2353fe9 (bản sao ngoài kho) **110 đạt · 22 hỏng** (tập ✗ giữ nguyên 22 — H3j vốn xanh trên gốc); code HEAD **132 đạt ·
+  0 hỏng** — `bang_chung_do.txt` v6, `SỐ CA … 132` (110 + 22 = 132).
+- `npm test` (= `node kiem_tra_truoc_khi_giao.js`, package.json:9): PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn).

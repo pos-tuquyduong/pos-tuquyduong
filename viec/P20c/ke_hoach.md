@@ -1,7 +1,7 @@
-# P20c — kế hoạch v1 (CHỜ DUYỆT — chưa viết bài thử, chưa sửa code)
+# P20c — kế hoạch v1 (chủ quán đã duyệt `e6ec483`; phần sửa sau các vòng soát ghi trong `trang_thai.md`)
 
 > **Sau soát vòng 1–4 và vòng sửa 4 (16.10):** bảng ca (mục 5) và bảng đột biến (mục 6) dưới đây là bản v1. Danh sách ĐANG CHẠY (ca H1–H6
-> gồm H3d–H3j, H4b; **21 đột biến** — ghi chú cũ "18" sai từ vòng sửa 3 (đã 20), vòng sửa 4 thêm `VS-A3-so-toi-phut`) và bản vá /reset hiện
+> gồm H3d–H3i, H4b; **21 đột biến** — ghi chú cũ "18" sai từ vòng sửa 3 (đã 20), vòng sửa 4 thêm `VS-A3-so-toi-phut`) và bản vá /reset hiện
 > hành ghi ở `trang_thai.md` (mục "vòng sửa 1" … "vòng sửa 4"). Câu sai đã gạch tại chỗ.
 
 Số dòng dưới đây đọc trong lượt này trên HEAD `2353fe9` (= main `0ee7346` + sổ việc v34 `783a1dd` + `PHIEU: P20c`).
