@@ -68,8 +68,9 @@ BÀI HỌC:       <lỗi nào nên thành KHOÁ (bài thử / luật người g�
 
 Không được kết luận ĐẠT nếu còn mục nào chưa đọc được code thật.
 
-**Nộp báo cáo:** khi xong, nộp báo cáo về phiên chính bằng công cụ `SubagentHandback` (người gác cho qua
-đúng tên này). Không ghi báo cáo vào file trong kho.
+**Nộp báo cáo:** khi xong, nộp báo cáo về phiên chính bằng công cụ `SubagentHandback` — hành động CUỐI CÙNG và BẮT BUỘC (người gác
+cho qua đúng tên này); không nộp = chưa soát (SO-LUONG-1 lần 1: 31 lượt công cụ rồi kết thúc không nộp → phiên chính khởi chạy lại,
+không tự kết luận ĐẠT). Không ghi báo cáo vào file trong kho.
 
 ---
 

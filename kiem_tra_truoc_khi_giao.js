@@ -520,6 +520,53 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a
     'bán đơn xen giữa lúc đọc tổng sổ và lúc ghi → mất khoản trừ');
 }
 
+// E14 — TU-CHAY-6 A2 (GOI-2 Phát hiện: packages.js:194 GET nắn Q3 ghi ngoài giao dịch, catch 500 thay 409). Phép TĨNH, không chạy route.
+// (a) route GET có lệnh ghi (thân có `run(` và UPDATE / INSERT INTO / REPLACE INTO / DELETE FROM) → MỘT cảnh báo gộp — mở màn là ghi sổ;
+//     miễn khi `// GET-ghi: <lý do>` đứng trên dòng từ khoá, dòng `run(` của lệnh đó, hoặc dòng ngay trên `run(`.
+// (b) route ghi mà thân không gọi `loiGhi(` (wallets.js:97 — kho bận → 409 KHO_BAN thay 500) → BÁNH CÓC cảnh báo: ngưỡng chỉ được giảm.
+// Thân route = từ `router.<m>(` đầu dòng tới dòng đóng `});` hoặc `);` ở cột 0 (orders.js:1357 đóng bằng `},\n);`), chặn ở `router.`
+// kế tiếp — hàm phụ đứng giữa hai route (wallets.js:60–119 ghiVi…) KHÔNG thuộc route trước.
+// Chú thích bỏ nhưng GIỮ xuống dòng (boGhiChu gộp dòng → số dòng trôi). Bài thử: cong_cu/thu_TOCDO1.js mục R cắt đúng hai hàm dưới.
+// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (customers-v2.js GET gọi fetchSXCustomers → INSERT
+// pos_customers) không bắt — đúng chữ phiếu A2, ghi Phát hiện cho việc quầy.
+const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 51;
+function xetBanhCoc(n, nguong) { // 'canh' = mọc thêm · 'ha' = đã dọn, hạ ngưỡng · 'dung' = đúng ngưỡng
+  return n > nguong ? 'canh' : n < nguong ? 'ha' : 'dung';
+}
+function quetRouteGhi(docFile, tenFile) { // → { getGhi: ['file:dòng'], khongLoiGhi: ['file:dòng METHOD'] }
+  const GHI = /\b(?:UPDATE(?:\s+OR\s+\w+)?|INSERT(?:\s+OR\s+\w+)?\s+INTO|REPLACE\s+INTO|DELETE\s+FROM)\b/i;
+  const MIEN = /\/\/\s*GET-ghi:\s*\S/;
+  const getGhi = [], khongLoiGhi = [];
+  for (const f of tenFile) {
+    const tho = String(docFile(f)).split('\n');
+    const sach = tho.join('\n').replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).replace(/(^|[^:])\/\/[^\n]*/g, '$1 ').split('\n');
+    const moc = [];
+    sach.forEach((d, i) => { const m = /^router\.(get|post|put|patch|delete)\(/.exec(d); if (m) moc.push({ i, m: m[1] }); });
+    moc.forEach((r, k) => {
+      let cuoi = k + 1 < moc.length ? moc[k + 1].i : sach.length;
+      for (let i = r.i + 1; i < cuoi; i++) if (/^\}?\);\s*$/.test(sach[i])) { cuoi = i + 1; break; }
+      const tim = (re) => { for (let i = r.i; i < cuoi; i++) if (re.test(sach[i])) return i; return -1; };
+      const iGhi = tim(GHI);
+      if (iGhi < 0 || tim(/\brun\(/) < 0) return;
+      let iRun = iGhi;
+      while (iRun > r.i && !/\brun\(/.test(sach[iRun])) iRun--; // dòng run( của lệnh nhiều dòng, hoặc chính dòng từ khoá
+      if (r.m === 'get' && ![iGhi, iRun, iRun - 1].some((i) => i >= r.i && MIEN.test(tho[i]))) getGhi.push(`${f}:${iGhi + 1}`);
+      if (tim(/\bloiGhi\(/) < 0) khongLoiGhi.push(`${f}:${r.i + 1} ${r.m.toUpperCase()}`);
+    });
+  }
+  return { getGhi, khongLoiGhi };
+}
+{
+  const ten = fs.readdirSync(path.join(GOC, 'server', 'routes')).filter((x) => x.endsWith('.js')).sort();
+  const { getGhi, khongLoiGhi } = quetRouteGhi((f) => doc('server/routes/' + f), ten);
+  if (getGhi.length) canhBao(`route GET có lệnh ghi (${getGhi.length})`, getGhi.join(', ') + ' — đổi method, hoặc ghi `// GET-ghi: <lý do>` ngay trên lệnh');
+  else pass('route GET không có lệnh ghi (hoặc đã ghi lý do `// GET-ghi:`)');
+  const n = khongLoiGhi.length, xet = xetBanhCoc(n, NGUONG_ROUTE_GHI_KHONG_LOIGHI);
+  if (xet === 'canh') canhBao(`route ghi không qua loiGhi ≤ ${NGUONG_ROUTE_GHI_KHONG_LOIGHI}`, `đếm được ${n} — MỌC THÊM (kho bận trả 500 thay 409 KHO_BAN): ${khongLoiGhi.join(', ')}`);
+  else if (xet === 'ha') pass(`route ghi không qua loiGhi = ${n}`, `đã dọn bớt ${NGUONG_ROUTE_GHI_KHONG_LOIGHI - n} chỗ → HẠ NGUONG_ROUTE_GHI_KHONG_LOIGHI xuống ${n} trong file này`);
+  else pass(`route ghi không qua loiGhi = ${n}`, 'đúng ngưỡng, chưa dọn thêm');
+}
+
 // E10 — POS-P21-v1: đối soát ví (/:phone/reconcile, /reconcile-all) chỉ cộng các loại dòng làm đổi số dư ví.
 // Hai route này chưa có nút trên màn hình — chỉ gọi thẳng API với quyền adjust_balance.
 // pay-debt ghi 'debt_payment' số DƯƠNG (tiền mặt/chuyển khoản trả nợ); SUM mọi

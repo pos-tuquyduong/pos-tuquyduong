@@ -27,8 +27,12 @@ function git(cwd, ...a) {
   if (r.status !== 0) throw new Error(`git ${a.join(' ')}: ${String(r.stderr).trim()}`);
   return r.stdout;
 }
+// blob — đo (TU-CHAY-6 A1): có file → status 0; file KHÔNG CÓ ở sha → status 128 (không phải 1) → null; git KHÔNG CHẠY ĐƯỢC (bị giết:
+// status null + signal; không có git: error ENOENT) → NÉM rõ. Trả null ở nhánh này từng làm chỗ ghi bài thử vào cây gốc
+// (writeFileSync) nhận null → "Received null" (TOC-DO-1 A1). Catch ở cuối file in một dòng ✗ với message này.
 const blob = (cwd, sha, p) => {
   const r = spawnSync('git', ['cat-file', 'blob', `${sha}:${p}`], { cwd, maxBuffer: 1 << 28, env: envCon() });
+  if (r.status === null || r.error) throw new Error(`git cat-file hỏng (${String(sha).slice(0, 7)}:${p}): ${r.error ? r.error.message : r.signal || String(r.stderr).trim()}`);
   return r.status === 0 ? r.stdout : null;
 };
 const duoi = (s, n = 20) => String(s).trim().split('\n').slice(-n).join('\n');
@@ -134,8 +138,9 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
         .filter(Boolean).map((m) => m[1]).filter((f) => !/^cai_dat\./.test(f));
       // Chuẩn là cấu hình của main (CH). PR (cau_hinh.json của head) chỉ được THÊM bản cài vào .claude/, và chỉ đổi
       // timeout của muc_gac — lệnh, matcher người gác giữ nguyên (vòng soát 3: PR bộ khung đổi cấu hình rồi cài → ĐẠT).
+      const bCH = blob(thuMuc, head, 'tu_chay/cau_hinh.json'); // blob NGOÀI try: git hỏng phải ném ra, không bị nuốt (TU-CHAY-6 A1)
       let chH = {};
-      try { chH = JSON.parse(blob(thuMuc, head, 'tu_chay/cau_hinh.json')); } catch {}
+      if (bCH !== null) try { chH = JSON.parse(bCH) || {}; } catch {}
       const banCai = [...CH.ban_cai, ...(Array.isArray(chH.ban_cai) ? chH.ban_cai : []).filter((c) => Array.isArray(c) && c.length === 2
         && /^\.claude\/(?!settings\.json$)/.test(c[1]) && !CH.ban_cai.some((b) => b[1] === c[1]))];
       const g0 = CH.muc_gac.hooks[0], gH = chH.muc_gac;
@@ -148,8 +153,9 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
         .map(([, d]) => d);
       const quan = new Set([...cap.map(([, d]) => d), '.claude/settings.json']);
       for (const { p } of doi) if (p.startsWith('.claude/') && !quan.has(p)) lech.push(`${p} (không do trình cài quản)`);
+      const bS = blob(thuMuc, head, '.claude/settings.json'); // blob NGOÀI try (TU-CHAY-6 A1)
       let s = null;
-      try { s = JSON.parse(blob(thuMuc, head, '.claude/settings.json')); } catch {}
+      if (bS !== null) try { s = JSON.parse(bS); } catch {}
       const pre = s && s.hooks && Array.isArray(s.hooks.PreToolUse) ? s.hooks.PreToolUse : [];
       if (!pre.some((m) => mucDuoc.some((g) => JSON.stringify(m) === JSON.stringify(g)))) lech.push('.claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac)');
       const deny = s && s.permissions && Array.isArray(s.permissions.deny) ? s.permissions.deny : [];
@@ -263,7 +269,8 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
     const daMien = [], doGoc = [], daRa = new Map(), caGoc = new Map();
     baiThu.forEach((p, i) => {
       const goc = path.join(tam, 'goc' + i);
-      giaiNen(thuMuc, moc, goc);
+      // A1b (TU-CHAY-6): archive/tar hỏng → cây gốc RỖNG → bài thử đỏ trên cây rỗng bị tính "đỏ hợp lệ" → cổng ĐẠT oan. Mốc là commit thật nên thất bại nào cũng ném.
+      if (!giaiNen(thuMuc, moc, goc)) throw new Error(`git archive ${moc.slice(0, 7)} hỏng — không dựng được cây gốc`);
       fs.mkdirSync(path.dirname(path.join(goc, p)), { recursive: true });
       fs.writeFileSync(path.join(goc, p), blob(thuMuc, head, p));
       for (const d of ['.', 'client']) {

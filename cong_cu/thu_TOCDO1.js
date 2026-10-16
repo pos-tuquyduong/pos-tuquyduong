@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // thu_TOCDO1.js — TOC-DO-1: bộ kiểm chỉ chạy tu_chay/thu_cong.js khi có thể cần (phiếu A2, A3).
+// TU-CHAY-6 A2 (mục R): phép tĩnh route ghi — cắt khối hai hàm xetBanhCoc + quetRouteGhi của bộ kiểm, chạy trên routes GIẢ (hàm docFile).
 // Cắt khối THẬT từ kiem_tra_truoc_khi_giao.js — từ `function lyDoChayThuCong(` tới hết dòng "bỏ qua thu_cong.js"; bản gốc chưa có hàm
 // → khối = dòng gọi trần (luôn chạy → T1, T2, T10 đỏ) — rồi chạy trên kho git tạm, mỗi ca phá ĐÚNG một điều kiện.
 // Chạy: node cong_cu/thu_TOCDO1.js [--kiem <bản sao bộ kiểm>]   (--kiem: cho viec/TOC-DO-1/dot_bien.py)
@@ -112,6 +113,78 @@ function hook(ten, lenh) {
 }
 hook('T11a hook pre-commit thật: git commit tu_chay/a.js (index tạm)', ['tu_chay/a.js']);
 hook('T11b hook pre-commit thật: git commit -a', ['-a']);
+
+// ── A2 (TU-CHAY-6): khối hai hàm liền nhau `function xetBanhCoc(` … `function quetRouteGhi(` … tới `\n}\n` thứ hai ──
+{
+  const a2 = kt.search(/^function xetBanhCoc\(/m);
+  let b2 = -1;
+  if (a2 >= 0) { const m1 = kt.indexOf('\n}\n', a2); b2 = m1 < 0 ? -1 : kt.indexOf('\n}\n', m1 + 3); }
+  const khoi2 = a2 >= 0 && b2 >= 0 ? kt.slice(a2, b2 + 3) : '';
+  k('R0 thấy function xetBanhCoc( rồi function quetRouteGhi( ở đầu dòng', /^function quetRouteGhi\(/m.test(khoi2), 'không có hai hàm liền nhau trong bộ kiểm');
+  // R0b (khuôn E1): bộ kiểm GỌI mỗi hàm đúng một lần ngoài dòng function — đột biến bỏ dòng gọi bắt ở đây, không ở ca cắt hàm
+  const goiQuet = kt.split('quetRouteGhi(').length - 1, goiCoc = kt.split('xetBanhCoc(').length - 1;
+  k('R0b bộ kiểm gọi quetRouteGhi( và xetBanhCoc( mỗi hàm đúng MỘT lần ngoài dòng function', goiQuet === 2 && goiCoc === 2,
+    `quetRouteGhi( ${goiQuet} lần · xetBanhCoc( ${goiCoc} lần (kể cả dòng function)`);
+  const nguong = +((/^const NGUONG_ROUTE_GHI_KHONG_LOIGHI = (\d+);/m.exec(kt) || [])[1]);
+  k('R0c có hằng NGUONG_ROUTE_GHI_KHONG_LOIGHI = <số> ở đầu dòng', Number.isInteger(nguong), 'không thấy hằng');
+  let F = null;
+  try { F = khoi2 ? new Function(khoi2 + '\nreturn { xetBanhCoc, quetRouteGhi };')() : null; } catch (e) { k('R0 khối A2 nạp được', false, e.message); }
+  if (F) {
+    const quet = (files) => F.quetRouteGhi((f) => files[f], Object.keys(files).sort());
+    const R = (m, than) => `router.${m}('/x', authenticate, async (req, res) => {\n  try {\n${than}\n  } catch (err) { res.status(500).json({ error: err.message }); }\n});\n`;
+    const UPD = "    await run('UPDATE pos_a SET b = ? WHERE id = ?', [1, 2]);";
+    let r;
+    r = quet({ 'a.js': R('get', UPD) });
+    k('R1 GET + run(UPDATE → (a) a.js:3', r.getGhi.join() === 'a.js:3', r.getGhi.join());
+    r = quet({ 'a.js': R('get', "    await run(\n      'UPDATE pos_a SET b = 1'\n    );") });
+    k('R1b lệnh nhiều dòng (run( dòng 3, UPDATE dòng 4) → (a) a.js:4', r.getGhi.join() === 'a.js:4', r.getGhi.join());
+    r = quet({ 'a.js': R('get', "    await run('INSERT INTO pos_log (x) VALUES (?)', [1]);") });
+    k('R2 GET + INSERT INTO → (a) có', r.getGhi.length === 1, r.getGhi.join());
+    r = quet({ 'a.js': R('get', "    await tx.run('DELETE FROM pos_a WHERE id = ?', [1]);") });
+    k('R2b GET + tx.run( + DELETE FROM → (a) có', r.getGhi.length === 1, r.getGhi.join());
+    r = quet({ 'a.js': R('get', '    // GET-ghi: đệm tồn kho\n' + UPD) });
+    k('R3 // GET-ghi: <lý do> ngay trên dòng run( → miễn', r.getGhi.length === 0, r.getGhi.join());
+    r = quet({ 'a.js': R('get', UPD + ' // GET-ghi: cùng dòng') });
+    k('R3a // GET-ghi: cùng dòng từ khoá → miễn', r.getGhi.length === 0, r.getGhi.join());
+    r = quet({ 'a.js': R('get', "    // GET-ghi: lệnh nhiều dòng\n    await run(\n      'UPDATE pos_a SET b = 1'\n    );") });
+    k('R3b // GET-ghi: trên dòng run( của lệnh nhiều dòng → miễn', r.getGhi.length === 0, r.getGhi.join());
+    r = quet({ 'a.js': R('get', '    // GET-ghi:\n' + UPD) });
+    k('R3c // GET-ghi: lý do RỖNG → vẫn báo', r.getGhi.length === 1, r.getGhi.join());
+    r = quet({ 'a.js': R('get', '    // GET-ghi: của route khác\n    await query("SELECT 1");') + R('get', UPD) });
+    k('R3d chữ GET-ghi ở route KHÁC cùng file → route này vẫn báo (miễn theo dòng, không theo file)', r.getGhi.length === 1, r.getGhi.join());
+    r = quet({ 'a.js': R('get', "    await run('SELECT updated_at FROM pos_a WHERE deleted_from IS NULL');") });
+    k('R4 GET chỉ SELECT (updated_at, deleted_from) → không báo', r.getGhi.length === 0 && r.khongLoiGhi.length === 0, r.getGhi.join() + r.khongLoiGhi.join());
+    r = quet({ 'a.js': R('get', "    // UPDATE pos_a trong chú thích\n    /* INSERT INTO pos_b\n       nhiều dòng */\n    await run('SELECT 1');") });
+    k('R5 UPDATE / INSERT chỉ trong chú thích // và /* */ → không báo', r.getGhi.length === 0 && r.khongLoiGhi.length === 0, r.getGhi.join());
+    r = quet({ 'a.js': '/* khối chú thích\n   ba dòng\n */\n' + R('get', UPD) });
+    k('R6 khối chú thích nhiều dòng TRƯỚC route → số dòng vẫn đúng (a.js:6)', r.getGhi.join() === 'a.js:6', r.getGhi.join());
+    r = quet({ 'a.js': R('post', UPD) });
+    k('R7 POST + run(UPDATE không loiGhi → (b) "a.js:1 POST", (a) rỗng', r.khongLoiGhi.join() === 'a.js:1 POST' && r.getGhi.length === 0, r.khongLoiGhi.join());
+    r = quet({ 'a.js': R('post', UPD).replace('res.status(500).json({ error: err.message })', 'loiGhi(res, err)') });
+    k('R8 POST + loiGhi( trong catch → (b) rỗng', r.khongLoiGhi.length === 0, r.khongLoiGhi.join());
+    r = quet({ 'a.js': R('post', "    await query('SELECT 1');") });
+    k('R9 POST chỉ SELECT → không phải route ghi', r.khongLoiGhi.length === 0, r.khongLoiGhi.join());
+    r = quet({ 'a.js': R('get', UPD) });
+    k('R10 GET có ghi thiếu loiGhi → vào CẢ (a) lẫn (b)', r.getGhi.length === 1 && r.khongLoiGhi.length === 1, r.getGhi.join() + ' | ' + r.khongLoiGhi.join());
+    r = quet({ 'a.js': R('put', "    await query('SELECT 1');") + "async function phu() {\n  await run('UPDATE pos_a SET b = 1');\n}\n" + R('delete', UPD) });
+    k('R10b hàm phụ CÓ lệnh ghi đứng giữa hai route (wallets.js ghiVi) không thuộc route trước → chỉ "a.js:9 DELETE"', r.khongLoiGhi.join() === 'a.js:9 DELETE', r.khongLoiGhi.join());
+    r = quet({ 'a.js': 'router.put(\n  "/:id/cancel",\n  authenticate,\n  async (req, res) => {\n    try {\n' + UPD + '\n    } catch (err) { loiGhi(res, err); }\n  },\n);\n' + R('delete', UPD) });
+    k('R10c route đóng bằng "},\\n);" (orders.js:1357) không nuốt route sau → chỉ "a.js:10 DELETE"', r.khongLoiGhi.join() === 'a.js:10 DELETE', r.khongLoiGhi.join());
+    k('R11 bánh cóc: n = ngưỡng → dung', F.xetBanhCoc(5, 5) === 'dung', String(F.xetBanhCoc(5, 5)));
+    k('R11a n = ngưỡng + 1 → canh', F.xetBanhCoc(6, 5) === 'canh', String(F.xetBanhCoc(6, 5)));
+    k('R11b n = ngưỡng − 1 → ha', F.xetBanhCoc(4, 5) === 'ha', String(F.xetBanhCoc(4, 5)));
+    // K5 — server/routes/ THẬT: không ném, đúng dạng, (a) ⊆ 3 file đã biết (việc quầy thêm GET-ghi làm tập nhỏ đi vẫn xanh), (b) ≤ ngưỡng
+    try {
+      const d = path.join(GOC, 'server', 'routes');
+      const ten = fs.readdirSync(d).filter((x) => x.endsWith('.js')).sort();
+      const that = F.quetRouteGhi((f) => fs.readFileSync(path.join(d, f), 'utf8'), ten);
+      const dang = [...that.getGhi, ...that.khongLoiGhi].every((x) => /^[\w-]+\.js:\d+/.test(x));
+      k('K5 server/routes thật: đúng dạng file.js:dòng · (a) ⊆ {packages, products, sync}.js · (b) ≤ NGUONG', dang
+        && that.getGhi.every((x) => /^(packages|products|sync)\.js:/.test(x)) && that.khongLoiGhi.length <= nguong,
+        `(a) ${that.getGhi.join(', ')} · (b) ${that.khongLoiGhi.length} / ngưỡng ${nguong}`);
+    } catch (e) { k('K5 server/routes thật: khối không ném', false, e.message); }
+  }
+}
 
 fs.rmSync(TAM, { recursive: true, force: true });
 console.log(`thu_TOCDO1: ${dat} đạt · ${hong.length} hỏng`);

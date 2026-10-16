@@ -1,0 +1,45 @@
+# TU-CHAY-6 — bằng chứng ĐỎ trên code gốc dfeaa57 (bài thử của head chạy trên code CHƯA vá), 15.10.2026, máy mây 4 lõi
+# Lần 2 (A16): thu_cong.js thêm ca .claude/settings.json sau vòng đột biến 2 → chạy lại trên cong.js chưa vá (bản sao, cong.js.truoc_TUCHAY6) và trên HEAD.
+# Lần 3: git giả đổi node → bash (sau soát) → chạy lại trên gốc (dưới, 7 hỏng/334, 119,6 s) và HEAD (334 · 0, 117,5 s); SỐ CA không đổi.
+
+## tu_chay/thu_cong.js trên gốc (cong.js chưa vá) — chỉ các dòng ✗ và dòng tổng
+thu_cong: 334 phép · 7 chỗ hỏng
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay — chỗ ghi bài thử vào cây gốc): lý do có "cong_cu/thu_a.js" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file cong_cu/thu_a.js (chế độ chay — chỗ ghi bài thử vào cây gốc): KHÔNG có "Received null" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file tu_chay/cau_hinh.json (chế độ tinh — A8 đọc cấu hình, ném không bị try/catch nuốt): lý do có "tu_chay/cau_hinh.json" — ✗ [CONG] cổng gặp lỗi bất ngờ — ĐỎ: Cannot read properties of null (reading 'ban_cai')
+✗ CỔNG ĐỎ (TĨNH) — 1 lý do
+  ✗ TU-CHAY-6 A1 git giả tự giết ở cat-file .claude/settings.json (chế độ tinh — chỉ A8 đọc, qua try/catch) → một dòng ✗ [CONG], không [A8]: KHÔNG có "[A8]" — ✗ [A8] bản cài lệch nguồn: .claude/settings.json: mất hook người gác (không có mục PreToolUse đúng muc_gac), .claude/settings.json: thiếu den
+✗ CỔNG ĐỎ (TĨNH) — 1 lý do
+  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: lý do có "git archive" — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan: đúng 1 dòng "✗ [" (một lý do rõ, không sập nhiều tầng) — ✓ CỔNG CHẠY ĐẠT
+thoát 1 · 119.6 s
+
+## cong_cu/thu_TOCDO1.js trên gốc (kiem_tra_truoc_khi_giao.js chưa có E14)
+thu_TOCDO1: 17 đạt · 3 hỏng
+  ✗ R0 thấy function xetBanhCoc( rồi function quetRouteGhi( ở đầu dòng — không có hai hàm liền nhau trong bộ kiểm
+  ✗ R0b bộ kiểm gọi quetRouteGhi( và xetBanhCoc( mỗi hàm đúng MỘT lần ngoài dòng function — quetRouteGhi( 0 lần · xetBanhCoc( 0 lần (kể cả dòng function)
+  ✗ R0c có hằng NGUONG_ROUTE_GHI_KHONG_LOIGHI = <số> ở đầu dòng — không thấy hằng
+thoát 1
+
+## tu_chay/thu_cong_cu.js trên gốc (skill / lenh_ra_soat / KHUON_LOI / PHIEN_BAN / THIET_KE chưa đổi)
+thu_cong_cu: 105 phép · 5 chỗ hỏng
+  ✗ TU-CHAY-5 E3 / TU-CHAY-6 A6 PHIEN_BAN = tu-chay 1.6.0
+  ✗ TU-CHAY-6 A3 skill bước 4: trước khi hỏi chủ quán tự xét A11/A12 chế độ chay từ bang_chung_do.txt, gom MỘT câu hỏi; cong.js tinh dẫn dòng ✗; [A19]/[A8] ở bước này là bình thường — 
+  ✗ TU-CHAY-6 A3 lenh_ra_soat: SubagentHandback là hành động CUỐI CÙNG, BẮT BUỘC; không nộp = chưa soát
+  ✗ TU-CHAY-6 A4 KHUON_LOI: K1 chú thích là khẳng định · K3 ĐỐI CHỨNG + sập ≠ BẮT · K3 trần / làm tròn không che lỗi · K4 CÙNG biểu thức · K7 getNow
+  ✗ TU-CHAY-6 A6 THIET_KE B15: blob ném "git cat-file hỏng" (128 = không có), git archive :266, phép GET-ghi + NGUONG_ROUTE_GHI_KHONG_LOIGHI, skill bước 4 cong.js tinh — ## B15. TU-CHAY-3 — cổng GitHub cho mỗi PR, kéo nhánh khi mở phiên, rút kinh nghiệm (01.10.2026, tu-chay 1.3.0; HOC-1 1.
+thoát 1
+
+## tu_chay/thu_nguoi_gac.js trên gốc (PHIEN_BAN còn 1.5.0)
+thu_nguoi_gac: 924/924 ca người gác đúng mã · 179 phép khác
+  ✗ PHIEN_BAN = tu-chay 1.6.0 — tu-chay 1.5.0
+thoát 1
+
+## Số ca khi chạy trên code ĐÃ VÁ (A16 — dòng tổng của bài ở head; thu_nguoi_gac = 924 ca người gác + 179 phép khác)
+SỐ CA tu_chay/thu_cong.js: 334
+SỐ CA cong_cu/thu_TOCDO1.js: 42
+SỐ CA tu_chay/thu_cong_cu.js: 105
+SỐ CA tu_chay/thu_nguoi_gac.js: 1103
