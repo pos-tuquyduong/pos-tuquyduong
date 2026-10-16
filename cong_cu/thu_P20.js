@@ -524,10 +524,14 @@ async function main() {
 
     // H3g — A3 (soát vòng 2, X1): như H3d nhưng CÙNG SĐT claim lại (đúng mục đích nút hoàn tác), claimed_at ép KHÁC giá trị cũ —
     // chỉ còn vế claimed_at phân biệt. Soát vòng 3 (K3, phép so bằng): ép CẢ hai phía — MUỘN hơn (thực tế: claim lại luôn sau) và SỚM hơn.
+    // Soát vòng 4: ép NGAY trên / NGAY dưới theo đơn vị nhỏ nhất của cột (giây — getNow) quanh một mốc GHIM cố định T0 (không dùng giờ
+    // thật + 1 giây: rơi vào giây :59 thì đổi phút, ca thất thường). Giá trị cực xa (2099 / 2000) chỉ giết `>=` / `<=`, để lọt so tới phút.
+    const T0 = '2026-10-16T10:00:00';
     const hoanTacChongCungSdt = async (phia, lucEp) => {
       const b = await donThu(`H3g ${phia} bill`); const P = sdtMoi();
       const c = await claim(b.ma, P);
       k(`H3g ${phia}: claim lần đầu → 200`, c.status === 200, moTa(c));
+      await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
       let rA = null, c2 = null;
       mocTruocTx = async () => {
         rA = await reset(b.ma); c2 = await claim(b.ma, P); imLang();
@@ -541,8 +545,8 @@ async function main() {
       const v = await demVoucher(b.ma), m = await dongMa(b.ma);
       k(`H3g ${phia}: voucher của lần claim mới còn, mã vẫn claimed`, v === 1 && !!m.claimed_at, `voucher ${v} · claimed_at ${m.claimed_at}`);
     };
-    await hoanTacChongCungSdt('muộn hơn', '2099-12-31T23:59:59');
-    await hoanTacChongCungSdt('sớm hơn', '2000-01-01T00:00:00');
+    await hoanTacChongCungSdt('muộn hơn 1 giây', '2026-10-16T10:00:01');
+    await hoanTacChongCungSdt('sớm hơn 1 giây', '2026-10-16T09:59:59');
 
     // H3h — A3 · K5 (soát vòng 2): dòng có claimed_at mà claimed_phone NULL (dữ liệu lạ, màn hình không liệt kê) → hoàn tác được như gốc.
     {
@@ -552,6 +556,43 @@ async function main() {
       await db.run('UPDATE pos_signup_codes SET claimed_phone = NULL WHERE UPPER(code) = ?', [hoa(b.ma)]);
       const r = await reset(b.ma);
       k('H3h hoàn tác dòng claimed_phone NULL → 200', r.status === 200 && r.success === true, moTa(r));
+    }
+
+    // H3i — A3 · GIỚI HẠN ĐÃ BIẾT (soát vòng 4, ca Z; chủ quán chọn b1 — giữ hành vi): voucher CHƯA dùng bị xoá tay (màn Mã chiết khấu)
+    // đúng giữa phép kiểm sớm của /reset và giao dịch → 400 "vừa được dùng" (lời báo sai, dữ liệu đúng: không gỡ claim). Ca này KHOÁ hành vi
+    // đã chấp nhận — muốn đổi sang hoàn tác được (b2) thì sửa ca này cùng lúc với code, có chủ quán duyệt.
+    {
+      const b = await donThu('H3i bill');
+      const c = await claim(b.ma);
+      k('H3i claim → 200', c.status === 200, moTa(c));
+      mocTruocTx = async () => { await db.run('DELETE FROM pos_discount_codes WHERE UPPER(code) = ?', [hoa(b.ma)]); };
+      const r = await reset(b.ma);
+      mocTruocTx = null;
+      k('H3i voucher bị xoá tay giữa phép kiểm và giao dịch → 400 (giới hạn đã biết, b1)', r.status === 400, moTa(r));
+      const m = await dongMa(b.ma);
+      k('H3i dòng mã vẫn claimed (không gỡ nửa chừng)', !!m.claimed_at, String(m.claimed_at));
+    }
+
+    // H3j — A3 · GIỚI HẠN ĐÃ BIẾT (vòng sửa 4, cùng cách xử lý b1): CÙNG SĐT claim lại trong CÙNG giây (claimed_at ép = T0) thì khoá
+    // claimed_at + claimed_phone không phân biệt được — hoàn tác B chồng gỡ luôn lần claim mới. Trạng thái cuối NHẤT QUÁN: không claim,
+    // không voucher, khách claim lại được. Ca này KHOÁ hành vi đó; muốn chặn được thì cần cột phiên bản (đổi cấu trúc DB — việc khác).
+    {
+      const b = await donThu('H3j bill'); const P = sdtMoi();
+      const c = await claim(b.ma, P);
+      k('H3j claim → 200', c.status === 200, moTa(c));
+      await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
+      let rA = null, c2 = null;
+      mocTruocTx = async () => {
+        rA = await reset(b.ma); c2 = await claim(b.ma, P); imLang();
+        await db.run('UPDATE pos_signup_codes SET claimed_at = ? WHERE UPPER(code) = ?', [T0, hoa(b.ma)]);
+      };
+      const rB = await reset(b.ma);
+      mocTruocTx = null;
+      k('H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại cùng giây → 200', !!rA && rA.status === 200 && !!c2 && c2.status === 200,
+        `${rA ? moTa(rA) : 'móc không chạy'} / ${c2 ? moTa(c2) : '-'}`);
+      const v = await demVoucher(b.ma), m = await dongMa(b.ma);
+      k('H3j hoàn tác B → 200, trạng thái cuối nhất quán: không claim, không voucher (giới hạn đã biết)',
+        rB.status === 200 && v === 0 && !m.claimed_at, `${moTa(rB)} · voucher ${v} · claimed_at ${m.claimed_at}`);
     }
 
     // H3e — A3 (soát vòng 1, Z2): hai lần hoàn tác chồng nhau, voucher chưa ai dùng → lần sau 409 "vừa hoàn tác", không phải 400 "đã dùng".
