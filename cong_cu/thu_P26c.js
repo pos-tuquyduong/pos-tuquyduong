@@ -782,6 +782,46 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
+  // Ca HỒI QUY LUOI-4: code quầy đang đúng — mỗi ca đỏ khi đột biến AU4-2, 3, 5 tương ứng (viec/LUOI-4/dot_bien.py). Dựng không ném.
+  muc('[N] LUOI-4 — làm tròn trần đền / phần đã dùng khi huỷ gói, trần mã 1 món không áp sang huỷ gói');
+  {
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
+      VALUES ('GIAM10K_LUOI4', 'fixed', 10000, 0, 0, 0, 0, 1)`);
+    // N1 (VS-AU4-L3-DATRA-LAM-TRON-LEN) — giảm CẤP ĐƠN, tổng không chia hết: trần dòng 25.000 = ⌊25.000 × 45.000 / 55.000⌋ = 20.454 (lên: 20.455).
+    const s1 = sdtMoi();
+    const d1 = await goi('POST', '/orders', { customer_phone: s1, customer_name: 'Khách P26c', items: [mon(0), mon(3)], discount_code: 'GIAM10K_LUOI4',
+      payment_method: 'cash', cash_amount: 45000 });
+    const a1 = await baoHong(d1.order?.id, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 20455 });
+    const b1 = await baoHong(d1.order?.id, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 20454 });
+    k('N1a món 25.000 + 30.000, mã giảm đơn 10.000 → tổng 45.000; đền món 25.000: 20.455 → 400 VUOT_GIA, 20.454 → 200, ví +20.454 (⌊25.000 × 45.000 / 55.000⌋)',
+      Number(d1.order?.total) === 45000 && a1.status === 400 && a1.code === 'VUOT_GIA' && b1.status === 200 && await vi(s1) === 20454,
+      `${moTa(d1)} · tổng ${d1.order?.total} · ${moTa(a1)} / ${moTa(b1)} · ví ${await vi(s1)}`);
+
+    // N2 (VS-AU4-L3-HOAN-DA-DUNG-LAM-TRON-XUONG) — gói 300.000 / 7 lượt: đã dùng ⌈300.000 / 7⌉ = 42.858 → hoàn 257.142 (xuống: 257.143).
+    const s2 = sdtMoi(), goi2 = await taoGoi(300000, 7);
+    const m2 = await muaGoi(s2, goi2, 7, { cash_amount: 300000 });
+    const l2 = await lay(s2, await goiCua(m2.order?.id), 1);
+    const h2 = await huy(m2.order?.id);
+    k('N2a gói 300.000 / 7 lượt (trả 300.000), lấy 1 → owner huỷ: ví +257.142 (300.000 − ⌈300.000 × 1/7⌉ = 300.000 − 42.858)',
+      m2.status === 200 && l2.status === 200 && h2.status === 200 && await vi(s2) === 257142,
+      `${moTa(m2)} · ${moTa(l2)} · ${moTa(h2)} · ví ${await vi(s2)}`);
+
+    // N4 (VS-AU4-L3-CHAN-TREN-CA-HOAN) — đơn mua gói + món có mã giảm 1 MÓN: trần "giá dòng − toàn bộ giảm" CHỈ cho đền (chanTren),
+    // huỷ chia tỉ lệ: dòng gói đã trả ⌊300.000 × 320.000 / 325.000⌋ = 295.384, đã dùng ⌈29.538,4⌉ = 29.539 → hoàn 290.461 (đb: 290.500).
+    await db.run("INSERT INTO pos_product_groups (id, code, name) VALUES (78, 'NHOM_LUOI4', 'Nhóm thử LUOI-4')");
+    await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (78, ?, ?)', [sp[0].sx_product_type, sp[0].sx_product_id]);
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active,
+      discount_scope, applicable_group_id) VALUES ('GIAM5K_1MON_LUOI4', 'fixed', 5000, 0, 0, 0, 0, 1, 'item', 78)`);
+    const s4 = sdtMoi(), goi4 = await taoGoi(300000, 10);
+    const m4 = await muaGoi(s4, goi4, 10, { cash_amount: 320000 }, { items: [mon(0)], discount_code: 'GIAM5K_1MON_LUOI4' });
+    const l4 = await lay(s4, await goiCua(m4.order?.id), 1);
+    const h4 = await huy(m4.order?.id);
+    k('N4a gói 300.000 / 10 + món 25.000, mã giảm 1 món 5.000 → tổng 320.000; lấy 1 → owner huỷ: ví +290.461 (320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉)',
+      Number(m4.order?.total) === 320000 && l4.status === 200 && h4.status === 200 && await vi(s4) === 290461,
+      `${moTa(m4)} · tổng ${m4.order?.total} · ${moTa(l4)} · ${moTa(h4)} · ví ${await vi(s4)}`);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[K1b] kho bận ở câu đầu (Turso) trên các nhánh mới → 409 KHO_BAN, kho không đổi');
   {
     const chup = async () => JSON.stringify(await mot(`SELECT (SELECT COUNT(*) FROM pos_orders) AS don, (SELECT GROUP_CONCAT(status) FROM pos_orders) AS tt,
