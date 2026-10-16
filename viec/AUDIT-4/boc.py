@@ -56,16 +56,19 @@ def nap_khuon(bo):
 def ra_cua(r): return re.sub(r'\x1b\[[0-9;]*m', '', (r.stdout or '') + (r.stderr or ''))
 
 
-def co_sap(ra):   # dấu sập theo DÒNG. Chỉ trừ ca T3…T10 của thu_gia_lap (kiểm hành vi sập, mô tả có 'Giả lập: SẬP'). AU3-22: KHÔNG còn trừ dòng
-  for l in ra.splitlines():   # '✗ bài chạy thật …' của kiem_tra — bộ kiểm báo bài con sập = HỎNG-sập (luật (a)), dòng đó phải được soi
-    if SAP.search(l) and not re.search(r'✗ T\d', l): return l.strip()[:160]
+CA_T = re.compile(r'^\s*[✓✗] T\d+[a-z]? ')   # dòng CỦA bài cho ca T (thu_gia_lap T3…T10 mô tả có 'Giả lập: SẬP'). Neo ĐẦU dòng: dòng gộp của
+# kiem_tra ('✗ bài chạy thật … → ✗ T1a … | ✖ Bài thử sập', kiem_tra_truoc_khi_giao.js:483–486) KHÔNG được trừ (soát vòng 1 — thu_P26c có ca T1a…T3b)
+
+
+def co_sap(ra):   # dấu sập theo DÒNG; AU3-22: không trừ dòng '✗ bài chạy thật …' — bộ kiểm báo bài con sập = HỎNG-sập (luật (a))
+  for l in ra.splitlines():
+    if SAP.search(l) and not CA_T.match(l): return l.strip()[:160]
   return ''
 
 
-def sap_cua(ma, ra, chi=''):   # MỘT luật sập: (1) dấu sập trong đầu ra ĐỦ; (2) thoát 2; (3) không dòng "chạy hết"; (4) dòng khớp mẫu mang dấu sập
-  d = '' if ra is None else (co_sap(ra) or (ma == 2 and '(thoát 2)') or (not HET.search(ra) and f'thoát {ma} KHÔNG có dòng chạy hết') or '')
-  if not d and chi and SAP.search(chi) and not re.search(r'✗ T\d', chi): d = 'dòng khớp mang dấu sập: ' + chi[:120]   # ra=None: chỉ vế (4)
-  return d
+def sap_cua(ma, ra):   # MỘT luật sập (dot_bien.py nạp hàm này): (1) dấu sập trong đầu ra ĐỦ; (2) thoát 2; (3) không dòng "chạy hết".
+  # Vế (4) "dòng khớp mang dấu sập" của AUDIT-3 bỏ: dòng khớp nằm trong đầu ra đủ (cột "cách vá" AU3-22 ghi thừa — soát vòng 1)
+  return co_sap(ra) or (ma == 2 and '(thoát 2)') or (not HET.search(ra) and f'thoát {ma} KHÔNG có dòng chạy hết') or ''
 
 
 def cham(ns, vo, db):
@@ -75,7 +78,7 @@ def cham(ns, vo, db):
   r = vo.tl.r
   if r is None: return ten, 'HỎNG', chi   # ap của bộ từ chối (neo không khớp / đích ngoài tạm) — bài chưa chạy
   ra = ra_cua(r)
-  d = sap_cua(r.returncode, ra, chi)
+  d = sap_cua(r.returncode, ra)
   if d: return ten, 'HỎNG-sập', d[:160] + f' · thoát {r.returncode} · dòng cuối: ' + (ra.strip().splitlines() or ['(không in gì)'])[-1][:80]
   return ten, ('BẮT' if dat else 'LẠC' if r.returncode != 0 else 'SỐNG'), chi
 
@@ -148,8 +151,8 @@ def boc_lenh(M, noi=lambda ra: ra):   # khung AUDIT-1 (K) và bb: cả hai chỉ
   def cham(*a, **k):
     tl.sap, tl.treo = '', False
     r = ch(*a, **k)
-    if r['kq'] in ('BẮT', 'SỐNG', 'LẠC') and (tl.sap or sap_cua(0, None, r['chi'])):   # vế (4): dòng khớp mang dấu sập
-      r['kq'] = 'HỎNG-sập'; r['chi'] = 'sập' + (tl.sap or ' [dòng khớp mang dấu sập]')[:200] + ' | ' + r['chi'][:160]
+    if r['kq'] in ('BẮT', 'SỐNG', 'LẠC') and tl.sap:
+      r['kq'] = 'HỎNG-sập'; r['chi'] = 'sập' + tl.sap[:200] + ' | ' + r['chi'][:160]
     elif r['kq'] == 'LẠC' and tl.treo: r['kq'] = 'TREO'   # bb: quá giờ ghi LẠC — là TREO (soát kế hoạch)
     return r
   M.chay_lenh, M.cham = chay_lenh, cham
@@ -163,7 +166,7 @@ def boc_dict(ns):   # LUOI-1 / TACH-GL: `cham` (dict) gọi subprocess.run một
     r = ch(db)
     x = vo.tl.r
     if x is not None and r['kq'] in ('BẮT', 'SỐNG', 'LẠC'):
-      d = sap_cua(x.returncode, ra_cua(x), r['chi'])
+      d = sap_cua(x.returncode, ra_cua(x))
       if d: r['kq'], r['chi'] = 'HỎNG-sập', f'sập [{d[:140]}] | ' + r['chi'][:160]
     return r
   ns['cham'] = cham
@@ -246,19 +249,22 @@ def tu_thu():   # ca đỏ A1: luật CŨ (viec/AUDIT-3/boc.py) và MỚI chấm
   ma, ra = chay(['node', CH, '--den-kb', '29'], k)
   print(f'  (chay.js KB29 có đột biến: thoát {ma} · {(ra.strip().splitlines() or [""])[-1][:100]})')
   ghi('K5 HET: chay.js KHÔNG ĐẠT (n lệch) thoát 1', la(A3.sap_cua(ma, ra)), la(sap_cua(ma, ra)), 'không sập')
-  # AU3-22: DOSAP_KHUON qua khung cách `kiem` — kiem_tra chạy hết, dòng ✗ báo thu_P26b sập; quyết định của bọc khung = sap_cua(lệnh) hoặc vế (4)
-  m2 = nap_module('AUDIT-2'); K = m2.K
-  tam = tempfile.mkdtemp(prefix='kiem_', dir=TAM)
-  kk = K.dung_ban_sao('kho', tam, True)   # True = giữ bài chạy thật (khung thay bằng bài rỗng nếu tên không mở đầu '!' — AUDIT-1 :257)
-  loi = K.ap(kk, [('server/' + d[0], d[1], d[2], d[3]) for d in DOSAP_KHUON])
-  argv = K.LENH['kiem'][1][0][0]
-  ma, ra, _ = K.chay_lenh(argv, kk, K.moi_truong(tam), 900)
-  shutil.rmtree(K.GOC_TAM, ignore_errors=True)
-  trung = [l.strip() for l in ra.splitlines() if re.search(r'✗ ', l)]
-  chi = f'[{" ".join(argv[1:])}] {trung[0][:220]}' if trung else ''
-  print(f'  (DOSAP-KIEM: áp {loi or "được"} · kiem_tra thoát {ma} · {len(trung)} dòng ✗ · dòng khớp đầu: {chi[:160]})')
-  kq = lambda f: 'BẮT' if (ma not in (0, None) and trung and not (f(ma, ra) or f(0, None, chi))) else 'HỎNG-sập' if trung else f'không ✗ (thoát {ma})'
-  ghi('AU3-22 DOSAP-KIEM qua khung cách kiem', kq(A3.sap_cua), kq(sap_cua), 'HỎNG-sập')
+  # AU3-22: DOSAP_KHUON qua khung cách `kiem` ('!' = giữ bài chạy thật — AUDIT-1 :257) — chạy K.cham THẬT, một lần bọc CŨ (A3.boc_khung), một lần MỚI
+  db = ('!DOSAP-KIEM', 'D2K', 'kiem', [('server/' + d[0], d[1], d[2], d[3]) for d in DOSAP_KHUON], r'✗ ')
+  cu, moi = nap_module('AUDIT-2'), nap_module('AUDIT-2')
+  A3.boc_khung(cu)
+  ghiLai = {}
+  cl = moi.K.chay_lenh
+  moi.K.chay_lenh = lambda *a, **k: ghiLai.setdefault('r', cl(*a, **k))   # giữ (mã, đầu ra) THẬT của kiem_tra cho ca dòng gộp dưới
+  boc_lenh(moi.K)
+  rc, rm = cu.K.cham(db), moi.K.cham(db)
+  for m in (cu, moi): shutil.rmtree(m.K.GOC_TAM, ignore_errors=True)
+  print(f"  (DOSAP-KIEM khung: cũ {rc['kq']} · mới {rm['kq']} · {rm['chi'][:150]})")
+  ghi('AU3-22 DOSAP-KIEM qua khung cách kiem (K.cham thật)', rc['kq'], rm['kq'], 'HỎNG-sập')
+  # Soát vòng 1: dòng gộp của kiem_tra có ca T của thu_P26c (✗ T1a …) + ✖ Bài thử sập — cùng đầu ra thật, đổi mã ca M2 → T1a
+  ma, ra = ghiLai['r'][0], ghiLai['r'][1].replace('✗ M2 ', '✗ T1a ')
+  print(f"  (dòng gộp T1a: {next((l.strip()[:150] for l in ra.splitlines() if '✗ T1a' in l and 'bài chạy thật' in l), 'KHÔNG thấy')})")
+  ghi('vòng 1: dòng gộp kiem_tra ✗ T1a … | ✖ Bài thử sập', la(A3.sap_cua(ma, ra)), la(sap_cua(ma, ra)), 'sập')
   # AU3-23: sap() của CẢ HAI bản với cùng bộ giả — chay_khuon trả NEM- ra BẮT, mọi bộ khác rỗng
   gia = dict(chay_khuon=lambda bo, *a, **k: (0, [(f'NEM-{bo}', 'BẮT', '')]),
              nap_m2=lambda: types.SimpleNamespace(K=types.SimpleNamespace(DOT_BIEN=[], main=lambda: 0)), goi_main=lambda *a: (0, ''),
@@ -282,7 +288,7 @@ def xep(tep):
     for l in open(p, encoding='utf-8'):
       m = re.match(r'[✓✗]?\s*(BẮT|SỐNG|HỎNG|LẠC|TREO)\b', l)
       if not m: continue
-      k = 'HỎNG-sập' if m.group(1) in ('LẠC', 'BẮT') and SAP.search(l) and not re.search(r'✗ T\d', l) else m.group(1)   # cận dưới (không mã thoát)
+      k = 'HỎNG-sập' if m.group(1) in ('LẠC', 'BẮT') and SAP.search(l) and not CA_T.match(l) else m.group(1)   # cận dưới (không mã thoát)
       dem[k] = dem.get(k, 0) + 1
       if k == 'HỎNG-sập': print('HỎNG-sập ← ' + l.rstrip()[:200])
   print('  --xep: ' + ' · '.join(f'{k} {v}' for k, v in sorted(dem.items()))); return 0
