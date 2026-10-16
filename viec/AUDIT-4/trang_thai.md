@@ -52,12 +52,12 @@ cách đọc cho các đợt sau.
   luật sập vòng 3 như `boc.py` (P20b tự nó không soi dấu sập), không ghép vào `boc.py`.
 
 ## A1 — XONG (`boc.py`, `bang_chung_do.txt` mục 1–2)
-- `viec/AUDIT-4/boc.py` chép AUDIT-3 rồi vá: AU3-22 `co_sap` hết lọc `✗ bài chạy thật` (vế 4 giữ, vô hại); AU3-23 `gom_xau` có NEM-, chú thích
+- `viec/AUDIT-4/boc.py` chép AUDIT-3 rồi vá: AU3-22 `co_sap` hết lọc `✗ bài chạy thật` (vế 4 giữ lúc đầu — bỏ ở vòng sửa 1); AU3-23 `gom_xau` có NEM-, chú thích
   sửa theo kết quả (NEM- ở 4 bộ khuôn = `✖ Bài thử sập … HTTP 500` thoát 2); AU3-24 `HET` neo nguyên dòng tổng chay.js (`chay.js:136–138, :298–300`),
   gồm `KHÔNG ĐẠT (n lệch)`, cờ `re.M`. Thêm `--tu-thu`, bọc chung `boc_lenh` (khung AUDIT-1 + bb), `boc_dict` (LUOI-1 / TACH-GL), `--bb`, `--tachgl`.
 - `--tu-thu` 4/4 lúc đầu (sau vòng sửa 1: 5/5, vòng sửa 2: 8/8 — mục Vòng sửa): ba ca đỏ — luật cũ sai, luật mới đúng, cùng đầu vào thật; K5 `HET` đúng ở cả hai. `--sap` 0 bộ BẮT / SỐNG (thoát 0,
   309 s phần khung). `git status` ngoài `viec/AUDIT-4/` không đổi sau mỗi lệnh.
-- Số dòng: `boc.py` 323 (AUDIT-3 237 → +86) — VƯỢT ước 50 của kế hoạch bản 2 (~30 phiếu): `--tu-thu` ~55 dòng (dựng đầu vào thật cho 4 phép:
+- Số dòng: `boc.py` 323 lúc A1 (AUDIT-3 237 → +86; sau vòng sửa 3: 368, +131 — Bài học) — VƯỢT ước 50 của kế hoạch bản 2 (~30 phiếu): `--tu-thu` ~55 dòng (dựng đầu vào thật cho 4 phép:
   thu_gia_lap đủ, chay.js có đột biến, khung `kiem`, bộ giả cho `sap()`), bọc ~30. Ghi ở Bài học.
 
 ## A3 — XONG (làm TRƯỚC A2 vì A2 dùng `dot_bien.py --bo`) — `python3 viec/AUDIT-4/dot_bien.py` (HEAD 6f0225f, 35,6 s, thoát 1 vì có SỐNG)
@@ -595,3 +595,20 @@ BÀI HỌC:
   soát, không chỉ thứ nó nối lại.
 - BỎ: vế chết `KB\d+ · …` ở boc.py:98.
 ```
+
+## Vòng sửa 3 (theo /ra-soat vòng 3 — 5 lỗi + 4 nghi ngờ; vòng sửa CUỐI được phép, `so_vong_sua_toi_da` = 3)
+| lỗi soát | sửa |
+|---|---|
+| 1 dòng gộp kiem_tra khi bài con sập không in ✗ (`→ thoát mã N`, ETIMEDOUT) lọt | `co_sap`: dòng gộp có đoạn đúng bằng `thoát mã N` / `null` hoặc chứa ETIMEDOUT = sập (theo `kiem_tra_truoc_khi_giao.js:486`); ca `--tu-thu` từ đầu ra THẬT của chay.js `--may-chu` rỗng (thoát 2, không ✗) → cũ không sập · mới sập |
+| 2 ngoại lệ theo tên ca T | bỏ `CA_T`; ngoại lệ theo NỘI DUNG (`chi_tiet`): dấu sập nằm SAU ` — ` của một dòng ca ✓/✗ = đầu ra hệ đang kiểm nhúng vào; ca "máy chủ hỏng" (dựng theo `thu_gia_lap.js:49`, `:360`) → cũ sập · mới không sập; ca T3 đỏ thật vẫn không sập, gỡ ngoại lệ → sập |
+| 3 vế `ma == 2` không ca | bỏ vế (mọi đường thoát 2 thật đều in dấu sập — soát đo 0/21 dạng đổi nhãn) |
+| 4 D2 không có lệnh riêng | docstring `dot_bien.py` + `bang_chung_do.txt` mục 9: lệnh 5 tên D2 → đúng mong 5/5, thoát 0 |
+| 5 hồ sơ cũ / lệch | "vế 4 giữ" → ghi đã bỏ; boc.py 368 dòng; cách chạy 88 tên đếm từ code (kiem 53 · gac 16 · cong 12 · gl 3 · kb1 2 · kb10 1 · c2 1); tỷ lệ A3 7/14 (cùng công thức với hàng AUDIT-3) |
+| nghi ngờ: các bộ khác không chạy lại sau đổi luật | Lập luận (ghi theo đề nghị): vòng 1–3 chỉ (i) BỚT sập ở dòng có dấu sập trong CHI TIẾT dòng ca — không lật được BẮT; lật HỎNG-sập → khác chỉ khi lý do sập cũ nằm trong chi tiết: rà mọi lý do HỎNG-sập A2 (khung 6, c2luoi 6, bb 1, P26c 1 — `a2_bang.md`): `Giả lập: SẬP — …` (không phải dòng ca), `✗ KB30 → HTTP: SẬP giữa kịch bản` (dấu trước mọi ` — `), `✖ Bài thử sập` (dòng ✖), `✗ bài thử sập  — …` (dấu ở TÊN) → 0 lật; (ii) THÊM sập chỉ trên dòng gộp kiem_tra (cách kiem / kiemdd → `--khung D1` chạy lại cả 3 vòng: y hệt) và trên đầu ra thu_cong / thu_cong_cu (cách gac / cong → `--khung` 88 vòng 2: y hệt) |
+| nghi ngờ: thu_cong `:133` nhúng đầu ra cong.js | nay nằm trong CHI TIẾT dòng ca (sau ` — `) → ngoại lệ nội dung phủ |
+| nghi ngờ: vế chết `KB\d+ · …` ở đối chứng | bỏ; đối chứng dùng dòng tổng chay.js neo nguyên dòng |
+| nghi ngờ: `MONG` chép `RUA_CO_Y` | giữ (một tên, có chú thích trỏ `kiem_neo.py`) — ghi Phát hiện: nên một nguồn ở khung chung |
+Chạy lại sau vòng 3 (tuần tự `chay.py v3`, git sạch mọi bước): `--tu-thu` 355,0 s 10/10 · D2 riêng 4,6 s đúng mong 5/5 thoát 0 · A3 44,3 s y hệt
+(11/19) · `--sap` 384,6 s ĐẠT · `--khung D1` 783,1 s y hệt từng tên.
+`npm test` + `--day-du` ở `c6cec45` (sau vòng sửa 2): PASS 64 · FAIL 0 · CẢNH BÁO 1 (110,3 s) · PASS 68 · FAIL 0 · CẢNH BÁO 1 (202,9 s).
+
