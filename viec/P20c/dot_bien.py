@@ -2,10 +2,10 @@
 """P20c — đột biến cho chỗ vá A1 (/claim), A2 (/nhan-diem), A3 (/reset), A4 (mã lỗi) trong signup-codes.js: VS- (vá sai cách) và
 BV- (bỏ vá). Chạy ở GỐC kho:  python3 viec/P20c/dot_bien.py [tên...]
 
-Khung chép NGUYÊN viec/P20b/dot_bien.py: thu_P20.js KHÔNG nhận --may-chu (nó tự lấy GOC = cong_cu/..), nên chép THẬT server/ +
+Khung chép từ viec/P20b/dot_bien.py, thêm phép dòng tổng (soát vòng 2): thu_P20.js KHÔNG nhận --may-chu (nó tự lấy GOC = cong_cu/..), nên chép THẬT server/ +
 cong_cu/ vào thư mục tạm, symlink node_modules (chỉ đọc), rồi chạy `node cong_cu/thu_P20.js` TRONG bản sao. Chuỗi gốc phải khớp ĐÚNG
 số lần ghi sẵn — không khớp là HỎNG, không bao giờ đếm là đạt (K3). BẮT = thoát ≠ 0 VÀ đầu ra có dòng khớp mẫu `bat` (đúng ca phải
-bắt). Đối chứng (bản sao KHÔNG đột biến) phải xanh trước, không thì dừng. Không đụng server/ thật, data/, Turso. Thư mục tạm xoá
+bắt) VÀ có dòng tổng `N đạt · M hỏng` — thiếu dòng tổng là SẬP, không đếm BẮT (khuôn AUDIT-3 HET). Đối chứng (bản sao KHÔNG đột biến) phải xanh trước, không thì dừng. Không đụng server/ thật, data/, Turso. Thư mục tạm xoá
 trong finally. Công cụ chép-rồi-sửa tự kiểm realpath đích nằm trong thư mục tạm (K5).
 """
 import os, re, shutil, subprocess, sys, tempfile
@@ -28,7 +28,11 @@ DOT_BIEN = [
   ('VS-A3-khoa-chi-gio', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?'", "WHERE id = ? AND claimed_at = ? AND (? IS NULL OR 1)'", 1)],
     r'✗ H3d hoàn tác B'),
   ('VS-A3-khoa-chi-sdt', [(S, "WHERE id = ? AND claimed_at = ? AND claimed_phone IS ?'", "WHERE id = ? AND (? IS NULL OR 1) AND claimed_phone IS ?'", 1)],
-    r'✗ H3g hoàn tác B'),
+    r'✗ H3g .*hoàn tác B'),
+  ('VS-A3-gio-lon-hon', [(S, "AND claimed_at = ? AND claimed_phone IS ?'", "AND claimed_at >= ? AND claimed_phone IS ?'", 1)],
+    r'✗ H3g muộn hơn: hoàn tác B'),
+  ('VS-A3-gio-nho-hon', [(S, "AND claimed_at = ? AND claimed_phone IS ?'", "AND claimed_at <= ? AND claimed_phone IS ?'", 1)],
+    r'✗ H3g sớm hơn: hoàn tác B'),
   ('VS-A3-sdt-bang', [(S, "AND claimed_phone IS ?'", "AND claimed_phone = ?'", 1)], r'✗ H3h hoàn tác dòng claimed_phone NULL'),
   ('BV-A2-bo-bao-chiem', [(S, "return baoChiemHong(res, dong.id, 'diem_nhan_luc',",
     "return res.status(400).json({ success: false, code: 'MA_DA_NHAN_DIEM' }); (res, dong.id, 'diem_nhan_luc',", 1)],
