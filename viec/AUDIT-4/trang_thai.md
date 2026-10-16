@@ -37,7 +37,7 @@ Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3 sau khi comm
 Vá AU3-22 đúng cột "cách vá" (bỏ lọc dòng `✗ bài chạy thật` ở `co_sap`) làm 4 đột biến khung AUDIT-1 `D1-E1-unitprice`, `D1-E8-backup`,
 `D1-E2-authz-tho`, `D1-E1b-tra-gia` chuyển BẮT → HỎNG-sập: phép TĨNH riêng của `kiem_tra` bắt chúng, nhưng cùng lần chạy thu_P26c (bài chạy
 thật) SẬP (`item is not defined`, `no such table`). Chữ luật (a) "bộ kiểm chạy hết nhưng báo bài con sập = HỎNG-sập" → nhãn mới; nhưng 16.10
-chủ quán giữ AUDIT-1 81/83 (cách AUDIT-3: "khớp phép tĩnh riêng = BẮT"). Máy báo theo luật (a) chữ (77/83) và ghi kèm 81/83; chủ quán chọn
+chủ quán giữ AUDIT-1 81/83 (cách AUDIT-3: "khớp phép tĩnh riêng = BẮT"). Máy báo theo luật (a) chữ (77/79 = 77 / (88 − 2 HỎNG − 6 sập − 1 cố ý)) và ghi kèm 81/83; chủ quán chọn
 cách đọc cho các đợt sau.
 
 ## Làm tiếp (16.10, chủ quán duyệt kế hoạch — Q1 (a) bọc đủ · Q2 (a) SỐNG tiền = NẶNG-lưới, kèm đường thật · Q3 mặc định IS NULL · > 180 phút cắt như mục 11)
@@ -87,7 +87,7 @@ Tổng 19 · BẮT 7 · SỐNG 8 (1 vô hại D2 + 7 NẶNG-lưới) · HỎNG 1
 ## A2 — XONG (`a2_bang.md`) — 15 bước tuần tự, 5.456 s ≈ 91 phút, `git status` sạch sau cả 15 bước
 | bộ | kết quả HEAD | AUDIT-3 | N11 LUOI-3 | vì sao khác |
 |---|---|---|---|---|
-| AUDIT-3 `dot_bien.py` 26 | BẮT 15 · LẠC 5 · HỎNG 5 · SỐNG 1 | (10 SỐNG) | — | 10 AU3-8…17 hết SỐNG; 5 LẠC-mẫu (mẫu AUDIT-3 ≠ tên ca LUOI-3); `BV-AU3-SL-THE-BO-CONG` HỎNG (AU4-2); D2 cố ý |
+| AUDIT-3 `dot_bien.py` 26 | BẮT 15 · LẠC 5 · HỎNG 5 · SỐNG 1 | (10 SỐNG) | — | 10 AU3-8…17 hết SỐNG; 5 LẠC-mẫu (mẫu AUDIT-3 ≠ tên ca LUOI-3); `BV-AU3-SL-THE-BO-CONG` HỎNG (AU4-9); D2 cố ý |
 | LUOI-3 10 | BẮT 10 — câu lỗi + số quan sát = `viec/LUOI-3/bang_chung_do.txt` SAU | — | 10/10 | — |
 | AUDIT-1 trừ C2F 88 | BẮT 77 · HỎNG-sập 6 · HỎNG 2 · LẠC 2 · SỐNG 1 | 81 · 2 sập | — | 4 `D1-E*` BẮT → HỎNG-sập do vá AU3-22 (Câu hỏi 4) |
 | C2F 87 + A3L c2full 13 | BẮT 67 · SỐNG 25 · HỎNG-sập 6 · HỎNG 2 | y hệt | — | 0 tên khác (P20b chỉ thêm SELECT → tên C2F không trượt) |
@@ -101,7 +101,7 @@ Trong lúc A2 chạy: không sửa file nào trong kho (bản nháp `kiem_neo.py
 
 ## A4 — XONG
 `viec/AUDIT-4/kiem_neo.py` = chép AUDIT-3 + bộ BAN-HANG-1, P20b, LUOI-3 (neo đọc từ cặp AUDIT-3, tên vắng = HỎNG), TU-CHAY-6, AUDIT-4; `RUA_CO_Y`
-+3 (`VS-SOLUONG1-THE-SDT-THO` đã thay BAN-HANG-1; `BV-AU3-SL-THE-BO-CONG` hồ sơ không ghi → AU4-2; `D2-AU4-sai-chuoi` cố ý). Ca đỏ: bản AUDIT-3
++3 (`VS-SOLUONG1-THE-SDT-THO` đã thay BAN-HANG-1; `BV-AU3-SL-THE-BO-CONG` hồ sơ không ghi → AU4-9; `D2-AU4-sai-chuoi` cố ý). Ca đỏ: bản AUDIT-3
 chạy trên HEAD thoát 1 với đúng 2 HỎNG đó (`ke_hoach.md` mục 0). Bản AUDIT-4 → thoát 0 · 23 bộ có neo + do_*.js · neo khớp 936/975 (39 = đã thay /
 cố ý, mỗi tên một lý do) · HỎNG ngoài danh sách 0 · mẫu nghi rữa 0. `python3 viec/AUDIT-4/kiem_neo.py` nguyên văn:
 ```
@@ -259,7 +259,7 @@ AUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, k
 | ca | kết quả | mức |
 |---|---|---|
 | R1 `items: []` trơn | 400 "Đơn hàng phải có ít nhất 1 sản phẩm" (`orders.js:183`), không đơn | — (đã chặn) |
-| `items: []` + `membership_buy: {}` / `package_buy: {}` | đã có ca: T1b (`thu_P26c.js:896`), S2g (`:849`) → 400, không đơn; A2 chạy lại bộ BAN-HANG-1 / SO-LUONG-1 BẮT | — |
+| R2 `items: []` + `membership_buy: {}` · R3 `items: []` + `package_buy: {}` (thêm ở vòng sửa 1 — S2g `thu_P26c.js:848–849` gửi kèm món, không phải `items: []`) | 400 `THE_MUA_THIEU_THONG_TIN` · 400 `GOI_MUA_THIEU_THONG_TIN`, không đơn (`orders.js:190`, `:202`); T1b `thu_P26c.js:896` cũng phủ R2 | — (đã chặn) |
 | R5 1 món + mã 100 % | 200, đơn completed total 0 (subtotal 25.000, 1 dòng), 0 điểm (`orders.js:827` `total > 0`), 0 dòng ví; báo cáo +1 đơn, doanh thu +0, giảm +25.000 | — sổ đúng (mã do chủ quán tạo) |
 | R6 chỉ mua thẻ 500.000 | 200, đơn 1 dòng thẻ, doanh thu +500.000, **+500 điểm** | K5 qua; điểm khi mua thẻ = câu hỏi chính sách → Phát hiện |
 | R8a mua gói 300.000 / R8b lấy 1 ly 0đ | 200 / 200; gói +300 điểm lúc mua, lấy 0 điểm; R8b KHÔNG vào đếm đơn báo cáo (thiết kế `reports.js:41`) | K5 qua; như R6 |
@@ -374,3 +374,23 @@ NGUYÊN TẮC: K4 — ngoại lệ đặt theo tên ca (`✗ T\d`) rữa khi vi�
 K3 (bổ sung GOI-2) — tự tính ca đỏ phải đi đột biến qua cả bước dựng dữ liệu và lớp chặn phía sau (tong > 0, Math.max(0, …)).
 K1 — mã phát hiện (AU4-n) đặt một lần ở bao_cao.md rồi mới dẫn sang file khác.
 ```
+
+## Vòng sửa 1 (theo /ra-soat vòng 1 — 9 lỗi, sửa hết; tôi kiểm từng lỗi trên code trước khi sửa)
+| lỗi soát | kiểm lại | sửa |
+|---|---|---|
+| 1 phép trừ `✗ T\d` nuốt dòng gộp kiem_tra | ĐÚNG: `kiem_tra_truoc_khi_giao.js:483–486` nối ✗/✖ của bài con bằng `' \| '` | `boc.py` `CA_T` neo ĐẦU dòng (`[✓✗] T…` của chính bài); bỏ vế (4) (thừa — 0 kết quả A2 nhờ vế (4): grep nhật ký "dòng khớp mang dấu sập" = 0); `--tu-thu` thêm ca dòng gộp ✗ T1a (cũ không sập · mới sập) → 5/5; chạy lại `--khung D1` (57 tên kiem / kiemdd, 763 s): BẮT 50 · HỎNG-sập 5 · LẠC 2 — y hệt; `--sap` ĐẠT |
+| 2 AU4-7 "ví bị trừ" sai | ĐÚNG: `packages.js:265` `tien.tong > 0` chặn `ghiHoan`; sai chỉ ở `:261` ghi chú, `:273` phản hồi / lời báo | `bao_cao.md` AU4-7: đường thật + ca "hoan 0 / ghi chú hoàn 0đ"; mức giữ NẶNG-lưới (Q2 a) |
+| 3 AU4-6 ca dựng qua POST bị đột biến chặn | ĐÚNG: `goiKhach.js:24` gộp `xin["1"]` | ca dựng "đã lấy NE1" bằng INSERT trực tiếp (khuôn B3p) + ca đảo chiều (mất lượt) |
+| 4 mã thoát `dot_bien.py` vô nghĩa | ĐÚNG (`D2-AU4-vo-hai` luôn SỐNG) | `MONG` (D2 theo hợp đồng, còn lại BẮT), thoát 0 khi và chỉ khi đúng mong; hiện "đúng mong 11/19" thoát 1; `--bo` BAN-HANG-1 7/7, P20b 4/4 thoát 0, SO-LUONG-1 16/17 thoát 1 (tên đã thay) |
+| 5 mã AU4-2 dẫn sai | ĐÚNG | `a2_bang.md`, `trang_thai.md` → AU4-9; mã AU4-n chỉ đặt ở `bao_cao.md` |
+| 6 77/83 vs 77/79 | ĐÚNG | `trang_thai.md` Câu hỏi 4 → 77/79 (= 77 / (88 − 2 − 6 − 1)) |
+| 7 dẫn S2g sai | ĐÚNG (`thu_P26c.js:848–849` gửi kèm món) | `don_rong.js` thêm R2 / R3 (`items: []` + `{}`) → 400 · 400, không đơn (chạy thật) |
+| 8 hai bản luật sập / bản sao | ĐÚNG | `dot_bien.py` nạp `sap_cua`, `ban_sao_sc`, `TAM` từ `boc.py` (bỏ bản chép); `kiem_neo.py` mốc cắt AUDIT-4 → `\nMONG = ` |
+| 9 "Khác AUDIT-3: 0 tên" ở mục không so được | ĐÚNG | `a2_bang.md` 4 mục ghi "KHÔNG so từng tên được" + nguồn AUDIT-3 |
+Nghi ngờ của soát: (i) mức SỐNG cũ ở chỗ tiền — `bao_cao.md` ghi rõ Q2 (a) áp cho đột biến độc lập A3, SỐNG cũ giữ mức đã xét, "7" có thể là cận dưới;
+(ii) chiều ngược AU4-6 — thêm vào ca; (iii) dòng ✗ trước sập của LOAI-CHAN-BANG — nay `dot_bien.py` in ra (`bang_chung_do.txt` mục 5); (iv) LUOI-3
+"trùng nguyên văn" — đầu ra LUOI-3 nguyên văn nay ở `bang_chung_do.txt` mục 6 (so với `viec/LUOI-3/bang_chung_do.txt` SAU); (v) AU3-22 qua K.cham thật.
+Chạy lại sau vòng 1 (tuần tự, `chay.py v1`, git sạch mọi bước): `--tu-thu` 299 s 5/5 · A3 41 s (y hệt, đúng mong 11/19) · `--bo` ×3 · `kiem_neo` thoát 0
+(AUDIT-4 18/19) · `don_rong.js` thoát 0 (R1–R3 400, R5–R8 như cũ) · `--sap` 383 s ĐẠT · `--khung D1` 763 s y hệt.
+Không theo: tách `don_rong.js` sang tiến trình con (101 dòng; im() đã gỡ được lỗi nuốt dòng sập bằng stderr) — giữ, ghi Bài học.
+
