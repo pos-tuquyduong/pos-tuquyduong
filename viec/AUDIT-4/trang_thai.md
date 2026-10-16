@@ -55,7 +55,7 @@ cách đọc cho các đợt sau.
 - `viec/AUDIT-4/boc.py` chép AUDIT-3 rồi vá: AU3-22 `co_sap` hết lọc `✗ bài chạy thật` (vế 4 giữ lúc đầu — bỏ ở vòng sửa 1); AU3-23 `gom_xau` có NEM-, chú thích
   sửa theo kết quả (NEM- ở 4 bộ khuôn = `✖ Bài thử sập … HTTP 500` thoát 2); AU3-24 `HET` neo nguyên dòng tổng chay.js (`chay.js:136–138, :298–300`),
   gồm `KHÔNG ĐẠT (n lệch)`, cờ `re.M`. Thêm `--tu-thu`, bọc chung `boc_lenh` (khung AUDIT-1 + bb), `boc_dict` (LUOI-1 / TACH-GL), `--bb`, `--tachgl`.
-- `--tu-thu` 4/4 lúc đầu (sau vòng sửa 1: 5/5, vòng sửa 2: 8/8 — mục Vòng sửa): ba ca đỏ — luật cũ sai, luật mới đúng, cùng đầu vào thật; K5 `HET` đúng ở cả hai. `--sap` 0 bộ BẮT / SỐNG (thoát 0,
+- `--tu-thu` 4/4 lúc đầu (sau vòng sửa 1: 5/5, vòng sửa 2: 8/8, vòng sửa 3: 10/10 — mục Vòng sửa): ba ca đỏ — luật cũ sai, luật mới đúng, cùng đầu vào thật; K5 `HET` đúng ở cả hai. `--sap` 0 bộ BẮT / SỐNG (thoát 0,
   309 s phần khung). `git status` ngoài `viec/AUDIT-4/` không đổi sau mỗi lệnh.
 - Số dòng: `boc.py` 323 lúc A1 (AUDIT-3 237 → +86; sau vòng sửa 3: 368, +131 — Bài học) — VƯỢT ước 50 của kế hoạch bản 2 (~30 phiếu): `--tu-thu` ~55 dòng (dựng đầu vào thật cho 4 phép:
   thu_gia_lap đủ, chay.js có đột biến, khung `kiem`, bộ giả cho `sap()`), bọc ~30. Ghi ở Bài học.
@@ -266,7 +266,7 @@ AUDIT-4 A6 — đơn rỗng / tổng 0 ở POST /orders (bản sao máy chủ, k
 Đối chiếu báo cáo: Δ doanh thu 800.000 = tổng total 4 đơn; Δ đơn 3 = 4 − 1 đơn giao từ gói 0đ. **0 NẶNG-code, 0 rác** ở A6 (không đường nào tạo đơn
 0 dòng). Điểm khi mua thẻ / gói: không quyết thay chủ quán — ghi Phát hiện (đối soát: điểm theo `total`, không theo loại hàng).
 
-## D — XONG (D1 `bao_cao.md` 75 dòng · D2 `bang_chung_do.txt` · D3 dưới)
+## D — XONG (D1 `bao_cao.md` 75 dòng lúc D — 84 sau vòng sửa 3, 104 khi đóng việc · D2 `bang_chung_do.txt` · D3 dưới)
 - `npm test` (HEAD `abb73b8`, 121,8 s): thoát 0 · "Qua hết" · ĐẾM PASS 64 · FAIL 0 · CẢNH BÁO 1 — cảnh báo có sẵn "route GET có lệnh ghi (3) —
   packages.js:194, products.js:57, sync.js:147" (LUOI-3 cũng ghi; việc này không đổi `server/`).
 - `node kiem_tra_truoc_khi_giao.js --day-du` (204,8 s): thoát 0 · "Qua hết" · PASS 68 · FAIL 0 · CẢNH BÁO 1 (cùng cảnh báo).
@@ -715,3 +715,108 @@ cho luật sập. Câu hỏi 4 (D1-E* 77/79 vs 81/83) và 5 (mức SỐNG cũ) v
 ## Dừng (lượt này)
 Hết 3 vòng sửa; soát vòng 4 KHÔNG ĐẠT (không đổi kết luận) → ghi Câu hỏi 6, commit, push, DỪNG. Chưa làm bước 10–11 (báo cáo 7 mục, Bài học,
 HEAD ĐÃ KIỂM) — chờ chủ quán chọn (a) / (b). Nháp bước 10 (đếm nghiệm thu 9/9) ở thư mục nháp phiên này.
+
+## Đóng việc (lượt 16.10 — chủ quán chốt Q6 (b), không vòng sửa 4)
+- bước 1: nhánh `viec/AUDIT-4`; `git status --short` rỗng; HEAD `4810463` · FETCH_HEAD `4810463` — bằng nhau, không kéo. `git log --oneline -3`:
+  ```
+  4810463 AUDIT-4: trang thai — npm test fcb53a1, bao cao /ra-soat vong 4 chep nguyen (KHONG DAT, khong doi ket luan), Cau hoi 6, dung (het 3 vong sua)
+  fcb53a1 AUDIT-4 vong sua 3: trang thai — bang loi -> sua, lap luan bo khac khong doi, chay lai, npm test c6cec45
+  79fa92e AUDIT-4 vong sua 3: bang chung — --tu-thu 10/10, D2 rieng 5/5
+  ```
+- Chốt: Q6 (b) — lỗi luật sập soát vòng 4 thành AU4-17…19 (NHẸ-công cụ, kèm neo + cách vá, chuyển việc khung chung) + AU4-20 (hồ sơ); `boc.py`
+  KHÔNG sửa thêm. Q4 — AU4-11 ghi 77/79, lý do khác 81/83. Q5 — có: AU4-21 = 19 SỐNG cũ ở chỗ tiền xếp NẶNG-lưới (tiêu chí + danh sách + loại trừ
+  ở `bao_cao.md`). AU4-16 — chỉ phát hiện. Kết luận giữ nguyên: chưa đạt điểm dừng, 0 NẶNG-code, 7 NẶNG-lưới mới AU4-1…7.
+- Hồ sơ sửa theo soát vòng 4 lỗi 4 (AU4-20, chỉ `viec/AUDIT-4/`): A1 thêm "vòng sửa 3: 10/10"; D ghi đủ số dòng `bao_cao.md`; `a2_bang.md` "luật sập
+  vòng 3" → "soát vòng 3 của AUDIT-3", nhãn A2 đo bằng luật bản 1 (`6f0225f`); `bao_cao.md` AU4-2 chỉ mã cấp đơn; mục Bài học (dưới).
+- Lập luận "bộ khác không đổi" (Vòng sửa 3) bổ sung hai vế soát vòng 4 nêu: bỏ vế `ma == 2` chỉ BỚT sập (soát vòng 3 đo 0/21 dạng đổi nhãn); `--bo`
+  CHẠY LẠI trên `4810463` bằng luật hiện tại: SO-LUONG-1 tổng 17 · BẮT 16 · HỎNG 1 (đã thay BAN-HANG-1) · đúng mong 17/17 thoát 0 · BAN-HANG-1 7/7
+  thoát 0 · P20b 4/4 thoát 0 — y hệt A2; `git status` không đổi, `/tmp` chỉ còn `thu_gl_zTxA7g` đã biết. Nhật ký `--sap` / `--khung D1` sau vòng 3
+  chỉ ở nháp; số đã chép ở mục Vòng sửa 3.
+- Bước 6 lần cuối (HEAD `7f3628f`, chỉ `viec/AUDIT-4/` đổi từ `fcb53a1`): `npm test`: thoát 0 · Qua hết · PASS 64 · FAIL 0 · CẢNH BÁO 1 (có sẵn: route GET có lệnh ghi (3) — packages.js:194, products.js:57, sync.js:147) · `node kiem_tra_truoc_khi_giao.js --day-du`: thoát 0 · Qua hết · PASS 68 · FAIL 0 · CẢNH BÁO 1 (cùng cảnh báo; thu_cong 92,2 s) ·
+  `git diff --stat d8e256e HEAD -- ':!viec/AUDIT-4/'` rỗng.
+
+## Đếm nghiệm thu (bước 10 — mỗi mục phiếu một dòng, bằng chứng trong kho)
+- A1 — `boc.py` = chép `viec/AUDIT-3/boc.py` + vá AU3-22 (`co_sap` soi cả dòng gộp kiem_tra), AU3-23 (`gom_xau` có NEM-), AU3-24 (`HET` neo nguyên
+  dòng tổng chay.js); mỗi vá một ca đỏ (luật cũ sai · mới đúng, cùng đầu vào thật): `bang_chung_do.txt` mục 1, 2, 7, 8 (`--tu-thu` 10/10).
+  `viec/AUDIT-3/` không đổi. Lời hứa "cố ý sập → HỎNG-sập, không BẮT" đúng cho mọi cách `--sap` thử (khuôn, khung 5 dạng, `kb1`, `gl29`), SAI cho cách
+  `thugl` — AU4-17, chủ quán chốt đóng việc với lỗ này.
+- A2 — `a2_bang.md`: đủ 15 bộ phiếu kê qua bọc đối chứng, từng tên, cột AUDIT-3 / N11 / vì sao khác; 10 AU3-8…17 BẮT đúng ca LUOI-3, câu lỗi trùng
+  (`bang_chung_do.txt` mục 6); LẠC không bản thay → AU4-9; `--bo` chạy lại lúc đóng việc: y hệt.
+- A3 — `dot_bien.py`: P20b 4 · BAN-HANG-1 3 · LUOI-3 7 (≥ 3 mỗi việc, VS + BV), đối chứng 3 cách (75 / 118 / 105); 7 SỐNG = NẶNG-lưới AU4-1…7 kèm
+  đường thật + ca tự tính (`bao_cao.md`); `bang_chung_do.txt` mục 3, 5.
+- A4 — `kiem_neo.py` thoát 0 (22 bộ + do_*.js, 936/975, 0 HỎNG ngoài danh sách, 0 nghi rữa), nguyên văn mục A4; `lach.js` CHẶN 14 · LỌT ĐÃ BIẾT 1 ·
+  0 mã người gác mới.
+- A5 — mục A5: 5 lần rảnh + 3 lần bận, 8/8 xanh, giây từng lần; phát hiện có neo AU4-12, AU4-13.
+- A6 — `don_rong.js` nguyên văn mục A6: R1–R3 400 không đơn, R5 đơn 0đ sổ đúng, R6 / R8 K5 qua; 0 NẶNG-code; AU4-16 phát hiện chính sách.
+- D1 — `bao_cao.md` 104 dòng (≤ 200): kết luận một dòng, bảng AU4-1…21 (mức · file:dòng · lệnh · đề xuất), tỷ lệ theo nhóm so AUDIT-3, "Đề xuất bộ
+  khung" (BAN-HANG-1 phép tĩnh `:NNNN`, TU-CHAY-6 Q5).
+- D2 — `bang_chung_do.txt` mục 3, 9: sai chuỗi → HỎNG · đã biết → BẮT · vô hại → SỐNG · sập / sập mã 0 → HỎNG-sập; lệnh D2 riêng thoát 0, đúng mong
+  5/5 (chứng minh cho cách `p20` — các cách khác: AU4-17).
+- D3 — `npm test` + `--day-du` xanh (bước 6 lần cuối trên); `git status` sạch sau mọi công cụ; thử ngắt INT + TERM 0 sót (mục D); sót duy nhất
+  `/tmp/thu_gl_zTxA7g` (A5) — chủ quán dọn `rm -rf /tmp/thu_gl_zTxA7g`.
+→ 9 / 9 mục có bằng chứng; A1 / D2 kèm lỗ AU4-17 đã ghi.
+
+## Phát hiện
+Mã duy nhất ở `bao_cao.md` (file khác dẫn theo): NẶNG-lưới mới AU4-1…7 · NHẸ AU4-8…14, AU4-17…20 · NGHI AU4-15 · chính sách AU4-16 · NẶNG-lưới cũ
+(Q5) AU4-21. Không sửa file nào ngoài `viec/AUDIT-4/`.
+
+## Bài học
+Sự cố gom (bước 11.1): soát kế hoạch bắt 11 lỗi; `/ra-soat` 4 vòng bắt 9 · 9 · 5 · 4 lỗi — vòng 1–3 lần lượt bắt lỗ luật sập CÙNG DẠNG (dòng tái xuất
+qua dòng gộp kiem_tra), vòng 4 bắt hồi quy do chính vòng sửa 3; hết 3 vòng sửa → Câu hỏi 6. Vượt ngân sách: `boc.py` 368 dòng (AUDIT-3 237, +131)
+so ~30 phiếu / ~50 kế hoạch. Người gác chặn phiên chính 15 lần (B-CD-VITRI 5, B-CHUONGTRINH 3, B-PHANTICH 3, B-MANOI 2, GIT-LENH 1, B-DICHCHU 1),
+agent 18 (`.tu_chay_nhat_ky.jsonl`). Làm lại: `don_rong.js` sập 2 lần; `--tu-thu` lần đầu 2/4 do khung thử; ca ngắt 1,5 s không kích hoạt.
+
+KHOÁ (ngoài Phạm vi — đề xuất, máy không tự làm):
+1. Việc khung chung `cong_cu/` (`bao_cao.md` Đề xuất bộ khung 3): `sap_cua` một nguồn cho mọi `viec/*/dot_bien.py`; `--sap` chạy mỗi dạng sập qua MỌI
+   cách bộ dùng (`thugl`, `gac`, `cong`, `kiemdd`). Ca đỏ: `SAP-TACH-GL` qua `thugl` → phải HỎNG-sập (`boc.py` hiện tại: BẮT — AU4-17).
+2. Cùng việc: mỗi điều kiện của luật sập một ca "nới" trong `--tu-thu` (6 đột biến luật SỐNG ở soát vòng 4 phải chuyển BẮT — AU4-19); ETIMEDOUT → TREO.
+3. Lý do `boc.py` phình 368 dòng (vượt ~7 lần kế hoạch): `--tu-thu` ~90 dòng (10 ca dựng đầu vào THẬT, 6 phút) + bọc ~30 cho Q1 (a) + luật sập lớn dần
+   qua 3 vòng — mỗi vòng thêm một vế soi CHUỖI cho một nơi dòng tái xuất. Cách đơn giản hơn cho việc khung: hợp đồng MÃ THOÁT chung cho mọi `thu_*.js`
+   (0 đạt · 1 đỏ đúng ca · 2 sập, kể cả văng thô qua `uncaughtException`) và kiem_tra giữ mã thoát cạnh dòng ✗ → luật sập đọc mã thoát, bỏ phần soi
+   chuỗi. Ca đỏ: thu_* in ✗ rồi văng thô → hôm nay thoát 1 (không phân biệt với đỏ đúng ca — AU4-18), sau hợp đồng phải thoát 2. Đổi kiem_tra → hỏi
+   chủ quán (K8: thêm thông tin, không nới phép).
+4. `kiem_tra_truoc_khi_giao.js:616` truyền `canhGan` cho thu_cong (thêm cảnh báo, không nới hạn). Ca đỏ: thu_cong 97 s / hạn 120 s → `--day-du` in
+   "gần hạn" (AU4-12; A5 bận nhẹ 86 % im lặng).
+5. `tu_chay/thu_cong.js`, `cong_cu/thu_gia_lap.js` dọn thư mục tạm ở `exit` + SIGINT / SIGTERM (khuôn `don_rong.js`). Ca đỏ: SIGTERM giữa bài → 0 thư
+   mục sót (AU4-13).
+6. Việc vá lưới trước AUDIT-5: 7 ca AU4-1…7 + AU4-8, rồi AU4-21 (`bao_cao.md` Đề xuất khoá) — ca đỏ = đúng tên đột biến chuyển BẮT.
+7. Người gác (ĐÃ CÓ — không đề xuất thêm): 33 lần chặn đều do cách viết lệnh (cd giữa lệnh, vòng lặp, $"…", heredoc, biến ở đích ghi, git -C, grep chữ bí mật); đọc lý do,
+   viết lại lệnh là đủ, không lần nào cần lách.
+
+NGUYÊN TẮC (đề xuất `KHUON_LOI.md` — đang 116/120 dòng, `khuon_loi_toi_da` 120 → GỘP vào gạch có sẵn, không mở K9, không nới số; chat soát chọn gạch
+cũ rút gọn để bù — máy chưa tìm được lời dặn nào đã có phép máy làm thay để đề xuất xoá):
+1. K3 (gộp vào gạch "Ca 'phải KHÔNG X'…" — HOC-2b): ngoại lệ "phải KHÔNG X" mới phải kèm ca "vẫn phải X" CÙNG hình dạng dòng (đột biến cố ý X đi đúng
+   đường được miễn); nội dung không tách được hai trường hợp thì hẹp ngoại lệ hoặc hỏi. Đã gây: AUDIT-4 vòng sửa 3 miễn "dấu sập trong chi tiết dòng
+   ca" → `SAP-TACH-GL` qua `thugl` chấm BẮT (AU4-17).
+2. K4 (gộp vào gạch Chặn đầu "grep cả file…"): mỗi nơi dòng TÁI XUẤT (dòng gộp kiem_tra, chi tiết dòng ca nhúng đầu ra bài con) là một chỗ vá riêng
+   của phép soi dòng. Đã gây: AUDIT-4 soát vòng 1–3 lần lượt bắt `✗ bài chạy thật … | …`, dòng gộp `--day-du`, `→ thoát mã N` (AU3-22 tái diễn ba lần).
+3. K3 (gộp vào gạch TOC-DO-1 / GOI-2 "bài thử sập ≠ BẮT"): ca đề xuất tự tính phải đi qua cả bước DỰNG dữ liệu dưới đột biến và lớp chặn phía sau. Đã
+   gây: AU4-6 bản 1 dựng "đã lấy" qua `POST /orders` — chính đột biến chặn bước dựng, bài sập; AU4-7 bản 1 ghi "ví bị trừ" mà `packages.js:265` chặn ghi sổ.
+4. K1 (gộp vào gạch Chặn đầu): giới hạn cấu trúc của nguồn đo ghi CHƯA KIỂM ngay (kiem_tra bỏ dòng không ✗ và bỏ mã thoát khi đã có ✗ — AU4-18); mã
+   phát hiện đặt ở MỘT bảng, file khác dẫn theo (soát vòng 1: `BV-AU3-SL-THE-BO-CONG` bị gọi "AU4-2" ở `a2_bang.md` / `trang_thai.md`, `bao_cao.md` là AU4-9).
+5. K6 (gộp vào gạch Chặn): vượt ngân sách số dòng của phiếu ≥ 2 lần thì ghi `## Câu hỏi` NGAY lúc vượt, không dồn tới Bài học. Đã gây: `boc.py` 323
+   dòng lúc A1 (kế hoạch ~50) chỉ ghi "Ghi ở Bài học"; tới cuối 368.
+
+BỎ:
+1. `don_rong.js` sập 2 lần (console bị `im()` nuốt; `require.cache` gán trước khi nạp) — lỗi riêng của công cụ một lần, đã sửa trong việc.
+2. `--tu-thu` lần đầu 2/4 (khung thử thiếu `tu_chay/cau_hinh.json`; khung AUDIT-1 thay bài rỗng khi tên không `!`) — một lần, sửa trong việc.
+3. Ca ngắt 1,5 s không kích hoạt (bài đã xong) — luật K3 HOC-2b có sẵn đã giúp tự bắt; không thêm gì.
+
+## Báo cáo 7 mục
+```
+VIỆC:        AUDIT-4 — Audit đợt 4 (chỉ kiểm + báo cáo)
+ĐÃ SỬA:      chỉ viec/AUDIT-4/ (git diff --stat d8e256e HEAD -- ':!viec/AUDIT-4/' rỗng): boc.py — chép AUDIT-3 + vá AU3-22 (doan / chi_tiet / co_sap
+             :62–78), AU3-23 (gom_xau NEM- :198), AU3-24 (HET :24–25), luật chung sap_cua :81, --tu-thu :247 (10 ca), bọc boc_lenh :155 / boc_dict :174; dot_bien.py — 19 đột biến + MONG + --bo;
+             kiem_neo.py; don_rong.js; a2_bang.md; bang_chung_do.txt; bao_cao.md (104 dòng, AU4-1…21); ke_hoach.md; trang_thai.md.
+BÀI THỬ:     --tu-thu: luật cũ (viec/AUDIT-3/boc.py) SAI ở cả 10 ca trên cùng đầu vào thật (ĐỎ: bang_chung_do mục 1, 7, 8) → luật mới đúng 10/10;
+             D2 đúng mong 5/5; A3: 7/14 SỐNG = NẶNG-lưới (ca đề xuất tự tính trên gốc + đột biến). npm test + --day-du xanh ở 7f3628f.
+ĐÃ RÀ K4:    grep "sap_cua" viec/AUDIT-4/*.py → 5 chỗ gọi (boc.py :94, :161, :182; dot_bien.py :93, :110), một luật; grep "Math.floor\|Math.ceil"
+             server/utils/tienDaTra.js → 3 chỗ (:25, :45, :81), cả 3 có đột biến (AU4-2…4). CHƯA HẾT: cách thugl (AU4-17), dòng gộp có ✗ (AU4-18).
+CHƯA KIỂM:   AU4-17 luật sập miễn sập qua cách thugl — không vá (Q6 b); thu_cong cùng khuôn chưa đo · AU4-18 "in ✗ rồi sập" qua cách kiem / kiemdd ·
+             AU4-15 cổng P20b ngoài giao dịch — không dựng tất định · AU4-5 cổng có nhận đơn gói + mã 1 món không · AU4-21 C2F ngoài lưới c2luoi chưa
+             chạy · 2 GOC-* LUOI-1 (kho nông, 9521cec vắng) · nhật ký chạy lại vòng 3 chỉ ở nháp · production / Turso không đụng · AU4-16 chờ chính sách.
+GIT:         0c8284e, 7f3628f (bao_cao, a2_bang) + commit ghi trang_thai này — `git log --oneline -2` in trong câu trả lời sau push.
+BÀI HỌC:     KHOÁ 7 · NGUYÊN TẮC 5 · BỎ 3 — chi tiết ở ## Bài học trên.
+```
+
+HEAD ĐÃ KIỂM: 7f3628f
