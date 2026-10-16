@@ -489,21 +489,29 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
     const tx = await beginTransaction();
     try {
+      // P20c: gỡ ĐÚNG lần claim đã đọc ở trên (cùng claimed_at VÀ claimed_phone — getNow() chỉ tới giây, một mình
+      // claimed_at không phân biệt được hai lần claim trong cùng giây). Hai lần hoàn tác chồng nhau, hoặc hoàn tác rồi
+      // khách claim lại xen giữa → lần sau thấy 0 dòng và dừng, không gỡ claim / xoá voucher của lần claim mới.
+      const go = await tx.run(
+        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ? AND claimed_at = ? AND claimed_phone = ?',
+        [signupRow.id, signupRow.claimed_at, signupRow.claimed_phone]
+      );
+      if (go.changes === 0) {
+        await tx.rollback();
+        return res.status(409).json({ success: false, error: 'Mã này vừa được hoàn tác hoặc claim lại — tải lại danh sách rồi thử lại.' });
+      }
       // XOÁ HẲN (không chỉ vô hiệu hoá) — vì mã voucher = đúng mã in-bill (thiết kế "1 mã
       // xuyên suốt"), nếu chỉ tắt is_active thì dòng cũ vẫn tồn tại, sẽ bị lớp chống-trùng-mã
       // (chặn claim nếu mã đã có trong pos_discount_codes) chặn nhầm khi claim lại lần 2.
-      // P20c: `AND used_count = 0` — phép kiểm ở trên nằm NGOÀI giao dịch, voucher có thể vừa được dùng ở
-      // POST /orders. Có voucher mà không xoá được → dừng. KHÔNG có voucher (claim trước 09.08 mang mã khác,
-      // hoặc đã xoá tay) → hoàn tác như cũ.
-      const xoa = await tx.run('DELETE FROM pos_discount_codes WHERE code = ? AND used_count = 0', [signupRow.code]);
+      // P20c: chỉ xoá voucher CHƯA dùng — phép kiểm ở trên nằm NGOÀI giao dịch, voucher có thể vừa được dùng ở
+      // POST /orders. COALESCE: cùng nghĩa với phép kiểm `used_count > 0` ở trên, kể cả NULL. Có voucher mà không
+      // xoá được → dừng. Không có voucher CÙNG MÃ (xoá tay; claim trước 09.08 phát voucher mã khác — không đụng tới)
+      // → hoàn tác như cũ.
+      const xoa = await tx.run('DELETE FROM pos_discount_codes WHERE code = ? AND COALESCE(used_count, 0) = 0', [signupRow.code]);
       if (voucherRow && xoa.changes === 0) {
         await tx.rollback();
         return res.status(400).json({ success: false, error: 'Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.' });
       }
-      await tx.run(
-        'UPDATE pos_signup_codes SET claimed_at = NULL, claimed_phone = NULL WHERE id = ?',
-        [signupRow.id]
-      );
       await tx.commit();
     } catch (txErr) {
       await tx.rollback();
