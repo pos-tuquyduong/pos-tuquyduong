@@ -130,3 +130,65 @@ A2p2 ĐỎ, A2p xanh (A2p2 là bảo hiểm thật). Rườm rà (mục 8): `lay
   đó sẽ DỪNG thoát 4 "lệch số ca". Đúng thiết kế đối chứng; không sửa (Cấm) — việc sau nên đọc số ca từ dòng tổng của bài.
 - AU4-6 (`VS-AU4-L3-KHOA-LOAI-BO-KIEU`) có mặt "gộp `xin` khác kiểu" ở đường mua + lấy ngay (`orders.js:417`, `daLay = []`) — LUOI-4 giết
   đột biến qua mặt `find` (A2o / A2p); mặt gộp `xin` chưa ca riêng (mua gói + lấy ngay CT1 2 + tea 2 khi CT1 cài 2) — việc sau.
+
+## N8 sau vòng sửa 1 (HEAD `537442f`, các bộ chạy thu_GOI1)
+GOI-1 40 / 49 · GOI-2 59 / 59 · SO-LUONG-1 16 / 17 · LUOI-3 BẮT 10 / 10 · AUDIT-3 BẮT 15 · SỐNG 1 · HỎNG 5 · LẠC 5 — bằng nền. `npm test` PASS 64 ·
+FAIL 0 · CẢNH BÁO 1; `--day-du` PASS 68 · FAIL 0 · CẢNH BÁO 1 (cây = `537442f`).
+
+## Đếm nghiệm thu (mỗi mục một dòng)
+- N0 — 7 tên trên HEAD `c9595f5` kèm đối chứng: mục N0 (6 SỐNG + 1 HỎNG-sập), neo không rữa; bảng trước / sau ở Bước 4–5.
+- N1 AU4-2 — `thu_P26c.js` N1a; `bang_chung_do.txt` mục 1 SỐNG → mục 2, 3 BẮT `✗ N1a` (đền 20.455 → HTTP 200); 20.454 = ⌊25.000 × 45.000 / 55.000⌋.
+- N2 AU4-3 — `thu_P26c.js` N2a; SỐNG → BẮT `✗ N2a` (ví 257143); 257.142 = 300.000 − ⌈300.000 / 7⌉.
+- N3 AU4-4 — `thu_GOI1.js` B3q (hoan-du-kien + kết thúc, cùng số); SỐNG → BẮT `✗ B3q` (tong 257143 · 409); 257.142 = ⌊300.000 × 6 / 7⌋.
+- N4 AU4-5 — `thu_P26c.js` N4a; đơn gói + mã 1 món QUA cổng quầy (tổng 320.000 — không cần INSERT); SỐNG → BẮT `✗ N4a` (ví 290500); 290.461.
+- N5 AU4-6 — `thu_GOI1.js` A2o (chặn oan), A2p + A2p2 (giao vượt, hai thứ tự), "đã lấy" bằng INSERT; SỐNG → BẮT `✗ A2o` + `✗ A2p`; soát vòng 1
+  tự dựng ORDER BY DESC → A2p2 đỏ (bảo hiểm có đột biến tất định).
+- N6 AU4-7 — `thu_GOI1.js` [B8] B3r (cuối bài, sau B7j): hoan 0, ghi chú "(hoàn 0đ)", sổ + ví không đổi, ca khẳng định đơn lệch I19; SỐNG → BẮT `✗ B3r` (tong −20000).
+- N7 AU4-8 — `thu_GOI1.js` `so()` NaN + `dungGoi` (6 chỗ): `VS-AU4-L3-LOAI-CHAN-BANG` HỎNG-sập → BẮT (95 đạt · 19 hỏng, `✗ A2b`); soát vòng 1
+  chứng minh cả hai phần đều cần.
+- N8 — mục "Nền N8" + "N8 sau vòng sửa 1": 8 bộ bằng nền, "không áp được" không tăng (cùng tên); `npm test`, `--day-du` xanh; đo riêng 3 lần
+  P26c ≤ 4,54 s, GOI1 ≤ 3,70 s (< 96 s).
+
+## Bài học
+Sự cố: (a) stop hook chạy `npm test` SONG SONG lúc nền N8 chạy → `thu_cong.js` ETIMEDOUT 120 s (đỏ oan), nền P26c 350 s thay vì ~230 s;
+(b) helper `dung` trùng tên `const dung` trong hai khối → TDZ, bài sập lần chạy đầu; (c) soát kế hoạch bắt lỗi chặn: B3r (dữ liệu cố ý lệch I19)
+đặt trong [B3] sẽ làm B7j đỏ trên gốc; (d) soát vòng 1: id SX viết cứng (xanh oan tiềm ẩn), hồ sơ lệch code (`null`), số dòng `--stat` vs
+`--numstat`; (e) người gác chặn 10 lệnh của phiên chính (B-CHUONGTRINH `time` / `for`, B-CD-VITRI `cd` giữa lệnh, SED-I, B-MANOI heredoc nhắc
+file bảo vệ) — đều do viết lệnh sai khuôn, làm lại bằng Python / Write / Edit. Không vượt ngân sách (198 / 200), không phải hỏi / dừng.
+
+- KHOÁ (đã làm, trong Phạm vi): ca phân biệt khoá ghép dựng đầu vào TỪ dữ liệu của loại kia — `thu_GOI1.js:311–314` NE1 lấy `sp[0].sx_product_id`;
+  ca đỏ = `VS-AU4-L3-KHOA-LOAI-BO-KIEU` BẮT (`bang_chung_do.txt` mục 3).
+- KHOÁ (đề xuất, ngoài Phạm vi): `viec/AUDIT-4/dot_bien.py` `BAI` / `boc.py` `DOI_CHUNG` đọc số ca từ dòng tổng của bài thay vì hằng 118 / 105 —
+  ca đỏ: chạy `python3 viec/AUDIT-4/dot_bien.py` trên HEAD LUOI-4 → thoát 4 "lệch số ca". Gom vào LUOI-5.
+- KHOÁ (đề xuất, ngoài Phạm vi): hook kiểm trước khi dừng — khi bài chạy thật hết giờ, in kèm "máy đang chạy tiến trình khác?" thay vì chỉ
+  ETIMEDOUT; ca đỏ: chạy `npm test` trong lúc `viec/P26c/dot_bien.py` chạy. KHÔNG nới hạn (K8). TU-CHAY-7 đang giữ vùng này — chủ quán quyết.
+- NGUYÊN TẮC (đề xuất, gộp vào K3 — KHUON_LOI.md do TU-CHAY-7 giữ): "ca bảo hiểm" (A2p2) phải có một đột biến TẤT ĐỊNH làm nó đỏ; helper chống
+  sập nhiều phần thì gỡ TỪNG phần dưới đột biến; dữ liệu cố ý vi phạm bất biến đặt SAU mọi phép bất biến của bài và ca tự khẳng định lệch.
+  Ví dụ thật: LUOI-4 soát kế hoạch (B3r / B7j) + soát vòng 1.
+- NGUYÊN TẮC (đề xuất, gộp vào K1): code đi lệch kế hoạch (vd `so` không chặn `null`) → sửa kế hoạch trong CÙNG commit; số dòng lấy cột thêm của
+  `git diff --numstat`. Ví dụ thật: LUOI-4 ghi "+93" thay vì "+84".
+- BỎ: TDZ `const dung` trùng tên — một lần, bài sập ngay lần chạy đầu nên tự lộ. Lệnh bị người gác chặn — người gác đã làm đúng việc.
+- Dọn: không thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` vừa có phép kiểm làm thay trong việc này. `KHUON_LOI.md` 116 / 120 dòng —
+  hai đề xuất NGUYÊN TẮC phải gộp vào dòng sẵn có của K1 / K3, không thêm mục.
+
+## Báo cáo
+```
+VIỆC:        LUOI-4 — Vá lưới: bắt 6 đột biến NẶNG-lưới AU4-2…7 (+ AU4-8 thu_GOI1 A2 đi tiếp khi ca đỏ) — chỉ thêm bài thử
+ĐÃ SỬA:      cong_cu/thu_P26c.js khối [N] (sau [M]) — N1a, N2a, N4a
+             cong_cu/thu_GOI1.js:90–91 so() trả NaN khi id rỗng · :143 dungGoi + 6 chỗ dựng không ném · A2o/A2p/A2p2 (cuối [A2]) · B3q (cuối [B3]) · [B8] B3r (cuối bài)
+             viec/LUOI-4/dot_bien.py — bộ chấm nạp viec/AUDIT-4/dot_bien.py chỉ đọc, mẫu đúng tên ca. 0 dòng server/, client/, viec/AUDIT-4/.
+BÀI THỬ:     python3 viec/LUOI-4/dot_bien.py --truoc trên bài chưa có ca → 6 SỐNG + 1 HỎNG-sập (bang_chung_do.txt mục 1);
+             sau khi thêm ca → 7/7 BẮT đúng ca, đối chứng 121 / 110 xanh (mục 2, 3). SỐ CA thu_P26c.js 121 · thu_GOI1.js 110.
+ĐÃ RÀ K4:    mọi nơi gọi tienDaTraTheoDong / soTienHoan / soTienHoanGoi / vuotTheoLoai (ke_hoach mục 3); grep "throw new Error" thu_GOI1.js trên
+             gốc → 12 chỗ: 6 lấy-từ-gói ở bước dựng đã đổi dungGoi; còn 6 (SX giả :66, thiếu SP mẫu :117, tạo gói :130, mua gói :148, nạp ví :511,
+             mua gói 30 :517) không qua vuotTheoLoai khi dựng — giữ, đường sập khác ghi Phát hiện.
+CHƯA KIỂM:   - A2p2 trên gốc chỉ đỏ khi SQLite đổi thứ tự GROUP BY — chứng minh bằng đột biến tự dựng của người soát (ORDER BY DESC), không có trong dot_bien.py;
+             - đường sập khác cùng khuôn AU4-8 (ttGoi/mot nhận NaN, donLay null) chưa có đột biến kích hoạt; thu_P26c goiDaLay vẫn ném;
+             - viec/AUDIT-4/dot_bien.py, boc.py chạy thẳng trên HEAD sẽ DỪNG thoát 4 (hằng 118 / 105) — không sửa (Cấm);
+             - không chạy trên Turso / production: mọi số đo trên kho thử libsql cục bộ.
+GIT:         537442f LUOI-4: ra-soat vong 1 (DAT) chep nguyen van + vong sua 1, bang chung muc 3
+             381d9ae LUOI-4: soat vong 1 — NE1 lay id SX tu CT1 (khong viet cung 1)
+BÀI HỌC:     KHOÁ 3 (1 đã làm, 2 đề xuất) · NGUYÊN TẮC 2 (đề xuất, gộp vào K1/K3) · BỎ 2 — chi tiết ở ## Bài học
+```
+
+HEAD ĐÃ KIỂM: 537442f
