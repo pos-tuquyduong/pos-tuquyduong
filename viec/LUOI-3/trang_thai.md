@@ -62,5 +62,45 @@ Không theo: gộp M1b vào M4a (bớt ~6 dòng nhưng một ca mang 3 đột bi
 ## Câu hỏi
 (xem `ke_hoach.md` mục 5 — gửi kèm lần duyệt kế hoạch)
 
-## Dừng
+## Dừng (lượt trước)
 Phiếu dặn "chờ duyệt kế hoạch" → dừng ở bước 3 sau khi commit + push `ke_hoach.md`.
+
+## Làm tiếp (16.10, chủ quán duyệt kế hoạch 04cea99; Câu hỏi 1 → A)
+- bước 1: HEAD `04cea99` · FETCH_HEAD `04cea99` — bằng nhau, không kéo. `git log --oneline -3`:
+  ```
+  04cea99 LUOI-3: trang thai nen N11 (bo dot bien cu tren 8303c1b) + soat ke hoach
+  012c221 LUOI-3: ke hoach sua theo soat (M2a loc dong, M3a discount 31.000, bytecode truoc importlib, K4 refunds, B3p ghi den cu)
+  6bc3347 LUOI-3: ke hoach (cho duyet, ban nhap truoc soat)
+  ```
+- Câu hỏi 1: chủ quán chọn (A) — B3p ghi rõ "dữ liệu trước P26c 12.10, còn trên production", ví khớp sổ qua `trongGiaoDich`.
+
+## Bước 4–5 — ca hồi quy + đột biến (không sửa code quầy)
+Mọi tên đột biến (`viec/LUOI-3/dot_bien.py`, cặp thay chuỗi đọc từ `viec/AUDIT-3/dot_bien.py`):
+BV-AU3-P26C-DATRA-BO-TRU-SHIP · VS-AU3-P26C-DATRA-GIA-GOC · VS-AU3-P26C-DEN-GIAM-BO-FLASH · VS-AU3-GOI1-LOAI-KHONG-CONG-DON ·
+VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN · BV-AU3-GOI2-BO-TRAN-DA-NHAN · VS-AU3-GOI2-NHAN-BO-DEN · VS-AU3-SL-DONG-GOI-SL-1 ·
+VS-AU3-SL-DONG-GOI-TONG-1 · VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL
+
+| NT | tên | SỐNG trước (89172f3) | BẮT sau (2dd9ce9) | ca đỏ | câu lỗi (đột biến làm) |
+|---|---|---|---|---|---|
+| N1 | BV-AU3-P26C-DATRA-BO-TRU-SHIP | SỐNG 111/111 | BẮT | M1a, M1b | đền 45.001 → 200; huỷ ví +252.000 |
+| N2 | VS-AU3-P26C-DATRA-GIA-GOC | SỐNG | BẮT | M2a, M2b | dòng flash 20.001 → 200; dòng thường 30.000 → 400 (trần 27.272) |
+| N3 | VS-AU3-P26C-DEN-GIAM-BO-FLASH | SỐNG | BẮT | M3a | đền A 25.000 → 400 (trần 19.000) |
+| N4 | VS-AU3-GOI1-LOAI-KHONG-CONG-DON | SỐNG 101/101 | BẮT | A2l (+ A2m hệ quả) | 2 + 2 CT1 → 200, giao 6 |
+| N5 | VS-AU3-GOI1-LOAI-SL-0-CUNG-CHAN | SỐNG | BẮT | A2n | 400 GOI_HET_LUOT_LOAI "CT1 chỉ còn 0" |
+| N6 | BV-AU3-GOI2-BO-TRAN-DA-NHAN | SỐNG | BẮT | B3p | hoàn 1.215.000 |
+| N7 | VS-AU3-GOI2-NHAN-BO-DEN | SỐNG | BẮT | B3p | hoàn 1.215.000 |
+| N8 | VS-AU3-SL-DONG-GOI-SL-1 | SỐNG | BẮT | M4a (+ M4b quantity 1) | ví +510.000 |
+| N9 | VS-AU3-SL-DONG-GOI-TONG-1 | SỐNG | BẮT | M4b | SUM(total_price) 300.000 |
+| N10 | VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL | SỐNG | BẮT | M4a | ví +486.000 |
+
+Chi tiết nguyên văn: `bang_chung_do.txt`. Ca khác cùng đỏ (A2m, M4b) là hệ quả của cùng lỗi; ca mang tên đột biến luôn đỏ.
+
+## Bước 6 — kiểm (trên 946120c — code / bài thử không đổi sau đó)
+- `npm test`: PASS 64 · FAIL 0 · CẢNH BÁO 1 — cảnh báo có sẵn "route GET có lệnh ghi (3) — packages.js:194, products.js:57,
+  sync.js:147" (`git diff 8303c1b --stat -- server client` rỗng → không do việc này).
+- `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 68 · FAIL 0 · CẢNH BÁO 1 (cùng cảnh báo).
+- Thời gian (đo riêng 3 lần): `thu_P26c.js` 2,7 · 3,2 · 3,3 s (118 ca); `thu_GOI1.js` 2,3 · 2,2 · 2,1 s (105 ca) — < 3 % hạn 120 s.
+- N11 sau khi thêm ca (chạy nối tiếp, không sửa file khi chạy): P26c 89/93 (241 s) · GOI-1 40/49 · GOI-2 59/59 · SO-LUONG-1 16/17 ·
+  BAN-HANG-1 7/7 · LUOI-2 7/7 (`✓ kho thật không đổi`) — BẰNG nền; danh sách 14 "không áp được" giống hệt (diff rỗng).
+- `node tu_chay/cong.js tinh . 8303c1b^ HEAD viec/LUOI-3`: chỉ `✗ [A19]` (chưa ghi HEAD ĐÃ KIỂM — bình thường trước 11.4).
+- Số dòng: `thu_P26c.js` +61, `thu_GOI1.js` +29, `viec/LUOI-3/dot_bien.py` 65 → 155, trong khung 150–250; 0 dòng code quầy.
