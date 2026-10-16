@@ -4,18 +4,19 @@
 `git diff --stat a13d8ad..HEAD -- ':!viec/AUDIT-3/'` rỗng). Chi tiết: `a2_bang.md` (A2 từng tên), `trang_thai.md` (A1, A3–A6, D, bảng tên A4);
 công cụ: `boc.py` (A1), `dot_bien.py` (A4), `kiem_neo.py` + `bb_neo.json` (A5); bằng chứng công cụ không nói dối: `bang_chung_do.txt`.
 Lời duyệt kế hoạch bản 2 (15.10): Câu hỏi 1 → (b) LUOI-1 qua `boc.py --luoi1`; Câu hỏi 2 → ảnh neo mới `bb_neo.json`; `D2K-da-biet` → phát hiện
-NHẸ; giữ A4 25 dòng, SỐNG tiền / ví / gói = NẶNG không hạ mức.
+NHẸ; giữ A4 25 dòng, SỐNG tiền / ví / gói = NẶNG không hạ mức. Chốt 16.10 (sau soát vòng 4): luật sập = (a) HỎNG-sập, giữ AUDIT-1 81/83;
+đóng AUDIT-3 không vòng sửa 4 — 3 lỗi công cụ còn lại = AU3-22…24 sang phiếu AUDIT-4.
 
 ## Kết luận một dòng
 **Còn NẶNG ⇒ đợt này CHƯA đạt điểm dừng (cần AUDIT-4 sạch sau khi khoá).** 0 NẶNG-code (ba mục AUDIT-2 đã đóng, mọi bộ cũ chạy lại không lộ
 code sai: AUDIT-1 88 + C2F 87 + AUDIT-2 30 + bb 179 + P26b 59 + P26c 93 + GOI-1 49 + GOI-2 59 + SO-LUONG-1 17 + LUOI-1 78 + TACH-GL 29 —
 mọi khác biệt so AUDIT-2 đều có lý do: neo đã thay, mẫu rữa, hoặc cổng mới che). **10 NẶNG-lưới mới** (A4: 10/21 đột biến độc lập đụng tiền /
 gói SỐNG — lưới không phủ phí ship, giá flash nhiều dòng, hai dòng cùng loại, mua nhiều gói, đền rồi kết thúc gói; theo luật phiếu SỐNG tiền =
-NẶNG, kể cả hai cái chiều "chặn oan"). A1: 10 bộ × 4 dạng sập (lỗi nạp, ném giữa ca, sập mã 0, đỏ-rồi-sập) + 2 dạng soát vòng 3 dựng (sập MÃ 1
-không dấu, node văng thô sau ✗) — không bộ nào ra BẮT / SỐNG; khung AUDIT-1 (giữ dòng khớp đầu) CHẤM LẠI qua bọc (vòng 2, 3): 6 C2F "BẮT" hoá ra
+NẶNG, kể cả hai cái chiều "chặn oan"). A1: 4 bộ khuôn × 4 dạng sập (lỗi nạp, ném giữa ca, sập mã 0, đỏ-rồi-sập), khung AUDIT-1 4 dạng, LUOI-1 /
+TACH-GL / G3 / bb 1 dạng, SO-LUONG-1 2 dạng, + 2 dạng soát vòng 3 dựng ở P26c và A4 (sập MÃ 1 không dấu, node văng thô sau ✗) — không bộ nào ra BẮT / SỐNG; khung AUDIT-1 (giữ dòng khớp đầu) CHẤM LẠI qua bọc (vòng 2, 3): 6 C2F "BẮT" hoá ra
 sập (dựng dữ liệu 4, SẬP giữa kịch bản 1, đỏ-rồi-sập 1 `C2F-wallets-05-ghiVi-quay`) + `!D1-E11-P26b` (dòng ✗ của `kiem_tra` mang `✖ Bài thử sập`
 của bài con). MỘT luật sập `sap_cua` (`boc.py`) cho mọi kết quả, BẮT lẫn SỐNG: dấu sập · thoát 2 · không dòng chạy hết · dòng khớp mang dấu sập
-= HỎNG-sập. Chỗ phiếu chưa chốt (bộ kiểm chạy hết nhưng BÁO bài con sập) tạm áp HỎNG-sập — chờ chủ quán chốt cho AUDIT-4 (`trang_thai.md` Câu hỏi).
+= HỎNG-sập; chủ quán chốt 16.10: bộ kiểm chạy hết nhưng BÁO bài con sập = HỎNG-sập (a). Soát vòng 4 còn 3 lỗ công cụ (AU3-22…24, số đo không đổi).
 A5: 0 neo HỎNG ngoài danh sách đã thay.
 
 ## Bảng phát hiện
@@ -43,6 +44,9 @@ A5: 0 neo HỎNG ngoài danh sách đã thay.
 | **AU3-20** | NHẸ | `cong_cu/thu_gia_lap.js:467` ca tay I7 so CHỮ `/SX nhận vân tay lạ POS:9:in:0/` (thêm sau AUDIT-2) → đột biến D2 `D2-vo-hai` của `dot_bien_bb.py` (đổi chữ không dấu, hợp đồng "vô hại → SỐNG") nay BẮT trái hợp đồng — bằng chứng D2 của bb rữa như AU3-2; a2_bang bản 1 để nó lặng trong danh sách BẮT (soát vòng 2 bắt) | `python3 viec/AUDIT-2/dot_bien_bb.py --chi D2-vo-hai -j 4` → BẮT | đổi chuỗi vô hại sang chỗ không bài nào so chữ (vd chú thích đầu file); tỷ lệ bb tính 123/175 không kể D2 |
 | **AU3-21** | NHẸ-công cụ (K3) | khung `viec/AUDIT-1/dot_bien.py:326–330` giữ dòng khớp ĐẦU, không nhìn mã thoát 2 / `✖ Bài thử sập` / thoát 0 không dòng tổng → "đỏ rồi sập" (DOSAP) ra BẮT, "sập mã 0" (`process.exit(0)` trong route, máy chủ chạy trong tiến trình bài) ra SỐNG — soát vòng 2 dựng và chạy thật; `dot_bien.py` A4 và `boc.py` bản 1 cũng chấm SỐNG cho sập mã 0; soát vòng 3 dựng thêm sập MÃ 1 không dấu (`process.exit(1)` sau ✗) và node văng thô sau ✗ → bản vòng 2 của cả hai chấm BẮT (chỉ đòi dòng tổng khi thoát 0) | `python3 viec/AUDIT-3/boc.py --sap` (DOSAP-AUDIT2, SAP0-AUDIT2 qua khung chưa bọc = BẮT / SỐNG) | `boc.py` vòng 2: bọc `K.chay_lenh` + `K.cham` (đọc cả đầu ra + mã thoát mỗi lệnh con, SỐNG cần dòng tổng) — A2 khung chấm LẠI qua bọc; đề xuất đưa vào khung chung (TU-CHAY-6 (3)) |
 | AU3-19 | NHẸ | `packages.js:194` câu nắn gói đủ → `completed` ở GET theo-khach (GOI-2 A2) — C2F mới `C2F-packages-05-update-quay` SỐNG dưới c2luoi (thu_GOI1 B2a bắt, ngoài c2luoi); 22 C2F SỐNG còn lại = 23 của AUDIT-2 − 2 nay BẮT nhờ thu_P26c (B5b, A7b) | `python3 viec/AUDIT-3/boc.py --c2luoi C2F-packages-05-update-quay` | không cần khoá thêm (đã có B2a) — ghi để AUDIT-4 so |
+| AU3-22 | NHẸ-công cụ (K4 + K3, soát vòng 4) | `viec/AUDIT-3/boc.py:60` `co_sap` còn lọc `✗ bài chạy thật` (tàn dư luật "harness chết" đã rút) và vế (4) `:151` chỉ soi `chi` mà khung AUDIT-1 cắt `trung[0][:220]` (`viec/AUDIT-1/dot_bien.py:328`) → bài con in ≥ 2 dòng ✗ rồi sập dưới cách `kiem` / `kiemdd` (57/118 đột biến khung) = BẮT; `--sap` không có ca cách `kiem`. Số đo KHÔNG đổi: `!D1-E11-P21` là BẮT duy nhất mẫu dòng bài-chạy-thật, thu_P21 chạy thẳng 9 đạt · 5 hỏng thoát 1 không dấu (`soat4_p21.py`) | nháp `soat4_dosap_kiem.py`: DOSAP_KHUON (meTra = 0) qua cách `kiem` của khung đã bọc → BẮT (qua `p26b` → HỎNG-sập) | bỏ lọc `✗ bài chạy thật` ở `co_sap` (vế 1 soi đầu ra ĐỦ, vế 4 thừa); `--sap` thêm `DOSAP-KIEM` (cách `kiem`) — ca đỏ: phải HỎNG-sập, hiện BẮT |
+| AU3-23 | NHẸ-công cụ (K1 + K3) | `viec/AUDIT-3/boc.py:33`, `:172` chú thích "NEM- ở thu_*: 500 là ca đỏ, bài đi tiếp → BẮT" SAI: 4 bộ khuôn đều `✖ Bài thử sập … HTTP 500` thoát 2 (`bang_chung_do.txt` 2); NEM- bị loại khỏi `xau` → nếu NEM- ra BẮT, `--sap` vẫn ĐẠT | `python3 viec/AUDIT-3/boc.py --sap` (NEM- không vào `xau`) | NEM- vào `xau` (phải HỎNG-sập), sửa 2 chú thích theo kết quả thật — ca đỏ: đột biến NEM- ra BẮT thì `--sap` phải KHÔNG ĐẠT |
+| AU3-24 | NHẸ-công cụ (K3) | `viec/AUDIT-3/boc.py:25` `HET` có `· ĐẠT\b` khớp TÊN ca T0 / T9c của `cong_cu/thu_gia_lap.js:300, :320` → vế 3 (không dòng chạy hết) vô hiệu cho cách `thugl` (P26c / TACH-GL); không đổi số (thu_gia_lap không bị đột biến, sập thật của nó là văng thô có dấu) | `grep -n '· ĐẠT' cong_cu/thu_gia_lap.js` → 2 tên ca | neo dòng tổng của `chay.js` (`chay.js:138, :300`) đúng dạng cả dòng, loại dòng bắt đầu `✓ T` — ca đỏ: thu_gia_lap thoát 0 không dòng tổng phải HỎNG-sập |
 
 Đóng sổ AUDIT-2 (A3): **AU2-1** đóng — `A3P-goi-lay-vuot-luot` SỐNG (máy chủ nay 400), P26c `BV-A2-bo-tran`, `VS-A2-bo-kiem-changes`,
 `BV-A2-lay-ngay-bo-tran` BẮT (ca A2a `thu_P26c.js:199`, A2d `:210`). **AU2-2** đóng — 5 A3L BẮT (`A3L-redeem-thieu-1-diem` L1a,
@@ -70,6 +74,8 @@ A5: 0 neo HỎNG ngoài danh sách đã thay.
 | A6 lách (15 mã, 0 mã mới) | CHẶN 14 | LỌT ĐÃ BIẾT 1 (AU2-7) | — | — | — | như AUDIT-2 |
 
 ## Đề xuất (không sửa ở việc này)
+- **Phiếu AUDIT-4 (chốt 16.10):** AU3-22…24 (công cụ `boc.py`, ca đỏ ở cột đề xuất), đưa `sap_cua` + bọc khung vào khung chung, bb qua bọc,
+  2 `GOC-*` LUOI-1 trên kho đủ sâu, dọn 18 thư mục tạm; ghi luật sập (a) vào phiếu.
 - **Khoá NẶNG-lưới (một việc, ưu tiên trước AUDIT-4):** 7 ca vào `thu_P26c.js` / `thu_GOI1.js` + 1 bất biến I20 (`SUM(total_price) =
   subtotal`) theo cột "đề xuất khoá" AU3-8…17; ca đỏ = chính 10 đột biến `viec/AUDIT-3/dot_bien.py` chuyển BẮT (`python3
   viec/AUDIT-3/dot_bien.py` → SỐNG 1 = `D2-AU3-vo-hai`). AU3-13/14: nếu không dựng được ca vượt total → ghi "vế thừa" và hạ mức.
@@ -82,4 +88,4 @@ A5: 0 neo HỎNG ngoài danh sách đã thay.
 Việc không đổi code chạy thật. Công cụ chỉ ghi bản sao trong thư mục tạm (`ap` của từng bộ, `realpath` kiểm); mỗi lần chạy so `git status`
 trước/sau ("✓ kho thật không đổi", 12/12 bước `git status` 0 dòng — `chay_a2.log`); ngắt SIGINT `boc.py` ở giây 15 → 0 thư mục `/tmp/goi1_db_*` sót
 (`bang_chung_do.txt` mục 5). Bài con chết giữa chừng không tự dọn `/tmp/thu_*` của nó (soát vòng 3 thấy 18 thư mục sót từ các lần chạy sập trước) →
-vòng 3 đặt TMPDIR = thư mục tạm của công cụ (`Vo.run`, `chay_bai`); chạy lại đủ 10 bước: 0 thư mục mới ngoài 18 cũ (chủ quán dọn — `trang_thai.md` Câu hỏi). Không ghi file trong `viec/AUDIT-3/` khi bộ đo chạy (tool + trạng thái commit TRƯỚC khi chạy nặng).
+vòng 3 đặt TMPDIR = thư mục tạm của công cụ (`Vo.run`, `chay_bai`); chạy lại đủ 10 bước: 0 thư mục mới ngoài 18 cũ (người gác chặn `rm` ngoài nháp — RM-NHAP — kể cả khi chủ quán cho phép; chủ quán dọn tay). Không ghi file trong `viec/AUDIT-3/` khi bộ đo chạy (tool + trạng thái commit TRƯỚC khi chạy nặng).

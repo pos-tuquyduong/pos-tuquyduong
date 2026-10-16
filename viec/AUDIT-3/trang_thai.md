@@ -48,7 +48,7 @@
   `viec/AUDIT-3/bb_neo.json` là ảnh mới, báo cáo có bảng tên mới / tên trôi so ảnh AUDIT-2 + đề xuất B4; `D2K-da-biet` → phát hiện AU3-n
   NHẸ kèm neo đề xuất; giữ bảng A4 25 dòng, SỐNG tiền = NẶNG không hạ mức. Làm tới hết, mỗi nhóm commit + push.
 
-## A1 · đối chứng (`viec/AUDIT-3/boc.py`, 179 dòng — VƯỢT ngân sách 60–120: 5 chế độ `<bộ>` / `--sap` / `--xep` / `--c2luoi` / `--luoi1`; ghi ở Bài học)
+## A1 · đối chứng (`viec/AUDIT-3/boc.py`, 179 dòng bản 1, 237 dòng sau 3 vòng sửa — VƯỢT ngân sách 60–120: 5 chế độ `<bộ>` / `--sap` / `--xep` / `--c2luoi` / `--luoi1`; ghi ở Bài học)
 - `python3 viec/AUDIT-3/boc.py GOI-1 BV-GOI1-TONG` → đối chứng `thu` (thu_GOI1.js) 101 đạt · 0 hỏng ✓ · BẮT 1 · kho thật không đổi.
 - `python3 viec/AUDIT-3/boc.py --sap` (nháp `a1_sap.txt`, chép vào `bang_chung_do.txt` mục 1) → **0 bộ báo BẮT khi bài thử sập — ĐẠT**:
   P26b / P26c / GOI-1 / GOI-2: `SAP-<bộ>` → HỎNG-sập ("Bài thử sập · thoát 2"), `SAI-<bộ>` → HỎNG (neo 0 lần); AUDIT-2 `SAP-AUDIT2` (mẫu rộng
@@ -419,7 +419,7 @@ BÀI HỌC:
   c2luoi 67/25/6 sập/2 (y vòng 2 từng tên) · AUDIT-2 18/7/4/1 (y vòng 2 từng tên) · `npm test` 63/0; `git status` 0 dòng sau mỗi bước; KHÔNG "KHO BẨN".
   `a2_bang.md` sinh lại từ log vòng 3 (bb · SO-LUONG-1 · LUOI-1 · TACH-GL không qua luật mới → giữ log vòng 2).
 
-### Câu hỏi cho chủ quán (chờ chốt — không tự quyết, CLAUDE.md mục 9)
+### Câu hỏi cho chủ quán (vòng 3 — ĐÃ CHỐT 16.10, xem "Chốt của chủ quán" ở cuối)
 1. **Luật sập khi BỘ KIỂM chạy hết nhưng BÁO bài con sập** (`kiem_tra_truoc_khi_giao.js` in `✗ bài chạy thật … → ✖ Bài thử sập`): phiếu chỉ nói
    "đột biến làm bài thử sập = HỎNG". Vòng 2 tôi tự áp "harness chết mới là sập" (→ BẮT), người soát vòng 3 bác. Nay áp HỎNG-sập (dòng khớp mang
    dấu sập). Đề nghị chốt vào phiếu AUDIT-4 một trong hai: (a) HỎNG-sập như hiện tại (81/83) · (b) BẮT khi bộ kiểm chạy hết (82/84).
@@ -500,12 +500,18 @@ BÀI HỌC:
   phải là "4 bộ khuôn × 4 dạng (+ 2 dạng vòng 3 ở P26c / A4), khung AUDIT-1 4 dạng, LUOI-1 / TACH-GL / bb / G3 1 dạng, SO-LUONG-1 2 dạng";
   `trang_thai.md` A1 tiêu đề "179 dòng" nay 237 — để nguyên, sửa ở AUDIT-4 cùng lỗi 1–3.
 
-## Câu hỏi (chờ chủ quán — việc DỪNG ở đây, không tự quyết)
-1. **Luật sập khi bộ kiểm chạy hết nhưng BÁO bài con sập** (xem mục "Câu hỏi cho chủ quán" ở vòng 3): (a) HỎNG-sập (hiện áp, 81/83) hay (b) BẮT
-   (82/84)? Lỗi 1 vòng 4 phụ thuộc câu này: (a) → bỏ lọc `✗ bài chạy thật` + ca `DOSAP-KIEM`; (b) → bỏ vế (4), ghi luật vào phiếu AUDIT-4.
-2. **Cho phép vòng sửa 4** (ngoài `so_vong_sua_toi_da` = 3) để vá lỗi 1–3 vòng 4 ngay trong `viec/AUDIT-3/` (ước ~30 phút + chạy lại `--sap`
-   và `--khung D1` ~20 phút), hay **đóng AUDIT-3 ở trạng thái này** (kết luận bao_cao.md giữ nguyên: 0 NẶNG-code, 10 NẶNG-lưới, chưa đạt điểm dừng;
-   nghiệm thu 7/9 theo soát vòng 4) và đưa lỗi 1–3 + 18 thư mục tạm vào phiếu AUDIT-4?
-3. **18 thư mục tạm sót ở `/tmp`** (câu hỏi 2 vòng 3) — chủ quán dọn.
+## Chốt của chủ quán (16.10, `/lam-viec AUDIT-3 tiep` sau soát vòng 4) — việc ĐÓNG
+1. Luật sập → **(a) HỎNG-sập** như đang áp (bộ kiểm chạy hết nhưng BÁO bài con sập = HỎNG-sập); giữ AUDIT-1 **81/83**. Ghi vào phiếu AUDIT-4.
+2. **Đóng AUDIT-3 tại đây, không vòng sửa 4.** 3 lỗi công cụ của soát vòng 4 ghi thành phát hiện **AU3-22** (co_sap lọc `✗ bài chạy thật` + vế 4
+   soi chuỗi cắt 220 → đỏ-rồi-sập dưới cách `kiem` = BẮT; số đo không đổi), **AU3-23** (NEM- không vào `xau`, chú thích sai), **AU3-24** (`HET`
+   `· ĐẠT\b` khớp tên ca T0 / T9c thu_gia_lap) — NHẸ-công cụ, kèm neo + cách vá + ca đỏ trong `bao_cao.md`, chuyển sang phiếu AUDIT-4.
+   Kết luận `bao_cao.md` giữ nguyên: 0 NẶNG-code · 10 NẶNG-lưới · chưa đạt điểm dừng; nghiệm thu 7/9 theo soát vòng 4 (thiếu A1, D2 ở cách `kiem`).
+3. Dọn thư mục tạm: chủ quán cho phép, nhưng người gác chặn `rm -rf /tmp/thu_p26c_* …` (luật **RM-NHAP**: chỉ xoá trong thư mục nháp) — theo
+   luật cứng không lách (không dùng `shutil.rmtree` thay `rm`). 18 thư mục vẫn còn, chủ quán dọn tay:
+   `rm -rf /tmp/thu_p26c_* /tmp/thu_goi1_* /tmp/thu_p26b_* /tmp/audit1_*` (khi không có bộ đo nào chạy).
+- Lượt này chỉ đổi hồ sơ (`bao_cao.md`, `trang_thai.md`); code chạy thật không đổi từ a13d8ad (`git diff --stat a13d8ad^ HEAD -- ':!viec/AUDIT-3/'`
+  rỗng). `npm test` trên 44f811c → thoát 0 · PASS 63 · FAIL 0 · CẢNH BÁO 0 (nháp `v4_npm_test.txt`). Không merge, không PR.
+- Stop hook / người gác: không đòi `git config`, amend hay rebase ở lượt này.
 
 HEAD ĐÃ KIỂM: 9de6829
+HEAD ĐÃ KIỂM: 44f811c + commit này
