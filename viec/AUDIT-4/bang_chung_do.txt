@@ -1,0 +1,71 @@
+# AUDIT-4 — bằng chứng: công cụ đo không nói dối (D2) + ca đỏ của từng vá A1 (AU3-22, AU3-23, AU3-24)
+# Phiếu "## Bài thử đỏ: không" (việc chỉ kiểm + báo cáo) → không dòng SỐ CA. Code chạy thật lúc đo: HEAD 4cac62a… (server/ = 0ee7346).
+
+## 1. A1 ca đỏ — `python3 viec/AUDIT-4/boc.py --tu-thu` (boc.py commit sau 4d2cb5d; thoát 0)
+# Luật CŨ = viec/AUDIT-3/boc.py nạp chỉ đọc; luật MỚI = viec/AUDIT-4/boc.py; chấm CÙNG một đầu vào thật.
+# AU3-24: cũ "không sập" (HET cũ khớp tên ca T0 / T9c) — ĐỎ trên luật cũ. AU3-22: cũ BẮT (dòng ✗ bài chạy thật bị lọc) — ĐỎ trên luật cũ.
+# AU3-23: sap() cũ ĐẠT dù NEM- ra BẮT — ĐỎ trên luật cũ. K5: chay.js "KHÔNG ĐẠT (2 lệch)" thoát 1 phải KHÔNG sập ở cả hai.
+# Lần đầu (trước 2 sửa khung thử của tôi) 2/4: bản sao chay.js thiếu tu_chay/cau_hinh.json (thoát 3 TỪ CHỐI) và khung AUDIT-1 thay bài chạy
+# thật bằng bài rỗng khi tên không mở đầu '!' (viec/AUDIT-1/dot_bien.py:257) — lỗi khung thử, không phải luật (K2: truy nguyên trước).
+  (thu_gia_lap thật: thoát 0 · 145 đạt · 0 hỏng · cắt 1 dòng · còn T0: True)
+  ĐẠT AU3-24 thu_gia_lap thoát 0 không dòng tổng: cũ → không sập · mới → sập (mong sập)
+  (chay.js KB29 có đột biến: thoát 1 · Giả lập: 8 kịch bản · 18 bất biến · KHÔNG ĐẠT (2 lệch))
+  ĐẠT K5 HET: chay.js KHÔNG ĐẠT (n lệch) thoát 1: cũ → không sập · mới → không sập (mong không sập)
+  (DOSAP-KIEM: áp được · kiem_tra thoát 1 · 2 dòng ✗ · dòng khớp đầu: [kiem_tra_truoc_khi_giao.js] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.7 s)  → ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví )
+  ĐẠT AU3-22 DOSAP-KIEM qua khung cách kiem: cũ → BẮT · mới → HỎNG-sập (mong HỎNG-sập)
+  ĐẠT AU3-23 NEM- ra BẮT → --sap phải KHÔNG ĐẠT: cũ → ĐẠT · mới → KHÔNG ĐẠT (mong KHÔNG ĐẠT)
+
+  --tu-thu: 4/4 phép luật mới đúng
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
+
+## 2. A1 `python3 viec/AUDIT-4/boc.py --sap` (thoát 0) — mọi dạng sập ra HỎNG-sập, không bộ nào BẮT / SỐNG; NEM- nay trong `xau` (AU3-23),
+## `!DOSAP-KIEM` (AU3-22, cách `kiem`) HỎNG-sập; sai chuỗi → HỎNG (khác nhãn HỎNG-sập)
+AUDIT-4 bọc P26b: 5 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_P26b.js): 66 đạt · 0 hỏng
+HỎNG-sập  SAP-P26b  · ✖ Bài thử sập: Missing catch or finally after try · thoát 2 · dòng cuối: ✖ Bài thử sập: Missing catch or finally after try
+HỎNG      SAI-P26b  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+HỎNG-sập  NEM-P26b  · ✖ Bài thử sập: không tạo được đơn: HTTP 500 · AUDIT-4 ném giữa ca · thoát 2 · dòng cuối: ✖ Bài thử sập: không tạo được đơn: HTTP 500 · AUDIT-4 ném giữa ca
+HỎNG-sập  SAP0-P26b  · thoát 0 KHÔNG có dòng chạy hết · thoát 0 · dòng cuối: [A1] huỷ đơn đã hoàn → 400, ví không đổi; huỷ đơn completed vẫn chạy (K5)
+HỎNG-sập  DOSAP-P26b  · ✖ Bài thử sập: không tạo được đơn: HTTP 400 · SO_DU_KHONG_DU · Số dư mẹ không đủ. Hiện có: 5,000đ · thoát 2 · dòng cuối: ✖ Bài thử sập: không tạo được đơn: HTTP 400 · SO_DU_KHONG_DU · Số dư mẹ không đ
+  P26b: tổng 5 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 4 · LẠC 0
+AUDIT-4 bọc P26c: 5 đột biến · -j 2 · đối chứng ['thu', 'thub']
+  ✓ đối chứng thu (cong_cu/thu_P26c.js): 118 đạt · 0 hỏng
+  ✓ đối chứng thub (cong_cu/thu_P26b.js): 66 đạt · 0 hỏng
+HỎNG-sập  VS-Q9-hoan-me-ngoai-tx  · ✖ Bài thử sập: không hoàn được đơn: HTTP 200 / HTTP 500 · run() ngoài giao dịch trong lúc giao dịch đang mở: UPDATE pos_wallets SET balance = balance + ?, tota · thoát 2 · dòng cuối: ✖ Bài thử sập: kh
+HỎNG-sập  SAP-P26c  · ✖ Bài thử sập: Missing catch or finally after try · thoát 2 · dòng cuối: ✖ Bài thử sập: Missing catch or finally after try
+HỎNG      SAI-P26c  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+HỎNG-sập  NEM-P26c  · ✖ Bài thử sập: không mua được gói: HTTP 500 · AUDIT-4 ném giữa ca · thoát 2 · dòng cuối: ✖ Bài thử sập: không mua được gói: HTTP 500 · AUDIT-4 ném giữa ca
+HỎNG-sập  SAP0-P26c  · thoát 0 KHÔNG có dòng chạy hết · thoát 0 · dòng cuối: [A1] huỷ rồi xoá đơn giao từ gói → delivered_qty chỉ hoàn MỘT lần
+  P26c: tổng 5 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 4 · LẠC 0
+AUDIT-4 bọc GOI-1: 4 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): 105 đạt · 0 hỏng
+HỎNG-sập  SAP-GOI-1  · ✖ Bài thử sập: Missing catch or finally after try · thoát 2 · dòng cuối: ✖ Bài thử sập: Missing catch or finally after try
+HỎNG      SAI-GOI-1  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+HỎNG-sập  NEM-GOI-1  · ✖ Bài thử sập: không mua được gói: HTTP 500 · AUDIT-4 ném giữa ca · thoát 2 · dòng cuối: ✖ Bài thử sập: không mua được gói: HTTP 500 · AUDIT-4 ném giữa ca
+HỎNG-sập  SAP0-GOI-1  · thoát 0 KHÔNG có dòng chạy hết · thoát 0 · dòng cuối: [A2] máy chủ chặn lấy vượt TỪNG LOẠI (Q1)
+  GOI-1: tổng 4 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 3 · LẠC 0
+AUDIT-4 bọc GOI-2: 4 đột biến · -j 2 · đối chứng ['thu']
+  ✓ đối chứng thu (cong_cu/thu_GOI1.js): 105 đạt · 0 hỏng
+HỎNG-sập  SAP-GOI-2  · ✖ Bài thử sập: Missing catch or finally after try · thoát 2 · dòng cuối: ✖ Bài thử sập: Missing catch or finally after try
+HỎNG      SAI-GOI-2  · routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+HỎNG-sập  NEM-GOI-2  · ✖ Bài thử sập: không mua được gói: HTTP 500 · AUDIT-4 ném giữa ca · thoát 2 · dòng cuối: ✖ Bài thử sập: không mua được gói: HTTP 500 · AUDIT-4 ném giữa ca
+HỎNG-sập  SAP0-GOI-2  · thoát 0 KHÔNG có dòng chạy hết · thoát 0 · dòng cuối: [A2] máy chủ chặn lấy vượt TỪNG LOẠI (Q1)
+  GOI-2: tổng 4 · BẮT 0 · SỐNG 0 · HỎNG 1 · HỎNG-sập 3 · LẠC 0
+AUDIT-1 dot_bien: 5 đột biến · -j 2 · kiểm sạch 4 loại
+HỎNG-sập  D2K SAP-AUDIT2  (4 s) · sập [cong_cu/gia_lap/chay.js: Giả lập: SẬP — /tmp/audit1__w8sypry/db_x0a3ry5s/kho/server/routes/orders.js:891 ·       }}}{{{ ·       ^] [cong_cu/thu_P26a.js: ✖ Bài thử sập: Missing catch or finally after | [cong_cu/gia_lap/chay.js thoát 2] Giả lập: SẬP — /tmp/audit1__w8sypry/db_x0a3ry5s/kho/server/routes/orders.js:891 ·       }}}{{{ ·       ^ | [cong_cu/thu_P26a.j
+HỎNG-sập  D2K NEM-AUDIT2  (29 s) · sập [cong_cu/gia_lap/chay.js: ✗ KB30 → HTTP: SẬP giữa kịch bản: không tạo được đơn "KB30 mua gói ví + tiền mặt": HTTP 500 AUDIT-4 ném giữa ca] | [cong_cu/gia_lap/chay.js] ✗ KB30 → HTTP: SẬP giữa kịch bản: không tạo được đơn "KB30 mua gói ví + tiền mặt": HTTP 500 AUDIT-4 ném giữa ca
+HỎNG-sập  D2K DOSAP-AUDIT2  (2 s) · sập [cong_cu/thu_P26b.js: ✖ Bài thử sập: không tạo được đơn: HTTP 400 · SO_DU_KHONG_DU · Số dư mẹ không đủ. Hiện có: 5,000đ] | [cong_cu/thu_P26b.js] ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví mẹ 100000 → 75000
+HỎNG-sập  D2K SAP0-AUDIT2  (1 s) · sập [cong_cu/thu_P26b.js: thoát 0 KHÔNG có dòng chạy hết] | mọi lệnh thoát 0
+HỎNG-sập  D2K !DOSAP-KIEM  (105 s) · sập [kiem_tra_truoc_khi_giao.js: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.9 s)  → ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví mẹ 100000 → 75000 | ✗ M3 xoá ] | [kiem_tra_truoc_khi_giao.js] ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.9 s)  → ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví 
+  tổng 5 · thời gian 309 s
+  D2K BẮT 0 · SỐNG 0 · HỎNG 0 · LẠC 0 · TREO 0
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-1/, data/, .vite); thư mục tạm đã xoá
+(LUOI-1: kho nông — KB10_GOC rỗng trong bộ nhớ, 2 GOC-* không chạy = CHƯA KIỂM)
+LUOI-1 dot_bien: 1 đột biến · -j 1 · kiểm sạch 1 cách chạy (kb1)
+✗ HỎNG-sập (mong LẠC)  SAP-LUOI-1  (0 s) · sập [Node.js v22.22.0] | Node.js v22.22.0 · thiếu mẫu: KB\d+ → 
+  tổng 1 · BẮT 0 · LẠC 0 · SỐNG 0 · HỎNG 0 · TREO 0 · đúng mong đợi 0/1 · 2 s
+TACH-GL dot_bien: 1 đột biến · -j 1 · kiểm sạch 1 cách chạy (gl29)
+✗ HỎNG-sập (mong LẠC)  SAP-TACH-GL  (0 s) · sập [Node.js v22.22.0] | Node.js v22.22.0 · thiếu mẫu: KB\d+ →  · 
+  tổng 1 · BẮT 0 · LẠC 0 · SỐNG 0 · HỎNG 0 · TREO 0 · đúng mong đợi 0/1 · 25 s
+  --sap: 0 bộ báo BẮT / SỐNG khi bài thử sập — ĐẠT (không bộ nào)
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
