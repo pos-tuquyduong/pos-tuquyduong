@@ -318,3 +318,57 @@ $ python3 viec/AUDIT-4/boc.py --tu-thu
 
   --tu-thu: 8/8 phép luật mới đúng
   ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
+
+## 8. Vòng sửa 3 — `python3 viec/AUDIT-4/boc.py --tu-thu` (thoát 0, 355,0 s): 10 phép. Mới: (a) bài con sập KHÔNG in ✗ (chay.js `--may-chu` rỗng,
+## đầu ra thật) qua dòng gộp kiem_tra → `thoát mã 2` → cũ không sập · mới sập; (b) ca không tiền tố T nhúng "Giả lập: SẬP" trong CHI TIẾT (dựng theo
+## thu_gia_lap.js:49, :360) → cũ sập · mới không sập. Ngoại lệ nay theo NỘI DUNG; ca T3 đỏ thật: gỡ ngoại lệ → sập (vế có ca đỏ).
+$ python3 viec/AUDIT-4/boc.py --tu-thu
+# thoát 0 · 355.0 s
+  (thu_gia_lap thật: thoát 0 · 145 đạt · 0 hỏng · cắt 1 dòng · còn T0: True)
+  ĐẠT AU3-24 thu_gia_lap thoát 0 không dòng tổng: cũ → không sập · mới → sập (mong sập)
+  (chay.js KB29 có đột biến: thoát 1 · Giả lập: 8 kịch bản · 18 bất biến · KHÔNG ĐẠT (2 lệch))
+  ĐẠT K5 HET: chay.js KHÔNG ĐẠT (n lệch) thoát 1: cũ → không sập · mới → không sập (mong không sập)
+  (DOSAP-KIEM khung: cũ BẮT · mới HỎNG-sập · sập [kiem_tra_truoc_khi_giao.js: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.8 s)  → ✗ M2 huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — )
+  ĐẠT AU3-22 DOSAP-KIEM qua khung cách kiem (K.cham thật): cũ → BẮT · mới → HỎNG-sập (mong HỎNG-sập)
+  (dòng gộp T1a: ✗ bài chạy thật cong_cu/thu_P26b.js xanh (1.8 s)  → ✗ T1a huỷ đơn trả ví mẹ → 200, ví mẹ +25.000 đúng một lần (K5)  — HTTP 200 · ví mẹ 100000 → 75000 )
+  ĐẠT vòng 1: dòng gộp kiem_tra ✗ T1a … | ✖ Bài thử sập: cũ → không sập · mới → sập (mong sập)
+  (TACH-GL bản sao: áp được)
+  (thu_gia_lap đột biến: thoát 1 · ✗ T3 cha bị SIGTERM → cha thoát 2, dòng cuối là dòng SẬP, mọi lượt bị dừng (đóng ≠ 0, ít nhất một lượt tự thoát nhờ SIGTERM), mọi con đã chết, không s)
+  ĐẠT vòng 2: thu_gia_lap đỏ thật ✗ T3 … Giả lập: SẬP (gỡ ngoại lệ → sập): cũ → không sập · mới → không sập (mong không sập)
+  ĐẠT vòng 2: dòng gộp --day-du của thu_gia_lap ✗ T3 (đỏ thật): cũ → không sập · mới → không sập (mong không sập)
+  (thu_cong_cu khối ném: thoát 1 · ✗ baiT2 sập: AUDIT-4 khối sập ·   ĐỎ — 1 chỗ hỏng)
+  ĐẠT vòng 2: khối thu_cong_cu ném (✗ baiT2 sập: …): cũ → không sập · mới → sập (mong sập)
+  (chay.js --may-chu rỗng: thoát 2 · Giả lập: SẬP — Error: Cannot find module '/home/user/pos-tuquyduong/database.js' · Require stack: ·  · dòng gộp: ✗ bài chạy thật cong_cu/gia_lap/chay.js xanh (0.5 s)  → thoát mã 2)
+  ĐẠT vòng 3: dòng gộp kiem_tra, bài con sập không dòng ✗ (→ thoát mã N): cũ → không sập · mới → sập (mong sập)
+  ĐẠT vòng 3: ca không tiền tố T nhúng "Giả lập: SẬP" trong chi tiết (dựng theo :49, :360): cũ → sập · mới → không sập (mong không sập)
+  ĐẠT AU3-23 NEM- ra BẮT → --sap phải KHÔNG ĐẠT: cũ → ĐẠT · mới → KHÔNG ĐẠT (mong KHÔNG ĐẠT)
+
+  --tu-thu: 10/10 phép luật mới đúng
+  ✓ kho thật không đổi (git status ngoài viec/AUDIT-4/)
+
+## 9. D2 riêng (soát vòng 3: mã thoát chỉ phụ thuộc D2) — `python3 viec/AUDIT-4/dot_bien.py D2-AU4-sai-chuoi D2-AU4-da-biet D2-AU4-vo-hai D2-AU4-sap D2-AU4-sap-0`
+$ python3 viec/AUDIT-4/dot_bien.py D2-AU4-sai-chuoi D2-AU4-da-biet D2-AU4-vo-hai D2-AU4-sap D2-AU4-sap-0
+# thoát 0 · 4.6 s
+AUDIT-4 dot_bien: 5 đột biến
+  ✓ đối chứng p20 (cong_cu/thu_P20.js): thoát 0 · 75 đạt · 0 hỏng (mong 75 đạt · 0 hỏng)
+  HỎNG     D2-AU4-sai-chuoi
+           routes/orders.js: chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  BẮT      D2-AU4-da-biet
+           [p20] thoát 1 · 66 đạt · 9 hỏng
+           [p20] ✗ G1 đơn gốc đã huỷ: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G1 đơn gốc đã huỷ: không có đơn mới  — trước 18 · sau 19
+           [p20] ✗ G1 đơn gốc đã huỷ: used_count voucher = 0  — 1
+           [p20] ✗ G2 đơn gốc đã hoàn: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G2 đơn gốc đã hoàn: không có đơn mới  — trước 20 · sau 21
+           [p20] ✗ G2 đơn gốc đã hoàn: used_count voucher = 0  — 1
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: dùng voucher → 400 MA_DON_GOC_KHONG_HOP_LE  — HTTP 200
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: không có đơn mới  — trước 22 · sau 23
+           [p20] ✗ G3 đơn gốc payment_status ≠ paid: used_count voucher = 0  — 1
+  SỐNG     D2-AU4-vo-hai
+           [p20] thoát 0 · 75 đạt · 0 hỏng
+  HỎNG-sập D2-AU4-sap
+           [p20] bài thử SẬP (không phải bị bắt): ✖ Bài thử sập: Missing catch or finally after try
+  HỎNG-sập D2-AU4-sap-0
+           [p20] bài thử SẬP (không phải bị bắt): thoát 0 KHÔNG có dòng chạy hết
+
+  tổng 5 · BẮT 1 · SỐNG 1 · HỎNG 1 · HỎNG-sập 2 · LẠC 0 · đúng mong 5/5
