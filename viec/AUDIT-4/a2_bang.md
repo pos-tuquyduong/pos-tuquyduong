@@ -14,7 +14,7 @@ ca LUOI-3); `BV-AU3-SL-THE-BO-CONG` HỎNG (AU4-9). Còn lại từng tên = AUD
 A3L 15/18 · B3 3 · LUOI-1 78 · TACH-GL 25). Mới chạy: BAN-HANG-1 7/7, P20b 4/4 (= N11 LUOI-3 / hồ sơ P20b).
 Vòng sửa 1 (luật sập không còn bỏ qua dòng gộp `✗ T…` của kiem_tra): chạy lại `boc.py --khung D1 -j 3` (57 tên nhóm D1 = 53 kiem + 4 cong, 763 s) →
 BẮT 50 · HỎNG-sập 5 · LẠC 2 — y hệt từng tên lần đầu (lỗ không che BẮT nào); `--bo` ×3 y hệt (mã thoát nay theo MONG). Vòng sửa 2 (dấu sập khối `baiX sập:`, phép trừ ca T theo đoạn):
-chạy lại khung AUDIT-1 trừ C2F (88 tên — D1: 53 cách kiem + 4 cong; G3 / A3 / B1 / C2: kb, gac, cong, congcu…; 1151 s) theo luật vòng 2: y hệt từng tên (lỗ không che BẮT nào). 4 tên kiem / kiemdd của AUDIT-2 A3B ngoài A2 theo phiếu (A3L + B3) — không chạy.
+chạy lại khung AUDIT-1 trừ C2F (88 tên — cách chạy đếm từ `DOT_BIEN`: kiem 53 · gac 16 · cong 12 · gl 3 · kb1 2 · kb10 1 · c2 1 (D1 = 53 kiem + 4 cong); 1151 s) theo luật vòng 2: y hệt từng tên (lỗ không che BẮT nào). 4 tên kiem / kiemdd của AUDIT-2 A3B ngoài A2 theo phiếu (A3L + B3) — không chạy.
 
 ## LUOI-3 — so câu lỗi với `viec/LUOI-3/bang_chung_do.txt` mục SAU (`so_luoi3.py` nháp: câu ca trước "  — " và số quan sát sau đó)
 ```
