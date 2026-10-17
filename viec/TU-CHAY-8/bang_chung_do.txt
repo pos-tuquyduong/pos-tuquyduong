@@ -3,11 +3,11 @@ TU-CHAY-8 — bằng chứng đỏ trước khi vá (bài thử BẢN CUỐI ch�
 SỐ CA cong_cu/thu_TOCDO1.js: 79
 SỐ CA cong_cu/thu_gia_lap.js: 149
 SỐ CA tu_chay/thu_cong_cu.js: 109
-SỐ CA tu_chay/thu_nguoi_gac.js: 1183
+SỐ CA tu_chay/thu_nguoi_gac.js: 1189
 (tu_chay/thu_cong.js: phiếu ## Bài thử cũ sửa — miễn A11, Q4; không cần SỐ CA)
 
 Code đã vá (17.10): thu_TOCDO1 "78 đạt · 1 hỏng" (hỏng D6 — đỏ SẴN trên main, xem trang_thai ## Phát hiện) · thu_gia_lap "149 đạt · 0 hỏng"
-· thu_cong_cu "109 phép · 0 chỗ hỏng" · thu_nguoi_gac "1003/1003 ca người gác đúng mã · 180 phép khác" (soát vòng 1).
+· thu_cong_cu "109 phép · 0 chỗ hỏng" · thu_nguoi_gac "1009/1009 ca người gác đúng mã · 180 phép khác" (soát vòng 2).
 
 ══ cong_cu/thu_TOCDO1.js (bản cuối, chép vào cây gốc giải nén) trên gốc: thoát 1 ══
 thu_TOCDO1: 59 đạt · 20 hỏng
@@ -43,8 +43,8 @@ thu_cong_cu: 109 phép · 4 chỗ hỏng
   ✗ TU-CHAY-8 A3 skill luật cứng: người gác đọc cả file script được chạy; sửa file có cụm bí mật của bài thử → công cụ Edit/Write, không lệnh bash
   ✗ TU-CHAY-8 A7 skill bước 1.1: HEAD tách rời trỏ đúng commit của viec/<MÃ> → chạy `git checkout viec/$0` rồi đi tiếp, không dừng
 
-══ tu_chay/thu_nguoi_gac.js (bản cuối sau soát vòng 1, chép vào cây gốc giải nén) trên gốc: thoát 1 ══
-thu_nguoi_gac: 956/1003 ca người gác đúng mã · 179 phép khác
+══ tu_chay/thu_nguoi_gac.js (bản cuối sau soát vòng 2, chép vào cây gốc giải nén) trên gốc: thoát 1 ══
+thu_nguoi_gac: 957/1009 ca người gác đúng mã · 179 phép khác
   ✗ ca Bash "node <nháp>/s.js": mong CHAN:B-BIMAT-CHU, ra CHO
   ✗ ca Bash "python3 <nháp>/s.py": mong CHAN:B-BIMAT-CHU, ra CHO
   ✗ ca Bash "bash cong_cu/bm.sh": mong CHAN:B-BIMAT-CHU, ra CHO
@@ -75,6 +75,6 @@ thu_nguoi_gac: 956/1003 ca người gác đúng mã · 179 phép khác
   ✗ ca Bash "node <nháp>/vo_hai.js | tee <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
   ✗ ca Bash "node <nháp>/vo_hai.js | grep x > <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
   ✗ ca Bash "node <tạm>/home/.claude/plans/p.js": mong CHAN:B-BIMAT-CHU, ra CHO
-  ✗ … và 17 ca hỏng khác
-  ✗ tự sinh: 686 biến thể đều bị chặn — "cd <nháp> &&\nnode s.js" | "cd <nháp>  \\\n&& node s.js"
-  ĐỎ — 48 chỗ hỏng
+  ✗ … và 22 ca hỏng khác
+  ✗ tự sinh: 689 biến thể đều bị chặn — "cd <nháp> &&\nnode s.js" | "cd <nháp>  \\\n&& node s.js" | "cd <nháp> &&\nnode s" | "cd <nháp>  \\\n&& node s"
+  ĐỎ — 53 chỗ hỏng
