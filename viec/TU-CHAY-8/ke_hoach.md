@@ -148,7 +148,8 @@ Thời gian máy: `npm test` khi đổi tu_chay/: thu_cong từ ~52 s → ~20 s 
 
 1. Ngoài Phạm vi: không; `thu_gia_lap.js` chỉ ở Q1a. ✓
 2. Ngắn hơn: bỏ hai đường siết `node < f` / `| node` → để chủ quán chọn ở Q5b. Phép THIET_KE của A5 GIỮ (phiếu đòi "THIET_KE.md ghi
-   A1–A5", ~1 dòng, và là thứ duy nhất làm "quên đổi phiên bản" lộ ra khi bỏ ghim).
+   A1–A5", ~1 dòng, và là thứ duy nhất làm "quên đổi phiên bản" lộ ra khi bỏ ghim). [Soát vòng 1: câu này sai — phép chỉ bắt "nâng
+   PHIEN_BAN mà quên ghi THIET_KE"; sửa tu_chay/ mà quên nâng PHIEN_BAN thì mục cũ vẫn khớp, phép vẫn xanh.]
 3. Ca còn thiếu → thêm:
    - A3 câu skill "dùng Edit/Write, không bash" → phép đọc skill trong `thu_cong_cu.js` + đột biến `BV-TUCHAY8-SKILL-EDIT`.
    - A1 hạn 120 s mỗi phần → phép tĩnh trong `thu_TOCDO1` mục P: điều phối sinh con với `timeout: 120000` (đọc mã nguồn thu_cong.js).

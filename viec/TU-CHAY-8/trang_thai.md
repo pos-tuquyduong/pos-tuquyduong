@@ -82,7 +82,7 @@ SỐNG (chưa ca dòng "đạt · hỏng" không số) → thêm ca C4c (`2223a8
 
 ## Phát hiện
 1. **D6 của `cong_cu/thu_TOCDO1.js` đỏ SẴN trên main** (không do việc này): chú thích trỏ số dòng cứng đếm được 5 > `NGUONG_DONG_CUNG = 4`
-   (`kiem_tra_truoc_khi_giao.js:573`) — `server/routes/orders.js:1640`, `cong_cu/thu_P20.js:432`, `cong_cu/thu_P26c.js:12`, `:357`, `:886`
+   (`grep -n "NGUONG_DONG_CUNG = " kiem_tra_truoc_khi_giao.js`) — `server/routes/orders.js:1640`, `cong_cu/thu_P20.js:432`, `cong_cu/thu_P26c.js:12`, `:357`, `:886`
    (MA-GIAM-1 / LUOI-4 gộp sau TU-CHAY-7). Bộ kiểm chỉ CẢNH BÁO (đúng thiết kế E15) nên `npm test` xanh; nhưng thu_TOCDO1 là bài thử ĐỔI
    trong PR này → cổng `chay` chạy nó trên code PR → đỏ. Sửa nằm ngoài Phạm vi (`server/`, `cong_cu/thu_P*.js` — Cấm, LUOI-5). Xem Câu hỏi Q7.
 2. Q5b (chủ quán: không làm): `node < f`, `… | node`, `python3 < f` vẫn chạy nội dung file mà người gác không soi.
