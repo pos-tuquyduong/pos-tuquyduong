@@ -34,6 +34,9 @@ lách được bằng "viết ra file rồi chạy"; đổi phiên bản bộ kh
 - A6 `npm test`, `--day-du` xanh; CỔNG CHẠY cục bộ ĐẠT (A2) — nếu chỉ còn cảnh báo "khớp byte" chờ cài thì ghi rõ; `viec/TU-CHAY-8/dot_bien.py`
   mỗi chỗ vá ≥ 1 VS- + BV- (chỗ là chữ: chỉ BV-), có đối chứng; `bang_chung_do.txt` có SỐ CA cho MỌI bài thử đổi.
 
+## Bài thử cũ sửa
+- tu_chay/thu_cong.js — ca chia lượt / tự đếm phần thử chính thu_cong.js qua tiến trình con nên XANH cả trên code gốc; đỏ chứng minh bằng viec/TU-CHAY-8/dot_bien.py (chủ quán miễn 17.10, Q4)
+
 ## Phạm vi
 - viec/TU-CHAY-8/**
 - tu_chay/thu_cong.js
@@ -45,6 +48,7 @@ lách được bằng "viết ra file rồi chạy"; đổi phiên bản bộ kh
 - tu_chay/PHIEN_BAN
 - kiem_tra_truoc_khi_giao.js
 - cong_cu/thu_TOCDO1.js
+- cong_cu/thu_gia_lap.js
 
 ## Ngân sách
 ~80–140 dòng code bộ khung + ~150 dòng thử. Kế hoạch ước lượng thời gian máy (đo).
@@ -59,6 +63,8 @@ không
 
 ## Cấm
 - Không sửa `.claude/`, `.github/`, `tu_chay/cong.js`, `tu_chay/cai_dat.js`, `tu_chay/cau_hinh.json`, `tu_chay/lenh_ra_soat.md`, `tu_chay/MAU_PHIEU.md`,
-  `server/`, `client/`, `cong_cu/thu_P*.js`, `cong_cu/thu_GOI1.js` (LUOI-5), `cong_cu/thu_gia_lap.js`, `cong_cu/gia_lap/**`, `KHUON_LOI.md`, sổ việc.
+  `server/`, `client/`, `cong_cu/thu_P*.js`, `cong_cu/thu_GOI1.js` (LUOI-5), `cong_cu/gia_lap/**`, `KHUON_LOI.md`, sổ việc.
+- `cong_cu/thu_gia_lap.js` (chủ quán mở 17.10, Q1): CHỈ sửa các bài giả cho in dòng tổng + thêm ca "bài giả im lặng thoát 0 → FAIL"
+  (ĐỎ trên code gốc, ghi SỐ CA); không đổi ca / neo nào khác.
 - A3 KHÔNG được nới luật chặn nào của người gác, chỉ thêm chỗ soi. Không nới hạn 120 s / 110 s. Không bỏ bài thử, không bớt phép.
 - Chỉ push đúng `git push -u origin viec/TU-CHAY-8`. Không đụng `main`, không merge, không tạo PR.
