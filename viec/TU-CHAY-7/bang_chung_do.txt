@@ -36,3 +36,5 @@ Vòng sửa 3: mỗi bài thêm 1 phép tĩnh "chế độ con không vào bằn
 (đưa đúng cơ chế biến môi trường của vòng 0–1 trở lại → đỏ). Các ca đỏ trên gốc ở trên không đổi.
 Vòng sửa 4 (Q3c): thu_gia_lap trên code đã vá 148 đạt · 0 hỏng (DON: phép tĩnh + con het + con nem thay 4 ca tín hiệu); trên gốc dựng
 đỏ C3f + DON con het + DON con nem (145 đạt · 3 hỏng, trên).
+SỐ CA tu_chay/thu_cong_cu.js: 105
+SỐ CA tu_chay/thu_nguoi_gac.js: 1103
