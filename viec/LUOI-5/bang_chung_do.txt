@@ -2,6 +2,8 @@
 
 ## 1. TRƯỚC — bài CHƯA có ca LUOI-5 (cong_cu/thu_P26c.js 121 ca, thu_GOI1.js 110 ca): 9 SỐNG (8 mục tiêu + Q1) · 1 HỎNG-sập, 8 đã BẮT; đối chứng xanh
 $ python3 viec/LUOI-5/dot_bien.py --truoc -j 4
+# CHẠY LẠI ĐƯỢC CHỈ ở commit bbc6276 (bài chưa có ca): `--truoc` đòi P26c 121 / GOI1 110 ca (dot_bien.py `SO_CA`); trên HEAD bài có 128 / 111 ca nên
+# đối chứng lệch số ca → thoát 4 (đúng thiết kế K3, không phải lỗi). Muốn dựng lại: lấy bài cũ bằng `git show bbc6276:cong_cu/thu_P26c.js` và `git show bbc6276:cong_cu/thu_GOI1.js` (hai bài chưa có ca LUOI-5).
 # thoát 0 (18/18 đúng nhãn N0)
 LUOI-5 dot_bien: 18 đột biến · -j 4 · lưới 8 bài
   ✓ đối chứng cong_cu/gia_lap/chay.js: Giả lập: 32 kịch bản · 18 bất biến · ĐẠT
