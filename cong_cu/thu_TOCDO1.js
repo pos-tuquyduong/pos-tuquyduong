@@ -230,7 +230,7 @@ hook('T11b hook pre-commit thật: git commit -a', ['-a']);
       k(`C4b (A4 K5) bài thoát 0 in dòng tổng dạng ${ten} → xanh`, v === 'true', v);
     }
     for (const [ten, dong] of [['"3 đạt, 0 hỏng" (thiếu ·)', '3 đạt, 0 hỏng'], ['"Giả lập: 32 kịch bản" (thiếu bất biến)', 'Giả lập: 32 kịch bản'],
-      ['"phép · chỗ hỏng" không số', 'thu: phép · chỗ hỏng']]) {
+      ['"phép · chỗ hỏng" không số', 'thu: phép · chỗ hỏng'], ['"đạt · hỏng" không số', 'thu: đạt · hỏng']]) {
       v = thu1('gan.js', `console.log(${JSON.stringify(dong)});\n`);
       k(`C4c (A4) dòng gần giống ${ten} không tính là dòng tổng → FAIL`, v === IM, v);
     }
