@@ -473,7 +473,7 @@ chac('orders.js chặn sản phẩm chưa có giá',
 
 // E11 — POS-P20-v2: bài thử CHẠY THẬT trong bộ kiểm (cũng là pre-commit và
 // hook Stop). Phép tĩnh chỉ soi chữ; bài thật tạo đơn, huỷ, hoàn tiền rồi gọi
-// route. Hết giờ hoặc sập = hỏng. canhGan (HOC-2b C3, chỉ giả lập + thu_gia_lap): xanh mà quá 80 % hạn → CẢNH BÁO
+// route. Hết giờ hoặc sập = hỏng. canhGan (HOC-2b C3: giả lập + thu_gia_lap; TU-CHAY-7 A1: + thu_cong): xanh mà quá 80 % hạn → CẢNH BÁO
 // (không chặn) — để thấy trước khi bài chạm hạn. Bài thử: cong_cu/thu_gia_lap.js [C3] cắt chính hàm này ra chạy.
 function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   const t0 = Date.now();
@@ -567,6 +567,31 @@ function quetRouteGhi(docFile, tenFile) { // → { getGhi: ['file:dòng'], khong
   else pass(`route ghi không qua loiGhi = ${n}`, 'đúng ngưỡng, chưa dọn thêm');
 }
 
+// E15 — TU-CHAY-7 A3 (đề xuất BAN-HANG-1): chú thích trỏ số dòng cứng — dạng "(" + ":N)" hoặc ":N–M" — trôi sau mỗi patch (K1: chú thích
+// là khẳng định). Bánh cóc theo DÒNG: mọc → CẢNH BÁO liệt kê, giảm → nhắc hạ; không FAIL. Vùng: server/**, client/src/**, cong_cu/thu_*.js,
+// tu_chay/*.js. Chú thích = phần sau // hoặc /*, hoặc dòng mở bằng *. Bài thử: cong_cu/thu_TOCDO1.js mục D cắt từ hằng tới hết khối gọi.
+const NGUONG_DONG_CUNG = 4;
+function quetDongCung(docFile, tenFile) { // → ['file:dòng']
+  const VUNG = /^(server\/.+\.js|client\/src\/.+\.jsx?|cong_cu\/thu_[^/]+\.js|tu_chay\/[^/]+\.js)$/;
+  const SO = /\(:\d+\)|:\d+[–-]\d+/;
+  const ra = [];
+  for (const f of tenFile.filter((x) => VUNG.test(x))) {
+    String(docFile(f)).split('\n').forEach((d, i) => {
+      const m = /\/[/*](.*)$|^\s*\*(.*)$/.exec(d);
+      if (m && SO.test(m[1] ?? m[2])) ra.push(`${f}:${i + 1}`);
+    });
+  }
+  return ra;
+}
+{
+  const ds = quetDongCung(doc, [...liet('server', ['.js']), ...liet('client/src', ['.js', '.jsx']), ...liet('cong_cu', ['.js']), ...liet('tu_chay', ['.js'])]);
+  if (ds.length > NGUONG_DONG_CUNG) {
+    canhBao(`chú thích trỏ số dòng cứng ≤ ${NGUONG_DONG_CUNG}`, `đếm được ${ds.length} — MỌC THÊM (ghi tên hàm / mẫu grep thay số dòng): ${ds.join(', ')}`);
+  } else if (ds.length < NGUONG_DONG_CUNG) {
+    pass(`chú thích trỏ số dòng cứng = ${ds.length}`, `đã dọn bớt ${NGUONG_DONG_CUNG - ds.length} chỗ → HẠ NGUONG_DONG_CUNG xuống ${ds.length} trong file này`);
+  } else pass(`chú thích trỏ số dòng cứng = ${ds.length}`, 'đúng ngưỡng, chưa dọn thêm');
+}
+
 // E10 — POS-P21-v1: đối soát ví (/:phone/reconcile, /reconcile-all) chỉ cộng các loại dòng làm đổi số dư ví.
 // Hai route này chưa có nút trên màn hình — chỉ gọi thẳng API với quyền adjust_balance.
 // pay-debt ghi 'debt_payment' số DƯƠNG (tiền mặt/chuyển khoản trả nợ); SUM mọi
@@ -613,7 +638,7 @@ function lyDoChayThuCong() {
   return f ? 'đổi ' + f : null;
 }
 const lyDoThuCong = lyDoChayThuCong();
-if (lyDoThuCong) { dong.push(`  – chạy thu_cong.js: ${lyDoThuCong}`); chayBaiThat('tu_chay/thu_cong.js'); }
+if (lyDoThuCong) { dong.push(`  – chạy thu_cong.js: ${lyDoThuCong}`); chayBaiThat('tu_chay/thu_cong.js', undefined, 120000, true); }
 else dong.push('  – bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github');
 
 // T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/

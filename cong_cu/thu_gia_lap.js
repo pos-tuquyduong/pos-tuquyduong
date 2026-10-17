@@ -22,7 +22,9 @@
  *      T6: SIGTERM mọi lượt ngay lúc kho vừa tạo → không sót kho (cha tạo + dọn kho từng lượt). T7–T9: --kho / --luot lạ → TỪ CHỐI.
  *  D1–D3 (TU-CHAY-5) --kho chỉ qua kênh IPC · lượt con TỪ CHỐI → cha dừng mọi lượt, thoát 3 · đầu ra con đọc bằng utf8.
  *  C3  (HOC-2b) hàm chayBaiThat THẬT cắt từ kiem_tra_truoc_khi_giao.js: xanh mà
- *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này).
+ *      quá 80 % hạn → CẢNH BÁO, chỉ khi lời gọi bật cờ (giả lập + bài này + thu_cong.js — TU-CHAY-7 A1).
+ *  DON (TU-CHAY-7 A2, chủ quán chốt Q3c — như thu_cong.js) TAM mang pid, dọn ở exit (cả khi ném); bị giết thì lần chạy sau dọn
+ *      thư mục thu_gl_<pid ĐÃ CHẾT>_*, giữ của pid còn sống. Không bắt tín hiệu (bắt = chờ con → hạn thật quá 120 s). Con tự thử: cờ argv.
  *  banSao chép server/ THẬT (dereference) và chỉ ghi khi đích nằm trong thư mục
  *      tạm — server/ là liên kết về kho thật thì từng ghi XUYÊN (HOC-2b, 08.10).
  *
@@ -32,14 +34,24 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const { Worker } = require('worker_threads');
 
 const GOC = path.join(__dirname, '..');
 const iGL = process.argv.indexOf('--gia-lap');
 const GL = path.resolve(iGL > 0 ? process.argv[iGL + 1] : path.join(__dirname, 'gia_lap'));
 const CHAY = path.join(GL, 'chay.js');
-const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'thu_gl_')));
+// TU-CHAY-7 A2 (Q3c, như thu_cong.js): TAM mang pid; dọn ở 'exit' (cả khi ném). Bị giết thì lần chạy sau dọn thư mục của pid đã chết.
+for (const d of fs.readdirSync(os.tmpdir())) {
+  const pid = +(/^thu_gl_(\d+)_/.exec(d) || [])[1];
+  if (!pid) continue;
+  try { process.kill(pid, 0); } catch (e) { if (e.code === 'ESRCH') try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch {} }
+}
+const TAM = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), `thu_gl_${process.pid}_`)));
+process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true }); } catch {} });
+// Con tự thử của ca DON: in TAM rồi `--con-het` thoát 0 / `--con-nem` ném. Cờ argv — biến môi trường thì lọt từ shell / cổng (soát vòng 3).
+const CHE_CON = { '--con-het': 'het', '--con-nem': 'nem' }[process.argv[2]];
+if (CHE_CON) { console.log('TAM ' + TAM); if (CHE_CON === 'nem') throw new Error('nem thu'); process.exit(0); }
 const SO_KB = 32;   // P26c: + KB30–KB32
 const DONG_DAT = `Giả lập: ${SO_KB} kịch bản · 18 bất biến · ĐẠT`;
 
@@ -49,7 +61,6 @@ const k = (ten, dung, them = '') => {
   if (dung) { dat++; console.log(`  ✓ ${ten}`); } else { hong.push(ten); console.log(`  ✗ ${ten}${them ? '  — ' + them : ''}`); }
 };
 const ket = () => {
-  try { fs.rmSync(TAM, { recursive: true, force: true }); } catch { /* bỏ qua */ }
   console.log(`\n  ${dat} đạt · ${hong.length} hỏng\n`);
   process.exit(hong.length ? 1 : 0);
 };
@@ -212,7 +223,7 @@ async function main() {
   // C3g + C3a kẹp tỉ lệ ngưỡng trong (70 %, 90 %); C3h khoá cờ MẶC ĐỊNH bằng hành vi (gọi 3 đối số, không truyền cờ).
   k('C3g bài xanh 3,5 s (70 % hạn giả 5 s, dưới ngưỡng 80 %), cờ bật → xanh, 0 cảnh báo', c3[4].chac.join() === 'true' && !c3[4].canh.length, mo3(c3[4]));
   k('C3h bài xanh 4,5 s, hạn giả 5 s, KHÔNG truyền cờ (mặc định) → xanh, 0 cảnh báo', c3[5].chac.join() === 'true' && !c3[5].canh.length, mo3(c3[5]));
-  // C3f: lời gọi THẬT trong bộ kiểm — đúng hai lời gọi bật cờ (giả lập + bài này), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
+  // C3f: lời gọi THẬT trong bộ kiểm — đúng ba lời gọi bật cờ (giả lập + bài này + thu_cong.js), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
   // (lồng ngoặc, xuống dòng đều được); đối số cờ (thứ tư) chỉ được là chữ true/false viết thẳng — bật qua biến là ĐỎ.
   const doiSo = (i) => { // đối số cấp ngoài của lời gọi mở ngoặc tại i
     const ra = ['']; let sau = 0;
@@ -230,8 +241,8 @@ async function main() {
   const bat = goi.filter((a) => a && a[3] === 'true').map((a) => a[0]).sort().join(' ');
   // Ngưỡng đúng chữ `han * 0.8` (chủ quán chốt 80 %): C3a/C3g chỉ kẹp tỉ lệ trong (70 %, 90 %) — soát chat 08.10 cài 0,75 / 0,85 vẫn SỐNG.
   const nguong80 = (khoi.match(/\bhan \* 0\.8(?![\d.])/g) || []).length;
-  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8',
-    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js'" && !lech.length && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt)
+  k('C3f bộ kiểm: CHỈ giả lập + thu_gia_lap + thu_cong bật cờ (chữ true viết thẳng), mặc định canhGan = false, ngưỡng đúng han * 0.8',
+    bat === "'cong_cu/gia_lap/chay.js' 'cong_cu/thu_gia_lap.js' 'tu_chay/thu_cong.js'" && !lech.length && /function chayBaiThat\([^)]*canhGan = false\)/.test(kt)
       && nguong80 === 1,
     `bật: ${bat || '(không)'} · ${goi.length} lời gọi · cờ không phải chữ true/false: ${lech.map((a) => (a || ['?'])[0]).join(', ') || '(không)'} · chữ han * 0.8: ${nguong80} lần`);
 
@@ -273,6 +284,23 @@ async function main() {
   const [t3, t4, t5, t6] = await Promise.all([
     chayTheoDoi('t3', 'SIGTERM cha'), chayTheoDoi('t4', 'SIGTERM con'), chayTheoDoi('t5', 'SIGKILL cha'), chayTheoDoi('t6', 'SIGTERM sớm'),
   ]);
+  // ── DON (TU-CHAY-7 A2, Q3c): khuôn baiDonTam của tu_chay/thu_cong.js — con chạy với TMPDIR riêng có sẵn thư mục của pid chết + pid sống ──
+  console.log('\n[DON] TU-CHAY-7 A2 — thư mục tạm: dọn ở exit / ném; lần chạy sau dọn thư mục của pid đã chết');
+  k('DON chế độ con chỉ vào bằng cờ argv — bài không đọc biến môi trường *_CON', !/process\.env\.\w*_CON\b/.test(fs.readFileSync(__filename, 'utf8')));
+  {
+    const T = path.join(TAM, 'tmp_con');
+    const chet = spawnSync(process.execPath, ['-e', '']).pid;   // đã thoát khi spawnSync trả về
+    const cu = `thu_gl_${chet}_x`, song = `thu_gl_${process.pid}_x`;
+    for (const [che, ma] of [['het', 0], ['nem', 1]]) {
+      for (const d of [cu, song]) fs.mkdirSync(path.join(T, d), { recursive: true });
+      const r = spawnSync(process.execPath, [__filename, '--con-' + che], { cwd: GOC, env: { ...SACH, TMPDIR: T }, encoding: 'utf8', timeout: 20000 });
+      const tam = /^TAM (.+)$/m.exec(r.stdout || '');
+      const con = fs.readdirSync(T).filter((d) => d.startsWith('thu_gl_')).sort();
+      k(`DON con ${che}: thoát ${ma}, đã tạo TAM (thu_gl_<pid con>_ trong TMPDIR) rồi dọn nó + thư mục pid chết, giữ thư mục pid sống`,
+        r.status === ma && !!tam && path.dirname(tam[1]) === T && path.basename(tam[1]).startsWith(`thu_gl_${r.pid}_`) && con.join() === song,
+        `thoát ${r.status}${r.signal ? ' (' + r.signal + ')' : ''} · TAM con: ${tam ? tam[1] : '(không in)'} · còn: ${con.join(', ') || '(rỗng)'}`);
+    }
+  }
   console.log('\n[E1] giả lập trên code thật');
   k(`thoát 0, dòng tổng đúng "${DONG_DAT}"`, e1.status === 0 && cuoi(e1) === DONG_DAT,
     moTa(e1) + (e1.status ? '\n' + e1.ra.split('\n').filter((l) => / → /.test(l)).slice(0, 8).join('\n') : ''));
