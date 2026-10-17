@@ -6,20 +6,12 @@ Mỗi lỗi ở đây là tiền thật và là nhân viên đứng chờ trư�
 Triết lý của kho này: **đơn giản · tối ưu · không lỗi**. Và nguyên tắc gốc:
 **bịt bằng KHOÁ, không bằng LỜI DẶN** (C16).
 
-## Định hướng của chủ quán — bắt buộc cho mọi việc (chốt 11–12.10.2026)
+## Luật xây app và lịch — bắt buộc cho mọi việc (chủ quán chốt 17.10.2026)
 
-1. **Chất lượng trước hết.** Luôn đảm bảo chất lượng khi máy tự chạy, vì app xây để dùng lâu dài. Không cắt
-   chất lượng để kịp thời gian.
-2. **Hiệu quả mà thật đơn giản.** Luôn hướng tới phương án hiệu quả nhưng đơn giản, tránh phức tạp hoá vấn đề.
-   Trước khi chốt phiếu, kế hoạch, code hay báo cáo, tự hỏi: "có cách đơn giản hơn mà vẫn đúng không?". Có thì
-   dùng cách đó.
-3. **Đi vào trọng tâm, tránh lan man.** Bám đúng mục tiêu của việc. Không thêm mục "cho đủ". Thấy việc khác chưa
-   cần làm thì ghi vào Phát hiện để làm sau, không tự mở rộng.
-4. **Code khoa học, ngăn nắp, tinh gọn.** Khi xây app mới, chức năng mới hay thêm code mới, sắp xếp khoa học,
-   ngăn nắp: đặt đúng chỗ, tên rõ ràng, mỗi phần làm một việc. Như vậy sau này sửa chữa, nâng cấp dễ. Nhưng phải
-   đơn giản, tinh gọn, không rườm rà lan man.
-5. **Tiền phải đối soát được.** Hệ thống tiền phải có đối soát hằng ngày, tuần, tháng để loại trừ lỗi và kiểm
-   soát liên tục. Tính năng tiền mới phải kèm quy tắc đối soát tương ứng.
+Luật chung của chủ quán — 7 tiêu chí, đồng bộ ba hệ POS · SX · App KH, bố trí code, bảo mật, tiền, rà lỗi — ở
+`LUAT_XAY_APP.md` (nạp ngay dưới). Mốc và hạng mục 14 ngày ở `LICH_KHAI_TRUONG.md`. Máy không sửa hai file này.
+
+@LUAT_XAY_APP.md
 
 @KHUON_LOI.md
 
