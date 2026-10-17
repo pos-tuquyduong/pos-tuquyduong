@@ -960,11 +960,18 @@ router.post("/", authenticate, async (req, res) => {
         // trong transaction (transaction "write" khoá ghi độc quyền, đọc lúc này chắc chắn
         // là số mới nhất, không có đơn nào khác chen ngang được), rồi mới quyết định tăng.
         const freshCode = await tx.queryOne(
-          "SELECT usage_limit, used_count FROM pos_discount_codes WHERE id = ?",
+          "SELECT usage_limit, used_count FROM pos_discount_codes WHERE id = ? AND is_active = 1",
           [discountCodeId],
         );
+        // MA-GIAM-1 (A3): mã bị xoá / vô hiệu giữa phép kiểm (ngoài giao dịch) và đây → không giảm, không tạo đơn.
+        if (!freshCode) {
+          await tx.rollback();
+          return res.status(400).json({
+            error: `Mã giảm giá "${finalDiscountCode}" vừa bị xoá hoặc tắt. Vui lòng bỏ mã hoặc thử mã khác.`,
+            code: "MA_GIAM_KHONG_CON",
+          });
+        }
         if (
-          freshCode &&
           freshCode.usage_limit > 0 &&
           freshCode.used_count >= freshCode.usage_limit
         ) {
