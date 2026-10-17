@@ -18,7 +18,4 @@
 - Cổng chạy thử trên máy mây: `✓ CỔNG CHẠY ĐẠT` (~5 phút) — A2 không cần sửa code.
 
 ## Câu hỏi
-Xem mục `- Soát kế hoạch bằng agent phụ: 4 câu, đã nhận vào cuối `ke_hoach.md`.
-- Cổng chạy thử trên máy mây: `✓ CỔNG CHẠY ĐẠT` (~5 phút) — A2 không cần sửa code.
-
-## Câu hỏi` của `ke_hoach.md` (Q1–Q6) — gom một lần.
+Xem mục `## Câu hỏi` của `ke_hoach.md` (Q1–Q6) — gom một lần.
