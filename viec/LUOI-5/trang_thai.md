@@ -49,7 +49,12 @@ Neo: C2F sinh lại trên HEAD rồi chọn theo CHỮ KÝ câu ghi (không theo
 | C2F-customers-v2-05-insert-quan-tri | customers-v2.js:376 → :376 | khớp | **SỐNG** | — |
 | A3L-redeem-bo-han-diem | loyalty.js:31 → :31 | khớp | **SỐNG** | — |
 | A3L-nhandiem-he-so-mac-dinh | signup-codes.js:108 → :118 | khớp | **SỐNG** | — |
-| A3L-goi-bo-kiem-con-lai | orders.js:248 → :248 | khớp | **SỐNG** | lớp sau chặn hộ — `## Câu hỏi
+| A3L-goi-bo-kiem-con-lai | orders.js:248 → :248 | khớp | **SỐNG** | lớp sau chặn hộ — mục Câu hỏi Q1 |
+| BK-KB16-duyet-bo-cong-don | refunds.js:158 → :158 | khớp | BẮT | thu_P26b ✗ A2a, A2b, M8 (AUDIT-2/4 chỉ chạy `kb16`) |
+
+Tổng: BẮT 8 · SỐNG 9 · HỎNG-sập 1 · HỎNG 0 · LẠC 0 · TREO 0. Còn phải làm: 9 SỐNG + 1 HỎNG-sập = 10 tên (1 trong đó hỏi — Q1, chủ quán chọn (b)).
+
+## Câu hỏi
 - **Q1 — ĐÃ TRẢ LỜI (chủ quán, khi duyệt kế hoạch a27d20c): (b)** — không thêm ca cho `A3L-goi-bo-kiem-con-lai` (orders.js:248 `if (conLai <= 0)`); ghi
   "lớp sau chặn hộ (:884, :940–949)"; AUDIT-5 xếp lại mức (máy không tự hạ mức). Lập luận đọc code: từ :248 tới `beginTransaction` (:856) không có câu
   ghi nào (grep `await run\(|tx\.run\(|ghiVi\(` trong orders.js: câu ghi đầu tiên là :870 trong giao dịch). **Số đo (bước 4, `bang_chung_do.txt` mục 3):**
@@ -143,3 +148,7 @@ Tổng: trước BẮT 8 · SỐNG 9 · HỎNG-sập 1 → sau **BẮT 17 · S�
 ## Ngân sách
 Phiếu ~150–250 dòng thử: ca thử +80 −4 (`thu_P26c.js` +66, `thu_GOI1.js` +14 −4); công cụ đo `dot_bien.py` 183 dòng (kế hoạch ước ~175). Tổng dòng thêm ≈ 263 (hơi quá
 mốc 250 vì công cụ đo thêm bảng chữ ký + nhãn mong trước/sau + `--n3`). 0 dòng `server/`, `client/`, `viec/AUDIT-*/`.
+- Lỗ cấp CỘT (soát vòng 1, mức thấp, ngoài 18 tên): PUT gói (`packages.js` UPDATE) và PUT quà (`rewards.js:74`) ghi cả `is_active`; A6e chỉ kiểm `total_qty`
+  còn L9a chỉ kiểm `points_cost` → không ca nào kiểm tác dụng của cột `is_active` trong PUT. C2F thay CẢ câu ghi bằng stub nên không thấy lỗ này.
+  `ke_hoach.md` ghi "A6e — C2F packages-02 đã BẮT" là nhầm ca: packages-02 được A1b / A1f bắt qua `total_qty`.
+- Chỗ GHI `expires_at` chế độ `quarter` (orders.js:839–845, signup-codes.js:237) chưa có ca: L7a dựng dòng hết hạn bằng INSERT (đường quầy không đi được).
