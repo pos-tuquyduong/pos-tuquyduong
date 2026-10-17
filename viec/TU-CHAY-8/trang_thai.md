@@ -96,3 +96,56 @@ SỐNG (chưa ca dòng "đạt · hỏng" không số) → thêm ca C4c (`2223a8
   Chọn: (a) **[đề xuất]** việc sau (hoặc LUOI-5 đang giữ thu_P*.js) đổi 5 chú thích đó sang tên hàm / mẫu grep — PR này chờ nó gộp, rồi
   gộp main vào nhánh; (b) chủ quán duyệt nâng `NGUONG_DONG_CUNG` 4 → 5 trong PR này (nới bánh cóc — KHÔNG tự làm); (c) chấp nhận A11 đỏ
   vì lý do ngoài PR. Máy không sửa D6, không nới ngưỡng.
+
+## Soát độc lập (bước 8)
+
+### Vòng 1 — báo cáo nguyên văn của agent soát (HEAD lúc soát 2766e72)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. tu_chay/nguoi_gac.js:543-550 (cùng xetBash :358-368) — A3 lách được bằng ghi rồi chạy trong CÙNG một lệnh: người gác đọc file
+   lúc xét, trước khi lệnh chạy; file chưa có → catch return null cho qua; file đang vô hại cũng qua. Đo được CHO cả bốn:
+   `cp <nháp>/s.js <nháp>/b.js; node <nháp>/b.js` · `cp <nháp>/s.js <nháp>/vo_hai.js && node <nháp>/vo_hai.js` ·
+   `cat <nháp>/s.js > <nháp>/c.js && node <nháp>/c.js` · `echo 'console.log(process.env)' > <nháp>/moi.js && node <nháp>/moi.js`.
+   Bài thử còn khoá hành vi nguy hiểm: thu_nguoi_gac.js:635 [node ${N}/khong_co.js, 'CHO']. Đường miễn cũng lọt:
+   `cp <nháp>/s.js viec/X/dot_bien.py && python3 viec/X/dot_bien.py`. K3 + K4.
+2. tu_chay/nguoi_gac.js:538-539 — ngoài kho + ngoài nháp thì không soi, nhưng ~/.claude/plans máy Write được (G-PLANS :181):
+   `node ~/.claude/plans/p.js` CHO. THIET_KE "Lỗ còn hở" không ghi. K4.
+3. tu_chay/nguoi_gac.js:495, :503-507, :511 — `node --experimental-loader=<nháp>/s.js …`, `node --test-reporter=<nháp>/s.js --test …`,
+   `cd <nháp> && node --test` đều CHO. K4.
+4. tu_chay/nguoi_gac.js:504 — `node --import 'data:text/javascript,console.log(process.env)' -e 1` CHO. K4.
+5. tu_chay/nguoi_gac.js:494,499 (có từ trước) — `node -pe 'process.env'` CHO trong khi `node -e 'process.env'` CHẶN. K4.
+6. tu_chay/skill_lam_viec.md:23-25, :57-67 — chặn nhầm luồng chạy bài thử trên cây gốc giải nén trong nháp (bước 4, chính việc này
+   dùng: bang_chung_do.txt:12, :46): nháp luôn soi mà 11 file thu_*.js đều có cụm cấm. ke_hoach.md:110-113 không liệt kê luồng này. K5.
+7. viec/TU-CHAY-8/trang_thai.md:85 — trích kiem_tra_truoc_khi_giao.js:573, ở HEAD là :576. K1.
+8. viec/TU-CHAY-8/ke_hoach.md:150-151 — "phép THIET_KE là thứ duy nhất làm 'quên đổi phiên bản' lộ ra" sai: phép chỉ bắt "nâng
+   PHIEN_BAN mà quên ghi THIET_KE". K1 (nhẹ).
+NGHI NGỜ: thu_gia_lap.js:175-178 sửa C3_WORKER (ghi.ly, callback chac) — cần chủ quán xác nhận nằm trong Q1 · "chạy SONG SONG" của A1
+   chưa có ca hành vi (P10 chỉ regex tĩnh; điều phối tuần tự hay dòng chú thích vẫn xanh) — song song chứng minh bằng số đo · luật nội
+   dung là regex, chuỗi ghép `process['en'+'v']` qua được (có sẵn, THIET_KE không ghi) · git status không --literal-pathspecs.
+NGHIỆM THU: 5/7 mục có bằng chứng · mục thiếu: A3 (ca chính lách được — lỗi 1–4), A6 (chưa có CỔNG CHẠY trên HEAD; theo Q7 sẽ ✗ [A11]).
+CHƯA SOÁT ĐƯỢC: hook thật vẫn bản 1.7.0 (A3/A7 chỉ chứng minh qua xet()) · không chạy lại dot_bien / cổng chạy · Replit 1 lõi ·
+   node --test dựa tài liệu · A7 trên phiên máy mây thật mở ở HEAD tách rời.
+BÀI HỌC: KHOÁ — ca ghi-rồi-chạy cùng lệnh; node <nháp>/khong_co.js; ~/.claude/plans; --experimental-loader= / --test-reporter= /
+   --import data:; node --test; node -pe 'process.env'. NGUYÊN TẮC (K3/K4) — phép "đọc file rồi cho chạy" xét trạng thái TRƯỚC khi lệnh
+   chạy: phải xét cả việc chính lệnh đó ghi file (TOCTOU); "không đọc được → cho" là mở cửa; chọn "nơi soi" phải liệt kê MỌI chỗ máy ghi
+   được. NGUYÊN TẮC (K5) — luật người gác mới phải liệt kê luồng "chạy bài thử trên cây gốc trong nháp".
+```
+(Bản trên rút gọn phần "ĐÃ XÁC NHẬN" — K4 A4 11 lời gọi chung một hàm, mọi bài in dòng tổng; K4 A1 118 + 4 + 4 = 126; K4 A7 một chỗ
+checkout; không đụng server/ client/src; 15 file trong Phạm vi; D6/Q7 đúng — và mục ĐƠN GIẢN: thu_cong.js:785 viết gọn.)
+
+### Sửa vòng 1
+- Lỗi 1: `motMinh` — lệnh chạy file script phải đứng MỘT MÌNH (chỉ `cd … &&` trước; sau chỉ head/tail/grep/wc/cut/tr/nl/cat, không
+  chuyển hướng ghi, không `$( )`), một lệnh một file. Vì vậy file "không có lúc xét" không còn ai tạo kịp → giữ "không có → cho" cho script.
+- Lỗi 2: soi MỌI nơi (bỏ "ngoài kho + nháp thì thôi") — gồm ~/.claude/plans và /tmp (mã viết thẳng ghi được).
+- Lỗi 3–5: `NODE_NAP` thêm `--experimental-loader`, `--test-reporter`; `--x=<file có thật>` (vd `--env-file=.env` → B-BIMAT-FILE) và
+  `data:`/`file:` là nạp kèm; giá trị nạp kèm không phải file → soi chính chữ; `node --test` chặn; `-pe` gộp cờ đọc mã.
+- Lỗi 6: miễn đổi từ "git status rỗng" sang "NỘI DUNG file là blob trong lịch sử HEAD" (`git hash-object` + `git rev-list --objects HEAD`,
+  22 ms ở kho nông này): file đã commit sạch, bản cũ trong lịch sử, bản sao cây gốc trong nháp đều miễn; blob chỉ trong chỉ mục (add rồi
+  restore --staged) KHÔNG miễn. Skill + THIET_KE ghi lại.
+- Lỗi 7, 8: sửa trích số dòng (grep), ghi chú câu sai trong ke_hoach.md. Mục ĐƠN GIẢN thu_cong.js: viết gọn.
+- Nghi ngờ: thu_gia_lap C3_WORKER — chỉ thêm `ghi.ly` + đối số thứ ba của `chac` để C3i so câu kết luận (K3), không đổi ca / neo khác —
+  báo chủ quán xác nhận thuộc Q1. "Song song": giữ chứng minh bằng số đo (ghi CHƯA KIỂM). Chuỗi ghép: thêm vào "Lỗ còn hở" THIET_KE.
+  `--literal-pathspecs`: hết đối tượng (bỏ `git status`).
+- Bài thử: thu_nguoi_gac 968 → 1003 ca (ghi-rồi-chạy cùng lệnh, K5 đứng một mình, plans / ngoài kho, cờ node, `data:`, -pe, --test,
+  miễn theo lịch sử, cp qua file đã commit); bản cuối trên gốc 956/1003 (đỏ, bang_chung_do.txt). Đột biến A3 viết lại theo code mới.
