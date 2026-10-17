@@ -63,6 +63,23 @@ Bằng chứng: `bang_chung_do.txt`. Đỏ đúng chỗ, không đỏ vì sập:
 - Từng phần chạy riêng (3 lần): 1/3 22,7 / 22,8 / 24,4 s · 2/3 24,9 / 24,1 / 24,6 s · 3/3 24,3 / 23,8 / 24,6 s — mọi phần < 60 s (50 % hạn 120 s).
 - Trong `npm test`: thu_cong 25,3–26,4 s (trước: ~52–96 s).
 
+### Đột biến (`python3 viec/TU-CHAY-8/dot_bien.py`) — bảng chỗ vá → đột biến
+Đối chứng 7 bài xanh (thu_TOCDO1 chỉ đỏ đúng D6 đỏ sẵn — tha đúng dòng đó). Vòng 1: **34/35 bị bắt**; `VS-TUCHAY8-DONG-TONG-KHONG-NEO-SO`
+SỐNG (chưa ca dòng "đạt · hỏng" không số) → thêm ca C4c (`2223a86`), chạy lại riêng: bị bắt → **35/35**.
+
+| Chỗ vá | Đột biến (bài bắt) |
+|---|---|
+| kiem_tra `chayBaiThat` đòi dòng tổng (A4) | BV-TUCHAY8-DONG-TONG (thu_TOCDO1 C4a + thu_gia_lap C3i) · VS-TUCHAY8-DONG-TONG-BO-GIA-LAP (C4b) · VS-TUCHAY8-DONG-TONG-KHONG-NEO-SO (C4c) |
+| kiem_tra `kiemPhanThuCong` + bánh cóc (A1, Q6) | BV-TUCHAY8-KIEM-PHAN (P2) · VS-TUCHAY8-KIEM-PHAN-CHI-DEM-SO-PHAN (P4) · VS-TUCHAY8-KIEM-PHAN-DEM-DONG (P3) · BV-TUCHAY8-BANH-COC (P7) · VS-TUCHAY8-BANH-COC-LECH-MOT (P7) |
+| thu_cong.js chia lượt + điều phối (A1) | BV-TUCHAY8-PHAN-KHONG-CHIA · VS-TUCHAY8-PHAN-LECH-MOT · BV-TUCHAY8-CA-KHONG-LA-DON-VI · VS-TUCHAY8-DIEU-PHOI-BO-PHAN (thu_cong_phan: Σ 378 ≠ 126 / 84 ≠ 126 / 8 < 126 / phần 1,2) · BV-TUCHAY8-DB-THEO-PHAN (thu_cong: thiếu ca) · VS-TUCHAY8-HAN-PHAN-NOI (thu_TOCDO1 P10) |
+| nguoi_gac.js `xetTep` (A3) | BV-TUCHAY8-SOI-TEP-NODE · VS-TUCHAY8-SOI-BO-PYTHON · VS-TUCHAY8-SOI-BO-BASH · VS-TUCHAY8-SOI-BO-NAP-KEM · VS-TUCHAY8-MIEN-FILE-SUA-DO · VS-TUCHAY8-MIEN-KHI-GIT-LOI · VS-TUCHAY8-TEP-TO-VAN-DOC · BV-TUCHAY8-SOI-FILE-BI-MAT (thu_nguoi_gac, đúng ca) |
+| nguoi_gac.js `veNhanhViec` / GIT-CHECKOUT-TACH (A7) | BV-TUCHAY8-A7 · VS-TUCHAY8-A7-KHONG-SO-SHA · VS-TUCHAY8-A7-CA-KHI-DUNG-TREN-NHANH · VS-TUCHAY8-A7-KHONG-DOI-PHIEU · VS-TUCHAY8-A7-NHIEU-DOI-SO · VS-TUCHAY8-A7-NGOAI-KHO |
+| skill (chữ) A2 / A3 / A7 | BV-TUCHAY8-SKILL-B11-CONG-CHAY · BV-TUCHAY8-SKILL-B4-TU-THU · BV-TUCHAY8-SKILL-EDIT · BV-TUCHAY8-SKILL-B1-TACH-ROI (thu_cong_cu) |
+| PHIEN_BAN + THIET_KE (chữ, A5) | BV-TUCHAY8-PHIENBAN (thu_cong_cu + thu_nguoi_gac) · BV-TUCHAY8-THIETKE-TIEU-DE (thu_cong_cu + kiem_chu) · BV-TUCHAY8-THIETKE-A3 (kiem_chu) |
+
+### Q4 — bản gốc thu_cong.js trên code PR
+`git show 372ee54:tu_chay/thu_cong.js` chép vào cây HEAD giải nén trong nháp, chạy: `thu_cong: 337 phép · 0 chỗ hỏng` — XANH.
+
 ## Phát hiện
 1. **D6 của `cong_cu/thu_TOCDO1.js` đỏ SẴN trên main** (không do việc này): chú thích trỏ số dòng cứng đếm được 5 > `NGUONG_DONG_CUNG = 4`
    (`kiem_tra_truoc_khi_giao.js:573`) — `server/routes/orders.js:1640`, `cong_cu/thu_P20.js:432`, `cong_cu/thu_P26c.js:12`, `:357`, `:886`
