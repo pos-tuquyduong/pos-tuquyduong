@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 35,
-  "cap_nhat": "2026-10-16",
+  "phien_ban_so": 36,
+  "cap_nhat": "2026-10-17",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -207,7 +207,16 @@
     },
     {
       "ma": "MA-GIAM-1",
-      "ten": "Ma giam / voucher (P20c phat hien 1,2,4,8,10,11 + AU4-1, AU4-14): DELETE ma giam chot used_count trong cau ghi, /validate qua cong don goc nhu POST /orders, freshCode null -> 400 khong giam, /reset DELETE theo voucherRow.id + khong phan biet hoa thuong + loi bao, /:id/increment-usage quyen, ca ma co khoang trang (AU4-1). PHIEU 16.10: viec/MA-GIAM-1/phieu.md tren nhanh viec/MA-GIAM-1 (cho duyet ke hoach; song song LUOI-4, TU-CHAY-7)",
+      "ten": "Ma giam / voucher (P20c phat hien 1,2,4,8,10,11 + AU4-1, AU4-14): DELETE ma giam chot used_count trong cau ghi, /validate qua cong don goc nhu POST /orders, freshCode null -> 400 khong giam, /reset DELETE theo voucherRow.id + khong phan biet hoa thuong + loi bao, /:id/increment-usage quyen, ca ma co khoang trang (AU4-1). PHIEU 16.10: viec/MA-GIAM-1/phieu.md tren nhanh viec/MA-GIAM-1 (cho duyet ke hoach; song song LUOI-4, TU-CHAY-7) | XONG 17.10 (PR #29, 5a6fc0f; HEAD may 12cd560, soat doc lap DAT, chat soat DAT: thu_P20 169/0, thu_P26a 16/0, 26/26 dot bien): DELETE ma giam co dieu kien used_count (khong xoa duoc -> vo hieu), /validate qua kiemDonCuaMa, ma mat giua chung -> 400 MA_GIAM_KHONG_CON, /reset xoa voucher theo id + khong phan biet hoa thuong, /increment-usage can manage_promotions, A8 PUT khong doi ten voucher ma bill (MA_BILL_KHONG_DOI_TEN; chu quan giu chan moi ma trung chu, ke ca bill chua claim). Phat hien -> MA-GIAM-2: traLuotMa (tienDaTra.js:58-62) tra luot theo chu ma, khong theo id. May lach B-BIMAT-CHU bang script nhap (bien gia bai thu) -> TU-CHAY-8 A3",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "MA-GIAM-1",
+      "commit": "5a6fc0f",
+      "ngay": "2026-10-17"
+    },
+    {
+      "ma": "MA-GIAM-2",
+      "ten": "traLuotMa (server/utils/tienDaTra.js:58-62) tra luot dung ma theo CHU ma, khong theo id (cung khuon loi /reset MA-GIAM-1 A5) - huy / hoan don co ma: tra luot dung ma theo discount_code_id cua don. Viec tien nho -> duyet ke hoach",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -549,16 +558,16 @@
     },
     {
       "ma": "LUOI-4",
-      "ten": "Va luoi: bat 6 dot bien NANG-luoi AU4-2..7 cua AUDIT-4 (+ AU4-8 thu_GOI1 A2 khong sap theo ca truoc) - chi them bai thu, 0 dong code quay. PHIEU 16.10: viec/LUOI-4/phieu.md tren nhanh viec/LUOI-4 (cho duyet ke hoach; song song MA-GIAM-1, TU-CHAY-7)",
+      "ten": "Va luoi: bat 6 dot bien NANG-luoi AU4-2..7 cua AUDIT-4 (+ AU4-8 thu_GOI1 A2 khong sap theo ca truoc) - chi them bai thu, 0 dong code quay. PHIEU 16.10: viec/LUOI-4/phieu.md tren nhanh viec/LUOI-4 (cho duyet ke hoach; song song MA-GIAM-1, TU-CHAY-7) | XONG 17.10 (PR #30, 8ac79a7; HEAD may fd84ff1, soat doc lap DAT, chat soat DAT: P26c 121/0, GOI1 110/0, 7/7 dot bien AUDIT-4 BAT dung ca): thu_P26c khoi [N] (lam tron den, huy goi 7 luot, goi + ma 1 mon - quay nhan duoc), thu_GOI1 A2o/A2p/A2p2/B3q/B3r + dungGoi (ca do khong lam ca bai sap); 0 dong code quay. Phat hien: viec/AUDIT-4 ghim so ca 118/105/75 -> AUDIT-5 doc so ca that",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "LUOI-4",
+      "commit": "8ac79a7",
+      "ngay": "2026-10-17"
     },
     {
       "ma": "LUOI-5",
-      "ten": "Va luoi: 19 dot bien SONG cu xep NANG theo Q5 AUDIT-4 (AU4-21): 14 C2F go lenh ghi (kho, goi, ma giam, voucher, diem, chiet khau khach) - moi lenh ghi mot ca doc lai hang sau route; 3 A3L (redeem-bo-han-diem loyalty.js, nhandiem-he-so, goi-bo-kiem-con-lai); KB16 (lop 2 khoa hai lop refunds.js). KB20 di cung P26d. Lam SAU LUOI-4 gop (cung thu_P26c / thu_GOI1). Chi them bai thu",
+      "ten": "Va luoi: 19 dot bien SONG cu xep NANG theo Q5 AUDIT-4 (AU4-21): 14 C2F go lenh ghi (kho, goi, ma giam, voucher, diem, chiet khau khach) - moi lenh ghi mot ca doc lai hang sau route; 3 A3L (redeem-bo-han-diem loyalty.js, nhandiem-he-so, goi-bo-kiem-con-lai); KB16 (lop 2 khoa hai lop refunds.js). KB20 di cung P26d. Lam SAU LUOI-4 gop (cung thu_P26c / thu_GOI1). Chi them bai thu | PHIEU 17.10: viec/LUOI-5/phieu.md tren nhanh viec/LUOI-5 (cho duyet ke hoach; song song TU-CHAY-8): 18 ten (KB20 di cung P26d); do lai duoi LUOI DU truoc (AUDIT-4 chi do duoi c2luoi), chi them ca cho ten con SONG",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -567,7 +576,7 @@
     },
     {
       "ma": "AUDIT-5",
-      "ten": "Audit dot 5 (sau LUOI-4 + LUOI-5 + MA-GIAM-1 gop): chay lai cong cu AUDIT-4 (boc.py DA VA AU4-17..19 truoc, dot_bien.py, kiem_neo.py) + bo tung viec tren HEAD; 7 + 19 NANG-luoi phai BAT; dot bien doc lap cho MA-GIAM-1. Dat = 0 NANG -> diem dung chuong trinh audit (AUDIT-3, AUDIT-4 deu 0 NANG-code). CHI KIEM + BAO CAO trong viec/AUDIT-5/",
+      "ten": "Audit dot 5 (sau LUOI-4 + LUOI-5 + MA-GIAM-1 gop): chay lai cong cu AUDIT-4 (boc.py DA VA AU4-17..19 truoc, dot_bien.py, kiem_neo.py) + bo tung viec tren HEAD; 7 + 19 NANG-luoi phai BAT; dot bien doc lap cho MA-GIAM-1. Dat = 0 NANG -> diem dung chuong trinh audit (AUDIT-3, AUDIT-4 deu 0 NANG-code). CHI KIEM + BAO CAO trong viec/AUDIT-5/ | 17.10: lam SAU LUOI-5 gop. Cong cu AUDIT-4 ghim so ca (thu_P20 75, P26c 118, GOI1 105) -> dung so ca that hien tai (doc dong tong). + dot bien doc lap cho LUOI-4/LUOI-5 ca moi va MA-GIAM-1 A1..A8",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -576,7 +585,34 @@
     },
     {
       "ma": "TU-CHAY-7",
-      "ten": "Bo khung 1.7.0: canhGan cho thu_cong (AU4-12: may ban 103 s = 86% han, khong canh bao), don thu muc tam khi bi giet (AU4-13), phep tinh chu thich so dong cung (:NNNN) (BAN-HANG-1), KHUON_LOI <= 100 dong + K3 nguong so bang + K4 mot vi tu + K3 doi chung/luat sap. KHONG: ma thoat 2 = sap (TU-CHAY-8, dung moi thu_*), chia luot thu_cong (TU-CHAY-6 Q5), boc.py vao khung. PHIEU 16.10: viec/TU-CHAY-7/phieu.md tren nhanh viec/TU-CHAY-7 (cho duyet ke hoach; song song LUOI-4, MA-GIAM-1); sau gop chu quan cai khuon_cai.py",
+      "ten": "Bo khung 1.7.0: canhGan cho thu_cong (AU4-12: may ban 103 s = 86% han, khong canh bao), don thu muc tam khi bi giet (AU4-13), phep tinh chu thich so dong cung (:NNNN) (BAN-HANG-1), KHUON_LOI <= 100 dong + K3 nguong so bang + K4 mot vi tu + K3 doi chung/luat sap. KHONG: ma thoat 2 = sap (TU-CHAY-8, dung moi thu_*), chia luot thu_cong (TU-CHAY-6 Q5), boc.py vao khung. PHIEU 16.10: viec/TU-CHAY-7/phieu.md tren nhanh viec/TU-CHAY-7 (cho duyet ke hoach; song song LUOI-4, MA-GIAM-1); sau gop chu quan cai khuon_cai.py | XONG 17.10 (PR #31, 49f9140; HEAD may bebf21b, soat vong 4 DAT, chat soat DAT; chu quan cai 1.7.0 = ef8e1c6 bang cai_TUCHAY7.py): canhGan thu_cong, don thu muc tam kem pid (khong bat tin hieu, khong noi han), phep tinh E15 chu thich so dong cung (banh coc 4), KHUON_LOI 116 -> 100 dong. CONG-CHAY PR DO THAT lan 1 (A11 thu_cong tu thu chinh no -> xanh tren goc; A16 thieu SO CA thu_cong_cu/thu_nguoi_gac do ghim PHIEN_BAN) -> chu quan va bang vua_TUCHAY7.py (bf68998 PHIEU mien + a7835d4 SO CA) -> xanh. Bai hoc: may may khong chay duoc cong chay -> TU-CHAY-8 A2",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-7",
+      "commit": "49f9140",
+      "ngay": "2026-10-17"
+    },
+    {
+      "ma": "TU-CHAY-8",
+      "ten": "Bo khung 1.8.0: chia luot thu_cong song song (moi phan < 50% han), may tu chay duoc cong.js chay tren may may + skill buoc 11 ghi ket qua cong chay, nguoi gac soi file script duoc chay (lach B-BIMAT-CHU qua script nhap - MA-GIAM-1), bo kiem doi dong tong, bo ghim cung PHIEN_BAN trong thu_cong_cu/thu_nguoi_gac. PHIEU 17.10: viec/TU-CHAY-8/phieu.md tren nhanh viec/TU-CHAY-8 (cho duyet ke hoach; song song LUOI-5); sau gop chu quan cai bang cai_TUCHAY8.py",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-9",
+      "ten": "Bo khung: moi bai thu thong nhat ma thoat (0 xanh, 1 do ca, 2 sap) - luat sap cua bo dot bien doc ma thoat thay do chuoi (AU4-17..19, boc.py lo 4 vong soat); dung moi cong_cu/thu_*.js -> lam SAU LUOI-5 gop",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "DONG-GOI-1",
+      "ten": "Dong goi bo khung tu chay cho app khac (chu quan 16.10): tach phan chung (nguoi gac, cong, skill /lam-viec, /ra-soat, khuon phieu, khuon script mo viec / cai dat, khung bo dot bien) khoi phan rieng POS (luat tien, bo kiem, gia lap quay); huong dan cai cho kho moi; thu cai len mot kho trong + chay 1 viec mau. Lam SAU diem dung (AUDIT-5) va TU-CHAY-8/9",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
