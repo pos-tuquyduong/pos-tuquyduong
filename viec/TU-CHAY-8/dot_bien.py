@@ -129,10 +129,12 @@ DOT_BIEN = [
    CA_NHAP(r'node --env-file=\.env -e 1', 'B-BIMAT-FILE')),
   ('VS-TUCHAY8-NAP-THIEU-LOADER', NG, [("'--loader', '--experimental-loader', '--test-reporter'];", "'--loader', '--test-reporter'];", 1)],
    ['thu_nguoi_gac'], r'✗ ca Bash "node --experimental-loader \'data:text/javascript,console\.log\(process\.env\)\' -e 1": mong CHAN:B-BIMAT-CHU, ra CHO'),
-  ('BV-TUCHAY8-KHONG-PHAN-GIAI-DUOI', NG, [("[goc, goc + '.js', goc + '.cjs', goc + '.mjs'].find(", "[goc].find(", 1)], ['thu_nguoi_gac'],
+  ('BV-TUCHAY8-KHONG-PHAN-GIAI-DUOI', NG, [("[goc, goc + '.js', goc + '.json', goc + '.node'].find(", "[goc].find(", 1)], ['thu_nguoi_gac'],
    CA_NHAP(r'node \S+/nhap/s', 'B-BIMAT-CHU')),   # soát vòng 2
-  ('VS-TUCHAY8-PHAN-GIAI-CHI-JS', NG, [("[goc, goc + '.js', goc + '.cjs', goc + '.mjs'].find(", "[goc, goc + '.cjs', goc + '.mjs'].find(", 1)],
+  ('VS-TUCHAY8-PHAN-GIAI-BO-JS', NG, [("[goc, goc + '.js', goc + '.json', goc + '.node'].find(", "[goc, goc + '.json', goc + '.node'].find(", 1)],
    ['thu_nguoi_gac'], CA_NHAP(r'node --require \S+/nhap/s -e 1', 'B-BIMAT-CHU')),
+  ('VS-TUCHAY8-PHAN-GIAI-BO-JSON', NG, [("[goc, goc + '.js', goc + '.json', goc + '.node'].find(", "[goc, goc + '.js', goc + '.node'].find(", 1)],
+   ['thu_nguoi_gac'], CA_NHAP(r'node \S+/nhap/dl', 'B-BIMAT-CHU')),   # soát vòng 3
   ('BV-TUCHAY8-NODE-PE', NG, [("    if (ten === 'node' && /^-[a-z]{2,}$/.test(v) && /[ep]/.test(v)) {", "    if (false) {", 1)], ['thu_nguoi_gac'],
    CA_NHAP(r"node -pe 'process\.env'", 'B-BIMAT-CHU')),
   # ── A7 nguoi_gac.js: git checkout viec/<MÃ> khi HEAD tách rời đúng commit ──
