@@ -1,4 +1,4 @@
-# LUOI-5 — kế hoạch (CHỜ DUYỆT)
+# LUOI-5 — kế hoạch (CHỜ DUYỆT — đã sửa theo soát kế hoạch, mục 7)
 
 Nền: HEAD `48ba548` (PHIEU: LUOI-5). Chỉ thêm ca hồi quy + công cụ đo của việc; 0 dòng `server/`, `client/`, `viec/AUDIT-*/`.
 Số dòng dưới đây đọc trong lượt này.
@@ -28,8 +28,8 @@ Chọn A: khối `[L]` thu_P26c đã có `diem`, `themDiem`, `ban`, `datCaiDat`,
 Dưới đột biến, POST /packages trả 200 mà không có dòng (`data` null) → `r.data.id` ném TypeError → cả bài sập, A1a đúng mà không đếm.
 | | A (chọn) | B |
 |---|---|---|
-| cách | `taoGoi`: tạo qua route như cũ; không được id (≠ 200 hoặc `data` rỗng) → `k('dựng taoGoi …', false)` rồi INSERT thẳng gói mẫu (khuôn LUOI-4 `dungGoi`: dựng hỏng → một dòng ✗ rồi đi tiếp) — ca sau chạy trên dữ liệu đúng | dừng bài có kiểm soát sau A1a (in dòng tổng) — mất mọi ca sau, che lỗi khác cùng lúc |
-| số dòng | ~5 | ~4 |
+| cách | `taoGoi`: tạo qua route như cũ; không được id (≠ 200 hoặc `data` rỗng) → `k('dựng taoGoi …', false)` rồi INSERT thẳng gói mẫu GIỮ NGUYÊN `items` + `them` (giá, tên, `package_items`, tổng lượt — G30 1.350.000 `:514`, `mua30` ném nếu ≠ 200 `:516–517`) (khuôn LUOI-4 `dungGoi`: dựng hỏng → một dòng ✗ rồi đi tiếp) — ca sau chạy trên dữ liệu đúng | dừng bài có kiểm soát sau A1a (in dòng tổng) — mất mọi ca sau, che lỗi khác cùng lúc |
+| số dòng | ~7 | ~4 |
 | số ca khi xanh | KHÔNG đổi (dòng `dựng` chỉ in khi hỏng) | như A |
 
 Lặp như LUOI-4: chạy lại `C2F-packages-01-insert-quan-tri`; còn sập chỗ khác (POST /packages trực tiếp ở `:277`, `:347`, `:460` dùng `?.`
@@ -45,18 +45,18 @@ mặc định số mới (P26c 128, GOI1 111); (c) cờ `--n3`: chạy `viec/LUO
 
 | NT | tên | ca (bài) | dữ liệu + khẳng định (gốc) | đb |
 |---|---|---|---|---|
-| N1 | `C2F-damages-03-update-quan-tri` | **B3e** (P26c `[B3]`) | `sx.che = 'song'`, đơn 1 × `sp[1]` 20.000, hoàn kho SX 1 → 200, log `returned_to_stock = 1`; đơn B3c (SX lỗi) log vẫn 0 (ngay dưới); trả `sx.che = 'loi'` | log 0 (báo cáo "đã trả kho" `damages.js:86` thiếu) |
+| N1 | `C2F-damages-03-update-quan-tri` | **B3e** (P26c `[B3]`) | `sx.che = 'song'`, đơn 1 × `sp[1]` 20.000, hoàn kho SX 1 → 200, log `returned_to_stock = 1`; đơn B3c (SX lỗi) log vẫn 0 (ngay dưới); `sx.che = 'song'` chỉ bật quanh lệnh `baoHong` trong `try/finally` → luôn trả 'loi' (`taoDon` ném `:134` không kẹt SX giả cho [B4]…, nợ kho `:516–530`) | log 0 (báo cáo "đã trả kho" `damages.js:86` thiếu) |
 | N1 | `C2F-packages-01-insert-quan-tri` | **A1a** có sẵn (GOI1) + Phần B | gói 5+5+5+5+5+6 → 200, lưu 31 | A1a ✗ "lưu 31" (không có dòng); bài chạy hết, không sập |
 | N1 | `C2F-packages-03-update-quan-tri` | **A6j** (GOI1 `[A6]`, sau A6h) | gói `goiId` của A6a/A6b (khách đã lấy đủ → completed, 0 khách active, có lịch sử) → DELETE 200 "chuyển ngừng bán", `is_active = 0`; mua lại gói đó cho SĐT mới → 400 "Gói sản phẩm không tồn tại" (`orders.js:409–410`), không đơn | `is_active` 1, mua 200 |
 | N1 | `C2F-rewards-02-update-quan-tri` | **L9a** (P26c `[L]`) | quà mới 3 điểm → PUT `points_cost: 5` → 200; khách 4 điểm đổi → 400 "có 4, cần 5", điểm vẫn 4, 0 voucher | giá vẫn 3 → đổi 200, điểm 1 |
 | N1 | `C2F-rewards-03-update-quan-tri` | **L9b** (P26c `[L]`) | quà mới 3 điểm → DELETE 200; khách 3 điểm đổi → 404 "Quà không tồn tại hoặc đã tắt" (`loyalty.js:133–137`), điểm vẫn 3 | quà còn bật → 200, điểm 0 |
-| N1 | `C2F-customers-v2-05-insert-quan-tri` | **X1a** (P26c, khối mới `[X]`) | SĐT mới (chưa có `pos_customers`) → PUT `/customers-v2/:sdt/discount` fixed 5.000 → 200 (nhánh INSERT `:376`); đơn 1 × `sp[0]` 25.000 → total 25.000 − 5.000 = **20.000** (`orders.js:562–576` máy chủ tự đọc chiết khấu khách) | không có dòng → total 25.000 |
-| N1 | `C2F-customers-v2-04-update-quan-tri` | **X1b** (P26c `[X]`) | cùng SĐT → PUT percent 20 → 200 (nhánh UPDATE `:369`); đơn 1 × `sp[2]` 50.000 → 50.000 × 0,8 = **40.000** | vẫn fixed 5.000 → 45.000 (chọn 20 % vì 10 % = 45.000 trùng số đb) |
+| N1 | `C2F-customers-v2-05-insert-quan-tri` | **X1a** (P26c, khối mới `[X]`) | SĐT mới (chưa có `pos_customers`) → PUT `/customers-v2/:sdt/discount` fixed 5.000 → 200 (nhánh INSERT `:376`); đơn 1 × `sp[0]` 25.000 → total 25.000 − 5.000 = **20.000** (`orders.js:562–576` máy chủ tự đọc chiết khấu khách) | không có dòng → total 25.000 ≠ `cash_amount` 20.000 → 400 "Số tiền thanh toán … không khớp tổng" (`orders.js:791–807`) |
+| N1 | `C2F-customers-v2-04-update-quan-tri` | **X1b** (P26c `[X]`) | cùng SĐT → PUT percent 20 → 200 (nhánh UPDATE `:369`); đơn 1 × `sp[2]` 50.000 → 50.000 × 0,8 = **40.000** | vẫn fixed 5.000 → total 45.000 ≠ 40.000 → 400 không khớp tổng (chọn 20 % vì 10 % = 45.000 trùng số đb → 200, xanh oan) |
 | N1 + N2 | `A3L-redeem-bo-han-diem` | **L7a** (P26c `[L]`) | SĐT mới: INSERT dòng `earn` 5 điểm `expires_at '2020-01-01 00:00:00'` (điểm hết hạn của chế độ `quarter` — **đường quầy không đi được** trong thời gian bài chạy: cần thời gian trôi; khuôn B3p) + `themDiem` 2 → GET `/loyalty/points` = 2; đổi quà 3 điểm (`q` của L1) → 400 "có 2, cần 3", 0 voucher | số dư 7 → đổi 200 |
 | N1 | `A3L-nhandiem-he-so-mac-dinh` | **L8a** (P26c `[L]`, trước vòng trả cài đặt) | `nhandiem_enabled` 1, XOÁ `nhandiem_he_so` (ca KHÔNG truyền — K3 mặc định là hành vi); bán 50.000 có SĐT → 5 điểm lúc bán; nhận điểm mã bill 200 → tổng 5 + round(5 × (2 − 1)) = **10** | hệ số 3 → 5 + 10 = 15 |
 | N2 | `A3L-goi-bo-kiem-con-lai` | — | `## Câu hỏi` Q1 (lớp sau chặn hộ, không hậu quả tiền — lập luận `trang_thai.md`); bước 4 đo xác nhận bằng dữ liệu lệch dựng INSERT | — |
 | N0 | 18 tên | — | đã đo (mục 0); sau khi sửa đo lại cả 18: 17 BẮT (+ Q1 theo chủ quán chọn) | |
-| N3 | — | — | nền đo trên HEAD TRƯỚC khi sửa (bước 4): `viec/P26c`, `GOI-1`, `GOI-2`, `SO-LUONG-1`, `BAN-HANG-1`, `LUOI-3`, `P20b`, `P20c`, `MA-GIAM-1` `dot_bien.py`, LUOI-2 (`viec/AUDIT-2/dot_bien.py A3L-… -j 4`), LUOI-4 (`--n3`); sau khi sửa số BẮT / "không áp được" BẰNG nền. `npm test`, `--day-du` xanh; P26c / GOI1 đo riêng 3 lần < 96 s (80 % của 120 s). Bảng cuối 18 dòng vào `trang_thai.md` | |
+| N3 | — | — | nền đo trên HEAD TRƯỚC khi sửa (bước 4): `viec/P26c`, `GOI-1`, `GOI-2`, `SO-LUONG-1`, `BAN-HANG-1`, `LUOI-3`, `P20b`, `P20c`, `MA-GIAM-1` `dot_bien.py`, LUOI-2 (`viec/AUDIT-2/dot_bien.py A3L-… -j 4`), LUOI-4 (`--n3`); sau khi sửa số BẮT / "không áp được" BẰNG nền. `npm test`, `--day-du` xanh; MỌI bài của lưới (chay.js, P20, P21, P26a, P26b, P26c, GOI1, thu_gia_lap) đo riêng 3 lần, mỗi bài < 80 % hạn của nó (`kiem_tra_truoc_khi_giao.js` `chayBaiThat`). Bảng cuối 18 dòng vào `trang_thai.md` | |
 
 Mẫu `dot_bien.py`: damages-03 `✗ B3e ` · packages-01 `✗ A1a ` · packages-03 `✗ A6j ` · rewards-02 `✗ L9a ` · rewards-03 `✗ L9b ` · customers-v2-05
 `✗ X1a ` · customers-v2-04 `✗ X1b ` · redeem-bo-han-diem `✗ L7a ` · nhandiem-he-so-mac-dinh `✗ L8a `. Ca khẳng định dữ liệu dựng TRƯỚC (quà tạo
@@ -91,3 +91,14 @@ Mount `customers-v2` (không timer, chỉ route — grep `setInterval|setTimeout
 - X1a / X1b: phân hạng thành viên (`orders.js:589`) không áp cho SĐT mới không thẻ — dự kiến; CHƯA chạy.
 - `packages-01`: số chỗ sập sau `taoGoi` chưa biết — lặp ở bước 5.
 - Q1 chờ chủ quán; các phần khác không phụ thuộc Q1.
+
+## 7. Soát kế hoạch (agent chỉ đọc, 4 câu) — đã sửa
+1. Ngoài Phạm vi / Cấm: không (chỉ `viec/LUOI-5/**`, thu_P26c, thu_GOI1; `viec/AUDIT-*/` nạp chỉ đọc, `dont_write_bytecode`).
+2. Ngắn hơn: X1a/X1b có thể chỉ đọc dòng `pos_customers` — giữ tạo đơn để chứng minh hậu quả tiền (vẫn "ca nhỏ nhất" một PUT + một đơn).
+   Phần B: INSERT dự phòng là cần — chỉ thêm `?.` thì vẫn sập ở `coGoi` (`thu_GOI1.js:148`).
+3. Số gốc đúng cả 8 ca. Lỗi: (a) X1a/X1b cột đb — `cash_amount` theo số gốc nên đb ra 400 không khớp tổng, không phải 200 (đã sửa);
+   (b) INSERT dự phòng phải giữ `items` + `them` (đã sửa); (c) N3 đo thời gian MỌI bài của lưới (đã sửa). L8a: xoá ĐÚNG khoá `nhandiem_he_so`,
+   giữ `nhandiem_enabled` 1; vòng `KHOA` trả lại `'2'` mặc định kho (`database.js:1264`). Q1: lớp 1 và lớp trần cùng mã `GOI_HET_LUOT` →
+   nếu chọn (a) phải so CÂU báo.
+4. Song song: `customers-v2.js:216–219` cùng lọc hạn điểm (chỉ hiển thị) → Phát hiện. K5: `sx.che` bọc `try/finally` (đã sửa); mount
+   customers-v2 / A6j / quà mới / K1b không ảnh hưởng ca khác.
