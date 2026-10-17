@@ -32,6 +32,9 @@ số dòng cứng bị phát hiện; KHUON_LOI gọn lại còn chỗ ghi bài h
 - A6 `npm test`, `--day-du` xanh (chỉ cảnh báo "khớp byte" nêu ở A5 + cảnh báo có sẵn); `viec/TU-CHAY-7/dot_bien.py` mỗi chỗ vá ≥ 1 VS- +
   BV- (chỗ là chữ: chỉ BV-), có đối chứng.
 
+## Bài thử cũ sửa
+- tu_chay/thu_cong.js — ca DON tự thử chính thu_cong.js qua tiến trình con nên XANH cả trên code gốc; đỏ chứng minh bằng viec/TU-CHAY-7/dot_bien.py (chủ quán miễn 17.10)
+
 ## Phạm vi
 - viec/TU-CHAY-7/**
 - tu_chay/thu_cong.js
