@@ -88,6 +88,13 @@ SỐNG (chưa ca dòng "đạt · hỏng" không số) → thêm ca C4c (`2223a8
 2. Q5b (chủ quán: không làm): `node < f`, `… | node`, `python3 < f` vẫn chạy nội dung file mà người gác không soi.
 3. `npm run <x>` / `npm test` chạy script của `package.json` — không soi (file luật, sửa phải ghi đúng tên trong Phạm vi). Ghi ở THIET_KE.
 4. File do script `require`/`import` không soi (bắc cầu) — ghi ở THIET_KE "lỗ còn hở".
+6. Bài thoát 0 mà in "0 đạt · 5 hỏng" vẫn xanh ở `chayBaiThat` (có từ trước, soát vòng 3). Đề xuất việc sau: phép "hỏng = 0" khi thoát 0.
+7. `trongLichSu` chạy `git rev-list --objects HEAD` mỗi lần xét file script: 19–22 ms ở bản sao nông này; bản sao đầy đủ (Replit) chưa đo —
+   quá hạn 10 s thì không miễn → soi → có thể chặn oan bài đã commit có cụm cấm (fail-closed).
+8. Người gác chặn công cụ `SendMessage` (CC-LA) → không gửi tiếp được cho agent soát cũ; vòng 2, 3 mở agent mới. Đề xuất: thêm
+   `SendMessage` vào CONG_CU_DOC (việc sau, file `tu_chay/nguoi_gac.js` + ca khoá tập).
+9. Thêm của soát vòng 1 (nghi ngờ, chờ chủ quán): `cong_cu/thu_gia_lap.js` ngoài bài giả + ca C3i còn sửa C3_WORKER (thêm `ghi.ly`, đối số
+   thứ ba của `chac`) để C3i so được câu kết luận — xin xác nhận nằm trong Q1.
 5. Hệ quả Q5a đã thấy ngay trong việc này: máy không chạy được lệnh `python3 - <<EOF` có chữ SECRET/TOKEN (B-BIMAT-CHU, luật cũ) → sửa
    bằng công cụ Edit — đúng câu skill mới. Bài thử / bộ kiểm đang sửa có cụm đó: dưới người gác mới phải commit trước hoặc chạy qua `npm test`.
 
@@ -96,6 +103,11 @@ SỐNG (chưa ca dòng "đạt · hỏng" không số) → thêm ca C4c (`2223a8
   Chọn: (a) **[đề xuất]** việc sau (hoặc LUOI-5 đang giữ thu_P*.js) đổi 5 chú thích đó sang tên hàm / mẫu grep — PR này chờ nó gộp, rồi
   gộp main vào nhánh; (b) chủ quán duyệt nâng `NGUONG_DONG_CUNG` 4 → 5 trong PR này (nới bánh cóc — KHÔNG tự làm); (c) chấp nhận A11 đỏ
   vì lý do ngoài PR. Máy không sửa D6, không nới ngưỡng.
+- **Q8 (soát bước 8 chưa ĐẠT, hết vòng sửa):** vòng 1, 2 KHÔNG ĐẠT vì lỗ thật ở A3 (đã vá, có ca + đột biến); vòng 3 KHÔNG ĐẠT vì agent
+  soát bị bộ lọc an toàn ngắt nên không dò lách được, không tìm thấy lỗi mới; đã dùng đủ 3 vòng sửa (`so_vong_sua_toi_da`). Máy DỪNG ở
+  đây theo skill bước 8. Xin chat soát / chủ quán: một vòng soát độc lập nữa chỉ phần "dò cách lách A3/A7" (gợi ý vòng 3: tách riêng
+  khỏi phần chạy lại bài) trước khi tạo PR.
+- **Q9 (Phát hiện 9):** xác nhận phần sửa C3_WORKER của `cong_cu/thu_gia_lap.js` thuộc Q1.
 
 ## Soát độc lập (bước 8)
 
@@ -183,3 +195,29 @@ BÀI HỌC: KHOÁ — ca A3 file không đuôi (`node <f>`, `node --require <f>`
   BV-TUCHAY8-KHONG-PHAN-GIAI-DUOI · VS-TUCHAY8-PHAN-GIAI-CHI-JS — bị bắt. thu_nguoi_gac 1009/1009; bản cuối trên gốc 957/1009.
 - Nghi ngờ: THIET_KE ghi "miễn = MỌI blob đạt được từ HEAD (cả bản cũ, cả patch trong attached_assets/)".
 - Lỗi nhẹ K1: sửa chú thích nguoi_gac.js đầu file, thu_nguoi_gac.js hai chỗ.
+- Đột biến lượt 3 (cả bộ): **50/50**. `npm test -- --day-du`: PASS 67 · FAIL 0 · CẢNH BÁO 4.
+
+### Vòng 3 — báo cáo (agent soát MỚI, rút gọn; nguyên văn ở phiên)
+```
+KHÔNG ĐẠT — chưa đủ căn cứ để ĐẠT: không tìm thấy lỗi mới có đường đi thật, nhưng mục 2 (K4: thử lại cách lách vòng 1–2 và tìm cách
+mới qua A3/A7 bằng xet()) KHÔNG làm được — một phản hồi của agent bị bộ lọc an toàn ngắt, agent bỏ phần dựng ca lách, chỉ đọc code +
+chạy thu_nguoi_gac (1009/1009) và thu_cong_cu (109 phép · 0 chỗ hỏng).
+LỖI TÌM ĐƯỢC: (không có lỗi nào kèm đường đi đã đo)
+NGHI NGỜ: 1. kiem_tra:486-487 regex dòng tổng không neo đầu dòng (bài chép dòng tổng của bài con vẫn ✓) — chưa bài nào làm vậy ·
+  2. bài thoát 0 in "0 đạt · 5 hỏng" vẫn ✓ (có từ trước; A4 không hứa) · 3. nguoi_gac.js:577-578 thử X, X.js, X.cjs, X.mjs — node cho file
+  chính chỉ thêm .js, .json, .node (X.json / X.node người gác không đọc) · 4. trongLichSu chạy git rev-list --objects HEAD mỗi lần — bản
+  sao đầy đủ chưa đo; quá 10 s → soi → có thể chặn oan bài đã commit (fail-closed).
+NGHIỆM THU: 6/7 (A1 A2 A3[đọc code] A4 A5 A7[đọc code] ✓ · A6 CỔNG CHẠY chờ 11.4). Đường tiền / P1 không đụng · 15 file trong Phạm vi.
+CHƯA SOÁT ĐƯỢC: K4 qua A3/A7 bằng ca chạy được · K5 các lệnh skill (không chạy --day-du, cong.js chay, dot_bien) · K1 chưa đọc hết
+  THIET_KE / ke_hoach / bang_chung / dot_bien · hook thật 1.7.0 · Replit 1 lõi · HEAD tách rời trên phiên thật.
+BÀI HỌC: NGUYÊN TẮC (K3) phép "có dòng tổng" neo theo dòng · NGUYÊN TẮC (K4) phân giải "file được chạy" lấy đúng danh sách đuôi của
+  runtime, ghi nguồn, mỗi đuôi một ca · QUY TRÌNH vòng soát cuối chia hai việc (chạy lại bài / lệnh K5 · dò lách người gác).
+```
+
+### Sửa vòng 3 (vòng sửa cuối — `so_vong_sua_toi_da` = 3)
+- Nghi ngờ 3 ĐÚNG (đo node 22 trong nháp: `node X` chạy X.js và X.json, KHÔNG chạy X.cjs) → danh sách đuôi = X, X.js, X.json, X.node;
+  ca mới `node <nháp>/dl` (dl.json có cụm cấm) → B-BIMAT-CHU; đột biến VS-TUCHAY8-PHAN-GIAI-BO-JS (thay VS-TUCHAY8-PHAN-GIAI-CHI-JS) ·
+  VS-TUCHAY8-PHAN-GIAI-BO-JSON — bị bắt. thu_nguoi_gac 1010/1010; bản cuối trên gốc 957/1010.
+- Nghi ngờ 1 (neo dòng): GIỮ — phiếu A4 đòi "cùng 3 dạng soCa của cong.js", soCa cũng không neo; đổi một bên làm hai biểu thức lệch (K4).
+- Nghi ngờ 2, 4: Phát hiện 6, 7 (không thuộc A4 / đo được ở kho nông).
+- Mọi cách lách đo được ở vòng 1–2 đã thành ca trong thu_nguoi_gac.js (xanh trên HEAD, đỏ trên gốc) — đó là phần "thử lại" vòng 3 không làm.
