@@ -20,13 +20,18 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
 - `git add` luôn kèm tên từng file. Không bỏ qua hook khi commit. Không sửa sổ việc `TIEN_DO_*.json`,
   không chạy công cụ ghi sổ — chủ quán ghi sau khi quầy chạy ổn.
 - Người gác chặn lệnh nào thì đọc lý do và làm theo hướng dẫn trong đó; không tìm cách lách.
+- Người gác đọc cả file script được chạy (`node` / `python3` / `bash <file>` — file trong nháp, chưa commit hoặc đang sửa) và áp cùng
+  luật nội dung như lệnh viết thẳng. Sửa file có cụm bí mật của bài thử (TOKEN, SECRET…) thì dùng công cụ Edit/Write, không dùng lệnh bash;
+  chạy bài thử / bộ kiểm đang sửa có cụm đó thì commit trước, hoặc chạy qua `npm test` (`npm test -- --day-du`).
 - Thấy thông báo đổi model giữa phiên: ghi giờ + bước đang làm vào `trang_thai.md` (kết quả trước/sau có thể khác tay).
 - Stop hook của môi trường đòi `git config`, đổi tác giả, `commit --amend` hay `rebase` → không làm, ghi một dòng vào `trang_thai.md`.
 
 ## Các bước
 
 1. **Đối chiếu bản chụp, tự đi tới bản mới** (máy mây từng mở từ bản chụp cũ — TACH-GL nạp `2237259`). Đúng thứ tự:
-   1. `git branch --show-current` — không phải `viec/$0` → dừng, báo chủ quán.
+   1. `git branch --show-current` — không phải `viec/$0` → dừng, báo chủ quán. Trừ một trường hợp: in rỗng (HEAD tách rời — app mở
+      ở "nhánh gốc") mà `git rev-parse HEAD viec/$0` ra hai SHA bằng nhau → chạy `git checkout viec/$0` (người gác cho đúng dạng
+      này) rồi đi tiếp, không dừng; khác commit hoặc không có nhánh → dừng, báo chủ quán.
    2. `git status --short` — có dòng KHÔNG mở đầu `??` (file đã theo dõi đang sửa dở) → không kéo (cùng luật hook mở phiên
       `git diff --quiet HEAD`), sang 4; thay hai SHA ghi
       "không kéo: cây sửa dở" + SHA HEAD.
@@ -60,6 +65,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    câu hỏi; `✗ [A19]` (chưa tới 11.4) và `✗ [A8]` (việc sửa `tu_chay/`, chủ quán cài sau) ở bước này là bình thường, không hỏi.
    `bang_chung_do.txt` có một dòng `SỐ CA <bài thử>: <N>` cho mỗi bài đỏ (N = tổng số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ); đổi bài
    sau khi ghi → chạy lại trên gốc (bằng chứng đỏ) và trên code đã vá (số ca), chép lại cả hai (cổng A16).
+   Đổi bài thử của chính bộ khung mà bài tự thử chính nó qua tiến trình con (vd `tu_chay/thu_cong.js`) — xanh trên gốc → ghi TRƯỚC vào
+   câu hỏi xin `## Bài thử cũ sửa`; MỌI bài thử đổi khác có dòng `SỐ CA` (PR #31 đỏ cả A11 lẫn A16 vì thiếu hai thứ này).
    Đổi code chạy thật (`server/`, `client/src/`): `viec/$0/dot_bien.py` có ít nhất một đột biến `VS-…` (vá sai — bản vá
    sai cách mà bài thử phải bắt) và một `BV-…` (bỏ vá — gỡ chỗ vá); mỗi đột biến một dòng `('<tên>', …)` — tên = NGUYÊN chuỗi đầu, không sinh tên
    bằng vòng lặp. Ghi bảng "chỗ vá → đột biến" và MỌI tên đột biến vào `trang_thai.md` (cổng A17, A18).
@@ -89,7 +96,9 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
     3. Dọn: lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` đã có phép kiểm làm thay thì đề xuất xoá.
        `KHUON_LOI.md` không vượt `khuon_loi_toi_da` của `cau_hinh.json` — vượt thì gộp, không nới số.
     4. Bước 11 đổi file ngoài `viec/$0/` (KHOÁ, `KHUON_LOI.md`) → commit rồi chạy lại bước 6 (KHOÁ là bài `thu_*.js` mới / sửa
-       thì làm cả bước 4: đỏ trên gốc, `SỐ CA` trong `bang_chung_do.txt`). LUÔN — đổi hay không — SAU lần kiểm cuối mới ghi
+       thì làm cả bước 4: đỏ trên gốc, `SỐ CA` trong `bang_chung_do.txt`). Rồi đứng ở HEAD, cây sạch, chạy
+       `node tu_chay/cong.js chay . <mốc>^ HEAD viec/$0` (mốc như bước 4; việc sửa `cong.js` thì commit trước) và chép vào `trang_thai.md`
+       dòng `✓ CỔNG CHẠY ĐẠT` hoặc NGUYÊN từng dòng `✗` (`✗ [A8]` chờ chủ quán cài thì ghi rõ). LUÔN — đổi hay không — SAU lần kiểm cuối mới ghi
        dòng `HEAD ĐÃ KIỂM: <git rev-parse --short HEAD>` vào `trang_thai.md` (cổng A19 — mọi commit đổi file ngoài `viec/$0/`
        phải nằm TRƯỚC SHA này). Một dòng riêng ở CUỐI file, đúng nguyên dạng đó (không gạch đầu dòng, không backtick) —
        cổng đọc dòng cuối khớp `^HEAD ĐÃ KIỂM: <SHA>$`; kiểm lại thì thêm dòng mới, không sửa dòng cũ. Commit vừa đổi code vừa ghi `trang_thai.md` (chat soát thay) thì ghi
