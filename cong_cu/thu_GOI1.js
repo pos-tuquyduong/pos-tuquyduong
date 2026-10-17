@@ -125,10 +125,13 @@ async function main() {
   const sdtMoi = () => '0938' + String(100000 + (++soSdt));
   // Gói mẫu CT1 5 + CT2 5, tổng gửi đúng 10 (để trên gốc ca chỉ ĐỎ vì đúng phép đang thử).
   const taoGoi = async (items = [loai(0, 5), loai(1, 5)], them = {}) => {
-    const r = await goi('POST', '/packages', { code: ma(), name: 'Gói GOI1', price: 300000, unit: 'túi',
-      total_qty: items.reduce((s, i) => s + i.qty, 0), package_items: items, ...them });
-    if (r.status !== 200) throw new Error('không tạo được gói mẫu: ' + moTa(r));
-    return r.data.id;
+    const g = { code: ma(), name: 'Gói GOI1', price: 300000, unit: 'túi', total_qty: items.reduce((s, i) => s + i.qty, 0), package_items: items, ...them };
+    const r = await goi('POST', '/packages', g);
+    if (r.status === 200 && r.data?.id) return r.data.id;
+    // LUOI-5 (AU4-21 packages-01): route không tạo được gói → một dòng ✗, rồi tạo gói thẳng (đủ items + them) và đi tiếp; ném thì cả bài sập, ca sau mất bằng chứng.
+    k('dựng taoGoi: POST /packages → 200 và có gói', false, moTa(r));
+    return Number((await db.run('INSERT INTO pos_packages (code, name, price, unit, total_qty, package_items, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)',
+      [g.code, g.name, g.price, g.unit, g.total_qty, JSON.stringify(g.package_items)])).lastInsertRowid);
   };
   const muaGoi = (sdt, goiId, them = {}) => goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách GOI1', items: [],
     package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 1 }, payment_method: 'cash', cash_amount: 300000, ...them });
@@ -484,6 +487,13 @@ async function main() {
     const xId = await taoGoi([loai(0, 3)]);
     const x = await goi('DELETE', `/packages/${xId}`);
     k('A6h xoá gói chưa ai mua → 200, mất dòng', x.status === 200 && await so('SELECT COUNT(*) FROM pos_packages WHERE id = ?', [xId]) === 0, moTa(x));
+    // LUOI-5 (AU4-21 packages-03): xoá gói ĐÃ có lịch sử bán (goiId: A6a mua, A6b lấy đủ → completed, 0 khách đang dùng) → chỉ ngừng bán, quầy không bán được nữa.
+    const xj = await goi('DELETE', `/packages/${goiId}`);
+    const sdtJ = sdtMoi();
+    const mj = await muaGoi(sdtJ, goiId);
+    k('A6j xoá gói đã có lịch sử bán (khách lấy đủ) → 200, còn dòng, is_active 0; mua lại gói đó → 400, không đơn', xj.status === 200
+      && await so('SELECT is_active FROM pos_packages WHERE id = ?', [goiId]) === 0 && mj.status === 400
+      && await so('SELECT COUNT(*) FROM pos_orders WHERE customer_phone = ?', [sdtJ]) === 0, `${moTa(xj)} / ${moTa(mj)}`);
     const sdt4 = sdtMoi();
     const m4 = await muaGoi(sdt4, cu, { cash_amount: 0 });
     const cp4 = await goiCua(m4.order?.id);
