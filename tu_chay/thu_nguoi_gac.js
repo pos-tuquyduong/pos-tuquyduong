@@ -637,7 +637,7 @@ for (const [l, ky] of [[`node ${N}/s.js`, 'B-BIMAT-CHU'], [`python3 ${N}/s.py`, 
   [`python3 ${N}/f.txt`, 'CHO'], ['bash ban_mau_pos/chay_thu.sh', 'CHO']]) B(l, ky);
 // Soát vòng 1 (KHOÁ): (1) ghi rồi chạy trong CÙNG lệnh — người gác đọc file TRƯỚC khi lệnh chạy → lệnh chạy file phải đứng một mình;
 // (2) soi mọi nơi (~/.claude/plans, ngoài kho); (3) cờ node nạp file; (4) --import data:; (5) -pe gộp cờ.
-viet(HOME, '.claude/plans/p.js', BM); viet(NGOAI, 's.js', BM);
+viet(HOME, '.claude/plans/p.js', BM); viet(NGOAI, 's.js', BM); viet(NHAP, 'dl.json', '{"k": "API_' + 'KEY"}\n');
 for (const [l, ky] of [[`cp ${N}/s.js ${N}/b.js; node ${N}/b.js`, 'B-PHANTICH'], [`cp ${N}/s.js ${N}/vo_hai.js && node ${N}/vo_hai.js`, 'B-PHANTICH'],
   [`cat ${N}/s.js > ${N}/c.js && node ${N}/c.js`, 'B-PHANTICH'], [`echo 'console.log(1)' > ${N}/moi.js && node ${N}/moi.js`, 'B-PHANTICH'],
   [`ls | node ${N}/vo_hai.js`, 'B-PHANTICH'], [`node ${N}/vo_hai.js | cp ${N}/s.js ${N}/vo_hai.js`, 'B-PHANTICH'],
@@ -655,7 +655,8 @@ for (const [l, ky] of [[`cp ${N}/s.js ${N}/b.js; node ${N}/b.js`, 'B-PHANTICH'],
   ["node -pe 'process.env'", 'B-BIMAT-CHU'], ["node -pe '1+1'", 'CHO'],
   // soát vòng 2 (KHOÁ): node tự thêm đuôi — `node <nháp>/s` chạy s.js
   [`node ${N}/s`, 'B-BIMAT-CHU'], [`cd ${N} && node s`, 'B-BIMAT-CHU'], [`node --require ${N}/s -e 1`, 'B-BIMAT-CHU'],
-  [`node -r ${N}/s -e 1`, 'B-BIMAT-CHU'], [`node --loader ${N}/s -e 1`, 'B-BIMAT-CHU'], [`node ${N}/vo_hai`, 'CHO']]) B(l, ky);
+  [`node -r ${N}/s -e 1`, 'B-BIMAT-CHU'], [`node --loader ${N}/s -e 1`, 'B-BIMAT-CHU'], [`node ${N}/vo_hai`, 'CHO'],
+  [`node ${N}/dl`, 'B-BIMAT-CHU']]) B(l, ky);   // soát vòng 3: node X chạy cả X.json
 // Kho git THẬT: file đã commit + sạch được miễn (đúng kiểu node cong_cu/thu_P20.js — có cụm bí mật của bài thử); sửa dở / chưa theo dõi → soi
 {
   // Miễn theo NỘI DUNG: blob trong lịch sử HEAD (soát vòng 1 — bản cũ trong lịch sử / bản sao cây gốc trong nháp để chạy bằng chứng đỏ)
