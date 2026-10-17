@@ -437,7 +437,7 @@ async function main() {
     await duyet((await yeuCau(d3)).refund_id);
     const e = await baoHong(d3, { product_code: sp[1].code, quantity: 1, action: 'return_stock', return_to_stock: true });
     k('B3d (K5) đơn đã duyệt hoàn (không trả kho) → hoàn kho SX 200', e.status === 200, moTa(e));
-    // LUOI-5 (AU4-21 damages-03) — hoàn kho SX THÀNH CÔNG phải đánh dấu returned_to_stock = 1 (báo cáo "đã trả kho", damages.js:86); SX lỗi (B3c) thì 0.
+    // LUOI-5 (AU4-21 damages-03) — hoàn kho SX THÀNH CÔNG phải đánh dấu returned_to_stock = 1 (cột total_returned của báo cáo hỏng hàng, damages.js); SX lỗi (B3c) thì 0.
     // `sx.che = 'song'` chỉ bật quanh lệnh báo hỏng, try/finally trả 'loi' — ném giữa chừng không kẹt SX giả cho các khối sau.
     const d4 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
     let f4;
@@ -683,7 +683,7 @@ async function main() {
     k('L1b (K5) đủ 3 điểm → đổi 200, điểm 0', d1b.status === 200 && await diem(s1) === 0, `${moTa(d1b)} · điểm ${await diem(s1)}`);
 
     // LUOI-5 N1 (A3L-redeem-bo-han-diem) — điểm HẾT HẠN không đổi được (chế độ `quarter` ghi expires_at). Dòng hết hạn dựng bằng INSERT:
-    // đường quầy không đi được (cần thời gian trôi) — khuôn B3p. Số dư = SUM điểm còn hạn (loyalty.js:28–32) ở CẢ xem điểm lẫn đổi quà.
+    // đường quầy không đi được (cần thời gian trôi) — khuôn B3p. Số dư = SUM điểm còn hạn (hằng BALANCE_SQL của loyalty.js) ở CẢ xem điểm lẫn đổi quà.
     const s7 = sdtMoi();
     await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, expires_at, reason, created_at) VALUES (?, 'earn', 5, '2020-01-01T00:00:00', 'thử LUOI-5 hết hạn', datetime('now'))", [s7]);
     await themDiem(s7, 2);
