@@ -69,7 +69,7 @@ Bằng chứng (`bang_chung_do.txt`): commit 1 = `dot_bien.py` có mẫu (chưa 
 - `BALANCE_SQL` (`loyalty.js:28–32`) dùng ở GET `/points` (:60) và đổi quà (:161): đột biến ở hằng → L7a khẳng định CẢ HAI.
 - Chiết khấu khách: customers-v2 có 2 câu ghi (UPDATE / INSERT) → X1a + X1b mỗi nhánh một ca. `customers.js:521` cùng ghi chiết khấu nhưng
   ngoài 18 tên và ngoài `C2_FILES` → Phát hiện.
-- Ngưng gói: DELETE có lịch sử (`packages.js:136`) và PUT `is_active: 0` (A6e — C2F packages-02, đã BẮT) cùng làm "ngưng"; cổng bán là một chỗ
+- Ngưng gói: DELETE có lịch sử (`packages.js:136`) và PUT `is_active: 0` (C2F packages-02 đã BẮT bởi A1b / A1f qua `total_qty`; A6e KHÔNG kiểm `is_active` — Phát hiện trang_thai.md) cùng làm "ngưng"; cổng bán là một chỗ
   (`orders.js:409`). A6j đi đúng đường DELETE.
 - Quà: PUT (`rewards.js:74`) và DELETE (`:87`) → L9a, L9b; cổng đổi quà đọc `is_active = 1` + `points_cost` (`loyalty.js:133–140`).
 - Hoàn kho: `returned_to_stock = 1` chỉ ở `damages.js:218` (grep `returned_to_stock` trong `server/`: :86 đọc, :193 INSERT 0, :218 ghi 1).
