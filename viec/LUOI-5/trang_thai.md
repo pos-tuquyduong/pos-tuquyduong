@@ -152,3 +152,45 @@ mốc 250 vì công cụ đo thêm bảng chữ ký + nhãn mong trước/sau + 
   còn L9a chỉ kiểm `points_cost` → không ca nào kiểm tác dụng của cột `is_active` trong PUT. C2F thay CẢ câu ghi bằng stub nên không thấy lỗ này.
   `ke_hoach.md` ghi "A6e — C2F packages-02 đã BẮT" là nhầm ca: packages-02 được A1b / A1f bắt qua `total_qty`.
 - Chỗ GHI `expires_at` chế độ `quarter` (orders.js:839–845, signup-codes.js:237) chưa có ca: L7a dựng dòng hết hạn bằng INSERT (đường quầy không đi được).
+
+## Soát độc lập — vòng 1 (agent general-purpose, chép nguyên báo cáo, rút gọn phần trả lời từng mục)
+KHÔNG ĐẠT (lỗi hồ sơ, mã và đột biến đúng). Agent tự chạy lại: `thu_P26c` 128 đạt · `thu_GOI1` 111 đạt · `dot_bien.py` 2 tên (customers-v2-04 → X1b, redeem-bo-han-diem → L7a: BẮT) · `npm test` PASS 64 · FAIL 0.
+LỖI TÌM ĐƯỢC:
+1. `trang_thai.md:52` — hàng 17 bảng N0 bị chèn nhầm `## Câu hỏi` + đoạn Q1; thiếu hàng 18 (`BK-KB16`) và tiêu đề thật. (K1/K4) → **đã sửa** (30a0355): nguyên nhân là script ghi của tôi cắt bằng `s.index("## Câu hỏi")` khớp nhầm chuỗi nằm TRONG một ô bảng; khôi phục hàng 17–18, dòng Tổng, tiêu đề; đếm lại: 18 hàng N0.
+2. `bang_chung_do.txt:4` — lệnh `--truoc` không chạy lại được trên HEAD (đòi 121 / 110 ca, HEAD có 128 / 111 → thoát 4). (K1/K7) → **đã sửa** (c553515): ghi rõ chỉ chạy lại được ở bbc6276 + cách lấy bài cũ (`git show bbc6276:…`).
+3. N3 chưa có kết quả `npm test` / `--day-du` trong hồ sơ. → **đã ghi** (mục "Kiểm cuối" dưới).
+NGHI NGỜ (đã ghi Phát hiện): lỗ cấp CỘT `is_active` của PUT gói / quà; chỗ GHI `expires_at` chế độ `quarter`; `mong()` đòi đúng SỐNG cho Q1 nên ai thêm ca sẽ bị báo LỆCH NHÃN (chủ ý); ngân sách 263 > 250 (đã tự khai); `ke_hoach.md` trích `orders.js:791–807` thực là `:796–807`.
+NGHIỆM THU: 13/16 → sau khi sửa 1–3: đủ. CHƯA SOÁT ĐƯỢC (của agent): `--day-du`, bảng N3 chạy lại, 16/18 tên đột biến. Vòng 2: **không chạy** (chủ quán dặn tối đa 2 vòng; mọi lỗi vòng 1 là hồ sơ, đã sửa và kiểm máy: 18 hàng N0, cổng tĩnh chỉ còn A19).
+BÀI HỌC (agent): sau mỗi lần ghi `trang_thai.md` bằng script, đếm lại số hàng từng bảng; lệnh bằng chứng "TRƯỚC" ghi rõ commit chạy được; ghi kết quả `npm test` / `--day-du` ngay khi chạy.
+
+## Kiểm cuối (một lần, trên HEAD 2d3575f)
+- `npm test` → exit 0 · PASS 64 · FAIL 0 · CẢNH BÁO 2.
+- `node kiem_tra_truoc_khi_giao.js --day-du` → exit 0 · PASS 68 · FAIL 0 · CẢNH BÁO 2 (gồm `thu_gia_lap.js` xanh 47,1 s và các bài chạy thật).
+- Hai cảnh báo là CÓ SẴN từ nền, không phải của việc này: (1) "route GET có lệnh ghi (3)" — packages.js:194, products.js:57, sync.js:147; (2) E15 "chú thích trỏ số dòng cứng ≤ 4" — lần đo đầu đếm 6 vì ca mới của tôi ghi `loyalty.js:28–32` (thu_P26c.js:686) → đã đổi sang tên hằng (2d3575f), đo lại còn 5 = nền (orders.js:1640, thu_P20.js:432, thu_P26c.js:12, :358, :952).
+- Cổng tĩnh `node tu_chay/cong.js tinh . 48ba548^ HEAD viec/LUOI-5` → chỉ còn `✗ [A19]` (dòng HEAD ĐÃ KIỂM, ghi dưới đây).
+- Ghi chú model: phiên mở bằng Opus 5.5 (bước 1–3: đo N0, kế hoạch), đổi sang Sonnet 5.5 khi chủ quán duyệt kế hoạch (trước 09:08 UTC 17.10.2026, lúc dựng bản sao nền) (bước 4 trở đi: ca thử, đo trước / sau, N3, soát). Kết quả đo trước / sau đều do máy chạy, không phụ thuộc model; N0 (Opus) đã được đo lại ở lượt `--truoc` (Sonnet): 18/18 trùng nhãn.
+
+## Đếm nghiệm thu (phiếu) — mỗi mục một dòng, kèm bằng chứng
+- **N0** ✓ — 18 tên · neo · BẮT/SỐNG dưới lưới đủ · bài bắt: bảng N0 ở trên (18 hàng), đầu ra thô `n0_do.txt`; đối chứng có (mọi bài xanh, đúng số ca); neo rữa vì MA-GIAM-1 (discount-codes 03/04, signup-codes 05/06) dựng lại cùng ý theo chữ ký câu SQL trong `dot_bien.py` (`dung_bang`), ghi trước/sau trong bảng N0 (dòng AUDIT-4 → HEAD). Không sửa `viec/AUDIT-*/`.
+- **N1** ✓ — 8 tên SỐNG + `packages-01` HỎNG-sập: mỗi tên một ca nhỏ nhất, đỏ ĐÚNG ca (so tên ca trong `dot_bien.py` mẫu `✗ <ca> `), số mong tính trên gốc VÀ đột biến — bảng N1; bằng chứng `bang_chung_do.txt` mục 1 (trước) và 2 (sau). Tên Q1: chủ quán chọn (b), số đo ở mục 3 của `bang_chung_do.txt`.
+- **N2** ✓ — L7a dựng điểm hết hạn bằng INSERT, ghi "đường quầy không đi được" (thu_P26c.js ca L7a); tên không thể có hậu quả tiền: chỉ Q1, đã hỏi và chủ quán trả lời (b), không tự hạ mức.
+- **N3** ✓ — đột biến cũ vẫn BẮT: bảng N3 (nền = sau trên 11 bộ); `npm test` PASS 64 / FAIL 0 và `--day-du` PASS 68 / FAIL 0 (mục Kiểm cuối); mỗi bài < 80 % hạn, đo riêng 3 lần (bảng Thời gian máy: lớn nhất thu_gia_lap 40 %); bảng cuối 18 dòng ở trên.
+
+## Bài học
+Sự cố gom được: (a) `thu_gia_lap` đỏ ở đối chứng lần đầu vì bản sao 'sv' của khung AUDIT-1 thiếu `kiem_tra_truoc_khi_giao.js`; (b) số trong tên C2F trôi sau MA-GIAM-1 (03 ↔ 04); (c) soát vòng 1 bắt hồ sơ hỏng do script ghi neo nhầm; (d) lệnh `--truoc` không chạy lại được trên HEAD; (e) chú thích ca mới làm E15 "mọc thêm" (6 > nền 5); (f) người gác chặn (đếm tay trong phiên, không đối chiếu nhật ký người gác): vòng `for` / `until` / `nproc` (B-CHUONGTRINH, nhiều lần), `cd` không đứng đầu lệnh (B-CD-VITRI, 3 lần), đích ghi dùng biến (B-DICHCHU), `awk` (AWK-GHI), `git clone` (GIT-LENH) — đều có đường thay bằng một script Python; (g) vượt ngân sách 263 / 250; (h) đổi model giữa phiên.
+- **KHOÁ** (trong Phạm vi, đã làm): `viec/LUOI-5/dot_bien.py` — `mong()` đòi đúng nhãn từng tên (trước = N0, sau = BẮT trừ Q1 = SỐNG) nên một ca bị gỡ HOẶC một ca thêm cho tên Q1 đều báo LỆCH NHÃN; `SO_CA` đối chứng chặn "bài chạy hết mà thiếu ca"; chọn C2F theo chữ ký câu SQL (neo không trôi theo số thứ tự). 17 ca mới là KHOÁ cho 17 lệnh ghi (đỏ trước: `bang_chung_do.txt` mục 1).
+- **NGUYÊN TẮC (đề xuất, ngoài Phạm vi — `KHUON_LOI.md` K4, chat soát duyệt):** "Chặn: script ghi hồ sơ / mã neo bằng NGUYÊN dòng (regex `^## …$`), không `index()` chuỗi trần; sau khi ghi đếm lại số hàng từng bảng và số tiêu đề — đã gây: LUOI-5 `s.index('## Câu hỏi')` khớp ô bảng N0, nuốt hàng 18 + tiêu đề, chỉ người soát thấy." Cùng khuôn `neo HOC-2 khớp 2 lần`.
+- **KHOÁ (đề xuất, ngoài Phạm vi):** `viec/AUDIT-1/dot_bien.py` `sinh_c2full` (dòng đặt `ten = f'C2F-{f}-{idx:02d}-…'`) đánh số theo thứ tự câu ghi → tên trôi khi route đổi (MA-GIAM-1 đảo hai câu). Đề xuất AUDIT-5 / việc khung: tên kèm chữ ký (hash ngắn của câu SQL) hoặc chạy `viec/LUOI-5/dot_bien.py` cho 18 tên này. Ca đỏ: sau khi đổi thứ tự hai câu ghi trong cùng route, bộ đo không được ghi lại "BẮT" cho tên mang số cũ.
+- **BỎ**: (a) bản sao thiếu file — đã vá trong `dot_bien.py`, một lần; (d) `--truoc` đã ghi rõ commit trong `bang_chung_do.txt`; (e) E15 đã có phép máy canh; (f) người gác — mỗi chặn có đường thay, không phải lỗi mã; (g)(h) một lần, đã tự khai.
+- Dọn: không đề xuất xoá lời dặn nào của `KHUON_LOI.md` / `CLAUDE.md` (E15 đã canh chú thích code, `KHUON_LOI.md` K1 đã ghi sẵn); `KHUON_LOI.md` không đổi nên không vượt `khuon_loi_toi_da`.
+
+## Báo cáo
+VIỆC:        LUOI-5 — Vá lưới: 18 đột biến SỐNG cũ xếp NẶNG theo Q5 (AU4-21), đo lại dưới lưới đủ, chỉ thêm ca cho cái còn SỐNG
+ĐÃ SỬA:      cong_cu/thu_P26c.js (+66: mount `/api/pos/v2/customers`; ca B3e, L7a, L8a, L9a, L9b, X1a, X1b); cong_cu/thu_GOI1.js (+14 −4: ca A6j; `taoGoi` in `✗ dựng taoGoi` rồi tạo gói thẳng thay vì ném); viec/LUOI-5/dot_bien.py (công cụ đo 18 tên, 183 dòng). 0 dòng server/, client/, viec/AUDIT-*/.
+BÀI THỬ:     chạy trên bản chưa vá (`dot_bien.py --truoc`, thu_P26c 121 ca, thu_GOI1 110 ca) → 8 BẮT · 9 SỐNG · 1 HỎNG-sập, 18/18 đúng nhãn N0; sau khi vá (128 / 111 ca) → 17 BẮT · 1 SỐNG (Q1 (b)), 18/18 đúng nhãn mong. Mỗi tên mới đỏ đúng ca của nó (B3e, A1a, A6j, L9a, L9b, X1b, X1a, L7a, L8a). N3 đột biến cũ: nền = sau trên 11 bộ. `npm test` PASS 64 · `--day-du` PASS 68 · FAIL 0.
+ĐÃ RÀ K4:    grep `returned_to_stock` trong server/ → 3 chỗ (damages.js: INSERT 0, báo cáo đọc, UPDATE 1), đủ; `BALANCE_SQL` → loyalty.js 2 chỗ dùng, L7a phủ cả hai; câu ghi chiết khấu khách → customers-v2.js 2 câu (X1a, X1b); `customers.js:521` và `customers-v2.js:216–219` ngoài 18 tên → Phát hiện; lỗ cấp cột `is_active` của PUT gói / quà → Phát hiện.
+CHƯA KIỂM:   (1) Q1 `goi-bo-kiem-con-lai` không có ca bắt (chủ quán chọn (b)) — số đo chạy bằng bản chép TẠM của thu_GOI1.js ở thư mục nháp, không nằm trong kho, nên người khác không chạy lại bằng một lệnh; (2) L7a dựng điểm hết hạn bằng INSERT — chỗ GHI `expires_at` chế độ `quarter` (orders.js:839–845, signup-codes.js:237) chưa có ca; (3) cột `is_active` trong PUT gói / quà không ca kiểm riêng; (4) vòng soát 2 không chạy (chủ quán dặn tối đa 2 vòng, mọi lỗi vòng 1 là hồ sơ, đã sửa); (5) bảng N3 đo trên một máy, một lần mỗi bộ (không lặp ≥ 3 lần); (6) ca mới không dùng đồng hồ ngoài việc L7a so chuỗi `'2020-01-01T00:00:00'` với `getNow()`; `thu_gia_lap` (47 s) chạy chung đợt nặng chưa thử.
+GIT:         2d3575f LUOI-5: thu_P26c — chu thich ca moi ghi ten hang/cot thay so dong cung (E15 moc them) · 1076966 LUOI-5: ke hoach — sua nham ca bat packages-02 (A1b/A1f, khong phai A6e) (chưa tính commit ghi báo cáo này)
+BÀI HỌC:     KHOÁ 1 (dot_bien.py: nhãn mong + SO_CA + chữ ký) + 1 đề xuất (sinh_c2full đặt tên theo chữ ký) · NGUYÊN TẮC 1 đề xuất (K4: neo hồ sơ bằng NGUYÊN dòng, đếm lại bảng) · BỎ 4 — chi tiết ở ## Bài học
+
+HEAD ĐÃ KIỂM: 2d3575f
