@@ -10,7 +10,7 @@
   ```
 
 ## Trạng thái
-Bước 3 xong — kế hoạch `ke_hoach.md` CHỜ DUYỆT (phiếu dặn dừng ở bước 3). N0 đã đo (dưới).
+Bước 3 xong — kế hoạch `ke_hoach.md` CHỜ DUYỆT (phiếu dặn dừng ở bước 3), đã soát (agent chỉ đọc, 3 lỗi đã sửa — `ke_hoach.md` mục 7). N0 đã đo (dưới).
 
 ## N0 — 18 tên đo lại trên HEAD `48ba548` dưới LƯỚI ĐỦ
 Lệnh: `python3 viec/LUOI-5/dot_bien.py -j 4` (đầu ra nguyên văn: `n0_do.txt`). Lưới = chay.js (giả lập, nạp `server/index.js` — mọi route) +
@@ -59,3 +59,5 @@ Tổng: BẮT 8 · SỐNG 9 · HỎNG-sập 1 · HỎNG 0 · LẠC 0 · TREO 0. 
   (`viec/AUDIT-1/dot_bien.py` `C2_FILES`) không quét `customers.js` — câu ghi này chưa có đột biến nào. Ngoài phạm vi LUOI-5.
 - `viec/LUOI-4/dot_bien.py:18–19` và `viec/AUDIT-4/boc.py` `DOI_CHUNG` ghi cứng số ca thu_P26c / thu_GOI1 → sau LUOI-5 thêm ca sẽ "lệch số ca"
   (thoát 4, đúng thiết kế đối chứng). N3 chạy LUOI-4 bằng số mới sửa TRONG BỘ NHỚ (không sửa file việc cũ).
+- `server/routes/customers-v2.js:216–219` có bản sao điều kiện hạn điểm `expires_at IS NULL OR expires_at > ?` (danh sách khách — chỉ hiển thị,
+  không hậu quả tiền), ngoài 18 tên; đường song song của `BALANCE_SQL` (`loyalty.js:28–32`). Soát kế hoạch tìm ra.
