@@ -221,3 +221,85 @@ BÀI HỌC: NGUYÊN TẮC (K3) phép "có dòng tổng" neo theo dòng · NGUYÊ
 - Nghi ngờ 1 (neo dòng): GIỮ — phiếu A4 đòi "cùng 3 dạng soCa của cong.js", soCa cũng không neo; đổi một bên làm hai biểu thức lệch (K4).
 - Nghi ngờ 2, 4: Phát hiện 6, 7 (không thuộc A4 / đo được ở kho nông).
 - Mọi cách lách đo được ở vòng 1–2 đã thành ca trong thu_nguoi_gac.js (xanh trên HEAD, đỏ trên gốc) — đó là phần "thử lại" vòng 3 không làm.
+
+## Kiểm cuối (HEAD d25d903, cây sạch)
+- `python3 viec/TU-CHAY-8/dot_bien.py` (cả bộ): đối chứng 7 bài xanh (thu_TOCDO1 chỉ D6 đỏ sẵn) · **51 đột biến bị bắt · 0 KHÔNG bị bắt (trên 51)**.
+- `npm test -- --day-du`: thoát 0 · PASS 67 · FAIL 0 · CẢNH BÁO 4.
+- **CỔNG CHẠY** — `node tu_chay/cong.js chay . 41ad9ab^ HEAD viec/TU-CHAY-8` (thoát 1), nguyên từng dòng ✗:
+  ```
+  ✗ [A8] bản cài lệch kết quả cai_dat.js: .claude/skills/lam-viec/SKILL.md, .claude/tu_chay/PHIEN_BAN, .claude/tu_chay/THIET_KE.md, .claude/tu_chay/nguoi_gac.js, .claude/tu_chay/skill_lam_viec.md, .claude/tu_chay/thu_cong.js, .claude/tu_chay/thu_cong_cu.js, .claude/tu_chay/thu_nguoi_gac.js — chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc
+  ✗ [A11] bài thử `cong_cu/thu_TOCDO1.js` ĐỎ trên code PR (thoát 1) — bài thử phải xanh sau khi vá:
+  thu_TOCDO1: 78 đạt · 1 hỏng
+    ✗ D6 kho thật: chú thích số dòng cứng ≤ NGUONG_DONG_CUNG (0 cảnh báo, 0 fail) — … đếm được 5 — MỌC THÊM …: server/routes/orders.js:1640, cong_cu/thu_P20.js:432, cong_cu/thu_P26c.js:12, cong_cu/thu_P26c.js:357, cong_cu/thu_P26c.js:886
+  ✗ CỔNG ĐỎ (CHẠY) — 2 lý do
+  ```
+  `✗ [A8]`: chờ chủ quán chạy `bash tu_chay/cai_dat.sh` (việc sửa `tu_chay/`). `✗ [A11]`: chỉ do D6 đỏ sẵn trên main — Câu hỏi Q7.
+  Không có ✗ nào khác: A16 (SỐ CA bốn bài) qua; HOC-1 (d) — bản gốc `thu_cong.js` chạy trên code PR — qua (dòng "miễn A11 (bài thử cũ sửa)").
+
+## Nghiệm thu — đếm từng mục
+- **A1** ✓ chia lượt `--phan i/n` + điều phối 3 phần song song, mỗi phần `timeout: 120000` (tu_chay/thu_cong.js `dieuPhoi`, P10); bộ kiểm tự đếm
+  phần `kiemPhanThuCong` (thu_TOCDO1 P1–P9); mỗi phần 22,7–24,9 s < 60 s (3 lần/phần, mục "Đo A1"); Σ phép 337 = chạy liền; ca đỏ "bỏ một
+  phần" = P2 + đột biến VS-TUCHAY8-DIEU-PHOI-BO-PHAN; bánh cóc Q6 P7/P8. Song song chỉ chứng minh bằng số đo (CHƯA KIỂM).
+- **A2** ✓ cổng chạy được trên máy mây (bước 3: ĐẠT ~5 phút ở 41ad9ab; nay chạy lại ở HEAD, kết quả trên); skill 11.4 + bước 4 — thu_cong_cu
+  2 phép (đỏ trên gốc), BV-TUCHAY8-SKILL-B11-CONG-CHAY / -B4-TU-THU.
+- **A3** ✓ người gác soi file script (node / python3 / bash|sh, file nạp kèm), cùng luật nội dung, không nới luật cũ; ca `thu_nguoi_gac.js`:
+  script nháp có JWT_SECRET → chặn (gốc: qua), nháp vô hại → qua, `node cong_cu/thu_P20.js`-kiểu (đã commit, có cụm) → qua; + mọi cách lách
+  của soát vòng 1–3 thành ca; skill câu Edit/Write (thu_cong_cu A3). `npm test` không hỏng. Soát vòng 3 chưa dò lách được → Q8.
+- **A4** ✓ `chayBaiThat` thoát 0 không dòng tổng → FAIL "bài không in dòng tổng" (thu_TOCDO1 C4a–C4d, thu_gia_lap C3i; 4 dạng gồm giả lập Q2).
+- **A5** ✓ PHIEN_BAN `tu-chay 1.8.0`; thu_cong_cu + thu_nguoi_gac đọc PHIEN_BAN; THIET_KE mục TU-CHAY-8 A1–A5, A7 (kiem_chu).
+- **A6** một phần: `npm test`, `--day-du` xanh; dot_bien 51/51 mỗi chỗ vá ≥ 1 VS- + BV- (chữ: BV-), có đối chứng; SỐ CA cho mọi bài đổi
+  (trừ thu_cong.js miễn); CỔNG CHẠY cục bộ **chưa ĐẠT**: `✗ [A8]` (chờ cài — phiếu cho phép ghi rõ) + `✗ [A11]` D6 đỏ sẵn (Q7).
+- **A7** ✓ GIT-CHECKOUT-TACH + `veNhanhViec`; ca: tách rời + đúng commit → cho · khác commit → chặn · đang trên nhánh → chặn · không phải viec/
+  → chặn · có cờ / có file / hai đối số / ngoài kho → chặn · không phiếu → chặn; skill bước 1.1 (thu_cong_cu A7 + phép B4 chấm ở KHO_A7);
+  đột biến BV-TUCHAY8-A7 + 5 VS-.
+
+## Báo cáo
+```
+VIỆC:        TU-CHAY-8 — Bộ khung 1.8.0: chia lượt thu_cong, máy tự chạy được cổng PR, người gác soi script được chạy, bộ kiểm đòi dòng tổng,
+             bỏ ghim cứng phiên bản (+ A7 checkout khi HEAD tách rời)
+ĐÃ SỬA:      kiem_tra_truoc_khi_giao.js `chayBaiThat` — đòi dòng tổng khi thoát 0 (A4); `NGUONG_THU_CONG_DON_VI = 126` + `kiemPhanThuCong`
+             bọc lời gọi thu_cong (A1, Q6)
+             tu_chay/thu_cong.js `PHAN`/`donVi`/`dieuPhoi` — --phan i/n, 3 phần song song hạn 120 s (A1)
+             tu_chay/nguoi_gac.js `xetTep`/`motMinh`/`trongLichSu`/`xetNoiDung`/`maNoi`/NODE_NAP — soi file script (A3, 3 vòng soát);
+             `veNhanhViec` + luật GIT-CHECKOUT-TACH (A7); `RE_BIMAT` một biểu thức; `gitGac`
+             tu_chay/skill_lam_viec.md — luật cứng A3, bước 1.1 A7, bước 4 + 11.4 A2 · tu_chay/PHIEN_BAN 1.8.0 · tu_chay/THIET_KE.md mục TU-CHAY-8
+             bài thử: cong_cu/thu_TOCDO1.js (P, C3, C4) · cong_cu/thu_gia_lap.js (bài giả C3 in dòng tổng, C3i) · tu_chay/thu_cong_cu.js
+             (skill, PHIEN_BAN) · tu_chay/thu_nguoi_gac.js (A3, A7, PHIEN_BAN, B4 chấm ở kho tách rời)
+BÀI THỬ:     chạy trên bản chưa vá (cây gốc 372ee54) → ĐỎ: thu_TOCDO1 59/79 (C3, C4a, C4c, P0–P10), thu_gia_lap 148/149 (C3i), thu_cong_cu
+             4 chỗ hỏng (skill A2/A3/A7), thu_nguoi_gac 957/1010 — bang_chung_do.txt; sau khi vá → XANH (thu_TOCDO1 78/79: chỉ D6 đỏ sẵn trên main)
+ĐÃ RÀ K4:    mọi lời gọi chayBaiThat (11, một hàm) · mọi đơn vị thu_cong (118 ca() + 4 khối + 4 bài = 126) · mọi đường chạy file script
+             (node script / NODE_NAP / --x=file / data:, python3, bash|sh, timeout, cd, ống, $( ), &, ;, khối, plans, ngoài kho, đuôi .js/.json)
+             — đường song song soát vòng 1–3 bắt được đã vá + ca · lệnh checkout một chỗ · ghim phiên bản 2 bài
+CHƯA KIỂM:   hook thật vẫn bản 1.7.0 (A3/A7 chỉ chứng minh qua xet(), chưa qua hook sống — chờ cai_dat.sh) · A7 trên phiên máy mây thật mở ở
+             HEAD tách rời · "chạy song song" chỉ chứng minh bằng số đo, không ca hành vi · Replit 1 lõi (song song không nhanh hơn) · thời gian
+             `git rev-list --objects HEAD` trên bản sao đầy đủ · soát vòng 3 không dò được cách lách mới (Q8) · luật chữ vẫn thua chuỗi ghép /
+             require bắc cầu / npm run / node < f (THIET_KE "Lỗ còn hở") · CỔNG CHẠY chưa ĐẠT (A8 chờ cài, A11 D6 — Q7) · vượt ngân sách
+             (code bộ khung ~+190 dòng so với 80–140; thử ~+190 so với ~150 — do 3 vòng vá A3)
+GIT:         d25d903 TU-CHAY-8 trang thai: bao cao soat vong 3, sua vong 3, Cau hoi Q8 Q9, Phat hien 6-9
+             e5318e3 TU-CHAY-8 ho so soat vong 3: dot bien duoi .json, bang chung do thu_nguoi_gac (SO CA 1190)
+BÀI HỌC:     KHOÁ 6 (4 đã làm + 2 đề xuất) · NGUYÊN TẮC 4 (đề xuất) · BỎ 4 — chi tiết ở ## Bài học
+```
+
+## Bài học
+Sự cố của việc: người gác chặn (B-BIMAT-CHU ×2 lệnh python có chữ SECRET/TOKEN → chuyển Edit; B-CHUONGTRINH for/time/nproc/until;
+B-CD-VITRI `cd … ; …`; GIT-LENH rev-list; G5-NGOAIPV file tạm trong cong_cu/; CC-LA SendMessage) · soát độc lập KHÔNG ĐẠT 3 vòng (lỗ A3) ·
+phép cũ đỏ khi code đúng (TU-CHAY-5 B4) · đột biến sống (KHONG-NEO-SO) và bắt nhầm ca (NODE-TEST) · D6 đỏ sẵn trên main · vượt ngân sách.
+- **KHOÁ (đã làm)** 1. Ghi rồi chạy trong cùng lệnh lách soi file → `motMinh` + 13 ca (soát vòng 1). 2. Node tự thêm đuôi → phân giải X/.js/.json/.node
+  + 7 ca (vòng 2–3). 3. Luồng chạy bài trên cây gốc trong nháp bị chặn oan → miễn theo lịch sử HEAD + 4 ca (vòng 1, K5). 4. Sửa file có cụm bí
+  mật bằng lệnh bash bị chặn → câu skill Edit/Write + phép thu_cong_cu A3.
+- **KHOÁ (đề xuất, ngoài Phạm vi)** 5. `SendMessage` vào CONG_CU_DOC của `tu_chay/nguoi_gac.js` + ca khoá tập (ca đỏ: SendMessage → CC-LA) — việc
+  sau. 6. D6 của thu_TOCDO1 đo kho THẬT nên việc khác (MA-GIAM-1, LUOI-4) làm đỏ bài thử của việc này ở cổng: chủ quán chọn ở Q7.
+- **NGUYÊN TẮC (đề xuất cho KHUON_LOI.md — Cấm trong phiếu này)** 1. K4 "Đã gây: TU-CHAY-8 A3 `cp s.js b.js && node b.js` qua người gác đọc file.
+  Chặn: phép 'đọc file rồi cho chạy' xét trạng thái TRƯỚC khi lệnh chạy — phải chặn mọi thứ chạy trước / cùng lúc trong cùng lệnh; chọn nơi soi
+  liệt kê MỌI chỗ máy ghi được (kho, nháp, plans, /tmp qua mã viết thẳng)". 2. K4 "Đã gây: `node <nháp>/s` chạy s.js. Chặn: phủ MỌI tên runtime
+  phân giải về cùng file; danh sách đuôi ĐO trên runtime thật (vòng 3: tôi ghi .cjs/.mjs 'như node' mà node không thêm)". 3. K5 "luật người gác
+  mới liệt kê cả luồng chính việc đang dùng (bước 4 chạy bài trên cây gốc trong nháp)". 4. Quy trình `/ra-soat` (tu_chay/lenh_ra_soat.md):
+  vòng soát cuối tách hai việc — chạy lại bài / lệnh K5 · dò lách người gác — để một việc vướng thì việc kia vẫn có kết quả (vòng 3 bị ngắt).
+- **BỎ** 1. Phép TU-CHAY-5 B4 chấm checkout ở kho đang đứng nhánh — K2 đã có, sửa một lần. 2. Đột biến VS-…-KHONG-NEO-SO sống → thêm ca — luật K3
+  "luôn cài đột biến nới phép" đã làm đúng việc. 3. BV-…-NODE-TEST bắt ở ca khác → neo lại — một lần. 4. Vượt ngân sách — do 3 vòng vá A3, không
+  phải khuôn mới.
+- Dọn KHUON_LOI / CLAUDE.md: không có lời dặn nào mới có phép thay.
+
+## Dừng
+Theo skill bước 8 (đủ 3 vòng sửa, soát chưa ĐẠT) — dừng, chờ Q7 / Q8 / Q9. Không merge, không tạo PR.
+HEAD ĐÃ KIỂM: d25d903
