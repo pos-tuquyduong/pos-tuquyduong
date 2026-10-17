@@ -156,3 +156,30 @@ checkout; không đụng server/ client/src; 15 file trong Phạm vi; D6/Q7 đú
   BV-TUCHAY8-MOT-TEP · BV-TUCHAY8-NODE-TEST · VS-TUCHAY8-KEM-DATA-KHONG-SOI · VS-TUCHAY8-BO-CO-GIA-TRI-FILE · VS-TUCHAY8-NAP-THIEU-LOADER ·
   BV-TUCHAY8-NODE-PE. Bỏ: VS-TUCHAY8-MIEN-FILE-SUA-DO (hết `git status`).
 - `npm test -- --day-du` sau vòng 1: PASS 67 · FAIL 0 · CẢNH BÁO 4 (route GET ghi, chú thích số dòng 5 > 4, hai cảnh báo chờ cài `.claude/`).
+
+### Vòng 2 — báo cáo nguyên văn (agent soát MỚI, HEAD lúc soát b5f8869; SendMessage tới agent cũ bị người gác chặn CC-LA)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. tu_chay/nguoi_gac.js:570-586 (xetTep) + :768-777 (node()) — A3 LÁCH ĐƯỢC bằng cách BỎ ĐUÔI .js: người gác chỉ soi khi statSync ra
+   đúng file; node phân giải phần mở rộng → `node nháp/s` → CHO (node chạy s.js), `cd nháp && node mod` → CHO, `node --require nháp/mod -e 1`
+   → CHO, `-r`, `--loader` cũng CHO; bản có đuôi đều CHAN:B-BIMAT-CHU. Write tạo nháp/mod.js rồi `node nháp/mod` — một lệnh, đứng một mình.
+   K4 + K3 (34 ca A3 đều có đuôi, 0 ca bỏ đuôi). Gợi ý: phân giải như node (abs + .js/.cjs/.mjs, /index.js) trước "không có → cho".
+NGHI NGỜ: miễn theo lịch sử HEAD = MỌI blob đạt được từ HEAD (449 commit + attached_assets) — nên ghi rõ ở "lỗ còn hở" THIET_KE ·
+   chuỗi ghép process['en'+'v'] (đã ghi THIET_KE, chấp nhận).
+LỖI NHẸ (K1): tu_chay/nguoi_gac.js:11 "status cho miễn soi" sai (nay hash-object + rev-list); thu_nguoi_gac.js:89, :623 còn ghi "git status".
+NGHIỆM THU: 6/7 mục có bằng chứng · A3 thủng mục tiêu (lỗi 1) · A6 CỔNG CHẠY chạy ở 11.4. A1 ✓ · A2 ✓ · A4 ✓ · A5 ✓ · A7 ✓ (đã thử git
+   thật: tách rời đúng commit → checkout viec/X về nhánh, SHA không đổi). Đường tiền ✓ · P1 ✓ · 15 file trong Phạm vi, không đụng Cấm.
+ĐƠN GIẢN: node() lọc kem khá rậm; không đề xuất đổi.
+CHƯA SOÁT ĐƯỢC: hook thật vẫn 1.7.0 · không chạy lại trọn dot_bien / cổng chạy · Replit 1 lõi · bypass đo bằng node thật + gac.xet().
+BÀI HỌC: KHOÁ — ca A3 file không đuôi (`node <f>`, `node --require <f>`) → CHẶN; người gác phân giải đuôi / thư mục như node. NGUYÊN TẮC
+   (K4/K5) — phép soi "file được chạy" phải phủ MỌI tên runtime phân giải về cùng file, không chỉ tên khớp statSync; ca "phải CHẶN" có
+   biến thể bỏ đuôi.
+```
+
+### Sửa vòng 2
+- Lỗi 1: `xetTep` thử [X, X.js, X.cjs, X.mjs] như node trước khi kết luận "không có file" (thư mục vẫn B-PHANTICH — gồm X/index.js). Ca mới:
+  `node <nháp>/s`, `cd <nháp> && node s`, `--require` / `-r` / `--loader <nháp>/s`, K5 `node <nháp>/vo_hai`. Đột biến
+  BV-TUCHAY8-KHONG-PHAN-GIAI-DUOI · VS-TUCHAY8-PHAN-GIAI-CHI-JS — bị bắt. thu_nguoi_gac 1009/1009; bản cuối trên gốc 957/1009.
+- Nghi ngờ: THIET_KE ghi "miễn = MỌI blob đạt được từ HEAD (cả bản cũ, cả patch trong attached_assets/)".
+- Lỗi nhẹ K1: sửa chú thích nguoi_gac.js đầu file, thu_nguoi_gac.js hai chỗ.
