@@ -2,6 +2,8 @@
 // thu_TOCDO1.js — TOC-DO-1: bộ kiểm chỉ chạy tu_chay/thu_cong.js khi có thể cần (phiếu A2, A3).
 // TU-CHAY-6 A2 (mục R): phép tĩnh route ghi — cắt khối hai hàm xetBanhCoc + quetRouteGhi của bộ kiểm, chạy trên routes GIẢ (hàm docFile).
 // TU-CHAY-7 A1 (mục C): lời gọi thu_cong.js bật cảnh báo gần hạn; A3 (mục D): chú thích số dòng cứng — cắt vùng thật, chạy trên file giả.
+// TU-CHAY-8 A1 (mục P): khối thật tự đếm dòng từng phần của thu_cong.js (kiemPhanThuCong + bánh cóc NGUONG_THU_CONG_DON_VI) trên đầu
+// ra giả; A4 (mục C): chayBaiThat THẬT — bài thoát 0 mà không in dòng tổng → FAIL "bài không in dòng tổng".
 // Cắt khối THẬT từ kiem_tra_truoc_khi_giao.js — từ `function lyDoChayThuCong(` tới hết dòng "bỏ qua thu_cong.js"; bản gốc chưa có hàm
 // → khối = dòng gọi trần (luôn chạy → T1, T2, T10 đỏ) — rồi chạy trên kho git tạm, mỗi ca phá ĐÚNG một điều kiện.
 // Chạy: node cong_cu/thu_TOCDO1.js [--kiem <bản sao bộ kiểm>]   (--kiem: cho viec/TOC-DO-1/dot_bien.py)
@@ -34,11 +36,12 @@ const GOI = "chayBaiThat('tu_chay/thu_cong.js'";   // tiền tố: TU-CHAY-7 A1 
 k('E1 toàn bộ kiểm đúng MỘT lời gọi thu_cong.js và nó nằm trong khối cắt', kt.split(GOI).length === 2 && khoi.includes(GOI),
   `${kt.split(GOI).length - 1} lời gọi trong file · trong khối: ${khoi.includes(GOI)}`);
 const BO = 'bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github';
-// Chạy khối với GOC = kho tạm; spawnSync bọc môi trường sạch. Trả { goi: số lần gọi chayBaiThat, dong }.
+// Chạy khối với GOC = kho tạm; spawnSync bọc môi trường sạch. Trả { goi: số lần gọi chayBaiThat, dong, chac: [[tên, đúng, ghi]] }.
 function chay(goc, dayDu, env, goi = () => {}) {
-  const kq = { goi: 0, dong: [] };
+  const kq = { goi: 0, dong: [], chac: [] };
   const sp = (c, ds, o) => spawnSync(c, ds, { ...o, env });
-  new Function('spawnSync', 'GOC', 'DAY_DU', 'chayBaiThat', 'dong', khoi)(sp, goc, dayDu, (...a) => { kq.goi++; return goi(...a); }, kq.dong);
+  new Function('spawnSync', 'GOC', 'DAY_DU', 'chayBaiThat', 'dong', 'chac', khoi)(sp, goc, dayDu, (...a) => { kq.goi++; return goi(...a); },
+    kq.dong, (t, d, g) => kq.chac.push([t, !!d, g]));
   return kq;
 }
 
@@ -101,8 +104,8 @@ ca('T10 origin/main đi trước có đổi tu_chay/, nhánh chưa gộp', c, 'b
 const HOOK = path.join(TAM, 'hook.js'), KQ = path.join(TAM, 'kq.txt');
 fs.writeFileSync(path.join(TAM, 'khoi.js'), khoi);
 fs.writeFileSync(HOOK, `const fs = require('fs'); const goi = []; const dong = [];
-try { new Function('spawnSync', 'GOC', 'DAY_DU', 'chayBaiThat', 'dong', fs.readFileSync(${JSON.stringify(path.join(TAM, 'khoi.js'))}, 'utf8'))(
-  require('child_process').spawnSync, process.cwd(), false, () => goi.push(1), dong); } catch (e) { dong.push('ném: ' + e.message); }
+try { new Function('spawnSync', 'GOC', 'DAY_DU', 'chayBaiThat', 'dong', 'chac', fs.readFileSync(${JSON.stringify(path.join(TAM, 'khoi.js'))}, 'utf8'))(
+  require('child_process').spawnSync, process.cwd(), false, () => goi.push(1), dong, () => {}); } catch (e) { dong.push('ném: ' + e.message); }
 fs.writeFileSync(${JSON.stringify(KQ)}, goi.length + '\\n' + dong.join('\\n')); process.exit(1);\n`);
 function hook(ten, lenh) {
   c = kho(); viet(c, 'tu_chay/a.js', 'đổi\n');
@@ -192,22 +195,83 @@ hook('T11b hook pre-commit thật: git commit -a', ['-a']);
 {
   const a3 = kt.search(/^function chayBaiThat\(/m);
   const khoiC = a3 < 0 ? '' : kt.slice(a3, kt.indexOf('\n}\n', a3) + 3);
-  fs.writeFileSync(path.join(TAM, 'ngu85.js'), 'setTimeout(() => {}, 4250);\n');
+  // TU-CHAY-8: bài giả in đủ dòng của 3 phần (T = ngưỡng thật) + dòng tổng như điều phối thật — không thì C3 / A4 đỏ thay cho C1
+  const NG = +((/^const NGUONG_THU_CONG_DON_VI = (\d+);/m.exec(kt) || [])[1]) || 3;
+  const phan = (i, n, a, T) => `thu_cong phần ${i}/${n}: ${a}/${T} đơn vị · 5 phép · 0 chỗ hỏng`;
+  const DU = [phan(1, 3, NG - 2, NG), phan(2, 3, 1, NG), phan(3, 3, 1, NG)];
+  fs.writeFileSync(path.join(TAM, 'ngu85.js'), `console.log(${JSON.stringify([...DU, 'thu_cong: 15 phép · 0 chỗ hỏng'].join('\n'))});\n`
+    + 'setTimeout(() => {}, 4250);\n');
   const canh = [], xanh = [], goi = [];
   let that = null;
   try {
     that = new Function('spawnSync', 'path', 'GOC', 'chac', 'canhBao', khoiC + '\nreturn chayBaiThat;')(spawnSync, path, TAM,
-      (t, d) => xanh.push(d), (t, g) => canh.push(`${t} — ${g}`));
+      (t, d, g) => xanh.push(d ? true : 'false: ' + g), (t, g) => canh.push(`${t} — ${g}`));
   } catch (e) { k('C0 dựng được hàm chayBaiThat thật', false, e.message); }
   if (that) {
     const vo = (bai, env, han, co) => { goi.push({ bai, han, co }); return that('ngu85.js', MT, 5000, co); };
-    try { chay(kho(), true, MT, vo); } catch (e) { goi.push({ bai: 'khối ném: ' + e.message }); }
+    let r = { chac: [] };
+    try { r = chay(kho(), true, MT, vo); } catch (e) { goi.push({ bai: 'khối ném: ' + e.message }); }
     const g = goi[0] || {};
     k('C1 --day-du: lời gọi thật thu_cong.js + bài xanh 85 % hạn → đúng 1 cảnh báo gần hạn có số giây',
       goi.length === 1 && g.bai === 'tu_chay/thu_cong.js' && xanh.join() === 'true' && canh.length === 1
         && /chạy \d+\.\d s > 80 % hạn 5 s/.test(canh[0]), `gọi ${JSON.stringify(goi)} · xanh ${xanh.join()} · cảnh báo: ${canh.join(' | ') || '(không)'}`);
     k('C2 lời gọi thật không nới hạn (bỏ trống hoặc 120000)', goi.length === 1 && [undefined, 120000].includes(g.han), JSON.stringify(goi));
+    k('C3 (TU-CHAY-8 A1) đầu ra thật của lời gọi đi vào phép "thu_cong.js đủ phép" của khối → ĐẠT với đủ 3 phần',
+      JSON.stringify(r.chac.map((c) => c[1])) === '[true]' && /^thu_cong\.js đủ phép/.test((r.chac[0] || [])[0]), JSON.stringify(r.chac));
+    // A4 — chayBaiThat THẬT: thoát 0 mà không in dòng tổng → FAIL đúng lý do; mỗi dạng tổng đang có trong kho → xanh
+    const thu1 = (ten, nd) => { fs.writeFileSync(path.join(TAM, ten), nd); xanh.length = 0; canh.length = 0; that(ten, MT, 20000); return xanh.join(); };
+    const IM = 'false: bài không in dòng tổng';
+    let v = thu1('im.js', 'process.exit(0);\n');
+    k('C4a (A4) bài thoát 0 KHÔNG in gì → FAIL "bài không in dòng tổng"', v === IM, v);
+    for (const [ten, dong] of [['đạt · hỏng', '  12 đạt · 0 hỏng'], ['đạt · hỏng kèm mã màu', '\x1b[1m3 đạt · 0 hỏng\x1b[0m'],
+      ['phép · chỗ hỏng', 'thu_cong_cu: 40 phép · 0 chỗ hỏng'], ['người gác', 'thu_nguoi_gac: 5/5 ca người gác đúng mã · 2 phép khác'],
+      ['giả lập (Q2)', 'Giả lập: 32 kịch bản · 18 bất biến']]) {
+      v = thu1('tong.js', `console.log(${JSON.stringify(dong)});\n`);
+      k(`C4b (A4 K5) bài thoát 0 in dòng tổng dạng ${ten} → xanh`, v === 'true', v);
+    }
+    for (const [ten, dong] of [['"3 đạt, 0 hỏng" (thiếu ·)', '3 đạt, 0 hỏng'], ['"Giả lập: 32 kịch bản" (thiếu bất biến)', 'Giả lập: 32 kịch bản'],
+      ['"phép · chỗ hỏng" không số', 'thu: phép · chỗ hỏng']]) {
+      v = thu1('gan.js', `console.log(${JSON.stringify(dong)});\n`);
+      k(`C4c (A4) dòng gần giống ${ten} không tính là dòng tổng → FAIL`, v === IM, v);
+    }
+    v = thu1('do.js', "console.log('1 đạt · 1 hỏng'); console.log('  ✗ ca x'); process.exit(1);\n");
+    k('C4d (A4 K5) bài thoát 1 có dòng tổng → FAIL lý do cũ (dòng ✗), không phải "dòng tổng"', /^false: ✗ ca x$/.test(v), v);
   }
+}
+
+// ── P (TU-CHAY-8 A1, Q3, Q6): khối THẬT, --day-du, chayBaiThat giả trả đầu ra dựng sẵn → phép "thu_cong.js đủ phép" của khối: đủ phần
+// 1..n, cùng n, cùng T, Σ đơn vị = T, T ≥ NGUONG_THU_CONG_DON_VI (ngay dưới đỏ, ngay trên xanh + nhắc NÂNG). Mỗi ca phá ĐÚNG một vế.
+{
+  const NG = +((/^const NGUONG_THU_CONG_DON_VI = (\d+);/m.exec(kt) || [])[1]);
+  k('P0 bộ kiểm có hằng NGUONG_THU_CONG_DON_VI = <số ≥ 3> ở đầu dòng', NG >= 3, `ngưỡng ${NG}`);
+  const N = NG >= 3 ? NG : 3;
+  const ph = (i, n, a, T) => `thu_cong phần ${i}/${n}: ${a}/${T} đơn vị · 7 phép · 0 chỗ hỏng`;
+  const TONG = 'thu_cong: 21 phép · 0 chỗ hỏng';
+  const pP = (ten, dong, mong, them = '') => {
+    let r = { chac: [], dong: [] };
+    try { r = chay(TAM, true, MT, () => dong.join('\n') + '\n'); } catch (e) { r.chac.push(['khối ném', false, e.message]); }
+    const c = r.chac.filter((x) => /^thu_cong\.js đủ phép/.test(x[0]));
+    const nang = r.dong.some((d) => d.includes(`NÂNG NGUONG_THU_CONG_DON_VI lên ${N + 1}`));
+    const dung = c.length === 1 && c[0][1] === (mong === 'ĐẠT') && (mong === 'ĐẠT' || String(c[0][2]).startsWith('thu_cong.js thiếu phép: '))
+      && String(c[0][2]).includes(them) && nang === (ten.startsWith('P8'));
+    k(`${ten} → ${mong}`, dung, `chac ${JSON.stringify(r.chac)} · dòng NÂNG: ${nang}`);
+  };
+  const ba = (a1, a2, a3, T1 = N, T2 = N, T3 = N) => [ph(1, 3, a1, T1), ph(2, 3, a2, T2), ph(3, 3, a3, T3), TONG];
+  pP('P1 đủ 3 phần, Σ đơn vị = T = ngưỡng', ba(N - 2, 1, 1), 'ĐẠT');
+  pP('P2 (ca đỏ của phiếu) điều phối bỏ phần 3 khỏi lời gọi', [ph(1, 3, N - 2, N), ph(2, 3, 2, N), TONG], 'ĐỎ', 'cần 1..3');
+  pP('P3 trùng phần (1, 2, 2), Σ đơn vị vẫn = T', [ph(1, 3, N - 2, N), ph(2, 3, 1, N), ph(2, 3, 1, N), TONG], 'ĐỎ', 'cần 1..3');
+  pP('P4 đủ phần nhưng Σ đơn vị = T − 1 (một đơn vị không chạy ở phần nào)', ba(N - 3, 1, 1), 'ĐỎ', `≠ ${N}`);
+  pP('P4b Σ đơn vị = T + 1 (một đơn vị chạy hai lần)', ba(N - 1, 1, 1), 'ĐỎ', `≠ ${N}`);
+  pP('P5 các phần lệch T', ba(N - 2, 1, 1, N, N, N + 1), 'ĐỎ', 'lệch');
+  pP('P5b các phần lệch n', [ph(1, 3, N - 2, N), ph(2, 3, 1, N), ph(3, 4, 1, N), TONG], 'ĐỎ', 'lệch');
+  pP('P6 không có dòng phần (bản chạy liền cũ / bài sập trước khi in)', ['thu_cong: 337 phép · 0 chỗ hỏng'], 'ĐỎ', 'không thấy dòng');
+  pP('P7 (Q6) đủ phần, T = ngưỡng − 1 (bớt ca)', ba(N - 3, 1, 1, N - 1, N - 1, N - 1), 'ĐỎ', 'NGUONG_THU_CONG_DON_VI');
+  pP('P8 (Q6) đủ phần, T = ngưỡng + 1 (thêm ca) → ĐẠT, nhắc NÂNG ngưỡng', ba(N - 1, 1, 1, N + 1, N + 1, N + 1), 'ĐẠT');
+  pP('P9 (K5) n = 1 (--phan 1/1), T = ngưỡng', [ph(1, 1, N, N), TONG], 'ĐẠT');
+  // A1 "mỗi phần hạn 120 s như cũ": điều phối sinh từng con `--phan i/n` với timeout 120000 (đọc mã nguồn thu_cong.js thật)
+  const tc = (() => { try { return fs.readFileSync(path.join(path.dirname(KIEM), 'tu_chay', 'thu_cong.js'), 'utf8'); } catch { return ''; } })();
+  k('P10 thu_cong.js: điều phối sinh con `--phan` với timeout: 120000 (mỗi phần hạn 120 s, không nới)',
+    /spawn\(process\.execPath, \[__filename, '--phan', [^\n]*\{[^\n}]*timeout: 120000\b/.test(tc), 'không thấy dòng spawn … --phan … timeout: 120000');
 }
 
 // ── D (TU-CHAY-7 A3): chú thích số dòng cứng — cắt vùng THẬT từ `const NGUONG_DONG_CUNG =` tới hết khối gọi, chạy với doc / liet giả ──
