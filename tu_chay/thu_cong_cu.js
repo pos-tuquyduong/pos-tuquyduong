@@ -456,7 +456,10 @@ function baiTaiLieu() {
   const kl = doc(path.join(__dirname, '..', 'KHUON_LOI.md')) || '';
   chac('TU-CHAY-5 E2 KHUON_LOI: 5 bài học TACH-GL (ĐÚNG lỗi cũ · đường argv · dấu vết · lặp ≥ 3 · ĐỈNH file)',
     ['ĐÚNG lỗi cũ', 'argv', 'dấu vết', '≥ 3 lần', 'ĐỈNH file'].every((x) => kl.includes(x)));
-  chac('TU-CHAY-5 E3 / TU-CHAY-7 A5 PHIEN_BAN = tu-chay 1.7.0', (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim() === 'tu-chay 1.7.0');
+  // TU-CHAY-8 A5: không ghim số phiên bản (PR #31 đỏ A16 vì đổi dòng ghim) — PHIEN_BAN đúng dạng VÀ THIET_KE có mục mang đúng chuỗi đó
+  const pb = (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim();
+  chac('TU-CHAY-8 A5 PHIEN_BAN dạng tu-chay x.y.z, THIET_KE có tiêu đề ### … (…, <PHIEN_BAN>) — đổi phiên bản mà quên ghi THIET_KE là đỏ',
+    /^tu-chay \d+\.\d+\.\d+$/.test(pb) && new RegExp(`^### .*\\(.*, ${pb.replace(/\./g, '\\.')}\\)$`, 'm').test(tk), pb || '(không có PHIEN_BAN)');
   chac('TU-CHAY-5 E3 MAU_PHIEU nhắc dòng HEAD ĐÃ KIỂM (A19)', mp.includes('HEAD ĐÃ KIỂM'));
   // ── TU-CHAY-6 ── (so trên `sk` nguyên, không phải `than` đã toLowerCase)
   const b4 = muc(sk, '\n4. **', '\n5. **');
@@ -469,6 +472,18 @@ function baiTaiLieu() {
   // soát vòng 1: dẫn chứng sai việc gốc không phép nào bắt → câu mới của KHUON_LOI neo CẢ mã việc + con số ('GOI-2 B3c')
   chac('TU-CHAY-6 A6 THIET_KE B15: blob ném "git cat-file hỏng" (128 = không có), git archive :266, phép GET-ghi + NGUONG_ROUTE_GHI_KHONG_LOIGHI, skill bước 4 cong.js tinh',
     ['git cat-file hỏng', '128', 'git archive', 'GET-ghi', 'NGUONG_ROUTE_GHI_KHONG_LOIGHI', 'cong.js tinh'].every((x) => t15.includes(x)), t15.slice(0, 120));
+  // ── TU-CHAY-8 ── (so trên `sk` nguyên) — câu đứng trong khối bước nào thì phép soi đúng khối đó
+  const sau = (s, a, n = 400) => { const i = s.indexOf(a); return i < 0 ? '' : s.slice(i, i + n); };
+  const iC = s11.indexOf('node tu_chay/cong.js chay'), iD = s11.indexOf('✓ CỔNG CHẠY ĐẠT'), iHK = s11.indexOf('HEAD ĐÃ KIỂM: ');
+  chac('TU-CHAY-8 A2 skill 11.4: chạy `node tu_chay/cong.js chay` và ghi CỔNG CHẠY (✓ CỔNG CHẠY ĐẠT hoặc từng dòng ✗) TRƯỚC dòng HEAD ĐÃ KIỂM',
+    iC >= 0 && iD > iC && iHK > iD && /từng dòng `?✗/.test(s11.slice(iC, iHK)), s11.slice(Math.max(iC, 0), iC + 200));
+  chac('TU-CHAY-8 A2 skill bước 4: bài thử của bộ khung tự thử chính nó (xanh trên gốc) → ghi trước câu hỏi xin ## Bài thử cũ sửa; MỌI bài đổi khác có SỐ CA',
+    /## Bài thử cũ sửa/.test(sau(b4, 'tự thử chính nó')) && /MỌI bài thử đổi[^]*SỐ CA/.test(sau(b4, 'tự thử chính nó')), sau(b4, 'tự thử chính nó', 200));
+  const lc = muc(sk, '## Luật cứng', '## Các bước');
+  chac('TU-CHAY-8 A3 skill luật cứng: người gác đọc cả file script được chạy; sửa file có cụm bí mật của bài thử → công cụ Edit/Write, không lệnh bash',
+    /đọc cả file script/.test(lc) && /cụm bí mật[^]*Edit\/Write[^]*không dùng lệnh bash/.test(sau(lc, 'cụm bí mật')), lc.slice(0, 120));
+  chac('TU-CHAY-8 A7 skill bước 1.1: HEAD tách rời trỏ đúng commit của viec/<MÃ> → chạy `git checkout viec/$0` rồi đi tiếp, không dừng',
+    /`git checkout viec\/\$0`[^]*đi tiếp, không dừng/.test(sau(b1, 'HEAD tách rời')), sau(b1, 'HEAD tách rời', 200));
 }
 
 // ═══ HOC-1 C · T2 của kiem_tra_truoc_khi_giao.js bỏ thư mục con ═══════════════
