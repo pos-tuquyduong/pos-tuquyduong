@@ -122,7 +122,7 @@ DOT_BIEN = [
   ('BV-TUCHAY8-MOT-TEP', NG, [("if (luat('B-PHANTICH') && tep.length > 1)", "if (false)", 1)], ['thu_nguoi_gac'],
    CA_NHAP(r'node -r \S+/nhap/vo_hai\.js \S+/nhap/vo_hai\.js', 'B-PHANTICH')),
   ('BV-TUCHAY8-NODE-TEST', NG, [("if (luat('B-PHANTICH') && a.some((w) => w.val === '--test'))", "if (false)", 1)], ['thu_nguoi_gac'],
-   CA_NHAP(r'cd \S+/nhap && node --test', 'B-PHANTICH')),
+   CA_NHAP(r'node --test \S+/nhap/vo_hai\.js', 'B-PHANTICH')),   # `cd <nháp> && node --test` vẫn chặn khi gỡ (nhánh thư mục) — neo ca có file
   ('VS-TUCHAY8-KEM-DATA-KHONG-SOI', NG, [("  if (!s) return kem ? xetNoiDung(t.val, nc, t.tho) : null;", "  if (!s) return null;", 1)], ['thu_nguoi_gac'],
    r'✗ ca Bash "node --import \'data:text/javascript,console\.log\(process\.env\)\' -e 1": mong CHAN:B-BIMAT-CHU, ra CHO'),
   ('VS-TUCHAY8-BO-CO-GIA-TRI-FILE', NG, [("    if (ten === 'node' && /^--[^=]+=./.test(v)) { kem.push(", "    if (false) { kem.push(", 1)], ['thu_nguoi_gac'],

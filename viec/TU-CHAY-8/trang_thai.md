@@ -149,3 +149,10 @@ checkout; không đụng server/ client/src; 15 file trong Phạm vi; D6/Q7 đú
   `--literal-pathspecs`: hết đối tượng (bỏ `git status`).
 - Bài thử: thu_nguoi_gac 968 → 1003 ca (ghi-rồi-chạy cùng lệnh, K5 đứng một mình, plans / ngoài kho, cờ node, `data:`, -pe, --test,
   miễn theo lịch sử, cp qua file đã commit); bản cuối trên gốc 956/1003 (đỏ, bang_chung_do.txt). Đột biến A3 viết lại theo code mới.
+- Đột biến lượt 2 (cả bộ, code sau vòng 1): **47/48**; `BV-TUCHAY8-NODE-TEST` bị bắt nhưng ở ca khác (`cd <nháp> && node --test` vẫn chặn
+  nhờ nhánh thư mục) → neo lại vào ca `node --test <nháp>/vo_hai.js`, chạy riêng: bị bắt → **48/48**. Tên mới vòng 1: BV-TUCHAY8-MIEN-LICH-SU ·
+  VS-TUCHAY8-MIEN-MOI-BLOB · VS-TUCHAY8-MIEN-KHI-GIT-LOI (viết lại) · BV-TUCHAY8-MOT-MINH · VS-TUCHAY8-MOT-MINH-TRUOC-BAT-KY ·
+  VS-TUCHAY8-MOT-MINH-SAU-TU-DO · VS-TUCHAY8-MOT-MINH-SAU-GHI-FILE · VS-TUCHAY8-MOT-MINH-CHO-CON · VS-TUCHAY8-CHI-SOI-KHO-NHAP ·
+  BV-TUCHAY8-MOT-TEP · BV-TUCHAY8-NODE-TEST · VS-TUCHAY8-KEM-DATA-KHONG-SOI · VS-TUCHAY8-BO-CO-GIA-TRI-FILE · VS-TUCHAY8-NAP-THIEU-LOADER ·
+  BV-TUCHAY8-NODE-PE. Bỏ: VS-TUCHAY8-MIEN-FILE-SUA-DO (hết `git status`).
+- `npm test -- --day-du` sau vòng 1: PASS 67 · FAIL 0 · CẢNH BÁO 4 (route GET ghi, chú thích số dòng 5 > 4, hai cảnh báo chờ cài `.claude/`).
