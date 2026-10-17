@@ -456,7 +456,7 @@ function baiTaiLieu() {
   const kl = doc(path.join(__dirname, '..', 'KHUON_LOI.md')) || '';
   chac('TU-CHAY-5 E2 KHUON_LOI: 5 bài học TACH-GL (ĐÚNG lỗi cũ · đường argv · dấu vết · lặp ≥ 3 · ĐỈNH file)',
     ['ĐÚNG lỗi cũ', 'argv', 'dấu vết', '≥ 3 lần', 'ĐỈNH file'].every((x) => kl.includes(x)));
-  chac('TU-CHAY-5 E3 / TU-CHAY-6 A6 PHIEN_BAN = tu-chay 1.6.0', (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim() === 'tu-chay 1.6.0');
+  chac('TU-CHAY-5 E3 / TU-CHAY-7 A5 PHIEN_BAN = tu-chay 1.7.0', (doc(path.join(__dirname, 'PHIEN_BAN')) || '').trim() === 'tu-chay 1.7.0');
   chac('TU-CHAY-5 E3 MAU_PHIEU nhắc dòng HEAD ĐÃ KIỂM (A19)', mp.includes('HEAD ĐÃ KIỂM'));
   // ── TU-CHAY-6 ── (so trên `sk` nguyên, không phải `than` đã toLowerCase)
   const b4 = muc(sk, '\n4. **', '\n5. **');
