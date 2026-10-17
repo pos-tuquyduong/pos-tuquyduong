@@ -364,6 +364,7 @@ function xetBash(lenh, nc) {
     if (!e.phanTich) throw e;
     return luat('B-PHANTICH') ? chan('B-PHANTICH', e.message) : null;
   }
+  nc.ds = ds; // mức ngoài cùng — motMinh (TU-CHAY-8 A3) xét lệnh chạy file script có đứng một mình không
   return xetDs(ds, nc, { d: nc.cwd });
 }
 function xetDs(ds, nc, cwd) {
@@ -423,8 +424,8 @@ function xetChuong(tu, l, nc, cwd) {
   }
   if ((ten === 'bash' || ten === 'sh') && a.length === 1 && a[0].chu) {
     const rel = relKho(thuc(path.resolve(cwd.d, a[0].val)), nc);
-    if (luat('B-BASHFILE') && /^\.claude\/tu_chay\/[^/]+\.sh$|^cong_cu\/.+\.sh$/.test(rel)) return xetTep(a[0], nc, cwd);
-    if (luat('B-BASHTHEM') && nc.cauHinh.tep_bash_them.includes(rel)) return xetTep(a[0], nc, cwd); // so nguyên chuỗi, không glob
+    if (luat('B-BASHFILE') && /^\.claude\/tu_chay\/[^/]+\.sh$|^cong_cu\/.+\.sh$/.test(rel)) return xetTep(a[0], nc, cwd, l);
+    if (luat('B-BASHTHEM') && nc.cauHinh.tep_bash_them.includes(rel)) return xetTep(a[0], nc, cwd, l); // so nguyên chuỗi, không glob
   }
   if (!CHO_CHAY.has(ten) && !nc.cauHinh.chuong_trinh_them.includes(ten)) {
     return luat('B-CHUONGTRINH') ? chan('B-CHUONGTRINH', ten) : null;
@@ -488,23 +489,28 @@ function chepChuyen(ten, a, nc, cwd) {
   return null;
 }
 const ghiHet = (ds, nc, cwd) => dauTien(ds, (t) => dichGhi(t, nc, cwd));
-function maNoi(ten, a, l) { // lấy mã chạy thẳng + file script của node / python3 + file nạp kèm (node -r/--require/--import/--loader)
+// node: cờ mà giá trị là file / mã được NẠP rồi chạy (TU-CHAY-8 A3, soát vòng 1: --experimental-loader=, --test-reporter=).
+const NODE_NAP = ['-r', '--require', '--import', '--loader', '--experimental-loader', '--test-reporter'];
+function maNoi(ten, a, l) { // lấy mã chạy thẳng + file script của node / python3 + giá trị được nạp kèm (node: NODE_NAP, --x=<file có thật>)
   let ma = null, script = null, i = 0;
   const kem = [];
   const coMa = ten === 'node' ? ['-e', '--eval', '-p', '--print'] : ['-c'];
-  const coGt = ten === 'node' ? ['-r', '--require', '--import', '--loader'] : ['-m', '-W', '-X', '-Q'];
+  const coGt = ten === 'node' ? NODE_NAP : ['-m', '-W', '-X', '-Q'];
   for (; i < a.length; i++) {
     const v = a[i].val;
     const dai = coMa.filter((c) => c.startsWith('--'));
     if (coMa.includes(v) || (!v.includes('=') && laDai(v, ...dai))) { ma = (a[i + 1] || tuGia('')).val; break; }
     if (v.includes('=') && laDai(v, ...dai)) { ma = v.slice(v.indexOf('=') + 1); break; }
     if (ten === 'python3' && /^-c./.test(v)) { ma = v.slice(2); break; }
+    if (ten === 'node' && /^-[a-z]{2,}$/.test(v) && /[ep]/.test(v)) { ma = (a[i + 1] || tuGia('')).val; break; } // gộp cờ ngắn: -pe
     if (v === '-m' && ten === 'python3') break;
     if (coGt.includes(v) || laDai(v, ...coGt.filter((c) => c.startsWith('--')))) {
       if (ten === 'node') kem.push(v.includes('=') ? tuGia(v.slice(v.indexOf('=') + 1), a[i].chu) : a[i + 1] || tuGia(''));
       if (!v.includes('=')) i++;
       continue;
     }
+    // --x=<giá trị> khác: ứng viên nạp kèm (vd --env-file=.env) — node() giữ khi là file có thật hoặc data:/file:
+    if (ten === 'node' && /^--[^=]+=./.test(v)) { kem.push({ ...tuGia(v.slice(v.indexOf('=') + 1), a[i].chu), tuy: true }); continue; }
     if (v === '-') { ma = chuoiVao(l); break; }
     if (!v.startsWith('-')) { script = a[i]; break; }
   }
@@ -525,37 +531,58 @@ function coCoM(a) {
 const loMoiTruong = (ma) => !!ma && /process\.env(?![.\[])/.test(ma);
 
 // git của người gác: bỏ GIT_* (pre-commit đặt GIT_INDEX_FILE), không leo lên kho cha của gốc, hạn 10 s (hook có 30 s).
-const gitGac = (goc, ...a) => spawnSync('git', ['--no-optional-locks', ...a], { cwd: goc, encoding: 'utf8', timeout: 10000,
+const gitGac = (goc, ...a) => spawnSync('git', ['--no-optional-locks', ...a], { cwd: goc, encoding: 'utf8', timeout: 10000, maxBuffer: 256 << 20,
   env: { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_/.test(k))), GIT_CEILING_DIRECTORIES: path.dirname(goc) } });
-// TU-CHAY-8 A3 — lệnh CHẠY một file script (node / python3 / bash|sh <file>, node -r/--require/--import/--loader <file>): đọc file, áp
-// CÙNG luật nội dung như mã viết thẳng — B-BIMAT-CHU (RE_BIMAT + process.env trần), B-BIMAT-FILE (từ là tên file bí mật), B-MANOI.
-// Chỉ soi file trong kho hoặc nháp. MIỄN file trong kho đã commit và không sửa (Q5a: git status rỗng; git lỗi → soi). Không đọc được →
-// cho (chương trình tự báo lỗi). Thư mục / > 200 KB → B-PHANTICH. Không theo file do script require/import (lỗ còn hở — THIET_KE).
+const laTep = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
+// TU-CHAY-8 A3 — lệnh CHẠY một file script (node / python3 / bash|sh <file>, node NODE_NAP <file>, node --x=<file có thật>): đọc file,
+// áp CÙNG luật nội dung như mã viết thẳng — B-BIMAT-CHU (RE_BIMAT + process.env trần), B-BIMAT-FILE (tên / từ là file bí mật), B-MANOI.
+// Soát vòng 1:
+//  · soi file Ở MỌI NƠI (máy ghi được cả nháp, ~/.claude/plans, và /tmp qua mã viết thẳng);
+//  · MIỄN khi NỘI DUNG file là một blob trong lịch sử HEAD (Q5a "đã commit, không sửa" — kể cả bản sao cây gốc trong nháp để chạy
+//    bằng chứng đỏ, bước 4); git lỗi → soi. Blob chỉ nằm trong chỉ mục (git add rồi bỏ) không tính;
+//  · lệnh phải đứng MỘT MÌNH (motMinh): thứ chạy trước / cùng lúc trong cùng lệnh (cp …; node f) sửa được file SAU khi người gác đọc.
+// File không có → cho (chương trình tự báo lỗi); giá trị nạp kèm không phải file (data:…) → soi chính chữ. Thư mục / > 200 KB → B-PHANTICH.
+// Không theo file do script require/import, không giải mã chuỗi ghép (lỗ còn hở — THIET_KE).
 const TEP_TOI_DA = 200 * 1024;
-function xetTep(t, nc, cwd) {
-  if (!t.chu) return khongChu(t);
-  const abs = thuc(path.resolve(cwd.d, t.val)), rel = relKho(abs, nc);
-  if (!trongNhap(abs, nc)) {
-    if (ngoaiKho(rel)) return null;
-    const st = gitGac(nc.goc, 'status', '--porcelain', '--ignored', '--untracked-files=all', '--', rel);
-    if (st.status === 0 && !st.stdout.trim()) return null;
-  }
-  let nd;
-  try {
-    const s = fs.statSync(abs);
-    if (s.isDirectory() || s.size > TEP_TOI_DA) {
-      return luat('B-PHANTICH') ? chan('B-PHANTICH', `${t.val}: ${s.isDirectory() ? 'thư mục — ghi thẳng tên file script' : 'script quá 200 KB, người gác không đọc'}`) : null;
-    }
-    nd = fs.readFileSync(abs, 'utf8');
-  } catch { return null; }
+const LOC = new Set(['head', 'tail', 'grep', 'wc', 'cut', 'tr', 'nl', 'cat']); // chỉ đọc stdin, không ghi file
+function motMinh(l, nc) { // chỉ `cd <thư mục> &&` đứng trước; sau chỉ LOC (ống / ; / &&), không chuyển hướng ghi, không $( )
+  const ds = nc.ds || [], j = ds.findIndex((m) => m.tu === l.tu);
+  if (j < 0 || j > 1 || l.con.length) return false;
+  if (j === 1 && !(ds[0].duocCd && ds[0].tu && ds[0].tu[0].val === 'cd' && ds[0].sau === '&&')) return false;
+  return ds.slice(j + 1).every((m) => m.tu && m.tu.length && m.tu[0].chu && LOC.has(m.tu[0].val) && !m.con.length && !m.gan.length
+    && m.cc.every((t) => /^\/dev\/(null|stdout|stderr)$/.test(t.val)));
+}
+function trongLichSu(abs, nc) {
+  const h = gitGac(nc.goc, 'hash-object', '--no-filters', '--', abs);
+  if (h.status !== 0 || !/^[0-9a-f]{40}$/.test(h.stdout.trim())) return false;
+  const r = gitGac(nc.goc, 'rev-list', '--objects', 'HEAD');
+  return r.status === 0 && r.stdout.split('\n').some((d) => d.startsWith(h.stdout.trim()));
+}
+function xetNoiDung(nd, nc, ten) {
   const bm = RE_BIMAT.exec(nd);
-  if (luat('B-BIMAT-CHU') && (bm || loMoiTruong(nd))) return chan('B-BIMAT-CHU', `${t.val}: ${bm ? bm[0] : 'process.env'}`);
+  if (luat('B-BIMAT-CHU') && (bm || loMoiTruong(nd))) return chan('B-BIMAT-CHU', `${ten}: ${bm ? bm[0] : 'process.env'}`);
   if (luat('B-BIMAT-FILE')) {
     const w = nd.split(/[\s'"`()[\]{},;=+:<>|&]+/).find((x) => x && laBiMat(tuGia(x), nc));
-    if (w) return chan('B-BIMAT-FILE', `${t.val}: ${w}`);
+    if (w) return chan('B-BIMAT-FILE', `${ten}: ${w}`);
   }
-  if (luat('B-MANOI') && reManoi(nc).test(nd)) return chan('B-MANOI', t.val);
-  return null;
+  return luat('B-MANOI') && reManoi(nc).test(nd) ? chan('B-MANOI', ten) : null;
+}
+function xetTep(t, nc, cwd, l, kem = false) {
+  if (!t.chu) return khongChu(t);
+  if (luat('B-PHANTICH') && !motMinh(l, nc)) {
+    return chan('B-PHANTICH', 'lệnh chạy file script phải đứng một mình: chỉ `cd <thư mục> &&` ở đầu, sau chỉ head/tail/grep/wc/cut/tr/nl/cat (không ghi file)');
+  }
+  if (luat('B-BIMAT-FILE') && laBiMat(t, nc)) return chan('B-BIMAT-FILE', t.tho);
+  const abs = thuc(path.resolve(cwd.d, t.val));
+  let s = null;
+  try { s = fs.statSync(abs); } catch {}
+  if (!s) return kem ? xetNoiDung(t.val, nc, t.tho) : null;
+  if (s.isDirectory()) return luat('B-PHANTICH') ? chan('B-PHANTICH', `${t.val}: thư mục — ghi thẳng tên file script`) : null;
+  if (trongLichSu(abs, nc)) return null;
+  if (s.size > TEP_TOI_DA) return luat('B-PHANTICH') ? chan('B-PHANTICH', `${t.val}: script quá 200 KB, người gác không đọc`) : null;
+  let nd;
+  try { nd = fs.readFileSync(abs, 'utf8'); } catch { return null; }
+  return xetNoiDung(nd, nc, t.val);
 }
 // TU-CHAY-8 A7 (chủ quán duyệt 17.10) — phiên máy mây mở ở HEAD tách rời (app chọn "nhánh gốc") → skill bước 1.1 tắc. Cho ĐÚNG
 // `git checkout viec/<MÃ>` (một đối số viết thẳng, không cờ, không file) khi: HEAD tách rời, viec/<MÃ> là nhánh local trỏ ĐÚNG commit
@@ -736,14 +763,17 @@ const LUAT_CON = {
     if (luat('PY-SO') && (/ghi_tien_do/.test(toan) || (ten === 'dong_tien_do.py' && sau.length))) return chan('PY-SO');
     if (luat('B-BIMAT-CHU') && loMoiTruong(ma)) return chan('B-BIMAT-CHU', 'process.env');
     if (luat('B-MANOI') && ma && reManoi(nc).test(ma)) return chan('B-MANOI');
-    return script ? xetTep(script, nc, cwd) : null;
+    return script ? xetTep(script, nc, cwd, l) : null;
   },
   node(a, nc, cwd, l) {
     if (luat('NODE-CAIDAT') && a.some((w) => /^cai_dat\.(js|sh)$/.test(path.basename(w.val)))) return chan('NODE-CAIDAT');
     const { ma, script, kem } = maNoi('node', a, l);
     if (luat('B-BIMAT-CHU') && loMoiTruong(ma)) return chan('B-BIMAT-CHU', 'process.env');
     if (luat('B-MANOI') && ma && reManoi(nc).test(ma)) return chan('B-MANOI');
-    return dauTien(script ? [...kem, script] : kem, (t) => xetTep(t, nc, cwd));
+    if (luat('B-PHANTICH') && a.some((w) => w.val === '--test')) return chan('B-PHANTICH', 'node --test tự tìm file để chạy — chạy thẳng từng file');
+    const tep = [...kem.filter((t) => !t.tuy || /^(data|file):/.test(t.val) || laTep(path.resolve(cwd.d, t.val))), ...(script ? [script] : [])];
+    if (luat('B-PHANTICH') && tep.length > 1) return chan('B-PHANTICH', 'một lệnh node chạy đúng một file (script hoặc một file nạp kèm)');
+    return dauTien(tep, (t) => xetTep(t, nc, cwd, l, t !== script));
   },
   ps(a) {
     if (luat('B-BIMAT-CHU') && a.some((w) => w.chu && !w.val.startsWith('-') && w.val.includes('e'))) return chan('B-BIMAT-CHU', 'ps e (đọc môi trường)');
