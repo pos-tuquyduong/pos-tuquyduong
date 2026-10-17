@@ -86,7 +86,8 @@ const KHO_TBT = kho('kho_tbt', { cauHinh: JSON.stringify(CH_THIEU_BASH), phieu: 
 const KHO_LK = kho('kho_lk', { phieu: { X: PHIEU_X } });
 viet(KHO_LK, 'server/a.js', 'x');
 fs.linkSync(path.join(KHO_LK, 'server/a.js'), path.join(KHO_LK, 'server/a_cung.js'));
-// TU-CHAY-8: kho git THẬT (A3 miễn soi file đã commit sạch — git status; A7 — git rev-parse). KHO_A7: HEAD tách rời ĐÚNG commit của viec/X.
+// TU-CHAY-8: kho git THẬT (A3 miễn khi nội dung là blob trong lịch sử HEAD — git hash-object + rev-list; A7 — git rev-parse).
+// KHO_A7: HEAD tách rời ĐÚNG commit của viec/X.
 const MTG = { PATH: process.env.PATH, HOME, GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't',
   GIT_COMMITTER_EMAIL: 't@t' };
 const gt = (cwd, ...a) => {
@@ -620,7 +621,7 @@ for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
 }
 
 // ── TU-CHAY-8 A3: lệnh chạy một FILE script → người gác đọc file, áp CÙNG luật nội dung như mã viết thẳng (B-BIMAT-CHU, B-BIMAT-FILE,
-// B-MANOI); miễn file trong kho đã commit và không sửa (Q5a). KHO giả không phải kho git (git status hỏng) → luôn soi.
+// B-MANOI); miễn khi nội dung là blob trong lịch sử HEAD (Q5a). KHO giả không phải kho git (git rev-list hỏng) → luôn soi.
 const BM = 'console.log(process.env.JWT_' + 'SECRET);\n';
 viet(NHAP, 's.js', BM); viet(NHAP, 's.py', 'import os\nprint(os.' + 'environ["X"])\n'); viet(NHAP, 'vo_hai.js', 'console.log(1);\n');
 viet(NHAP, 'env.js', 'console.log(process.env);\n'); viet(NHAP, 'claude.js', "require('fs').writeFileSync('.claude/x', '');\n");
@@ -651,7 +652,10 @@ for (const [l, ky] of [[`cp ${N}/s.js ${N}/b.js; node ${N}/b.js`, 'B-PHANTICH'],
   [`cd ${N} && node --test`, 'B-PHANTICH'], [`node --test ${N}/vo_hai.js`, 'B-PHANTICH'],
   ["node --import 'data:text/javascript,console.log(process.env)' -e 1", 'B-BIMAT-CHU'],
   ["node --experimental-loader 'data:text/javascript,console.log(process.env)' -e 1", 'B-BIMAT-CHU'], [`node --max-old-space-size=4096 ${N}/vo_hai.js`, 'CHO'],
-  ["node -pe 'process.env'", 'B-BIMAT-CHU'], ["node -pe '1+1'", 'CHO']]) B(l, ky);
+  ["node -pe 'process.env'", 'B-BIMAT-CHU'], ["node -pe '1+1'", 'CHO'],
+  // soát vòng 2 (KHOÁ): node tự thêm đuôi — `node <nháp>/s` chạy s.js
+  [`node ${N}/s`, 'B-BIMAT-CHU'], [`cd ${N} && node s`, 'B-BIMAT-CHU'], [`node --require ${N}/s -e 1`, 'B-BIMAT-CHU'],
+  [`node -r ${N}/s -e 1`, 'B-BIMAT-CHU'], [`node --loader ${N}/s -e 1`, 'B-BIMAT-CHU'], [`node ${N}/vo_hai`, 'CHO']]) B(l, ky);
 // Kho git THẬT: file đã commit + sạch được miễn (đúng kiểu node cong_cu/thu_P20.js — có cụm bí mật của bài thử); sửa dở / chưa theo dõi → soi
 {
   // Miễn theo NỘI DUNG: blob trong lịch sử HEAD (soát vòng 1 — bản cũ trong lịch sử / bản sao cây gốc trong nháp để chạy bằng chứng đỏ)
