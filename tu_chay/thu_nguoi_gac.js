@@ -629,18 +629,44 @@ viet(NHAP, 'env_port.js', 'console.log(process.env.PORT, "dotenv", "x.env.y");\n
 viet(KHO, 'cong_cu/bm.sh', 'echo $TOKEN_X\n'); viet(KHO, 'cong_cu/bm.js', BM);
 for (const [l, ky] of [[`node ${N}/s.js`, 'B-BIMAT-CHU'], [`python3 ${N}/s.py`, 'B-BIMAT-CHU'], ['bash cong_cu/bm.sh', 'B-BIMAT-CHU'],
   ['sh cong_cu/bm.sh', 'B-BIMAT-CHU'], ['node cong_cu/bm.js', 'B-BIMAT-CHU'], [`timeout 9 node ${N}/s.js`, 'B-BIMAT-CHU'],
-  [`cd ${N} && node s.js`, 'B-BIMAT-CHU'], [`node -r ${N}/s.js -e 1`, 'B-BIMAT-CHU'], [`node --require=${N}/s.js x.js`, 'B-BIMAT-CHU'],
-  [`node --import ${N}/s.js x.js`, 'B-BIMAT-CHU'], [`python3 -W ignore ${N}/s.py`, 'B-BIMAT-CHU'], [`node ${N}/env.js`, 'B-BIMAT-CHU'],
+  [`cd ${N} && node s.js`, 'B-BIMAT-CHU'], [`node -r ${N}/s.js -e 1`, 'B-BIMAT-CHU'], [`node --require=${N}/s.js -e 1`, 'B-BIMAT-CHU'],
+  [`node --import ${N}/s.js -e 1`, 'B-BIMAT-CHU'], [`python3 -W ignore ${N}/s.py`, 'B-BIMAT-CHU'], [`node ${N}/env.js`, 'B-BIMAT-CHU'],
   [`node ${N}/claude.js`, 'B-MANOI'], [`node ${N}/envf.js`, 'B-BIMAT-FILE'], [`node ${N}/to.js`, 'B-PHANTICH'], [`node ${N}/dir`, 'B-PHANTICH'],
   ['node $F', 'B-DICHCHU'], [`node ${N}/vo_hai.js`, 'CHO'], [`node ${N}/env_port.js`, 'CHO'], [`node ${N}/khong_co.js`, 'CHO'],
   [`python3 ${N}/f.txt`, 'CHO'], ['bash ban_mau_pos/chay_thu.sh', 'CHO']]) B(l, ky);
+// Soát vòng 1 (KHOÁ): (1) ghi rồi chạy trong CÙNG lệnh — người gác đọc file TRƯỚC khi lệnh chạy → lệnh chạy file phải đứng một mình;
+// (2) soi mọi nơi (~/.claude/plans, ngoài kho); (3) cờ node nạp file; (4) --import data:; (5) -pe gộp cờ.
+viet(HOME, '.claude/plans/p.js', BM); viet(NGOAI, 's.js', BM);
+for (const [l, ky] of [[`cp ${N}/s.js ${N}/b.js; node ${N}/b.js`, 'B-PHANTICH'], [`cp ${N}/s.js ${N}/vo_hai.js && node ${N}/vo_hai.js`, 'B-PHANTICH'],
+  [`cat ${N}/s.js > ${N}/c.js && node ${N}/c.js`, 'B-PHANTICH'], [`echo 'console.log(1)' > ${N}/moi.js && node ${N}/moi.js`, 'B-PHANTICH'],
+  [`ls | node ${N}/vo_hai.js`, 'B-PHANTICH'], [`node ${N}/vo_hai.js | cp ${N}/s.js ${N}/vo_hai.js`, 'B-PHANTICH'],
+  [`node ${N}/vo_hai.js $(cp ${N}/s.js ${N}/vo_hai.js)`, 'B-PHANTICH'], [`node ${N}/vo_hai.js & cp ${N}/s.js ${N}/vo_hai.js`, 'B-PHANTICH'],
+  [`node ${N}/vo_hai.js; node ${N}/vo_hai.js`, 'B-PHANTICH'], [`(node ${N}/vo_hai.js)`, 'B-PHANTICH'],
+  [`node ${N}/vo_hai.js | tee ${N}/vo_hai.js`, 'B-PHANTICH'], [`node ${N}/vo_hai.js | grep x > ${N}/vo_hai.js`, 'B-PHANTICH'],
+  [`node ${N}/vo_hai.js 2>&1 | tail -4`, 'CHO'], [`cd ${N} && node vo_hai.js | grep x | wc -l`, 'CHO'], [`timeout 60 node ${N}/vo_hai.js`, 'CHO'],
+  [`node ${N}/vo_hai.js > ${N}/ra.txt 2>&1`, 'CHO'], [`python3 ${N}/f.txt 2> /dev/null | head -3`, 'CHO'],
+  [`node ${HOME}/.claude/plans/p.js`, 'B-BIMAT-CHU'], [`node ${NGOAI}/s.js`, 'B-BIMAT-CHU'],
+  [`node --experimental-loader=${N}/s.js -e 1`, 'B-BIMAT-CHU'], [`node --test-reporter=${N}/s.js -e 1`, 'B-BIMAT-CHU'],
+  ['node --env-file=.env -e 1', 'B-BIMAT-FILE'], [`node -r ${N}/vo_hai.js ${N}/vo_hai.js`, 'B-PHANTICH'],
+  [`cd ${N} && node --test`, 'B-PHANTICH'], [`node --test ${N}/vo_hai.js`, 'B-PHANTICH'],
+  ["node --import 'data:text/javascript,console.log(process.env)' -e 1", 'B-BIMAT-CHU'],
+  ["node --experimental-loader 'data:text/javascript,console.log(process.env)' -e 1", 'B-BIMAT-CHU'], [`node --max-old-space-size=4096 ${N}/vo_hai.js`, 'CHO'],
+  ["node -pe 'process.env'", 'B-BIMAT-CHU'], ["node -pe '1+1'", 'CHO']]) B(l, ky);
 // Kho git THẬT: file đã commit + sạch được miễn (đúng kiểu node cong_cu/thu_P20.js — có cụm bí mật của bài thử); sửa dở / chưa theo dõi → soi
 {
-  const KG = khoGit('kho_git_a3', { file: { 'cong_cu/thu_bm.js': BM, 'cong_cu/sua.js': BM, 'cong_cu/bm.sh': 'echo $TOKEN_X\n' } });
+  // Miễn theo NỘI DUNG: blob trong lịch sử HEAD (soát vòng 1 — bản cũ trong lịch sử / bản sao cây gốc trong nháp để chạy bằng chứng đỏ)
+  const BM_A3 = BM + '// a3\n';
+  const KG = khoGit('kho_git_a3', { file: { 'cong_cu/thu_bm.js': BM_A3, 'cong_cu/sua.js': BM_A3, 'cong_cu/bm.sh': 'echo $TOKEN_X\n',
+    'viec/X/a.py': 'print(1)\n' } });
+  viet(KG, 'cong_cu/thu_bm.js', BM_A3 + '// v2\n'); gt(KG, 'add', '-A'); gt(KG, 'commit', '-q', '-m', 'v2');   // bản v1 chỉ còn trong lịch sử
   fs.appendFileSync(path.join(KG, 'cong_cu/sua.js'), '// sửa dở\n');
-  viet(KG, 'cong_cu/moi.js', BM);
+  viet(KG, 'cong_cu/moi.js', BM_A3 + '// mới\n');
+  viet(NHAP, 'goc/thu_bm.js', BM_A3); viet(NHAP, 'goc/thu_bm_v2.js', BM_A3 + '// v2\n'); viet(NHAP, 'goc/khac.js', BM_A3 + '// khác\n');
+  viet(KG, 'cong_cu/chi_muc.js', BM_A3 + '// chỉ mục\n'); gt(KG, 'add', 'cong_cu/chi_muc.js'); gt(KG, 'restore', '--staged', 'cong_cu/chi_muc.js');
   for (const [l, ky] of [['node cong_cu/thu_bm.js', 'CHO'], ['cd cong_cu && node thu_bm.js', 'CHO'], ['bash cong_cu/bm.sh', 'CHO'],
-    ['bash ban_mau_pos/chay_thu.sh', 'CHO'], ['node cong_cu/sua.js', 'B-BIMAT-CHU'], ['node cong_cu/moi.js', 'B-BIMAT-CHU']]) B(l, ky, { goc: KG });
+    ['bash ban_mau_pos/chay_thu.sh', 'CHO'], ['node cong_cu/sua.js', 'B-BIMAT-CHU'], ['node cong_cu/moi.js', 'B-BIMAT-CHU'],
+    [`node ${N}/goc/thu_bm.js`, 'CHO'], [`node ${N}/goc/thu_bm_v2.js`, 'CHO'], [`node ${N}/goc/khac.js`, 'B-BIMAT-CHU'],
+    ['node cong_cu/chi_muc.js', 'B-BIMAT-CHU'], [`cp ${N}/s.js viec/X/a.py && python3 viec/X/a.py`, 'B-PHANTICH']]) B(l, ky, { goc: KG });
 }
 // ── TU-CHAY-8 A7 (chủ quán duyệt 17.10): HEAD tách rời trỏ ĐÚNG commit của nhánh local viec/<MÃ> có phiếu → cho ĐÚNG `git checkout viec/<MÃ>`
 {
