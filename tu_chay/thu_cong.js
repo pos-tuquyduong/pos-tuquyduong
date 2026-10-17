@@ -782,7 +782,7 @@ function dieuPhoi() {
       process.stdout.write(ra && !ra.endsWith('\n') ? ra + '\n' : ra);
       const m = new RegExp(`^thu_cong phần ${k}/${SO_PHAN}: \\d+/\\d+ đơn vị · (\\d+) phép · (\\d+) chỗ hỏng`, 'm').exec(ra);
       if (m) { phep += +m[1]; soHong += +m[2]; }
-      if ((!m || ma !== 0) && !(m && +m[2])) hong.push(`phần ${k}/${SO_PHAN}: ${tin ? `bị dừng ${tin} (quá hạn 120 s?)` : `thoát ${ma}`}${m ? '' : ', không in dòng phần'}`);
+      if (!m || (ma !== 0 && !+m[2])) hong.push(`phần ${k}/${SO_PHAN}: ${tin ? `bị dừng ${tin} (quá hạn 120 s?)` : `thoát ${ma}`}${m ? '' : ', không in dòng phần'}`);
     }
     for (const h of hong) console.log('  ✗ ' + h);
     soHong += hong.length;
