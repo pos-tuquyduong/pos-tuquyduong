@@ -86,6 +86,27 @@ const KHO_TBT = kho('kho_tbt', { cauHinh: JSON.stringify(CH_THIEU_BASH), phieu: 
 const KHO_LK = kho('kho_lk', { phieu: { X: PHIEU_X } });
 viet(KHO_LK, 'server/a.js', 'x');
 fs.linkSync(path.join(KHO_LK, 'server/a.js'), path.join(KHO_LK, 'server/a_cung.js'));
+// TU-CHAY-8: kho git THẬT (A3 miễn soi file đã commit sạch — git status; A7 — git rev-parse). KHO_A7: HEAD tách rời ĐÚNG commit của viec/X.
+const MTG = { PATH: process.env.PATH, HOME, GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't',
+  GIT_COMMITTER_EMAIL: 't@t' };
+const gt = (cwd, ...a) => {
+  const r = spawnSync('git', a, { cwd, env: MTG, encoding: 'utf8', timeout: 20000 });
+  if (r.status !== 0) throw new Error(`git ${a.join(' ')}: ${r.stderr}`);
+  return r.stdout.trim();
+};
+function khoGit(ten, { phieu = true, file = {} } = {}) {
+  const g = path.join(TAM, ten);
+  fs.mkdirSync(g);
+  gt(g, 'init', '-q', '-b', 'viec/X');
+  viet(g, '.claude/tu_chay/cau_hinh.json', JSON.stringify(CAU_HINH));
+  viet(g, 'ban_mau_pos/chay_thu.sh', 'echo thu\n');
+  if (phieu) viet(g, 'viec/X/phieu.md', PHIEU_X);
+  for (const [f, nd] of Object.entries(file)) viet(g, f, nd);
+  gt(g, 'add', '-A'); gt(g, 'commit', '-q', '-m', 'goc');
+  return g;
+}
+const KHO_A7 = khoGit('kho_a7_dung');
+gt(KHO_A7, 'branch', 'main'); gt(KHO_A7, 'checkout', '-q', '--detach');
 
 // ── Ca thử ───────────────────────────────────────────────────────────────────
 function vao(cc, ti, o = {}) {
@@ -268,8 +289,10 @@ B('GIT_DIR=x git fetch origin viec/X', 'B-GAN');
   const lenh = [...b1.matchAll(/`(git [^`]+)`/g)].map((m) => m[1].replace(/\$0/g, 'X'));
   chac('TU-CHAY-5 B4: bước 1 của skill có git fetch origin viec/$0 và git pull --no-rebase --ff-only origin viec/$0',
     lenh.includes('git fetch origin viec/X') && lenh.includes('git pull --no-rebase --ff-only origin viec/X'), lenh.join(' | '));
+  // TU-CHAY-8 A7: `git checkout viec/$0` của bước 1.1 chỉ chạy khi HEAD tách rời đúng commit của nhánh → chấm trong KHO_A7 (trạng thái đó)
   const sai = lenh.filter((l) => {
-    try { const r = gac.xet(vao('Bash', { command: l }), { CLAUDE_PROJECT_DIR: KHO, HOME }); return !r || r.quyet !== 'CHO'; } catch { return true; }
+    const goc = /^git checkout /.test(l) ? KHO_A7 : KHO;
+    try { const r = gac.xet(vao('Bash', { command: l }, { goc }), { CLAUDE_PROJECT_DIR: goc, HOME }); return !r || r.quyet !== 'CHO'; } catch { return true; }
   });
   chac('TU-CHAY-5 B4: mọi lệnh git ở bước 1 của skill → người gác CHO', lenh.length >= 2 && !sai.length, sai.join(' | ') || lenh.join(' | '));
 }
@@ -596,6 +619,48 @@ for (const l of ['ps aux', 'ps -eo pid,cmd']) B(l, 'CHO');
   for (const f of P2X) E(f, 'CHO', { goc: CT });
 }
 
+// ── TU-CHAY-8 A3: lệnh chạy một FILE script → người gác đọc file, áp CÙNG luật nội dung như mã viết thẳng (B-BIMAT-CHU, B-BIMAT-FILE,
+// B-MANOI); miễn file trong kho đã commit và không sửa (Q5a). KHO giả không phải kho git (git status hỏng) → luôn soi.
+const BM = 'console.log(process.env.JWT_' + 'SECRET);\n';
+viet(NHAP, 's.js', BM); viet(NHAP, 's.py', 'import os\nprint(os.' + 'environ["X"])\n'); viet(NHAP, 'vo_hai.js', 'console.log(1);\n');
+viet(NHAP, 'env.js', 'console.log(process.env);\n'); viet(NHAP, 'claude.js', "require('fs').writeFileSync('.claude/x', '');\n");
+viet(NHAP, 'envf.js', "require('fs').readFileSync('.env');\n"); viet(NHAP, 'to.js', '//' + 'x'.repeat(205 * 1024) + '\n');
+viet(NHAP, 'env_port.js', 'console.log(process.env.PORT, "dotenv", "x.env.y");\n');
+viet(KHO, 'cong_cu/bm.sh', 'echo $TOKEN_X\n'); viet(KHO, 'cong_cu/bm.js', BM);
+for (const [l, ky] of [[`node ${N}/s.js`, 'B-BIMAT-CHU'], [`python3 ${N}/s.py`, 'B-BIMAT-CHU'], ['bash cong_cu/bm.sh', 'B-BIMAT-CHU'],
+  ['sh cong_cu/bm.sh', 'B-BIMAT-CHU'], ['node cong_cu/bm.js', 'B-BIMAT-CHU'], [`timeout 9 node ${N}/s.js`, 'B-BIMAT-CHU'],
+  [`cd ${N} && node s.js`, 'B-BIMAT-CHU'], [`node -r ${N}/s.js -e 1`, 'B-BIMAT-CHU'], [`node --require=${N}/s.js x.js`, 'B-BIMAT-CHU'],
+  [`node --import ${N}/s.js x.js`, 'B-BIMAT-CHU'], [`python3 -W ignore ${N}/s.py`, 'B-BIMAT-CHU'], [`node ${N}/env.js`, 'B-BIMAT-CHU'],
+  [`node ${N}/claude.js`, 'B-MANOI'], [`node ${N}/envf.js`, 'B-BIMAT-FILE'], [`node ${N}/to.js`, 'B-PHANTICH'], [`node ${N}/dir`, 'B-PHANTICH'],
+  ['node $F', 'B-DICHCHU'], [`node ${N}/vo_hai.js`, 'CHO'], [`node ${N}/env_port.js`, 'CHO'], [`node ${N}/khong_co.js`, 'CHO'],
+  [`python3 ${N}/f.txt`, 'CHO'], ['bash ban_mau_pos/chay_thu.sh', 'CHO']]) B(l, ky);
+// Kho git THẬT: file đã commit + sạch được miễn (đúng kiểu node cong_cu/thu_P20.js — có cụm bí mật của bài thử); sửa dở / chưa theo dõi → soi
+{
+  const KG = khoGit('kho_git_a3', { file: { 'cong_cu/thu_bm.js': BM, 'cong_cu/sua.js': BM, 'cong_cu/bm.sh': 'echo $TOKEN_X\n' } });
+  fs.appendFileSync(path.join(KG, 'cong_cu/sua.js'), '// sửa dở\n');
+  viet(KG, 'cong_cu/moi.js', BM);
+  for (const [l, ky] of [['node cong_cu/thu_bm.js', 'CHO'], ['cd cong_cu && node thu_bm.js', 'CHO'], ['bash cong_cu/bm.sh', 'CHO'],
+    ['bash ban_mau_pos/chay_thu.sh', 'CHO'], ['node cong_cu/sua.js', 'B-BIMAT-CHU'], ['node cong_cu/moi.js', 'B-BIMAT-CHU']]) B(l, ky, { goc: KG });
+}
+// ── TU-CHAY-8 A7 (chủ quán duyệt 17.10): HEAD tách rời trỏ ĐÚNG commit của nhánh local viec/<MÃ> có phiếu → cho ĐÚNG `git checkout viec/<MÃ>`
+{
+  const DUNG = KHO_A7;
+  const KHAC = khoGit('kho_a7_khac');
+  viet(KHAC, 'server/a.js', 'x'); gt(KHAC, 'add', '-A'); gt(KHAC, 'commit', '-q', '-m', 'sau'); gt(KHAC, 'checkout', '-q', '--detach', 'HEAD~1');
+  const NHANH = khoGit('kho_a7_nhanh');
+  const KPHIEU = khoGit('kho_a7_khong_phieu', { phieu: false });
+  gt(KPHIEU, 'checkout', '-q', '--detach');
+  B('git checkout viec/X', 'CHO', { goc: DUNG });
+  B("git checkout 'viec/X'", 'CHO', { goc: DUNG });
+  B('git checkout viec/X', 'GIT-CHECKOUT', { goc: KHAC });
+  B('git checkout viec/X', 'GIT-CHECKOUT', { goc: NHANH });
+  B('git checkout viec/X', 'GIT-CHECKOUT', { goc: KPHIEU });
+  for (const l of ['git checkout main', 'git checkout viec/Y', 'git checkout -q viec/X', 'git checkout -f viec/X', 'git checkout viec/X --',
+    'git checkout viec/X -- server/a.js', 'git checkout --detach viec/X', 'git checkout viec/X viec/X', 'git checkout $B',
+    `cd ${N} && git checkout viec/X`]) B(l, 'GIT-CHECKOUT', { goc: DUNG });
+  B('git checkout -- viec/X', 'GIT-HOANTAC', { goc: DUNG });
+}
+
 const coXet = typeof gac.xet === 'function';
 const chay = (c, tat) => {
   try {
@@ -706,7 +771,7 @@ if (coXet) {
       ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
-  chac('PHIEN_BAN = tu-chay 1.7.0', pb === 'tu-chay 1.7.0', pb || '(không có)'); // TU-CHAY-7 A5
+  chac('PHIEN_BAN dạng tu-chay x.y.z (TU-CHAY-8 A5: không ghim số — mục THIET_KE canh ở thu_cong_cu.js)', /^tu-chay \d+\.\d+\.\d+$/.test(pb), pb || '(không có)');
 }
 // HOC-2 B1 (AU-A1): tập công cụ chỉ-đọc / sửa file KHOÁ bằng tập cố định. Thêm một tên lạ (vd 'Bash2') là mở lỗ mà không ca hành vi
 // nào thấy (đột biến AUDIT-1 A3-CCLA-them-la từng SỐNG). Đọc literal trong mã nguồn của chính người gác đang thử (--nguoi-gac).
