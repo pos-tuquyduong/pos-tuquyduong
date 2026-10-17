@@ -574,9 +574,10 @@ function xetTep(t, nc, cwd, l, kem = false) {
     return chan('B-PHANTICH', 'lệnh chạy file script phải đứng một mình: chỉ `cd <thư mục> &&` ở đầu, sau chỉ head/tail/grep/wc/cut/tr/nl/cat (không ghi file)');
   }
   if (luat('B-BIMAT-FILE') && laBiMat(t, nc)) return chan('B-BIMAT-FILE', t.tho);
-  // node tự thêm đuôi (soát vòng 2: `node <nháp>/s` chạy s.js) → phân giải như node trước khi kết luận "không có file"
+  // node tự thêm đuôi cho file chính / require: .js, .json, .node (đo 17.10, node 22: `node X` chạy X.js, X.json; KHÔNG X.cjs) —
+  // soát vòng 2: `node <nháp>/s` chạy s.js → phân giải như node trước khi kết luận "không có file"
   const goc = thuc(path.resolve(cwd.d, t.val));
-  const abs = [goc, goc + '.js', goc + '.cjs', goc + '.mjs'].find((p) => fs.existsSync(p)) || goc;
+  const abs = [goc, goc + '.js', goc + '.json', goc + '.node'].find((p) => fs.existsSync(p)) || goc;
   let s = null;
   try { s = fs.statSync(abs); } catch {}
   if (!s) return kem ? xetNoiDung(t.val, nc, t.tho) : null;
