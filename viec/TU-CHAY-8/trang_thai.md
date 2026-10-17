@@ -14,5 +14,11 @@
 ## Bước 3 — kế hoạch
 `viec/TU-CHAY-8/ke_hoach.md`. Phiếu dặn **chờ duyệt kế hoạch** → dừng ở đây.
 
+- Soát kế hoạch bằng agent phụ: 4 câu, đã nhận vào cuối `ke_hoach.md`.
+- Cổng chạy thử trên máy mây: `✓ CỔNG CHẠY ĐẠT` (~5 phút) — A2 không cần sửa code.
+
 ## Câu hỏi
-Xem mục `## Câu hỏi` của `ke_hoach.md` (Q1–Q5) — gom một lần.
+Xem mục `- Soát kế hoạch bằng agent phụ: 4 câu, đã nhận vào cuối `ke_hoach.md`.
+- Cổng chạy thử trên máy mây: `✓ CỔNG CHẠY ĐẠT` (~5 phút) — A2 không cần sửa code.
+
+## Câu hỏi` của `ke_hoach.md` (Q1–Q6) — gom một lần.

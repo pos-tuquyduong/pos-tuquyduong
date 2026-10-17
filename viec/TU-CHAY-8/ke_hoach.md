@@ -114,7 +114,7 @@ thu_cong khi hook pre-commit chạy (GIT_INDEX_FILE: con kế thừa env đã l�
 
 **Đường song song cần canh (K4):** A1 — mỗi lời gọi `ca`/khối/bài nhỏ là một đơn vị (sót một chỗ = chạy ở mọi phần → Σa > T?
 không: chỗ sót không đếm → chạy n lần, Σp lệch — bắt bằng đo Σp = liền); A3 — node · python3 · bash/sh · chuyển hướng `<` · ống;
-A4 — mọi lời gọi `chayBaiThat` (12 chỗ) dùng chung một hàm → một chỗ vá; A5 — hai bài thử ghim.
+A4 — mọi lời gọi `chayBaiThat` (11 chỗ: `kiem_tra:492` ×6, `:621`, `:623`, `:641`, `:850`, `:854`) dùng chung một hàm → một chỗ vá; A5 — hai bài thử ghim.
 
 **Đột biến dự kiến (`dot_bien.py`):** BV-TUCHAY8-PHAN-KHONG-CHIA (mọi đơn vị chạy ở mọi phần), VS-TUCHAY8-PHAN-LECH-MOT (k mod n
 lệch một), BV-TUCHAY8-KIEM-PHAN (bỏ kiemPhanThuCong), VS-TUCHAY8-KIEM-PHAN-CHI-DEM-SO-PHAN (chỉ đếm số dòng phần, không so Σa = T),
@@ -132,7 +132,7 @@ Thời gian máy: `npm test` khi đổi tu_chay/: thu_cong từ ~52 s → ~20 s 
 - **Q1 (A4 × file Cấm):** `cong_cu/thu_gia_lap.js:213-216` dùng bài giả im lặng thoát 0; A4 làm C3a/b/d/g/h đỏ → `--day-du` đỏ.
   (a) **[đề xuất]** thêm `cong_cu/thu_gia_lap.js` vào Phạm vi, chỉ sửa 3 bài giả cho in một dòng `1 đạt · 0 hỏng` (+ mục
   `## Bài thử cũ sửa` — xanh trên gốc); LUOI-5 không đụng file này. (b) bỏ A4 khỏi `chayBaiThat`, viết phép riêng sau từng lời gọi
-  (12 chỗ — K4, nhiều dòng hơn).
+  (11 chỗ — K4, nhiều dòng hơn).
 - **Q2 (A4 dạng thứ 4):** giả lập (`gia_lap/chay.js`, Cấm) in `Giả lập: N kịch bản · M bất biến`. Cho `chayBaiThat` nhận thêm dạng này
   (bộ kiểm đã đòi đúng dòng đó ở `kiem_tra:851`) — **[đề xuất]**; hay phải sửa giả lập (Cấm)?
 - **Q3 (A1 nơi điều phối):** phiếu ghi "kiem_tra chạy các phần SONG SONG". Vì C3f của `thu_gia_lap.js` (Cấm) khoá nguyên lời gọi,
@@ -143,3 +143,28 @@ Thời gian máy: `npm test` khi đổi tu_chay/: thu_cong từ ~52 s → ~20 s 
 - **Q5 (A3 miễn trừ):** (a) miễn file đã commit + không sửa (đề xuất) — hệ quả: chạy THẲNG một bài thử đang sửa có cụm bí mật /
   `.claude` (vd `node tu_chay/thu_nguoi_gac.js` khi đang sửa nó) bị chặn → commit trước rồi chạy, hoặc chạy qua `npm test`;
   (b) đường soi thêm `node < f` (chặn theo nội dung) và `… | node` không script (chặn luôn) — duyệt thêm hai đường siết này?
+
+## Soát kế hoạch (agent phụ, chỉ đọc) — đã nhận vào kế hoạch
+
+1. Ngoài Phạm vi: không; `thu_gia_lap.js` chỉ ở Q1a. ✓
+2. Ngắn hơn: bỏ hai đường siết `node < f` / `| node` → để chủ quán chọn ở Q5b. Phép THIET_KE của A5 GIỮ (phiếu đòi "THIET_KE.md ghi
+   A1–A5", ~1 dòng, và là thứ duy nhất làm "quên đổi phiên bản" lộ ra khi bỏ ghim).
+3. Ca còn thiếu → thêm:
+   - A3 câu skill "dùng Edit/Write, không bash" → phép đọc skill trong `thu_cong_cu.js` + đột biến `BV-TUCHAY8-SKILL-EDIT`.
+   - A1 hạn 120 s mỗi phần → phép tĩnh trong `thu_TOCDO1` mục P: điều phối sinh con với `timeout: 120000` (đọc mã nguồn thu_cong.js).
+   - A5 "đúng 1.8.0" → `PHIEN_BAN` là chữ (BV-); THIET_KE có tiêu đề mang `tu-chay 1.8.0` → ca bản sao `tu-chay 9.9.9` đỏ.
+   - A1 "tổng phép KHÔNG giảm": Σa = T chỉ bảo đảm các phần = chạy liền **của cùng phiên bản**; bớt hẳn một ca thì T giảm theo.
+     Cấm của phiếu ("không bớt phép") nay chỉ canh bằng soát diff. **Q6.**
+4. Đường song song → thêm vào A3/A1:
+   - `node -r/--require/--import/--loader <file>`: maNoi bỏ qua giá trị cờ (`nguoi_gac.js:491,499`) → soi cả file đó.
+   - File do script `require`/`import`: KHÔNG soi (bắc cầu nặng, phải phân tích mã) → ghi CHƯA KIỂM / lỗ còn hở THIET_KE.
+   - Miễn "đã commit, không sửa": máy commit script chứa cụm cấm rồi chạy là lọt (`git commit` được phép, `:116`). Lỗ có dấu
+     vết (commit nằm trong PR, soát + cổng thấy), khác đường nháp không dấu vết hiện nay → ghi rõ trong Q5a + THIET_KE "lỗ còn hở".
+   - `npm run`/`npm test` chạy script của `package.json` — file luật, phải ghi đúng tên trong Phạm vi → ngoài A3, ghi lỗ còn hở.
+   - Chế độ con `--con-het`/`--con-nem` (`thu_cong.js:36-37`, `baiDonTam` `:742`) đọc `argv[2]` trước; `--phan` đọc sau, không đụng.
+   - Dòng tổng của điều phối in **SAU CÙNG** (dòng phần cũng khớp `phép · chỗ hỏng`; `soCa` lấy dòng khớp cuối, `cong.js:84-95`).
+   - thu_TOCDO1 mục C: `ngu85.js` in đủ 3 dòng phần + dòng tổng (không thì C1 đỏ vì kiemPhanThuCong); hai stub (`goi` trả
+     undefined `:38`, hook T11 trả số `:104`) → `kiemPhanThuCong` nhận mọi kiểu (`String(ra || '')`), `chac` của stub là no-op.
+
+- **Q6 (A1 tổng phép):** thêm bánh cóc `NGUONG_THU_CONG_DON_VI = <T hiện tại>` vào bộ kiểm (T < ngưỡng → FAIL; chỉ được HẠ khi chủ
+  quán duyệt, như `NGUONG_FETCH`)? Đề xuất: **có** (+2 dòng) — đó là phép duy nhất làm "không bớt phép" thành khoá.
