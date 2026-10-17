@@ -8,7 +8,8 @@
 //   · chặn → JSON permissionDecision "deny" + lý do ra stderr + exit 2
 //     (exit 2 chặn kể cả khi JSON hỏng — code.claude.com/docs/en/hooks)
 //   · KHÔNG BAO GIỜ trả "allow". Lỗi, thiếu cấu hình, quá giờ → chặn.
-// Nhánh đọc thẳng .git/HEAD. Lệnh con duy nhất: git (hạn 10 s) — status cho miễn soi file script (TU-CHAY-8 A3), rev-parse cho A7.
+// Nhánh đọc thẳng .git/HEAD. Lệnh con duy nhất: git (hạn 10 s) — hash-object + rev-list cho miễn soi file script (TU-CHAY-8 A3,
+// trongLichSu), rev-parse cho A7 (veNhanhViec).
 // Bài thử: node tu_chay/thu_nguoi_gac.js — mọi mã trong LUAT phải làm đỏ khi tắt.
 'use strict';
 const fs = require('fs');
@@ -573,7 +574,9 @@ function xetTep(t, nc, cwd, l, kem = false) {
     return chan('B-PHANTICH', 'lệnh chạy file script phải đứng một mình: chỉ `cd <thư mục> &&` ở đầu, sau chỉ head/tail/grep/wc/cut/tr/nl/cat (không ghi file)');
   }
   if (luat('B-BIMAT-FILE') && laBiMat(t, nc)) return chan('B-BIMAT-FILE', t.tho);
-  const abs = thuc(path.resolve(cwd.d, t.val));
+  // node tự thêm đuôi (soát vòng 2: `node <nháp>/s` chạy s.js) → phân giải như node trước khi kết luận "không có file"
+  const goc = thuc(path.resolve(cwd.d, t.val));
+  const abs = [goc, goc + '.js', goc + '.cjs', goc + '.mjs'].find((p) => fs.existsSync(p)) || goc;
   let s = null;
   try { s = fs.statSync(abs); } catch {}
   if (!s) return kem ? xetNoiDung(t.val, nc, t.tho) : null;
