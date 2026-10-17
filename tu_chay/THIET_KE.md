@@ -925,11 +925,16 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   Máy 1 lõi (Replit) chạy song song không nhanh hơn.
 - **A2** skill bước 11.4 chạy `cong.js chay` và ghi CỔNG CHẠY trước `HEAD ĐÃ KIỂM`; bước 4: bài thử bộ khung tự thử chính nó → xin
   `## Bài thử cũ sửa` trước, mọi bài đổi khác có `SỐ CA`.
-- **A3** người gác đọc file script được chạy (`node` / `python3` / `bash|sh <file>`, `node -r/--require/--import/--loader <file>`) trong kho
-  hoặc nháp, áp cùng B-BIMAT-CHU / B-BIMAT-FILE / B-MANOI như lệnh viết thẳng; thư mục / > 200 KB → B-PHANTICH; đường dẫn không viết
-  thẳng → B-DICHCHU. Miễn file trong kho đã commit và không sửa (Q5a, `git status` rỗng; git lỗi → soi). Người gác nay gọi `git` (hạn 10 s).
+- **A3** người gác đọc file script được chạy (`node` / `python3` / `bash|sh <file>`, node `-r/--require/--import/--loader/
+  --experimental-loader/--test-reporter <file>`, node `--x=<file có thật>` như `--env-file`) ở MỌI nơi, áp cùng B-BIMAT-CHU / B-BIMAT-FILE /
+  B-MANOI như lệnh viết thẳng (giá trị nạp kèm không phải file, vd `data:`, soi chính chữ); thư mục / > 200 KB → B-PHANTICH; đường dẫn không
+  viết thẳng → B-DICHCHU. Miễn khi NỘI DUNG file là blob trong lịch sử HEAD (Q5a; gồm bản sao cây gốc trong nháp để chạy bằng chứng đỏ;
+  blob chỉ nằm trong chỉ mục không tính; git lỗi → soi). Lệnh chạy file phải ĐỨNG MỘT MÌNH (chỉ `cd … &&` trước, sau chỉ
+  head/tail/grep/wc/cut/tr/nl/cat không ghi file), một lệnh một file, `node --test` chặn — vì người gác đọc file TRƯỚC khi lệnh chạy, thứ
+  chạy trước trong cùng lệnh (`cp s.js b.js && node b.js`) sửa được file (soát vòng 1). Người gác nay gọi `git` (hạn 10 s).
   **Lỗ còn hở:** commit script có cụm cấm rồi chạy (có dấu vết trong PR — soát + cổng thấy); file do script `require`/`import` không soi;
-  `npm run` / `npm test` chạy script của `package.json`; `node < f`, `… | node` (Q5b — không làm).
+  chuỗi ghép (`process['en'+'v']`) qua được luật chữ — cả lệnh viết thẳng lẫn file; `npm run` / `npm test` chạy script của `package.json`;
+  `node < f`, `… | node` (Q5b — không làm).
 - **A4** `chayBaiThat`: thoát 0 mà không in dòng tổng (ba dạng `soCa` của `cong.js` + `Giả lập: N kịch bản · M bất biến`, Q2) → FAIL
   "bài không in dòng tổng". Bài thử: `thu_TOCDO1.js` C4, `thu_gia_lap.js` C3i (bài giả của C3 nay in dòng tổng, Q1).
 - **A5** `thu_cong_cu.js` / `thu_nguoi_gac.js` đọc `PHIEN_BAN` (dạng `tu-chay x.y.z`) thay vì ghim chữ; `thu_cong_cu.js` đòi THIET_KE có

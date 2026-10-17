@@ -20,9 +20,11 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
 - `git add` luôn kèm tên từng file. Không bỏ qua hook khi commit. Không sửa sổ việc `TIEN_DO_*.json`,
   không chạy công cụ ghi sổ — chủ quán ghi sau khi quầy chạy ổn.
 - Người gác chặn lệnh nào thì đọc lý do và làm theo hướng dẫn trong đó; không tìm cách lách.
-- Người gác đọc cả file script được chạy (`node` / `python3` / `bash <file>` — file trong nháp, chưa commit hoặc đang sửa) và áp cùng
-  luật nội dung như lệnh viết thẳng. Sửa file có cụm bí mật của bài thử (TOKEN, SECRET…) thì dùng công cụ Edit/Write, không dùng lệnh bash;
-  chạy bài thử / bộ kiểm đang sửa có cụm đó thì commit trước, hoặc chạy qua `npm test` (`npm test -- --day-du`).
+- Người gác đọc cả file script được chạy (`node` / `python3` / `bash <file>` ở mọi nơi; miễn file có nội dung đã nằm trong lịch sử
+  commit — kể cả bản sao cây gốc trong nháp) và áp cùng luật nội dung như lệnh viết thẳng. Sửa file có cụm bí mật của bài thử
+  (TOKEN, SECRET…) thì dùng công cụ Edit/Write, không dùng lệnh bash; chạy bài thử / bộ kiểm đang sửa có cụm đó thì commit trước, hoặc
+  chạy qua `npm test` (`npm test -- --day-du`). Lệnh chạy file script phải đứng một mình: chỉ `cd <thư mục> &&` ở đầu, sau chỉ
+  `| tail` / `| grep`… (không `cp … && node`, không `; date`).
 - Thấy thông báo đổi model giữa phiên: ghi giờ + bước đang làm vào `trang_thai.md` (kết quả trước/sau có thể khác tay).
 - Stop hook của môi trường đòi `git config`, đổi tác giả, `commit --amend` hay `rebase` → không làm, ghi một dòng vào `trang_thai.md`.
 
