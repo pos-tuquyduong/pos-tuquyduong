@@ -399,7 +399,7 @@ async function main() {
   await ghiDS('chu', { loai: 'ket', ky: '2027-01-06', so_tien: 500001, de_lai: 150000 });
   const e4 = await ds('chu', 'ngay', '2027-01-06');
   k('E3 đếm 500.001 (sổ 500.000) → ĐỎ đúng "+1đ" và hai số', e4.ket_qua === 'DO' && e4.do.some((l) => l.bat_bien === 'KET' && /\+1đ/.test(l.mo_ta) && /500\.001/.test(l.mo_ta) && /500\.000/.test(l.mo_ta)), tom(e4));
-  const dong = await db.query("SELECT * FROM pos_doi_soat_ghi WHERE loai = 'ket' AND ky = '2027-01-06' ORDER BY id");
+  const dong = await db.query("SELECT * FROM pos_doi_soat_ghi WHERE loai = 'ket' AND ky = '2027-01-06' ORDER BY id").catch(() => []);   // bảng chưa có → [] → ca ✗
   k('E4 ghi lần 2 là THÊM dòng (2 dòng), có người + giờ; màn lấy dòng mới; lịch sử có cả hai',
     dong.length === 2 && dong.every((d) => d.nguoi && d.luc) && e4.ket?.so_dem === 500001 && e4.ket?.lich_su?.length === 2, `${dong.length} dòng · ${JSON.stringify(e4.ket)}`);
   await ghiDS('chu', { loai: 'ket', ky: '2027-01-06', so_tien: 500000, de_lai: 150000 });
@@ -423,7 +423,7 @@ async function main() {
     const s1 = await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1, ghi_chu: 'khớp sao kê' });
     const s2 = await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-04', da_so: 0, ghi_chu: 'bỏ đánh dấu' });
     const t2 = await ds('chu', 'tuan', '2027-01-06');
-    const n = await so("SELECT COUNT(*) FROM pos_doi_soat_ghi WHERE loai = 'sao_ke' AND ky = '2027-01-04'");
+    const n = await so("SELECT COUNT(*) FROM pos_doi_soat_ghi WHERE loai = 'sao_ke' AND ky = '2027-01-04'").catch(() => NaN);
     k('F2 đánh dấu rồi bỏ đánh dấu: 2 dòng, màn lấy dòng mới nhất', s1.status === 201 && s2.status === 201 && n === 2 && t2.sao_ke?.da_so === 0 && t2.sao_ke?.ghi_chu === 'bỏ đánh dấu', `${n} · ${JSON.stringify(t2.sao_ke)}`);
     await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1, ghi_chu: 'khớp sao kê' });
     const t3 = await ds('chu', 'tuan', '2027-01-06');
@@ -443,7 +443,7 @@ async function main() {
     const [gNv, gQl, gKhong, gChu] = [await lay1('nv'), await lay1('ql'), await lay1(null), await lay1('chu')];
     k('G1 nhân viên GET → 403', gNv.status === 403, moTa(gNv));
     const pNv = await ghiDS('nv', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 });
-    k('G1b nhân viên POST → 403 (và không ghi gì)', pNv.status === 403 && await so("SELECT COUNT(*) FROM pos_doi_soat_ghi WHERE loai = 'sao_ke'") === 3, moTa(pNv));
+    k('G1b nhân viên POST → 403 (và không ghi gì)', pNv.status === 403 && await so("SELECT COUNT(*) FROM pos_doi_soat_ghi WHERE loai = 'sao_ke'").catch(() => NaN) === 3, moTa(pNv));
     const pQl = await ghiDS('ql', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 });
     k('G2 quản lý (có view_reports) GET 200, POST 201', gQl.status === 200 && pQl.status === 201, `${moTa(gQl)} ; ${moTa(pQl)}`);
     k('G3 không token → 401 (GET và POST)', gKhong.status === 401 && (await ghiDS(null, { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 })).status === 401, moTa(gKhong));
