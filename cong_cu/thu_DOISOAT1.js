@@ -440,11 +440,11 @@ async function main() {
   muc('[G] quyền view_reports: máy chủ kiểm; màn ẩn nút');
   {
     const lay1 = (ai) => ds(ai, 'ngay', '2027-01-06');
-    const [gNv, gQl, gKhong, gChu] = [await lay1('nv'), await lay1('ql'), await lay1(null), await lay1('chu')];
+    const [gNv, gQl, gKhong, gChu] = [await lay1('staff'), await lay1('manager'), await lay1(null), await lay1('chu')];
     k('G1 nhân viên GET → 403', gNv.status === 403, moTa(gNv));
-    const pNv = await ghiDS('nv', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 });
+    const pNv = await ghiDS('staff', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 });
     k('G1b nhân viên POST → 403 (và không ghi gì)', pNv.status === 403 && await so("SELECT COUNT(*) FROM pos_doi_soat_ghi WHERE loai = 'sao_ke'").catch(() => NaN) === 3, moTa(pNv));
-    const pQl = await ghiDS('ql', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 });
+    const pQl = await ghiDS('manager', { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 });
     k('G2 quản lý (có view_reports) GET 200, POST 201', gQl.status === 200 && pQl.status === 201, `${moTa(gQl)} ; ${moTa(pQl)}`);
     k('G3 không token → 401 (GET và POST)', gKhong.status === 401 && (await ghiDS(null, { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 })).status === 401, moTa(gKhong));
     k('G4 chủ GET → 200', gChu.status === 200, moTa(gChu));
