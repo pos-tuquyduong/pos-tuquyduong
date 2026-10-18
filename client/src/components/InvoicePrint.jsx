@@ -546,7 +546,7 @@ export default function InvoicePrint({
           </button>
           <button
             onClick={handlePrint}
-            disabled={printing || !viec.length}
+            disabled={printing || !sanSang || !viec.length}   // chờ bảng nhóm món: in sớm sẽ bỏ qua nhóm đã tắt
             style={{
               flex: 2,
               padding: '0.875rem',

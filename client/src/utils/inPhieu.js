@@ -17,10 +17,11 @@ export const KHO_TEM = ['40x30'];
 export const KHO_PHIEU = ['80mm', '58mm'];
 export const SO_BAN_TOI_DA = 3;
 export const TEM_TOI_DA_KY_TU = 40;   // DAC_TA mục 4: ước lượng, chưa in thử tem thật
+const DON_KHONG_PHA = ['cancelled', 'refunded'];   // pos_orders.status đã huỷ (orders.js) / đã hoàn tiền (refunds.js)
 const KHACH_LE = 'Khách lẻ';          // chuỗi máy chủ gán khi đơn không có tên (orders.js)
 
 export const MAC_DINH_BO_IN = {
-  bill: { bat: true, ban: 1, kho: null },   // kho null → theo invoice_default_size
+  bill: { bat: true, ban: 1, kho: 'a5' },   // khổ bill thiếu cài đặt → invoice_default_size (nếu hợp lệ) → khổ này
   tem: { bat: true, ban: 1, kho: KHO_TEM[0] },
   pha_che: { bat: true, ban: 1, kho: KHO_PHIEU[0] },
   khong_pha: [],                            // nhóm món KHÔNG phải đồ uống pha: không tem, không vào phiếu pha chế
@@ -48,7 +49,7 @@ export function docBoIn(settings) {
     kho: chonKho(luu[ten]?.kho, dsKho, khoMacDinh),
   });
   return {
-    bill: loai('bill', KHO_BILL, chonKho(settings?.invoice_default_size, KHO_BILL, 'a5')),
+    bill: loai('bill', KHO_BILL, chonKho(settings?.invoice_default_size, KHO_BILL, D.bill.kho)),
     tem: loai('tem', KHO_TEM, D.tem.kho),
     pha_che: loai('pha_che', KHO_PHIEU, D.pha_che.kho),
     khong_pha: Array.isArray(luu.khong_pha) ? luu.khong_pha.filter((g) => typeof g === 'string') : [],
@@ -115,7 +116,7 @@ export function dungBoIn(don, settings, { nhomTheoMa = {}, loai, inLai = false }
   const viec = [];
   for (const ten of LOAI_IN) {
     if (loai ? !loai.includes(ten) : !cfg[ten].bat) continue;
-    if (ten !== 'bill' && don?.status === 'cancelled') continue;   // đơn huỷ: chỉ còn bill; tem / phiếu làm người pha pha thừa ly
+    if (ten !== 'bill' && DON_KHONG_PHA.includes(don?.status)) continue;   // đơn huỷ / hoàn tiền: chỉ còn bill, tem + phiếu làm người pha pha thừa ly
     let moi;
     if (ten === 'bill') moi = [{ kieu: 'bill', inLai }];
     else if (ten === 'tem') moi = dungTem(don, nhomTheoMa, cfg, inLai);

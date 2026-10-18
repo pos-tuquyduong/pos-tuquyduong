@@ -36,7 +36,17 @@ DOT_BIEN = [
   ('VS-P16-GIO-KHONG-DEM-0', "m[1].padStart(2, '0') + ':' + m[2]", "m[1] + ':' + m[2]", 1, r'✗ A24 '),
   ('VS-P16-LY-LAM-TRON-LEN', "Math.floor(Number(m.quantity))", "Math.round(Number(m.quantity))", 1, r'✗ A26 '),
   ('VS-P16-TEN-KHACH-KHONG-TRIM', "const ten = String(don?.customer_name || '').trim();", "const ten = String(don?.customer_name || '');", 1, r'✗ A25 '),
-  ('BV-P16-DON-HUY-VAN-IN-TEM', "if (ten !== 'bill' && don?.status === 'cancelled') continue;", "", 1, r'✗ D(9|10) '),
+  ('BV-P16-DON-HUY-VAN-IN-TEM', "if (ten !== 'bill' && DON_KHONG_PHA.includes(don?.status)) continue;", "", 1, r'✗ D(9|10) '),
+  ('VS-P16-DON-HOAN-TIEN-QUEN', "const DON_KHONG_PHA = ['cancelled', 'refunded'];", "const DON_KHONG_PHA = ['cancelled'];", 1, r'✗ D9b '),
+  ('VS-P16-PHIEU-CAT-TEN', "ten: String(m.product_name || ''), ghiChu", "ten: cat(String(m.product_name || '')), ghiChu", 1, r'✗ B10 '),
+  ('VS-P16-TEN-KHACH-MAT-KHI-KHONG-SDT', "ten && ten !== KHACH_LE ? ten : ''", "ten && ten !== KHACH_LE && sdt ? ten : ''", 1, r'✗ A27 '),
+  ('VS-P16-KHO-MAC-DINH-SAI', "chonKho(settings?.invoice_default_size, KHO_BILL, D.bill.kho)", "chonKho(settings?.invoice_default_size, KHO_BILL, 'a4')", 1, r'✗ C24 '),
+  ('VS-P16-JSON-NULL-NEM', "if (x && typeof x === 'object')", "if (typeof x === 'object')", 1, r'✗ C23 '),
+  ('VS-P16-KHO-PHIEU-NHAN-KHO-BILL', "loai('pha_che', KHO_PHIEU,", "loai('pha_che', KHO_BILL,", 1, r'✗ C25 '),
+  ('VS-P16-SO-BAN-LAM-TRON-LEN', "Math.max(1, Math.floor(n))", "Math.max(1, Math.round(n))", 1, r'✗ C26 '),
+  ('VS-P16-SO-LY-AM', "Math.max(0, Math.floor(Number(m.quantity)) || 0)", "Math.floor(Number(m.quantity)) || 0", 1, r'✗ A29 '),
+  ('VS-P16-SDT-CHI-BO-KHOANG-TRANG', ".replace(/\\D/g, '')", ".replace(/\\s/g, '')", 1, r'✗ A28 '),
+  ('VS-P16-GOP-THEO-TEN-MON', "${m.product_code || m.product_name}", "${m.product_name}", 1, r'✗ B12 '),
   ('VS-P16-NHAN-SO-BAN-TUNG-TRANG', "const trang = Array.from({ length: cfg[ten].ban }, () => moi).flat();", "const trang = moi.flatMap((x) => Array.from({ length: cfg[ten].ban }, () => x));", 1, r'✗ D4 '),
 ]
 

@@ -48,9 +48,9 @@ function Tem({ t }) {
   );
 }
 
-function PhieuPhaChe({ p }) {
+function PhieuPhaChe({ p, kho }) {
   return (
-    <div className="trang" style={{ ...chuKieu, width: '72mm', padding: '2mm', fontSize: '11pt', pageBreakAfter: 'always' }}>
+    <div className="trang" style={{ ...chuKieu, width: kho === '58mm' ? '52mm' : '72mm', padding: '2mm', fontSize: '11pt', pageBreakAfter: 'always' }}>
       <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13pt' }}>PHIẾU PHA CHẾ{p.inLai && nhanInLai}</div>
       <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '1.5mm', marginBottom: '1.5mm' }}>{p.ma} · {p.gio}</div>
       {p.dong.map((d, i) => (
@@ -66,7 +66,7 @@ function PhieuPhaChe({ p }) {
 export function VungTrang({ viec, cha }) {
   return (
     <div ref={cha}>
-      {viec.trang.map((t, i) => (viec.loai === 'tem' ? <Tem key={i} t={t} /> : <PhieuPhaChe key={i} p={t} />))}
+      {viec.trang.map((t, i) => (viec.loai === 'tem' ? <Tem key={i} t={t} /> : <PhieuPhaChe key={i} p={t} kho={viec.kho} />))}
     </div>
   );
 }
