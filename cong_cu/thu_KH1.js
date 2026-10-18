@@ -572,16 +572,17 @@ async function main() {
 
   muc('[F3] SĐT trong tham số / thân bị BỎ QUA');
   await chay('F3', async () => {
+    // B có dữ liệu RIÊNG ở mọi đường (điểm, voucher, đơn) — để "đọc nhầm B" khác hẳn "đọc A".
+    await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_by, created_at) VALUES (?, 'earn', 99, 'B', 'x', ?)`, [B.sdt, getNow()]);
+    await db.run(`INSERT INTO pos_voucher_grants (code, customer_phone, status, granted_at) VALUES ('KH1VCON', ?, 'available', ?)`, [B.sdt, getNow()]);
     const q = `?sdt=${B.sdt}&phone=${B.sdt}&customer_phone=${B.sdt}`;
-    const toi = await goi('GET', '/kh/toi' + q, undefined, { tk: A.tk });
-    const diem = await goi('GET', '/kh/diem' + q, undefined, { tk: A.tk });
-    const vc = await goi('GET', '/kh/voucher' + q, undefined, { tk: A.tk });
-    const don = await goi('GET', '/kh/don' + q, undefined, { tk: A.tk });
-    k('F3 /toi ?sdt=B → vẫn A', la(toi, 200) && toi.j.khach.sdt === A.sdt, toi.tho);
-    k('F3 /diem ?phone=B → vẫn A', la(diem, 200) && diem.j.phone === A.sdt, diem.tho);
-    k('F3 /voucher ?phone=B → vẫn A', la(vc, 200) && vc.j.phone === A.sdt, vc.tho.slice(0, 120));
+    for (const url of ['/kh/toi', '/kh/diem', '/kh/voucher', '/kh/don']) {
+      const co = await goi('GET', url + q, undefined, { tk: A.tk }), khong = await goi('GET', url, undefined, { tk: A.tk });
+      k(`F3 ${url} kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)`, la(co, 200) && co.tho === khong.tho && !co.tho.includes(B.sdt), co.tho.slice(0, 120));
+    }
     const maA = (await db.query('SELECT code FROM pos_orders WHERE customer_phone = ?', [A.sdt])).map((x) => x.code).sort();
-    k('F3 /don ?customer_phone=B → chỉ đơn của A', la(don, 200) && bang((don.j.data || []).map((x) => x.ma).sort(), maA), don.tho.slice(0, 120));
+    const don = await goi('GET', '/kh/don' + q, undefined, { tk: A.tk });
+    k('F3 /don kèm SĐT của B → đúng các đơn của A', la(don, 200) && bang((don.j.data || []).map((x) => x.ma).sort(), maA), don.tho.slice(0, 120));
   });
 
   muc('[G] không lộ: lỗi chỉ { error, code }, không mã băm / token / lỗi nội bộ, log không có mã thô hay token');
