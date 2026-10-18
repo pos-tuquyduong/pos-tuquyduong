@@ -9,13 +9,13 @@
 
 ## Bổ sung sau soát độc lập (agent phụ)
 - Thêm ca: món lấy từ gói trong đơn ĐÃ LƯU (giá 0, product_id > 0) vẫn ra tem; khổ đọc lại đúng; `DON_MAU` đủ ba loại.
-- `inCacViec` xong thì gọi `onPrintComplete` như cũ (Orders còn `loadOrders()`); in hỏng thì báo lỗi, KHÔNG đụng đơn.
+- `handlePrint` in xong (không lỗi) thì gọi `onPrintComplete` như cũ (Orders còn `loadOrders()`); in hỏng thì báo lỗi, KHÔNG đụng đơn.
 - Lưu khoá `invoice_print_set` (qua `saveConfig`) và "Tự mở in" không kiểm được bằng hàm thuần → ghi CHƯA KIỂM, đưa vào thao tác chủ quán thử tay.
 - Giữ chip + xem trước trong modal (nghiệm thu E đòi "chọn loại", C đòi xem trước). Không sửa `api.js` (chỉ gọi `productsApi.list`).
 
 ## Phần 2 · Vẽ + in `client/src/components/InPhieu.jsx` (~150 dòng)
-- A (chọn): `TrangTem`, `TrangPhieu` (CSS in), hook `useNhomTheoMa()` (gọi `productsApi.list()` qua api.js, cache mức module),
-  `inCacViec(jobs)` in lần lượt từng loại bằng iframe ẩn (mỗi loại một hộp in → chọn được máy in khác nhau; iframe không dính chặn popup
+- A (chọn): `TrangTem`, `TrangPhieu` (CSS in), hook `useNhomTheoMa(bietSan)` (gọi `productsApi.list()` qua api.js khi nơi gọi chưa có bảng nhóm; Sales truyền sẵn; thôi chờ sau 4 giây),
+  `inQuaIframe(taiLieu)`; `InvoicePrint.handlePrint` gọi lần lượt từng loại (mỗi loại một lần thử riêng) bằng iframe ẩn (mỗi loại một hộp in → chọn được máy in khác nhau; iframe không dính chặn popup
   như `window.open` sau khi hộp in đầu đóng quá 5 giây).
 - B: gộp ba loại vào một cửa sổ in bằng `@page` đặt tên. Một hộp in cho ba loại khổ khác nhau → không chọn được máy in riêng. Bỏ.
 

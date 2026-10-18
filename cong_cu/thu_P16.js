@@ -61,7 +61,8 @@ async function main() {
   ca('C20 nhóm không pha đã lưu đọc lại đúng', bang(cauHinh({ khong_pha: ['tea', 'juice'] }).khong_pha, ['tea', 'juice']));
   ca('C21 nhóm không pha lẫn phần tử rác → chỉ giữ chuỗi', bang(cauHinh({ khong_pha: ['tea', 5, null] }).khong_pha, ['tea']));
   ca('C22 JSON là mảng → mặc định', bang(docBoIn({ [KHOA_BO_IN]: '[1,2]' }), macDinh));
-  ca('C23 JSON "null" / số / chuỗi → mặc định, không ném', ['null', '5', '"x"'].every((s) => bang(docBoIn({ [KHOA_BO_IN]: s }), macDinh)));
+  const docAnToan = (s) => { try { return bang(docBoIn({ [KHOA_BO_IN]: s }), macDinh); } catch { return false; } };
+  ca('C23 JSON "null" / số / chuỗi → mặc định, không ném', ['null', '5', '"x"'].every(docAnToan));
   ca('C24 không truyền gì: khổ bill a5 · tem 40x30 · phiếu 80mm', macDinh.bill.kho === 'a5' && macDinh.tem.kho === '40x30' && macDinh.pha_che.kho === '80mm', [macDinh.bill.kho, macDinh.tem.kho, macDinh.pha_che.kho]);
   ca('C25 khổ phiếu chỉ nhận khổ của phiếu (a5 → về mặc định 80mm), tem không nhận khổ bill',
     cauHinh({ pha_che: { kho: 'a5' }, tem: { kho: 'a4' } }).pha_che.kho === '80mm' && cauHinh({ tem: { kho: 'a4' } }).tem.kho === '40x30');
@@ -119,7 +120,7 @@ async function main() {
   ca('A25 tên khách có khoảng trắng thừa được cắt', dungTem(donMoi([monMoi()], { customer_name: '  Lan  ' }), NHOM, macDinh)[0].khach === 'Lan · 5678');
   ca('A26 số lượng lẻ 1.9 → 1 tem (làm tròn xuống)', dungTem(donMoi([monMoi({ quantity: 1.9 })]), NHOM, macDinh).length === 1);
   ca('A27 khách có tên, không SĐT → vẫn ghi tên', dungTem(donMoi([monMoi()], { customer_name: 'Lan', customer_phone: '' }), NHOM, macDinh)[0].khach === 'Lan');
-  ca('A28 SĐT có dấu chấm / cách: lấy 4 số cuối', dungTem(donMoi([monMoi()], { customer_phone: '0912.345 678' }), NHOM, macDinh)[0].khach === 'Lan · 5678');
+  ca('A28 SĐT có dấu chấm / cách: lấy 4 số cuối', dungTem(donMoi([monMoi()], { customer_phone: '0912.345.678' }), NHOM, macDinh)[0].khach === 'Lan · 5678');
   ca('A29 số lượng âm → 0 tem, không vào phiếu',
     dungTem(donMoi([monMoi({ quantity: -2 })]), NHOM, macDinh).length === 0 && dungPhieuPhaChe(donMoi([monMoi({ quantity: -2 })]), NHOM, macDinh).dong.length === 0);
   ca('A22 tem in lại mang cờ inLai', dungTem(donMoi([monMoi()]), NHOM, macDinh, true)[0].inLai === true && t2[0].inLai === false);
