@@ -75,7 +75,7 @@ async function main() {
   ca('A11 đơn đã lưu: ghi chú nằm ở `notes`', dungTem(donMoi([monMoi({ note: undefined, notes: 'Không đá' })]), NHOM, macDinh)[0].ghiChu === 'Không đá');
   // món không phải đồ uống pha
   const hon = donMoi([
-    monMoi({ product_id: -3, product_code: 'GOI-A', product_name: '📦 Gói A', is_package_item: true }),
+    monMoi({ product_id: -3, product_code: 'GOI-A', product_name: '📦 Gói A', is_package_item: true }),   // đúng như POST /orders trả
     monMoi({ product_id: -1000001, product_code: 'THE-VANG', product_name: '🎟️ Thẻ Vàng', is_membership_item: true }),
   ]);
   ca('A12 gói + thẻ (đơn vừa tạo) → 0 tem', dungTem(hon, NHOM, macDinh).length === 0);
@@ -95,6 +95,8 @@ async function main() {
   ca('A19 số lượng rác (null / chữ) → 0 tem, không ném', dungTem(donMoi([monMoi({ quantity: null }), monMoi({ quantity: 'x' })]), NHOM, macDinh).length === 0);
   ca('A14b đơn ĐÃ LƯU: món lấy từ gói (giá 0, không cờ) vẫn ra tem',
     dungTem(donMoi([monMoi({ unit_price: 0, notes: null }), ...honLuu.items]), NHOM, macDinh).length === 1);
+  ca('A14c món mất product_id (sản phẩm đã xoá: null / 0) vẫn ra tem, không bị tưởng là gói',
+    dungTem(donMoi([monMoi({ product_id: null }), monMoi({ product_id: 0 })]), NHOM, macDinh).length === 2);
   // tem quá dài: cắt kèm "…" (DAC_TA: giới hạn ~40 ký tự)
   const dai40 = 'a'.repeat(40);
   const dai41 = 'a'.repeat(41);
@@ -113,8 +115,8 @@ async function main() {
   ]);
   const ph = dungPhieuPhaChe(don2, NHOM, macDinh);
   ca('B1 gộp cùng món + cùng ghi chú: 2 × Trà gừng — Ít đường', ph.dong[0].sl === 2 && ph.dong[0].ten === 'Trà gừng' && ph.dong[0].ghiChu === 'Ít đường', ph.dong);
-  ca('B2 khác ghi chú thì tách dòng', ph.dong[1].sl === 1 && ph.dong[1].ghiChu === 'Không đá', ph.dong);
-  ca('B3 món không ghi chú: dòng riêng, ghiChu rỗng', ph.dong[2].sl === 2 && ph.dong[2].ghiChu === '', ph.dong);
+  ca('B2 khác ghi chú thì tách dòng', ph.dong[1]?.sl === 1 && ph.dong[1]?.ghiChu === 'Không đá', ph.dong);
+  ca('B3 món không ghi chú: dòng riêng, ghiChu rỗng', ph.dong[2]?.sl === 2 && ph.dong[2]?.ghiChu === '', ph.dong);
   ca('B4 đúng 3 dòng (gói + thẻ không vào phiếu)', ph.dong.length === 3, ph.dong.length);
   ca('B5 phiếu có mã đơn đầy đủ + giờ', ph.ma === 'ORD-20261018-007' && ph.gio === '14:03', [ph.ma, ph.gio]);
   ca('B6 phiếu KHÔNG có giá tiền', !/gia|price|total|tien/i.test(JSON.stringify(Object.keys(ph).concat(ph.dong.flatMap((d) => Object.keys(d))))), ph);

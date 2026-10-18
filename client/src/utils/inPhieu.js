@@ -4,9 +4,8 @@
  * HÀM THUẦN: đầu vào là đơn + cài đặt, đầu ra là danh sách trang cần in. Không chạm DOM, mạng, đồng hồ.
  * Phần vẽ nằm ở components/InPhieu.jsx. Bài thử: cong_cu/thu_P16.js (gọi thẳng file này).
  *
- * Đơn có hai nguồn, khác tên trường — hàm xử lý cả hai:
- *   vừa tạo (POST /orders): ghi chú `note`, cờ is_package_item / is_membership_item
- *   đã lưu  (GET /orders/:id): ghi chú `notes`; gói / thẻ chỉ nhận ra qua product_id < 0
+ * Đơn có hai nguồn, khác tên trường ghi chú — hàm xử lý cả hai:
+ *   vừa tạo (POST /orders): `note`; đã lưu (GET /orders/:id): `notes`
  */
 
 export const KHOA_BO_IN = 'invoice_print_set';
@@ -65,7 +64,7 @@ const rutGonMa = (code) => String(code || '').split('-').pop();
 
 /** Món là đồ uống phải pha? Gói / thẻ: không. Nhóm bị tắt: không. Tra không ra nhóm: có (mặc định bật). */
 function laMonPha(m, nhomTheoMa, cfg) {
-  if (m.is_package_item || m.is_membership_item || Number(m.product_id) < 0) return false;
+  if (Number(m.product_id) < 0) return false;   // gói = -pkg.id, thẻ = -1000000 - tier.id (orders.js), cả đơn vừa tạo lẫn đã lưu
   const nhom = nhomTheoMa?.[m.product_code];
   return !(nhom && cfg.khong_pha.includes(nhom));
 }
