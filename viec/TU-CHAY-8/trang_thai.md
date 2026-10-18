@@ -303,3 +303,19 @@ phép cũ đỏ khi code đúng (TU-CHAY-5 B4) · đột biến sống (KHONG-NE
 ## Dừng
 Theo skill bước 8 (đủ 3 vòng sửa, soát chưa ĐẠT) — dừng, chờ Q7 / Q8 / Q9. Không merge, không tạo PR.
 HEAD ĐÃ KIỂM: d25d903
+
+## Cập nhật 18.10.2026 — chủ quán trả lời Q7 / Q8 / Q9
+- **Đổi model giữa phiên** (luật cứng của skill): 03:54 18.10 thấy thông báo đổi Opus 5.5 → Sonnet 5.5, lúc bắt đầu làm theo trả lời Q7–Q9
+  (sau báo cáo 7 mục ở `44cde92`). Mọi kết quả trước mốc đó do Opus; kết quả dưới đây do Sonnet — số đo vẫn do máy in ra.
+- **Q7 (b)** chủ quán duyệt: `NGUONG_DONG_CUNG` 4 → 5 **TẠM** (`kiem_tra_truoc_khi_giao.js`, commit `9c75b70`, chú thích cùng dòng: "việc sau xoá
+  5 chú thích rồi HẠ lại 4"). Nới bánh cóc này do chủ quán quyết, không phải máy tự nới. Việc sau: xoá `server/routes/orders.js:1640`,
+  `cong_cu/thu_P20.js:432`, `thu_P26c.js:12`, `:357`, `:886` (đổi thành tên hàm / mẫu grep) rồi hạ lại 4. Hệ quả: D6 của thu_TOCDO1 xanh —
+  thu_TOCDO1 79/79; `dot_bien.py` bỏ ngoại lệ D6 (`DO_SAN = {}`, `e41d536`), đối chứng thu_TOCDO1 xanh hẳn. Q7 đóng.
+- **Q8** chủ quán: không soát thêm; ghi vào CHƯA KIỂM. Soát độc lập bước 8 KHÔNG ĐẠT ở cả 3 vòng (vòng 1–2: lỗ thật ở A3 đã vá + ca + đột biến;
+  vòng 3: agent bị bộ lọc an toàn ngắt, chưa dò được cách lách mới qua A3/A7 bằng ca chạy được — chỉ đọc code + chạy bài). Q8 đóng.
+- **Q9** chủ quán đồng ý: sửa C3_WORKER của `cong_cu/thu_gia_lap.js` (thêm `ghi.ly`, đối số thứ ba của `chac`) nằm trong Q1. Phát hiện 9 đóng.
+- `npm test -- --day-du` ở `e41d536`: thoát 0 · PASS 68 · FAIL 0 · CẢNH BÁO 3 (route GET ghi; hai cảnh báo chờ cài ở `.claude/`; cảnh báo
+  "chú thích số dòng cứng" biến mất — nay đúng ngưỡng 5 → ✓).
+- Đột biến sau Q7b: không chạy lại cả bộ (51/51 ở `d25d903`; thay đổi chỉ là hằng ngưỡng + ngoại lệ dot_bien). Chạy lại đối chứng + 2 đột biến
+  A4/A1 trên bản sao mới: đối chứng thu_TOCDO1 79/79, thu_gia_lap 149/149; BV-TUCHAY8-DONG-TONG, BV-TUCHAY8-KIEM-PHAN bị bắt (2/2).
+HEAD ĐÃ KIỂM: e41d536
