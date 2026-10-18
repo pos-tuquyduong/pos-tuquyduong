@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, reportsApi } from '../utils/api';
+import DoiSoat from '../components/DoiSoat';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
 
@@ -140,10 +141,19 @@ export default function Reports() {
           >
             📦 Gói SP
           </button>
+          <button
+            className={`btn ${activeTab === 'doisoat' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('doisoat')}
+          >
+            🧾 Đối soát
+          </button>
         </div>
       </header>
 
       <div className="page-content">
+        {/* Tab: Đối soát (DOI-SOAT-1) — chỉ báo, không tự sửa số */}
+        {activeTab === 'doisoat' && <DoiSoat />}
+
         {/* Tab: Báo cáo hàng ngày */}
         {activeTab === 'daily' && (
           <>
