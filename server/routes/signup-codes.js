@@ -121,9 +121,15 @@ async function docCauHinhNhanDiem() {
   };
 }
 
+// KH-API-1 (E6, E7): thân /nhan-diem và /claim là HÀM CÓ TÊN đặt NGAY dưới dòng gắn route — /api/kh gọi CÙNG hàm với SĐT lấy từ
+// token khách. Đừng dời hàm đi chỗ khác: phép E9 / E14 của bộ kiểm cắt khối từ dòng gắn route tới route kế tiếp. Có req.khach (gọi
+// từ App) thì lỗi 500 không trả lời báo nội bộ; route cũ trả như trước.
+const LOI_KHACH = 'Lỗi máy chủ, thử lại sau';
+
 // POST /api/pos/signup-codes/nhan-diem
 // Body: { code, phone }
-router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
+router.post('/nhan-diem', authenticateServiceOrUser, nhanDiemMaBill);
+async function nhanDiemMaBill(req, res) {
   try {
     const maGoc = String(req.body.code || '').trim().toUpperCase();
     const phone = normalizePhone(req.body.phone);
@@ -291,13 +297,14 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
       message: `Đã cộng ${diemCong} điểm cho ${phone} từ đơn ${don.code}.`,
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: req.khach ? LOI_KHACH : err.message });
   }
-});
+}
 
 // POST /api/pos/signup-codes/claim
 // Body: { code, phone }
-router.post('/claim', authenticateServiceOrUser, async (req, res) => {
+router.post('/claim', authenticateServiceOrUser, nhanMaUuDai);
+async function nhanMaUuDai(req, res) {
   try {
     const rawCode = String(req.body.code || '').trim().toUpperCase();
     const phone = normalizePhone(req.body.phone);
@@ -440,9 +447,9 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
     });
   } catch (err) {
     console.error('Signup code claim error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: req.khach ? LOI_KHACH : err.message });
   }
-});
+}
 
 // GET /api/pos/signup-codes — danh sách mã cho owner xem trong app (Cài đặt).
 // Query: ?claimed=true để chỉ lấy các mã đã claim (dùng cho màn quản lý SĐT).
@@ -533,3 +540,5 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
 module.exports = router;
 module.exports.kiemDonCuaMa = kiemDonCuaMa; // P20b: POST /orders dùng CÙNG phép kiểm đơn gốc (khuôn wallets.js)
+module.exports.nhanMaUuDai = nhanMaUuDai;     // KH-API-1: /api/kh/nhan-ma-bill
+module.exports.nhanDiemMaBill = nhanDiemMaBill; // KH-API-1: /api/kh/nhan-diem

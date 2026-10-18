@@ -51,6 +51,9 @@ const { doNeuDenLuc } = require('./utils/doSoNo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// KH-API-1 (Q5): sau proxy của Render, req.ip phải là IP khách (giới hạn xin mã theo IP) — tin ĐÚNG một tầng proxy.
+// Số tầng proxy của Render máy chưa kiểm: lên production thì xem cột ip của pos_kh_ma_dang_nhap từ 2 mạng khác nhau.
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({
@@ -112,6 +115,9 @@ app.use('/api/pos/damages', damagesRoutes);
 app.use('/api/pos/packages', packagesRoutes);
 app.use('/api/pos/so-no', soNoRoutes);   // POS-DODNO-v1
 app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-v1
+app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên cấp mã đăng nhập App cho khách
+// KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)
+app.use('/api/kh', require('./routes/kh'));
 
 // Health check
 app.get('/api/pos/health', (req, res) => {

@@ -105,6 +105,26 @@ async function createTables() {
     )
   `);
 
+  // KH-API-1: mã đăng nhập App KH — dùng MỘT lần, hạn ngắn, lưu BĂM (không lưu mã thô). nguon 'quay' (nhân viên cấp) | 'gui' (App
+  // xin). Giới hạn thử (utils/maKhach.js GIOI_HAN) đếm trên chính bảng này. Cột giờ ghi bằng getNow().
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_kh_ma_dang_nhap (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sdt TEXT NOT NULL,
+      ma_bam TEXT NOT NULL,
+      nguon TEXT NOT NULL,
+      cap_boi TEXT,
+      ip TEXT,
+      tao_luc TEXT NOT NULL,
+      het_han TEXT NOT NULL,
+      so_lan_thu INTEGER NOT NULL DEFAULT 0,
+      dung_luc TEXT,
+      huy_luc TEXT
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_kh_ma_sdt ON pos_kh_ma_dang_nhap(sdt, tao_luc)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_kh_ma_ip ON pos_kh_ma_dang_nhap(ip, tao_luc)`);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 4: SẢN PHẨM
   // ═══════════════════════════════════════════════════════════════════════════
