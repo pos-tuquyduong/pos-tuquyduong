@@ -1,0 +1,80 @@
+TU-CHAY-8 — bằng chứng đỏ trước khi vá (bài thử BẢN CUỐI chạy trên code gốc 372ee54) + số ca trên code đã vá
+
+SỐ CA cong_cu/thu_TOCDO1.js: 79
+SỐ CA cong_cu/thu_gia_lap.js: 149
+SỐ CA tu_chay/thu_cong_cu.js: 109
+SỐ CA tu_chay/thu_nguoi_gac.js: 1190
+(tu_chay/thu_cong.js: phiếu ## Bài thử cũ sửa — miễn A11, Q4; không cần SỐ CA)
+
+Code đã vá (17.10): thu_TOCDO1 "78 đạt · 1 hỏng" (hỏng D6 — đỏ SẴN trên main, xem trang_thai ## Phát hiện) · thu_gia_lap "149 đạt · 0 hỏng"
+· thu_cong_cu "109 phép · 0 chỗ hỏng" · thu_nguoi_gac "1010/1010 ca người gác đúng mã · 180 phép khác" (soát vòng 3).
+
+══ cong_cu/thu_TOCDO1.js (bản cuối, chép vào cây gốc giải nén) trên gốc: thoát 1 ══
+thu_TOCDO1: 59 đạt · 20 hỏng
+  ✗ C3 (TU-CHAY-8 A1) đầu ra thật của lời gọi đi vào phép "thu_cong.js đủ phép" của khối → ĐẠT với đủ 3 phần — []
+  ✗ C4a (A4) bài thoát 0 KHÔNG in gì → FAIL "bài không in dòng tổng" — true
+  ✗ C4c (A4) dòng gần giống "3 đạt, 0 hỏng" (thiếu ·) không tính là dòng tổng → FAIL — true
+  ✗ C4c (A4) dòng gần giống "Giả lập: 32 kịch bản" (thiếu bất biến) không tính là dòng tổng → FAIL — true
+  ✗ C4c (A4) dòng gần giống "phép · chỗ hỏng" không số không tính là dòng tổng → FAIL — true
+  ✗ C4c (A4) dòng gần giống "đạt · hỏng" không số không tính là dòng tổng → FAIL — true   (thêm sau vòng đột biến 1 — VS-…-KHONG-NEO-SO sống)
+  ✗ P0 bộ kiểm có hằng NGUONG_THU_CONG_DON_VI = <số ≥ 3> ở đầu dòng — ngưỡng NaN
+  ✗ P1 đủ 3 phần, Σ đơn vị = T = ngưỡng → ĐẠT — chac [] · dòng NÂNG: false
+  ✗ P2 (ca đỏ của phiếu) điều phối bỏ phần 3 khỏi lời gọi → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P3 trùng phần (1, 2, 2), Σ đơn vị vẫn = T → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P4 đủ phần nhưng Σ đơn vị = T − 1 (một đơn vị không chạy ở phần nào) → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P4b Σ đơn vị = T + 1 (một đơn vị chạy hai lần) → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P5 các phần lệch T → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P5b các phần lệch n → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P6 không có dòng phần (bản chạy liền cũ / bài sập trước khi in) → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P7 (Q6) đủ phần, T = ngưỡng − 1 (bớt ca) → ĐỎ — chac [] · dòng NÂNG: false
+  ✗ P8 (Q6) đủ phần, T = ngưỡng + 1 (thêm ca) → ĐẠT, nhắc NÂNG ngưỡng → ĐẠT — chac [] · dòng NÂNG: false
+  ✗ P9 (K5) n = 1 (--phan 1/1), T = ngưỡng → ĐẠT — chac [] · dòng NÂNG: false
+  ✗ P10 thu_cong.js: điều phối sinh con `--phan` với timeout: 120000 (mỗi phần hạn 120 s, không nới) — không thấy dòng spawn … --phan … timeout: 120000
+  ✗ D6 kho thật: chú thích số dòng cứng ≤ NGUONG_DONG_CUNG (0 cảnh báo, 0 fail) — … đếm được 5 … (đỏ SẴN, không do việc này)
+
+══ cong_cu/thu_gia_lap.js trên gốc: thoát 1 ══
+  ✗ C3i (TU-CHAY-8 A4) bài thoát 0 KHÔNG in dòng tổng → FAIL "bài không in dòng tổng", 0 cảnh báo  — chac [true] · 0 cảnh báo · lý do:
+  148 đạt · 1 hỏng
+
+══ tu_chay/thu_cong_cu.js trên gốc (skill gốc): thoát 1 ══
+thu_cong_cu: 109 phép · 4 chỗ hỏng
+  ✗ TU-CHAY-8 A2 skill 11.4: chạy `node tu_chay/cong.js chay` và ghi CỔNG CHẠY (✓ CỔNG CHẠY ĐẠT hoặc từng dòng ✗) TRƯỚC dòng HEAD ĐÃ KIỂM
+  ✗ TU-CHAY-8 A2 skill bước 4: bài thử của bộ khung tự thử chính nó (xanh trên gốc) → ghi trước câu hỏi xin ## Bài thử cũ sửa; MỌI bài đổi khác có SỐ CA
+  ✗ TU-CHAY-8 A3 skill luật cứng: người gác đọc cả file script được chạy; sửa file có cụm bí mật của bài thử → công cụ Edit/Write, không lệnh bash
+  ✗ TU-CHAY-8 A7 skill bước 1.1: HEAD tách rời trỏ đúng commit của viec/<MÃ> → chạy `git checkout viec/$0` rồi đi tiếp, không dừng
+
+══ tu_chay/thu_nguoi_gac.js (bản cuối sau soát vòng 3, chép vào cây gốc giải nén) trên gốc: thoát 1 ══
+thu_nguoi_gac: 957/1010 ca người gác đúng mã · 179 phép khác
+  ✗ ca Bash "node <nháp>/s.js": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "python3 <nháp>/s.py": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "bash cong_cu/bm.sh": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "sh cong_cu/bm.sh": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "node cong_cu/bm.js": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "timeout 9 node <nháp>/s.js": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "cd <nháp> && node s.js": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "node -r <nháp>/s.js -e 1": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "node --require=<nháp>/s.js -e 1": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "node --import <nháp>/s.js -e 1": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "python3 -W ignore <nháp>/s.py": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "node <nháp>/env.js": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ ca Bash "node <nháp>/claude.js": mong CHAN:B-MANOI, ra CHO
+  ✗ ca Bash "node <nháp>/envf.js": mong CHAN:B-BIMAT-FILE, ra CHO
+  ✗ ca Bash "node <nháp>/to.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/dir": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node $F": mong CHAN:B-DICHCHU, ra CHO
+  ✗ ca Bash "cp <nháp>/s.js <nháp>/b.js; node <nháp>/b.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "cp <nháp>/s.js <nháp>/vo_hai.js && node <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "cat <nháp>/s.js > <nháp>/c.js && node <nháp>/c.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "echo 'console.log(1)' > <nháp>/moi.js && node <nháp>/moi.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "ls | node <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/vo_hai.js | cp <nháp>/s.js <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/vo_hai.js $(cp <nháp>/s.js <nháp>/vo_hai.js)": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/vo_hai.js & cp <nháp>/s.js <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/vo_hai.js; node <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "(node <nháp>/vo_hai.js)": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/vo_hai.js | tee <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <nháp>/vo_hai.js | grep x > <nháp>/vo_hai.js": mong CHAN:B-PHANTICH, ra CHO
+  ✗ ca Bash "node <tạm>/home/.claude/plans/p.js": mong CHAN:B-BIMAT-CHU, ra CHO
+  ✗ … và 23 ca hỏng khác
+  ✗ tự sinh: 689 biến thể đều bị chặn — "cd <nháp> &&\nnode s.js" | "cd <nháp>  \\\n&& node s.js" | "cd <nháp> &&\nnode s" | "cd <nháp>  \\\n&& node s"
+  ĐỎ — 54 chỗ hỏng

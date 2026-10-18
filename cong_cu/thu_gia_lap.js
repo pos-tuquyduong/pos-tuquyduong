@@ -172,10 +172,10 @@ function banSao(ma, file, goc, thay, soLan) {
 
 // C3: chạy hàm cắt ra trong worker (spawnSync chặn luồng) để bốn ca chạy cùng lúc, không cộng dồn thời gian.
 const C3_WORKER = `const { workerData: w, parentPort } = require('worker_threads');
-const ghi = { chac: [], canh: [] };
+const ghi = { chac: [], canh: [], ly: [] };
 try {
   const fn = new Function('spawnSync', 'path', 'GOC', 'chac', 'canhBao', w.khoi + '\\nreturn chayBaiThat;')(require('child_process').spawnSync,
-    require('path'), w.goc, (t, dung) => ghi.chac.push(!!dung), (t, l) => ghi.canh.push(t + ' — ' + l));
+    require('path'), w.goc, (t, dung, g) => { ghi.chac.push(!!dung); if (!dung) ghi.ly.push(String(g)); }, (t, l) => ghi.canh.push(t + ' — ' + l));
   fn(w.bai, undefined, ...w.thamSo);
 } catch (e) { ghi.loi = e.message; }
 parentPort.postMessage(ghi);`;
@@ -209,11 +209,13 @@ async function main() {
   const goc3 = path.join(TAM, 'c3');
   fs.mkdirSync(goc3);
   // Hạn giả 5 s → ngưỡng 4 s; bài ngủ 4,5 s: dư ~0,5 s mỗi phía cho node khởi động (bốn worker chạy cùng lúc).
-  fs.writeFileSync(path.join(goc3, 'ngu.js'), 'setTimeout(() => {}, 4500);\n');
+  // TU-CHAY-8 (Q1): bài giả xanh in dòng tổng — chayBaiThat đòi dòng tổng khi thoát 0 (A4); C3i: bài im lặng thoát 0 → FAIL
+  fs.writeFileSync(path.join(goc3, 'ngu.js'), "console.log('1 đạt · 0 hỏng');\nsetTimeout(() => {}, 4500);\n");
   fs.writeFileSync(path.join(goc3, 'hong.js'), 'setTimeout(() => process.exit(1), 4500);\n');   // ĐỎ mà CHẬM: đủ điều kiện cảnh báo trừ "xanh"
-  fs.writeFileSync(path.join(goc3, 'ngu70.js'), 'setTimeout(() => {}, 3500);\n');   // 70 % hạn giả: ngay DƯỚI ngưỡng (C3a ngay TRÊN, 90 %)
+  fs.writeFileSync(path.join(goc3, 'ngu70.js'), "console.log('1 đạt · 0 hỏng');\nsetTimeout(() => {}, 3500);\n");   // 70 % hạn giả: ngay DƯỚI ngưỡng (C3a ngay TRÊN, 90 %)
+  fs.writeFileSync(path.join(goc3, 'im_lang.js'), 'process.exit(0);\n');
   const c3 = await Promise.all([['ngu.js', [5000, true]], ['ngu.js', [120000, true]], ['hong.js', [5000, true]], ['ngu.js', [5000, false]],
-    ['ngu70.js', [5000, true]], ['ngu.js', [5000]]].map(([b, t]) => chayC3(khoi, goc3, b, t)));
+    ['ngu70.js', [5000, true]], ['ngu.js', [5000]], ['im_lang.js', [5000, true]]].map(([b, t]) => chayC3(khoi, goc3, b, t)));
   const mo3 = (g) => `chac ${JSON.stringify(g.chac)} · ${g.canh.length} cảnh báo${g.canh.length ? ' (' + g.canh[0] + ')' : ''}${g.loi ? ' · lỗi: ' + g.loi : ''}`;
   k('C3e cắt + dựng được hàm chayBaiThat từ kiem_tra_truoc_khi_giao.js', !!khoi && c3.every((g) => !g.loi), khoi ? c3.map(mo3).join(' | ') : 'không thấy function chayBaiThat(');
   k('C3a bài xanh 4,5 s, hạn giả 5 s (80 % = 4 s), cờ bật → xanh + đúng 1 cảnh báo', c3[0].chac.join() === 'true' && c3[0].canh.length === 1, mo3(c3[0]));
@@ -223,6 +225,8 @@ async function main() {
   // C3g + C3a kẹp tỉ lệ ngưỡng trong (70 %, 90 %); C3h khoá cờ MẶC ĐỊNH bằng hành vi (gọi 3 đối số, không truyền cờ).
   k('C3g bài xanh 3,5 s (70 % hạn giả 5 s, dưới ngưỡng 80 %), cờ bật → xanh, 0 cảnh báo', c3[4].chac.join() === 'true' && !c3[4].canh.length, mo3(c3[4]));
   k('C3h bài xanh 4,5 s, hạn giả 5 s, KHÔNG truyền cờ (mặc định) → xanh, 0 cảnh báo', c3[5].chac.join() === 'true' && !c3[5].canh.length, mo3(c3[5]));
+  k('C3i (TU-CHAY-8 A4) bài thoát 0 KHÔNG in dòng tổng → FAIL "bài không in dòng tổng", 0 cảnh báo',
+    c3[6].chac.join() === 'false' && String(c3[6].ly) === 'bài không in dòng tổng' && !c3[6].canh.length, mo3(c3[6]) + ' · lý do: ' + c3[6].ly);
   // C3f: lời gọi THẬT trong bộ kiểm — đúng ba lời gọi bật cờ (giả lập + bài này + thu_cong.js), mặc định cờ TẮT. Đối số đọc theo ngoặc cân
   // (lồng ngoặc, xuống dòng đều được); đối số cờ (thứ tư) chỉ được là chữ true/false viết thẳng — bật qua biến là ĐỎ.
   const doiSo = (i) => { // đối số cấp ngoài của lời gọi mở ngoặc tại i

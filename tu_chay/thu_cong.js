@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // thu_cong.js — bài thử cổng PR (TU-CHAY-3, phiếu mục A + B). Chạy: node tu_chay/thu_cong.js
+// TU-CHAY-8 A1: gọi không đối số = điều phối 3 phần song song; node tu_chay/thu_cong.js --phan i/n chạy một phần (--phan 1/1 = chạy liền).
 //
 // A: dựng kho git tạm (tu_chay/ thật + .claude/ do cai_dat.js thật sinh ra), giả lập PR bằng
 //    (base SHA, head SHA, tên nhánh), gọi tu_chay/cong.js hai chế độ tinh / chay như trên GitHub.
@@ -14,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 
 const hong = [];
 let soPhep = 0;
@@ -35,6 +36,17 @@ const DAU = path.join(TAM, 'da_chay_code_pr');
 // Cờ argv, không biến môi trường: argv không kế thừa từ shell → bộ kiểm (gọi không đối số) không bao giờ vào chế độ này (soát vòng 1–2).
 const CHE_CON = { '--con-het': 'het', '--con-nem': 'nem' }[process.argv[2]];
 if (CHE_CON) { console.log('TAM ' + TAM); if (CHE_CON === 'nem') throw new Error('nem thu'); process.exit(0); }
+// TU-CHAY-8 A1 — `--phan i/n`: chạy phần i. Đơn vị thứ k (mỗi lời gọi ca(), mỗi khối riêng của baiCong, mỗi bài nhỏ) thuộc phần
+// (k mod n) + 1; mọi phần đi qua CÙNG danh sách nên cùng đếm được T. Không đối số = điều phối (dieuPhoi, cuối file).
+const PHAN = (() => {
+  if (process.argv[2] !== '--phan') return null;
+  const m = /^(\d+)\/(\d+)$/.exec(process.argv[3] || '');
+  if (!m || +m[1] < 1 || +m[1] > +m[2]) { console.log(`thu_cong: --phan cần dạng i/n, 1 ≤ i ≤ n — nhận "${process.argv[3]}"`); process.exit(1); }
+  return { i: +m[1], n: +m[2] };
+})();
+let soDonVi = 0, cuaToi = 0;
+const CUA = {}; // tên ca / khối → thuộc phần này không (đột biến DB bỏ qua ca của phần khác)
+const donVi = (ten) => { const toi = soDonVi++ % PHAN.n === PHAN.i - 1; if (toi) cuaToi++; return (CUA[ten] = toi); };
 
 function envSach(them = {}) {
   const e = {};
@@ -131,6 +143,7 @@ function goi(cheDo, head, nhanh = 'viec/X', env = envSach()) {
 const PR = {}; // tên ca → head, cho phần đột biến
 // che: 'ca' = tinh rồi chay (đạt khi cả hai đạt), hoặc 'tinh' / 'chay'. env: môi trường cho cổng (git giả). soLyDo: số dòng "✗ [" phải có.
 function ca(ten, buoc, mong, { che = 'ca', chua = [], khong = [], nhanh = 'viec/X', kiem = true, env, soLyDo } = {}) {
+  if (!donVi(ten)) return;
   let head;
   try { head = pr(buoc, kiem); } catch (e) { chac(`${ten}: dựng PR`, false, e.message); return; }
   PR[ten] = head;
@@ -392,7 +405,7 @@ function baiCong() {
     'server/a.js': '// chú thích\nmodule.exports = 1;\n' }]], 'ĐẠT', { chua: ['chỉ đổi chú thích'] });
 
   // A14 chế độ chay: cây đang đứng không phải head
-  {
+  if (donVi('A14 HEAD ≠ head')) {
     const head = pr([['a', { 'README.md': 'chỉ tài liệu\n' }]]); // không bài thử: đột biến A14 cô lập được
     PR['A14 HEAD ≠ head'] = head;
     datVe(BASE);
@@ -400,7 +413,7 @@ function baiCong() {
     chac('A14 chay: thư mục không đứng ở head → ĐỎ', !k.ok && k.ra.includes('CỔNG ĐỎ'), k.ra);
   }
   // tinh KHÔNG chạy code PR; chay thì có
-  {
+  if (donVi('tách chế độ tinh / chay')) {
     const head = pr([['a', { 'cong_cu/thu_a.js': THU_HOP_LE, ...sv }]]);
     fs.rmSync(DAU, { force: true });
     const t = goi('tinh', head);
@@ -410,7 +423,7 @@ function baiCong() {
     chac('tách chế độ: chay có chạy bài thử + npm test (đối chứng)', c.ok && /x/.test(doc(DAU) || '') && /k/.test(doc(DAU) || ''), c.ra);
   }
   // tinh đọc phiếu qua git show: sửa phiếu trên đĩa mà không commit → cổng không thấy
-  {
+  if (donVi('tinh đọc phiếu bằng git show')) {
     const head = pr([['ngoai', { 'docs/ngoai.md': 'x\n' }]]);
     viet(G, 'viec/X/phieu.md', PHIEU.replace('- README.md', '- README.md\n- docs/**'));
     const t = goi('tinh', head);
@@ -527,6 +540,7 @@ function baiCong() {
     ['A19', 'TU-CHAY-5 A19 "+ commit này" cha sai', 'tinh'], ['A19', 'TU-CHAY-5 A19 gộp main SAU lần kiểm', 'tinh']];
   if (mod && typeof mod.cong === 'function') {
     for (const [ma, ten, cheDo] of DB) {
+      if (CUA[ten] === false) continue; // ca thuộc phần khác — phần đó chạy đột biến của nó
       if (!PR[ten]) { chac(`đột biến ${ma}: thiếu ca "${ten}"`, false); continue; }
       if (ma === 'A14') datVe(BASE); else datVe(PR[ten]);
       const env = envSach();
@@ -545,12 +559,14 @@ function baiCong() {
   } else chac('cong.js xuất hàm cong({ cheDo, thuMuc, base, head, nhanh, tat })', false);
 
   // Dùng lại hàm của người gác (K4), lấy cấu hình + người gác từ thư mục của chính cổng (= BASE trên GitHub)
-  const src = doc(CONG) || '';
-  chac('cong.js dùng lại xetPhamVi / khop / phamViTuChu của nguoi_gac.js, không tự viết globRe',
-    /require\(path\.join\(__dirname, 'nguoi_gac\.js'\)\)/.test(src) && /xetPhamVi\(/.test(src) && /phamViTuChu\(/.test(src)
-    && !/function globRe|new RegExp\(/.test(src));
-  chac('cong.js đọc cau_hinh.json từ __dirname (BASE), không từ thư mục PR', /path\.join\(__dirname, 'cau_hinh\.json'\)/.test(src)
-    && !/thuMuc, 'tu_chay', 'cau_hinh/.test(src));
+  if (donVi('cong.js dùng lại người gác, cấu hình BASE')) {
+    const src = doc(CONG) || '';
+    chac('cong.js dùng lại xetPhamVi / khop / phamViTuChu của nguoi_gac.js, không tự viết globRe',
+      /require\(path\.join\(__dirname, 'nguoi_gac\.js'\)\)/.test(src) && /xetPhamVi\(/.test(src) && /phamViTuChu\(/.test(src)
+      && !/function globRe|new RegExp\(/.test(src));
+    chac('cong.js đọc cau_hinh.json từ __dirname (BASE), không từ thư mục PR', /path\.join\(__dirname, 'cau_hinh\.json'\)/.test(src)
+      && !/thuMuc, 'tu_chay', 'cau_hinh/.test(src));
+  }
 }
 
 // ═══ B · tu_chay/cong_github.yml ═══════════════════════════════════════════
@@ -748,14 +764,46 @@ function baiDonTam() {
   }
 }
 
-for (const bai of [baiYml, baiCong, baiNapCauHinh, baiKhoaCauHinh, baiDonTam]) {
-  try { bai(); } catch (e) { hong.push(`${bai.name} sập: ` + String(e && e.message || e).split('\n')[0]); }
+// ═══ TU-CHAY-8 A1 · điều phối: SO_PHAN phần chạy CÙNG LÚC, mỗi phần hạn 120 s (hạn cũ của cả bài). Chép nguyên đầu ra từng phần, rồi
+// dòng tổng chung in SAU CÙNG (cong.js soCa lấy dòng tổng cuối). Phần quá giờ / sập / không in dòng phần → chỗ hỏng. Bộ kiểm không tin
+// dòng tổng này — tự đếm dòng phần (kiemPhanThuCong của kiem_tra_truoc_khi_giao.js).
+const SO_PHAN = 3;
+function dieuPhoi() {
+  const con = Array.from({ length: SO_PHAN }, (_, k) => new Promise((xong) => {
+    const p = spawn(process.execPath, [__filename, '--phan', `${k + 1}/${SO_PHAN}`], { timeout: 120000, killSignal: 'SIGKILL' });
+    let ra = '';
+    for (const s of [p.stdout, p.stderr]) { s.setEncoding('utf8'); s.on('data', (d) => { ra += d; }); }
+    p.on('error', (e) => { ra += '\n' + e.message; });
+    p.on('close', (ma, tin) => xong({ k: k + 1, ra, ma, tin }));
+  }));
+  Promise.all(con).then((kq) => {
+    let phep = 0, soHong = 0;
+    for (const { k, ra, ma, tin } of kq) {
+      process.stdout.write(ra && !ra.endsWith('\n') ? ra + '\n' : ra);
+      const m = new RegExp(`^thu_cong phần ${k}/${SO_PHAN}: \\d+/\\d+ đơn vị · (\\d+) phép · (\\d+) chỗ hỏng`, 'm').exec(ra);
+      if (m) { phep += +m[1]; soHong += +m[2]; }
+      if (!m || (ma !== 0 && !+m[2])) hong.push(`phần ${k}/${SO_PHAN}: ${tin ? `bị dừng ${tin} (quá hạn 120 s?)` : `thoát ${ma}`}${m ? '' : ', không in dòng phần'}`);
+    }
+    for (const h of hong) console.log('  ✗ ' + h);
+    soHong += hong.length;
+    console.log(`thu_cong: ${phep} phép · ${soHong} chỗ hỏng`);
+    if (soHong) { console.log(`  ĐỎ — ${soHong} chỗ hỏng`); process.exit(1); }
+    console.log(`  ✓ XANH — ${SO_PHAN} phần: cổng (A), file workflow (B) đều đạt`);
+    process.exit(0);
+  });
 }
-console.log(`thu_cong: ${soPhep} phép · ${hong.length} chỗ hỏng`);
-if (hong.length) {
-  for (const h of hong) console.log('  ✗ ' + h);
-  console.log(`  ĐỎ — ${hong.length} chỗ hỏng`);
-  process.exit(1);
+if (!PHAN) dieuPhoi();
+else {
+  for (const bai of [baiYml, baiCong, baiNapCauHinh, baiKhoaCauHinh, baiDonTam]) {
+    if (bai !== baiCong && !donVi(bai.name)) continue; // baiCong tự chia theo ca() và khối riêng
+    try { bai(); } catch (e) { hong.push(`${bai.name} sập: ` + String(e && e.message || e).split('\n')[0]); }
+  }
+  console.log(`thu_cong phần ${PHAN.i}/${PHAN.n}: ${cuaToi}/${soDonVi} đơn vị · ${soPhep} phép · ${hong.length} chỗ hỏng`);
+  if (hong.length) {
+    for (const h of hong) console.log('  ✗ ' + h);
+    console.log(`  ĐỎ — ${hong.length} chỗ hỏng`);
+    process.exit(1);
+  }
+  console.log(`  ✓ XANH — phần ${PHAN.i}/${PHAN.n} đạt`);
+  process.exit(0);
 }
-console.log('  ✓ XANH — cổng (A), file workflow (B) đều đạt');
-process.exit(0);

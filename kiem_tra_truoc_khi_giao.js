@@ -480,10 +480,13 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   const r = spawnSync(process.execPath, [path.join(GOC, bai)], { cwd: GOC, encoding: 'utf8', timeout: han, env });
   const giay = ((Date.now() - t0) / 1000).toFixed(1);
   const ra = String(r.stdout || '') + String(r.stderr || '');
-  const hong = ra.replace(/\x1b\[[0-9;]*m/g, '').split('\n').filter((l) => /[✗✖]/.test(l)).map((l) => l.trim());
-  const xanh = r.status === 0 && !r.error;
+  const tho = ra.replace(/\x1b\[[0-9;]*m/g, '');
+  const hong = tho.split('\n').filter((l) => /[✗✖]/.test(l)).map((l) => l.trim());
+  // TU-CHAY-8 A4: thoát 0 mà KHÔNG in dòng tổng = không chứng minh gì → FAIL. Ba dạng soCa của tu_chay/cong.js + dòng giả lập (Q2).
+  const tong = /\d+ đạt · \d+ hỏng|\d+ phép · \d+ chỗ hỏng|\d+\/\d+ ca người gác[^·\n]*· \d+ phép khác|Giả lập: \d+ kịch bản · \d+ bất biến/.test(tho);
+  const xanh = r.status === 0 && !r.error && tong;
   chac(`bài chạy thật ${bai} xanh (${giay} s)`, xanh,
-    r.error ? String(r.error.message) : (hong.join(' | ') || `thoát mã ${r.status}`));
+    r.error ? String(r.error.message) : r.status === 0 ? 'bài không in dòng tổng' : (hong.join(' | ') || `thoát mã ${r.status}`));
   if (xanh && canhGan && Date.now() - t0 > han * 0.8) {
     canhBao(`bài chạy thật ${bai} gần hạn`, `chạy ${giay} s > 80 % hạn ${han / 1000} s — báo chủ quán, KHÔNG nới hạn`);
   }
@@ -570,7 +573,7 @@ function quetRouteGhi(docFile, tenFile) { // → { getGhi: ['file:dòng'], khong
 // E15 — TU-CHAY-7 A3 (đề xuất BAN-HANG-1): chú thích trỏ số dòng cứng — dạng "(" + ":N)" hoặc ":N–M" — trôi sau mỗi patch (K1: chú thích
 // là khẳng định). Bánh cóc theo DÒNG: mọc → CẢNH BÁO liệt kê, giảm → nhắc hạ; không FAIL. Vùng: server/**, client/src/**, cong_cu/thu_*.js,
 // tu_chay/*.js. Chú thích = phần sau // hoặc /*, hoặc dòng mở bằng *. Bài thử: cong_cu/thu_TOCDO1.js mục D cắt từ hằng tới hết khối gọi.
-const NGUONG_DONG_CUNG = 4;
+const NGUONG_DONG_CUNG = 5;   // 4 → 5 TẠM (chủ quán duyệt 18.10, TU-CHAY-8 Q7b): MA-GIAM-1 / LUOI-4 thêm 5 chú thích; việc sau xoá chúng rồi HẠ lại 4
 function quetDongCung(docFile, tenFile) { // → ['file:dòng']
   const VUNG = /^(server\/.+\.js|client\/src\/.+\.jsx?|cong_cu\/thu_[^/]+\.js|tu_chay\/[^/]+\.js)$/;
   const SO = /\(:\d+\)|:\d+[–-]\d+/;
@@ -624,7 +627,8 @@ chayBaiThat('tu_chay/thu_cong_cu.js');
 // T1c — TU-CHAY-3: cổng PR cong.js (kho tạm, đột biến A6–A14) + file workflow cong_github.yml (B1–B6)
 // TOC-DO-1: thu_cong.js (67 s chạy riêng, 150–325 s khi máy bận) chỉ kiểm bộ khung cổng. Chạy khi --day-du, khi đổi tu_chay/ .claude/
 // .github/ so với gốc chung với origin/main (đã commit · vùng chờ · cây làm việc · file mới), hoặc khi không xác định được (an toàn).
-// Bài thử: cong_cu/thu_TOCDO1.js cắt đúng khối này (từ function lyDoChayThuCong( tới dòng "bỏ qua thu_cong.js") chạy trên kho git tạm.
+// Bài thử: cong_cu/thu_TOCDO1.js cắt đúng khối này (từ function lyDoChayThuCong( tới dòng "bỏ qua thu_cong.js") chạy trên kho git tạm
+// (mục T), với đầu ra giả của các phần (mục P, TU-CHAY-8).
 function lyDoChayThuCong() {
   if (DAY_DU) return '--day-du';
   const KHUNG = ['tu_chay', '.claude', '.github'];
@@ -637,9 +641,30 @@ function lyDoChayThuCong() {
   const f = (da.stdout + dang.stdout).trim().split('\n')[0];
   return f ? 'đổi ' + f : null;
 }
+// TU-CHAY-8 A1 (Q3): thu_cong.js gọi không đối số = điều phối n phần `--phan i/n` chạy CÙNG LÚC. Bộ kiểm không tin dòng tổng của điều
+// phối — tự đếm dòng "thu_cong phần i/n: a/T đơn vị" của từng phần: đủ phần 1..n, cùng n, cùng T, Σa = T (mỗi đơn vị chạy đúng một lần).
+// Q6 bánh cóc: T (tổng đơn vị = lời gọi ca() + khối riêng + bài nhỏ) chỉ được HẠ khi chủ quán duyệt; thêm ca thì NÂNG ngưỡng.
+const NGUONG_THU_CONG_DON_VI = 126;   // TU-CHAY-8: 126 đơn vị = 337 phép (--phan 1/1, 17.10)
+function kiemPhanThuCong(ra) { // → null | lý do thiếu phép
+  const ph = [...String(ra || '').replace(/\x1b\[[0-9;]*m/g, '').matchAll(/^thu_cong phần (\d+)\/(\d+): (\d+)\/(\d+) đơn vị · \d+ phép/gm)]
+    .map((m) => m.slice(1, 5).map(Number));
+  if (!ph.length) return 'không thấy dòng "thu_cong phần i/n: a/T đơn vị" nào';
+  const [, n, , T] = ph[0];
+  if (ph.some((p) => p[1] !== n || p[3] !== T)) return 'các phần lệch n / T: ' + ph.map((p) => `${p[0]}/${p[1]} T=${p[3]}`).join(', ');
+  const so = ph.map((p) => p[0]).sort((x, y) => x - y).join();
+  if (so !== Array.from({ length: n }, (_, i) => i + 1).join()) return `phần đã chạy ${so}, cần 1..${n}`;
+  const tong = ph.reduce((s, p) => s + p[2], 0);
+  if (tong !== T) return `Σ đơn vị các phần ${tong} ≠ ${T}`;
+  if (T < NGUONG_THU_CONG_DON_VI) return `${T} đơn vị < NGUONG_THU_CONG_DON_VI ${NGUONG_THU_CONG_DON_VI} — bớt ca phải có chủ quán duyệt`;
+  if (T > NGUONG_THU_CONG_DON_VI) dong.push(`  – thu_cong.js: ${T} đơn vị → NÂNG NGUONG_THU_CONG_DON_VI lên ${T} trong file này`);
+  return null;
+}
 const lyDoThuCong = lyDoChayThuCong();
-if (lyDoThuCong) { dong.push(`  – chạy thu_cong.js: ${lyDoThuCong}`); chayBaiThat('tu_chay/thu_cong.js', undefined, 120000, true); }
-else dong.push('  – bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github');
+if (lyDoThuCong) {
+  dong.push(`  – chạy thu_cong.js: ${lyDoThuCong}`);
+  const thieu = kiemPhanThuCong(chayBaiThat('tu_chay/thu_cong.js', undefined, 120000, true));
+  chac('thu_cong.js đủ phép: đủ mọi phần, Σ đơn vị = T ≥ NGUONG_THU_CONG_DON_VI', !thieu, 'thu_cong.js thiếu phép: ' + thieu);
+} else dong.push('  – bỏ qua thu_cong.js — không đổi tu_chay/.claude/.github');
 
 // T2 — bản đã cài .claude/tu_chay/ phải khớp TỪNG BYTE với nguồn tu_chay/
 // (trừ cai_dat.*, trình cài không chép sang). Lệch = hook đang chạy mã khác

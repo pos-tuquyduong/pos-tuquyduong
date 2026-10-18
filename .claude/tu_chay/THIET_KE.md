@@ -916,6 +916,34 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q5): `
   hạ; không FAIL. Bài thử: `thu_TOCDO1.js` mục D cắt vùng từ hằng tới hết khối gọi, chạy với `doc` / `liet` giả + kho thật.
 - Chính PR này chấm bằng luật main (1.6.0); cảnh báo "khớp từng byte" (T2) tới khi chủ quán cài bằng `cai_dat.sh`.
 
+### TU-CHAY-8 (17.10.2026, tu-chay 1.8.0)
+
+- **A1** `thu_cong.js` chia lượt: `--phan i/n` chạy phần i — đơn vị thứ k (mỗi lời gọi `ca()`, mỗi khối riêng, mỗi bài nhỏ) thuộc phần
+  (k mod n) + 1, in `thu_cong phần i/n: a/T đơn vị · p phép · h chỗ hỏng`. Gọi không đối số = điều phối 3 phần CÙNG LÚC, mỗi phần hạn
+  120 s, dòng tổng chung in sau cùng. Bộ kiểm không tin điều phối: `kiemPhanThuCong` tự đếm dòng phần (đủ 1..n, cùng n, cùng T,
+  Σa = T) + bánh cóc `NGUONG_THU_CONG_DON_VI` (T chỉ HẠ khi chủ quán duyệt). Bài thử: `thu_TOCDO1.js` mục P (khối thật, đầu ra giả).
+  Máy 1 lõi (Replit) chạy song song không nhanh hơn.
+- **A2** skill bước 11.4 chạy `cong.js chay` và ghi CỔNG CHẠY trước `HEAD ĐÃ KIỂM`; bước 4: bài thử bộ khung tự thử chính nó → xin
+  `## Bài thử cũ sửa` trước, mọi bài đổi khác có `SỐ CA`.
+- **A3** người gác đọc file script được chạy (`node` / `python3` / `bash|sh <file>`, node `-r/--require/--import/--loader/
+  --experimental-loader/--test-reporter <file>`, node `--x=<file có thật>` như `--env-file`) ở MỌI nơi, áp cùng B-BIMAT-CHU / B-BIMAT-FILE /
+  B-MANOI như lệnh viết thẳng (giá trị nạp kèm không phải file, vd `data:`, soi chính chữ); thư mục / > 200 KB → B-PHANTICH; đường dẫn không
+  viết thẳng → B-DICHCHU. Miễn khi NỘI DUNG file là blob trong lịch sử HEAD (Q5a; gồm bản sao cây gốc trong nháp để chạy bằng chứng đỏ;
+  blob chỉ nằm trong chỉ mục không tính; git lỗi → soi). Lệnh chạy file phải ĐỨNG MỘT MÌNH (chỉ `cd … &&` trước, sau chỉ
+  head/tail/grep/wc/cut/tr/nl/cat không ghi file), một lệnh một file, `node --test` chặn — vì người gác đọc file TRƯỚC khi lệnh chạy, thứ
+  chạy trước trong cùng lệnh (`cp s.js b.js && node b.js`) sửa được file (soát vòng 1). Tên không đuôi phân giải như node (X, X.js,
+  X.json, X.node — soát vòng 2: `node <nháp>/s` chạy s.js; vòng 3: node KHÔNG tự thêm .cjs/.mjs). Người gác nay gọi `git` (hạn 10 s). Miễn theo lịch sử nghĩa là MỌI blob đạt
+  được từ HEAD (cả bản cũ, cả patch trong `attached_assets/`) — nội dung đã từng commit coi như có dấu vết.
+  **Lỗ còn hở:** commit script có cụm cấm rồi chạy (có dấu vết trong PR — soát + cổng thấy); file do script `require`/`import` không soi;
+  chuỗi ghép (`process['en'+'v']`) qua được luật chữ — cả lệnh viết thẳng lẫn file; `npm run` / `npm test` chạy script của `package.json`;
+  `node < f`, `… | node` (Q5b — không làm).
+- **A4** `chayBaiThat`: thoát 0 mà không in dòng tổng (ba dạng `soCa` của `cong.js` + `Giả lập: N kịch bản · M bất biến`, Q2) → FAIL
+  "bài không in dòng tổng". Bài thử: `thu_TOCDO1.js` C4, `thu_gia_lap.js` C3i (bài giả của C3 nay in dòng tổng, Q1).
+- **A5** `thu_cong_cu.js` / `thu_nguoi_gac.js` đọc `PHIEN_BAN` (dạng `tu-chay x.y.z`) thay vì ghim chữ; `thu_cong_cu.js` đòi THIET_KE có
+  tiêu đề mục mang đúng chuỗi đó. Lần đổi phiên bản sau chỉ sửa `PHIEN_BAN` + mục THIET_KE.
+- **A7** HEAD tách rời trỏ ĐÚNG commit của nhánh local `viec/<MÃ>` có phiếu → người gác cho đúng `git checkout viec/<MÃ>` (luật
+  GIT-CHECKOUT-TACH); skill bước 1.1 chạy lệnh đó rồi đi tiếp.
+
 ## B16. HOC-2 — khoá hồ sơ ở cổng, khoá cấu hình, người gác (05.10.2026, tu-chay 1.4.0)
 
 Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q4): `viec/HOC-2/ke_hoach.md`. Bài thử: `thu_cong.js` (A1–A5),
