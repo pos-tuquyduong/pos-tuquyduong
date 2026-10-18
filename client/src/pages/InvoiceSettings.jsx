@@ -362,7 +362,8 @@ const api = {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        settings: { invoice_config: JSON.stringify(config), [KHOA_BO_IN]: JSON.stringify(boIn) },
+        // boIn null = chưa nạp được từ máy chủ → KHÔNG gửi khoá này (tránh ghi đè cài đặt đã lưu bằng mặc định)
+        settings: { invoice_config: JSON.stringify(config), ...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn) } : {}) },
       }),
     });
     const data = await res.json();
@@ -463,6 +464,7 @@ function BoInCaiDat({ boIn, setBoIn, xemBill }) {
 export default function InvoiceSettings() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [boIn, setBoIn] = useState(() => docBoIn({}));   // P16: bộ in sau thanh toán
+  const [boInDaNap, setBoInDaNap] = useState(false);     // chỉ true khi đã đọc được từ máy chủ (không có bản nháp trong cache)
   const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -528,6 +530,7 @@ export default function InvoiceSettings() {
         }
         setConfig(newConfig);
         setBoIn(docBoIn(settings));
+        setBoInDaNap(true);
 
         // Logo: dùng shared helper (cache-first, chỉ gọi API nếu cache trống)
         const newLogo = await getLogo();
@@ -566,7 +569,7 @@ export default function InvoiceSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.saveConfig(config, boIn);
+      await api.saveConfig(config, boInDaNap ? boIn : null);
       // Update cache
       try {
         localStorage.setItem(
@@ -784,7 +787,9 @@ export default function InvoiceSettings() {
         <div className="settings-panel">
           <h2>📝 Tùy chỉnh</h2>
 
-          <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} />
+          <fieldset disabled={!boInDaNap} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} />
+          </fieldset>
 
           {/* HEADER Section */}
           <div className="section">
