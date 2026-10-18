@@ -152,7 +152,10 @@ async function main() {
   let doiSoat = {};
   try { doiSoat = require(path.join(MAY_CHU, 'utils', 'doiSoat.js')); } catch (e) { k('A0 server/utils/doiSoat.js nạp được', false, e.message); }
   const BAT_BIEN = doiSoat.BAT_BIEN || {};
-  const goiHam = async (ten, ...a) => (typeof doiSoat[ten] === 'function' ? doiSoat[ten](...a) : { do: [], loi: 'thiếu hàm ' + ten });
+  const goiHam = async (ten, ...a) => {
+    if (typeof doiSoat[ten] !== 'function') return { do: [], loi: 'thiếu hàm ' + ten };
+    try { return await doiSoat[ten](...a); } catch (e) { return { do: [], loi: e.message }; }   // hàm ném lỗi = ca ✗, không sập cả bài
+  };
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B0] dữ liệu SẠCH dựng bằng luồng thật → XANH ở cả ba kỳ (K5: mỗi luồng hợp lệ một dòng)');
@@ -202,7 +205,9 @@ async function main() {
   k('B0k gói có "đã giao" lớn hơn số đơn lấy từ gói (giao tay thời trước) tồn tại', (await so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [cp?.id])) === 3);
   for (const kieu of ['ngay', 'tuan', 'thang']) {
     const r = await ds('chu', kieu, '2026-11-04');
-    k(`B0 ${kieu}: dữ liệu sạch → XANH`, r.status === 200 && r.ket_qua === 'XANH', tom(r));
+    k(`B0 ${kieu}: dữ liệu sạch → XANH, và KHÔNG có dòng CẦN XEM / LỆCH CŨ nào (luồng hợp lệ không được gây nhiễu)`,
+      r.status === 200 && r.ket_qua === 'XANH' && r.can_xem.length === 0 && r.cu.length === 0,
+      tom(r) + ` · cần xem ${r.can_xem.map((l) => l.mo_ta).join(' | ')} · cũ ${r.cu.map((l) => l.mo_ta).join(' | ')}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
