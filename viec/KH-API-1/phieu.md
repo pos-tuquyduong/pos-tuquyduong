@@ -10,7 +10,10 @@
      sửa) → git gộp tự động. Chung file với DOI-SOAT-1: kiem_tra_truoc_khi_giao.js — việc này CHỈ thêm tên bài vào mảng danh sách bài
      chạy thật hiện có (`for (const bai of [...]) chayBaiThat(bai)`), DOI-SOAT-1 thêm dòng gọi riêng ở chỗ khác.
      Dịch vụ cũ có khoá `x-service-key` (`/signup-codes/claim`, `/loyalty/points/:phone`, `/loyalty/vouchers/:phone`, `/products`) GIỮ
-     NGUYÊN hành vi — đóng là việc của AUDIT-KH sau khi App KH chuyển hẳn sang `/api/kh`. -->
+     NGUYÊN hành vi — đóng là việc của AUDIT-KH sau khi App KH chuyển hẳn sang `/api/kh`.
+     18.10 chủ quán trả lời Q1–Q7 của kế hoạch (trang_thai.md): Q1 có CẢ nhận voucher (/claim) VÀ nhận điểm (/nhan-diem) qua token;
+     Q2 không tạo nhanMaBill.js; Q3 thêm products.js; Q4 bỏ phần màn quầy (client) khỏi việc này → KH-QUAY-1 sau P16 (tránh đụng
+     client/dist với P16, DOI-SOAT-1); Q5 trust proxy 1; Q6 retail; Q7 chỉ mã App xin bị đếm / chặn. -->
 
 **Chờ duyệt kế hoạch:** viết `viec/KH-API-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -40,19 +43,22 @@ danh sách bài chạy thật của `npm test`.
   `quay` (MẶC ĐỊNH: không gửi đi đâu, khách lấy mã tại quầy), `gia` (chỉ dùng trong bài thử: giữ mã cuối để bài đọc). Giá trị lạ →
   coi như `quay` + ghi log cảnh báo. KH-OTP-1 sau này chỉ thêm chế độ `zns` ở ĐÚNG file này.
 - D Quầy cấp mã (`POST /api/pos/kh/cap-ma` {sdt}; nhân viên đăng nhập, quyền đang dùng cho việc tra / sửa khách): sinh mã như A2 (cùng
-  hàm), trả mã cho màn quầy hiển thị, ghi ai cấp. Màn quầy: trang Khách hàng có nút "Mã đăng nhập App" → hộp hiện mã + đồng hồ 5 phút.
-  Ít nút, một bước.
+  hàm), trả mã cho màn quầy hiển thị, ghi ai cấp. Màn quầy (nút "Mã đăng nhập App") KHÔNG làm ở việc này — KH-QUAY-1 sau P16.
+  Mã quầy cấp không bị đếm / chặn bởi giới hạn B (Q7).
 - E Đọc dữ liệu của mình (token khách bắt buộc):
   - E1 `GET /api/kh/toi` (SĐT, tên, ngày tạo) · `PUT /api/kh/toi` {ten} — chỉ sửa tên.
   - E2 `GET /api/kh/diem` — số dư + lịch sử gần đây: gọi CÙNG câu / hàm tính điểm mà `/loyalty/points/:phone` dùng (tách ra
     `server/utils/` nếu đang nằm trong route; route cũ gọi lại hàm đó, hành vi không đổi).
-  - E3 `GET /api/kh/voucher` — như `/loyalty/vouchers/:phone` (cùng hàm).
+  - E3 `GET /api/kh/voucher` — như `/loyalty/vouchers/:phone` (cùng hàm); THÊM mã giảm phát cho SĐT này qua `/claim` nếu bảng có cột
+    gắn SĐT (chỉ đọc, chỉ mã còn dùng được); không có cột gắn → ghi `## Phát hiện`, không thêm cột.
   - E4 `GET /api/kh/don` (phân trang, mới nhất trước) và `GET /api/kh/don/:ma` — chỉ đơn có `customer_phone` = SĐT trong token; món,
     tổng, đã trả, trạng thái, ngày. Đơn của khách khác → 404 (không lộ tồn tại).
   - E5 `GET /api/kh/menu` — món đang bán: tên, nhóm, giá bán, còn hàng (lấy như quầy đang lấy). Danh sách TRẮNG trường trả ra; KHÔNG
     giá vốn, không trường nội bộ.
   - E6 `POST /api/kh/nhan-ma-bill` {ma} — đi qua ĐÚNG logic `/signup-codes/claim` (tách hàm dùng chung nếu cần; giữ nguyên mã lỗi
     409 `MA_DA_DUNG`, một SĐT một lần, cổng đơn gốc completed + paid) với SĐT lấy từ token.
+  - E7 `POST /api/kh/nhan-diem` {ma} — đi qua ĐÚNG logic `/signup-codes/nhan-diem` (cùng hàm, mã lỗi giữ nguyên) với SĐT lấy từ token.
+    E6 / E7: hàm dùng chung đặt NGAY trong `signup-codes.js` (dưới route), không dời sang file khác (phép E9, E14 giữ nguyên).
 - F Tách token hai phía:
   - F1 Token khách ký bằng `KH_JWT_SECRET` (biến môi trường riêng, KHÁC khoá token nhân viên); thiếu biến → mọi `/api/kh/*` trả 503
     `KH_CHUA_CAU_HINH` (đóng, không mở); token mang loại `kh` + id khách.
@@ -60,7 +66,8 @@ danh sách bài chạy thật của `npm test`.
   - F3 Gửi kèm `sdt` / `phone` / `customer_phone` trong tham số hay thân yêu cầu → BỊ BỎ QUA (ca: khách A gửi SĐT của B → vẫn ra dữ
     liệu của A). Ca "khách A đọc đơn của B → 404" (luật ghi 403; ở đây 404 để không lộ — ghi rõ trong kế hoạch).
 - G Không lộ: lỗi chỉ `{ error, code }`; không trả mã băm, token người khác, giá vốn; không ghi mã thô hay token ra log.
-- H Luồng hợp lệ không bị chặn (K5): khách đăng nhập → xem điểm → nhận mã bill hợp lệ → điểm tăng đúng như khi nhận qua đường cũ;
+- H Luồng hợp lệ không bị chặn (K5): khách đăng nhập → nhận mã bill hợp lệ → voucher ra đúng như qua `/claim`; nhận điểm bằng mã bill →
+  điểm tăng đúng như qua `/nhan-diem`;
   `thu_P20.js` và mọi bài hiện có vẫn xanh; dịch vụ `x-service-key` cũ vẫn chạy như trước.
 - Đột biến (`viec/KH-API-1/dot_bien.py`): tối thiểu bỏ kiểm loại token (F2), lấy SĐT từ thân yêu cầu (F3), bỏ điều kiện "chưa dùng" trong
   câu ghi mã (A2), bỏ giới hạn (B1, B2), bỏ lọc `customer_phone` ở E4, trả thêm giá vốn ở E5 — đều phải bị bắt.
@@ -72,12 +79,11 @@ danh sách bài chạy thật của `npm test`.
 - server/utils/guiMaKhach.js
 - server/utils/maKhach.js
 - server/utils/diemKhach.js
-- server/utils/nhanMaBill.js
 - server/index.js
 - server/database.js
 - server/routes/loyalty.js
 - server/routes/signup-codes.js
-- client/src/pages/Customers.jsx
+- server/routes/products.js
 - env.example
 - cong_cu/thu_KH1.js
 - kiem_tra_truoc_khi_giao.js
@@ -96,7 +102,9 @@ tên, không sửa bảng cũ.
 không
 
 ## Cấm
-- KHÔNG đổi hành vi route cũ (`/signup-codes/*`, `/loyalty/*`, `/products`, `/customers*`) — chỉ được tách hàm cho route mới gọi chung.
+- KHÔNG đổi hành vi route cũ (`/signup-codes/*`, `/loyalty/*`, `/products`, `/customers*`) — chỉ được tách hàm cho route mới gọi chung;
+  tách ở `products.js` không được giấu lệnh ghi khỏi phép E14.
+- KHÔNG sửa `client/` (kể cả `client/dist`) — màn quầy là KH-QUAY-1.
 - KHÔNG sửa `server/middleware/auth.js` (token nhân viên) — tách token bằng khoá riêng + kiểm loại ở `khachAuth.js`.
 - `server/database.js`: chỉ THÊM khối bảng ở chỗ ghi trên; KHÔNG sửa `beginTransaction`, `run`, hàm khác (P26d song song).
 - `kiem_tra_truoc_khi_giao.js`: chỉ thêm `'cong_cu/thu_KH1.js'` vào mảng danh sách bài chạy thật; không nới hạn, không đổi phép khác.
