@@ -1,6 +1,16 @@
-# KH-API-1 — Kế hoạch (CHỜ DUYỆT)
+# KH-API-1 — Kế hoạch (ĐÃ DUYỆT 18.10 — chủ quán trả lời Q1–Q7, phiếu sửa ở `6fe38d8`)
 
 Soạn 18.10.2026 trên `27e1ac1` (`PHIEU: KH-API-1`). Mọi trích dẫn file:dòng đọc trong lượt này.
+
+**Chủ quán chốt (đè lên các đề xuất bên dưới nếu khác):** Q1 làm CẢ HAI qua token — `/api/kh/nhan-ma-bill` (voucher, hàm `/claim`) VÀ
+`/api/kh/nhan-diem` (điểm, hàm `/nhan-diem`) → lỗ F3 phần điểm đóng; E3 thêm `ma_khach_moi` (mã giảm phát qua `/claim`, nối bằng
+`pos_signup_codes.claimed_phone`). Q2 đồng ý (hàm dưới route trong `signup-codes.js`, không tạo `nhanMaBill.js`). Q3 đồng ý (`products.js`
+vào Phạm vi). Q4 BỎ màn quầy (P9) khỏi việc này — không sửa `client/`, không build `dist` → KH-QUAY-1; giữ API `cap-ma`. Q5 `trust proxy 1`,
+ghi CHƯA KIỂM. Q6 `retail`. Q7 chỉ mã App xin bị đếm / chặn; mã quầy luôn dùng được.
+
+**Khác kế hoạch khi làm (ghi rõ, không lan):** thêm `server/routes/kh/loi.js` (trong `server/routes/kh/**`) — bảng mã lỗi + trả lỗi dùng
+chung cho `kh/index.js` và `kh/quay.js`; đột biến `VS-P6-loyalty-lich-su-20`, `BV-Q3-kh-tu-doc-bang`, `VS-A3-het-han-bang` BỎ (hàm dùng
+chung nên so sâu hai đường không phân biệt được; SX tắt trong bài nên `/menu` đọc bảng hay qua `layMenuQuay` ra như nhau — ghi CHƯA KIỂM).
 
 ## 0. Bảy chỗ cần chủ quán quyết TRƯỚC khi viết code
 

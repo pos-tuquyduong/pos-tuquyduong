@@ -1,10 +1,11 @@
-# Bằng chứng ĐỎ — cong_cu/thu_KH1.js (commit 93ee2ce) chạy trên bản GỐC: server/ của 6fe38d8 (PHIEU: KH-API-1, trước khi vá)
+# Bằng chứng ĐỎ — cong_cu/thu_KH1.js (bản commit 38392aa) chạy trên bản GỐC: server/ của 6fe38d8 (PHIEU: KH-API-1, trước khi vá)
 # Dựng gốc: python3 cong_cu/ban_sao_goc.py 6fe38d8 <nháp>/goc_kh1 ; chép cong_cu/thu_KH1.js vào <nháp>/goc_kh1/cong_cu/
 # Lệnh:     cd <nháp>/goc_kh1 && node cong_cu/thu_KH1.js
-# Kết quả gốc: 9 đạt · 83 hỏng, thoát 1. 9 ca đạt là ca CANH đường cũ (phải xanh cả trước lẫn sau): GET /products ×2, token khách
+# Kết quả gốc: 9 đạt · 84 hỏng, thoát 1. 9 ca đạt là ca CANH đường cũ (phải xanh cả trước lẫn sau): GET /products ×2, token khách
 # bị /api/pos/* từ chối ×1, /claim + /loyalty qua X-Service-Key ×4, /claim + /nhan-diem không thân JSON ×2.
 # Số ca gốc ít hơn bản vá vì 4 mục (A3, B1, B2, G) sập giữa chừng trên gốc (chưa có bảng pos_kh_ma_dang_nhap) — mỗi mục sập in MỘT dòng ✗.
-SỐ CA cong_cu/thu_KH1.js: 115
+# (Lần ghi đầu với bản 93ee2ce: 9 đạt · 83 hỏng; bản 38392aa đổi mục F3 thành so sâu 4 đường + 1 ca đơn → gốc thêm 1 ca hỏng.)
+SỐ CA cong_cu/thu_KH1.js: 116
 
   ✗ A1 "+84 912 345 601" → 200, dòng mã lưu 0912345601  — HTTP 404
   ✗ A1 SĐT "abc" → 400 SDT_KHONG_HOP_LE  — HTTP 404
@@ -83,10 +84,11 @@ SỐ CA cong_cu/thu_KH1.js: 115
   ✗ F2 token ký khoá khách nhưng loai 'nv' → 401  — HTTP 404
   ✗ F2 token của khách đã bị xoá → 401  — HTTP 404
   ✗ F2 không token → 401  — HTTP 404
-  ✗ F3 /toi ?sdt=B → vẫn A  — <!DOCTYPE html>…
-  ✗ F3 /diem ?phone=B → vẫn A  — <!DOCTYPE html>…
-  ✗ F3 /voucher ?phone=B → vẫn A  — <!DOCTYPE html>…
-  ✗ F3 /don ?customer_phone=B → chỉ đơn của A  — <!DOCTYPE html>…
+  ✗ F3 /kh/toi kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /kh/diem kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /kh/voucher kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /kh/don kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /don kèm SĐT của B → đúng các đơn của A  — <!DOCTYPE html>…
   ✗ G: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_ma_dang_nhap
   ✓ H /claim cũ qua X-Service-Key → 200
   ✗ H voucher phát qua App = phát qua /claim cũ (từng cột)  — discount_type, discount_value, min_order, usage_limit, used_count, valid…
@@ -99,6 +101,7 @@ SỐ CA cong_cu/thu_KH1.js: 115
   ✗ index.js: app.use('/api/pos/kh', require('./routes/kh/quay'))
   ✗ index.js: app.set('trust proxy', 1) (Q5)
 
-  9 đạt · 83 hỏng
+  9 đạt · 84 hỏng
 
-# Trên code ĐÃ VÁ (cây làm việc sau các commit vá KH-API-1): node cong_cu/thu_KH1.js → 115 đạt · 0 hỏng.
+# Trên code ĐÃ VÁ (c091bee + bài 38392aa): node cong_cu/thu_KH1.js → 116 đạt · 0 hỏng (chạy 4 lần, cả 4 lần 116 / 0).
+# Đột biến: python3 viec/KH-API-1/dot_bien.py → ĐỐI CHỨNG 116 đạt · 0 hỏng; 54 đột biến bị bắt · 0 KHÔNG bị bắt (trên 54).
