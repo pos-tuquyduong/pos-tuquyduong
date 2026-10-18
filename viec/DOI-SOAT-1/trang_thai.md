@@ -47,6 +47,41 @@ Cả 8 câu đã được trả lời; nguyên văn và thiết kế chốt ở 
 
 Điều tôi suy từ code và đưa vào thiết kế (CHƯA KIỂM với quầy thật, chủ quán xác nhận ở lần chạy thật đầu): "tiền mặt trả ra" = tiền mặt/CK của đơn **huỷ** không có dòng gói — vì huỷ đơn chỉ hoàn VÍ phần trả bằng ví (`orders.js:1364–1372`), phần tiền mặt không được ghi vào đâu; đơn mua gói hoàn tiền mặt vào VÍ nên két không ra; đơn `refunded` chỉ hoàn ví nên két không ra. Dòng gói là `product_id = −pkg.id` (`orders.js:421`).
 
+## Bước 4–6 · bài thử, code, kiểm (18.10)
+
+- **Bài thử** `cong_cu/thu_DOISOAT1.js` (khuôn `thu_P26c.js`, route thật + kho tạm + đồng hồ giả). Trên gốc `2123b69`: **28 đạt · 78 hỏng** (ĐỎ ở mọi ca của màn Đối soát vì chưa có route / hàm / bảng); sau vá: **105 đạt · 0 hỏng**. `bang_chung_do.txt` có dòng `SỐ CA cong_cu/thu_DOISOAT1.js: 105`.
+- **Code**: `server/utils/doiSoat.js` (mới) · `server/routes/reports.js` (GET `/doi-soat`, POST `/doi-soat/ghi`) · `server/database.js` (bảng `pos_doi_soat_ghi` ở cuối `createTables`) · `cong_cu/gia_lap/bat_bien.js` (nhánh `ctx.thuc` ở I9 / I13 / I14, giả lập không đổi) · `client/src/components/DoiSoat.jsx` (mới) + `Reports.jsx` (tab) + `client/dist` đã build · `kiem_tra_truoc_khi_giao.js` (1 dòng gọi bài).
+- **Giả lập không đổi**: `Giả lập: 32 kịch bản · 18 bất biến · ĐẠT` trước và sau; `thu_gia_lap.js` xanh (55,6 s) sau khi `doiSoat.js` đổi sang nạp `bat_bien.js` LƯỜI (lần đầu nạp sớm làm 13 bản sao đột biến của `thu_gia_lap.js` — chỉ chép `server/` — sập: bắt được nhờ `--day-du`, ca A6 + đột biến `VS-DS-NAP-SOM` khoá lại).
+- **Neo đột biến cũ**: 5 chỗ sửa trong `bat_bien.js` (I9 ×3, I13 ×2, I14 ×2 dòng) vẫn chứa nguyên các chuỗi neo của `viec/LUOI-1/dot_bien.py` (`so(r.used_count) !== so(r.so_don) + tay`, `so(g.delivered_qty) !== so(g.da_lay) + tay`, `(so(r.usage_limit) > 0 && so(r.used_count) > so(r.usage_limit))`…) — kiểm bằng grep, mỗi chuỗi khớp 1 lần. `viec/AUDIT-2/kiem_neo.py` sập từ trước vì kho nông (`git show 9521cec` — không có commit đó), `viec/HOC-2b/kiem_neo.py` có 4 neo HỎNG đều ở file KHÁC (`refunds.js`, `kiem_tra_truoc_khi_giao.js`, `tu_chay/PHIEN_BAN`) — không do việc này. `viec/AUDIT-2/bb_neo.json` (ảnh dòng tự sinh từ `bat_bien.js`) sẽ lệch số dòng: CHƯA KIỂM.
+
+### Bảng "chỗ vá → đột biến" (27 đột biến, `viec/DOI-SOAT-1/dot_bien.py`, BẮT 27 · SỐNG 0 · HỎNG 0 · LẠC 0)
+
+| chỗ vá | đột biến (nguyên tên) | ca bắt |
+|---|---|---|
+| danh sách bất biến chạy | `BV-DS-BO-BAT-BIEN` | A1, C4 I6 |
+| q chỉ đọc | `BV-DS-GHI-DUOC` | A2b |
+| nạp bat_bien.js lười | `VS-DS-NAP-SOM` | A6 |
+| lọc dòng lệch theo kỳ | `BV-DS-BO-LOC-KY` · `VS-DS-LOP2-LOC-KY` | B1b · C4b |
+| "hôm nay" / tuần giờ VN | `VS-DS-GIO-UTC` · `VS-DS-TUAN-CN` | B4 · B2 |
+| nhóm LỆCH CŨ | `BV-DS-BO-AP-DUNG-TU` · `VS-DS-AP-DUNG-NGUOC` · `VS-DS-AN-KHONG-RO-NGAY` | C1 · C2 · C5 |
+| D1 SĐT nhận ≥ 2 lần | `BV-DS-D1-BO-DIEM-NHAN` · `VS-DS-D1-VANG-NGUOC` | D1c · D1c/D1d |
+| tiền mặt vào két (bán / thu nợ / nạp ví / trả ra) | `VS-DS-BAN-KHONG-TRU-THU` · `VS-DS-THU-THEO-NGAY-TAO` · `VS-DS-RA-CA-GOI` · `BV-DS-BO-NAP-VI` | E0c/F3 · E0 · E0 · E0 |
+| ghi két / sao kê | `VS-DS-GHI-DE` · `BV-DS-BO-KIEM-SO-TIEN` · `BV-DS-F-BO-DA-SO` · `VS-DS-F-THANG-NHOM` | E4 · E5 · F2 · F3 |
+| quyền view_reports | `BV-DS-BO-QUYEN-GET` · `BV-DS-BO-QUYEN-POST` | G1 · G1b |
+| bản rút gọn ctx.thuc | `BV-DS-THUC-I13` · `VS-DS-THUC-I13-BANG` · `VS-DS-THUC-I14-BANG` · `VS-DS-THUC-I9-QUAY-RONG` · `BV-DS-THUC-I9-DOI` | B0 |
+
+Bài học ngay trong lúc làm (đầu vào cho bước 11): (1) lần chạy đột biến đầu BẮT 22 / SỐNG 2 / LẠC 2 — hai SỐNG vì ca B0 chỉ đòi "XANH" mà dòng CẦN XEM (vàng) lọt; hai LẠC vì bài sập khi hàm ném lỗi (K3); (2) `doiSoat.js` nạp sớm làm sập bản sao đột biến của giả lập (K4 — phép nạp ở đầu file chạy cả ở bản sao chỉ chép `server/`).
+
+## Câu hỏi 9 (MỚI — chặn bước 6, ngoài Phạm vi)
+
+Bảng mới `pos_doi_soat_ghi` làm đỏ phép **E8** của bộ kiểm: `✗ mọi bảng đều được sao lưu (31 bảng) → thiếu trong BACKUP_TABLES: pos_doi_soat_ghi` (`kiem_tra_truoc_khi_giao.js:388–398`; `database.js:802` cũng dặn "bảng mới nào cũng phải vào BACKUP_TABLES"). `BACKUP_TABLES` nằm ở **`server/routes/backup.js:41`** — file đó **không** có trong Phạm vi và phiếu ghi P26d đang sửa nó song song. Không sửa phép kiểm (K8). Đề xuất đúng MỘT dòng, đặt sau `pos_order_log` (`backup.js:86`, bảng này không có khoá ngoại nên thứ tự không ảnh hưởng restore):
+
+```
+  { name: 'pos_doi_soat_ghi', label: 'Sổ đối soát (két, sao kê)', key: 'id' },
+```
+
+Xin chủ quán cho phép thêm dòng này vào `server/routes/backup.js` (nằm trong việc này, hoặc để P26d / chat gộp lúc duyệt PR). Mọi phần còn lại đã xong: `npm test --day-du` chỉ còn đúng phép E8 này đỏ (PASS 70 · FAIL 1).
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.

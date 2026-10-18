@@ -1,0 +1,43 @@
+# DOI-SOAT-1 — bằng chứng ĐỎ trên code CHƯA vá (18.10.2026)
+# Lệnh: python3 viec/DOI-SOAT-1/dot_bien.py --goc 2123b69
+#   = bài thử BẢN CUỐI cong_cu/thu_DOISOAT1.js chạy với server/ + cong_cu/gia_lap/ của commit 2123b69 (PHIEU: DOI-SOAT-1, `git archive`, bản chép thật,
+#     chưa có doiSoat.js, chưa có route /reports/doi-soat, chưa có bảng pos_doi_soat_ghi).
+# Kết quả bản cuối: 28 đạt · 78 hỏng (thoát 1). 28 "đạt" là các luồng THẬT dựng dữ liệu sạch (B0a–B0k: tạo đơn, thu nợ, huỷ, duyệt hoàn, thẻ, gói,
+# đổi cách trả, đổi điểm, tăng lượt mã tay) + A3 (băm bảng, vô hại khi chưa có gì) + A5 (ghi chú) + G5 (đọc client/ thật) + D2a (hành vi điểm hiện có)
+# + các k của luồng dựng — tức bài chạy tới cuối trên code gốc, không sập. Mọi ca của màn Đối soát đều ✗ vì route / hàm / bảng chưa có.
+# Trích (bản chạy lần 1 trên gốc, 77 hỏng; sau đó thêm ca A6 → 78):
+
+  ✗ A0 server/utils/doiSoat.js nạp được  — Cannot find module '…/server/utils/doiSoat.js'
+  ✗ B0 ngay: dữ liệu sạch → XANH, và KHÔNG có dòng CẦN XEM / LỆCH CŨ nào  — HTTP 404
+  ✗ B0 tuan: dữ liệu sạch → XANH …  — HTTP 404
+  ✗ B0 thang: dữ liệu sạch → XANH …  — HTTP 404
+  ✗ A1 danh sách = Object.keys(BAT_BIEN) (18); chạy 17, bỏ I7 có lý do  — 0/0 · chạy 0 · bỏ
+  ✗ A2 mọi câu SQL của ba lượt chạy bắt đầu SELECT|WITH  — 0 câu
+  ✗ A2b bất biến giả có UPDATE → bị chặn (ném lỗi), nội dung bảng không đổi
+  ✗ A4 doiSoat.js: không reconcile; INSERT|UPDATE|DELETE chỉ trong khối ghiMoi
+  ✗ A6 doiSoat.js nạp bat_bien.js LƯỜI …                       (ca thêm sau lần chạy trên; trên gốc: file chưa có → ✗)
+  ✗ B1 ngày 18.11: CK theo sổ = 50.000 …  — undefined
+  ✗ B2 tuần 16→22.11 (T2 00:00:00 trong, CN 23:59:59 trong, CN trước và T2 sau ngoài): CK = 95.000  — undefined
+  ✗ B3 tháng 11 …: CK = 195.000  — undefined
+  ✗ B3b tuần vắt tháng / năm …   ✗ B3c tháng 2 nhuận / không nhuận
+  ✗ B1b lệch của đơn 04.11: thấy ở ngày 04.11 · tuần 02–08.11 · tháng 11; KHÔNG thấy ở ngày 05.11 · tuần 09–15.11 · tháng 12
+  ✗ B4 đồng hồ 18:30 UTC (= 01:30 T2 19.10 VN), không truyền ngày → hôm nay 19.10, tuần 19→25.10
+  ✗ C4 I1 … I19, D1 (20 ca: mỗi bất biến cấy lệch → "không thấy")       ✗ C4b I2, I4, I5, I8, I13, I18 (toàn sổ vẫn hiện ở kỳ không liên quan)
+  ✗ C4z hoàn lại hết lệch cấy → XANH          ✗ C1 / C2 ngưỡng ngày áp dụng I19  — HTTP 404
+  ✗ C3 AP_DUNG_TU có khoá cho mọi bất biến chạy         ✗ C5 dòng không phân giải được ngày → ĐỎ ở kỳ bất kỳ
+  ✗ D1a D1b D1c D1d (SĐT nhận ≥ 2 lần)  — HTTP 404      ✗ D2a2 D2b D2c D2d (điểm đơn mua thẻ / gói / lấy từ gói)  — HTTP 404
+  ✗ E1 E1b E0 E0c E0b E2 E3 E4 E5 E5b E5c E6 (két: đếm cuối ngày + để lại, tiền mặt vào két = bán + nạp ví + thu nợ theo NGÀY THU − trả ra)  — HTTP 404 / bảng chưa có
+  ✗ F1 F2 F2b F3 (tuần: CK + sao kê; tháng: 4 nhóm + nhắc kho)
+  ✗ G1 G1b G2 G3 G4 G6  — HTTP 404 (quyền view_reports)
+  ✗ Z1 sau mọi cấy + hoàn, tháng 11 → XANH     ✗ H1 tháng trên dữ liệu nhiều: 200 trong < 10 s  — HTTP 404
+
+  28 đạt · 78 hỏng
+
+# Sau vá (HEAD): 105 đạt · 0 hỏng (node cong_cu/thu_DOISOAT1.js); ĐỐI CHỨNG của bộ đột biến cũng 105 đạt · 0 hỏng.
+# Bộ đột biến viec/DOI-SOAT-1/dot_bien.py (27 đột biến): TỔNG 27 · BẮT 27 · SỐNG 0 · HỎNG 0 · LẠC 0
+#   (lần chạy đầu: BẮT 22 · SỐNG 2 · LẠC 2 → SỐNG là VS-DS-THUC-I13-BANG / VS-DS-THUC-I14-BANG, bài B0 chỉ đòi XANH nên dòng "CẦN XEM" lọt; đã siết B0 đòi
+#    cả CẦN XEM / LỆCH CŨ rỗng. LẠC là BV-DS-THUC-I13 / BV-DS-THUC-I9-DOI: C5 gọi chayDoiSoat ném lỗi làm sập bài; đã bọc goiHam.)
+# Giả lập (cổng --day-du nhóm S) TRƯỚC khi vá: "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT"; SAU khi vá: "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT" (chay.js), thu_gia_lap.js xanh (55,6 s).
+# npm test trên gốc: PASS 66 · FAIL 0 · CẢNH BÁO 1. Sau vá: xem trang_thai.md (còn 1 phép đỏ do backup.js ngoài Phạm vi — Câu hỏi 9).
+
+SỐ CA cong_cu/thu_DOISOAT1.js: 105
