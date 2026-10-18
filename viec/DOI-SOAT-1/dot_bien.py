@@ -22,6 +22,8 @@ DOT_BIEN = [
   # ── A: dùng lại bất biến, chỉ đọc ──
   ('BV-DS-BO-BAT-BIEN', [(DS, "  for (const ten of Object.keys(boBatBien)) {\n    if (BO_QUA[ten])", "  for (const ten of Object.keys(boBatBien).filter((t) => t !== 'I6')) {\n    if (BO_QUA[ten])", 1)], r'✗ (A1|C4 I6)'),
   ('BV-DS-GHI-DUOC', [(DS, r"if (!/^(SELECT|WITH)\b/i.test(dau)) throw new Error(", "if (false) throw new Error(", 1)], r'✗ A2b'),
+  ('VS-DS-NAP-SOM', [(DS, "const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;",
+                      "const BAT_BIEN_SOM = require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;\nconst batBien = () => BAT_BIEN_SOM;", 1)], r'✗ A6'),
   # ── B: kỳ và giờ VN ──
   ('BV-DS-BO-LOC-KY', [(DS, LOC, "if (false) return null;", 1)], r'✗ B1b'),
   ('VS-DS-LOP2-LOC-KY', [(DS, "if (!gop && phamVi === 'ky' && n10 &&", "if (!gop && n10 &&", 1)], r'✗ C4b (I2|I4|I5|I8|I13|I18)'),

@@ -9,7 +9,9 @@
  */
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString } = require('./helpers');
-const { BAT_BIEN } = require('../../cong_cu/gia_lap/bat_bien.js');
+// Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
+// (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
+const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
 
 const TRAN_KET = 1000000000;       // số tiền két nhập tay tối đa (đồng)
 const TRAN_DONG = 200;             // số dòng lệch trả về mỗi nhóm (đếm vẫn đủ ở so_luong)
@@ -184,7 +186,7 @@ async function phepD1(q) {
   }));
 }
 
-async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = BAT_BIEN) {
+async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
   const ky = tinhKy(kieu, ngay);
   const ctx = { thuc: true };
   const bangBB = [];
@@ -269,4 +271,4 @@ async function ghiMoi(b, nguoi) {
 }
 // </ghi-moi>
 
-module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, AP_DUNG_TU, BAT_BIEN, TRAN_KET };
+module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };
