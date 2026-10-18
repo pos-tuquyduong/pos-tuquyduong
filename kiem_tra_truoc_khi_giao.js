@@ -573,7 +573,7 @@ function quetRouteGhi(docFile, tenFile) { // → { getGhi: ['file:dòng'], khong
 // E15 — TU-CHAY-7 A3 (đề xuất BAN-HANG-1): chú thích trỏ số dòng cứng — dạng "(" + ":N)" hoặc ":N–M" — trôi sau mỗi patch (K1: chú thích
 // là khẳng định). Bánh cóc theo DÒNG: mọc → CẢNH BÁO liệt kê, giảm → nhắc hạ; không FAIL. Vùng: server/**, client/src/**, cong_cu/thu_*.js,
 // tu_chay/*.js. Chú thích = phần sau // hoặc /*, hoặc dòng mở bằng *. Bài thử: cong_cu/thu_TOCDO1.js mục D cắt từ hằng tới hết khối gọi.
-const NGUONG_DONG_CUNG = 4;
+const NGUONG_DONG_CUNG = 5;   // 4 → 5 TẠM (chủ quán duyệt 18.10, TU-CHAY-8 Q7b): MA-GIAM-1 / LUOI-4 thêm 5 chú thích; việc sau xoá chúng rồi HẠ lại 4
 function quetDongCung(docFile, tenFile) { // → ['file:dòng']
   const VUNG = /^(server\/.+\.js|client\/src\/.+\.jsx?|cong_cu\/thu_[^/]+\.js|tu_chay\/[^/]+\.js)$/;
   const SO = /\(:\d+\)|:\d+[–-]\d+/;
