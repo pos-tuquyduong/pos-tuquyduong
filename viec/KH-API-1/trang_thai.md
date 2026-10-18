@@ -18,6 +18,16 @@ pos_order_items, pos_point_transactions, pos_voucher_grants, pos_signup_codes, p
 ## Bước 3 — kế hoạch: `ke_hoach.md` — CHỜ DUYỆT
 Phiếu dặn "Chờ duyệt kế hoạch" → commit, push, DỪNG ở đây. Chưa viết bài thử, chưa sửa code.
 
+Soát độc lập (agent phụ chỉ đọc, 4 câu) — đã sửa vào kế hoạch:
+- PHẢI SỬA (5, đã sửa): P7 giữ `normalizePhone(req.body.phone)` TRONG `try` (Express 5 + `.replace` ném → đổi hành vi `/claim` cũ);
+  bỏ đột biến `VS-A3-het-han-bang` (ca ±1 giây không bắt được — xanh oan K3); thêm ca C không đặt `GUI_MA_KHACH`, ghi rõ biến môi
+  trường đọc lúc gọi hàm; B1 lọc `nguon = 'gui'` ở cả 3 truy vấn con + ca "xin-ma ngay sau cap-ma" và "dòng quầy không ăn lượt IP";
+  tách `products.js` không giấu lệnh ghi khỏi E14 + ca hồi quy `GET /products` + đột biến.
+- NÊN SỬA (đã làm): biên 59/60 giây và 59/61 phút; chèn sẵn `huy_luc` (bỏ khe đua giữa hai câu); Q7 mới; Q1 ghi lỗ F3 phần điểm; ca
+  `X-Service-Key` cho `/loyalty/*` + `/products`, `SDT_DA_NHAN`, món của đơn, `con_hang` true/false, `sync_status`; dùng `loiGhi` cho kho bận
+  (KHÔNG cho mọi lỗi — nhánh còn lại của nó trả `err.message`, lộ lỗi nội bộ); thu hẹp phép B3; chặn `strftime` ra NULL; màn quầy ghi
+  CHƯA KIỂM; ghi rõ `quay.js` là route nhân viên.
+
 ## Câu hỏi
 Mỗi câu có đề xuất; kế hoạch viết theo đề xuất. Chủ quán chọn khác thì ghi lại, máy sửa đúng phần đó.
 
@@ -28,6 +38,8 @@ Mỗi câu có đề xuất; kế hoạch viết theo đề xuất. Chủ quán 
   Phương án: **(a) đề xuất** — E6 = `/claim` đúng chữ phiếu; H đọc là "voucher phát ra giống hệt đường cũ" (ca H so từng cột voucher).
   (b) `nhan-ma-bill` làm CẢ HAI việc nào đang bật (voucher + nhân điểm) — thêm tách `/nhan-diem` (~+10 dòng, thêm đột biến + ca đua).
   (c) hai route riêng `nhan-ma-bill` (voucher) và `nhan-diem` (điểm).
+  Lưu ý khi chọn (a): `/nhan-diem` không có trong `/api/kh` → App vẫn phải gọi đường `X-Service-Key` cũ với SĐT trong thân yêu cầu —
+  phần NHÂN ĐIỂM vẫn còn lỗ "khách tự khai SĐT" (F3) cho tới khi chọn (b)/(c) hoặc AUDIT-KH đóng đường cũ.
 - **Q2 — tách `/claim` ra `utils/nhanMaBill.js` sẽ làm ĐỎ phép E9.** E9 (`kiem_tra_truoc_khi_giao.js:400–470`) cắt khối từ
   `router.post('/claim'` tới `router.` kế tiếp TRONG `signup-codes.js` rồi đòi `kiemDonCuaMa` + câu chiếm mã `AND claimed_at IS NULL` +
   `if (!X || X.changes !== 1) { await tx.rollback(); return` nằm trong khối đó. Phiếu cấm sửa bộ kiểm ngoài việc thêm tên bài.
@@ -48,6 +60,11 @@ Mỗi câu có đề xuất; kế hoạch viết theo đề xuất. Chủ quán 
 - **Q6 — khách tạo từ App là loại nào?** Đường quầy (`customers.js:348`): `customer_type 'retail'` → `sync_status 'retail_only'` (KHÔNG
   vào danh sách xuất sang SX); mặc định `'subscription'` → `'new'` (vào hàng chờ xuất SX). Đề xuất: `'retail'` — khách App là khách mua
   lẻ, chưa đăng ký gói giao hàng.
+- **Q7 — giới hạn "≤ 10 lần sai / SĐT / giờ" (B2) có chặn cả mã QUẦY cấp không?** Nếu chặn: kẻ xấu biết SĐT của khách chỉ cần 2 lần
+  `xin-ma` (cách 60 giây) + 10 lần gõ sai là khoá khách thật 1 giờ, thu ngân cấp mã cũng không vào được. Đề xuất: trần theo SĐT chỉ đếm
+  và chỉ chặn mã lối App (`nguon 'gui'`); mã quầy cấp vẫn giữ trần 5 lần / mã (dò mã quầy phải có nhân viên bấm cấp).
+- **Q3 (bổ sung từ soát):** tách `products.js` theo cùng khuôn với `/claim` (dòng route + hàm NGAY dưới) để lệnh ghi nhớ tồn
+  (`products.js:56–60`) vẫn nằm trong khối phép E14 quét — không giấu lệnh ghi vào hàm phụ, không làm E14 đòi hạ ngưỡng 51.
 - **Ghi rõ (không cần trả lời nếu đồng ý):** `cap-ma` dùng `authenticate` (mọi nhân viên đã đăng nhập — cùng mức với tra / sửa khách
   `customers.js:136, 434`), vì thu ngân phải bấm được; khách A đọc đơn của B → 404 (phiếu F3 đã chốt, thay 403 của luật).
 
