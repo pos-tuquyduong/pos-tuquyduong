@@ -83,6 +83,7 @@ def chay(ten, thay, mau):
     r = subprocess.run(['node', os.path.join(GOC, 'cong_cu', 'thu_DOISOAT1.js'), '--may-chu', os.path.join(tmp, 'server')],
                        cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = (r.stdout or '') + (r.stderr or '')
+    if '--in-ra' in sys.argv: print(f'── {ten}: 12 dòng cuối ──\n' + '\n'.join(ra.strip().splitlines()[-12:]))
     hong = [l.strip() for l in ra.splitlines() if '✗' in l]
     if r.returncode == 2 or 'Bài thử sập' in ra:
       return ten, 'LẠC', 'bài sập: ' + (hong[-1] if hong else ra.strip().splitlines()[-1][:160] if ra.strip() else '')
