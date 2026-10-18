@@ -95,6 +95,9 @@ const BACKUP_TABLES = [
   { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' }
 ];
 
+// P26d (Q3): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (/restore chặn 400).
+const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'pos_balance_transactions', 'pos_refund_requests'];
+
 /**
  * Helper: Lấy pos_products với tên mới nhất từ SX
  */
@@ -303,9 +306,19 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
       labelToTable[t.label] = t;
     }
 
+    // P26d (7), chủ quán chốt Q3: trang tiền không khôi phục bằng file (ví chỉ ghi qua ghiVi, đơn qua đường bán) — chặn TRƯỚC
+    // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
+    const tienBiChan = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(labelToTable[s]?.name)
+      && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
+    if (tienBiChan.length) {
+      return res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: tienBiChan,
+        error: `File có trang tiền (${tienBiChan.join(', ')}) — ví, đơn, sổ ví, yêu cầu hoàn không khôi phục bằng file. `
+          + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
+    }
+
     for (const sheetName of wb.SheetNames) {
       if (sheetName === '_Metadata') continue;
-      
+
       const tableDef = labelToTable[sheetName];
       if (!tableDef) {
         results.push({ sheet: sheetName, status: 'skipped', reason: 'Không nhận diện được bảng' });
