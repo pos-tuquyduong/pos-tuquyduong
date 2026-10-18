@@ -41,7 +41,16 @@ Chi tiết và lập luận ở `ke_hoach.md` mục 9. Cần chủ quán trả l
 7. Ngân sách ~400 dòng code vượt ~300 của phiếu ~30 % — cắt (`ke_hoach.md` mục 7) hay chấp nhận?
 8. Nếu đo thấy chậm: cho thêm index vào bảng cũ trong `database.js` (ngoài "chỉ thêm bảng" của phiếu)?
 
+## Trả lời của chủ quán (18.10) → đã duyệt kế hoạch, làm tiếp
+
+Cả 8 câu đã được trả lời; nguyên văn và thiết kế chốt ở **`quyet_dinh.md`** (file đó thắng `ke_hoach.md` khi khác nhau). Tóm tắt: 1 = B (tiền mặt thật vào két: bán + nạp ví + thu nợ theo ngày thu − trả ra; két nhập "đếm cuối ngày" + "để lại cho mai"); 2 đồng ý bảng, ngày gộp kiểm bằng git log đầy đủ — **kho nông → ghi CHƯA KIỂM**, chat soát kiểm lúc duyệt PR; 3 nạp thẳng `bat_bien.js`; 4 dòng "có thể oan" → nhóm CẦN XEM (vàng); 5 giữ `floor(total/per)`; 6 đỏ khi ≠ 0; 7 chấp nhận ~400 dòng; 8 index chỉ khi đo chậm, `CREATE INDEX IF NOT EXISTS` ở khối của việc này cuối `createTables`. Thứ tự gộp: P16 trước, việc này sau.
+
+Điều tôi suy từ code và đưa vào thiết kế (CHƯA KIỂM với quầy thật, chủ quán xác nhận ở lần chạy thật đầu): "tiền mặt trả ra" = tiền mặt/CK của đơn **huỷ** không có dòng gói — vì huỷ đơn chỉ hoàn VÍ phần trả bằng ví (`orders.js:1364–1372`), phần tiền mặt không được ghi vào đâu; đơn mua gói hoàn tiền mặt vào VÍ nên két không ra; đơn `refunded` chỉ hoàn ví nên két không ra. Dòng gói là `product_id = −pkg.id` (`orders.js:421`).
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
+
+- `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
+- Xoá đơn làm tiền mặt của đơn biến khỏi mọi tổng theo sổ (đơn không còn dòng) — chưa rà đường xoá đơn trong việc này.
 
 - `client/src/pages/Reports.jsx:11` mặc định "hôm nay" bằng `new Date().toISOString()` (UTC): 0:00–7:00 sáng VN tab Ngày hiện hôm qua.
 - Báo cáo ngày/tuần (`server/routes/reports.js:34, :127, :142`) tính thu nợ vào NGÀY TẠO đơn gốc (`orders.js:1305–1310`) → doanh thu tiền mặt ngày cũ đổi về sau; không có nạp ví tiền mặt.

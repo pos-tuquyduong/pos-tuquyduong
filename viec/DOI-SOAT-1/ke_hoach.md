@@ -1,4 +1,4 @@
-# DOI-SOAT-1 — kế hoạch (CHỜ DUYỆT — bản 2, đã sửa theo soát độc lập, xem `trang_thai.md`)
+# DOI-SOAT-1 — kế hoạch (bản 2 — ĐÃ DUYỆT 18.10 với 8 quyết định ở `quyet_dinh.md`; chỗ nào khác nhau thì `quyet_dinh.md` thắng)
 
 Nền: HEAD `2123b69` (nhánh `viec/DOI-SOAT-1`, kho NÔNG — nhiều commit trong sổ như `9a68ab6`, `28638d0` không có trong kho, chỉ đọc được code HEAD).
 Số dòng dưới đây đọc trong lượt này; dòng nào ghi `?` là chưa đọc. Phiếu dặn "Chờ duyệt kế hoạch" → dừng sau commit + push kế hoạch này.
