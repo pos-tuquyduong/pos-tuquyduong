@@ -29,8 +29,8 @@
 - `GET /products` (đã cũ) gọi SX và ghi `pos_products` mỗi lần; Orders / Cài đặt gọi thêm một lần khi mở modal in / màn Cài đặt (Sales dùng danh sách sẵn có).
 
 ## Bài thử và đột biến (bước 4–6)
-- Bài thử: `node cong_cu/thu_P16.js` → `79 đạt · 0 hỏng` (gọi thẳng client/src/utils/inPhieu.js). Chạy trên bản chưa có hàm: sập (xem bang_chung_do.txt).
-- Đột biến: `python3 viec/P16/dot_bien.py` → đối chứng xanh, 22 đột biến, 22 BẮT, 0 sống.
+- Bài thử: `node cong_cu/thu_P16.js` → `90 đạt · 0 hỏng` (gọi thẳng client/src/utils/inPhieu.js). Chạy trên bản chưa có hàm: sập (xem bang_chung_do.txt).
+- Đột biến: `python3 viec/P16/dot_bien.py` → đối chứng xanh, 32 đột biến, 32 BẮT, 0 sống.
 - Bảng chỗ vá → đột biến:
 
 | Chỗ (client/src/utils/inPhieu.js) | Đột biến |
@@ -48,7 +48,12 @@
 | đọc cài đặt đã lưu (`docBoIn`) | VS-P16-TU-MO-BO-QUA-GIA-TRI-LUU · VS-P16-KHONG-PHA-GIU-RAC |
 | cờ in lại | BV-P16-CO-IN-LAI |
 | chọn loại / bỏ job rỗng / nhân số bản (`dungBoIn`) | BV-P16-CHON-LOAI · BV-P16-BO-JOB-RONG · VS-P16-NHAN-SO-BAN-TUNG-TRANG |
-| đơn huỷ không in tem / phiếu | BV-P16-DON-HUY-VAN-IN-TEM |
+| đơn huỷ / hoàn tiền không in tem / phiếu | BV-P16-DON-HUY-VAN-IN-TEM · VS-P16-DON-HOAN-TIEN-QUEN |
+| phiếu giữ đủ tên (không cắt như tem) | VS-P16-PHIEU-CAT-TEN |
+| khách có tên không SĐT | VS-P16-TEN-KHACH-MAT-KHI-KHONG-SDT |
+| khổ mặc định / khổ đúng loại | VS-P16-KHO-MAC-DINH-SAI · VS-P16-KHO-PHIEU-NHAN-KHO-BILL |
+| JSON cài đặt lạ (`null`, số) | VS-P16-JSON-NULL-NEM |
+| số bản lẻ / số ly âm / SĐT có dấu chấm / gộp theo mã | VS-P16-SO-BAN-LAM-TRON-LEN · VS-P16-SO-LY-AM · VS-P16-SDT-CHI-BO-KHOANG-TRANG · VS-P16-GOP-THEO-TEN-MON |
 
 Đã bỏ một đột biến "tương đương" (kiểm mảng JSON — mảng không có khoá nào thì ra mặc định như cũ) kèm dòng mã thừa tương ứng.
 
@@ -74,8 +79,16 @@ Lỗi tìm được và cách xử lý:
 Nghi ngờ đã xử lý: tem cao 29,5 mm (tránh trang trắng), ghi chú `white-space: pre-line`, nút In khoá khi chưa chọn loại, nhận định "danh sách sản phẩm không đổi" đã bỏ khỏi chú thích.
 Nghi ngờ GIỮ nguyên (không kiểm được từ đây): in thật trên Chrome/Edge (afterprint, hộp in liên tiếp, trang trắng cuối, tem 40×30 có tràn khi tên + ghi chú + khách đều rất dài), mã món `pos_products.code` có luôn khớp mã trong danh sách SX không.
 
+## Soát độc lập — vòng 2 (KHÔNG ĐẠT, 6 điểm vòng 1 xác nhận đã sửa đúng)
+- Lỗi 1: đơn `refunded` (refunds.js:158) vẫn ra tem/phiếu → ĐÃ SỬA: `DON_KHONG_PHA = ['cancelled','refunded']` + ca D9b + đột biến VS-P16-DON-HOAN-TIEN-QUEN.
+- Lỗi 2: phiếu pha chế cố định 72 mm trong khi cài đặt cho chọn 58 mm (chữ bị cắt) → ĐÃ SỬA: bề rộng phiếu theo khổ (52 mm khi 58 mm).
+- Lỗi 3: nút In không chờ `sanSang` (Orders chưa có bảng nhóm, in sớm bỏ qua nhóm đã tắt) → ĐÃ SỬA: `disabled` thêm `!sanSang`.
+- Đột biến phụ sống (khổ mặc định, tên khách không SĐT, JSON `null`, khổ phiếu lấy khổ bill, số bản lẻ, số ly âm, SĐT có dấu chấm, phiếu cắt tên, gộp theo tên) → ĐÃ SỬA: thêm ca C23–C26, A27–A29, B10–B12 và 10 đột biến; gỡ `kho: null` thừa.
+- ke_hoach.md còn tên cũ (`inCacViec`, cache module) → đã cập nhật.
+- Nói thẳng: "IN LẠI · LẦN n" (CLAUDE.md §9 luật 4, DAC_TA:41) CHƯA làm — phiếu P16 chỉ yêu cầu "IN LẠI". Đây là chỗ lệch luật 4, chờ chủ quán quyết (Câu hỏi 2).
+
 ## CHƯA KIỂM
-- In THẬT: chưa có trình duyệt + máy in trong môi trường này. Chưa kiểm: iframe ẩn in được và mở liên tiếp 2–3 hộp in; `afterprint`; trang trắng cuối; khổ 40×30 / 80mm; chế độ in tự động (kiosk) của quầy.
+- In THẬT: chưa có trình duyệt + máy in trong môi trường này. Chưa kiểm, TỪNG KHỔ: tem 40×30 (có tràn khi tên + ghi chú + khách đều dài, chỉ ước tính ~29,7 mm so với 27 mm khả dụng); phiếu 80 mm; phiếu 58 mm (bề rộng 52 mm chỉ tính tay); bill 58/80/A5/A4 qua iframe thay cho `window.open` cũ. Chưa kiểm: iframe ẩn in được và mở liên tiếp 2–3 hộp in; `afterprint` trên Safari/Firefox (không báo thì chờ 60 giây rồi gỡ iframe, có thể gỡ hộp in còn mở); trang trắng cuối; chế độ in tự động (kiosk) của quầy.
 - Giao diện: khối Cài đặt, lưu khoá `invoice_print_set` qua `PUT /api/pos/settings`, chip chọn loại, "Tự mở in" — không có bài thử tự động (chỉ build + SSR dựng).
 - Mã món trong danh sách sản phẩm có khớp `product_code` của đơn trên dữ liệu thật hay không; cờ `khong_quan_kho` (xem Câu hỏi 1).
 - Phiếu chỉ dặn chạy `node tu_chay/cong.js chay` — kết quả ghi ở mục cuối.

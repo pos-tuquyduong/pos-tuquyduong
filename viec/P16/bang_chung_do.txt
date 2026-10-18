@@ -5,11 +5,11 @@ $ node cong_cu/thu_P16.js
 ✖ Bài thử sập: Cannot find module '/home/user/pos-tuquyduong/client/src/utils/inPhieu.js' imported from /home/user/pos-tuquyduong/cong_cu/thu_P16.js
 (thoát 2 = sập = hỏng; file hàm thuần là file MỚI nên bản "chưa vá" chỉ có thể là chưa có file)
 
-== Sau khi có inPhieu.js và vòng sửa 1 (commit ed50870) ==
+== Sau khi có inPhieu.js và hai vòng sửa (commit 7027775) ==
 $ node cong_cu/thu_P16.js
-79 đạt · 0 hỏng
+90 đạt · 0 hỏng
 
-== Đỏ thật bằng đột biến (python3 viec/P16/dot_bien.py): 22 đột biến, 22 BẮT, 0 sống, đối chứng xanh ==
-(vòng 1 đầu tiên: 15 đột biến, 3 sống → sửa bài; soát độc lập tự dựng thêm 20 đột biến, 7 sống → thêm ca + đột biến)
+== Đỏ thật bằng đột biến (python3 viec/P16/dot_bien.py): 32 đột biến, 32 BẮT, 0 sống, đối chứng xanh ==
+(lần đầu: 15 đột biến, 3 sống → sửa bài; soát vòng 1 dựng thêm 20 đột biến, 7 sống; soát vòng 2 dựng thêm, 9 sống → mỗi lần thêm ca + đột biến)
 
-SỐ CA thu_P16: 79
+SỐ CA thu_P16: 90
