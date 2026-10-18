@@ -61,11 +61,17 @@ async function main() {
   await db.initDatabase();
 
   // Công tắc — đặt TRƯỚC khi nạp route (route lấy hàm bằng destructuring lúc require).
-  const co = { ban: false, banCauDau: false, camNgoai: null };
+  // P26d: co.ban = true (SQLITE_BUSY) hoặc chuỗi mã (vd 'TRANSACTION_BUSY' — dạng Turso); co.banLan = n → lần mở giao dịch THỨ n
+  // (đếm từ lúc đặt) ném SQLITE_BUSY. Cả hai ném ở lớp bọc NGOÀI hàm thật — bỏ qua vòng thử lại thật, đo "hết lượt → 409".
+  const co = { ban: false, banCauDau: false, camNgoai: null, banLan: 0 };
   const txGoc = db.beginTransaction, runGoc = db.run;
   let dangMo = 0;
   db.beginTransaction = async (...a) => {
-    if (co.ban) { co.ban = false; const e = new Error('SQLITE_BUSY: database is locked (giả)'); e.code = 'SQLITE_BUSY'; throw e; }
+    if (co.banLan && --co.banLan === 0) { const e = new Error('SQLITE_BUSY: database is locked (giả, lần n)'); e.code = 'SQLITE_BUSY'; throw e; }
+    if (co.ban) {
+      const ma = co.ban === true ? 'SQLITE_BUSY' : co.ban;
+      co.ban = false; const e = new Error(`${ma}: database is locked (giả)`); e.code = ma; throw e;
+    }
     const tx = await txGoc(...a);
     dangMo++;
     let xong = false, cauDau = co.banCauDau;
@@ -85,7 +91,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'refunds', 'wallets', 'damages', 'packages']) {
+  for (const r of ['orders', 'refunds', 'wallets', 'damages', 'packages', 'backup']) {   // backup: P26d F
     app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -438,6 +444,203 @@ async function main() {
           `${moTa(r)}${conBat ? ' · lệnh không mở giao dịch nào' : ''}${sau !== truoc ? ' · kho đổi' : ''}`);
       }
     }
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // P26d — ví NULL / tổng chi âm (E), đối soát dừng giữa chừng (D), thử lại BEGIN + laLoiBan (A, B), khôi phục (F),
+  // kho bận THẬT (A — CUỐI bài: trên gốc nó làm hỏng kết nối dùng chung, các ca sau sẽ đỏ sai câu).
+  const BI_MAT = 'P26D_CHUOI_NOI_BO';
+  const loiGia = (ma) => { const e = new Error(`${ma}: ${BI_MAT} (giả)`); e.code = ma; return e; };
+  const tho = (sdt) => mot('SELECT balance, total_topup, total_spent FROM pos_wallets WHERE phone = ?', [sdt]);
+
+  muc('[P26d E] ví: balance / cột tổng NULL đọc như 0; ví tạo lại lúc hoàn không có tổng chi âm');
+  {
+    const s = sdtMoi();
+    await db.run('INSERT INTO pos_wallets (phone, balance, total_topup, total_spent) VALUES (?, NULL, 0, 0)', [s]);
+    const r = await goi('POST', '/wallets/topup', { phone: s, amount: 10000, payment_method: 'cash' });
+    const w = await tho(s);
+    const d = await mot('SELECT balance_before AS t, balance_after AS s FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [s]);
+    k('V1 ví balance NULL (dữ liệu cũ) → nạp 10.000 → 200, balance = 10.000 (không NULL), sổ 0 → 10.000',
+      r.status === 200 && w?.balance !== null && Number(w?.balance) === 10000 && Number(d?.t) === 0 && Number(d?.s) === 10000,
+      `${moTa(r)} · ${JSON.stringify(w)} · sổ ${JSON.stringify(d)}`);
+    const s2 = sdtMoi();
+    await db.run('INSERT INTO pos_wallets (phone, balance, total_topup, total_spent) VALUES (?, 50000, NULL, NULL)', [s2]);
+    const a = await goi('POST', '/wallets/topup', { phone: s2, amount: 10000, payment_method: 'cash' });
+    const b = await goi('POST', '/wallets/deduct', { phone: s2, amount: 5000 });
+    const w2 = await tho(s2);
+    k('V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL)', a.status === 200 && b.status === 200
+      && w2?.total_topup !== null && w2?.total_spent !== null && Number(w2.total_topup) === 10000 && Number(w2.total_spent) === 5000,
+    `${moTa(a)} / ${moTa(b)} · ${JSON.stringify(w2)}`);
+    const s3 = sdtMoi(); await nap(s3, 30000);
+    const d3 = await donVi(s3);
+    await db.run('DELETE FROM pos_wallets WHERE phone = ?', [s3]);   // ví mất (xoá tay / khôi phục thiếu)
+    const h3 = await huy(d3);
+    const w3 = await tho(s3);
+    k('V3 ví đã mất, huỷ đơn trả ví 25.000 → ví tạo lại: balance 25.000, total_spent 0 (không âm)', h3.status === 200
+      && Number(w3?.balance) === 25000 && w3?.total_spent !== null && Number(w3?.total_spent) === 0, `${moTa(h3)} · ${JSON.stringify(w3)}`);
+    const s4 = sdtMoi(); await nap(s4, 50000);
+    const d4 = await donVi(s4);
+    const chi = Number((await tho(s4)).total_spent);
+    const h4 = await huy(d4);
+    const w4 = await tho(s4);
+    k('V4 (K5) ví đang có: mua 25.000 → tổng chi 25.000; huỷ → tổng chi 0, số dư 50.000 (cộng tương đối như cũ)', chi === 25000
+      && h4.status === 200 && Number(w4.total_spent) === 0 && Number(w4.balance) === 50000, `chi ${chi} · ${moTa(h4)} · ${JSON.stringify(w4)}`);
+  }
+
+  muc('[P26d D] đối soát toàn bộ dừng giữa chừng → không 409 "chưa ghi gì", báo ví đã xong / ví dừng');
+  {
+    const lech = async () => new Map((await db.query(`SELECT w.phone, w.balance - COALESCE((SELECT SUM(t.amount) FROM pos_balance_transactions t
+        WHERE t.customer_phone = w.phone AND t.type IN ('topup', 'purchase', 'refund', 'adjust', 'compensation')), 0) AS l FROM pos_wallets w
+        WHERE w.phone IN (SELECT customer_phone FROM pos_balance_transactions WHERE type IN ('topup', 'purchase', 'refund', 'adjust', 'compensation'))`))
+      .map((x) => [x.phone, Number(x.l)]));
+    await db.run('UPDATE pos_wallets SET balance = COALESCE(balance, 0) + 1');
+    const truoc = await lech();
+    co.banLan = 2;
+    const r = await goi('POST', '/wallets/reconcile-all', {});
+    co.banLan = 0;
+    const sau = await lech();
+    const p1 = r.results?.[0]?.phone, p2 = r.dung_o;
+    k('H2 lần mở giao dịch thứ 2 gặp bận → 500 DOI_SOAT_DO_DANG, checked 1; ví đã xong khớp sổ, ví dừng chưa đổi',
+      r.status === 500 && r.code === 'DOI_SOAT_DO_DANG' && r.checked === 1 && !!p1 && !!p2 && p1 !== p2 && sau.get(p1) === 0
+        && truoc.get(p2) !== 0 && sau.get(p2) === truoc.get(p2), `${moTa(r)} · checked ${r.checked} · ${p1}: ${truoc.get(p1)} → ${sau.get(p1)} · ${p2}: ${truoc.get(p2)} → ${sau.get(p2)}`);
+    const r2 = await goi('POST', '/wallets/reconcile-all', {});
+    const conLech = [...(await lech()).values()].filter((x) => x !== 0).length;
+    k('H2b (K5) đối soát toàn bộ chạy lại → 200, mọi ví có sổ khớp sổ', r2.status === 200 && conLech === 0, `${moTa(r2)} · còn lệch ${conLech}`);
+  }
+
+  muc('[P26d A/B] thử lại BEGIN CHỈ khi bận; mã bận dùng chung (laLoiBan); 500 không lộ câu nội bộ');
+  {
+    const CHO = db.CHO_BEGIN_MS;
+    k('D0 CHO_BEGIN_MS: ≥ 1 lượt, mỗi lượt > 0, tổng chờ ≤ 2.000 ms', Array.isArray(CHO) && CHO.length >= 1 && CHO.every((x) => x > 0)
+      && CHO.reduce((t, x) => t + x, 0) <= 2000, JSON.stringify(CHO));
+    const s = sdtMoi(); await nap(s, 100000);
+    const napThu = () => goi('POST', '/wallets/topup', { phone: s, amount: 1000, payment_method: 'cash' });
+    const soDu = async () => Number((await tho(s)).balance);
+    // Vá tạm client libsql THẬT: mỗi lần mở giao dịch gọi lam(lần, mởThật). Thay kết nối (kho file, lỗi bận) thì vá tự rơi.
+    const vaMo = (lam) => {
+      const c = db.getDb(), goc = c.transaction;
+      let lan = 0;
+      c.transaction = async (...a) => { lan++; return lam(lan, () => goc.apply(c, a)); };
+      return { lan: () => lan, go: () => { c.transaction = goc; } };
+    };
+    for (const ma of ['SQLITE_IOERR', 'TRANSACTION_CLOSED', 'TRANSACTION_TIMEOUT', 'SQLITE_BUSYX']) {
+      const v0 = await soDu();
+      const va = vaMo(() => { throw loiGia(ma); });
+      const r = await napThu();
+      va.go();
+      k(`D4 mở giao dịch lỗi ${ma} (không phải bận) → 500 LOI_MAY_CHU, mở đúng 1 lần, không lộ câu nội bộ, ví không đổi`,
+        r.status === 500 && r.code === 'LOI_MAY_CHU' && va.lan() === 1 && !JSON.stringify(r).includes(BI_MAT) && await soDu() === v0,
+        `${moTa(r)} · mở ${va.lan()} lần`);
+    }
+    for (const ma of ['TRANSACTION_BUSY', 'SQLITE_BUSY_SNAPSHOT']) {
+      const v0 = await soDu();
+      const va = vaMo((lan, mo) => { if (lan === 1) throw loiGia(ma); return mo(); });
+      const r = await napThu();
+      va.go();
+      k(`D5 mở giao dịch lần đầu lỗi bận ${ma} → thử lại → 200, ví +1.000`, r.status === 200 && await soDu() === v0 + 1000, moTa(r));
+    }
+    {
+      const v0 = await soDu();
+      const va = vaMo(async (lan, mo) => {
+        const tx = await mo();
+        if (lan === 1) {   // BEGIN lười của Turso hỏng ở câu ĐẦU (hrana gộp BEGIN với câu đầu)
+          const exe = tx.execute.bind(tx);
+          let dau = true;
+          tx.execute = async (st) => { if (dau) { dau = false; throw loiGia('SQLITE_BUSY'); } return exe(st); };
+        }
+        return tx;
+      });
+      const r = await napThu();
+      va.go();
+      const r2 = await napThu();
+      k('D8 câu ĐẦU trong giao dịch gặp bận (dạng Turso) → thử lại → 200; giao dịch hỏng đã đóng (lệnh kế tiếp 200), ví +2.000',
+        r.status === 200 && r2.status === 200 && await soDu() === v0 + 2000, `${moTa(r)} / ${moTa(r2)}`);
+    }
+    {
+      const v0 = await soDu();
+      co.ban = 'TRANSACTION_BUSY';
+      const r = await napThu();
+      co.ban = false;
+      k('D9 kho bận dạng Turso (TRANSACTION_BUSY) hết lượt → loiGhi trả 409 KHO_BAN, ví không đổi', r.status === 409 && r.code === 'KHO_BAN'
+        && await soDu() === v0, moTa(r));
+    }
+  }
+
+  muc('[P26d F] khôi phục sao lưu KHÔNG ghi các trang tiền (ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn) — chặn trước mọi ghi');
+  {
+    const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
+    const khoiPhuc = async (trang) => {
+      const wb = XLSX.utils.book_new();
+      for (const [ten, dong] of trang) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), ten);
+      const fd = new FormData();
+      fd.append('file', new Blob([XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })]), 'p26d.xlsx');
+      imLang();
+      try {
+        const r = await fetch(goc + '/backup/restore', { method: 'POST', body: fd, headers: { Authorization: 'Bearer ' + token } });
+        let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
+        return { ...j, status: r.status };
+      } finally { noiLai(); }
+    };
+    const chup = async (bang) => JSON.stringify(await db.query(`SELECT * FROM ${bang} ORDER BY rowid`));
+    const nhatKy = [{ type: 'p26d', file_name: 'thu.xlsx', record_count: 1, status: 'success' }];
+    // "Nhật ký đồng bộ" ĐỨNG TRƯỚC "Số dư" (cố ý): bản vá chặn trong vòng sẽ đã xoá + ghi trang trước rồi mới chặn.
+    const nk0 = await chup('pos_sync_logs'), vi0 = await chup('pos_wallets');
+    const a = await khoiPhuc([['Nhật ký đồng bộ', nhatKy], ['Số dư', [{ phone: '0999000001', balance: 999999, total_topup: 0, total_spent: 0 }]]]);
+    k('F1 file có trang "Số dư" (sau một trang thường) → 400 KHOI_PHUC_VI_DON_BI_CHAN; pos_sync_logs VÀ pos_wallets không đổi',
+      a.status === 400 && a.code === 'KHOI_PHUC_VI_DON_BI_CHAN' && await chup('pos_sync_logs') === nk0 && await chup('pos_wallets') === vi0, moTa(a));
+    for (const [nhan, bang] of [['Đơn hàng', 'pos_orders'], ['Chi tiết đơn', 'pos_order_items'], ['Giao dịch số dư', 'pos_balance_transactions'],
+      ['Yêu cầu hoàn tiền', 'pos_refund_requests']]) {
+      const truoc = await chup(bang);
+      const r = await khoiPhuc([[nhan, [{ id: 999999 }]]]);
+      k(`F2 file có trang "${nhan}" → 400 KHOI_PHUC_VI_DON_BI_CHAN, ${bang} không đổi`, r.status === 400 && r.code === 'KHOI_PHUC_VI_DON_BI_CHAN'
+        && await chup(bang) === truoc, moTa(r));
+    }
+    const c = await khoiPhuc([['Nhật ký đồng bộ', nhatKy]]);
+    k('F3 (K5) file chỉ có trang không dính tiền (Nhật ký đồng bộ) → 200, khôi phục đúng 1 dòng',
+      c.status === 200 && await so("SELECT COUNT(*) FROM pos_sync_logs WHERE type = 'p26d'") === 1, moTa(c));
+  }
+
+  muc('[P26d A] kho bận THẬT — client libsql thứ hai giữ khoá ghi trên cùng file kho');
+  {
+    const { createClient } = require(path.join(GOC, 'node_modules', '@libsql', 'client'));
+    const c2 = createClient({ url: 'file:' + FILE_KHO });
+    const doc2 = async (sql, a = []) => (await c2.execute({ sql, args: a })).rows[0];
+    const s = sdtMoi(); await nap(s, 100000);
+    const soDu2 = async () => Number((await doc2('SELECT balance FROM pos_wallets WHERE phone = ?', [s]))?.balance);
+    const dem2 = async (loai) => Number((await doc2('SELECT COUNT(*) AS n FROM pos_sync_logs WHERE type = ?', [loai])).n);
+    const napThu = () => goi('POST', '/wallets/topup', { phone: s, amount: 1000, payment_method: 'cash' });
+    const ngu = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+    const v1 = await soDu2();
+    let giu = await c2.transaction('write');
+    const nha = ngu(150).then(() => giu.rollback());
+    const r1 = await napThu();
+    await nha;
+    k('D1 kho bận 150 ms (người khác đang ghi) → chờ rồi thử lại → 200, ví +1.000 (đọc bằng kết nối khác)', r1.status === 200
+      && await soDu2() === v1 + 1000, `${moTa(r1)} · ví ${v1} → ${await soDu2()}`);
+
+    const v2 = await soDu2();
+    giu = await c2.transaction('write');
+    const t0 = Date.now();
+    const r2 = await napThu();
+    const ms = Date.now() - t0;
+    await giu.rollback();
+    k('D2 kho bận suốt → 409 KHO_BAN sau khi chờ đủ lượt (1,4–2,5 s), ví không đổi', r2.status === 409 && r2.code === 'KHO_BAN'
+      && ms >= 1400 && ms <= 2500 && await soDu2() === v2, `${moTa(r2)} · ${ms} ms`);
+
+    const r3 = await napThu();
+    await db.run("INSERT INTO pos_sync_logs (type, file_name) VALUES ('p26d_d3', 'x')");
+    k('D3 sau một lần BEGIN bận: nạp → 200 và ví +1.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)', r3.status === 200
+      && await soDu2() === v2 + 1000 && await dem2('p26d_d3') === 1, `${moTa(r3)} · ví ${v2} → ${await soDu2()} · dòng run ${await dem2('p26d_d3')}`);
+
+    giu = await c2.transaction('write');
+    let e7 = null;
+    try { await db.run("INSERT INTO pos_sync_logs (type, file_name) VALUES ('p26d_d7a', 'x')"); } catch (e) { e7 = e; }
+    await giu.rollback();
+    await db.run("INSERT INTO pos_sync_logs (type, file_name) VALUES ('p26d_d7b', 'x')");
+    k('D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; run kế tiếp ghi THẬT (kết nối được thay)', e7?.code === 'SQLITE_BUSY'
+      && await dem2('p26d_d7a') === 0 && await dem2('p26d_d7b') === 1, `${e7?.code} · d7a ${await dem2('p26d_d7a')} · d7b ${await dem2('p26d_d7b')}`);
+    c2.close();
   }
 
   sv.close();
