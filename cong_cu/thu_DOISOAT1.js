@@ -235,7 +235,7 @@ async function main() {
     const ngoaiGhi = ma.replace(/\/\/ <ghi-moi>[\s\S]*?\/\/ <\/ghi-moi>/, '');
     k('A4 doiSoat.js: không reconcile; INSERT|UPDATE|DELETE chỉ trong khối ghiMoi', /<ghi-moi>/.test(ma) && !/reconcile/i.test(ma) && !/\b(INSERT|UPDATE|DELETE)\b/.test(ngoaiGhi));
     k('A6 doiSoat.js nạp bat_bien.js LƯỜI (trong hàm, không ở đầu file): thiếu cong_cu/ chỉ hỏng màn Đối soát, không sập máy chủ; bản sao đột biến của giả lập chỉ chép server/',
-      /batBien = \(\) => require\('\.\.\/\.\.\/cong_cu\/gia_lap\/bat_bien\.js'\)/.test(ma) && !/^(const|let|var) [^\n]*require\([^)]*bat_bien/m.test(ma));
+      /batBien = \(\) => require\('\.\.\/\.\.\/cong_cu\/gia_lap\/bat_bien\.js'\)/.test(ma) && !/^(const|let|var) [^=\n]*= require\([^)]*bat_bien/m.test(ma));
     k('A5 (ghi chú) giả lập chay.js / thu_gia_lap.js đạt: chạy ở cổng --day-du nhóm S, số liệu trong bang_chung_do.txt', true);
   }
 
