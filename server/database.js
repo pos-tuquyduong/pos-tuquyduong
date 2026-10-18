@@ -1324,6 +1324,7 @@ async function query(sql, params = []) {
     return result.rows.map(row => ({ ...row }));
   } catch (err) {
     console.error('Query error:', err.message);
+    thayKetNoiNeuBan(err);
     throw err;
   }
 }
@@ -1361,32 +1362,76 @@ async function run(sql, params = []) {
     };
   } catch (err) {
     console.error('Run error:', err.message);
+    thayKetNoiNeuBan(err);
     throw err;
   }
 }
 
 /**
- * Transaction helper - Bọc nhiều SQL trong 1 giao dịch atomic
+ * P26d — lỗi "kho bận" (chưa ghi gì, bấm lại được). MỘT chỗ nhận dạng, dùng cho thử lại BEGIN và loiGhi (wallets.js → 409 KHO_BAN).
+ * Kho file: LibsqlError code 'SQLITE_BUSY' (rawCode 5). Turso: @libsql/client chuyển NGUYÊN mã máy chủ; chủ quán chốt khớp thêm
+ * SQLITE_BUSY_* và TRANSACTION_BUSY (CHƯA KIỂM: chưa thử Turso thật). Mã khác (TRANSACTION_CLOSED, TRANSACTION_TIMEOUT…) KHÔNG phải bận.
+ */
+const MA_BAN = /^(SQLITE_BUSY|TRANSACTION_BUSY)(_|$)/;
+function laLoiBan(err) {
+  return MA_BAN.test(String((err && err.code) || ''));
+}
+
+// P26d — BEGIN gặp bận: chờ tăng dần rồi mở lại; hết lượt thì ném lỗi bận (route trả 409 KHO_BAN). Tổng 1,55 s.
+const CHO_BEGIN_MS = [50, 100, 200, 400, 800];
+const cho = (ms) => new Promise((xong) => setTimeout(xong, ms));
+
+// P26d — kho FILE: câu bị bận không được reset, kết nối dùng chung hỏng (lệnh ghi sau báo xong mà MẤT, COMMIT sau lỗi
+// "SQL statements in progress"). Thay client mới; giao dịch đang mở giữ kết nối riêng nên không ảnh hưởng. Turso (HTTP) không
+// đụng — đóng client sẽ huỷ các yêu cầu đang bay của người khác.
+function thayKetNoiNeuBan(err) {
+  if (!laLoiBan(err) || db.protocol !== 'file') return;
+  try { db.close(); } catch (e) { /* đã đóng */ }
+  db = createClient(cauHinhTurso().cauHinh);
+}
+
+/**
+ * Transaction helper - Bọc nhiều SQL trong 1 giao dịch atomic (BEGIN IMMEDIATE = khoá ghi độc quyền)
  * Nếu bất kỳ bước nào lỗi → rollback tất cả
+ * P26d — mở LƯỜI: giao dịch thật mở ở câu ĐẦU (Turso vốn gửi BEGIN gộp với câu đầu; kho file BEGIN lúc db.transaction()).
+ * MỘT khối thử lại bọc "mở + câu đầu": lỗi bận → đóng giao dịch hỏng, thay kết nối (kho file), chờ, mở lại, chạy lại câu đầu
+ * (câu đầu CHƯA chạy vì BEGIN hỏng). Lỗi khác → ném ngay. Từ câu thứ hai không thử lại. Chưa có câu nào thì commit / rollback
+ * không làm gì. Trả object literal, hàm dùng closure (bài thử trải `{ ...tx }`).
  * @returns {Object} - { query, queryOne, run, commit, rollback }
  */
 async function beginTransaction() {
-  const tx = await db.transaction("write");
+  let tx = null;
+  const chay = async (sql, params) => {
+    const cau = { sql, args: sanitizeArgs(params) };
+    if (tx) return tx.execute(cau);
+    for (let lan = 0; ; lan++) {
+      try {
+        tx = await db.transaction("write");
+        return await tx.execute(cau);
+      } catch (err) {
+        if (!laLoiBan(err)) throw err;
+        if (tx) { try { tx.close(); } catch (e) { /* đã đóng */ } tx = null; }
+        thayKetNoiNeuBan(err);
+        if (lan >= CHO_BEGIN_MS.length) throw err;
+        await cho(CHO_BEGIN_MS[lan]);
+      }
+    }
+  };
   return {
     async query(sql, params = []) {
-      const result = await tx.execute({ sql, args: sanitizeArgs(params) });
+      const result = await chay(sql, params);
       return result.rows.map(row => ({ ...row }));
     },
     async queryOne(sql, params = []) {
-      const result = await tx.execute({ sql, args: sanitizeArgs(params) });
+      const result = await chay(sql, params);
       return result.rows[0] ? { ...result.rows[0] } : null;
     },
     async run(sql, params = []) {
-      const result = await tx.execute({ sql, args: sanitizeArgs(params) });
+      const result = await chay(sql, params);
       return { lastInsertRowid: soDong(result.lastInsertRowid), changes: result.rowsAffected };
     },
-    async commit() { await tx.commit(); },
-    async rollback() { try { await tx.rollback(); } catch(e) {} }
+    async commit() { if (tx) await tx.commit(); },
+    async rollback() { try { if (tx) await tx.rollback(); } catch(e) {} }
   };
 }
 
@@ -1397,5 +1442,7 @@ module.exports = {
   queryOne,
   run,
   beginTransaction,
-  saveDatabase
+  saveDatabase,
+  laLoiBan,
+  CHO_BEGIN_MS
 };
