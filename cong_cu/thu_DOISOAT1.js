@@ -194,6 +194,12 @@ async function main() {
   const mgd = await muaGoi(sdtMoi(), goiA, { cash_amount: 300000 }, { items: [mon(0, 1, true)] });
   const diemMgd = await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [mgd.order?.id]);
   k('B0i mua gói rồi lấy ngay → 200', mgd.success, moTa(mgd));
+  // Hai luồng hợp lệ mà bản "rút gọn" (dữ liệu thật không có số quầy tự đếm) phải KHÔNG báo đỏ oan:
+  await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, created_at) VALUES ('DS_KQ', 'fixed', 1000, 5, 0, '2026-11-04T09:00:00')");
+  const tang = await goi('POST', `/discount-codes/${await so("SELECT id FROM pos_discount_codes WHERE code = 'DS_KQ'")}/increment-usage`, {});
+  k('B0j tăng lượt dùng mã tay (/increment-usage) → 200 (used_count 1, chưa đơn nào áp)', tang.status === 200, moTa(tang));
+  await db.run('UPDATE pos_customer_packages SET delivered_qty = delivered_qty + 2 WHERE id = ?', [cp?.id]);   // dữ liệu cũ: giao tay trước khi /deliver bị bỏ (P26c A4)
+  k('B0k gói có "đã giao" lớn hơn số đơn lấy từ gói (giao tay thời trước) tồn tại', (await so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [cp?.id])) === 3);
   for (const kieu of ['ngay', 'tuan', 'thang']) {
     const r = await ds('chu', kieu, '2026-11-04');
     k(`B0 ${kieu}: dữ liệu sạch → XANH`, r.status === 200 && r.ket_qua === 'XANH', tom(r));
@@ -250,6 +256,13 @@ async function main() {
     k('B3b tuần vắt tháng / năm: 01.10.2026 → 28.09–04.10; 01.01.2027 → 28.12–03.01', ky('tuan', '2026-10-01').tu === '2026-09-28' && ky('tuan', '2026-10-01').den === '2026-10-04'
       && ky('tuan', '2027-01-01').tu === '2026-12-28' && ky('tuan', '2027-01-01').den === '2027-01-03');
     k('B3c tháng 2: 2028 (nhuận) → 29, 2027 → 28', ky('thang', '2028-02-10').den === '2028-02-29' && ky('thang', '2027-02-10').den === '2027-02-28');
+    // Lọc kỳ áp cho cả DÒNG LỆCH (không chỉ tiền): lệch I6 của đơn ngày 04.11
+    await db.run('UPDATE pos_orders SET total = total + 5 WHERE id = ?', [f.tm]);
+    const thay = async (kieu, ngayX) => (await ds('chu', kieu, ngayX)).do.some((l) => l.bat_bien === 'I6');
+    k('B1b lệch của đơn 04.11: thấy ở ngày 04.11 · tuần 02–08.11 · tháng 11; KHÔNG thấy ở ngày 05.11 · tuần 09–15.11 · tháng 12',
+      await thay('ngay', '2026-11-04') && await thay('tuan', '2026-11-05') && await thay('thang', '2026-11-30')
+      && !await thay('ngay', '2026-11-05') && !await thay('tuan', '2026-11-10') && !await thay('thang', '2026-12-04'));
+    await db.run('UPDATE pos_orders SET total = total - 5 WHERE id = ?', [f.tm]);
     gio = DateGoc.UTC(2026, 9, 18, 18, 30, 0);   // 18:30 UTC thứ 7 = 01:30 giờ VN THỨ 2 19.10.2026
     const m = await ds('chu', 'tuan');
     k('B4 đồng hồ 18:30 UTC (= 01:30 T2 19.10 VN), không truyền ngày → hôm nay 19.10, tuần 19→25.10 (UTC sẽ ra 18.10 / 12→18)',
@@ -392,6 +405,9 @@ async function main() {
   const tm = e2.tien?.tien_mat || {};
   k('E0 tiền mặt vào két 06.01: bán 345.000 (20.000 + 25.000 huỷ + 300.000 gói huỷ) · thu nợ 50.000 (thu ngày 06, đơn tạo ngày 05) · nạp ví 30.000 · trả ra 25.000 (huỷ đơn thường; huỷ gói KHÔNG ra) → ròng 400.000',
     thu2.status === 200 && tm.ban === 345000 && tm.thu_no === 50000 && tm.nap_vi === 30000 && tm.tra_ra === 25000 && tm.rong === 400000, JSON.stringify(tm));
+  const d1Sau = await ds('chu', 'ngay', '2027-01-05');
+  k('E0c ngày 05.01 sau khi đơn nợ được thu ở ngày 06: tiền mặt vẫn 25.000 (thu nợ tính ở NGÀY THU, không quay về ngày tạo đơn)',
+    d1Sau.tien?.tien_mat?.rong === 25000 && d1Sau.tien?.tien_mat?.thu_no === 0, JSON.stringify(d1Sau.tien?.tien_mat));
   k('E0b sổ két 06.01 = để lại 05.01 (100.000) + 400.000 = 500.000; chưa đếm → vàng', e2.ket?.so_theo_so === 500000 && e2.ket?.trang_thai === 'chua_dem' && e2.ket_qua === 'XANH', JSON.stringify(e2.ket));
   const g2 = await ghiDS('chu', { loai: 'ket', ky: '2027-01-06', so_tien: 500000, de_lai: 150000 });
   const e3 = await ds('chu', 'ngay', '2027-01-06');
