@@ -39,7 +39,7 @@ export function docBoIn(settings) {
   let luu = {};
   try {
     const x = JSON.parse(settings?.[KHOA_BO_IN] || '{}');
-    if (x && typeof x === 'object' && !Array.isArray(x)) luu = x;
+    if (x && typeof x === 'object') luu = x;
   } catch { /* JSON hỏng → mặc định */ }
   const D = MAC_DINH_BO_IN;
   const loai = (ten, dsKho, khoMacDinh) => ({

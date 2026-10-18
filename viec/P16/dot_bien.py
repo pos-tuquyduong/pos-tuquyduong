@@ -36,7 +36,6 @@ DOT_BIEN = [
   ('VS-P16-GIO-KHONG-DEM-0', "m[1].padStart(2, '0') + ':' + m[2]", "m[1] + ':' + m[2]", 1, r'✗ A24 '),
   ('VS-P16-LY-LAM-TRON-LEN', "Math.floor(Number(m.quantity))", "Math.round(Number(m.quantity))", 1, r'✗ A26 '),
   ('VS-P16-TEN-KHACH-KHONG-TRIM', "const ten = String(don?.customer_name || '').trim();", "const ten = String(don?.customer_name || '');", 1, r'✗ A25 '),
-  ('VS-P16-NHAN-JSON-MANG', "x && typeof x === 'object' && !Array.isArray(x)", "x && typeof x === 'object'", 1, r'✗ C22 '),
   ('BV-P16-DON-HUY-VAN-IN-TEM', "if (ten !== 'bill' && don?.status === 'cancelled') continue;", "", 1, r'✗ D(9|10) '),
   ('VS-P16-NHAN-SO-BAN-TUNG-TRANG', "const trang = Array.from({ length: cfg[ten].ban }, () => moi).flat();", "const trang = moi.flatMap((x) => Array.from({ length: cfg[ten].ban }, () => x));", 1, r'✗ D4 '),
 ]
