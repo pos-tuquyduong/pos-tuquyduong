@@ -42,6 +42,7 @@ const k = (ten, dung, them = '') => {
   if (dung) { dat++; console.log(`  ✓ ${ten}`); } else { hong++; console.log(`  ✗ ${ten}${them ? '  — ' + them : ''}`); }
 };
 const muc = (t) => console.log('\n' + t);
+const doc = (duong) => { try { return fs.readFileSync(duong, 'utf8'); } catch { return ''; } };   // file chưa có = chuỗi rỗng → ca ✗, không sập
 const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
@@ -219,7 +220,7 @@ async function main() {
     try { await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2026-11-04' }, { IW: async (q) => { await q('UPDATE pos_settings SET value = value'); return []; } }); }
     catch { nem = typeof doiSoat.chayDoiSoat === 'function'; }   // thiếu hàm không được tính là "bị chặn" (K3)
     k('A2b bất biến giả có UPDATE → bị chặn (ném lỗi), nội dung bảng không đổi', nem && truoc === await bam());
-    const ma = fs.readFileSync(path.join(MAY_CHU, 'utils', 'doiSoat.js'), 'utf8');
+    const ma = doc(path.join(MAY_CHU, 'utils', 'doiSoat.js'));
     const ngoaiGhi = ma.replace(/\/\/ <ghi-moi>[\s\S]*?\/\/ <\/ghi-moi>/, '');
     k('A4 doiSoat.js: không reconcile; INSERT|UPDATE|DELETE chỉ trong khối ghiMoi', /<ghi-moi>/.test(ma) && !/reconcile/i.test(ma) && !/\b(INSERT|UPDATE|DELETE)\b/.test(ngoaiGhi));
     k('A5 (ghi chú) giả lập chay.js / thu_gia_lap.js đạt: chạy ở cổng --day-du nhóm S, số liệu trong bang_chung_do.txt', true);
@@ -447,8 +448,8 @@ async function main() {
     k('G2 quản lý (có view_reports) GET 200, POST 201', gQl.status === 200 && pQl.status === 201, `${moTa(gQl)} ; ${moTa(pQl)}`);
     k('G3 không token → 401 (GET và POST)', gKhong.status === 401 && (await ghiDS(null, { loai: 'sao_ke', ky: '2027-01-04', da_so: 1 })).status === 401, moTa(gKhong));
     k('G4 chủ GET → 200', gChu.status === 200, moTa(gChu));
-    const man = fs.readFileSync(path.join(GOC, 'client', 'src', 'components', 'DoiSoat.jsx'), 'utf8');
-    const trang = fs.readFileSync(path.join(GOC, 'client', 'src', 'pages', 'Reports.jsx'), 'utf8');
+    const man = doc(path.join(GOC, 'client', 'src', 'components', 'DoiSoat.jsx'));
+    const trang = doc(path.join(GOC, 'client', 'src', 'pages', 'Reports.jsx'));
     k("G5 màn: DoiSoat.jsx ẩn nút ghi theo hasPermission('view_reports') và Reports.jsx dựng <DoiSoat", /hasPermission\('view_reports'\)/.test(man) && /<DoiSoat\b/.test(trang));
     const bi = await ds('chu', 'xx', '2027-01-06');
     k('G6 kiểu kỳ sai → 400 DOI_SOAT_KIEU_SAI', bi.status === 400 && bi.code === 'DOI_SOAT_KIEU_SAI', moTa(bi));
