@@ -109,7 +109,26 @@ def doi_chung():
     shutil.rmtree(tmp, ignore_errors=True)
 
 
+def chay_goc(sha):
+  """Bằng chứng ĐỎ trên code chưa vá: chạy bài thử HIỆN TẠI với server/ + cong_cu/gia_lap/ của commit `sha` (git archive, bản chép thật)."""
+  import io, tarfile
+  tmp = tempfile.mkdtemp(prefix='dotbien_ds1_goc_')
+  try:
+    tar = subprocess.run(['git', 'archive', sha, 'server', 'cong_cu/gia_lap'], cwd=GOC, capture_output=True, check=True).stdout
+    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
+    os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+    r = subprocess.run(['node', os.path.join(GOC, 'cong_cu', 'thu_DOISOAT1.js'), '--may-chu', os.path.join(tmp, 'server')],
+                       cwd=GOC, capture_output=True, text=True, timeout=300)
+    ra = ((r.stdout or '') + (r.stderr or '')).strip()
+    print('\n'.join(l for l in ra.splitlines() if '✗' in l or 'đạt ·' in l or 'sập' in l))
+    print(f'GỐC {sha}: thoát {r.returncode}')
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == '__main__':
+  if '--goc' in sys.argv:
+    chay_goc(sys.argv[sys.argv.index('--goc') + 1]); sys.exit(0)
   chon = [a for a in sys.argv[1:] if not a.startswith('--')]
   if '--liet-ke' in sys.argv:
     for t, _, _ in DOT_BIEN: print(t)
