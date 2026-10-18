@@ -49,7 +49,7 @@ BAI = {  # tên bài → (lệnh theo bản sao, regex dòng tổng, giây tối
   'thu_TOCDO1': (lambda b: ['node', 'cong_cu/thu_TOCDO1.js', '--kiem', os.path.join(b, 'kiem_tra_truoc_khi_giao.js')], r'^thu_TOCDO1: \d+ đạt · \d+ hỏng', 120),
   'kiem_chu': (lambda b: ['node', '-e', KIEM_CHU, b], r'^kiem_chu: \d+ đạt · \d+ hỏng', 30),
 }
-DO_SAN = {'thu_TOCDO1': r'✗ D6 kho thật'}   # đỏ sẵn trên main, không do việc này (xem đầu file)
+DO_SAN = {}   # 17.10 thu_TOCDO1 đỏ sẵn ở D6 (tha dòng đó); 18.10 chủ quán nâng NGUONG_DONG_CUNG 4 → 5 (Q7b) → D6 xanh, hết bài đỏ sẵn
 KIEM = 'kiem_tra_truoc_khi_giao.js'
 TC = 'tu_chay/thu_cong.js'
 NG = 'tu_chay/nguoi_gac.js'
