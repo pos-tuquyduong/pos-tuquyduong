@@ -115,6 +115,7 @@ export function dungBoIn(don, settings, { nhomTheoMa = {}, loai, inLai = false }
   const viec = [];
   for (const ten of LOAI_IN) {
     if (loai ? !loai.includes(ten) : !cfg[ten].bat) continue;
+    if (ten !== 'bill' && don?.status === 'cancelled') continue;   // đơn huỷ: chỉ còn bill; tem / phiếu làm người pha pha thừa ly
     let moi;
     if (ten === 'bill') moi = [{ kieu: 'bill', inLai }];
     else if (ten === 'tem') moi = dungTem(don, nhomTheoMa, cfg, inLai);

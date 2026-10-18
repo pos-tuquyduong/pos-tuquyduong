@@ -14,6 +14,7 @@
  * - onClose: Function đóng modal
  * - onPrintComplete: Function callback sau khi in xong
  * - inLai: true → in lại từ màn Đơn hàng (bill + tem + phiếu đều mang dòng "IN LẠI")
+ * - nhomTheoMa: bảng mã món → nhóm nếu nơi gọi đã có (Sales); không có thì tự tải
  *
  * P16: ngoài bill còn tem cốc + phiếu pha chế; loại nào in, mấy bản: cài đặt `invoice_print_set`
  * (utils/inPhieu.js). Bấm In → lần lượt từng loại, mỗi loại một hộp in.
@@ -93,6 +94,7 @@ export default function InvoicePrint({
   paperSize: initialPaperSize,
   successInfo,
   inLai = false,
+  nhomTheoMa: nhomBietSan,
   onClose,
   onPrintComplete
 }) {
@@ -105,7 +107,7 @@ export default function InvoicePrint({
   const printRef = useRef(null);
   const vungRef = useRef({});
   const daTuMo = useRef(false);
-  const { nhomTheoMa, sanSang } = useNhomTheoMa();
+  const { nhomTheoMa, sanSang } = useNhomTheoMa(nhomBietSan);
   const tatCa = useMemo(
     () => dungBoIn(order, settings, { nhomTheoMa, loai: LOAI_IN, inLai }),
     [order, settings, nhomTheoMa, inLai],
@@ -234,22 +236,26 @@ export default function InvoicePrint({
       // Lấy số hóa đơn mới nếu chưa có
       const invNumber = await getNextInvoiceNumber();
       
-      // Log in hóa đơn vào database
-      const token = localStorage.getItem('pos_token');
-      await fetch('/api/pos/settings/invoice/log', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          order_id: order.id,
-          order_code: order.code,
-          invoice_number: invNumber,
-          paper_size: paperSize,
-          print_type: 'print'
-        })
-      });
+      // Log in hóa đơn vào database — lỗi log KHÔNG được chặn việc in (và các loại in sau bill)
+      try {
+        const token = localStorage.getItem('pos_token');
+        await fetch('/api/pos/settings/invoice/log', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            order_code: order.code,
+            invoice_number: invNumber,
+            paper_size: paperSize,
+            print_type: 'print'
+          })
+        });
+      } catch (err) {
+        console.warn('Không ghi được log in hóa đơn (vẫn in):', err);
+      }
 
       // Dựng tài liệu in (iframe ẩn: không dính chặn popup khi in nhiều loại liên tiếp)
       const banner = viecBill.inLai
@@ -335,25 +341,26 @@ export default function InvoicePrint({
     if (!printRef.current) return;   // modal đã đóng (tự mở in chạy trễ)
     setPrinting(true);
 
-    try {
-      for (const v of viec) {
+    // Mỗi loại một lần thử riêng: loại này hỏng thì các loại sau vẫn in; báo lỗi một lần ở cuối
+    const loi = [];
+    for (const v of viec) {
+      try {
         if (v.loai === 'bill') {
           await inBill(v);
         } else {
           const than = vungRef.current[v.loai]?.innerHTML;
           if (than) await inQuaIframe(taiLieuIn(`${NHAN_LOAI[v.loai]} ${order.code}`, than, v.kho));
         }
+      } catch (err) {
+        console.error('Print error:', v.loai, err);
+        loi.push(`${NHAN_LOAI[v.loai]}: ${err.message}`);
       }
+    }
+    if (loi.length) alert('Lỗi khi in (đơn đã lưu, không bị ảnh hưởng):\n' + loi.join('\n'));
+    setPrinting(false);
 
-      if (onPrintComplete) {
-        onPrintComplete(order.code, paperSize);
-      }
-
-    } catch (err) {
-      console.error('Print error:', err);
-      alert('Lỗi khi in: ' + err.message);
-    } finally {
-      setPrinting(false);
+    if (!loi.length && onPrintComplete) {
+      onPrintComplete(order.code, paperSize);
     }
   };
 
@@ -539,7 +546,7 @@ export default function InvoicePrint({
           </button>
           <button
             onClick={handlePrint}
-            disabled={printing}
+            disabled={printing || !viec.length}
             style={{
               flex: 2,
               padding: '0.875rem',

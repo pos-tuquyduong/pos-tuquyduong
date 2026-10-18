@@ -30,6 +30,14 @@ DOT_BIEN = [
    "return { kieu: 'pha_che', ma: String(don?.code || ''), gio: gioHHmm(don?.created_at), dong: [...gop.values()], inLai: false };", 1, r'✗ (B9|E2) '),
   ('BV-P16-CHON-LOAI', "if (loai ? !loai.includes(ten) : !cfg[ten].bat) continue;", "if (!cfg[ten].bat) continue;", 1, r'✗ E3 '),
   ('BV-P16-BO-JOB-RONG', "if (trang.length) viec.push(", "if (true) viec.push(", 1, r'✗ D7 '),
+  ('VS-P16-TU-MO-BO-QUA-GIA-TRI-LUU', "tu_mo: luu.tu_mo === undefined ? D.tu_mo : !!luu.tu_mo,", "tu_mo: D.tu_mo,", 1, r'✗ C19 '),
+  ('VS-P16-KHONG-PHA-GIU-RAC', "luu.khong_pha.filter((g) => typeof g === 'string')", "luu.khong_pha", 1, r'✗ C21 '),
+  ('VS-P16-TEN-MON-KHONG-CAT', "ten: cat(String(m.product_name || '')),", "ten: String(m.product_name || ''),", 1, r'✗ A23 '),
+  ('VS-P16-GIO-KHONG-DEM-0', "m[1].padStart(2, '0') + ':' + m[2]", "m[1] + ':' + m[2]", 1, r'✗ A24 '),
+  ('VS-P16-LY-LAM-TRON-LEN', "Math.floor(Number(m.quantity))", "Math.round(Number(m.quantity))", 1, r'✗ A26 '),
+  ('VS-P16-TEN-KHACH-KHONG-TRIM', "const ten = String(don?.customer_name || '').trim();", "const ten = String(don?.customer_name || '');", 1, r'✗ A25 '),
+  ('VS-P16-NHAN-JSON-MANG', "x && typeof x === 'object' && !Array.isArray(x)", "x && typeof x === 'object'", 1, r'✗ C22 '),
+  ('BV-P16-DON-HUY-VAN-IN-TEM', "if (ten !== 'bill' && don?.status === 'cancelled') continue;", "", 1, r'✗ D(9|10) '),
   ('VS-P16-NHAN-SO-BAN-TUNG-TRANG', "const trang = Array.from({ length: cfg[ten].ban }, () => moi).flat();", "const trang = moi.flatMap((x) => Array.from({ length: cfg[ten].ban }, () => x));", 1, r'✗ D4 '),
 ]
 

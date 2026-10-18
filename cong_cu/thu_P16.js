@@ -57,6 +57,10 @@ async function main() {
   ca('C16 số bản rác → mặc định 1', ban('x') === 1 && ban(null) === 1, [ban('x'), ban(null)]);
   ca('C17 số bản âm → 1', ban(-5) === 1);
   ca('C18 nhóm không pha rác → danh sách rỗng', bang(cauHinh({ khong_pha: 'juice' }).khong_pha, []));
+  ca('C19 tự mở in đã lưu BẬT thì đọc ra BẬT', cauHinh({ tu_mo: true }).tu_mo === true && cauHinh({ tu_mo: false }).tu_mo === false);
+  ca('C20 nhóm không pha đã lưu đọc lại đúng', bang(cauHinh({ khong_pha: ['tea', 'juice'] }).khong_pha, ['tea', 'juice']));
+  ca('C21 nhóm không pha lẫn phần tử rác → chỉ giữ chuỗi', bang(cauHinh({ khong_pha: ['tea', 5, null] }).khong_pha, ['tea']));
+  ca('C22 JSON là mảng → mặc định', bang(docBoIn({ [KHOA_BO_IN]: '[1,2]' }), macDinh));
 
   // ── A · tem cốc ──
   const t2 = dungTem(donMoi([monMoi({ quantity: 2, note: 'Ít đường' })]), NHOM, macDinh);
@@ -103,6 +107,12 @@ async function main() {
   const tDai = (s) => dungTem(donMoi([monMoi({ note: s })]), NHOM, macDinh)[0].ghiChu;
   ca('A20 ghi chú đúng 40 ký tự → giữ nguyên', tDai(dai40) === dai40);
   ca('A21 ghi chú 41 ký tự → cắt kèm …, không dài quá 40', tDai(dai41) === 'a'.repeat(39) + '…', tDai(dai41));
+  ca('A23 tên món đúng 40 giữ nguyên, 41 cắt kèm …',
+    dungTem(donMoi([monMoi({ product_name: 'b'.repeat(40) })]), NHOM, macDinh)[0].ten === 'b'.repeat(40)
+    && dungTem(donMoi([monMoi({ product_name: 'b'.repeat(41) })]), NHOM, macDinh)[0].ten === 'b'.repeat(39) + '…');
+  ca('A24 giờ 1 chữ số được đệm 0: "9:05" → "09:05"', dungTem(donMoi([monMoi()], { created_at: '2026-10-18 9:05:00' }), NHOM, macDinh)[0].gio === '09:05');
+  ca('A25 tên khách có khoảng trắng thừa được cắt', dungTem(donMoi([monMoi()], { customer_name: '  Lan  ' }), NHOM, macDinh)[0].khach === 'Lan · 5678');
+  ca('A26 số lượng lẻ 1.9 → 1 tem (làm tròn xuống)', dungTem(donMoi([monMoi({ quantity: 1.9 })]), NHOM, macDinh).length === 1);
   ca('A22 tem in lại mang cờ inLai', dungTem(donMoi([monMoi()]), NHOM, macDinh, true)[0].inLai === true && t2[0].inLai === false);
 
   // ── B · phiếu pha chế ──
@@ -140,6 +150,13 @@ async function main() {
     bang(dungBoIn(hon, {}, { nhomTheoMa: NHOM }).map((j) => j.loai), ['bill']));
   ca('D8 khổ: tem 40x30, phiếu 80mm, bill theo invoice_default_size',
     bang(dungBoIn(don, { invoice_default_size: '58mm' }, { nhomTheoMa: NHOM }).map((j) => j.kho), ['58mm', '40x30', '80mm']));
+
+  // đơn huỷ: chỉ còn bill (K5: mọi trạng thái đơn khác vẫn ra đủ bộ)
+  const huy = dungBoIn({ ...don, status: 'cancelled' }, {}, { nhomTheoMa: NHOM, inLai: true });
+  ca('D9 đơn huỷ → chỉ còn bill, không tem / phiếu', bang(huy.map((j) => j.loai), ['bill']), huy.map((j) => j.loai));
+  ca('D10 đơn huỷ: chọn tem cũng không ra', dungBoIn({ ...don, status: 'cancelled' }, {}, { nhomTheoMa: NHOM, loai: ['tem', 'pha_che'] }).length === 0);
+  ca('D11 trạng thái khác (completed / cho_thu / debt / không có) → đủ bộ',
+    ['completed', 'cho_thu', 'debt', undefined].every((s) => dungBoIn({ ...don, status: s }, {}, { nhomTheoMa: NHOM }).length === 3));
 
   // ── E · in lại ──
   const lanDau = dungBoIn(don, {}, { nhomTheoMa: NHOM });

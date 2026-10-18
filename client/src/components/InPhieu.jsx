@@ -10,20 +10,27 @@ import { productsApi } from '../utils/api';
 const KHO_GIAY = { '40x30': '40mm 30mm', '58mm': '58mm auto', '80mm': '80mm auto', a5: 'A5', a4: 'A4' };
 
 // ─── Nhóm món theo mã (đơn lưu không mang nhóm) ───────────────────────────
-let boNhom = null;   // nhớ cả phiên: danh sách sản phẩm không đổi giữa hai lần in
-/** Trả { nhomTheoMa, sanSang }. Tải hỏng → bảng rỗng (tem vẫn in, mặc định bật mọi nhóm). */
-export function useNhomTheoMa() {
-  const [kq, setKq] = useState(boNhom ? { nhomTheoMa: boNhom, sanSang: true } : { nhomTheoMa: {}, sanSang: false });
+const CHO_NHOM_TOI_DA_MS = 4000;   // SX chậm thì thôi chờ: tem in mọi món, không giữ bill đứng đợi
+/** Bảng mã → nhóm từ danh sách sản phẩm. */
+export const bangNhomTuDanhSach = (ds) => Object.fromEntries((ds || []).filter((p) => p.code && p.category).map((p) => [p.code, p.category]));
+
+/**
+ * Trả { nhomTheoMa, sanSang }. `bietSan` = bảng đã có (Sales đang giữ danh sách sản phẩm) → không gọi lại máy chủ.
+ * Tải hỏng / quá CHO_NHOM_TOI_DA_MS → bảng rỗng (tem vẫn in, mặc định bật mọi nhóm).
+ */
+export function useNhomTheoMa(bietSan) {
+  const [tai, setTai] = useState(null);
+  const [het, setHet] = useState(false);
   useEffect(() => {
-    if (boNhom) return undefined;
+    if (bietSan) return undefined;
     let huy = false;
+    const hen = setTimeout(() => setHet(true), CHO_NHOM_TOI_DA_MS);
     productsApi.list()
-      .then((ds) => { boNhom = Object.fromEntries((ds || []).filter((p) => p.code && p.category).map((p) => [p.code, p.category])); })
-      .catch((e) => console.warn('Không tải được nhóm món để lọc tem (in tem mọi món):', e))
-      .finally(() => { if (!huy) setKq({ nhomTheoMa: boNhom || {}, sanSang: true }); });
-    return () => { huy = true; };
-  }, []);
-  return kq;
+      .then((ds) => { if (!huy) setTai(bangNhomTuDanhSach(ds)); })
+      .catch((e) => { console.warn('Không tải được nhóm món để lọc tem (in tem mọi món):', e); if (!huy) setHet(true); });
+    return () => { huy = true; clearTimeout(hen); };
+  }, [bietSan]);
+  return { nhomTheoMa: bietSan || tai || {}, sanSang: !!(bietSan || tai || het) };
 }
 
 // ─── Trang tem / phiếu ───────────────────────────────────────────────────
@@ -32,9 +39,9 @@ const nhanInLai = <b style={{ border: '1px solid #000', padding: '0 1mm', margin
 
 function Tem({ t }) {
   return (
-    <div className="trang" style={{ ...chuKieu, width: '40mm', height: '30mm', padding: '1.5mm', fontSize: '8pt', lineHeight: 1.2, pageBreakAfter: 'always' }}>
+    <div className="trang" style={{ ...chuKieu, width: '40mm', height: '29.5mm', padding: '1.5mm', fontSize: '8pt', lineHeight: 1.2, pageBreakAfter: 'always' }}>
       <div style={{ fontSize: '10pt', fontWeight: 'bold' }}>{t.ten} <span style={{ fontWeight: 'normal', fontSize: '8pt' }}>{t.stt}</span></div>
-      {t.ghiChu && <div style={{ fontWeight: 'bold' }}>{t.ghiChu}</div>}
+      {t.ghiChu && <div style={{ fontWeight: 'bold', whiteSpace: 'pre-line' }}>{t.ghiChu}</div>}
       {t.khach && <div>{t.khach}</div>}
       <div>#{t.ma} · {t.gio}{t.inLai && nhanInLai}</div>
     </div>
@@ -48,7 +55,7 @@ function PhieuPhaChe({ p }) {
       <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '1.5mm', marginBottom: '1.5mm' }}>{p.ma} · {p.gio}</div>
       {p.dong.map((d, i) => (
         <div key={i} style={{ marginBottom: '1mm' }}>
-          <b>{d.sl} × {d.ten}</b>{d.ghiChu && <div style={{ paddingLeft: '4mm' }}>— {d.ghiChu}</div>}
+          <b>{d.sl} × {d.ten}</b>{d.ghiChu && <div style={{ paddingLeft: '4mm', whiteSpace: 'pre-line' }}>— {d.ghiChu}</div>}
         </div>
       ))}
     </div>
