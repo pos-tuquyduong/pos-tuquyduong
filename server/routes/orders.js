@@ -813,7 +813,8 @@ router.post("/", authenticate, async (req, res) => {
     // POS-MADON-v1: so thu tu trong ngay thay cho 3 so ngau nhien.
     // Ngau nhien chi co 1.000 kha nang/ngay -> ban 40 don la hon nua so ngay
     // co trung -> UNIQUE chan -> don bi tu choi giua luc khach dang cho.
-    const orderCode = await taoMaDonTheoSo(queryOne);
+    // P26d (10): mã sinh TRONG giao dịch ghi bên dưới (câu đầu tiên) — sinh ngoài thì hai đơn cùng lúc trùng mã → 500.
+    let orderCode;
     const now = getNow();
 
     // ─── LOY-1 Gói 2: chuẩn bị cộng điểm (mọi tính toán NGOÀI transaction) ───
@@ -857,6 +858,8 @@ router.post("/", authenticate, async (req, res) => {
     let orderId;
 
     try {
+      orderCode = await taoMaDonTheoSo(tx.queryOne);   // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409
+
       // 0. Trừ số dư khách / mẹ — P26b: qua ghiVi, đọc số dư + kiểm đủ + trừ TƯƠNG ĐỐI trong giao dịch này (trước đây kiểm
       //    lại riêng rồi `SET balance = ?`). Làm TRƯỚC khi ghi đơn: thiếu → rollback, 400 trước khi đụng mã đơn. Dòng sổ gắn
       //    order_id ngay sau khi có đơn (bước 1).
@@ -992,6 +995,59 @@ router.post("/", authenticate, async (req, res) => {
         );
       }
 
+      // P26d (chủ quán thêm 18.10): gói / thẻ hội viên khách vừa trả tiền ghi TRONG giao dịch đơn — trước đây ghi sau commit và
+      // nuốt lỗi → khách trả tiền mà không có gói / thẻ, quầy vẫn báo thành công. Lỗi ở đây → rollback cả đơn (409 / 500).
+      // Gói: tạo customer_package khi mua gói (hỗ trợ mua nhiều gói)
+      if (package_buy && package_buy.package_id && phone) {
+        for (let i = 0; i < pkgQty; i++) {
+          const cpResult = await tx.run(
+            `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 0, 'active', ?, ?)`,
+            [phone, package_buy.package_id, orderId, soLuotGoi, now, now]
+          );
+          const newCpId = Number(cpResult.lastInsertRowid);
+          console.log(`📦 Created customer package #${newCpId} (${i + 1}/${pkgQty}) for ${phone}: ${soLuotGoi} SP`);
+
+          // Giao lần 1 cùng đơn — chỉ áp dụng cho gói đầu tiên
+          if (i === 0) {
+            const firstDeliveryQty = orderItems.reduce((s, item) => s + (item.from_package ? item.quantity : 0), 0);
+            if (firstDeliveryQty > 0) {
+              await tx.run(
+                `UPDATE pos_customer_packages
+                 SET delivered_qty = ?,
+                     status = CASE WHEN ? >= total_qty THEN 'completed' ELSE 'active' END,
+                     updated_at = ?
+                 WHERE id = ?`,
+                [firstDeliveryQty, firstDeliveryQty, now, newCpId]
+              );
+              await tx.run('UPDATE pos_orders SET customer_package_id = ? WHERE id = ?', [newCpId, orderId]);
+              console.log(`📦 First delivery: ${firstDeliveryQty} SP for package #${newCpId}`);
+            }
+          }
+        }
+      }
+
+      // TIER-1c: mua thẻ hội viên → ghi vào sổ, TÍNH LẠI hạn dùng đúng cấu hình hiện tại
+      if (membershipTier && phone) {
+        const settingsRows = await tx.query(
+          "SELECT key, value FROM pos_settings WHERE key = 'tier_card_valid_months'",
+        );
+        let validMonths = parseInt(settingsRows[0]?.value, 10);
+        if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
+
+        const nowDate = new Date(now.replace(' ', 'T'));
+        const expiresDate = addMonthsSafe(nowDate, validMonths);
+        const expiresAt = expiresDate.toISOString().slice(0, 19).replace('T', ' ');
+
+        await tx.run(
+          `INSERT INTO pos_membership_purchases
+            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [phone, membershipTier.id, membershipTier.name, membershipTier.card_price, orderId, now, expiresAt, req.user.username],
+        );
+        console.log(`🎟️ Đã ghi mua thẻ ${membershipTier.name} cho ${phone}, hết hạn ${expiresAt}`);
+      }
+
       // 6. LOY-1 Gói 2: cộng điểm (đã tính sẵn NGOÀI tx). Bọc try/catch để lỗi ghi điểm
       //    KHÔNG kéo rollback đơn — tiền/đơn quan trọng hơn điểm thưởng.
       if (shouldEarnPoints) {
@@ -1015,7 +1071,7 @@ router.post("/", authenticate, async (req, res) => {
     } catch (txErr) {
       // BẤT KỲ lỗi nào → rollback tất cả, không mất tiền
       await tx.rollback();
-      console.error(`❌ Đơn ${orderCode} - Transaction rolled back:`, txErr.message);
+      console.error(`❌ Đơn ${orderCode || '(chưa có mã)'} - Transaction rolled back:`, txErr.message);
       throw txErr;
     }
 
@@ -1049,65 +1105,6 @@ router.post("/", authenticate, async (req, res) => {
         } catch (logErr) {
           console.error("Failed to log pending stock:", logErr.message);
         }
-      }
-    }
-
-    // Gói: tạo customer_package khi mua gói (hỗ trợ mua nhiều gói)
-    if (package_buy && package_buy.package_id && phone) {
-      try {
-        for (let i = 0; i < pkgQty; i++) {
-          const cpResult = await run(
-            `INSERT INTO pos_customer_packages (customer_phone, package_id, order_id, total_qty, delivered_qty, status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, 0, 'active', ?, ?)`,
-            [phone, package_buy.package_id, orderId, soLuotGoi, now, now]
-          );
-          const newCpId = Number(cpResult.lastInsertRowid);
-          console.log(`📦 Created customer package #${newCpId} (${i + 1}/${pkgQty}) for ${phone}: ${soLuotGoi} SP`);
-
-          // Giao lần 1 cùng đơn — chỉ áp dụng cho gói đầu tiên
-          if (i === 0) {
-            const firstDeliveryQty = orderItems.reduce((s, item) => s + (item.from_package ? item.quantity : 0), 0);
-            if (firstDeliveryQty > 0) {
-              await run(
-                `UPDATE pos_customer_packages 
-                 SET delivered_qty = ?,
-                     status = CASE WHEN ? >= total_qty THEN 'completed' ELSE 'active' END,
-                     updated_at = ?
-                 WHERE id = ?`,
-                [firstDeliveryQty, firstDeliveryQty, now, newCpId]
-              );
-              await run('UPDATE pos_orders SET customer_package_id = ? WHERE id = ?', [newCpId, orderId]);
-              console.log(`📦 First delivery: ${firstDeliveryQty} SP for package #${newCpId}`);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Package buy record error:', err.message);
-      }
-    }
-
-    // TIER-1c: mua thẻ hội viên → ghi vào sổ, TÍNH LẠI hạn dùng đúng cấu hình hiện tại
-    if (membershipTier && phone) {
-      try {
-        const settingsRows = await query(
-          "SELECT key, value FROM pos_settings WHERE key = 'tier_card_valid_months'",
-        );
-        let validMonths = parseInt(settingsRows[0]?.value, 10);
-        if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
-
-        const nowDate = new Date(now.replace(' ', 'T'));
-        const expiresDate = addMonthsSafe(nowDate, validMonths);
-        const expiresAt = expiresDate.toISOString().slice(0, 19).replace('T', ' ');
-
-        await run(
-          `INSERT INTO pos_membership_purchases
-            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [phone, membershipTier.id, membershipTier.name, membershipTier.card_price, orderId, now, expiresAt, req.user.username],
-        );
-        console.log(`🎟️ Đã ghi mua thẻ ${membershipTier.name} cho ${phone}, hết hạn ${expiresAt}`);
-      } catch (err) {
-        console.error('Membership purchase record error:', err.message);
       }
     }
 
@@ -1303,42 +1300,55 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     // trong sổ còn ĐÚNG bằng số vừa đọc, rồi kiểm số dòng bị đổi.
     // payment_method đã được kiểm chỉ là cash|transfer ở trên → tên cột an toàn.
     const cotTien = payment_method === "cash" ? "cash_amount" : "transfer_amount";
-    const kqThu = await run(
-      `UPDATE pos_orders SET ${cotTien} = COALESCE(${cotTien}, 0) + ?, debt_amount = ?, payment_status = ?
-        WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status = 'completed'`,
-      [paidAmount, remainingDebt, newPaymentStatus, id, order.debt_amount],
-    );
-    if (kqThu.changes !== 1) {
-      return res.status(409).json({
-        error: "Đơn vừa được thu bởi một thao tác khác — tải lại để xem",
-        code: "DA_THU_ROI",
-      });
-    }
-    await nhatKyDon.ghiNhatKy(Number(id), "thu",
-      `Thu ${nhatKyDon.tenCach(payment_method)} ${nhatKyDon.tien(paidAmount)}` +
-        (remainingDebt > 0 ? ` · còn nợ ${nhatKyDon.tien(remainingDebt)}` : ""),
-      req.user.username, { cach: payment_method, so_tien: paidAmount, con_no: remainingDebt });
-
-    // Log giao dịch thanh toán nợ
-    if (order.customer_phone) {
-      await run(
-        `
-        INSERT INTO pos_balance_transactions (
-          customer_phone, customer_name, type, amount,
-          balance_before, balance_after, order_id,
-          notes, created_by, created_at
-        ) VALUES (?, ?, 'debt_payment', ?, 0, 0, ?, ?, ?, ?)
-      `,
-        [
-          order.customer_phone,
-          order.customer_name,
-          paidAmount,
-          id,
-          `Thanh toán nợ đơn ${order.code} bằng ${payment_method === "cash" ? "tiền mặt" : "chuyển khoản"}`,
-          req.user.username,
-          now,
-        ],
+    // P26d (chủ quán thêm 18.10): thu + nhật ký + sổ debt_payment trong MỘT giao dịch — trước đây ba lệnh tự commit, lỗi ở lệnh
+    // 2 / 3 → 500 trong khi tiền đã thu (hoặc nuốt lỗi nhật ký). Nhật ký ghi bằng tx.run cùng cột với nhatKyDon.ghiNhatKy (hàm
+    // đó ghi ngoài giao dịch và nuốt lỗi).
+    const tx = await beginTransaction();
+    try {
+      const kqThu = await tx.run(
+        `UPDATE pos_orders SET ${cotTien} = COALESCE(${cotTien}, 0) + ?, debt_amount = ?, payment_status = ?
+          WHERE id = ? AND debt_amount = ? AND payment_status != 'paid' AND status = 'completed'`,
+        [paidAmount, remainingDebt, newPaymentStatus, id, order.debt_amount],
       );
+      if (kqThu.changes !== 1) {
+        await tx.rollback();
+        return res.status(409).json({
+          error: "Đơn vừa được thu bởi một thao tác khác — tải lại để xem",
+          code: "DA_THU_ROI",
+        });
+      }
+      await tx.run(
+        `INSERT INTO pos_order_log (order_id, loai, noi_dung, chi_tiet, nguoi, luc) VALUES (?, 'thu', ?, ?, ?, ?)`,
+        [Number(id), `Thu ${nhatKyDon.tenCach(payment_method)} ${nhatKyDon.tien(paidAmount)}` +
+          (remainingDebt > 0 ? ` · còn nợ ${nhatKyDon.tien(remainingDebt)}` : ""),
+        JSON.stringify({ cach: payment_method, so_tien: paidAmount, con_no: remainingDebt }), req.user.username, getNow()],
+      );
+
+      // Log giao dịch thanh toán nợ
+      if (order.customer_phone) {
+        await tx.run(
+          `
+          INSERT INTO pos_balance_transactions (
+            customer_phone, customer_name, type, amount,
+            balance_before, balance_after, order_id,
+            notes, created_by, created_at
+          ) VALUES (?, ?, 'debt_payment', ?, 0, 0, ?, ?, ?, ?)
+        `,
+          [
+            order.customer_phone,
+            order.customer_name,
+            paidAmount,
+            id,
+            `Thanh toán nợ đơn ${order.code} bằng ${payment_method === "cash" ? "tiền mặt" : "chuyển khoản"}`,
+            req.user.username,
+            now,
+          ],
+        );
+      }
+      await tx.commit();
+    } catch (txErr) {
+      await tx.rollback();
+      throw txErr;
     }
 
     res.json({
@@ -1355,7 +1365,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     });
   } catch (err) {
     console.error("Pay debt error:", err);
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);   // P26d: bận → 409 KHO_BAN (giao dịch đã rollback); khác → 500 không lộ câu nội bộ
   }
 });
 
@@ -1389,7 +1399,7 @@ router.put(
       // P26b: đọc đơn TRONG giao dịch; cổng DUY NHẤT là UPDATE có điều kiện `AND status = 'completed'` + kiểm số dòng đổi.
       // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, KHÔNG tới khối hoàn kho SX bên dưới.
       const tx = await beginTransaction();
-      let order;
+      let order, orderItems;
       try {
         order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
         if (!order) {
@@ -1489,6 +1499,16 @@ router.put(
           [req.user.username, now, order.id],
         );
 
+        // P26d (15): món để hoàn kho SX đọc TRONG giao dịch (như xoá đơn) — đọc sau commit mà ném thì loiGhi báo 409 "chưa ghi
+        // gì" trong khi đơn ĐÃ huỷ, kho SX không được hoàn. Sau commit chỉ còn các bước đã bọc try/catch.
+        orderItems = await tx.query(
+          `SELECT oi.*, p.sx_product_type, p.sx_product_id
+          FROM pos_order_items oi
+          LEFT JOIN pos_products p ON oi.product_id = p.id
+          WHERE oi.order_id = ?`,
+          [order.id],
+        );
+
         await tx.commit();
         console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);
       } catch (txErr) {
@@ -1499,13 +1519,6 @@ router.put(
       }
 
       // Hoàn kho SX (bên ngoài transaction)
-      const orderItems = await query(
-        `SELECT oi.*, p.sx_product_type, p.sx_product_id 
-        FROM pos_order_items oi
-        LEFT JOIN pos_products p ON oi.product_id = p.id
-        WHERE oi.order_id = ?`,
-        [order.id],
-      );
       for (const [sttMon, item] of orderItems.entries()) {
         if (item.sx_product_type && item.quantity > 0) {
           // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
