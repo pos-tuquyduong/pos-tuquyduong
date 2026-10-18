@@ -207,8 +207,8 @@ async function main() {
     const kh = await db.queryOne('SELECT id FROM pos_customers WHERE phone = ?', [s]);
     k('A3 mã đúng → 200, token ký bằng KH_JWT_SECRET, loai kh + id khách', r.status === 200 && !!tt && tt.loai === 'kh' && !!kh && tt.id === kh.id, moTa(r));
     k('A3 token hạn ĐÚNG 30 ngày', !!tt && tt.exp - tt.iat === 30 * 86400, tt ? String(tt.exp - tt.iat) : '');
-    let khongNv = false; try { jwt.verify(r.j.token, KHOA_NV); } catch { khongNv = true; }
-    k('A3 token khách KHÔNG giải được bằng khoá nhân viên', khongNv);
+    let khongNv = false; try { jwt.verify(r.j.token, KHOA_NV); } catch { khongNv = !!r.j.token; }
+    k('A3 có token và token đó KHÔNG giải được bằng khoá nhân viên', khongNv);
     const lai = await xacMinh(s, maGia(), 'K');
     k('A3 dùng lại mã đã dùng → 400 MA_HET_HAN', la(lai, 400, 'MA_HET_HAN'), moTa(lai));
 
@@ -473,7 +473,7 @@ async function main() {
     const KHOA = ['con_hang', 'gia', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc'];
     k('E5 mỗi món ĐÚNG bộ khoá danh sách trắng', la(r, 200) && data.length > 0 && data.every((x) => bang(Object.keys(x).sort(), KHOA)), data[0] ? Object.keys(data[0]).join(',') : moTa(r));
     const theo = (id) => { const p = giaMoi.find((x) => x.id === id); return data.find((x) => x.ma === `${p.sx_product_type}_${p.sx_product_id}`); };
-    k('E5 món giá 0 không có trong menu', !theo(ds[3].id));
+    k('E5 menu có món giá > 0, KHÔNG có món giá 0', !!theo(ds[0].id) && !theo(ds[3].id));
     k('E5 con_hang: tồn 3 → true · tồn 0 → false · chưa rõ → null',
       !!theo(ds[1].id) && theo(ds[1].id).con_hang === true && !!theo(ds[2].id) && theo(ds[2].id).con_hang === false && !!theo(ds[0].id) && theo(ds[0].id).con_hang === null,
       JSON.stringify([theo(ds[1].id), theo(ds[2].id), theo(ds[0].id)]));
