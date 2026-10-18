@@ -302,3 +302,32 @@ Thử ~250 dòng (thu_P26b ~170, thu_P26c ~80; thu_P20 / thu_GOI1 không sửa).
 | G1: thu_P20 không có `--may-chu` | G1 dời sang thu_P26c, thu_P20 không sửa |
 | K1: trích các chỗ `beginTransaction` khác | mục 1 rủi ro (1) |
 | Phát hiện gói / thẻ / nợ kho sau commit nuốt lỗi | P5, P6 |
+
+## 15. Chủ quán duyệt (18.10.2026) — phần này THẮNG mọi chỗ khác của file khi lệch
+
+- **Q1** đồng ý: `laLoiBan` khớp `SQLITE_BUSY`, `SQLITE_BUSY_*`, `TRANSACTION_BUSY`. CHƯA KIỂM: "chưa thử Turso thật".
+- **Q2** ví đang có giữ cách cộng cũ (không chặn âm); chỉ ví TẠO LẠI lúc hoàn có `total_spent = 0`. Ghi Phát hiện cho DOI-SOAT-1.
+- **Q3** chặn THÊM mọi trang tiền: `BANG_KHONG_KHOI_PHUC` = `pos_wallets`, `pos_orders`, `pos_balance_transactions` (Giao dịch số dư),
+  `pos_order_items` (Chi tiết đơn), `pos_refund_requests` (Yêu cầu hoàn tiền) — khôi phục chỉ cho phần không dính tiền. Ca F2 chạy
+  từng trang trong năm trang.
+- **Q4** đồng ý `500 DOI_SOAT_DO_DANG` kèm danh sách ví đã xong.
+- **Q5** đồng ý vá `query` (giữ ca D7).
+- **THÊM (cùng ý D "báo đúng sự thật", đều trong orders.js):**
+  - **I — mua gói / thẻ hội viên ghi TRONG giao dịch tạo đơn.** Hai khối sau commit (tạo `pos_customer_packages` + giao lần 1 +
+    gắn `customer_package_id`; ghi `pos_membership_purchases` + đọc `tier_card_valid_months`) dời vào giao dịch, trước khối cộng điểm,
+    bỏ `try/catch` nuốt lỗi → lỗi thì rollback cả đơn: bận → 409 `KHO_BAN`, khác → 500 `LOI_MAY_CHU`. Không báo thành công khi gói /
+    thẻ chưa ghi. Ca (thu_P26c, móc mới `co.nemGhi` — ném lỗi KHÔNG bận khi câu ghi khớp mẫu, bọc cả `db.run` lẫn `tx.run` để gốc
+    và bản vá cùng gặp lỗi): **I1** INSERT gói hỏng → không 200, không đơn mới, ví / điểm không đổi (gốc: 200, đơn không gói → ĐỎ);
+    **I2** INSERT thẻ hỏng → như I1; **I3** (K5) mua gói + lấy ngay → 200, gói `delivered_qty` đúng, đơn gắn `customer_package_id`
+    (bài thu_GOI1 cũ phủ thêm). Đột biến: `BV-I-goi-ngoai-tx` (`tx.run` → `run` cho INSERT gói — ghi khi giao dịch đang giữ khoá →
+    bận → mua gói hỏng, I3 đỏ), `VS-I-nuot-loi-goi` (bọc `try/catch` nuốt lỗi) → I1, `BV-I-the-ngoai-tx` → ca thẻ K5, `VS-I-nuot-loi-the` → I2.
+  - **P — pay-debt một giao dịch.** UPDATE thu có điều kiện + nhật ký `pos_order_log` + sổ `debt_payment` trong MỘT giao dịch
+    (`beginTransaction`); `changes !== 1` → rollback, 409 `DA_THU_ROI` như cũ; lỗi → rollback, `loiGhi` (bận 409 / khác 500 không lộ câu
+    nội bộ). Nhật ký ghi bằng `tx.run` cùng cột với `nhatKyDon.ghiNhatKy` (hàm đó ghi ngoài giao dịch và nuốt lỗi; `utils/nhatKyDon.js`
+    ngoài Phạm vi → Phát hiện). Ca (thu_P26c): **P1** INSERT sổ `debt_payment` hỏng → 500 `LOI_MAY_CHU`, thân không chứa chuỗi lạ,
+    nợ đơn KHÔNG đổi, không dòng nhật ký (gốc: nợ đã trừ → ĐỎ); **P2** INSERT nhật ký hỏng → như P1 (gốc: nuốt lỗi, 200 thiếu nhật ký);
+    **P3** kho bận ở câu đầu (`co.banCauDau`) → 409 `KHO_BAN`, nợ không đổi (gốc: không mở giao dịch → 200 → ĐỎ); **P4** (K5) thu nợ
+    thường → 200, nợ về 0, đúng 1 nhật ký, đúng 1 dòng `debt_payment`; DA_THU_ROI cũ (thu_P20 / giả lập) giữ. Đột biến:
+    `BV-P-so-ngoai-tx` (`tx.run` → `run` cho INSERT sổ) → P4, `VS-P-lo-message` (catch trả `err.message`) → P1, `BV-P-nhat-ky-nuot-loi`
+    (bọc `try/catch` nhật ký) → P2.
+- **Ngân sách** tăng tương ứng: code ~130–170 dòng đổi; thử ~400 dòng.
