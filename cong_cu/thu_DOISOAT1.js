@@ -82,7 +82,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['don-mo-rong', 'orders', 'refunds', 'wallets', 'packages', 'rewards', 'loyalty', 'reports']) {
+  for (const r of ['don-mo-rong', 'orders', 'refunds', 'wallets', 'packages', 'rewards', 'loyalty', 'discount-codes', 'reports']) {
     app.use('/api/pos/' + (r === 'don-mo-rong' ? 'orders' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -307,6 +307,9 @@ async function main() {
       const dong = (r[nhom] || []).find((l) => l.bat_bien === bb && mau.test(l.mo_ta));
       k(`C4 ${bb} ${mau.source.slice(0, 40)}: dòng ở nhóm ${nhom}, phạm vi ${pv}, ${coNgay ? 'có ngày' : 'không ngày'}`,
         !!dong && dong.pham_vi === pv && (coNgay ? !!dong.ngay : !dong.ngay), dong ? JSON.stringify(dong) : `không thấy; đỏ: ${(r.do || []).slice(0, 2).map((l) => l.mo_ta).join(' | ')}`);
+      const xa2 = await ds('chu', 'ngay', '2026-12-20');   // kỳ không liên quan tới ngày 04.11
+      const thayXa = (xa2[nhom] || []).some((l) => l.bat_bien === bb && mau.test(l.mo_ta));
+      k(`C4b ${bb} ${mau.source.slice(0, 30)}: ở ngày 20.12 ${pv === L ? 'VẪN hiện (toàn sổ, không lọc kỳ)' : 'KHÔNG hiện (lọc theo kỳ)'}`, pv === L ? thayXa : !thayXa);
       for (const s of hoan) await db.run(s);
     }
     k('C4z hoàn lại hết lệch cấy → XANH', await sach());
