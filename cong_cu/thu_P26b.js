@@ -628,18 +628,20 @@ async function main() {
     k('D2 kho bận suốt → 409 KHO_BAN sau khi chờ đủ lượt (1,4–2,5 s), ví không đổi', r2.status === 409 && r2.code === 'KHO_BAN'
       && ms >= 1400 && ms <= 2500 && await soDu2() === v2, `${moTa(r2)} · ${ms} ms`);
 
+    const ghiNhatKy = async (loai) => { try { await db.run('INSERT INTO pos_sync_logs (type, file_name) VALUES (?, ?)', [loai, 'x']); return null; } catch (e) { return e; } };
     const r3 = await napThu();
-    await db.run("INSERT INTO pos_sync_logs (type, file_name) VALUES ('p26d_d3', 'x')");
-    k('D3 sau một lần BEGIN bận: nạp → 200 và ví +1.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)', r3.status === 200
-      && await soDu2() === v2 + 1000 && await dem2('p26d_d3') === 1, `${moTa(r3)} · ví ${v2} → ${await soDu2()} · dòng run ${await dem2('p26d_d3')}`);
+    const e3 = await ghiNhatKy('p26d_d3');
+    k('D3 sau một lần BEGIN bận: nạp → 200 và ví +1.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)', r3.status === 200 && !e3
+      && await soDu2() === v2 + 1000 && await dem2('p26d_d3') === 1,
+    `${moTa(r3)} · ví ${v2} → ${await soDu2()} · run ${e3 ? e3.code : 'ok'}, dòng ${await dem2('p26d_d3')}`);
 
     giu = await c2.transaction('write');
-    let e7 = null;
-    try { await db.run("INSERT INTO pos_sync_logs (type, file_name) VALUES ('p26d_d7a', 'x')"); } catch (e) { e7 = e; }
+    const e7 = await ghiNhatKy('p26d_d7a');
     await giu.rollback();
-    await db.run("INSERT INTO pos_sync_logs (type, file_name) VALUES ('p26d_d7b', 'x')");
-    k('D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; run kế tiếp ghi THẬT (kết nối được thay)', e7?.code === 'SQLITE_BUSY'
-      && await dem2('p26d_d7a') === 0 && await dem2('p26d_d7b') === 1, `${e7?.code} · d7a ${await dem2('p26d_d7a')} · d7b ${await dem2('p26d_d7b')}`);
+    const e7b = await ghiNhatKy('p26d_d7b');
+    k('D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; run kế tiếp ghi THẬT (kết nối được thay)', e7?.code === 'SQLITE_BUSY' && !e7b
+      && await dem2('p26d_d7a') === 0 && await dem2('p26d_d7b') === 1,
+    `${e7?.code} / ${e7b ? e7b.code : 'ok'} · d7a ${await dem2('p26d_d7a')} · d7b ${await dem2('p26d_d7b')}`);
     c2.close();
   }
 
