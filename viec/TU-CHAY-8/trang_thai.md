@@ -318,4 +318,12 @@ HEAD ĐÃ KIỂM: d25d903
   "chú thích số dòng cứng" biến mất — nay đúng ngưỡng 5 → ✓).
 - Đột biến sau Q7b: không chạy lại cả bộ (51/51 ở `d25d903`; thay đổi chỉ là hằng ngưỡng + ngoại lệ dot_bien). Chạy lại đối chứng + 2 đột biến
   A4/A1 trên bản sao mới: đối chứng thu_TOCDO1 79/79, thu_gia_lap 149/149; BV-TUCHAY8-DONG-TONG, BV-TUCHAY8-KIEM-PHAN bị bắt (2/2).
+- **CỔNG CHẠY** trên HEAD `264faf6` (cây sạch) — `node tu_chay/cong.js chay . 41ad9ab^ HEAD viec/TU-CHAY-8` (thoát 1), nguyên từng dòng ✗:
+  ```
+  ✗ [A8] bản cài lệch kết quả cai_dat.js: .claude/skills/lam-viec/SKILL.md, .claude/tu_chay/PHIEN_BAN, .claude/tu_chay/THIET_KE.md, .claude/tu_chay/nguoi_gac.js, .claude/tu_chay/skill_lam_viec.md, .claude/tu_chay/thu_cong.js, .claude/tu_chay/thu_cong_cu.js, .claude/tu_chay/thu_nguoi_gac.js — chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc
+  ✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+  ```
+  Chỉ còn `[A8]` — chờ chủ quán chạy `bash tu_chay/cai_dat.sh` (việc sửa `tu_chay/`; phiếu A6 cho phép ghi rõ). `[A11]` của lần chạy 17.10
+  (D6 đỏ sẵn trên main) hết sau Q7b. Dòng "miễn A11 (bài thử cũ sửa): tu_chay/thu_cong.js" vẫn in; A16 / A17 / A18 / A19 và bản gốc
+  `thu_cong.js` chạy trên code PR (HOC-1 d) qua. A6: `npm test`, `--day-du` xanh, dot_bien, SỐ CA đủ; CỔNG CHẠY chỉ còn chờ cài.
 HEAD ĐÃ KIỂM: e41d536
