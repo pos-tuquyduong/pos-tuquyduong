@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const { query, queryOne, beginTransaction } = require('../database');
+const { query, queryOne, beginTransaction, laLoiBan } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 
@@ -60,15 +60,17 @@ router.get('/:phone', authenticate, async (req, res) => {
 async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cachTra = 'cash', ghiChu = null, nguoi, luc = getNow(),
   cot = null, soCot = 0, khongAm = false }) {
   const w = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
-  const truoc = Number(w?.balance || 0);
+  const truoc = Number(w?.balance || 0);   // P26d (17): NULL đọc như 0 ở đây, và ghi về 0 ngay dưới — MỘT chỗ
   const sau = truoc + soTien;
   if (khongAm && sau < 0) return { truoc, sau, thieu: true };
+  if (w && w.balance == null) await tx.run('UPDATE pos_wallets SET balance = 0 WHERE phone = ? AND balance IS NULL', [phone]);
   const nap = cot === 'total_topup' ? soCot : 0, tieu = cot === 'total_spent' ? soCot : 0;
-  const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, total_topup = total_topup + ?, total_spent = total_spent + ?,
-    updated_at = ? WHERE phone = ?`, [soTien, nap, tieu, luc, phone]);
+  const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, total_topup = COALESCE(total_topup, 0) + ?,
+    total_spent = COALESCE(total_spent, 0) + ?, updated_at = ? WHERE phone = ?`, [soTien, nap, tieu, luc, phone]);
   if (!u.changes) {
+    // P26d (18), chủ quán chốt Q2: ví TẠO LẠI lúc hoàn chưa ghi khoản chi nào → tổng chi 0, không âm. Ví đang có: cộng như cũ.
     await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      [phone, soTien, nap, tieu, luc, luc]);
+      [phone, soTien, nap, Math.max(0, tieu), luc, luc]);
   }
   const r = await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after,
       order_id, payment_method, notes, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -93,12 +95,17 @@ async function ghiHoan(tx, order, { me, tuVi, tienMat }, { nguoi, luc, ghiChu, g
   }
 }
 
-/** P26b (chủ quán chốt Q1 03.10.2026): kho bận → 409 KHO_BAN — giao dịch đã rollback, lệnh này chưa ghi gì. Lỗi khác → 500. */
+/**
+ * P26b (chủ quán chốt Q1 03.10.2026): kho bận → 409 KHO_BAN — giao dịch đã rollback, lệnh này chưa ghi gì. Lỗi khác → 500.
+ * P26d: nhận dạng bận bằng laLoiBan (database.js — cùng hàm với thử lại BEGIN). 500 không trả câu lỗi nội bộ (ghi log máy chủ);
+ * lời TRUNG TÍNH vì nhánh này cũng nhận lỗi xảy ra sau commit.
+ */
 function loiGhi(res, err) {
-  if (err && err.code === 'SQLITE_BUSY') {
+  if (laLoiBan(err)) {
     return res.status(409).json({ code: 'KHO_BAN', error: 'Đang có thao tác khác ghi sổ — bấm lại' });
   }
-  return res.status(500).json({ error: err.message });
+  console.error('Lỗi ghi:', err);
+  return res.status(500).json({ code: 'LOI_MAY_CHU', error: 'Lỗi máy chủ — xem lại đã ghi chưa trước khi bấm lại' });
 }
 
 /** Chạy `lam(tx)` trong một giao dịch ghi: lam trả về gì thì trả nấy; ném lỗi thì rollback rồi ném tiếp. */
@@ -305,10 +312,22 @@ router.post('/reconcile-all', authenticate, checkPermission('adjust_balance'), a
       LOAI_TINH_VAO_VI
     );
     const results = [];
+    let dungO = null;
     for (const p of phones) {
-      results.push(await reconcileWallet(p.phone));
+      try {
+        results.push(await reconcileWallet(p.phone));
+      } catch (err) {
+        if (!results.length) throw err;   // chưa ví nào xong → đúng là "chưa ghi gì" (409 / 500 như cũ)
+        console.error('Đối soát dừng ở ví', p.phone, err);
+        dungO = p.phone;
+        break;
+      }
     }
     const fixed = results.filter(r => r.balance_before !== r.balance_after).length;
+    if (dungO) {   // P26d (15), chủ quán chốt Q4: mỗi ví một giao dịch — ví trước đã ghi, báo đúng sự thật, không 409
+      return res.status(500).json({ success: false, code: 'DOI_SOAT_DO_DANG', checked: results.length, fixed, results, dung_o: dungO,
+        error: `Đã đối soát ${results.length}/${phones.length} ví, dừng ở ví ${dungO} — bấm lại để làm tiếp (đối soát chạy lại vô hại)` });
+    }
     res.json({ success: true, checked: results.length, fixed, results });
   } catch (err) {
     loiGhi(res, err);
