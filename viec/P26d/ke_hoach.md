@@ -66,21 +66,30 @@ function thayKetNoiNeuBan(err) {                               // kho FILE: câu
 }
 ```
 - `query` / `run`: trong `catch` gọi `thayKetNoiNeuBan(err)` trước khi ném (1 dòng mỗi hàm — `query` cùng khuôn K4, xem Q5).
-- `beginTransaction`: mở **lười** — giao dịch thật mở ở câu ĐẦU (cùng nhịp Turso vốn gửi BEGIN kèm câu đầu, 0.1). Câu đầu gặp lỗi
-  bận (kho file: lúc `db.transaction()`; Turso: ở câu đầu) → đóng giao dịch hỏng, `thayKetNoiNeuBan`, chờ `CHO_BEGIN_MS[i]`, mở lại,
-  chạy lại đúng câu đầu (câu đầu CHƯA chạy vì BEGIN hỏng). Hết lượt → ném nguyên lỗi bận → route `loiGhi` 409 `KHO_BAN`. Lỗi
-  KHÔNG bận → ném ngay, không thử lại. Từ câu thứ hai trở đi: chạy thẳng, không thử lại. `commit` / `rollback` khi chưa có câu
-  nào → không làm gì (như hrana `hrana.js:161-175, 196-205`).
+- `beginTransaction`: mở **lười** — giao dịch thật mở ở câu ĐẦU (cùng nhịp Turso vốn gửi BEGIN kèm câu đầu, 0.1). MỘT khối thử lại
+  bọc cả "mở + câu đầu" (`tx = await db.transaction('write'); return await tx.execute(câu đầu)`) — phủ cả hai đường: kho file ném
+  ở `db.transaction()`, Turso ném ở câu đầu. Lỗi bận → đóng giao dịch hỏng (nếu có), `thayKetNoiNeuBan`, chờ `CHO_BEGIN_MS[i]`, mở
+  lại, chạy lại đúng câu đầu (câu đầu CHƯA chạy vì BEGIN hỏng). Hết lượt → ném nguyên lỗi bận → route `loiGhi` 409 `KHO_BAN`. Lỗi
+  KHÔNG bận → ném ngay, không thử lại, giữ `tx` (nếu đã mở) để chỗ gọi rollback. Từ câu thứ hai trở đi: chạy thẳng, không thử lại.
+  `commit` / `rollback` khi chưa có câu nào → không làm gì (như hrana `hrana.js:161-175, 196-205`). Đối tượng trả về vẫn là
+  **object literal, mọi hàm dùng closure** (không `this`, không class / getter) — móc của bài thử trải `{ ...tx }`
+  (`thu_P26b.js:78-80`, `thu_P26c.js:78-82`). `CHO_BEGIN_MS` xuất ra cho bài thử kiểm tĩnh "tổng ≤ 2000 ms".
+- Chú thích mới trong `server/` và `cong_cu/thu_*.js` KHÔNG ghi số dòng cứng (E15) — ghi tên hàm / mẫu grep.
 - Không thêm vòng tròn RTT nào cho Turso (BEGIN vẫn gộp với câu đầu).
 
 **Phương án B** — mở giao dịch NGAY bằng câu mồi `SELECT 1` trong `beginTransaction`, thử lại quanh cặp đó: ~25 dòng (ít hơn ~10)
 nhưng **thêm một vòng mạng Render↔Turso cho MỌI lệnh ghi** (tạo đơn, nạp…) — đi ngược TOC-DO-1. Không chọn.
 
 `server/routes/wallets.js` `loiGhi` (~4 dòng): `laLoiBan(err)` (nạp từ database.js) → 409 `KHO_BAN` như cũ; còn lại
-`console.error` + `500 { error: 'Lỗi máy chủ — thao tác chưa xong, báo quản lý', code: 'LOI_MAY_CHU' }` — không trả `err.message`.
+`console.error` + `500 { error: 'Lỗi máy chủ — xem lại đã ghi chưa trước khi bấm lại', code: 'LOI_MAY_CHU' }` — không trả
+`err.message`. Câu TRUNG TÍNH (soát kế hoạch): nhánh 500 cũng nhận lỗi xảy ra SAU commit (vd dựng phản hồi `refunds.js` duyệt hoàn
+`kq.tong_hoan.toLocaleString()`), nên không được khẳng định "chưa xong".
 
-Rủi ro: (1) mở lười đổi thời điểm lấy khoá — mọi chỗ gọi đều chạy câu đầu ngay sau `beginTransaction()` (đã đọc orders.js `:856`,
-`:1391`, `:1562`, `trongGiaoDich`), không đổi nghĩa; (2) `db.close()` khi giao dịch khác đang mở — đo 0.2: giao dịch giữ kết nối
+Rủi ro: (1) mở lười đổi thời điểm lấy khoá — mọi chỗ gọi đều chạy câu `tx.*` đầu ngay sau `beginTransaction()`, không có
+`query`/`run` ngoài giao dịch xen giữa (đọc: orders.js tạo / huỷ / xoá, `trongGiaoDich`; soát kế hoạch đọc thêm loyalty.js:158-161,
+product-groups.js:59-61, signup-codes.js:249-258 / :390 / :490), không đổi nghĩa; không chỗ nào commit khi chưa chạy câu nào.
+Thay đổi hành vi duy nhất: `product-groups.js` gọi `beginTransaction()` NGOÀI `try` — trước đây BEGIN bận ở đó là lỗi không ai bắt,
+nay lỗi lộ ở câu đầu trong `try` → route trả 500 (tốt hơn); (2) `db.close()` khi giao dịch khác đang mở — đo 0.2: giao dịch giữ kết nối
 riêng, vẫn commit được; chỉ làm ở kho file (Turso HTTP đóng client sẽ huỷ yêu cầu đang bay — không đụng).
 
 ## 2. Phần C (10) — mã đơn sinh TRONG giao dịch ghi
@@ -123,8 +132,12 @@ chưa — CHƯA KIỂM, không đổi.
 ## 4. Phần E (17, 18) — ví không NULL, không tổng chi âm
 
 **Quy tắc** (Phát hiện 17, 18 P26b; I18 `cong_cu/gia_lap/bat_bien.js:295-308`: `total_spent` = mua − hoàn + điều chỉnh âm theo sổ):
-- NULL đọc như 0 ở MỘT chỗ — `ghiVi`: `balance = COALESCE(balance, 0) + ?`, `total_topup = COALESCE(total_topup, 0) + ?`,
-  `total_spent = COALESCE(total_spent, 0) + ?` (đọc trước đã là `Number(w?.balance || 0)`). Lệnh ghi đầu tiên chữa luôn dòng NULL.
+- NULL đọc như 0 ở MỘT chỗ — `ghiVi` (đọc trước đã là `Number(w?.balance || 0)`). **Giữ nguyên** `balance = balance + ?` và
+  `SELECT balance FROM pos_wallets` — E12 (`kiem_tra_truoc_khi_giao.js:517-519`) đòi đúng hai chuỗi đó, đổi sang
+  `COALESCE(balance, 0) + ?` là E12 đỏ (soát kế hoạch bắt). Thay vào: đọc thấy `w && w.balance == null` → thêm
+  `UPDATE pos_wallets SET balance = 0 WHERE phone = ? AND balance IS NULL` (cùng giao dịch, chỉ chạy với dòng NULL — không thêm
+  vòng mạng cho ví thường; không phải `SET balance = ?`). Hai cột tổng: `total_topup = COALESCE(total_topup, 0) + ?`,
+  `total_spent = COALESCE(total_spent, 0) + ?` (E12 không soi hai cột này). Lệnh ghi đầu tiên chữa luôn dòng NULL.
 - Ví TẠO MỚI lúc hoàn (ví đã mất): `total_spent = MAX(0, tieu)` = 0 — ví mới chưa ghi khoản chi nào; số dư = khoản hoàn như cũ.
   Ví ĐANG CÓ: vẫn cộng tương đối như cũ, KHÔNG kẹp (kẹp làm lệch I18 khi sổ đúng) → **Câu hỏi Q2** xác nhận.
 - ~3 dòng trong `wallets.js:66-71`. Không đổi số tiền nào vào / ra ví.
@@ -142,60 +155,72 @@ Hệ quả: file `export-all` đầy đủ sẽ luôn bị chặn → **Câu h�
 
 ## 6. Phần G — KB20 siết (sau C)
 
-Ca mới ở `thu_P20.js` (móc `mocTruocTx` sẵn có): mã dùng-một-lần; đơn 1 qua phép kiểm ngoài giao dịch, móc chạy TRỌN đơn 2 cùng mã
+Ca mới **G1 ở `thu_P26c.js`** (dùng chung móc `co.mocTruocTx` mới của ca C1; `thu_P26c.js` đã có `--may-chu` nên đột biến chạy
+được). Đổi so với bản đầu (soát kế hoạch): KHÔNG đặt ở `thu_P20.js` — bài đó nạp cứng `GOC/server` ở nhiều chỗ, thêm `--may-chu`
+tốn hơn; ca G11 sẵn có của `thu_P20.js` (móc đặt `used_count = 1` → 400) vẫn chạy làm hồi quy. `thu_P20.js` không sửa. Mã dùng-một-lần; đơn 1 qua phép kiểm ngoài giao dịch, móc chạy TRỌN đơn 2 cùng mã
 trước khi giao dịch đơn 1 mở → đúng một 200 + một **400 `DISCOUNT_CODE_LIMIT_REACHED`**, `used_count = 1`, một đơn mang mã, đơn thua
 không để dòng ví / điểm. Gốc: đơn 1 vấp UNIQUE mã đơn → 500 → ĐỎ. Đột biến `BV-G-bo-kiem-lai-ma` (bỏ khối kiểm lại `freshCode`
 trong giao dịch) phải bị bắt. `kich_ban.js` KB20 (gia_lap — mục Cấm) vẫn cho phép nhánh 500 → Phát hiện P3 (đề xuất chủ quán gỡ
-nhánh 500 ở việc sau). `thu_P20.js` thêm `--may-chu` (như `thu_P26b.js:30-31`) để chạy đột biến; ca cũ không đổi.
+nhánh 500 ở việc sau).
 
 ## 7. Bài thử (H) — ánh xạ 1-1 với Nghiệm thu; mỗi ca đỏ trên gốc đúng câu kết luận
 
-Dựng bận THẬT: bài mở client libsql thứ hai trên cùng file kho tạm, `BEGIN IMMEDIATE` giữ khoá, nhả bằng hẹn giờ.
+Dựng bận THẬT: bài mở client libsql thứ hai trên cùng file kho tạm, `BEGIN IMMEDIATE` giữ khoá, nhả bằng hẹn giờ. **Mọi ca bận thật
+(D1–D3, D7) chạy ở CUỐI `thu_P26b.js`** — trên gốc chúng làm hỏng kết nối dùng chung (0.2), chạy giữa bài thì các ca V / F sau sẽ đỏ
+vì kết nối hỏng chứ không vì lỗi đang thử (soát kế hoạch). Thứ tự trong bài: V → F → H2/H3 → D4–D6, D8, D9 → D1–D3, D7.
+`thu_P26b.js` nạp thêm route `backup.js` (hiện chỉ nạp orders / refunds / wallets / damages / packages).
 
 | Ca | Bài | Nghiệm thu | Làm | Mong | Gốc |
 |---|---|---|---|---|---|
+| D0 | thu_P26b | A | tĩnh: `CHO_BEGIN_MS` (xuất từ database.js) tổng ≤ 2000 ms, ≥ 1 lượt | đúng | ĐỎ (chưa có hằng) |
 | D1 | thu_P26b | A | giữ khoá 150 ms, nạp ví | 200, số dư +, 1 dòng sổ | 409 KHO_BAN |
-| D2 | thu_P26b | A | giữ khoá suốt, nạp ví | 409 KHO_BAN, kho không đổi, thời gian 1,4–2,5 s (đã chờ đủ lượt, ≤ ~2 s) | 409 ngay (< 0,3 s) → ĐỎ ở vế thời gian |
+| D2 | thu_P26b | A | giữ khoá suốt, nạp ví | 409 KHO_BAN, kho không đổi, thời gian 1,4–2,5 s (cận dưới tất định — hẹn giờ không chạy sớm; cận trên chỉ phòng máy chậm) | 409 ngay (< 0,3 s) → ĐỎ ở vế thời gian |
 | D3 | thu_P26b | A (kết nối) | ngay sau D2 (đã nhả): nạp ví rồi `db.run` một dòng | 200 + số dư đọc bằng client THỨ HAI đã đổi; dòng `run` có thật | 409 / mất ghi |
-| D4 | thu_P26b | A (lỗi khác) | thay tạm `getDb().transaction` ném `SQLITE_IOERR` (kèm chuỗi lạ) | 500 `LOI_MAY_CHU`, gọi mở đúng 1 lần, thân trả về KHÔNG chứa chuỗi lạ | 500 có `err.message` → ĐỎ |
-| D5 | thu_P26b | B | như D4 nhưng mã `TRANSACTION_BUSY` (Turso) lần đầu | thử lại → 200 | 500 |
-| D6 | thu_P26b | B | như D5, mã `SQLITE_BUSY_SNAPSHOT` | thử lại → 200 | 500 |
-| D7 | thu_P26b | A, D | `run` ngoài giao dịch gặp bận thật (khoá đang giữ) → nhả → `run` tiếp | lần 1 ném bận; lần 2 ghi có thật (đọc bằng client 2) | mất ghi |
-| C1 | thu_P26c | C (hai người) | móc mới (`co.mocTruocTx`, như thu_P20) chạy TRỌN đơn 2 trước khi giao dịch đơn 1 mở; hai đơn tiền mặt | cả hai 200, hai mã KHÁC nhau, cả hai dạng `ORD-<ngày>-NNN`, số liền nhau | đơn 1: 500 (UNIQUE) |
-| C2 | thu_P26c | C (K5) | ngày chưa có đơn → mã `-001`; có mã cũ `ORD-<ngày>-999` → `-1000` | đúng như mong | xanh trên gốc (ca K5 khoá hành vi khi bỏ vòng 30 lần — ghi rõ, không tính là ca đỏ) |
-| C3 | thu_P26c | C | `co.banCauDau` ở đơn tiền mặt (câu đầu = đọc mã) | 409 KHO_BAN, không đơn mới | xanh trên gốc? — gốc đọc mã NGOÀI tx; bắt đột biến `VS-C-nuot-loi-doc-ma` |
-| H1 | thu_P26c | D | huỷ đơn có món SX khi câu `query` lấy món SAU commit ném bận (móc mới `co.banDoc` bọc `db.query`) | 200, đơn `cancelled`, nợ kho `in` đủ món | 409 KHO_BAN trong khi đơn đã huỷ |
-| H2 | thu_P26b | D | `reconcile-all` 2 ví lệch, lần mở giao dịch THỨ 2 ném bận (`co.banLan`) | không 409; `code DOI_SOAT_DO_DANG`, `checked = 1`, ví 1 đã khớp trong kho | 409 KHO_BAN |
+| D4 | thu_P26b | A, B (lỗi khác) | thay tạm `getDb().transaction` ném lần lượt `SQLITE_IOERR`, `TRANSACTION_CLOSED`, `TRANSACTION_TIMEOUT`, `SQLITE_BUSYX` (chuỗi GIỮA — K3 tiền tố), kèm chuỗi lạ trong message | mỗi mã: 500 `LOI_MAY_CHU`, mở đúng 1 lần (không thử lại), thân trả về KHÔNG chứa chuỗi lạ | 500 có `err.message` → ĐỎ |
+| D5 | thu_P26b | B | vòng qua `TRANSACTION_BUSY`, `SQLITE_BUSY_SNAPSHOT`: `getDb().transaction` ném mã đó LẦN ĐẦU (lần thay kết nối gỡ vá) | thử lại → 200 | 500 |
+| D8 | thu_P26b | A (đường Turso) | `getDb().transaction` trả giao dịch THẬT nhưng `execute` đầu ném `SQLITE_BUSY` một lần (BEGIN lười hỏng ở câu đầu) | thử lại → 200; giao dịch hỏng đã đóng (không treo khoá — lệnh ghi kế tiếp 200) | 409 KHO_BAN |
+| D9 | thu_P26b | B (`loiGhi` dùng `laLoiBan`) | `co.ban` nhận mã: ném `TRANSACTION_BUSY` ở lớp bọc (NGOÀI vòng thử lại) | 409 KHO_BAN, kho không đổi | 500 |
+| D7 | thu_P26b | A (kết nối, Q5) | `run` ngoài giao dịch gặp bận thật (khoá đang giữ) → nhả → `run` tiếp | lần 1 ném bận; lần 2 ghi có thật (đọc bằng client 2) | mất ghi |
+| C1 | thu_P26c | C (hai người) | móc mới `co.mocTruocTx` (như thu_P20) chạy TRỌN đơn 2 trước khi giao dịch đơn 1 mở; hai đơn tiền mặt | cả hai 200, hai mã KHÁC nhau, cả hai dạng `ORD-<ngày>-NNN`, số liền nhau | đơn 1: 500 (UNIQUE) |
+| C2 | thu_P26c | C (K5) | ngày có mã cũ `ORD-<ngày>-999` → đơn mới `-1000` | đúng | **xanh trên gốc** — ca K5 khoá hành vi khi bỏ vòng 30 lần, KHÔNG tính là ca đỏ |
+| C3 | thu_P26c | C | `co.banCauDau` ở đơn tiền mặt (sau vá câu đầu = đọc mã) | 409 KHO_BAN, không đơn mới | **xanh trên gốc** (gốc: móc nổ ở INSERT → 409) — ca canh đột biến `VS-C-nuot-loi-doc-ma`, KHÔNG tính là ca đỏ |
+| G1 | thu_P26c | G (hai người) | mục 6 | đúng 200 + 400 `DISCOUNT_CODE_LIMIT_REACHED`, `used_count = 1`, một đơn mang mã | 500 |
+| H1 | thu_P26c | D | huỷ đơn có món SX; móc mới `co.banDoc` bọc `db.query`, CHỈ nổ khi SQL khớp `/FROM pos_order_items oi/` (không nổ ở `authenticate`), tự gỡ cuối ca | 200, đơn `cancelled`, nợ kho `in` đủ món | 409 KHO_BAN trong khi đơn đã huỷ |
+| H2 | thu_P26b | D | `reconcile-all` ≥ 2 ví lệch, lần mở giao dịch THỨ 2 ném bận (`co.banLan`) | không 409; `code DOI_SOAT_DO_DANG`, `checked = 1`; ví `results[0].phone` đã khớp trong kho, ví `dung_o` chưa (thứ tự `SELECT DISTINCT` không cố định — lấy SĐT từ phản hồi) | 409 KHO_BAN |
 | H3 | thu_P26b | D (K5) | `reconcile-all`, bận ngay ví ĐẦU | 409 KHO_BAN, kho không đổi (= K1 cũ, giữ) | xanh (K1 cũ) |
-| V1 | thu_P26b | E | ví `balance` NULL (chèn SQL = dữ liệu cũ) → nạp 10.000 | 200, `balance = 10000` | NULL → ĐỎ |
+| V1 | thu_P26b | E | ví `balance` NULL (chèn SQL = dữ liệu cũ) → nạp 10.000 | 200, `balance = 10000`, dòng sổ trước 0 / sau 10.000 | NULL → ĐỎ |
 | V2 | thu_P26b | E | ví `total_topup`/`total_spent` NULL → nạp, trừ tay | hai cột ra số đúng | NULL |
 | V3 | thu_P26b | E | đơn trả ví, xoá dòng ví (ví mất), huỷ đơn | ví tạo lại: `balance` = khoản hoàn, `total_spent = 0` | `total_spent` âm |
 | V4 | thu_P26b | E (K5) | ví có sẵn, huỷ đơn trả ví | `total_spent` giảm đúng khoản hoàn (như cũ) | xanh (K5) |
-| F1 | thu_P26b | F | khôi phục file có trang "Số dư" (có dòng) + trang "Cài đặt" | 400 `KHOI_PHUC_VI_DON_BI_CHAN`; `pos_wallets` VÀ `pos_settings` không đổi (chặn trước mọi ghi) | 200, ví bị ghi đè |
+| F1 | thu_P26b | F | file có trang "Cài đặt" ĐỨNG TRƯỚC trang "Số dư" (có dòng) — thứ tự cố ý, để bắt vá "chặn trong vòng sau khi đã xoá trang trước" | 400 `KHOI_PHUC_VI_DON_BI_CHAN`; `pos_settings` VÀ `pos_wallets` không đổi | 200, ví bị ghi đè |
 | F2 | thu_P26b | F | file có trang "Đơn hàng" | 400, `pos_orders` không đổi | 200 |
 | F3 | thu_P26b | F (K5) | file chỉ có trang "Kho quà" | 200 khôi phục như cũ | xanh (K5) |
-| G1 | thu_P20 | G (hai người) | mục 6 | đúng 200 + 400 `DISCOUNT_CODE_LIMIT_REACHED` | 500 |
 
-Ca cũ giữ nguyên, không bớt ca / `c.mong`. K1/K1b cũ (bận giả ném NGOÀI hàm thật) vẫn phải 409 — đo "hết lượt → 409".
+Ca cũ giữ nguyên, không bớt ca / `c.mong`. K1/K1b cũ (bận giả ném ở lớp bọc NGOÀI hàm thật) vẫn phải 409 — đo "hết lượt → 409",
+bỏ qua vòng thử lại thật nhưng không vô nghĩa. `thu_P20.js`, `thu_GOI1.js` không sửa — chạy lại làm hồi quy.
 `bang_chung_do.txt`: mỗi bài sửa một dòng `SỐ CA <bài>: <N>` + nguyên dòng ✗ trên gốc.
 
 ## 8. Đột biến `viec/P26d/dot_bien.py` (khuôn `viec/P26c/dot_bien.py`, chạy từng tên, có đối chứng)
 
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
-| thử lại BEGIN | `BV-A-bo-thu-lai` (vòng chờ chỉ 0 lượt) | D1, D5 |
+| thử lại BEGIN | `BV-A-bo-thu-lai` (vòng chờ 0 lượt) | D1, D5, D8 |
 | thử lại chỉ khi bận | `VS-A-thu-lai-moi-loi` (bỏ điều kiện `laLoiBan` ở vòng) | D4 (mở 1 lần) |
 | thay kết nối kho file | `BV-A-bo-thay-ket-noi` | D3, D7 |
-| `laLoiBan` | `VS-B-chi-khop-mot-ma` (`=== 'SQLITE_BUSY'`) | D5, D6 |
+| tổng chờ | `VS-A-cho-qua-lau` (thêm một lượt 2000 ms) | D0, D2 |
+| `laLoiBan` | `VS-B-chi-khop-mot-ma` (`=== 'SQLITE_BUSY'`) | D5, D9 |
+| `laLoiBan` nới | `VS-B-khop-rong` (`/BUSY\|^TRANSACTION_/`) | D4 (`SQLITE_BUSYX`, `TRANSACTION_CLOSED`, `TRANSACTION_TIMEOUT`) |
+| `loiGhi` dùng `laLoiBan` | `BV-B-loiGhi-ma-cu` (`err.code === 'SQLITE_BUSY'`) | D9 |
 | `loiGhi` 500 | `BV-B-lo-message` (trả `err.message`) | D4 |
-| mã đơn trong giao dịch | `BV-C-ma-don-ngoai-tx` (đọc bằng `queryOne` trước `beginTransaction`) | C1 |
+| mã đơn trong giao dịch | `BV-C-ma-don-ngoai-tx` (đọc bằng `queryOne` trước `beginTransaction`) | C1, G1 |
 | bỏ nuốt lỗi đọc mã | `VS-C-nuot-loi-doc-ma` (giữ `try/catch` trả `-001`) | C3 |
 | huỷ: món đọc trong giao dịch | `BV-D-huy-doc-mon-sau-commit` | H1 |
 | reconcile-all dở dang | `BV-D-doi-soat-409` (bỏ bắt lỗi trong vòng) | H2 |
-| COALESCE ví | `BV-E-bo-coalesce` | V1, V2 |
+| chuẩn hoá `balance` NULL | `BV-E-bo-chuan-hoa-null` (bỏ câu `SET balance = 0 … IS NULL`) | V1 |
+| COALESCE cột tổng | `BV-E-bo-coalesce-cot-tong` | V2 |
 | tổng chi ví mới | `VS-E-tong-chi-am` (INSERT `tieu` không kẹp) | V3 |
 | chặn khôi phục | `BV-F-khong-chan` | F1, F2 |
-| chặn TRƯỚC mọi ghi | `VS-F-chan-sau-khi-xoa` (kiểm từng trang trong vòng, sau trang trước đã xoá) | F1 (vế `pos_settings`) |
+| chặn TRƯỚC mọi ghi | `VS-F-chan-sau-khi-xoa` (kiểm từng trang trong vòng) | F1 (vế `pos_settings`) |
 | kiểm lại mã giảm trong giao dịch | `BV-G-bo-kiem-lai-ma` | G1 |
 
 ## 9. Đường song song (K4) đã rà
@@ -206,7 +231,10 @@ Ca cũ giữ nguyên, không bớt ca / `c.mong`. K1/K1b cũ (bận giả ném N
 - Mọi chỗ sinh mã đơn / INSERT `pos_orders`: chỉ `orders.js:816` / `:893`.
 - Mọi lệnh ghi `pos_wallets`: `ghiVi`, `reconcileWallet` (E12) + `backup.js` (tên bảng là biến) — mục 5.
 - Mọi chỗ trả `KHO_BAN`: bảng mục 3.
-- `query` / `run` cùng khuôn "câu bận làm hỏng kết nối" với BEGIN (đo 0.2) — vá cả hai (Q5).
+- `query` / `run` cùng khuôn "câu bận làm hỏng kết nối" với BEGIN (đo 0.2) — vá cả hai (Q5). Q5 không duyệt → bỏ vá `query` và
+  bỏ ca D7 (không thuộc nghiệm thu A, vốn chỉ nói "BEGIN hỏng").
+- `generateOrderCode` (`helpers.js:8`, còn được import ở orders.js) không còn chỗ gọi — không phải đường sinh mã song song; không sửa.
+- Catch đọc biến gán trong try: tạo đơn (`orderCode`, mục 2), huỷ / xoá (`order?.code` — đã chịu `undefined`).
 
 ## 10. Luồng hợp lệ phải KHÔNG bị chặn (K5)
 
@@ -222,7 +250,7 @@ Ca cũ giữ nguyên, không bớt ca / `c.mong`. K1/K1b cũ (bận giả ném N
 ## 11. Ngân sách
 
 Code ~70–90 dòng thêm, ~20 dòng bớt (database.js ~35, wallets.js ~15, orders.js ~7, helpers.js −20, backup.js ~8) — trong 120–200.
-Thử ~250 dòng (thu_P26b ~150, thu_P26c ~60, thu_P20 ~30). Không file mới ngoài `viec/P26d/`. Không chỉ mục, không bảng mới.
+Thử ~250 dòng (thu_P26b ~170, thu_P26c ~80; thu_P20 / thu_GOI1 không sửa). Không file mới ngoài `viec/P26d/`. Không chỉ mục, không bảng mới.
 
 ## 12. Câu hỏi cho chủ quán (trả lời khi duyệt)
 
@@ -248,3 +276,29 @@ Thử ~250 dòng (thu_P26b ~150, thu_P26c ~60, thu_P20 ~30). Không file mới n
   không còn đường tới; đề xuất việc sau gỡ cho chặt.
 - P4. Phát hiện 5 P26b nặng hơn đã ghi: kho file sau một lệnh bận thì lệnh ghi sau **báo thành công mà mất** (đo 0.2) — ảnh hưởng
   kho thử Replit và giả lập (không phải Turso). P26d vá ở mục 1.
+- P5. Tạo đơn: khối tạo gói (`pos_customer_packages`) và thẻ hội viên (`pos_membership_purchases`) chạy SAU commit bằng `run()`
+  thường, lỗi bị nuốt (`console.error`) → khách đã trả tiền mà gói / thẻ không được ghi, quầy vẫn nhận 200, không cờ "cần làm lại".
+  Không phải 409 sai (khuôn D) nên ngoài nghiệm thu; đề xuất việc sau (đưa vào giao dịch tạo đơn). — soát kế hoạch.
+- P6. Huỷ đơn: SX lỗi VÀ ghi `pos_stock_pending` cũng lỗi → chỉ `console.error`, quầy nhận 200 "Đã hủy", mất dấu nợ kho. — soát kế hoạch.
+
+## 14. Soát kế hoạch (agent chỉ đọc, 18.10) — CẦN SỬA, đã sửa trong bản này
+
+| Điểm soát | Xử lý |
+|---|---|
+| `COALESCE(balance, 0)` trong `ghiVi` làm E12 đỏ (`kiem_tra_truoc_khi_giao.js:517-519`) | mục 4: giữ `balance = balance + ?`, thêm câu chuẩn hoá NULL có điều kiện |
+| E15: chú thích số dòng cứng | mục 1: không ghi số dòng trong chú thích code mới |
+| Gộp hai nhánh thử lại (file / Turso) | mục 1: một khối bọc "mở + câu đầu"; ca D8 cho đường Turso |
+| `loiGhi` dùng `laLoiBan` chưa có ca | ca D9 + đột biến `BV-B-loiGhi-ma-cu` |
+| Thiếu ca / đột biến "nới phép" | D4 thêm `TRANSACTION_CLOSED`, `TRANSACTION_TIMEOUT`, `SQLITE_BUSYX`; đột biến `VS-B-khop-rong` |
+| Móc trải `{ ...tx }` | mục 1: object literal + closure |
+| H1 móc `db.query` nổ ở `authenticate` | H1 khớp theo SQL, tự gỡ |
+| F1 xanh oan nếu "Số dư" đứng trước "Cài đặt" | F1 cố ý đặt "Cài đặt" trước |
+| thu_P26b chưa nạp route backup | mục 7 ghi rõ |
+| Ca bận thật trên gốc làm hỏng kết nối → ca sau đỏ sai câu | mục 7: ca bận thật chạy CUỐI bài |
+| D2 thời gian | thêm D0 tĩnh "tổng ≤ 2000 ms" |
+| C3 ghi "xanh trên gốc?" | ghi rõ: ca canh đột biến, không tính đỏ |
+| H2 thứ tự `SELECT DISTINCT` | lấy SĐT từ `results[0]` / `dung_o` |
+| Câu 500 "chưa xong" sai khi lỗi sau commit | câu trung tính |
+| G1: thu_P20 không có `--may-chu` | G1 dời sang thu_P26c, thu_P20 không sửa |
+| K1: trích các chỗ `beginTransaction` khác | mục 1 rủi ro (1) |
+| Phát hiện gói / thẻ / nợ kho sau commit nuốt lỗi | P5, P6 |
