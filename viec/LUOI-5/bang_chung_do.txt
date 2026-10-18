@@ -1,0 +1,275 @@
+# LUOI-5 — bằng chứng. Phiếu: 0 dòng code quầy; đỏ chứng minh bằng đột biến AU4-21 (## Bài thử đỏ, ## Bài thử cũ sửa). Nền HEAD 48ba548 + viec/LUOI-5/dot_bien.py.
+
+## 1. TRƯỚC — bài CHƯA có ca LUOI-5 (cong_cu/thu_P26c.js 121 ca, thu_GOI1.js 110 ca): 9 SỐNG (8 mục tiêu + Q1) · 1 HỎNG-sập, 8 đã BẮT; đối chứng xanh
+$ python3 viec/LUOI-5/dot_bien.py --truoc -j 4
+# CHẠY LẠI ĐƯỢC CHỈ ở commit bbc6276 (bài chưa có ca): `--truoc` đòi P26c 121 / GOI1 110 ca (dot_bien.py `SO_CA`); trên HEAD bài có 128 / 111 ca nên
+# đối chứng lệch số ca → thoát 4 (đúng thiết kế K3, không phải lỗi). Muốn dựng lại: lấy bài cũ bằng `git show bbc6276:cong_cu/thu_P26c.js` và `git show bbc6276:cong_cu/thu_GOI1.js` (hai bài chưa có ca LUOI-5).
+# thoát 0 (18/18 đúng nhãn N0)
+LUOI-5 dot_bien: 18 đột biến · -j 4 · lưới 8 bài
+  ✓ đối chứng cong_cu/gia_lap/chay.js: Giả lập: 32 kịch bản · 18 bất biến · ĐẠT
+  ✓ đối chứng cong_cu/thu_P26a.js: 16 đạt · 0 hỏng (mong 16 đạt)
+  ✓ đối chứng cong_cu/thu_P26b.js: 66 đạt · 0 hỏng (mong 66 đạt)
+  ✓ đối chứng cong_cu/thu_P26c.js: 121 đạt · 0 hỏng (mong 121 đạt)
+  ✓ đối chứng cong_cu/thu_GOI1.js: 110 đạt · 0 hỏng (mong 110 đạt)
+  ✓ đối chứng cong_cu/thu_P20.js: 169 đạt · 0 hỏng (mong 169 đạt)
+  ✓ đối chứng cong_cu/thu_P21.js: 14 đạt · 0 hỏng (mong 14 đạt)
+  ✓ đối chứng cong_cu/thu_gia_lap.js: 148 đạt · 0 hỏng (mong 148 đạt)
+  SỐNG     C2F-damages-03-update-quan-tri
+           mọi bài thoát 0
+  HỎNG-sập C2F-packages-01-insert-quan-tri
+           [cong_cu/thu_GOI1.js] SẬP: ✖ Bài thử sập: Cannot read properties of null (reading 'id')
+           [cong_cu/thu_GOI1.js] thoát 2 ·  (1 s)
+           [cong_cu/thu_GOI1.js]   ✗ A1a thêm gói 5+5+5+5+5+6, gửi tổng 30 → 200, lưu 31  — HTTP 200
+  SỐNG     C2F-packages-03-update-quan-tri
+           mọi bài thoát 0
+  BẮT      C2F-packages-04-delete-quan-tri
+           [cong_cu/thu_GOI1.js] thoát 1 · 109 đạt · 1 hỏng (4 s)
+           [cong_cu/thu_GOI1.js]   ✗ A6h xoá gói chưa ai mua → 200, mất dòng  — HTTP 200
+  BẮT      C2F-packages-06-update-quay
+           [cong_cu/thu_GOI1.js] thoát 1 · 89 đạt · 21 hỏng (3 s)
+           [cong_cu/thu_GOI1.js]   ✗ A5c chủ quán dừng "khách thôi" → 200, cancelled, notes có lý do + người + thời điểm; đơn / sổ ví / ví / đã giao không đổi  — HTTP 200 · {"status":"active","notes":null,"updated_at":"2026-10-17T16:25:22","delivered_qty":2}
+           [cong_cu/thu_GOI1.js]   ✗ A5d dừng lại gói đã dừng → 400, notes giữ lý do đầu  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5d2 (K5 — gốc cũng chặn) dừng gói đã hoàn thành → 400, vẫn completed  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5e hai chủ quán cùng dừng một gói → đúng một 200  — HTTP 200 / HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5f (K5 — có sẵn) lấy hàng từ gói đã dừng → 400 GOI_HET_HIEU_LUC  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5g (K5) quản lý được chủ quán cấp refund_package → 200  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ B1b gói đã kết thúc KHÔNG cộng "còn lại": 50 → 20, so_dang_dung 1, so_goi vẫn 3  — HTTP 200 · {"con":50,"dd":2}
+           [cong_cu/thu_GOI1.js]   ✗ B1d mặc định = Đang dùng: có X, Y, Z (gói active), KHÔNG có Q (chỉ gói đã kết thúc)  — {"q":true}
+           [cong_cu/thu_GOI1.js]   ✗ B1d3 loc=xong: khách có gói xong / kết thúc (X, Q) — không khách chỉ đang dùng (Y)  — {"x":true,"q":false,"y":false}
+           [cong_cu/thu_GOI1.js]   ✗ B2b kết thúc gói active mà đã đủ 5/5 (chưa nắn) → 400, không thành cancelled  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ B3a2 kết thúc có hoàn → 200; ví +900.000 (dòng hoan_goi, total_spent không đổi); gói cancelled; notes: lý do + người + thời điểm + 900000  — HTTP 200 · ví 900000 · {"status":"active","notes":null,"delivered_qty":10}
+           [cong_cu/thu_GOI1.js]   ✗ B3n (Q-B) đơn mua gói còn NỢ: hoan-du-kien 400 DON_CON_NO; kết thúc có hoàn → 400 DON_CON_NO, gói active; kết thúc KHÔNG hoàn → 200  — HTTP 400 · DON_CON_NO · Đơn mua gói còn nợ — thu nợ trước, hoặc chọn Không hoàn / HTTP 400 · 
+           [cong_cu/thu_GOI1.js]   ✗ B4a kết thúc có hoàn (900.000) rồi HUỶ đơn mua → 400 GOI_DA_KET_THUC đúng câu; đơn vẫn completed; ví không đổi  — HTTP 200 · HTTP 200 · ví 1800000
+           [cong_cu/thu_GOI1.js]   ✗ B4b … rồi XOÁ đơn mua → 400 GOI_DA_KET_THUC, đơn còn, ví không đổi  — HTTP 200 · ví 1800000
+           [cong_cu/thu_GOI1.js]   ✗ B4c kết thúc KHÔNG hoàn rồi huỷ / xoá đơn mua → 400 GOI_DA_KET_THUC cả hai, ví không đổi  — HTTP 200 / HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ B4d CÙNG LÚC kết thúc có hoàn ‖ huỷ đơn mua → đúng một 200, khách nhận đúng MỘT khoản 900.000  — HTTP 200 / HTTP 200 · ví 1800000
+           [cong_cu/thu_GOI1.js]   ✗ B5a hoan: false → 200, cancelled, notes "không hoàn" + lý do; sổ ví / ví không đổi  — HTTP 200 · null
+           [cong_cu/thu_GOI1.js]   ✗ B7g (Q-C) huỷ đơn LẤY 10 túi từ gói ĐÃ KẾT THÚC → 200 (được huỷ) nhưng gói vẫn cancelled 10/30 — không trả túi; ví không đổi  — HTTP 200 · HTTP 200 · {"status":"active","notes":null,"delivered_qty":0} · ví 900000
+           [cong_cu/thu_GOI1.js]   ✗ B7g2 (Q-C) xoá đơn lấy từ gói đã kết thúc → 200, gói vẫn cancelled 10/30  — HTTP 200 · {"status":"active","notes":null,"delivered_qty":0}
+           [cong_cu/thu_GOI1.js]   ✗ B7j I11 + I19 sạch sau mọi ca GOI-2  — đơn ORD-20261017-091: khách nhận lại 1.800.000đ > đã trả 1.350.000đ
+           [cong_cu/thu_GOI1.js]   ✗ B3r gói 300.000 + 2 CT3, mã giảm 320.000 → tổng 30.000; đền cũ 50.000 (lệch I19) → hoan-du-kien 0, kết thúc có hoàn → 200 hoan 0, ghi chú "hoàn 0đ", sổ + ví không đổi  — HTTP 200 · tổng 30000 · lệch I19 true · {"tong":0,"me":0,"
+  BẮT      C2F-discount-codes-02-update-quan-tri
+           [cong_cu/thu_P20.js] thoát 1 · 167 đạt · 2 hỏng (2 s)
+           [cong_cu/thu_P20.js]   ✗ G13 voucher mã bill: PUT giữ mã, tắt rồi bật lại + đổi giá trị → 200, 200  — HTTP 200 / HTTP 200 · {"is_active":1,"discount_value":10}
+           [cong_cu/thu_P20.js]   ✗ G14 mã tay đổi tên → 200, mã mới  — HTTP 200 · P20BDOITEN
+  BẮT      C2F-discount-codes-03-update-quan-tri
+           [cong_cu/thu_P26a.js] thoát 1 · 13 đạt · 3 hỏng (3 s)
+           [cong_cu/thu_P26a.js]   ✗ M1 xoá mã vừa được dùng → 200, mã CÒN, is_active = 0  — HTTP 200 · is_active 1 · used 1
+           [cong_cu/thu_P26a.js]   ✗ M4 xoá mã đã dùng → 200, mã còn, is_active = 0  — HTTP 200 · {"is_active":1,"used_count":1}
+           [cong_cu/thu_P26a.js]   ✗ M5 xoá id không có → 404  — HTTP 200
+  BẮT      C2F-discount-codes-04-delete-quan-tri
+           [cong_cu/thu_P26a.js] thoát 1 · 10 đạt · 6 hỏng (3 s)
+           [cong_cu/thu_P26a.js]   ✗ M1 móc chạy: đơn dùng mã chen giữa phép kiểm và câu xoá
+           [cong_cu/thu_P26a.js]   ✗ M1 xoá mã vừa được dùng → 200, mã CÒN, is_active = 0  — HTTP 200 · is_active 1 · used 0
+           [cong_cu/thu_P26a.js]   ✗ M2 xoá mã chưa dùng → 200, dòng mất (K5)  — HTTP 200
+           [cong_cu/thu_P26a.js]   ✗ M3 xoá mã used_count NULL → 200, dòng mất (như gốc)  — HTTP 200
+           [cong_cu/thu_P26a.js]   ✗ M4 xoá mã đã dùng → 200, mã còn, is_active = 0  — HTTP 200 · {"is_active":1,"used_count":1}
+           [cong_cu/thu_P26a.js]   ✗ M5 xoá id không có → 404  — HTTP 200
+  BẮT      C2F-signup-codes-05-update-quan-tri
+           [cong_cu/thu_P20.js] thoát 1 · 153 đạt · 16 hỏng (2 s)
+           [cong_cu/thu_P20.js]   ✗ H3b voucher bị xoá, dòng mã hết claimed  — voucher 0 · claimed_at 2026-10-17T16:27:02
+           [cong_cu/thu_P20.js]   ✗ H3b claim lại cùng mã, cùng SĐT → 200  — HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3c dòng mã hết claimed  — 2026-10-17T16:27:02
+           [cong_cu/thu_P20.js]   ✗ H3d móc chạy: hoàn tác A → 200, claim lại → 200  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+           [cong_cu/thu_P20.js]   ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000051  — voucher 0 · claimed_phone 0910000052
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at 2026-10-16T10:00:01
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at 2026-10-16T09:59:59
+           [cong_cu/thu_P20.js]   ✗ H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200 (cùng giây)  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3j voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at 2026-10-16T10:00:00
+           [cong_cu/thu_P20.js]   ✗ H3k không voucher lúc kiểm → hoàn tác 200, mã hết claimed  — HTTP 200 · claimed_at 2026-10-17T16:27:02
+           [cong_cu/thu_P20.js]   ✗ H3e hoàn tác B chồng lên → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+  BẮT      C2F-signup-codes-06-delete-quan-tri
+           [cong_cu/thu_P20.js] thoát 1 · 156 đạt · 13 hỏng (2 s)
+           [cong_cu/thu_P20.js]   ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+           [cong_cu/thu_P20.js]   ✗ H3 dòng mã vẫn claimed  — null
+           [cong_cu/thu_P20.js]   ✗ H3b voucher bị xoá, dòng mã hết claimed  — voucher 1 · claimed_at null
+           [cong_cu/thu_P20.js]   ✗ H3b claim lại cùng mã, cùng SĐT → 200  — HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3d móc chạy: hoàn tác A → 200, claim lại → 200  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000051  — voucher 1 · claimed_phone null
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3i voucher bị xoá tay giữa phép kiểm và giao dịch → 400 (giới hạn đã biết, b1)  — HTTP 200
+           [cong_cu/thu_P20.js]   ✗ H3i dòng mã vẫn claimed (không gỡ nửa chừng)  — null
+           [cong_cu/thu_P20.js]   ✗ H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200 (cùng giây)  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3j hoàn tác B (cùng giây, cùng SĐT) → 400  — HTTP 409 · Mã này vừa được hoàn tác hoặc claim lại — tải lại danh sách rồi thử lại.
+           [cong_cu/thu_P20.js]   ✗ H3f voucher bị xoá  — có 1
+  SỐNG     C2F-rewards-02-update-quan-tri
+           mọi bài thoát 0
+  SỐNG     C2F-rewards-03-update-quan-tri
+           mọi bài thoát 0
+  SỐNG     C2F-customers-v2-04-update-quan-tri
+           mọi bài thoát 0
+  SỐNG     C2F-customers-v2-05-insert-quan-tri
+           mọi bài thoát 0
+  SỐNG     A3L-redeem-bo-han-diem
+           mọi bài thoát 0
+  SỐNG     A3L-nhandiem-he-so-mac-dinh
+           mọi bài thoát 0
+  SỐNG     A3L-goi-bo-kiem-con-lai
+           mọi bài thoát 0
+  BẮT      BK-KB16-duyet-bo-cong-don
+           [cong_cu/thu_P26b.js] thoát 1 · 62 đạt · 4 hỏng (3 s)
+           [cong_cu/thu_P26b.js]   ✗ A2a đơn đã huỷ → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví không đổi, yêu cầu không approved  — HTTP 200 · ví 475000 → 500000 · approved
+           [cong_cu/thu_P26b.js]   ✗ A2b đơn đã hoàn → duyệt yêu cầu thứ hai 400 DON_KHONG_CON_HOAN_DUOC, ví không đổi  — HTTP 200 · ví 500000 → 525000 · approved
+           [cong_cu/thu_P26b.js]   ✗ M8 đơn có ví mẹ đã huỷ (yêu cầu còn chờ) → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví mẹ không đổi  — HTTP 200 · ví mẹ 80000 → 100000
+           [cong_cu/thu_P26b.js]   ✗ A5 không đơn nào được hoàn vào ví nhiều hơn số đã trả bằng ví  — [{"order_id":1005,"hoan":50000,"tra":25000}]
+
+  tổng 18 · BẮT 8 · SỐNG 9 · LẠC 0 · HỎNG 0 · HỎNG-sập 1 · TREO 0
+  TRƯỚC LUOI-5: 18/18 đúng nhãn mong
+
+## 2. SAU — bài đã thêm ca (thu_P26c.js 128, thu_GOI1.js 111): 17 BẮT đúng ca mới / ca cũ · 1 SỐNG (Q1, chủ quán chọn (b))
+$ python3 viec/LUOI-5/dot_bien.py -j 4
+# thoát 0 (18/18 đúng nhãn mong)
+LUOI-5 dot_bien: 18 đột biến · -j 4 · lưới 8 bài
+  ✓ đối chứng cong_cu/gia_lap/chay.js: Giả lập: 32 kịch bản · 18 bất biến · ĐẠT
+  ✓ đối chứng cong_cu/thu_P26a.js: 16 đạt · 0 hỏng (mong 16 đạt)
+  ✓ đối chứng cong_cu/thu_P26b.js: 66 đạt · 0 hỏng (mong 66 đạt)
+  ✓ đối chứng cong_cu/thu_P26c.js: 128 đạt · 0 hỏng (mong 128 đạt)
+  ✓ đối chứng cong_cu/thu_GOI1.js: 111 đạt · 0 hỏng (mong 111 đạt)
+  ✓ đối chứng cong_cu/thu_P20.js: 169 đạt · 0 hỏng (mong 169 đạt)
+  ✓ đối chứng cong_cu/thu_P21.js: 14 đạt · 0 hỏng (mong 14 đạt)
+  ✓ đối chứng cong_cu/thu_gia_lap.js: 148 đạt · 0 hỏng (mong 148 đạt)
+  BẮT      C2F-damages-03-update-quan-tri
+           [cong_cu/thu_P26c.js] thoát 1 · 127 đạt · 1 hỏng (5 s)
+           [cong_cu/thu_P26c.js]   ✗ B3e SX làm được → hoàn kho 200, log returned_to_stock = 1; B3c (SX lỗi) log vẫn 0  — HTTP 200 · d4 0 · d2 0
+  BẮT      C2F-packages-01-insert-quan-tri
+           [cong_cu/thu_GOI1.js] thoát 1 · 106 đạt · 47 hỏng (3 s)
+           [cong_cu/thu_GOI1.js]   ✗ A1a thêm gói 5+5+5+5+5+6, gửi tổng 30 → 200, lưu 31  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ dựng taoGoi: POST /packages → 200 và có gói  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A1c (K5) gói KHÔNG danh sách: gửi 12 → 200 lưu 12; gửi 0 → 400 GOI_LUOT_KHONG_HOP_LE  — HTTP 200 / HTTP 400 · GOI_LUOT_KHONG_HOP_LE · Tổng SL SP của gói phải là số nguyên từ 1 trở lên
+           [cong_cu/thu_GOI1.js]   ✗ A1f (K5) sửa gói KHÔNG danh sách: 8 → 200 lưu 8; 0 → 400  — HTTP 404 · Không tìm thấy gói / HTTP 404 · Không tìm thấy gói
+           [cong_cu/thu_GOI1.js]   ✗ dựng taoGoi: POST /packages → 200 và có gói  — HTTP 200   (×7 dòng y hệt)
+           [cong_cu/thu_GOI1.js]   ✗ A2k SL dạng chuỗi " 5" khi mua + lấy ngay → gói ghi giao 5, lấy tiếp 5 CT1 → 400 GOI_HET_LUOT_LOAI; gói KHÔNG danh sách lấy " 7" → giao 7  — HTTP 200 · giao 5 / HTTP 400 · GOI_HET_LUOT_LOAI · CT1 chỉ còn 0 trong gói / HTTP 400 ·
+           [cong_cu/thu_GOI1.js]   ✗ dựng taoGoi: POST /packages → 200 và có gói  — HTTP 200   (×14 dòng y hệt)
+           [cong_cu/thu_GOI1.js]   ✗ A6c gói KHÔNG danh sách lấy loại bất kỳ (CT7 7 + CT8 3) → 200  — HTTP 400 · TU_GOI_NHUNG_THIEU_GOI · Sản phẩm Công thức 7 khai là lấy từ gói nhưng không kèm gói nào. Hãy chọn lại gói của khách, hoặc bỏ món này ra khỏi giỏ.
+           [cong_cu/thu_GOI1.js]   ✗ dựng taoGoi: POST /packages → 200 và có gói  — HTTP 200   (×20 dòng y hệt)
+  BẮT      C2F-packages-03-update-quan-tri
+           [cong_cu/thu_GOI1.js] thoát 1 · 110 đạt · 1 hỏng (4 s)
+           [cong_cu/thu_GOI1.js]   ✗ A6j xoá gói đã có lịch sử bán (khách lấy đủ) → 200, còn dòng, is_active 0; mua lại gói đó → 400, không đơn  — HTTP 200 / HTTP 200
+  BẮT      C2F-packages-04-delete-quan-tri
+           [cong_cu/thu_GOI1.js] thoát 1 · 110 đạt · 1 hỏng (4 s)
+           [cong_cu/thu_GOI1.js]   ✗ A6h xoá gói chưa ai mua → 200, mất dòng  — HTTP 200
+  BẮT      C2F-packages-06-update-quay
+           [cong_cu/thu_GOI1.js] thoát 1 · 90 đạt · 21 hỏng (4 s)
+           [cong_cu/thu_GOI1.js]   ✗ A5c chủ quán dừng "khách thôi" → 200, cancelled, notes có lý do + người + thời điểm; đơn / sổ ví / ví / đã giao không đổi  — HTTP 200 · {"status":"active","notes":null,"updated_at":"2026-10-17T16:36:05","delivered_qty":2}
+           [cong_cu/thu_GOI1.js]   ✗ A5d dừng lại gói đã dừng → 400, notes giữ lý do đầu  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5d2 (K5 — gốc cũng chặn) dừng gói đã hoàn thành → 400, vẫn completed  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5e hai chủ quán cùng dừng một gói → đúng một 200  — HTTP 200 / HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5f (K5 — có sẵn) lấy hàng từ gói đã dừng → 400 GOI_HET_HIEU_LUC  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ A5g (K5) quản lý được chủ quán cấp refund_package → 200  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ B1b gói đã kết thúc KHÔNG cộng "còn lại": 50 → 20, so_dang_dung 1, so_goi vẫn 3  — HTTP 200 · {"con":50,"dd":2}
+           [cong_cu/thu_GOI1.js]   ✗ B1d mặc định = Đang dùng: có X, Y, Z (gói active), KHÔNG có Q (chỉ gói đã kết thúc)  — {"q":true}
+           [cong_cu/thu_GOI1.js]   ✗ B1d3 loc=xong: khách có gói xong / kết thúc (X, Q) — không khách chỉ đang dùng (Y)  — {"x":true,"q":false,"y":false}
+           [cong_cu/thu_GOI1.js]   ✗ B2b kết thúc gói active mà đã đủ 5/5 (chưa nắn) → 400, không thành cancelled  — HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ B3a2 kết thúc có hoàn → 200; ví +900.000 (dòng hoan_goi, total_spent không đổi); gói cancelled; notes: lý do + người + thời điểm + 900000  — HTTP 200 · ví 900000 · {"status":"active","notes":null,"delivered_qty":10}
+           [cong_cu/thu_GOI1.js]   ✗ B3n (Q-B) đơn mua gói còn NỢ: hoan-du-kien 400 DON_CON_NO; kết thúc có hoàn → 400 DON_CON_NO, gói active; kết thúc KHÔNG hoàn → 200  — HTTP 400 · DON_CON_NO · Đơn mua gói còn nợ — thu nợ trước, hoặc chọn Không hoàn / HTTP 400 · 
+           [cong_cu/thu_GOI1.js]   ✗ B4a kết thúc có hoàn (900.000) rồi HUỶ đơn mua → 400 GOI_DA_KET_THUC đúng câu; đơn vẫn completed; ví không đổi  — HTTP 200 · HTTP 200 · ví 1800000
+           [cong_cu/thu_GOI1.js]   ✗ B4b … rồi XOÁ đơn mua → 400 GOI_DA_KET_THUC, đơn còn, ví không đổi  — HTTP 200 · ví 1800000
+           [cong_cu/thu_GOI1.js]   ✗ B4c kết thúc KHÔNG hoàn rồi huỷ / xoá đơn mua → 400 GOI_DA_KET_THUC cả hai, ví không đổi  — HTTP 200 / HTTP 200
+           [cong_cu/thu_GOI1.js]   ✗ B4d CÙNG LÚC kết thúc có hoàn ‖ huỷ đơn mua → đúng một 200, khách nhận đúng MỘT khoản 900.000  — HTTP 200 / HTTP 200 · ví 1800000
+           [cong_cu/thu_GOI1.js]   ✗ B5a hoan: false → 200, cancelled, notes "không hoàn" + lý do; sổ ví / ví không đổi  — HTTP 200 · null
+           [cong_cu/thu_GOI1.js]   ✗ B7g (Q-C) huỷ đơn LẤY 10 túi từ gói ĐÃ KẾT THÚC → 200 (được huỷ) nhưng gói vẫn cancelled 10/30 — không trả túi; ví không đổi  — HTTP 200 · HTTP 200 · {"status":"active","notes":null,"delivered_qty":0} · ví 900000
+           [cong_cu/thu_GOI1.js]   ✗ B7g2 (Q-C) xoá đơn lấy từ gói đã kết thúc → 200, gói vẫn cancelled 10/30  — HTTP 200 · {"status":"active","notes":null,"delivered_qty":0}
+           [cong_cu/thu_GOI1.js]   ✗ B7j I11 + I19 sạch sau mọi ca GOI-2  — đơn ORD-20261017-091: khách nhận lại 1.800.000đ > đã trả 1.350.000đ
+           [cong_cu/thu_GOI1.js]   ✗ B3r gói 300.000 + 2 CT3, mã giảm 320.000 → tổng 30.000; đền cũ 50.000 (lệch I19) → hoan-du-kien 0, kết thúc có hoàn → 200 hoan 0, ghi chú "hoàn 0đ", sổ + ví không đổi  — HTTP 200 · tổng 30000 · lệch I19 true · {"tong":0,"me":0,"
+  BẮT      C2F-discount-codes-02-update-quan-tri
+           [cong_cu/thu_P20.js] thoát 1 · 167 đạt · 2 hỏng (2 s)
+           [cong_cu/thu_P20.js]   ✗ G13 voucher mã bill: PUT giữ mã, tắt rồi bật lại + đổi giá trị → 200, 200  — HTTP 200 / HTTP 200 · {"is_active":1,"discount_value":10}
+           [cong_cu/thu_P20.js]   ✗ G14 mã tay đổi tên → 200, mã mới  — HTTP 200 · P20BDOITEN
+  BẮT      C2F-discount-codes-03-update-quan-tri
+           [cong_cu/thu_P26a.js] thoát 1 · 13 đạt · 3 hỏng (1 s)
+           [cong_cu/thu_P26a.js]   ✗ M1 xoá mã vừa được dùng → 200, mã CÒN, is_active = 0  — HTTP 200 · is_active 1 · used 1
+           [cong_cu/thu_P26a.js]   ✗ M4 xoá mã đã dùng → 200, mã còn, is_active = 0  — HTTP 200 · {"is_active":1,"used_count":1}
+           [cong_cu/thu_P26a.js]   ✗ M5 xoá id không có → 404  — HTTP 200
+  BẮT      C2F-discount-codes-04-delete-quan-tri
+           [cong_cu/thu_P26a.js] thoát 1 · 10 đạt · 6 hỏng (2 s)
+           [cong_cu/thu_P26a.js]   ✗ M1 móc chạy: đơn dùng mã chen giữa phép kiểm và câu xoá
+           [cong_cu/thu_P26a.js]   ✗ M1 xoá mã vừa được dùng → 200, mã CÒN, is_active = 0  — HTTP 200 · is_active 1 · used 0
+           [cong_cu/thu_P26a.js]   ✗ M2 xoá mã chưa dùng → 200, dòng mất (K5)  — HTTP 200
+           [cong_cu/thu_P26a.js]   ✗ M3 xoá mã used_count NULL → 200, dòng mất (như gốc)  — HTTP 200
+           [cong_cu/thu_P26a.js]   ✗ M4 xoá mã đã dùng → 200, mã còn, is_active = 0  — HTTP 200 · {"is_active":1,"used_count":1}
+           [cong_cu/thu_P26a.js]   ✗ M5 xoá id không có → 404  — HTTP 200
+  BẮT      C2F-signup-codes-05-update-quan-tri
+           [cong_cu/thu_P20.js] thoát 1 · 153 đạt · 16 hỏng (2 s)
+           [cong_cu/thu_P20.js]   ✗ H3b voucher bị xoá, dòng mã hết claimed  — voucher 0 · claimed_at 2026-10-17T16:37:46
+           [cong_cu/thu_P20.js]   ✗ H3b claim lại cùng mã, cùng SĐT → 200  — HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3c dòng mã hết claimed  — 2026-10-17T16:37:46
+           [cong_cu/thu_P20.js]   ✗ H3d móc chạy: hoàn tác A → 200, claim lại → 200  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3d hoàn tác B (lần claim cũ đã bị hoàn tác) → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+           [cong_cu/thu_P20.js]   ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000051  — voucher 0 · claimed_phone 0910000052
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at 2026-10-16T10:00:01
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: hoàn tác B (lần claim cũ, cùng SĐT) → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at 2026-10-16T09:59:59
+           [cong_cu/thu_P20.js]   ✗ H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200 (cùng giây)  — HTTP 200 / HTTP 409 · MA_DA_DUNG · Mã này đã được sử dụng
+           [cong_cu/thu_P20.js]   ✗ H3j voucher của lần claim mới còn, mã vẫn claimed  — voucher 0 · claimed_at 2026-10-16T10:00:00
+           [cong_cu/thu_P20.js]   ✗ H3k không voucher lúc kiểm → hoàn tác 200, mã hết claimed  — HTTP 200 · claimed_at 2026-10-17T16:37:47
+           [cong_cu/thu_P20.js]   ✗ H3e hoàn tác B chồng lên → 409  — HTTP 400 · Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.
+  BẮT      C2F-signup-codes-06-delete-quan-tri
+           [cong_cu/thu_P20.js] thoát 1 · 156 đạt · 13 hỏng (3 s)
+           [cong_cu/thu_P20.js]   ✗ H3 hoàn tác voucher vừa được dùng → 400  — HTTP 200
+           [cong_cu/thu_P20.js]   ✗ H3 dòng mã vẫn claimed  — null
+           [cong_cu/thu_P20.js]   ✗ H3b voucher bị xoá, dòng mã hết claimed  — voucher 1 · claimed_at null
+           [cong_cu/thu_P20.js]   ✗ H3b claim lại cùng mã, cùng SĐT → 200  — HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3d móc chạy: hoàn tác A → 200, claim lại → 200  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3d voucher của lần claim mới còn, mã vẫn ghi 0910000051  — voucher 1 · claimed_phone null
+           [cong_cu/thu_P20.js]   ✗ H3g muộn hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3g sớm hơn 1 giây: móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3i voucher bị xoá tay giữa phép kiểm và giao dịch → 400 (giới hạn đã biết, b1)  — HTTP 200
+           [cong_cu/thu_P20.js]   ✗ H3i dòng mã vẫn claimed (không gỡ nửa chừng)  — null
+           [cong_cu/thu_P20.js]   ✗ H3j móc chạy: hoàn tác A → 200, cùng SĐT claim lại → 200 (cùng giây)  — HTTP 200 / HTTP 409 · Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.
+           [cong_cu/thu_P20.js]   ✗ H3j hoàn tác B (cùng giây, cùng SĐT) → 400  — HTTP 409 · Mã này vừa được hoàn tác hoặc claim lại — tải lại danh sách rồi thử lại.
+           [cong_cu/thu_P20.js]   ✗ H3f voucher bị xoá  — có 1
+  BẮT      C2F-rewards-02-update-quan-tri
+           [cong_cu/thu_P26c.js] thoát 1 · 127 đạt · 1 hỏng (6 s)
+           [cong_cu/thu_P26c.js]   ✗ L9a quà 3 điểm sửa thành 5 → 200; khách 4 điểm đổi 400 (điểm vẫn 4); thêm 1 điểm → đổi 200, điểm 0  — HTTP 200 / HTTP 200 / HTTP 200 · 1 / HTTP 400 · Không đủ điểm (có 2, cần 3) · 2
+  BẮT      C2F-rewards-03-update-quan-tri
+           [cong_cu/thu_P26c.js] thoát 1 · 127 đạt · 1 hỏng (5 s)
+           [cong_cu/thu_P26c.js]   ✗ L9b quà bị ẩn → 200; khách đủ 3 điểm đổi 404, điểm vẫn 3, 0 voucher  — HTTP 200 / HTTP 200 / HTTP 200 · điểm 0
+  BẮT      C2F-customers-v2-04-update-quan-tri
+           [cong_cu/thu_P26c.js] thoát 1 · 127 đạt · 1 hỏng (4 s)
+           [cong_cu/thu_P26c.js]   ✗ X1b sửa sang 20 % → 200; đơn 50.000 → tổng 40.000  — HTTP 200 / HTTP 400 · Số tiền thanh toán (40.000đ) không khớp tổng đơn hàng thật (45.000đ). · tổng undefined
+  BẮT      C2F-customers-v2-05-insert-quan-tri
+           [cong_cu/thu_P26c.js] thoát 1 · 126 đạt · 2 hỏng (5 s)
+           [cong_cu/thu_P26c.js]   ✗ X1a khách chưa có hồ sơ, đặt chiết khấu cố định 5.000 → 200; đơn 25.000 → tổng 20.000 (máy chủ tự áp từ hồ sơ)  — HTTP 200 / HTTP 400 · Số tiền thanh toán (20.000đ) không khớp tổng đơn hàng thật (25.000đ). · tổng undefined
+           [cong_cu/thu_P26c.js]   ✗ X1b sửa sang 20 % → 200; đơn 50.000 → tổng 40.000  — HTTP 200 / HTTP 400 · Số tiền thanh toán (40.000đ) không khớp tổng đơn hàng thật (50.000đ). · tổng undefined
+  BẮT      A3L-redeem-bo-han-diem
+           [cong_cu/thu_P26c.js] thoát 1 · 127 đạt · 1 hỏng (4 s)
+           [cong_cu/thu_P26c.js]   ✗ L7a khách có 5 điểm HẾT HẠN + 2 điểm còn hạn, quà 3 điểm → xem điểm = 2; đổi 400, 0 voucher  — HTTP 200 · 7 / HTTP 200
+  BẮT      A3L-nhandiem-he-so-mac-dinh
+           [cong_cu/thu_P26c.js] thoát 1 · 127 đạt · 1 hỏng (6 s)
+           [cong_cu/thu_P26c.js]   ✗ L8a chưa cài hệ số nhân điểm: bán 50.000 có SĐT (5 điểm lúc bán) → nhận điểm mã bill 200, tổng 5 × 2 = 10  — HTTP 200 · lúc bán 5 / HTTP 200 · tổng 15
+  SỐNG     A3L-goi-bo-kiem-con-lai
+           mọi bài thoát 0
+  BẮT      BK-KB16-duyet-bo-cong-don
+           [cong_cu/thu_P26b.js] thoát 1 · 62 đạt · 4 hỏng (2 s)
+           [cong_cu/thu_P26b.js]   ✗ A2a đơn đã huỷ → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví không đổi, yêu cầu không approved  — HTTP 200 · ví 475000 → 500000 · approved
+           [cong_cu/thu_P26b.js]   ✗ A2b đơn đã hoàn → duyệt yêu cầu thứ hai 400 DON_KHONG_CON_HOAN_DUOC, ví không đổi  — HTTP 200 · ví 500000 → 525000 · approved
+           [cong_cu/thu_P26b.js]   ✗ M8 đơn có ví mẹ đã huỷ (yêu cầu còn chờ) → duyệt 400 DON_KHONG_CON_HOAN_DUOC, ví mẹ không đổi  — HTTP 200 · ví mẹ 80000 → 100000
+           [cong_cu/thu_P26b.js]   ✗ A5 không đơn nào được hoàn vào ví nhiều hơn số đã trả bằng ví  — [{"order_id":1005,"hoan":50000,"tra":25000}]
+
+  tổng 18 · BẮT 17 · SỐNG 1 · LẠC 0 · HỎNG 0 · HỎNG-sập 0 · TREO 0
+  SAU LUOI-5: 18/18 đúng nhãn mong
+
+## 3. Q1 — A3L-goi-bo-kiem-con-lai (orders.js:248 `if (conLai <= 0)`): đo "lớp sau chặn hộ" (orders.js:884, :940–949)
+Phương pháp: bản chép TẠM của cong_cu/thu_GOI1.js (thư mục nháp, không nằm trong kho) + ca đo ở cuối: mua gói (có / không danh sách loại), ép dữ liệu lệch
+`UPDATE pos_customer_packages SET delivered_qty = total_qty` (vẫn `active`), lấy 1 từ gói. Chạy trên server/ nguyên vẹn và trên bản sao server/ đã đổi `if (conLai <= 0) {` → `if (false) {`.
+--- server nguyên vẹn
+Q1 gói CÓ danh sách loại: lấy 1 từ gói active đã giao đủ → HTTP 400 GOI_HET_LUOT · giao 10 → 10 · trạng thái active → active · đơn 1 → 1 · sổ ví 0 → 0
+Q1 gói KHÔNG danh sách: lấy 1 từ gói active đã giao đủ → HTTP 400 GOI_HET_LUOT · giao 10 → 10 · trạng thái active → active · đơn 1 → 1 · sổ ví 0 → 0
+--- server bỏ `if (conLai <= 0)` (đột biến A3L-goi-bo-kiem-con-lai)
+Q1 gói CÓ danh sách loại: lấy 1 từ gói active đã giao đủ → HTTP 400 GOI_HET_LUOT · giao 10 → 10 · trạng thái active → active · đơn 1 → 1 · sổ ví 0 → 0
+Q1 gói KHÔNG danh sách: lấy 1 từ gói active đã giao đủ → HTTP 400 GOI_HET_LUOT · giao 10 → 10 · trạng thái active → active · đơn 1 → 1 · sổ ví 0 → 0
+Kết luận: dưới đột biến, đơn vẫn bị 400 GOI_HET_LUOT (câu trừ lượt có trần `delivered_qty + ? <= total_qty`, orders.js:940–949, rollback); gói / đơn / sổ ví không đổi.
+Phép chặn theo loại (:884) KHÔNG tham gia ở dữ liệu này (đếm theo đơn thật, chưa vượt loại) — lớp chặn hộ duy nhất là :940–949; cả hai mã lỗi đều là GOI_HET_LUOT.
+
+## 4. Số ca trên code ĐÃ VÁ (dòng tổng của bài, chạy riêng): `node cong_cu/thu_P26c.js` → 128 đạt · 0 hỏng; `node cong_cu/thu_GOI1.js` → 111 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P26c.js: 128
+SỐ CA cong_cu/thu_GOI1.js: 111

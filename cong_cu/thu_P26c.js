@@ -88,6 +88,7 @@ async function main() {
   for (const r of ['orders', 'refunds', 'wallets', 'damages', 'packages', 'rewards', 'loyalty', 'signup-codes', 'auth']) {
     app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
+  app.use('/api/pos/v2/customers', require(path.join(MAY_CHU, 'routes', 'customers-v2.js')));   // LUOI-5 (X1): chiết khấu riêng của khách
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   noiLai();
@@ -436,6 +437,14 @@ async function main() {
     await duyet((await yeuCau(d3)).refund_id);
     const e = await baoHong(d3, { product_code: sp[1].code, quantity: 1, action: 'return_stock', return_to_stock: true });
     k('B3d (K5) đơn đã duyệt hoàn (không trả kho) → hoàn kho SX 200', e.status === 200, moTa(e));
+    // LUOI-5 (AU4-21 damages-03) — hoàn kho SX THÀNH CÔNG phải đánh dấu returned_to_stock = 1 (cột total_returned của báo cáo hỏng hàng, damages.js); SX lỗi (B3c) thì 0.
+    // `sx.che = 'song'` chỉ bật quanh lệnh báo hỏng, try/finally trả 'loi' — ném giữa chừng không kẹt SX giả cho các khối sau.
+    const d4 = await taoDon({ items: [mon(1)], payment_method: 'cash', cash_amount: 20000 });
+    let f4;
+    try { sx.che = 'song'; f4 = await baoHong(d4, { product_code: sp[1].code, quantity: 1, action: 'return_stock', return_to_stock: true }); } finally { sx.che = 'loi'; }
+    const traKho = (id) => so('SELECT returned_to_stock FROM pos_damage_logs WHERE order_id = ?', [id]);
+    k('B3e SX làm được → hoàn kho 200, log returned_to_stock = 1; B3c (SX lỗi) log vẫn 0', f4.status === 200 && await traKho(d4) === 1 && await traKho(d2) === 0,
+      `${moTa(f4)} · d4 ${await traKho(d4)} · d2 ${await traKho(d2)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -673,6 +682,36 @@ async function main() {
     const d1b = await goi('POST', '/loyalty/redeem', { phone: s1, reward_id: q.id });
     k('L1b (K5) đủ 3 điểm → đổi 200, điểm 0', d1b.status === 200 && await diem(s1) === 0, `${moTa(d1b)} · điểm ${await diem(s1)}`);
 
+    // LUOI-5 N1 (A3L-redeem-bo-han-diem) — điểm HẾT HẠN không đổi được (chế độ `quarter` ghi expires_at). Dòng hết hạn dựng bằng INSERT:
+    // đường quầy không đi được (cần thời gian trôi) — khuôn B3p. Số dư = SUM điểm còn hạn (hằng BALANCE_SQL của loyalty.js) ở CẢ xem điểm lẫn đổi quà.
+    const s7 = sdtMoi();
+    await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, expires_at, reason, created_at) VALUES (?, 'earn', 5, '2020-01-01T00:00:00', 'thử LUOI-5 hết hạn', datetime('now'))", [s7]);
+    await themDiem(s7, 2);
+    const p7 = await goi('GET', `/loyalty/points/${s7}`);
+    const d7 = await goi('POST', '/loyalty/redeem', { phone: s7, reward_id: q.id });
+    k('L7a khách có 5 điểm HẾT HẠN + 2 điểm còn hạn, quà 3 điểm → xem điểm = 2; đổi 400, 0 voucher', p7.points === 2 && d7.status === 400
+      && await so('SELECT COUNT(*) FROM pos_voucher_grants WHERE customer_phone = ?', [s7]) === 0, `${moTa(p7)} · ${p7.points} / ${moTa(d7)}`);
+
+    // LUOI-5 N1 (C2F-rewards-02) — sửa giá điểm của quà có hiệu lực ở lần đổi sau: 3 → 5.
+    const q9 = await goi('POST', '/rewards', { name: 'Quà sửa giá LUOI-5', points_cost: 3, discount_type: 'percent', discount_value: 10, valid_days: 30 });
+    const u9 = await goi('PUT', `/rewards/${q9.id}`, { points_cost: 5 });
+    const s9 = sdtMoi(); await themDiem(s9, 4);
+    const d9 = await goi('POST', '/loyalty/redeem', { phone: s9, reward_id: q9.id });
+    const sau9 = await diem(s9);
+    await themDiem(s9, 1);
+    const d9b = await goi('POST', '/loyalty/redeem', { phone: s9, reward_id: q9.id });
+    k('L9a quà 3 điểm sửa thành 5 → 200; khách 4 điểm đổi 400 (điểm vẫn 4); thêm 1 điểm → đổi 200, điểm 0', q9.status === 200 && u9.status === 200
+      && d9.status === 400 && sau9 === 4 && d9b.status === 200 && await diem(s9) === 0, `${moTa(q9)} / ${moTa(u9)} / ${moTa(d9)} · ${sau9} / ${moTa(d9b)} · ${await diem(s9)}`);
+
+    // LUOI-5 N1 (C2F-rewards-03) — quà bị ẩn (DELETE là xoá mềm) không đổi được nữa.
+    const q9b = await goi('POST', '/rewards', { name: 'Quà ẩn LUOI-5', points_cost: 3, discount_type: 'percent', discount_value: 10, valid_days: 30 });
+    const x9 = await goi('DELETE', `/rewards/${q9b.id}`);
+    const s9b = sdtMoi(); await themDiem(s9b, 3);
+    const d9c = await goi('POST', '/loyalty/redeem', { phone: s9b, reward_id: q9b.id });
+    k('L9b quà bị ẩn → 200; khách đủ 3 điểm đổi 404, điểm vẫn 3, 0 voucher', q9b.status === 200 && x9.status === 200 && d9c.status === 404
+      && await diem(s9b) === 3 && await so('SELECT COUNT(*) FROM pos_voucher_grants WHERE customer_phone = ?', [s9b]) === 0,
+      `${moTa(q9b)} / ${moTa(x9)} / ${moTa(d9c)} · điểm ${await diem(s9b)}`);
+
     // N2 (A3L-earn-flash-van-cong) — `!flashApplied` (F2): đơn có giảm flash KHÔNG cộng điểm. Flash chỉ bật quanh L2a (giờ VN: giờ này → +2 giờ).
     const gio = Number(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).slice(11, 13));
     for (const [key, v] of [['flash_enabled', 'true'], ['flash_start', `${String(gio).padStart(2, '0')}:00`],
@@ -693,6 +732,15 @@ async function main() {
     const n3 = await goi('POST', '/signup-codes/nhan-diem', { code: b3.order?.signup_code, phone: s3 });
     k('L3a bán 50.000 có SĐT (5 điểm lúc bán) → nhận điểm mã bill 200, tổng 5 × 2 = 10', b3.status === 200 && luc === 5 && n3.status === 200
       && await diem(s3) === 10, `${moTa(b3)} · lúc bán ${luc} / ${moTa(n3)} · tổng ${await diem(s3)}`);
+    // LUOI-5 N1 (A3L-nhandiem-he-so-mac-dinh) — chưa cài hệ số (nhandiem_he_so) → mặc định 2 (signup-codes.js docCauHinhNhanDiem). Ca KHÔNG truyền
+    // hệ số: giá trị mặc định là hành vi (K3). Vòng trả cài đặt ngay dưới khôi phục khoá.
+    await db.run("DELETE FROM pos_settings WHERE key = 'nhandiem_he_so'");
+    const s8 = sdtMoi();
+    const b8 = await ban(s8, 2, 50000);
+    const luc8 = await diem(s8);
+    const n8 = await goi('POST', '/signup-codes/nhan-diem', { code: b8.order?.signup_code, phone: s8 });
+    k('L8a chưa cài hệ số nhân điểm: bán 50.000 có SĐT (5 điểm lúc bán) → nhận điểm mã bill 200, tổng 5 × 2 = 10', b8.status === 200 && luc8 === 5
+      && n8.status === 200 && await diem(s8) === 10, `${moTa(b8)} · lúc bán ${luc8} / ${moTa(n8)} · tổng ${await diem(s8)}`);
     for (const key of KHOA) await db.run('DELETE FROM pos_settings WHERE key = ?', [key]);
     for (const r of cu) await datCaiDat(r.key, r.value);
 
@@ -718,6 +766,24 @@ async function main() {
     k('L6a gói 300.000 trả 100.000 + nợ 200.000, chưa lấy → owner huỷ: ví +100.000, tổng hoàn 100.000', m6.status === 200 && h6.status === 200
       && await vi(s6) === 100000 && await tongHoan(m6.order?.id) === 100000,
     `${moTa(m6)} / ${moTa(h6)} · ví ${await vi(s6)} · tổng hoàn ${await tongHoan(m6.order?.id)}`);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // Ca HỒI QUY LUOI-5: code quầy đang đúng — mỗi ca đỏ khi đột biến AU4-21 tương ứng (viec/LUOI-5/dot_bien.py).
+  muc('[X] LUOI-5 — chiết khấu riêng của khách (PUT /v2/customers/:sdt/discount): máy chủ tự áp khi bán');
+  {
+    const ck = (sdt, body) => goi('PUT', `/v2/customers/${sdt}/discount`, body);
+    const sdt = sdtMoi();
+    const chuaCoHoSo = await so('SELECT COUNT(*) FROM pos_customers WHERE phone = ?', [sdt]) === 0;   // PUT đầu đi nhánh INSERT
+    const c1 = await ck(sdt, { discount_type: 'fixed', discount_value: 5000 });
+    const x1 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(0)], payment_method: 'cash', cash_amount: 20000 });
+    k('X1a khách chưa có hồ sơ, đặt chiết khấu cố định 5.000 → 200; đơn 25.000 → tổng 20.000 (máy chủ tự áp từ hồ sơ)', chuaCoHoSo && c1.status === 200
+      && x1.status === 200 && Number(x1.order?.total) === 20000, `${moTa(c1)} / ${moTa(x1)} · tổng ${x1.order?.total}`);
+    // Hồ sơ đã có (PUT đầu) → PUT sau đi nhánh UPDATE. 20 % (không phải 10 %: 50.000 × 0,9 = 45.000 trùng 50.000 − 5.000 → đột biến lọt).
+    const c2 = await ck(sdt, { discount_type: 'percent', discount_value: 20 });
+    const x2 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(2)], payment_method: 'cash', cash_amount: 40000 });
+    k('X1b sửa sang 20 % → 200; đơn 50.000 → tổng 40.000', c2.status === 200 && x2.status === 200 && Number(x2.order?.total) === 40000,
+      `${moTa(c2)} / ${moTa(x2)} · tổng ${x2.order?.total}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
