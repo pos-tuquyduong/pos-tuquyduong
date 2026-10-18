@@ -902,6 +902,26 @@ async function createTables() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_orders_cpid ON pos_orders(customer_package_id)`);
   } catch (e) { /* already exists */ }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOI-SOAT-1: sổ ghi của màn Đối soát — số két đếm cuối ngày ('ket') và đánh dấu đã so sao kê tuần ('sao_ke').
+  // CHỈ THÊM DÒNG (không UPDATE / DELETE): dòng mới nhất theo id là giá trị hiện hành, dòng cũ là lịch sử.
+  // ky: ngày YYYY-MM-DD (két) hoặc ngày THỨ 2 của tuần (sao kê). so_tien = đếm cuối ngày, de_lai = để lại cho mai (đồng, nguyên).
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_doi_soat_ghi (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loai TEXT NOT NULL,
+      ky TEXT NOT NULL,
+      so_tien INTEGER,
+      de_lai INTEGER,
+      da_so INTEGER,
+      ghi_chu TEXT,
+      nguoi TEXT,
+      luc TEXT NOT NULL
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_doi_soat_ghi ON pos_doi_soat_ghi(loai, ky, id)`);
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 
