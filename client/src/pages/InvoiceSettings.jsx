@@ -26,7 +26,12 @@ import {
   Eye,
 } from "lucide-react";
 import InvoicePreview from "../components/InvoicePreview";
+import { VungTrang, useNhomTheoMa } from "../components/InPhieu";
 import { getLogo } from "../utils/logoCache";
+import {
+  KHOA_BO_IN, LOAI_IN, NHAN_LOAI, NHAN_NHOM, KHO_BILL, KHO_TEM, KHO_PHIEU, SO_BAN_TOI_DA,
+  DON_MAU, NHOM_MAU, docBoIn, dungBoIn,
+} from "../utils/inPhieu";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DEFAULT CONFIG
@@ -348,7 +353,7 @@ const api = {
     }
   },
 
-  saveConfig: async (config) => {
+  saveConfig: async (config, boIn) => {
     const token = localStorage.getItem("pos_token");
     const res = await fetch("/api/pos/settings", {
       method: "PUT",
@@ -357,7 +362,7 @@ const api = {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        settings: { invoice_config: JSON.stringify(config) },
+        settings: { invoice_config: JSON.stringify(config), [KHOA_BO_IN]: JSON.stringify(boIn) },
       }),
     });
     const data = await res.json();
@@ -392,10 +397,72 @@ const api = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// P16 — KHỐI "BỘ IN SAU THANH TOÁN" (ngoài component chính: tránh mất focus)
+// ═══════════════════════════════════════════════════════════════════════════
+const KHO_THEO_LOAI = { bill: KHO_BILL, tem: KHO_TEM, pha_che: KHO_PHIEU };
+
+function BoInCaiDat({ boIn, setBoIn, xemBill }) {
+  const [xem, setXem] = useState(null);
+  const { nhomTheoMa } = useNhomTheoMa();
+  const dsNhom = [...new Set(Object.values(nhomTheoMa))];
+  const sua = (loai, kv) => setBoIn((b) => ({ ...b, [loai]: { ...b[loai], ...kv } }));
+  const viec = xem && xem !== "bill"
+    ? dungBoIn(DON_MAU, { [KHOA_BO_IN]: JSON.stringify(boIn) }, { nhomTheoMa: NHOM_MAU, loai: [xem] })[0] : null;
+  const dong = { display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", padding: "0.35rem 0" };
+  return (
+    <div className="section" style={{ padding: "0.75rem 1rem" }}>
+      <b>🖨 Bộ in sau thanh toán</b>
+      {LOAI_IN.map((l) => (
+        <div key={l} style={dong}>
+          <label style={{ minWidth: "9rem" }}>
+            <input type="checkbox" checked={boIn[l].bat} onChange={(e) => sua(l, { bat: e.target.checked })} /> {NHAN_LOAI[l]}
+          </label>
+          <label>Số bản{" "}
+            <select value={boIn[l].ban} onChange={(e) => sua(l, { ban: Number(e.target.value) })}>
+              {Array.from({ length: SO_BAN_TOI_DA }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+            </select>
+          </label>
+          <label>Khổ{" "}
+            <select value={boIn[l].kho} onChange={(e) => sua(l, { kho: e.target.value })}>
+              {KHO_THEO_LOAI[l].map((k) => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </label>
+          <button type="button" className="btn btn-outline" onClick={() => { setXem(xem === l ? null : l); if (l === "bill") xemBill(); }}>
+            <Eye size={14} /> Xem trước
+          </button>
+        </div>
+      ))}
+      {dsNhom.length > 0 && (
+        <div style={dong}>
+          <span>Nhóm món là đồ uống pha (in tem + phiếu pha chế):</span>
+          {dsNhom.map((g) => (
+            <label key={g}>
+              <input type="checkbox" checked={!boIn.khong_pha.includes(g)}
+                onChange={(e) => setBoIn((b) => ({ ...b, khong_pha: e.target.checked ? b.khong_pha.filter((x) => x !== g) : [...b.khong_pha, g] }))} /> {NHAN_NHOM[g] || g}
+            </label>
+          ))}
+        </div>
+      )}
+      <label style={dong}>
+        <input type="checkbox" checked={boIn.tu_mo} onChange={(e) => setBoIn((b) => ({ ...b, tu_mo: e.target.checked }))} /> Tự mở in sau thanh toán
+      </label>
+      {xem === "bill" && <small>Bill: xem ở khung xem trước bên phải.</small>}
+      {viec && (
+        <div style={{ zoom: 2, display: "inline-block", boxShadow: "0 0 4px #888" }}>
+          <VungTrang viec={viec} cha={null} />
+        </div>
+      )}
+      {xem && xem !== "bill" && !viec && <small>Loại này đang không có gì để in với đơn mẫu (kiểm tra nhóm món).</small>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function InvoiceSettings() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [boIn, setBoIn] = useState(() => docBoIn({}));   // P16: bộ in sau thanh toán
   const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -460,6 +527,7 @@ export default function InvoiceSettings() {
           }
         }
         setConfig(newConfig);
+        setBoIn(docBoIn(settings));
 
         // Logo: dùng shared helper (cache-first, chỉ gọi API nếu cache trống)
         const newLogo = await getLogo();
@@ -498,7 +566,7 @@ export default function InvoiceSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.saveConfig(config);
+      await api.saveConfig(config, boIn);
       // Update cache
       try {
         localStorage.setItem(
@@ -521,6 +589,7 @@ export default function InvoiceSettings() {
   const handleReset = () => {
     if (confirm("Bạn có chắc muốn reset về mặc định?")) {
       setConfig(DEFAULT_CONFIG);
+      setBoIn(docBoIn({}));
       setActivePreset("custom");
       showMessage("info", 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
     }
@@ -714,6 +783,8 @@ export default function InvoiceSettings() {
         {/* Left: Settings */}
         <div className="settings-panel">
           <h2>📝 Tùy chỉnh</h2>
+
+          <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} />
 
           {/* HEADER Section */}
           <div className="section">

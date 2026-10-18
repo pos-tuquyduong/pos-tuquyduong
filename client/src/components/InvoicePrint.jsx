@@ -13,15 +13,21 @@
  * - paperSize: '58mm' | '80mm' | 'a5' | 'a4' (default từ settings)
  * - onClose: Function đóng modal
  * - onPrintComplete: Function callback sau khi in xong
- * 
+ * - inLai: true → in lại từ màn Đơn hàng (bill + tem + phiếu đều mang dòng "IN LẠI")
+ *
+ * P16: ngoài bill còn tem cốc + phiếu pha chế; loại nào in, mấy bản: cài đặt `invoice_print_set`
+ * (utils/inPhieu.js). Bấm In → lần lượt từng loại, mỗi loại một hộp in.
+ *
  * LƯU TRỮ:
  * - Hóa đơn được log vào bảng pos_invoice_logs khi in
  * - invoice_number được lưu vào pos_orders
  */
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { X, Printer } from 'lucide-react';
 import InvoicePreview from './InvoicePreview';
+import { VungTrang, useNhomTheoMa, taiLieuIn, inQuaIframe } from './InPhieu';
+import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn } from '../utils/inPhieu';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAPER SIZE CONFIG - Chuẩn kích thước thực tế
@@ -86,13 +92,25 @@ export default function InvoicePrint({
   settings = {}, 
   paperSize: initialPaperSize,
   successInfo,
-  onClose, 
-  onPrintComplete 
+  inLai = false,
+  onClose,
+  onPrintComplete
 }) {
-  const [paperSize, setPaperSize] = useState(initialPaperSize || settings.invoice_default_size || 'a5');
+  const boIn = useMemo(() => docBoIn(settings), [settings]);
+  const [paperSize, setPaperSize] = useState(initialPaperSize || boIn.bill.kho);
   const [printing, setPrinting] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState(order.invoice_number || '');
+  const [chon, setChon] = useState(() => Object.fromEntries(LOAI_IN.map((l) => [l, boIn[l].bat])));
+  const [xem, setXem] = useState('bill');
   const printRef = useRef(null);
+  const vungRef = useRef({});
+  const daTuMo = useRef(false);
+  const { nhomTheoMa, sanSang } = useNhomTheoMa();
+  const tatCa = useMemo(
+    () => dungBoIn(order, settings, { nhomTheoMa, loai: LOAI_IN, inLai }),
+    [order, settings, nhomTheoMa, inLai],
+  );
+  const viec = tatCa.filter((v) => chon[v.loai]);
 
   // Get paper config (for print sizing)
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
@@ -212,10 +230,7 @@ export default function InvoicePrint({
   // ═══════════════════════════════════════════════════════════════════════════
   // PRINT FUNCTION
   // ═══════════════════════════════════════════════════════════════════════════
-  const handlePrint = async () => {
-    setPrinting(true);
-
-    try {
+  const inBill = async (viecBill) => {
       // Lấy số hóa đơn mới nếu chưa có
       const invNumber = await getNextInvoiceNumber();
       
@@ -236,16 +251,12 @@ export default function InvoicePrint({
         })
       });
 
-      // Open print dialog
-      const printContent = printRef.current;
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-
-      if (!printWindow) {
-        alert('Trình duyệt chặn popup. Vui lòng cho phép popup rồi thử lại.');
-        return;
-      }
-
-      printWindow.document.write(`
+      // Dựng tài liệu in (iframe ẩn: không dính chặn popup khi in nhiều loại liên tiếp)
+      const banner = viecBill.inLai
+        ? '<div style="text-align:center;font-weight:bold;border:2px solid #000;padding:2px;margin-bottom:6px">IN LẠI</div>' : '';
+      const thanBill = viecBill.trang.map((_, i) =>
+        `<div${i < viecBill.trang.length - 1 ? ' style="page-break-after:always"' : ''}>${banner}${printRef.current.innerHTML}</div>`).join('');
+      await inQuaIframe(`
         <!DOCTYPE html>
         <html>
         <head>
@@ -313,30 +324,26 @@ export default function InvoicePrint({
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          ${thanBill}
         </body>
         </html>
       `);
+  };
 
-      printWindow.document.close();
+  // In theo bộ đã chọn: bill → tem → phiếu pha chế, mỗi loại một hộp in. In hỏng KHÔNG đụng tới đơn (đã lưu từ trước).
+  const handlePrint = async () => {
+    if (!printRef.current) return;   // modal đã đóng (tự mở in chạy trễ)
+    setPrinting(true);
 
-      // Chờ tất cả ảnh (logo, QR) load xong trước khi in
-      const images = printWindow.document.querySelectorAll('img');
-      const imagePromises = Array.from(images).map(img => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      });
-
-      await Promise.all(imagePromises);
-      // Thêm delay nhỏ để browser render hoàn tất
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
+    try {
+      for (const v of viec) {
+        if (v.loai === 'bill') {
+          await inBill(v);
+        } else {
+          const than = vungRef.current[v.loai]?.innerHTML;
+          if (than) await inQuaIframe(taiLieuIn(`${NHAN_LOAI[v.loai]} ${order.code}`, than, v.kho));
+        }
+      }
 
       if (onPrintComplete) {
         onPrintComplete(order.code, paperSize);
@@ -349,6 +356,13 @@ export default function InvoicePrint({
       setPrinting(false);
     }
   };
+
+  // "Tự mở in sau thanh toán": đúng một lần, sau khi tem/phiếu đã vẽ (cần bảng nhóm món) — chỉ ở màn thanh toán, không phải In lại
+  useEffect(() => {
+    if (!successInfo || inLai || !boIn.tu_mo || !sanSang || daTuMo.current || !viec.length) return;
+    daTuMo.current = true;
+    setTimeout(handlePrint, 0);   // chờ React vẽ xong vùng tem / phiếu
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -428,8 +442,24 @@ export default function InvoicePrint({
           </div>
         )}
 
+        {/* P16: chọn loại sẽ in (tích) + loại đang xem trước (bấm tên) */}
+        <div style={{ padding: '0.5rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {inLai && <b style={{ color: '#dc2626' }}>IN LẠI</b>}
+          {LOAI_IN.map((l) => {
+            const v = tatCa.find((x) => x.loai === l);
+            return (
+              <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem', borderRadius: '6px', background: xem === l ? '#dbeafe' : '#f1f5f9', opacity: v ? 1 : 0.5 }}>
+                <input type="checkbox" disabled={!v} checked={!!v && !!chon[l]} onChange={() => setChon((c) => ({ ...c, [l]: !c[l] }))} />
+                <button type="button" onClick={() => setXem(l)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: xem === l ? 'bold' : 'normal' }}>
+                  {NHAN_LOAI[l]}{v ? ` ×${v.trang.length}` : ' (không có món)'}
+                </button>
+              </label>
+            );
+          })}
+        </div>
+
         {/* Paper Size Selector */}
-        <div style={{
+        {xem === 'bill' && <div style={{
           padding: '0.75rem 1.5rem',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
@@ -454,7 +484,7 @@ export default function InvoicePrint({
               {config.name}
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* Invoice Preview - dùng InvoicePreview (cùng component với Cài đặt HĐ) */}
         <div style={{
@@ -465,14 +495,22 @@ export default function InvoicePrint({
           display: 'flex',
           justifyContent: 'center'
         }}>
-          <div ref={printRef}>
-            <InvoicePreview
-              config={invoiceConfig}
-              size={paperSize}
-              logo={settings.store_logo || ''}
-              orderData={orderData}
-            />
+          <div style={{ display: xem === 'bill' ? 'block' : 'none' }}>
+            <div ref={printRef}>
+              <InvoicePreview
+                config={invoiceConfig}
+                size={paperSize}
+                logo={settings.store_logo || ''}
+                orderData={orderData}
+              />
+            </div>
           </div>
+          {tatCa.filter((v) => v.loai !== 'bill').map((v) => (
+            <div key={v.loai} style={{ display: xem === v.loai ? 'block' : 'none', zoom: 2, boxShadow: '0 0 4px #888' }}>
+              <VungTrang viec={v} cha={(el) => { vungRef.current[v.loai] = el; }} />
+            </div>
+          ))}
+          {xem !== 'bill' && !tatCa.some((v) => v.loai === xem) && <p>Đơn này không có món cần {NHAN_LOAI[xem].toLowerCase()}.</p>}
         </div>
 
         {/* Footer Buttons */}
@@ -520,7 +558,7 @@ export default function InvoicePrint({
             }}
           >
             <Printer size={18} />
-            {printing ? 'Đang xử lý...' : '🖨 In hóa đơn'}
+            {printing ? 'Đang xử lý...' : `🖨 ${inLai ? 'In lại' : 'In'}${viec.length ? '' : ' (chưa chọn loại)'}`}
           </button>
         </div>
       </div>

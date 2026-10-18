@@ -1,0 +1,14 @@
+P16 — bằng chứng đỏ. Bài thử mới: cong_cu/thu_P16.js (gọi thẳng client/src/utils/inPhieu.js).
+
+== Trên CODE GỐC (commit 3d24202: có bài thử, chưa có client/src/utils/inPhieu.js) ==
+$ node cong_cu/thu_P16.js
+✖ Bài thử sập: Cannot find module '/home/user/pos-tuquyduong/client/src/utils/inPhieu.js' imported from /home/user/pos-tuquyduong/cong_cu/thu_P16.js
+(thoát 2 = sập = hỏng; file hàm thuần là file MỚI nên bản "chưa vá" chỉ có thể là chưa có file)
+
+== Sau khi có inPhieu.js (commit 1dedfc2) ==
+$ node cong_cu/thu_P16.js
+68 đạt · 0 hỏng
+
+== Đỏ thật bằng đột biến (python3 viec/P16/dot_bien.py): 15 đột biến, 15 BẮT, 0 sống, đối chứng xanh ==
+
+SỐ CA thu_P16: 68
