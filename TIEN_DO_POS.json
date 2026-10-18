@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 36,
-  "cap_nhat": "2026-10-17",
+  "phien_ban_so": 37,
+  "cap_nhat": "2026-10-18",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -144,7 +144,7 @@
     },
     {
       "ma": "P16",
-      "ten": "Xem truoc & Cai dat in: bill khach · tem coc moi ly 1 tem · phieu pha che · phieu -> may, so ban, mac dinh theo cach ban/app. Giai doan 1 in qua trinh duyet",
+      "ten": "Xem truoc & Cai dat in: bill khach · tem coc moi ly 1 tem · phieu pha che · phieu -> may, so ban, mac dinh theo cach ban/app. Giai doan 1 in qua trinh duyet | PHIEU 18.10: viec/P16/phieu.md ([Th] chay thang): tem coc 40x30 moi ly mot tem, phieu pha che, bat/tat + so ban theo loai, in lai o man Don hang; in qua trinh duyet (may in that: P17)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -567,12 +567,12 @@
     },
     {
       "ma": "LUOI-5",
-      "ten": "Va luoi: 19 dot bien SONG cu xep NANG theo Q5 AUDIT-4 (AU4-21): 14 C2F go lenh ghi (kho, goi, ma giam, voucher, diem, chiet khau khach) - moi lenh ghi mot ca doc lai hang sau route; 3 A3L (redeem-bo-han-diem loyalty.js, nhandiem-he-so, goi-bo-kiem-con-lai); KB16 (lop 2 khoa hai lop refunds.js). KB20 di cung P26d. Lam SAU LUOI-4 gop (cung thu_P26c / thu_GOI1). Chi them bai thu | PHIEU 17.10: viec/LUOI-5/phieu.md tren nhanh viec/LUOI-5 (cho duyet ke hoach; song song TU-CHAY-8): 18 ten (KB20 di cung P26d); do lai duoi LUOI DU truoc (AUDIT-4 chi do duoi c2luoi), chi them ca cho ten con SONG",
+      "ten": "Va luoi: 19 dot bien SONG cu xep NANG theo Q5 AUDIT-4 (AU4-21): 14 C2F go lenh ghi (kho, goi, ma giam, voucher, diem, chiet khau khach) - moi lenh ghi mot ca doc lai hang sau route; 3 A3L (redeem-bo-han-diem loyalty.js, nhandiem-he-so, goi-bo-kiem-con-lai); KB16 (lop 2 khoa hai lop refunds.js). KB20 di cung P26d. Lam SAU LUOI-4 gop (cung thu_P26c / thu_GOI1). Chi them bai thu | PHIEU 17.10: viec/LUOI-5/phieu.md tren nhanh viec/LUOI-5 (cho duyet ke hoach; song song TU-CHAY-8): 18 ten (KB20 di cung P26d); do lai duoi LUOI DU truoc (AUDIT-4 chi do duoi c2luoi), chi them ca cho ten con SONG | XONG 18.10 (PR #32, c8c20b3; HEAD may f97d0f3, chat soat DAT: thu_P26c 128/0, thu_GOI1 111/0, dot bien 18 ten: 17 BAT + 1 SONG goi-bo-kiem-con-lai theo Q1 (b) - lop sau chan ho: cau tru luot co tran trong orders.js). 0 dong code quay. Phat hien: customers.js ghi chiet khau chua co dot bien; LUOI-4 dot_bien.py ghim so ca",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "LUOI-5",
+      "commit": "c8c20b3",
+      "ngay": "2026-10-18"
     },
     {
       "ma": "AUDIT-5",
@@ -594,12 +594,12 @@
     },
     {
       "ma": "TU-CHAY-8",
-      "ten": "Bo khung 1.8.0: chia luot thu_cong song song (moi phan < 50% han), may tu chay duoc cong.js chay tren may may + skill buoc 11 ghi ket qua cong chay, nguoi gac soi file script duoc chay (lach B-BIMAT-CHU qua script nhap - MA-GIAM-1), bo kiem doi dong tong, bo ghim cung PHIEN_BAN trong thu_cong_cu/thu_nguoi_gac. PHIEU 17.10: viec/TU-CHAY-8/phieu.md tren nhanh viec/TU-CHAY-8 (cho duyet ke hoach; song song LUOI-5); sau gop chu quan cai bang cai_TUCHAY8.py",
+      "ten": "Bo khung 1.8.0: chia luot thu_cong song song (moi phan < 50% han), may tu chay duoc cong.js chay tren may may + skill buoc 11 ghi ket qua cong chay, nguoi gac soi file script duoc chay (lach B-BIMAT-CHU qua script nhap - MA-GIAM-1), bo kiem doi dong tong, bo ghim cung PHIEN_BAN trong thu_cong_cu/thu_nguoi_gac. PHIEU 17.10: viec/TU-CHAY-8/phieu.md tren nhanh viec/TU-CHAY-8 (cho duyet ke hoach; song song LUOI-5); sau gop chu quan cai bang cai_TUCHAY8.py | XONG 18.10 (PR #33, 8259a59; HEAD may 1dbc0fa, chat soat DAT, chat tu chay cong chay tren ban cai; chu quan cai 1.8.0 = 8926495 bang cai_TUCHAY8.py): thu_cong 3 phan song song, may chay duoc cong chay + ghi ket qua (skill buoc 11), nguoi gac soi file script duoc chay (A3), bo kiem doi dong tong, bo ghim PHIEN_BAN, A7 tu checkout viec/<MA> khi HEAD tach roi (KHONG ap khi phien mo o nhanh claude/... -> chu quan chon nhanh viec/<MA>). Q7 (b): NGUONG_DONG_CUNG 4 -> 5 TAM -> DONG-CUNG-1. Q8: khong soat them (soat doc lap 3 vong chua dat; vong 3 khong do duoc cach lach moi). Q9: worker C3 thu_gia_lap nam trong Q1. BO KHUNG DONG BANG toi khai truong",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "TU-CHAY-8",
+      "commit": "8259a59",
+      "ngay": "2026-10-18"
     },
     {
       "ma": "TU-CHAY-9",
@@ -621,7 +621,7 @@
     },
     {
       "ma": "DOI-SOAT-1",
-      "ten": "Doi soat tien (nguyen tac chu quan 12.10: he thong tien phai doi soat hang ngay / tuan / thang; lam SAU P26c, TRUOC P20b; dung tien -> duyet ke hoach): chay CHINH cac bat bien cua gia lap tren DU LIEU THAT, CHI DOC; man \"Doi soat\" trong POS (xanh/do, chi ro don/khoan lech); ngay: tu chay + o \"tien ket dem duoc\" (quay CHUA co buoc dem ket cuoi ngay); tuan: tong CK so sao ke ngan hang (nguoi, ~5 phut; payOS sau se tu); thang: bao cao tong + kiem ke kho that. Chi BAO, khong tu sua so. Lech do phan mem -> thanh ca thu moi. Truoc khi ghi phieu: thu tung bat bien tren BAN SAO du lieu that (bat bien viet cho du lieu gia co the bao oan voi du lieu cu truoc cac ban va). Luat: tinh nang tien moi phai kem quy tac doi soat tuong ung (CLAUDE.md) | 16.10: + dem SDT co >= 2 dong claimed_phone / diem_nhan_phone tren Turso (dau vet dua cu, P20c phat hien 7); + doi soat diem: don mua the / goi tich diem theo tien thuc tra (AU4-16 chot A)",
+      "ten": "Doi soat tien (nguyen tac chu quan 12.10: he thong tien phai doi soat hang ngay / tuan / thang; lam SAU P26c, TRUOC P20b; dung tien -> duyet ke hoach): chay CHINH cac bat bien cua gia lap tren DU LIEU THAT, CHI DOC; man \"Doi soat\" trong POS (xanh/do, chi ro don/khoan lech); ngay: tu chay + o \"tien ket dem duoc\" (quay CHUA co buoc dem ket cuoi ngay); tuan: tong CK so sao ke ngan hang (nguoi, ~5 phut; payOS sau se tu); thang: bao cao tong + kiem ke kho that. Chi BAO, khong tu sua so. Lech do phan mem -> thanh ca thu moi. Truoc khi ghi phieu: thu tung bat bien tren BAN SAO du lieu that (bat bien viet cho du lieu gia co the bao oan voi du lieu cu truoc cac ban va). Luat: tinh nang tien moi phai kem quy tac doi soat tuong ung (CLAUDE.md) | 16.10: + dem SDT co >= 2 dong claimed_phone / diem_nhan_phone tren Turso (dau vet dua cu, P20c phat hien 7); + doi soat diem: don mua the / goi tich diem theo tien thuc tra (AU4-16 chot A) | PHIEU 18.10: viec/DOI-SOAT-1/phieu.md (cho duyet ke hoach): tab Doi soat trong Bao cao, dung lai 18 bat bien gia lap (mot ban), ngay/tuan/thang gio VN, lech tren du lieu cu truoc ban va -> vang, o tien ket dem, danh dau da so sao ke",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -630,7 +630,34 @@
     },
     {
       "ma": "P26d",
-      "ten": "Kho ban + Turso (can sua server/database.js; lam truoc H1/P3, khi quan con vang): (5) libsql file: BEGIN that bai vi BUSY lam hong ket noi -> thu lai BEGIN co gioi han; (19) loiGhi chi khop SQLITE_BUSY — do ma loi that tren Turso; (10) ma don sinh ngoai giao dich -> hai don cung luc trung ma 500; (15) 409 \"chua ghi gi\" sai loi khi loi xay ra SAU commit (huy don hoan kho SX, reconcile-all); (17, 18) vi balance NULL, tao vi khi hoan voi total_spent am; (7) khoi phuc sao luu ghi thang pos_wallets/pos_orders ngoai ghiVi | + Phat hien LUOI-1 (9): ca chong ma giam gia vap (10) — sua (10) xong thi siet KB20 ve dung 200 + 400 DISCOUNT_CODE_LIMIT_REACHED va them dot bien bo kiem lai ma trong giao dich (orders.js:880-893)",
+      "ten": "Kho ban + Turso (can sua server/database.js; lam truoc H1/P3, khi quan con vang): (5) libsql file: BEGIN that bai vi BUSY lam hong ket noi -> thu lai BEGIN co gioi han; (19) loiGhi chi khop SQLITE_BUSY — do ma loi that tren Turso; (10) ma don sinh ngoai giao dich -> hai don cung luc trung ma 500; (15) 409 \"chua ghi gi\" sai loi khi loi xay ra SAU commit (huy don hoan kho SX, reconcile-all); (17, 18) vi balance NULL, tao vi khi hoan voi total_spent am; (7) khoi phuc sao luu ghi thang pos_wallets/pos_orders ngoai ghiVi | + Phat hien LUOI-1 (9): ca chong ma giam gia vap (10) — sua (10) xong thi siet KB20 ve dung 200 + 400 DISCOUNT_CODE_LIMIT_REACHED va them dot bien bo kiem lai ma trong giao dich (orders.js:880-893) | PHIEU 18.10: viec/P26d/phieu.md (cho duyet ke hoach): (5)(19)(10)(15)(17)(18)(7) + KB20; ca moi vao bai dang co; database.js chi sua beginTransaction/run",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-API-1",
+      "ten": "Cong khach /api/kh cho App KH (LUAT_XAY_APP): dang nhap SDT + ma OTP (chu quan chot 18.10: OTP qua Zalo ZNS qua ben dich vu = KH-OTP-1; chua cam -> khach lay ma tai quay), ho so, menu (gia + con hang, khong gia von), diem, voucher, nhan ma bill (dung lai logic /claim), lich su don cua minh; token khach khoa rieng KH_JWT_SECRET; gioi han thu theo SDT + IP. PHIEU 18.10: viec/KH-API-1/phieu.md (cho duyet ke hoach)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-OTP-1",
+      "ten": "Gui ma OTP that qua Zalo ZNS (ben dich vu cua chu quan) - them che do zns o server/utils/guiMaKhach.js (KH-API-1); ZNS hong -> SMS neu ben dich vu co, khong thi lay ma tai quay. Can: ten ben dich vu (chu quan, truoc 25.10), mau tin OTP duoc Zalo duyet, khoa API dat tren Render (khong dan vao chat). Moc M4, [Th]",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "DONG-CUNG-1",
+      "ten": "Xoa 5 chu thich tro so dong cung (orders.js, thu_P20.js, thu_P26c.js x3 - tim bang phep E15) roi HA NGUONG_DONG_CUNG 5 -> 4 (TU-CHAY-8 Q7b, chu quan duyet 18.10). Sau khai truong",
       "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
