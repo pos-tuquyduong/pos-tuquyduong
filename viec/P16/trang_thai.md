@@ -134,3 +134,14 @@ BÀI HỌC:     KHOÁ 2 (1 làm, 1 đề xuất) · NGUYÊN TẮC 3 (đề xuấ
 - E in lại: thu_P16.js E1–E5 (cờ inLai, chọn loại), Orders.jsx nút "In lại" + prop `inLai`, bill có dải "IN LẠI" (InvoicePrint.jsx).
 - F hàm thuần: `client/src/utils/inPhieu.js` + `node cong_cu/thu_P16.js` → "90 đạt · 0 hỏng" (ghi ở mục Bài thử).
 - G: build thành công; `npm test` PASS 66 · FAIL 0; `--day-du` PASS 70 · FAIL 0; màn Bán hàng: diff Sales.jsx chỉ thêm prop `nhomTheoMa` (luồng thu tiền không đổi).
+
+## Cổng và git (bước 11.4)
+`node tu_chay/cong.js chay . 4d6295a^ HEAD viec/P16` chạy ở HEAD `7db9e8d`, cây sạch:
+```
+· miễn bài thử đỏ (phiếu ## Bài thử đỏ): P16 là việc giao diện in qua trình duyệt, không đụng máy chủ / tiền; hàm dựng nội dung có bài `cong_cu/thu_P16.js` chạy riêng
+✓ CỔNG CHẠY ĐẠT
+```
+`git log --oneline -2` ở thời điểm kiểm: `7db9e8d P16: vong sua 3 …` · `4bdf572 P16: ghi ket qua soat vong 2 …`
+Đã push `origin/viec/P16`. Không tạo PR, không merge.
+
+HEAD ĐÃ KIỂM: 7db9e8d
