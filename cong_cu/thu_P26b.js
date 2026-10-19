@@ -541,9 +541,11 @@ async function main() {
     }
     {
       const v0 = await soDu();
+      let txHong = null;
       const va = vaMo(async (lan, mo) => {
         const tx = await mo();
         if (lan === 1) {   // BEGIN lười của Turso hỏng ở câu ĐẦU (hrana gộp BEGIN với câu đầu)
+          txHong = tx;
           const exe = tx.execute.bind(tx);
           let dau = true;
           tx.execute = async (st) => { if (dau) { dau = false; throw loiGia('SQLITE_BUSY'); } return exe(st); };
@@ -555,6 +557,8 @@ async function main() {
       const r2 = await napThu();
       k('D8 câu ĐẦU trong giao dịch gặp bận (dạng Turso) → thử lại → 200; giao dịch hỏng đã đóng (lệnh kế tiếp 200), ví +2.000',
         r.status === 200 && r2.status === 200 && await soDu() === v0 + 2000, `${moTa(r)} / ${moTa(r2)}`);
+      // Dọn SAU khi chấm: bản vá đã đóng thì không làm gì (close = ROLLBACK nếu còn mở); vá thiếu đóng thì khoá rò làm mọi ca sau sập.
+      try { if (txHong) txHong.close(); } catch { /* đã đóng */ }
     }
     {
       const v0 = await soDu();

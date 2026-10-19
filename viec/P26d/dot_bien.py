@@ -30,6 +30,7 @@ DOT_BIEN = [
   # ── A: thử lại BEGIN, kết nối không hỏng ──
   ('BV-A-bo-thu-lai', 'thub', [(DB, "if (lan >= CHO_BEGIN_MS.length) throw err;", "if (lan >= 0) throw err;", 1)], r'✗ D(1|5|8) '),
   ('VS-A-thu-lai-moi-loi', 'thub', [(DB, "        if (!laLoiBan(err)) throw err;\n", "", 1)], r'✗ D4 '),
+  ('BV-A-bo-dong-tx-hong', 'thub', [(DB, "        if (tx) { try { tx.close(); } catch (e) { /* đã đóng */ } tx = null; }", "        tx = null;", 1)], r'✗ D8 '),
   ('BV-A-bo-thay-ket-noi', 'thub', [(DB, "  if (!laLoiBan(err) || db.protocol !== 'file') return;", "  return;", 1)], r'✗ D(3|7) '),
   ('VS-A-cho-qua-lau', 'thub', [(DB, "const CHO_BEGIN_MS = [50, 100, 200, 400, 800];", "const CHO_BEGIN_MS = [50, 100, 200, 400, 800, 2000];", 1)], r'✗ D(0|2) '),
   # ── B: một hàm laLoiBan, loiGhi không lộ câu nội bộ ──
