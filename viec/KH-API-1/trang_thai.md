@@ -77,7 +77,12 @@ Kết quả: ĐỐI CHỨNG 116 đạt · 0 hỏng; **54 đột biến bị bắ
   `✗ [A19]` (chưa tới bước 11.4); KHÔNG có ✗ Phạm vi.
 
 ## Câu hỏi
-**Q8 (MỞ — đang dừng ở đây):** xin thêm `server/routes/backup.js` vào Phạm vi, CHỈ thêm một dòng vào `BACKUP_TABLES`:
+**Lượt 3 (`tiep`, 19.10.2026):** chủ quán trả lời Q8 ĐỒNG Ý (một dòng `pos_kh_ma_dang_nhap` NGAY SAU dòng `pos_customers` — P26d sửa cuối
+danh sách), nói phiếu đã thêm `server/routes/backup.js`. Nhưng `git fetch origin viec/KH-API-1` → FETCH_HEAD = HEAD = `90ed271`;
+`viec/KH-API-1/phieu.md` ở HEAD chưa có `backup.js` trong `## Phạm vi` (lần sửa phiếu cuối vẫn là `6fe38d8`). Máy không tự sửa phiếu, không
+sửa file ngoài Phạm vi (cổng A6 đọc phiếu ở head) → DỪNG, chờ commit phiếu lên nhánh `viec/KH-API-1`.
+
+**Q8 (ĐÃ ĐỒNG Ý — chờ phiếu lên nhánh):** xin thêm `server/routes/backup.js` vào Phạm vi, CHỈ thêm một dòng vào `BACKUP_TABLES`:
 `{ name: 'pos_kh_ma_dang_nhap', label: 'Mã đăng nhập App KH', key: 'id' }` (bảng không có khoá ngoại → đặt cuối danh sách). Lý do: phép E8
 của bộ kiểm (`kiem_tra_truoc_khi_giao.js`, khối "mọi bảng tạo trong database.js phải có trong danh sách sao lưu") đỏ, `npm test` đỏ → chưa
 qua bước 6. Dữ liệu bảng này: mã băm sống 5 phút + lịch sử xin mã (giới hạn B, ai cấp mã ở quầy) — sao lưu để khôi phục không mất vết "ai
