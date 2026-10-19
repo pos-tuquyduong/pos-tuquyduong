@@ -299,6 +299,9 @@ chấp nhận ~558 dòng code + 569 dòng thử. Gộp SAU P16."
 - Kiểm: `node cong_cu/thu_DOISOAT1.js` **114 đạt · 0 hỏng**; gốc `2123b69` **29 đạt · 86 hỏng**; đột biến **TỔNG 38 · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0**;
   `npm test -- --day-du` **PASS 71 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ); giả lập xanh 33,5 s, `thu_gia_lap.js` xanh 49,8 s.
 
+- 19.10 · Stop hook đòi push 4 commit (a6a86f4..b7bd23e); push bị từ chối non-fast-forward vì origin có `0e98c79 PHIEU: DOI-SOAT-1 cau 11 them client/dist/**`
+  (lệch hai phía, gốc chung `2a6a671`). Không merge / rebase / force (luật) — chờ chủ quán chọn: (A) cho chạy `git pull --no-rebase origin viec/DOI-SOAT-1`, hoặc (B) tự gộp.
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
