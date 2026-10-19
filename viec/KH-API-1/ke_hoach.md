@@ -44,7 +44,7 @@ Kế hoạch dưới đây viết theo các đề xuất trên. Chủ quán ch�
 ## 2. Phương án từng phần
 
 ### P1 — Bảng mã đăng nhập (`database.js`, ngay sau khối `pos_customers`)
-- **A (chọn):** MỘT bảng `pos_kh_ma_dang_nhap` (`sdt, ma_bam, nguon 'quay'|'gui', cap_boi, ip, tao_luc, het_han, so_lan_thu, dung_luc, huy_luc`) + 2 chỉ mục `(sdt, tao_luc)`, `(ip, tao_luc)`. Mọi giới hạn B đếm trên chính bảng này. ~18 dòng.
+- **A (chọn):** MỘT bảng `pos_kh_ma_dang_nhap` (`sdt, ma_bam, nguon 'quay'|'gui', cap_boi, ip, tao_luc, het_han, so_lan_thu, dung_luc`) + 2 chỉ mục `(sdt, tao_luc)`, `(ip, tao_luc)`. Mọi giới hạn B đếm trên chính bảng này. ~18 dòng. (Cột `huy_luc` của bản đầu đã bỏ theo Q10 — chế độ quay không còn chèn dòng; xem §8.)
 - B: thêm bảng đếm IP riêng. +12 dòng, không cần — IP đã là cột của bảng mã.
 - `so_lan_thu` (phiếu gọi "số lần sai"): đếm MỌI lần thử có so mã, kể cả lần đúng cuối — để giữ chỗ thử bằng MỘT câu có điều kiện (`… SET so_lan_thu = so_lan_thu + 1 WHERE id = ? AND so_lan_thu < 5`), chặn đua 100 yêu cầu đoán song song. Hệ quả đúng như phiếu: sai 5 lần → mã chết; sai 4 + đúng 1 → vào được.
 - Giờ: cột ghi bằng `getNow()`; mốc "trước 60 giây / 1 giờ", "hạn +5 phút" tính TRONG câu SQL `strftime('%Y-%m-%dT%H:%M:%S', ?, '-1 hour')` với `? = getNow()` — cùng định dạng chuỗi, không viết công thức giờ thứ hai (LUAT §2 Thời gian).
@@ -53,15 +53,15 @@ Kế hoạch dưới đây viết theo các đề xuất trên. Chủ quán ch�
 - Hằng `GIOI_HAN = { HAN_MA_PHUT: 5, CACH_GIAY: 60, SDT_GIO: 5, IP_GIO: 20, THU_MOI_MA: 5, SAI_SDT_GIO: 10, TEN_TOI_DA: 50 }` — một chỗ có tên (B3). Hạn token 30 ngày là hằng riêng trong `khachAuth.js` (nơi ký token), không nằm trong `GIOI_HAN`.
 - `sinhMa()` = `crypto.randomInt(0, 1e6)` đệm 6 chữ số. `bamMa(sdt, ma)` = HMAC-SHA256 khoá `KH_JWT_SECRET` (lộ bảng cũng không dò ngược 10⁶ mã được nếu không có khoá); so bằng `timingSafeEqual`.
 - `capMaQuay(sdt, nguoiCap)` — D: chèn dòng `nguon 'quay'`, không giới hạn (nhân viên đã đăng nhập), trả `{ ma, het_han_giay: 300 }`.
-- `xinMaGui(sdt, ip)` — B1 bằng MỘT câu `INSERT … SELECT … WHERE NOT EXISTS(<dòng gui của SĐT có tao_luc > now−60 giây>) AND (<đếm dòng gui của SĐT, tao_luc > now−1 giờ>) < 5 AND (<đếm dòng gui của IP, tao_luc > now−1 giờ>) < 20` rồi kiểm `changes` → 0 = 429. CẢ BA truy vấn con lọc `nguon = 'gui'` — mã quầy cấp không ăn vào lượt App và máy quầy không ăn vào lượt IP của khách cùng wifi. So nghiêm `>` → đúng 60 giây là được. Một câu = không đua; lần bị từ chối không chèn dòng nên không tự tính thêm. Chế độ không gửi (`coKenhGui()` = false) → `huy_luc` ghi sẵn NGAY trong câu chèn (không chèn rồi mới huỷ — khe giữa hai câu cho lần xác minh mã quầy chọn nhầm dòng chưa huỷ); có kênh → `guiMaKhach(sdt, ma)` sau khi chèn.
+- `xinMaGui(sdt, ip)` — B1 bằng MỘT câu `INSERT … SELECT … WHERE NOT EXISTS(<dòng gui của SĐT có tao_luc > now−60 giây>) AND (<đếm dòng gui của SĐT, tao_luc > now−1 giờ>) < 5 AND (<đếm dòng gui của IP, tao_luc > now−1 giờ>) < 20` rồi kiểm `changes` → 0 = 429. CẢ BA truy vấn con lọc `nguon = 'gui'` — mã quầy cấp không ăn vào lượt App và máy quầy không ăn vào lượt IP của khách cùng wifi. So nghiêm `>` → đúng 60 giây là được. Một câu = không đua; lần bị từ chối không chèn dòng nên không tự tính thêm. Chế độ không gửi (`coKenhGui()` = false) → trả ngay `{ layMaTaiQuay: true }`: không sinh mã, không ghi, không đếm (Q10, §8); có kênh → `guiMaKhach(sdt, ma)` sau khi chèn.
 - `now` lấy MỘT lần `getNow()` cho mỗi yêu cầu và kiểm dạng `^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$` trước khi đưa vào `strftime` (dạng lạ → `strftime` ra NULL → các phép giới hạn thành MỞ); sai dạng → ném lỗi → 500.
 - Biến môi trường (`KH_JWT_SECRET`, `GUI_MA_KHACH`) đọc LÚC GỌI HÀM, không lúc nạp module — đổi giữa chừng có hiệu lực ngay (bài thử F1, C dựa vào đó).
 - `xacMinhMa(sdt, ma, ten)` — thứ tự (mỗi bước một lý do):
-  1. lấy mã MỚI NHẤT còn hiệu lực (`dung_luc IS NULL AND huy_luc IS NULL AND het_han > now AND so_lan_thu < 5`); không có → 400 `MA_HET_HAN`;
+  1. lấy mã MỚI NHẤT còn hiệu lực (`dung_luc IS NULL AND het_han > now AND so_lan_thu < 5`); không có → 400 `MA_HET_HAN`;
   2. mã đó là `nguon 'gui'` (Q7) → đếm lượt sai theo SĐT trên các dòng `gui` có `tao_luc > now−1 giờ` (`SUM(so_lan_thu) − số dòng đã dùng`) ≥ 10 → 429 `QUA_NHIEU_LAN`. Cửa sổ tính theo lúc TẠO mã (mã chỉ sống 5 phút → lệch tối đa 5 phút, chấp nhận);
   3. so băm; ĐÚNG mà SĐT chưa là khách và `ten` không hợp lệ → 400 `CAN_TEN`, KHÔNG ghi gì (A4: mã không bị tiêu, không mất lượt; chỉ người đã cầm mã đúng mới thấy `CAN_TEN` → không lộ ai là khách);
   4. giữ một lượt thử (câu có điều kiện ở P1) — `changes` 0 → `MA_HET_HAN`; sai → 400 `MA_SAI`;
-  5. giao dịch: `UPDATE … SET dung_luc = ? WHERE id = ? AND dung_luc IS NULL AND huy_luc IS NULL` + kiểm `changes === 1` (A2) → chèn khách nếu chưa có (`INSERT … ON CONFLICT(phone) DO NOTHING`, rồi đọc lại id) → commit.
+  5. giao dịch: `UPDATE … SET dung_luc = ? WHERE id = ? AND dung_luc IS NULL` + kiểm `changes === 1` (A2) → chèn khách nếu chưa có (`INSERT … ON CONFLICT(phone) DO NOTHING`, rồi đọc lại id) → commit.
 - Phương án B (bỏ): huỷ mọi mã cũ mỗi khi cấp mã mới. Thêm 1 câu ghi mỗi lần, và App bấm "xin mã" sẽ huỷ luôn mã quầy vừa cấp. "Mới nhất còn hiệu lực" cho cùng kết quả không cần câu ghi đó.
 
 ### P3 — `server/utils/guiMaKhach.js` ~22 dòng
@@ -124,7 +124,7 @@ Khuôn `thu_P20.js`: `database.js` thật trên kho tạm (thay `ketNoiKho`), SX
 | B1 | dòng `gui` trước cách 59 giây → 429 `QUA_NHIEU_LAN`, cách ĐÚNG 60 giây → 200 (phiếu "≥ 60 giây"); ca 59 giây tự kiểm `getNow()` trước / sau yêu cầu cùng một giây — khác giây thì chạy lại ca (≤ 3 lần), vẫn khác → hỏng chứ không đếm đạt (K3 thất thường); đã 4 lần / giờ → 200, 5 lần → 429; dòng 59 phút trước VẪN tính, 61 phút KHÔNG tính; IP: 19 lần → 200, 20 → 429 (dòng mẫu chèn với đúng `ip` máy thử, SĐT khác nhau); `cap-ma` quầy KHÔNG bị giới hạn (6 lần liền → 6 lần 200); `xin-ma` NGAY sau `cap-ma` cùng SĐT → 200; 20 dòng `quay` cùng IP → `xin-ma` vẫn 200 |
 | B2 | 5 sai / mã (như A3); SĐT đã 10 lượt sai trên mã `gui` trong giờ (2 mã × 5) → mã `gui` thứ 3 đúng vẫn 429; 9 lượt → 200; Q7: cùng 10 lượt sai đó, mã QUẦY cấp sau → 200 |
 | B3 | phép đọc nguồn: `maKhach.js` có `GIOI_HAN` và MỖI khoá của nó được dùng ít nhất một lần trong file (không dò chữ số trần — `1e6`, `padStart(6…)` tự nhiên có, sẽ đỏ oan K2) |
-| C | KHÔNG đặt `GUI_MA_KHACH` → như `quay` (mặc định là hành vi — K3); `gia` → `layMaGiaCuoi()` = mã vừa xin; `quay` → `lay_ma_tai_quay: true`, dòng mới có `huy_luc` ngay khi chèn, mã quầy cấp TRƯỚC đó vẫn xác minh được; `GUI_MA_KHACH='xyz'` → như `quay` + đúng 1 dòng cảnh báo (không chứa mã) |
+| C | KHÔNG đặt `GUI_MA_KHACH` → như `quay` (mặc định là hành vi — K3); `gia` → `layMaGiaCuoi()` = mã vừa xin; `quay` → `lay_ma_tai_quay: true`, KHÔNG chèn dòng mã App, 25 lần liền cùng IP / cùng SĐT đều 200 (Q10), mã quầy cấp TRƯỚC đó vẫn xác minh được; `GUI_MA_KHACH='xyz'` → như `quay` + đúng 1 dòng cảnh báo (không chứa mã) |
 | D | `cap-ma` không token → 401; token khách → 401; nhân viên `staff` → 200 + `{ ma, het_han_giay: 300 }`, dòng `nguon 'quay'`, `cap_boi` = username; mã đó xác minh được. Màn quầy (nút, hộp, đồng hồ) KHÔNG có bài máy — CHƯA KIỂM, 3 thao tác thử tay ghi ở báo cáo |
 | E1 | `GET /toi` đúng 3 trường; `PUT /toi` đổi tên; `ten` rỗng / 51 ký tự → 400; `PUT` kèm `sdt` / `phone` → SĐT không đổi |
 | E2 | `GET /api/kh/diem` so sâu = `GET /loyalty/points/:phone` (nhân viên) cho cùng khách, kể cả có 1 dòng điểm HẾT HẠN (không tính vào số dư) |
@@ -156,7 +156,7 @@ Khuôn `thu_P20.js`: `database.js` thật trên kho tạm (thay `ketNoiKho`), SX
 | Q3 tách menu | `VS-Q3-route-cu-bo-gia` (route cũ không trộn giá) · ~~`BV-Q3-kh-tu-doc-bang`~~ bỏ (dòng 11) | E5 hồi quy |
 | A4 không tiêu mã khi thiếu tên | `VS-A4-tieu-ma-truoc-khi-hoi-ten` · `BV-A4-bo-can-ten` · `VS-A4-loai-khach-sai` · `VS-A4-tao-trung` (bỏ `ON CONFLICT` — thêm ở soát vòng 1, ca A4 đua) | A4 |
 | A5 không lộ khách | `VS-A5-bao-khach-moi` | A5 |
-| C chế độ | `VS-C-mac-dinh-gia` · `BV-C-quay-khong-huy` · `VS-C-doc-luc-nap` (đọc `GUI_MA_KHACH` một lần khi nạp module) · `BV-C-gia-ngoai-may-thu` (soát vòng 1) | C (ca không đặt biến · gia ngoài máy thử) |
+| C chế độ | `VS-C-mac-dinh-gia` · ~~`BV-C-quay-khong-huy`~~ (bỏ theo Q10 — thay bằng `BV-C-quay-bo-tra-som` · `VS-C-quay-van-dem`) · `VS-C-doc-luc-nap` (đọc `GUI_MA_KHACH` một lần khi nạp module) · `BV-C-gia-ngoai-may-thu` (soát vòng 1) | C (ca không đặt biến · gia ngoài máy thử) |
 | P7 SĐT trong `try` | `VS-P7-sdt-ngoai-try` | H (không thân JSON) |
 | D quầy | `BV-D-bo-authenticate` · `VS-D-ma-quay-thanh-gui` | D |
 | E1 chỉ sửa tên | `VS-E1-sua-ca-sdt` | E1 / F3 |
@@ -183,7 +183,7 @@ Chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản không đột biến xanh
 - `products.js` `GET /` và `/api/kh/menu` — cùng `layMenuQuay`; lệnh ghi nhớ tồn vẫn trong khối E14 quét (P8).
 - Hai cách tách thân route ra hàm (P7 `/claim`, P8 `GET /products`) — cùng khuôn "dòng route + hàm NGAY dưới", cùng lý do (phép tĩnh cắt khối theo `router.`).
 - `/signup-codes/nhan-diem` và `/api/kh/nhan-diem` — CÙNG hàm `nhanDiemMaBill` (Q1 chủ quán chốt làm cả hai); H so điểm hai đường.
-- Mở hàm cũ cho đối tượng mới (khách): MỌI nhánh trả của `nhanMaUuDai` / `nhanDiemMaBill` theo luật `/api/kh` — `code` ở mọi lỗi, 500 qua `loiMayChu` (soát vòng 1 bắt: trước chỉ vá nhánh 500). Giới hạn thử nhận mã (LUAT §4) — `trang_thai.md` Q9.
+- Mở hàm cũ cho đối tượng mới (khách): MỌI nhánh trả của `nhanMaUuDai` / `nhanDiemMaBill` theo luật `/api/kh` — `code` ở mọi lỗi, 500 qua `loiMayChu` (soát vòng 1 bắt: trước chỉ vá nhánh 500). Giới hạn thử nhận mã (LUAT §4) — Q9, §8.
 
 ## 6. Luồng hợp lệ phải KHÔNG bị chặn (K5) — mỗi luồng một ca
 
@@ -197,10 +197,29 @@ Chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản không đột biến xanh
 8. Nhân viên cấp mã nhiều lần cho cùng khách (khách gõ chậm) — ca B1 quầy 6 lần + mã mới nhất xác minh được.
 9. Nhiều khách khác nhau đăng nhập từ CÙNG wifi quán (cùng IP) — giới hạn IP 20 / giờ chỉ tính lối `xin-ma`; mã quầy cấp không tính (ca B1 "20 dòng quay cùng IP").
 11. Khách bị kẻ xấu gõ sai làm khoá lối App (B2 theo SĐT) — vẫn đăng nhập được bằng mã quầy cấp (ca B2 Q7). Ở production ngưỡng IP phụ thuộc Q5 — CHƯA KIỂM được bằng máy.
-10. Bill có SĐT mà khách chưa có tài khoản → đăng nhập → nhận mã bill — ca E6.
+10. Bill có SĐT mà khách chưa có tài khoản → đăng nhập → nhận mã bill — ca E6; sau Q11: CHÍNH SĐT đó nhận được (ca "Q11 chính khách của bill"), bill không SĐT / SĐT rỗng / SĐT lưu dạng +84 vẫn nhận được (ca Q11).
+12. Khách chung wifi quán bấm xin mã nhiều lần ở chế độ quay — không bị 429 (ca C 25 lần, Q10).
+13. Khách nhận mã bill / nhận điểm vài lần trong giờ — dưới trần 10 / khách, 30 / IP (ca Q9 "9 lần → lần 10 tới hàm", "IP 29 → 404"); dịch vụ `X-Service-Key` không bị đếm (ca Q9).
 
 ## 7. Ngoài phạm vi — chỉ ghi Phát hiện
 
 - F1: voucher phát qua `/claim` không vào `pos_voucher_grants` → `/loyalty/vouchers/:phone` (quầy) không hiện voucher khách mới vừa nhận. `GET /api/kh/voucher` CÓ hiện — qua `ma_khach_moi` (Q1 chủ quán chốt, nối `pos_signup_codes.claimed_phone`). Đổi `/claim` để ghi `pos_voucher_grants` là đổi hành vi → việc sau.
 - F2: khách chỉ có bên SX (danh sách trang Khách hàng ghép SX + POS) mà chưa có dòng `pos_customers` → lần đầu đăng nhập App bị hỏi tên.
 - F3: `Customers.jsx` còn 2 `fetch` trần cũ (`loadMembershipStatus`, `loyaltyApi`) — không đụng (LUAT §3: chuyển dần khi chạm tới; việc này chỉ thêm nút).
+
+## 8. Q9–Q11 — chủ quán trả lời 19.10 (phiếu `5e26bd9`), làm ở lượt 5
+
+| # | Chủ quán chốt | Làm | File |
+|---|---|---|---|
+| Q9 | Giới hạn thử `nhan-ma-bill` / `nhan-diem` bằng MỘT bảng đếm lần thử khách + dòng `BACKUP_TABLES` ngay dưới dòng KH-API-1 | Bảng `pos_kh_lan_thu (loai, sdt, ip, tao_luc)` + 2 chỉ mục, ngay sau khối `pos_kh_ma_dang_nhap`. `giuLuotNhanMa(sdt, ip, loai)` (`maKhach.js`): MỘT câu `INSERT … SELECT … WHERE (đếm SĐT 1 giờ) < 10 AND (đếm IP 1 giờ) < 30` + kiểm `changes` (khuôn `xinMaGui` — gửi dồn cùng lúc chỉ qua đúng trần). Route `/api/kh/nhan-ma-bill` · `/nhan-diem` gọi nó TRƯỚC hàm chung; hết lượt → 429 `QUA_NHIEU_LAN`, hàm không chạy. Đường `X-Service-Key` cũ không đi qua → không đếm. | `database.js`, `backup.js`, `maKhach.js`, `kh/index.js` |
+| Q10 | Chế độ quay: không sinh mã, không ghi, không đếm | `xinMaGui` trả `{ layMaTaiQuay: true }` ở dòng đầu khi `!coKenhGui()`; bỏ cột `huy_luc` (không còn ai ghi) và hai điều kiện `huy_luc IS NULL` | `maKhach.js`, `database.js` |
+| Q11 | Chặn nhận mã của bill đã ghi SĐT khác (áp cả route cũ) | `billSdtKhac(dong, phone)` trong `signup-codes.js`: `order_customer_phone` (SĐT ghi lúc in bill — `orders.js` chèn bằng SĐT đã chuẩn hoá) khác rỗng VÀ `normalizePhone(...)` ≠ SĐT nhận → 400 `BILL_SDT_KHAC`. MỘT vị từ cho cả `/claim` và `/nhan-diem` (K4), đặt ngay sau `kiemDonCuaMa` (không đổi `kiemDonCuaMa` — `orders.js`, `discount-codes.js` cũng gọi nó cho voucher ĐÃ nhận). | `signup-codes.js` |
+
+**Hai chỗ máy tự chọn trong khung chủ quán chốt (ghi rõ để duyệt lại):**
+- Ngưỡng 10 / khách / giờ và 30 / IP / giờ = số ĐỀ XUẤT ở Q9-(a) (chủ quán chọn phương án, không nêu số khác). Hằng `NHAN_SDT_GIO`, `NHAN_IP_GIO` trong `GIOI_HAN` — đổi một chỗ.
+- Đếm MỌI lần gọi (không chỉ lần hỏng như câu chữ đề xuất Q9-(a)), và đếm CHUNG hai đường: đếm lần hỏng phải ghi SAU khi hàm chạy → gửi dồn cùng lúc đều lọt qua phép kiểm trước khi có dòng hỏng nào (ca tất định "yêu cầu khác ghi lượt chen giữa lúc đếm và lúc ghi" + đột biến `VS-Q9-dem-roi-chen`; ca "15 lần gửi CÙNG LÚC" giữ làm ca hành vi — kho cục bộ không đan xen nên một mình nó KHÔNG bắt được đột biến này); hai đường dò cùng một không gian mã bill nên trần chung. Lần thành công cũng ăn lượt — khách thật nhận 1–2 mã / giờ, còn xa trần.
+- "Đăng nhập" trong dòng Đổi cấu trúc DB: đăng nhập vẫn đếm trên `pos_kh_ma_dang_nhap` (B1/B2 đã có ca + 20 đột biến); `pos_kh_lan_thu` chỉ nhận `loai` `nhan_ma_bill` / `nhan_diem`. Dời đăng nhập sang bảng mới = viết lại B1/B2, không thêm chặn nào.
+
+**Ca + đột biến:** ca Q9 (14), C (Q10, 4 ca đổi / mới), Q11 (8) trong `thu_KH1.js`; đột biến `BV-Q9-bo-giu-luot` · `BV-Q9-bo-tran-khach` · `VS-Q9-khach-11` · `BV-Q9-bo-tran-ip` · `VS-Q9-ip-31` · `VS-Q9-hai-gio` · `VS-Q9-dem-rieng-loai` · `VS-Q9-sdt-tu-than` · `VS-Q9-dem-roi-chen` · `BV-C-quay-bo-tra-som` · `VS-C-quay-van-dem` · `BV-Q11-bo-chan-claim` · `BV-Q11-bo-chan-nhandiem` · `VS-Q11-so-tho` · `VS-Q11-chan-ca-sdt-rong`.
+
+**Đường song song (K4):** mọi nơi NHẬN mã bill — chỉ `nhanMaUuDai` và `nhanDiemMaBill` (grep `claimed_at = ?\|diem_nhan_luc = ?` trong `server/` → 2 câu chiếm + 1 câu gỡ nhận (chủ quán, `signup-codes.js:517`), cả ba trong `signup-codes.js`); `orders.js:517` / `discount-codes.js:88` chỉ kiểm voucher ĐÃ nhận (`claimed_at IS NOT NULL`) → không thuộc Q11. Bài cũ đang nhận mã bill ghi SĐT A bằng SĐT B: `thu_P20.js` (`claim(ma, phone = sdtMoi())`), `gia_lap/kich_ban.js` KB13 → ĐỎ sau Q11, ngoài Phạm vi → Q12 (`trang_thai.md`).

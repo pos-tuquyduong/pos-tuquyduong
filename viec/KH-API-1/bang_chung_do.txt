@@ -7,7 +7,7 @@
 # (Lần ghi đầu với bản 93ee2ce: 9 đạt · 83 hỏng; bản 38392aa đổi mục F3 thành so sâu 4 đường + 1 ca đơn → gốc thêm 1 ca hỏng: 9 · 84;
 #  bản ec5efe4 thêm ca C "gia ngoài máy thử" → gốc thêm 1 ca hỏng: 9 · 85;
 #  bản 2c296e4 thêm ca A4 "đua tạo khách chen" → 9 · 86. Ca G mới không hiện trên gốc vì mục G sập ngay đầu.)
-SỐ CA cong_cu/thu_KH1.js: 128
+SỐ CA cong_cu/thu_KH1.js: 151
 
   ✗ A1 "+84 912 345 601" → 200, dòng mã lưu 0912345601  — HTTP 404
   ✗ A1 SĐT "abc" → 400 SDT_KHONG_HOP_LE  — HTTP 404
@@ -129,3 +129,25 @@ SỐ CA cong_cu/thu_KH1.js: 128
 # Trên code ĐÃ VÁ vòng 1 (b50d5f3): node cong_cu/thu_KH1.js → 127 đạt · 0 hỏng; đột biến 61/61 bị bắt.
 # Ca A4 đua (2c296e4) khoá `ON CONFLICT DO NOTHING` có sẵn (maKhach.js) — code đã đúng nên chỉ đỏ trên gốc (404) và qua đột biến
 #  VS-A4-tao-trung (bỏ ON CONFLICT → HTTP 500 LOI_MAY_CHU). Bài 2c296e4 trên code đã vá: 128 đạt · 0 hỏng (số cuối ở trang_thai.md).
+
+# ── Lượt 5 (19.10.2026) — Q9–Q11 (phiếu 5e26bd9). Bài e3e24e0 (thêm mục Q9, ca Q11 trong E6/E7, mục C viết lại theo Q10).
+#  (1) Trên GỐC server/ của 6fe38d8 (python3 cong_cu/ban_sao_goc.py 6fe38d8 <nháp>/goc_kh1 + chép bài): 9 đạt · 91 hỏng, thoát 1.
+#      9 ca đạt vẫn là 9 ca CANH đường cũ như trên. Mục C và Q9 sập ngay (chưa có bảng) → mỗi mục MỘT dòng ✗.
+#  (2) Trên server/ của 5e26bd9 (TRƯỚC vá Q9–Q11, sau vá vòng 1): 126 đạt · 12 hỏng, thoát 1. Mười hai ca ĐỎ:
+  ✗ C chế độ quay: xin-ma KHÔNG chèn dòng mã App  — 1 dòng
+  ✗ C chế độ quay: 25 lần xin-ma liền cùng IP (xen cùng SĐT) → 25 lần 200  — 14/25
+  ✗ C GUI_MA_KHACH lạ → như quay (không chèn dòng) + đúng 1 dòng cảnh báo  — HTTP 200 · 1 cảnh báo · 1 dòng
+  ✗ C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, không chèn dòng, đúng 1 cảnh báo  — HTTP 200 · 1 cảnh báo · 1 dòng
+  ✗ Q11 nhận mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, mã KHÔNG bị nhận  — HTTP 200
+  ✗ Q11 chính khách của bill nhận mã → 200  — HTTP 409 · MA_DA_DUNG
+  ✗ Q11 /claim cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC  — HTTP 200
+  ✗ Q11 /claim cũ: bill lưu SĐT dạng "+84 …" (dữ liệu cũ), nhận bằng cùng SĐT 0… → 200  — HTTP 409 · MA_DA_DUNG
+  ✗ Q11 nhận điểm mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, không cộng điểm  — HTTP 200 · 1 dòng
+  ✗ Q11 chính khách của bill nhận điểm → 200  — HTTP 400 · MA_DA_NHAN_DIEM
+  ✗ Q11 /nhan-diem cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC  — HTTP 200
+  ✗ Q9: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_lan_thu
+#  Hai ca "chính khách của bill … → 200" và "+84 … → 200" là ca PHẢI QUA (K5): đỏ trên bản chưa vá vì người lạ đã nhận mất mã ở ca trước.
+#  Ca "bill order_customer_phone '' → 200" XANH trên bản chưa vá (ca canh dữ liệu cũ — bản chưa vá không chặn gì). Mục Q9 sập trên bản
+#  chưa vá (chưa có bảng) — từng ca Q9 được khoá qua đột biến (BV-Q9-*, VS-Q9-*), ca tất định "yêu cầu khác ghi lượt chen" đỏ dưới
+#  VS-Q9-dem-roi-chen (11 lượt); ca "15 lần gửi CÙNG LÚC" một mình KHÔNG bắt được đột biến đó (kho cục bộ không đan xen) — ca hành vi.
+#  (3) Trên code ĐÃ VÁ (cây làm việc sau e3e24e0): node cong_cu/thu_KH1.js → 151 đạt · 0 hỏng.
