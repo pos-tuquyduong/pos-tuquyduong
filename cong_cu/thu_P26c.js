@@ -1175,6 +1175,28 @@ async function main() {
       r4.status === 200 && x4.no === 0 && x4.tt === 'paid' && x4.tm === 25000 && x4.nk === 1 && x4.so === 1, `${moTa(r4)} · ${JSON.stringify(x4)}`);
     const r5 = await thu(d4);
     k('P5 (K5) thu lại đơn đã thu → 400, không thêm dòng', r5.status === 400 && (await anh(d4)).so === 1, moTa(r5));
+    // P26d (chủ quán 19.10): amount không phải số nguyên dương hữu hạn → 400 SO_TIEN_KHONG_HOP_LE, không ghi gì.
+    for (const [ten, so_] of [['chuỗi lạ "abc"', 'abc'], ['số âm −5.000', -5000], ['số lẻ 1.000,5', 1000.5], ['số 0', 0], ['chuỗi số "5000"', '5000']]) {
+      const d = await donNo();
+      const r = await goi('POST', `/orders/${d}/pay-debt`, { payment_method: 'cash', amount: so_ });
+      const x = await anh(d);
+      k(`P6 thu nợ amount ${ten} → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi`,
+        r.status === 400 && r.code === 'SO_TIEN_KHONG_HOP_LE' && khongDoi(x), `${moTa(r)} · ${JSON.stringify(x)}`);
+    }
+    const d7 = await donNo();
+    const r7 = await goi('POST', `/orders/${d7}/pay-debt`, { payment_method: 'transfer' });
+    k('P7 (K5) thu nợ KHÔNG gửi amount → 200 thu đủ 25.000', r7.status === 200 && (await anh(d7)).no === 0, moTa(r7));
+    const d8 = await donNo();
+    const r8 = await goi('POST', `/orders/${d8}/pay-debt`, { payment_method: 'cash', amount: 10000 });
+    const x8 = await anh(d8);
+    k('P8 (K5) thu một phần 10.000 (số nguyên) → 200, còn nợ 15.000', r8.status === 200 && x8.no === 15000 && x8.tm === 10000, `${moTa(r8)} · ${JSON.stringify(x8)}`);
+    // Nợ CŨ lẻ (chiết khấu % không làm tròn): màn Lịch sử đơn gửi amount = debt_amount trong sổ → vẫn phải thu được.
+    const d9 = await donNo();
+    await db.run('UPDATE pos_orders SET debt_amount = 12500.5 WHERE id = ?', [d9]);
+    const r9 = await goi('POST', `/orders/${d9}/pay-debt`, { payment_method: 'cash', amount: 12500.5 });
+    const x9 = await anh(d9);
+    k('P9 (K5) nợ cũ lẻ 12.500,5, amount = đúng nợ trong sổ → 200, nợ 0, paid', r9.status === 200 && x9.no === 0 && x9.tt === 'paid',
+      `${moTa(r9)} · ${JSON.stringify(x9)}`);
   }
 
   sv.close();

@@ -305,3 +305,11 @@ Sau vòng sửa (HEAD `a485de0`): `thu_P26b` 97 · 0 · `npm test -- --day-du` *
 
 **ĐANG DỪNG chờ chủ quán trả lời Q7.** Còn lại sau Q7: sửa theo trả lời → bước 6 → `/ra-soat` vòng 2 → báo cáo 7 mục, bài học, cổng `chay`,
 `HEAD ĐÃ KIỂM`.
+
+### Chủ quán trả lời Q7 (19.10) — phần này THẮNG chỗ khác khi lệch
+
+- **Q7a** đồng ý chặn thêm `pos_signup_codes`, `pos_order_log`, `pos_promotion_usage`.
+- **Q7b** gỡ dòng vá ở `query()` (đã đo: SELECT bận không hỏng kết nối).
+- **Q7c** chấp nhận ngân sách.
+- **Q7d** đồng ý báo trang bị chặn ở xem trước NẾU chỉ sửa server (`backup.js`), không đụng `client/`.
+- **Phát hiện pay-debt: sửa luôn** — `amount` không phải số nguyên dương hữu hạn → 400 có `code`, kèm ca thử + đột biến.

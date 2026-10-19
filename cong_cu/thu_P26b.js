@@ -573,14 +573,14 @@ async function main() {
   muc('[P26d F] khôi phục sao lưu KHÔNG ghi các trang tiền (ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn, điểm, gói, thẻ, voucher, đền bù, mã giảm) — chặn trước mọi ghi');
   {
     const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
-    const khoiPhuc = async (trang) => {
+    const khoiPhuc = async (trang, duong = '/backup/restore') => {
       const wb = XLSX.utils.book_new();
       for (const [ten, dong] of trang) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), ten);
       const fd = new FormData();
       fd.append('file', new Blob([XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })]), 'p26d.xlsx');
       imLang();
       try {
-        const r = await fetch(goc + '/backup/restore', { method: 'POST', body: fd, headers: { Authorization: 'Bearer ' + token } });
+        const r = await fetch(goc + duong, { method: 'POST', body: fd, headers: { Authorization: 'Bearer ' + token } });
         let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
         return { ...j, status: r.status };
       } finally { noiLai(); }
@@ -595,7 +595,8 @@ async function main() {
     for (const [nhan, bang] of [['Đơn hàng', 'pos_orders'], ['Chi tiết đơn', 'pos_order_items'], ['Giao dịch số dư', 'pos_balance_transactions'],
       ['Yêu cầu hoàn tiền', 'pos_refund_requests'], ['Giao dịch điểm thưởng', 'pos_point_transactions'], ['Gói của khách', 'pos_customer_packages'],
       ['Lịch sử mua thẻ', 'pos_membership_purchases'], ['Voucher đã phát', 'pos_voucher_grants'], ['Hàng hỏng', 'pos_damage_logs'],
-      ['Mã chiết khấu', 'pos_discount_codes']]) {
+      ['Mã chiết khấu', 'pos_discount_codes'], ['Mã ưu đãi khách mới', 'pos_signup_codes'], ['Nhật ký đơn', 'pos_order_log'],
+      ['Lịch sử dùng khuyến mãi', 'pos_promotion_usage']]) {
       const truoc = await chup(bang);
       const r = await khoiPhuc([[nhan, [{ id: 999999 }]]]);
       k(`F2 file có trang "${nhan}" → 400 KHOI_PHUC_VI_DON_BI_CHAN, ${bang} không đổi`, r.status === 400 && r.code === 'KHOI_PHUC_VI_DON_BI_CHAN'
@@ -604,6 +605,13 @@ async function main() {
     const c = await khoiPhuc([['Nhật ký đồng bộ', nhatKy]]);
     k('F3 (K5) file chỉ có trang không dính tiền (Nhật ký đồng bộ) → 200, khôi phục đúng 1 dòng',
       c.status === 200 && await so("SELECT COUNT(*) FROM pos_sync_logs WHERE type = 'p26d'") === 1, moTa(c));
+    // Q7d: xem trước báo CÙNG lỗi chặn với khôi phục (một vị từ) — màn Cài đặt hiện `error` ngay ở bước xem trước, không sửa client/.
+    const xt = await khoiPhuc([['Nhật ký đồng bộ', nhatKy], ['Nhật ký đơn', [{ id: 999999 }]]], '/backup/preview-restore');
+    k('F4 xem trước file có trang "Nhật ký đơn" → 400 KHOI_PHUC_VI_DON_BI_CHAN, bang = ["Nhật ký đơn"]',
+      xt.status === 400 && xt.code === 'KHOI_PHUC_VI_DON_BI_CHAN' && JSON.stringify(xt.bang) === '["Nhật ký đơn"]', moTa(xt));
+    const xt2 = await khoiPhuc([['Nhật ký đồng bộ', nhatKy]], '/backup/preview-restore');
+    k('F5 (K5) xem trước file chỉ có trang không dính tiền → 200 success, có bảng xem trước',
+      xt2.status === 200 && xt2.success === true && Array.isArray(xt2.preview) && xt2.preview.length === 1, moTa(xt2));
   }
 
   muc('[P26d A] kho bận THẬT — client libsql thứ hai giữ khoá ghi trên cùng file kho');
