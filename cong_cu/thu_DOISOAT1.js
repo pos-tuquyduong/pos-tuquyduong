@@ -235,6 +235,7 @@ async function main() {
     try { await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2026-11-04' }, { IW: async (q) => { await q("WITH x AS (SELECT 1) UPDATE pos_settings SET value = value || 'x' WHERE key = 'loyalty_enabled'"); return []; } }); }
     catch { nemWith = typeof doiSoat.chayDoiSoat === 'function'; }
     k('A2c bất biến giả `WITH … UPDATE` → bị chặn (ném lỗi), nội dung bảng không đổi', nemWith && truoc === await bam());
+    await datCai('loyalty_enabled', 'true');   // lọt thì trả lại ngay — ca này không được kéo đỏ dây chuyền ca khác (K3)
     const chuGhi = await goiHam('chayDoiSoat', { kieu: 'ngay', ngay: '2026-11-04' }, { IW: async (q) => { await q("SELECT 'update; drop' AS x"); return []; } });
     k("A2d (K5) câu SELECT có chữ 'update; drop' trong CHUỖI → KHÔNG bị chặn", !chuGhi.loi && !!chuGhi.ket_qua, chuGhi.loi || '');
     const ma = doc(path.join(MAY_CHU, 'utils', 'doiSoat.js'));
@@ -546,7 +547,8 @@ async function main() {
     const lech = await ds('chu', 'thang', '2026-11-04');
     const giay2 = Number(process.hrtime.bigint() - t1) / 1e9;
     ghi.bat = false;
-    const tran = sach + 2 * Math.ceil(N / 400) + 10;   // tra ngày theo lô 400 khoá + gắn nhãn D2 theo lô 400
+    // Trần TUYỆT ĐỐI (không tính từ lượt sạch — lượt sạch lỡ có lệch thì trần nới theo, K3): ~40 câu nền + lô 400 khoá tra ngày + lô 400 nhãn D2.
+    const tran = 50 + 2 * Math.ceil(N / 400);
     logGoc(`      H2: ${N} dòng lệch I8 → ${giay2.toFixed(2)} s · ${ghi.sql.length} câu SQL (sạch ${sach}, trần ${tran})`);
     k(`H2 cùng dữ liệu, ${N} dòng lệch I8: 200 trong < 10 s, đủ ${N} dòng đỏ, số câu SQL ≤ ${tran} (không một câu mỗi dòng)`,
       lech.status === 200 && giay2 < 10 && lech.so_luong?.do >= N && ghi.sql.length <= tran, `${moTa(lech)} · ${giay2.toFixed(2)} s · ${ghi.sql.length} câu · ${lech.so_luong?.do} đỏ`);
