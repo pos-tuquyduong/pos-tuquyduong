@@ -18,7 +18,7 @@ _sp = importlib.util.spec_from_file_location('boc_audit4', os.path.join(GOC, 'vi
 B = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(B)
 
 BAI = {'thub': 'cong_cu/thu_P26b.js', 'thu': 'cong_cu/thu_P26c.js'}
-SO_CA = {'thub': 97, 'thu': 142}   # dòng tổng "n đạt · 0 hỏng" khi KHÔNG đột biến (đối chứng)
+SO_CA = {'thub': 102, 'thu': 150}   # dòng tổng "n đạt · 0 hỏng" khi KHÔNG đột biến (đối chứng)
 GIO = 300
 DB, W, H, O, BK, N = 'database.js', 'routes/wallets.js', 'utils/helpers.js', 'routes/orders.js', 'routes/backup.js', 'utils/nhatKyDon.js'
 GOI = "          const cpResult = await tx.run("
@@ -54,15 +54,22 @@ DOT_BIEN = [
   ('BV-E-bo-coalesce-cot-tong', 'thub', [(W, "total_topup = COALESCE(total_topup, 0) + ?,", "total_topup = total_topup + ?,", 1),
                                          (W, "total_spent = COALESCE(total_spent, 0) + ?,", "total_spent = total_spent + ?,", 1)], r'✗ V2 '),
   ('VS-E-tong-chi-am', 'thub', [(W, "[phone, soTien, nap, Math.max(0, tieu), luc, luc]", "[phone, soTien, nap, tieu, luc, luc]", 1)], r'✗ V3 '),
-  # ── F: khôi phục chặn mọi trang tiền, TRƯỚC mọi ghi ──
-  ('BV-F-khong-chan', 'thub', [(BK, "    if (tienBiChan.length) {", "    if (false) {", 1)], r'✗ F(1|2) '),
-  ('VS-F-chan-sau-khi-xoa', 'thub', [(BK, "    if (tienBiChan.length) {", "    if (false) {", 1),
-    (BK, "phần còn lại' });\n    }\n\n    for (const sheetName of wb.SheetNames) {\n      if (sheetName === '_Metadata') continue;\n",
-         "phần còn lại' });\n    }\n\n    for (const sheetName of wb.SheetNames) {\n      if (sheetName === '_Metadata') continue;\n      if (tienBiChan.includes(sheetName)) return "
-         "res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: tienBiChan, error: 'x' });\n", 1)], r'✗ F1 '),
+  # ── F: khôi phục chặn mọi trang tiền, TRƯỚC mọi ghi; xem trước dùng CHUNG vị từ chanTrangTien (Q7d) ──
+  ('BV-F-khong-chan', 'thub', [(BK, "  if (!bang.length) return false;", "  return false;", 1)], r'✗ F(1|2|4) '),
+  ('VS-F-chan-sau-khi-xoa', 'thub', [(BK, "Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).\n    if (chanTrangTien(res, wb)) return;\n", "Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).\n", 1),
+    (BK, "      const tableDef = labelToTable[sheetName];\n      if (!tableDef) {",
+         "      if (chanTrangTien(res, { SheetNames: [sheetName], Sheets: wb.Sheets })) return;\n      const tableDef = labelToTable[sheetName];\n      if (!tableDef) {", 1)],
+   r'✗ F1 '),
   ('BV-F-chi-nam-trang', 'thub', [(BK, ",\n  'pos_point_transactions', 'pos_customer_packages', 'pos_membership_purchases', 'pos_voucher_grants', 'pos_damage_logs',\n"
-                                       "  'pos_discount_codes'];", "];", 1)], r'✗ F2 file có trang "(Giao dịch điểm thưởng|Gói của khách|Lịch sử mua thẻ|Voucher đã phát|Hàng hỏng|Mã chiết khấu)"'),
-  ('VS-F-sot-ma-giam', 'thub', [(BK, "'pos_damage_logs',\n  'pos_discount_codes'];", "'pos_damage_logs'];", 1)], r'✗ F2 file có trang "Mã chiết khấu"'),
+                                       "  'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage'];", "];", 1)],
+   r'✗ F2 file có trang "(Giao dịch điểm thưởng|Gói của khách|Lịch sử mua thẻ|Voucher đã phát|Hàng hỏng|Mã chiết khấu)"'),
+  ('VS-F-sot-ma-giam', 'thub', [(BK, "'pos_discount_codes', 'pos_signup_codes',", "'pos_signup_codes',", 1)], r'✗ F2 file có trang "Mã chiết khấu"'),
+  ('BV-Q7a-bo-3-bang', 'thub', [(BK, ", 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage'];", "];", 1)],
+   r'✗ F2 file có trang "(Mã ưu đãi khách mới|Nhật ký đơn|Lịch sử dùng khuyến mãi)"'),
+  ('BV-Q7d-xem-truoc-khong-chan', 'thub', [(BK, "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb)) return;\n    const preview = [];",
+                                            "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    const preview = [];", 1)], r'✗ F4 '),
+  ('VS-Q7d-xem-truoc-chan-moi-file', 'thub', [(BK, "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb)) return;\n    const preview = [];",
+                                               "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb) || res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: [] })) return;\n    const preview = [];", 1)], r'✗ F5 '),
   # ── G: KB20 — kiểm lại mã giảm trong giao dịch ──
   ('BV-G-bo-kiem-lai-ma', 'thu', [(O, "        if (\n          freshCode.usage_limit > 0 &&", "        if (\n          false &&", 1)], r'✗ G1 '),
   # ── I: gói / thẻ trong giao dịch đơn ──
@@ -85,6 +92,11 @@ DOT_BIEN = [
                                "    res.status(500).json({ error: err.message });", 1)], r'✗ P1 '),
   ('BV-P-nhat-ky-nuot-loi', 'thu', [(N, "  if (tx) return tx.run(cau, thamSo);", "  if (tx) return tx.run(cau, thamSo).catch(() => {});", 1)], r'✗ P2 '),
   ('BV-P-nhat-ky-ngoai-tx', 'thu', [(O, "con_no: remainingDebt }, tx);", "con_no: remainingDebt });", 1)], r'✗ P(2|4) '),
+  # ── PD: pay-debt amount phải số nguyên dương hữu hạn (chủ quán 19.10); không gửi = thu đủ; đúng bằng nợ trong sổ (nợ cũ lẻ) vẫn thu ──
+  ('BV-PD-bo-kiem-so-tien', 'thu', [(O, "    if (amount != null && amount !== order.debt_amount && !(Number.isInteger(amount) && amount > 0)) {", "    if (false) {", 1)], r'✗ P6 '),
+  ('VS-PD-chi-chan-khong-duong', 'thu', [(O, "!(Number.isInteger(amount) && amount > 0)) {", "!(Number(amount) > 0)) {", 1)], r'✗ P6 thu nợ amount (số lẻ|chuỗi số)'),
+  ('VS-PD-bo-ngoai-le-no-le', 'thu', [(O, "if (amount != null && amount !== order.debt_amount && !(", "if (amount != null && !(", 1)], r'✗ P9 '),
+  ('VS-PD-chan-ca-khong-gui', 'thu', [(O, "if (amount != null && amount !== order.debt_amount && !(", "if (amount !== order.debt_amount && !(", 1)], r'✗ P7 '),
 ]
 
 
