@@ -1,6 +1,7 @@
 P26d — bằng chứng ĐỎ trên code CHƯA vá (server/ của HEAD ba78550 = server/ của 14169d8, chỉ bài thử đã đổi)
 
-Lệnh: node cong_cu/thu_P26b.js | grep -E "✗|✖|đạt ·"
+Lệnh (chạy lại 19.10 sau khi thêm 6 ca F2 — chủ quán mở rộng Q3; bài ở HEAD 5a1c099, server/ của gốc 14169d8 lấy bằng git archive ra nháp):
+  node cong_cu/thu_P26b.js --may-chu <nháp>/server | grep -E "✗|✖|đạt ·"
   ✗ V1 ví balance NULL (dữ liệu cũ) → nạp 10.000 → 200, balance = 10.000 (không NULL), sổ 0 → 10.000  — HTTP 200 · {"balance":null,"total_topup":10000,"total_spent":0} · sổ {"t":0,"s":10000}
   ✗ V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL)  — HTTP 200 / HTTP 200 · {"balance":55000,"total_topup":null,"total_spent":null}
   ✗ V3 ví đã mất, huỷ đơn trả ví 25.000 → ví tạo lại: balance 25.000, total_spent 0 (không âm)  — HTTP 200 · {"balance":25000,"total_topup":0,"total_spent":-25000}
@@ -19,11 +20,22 @@ Lệnh: node cong_cu/thu_P26b.js | grep -E "✗|✖|đạt ·"
   ✗ F2 file có trang "Chi tiết đơn" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_order_items không đổi  — HTTP 200
   ✗ F2 file có trang "Giao dịch số dư" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_balance_transactions không đổi  — HTTP 200
   ✗ F2 file có trang "Yêu cầu hoàn tiền" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_refund_requests không đổi  — HTTP 200
+  ✗ F2 file có trang "Giao dịch điểm thưởng" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_point_transactions không đổi  — HTTP 200
+  ✗ F2 file có trang "Gói của khách" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_customer_packages không đổi  — HTTP 200
+  ✗ F2 file có trang "Lịch sử mua thẻ" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_membership_purchases không đổi  — HTTP 200
+  ✗ F2 file có trang "Voucher đã phát" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_voucher_grants không đổi  — HTTP 200
+  ✗ F2 file có trang "Hàng hỏng" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_damage_logs không đổi  — HTTP 200
+  ✗ F2 file có trang "Mã chiết khấu" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_discount_codes không đổi  — HTTP 200
   ✗ D1 kho bận 150 ms (người khác đang ghi) → chờ rồi thử lại → 200, ví +1.000 (đọc bằng kết nối khác)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · ví 100000 → 100000
-  ✗ D2 kho bận suốt → 409 KHO_BAN sau khi chờ đủ lượt (1,4–2,5 s), ví không đổi  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · 4 ms
+  ✗ D2 kho bận suốt → 409 KHO_BAN sau khi chờ đủ lượt (1,4–2,5 s), ví không đổi  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · 3 ms
   ✗ D3 sau một lần BEGIN bận: nạp → 200 và ví +1.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · ví 100000 → 100000 · run SQLITE_BUSY, dòng 0
   ✗ D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; run kế tiếp ghi THẬT (kết nối được thay)  — SQLITE_BUSY / ok · d7a 0 · d7b 0
-  69 đạt · 22 hỏng
+  69 đạt · 28 hỏng
+  (stderr "Run error: SQLITE_BUSY: database is locked" của ca bận thật in xen giữa dòng F2 "Mã chiết khấu" — đã tách ra.)
+
+Thêm (19.10): 6 ca F2 mới chạy trên HEAD 5a1c099 (backup.js mới chặn 5 trang, chưa vá mở rộng) → ĐỎ đúng 6 ca:
+  ✗ F2 "Giao dịch điểm thưởng" / "Gói của khách" / "Lịch sử mua thẻ" / "Voucher đã phát" / "Hàng hỏng" / "Mã chiết khấu" — HTTP 200
+  91 đạt · 6 hỏng
 
 Lệnh: node cong_cu/thu_P26c.js | grep -E "✗|✖|đạt ·"
   ✗ C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau đúng dạng, số liền nhau  — HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code  / HTTP 200 ORD-20261018-100
@@ -36,4 +48,8 @@ Lệnh: node cong_cu/thu_P26c.js | grep -E "✗|✖|đạt ·"
   ✗ P3 thu nợ, kho bận ở câu đầu giao dịch → 409 KHO_BAN, nợ không đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":1}
   134 đạt · 8 hỏng
 
-Xanh trên gốc CÓ CHỦ ĐÍCH (ca K5 / ca canh đột biến — không tính là ca đỏ): C2, C3, I3, I4, P4, P5 (thu_P26c); V4, H2b (thu_P26b).
+Xanh trên gốc CÓ CHỦ ĐÍCH (ca K5 / ca canh đột biến — không tính là ca đỏ): C2, C3, I3, I4, P4, P5 (thu_P26c); V4, H2b, F3 (thu_P26b); H3 của kế hoạch = ca K1 / K1b cũ của thu_P26b.
+
+Sau vá (HEAD 395d31e): node cong_cu/thu_P26b.js → 97 đạt · 0 hỏng · node cong_cu/thu_P26c.js → 142 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P26b.js: 97
+SỐ CA cong_cu/thu_P26c.js: 142
