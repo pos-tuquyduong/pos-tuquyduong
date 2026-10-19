@@ -8,7 +8,12 @@
      Song song đợt M2: KH-API-1 (thêm bảng trong createTables của database.js NGAY SAU pos_customers; server/index.js; loyalty.js,
      signup-codes.js; kiem_tra_truoc_khi_giao.js), DOI-SOAT-1 (reports.js; thêm bảng CUỐI createTables), P16 (Invoice*, Sales.jsx,
      Orders.jsx). Việc này trong database.js CHỈ sửa `beginTransaction` / `run` / hàm lỗi liên quan, KHÔNG sửa `createTables`. KHÔNG
-     thêm bài thử mới (tránh đụng danh sách bài trong kiem_tra_truoc_khi_giao.js) — ca mới vào bài đang có. -->
+     thêm bài thử mới (tránh đụng danh sách bài trong kiem_tra_truoc_khi_giao.js) — ca mới vào bài đang có.
+     18.10 chủ quán duyệt kế hoạch (Q1–Q5) + thêm gói/thẻ trong giao dịch đơn, pay-debt một giao dịch. Q6 (a): thêm
+     server/utils/nhatKyDon.js — ghiNhatKy nhận tx (có tx: ghi trong giao dịch, không nuốt lỗi; không tx: như cũ). Khôi phục chặn MỌI
+     bảng tiền (cả điểm, gói khách, thẻ, voucher, đền bù, lượt mã giảm). Hạ ngưỡng NGUONG_ROUTE_GHI_KHONG_LOIGHI 51 → 50: KHÔNG ở
+     việc này (luật) — để DONG-CUNG-1. backup.js: KH-API-1 song song thêm một dòng ngay sau pos_customers trong BACKUP_TABLES — việc
+     này không sửa vùng đó. -->
 
 **Chờ duyệt kế hoạch:** viết `viec/P26d/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -55,6 +60,7 @@ không có ví NULL / tổng chi âm. Khi kho bận quá lâu thì báo rõ "b�
 - server/routes/wallets.js
 - server/routes/backup.js
 - server/routes/refunds.js
+- server/utils/nhatKyDon.js
 - cong_cu/thu_P26b.js
 - cong_cu/thu_P26c.js
 - cong_cu/thu_GOI1.js
