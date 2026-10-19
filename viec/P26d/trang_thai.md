@@ -37,7 +37,7 @@ thư viện `node_modules/@libsql/client/lib-cjs/{sqlite3,hrana,http}.js`, `@lib
 Xem `ke_hoach.md` mục 12 (Q1 mã bận Turso · Q2 tổng chi ví tạo lại · Q3 phạm vi chặn khôi phục · Q4 mã trả về đối soát dở dang ·
 Q5 vá cả `query`). **Chủ quán đã trả lời 18.10** — `ke_hoach.md` mục 15 (thêm phần I gói / thẻ trong giao dịch, P pay-debt một giao dịch).
 
-### Q6 (mở, 18.10) — giả lập M6 neo vào câu gọi nhật ký cũ của pay-debt → `--day-du` ĐỎ, cần file ngoài Phạm vi
+### Q6 (ĐÃ TRẢ LỜI 19.10: (a), phiếu `eec1423`) — giả lập M6 neo vào câu gọi nhật ký cũ của pay-debt → `--day-du` ĐỎ, cần file ngoài Phạm vi
 
 `npm test -- --day-du` trên HEAD `83394c6`:
 ```
@@ -91,3 +91,95 @@ VS-I-nuot-loi-the · BV-P-so-ngoai-tx · VS-P-lo-message · BV-P-nhat-ky-nuot-lo
 - `[SED-I]` `sed -i` trên file nháp → dùng Edit.
 - `[CURL-HOST]` `curl` tới raw.githubusercontent.com (đọc nguồn máy chủ sqld để lấy mã lỗi Turso) → không đọc được; ghi CHƯA KIỂM,
   đưa vào Câu hỏi Q1 của kế hoạch.
+
+## Phiên 19.10.2026 (`/lam-viec P26d tiep`)
+
+### Bước 1 — đối chiếu bản chụp
+
+- Nhánh `viec/P26d` · cây sạch · `git fetch origin viec/P26d` được.
+- HEAD `eec1423` · FETCH_HEAD `eec1423` — bằng nhau, không kéo (hook mở phiên đã kéo `14169d8 → eec1423`).
+- `git log --oneline -3`:
+
+```
+eec1423 PHIEU: P26d duyet ke hoach + Q6 (a) mo nhatKyDon.js, chan moi bang tien khi khoi phuc
+263a808 P26d: trang_thai — buoc 4-5 xong, Cau hoi Q6 (gia lap M6 neo cau nhat ky cu), dung
+83394c6 P26d: backup.js — chan khoi phuc trang tien (vi, don, chi tiet don, so vi, yeu cau hoan) truoc moi ghi
+```
+
+### Bước 2 — đã đọc (lượt này)
+
+`phieu.md` (đầu phiếu mới: Q6 (a); khôi phục chặn MỌI bảng tiền — cả điểm, gói khách, thẻ, voucher, đền bù, lượt mã giảm), `trang_thai.md`,
+`ke_hoach.md`; code: `server/utils/nhatKyDon.js` (cả file), `server/routes/orders.js` pay-debt (khối `beginTransaction` … `loiGhi`),
+`server/routes/backup.js` (`BACKUP_TABLES`, `BANG_KHONG_KHOI_PHUC`, khối chặn trong `/restore`), `server/routes/don-mo-rong.js`
+`doi-cach-tra` (chỗ gọi `ghiNhatKy` thứ hai); `cong_cu/thu_gia_lap.js` neo M6; `cong_cu/thu_P26b.js` khối `[P26d F]`; khung đột biến
+`viec/P26c/dot_bien.py`, `viec/LUOI-5/dot_bien.py`, luật sập `viec/AUDIT-4/boc.py` (`sap_cua`); cổng `tu_chay/cong.js` A16–A18.
+
+K4 — `grep -rn "ghiNhatKy" server`: 2 chỗ gọi. pay-debt (trong giao dịch) → truyền `tx`. `don-mo-rong.js` `doi-cach-tra`: `run` tự commit rồi
+`ghiNhatKy` không `tx` — không có giao dịch giữ khoá nên không mất nhật ký vì bận; file ngoài Phạm vi → Phát hiện.
+
+### Bước 4–5 — Q6 (a) + Q3 mở rộng
+
+- Bài thử TRƯỚC: `5a1c099` thêm 6 trang vào vòng F2 của `thu_P26b.js` (Giao dịch điểm thưởng, Gói của khách, Lịch sử mua thẻ, Voucher đã phát,
+  Hàng hỏng, Mã chiết khấu). Chạy trên HEAD `5a1c099` (backup.js mới chặn 5 trang): **91 đạt · 6 hỏng** — đỏ đúng 6 ca mới, HTTP 200. Gốc
+  `14169d8`: 69 đạt · 28 hỏng → `bang_chung_do.txt` (`2a94024`).
+- Sửa (commit từng file): `28fc57d` nhatKyDon.js (`ghiNhatKy(…, tx)`: có `tx` → `tx.run`, không nuốt lỗi; không `tx` như cũ) · `03b0063`
+  orders.js (pay-debt gọi `nhatKyDon.ghiNhatKy(Number(id), "thu", …, tx)`, bỏ câu INSERT chép) · `395d31e` backup.js (`BANG_KHONG_KHOI_PHUC` 5 → 11
+  bảng, câu lỗi nêu đủ loại trang).
+- Sau vá: `thu_P26b` 97 đạt · 0 hỏng · `thu_P26c` 142 đạt · 0 hỏng · `npm test -- --day-du`: **PASS 70 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ: route
+  GET có lệnh ghi). Q6 hết: giả lập M6 áp được neo `await nhatKyDon.ghiNhatKy(Number(id), "thu",` (khớp THẬT) và bắt (thu_gia_lap xanh 46,3 s).
+  Thời gian (hạn 120 s, 80 % = 96 s): thu_P20 1,7 · thu_P21 0,8 · thu_P26a 0,8 · thu_P26b 3,7 · thu_P26c 3,2 · thu_GOI1 2,3 · thu_gia_lap 46,3 s.
+
+### Chỗ vá → đột biến (`viec/P26d/dot_bien.py`) — chạy 19.10: **28 BẮT · 0 KHÔNG**, đối chứng thu_P26b 97 / thu_P26c 142 đạt · 0 hỏng
+
+| Chỗ vá | Đột biến | Ca bắt (dòng ✗ thật) |
+|---|---|---|
+| A thử lại BEGIN | BV-A-bo-thu-lai | D5 (+ D1, D8) |
+| A thử lại chỉ khi bận | VS-A-thu-lai-moi-loi | D4 |
+| A thay kết nối kho file | BV-A-bo-thay-ket-noi | D3 (+ D7) |
+| A tổng chờ ≤ 2 s | VS-A-cho-qua-lau | D0 |
+| B `laLoiBan` đủ mã | VS-B-chi-khop-mot-ma | D5 |
+| B `laLoiBan` không nới | VS-B-khop-rong | D4 (`TRANSACTION_CLOSED` → 200) |
+| B `loiGhi` dùng `laLoiBan` | BV-B-loiGhi-ma-cu | D9 |
+| B 500 không lộ câu nội bộ | BV-B-lo-message | D4 |
+| C mã đơn trong giao dịch | BV-C-ma-don-ngoai-tx | C1 |
+| C không nuốt lỗi đọc mã | VS-C-nuot-loi-doc-ma | C3 |
+| D huỷ: món đọc trước commit | BV-D-huy-doc-mon-sau-commit | H1 |
+| D đối soát dở dang | BV-D-doi-soat-409 | H2 |
+| E chuẩn hoá `balance` NULL | BV-E-bo-chuan-hoa-null | V1 |
+| E COALESCE cột tổng | BV-E-bo-coalesce-cot-tong | V2 |
+| E ví tạo lại tổng chi 0 | VS-E-tong-chi-am | V3 |
+| F chặn khôi phục | BV-F-khong-chan | F1 (+ 11 ca F) |
+| F chặn TRƯỚC mọi ghi | VS-F-chan-sau-khi-xoa | F1 (vế `pos_sync_logs`) |
+| F 6 trang mở rộng (Q3) | BV-F-chi-nam-trang | F2 6 trang mới |
+| F đủ từng trang | VS-F-sot-ma-giam | F2 "Mã chiết khấu" |
+| G kiểm lại mã giảm trong giao dịch | BV-G-bo-kiem-lai-ma | G1 |
+| I gói trong giao dịch | BV-I-goi-sau-commit (khối cũ sau commit + nuốt lỗi trở lại) | I1 |
+| I gói không nuốt lỗi | VS-I-nuot-loi-goi | I1 |
+| I thẻ trong giao dịch | BV-I-the-ngoai-tx | I4 |
+| I thẻ không nuốt lỗi | VS-I-nuot-loi-the | I2 |
+| P sổ debt_payment trong giao dịch | BV-P-so-ngoai-tx | P4 |
+| P 500 không lộ câu | VS-P-lo-message | P1 |
+| P nhật ký không nuốt lỗi (Q6) | BV-P-nhat-ky-nuot-loi | P2 |
+| P nhật ký truyền `tx` (Q6) | BV-P-nhat-ky-ngoai-tx | P2 (+ P4) |
+
+Đổi so với danh sách dự kiến: tên dự kiến "BV-I-goi-ngoai-tx" (đổi `tx.run` → `run` cho câu ghi gói) **bỏ** — neo câu INSERT gói thì MỌI lần mua
+gói 409 → bước dựng `goiDaLay` của thu_P26c (và thu_GOI1) ném "không mua được gói" → bài SẬP trước I3; neo câu gắn gói lúc giao lần 1 → ca cũ
+mua + lấy ngay sập (NaN). Sập ≠ BẮT (K3). Thay bằng `BV-I-goi-sau-commit` = đưa NGUYÊN khối cũ (sau commit, `run`, nuốt lỗi) trở lại → I1 bắt,
+không sập. `VS-F-chan-sau-khi-xoa` lần đầu neo đầu vòng `/restore` khớp 2 lần (cả `/preview-restore`) → HỎNG, đã neo thêm câu lỗi chặn ngay trên.
+
+### Ngân sách
+
+Code `server/` so với gốc: +235 / −162 (database.js +55/−8, wallets.js +28/−9, orders.js +115/−105 — bỏ khoảng trắng +83/−73, phần lớn là DỜI
+khối gói / thẻ vào giao dịch và thụt lề pay-debt; helpers.js +10/−31, backup.js +17/−1, nhatKyDon.js +10/−8). Ròng +73. Thử: thu_P26b +213,
+thu_P26c +153 (~400 theo ngân sách đã nâng ở mục 15 kế hoạch).
+
+## Phát hiện (thêm, 19.10)
+
+- `server/routes/don-mo-rong.js` `doi-cach-tra`: `run` (tự commit) rồi `ghiNhatKy` không `tx` — hai lệnh không cùng giao dịch; catch trả
+  `{ error: err.message }` (lộ câu nội bộ, không qua `loiGhi`). Ngoài Phạm vi.
+- Bảng còn khôi phục được bằng file, dính tiền gián tiếp: `pos_signup_codes` (mã ưu đãi khách mới — trạng thái đã nhận), `pos_promotion_usage`
+  (lượt dùng khuyến mãi), `pos_stock_pending` (sổ nợ kho), `pos_order_log` (nhật ký đơn), `pos_invoice_logs`. Chủ quán liệt kê sáu loại (điểm,
+  gói khách, thẻ, voucher, đền bù, lượt mã giảm) — máy chặn đúng sáu bảng đó. Muốn chặn thêm: thêm tên vào `BANG_KHONG_KHOI_PHUC` + một dòng
+  vòng F2 của `thu_P26b.js`.
+- `cong_cu/thu_P26c.js` / `thu_GOI1.js`: bước dựng mua gói ném lỗi (bài sập) khi mua gói hỏng — đột biến làm hỏng mọi lần mua gói không chấm
+  được BẮT. Không sửa (ca cũ giữ nguyên).
