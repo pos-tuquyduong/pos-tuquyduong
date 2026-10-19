@@ -1270,6 +1270,12 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
       return res.status(400).json({ error: "Đơn hàng không có nợ" });
     }
 
+    // P26d (chủ quán 19.10): amount gửi lên phải là số nguyên dương hữu hạn; không gửi = thu đủ. Ngoại lệ (K5): đúng bằng nợ trong
+    // sổ — màn Lịch sử đơn gửi amount = debt_amount, nợ cũ có thể lẻ (chiết khấu % không làm tròn) vẫn phải thu được.
+    if (amount != null && amount !== order.debt_amount && !(Number.isInteger(amount) && amount > 0)) {
+      return res.status(400).json({ error: "Số tiền thu phải là số nguyên dương", code: "SO_TIEN_KHONG_HOP_LE" });
+    }
+
     const now = getNow();
     const paidAmount = amount || order.debt_amount;
 
