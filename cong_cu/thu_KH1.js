@@ -75,6 +75,17 @@ async function main() {
     if (moc) await moc();
     return txGoc(...thamSo);
   };
+  // Móc SAU câu đọc pos_kh_lan_thu (queryOne / query): giả lập một yêu cầu khác ghi lượt chen vào giữa "đếm" và "chèn" (Q9). Một lần rồi gỡ.
+  let mocSauDoc = null;
+  for (const ten of ['queryOne', 'query']) {
+    const goc = db[ten];
+    db[ten] = async (...thamSo) => {
+      const kq = await goc(...thamSo);
+      const moc = mocSauDoc;
+      if (moc && /pos_kh_lan_thu/.test(String(thamSo[0]))) { mocSauDoc = null; await moc(); }
+      return kq;
+    };
+  }
 
   const R = (f) => path.join(GOC, 'server', 'routes', f);
   const app = express();
@@ -636,6 +647,15 @@ async function main() {
     const dong = await Promise.all(Array.from({ length: 15 }, () => goi('POST', '/kh/nhan-ma-bill', { ma: 'KHONGCO1' }, { tk: N.tk })));
     const qua = dong.filter((x) => la(x, 404, 'MA_KHONG_TON_TAI')).length, bi = dong.filter((x) => la(x, 429, 'QUA_NHIEU_LAN')).length;
     k('Q9 15 lần gửi CÙNG LÚC → đúng 10 lần tới hàm, 5 lần 429', qua === 10 && bi === 5, `${qua} tới · ${bi} chặn`);
+    // Tất định (K3): gửi dồn trên kho cục bộ không đan xen — móc chèn lượt thứ 10 của yêu cầu khác NGAY sau câu đọc.
+    await xoaLuot();
+    const Rc = await dangNhap('Khách bị chen lượt');
+    await chenLuot(Rc.sdt, 'ip-khac', 100, 9, 'nhan_ma_bill');
+    mocSauDoc = async () => { await chenLuot(Rc.sdt, 'ip-khac', 1, 1, 'nhan_diem'); };
+    const rc = await goi('POST', '/kh/nhan-ma-bill', { ma: 'KHONGCO1' }, { tk: Rc.tk });
+    mocSauDoc = null;
+    const nRc = Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_kh_lan_thu WHERE sdt = ?', [Rc.sdt])).n);
+    k('Q9 yêu cầu khác ghi lượt chen giữa lúc đếm và lúc ghi → tổng lượt KHÔNG vượt 10', nRc <= 10, `${moTa(rc)} · ${nRc} lượt`);
 
     await xoaLuot();
     await chenLuot('0900000001', IP, 100, 29, 'nhan_ma_bill');

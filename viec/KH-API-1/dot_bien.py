@@ -100,11 +100,10 @@ DOT_BIEN = [
   ('BV-E5-tra-nguyen-mon', [(KI, "data: mon.filter((p) => p.sellable).map(monKhach)", "data: mon.filter((p) => p.sellable)", 1)], r"✗ E5 mỗi món"),
   ('VS-Q3-route-cu-bo-gia', [(PR, "price: priceInfo?.price ?? null,", "price: null,", 1)], r"✗ E5 hồi quy GET /api/pos/products \(JWT\)"),
   # ── E6 / E7: cùng hàm /claim, /nhan-diem ──
-  ('VS-E6-bo-claim-chung', [(KI, "router.post('/nhan-ma-bill', (req, res) => nhanMaUuDai(quaToken(req), res));",
+  ('VS-E6-bo-claim-chung', [(KI, "router.post('/nhan-ma-bill', nhanQuaToken(nhanMaUuDai, 'nhan_ma_bill'));",
                              "router.post('/nhan-ma-bill', async (req, res) => { await run('UPDATE pos_signup_codes SET claimed_at = ?, claimed_phone = ? WHERE UPPER(code) = ?', [getNow(), req.khach.phone, String((req.body || {}).ma || '').toUpperCase()]); res.json({ success: true }); });", 1)],
    r"✗ (E6 mã đã dùng|H voucher)"),
-  ('VS-E7-sai-ham', [(KI, "router.post('/nhan-diem', (req, res) => nhanDiemMaBill(quaToken(req), res));",
-                      "router.post('/nhan-diem', (req, res) => nhanMaUuDai(quaToken(req), res));", 1)], r"✗ E7 F nhận điểm"),
+  ('VS-E7-sai-ham', [(KI, "nhanQuaToken(nhanDiemMaBill, 'nhan_diem')", "nhanQuaToken(nhanMaUuDai, 'nhan_diem')", 1)], r"✗ E7 F nhận điểm"),
   # ── G: không lộ ──
   ('VS-G-500-lo-loi', [(KL, "return res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });",
                         "return res.status(500).json({ error: err.message, code: 'LOI_MAY_CHU' });", 1)], r"✗ G lỗi máy chủ"),
@@ -133,7 +132,7 @@ DOT_BIEN = [
                            " AND (SELECT COUNT(*) FROM pos_kh_lan_thu WHERE ip = ? AND tao_luc > ${GIO}) < ?) AS ok`,"
                            " [sdt, now, '-1 hour', GIOI_HAN.NHAN_SDT_GIO, ip, now, '-1 hour', GIOI_HAN.NHAN_IP_GIO]);\n  if (!dem.ok) return false;\n"
                            "  const kq = await run(`INSERT INTO pos_kh_lan_thu (loai, sdt, ip, tao_luc)\n    SELECT ?, ?, ?, ?\n    WHERE 1 OR", 1)],
-   r"✗ Q9 15 lần gửi CÙNG LÚC"),
+   r"✗ Q9 yêu cầu khác ghi lượt chen"),
   # ── Q11: bill đã ghi SĐT → chỉ SĐT đó nhận mã (cả route cũ) ──
   ('BV-Q11-bo-chan-claim', [(SC, "    if (billSdtKhac(signupRow, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);\n", "", 1)], r"✗ Q11 nhận mã của bill ghi SĐT khác"),
   ('BV-Q11-bo-chan-nhandiem', [(SC, "    if (billSdtKhac(dong, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);\n", "", 1)], r"✗ Q11 nhận điểm mã của bill ghi SĐT khác"),
