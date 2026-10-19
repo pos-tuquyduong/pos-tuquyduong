@@ -58,20 +58,22 @@ Soát độc lập (agent phụ chỉ đọc, 4 câu) — đã sửa vào kế h
 | B2 ≤ 10 sai / SĐT / giờ, chỉ mã App (Q7) | BV-B2-bo-gioi-han-sdt · VS-B2-sdt-11 · VS-B2-chan-ca-ma-quay |
 | B1 giới hạn xin mã, chỉ mã App (`maKhach.js` xinMaGui) | BV-B1-bo-60-giay · VS-B1-61-giay · VS-B1-so-bang · BV-B1-bo-sdt-gio · VS-B1-sdt-6 · BV-B1-bo-ip · VS-B1-ip-21 · VS-B1-tinh-ca-quay-ip · VS-B1-tinh-ca-quay-60 |
 | B3 hằng số một chỗ (`GIOI_HAN`) | VS-B3-so-ten-roi |
-| A4 khách mới / cũ, không tiêu mã khi thiếu tên | VS-A4-tieu-ma-truoc-khi-hoi-ten · BV-A4-bo-can-ten · VS-A4-loai-khach-sai |
+| A4 khách mới / cũ, không tiêu mã khi thiếu tên; đua tạo khách (`ON CONFLICT`, soát vòng 1) | VS-A4-tieu-ma-truoc-khi-hoi-ten · BV-A4-bo-can-ten · VS-A4-loai-khach-sai · VS-A4-tao-trung |
 | A5 không lộ ai là khách | VS-A5-bao-khach-moi |
-| C chế độ gửi (`guiMaKhach.js`, huy_luc khi chèn) | VS-C-mac-dinh-gia · BV-C-quay-khong-huy · VS-C-doc-luc-nap |
+| C chế độ gửi (`guiMaKhach.js`, huy_luc khi chèn; `gia` chỉ ở máy thử — soát vòng 1) | VS-C-mac-dinh-gia · BV-C-quay-khong-huy · VS-C-doc-luc-nap · BV-C-gia-ngoai-may-thu |
 | D quầy cấp mã (`kh/quay.js`) | BV-D-bo-authenticate · VS-D-ma-quay-thanh-gui |
 | E1 chỉ sửa tên | VS-E1-sua-ca-sdt |
 | E2 / E3 cùng hàm + mã khách mới (`diemKhach.js`) | VS-E2-kh-tu-tinh-bo-han · VS-E3-kh-tu-loc · VS-E3-ma-moi-khong-loc-sdt |
 | E4 chỉ đơn của mình | BV-E4-bo-loc-sdt · VS-E4-chi-tiet-bo-loc |
 | E5 danh sách trắng + tách `products.js` | VS-E5-tra-them-gia-von · BV-E5-tra-nguyen-mon · VS-Q3-route-cu-bo-gia |
 | E6 / E7 cùng hàm `/claim`, `/nhan-diem` | VS-E6-bo-claim-chung · VS-E7-sai-ham |
-| G không lộ (`kh/loi.js`, nhánh req.khach của `signup-codes.js`, log) | VS-G-500-lo-loi · VS-G-claim-lo-loi · VS-G-log-ma |
+| G không lộ (`kh/loi.js`, log) | VS-G-500-lo-loi · VS-G-log-ma |
+| G nhánh req.khach của `signup-codes.js` → `loiMayChu`; `code` ở mọi lỗi 4xx (soát vòng 1 — thay `VS-G-claim-lo-loi` cũ, neo chuỗi `LOI_KHACH` đã gỡ) | BV-G-claim-bo-loiMayChu · BV-G-nhandiem-bo-loiMayChu · VS-G-claim-500-khong-code · BV-G-bo-code-ma-khong-co · BV-G-bo-code-thieu-ma |
 | Q2 tách `/claim` giữ hành vi cũ | VS-P7-sdt-ngoai-try |
-| `index.js` trust proxy + gắn `/api/kh` | BV-Q5-trust-proxy · BV-IX-bo-gan-kh |
+| `index.js` trust proxy + gắn `/api/kh` (phép tĩnh bỏ chú thích — soát vòng 1) | BV-Q5-trust-proxy · BV-IX-bo-gan-kh · VS-IX-gan-kh-chu-thich · VS-Q5-trust-proxy-chu-thich |
 
-Kết quả: ĐỐI CHỨNG 116 đạt · 0 hỏng; **54 đột biến bị bắt · 0 KHÔNG bị bắt (trên 54)**.
+Kết quả lượt 2: ĐỐI CHỨNG 116 đạt · 0 hỏng; 54 đột biến bị bắt · 0 KHÔNG bị bắt (trên 54).
+Kết quả sau soát vòng 1: xem `## Bước 8` dưới (62 đột biến).
 
 ## Bước 6 — kiểm
 - `node cong_cu/thu_KH1.js` → 116 đạt · 0 hỏng (chạy 4 lần, cả 4 lần như nhau — ca 59 giây tự kiểm cùng giây).
@@ -90,14 +92,116 @@ Kết quả: ĐỐI CHỨNG 116 đạt · 0 hỏng; **54 đột biến bị bắ
   --day-du` → PASS 71 · FAIL 0 (`✓ mọi bảng đều được sao lưu (31 bảng)`, `✓ bài chạy thật cong_cu/thu_KH1.js xanh`). Không thêm đột biến
   cho dòng này: `dot_bien.py` chỉ chạy `thu_KH1.js`; đột biến "bỏ dòng" chính là bản `22d1cb5` mà E8 đã bắt.
 
+## Bước 8 — soát độc lập `/ra-soat`
+
+### Vòng 1 (19.10.2026, trên HEAD `75dfdfb`) — báo cáo của agent soát, chép nguyên
+
+```
+KHÔNG ĐẠT
+
+Tôi chỉ đọc, không sửa file nào. Đã chạy lại trên HEAD 75dfdfb: `node cong_cu/thu_KH1.js` ra 116 đạt · 0 hỏng; `npm test` ra PASS 67 · FAIL 0 · CẢNH BÁO 1; `python3 viec/KH-API-1/dot_bien.py` có đối chứng xanh, 54/54 đột biến bị bắt; `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` chỉ đỏ ở [A19] (chưa ghi "HEAD ĐÃ KIỂM", việc của bước 11.4).
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/signup-codes.js:137,138,153,211,313,316,321,331,342,367,381-384 và baoChiemHong :79 — các lỗi App KH nhận qua /api/kh/nhan-ma-bill và /api/kh/nhan-diem không có `code`. Ví dụ: 'Mã không tồn tại' 404, 'Mã đã hết hạn (quá 24 giờ)' 400, 'Chương trình … đang tắt' 400, 'Thiếu mã'. Phiếu G và LUAT §2 đòi `{ error, code }`. App sẽ phải dò chữ tiếng Việt mới phân biệt được "hết hạn", "tắt" hay "sai mã". Bài thử không bắt được vì ca G (cong_cu/thu_KH1.js:603-604) chỉ kiểm khoá là TẬP CON của {error, code, success}, không đòi `code` phải có. Khuôn: K3 (ca lỏng, tên ca nói "chỉ error·code" mà máy kiểm "tập con") và K4 (mở hàm cũ cho đối tượng mới nhưng chỉ vá nhánh 500).
+2. server/routes/signup-codes.js:300,450 — lỗi 500 khi gọi từ App trả `{ success:false, error: LOI_KHACH }`, KHÔNG có `code: 'LOI_MAY_CHU'`. Mọi đường /api/kh khác thì có: kh/loi.js:179, khachAuth.js:42. Kho bận (SQLITE_BUSY) ở hai đường này cũng ra 500 thay vì 409 KHO_BAN như loiMayChu (kh/loi.js:177). Cùng một tình huống mà hai mã lỗi (LUAT §2). Ca G "lỗi nội bộ" (thu_KH1.js ~598) chỉ kiểm status. Khuôn: K4. Vá được ngay trong Phạm vi, ở nhánh `req.khach` vốn đã có.
+3. Cả hai đường /api/kh/nhan-ma-bill và /api/kh/nhan-diem (kh/index.js:136-137) không giới hạn số lần thử. LUAT_XAY_APP §4 ghi: "Đăng nhập, nhận mã, đặt đơn từ App KH: giới hạn số lần thử theo SĐT + IP". Trước việc này, cửa nhận mã bill chỉ mở cho máy chủ App (X-Service-Key). Giờ mọi khách có token gọi thẳng được, không trần, và có chỗ dò: 404 'Mã không tồn tại' khác hẳn 400/409. Không gian mã chỉ 31^6 ≈ 887 triệu, sinh bằng Math.random (utils/voucherCode.js:11). Nếu `nhandiem_chi_lan_dau='0'` thì một tài khoản dò trúng mã nào là cộng điểm mã đó. Mỗi lần dò còn tốn lượt đọc Turso. Phiếu mục B không nêu điểm này, nên đây là lỗ của phiếu so với luật. Cần hỏi chủ quán, không tự vá. Khuôn: K6.
+4. Hồ sơ còn câu sai hoặc cũ (K1/K4 — sửa câu tài liệu mà không grep cả file):
+   - trang_thai.md, mục Q8: "(bảng không có khoá ngoại → đặt cuối danh sách)". Thực tế đặt ngay sau pos_customers (backup.js:43).
+   - ke_hoach.md mục P7 và §5: "/nhan-diem KHÔNG được gắn vào /api/kh". Thực tế đã gắn (kh/index.js:137).
+   - ke_hoach.md §7 F1: "GET /api/kh/voucher không hiện voucher khách mới". Thực tế có `ma_khach_moi` (kh/index.js:92, diemKhach.js:70).
+   - ke_hoach.md P2: GIOI_HAN có hạn token 30 ngày. Code không có (maKhach.js:13-21; hạn token để riêng ở khachAuth.js:11).
+   - ke_hoach.md §4: các tên đột biến BV-F3-khach-tu-token-sdt, VS-F3-sdt-tu-than, VS-A2-kiem-changes-lon-hon-0, VS-A4-tao-trung, VS-D-gioi-han-quay, VS-E6-sdt-tu-than, BV-E6-bo-claim-chung, VS-B1-tinh-ca-quay không có trong dot_bien.py. Mục "Khác kế hoạch khi làm" chỉ ghi 3 tên đã bỏ. Riêng VS-A4-tao-trung (bỏ ON CONFLICT) bị bỏ mà không ghi.
+   - ke_hoach.md §3 E5: "so sâu với bản chụp lấy ở ĐẦU bài … stock_status không đổi". Bài thật (thu_KH1.js:478-488) so với pos_products và không so stock_status.
+   - ke_hoach.md §6 luồng 6: "ca B1 61 giây". Thực tế là ca ĐÚNG 60 giây.
+   - Số dòng index.js trích ở ke_hoach §1 (64–68, 56–60, 154) đã trôi 3 dòng vì chính việc này thêm dòng.
+5. cong_cu/thu_KH1.js:638-644 — phép tĩnh cho index.js dùng `includes`/`indexOf` chuỗi, nên một dòng mount đã bị chú thích (`// app.use('/api/kh', …)`, `// app.set('trust proxy', 1)`) vẫn xanh. Đây đúng là marker suông. Bài thử tự dựng express riêng, nên việc gắn route trong index.js thật không có ca hành vi nào. Khuôn: K3.
+
+NGHI NGỜ:
+- maKhach.js:65-76 (K5): ở chế độ `quay` (mặc định trên production), xin-ma không gửi gì mà vẫn bị đếm và vẫn trả 429 sau 20 lần / IP / giờ. Khách ngồi trong quán dùng chung wifi lại chính là nhóm cần mã quầy. Nếu App KH-UI-1 chỉ mở ô nhập mã sau khi xin-ma thành công thì khách bị chặn oan. Nếu `trust proxy 1` sai số tầng trên Render thì cả quán chung một IP.
+- maKhach.js:91-93: xác minh chỉ xét mã MỚI NHẤT còn hạn và không huỷ mã cũ. Khi mã mới bị gõ sai 5 lần thì mã cũ còn hạn lại thành mã được xét. Khi có chế độ gửi tin (KH-OTP-1), một lần App xin mã sau khi quầy đã cấp sẽ che mất mã quầy: khách gõ mã quầy sẽ ra MA_SAI. Hôm nay ở chế độ `quay` chưa xảy ra vì dòng App xin được huỷ sẵn.
+- guiMaKhach.js:53-61 (C16): chế độ `gia` "chỉ cho bài thử" mới là lời dặn, chưa có khoá. Lỡ đặt GUI_MA_KHACH=gia trên production thì App nhận `lay_ma_tai_quay:false` ("mã đã gửi") mà không có tin nào đi, và mã App xin sẽ che mã quầy.
+- kh/index.js:23: `da_tra = total − debt_amount` cho cả đơn đã huỷ hoặc đã hoàn, nên App hiện "đã trả" đủ tiền cho đơn đã hoàn. Có kèm `trang_thai` nhưng con số vẫn dễ hiểu sai.
+- kh/index.js:136-137 / signup-codes.js: khách có token nhận được mã của bill mà đơn ghi SĐT người khác (`order_customer_phone`). Hành vi cũ không đổi, nhưng nay mở thẳng cho khách. Chủ quán nên quyết.
+- kh/index.js:125-128: mỗi lần gọi /menu là một lần gọi SX và có thể ghi Turso (layMenuQuay), không đệm, không giới hạn. Đáng lo trên Render bản free.
+- Các phép tĩnh quét route chỉ đọc `server/routes/*.js` cấp 1 (kiem_tra_truoc_khi_giao.js:508, 563). Thư mục `server/routes/kh/` mà LUAT §3 bắt dùng nằm ngoài mọi phép quét route, gồm cả E14.
+
+NGHIỆM THU: 22/23 mục có bằng chứng · mục thiếu: G.
+(A1 :170 · A2 :182 — `crypto.randomInt` chỉ có bằng chứng đọc code (maKhach.js:50), không ca/đột biến khoá; không khoá HMAC so với sha256 không khoá · A3 :199 · A4 :234 · A5 :261 · B1 :269 · B2 :319 · B3 :336 · C :346 · D :366 · E1 :388 · E2 :402 · E3 :413 + ma_khach_moi ở E6 · E4 :429 · E5 :459 — chỉ nhánh SX tắt, SX bật CHƯA KIỂM · E6 :490 · E7 :518 · F1 :543 · F2 :554 · F3 :573 + thân yêu cầu ở E1/E6/E7 · G THIẾU (LỖI 1, 2) · H :617 + npm test 67/0 · Đột biến: đủ 7 loại phiếu đòi, 54/54.)
+
+Các câu soát: K3 — bài đỏ trên bản chưa vá (9 đạt · 84 hỏng; 9 ca xanh đều canh đường cũ); ca hành vi kiểm qua HTTP, marker không làm chúng xanh; ngoại lệ 3 phép tĩnh index.js (LỖI 5); ca G lỏng (LỖI 1). K4 — grep `req.(body|query|params)` trong server/routes/kh/ ra 8 chỗ; SĐT từ client chỉ ở dang-nhap (index.js:40,52) và cap-ma (quay.js:15), hợp lệ; 10 đường 500 có `code`, 2 đường không (signup-codes.js:300,450); ~12 nhánh 4xx không `code` trong hai hàm chung; đã chuyển đủ 3 chỗ dùng chung loyalty → diemKhach. K5 — các luồng có ca, không bị chặn: khách cũ / mới đăng nhập bằng mã quầy; sai 1–4 lần rồi đúng; quầy cấp nhiều lần; xin-ma trước / sau cap-ma; X-Service-Key cũ; POST /orders. Còn ngờ: wifi chung ở chế độ quay, mã quầy bị che khi có chế độ gửi. Đường tiền (P3/P4): không trường tiền nào lấy từ client. P1: diff không đụng `client/`. backup.js: đúng một dòng ngay sau pos_customers (backup.js:43); E8 khoá sự có mặt (kiem_tra:388), vị trí không phép nào khoá; mọi file đổi trong Phạm vi; database.js chỉ thêm bảng + 2 chỉ mục; kiem_tra chỉ thêm một tên bài. Route cũ: /loyalty, /products giữ câu SQL; /claim, /nhan-diem chỉ khác ở nhánh `req.khach`; ca H xanh.
+
+Đơn giản (mục 8):
+- maKhach.js:65-79: ở chế độ quay đang sinh mã, băm mã, rồi chèn một dòng huỷ sẵn chỉ để đếm giới hạn, mà giới hạn đó chỉ có thể chặn oan. Gọn hơn: `if (!coKenhGui()) return { layMaTaiQuay: true }` trước câu INSERT. Cần chủ quán xác nhận vì ca C đang khoá đúng thiết kế hiện tại.
+- kh/index.js:23,117: chép lại công thức `total − debt_amount` và `flash || tier || unit` của tienDaTra.js:15,45 thay vì gọi hàm chung (LUAT §2). tienDaTra.js ngoài Phạm vi — nên ghi Phát hiện.
+- kh/loi.js:157 lấy `loiGhi` từ routes/wallets.js, tức một file route; quy tắc dùng chung lẽ ra ở utils/ (LUAT §3).
+- Đối soát (LUAT §5): voucher và điểm nhận qua App là kênh mới, có `created_by 'app_kh'`, chưa có quy tắc đối soát. Cần ghi rõ "không phải tính năng tiền mới", hoặc thêm quy tắc.
+
+CHƯA SOÁT ĐƯỢC: số tầng proxy Render; ngữ nghĩa đua INSERT…SELECT trên Turso từ xa; nhánh SX bật của /menu; mount thật trong index.js; tải /menu; khôi phục backup có sheet mới; `cong.js chay` (phải npm ci); giao diện App và quầy (KH-UI-1, KH-QUAY-1).
+
+BÀI HỌC:
+- KHOÁ: ca G phải đòi `code` có mặt trong MỌI thân lỗi /kh, và mỗi nhánh lỗi của nhan-ma-bill / nhan-diem có một ca.
+- KHOÁ: phép tĩnh index.js phải bỏ dòng chú thích trước khi dò, hoặc thêm một ca hành vi nạp app thật.
+- KHOÁ: chế độ `gia` chỉ được nhận khi chạy máy thử (laMayThu); còn lại coi như `quay`.
+- KHOÁ (hỏi chủ quán vì phải sửa bộ kiểm): phép quét route đệ quy cả `server/routes/**`.
+- NGUYÊN TẮC (K4, KHUON_LOI.md): khi mở một hàm cũ cho đối tượng mới (khách), rà MỌI nhánh trả của hàm theo luật của đối tượng mới: mã lỗi, giới hạn thử LUAT §4, mã 500. Không chỉ nhánh 500.
+- NGUYÊN TẮC (K1): chủ quán chốt khác đề xuất thì grep cả kế hoạch tìm mọi câu dựa trên phương án cũ (Q1-(a), F1 voucher, tên đột biến) và sửa luôn, không chỉ thêm đoạn "đè lên".
+```
+(Chép gần nguyên văn; hai chỗ rút gọn định dạng: danh sách nghiệm thu và "Các câu soát" gộp thành đoạn; một cụm tên hằng trong mục 4 viết bằng lời
+vì người gác chặn chữ in hoa đó trong lệnh.)
+
+### Vòng 1 — đã sửa (commit `ec5efe4` → `b46daf1` + hồ sơ)
+| Lỗi soát | Sửa | Bằng chứng |
+|---|---|---|
+| 1 — lỗi 4xx của hàm chung không `code` | `signup-codes.js` thêm `code` ở 12 chỗ (THIEU_MA ×2, SDT_KHONG_HOP_LE ×2, MA_KHONG_TON_TAI ×3 kể cả `baoChiemHong`, CAU_HINH_DIEM_SAI, UU_DAI_DANG_TAT, MA_HET_HAN, CHUA_CAU_HINH_NHOM, MA_TRUNG); lời báo giữ nguyên, route cũ chỉ THÊM khoá `code` (LUAT §2) | ca G mới đỏ trên bản trước vòng 1 (`bang_chung_do.txt` cuối: 115 · 12) → xanh; đột biến BV-G-bo-code-ma-khong-co · BV-G-bo-code-thieu-ma |
+| 2 — 500 / kho bận từ App không `code` | nhánh `req.khach` của hai `catch` gọi `loiMayChu` (500 LOI_MAY_CHU / 409 KHO_BAN); bỏ hằng `LOI_KHACH`; route cũ vẫn `err.message` (ca "G /claim cũ" giữ) | ca G 500 ×2 + KHO_BAN đỏ → xanh; BV-G-claim-bo-loiMayChu · BV-G-nhandiem-bo-loiMayChu · VS-G-claim-500-khong-code |
+| 3 — không giới hạn thử nhận mã | KHÔNG tự vá — Q9 dưới | — |
+| 4 — hồ sơ cũ | `ke_hoach.md` sửa TẠI CHỖ: P2 (hằng), P7 (`catch`, `/nhan-diem` đã gắn), §1 (số dòng của `27e1ac1`), §3 E5 + thêm hàng E7 + G + (tĩnh), §4 tên đột biến theo `dot_bien.py` (đã bỏ thì gạch + lý do), §5, §6 luồng 6, §7 F1; `trang_thai.md` Q8 | grep tên đột biến `ke_hoach.md`/`trang_thai.md` ↔ `dot_bien.py`: chỉ còn 3 tên đã ghi "bỏ" (dòng 11) + `VS-G-claim-lo-loi` (bảng bước 5 ghi "thay") |
+| 5 — phép tĩnh index.js marker suông | bỏ `/* */` và dòng `//` trước khi dò | VS-IX-gan-kh-chu-thich · VS-Q5-trust-proxy-chu-thich bị bắt |
+| VS-A4-tao-trung bỏ không ghi | thêm ca "A4 đua: khách được tạo chen" (móc `beginTransaction` chèn khách giữa lúc đọc và lúc chèn) + đột biến | đỏ trên gốc (404); đột biến bỏ `ON CONFLICT` → HTTP 500 → bắt |
+| Nghi ngờ `gia` ngoài máy thử (C16) | `guiMaKhach.js`: `gia` chỉ nhận khi `laMayThu()`, ngoài máy thử như giá trị lạ (cảnh báo + quay) | ca C mới đỏ trên bản trước vòng 1 → xanh; BV-C-gia-ngoai-may-thu |
+
+Kiểm sau vòng 1: `node cong_cu/thu_KH1.js` → 128 đạt · 0 hỏng; gốc `6fe38d8` → 9 đạt · 86 hỏng; `python3 viec/KH-API-1/dot_bien.py` → ĐỐI CHỨNG
+128 đạt · 0 hỏng, **62 đột biến bị bắt · 0 KHÔNG bị bắt (trên 62)**; `npm test -- --day-du` → PASS 71 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ "route GET
+có lệnh ghi (3)"), E9 hai phép `/claim` `/nhan-diem` xanh, E14 = 51 không đổi.
+
+Còn lại của báo cáo → Q9–Q11 (`## Câu hỏi`) và `## Phát hiện`. Theo luật skill: có câu hỏi nghiệp vụ → commit, push, DỪNG; vòng soát 2 chạy sau khi
+chủ quán trả lời (vòng sửa đã dùng: 1 / 3).
+
 ## Câu hỏi
+**Lượt 4 (19.10.2026) — chờ chủ quán trả lời Q9–Q11** (soát vòng 1 nêu; máy KHÔNG tự chọn):
+
+- **Q9 — giới hạn thử ở `/api/kh/nhan-ma-bill` và `/api/kh/nhan-diem`.** LUAT_XAY_APP §4: "Đăng nhập, nhận mã, đặt đơn từ App KH: giới hạn số lần
+  thử theo SĐT + IP". Phiếu mục B chỉ đặt giới hạn cho đăng nhập. Trước việc này hai cửa này chỉ mở cho máy chủ App (`X-Service-Key`); nay mọi khách có
+  token gọi thẳng, không trần, và 404 `MA_KHONG_TON_TAI` khác 400 / 409 → dò được mã có tồn tại. Mã bill 6 ký tự / 31 chữ (~887 triệu tổ hợp, sinh bằng
+  `Math.random` — `utils/voucherCode.js`, soát dẫn :11, chưa đọc lại lượt này). Với `nhandiem_chi_lan_dau='0'`, một tài khoản dò trúng mã nào là cộng
+  điểm của bill đó.
+  Phương án: **(a) đề xuất** — đếm lần nhận mã HỎNG (404 / hết hạn) theo khách + IP trong CSDL, ví dụ ≤ 10 lần hỏng / khách / giờ, ≤ 30 / IP / giờ →
+  429 `QUA_NHIEU_LAN`; cần một bảng đếm nhỏ (`database.js` + `backup.js` thêm dòng → sửa Phạm vi / Cấm của phiếu) + ~25 dòng + ca + đột biến.
+  (b) Gộp 404 `MA_KHONG_TON_TAI` vào cùng câu với hết hạn (không lộ tồn tại) — không chặn dò, chỉ bớt tín hiệu; đổi hành vi route cũ (Cấm).
+  (c) Để AUDIT-KH / việc sau (ghi Phát hiện), giữ nguyên như hiện tại.
+  Số ngưỡng (10 / 30) là quyết định của chủ quán.
+- **Q10 — chế độ `quay` (mặc định production) có nên KHÔNG đếm `xin-ma` không?** Hôm nay `xin-ma` ở chế độ `quay` không gửi gì nhưng vẫn chèn một dòng
+  (huỷ sẵn) và vẫn tính vào trần 20 lần / IP / giờ, 5 lần / SĐT / giờ, 60 giây → khách ngồi trong quán chung wifi (chính nhóm cần mã quầy) có thể bị 429.
+  Nếu App (KH-UI-1) chỉ mở ô nhập mã sau khi `xin-ma` trả 200 thì khách bị chặn oan (K5). Phương án: **(a) đề xuất** — chế độ `quay`: `xin-ma` trả ngay
+  `lay_ma_tai_quay: true`, không sinh mã, không chèn dòng (gọn hơn ~5 dòng, bớt một lần ghi Turso mỗi lần bấm); ca C đổi theo. (b) giữ như hiện tại, App
+  KH-UI-1 luôn cho nhập mã (kể cả khi 429).
+- **Q11 — khách nhận mã của bill ghi SĐT người khác.** `/claim` cũ cho mọi SĐT nhận mã của bất kỳ bill nào (kể cả bill có `customer_phone` của người khác) —
+  hành vi cũ không đổi, nhưng nay khách tự gọi được. Giữ như cũ (mã in trên giấy = ai cầm giấy được dùng), hay chặn khi bill đã có SĐT khác SĐT token?
+  Chặn là đổi hàm chung → đổi luôn hành vi `/claim` cũ (Cấm của phiếu).
+
+**Đối soát (LUAT §5) — ghi rõ, không cần trả lời nếu đồng ý:** việc này KHÔNG thêm tính năng tiền mới — voucher / điểm qua App đi đúng hàm `/claim` /
+`/nhan-diem` cũ (cùng bảng, cùng quy tắc); dòng ĐIỂM nhận qua App có `created_by 'app_kh'` (`signup-codes.js:281` lấy `req.user.username`, `quaToken` đặt `app_kh`) để màn Đối soát
+lọc được; voucher qua `/claim` KHÔNG có cột người tạo (cùng như đường cũ) — App hay `X-Service-Key` không phân biệt được (ghi Phát hiện).
+
+## Câu hỏi cũ (đã trả lời)
 **Lượt 3 (`tiep`, 19.10.2026):** chủ quán trả lời Q8 ĐỒNG Ý (một dòng `pos_kh_ma_dang_nhap` NGAY SAU dòng `pos_customers` — P26d sửa cuối
 danh sách), nói phiếu đã thêm `server/routes/backup.js`. Nhưng `git fetch origin viec/KH-API-1` → FETCH_HEAD = HEAD = `90ed271`;
 `viec/KH-API-1/phieu.md` ở HEAD chưa có `backup.js` trong `## Phạm vi` (lần sửa phiếu cuối vẫn là `6fe38d8`). Máy không tự sửa phiếu, không
 sửa file ngoài Phạm vi (cổng A6 đọc phiếu ở head) → DỪNG, chờ commit phiếu lên nhánh `viec/KH-API-1`.
 
 **Q8 (ĐÃ ĐỒNG Ý — chờ phiếu lên nhánh):** xin thêm `server/routes/backup.js` vào Phạm vi, CHỈ thêm một dòng vào `BACKUP_TABLES`:
-`{ name: 'pos_kh_ma_dang_nhap', label: 'Mã đăng nhập App KH', key: 'id' }` (bảng không có khoá ngoại → đặt cuối danh sách). Lý do: phép E8
+`{ name: 'pos_kh_ma_dang_nhap', label: 'Mã đăng nhập App KH', key: 'id' }` (đề xuất ban đầu "đặt cuối danh sách"; chủ quán chốt NGAY SAU
+`pos_customers` — đã làm ở `backup.js:43`, bảng không khoá ngoại nên chỗ nào cũng đúng thứ tự cha→con). Lý do: phép E8
 của bộ kiểm (`kiem_tra_truoc_khi_giao.js`, khối "mọi bảng tạo trong database.js phải có trong danh sách sao lưu") đỏ, `npm test` đỏ → chưa
 qua bước 6. Dữ liệu bảng này: mã băm sống 5 phút + lịch sử xin mã (giới hạn B, ai cấp mã ở quầy) — sao lưu để khôi phục không mất vết "ai
 cấp mã". Phương án khác (không đề xuất): chủ quán cho phép thêm bảng vào danh sách MIỄN sao lưu của phép E8 (phải sửa bộ kiểm). Trả lời
@@ -148,3 +252,15 @@ Q1–Q7 dưới đây ĐÃ được chủ quán trả lời (18.10) — giữ đ
   được qua `claimed_phone`, không hiện.
 - Khách chỉ có bên SX (trang Khách hàng ghép SX + POS) mà chưa có dòng `pos_customers` → lần đầu đăng nhập App sẽ bị hỏi tên.
 - `Customers.jsx` còn 2 `fetch` trần cũ (`loadMembershipStatus`, `loyaltyApi`) — không đụng.
+- (soát vòng 1) Phép quét route của bộ kiểm (E14, "GET có ghi"…) chỉ đọc `server/routes/*.js` cấp 1 → `server/routes/kh/` (LUAT §3 bắt dùng) nằm
+  ngoài mọi phép quét route. Đề xuất KHOÁ: quét đệ quy `server/routes/**` — sửa bộ kiểm, cần chủ quán cho phép (CLAUDE.md §6).
+- (soát vòng 1) `kh/index.js` tính `da_tra = total − debt_amount` cho mọi đơn, kể cả đơn đã huỷ / đã hoàn (có kèm `trang_thai`) — App KH-UI-1 nên
+  hiện theo `trang_thai`. Công thức trùng `tienDaTra.js` (nằm trong `soTienHoan`, không có hàm riêng để gọi) — tách hàm là việc của file ngoài Phạm vi.
+- (soát vòng 1) `/api/kh/menu` mỗi lần gọi là một lần gọi SX và có thể ghi Turso (nhớ tồn của `layMenuQuay`), không đệm, không giới hạn — đáng đo
+  khi App lên (Render free).
+- (soát vòng 1) `xacMinhMa` chỉ xét mã MỚI NHẤT còn hạn và không huỷ mã cũ: khi KH-OTP-1 có chế độ gửi, một lần App xin mã sau khi quầy đã cấp sẽ che
+  mã quầy (khách gõ mã quầy → `MA_SAI`). Hôm nay (`quay`) không xảy ra vì dòng App xin bị huỷ sẵn. KH-OTP-1 phải xử lý.
+- (soát vòng 1) `kh/loi.js` lấy `loiGhi` từ `routes/wallets.js` (một file route) — quy tắc dùng chung lẽ ra ở `utils/` (LUAT §3); dời là sửa `wallets.js`.
+- (soát vòng 1) Voucher phát qua `/claim` không có cột người tạo → Đối soát không tách được voucher nhận qua App với qua `X-Service-Key`.
+- (soát vòng 1) A2 `crypto.randomInt` và HMAC có khoá (`bamMa`) chỉ có bằng chứng đọc code, không ca / đột biến khoá (thay bằng `Math.random` hay
+  sha256 không khoá thì bài vẫn xanh) — khoá được bằng phép tĩnh, chưa làm.

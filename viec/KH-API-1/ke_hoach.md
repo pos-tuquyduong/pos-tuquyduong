@@ -37,7 +37,7 @@ Kế hoạch dưới đây viết theo các đề xuất trên. Chủ quán ch�
 - `/claim`: `signup-codes.js` route `router.post('/claim'` — SĐT lấy từ `req.body.phone`; chiếm mã `UPDATE … AND claimed_at IS NULL` + `changes !== 1` trong giao dịch; 409 `MA_DA_DUNG`; `kiemDonCuaMa` (completed + paid). Voucher phát ra CHỈ vào `pos_discount_codes`, KHÔNG vào `pos_voucher_grants` → không hiện ở `/loyalty/vouchers/:phone` (Phát hiện F1).
 - Đơn: `pos_orders` (`database.js:166–196` + ALTER: `payment_status`, `debt_amount`, `discount_*`, `shipping_fee`…); "đã trả" = `total − debt_amount` (cùng công thức `tienDaTra.js:45`). Món: `pos_order_items` (`database.js:273–289`).
 - Menu: `products.js:20–111` — SX bật: `callSxApi('/api/pos/products-with-stock')` + nhớ tồn; SX lỗi/tắt: `getFallbackProducts` (`products.js:116–134`, `ton_cu`, `ton_luc`, không bao giờ 999); trộn giá `pos_products` theo khoá ghép, `sellable = price > 0`. Quầy coi "hết" khi `!khong_quan_kho && stock_quantity === 0`, `null` = chưa rõ (`Sales.jsx:455, 862–867`).
-- Gắn route: `index.js:82–114`, `express.static` ở `index.js:154`; log mỗi yêu cầu chỉ in `method + req.path` (`index.js:64–68`) — không in thân / header → không lộ mã hay token. CORS cho `Authorization`, có `PUT` (`index.js:56–60`).
+- Gắn route (số dòng của `27e1ac1`, TRƯỚC khi việc này thêm dòng — nay trôi; tra lại bằng grep): `index.js:82–114`, `express.static` ở `index.js:154`; log mỗi yêu cầu chỉ in `method + req.path` (`index.js:64–68`) — không in thân / header → không lộ mã hay token. CORS cho `Authorization`, có `PUT` (`index.js:56–60`).
 - Phép kiểm tĩnh liên quan: E9 (`kiem_tra…:400–470`) soi khối `/claim` + `/nhan-diem` trong `signup-codes.js`; E14 (`kiem_tra…:526–561`) đếm route ghi không qua `loiGhi` — CHỈ quét `server/routes/*.js` cấp 1 (`readdirSync` lọc `.js`), KHÔNG vào `server/routes/kh/`.
 - Mảng bài chạy thật: `kiem_tra_truoc_khi_giao.js:495`.
 
@@ -50,7 +50,7 @@ Kế hoạch dưới đây viết theo các đề xuất trên. Chủ quán ch�
 - Giờ: cột ghi bằng `getNow()`; mốc "trước 60 giây / 1 giờ", "hạn +5 phút" tính TRONG câu SQL `strftime('%Y-%m-%dT%H:%M:%S', ?, '-1 hour')` với `? = getNow()` — cùng định dạng chuỗi, không viết công thức giờ thứ hai (LUAT §2 Thời gian).
 
 ### P2 — `server/utils/maKhach.js` (sinh / xin / xác minh mã, tạo khách) ~95 dòng
-- Hằng `GIOI_HAN = { HAN_MA_PHUT: 5, CACH_GIAY: 60, SDT_GIO: 5, IP_GIO: 20, THU_MOI_MA: 5, SAI_SDT_GIO: 10, TOKEN_NGAY: 30, TEN_TOI_DA: 50 }` — một chỗ có tên (B3).
+- Hằng `GIOI_HAN = { HAN_MA_PHUT: 5, CACH_GIAY: 60, SDT_GIO: 5, IP_GIO: 20, THU_MOI_MA: 5, SAI_SDT_GIO: 10, TEN_TOI_DA: 50 }` — một chỗ có tên (B3). Hạn token 30 ngày là hằng riêng trong `khachAuth.js` (nơi ký token), không nằm trong `GIOI_HAN`.
 - `sinhMa()` = `crypto.randomInt(0, 1e6)` đệm 6 chữ số. `bamMa(sdt, ma)` = HMAC-SHA256 khoá `KH_JWT_SECRET` (lộ bảng cũng không dò ngược 10⁶ mã được nếu không có khoá); so bằng `timingSafeEqual`.
 - `capMaQuay(sdt, nguoiCap)` — D: chèn dòng `nguon 'quay'`, không giới hạn (nhân viên đã đăng nhập), trả `{ ma, het_han_giay: 300 }`.
 - `xinMaGui(sdt, ip)` — B1 bằng MỘT câu `INSERT … SELECT … WHERE NOT EXISTS(<dòng gui của SĐT có tao_luc > now−60 giây>) AND (<đếm dòng gui của SĐT, tao_luc > now−1 giờ>) < 5 AND (<đếm dòng gui của IP, tao_luc > now−1 giờ>) < 20` rồi kiểm `changes` → 0 = 429. CẢ BA truy vấn con lọc `nguon = 'gui'` — mã quầy cấp không ăn vào lượt App và máy quầy không ăn vào lượt IP của khách cùng wifi. So nghiêm `>` → đúng 60 giây là được. Một câu = không đua; lần bị từ chối không chèn dòng nên không tự tính thêm. Chế độ không gửi (`coKenhGui()` = false) → `huy_luc` ghi sẵn NGAY trong câu chèn (không chèn rồi mới huỷ — khe giữa hai câu cho lần xác minh mã quầy chọn nhầm dòng chưa huỷ); có kênh → `guiMaKhach(sdt, ma)` sau khi chèn.
@@ -92,9 +92,9 @@ Kế hoạch dưới đây viết theo các đề xuất trên. Chủ quán ch�
 ### P7 — `signup-codes.js` (Q2 — phương án A, ~+8 / −3 dòng)
 - `router.post('/claim', authenticateServiceOrUser, nhanMaUuDai);` rồi NGAY dưới: `async function nhanMaUuDai(req, res) { …thân cũ Y NGUYÊN, kể cả `const phone = normalizePhone(req.body.phone)` TRONG `try`… }` (hàm được kéo lên — hoisting). Đọc SĐT phải ở trong `try`: Express 5 (`package.json:24`) để `req.body` `undefined` khi không có thân JSON, và `normalizePhone` gọi `.replace` (`helpers.js:154`) → ném ngoài `try` thì rơi vào bộ lỗi chung `index.js` (`{ error: 'Internal server error' }`) — đổi hành vi route cũ (soát kế hoạch bắt).
 - E9 cắt khối từ `router.post('/claim'` tới `router.` kế tiếp (`kiem_tra…:407–409`) → vẫn chứa trọn thân (thân không có chữ `router.`). E14 dò dòng đóng từ dòng SAU `router.post(` (`kiem_tra…:550`), `}` đóng hàm ở cột 0 không khớp `^\}?\);` → vẫn đếm `/claim` như cũ (ngưỡng 51 không đổi). Neo `AUDIT-1` `if (kqDon.loi) {` vẫn khớp 2 lần, đúng thứ tự.
-- Một chỗ đổi trong thân: `catch` → `res.status(500).json({ success: false, error: req.khach ? 'Lỗi máy chủ, thử lại sau' : err.message })` — route cũ không có `req.khach` → y như cũ; khách không thấy lỗi nội bộ (G).
+- Đổi trong thân (bản sau soát vòng 1): `catch` → `if (req.khach) return loiMayChu(res, err, …)` (500 `LOI_MAY_CHU` / 409 `KHO_BAN`, như mọi route `/api/kh`), route cũ vẫn `{ success: false, error: err.message }`; mọi nhánh 4xx thêm `code` (khoá mới, lời báo giữ nguyên — LUAT §2 "lỗi cũ chưa có `code` thì thêm khi chạm tới") (G).
 - `/api/kh/nhan-ma-bill` gọi `nhanMaUuDai({ body: { code: req.body.ma, phone: req.khach.phone }, khach: req.khach }, res)` — thân dựng MỚI, chỉ hai khoá; SĐT từ hàng CSDL của token.
-- `/nhan-diem` (nhân điểm từ mã bill) KHÔNG được gắn vào `/api/kh` ở phương án Q1-(a) → App vẫn phải gọi đường `X-Service-Key` với SĐT trong thân → lỗ F3 còn ở phần điểm cho tới khi chủ quán chọn (b)/(c) hoặc AUDIT-KH đóng đường cũ.
+- `/nhan-diem` (nhân điểm từ mã bill): chủ quán chốt Q1 làm cả hai → thân thành `nhanDiemMaBill` NGAY dưới dòng route (cùng khuôn), `/api/kh/nhan-diem` gọi cùng hàm với SĐT từ token (E7) — lỗ F3 phần điểm đóng ở `/api/kh`.
 - B: chuyển thân sang `utils/nhanMaBill.js` — đúng LUAT §3 hơn nhưng E9 + đột biến `AUDIT-1 D1-E-*` mất neo → phải sửa bộ kiểm (cần chủ quán cho phép, CLAUDE.md §6). ~cùng số dòng.
 
 ### P8 — `index.js` ~+4 · `env.example` ~+8 · `kiem_tra_truoc_khi_giao.js` +1 tên · `products.js` (Q3) ~+5 / −3
@@ -130,14 +130,15 @@ Khuôn `thu_P20.js`: `database.js` thật trên kho tạm (thay `ketNoiKho`), SX
 | E2 | `GET /api/kh/diem` so sâu = `GET /loyalty/points/:phone` (nhân viên) cho cùng khách, kể cả có 1 dòng điểm HẾT HẠN (không tính vào số dư) |
 | E3 | `GET /api/kh/voucher` so sâu = `/loyalty/vouchers/:phone` (có voucher còn / đã dùng) |
 | E4 | đơn qua `POST /orders` THẬT cho A và B; A `GET /don` chỉ thấy đơn A, mới nhất trước, trang 2 đúng; `GET /don/<mã đơn A>` có món: tên, số lượng, đơn giá, thành tiền khớp `pos_order_items`; `GET /don/<mã đơn B>` → 404; `da_tra` của bill chờ thu = `total − debt_amount` |
-| E5 | `GET /menu` (SX tắt → nhánh tồn cũ): mỗi món có ĐÚNG bộ khoá danh sách trắng (so tập khoá); món giá 0 / null không có; `con_hang` = true khi `ton_gan_nhat` 3, false khi 0, null khi chưa rõ; hồi quy `products.js`: `GET /api/pos/products` (JWT và `X-Service-Key`) so sâu với bản chụp lấy ở ĐẦU bài cho cùng kho — giá, `sellable`, `stock_status` không đổi |
+| E5 | `GET /menu` (SX tắt → nhánh tồn cũ): mỗi món có ĐÚNG bộ khoá danh sách trắng (so tập khoá); món giá 0 / null không có; `con_hang` = true khi `ton_gan_nhat` 3, false khi 0, null khi chưa rõ; hồi quy `products.js`: `GET /api/pos/products` (JWT) — giá, `sellable`, `unique_id` từng món khớp `pos_products` sau khi đổi giá; bản `X-Service-Key` so sâu = bản JWT (`stock_status` không so riêng; nhánh SX bật CHƯA KIỂM) |
+| E7 | `nhan-diem` → 200, điểm ghi cho SĐT token (thân có SĐT khác); lần 2 → `MA_DA_NHAN_DIEM`; bill chưa thu → `BILL_CHUA_THANH_TOAN`; ĐUA hai khách → đúng một 200, một dòng điểm; điểm = qua `/nhan-diem` cũ (H) |
 | E6 | đơn `POST /orders` có SĐT, đã thu → mã bill → `nhan-ma-bill` → 200, voucher có trong `pos_discount_codes`, `claimed_phone` = SĐT token; lần 2 → 409 `MA_DA_DUNG`; SĐT đã nhận qua mã bill KHÁC → 400 `SDT_DA_NHAN` (một SĐT một lần); bill chưa thu → `BILL_CHUA_THANH_TOAN`; ĐUA hai khách cùng mã (móc `beginTransaction`) → đúng một 200 |
 | F1 | xoá `KH_JWT_SECRET` → `xin-ma`, `xac-minh`, `/toi`, `cap-ma` → 503 `KH_CHUA_CAU_HINH`; đặt `KH_JWT_SECRET = JWT_SECRET` → 503 |
 | F2 | token khách gọi `/api/pos/orders`, `/api/pos/customers`, `/api/pos/loyalty/points/<sđt>` → 401; token nhân viên gọi `/api/kh/toi`, `/diem`, `/don` → 401 `KH_TOKEN_SAI`; token ký `KH_JWT_SECRET` nhưng KHÔNG có `loai 'kh'` → 401; token khách của khách đã bị xoá → 401 |
 | F3 | A gửi `?sdt=<B>`, `?phone=<B>`, thân `{ sdt, phone, customer_phone: <B> }` vào `/toi`, `/diem`, `/voucher`, `/don`, `/nhan-ma-bill` → vẫn dữ liệu / ghi nhận của A; A đọc `/don/<mã đơn B>` → 404 (phiếu cho 404 thay 403 — không lộ đơn tồn tại) |
-| G | mọi thân lỗi của `/api/kh/*` chỉ có khoá thuộc `{ error, code, success }`; không thân nào chứa `ma_bam`, token khác, `JWT_SECRET`; gom `console.*` trong lúc chạy cả bài → không dòng nào chứa mã thô hay token đã cấp |
+| G | mọi thân lỗi của `/api/kh/*` có `error` + `code` (chuỗi khác rỗng), ngoài ra chỉ `success`; mỗi nhánh lỗi của `nhan-ma-bill` / `nhan-diem` khách chạm được một ca (`THIEU_MA`, `MA_KHONG_TON_TAI`, `MA_HET_HAN`, `UU_DAI_DANG_TAT`, `CAU_HINH_DIEM_SAI`, 500 `LOI_MAY_CHU`, kho bận 409 `KHO_BAN`); không thân nào chứa `ma_bam`, token khác, `JWT_SECRET`; gom `console.*` trong lúc chạy cả bài → không dòng nào chứa mã thô hay token đã cấp |
 | H | khách đăng nhập → `/diem` → `nhan-ma-bill` hợp lệ → voucher phát ra so từng cột = voucher phát qua `/signup-codes/claim` (X-Service-Key) cho một khách đối chứng cùng cấu hình (Q1); qua `X-Service-Key`: `/claim` vẫn 200 / 409, `/loyalty/points/:phone` + `/loyalty/vouchers/:phone` + `/products` vẫn 200 cùng thân như qua JWT; `/claim` không thân JSON → vẫn `{ success: false, … }` của route (không rơi vào bộ lỗi chung); `thu_P20.js` + mọi bài cũ xanh (`npm test`) |
-| (tĩnh) | `index.js` có `app.use('/api/kh'` TRƯỚC `express.static` và `trust proxy` (Q5) — bài không nạp được `index.js` (nó tự `listen`) |
+| (tĩnh) | `index.js` (đã bỏ chú thích `//` và `/* */`) có `app.use('/api/kh'` TRƯỚC `express.static` và `trust proxy` (Q5) — bài không nạp được `index.js` (nó tự `listen`) |
 
 ## 4. Đột biến (`viec/KH-API-1/dot_bien.py`) — mỗi chỗ vá ít nhất một VS- và một BV-
 
@@ -145,25 +146,29 @@ Khuôn `thu_P20.js`: `database.js` thật trên kho tạm (thay `ketNoiKho`), SX
 |---|---|---|
 | F2 kiểm loại token | `BV-F2-bo-kiem-loai` · `VS-F2-loai-sai-chieu` (`loai !== 'nv'`) | F2 token không `loai` |
 | F1 đóng khi thiếu khoá | `BV-F1-bo-chan-thieu-khoa` · `VS-F1-khoa-du-phong-jwt` (`|| JWT_SECRET`) | F1 |
-| F3 SĐT từ token | `VS-F3-sdt-tu-than` (nhan-ma-bill lấy `req.body.phone \|\| …`) · `VS-F3-diem-tu-query` · `BV-F3-khach-tu-token-sdt` | F3 |
-| A2 câu "chưa dùng" | `BV-A2-bo-chua-dung` · `VS-A2-kiem-changes-lon-hon-0` (`changes > 1`) · `VS-A2-luu-ma-tho` | A2 đua · A2 băm |
+| F3 SĐT từ token | `VS-F3-ma-bill-sdt-tu-than` (nhan-ma-bill lấy `req.body.phone \|\| …`) · `VS-F3-diem-tu-query` · `VS-F3-don-tu-query` | F3 / E6 |
+| A2 câu "chưa dùng" | `BV-A2-bo-chua-dung` · `VS-A2-changes-lon-hon-1` (`changes > 1`) · `VS-A2-luu-ma-tho` | A2 đua · A2 băm |
 | A2/A3 hạn | `VS-A3-han-50-phut` · `BV-A3-bo-loc-het-han` (bỏ `het_han > ?` khỏi câu chọn mã) | A2 300 giây · A3 lùi 1 giây. (Bỏ `VS-A3-het-han-bang` `>=`/`>`: chỉ khác nhau khi `het_han` = ĐÚNG giây hiện tại, ca ±1 giây không bắt được và không dựng tất định được — soát kế hoạch bắt) |
 | A3 5 lần thử | `BV-B2-bo-gioi-han-moi-ma` · `VS-B2-thu-6-lan` | A3 / B2 |
 | B2 theo SĐT | `BV-B2-bo-gioi-han-sdt` · `VS-B2-sdt-11` · `VS-B2-chan-ca-ma-quay` (Q7) | B2 |
-| B1 60 giây / SĐT giờ / IP | `BV-B1-bo-60-giay` · `VS-B1-61-giay` · `VS-B1-so-bang` (`>=` → 60 giây bị chặn) · `BV-B1-bo-sdt-gio` · `VS-B1-sdt-6` · `BV-B1-bo-ip` · `VS-B1-ip-21` · `VS-B1-tinh-ca-quay` (bỏ `nguon = 'gui'`) | B1 |
-| Q3 tách menu | `VS-Q3-route-cu-bo-gia` (route cũ không trộn giá) · `BV-Q3-kh-tu-doc-bang` (`/menu` đọc thẳng `pos_products`, bỏ `layMenuQuay`) | E5 hồi quy · E5 |
-| A4 không tiêu mã khi thiếu tên | `VS-A4-tieu-ma-truoc-khi-hoi-ten` · `BV-A4-bo-can-ten` · `VS-A4-tao-trung` (bỏ `ON CONFLICT`) | A4 |
+| B1 60 giây / SĐT giờ / IP | `BV-B1-bo-60-giay` · `VS-B1-61-giay` · `VS-B1-so-bang` (`>=` → 60 giây bị chặn) · `BV-B1-bo-sdt-gio` · `VS-B1-sdt-6` · `BV-B1-bo-ip` · `VS-B1-ip-21` · `VS-B1-tinh-ca-quay-ip` · `VS-B1-tinh-ca-quay-60` (bỏ `nguon = 'gui'`) | B1 |
+| B3 hằng một chỗ | `VS-B3-so-ten-roi` | B3 |
+| Q3 tách menu | `VS-Q3-route-cu-bo-gia` (route cũ không trộn giá) · ~~`BV-Q3-kh-tu-doc-bang`~~ bỏ (dòng 11) | E5 hồi quy |
+| A4 không tiêu mã khi thiếu tên | `VS-A4-tieu-ma-truoc-khi-hoi-ten` · `BV-A4-bo-can-ten` · `VS-A4-loai-khach-sai` · `VS-A4-tao-trung` (bỏ `ON CONFLICT` — thêm ở soát vòng 1, ca A4 đua) | A4 |
 | A5 không lộ khách | `VS-A5-bao-khach-moi` | A5 |
-| C chế độ | `VS-C-mac-dinh-gia` · `BV-C-quay-khong-huy` · `VS-C-doc-luc-nap` (đọc `GUI_MA_KHACH` một lần khi nạp module) | C (ca không đặt biến) |
+| C chế độ | `VS-C-mac-dinh-gia` · `BV-C-quay-khong-huy` · `VS-C-doc-luc-nap` (đọc `GUI_MA_KHACH` một lần khi nạp module) · `BV-C-gia-ngoai-may-thu` (soát vòng 1) | C (ca không đặt biến · gia ngoài máy thử) |
 | P7 SĐT trong `try` | `VS-P7-sdt-ngoai-try` | H (không thân JSON) |
-| D quầy | `BV-D-bo-authenticate` · `VS-D-gioi-han-quay` | D |
+| D quầy | `BV-D-bo-authenticate` · `VS-D-ma-quay-thanh-gui` | D |
 | E1 chỉ sửa tên | `VS-E1-sua-ca-sdt` | E1 / F3 |
-| E2 / E3 cùng hàm | `VS-E2-kh-tu-tinh-bo-han` · `VS-E3-kh-tu-loc` | E2 / E3 |
+| E2 / E3 cùng hàm | `VS-E2-kh-tu-tinh-bo-han` · `VS-E3-kh-tu-loc` · `VS-E3-ma-moi-khong-loc-sdt` | E2 / E3 |
 | E4 lọc SĐT | `BV-E4-bo-loc-sdt` · `VS-E4-chi-tiet-bo-loc` | E4 / F3 |
 | E5 danh sách trắng | `VS-E5-tra-them-gia-von` · `BV-E5-tra-nguyen-mon` (`...p`) | E5 |
-| E6 | `VS-E6-sdt-tu-than` · `BV-E6-bo-claim-chung` (KH tự chèn voucher) | E6 / H |
-| G | `VS-G-500-lo-loi` · `VS-G-log-ma` | G |
-| P6 tách hàm (hồi quy) | `VS-P6-loyalty-lich-su-20` | E2 so sâu |
+| E6 / E7 | `VS-E6-bo-claim-chung` (KH tự ghi mã, không qua hàm `/claim`) · `VS-E7-sai-ham` · SĐT từ thân: `VS-F3-ma-bill-sdt-tu-than` (hàng F3) | E6 / E7 / H |
+| G | `VS-G-500-lo-loi` · `VS-G-log-ma` · soát vòng 1: `BV-G-claim-bo-loiMayChu` · `BV-G-nhandiem-bo-loiMayChu` · `VS-G-claim-500-khong-code` · `BV-G-bo-code-ma-khong-co` · `BV-G-bo-code-thieu-ma` | G |
+| P7 / index.js | `VS-P7-sdt-ngoai-try` · `BV-Q5-trust-proxy` · `BV-IX-bo-gan-kh` · soát vòng 1: `VS-IX-gan-kh-chu-thich` · `VS-Q5-trust-proxy-chu-thich` | H · (tĩnh) |
+| P6 tách hàm (hồi quy) | ~~`VS-P6-loyalty-lich-su-20`~~ bỏ (dòng 11) | — |
+
+Danh sách THẬT (đúng tên, chạy được) là `dot_bien.py` + bảng ở `trang_thai.md` bước 5; bảng trên đã sửa theo nó ở soát vòng 1.
 
 Chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản không đột biến xanh), bài sập ≠ BẮT (K3). Neo chuỗi ngắn, riêng; mỗi neo khớp đúng 1 lần — `dot_bien.py` tự kiểm số lần khớp trước khi chạy.
 
@@ -177,7 +182,8 @@ Chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản không đột biến xanh
 - 500 trả lỗi nội bộ: rà mọi `catch` trong `routes/kh/*` + nhánh `req.khach` của `nhanMaUuDai`.
 - `products.js` `GET /` và `/api/kh/menu` — cùng `layMenuQuay`; lệnh ghi nhớ tồn vẫn trong khối E14 quét (P8).
 - Hai cách tách thân route ra hàm (P7 `/claim`, P8 `GET /products`) — cùng khuôn "dòng route + hàm NGAY dưới", cùng lý do (phép tĩnh cắt khối theo `router.`).
-- `/nhan-diem` — đường mã bill thứ hai, KHÔNG có trong `/api/kh` theo Q1-(a); ghi rõ ở Q1.
+- `/signup-codes/nhan-diem` và `/api/kh/nhan-diem` — CÙNG hàm `nhanDiemMaBill` (Q1 chủ quán chốt làm cả hai); H so điểm hai đường.
+- Mở hàm cũ cho đối tượng mới (khách): MỌI nhánh trả của `nhanMaUuDai` / `nhanDiemMaBill` theo luật `/api/kh` — `code` ở mọi lỗi, 500 qua `loiMayChu` (soát vòng 1 bắt: trước chỉ vá nhánh 500). Giới hạn thử nhận mã (LUAT §4) — `trang_thai.md` Q9.
 
 ## 6. Luồng hợp lệ phải KHÔNG bị chặn (K5) — mỗi luồng một ca
 
@@ -186,7 +192,7 @@ Chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản không đột biến xanh
 3. Nhân viên mở trang Khách hàng, đổi quà (LOY-2) — đi qua `/loyalty/*` cũ: ca E2/E3 so sâu với route cũ.
 4. Khách CŨ (có từ trước, cả khách tạo trước khi có cột `created_by`) đăng nhập → không cần tên — ca A4.
 5. Khách mới tự tạo tài khoản trên App bằng mã quầy cấp khi `GUI_MA_KHACH=quay` (mặc định production) — ca C + D.
-6. Khách xin mã lần 2 sau 60 giây (mã đầu không tới) — ca B1 61 giây.
+6. Khách xin mã lần 2 sau 60 giây (mã đầu không tới) — ca B1 "cách ĐÚNG 60 giây → 200".
 7. Khách gõ sai 1–4 lần rồi đúng — ca A3.
 8. Nhân viên cấp mã nhiều lần cho cùng khách (khách gõ chậm) — ca B1 quầy 6 lần + mã mới nhất xác minh được.
 9. Nhiều khách khác nhau đăng nhập từ CÙNG wifi quán (cùng IP) — giới hạn IP 20 / giờ chỉ tính lối `xin-ma`; mã quầy cấp không tính (ca B1 "20 dòng quay cùng IP").
@@ -195,6 +201,6 @@ Chạy được TỪNG TÊN, có ĐỐI CHỨNG (bản không đột biến xanh
 
 ## 7. Ngoài phạm vi — chỉ ghi Phát hiện
 
-- F1: voucher phát qua `/claim` không vào `pos_voucher_grants` → `GET /api/kh/voucher` (và `/loyalty/vouchers/:phone`) không hiện voucher khách mới vừa nhận; App phải hiện mã từ phản hồi `nhan-ma-bill`. Đổi là đổi hành vi `/claim` → việc sau.
+- F1: voucher phát qua `/claim` không vào `pos_voucher_grants` → `/loyalty/vouchers/:phone` (quầy) không hiện voucher khách mới vừa nhận. `GET /api/kh/voucher` CÓ hiện — qua `ma_khach_moi` (Q1 chủ quán chốt, nối `pos_signup_codes.claimed_phone`). Đổi `/claim` để ghi `pos_voucher_grants` là đổi hành vi → việc sau.
 - F2: khách chỉ có bên SX (danh sách trang Khách hàng ghép SX + POS) mà chưa có dòng `pos_customers` → lần đầu đăng nhập App bị hỏi tên.
 - F3: `Customers.jsx` còn 2 `fetch` trần cũ (`loadMembershipStatus`, `loyaltyApi`) — không đụng (LUAT §3: chuyển dần khi chạm tới; việc này chỉ thêm nút).

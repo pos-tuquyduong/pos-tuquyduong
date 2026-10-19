@@ -1,11 +1,13 @@
-# Bằng chứng ĐỎ — cong_cu/thu_KH1.js (bản commit 38392aa) chạy trên bản GỐC: server/ của 6fe38d8 (PHIEU: KH-API-1, trước khi vá)
+# Bằng chứng ĐỎ — cong_cu/thu_KH1.js (bản commit 2c296e4 — vòng soát 1) chạy trên bản GỐC: server/ của 6fe38d8 (PHIEU: KH-API-1, trước khi vá)
 # Dựng gốc: python3 cong_cu/ban_sao_goc.py 6fe38d8 <nháp>/goc_kh1 ; chép cong_cu/thu_KH1.js vào <nháp>/goc_kh1/cong_cu/
 # Lệnh:     cd <nháp>/goc_kh1 && node cong_cu/thu_KH1.js
-# Kết quả gốc: 9 đạt · 84 hỏng, thoát 1. 9 ca đạt là ca CANH đường cũ (phải xanh cả trước lẫn sau): GET /products ×2, token khách
+# Kết quả gốc: 9 đạt · 86 hỏng, thoát 1. 9 ca đạt là ca CANH đường cũ (phải xanh cả trước lẫn sau): GET /products ×2, token khách
 # bị /api/pos/* từ chối ×1, /claim + /loyalty qua X-Service-Key ×4, /claim + /nhan-diem không thân JSON ×2.
 # Số ca gốc ít hơn bản vá vì 4 mục (A3, B1, B2, G) sập giữa chừng trên gốc (chưa có bảng pos_kh_ma_dang_nhap) — mỗi mục sập in MỘT dòng ✗.
-# (Lần ghi đầu với bản 93ee2ce: 9 đạt · 83 hỏng; bản 38392aa đổi mục F3 thành so sâu 4 đường + 1 ca đơn → gốc thêm 1 ca hỏng.)
-SỐ CA cong_cu/thu_KH1.js: 116
+# (Lần ghi đầu với bản 93ee2ce: 9 đạt · 83 hỏng; bản 38392aa đổi mục F3 thành so sâu 4 đường + 1 ca đơn → gốc thêm 1 ca hỏng: 9 · 84;
+#  bản ec5efe4 thêm ca C "gia ngoài máy thử" → gốc thêm 1 ca hỏng: 9 · 85;
+#  bản 2c296e4 thêm ca A4 "đua tạo khách chen" → 9 · 86. Ca G mới không hiện trên gốc vì mục G sập ngay đầu.)
+SỐ CA cong_cu/thu_KH1.js: 128
 
   ✗ A1 "+84 912 345 601" → 200, dòng mã lưu 0912345601  — HTTP 404
   ✗ A1 SĐT "abc" → 400 SDT_KHONG_HOP_LE  — HTTP 404
@@ -31,6 +33,7 @@ SỐ CA cong_cu/thu_KH1.js: 116
   ✗ A4 ten toàn khoảng trắng → CAN_TEN  — HTTP 404
   ✗ A4 ten 51 ký tự → CAN_TEN  — HTTP 404
   ✗ A4 ten 50 ký tự → 200  — HTTP 404
+  ✗ A4 đua: khách được tạo chen trước khi chèn → 200, token gắn khách đó, 1 dòng, tên không đổi  — HTTP 404 · []
   ✗ A5 cùng status, cùng thân  — 404 <!DOCTYPE html>…
   ✗ B1: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_ma_dang_nhap
   ✗ B2: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_ma_dang_nhap
@@ -40,6 +43,7 @@ SỐ CA cong_cu/thu_KH1.js: 116
   ✗ C mã quầy cấp TRƯỚC đó vẫn xác minh được  — HTTP 404
   ✗ C GUI_MA_KHACH lạ → như quay + đúng 1 dòng cảnh báo  — HTTP 404 · 0 cảnh báo
   ✗ C gia → lay_ma_tai_quay false, mã gửi được, dòng không huỷ  — HTTP 404
+  ✗ C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, dòng huỷ, đúng 1 cảnh báo  — HTTP 404 · 0 cảnh báo
   ✗ D không token → 401  — HTTP 404
   ✗ D token khách → 401  — HTTP 404
   ✗ D nhân viên staff → 200 + mã 6 chữ số + het_han_giay 300  — HTTP 404
@@ -105,3 +109,23 @@ SỐ CA cong_cu/thu_KH1.js: 116
 
 # Trên code ĐÃ VÁ (c091bee + bài 38392aa): node cong_cu/thu_KH1.js → 116 đạt · 0 hỏng (chạy 4 lần, cả 4 lần 116 / 0).
 # Đột biến: python3 viec/KH-API-1/dot_bien.py → ĐỐI CHỨNG 116 đạt · 0 hỏng; 54 đột biến bị bắt · 0 KHÔNG bị bắt (trên 54).
+
+# ── Vòng soát 1 (19.10.2026): bài ec5efe4 chạy trên server/ của 1458a7c (TRƯỚC vá vòng 1 — chép tạm bản HEAD của
+#    signup-codes.js + guiMaKhach.js vào chỗ, chạy, chép lại bản vá): 115 đạt · 12 hỏng, thoát 1. Mười hai ca ĐỎ:
+  ✗ C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, dòng huỷ, đúng 1 cảnh báo  — HTTP 200 · 0 cảnh báo
+  ✗ G /kh/nhan-ma-bill lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo  — {"success":false,"error":"Lỗi máy chủ, thử lại sau"}
+  ✗ G /kh/nhan-diem lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo  — {"success":false,"error":"Lỗi máy chủ, thử lại sau"}
+  ✗ G /kh/nhan-ma-bill kho bận → 409 KHO_BAN (như mọi route /kh)  — {"success":false,"error":"Lỗi máy chủ, thử lại sau"}
+  ✗ G /kh/nhan-ma-bill thiếu ma → 400 THIEU_MA  — {"success":false,"error":"Thiếu mã ưu đãi"}
+  ✗ G /kh/nhan-ma-bill mã không có → 404 MA_KHONG_TON_TAI  — {"success":false,"error":"Mã không tồn tại"}
+  ✗ G /kh/nhan-diem thiếu ma → 400 THIEU_MA  — {"success":false,"error":"Thiếu mã trên bill"}
+  ✗ G /kh/nhan-diem mã không có → 404 MA_KHONG_TON_TAI  — {"success":false,"error":"Mã không tồn tại"}
+  ✗ G /kh/nhan-ma-bill mã in quá 24 giờ → 400 MA_HET_HAN  — {"success":false,"error":"Mã đã hết hạn (quá 24 giờ kể từ lúc in)"}
+  ✗ G /kh/nhan-ma-bill ưu đãi khách mới tắt → 400 UU_DAI_DANG_TAT  — {"success":false,"error":"Chương trình ưu đãi khách mới hiện đang tắt"}
+  ✗ G /kh/nhan-diem cấu hình tích điểm sai → 400 CAU_HINH_DIEM_SAI  — {"success":false,"error":"Cấu hình tích điểm chưa hợp lệ."}
+  ✗ G mọi thân lỗi /kh (61) có error + code, ngoài ra chỉ success  — /kh/nhan-ma-bill {"success":false,"error":"Lỗi máy chủ, thử lại sau"} | …
+# (Ca "G /kh/nhan-diem mã in quá 24 giờ → MA_HET_HAN" XANH trên bản trước vòng 1 — nhánh đó đã có code từ trước; giữ làm ca canh.)
+# Phép tĩnh index.js bỏ chú thích: đỏ tất định qua đột biến VS-IX-gan-kh-chu-thich, VS-Q5-trust-proxy-chu-thich (dòng bị // hay /* */).
+# Trên code ĐÃ VÁ vòng 1 (b50d5f3): node cong_cu/thu_KH1.js → 127 đạt · 0 hỏng; đột biến 61/61 bị bắt.
+# Ca A4 đua (2c296e4) khoá `ON CONFLICT DO NOTHING` có sẵn (maKhach.js) — code đã đúng nên chỉ đỏ trên gốc (404) và qua đột biến
+#  VS-A4-tao-trung (bỏ ON CONFLICT → HTTP 500 LOI_MAY_CHU). Bài 2c296e4 trên code đã vá: 128 đạt · 0 hỏng (số cuối ở trang_thai.md).
