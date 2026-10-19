@@ -95,11 +95,26 @@ const BACKUP_TABLES = [
   { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' }
 ];
 
-// P26d (Q3, chủ quán mở rộng 18.10): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (/restore chặn 400):
-// ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn · điểm, gói khách, thẻ, voucher, đền bù (hàng hỏng), lượt mã giảm.
+// P26d (Q3, chủ quán mở rộng 18.10 + Q7a 19.10): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (chặn 400):
+// ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn · điểm, gói khách, thẻ, voucher, đền bù (hàng hỏng), lượt mã giảm · mã ưu đãi khách mới
+// (cổng chống nhận điểm / voucher hai lần), nhật ký đơn (sổ thu tiền), lượt dùng khuyến mãi.
 const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'pos_balance_transactions', 'pos_refund_requests',
   'pos_point_transactions', 'pos_customer_packages', 'pos_membership_purchases', 'pos_voucher_grants', 'pos_damage_logs',
-  'pos_discount_codes'];
+  'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage'];
+
+/**
+ * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
+ * Màn Cài đặt hiện `error` ngay ở bước xem trước. Trả true khi đã trả lời 400.
+ */
+function chanTrangTien(res, wb) {
+  const bang = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(BACKUP_TABLES.find((t) => t.label === s)?.name)
+    && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
+  if (!bang.length) return false;
+  res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang,
+    error: `File có trang dính tiền (${bang.join(', ')}) — trang tiền không khôi phục bằng file. `
+      + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
+  return true;
+}
 
 /**
  * Helper: Lấy pos_products với tên mới nhất từ SX
@@ -251,6 +266,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
     }
 
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+    if (chanTrangTien(res, wb)) return;
     const preview = [];
 
     const labelToTable = {};
@@ -311,13 +327,7 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
 
     // P26d (7), chủ quán chốt Q3: trang tiền không khôi phục bằng file (ví chỉ ghi qua ghiVi, đơn qua đường bán) — chặn TRƯỚC
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
-    const tienBiChan = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(labelToTable[s]?.name)
-      && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
-    if (tienBiChan.length) {
-      return res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: tienBiChan,
-        error: `File có trang dính tiền (${tienBiChan.join(', ')}) — trang tiền không khôi phục bằng file. `
-          + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
-    }
+    if (chanTrangTien(res, wb)) return;
 
     for (const sheetName of wb.SheetNames) {
       if (sheetName === '_Metadata') continue;
