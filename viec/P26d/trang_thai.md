@@ -183,3 +183,82 @@ thu_P26c +153 (~400 theo ngân sách đã nâng ở mục 15 kế hoạch).
   vòng F2 của `thu_P26b.js`.
 - `cong_cu/thu_P26c.js` / `thu_GOI1.js`: bước dựng mua gói ném lỗi (bài sập) khi mua gói hỏng — đột biến làm hỏng mọi lần mua gói không chấm
   được BẮT. Không sửa (ca cũ giữ nguyên).
+
+## Soát độc lập `/ra-soat` — vòng 1 (19.10, HEAD 84a8752) — nguyên văn báo cáo
+
+```
+KHÔNG ĐẠT
+
+Tôi đã tự chạy lại (HEAD 84a8752):
+- `node cong_cu/thu_P26b.js` cho 97 đạt · 0 hỏng; `node cong_cu/thu_P26c.js` cho 142 đạt · 0 hỏng.
+- `node kiem_tra_truoc_khi_giao.js --day-du` cho PASS 70 · FAIL 0 · CẢNH BÁO 1. Giả lập xanh: chay.js 32,3 s, thu_gia_lap 47,1 s.
+- `python3 viec/P26d/dot_bien.py` cho 28 BẮT / 28, cả hai bài đối chứng xanh.
+- thu_P26c chạy trên server/ của gốc 14169d8 (lấy bằng git archive ra nháp) cho 134 đạt · 8 hỏng, đỏ đúng 8 ca C1, G1, H1, I1, I2, P1, P2, P3, khớp `bang_chung_do.txt`.
+- Ba đột biến tôi tự dựng trong thư mục nháp: kết quả ở lỗi 1 và lỗi 3 bên dưới.
+
+LỖI TÌM ĐƯỢC:
+1. server/database.js:1327 — dòng `thayKetNoiNeuBan(err)` trong `catch` của `query()` (chỗ vá Q5, chủ quán duyệt ở ke_hoach.md:314) không có ca thử nào và không có đột biến nào.
+   - Tôi xoá đúng dòng đó trên bản sao nháp: thu_P26b vẫn 97 đạt · 0 hỏng, thu_P26c vẫn 142 đạt · 0 hỏng. Đột biến SỐNG.
+   - D7 chỉ thử `run()` (thu_P26b, `ghiNhatKy` gọi `db.run`). Ke_hoach.md:183 ghi nhãn D7 là "Q5" là sai đối tượng.
+   - Bảng đột biến trong trang_thai.md:138 gộp ba chỗ gọi (BEGIN, `run`, `query`) thành một đột biến `BV-A-bo-thay-ket-noi`. Đột biến này gỡ cả hàm nên che mất chỗ gọi ở `query`.
+   - Khuôn: K3, và K4 ("gom về hàm chung → mỗi CHỖ GỌI là chỗ vá riêng").
+   - Kèm K1: ke_hoach.md:234 và :266 khẳng định `query` "cùng khuôn (câu SELECT bận để lại câu dở)" và dẫn "đo 0.2". Nhưng mục 0.2 (ke_hoach.md:21-28) chỉ đo BEGIN và INSERT, không đo SELECT.
+2. server/routes/backup.js:100-102 — danh sách `BANG_KHONG_KHOI_PHUC` thiếu hai loại bảng dính tiền theo chức năng.
+   - `pos_signup_codes`: cột `claimed_at` / `diem_nhan_luc` là cổng duy nhất chặn phát voucher và cộng điểm hai lần (signup-codes.js:255-260 `AND diem_nhan_luc IS NULL`, :395-398 `AND claimed_at IS NULL`). Khôi phục một file cũ sẽ chạy `DELETE FROM pos_signup_codes` (backup.js:340) rồi chèn lại dòng có cột rỗng, nên khách nhận điểm / voucher lần hai.
+   - `pos_order_log`: nhật ký thu tiền, là sổ chỉ ghi thêm (ràng buộc vĩnh viễn H.4). Khôi phục sẽ xoá sạch bảng này.
+   - Đầu phiếu ghi "chặn MỌI bảng tiền (cả …)", tức sáu loại nêu tên chỉ là ví dụ. trang_thai.md:180-183 thấy hai bảng này nhưng tự chọn cách hiểu hẹp và ghi vào Phát hiện thay vì Câu hỏi (CLAUDE.md §9: "đừng tự chọn một phương án").
+   - Khuôn: K4 (tài liệu hứa theo ĐỐI TƯỢNG thì phép chặn phải gắn theo đối tượng), K1.
+3. server/database.js:1413 — `tx.close()` (đóng giao dịch hỏng trước khi thử lại) không có đột biến riêng trong dot_bien.py.
+   - Tôi gỡ dòng đó: thu_P26b in ✗ D8, rồi bài SẬP ("không nạp được ví: HTTP 409") và F3 đỏ theo.
+   - Theo luật sập AUDIT-4 thì bài sập là HỎNG-sập, không phải BẮT. Chỗ vá này chưa có bằng chứng BẮT sạch.
+   - Khuôn: K3.
+
+NGHI NGỜ:
+- server/routes/orders.js:1276-1291 (pay-debt, có sẵn từ trước, không do diff này gây ra; diff chỉ bọc đoạn này vào giao dịch). `paidAmount = amount || order.debt_amount` không ép kiểu số nguyên. Theo lý thuyết, `amount` là chuỗi lạ sẽ cho `remainingDebt` = NaN, và câu UPDATE có thể ghi nợ thành NULL mà không thu đồng nào. Tôi chưa chạy thử — cần một ca để xác nhận. Khuôn P4 / đường tiền.
+- backup.js:240-289: `/preview-restore` không báo trang tiền bị chặn. Người dùng xem trước thấy "khôi phục được", bấm thì nhận 400. Nên dùng một vị từ chung cho cả hai route.
+- Hồ sơ lệch nhẹ (K1, phần tài liệu):
+  - ke_hoach.md:195 (ca F1 "Cài đặt", `pos_settings`) và :223 (VS-F "vế pos_settings") lệch với bài thật, vốn dùng trang "Nhật ký đồng bộ" / `pos_sync_logs`. trang_thai.md:152 đã ghi đúng.
+  - ke_hoach.md:1 vẫn ghi "(chờ chủ quán duyệt)".
+- Ngân sách: code server/ thêm 235 / bớt 162 dòng (`git diff --numstat`), trong khi ke_hoach.md:333 nâng ngân sách lên "~130–170 dòng đổi". Bỏ khoảng trắng thì orders.js vẫn khoảng 156 dòng. trang_thai.md:172 ghi số nhưng không nói là vượt và không hỏi.
+- Đơn giản (mục 8):
+  - backup.js:318: câu lỗi chép tay danh sách loại trang "(ví, đơn, điểm, …)", trùng với hằng `BANG_KHONG_KHOI_PHUC`. Danh sách `tienBiChan` đã nêu tên trang rồi, nên bỏ phần trong ngoặc là đủ.
+  - backup.js:317: mã lỗi `KHOI_PHUC_VI_DON_BI_CHAN` nay chặn 11 bảng nhưng tên chỉ nói ví / đơn.
+  - Thử lại BEGIN, thay kết nối, `laLoiBan` và `ghiVi` đều gọn, đặt đúng chỗ.
+  - Không có tính năng tiền mới cần quy tắc đối soát. Phát hiện DOI-SOAT-1 (dòng có `total_spent < 0`) đã được ghi.
+- K5 (chặn nhầm): tôi không thấy luồng hợp lệ nào bị chặn oan.
+  - Mua gói rồi lấy ngay: I3 và thu_GOI1 xanh.
+  - Mua thẻ: I4. Thu nợ thường: P4, P5. Ví có sẵn: V4. Đối soát chạy lại: H2b. Khôi phục trang không dính tiền: F3. Mã cũ -999: C2. Lỗi không phải bận thì không thử lại: D4.
+  - Mở giao dịch lười: tôi đã đọc mọi chỗ gọi `beginTransaction` (orders.js ×4, wallets.js:113, loyalty.js:158, product-groups.js:59, signup-codes.js:249/390/490). Câu đầu đều là `tx.*`, không có `Promise.all` trên tx.
+  - Cái giá của khối khôi phục: bản `export-all` đầy đủ nay luôn bị chặn, không còn đường khôi phục ví / đơn bằng file. Đây là quyết định Q3 của chủ quán, không phải lỗi.
+- Đường tiền (P3/P4): giá gói, số lượt và giá thẻ đều tra từ DB (orders.js:205, 407-427, 437). Diff không thêm trường tiền nào lấy từ client.
+- P1: không có file nào trong `client/src` bị sửa, `dist` không bị ảnh hưởng.
+
+NGHIỆM THU:    10/11 mục có bằng chứng · mục thiếu: Q6 (một phần — "chặn MỌI bảng tiền": thiếu `pos_signup_codes`, `pos_order_log`, xem lỗi 2)
+- A: có — D0, D1, D2, D3, D4, D5, D7, D8 (thu_P26b) và đột biến BV-A-*, VS-A-*. Chỗ vá `query` (Q5) không có ca: lỗi 1.
+- B: có — ke_hoach mục 0.1 liệt kê mã lỗi; ca D4, D5, D9; đột biến VS-B-*, BV-B-*. Mã lỗi Turso thật: CHƯA KIỂM, chủ quán đã chấp nhận ở Q1.
+- C: có — C1 (đỏ trên gốc), C2, C3; đột biến BV-C, VS-C.
+- D: có — H1, H2 (đỏ trên gốc), H2b. Ke_hoach mục 3 liệt kê các chỗ trả 409; grep nay ra 15 chỗ `loiGhi(res`, gồm pay-debt.
+- E: có — V1, V2, V3 (đỏ), V4; ba đột biến E.
+- F: có — F1, 10 ca F2, F3. E12 xanh trong `--day-du`; `kiem_tra_truoc_khi_giao.js` không bị sửa.
+- G: có — G1 (đỏ, 500 UNIQUE trên gốc) và BV-G. Chính KB20 trong gia_lap chưa siết (mục Cấm của phiếu) — đã ghi Phát hiện P3.
+- H: có — 28/28 BẮT, giả lập xanh, các bài trong hạn (thời gian ở trang_thai.md:130). Lỗ: lỗi 1 và lỗi 3.
+- I: có — I1, I2 (đỏ), I3, I4; bốn đột biến I.
+- P: có — P1, P2, P3 (đỏ), P4, P5; bốn đột biến P.
+- Q6: một phần — `nhatKyDon.js` nhận tx có ca P2 và đột biến BV-P-nhat-ky-*; sáu loại bảng nêu tên có F2. Còn thiếu hai bảng ở lỗi 2.
+
+CHƯA SOÁT ĐƯỢC:
+- Turso thật: mã lỗi máy chủ (`TRANSACTION_BUSY` chỉ theo trí nhớ về nguồn sqld), BEGIN lười của hrana khi hỏng ở câu đầu, và việc `BEGIN IMMEDIATE` trên sqld có thật sự tuần tự hoá phép đọc mã đơn hay không. Mọi phép bận đều dựng trên kho file.
+- Tranh chấp giữa nhiều tiến trình. Kho file thật chỉ có một tiến trình Node.
+- Cổng `node tu_chay/cong.js chay`: tôi không chạy vì có thể ghi file, và trang_thai.md chưa ghi kết quả (dòng 65 vẫn "CHƯA LÀM").
+- Hành vi màn hình quầy khi nhận 409 KHO_BAN / 500 LOI_MAY_CHU / 500 DOI_SOAT_DO_DANG ở pay-debt và đối soát. Tôi chỉ đọc Settings.jsx:907-923 cho phần khôi phục: màn đó có hiện `error`.
+- Ca NaN ở pay-debt (mục NGHI NGỜ đầu tiên) chưa chạy.
+
+BÀI HỌC:
+- KHOÁ (bài thử):
+  - Thêm ca D10 vào thu_P26b: client 2 giữ `BEGIN EXCLUSIVE`, `db.query` gặp bận thật → nhả khoá → `db.query` / `db.run` kế tiếp chạy thật. Kèm đột biến `BV-A-query-khong-thay`.
+  - Thêm một đột biến gỡ riêng `tx.close()` mà không làm bài sập (ví dụ D8 dùng SĐT riêng, chạy cuối khối).
+- KHOÁ (dot_bien.py / cổng A18): mỗi dòng gọi hàm vá chung được thêm vào `server/` phải có ít nhất một đột biến neo đúng dòng đó. Một đột biến gỡ cả hàm không thay được cho từng chỗ gọi.
+- NGUYÊN TẮC (K4 / K1):
+  - Chủ quán nói "MỌI X (cả a, b, c)" thì danh sách là ví dụ. Phải liệt kê đủ đối tượng theo CHỨC NĂNG (cổng phát tiền / điểm / voucher, sổ chỉ ghi thêm), rồi chặn đủ hoặc đưa vào Câu hỏi. Không tự chọn cách hiểu hẹp rồi ghi vào Phát hiện.
+  - Khẳng định "cùng khuôn (đo …)" chỉ được dẫn phép đo khi phép đo đó phủ đúng loại câu đang nói (SELECT khác INSERT).
+```
