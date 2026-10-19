@@ -14,7 +14,10 @@
      18.10 chủ quán trả lời Q1–Q7 của kế hoạch (trang_thai.md): Q1 có CẢ nhận voucher (/claim) VÀ nhận điểm (/nhan-diem) qua token;
      Q2 không tạo nhanMaBill.js; Q3 thêm products.js; Q4 bỏ phần màn quầy (client) khỏi việc này → KH-QUAY-1 sau P16 (tránh đụng
      client/dist với P16, DOI-SOAT-1); Q5 trust proxy 1; Q6 retail; Q7 chỉ mã App xin bị đếm / chặn.
-     Q8 (18.10): thêm server/routes/backup.js — CHỈ một dòng bảng mã đăng nhập trong BACKUP_TABLES (phép E8 "mọi bảng được sao lưu"). -->
+     Q8 (18.10): thêm server/routes/backup.js — CHỈ một dòng bảng mã đăng nhập trong BACKUP_TABLES (phép E8 "mọi bảng được sao lưu").
+     Q9–Q11 (19.10): Q9 giới hạn thử cho nhan-ma-bill / nhan-diem bằng MỘT bảng đếm lần thử khách (thêm cạnh bảng mã đăng nhập) + dòng
+     BACKUP_TABLES ngay dưới dòng của KH-API-1; Q10 chế độ quay không sinh mã, không ghi, không đếm; Q11 chặn nhận mã của bill đã ghi
+     SĐT khác (áp cả route cũ). -->
 
 **Chờ duyệt kế hoạch:** viết `viec/KH-API-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -97,7 +100,8 @@ bằng bảng mã OTP (không bảng riêng nếu đủ); mọi số liệu đ�
 
 ## Đổi cấu trúc DB
 có — CHỈ THÊM bảng mã đăng nhập khách (SĐT, mã băm, hạn, số lần sai, đã dùng, nguồn `quay` / `gui`, người cấp, IP, thời điểm) và
-(nếu cần) bảng đếm theo IP. Đặt ngay sau khối `CREATE TABLE IF NOT EXISTS pos_customers` trong `createTables`. Không xoá, không đổi
+MỘT bảng đếm lần thử khách (đăng nhập, nhận mã bill, nhận điểm; theo SĐT và IP — Q9). Đặt ngay sau khối
+`CREATE TABLE IF NOT EXISTS pos_customers` trong `createTables`. Không xoá, không đổi
 tên, không sửa bảng cũ.
 
 ## Thư viện mới
@@ -107,7 +111,8 @@ không
 - KHÔNG đổi hành vi route cũ (`/signup-codes/*`, `/loyalty/*`, `/products`, `/customers*`) — chỉ được tách hàm cho route mới gọi chung;
   tách ở `products.js` không được giấu lệnh ghi khỏi phép E14.
 - KHÔNG sửa `client/` (kể cả `client/dist`) — màn quầy là KH-QUAY-1.
-- `server/routes/backup.js`: CHỈ thêm MỘT dòng `{ name: 'pos_kh_ma_dang_nhap', … }` vào `BACKUP_TABLES` NGAY SAU dòng `pos_customers`
+- `server/routes/backup.js`: CHỈ thêm dòng `{ name: 'pos_kh_ma_dang_nhap', … }` và (Q9) dòng bảng đếm lần thử, cả hai NGAY SAU dòng
+  `pos_customers`
   (P26d song song sửa cuối danh sách và `/restore` — đặt chỗ khác thì hai nhánh đụng nhau khi gộp). Không sửa gì khác trong file.
 - KHÔNG sửa `server/middleware/auth.js` (token nhân viên) — tách token bằng khoá riêng + kiểm loại ở `khachAuth.js`.
 - `server/database.js`: chỉ THÊM khối bảng ở chỗ ghi trên; KHÔNG sửa `beginTransaction`, `run`, hàm khác (P26d song song).
