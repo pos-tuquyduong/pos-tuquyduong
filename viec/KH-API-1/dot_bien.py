@@ -63,7 +63,8 @@ DOT_BIEN = [
                                        (MK, "  if (!dung) return { loi: 'MA_SAI' };\n", "  if (!dung) return { loi: 'MA_SAI' };\n  if (!khach && !tenMoi) return { loi: 'CAN_TEN' };\n", 1)],
    r"✗ A4 CAN_TEN không tiêu mã"),
   ('BV-A4-bo-can-ten', [(MK, "  if (dung && !khach && !tenMoi) return { loi: 'CAN_TEN' };\n", "", 1)], r"✗ A4 SĐT mới không ten"),
-  ('VS-A4-loai-khach-sai', [(MK, "'retail', 'retail_only', 'app_kh'", "'subscription', 'new', 'app_kh'", 1)], r"✗ A4 khách mới"),
+  ('VS-A4-tao-trung', [(MK, "'app_kh', ?) ON CONFLICT DO NOTHING`", "'app_kh', ?)`", 1)], r"✗ A4 đua: khách được tạo chen"),
+  ('VS-A4-loai-khach-sai',[(MK, "'retail', 'retail_only', 'app_kh'", "'subscription', 'new', 'app_kh'", 1)], r"✗ A4 khách mới"),
   # ── A5: không lộ ai là khách ──
   ('VS-A5-bao-khach-moi', [(KI, "res.json({ success: true, lay_ma_tai_quay: kq.layMaTaiQuay });",
                             "res.json({ success: true, lay_ma_tai_quay: kq.layMaTaiQuay, moi: !(await queryOne('SELECT 1 FROM pos_customers WHERE phone = ?', [sdt])) });", 1)],
