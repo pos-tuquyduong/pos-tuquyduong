@@ -22,10 +22,11 @@ const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_kh1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
 const duongKN = require.resolve(path.join(GOC, 'server', 'ketNoiKho.js'));
+let mayThu = true;   // ca C tắt tạm để thử khoá `gia` ngoài máy thử (kho tạm đã nối lúc initDatabase, không đọc lại)
 require.cache[duongKN] = {
   id: duongKN, filename: duongKN, loaded: true,
   exports: {
-    laMayThu: () => true,
+    laMayThu: () => mayThu,
     cauHinhTurso: () => ({ laMayThu: true, cauHinh: { url: 'file:' + FILE_KHO } }),
     diaChiSX: () => '',
     FILE_THU: FILE_KHO,
@@ -361,6 +362,11 @@ async function main() {
     process.env.GUI_MA_KHACH = 'gia';
     const g = sdtMoi(); const rg = await xinMa(g); const dg = await dongMa(g);
     k('C gia → lay_ma_tai_quay false, mã gửi được, dòng không huỷ', la(rg, 200) && rg.j.lay_ma_tai_quay === false && !!maGia() && !!dg && dg.huy_luc === null, moTa(rg));
+    mayThu = false; soCanhBao = 0;
+    const ng = sdtMoi(); const rn = await xinMa(ng); const dn = await dongMa(ng);
+    mayThu = true;
+    k('C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, dòng huỷ, đúng 1 cảnh báo',
+      la(rn, 200) && rn.j.lay_ma_tai_quay === true && !!dn && !!dn.huy_luc && soCanhBao === 1, `${moTa(rn)} · ${soCanhBao} cảnh báo`);
   });
 
   muc('[D] quầy cấp mã POST /api/pos/kh/cap-ma');
@@ -597,11 +603,36 @@ async function main() {
     mocTruocTx = async () => { throw new Error('LOI_NOI_BO_KH1'); };
     const cu = await goi('POST', '/pos/signup-codes/claim', { code: d.ma, phone: sdtMoi() }, { dichVu: true });
     mocTruocTx = null;
-    k('G /kh/nhan-ma-bill lỗi nội bộ → 500 không lộ lời báo', kh.status === 500 && !kh.tho.includes('LOI_NOI_BO_KH1'), kh.tho);
+    k('G /kh/nhan-ma-bill lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo', la(kh, 500, 'LOI_MAY_CHU') && !kh.tho.includes('LOI_NOI_BO_KH1'), kh.tho);
     k('G /claim cũ vẫn trả lời báo như trước (hành vi cũ không đổi)', cu.status === 500 && cu.j.success === false && cu.j.error === 'LOI_NOI_BO_KH1', cu.tho);
+    mocTruocTx = async () => { throw new Error('LOI_NOI_BO_KH1'); };
+    const khD = await goi('POST', '/kh/nhan-diem', { ma: d.ma }, { tk: B.tk });
+    mocTruocTx = async () => { throw Object.assign(new Error('LOI_NOI_BO_KH1'), { code: 'SQLITE_BUSY' }); };
+    const ban = await goi('POST', '/kh/nhan-ma-bill', { ma: d.ma }, { tk: B.tk });
+    mocTruocTx = null;
+    k('G /kh/nhan-diem lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo', la(khD, 500, 'LOI_MAY_CHU') && !khD.tho.includes('LOI_NOI_BO_KH1'), khD.tho);
+    k('G /kh/nhan-ma-bill kho bận → 409 KHO_BAN (như mọi route /kh)', la(ban, 409, 'KHO_BAN'), ban.tho);
+    // Mọi nhánh lỗi của hàm chung /claim · /nhan-diem mà khách chạm được qua token — mỗi nhánh một `code`.
+    const C_ = (nhan, r, status, code) => k(`G ${nhan} → ${status} ${code}`, la(r, status, code), r.tho);
+    for (const url of ['/kh/nhan-ma-bill', '/kh/nhan-diem']) {
+      C_(`${url} thiếu ma`, await goi('POST', url, {}, { tk: B.tk }), 400, 'THIEU_MA');
+      C_(`${url} mã không có`, await goi('POST', url, { ma: 'KHONGCO1' }, { tk: B.tk }), 404, 'MA_KHONG_TON_TAI');
+    }
+    const cu25 = await donThu();
+    await db.run("UPDATE pos_signup_codes SET issued_at = strftime('%Y-%m-%d %H:%M:%S', ?, '-25 hours') WHERE code = ?", [getNow(), cu25.ma]);
+    C_('/kh/nhan-ma-bill mã in quá 24 giờ', await goi('POST', '/kh/nhan-ma-bill', { ma: cu25.ma }, { tk: B.tk }), 400, 'MA_HET_HAN');
+    C_('/kh/nhan-diem mã in quá 24 giờ', await goi('POST', '/kh/nhan-diem', { ma: cu25.ma }, { tk: B.tk }), 400, 'MA_HET_HAN');
+    const d2 = await donThu();
+    await datCaiDat('signup_enabled', '0');
+    C_('/kh/nhan-ma-bill ưu đãi khách mới tắt', await goi('POST', '/kh/nhan-ma-bill', { ma: d2.ma }, { tk: B.tk }), 400, 'UU_DAI_DANG_TAT');
+    await datCaiDat('signup_enabled', '1');
+    await datCaiDat('loyalty_earn_per_amount', '0');
+    C_('/kh/nhan-diem cấu hình tích điểm sai', await goi('POST', '/kh/nhan-diem', { ma: d2.ma }, { tk: B.tk }), 400, 'CAU_HINH_DIEM_SAI');
+    await datCaiDat('loyalty_earn_per_amount', '10000');
     const loi = thanKh.filter((x) => x.status >= 400);
-    const la_ = loi.filter((x) => !Object.keys(x.j).every((kk) => ['error', 'code', 'success'].includes(kk)));
-    k(`G mọi thân lỗi /kh (${loi.length}) chỉ có error · code · success`, loi.length > 0 && la_.length === 0, la_.slice(0, 3).map((x) => x.url + ' ' + x.tho).join(' | '));
+    const la_ = loi.filter((x) => typeof x.j.code !== 'string' || !x.j.code || typeof x.j.error !== 'string'
+      || !Object.keys(x.j).every((kk) => ['error', 'code', 'success'].includes(kk)));
+    k(`G mọi thân lỗi /kh (${loi.length}) có error + code, ngoài ra chỉ success`, loi.length > 0 && la_.length === 0, la_.slice(0, 3).map((x) => x.url + ' ' + x.tho).join(' | '));
     const bam = (await db.query('SELECT ma_bam FROM pos_kh_ma_dang_nhap')).map((x) => x.ma_bam).filter((x) => x !== 'x');
     const loBam = thanKh.filter((x) => bam.some((b) => x.tho.includes(b)));
     k('G không thân nào chứa mã băm', bam.length > 0 && loBam.length === 0, loBam.map((x) => x.url).join(', '));
@@ -637,7 +668,8 @@ async function main() {
 
   muc('[tĩnh] index.js gắn /api/kh và /api/pos/kh, trust proxy 1 (bài không nạp được index.js — nó tự listen)');
   {
-    const src = fs.readFileSync(path.join(GOC, 'server', 'index.js'), 'utf8');
+    // Bỏ chú thích trước khi dò — dòng gắn route bị `//` hay nằm trong /* */ là KHÔNG gắn (K3: marker suông).
+    const src = fs.readFileSync(path.join(GOC, 'server', 'index.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     const iKh = src.indexOf("app.use('/api/kh', require('./routes/kh'))"), iTinh = src.indexOf('app.use(express.static(');
     k("index.js: app.use('/api/kh', require('./routes/kh')) TRƯỚC express.static", iKh >= 0 && iKh < iTinh);
     k("index.js: app.use('/api/pos/kh', require('./routes/kh/quay'))", src.includes("app.use('/api/pos/kh', require('./routes/kh/quay'))"));
