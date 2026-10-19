@@ -11,7 +11,7 @@ const NHOM = [
   ['can_xem', '🟡 CẦN XEM — so với trạng thái hiện tại nên có thể oan', '#d97706'],
   ['cu', '🟡 LỆCH CŨ (trước bản vá) — không làm kết quả đỏ', '#a16207'],
 ];
-const KET = { chua_dem: 'chưa đếm két', chua_co_moc: 'chưa có số để lại của ngày trước để so', khop: 'khớp', lech: 'LỆCH' };
+const KET = { chua_dem: '🟡 chưa đếm két', chua_co_moc: '🟡 chưa có số để lại của ngày trước để so', khop: '🟢 khớp', lech: '🔴 LỆCH' };
 const dong = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const soNguyen = (v) => (/^\s*\d+\s*$/.test(String(v)) ? Number(String(v).trim()) : null);
 
