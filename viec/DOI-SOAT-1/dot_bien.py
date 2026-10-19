@@ -42,6 +42,14 @@ DOT_BIEN = [
   # ── D: SĐT nhận ≥ 2 lần ──
   ('BV-DS-D1-BO-DIEM-NHAN', [(DS, "WHERE diem_nhan_phone IS NOT NULL", "WHERE 1 = 0", 1)], r'✗ D1c'),
   ('VS-DS-D1-VANG-NGUOC', [(DS, "canXem: r.cot === 'diem_nhan_phone' && !chiLanDau,", "canXem: r.cot === 'diem_nhan_phone' && chiLanDau,", 1)], r'✗ D1[cd]'),
+  # ── câu 10 = C: đền tiền cho khách lẻ không SĐT → CẦN XEM, két không tính ──
+  ('BV-DS-DEN-BO', [(DS, "[['D1', phepD1], ['DEN', phepDenLe]]", "[['D1', phepD1]]", 1)], r'✗ DEN1'),
+  ('VS-DS-DEN-GIO-UTC', [(DS, "DATETIME(created_at, '+7 hours') AS ngay FROM pos_damage_logs", "created_at AS ngay FROM pos_damage_logs", 1)], r'✗ DEN[12]'),
+  ('VS-DS-DEN-DO', [(DS, "ngay: r.ngay || null, canXem: true }));", "ngay: r.ngay || null, canXem: false }));", 1)], r'✗ DEN1'),
+  ('VS-DS-DEN-CA-CO-SDT', [(DS, "WHERE refund_amount > 0 AND COALESCE(customer_phone, '') = ''", "WHERE refund_amount > 0", 1)], r'✗ DEN3'),
+  ('VS-DS-DEN-VAO-KET', [(DS, "chiDoc(`SELECT COALESCE(SUM(o.${cot}), 0) AS n FROM pos_orders o WHERE o.status = 'cancelled'",
+                          "chiDoc(`SELECT (SELECT COALESCE(SUM(refund_amount), 0) FROM pos_damage_logs WHERE ? = 'cash' AND DATE(created_at, '+7 hours') BETWEEN ? AND ?) + COALESCE(SUM(o.${cot}), 0) AS n FROM pos_orders o WHERE o.status = 'cancelled'", 1),
+                         (DS, "-1000000)`, [tu, den]),", "-1000000)`, [cach, tu, den, tu, den]),", 1)], r'✗ DEN4'),
   # ── E: tiền mặt vào két ──
   ('VS-DS-BAN-KHONG-TRU-THU', [(DS, "SELECT COALESCE(SUM(o.${cot} - (SELECT COALESCE(SUM(${jTien}), 0) FROM pos_order_log WHERE order_id = o.id AND loai = 'thu')), 0) AS n",
                                 "SELECT COALESCE(SUM(o.${cot}) + 0 * ?, 0) AS n", 1)], r'✗ (E0c|F3)'),
