@@ -82,6 +82,22 @@ Bảng mới `pos_doi_soat_ghi` làm đỏ phép **E8** của bộ kiểm: `✗ 
 
 Xin chủ quán cho phép thêm dòng này vào `server/routes/backup.js` (nằm trong việc này, hoặc để P26d / chat gộp lúc duyệt PR). Mọi phần còn lại đã xong: `npm test --day-du` chỉ còn đúng phép E8 này đỏ (PASS 70 · FAIL 1).
 
+## Phiên 19.10 · làm tiếp sau câu 9
+
+- Bước 1: nhánh `viec/DOI-SOAT-1`, cây sạch; `git fetch origin viec/DOI-SOAT-1`: HEAD = FETCH_HEAD = `1a797db` → không kéo.
+  ```
+  1a797db PHIEU: DOI-SOAT-1 cau 9 mo backup.js (mot dong BACKUP_TABLES sau pos_order_log)
+  81b8c39 DOI-SOAT-1: bang chung do (SO CA 105), bang cho va -> dot bien, Cau hoi 9 (backup.js ngoai Pham vi)
+  9540a3d DOI-SOAT-1: bai thu A6 — mau nap som
+  ```
+- Câu 9 đã trả lời (phiếu `1a797db` thêm `server/routes/backup.js` vào Phạm vi, đúng một dòng). Đã thêm
+  `{ name: 'pos_doi_soat_ghi', label: 'Sổ đối soát (két, sao kê)', key: 'id' }` ngay sau dòng `pos_order_log` (`backup.js:87`), commit `72d0ccf`.
+  Bảng có cột `id INTEGER PRIMARY KEY` (`database.js:911–912`) nên `key: 'id'` khớp.
+- Bài thử của dòng này là phép **E8** sẵn có của bộ kiểm: ĐỎ trước (`✗ … thiếu trong BACKUP_TABLES: pos_doi_soat_ghi`, ghi ở Câu hỏi 9),
+  XANH sau (`✓ mọi bảng đều được sao lưu (31 bảng)`). Không thêm đột biến cho dòng này: bộ đột biến chạy `thu_DOISOAT1.js`, còn khoá là E8 ở cổng.
+- `npm test -- --day-du`: **PASS 71 · FAIL 0 · CẢNH BÁO 1** (cảnh báo `route GET có lệnh ghi` ở `packages.js:194, products.js:57, sync.js:147` — có từ trước,
+  không file nào của việc này); `thu_DOISOAT1.js` xanh 2,9 s; giả lập `chay.js` xanh 33,6 s, `thu_gia_lap.js` xanh 48,4 s.
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
