@@ -82,7 +82,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['don-mo-rong', 'orders', 'refunds', 'wallets', 'packages', 'rewards', 'loyalty', 'discount-codes', 'reports']) {
+  for (const r of ['don-mo-rong', 'orders', 'refunds', 'wallets', 'packages', 'rewards', 'loyalty', 'discount-codes', 'reports', 'damages']) {
     app.use('/api/pos/' + (r === 'don-mo-rong' ? 'orders' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -488,6 +488,29 @@ async function main() {
     const f3b = await ds('chu', 'thang', '2027-01-06');
     k('F3b đơn trả 2.000 ví khách + 7.000 ví mẹ → ví chi tháng 01.2027 = 9.000 (gồm phần ví mẹ)', f3b.tien?.vi?.chi === 9000, JSON.stringify(f3b.tien?.vi));
     await db.run('DELETE FROM pos_orders WHERE id = ?', [idMe]);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[DEN] đền TIỀN cho khách lẻ không SĐT: quán không làm (chủ quán chốt 19.10, câu 10 = C) → CẦN XEM, két không tính');
+  {
+    const ketTruoc = (await ds('chu', 'ngay', '2027-01-07')).tien?.tien_mat;
+    const dLe = await taoDon({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+    const dCo = await taoDon({ customer_phone: sdtMoi(), items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+    const den = (id) => goi('POST', '/damages', { order_id: id, product_code: sp[0].code, quantity: 1, reason: 'damaged', action: 'refund', refund_amount: 10000 });
+    const [rLe, rCo] = [await den(dLe), await den(dCo)];
+    // created_at = datetime('now') của SQLite (UTC, giờ THẬT — không theo đồng hồ giả) → đặt 17:30 UTC 06.01 = 00:30 giờ VN 07.01
+    await db.run("UPDATE pos_damage_logs SET created_at = '2027-01-06 17:30:00' WHERE order_id IN (?, ?)", [dLe, dCo]);
+    const maLe = await maDon(dLe), maCo = await maDon(dCo);
+    const n7 = await ds('chu', 'ngay', '2027-01-07'), n6 = await ds('chu', 'ngay', '2027-01-06');
+    const thay = (r, ma) => [...r.do, ...r.can_xem, ...r.cu].filter((l) => l.mo_ta.includes(ma));
+    k('DEN1 đền 10.000 cho đơn KHÔNG SĐT (route thật) → CẦN XEM ở ngày 07.01 (00:30 giờ VN), có số tiền; không đỏ, kết quả XANH',
+      rLe.status === 200 && n7.can_xem.some((l) => l.bat_bien === 'DEN' && l.mo_ta.includes(maLe) && /10\.000/.test(l.mo_ta) && l.ngay === '2027-01-07')
+        && !n7.do.some((l) => l.bat_bien === 'DEN') && n7.ket_qua === 'XANH', `${moTa(rLe)} · ${tom(n7)} · cần xem: ${n7.can_xem.map((l) => l.mo_ta + ' ' + l.ngay).join(' | ')}`);
+    k('DEN2 cùng khoản đền KHÔNG hiện ở ngày 06.01 (cột ghi giờ UTC phải đổi sang giờ VN)', thay(n6, maLe).length === 0, thay(n6, maLe).map((l) => l.mo_ta).join(' | '));
+    k('DEN3 (K5) đền cho đơn CÓ SĐT (tiền vào ví khách) → không có dòng nào', rCo.status === 200 && thay(n7, maCo).length === 0 && thay(n6, maCo).length === 0,
+      `${moTa(rCo)} · ${[...thay(n7, maCo), ...thay(n6, maCo)].map((l) => l.mo_ta).join(' | ')}`);
+    k('DEN4 tiền mặt vào két 07.01 không tính khoản đền (trước = sau)', !!ketTruoc && JSON.stringify(n7.tien?.tien_mat) === JSON.stringify(ketTruoc),
+      `${JSON.stringify(ketTruoc)} → ${JSON.stringify(n7.tien?.tien_mat)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
