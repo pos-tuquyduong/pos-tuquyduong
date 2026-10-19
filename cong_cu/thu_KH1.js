@@ -165,7 +165,9 @@ async function main() {
     return { id: r.j.order.id, ma: r.j.order.signup_code, code: r.j.order.code };
   };
   const donThu = (sdt) => taoDon({ items: [mon()], payment_method: 'cash', cash_amount: 25000, ...(sdt ? { customer_phone: sdt, customer_name: 'K' } : {}) });
-  const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.message); } };
+  // Mỗi mục bắt đầu với bảng đếm lần nhận mã (Q9) trống — mọi ca chạy chung một IP; trần Q9 chỉ thử ở mục Q9.
+  const xoaLuot = () => db.run('DELETE FROM pos_kh_lan_thu').catch(() => {});
+  const chay = async (ten, fn) => { try { await xoaLuot(); await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.message); } };
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[A1] SĐT chuẩn hoá bằng normalizePhone + isValidPhone');
@@ -352,29 +354,35 @@ async function main() {
     k('B3 maKhach.js có GIOI_HAN và MỌI khoá của nó được dùng', khoa.length >= 6 && thieu.length === 0, m ? 'không dùng: ' + thieu.join(', ') : 'không thấy const GIOI_HAN = {');
   });
 
-  muc('[C] chế độ gửi mã GUI_MA_KHACH');
+  muc('[C] chế độ gửi mã GUI_MA_KHACH — quay: xin-ma không sinh mã, không ghi, không đếm (Q10)');
   await chay('C', async () => {
+    const soDongApp = async (sdt) => Number((await db.queryOne("SELECT COUNT(*) AS n FROM pos_kh_ma_dang_nhap WHERE sdt = ? AND nguon = 'gui'", [sdt])).n);
     const q = sdtMoi(); const c = await capMa(q);
     delete process.env.GUI_MA_KHACH;
     const truoc = maGia();
     const r = await xinMa(q);
-    const d = await dongMa(q);
     k('C không đặt GUI_MA_KHACH → như quay: lay_ma_tai_quay true, không gửi', la(r, 200) && r.j.lay_ma_tai_quay === true && maGia() === truoc, moTa(r));
-    k('C dòng mã App ở chế độ quay bị huỷ ngay khi chèn', !!d && d.nguon === 'gui' && !!d.huy_luc, d ? `${d.nguon} · ${d.huy_luc}` : '');
+    const nq = await soDongApp(q);
+    k('C chế độ quay: xin-ma KHÔNG chèn dòng mã App', nq === 0, `${nq} dòng`);
     const v = await xacMinh(q, c.j.ma, 'K');
     k('C mã quầy cấp TRƯỚC đó vẫn xác minh được', la(v, 200), moTa(v));
+    // K5: khách ngồi trong quán chung wifi — chế độ quay không đếm: 25 lần liền cùng IP (xen cùng một SĐT) đều 200.
+    const w = sdtMoi(); let du = 0;
+    for (let i = 0; i < 25; i++) if (la(await goi('POST', '/kh/dang-nhap/xin-ma', { sdt: i % 2 ? w : sdtMoi() }), 200)) du++;
+    k('C chế độ quay: 25 lần xin-ma liền cùng IP (xen cùng SĐT) → 25 lần 200', du === 25, `${du}/25`);
     process.env.GUI_MA_KHACH = 'xyz';
     soCanhBao = 0;
-    const x = await xinMa(sdtMoi());
-    k('C GUI_MA_KHACH lạ → như quay + đúng 1 dòng cảnh báo', la(x, 200) && x.j.lay_ma_tai_quay === true && soCanhBao === 1, `${moTa(x)} · ${soCanhBao} cảnh báo`);
+    const sx = sdtMoi(); const x = await xinMa(sx); const nx = await soDongApp(sx);
+    k('C GUI_MA_KHACH lạ → như quay (không chèn dòng) + đúng 1 dòng cảnh báo', la(x, 200) && x.j.lay_ma_tai_quay === true && soCanhBao === 1 && nx === 0,
+      `${moTa(x)} · ${soCanhBao} cảnh báo · ${nx} dòng`);
     process.env.GUI_MA_KHACH = 'gia';
     const g = sdtMoi(); const rg = await xinMa(g); const dg = await dongMa(g);
-    k('C gia → lay_ma_tai_quay false, mã gửi được, dòng không huỷ', la(rg, 200) && rg.j.lay_ma_tai_quay === false && !!maGia() && !!dg && dg.huy_luc === null, moTa(rg));
+    k('C gia → lay_ma_tai_quay false, mã gửi được, có dòng mã App', la(rg, 200) && rg.j.lay_ma_tai_quay === false && !!maGia() && !!dg && dg.nguon === 'gui', moTa(rg));
     mayThu = false; soCanhBao = 0;
-    const ng = sdtMoi(); const rn = await xinMa(ng); const dn = await dongMa(ng);
+    const ng = sdtMoi(); const rn = await xinMa(ng); const nn = await soDongApp(ng);
     mayThu = true;
-    k('C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, dòng huỷ, đúng 1 cảnh báo',
-      la(rn, 200) && rn.j.lay_ma_tai_quay === true && !!dn && !!dn.huy_luc && soCanhBao === 1, `${moTa(rn)} · ${soCanhBao} cảnh báo`);
+    k('C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, không chèn dòng, đúng 1 cảnh báo',
+      la(rn, 200) && rn.j.lay_ma_tai_quay === true && nn === 0 && soCanhBao === 1, `${moTa(rn)} · ${soCanhBao} cảnh báo · ${nn} dòng`);
   });
 
   muc('[D] quầy cấp mã POST /api/pos/kh/cap-ma');
@@ -527,6 +535,24 @@ async function main() {
     k('E3 /voucher liệt kê thêm mã giảm phát qua /claim cho SĐT này (ma_khach_moi)', la(v, 200) && bang(moi, [d1.ma]), `${moTa(v)} · ${moi}`);
     const vB = await goi('GET', '/kh/voucher', undefined, { tk: B.tk });
     k('E3 khách khác không thấy mã đó', la(vB, 200) && bang(vB.j.ma_khach_moi, []), vB.tho);
+    // Q11: bill đã ghi SĐT khách lúc bán → chỉ SĐT đó nhận được mã (App và route cũ); bill không SĐT ai cầm giấy cũng nhận.
+    const P = await dangNhap('Khách của bill'), Q = await dangNhap('Khách lạ');
+    const dP = await donThu(P.sdt);
+    const khac = await goi('POST', '/kh/nhan-ma-bill', { ma: dP.ma }, { tk: Q.tk });
+    const mP = await db.queryOne('SELECT claimed_at FROM pos_signup_codes WHERE code = ?', [dP.ma]);
+    k('Q11 nhận mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, mã KHÔNG bị nhận', la(khac, 400, 'BILL_SDT_KHAC') && !!mP && mP.claimed_at === null, moTa(khac));
+    const chinh = await goi('POST', '/kh/nhan-ma-bill', { ma: dP.ma }, { tk: P.tk });
+    k('Q11 chính khách của bill nhận mã → 200', la(chinh, 200), moTa(chinh));
+    const sR = sdtMoi(); const dR = await donThu(sR);
+    const cuKhac = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: sdtMoi() }, { dichVu: true });
+    k('Q11 /claim cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC', la(cuKhac, 400, 'BILL_SDT_KHAC'), moTa(cuKhac));
+    const cuDung = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: '+84 ' + sR.slice(1) }, { dichVu: true });
+    k('Q11 /claim cũ cùng SĐT của bill viết dạng +84 → 200', la(cuDung, 200), moTa(cuDung));
+    const dRong = await donThu();
+    await db.run("UPDATE pos_signup_codes SET order_customer_phone = '' WHERE code = ?", [dRong.ma]);
+    const Kr = await dangNhap('Khách bill SĐT rỗng');
+    const rr = await goi('POST', '/kh/nhan-ma-bill', { ma: dRong.ma }, { tk: Kr.tk });
+    k("Q11 bill có order_customer_phone '' (dữ liệu cũ) → vẫn nhận được (200)", la(rr, 200), moTa(rr));
   });
 
   muc('[E7] POST /api/kh/nhan-diem — logic /nhan-diem, SĐT từ token');
@@ -552,6 +578,77 @@ async function main() {
     const nd = await db.queryOne('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE order_id = ?', [d3.id]);
     k('E7 đua hai khách cùng mã: người chen 200, người sau MA_DA_NHAN_DIEM, đúng 1 dòng điểm',
       !!chen && la(chen, 200) && la(sau, 400, 'MA_DA_NHAN_DIEM') && Number(nd.n) === 1, `${chen ? moTa(chen) : '-'} / ${moTa(sau)} · ${nd.n}`);
+    // Q11 (cùng phép với /claim)
+    const P = await dangNhap('Khách điểm của bill'), Q = await dangNhap('Khách điểm lạ');
+    const dP = await donThu(P.sdt);
+    const khac = await goi('POST', '/kh/nhan-diem', { ma: dP.ma }, { tk: Q.tk });
+    const dQ = await db.queryOne('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE customer_phone = ?', [Q.sdt]);
+    k('Q11 nhận điểm mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, không cộng điểm', la(khac, 400, 'BILL_SDT_KHAC') && Number(dQ.n) === 0, `${moTa(khac)} · ${dQ.n} dòng`);
+    const chinh = await goi('POST', '/kh/nhan-diem', { ma: dP.ma }, { tk: P.tk });
+    k('Q11 chính khách của bill nhận điểm → 200', la(chinh, 200), moTa(chinh));
+    const dR = await donThu(sdtMoi());
+    const cuKhac = await goi('POST', '/pos/signup-codes/nhan-diem', { code: dR.ma, phone: sdtMoi() }, { dichVu: true });
+    k('Q11 /nhan-diem cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC', la(cuKhac, 400, 'BILL_SDT_KHAC'), moTa(cuKhac));
+  });
+
+  muc('[Q9] nhan-ma-bill · nhan-diem: ≤ 10 lần / khách / giờ · ≤ 30 lần / IP / giờ — đếm CHUNG hai đường, trong CSDL');
+  await chay('Q9', async () => {
+    const chenLuot = async (sdt, ip, lui, n, loai) => {
+      for (let i = 0; i < n; i++) await db.run('INSERT INTO pos_kh_lan_thu (loai, sdt, ip, tao_luc) VALUES (?, ?, ?, ?)', [loai, sdt, ip, await luc(-lui)]);
+    };
+    const loaiCua = (url) => (url === '/kh/nhan-diem' ? 'nhan_diem' : 'nhan_ma_bill');
+    // khách mới, đã có n lượt `lui` giây trước (loai mặc định theo url), rồi gọi url với mã không có
+    const thu = async (url, lui, n, loai = loaiCua(url)) => {
+      const K = await dangNhap('Khách dò');
+      await chenLuot(K.sdt, 'ip-khac', lui, n, loai);
+      return goi('POST', url, { ma: 'KHONGCO1' }, { tk: K.tk });
+    };
+    for (const url of ['/kh/nhan-ma-bill', '/kh/nhan-diem']) {
+      const t9 = await thu(url, 100, 9);
+      k(`Q9 ${url} khách đã 9 lần trong giờ → lần 10 tới hàm (404 MA_KHONG_TON_TAI)`, la(t9, 404, 'MA_KHONG_TON_TAI'), moTa(t9));
+      const t10 = await thu(url, 100, 10);
+      k(`Q9 ${url} khách đã 10 lần trong giờ → 429 QUA_NHIEU_LAN`, la(t10, 429, 'QUA_NHIEU_LAN'), moTa(t10));
+    }
+    const t59 = await thu('/kh/nhan-diem', 59 * 60, 10);
+    k('Q9 10 lần lúc 59 phút trước VẪN tính → 429', la(t59, 429, 'QUA_NHIEU_LAN'), moTa(t59));
+    const t61 = await thu('/kh/nhan-diem', 61 * 60, 10);
+    k('Q9 10 lần lúc 61 phút trước KHÔNG tính → 404', la(t61, 404, 'MA_KHONG_TON_TAI'), moTa(t61));
+    const chung = await thu('/kh/nhan-diem', 100, 10, 'nhan_ma_bill');
+    k('Q9 10 lượt nhận mã bill → nhận điểm cũng 429 (trần chung)', la(chung, 429, 'QUA_NHIEU_LAN'), moTa(chung));
+
+    const Kc = await dangNhap('Khách bị chặn'); const d = await donThu();
+    await chenLuot(Kc.sdt, 'ip-khac', 100, 10, 'nhan_ma_bill');
+    const chan = await goi('POST', '/kh/nhan-ma-bill', { ma: d.ma }, { tk: Kc.tk });
+    const m = await db.queryOne('SELECT claimed_at FROM pos_signup_codes WHERE code = ?', [d.ma]);
+    k('Q9 đã 429 thì mã bill hợp lệ KHÔNG bị nhận', la(chan, 429, 'QUA_NHIEU_LAN') && !!m && m.claimed_at === null, moTa(chan));
+
+    const L = await dangNhap('Khách ghi lượt');
+    await xoaLuot();
+    await goi('POST', '/kh/nhan-diem', { ma: 'KHONGCO1', phone: B.sdt, sdt: B.sdt }, { tk: L.tk });
+    const dl = await db.query('SELECT loai, sdt, ip FROM pos_kh_lan_thu');
+    k('Q9 một lần gọi ghi ĐÚNG một dòng: loai nhan_diem, SĐT của token (thân có SĐT của B), có IP',
+      dl.length === 1 && dl[0].loai === 'nhan_diem' && dl[0].sdt === L.sdt && !!dl[0].ip, JSON.stringify(dl));
+    const IP = dl.length ? dl[0].ip : 'khong-co';
+
+    await xoaLuot();
+    const N = await dangNhap('Khách bấm dồn');
+    const dong = await Promise.all(Array.from({ length: 15 }, () => goi('POST', '/kh/nhan-ma-bill', { ma: 'KHONGCO1' }, { tk: N.tk })));
+    const qua = dong.filter((x) => la(x, 404, 'MA_KHONG_TON_TAI')).length, bi = dong.filter((x) => la(x, 429, 'QUA_NHIEU_LAN')).length;
+    k('Q9 15 lần gửi CÙNG LÚC → đúng 10 lần tới hàm, 5 lần 429', qua === 10 && bi === 5, `${qua} tới · ${bi} chặn`);
+
+    await xoaLuot();
+    await chenLuot('0900000001', IP, 100, 29, 'nhan_ma_bill');
+    const M = await dangNhap('Khách cùng IP');
+    const i29 = await goi('POST', '/kh/nhan-diem', { ma: 'KHONGCO1' }, { tk: M.tk });
+    const i30 = await goi('POST', '/kh/nhan-diem', { ma: 'KHONGCO1' }, { tk: M.tk });
+    k('Q9 IP đã 29 lần → 404 (tới hàm)', la(i29, 404, 'MA_KHONG_TON_TAI'), moTa(i29));
+    k('Q9 IP đã 30 lần → 429', la(i30, 429, 'QUA_NHIEU_LAN'), moTa(i30));
+
+    await xoaLuot();
+    const dv = await donThu();
+    const cu = await goi('POST', '/pos/signup-codes/nhan-diem', { code: dv.ma, phone: sdtMoi() }, { dichVu: true });
+    const nCu = (await db.queryOne('SELECT COUNT(*) AS n FROM pos_kh_lan_thu')).n;
+    k('Q9 đường X-Service-Key cũ không bị đếm (200, bảng lượt trống)', la(cu, 200) && Number(nCu) === 0, `${moTa(cu)} · ${nCu}`);
   });
 
   muc('[F1] thiếu KH_JWT_SECRET hoặc trùng khoá nhân viên → 503 KH_CHUA_CAU_HINH (đóng)');
@@ -622,6 +719,7 @@ async function main() {
     k('G /kh/nhan-ma-bill kho bận → 409 KHO_BAN (như mọi route /kh)', la(ban, 409, 'KHO_BAN'), ban.tho);
     // Mọi nhánh lỗi của hàm chung /claim · /nhan-diem mà khách chạm được qua token — mỗi nhánh một `code`.
     const C_ = (nhan, r, status, code) => k(`G ${nhan} → ${status} ${code}`, la(r, status, code), r.tho);
+    await xoaLuot();   // B gọi 11 lần trong mục này — quá trần Q9 của một khách
     for (const url of ['/kh/nhan-ma-bill', '/kh/nhan-diem']) {
       C_(`${url} thiếu ma`, await goi('POST', url, {}, { tk: B.tk }), 400, 'THIEU_MA');
       C_(`${url} mã không có`, await goi('POST', url, { ma: 'KHONGCO1' }, { tk: B.tk }), 404, 'MA_KHONG_TON_TAI');
