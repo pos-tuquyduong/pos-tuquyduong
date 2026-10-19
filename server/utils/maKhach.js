@@ -1,5 +1,6 @@
 /**
  * KH-API-1 (A, B, D) — mã đăng nhập App KH: sinh, cấp ở quầy, App xin, xác minh. Bảng pos_kh_ma_dang_nhap (database.js).
+ * Q9 — trần lượt nhận mã bill / nhận điểm từ App: bảng pos_kh_lan_thu.
  * - Mã 6 chữ số (crypto.randomInt), lưu HMAC-SHA256 khoá KH_JWT_SECRET — lộ bảng mà không có khoá thì không dò ngược được.
  * - Giờ: `now` = getNow() một lần mỗi yêu cầu; mốc lùi / hạn tính TRONG SQL bằng strftime trên chính chuỗi đó → cùng định dạng cột.
  * - Giới hạn B chỉ đếm và chỉ chặn mã App xin (nguon 'gui'); mã quầy cấp luôn dùng được, chỉ giữ trần THU_MOI_MA (chủ quán Q7).
@@ -18,6 +19,8 @@ const GIOI_HAN = {
   THU_MOI_MA: 5,      // ≤ 5 lần thử / mã (sai 5 lần → mã chết)
   SAI_SDT_GIO: 10,    // ≤ 10 lần sai / SĐT / giờ trên mã App
   TEN_TOI_DA: 50,     // tên khách 1–50 ký tự
+  NHAN_SDT_GIO: 10,   // App nhận mã bill + nhận điểm (chung): ≤ 10 lần / khách / giờ (Q9)
+  NHAN_IP_GIO: 30,    // ... ≤ 30 lần / IP / giờ
 };
 
 const DANG_GIO = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
@@ -60,22 +63,36 @@ async function capMaQuay(sdt, nguoiCap, ip) {
 
 /**
  * B1 — App xin mã: ba giới hạn + chèn trong MỘT câu (không đua; lần bị từ chối không chèn nên không tự tính thêm).
- * Chế độ không gửi (quay) → dòng chèn sẵn huy_luc: vẫn đếm giới hạn, không che mã quầy cấp. → { loi } | { layMaTaiQuay }.
+ * Chế độ không gửi (quay) → trả ngay: không sinh mã, không ghi, không đếm (chủ quán Q10). → { loi } | { layMaTaiQuay }.
  */
 async function xinMaGui(sdt, ip) {
-  const ma = sinhMa(), now = bayGio(), guiDuoc = coKenhGui();
-  const kq = await run(`INSERT INTO pos_kh_ma_dang_nhap (sdt, ma_bam, nguon, ip, tao_luc, het_han, huy_luc)
-    SELECT ?, ?, 'gui', ?, ?, ${GIO}, ?
+  if (!coKenhGui()) return { layMaTaiQuay: true };
+  const ma = sinhMa(), now = bayGio();
+  const kq = await run(`INSERT INTO pos_kh_ma_dang_nhap (sdt, ma_bam, nguon, ip, tao_luc, het_han)
+    SELECT ?, ?, 'gui', ?, ?, ${GIO}
     WHERE NOT EXISTS (SELECT 1 FROM pos_kh_ma_dang_nhap WHERE nguon = 'gui' AND sdt = ? AND tao_luc > ${GIO})
       AND (SELECT COUNT(*) FROM pos_kh_ma_dang_nhap WHERE nguon = 'gui' AND sdt = ? AND tao_luc > ${GIO}) < ?
       AND (SELECT COUNT(*) FROM pos_kh_ma_dang_nhap WHERE nguon = 'gui' AND ip = ? AND tao_luc > ${GIO}) < ?`,
-  [sdt, bamMa(sdt, ma), ip, now, now, hanMa(), guiDuoc ? null : now,
+  [sdt, bamMa(sdt, ma), ip, now, now, hanMa(),
     sdt, now, `-${GIOI_HAN.CACH_GIAY} seconds`,
     sdt, now, '-1 hour', GIOI_HAN.SDT_GIO,
     ip, now, '-1 hour', GIOI_HAN.IP_GIO]);
   if (kq.changes !== 1) return { loi: 'QUA_NHIEU_LAN' };
-  if (guiDuoc) await guiMaKhach(sdt, ma);
-  return { layMaTaiQuay: !guiDuoc };
+  await guiMaKhach(sdt, ma);
+  return { layMaTaiQuay: false };
+}
+
+/** Q9 — giữ một lượt nhận mã bill / nhận điểm: hai trần + chèn trong MỘT câu (gửi dồn cùng lúc cũng chỉ qua đúng trần). → true | false. */
+async function giuLuotNhanMa(sdt, ip, loai) {
+  const now = bayGio();
+  const kq = await run(`INSERT INTO pos_kh_lan_thu (loai, sdt, ip, tao_luc)
+    SELECT ?, ?, ?, ?
+    WHERE (SELECT COUNT(*) FROM pos_kh_lan_thu WHERE sdt = ? AND tao_luc > ${GIO}) < ?
+      AND (SELECT COUNT(*) FROM pos_kh_lan_thu WHERE ip = ? AND tao_luc > ${GIO}) < ?`,
+  [loai, sdt, ip, now,
+    sdt, now, '-1 hour', GIOI_HAN.NHAN_SDT_GIO,
+    ip, now, '-1 hour', GIOI_HAN.NHAN_IP_GIO]);
+  return kq.changes === 1;
 }
 
 /**
@@ -89,7 +106,7 @@ async function xinMaGui(sdt, ip) {
 async function xacMinhMa(sdt, ma, ten) {
   const now = bayGio();
   const dong = await queryOne(`SELECT id, ma_bam, nguon FROM pos_kh_ma_dang_nhap
-    WHERE sdt = ? AND dung_luc IS NULL AND huy_luc IS NULL AND het_han > ? AND so_lan_thu < ?
+    WHERE sdt = ? AND dung_luc IS NULL AND het_han > ? AND so_lan_thu < ?
     ORDER BY id DESC LIMIT 1`, [sdt, now, GIOI_HAN.THU_MOI_MA]);
   if (!dong) return { loi: 'MA_HET_HAN' };
   if (dong.nguon === 'gui') {
@@ -111,7 +128,7 @@ async function xacMinhMa(sdt, ma, ten) {
   const tx = await beginTransaction();
   try {
     const chiem = await tx.run(`UPDATE pos_kh_ma_dang_nhap SET dung_luc = ?
-      WHERE id = ? AND dung_luc IS NULL AND huy_luc IS NULL`, [now, dong.id]);
+      WHERE id = ? AND dung_luc IS NULL`, [now, dong.id]);
     if (!chiem || chiem.changes !== 1) { await tx.rollback(); return { loi: 'MA_HET_HAN' }; }
     if (!khach) {
       await tx.run(`INSERT INTO pos_customers (phone, name, qr_code, customer_type, sync_status, created_by, created_at)
@@ -127,4 +144,4 @@ async function xacMinhMa(sdt, ma, ten) {
   }
 }
 
-module.exports = { GIOI_HAN, chuanSdt, chuanTen, capMaQuay, xinMaGui, xacMinhMa };
+module.exports = { GIOI_HAN, chuanSdt, chuanTen, capMaQuay, xinMaGui, giuLuotNhanMa, xacMinhMa };

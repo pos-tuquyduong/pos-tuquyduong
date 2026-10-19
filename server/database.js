@@ -106,7 +106,7 @@ async function createTables() {
   `);
 
   // KH-API-1: mã đăng nhập App KH — dùng MỘT lần, hạn ngắn, lưu BĂM (không lưu mã thô). nguon 'quay' (nhân viên cấp) | 'gui' (App
-  // xin). Giới hạn thử (utils/maKhach.js GIOI_HAN) đếm trên chính bảng này. Cột giờ ghi bằng getNow().
+  // xin). Giới hạn thử đăng nhập (utils/maKhach.js GIOI_HAN) đếm trên chính bảng này. Cột giờ ghi bằng getNow().
   await db.execute(`
     CREATE TABLE IF NOT EXISTS pos_kh_ma_dang_nhap (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,12 +118,23 @@ async function createTables() {
       tao_luc TEXT NOT NULL,
       het_han TEXT NOT NULL,
       so_lan_thu INTEGER NOT NULL DEFAULT 0,
-      dung_luc TEXT,
-      huy_luc TEXT
+      dung_luc TEXT
     )
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_kh_ma_sdt ON pos_kh_ma_dang_nhap(sdt, tao_luc)`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_kh_ma_ip ON pos_kh_ma_dang_nhap(ip, tao_luc)`);
+  // KH-API-1 (Q9): mỗi lần App KH gọi nhận mã bill / nhận điểm là một dòng (loai 'nhan_ma_bill' | 'nhan_diem') — trần theo SĐT + IP.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_kh_lan_thu (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loai TEXT NOT NULL,
+      sdt TEXT NOT NULL,
+      ip TEXT,
+      tao_luc TEXT NOT NULL
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_kh_lan_thu_sdt ON pos_kh_lan_thu(sdt, tao_luc)`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_kh_lan_thu_ip ON pos_kh_lan_thu(ip, tao_luc)`);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG 4: SẢN PHẨM

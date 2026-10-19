@@ -8,7 +8,7 @@
 const express = require('express');
 const { query, queryOne, run } = require('../../database');
 const { canCauHinhKhach, xacThucKhach, kyTokenKhach } = require('../../middleware/khachAuth');
-const { chuanSdt, chuanTen, xinMaGui, xacMinhMa } = require('../../utils/maKhach');
+const { chuanSdt, chuanTen, xinMaGui, giuLuotNhanMa, xacMinhMa } = require('../../utils/maKhach');
 const { layDiemKhach, layVoucherKhach, layMaKhachMoi } = require('../../utils/diemKhach');
 const { getNow } = require('../../utils/helpers');
 const { nhanMaUuDai, nhanDiemMaBill } = require('../signup-codes');
@@ -132,8 +132,17 @@ router.get('/menu', async (req, res) => {
 });
 
 // E6 / E7: CÙNG hàm của /signup-codes/claim và /nhan-diem — thân dựng MỚI chỉ hai khoá, SĐT từ hàng CSDL của token.
+// Q9: mỗi lần gọi giữ một lượt (trần chung hai đường theo SĐT + IP) TRƯỚC khi vào hàm; hết lượt → 429, hàm không chạy.
 const quaToken = (req) => ({ body: { code: (req.body || {}).ma, phone: req.khach.phone }, khach: req.khach, user: { username: 'app_kh' } });
-router.post('/nhan-ma-bill', (req, res) => nhanMaUuDai(quaToken(req), res));
-router.post('/nhan-diem', (req, res) => nhanDiemMaBill(quaToken(req), res));
+const nhanQuaToken = (ham, loai) => async (req, res) => {
+  try {
+    if (!(await giuLuotNhanMa(req.khach.phone, req.ip || '', loai))) return bao(res, 'QUA_NHIEU_LAN');
+  } catch (err) {
+    return loiMayChu(res, err, `kh ${loai}`);
+  }
+  return ham(quaToken(req), res);
+};
+router.post('/nhan-ma-bill', nhanQuaToken(nhanMaUuDai, 'nhan_ma_bill'));
+router.post('/nhan-diem', nhanQuaToken(nhanDiemMaBill, 'nhan_diem'));
 
 module.exports = router;

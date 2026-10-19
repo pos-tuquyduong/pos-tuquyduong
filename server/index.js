@@ -51,8 +51,8 @@ const { doNeuDenLuc } = require('./utils/doSoNo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-// KH-API-1 (Q5): sau proxy của Render, req.ip phải là IP khách (giới hạn xin mã theo IP) — tin ĐÚNG một tầng proxy.
-// Số tầng proxy của Render máy chưa kiểm: lên production thì xem cột ip của pos_kh_ma_dang_nhap từ 2 mạng khác nhau.
+// KH-API-1 (Q5): sau proxy của Render, req.ip phải là IP khách (giới hạn xin / nhận mã theo IP) — tin ĐÚNG một tầng proxy.
+// Số tầng proxy của Render máy chưa kiểm: lên production thì xem cột ip của pos_kh_lan_thu (nhận mã bill từ 2 mạng khác nhau).
 app.set('trust proxy', 1);
 
 // Middleware

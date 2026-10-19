@@ -82,6 +82,13 @@ async function baoChiemHong(res, id, cotLuc, daDung) {
   return res.status(400).json({ success: false, error: 'Số điện thoại này đã nhận ưu đãi này từ một mã bill khác.', code: 'SDT_DA_NHAN' });
 }
 
+// KH-API-1 (Q11): bill đã ghi SĐT khách lúc bán (order_customer_phone) → chỉ SĐT đó nhận được mã — /claim và /nhan-diem, mọi đường
+// gọi (App, X-Service-Key, quầy). Bill không ghi SĐT (NULL, '' dữ liệu cũ): ai cầm giấy cũng nhận như trước.
+function billSdtKhac(dong, phone) {
+  return !!dong.order_customer_phone && normalizePhone(dong.order_customer_phone) !== phone;
+}
+const LOI_BILL_SDT_KHAC = { success: false, error: 'Mã này thuộc bill của số điện thoại khác.', code: 'BILL_SDT_KHAC' };
+
 async function getSignupConfig() {
   const rows = await query(
     "SELECT key, value FROM pos_settings WHERE key LIKE 'signup_%'"
@@ -191,6 +198,7 @@ async function nhanDiemMaBill(req, res) {
     if (kqDon.loi) {
       return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
     }
+    if (billSdtKhac(dong, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
     const don = kqDon.don;
 
     // Điểm gốc tính theo ĐÚNG cấu hình điểm đang chạy, không tự đặt công thức riêng.
@@ -359,6 +367,7 @@ async function nhanMaUuDai(req, res) {
     if (kqDon.loi) {
       return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
     }
+    if (billSdtKhac(signupRow, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
 
     // Nhóm sản phẩm áp dụng — chỉ cần khi scope='item', dùng đúng nhóm seed sẵn ở Bước 1.
     let applicableGroupId = null;
