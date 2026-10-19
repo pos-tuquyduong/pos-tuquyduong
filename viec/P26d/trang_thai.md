@@ -313,3 +313,35 @@ Sau vòng sửa (HEAD `a485de0`): `thu_P26b` 97 · 0 · `npm test -- --day-du` *
 - **Q7c** chấp nhận ngân sách.
 - **Q7d** đồng ý báo trang bị chặn ở xem trước NẾU chỉ sửa server (`backup.js`), không đụng `client/`.
 - **Phát hiện pay-debt: sửa luôn** — `amount` không phải số nguyên dương hữu hạn → 400 có `code`, kèm ca thử + đột biến.
+
+### Vòng sửa 2 — làm theo Q7 (19.10)
+
+- Bài thử TRƯỚC (`224e684`): thu_P26b F2 thêm 3 trang + F4 (xem trước có trang tiền → 400) + F5 (K5 xem trước sạch → 200); thu_P26c P6 (×5:
+  "abc", −5.000, 1.000,5, 0, "5000") + P7 (K5 không gửi amount → thu đủ) + P8 (K5 thu một phần số nguyên) + P9 (K5 nợ cũ lẻ). Trên code chưa vá Q7:
+  thu_P26b 98 · 4, thu_P26c 145 · 5 — đỏ đúng các ca mới, ca K5 xanh. Gốc `14169d8`: 70 · 32 và 137 · 13 → `bang_chung_do.txt`.
+- Sửa: `0d18813` backup.js (+3 bảng; hàm chung `chanTrangTien(res, wb)` cho CẢ `/preview-restore` lẫn `/restore` — MỘT vị từ; không sửa client/:
+  `Settings.jsx` vốn hiện `'Lỗi: ' + data.error` khi xem trước không `success`) · `1139b36` database.js (gỡ `thayKetNoiNeuBan` khỏi `query()`, chú
+  thích ghi phép đo) · `90a482f` orders.js (pay-debt: `amount != null && amount !== order.debt_amount && !(Number.isInteger(amount) && amount > 0)`
+  → 400 `SO_TIEN_KHONG_HOP_LE`).
+- **Ngoại lệ K5 — chủ quán xem lại:** `amount` đúng bằng `debt_amount` trong sổ vẫn qua dù lẻ. Lý do (đọc lượt này): màn Lịch sử đơn gửi
+  `amount: selectedOrder.debt_amount` (`client/src/pages/Orders.jsx` hàm `handleConfirmPayDebt`); nợ tạo đơn lấy từ client (`orders.js`
+  `let finalDebtAmount = debt_amount;`) và chiết khấu % không làm tròn (`finalDiscountAmount = (subtotal * finalDiscountValue) / 100;`) → nợ CŨ có thể
+  lẻ; áp nguyên văn thì đơn đó không thu được nữa. Ca P9 khoá, đột biến `VS-PD-bo-ngoai-le-no-le` bắt. Số 0 trước đây = "thu đủ", nay 400 (không có
+  màn nào gửi 0: grep `pay-debt` trong client/src chỉ có `Orders.jsx`).
+- K4: route khác nhận `amount` từ client là ví (`wallets.js` topup / deduct / adjust) — đã `parseInt` rồi chặn `!x || x <= 0`, NaN không tới kho;
+  không cùng lỗ, không sửa.
+- Sau vá: thu_P26b 102 · 0 · thu_P26c 150 · 0 · `npm test -- --day-du` **PASS 70 · FAIL 0 · CẢNH BÁO 1** (thu_P26b 4,0 s · thu_P26c 3,5 s ·
+  thu_gia_lap 47,5 s; hạn 120 s) · `dot_bien.py` **36 BẮT · 0 KHÔNG** (đối chứng 102 / 150).
+- Q7b (gỡ dòng ở `query()`): xoá code, không có hành vi để đột biến — căn cứ là phép đo 19.10 ở mục vòng sửa 1.
+
+| Chỗ vá (Q7) | Đột biến | Ca bắt |
+|---|---|---|
+| Q7a 3 bảng thêm | BV-Q7a-bo-3-bang | F2 "Mã ưu đãi khách mới" (+ 2 trang) |
+| Q7d xem trước chặn | BV-Q7d-xem-truoc-khong-chan | F4 |
+| Q7d xem trước không chặn oan | VS-Q7d-xem-truoc-chan-moi-file | F5 |
+| vị từ chung (neo mới) | BV-F-khong-chan · VS-F-chan-sau-khi-xoa · BV-F-chi-nam-trang · VS-F-sot-ma-giam | F1 / F1 / F2 / F2 |
+| pay-debt kiểm amount | BV-PD-bo-kiem-so-tien | P6 "abc" |
+| pay-debt chỉ số nguyên | VS-PD-chi-chan-khong-duong | P6 số lẻ |
+| pay-debt ngoại lệ nợ cũ lẻ | VS-PD-bo-ngoai-le-no-le | P9 |
+| pay-debt không gửi = thu đủ | VS-PD-chan-ca-khong-gui | P7 |
+| đóng giao dịch hỏng (vòng 1) | BV-A-bo-dong-tx-hong | D8 |

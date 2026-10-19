@@ -53,5 +53,29 @@ Xanh trên gốc CÓ CHỦ ĐÍCH (ca K5 / ca canh đột biến — không tín
 Sau vá (HEAD 395d31e): node cong_cu/thu_P26b.js → 97 đạt · 0 hỏng · node cong_cu/thu_P26c.js → 142 đạt · 0 hỏng.
 Soát vòng 1 (bfd3aa8, D8 dọn giao dịch hỏng SAU khi chấm — không thêm ca): thu_P26b trên gốc 14169d8 chạy lại → vẫn 69 đạt · 28 hỏng,
   ✗ D8 … — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại / HTTP 200; trên HEAD 98c2262 → 97 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_P26b.js: 97
-SỐ CA cong_cu/thu_P26c.js: 142
+
+Q7 (chủ quán trả lời 19.10) — bài ở HEAD 224e684 (thêm F2 ×3, F4, F5; P6 ×5, P7, P8, P9):
+  Trên HEAD 224e684 (code CHƯA vá Q7): thu_P26b 98 đạt · 4 hỏng — ✗ F2 "Mã ưu đãi khách mới" / "Nhật ký đơn" / "Lịch sử dùng khuyến mãi" — HTTP 200;
+    ✗ F4 xem trước file có trang "Nhật ký đơn" → 400 … — HTTP 200.
+  thu_P26c 145 đạt · 5 hỏng — ✗ P6 "abc" — HTTP 500 LOI_MAY_CHU; ✗ P6 −5.000 — HTTP 400 không code; ✗ P6 1.000,5 — HTTP 200 (thu lẻ 1000.5);
+    ✗ P6 số 0 — HTTP 200 (thu đủ); ✗ P6 "5000" — HTTP 200.
+  Trên gốc 14169d8 (server/ lấy bằng git archive ra nháp):
+  node cong_cu/thu_P26b.js --may-chu <nháp>/server → 70 đạt · 32 hỏng (28 ca cũ như trên + 3 ca F2 mới — HTTP 200 + ✗ F4 — HTTP 200; F5 xanh K5)
+  node cong_cu/thu_P26c.js --may-chu <nháp>/server → 137 đạt · 13 hỏng:
+  ✗ C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau đúng dạng, số liền nhau  — HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code  / HTTP 200 ORD-20261019-100
+  ✗ G1 đơn 2 dùng mã trước → 200; đơn 1 → 400 DISCOUNT_CODE_LIMIT_REACHED (không 500); một đơn mang mã, used_count = 1  — HTTP 200 / HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code · 1 đơn mang mã · used_count 1
+  ✗ H1 huỷ đơn có món SX, câu đọc món ngoài giao dịch gặp bận → 200, đơn cancelled, có nợ kho "in" (kho SX được hoàn)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · cancelled · nợ kho in 0
+  ✗ I1 ghi gói hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không gói, không điểm, không lộ câu nội bộ  — HTTP 200 · đơn 102 → 103 · gói 0
+  ✗ I2 ghi thẻ hội viên hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không thẻ  — HTTP 200 · đơn 104 → 105 · thẻ 0
+  ✗ P1 thu nợ, ghi sổ debt_payment hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 500 · SQLITE_IOERR: P26D_CHUOI_NOI_BO (giả) · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":0}
+  ✗ P2 thu nợ, ghi nhật ký hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":0,"so":1}
+  ✗ P3 thu nợ, kho bận ở câu đầu giao dịch → 409 KHO_BAN, nợ không đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":1}
+  ✗ P6 thu nợ amount chuỗi lạ "abc" → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 500 · Only finite numbers (not Infinity or NaN) can be passed as arguments · {"no":25000,"tm":0,"tt":"pending","nk":0,"so":0}
+  ✗ P6 thu nợ amount số âm −5.000 → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 400 · Số tiền thanh toán phải lớn hơn 0 · {"no":25000,"tm":0,"tt":"pending","nk":0,"so":0}
+  ✗ P6 thu nợ amount số lẻ 1.000,5 → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":23999.5,"tm":1000.5,"tt":"partial","nk":1,"so":1}
+  ✗ P6 thu nợ amount số 0 → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":1}
+  ✗ P6 thu nợ amount chuỗi số "5000" → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":20000,"tm":5000,"tt":"partial","nk":1,"so":1}
+  Xanh trên gốc CÓ CHỦ ĐÍCH (K5): F5 (thu_P26b); P7, P8, P9 (thu_P26c).
+Sau vá Q7 (HEAD 90a482f): thu_P26b 102 đạt · 0 hỏng · thu_P26c 150 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P26b.js: 102
+SỐ CA cong_cu/thu_P26c.js: 150
