@@ -51,5 +51,7 @@ Lệnh: node cong_cu/thu_P26c.js | grep -E "✗|✖|đạt ·"
 Xanh trên gốc CÓ CHỦ ĐÍCH (ca K5 / ca canh đột biến — không tính là ca đỏ): C2, C3, I3, I4, P4, P5 (thu_P26c); V4, H2b, F3 (thu_P26b); H3 của kế hoạch = ca K1 / K1b cũ của thu_P26b.
 
 Sau vá (HEAD 395d31e): node cong_cu/thu_P26b.js → 97 đạt · 0 hỏng · node cong_cu/thu_P26c.js → 142 đạt · 0 hỏng.
+Soát vòng 1 (bfd3aa8, D8 dọn giao dịch hỏng SAU khi chấm — không thêm ca): thu_P26b trên gốc 14169d8 chạy lại → vẫn 69 đạt · 28 hỏng,
+  ✗ D8 … — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại / HTTP 200; trên HEAD 98c2262 → 97 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_P26b.js: 97
 SỐ CA cong_cu/thu_P26c.js: 142

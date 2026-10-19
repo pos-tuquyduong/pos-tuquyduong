@@ -262,3 +262,46 @@ BÀI HỌC:
   - Chủ quán nói "MỌI X (cả a, b, c)" thì danh sách là ví dụ. Phải liệt kê đủ đối tượng theo CHỨC NĂNG (cổng phát tiền / điểm / voucher, sổ chỉ ghi thêm), rồi chặn đủ hoặc đưa vào Câu hỏi. Không tự chọn cách hiểu hẹp rồi ghi vào Phát hiện.
   - Khẳng định "cùng khuôn (đo …)" chỉ được dẫn phép đo khi phép đo đó phủ đúng loại câu đang nói (SELECT khác INSERT).
 ```
+
+## Vòng sửa 1 (19.10) — xử lý từng điểm soát
+
+| Điểm soát | Xử lý |
+|---|---|
+| Lỗi 3 — `tx.close()` không có đột biến riêng (gỡ thì bài sập) | `bfd3aa8`: D8 giữ giao dịch hỏng, dọn (`close` = ROLLBACK nếu còn mở) SAU khi chấm; đột biến mới `BV-A-bo-dong-tx-hong` → **BẮT** sạch (✗ D8, 96 đạt · 1 hỏng, không sập). Gốc chạy lại: 69 · 28 như cũ |
+| Lỗi 1 — dòng `thayKetNoiNeuBan` trong `query()` không có ca / đột biến; kế hoạch dẫn "đo 0.2" cho SELECT mà 0.2 không đo SELECT (K1) | **Đo thật 19.10** (script nháp, kho file `journal_mode = delete`): client khác giữ `BEGIN EXCLUSIVE` → `SELECT` trên kết nối dùng chung ném `SQLITE_BUSY`; nhả khoá rồi `INSERT` + một giao dịch trên CÙNG kết nối (không thay) → ghi THẬT, bảng `1,2,3,4`. Tức SELECT bận KHÔNG làm hỏng kết nối như INSERT — dòng vá ở `query()` không có lỗi nào để chặn, nên không dựng được ca đỏ / đột biến BẮT. Gỡ hay giữ là quyết định Q5 chủ quán đã duyệt (dựa trên khẳng định sai của máy) → **Câu hỏi Q7b**. `ke_hoach.md` mục 7 (D7) và mục 9 sửa lại (`a485de0`) |
+| Lỗi 2 — `BANG_KHONG_KHOI_PHUC` thiếu `pos_signup_codes`, `pos_order_log` | Danh sách bảng tiền là câu hỏi nghiệp vụ → **Câu hỏi Q7a** (không tự chọn) |
+| Nghi ngờ — `/preview-restore` không báo trang bị chặn | **Câu hỏi Q7d** |
+| Nghi ngờ — câu lỗi chép tay danh sách loại trang | `98c2262`: bỏ phần trong ngoặc, `tienBiChan` đã nêu tên trang. Mã `KHOI_PHUC_VI_DON_BI_CHAN` giữ (đổi mã lỗi là đổi giao kèo với màn hình; bài thử neo) |
+| Nghi ngờ — hồ sơ lệch (`ke_hoach.md` dòng 1, F1 `pos_settings`) | `a485de0` |
+| Nghi ngờ — ngân sách | **Câu hỏi Q7c** |
+| Nghi ngờ — pay-debt `amount` chuỗi lạ → NaN | Phát hiện bên dưới (có sẵn từ trước, ngoài nghiệm thu) |
+
+Sau vòng sửa (HEAD `a485de0`): `thu_P26b` 97 · 0 · `npm test -- --day-du` **PASS 70 · FAIL 0 · CẢNH BÁO 1** · `dot_bien.py` **29 BẮT · 0 KHÔNG**
+(đối chứng 97 / 142 đạt · 0 hỏng). Chưa chạy `/ra-soat` vòng 2 — chờ Q7 (vòng sửa đã dùng: 1 / 3).
+
+## Phát hiện (thêm, soát vòng 1)
+
+- `server/routes/orders.js` pay-debt (có sẵn từ trước): `paidAmount = amount || order.debt_amount` không ép số. `amount` là chuỗi lạ → so sánh
+  `<= 0` / `>` nợ đều sai → lọt; `remainingDebt` = NaN. libsql ném "Only finite numbers (not Infinity or NaN) can be passed as arguments" khi
+  tham số NaN (thấy trong một lần chạy đột biến) → nay trong giao dịch nên rollback, 500. CHƯA chạy ca riêng. Đề xuất việc sau: ép `Number` +
+  `Number.isInteger` + ca thử.
+
+## Câu hỏi
+
+### Q7 (mở, 19.10) — sau soát vòng 1
+
+- **Q7a — bảng tiền chặn khôi phục.** Đầu phiếu: "chặn MỌI bảng tiền (cả điểm, gói khách, thẻ, voucher, đền bù, lượt mã giảm)". Máy đã chặn 11
+  bảng. Người soát chỉ ra hai bảng nữa dính tiền theo CHỨC NĂNG: `pos_signup_codes` (cột `claimed_at` / `diem_nhan_luc` là cổng duy nhất chặn
+  phát voucher / cộng điểm hai lần — khôi phục file cũ thì khách nhận lại) và `pos_order_log` (nhật ký thu tiền, sổ chỉ ghi thêm). Còn
+  `pos_promotion_usage` (lượt dùng khuyến mãi — giới hạn lượt), `pos_stock_pending` (sổ nợ kho), `pos_invoice_logs` (nhật ký hoá đơn).
+  **Đề xuất:** chặn thêm `pos_signup_codes`, `pos_order_log`, `pos_promotion_usage` (3 tên vào hằng + 3 dòng vòng F2). Chủ quán chọn bảng nào.
+- **Q7b — dòng vá ở `query()` (Q5).** Q5 duyệt dựa trên câu "SELECT bận làm hỏng kết nối như INSERT" — máy chưa đo mà đã khẳng định (K1). Đo
+  19.10: SELECT bận KHÔNG làm hỏng kết nối. **Đề xuất (a):** gỡ dòng `thayKetNoiNeuBan(err)` trong `catch` của `query()` (−1 dòng; không có lỗi
+  để chặn nên không có ca / đột biến). (b) giữ dòng phòng xa, ghi CHƯA KIỂM (vô hại: chỉ thay client khi bận).
+- **Q7c — ngân sách.** Code `server/` so với gốc: +235 / −162 (ròng +73); mục 15 kế hoạch nâng lên "~130–170 dòng đổi". Phần vượt chủ yếu do DỜI
+  khối gói / thẻ vào giao dịch (I) và thụt lề pay-debt (P) — bỏ khoảng trắng orders.js +83 / −73. Chấp nhận?
+- **Q7d — `/preview-restore`.** Màn xem trước không báo trang tiền sẽ bị chặn; bấm khôi phục mới nhận 400. Thêm một dòng `status: 'bi_chan'`
+  cho trang trong `BANG_KHONG_KHOI_PHUC` ở xem trước (dùng chung hằng, ~3 dòng backup.js + 1 ca F)? Hay để nguyên (màn Cài đặt đã hiện `error`)?
+
+**ĐANG DỪNG chờ chủ quán trả lời Q7.** Còn lại sau Q7: sửa theo trả lời → bước 6 → `/ra-soat` vòng 2 → báo cáo 7 mục, bài học, cổng `chay`,
+`HEAD ĐÃ KIỂM`.
