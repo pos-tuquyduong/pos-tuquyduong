@@ -1381,8 +1381,8 @@ const CHO_BEGIN_MS = [50, 100, 200, 400, 800];
 const cho = (ms) => new Promise((xong) => setTimeout(xong, ms));
 
 // P26d — kho FILE: câu bị bận không được reset, kết nối dùng chung hỏng (lệnh ghi sau báo xong mà MẤT, COMMIT sau lỗi
-// "SQL statements in progress"). Thay client mới; giao dịch đang mở giữ kết nối riêng nên không ảnh hưởng. Đo 19.10: SELECT bận
-// KHÔNG làm hỏng kết nối → query() không gọi hàm này (chủ quán chốt Q7b). Turso (HTTP) không
+// "SQL statements in progress"). Thay client mới; giao dịch đang mở giữ kết nối riêng nên không ảnh hưởng. query() hiện KHÔNG
+// gọi hàm này (Q7b) — đo lại 19.10 (soát vòng 2): SELECT bận CŨNG làm hỏng kết nối, lộ ở giao dịch THỨ HAI → chờ chủ quán Q8. Turso (HTTP) không
 // đụng — đóng client sẽ huỷ các yêu cầu đang bay của người khác.
 function thayKetNoiNeuBan(err) {
   if (!laLoiBan(err) || db.protocol !== 'file') return;
