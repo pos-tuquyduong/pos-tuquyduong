@@ -123,6 +123,7 @@ không đan xen) → thêm ca tất định "yêu cầu khác ghi lượt chen g
 - `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` trên `8213118` (trước khi ghi bảng đột biến lượt 5): `✗ [A17]` (15 tên mới — nay đã ghi)
   và `✗ [A19]` (chưa tới 11.4); KHÔNG có ✗ Phạm vi.
   Chạy lại trên `5dde191` (sau khi ghi bảng): chỉ `✗ [A19]` — A17 hết.
+- Hook dừng (`kiem_truoc_khi_dung.cjs`) báo đỏ `thu_P20.js` — chính 3 bài của Q12. Không sửa file ngoài Phạm vi, không nới bộ kiểm, không tự chọn (b)/(c) thay chủ quán → dừng chờ Q12.
 
 ## Bước 8 — soát độc lập `/ra-soat`
 
