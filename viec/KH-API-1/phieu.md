@@ -17,7 +17,10 @@
      Q8 (18.10): thêm server/routes/backup.js — CHỈ một dòng bảng mã đăng nhập trong BACKUP_TABLES (phép E8 "mọi bảng được sao lưu").
      Q9–Q11 (19.10): Q9 giới hạn thử cho nhan-ma-bill / nhan-diem bằng MỘT bảng đếm lần thử khách (thêm cạnh bảng mã đăng nhập) + dòng
      BACKUP_TABLES ngay dưới dòng của KH-API-1; Q10 chế độ quay không sinh mã, không ghi, không đếm; Q11 chặn nhận mã của bill đã ghi
-     SĐT khác (áp cả route cũ). -->
+     SĐT khác (áp cả route cũ).
+     Q12 (19.10) chọn (a): giữ Q11 cho CẢ /claim và /nhan-diem (mã chỉ in cho bill của người CHƯA nhận ưu đãi — orders.js không in mã
+     khi SĐT trên đơn đã claim — nên mã thuộc người mua). Mở cong_cu/thu_P20.js (nhận mã bằng SĐT trên bill + ca đỏ BILL_SDT_KHAC)
+     và RIÊNG kịch bản KB13 trong cong_cu/gia_lap/kich_ban.js (thêm SĐT khách quen vào lệnh nhận mã). -->
 
 **Chờ duyệt kế hoạch:** viết `viec/KH-API-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -91,6 +94,8 @@ danh sách bài chạy thật của `npm test`.
 - server/routes/backup.js
 - env.example
 - cong_cu/thu_KH1.js
+- cong_cu/thu_P20.js
+- cong_cu/gia_lap/kich_ban.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Ngân sách
@@ -118,5 +123,8 @@ không
 - `server/database.js`: chỉ THÊM khối bảng ở chỗ ghi trên; KHÔNG sửa `beginTransaction`, `run`, hàm khác (P26d song song).
 - `kiem_tra_truoc_khi_giao.js`: chỉ thêm `'cong_cu/thu_KH1.js'` vào mảng danh sách bài chạy thật; không nới hạn, không đổi phép khác.
 - Không gửi tin thật ra ngoài, không gọi dịch vụ Zalo / SMS (KH-OTP-1). Không thêm `app_kh/` (KH-UI-1).
-- Không sửa `tu_chay/`, `.claude/`, `.github/`, sổ việc, `cong_cu/thu_TOCDO1.js`, `cong_cu/gia_lap/**`. Chỉ push đúng
+- `cong_cu/thu_P20.js`: chỉ đổi SĐT nhận mã ở mục [D] và G2 thành SĐT trên bill + thêm MỘT ca "SĐT khác → BILL_SDT_KHAC" (đỏ trên
+  gốc); không bớt ca, không nới `c.mong`. `cong_cu/gia_lap/kich_ban.js`: CHỈ kịch bản KB13 (thêm SĐT khách quen vào lệnh nhận mã);
+  số kịch bản / bất biến của giả lập không đổi.
+- Không sửa `tu_chay/`, `.claude/`, `.github/`, sổ việc, `cong_cu/thu_TOCDO1.js`, `cong_cu/gia_lap/**` (trừ KB13 ở trên). Chỉ push đúng
   `git push -u origin viec/KH-API-1`. Không đụng `main`, không merge, không tạo PR.
