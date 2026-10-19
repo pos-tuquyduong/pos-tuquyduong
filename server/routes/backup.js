@@ -95,8 +95,11 @@ const BACKUP_TABLES = [
   { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' }
 ];
 
-// P26d (Q3): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (/restore chặn 400).
-const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'pos_balance_transactions', 'pos_refund_requests'];
+// P26d (Q3, chủ quán mở rộng 18.10): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (/restore chặn 400):
+// ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn · điểm, gói khách, thẻ, voucher, đền bù (hàng hỏng), lượt mã giảm.
+const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'pos_balance_transactions', 'pos_refund_requests',
+  'pos_point_transactions', 'pos_customer_packages', 'pos_membership_purchases', 'pos_voucher_grants', 'pos_damage_logs',
+  'pos_discount_codes'];
 
 /**
  * Helper: Lấy pos_products với tên mới nhất từ SX
@@ -312,7 +315,7 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
       && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
     if (tienBiChan.length) {
       return res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: tienBiChan,
-        error: `File có trang tiền (${tienBiChan.join(', ')}) — ví, đơn, sổ ví, yêu cầu hoàn không khôi phục bằng file. `
+        error: `File có trang tiền (${tienBiChan.join(', ')}) — trang dính tiền (ví, đơn, điểm, gói, thẻ, voucher, đền bù, mã giảm) không khôi phục bằng file. `
           + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
     }
 
