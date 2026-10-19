@@ -10,7 +10,10 @@
      danh sách bài chạy thật), P26d (database.js beginTransaction/run, orders.js, wallets.js, backup.js, sync.js…), P16 (Invoice*,
      Sales.jsx, Orders.jsx). Việc này KHÔNG sửa server/index.js (dùng route reports.js đã mount), KHÔNG sửa wallets.js / orders.js.
      database.js: chỉ THÊM bảng ở CUỐI createTables (khác vùng hai việc kia). kiem_tra_truoc_khi_giao.js: thêm dòng gọi
-     `chayBaiThat('cong_cu/thu_DOISOAT1.js')` RIÊNG, đặt TRƯỚC mục "K · KHO THỬ", KHÔNG sửa dòng mảng danh sách chung. -->
+     `chayBaiThat('cong_cu/thu_DOISOAT1.js')` RIÊNG, đặt TRƯỚC mục "K · KHO THỬ", KHÔNG sửa dòng mảng danh sách chung.
+     18.10 chủ quán trả lời câu 1–8 (trang_thai.md) và câu 9: thêm server/routes/backup.js — CHỈ một dòng pos_doi_soat_ghi trong
+     BACKUP_TABLES ngay sau dòng pos_order_log (phép E8). KH-API-1 thêm sau pos_customers, P26d sửa sau cuối danh sách — ba chỗ tách
+     nhau để git gộp tự động. -->
 
 **Chờ duyệt kế hoạch:** viết `viec/DOI-SOAT-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -46,6 +49,7 @@ mềm → thành ca thử mới ở việc sau. Dữ liệu cũ trước các b�
 - server/utils/batBien.js
 - server/utils/doiSoat.js
 - server/routes/reports.js
+- server/routes/backup.js
 - server/database.js
 - cong_cu/gia_lap/bat_bien.js
 - client/src/pages/Reports.jsx
@@ -67,6 +71,8 @@ không
 
 ## Cấm
 - KHÔNG ghi bất kỳ bảng tiền / ví / điểm / đơn / kho nào; KHÔNG gọi `reconcile-all` hay hàm sửa số. Lộ code tiền SAI → DỪNG, ghi `## Câu hỏi`.
+- `server/routes/backup.js`: CHỈ thêm MỘT dòng `{ name: 'pos_doi_soat_ghi', … }` vào `BACKUP_TABLES` NGAY SAU dòng `pos_order_log`;
+  không sửa gì khác trong file (KH-API-1, P26d song song sửa chỗ khác).
 - KHÔNG sửa `server/index.js`, `server/routes/wallets.js`, `server/routes/orders.js`, `server/routes/doi-chieu.js`; database.js chỉ thêm
   bảng ở cuối createTables; `kiem_tra_truoc_khi_giao.js` chỉ thêm MỘT dòng gọi bài ở chỗ ghi trên.
 - Không đổi kết quả giả lập (số kịch bản, số bất biến, mô tả lệch). Không nới hạn, không bớt ca.
