@@ -122,10 +122,12 @@ const BAT_BIEN = {
       WHERE key IN ('loyalty_enabled', 'loyalty_earn_per_amount', 'nhandiem_he_so')`)).map((r) => [r.key, r.value]));
     const per = Number(cfg.loyalty_earn_per_amount);
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
+    // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash,
-        (SELECT COALESCE(SUM(t.points), 0) FROM pos_point_transactions t WHERE t.order_id = o.id) AS diem,
-        (SELECT COUNT(*) FROM pos_signup_codes s WHERE s.order_id = o.id AND s.diem_nhan_luc IS NOT NULL) AS da_nhan
-      FROM pos_orders o`);
+        COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
+      FROM pos_orders o
+      LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
+      LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
     const lech = ds.flatMap((r) => {
       const g = Math.floor(so(r.total) / per);
       const luBan = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && g > 0;

@@ -5,7 +5,8 @@
  * Ba nhóm dòng lệch: `do` (đỏ) · `can_xem` (vàng — bất biến so với trạng thái HIỆN TẠI nên có thể oan) · `cu` (vàng — dòng cũ hơn
  * ngày bản vá tương ứng có hiệu lực, `AP_DUNG_TU`). Kết quả XANH khi `do` rỗng và két không chênh.
  * Bất biến trả chuỗi (không có ngày) nên ngày suy từ chữ mô tả bằng bảng KHOA riêng từng bất biến; dòng không suy được ngày thì
- * ĐỎ ở mọi kỳ (không bao giờ ẩn một lệch). Đổi chữ mô tả trong bat_bien.js thì cập nhật KHOA — bài thử C4 canh từng bất biến.
+ * ĐỎ ở mọi kỳ (không bao giờ ẩn một lệch). Ngày = sự việc MỚI NHẤT của đối tượng (lệch mới trên đơn cũ không thành "LỆCH CŨ").
+ * Đổi chữ mô tả trong bat_bien.js thì cập nhật KHOA — bài thử C4 canh từng bất biến.
  */
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString } = require('./helpers');
@@ -15,7 +16,6 @@ const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
 
 const TRAN_KET = 1000000000;       // số tiền két nhập tay tối đa (đồng)
 const TRAN_DONG = 200;             // số dòng lệch trả về mỗi nhóm (đếm vẫn đủ ở so_luong)
-const TRAN_PHAN_LOAI = 1000;       // mỗi bất biến phân loại ngày tối đa từng này dòng (mỗi dòng một câu SELECT); phần dư tính ĐỎ
 const NHAC_KHO = 'Kiểm kê kho thật: đếm tồn ở xưởng rồi đối chiếu với số kho bên SX (số kho nằm ở SX, màn này không có).';
 
 // I7 cần số liệu kho SX của giả lập (SX giả nhận bao nhiêu lần) — dữ liệu thật không có; đối chiếu SX ↔ POS đã có ở doi-chieu.js.
@@ -54,10 +54,12 @@ function loiDS(status, code, error) {
   return Object.assign(new Error(error), { status, code });
 }
 
-// Mọi câu SQL của lượt chạy đi qua đây: không phải SELECT / WITH thì ném lỗi (bất biến lỡ viết câu ghi cũng không ghi được).
+// Mọi câu SQL của lượt chạy đi qua đây: không mở đầu SELECT / WITH, hoặc có từ khoá ghi ở bất kỳ đâu (SQLite chạy cả
+// lệnh ghi mở đầu bằng WITH), hoặc nhiều câu → ném lỗi. Bỏ chú thích và chuỗi '…' trước khi soi để chữ trong dữ liệu không bị bắt oan.
+const TU_GHI = /\b(insert|update|delete|replace\s+into|create|drop|alter|attach|detach|pragma|vacuum|reindex)\b|;\s*\S/i;
 function chiDoc(sql, args = []) {
-  const dau = String(sql).replace(/\/\*[\s\S]*?\*\/|--[^\n]*/g, '').trim();
-  if (!/^(SELECT|WITH)\b/i.test(dau)) throw new Error('Đối soát chỉ được ĐỌC: ' + dau.slice(0, 40));
+  const dau = String(sql).replace(/\/\*[\s\S]*?\*\/|--[^\n]*|'(?:[^']|'')*'/g, "''").trim();
+  if (!/^(SELECT|WITH)\b/i.test(dau) || TU_GHI.test(dau)) throw new Error('Đối soát chỉ được ĐỌC: ' + dau.slice(0, 40));
   return db.query(sql, args);
 }
 
@@ -109,7 +111,7 @@ async function tongHop(tu, den) {
   const [tm, ck, nap, chi, diem] = await Promise.all([
     tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
-    chiDoc(`SELECT COALESCE(SUM(balance_amount), 0) AS n FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(COALESCE(balance_amount, 0) + COALESCE(parent_balance_amount, 0)), 0) AS n FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong, COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru
       FROM pos_point_transactions WHERE DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
   ]);
@@ -132,44 +134,63 @@ async function soKet(ngay) {
   };
 }
 
-// ─── Ngày của dòng lệch: bảng KHOA theo từng bất biến: [mẫu chữ mô tả, phạm vi, hàm tra ngày | null] ───
+// ─── Ngày của dòng lệch: bảng KHOA theo từng bất biến: [mẫu chữ mô tả, phạm vi, hàm tra ngày THEO LÔ | null] ───
 // phạm vi 'ky' = lọc theo kỳ; 'toan_so' = chạy cả sổ. Hàm tra = null → dòng GỘP không có khoá (loại dòng lạ): luôn đỏ, không ngày.
-const mot = (sql, nhieu = false) => async (m, q) => (await q(sql, nhieu ? [m[1], m[1]] : [m[1]]))[0]?.d ?? null;
-const donMa = mot('SELECT created_at AS d FROM pos_orders WHERE code = ?');
-const viMoiNhat = mot('SELECT MAX(created_at) AS d FROM pos_balance_transactions WHERE customer_phone = ?');
-const donHoacXoa = async (m, q) => (m[1].startsWith('#')
-  ? (await q('SELECT MIN(luc) AS d FROM pos_order_log WHERE order_id = ?', [m[1].slice(1)]))[0]?.d ?? null
-  : donMa(m, q));
+// Tra theo LÔ: mỗi bất biến một câu cho mỗi 400 khoá (không một câu mỗi dòng — dữ liệu cũ nhiều lệch vẫn nhanh). sql trả cột k, d.
+const lo = (sql, lan = 1) => async (khoa, q) => {
+  const m = new Map();
+  for (let i = 0; i < khoa.length; i += 400) {
+    const phan = khoa.slice(i, i + 400);
+    for (const r of await q(sql(phan.map(() => '?').join(',')), Array(lan).fill(phan).flat())) m.set(String(r.k), r.d);
+  }
+  return m;
+};
+// Đơn: tạo, huỷ, nhật ký (thu / đổi cách trả), dòng ví (hoàn / đền / thu nợ), dòng điểm — lấy cái MỚI NHẤT.
+const donMoiNhat = lo((ph) => `SELECT o.code AS k, MAX(o.created_at, COALESCE(o.cancelled_at, ''),
+    COALESCE((SELECT MAX(luc) FROM pos_order_log WHERE order_id = o.id), ''),
+    COALESCE((SELECT MAX(created_at) FROM pos_balance_transactions WHERE order_id = o.id), ''),
+    COALESCE((SELECT MAX(created_at) FROM pos_point_transactions WHERE order_id = o.id), '')) AS d
+  FROM pos_orders o WHERE o.code IN (${ph})`);
+const viMoiNhat = lo((ph) => `SELECT customer_phone AS k, MAX(created_at) AS d FROM pos_balance_transactions WHERE customer_phone IN (${ph}) GROUP BY customer_phone`);
 const KHOA = {
-  I1: [[/^mã (\S+) đã dùng trên đơn/, 'ky', mot(`SELECT CASE WHEN claimed_at IS NULL THEN diem_nhan_luc WHEN diem_nhan_luc IS NULL THEN claimed_at
-    ELSE MIN(claimed_at, diem_nhan_luc) END AS d FROM pos_signup_codes WHERE code = ?`)]],
-  I2: [[/^mã (\S+) mồ côi/, 'toan_so', mot('SELECT issued_at AS d FROM pos_signup_codes WHERE code = ?')]],
-  I3: [[/^đơn (\S+): /, 'ky', donMa]],
+  I1: [[/^mã (\S+) đã dùng trên đơn/, 'ky', lo((ph) => `SELECT code AS k, CASE WHEN claimed_at IS NULL THEN diem_nhan_luc
+    WHEN diem_nhan_luc IS NULL THEN claimed_at ELSE MAX(claimed_at, diem_nhan_luc) END AS d FROM pos_signup_codes WHERE code IN (${ph})`)]],
+  I2: [[/^mã (\S+) mồ côi/, 'toan_so', lo((ph) => `SELECT code AS k, issued_at AS d FROM pos_signup_codes WHERE code IN (${ph})`)]],
+  I3: [[/^đơn (\S+): /, 'ky', donMoiNhat]],
   I4: [[/^ví (\S+): số dư/, 'toan_so', viMoiNhat]],
   I5: [[/^loại dòng ví lạ/, 'toan_so', null]],
-  I6: [[/^đơn (\S+): đã ghi/, 'ky', donMa]],
-  I8: [[/^đơn (\S+): /, 'ky', donMa], [/^dòng đổi điểm #(\d+)/, 'ky', mot('SELECT created_at AS d FROM pos_point_transactions WHERE id = ?')],
+  I6: [[/^đơn (\S+): đã ghi/, 'ky', donMoiNhat]],
+  I8: [[/^đơn (\S+): /, 'ky', donMoiNhat], [/^dòng đổi điểm #(\d+)/, 'ky', lo((ph) => `SELECT id AS k, created_at AS d FROM pos_point_transactions WHERE id IN (${ph})`)],
     [/^loại dòng điểm lạ/, 'toan_so', null]],
-  I9: [[/^đơn (\S+?): /, 'ky', donHoacXoa]],
-  I11: [[/^đơn #(\d+), ví/, 'ky', mot('SELECT MAX(created_at) AS d FROM pos_balance_transactions WHERE order_id = ?')]],
-  I12: [[/^quà #(\d+) mã/, 'ky', mot('SELECT granted_at AS d FROM pos_voucher_grants WHERE id = ?')]],
-  I13: [[/^mã (\S+): đã dùng/, 'toan_so', mot(`SELECT COALESCE((SELECT MAX(created_at) FROM pos_orders WHERE UPPER(discount_code) = UPPER(?)),
-    (SELECT created_at FROM pos_discount_codes WHERE code = ?)) AS d`, true)]],
-  I14: [[/^gói #(\d+)/, 'ky', mot('SELECT created_at AS d FROM pos_customer_packages WHERE id = ?')], [/^đơn mua gói (\S+) lấy ngay/, 'ky', donMa],
-    [/^đơn (\S+) trỏ gói/, 'ky', donMa]],
-  I15: [[/^đơn mua thẻ (\S+): /, 'ky', donMa], [/^dòng mua thẻ #(\d+)/, 'ky', mot('SELECT purchased_at AS d FROM pos_membership_purchases WHERE id = ?')]],
-  I16: [[/^đơn (\S+): nhật ký đổi/, 'ky', donMa]],
-  I17: [[/^yêu cầu hoàn #(\d+)/, 'ky', mot('SELECT COALESCE(processed_at, requested_at) AS d FROM pos_refund_requests WHERE id = ?')]],
+  I9: [[/^đơn (\S+?): /, 'ky', donMoiNhat]],
+  I11: [[/^đơn #(\d+), ví/, 'ky', lo((ph) => `SELECT order_id AS k, MAX(created_at) AS d FROM pos_balance_transactions WHERE order_id IN (${ph}) GROUP BY order_id`)]],
+  I12: [[/^quà #(\d+) mã/, 'ky', lo((ph) => `SELECT id AS k, granted_at AS d FROM pos_voucher_grants WHERE id IN (${ph})`)]],
+  I13: [[/^mã (\S+): đã dùng/, 'toan_so', lo((ph) => `SELECT d.code AS k, COALESCE((SELECT MAX(o.created_at) FROM pos_orders o
+    WHERE UPPER(o.discount_code) = UPPER(d.code)), d.created_at) AS d FROM pos_discount_codes d WHERE d.code IN (${ph})`)]],
+  I14: [[/^gói #(\d+)/, 'ky', lo((ph) => `SELECT id AS k, MAX(created_at, COALESCE(updated_at, '')) AS d FROM pos_customer_packages WHERE id IN (${ph})`)],
+    [/^đơn mua gói (\S+) lấy ngay/, 'ky', donMoiNhat], [/^đơn (\S+) trỏ gói/, 'ky', donMoiNhat]],
+  I15: [[/^đơn mua thẻ (\S+): /, 'ky', donMoiNhat],
+    [/^dòng mua thẻ #(\d+)/, 'ky', lo((ph) => `SELECT id AS k, purchased_at AS d FROM pos_membership_purchases WHERE id IN (${ph})`)]],
+  I16: [[/^đơn (\S+): nhật ký đổi/, 'ky', donMoiNhat]],
+  I17: [[/^yêu cầu hoàn #(\d+)/, 'ky', lo((ph) => `SELECT id AS k, COALESCE(processed_at, requested_at) AS d FROM pos_refund_requests WHERE id IN (${ph})`)]],
   I18: [[/^ví (\S+): tổng nạp/, 'toan_so', viMoiNhat]],
-  I19: [[/^đơn (\S+): khách nhận lại/, 'ky', donMa]],
+  I19: [[/^đơn (\S+): khách nhận lại/, 'ky', donMoiNhat]],
 };
 
-async function phanLoai(ten, moTa, q) {
-  for (const [mau, phamVi, tra] of KHOA[ten] || []) {
-    const m = mau.exec(moTa);
-    if (m) return { phamVi, ngay: tra ? await tra(m, q) : null, gop: !tra };
+// Gắn ngày cho cả danh sách lệch của một bất biến: khớp mẫu, gom khoá theo hàm tra, tra một lượt mỗi hàm.
+async function phanLoai(ten, dsLech, q) {
+  const khop = dsLech.map((moTa) => {
+    for (const [mau, phamVi, tra] of KHOA[ten] || []) {
+      const m = mau.exec(moTa);
+      if (m) return { moTa, phamVi, tra, khoa: m[1] };
+    }
+    return { moTa, phamVi: 'ky' };   // không khoá nào khớp → không rõ ngày
+  });
+  const ngay = new Map();
+  for (const tra of new Set(khop.map((x) => x.tra).filter(Boolean))) {
+    ngay.set(tra, await tra([...new Set(khop.filter((x) => x.tra === tra).map((x) => x.khoa))], q));
   }
-  return { phamVi: 'ky', ngay: null, gop: false };   // không khoá nào khớp → không rõ ngày
+  return khop.map((x) => ({ moTa: x.moTa, phamVi: x.phamVi, gop: x.tra === null, ngay: x.tra ? ngay.get(x.tra).get(x.khoa) ?? null : null }));
 }
 
 // ─── D1: SĐT có ≥ 2 dòng nhận mã bill (claimed_phone) / nhận điểm (diem_nhan_phone) — dấu vết đua (P20c) ───
@@ -204,10 +225,10 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
   for (const ten of Object.keys(boBatBien)) {
     if (BO_QUA[ten]) { bangBB.push({ ten, trang_thai: 'bo', ly_do: BO_QUA[ten] }); continue; }
     const dsLech = await boBatBien[ten](chiDoc, ctx);
-    bangBB.push({ ten, pham_vi: ['I2', 'I4', 'I5', 'I13', 'I18'].includes(ten) ? 'toan_so' : 'ky', trang_thai: RUT_GON.has(ten) ? 'rut_gon' : 'day_du' });
-    for (const [i, moTa] of dsLech.entries()) {
-      const p = i < TRAN_PHAN_LOAI ? await phanLoai(ten, moTa, chiDoc) : { phamVi: 'ky', ngay: null, gop: false };
-      const x = xep(ten, moTa, p.ngay, p.phamVi, p.gop, CAN_XEM.has(ten));
+    const toanSo = (KHOA[ten] || []).length > 0 && KHOA[ten].every(([, phamVi]) => phamVi === 'toan_so');
+    bangBB.push({ ten, pham_vi: toanSo ? 'toan_so' : 'ky', trang_thai: RUT_GON.has(ten) ? 'rut_gon' : 'day_du' });
+    for (const p of await phanLoai(ten, dsLech, chiDoc)) {
+      const x = xep(ten, p.moTa, p.ngay, p.phamVi, p.gop, CAN_XEM.has(ten));
       if (x) them(x.nhom, x.dong);
     }
   }

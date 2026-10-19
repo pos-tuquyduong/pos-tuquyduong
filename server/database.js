@@ -921,6 +921,11 @@ async function createTables() {
     )
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_doi_soat_ghi ON pos_doi_soat_ghi(loai, ky, id)`);
+  // Đối soát chạy bất biến trên CẢ sổ: các câu lồng theo order_id không chỉ mục thì chi phí ~ số đơn × số dòng (đo: 20.000 đơn → 35 s).
+  // Chỉ những bảng tạo TRONG createTables (pos_signup_codes, pos_membership_purchases tạo sau, ở seedDefaultData).
+  for (const bang of ['pos_order_items', 'pos_balance_transactions', 'pos_point_transactions', 'pos_refund_requests', 'pos_customer_packages']) {
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_ds_${bang.slice(4)}_order ON ${bang}(order_id)`);
+  }
 
   console.log('✅ Đã tạo tất cả các bảng');
 }
