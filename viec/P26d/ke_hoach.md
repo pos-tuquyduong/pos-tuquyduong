@@ -1,4 +1,4 @@
-# P26d — kế hoạch (chờ chủ quán duyệt)
+# P26d — kế hoạch (chủ quán đã duyệt 18.10 — mục 15)
 
 Phiếu: `viec/P26d/phieu.md` (Chờ duyệt kế hoạch). Mọi số dòng dưới đây đọc ở HEAD `14169d8` trong lượt này.
 
@@ -180,7 +180,7 @@ vì kết nối hỏng chứ không vì lỗi đang thử (soát kế hoạch). 
 | D5 | thu_P26b | B | vòng qua `TRANSACTION_BUSY`, `SQLITE_BUSY_SNAPSHOT`: `getDb().transaction` ném mã đó LẦN ĐẦU (lần thay kết nối gỡ vá) | thử lại → 200 | 500 |
 | D8 | thu_P26b | A (đường Turso) | `getDb().transaction` trả giao dịch THẬT nhưng `execute` đầu ném `SQLITE_BUSY` một lần (BEGIN lười hỏng ở câu đầu) | thử lại → 200; giao dịch hỏng đã đóng (không treo khoá — lệnh ghi kế tiếp 200) | 409 KHO_BAN |
 | D9 | thu_P26b | B (`loiGhi` dùng `laLoiBan`) | `co.ban` nhận mã: ném `TRANSACTION_BUSY` ở lớp bọc (NGOÀI vòng thử lại) | 409 KHO_BAN, kho không đổi | 500 |
-| D7 | thu_P26b | A (kết nối, Q5) | `run` ngoài giao dịch gặp bận thật (khoá đang giữ) → nhả → `run` tiếp | lần 1 ném bận; lần 2 ghi có thật (đọc bằng client 2) | mất ghi |
+| D7 | thu_P26b | A (kết nối `run`) | `run` ngoài giao dịch gặp bận thật (khoá đang giữ) → nhả → `run` tiếp | lần 1 ném bận; lần 2 ghi có thật (đọc bằng client 2) | mất ghi |
 | C1 | thu_P26c | C (hai người) | móc mới `co.mocTruocTx` (như thu_P20) chạy TRỌN đơn 2 trước khi giao dịch đơn 1 mở; hai đơn tiền mặt | cả hai 200, hai mã KHÁC nhau, cả hai dạng `ORD-<ngày>-NNN`, số liền nhau | đơn 1: 500 (UNIQUE) |
 | C2 | thu_P26c | C (K5) | ngày có mã cũ `ORD-<ngày>-999` → đơn mới `-1000` | đúng | **xanh trên gốc** — ca K5 khoá hành vi khi bỏ vòng 30 lần, KHÔNG tính là ca đỏ |
 | C3 | thu_P26c | C | `co.banCauDau` ở đơn tiền mặt (sau vá câu đầu = đọc mã) | 409 KHO_BAN, không đơn mới | **xanh trên gốc** (gốc: móc nổ ở INSERT → 409) — ca canh đột biến `VS-C-nuot-loi-doc-ma`, KHÔNG tính là ca đỏ |
@@ -192,7 +192,7 @@ vì kết nối hỏng chứ không vì lỗi đang thử (soát kế hoạch). 
 | V2 | thu_P26b | E | ví `total_topup`/`total_spent` NULL → nạp, trừ tay | hai cột ra số đúng | NULL |
 | V3 | thu_P26b | E | đơn trả ví, xoá dòng ví (ví mất), huỷ đơn | ví tạo lại: `balance` = khoản hoàn, `total_spent = 0` | `total_spent` âm |
 | V4 | thu_P26b | E (K5) | ví có sẵn, huỷ đơn trả ví | `total_spent` giảm đúng khoản hoàn (như cũ) | xanh (K5) |
-| F1 | thu_P26b | F | file có trang "Cài đặt" ĐỨNG TRƯỚC trang "Số dư" (có dòng) — thứ tự cố ý, để bắt vá "chặn trong vòng sau khi đã xoá trang trước" | 400 `KHOI_PHUC_VI_DON_BI_CHAN`; `pos_settings` VÀ `pos_wallets` không đổi | 200, ví bị ghi đè |
+| F1 | thu_P26b | F | file có trang "Nhật ký đồng bộ" ĐỨNG TRƯỚC trang "Số dư" (có dòng) — thứ tự cố ý, để bắt vá "chặn trong vòng sau khi đã xoá trang trước" (bài thật dùng `pos_sync_logs` thay `pos_settings`) | 400 `KHOI_PHUC_VI_DON_BI_CHAN`; `pos_sync_logs` VÀ `pos_wallets` không đổi | 200, ví bị ghi đè |
 | F2 | thu_P26b | F | file có trang "Đơn hàng" | 400, `pos_orders` không đổi | 200 |
 | F3 | thu_P26b | F (K5) | file chỉ có trang "Kho quà" | 200 khôi phục như cũ | xanh (K5) |
 
@@ -220,7 +220,7 @@ bỏ qua vòng thử lại thật nhưng không vô nghĩa. `thu_P20.js`, `thu_G
 | COALESCE cột tổng | `BV-E-bo-coalesce-cot-tong` | V2 |
 | tổng chi ví mới | `VS-E-tong-chi-am` (INSERT `tieu` không kẹp) | V3 |
 | chặn khôi phục | `BV-F-khong-chan` | F1, F2 |
-| chặn TRƯỚC mọi ghi | `VS-F-chan-sau-khi-xoa` (kiểm từng trang trong vòng) | F1 (vế `pos_settings`) |
+| chặn TRƯỚC mọi ghi | `VS-F-chan-sau-khi-xoa` (kiểm từng trang trong vòng) | F1 (vế `pos_sync_logs`) |
 | kiểm lại mã giảm trong giao dịch | `BV-G-bo-kiem-lai-ma` | G1 |
 
 ## 9. Đường song song (K4) đã rà
@@ -231,7 +231,8 @@ bỏ qua vòng thử lại thật nhưng không vô nghĩa. `thu_P20.js`, `thu_G
 - Mọi chỗ sinh mã đơn / INSERT `pos_orders`: chỉ `orders.js:816` / `:893`.
 - Mọi lệnh ghi `pos_wallets`: `ghiVi`, `reconcileWallet` (E12) + `backup.js` (tên bảng là biến) — mục 5.
 - Mọi chỗ trả `KHO_BAN`: bảng mục 3.
-- `query` / `run` cùng khuôn "câu bận làm hỏng kết nối" với BEGIN (đo 0.2) — vá cả hai (Q5). Q5 không duyệt → bỏ vá `query` và
+- `run` cùng khuôn "câu bận làm hỏng kết nối" với BEGIN (đo 0.2: INSERT). `query` (SELECT) KHÔNG đo ở 0.2 — soát vòng 1 bắt; đo 19.10: SELECT
+  bận KHÔNG làm hỏng kết nối (trang_thai.md, Câu hỏi Q7b). Vá cả hai (Q5). Q5 không duyệt → bỏ vá `query` và
   bỏ ca D7 (không thuộc nghiệm thu A, vốn chỉ nói "BEGIN hỏng").
 - `generateOrderCode` (`helpers.js:8`, còn được import ở orders.js) không còn chỗ gọi — không phải đường sinh mã song song; không sửa.
 - Catch đọc biến gán trong try: tạo đơn (`orderCode`, mục 2), huỷ / xoá (`order?.code` — đã chịu `undefined`).
