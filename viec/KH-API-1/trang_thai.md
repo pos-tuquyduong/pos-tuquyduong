@@ -13,6 +13,12 @@
   d4e55a4 KH-API-1: ke hoach sua theo soat (claim giu SDT trong try, B1 loc nguon gui, products khong giau lenh ghi, Q7)
   5ce2063 KH-API-1: ke hoach (cho duyet) + trang thai, cau hoi Q1-Q6
   ```
+- Lượt 4 (`tiep`, 19.10.2026): hook mở phiên kéo `27e1ac1 → 22d1cb5`; nhánh `viec/KH-API-1`, cây sạch, HEAD `22d1cb5` = FETCH_HEAD `22d1cb5`.
+  ```
+  22d1cb5 PHIEU: KH-API-1 Q8 mo backup.js (mot dong BACKUP_TABLES sau pos_customers)
+  e382815 KH-API-1: Q8 dong y nhung phieu chua co backup.js tren nhanh - dung cho phieu
+  90ed271 KH-API-1: trang thai buoc 4-6 (do tren goc 9/84, xanh 116/0, 54/54 dot bien) + cau hoi Q8 backup.js
+  ```
 
 ## Bước 2 — đã đọc
 `phieu.md`, `CLAUDE.md`, `LUAT_XAY_APP.md`, `KHUON_LOI.md`; code: `signup-codes.js`, `loyalty.js`, `products.js`, `customers.js` (POST /),
@@ -75,6 +81,14 @@ Kết quả: ĐỐI CHỨNG 116 đạt · 0 hỏng; **54 đột biến bị bắ
   không bị giấu), E15 dòng cứng = 5, fetch trần = 32; `thu_KH1.js` xanh trong bộ.
 - `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` (trước khi ghi bảng này): chỉ `✗ [A17]` (tên đột biến chưa ghi — nay đã ghi) và
   `✗ [A19]` (chưa tới bước 11.4); KHÔNG có ✗ Phạm vi.
+- **Lượt 4 — Q8 làm xong** (`75dfdfb`): phiếu ở `22d1cb5` có `server/routes/backup.js` trong Phạm vi. Thêm ĐÚNG một dòng
+  `{ name: 'pos_kh_ma_dang_nhap', label: 'Mã đăng nhập App KH', key: 'id' }` ngay sau dòng `pos_customers` (`backup.js:43`; `git diff
+  --stat` 1 insertion). Bảng không khoá ngoại nên đứng sau `pos_customers` không vướng thứ tự restore cha→con; nhãn 19 ký tự (< 31 giới hạn
+  tên trang Excel), không trùng nhãn khác (xem trước / restore tra trang theo nhãn — `backup.js:253, 304`).
+  Khoá: phép E8 của bộ kiểm — ĐỎ trên `22d1cb5` (lượt 3 ở trên: `✗ mọi bảng đều được sao lưu (31 bảng) → thiếu trong BACKUP_TABLES:
+  pos_kh_ma_dang_nhap`), XANH sau vá: `npm test` → PASS 67 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ "route GET có lệnh ghi (3)"); `npm test --
+  --day-du` → PASS 71 · FAIL 0 (`✓ mọi bảng đều được sao lưu (31 bảng)`, `✓ bài chạy thật cong_cu/thu_KH1.js xanh`). Không thêm đột biến
+  cho dòng này: `dot_bien.py` chỉ chạy `thu_KH1.js`; đột biến "bỏ dòng" chính là bản `22d1cb5` mà E8 đã bắt.
 
 ## Câu hỏi
 **Lượt 3 (`tiep`, 19.10.2026):** chủ quán trả lời Q8 ĐỒNG Ý (một dòng `pos_kh_ma_dang_nhap` NGAY SAU dòng `pos_customers` — P26d sửa cuối
