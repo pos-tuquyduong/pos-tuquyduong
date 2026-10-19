@@ -546,8 +546,9 @@ async function main() {
     const sR = sdtMoi(); const dR = await donThu(sR);
     const cuKhac = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: sdtMoi() }, { dichVu: true });
     k('Q11 /claim cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC', la(cuKhac, 400, 'BILL_SDT_KHAC'), moTa(cuKhac));
-    const cuDung = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: '+84 ' + sR.slice(1) }, { dichVu: true });
-    k('Q11 /claim cũ cùng SĐT của bill viết dạng +84 → 200', la(cuDung, 200), moTa(cuDung));
+    await db.run('UPDATE pos_signup_codes SET order_customer_phone = ? WHERE code = ?', ['+84 ' + sR.slice(1), dR.ma]);
+    const cuDung = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: sR }, { dichVu: true });
+    k('Q11 /claim cũ: bill lưu SĐT dạng "+84 …" (dữ liệu cũ), nhận bằng cùng SĐT 0… → 200', la(cuDung, 200), moTa(cuDung));
     const dRong = await donThu();
     await db.run("UPDATE pos_signup_codes SET order_customer_phone = '' WHERE code = ?", [dRong.ma]);
     const Kr = await dangNhap('Khách bill SĐT rỗng');
