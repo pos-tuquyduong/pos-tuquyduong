@@ -45,6 +45,7 @@ const AP_DUNG_TU = {
   I18: '2026-10-14',  // P26c
   I19: '2026-10-14',  // P26c
   D1: '2026-10-17',   // P20c
+  DEN: null,          // luôn CẦN XEM (không đỏ) — không cần mốc
 };
 
 const so = (x) => Number(x || 0);
@@ -207,6 +208,15 @@ async function phepD1(q) {
   }));
 }
 
+// ─── DEN: đền TIỀN cho khách lẻ (đơn không SĐT — damages.js chỉ ghi ví khi đơn có SĐT). Quán không đền tiền cho khách lẻ (làm lại ly /
+// tặng món — chủ quán chốt 19.10) nên két không tính khoản này; sổ có thì liệt kê CẦN XEM. created_at ghi bằng datetime('now') = UTC → +7 giờ.
+async function phepDenLe(q) {
+  const ds = await q(`SELECT id, order_code, refund_amount, DATETIME(created_at, '+7 hours') AS ngay FROM pos_damage_logs
+    WHERE refund_amount > 0 AND COALESCE(customer_phone, '') = ''`);
+  return ds.map((r) => ({ mo_ta: `đơn ${r.order_code}: đền ${tien(r.refund_amount)} cho khách lẻ không SĐT (sự cố #${r.id}) — két không tính`,
+    ngay: r.ngay || null, canXem: true }));
+}
+
 async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
   const ky = tinhKy(kieu, ngay);
   const ctx = { thuc: true };
@@ -232,10 +242,12 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
       if (x) them(x.nhom, x.dong);
     }
   }
-  bangBB.push({ ten: 'D1', pham_vi: 'ky', trang_thai: 'day_du' });
-  for (const l of await phepD1(chiDoc)) {
-    const x = xep('D1', l.mo_ta, l.ngay, 'ky', false, l.canXem);
-    if (x) them(x.nhom, x.dong);
+  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe]]) {
+    bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
+    for (const l of await phep(chiDoc)) {
+      const x = xep(ten, l.mo_ta, l.ngay, 'ky', false, l.canXem);
+      if (x) them(x.nhom, x.dong);
+    }
   }
   // D2 = I8 cho đơn mua thẻ / gói / lấy từ gói: chỉ gắn nhãn (không viết phép mới — chủ quán chốt giữ floor(total/per))
   const ma = [...new Set(Object.values(dong).flat().filter((l) => l.bat_bien === 'I8').map((l) => /^đơn (\S+): /.exec(l.mo_ta)?.[1]).filter(Boolean))];
