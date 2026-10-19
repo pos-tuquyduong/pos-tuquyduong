@@ -257,6 +257,14 @@ async function main() {
       const y = await xacMinh(x, maGia(), ten);
       k(`A4 ten ${nhan} → ${mong}`, mong === 200 ? la(y, 200) : la(y, 400, mong), moTa(y));
     }
+    // Đua: SĐT được tạo khách (đường khác) GIỮA lúc đọc "chưa là khách" và lúc chèn → gắn vào khách đó, không 500, không trùng.
+    const t = sdtMoi(); await xinMa(t);
+    mocTruocTx = async () => { await db.run("INSERT INTO pos_customers (phone, name, created_at) VALUES (?, 'Tạo chen', ?)", [t, getNow()]); };
+    const rt = await xacMinh(t, maGia(), 'Tên App');
+    mocTruocTx = null;
+    const dt = await db.query('SELECT id, name FROM pos_customers WHERE phone = ?', [t]);
+    k('A4 đua: khách được tạo chen trước khi chèn → 200, token gắn khách đó, 1 dòng, tên không đổi',
+      la(rt, 200) && dt.length === 1 && dt[0].name === 'Tạo chen' && !!rt.j.token && jwt.decode(rt.j.token).id === dt[0].id, `${moTa(rt)} · ${JSON.stringify(dt)}`);
   });
 
   muc('[A5] xin-ma trả CÙNG câu cho SĐT có / chưa có trong hệ thống');
