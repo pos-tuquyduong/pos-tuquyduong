@@ -56,4 +56,13 @@
 #   (A2d là ca K5 "KHÔNG được chặn" nên xanh trên code cũ là đúng; nó bị bắt bởi đột biến VS-DS-CHI-DOC-SOI-CHUOI.)
 # Sau vá (HEAD): node cong_cu/thu_DOISOAT1.js → 110 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 110 đạt · 0 hỏng; TỔNG 33 · BẮT 33 · SỐNG 0 · HỎNG 0 · LẠC 0.
 # Giả lập sau vòng sửa (bat_bien.js I8 đổi sang JOIN gộp): "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT"; thu_gia_lap.js xanh (49,0 s).
-SỐ CA cong_cu/thu_DOISOAT1.js: 110
+# ── Câu 10 = C (chủ quán 19.10): thêm DEN1–DEN4 + mount route damages thật (bài a6a86f4) ──
+# Trên code CHƯA vá câu 10 (2a6a671): node cong_cu/thu_DOISOAT1.js → 113 đạt · 1 hỏng:
+  ✗ DEN1 đền 10.000 cho đơn KHÔNG SĐT (route thật) → CẦN XEM ở ngày 07.01 (00:30 giờ VN), có số tiền; không đỏ, kết quả XANH  — HTTP 200 · HTTP 200 · XANH · đỏ:  · cần xem: 
+#   (DEN2, DEN3, DEN4 là ca "KHÔNG được": xanh trên code chưa vá là đúng — đột biến VS-DS-DEN-GIO-UTC / VS-DS-DEN-CA-CO-SDT / VS-DS-DEN-VAO-KET bắt chúng)
+# Lệnh: python3 viec/DOI-SOAT-1/dot_bien.py --goc 2123b69 → 29 đạt · 86 hỏng · thoát 1 (115 ca, có A0). Trích:
+  ✗ DEN1 đền 10.000 cho đơn KHÔNG SĐT (route thật) → CẦN XEM ở ngày 07.01 (00:30 giờ VN), có số tiền; không đỏ, kết quả XANH  — HTTP 200 · HTTP 404 · undefined · đỏ:  · cần xem: 
+  ✗ DEN4 tiền mặt vào két 07.01 không tính khoản đền (trước = sau)  — undefined → undefined
+  29 đạt · 86 hỏng
+# Sau vá (4a7a3a4): 114 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 114 đạt · 0 hỏng; TỔNG 38 · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0.
+SỐ CA cong_cu/thu_DOISOAT1.js: 114

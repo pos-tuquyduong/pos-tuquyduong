@@ -282,6 +282,23 @@ Tôi đã đọc diff `2123b69^..HEAD` (bỏ `client/dist`), cả file `server/u
 
 Sau khi có trả lời: sửa theo câu 10 (nếu A/B: thêm ca + đột biến), rồi `/ra-soat` vòng 2, rồi bước 11.
 
+## Trả lời của chủ quán (19.10) cho câu 10–12 → làm tiếp
+
+Nguyên văn: "Câu 10 chọn (C): quán KHÔNG đền tiền cho khách lẻ (làm lại ly / tặng món) — công thức két không tính khoản đền; nếu sổ có khoản
+đền bằng tiền cho khách không SĐT thì liệt kê ở nhóm CẦN XEM (vàng), không làm két đỏ; có ca thử. Câu 11: phiếu đã thêm client/dist/**. Câu 12
+chấp nhận ~558 dòng code + 569 dòng thử. Gộp SAU P16."
+
+- **Câu 11 — CHƯA thấy trên nhánh:** `git fetch origin viec/DOI-SOAT-1` lúc 19.10 (phiên làm tiếp) ra FETCH_HEAD = HEAD = `2a6a671`; phiếu chưa có dòng
+  `client/dist/**` (commit cuối của phiếu vẫn là `1a797db`). Tôi không sửa phiếu (luật). Cổng `chay` sẽ còn `✗ [A6]` cho tới khi commit phiếu lên nhánh này.
+- **Câu 10 = C** — đã làm (commit `4a7a3a4`): phép `DEN` trong `doiSoat.js` (`phepDenLe`) liệt kê mọi dòng `pos_damage_logs` có `refund_amount > 0`
+  và `customer_phone` rỗng (cùng vị từ với `damages.js:183` `order.customer_phone` — null / '' thì không vào ví) vào nhóm CẦN XEM; ngày = `created_at` + 7 giờ
+  (bảng ghi UTC, `damages.js:195`). Công thức két KHÔNG đổi (không cộng khoản đền). Bài thử (mount route `damages` thật):
+  DEN1 (CẦN XEM đúng ngày VN, có số tiền, kết quả XANH) · DEN2 (không lọt sang ngày UTC) · DEN3 K5 (đơn CÓ SĐT → không dòng nào) · DEN4 (két trước = sau).
+  Đột biến (5): `BV-DS-DEN-BO`, `VS-DS-DEN-GIO-UTC`, `VS-DS-DEN-DO`, `VS-DS-DEN-CA-CO-SDT`, `VS-DS-DEN-VAO-KET` — BẮT 5/5.
+- **Câu 12** chấp nhận. Câu 10 thêm ~15 dòng code, ~25 dòng thử.
+- Kiểm: `node cong_cu/thu_DOISOAT1.js` **114 đạt · 0 hỏng**; gốc `2123b69` **29 đạt · 86 hỏng**; đột biến **TỔNG 38 · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0**;
+  `npm test -- --day-du` **PASS 71 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ); giả lập xanh 33,5 s, `thu_gia_lap.js` xanh 49,8 s.
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
