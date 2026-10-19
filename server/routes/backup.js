@@ -315,7 +315,7 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
       && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
     if (tienBiChan.length) {
       return res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: tienBiChan,
-        error: `File có trang tiền (${tienBiChan.join(', ')}) — trang dính tiền (ví, đơn, điểm, gói, thẻ, voucher, đền bù, mã giảm) không khôi phục bằng file. `
+        error: `File có trang dính tiền (${tienBiChan.join(', ')}) — trang tiền không khôi phục bằng file. `
           + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
     }
 
