@@ -268,10 +268,10 @@ BÀI HỌC:
 | Điểm soát | Xử lý |
 |---|---|
 | Lỗi 3 — `tx.close()` không có đột biến riêng (gỡ thì bài sập) | `bfd3aa8`: D8 giữ giao dịch hỏng, dọn (`close` = ROLLBACK nếu còn mở) SAU khi chấm; đột biến mới `BV-A-bo-dong-tx-hong` → **BẮT** sạch (✗ D8, 96 đạt · 1 hỏng, không sập). Gốc chạy lại: 69 · 28 như cũ |
-| Lỗi 1 — dòng `thayKetNoiNeuBan` trong `query()` không có ca / đột biến; kế hoạch dẫn "đo 0.2" cho SELECT mà 0.2 không đo SELECT (K1) | **Đo thật 19.10** (script nháp, kho file `journal_mode = delete`): client khác giữ `BEGIN EXCLUSIVE` → `SELECT` trên kết nối dùng chung ném `SQLITE_BUSY`; nhả khoá rồi `INSERT` + một giao dịch trên CÙNG kết nối (không thay) → ghi THẬT, bảng `1,2,3,4`. Tức SELECT bận KHÔNG làm hỏng kết nối như INSERT — dòng vá ở `query()` không có lỗi nào để chặn, nên không dựng được ca đỏ / đột biến BẮT. Gỡ hay giữ là quyết định Q5 chủ quán đã duyệt (dựa trên khẳng định sai của máy) → **Câu hỏi Q7b**. `ke_hoach.md` mục 7 (D7) và mục 9 sửa lại (`a485de0`) |
+| Lỗi 1 — dòng `thayKetNoiNeuBan` trong `query()` không có ca / đột biến; kế hoạch dẫn "đo 0.2" cho SELECT mà 0.2 không đo SELECT (K1) | **[SAI — đo chỉ MỘT giao dịch sau SELECT; soát vòng 2 đo lại: giao dịch thứ hai trở đi BẬN — xem Q8]** **Đo thật 19.10** (script nháp, kho file `journal_mode = delete`): client khác giữ `BEGIN EXCLUSIVE` → `SELECT` trên kết nối dùng chung ném `SQLITE_BUSY`; nhả khoá rồi `INSERT` + một giao dịch trên CÙNG kết nối (không thay) → ghi THẬT, bảng `1,2,3,4`. Tức SELECT bận KHÔNG làm hỏng kết nối như INSERT — dòng vá ở `query()` không có lỗi nào để chặn, nên không dựng được ca đỏ / đột biến BẮT. Gỡ hay giữ là quyết định Q5 chủ quán đã duyệt (dựa trên khẳng định sai của máy) → **Câu hỏi Q7b**. `ke_hoach.md` mục 7 (D7) và mục 9 sửa lại (`a485de0`) |
 | Lỗi 2 — `BANG_KHONG_KHOI_PHUC` thiếu `pos_signup_codes`, `pos_order_log` | Danh sách bảng tiền là câu hỏi nghiệp vụ → **Câu hỏi Q7a** (không tự chọn) |
 | Nghi ngờ — `/preview-restore` không báo trang bị chặn | **Câu hỏi Q7d** |
-| Nghi ngờ — câu lỗi chép tay danh sách loại trang | `98c2262`: bỏ phần trong ngoặc, `tienBiChan` đã nêu tên trang. Mã `KHOI_PHUC_VI_DON_BI_CHAN` giữ (đổi mã lỗi là đổi giao kèo với màn hình; bài thử neo) |
+| Nghi ngờ — câu lỗi chép tay danh sách loại trang | `98c2262`: bỏ phần trong ngoặc, `tienBiChan` đã nêu tên trang. Mã `KHOI_PHUC_VI_DON_BI_CHAN` giữ (**[sai lý do — soát vòng 2: mã sinh trong nhánh này, không màn nào đọc; xem Q8]**) |
 | Nghi ngờ — hồ sơ lệch (`ke_hoach.md` dòng 1, F1 `pos_settings`) | `a485de0` |
 | Nghi ngờ — ngân sách | **Câu hỏi Q7c** |
 | Nghi ngờ — pay-debt `amount` chuỗi lạ → NaN | Phát hiện bên dưới (có sẵn từ trước, ngoài nghiệm thu) |
@@ -296,7 +296,7 @@ Sau vòng sửa (HEAD `a485de0`): `thu_P26b` 97 · 0 · `npm test -- --day-du` *
   `pos_promotion_usage` (lượt dùng khuyến mãi — giới hạn lượt), `pos_stock_pending` (sổ nợ kho), `pos_invoice_logs` (nhật ký hoá đơn).
   **Đề xuất:** chặn thêm `pos_signup_codes`, `pos_order_log`, `pos_promotion_usage` (3 tên vào hằng + 3 dòng vòng F2). Chủ quán chọn bảng nào.
 - **Q7b — dòng vá ở `query()` (Q5).** Q5 duyệt dựa trên câu "SELECT bận làm hỏng kết nối như INSERT" — máy chưa đo mà đã khẳng định (K1). Đo
-  19.10: SELECT bận KHÔNG làm hỏng kết nối. **Đề xuất (a):** gỡ dòng `thayKetNoiNeuBan(err)` trong `catch` của `query()` (−1 dòng; không có lỗi
+  19.10: **[SAI — đo chỉ MỘT giao dịch sau SELECT; soát vòng 2 đo lại: giao dịch thứ hai trở đi BẬN — xem Q8]** SELECT bận KHÔNG làm hỏng kết nối. **Đề xuất (a):** gỡ dòng `thayKetNoiNeuBan(err)` trong `catch` của `query()` (−1 dòng; không có lỗi
   để chặn nên không có ca / đột biến). (b) giữ dòng phòng xa, ghi CHƯA KIỂM (vô hại: chỉ thay client khi bận).
 - **Q7c — ngân sách.** Code `server/` so với gốc: +235 / −162 (ròng +73); mục 15 kế hoạch nâng lên "~130–170 dòng đổi". Phần vượt chủ yếu do DỜI
   khối gói / thẻ vào giao dịch (I) và thụt lề pay-debt (P) — bỏ khoảng trắng orders.js +83 / −73. Chấp nhận?
@@ -327,7 +327,7 @@ Sau vòng sửa (HEAD `a485de0`): `thu_P26b` 97 · 0 · `npm test -- --day-du` *
   `amount: selectedOrder.debt_amount` (`client/src/pages/Orders.jsx` hàm `handleConfirmPayDebt`); nợ tạo đơn lấy từ client (`orders.js`
   `let finalDebtAmount = debt_amount;`) và chiết khấu % không làm tròn (`finalDiscountAmount = (subtotal * finalDiscountValue) / 100;`) → nợ CŨ có thể
   lẻ; áp nguyên văn thì đơn đó không thu được nữa. Ca P9 khoá, đột biến `VS-PD-bo-ngoai-le-no-le` bắt. Số 0 trước đây = "thu đủ", nay 400 (không có
-  màn nào gửi 0: grep `pay-debt` trong client/src chỉ có `Orders.jsx`).
+  màn nào gửi 0: grep `pay-debt` trong client/src: `Orders.jsx` gọi; `utils/api.js` có `payDebt` nhưng không ai gọi).
 - K4: route khác nhận `amount` từ client là ví (`wallets.js` topup / deduct / adjust) — đã `parseInt` rồi chặn `!x || x <= 0`, NaN không tới kho;
   không cùng lỗ, không sửa.
 - Sau vá: thu_P26b 102 · 0 · thu_P26c 150 · 0 · `npm test -- --day-du` **PASS 70 · FAIL 0 · CẢNH BÁO 1** (thu_P26b 4,0 s · thu_P26c 3,5 s ·
@@ -345,3 +345,141 @@ Sau vòng sửa (HEAD `a485de0`): `thu_P26b` 97 · 0 · `npm test -- --day-du` *
 | pay-debt ngoại lệ nợ cũ lẻ | VS-PD-bo-ngoai-le-no-le | P9 |
 | pay-debt không gửi = thu đủ | VS-PD-chan-ca-khong-gui | P7 |
 | đóng giao dịch hỏng (vòng 1) | BV-A-bo-dong-tx-hong | D8 |
+
+## Soát độc lập `/ra-soat` — vòng 2 (19.10, HEAD b538401) — nguyên văn báo cáo
+
+```
+KHÔNG ĐẠT
+
+Kết quả tôi tự chạy lại trên HEAD b538401, cây sạch, không sửa file nào trong kho:
+- thu_P26b: 102 đạt · 0 hỏng. thu_P26c: 150 đạt · 0 hỏng.
+- `--day-du`: PASS 70 · FAIL 0 · CẢNH BÁO 1. Cảnh báo là lỗi cũ: route GET có lệnh ghi ở packages.js:194, products.js:57, sync.js:147.
+- `dot_bien.py`: 36 BẮT / 36, cả hai đối chứng xanh.
+- Bản `server/` của gốc 14169d8^ (lấy ra thư mục nháp): thu_P26b 70 · 32, thu_P26c 137 · 13. Khớp `bang_chung_do.txt`; các ca mới đỏ đúng câu.
+- Đột biến tôi tự dựng thêm: gỡ `thayKetNoiNeuBan` ở run() → bị ca D7 bắt; gỡ ở vòng BEGIN → bị D1, D3, D7 bắt.
+
+Ba lỗi vòng 1:
+- Lỗi 1: dòng ở query() đã gỡ theo Q7b. Nhưng căn cứ của Q7b là SAI, xem LỖI 1 bên dưới.
+- Lỗi 2: đã xử lý. backup.js:101-103 thêm 3 bảng; ca F2 ×3 và đột biến BV-Q7a đều có.
+- Lỗi 3: đã xử lý. D8 dọn sau khi chấm (thu_P26b.js:558-561). Đột biến BV-A-bo-dong-tx-hong bắt sạch, 101 · 1, bài không sập.
+
+LỖI TÌM ĐƯỢC:
+
+1. server/database.js:1317-1330 (query() không còn thay kết nối) và chú thích :1384-1386 — câu "Đo 19.10: SELECT bận KHÔNG làm hỏng kết nối" là SAI. Quyết định Q7b của chủ quán dựa trên câu này. Thuộc khuôn K1 và K3.
+   - Cách tôi đo: script nháp `/tmp/claude-0/-home-user-pos-tuquyduong/9634dd61-6a2e-5bdb-973f-0f3969e25e57/scratchpad/do_q7b.js`, chạy với `server/database.js` thật và kho file. Một client khác giữ `BEGIN EXCLUSIVE`, `db.query(SELECT)` ném SQLITE_BUSY, rồi nhả khoá. Sau đó chạy 4 lần beginTransaction + INSERT + commit, rồi một lệnh run.
+   - Trên HEAD: giao dịch 1 ok; giao dịch 2, 3, 4 đều SQLITE_BUSY; run cũng SQLITE_BUSY. Kho chỉ còn dòng "1".
+   - Đối chứng không có SELECT bận: cả 4 giao dịch và run đều ok.
+   - Bản trước Q7b (0d18813, query() còn dòng thay kết nối): chạy cùng kịch bản thì cả 4 giao dịch và run đều ok.
+   - Vì sao hỏng: câu SELECT bận không được reset, nên kết nối dùng chung bị hỏng. `transaction()` lấy luôn kết nối đó cho giao dịch kế tiếp (node_modules/@libsql/client/lib-cjs/sqlite3.js:103-107) và không bao giờ đóng nó. Sau commit, kết nối này vẫn giữ khoá. Từ đó mọi BEGIN / commit / run sau đều bận, quầy trả 409 KHO_BAN cho tới khi khởi động lại.
+   - Phép đo 19.10 (trang_thai.md:271) chỉ thử lệnh kế tiếp trên CÙNG kết nối, nên không thấy. Hỏng chỉ lộ ra ở giao dịch THỨ HAI.
+   - Phạm vi: chỉ kho file, tức máy thử Replit `data/pos_thu.db`. Turso không bị vì `thayKetNoiNeuBan` không làm gì khi không phải kho file (:1388).
+   - Câu sai còn chép ở trang_thai.md:271, :298-299, :312 (K4 hồ sơ).
+   - Cần làm: đưa lại cho chủ quán (Q8) kèm số đo này. Đề xuất: khôi phục dòng ở query(), thêm ca D10 (SELECT bận thật → ≥ 2 giao dịch + run đều ghi THẬT) và đột biến gỡ dòng đó.
+
+2. server/routes/orders.js:1273-1277 — ngoại lệ "amount đúng bằng debt_amount trong sổ thì vẫn qua dù lẻ" là máy tự đổi một quyết định tiền mà chủ quán đã chốt. Lời chủ quán ở Q7 là: amount không phải số nguyên dương → 400, và phần đó THẮNG. Thuộc khuôn K6 (vi phạm LUAT §5 "không tự đổi", CLAUDE.md §9 "đừng tự chọn") và K1.
+   - Xét kỹ thì ngoại lệ HỢP LÝ, đúng là ca K5:
+     - Orders.jsx gửi `amount: selectedOrder.debt_amount` (đoạn handleConfirmPayDebt, khoảng dòng 442-450).
+     - Nợ có thể lẻ: chiết khấu % không làm tròn (orders.js:669); debt_amount lấy thẳng từ client (:781-789); phép đối chiếu tổng thanh toán cho lệch ±1 (:796-803).
+   - Ngoại lệ KHÔNG mở lỗ tiền: khi đó paidAmount = đúng nợ trong sổ, y hệt nhánh không gửi amount; không vượt nợ được; câu UPDATE vẫn kiểm `debt_amount = ?`.
+   - Nhưng trang_thai.md:326 chỉ ghi "chủ quán xem lại", không đặt thành Câu hỏi chặn. Phải để chủ quán xác nhận trước khi đóng việc.
+   - Chú thích "nợ CŨ có thể lẻ" sai sự thật: đơn MỚI hôm nay vẫn sinh nợ lẻ được (:669, :781). Ngoại lệ này là vĩnh viễn, không phải chỉ cho dữ liệu cũ.
+
+3. server/routes/orders.js:1283-1287 — `if (paidAmount <= 0)` nay là code chết, vì phép kiểm mới ở :1275 đã loại hết mọi giá trị ≤ 0 (LUAT §3). Thuộc mục Đơn giản.
+   - Gọn hơn mà vẫn đúng: xoá khối đó, và `const paidAmount = amount ?? order.debt_amount;`.
+
+4. Hồ sơ lệch (K1, nhẹ):
+   - trang_thai.md:330 ghi "grep `pay-debt` trong client/src chỉ có Orders.jsx". Thật ra client/src/utils/api.js:366 cũng có `payDebt` (không ai gọi).
+   - trang_thai.md:274 ghi "đổi mã lỗi là đổi giao kèo với màn hình". Thật ra `KHOI_PHUC_VI_DON_BI_CHAN` sinh ra ngay trong nhánh này, chỉ có ở backup.js:113 và bài thử, không màn nào đọc. Đổi tên lúc này không tốn gì, mà tên hiện tại nói "ví / đơn" trong khi chặn 14 bảng.
+
+NGHI NGỜ:
+- database.js:1389-1390: `thayKetNoiNeuBan` đóng client cũ TRƯỚC rồi mới tạo client mới. Nếu `createClient` ném lỗi thì `db` là client đã đóng, mọi lệnh sau ra CLIENT_CLOSED. Chỉ ở kho file, khả năng thấp. Tạo mới trước rồi đóng cũ sau thì an toàn hơn.
+- helpers.js:36-41: đã bỏ vòng chống trùng và lối thoát dự phòng. Nếu trong ngày có một mã không theo dạng số (dữ liệu cũ / sửa tay) thì mọi đơn hôm đó 500 UNIQUE. Hiện chỉ có orders.js:896 ghi vào pos_orders, và khôi phục pos_orders đã bị chặn, nên rủi ro thấp.
+- Bận THẬT ở câu đầu khi giao dịch file đã BEGIN xong: D8 dùng lỗi giả. Chưa đo xem `tx.close()` (ROLLBACK) có nhả khoá khi còn câu chưa reset hay không. Sau lỗi 1, chỗ này nên đo thật.
+- `commit() { if (tx) … }` (database.js:1433): tôi gỡ phép `if (tx)` đi mà thu_P26c vẫn 150/0 — phép này không có ca nào chạm tới, chỉ là phòng xa.
+- pay-debt vừa được chạm tới nhưng các nhánh 400 cũ vẫn chưa có `code` (orders.js:1245-1271, :1289-1295). LUAT §2 yêu cầu "thêm khi chạm tới".
+
+Trả lời 8 mục soát:
+1. K3: các bài đỏ trên gốc đúng câu, kiểm hành vi chứ không kiểm marker; 36/36 đột biến bị bắt. Lỗ duy nhất: không có ca nào cho SELECT bận rồi giao dịch thứ hai. D3 và D7 cũng chỉ kiểm "lệnh kế tiếp".
+2. K4: `thayKetNoiNeuBan` có 2 chỗ gọi, cả hai có ca riêng; chỗ thứ ba (query) bị gỡ sai, là lỗi 1. `ghiNhatKy` có 2 chỗ gọi; don-mo-rong.js đã ghi vào Phát hiện. Không route nào ném lỗi nghiệp vụ vào loiGhi.
+3. K5: không luồng hợp lệ nào bị chặn oan.
+   - Đã soát: thu đủ có / không gửi amount (P4, P7); thu một phần (P8); nợ lẻ (P9); mua gói rồi lấy ngay (I3); mua thẻ (I4); xem trước file sạch (F5); khôi phục trang không dính tiền (F3); không màn nào gửi amount = 0.
+   - Bản sao lưu export-all đầy đủ nay luôn bị chặn — đó là hệ quả của Q3 chủ quán đã chấp nhận.
+4. K1: lỗi 1, lỗi 2 (chú thích "nợ cũ"), lỗi 4.
+5. Đường tiền: giá gói, số lượt, giá thẻ đều tra từ DB; diff không thêm trường tiền nào tin client. debt_amount lấy từ client lúc tạo đơn (orders.js:781) là lỗi có sẵn, chỉ được chặn bằng phép đối chiếu tổng ±1 — nên ghi Phát hiện.
+6. P1: không có file nào trong `client/` bị sửa.
+7. Nghiệm thu: xem dòng NGHIỆM THU bên dưới.
+8. Đơn giản: lỗi 3, tên mã lỗi ở lỗi 4, và thứ tự đóng / tạo client. Không có tính năng tiền mới cần thêm quy tắc đối soát.
+
+NGHIỆM THU:    15/16 mục có bằng chứng · mục thiếu: Q7b (làm đúng lời chủ quán nhưng căn cứ đo sai — lỗi 1). Thêm: ngoại lệ pay-debt chờ chủ quán xác nhận (lỗi 2).
+- A: có — thu_P26b D0 :514, D1 :633, D2 :642, D3 :648, D4 :531, D5 :540, D7 :656, D8 :558; các đột biến BV-A-*, VS-A-*.
+- B: có — D4, D5, D9 (:568); các đột biến VS-B-*, BV-B-*. Mã lỗi của Turso thật vẫn CHƯA KIỂM, chủ quán đã chấp nhận ở Q1.
+- C: có — thu_P26c C1 :1061, C3 :1069, C2 :1075.
+- D: có — H1 thu_P26c :1103; H2 / H2b thu_P26b :503, :508.
+- E: có — V1 :463, V2 :471, V3 :479, V4 :486.
+- F: có — F1 :593, F2 :602 (13 trang), F3 :606; E12 xanh.
+- G: có — G1 thu_P26c :1090 và đột biến BV-G.
+- H: có — 36/36 BẮT; `--day-du` xanh; thời gian trong hạn theo số ở trang_thai.md:333.
+- I: có — I1 :1117, I2 :1135, I3 :1123, I4 :1139.
+- P: có — P1 / P2 :1161, P3 :1169, P4 :1174, P5 :1177.
+- Q6: có — P2 và các đột biến BV-P-nhat-ky-*.
+- Q7a: có — F2 thêm 3 trang và BV-Q7a.
+- Q7b: THIẾU — lỗi 1.
+- Q7c: có — chủ quán đã chấp nhận ngân sách.
+- Q7d: có — F4 :610, F5 :613; BV / VS-Q7d; không sửa client.
+- pay-debt amount: có — P6 ×5 :1183, P7 :1188, P8 :1192, P9 :1198; 4 đột biến PD.
+
+CHƯA SOÁT ĐƯỢC:
+- Turso thật: mã lỗi bận, BEGIN lười, và BEGIN IMMEDIATE trên sqld có tuần tự hoá phép đọc mã đơn không.
+- Tranh chấp giữa nhiều tiến trình.
+- `node tu_chay/cong.js chay`: tôi không chạy vì có thể ghi file; trang_thai chưa ghi kết quả.
+- Màn hình quầy khi nhận 409 KHO_BAN / 500 LOI_MAY_CHU / SO_TIEN_KHONG_HOP_LE: chỉ đọc Orders.jsx (hiện `data.error`).
+- Dữ liệu production có đơn nợ lẻ thật hay không.
+
+BÀI HỌC:
+- KHOÁ:
+  - Thêm ca D10 vào thu_P26b: SELECT bận thật → nhả khoá → ≥ 2 giao dịch + run phải ghi THẬT. Kèm đột biến gỡ dòng ở query().
+  - D3 và D7 sửa thành đo tới "giao dịch thứ hai", không chỉ "lệnh kế tiếp".
+- NGUYÊN TẮC (K3, thêm vào KHUON_LOI.md): đo "kết nối không hỏng" phải đo trên KẾT NỐI KHÁC và ở lần THỨ HAI. Hỏng do câu treo lộ ra khi kết nối bị chuyển cho giao dịch, không lộ ở lệnh kế tiếp. Một phép đo nháp dùng để gỡ một chỗ vá đã được duyệt thì phải đưa thành ca thử trong kho, không để ở script ngoài.
+- NGUYÊN TẮC (K6): ngoại lệ K5 đối với một quyết định tiền chủ quán đã chốt → đặt vào Câu hỏi và DỪNG, không làm trước rồi ghi "xem lại".
+```
+
+## Vòng sửa 3 (19.10) — sau soát vòng 2
+
+- **Lỗi 1 — tái hiện ĐÚNG** (K2: chạy lại script của người soát trên `server/` HEAD, không sửa gì): `select · SELECT khi bận: SQLITE_BUSY · gd1:ok ·
+  gd2:SQLITE_BUSY · gd3:SQLITE_BUSY · gd4:SQLITE_BUSY · run: SQLITE_BUSY · kho có 1`; đối chứng `none · … gd1–gd4: ok · run: ok · kho có 1,2,3,4,9`.
+  Phép đo của máy 19.10 chỉ chạy MỘT giao dịch sau SELECT → kết luận sai, Q7b quyết trên câu sai đó. Đã sửa chú thích sai trong
+  `database.js` (`bfaddb9`) và đánh dấu [SAI] ở mọi câu cùng nghĩa trong `trang_thai.md` / `ke_hoach.md`. **Không tự khôi phục dòng vá** — lật quyết
+  định Q7b của chủ quán → **Câu hỏi Q8a**.
+- **Lỗi 2** — ngoại lệ nợ lẻ ở pay-debt: đáng lẽ phải hỏi trước, không làm trước rồi ghi "xem lại" → **Câu hỏi Q8b**. Chú thích "nợ CŨ" sửa
+  (`3072693`: nợ lẻ sinh được cả ở đơn mới).
+- **Lỗi 3** — `if (paidAmount <= 0)` code chết: xoá (`3072693`). thu_P26c 150 · 0; đột biến pay-debt chạy lại 6 BẮT / 6.
+- **Lỗi 4** — hồ sơ: sửa dòng `payDebt` của `api.js`; lý do giữ tên `KHOI_PHUC_VI_DON_BI_CHAN` sai → **Câu hỏi Q8c**.
+- `npm test -- --day-du` sau vòng sửa 3: **PASS 70 · FAIL 0 · CẢNH BÁO 1**.
+- Vòng sửa đã dùng: **3 / 3** (`so_vong_sua_toi_da`) → không chạy soát vòng 3; ghi Câu hỏi và DỪNG.
+
+## Phát hiện (thêm, soát vòng 2)
+
+- `server/routes/orders.js` tạo đơn: `let finalDebtAmount = debt_amount;` lấy nợ thẳng từ máy khách, chỉ chặn bằng đối chiếu tổng ±1đ — nợ lẻ / lệch
+  1đ ghi được vào sổ. Có sẵn từ trước, ngoài nghiệm thu.
+- `server/database.js` `thayKetNoiNeuBan`: đóng client cũ TRƯỚC rồi mới tạo client mới — `createClient` ném thì `db` là client đã đóng. Kho file,
+  khả năng thấp; đảo thứ tự là 2 dòng.
+- `server/utils/helpers.js` `taoMaDonTheoSo`: mã trong ngày không theo dạng số (sửa tay) → `parseInt` NaN → bắt đầu lại từ 1 → UNIQUE 500 mọi đơn
+  hôm đó. Chỉ `orders.js` ghi `pos_orders`, khôi phục `pos_orders` bị chặn → rủi ro thấp.
+- Bận THẬT ở câu đầu khi giao dịch kho file đã BEGIN (D8 dùng lỗi giả): chưa đo `tx.close()` có nhả khoá khi còn câu chưa reset.
+
+### Q8 (mở, 19.10) — sau soát vòng 2 · vòng sửa đã hết (3 / 3)
+
+- **Q8a — dòng vá ở `query()` (lật lại Q7b).** Máy đo SAI ở Q7b. Số đo đúng (trên `server/` hiện tại, kho file): sau MỘT câu SELECT gặp bận, giao dịch
+  thứ hai trở đi và mọi lệnh ghi đều bận — quầy trả 409 KHO_BAN cho tới khi khởi động lại máy chủ. Có dòng vá thì cả 4 giao dịch + lệnh ghi đều
+  ghi được. Chỉ ảnh hưởng kho file (máy thử Replit), không ảnh hưởng Turso. **Đề xuất:** khôi phục dòng `thayKetNoiNeuBan(err)` trong `catch` của
+  `query()` (+1 dòng) + ca D10 ở `thu_P26b.js` (SELECT bận thật → nhả → 2 giao dịch + 1 lệnh ghi đều ghi THẬT, đọc bằng kết nối khác) + đột biến
+  `BV-A-query-khong-thay`; D3 / D7 đo tới giao dịch thứ hai.
+- **Q8b — ngoại lệ nợ lẻ ở pay-debt** (đã làm, chờ xác nhận): `amount` đúng bằng `debt_amount` trong sổ thì vẫn thu dù lẻ. Màn Lịch sử đơn gửi
+  `amount = debt_amount`; nợ lẻ sinh được cả hôm nay (chiết khấu % không làm tròn; nợ lấy từ máy khách lúc tạo đơn). Không mở lỗ: số thu = đúng nợ
+  trong sổ, như khi không gửi `amount`. (a) giữ — đề xuất; (b) bỏ — đơn nợ lẻ không thu được qua màn Lịch sử đơn.
+- **Q8c — việc nhỏ cùng lượt sau** (máy đề xuất làm cả): đổi tên mã `KHOI_PHUC_VI_DON_BI_CHAN` → `KHOI_PHUC_TRANG_TIEN_BI_CHAN` (mã sinh trong nhánh
+  này, không màn nào đọc); thêm `code` cho các nhánh 400 cũ của pay-debt (LUAT §2 "thêm khi chạm tới"); đảo thứ tự tạo / đóng client trong
+  `thayKetNoiNeuBan`. Đồng ý cả, hay chỉ phần nào?
+- **Q8d — vòng sửa:** đã dùng 3 / 3. Cho phép thêm một vòng (sửa theo Q8 → soát vòng 3)?
+
+**ĐANG DỪNG chờ chủ quán trả lời Q8.** Chưa làm: báo cáo 7 mục, bài học, cổng `chay`, `HEAD ĐÃ KIỂM`.

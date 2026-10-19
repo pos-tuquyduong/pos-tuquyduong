@@ -232,7 +232,7 @@ bỏ qua vòng thử lại thật nhưng không vô nghĩa. `thu_P20.js`, `thu_G
 - Mọi lệnh ghi `pos_wallets`: `ghiVi`, `reconcileWallet` (E12) + `backup.js` (tên bảng là biến) — mục 5.
 - Mọi chỗ trả `KHO_BAN`: bảng mục 3.
 - `run` cùng khuôn "câu bận làm hỏng kết nối" với BEGIN (đo 0.2: INSERT). `query` (SELECT) KHÔNG đo ở 0.2 — soát vòng 1 bắt; đo 19.10: SELECT
-  bận KHÔNG làm hỏng kết nối (trang_thai.md, Câu hỏi Q7b). Vá cả hai (Q5). Q5 không duyệt → bỏ vá `query` và
+  bận KHÔNG làm hỏng kết nối **[SAI — đo chỉ MỘT giao dịch sau SELECT; soát vòng 2 đo lại: giao dịch thứ hai trở đi BẬN — xem Q8]** (trang_thai.md, Câu hỏi Q7b). Vá cả hai (Q5). Q5 không duyệt → bỏ vá `query` và
   bỏ ca D7 (không thuộc nghiệm thu A, vốn chỉ nói "BEGIN hỏng").
 - `generateOrderCode` (`helpers.js:8`, còn được import ở orders.js) không còn chỗ gọi — không phải đường sinh mã song song; không sửa.
 - Catch đọc biến gán trong try: tạo đơn (`orderCode`, mục 2), huỷ / xoá (`order?.code` — đã chịu `undefined`).
