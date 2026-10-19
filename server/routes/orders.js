@@ -1301,8 +1301,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     // payment_method đã được kiểm chỉ là cash|transfer ở trên → tên cột an toàn.
     const cotTien = payment_method === "cash" ? "cash_amount" : "transfer_amount";
     // P26d (chủ quán thêm 18.10): thu + nhật ký + sổ debt_payment trong MỘT giao dịch — trước đây ba lệnh tự commit, lỗi ở lệnh
-    // 2 / 3 → 500 trong khi tiền đã thu (hoặc nuốt lỗi nhật ký). Nhật ký ghi bằng tx.run cùng cột với nhatKyDon.ghiNhatKy (hàm
-    // đó ghi ngoài giao dịch và nuốt lỗi).
+    // 2 / 3 → 500 trong khi tiền đã thu (hoặc nuốt lỗi nhật ký). Nhật ký truyền tx: ghi trong giao dịch, lỗi thì rollback (Q6).
     const tx = await beginTransaction();
     try {
       const kqThu = await tx.run(
@@ -1317,12 +1316,10 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
           code: "DA_THU_ROI",
         });
       }
-      await tx.run(
-        `INSERT INTO pos_order_log (order_id, loai, noi_dung, chi_tiet, nguoi, luc) VALUES (?, 'thu', ?, ?, ?, ?)`,
-        [Number(id), `Thu ${nhatKyDon.tenCach(payment_method)} ${nhatKyDon.tien(paidAmount)}` +
+      await nhatKyDon.ghiNhatKy(Number(id), "thu",
+        `Thu ${nhatKyDon.tenCach(payment_method)} ${nhatKyDon.tien(paidAmount)}` +
           (remainingDebt > 0 ? ` · còn nợ ${nhatKyDon.tien(remainingDebt)}` : ""),
-        JSON.stringify({ cach: payment_method, so_tien: paidAmount, con_no: remainingDebt }), req.user.username, getNow()],
-      );
+        req.user.username, { cach: payment_method, so_tien: paidAmount, con_no: remainingDebt }, tx);
 
       // Log giao dịch thanh toán nợ
       if (order.customer_phone) {
