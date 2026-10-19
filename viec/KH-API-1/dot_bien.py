@@ -73,6 +73,7 @@ DOT_BIEN = [
   ('BV-C-quay-khong-huy', [(MK, "guiDuoc ? null : now,", "null,", 1)], r"✗ C dòng mã App ở chế độ quay bị huỷ"),
   ('VS-C-doc-luc-nap', [(GM, "function cheDo() {\n  const v = process.env.GUI_MA_KHACH || 'quay';",
                          "const V_NAP = process.env.GUI_MA_KHACH || 'quay';\nfunction cheDo() {\n  const v = V_NAP;", 1)], r"✗ C không đặt GUI_MA_KHACH"),
+  ('BV-C-gia-ngoai-may-thu', [(GM, "(v === 'gia' && laMayThu())", "v === 'gia'", 1)], r"✗ C gia NGOÀI máy thử"),
   # ── D: quầy cấp mã ──
   ('BV-D-bo-authenticate', [(KQ, "router.post('/cap-ma', authenticate, canCauHinhKhach,", "router.post('/cap-ma', canCauHinhKhach,", 1)], r"✗ D không token"),
   ('VS-D-ma-quay-thanh-gui', [(MK, "VALUES (?, ?, 'quay', ?, ?, ?, ${GIO})", "VALUES (?, ?, 'gui', ?, ?, ?, ${GIO})", 1)], r"✗ D dòng nguon quay"),
@@ -102,7 +103,14 @@ DOT_BIEN = [
   # ── G: không lộ ──
   ('VS-G-500-lo-loi', [(KL, "return res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });",
                         "return res.status(500).json({ error: err.message, code: 'LOI_MAY_CHU' });", 1)], r"✗ G lỗi máy chủ"),
-  ('VS-G-claim-lo-loi', [(SC, "error: req.khach ? LOI_KHACH : err.message", "error: err.message", 2)], r"✗ G /kh/nhan-ma-bill lỗi nội bộ"),
+  ('BV-G-claim-bo-loiMayChu', [(SC, "    if (req.khach) return loiMayChu(res, err, 'kh nhan-ma-bill');\n", "", 1)], r"✗ G /kh/nhan-ma-bill lỗi nội bộ"),
+  ('BV-G-nhandiem-bo-loiMayChu', [(SC, "    if (req.khach) return loiMayChu(res, err, 'kh nhan-diem');\n", "", 1)], r"✗ G /kh/nhan-diem lỗi nội bộ"),
+  ('VS-G-claim-500-khong-code', [(SC, "if (req.khach) return loiMayChu(res, err, 'kh nhan-ma-bill');",
+                                  "if (req.khach) return res.status(500).json({ success: false, error: 'Lỗi máy chủ, thử lại sau' });", 1)],
+   r"✗ G /kh/nhan-ma-bill lỗi nội bộ"),
+  ('BV-G-bo-code-ma-khong-co', [(SC, "error: 'Mã không tồn tại', code: 'MA_KHONG_TON_TAI' })", "error: 'Mã không tồn tại' })", 3)],
+   r"✗ G /kh/nhan-ma-bill mã không có"),
+  ('BV-G-bo-code-thieu-ma', [(SC, "error: 'Thiếu mã ưu đãi', code: 'THIEU_MA' })", "error: 'Thiếu mã ưu đãi' })", 1)], r"✗ G /kh/nhan-ma-bill thiếu ma"),
   ('VS-G-log-ma', [(MK, "  if (guiDuoc) await guiMaKhach(sdt, ma);", "  console.log('gui ma', sdt, ma);\n  if (guiDuoc) await guiMaKhach(sdt, ma);", 1)], r"✗ G log máy chủ"),
   # ── H / Q2: /claim cũ không đổi hành vi ──
   ('VS-P7-sdt-ngoai-try', [(SC, "async function nhanMaUuDai(req, res) {\n  try {\n    const rawCode = String(req.body.code || '').trim().toUpperCase();\n    const phone = normalizePhone(req.body.phone);",
@@ -111,6 +119,8 @@ DOT_BIEN = [
   # ── index.js: gắn route + trust proxy (Q5) ──
   ('BV-Q5-trust-proxy', [(IX, "app.set('trust proxy', 1);", "", 1)], r"✗ index.js: app.set\('trust proxy'"),
   ('BV-IX-bo-gan-kh', [(IX, "app.use('/api/kh', require('./routes/kh'));", "", 1)], r"✗ index.js: app.use\('/api/kh'"),
+  ('VS-IX-gan-kh-chu-thich', [(IX, "app.use('/api/kh', require('./routes/kh'));", "// app.use('/api/kh', require('./routes/kh'));", 1)], r"✗ index.js: app.use\('/api/kh'"),
+  ('VS-Q5-trust-proxy-chu-thich', [(IX, "app.set('trust proxy', 1);", "/* app.set('trust proxy', 1); */", 1)], r"✗ index.js: app.set\('trust proxy'"),
 ]
 
 TONG = re.compile(r'\d+ đạt · \d+ hỏng')
