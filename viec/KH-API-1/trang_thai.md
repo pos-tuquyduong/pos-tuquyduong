@@ -164,6 +164,8 @@ Kiểm sau vòng 1: `node cong_cu/thu_KH1.js` → 128 đạt · 0 hỏng; gốc 
 128 đạt · 0 hỏng, **62 đột biến bị bắt · 0 KHÔNG bị bắt (trên 62)**; `npm test -- --day-du` → PASS 71 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ "route GET
 có lệnh ghi (3)"), E9 hai phép `/claim` `/nhan-diem` xanh, E14 = 51 không đổi.
 
+`node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` trên `554d78c`: chỉ `✗ [A19]` (chưa tới bước 11.4) — không ✗ Phạm vi / A16 / A17.
+
 Còn lại của báo cáo → Q9–Q11 (`## Câu hỏi`) và `## Phát hiện`. Theo luật skill: có câu hỏi nghiệp vụ → commit, push, DỪNG; vòng soát 2 chạy sau khi
 chủ quán trả lời (vòng sửa đã dùng: 1 / 3).
 
