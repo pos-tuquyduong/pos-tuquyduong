@@ -2,6 +2,8 @@
 """DOI-SOAT-1 — đột biến cho MỖI chỗ vá: VS- (vá sai cách) và BV- (bỏ vá). Chạy ở GỐC kho:
     python3 viec/DOI-SOAT-1/dot_bien.py [tên...]          (không tên = chạy hết; có ĐỐI CHỨNG trước)
     python3 viec/DOI-SOAT-1/dot_bien.py --liet-ke          (chỉ in danh sách)
+    python3 viec/DOI-SOAT-1/dot_bien.py --goc <sha>        (bằng chứng ĐỎ: bài hiện tại trên server/ của commit sha)
+    python3 viec/DOI-SOAT-1/dot_bien.py --help             (in hướng dẫn này)
 
 Khuôn viec/P26c/dot_bien.py: chép server/ và cong_cu/gia_lap/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink, chỉ đọc),
 thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, không bao giờ đếm là đạt, K3), chạy
@@ -21,7 +23,9 @@ LOC = "if (!gop && phamVi === 'ky' && n10 && (n10 < ky.tu || n10 > ky.den)) retu
 DOT_BIEN = [
   # ── A: dùng lại bất biến, chỉ đọc ──
   ('BV-DS-BO-BAT-BIEN', [(DS, "  for (const ten of Object.keys(boBatBien)) {\n    if (BO_QUA[ten])", "  for (const ten of Object.keys(boBatBien).filter((t) => t !== 'I6')) {\n    if (BO_QUA[ten])", 1)], r'✗ (A1|C4 I6)'),
-  ('BV-DS-GHI-DUOC', [(DS, r"if (!/^(SELECT|WITH)\b/i.test(dau)) throw new Error(", "if (false) throw new Error(", 1)], r'✗ A2b'),
+  ('BV-DS-GHI-DUOC', [(DS, r"if (!/^(SELECT|WITH)\b/i.test(dau) || TU_GHI.test(dau)) throw new Error(", "if (false) throw new Error(", 1)], r'✗ A2b'),
+  ('VS-DS-CHI-DOC-TIEN-TO', [(DS, " || TU_GHI.test(dau)) throw new Error(", ") throw new Error(", 1)], r'✗ A2c'),
+  ('VS-DS-CHI-DOC-SOI-CHUOI', [(DS, "|--[^\\n]*|'(?:[^']|'')*'/g, \"''\")", "|--[^\\n]*/g, '')", 1)], r'✗ A2d'),
   ('VS-DS-NAP-SOM', [(DS, "const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;",
                       "const BAT_BIEN_SOM = require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;\nconst batBien = () => BAT_BIEN_SOM;", 1)], r'✗ A6'),
   # ── B: kỳ và giờ VN ──
@@ -30,6 +34,8 @@ DOT_BIEN = [
   ('VS-DS-GIO-UTC', [(DS, "const n = ngay || getToday();", "const n = ngay || new Date().toISOString().slice(0, 10);", 1)], r'✗ B4'),
   ('VS-DS-TUAN-CN', [(DS, "-((thuTrongTuan(n) + 6) % 7)", "-thuTrongTuan(n)", 1)], r'✗ B2 '),
   # ── C: dữ liệu cũ ──
+  ('VS-DS-NGAY-BO-VI', [(DS, "COALESCE((SELECT MAX(created_at) FROM pos_balance_transactions WHERE order_id = o.id), ''),", "'',", 1)], r'✗ C6 '),
+  ('VS-DS-GOI-NGAY-TAO', [(DS, "MAX(created_at, COALESCE(updated_at, '')) AS d FROM pos_customer_packages", "created_at AS d FROM pos_customer_packages", 1)], r'✗ C6b'),
   ('BV-DS-BO-AP-DUNG-TU', [(DS, "!troi && n10 && apDung && n10 < apDung ? 'cu'", "false ? 'cu'", 1)], r'✗ C1'),
   ('VS-DS-AP-DUNG-NGUOC', [(DS, "n10 < apDung ? 'cu'", "n10 <= apDung ? 'cu'", 1)], r'✗ C2'),
   ('VS-DS-AN-KHONG-RO-NGAY', [(DS, LOC, "if (!gop && phamVi === 'ky' && (!n10 || n10 < ky.tu || n10 > ky.den)) return null;", 1)], r'✗ C5'),
@@ -47,6 +53,9 @@ DOT_BIEN = [
   ('BV-DS-BO-KIEM-SO-TIEN', [(DS, "const nguyen = (v) => Number.isInteger(v) && v >= 0 && v <= TRAN_KET;", "const nguyen = () => true;", 1)], r'✗ E5 '),
   # ── F: tuần / tháng ──
   ('BV-DS-F-BO-DA-SO', [(DS, "['sao_ke', ky.tu]))[0] || null;", "['sao_ke', ky.tu]))[0] && null;", 1)], r'✗ F2'),
+  ('BV-DS-VI-ME', [(DS, "SUM(COALESCE(balance_amount, 0) + COALESCE(parent_balance_amount, 0))", "SUM(COALESCE(balance_amount, 0))", 1)], r'✗ F3b'),
+  ('VS-DS-TRA-TUNG-DONG', [(DS, "for (let i = 0; i < khoa.length; i += 400) {\n    const phan = khoa.slice(i, i + 400);",
+                            "for (let i = 0; i < khoa.length; i += 1) {\n    const phan = khoa.slice(i, i + 1);", 1)], r'✗ H2'),
   ('VS-DS-F-THANG-NHOM', [(DS, "COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong", "COALESCE(COUNT(CASE WHEN points > 0 THEN points END), 0) AS cong", 1)], r'✗ F3'),
   # ── G: quyền ──
   ('BV-DS-BO-QUYEN-GET', [(RP, "router.get('/doi-soat', authenticate, checkPermission('view_reports'), async", "router.get('/doi-soat', authenticate, async", 1)], r'✗ G1 '),
@@ -129,6 +138,8 @@ def chay_goc(sha):
 
 
 if __name__ == '__main__':
+  if '--help' in sys.argv or '-h' in sys.argv:
+    print(__doc__); sys.exit(0)
   if '--goc' in sys.argv:
     chay_goc(sys.argv[sys.argv.index('--goc') + 1]); sys.exit(0)
   chon = [a for a in sys.argv[1:] if not a.startswith('--')]
