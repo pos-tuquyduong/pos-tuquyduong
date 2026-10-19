@@ -122,6 +122,7 @@ không đan xen) → thêm ca tất định "yêu cầu khác ghi lượt chen g
   `signup-codes.js` / `database.js` / `backup.js` / `index.js` hỏng (các neo HỎNG còn lại ở `orders.js` / `refunds.js` / `damages.js` có từ trước).
 - `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` trên `8213118` (trước khi ghi bảng đột biến lượt 5): `✗ [A17]` (15 tên mới — nay đã ghi)
   và `✗ [A19]` (chưa tới 11.4); KHÔNG có ✗ Phạm vi.
+  Chạy lại trên `5dde191` (sau khi ghi bảng): chỉ `✗ [A19]` — A17 hết.
 
 ## Bước 8 — soát độc lập `/ra-soat`
 
