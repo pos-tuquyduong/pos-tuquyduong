@@ -13,7 +13,8 @@
      NGUYÊN hành vi — đóng là việc của AUDIT-KH sau khi App KH chuyển hẳn sang `/api/kh`.
      18.10 chủ quán trả lời Q1–Q7 của kế hoạch (trang_thai.md): Q1 có CẢ nhận voucher (/claim) VÀ nhận điểm (/nhan-diem) qua token;
      Q2 không tạo nhanMaBill.js; Q3 thêm products.js; Q4 bỏ phần màn quầy (client) khỏi việc này → KH-QUAY-1 sau P16 (tránh đụng
-     client/dist với P16, DOI-SOAT-1); Q5 trust proxy 1; Q6 retail; Q7 chỉ mã App xin bị đếm / chặn. -->
+     client/dist với P16, DOI-SOAT-1); Q5 trust proxy 1; Q6 retail; Q7 chỉ mã App xin bị đếm / chặn.
+     Q8 (18.10): thêm server/routes/backup.js — CHỈ một dòng bảng mã đăng nhập trong BACKUP_TABLES (phép E8 "mọi bảng được sao lưu"). -->
 
 **Chờ duyệt kế hoạch:** viết `viec/KH-API-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -84,6 +85,7 @@ danh sách bài chạy thật của `npm test`.
 - server/routes/loyalty.js
 - server/routes/signup-codes.js
 - server/routes/products.js
+- server/routes/backup.js
 - env.example
 - cong_cu/thu_KH1.js
 - kiem_tra_truoc_khi_giao.js
@@ -105,6 +107,8 @@ không
 - KHÔNG đổi hành vi route cũ (`/signup-codes/*`, `/loyalty/*`, `/products`, `/customers*`) — chỉ được tách hàm cho route mới gọi chung;
   tách ở `products.js` không được giấu lệnh ghi khỏi phép E14.
 - KHÔNG sửa `client/` (kể cả `client/dist`) — màn quầy là KH-QUAY-1.
+- `server/routes/backup.js`: CHỈ thêm MỘT dòng `{ name: 'pos_kh_ma_dang_nhap', … }` vào `BACKUP_TABLES` NGAY SAU dòng `pos_customers`
+  (P26d song song sửa cuối danh sách và `/restore` — đặt chỗ khác thì hai nhánh đụng nhau khi gộp). Không sửa gì khác trong file.
 - KHÔNG sửa `server/middleware/auth.js` (token nhân viên) — tách token bằng khoá riêng + kiểm loại ở `khachAuth.js`.
 - `server/database.js`: chỉ THÊM khối bảng ở chỗ ghi trên; KHÔNG sửa `beginTransaction`, `run`, hàm khác (P26d song song).
 - `kiem_tra_truoc_khi_giao.js`: chỉ thêm `'cong_cu/thu_KH1.js'` vào mảng danh sách bài chạy thật; không nới hạn, không đổi phép khác.
