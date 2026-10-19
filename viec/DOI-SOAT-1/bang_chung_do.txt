@@ -40,4 +40,20 @@
 # Giả lập (cổng --day-du nhóm S) TRƯỚC khi vá: "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT"; SAU khi vá: "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT" (chay.js), thu_gia_lap.js xanh (55,6 s).
 # npm test trên gốc: PASS 66 · FAIL 0 · CẢNH BÁO 1. Sau vá: xem trang_thai.md (còn 1 phép đỏ do backup.js ngoài Phạm vi — Câu hỏi 9).
 
-SỐ CA cong_cu/thu_DOISOAT1.js: 105
+# ── Vòng sửa 1 sau /ra-soat (19.10.2026): bài thử đổi (bỏ A5 hằng true; thêm A2c, A2d, C6, C6b, F3b, H2) → chạy lại cả hai phía (cổng A16) ──
+# Lệnh: python3 viec/DOI-SOAT-1/dot_bien.py --goc 2123b69  (bài thử bản c3c1892 trên server/ + cong_cu/gia_lap/ của gốc)
+#   → 27 đạt · 84 hỏng · thoát 1 (111 ca: A0 chỉ hiện khi không nạp được doiSoat.js). Trích hai dòng cuối:
+  ✗ H1 tháng trên dữ liệu nhiều: trả lời 200 trong < 10 s (kho cục bộ = cận dưới)  — HTTP 404 · 0.01 s
+  ✗ H2 cùng dữ liệu, 3000 dòng lệch I8: 200 trong < 10 s, đủ 3000 dòng đỏ, số câu SQL ≤ 66 (không một câu mỗi dòng)  — HTTP 404 · 0.00 s · 0 câu · undefined đỏ
+  27 đạt · 84 hỏng
+# Lệnh: python3 viec/DOI-SOAT-1/dot_bien.py --goc 14311c3  (cùng bài trên code TRƯỚC vòng sửa — mỗi ca mới đỏ vì đúng lỗi người soát nêu):
+  ✗ A2c bất biến giả `WITH … UPDATE` → bị chặn (ném lỗi), nội dung bảng không đổi
+  ✗ C6 đơn tạo 13.10 (trước mốc I19), đền 04.11 vượt số đã trả → ĐỎ ở ngày 04.11 (ngày sự việc), không thành "LỆCH CŨ" tháng 10  — HTTP 200 · XANH · đỏ:  · cũ T10: đơn ORD-20261104-001: khách nhận lại 99.999đ > đã trả 25.000đ
+  ✗ C6b gói tạo 10.10 (trước mốc I14), giao thêm 04.11 vượt tổng → ở ngày 04.11 (cần xem), không thành "LỆCH CŨ" tháng 10  —  · cũ T10: gói #4: đã giao 5 > tổng 2
+  ✗ F3b đơn trả 2.000 ví khách + 7.000 ví mẹ → ví chi tháng 01.2027 = 9.000 (gồm phần ví mẹ)  — {"nap":30000,"chi":2000}
+  ✗ H2 cùng dữ liệu, 3000 dòng lệch I8: 200 trong < 10 s, đủ 3000 dòng đỏ, số câu SQL ≤ 66 (không một câu mỗi dòng)  — HTTP 200 · 0.99 s · 1040 câu · 3000 đỏ
+  105 đạt · 5 hỏng
+#   (A2d là ca K5 "KHÔNG được chặn" nên xanh trên code cũ là đúng; nó bị bắt bởi đột biến VS-DS-CHI-DOC-SOI-CHUOI.)
+# Sau vá (HEAD): node cong_cu/thu_DOISOAT1.js → 110 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 110 đạt · 0 hỏng; TỔNG 33 · BẮT 33 · SỐNG 0 · HỎNG 0 · LẠC 0.
+# Giả lập sau vòng sửa (bat_bien.js I8 đổi sang JOIN gộp): "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT"; thu_gia_lap.js xanh (49,0 s).
+SỐ CA cong_cu/thu_DOISOAT1.js: 110
