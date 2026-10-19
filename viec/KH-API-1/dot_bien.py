@@ -32,11 +32,11 @@ DOT_BIEN = [
   ('VS-F3-diem-tu-query', [(KI, "await layDiemKhach(req.khach.phone);", "await layDiemKhach(req.query.phone || req.khach.phone);", 1)], r"✗ F3 /kh/diem"),
   ('VS-F3-don-tu-query', [(KI, "[req.khach.phone, SO_DON_MOI_TRANG + 1", "[req.query.customer_phone || req.khach.phone, SO_DON_MOI_TRANG + 1", 1)], r"✗ F3 /kh/don"),
   # ── A2: chiếm mã một lần, lưu băm, hạn ──
-  ('BV-A2-bo-chua-dung', [(MK, "WHERE id = ? AND dung_luc IS NULL AND huy_luc IS NULL`, [now, dong.id]);", "WHERE id = ?`, [now, dong.id]);", 1)], r"✗ A2 đua: người đến sau"),
+  ('BV-A2-bo-chua-dung', [(MK, "WHERE id = ? AND dung_luc IS NULL`, [now, dong.id]);", "WHERE id = ?`, [now, dong.id]);", 1)], r"✗ A2 đua: người đến sau"),
   ('VS-A2-changes-lon-hon-1', [(MK, "if (!chiem || chiem.changes !== 1)", "if (!chiem || chiem.changes > 1)", 1)], r"✗ A2 đua: người đến sau"),
   ('VS-A2-luu-ma-tho', [(MK, "[sdt, bamMa(sdt, ma), ip, now,", "[sdt, ma, ip, now,", 1)], r"✗ A2 lưu băm"),
   ('VS-A3-han-50-phut', [(MK, "const hanMa = () => `+${GIOI_HAN.HAN_MA_PHUT} minutes`;", "const hanMa = () => `+50 minutes`;", 1)], r"✗ A2 het_han"),
-  ('BV-A3-bo-loc-het-han', [(MK, "AND huy_luc IS NULL AND het_han > ? AND so_lan_thu < ?", "AND huy_luc IS NULL AND ? IS NOT NULL AND so_lan_thu < ?", 1)], r"✗ A3 het_han lùi 1 giây"),
+  ('BV-A3-bo-loc-het-han', [(MK, "AND dung_luc IS NULL AND het_han > ? AND so_lan_thu < ?", "AND dung_luc IS NULL AND ? IS NOT NULL AND so_lan_thu < ?", 1)], r"✗ A3 het_han lùi 1 giây"),
   # ── A3 / B2: 5 lần thử mỗi mã ──
   ('BV-B2-bo-gioi-han-moi-ma', [(MK, "het_han > ? AND so_lan_thu < ?", "het_han > ? AND ? > 0", 1),
                                 (MK, "WHERE id = ? AND so_lan_thu < ? AND dung_luc IS NULL", "WHERE id = ? AND ? > 0 AND dung_luc IS NULL", 1)], r"✗ A3 sai 5 lần"),
@@ -71,7 +71,11 @@ DOT_BIEN = [
    r"✗ A5 "),
   # ── C: chế độ gửi ──
   ('VS-C-mac-dinh-gia', [(GM, "const v = process.env.GUI_MA_KHACH || 'quay';", "const v = process.env.GUI_MA_KHACH || 'gia';", 1)], r"✗ C không đặt GUI_MA_KHACH"),
-  ('BV-C-quay-khong-huy', [(MK, "guiDuoc ? null : now,", "null,", 1)], r"✗ C dòng mã App ở chế độ quay bị huỷ"),
+  # Q10: chế độ quay trả ngay — không sinh mã, không ghi, không đếm
+  ('BV-C-quay-bo-tra-som', [(MK, "  if (!coKenhGui()) return { layMaTaiQuay: true };\n", "", 1)], r"✗ C không đặt GUI_MA_KHACH"),
+  ('VS-C-quay-van-dem', [(MK, "  if (!coKenhGui()) return { layMaTaiQuay: true };\n", "", 1),
+                         (MK, "  if (kq.changes !== 1) return { loi: 'QUA_NHIEU_LAN' };\n", "  if (kq.changes !== 1) return { loi: 'QUA_NHIEU_LAN' };\n  if (!coKenhGui()) return { layMaTaiQuay: true };\n", 1)],
+   r"✗ C chế độ quay: xin-ma KHÔNG chèn dòng"),
   ('VS-C-doc-luc-nap', [(GM, "function cheDo() {\n  const v = process.env.GUI_MA_KHACH || 'quay';",
                          "const V_NAP = process.env.GUI_MA_KHACH || 'quay';\nfunction cheDo() {\n  const v = V_NAP;", 1)], r"✗ C không đặt GUI_MA_KHACH"),
   ('BV-C-gia-ngoai-may-thu', [(GM, "(v === 'gia' && laMayThu())", "v === 'gia'", 1)], r"✗ C gia NGOÀI máy thử"),
@@ -112,7 +116,29 @@ DOT_BIEN = [
   ('BV-G-bo-code-ma-khong-co', [(SC, "error: 'Mã không tồn tại', code: 'MA_KHONG_TON_TAI' })", "error: 'Mã không tồn tại' })", 3)],
    r"✗ G /kh/nhan-ma-bill mã không có"),
   ('BV-G-bo-code-thieu-ma', [(SC, "error: 'Thiếu mã ưu đãi', code: 'THIEU_MA' })", "error: 'Thiếu mã ưu đãi' })", 1)], r"✗ G /kh/nhan-ma-bill thiếu ma"),
-  ('VS-G-log-ma', [(MK, "  if (guiDuoc) await guiMaKhach(sdt, ma);", "  console.log('gui ma', sdt, ma);\n  if (guiDuoc) await guiMaKhach(sdt, ma);", 1)], r"✗ G log máy chủ"),
+  ('VS-G-log-ma', [(MK, "  await guiMaKhach(sdt, ma);", "  console.log('gui ma', sdt, ma);\n  await guiMaKhach(sdt, ma);", 1)], r"✗ G log máy chủ"),
+  # ── Q9: trần lượt nhận mã bill / nhận điểm qua App (chung hai đường, SĐT + IP, một câu) ──
+  ('BV-Q9-bo-giu-luot', [(KI, "    if (!(await giuLuotNhanMa(req.khach.phone, req.ip || '', loai))) return bao(res, 'QUA_NHIEU_LAN');\n", "", 1)],
+   r"✗ Q9 /kh/nhan-ma-bill khách đã 10"),
+  ('BV-Q9-bo-tran-khach', [(MK, "sdt, now, '-1 hour', GIOI_HAN.NHAN_SDT_GIO,", "sdt, now, '-1 hour', 1000000,", 1)], r"✗ Q9 /kh/nhan-ma-bill khách đã 10"),
+  ('VS-Q9-khach-11', [(MK, "NHAN_SDT_GIO: 10,", "NHAN_SDT_GIO: 11,", 1)], r"✗ Q9 /kh/nhan-ma-bill khách đã 10"),
+  ('BV-Q9-bo-tran-ip', [(MK, "ip, now, '-1 hour', GIOI_HAN.NHAN_IP_GIO]", "ip, now, '-1 hour', 1000000]", 1)], r"✗ Q9 IP đã 30"),
+  ('VS-Q9-ip-31', [(MK, "NHAN_IP_GIO: 30,", "NHAN_IP_GIO: 31,", 1)], r"✗ Q9 IP đã 30"),
+  ('VS-Q9-hai-gio', [(MK, "sdt, now, '-1 hour', GIOI_HAN.NHAN_SDT_GIO,", "sdt, now, '-2 hours', GIOI_HAN.NHAN_SDT_GIO,", 1)], r"✗ Q9 10 lần lúc 61 phút"),
+  ('VS-Q9-dem-rieng-loai', [(MK, "FROM pos_kh_lan_thu WHERE sdt = ? AND tao_luc", "FROM pos_kh_lan_thu WHERE sdt = ? AND loai = '${loai}' AND tao_luc", 1)],
+   r"✗ Q9 10 lượt nhận mã bill → nhận điểm"),
+  ('VS-Q9-sdt-tu-than', [(KI, "giuLuotNhanMa(req.khach.phone,", "giuLuotNhanMa((req.body || {}).sdt || req.khach.phone,", 1)], r"✗ Q9 một lần gọi ghi"),
+  ('VS-Q9-dem-roi-chen', [(MK, "  const kq = await run(`INSERT INTO pos_kh_lan_thu (loai, sdt, ip, tao_luc)\n    SELECT ?, ?, ?, ?\n    WHERE",
+                           "  const dem = await queryOne(`SELECT ((SELECT COUNT(*) FROM pos_kh_lan_thu WHERE sdt = ? AND tao_luc > ${GIO}) < ?"
+                           " AND (SELECT COUNT(*) FROM pos_kh_lan_thu WHERE ip = ? AND tao_luc > ${GIO}) < ?) AS ok`,"
+                           " [sdt, now, '-1 hour', GIOI_HAN.NHAN_SDT_GIO, ip, now, '-1 hour', GIOI_HAN.NHAN_IP_GIO]);\n  if (!dem.ok) return false;\n"
+                           "  const kq = await run(`INSERT INTO pos_kh_lan_thu (loai, sdt, ip, tao_luc)\n    SELECT ?, ?, ?, ?\n    WHERE 1 OR", 1)],
+   r"✗ Q9 15 lần gửi CÙNG LÚC"),
+  # ── Q11: bill đã ghi SĐT → chỉ SĐT đó nhận mã (cả route cũ) ──
+  ('BV-Q11-bo-chan-claim', [(SC, "    if (billSdtKhac(signupRow, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);\n", "", 1)], r"✗ Q11 nhận mã của bill ghi SĐT khác"),
+  ('BV-Q11-bo-chan-nhandiem', [(SC, "    if (billSdtKhac(dong, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);\n", "", 1)], r"✗ Q11 nhận điểm mã của bill ghi SĐT khác"),
+  ('VS-Q11-so-tho', [(SC, "normalizePhone(dong.order_customer_phone) !== phone", "dong.order_customer_phone !== phone", 1)], r"✗ Q11 /claim cũ: bill lưu SĐT dạng"),
+  ('VS-Q11-chan-ca-sdt-rong', [(SC, "return !!dong.order_customer_phone &&", "return dong.order_customer_phone != null &&", 1)], r"✗ Q11 bill có order_customer_phone ''"),
   # ── H / Q2: /claim cũ không đổi hành vi ──
   ('VS-P7-sdt-ngoai-try', [(SC, "async function nhanMaUuDai(req, res) {\n  try {\n    const rawCode = String(req.body.code || '').trim().toUpperCase();\n    const phone = normalizePhone(req.body.phone);",
                             "async function nhanMaUuDai(req, res) {\n  const phone = normalizePhone(req.body.phone);\n  try {\n    const rawCode = String(req.body.code || '').trim().toUpperCase();", 1)],
