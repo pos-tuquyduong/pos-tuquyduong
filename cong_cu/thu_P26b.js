@@ -566,7 +566,7 @@ async function main() {
     }
   }
 
-  muc('[P26d F] khôi phục sao lưu KHÔNG ghi các trang tiền (ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn) — chặn trước mọi ghi');
+  muc('[P26d F] khôi phục sao lưu KHÔNG ghi các trang tiền (ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn, điểm, gói, thẻ, voucher, đền bù, mã giảm) — chặn trước mọi ghi');
   {
     const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
     const khoiPhuc = async (trang) => {
@@ -589,7 +589,9 @@ async function main() {
     k('F1 file có trang "Số dư" (sau một trang thường) → 400 KHOI_PHUC_VI_DON_BI_CHAN; pos_sync_logs VÀ pos_wallets không đổi',
       a.status === 400 && a.code === 'KHOI_PHUC_VI_DON_BI_CHAN' && await chup('pos_sync_logs') === nk0 && await chup('pos_wallets') === vi0, moTa(a));
     for (const [nhan, bang] of [['Đơn hàng', 'pos_orders'], ['Chi tiết đơn', 'pos_order_items'], ['Giao dịch số dư', 'pos_balance_transactions'],
-      ['Yêu cầu hoàn tiền', 'pos_refund_requests']]) {
+      ['Yêu cầu hoàn tiền', 'pos_refund_requests'], ['Giao dịch điểm thưởng', 'pos_point_transactions'], ['Gói của khách', 'pos_customer_packages'],
+      ['Lịch sử mua thẻ', 'pos_membership_purchases'], ['Voucher đã phát', 'pos_voucher_grants'], ['Hàng hỏng', 'pos_damage_logs'],
+      ['Mã chiết khấu', 'pos_discount_codes']]) {
       const truoc = await chup(bang);
       const r = await khoiPhuc([[nhan, [{ id: 999999 }]]]);
       k(`F2 file có trang "${nhan}" → 400 KHOI_PHUC_VI_DON_BI_CHAN, ${bang} không đổi`, r.status === 400 && r.code === 'KHOI_PHUC_VI_DON_BI_CHAN'
