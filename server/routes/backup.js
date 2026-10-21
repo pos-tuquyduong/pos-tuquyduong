@@ -110,7 +110,7 @@ function chanTrangTien(res, wb) {
   const bang = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(BACKUP_TABLES.find((t) => t.label === s)?.name)
     && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
   if (!bang.length) return false;
-  res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang,
+  res.status(400).json({ code: 'KHOI_PHUC_TRANG_TIEN_BI_CHAN', bang,
     error: `File có trang dính tiền (${bang.join(', ')}) — trang tiền không khôi phục bằng file. `
       + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
   return true;
