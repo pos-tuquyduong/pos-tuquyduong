@@ -99,6 +99,9 @@ async function main() {
   const khRoute = thuNap(R('kh'));
   if (quay) app.use('/api/pos/kh', quay);
   if (khRoute) app.use('/api/kh', khRoute);
+  // Bộ lỗi tầng ứng dụng của /api/kh gắn ĐÚNG như index.js (ngay sau router); vị trí trong index.js khoá bằng phép [tĩnh] cuối bài.
+  const loiKh = thuNap(R('kh/loi.js'));
+  if (loiKh && loiKh.loiTangKh) app.use('/api/kh', loiKh.loiTangKh);
   const guiMa = thuNap(path.join(GOC, 'server', 'utils', 'guiMaKhach.js'));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
@@ -122,16 +125,17 @@ async function main() {
   let soSdt = 0;
   const sdtMoi = () => '09' + String(20000000 + (++soSdt)).padStart(8, '0');
 
-  // goi(method, '/kh/toi', body, { tk, dichVu, khongThan }) → { status, j, tho }. Thân lỗi của /kh/* gom lại cho ca G.
+  // goi(method, '/kh/toi', body, { tk, dichVu, than }) → { status, j, tho }. `than`: chuỗi thân THÔ (JSON hỏng). Thân lỗi của /kh/* gom lại cho ca G.
   const thanKh = [];
   const goi = async (method, url, body, o = {}) => {
     const headers = {};
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const than = o.than !== undefined ? o.than : body !== undefined ? JSON.stringify(body) : undefined;
+    if (than !== undefined) headers['Content-Type'] = 'application/json';
     if (o.dichVu) headers['X-Service-Key'] = process.env.POS_SERVICE_API_KEY;
     else if (o.tk) headers.Authorization = 'Bearer ' + o.tk;
     imLang();
     try {
-      const r = await fetch(goc + url, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+      const r = await fetch(goc + url, { method, headers, body: than });
       const tho = await r.text();
       let j = {}; try { j = JSON.parse(tho); } catch { /* không phải JSON */ }
       if (url.startsWith('/kh/')) thanKh.push({ url, status: r.status, j, tho });
@@ -759,6 +763,16 @@ async function main() {
     await datCaiDat('loyalty_earn_per_amount', '0');
     C_('/kh/nhan-diem cấu hình tích điểm sai', await goi('POST', '/kh/nhan-diem', { ma: d2.ma }, { tk: B.tk }), 400, 'CAU_HINH_DIEM_SAI');
     await datCaiDat('loyalty_earn_per_amount', '10000');
+    // Lỗi tầng ứng dụng (soát vòng 3): express.json ném TRƯỚC router; đường lạ rơi khỏi router — vẫn chỉ { error, code }.
+    const hong = await goi('POST', '/kh/dang-nhap/xin-ma', undefined, { than: '{"sdt":' });
+    k('G JSON hỏng → 400 YEU_CAU_KHONG_HOP_LE, không lộ lời báo của bộ đọc JSON', la(hong, 400, 'YEU_CAU_KHONG_HOP_LE')
+      && !/Unexpected|position|SyntaxError|<!DOCTYPE/i.test(hong.tho), hong.tho.slice(0, 120));
+    const to = await goi('POST', '/kh/dang-nhap/xin-ma', undefined, { than: `{"sdt":"${'9'.repeat(200000)}"}` });
+    k('G thân quá lớn → 413 YEU_CAU_KHONG_HOP_LE (giữ status của bộ đọc)', la(to, 413, 'YEU_CAU_KHONG_HOP_LE'), to.tho.slice(0, 120));
+    for (const m of ['GET', 'POST']) {
+      const la404 = await goi(m, '/kh/khong-co-duong-nay', m === 'POST' ? {} : undefined, { tk: B.tk });
+      k(`G ${m} đường lạ (có token) → 404 KHONG_TIM_THAY`, la(la404, 404, 'KHONG_TIM_THAY'), la404.tho.slice(0, 120));
+    }
     const loi = thanKh.filter((x) => x.status >= 400);
     const la_ = loi.filter((x) => typeof x.j.code !== 'string' || !x.j.code || typeof x.j.error !== 'string'
       || !Object.keys(x.j).every((kk) => ['error', 'code', 'success'].includes(kk)));
@@ -804,6 +818,8 @@ async function main() {
     k("index.js: app.use('/api/kh', require('./routes/kh')) TRƯỚC express.static", iKh >= 0 && iKh < iTinh);
     k("index.js: app.use('/api/pos/kh', require('./routes/kh/quay'))", src.includes("app.use('/api/pos/kh', require('./routes/kh/quay'))"));
     k("index.js: app.set('trust proxy', 1) (Q5)", src.includes("app.set('trust proxy', 1)"));
+    const iLoi = src.indexOf("app.use('/api/kh', require('./routes/kh/loi').loiTangKh)"), iChung = src.indexOf('app.use((err, req, res, next)');
+    k("index.js: app.use('/api/kh', …loiTangKh) SAU router /api/kh, TRƯỚC bộ lỗi chung (G)", iKh >= 0 && iLoi > iKh && iChung > iLoi);
   }
 
   sv.close();
