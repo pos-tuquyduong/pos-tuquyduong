@@ -21,6 +21,7 @@ const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
 const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
 const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
+const { loiMayChu } = require('./kh/loi');
 
 const router = express.Router();
 
@@ -76,10 +77,17 @@ async function kiemDonCuaMa(dong) {
 // `cotLuc` chỉ nhận hằng viết trong code ('claimed_at' / 'diem_nhan_luc'), không lấy từ request.
 async function baoChiemHong(res, id, cotLuc, daDung) {
   const d = await queryOne(`SELECT ${cotLuc} AS luc FROM pos_signup_codes WHERE id = ?`, [id]);
-  if (!d) return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
+  if (!d) return res.status(404).json({ success: false, error: 'Mã không tồn tại', code: 'MA_KHONG_TON_TAI' });
   if (d.luc) return res.status(daDung.status).json({ success: false, error: daDung.error, code: daDung.code });
   return res.status(400).json({ success: false, error: 'Số điện thoại này đã nhận ưu đãi này từ một mã bill khác.', code: 'SDT_DA_NHAN' });
 }
+
+// KH-API-1 (Q11): bill đã ghi SĐT khách lúc bán (order_customer_phone) → chỉ SĐT đó nhận được mã — /claim và /nhan-diem, mọi đường
+// gọi (App, X-Service-Key, quầy). Bill không ghi SĐT (NULL, '' dữ liệu cũ): ai cầm giấy cũng nhận như trước.
+function billSdtKhac(dong, phone) {
+  return !!dong.order_customer_phone && normalizePhone(dong.order_customer_phone) !== phone;
+}
+const LOI_BILL_SDT_KHAC = { success: false, error: 'Mã này thuộc bill của số điện thoại khác.', code: 'BILL_SDT_KHAC' };
 
 async function getSignupConfig() {
   const rows = await query(
@@ -121,15 +129,20 @@ async function docCauHinhNhanDiem() {
   };
 }
 
+// KH-API-1 (E6, E7): thân /nhan-diem và /claim là HÀM CÓ TÊN đặt NGAY dưới dòng gắn route — /api/kh gọi CÙNG hàm với SĐT lấy từ
+// token khách. Đừng dời hàm đi chỗ khác: phép E9 / E14 của bộ kiểm cắt khối từ dòng gắn route tới route kế tiếp. Mọi lỗi 4xx có
+// `code` (G); có req.khach (gọi từ App) thì lỗi máy chủ qua loiMayChu như mọi route /api/kh; route cũ trả lời báo như trước.
+
 // POST /api/pos/signup-codes/nhan-diem
 // Body: { code, phone }
-router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
+router.post('/nhan-diem', authenticateServiceOrUser, nhanDiemMaBill);
+async function nhanDiemMaBill(req, res) {
   try {
     const maGoc = String(req.body.code || '').trim().toUpperCase();
     const phone = normalizePhone(req.body.phone);
 
-    if (!maGoc) return res.status(400).json({ success: false, error: 'Thiếu mã trên bill' });
-    if (!phone) return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ' });
+    if (!maGoc) return res.status(400).json({ success: false, error: 'Thiếu mã trên bill', code: 'THIEU_MA' });
+    if (!phone) return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ', code: 'SDT_KHONG_HOP_LE' });
 
     const ch = await docCauHinhNhanDiem();
     if (!ch.bat) {
@@ -144,7 +157,7 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
       'SELECT * FROM pos_signup_codes WHERE UPPER(code) = ?',
       [maGoc],
     );
-    if (!dong) return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
+    if (!dong) return res.status(404).json({ success: false, error: 'Mã không tồn tại', code: 'MA_KHONG_TON_TAI' });
 
     if (dong.diem_nhan_luc) {
       return res.status(400).json({
@@ -185,6 +198,7 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
     if (kqDon.loi) {
       return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
     }
+    if (billSdtKhac(dong, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
     const don = kqDon.don;
 
     // Điểm gốc tính theo ĐÚNG cấu hình điểm đang chạy, không tự đặt công thức riêng.
@@ -202,7 +216,7 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
     }
     const moiBaoNhieu = Number(loy.loyalty_earn_per_amount);
     if (!Number.isFinite(moiBaoNhieu) || moiBaoNhieu < 1) {
-      return res.status(400).json({ success: false, error: 'Cấu hình tích điểm chưa hợp lệ.' });
+      return res.status(400).json({ success: false, error: 'Cấu hình tích điểm chưa hợp lệ.', code: 'CAU_HINH_DIEM_SAI' });
     }
     const diemGoc = Math.floor(Number(don.total || 0) / moiBaoNhieu);
     if (diemGoc <= 0) {
@@ -291,27 +305,29 @@ router.post('/nhan-diem', authenticateServiceOrUser, async (req, res) => {
       message: `Đã cộng ${diemCong} điểm cho ${phone} từ đơn ${don.code}.`,
     });
   } catch (err) {
+    if (req.khach) return loiMayChu(res, err, 'kh nhan-diem');
     res.status(500).json({ success: false, error: err.message });
   }
-});
+}
 
 // POST /api/pos/signup-codes/claim
 // Body: { code, phone }
-router.post('/claim', authenticateServiceOrUser, async (req, res) => {
+router.post('/claim', authenticateServiceOrUser, nhanMaUuDai);
+async function nhanMaUuDai(req, res) {
   try {
     const rawCode = String(req.body.code || '').trim().toUpperCase();
     const phone = normalizePhone(req.body.phone);
 
     if (!rawCode) {
-      return res.status(400).json({ success: false, error: 'Thiếu mã ưu đãi' });
+      return res.status(400).json({ success: false, error: 'Thiếu mã ưu đãi', code: 'THIEU_MA' });
     }
     if (!phone) {
-      return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ' });
+      return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ', code: 'SDT_KHONG_HOP_LE' });
     }
 
     const config = await getSignupConfig();
     if (!config.enabled) {
-      return res.status(400).json({ success: false, error: 'Chương trình ưu đãi khách mới hiện đang tắt' });
+      return res.status(400).json({ success: false, error: 'Chương trình ưu đãi khách mới hiện đang tắt', code: 'UU_DAI_DANG_TAT' });
     }
 
     const now = getNow();
@@ -321,7 +337,7 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
       [rawCode]
     );
     if (!signupRow) {
-      return res.status(404).json({ success: false, error: 'Mã không tồn tại' });
+      return res.status(404).json({ success: false, error: 'Mã không tồn tại', code: 'MA_KHONG_TON_TAI' });
     }
     if (signupRow.claimed_at) {
       return res.status(409).json({ success: false, error: 'Mã này đã được sử dụng', code: 'MA_DA_DUNG' });
@@ -332,7 +348,7 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
     const nowMs = new Date(now.replace(' ', 'T') + 'Z').getTime();
     const hoursPassed = (nowMs - issuedMs) / (1000 * 60 * 60);
     if (!Number.isFinite(hoursPassed) || hoursPassed > CODE_EXPIRE_HOURS) {
-      return res.status(400).json({ success: false, error: 'Mã đã hết hạn (quá 24 giờ kể từ lúc in)' });
+      return res.status(400).json({ success: false, error: 'Mã đã hết hạn (quá 24 giờ kể từ lúc in)', code: 'MA_HET_HAN' });
     }
 
     // Chặn theo SĐT (không theo mã) — 1 SĐT chỉ claim được đúng 1 lần trong đời, bất kể mã nào.
@@ -351,13 +367,14 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
     if (kqDon.loi) {
       return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
     }
+    if (billSdtKhac(signupRow, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
 
     // Nhóm sản phẩm áp dụng — chỉ cần khi scope='item', dùng đúng nhóm seed sẵn ở Bước 1.
     let applicableGroupId = null;
     if (config.scope === 'item') {
       const group = await queryOne("SELECT id FROM pos_product_groups WHERE code = 'khach_moi'");
       if (!group) {
-        return res.status(500).json({ success: false, error: 'Chưa cấu hình nhóm sản phẩm cho ưu đãi khách mới' });
+        return res.status(500).json({ success: false, error: 'Chưa cấu hình nhóm sản phẩm cho ưu đãi khách mới', code: 'CHUA_CAU_HINH_NHOM' });
       }
       applicableGroupId = group.id;
     }
@@ -374,6 +391,7 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
       return res.status(409).json({
         success: false,
         error: 'Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.',
+        code: 'MA_TRUNG',
       });
     }
 
@@ -439,10 +457,11 @@ router.post('/claim', authenticateServiceOrUser, async (req, res) => {
       },
     });
   } catch (err) {
+    if (req.khach) return loiMayChu(res, err, 'kh nhan-ma-bill');
     console.error('Signup code claim error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+}
 
 // GET /api/pos/signup-codes — danh sách mã cho owner xem trong app (Cài đặt).
 // Query: ?claimed=true để chỉ lấy các mã đã claim (dùng cho màn quản lý SĐT).
@@ -533,3 +552,5 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
 module.exports = router;
 module.exports.kiemDonCuaMa = kiemDonCuaMa; // P20b: POST /orders dùng CÙNG phép kiểm đơn gốc (khuôn wallets.js)
+module.exports.nhanMaUuDai = nhanMaUuDai;     // KH-API-1: /api/kh/nhan-ma-bill
+module.exports.nhanDiemMaBill = nhanDiemMaBill; // KH-API-1: /api/kh/nhan-diem

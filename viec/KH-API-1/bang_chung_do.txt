@@ -1,0 +1,184 @@
+# Bằng chứng ĐỎ — cong_cu/thu_KH1.js (bản commit 2c296e4 — vòng soát 1) chạy trên bản GỐC: server/ của 6fe38d8 (PHIEU: KH-API-1, trước khi vá)
+# Dựng gốc: python3 cong_cu/ban_sao_goc.py 6fe38d8 <nháp>/goc_kh1 ; chép cong_cu/thu_KH1.js vào <nháp>/goc_kh1/cong_cu/
+# Lệnh:     cd <nháp>/goc_kh1 && node cong_cu/thu_KH1.js
+# Kết quả gốc: 9 đạt · 86 hỏng, thoát 1. 9 ca đạt là ca CANH đường cũ (phải xanh cả trước lẫn sau): GET /products ×2, token khách
+# bị /api/pos/* từ chối ×1, /claim + /loyalty qua X-Service-Key ×4, /claim + /nhan-diem không thân JSON ×2.
+# Số ca gốc ít hơn bản vá vì 4 mục (A3, B1, B2, G) sập giữa chừng trên gốc (chưa có bảng pos_kh_ma_dang_nhap) — mỗi mục sập in MỘT dòng ✗.
+# (Lần ghi đầu với bản 93ee2ce: 9 đạt · 83 hỏng; bản 38392aa đổi mục F3 thành so sâu 4 đường + 1 ca đơn → gốc thêm 1 ca hỏng: 9 · 84;
+#  bản ec5efe4 thêm ca C "gia ngoài máy thử" → gốc thêm 1 ca hỏng: 9 · 85;
+#  bản 2c296e4 thêm ca A4 "đua tạo khách chen" → 9 · 86. Ca G mới không hiện trên gốc vì mục G sập ngay đầu.)
+SỐ CA cong_cu/thu_KH1.js: 156
+
+  ✗ A1 "+84 912 345 601" → 200, dòng mã lưu 0912345601  — HTTP 404
+  ✗ A1 SĐT "abc" → 400 SDT_KHONG_HOP_LE  — HTTP 404
+  ✗ A1 SĐT "0912" → 400 SDT_KHONG_HOP_LE  — HTTP 404
+  ✗ A1 SĐT số 912345678 (không phải chuỗi) → 400 SDT_KHONG_HOP_LE  — HTTP 404
+  ✗ A1 SĐT thiếu → 400 SDT_KHONG_HOP_LE  — HTTP 404
+  ✗ A2 mã gửi đi là 6 chữ số  — null
+  ✗ A2 lưu băm 64 ký tự hex, không chứa mã thô  — (không có dòng)
+  ✗ A2 het_han − tao_luc = ĐÚNG 300 giây  — null
+  ✗ A2 đua: người chen vào xác minh trọn → 200  — móc không chạy
+  ✗ A2 đua: người đến sau → 400 MA_HET_HAN (đúng MỘT token)  — HTTP 404
+  ✗ A3 mã sai → 400 MA_SAI  — HTTP 404
+  ✗ A3 mã đúng → 200, token ký bằng KH_JWT_SECRET, loai kh + id khách  — HTTP 404
+  ✗ A3 token hạn ĐÚNG 30 ngày
+  ✗ A3 có token và token đó KHÔNG giải được bằng khoá nhân viên
+  ✗ A3 dùng lại mã đã dùng → 400 MA_HET_HAN  — HTTP 404
+  ✗ A3: bài chạy hết mục  — Cannot read properties of null (reading 'id')
+  ✗ A4 khách cũ + ten khác → 200, tên KHÔNG đổi, không tạo trùng  — HTTP 404 · [{"name":"Tên Cũ"}]
+  ✗ A4 SĐT mới không ten → 400 CAN_TEN  — HTTP 404
+  ✗ A4 CAN_TEN không tiêu mã, không mất lượt thử
+  ✗ A4 CÙNG mã + ten → 200  — HTTP 404
+  ✗ A4 khách mới: tên đã trim, created_by app_kh, qr QR-<sđt>, retail / retail_only  — (không có khách)
+  ✗ A4 ten toàn khoảng trắng → CAN_TEN  — HTTP 404
+  ✗ A4 ten 51 ký tự → CAN_TEN  — HTTP 404
+  ✗ A4 ten 50 ký tự → 200  — HTTP 404
+  ✗ A4 đua: khách được tạo chen trước khi chèn → 200, token gắn khách đó, 1 dòng, tên không đổi  — HTTP 404 · []
+  ✗ A5 cùng status, cùng thân  — 404 <!DOCTYPE html>…
+  ✗ B1: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_ma_dang_nhap
+  ✗ B2: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_ma_dang_nhap
+  ✗ B3 maKhach.js có GIOI_HAN và MỌI khoá của nó được dùng  — không thấy const GIOI_HAN = {
+  ✗ C không đặt GUI_MA_KHACH → như quay: lay_ma_tai_quay true, không gửi  — HTTP 404
+  ✗ C dòng mã App ở chế độ quay bị huỷ ngay khi chèn
+  ✗ C mã quầy cấp TRƯỚC đó vẫn xác minh được  — HTTP 404
+  ✗ C GUI_MA_KHACH lạ → như quay + đúng 1 dòng cảnh báo  — HTTP 404 · 0 cảnh báo
+  ✗ C gia → lay_ma_tai_quay false, mã gửi được, dòng không huỷ  — HTTP 404
+  ✗ C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, dòng huỷ, đúng 1 cảnh báo  — HTTP 404 · 0 cảnh báo
+  ✗ D không token → 401  — HTTP 404
+  ✗ D token khách → 401  — HTTP 404
+  ✗ D nhân viên staff → 200 + mã 6 chữ số + het_han_giay 300  — HTTP 404
+  ✗ D dòng nguon quay, cap_boi = username
+  ✗ D mã quầy cấp xác minh được  — HTTP 404
+  ✗ D SĐT sai dạng → 400 SDT_KHONG_HOP_LE  — HTTP 404
+  ✗ E1 GET /toi → 200, đúng 3 trường sdt · ten · ngay_tao  — HTTP 404 ·
+  ✗ E1 PUT /toi đổi tên (trim), SĐT KHÔNG đổi dù thân có sdt / phone
+  ✗ E1 PUT ten rỗng → 400 TEN_KHONG_HOP_LE  — HTTP 404
+  ✗ E1 PUT ten 51 ký tự → 400 TEN_KHONG_HOP_LE  — HTTP 404
+  ✗ E2 số dư 7 (dòng hết hạn không tính)  — HTTP 404 · undefined
+  ✗ E2 so sâu với route cũ  — <!DOCTYPE html>…
+  ✗ E3 (còn dùng): data so sâu với route cũ (1 voucher)  — <!DOCTYPE html>…
+  ✗ E3 ?all=1: data so sâu với route cũ (2 voucher)  — <!DOCTYPE html>…
+  ✗ E4 A chỉ thấy 2 đơn của A, mới nhất trước  — HTTP 404 ·
+  ✗ E4 da_tra bill nợ = total − debt_amount
+  ✗ E4 /don/:ma có món: tên, số lượng, đơn giá khớp pos_order_items  — <!DOCTYPE html>…
+  ✗ E4 A đọc đơn của B → 404 KHONG_THAY_DON  — HTTP 404
+  ✗ E4 phân trang: trang 1 có 20 + con_nua, trang 2 có 1 đơn cũ nhất  — 0/undefined · 0/undefined
+  ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng  — HTTP 404
+  ✗ E5 menu có món giá > 0, KHÔNG có món giá 0
+  ✗ E5 con_hang: tồn 3 → true · tồn 0 → false · chưa rõ → null  — [null,null,null]
+  ✓ E5 hồi quy GET /api/pos/products (JWT): giá, sellable, unique_id theo pos_products
+  ✓ E5 hồi quy GET /api/pos/products (X-Service-Key) = bản JWT
+  ✗ E6 A nhận mã bill (thân có SĐT của B) → 200, claimed_phone = A  — HTTP 404 · null
+  ✗ E6 mã đã dùng → 409 MA_DA_DUNG  — HTTP 404
+  ✗ E6 SĐT đã nhận qua mã khác → 400 SDT_DA_NHAN  — HTTP 404
+  ✗ E6 bill chưa thu → 400 BILL_CHUA_THANH_TOAN  — HTTP 404
+  ✗ E6 đua hai khách cùng mã: người chen 200, người sau 409 MA_DA_DUNG  — - / HTTP 404
+  ✗ E3 /voucher liệt kê thêm mã giảm phát qua /claim cho SĐT này (ma_khach_moi)  — HTTP 404 ·
+  ✗ E3 khách khác không thấy mã đó  — <!DOCTYPE html>…
+  ✗ E7 F nhận điểm (thân có SĐT của G) → 200, điểm ghi cho F  — HTTP 404 · null
+  ✗ H điểm cộng qua App = qua /nhan-diem cũ (cùng cấu hình)  — undefined | 4
+  ✗ E7 mã đã nhận điểm → 400 MA_DA_NHAN_DIEM  — HTTP 404
+  ✗ E7 bill chưa thu → 400 BILL_CHUA_THANH_TOAN  — HTTP 404
+  ✗ E7 đua hai khách cùng mã: người chen 200, người sau MA_DA_NHAN_DIEM, đúng 1 dòng điểm  — - / HTTP 404 · 0
+  ✗ F1 khoá thiếu: xin-ma · xac-minh · /toi · cap-ma → 503 KH_CHUA_CAU_HINH  — HTTP 404 / HTTP 404 / HTTP 404 / HTTP 404
+  ✗ F1 khoá trùng JWT_SECRET: xin-ma · xac-minh · /toi · cap-ma → 503 KH_CHUA_CAU_HINH  — HTTP 404 / HTTP 404 / HTTP 404 / HTTP 404
+  ✓ F2 token khách gọi /pos/orders · /pos/customers · /pos/loyalty → 401
+  ✗ F2 token nhân viên gọi /kh/toi · /diem · /don → 401 KH_TOKEN_SAI  — HTTP 404 / HTTP 404 / HTTP 404
+  ✗ F2 token ký khoá khách nhưng không có loai → 401  — HTTP 404
+  ✗ F2 token ký khoá khách nhưng loai 'nv' → 401  — HTTP 404
+  ✗ F2 token của khách đã bị xoá → 401  — HTTP 404
+  ✗ F2 không token → 401  — HTTP 404
+  ✗ F3 /kh/toi kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /kh/diem kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /kh/voucher kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /kh/don kèm ?sdt / phone / customer_phone của B → y hệt khi không kèm (dữ liệu A)  — <!DOCTYPE html>…
+  ✗ F3 /don kèm SĐT của B → đúng các đơn của A  — <!DOCTYPE html>…
+  ✗ G: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_ma_dang_nhap
+  ✓ H /claim cũ qua X-Service-Key → 200
+  ✗ H voucher phát qua App = phát qua /claim cũ (từng cột)  — discount_type, discount_value, min_order, usage_limit, used_count, valid…
+  ✓ H /claim cũ mã đã dùng → 409 MA_DA_DUNG
+  ✓ H /pos/loyalty/points qua X-Service-Key → 200, = bản JWT
+  ✓ H /pos/loyalty/vouchers qua X-Service-Key → 200, = bản JWT
+  ✓ H /claim không thân JSON → lỗi do CHÍNH route trả ({ success: false })
+  ✓ H /nhan-diem không thân JSON → lỗi do CHÍNH route trả ({ success: false })
+  ✗ index.js: app.use('/api/kh', require('./routes/kh')) TRƯỚC express.static
+  ✗ index.js: app.use('/api/pos/kh', require('./routes/kh/quay'))
+  ✗ index.js: app.set('trust proxy', 1) (Q5)
+
+  9 đạt · 84 hỏng
+
+# Trên code ĐÃ VÁ (c091bee + bài 38392aa): node cong_cu/thu_KH1.js → 116 đạt · 0 hỏng (chạy 4 lần, cả 4 lần 116 / 0).
+# Đột biến: python3 viec/KH-API-1/dot_bien.py → ĐỐI CHỨNG 116 đạt · 0 hỏng; 54 đột biến bị bắt · 0 KHÔNG bị bắt (trên 54).
+
+# ── Vòng soát 1 (19.10.2026): bài ec5efe4 chạy trên server/ của 1458a7c (TRƯỚC vá vòng 1 — chép tạm bản HEAD của
+#    signup-codes.js + guiMaKhach.js vào chỗ, chạy, chép lại bản vá): 115 đạt · 12 hỏng, thoát 1. Mười hai ca ĐỎ:
+  ✗ C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, dòng huỷ, đúng 1 cảnh báo  — HTTP 200 · 0 cảnh báo
+  ✗ G /kh/nhan-ma-bill lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo  — {"success":false,"error":"Lỗi máy chủ, thử lại sau"}
+  ✗ G /kh/nhan-diem lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo  — {"success":false,"error":"Lỗi máy chủ, thử lại sau"}
+  ✗ G /kh/nhan-ma-bill kho bận → 409 KHO_BAN (như mọi route /kh)  — {"success":false,"error":"Lỗi máy chủ, thử lại sau"}
+  ✗ G /kh/nhan-ma-bill thiếu ma → 400 THIEU_MA  — {"success":false,"error":"Thiếu mã ưu đãi"}
+  ✗ G /kh/nhan-ma-bill mã không có → 404 MA_KHONG_TON_TAI  — {"success":false,"error":"Mã không tồn tại"}
+  ✗ G /kh/nhan-diem thiếu ma → 400 THIEU_MA  — {"success":false,"error":"Thiếu mã trên bill"}
+  ✗ G /kh/nhan-diem mã không có → 404 MA_KHONG_TON_TAI  — {"success":false,"error":"Mã không tồn tại"}
+  ✗ G /kh/nhan-ma-bill mã in quá 24 giờ → 400 MA_HET_HAN  — {"success":false,"error":"Mã đã hết hạn (quá 24 giờ kể từ lúc in)"}
+  ✗ G /kh/nhan-ma-bill ưu đãi khách mới tắt → 400 UU_DAI_DANG_TAT  — {"success":false,"error":"Chương trình ưu đãi khách mới hiện đang tắt"}
+  ✗ G /kh/nhan-diem cấu hình tích điểm sai → 400 CAU_HINH_DIEM_SAI  — {"success":false,"error":"Cấu hình tích điểm chưa hợp lệ."}
+  ✗ G mọi thân lỗi /kh (61) có error + code, ngoài ra chỉ success  — /kh/nhan-ma-bill {"success":false,"error":"Lỗi máy chủ, thử lại sau"} | …
+# (Ca "G /kh/nhan-diem mã in quá 24 giờ → MA_HET_HAN" XANH trên bản trước vòng 1 — nhánh đó đã có code từ trước; giữ làm ca canh.)
+# Phép tĩnh index.js bỏ chú thích: đỏ tất định qua đột biến VS-IX-gan-kh-chu-thich, VS-Q5-trust-proxy-chu-thich (dòng bị // hay /* */).
+# Trên code ĐÃ VÁ vòng 1 (b50d5f3): node cong_cu/thu_KH1.js → 127 đạt · 0 hỏng; đột biến 61/61 bị bắt.
+# Ca A4 đua (2c296e4) khoá `ON CONFLICT DO NOTHING` có sẵn (maKhach.js) — code đã đúng nên chỉ đỏ trên gốc (404) và qua đột biến
+#  VS-A4-tao-trung (bỏ ON CONFLICT → HTTP 500 LOI_MAY_CHU). Bài 2c296e4 trên code đã vá: 128 đạt · 0 hỏng (số cuối ở trang_thai.md).
+
+# ── Lượt 5 (19.10.2026) — Q9–Q11 (phiếu 5e26bd9). Bài e3e24e0 (thêm mục Q9, ca Q11 trong E6/E7, mục C viết lại theo Q10).
+#  (1) Trên GỐC server/ của 6fe38d8 (python3 cong_cu/ban_sao_goc.py 6fe38d8 <nháp>/goc_kh1 + chép bài): 9 đạt · 91 hỏng, thoát 1.
+#      9 ca đạt vẫn là 9 ca CANH đường cũ như trên. Mục C và Q9 sập ngay (chưa có bảng) → mỗi mục MỘT dòng ✗.
+#  (2) Trên server/ của 5e26bd9 (TRƯỚC vá Q9–Q11, sau vá vòng 1): 126 đạt · 12 hỏng, thoát 1. Mười hai ca ĐỎ:
+  ✗ C chế độ quay: xin-ma KHÔNG chèn dòng mã App  — 1 dòng
+  ✗ C chế độ quay: 25 lần xin-ma liền cùng IP (xen cùng SĐT) → 25 lần 200  — 14/25
+  ✗ C GUI_MA_KHACH lạ → như quay (không chèn dòng) + đúng 1 dòng cảnh báo  — HTTP 200 · 1 cảnh báo · 1 dòng
+  ✗ C gia NGOÀI máy thử (Render) → như quay: lay_ma_tai_quay true, không chèn dòng, đúng 1 cảnh báo  — HTTP 200 · 1 cảnh báo · 1 dòng
+  ✗ Q11 nhận mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, mã KHÔNG bị nhận  — HTTP 200
+  ✗ Q11 chính khách của bill nhận mã → 200  — HTTP 409 · MA_DA_DUNG
+  ✗ Q11 /claim cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC  — HTTP 200
+  ✗ Q11 /claim cũ: bill lưu SĐT dạng "+84 …" (dữ liệu cũ), nhận bằng cùng SĐT 0… → 200  — HTTP 409 · MA_DA_DUNG
+  ✗ Q11 nhận điểm mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, không cộng điểm  — HTTP 200 · 1 dòng
+  ✗ Q11 chính khách của bill nhận điểm → 200  — HTTP 400 · MA_DA_NHAN_DIEM
+  ✗ Q11 /nhan-diem cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC  — HTTP 200
+  ✗ Q9: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_kh_lan_thu
+#  Hai ca "chính khách của bill … → 200" và "+84 … → 200" là ca PHẢI QUA (K5): đỏ trên bản chưa vá vì người lạ đã nhận mất mã ở ca trước.
+#  Ca "bill order_customer_phone '' → 200" XANH trên bản chưa vá (ca canh dữ liệu cũ — bản chưa vá không chặn gì). Mục Q9 sập trên bản
+#  chưa vá (chưa có bảng) — từng ca Q9 được khoá qua đột biến (BV-Q9-*, VS-Q9-*), ca tất định "yêu cầu khác ghi lượt chen" đỏ dưới
+#  VS-Q9-dem-roi-chen (11 lượt); ca "15 lần gửi CÙNG LÚC" một mình KHÔNG bắt được đột biến đó (kho cục bộ không đan xen) — ca hành vi.
+#  (3) Trên code ĐÃ VÁ (cây làm việc sau e3e24e0): node cong_cu/thu_KH1.js → 151 đạt · 0 hỏng.
+
+# ── Lượt 6 (21.10.2026) — Q12 (a) (phiếu 0ebccfe). Bài cũ SỬA: cong_cu/thu_P20.js bản e0d1dce — [D] phaiQua và G2 (donDaClaim) nhận mã
+#  bằng SĐT ghi trên bill (đọc order_customer_phone của mã; bill không ghi SĐT → SĐT mới như cũ) + MỘT ca mới [Q11] "bill ví: /claim bằng
+#  SĐT khác → 400 BILL_SDT_KHAC". Không bớt ca nào.
+#  (1) Trên GỐC = mốc cổng 27e1ac1^ = 0bffc03 (python3 cong_cu/ban_sao_goc.py 0bffc03 <nháp>/goc_p20 + chép bài vào <nháp>/goc_p20/cong_cu/;
+#      cd <nháp>/goc_p20 && node cong_cu/thu_P20.js): 169 đạt · 1 hỏng, thoát 1. Ca ĐỎ duy nhất:
+  ✗ /claim bill ví bằng SĐT khác SĐT trên bill → 400 BILL_SDT_KHAC  — HTTP 200
+#      Mọi ca [D] / G2 đã đổi sang SĐT trên bill vẫn XANH trên gốc (luồng hợp lệ, không phụ thuộc Q11) → số ca gốc = số ca head.
+#  (2) Bản thu_P20.js CŨ (0ebccfe) trên code đã vá Q11: đỏ — chép ở trang_thai.md ## Bước 6 lượt 5 (BILL_SDT_KHAC ở [D] và G2).
+#  (3) Trên code ĐÃ VÁ (HEAD 9250024): node cong_cu/thu_P20.js → 170 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P20.js: 170
+
+# ── Lượt 6, soát vòng 2 — cong_cu/thu_KH1.js bản 6699270: ca "Q9 yêu cầu khác ghi lượt chen …" so BẰNG (nRc === 10) + đòi 404 MA_KHONG_TON_TAI
+#  (trước: nRc <= 10). Số ca không đổi. Chạy lại (A16):
+#  (1) GỐC server/ của 6fe38d8 (ban_sao_goc.py + chép bài): 9 đạt · 91 hỏng, thoát 1 (như lượt 5 — mục Q9 sập trên gốc, chưa có bảng).
+#  (2) Code đã vá (HEAD 6699270): 151 đạt · 0 hỏng → dòng SỐ CA cong_cu/thu_KH1.js: 151 ở đầu file giữ nguyên.
+#  (3) python3 viec/KH-API-1/dot_bien.py VS-Q9-dem-roi-chen … → bắt: "HTTP 404 · MA_KHONG_TON_TAI · 11 lượt".
+
+# ── Lượt 6, soát vòng 3 — cong_cu/thu_KH1.js bản 7d5b8f7 (+ a2581ed chỉ sửa chú thích, không đổi ca — (1) chạy bằng 7d5b8f7, (2) bằng a2581ed, (3) bằng cả hai: cùng số ca): thêm 6 ca G tầng ứng dụng (JSON hỏng → 400,
+#  thân quá lớn → 413, GET / POST đường lạ có token → 404 — đều có `code`) + phép [tĩnh] vị trí loiTangKh trong index.js. Dòng SỐ CA đầu file
+#  đổi 151 → 156 (A16: ghi số ca bài in trên code ĐÃ VÁ).
+#  (1) Code TRƯỚC vá (server/ của 89e66dc — cây làm việc, bài 7d5b8f7): 150 đạt · 6 hỏng, thoát 1. Sáu ca ĐỎ:
+  ✗ G JSON hỏng → 400 YEU_CAU_KHONG_HOP_LE, không lộ lời báo của bộ đọc JSON  — <!DOCTYPE html>
+  ✗ G thân quá lớn → 413 YEU_CAU_KHONG_HOP_LE (giữ status của bộ đọc)  — <!DOCTYPE html>
+  ✗ G GET đường lạ (có token) → 404 KHONG_TIM_THAY  — <!DOCTYPE html>
+  ✗ G POST đường lạ (có token) → 404 KHONG_TIM_THAY  — <!DOCTYPE html>
+  ✗ G mọi thân lỗi /kh (94) có error + code, ngoài ra chỉ success  — /kh/dang-nhap/xin-ma <!DOCTYPE html>
+  ✗ index.js: app.use('/api/kh', …loiTangKh) SAU router /api/kh, TRƯỚC bộ lỗi chung (G)
+#  (2) GỐC server/ của 6fe38d8 và của mốc cổng 0bffc03 (ban_sao_goc.py + chép bài): mỗi bản 9 đạt · 92 hỏng, thoát 1 (mục G sập trên gốc;
+#      thêm 1 dòng ✗ của phép tĩnh mới).
+#  (3) Code ĐÃ VÁ (d34c34f…): node cong_cu/thu_KH1.js → 156 đạt · 0 hỏng. dot_bien.py → ĐỐI CHỨNG 156 · 0, 82 / 82 bị bắt.

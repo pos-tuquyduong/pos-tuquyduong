@@ -17,19 +17,14 @@
  */
 
 const express = require('express');
-const { query, queryOne, beginTransaction } = require('../database');
+const { queryOne, beginTransaction } = require('../database');
 const { authenticate, authenticateServiceOrUser } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 const { generateVoucherCode } = require('../utils/voucherCode');
+// KH-API-1: số dư / lịch sử điểm + ví voucher dùng chung với /api/kh (cùng câu, cùng cách suy trạng thái).
+const { BALANCE_SQL, layDiemKhach, layVoucherKhach } = require('../utils/diemKhach');
 
 const router = express.Router();
-
-// Số dư điểm = SUM(points) các dòng CÒN HẠN. Không lưu số dư rời (bài học từ ví).
-const BALANCE_SQL = `
-  SELECT COALESCE(SUM(points), 0) AS points
-  FROM pos_point_transactions
-  WHERE customer_phone = ? AND (expires_at IS NULL OR expires_at > ?)
-`;
 
 /**
  * Cộng ngày vào phần ngày của getNow() → 'YYYY-MM-DD'.
@@ -56,16 +51,8 @@ router.get('/points/:phone', authenticateServiceOrUser, async (req, res) => {
     const phone = normalizePhone(req.params.phone);
     if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
 
-    const now = getNow();
-    const row = await queryOne(BALANCE_SQL, [phone, now]);
-    const history = await query(
-      `SELECT id, type, points, order_id, expires_at, reason, created_at
-       FROM pos_point_transactions
-       WHERE customer_phone = ?
-       ORDER BY id DESC LIMIT 50`,
-      [phone],
-    );
-    res.json({ success: true, phone, points: row?.points || 0, history });
+    const { points, history } = await layDiemKhach(phone);
+    res.json({ success: true, phone, points, history });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -79,39 +66,7 @@ router.get('/vouchers/:phone', authenticateServiceOrUser, async (req, res) => {
     const phone = normalizePhone(req.params.phone);
     if (!phone) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
 
-    const all = req.query.all === '1';
-    const today = getNow().slice(0, 10);
-    // "Còn dùng được" = chưa bị luồng bán tiêu (used_count=0, đây mới là nguồn sự thật)
-    // + chưa quá hạn + mã còn bật. KHÔNG dựa vào g.status: orders.js chỉ tăng used_count,
-    // không đụng bảng grants (LOY-2c sẽ đồng bộ status; tới lúc đó lọc này vẫn đúng).
-    const rows = await query(
-      `SELECT g.id, g.code, g.status, g.granted_at, g.expires_at, g.used_order_id, g.used_at,
-              r.name AS reward_name,
-              d.discount_type, d.discount_value, d.max_discount, d.used_count, d.is_active
-       FROM pos_voucher_grants g
-       LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id
-       LEFT JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code)
-       WHERE g.customer_phone = ?
-       ${all ? '' : `AND COALESCE(d.used_count, 0) = 0
-                     AND COALESCE(d.is_active, 1) = 1
-                     AND (g.expires_at IS NULL OR g.expires_at >= ?)`}
-       ORDER BY g.id DESC`,
-      all ? [phone] : [phone, today],
-    );
-
-    const data = rows.map((v) => {
-      const used = (v.used_count || 0) > 0;
-      const expired = !!(v.expires_at && v.expires_at < today);
-      const disabled = v.is_active === 0;
-      return {
-        ...v,
-        // status SUY RA từ nguồn sự thật (used_count của mã + hạn), KHÔNG dùng cột status lưu sẵn
-        // → không bao giờ lệch, không cần job đồng bộ. Cột g.status chỉ là vết tích, đừng tin.
-        status: used ? 'used' : expired ? 'expired' : disabled ? 'disabled' : 'available',
-        is_used: used,
-        is_expired: expired,
-      };
-    });
+    const data = await layVoucherKhach(phone, req.query.all === '1');
     res.json({ success: true, phone, data });
   } catch (err) {
     res.status(500).json({ error: err.message });

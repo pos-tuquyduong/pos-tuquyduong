@@ -40,6 +40,8 @@ async function readTablePaged(tableName, orderKey) {
 // Các bảng cần backup (thứ tự quan trọng cho restore - parent trước child)
 const BACKUP_TABLES = [
   { name: 'pos_customers', label: 'Khách hàng', key: 'phone' },
+  { name: 'pos_kh_ma_dang_nhap', label: 'Mã đăng nhập App KH', key: 'id' },
+  { name: 'pos_kh_lan_thu', label: 'Lần thử App KH', key: 'id' },
   { name: 'pos_products', label: 'Sản phẩm', key: 'id' },
   { name: 'pos_wallets', label: 'Số dư', key: 'phone' },
   { name: 'pos_orders', label: 'Đơn hàng', key: 'id' },
