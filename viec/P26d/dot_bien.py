@@ -18,7 +18,7 @@ _sp = importlib.util.spec_from_file_location('boc_audit4', os.path.join(GOC, 'vi
 B = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(B)
 
 BAI = {'thub': 'cong_cu/thu_P26b.js', 'thu': 'cong_cu/thu_P26c.js'}
-SO_CA = {'thub': 103, 'thu': 155}   # dòng tổng "n đạt · 0 hỏng" khi KHÔNG đột biến (đối chứng)
+SO_CA = {'thub': 103, 'thu': 156}   # dòng tổng "n đạt · 0 hỏng" khi KHÔNG đột biến (đối chứng)
 GIO = 300
 DB, W, H, O, BK, N = 'database.js', 'routes/wallets.js', 'utils/helpers.js', 'routes/orders.js', 'routes/backup.js', 'utils/nhatKyDon.js'
 GOI = "          const cpResult = await tx.run("
@@ -106,6 +106,10 @@ DOT_BIEN = [
   ('BV-Q8c-pd-bo-ma-da-thu', 'thu', [(O, '"Đơn hàng đã được thanh toán đầy đủ", code: "DA_THU_ROI" }', '"Đơn hàng đã được thanh toán đầy đủ" }', 1)], r'✗ P(5|12) '),
   ('BV-Q8c-pd-bo-ma-khong-no', 'thu', [(O, ', code: "DON_KHONG_NO" });', ' });', 1)], r'✗ P13 '),
   ('BV-Q8c-pd-bo-ma-vuot-no', 'thu', [(O, '          code: "VUOT_QUA_NO",\n', '', 1)], r'✗ P11 '),
+  ('BV-Q9-pd-bo-ma-404', 'thu', [(O, ', code: "KHONG_TIM_THAY_DON" });', ' });', 1)], r'✗ P15 '),
+  # ── thay kết nối: một đột biến cho MỖI chỗ gọi (soát vòng 3) — run(), vòng BEGIN (query() đã có BV-A-query-khong-thay) ──
+  ('BV-A-run-khong-thay', 'thub', [(DB, "    console.error('Run error:', err.message);\n    thayKetNoiNeuBan(err);\n", "    console.error('Run error:', err.message);\n", 1)], r'✗ D(7|10) '),
+  ('BV-A-begin-khong-thay', 'thub', [(DB, "        if (tx) { try { tx.close(); } catch (e) { /* đã đóng */ } tx = null; }\n        thayKetNoiNeuBan(err);\n", "        if (tx) { try { tx.close(); } catch (e) { /* đã đóng */ } tx = null; }\n", 1)], r'✗ D(1|3) '),
   ('VS-Q8c-pd-da-thu-sai-ma', 'thu', [(O, '"Đơn hàng đã được thanh toán đầy đủ", code: "DA_THU_ROI" }', '"Đơn hàng đã được thanh toán đầy đủ", code: "DON_KHONG_NO" }', 1)], r'✗ P(5|12) '),
 ]
 
