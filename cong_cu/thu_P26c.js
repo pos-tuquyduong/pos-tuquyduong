@@ -1174,7 +1174,27 @@ async function main() {
     k('P4 (K5) thu nợ thường → 200, nợ 0, paid, tiền mặt 25.000, đúng 1 nhật ký "thu", đúng 1 dòng debt_payment',
       r4.status === 200 && x4.no === 0 && x4.tt === 'paid' && x4.tm === 25000 && x4.nk === 1 && x4.so === 1, `${moTa(r4)} · ${JSON.stringify(x4)}`);
     const r5 = await thu(d4);
-    k('P5 (K5) thu lại đơn đã thu → 400, không thêm dòng', r5.status === 400 && (await anh(d4)).so === 1, moTa(r5));
+    k('P5 (K5) thu lại đơn đã thu → 400 DA_THU_ROI, không thêm dòng', r5.status === 400 && r5.code === 'DA_THU_ROI' && (await anh(d4)).so === 1, moTa(r5));
+    // P26d Q8c: các nhánh 400 cũ của pay-debt có `code` (LUAT §2 — cùng tình huống, cùng mã với route khác).
+    {
+      const d10 = await donNo();
+      const r10 = await goi('POST', `/orders/${d10}/pay-debt`, { payment_method: 'momo', amount: 25000 });
+      k('P10 thu nợ cách trả "momo" → 400 CACH_TRA_LA, không ghi gì', r10.status === 400 && r10.code === 'CACH_TRA_LA' && khongDoi(await anh(d10)), moTa(r10));
+      const d11 = await donNo();
+      const r11 = await goi('POST', `/orders/${d11}/pay-debt`, { payment_method: 'cash', amount: 30000 });
+      k('P11 thu nợ 30.000 > nợ 25.000 → 400 VUOT_QUA_NO, không ghi gì', r11.status === 400 && r11.code === 'VUOT_QUA_NO' && khongDoi(await anh(d11)), moTa(r11));
+      const d12 = await taoDon({ customer_phone: sdt, items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+      const r12 = await goi('POST', `/orders/${d12}/pay-debt`, { payment_method: 'cash', amount: 1000 });
+      k('P12 thu nợ đơn trả đủ (paid) → 400 DA_THU_ROI', r12.status === 400 && r12.code === 'DA_THU_ROI', moTa(r12));
+      const d13 = await donNo();
+      await db.run("UPDATE pos_orders SET debt_amount = 0, payment_status = 'partial' WHERE id = ?", [d13]);
+      const r13 = await goi('POST', `/orders/${d13}/pay-debt`, { payment_method: 'cash', amount: 1000 });
+      k('P13 thu nợ đơn chưa paid mà nợ 0 → 400 DON_KHONG_NO', r13.status === 400 && r13.code === 'DON_KHONG_NO', moTa(r13));
+      const d14 = await donNo();
+      const h14 = await huy(d14);
+      const r14 = await goi('POST', `/orders/${d14}/pay-debt`, { payment_method: 'cash', amount: 25000 });
+      k('P14 thu nợ đơn đã huỷ → 400 DON_KHONG_HOP_LE', h14.status === 200 && r14.status === 400 && r14.code === 'DON_KHONG_HOP_LE', `${moTa(h14)} / ${moTa(r14)}`);
+    }
     // P26d (chủ quán 19.10): amount không phải số nguyên dương hữu hạn → 400 SO_TIEN_KHONG_HOP_LE, không ghi gì.
     for (const [ten, so_] of [['chuỗi lạ "abc"', 'abc'], ['số âm −5.000', -5000], ['số lẻ 1.000,5', 1000.5], ['số 0', 0], ['chuỗi số "5000"', '5000']]) {
       const d = await donNo();
@@ -1190,7 +1210,7 @@ async function main() {
     const r8 = await goi('POST', `/orders/${d8}/pay-debt`, { payment_method: 'cash', amount: 10000 });
     const x8 = await anh(d8);
     k('P8 (K5) thu một phần 10.000 (số nguyên) → 200, còn nợ 15.000', r8.status === 200 && x8.no === 15000 && x8.tm === 10000, `${moTa(r8)} · ${JSON.stringify(x8)}`);
-    // Nợ CŨ lẻ (chiết khấu % không làm tròn): màn Lịch sử đơn gửi amount = debt_amount trong sổ → vẫn phải thu được.
+    // Nợ lẻ (chiết khấu % không làm tròn; nợ lấy từ máy khách lúc tạo đơn) — Q8b chủ quán GIỮ: màn Lịch sử đơn gửi amount = debt_amount trong sổ → vẫn phải thu được.
     const d9 = await donNo();
     await db.run('UPDATE pos_orders SET debt_amount = 12500.5 WHERE id = ?', [d9]);
     const r9 = await goi('POST', `/orders/${d9}/pay-debt`, { payment_method: 'cash', amount: 12500.5 });
