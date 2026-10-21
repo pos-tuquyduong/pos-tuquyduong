@@ -1194,6 +1194,8 @@ async function main() {
       const h14 = await huy(d14);
       const r14 = await goi('POST', `/orders/${d14}/pay-debt`, { payment_method: 'cash', amount: 25000 });
       k('P14 thu nợ đơn đã huỷ → 400 DON_KHONG_HOP_LE', h14.status === 200 && r14.status === 400 && r14.code === 'DON_KHONG_HOP_LE', `${moTa(h14)} / ${moTa(r14)}`);
+      const r15 = await goi('POST', '/orders/999999999/pay-debt', { payment_method: 'cash', amount: 1000 });
+      k('P15 thu nợ đơn không có → 404 KHONG_TIM_THAY_DON', r15.status === 404 && r15.code === 'KHONG_TIM_THAY_DON', moTa(r15));
     }
     // P26d (chủ quán 19.10): amount không phải số nguyên dương hữu hạn → 400 SO_TIEN_KHONG_HOP_LE, không ghi gì.
     for (const [ten, so_] of [['chuỗi lạ "abc"', 'abc'], ['số âm −5.000', -5000], ['số lẻ 1.000,5', 1000.5], ['số 0', 0], ['chuỗi số "5000"', '5000']]) {
