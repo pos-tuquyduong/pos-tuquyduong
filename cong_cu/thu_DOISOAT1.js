@@ -238,6 +238,13 @@ async function main() {
     await datCai('loyalty_enabled', 'true');   // lọt thì trả lại ngay — ca này không được kéo đỏ dây chuyền ca khác (K3)
     const chuGhi = await goiHam('chayDoiSoat', { kieu: 'ngay', ngay: '2026-11-04' }, { IW: async (q) => { await q("SELECT 'update; drop' AS x"); return []; } });
     k("A2d (K5) câu SELECT có chữ 'update; drop' trong CHUỖI → KHÔNG bị chặn", !chuGhi.loi && !!chuGhi.ket_qua, chuGhi.loi || '');
+    let nemDinhDanh = false;   // tên trong ngoặc kép chứa dấu ' làm bộ tách chuỗi nuốt mất phần lệnh ghi phía sau
+    try { await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2026-11-04' }, { IW: async (q) => { await q(`WITH x AS (SELECT 1 AS "a'") UPDATE pos_settings SET value = value || 'x' WHERE key = 'loyalty_enabled'`); return []; } }); }
+    catch { nemDinhDanh = typeof doiSoat.chayDoiSoat === 'function'; }
+    k('A2e bất biến giả `WITH x AS (SELECT 1 AS "a\'") UPDATE …` → bị chặn, nội dung bảng không đổi', nemDinhDanh && truoc === await bam());
+    await datCai('loyalty_enabled', 'true');
+    const chuChuThich = await goiHam('chayDoiSoat', { kieu: 'ngay', ngay: '2026-11-04' }, { IW: async (q) => { await q('/* đọc */ SELECT 1 AS x -- update sau'); return []; } });
+    k('A2f (K5) câu SELECT mở đầu bằng chú thích, chú thích có chữ "update" → KHÔNG bị chặn', !chuChuThich.loi && !!chuChuThich.ket_qua, chuChuThich.loi || '');
     const ma = doc(path.join(MAY_CHU, 'utils', 'doiSoat.js'));
     const ngoaiGhi = ma.replace(/\/\/ <ghi-moi>[\s\S]*?\/\/ <\/ghi-moi>/, '');
     k('A4 doiSoat.js: không reconcile; INSERT|UPDATE|DELETE chỉ trong khối ghiMoi', /<ghi-moi>/.test(ma) && !/reconcile/i.test(ma) && !/\b(INSERT|UPDATE|DELETE)\b/.test(ngoaiGhi));
@@ -354,13 +361,20 @@ async function main() {
       `${tom(c6)} · cũ T10: ${c6cu.cu.map((l) => l.mo_ta).join(' | ')}`);
     await db.run("DELETE FROM pos_balance_transactions WHERE notes = 'DS_C6'"); await db.run("DELETE FROM pos_wallets WHERE phone = '0900000005'");
     await db.run('UPDATE pos_orders SET created_at = ? WHERE id = ?', ['2026-11-04T12:00:00', f.tm]);
-    await db.run(`INSERT INTO pos_customer_packages (customer_phone, package_id, total_qty, delivered_qty, status, notes, created_at, updated_at)
-      VALUES ('${sBal}', ${goiHong}, 2, 5, 'active', 'DS_C6b', '2026-10-10T10:00:00', '2026-11-04T10:00:00')`);
+    // Gói tạo 10.10 lệch sẵn; updated_at bị route GET Báo cáo → Gói SP ghi lại bằng giờ UTC (packages.js) — KHÔNG phải sự việc của gói.
+    const goiC6 = Number((await db.run(`INSERT INTO pos_customer_packages (customer_phone, package_id, total_qty, delivered_qty, status, notes, created_at, updated_at)
+      VALUES ('${sBal}', ${goiHong}, 2, 5, 'active', 'DS_C6b', '2026-10-10T10:00:00', '2026-11-04T03:00:00.000Z')`)).lastInsertRowid);
+    const c6c = await ds('chu', 'ngay', '2026-11-04'), c6cCu = await ds('chu', 'thang', '2026-10-15');
+    k('C6c (K4) gói tạo 10.10 chỉ bị đổi updated_at ngày 04.11 (route GET ghi giờ UTC) → vẫn "LỆCH CŨ" tháng 10, không nhảy sang ngày 04.11',
+      c6cCu.cu.some((l) => l.bat_bien === 'I14' && l.ngay === '2026-10-10') && !c6c.can_xem.some((l) => l.bat_bien === 'I14'),
+      `cũ T10: ${c6cCu.cu.map((l) => l.mo_ta + ' ' + l.ngay).join(' | ')} · cần xem 04.11: ${c6c.can_xem.map((l) => l.mo_ta + ' ' + l.ngay).join(' | ')}`);
+    await db.run(`INSERT INTO pos_orders (code, subtotal, total, payment_method, status, payment_status, customer_package_id, created_at)
+      VALUES ('DS_C6B', 0, 0, 'cash', 'completed', 'paid', ?, '2026-11-04T10:00:00')`, [goiC6]);   // đơn lấy từ gói ngày 04.11 = sự việc mới
     const c6b = await ds('chu', 'ngay', '2026-11-04'), c6bCu = await ds('chu', 'thang', '2026-10-15');
-    k('C6b gói tạo 10.10 (trước mốc I14), giao thêm 04.11 vượt tổng → ở ngày 04.11 (cần xem), không thành "LỆCH CŨ" tháng 10',
+    k('C6b gói tạo 10.10 (trước mốc I14), có đơn lấy từ gói 04.11 → ở ngày 04.11 (cần xem), không thành "LỆCH CŨ" tháng 10',
       c6b.can_xem.some((l) => l.bat_bien === 'I14' && l.ngay === '2026-11-04') && !c6bCu.cu.some((l) => l.bat_bien === 'I14'),
       `${c6b.can_xem.map((l) => l.mo_ta + ' ' + l.ngay).join(' | ')} · cũ T10: ${c6bCu.cu.map((l) => l.mo_ta).join(' | ')}`);
-    await db.run("DELETE FROM pos_customer_packages WHERE notes = 'DS_C6b'");
+    await db.run("DELETE FROM pos_orders WHERE code = 'DS_C6B'"); await db.run("DELETE FROM pos_customer_packages WHERE notes = 'DS_C6b'");
     const ap = doiSoat.AP_DUNG_TU || {};
     const thieu = Object.keys(BAT_BIEN).filter((t) => t !== 'I7' && !Object.prototype.hasOwnProperty.call(ap, t));
     k('C3 AP_DUNG_TU có khoá cho mọi bất biến chạy (trừ I7) và D1', thieu.length === 0 && Object.prototype.hasOwnProperty.call(ap, 'D1'), `thiếu: ${thieu.join()}`);
@@ -478,6 +492,12 @@ async function main() {
     const t3 = await ds('chu', 'tuan', '2027-01-06');
     const lech = await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-06', da_so: 1 });
     k('F2b đánh dấu lại → da_so 1; `ky` sao kê không phải thứ 2 → 400 DOI_SOAT_KY_SAI', t3.sao_ke?.da_so === 1 && lech.status === 400 && lech.code === 'DOI_SOAT_KY_SAI', `${JSON.stringify(t3.sao_ke)} ; ${moTa(lech)}`);
+    const loaiSai = await ghiDS('chu', { loai: 'xx', ky: '2027-01-04', da_so: 1 });
+    const daSoSai = [await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-04', da_so: 2 }), await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-04', da_so: '1' })];
+    k('F2c loại ghi lạ → 400 DOI_SOAT_LOAI_SAI; da_so 2 / chuỗi "1" → 400 DOI_SOAT_DA_SO_SAI (không ghi dòng nào)',
+      loaiSai.status === 400 && loaiSai.code === 'DOI_SOAT_LOAI_SAI' && daSoSai.every((x) => x.status === 400 && x.code === 'DOI_SOAT_DA_SO_SAI')
+        && await so("SELECT COUNT(*) FROM pos_doi_soat_ghi WHERE loai = 'sao_ke' AND ky = '2027-01-04'").catch(() => NaN) === 3,
+      `${moTa(loaiSai)} ; ${daSoSai.map(moTa).join(' ; ')}`);
     const th = await ds('chu', 'thang', '2027-01-06');
     const tp = th.tien || {};
     k('F3 tháng 01.2027: tiền mặt 425.000 · CK 50.000 · ví nạp 30.000, chi 0 · điểm cộng 350 trừ 0 · nhắc kiểm kê kho',
@@ -488,6 +508,10 @@ async function main() {
     const f3b = await ds('chu', 'thang', '2027-01-06');
     k('F3b đơn trả 2.000 ví khách + 7.000 ví mẹ → ví chi tháng 01.2027 = 9.000 (gồm phần ví mẹ)', f3b.tien?.vi?.chi === 9000, JSON.stringify(f3b.tien?.vi));
     await db.run('DELETE FROM pos_orders WHERE id = ?', [idMe]);
+    await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_at) VALUES ('0900000006', 'redeem', -3, 'DS_F3C', '2027-01-20T10:00:00')");
+    const f3c = await ds('chu', 'thang', '2027-01-06');
+    k('F3c dòng đổi điểm −3 trong tháng 01.2027 → điểm trừ 3 (cộng giữ 350)', f3c.tien?.diem?.tru === 3 && f3c.tien?.diem?.cong === 350, JSON.stringify(f3c.tien?.diem));
+    await db.run("DELETE FROM pos_point_transactions WHERE reason = 'DS_F3C'");
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -511,6 +535,34 @@ async function main() {
       `${moTa(rCo)} · ${[...thay(n7, maCo), ...thay(n6, maCo)].map((l) => l.mo_ta).join(' | ')}`);
     k('DEN4 tiền mặt vào két 07.01 không tính khoản đền (trước = sau)', !!ketTruoc && JSON.stringify(n7.tien?.tien_mat) === JSON.stringify(ketTruoc),
       `${JSON.stringify(ketTruoc)} → ${JSON.stringify(n7.tien?.tien_mat)}`);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[E·2] két: mốc = ngày CÓ ghi GẦN NHẤT trước ngày xem, dòng MỚI NHẤT của ngày đó; trả ra theo NGÀY HUỶ; đơn gói theo gói khách');
+  {
+    datGio(2027, 1, 9);   // thứ 7 09.01.2027
+    const k1 = await ghiDS('chu', { loai: 'ket', ky: '2027-01-08', so_tien: 200000, de_lai: 50000 });
+    const k2 = await ghiDS('chu', { loai: 'ket', ky: '2027-01-08', so_tien: 200000, de_lai: 80000 });
+    const dHuy2 = await taoDon({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });   // tạo 09.01, huỷ 10.01
+    const k9 = await ds('chu', 'ngay', '2027-01-09');
+    k('E7 sổ két 09.01: mốc = 08.01 (ngày ghi gần nhất, không phải 05.01 / 06.01), để lại = 80.000 (dòng MỚI NHẤT, không phải 50.000) + tiền mặt 25.000',
+      k1.status === 201 && k2.status === 201 && k9.ket?.moc?.ky === '2027-01-08' && k9.ket?.moc?.de_lai === 80000 && k9.ket?.so_theo_so === 105000,
+      JSON.stringify(k9.ket?.moc) + ' · ' + k9.ket?.so_theo_so);
+    datGio(2027, 1, 10);   // CN 10.01.2027
+    const h2 = await huy(dHuy2);
+    const sG2 = sdtMoi();
+    const goiC = await taoGoi(300000, 10);
+    const mC = await muaGoi(sG2, goiC, { cash_amount: 300000 });
+    // INSERT gói khách nằm trong try nuốt lỗi (orders.js) — đơn có dòng gói mà KHÔNG có gói khách: huỷ không hoàn ví (soTienHoan xét
+    // pos_customer_packages), quầy trả tiền mặt tận tay → phải vào "trả ra"
+    await db.run('DELETE FROM pos_customer_packages WHERE order_id = ?', [mC.order?.id]);
+    const hC = await huy(mC.order?.id);
+    const n9 = await ds('chu', 'ngay', '2027-01-09'), n10 = await ds('chu', 'ngay', '2027-01-10');
+    k('E8 đơn tạo 09.01, huỷ 10.01: "trả ra" 25.000 nằm ở ngày HUỶ 10.01, ngày 09.01 bán 25.000 trả ra 0',
+      h2.status === 200 && n9.tien?.tien_mat?.ban === 25000 && n9.tien?.tien_mat?.tra_ra === 0 && n10.tien?.tien_mat?.tra_ra >= 25000,
+      `${moTa(h2)} · 09: ${JSON.stringify(n9.tien?.tien_mat)} · 10: ${JSON.stringify(n10.tien?.tien_mat)}`);
+    k('E9 đơn mua gói 300.000 tiền mặt KHÔNG có dòng gói khách, huỷ → "trả ra" 10.01 = 25.000 + 300.000 (cùng vị từ với soTienHoan / route huỷ)',
+      mC.success && hC.status === 200 && n10.tien?.tien_mat?.tra_ra === 325000, `${moTa(hC)} · ${JSON.stringify(n10.tien?.tien_mat)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
