@@ -151,3 +151,14 @@ SỐ CA cong_cu/thu_KH1.js: 151
 #  chưa vá (chưa có bảng) — từng ca Q9 được khoá qua đột biến (BV-Q9-*, VS-Q9-*), ca tất định "yêu cầu khác ghi lượt chen" đỏ dưới
 #  VS-Q9-dem-roi-chen (11 lượt); ca "15 lần gửi CÙNG LÚC" một mình KHÔNG bắt được đột biến đó (kho cục bộ không đan xen) — ca hành vi.
 #  (3) Trên code ĐÃ VÁ (cây làm việc sau e3e24e0): node cong_cu/thu_KH1.js → 151 đạt · 0 hỏng.
+
+# ── Lượt 6 (21.10.2026) — Q12 (a) (phiếu 0ebccfe). Bài cũ SỬA: cong_cu/thu_P20.js bản e0d1dce — [D] phaiQua và G2 (donDaClaim) nhận mã
+#  bằng SĐT ghi trên bill (đọc order_customer_phone của mã; bill không ghi SĐT → SĐT mới như cũ) + MỘT ca mới [Q11] "bill ví: /claim bằng
+#  SĐT khác → 400 BILL_SDT_KHAC". Không bớt ca nào.
+#  (1) Trên GỐC = mốc cổng 27e1ac1^ = 0bffc03 (python3 cong_cu/ban_sao_goc.py 0bffc03 <nháp>/goc_p20 + chép bài vào <nháp>/goc_p20/cong_cu/;
+#      cd <nháp>/goc_p20 && node cong_cu/thu_P20.js): 169 đạt · 1 hỏng, thoát 1. Ca ĐỎ duy nhất:
+  ✗ /claim bill ví bằng SĐT khác SĐT trên bill → 400 BILL_SDT_KHAC  — HTTP 200
+#      Mọi ca [D] / G2 đã đổi sang SĐT trên bill vẫn XANH trên gốc (luồng hợp lệ, không phụ thuộc Q11) → số ca gốc = số ca head.
+#  (2) Bản thu_P20.js CŨ (0ebccfe) trên code đã vá Q11: đỏ — chép ở trang_thai.md ## Bước 6 lượt 5 (BILL_SDT_KHAC ở [D] và G2).
+#  (3) Trên code ĐÃ VÁ (HEAD 9250024): node cong_cu/thu_P20.js → 170 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P20.js: 170
