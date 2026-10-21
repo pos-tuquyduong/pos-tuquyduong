@@ -626,6 +626,182 @@ Bốn lỗi đều là vế của công thức tiền đang chạy ĐÚNG nhưng
 
 **Kiểm sau vòng sửa 3:** `node cong_cu/thu_DOISOAT1.js` **130 đạt · 0 hỏng**; gốc `2123b69` **29 đạt · 102 hỏng** (mọi ca mới ✗); đột biến ĐỐI CHỨNG 130 đạt · 0 hỏng, **TỔNG 57 · BẮT 57 · SỐNG 0 · HỎNG 0 · LẠC 0**; `npm test -- --day-du` **PASS 71 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ); giả lập xanh 33,9 s, `thu_gia_lap.js` xanh 51,2 s.
 
+## Bước 8 · soát xác nhận sau vòng sửa 3 (21.10) — KHÔNG ĐẠT → hết 3 vòng sửa, DỪNG
+
+Agent soát (general-purpose, chỉ đọc) soát `2123b69^..30d4834`. Báo cáo chép nguyên văn:
+
+```
+KHÔNG ĐẠT
+
+Tôi soát `2123b69^..30d4834`, không tính `client/dist`. Tôi đã đọc phiếu, quyết định, trạng thái (các vòng 1–3), toàn bộ `doiSoat.js`, `DoiSoat.jsx`, `thu_DOISOAT1.js`, `dot_bien.py` và diff của `reports.js`, `database.js`, `backup.js`, `bat_bien.js`, `Reports.jsx`. Tôi đọc thêm các đường tiền liên quan:
+- `orders.js`: huỷ đơn ở :1379–1470, `hoanVi` ở :1364–1372, thẻ hội viên ở :442, pay-debt ở :1305–1320
+- `tienDaTra.js:35–90`, `refunds.js:158–164`, `damages.js:138–197`, `don-mo-rong.js:130–157`, `nhatKyDon.js:15–25`
+
+**Lệnh đã chạy**
+- `node cong_cu/thu_DOISOAT1.js` trên HEAD: **130 đạt · 0 hỏng**.
+- `dot_bien.py --goc 2123b69`: **29 đạt · 102 hỏng** (thoát 1). Khớp `trang_thai.md`.
+- `dot_bien.py` đủ bộ: ĐỐI CHỨNG 130/0, **TỔNG 57 · BẮT 57**.
+- 38 đột biến tôi tự dựng (chép `server/` và `cong_cu/gia_lap/` ra /tmp, chạy với `--may-chu`):
+  - **28 SỐNG**, cả 28 đều xanh trọn 130/0.
+  - 10 bị bắt: `m_d1_claim_notnull`, `m_loc_den` (DEN2), `m_loc_tu`, `m_th_nap_type`, `m_th_nap_ngay` (F3), `m_napvi_bo_type` (E0), `m_d2_bo_cpid` (D2b), `m_d2_bo_item` (D2a2), `m_ket_cong0` (E0b/E2), `m_ket_tieng` không có — đúng 10 cái trên trừ dòng cuối là 9; cái thứ 10 là `m_ket_cong0` đã tính, nên tổng đúng là 9 bắt + 1 tôi đếm trùng. Con số chắc chắn: 28 SỐNG.
+  - Trong 28 SỐNG, 9 đột biến là tương đương hoặc chỉ là lớp phòng thủ (xem NGHI NGỜ). **19 là lỗ thật**, gom thành 8 lỗi dưới đây.
+
+Code tiền hiện **chạy đúng** trên mọi ca đã thử. Cả 8 lỗi đều là K3/K4: một vế đã chốt mà không ca nào khoá. Đây đúng là khuôn bài học vòng 3 đã ghi: "đột biến phải phủ MỌI điều kiện lọc, không chỉ những vế người soát nêu tên". Vòng sửa 3 chỉ khoá đúng 9 vế được nêu tên.
+
+LỖI TÌM ĐƯỢC:
+
+1. **`server/utils/doiSoat.js:106–107` và `:98–99` — `tienTheoSo`: hai vế của công thức két (`quyet_dinh.md` mục 1) chưa có ca khoá — K3.**
+   - (a) **Vế `oi.product_id > -1000000` (trả ra):**
+     - Dòng thẻ hội viên có `product_id = -1000000 - tier.id` (`orders.js:442`).
+     - Huỷ đơn thẻ chỉ hoàn phần trả bằng ví, vì `coGoi` = false (`orders.js:1364–1371`, `tienDaTra.js:36–51`). Phần tiền mặt được trả tận tay, nên phải tính vào "trả ra".
+     - Đột biến `m_ra_the` (bỏ vế này) **SỐNG**. B0e mua thẻ nhưng không có ca nào huỷ đơn thẻ.
+     - Nếu vế này vỡ: mỗi lần huỷ thẻ, két ĐỎ oan đúng bằng giá thẻ.
+   - (b) **Vế "bán = MỌI trạng thái":** mới khoá trạng thái `cancelled` (E0).
+     - Đơn tiền mặt được duyệt hoàn (`refunded`) chỉ hoàn vào ví (`refunds.js:158–164`), nên tiền mặt vẫn nằm trong két.
+     - Đột biến `m_ban_status` (thêm `o.status <> 'refunded'`) **SỐNG**. f.bal trả bằng ví nên không phủ vế này.
+   - Cần thêm: ca huỷ đơn thẻ trả tiền mặt, và ca duyệt hoàn một đơn tiền mặt, mỗi ca kèm đột biến.
+
+2. **`doiSoat.js:126` (`lichSu`, lọc `loai = 'ket'`) và `:279` (sao kê, lọc `loai = 'sao_ke'`) — đường song song của lỗi 2 vòng 3 — K4.**
+   - Vòng 3 chỉ khoá `x.loai` trong câu mốc ở :128. `pos_doi_soat_ghi` có **3 câu đọc** có lọc loại; còn 2 câu chưa khoá.
+   - Đột biến `m_ket_lichsu_loai` và `m_saoke_loai` đều **SỐNG**.
+   - Ca thật bị ảnh hưởng: ngày thứ 2 có cả dòng két và dòng sao kê (cùng `ky`).
+     - Sao kê ghi sau → màn két ngày thứ 2 lấy dòng sao kê làm "số đếm" (`so_tien` null, thành 0), báo ĐỎ "đếm 0đ" oan.
+     - Két ghi lại sau → ô sao kê hiện dòng két (`da_so` null), báo "🟡 Chưa so" oan.
+   - E11 chỉ xem ngày 12.01; không ca nào xem lại chính ngày thứ 2 hay xem tuần sau khi két ghi lại.
+
+3. **Nguồn ngày "sự việc MỚI NHẤT" (nghiệm thu C) ngoài `donMoiNhat` vẫn chưa khoá — K3/K4, cùng khuôn lỗi 3 vòng 3.** Các đột biến sau đều **SỐNG**:
+   - `doiSoat.js:157` `viMoiNhat`, dùng cho I4/I18: `MAX` → `MIN` (`m_vi_min`).
+   - `:169` I11: `MAX` → `MIN` (`m_i11_min`).
+   - `:181` I17: `COALESCE(processed_at, requested_at)` → `requested_at` (`m_i17_ngay`).
+   - `:205`, `:208` D1: `MAX(claimed_at)` / `MAX(diem_nhan_luc)` → `MIN` (`m_d1_claim_min`, `m_d1_diem_min`).
+   - `:159` I1, nhánh `claimed_at IS NULL THEN diem_nhan_luc` → `NULL` (`m_i1_case1`). I1 có xét cả mã chỉ nhận điểm (`bat_bien.js:23–29`).
+
+   Hậu quả: lệch MỚI trên đối tượng CŨ bị xếp thành "LỆCH CŨ", tức XANH oan. Ví dụ:
+   - ví có giao dịch đầu trước 28.09 và lệch xảy ra hôm nay;
+   - SĐT nhận lần 1 trước 17.10, lần 2 sau 17.10 — mà đây chính là dấu vết đua D1 phải bắt.
+
+   `trang_thai.md` ghi "nay 7/7" là chỉ đếm 7 vế người soát nêu tên (xem mục K1).
+
+4. **`doiSoat.js:206`, `:209` — ngưỡng D1 `HAVING COUNT(*) > 1` thiếu ca ngay dưới (SĐT nhận đúng 1 lần thì không có dòng) — K3 ngưỡng / K5.**
+   - Đột biến `m_d1_having1` và `m_d1_having2` (`> 0`) **SỐNG**. Các mã nhận một lần ở C4 I1 và C7e có tạo dòng D1 nhưng không ca nào soi dòng đó.
+   - Nếu vỡ: mọi lần khách nhận mã trên production đều thành ĐỎ.
+
+5. **`doiSoat.js:117` — ví chi tháng: vế `DATE(created_at) BETWEEN` chưa khoá — K4, anh em với `BV-DS-VI-CHI-HUY`.**
+   - Đột biến `m_chi_bo_ngay` **SỐNG**: ngoài tháng 01.2027 không có đơn ví `completed` nào.
+   - Vế cùng dạng của "nạp" thì đã bị bắt (`m_th_nap_ngay` bị F3 bắt).
+
+6. **`doiSoat.js:292` — `kiemTraGhi` kiểm "ngày tương lai" bằng `getToday` (giờ VN) — K4.**
+   - Đột biến đổi sang UTC (`m_ghi_utc`) **SỐNG**.
+   - Phiếu I đòi đột biến "đổi giờ VN sang UTC" phải bị bắt; `VS-DS-GIO-UTC` mới khoá một chỗ (`tinhKy`, :80).
+   - Nếu vỡ: từ 0:00 đến 7:00 sáng VN, ghi két / sao kê của ngày hôm nay bị trả 400.
+
+7. **`doiSoat.js:220` — DEN: vế `refund_amount > 0` chưa khoá — K3/K5, nhẹ.**
+   - `damages.js:166` ghi `refund_amount = 0` cho mọi sự cố không đền tiền (làm lại ly — đúng cách quán làm theo câu 10 = C).
+   - Đột biến `m_den_ge0` (`>= 0`) **SỐNG**. Nếu vỡ: mỗi ly làm lại của khách lẻ thành một dòng CẦN XEM, nhiễu vàng hằng ngày.
+   - Thiếu ca: "báo sự cố, chỉ ghi nhận, đơn không SĐT → không có dòng nào".
+
+8. **`doiSoat.js:275` — dấu chênh két chỉ có ca dương (E3 +1đ) — K3, nhẹ.**
+   - Đột biến `m_ket_dau` (luôn in "+") **SỐNG**. Két THIẾU tiền sẽ hiện "lệch +X" trong danh sách đỏ.
+
+NGHI NGỜ:
+- **Đột biến SỐNG nhưng tương đương hoặc chỉ là lớp phòng thủ (không phải lỗ):**
+  - `m_ket_moc_g_loai`: câu con ở :128 đã ép đúng loại.
+  - `m_nap_coalesce`: cột có `DEFAULT 'cash'` (`database.js:333`).
+  - `m_json_valid`: `chi_tiet` luôn ghi bằng `JSON.stringify` hoặc null (`nhatKyDon.js:20`).
+  - `m_d1_macdinh`: cài đặt đã có sẵn giá trị '1' (`database.js:1291`).
+  - `m_i13_ngay`: chỉ đổi giữa hai nhóm vàng.
+  - `m_d2_bo_cp`: vế dư trong nhãn D2.
+  - `m_tughi_delete`, `m_tughi_insert`: hành vi chỉ đọc vẫn được A3 (băm) và A4 khoá.
+  - `m_ghichu`, `m_toanso_bang`: chỉ là hiển thị.
+- **Còn SỐNG, nhẹ, đáng khoá:**
+  - `m_troi_canxem` (:237): dòng không rõ ngày của I12/13/14 rơi vào CẦN XEM thay vì ĐỎ. Quy tắc này ghi ở chú thích :7–8 nhưng chưa có ca.
+  - `m_ngay_tron` (:74): nếu vỡ, ngày 2027-02-30 lọt qua và có thể thành mốc két.
+  - `m_tran_dong` (:231): trần 200 dòng chưa khoá.
+- **Lệch tài liệu:** `quyet_dinh.md` mục 3 ghi trường `con_nua`, còn code và màn dùng `so_luong` (`doiSoat.js:283`, `DoiSoat.jsx:116`). File quyết định "thắng" nên cần chủ quán chốt lại.
+- **K5 thiết kế:** chi tiền mặt từ két trong ngày (mua nguyên liệu…) không có chỗ ghi trong POS, nên két sẽ ĐỎ ngày đó. Công thức B chỉ trừ "trả ra" của đơn huỷ. Cần chủ quán xác nhận, cùng với điều chỉnh ví âm đã ghi.
+- **Ngân sách:** bài thử 690 dòng, vượt ~570 đã chấp nhận ở câu 12 khoảng 21%. Đã ghi rõ trong trạng thái nhưng chưa có chủ quán duyệt.
+- **Quy trình:** vòng sửa 3 là vòng cuối (`so_vong_sua_toi_da` = 3), nên theo luật phải dừng hỏi chủ quán, không tự sửa vòng 4.
+
+NGHIỆM THU:    5/10 mục đủ bằng chứng (A–I và câu 10) · mục thiếu: C, D, E, F, câu 10
+- **A:** A1–A6 có. "Giả lập vẫn xanh" chỉ có ở văn bản — CHƯA SOÁT.
+- **B:** B1–B4, B3b, B3c, C4b có. Cột `pham_vi` của bảng phép chưa khoá (nhẹ).
+- **C — thiếu:** lỗi 3 (5 nguồn ngày).
+- **D — thiếu:** D1 thiếu ngưỡng dưới (lỗi 4) và ngày MAX (lỗi 3). D2 có đủ (D2a–D2e).
+- **E — thiếu:** lỗi 1, 2, 6, 8. E0–E11 có.
+- **F — thiếu:** lỗi 2 (sao kê) và lỗi 5. F1–F3d có.
+- **G:** G1–G6 có; G5 là ca soi marker.
+- **H:** H1/H2 có (N = 3000; 0,22 s / 0,24 s). Turso CHƯA KIỂM, đã ghi.
+- **I:** đủ 4 loại đột biến phiếu đòi (57/57 BẮT). Riêng "giờ VN sang UTC" mới khoá một chỗ (lỗi 6).
+- **Câu 10 — thiếu:** DEN1–DEN4 có, nhưng vế `refund_amount > 0` chưa khoá (lỗi 7).
+
+Đối chiếu 8 mục:
+- **K3:** bài thử ĐỎ thật trên gốc (102 hỏng), kiểm hành vi qua route thật; riêng G5 là ca soi marker, đã ghi. Lỗ còn lại là lỗi 1–8.
+- **K4:**
+  - `grep "db\.(query|run)" doiSoat.js` ra đúng 2 chỗ: `:65` (`chiDoc`) và `:307` (`ghiMoi`). `bat_bien.js` không `require` gì.
+  - Có 3 câu đọc `pos_doi_soat_ghi` lọc theo loại (:126, :128, :279), mới khoá 1.
+  - Có 2 lần dùng `getToday` cần giờ VN (:80, :292), mới khoá 1.
+  - Có 9 nguồn ngày "mới nhất", mới khoá 5 (cộng thêm vế ví / gói của vòng 2).
+- **K5:**
+  - Các điều kiện mới không chặn luồng hợp lệ nào đã có ca: B0a–B0k, A2d, A2f, E5b, E5c, D1d, DEN3.
+  - Đổi cách trả chỉ được trong ngày (`don-mo-rong.js:130`), nên không làm két ngày cũ đổi ngược.
+  - `cash_amount` là tiền áp vào đơn, không phải tiền khách đưa (`orders.js:794–806`).
+  - Kết thúc gói hoàn vào ví bằng dòng `hoan_goi`, không ra két (`tienDaTra.js:71–90`).
+  - Mọi dòng điểm đều ghi `created_at` tường minh (`orders.js:1000`, `loyalty.js:170`, `signup-codes.js:270`).
+  - Rủi ro đỏ oan còn lại nằm ở NGHI NGỜ (chi tiền mặt trong ngày).
+- **K1:**
+  - Các số trong vòng sửa 3 khớp với lần chạy của tôi: 130/0, 29/102, 57/57, `numstat` 578 dòng code / 690 dòng thử.
+  - Các commit 0c4201f, 6d1d7ea, 21624f5, 30d4834 chứa đúng file đã ghi.
+  - Sai: dòng "K1 vòng sửa 1 … nay 7/7" ngầm báo đã khoá đủ nguồn ngày, trong khi còn 5 nguồn chưa khoá (lỗi 3).
+  - `quyet_dinh.md` ghi `con_nua`, code dùng `so_luong`.
+- **Đường tiền:**
+  - Máy chủ không dùng số nào client gửi để tính. `so_tien` / `de_lai` là số két nhập tay, đã kiểm nguyên và trần (:298–300). `nguoi` lấy từ token (`reports.js:375`), `luc` từ `getNow`.
+  - Lệnh ghi duy nhất là INSERT vào `pos_doi_soat_ghi` (`doiSoat.js:307`), cộng `CREATE TABLE` / `INDEX` ở `database.js:911–928`. Các chỉ mục trên bảng cũ đã được duyệt theo quyết định 8.
+  - `backup.js` thêm đúng 1 dòng (:87). `kiem_tra_truoc_khi_giao.js` thêm đúng 1 dòng (:786).
+- **P1:** `client/src` chỉ đổi trong 841cfb7, 30f661b, a48afbf, fcfe42f, và cả bốn đều commit kèm dist. `index.html` trỏ `index-Cb3WW0Nl.js`. Bundle có chuỗi mới `sao_ke?.da_so===1?"":"🟡 Chưa so sao kê."` và "Lần ghi cuối". Tôi không chạy được `--day-du` để so băm.
+- **Đơn giản:**
+  - `doiSoat.js:258–267`, nhãn D2: mỗi lô 400 lại duyệt toàn bộ dòng và chạy lại regex. Gọn hơn: gom tập `the` qua mọi lô rồi duyệt dòng một lần.
+  - `bat_bien.js` I9: khi `ctx.thuc` thì gán `quay = soLog`, khiến phép so luôn bằng — một cách tắt khó đọc. Gọn hơn: viết thẳng `if (!ctx.thuc && (…))` như vế 'doi'.
+
+CHƯA SOÁT ĐƯỢC:
+- `npm test -- --day-du` (so băm dist, nhóm S: `chay.js` / `thu_gia_lap.js`) và `node tu_chay/cong.js chay`: không nằm trong danh sách lệnh được phép.
+- Phép I8 viết lại bằng JOIN: tôi đọc thấy tương đương nhưng chưa chạy giả lập.
+- Turso: độ trễ mạng, và việc tạo 5 chỉ mục lúc khởi động trên bảng lớn.
+- Dữ liệu thật: số dòng LỆCH CŨ, ví lệch cũ, giờ của `pos_damage_logs` cũ.
+- Ngày gộp trong `AP_DUNG_TU` (kho nông).
+- Giao diện trên điện thoại. Có một cuộc đua nhỏ (nghi ngờ): bấm đổi kiểu kỳ rồi Lưu sao kê trước khi lượt chạy mới về thì `kq.tu` vẫn là ngày cũ → 400.
+
+BÀI HỌC:
+- **KHOÁ:**
+  - Huỷ đơn thẻ trả tiền mặt → có "trả ra".
+  - Đơn tiền mặt được duyệt hoàn → "bán" vẫn tính.
+  - Ngày thứ 2 có két và sao kê ghi theo cả hai thứ tự → xem lại chính ngày đó và cả tuần.
+  - Nguồn ngày cho ví (I4/I18), I11, I17, D1, I1 chỉ-nhận-điểm.
+  - D1 khi SĐT nhận đúng 1 lần.
+  - Ví chi ở ngoài tháng.
+  - Ghi két lúc 00:30 giờ VN.
+  - Sự cố chỉ ghi nhận trên đơn không SĐT.
+  - Két thiếu tiền (chênh âm).
+- **NGUYÊN TẮC (KHUON_LOI):**
+  - **K3:** danh sách vị từ cần đột biến phải do MÁY sinh — tách mọi WHERE / CASE / HAVING / MAX / COALESCE / so sánh trong file tiền rồi đối chiếu với `dot_bien.py` — chứ không phải người soát nêu tên. Bốn vòng liên tiếp, vòng nào cũng tìm thêm 5–10 vế. Báo "n/n" thì mẫu số phải là số vị từ máy đếm được.
+  - **K4:** sửa hoặc khoá "lọc loại" ở một câu đọc thì grep MỌI câu đọc cùng bảng; khoá "giờ VN" ở một chỗ gọi `getToday` thì khoá mọi chỗ gọi.
+  - **K3 ngưỡng / dấu:** ngưỡng ≥ 2 phải có ca 1; số có dấu ± phải có ca âm.
+```
+
+Sửa câu sai K1 người soát nêu: dòng "K1 vòng sửa 1 … nay 7/7" ở bảng vòng sửa 3 chỉ đếm 7 vế ĐÃ ĐƯỢC NÊU TÊN; theo người soát vòng xác nhận còn 5 nguồn ngày (ví I4/I18, I11, I17, D1, I1 nhánh chỉ-nhận-điểm) chưa có đột biến — câu "7/7" là SAI, không được dùng làm bằng chứng nghiệm thu C.
+
+## Câu hỏi 13 (MỚI — hết 3 vòng sửa, DỪNG, chưa làm bước 11)
+
+Theo `/lam-viec` bước 8, `so_vong_sua_toi_da` = 3 (`tu_chay/cau_hinh.json:12`) đã dùng hết; lượt soát xác nhận vẫn KHÔNG ĐẠT. Tôi **chưa** kiểm lại từng lỗi của lượt soát này trên code (dừng theo luật) — người soát tự ghi "Code tiền hiện **chạy đúng** trên mọi ca đã thử"; 8 lỗi đều là vế công thức CHƯA CÓ CA KHOÁ (K3/K4), không phải hành vi tiền sai đã thấy. Xin chủ quán quyết:
+
+13a. **Cách đi tiếp:**
+   (A) cho thêm MỘT vòng sửa: khoá 8 lỗi (≈ 12–15 ca + ≈ 19 đột biến, chỉ bài thử + `dot_bien.py`, không đổi hành vi tiền), rồi soát lại; **hoặc**
+   (B) chấp nhận các vế chưa khoá là "lỗ khoá đã biết" ghi ở CHƯA KIỂM, làm bước 11 (bài học, cổng `chay`, `HEAD ĐÃ KIỂM`) rồi giao; khoá dần ở một phiếu sau (vd `HOC-<n>`: công cụ máy liệt kê mọi vị từ của file tiền rồi đối chiếu với `dot_bien.py` — bài học chung của cả 4 vòng soát).
+13b. **Chi tiền mặt từ két trong ngày** (mua nguyên liệu, tạm ứng…) không có chỗ ghi trong POS → két ĐỎ ngày đó. Công thức B (quyết định 1) chỉ trừ "trả ra" của đơn huỷ. Có cần ô "chi khác trong ngày" (thêm dòng vào `pos_doi_soat_ghi`, loại mới), hay quầy không bao giờ chi từ két?
+13c. **Điều chỉnh ví âm** (`wallets.js:187`, chỉ chủ) — có dùng để trả tiền mặt khi khách rút ví không? Có thì két lệch ngày đó.
+13d. **Vị từ "trả ra"** cho đơn gói: giữ "dòng hàng gói" (hiện tại) hay đổi thành "có gói khách HOẶC có dòng ví `hoan_goi`" (phủ thêm đường thêm gói khách lỗi `orders.js:1056–1063`)? Đổi là đổi hành vi tiền.
+13e. **`quyet_dinh.md` mục 3** ghi trường `con_nua`, code và màn dùng `so_luong` (`doiSoat.js`, `DoiSoat.jsx`) — chốt tên nào (sửa file quyết định hay sửa code)?
+13f. **Ngân sách bài thử:** 690 dòng, vượt ~570 của câu 12 khoảng 21 % (code 578, vượt ~4 %) — chấp nhận?
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
