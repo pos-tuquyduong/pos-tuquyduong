@@ -483,3 +483,18 @@ BÀI HỌC:
 - **Q8d — vòng sửa:** đã dùng 3 / 3. Cho phép thêm một vòng (sửa theo Q8 → soát vòng 3)?
 
 **ĐANG DỪNG chờ chủ quán trả lời Q8.** Chưa làm: báo cáo 7 mục, bài học, cổng `chay`, `HEAD ĐÃ KIỂM`.
+
+### Chủ quán trả lời Q8 (21.10) — phần này THẮNG chỗ khác khi lệch
+
+- **Q8a** đồng ý: khôi phục dòng vá ở `query()` + ca D10 (SELECT bận thật → 2 giao dịch + 1 lệnh ghi phải ghi được) + đột biến gỡ dòng đó.
+- **Q8b** GIỮ ngoại lệ thu nợ (amount đúng bằng nợ trong sổ thì cho thu dù lẻ).
+- **Q8c** đồng ý cả ba (đổi tên mã chặn khôi phục; thêm `code` cho các nhánh 400 cũ của pay-debt; đảo thứ tự tạo / đóng client).
+- **Q8d** thêm MỘT vòng sửa (vòng 4) để làm theo Q8, rồi soát độc lập vòng 3; vẫn không đạt thì dừng báo chat, không xin thêm.
+
+### Vòng sửa 4 (21.10) — đối chiếu bản chụp lúc mở
+
+- `git rev-parse --short HEAD FETCH_HEAD`: `a58bc78` · `a58bc78` (bằng nhau, không kéo)
+- `git log --oneline -3`:
+  - a58bc78 P26d: trang_thai — bao cao /ra-soat vong 2 (KHONG DAT), vong sua 3, danh dau cau sai, Cau hoi Q8, dung
+  - 3072693 P26d: orders.js — pay-debt bo kiem paidAmount <= 0 (code chet sau kiem amount), sua chu thich no le — soat vong 2
+  - bfaddb9 P26d: database.js — sua chu thich sai ve SELECT ban (do lai: SELECT ban cung hong ket noi, lo o giao dich thu hai) — soat vong 2
