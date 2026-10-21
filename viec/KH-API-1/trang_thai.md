@@ -219,6 +219,117 @@ có lệnh ghi (3)"), E9 hai phép `/claim` `/nhan-diem` xanh, E14 = 51 không �
 Còn lại của báo cáo → Q9–Q11 (`## Câu hỏi`) và `## Phát hiện`. Theo luật skill: có câu hỏi nghiệp vụ → commit, push, DỪNG; vòng soát 2 chạy sau khi
 chủ quán trả lời (vòng sửa đã dùng: 1 / 3).
 
+### Vòng 2 (21.10.2026, trên HEAD `25a041c`) — báo cáo của agent soát, chép nguyên
+
+~~~
+KHÔNG ĐẠT. Chỉ vì hồ sơ. Code server, bài thử và nghiệm thu đều đạt. Cần sửa hồ sơ (mục 2, 3, 4 dưới) rồi chạy lại cổng tĩnh, không phải sửa code.
+
+Tôi chỉ đọc, không sửa hay commit file nào trong kho. Chạy lại trên HEAD 25a041c:
+- `node cong_cu/thu_P20.js` → 170 đạt · 0 hỏng.
+- `node cong_cu/thu_KH1.js` → 151 đạt · 0 hỏng.
+- `npm test -- --day-du` → PASS 71 · FAIL 0 · CẢNH BÁO 1.
+- `python3 viec/KH-API-1/dot_bien.py` → 76 đột biến bị bắt · 0 không bị bắt (trên 76).
+- `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` → chỉ ✗ [A19].
+- `python3 viec/HOC-2b/kiem_neo.py` → neo HỎNG chỉ ở orders.js / refunds.js / damages.js (có từ trước), không neo nào trong file của việc này.
+- Tự dựng bản gốc `0bffc03` bằng ban_sao_goc.py, chép thu_P20.js của HEAD vào `<nháp>/goc/cong_cu/` và chạy → 169 đạt · 1 hỏng. Ca đỏ duy nhất là `/claim bill ví bằng SĐT khác SĐT trên bill → 400 BILL_SDT_KHAC — HTTP 200`. Khớp bang_chung_do.txt:157.
+
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_P20.js:155, :161, :193, :196 — sau Q11, bốn ca chặn cũ vi phạm HAI phép cùng lúc — K3 (mỗi ca chặn chỉ vi phạm đúng một phép) + K4.
+   - Bốn ca: [A] r3 /claim đơn nợ của sdt3, [A] r4 /nhan-diem đơn nợ của sdt4, [B2] r1 /claim và r2 /nhan-diem đơn hoàn tiền.
+   - Cả bốn đều nhận mã của bill có SĐT bằng một SĐT mới (claim / nhanDiem mặc định sdtMoi(), thu_P20.js:131-132).
+   - Chúng xanh chỉ vì billSdtKhac đứng SAU kiemDonCuaMa (signup-codes.js:197→201 và :366→370).
+   - Dời cổng Q11 lên đầu (thứ tự hợp lý hơn, xem NGHI NGỜ 2) thì cả bốn ra BILL_SDT_KHAC thay mã mong đợi → đỏ oan (K2). Bài không yếu đi, vì mỗi ca so đúng code.
+   - Phiếu chỉ mở [D] và G2 nên không sửa được ở việc này. Nhưng ke_hoach.md:225 (mục K4 "Bài cũ đang nhận mã bill ghi SĐT A bằng SĐT B") chỉ liệt kê [D], G2, KB13 — bỏ sót bốn ca này. `## Phát hiện` cũng chưa ghi.
+2. viec/LUOI-5/dot_bien.py:40 — `SO_CA['cong_cu/thu_P20.js']: 169`. Việc này đẩy thu_P20 lên 170, nên bộ đột biến LUOI-5 chạy lại sẽ thoát 4 ("đối chứng lệch số ca", docstring :12) — K4: chạy lại bằng chứng thì grep hồ sơ tìm mọi câu trích con số cũ.
+   - Ngoài Phạm vi, không sửa; nhưng chưa ghi `## Phát hiện`, ke_hoach §8 / trang_thai lượt 6 cũng không nhắc.
+   - Suy từ đọc code; tôi chưa chạy LUOI-5.
+3. viec/KH-API-1/trang_thai.md:269 — "`signup-codes.js:281` lấy `req.user.username`" đã sai: dòng thật là signup-codes.js:289. Q11 thêm 8 dòng (ở 554d78c và 75dfdfb nó còn là :281) — K1, số dòng của file đang sửa phải kiểm lại ở commit cuối.
+4. viec/KH-API-1/trang_thai.md:311 (Q5 cũ) — vẫn hướng dẫn chủ quán "thử xin-ma từ 2 mạng … xem cột ip của bảng mã" — K4 (sửa một câu thì grep cả file).
+   - Sau Q10, chế độ quay không ghi dòng nào (maKhach.js:69), nên làm theo sẽ không thấy gì.
+   - Thao tác đúng hiện chỉ nằm ở chú thích server/index.js:55 (cột ip của pos_kh_lan_thu, nhận mã bill từ 2 mạng). Báo cáo bước 11 / CHƯA KIỂM cần ghi đúng thao tác này.
+
+NGHI NGỜ:
+1. K5 — Q9: phiếu chỉ chốt "MỘT bảng đếm", không có số.
+   - Hai lựa chọn do máy tự chọn: ngưỡng 10/khách và 30/IP, và đếm MỌI lần gọi kể cả lần thành công (maKhach.js:86-96, kh/index.js:139). ke_hoach §8 tự ghi là "để duyệt lại", trong khi đề xuất Q9-(a) chỉ đếm lần HỎNG.
+   - Hệ quả: khách dùng chung một IP công khai — wifi quán, CGNAT của nhà mạng di động — chịu chung 30 lượt/giờ. Mỗi khách mới dùng 2 lượt (voucher + nhân điểm), nên chỉ khoảng 15 khách/giờ, và ngày khai trương dễ chạm trần.
+   - Thêm nữa, nếu `trust proxy 1` sai số tầng trên Render thì cả hệ thống chung một IP.
+   - Cần chủ quán xác nhận rõ. Tôi không thấy câu chốt nào ở phiếu hay trang_thai.
+2. Thứ tự cổng ở signup-codes.js:197-201 và :343-370: BILL_SDT_KHAC đứng sau MA_DA_DUNG (409), MA_HET_HAN, SDT_DA_NHAN và kiemDonCuaMa.
+   - Người lạ cầm mã bill của khách khác vẫn biết bill đó đã thu / huỷ / hoàn / đã có người nhận rồi mới bị chặn (LUAT §4: không trả dữ liệu khách khác).
+   - Mức thấp, vì phải có mã in trên giấy và đã có trần Q9. Đổi thứ tự thì kéo theo lỗi 1.
+3. K3 — thu_KH1.js:651-658, ca "yêu cầu khác ghi lượt chen giữa lúc đếm và lúc ghi":
+   - Móc chỉ bọc db.queryOne / db.query (thu_KH1.js:78-87), còn code đúng dùng MỘT câu `run` INSERT…SELECT (maKhach.js:88). Trên HEAD móc không bao giờ chạy, nên ca xanh mặc nhiên.
+   - Ca so `nRc <= 10` một chiều (ngưỡng tất định phải so bằng `=== 10`) và không kiểm `rc` là 429.
+   - Ca vẫn bắt được VS-Q9-dem-roi-chen; bản tách dùng tx.queryOne hay hàm khác thì lọt.
+4. K3 (nhẹ) — thu_P20.js:133-135 `sdtTrenBill` lấy SĐT "đúng" từ cột order_customer_phone do chính orders.js ghi, chứ không dùng SĐT bài đã biết (sdtVi, sdtCK, sdtG2…).
+   - Nếu orders.js ghi sai cột thì [D] vẫn xanh.
+   - Cả bộ vẫn khoá được nhờ thu_KH1.js:556 (`P.sdt` độc lập), nên không phải lỗ.
+5. Cấm của phiếu (thu_P20 "chỉ [D] và G2"): sửa nằm trong `donDaClaim` (thu_P20.js:350-355), mà hàm này dùng cho cả G1/G3/G4/G8. Các bill đó không có SĐT nên `sdtTrenBill` → undefined, hành vi y cũ — chỉ là lệch chữ, không lệch hành vi.
+
+NGHIỆM THU:    23/23 mục có bằng chứng · mục thiếu: không
+  A1 thu_KH1:184 · A2 :196 (`crypto.randomInt` chỉ có bằng chứng đọc code maKhach.js:53 — đã ghi Phát hiện) · A3 :213 · A4 :248 (+ ca đua ON CONFLICT) · A5 :283
+  B1 :291 · B2 :341 · B3 :358 · C :368 (Q10 + `gia` ngoài máy thử) · D :399
+  E1 :421 · E2 :435 · E3 :446 + ma_khach_moi :545 · E4 :462 · E5 :492 (nhánh SX bật CHƯA KIỂM) · E6 :523 (+ Q11 :549-567) · E7 :570 (+ Q11 :593-604)
+  F1 :675 · F2 :686 · F3 :705 · G :720-773 · H :775 + `npm test -- --day-du` 71/0 (thu_P20, gia_lap, thu_gia_lap xanh)
+  Đột biến: đủ 7 loại phiếu đòi (BV-F2, VS-F3-*, BV-A2-bo-chua-dung, BV-B1-*/BV-B2-*, BV-E4-bo-loc-sdt, VS-E5-tra-them-gia-von); 76/76 bắt, tôi chạy lại.
+  Q9 :606 · Q10 :368 · Q11 :549 / :593 + thu_P20 [Q11] (đỏ trên 0bffc03, tôi tự kiểm) · Q12 KB13 kich_ban.js:209.
+
+Trả lời 8 câu soát:
+1. K3:
+   - Ca [Q11] mới đỏ trên gốc, đúng một ca, khớp code BILL_SDT_KHAC, chỉ vi phạm một phép.
+   - [D] và G2 không yếu đi: vẫn canh cổng P20, và còn khoá thêm "chủ bill nhận được"; đột biến chặn quá tay thì đỏ ở [D] "trả bằng ví".
+   - Ca hành vi đi qua HTTP, marker suông không làm xanh được. Phép tĩnh index.js đã bỏ chú thích (thu_KH1:799).
+2. K4:
+   - grep `claim(` / `nhanDiem(` trong cong_cu/: chỉ có thu_P20, thu_P26c, kich_ban, thu_KH1. thu_P26c dùng đúng SĐT; các KB còn lại của kich_ban dùng bill không SĐT. Không còn chỗ nào mong 200 mà nhận bằng SĐT khác.
+   - Còn 4 ca chặn hai phép (lỗi 1) và số ca cũ ở LUOI-5 (lỗi 2).
+   - grep neo `c.claim(d.ma` / thu_P20 trong viec/*/dot_bien.py: không neo nào trỏ dòng đã đổi.
+3. K5:
+   - Q11 — các luồng hợp lệ đều có ca: bill không SĐT (E6, [D] tiền mặt), chủ bill qua App (:556) và qua X-Service-Key ([D] ví / CK / kết hợp / gói / nợ đã thu, KB13), SĐT cũ dạng "+84 …" (:562), SĐT rỗng '' (:567).
+   - Q9 — có ca cho 9 lần → vẫn tới hàm, 61 phút không tính, IP 29 lượt, X-Service-Key không bị đếm. Còn ngờ: IP chung (NGHI NGỜ 1).
+   - Q10 — có ca 25 lần xin-ma liền cùng IP đều 200.
+4. K1: lỗi 3 và 4. Các chú thích code mới (signup-codes.js:85-88, maKhach.js:64-66 và :85, index.js:54-55) khớp code.
+5. Đường tiền: App chỉ gửi `ma`. Điểm tính từ pos_orders.total đọc trong DB (signup-codes.js:216), voucher theo cài đặt máy chủ. Không trường tiền nào lấy từ client.
+6. P1: diff không đụng client/ (0 file).
+7. Đủ, xem dòng NGHIỆM THU.
+8. Đơn giản:
+   - Truyền SĐT bài đã biết vào `phaiQua` thay cho `sdtTrenBill` → bỏ một lần đọc DB và bỏ phụ thuộc vào thứ hệ thống tự ghi.
+   - thu_KH1.js 817 dòng ≈ 2,3 lần ngân sách thử ~350 của phiếu (Q9–Q11 làm phình); signup-codes.js 556 dòng đã qua mốc ~500 của LUAT §3.
+   - Đối soát: trang_thai.md:268 đã ghi "không phải tính năng tiền mới"; còn mở Phát hiện "voucher qua /claim không có cột người tạo".
+   - Bảng pos_kh_lan_thu và pos_kh_ma_dang_nhap không có dọn dòng cũ (lớn dần theo thời gian) — chưa cần ngay, nên ghi Phát hiện.
+
+CHƯA SOÁT ĐƯỢC:
+- Số tầng proxy của Render (`trust proxy 1`) và IP thật sau CGNAT.
+- Ngữ nghĩa đua của INSERT…SELECT trên Turso từ xa.
+- Dữ liệu order_customer_phone thật trên production (dạng "84…" không dấu +, rác) — không truy vấn được Turso.
+- Nhánh SX bật của /menu; mount thật trong index.js (chỉ có phép tĩnh).
+- `node tu_chay/cong.js chay` (cần npm ci); bộ LUOI-5 tôi không chạy lại.
+- thu_KH1 trên gốc: tin bang_chung_do, không tự chạy lại — chỉ tự chạy lại thu_P20.
+- Giao diện App và màn quầy (KH-UI-1, KH-QUAY-1).
+
+BÀI HỌC:
+- KHOÁ: thêm cổng vào hàm dùng chung thì kèm đột biến kiểm "dời cổng mới lên ĐẦU hàm" và chạy mọi bài cũ. Ca nào đỏ là ca đang vi phạm hai phép và chỉ xanh nhờ thứ tự cổng (lỗi 1).
+- KHOÁ: ca dựng bằng móc phải kiểm "móc đã chạy", hoặc ghi rõ ca chỉ bắt bản tách. Ngưỡng tất định so bằng (`=== 10` + 429), không so một chiều (NGHI NGỜ 3).
+- NGUYÊN TẮC (K4, KHUON_LOI): cổng mới trong hàm chung → grep mọi bài cũ gọi hàm đó với dữ liệu vi phạm cổng mới, KỂ CẢ ca đang mong mã lỗi KHÁC — chúng xanh nhờ thứ tự cổng, không nhờ đúng.
+- NGUYÊN TẮC (K4): đổi số ca của một bài cũ → grep `SO_CA` / số ca cũ trong viec/*/dot_bien.py (LUOI-5 ghi 169) và ghi Phát hiện.
+- NGUYÊN TẮC (K3): đáp án của ca "phải qua" lấy từ dữ liệu bài tự biết, không đọc lại cột do chính code đang thử ghi (`sdtTrenBill`).
+- NGUYÊN TẮC (K5): ngưỡng / cách đếm do máy tự chọn trong khung chủ quán chốt ("để duyệt lại") thì phải có câu chốt rõ trước khi báo xong — nhất là trần theo IP khi khách dùng chung IP.
+~~~
+(Chép nguyên; chỉ đổi rào khối thành `~~~` vì báo cáo có rào ba dấu huyền bên trong — đã gỡ hai dòng rào đó.)
+
+### Vòng 2 — đã sửa (vòng sửa 2 / 3; commit `6699270` + hồ sơ)
+| Lỗi / nghi ngờ soát | Sửa | Bằng chứng |
+|---|---|---|
+| 1 — 4 ca chặn cũ của `thu_P20.js` vi phạm hai phép | KHÔNG sửa bài: Cấm của phiếu chỉ mở [D] và G2 của `thu_P20.js`. Ghi `ke_hoach.md` (mục K4 §8) + `## Phát hiện` | — |
+| 2 — `viec/LUOI-5/dot_bien.py:40` còn `thu_P20.js: 169` | ngoài Phạm vi → `## Phát hiện` (đã đọc dòng 40: `'cong_cu/thu_P20.js': 169`; docstring dòng 13 "4 đối chứng đỏ / lệch số ca") | grep |
+| 3 — `signup-codes.js:281` cũ | sửa thành `:289` (đọc lại dòng 289: `(req.user && req.user.username) \|\| 'service', now]`) | grep |
+| 4 — Q5 thao tác thử còn theo bảng mã | thêm câu sau Q10 ở Q5 + báo cáo CHƯA KIỂM theo `index.js:55` (cột `ip` của `pos_kh_lan_thu`) | — |
+| Nghi ngờ 1 — Q9 ngưỡng / đếm mọi lần | chủ quán nhắn lượt 6 (21.10): **"Ngưỡng Q9 giữ."** → không hỏi lại; rủi ro IP chung (wifi quán / CGNAT ~15 khách mới / giờ / IP) ghi CHƯA KIỂM để chủ quán theo dõi | — |
+| Nghi ngờ 2 — thứ tự cổng BILL_SDT_KHAC | giữ (dời lên đầu làm đỏ 4 ca ở lỗi 1, file ngoài phần được mở) → `## Phát hiện` | — |
+| Nghi ngờ 3 — ca Q9 "lượt chen" so một chiều | `thu_KH1.js`: `nRc === 10` + đòi `rc` 404 `MA_KHONG_TON_TAI` (code đúng: đếm 9 < 10 → chèn → tới hàm; KHÔNG phải 429) + chú thích ca chỉ khoá bản tách | `thu_KH1.js` 151 · 0 (số ca không đổi); gốc `6fe38d8` 9 · 91 (không đổi — mục Q9 sập trên gốc); `VS-Q9-dem-roi-chen` → bắt (11 lượt), cùng BV-Q9-bo-giu-luot · BV-Q9-bo-tran-khach · VS-Q9-khach-11 |
+| Nghi ngờ 4 — `sdtTrenBill` đọc cột do code ghi | giữ: phiếu chốt "SĐT trên bill"; cột `order_customer_phone` CHÍNH là thứ `billSdtKhac` so (`signup-codes.js:87-89`), cột sai thì ca Q11 của `thu_KH1.js` (`P.sdt` độc lập) bắt | — |
+| Nghi ngờ 5 — `donDaClaim` dùng cả G1/G3/G4/G8 | giữ: các bill đó không ghi SĐT → `undefined` → SĐT mới như cũ, hành vi không đổi | `thu_P20.js` gốc 169 · 1 (mọi ca G xanh) |
+
 ## Câu hỏi
 (Lượt 6: không có câu hỏi mới.)
 
@@ -266,7 +377,7 @@ không đếm; Q11 chặn bill SĐT khác, áp cả route cũ.** Giữ để đ�
   Chặn là đổi hàm chung → đổi luôn hành vi `/claim` cũ (Cấm của phiếu).
 
 **Đối soát (LUAT §5) — ghi rõ, không cần trả lời nếu đồng ý:** việc này KHÔNG thêm tính năng tiền mới — voucher / điểm qua App đi đúng hàm `/claim` /
-`/nhan-diem` cũ (cùng bảng, cùng quy tắc); dòng ĐIỂM nhận qua App có `created_by 'app_kh'` (`signup-codes.js:281` lấy `req.user.username`, `quaToken` đặt `app_kh`) để màn Đối soát
+`/nhan-diem` cũ (cùng bảng, cùng quy tắc); dòng ĐIỂM nhận qua App có `created_by 'app_kh'` (`signup-codes.js:289` lấy `req.user.username`, `quaToken` đặt `app_kh`) để màn Đối soát
 lọc được; voucher qua `/claim` KHÔNG có cột người tạo (cùng như đường cũ) — App hay `X-Service-Key` không phân biệt được (ghi Phát hiện).
 
 **Lượt 3 (`tiep`, 19.10.2026):** chủ quán trả lời Q8 ĐỒNG Ý (một dòng `pos_kh_ma_dang_nhap` NGAY SAU dòng `pos_customers` — P26d sửa cuối
@@ -308,7 +419,7 @@ Q1–Q7 dưới đây ĐÃ được chủ quán trả lời (18.10) — giữ đ
 - **Q5 — IP thật của khách trên Render.** `server/` chưa đặt `trust proxy` (grep `trust proxy|req\.ip` → 0 chỗ). Sau proxy của Render,
   `req.ip` là IP của proxy → mọi khách chung MỘT IP → giới hạn 20 lần / IP / giờ thành 20 lần cho CẢ QUÁN (chặn oan). Đề xuất:
   `app.set('trust proxy', 1)` trong `index.js` (lấy IP do proxy gần nhất ghi). Máy không kiểm được số tầng proxy của Render → sau khi
-  lên, chủ quán thử `xin-ma` từ 2 mạng khác nhau (wifi + 4G) và xem cột `ip` của bảng mã ra 2 giá trị khác nhau. Ra cùng một giá trị →
+  lên, chủ quán thử `xin-ma` từ 2 mạng khác nhau (wifi + 4G) và xem cột `ip` của bảng mã ra 2 giá trị khác nhau [sau Q10 chế độ quay không ghi dòng mã — thao tác ĐÚNG hôm nay: nhận mã bill / nhận điểm qua App từ 2 mạng rồi xem cột `ip` của `pos_kh_lan_thu` (`index.js:55`); soát vòng 2]. Ra cùng một giá trị →
   báo lại, đổi số tầng.
 - **Q6 — khách tạo từ App là loại nào?** Đường quầy (`customers.js:348`): `customer_type 'retail'` → `sync_status 'retail_only'` (KHÔNG
   vào danh sách xuất sang SX); mặc định `'subscription'` → `'new'` (vào hàng chờ xuất SX). Đề xuất: `'retail'` — khách App là khách mua
@@ -322,6 +433,15 @@ Q1–Q7 dưới đây ĐÃ được chủ quán trả lời (18.10) — giữ đ
   `customers.js:136, 434`), vì thu ngân phải bấm được; khách A đọc đơn của B → 404 (phiếu F3 đã chốt, thay 403 của luật).
 
 ## Phát hiện (ngoài phạm vi — không sửa)
+- (soát vòng 2) `cong_cu/thu_P20.js` [A] r3 (/claim đơn nợ của `sdt3`), [A] r4 (/nhan-diem đơn nợ của `sdt4`), [B2] r1 / r2 (đơn hoàn tiền) nhận mã của bill
+  CÓ ghi SĐT bằng SĐT mới → vi phạm cả Q11 lẫn phép đang thử; xanh chỉ vì `billSdtKhac` đứng SAU `kiemDonCuaMa` (`signup-codes.js` hai chỗ gọi).
+  Phiếu chỉ mở [D] và G2 của bài này. Đề xuất (việc sau): bốn ca đó nhận bằng SĐT trên bill (cùng `sdtTrenBill`) — một dòng mỗi ca.
+- (soát vòng 2) Thứ tự cổng: `BILL_SDT_KHAC` đứng sau `MA_DA_DUNG` / `MA_HET_HAN` / `SDT_DA_NHAN` / `kiemDonCuaMa` → người cầm mã bill của khách khác vẫn biết
+  bill đã thu / huỷ / hoàn / đã có người nhận trước khi bị chặn (mức thấp: phải có giấy in, có trần Q9). Dời lên đầu thì phải sửa bốn ca ở dòng trên trước.
+- (soát vòng 2) `viec/LUOI-5/dot_bien.py:40` ghi `'cong_cu/thu_P20.js': 169`; việc này đưa bài lên 170 ca → chạy lại bộ LUOI-5 sẽ thoát 4 ("đối chứng đỏ /
+  lệch số ca", docstring dòng 13). Chưa chạy LUOI-5. Sửa số là việc của chủ quán / phiếu sau (ngoài Phạm vi).
+- (soát vòng 2) `pos_kh_lan_thu` và `pos_kh_ma_dang_nhap` không có dọn dòng cũ — lớn dần theo thời gian (mỗi lần nhận mã / xin mã / cấp mã một dòng).
+- (soát vòng 2) `thu_KH1.js` ~820 dòng ≈ 2,3 lần ngân sách thử của phiếu (Q9–Q11 thêm); `signup-codes.js` ~556 dòng, qua mốc ~500 của LUAT §3.
 - Voucher phát qua `/claim` không ghi vào `pos_voucher_grants` → không hiện ở `/loyalty/vouchers/:phone` (quầy đổi quà vẫn không thấy).
   App KH thấy qua `ma_khach_moi` của `GET /api/kh/voucher` (E3, chủ quán Q1). Claim TRƯỚC 09.08.2026 phát mã KHÁC mã in bill → không nối
   được qua `claimed_phone`, không hiện.

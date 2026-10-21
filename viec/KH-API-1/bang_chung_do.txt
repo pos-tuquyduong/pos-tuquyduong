@@ -162,3 +162,9 @@ SỐ CA cong_cu/thu_KH1.js: 151
 #  (2) Bản thu_P20.js CŨ (0ebccfe) trên code đã vá Q11: đỏ — chép ở trang_thai.md ## Bước 6 lượt 5 (BILL_SDT_KHAC ở [D] và G2).
 #  (3) Trên code ĐÃ VÁ (HEAD 9250024): node cong_cu/thu_P20.js → 170 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_P20.js: 170
+
+# ── Lượt 6, soát vòng 2 — cong_cu/thu_KH1.js bản 6699270: ca "Q9 yêu cầu khác ghi lượt chen …" so BẰNG (nRc === 10) + đòi 404 MA_KHONG_TON_TAI
+#  (trước: nRc <= 10). Số ca không đổi. Chạy lại (A16):
+#  (1) GỐC server/ của 6fe38d8 (ban_sao_goc.py + chép bài): 9 đạt · 91 hỏng, thoát 1 (như lượt 5 — mục Q9 sập trên gốc, chưa có bảng).
+#  (2) Code đã vá (HEAD 6699270): 151 đạt · 0 hỏng → dòng SỐ CA cong_cu/thu_KH1.js: 151 ở đầu file giữ nguyên.
+#  (3) python3 viec/KH-API-1/dot_bien.py VS-Q9-dem-roi-chen … → bắt: "HTTP 404 · MA_KHONG_TON_TAI · 11 lượt".
