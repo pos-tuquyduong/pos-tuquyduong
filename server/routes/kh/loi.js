@@ -12,6 +12,8 @@ const LOI = {
   CAN_TEN: [400, 'Nhập tên để tạo tài khoản'],
   TEN_KHONG_HOP_LE: [400, `Tên phải từ 1 đến ${GIOI_HAN.TEN_TOI_DA} ký tự`],
   KHONG_THAY_DON: [404, 'Không tìm thấy đơn'],
+  KHONG_TIM_THAY: [404, 'Không có chức năng này'],
+  YEU_CAU_KHONG_HOP_LE: [400, 'Yêu cầu không hợp lệ'],
 };
 
 function bao(res, code) {
@@ -26,4 +28,14 @@ function loiMayChu(res, err, noi) {
   return res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });
 }
 
-module.exports = { bao, loiMayChu };
+/** Lỗi tầng ứng dụng dưới /api/kh (express.json: JSON hỏng 400, thân quá lớn 413 — ném TRƯỚC router) → { error, code }, giữ status 4xx.
+ *  Gắn ở index.js NGAY SAU router /api/kh, trước bộ lỗi chung. */
+function loiTangKh(err, req, res, next) {
+  if (res.headersSent) return next(err);
+  if (err && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ error: LOI.YEU_CAU_KHONG_HOP_LE[1], code: 'YEU_CAU_KHONG_HOP_LE' });
+  }
+  return loiMayChu(res, err, 'kh');
+}
+
+module.exports = { bao, loiMayChu, loiTangKh };
