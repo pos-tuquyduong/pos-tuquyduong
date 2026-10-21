@@ -82,4 +82,18 @@
   ✗ E8 đơn tạo 09.01, huỷ 10.01: "trả ra" 25.000 nằm ở ngày HUỶ 10.01, ngày 09.01 bán 25.000 trả ra 0  — HTTP 200 · 09: undefined · 10: undefined
   29 đạt · 93 hỏng
 # Sau vá (4cd9d17): node cong_cu/thu_DOISOAT1.js → 121 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 121 đạt · 0 hỏng; TỔNG 48 · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0.
-SỐ CA cong_cu/thu_DOISOAT1.js: 121
+# ── Vòng sửa 3 sau /ra-soat vòng 3 (21.10.2026): thêm C7 ×3, C7d, C7e, D2e, E10, E11, F3d; G1b đếm trước / sau (bài 0c4201f) ──
+# Các ca mới khoá luật đang ĐÚNG → xanh trên code trước vòng sửa 3 (390faee) là đúng; mỗi ca có một đột biến bắt (9 mới, xem trang_thai.md).
+# Trên gốc: python3 viec/DOI-SOAT-1/dot_bien.py --goc 2123b69 → 29 đạt · 102 hỏng · thoát 1 (131 ca, có A0). Trích các ca mới:
+  ✗ C7 đơn tạo 01.10 lệch sẵn, thêm huỷ (cancelled_at) ngày 04.11 → dòng lệch mang ngày 04.11 (sự việc mới nhất)
+  ✗ C7 đơn tạo 01.10 lệch sẵn, thêm nhật ký đơn ngày 04.11 → dòng lệch mang ngày 04.11 (sự việc mới nhất)
+  ✗ C7 đơn tạo 01.10 lệch sẵn, thêm dòng điểm ngày 04.11 → dòng lệch mang ngày 04.11 (sự việc mới nhất)
+  ✗ C7d gói tạo 10.10 lệch sẵn, đơn MUA gói bị huỷ 04.11 → dòng I14 mang ngày 04.11
+  ✗ C7e mã nhận bill 04.11 23:00 rồi nhận điểm 05.11 trên đơn đã huỷ → dòng I1 mang ngày 05.11 (lần dùng MỚI NHẤT)
+  ✗ D2e (K5) đơn bán THƯỜNG cộng sai 4 điểm → ĐỎ I8 nhưng KHÔNG mang nhãn D2  — HTTP 404 · undefined · đỏ:
+  ✗ F3d đơn trả ví 4.000 đã HUỶ trong tháng → ví chi chỉ tính đơn completed: chi 0
+  ✗ E10 nợ 09.01 thu bằng CHUYỂN KHOẢN 10.01: CK thu nợ 10.01 = 50.000, tiền mặt thu nợ 10.01 = 0 (két không nhận), CK bán 09.01 = 0  — HTTP 200 · 10 CK undefined · 10 TM undefined · 09 CK undefined
+  ✗ E11 két thứ 2 11.01 rồi sao kê tuần cùng ngày 11.01 ghi sau → mốc két 12.01 vẫn là 11.01, để lại 70.000 (dòng mới nhất của LOẠI két)
+  29 đạt · 102 hỏng
+# Sau vá (21624f5): node cong_cu/thu_DOISOAT1.js → 130 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 130 đạt · 0 hỏng; TỔNG 57 · BẮT 57 · SỐNG 0 · HỎNG 0 · LẠC 0.
+SỐ CA cong_cu/thu_DOISOAT1.js: 130
