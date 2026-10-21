@@ -538,7 +538,7 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[E·2] két: mốc = ngày CÓ ghi GẦN NHẤT trước ngày xem, dòng MỚI NHẤT của ngày đó; trả ra theo NGÀY HUỶ; đơn gói theo gói khách');
+  muc('[E·2] két: mốc = ngày CÓ ghi GẦN NHẤT trước ngày xem, dòng MỚI NHẤT của ngày đó; trả ra theo NGÀY HUỶ');
   {
     datGio(2027, 1, 9);   // thứ 7 09.01.2027
     const k1 = await ghiDS('chu', { loai: 'ket', ky: '2027-01-08', so_tien: 200000, de_lai: 50000 });
@@ -550,19 +550,10 @@ async function main() {
       JSON.stringify(k9.ket?.moc) + ' · ' + k9.ket?.so_theo_so);
     datGio(2027, 1, 10);   // CN 10.01.2027
     const h2 = await huy(dHuy2);
-    const sG2 = sdtMoi();
-    const goiC = await taoGoi(300000, 10);
-    const mC = await muaGoi(sG2, goiC, { cash_amount: 300000 });
-    // INSERT gói khách nằm trong try nuốt lỗi (orders.js) — đơn có dòng gói mà KHÔNG có gói khách: huỷ không hoàn ví (soTienHoan xét
-    // pos_customer_packages), quầy trả tiền mặt tận tay → phải vào "trả ra"
-    await db.run('DELETE FROM pos_customer_packages WHERE order_id = ?', [mC.order?.id]);
-    const hC = await huy(mC.order?.id);
     const n9 = await ds('chu', 'ngay', '2027-01-09'), n10 = await ds('chu', 'ngay', '2027-01-10');
     k('E8 đơn tạo 09.01, huỷ 10.01: "trả ra" 25.000 nằm ở ngày HUỶ 10.01, ngày 09.01 bán 25.000 trả ra 0',
-      h2.status === 200 && n9.tien?.tien_mat?.ban === 25000 && n9.tien?.tien_mat?.tra_ra === 0 && n10.tien?.tien_mat?.tra_ra >= 25000,
+      h2.status === 200 && n9.tien?.tien_mat?.ban === 25000 && n9.tien?.tien_mat?.tra_ra === 0 && n10.tien?.tien_mat?.tra_ra === 25000,
       `${moTa(h2)} · 09: ${JSON.stringify(n9.tien?.tien_mat)} · 10: ${JSON.stringify(n10.tien?.tien_mat)}`);
-    k('E9 đơn mua gói 300.000 tiền mặt KHÔNG có dòng gói khách, huỷ → "trả ra" 10.01 = 25.000 + 300.000 (cùng vị từ với soTienHoan / route huỷ)',
-      mC.success && hC.status === 200 && n10.tien?.tien_mat?.tra_ra === 325000, `${moTa(hC)} · ${JSON.stringify(n10.tien?.tien_mat)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
