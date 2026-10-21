@@ -234,7 +234,7 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
     const troi = !gop && !n10;   // không rõ ngày: ĐỎ ở mọi kỳ
     if (!gop && phamVi === 'ky' && n10 && (n10 < ky.tu || n10 > ky.den)) return null;
     const apDung = AP_DUNG_TU[ten];
-    const nhom = !troi && n10 && apDung && n10 < apDung ? 'cu' : !troi && canXemTen ? 'can_xem' : 'do';
+    const nhom = n10 && apDung && n10 < apDung ? 'cu' : !troi && canXemTen ? 'can_xem' : 'do';
     return { nhom, dong: { bat_bien: ten, mo_ta: moTa, ngay: n10, pham_vi: gop || phamVi === 'toan_so' ? 'toan_so' : 'ky' } };
   };
   for (const ten of Object.keys(boBatBien)) {
@@ -288,16 +288,17 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
 // ─── Ghi: kiểm đầu vào, rồi THÊM một dòng (không bao giờ sửa dòng cũ) ───
 function kiemTraGhi(b = {}) {
   if (!['ket', 'sao_ke'].includes(b.loai)) throw loiDS(400, 'DOI_SOAT_LOAI_SAI', 'Loại ghi chỉ nhận ket hoặc sao_ke');
+  const ghiChu = typeof b.ghi_chu === 'string' ? b.ghi_chu.trim().slice(0, 200) : null;
   if (!ngayHopLe(b.ky) || String(b.ky) > getToday()) throw loiDS(400, 'DOI_SOAT_KY_SAI', 'Ngày không đúng dạng YYYY-MM-DD hoặc ở tương lai');
   if (b.loai === 'sao_ke') {
     if (thuTrongTuan(b.ky) !== 1) throw loiDS(400, 'DOI_SOAT_KY_SAI', 'Sao kê ghi theo tuần: ngày phải là THỨ 2 của tuần');
     if (b.da_so !== 0 && b.da_so !== 1) throw loiDS(400, 'DOI_SOAT_DA_SO_SAI', 'Đã so sao kê chỉ nhận 0 hoặc 1');
-    return { loai: 'sao_ke', ky: b.ky, so_tien: null, de_lai: null, da_so: b.da_so, ghi_chu: typeof b.ghi_chu === 'string' ? b.ghi_chu.trim().slice(0, 200) : null };
+    return { loai: 'sao_ke', ky: b.ky, so_tien: null, de_lai: null, da_so: b.da_so, ghi_chu: ghiChu };
   }
   const nguyen = (v) => Number.isInteger(v) && v >= 0 && v <= TRAN_KET;
   if (!nguyen(b.so_tien) || !nguyen(b.de_lai)) throw loiDS(400, 'DOI_SOAT_SO_TIEN_SAI', `Số tiền phải là số nguyên đồng từ 0 đến ${TRAN_KET.toLocaleString('vi-VN')}`);
   if (b.de_lai > b.so_tien) throw loiDS(400, 'DOI_SOAT_DE_LAI_SAI', 'Tiền để lại cho mai không được lớn hơn tiền đếm cuối ngày');
-  return { loai: 'ket', ky: b.ky, so_tien: b.so_tien, de_lai: b.de_lai, da_so: null, ghi_chu: typeof b.ghi_chu === 'string' ? b.ghi_chu.trim().slice(0, 200) : null };
+  return { loai: 'ket', ky: b.ky, so_tien: b.so_tien, de_lai: b.de_lai, da_so: null, ghi_chu: ghiChu };
 }
 
 // <ghi-moi>
