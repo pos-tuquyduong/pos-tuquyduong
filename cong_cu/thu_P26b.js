@@ -644,30 +644,39 @@ async function main() {
 
     const ghiNhatKy = async (loai) => { try { await db.run('INSERT INTO pos_sync_logs (type, file_name) VALUES (?, ?)', [loai, 'x']); return null; } catch (e) { return e; } };
     // Hỏng do câu bận treo chỉ lộ khi kết nối bị chuyển cho giao dịch → đo tới giao dịch THỨ HAI (soát vòng 2), đọc bằng kết nối khác.
+    // Kết nối hỏng có thể giữ khoá làm cả kết nối đọc bận → lỗi đọc là ca HỎNG, không làm bài sập (đột biến phải ra BẮT).
     const haiGiaoDichVaRun = async (loai) => {
-      const v = await soDu2();
-      const a = await napThu(), b = await napThu();
-      const e = await ghiNhatKy(loai);
-      const sau = await soDu2(), dong = await dem2(loai);
-      return { dung: a.status === 200 && b.status === 200 && !e && sau === v + 2000 && dong === 1,
-        mo: `${moTa(a)} / ${moTa(b)} · ví ${v} → ${sau} · run ${e ? e.code : 'ok'}, dòng ${dong}` };
+      try {
+        const v = await soDu2();
+        const a = await napThu(), b = await napThu();
+        const e = await ghiNhatKy(loai);
+        const sau = await soDu2(), dong = await dem2(loai);
+        return { dung: a.status === 200 && b.status === 200 && !e && sau === v + 2000 && dong === 1,
+          mo: `${moTa(a)} / ${moTa(b)} · ví ${v} → ${sau} · run ${e ? e.code : 'ok'}, dòng ${dong}` };
+      } catch (e) { return { dung: false, mo: `kết nối đọc: ${e.code || e.message}` }; }
     };
     const x3 = await haiGiaoDichVaRun('p26d_d3');
     k('D3 sau một lần BEGIN bận: 2 lần nạp → 200 và ví +2.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)', x3.dung, x3.mo);
 
-    giu = await c2.transaction('write');
-    const e7 = await ghiNhatKy('p26d_d7a');
-    await giu.rollback();
-    const x7 = await haiGiaoDichVaRun('p26d_d7b');
+    let e7 = null, x7 = { dung: false, mo: '' };
+    try {
+      giu = await c2.transaction('write');
+      e7 = await ghiNhatKy('p26d_d7a');
+      await giu.rollback();
+      x7 = await haiGiaoDichVaRun('p26d_d7b');
+      x7.dung = x7.dung && await dem2('p26d_d7a') === 0;
+    } catch (e) { x7.mo = `kết nối khác: ${e.code || e.message}`; }
     k('D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY, không ghi; sau đó 2 lần nạp + run ghi THẬT (kết nối được thay)',
-      e7?.code === 'SQLITE_BUSY' && await dem2('p26d_d7a') === 0 && x7.dung, `${e7?.code} · d7a ${await dem2('p26d_d7a')} · ${x7.mo}`);
+      e7?.code === 'SQLITE_BUSY' && x7.dung, `${e7?.code} · ${x7.mo}`);
 
     // D10 (Q8a): SELECT gặp bận THẬT — cần khoá EXCLUSIVE (khoá ghi thường vẫn cho đọc). Câu SELECT treo làm hỏng kết nối dùng chung.
-    await c2.execute('BEGIN EXCLUSIVE');
-    let e10 = null;
-    try { await db.query('SELECT COUNT(*) AS n FROM pos_wallets'); } catch (e) { e10 = e; }
-    await c2.execute('ROLLBACK');
-    const x10 = await haiGiaoDichVaRun('p26d_d10');
+    let e10 = null, x10 = { dung: false, mo: '' };
+    try {
+      await c2.execute('BEGIN EXCLUSIVE');
+      try { await db.query('SELECT COUNT(*) AS n FROM pos_wallets'); } catch (e) { e10 = e; }
+      await c2.execute('ROLLBACK');
+      x10 = await haiGiaoDichVaRun('p26d_d10');
+    } catch (e) { x10.mo = `kết nối khác: ${e.code || e.message}`; }
     k('D10 SELECT ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; sau đó 2 lần nạp + run ghi THẬT (kết nối được thay)',
       e10?.code === 'SQLITE_BUSY' && x10.dung, `${e10 ? e10.code : 'SELECT không bận'} · ${x10.mo}`);
     c2.close();
