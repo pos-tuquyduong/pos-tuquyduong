@@ -144,7 +144,7 @@ export default function DoiSoat() {
           {kieu === 'tuan' && (
             <div className="card mb-1">
               {theoSo(t?.chuyen_khoan, 'Chuyển khoản')}
-              <div style={{ fontSize: '0.85rem' }}>So với sao kê ngân hàng của tuần này (người so, khoảng 5 phút). {kq.sao_ke ? '' : '🟡 Chưa so sao kê.'}</div>
+              <div style={{ fontSize: '0.85rem' }}>So với sao kê ngân hàng của tuần này (người so, khoảng 5 phút). {kq.sao_ke?.da_so === 1 ? '' : '🟡 Chưa so sao kê.'}</div>
               {duocGhi && (
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.5rem' }}>
                   <label><input type="checkbox" checked={saoKe.da_so} onChange={(e) => setSaoKe({ ...saoKe, da_so: e.target.checked })} /> Đã so sao kê</label>
