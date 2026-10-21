@@ -454,6 +454,91 @@ BÀI HỌC:
 Kiểm sau vòng 3 (HEAD `a2581ed` + hồ sơ): `node cong_cu/thu_KH1.js` → 156 · 0; `dot_bien.py` → ĐỐI CHỨNG 156 · 0, 82 / 82; `npm test -- --day-du` → PASS 71 · FAIL 0 ·
 CẢNH BÁO 1 (cảnh báo cũ "route GET có lệnh ghi (3)"); `thu_P20`, `gia_lap/chay.js`, `thu_gia_lap.js` xanh.
 
+### Vòng 4 (21.10.2026, trên HEAD `7013f4d`) — báo cáo của agent soát, chép nguyên
+
+~~~
+ĐẠT. Không còn LỖI nào phải sửa trong việc này. Vòng 3 đã xử lý đủ 5 mục. Còn 4 nghi ngờ, đều mức thấp: hồ sơ cần ghi thêm, code không phải sửa.
+
+Tôi chỉ đọc, không sửa hay commit file nào trong kho. Cây vẫn sạch, HEAD là `7013f4d`.
+
+**Đã chạy lại trên HEAD `7013f4d`:**
+- `node cong_cu/thu_KH1.js` → 156 đạt · 0 hỏng.
+- `node cong_cu/thu_P20.js` → 170 đạt · 0 hỏng.
+- `npm test -- --day-du` → PASS 71 · FAIL 0 · CẢNH BÁO 1.
+- `python3 viec/KH-API-1/dot_bien.py` (đủ bộ) → ĐỐI CHỨNG 156 · 0, 82 bị bắt · 0 không bị bắt (trên 82).
+- `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` → chỉ ✗ [A19].
+- Tôi dựng hai bản gốc bằng `ban_sao_goc.py` rồi chạy bài của HEAD trên đó:
+  - bản `89e66dc` (trước vòng sửa 3) → 150 đạt · 6 hỏng, đúng 6 dòng ✗ ghi trong `bang_chung_do.txt`;
+  - bản `0bffc03` (= `27e1ac1^`) → 9 đạt · 92 hỏng.
+- Tôi chạy `server/index.js` THẬT trên kho tạm (thay `ketNoiKho`, chặn `listen`), script nháp ở `<scratchpad>/h/chuoi.js`. Kết quả:
+  - **Dưới `/api/kh`, mọi lỗi đều có `code`:**
+    - JSON hỏng (`xin-ma`, `xac-minh`) → 400 YEU_CAU_KHONG_HOP_LE.
+    - Thân hơn 5 MB → 413; urlencoded quá 1000 tham số → 413; charset lạ → 415. Cả ba đều mang YEU_CAU_KHONG_HOP_LE.
+    - POST đường lạ chưa có token → 401 KH_TOKEN_SAI.
+    - GET/POST đường lạ có token khách → 404 KHONG_TIM_THAY.
+    - `GET /api/kh` (gốc) chưa token → 401.
+    - Token nhân viên gọi `/api/kh/toi` → 401.
+    - Preflight OPTIONS → 204. `/API/KH/toi` (chữ hoa) → 200.
+  - **Không đổi hành vi cũ:**
+    - `/api/khach`, `/api/kh.json`, `/api/khx/toi` → 404 cũ (`/api/kh` không nuốt các đường này).
+    - `/api/pos/kh/cap-ma` hợp lệ → 200; token khách gọi vào → 401 INVALID_TOKEN.
+    - `/api/pos/*` (JSON hỏng, đường lạ) giữ đúng 500 / 404 cũ.
+    - `/` và `/ban-hang` → 200 HTML (`express.static` và SPA fallback vẫn chạy).
+
+ĐẠT
+LỖI TÌM ĐƯỢC:  (không có lỗi phải sửa trong việc này)
+
+NGHI NGỜ:
+1. server/routes/kh/loi.js:38 — nhánh 5xx của loiTangKh không có ca, không có đột biến (K3).
+   - Tôi tự đột biến: `return res.status(500).json({ error: String(err && err.message) })` (lộ lời báo, mất code). Bài vẫn 156 · 0.
+   - Tôi không tìm được đường nào từ máy khách tới nhánh này:
+     - bộ đọc thân chỉ ném 4xx;
+     - mọi route của kh/index.js đều có try/catch;
+     - xacThucKhach tự bắt lỗi của nó.
+   - Không lộ thật hôm nay. Nhưng bảng "Vòng 3 — đã sửa" (trang_thai.md:448) và dot_bien.py:150-157 không nói nhánh này CHƯA KIỂM. Báo cáo bước 11 nên ghi rõ.
+2. cong_cu/thu_KH1.js:91 so với server/index.js:64 — app thử không giống chuỗi thật (K3/K1 nhẹ).
+   - App thử dùng `express.json()` hạn mặc định 100 KB; index.js dùng `limit: '5mb'`.
+   - Ca "G thân quá lớn → 413" (thu_KH1.js:771-772) gửi 200 KB. Trên index.js thật, thân đó KHÔNG quá lớn: tôi chạy ra 400 SDT_KHONG_HOP_LE.
+   - Ca vẫn khoá đúng nhánh "giữ status 4xx" (VS-G-loi-tang-luon-400 bị bắt). Nhưng chú thích :102 "gắn ĐÚNG như index.js" và :13 "mount ĐÚNG đường như index.js" nói rộng: app thử còn thiếu urlencoded, SPA fallback và bộ lỗi chung.
+3. server/index.js:173-178 với /api/pos/kh/cap-ma — đường song song của LỖI 1 vòng 3, trên route nhân viên của chính việc này (K4).
+   - JSON hỏng gửi tới cap-ma → 500 {"error":"Internal server error"}, không code (tôi đã chạy).
+   - Giống hành vi cũ của mọi /api/pos/*, màn quầy gửi JSON chuẩn. Vì vậy không xếp là lỗi.
+   - Chưa có dòng `## Phát hiện`. Vá chỉ cần một dòng `app.use('/api/pos/kh', loiTangKh)`, hoặc ghi Phát hiện.
+4. cong_cu/thu_KH1.js:814 ("bài không nạp được index.js — nó tự listen") và trang_thai.md:562-563 nói quá (K1).
+   - Script nháp của tôi nạp được index.js thật chỉ với hai móc: thay ketNoiKho (như bài vẫn làm) và chặn http.Server.prototype.listen với PORT=0.
+   - Vậy "chỉ khoá bằng phép tĩnh" là lựa chọn, không phải bắt buộc. Đó đúng là dạng K3 "bài thử tự gắn middleware rồi đo".
+   - Nhỏ, ngoài các mục trên:
+     - kh/index.js:3 ghi "mọi đường 503" khi thiếu khoá; thật ra JSON hỏng lúc thiếu khoá ra 400 (vẫn đóng, không lộ).
+     - khachAuth.js:63-66 trả 500 LOI_MAY_CHU khi kho bận; route khác qua loiMayChu trả 409 KHO_BAN. Hai đường cùng tình huống, hai code.
+
+NGHIỆM THU:    23/23 mục có bằng chứng · mục thiếu: không
+  A1 thu_KH1:188 · A2 :200 (randomInt/HMAC chỉ đọc code maKhach.js:47-53, đã có Phát hiện) · A3 :217 · A4 :252 · A5 :287
+  B1 :295 · B2 :345 · B3 :362 · C :372 · D :403
+  E1 :425 · E2 :439 · E3 :450 · E4 :466 · E5 :496 (nhánh SX bật CHƯA KIỂM) · E6 :527 · E7 :574
+  F1 :683 · F2 :694 · F3 :713
+  G :728 (+ ca tầng ứng dụng :767-777, phép tĩnh :822-823, chuỗi index.js thật tôi chạy) · H :793 + npm test --day-du 71/0
+  Đột biến: đủ 7 loại phiếu đòi + 6 G mới, 82/82 tôi chạy lại.
+
+CHƯA SOÁT ĐƯỢC:
+- Số tầng proxy của Render / IP thật; kiến trúc gọi /api/kh của KH-UI-1.
+- Đua INSERT…SELECT trên Turso từ xa.
+- Nhánh SX bật của /menu.
+- `node tu_chay/cong.js chay` (cần npm ci); dòng "HEAD ĐÃ KIỂM" (bước 11.4).
+- Bộ đột biến LUOI-5 (đã có Phát hiện số 169).
+- Đường nào tới nhánh 5xx của loiTangKh — chỉ suy từ đọc code (NGHI NGỜ 1).
+
+BÀI HỌC:
+- KHOÁ (bài thử): index.js nạp được trong bài bằng móc listen + PORT=0 (khuôn script nháp `<scratchpad>/h/chuoi.js`). Nên thay phép tĩnh "thứ tự app.use" bằng ca HTTP chạy trên chuỗi thật: JSON hỏng, đường lạ, /api/pos cũ, SPA. Phép tĩnh không bắt được middleware thật lệch cấu hình (limit 5mb).
+- NGUYÊN TẮC (K3, KHUON_LOI): bài tự dựng app thì chép CÙNG cấu hình middleware (express.json limit…) với index.js. Ca biên ("quá lớn") phải vượt ngưỡng THẬT, không phải ngưỡng của app thử.
+- NGUYÊN TẮC (K3): bộ xử lý lỗi mới có bao nhiêu nhánh thì bấy nhiêu đột biến. Nhánh không với tới từ máy khách thì ghi CHƯA KIỂM, đừng im lặng.
+- NGUYÊN TẮC (K4): luật "lỗi có code" của việc phủ MỌI tiền tố route việc tạo ra (/api/kh VÀ /api/pos/kh), hoặc ghi rõ ngoại lệ.
+~~~
+(Chép nguyên; rào `~~~`, gỡ hai dòng rào ba dấu huyền bên trong; đường dẫn nháp của agent viết tắt `<scratchpad>` — thư mục nháp của phiên, không trong kho.)
+
+**Sau vòng 4:** ĐẠT, hết vòng sửa (3 / 3). Bốn nghi ngờ KHÔNG sửa code (sửa nữa là vòng sửa thứ 4 — skill bước 8 cấm): ghi vào `## Phát hiện` và
+mục CHƯA KIỂM của báo cáo dưới — gồm cả hai chú thích nói rộng ở `thu_KH1.js` (nghi ngờ 2, 4) và câu `trang_thai.md` ở `## Phát hiện` "tự `listen`"
+(nghi ngờ 4: thật ra nạp được bằng móc `listen` — đã sửa câu đó ở dưới, chỉ hồ sơ).
+
 ## Câu hỏi
 (Lượt 6: không có câu hỏi mới.)
 
@@ -559,8 +644,19 @@ Q1–Q7 dưới đây ĐÃ được chủ quán trả lời (18.10) — giữ đ
 ## Phát hiện (ngoài phạm vi — không sửa)
 - (soát vòng 3) Trần Q9 theo IP (`maKhach.js` NHAN_IP_GIO 30) giả định App KH gọi `/api/kh` THẲNG từ máy khách. Nếu KH-UI-1 đi qua một máy chủ App
   trung gian thì `req.ip` là IP máy đó → mọi khách chung 30 lượt / giờ. KH-UI-1 phải gọi thẳng, hoặc mở việc chuyển IP thật qua tiêu đề tin cậy.
-- (soát vòng 3) Mount thật của `index.js` (thứ tự `loiTangKh` / router / bộ lỗi chung) chỉ khoá bằng phép tĩnh — bài thử dựng app Express riêng vì
-  `index.js` tự `listen`. Đề xuất KHOÁ (việc sau): tách `app` khỏi `listen` để bài nạp được chuỗi middleware thật (`index.js` ngoài phần việc này sửa).
+- (soát vòng 3, sửa câu theo soát vòng 4) Mount thật của `index.js` (thứ tự `loiTangKh` / router / bộ lỗi chung) chỉ khoá bằng phép tĩnh — bài thử
+  dựng app Express riêng. Soát vòng 4 nạp được `index.js` THẬT bằng hai móc (thay `ketNoiKho` + chặn `http.Server.prototype.listen`, PORT=0) và chạy đủ
+  chuỗi: mọi lỗi dưới `/api/kh` có `code`, `/api/pos/*` / SPA giữ hành vi cũ. Đề xuất KHOÁ (việc sau): bài nạp `index.js` thật theo khuôn đó, thay phép
+  tĩnh thứ tự `app.use` bằng ca HTTP (JSON hỏng, thân > 5 MB, đường lạ, `/api/pos` cũ, SPA).
+- (soát vòng 4) App thử của `thu_KH1.js` dùng `express.json()` hạn 100 KB, `index.js` dùng `limit: '5mb'` → ca "G thân quá lớn" (200 KB) chỉ khoá nhánh
+  "giữ status 4xx" của `loiTangKh`; trên chuỗi thật 200 KB không quá lớn (soát vòng 4 chạy thân > 5 MB thật → 413 YEU_CAU_KHONG_HOP_LE). Chú thích
+  `thu_KH1.js` "gắn ĐÚNG như index.js" / "mount ĐÚNG đường như index.js" / "bài không nạp được index.js — nó tự listen" nói rộng — sửa cùng KHOÁ trên.
+- (soát vòng 4) Nhánh 5xx của `loiTangKh` (`kh/loi.js`, gọi `loiMayChu`) không ca, không đột biến; không tìm được đường từ máy khách tới nhánh này
+  (bộ đọc thân chỉ ném 4xx, route `/kh` đều có try/catch) — CHƯA KIỂM.
+- (soát vòng 4) `/api/pos/kh/cap-ma` (route nhân viên của việc này) JSON hỏng → 500 `Internal server error` không `code` — như MỌI `/api/pos/*` cũ.
+  Một dòng `app.use('/api/pos/kh', loiTangKh)` là vá; để việc sau / KH-QUAY-1 (đổi hành vi nhóm `/api/pos` thì nên làm đồng loạt).
+- (soát vòng 4) `khachAuth.js` trả 500 LOI_MAY_CHU khi kho bận, các route `/kh` khác qua `loiMayChu` trả 409 KHO_BAN — cùng tình huống, hai `code`.
+  `kh/index.js` dòng đầu ghi "mọi đường 503" khi thiếu khoá — JSON hỏng lúc thiếu khoá ra 400 (vẫn đóng, không lộ).
 - (soát vòng 2) `cong_cu/thu_P20.js` [A] r3 (/claim đơn nợ của `sdt3`), [A] r4 (/nhan-diem đơn nợ của `sdt4`), [B2] r1 / r2 (đơn hoàn tiền) nhận mã của bill
   CÓ ghi SĐT bằng SĐT mới → vi phạm cả Q11 lẫn phép đang thử; xanh chỉ vì `billSdtKhac` đứng SAU `kiemDonCuaMa` (`signup-codes.js` hai chỗ gọi).
   Phiếu chỉ mở [D] và G2 của bài này. Đề xuất (việc sau): bốn ca đó nhận bằng SĐT trên bill (cùng `sdtTrenBill`) — một dòng mỗi ca.
@@ -587,3 +683,81 @@ Q1–Q7 dưới đây ĐÃ được chủ quán trả lời (18.10) — giữ đ
 - (soát vòng 1) Voucher phát qua `/claim` không có cột người tạo → Đối soát không tách được voucher nhận qua App với qua `X-Service-Key`.
 - (soát vòng 1) A2 `crypto.randomInt` và HMAC có khoá (`bamMa`) chỉ có bằng chứng đọc code, không ca / đột biến khoá (thay bằng `Math.random` hay
   sha256 không khoá thì bài vẫn xanh) — khoá được bằng phép tĩnh, chưa làm.
+
+## Báo cáo (bước 10) — lượt 6, 21.10.2026
+
+```
+VIỆC:        KH-API-1 — Cổng khách /api/kh: đăng nhập OTP, hồ sơ, menu, điểm, voucher, nhận mã bill, lịch sử đơn của mình
+ĐÃ SỬA:      server/database.js:111, :128 — THÊM bảng pos_kh_ma_dang_nhap, pos_kh_lan_thu (+ chỉ mục), ngay sau pos_customers
+             server/routes/backup.js:43-44 — hai dòng BACKUP_TABLES ngay sau pos_customers (Q8, Q9)
+             server/utils/maKhach.js — GIOI_HAN :14, bamMa :47 (HMAC), capMaQuay :57, xinMaGui :68, giuLuotNhanMa :86 (Q9, một câu), xacMinhMa :106
+             server/utils/guiMaKhach.js — chế độ quay (mặc định) / gia (chỉ máy thử)
+             server/utils/diemKhach.js — hàm điểm / voucher dùng chung, loyalty.js gọi lại (không đổi hành vi)
+             server/middleware/khachAuth.js — token khách khoá riêng, kiểm loai 'kh', 503 KH_CHUA_CAU_HINH
+             server/routes/kh/index.js — dang-nhap, toi, diem, voucher, don, menu, nhan-ma-bill, nhan-diem, 404 KHONG_TIM_THAY (vòng 3)
+             server/routes/kh/quay.js — POST /api/pos/kh/cap-ma (nhân viên)
+             server/routes/kh/loi.js — bao / loiMayChu / loiTangKh (vòng 3)
+             server/routes/signup-codes.js:87 billSdtKhac (Q11, gọi :201 và :370); :139 nhanDiemMaBill, :316 nhanMaUuDai (tách hàm, thêm code)
+             server/routes/products.js — layMenuQuay (tách thân GET /, lệnh ghi vẫn trong khối E14)
+             server/index.js:56 trust proxy 1 · :120 gắn /api/kh · :121 gắn loiTangKh
+             env.example — khoá token khách riêng, GUI_MA_KHACH · kiem_tra_truoc_khi_giao.js:495 thêm thu_KH1 vào mảng bài chạy thật
+             cong_cu/thu_KH1.js (mới) · cong_cu/thu_P20.js [D] / G2 SĐT trên bill + ca [Q11] (Q12) · cong_cu/gia_lap/kich_ban.js KB13 (Q12)
+BÀI THỬ:     thu_KH1.js trên gốc (6fe38d8 và mốc 0bffc03) → 9 đạt · 92 hỏng (9 ca canh đường cũ); sau vá → 156 đạt · 0 hỏng.
+             thu_P20.js trên gốc 0bffc03 → 169 · 1 (ca [Q11] BILL_SDT_KHAC, HTTP 200); sau vá → 170 · 0.
+             Đột biến dot_bien.py: ĐỐI CHỨNG 156 · 0, 82 / 82 bị bắt. npm test -- --day-du: PASS 71 · FAIL 0 · CẢNH BÁO 1 (cũ).
+ĐÃ RÀ K4:    grep "claimed_at = ?|diem_nhan_luc = ?" trong server/ → 3 chỗ (2 câu chiếm + 1 gỡ, signup-codes.js), billSdtKhac 2 chỗ gọi — đã xử lý hết;
+             grep "req.(body|query|params)" trong server/routes/kh/ → SĐT từ client chỉ ở dang-nhap và cap-ma (hợp lệ);
+             grep "claim(|nhanDiem(" trong cong_cu/ → mọi ca mong 200 nhận bằng SĐT trên bill; 4 ca CHẶN cũ của thu_P20 [A]/[B2] còn nhận bằng SĐT
+             khác (xanh nhờ thứ tự cổng) — ngoài phần phiếu mở → Phát hiện. Lỗi tầng ứng dụng /api/kh (vòng 3) đã vá; /api/pos/kh → Phát hiện.
+CHƯA KIỂM:   - Số tầng proxy Render (trust proxy 1): lên production, nhận mã bill / nhận điểm qua App từ 2 mạng (wifi + 4G) rồi xem cột ip của
+               pos_kh_lan_thu ra 2 giá trị khác nhau (index.js:55). Chế độ quay không ghi dòng mã nên KHÔNG xem bảng mã.
+             - Trần Q9 theo IP (30 / giờ, chủ quán chốt "Ngưỡng Q9 giữ"): khách chung IP (wifi quán, 4G CGNAT) chung 30 lượt; mỗi khách mới 2 lượt
+               (voucher + điểm) → ~15 khách mới / giờ / IP. KH-UI-1 phải gọi /api/kh THẲNG từ máy khách — qua máy chủ trung gian thì cả App chung 30.
+             - Đua INSERT…SELECT / UPDATE có điều kiện trên Turso từ xa (chỉ thử trên kho cục bộ).
+             - Nhánh SX bật của GET /api/kh/menu; tải /menu trên Render free.
+             - Mount thật trong index.js chỉ có phép tĩnh trong bài (soát vòng 4 tự chạy index.js thật một lần, ngoài kho).
+             - Nhánh 5xx của loiTangKh: không ca, không đột biến (không tìm được đường từ máy khách).
+             - crypto.randomInt / HMAC có khoá: chỉ bằng chứng đọc code.
+             - Dữ liệu order_customer_phone thật trên production (dạng lạ) — bài chỉ thử "+84 …" và ''.
+             - Bộ đột biến LUOI-5 sẽ thoát 4 vì ghi thu_P20 = 169 ca (nay 170) — chưa chạy.
+             - Màn quầy cấp mã (KH-QUAY-1) và App (KH-UI-1) chưa có — chưa thử tay.
+             - Ngân sách: vượt — thu_KH1.js ~837 dòng (phiếu ~350), code mới ~620 dòng ngoài phần tách hàm (phiếu ~300–380); do Q9–Q11 + 3 vòng soát.
+GIT:         xem dòng HEAD ĐÃ KIỂM cuối file và git log --oneline -2 trong câu trả lời cuối của lượt 6
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 4 · BỎ 2 — chi tiết ở ## Bài học dưới
+```
+
+Đếm nghiệm thu (phiếu, từng mục — dòng bài thử theo soát vòng 4 trên `7013f4d`):
+A1 thu_KH1:188 · A2 :200 (+ đột biến BV-A2-bo-chua-dung, VS-A2-*) · A3 :217 · A4 :252 · A5 :287 · B1 :295 · B2 :345 · B3 :362 · C :372 · D :403 ·
+E1 :425 · E2 :439 · E3 :450 · E4 :466 · E5 :496 · E6 :527 · E7 :574 · F1 :683 · F2 :694 · F3 :713 · G :728 + :767-777 + [tĩnh] · H :793 + `npm test --
+--day-du` 71 / 0 · Đột biến: đủ 7 loại phiếu đòi (BV-F2-bo-kiem-loai, VS-F3-*, BV-A2-bo-chua-dung, BV-B1-* / BV-B2-*, BV-E4-bo-loc-sdt,
+VS-E5-tra-them-gia-von), 82 / 82. → 23 / 23 mục có bằng chứng.
+
+## Bài học
+Sự cố của việc (cả 6 lượt): Q8 (bảng mới mà backup.js ngoài Phạm vi — E8 đỏ); Q11 làm đỏ 3 bài cũ ngoài Phạm vi → Q12 (dừng 1 lượt); soát vòng 1
+(4xx thiếu code, ca G lỏng, phép tĩnh marker suông), vòng 2 (hồ sơ cũ, 4 ca thu_P20 chặn hai phép, LUOI-5 169), vòng 3 (lỗi tầng ứng dụng không
+code), vòng 4 ĐẠT với nghi ngờ app thử khác chuỗi thật; vượt ngân sách dòng thử ~2,3 lần; người gác chặn lượt 6 (`.tu_chay_nhat_ky.jsonl`, gồm cả
+lệnh của agent soát): B-PHANTICH ×7 (lệnh ghép `&&` với script, `$'…'`), B-BIMAT-CHU ×4 (chạy bài / ghi hồ sơ có cụm bí mật bằng bash),
+B-CHUONGTRINH ×3 (`paste`…), B-BIMAT-FILE, B-CD-VITRI, B-DICHCHU ×1.
+
+- **KHOÁ 1** — bài thử cổng HTTP mới nạp `index.js` THẬT (móc `listen` + thay `ketNoiKho`), ca HTTP trên chuỗi middleware thật thay phép tĩnh thứ tự
+  `app.use`. Lý do: vòng 3 lỗi tầng ứng dụng lọt vì bài tự dựng app; vòng 4 thấy app thử khác hạn 5 MB. Trong Phạm vi (`thu_KH1.js`) nhưng hết vòng sửa →
+  ĐỀ XUẤT cho việc sau: `cong_cu/thu_KH1.js` thêm mục "chuỗi thật" (JSON hỏng → 400 có code, thân > 5 MB → 413, đường lạ → 404 có code, `/api/pos`
+  JSON hỏng giữ 500 cũ, `/` → HTML); ca đỏ: đột biến BV-G-bo-gan-loi-tang và VS-G-gan-loi-sau-bo-chung phải đỏ ở ca HTTP, không chỉ ở phép tĩnh.
+- **KHOÁ 2** — thêm cổng vào hàm dùng chung thì kèm đột biến "dời cổng mới lên ĐẦU hàm" chạy với MỌI bài cũ: ca đỏ là ca vi phạm hai phép, chỉ xanh nhờ
+  thứ tự (vòng 2: 4 ca thu_P20). ĐỀ XUẤT (ngoài Phạm vi — `tu_chay/` / khuôn dot_bien): luật khung "đột biến dời cổng" cho mọi việc thêm cổng.
+- **KHOÁ 3** — phép bộ kiểm quét route đệ quy `server/routes/**` (vòng 1: `routes/kh/` nằm ngoài mọi phép quét route, gồm E14). Ngoài Phạm vi
+  (`kiem_tra_truoc_khi_giao.js` chỉ được thêm tên bài) → ĐỀ XUẤT, cần chủ quán cho phép (CLAUDE.md §6); ca đỏ: route GET có lệnh ghi đặt trong
+  `server/routes/kh/` phải bị cảnh báo.
+- **NGUYÊN TẮC 1 (K4)** — luật "mọi lỗi của cổng X có code" gắn theo ĐỐI TƯỢNG (mọi phản hồi dưới tiền tố X, mọi tiền tố việc tạo ra), không theo các
+  nhánh route tự viết: lỗi bộ đọc JSON, 404, 413 là đường song song của mọi catch. Ví dụ thật: vòng 1 (4xx hàm chung) rồi vòng 3 (tầng ứng dụng).
+  `KHUON_LOI.md` ngoài Phạm vi → ĐỀ XUẤT thêm vào K4.
+- **NGUYÊN TẮC 2 (K3)** — bài tự dựng app thì chép CÙNG cấu hình middleware với `index.js`; ca biên phải vượt ngưỡng THẬT. Ca dựng bằng móc mà code
+  đúng không chạy móc thì tên / chú thích nói đúng phạm vi móc bắt (ca Q9 "lượt chen"). Ngưỡng tất định so bằng. ĐỀ XUẤT thêm vào K3.
+- **NGUYÊN TẮC 3 (K4)** — cổng mới trong hàm chung → grep MỌI bài cũ gọi hàm đó với dữ liệu vi phạm cổng mới, kể cả ca đang mong mã lỗi KHÁC; đổi số
+  ca của bài cũ → grep `SO_CA` / số ca cũ trong `viec/*/dot_bien.py`. Ví dụ: thu_P20 [A]/[B2], LUOI-5 169. ĐỀ XUẤT thêm vào K4.
+- **NGUYÊN TẮC 4 (K1)** — dời / sửa một câu hồ sơ thì đọc lại trong ngữ cảnh mới và grep cả file tìm câu cùng nghĩa ("dừng chờ Q12" sang đoạn lượt 6;
+  Q5 còn chỉ bảng mã sau Q10; số dòng trôi sau khi chính việc thêm dòng). Đã có trong K1 / K4 — chỉ ĐỀ XUẤT thêm ví dụ, không thêm mục mới.
+- **BỎ 1** — người gác chặn lệnh ghép / `paste` / `$'…'` / cụm bí mật trong lệnh bash: đọc lý do rồi tách lệnh hoặc dùng Edit là đủ, luật người gác đã
+  làm đúng việc.
+- **BỎ 2** — Q8 / Q12 (phiếu thiếu file): đã đi đúng đường hỏi chủ quán; khung đã có bước tự xét cổng trước khi hỏi (skill bước 4).
+- Dọn: không đề xuất xoá lời dặn nào lượt này.
