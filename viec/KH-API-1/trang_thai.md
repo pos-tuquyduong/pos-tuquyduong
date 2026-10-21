@@ -26,6 +26,13 @@
   2838350 KH-API-1: trang thai - cong tinh sau soat vong 1 (chi A19)
   554d78c KH-API-1: soat vong 1 - bao cao, ke hoach sua tai cho, bang chung do 9/86 + 128/0, 62/62 dot bien, cau hoi Q9-Q11
   ```
+- Lượt 6 (`tiep`, 21.10.2026): hook mở phiên kéo `aac75dd → 0ebccfe`; nhánh `viec/KH-API-1`, cây sạch, HEAD `0ebccfe` = FETCH_HEAD `0ebccfe`
+  (`merge-base --is-ancestor` hai chiều đều 0) → không kéo thêm.
+  ```
+  0ebccfe PHIEU: KH-API-1 Q12 (a) mo thu_P20.js + KB13 kich_ban.js
+  aac75dd KH-API-1: trang thai - hook dung bao do thu_P20 (cho Q12)
+  1a8c76b KH-API-1: trang thai - cong tinh luot 5 (chi A19)
+  ```
 
 ## Bước 2 — đã đọc
 `phieu.md`, `CLAUDE.md`, `LUAT_XAY_APP.md`, `KHUON_LOI.md`; code: `signup-codes.js`, `loyalty.js`, `products.js`, `customers.js` (POST /),
@@ -54,6 +61,12 @@ Soát độc lập (agent phụ chỉ đọc, 4 câu) — đã sửa vào kế h
 - Ca F3 đổi thành so sâu (`38392aa`): bản cũ chỉ so trường `phone` của `/diem` → đột biến đọc điểm theo `?phone=` vẫn lọt.
 - Lượt 5 (Q9–Q11, bài `e3e24e0`): gốc `6fe38d8` → 9 đạt · 91 hỏng; bản trước vá Q9–Q11 (`5e26bd9`) → 126 đạt · 12 hỏng (12 ca chép ở
   `bang_chung_do.txt`); sau vá → 151 đạt · 0 hỏng. `SỐ CA cong_cu/thu_KH1.js: 151`.
+- Lượt 6 (Q12 (a)) — bài cũ SỬA `cong_cu/thu_P20.js` (`e0d1dce`): [D] `phaiQua` và G2 (`donDaClaim`) nhận mã bằng SĐT trên bill (hàm `sdtTrenBill`
+  đọc `order_customer_phone` của mã; bill không ghi SĐT → `undefined` → SĐT mới như cũ) + MỘT ca mới mục [Q11] "/claim bill ví bằng SĐT khác →
+  400 BILL_SDT_KHAC". Không bớt ca. Gốc cổng `27e1ac1^` = `0bffc03` → **169 đạt · 1 hỏng** (đúng ca mới, HTTP 200); code đã vá → **170 đạt ·
+  0 hỏng**; số ca gốc = head (không cảnh báo A16 C2). `SỐ CA cong_cu/thu_P20.js: 170`. Không xin `## Bài thử cũ sửa` (bài đỏ hợp lệ trên gốc — A11).
+  `cong_cu/gia_lap/kich_ban.js` KB13 (`9250024`): `c.claim(d.ma)` → `c.claim(d.ma, KH.quen)` (1 dòng; `c.mong` không đổi, số kịch bản / bất biến không
+  đổi). KB13 không phải bài `thu_*.js`; bằng chứng đỏ của bản cũ trên code đã vá: `## Bước 6` lượt 5 (`✗ KB13 … BILL_SDT_KHAC`).
 
 ## Bước 5 — chỗ vá → đột biến (`dot_bien.py`; chạy từng tên được, có ĐỐI CHỨNG, bài sập ≠ BẮT)
 | Chỗ vá | Đột biến |
@@ -123,7 +136,11 @@ không đan xen) → thêm ca tất định "yêu cầu khác ghi lượt chen g
 - `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` trên `8213118` (trước khi ghi bảng đột biến lượt 5): `✗ [A17]` (15 tên mới — nay đã ghi)
   và `✗ [A19]` (chưa tới 11.4); KHÔNG có ✗ Phạm vi.
   Chạy lại trên `5dde191` (sau khi ghi bảng): chỉ `✗ [A19]` — A17 hết.
-- Hook dừng (`kiem_truoc_khi_dung.cjs`) báo đỏ `thu_P20.js` — chính 3 bài của Q12. Không sửa file ngoài Phạm vi, không nới bộ kiểm, không tự chọn (b)/(c) thay chủ quán → dừng chờ Q12.
+- Hook dừng (`kiem_truoc_khi_dung.cjs`) báo đỏ `thu_P20.js` — chính 3 bài của Q12.
+- **Lượt 6 — Q12 (a)** (`e0d1dce`, `9250024`): `node cong_cu/thu_P20.js` → 170 đạt · 0 hỏng. `npm test` → PASS 67 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ
+  "route GET có lệnh ghi (3)" — `packages.js`, `products.js`, `sync.js`); `npm test -- --day-du` → **PASS 71 · FAIL 0 · CẢNH BÁO 1**: `✓ bài chạy thật
+  cong_cu/thu_P20.js xanh`, `✓ … thu_KH1.js xanh`, `✓ … gia_lap/chay.js xanh (33.5 s)`, `✓ … thu_gia_lap.js xanh (48.4 s)`. `server/` không đổi từ
+  `8213118` → không chạy lại `dot_bien.py` (76/76 ở lượt 5 vẫn đúng code). Không sửa file ngoài Phạm vi, không nới bộ kiểm, không tự chọn (b)/(c) thay chủ quán → dừng chờ Q12.
 
 ## Bước 8 — soát độc lập `/ra-soat`
 
@@ -203,7 +220,10 @@ Còn lại của báo cáo → Q9–Q11 (`## Câu hỏi`) và `## Phát hiện`.
 chủ quán trả lời (vòng sửa đã dùng: 1 / 3).
 
 ## Câu hỏi
-**Lượt 5 (19.10.2026) — chờ chủ quán trả lời Q12.** Q9–Q11 đã làm (phiếu `5e26bd9`; chi tiết + hai chỗ máy tự chọn trong khung chủ quán
+(Lượt 6: không có câu hỏi mới.)
+
+## Câu hỏi cũ (đã trả lời)
+**Lượt 5 (19.10.2026) — Q12, chủ quán trả lời 19.10: (a) (phiếu `0ebccfe`); làm ở lượt 6.** Q9–Q11 đã làm (phiếu `5e26bd9`; chi tiết + hai chỗ máy tự chọn trong khung chủ quán
 chốt ở `ke_hoach.md` §8 — ngưỡng 10 / 30 là số đề xuất của Q9-(a); đếm MỌI lần gọi, chung hai đường).
 
 - **Q12 — Q11 "áp cả route cũ" làm đỏ 3 bài cũ ngoài Phạm vi.** `npm test` đỏ đúng 3 bài (chép ở `## Bước 6` lượt 5): `cong_cu/thu_P20.js`
@@ -223,7 +243,6 @@ chốt ở `ke_hoach.md` §8 — ngưỡng 10 / 30 là số đề xuất của Q
   giữ "ai cầm giấy cũng nhận" → không đụng bài cũ, đổi 2 dòng, ca Q11 route cũ đổi chiều. Trái chữ "áp cả route cũ" của Q11.
   (c) Bỏ Q11 (giữ như cũ, ghi Phát hiện).
 
-## Câu hỏi cũ (đã trả lời)
 **Lượt 4 (19.10.2026) — Q9–Q11, chủ quán trả lời 19.10 (phiếu `5e26bd9`): Q9 (a) bảng đếm lần thử; Q10 (a) quay không sinh mã / không ghi /
 không đếm; Q11 chặn bill SĐT khác, áp cả route cũ.** Giữ để đối chiếu:
 
