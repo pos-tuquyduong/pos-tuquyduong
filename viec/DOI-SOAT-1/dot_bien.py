@@ -39,7 +39,13 @@ DOT_BIEN = [
   ('VS-DS-NGAY-BO-VI', [(DS, "COALESCE((SELECT MAX(created_at) FROM pos_balance_transactions WHERE order_id = o.id), ''),", "'',", 1)], r'✗ C6 '),
   ('VS-DS-GOI-NGAY-TAO', [(DS, "    COALESCE((SELECT MAX(x.created_at) FROM pos_orders x WHERE x.customer_package_id = cp.id), ''),\n", "    '',\n", 1)], r'✗ C6b'),
   ('VS-DS-GOI-UPDATED-AT', [(DS, 'MAX(cp.created_at,\n', "MAX(cp.created_at, COALESCE(cp.updated_at, ''),\n", 1)], r'✗ C6c'),
-  ('BV-DS-BO-AP-DUNG-TU', [(DS, "!troi && n10 && apDung && n10 < apDung ? 'cu'", "false ? 'cu'", 1)], r'✗ C1'),
+  ('VS-DS-NGAY-BO-HUY', [(DS, "MAX(o.created_at, COALESCE(o.cancelled_at, ''),", "MAX(o.created_at, '',", 1)], r'✗ C7 .*huỷ'),
+  ('VS-DS-NGAY-BO-NHAT-KY', [(DS, "COALESCE((SELECT MAX(luc) FROM pos_order_log WHERE order_id = o.id), ''),", "'',", 1)], r'✗ C7 .*nhật ký'),
+  ('VS-DS-NGAY-BO-DIEM', [(DS, "COALESCE((SELECT MAX(created_at) FROM pos_point_transactions WHERE order_id = o.id), '')) AS d", "'') AS d", 1)], r'✗ C7 .*dòng điểm'),
+  ('VS-DS-GOI-BO-HUY-MUA', [(DS, "COALESCE((SELECT m.cancelled_at FROM pos_orders m WHERE m.id = cp.order_id), '')) AS d", "'') AS d", 1)], r'✗ C7d'),
+  ('VS-DS-I1-MIN', [(DS, 'ELSE MAX(claimed_at, diem_nhan_luc) END AS d', 'ELSE MIN(claimed_at, diem_nhan_luc) END AS d', 1)], r'✗ C7e'),
+  ('VS-DS-D2-MOI-DONG', [(DS, "if (c && the.has(c)) l.nhan = 'D2';", "if (c) l.nhan = 'D2';", 1)], r'✗ D2e'),
+  ('BV-DS-BO-AP-DUNG-TU', [(DS, "n10 && apDung && n10 < apDung ? 'cu'", "false ? 'cu'", 1)], r'✗ C1'),
   ('VS-DS-AP-DUNG-NGUOC', [(DS, "n10 < apDung ? 'cu'", "n10 <= apDung ? 'cu'", 1)], r'✗ C2'),
   ('VS-DS-AN-KHONG-RO-NGAY', [(DS, LOC, "if (!gop && phamVi === 'ky' && (!n10 || n10 < ky.tu || n10 > ky.den)) return null;", 1)], r'✗ C5'),
   # ── D: SĐT nhận ≥ 2 lần ──
@@ -64,6 +70,8 @@ DOT_BIEN = [
   ('VS-DS-KET-MOC-XA-NHAT', [(DS, 'ORDER BY g.ky DESC LIMIT 1', 'ORDER BY g.ky ASC LIMIT 1', 1)], r'✗ E7'),
   ('VS-DS-RA-THEO-NGAY-TAO', [(DS, 'AND DATE(o.cancelled_at) BETWEEN ? AND ?', 'AND DATE(o.created_at) BETWEEN ? AND ?', 1)], r'✗ E8'),
   ('VS-DS-RA-THEO-GOI-KHACH', [(DS, 'SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)`, [tu, den])', 'SELECT 1 FROM pos_customer_packages cp WHERE cp.order_id = o.id)`, [tu, den])', 1)], r'✗ E0 '),
+  ('VS-DS-THU-BO-CACH', [(DS, "CASE WHEN json_extract(chi_tiet, '$.cach') = ? THEN", 'CASE WHEN ? IS NOT NULL THEN', 1)], r'✗ E10'),
+  ('VS-DS-KET-MOC-MOI-LOAI', [(DS, "x.loai = 'ket' AND x.ky = g.ky", 'x.ky = g.ky', 1)], r'✗ E11'),
   ('VS-DS-GHI-DE', [(DS, "  const d = kiemTraGhi(b);\n", "  const d = kiemTraGhi(b);\n  await db.run('DELETE FROM pos_doi_soat_ghi WHERE loai = ? AND ky = ?', [d.loai, d.ky]);\n", 1)], r'✗ E4'),
   ('BV-DS-BO-KIEM-SO-TIEN', [(DS, "const nguyen = (v) => Number.isInteger(v) && v >= 0 && v <= TRAN_KET;", "const nguyen = () => true;", 1)], r'✗ E5 '),
   # ── F: tuần / tháng ──
@@ -74,6 +82,7 @@ DOT_BIEN = [
   ('BV-DS-LOAI-SAI', [(DS, "if (!['ket', 'sao_ke'].includes(b.loai)) throw", 'if (false) throw', 1)], r'✗ F2c'),
   ('BV-DS-DA-SO-SAI', [(DS, 'if (b.da_so !== 0 && b.da_so !== 1) throw', 'if (false) throw', 1)], r'✗ F2c'),
   ('VS-DS-F-BO-DIEM-TRU', [(DS, 'COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru', '0 AS tru', 1)], r'✗ F3c'),
+  ('BV-DS-VI-CHI-HUY', [(DS, "FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?", 'FROM pos_orders WHERE DATE(created_at) BETWEEN ? AND ?', 1)], r'✗ F3d'),
   ('VS-DS-F-THANG-NHOM', [(DS, "COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong", "COALESCE(COUNT(CASE WHEN points > 0 THEN points END), 0) AS cong", 1)], r'✗ F3'),
   # ── G: quyền ──
   ('BV-DS-BO-QUYEN-GET', [(RP, "router.get('/doi-soat', authenticate, checkPermission('view_reports'), async", "router.get('/doi-soat', authenticate, async", 1)], r'✗ G1 '),
