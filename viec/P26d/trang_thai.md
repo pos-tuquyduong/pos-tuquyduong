@@ -757,3 +757,12 @@ GIT-TUYCHON ×1); vượt ngân sách.
      lại đúng dạng, không tốn thêm.
   2. Đột biến cũ sập sau khi siết bài — bộ đột biến tự gắn nhãn HỎNG-sập nên đã bắt ngay; chỉ một lần.
   3. Vượt ngân sách — chủ quán duyệt từng phần mở rộng (Q6, Q7, Q8, Q9); ghi Phát hiện.
+
+GIT (mục 7 của báo cáo — `git log --oneline -2` tại lần kiểm cuối):
+- 34e6639 P26d: trang_thai — viec nho sau Q9, bao cao 7 muc, dem nghiem thu, bai hoc
+- 75b31c5 P26d: bang chung do Q9 — P15 do tren 328cd7c va goc, SO CA thu_P26c 156
+
+Cổng `node tu_chay/cong.js chay . 14169d8^ HEAD viec/P26d` (21.10, HEAD 34e6639, cây sạch): ✓ CỔNG CHẠY ĐẠT
+
+**DỪNG.** Không merge, không tạo PR — chat soát trước khi tạo PR.
+HEAD ĐÃ KIỂM: 34e6639
