@@ -1254,7 +1254,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     // Kiểm tra đơn hàng
     const order = await queryOne("SELECT * FROM pos_orders WHERE id = ?", [id]);
     if (!order) {
-      return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
+      return res.status(404).json({ error: "Không tìm thấy đơn hàng", code: "KHONG_TIM_THAY_DON" });
     }
 
     if (order.status !== "completed") {   // P26c (C1): đơn đã huỷ / đã hoàn không thu nợ
