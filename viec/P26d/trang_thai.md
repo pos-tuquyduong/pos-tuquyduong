@@ -498,3 +498,52 @@ BÀI HỌC:
   - a58bc78 P26d: trang_thai — bao cao /ra-soat vong 2 (KHONG DAT), vong sua 3, danh dau cau sai, Cau hoi Q8, dung
   - 3072693 P26d: orders.js — pay-debt bo kiem paidAmount <= 0 (code chet sau kiem amount), sua chu thich no le — soat vong 2
   - bfaddb9 P26d: database.js — sua chu thich sai ve SELECT ban (do lai: SELECT ban cung hong ket noi, lo o giao dich thu hai) — soat vong 2
+
+### Vòng sửa 4 (21.10) — làm theo Q8
+
+- Bài thử TRƯỚC (`db5aa01`, `f7c7341`, `6a22b7a`): thu_P26b D3 / D7 đo tới giao dịch THỨ HAI + run (đọc bằng kết nối khác); D10 mới — client khác giữ
+  `BEGIN EXCLUSIVE`, `db.query` SELECT gặp bận thật, nhả, rồi 2 lần nạp + run phải ghi THẬT; F1 / F2 / F4 đổi mã. thu_P26c P5 siết `DA_THU_ROI`;
+  P10–P14 mới. Trên `server/` của `a58bc78`: thu_P26b 87 · 16 (D10 đỏ ĐÚNG lỗi Q8a: `SQLITE_BUSY · HTTP 200 / HTTP 409 KHO_BAN · run SQLITE_BUSY`;
+  F1/F2/F4 mã cũ), thu_P26c 149 · 6. Gốc `14169d8`: 70 · 33 và 136 · 19 → `bang_chung_do.txt`.
+- **Q8a** `83bf98b` database.js: khôi phục `thayKetNoiNeuBan(err)` trong `catch` của `query()`, chú thích sửa theo số đo. Đột biến `BV-A-query-khong-thay`
+  → BẮT ở D10.
+- **Q8b** giữ nguyên ngoại lệ nợ lẻ (ca P9 + `VS-PD-bo-ngoai-le-no-le` canh). Chú thích bài P9 sửa "nợ CŨ" → nợ lẻ (Q8b).
+- **Q8c**
+  - `32b667c` backup.js: `KHOI_PHUC_VI_DON_BI_CHAN` → `KHOI_PHUC_TRANG_TIEN_BI_CHAN` (grep: chỉ backup.js:113 + bài thử + `dot_bien.py`; hồ sơ cũ giữ nguyên làm lịch sử).
+  - `218becb` orders.js pay-debt: thêm `code` cho 5 nhánh 400 cũ — `CACH_TRA_LA` (cùng tình huống `don-mo-rong.js` đổi cách trả),
+    `DON_KHONG_HOP_LE` (đơn huỷ / hoàn — cùng mã `signup-codes.js` dùng cho đơn không ở trạng thái dùng được), `DA_THU_ROI` (cùng mã 409 chống thu
+    hai lần ở chính route này), `DON_KHONG_NO`, `VUOT_QUA_NO` (mới). Câu `error` giữ nguyên (Orders.jsx hiện `data.error`). Nhánh 404 "Không tìm
+    thấy đơn" KHÔNG thêm (Q8c chỉ nói 400).
+  - **Đảo thứ tự tạo / đóng client: KHÔNG làm — đo ra căn cứ sai → Câu hỏi Q9.**
+- `dot_bien.py` (`03f34ee`): +8 đột biến, `SO_CA` 103 / 155. Đột biến cũ `BV-A-bo-thay-ket-noi` làm bài SẬP sau khi D3/D7 đo hai giao dịch (kết nối
+  đọc thứ hai cũng bận) → `6a22b7a` bọc phép đọc: lỗi đọc = ca hỏng → BẮT ở D3.
+- Sau vá: thu_P26b 103 · 0 · thu_P26c 155 · 0 · `npm test -- --day-du` **PASS 70 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ: route GET có lệnh ghi —
+  packages.js, products.js, sync.js) · thu_gia_lap 48,2 s (hạn 120 s).
+
+| Chỗ vá (Q8) | Đột biến | Ca bắt |
+|---|---|---|
+| Q8a `query()` thay kết nối | BV-A-query-khong-thay | D10 |
+| Q8c mã chặn khôi phục | BV-Q8c-ma-khoi-phuc-cu | F1 (+ F2, F4) |
+| Q8c pay-debt `CACH_TRA_LA` | BV-Q8c-pd-bo-ma-cach-tra | P10 |
+| Q8c pay-debt `DON_KHONG_HOP_LE` | BV-Q8c-pd-bo-ma-huy | P14 |
+| Q8c pay-debt `DA_THU_ROI` | BV-Q8c-pd-bo-ma-da-thu · VS-Q8c-pd-da-thu-sai-ma | P5 / P12 |
+| Q8c pay-debt `DON_KHONG_NO` | BV-Q8c-pd-bo-ma-khong-no | P13 |
+| Q8c pay-debt `VUOT_QUA_NO` | BV-Q8c-pd-bo-ma-vuot-no | P11 |
+| thay kết nối ở run + BEGIN (cũ, nay đo 2 giao dịch) | BV-A-bo-thay-ket-noi | D3 |
+
+### Q9 (mở, 21.10) — đảo thứ tự tạo / đóng client (phần ba của Q8c)
+
+Q8c duyệt theo câu của soát vòng 2: "`createClient` ném thì `db` là client đã đóng, mọi lệnh sau ra CLIENT_CLOSED". **Đo 21.10** (script nháp, kho
+file, `cauHinhTurso` ném đúng một lần lúc thay kết nối sau một `run` gặp bận thật; rồi run · giao dịch · giao dịch · run · giao dịch):
+- **Thứ tự hiện tại** (đóng cũ trước): lệnh kế tiếp trên client đã đóng làm **libsql panic → tiến trình Node SẬP** (`Option::unwrap() on None`, thoát 134).
+  Không phải CLIENT_CLOSED.
+- **Thứ tự đảo** (tạo mới trước, ném thì giữ client cũ): máy chủ sống, nhưng client cũ là kết nối HỎNG → lệnh run kế tiếp **báo ok mà KHÔNG ghi**,
+  sau đó mọi giao dịch / run `SQLITE_BUSY` mãi (kho còn 0 dòng).
+- Tức đảo thứ tự đổi "sập to tiếng" thành "mất dữ liệu im lặng + bận mãi" — tệ hơn theo luật "không báo đã ghi khi chưa ghi". Chỉ kho file (Replit),
+  chỉ khi `createClient` ném (thực tế: tạo thư mục `data/` hỏng / hết fd). Máy KHÔNG làm, giữ thứ tự cũ.
+- **Đề xuất:** (a) giữ thứ tự cũ (sập → khởi động lại, không mất im lặng) — đề xuất; (b) đảo + khi tạo mới hỏng thì vẫn đóng cũ (= y như (a)); (c) việc
+  sau: tạo mới hỏng → đánh dấu kho hỏng, mọi lệnh ném lỗi rõ cho tới khi tạo lại được. Không chặn việc này: vòng sửa 4 làm xong phần còn lại.
+
+## Phát hiện (sửa, vòng sửa 4)
+
+- Dòng Phát hiện soát vòng 2 về `thayKetNoiNeuBan` ("`createClient` ném thì `db` là client đã đóng") — hậu quả thật là tiến trình sập (đo 21.10, Q9).
