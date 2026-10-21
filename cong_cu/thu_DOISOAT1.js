@@ -437,6 +437,13 @@ async function main() {
     r = await ds('chu', 'thang', '2026-11-04');
     k('D1d (K5) cùng dữ liệu, cài đặt cho nhận nhiều lần → CẦN XEM (vàng), không đỏ', r.can_xem.some((l) => l.bat_bien === 'D1') && !r.do.some((l) => l.bat_bien === 'D1') && r.ket_qua === 'XANH', tom(r));
     await datCai('nhandiem_chi_lan_dau', '1'); await xoa();
+    // Vòng sửa 4 (chủ quán 13a): ngưỡng "≥ 2 lần" — ca NGAY DƯỚI: mỗi SĐT nhận đúng 1 lần (cả hai cột) → không dòng D1 nào (K5: luồng nhận mã thường ngày)
+    await ins('DS_D1E', '0944444444', '2026-11-04T10:00:00'); await ins('DS_D1F', '0955555555', '2026-11-04T11:00:00', 'diem');
+    r = await ds('chu', 'thang', '2026-11-04');
+    const d1Mot = [...r.do, ...r.can_xem, ...r.cu].filter((l) => l.bat_bien === 'D1' && /0944444444|0955555555/.test(l.mo_ta));
+    k('D1e (K5) SĐT nhận bill đúng 1 lần + SĐT nhận điểm đúng 1 lần → KHÔNG có dòng D1 nào, kết quả XANH', d1Mot.length === 0 && r.ket_qua === 'XANH',
+      `${d1Mot.map((l) => l.mo_ta).join(' | ')} · ${tom(r)}`);
+    await xoa();
 
     const diemThe = await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [f.the]);
     const tongThe = await so('SELECT total FROM pos_orders WHERE id = ?', [f.the]);
@@ -607,6 +614,22 @@ async function main() {
     const k12 = await ds('chu', 'ngay', '2027-01-12');
     k('E11 két thứ 2 11.01 rồi sao kê tuần cùng ngày 11.01 ghi sau → mốc két 12.01 vẫn là 11.01, để lại 70.000 (dòng mới nhất của LOẠI két)',
       kT2.status === 201 && sT2.status === 201 && k12.ket?.moc?.ky === '2027-01-11' && k12.ket?.moc?.de_lai === 70000, JSON.stringify(k12.ket?.moc));
+    // Vòng sửa 4 (chủ quán 13a): ngày thứ 2 có CẢ dòng két lẫn dòng sao kê — xem lại CHÍNH ngày đó, và tuần sau khi két ghi lại
+    const k11 = await ds('chu', 'ngay', '2027-01-11');
+    k('E12 xem chính ngày thứ 2 11.01 (sao kê ghi SAU két): két lấy dòng KÉT — đếm 100.000, lịch sử 1 dòng, không "đếm 0đ"',
+      k11.ket?.so_dem === 100000 && k11.ket?.lich_su?.length === 1 && !k11.do.some((l) => l.bat_bien === 'KET' && /đếm 0đ/.test(l.mo_ta)),
+      JSON.stringify({ so_dem: k11.ket?.so_dem, lich_su: k11.ket?.lich_su?.length, do: k11.do.filter((l) => l.bat_bien === 'KET').map((l) => l.mo_ta) }));
+    const kT2b = await ghiDS('chu', { loai: 'ket', ky: '2027-01-11', so_tien: 100000, de_lai: 70000 });   // két ghi LẠI sau sao kê
+    const t11 = await ds('chu', 'tuan', '2027-01-11');
+    k('E13 két 11.01 ghi lại SAU sao kê → ô sao kê tuần 11→17.01 vẫn lấy dòng SAO KÊ (đã so = 1), không phải dòng két',
+      kT2b.status === 201 && t11.sao_ke?.loai === 'sao_ke' && t11.sao_ke?.da_so === 1, JSON.stringify(t11.sao_ke));
+    // Vòng sửa 4: huỷ đơn THẺ hội viên trả tiền mặt — dòng thẻ product_id = −1.000.000 − tier.id (không phải dòng gói) → tiền trả tận tay
+    const dThe = await taoDon({ customer_phone: sdtMoi(), items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+    const hThe = await huy(dThe);
+    const n12 = await ds('chu', 'ngay', '2027-01-12');
+    k(`E14 mua thẻ ${Number(hang.card_price).toLocaleString('vi-VN')} tiền mặt rồi huỷ cùng ngày 12.01 → "trả ra" = giá thẻ (thẻ KHÔNG phải gói), ròng 0`,
+      hThe.status === 200 && n12.tien?.tien_mat?.ban === Number(hang.card_price) && n12.tien?.tien_mat?.tra_ra === Number(hang.card_price) && n12.tien?.tien_mat?.rong === 0,
+      `${moTa(hThe)} · ${JSON.stringify(n12.tien?.tien_mat)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
