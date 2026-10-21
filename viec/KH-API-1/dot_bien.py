@@ -147,6 +147,14 @@ DOT_BIEN = [
   ('BV-IX-bo-gan-kh', [(IX, "app.use('/api/kh', require('./routes/kh'));", "", 1)], r"✗ index.js: app.use\('/api/kh'"),
   ('VS-IX-gan-kh-chu-thich', [(IX, "app.use('/api/kh', require('./routes/kh'));", "// app.use('/api/kh', require('./routes/kh'));", 1)], r"✗ index.js: app.use\('/api/kh'"),
   ('VS-Q5-trust-proxy-chu-thich', [(IX, "app.set('trust proxy', 1);", "/* app.set('trust proxy', 1); */", 1)], r"✗ index.js: app.set\('trust proxy'"),
+  # ── G tầng ứng dụng (soát vòng 3): lỗi express.json / đường lạ dưới /api/kh → { error, code } ──
+  ('BV-G-bo-gan-loi-tang', [(IX, "app.use('/api/kh', require('./routes/kh/loi').loiTangKh);", "", 1)], r"✗ index.js: app.use\('/api/kh', …loiTangKh\)"),
+  ('VS-G-gan-loi-sau-bo-chung', [(IX, "app.use('/api/kh', require('./routes/kh/loi').loiTangKh);", "", 1), (IX, "// Start server", "app.use('/api/kh', require('./routes/kh/loi').loiTangKh);\n// Start server", 1)],
+   r"✗ index.js: app.use\('/api/kh', …loiTangKh\)"),
+  ('BV-G-loi-tang-bo-nhanh-4xx', [(KL, "if (err && err.status >= 400 && err.status < 500) {", "if (false) {", 1)], r"✗ G JSON hỏng"),
+  ('VS-G-loi-tang-lo-loi', [(KL, "json({ error: LOI.YEU_CAU_KHONG_HOP_LE[1], code", "json({ error: err.message, code", 1)], r"✗ G JSON hỏng"),
+  ('VS-G-loi-tang-luon-400', [(KL, "return res.status(err.status).json", "return res.status(400).json", 1)], r"✗ G thân quá lớn"),
+  ('BV-G-bo-khong-tim-thay', [(KI, "router.use((req, res) => bao(res, 'KHONG_TIM_THAY'));\n", "", 1)], r"✗ G (GET|POST) đường lạ"),
 ]
 
 TONG = re.compile(r'\d+ đạt · \d+ hỏng')
