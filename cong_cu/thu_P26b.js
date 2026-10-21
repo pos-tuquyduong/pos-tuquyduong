@@ -448,7 +448,7 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   // P26d — ví NULL / tổng chi âm (E), đối soát dừng giữa chừng (D), thử lại BEGIN + laLoiBan (A, B), khôi phục (F),
-  // kho bận THẬT (A — CUỐI bài: trên gốc nó làm hỏng kết nối dùng chung, các ca sau sẽ đỏ sai câu).
+  // kho bận THẬT (A, D10 — CUỐI bài: trên gốc nó làm hỏng kết nối dùng chung, các ca sau sẽ đỏ sai câu).
   const BI_MAT = 'P26D_CHUOI_NOI_BO';
   const loiGia = (ma) => { const e = new Error(`${ma}: ${BI_MAT} (giả)`); e.code = ma; return e; };
   const tho = (sdt) => mot('SELECT balance, total_topup, total_spent FROM pos_wallets WHERE phone = ?', [sdt]);
@@ -590,8 +590,8 @@ async function main() {
     // "Nhật ký đồng bộ" ĐỨNG TRƯỚC "Số dư" (cố ý): bản vá chặn trong vòng sẽ đã xoá + ghi trang trước rồi mới chặn.
     const nk0 = await chup('pos_sync_logs'), vi0 = await chup('pos_wallets');
     const a = await khoiPhuc([['Nhật ký đồng bộ', nhatKy], ['Số dư', [{ phone: '0999000001', balance: 999999, total_topup: 0, total_spent: 0 }]]]);
-    k('F1 file có trang "Số dư" (sau một trang thường) → 400 KHOI_PHUC_VI_DON_BI_CHAN; pos_sync_logs VÀ pos_wallets không đổi',
-      a.status === 400 && a.code === 'KHOI_PHUC_VI_DON_BI_CHAN' && await chup('pos_sync_logs') === nk0 && await chup('pos_wallets') === vi0, moTa(a));
+    k('F1 file có trang "Số dư" (sau một trang thường) → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN; pos_sync_logs VÀ pos_wallets không đổi',
+      a.status === 400 && a.code === 'KHOI_PHUC_TRANG_TIEN_BI_CHAN' && await chup('pos_sync_logs') === nk0 && await chup('pos_wallets') === vi0, moTa(a));
     for (const [nhan, bang] of [['Đơn hàng', 'pos_orders'], ['Chi tiết đơn', 'pos_order_items'], ['Giao dịch số dư', 'pos_balance_transactions'],
       ['Yêu cầu hoàn tiền', 'pos_refund_requests'], ['Giao dịch điểm thưởng', 'pos_point_transactions'], ['Gói của khách', 'pos_customer_packages'],
       ['Lịch sử mua thẻ', 'pos_membership_purchases'], ['Voucher đã phát', 'pos_voucher_grants'], ['Hàng hỏng', 'pos_damage_logs'],
@@ -599,7 +599,7 @@ async function main() {
       ['Lịch sử dùng khuyến mãi', 'pos_promotion_usage']]) {
       const truoc = await chup(bang);
       const r = await khoiPhuc([[nhan, [{ id: 999999 }]]]);
-      k(`F2 file có trang "${nhan}" → 400 KHOI_PHUC_VI_DON_BI_CHAN, ${bang} không đổi`, r.status === 400 && r.code === 'KHOI_PHUC_VI_DON_BI_CHAN'
+      k(`F2 file có trang "${nhan}" → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN, ${bang} không đổi`, r.status === 400 && r.code === 'KHOI_PHUC_TRANG_TIEN_BI_CHAN'
         && await chup(bang) === truoc, moTa(r));
     }
     const c = await khoiPhuc([['Nhật ký đồng bộ', nhatKy]]);
@@ -607,8 +607,8 @@ async function main() {
       c.status === 200 && await so("SELECT COUNT(*) FROM pos_sync_logs WHERE type = 'p26d'") === 1, moTa(c));
     // Q7d: xem trước báo CÙNG lỗi chặn với khôi phục (một vị từ) — màn Cài đặt hiện `error` ngay ở bước xem trước, không sửa client/.
     const xt = await khoiPhuc([['Nhật ký đồng bộ', nhatKy], ['Nhật ký đơn', [{ id: 999999 }]]], '/backup/preview-restore');
-    k('F4 xem trước file có trang "Nhật ký đơn" → 400 KHOI_PHUC_VI_DON_BI_CHAN, bang = ["Nhật ký đơn"]',
-      xt.status === 400 && xt.code === 'KHOI_PHUC_VI_DON_BI_CHAN' && JSON.stringify(xt.bang) === '["Nhật ký đơn"]', moTa(xt));
+    k('F4 xem trước file có trang "Nhật ký đơn" → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN, bang = ["Nhật ký đơn"]',
+      xt.status === 400 && xt.code === 'KHOI_PHUC_TRANG_TIEN_BI_CHAN' && JSON.stringify(xt.bang) === '["Nhật ký đơn"]', moTa(xt));
     const xt2 = await khoiPhuc([['Nhật ký đồng bộ', nhatKy]], '/backup/preview-restore');
     k('F5 (K5) xem trước file chỉ có trang không dính tiền → 200 success, có bảng xem trước',
       xt2.status === 200 && xt2.success === true && Array.isArray(xt2.preview) && xt2.preview.length === 1, moTa(xt2));
@@ -643,19 +643,33 @@ async function main() {
       && ms >= 1400 && ms <= 2500 && await soDu2() === v2, `${moTa(r2)} · ${ms} ms`);
 
     const ghiNhatKy = async (loai) => { try { await db.run('INSERT INTO pos_sync_logs (type, file_name) VALUES (?, ?)', [loai, 'x']); return null; } catch (e) { return e; } };
-    const r3 = await napThu();
-    const e3 = await ghiNhatKy('p26d_d3');
-    k('D3 sau một lần BEGIN bận: nạp → 200 và ví +1.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)', r3.status === 200 && !e3
-      && await soDu2() === v2 + 1000 && await dem2('p26d_d3') === 1,
-    `${moTa(r3)} · ví ${v2} → ${await soDu2()} · run ${e3 ? e3.code : 'ok'}, dòng ${await dem2('p26d_d3')}`);
+    // Hỏng do câu bận treo chỉ lộ khi kết nối bị chuyển cho giao dịch → đo tới giao dịch THỨ HAI (soát vòng 2), đọc bằng kết nối khác.
+    const haiGiaoDichVaRun = async (loai) => {
+      const v = await soDu2();
+      const a = await napThu(), b = await napThu();
+      const e = await ghiNhatKy(loai);
+      const sau = await soDu2(), dong = await dem2(loai);
+      return { dung: a.status === 200 && b.status === 200 && !e && sau === v + 2000 && dong === 1,
+        mo: `${moTa(a)} / ${moTa(b)} · ví ${v} → ${sau} · run ${e ? e.code : 'ok'}, dòng ${dong}` };
+    };
+    const x3 = await haiGiaoDichVaRun('p26d_d3');
+    k('D3 sau một lần BEGIN bận: 2 lần nạp → 200 và ví +2.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)', x3.dung, x3.mo);
 
     giu = await c2.transaction('write');
     const e7 = await ghiNhatKy('p26d_d7a');
     await giu.rollback();
-    const e7b = await ghiNhatKy('p26d_d7b');
-    k('D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; run kế tiếp ghi THẬT (kết nối được thay)', e7?.code === 'SQLITE_BUSY' && !e7b
-      && await dem2('p26d_d7a') === 0 && await dem2('p26d_d7b') === 1,
-    `${e7?.code} / ${e7b ? e7b.code : 'ok'} · d7a ${await dem2('p26d_d7a')} · d7b ${await dem2('p26d_d7b')}`);
+    const x7 = await haiGiaoDichVaRun('p26d_d7b');
+    k('D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY, không ghi; sau đó 2 lần nạp + run ghi THẬT (kết nối được thay)',
+      e7?.code === 'SQLITE_BUSY' && await dem2('p26d_d7a') === 0 && x7.dung, `${e7?.code} · d7a ${await dem2('p26d_d7a')} · ${x7.mo}`);
+
+    // D10 (Q8a): SELECT gặp bận THẬT — cần khoá EXCLUSIVE (khoá ghi thường vẫn cho đọc). Câu SELECT treo làm hỏng kết nối dùng chung.
+    await c2.execute('BEGIN EXCLUSIVE');
+    let e10 = null;
+    try { await db.query('SELECT COUNT(*) AS n FROM pos_wallets'); } catch (e) { e10 = e; }
+    await c2.execute('ROLLBACK');
+    const x10 = await haiGiaoDichVaRun('p26d_d10');
+    k('D10 SELECT ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; sau đó 2 lần nạp + run ghi THẬT (kết nối được thay)',
+      e10?.code === 'SQLITE_BUSY' && x10.dung, `${e10 ? e10.code : 'SELECT không bận'} · ${x10.mo}`);
     c2.close();
   }
 
