@@ -966,3 +966,20 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài 
 đếm cuối ngày" + "Để lại cho mai" → Lưu số két: thấy "Lần ghi cuối: <tên> lúc <giờ>" và chênh; (3) Tuần → tích "Đã so sao kê" → Lưu, bỏ tích → Lưu:
 thấy 🟡 "Chưa so sao kê".
 
+## Cổng chạy (bước 11.4, 21.10)
+
+`node tu_chay/cong.js chay . 2123b69^ HEAD viec/DOI-SOAT-1` đứng ở HEAD `f737afc`, cây sạch:
+```
+· CẢNH BÁO A16: `cong_cu/thu_DOISOAT1.js` chạy trên gốc in 135 ca ≠ 134 ca ở head — bài dừng sớm trên gốc thì bỏ qua; không thì xem lại bằng chứng đỏ (dạng "… phép · … chỗ hỏng" không tách được số ca nên không so)
+✓ CỔNG CHẠY ĐẠT
+```
+Cảnh báo A16: trên gốc bài in thêm đúng MỘT ca `A0 server/utils/doiSoat.js nạp được` (chỉ in khi không nạp được module — `thu_DOISOAT1.js`, khối nạp
+`doiSoat`); 29 + 106 = 135 = 134 + A0. Đã ghi ở `bang_chung_do.txt`.
+
+GIT (`git log --oneline -2` tại lần kiểm):
+```
+f737afc DOI-SOAT-1: vong sua 4, dem nghiem thu, Bai hoc, bao cao 7 muc (SO CA 134)
+ceb4bc0 DOI-SOAT-1: quyet dinh cau 13b-13e (khong chi tu ket, khong rut vi tien mat, giu vi tu dong hang goi, chot so_luong) + cau 10
+```
+
+HEAD ĐÃ KIỂM: f737afc
