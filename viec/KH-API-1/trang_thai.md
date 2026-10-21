@@ -95,12 +95,14 @@ Soát độc lập (agent phụ chỉ đọc, 4 câu) — đã sửa vào kế h
 | Q9 trần nhận mã bill / nhận điểm qua App (`maKhach.js` giuLuotNhanMa, `kh/index.js` nhanQuaToken) | BV-Q9-bo-giu-luot · BV-Q9-bo-tran-khach · VS-Q9-khach-11 · BV-Q9-bo-tran-ip · VS-Q9-ip-31 · VS-Q9-hai-gio · VS-Q9-dem-rieng-loai · VS-Q9-sdt-tu-than · VS-Q9-dem-roi-chen |
 | Q11 bill ghi SĐT khác (`signup-codes.js` billSdtKhac, hai chỗ gọi) | BV-Q11-bo-chan-claim · BV-Q11-bo-chan-nhandiem · VS-Q11-so-tho · VS-Q11-chan-ca-sdt-rong |
 | `index.js` trust proxy + gắn `/api/kh` (phép tĩnh bỏ chú thích — soát vòng 1) | BV-Q5-trust-proxy · BV-IX-bo-gan-kh · VS-IX-gan-kh-chu-thich · VS-Q5-trust-proxy-chu-thich |
+| G tầng ứng dụng (soát vòng 3): `kh/loi.js` loiTangKh, `index.js` gắn ngay sau router, `kh/index.js` 404 KHONG_TIM_THAY | BV-G-bo-gan-loi-tang · VS-G-gan-loi-sau-bo-chung · BV-G-loi-tang-bo-nhanh-4xx · VS-G-loi-tang-lo-loi · VS-G-loi-tang-luon-400 · BV-G-bo-khong-tim-thay |
 
 Kết quả lượt 2: ĐỐI CHỨNG 116 đạt · 0 hỏng; 54 đột biến bị bắt · 0 KHÔNG bị bắt (trên 54).
 Kết quả sau soát vòng 1: xem `## Bước 8` dưới (62 đột biến).
 Kết quả lượt 5 (Q9–Q11, code `8213118`): ĐỐI CHỨNG 151 đạt · 0 hỏng; **76 đột biến bị bắt · 0 KHÔNG bị bắt (trên 76)**. Lần chạy đầu 73/76:
 `VS-E6-bo-claim-chung` / `VS-E7-sai-ham` neo lạc (dòng route đổi — sửa neo), `VS-Q9-dem-roi-chen` KHÔNG bị bắt (15 yêu cầu gửi dồn trên kho cục bộ
 không đan xen) → thêm ca tất định "yêu cầu khác ghi lượt chen giữa lúc đếm và lúc ghi" (móc sau câu đọc `pos_kh_lan_thu`) → bắt (11 lượt).
+Kết quả lượt 6 sau soát vòng 3 (HEAD có `2005b58`): ĐỐI CHỨNG 156 đạt · 0 hỏng; **82 đột biến bị bắt · 0 KHÔNG bị bắt (trên 82)**.
 
 ## Bước 6 — kiểm
 - `node cong_cu/thu_KH1.js` → 116 đạt · 0 hỏng (chạy 4 lần, cả 4 lần như nhau — ca 59 giây tự kiểm cùng giây).
@@ -330,6 +332,128 @@ BÀI HỌC:
 | Nghi ngờ 4 — `sdtTrenBill` đọc cột do code ghi | giữ: phiếu chốt "SĐT trên bill"; cột `order_customer_phone` CHÍNH là thứ `billSdtKhac` so (`signup-codes.js:87-89`), cột sai thì ca Q11 của `thu_KH1.js` (`P.sdt` độc lập) bắt | — |
 | Nghi ngờ 5 — `donDaClaim` dùng cả G1/G3/G4/G8 | giữ: các bill đó không ghi SĐT → `undefined` → SĐT mới như cũ, hành vi không đổi | `thu_P20.js` gốc 169 · 1 (mọi ca G xanh) |
 
+Kiểm sau vòng 2 (HEAD `89e66dc`): `thu_KH1.js` 151 · 0; `dot_bien.py` 76 / 76; `npm test -- --day-du` PASS 71 · FAIL 0 · CẢNH BÁO 1; cổng tĩnh chỉ `✗ [A19]`.
+
+### Vòng 3 (21.10.2026, trên HEAD `89e66dc`) — báo cáo của agent soát, chép nguyên
+
+~~~
+KHÔNG ĐẠT. Còn một lỗ nhỏ ở nghiệm thu G và một câu sai trong hồ sơ. Code server, đường tiền, bài thử và đột biến đều đạt. Lỗ G mức thấp, sửa khoảng 3 dòng ở `index.js` cộng 2 ca thử.
+
+Tôi chỉ đọc, không sửa hay commit file nào trong kho. Bản nháp để trong scratchpad của tôi.
+
+**Đã chạy lại trên HEAD 89e66dc:**
+- `node cong_cu/thu_KH1.js` → 151 đạt · 0 hỏng.
+- `node cong_cu/thu_P20.js` → 170 đạt · 0 hỏng.
+- `npm test -- --day-du` → PASS 71 · FAIL 0 · CẢNH BÁO 1.
+- `python3 viec/KH-API-1/dot_bien.py` → 76 bị bắt · 0 không bị bắt (trên 76). `VS-Q9-dem-roi-chen` bắt được ở ca mới (HTTP 404 · 11 lượt).
+- `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` → chỉ ✗ [A19].
+- Tôi tự dựng gốc `0bffc03` (= `27e1ac1^`) bằng `ban_sao_goc.py` rồi chạy bài của HEAD:
+  - `thu_KH1.js` → 9 đạt · 91 hỏng (9 ca canh đường cũ: E5 ×2, F2 ×1, H ×6).
+  - `thu_P20.js` → 169 đạt · 1 hỏng, đúng ca `[Q11] … BILL_SDT_KHAC — HTTP 200`.
+  - Cả hai khớp `bang_chung_do.txt`.
+
+**Kiểm từng mục của vòng 2:**
+- **Lỗi 1** (4 ca cũ của `thu_P20.js` vi phạm hai phép): đã ghi.
+  - `ke_hoach.md:225` có câu "Soát vòng 2 tìm thêm 4 ca CHẶN cũ…".
+  - `## Phát hiện` có ở `trang_thai.md:436-438`.
+  - Lý do không sửa đúng: phiếu chỉ mở [D] và G2 (phieu.md:126).
+- **Lỗi 2** (LUOI-5 còn ghi 169 ca): đã ghi `## Phát hiện` ở `trang_thai.md:441-442`. Tôi kiểm lại: `viec/LUOI-5/dot_bien.py:40` là `'cong_cu/thu_P20.js': 169`, docstring dòng 13 là "4 đối chứng đỏ / lệch số ca" — đúng.
+- **Lỗi 3** (số dòng `signup-codes.js`): `trang_thai.md:380` nay ghi `:289`. Dòng 289 thật là `(req.user && req.user.username) || 'service', now],` — đúng.
+- **Lỗi 4** (thao tác thử IP): `trang_thai.md:422` đã thêm thao tác đúng (cột `ip` của `pos_kh_lan_thu`, dẫn `index.js:55`). Grep "2 mạng / cột ip" → không còn chỗ nào hướng dẫn sai. Báo cáo bước 11 chưa có, vì chưa tới bước đó.
+- **Nghi ngờ 1** (ngưỡng Q9): chủ quán đã chốt "Ngưỡng Q9 giữ.", ghi ở `trang_thai.md:327`.
+- **Nghi ngờ 2** (thứ tự cổng): đã ghi Phát hiện ở `:439-440`.
+- **Nghi ngờ 3** (ca "lượt chen" so một chiều): đã sửa ở `thu_KH1.js:658-661` — so `nRc === 10` và đòi `la(rc, 404, 'MA_KHONG_TON_TAI')`. Xanh trên HEAD, đột biến vẫn bắt. Còn một điểm nhẹ ở mục NGHI NGỜ 1 dưới.
+- **Nghi ngờ 4, 5**: giữ, có lý do ở `:330-331`. Hợp lý.
+
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/index.js:172-178 (+ :163-170) — lỗi phát ra TRƯỚC khi vào router /api/kh không đi qua bao/loiMayChu → thân lỗi không có `code`, sai status — khuôn K4 (đường song song của "mọi lỗi /kh có code", phiếu G + LUAT §2). Mức THẤP: production không lộ gì; dev (NODE_ENV=development) có thêm lời báo parse.
+   - JSON hỏng gửi tới /api/kh/* → express.json (index.js:64) ném lỗi 400 → bộ xử lý lỗi chung (index.js:172) trả 500 {"error":"Internal server error"}, không có code.
+     Đã dựng lại bằng chính bộ xử lý đó trong nháp: POST /api/kh/dang-nhap/xin-ma, thân '{"sdt":' → `500 {"error":"Internal server error"}`.
+   - Thân > 5 MB (413) đi cùng đường đó (suy từ code, chưa chạy).
+   - POST tới đường /api/kh lạ, có token khách hợp lệ → rơi khỏi router → không route nào nhận POST → trang 404 HTML mặc định của Express. GET thì ra {error:'API endpoint not found'}, không có code (index.js:163-170). Mục này suy từ đọc code, chưa chạy.
+   - Vì sao bài không thấy: ca G gom thân lỗi chỉ từ những yêu cầu bài tự gửi, qua app Express riêng không có bộ xử lý lỗi chung của index.js (thu_KH1.js:91-101, :762-765).
+   - App KH-UI-1 sẽ dựa vào `code` để hiện lời báo.
+   - Cách vá gọn: trong index.js, ngay sau dòng gắn /api/kh, thêm `app.use('/api/kh', (err, req, res, next) => …)` trả 400 KHONG_HOP_LE khi err.status là 4xx, còn lại 500 LOI_MAY_CHU. Kèm 2 ca (JSON hỏng → 400 có code; đường lạ có token → 404 có code) và 1 đột biến bỏ dòng đó.
+2. viec/KH-API-1/trang_thai.md:143 — câu cuối đoạn "Lượt 6 — Q12 (a)" ghi "… không tự chọn (b)/(c) thay chủ quán → dừng chờ Q12" — khuôn K1 (hồ sơ sai).
+   - Sai: lượt 6 chính là lượt LÀM Q12 (a), không dừng chờ.
+   - Nguồn gốc: câu này nằm ở dòng hook của lượt 5 (bản aac75dd:126); commit 25a041c dời nó xuống cuối đoạn lượt 6 (git blame dòng 143 → 25a041c). Vòng 2 bỏ sót.
+
+NGHI NGỜ:
+1. K3 nhẹ — thu_KH1.js:651-661, ca "yêu cầu khác ghi lượt chen":
+   - Trên HEAD móc không bao giờ chạy (code đúng chỉ dùng `run`, maKhach.js:88). Ca thực chất chỉ đo "9 + 1 = 10, tới hàm", trùng với ca :619-620. Tên ca vẫn nói "yêu cầu khác ghi lượt chen".
+   - Chú thích :658-659 ghi "Ca này khoá bản TÁCH đếm / ghi" là nói rộng hơn thực tế. Ca chỉ khoá bản tách đọc qua `queryOne` / `query` của module database (móc ở :80-88). Bản tách dùng `tx.queryOne` hoặc đọc gộp trong `run` thì lọt.
+   - Vòng 2 đã chấp nhận ghi chú. Chỉ cần sửa chữ "bản TÁCH" thành "bản tách đọc qua db.queryOne/db.query".
+2. Trần IP của Q9 (maKhach.js:91, NHAN_IP_GIO 30) giả định App KH gọi /api/kh THẲNG từ máy khách.
+   - Nếu KH-UI-1 đi qua một máy chủ App trung gian (như App cũ dùng X-Service-Key — env.example ghi "cấu hình App KH backend") thì req.ip là IP máy trung gian. Khi đó mọi khách chung 30 lượt/giờ cho cả App.
+   - Kiến trúc KH-UI-1 chưa có trong kho → nên ghi CHƯA KIỂM / Phát hiện để KH-UI-1 biết.
+3. ke_hoach.md:225 dẫn `orders.js:517` / `discount-codes.js:88` cho ý "chỉ kiểm voucher ĐÃ nhận (claimed_at IS NOT NULL)". Hai dòng đó là chỗ gọi kiemDonCuaMa; câu lọc `claimed_at IS NOT NULL` nằm ở orders.js:513 và discount-codes.js:84. Không sai nghĩa (dòng Q11 ở bảng §8 nói rõ là chỗ gọi), chỉ lệch 4 dòng so với điều câu muốn khẳng định.
+
+NGHIỆM THU:    22/23 mục có bằng chứng · mục thiếu: G (một phần — nhánh lỗi tầng ứng dụng, LỖI 1)
+  A1 thu_KH1:184 · A2 :196 (crypto.randomInt/HMAC chỉ đọc code maKhach.js:47-53, đã Phát hiện) · A3 :213 · A4 :248 (+ đua ON CONFLICT :273-280) · A5 :283
+  B1 :291 · B2 :341 · B3 :358 · C :368 · D :399
+  E1 :421 · E2 :435 · E3 :446 + :544-548 · E4 :462 · E5 :492 (nhánh SX bật CHƯA KIỂM) · E6 :523 (+ Q11 :549-567) · E7 :570 (+ Q11 :593-603)
+  F1 :678 · F2 :689 · F3 :708 · G :723-775 (thiếu nhánh lỗi tầng ứng dụng) · H :778 + npm test --day-du 71/0
+  Đột biến: đủ 7 loại phiếu đòi (BV-F2-*, VS-F3-*, BV-A2-bo-chua-dung, BV-B1-*/BV-B2-*, BV-E4-bo-loc-sdt, VS-E5-tra-them-gia-von); 76/76 tôi chạy lại.
+  Q9 :606 · Q10 :368 · Q11 :549/:593 + thu_P20 [Q11] (đỏ trên 0bffc03, tôi tự chạy) · Q12 kich_ban.js:209.
+
+Trả lời 8 câu:
+1. K3:
+   - thu_KH1 đỏ trên gốc (9 đạt · 91 hỏng, tôi tự chạy). 9 ca xanh trên gốc đều là ca canh đường cũ.
+   - thu_P20 đỏ đúng 1 ca. Ca đó chỉ vi phạm một phép: bill trả ví, đã thu, SĐT mới chưa nhận.
+   - Ca hành vi đều đi qua HTTP thật. Phép tĩnh index.js bỏ chú thích trước khi dò (:802), nên marker suông không làm xanh được (VS-IX-gan-kh-chu-thich, VS-Q5-trust-proxy-chu-thich đều bị bắt).
+   - Còn NGHI NGỜ 1.
+2. K4:
+   - grep `claimed_at = ?|diem_nhan_luc = ?` trong server/ → 3 chỗ (signup-codes.js:273, :416, :517), khớp ke_hoach.
+   - billSdtKhac có 2 chỗ gọi (:201, :370), đều có đột biến BV.
+   - Nhánh `req.khach` → loiMayChu ở cả 2 catch (:308, :461).
+   - Các 4xx trong hai hàm chung đều có `code` (awk dòng 139-465).
+   - Còn sót: lỗi tầng ứng dụng (LỖI 1).
+3. K5: không có điều kiện chặn mới kể từ vòng 2 (chỉ sửa bài thử). 13 luồng ở ke_hoach §6 đều có ca. Rủi ro IP chung thì chủ quán đã chốt; còn NGHI NGỜ 2.
+4. K1:
+   - LỖI 2; NGHI NGỜ 3.
+   - Chú thích code đều khớp: kh/index.js:37 (xin-ma không đọc pos_customers), maKhach.js:4, :65, :85, database.js:108-109, khachAuth.js:1-7, index.js:54-55.
+   - Đã kiểm lại các số dòng dẫn: signup-codes.js:87-89, :289, :517 · customers.js:136, :348, :434 · backup.js:43 · LUOI-5 dot_bien.py:40, docstring :13 · cong.js:325-336 — đều đúng.
+5. Đường tiền:
+   - App chỉ gửi `ma`. quaToken (kh/index.js:136) dựng thân chỉ gồm code và phone = req.khach.phone.
+   - Điểm tính từ pos_orders.total đọc trong DB (signup-codes.js:216 → diemGoc). Voucher theo cấu hình máy chủ.
+   - Không trường tiền nào lấy từ client.
+6. P1: diff không đụng client/ (0 file).
+7. Nghiệm thu: xem dòng NGHIỆM THU.
+8. Đơn giản:
+   - Không thấy chỗ thừa mới.
+   - Các chỗ đã có Phát hiện: thu_KH1.js khoảng 820 dòng; signup-codes.js khoảng 556 dòng (quá mốc 500 của LUAT §3); loi.js lấy loiGhi từ routes/wallets.js; hai bảng không dọn dòng cũ.
+   - Đối soát: không có tính năng tiền mới (trang_thai.md:379-381). Còn mở Phát hiện "voucher qua /claim không có cột người tạo".
+
+CHƯA SOÁT ĐƯỢC:
+- Số tầng proxy của Render / IP thật sau CGNAT; kiến trúc gọi /api/kh của KH-UI-1 (NGHI NGỜ 2).
+- Ngữ nghĩa đua của INSERT…SELECT trên Turso từ xa.
+- Dữ liệu order_customer_phone thật trên production (dạng "84…" không có dấu +).
+- Nhánh SX bật của /menu.
+- Mount thật trong index.js: chỉ có phép tĩnh, cùng với LỖI 1 (bài không nạp index.js).
+- `node tu_chay/cong.js chay` (cần npm ci); bộ đột biến LUOI-5 không chạy lại.
+- Hai nhánh "413" và "đường lạ có token" của LỖI 1 suy từ code; chỉ nhánh JSON hỏng đã chạy thử.
+
+BÀI HỌC:
+- KHOÁ (bài thử): bài của cổng HTTP mới phải có ca chạy qua NGUYÊN chuỗi middleware của index.js (JSON hỏng, đường lạ) — hoặc phép tĩnh đòi bộ xử lý lỗi riêng cho tiền tố /api/kh. Bài tự dựng app Express riêng thì không bao giờ thấy lỗi tầng ứng dụng (LỖI 1).
+- NGUYÊN TẮC (K4, KHUON_LOI): luật "mọi lỗi của cổng X có code" gắn theo ĐỐI TƯỢNG (mọi phản hồi lỗi dưới tiền tố X), không theo các nhánh route tự viết. Lỗi của express.json, 404 và 413 là đường song song của mọi catch trong route.
+- NGUYÊN TẮC (K1/K4): dời một câu trong hồ sơ sang đoạn khác thì đọc lại câu đó trong ngữ cảnh mới ("dừng chờ Q12" sang đoạn lượt đã làm Q12 — LỖI 2).
+- NGUYÊN TẮC (K3): ca dựng bằng móc mà trên code đúng móc không bao giờ chạy thì tên ca và chú thích phải nói đúng phạm vi móc bắt được (chỉ bản tách qua db.queryOne/db.query), không nói chung "bản tách" (NGHI NGỜ 1).
+~~~
+(Chép nguyên; rào khối `~~~`, gỡ hai dòng rào ba dấu huyền bên trong báo cáo.)
+
+### Vòng 3 — đã sửa (vòng sửa 3 / 3 — vòng cuối được phép; commit `7d5b8f7` … `a2581ed` + hồ sơ)
+| Lỗi / nghi ngờ soát | Sửa | Bằng chứng |
+|---|---|---|
+| 1 — lỗi tầng ứng dụng dưới `/api/kh` không `code` | `kh/loi.js` `loiTangKh` (4xx của bộ đọc → giữ status, `YEU_CAU_KHONG_HOP_LE`; khác → `loiMayChu`); `index.js` gắn NGAY SAU router `/api/kh`, trước bộ lỗi chung; `kh/index.js` cuối router → 404 `KHONG_TIM_THAY` (đường lạ đã qua token; chưa token vẫn 401 của `xacThucKhach`). Code lỗi khác chữ đề xuất (`KHONG_HOP_LE`) để không trùng nghĩa với các `*_KHONG_HOP_LE` đang có | bài `7d5b8f7` đỏ trên `89e66dc` 150 · 6 → xanh 156 · 0; gốc 9 · 92; 6 đột biến BV-G-bo-gan-loi-tang · VS-G-gan-loi-sau-bo-chung · BV-G-loi-tang-bo-nhanh-4xx · VS-G-loi-tang-lo-loi · VS-G-loi-tang-luon-400 · BV-G-bo-khong-tim-thay — 82 / 82 bị bắt |
+| 2 — câu "dừng chờ Q12" ở đoạn lượt 6 | dời về đúng dòng hook lượt 5 | — |
+| Nghi ngờ 1 — chú thích ca "lượt chen" nói rộng | `a2581ed`: ghi rõ ca chỉ khoá bản tách ĐỌC qua `db.queryOne` / `db.query` | chỉ chú thích, số ca không đổi |
+| Nghi ngờ 2 — trần IP nếu App đi qua máy chủ trung gian | `## Phát hiện` + CHƯA KIỂM (kiến trúc KH-UI-1 chưa có trong kho) | — |
+| Nghi ngờ 3 — số dòng `orders.js:517` / `discount-codes.js:88` | sửa thành `:513` / `:84` (đọc lại: câu `claimed_at IS NOT NULL`) | grep |
+
+Kiểm sau vòng 3 (HEAD `a2581ed` + hồ sơ): `node cong_cu/thu_KH1.js` → 156 · 0; `dot_bien.py` → ĐỐI CHỨNG 156 · 0, 82 / 82; `npm test -- --day-du` → PASS 71 · FAIL 0 ·
+CẢNH BÁO 1 (cảnh báo cũ "route GET có lệnh ghi (3)"); `thu_P20`, `gia_lap/chay.js`, `thu_gia_lap.js` xanh.
+
 ## Câu hỏi
 (Lượt 6: không có câu hỏi mới.)
 
@@ -433,6 +557,10 @@ Q1–Q7 dưới đây ĐÃ được chủ quán trả lời (18.10) — giữ đ
   `customers.js:136, 434`), vì thu ngân phải bấm được; khách A đọc đơn của B → 404 (phiếu F3 đã chốt, thay 403 của luật).
 
 ## Phát hiện (ngoài phạm vi — không sửa)
+- (soát vòng 3) Trần Q9 theo IP (`maKhach.js` NHAN_IP_GIO 30) giả định App KH gọi `/api/kh` THẲNG từ máy khách. Nếu KH-UI-1 đi qua một máy chủ App
+  trung gian thì `req.ip` là IP máy đó → mọi khách chung 30 lượt / giờ. KH-UI-1 phải gọi thẳng, hoặc mở việc chuyển IP thật qua tiêu đề tin cậy.
+- (soát vòng 3) Mount thật của `index.js` (thứ tự `loiTangKh` / router / bộ lỗi chung) chỉ khoá bằng phép tĩnh — bài thử dựng app Express riêng vì
+  `index.js` tự `listen`. Đề xuất KHOÁ (việc sau): tách `app` khỏi `listen` để bài nạp được chuỗi middleware thật (`index.js` ngoài phần việc này sửa).
 - (soát vòng 2) `cong_cu/thu_P20.js` [A] r3 (/claim đơn nợ của `sdt3`), [A] r4 (/nhan-diem đơn nợ của `sdt4`), [B2] r1 / r2 (đơn hoàn tiền) nhận mã của bill
   CÓ ghi SĐT bằng SĐT mới → vi phạm cả Q11 lẫn phép đang thử; xanh chỉ vì `billSdtKhac` đứng SAU `kiemDonCuaMa` (`signup-codes.js` hai chỗ gọi).
   Phiếu chỉ mở [D] và G2 của bài này. Đề xuất (việc sau): bốn ca đó nhận bằng SĐT trên bill (cùng `sdtTrenBill`) — một dòng mỗi ca.
