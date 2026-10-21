@@ -8,7 +8,8 @@
      lại sang đây). Máy in thật (80mm bill, 40×30 tem) về sau → hàng đợi in / trạm in là P17; ở đây CHỈ in qua hộp thoại in trình duyệt.
      Đơn chưa có trường "nguồn đơn" (quầy / App KH) — KH-DON-1 thêm sau; cài đặt để sẵn chỗ theo nguồn nhưng nay chỉ có "quầy".
      Song song đợt M2: KH-API-1 (Customers.jsx, server/…), DOI-SOAT-1 (Reports.jsx, reports.js), P26d (server/…). Việc này KHÔNG sửa
-     server/ (dùng khoá cài đặt sẵn có), KHÔNG sửa Customers.jsx / Reports.jsx. -->
+     server/ (dùng khoá cài đặt sẵn có), KHÔNG sửa Customers.jsx / Reports.jsx.
+     19.10: thêm client/dist/** vào Phạm vi (bản dựng bắt buộc; phiếu gốc thiếu — lỗi của chat; cổng PR #35 đỏ A6). -->
 
 ## Mục tiêu
 Sau khi thu tiền, quầy in đúng bộ giấy cần cho mỗi đơn chỉ bằng MỘT lần bấm (hoặc tự bật hộp in theo cài đặt): bill khách, mỗi ly
@@ -46,6 +47,7 @@ không — P16 là việc giao diện in qua trình duyệt, không đụng máy
 - client/src/pages/InvoiceSettings.jsx
 - client/src/pages/Sales.jsx
 - client/src/pages/Orders.jsx
+- client/dist/**
 - cong_cu/thu_P16.js
 
 ## Ngân sách
