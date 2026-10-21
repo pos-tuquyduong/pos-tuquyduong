@@ -650,3 +650,110 @@ cho nhánh 404 pay-debt, báo cáo 7 mục, bài học, cổng `chay`, `HEAD Đ�
   **CLIENT_CLOSED** · lần mở giao dịch đầu tiên sau đó làm **tiến trình Node SẬP** (libsql `transaction()` không kiểm client đã đóng). Đảo thứ tự còn
   tệ hơn: lệnh ghi kế báo ok mà không ghi, rồi bận mãi. **Việc sau (đề xuất c):** tạo mới hỏng → đánh dấu kho hỏng, mọi lệnh ném lỗi rõ (409 / 500
   có `code`) cho tới khi tạo lại được; ca thử dựng bằng `cauHinhTurso` ném một lần.
+
+### Việc nhỏ sau Q9 (21.10) — không phải vòng sửa
+
+- Bài trước: `e3baed7` thu_P26c P15 (thu nợ đơn không có → 404 `KHONG_TIM_THAY_DON`) — trên `328cd7c` 155 · 1 (✗ P15 — HTTP 404 không code), gốc 136 · 20.
+- `074aa4d` orders.js pay-debt nhánh 404 thêm `code: "KHONG_TIM_THAY_DON"` (chưa route nào có mã cho tình huống này — mã mới).
+- `22d1849` dot_bien.py: `BV-Q9-pd-bo-ma-404` (→ P15), `BV-A-run-khong-thay` (gỡ chỗ gọi ở `run()` → D7), `BV-A-begin-khong-thay` (gỡ chỗ gọi ở vòng
+  BEGIN → D1). Ba chỗ gọi `thayKetNoiNeuBan` nay mỗi chỗ một đột biến (query → `BV-A-query-khong-thay`).
+- Sau: thu_P26b 103 · 0 · thu_P26c 156 · 0 · `dot_bien.py` **47 BẮT · 0 KHÔNG** (đối chứng 103 / 156) · `npm test -- --day-du` **PASS 70 · FAIL 0 ·
+  CẢNH BÁO 1** (cũ) · thu_P26b 4,1 s · thu_P26c 3,9 s · gia_lap/chay 32,6 s · thu_gia_lap 46,4 s (hạn 120 s).
+- K4: `grep "Không tìm thấy đơn hàng" server/routes/orders.js` → 4 chỗ: GET `/:id`, pay-debt (đã thêm), PUT huỷ, DELETE xoá. Chủ quán duyệt CHỈ pay-debt
+  → ba chỗ còn lại ghi Phát hiện.
+
+| Chỗ vá (Q9) | Đột biến | Ca bắt |
+|---|---|---|
+| pay-debt 404 `KHONG_TIM_THAY_DON` | BV-Q9-pd-bo-ma-404 | P15 |
+| chỗ gọi thay kết nối ở `run()` | BV-A-run-khong-thay | D7 |
+| chỗ gọi thay kết nối ở vòng BEGIN | BV-A-begin-khong-thay | D1 (+ D3) |
+
+## Phát hiện (thêm, sau Q9)
+
+- `server/routes/orders.js`: 404 "Không tìm thấy đơn hàng" của GET `/:id`, PUT huỷ đơn, DELETE xoá đơn chưa có `code` (LUAT §2 "thêm khi chạm tới";
+  việc này chủ quán chỉ duyệt pay-debt). Đề xuất dùng chung `KHONG_TIM_THAY_DON`.
+- Ngân sách: `git diff 14169d8^ HEAD -- server/` = +258 / −173 (406 dòng đổi) — vượt ~120–200 và mức Q7c đã chấp nhận (+235 / −162); phần thêm sau Q7c là
+  Q7a / Q7d / pay-debt / Q8 / Q9 (chủ quán duyệt từng phần).
+
+## Báo cáo 7 mục
+
+```
+VIỆC:        P26d — Kho bán chịu tải (Turso / libsql): BEGIN bận thử lại có giới hạn, nhận đúng mã lỗi bận, mã đơn sinh trong giao dịch,
+             409 chỉ khi thật chưa ghi, ví không NULL / không âm khi hoàn, khôi phục sao lưu qua ghiVi
+ĐÃ SỬA:      server/database.js — laLoiBan (một hàm), beginTransaction mở lười + thử lại CHO_BEGIN_MS [50..800] chỉ khi bận, thayKetNoiNeuBan
+               (kho file) ở run / query / vòng BEGIN, đóng giao dịch hỏng
+             server/routes/wallets.js — loiGhi dùng laLoiBan → 409 KHO_BAN; 500 chỉ { error, code: LOI_MAY_CHU }; ghiVi đọc NULL như 0,
+               ví tạo lúc hoàn không có tổng chi âm; reconcile-all dừng giữa chừng → 500 DOI_SOAT_DO_DANG
+             server/utils/helpers.js — taoMaDonTheoSo đọc số đơn bằng tx (trong giao dịch tạo đơn)
+             server/routes/orders.js — mã đơn trong giao dịch; gói / thẻ trong giao dịch đơn; huỷ đơn đọc món trong giao dịch; pay-debt một giao
+               dịch, amount số nguyên dương (ngoại lệ = đúng nợ trong sổ, Q8b), code cho mọi nhánh lỗi; kiểm lại mã giảm (G)
+             server/utils/nhatKyDon.js — ghiNhatKy nhận tx (Q6)
+             server/routes/backup.js — chanTrangTien: 14 bảng tiền chặn 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN ở cả xem trước lẫn khôi phục
+BÀI THỬ:     chạy trên gốc 14169d8 → ĐỎ: thu_P26b 70 · 33, thu_P26c 136 · 20 (bang_chung_do.txt); sau khi vá → XANH: 103 · 0 và 156 · 0;
+             dot_bien.py 47 BẮT / 47 (đối chứng xanh); npm test -- --day-du PASS 70 · FAIL 0 · CẢNH BÁO 1 (cũ)
+ĐÃ RÀ K4:    grep "thayKetNoiNeuBan" database.js → 3 chỗ gọi (run, query, vòng BEGIN), mỗi chỗ một ca + một đột biến;
+             grep "laLoiBan" server/ → database.js + wallets.js (loiGhi) — một hàm;
+             mọi ghi pos_wallets qua ghiVi (E12 xanh, không ngoại lệ mới);
+             grep "Không tìm thấy đơn hàng" orders.js → 4 chỗ, 1 đã xử lý (pay-debt, chủ quán duyệt), 3 ghi Phát hiện;
+             grep "KHOI_PHUC_VI_DON_BI_CHAN" → chỉ còn hồ sơ lịch sử
+CHƯA KIỂM:   Turso thật (mã lỗi bận thật của sqld, BEGIN lười hỏng ở câu đầu — D8 dùng lỗi giả, BEGIN IMMEDIATE trên sqld có tuần tự hoá câu
+             đọc mã đơn); tranh chấp nhiều tiến trình; tx.close() có nhả khoá khi còn câu chưa reset (bận THẬT sau BEGIN — chưa đo);
+             createClient hỏng lúc thay kết nối (Q9: đã đo, giữ nguyên, việc sau); màn quầy không đọc `code` mới (Orders.jsx chỉ hiện
+             data.error); dữ liệu production có nợ lẻ / mã đơn không dạng số; không chạy trên Turso / production.
+GIT:         xem dòng git log ngay dưới khối này
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 4 · BỎ 3 — chi tiết ở ## Bài học
+```
+
+### Đếm nghiệm thu — mỗi mục một dòng
+
+| Mục | Bằng chứng |
+|---|---|
+| A (5) thử lại BEGIN | thu_P26b D0, D1, D2, D3, D4 ×4, D5 ×2, D7, D8, D10; BV-A-bo-thu-lai, VS-A-thu-lai-moi-loi, VS-A-cho-qua-lau, BV-A-bo-dong-tx-hong, BV-A-bo-thay-ket-noi, BV-A-run/begin/query-khong-thay |
+| B (19) laLoiBan | D4, D5, D9; VS-B-chi-khop-mot-ma, VS-B-khop-rong, BV-B-loiGhi-ma-cu, BV-B-lo-message (mã Turso thật: CHƯA KIỂM — Q1) |
+| C (10) mã đơn trong giao dịch | thu_P26c C1, C2, C3; BV-C-ma-don-ngoai-tx, VS-C-nuot-loi-doc-ma |
+| D (15) 409 chỉ trước commit | thu_P26c H1; thu_P26b H2, H2b; BV-D-huy-doc-mon-sau-commit, BV-D-doi-soat-409 |
+| E (17, 18) ví NULL / không âm | thu_P26b V1–V4; BV-E-bo-chuan-hoa-null, BV-E-bo-coalesce-cot-tong, VS-E-tong-chi-am |
+| F (7) khôi phục | thu_P26b F1, F2 ×13, F3, F4, F5; BV/VS-F-*, BV-Q7a, BV/VS-Q7d, BV-Q8c-ma-khoi-phuc-cu; E12 xanh trong --day-du |
+| G KB20 | thu_P26c G1; BV-G-bo-kiem-lai-ma |
+| H bài thử / đột biến / hạn | 47/47 BẮT; --day-du xanh; thời gian ≤ 46,4 s / 120 s |
+| I gói / thẻ trong giao dịch (duyệt 18.10) | thu_P26c I1–I4; BV-I-*, VS-I-* |
+| P pay-debt một giao dịch (duyệt 18.10) | thu_P26c P1–P4; BV-P-so-ngoai-tx, VS-P-lo-message |
+| Q6 nhatKyDon nhận tx | P2; BV-P-nhat-ky-nuot-loi, BV-P-nhat-ky-ngoai-tx |
+| Q7a 3 bảng | F2 ×3; BV-Q7a-bo-3-bang |
+| Q7b → Q8a query() thay kết nối | D10; BV-A-query-khong-thay |
+| Q7c ngân sách | chủ quán chấp nhận (Phát hiện: vượt thêm sau Q7c) |
+| Q7d xem trước | F4, F5; BV-Q7d, VS-Q7d |
+| pay-debt amount | P6 ×5, P7, P8, P9; 4 đột biến PD |
+| Q8b ngoại lệ nợ lẻ | P9; VS-PD-bo-ngoai-le-no-le |
+| Q8c-1 đổi tên mã | F1, F2, F4; BV-Q8c-ma-khoi-phuc-cu |
+| Q8c-2 code nhánh 400 | P5, P10–P14; 6 đột biến Q8c-pd |
+| Q8c-3 → Q9 (a) giữ thứ tự | chủ quán chốt (a); Phát hiện ghi số đo đúng + việc sau (c) |
+| Q9 code 404 | P15; BV-Q9-pd-bo-ma-404 |
+| Q9 đột biến theo chỗ gọi | BV-A-run-khong-thay (D7), BV-A-begin-khong-thay (D1) |
+
+## Bài học
+
+Sự cố của việc: soát vòng 1 / 2 / 3 KHÔNG ĐẠT (3 vòng sửa + 1 vòng thêm); hai lần máy dẫn phép đo sai (Q7b, Q9); một ngoại lệ tiền làm trước hỏi
+sau (Q8b); đột biến cũ làm bài sập sau khi siết phép đo; người gác chặn 11 lệnh (B-PHANTICH ×4, B-BIMAT-CHU ×2, B-CD-VITRI ×2, B-CHUONGTRINH ×2,
+GIT-TUYCHON ×1); vượt ngân sách.
+
+- **KHOÁ** (đã làm, trong Phạm vi):
+  1. Ca D10 + D3 / D7 đo tới giao dịch THỨ HAI bằng kết nối khác (thu_P26b) — đỏ trên a58bc78 đúng lỗi Q7b. Lý do: phép đo nháp đã dẫn quyết định sai.
+  2. Một đột biến cho MỖI chỗ gọi hàm vá chung (`BV-A-run/begin/query-khong-thay`) — đột biến sửa thân hàm không thay được.
+  3. Phép đo hai giao dịch bọc lỗi đọc → ca hỏng, không sập bài (đột biến `BV-A-bo-thay-ket-noi` từ HỎNG-sập → BẮT).
+  **Đề xuất KHOÁ ngoài Phạm vi** (chat duyệt): cổng A18 (`tu_chay/`) — mỗi dòng gọi hàm vá chung mới thêm vào `server/` phải có đột biến neo đúng
+  dòng đó; ca đỏ: dot_bien.py chỉ có đột biến thân hàm.
+- **NGUYÊN TẮC** (đề xuất cho `KHUON_LOI.md`, ngoài Phạm vi):
+  1. K3 — đo "kết nối / trạng thái không hỏng" phải đo trên KẾT NỐI KHÁC và ở lần THỨ HAI; phép đo nháp dùng để gỡ một chỗ vá đã duyệt phải thành ca
+     thử trong kho. Đã gây: Q7b gỡ dòng vá đúng vì đo một giao dịch.
+  2. K1 — kịch bản có thể làm tiến trình SẬP (panic gốc Rust / C) in từng bước ngay khi xong; đo phản bác một câu thì đo ĐÚNG lệnh câu đó nói. Đã gây:
+     Q9 ghi "lệnh kế tiếp sập, không phải CLIENT_CLOSED" — thật ra lệnh kế CLIENT_CLOSED, sập ở BEGIN.
+  3. K6 — ngoại lệ K5 với quyết định tiền đã chốt, hoặc gác lại quyết định đã duyệt: đặt Câu hỏi và DỪNG; không làm trước rồi ghi "xem lại", không tự
+     ghi "không chặn việc". Đã gây: Q8b, Q9.
+  4. K4 — chủ quán nói "MỌI X (cả a, b, c)" thì danh sách là ví dụ: liệt kê đủ đối tượng theo CHỨC NĂNG rồi chặn đủ hoặc hỏi. Đã gây: Q7a thiếu 3 bảng.
+  Dọn: chưa thấy lời dặn nào trong KHUON_LOI.md đã có phép máy thay thế từ việc này.
+- **BỎ**:
+  1. Người gác chặn lệnh nối (`python … && git …`, `cd` giữa lệnh, `until` chờ nền, grep chạm .replit / cụm bí mật) — luật đã ghi trong skill; làm
+     lại đúng dạng, không tốn thêm.
+  2. Đột biến cũ sập sau khi siết bài — bộ đột biến tự gắn nhãn HỎNG-sập nên đã bắt ngay; chỉ một lần.
+  3. Vượt ngân sách — chủ quán duyệt từng phần mở rộng (Q6, Q7, Q8, Q9); ghi Phát hiện.
