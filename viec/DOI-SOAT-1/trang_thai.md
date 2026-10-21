@@ -302,6 +302,16 @@ chấp nhận ~558 dòng code + 569 dòng thử. Gộp SAU P16."
 - 19.10 · Stop hook đòi push 4 commit (a6a86f4..b7bd23e); push bị từ chối non-fast-forward vì origin có `0e98c79 PHIEU: DOI-SOAT-1 cau 11 them client/dist/**`
   (lệch hai phía, gốc chung `2a6a671`). Không merge / rebase / force (luật) — chờ chủ quán chọn: (A) cho chạy `git pull --no-rebase origin viec/DOI-SOAT-1`, hoặc (B) tự gộp.
 
+## Phiên 21.10 · làm tiếp (soát vòng 2 → bước 11)
+
+- Bước 1: nhánh `viec/DOI-SOAT-1`, cây sạch; fetch: HEAD `69868c9` là tổ tiên của FETCH_HEAD `9290cf4` → `git pull --no-rebase --ff-only` (fast-forward, chỉ phiếu).
+  ```
+  9290cf4 PHIEU: DOI-SOAT-1 cau 11 them client/dist/**
+  69868c9 DOI-SOAT-1: ghi lech hai phia voi origin (cho chu quan chon cach gop)
+  b7bd23e DOI-SOAT-1: tra loi cau 10-12, bang chung do cau 10 (SO CA 114)
+  ```
+- Push 5 commit câu 10 đã lên (20.10, `2a6a671..69868c9` fast-forward) sau khi chủ quán trả nhánh GitHub về `2a6a671`. Câu 11 có hiệu lực (`- client/dist/**` trong Phạm vi).
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
