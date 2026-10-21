@@ -65,4 +65,21 @@
   ✗ DEN4 tiền mặt vào két 07.01 không tính khoản đền (trước = sau)  — undefined → undefined
   29 đạt · 86 hỏng
 # Sau vá (4a7a3a4): 114 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 114 đạt · 0 hỏng; TỔNG 38 · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0.
-SỐ CA cong_cu/thu_DOISOAT1.js: 114
+# ── Vòng sửa 2 sau /ra-soat vòng 2 (21.10.2026): thêm A2e, A2f, C6c, E7, E8, F2c, F3c; C6b viết lại (đơn lấy từ gói); E9 thử rồi bỏ (bài 4510847) ──
+# Trên code TRƯỚC vòng sửa 2: python3 viec/DOI-SOAT-1/dot_bien.py --goc 958f268 → 118 đạt · 3 hỏng · thoát 1:
+  ✗ A2e bất biến giả `WITH x AS (SELECT 1 AS "a'") UPDATE …` → bị chặn, nội dung bảng không đổi
+  ✗ A2f (K5) câu SELECT mở đầu bằng chú thích, chú thích có chữ "update" → KHÔNG bị chặn  — Đối soát chỉ được ĐỌC: '' SELECT 1 AS x ''
+  ✗ C6c (K4) gói tạo 10.10 chỉ bị đổi updated_at ngày 04.11 (route GET ghi giờ UTC) → vẫn "LỆCH CŨ" tháng 10, không nhảy sang ngày 04.11  — cũ T10:  · cần xem 04.11: gói #4: đã giao 5 > tổng 2 2026-11-04
+#   (E7, E8, F2c, F3c khoá luật đang ĐÚNG — xanh trên 958f268 là đúng; đột biến VS-DS-KET-MOC-*, VS-DS-RA-THEO-NGAY-TAO, BV-DS-LOAI-SAI,
+#    BV-DS-DA-SO-SAI, VS-DS-F-BO-DIEM-TRU bắt chúng)
+# Trên gốc: python3 viec/DOI-SOAT-1/dot_bien.py --goc 2123b69 → 29 đạt · 93 hỏng · thoát 1 (122 ca, có A0). Trích các ca mới:
+  ✗ A2e bất biến giả `WITH x AS (SELECT 1 AS "a'") UPDATE …` → bị chặn, nội dung bảng không đổi
+  ✗ A2f (K5) câu SELECT mở đầu bằng chú thích, chú thích có chữ "update" → KHÔNG bị chặn  — thiếu hàm chayDoiSoat
+  ✗ C6c (K4) gói tạo 10.10 chỉ bị đổi updated_at ngày 04.11 (route GET ghi giờ UTC) → vẫn "LỆCH CŨ" tháng 10, không nhảy sang ngày 04.11  — cũ T10:  · cần xem 04.11:
+  ✗ F2c loại ghi lạ → 400 DOI_SOAT_LOAI_SAI; da_so 2 / chuỗi "1" → 400 DOI_SOAT_DA_SO_SAI (không ghi dòng nào)  — HTTP 404 ; HTTP 404 ; HTTP 404
+  ✗ F3c dòng đổi điểm −3 trong tháng 01.2027 → điểm trừ 3 (cộng giữ 350)
+  ✗ E7 sổ két 09.01: mốc = 08.01 (ngày ghi gần nhất, không phải 05.01 / 06.01), để lại = 80.000 (dòng MỚI NHẤT, không phải 50.000) + tiền mặt 25.000  — undefined · undefined
+  ✗ E8 đơn tạo 09.01, huỷ 10.01: "trả ra" 25.000 nằm ở ngày HUỶ 10.01, ngày 09.01 bán 25.000 trả ra 0  — HTTP 200 · 09: undefined · 10: undefined
+  29 đạt · 93 hỏng
+# Sau vá (4cd9d17): node cong_cu/thu_DOISOAT1.js → 121 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 121 đạt · 0 hỏng; TỔNG 48 · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0.
+SỐ CA cong_cu/thu_DOISOAT1.js: 121

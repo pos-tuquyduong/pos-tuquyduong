@@ -252,7 +252,7 @@ Tôi đã đọc diff `2123b69^..HEAD` (bỏ `client/dist`), cả file `server/u
 | 20.000, HEAD bỏ chỉ mục | | | | H1 11,0 s · H2 67,5 s → chỉ mục CẦN |
 | 100.000 | — | — | — | H2 4,40 s / 290 câu (1 lần trọn); `chayDoiSoat` gọi thẳng (không HTTP): 4,9 s sạch · 4,6 s với 100.000 dòng lệch |
 
-- Chỉ mục: quyết định 8 ("index chỉ khi đo chậm, `CREATE INDEX IF NOT EXISTS` ở khối của việc này cuối `createTables`") — đo chậm nên thêm `idx_ds_<bảng>_order` cho `pos_order_items`, `pos_balance_transactions`, `pos_point_transactions`, `pos_refund_requests`, `pos_customer_packages` (`database.js:924–928`). KHÔNG thêm cho `pos_signup_codes` / `pos_membership_purchases`: hai bảng tạo SAU `createTables` (`database.js:1198, :1257`, trong `seedDefaultData`) — kho mới sẽ sập lúc khởi động. Câu chậm còn lại là I8 lồng theo `pos_signup_codes.order_id` (đo từng bất biến: 11,8 s / 12,3 s) → viết lại I8 thành JOIN với bảng gộp sẵn (`bat_bien.js:125–130`, cùng kết quả; giả lập `32 kịch bản · 18 bất biến · ĐẠT`; 69/69 neo LUOI-1 vào `bat_bien.js` vẫn khớp, đếm bằng script ast).
+- Chỉ mục: quyết định 8 ("index chỉ khi đo chậm, `CREATE INDEX IF NOT EXISTS` ở khối của việc này cuối `createTables`") — đo chậm nên thêm `idx_ds_<bảng>_order` cho `pos_order_items`, `pos_balance_transactions`, `pos_point_transactions`, `pos_refund_requests`, `pos_customer_packages` (`database.js:924–928`). KHÔNG thêm cho `pos_signup_codes` / `pos_membership_purchases`: hai bảng tạo SAU `createTables` (`database.js:1203, :1262`, trong `seedDefaultData` — sửa ở vòng 2, bản đầu ghi sai `:1198, :1257`) — kho mới sẽ sập lúc khởi động. Câu chậm còn lại là I8 lồng theo `pos_signup_codes.order_id` (đo từng bất biến: 11,8 s / 12,3 s) → viết lại I8 thành JOIN với bảng gộp sẵn (`bat_bien.js:125–130`, cùng kết quả; giả lập `32 kịch bản · 18 bất biến · ĐẠT`; 69/69 neo LUOI-1 vào `bat_bien.js` vẫn khớp, đếm bằng script ast).
 - 100.000 đơn: 2/3 lần chạy HTTP sập ngay ở yêu cầu H1 (`TypeError: fetch failed` trong `goiAi`, tầng mạng của bài thử sau ~100.000 lệnh INSERT; chưa rõ nguyên nhân) — **CHƯA KIỂM** ở cỡ này qua HTTP; số đo gọi thẳng hàm ở dòng trên.
 - `npm test` chỉ chạy N = 3.000: đột biến gỡ chỉ mục SẼ SỐNG ở cỡ đó (0,84 s) — khoá chỉ mục là số đo tay ở bảng trên, chưa phải phép máy.
 
@@ -312,6 +312,181 @@ chấp nhận ~558 dòng code + 569 dòng thử. Gộp SAU P16."
   ```
 - Push 5 commit câu 10 đã lên (20.10, `2a6a671..69868c9` fast-forward) sau khi chủ quán trả nhánh GitHub về `2a6a671`. Câu 11 có hiệu lực (`- client/dist/**` trong Phạm vi).
 
+## Bước 8 · soát độc lập `/ra-soat` vòng 2 (21.10) — KHÔNG ĐẠT
+
+Agent soát (general-purpose, chỉ đọc) soát `2123b69^..958f268`. Báo cáo chép nguyên văn:
+
+```
+KHÔNG ĐẠT
+
+Kết quả soát vòng 2 cho `viec/DOI-SOAT-1`, so `2123b69^` với HEAD `958f268`. Năm sửa chính của vòng 1 đúng. Nhưng còn hai luật tiền chủ quán đã chốt ở `quyet_dinh.md` mục 1 mà bài thử không khoá: đột biến phá chúng đi vẫn xanh trọn bài. Thêm một chỗ hai vị từ "đơn có gói" lệch nhau trên đường tiền, chỗ này vá được ngay trong `doiSoat.js`.
+
+Lệnh đã chạy:
+- `node cong_cu/thu_DOISOAT1.js` trên HEAD: **114 đạt · 0 hỏng**.
+- `dot_bien.py --goc 2123b69`: **29 đạt · 86 hỏng**, thoát 1. Khớp `bang_chung_do.txt`.
+- `dot_bien.py` (bộ đầy đủ): ĐỐI CHỨNG 114 đạt; **TỔNG 38 · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0**.
+- Đột biến của tôi, chép `server/` + `cong_cu/gia_lap/` vào scratchpad, chạy với `--may-chu`:
+  - bản m1 gộp 6 đột biến → **114 đạt · 0 hỏng, cả 6 SỐNG**;
+  - bản m2 gộp 3 đột biến → 113 đạt · 1 hỏng. Chỉ đột biến bỏ cận trên kỳ bị DEN2 bắt; hai đột biến kia SỐNG.
+
+**Kiểm từng sửa của vòng 1:**
+
+| Lỗi vòng 1 | Kết quả soát vòng 2 |
+|---|---|
+| 1 ngày sự việc | Đúng. `doiSoat.js:150-154` có `donMoiNhat` = MAX(tạo, huỷ, nhật ký, ví, điểm); `:171` gói lấy MAX(created_at, updated_at); I1 lấy MAX. C6/C6b đỏ trên `14311c3`. Còn lỗ phụ, xem lỗi 7. |
+| 2 `WITH … UPDATE` | Vá được dạng đã nêu (A2c). Còn lỗ của bộ tách chuỗi, và hai vế không có ca, xem lỗi 4. |
+| 3 N+1 | Đúng. Tra theo lô `lo` (`:141-148`); H2 đo 49 câu, trần 66; `VS-DS-TRA-TUNG-DONG` bị BẮT. |
+| 4 đền khách lẻ | Làm theo câu 10 = C: `phepDenLe` (`:213-218`), DEN1–DEN4, 5 đột biến đều BẮT. |
+| 5 ví mẹ | Đúng. `:115`; F3b; `BV-DS-VI-ME` bị BẮT. |
+| 6 A5 hằng `true` | Đã bỏ. G5 vẫn là ca marker, xem NGHI NGỜ. |
+| 7 K1 | Đã sửa các dòng bị nêu, nhưng có trích dẫn sai mới, xem lỗi 6. |
+| 8 `--help` | Đã chạy, in hướng dẫn rồi thoát. |
+| 9 màu két | `DoiSoat.jsx:14` có 🟡/🟢/🔴; bundle `index-B15H6HFH.js` có chuỗi mới. |
+| Ca chưa phủ `DOI_SOAT_LOAI_SAI` / `DOI_SOAT_DA_SO_SAI` | Không xử lý, xem lỗi 5. |
+| NGHI NGỜ I4/I18 (ngày ví = MAX dòng ví) | `trang_thai.md` không trả lời mục này. |
+
+LỖI TÌM ĐƯỢC:
+
+1. **`server/utils/doiSoat.js:125-126` — luật két "ngày CÓ ghi gần nhất trước D, dòng mới nhất của ngày đó" không có ca khoá — K3.**
+   - Đột biến `MAX(x.id)` → `MIN(x.id)` cùng `ORDER BY g.ky DESC` → `ASC`: bài vẫn 114/0, SỐNG.
+   - Lý do: bài chỉ có một ngày ghi két trước ngày 06.01 (05.01, `thu_DOISOAT1.js:424`), và ngày đó chỉ có một dòng.
+   - Đây là công thức tiền chủ quán chốt. Viết sai thì két đỏ hoặc xanh oan mà không phép máy nào bắt.
+
+2. **`server/utils/doiSoat.js:104` — "trả ra" tính theo `DATE(o.cancelled_at)` nhưng không có ca huỷ khác ngày tạo đơn — K3.**
+   - Đột biến `cancelled_at` → `created_at`: SỐNG.
+   - Lý do: ở E0 (`thu_DOISOAT1.js:431-435`) đơn được tạo và huỷ cùng ngày 06.01.
+
+3. **`server/utils/doiSoat.js:105` — vị từ "đơn có gói" khác với hàm tiền thật — K4 (MỘT vị từ, BAN-HANG-1; LUAT §2 "một quy tắc — một hàm").**
+   - Ở đây: dòng hàng có `product_id ∈ (−1000000, 0)`.
+   - Hàm hoàn thật `soTienHoan` (`tienDaTra.js:36`): `pos_customer_packages` theo `order_id` (cờ `coGoi`).
+   - Hai vị từ lệch nhau trên đường đang chạy, không chỉ dữ liệu cũ: lệnh INSERT `pos_customer_packages` nằm trong `try` nuốt lỗi (`orders.js:1056-1063`). Khi đó huỷ đơn không hoàn vào ví, quầy trả tiền mặt tận tay, nhưng đối soát không tính "trả ra" → két ĐỎ oan.
+   - Vòng 1 đã nêu (NGHI NGỜ); người làm chỉ chuyển sang Phát hiện.
+   - Cách sửa: `NOT EXISTS (SELECT 1 FROM pos_customer_packages cp WHERE cp.order_id = o.id)`. Có thêm ca cho trường hợp này.
+
+4. **`server/utils/doiSoat.js:58-63` — cổng `chiDoc` chưa được khoá đủ như chú thích hứa — K3.**
+   - Đột biến bỏ vế "nhiều câu" `|;\s*\S`: SỐNG.
+   - Đột biến bỏ phần lọc chú thích `/*…*/` và `--`: SỐNG.
+   - Bộ tách chuỗi bỏ qua tên định danh trong ngoặc kép. Tôi đã chép đúng regex ra `node -e` để thử: câu `WITH x AS (SELECT 1 AS "a'") UPDATE pos_settings SET value = '' WHERE key <> 'z'` lọt qua cổng (in ra `QUA`).
+   - Tôi chưa chạy câu đó trên SQLite: người gác chặn lệnh `sqlite3`. Đây là câu SQL hợp lệ, và vòng 1 đã xác nhận SQLite chạy lệnh ghi mở đầu bằng WITH.
+   - Rủi ro thấp vì bất biến là code nội bộ, nhưng chú thích `:58-59` hứa nhiều hơn những gì đã khoá.
+
+5. **`server/utils/doiSoat.js:285` và `:289` — `DOI_SOAT_LOAI_SAI` và `DOI_SOAT_DA_SO_SAI` không có ca nào — K3, sót từ vòng 1.**
+   - `grep "LOAI_SAI|DA_SO_SAI"` trong `thu_DOISOAT1.js` không ra dòng nào.
+   - Đột biến `if (false)` cho cả hai: SỐNG.
+
+6. **`viec/DOI-SOAT-1/trang_thai.md:255` — trích `database.js:1198, :1257` cho chỗ tạo `pos_membership_purchases` / `pos_signup_codes` — K1.**
+   - Thật ra ở `:1203` và `:1262`, cả ở `89d35c7` lẫn HEAD.
+   - `:1198` là dòng chú thích, không phải câu tạo bảng.
+
+7. **Nguồn ngày của dòng lệch I14 bị kéo sang hôm nay và lệch 7 giờ — K4, cùng khuôn với DEN (cột ghi giờ UTC).**
+   - `doiSoat.js:171` lấy ngày I14 = MAX(created_at, updated_at) của `pos_customer_packages`.
+   - `packages.js:194-195` là route GET, mỗi lần mở Báo cáo → Gói SP lại ghi `updated_at = new Date().toISOString()` (giờ UTC). Một lệch I14 cũ (đã giao > tổng, còn `active`) vì thế nhảy sang ngày xem, thoát khỏi nhóm "LỆCH CŨ".
+   - `packages.js:247` + `:266`: kết thúc gói cũng ghi `updated_at` và dòng ví `hoan_goi` bằng giờ UTC (ảnh hưởng ngày của `donMoiNhat` / `viMoiNhat`).
+   - Chỉ đổi nhóm vàng / ngày hiển thị, không làm két đỏ, nên mức nhẹ.
+
+8. **`client/src/components/DoiSoat.jsx:135` — người nhập và giờ nhập két chỉ hiện khi có từ 2 dòng.** Phiếu E đòi "người nhập, giờ". Lỗi giao diện nhỏ.
+
+9. **`server/utils/doiSoat.js:116` — "điểm trừ" của tháng (nhóm thứ 4 của phiếu F) không có ca.** F3 chốt `tru 0`; đột biến `0 AS tru`: SỐNG. Nhỏ.
+
+NGHI NGỜ:
+
+- **Xoá đơn (`orders.js:1549`, chỉ chủ, ngày nào cũng xoá được) là đường song song với huỷ nhưng không vào "trả ra".**
+  - Dòng đơn biến mất nên tiền của ngày tạo đơn đổi ngược về sau; ngày xoá thì két lệch.
+  - Báo cáo chỉ ghi ở Phát hiện. Nên thành Câu hỏi hoặc mục CHƯA KIỂM, vì đây là vùng CLAUDE.md §8 ghi "CHƯA rà".
+- **Công thức két dựa vào nhật ký `thu`, mà nhật ký này không bao giờ ném lỗi** (`nhatKyDon.js:9-24`).
+  - Mất một dòng nhật ký thì thu nợ bị tính về ngày tạo đơn, két lệch ở cả hai ngày.
+  - I9 chỉ bắt được đơn có SĐT.
+- **I4/I18 lấy ngày = MAX dòng ví** (`doiSoat.js:155`): ví lệch từ trước bản vá sẽ thành ĐỎ ngay lần giao dịch tiếp theo. Vòng 1 đã nêu, chưa có câu trả lời.
+- **G5 (`thu_DOISOAT1.js:528-530`) là ca marker suông, tính vào `SỐ CA 114`.**
+  - Ca này đọc `client/src` của cây thật, không theo `--may-chu`, nên cũng đạt trên gốc.
+  - Thêm nữa, `hasPermission('view_reports')` trùng với cổng ở thanh menu (`Layout.jsx:73`), nên nút luôn hiện với người vào được màn.
+- **Dòng DEN có `created_at` NULL hoặc không đọc được** → `DATETIME(...)` ra NULL → nhánh "không rõ ngày" xếp ĐỎ, trái với câu 10 = C ("không làm đỏ"). Chỉ là lý thuyết, vì cột có DEFAULT.
+- **Dữ liệu `pos_damage_logs` cũ (trước khi `damages.js` dùng `datetime('now')`) có thể đã ghi giờ VN.** Nếu vậy +7 giờ sẽ lệch đôi. Chưa kiểm được vì kho nông.
+
+NGHIỆM THU: 9/9 mục có bằng chứng (kèm hai lỗ ở E, F và phần "CHƯA KIỂM" ở H) + câu 10 có bằng chứng · mục thiếu: không có mục nào trống hẳn, nhưng E chưa khoá hai vế công thức (lỗi 1, 2) nên không tính là đủ.
+
+- **A:** A1, A2, A2b, A2c, A2d, A3, A4, A6. Câu "giả lập vẫn xanh" chỉ có ở văn bản `bang_chung_do.txt`.
+- **B:** B1, B1b, B2, B3, B3b, B3c, B4, C4b.
+- **C:** C1, C2, C3, C5, C6, C6b, D1a, C4 (mỗi bất biến). Ngày trong `AP_DUNG_TU` khớp `TIEN_DO_POS.json` ngày + 1 (P19 / P20 / P21 / P26b / P26c / GOI-2 / P20c đều đúng).
+- **D:** D1a–D1d, D2a–D2d.
+- **E:** E0, E0b, E0c, E1, E1b, E2–E6. **Thiếu khoá** cho "ngày ghi gần nhất / dòng mới nhất" và "trả ra theo ngày huỷ" (lỗi 1, 2).
+- **F:** F1, F2, F2b, F3, F3b. Điểm trừ chưa khoá (lỗi 9).
+- **G:** G1, G1b, G2, G3, G4, G6. G5 là ca marker.
+- **H:** H1/H2 ở N = 3.000 + bảng đo tay 20.000 / 100.000 trong `trang_thai.md:248-257`. Turso CHƯA KIỂM. Chỉ mục chưa có phép máy khoá (đã tự ghi).
+- **I:** có đủ các ca; 4 loại đột biến phiếu đòi đều có và đều BẮT (tôi đã chạy lại 38/38).
+- **Câu 10 = C:** DEN1–DEN4 + 5 đột biến BẮT.
+
+Phần còn lại của 8 mục soát:
+
+- **K3:** bài thử đỏ thật trên gốc; phần lớn ca kiểm hành vi qua route thật. Ngoại lệ: các lỗ nêu ở lỗi 1, 2, 4, 5, 9 và G5.
+- **K4:** `grep "db\.(query|queryOne|run|execute)" doiSoat.js` → đúng 2 chỗ: `:64` (`chiDoc`) và `:301` (`ghiMoi`). Mọi câu đọc đi qua cổng.
+  - Ngày sự việc: đủ 8 bất biến khoá theo đơn, cộng gói và I1.
+  - Chưa xử lý: vị từ "đơn có gói" (lỗi 3), các cột ngày ghi giờ UTC ngoài `damages.js` (lỗi 7), đường xoá đơn (NGHI NGỜ).
+- **K5:**
+  - `chiDoc`: grep từ khoá ghi trong `bat_bien.js` chỉ ra `:75` (chú thích, không phải SQL). Các tên cột `created_at`, `updated_at`, `deleted_at`, `pragma_table_info` không khớp `\b…\b`. Mọi câu của 17 bất biến và của `doiSoat` đã chạy qua cổng ở B0/A2 mà xanh → không câu SELECT hợp lệ nào bị chặn oan.
+  - `kiemTraGhi`: số 0, đúng trần, để lại bằng số đếm, sao kê đúng thứ 2, quản lý ghi đều qua (E5b, E5c, G2).
+- **Đường tiền:** không trường tiền nào lấy từ client để tính. Lệnh ghi duy nhất là INSERT vào `pos_doi_soat_ghi` (`:301`), cộng CREATE TABLE/INDEX ở `database.js:905-928`.
+  - Chỉ mục mới: 5 bảng đều có cột `order_id` ngay trong CREATE (`database.js:275`, `:333`, `:355`, `:451`, `:845`); `IF NOT EXISTS` an toàn trên cả kho mới lẫn kho thật.
+  - Lưu ý: khối này không bọc `try` (khác khối `:899-902`), nên Turso lỗi lúc tạo chỉ mục thì máy chủ không khởi động.
+- **P1:** `client/src` chỉ đổi ở `841cfb7` và `30f661b`, cả hai cùng commit `dist`; `index.html` trỏ đúng `index-B15H6HFH.js`; bundle có chuỗi mới. Phép so băm D5 tôi chưa chạy.
+
+**Đơn giản (mục 8):**
+- `doiSoat.js:141`: tham số `lan` của `lo` không chỗ gọi nào truyền (luôn 1), là code chết theo LUAT §3. Bỏ đi và truyền thẳng `phan`.
+- `doiSoat.js:105`: dùng lại vị từ của `soTienHoan` (xem lỗi 3), không giữ vị từ thứ hai.
+- `doiSoat.js:264-266`: ở kỳ ngày, `soKet` gọi lại `tienTheoSo(…, 'cash')` thêm 4 câu, trùng với `tongHop` khi mốc là ngày D−1. Nhẹ, không bắt buộc sửa.
+
+CHƯA SOÁT ĐƯỢC:
+- `npm test -- --day-du` (so băm D5, nhóm S: `chay.js`, `thu_gia_lap.js`) và `node tu_chay/cong.js chay` — không có trong danh sách lệnh được phép.
+- Turso: độ trễ, và chuyện tạo chỉ mục lúc khởi động.
+- Dữ liệu thật: số dòng LỆCH CŨ, ví lệch cũ, định dạng giờ của `pos_damage_logs` cũ.
+- 69 neo LUOI-1 và `viec/AUDIT-2/bb_neo.json`.
+- Ngày gộp đối chiếu bằng git log (kho nông).
+- Render có triển khai `cong_cu/` hay không.
+- Giao diện trên điện thoại.
+- Chạy câu bypass trên SQLite thật (người gác chặn `sqlite3`).
+
+BÀI HỌC:
+- **KHOÁ:**
+  - Ca két có ≥ 2 ngày ghi trước D, và ngày mốc có ≥ 2 dòng, kèm đột biến MIN/ASC.
+  - Ca huỷ đơn khác ngày tạo đơn, kèm đột biến `cancelled_at` → `created_at`.
+  - Ca `chiDoc` nhiều câu, ca có chú thích, ca `"a'"` (lỗ của bộ tách chuỗi).
+  - Ca `DOI_SOAT_LOAI_SAI` / `DOI_SOAT_DA_SO_SAI`; ca điểm trừ trong tháng.
+  - Ca đơn gói không có dòng `pos_customer_packages` bị huỷ → két không đỏ oan.
+  - Luật người gác: ca marker đọc cây thật (như G5) không được tính vào `SỐ CA` khi chạy `--may-chu`.
+- **NGUYÊN TẮC (KHUON_LOI):**
+  - K3: mỗi vế của công thức tiền chủ quán chốt (mỗi cột ngày, mỗi chữ "gần nhất / mới nhất") phải có một đột biến; ca chỉ có một mốc thì không khoá được chữ "gần nhất".
+  - K4: vị từ nghiệp vụ dùng trong đối soát lấy từ cùng nguồn với hàm tiền đang chạy (`soTienHoan`), không tự chế vị từ thứ hai.
+  - K4: sửa một cột ngày ghi giờ UTC thì grep mọi cột ngày đối soát đọc (`datetime('now')`, `toISOString`), kể cả route GET có ghi.
+  - K1: bảng "vòng sửa" phải trả lời TỪNG mục NGHI NGỜ và "ca chưa phủ" của người soát, không chỉ các mục LỖI.
+```
+
+## Vòng sửa 2 (21.10) — từng mục của báo cáo soát vòng 2
+
+| mục | xử lý | commit | ca (đỏ trên `958f268` hoặc chỉ đột biến bắt) | đột biến |
+|---|---|---|---|---|
+| lỗi 1 két "gần nhất / mới nhất" | thêm ca: 08.01 ghi hai dòng (để lại 50.000 rồi 80.000), xem 09.01 → mốc 08.01, để lại 80.000 | `3cdf90e` | E7 (khoá luật đang đúng — chỉ đột biến bắt) | `VS-DS-KET-MOC-DONG-DAU`, `VS-DS-KET-MOC-XA-NHAT` |
+| lỗi 2 trả ra theo ngày huỷ | thêm ca: đơn tạo 09.01, huỷ 10.01 | `3cdf90e` | E8 (chỉ đột biến bắt) | `VS-DS-RA-THEO-NGAY-TAO` |
+| lỗi 3 vị từ "đơn có gói" | **KHÔNG nhận đề xuất** — đã thử (ca E9 + đổi vị từ sang `pos_customer_packages`) thì **E0 ĐỎ**: huỷ đơn mua gói hợp lệ XOÁ luôn gói khách chưa giao lượt nào (`orders.js:1442–1444`), nên nhìn lại sau khi huỷ "còn gói khách" sai với MỌI đơn gói huỷ bình thường → két đỏ oan 300.000 (K5). Dòng hàng gói còn sau huỷ nên giữ vị từ dòng hàng; chú thích `doiSoat.js` ghi rõ lý do. Ca "thêm gói khách lỗi" (`orders.js:1056–1063`, try nuốt lỗi) là đường hỏng hiếm; sau huỷ không còn dấu vết phân biệt → **CHƯA KIỂM** + Phát hiện. Bỏ ca E9 (`4510847`). | `18e313c` | E0 (đã có) | `VS-DS-RA-THEO-GOI-KHACH` (= đúng đề xuất của người soát → E0 bắt) |
+| lỗi 4 `chiDoc` | (a) tên trong `"…"`, `` `…` ``, `[…]` cũng được thay trước khi soi (ca `"a'"` lọt — A2e ĐỎ trên `958f268`); (b) **lỗi mới tự bắt**: bộ thay cũ thay CẢ chú thích bằng `''` nên câu mở đầu bằng chú thích bị chặn oan (A2f ĐỎ trên `958f268`, K5) → nay thay bằng khoảng trắng; (c) bỏ vế `;\s*\S`: thừa — câu ghi thứ hai có từ khoá ghi nên vế từ khoá đã bắt, câu thứ hai chỉ đọc thì vô hại | `18e313c` | A2e, A2f | `VS-DS-CHI-DOC-SOI-CHUOI`, `VS-DS-CHI-DOC-DINH-DANH`, `BV-DS-CHI-DOC-CHU-THICH` |
+| lỗi 5 mã lỗi ghi | thêm ca | `3cdf90e` | F2c (chỉ đột biến bắt) | `BV-DS-LOAI-SAI`, `BV-DS-DA-SO-SAI` |
+| lỗi 6 K1 | số dòng đúng: `pos_membership_purchases` tạo ở `database.js:1203`, `pos_signup_codes` ở `:1262` (câu cũ ghi `:1198, :1257` là SAI) | — | — | — |
+| lỗi 7 ngày I14 | ngày gói = MAX(tạo gói, đơn lấy từ gói, huỷ đơn mua) — bỏ `updated_at` (route GET ghi lại bằng giờ UTC). Các cột UTC khác (`packages.js:247, :266`: kết thúc gói, dòng ví `hoan_goi`) nằm ngoài Phạm vi → Phát hiện | `18e313c` | C6c (ĐỎ trên `958f268`), C6b viết lại theo đơn lấy từ gói | `VS-DS-GOI-UPDATED-AT`, `VS-DS-GOI-NGAY-TAO` |
+| lỗi 8 người + giờ két | hiện "Lần ghi cuối: <người> lúc <giờ>" ngay từ dòng đầu; build dist | `a48afbf` | — (giao diện: thử tay) | — |
+| lỗi 9 điểm trừ | thêm ca dòng đổi −3 trong tháng | `3cdf90e` | F3c (chỉ đột biến bắt) | `VS-DS-F-BO-DIEM-TRU` |
+| đơn giản: tham số `lan` chết | bỏ | `18e313c` | — | — |
+| đơn giản: `soKet` gọi lại `tienTheoSo` | không làm (người soát ghi "không bắt buộc"; 4 câu đọc nhỏ) | — | — | — |
+
+**Trả lời từng NGHI NGỜ (vòng 1 + vòng 2):**
+- **Xoá đơn** (`orders.js` route DELETE, chỉ chủ): tiền của đơn đã xoá biến khỏi mọi tổng theo sổ → két ngày xoá có thể lệch, ngày tạo đổi ngược. Vùng CLAUDE.md §8 ghi "CHƯA rà"; việc này không rà → **CHƯA KIỂM**, ghi Phát hiện.
+- **Nhật ký `thu` không bao giờ ném lỗi** (`nhatKyDon.js`): mất một dòng thì thu nợ tính về ngày tạo đơn → **CHƯA KIỂM**; I9 chỉ bắt đơn có SĐT.
+- **I4 / I18 ngày = MAX dòng ví:** giữ. Số dư ví là trạng thái HIỆN TẠI, không có ngày sự việc riêng; ví lệch từ trước bản vá sẽ đỏ ngay ở kỳ có giao dịch mới của ví đó — đúng nguyên tắc "không bao giờ ẩn một lệch" của `doiSoat.js`, và chủ quán đã chấp nhận "lần chạy thật đầu có thể đỏ" (quyết định 2). Số ví lệch cũ trên dữ liệu thật: **CHƯA KIỂM**.
+- **G5 marker:** giữ — phiếu G đòi "màn ẩn nút"; ca đọc `client/src` của cây thật nên đạt cả trên gốc (đã ghi). `hasPermission('view_reports')` trùng cổng menu nên nút hiện với mọi người vào được màn — đúng phiếu G ("chỉ người có quyền xem báo cáo tiền").
+- **DEN `created_at` NULL → đỏ:** chỉ lý thuyết (cột có DEFAULT, nguồn ghi duy nhất `damages.js:195` dùng `datetime('now')`) → **CHƯA KIỂM**, không thêm nhánh.
+- **`pos_damage_logs` cũ ghi giờ VN:** kho nông, không thấy lịch sử `damages.js` → **CHƯA KIỂM**.
+- **Khối chỉ mục không bọc `try`:** giữ — cùng cách với các `CREATE INDEX` khác trong `createTables` (vd `database.js:815`), câu `IF NOT EXISTS` trên cột có sẵn.
+
+**Kiểm sau vòng sửa 2:** `node cong_cu/thu_DOISOAT1.js` **121 đạt · 0 hỏng**; trên `958f268` **118 đạt · 3 hỏng** (A2e, A2f, C6c); trên gốc `2123b69` **29 đạt · 93 hỏng**; đột biến ĐỐI CHỨNG 121 đạt · 0 hỏng, **TỔNG 48 · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0**; `npm test -- --day-du` **PASS 71 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ); giả lập xanh 34,2 s, `thu_gia_lap.js` xanh 50,8 s.
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 
 - `client/src/pages/Balance.jsx:111` luôn gửi `payment_method: 'cash'` khi nạp ví → nạp ví bằng chuyển khoản (nếu có) cũng ghi là tiền mặt; màn Đối soát tính nạp ví tiền mặt theo cột này.
@@ -323,6 +498,12 @@ chấp nhận ~558 dòng code + 569 dòng thử. Gộp SAU P16."
 - Chú thích `cong_cu/gia_lap/bat_bien.js:221` ghi `orders.js:450` — dòng đó nay là `sx_product_id: null` (lệch số dòng).
 - `server/routes/damages.js:195` ghi `pos_damage_logs.created_at` bằng `datetime('now')` (UTC), khác quy ước `getNow` (giờ VN) — báo cáo / đối soát theo ngày của bảng này lệch 7 giờ.
 - (người soát, NGHI NGỜ) "trả ra" nhận đơn gói bằng dòng `product_id ∈ (−1000000, 0)` (`doiSoat.js` `tienTheoSo`), còn `soTienHoan` (`server/utils/tienDaTra.js:36`) xét `pos_customer_packages` theo `order_id` — hai vị từ lệch nhau ở đơn gói không có dòng gói khách (dữ liệu cũ trước SO-LUONG-1). CHƯA KIỂM trên dữ liệu thật.
+- (vòng 2) `server/routes/packages.js:194–195` route GET ghi `updated_at` của gói bằng `toISOString()` (UTC) mỗi lần mở; `:247`, `:266` kết thúc gói
+  ghi `updated_at` và dòng ví `hoan_goi` bằng giờ UTC — ngày của các dòng này lệch 7 giờ so với quy ước `getNow` (đối soát gói đã bỏ `updated_at`).
+- (vòng 2) `server/routes/orders.js:1056–1063`: thêm gói khách nằm trong `try` nuốt lỗi — lỗi thì đơn có dòng gói mà không có gói khách; huỷ đơn đó không hoàn
+  ví (route huỷ và `soTienHoan` xét gói khách), quầy phải trả tay, nhưng đối soát (vị từ dòng hàng) không tính "trả ra" → két có thể đỏ. Không phân
+  biệt được sau huỷ (route huỷ xoá gói khách chưa giao, `orders.js:1444`) — muốn khoá thì cần sửa ở `orders.js` (ngoài Phạm vi).
+- (vòng 2) Xoá đơn (route DELETE `orders.js`, chỉ chủ) không vào "trả ra" và làm tiền của ngày tạo đơn đổi ngược — vùng CLAUDE.md §8 "CHƯA rà".
 - (sửa câu cũ của tôi, K1) mục "Bước 2–3" ở trên ghi "giữ ca đối chứng E7" — E7 đã BỎ sau quyết định 1 = B (lý do ở bảng vòng sửa 1, lỗi 7).
 
 ## Bài học (tạm — điền khi làm xong)
