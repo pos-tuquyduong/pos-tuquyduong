@@ -2447,6 +2447,7 @@ export default function Sales() {
         signup_loi: completedOrder.signupLoi || null
       }}
       settings={invoiceSettings}
+      nhomTheoMa={Object.fromEntries(products.filter(p => p.code && p.category).map(p => [p.code, p.category]))}
       successInfo={{
         cashReceived: completedOrder.cashReceived,
         change: completedOrder.change,
