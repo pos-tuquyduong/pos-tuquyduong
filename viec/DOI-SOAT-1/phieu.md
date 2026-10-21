@@ -13,7 +13,8 @@
      `chayBaiThat('cong_cu/thu_DOISOAT1.js')` RIÊNG, đặt TRƯỚC mục "K · KHO THỬ", KHÔNG sửa dòng mảng danh sách chung.
      18.10 chủ quán trả lời câu 1–8 (trang_thai.md) và câu 9: thêm server/routes/backup.js — CHỈ một dòng pos_doi_soat_ghi trong
      BACKUP_TABLES ngay sau dòng pos_order_log (phép E8). KH-API-1 thêm sau pos_customers, P26d sửa sau cuối danh sách — ba chỗ tách
-     nhau để git gộp tự động. -->
+     nhau để git gộp tự động.
+     19.10: câu 11 thêm client/dist/** (bản dựng bắt buộc). Gộp SAU P16; nếu PR đụng client/dist, chat dựng lại. -->
 
 **Chờ duyệt kế hoạch:** viết `viec/DOI-SOAT-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
@@ -54,6 +55,7 @@ mềm → thành ca thử mới ở việc sau. Dữ liệu cũ trước các b�
 - cong_cu/gia_lap/bat_bien.js
 - client/src/pages/Reports.jsx
 - client/src/components/DoiSoat.jsx
+- client/dist/**
 - cong_cu/thu_DOISOAT1.js
 - kiem_tra_truoc_khi_giao.js
 
