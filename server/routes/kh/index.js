@@ -145,4 +145,7 @@ const nhanQuaToken = (ham, loai) => async (req, res) => {
 router.post('/nhan-ma-bill', nhanQuaToken(nhanMaUuDai, 'nhan_ma_bill'));
 router.post('/nhan-diem', nhanQuaToken(nhanDiemMaBill, 'nhan_diem'));
 
+// G: đường lạ (đã qua token) → 404 có code, không rơi ra trang 404 mặc định.
+router.use((req, res) => bao(res, 'KHONG_TIM_THAY'));
+
 module.exports = router;
