@@ -136,11 +136,11 @@ không đan xen) → thêm ca tất định "yêu cầu khác ghi lượt chen g
 - `node tu_chay/cong.js tinh . 27e1ac1^ HEAD viec/KH-API-1` trên `8213118` (trước khi ghi bảng đột biến lượt 5): `✗ [A17]` (15 tên mới — nay đã ghi)
   và `✗ [A19]` (chưa tới 11.4); KHÔNG có ✗ Phạm vi.
   Chạy lại trên `5dde191` (sau khi ghi bảng): chỉ `✗ [A19]` — A17 hết.
-- Hook dừng (`kiem_truoc_khi_dung.cjs`) báo đỏ `thu_P20.js` — chính 3 bài của Q12.
+- Hook dừng (`kiem_truoc_khi_dung.cjs`) báo đỏ `thu_P20.js` — chính 3 bài của Q12. Không sửa file ngoài Phạm vi, không nới bộ kiểm, không tự chọn (b)/(c) thay chủ quán → dừng chờ Q12 (lượt 5).
 - **Lượt 6 — Q12 (a)** (`e0d1dce`, `9250024`): `node cong_cu/thu_P20.js` → 170 đạt · 0 hỏng. `npm test` → PASS 67 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ
   "route GET có lệnh ghi (3)" — `packages.js`, `products.js`, `sync.js`); `npm test -- --day-du` → **PASS 71 · FAIL 0 · CẢNH BÁO 1**: `✓ bài chạy thật
   cong_cu/thu_P20.js xanh`, `✓ … thu_KH1.js xanh`, `✓ … gia_lap/chay.js xanh (33.5 s)`, `✓ … thu_gia_lap.js xanh (48.4 s)`. `server/` không đổi từ
-  `8213118` → không chạy lại `dot_bien.py` (76/76 ở lượt 5 vẫn đúng code). Không sửa file ngoài Phạm vi, không nới bộ kiểm, không tự chọn (b)/(c) thay chủ quán → dừng chờ Q12.
+  `8213118` → không chạy lại `dot_bien.py` (76/76 ở lượt 5 vẫn đúng code).
 
 ## Bước 8 — soát độc lập `/ra-soat`
 
