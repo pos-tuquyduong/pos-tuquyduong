@@ -535,15 +535,103 @@ BÀI HỌC:
 
 Q8c duyệt theo câu của soát vòng 2: "`createClient` ném thì `db` là client đã đóng, mọi lệnh sau ra CLIENT_CLOSED". **Đo 21.10** (script nháp, kho
 file, `cauHinhTurso` ném đúng một lần lúc thay kết nối sau một `run` gặp bận thật; rồi run · giao dịch · giao dịch · run · giao dịch):
-- **Thứ tự hiện tại** (đóng cũ trước): lệnh kế tiếp trên client đã đóng làm **libsql panic → tiến trình Node SẬP** (`Option::unwrap() on None`, thoát 134).
+- **Thứ tự hiện tại** (đóng cũ trước): **[SAI cơ chế — soát vòng 3 đo từng bước; câu đúng ở mục "Sửa Q9" dưới]** lệnh kế tiếp trên client đã đóng làm **libsql panic → tiến trình Node SẬP** (`Option::unwrap() on None`, thoát 134).
   Không phải CLIENT_CLOSED.
 - **Thứ tự đảo** (tạo mới trước, ném thì giữ client cũ): máy chủ sống, nhưng client cũ là kết nối HỎNG → lệnh run kế tiếp **báo ok mà KHÔNG ghi**,
   sau đó mọi giao dịch / run `SQLITE_BUSY` mãi (kho còn 0 dòng).
 - Tức đảo thứ tự đổi "sập to tiếng" thành "mất dữ liệu im lặng + bận mãi" — tệ hơn theo luật "không báo đã ghi khi chưa ghi". Chỉ kho file (Replit),
   chỉ khi `createClient` ném (thực tế: tạo thư mục `data/` hỏng / hết fd). Máy KHÔNG làm, giữ thứ tự cũ.
 - **Đề xuất:** (a) giữ thứ tự cũ (sập → khởi động lại, không mất im lặng) — đề xuất; (b) đảo + khi tạo mới hỏng thì vẫn đóng cũ (= y như (a)); (c) việc
-  sau: tạo mới hỏng → đánh dấu kho hỏng, mọi lệnh ném lỗi rõ cho tới khi tạo lại được. Không chặn việc này: vòng sửa 4 làm xong phần còn lại.
+  sau: tạo mới hỏng → đánh dấu kho hỏng, mọi lệnh ném lỗi rõ cho tới khi tạo lại được. **[SAI — soát vòng 3: Q8c đã duyệt mà chưa làm thì việc CHƯA đóng được tới khi chủ quán trả lời Q9; máy không tự kết luận "không chặn".]** Không chặn việc này: vòng sửa 4 làm xong phần còn lại.
 
 ## Phát hiện (sửa, vòng sửa 4)
 
-- Dòng Phát hiện soát vòng 2 về `thayKetNoiNeuBan` ("`createClient` ném thì `db` là client đã đóng") — hậu quả thật là tiến trình sập (đo 21.10, Q9).
+- Dòng Phát hiện soát vòng 2 về `thayKetNoiNeuBan` ("`createClient` ném thì `db` là client đã đóng") — hậu quả thật là tiến trình sập (đo 21.10, Q9). **[SAI một nửa — soát vòng 3: run/query kế tiếp ra CLIENT_CLOSED như soát vòng 2 nói; sập ở BEGIN đầu tiên.]**
+
+## Soát độc lập `/ra-soat` — vòng 3 (21.10, HEAD 1658d96) — nguyên văn báo cáo
+
+```
+KHÔNG ĐẠT (vòng 3). Code của vòng sửa 4 sạch: bài thử, đột biến và `--day-du` đều đúng như hồ sơ ghi. Chưa ĐẠT vì hai lý do:
+- Q9 có câu sai. Bằng chứng Q9 trong trang_thai.md ghi sai cơ chế sập, mà chủ quán sẽ quyết dựa trên câu này.
+- Q8c phần 3 còn mở. Chủ quán đã duyệt đảo thứ tự tạo / đóng client nhưng chưa làm, đang chờ Q9.
+
+Theo Q8d thì dừng ở đây và báo chat.
+
+Kết quả tôi tự chạy trên HEAD 1658d96 (cây sạch, không sửa file nào trong kho):
+- thu_P26b: 103 đạt · 0 hỏng. thu_P26c: 155 đạt · 0 hỏng.
+- `npm test -- --day-du`: PASS 70 · FAIL 0 · CẢNH BÁO 1 (lỗi cũ: route GET có lệnh ghi). thu_gia_lap 46,5 s.
+- `dot_bien.py`: 44 BẮT / 44, cả hai đối chứng xanh (103 / 155).
+- Bài ở HEAD chạy trên `server/` của a58bc78 (chưa vá Q8): thu_P26b 87 · 16 (F1, F2 ×13, F4, D10), thu_P26c 149 · 6 (P5, P10–P14). Khớp `bang_chung_do.txt:84-94`, đỏ đúng câu.
+- Trên gốc 14169d8: 70 · 33 và 136 · 19, khớp `:96-99`.
+- `node tu_chay/cong.js tinh … 0bffc03 HEAD viec/P26d`: chỉ đỏ A19 (chưa có dòng "HEAD ĐÃ KIỂM"). Đây là bước sau soát, đúng thứ tự.
+
+Lỗi vòng 2 — đã xử lý hết:
+- Lỗi 1: `database.js:1327` gọi lại `thayKetNoiNeuBan`. Có ca D10 (`thu_P26b.js:672-681`). D3 (`:659`) và D7 (`:669`) nay đo tới giao dịch thứ hai và đọc bằng kết nối khác. Đột biến BV-A-query-khong-thay bắt ở D10.
+- Lỗi 2: chủ quán giữ ngoại lệ (Q8b). P9 có ở `thu_P26c.js:1218`, chú thích đã sửa.
+- Lỗi 3: đã xoá.
+- Lỗi 4: đã đổi tên mã. Grep chỉ còn `backup.js:113`, bài thử, `dot_bien.py` và câu lịch sử trong ke_hoach.
+- Nghi ngờ vòng 2:
+  - Code cho các nhánh 400: đã thêm.
+  - Thứ tự client: thành Q9.
+  - Mã đơn không theo dạng số, và `tx.close()` khi còn câu chưa reset: còn ở Phát hiện, vẫn chưa đo.
+
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:  viec/P26d/trang_thai.md:538 (Q9) và :549 (Phát hiện) — câu "lệnh kế tiếp trên client đã đóng làm libsql panic … Không phải CLIENT_CLOSED" SAI cơ chế. Tôi đo lại từng bước (bản in từng bước của do_thay.js: scratchpad/soat_do_thay.js, server/ HEAD, kiểu run):
+                 e1=HONG_TAO · 2=CLIENT_CLOSED · rồi panic ở giao dịch 3.
+                 Tức là:
+                 - lệnh gây ra việc thay kết nối trả 500 (lỗi tạo client đè lên SQLITE_BUSY → loiGhi trả LOI_MAY_CHU, không phải 409);
+                 - run / query kế tiếp ném CLIENT_CLOSED đúng như soát vòng 2 nói;
+                 - tiến trình chỉ SẬP ở beginTransaction đầu tiên.
+                 Vì sao: node_modules/@libsql/client/lib-cjs/sqlite3.js:121-126 `transaction()` gọi `#getDb()` mà KHÔNG `#checkNotClosed()`, còn `close()` (:144-149) không đặt `#db = null` → BEGIN chạy trên kết nối gốc đã đóng → panic.
+                 Script do_thay.js chỉ in khi chạy hết, nên lúc sập không biết sập ở bước nào — đây là suy ra, không phải đo. Khuôn K1.
+                 Bản đảo thứ tự tôi đo lại thì KHỚP hồ sơ: ghi(2)=ok mà kho rỗng, sau đó bận mãi. Nên đề xuất (a) vẫn đứng, chỉ phải sửa câu mô tả trước khi chủ quán trả lời Q9.
+               Q8c phần 3 (đảo thứ tự tạo / đóng client, chủ quán đã duyệt 21.10) — CHƯA làm, chuyển thành Q9 đang mở. Máy dừng hỏi là đúng (CLAUDE.md §9 "không tự quyết thay"), nhưng trang_thai.md:545 tự kết luận "Không chặn việc này". Quyết định đã duyệt mà bị gác lại thì việc chưa đóng được khi chủ quán chưa trả lời Q9. K6 nhẹ (tự định đoạt "không chặn").
+NGHI NGỜ:      - dot_bien.py chỉ có MỘT đột biến BV-A-bo-thay-ket-noi (sửa thân hàm, dòng 1389) cho ba chỗ gọi. Có thêm BV-A-query-khong-thay cho query(), nhưng KHÔNG có đột biến riêng cho chỗ gọi ở run() (database.js:1365) và ở vòng BEGIN (:1415) — K4 "mỗi CHỖ GỌI là chỗ vá riêng". Tôi tự dựng hai đột biến đó: gỡ ở run() → D7 và D10 đỏ (101·2); gỡ ở BEGIN → D1, D3, D7, D10 đỏ (99·4). Bài đủ sức bắt, chỉ thiếu tên trong bộ đột biến.
+               - pay-debt nhánh 404 "Không tìm thấy đơn hàng" (orders.js:1257) vẫn không có `code`. Câu hỏi Q8c do máy tự thu hẹp còn "các nhánh 400", trong khi LUAT §2 nói "lỗi cũ chưa có code thì thêm khi chạm tới".
+               - `DA_THU_ROI` nay dùng cho cả 400 (orders.js:1267, đã paid) lẫn 409 (thua đua, cuối route). Cùng tình huống nên hợp LUAT. Hiện không màn nào đọc `code` (grep client/src, app_kh/src = 0) — không có chỗ nào phân biệt hai trường hợp.
+               - Chưa đo `tx.close()` nhả khoá khi còn câu chưa reset. Kết nối của Sqlite3Transaction không bao giờ được đóng (sqlite3.js:121-126, :180-184): một giao dịch hỏng là giữ khoá mãi. Hiện chỉ ghi ở Phát hiện, D8 vẫn dùng lỗi giả.
+NGHIỆM THU:    19/20 mục có bằng chứng · mục thiếu: Q8c-3 (chờ Q9).
+               A  — thu_P26b D0 :514, D1 :633, D2 :642, D3 :659, D4 :531, D5 :540, D7 :669, D8 :558, D10 :680; BV/VS-A-* đều BẮT
+               B  — D4, D5, D9 :568; VS-B-*, BV-B-* BẮT (mã của Turso thật: CHƯA KIỂM, Q1 chấp nhận)
+               C  — thu_P26c C1 :1061, C3 :1069, C2 :1075; BV-C, VS-C BẮT
+               D  — H1 thu_P26c :1103; H2 / H2b thu_P26b :503, :508; BV-D-* BẮT
+               E  — V1 :463, V2 :471, V3 :479, V4 :486; BV/VS-E BẮT
+               F  — F1 :593, F2 ×13 :602, F3 :606; E12 xanh trong --day-du
+               G  — G1 thu_P26c :1090; BV-G BẮT
+               H  — 44/44 BẮT; --day-du xanh; gia_lap 46,5 s / 120 s
+               I (gói / thẻ trong giao dịch) — I1 :1117, I2 :1135, I3 :1123, I4 :1139
+               P (pay-debt một giao dịch) — P1 / P2 ~:1161, P3 :1169, P4 :1174
+               Q6 — P2 + BV-P-nhat-ky-* BẮT
+               Q7a — F2 (3 trang thêm) + BV-Q7a BẮT
+               Q7b → thay bằng Q8a — D10 :680 + BV-A-query-khong-thay BẮT; đỏ trên a58bc78 đúng câu
+               Q7c — chủ quán chấp nhận ngân sách
+               Q7d — F4 :610, F5 :613; BV/VS-Q7d BẮT
+               pay-debt amount — P6 ×5 :1203, P7 :1208, P8 :1212, P9 :1218; 4 đột biến PD BẮT
+               Q8a — như Q7b ở trên; database.js:1327; chú thích :1384-1387 khớp số đo
+               Q8b — P9 + VS-PD-bo-ngoai-le-no-le BẮT
+               Q8c-1 (đổi tên mã) — F1, F2, F4; BV-Q8c-ma-khoi-phuc-cu BẮT
+               Q8c-2 (code các nhánh 400) — P5 :1177, P10 :1182, P11 :1185, P12 :1188, P13 :1192, P14 :1196; 6 đột biến BẮT
+               Q8c-3 (đảo client) — THIẾU: chưa làm, Q9 mở, mô tả Q9 sai cơ chế (xem LỖI)
+CHƯA SOÁT ĐƯỢC: - Turso thật: mã lỗi bận, BEGIN lười, sqld có tuần tự hoá câu đọc mã đơn không.
+               - Tranh chấp giữa nhiều tiến trình ngoài kịch bản D1–D10.
+               - `node tu_chay/cong.js chay`: tôi chỉ chạy `tinh` vì `chay` chạy npm ci và ghi file. Trang_thai chưa ghi kết quả `chay` và dòng "HEAD ĐÃ KIỂM" (A19) — đúng thứ tự, làm sau soát.
+               - Màn hình quầy khi nhận các `code` mới: Orders.jsx:455-462 chỉ hiện `data.error`, không đọc `code`.
+               - Dữ liệu production có đơn nợ lẻ hay mã đơn không theo dạng số.
+BÀI HỌC:       - KHOÁ: thêm vào dot_bien.py hai đột biến theo CHỖ GỌI: gỡ `thayKetNoiNeuBan(err)` ở run() (đã thử: D7 bắt) và ở vòng BEGIN (đã thử: D1 / D3 bắt). Bộ đột biến cho hàm dùng chung phải có một tên cho mỗi chỗ gọi, không chỉ sửa thân hàm.
+               - NGUYÊN TẮC (K1 + K3, thêm vào KHUON_LOI.md): kịch bản đo có thể làm tiến trình SẬP (panic gốc C/Rust) thì phải in từng bước ngay khi xong (stderr, không gom in cuối). Không thì câu "lệnh X làm sập" là suy ra, không phải đo. Q9 suy "lệnh kế tiếp", thật ra là BEGIN thứ nhất.
+               - NGUYÊN TẮC (K1): đo phản bác một câu của người soát ("ra CLIENT_CLOSED") thì đo đúng câu đó ở đúng lệnh đó, trước khi ghi "Không phải X".
+```
+
+### Sửa Q9 (21.10, sau soát vòng 3) — câu đúng để chủ quán quyết
+
+Máy chạy lại script in từng bước của người soát (`soat_do_thay.js`, server/ HEAD): `e1=HONG_TAO · 2=CLIENT_CLOSED · panic`. Tức với **thứ tự hiện
+tại** (đóng cũ trước) khi tạo client mới hỏng:
+- lệnh gây thay kết nối trả **500 LOI_MAY_CHU** (lỗi tạo client đè lên lỗi bận — không phải 409);
+- run / query kế tiếp ném **CLIENT_CLOSED** (đúng như soát vòng 2 nói);
+- lệnh mở giao dịch đầu tiên sau đó làm **tiến trình Node SẬP** (libsql `transaction()` không kiểm client đã đóng).
+
+**Thứ tự đảo** (đo lại, khớp): máy chủ sống, lệnh ghi kế tiếp **báo ok mà KHÔNG ghi**, sau đó bận mãi. Đề xuất (a) giữ thứ tự cũ vẫn đứng.
+Q8c phần 3 **CHƯA đóng** — chờ chủ quán trả lời Q9.
+
+**DỪNG theo Q8d** (soát vòng 3 KHÔNG ĐẠT, không xin thêm vòng). Chưa làm: hai đột biến theo chỗ gọi (run, BEGIN — người soát đề xuất), `code`
+cho nhánh 404 pay-debt, báo cáo 7 mục, bài học, cổng `chay`, `HEAD ĐÃ KIỂM`.
