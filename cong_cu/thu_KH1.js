@@ -660,7 +660,8 @@ async function main() {
     mocSauDoc = null;
     const nRc = Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_kh_lan_thu WHERE sdt = ?', [Rc.sdt])).n);
     // Code đúng đếm + chèn trong MỘT câu run → không có câu đọc nào để móc chạy: 9 + lượt của yêu cầu này = ĐÚNG 10 (so bằng — K3),
-    // yêu cầu tới hàm (404). Ca này khoá bản TÁCH đếm / ghi (VS-Q9-dem-roi-chen: móc chen → 11 lượt).
+    // yêu cầu tới hàm (404). Ca này chỉ khoá bản tách ĐỌC đếm qua db.queryOne / db.query (móc ở đầu bài) rồi mới ghi
+    // (VS-Q9-dem-roi-chen: móc chen → 11 lượt); bản tách đọc qua tx.queryOne hay hàm khác thì móc không chạy — ca không bắt.
     k('Q9 yêu cầu khác ghi lượt chen giữa lúc đếm và lúc ghi → tổng lượt KHÔNG vượt 10 (ĐÚNG 10, tới hàm 404)',
       nRc === 10 && la(rc, 404, 'MA_KHONG_TON_TAI'), `${moTa(rc)} · ${nRc} lượt`);
 
