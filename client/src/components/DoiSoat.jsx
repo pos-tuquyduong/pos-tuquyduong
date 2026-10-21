@@ -132,6 +132,7 @@ export default function DoiSoat() {
                   <button className="btn btn-primary" onClick={luuKet}>Lưu số két</button>
                 </div>
               )}
+              {kq.ket.nguoi && <div style={{ fontSize: '0.85rem' }}>Lần ghi cuối: {kq.ket.nguoi} lúc {kq.ket.luc?.replace('T', ' ')}</div>}
               {kq.ket.lich_su.length > 1 && (
                 <div style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
                   Lịch sử: {kq.ket.lich_su.map((h) => `${h.luc?.slice(11, 16)} ${h.nguoi}: ${dong(h.so_tien)} / để lại ${dong(h.de_lai)}`).join(' · ')}
