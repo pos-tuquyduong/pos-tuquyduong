@@ -7,7 +7,7 @@
 # (Lần ghi đầu với bản 93ee2ce: 9 đạt · 83 hỏng; bản 38392aa đổi mục F3 thành so sâu 4 đường + 1 ca đơn → gốc thêm 1 ca hỏng: 9 · 84;
 #  bản ec5efe4 thêm ca C "gia ngoài máy thử" → gốc thêm 1 ca hỏng: 9 · 85;
 #  bản 2c296e4 thêm ca A4 "đua tạo khách chen" → 9 · 86. Ca G mới không hiện trên gốc vì mục G sập ngay đầu.)
-SỐ CA cong_cu/thu_KH1.js: 151
+SỐ CA cong_cu/thu_KH1.js: 156
 
   ✗ A1 "+84 912 345 601" → 200, dòng mã lưu 0912345601  — HTTP 404
   ✗ A1 SĐT "abc" → 400 SDT_KHONG_HOP_LE  — HTTP 404
@@ -168,3 +168,17 @@ SỐ CA cong_cu/thu_P20.js: 170
 #  (1) GỐC server/ của 6fe38d8 (ban_sao_goc.py + chép bài): 9 đạt · 91 hỏng, thoát 1 (như lượt 5 — mục Q9 sập trên gốc, chưa có bảng).
 #  (2) Code đã vá (HEAD 6699270): 151 đạt · 0 hỏng → dòng SỐ CA cong_cu/thu_KH1.js: 151 ở đầu file giữ nguyên.
 #  (3) python3 viec/KH-API-1/dot_bien.py VS-Q9-dem-roi-chen … → bắt: "HTTP 404 · MA_KHONG_TON_TAI · 11 lượt".
+
+# ── Lượt 6, soát vòng 3 — cong_cu/thu_KH1.js bản 7d5b8f7 (+ a2581ed chỉ sửa chú thích, không đổi ca — (1) chạy bằng 7d5b8f7, (2) bằng a2581ed, (3) bằng cả hai: cùng số ca): thêm 6 ca G tầng ứng dụng (JSON hỏng → 400,
+#  thân quá lớn → 413, GET / POST đường lạ có token → 404 — đều có `code`) + phép [tĩnh] vị trí loiTangKh trong index.js. Dòng SỐ CA đầu file
+#  đổi 151 → 156 (A16: ghi số ca bài in trên code ĐÃ VÁ).
+#  (1) Code TRƯỚC vá (server/ của 89e66dc — cây làm việc, bài 7d5b8f7): 150 đạt · 6 hỏng, thoát 1. Sáu ca ĐỎ:
+  ✗ G JSON hỏng → 400 YEU_CAU_KHONG_HOP_LE, không lộ lời báo của bộ đọc JSON  — <!DOCTYPE html>
+  ✗ G thân quá lớn → 413 YEU_CAU_KHONG_HOP_LE (giữ status của bộ đọc)  — <!DOCTYPE html>
+  ✗ G GET đường lạ (có token) → 404 KHONG_TIM_THAY  — <!DOCTYPE html>
+  ✗ G POST đường lạ (có token) → 404 KHONG_TIM_THAY  — <!DOCTYPE html>
+  ✗ G mọi thân lỗi /kh (94) có error + code, ngoài ra chỉ success  — /kh/dang-nhap/xin-ma <!DOCTYPE html>
+  ✗ index.js: app.use('/api/kh', …loiTangKh) SAU router /api/kh, TRƯỚC bộ lỗi chung (G)
+#  (2) GỐC server/ của 6fe38d8 và của mốc cổng 0bffc03 (ban_sao_goc.py + chép bài): mỗi bản 9 đạt · 92 hỏng, thoát 1 (mục G sập trên gốc;
+#      thêm 1 dòng ✗ của phép tĩnh mới).
+#  (3) Code ĐÃ VÁ (d34c34f…): node cong_cu/thu_KH1.js → 156 đạt · 0 hỏng. dot_bien.py → ĐỐI CHỨNG 156 · 0, 82 / 82 bị bắt.
