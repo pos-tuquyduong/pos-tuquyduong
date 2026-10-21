@@ -145,7 +145,7 @@ chưa — CHƯA KIỂM, không đổi.
 ## 5. Phần F (7) — khôi phục sao lưu không ghi thẳng ví / đơn
 
 **Phương án A (chọn, ưu tiên an toàn)**: chặn. Trước MỌI lệnh ghi của `/restore`: trang nhận ra là `pos_wallets` hoặc `pos_orders`
-mà có dòng → `400 { code: 'KHOI_PHUC_VI_DON_BI_CHAN', error: 'File có trang Số dư / Đơn hàng — ví và đơn không khôi phục bằng
+mà có dòng → `400 { code: 'KHOI_PHUC_VI_DON_BI_CHAN' (Q8c đổi tên → KHOI_PHUC_TRANG_TIEN_BI_CHAN), error: 'File có trang Số dư / Đơn hàng — ví và đơn không khôi phục bằng
 file (chỉ ghi qua đường bán / ví). Xoá hai trang đó khỏi file rồi khôi phục lại', bang: [...] }`, không xoá / chèn bảng nào.
 Hằng `BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders']`. Hai bảng VẪN trong `BACKUP_TABLES` (E8 — vẫn sao lưu / xuất được).
 ~8 dòng `backup.js`. E12 xanh, không thêm ngoại lệ.
@@ -192,7 +192,7 @@ vì kết nối hỏng chứ không vì lỗi đang thử (soát kế hoạch). 
 | V2 | thu_P26b | E | ví `total_topup`/`total_spent` NULL → nạp, trừ tay | hai cột ra số đúng | NULL |
 | V3 | thu_P26b | E | đơn trả ví, xoá dòng ví (ví mất), huỷ đơn | ví tạo lại: `balance` = khoản hoàn, `total_spent = 0` | `total_spent` âm |
 | V4 | thu_P26b | E (K5) | ví có sẵn, huỷ đơn trả ví | `total_spent` giảm đúng khoản hoàn (như cũ) | xanh (K5) |
-| F1 | thu_P26b | F | file có trang "Nhật ký đồng bộ" ĐỨNG TRƯỚC trang "Số dư" (có dòng) — thứ tự cố ý, để bắt vá "chặn trong vòng sau khi đã xoá trang trước" (bài thật dùng `pos_sync_logs` thay `pos_settings`) | 400 `KHOI_PHUC_VI_DON_BI_CHAN`; `pos_sync_logs` VÀ `pos_wallets` không đổi | 200, ví bị ghi đè |
+| F1 | thu_P26b | F | file có trang "Nhật ký đồng bộ" ĐỨNG TRƯỚC trang "Số dư" (có dòng) — thứ tự cố ý, để bắt vá "chặn trong vòng sau khi đã xoá trang trước" (bài thật dùng `pos_sync_logs` thay `pos_settings`) | 400 `KHOI_PHUC_TRANG_TIEN_BI_CHAN` (Q8c); `pos_sync_logs` VÀ `pos_wallets` không đổi | 200, ví bị ghi đè |
 | F2 | thu_P26b | F | file có trang "Đơn hàng" | 400, `pos_orders` không đổi | 200 |
 | F3 | thu_P26b | F (K5) | file chỉ có trang "Kho quà" | 200 khôi phục như cũ | xanh (K5) |
 

@@ -18,7 +18,7 @@ _sp = importlib.util.spec_from_file_location('boc_audit4', os.path.join(GOC, 'vi
 B = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(B)
 
 BAI = {'thub': 'cong_cu/thu_P26b.js', 'thu': 'cong_cu/thu_P26c.js'}
-SO_CA = {'thub': 102, 'thu': 150}   # dòng tổng "n đạt · 0 hỏng" khi KHÔNG đột biến (đối chứng)
+SO_CA = {'thub': 103, 'thu': 155}   # dòng tổng "n đạt · 0 hỏng" khi KHÔNG đột biến (đối chứng)
 GIO = 300
 DB, W, H, O, BK, N = 'database.js', 'routes/wallets.js', 'utils/helpers.js', 'routes/orders.js', 'routes/backup.js', 'utils/nhatKyDon.js'
 GOI = "          const cpResult = await tx.run("
@@ -69,7 +69,7 @@ DOT_BIEN = [
   ('BV-Q7d-xem-truoc-khong-chan', 'thub', [(BK, "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb)) return;\n    const preview = [];",
                                             "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    const preview = [];", 1)], r'✗ F4 '),
   ('VS-Q7d-xem-truoc-chan-moi-file', 'thub', [(BK, "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb)) return;\n    const preview = [];",
-                                               "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb) || res.status(400).json({ code: 'KHOI_PHUC_VI_DON_BI_CHAN', bang: [] })) return;\n    const preview = [];", 1)], r'✗ F5 '),
+                                               "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb) || res.status(400).json({ code: 'KHOI_PHUC_TRANG_TIEN_BI_CHAN', bang: [] })) return;\n    const preview = [];", 1)], r'✗ F5 '),
   # ── G: KB20 — kiểm lại mã giảm trong giao dịch ──
   ('BV-G-bo-kiem-lai-ma', 'thu', [(O, "        if (\n          freshCode.usage_limit > 0 &&", "        if (\n          false &&", 1)], r'✗ G1 '),
   # ── I: gói / thẻ trong giao dịch đơn ──
@@ -97,6 +97,16 @@ DOT_BIEN = [
   ('VS-PD-chi-chan-khong-duong', 'thu', [(O, "!(Number.isInteger(amount) && amount > 0)) {", "!(Number(amount) > 0)) {", 1)], r'✗ P6 thu nợ amount (số lẻ|chuỗi số)'),
   ('VS-PD-bo-ngoai-le-no-le', 'thu', [(O, "if (amount != null && amount !== order.debt_amount && !(", "if (amount != null && !(", 1)], r'✗ P9 '),
   ('VS-PD-chan-ca-khong-gui', 'thu', [(O, "if (amount != null && amount !== order.debt_amount && !(", "if (amount !== order.debt_amount && !(", 1)], r'✗ P7 '),
+  # ── Q8a: query() thay kết nối khi SELECT bận (kho file) ──
+  ('BV-A-query-khong-thay', 'thub', [(DB, "    console.error('Query error:', err.message);\n    thayKetNoiNeuBan(err);\n", "    console.error('Query error:', err.message);\n", 1)], r'✗ D10 '),
+  # ── Q8c: mã lỗi — chặn khôi phục đổi tên; nhánh 400 cũ của pay-debt có code ──
+  ('BV-Q8c-ma-khoi-phuc-cu', 'thub', [(BK, "code: 'KHOI_PHUC_TRANG_TIEN_BI_CHAN'", "code: 'KHOI_PHUC_VI_DON_BI_CHAN'", 1)], r'✗ F1 '),
+  ('BV-Q8c-pd-bo-ma-cach-tra', 'thu', [(O, '          code: "CACH_TRA_LA",\n', '', 1)], r'✗ P10 '),
+  ('BV-Q8c-pd-bo-ma-huy', 'thu', [(O, ', code: "DON_KHONG_HOP_LE" });', ' });', 1)], r'✗ P14 '),
+  ('BV-Q8c-pd-bo-ma-da-thu', 'thu', [(O, '"Đơn hàng đã được thanh toán đầy đủ", code: "DA_THU_ROI" }', '"Đơn hàng đã được thanh toán đầy đủ" }', 1)], r'✗ P(5|12) '),
+  ('BV-Q8c-pd-bo-ma-khong-no', 'thu', [(O, ', code: "DON_KHONG_NO" });', ' });', 1)], r'✗ P13 '),
+  ('BV-Q8c-pd-bo-ma-vuot-no', 'thu', [(O, '          code: "VUOT_QUA_NO",\n', '', 1)], r'✗ P11 '),
+  ('VS-Q8c-pd-da-thu-sai-ma', 'thu', [(O, '"Đơn hàng đã được thanh toán đầy đủ", code: "DA_THU_ROI" }', '"Đơn hàng đã được thanh toán đầy đủ", code: "DON_KHONG_NO" }', 1)], r'✗ P(5|12) '),
 ]
 
 
