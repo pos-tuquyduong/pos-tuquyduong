@@ -59,6 +59,8 @@ DOT_BIEN = [
   ('VS-DS-DEN-VAO-KET', [(DS, "chiDoc(`SELECT COALESCE(SUM(o.${cot}), 0) AS n FROM pos_orders o WHERE o.status = 'cancelled'",
                           "chiDoc(`SELECT (SELECT COALESCE(SUM(refund_amount), 0) FROM pos_damage_logs WHERE ? = 'cash' AND DATE(created_at, '+7 hours') BETWEEN ? AND ?) + COALESCE(SUM(o.${cot}), 0) AS n FROM pos_orders o WHERE o.status = 'cancelled'", 1),
                          (DS, "-1000000)`, [tu, den]),", "-1000000)`, [cach, tu, den, tu, den]),", 1)], r'✗ DEN4'),
+  ('VS-DS-D1-NGUONG-CLAIM', [(DS, 'GROUP BY claimed_phone HAVING COUNT(*) > 1', 'GROUP BY claimed_phone HAVING COUNT(*) > 0', 1)], r'✗ D1e'),
+  ('VS-DS-D1-NGUONG-DIEM', [(DS, 'GROUP BY diem_nhan_phone HAVING COUNT(*) > 1', 'GROUP BY diem_nhan_phone HAVING COUNT(*) > 0', 1)], r'✗ D1e'),
   # ── E: tiền mặt vào két ──
   ('VS-DS-BAN-KHONG-TRU-THU', [(DS, "SELECT COALESCE(SUM(o.${cot} - (SELECT COALESCE(SUM(${jTien}), 0) FROM pos_order_log WHERE order_id = o.id AND loai = 'thu')), 0) AS n",
                                 "SELECT COALESCE(SUM(o.${cot}) + 0 * ?, 0) AS n", 1)], r'✗ (E0c|F3)'),
@@ -72,6 +74,9 @@ DOT_BIEN = [
   ('VS-DS-RA-THEO-GOI-KHACH', [(DS, 'SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)`, [tu, den])', 'SELECT 1 FROM pos_customer_packages cp WHERE cp.order_id = o.id)`, [tu, den])', 1)], r'✗ E0 '),
   ('VS-DS-THU-BO-CACH', [(DS, "CASE WHEN json_extract(chi_tiet, '$.cach') = ? THEN", 'CASE WHEN ? IS NOT NULL THEN', 1)], r'✗ E10'),
   ('VS-DS-KET-MOC-MOI-LOAI', [(DS, "x.loai = 'ket' AND x.ky = g.ky", 'x.ky = g.ky', 1)], r'✗ E11'),
+  ('VS-DS-RA-BO-THE', [(DS, 'AND oi.product_id < 0 AND oi.product_id > -1000000)`, [tu, den])', 'AND oi.product_id < 0)`, [tu, den])', 1)], r'✗ E14'),
+  ('VS-DS-KET-LICH-SU-MOI-LOAI', [(DS, "WHERE loai = ? AND ky = ? ORDER BY id DESC', ['ket', ngay]", "WHERE ? IS NOT NULL AND ky = ? ORDER BY id DESC', ['ket', ngay]", 1)], r'✗ E12'),
+  ('VS-DS-SAO-KE-MOI-LOAI', [(DS, "WHERE loai = ? AND ky = ? ORDER BY id DESC LIMIT 1', ['sao_ke', ky.tu]", "WHERE ? IS NOT NULL AND ky = ? ORDER BY id DESC LIMIT 1', ['sao_ke', ky.tu]", 1)], r'✗ E13'),
   ('VS-DS-GHI-DE', [(DS, "  const d = kiemTraGhi(b);\n", "  const d = kiemTraGhi(b);\n  await db.run('DELETE FROM pos_doi_soat_ghi WHERE loai = ? AND ky = ?', [d.loai, d.ky]);\n", 1)], r'✗ E4'),
   ('BV-DS-BO-KIEM-SO-TIEN', [(DS, "const nguyen = (v) => Number.isInteger(v) && v >= 0 && v <= TRAN_KET;", "const nguyen = () => true;", 1)], r'✗ E5 '),
   # ── F: tuần / tháng ──
