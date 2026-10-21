@@ -130,6 +130,9 @@ async function main() {
   };
   const claim = (ma, phone = sdtMoi()) => goi('POST', '/signup-codes/claim', { code: ma, phone }, true);
   const nhanDiem = (ma, phone = sdtMoi()) => goi('POST', '/signup-codes/nhan-diem', { code: ma, phone }, true);
+  // KH-API-1 Q11: bill ghi SĐT khách thì chỉ SĐT đó nhận được mã. Bill không ghi SĐT → undefined → claim/nhanDiem dùng SĐT mới.
+  const sdtTrenBill = async (ma) =>
+    (await db.queryOne('SELECT order_customer_phone AS p FROM pos_signup_codes WHERE code = ?', [ma])).p || undefined;
   const moTa = (r) => `HTTP ${r.status}${r.code ? ' · ' + r.code : ''}${r.error ? ' · ' + r.error : ''}`;
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -260,12 +263,22 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q11] Bill ghi SĐT khách → SĐT KHÁC nhận mã bị chặn BILL_SDT_KHAC (KH-API-1)');
+  {
+    const sdt = sdtMoi(); await napVi(sdt, 100000);
+    const d = await taoDon('ví Q11', { customer_phone: sdt, customer_name: 'Khách ví Q11', items: [mon()], payment_method: 'balance', balance_amount: 25000 });
+    const r = await claim(d.ma);
+    k('/claim bill ví bằng SĐT khác SĐT trên bill → 400 BILL_SDT_KHAC', r.status === 400 && r.code === 'BILL_SDT_KHAC', moTa(r));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[D] K5 — luồng HỢP LỆ phải KHÔNG bị chặn (cả /claim lẫn /nhan-diem)');
   const phaiQua = async (ten, d, nhanDiemMongDoi = 200) => {
     k(`${ten}: payment_status = paid`, d.trangThaiTien === 'paid', d.trangThaiTien);
-    const a = await claim(d.ma);
+    const sdt = await sdtTrenBill(d.ma);
+    const a = await claim(d.ma, sdt);
     k(`${ten}: /claim → 200`, a.status === 200 && a.success === true, moTa(a));
-    const b = await nhanDiem(d.ma);
+    const b = await nhanDiem(d.ma, sdt);
     if (nhanDiemMongDoi === 200) k(`${ten}: /nhan-diem → 200`, b.status === 200 && b.success === true, moTa(b));
     else k(`${ten}: /nhan-diem → ${nhanDiemMongDoi} (luật CŨ, không phải P20)`, b.code === nhanDiemMongDoi, moTa(b));
   };
@@ -336,7 +349,7 @@ async function main() {
     // Đơn gốc đã thanh toán, claim xong → voucher THẬT mang đúng mã bill.
     const donDaClaim = async (ten, body) => {
       const d = await taoDon(ten, body);
-      const c = await claim(d.ma);
+      const c = await claim(d.ma, await sdtTrenBill(d.ma));
       k(`${ten}: claim → 200`, c.status === 200, moTa(c));
       return d;
     };
