@@ -761,3 +761,13 @@ B-CHUONGTRINH ×3 (`paste`…), B-BIMAT-FILE, B-CD-VITRI, B-DICHCHU ×1.
   làm đúng việc.
 - **BỎ 2** — Q8 / Q12 (phiếu thiếu file): đã đi đúng đường hỏi chủ quán; khung đã có bước tự xét cổng trước khi hỏi (skill bước 4).
 - Dọn: không đề xuất xoá lời dặn nào lượt này.
+
+## Cổng chạy (bước 11.4) — lượt 6, 21.10.2026
+`node tu_chay/cong.js chay . 27e1ac1^ HEAD viec/KH-API-1` trên HEAD `6e81f11`, cây sạch:
+```
+· CẢNH BÁO A16: `cong_cu/thu_KH1.js` chạy trên gốc in 101 ca ≠ 156 ca ở head — bài dừng sớm trên gốc thì bỏ qua; không thì xem lại bằng chứng đỏ (dạng "… phép · … chỗ hỏng" không tách được số ca nên không so)
+✓ CỔNG CHẠY ĐẠT
+```
+Cảnh báo A16 là bài DỪNG SỚM trên gốc: các mục A3, B1, B2, C, G, Q9 sập ngay (chưa có bảng `pos_kh_ma_dang_nhap` / `pos_kh_lan_thu`) — mỗi mục
+in MỘT dòng ✗ (ghi ở đầu `bang_chung_do.txt`); gốc 9 đạt · 92 hỏng = 101 ca. Không phải lệch bằng chứng.
+HEAD ĐÃ KIỂM: 6e81f11
