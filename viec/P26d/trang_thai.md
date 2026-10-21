@@ -635,3 +635,18 @@ Q8c phần 3 **CHƯA đóng** — chờ chủ quán trả lời Q9.
 
 **DỪNG theo Q8d** (soát vòng 3 KHÔNG ĐẠT, không xin thêm vòng). Chưa làm: hai đột biến theo chỗ gọi (run, BEGIN — người soát đề xuất), `code`
 cho nhánh 404 pay-debt, báo cáo 7 mục, bài học, cổng `chay`, `HEAD ĐÃ KIỂM`.
+
+### Chủ quán trả lời Q9 (21.10) — phần này THẮNG chỗ khác khi lệch
+
+- **Q9 (a)** giữ thứ tự cũ (đóng trước, tạo sau); ghi Phát hiện với mô tả đo đúng; đề xuất (c) thành việc sau.
+- Đồng ý thêm `code` cho nhánh 404 của thu nợ + 2 đột biến riêng cho chỗ gọi thay kết nối (run, vòng BEGIN).
+- KHÔNG phải vòng sửa mới: làm 3 việc nhỏ, chạy lại bài thử + đột biến + `--day-du`, rồi bước 10–11 và DỪNG. Không chạy `/ra-soat` thêm.
+- Mở phiên: `328cd7c` · `328cd7c` (HEAD = FETCH_HEAD, không kéo). Log: 328cd7c (soát vòng 3) · 1658d96 (vòng sửa 4) · 599120a (bằng chứng vòng 4).
+
+## Phát hiện (Q9 — chủ quán chốt (a), đo đúng 21.10)
+
+- `server/database.js` `thayKetNoiNeuBan` (kho file): đóng client cũ TRƯỚC rồi mới tạo mới — GIỮ (Q9 a). Khi `createClient` ném (đo bằng
+  `cauHinhTurso` ném một lần, in từng bước): lệnh gây thay kết nối trả **500 LOI_MAY_CHU** (lỗi tạo client đè lỗi bận) · run / query kế tiếp ném
+  **CLIENT_CLOSED** · lần mở giao dịch đầu tiên sau đó làm **tiến trình Node SẬP** (libsql `transaction()` không kiểm client đã đóng). Đảo thứ tự còn
+  tệ hơn: lệnh ghi kế báo ok mà không ghi, rồi bận mãi. **Việc sau (đề xuất c):** tạo mới hỏng → đánh dấu kho hỏng, mọi lệnh ném lỗi rõ (409 / 500
+  có `code`) cho tới khi tạo lại được; ca thử dựng bằng `cauHinhTurso` ném một lần.
