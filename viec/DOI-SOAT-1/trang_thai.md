@@ -824,6 +824,145 @@ Theo `/lam-viec` bước 8, `so_vong_sua_toi_da` = 3 (`tu_chay/cau_hinh.json:12`
 - (vòng 3) Điều chỉnh ví âm (`wallets.js:187`, chỉ chủ) không vào "trả ra" của két — nếu quầy dùng nó để trả tiền mặt khi khách rút ví thì két lệch.
 - (sửa câu cũ của tôi, K1) mục "Bước 2–3" ở trên ghi "giữ ca đối chứng E7" — E7 đã BỎ sau quyết định 1 = B (lý do ở bảng vòng sửa 1, lỗi 7).
 
-## Bài học (tạm — điền khi làm xong)
+## Trả lời của chủ quán (21.10) cho câu 13 → vòng sửa 4, rồi bước 11, DỪNG
 
-Chưa làm tới. Ghi sớm một điều: bản 1 của kế hoạch có một câu sai về phiếu và một mâu thuẫn nội bộ (B/C) mà tôi không thấy; agent soát đọc độc lập bắt được cả hai — nên giữ bước soát kế hoạch cho việc tiền.
+Nguyên văn: "13a chủ quán cho THÊM MỘT vòng sửa (vòng 4), CHỈ khoá 3 chỗ nặng — huỷ đơn thẻ hội viên trả tiền mặt, ngày thứ 2 có cả dòng két và dòng
+sao kê, ngưỡng "một SĐT nhận ≥ 2 lần" — mỗi chỗ ca thử + đột biến riêng; chỉ đụng bài thử và dot_bien.py, không đổi cách tính tiền. 16 lỗ còn lại ghi
+CHƯA KIỂM, đề xuất phiếu sau (công cụ liệt kê điều kiện lọc của file tiền). 13b KHÔNG: quầy không chi tiền mặt từ két — không thêm ô; ghi luật vào
+quyet_dinh.md (két đỏ vì chi là đúng). 13c KHÔNG: quán không cho rút ví ra tiền mặt — điều chỉnh ví âm không tính vào tiền ra; ghi luật. 13d giữ cách
+hiện tại. 13e chốt tên so_luong, sửa quyet_dinh.md cho khớp. 13f chấp nhận. Xong vòng 4: chạy bài thử + đột biến + --day-du, rồi bước 11 (bài học,
+cổng chay, HEAD ĐÃ KIỂM, báo cáo 7 mục) và DỪNG. Không chạy /ra-soat thêm — chat soát. Không tạo PR."
+
+- Bước 1 (21.10, phiên tiếp): HEAD = FETCH_HEAD = `3956aa3`, không kéo.
+
+## Vòng sửa 4 (21.10, chủ quán cho thêm — CHỈ 3 chỗ nặng; chỉ bài thử + `dot_bien.py`, không đổi cách tính tiền)
+
+| chỗ nặng | ca (bài `0387ca8`) | đột biến (`433d448`) |
+|---|---|---|
+| huỷ đơn THẺ hội viên trả tiền mặt (dòng thẻ `product_id = −1.000.000 − tier.id`, `orders.js:442`; huỷ chỉ hoàn phần ví → tiền mặt trả tay) | E14: mua thẻ 500.000 tiền mặt, huỷ cùng ngày 12.01 → bán 500.000, trả ra 500.000, ròng 0 | `VS-DS-RA-BO-THE` (bỏ vế `oi.product_id > -1000000`) |
+| ngày thứ 2 có CẢ dòng két lẫn dòng sao kê (cùng `ky`) | E12: xem chính ngày 11.01 sau khi sao kê ghi sau két → két lấy dòng két (đếm 100.000, lịch sử 1 dòng, không "đếm 0đ"); E13: két ghi LẠI sau sao kê → ô sao kê tuần vẫn là dòng sao kê (`da_so = 1`) | `VS-DS-KET-LICH-SU-MOI-LOAI`, `VS-DS-SAO-KE-MOI-LOAI` |
+| ngưỡng D1 "≥ 2 lần" — ca NGAY DƯỚI | D1e (K5): SĐT nhận bill đúng 1 lần + SĐT nhận điểm đúng 1 lần → không dòng D1, kết quả XANH | `VS-DS-D1-NGUONG-CLAIM`, `VS-DS-D1-NGUONG-DIEM` |
+
+- Các ca khoá luật đang ĐÚNG → xanh trên code trước vòng sửa 4 (`3956aa3`) là đúng; mỗi ca bị đúng đột biến của nó bắt (chạy riêng 5 tên: BẮT 5/5 — E14, E12, E13, D1e, D1e).
+- `quyet_dinh.md` (`ceb4bc0`): ghi luật 13b (không chi từ két — két đỏ vì chi là đúng), 13c (không rút ví ra tiền mặt — điều chỉnh ví âm không tính "trả ra"),
+  13d (giữ vị từ dòng hàng gói), câu 10 = C, thêm `DEN` vào nhóm CẦN XEM, 13e chốt `so_luong` (bỏ `con_nua`). `grep con_nua` còn đúng `don-mo-rong.js:51` (trường của việc khác).
+- **Kiểm sau vòng sửa 4:** `node cong_cu/thu_DOISOAT1.js` **134 đạt · 0 hỏng**; gốc `2123b69` **29 đạt · 106 hỏng** (E12, E13, E14, D1e đều ✗); đột biến
+  ĐỐI CHỨNG 134 đạt · 0 hỏng, **TỔNG 62 · BẮT 62 · SỐNG 0 · HỎNG 0 · LẠC 0**; `npm test -- --day-du` **PASS 71 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ
+  `packages.js:194, products.js:57, sync.js:147`); giả lập `chay.js` xanh 33,8 s, `thu_gia_lap.js` xanh 51,5 s.
+
+### Lỗ khoá còn mở — CHƯA KIỂM (chủ quán 13a: để phiếu sau)
+
+Lượt soát xác nhận đếm **19 lỗ thật** (28 đột biến SỐNG − 9 tương đương / phòng thủ — số này là của người soát; danh sách tên ở mục NGHI NGỜ của báo cáo có
+10 tên). Vòng sửa 4 đóng **5** (`m_ra_the`, `m_ket_lichsu_loai`, `m_saoke_loai`, `m_d1_having1`, `m_d1_having2` — tên đột biến của người soát).
+Đếm lại theo tên còn **14** (chủ quán gọi chung "16 lỗ còn lại" = 19 − 3 chỗ; đếm theo tên đột biến thì 14). Code tiền **chạy đúng** ở mọi vế dưới đây
+trên các ca hiện có; chỉ là chưa có ca + đột biến khoá — sửa hỏng sau này sẽ không bị máy bắt:
+
+1. `m_ban_status` — "bán = MỌI trạng thái" chưa khoá trạng thái `refunded` (đơn tiền mặt duyệt hoàn: tiền vẫn ở két).
+2. `m_vi_min` — ngày ví (I4 / I18) = MAX dòng ví.
+3. `m_i11_min` — ngày I11 = MAX dòng ví của đơn.
+4. `m_i17_ngay` — ngày I17 = `COALESCE(processed_at, requested_at)`.
+5. `m_d1_claim_min` — ngày D1 `claimed_phone` = MAX.
+6. `m_d1_diem_min` — ngày D1 `diem_nhan_phone` = MAX.
+7. `m_i1_case1` — I1 nhánh "chỉ nhận điểm" (`claimed_at IS NULL`).
+8. `m_chi_bo_ngay` — ví chi tháng: vế `DATE(created_at) BETWEEN`.
+9. `m_ghi_utc` — `kiemTraGhi` "ngày tương lai" theo giờ VN (`getToday`).
+10. `m_den_ge0` — DEN vế `refund_amount > 0` (sự cố chỉ ghi nhận trên đơn không SĐT → không dòng).
+11. `m_ket_dau` — dấu chênh két âm ("lệch −X").
+12. `m_troi_canxem` — dòng không rõ ngày của I12/13/14 phải ĐỎ, không CẦN XEM.
+13. `m_ngay_tron` — `ngayHopLe` chặn ngày tròn sai (2027-02-30).
+14. `m_tran_dong` — trần 200 dòng mỗi nhóm.
+
+Đề xuất phiếu sau (`HOC-<n>`, ngoài Phạm vi): công cụ máy tách mọi `WHERE` / `CASE` / `HAVING` / `MAX` / `COALESCE` / so sánh của file tiền
+(`server/utils/doiSoat.js` trước) rồi đối chiếu với các neo của `viec/<MÃ>/dot_bien.py`, in vị từ nào chưa có đột biến; ca đỏ: bản `dot_bien.py` của
+`3956aa3` (thiếu đột biến cho `HAVING COUNT(*) > 1`) → công cụ phải báo thiếu.
+
+## Đếm nghiệm thu (mỗi mục một dòng, bằng chứng)
+
+| mục | bằng chứng | |
+|---|---|---|
+| A — một bản bất biến, CHỈ ĐỌC | `doiSoat.js` nạp lười `cong_cu/gia_lap/bat_bien.js` (quyết định 3); ca A1 (18 bất biến, chạy 17, I7 bỏ có lý do), A2 (mọi câu SELECT/WITH), A2b–A2f (cổng `chiDoc`: UPDATE, `WITH … UPDATE`, `"a'"`, K5 chuỗi / chú thích), A3 (băm nội dung bảng trước = sau), A4 (ghi chỉ trong `ghiMoi`), A6; giả lập `Giả lập: 32 kịch bản · 18 bất biến · ĐẠT` + `thu_gia_lap.js` xanh (`--day-du`) | có |
+| B — ngày / tuần T2→CN / tháng giờ VN; toàn sổ ghi rõ | B1, B1b, B2, B3, B3b, B3c, B4 (01:30 VN thứ 2), C4b (toàn sổ hiện ở mọi kỳ) | có |
+| C — "áp dụng từ", LỆCH CŨ vàng | `AP_DUNG_TU` (`doiSoat.js:29–49`); C1, C2 (ngưỡng ngay dưới / đúng ngày), C3, C4 (mỗi bất biến), C5 (không rõ ngày → đỏ), C6, C6b, C6c, C7 ×3, C7d, C7e (ngày = sự việc mới nhất); ngày gộp từ sổ việc — đối chiếu git: CHƯA KIỂM (kho nông) | có (+ lỗ 2–7 ở trên) |
+| D — D1 SĐT ≥ 2 lần; D2 điểm thẻ / gói | D1a–D1e (vàng trước P20c, đỏ sau, cột `diem_nhan_phone`, cài đặt nhiều lần → CẦN XEM, ngưỡng 1 lần → không dòng); D2a–D2e | có (+ lỗ 5, 6) |
+| E — ô két, tiền mặt theo sổ, chênh, lịch sử | E0, E0b, E0c, E1, E1b, E2–E14 (bán + nạp ví + thu nợ theo ngày thu − trả ra; mốc gần nhất / dòng mới nhất; trả ra theo ngày huỷ; thu nợ CK không vào két; thứ 2 có két + sao kê; huỷ thẻ) | có (+ lỗ 1, 9, 11) |
+| F — tuần CK + đã so sao kê; tháng 4 nhóm + nhắc kho | F1, F2, F2b, F2c, F3, F3b, F3c, F3d, E13 | có (+ lỗ 8) |
+| G — quyền `view_reports` máy chủ + màn | G1, G1b, G2, G3, G4, G6 (route); G5 (màn — đọc mã nguồn, đạt cả trên gốc) | có |
+| H — tháng < 10 s | H1 / H2 (N = 3.000, 3.000 dòng lệch ≤ 66 câu SQL); đo tay 20.000 đơn 0,74 s / 0,99 s, 100.000 đơn ~4,9 s (gọi thẳng hàm); Turso CHƯA KIỂM | có |
+| I — bài thử máy chủ thật + đột biến | `cong_cu/thu_DOISOAT1.js` 134 ca; `viec/DOI-SOAT-1/dot_bien.py` 62 đột biến BẮT 62 — gồm 4 loại phiếu đòi: `BV-DS-BO-BAT-BIEN`, `BV-DS-BO-LOC-KY`, `VS-DS-GIO-UTC`, `BV-DS-BO-QUYEN-GET` / `-POST` | có |
+| Câu 10 = C | DEN1–DEN4 + 5 đột biến DEN | có (+ lỗ 10) |
+
+10 / 10 mục có bằng chứng; 14 vế còn chưa khoá đã liệt kê ở trên (chủ quán 13a cho để phiếu sau).
+
+## Bài học (bước 11)
+
+**Sự cố của việc này (11.1):**
+- (18.10, ghi sớm ở bản tạm) bản 1 của kế hoạch có một câu sai về phiếu và một mâu thuẫn nội bộ (B/C) mà tôi không thấy; agent soát đọc độc lập bắt được cả hai — nên giữ bước soát kế hoạch cho việc tiền.
+- Agent soát bắt lỗi ở 4 lượt liên tiếp (vòng 1, 2, 3, xác nhận) — vòng nào cũng thêm 5–10 vế công thức tiền chưa có ca khoá; hết 3 vòng sửa, phải hỏi (câu 13).
+- Lỗi THẬT agent soát / bài thử bắt: ngày dòng lệch theo ngày tạo đơn (lệch mới trên đơn cũ thành "LỆCH CŨ" — xanh oan); `WITH … UPDATE` lọt cổng chỉ-đọc;
+  một câu SQL mỗi dòng lệch (N+1); ví chi bỏ ví mẹ; ngày gói theo `updated_at` (route GET ghi UTC); tên `"a'"` lọt cổng; cổng chặn oan câu mở đầu bằng
+  chú thích (tự bắt ở vòng 2, ca A2f); 20.000 đơn mất 35 s (chỉ mục + I8 JOIN).
+- Bài thử đỏ bất ngờ: A2c lọt trên code cũ đã GHI THẬT cài đặt điểm → kéo đỏ dây chuyền 5 ca, và làm H2 xanh oan (trần tính từ lượt sạch).
+- Đề xuất SAI của người soát (vòng 2, lỗi 3 — vị từ "gói khách"): thử thì E0 đỏ (route huỷ xoá gói khách) — không nhận; vòng 3 người soát xác nhận.
+- Người gác chặn 23 lệnh (`.tu_chay_nhat_ky.jsonl`): B-PHANTICH ×11 (heredoc / `;` / chạy script không đứng một mình), B-CD-VITRI ×3, GIT-LENH ×2
+  (`stash`, `ls-remote`), B-MANOI ×2 (heredoc nhắc tên file bảo vệ), B-CHUONGTRINH ×2 (`sqlite3`, vòng `for`), B-BIMAT-CHU (chạy bài có `JWT_SECRET`
+  chưa commit), B-DICHCHU, CC-LA (agent phụ gọi công cụ lạ).
+- Vượt ngân sách: code +578 (câu 12 chấp nhận ~558; 13f chấp nhận), bài thử 713 dòng.
+- Lệnh làm lại: push bị từ chối non-fast-forward 2 lần (commit phiếu câu 11 chen trên GitHub; chủ quán gỡ rồi đẩy lại).
+- 100.000 đơn qua HTTP: 2/3 lần `fetch failed` ở tầng mạng của bài — chưa rõ nguyên nhân.
+
+**Xếp ngăn (11.2):**
+- **KHOÁ 3**
+  1. *(trong Phạm vi — ĐÃ LÀM)* mỗi lỗi agent soát bắt → một ca + một đột biến trong `cong_cu/thu_DOISOAT1.js` / `viec/DOI-SOAT-1/dot_bien.py`
+     (62 đột biến, mỗi cái đỏ đúng ca của nó). Lý do: lỗi cụ thể, có ca đỏ, nằm trong Phạm vi.
+  2. *(ngoài Phạm vi — ĐỀ XUẤT phiếu `HOC-<n>`)* công cụ máy liệt kê vị từ của file tiền ↔ neo `dot_bien.py` (mô tả + ca đỏ ở mục "Lỗ khoá còn mở").
+     Lý do: 4 lượt soát liên tiếp đều tìm thêm vế — người đọc không đếm hết được, máy đếm được.
+  3. *(ngoài Phạm vi — ĐỀ XUẤT)* phép kiểm trong `kiem_tra_truoc_khi_giao.js`: cấm ca hằng `k('…', true)` trong `cong_cu/thu_*.js`; ca đỏ: bài có
+     `k('A5 …', true)` (bản `14311c3` của bài này). Lý do: ca luôn đạt làm phồng `SỐ CA` (vòng 1 lỗi 6).
+- **NGUYÊN TẮC 3** (đề xuất cho `KHUON_LOI.md` — ngoài Phạm vi, máy không sửa)
+  1. **K3** — thêm ví dụ thật: "đột biến phủ MỌI vế của công thức tiền (mỗi `WHERE` / `CASE` / câu con / `MAX`), mẫu số 'n/n' do máy đếm, không do
+     người soát nêu tên — DOI-SOAT-1: 4 lượt soát, vòng nào cũng thêm 5–10 vế"; và "ca phá phải TRẢ LẠI trạng thái, trần so sánh là số TUYỆT ĐỐI
+     (A2c ghi thật cài đặt → H2 xanh oan vì trần tính từ lượt sạch)". Gộp vào dòng "Chặn" sẵn có của K3, không mở mục mới.
+  2. **K4** — thêm ví dụ thật: "gán ngày cho dòng lệch = ngày SỰ VIỆC mới nhất, không ngày tạo đối tượng; cột ghi giờ UTC (`datetime('now')`,
+     `toISOString`, kể cả route GET có ghi) → grep MỌI cột ngày được đọc" (DOI-SOAT-1 vòng 1 lỗi 1, vòng 2 lỗi 7, câu 10).
+  3. **K5 / K8 chiều ngược** — "đề xuất của người soát cũng chạy qua bài thử trước khi nhận: vị từ 'gói khách' đúng trên giấy nhưng sai sau DELETE
+     của route huỷ — E0 đỏ" (DOI-SOAT-1 vòng 2 lỗi 3). Gộp vào K5 ("liệt kê mọi luồng hợp lệ … kể cả luồng đổi chính thứ làm chuẩn so sánh").
+- **BỎ 3**
+  1. Push non-fast-forward — do commit phiếu chen trên GitHub giữa phiên, chủ quán đã xử lý; một lần.
+  2. Lệnh bị người gác chặn — đều làm theo hướng dẫn trong lý do chặn, luật đã có ở skill; không lặp sau khi đổi cách viết.
+  3. `fetch failed` ở 100.000 đơn — chỉ ở cỡ đo tay qua HTTP, không thuộc `npm test`; ghi CHƯA KIỂM.
+
+**Dọn (11.3):** không đề xuất xoá lời dặn nào — chưa có phép máy mới thay được lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md`. Ba NGUYÊN TẮC trên
+đều GỘP vào K3 / K4 / K5 sẵn có (không mở K9) nên không làm `KHUON_LOI.md` vượt `khuon_loi_toi_da`.
+
+## Báo cáo 7 mục
+
+```
+VIỆC:        DOI-SOAT-1 — Màn "Đối soát" trong POS: chạy bất biến sổ sách trên dữ liệu THẬT (chỉ đọc), ngày / tuần / tháng, chỉ ra đơn / khoản lệch
+ĐÃ SỬA:      server/utils/doiSoat.js (mới, 313 dòng) — chayDoiSoat (17 bất biến + D1 + DEN, nhóm đỏ / cần xem / lệch cũ, ngày = sự việc mới nhất,
+               tra ngày theo lô), cổng chiDoc chỉ-đọc, tienTheoSo / tongHop / soKet (két = để lại mốc gần nhất + bán + nạp ví + thu nợ theo ngày
+               thu − trả ra), kiemTraGhi + ghiMoi (chỉ THÊM dòng)
+             server/routes/reports.js:+29 — GET /doi-soat, POST /doi-soat/ghi (authenticate + view_reports)
+             server/database.js:+25 — bảng pos_doi_soat_ghi + 5 chỉ mục order_id cuối createTables (quyết định 8: đo 20.000 đơn 35 s → 0,74 s)
+             server/routes/backup.js:87 — một dòng pos_doi_soat_ghi sau pos_order_log (câu 9)
+             cong_cu/gia_lap/bat_bien.js — nhánh ctx.thuc ở I9 / I13 / I14; I8 viết JOIN gộp (cùng kết quả; giả lập 32 · 18 · ĐẠT)
+             client/src/components/DoiSoat.jsx (mới) + client/src/pages/Reports.jsx (tab) + client/dist (build)
+             kiem_tra_truoc_khi_giao.js — một dòng chayBaiThat('cong_cu/thu_DOISOAT1.js') trước mục K
+BÀI THỬ:     cong_cu/thu_DOISOAT1.js chạy trên gốc 2123b69 → ĐỎ 106 ca (29 đạt · 106 hỏng: mọi ca của màn); sau khi vá → XANH 134 đạt · 0 hỏng.
+             Mỗi vòng sửa: ca mới đỏ trên code trước vòng (14311c3: 5 · 958f268: 3 · ca khoá luật đúng: đột biến bắt). dot_bien.py 62 đột biến:
+             BẮT 62 · SỐNG 0 · HỎNG 0 · LẠC 0. npm test -- --day-du PASS 71 · FAIL 0.
+ĐÃ RÀ K4:    grep "db\.(query|run)" server/utils/doiSoat.js → 2 chỗ (chiDoc, ghiMoi), mọi câu đọc qua chiDoc; grep "donMoiNhat" → 8 bất biến khoá theo
+             đơn dùng cùng một hàm ngày; grep "pos_doi_soat_ghi WHERE loai" → 3 câu đọc, đã khoá cả 3 (E7/E11, E12, E13); grep "con_nua" → chỉ còn
+             don-mo-rong.js:51 (việc khác); 69/69 neo LUOI-1 + mọi neo viec/*/dot_bien*.py vào bat_bien.js / doiSoat.js / database.js còn khớp.
+CHƯA KIỂM:   14 vế công thức chưa có ca khoá (danh sách "Lỗ khoá còn mở" — chủ quán 13a: phiếu sau); Turso thật (độ trễ, tạo 5 chỉ mục lúc khởi động
+             trên bảng lớn); dữ liệu thật (số dòng LỆCH CŨ, ví lệch cũ, giờ của pos_damage_logs cũ); ngày gộp trong AP_DUNG_TU (kho nông);
+             100.000 đơn qua HTTP (2/3 lần fetch failed); "trả ra" = suy luận từ code (chủ quán xác nhận lần chạy thật đầu); đường thêm gói khách lỗi
+             (orders.js:1056–1063) và xoá đơn (vùng "CHƯA rà"); Render có triển khai cong_cu/ hay không; giao diện trên điện thoại;
+             viec/AUDIT-2/bb_neo.json lệch số dòng; G5 chỉ đọc mã nguồn màn.
+GIT:         (xem dòng git log --oneline -2 ngay dưới khối này)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài học của trang_thai.md (bước 11 /lam-viec)
+```
+
+**Thử tay trên điện thoại (chủ quán, 3 thao tác):** (1) Báo cáo → tab 🧾 Đối soát → Ngày → bấm "Đối soát": thấy XANH / ĐỎ + bảng tiền mặt; (2) nhập "Tiền
+đếm cuối ngày" + "Để lại cho mai" → Lưu số két: thấy "Lần ghi cuối: <tên> lúc <giờ>" và chênh; (3) Tuần → tích "Đã so sao kê" → Lưu, bỏ tích → Lưu:
+thấy 🟡 "Chưa so sao kê".
+

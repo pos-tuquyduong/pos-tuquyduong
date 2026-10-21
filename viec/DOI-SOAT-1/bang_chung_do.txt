@@ -96,4 +96,13 @@
   ✗ E11 két thứ 2 11.01 rồi sao kê tuần cùng ngày 11.01 ghi sau → mốc két 12.01 vẫn là 11.01, để lại 70.000 (dòng mới nhất của LOẠI két)
   29 đạt · 102 hỏng
 # Sau vá (21624f5): node cong_cu/thu_DOISOAT1.js → 130 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 130 đạt · 0 hỏng; TỔNG 57 · BẮT 57 · SỐNG 0 · HỎNG 0 · LẠC 0.
-SỐ CA cong_cu/thu_DOISOAT1.js: 130
+# ── Vòng sửa 4 (chủ quán 13a, 21.10.2026): thêm D1e, E12, E13, E14 (bài 0387ca8) — khoá luật đang ĐÚNG → xanh trên 3956aa3 là đúng;
+#    đột biến VS-DS-D1-NGUONG-CLAIM / -DIEM, VS-DS-KET-LICH-SU-MOI-LOAI, VS-DS-SAO-KE-MOI-LOAI, VS-DS-RA-BO-THE bắt (chạy riêng: BẮT 5/5).
+# Trên gốc: python3 viec/DOI-SOAT-1/dot_bien.py --goc 2123b69 → 29 đạt · 106 hỏng · thoát 1 (135 ca, có A0). Trích các ca mới:
+  ✗ D1e (K5) SĐT nhận bill đúng 1 lần + SĐT nhận điểm đúng 1 lần → KHÔNG có dòng D1 nào, kết quả XANH  —  · HTTP 404 · undefined · đỏ:
+  ✗ E12 xem chính ngày thứ 2 11.01 (sao kê ghi SAU két): két lấy dòng KÉT — đếm 100.000, lịch sử 1 dòng, không "đếm 0đ"  — {"do":[]}
+  ✗ E13 két 11.01 ghi lại SAU sao kê → ô sao kê tuần 11→17.01 vẫn lấy dòng SAO KÊ (đã so = 1), không phải dòng két
+  ✗ E14 mua thẻ 500.000 tiền mặt rồi huỷ cùng ngày 12.01 → "trả ra" = giá thẻ (thẻ KHÔNG phải gói), ròng 0  — HTTP 200 · undefined
+  29 đạt · 106 hỏng
+# Sau vá (433d448): node cong_cu/thu_DOISOAT1.js → 134 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG 134 đạt · 0 hỏng; TỔNG 62 · BẮT 62 · SỐNG 0 · HỎNG 0 · LẠC 0.
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
