@@ -77,5 +77,27 @@ Q7 (chủ quán trả lời 19.10) — bài ở HEAD 224e684 (thêm F2 ×3, F4, 
   ✗ P6 thu nợ amount chuỗi số "5000" → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":20000,"tm":5000,"tt":"partial","nk":1,"so":1}
   Xanh trên gốc CÓ CHỦ ĐÍCH (K5): F5 (thu_P26b); P7, P8, P9 (thu_P26c).
 Sau vá Q7 (HEAD 90a482f): thu_P26b 102 đạt · 0 hỏng · thu_P26c 150 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_P26b.js: 102
-SỐ CA cong_cu/thu_P26c.js: 150
+Q8 (chủ quán trả lời 21.10) — vòng sửa 4. Bài ở HEAD db5aa01 / f7c7341 (thu_P26b: D3, D7 đo tới giao dịch thứ hai + run; D10 SELECT bận thật;
+  F1/F2/F4 mã KHOI_PHUC_TRANG_TIEN_BI_CHAN · thu_P26c: P5 siết DA_THU_ROI; P10–P14 code nhánh 400 cũ của pay-debt). 6a22b7a: D7/D10 bắt lỗi đọc
+  của kết nối thứ hai (ca hỏng thay vì bài sập — không đổi điều kiện đạt).
+  Trên server/ của a58bc78 (CHƯA vá Q8 — query() không thay kết nối):
+  node cong_cu/thu_P26b.js → 87 đạt · 16 hỏng:
+  ✗ F1 … → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN … — HTTP 400 · KHOI_PHUC_VI_DON_BI_CHAN · … ; ✗ F2 ×13 (cùng câu: HTTP 400 · KHOI_PHUC_VI_DON_BI_CHAN); ✗ F4 (cùng câu)
+  ✗ D10 SELECT ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; sau đó 2 lần nạp + run ghi THẬT (kết nối được thay)  — SQLITE_BUSY · HTTP 200 / HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · ví 105000 → 106000 · run SQLITE_BUSY, dòng 0
+  (D3, D7 xanh: run() và vòng BEGIN đã thay kết nối ở a58bc78.)
+  node cong_cu/thu_P26c.js → 149 đạt · 6 hỏng:
+  ✗ P5 (K5) thu lại đơn đã thu → 400 DA_THU_ROI, không thêm dòng  — HTTP 400 · Đơn hàng đã được thanh toán đầy đủ
+  ✗ P10 thu nợ cách trả "momo" → 400 CACH_TRA_LA, không ghi gì  — HTTP 400 · Phương thức thanh toán không hợp lệ (cash hoặc transfer)
+  ✗ P11 thu nợ 30.000 > nợ 25.000 → 400 VUOT_QUA_NO, không ghi gì  — HTTP 400 · Số tiền thanh toán không được vượt quá nợ (25,000đ)
+  ✗ P12 thu nợ đơn trả đủ (paid) → 400 DA_THU_ROI  — HTTP 400 · Đơn hàng đã được thanh toán đầy đủ
+  ✗ P13 thu nợ đơn chưa paid mà nợ 0 → 400 DON_KHONG_NO  — HTTP 400 · Đơn hàng không có nợ
+  ✗ P14 thu nợ đơn đã huỷ → 400 DON_KHONG_HOP_LE  — HTTP 200 / HTTP 400 · Đơn hàng đã bị hủy / đã hoàn tiền
+  Trên gốc 14169d8 (server/ lấy bằng git archive ra nháp, bài ở HEAD 6a22b7a):
+  node cong_cu/thu_P26b.js --may-chu <nháp>/server → 70 đạt · 33 hỏng — các ca cũ như trên (V1–V3, H2, D0, D4 ×4, D5 ×2, D8, D9, F1, F2 ×13, F4, D1, D2)
+    + ✗ D3 … — HTTP 409 · KHO_BAN … / HTTP 40… · ✗ D7 … — SQLITE_BUSY · HTTP 409 · KHO_BAN …
+    + ✗ D10 … — SELECT không bận · kết nối khác: SQLITE_BUSY (gốc: kết nối đã hỏng từ D7 — khoá treo; đỏ đúng câu riêng của D10 xem dòng a58bc78 ở trên)
+  node cong_cu/thu_P26c.js --may-chu <nháp>/server → 136 đạt · 19 hỏng — 13 ca cũ (C1, G1, H1, I1, I2, P1, P2, P3, P6 ×5) + P5, P10, P11, P12, P13, P14 (câu như trên).
+  Xanh trên gốc CÓ CHỦ ĐÍCH: không ca mới nào (P5 cũ nay đỏ vì siết code).
+Sau vá Q8 (HEAD 6a22b7a): thu_P26b 103 đạt · 0 hỏng · thu_P26c 155 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P26b.js: 103
+SỐ CA cong_cu/thu_P26c.js: 155
