@@ -55,11 +55,12 @@ function loiDS(status, code, error) {
   return Object.assign(new Error(error), { status, code });
 }
 
-// Mọi câu SQL của lượt chạy đi qua đây: không mở đầu SELECT / WITH, hoặc có từ khoá ghi ở bất kỳ đâu (SQLite chạy cả
-// lệnh ghi mở đầu bằng WITH), hoặc nhiều câu → ném lỗi. Bỏ chú thích và chuỗi '…' trước khi soi để chữ trong dữ liệu không bị bắt oan.
-const TU_GHI = /\b(insert|update|delete|replace\s+into|create|drop|alter|attach|detach|pragma|vacuum|reindex)\b|;\s*\S/i;
+// Mọi câu SQL của lượt chạy đi qua đây: không mở đầu SELECT / WITH, hoặc có từ khoá ghi ở bất kỳ đâu (SQLite chạy cả lệnh ghi
+// mở đầu bằng WITH) → ném lỗi. Trước khi soi, thay chú thích, chuỗi '…' và tên trong "…" / `…` / […] bằng khoảng trắng: chữ trong dữ liệu
+// không bị bắt oan, và dấu ' nằm trong một tên không nuốt được phần lệnh phía sau.
+const TU_GHI = /\b(insert|update|delete|replace\s+into|create|drop|alter|attach|detach|pragma|vacuum|reindex)\b/i;
 function chiDoc(sql, args = []) {
-  const dau = String(sql).replace(/\/\*[\s\S]*?\*\/|--[^\n]*|'(?:[^']|'')*'/g, "''").trim();
+  const dau = String(sql).replace(/\/\*[\s\S]*?\*\/|--[^\n]*|'(?:[^']|'')*'|"(?:[^"]|"")*"|`[^`]*`|\[[^\]]*\]/g, ' ').trim();
   if (!/^(SELECT|WITH)\b/i.test(dau) || TU_GHI.test(dau)) throw new Error('Đối soát chỉ được ĐỌC: ' + dau.slice(0, 40));
   return db.query(sql, args);
 }
@@ -100,7 +101,8 @@ async function tienTheoSo(tu, den, cach) {
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions
       WHERE type = 'topup' AND COALESCE(payment_method, 'cash') = ? AND DATE(created_at) BETWEEN ? AND ?`, [cach, tu, den]),
     // Huỷ đơn chỉ hoàn VÍ phần khách trả bằng ví; tiền mặt / CK của đơn thường không vào đâu → trả tận tay. Đơn MUA GÓI hoàn phần tiền
-    // mặt / CK vào ví khách (dòng 'hoan_goi') nên két không ra. Dòng gói: product_id = −pkg.id (orders.js).
+    // mặt / CK vào ví khách (dòng 'hoan_goi') nên két không ra. "Đơn mua gói" nhận theo DÒNG HÀNG gói (product_id = −pkg.id), KHÔNG theo
+    // gói khách: huỷ đơn mua gói xoá luôn gói khách chưa giao lượt nào (orders.js, route huỷ) nên nhìn lại sau huỷ thì gói khách đã mất.
     chiDoc(`SELECT COALESCE(SUM(o.${cot}), 0) AS n FROM pos_orders o WHERE o.status = 'cancelled' AND DATE(o.cancelled_at) BETWEEN ? AND ?
       AND NOT EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)`, [tu, den]),
   ]);
@@ -138,11 +140,11 @@ async function soKet(ngay) {
 // ─── Ngày của dòng lệch: bảng KHOA theo từng bất biến: [mẫu chữ mô tả, phạm vi, hàm tra ngày THEO LÔ | null] ───
 // phạm vi 'ky' = lọc theo kỳ; 'toan_so' = chạy cả sổ. Hàm tra = null → dòng GỘP không có khoá (loại dòng lạ): luôn đỏ, không ngày.
 // Tra theo LÔ: mỗi bất biến một câu cho mỗi 400 khoá (không một câu mỗi dòng — dữ liệu cũ nhiều lệch vẫn nhanh). sql trả cột k, d.
-const lo = (sql, lan = 1) => async (khoa, q) => {
+const lo = (sql) => async (khoa, q) => {
   const m = new Map();
   for (let i = 0; i < khoa.length; i += 400) {
     const phan = khoa.slice(i, i + 400);
-    for (const r of await q(sql(phan.map(() => '?').join(',')), Array(lan).fill(phan).flat())) m.set(String(r.k), r.d);
+    for (const r of await q(sql(phan.map(() => '?').join(',')), phan)) m.set(String(r.k), r.d);
   }
   return m;
 };
@@ -168,7 +170,10 @@ const KHOA = {
   I12: [[/^quà #(\d+) mã/, 'ky', lo((ph) => `SELECT id AS k, granted_at AS d FROM pos_voucher_grants WHERE id IN (${ph})`)]],
   I13: [[/^mã (\S+): đã dùng/, 'toan_so', lo((ph) => `SELECT d.code AS k, COALESCE((SELECT MAX(o.created_at) FROM pos_orders o
     WHERE UPPER(o.discount_code) = UPPER(d.code)), d.created_at) AS d FROM pos_discount_codes d WHERE d.code IN (${ph})`)]],
-  I14: [[/^gói #(\d+)/, 'ky', lo((ph) => `SELECT id AS k, MAX(created_at, COALESCE(updated_at, '')) AS d FROM pos_customer_packages WHERE id IN (${ph})`)],
+  // Gói: tạo, đơn lấy từ gói, huỷ đơn mua — KHÔNG lấy updated_at (route GET Báo cáo → Gói SP ghi lại cột này bằng giờ UTC mỗi lần mở).
+  I14: [[/^gói #(\d+)/, 'ky', lo((ph) => `SELECT cp.id AS k, MAX(cp.created_at,
+    COALESCE((SELECT MAX(x.created_at) FROM pos_orders x WHERE x.customer_package_id = cp.id), ''),
+    COALESCE((SELECT m.cancelled_at FROM pos_orders m WHERE m.id = cp.order_id), '')) AS d FROM pos_customer_packages cp WHERE cp.id IN (${ph})`)],
     [/^đơn mua gói (\S+) lấy ngay/, 'ky', donMoiNhat], [/^đơn (\S+) trỏ gói/, 'ky', donMoiNhat]],
   I15: [[/^đơn mua thẻ (\S+): /, 'ky', donMoiNhat],
     [/^dòng mua thẻ #(\d+)/, 'ky', lo((ph) => `SELECT id AS k, purchased_at AS d FROM pos_membership_purchases WHERE id IN (${ph})`)]],
