@@ -1247,6 +1247,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
         .status(400)
         .json({
           error: "Phương thức thanh toán không hợp lệ (cash hoặc transfer)",
+          code: "CACH_TRA_LA",
         });
     }
 
@@ -1257,17 +1258,17 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     }
 
     if (order.status !== "completed") {   // P26c (C1): đơn đã huỷ / đã hoàn không thu nợ
-      return res.status(400).json({ error: "Đơn hàng đã bị hủy / đã hoàn tiền" });
+      return res.status(400).json({ error: "Đơn hàng đã bị hủy / đã hoàn tiền", code: "DON_KHONG_HOP_LE" });
     }
 
     if (order.payment_status === "paid") {
       return res
         .status(400)
-        .json({ error: "Đơn hàng đã được thanh toán đầy đủ" });
+        .json({ error: "Đơn hàng đã được thanh toán đầy đủ", code: "DA_THU_ROI" });
     }
 
     if (!order.debt_amount || order.debt_amount <= 0) {
-      return res.status(400).json({ error: "Đơn hàng không có nợ" });
+      return res.status(400).json({ error: "Đơn hàng không có nợ", code: "DON_KHONG_NO" });
     }
 
     // P26d (chủ quán 19.10): amount gửi lên phải là số nguyên dương hữu hạn; không gửi = thu đủ. Ngoại lệ (K5): đúng bằng nợ trong
@@ -1284,6 +1285,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
         .status(400)
         .json({
           error: `Số tiền thanh toán không được vượt quá nợ (${order.debt_amount.toLocaleString()}đ)`,
+          code: "VUOT_QUA_NO",
         });
     }
 
