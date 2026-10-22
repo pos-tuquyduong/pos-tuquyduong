@@ -56,9 +56,9 @@ async function moMayChu(envThem) {
   return { cong, dung: () => new Promise((r) => { con.once('exit', r); con.kill(); }) };
 }
 
-function goi(cong, duong, host) {
+function goi(cong, duong, host, them = {}) {
   return new Promise((ok, loi) => {
-    const yc = http.request({ host: '127.0.0.1', port: cong, path: duong, headers: host ? { Host: host } : {} }, (res) => {
+    const yc = http.request({ host: '127.0.0.1', port: cong, path: duong, headers: { ...(host === undefined ? {} : { Host: host }), ...them } }, (res) => {
       let than = '';
       res.on('data', (d) => { than += d; });
       res.on('end', () => ok({ status: res.statusCode, than }));
@@ -80,6 +80,8 @@ function goi(cong, duong, host) {
   k('H1 chưa đặt KH_HOST, Host = tên App → vẫn client/dist/index.html', quay !== null && r.status === 200 && r.than === quay, `status ${r.status}`);
   r = await goi(mc.cong, '/diem', KH_HOST);
   k('H1 đường lạ → SPA của quầy', quay !== null && r.status === 200 && r.than === quay);
+  r = await goi(mc.cong, '/', '');
+  k('H1 Host rỗng, KH_HOST chưa đặt → vẫn client/dist (rỗng không khớp rỗng)', quay !== null && r.status === 200 && r.than === quay);
   await mc.dung();
 
   muc('H2 — KH_HOST đặt: chọn thư mục tĩnh theo Host');
@@ -99,6 +101,19 @@ function goi(cong, duong, host) {
   k('H2c Host có tiền tố thừa → client/dist', quay !== null && r.than === quay);
   r = await goi(mc.cong, '/', KH_HOST + '.evil.test');
   k('H2c Host có hậu tố thừa → client/dist', quay !== null && r.than === quay);
+  r = await goi(mc.cong, '/', 'pos.thu.test', { 'X-Forwarded-Host': KH_HOST });
+  k('H2c X-Forwarded-Host KH_HOST nhưng Host là quầy → client/dist (không tin tiêu đề chuyển tiếp)', quay !== null && r.than === quay);
+  const tepApp = appKh === null ? [] : [...appKh.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map((m) => m[1]);
+  k('H2e index.html App KH có file con để thử', tepApp.length > 0);
+  for (const t of tepApp) {
+    r = await goi(mc.cong, t, KH_HOST);
+    k(`H2e ${t} ở Host App KH → đúng nội dung app_kh/dist`, r.status === 200 && r.than === DOC('app_kh', 'dist', t.slice(1)), `status ${r.status}`);
+    r = await goi(mc.cong, t, 'pos.thu.test');
+    k(`H2e ${t} ở Host quầy KHÔNG ra file của App KH`, r.than !== DOC('app_kh', 'dist', t.slice(1)));
+  }
+  const asset = (quay || '').match(/(?:src|href)="(\/assets\/[^"]+)"/);
+  const rq = asset ? await goi(mc.cong, asset[1], 'pos.thu.test') : { status: 0 };
+  k('H2f quầy: file trong client/dist/assets vẫn tải được ở Host quầy khi KH_HOST đặt', rq.status === 200 && rq.than === DOC('client', 'dist', asset[1].slice(1)));
 
   muc('H2d/H3 — /api/* dùng chung một máy chủ');
   for (const host of [KH_HOST, 'pos.thu.test']) {
