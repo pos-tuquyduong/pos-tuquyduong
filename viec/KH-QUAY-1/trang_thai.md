@@ -67,3 +67,6 @@ BÀI HỌC:     KHOÁ 1 (ca G7) · NGUYÊN TẮC 1 · BỎ 1
 
 HEAD ĐÃ KIỂM: 810b616
 HEAD ĐÃ KIỂM: 76b6337
+
+Chat soát 22.10: gộp thử đủ 4 nhánh M3 trên main 4ee92fe — npm test 67/0, --day-du 73/0, bài thử 4 việc xanh; commit 369922f (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: 369922f
