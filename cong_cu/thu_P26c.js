@@ -775,8 +775,13 @@ async function main() {
       && await daGiao(g5.cp) === 2, `${moTa(l5)} · ${sau5} / ${moTa(h5)} · ${await daGiao(g5.cp)}`);
 
     // N6 (A3L-hoan-goi-bo-tru-no) — soTienHoan: hoàn đơn mua gói trừ phần còn NỢ (khách chưa trả thì không hoàn).
+    // P22-23: mua gói ghi nợ nay 400 (L6b) — đơn nợ CŨ trên production vẫn có thể còn: mua trả đủ rồi đưa về dạng nợ cũ bằng UPDATE.
     const s6 = sdtMoi();
-    const m6 = await muaGoi(s6, await taoGoi(300000, 10), 10, { cash_amount: 100000, debt_amount: 200000 });
+    const goi6 = await taoGoi(300000, 10);
+    const l6b = await muaGoi(s6, goi6, 10, { cash_amount: 100000, debt_amount: 200000 });
+    k('L6b mua gói 300.000 trả 100.000 + nợ 200.000 → 400 GOI_THE_CHUA_THU_DU', l6b.status === 400 && l6b.code === 'GOI_THE_CHUA_THU_DU', moTa(l6b));
+    const m6 = await muaGoi(s6, goi6, 10, { cash_amount: 300000 });
+    await db.run("UPDATE pos_orders SET cash_amount = 100000, debt_amount = 200000, payment_status = 'pending' WHERE id = ?", [m6.order?.id]);
     const h6 = await huy(m6.order?.id);
     k('L6a gói 300.000 trả 100.000 + nợ 200.000, chưa lấy → owner huỷ: ví +100.000, tổng hoàn 100.000', m6.status === 200 && h6.status === 200
       && await vi(s6) === 100000 && await tongHoan(m6.order?.id) === 100000,

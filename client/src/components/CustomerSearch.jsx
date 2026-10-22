@@ -13,6 +13,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Search, User, Wallet, AlertCircle, X, Plus, Phone, Loader2, CheckCircle } from "lucide-react";
+import QrScanModal from "./QrScanModal";
+import { customersApi, customersV2Api } from "../utils/api";
 
 // QUAN TRỌNG: Giữ nguyên chuẩn API_BASE của project
 const API_BASE = import.meta.env.VITE_API_URL || "/api/pos";
@@ -50,6 +52,10 @@ export default function CustomerSearch({
   const [newName, setNewName] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
+  const [moQuet, setMoQuet] = useState(false);
+  // Số phiên hộp quét: mở → số mới (dương), đóng → số âm. Lượt tra chỉ chọn khách khi phiên lúc bắt đầu VẪN là phiên đang mở —
+  // đóng hộp, hoặc đóng rồi mở lại quét thẻ khác, thì lượt tra cũ về muộn KHÔNG chọn khách.
+  const phienQuetRef = useRef(0);
   
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
@@ -149,6 +155,29 @@ export default function CustomerSearch({
     setHighlightIndex(-1);
     onSelect(customer);
   };
+
+  // P15-QR — quét thẻ thành viên (bản vẽ ban_mau_pos.html `docQR`). Mã → SĐT → tìm đúng SĐT bằng CHÍNH API ô tìm,
+  // để quét và gõ SĐT luôn ra cùng một khách; không có trong danh sách thì báo, không tự dựng khách.
+  // Trả chuỗi = lỗi hiện trong hộp quét, camera quét tiếp. Lọc ký tự trước khi gọi: getByQR không mã hoá mã vào đường dẫn.
+  const quetThe = async (doc) => {
+    const phien = phienQuetRef.current;
+    const ma = String(doc || "").trim();
+    if (/^QR-/i.test(ma)) return "Mã kiểu cũ (ghép từ số điện thoại) — không còn dùng vì ai cũng làm giả được. Mời khách mở mã mới trong app, hoặc tìm theo SĐT.";
+    if (!/^[A-Za-z0-9-]+$/.test(ma)) return "Không phải thẻ thành viên của quán.";
+    try {
+      const kh = await customersApi.getByQR(ma);
+      const data = await customersV2Api.search(kh.phone);
+      const dong = (data.results || []).find((c) => normalizePhone(c.phone) === normalizePhone(kh.phone));
+      if (!dong) return "Khách chưa có trong danh sách quầy — tìm theo SĐT.";
+      if (phienQuetRef.current !== phien) return;
+      datMoQuet(false);
+      handleSelect(dong);
+    } catch (err) {
+      return err.status === 404 ? "Không phải thẻ thành viên của quán." : "Không tra được thẻ — đóng hộp rồi quét lại, hoặc tìm theo SĐT.";
+    }
+  };
+
+  const datMoQuet = (mo) => { phienQuetRef.current = mo ? Math.abs(phienQuetRef.current) + 1 : -Math.abs(phienQuetRef.current); setMoQuet(mo); };
 
   const handleClear = () => {
     setQuery("");
@@ -356,8 +385,9 @@ export default function CustomerSearch({
   // ═══════════════════════════════════════════════════════════════
   return (
     <div ref={wrapperRef} style={{ position: "relative" }}>
-      {/* Search Input */}
-      <div style={{ position: "relative" }}>
+      {/* Search Input + 📷 Quét thẻ (P15-QR, bản vẽ ban_mau_pos.html) */}
+      <div style={{ display: "flex", gap: "6px" }}>
+      <div style={{ position: "relative", flex: 1 }}>
         <Search
           size={18}
           style={{
@@ -410,6 +440,24 @@ export default function CustomerSearch({
           </div>
         )}
       </div>
+        <button
+          type="button"
+          onClick={() => datMoQuet(true)}
+          title="Quét mã thành viên bằng camera"
+          style={{
+            whiteSpace: "nowrap",
+            padding: "0 0.75rem",
+            border: "1px solid rgba(185, 28, 28, 0.2)",
+            borderRadius: "8px",
+            background: "white",
+            color: "#991B1B",
+            cursor: "pointer",
+          }}
+        >
+          📷 Quét thẻ
+        </button>
+      </div>
+      {moQuet && <QrScanModal tieuDe="📷 Quét thẻ thành viên" onResult={quetThe} onClose={() => datMoQuet(false)} />}
 
       {/* Dropdown */}
       {showDropdown && (
