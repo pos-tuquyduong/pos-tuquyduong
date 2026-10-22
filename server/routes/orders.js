@@ -29,13 +29,34 @@ const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
-const { kiemDonCuaMa } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem
+const { kiemDonCuaMa, docCauHinhNhanDiem } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
 
 const router = express.Router();
 
 // SO-LUONG-1: mọi số lượng POST /orders nhận (`quantity` món, `pkg_qty` gói) phải là số NGUYÊN ≥ 1 — quán bán theo ly / túi / hộp,
 // không bán số lẻ (chủ quán chốt 14.10). Chuỗi số nguyên ("2", " 5") vẫn nhận vì màn hình / bài thử cũ có gửi chuỗi.
 const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
+
+// P22-23: MỘT công thức điểm cho đơn thu đủ lúc tạo (POST /) và lúc thu đủ nợ (pay-debt) — đọc cài đặt LÚC GỌI.
+// Trả { diem, han } hoặc null (tắt / cài sai / 0 điểm). Hạn 'quarter' = đầu quý tương ứng năm sau; khác → null (không hết hạn).
+async function tinhDiemDon(tong, luc) {
+  const loy = {};
+  for (const r of await query(
+    `SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')`,
+  )) loy[r.key] = r.value;
+  const per = parseInt(loy.loyalty_earn_per_amount, 10);
+  if (loy.loyalty_enabled !== 'true' || !Number.isFinite(per) || per < 1) return null;
+  const diem = Math.floor(tong / per);
+  if (!(diem > 0)) return null;
+  let han = null;
+  if (loy.loyalty_expiry_mode === 'quarter') {
+    const y = parseInt(luc.slice(0, 4), 10);
+    const m = parseInt(luc.slice(5, 7), 10);
+    const qStart = m <= 3 ? 1 : m <= 6 ? 4 : m <= 9 ? 7 : 10;
+    han = (y + 1) + '-' + (qStart < 10 ? '0' + qStart : '' + qStart) + '-01T00:00:00';
+  }
+  return { diem, han };
+}
 
 /**
  * GET /api/pos/orders
@@ -205,6 +226,12 @@ router.post("/", authenticate, async (req, res) => {
     const pkgQty = Number(package_buy?.pkg_qty ?? 1);
     if (package_buy && !soNguyenDuong(pkgQty)) {
       return res.status(400).json({ error: "Số gói mua phải là số nguyên từ 1", code: "SL_KHONG_HOP_LE" });
+    }
+    // P22-23 (chủ quán chốt): mua gói / thẻ (cả gia hạn gói) phải THU ĐỦ — không ghi nợ, không "chờ thu". CÙNG vị từ quyết
+    // trạng thái tiền ở dưới (`debt_amount > 0` → partial / pending); không tin `payment_status` máy khách gửi.
+    if ((package_buy || membership_buy) && debt_amount > 0) {
+      return res.status(400).json({ error: "Mua gói / thẻ hội viên phải thu đủ tiền — không ghi nợ, không để chưa thu",
+        code: "GOI_THE_CHUA_THU_DU" });
     }
 
     // Lấy thông tin sản phẩm và tính tổng
@@ -820,38 +847,14 @@ router.post("/", authenticate, async (req, res) => {
     // ─── LOY-1 Gói 2: chuẩn bị cộng điểm (mọi tính toán NGOÀI transaction) ───
     // Đọc cấu hình + tính điểm + tính hạn TRƯỚC khi mở tx. Trong tx chỉ còn 1 INSERT đã kiểm sẵn
     // → một lỗi điểm KHÔNG BAO GIỜ rollback được một ca bán thật.
-    let loyaltyEarnPoints = 0;
-    let loyaltyExpiresAt = null;
-    let shouldEarnPoints = false;
+    let diemTao = null;
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
-      if (phone && total > 0 && !flashApplied) {
-        const loyRows = await query(
-          `SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')`,
-        );
-        const loy = {};
-        for (const r of loyRows) loy[r.key] = r.value;
-        if (loy.loyalty_enabled === 'true') {
-          const per = parseInt(loy.loyalty_earn_per_amount, 10);
-          if (Number.isFinite(per) && per >= 1) {
-            loyaltyEarnPoints = Math.floor(total / per);
-            if (loyaltyEarnPoints > 0) {
-              shouldEarnPoints = true;
-              // Hạn điểm: 'quarter' = cuốn chiếu theo quý (đầu quý tương ứng năm sau); ngược lại NULL = không hết hạn.
-              if (loy.loyalty_expiry_mode === 'quarter') {
-                const y = parseInt(now.slice(0, 4), 10);
-                const m = parseInt(now.slice(5, 7), 10);
-                const qStart = m <= 3 ? 1 : m <= 6 ? 4 : m <= 9 ? 7 : 10;
-                const mm = qStart < 10 ? '0' + qStart : '' + qStart;
-                loyaltyExpiresAt = (y + 1) + '-' + mm + '-01T00:00:00';
-              }
-            }
-          }
-        }
-      }
+      // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(total, now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
-      shouldEarnPoints = false;
+      diemTao = null;
     }
 
     const tx = await beginTransaction();
@@ -1050,13 +1053,13 @@ router.post("/", authenticate, async (req, res) => {
 
       // 6. LOY-1 Gói 2: cộng điểm (đã tính sẵn NGOÀI tx). Bọc try/catch để lỗi ghi điểm
       //    KHÔNG kéo rollback đơn — tiền/đơn quan trọng hơn điểm thưởng.
-      if (shouldEarnPoints) {
+      if (diemTao) {
         try {
           await tx.run(
             `INSERT INTO pos_point_transactions (
               customer_phone, type, points, order_id, expires_at, reason, created_by, created_at
             ) VALUES (?, 'earn', ?, ?, ?, ?, ?, ?)`,
-            [phone, loyaltyEarnPoints, orderId, loyaltyExpiresAt,
+            [phone, diemTao.diem, orderId, diemTao.han,
              `Tích điểm đơn ${orderCode}`, req.user.username, now],
           );
         } catch (loyErr) {
@@ -1197,13 +1200,13 @@ router.post("/", authenticate, async (req, res) => {
           try {
             if (!signupCode) return {};
             const rows = await query(
-              "SELECT key, value FROM pos_settings WHERE key IN ('nhandiem_enabled','nhandiem_he_so','nhandiem_han_gio','signup_enabled')",
+              "SELECT key, value FROM pos_settings WHERE key IN ('nhandiem_enabled','nhandiem_han_gio','signup_enabled')",
             );
             const c = {};
             for (const r of rows) c[r.key] = r.value;
             const batDiem = c.nhandiem_enabled === '1';
             const batVoucher = c.signup_enabled === 'true' || c.signup_enabled === '1';
-            const heSo = Number(c.nhandiem_he_so) || 2;
+            const { heSo } = await docCauHinhNhanDiem();   // P22-23: CÙNG hệ số /nhan-diem cộng (hệ số < 1 → 2 ở cả hai)
             const gio = Number(c.nhandiem_han_gio) || 24;
             const hanChu = gio >= 24 && gio % 24 === 0 ? (gio / 24) + ' ngay' : gio + ' gio';
             if (batDiem && batVoucher) {
@@ -1301,6 +1304,15 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     // trong sổ còn ĐÚNG bằng số vừa đọc, rồi kiểm số dòng bị đổi.
     // payment_method đã được kiểm chỉ là cash|transfer ở trên → tên cột an toàn.
     const cotTien = payment_method === "cash" ? "cash_amount" : "transfer_amount";
+    // P22-23: thu ĐỦ đơn có SĐT, không Flash → cộng điểm theo cài đặt LÚC THU. Tính NGOÀI giao dịch như LOY-1; lỗi → bỏ điểm, vẫn thu.
+    let diemThu = null;
+    if (newPaymentStatus === "paid" && order.customer_phone && !(Number(order.flash_discount) > 0)) {
+      try {
+        diemThu = await tinhDiemDon(Number(order.total), now);
+      } catch (loyPrepErr) {
+        console.error(`⚠️ Đơn ${order.code} - lỗi chuẩn bị điểm khi thu nợ (bỏ qua):`, loyPrepErr.message);
+      }
+    }
     // P26d (chủ quán thêm 18.10): thu + nhật ký + sổ debt_payment trong MỘT giao dịch — trước đây ba lệnh tự commit, lỗi ở lệnh
     // 2 / 3 → 500 trong khi tiền đã thu (hoặc nuốt lỗi nhật ký). Nhật ký truyền tx: ghi trong giao dịch, lỗi thì rollback (Q6).
     const tx = await beginTransaction();
@@ -1316,6 +1328,20 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
           error: "Đơn vừa được thu bởi một thao tác khác — tải lại để xem",
           code: "DA_THU_ROI",
         });
+      }
+      // P22-23: điểm trong CÙNG giao dịch với lần thu. Chặn đua hai tầng: UPDATE trên chỉ cho MỘT lần thu chuyển 'paid'; NOT EXISTS
+      // trong câu ghi chặn cộng đôi đơn CŨ đã có điểm lúc tạo (luật cũ). Lỗi ghi điểm không làm hỏng lần thu (khuôn LOY-1).
+      if (diemThu) {
+        try {
+          await tx.run(
+            `INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
+             SELECT ?, 'earn', ?, ?, ?, ?, ?, ?
+             WHERE NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'earn')`,
+            [order.customer_phone, diemThu.diem, order.id, diemThu.han, `Tích điểm đơn ${order.code}`, req.user.username, now, order.id],
+          );
+        } catch (loyErr) {
+          console.error(`⚠️ Đơn ${order.code} - Ghi điểm khi thu nợ lỗi (bỏ qua, vẫn thu):`, loyErr.message);
+        }
       }
       await nhatKyDon.ghiNhatKy(Number(id), "thu",
         `Thu ${nhatKyDon.tenCach(payment_method)} ${nhatKyDon.tien(paidAmount)}` +
