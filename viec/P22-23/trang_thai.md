@@ -248,3 +248,6 @@ Thử tay cho chủ quán (điện thoại, sau khi gộp):
   3451b14 P22-23: ghi soat vong 3 + xu ly (vong sua 3/3), bang chung 44 ca, sua cot Goc G1/G2, ngan sach
 - Sửa câu thử tay 2: bỏ "vào Lịch sử đơn thu đủ" (bản mẫu luật 3: Lịch sử đơn không có nút thu) → "thu đủ đơn nợ đó ở chỗ quầy đang thu nợ".
 HEAD ĐÃ KIỂM: 1d38f40
+
+Chat soát 22.10: gộp thử đủ 4 nhánh M3 trên main 4ee92fe — npm test 67/0, --day-du 73/0, bài thử 4 việc xanh; commit 48247fd (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: 48247fd
