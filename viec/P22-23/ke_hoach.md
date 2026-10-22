@@ -113,7 +113,7 @@ orders.js ~+45 / −30 (≤ 80 đổi) · signup-codes.js ~+6 · bat_bien.js ~20
 
 ## 3. Ca thử `cong_cu/thu_P2223.js` — ánh xạ 1-1 với Nghiệm thu
 Khuôn `thu_P26c.js`: database.js + libsql thật trên kho tạm, SX giả, công tắc `co.mocTruocTx` (chen lệnh trước tx) và `co.nemGhi` (ném lỗi
-ở câu ghi khớp mẫu). Cài đặt: `loyalty_enabled = 'true'`, per 1.000. So status / code / số dòng sổ — không dò chữ (E12) trừ chữ bill ở E2.
+ở câu ghi khớp mẫu). Cài đặt: `loyalty_enabled = 'true'`, per 1.000. So status / code / số dòng sổ — không dò chữ (E12) trừ chữ bill ở E2 (sau soát: cả E1c, E1d).
 
 | Ca | Nghiệm thu | Nội dung | Gốc |
 |---|---|---|---|
@@ -146,8 +146,8 @@ Khuôn `thu_P26c.js`: database.js + libsql thật trên kho tạm, SX giả, cô
 | E3 | E(3) | bill chưa thu → `/nhan-diem` 400 `BILL_CHUA_THANH_TOAN` (hồi quy hành vi có sẵn) | xanh |
 | F1 | F | chạy `BAT_BIEN.I8` trên kho tạm sau các ca trên → 0 lệch | **ĐỎ** (I8 cũ đòi điểm cho đơn chưa thu) |
 | F2 | F | `ctx.thuc`, đơn tạo trước mốc, chưa thu, có `earn` (dữ liệu cũ) → KHÔNG lệch; cùng đơn đổi `created_at` sau mốc → lệch | **ĐỎ** |
-| G1 | G | `co.mocTruocTx`: hai lệnh thu đủ chồng nhau → một 200, một 409 `DA_THU_ROI`, đúng 1 `earn` | **ĐỎ** (gốc 0 `earn`) |
-| G2 | G | nợ chia hai lần: thu một phần chồng thu đủ → bên kia 409, tối đa 1 `earn`, đúng bằng 1 nếu đơn `paid` | **ĐỎ** |
+| G1 | G | `co.mocTruocTx`: hai lệnh thu đủ chồng nhau → một 200, một 409 `DA_THU_ROI`, đúng 1 `earn` | xanh (sửa sau chạy thật: gốc cộng điểm lúc tạo nên đã có 1 `earn`) |
+| G2 | G | nợ chia hai lần: thu một phần chồng thu đủ → bên kia 409, tối đa 1 `earn`, đúng bằng 1 nếu đơn `paid` | xanh (sửa sau chạy thật; G2b — thứ tự ngược — mới ĐỎ) |
 | G3 | G | thu lần hai khi đã `paid` → 400 `DA_THU_ROI`, số `earn` không đổi | xanh |
 
 Thêm I8 trong `thu_gia_lap.js` (P7) và kịch bản giả lập (P6) canh F trên luồng đầy đủ.

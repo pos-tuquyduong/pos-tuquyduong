@@ -11,7 +11,7 @@
   ```
 
 ## Bước hiện tại
-Bước 4–8; soát vòng 1, 2 KHÔNG ĐẠT → đã sửa (vòng sửa 2/3) → soát vòng 3. Sau đó `--day-du` một lần, cổng, báo cáo.
+Bước 4–8; soát vòng 1, 2, 3 KHÔNG ĐẠT → đã sửa (vòng sửa 3/3, hết số vòng) — không soát thêm. Sau đó `--day-du` một lần, cổng, báo cáo.
 
 ## Câu hỏi
 Không còn. Hai câu của lượt kế hoạch đã được chủ quán trả lời trong phiếu (mục "Đã duyệt" 1, 2) — làm đúng như duyệt.
@@ -41,11 +41,11 @@ Không còn. Hai câu của lượt kế hoạch đã được chủ quán trả
 - `kiem_tra_truoc_khi_giao.js`: chỉ thêm `cong_cu/thu_P2223.js` vào mảng bài chạy thật.
 - `thu_KH1.js`, `thu_P20.js`, `kich_ban.js`: không đổi (chạy xanh: 156 / 170 ca; giả lập 32 KB ĐẠT trên bản vá).
 
-## Chỗ vá → đột biến (`viec/P22-23/dot_bien.py`, 22.10 sau soát vòng 1: ĐỐI CHỨNG xanh — p2223 41/0, gl 92/0; TỔNG 22 · BẮT 22 · SỐNG 0 · HỎNG 0 · LẠC 0 — chạy lại sau soát vòng 2)
+## Chỗ vá → đột biến (`viec/P22-23/dot_bien.py`, 22.10 sau soát vòng 1: ĐỐI CHỨNG xanh — p2223 44/0, gl 92/0; TỔNG 25 · BẮT 25 · SỐNG 0 · HỎNG 0 · LẠC 0 — chạy lại sau soát vòng 3)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
-| cổng D | `BV-cong-goi-the` · `VS-cong-chi-goi` · `VS-cong-tin-may-khach` | D1 · D2 · D3b |
-| LOY-1 điều kiện thu đủ | `BV-diem-tao-bo-dk-thu` · `VS-diem-tao-tin-may-khach` | B1 · B4 |
+| cổng D | `BV-cong-goi-the` · `VS-cong-chi-goi` · `VS-cong-tin-may-khach` · `VS-cong-theo-cach-tra` · `VS-cong-nguong-1` (vòng 3) | D1 · D2 · D3b · D3d · D3e |
+| LOY-1 điều kiện thu đủ | `BV-diem-tao-bo-dk-thu` · `VS-diem-tao-tin-may-khach` · `VS-diem-tao-theo-no-khach` (vòng 3) | B1 · B4 · B5 |
 | pay-debt điểm | `BV-pay-debt-diem` · `VS-pay-debt-ca-partial` · `VS-pay-debt-bo-flash` · `VS-pay-debt-khong-boc` · `VS-pay-debt-bo-not-exists` · `VS-pay-debt-diem-ngoai-tx` | C1 · C2 · C3 · C4 · C5 · C1 (xem ghi chú) |
 | /nhan-diem Flash | `BV-nhan-diem-flash` · `VS-nhan-diem-flash-khong-doc-cot` | E1 · E1 |
 | hệ số bill | `VS-he-so-bill-cu` | E2 |
@@ -61,9 +61,9 @@ dịch đang mở → try/catch nuốt → 0 điểm → C1 bắt (mẫu `✗ C[
 1.000 → 2.000 giữa tạo và thu) + C9 (bật điểm giữa tạo và thu) canh trực tiếp hành vi "cài đặt lúc thu".
 
 ## Ngân sách
-orders.js +59 / −33 (phiếu ≤ ~80 dòng đổi — vượt ~12: 25 dòng khối LOY-1 cũ chuyển vào `tinhDiemDon` tính cả hai phía, phần lớn là chú
-thích luật); signup-codes.js +6 −1; bat_bien.js +25 −11 (+ thu_gia_lap +23 −3 — tổng bất biến + kịch bản ≈ 60); thu_P2223.js 427 dòng
-(phiếu ~250 — thêm C8, C9, D3c, D4b, F2, F3, G2b theo soát kế hoạch + phép "không ghi gì" 9 bảng).
+orders.js +61 / −34 (phiếu ≤ ~80 dòng đổi — vượt ~15: 25 dòng khối LOY-1 cũ chuyển vào `tinhDiemDon` tính cả hai phía, phần lớn là chú
+thích luật); signup-codes.js +6 −1; bat_bien.js +25 −11 (+ thu_gia_lap +23 −3 — tổng bất biến + kịch bản ≈ 60); thu_P2223.js 450 dòng
+(phiếu ~250 — thêm C8, C9, D3c, D4b, F2, F3, G2b theo soát kế hoạch + phép "không ghi gì" 9 bảng; C10, E1c–E1d, B5, D3d, D3e theo soát code).
 
 ## CHƯA KIỂM
 - Ghi điểm ở pay-debt "cùng giao dịch": biến thể "sau commit" nay có khoá tất định (C10 + `VS-pay-debt-diem-sau-commit`, vòng 2). Biến thể
@@ -126,6 +126,33 @@ Xử lý vòng 2 (vòng sửa 2/3): lỗi 1 → công tắc `co.truocCommit` tro
 + đột biến `VS-pay-debt-diem-sau-commit` (BẮT, mẫu `✗ C10`). Lỗi 2 → sửa câu ke_hoach.md mục 9.6 (ghi chú sửa) + mục CHƯA KIỂM. Lỗi 3 → bảng
 "Đã sửa". Nghi ngờ E1c → ca so `signup_nhan === 'Ma don hang'` và `signup_loi === null` (khối bill phải chạy thật). D2d giữ dạng 400 (phiếu
 Đã duyệt 6 cho phép sửa ca này; đơn thẻ nợ cũ: Phát hiện 5 — nhãn D2 của Đối soát chưa có ca dữ liệu thẻ nợ CŨ, không làm trong việc này).
+
+## Soát độc lập vòng 3 (agent, 22.10) — báo cáo nguyên văn (rút gọn phần "đã kiểm đúng")
+```
+KHÔNG ĐẠT (lỗi nhẹ, chỉ ở bài thử và hồ sơ — không tìm ra lỗi trong server/)
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_P2223.js:287-303 — đột biến cổng D xét `['debt','cho_thu'].includes(payment_method)` SỐNG (41/0): mọi ca D gửi 'debt' /
+   'cho_thu'; không ca 'cash' kèm debt_amount > 0. — K3 + K4 (phía bài thử).
+2. thu_P2223.js khối B, D — thiếu ca sát ngưỡng `debt_amount > 0`: `> 1` ở cổng và `!(Number(debt_amount) > 1)` ở LOY-1 SỐNG. — K3.
+3. thu_P2223.js:256-262 C10 — XANH cả trên gốc (gốc đã cộng lúc tạo); thiếu điều kiện trước "chưa có earn trước lần thu". — K3 nhẹ.
+4. ke_hoach.md:149-150 — G1 "ĐỎ (gốc 0 earn)", G2 "ĐỎ" trong khi chạy thật trên gốc XANH. — K1.
+5. thu_P2223.js:13 "chỉ E2 đọc chữ bill" — E1c, E1d cũng đọc; ke_hoach.md:116 cũng vậy. — K1.
+6. trang_thai.md Ngân sách: orders.js thật +61/−34 (ghi +59/−33), thu_P2223.js 442 dòng (ghi 427). — K1 nhẹ.
+Xử lý vòng 2: lỗi 1, 2, 3 và nghi ngờ E1c ĐÚNG.
+NGHI NGỜ: ba vị từ Flash lệch khi giảm làm tròn 0đ (Phát hiện 3); try/catch trong giao dịch chưa kiểm lỗi SQL thật Turso; mốc tạm + hai cơ chế
+  mốc; nhãn D2 đơn thẻ nợ cũ (Phát hiện 5).
+NGHIỆM THU:    9/9 mục có bằng chứng · mục thiếu: không có (yếu: D, B — đột biến cách trả / nới ngưỡng còn sống).
+CHƯA SOÁT ĐƯỢC: Turso/Hrana; --day-du, cong.js chay (theo dặn không chạy); in bill thật; dữ liệu production; màn Bán hàng thật.
+BÀI HỌC: KHOÁ — cổng theo trạng thái tiền phải có ca cho MỌI trường máy khách gửi mà bản vá sai có thể dùng thay (payment_status,
+  payment_method), mỗi trường một đột biến; ngưỡng `> 0` có ca sát ngưỡng (nợ 1đ). KHOÁ — ca "X nằm trong giao dịch" kèm điều kiện trước
+  "X chưa có trước lần thu". NGUYÊN TẮC (K1) — chạy lại bằng chứng đỏ thì cập nhật cột "Gốc" của kế hoạch, câu "chỉ ca X đọc chữ", số dòng
+  Ngân sách trong cùng commit.
+```
+Xử lý vòng 3 (vòng sửa 3/3 — hết số vòng `so_vong_sua_toi_da`, không soát thêm): lỗi 1 → ca D3d + đột biến `VS-cong-theo-cach-tra`; lỗi 2 →
+ca B5, D3e (nợ 1đ) + đột biến `VS-cong-nguong-1`, `VS-diem-tao-theo-no-khach`; lỗi 3 → C10 kiểm `soEarn === 0` trước lần thu (nay ĐỎ trên
+gốc); lỗi 4 → cột Gốc G1/G2 sửa trong ke_hoach.md; lỗi 5 → chú thích thu_P2223.js:13 + ke_hoach.md mục 3; lỗi 6 → mục Ngân sách. Đột biến
+chạy lại: 25/25 BẮT, đối chứng 44/0; gốc c115944: 17 đạt · 27 hỏng. Không còn lỗi mở nào của người soát; các NGHI NGỜ đã nằm ở CHƯA KIỂM /
+Phát hiện.
 
 ## E(3) — đã đọc, không hỏi
 `/nhan-diem` đã chặn bill chưa thu đủ: `kiemDonCuaMa` gọi trước mọi lệnh ghi → 400 `BILL_CHUA_THANH_TOAN`. Không đổi; ca E3 canh.
