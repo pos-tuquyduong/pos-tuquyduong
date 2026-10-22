@@ -304,3 +304,6 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 1 — chi tiết ở ## Bài 
 - G: build thành công, dist trùng byte bản dựng (soát vòng 4); Bán hàng như cũ khi không quét — thao tác tay 2.
 
 HEAD ĐÃ KIỂM: c2c4783
+
+Chat soát 22.10: gộp thử đủ 4 nhánh M3 trên main 4ee92fe — npm test 67/0, --day-du 73/0, bài thử 4 việc xanh; commit 107aabe (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: 107aabe
