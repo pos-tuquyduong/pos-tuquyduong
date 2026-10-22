@@ -116,10 +116,10 @@ async function main() {
       r1.status === 201 && r2.status === 201 && DANG_MOI.test(q1) && DANG_MOI.test(q2) && !q1.includes(s1.slice(1)) && q1 !== q2, `${q1} · ${q2}`);
     const me = sdtMoi(), con = sdtMoi();
     // Người nhận KHÔNG SĐT không ghi được từ trước P15-QR (phone NOT NULL, database.js) — ngoài phạm vi, xem Phát hiện của việc.
-    const r2 = await taoKhach(me, [{ name: 'Con có số', phone: con }]);
+    const rA2 = await taoKhach(me, [{ name: 'Con có số', phone: con }]);
     const qMe = await qrCua(me), qCon = await qrCua(con);
-    k('A2 POST / kèm người nhận có SĐT → 201, người nhận mã thật riêng ≠ mã mẹ', r2.status === 201 && DANG_MOI.test(qCon) && qCon !== qMe,
-      `${moTa(r2)} · ${qCon} · ${qMe}`);
+    k('A2 POST / kèm người nhận có SĐT → 201, người nhận mã thật riêng ≠ mã mẹ', rA2.status === 201 && DANG_MOI.test(qCon) && qCon !== qMe,
+      `${moTa(rA2)} · ${qCon} · ${qMe}`);
     const idMe = (await db.queryOne('SELECT id FROM pos_customers WHERE phone = ?', [me])).id, c3 = sdtMoi();
     const r3 = await goi('POST', `/pos/customers/${idMe}/children`, { name: 'Con thêm', phone: c3 });
     k('A3 POST /:id/children có SĐT → 201, mã thật', r3.status === 201 && DANG_MOI.test(await qrCua(c3)), `${moTa(r3)} · ${await qrCua(c3)}`);
