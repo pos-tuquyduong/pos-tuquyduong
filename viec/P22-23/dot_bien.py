@@ -41,6 +41,8 @@ DOT_BIEN = [
                                   "WHERE ? IS NOT NULL`,", 1)], r'✗ C5 ', 'p2223'),
   ('VS-pay-debt-diem-ngoai-tx', [(O, GHI_THU, GHI_THU.replace('await tx.run(', 'await run('), 1)], r'✗ C[18] ', 'p2223'),
   # ── E: /nhan-diem Flash 0 điểm · hệ số MỘT hàm ──
+  ('BV-bill-flash-hua-diem', [(O, "c.nhandiem_enabled === '1' && !flashApplied;", "c.nhandiem_enabled === '1';", 1)], r'✗ E1c', 'p2223'),
+  ('VS-pay-debt-han-gio-tao', [(O, "tinhDiemDon(Number(order.total), now)", "tinhDiemDon(Number(order.total), order.created_at)", 1)], r'✗ C1 ', 'p2223'),
   ('BV-nhan-diem-flash', [(S, "if (Number(don.flash_discount) > 0) {", "if (false) {", 1)], r'✗ E1 ', 'p2223'),
   ('VS-nhan-diem-flash-khong-doc-cot', [(S, "payment_status, flash_discount FROM pos_orders", "payment_status FROM pos_orders", 1)], r'✗ E1 ', 'p2223'),
   ('VS-he-so-bill-cu', [(O, "const { heSo } = await docCauHinhNhanDiem();", "const heSo = Number(c.nhandiem_he_so) || 2;", 1),
