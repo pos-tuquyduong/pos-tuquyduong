@@ -27,6 +27,9 @@ DOT_BIEN = [
   # ── D: cổng mua gói / thẻ chưa thu đủ ──
   ('BV-cong-goi-the', [(O, CONG, "if (false) {", 1)], r'✗ D1 ', 'p2223'),
   ('VS-cong-chi-goi', [(O, CONG, "if (package_buy && debt_amount > 0) {", 1)], r'✗ D2 ', 'p2223'),
+  ('VS-cong-theo-cach-tra', [(O, CONG, "if ((package_buy || membership_buy) && ['debt', 'cho_thu'].includes(payment_method)) {", 1)], r'✗ D3d', 'p2223'),
+  ('VS-cong-nguong-1', [(O, CONG, "if ((package_buy || membership_buy) && debt_amount > 1) {", 1)], r'✗ D3e', 'p2223'),
+  ('VS-diem-tao-theo-no-khach', [(O, DIEM_TAO, "if (phone && !(Number(debt_amount) > 1) && !flashApplied)", 1)], r'✗ B5 ', 'p2223'),
   ('VS-cong-tin-may-khach', [(O, CONG, "if ((package_buy || membership_buy) && payment_status !== 'paid') {", 1)], r'✗ D3b', 'p2223'),
   # ── A/B: điểm lúc tạo chỉ khi thu đủ ──
   ('BV-diem-tao-bo-dk-thu', [(O, DIEM_TAO, "if (phone && !flashApplied)", 1)], r'✗ B1 ', 'p2223'),
