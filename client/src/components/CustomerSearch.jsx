@@ -168,7 +168,7 @@ export default function CustomerSearch({
       setMoQuet(false);
       handleSelect(dong);
     } catch (err) {
-      return err.status === 404 ? "Không phải thẻ thành viên của quán." : "Không tra được thẻ — thử lại, hoặc tìm theo SĐT.";
+      return err.status === 404 ? "Không phải thẻ thành viên của quán." : "Không tra được thẻ — đóng hộp rồi quét lại, hoặc tìm theo SĐT.";
     }
   };
 
