@@ -13,6 +13,7 @@ const express = require('express');
 const { query, queryOne } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getToday } = require('../utils/helpers');
+const doiSoat = require('../utils/doiSoat');
 
 const router = express.Router();
 
@@ -347,6 +348,34 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), async (r
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DOI-SOAT-1 — màn Đối soát (logic ở utils/doiSoat.js): chạy bất biến sổ sách trên dữ liệu thật, CHỈ ĐỌC.
+ * GET  /api/pos/reports/doi-soat?kieu=ngay|tuan|thang&ngay=YYYY-MM-DD   (không có ngày = hôm nay giờ VN)
+ * POST /api/pos/reports/doi-soat/ghi   { loai: 'ket' | 'sao_ke', ky, so_tien, de_lai, da_so, ghi_chu } — chỉ THÊM dòng
+ */
+function loiDoiSoat(res, err) {
+  if (err.status) return res.status(err.status).json({ error: err.message, code: err.code });
+  console.error('doi-soat error:', err);
+  res.status(500).json({ error: 'Không đối soát được — thử lại sau', code: 'DOI_SOAT_LOI' });
+}
+
+router.get('/doi-soat', authenticate, checkPermission('view_reports'), async (req, res) => {
+  try {
+    res.json(await doiSoat.chayDoiSoat({ kieu: req.query.kieu || 'ngay', ngay: req.query.ngay }));
+  } catch (err) {
+    loiDoiSoat(res, err);
+  }
+});
+
+router.post('/doi-soat/ghi', authenticate, checkPermission('view_reports'), async (req, res) => {
+  try {
+    const id = await doiSoat.ghiMoi(req.body, req.user.username);
+    res.status(201).json({ success: true, data: { id } });
+  } catch (err) {
+    loiDoiSoat(res, err);
   }
 });
 

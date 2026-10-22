@@ -783,6 +783,7 @@ chac('.gitignore có attached_assets/',
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
+chayBaiThat('cong_cu/thu_DOISOAT1.js');   // DOI-SOAT-1: màn Đối soát (bất biến trên dữ liệu thật, chỉ đọc)
 nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-KHOTHU-v2)');
 
 // K1 — chỉ ketNoiKho.js được đọc 2 biến kết nối. Kiểm MẪU NGUY HIỂM VẮNG MẶT

@@ -933,6 +933,31 @@ async function createTables() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_orders_cpid ON pos_orders(customer_package_id)`);
   } catch (e) { /* already exists */ }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOI-SOAT-1: sổ ghi của màn Đối soát — số két đếm cuối ngày ('ket') và đánh dấu đã so sao kê tuần ('sao_ke').
+  // CHỈ THÊM DÒNG (không UPDATE / DELETE): dòng mới nhất theo id là giá trị hiện hành, dòng cũ là lịch sử.
+  // ky: ngày YYYY-MM-DD (két) hoặc ngày THỨ 2 của tuần (sao kê). so_tien = đếm cuối ngày, de_lai = để lại cho mai (đồng, nguyên).
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_doi_soat_ghi (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loai TEXT NOT NULL,
+      ky TEXT NOT NULL,
+      so_tien INTEGER,
+      de_lai INTEGER,
+      da_so INTEGER,
+      ghi_chu TEXT,
+      nguoi TEXT,
+      luc TEXT NOT NULL
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_doi_soat_ghi ON pos_doi_soat_ghi(loai, ky, id)`);
+  // Đối soát chạy bất biến trên CẢ sổ: các câu lồng theo order_id không chỉ mục thì chi phí ~ số đơn × số dòng (đo: 20.000 đơn → 35 s).
+  // Chỉ những bảng tạo TRONG createTables (pos_signup_codes, pos_membership_purchases tạo sau, ở seedDefaultData).
+  for (const bang of ['pos_order_items', 'pos_balance_transactions', 'pos_point_transactions', 'pos_refund_requests', 'pos_customer_packages']) {
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_ds_${bang.slice(4)}_order ON ${bang}(order_id)`);
+  }
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 

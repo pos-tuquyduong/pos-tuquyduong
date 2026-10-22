@@ -122,10 +122,12 @@ const BAT_BIEN = {
       WHERE key IN ('loyalty_enabled', 'loyalty_earn_per_amount', 'nhandiem_he_so')`)).map((r) => [r.key, r.value]));
     const per = Number(cfg.loyalty_earn_per_amount);
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
+    // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash,
-        (SELECT COALESCE(SUM(t.points), 0) FROM pos_point_transactions t WHERE t.order_id = o.id) AS diem,
-        (SELECT COUNT(*) FROM pos_signup_codes s WHERE s.order_id = o.id AND s.diem_nhan_luc IS NOT NULL) AS da_nhan
-      FROM pos_orders o`);
+        COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
+      FROM pos_orders o
+      LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
+      LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
     const lech = ds.flatMap((r) => {
       const g = Math.floor(so(r.total) / per);
       const luBan = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && g > 0;
@@ -157,19 +159,21 @@ const BAT_BIEN = {
     const don = new Map((await q('SELECT id, code, customer_phone FROM pos_orders')).map((r) => [Number(r.id), r]));
     const no = new Map((await q(`SELECT order_id, COUNT(*) AS n FROM pos_balance_transactions
       WHERE type = 'debt_payment' GROUP BY order_id`)).map((r) => [Number(r.order_id), so(r.n)]));
-    const ids = new Set([...ctx.soQuay.thu.keys(), ...ctx.soQuay.doi.keys(), ...log.map((l) => Number(l.order_id)), ...no.keys()]);
+    // DOI-SOAT-1: ctx.thuc = chạy trên dữ liệu THẬT (không có "số quầy tự đếm") — bỏ vế so nhật ký với số quầy, giữ vế debt_payment.
+    const ids = new Set([...(ctx.thuc ? [] : [...ctx.soQuay.thu.keys(), ...ctx.soQuay.doi.keys()]), ...log.map((l) => Number(l.order_id)), ...no.keys()]);
     const lech = [];
     for (const id of ids) {
       const ma = don.get(id)?.code || `#${id}`;
       const thu = log.filter((l) => Number(l.order_id) === id && l.loai === 'thu');
-      const quay = ctx.soQuay.thu.get(id) || [];
+      const soLog = thu.map((l) => { try { return JSON.parse(l.chi_tiet).so_tien; } catch { return NaN; } });
+      const quay = ctx.thuc ? soLog : ctx.soQuay.thu.get(id) || [];
       const tong = (a) => a.reduce((s, x) => s + so(x), 0);
-      const tongLog = tong(thu.map((l) => { try { return JSON.parse(l.chi_tiet).so_tien; } catch { return NaN; } }));
+      const tongLog = tong(soLog);
       if (thu.length !== quay.length || tongLog !== tong(quay)) {
         lech.push(`đơn ${ma}: nhật ký 'thu' ${thu.length} dòng ${tien(tongLog)}, quầy thu ${quay.length} lần ${tien(tong(quay))}`);
       }
       const doi = log.filter((l) => Number(l.order_id) === id && l.loai === 'doi').length;
-      if (doi !== (ctx.soQuay.doi.get(id) || 0)) lech.push(`đơn ${ma}: nhật ký 'doi' ${doi} dòng, quầy đổi ${ctx.soQuay.doi.get(id) || 0} lần`);
+      if (!ctx.thuc && doi !== (ctx.soQuay.doi.get(id) || 0)) lech.push(`đơn ${ma}: nhật ký 'doi' ${doi} dòng, quầy đổi ${ctx.soQuay.doi.get(id) || 0} lần`);
       if (don.get(id)?.customer_phone && (no.get(id) || 0) !== thu.length) {
         lech.push(`đơn ${ma}: ${no.get(id) || 0} dòng sổ debt_payment, ${thu.length} dòng nhật ký 'thu'`);
       }
@@ -224,8 +228,9 @@ const BAT_BIEN = {
           AND o.discount_value = d.discount_value) AS so_don
       FROM pos_discount_codes d`);
     return ds.flatMap((r) => {
-      const tay = ctx.soQuay.tangMa.get(String(r.code).toUpperCase()) || 0;
-      const sai = (so(r.usage_limit) > 0 && so(r.used_count) > so(r.usage_limit)) || so(r.used_count) !== so(r.so_don) + tay;
+      const tay = ctx.thuc ? 0 : ctx.soQuay.tangMa.get(String(r.code).toUpperCase()) || 0;   // DOI-SOAT-1: dữ liệu thật không biết lần tăng tay → chỉ canh used_count ≥ số đơn đã áp
+      const sai = (so(r.usage_limit) > 0 && so(r.used_count) > so(r.usage_limit))
+        || (ctx.thuc ? so(r.used_count) < so(r.so_don) : so(r.used_count) !== so(r.so_don) + tay);
       return sai ? [`mã ${r.code}: đã dùng ${so(r.used_count)}/${so(r.usage_limit)}, đơn đã áp ${so(r.so_don)} + quầy tăng tay ${tay}`] : [];
     });
   },
@@ -239,9 +244,9 @@ const BAT_BIEN = {
       FROM pos_customer_packages cp LEFT JOIN pos_orders o ON o.id = cp.order_id`);
     const lech = [];
     for (const g of goi) {
-      const tay = ctx.soQuay.giaoGoi.get(Number(g.id)) || 0;
+      const tay = ctx.thuc ? 0 : ctx.soQuay.giaoGoi.get(Number(g.id)) || 0;   // DOI-SOAT-1: dữ liệu thật → chỉ canh đã giao ≥ đơn lấy từ gói
       if (so(g.delivered_qty) > so(g.total_qty)) lech.push(`gói #${g.id}: đã giao ${so(g.delivered_qty)} > tổng ${so(g.total_qty)}`);
-      if (g.status !== 'cancelled' && so(g.delivered_qty) !== so(g.da_lay) + tay) {
+      if (g.status !== 'cancelled' && (ctx.thuc ? so(g.delivered_qty) < so(g.da_lay) : so(g.delivered_qty) !== so(g.da_lay) + tay)) {
         lech.push(`gói #${g.id}: đã giao ${so(g.delivered_qty)}, đơn lấy từ gói ${so(g.da_lay)} + quầy giao tay ${tay}`);
       }
       if (g.order_id != null && (g.co_don == null || g.tt_don === 'cancelled') && g.status !== 'cancelled') {
