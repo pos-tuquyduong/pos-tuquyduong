@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, customersV2Api, registrationsApi } from '../utils/api';
+import MaDangNhapApp from '../components/MaDangNhapApp';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, Percent, FileText } from 'lucide-react';
 
 export default function Customers() {
@@ -712,6 +713,8 @@ export default function Customers() {
                     )}
                   </div>
                 </div>
+
+                {selectedCustomer.phone && <MaDangNhapApp key={selectedCustomer.phone} sdt={selectedCustomer.phone} />}
 
                 {goiDangDung?.so_dang_dung > 0 && (
                   <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
