@@ -175,7 +175,7 @@ async function main() {
     k('B2 ghi nợ 25.000 → 200 pending, 0 earn', b2.status === 200 && b2.order.payment_status === 'pending' && await soEarn(b2.order.id) === 0,
       `${moTa(b2)} · earn ${await soEarn(b2.order?.id)}`);
     const s3 = sdtMoi(); await nap(s3, 10000);
-    const b3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'balance', balance_amount: 10000, debt_amount: 15000 });
+    const b3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'debt', balance_amount: 10000, debt_amount: 15000 });
     k('B3 ví 10.000 + nợ 15.000 → 200 partial, 0 earn', b3.status === 200 && b3.order.payment_status === 'partial' && await soEarn(b3.order.id) === 0,
       `${moTa(b3)} · earn ${await soEarn(b3.order?.id)}`);
     const b4 = await ban({ customer_phone: sdtMoi(), items: [mon(0)], payment_method: 'debt', debt_amount: 25000, payment_status: 'paid' });
@@ -286,7 +286,7 @@ async function main() {
       { items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cho_thu', debt_amount: giaThe });
     const s3 = sdtMoi(); await nap(s3, 100000);
     await tuChoi('D3 mua gói trả ví 100.000 + nợ 200.000 → 400, ví không bị trừ', s3,
-      { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'balance', balance_amount: 100000, debt_amount: 200000 });
+      { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'debt', balance_amount: 100000, debt_amount: 200000 });
     await tuChoi('D3b mua thẻ + nợ, máy khách gửi payment_status "paid" → 400', sdtMoi(),
       { items: [], membership_buy: { tier_id: hang.id }, payment_method: 'debt', debt_amount: giaThe, payment_status: 'paid' });
 
