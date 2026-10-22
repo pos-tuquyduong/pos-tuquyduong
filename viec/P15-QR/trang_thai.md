@@ -62,7 +62,7 @@ tìm theo SĐT."; 404 → "Không phải thẻ thành viên của quán."). `Sal
 - `npm test`: PASS 68 · FAIL 0 · CẢNH BÁO 1 (`route GET có lệnh ghi (3)` — packages.js, products.js, sync.js — có sẵn trên gốc, không phải file việc này).
 - `(cd client && npm run build)` thành công. `bash ban_mau_pos/chay_thu.sh`: 119 đạt · 0 hỏng.
 - `--day-du`: chủ quán dặn chạy ĐÚNG MỘT lần ở cuối — chạy qua `node tu_chay/cong.js chay` (A13 chạy `lenh_kiem_day_du`, `tu_chay/cau_hinh.json:3`).
-- Ngân sách (lần đo cuối, sau 3 vòng sửa): server +53 / −16 (phiếu ~80) · client +84 / −16 (~120) · thử 286 + 9 (đã duyệt ~245 — vượt ~40 dòng: thêm D4 viết hoa,
+- Ngân sách (lần đo cuối, sau 3 vòng sửa): server +53 / −16 (phiếu ~80) · client +84 / −16 (~120) · thử 287 + 9 = 296 (`wc -l`, `git diff --numstat`; đã duyệt ~245 — vượt ~51 dòng: thêm D4 viết hoa,
   dò nhật ký tiến trình con, A7 ghi / phát lại lần rút ngẫu nhiên).
 
 ## Bước 8 — soát độc lập vòng 1 (agent general-purpose, chỉ đọc) — báo cáo nguyên văn (rút gọn trình bày, giữ nội dung)
@@ -167,6 +167,23 @@ NGUYÊN TẮC chạy thử thao tác tay trong đầu trên bản CÒN LỖI (K3
 - Nghi ngờ: `ke_hoach.md` thêm đính chính 3 (`onResult` qua ref + `Promise.resolve(…).then/.catch`); ngân sách đo lại. `datMoQuet` giữ (đúng,
   đã soát). Unmount khi đã chọn khách: chỉ `handleSelectCustomer` đặt khách (soát vòng 3 đã kiểm) → ghi đây, không thêm code.
 
+## Bước 8 — soát xác nhận vòng 4 (sau vòng sửa 3, chỉ soát) — báo cáo (rút gọn trình bày, giữ nội dung)
+```
+ĐẠT (không còn lỗi hành vi)
+LỖI TÌM ĐƯỢC: trang_thai.md:65 — dòng ngân sách "lần đo cuối" còn "286 + 9 … vượt ~40"; đo lại 287 + 9 = 296, vượt ~51. K1 + K4. Chỉ hồ sơ.
+NGHI NGỜ: bấm trong hộp (portal, ngoài wrapperRef) làm bộ "bấm ra ngoài" đóng dropdown / ẩn form thêm khách — không đổi dữ liệu; moQuet vẫn true
+nếu khách được đặt từ đường khác khi hộp mở — hiện không đường nào; nhánh .catch dừng camera tới khi đóng hộp — đúng lời báo.
+Trọng tâm portal: đường mã giảm Sales.jsx:2468-2473 không đổi; tổ tiên React không có onClick/onKeyDown/onMouseDown; addEventListener chỉ
+CustomerSearch.jsx:72; hộp z 1000 gắn cuối body đè .bottom-nav, .cart-panel, .card; dọn camera đúng.
+NGHIỆM THU: 7/7 · C, G vế 2 = CHƯA KIỂM + thao tác tay 1–5.
+Đã tự chạy: thu_P15QR 29/0; thu_KH1 157/0; dot_bien 21/21; npm test 68/0 (cảnh báo có sẵn); chay_thu.sh 119/0; bản dựng nháp trùng
+byte client/dist (index-BsMrK4Yk.js).
+CHƯA SOÁT ĐƯỢC: cổng chạy (gồm --day-du); vẽ thật / camera / jsQR; SX thật; VS-B4; trùng mã trong khe kiểm-rồi-ghi.
+BÀI HỌC: KHOÁ số đo trong hồ sơ dán từ lệnh, grep cả file khi sửa một con số; NGUYÊN TẮC chuyển component sang portal soát bộ "bấm ra
+ngoài" dùng contains, handler tổ tiên React, z-index so với fixed ở gốc.
+```
+Sửa: dòng ngân sách đo lại bằng lệnh (296, vượt ~51 — báo chủ quán; phần vượt là ca D4 viết hoa, dò nhật ký tiến trình con, A7 ghi / phát lại).
+
 ## Câu hỏi
 
 **Q1 (chặn việc) — `thu_KH1.js` sẽ ĐỎ trên code PR, phiếu lại dặn "CHỈ thêm ca; bản gốc chạy trên code PR phải xanh".**
@@ -217,3 +234,29 @@ lý do ở `ke_hoach.md` mục 5. Bài thử dự kiến ~230 + 15 dòng, vượ
   bằng đổi mã lúc `/kh/toi` (ca B3). Ngoài Phạm vi; đề xuất gọi `sinhQrKhongTrung` khi chạm tới file đó.
 - Ô tìm khách ở quầy không thấy khách chỉ có trong `pos_customers` khi SX đang chạy (xem Q3).
 - `client/src/utils/api.js:318` `getByQR` không `encodeURIComponent` (khác `search` ở `:303`).
+
+## Bài học (bước 11)
+Sự cố: bài D4 sập vì `sv.close()` đặt trước (lỗi bài); ca A2 dựa vào câu sai của kế hoạch (người nhận không SĐT — `phone NOT NULL`); 4 vòng soát:
+vòng 1 (chọn muộn, so SĐT một vế, A7 xanh suông, chú thích sai), vòng 2 (cờ đúng/sai hồi sinh khi mở lại hộp, thiếu CHƯA KIỂM từng lỗi quầy),
+vòng 3 (hộp `fixed` bị bó trong `.card` có `backdrop-filter`; thao tác tay "tắt mạng" không tái hiện đua), vòng 4 (con số ngân sách cũ).
+Người gác chặn: B-BIMAT-CHU (chạy bài có cụm bí mật trước khi commit — làm đúng: commit rồi chạy), B-PHANTICH (nối lệnh sau lệnh chạy script),
+GIT-LENH `stash`, GIT-CHECKOUT `<sha> --`, B-DICHCHU (đích `cp` qua biến), SED-I, B-CD-VITRI, B-BIMAT-FILE, CC-LA (ReadNotifications),
+B-MANOI (heredoc nhắc file được bảo vệ). Vượt ngân sách bài thử ~51 dòng. 3/3 vòng sửa đã dùng.
+
+**KHOÁ** (đều ngoài Phạm vi việc này → đề xuất, máy không tự làm):
+1. Phép mới trong bộ kiểm chung (nhóm client): file `client/src/components/*Modal*.jsx` có `position: 'fixed'` mà không `createPortal` → cảnh báo.
+   Ca đỏ: `QrScanModal.jsx` ở `916a39f` (trước portal).
+2. Cổng tự chạy: số dòng bài mới ghi trong `trang_thai.md` so với `wc -l` thật. Ca đỏ: dòng ngân sách "286" trước commit soát vòng 4.
+3. Mẫu trong CHECKLIST mục E: ca "dựng trùng / phát lại" phải kèm "đã phát lại > 0"; ca đỏ: đột biến `VS-A-math-random` (đã có trong
+   `viec/P15-QR/dot_bien.py`, bắt ở A7 nhờ `mau.length > 0`).
+
+**NGUYÊN TẮC** (đề xuất gộp vào khuôn sẵn, không mở khuôn mới):
+- K4 "Chặn (P15-QR)": việc async chạy từ một hộp có nút đóng → MỌI nhánh kết quả (kể cả thành công) kiểm "phiên lúc bắt đầu vẫn là phiên đang
+  mở"; cờ đúng/sai hồi sinh khi mở lại. So khoá giữa hai nguồn → chuẩn hoá CẢ HAI vế bằng cùng hàm. Tái dùng component ở chỗ mới → soát chú
+  thích đầu file, lời báo lỗi, CSS tổ tiên (`backdrop-filter` / `filter` / `transform` bó `fixed`), bộ "bấm ra ngoài" dùng `contains`.
+- K3: thao tác tay tái hiện lỗi phải chạy thử trong đầu trên bản CÒN LỖI ("tắt mạng" không tạo trạng thái "đang chờ").
+- K1: câu kế hoạch dùng làm ca thử phải tra lại ràng buộc DB trước khi viết ca (A2).
+
+**BỎ**: `sv.close()` trước D4 (lỗi viết bài một lần, đã truy nguyên theo K2); lệnh bị chặn vì cú pháp (đã làm theo hướng dẫn người gác).
+
+**Dọn:** không đề xuất xoá lời dặn nào lượt này.
