@@ -19,7 +19,8 @@ export function giayConLai(hetHanLuc, bayGio) {
 
 /** Lỗi của POST /kh/cap-ma → lời cho thu ngân. */
 export function loiMaApp(err) {
-  if (err && (err.status === 503 || err.code === 'KH_CHUA_CAU_HINH')) return 'App khách chưa bật — báo quản lý';
+  if (err && err.code === 'KH_CHUA_CAU_HINH') return 'App khách chưa bật — báo quản lý';
+  if (err && err.status === 503) return 'Máy chủ chưa sẵn sàng, thử lại sau';
   if (err && err.code === 'SDT_KHONG_HOP_LE') return 'SĐT của khách này không hợp lệ — kiểm tra lại số điện thoại';
   return (err && err.message) || LOI_MAC_DINH;
 }
