@@ -53,7 +53,9 @@ export default function CustomerSearch({
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [moQuet, setMoQuet] = useState(false);
-  const moQuetRef = useRef(false); // tra xong mà hộp đã đóng (thu ngân chọn khách khác) → KHÔNG chọn muộn
+  // Số phiên hộp quét: mở → số mới (dương), đóng → số âm. Lượt tra chỉ chọn khách khi phiên lúc bắt đầu VẪN là phiên đang mở —
+  // đóng hộp, hoặc đóng rồi mở lại quét thẻ khác, thì lượt tra cũ về muộn KHÔNG chọn khách.
+  const phienQuetRef = useRef(0);
   
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
@@ -158,6 +160,7 @@ export default function CustomerSearch({
   // để quét và gõ SĐT luôn ra cùng một khách; không có trong danh sách thì báo, không tự dựng khách.
   // Trả chuỗi = lỗi hiện trong hộp quét, camera quét tiếp. Lọc ký tự trước khi gọi: getByQR không mã hoá mã vào đường dẫn.
   const quetThe = async (doc) => {
+    const phien = phienQuetRef.current;
     const ma = String(doc || "").trim();
     if (/^QR-/i.test(ma)) return "Mã kiểu cũ (ghép từ số điện thoại) — không còn dùng vì ai cũng làm giả được. Mời khách mở mã mới trong app, hoặc tìm theo SĐT.";
     if (!/^[A-Za-z0-9-]+$/.test(ma)) return "Không phải thẻ thành viên của quán.";
@@ -166,7 +169,7 @@ export default function CustomerSearch({
       const data = await customersV2Api.search(kh.phone);
       const dong = (data.results || []).find((c) => normalizePhone(c.phone) === normalizePhone(kh.phone));
       if (!dong) return "Khách chưa có trong danh sách quầy — tìm theo SĐT.";
-      if (!moQuetRef.current) return;
+      if (phienQuetRef.current !== phien) return;
       datMoQuet(false);
       handleSelect(dong);
     } catch (err) {
@@ -174,7 +177,7 @@ export default function CustomerSearch({
     }
   };
 
-  const datMoQuet = (mo) => { moQuetRef.current = mo; setMoQuet(mo); };
+  const datMoQuet = (mo) => { phienQuetRef.current = mo ? Math.abs(phienQuetRef.current) + 1 : -Math.abs(phienQuetRef.current); setMoQuet(mo); };
 
   const handleClear = () => {
     setQuery("");
