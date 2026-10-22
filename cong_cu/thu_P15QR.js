@@ -259,8 +259,10 @@ async function main() {
       for (let i = 0; i < 100 && !ra.includes('API:'); i++) await new Promise((ok) => setTimeout(ok, 100));
       const g = `http://127.0.0.1:${cong}/api`;
       const r = await goi('GET', `/pos/customers/qr/${ma}`, undefined, tkChu, g), r2 = await goi('GET', '/pos/customers/qr/TQD-ZZZZZZZZZZZZ', undefined, tkChu, g);
+      const r3 = await goi('GET', `/pos/Customers/QR/${ma}`, undefined, tkChu, g);   // Express khớp route không phân biệt hoa thường
       await new Promise((ok) => setTimeout(ok, 200));
-      k('D4 index.js thật: tra mã đúng → 200, mã bịa → 404 (yêu cầu đi qua bộ ghi)', r.status === 200 && r2.status === 404 && /customers\/qr\//.test(ra), `${r.status} · ${r2.status}`);
+      k('D4 index.js thật: tra mã đúng → 200 (cả đường viết hoa), mã bịa → 404 (yêu cầu đi qua bộ ghi)',
+        r.status === 200 && r3.status === 200 && r2.status === 404 && /customers\/qr\//.test(ra), `${r.status} · ${r3.status} · ${r2.status}`);
       k('D4 nhật ký index.js không chứa mã QR nào', !ra.includes(ma) && !ra.includes('TQD-ZZZZZZZZZZZZ'), ra.split('\n').filter((d) => d.includes('/qr/')).join(' | '));
     } catch (e) { throw new Error(`${e.message} · tiến trình con: ${ra.slice(-300).replace(/\s+/g, ' ')}`); } finally { con.kill(); }
   });
