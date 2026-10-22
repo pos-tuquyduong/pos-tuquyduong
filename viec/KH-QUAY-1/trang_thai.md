@@ -56,3 +56,5 @@ BÀI HỌC:     KHOÁ 1 (ca G7) · NGUYÊN TẮC 1 · BỎ 1
 - KHOÁ: giờ hiện tại hỏng làm `giay` thành NaN thì mã không bao giờ hết hạn → ca G7 (đã thêm, trong Phạm vi). Hai đối số `Number.isFinite` cần hai ca riêng.
 - NGUYÊN TẮC (đề xuất, ngoài Phạm vi, máy không tự làm): state suy ra từ state khác (giây từ mốc hết hạn) phải tính trong lúc render hoặc set cùng lượt, không để effect đuổi theo — chớp một khung sai (K5, luồng hợp lệ). Và số dòng trong kế hoạch phải lấy từ `git diff --stat`, không ước (K1).
 - BỎ: chặn 503 theo `status` quá rộng — phiếu ghi đúng chữ, chuyển chủ quán quyết, chỉ một lần.
+
+HEAD ĐÃ KIỂM: 810b616
