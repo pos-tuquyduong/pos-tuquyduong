@@ -983,3 +983,11 @@ ceb4bc0 DOI-SOAT-1: quyet dinh cau 13b-13e (khong chi tu ket, khong rut vi tien 
 ```
 
 HEAD ĐÃ KIỂM: f737afc
+
+## Kiểm lại sau khi chủ quán gộp main (22.10)
+
+Chủ quán gộp main `4fa657a` vào nhánh và dựng lại `client/dist` (`e0efd6c`). Không sửa code. Kéo ff, chạy lại ở HEAD `e0efd6c`:
+- `npm test -- --day-du` → PASS 72 · FAIL 0 · CẢNH BÁO 1 (thoát 0).
+- `node tu_chay/cong.js chay . 4fa657a HEAD viec/DOI-SOAT-1` → ✓ CỔNG CHẠY ĐẠT (cảnh báo A16 135 ≠ 134 như cũ: ca `A0`). Gốc so sánh đổi từ `2123b69^` (không còn trong kho) sang `4fa657a` (main vừa gộp).
+
+HEAD ĐÃ KIỂM: e0efd6c
