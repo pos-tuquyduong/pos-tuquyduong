@@ -76,3 +76,6 @@ BÀI HỌC:     KHOÁ 2 (ca KH_HOST hoa+trim và đột biến VS-G-kh-host-*; d
 
 HEAD ĐÃ KIỂM: 2a58cf8
 HEAD ĐÃ KIỂM: 1396c09
+
+Chat soát 22.10: gộp thử đủ 4 nhánh M3 trên main 4ee92fe — npm test 67/0, --day-du 73/0, bài thử 4 việc xanh; commit eaf37a4 (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: eaf37a4
