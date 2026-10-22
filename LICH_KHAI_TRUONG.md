@@ -3,16 +3,19 @@
 <!-- Chủ quán chốt 17.10.2026. File này cho MÁY biết mốc và hạng mục; theo dõi hằng ngày (ai làm gì, đối chiếu) ở file Excel
      LICH_KHAI_TRUONG.xlsx của chủ quán. Chat cập nhật file này khi mốc / hạng mục đổi. Luật xây app ở LUAT_XAY_APP.md.
      [T] = việc tiền / bảo mật (có "Chờ duyệt kế hoạch") · [Th] = việc thường (chạy thẳng tới hết).
-     18.10: M1 xong (LUOI-5 #32, TU-CHAY-8 #33); đăng nhập App KH = SĐT + mã OTP qua Zalo ZNS → thêm KH-OTP-1 (M4). -->
+     18.10: M1 xong (LUOI-5 #32, TU-CHAY-8 #33); đăng nhập App KH = SĐT + mã OTP qua Zalo ZNS → thêm KH-OTP-1 (M4).
+     22.10: M2 xong phía POS (KH-API-1 #34, P16 #35, P26d #36, DOI-SOAT-1 #37); S5 (SX) còn mở — chủ quán chốt làm TRƯỚC khai trương.
+     Thêm KH-QUAY-1 [Th] (M3) và GIAO-1 [T] (M5, Ahamove). Nhịp 2 lần duyệt / ngày: NHIP_NGAY_VA_HAN_MUC.md. Đích sau khai trương:
+     TAM_NHIN_TU_CHAY.md (không làm trước khai trương). -->
 
 ## Mốc
 | Mốc | Hạn | Phải xong |
 |---|---|---|
 | M1 | CN 18.10 | LUOI-5, TU-CHAY-8 gộp — bộ khung 1.8.0 đóng băng tới khai trương |
-| M2 | T4 21.10 | DOI-SOAT-1 · P26d · KH-API-1 · P16 · S5 (SX) |
-| M3 | T7 24.10 | P22-23 · KH-UI-1 · P15-QR |
+| M2 | T4 21.10 | DOI-SOAT-1 · P26d · KH-API-1 · P16 (xong 22.10) · S5 (SX, còn mở) |
+| M3 | T7 24.10 | P22-23 · KH-UI-1 · KH-QUAY-1 · P15-QR |
 | M4 | T3 27.10 | P24 · KH-DON-1 · KH-UI-2 · KH-OTP-1 · P3 (nếu payOS + Render trả phí sẵn) · P17 (nếu có máy in) |
-| M5 | T6 30.10 | AUDIT-KH · X1 · H4 · H5 · sửa lỗi tồn → **ĐỦ CHỨC NĂNG** |
+| M5 | T6 30.10 | GIAO-1 · AUDIT-KH · X1 · H4 · H5 · sửa lỗi tồn → **ĐỦ CHỨC NĂNG** |
 | — | 31.10 → khai trương | Chạy thử với nhân viên: chỉ sửa lỗi, không thêm tính năng |
 
 ## Hạng mục
@@ -25,6 +28,7 @@
 | P16 | Xem trước & cài đặt in: bill, tem cốc, phiếu pha chế | POS | [Th] | M2 |
 | P22-23 | Điểm chỉ cộng khi thu đủ (pay-debt cùng giao dịch); chặn mua gói / thẻ chưa thu đủ | POS | [T] | M3 |
 | KH-UI-1 | App KH đợt 1 theo demo chủ quán: menu, đăng ký / đăng nhập, nhận mã bill, điểm, voucher, lịch sử, hồ sơ, QR thành viên | App KH | [Th] | M3 |
+| KH-QUAY-1 | Nút "Mã đăng nhập App" ở trang Khách hàng (quầy cấp mã khi chưa cắm Zalo): hộp hiện mã + đồng hồ 5 phút | POS | [Th] | M3 |
 | P15-QR | QR thành viên thật + quầy tìm / quét khách | POS | [T] | M3 |
 | P24 | Huỷ đơn trừ lại điểm (cho phép âm), sửa bất biến I8 | POS | [T] | M4 |
 | KH-DON-1 | Đặt đơn từ App KH (trả tại quầy) qua đúng đường tạo đơn của quầy + chuông báo ở quầy | POS | [T] | M4 |
@@ -32,6 +36,7 @@
 | KH-OTP-1 | Gửi mã OTP thật qua Zalo ZNS (bên dịch vụ của chủ quán) — cắm vào chỗ gửi mã của KH-API-1 | POS | [Th] | M4 |
 | P3 | QR thanh toán payOS (quầy + App KH) | POS | [T] | M4 |
 | P17 | Hàng đợi in + trạm in (máy bill 80mm, máy tem 40×30) | POS | [Th] | M4 |
+| GIAO-1 | Giao hàng Ahamove: App báo phí ship (máy chủ gọi Ahamove); khách chuyển khoản trước, quầy xác nhận rồi mới gọi xe; phí ship dòng riêng, không tích điểm / áp mã; lệch phí quán chịu, ghi cho Đối soát | POS | [T] | M5 |
 | AUDIT-KH | Rà bảo mật App KH: đọc chéo dữ liệu khách, đoán mã, dồn yêu cầu, token | POS | [T] | M5 |
 | X1 · H4 · H5 | Đo tải · dọn dữ liệu thử · chạy lại 3 bộ dò | cả ba | — | M5 |
 
@@ -42,4 +47,4 @@
 - KH-DON-1 chưa đạt 27.10 → App KH mở với đợt 1; đặt đơn bật sau.
 
 ## Dời sau khai trương
-AUDIT-5 · TU-CHAY-9 · DONG-GOI-1 · P13a–e · P7–P9 · P14 · P18 · P20d · P25 · MA-GIAM-2 · S1 · S3 · TIET-KIEM-1 · DON-DEP-v1
+AUDIT-5 · TU-CHAY-9 · DONG-GOI-1 · P13a–e · P7–P9 · P14 · P18 · P20d · P25 · MA-GIAM-2 · S1 · S3 · TIET-KIEM-1 · DON-DEP-v1 · DOI-SOAT-2 · P26e
