@@ -15,7 +15,7 @@
 // Chép wallets.js:240 (không export). Bộ kiểm nhóm S so khớp hai bản — sửa một bên là đỏ.
 const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation'];
 // P22-23: ngày đầu luật "thu đủ mới có điểm" chạy trọn = ngày gộp + 1 (khuôn AP_DUNG_TU của doiSoat.js). Chat sửa đúng ngày lúc duyệt PR.
-const DIEM_KHI_THU_TU = '2026-10-24';
+const DIEM_KHI_THU_TU = '2026-10-23';
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
 const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
