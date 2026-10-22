@@ -163,3 +163,76 @@ Xem `ke_hoach.md` mục 8 (Phát hiện 1–3) và cuối mục 9 (Phát hiện 
    ca nào dựng đơn thẻ nợ CŨ (UPDATE) để canh Đối soát vẫn XANH. Đề xuất việc sau: thêm ca dữ liệu cũ như L6a / B3n.
 6. (soát vòng 1, 2) Chỗ in bill tự đọc `nhandiem_enabled === '1'` và `han_gio || 24` cạnh lời gọi `docCauHinhNhanDiem` (hai câu đọc cùng nhóm
    khoá) — gom về một lời gọi làm hết Phát hiện 4, nhưng trái kế hoạch 9.3 đã duyệt → chủ quán quyết ở việc sau.
+
+## Đếm nghiệm thu (từng mục, không lấy mẫu — bài `cong_cu/thu_P2223.js` 44 ca, xanh trên HEAD, đỏ 27 ca trên gốc c115944)
+- A thu đủ lúc tạo → điểm như cũ: A1 (tiền mặt, số điểm + lý do + hạn NULL), A2 (CK, hạn quý), A3 (ví).
+- B chưa thu đủ lúc tạo → 0 earn: B1 (cho_thu), B2 (ghi nợ), B3 (ví một phần + nợ), B4 (máy khách nói dối "paid"), B5 (nợ 1đ).
+- C thu nợ cộng điểm: C1 (cài đặt + hạn LÚC THU, có debt_payment + nhật ký), C2 (partial 0, đủ 1), C3 (Flash 0), C4 (lỗi ghi điểm không hỏng
+  lần thu), C5 (dữ liệu cũ không cộng đôi), C6 (không SĐT), C7 (tắt lúc thu), C8 (rollback trọn), C9 (bật lúc thu), C10 (cùng giao dịch).
+- D mua gói / thẻ chưa thu đủ → 400 `GOI_THE_CHUA_THU_DU`, không ghi gì (9 bảng + ví + mã giảm + lệnh SX): D1, D2, D3, D3b, D3c (gia hạn),
+  D3d (cách trả cash kèm nợ), D3e (nợ 1đ); luồng hợp lệ: D4, D4b, D5, D6, D7.
+- E(1) Flash nhận mã → 0: E1 (400 `DON_FLASH_KHONG_DIEM`, mã không bị tiêu), E1c (bill Flash không hứa điểm); K5: E1b, E1d.
+- E(2) hệ số một hàm: E2 (0,5 → bill và /nhan-diem cùng 2), E2b (3).
+- E(3) bill chưa thu: E3 (400 `BILL_CHUA_THANH_TOAN`, hành vi sẵn có — mục E(3) ở trên).
+- F I8: F1 (0 lệch trên kho của bài), F2 (mốc dữ liệu cũ, Đối soát thật / giả lập), F3 (đơn huỷ); + 8 ca I8 dữ liệu tay và đột biến giả lập
+  M14 (KB4), M15 (KB31) trong `cong_cu/thu_gia_lap.js` (159/0).
+- G đua / thu lại: G1, G2, G2b, G3.
+→ 9/9 mục có bằng chứng.
+
+## Bài học
+Sự cố của việc này: 8 lệnh bị người gác chặn (`.tu_chay_nhat_ky.jsonl` 22.10: B-BIMAT-CHU ×2, B-PHANTICH ×3, SED-I, B-CD-VITRI, GIT-TUYCHON);
+1 bài thử đỏ bất ngờ (B3/D3 gửi `payment_method: 'balance'` kèm nợ → máy chủ hiểu là trả TOÀN BỘ bằng ví, orders.js "Cách cũ"); 3 vòng soát
+KHÔNG ĐẠT (13 lỗi, hết `so_vong_sua_toi_da` = 3); vượt ngân sách (orders.js ~15 dòng, bài thử 450/~250).
+
+KHOÁ (đề xuất — file ngoài Phạm vi, máy không tự làm):
+1. Cổng trạng thái tiền: bài thử phải có ca cho MỌI trường máy khách gửi có thể thay vị từ máy chủ (`payment_status`, `payment_method`), mỗi
+   trường một đột biến (soát vòng 3 lỗi 1 — đã làm trong việc này: D3b, D3d). Đề xuất `tu_chay/`: không — đây là ca của từng bài; gom vào
+   NGUYÊN TẮC dưới.
+2. "Ghi X trong CÙNG giao dịch": ca đọc X bằng chính `tx` ngay trước `commit` + điều kiện trước "X chưa có" + đột biến "dời X ra sau commit"
+   (soát vòng 2 lỗi 1, vòng 3 lỗi 3 — đã làm: C10). Đề xuất dời công tắc `co.truocCommit` của thu_P2223.js thành khung dùng chung cho các bài
+   máy chủ thật (thu_P26b/c, thu_P2223) ở việc dọn bài thử sau — ca đỏ: đột biến VS-pay-debt-diem-sau-commit.
+3. Hồ sơ: cổng `tu_chay/cong.js` thêm phép "trang_thai.md có mục `## CHƯA KIỂM`" (soát vòng 1 lỗi 3 — câu "xem CHƯA KIỂM" trỏ mục không
+   có). Ca đỏ: trang_thai.md không có tiêu đề đó → ✗. Chờ chủ quán (khung đóng băng tới khai trương — LUAT §7).
+
+NGUYÊN TẮC (đề xuất bổ sung `KHUON_LOI.md`, ngoài Phạm vi):
+4. K4 — "có gì để làm" gồm cả LỜI HỨA in cho khách. Đã gây (P22-23 soát vòng 1): /nhan-diem từ chối đơn Flash nhưng bill đơn Flash vẫn in
+   "gấp 2 điểm". Dấu hiệu: siết điều kiện NHẬN ở route xử lý. Chặn: grep mọi chỗ dựng chữ hứa cùng đối tượng (bill, App, màn hình) + ca kiểm chữ.
+5. K3 — chạy lại bằng chứng đỏ thì sửa CÙNG commit: cột "Gốc" trong bảng ca của kế hoạch, câu "chỉ ca X đọc chữ", số dòng Ngân sách, và
+   câu hứa "đột biến Y → ca Z" (soát vòng 2 lỗi 2, vòng 3 lỗi 4–6: kế hoạch hứa G1/G2 đỏ, "ngoai-tx → C8 ĐỎ" — cả hai sai khi chạy thật).
+
+BỎ:
+6. Người gác chặn 8 lệnh — luật đã có trong skill `/lam-viec` (chạy bài có chữ bí mật thì commit trước; lệnh script đứng một mình; không
+   `sed -i`, `git -C`); chặn đúng, không cần thêm.
+7. `payment_method: 'balance'` nghĩa là trả toàn bộ ví — một lần, sửa ngay trong bài; ghi chú ở đây đủ.
+8. C1 tên ca nói "giờ thu" mà máy so giờ tạo — K3 đã có đúng dòng này ("tên ca nói một đằng, máy kiểm một nẻo"); ca sát ngưỡng nợ 1đ — K3
+   đã có ("ca ngay trên + ngay dưới").
+Dọn: không thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mà việc này làm thay bằng phép kiểm.
+
+## Báo cáo 7 mục
+```
+VIỆC:        P22-23 — Điểm thưởng chỉ cộng khi thu đủ · chặn mua gói / thẻ hội viên chưa thu đủ · sửa bất biến I8
+ĐÃ SỬA:      server/routes/orders.js — hàm tinhDiemDon (đầu file); cổng GOI_THE_CHUA_THU_DU sau SL_KHONG_HOP_LE; LOY-1 chỉ khi
+             finalPaymentStatus === 'paid'; bill: hệ số từ docCauHinhNhanDiem, đơn Flash không hứa điểm; pay-debt: điểm khi thu đủ, trong
+             giao dịch, NOT EXISTS, log khi đơn cũ đã có điểm.
+             server/routes/signup-codes.js — /nhan-diem đơn Flash → 400 DON_FLASH_KHONG_DIEM (trước câu chiếm mã); kiemDonCuaMa đọc
+             flash_discount; export docCauHinhNhanDiem.
+             cong_cu/gia_lap/bat_bien.js — I8 luật thu đủ + Flash nhận mã 0; mốc DIEM_KHI_THU_TU = '2026-10-24' (TẠM) cho dữ liệu cũ.
+             Bài thử: thu_P2223.js (mới, 44 ca); thu_P26c L6a/L6b; thu_DOISOAT1 D2d; thu_GOI1 B3n/B3n0; thu_gia_lap (8 ca I8, M14, M15);
+             kiem_tra_truoc_khi_giao.js thêm thu_P2223 vào mảng bài chạy thật.
+BÀI THỬ:     chạy trên bản chưa vá (c115944) → ĐỎ: thu_P2223 17 đạt · 27 hỏng (B1–B5, C1, C2, C4, C5, C7–C10, D1–D3e, G2b, E1, E1c, E2,
+             F1–F3); thu_P26c ✗ L6b; thu_DOISOAT1 ✗ D2d; thu_GOI1 ✗ B3n0; thu_gia_lap ✗ M14, M15 + 8 ca I8 (bang_chung_do.txt).
+             Sau khi vá → XANH: thu_P2223 44/0, thu_P26c 157/0, thu_DOISOAT1 134/0, thu_GOI1 112/0, thu_gia_lap 159/0, npm test 69/0.
+             Đột biến viec/P22-23/dot_bien.py: 25/25 BẮT, đối chứng 44/0 + 92/0.
+ĐÃ RÀ K4:    grep "INSERT INTO pos_point_transactions" server/ → 4 chỗ (orders.js tạo + pay-debt, signup-codes.js nhận mã, loyalty.js redeem):
+             3 chỗ earn đều xét Flash + thu đủ; grep "UPDATE pos_orders" → chỉ pay-debt chuyển 'paid'; grep "INSERT INTO pos_customer_packages|
+             pos_membership_purchases" → chỉ POST /orders; grep "nhandiem_he_so" → bill + docCauHinhNhanDiem + I8 (+ Settings.jsx, không sửa).
+CHƯA KIỂM:   xem mục "## CHƯA KIỂM" ở trên — Turso thật (ghi ngoài giao dịch trước commit, lỗi SQL thật giữa giao dịch); dữ liệu production;
+             mốc I8 tạm '2026-10-24' + hai mốc ở hai file; màn Bán hàng / bill thật (thử tay); các NGHI NGỜ soát vòng 3 (Phát hiện 3, 5, 6).
+GIT:         (xem dòng git log ở mục Kiểm cuối bên dưới)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 2 · BỎ 3 — chi tiết ở ## Bài học
+```
+
+Thử tay cho chủ quán (điện thoại, sau khi gộp):
+1. Màn Bán hàng: giỏ có gói (hoặc thẻ), chọn "Ghi nợ" hoặc "Chưa thu" → phải hiện lỗi "Mua gói / thẻ hội viên phải thu đủ tiền…", không có đơn.
+2. Bán một ly cho khách có SĐT, chọn "Ghi nợ" → khách chưa có điểm; vào Lịch sử đơn thu đủ → khách được cộng điểm.
+3. Bán món Flash có SĐT khi bật "Mã nhận điểm" → bill KHÔNG in dòng hứa "gấp … điểm".
