@@ -255,7 +255,7 @@ async function main() {
     const con = spawn(process.execPath, [path.join(GOC, 'server', 'index.js')], { cwd: GOC, env: { PATH: process.env.PATH, HOME: process.env.HOME,
       PORT: String(cong), TURSO_DATABASE_URL: 'file:' + FILE_KHO, JWT_SECRET: KHOA_NV, KH_JWT_SECRET: 'x', SX_API_URL: '', SX_API_KEY: '', NODE_ENV: 'test' } });
     let ra = '';
-    con.stdout.on('data', (d) => { ra += d; }); con.stderr.on('data', (d) => { ra += d; });
+    con.stdout.on('data', (d) => { ra += d; }); con.stderr.on('data', (d) => { ra += d; }); con.on('exit', (c) => { ra += ` [thoát ${c}]`; });
     try {
       for (let i = 0; i < 100 && !ra.includes('API:'); i++) await new Promise((ok) => setTimeout(ok, 100));
       const g = `http://127.0.0.1:${cong}/api`;
