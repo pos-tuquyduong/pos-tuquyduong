@@ -43,6 +43,7 @@ async function main() {
   ca('G4 quá mốc → 0, không âm', giayConLai(MOC, MOC + 7000) === 0, giayConLai(MOC, MOC + 7000));
   ca('G5 còn 1001 ms → 2 giây', giayConLai(MOC + 1001, MOC) === 2, giayConLai(MOC + 1001, MOC));
   ca('G6 mốc hỏng → 0 (hết hạn, không treo mã)', giayConLai(NaN, MOC) === 0 && giayConLai(undefined, MOC) === 0);
+  ca('G7 giờ hiện tại hỏng → 0 (không ra NaN làm mã không bao giờ hết hạn)', giayConLai(MOC, NaN) === 0 && giayConLai(MOC, undefined) === 0);
 
   // ── lời báo lỗi ──
   const loi = (o) => Object.assign(new Error(o.message), o);

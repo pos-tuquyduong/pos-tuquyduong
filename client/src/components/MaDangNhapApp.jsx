@@ -35,7 +35,11 @@ export default function MaDangNhapApp({ sdt }) {
     setLoi('');
     try {
       const r = await api.post('/kh/cap-ma', { sdt });
-      if (conSong.current) setMa({ ma: r.ma, hetHanLuc: Date.now() + r.het_han_giay * 1000 });
+      if (conSong.current) {
+        const hetHanLuc = Date.now() + r.het_han_giay * 1000;
+        setMa({ ma: r.ma, hetHanLuc });
+        setGiay(giayConLai(hetHanLuc, Date.now()));   // cùng lượt render với mã mới — không chớp "Hết hạn" ở khung đầu
+      }
     } catch (err) {
       if (conSong.current) { setMa(null); setLoi(loiMaApp(err)); }
     } finally {
