@@ -6,14 +6,21 @@ import jsQR from 'jsqr';
  * Thuần client — không gọi API mới, không đụng luồng tiền.
  * Đọc được QR → gọi onResult(text) rồi tự đóng. Cha (Sales.jsx) tự quyết định
  * làm gì với text đọc được (đổ vào ô mã, gọi validateDiscountCode như cũ).
+ * P15-QR: onResult được trả (hoặc hứa trả) một CHUỖI lỗi → hiện lỗi trong hộp, camera quét tiếp,
+ * bỏ qua đúng mã vừa lỗi (không gọi lặp mỗi khung hình). Trả undefined → như cũ.
  */
-export default function QrScanModal({ onResult, onClose }) {
+export default function QrScanModal({ onResult, onClose, tieuDe = 'Quét mã QR' }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const rafRef = useRef(null);
   const doneRef = useRef(false); // chặn bắn kết quả 2 lần nếu 2 frame liền đọc trúng
   const [error, setError] = useState('');
+  const [loiQuet, setLoiQuet] = useState('');
+  const maLoiRef = useRef(null);
+  // Giữ onResult qua ref: cha render lại (hàm mới) không được tắt / mở lại camera.
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
 
   useEffect(() => {
     let cancelled = false;
@@ -56,9 +63,15 @@ export default function QrScanModal({ onResult, onClose }) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if (code && code.data) {
+        if (code && code.data && code.data !== maLoiRef.current) {
           doneRef.current = true;
-          onResult(code.data);
+          Promise.resolve(onResultRef.current(code.data)).then((loi) => {
+            if (cancelled || typeof loi !== 'string') return;
+            setLoiQuet(loi);
+            maLoiRef.current = code.data;
+            doneRef.current = false;
+            rafRef.current = requestAnimationFrame(tick);
+          });
           return; // không schedule frame kế, để cleanup lo phần dừng stream
         }
       }
@@ -75,7 +88,7 @@ export default function QrScanModal({ onResult, onClose }) {
         streamRef.current = null;
       }
     };
-  }, [onResult]);
+  }, []);
 
   return (
     <div
@@ -109,7 +122,7 @@ export default function QrScanModal({ onResult, onClose }) {
             borderBottom: '1px solid #eee',
           }}
         >
-          <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Quét mã QR</span>
+          <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{tieuDe}</span>
           <button
             onClick={onClose}
             style={{
@@ -146,6 +159,11 @@ export default function QrScanModal({ onResult, onClose }) {
                 pointerEvents: 'none',
               }}
             />
+          </div>
+        )}
+        {loiQuet && (
+          <div style={{ margin: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: '8px', background: '#fef2f2', color: '#991b1b', fontSize: '0.8rem' }}>
+            ✗ {loiQuet}
           </div>
         )}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
