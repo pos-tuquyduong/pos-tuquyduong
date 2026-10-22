@@ -1,0 +1,14 @@
+KH-UI-1 — bằng chứng bài thử cong_cu/thu_KHUI1.js (phiếu: "Bài thử đỏ: không" — App mới; ghi để đối chiếu)
+
+TRÊN GỐC (cây 1feac67 = PHIEU: KH-UI-1: chưa có app_kh/, chưa vá server/index.js; bài thử BẢN CUỐI 4565b74 chép vào cây đó):
+  node cong_cu/thu_KHUI1.js  →  14 đạt · 9 hỏng
+  ĐỎ ở: H2 Host đúng → app_kh/dist/index.html · H2 đối chứng · H2b · H2c Host hoa + cổng · H2e không có file con để thử ·
+        H4 chưa có app_kh/dist · H5 nạp dinhDang.js · mọi fetch( nằm trong api.js · không đường /api/pos
+  (H1 và các ca "Host khác → client/dist" XANH trên gốc: đó là ca hành vi cũ phải giữ nguyên, K5.)
+
+SAU KHI VÁ (khối KH_HOST trong server/index.js + app_kh/ + app_kh/dist):
+  node cong_cu/thu_KHUI1.js  →  39 đạt · 0 hỏng
+
+ĐỘT BIẾN (python3 viec/KH-UI-1/dot_bien.py): đối chứng 39 đạt · 0 hỏng; 9/9 đột biến bị bắt (VS- ×6, BV- ×3).
+
+SỐ CA thu_KHUI1.js: 39
