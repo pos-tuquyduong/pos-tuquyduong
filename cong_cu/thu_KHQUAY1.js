@@ -49,7 +49,10 @@ async function main() {
   const loi = (o) => Object.assign(new Error(o.message), o);
   const CHUA_BAT = 'App khách chưa bật — báo quản lý';
   ca('L1 503 → "App khách chưa bật — báo quản lý"', loiMaApp(loi({ status: 503, code: 'KH_CHUA_CAU_HINH', message: 'App khách chưa được cấu hình' })) === CHUA_BAT);
-  ca('L2 chỉ status 503 (không code) cũng ra lời đó', loiMaApp(loi({ status: 503, message: 'x' })) === CHUA_BAT);
+  const CHUNG = 'Máy chủ chưa sẵn sàng, thử lại sau';
+  ca('L2 503 KHÔNG code (Render đang ngủ…) → lời chung, không báo "chưa bật"', loiMaApp(loi({ status: 503, message: 'x' })) === CHUNG, loiMaApp(loi({ status: 503, message: 'x' })));
+  ca('L2b code KH_CHUA_CAU_HINH khoá theo code, kể cả khi status khác 503', loiMaApp(loi({ status: 500, code: 'KH_CHUA_CAU_HINH', message: 'x' })) === CHUA_BAT);
+  ca('L2c 503 mang code khác → lời chung', loiMaApp(loi({ status: 503, code: 'KHAC', message: 'x' })) === CHUNG);
   const sdtLoi = loiMaApp(loi({ status: 400, code: 'SDT_KHONG_HOP_LE', message: 'Số điện thoại không hợp lệ' }));
   ca('L3 SDT_KHONG_HOP_LE → nêu SĐT của khách không hợp lệ', /SĐT.*khách.*không hợp lệ/.test(sdtLoi), sdtLoi);
   ca('L4 lỗi khác → giữ nguyên `error` máy chủ', loiMaApp(loi({ status: 429, code: 'QUA_NHIEU_LAN', message: 'Thử quá nhiều lần' })) === 'Thử quá nhiều lần');
