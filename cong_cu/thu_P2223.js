@@ -10,7 +10,7 @@
  *
  *  Khuôn thu_P26c.js: database.js thật + libsql thật trên kho TẠM, SX giả (luôn làm, đếm lệnh). Công tắc co.mocTruocTx (chạy TRỌN
  *  một lệnh khác trước khi giao dịch kế tiếp mở — hai lần thu chồng nhau TẤT ĐỊNH) và co.nemGhi (câu ghi khớp mẫu ném lỗi).
- *  Cài đặt điểm: bật, 1.000đ = 1 điểm, không hết hạn (ca nào đổi thì tự trả lại). So status / code / số dòng sổ — chỉ E2 đọc chữ bill.
+ *  Cài đặt điểm: bật, 1.000đ = 1 điểm, không hết hạn (ca nào đổi thì tự trả lại). So status / code / số dòng sổ — chỉ E1c, E1d, E2 đọc chữ bill.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -184,6 +184,9 @@ async function main() {
     const b4 = await ban({ customer_phone: sdtMoi(), items: [mon(0)], payment_method: 'debt', debt_amount: 25000, payment_status: 'paid' });
     k('B4 máy khách gửi payment_status "paid" kèm nợ 25.000 → đơn pending, 0 earn', b4.status === 200 && b4.order.payment_status === 'pending'
       && await soEarn(b4.order.id) === 0, `${moTa(b4)} · earn ${await soEarn(b4.order?.id)}`);
+    const b5 = await ban({ customer_phone: sdtMoi(), items: [mon(0)], payment_method: 'cash', cash_amount: 24999, debt_amount: 1 });
+    k('B5 sát ngưỡng: tiền mặt 24.999 + nợ 1đ → 200 pending, 0 earn', b5.status === 200 && b5.order.payment_status === 'pending'
+      && await soEarn(b5.order.id) === 0, `${moTa(b5)} · earn ${await soEarn(b5.order?.id)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -254,12 +257,13 @@ async function main() {
       `${moTa(t8)} · ${JSON.stringify(a8)} · earn ${await soEarn(d8.id)}`);
 
     const d10 = await donNo(sdtMoi());
+    const truoc10 = await soEarn(d10.id);
     let trongTx = null;
     co.truocCommit = async (tx) => { trongTx = Number((await tx.queryOne("SELECT COUNT(*) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [d10.id])).n); };
     const t10 = await thu(d10.id, 25000);
     co.truocCommit = null;
-    k('C10 dòng earn nằm TRONG giao dịch thu: đọc ngay trước commit thấy đúng 1 (ghi sau commit → 0)', t10.status === 200 && trongTx === 1
-      && await soEarn(d10.id) === 1, `${moTa(t10)} · trong giao dịch ${trongTx} · sau ${await soEarn(d10.id)}`);
+    k('C10 đơn nợ chưa có earn trước khi thu; dòng earn nằm TRONG giao dịch thu: đọc ngay trước commit thấy đúng 1 (ghi sau commit → 0)', truoc10 === 0 && t10.status === 200 && trongTx === 1
+      && await soEarn(d10.id) === 1, `trước ${truoc10} · ${moTa(t10)} · trong giao dịch ${trongTx} · sau ${await soEarn(d10.id)}`);
 
     await datCaiDat('loyalty_enabled', 'false');
     const d9 = await donNo(sdtMoi());
@@ -301,6 +305,10 @@ async function main() {
       { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'debt', balance_amount: 100000, debt_amount: 200000 });
     await tuChoi('D3b mua thẻ + nợ, máy khách gửi payment_status "paid" → 400', sdtMoi(),
       { items: [], membership_buy: { tier_id: hang.id }, payment_method: 'debt', debt_amount: giaThe, payment_status: 'paid' });
+    await tuChoi('D3d mua gói, cách trả "cash" (tiền mặt 100.000) kèm nợ 200.000 → 400 (cổng không xét payment_method máy khách gửi)', sdtMoi(),
+      { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'cash', cash_amount: 100000, debt_amount: 200000 });
+    await tuChoi('D3e sát ngưỡng: mua gói tiền mặt 299.999 + nợ 1đ → 400', sdtMoi(),
+      { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'cash', cash_amount: 299999, debt_amount: 1 });
 
     const s4 = sdtMoi();
     const d4 = await ban({ customer_phone: s4, items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'cash', cash_amount: 300000 });
