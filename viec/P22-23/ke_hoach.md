@@ -200,6 +200,9 @@ theo per cũ — nếu dựng được tất định, không thì ghi CHƯA KI�
 6. **Ca thêm vào bảng mục 3:**
    - C8 (C "cùng giao dịch"): `co.nemGhi` vào câu ghi SAU câu ghi điểm (dòng `debt_payment`) → thu lỗi, rollback: đơn vẫn nợ, 0 `earn`, 0
      `debt_payment`, 0 nhật ký `thu`. Đột biến `VS-pay-debt-diem-ngoai-tx` (ghi điểm sau commit) → C8 ĐỎ.
+     [Sửa 22.10 sau soát vòng 2: câu hứa trên SAI — C8 không bắt được "ghi sau commit" (lỗi ở câu sau thì code không tới commit). Khoá thật là
+     ca C10 (đọc `earn` trong giao dịch ngay trước commit) + đột biến `VS-pay-debt-diem-sau-commit`; `VS-pay-debt-diem-ngoai-tx` là biến thể
+     ghi ngoài giao dịch TRƯỚC commit — xem trang_thai.md.]
    - C9 (C "cài đặt lúc thu", chiều ngược C7): tắt điểm lúc tạo, bật lúc thu → có 1 `earn`.
    - D1–D3b đo ĐỦ "không ghi gì": số `pos_orders`, `pos_customer_packages`, `pos_membership_purchases`, `pos_balance_transactions`, số dư ví,
      `pos_stock_pending`, lệnh SX giả, `pos_signup_codes`, `pos_registrations` (gửi `is_new_customer`), `used_count` mã giảm (gửi kèm mã).

@@ -11,7 +11,7 @@
   ```
 
 ## Bước hiện tại
-Bước 4–8 xong; soát vòng 1 KHÔNG ĐẠT → sửa (vòng sửa 1/3) → soát vòng 2. Sau đó `--day-du` một lần, cổng, báo cáo.
+Bước 4–8; soát vòng 1, 2 KHÔNG ĐẠT → đã sửa (vòng sửa 2/3) → soát vòng 3. Sau đó `--day-du` một lần, cổng, báo cáo.
 
 ## Câu hỏi
 Không còn. Hai câu của lượt kế hoạch đã được chủ quán trả lời trong phiếu (mục "Đã duyệt" 1, 2) — làm đúng như duyệt.
@@ -22,8 +22,8 @@ Không còn. Hai câu của lượt kế hoạch đã được chủ quán trả
 | `server/routes/orders.js` hàm `tinhDiemDon` (đầu file, dưới `soNguyenDuong`) | MỘT công thức điểm + hạn quý, đọc cài đặt LÚC GỌI; dùng ở POST / và pay-debt |
 | `orders.js` POST / cổng sau `SL_KHONG_HOP_LE` | `(package_buy \|\| membership_buy) && debt_amount > 0` → 400 `GOI_THE_CHUA_THU_DU` (cùng vị từ quyết `finalPaymentStatus`) |
 | `orders.js` khối LOY-1 | chỉ `phone && finalPaymentStatus === 'paid' && !flashApplied` mới tính điểm; câu INSERT `earn` lúc tạo giữ nguyên chữ |
-| `orders.js` chỗ in mã bill | hệ số lấy từ `docCauHinhNhanDiem()` (bỏ `\|\| 2` riêng); bỏ khoá `nhandiem_he_so` khỏi câu đọc |
-| `orders.js` pay-debt | tính điểm NGOÀI giao dịch khi thu thành `paid`, có SĐT, không Flash; ghi `INSERT … SELECT … WHERE NOT EXISTS (earn của đơn)` TRONG giao dịch, ngay sau UPDATE đạt `changes === 1`, bọc try/catch (khuôn LOY-1). Câu UPDATE + `changes !== 1` giữ nguyên chữ |
+| `orders.js` chỗ in mã bill | hệ số lấy từ `docCauHinhNhanDiem()` (bỏ `\|\| 2` riêng); bỏ khoá `nhandiem_he_so` khỏi câu đọc; `batDiem … && !flashApplied` — đơn Flash không in lời hứa điểm (vòng 1) |
+| `orders.js` pay-debt | tính điểm NGOÀI giao dịch khi thu thành `paid`, có SĐT, không Flash; ghi `INSERT … SELECT … WHERE NOT EXISTS (earn của đơn)` TRONG giao dịch, ngay sau UPDATE đạt `changes === 1`, bọc try/catch (khuôn LOY-1). Câu UPDATE + `changes !== 1` giữ nguyên chữ; đọc `kqDiem.changes`, log khi đơn cũ đã có điểm (vòng 1) |
 | `server/routes/signup-codes.js` `kiemDonCuaMa` | đọc thêm cột `flash_discount` (chỉ đọc) |
 | `signup-codes.js` `nhanDiemMaBill` | đơn Flash → 400 `DON_FLASH_KHONG_DIEM`, TRƯỚC câu chiếm mã (mã không bị tiêu) |
 | `signup-codes.js` cuối file | export `docCauHinhNhanDiem` |
@@ -41,7 +41,7 @@ Không còn. Hai câu của lượt kế hoạch đã được chủ quán trả
 - `kiem_tra_truoc_khi_giao.js`: chỉ thêm `cong_cu/thu_P2223.js` vào mảng bài chạy thật.
 - `thu_KH1.js`, `thu_P20.js`, `kich_ban.js`: không đổi (chạy xanh: 156 / 170 ca; giả lập 32 KB ĐẠT trên bản vá).
 
-## Chỗ vá → đột biến (`viec/P22-23/dot_bien.py`, 22.10 sau soát vòng 1: ĐỐI CHỨNG xanh — p2223 40/0, gl 92/0; TỔNG 21 · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0)
+## Chỗ vá → đột biến (`viec/P22-23/dot_bien.py`, 22.10 sau soát vòng 1: ĐỐI CHỨNG xanh — p2223 41/0, gl 92/0; TỔNG 22 · BẮT 22 · SỐNG 0 · HỎNG 0 · LẠC 0 — chạy lại sau soát vòng 2)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | cổng D | `BV-cong-goi-the` · `VS-cong-chi-goi` · `VS-cong-tin-may-khach` | D1 · D2 · D3b |
@@ -51,6 +51,7 @@ Không còn. Hai câu của lượt kế hoạch đã được chủ quán trả
 | hệ số bill | `VS-he-so-bill-cu` | E2 |
 | bill đơn Flash không hứa điểm (vòng 1) | `BV-bill-flash-hua-diem` | E1c |
 | hạn điểm theo giờ thu (vòng 1) | `VS-pay-debt-han-gio-tao` | C1 |
+| điểm CÙNG giao dịch thu (vòng 2) | `VS-pay-debt-diem-sau-commit` (dời câu ghi điểm ra sau commit) | C10 |
 | I8 | `BV-I8-dk-thu` · `VS-I8-moc-ca-gia-lap` · `VS-I8-moc-nguoc` · `VS-I8-flash-nhan-ma` · `VS-I8-tha-moi-don-truoc-moc` | F1 · F2 · F2 · I8 Flash nhận mã (gl) · I8 trước mốc sai cả luật cũ (gl) |
 
 Ghi chú `VS-pay-debt-diem-ngoai-tx` (ghi điểm bằng `run` ngoài giao dịch): kho libsql cục bộ khoá bận câu ghi ngoài giao dịch khi giao
@@ -65,8 +66,9 @@ thích luật); signup-codes.js +6 −1; bat_bien.js +25 −11 (+ thu_gia_lap +2
 (phiếu ~250 — thêm C8, C9, D3c, D4b, F2, F3, G2b theo soát kế hoạch + phép "không ghi gì" 9 bảng).
 
 ## CHƯA KIỂM
-- Ghi điểm ở pay-debt "cùng giao dịch": trên libsql cục bộ, đột biến ghi ngoài giao dịch bị bắt nhờ kho khoá bận (C1), không phải nhờ C8.
-  Trên Turso câu ghi ngoài giao dịch có thể chạy được — chưa có phép tất định cho riêng vế này.
+- Ghi điểm ở pay-debt "cùng giao dịch": biến thể "sau commit" nay có khoá tất định (C10 + `VS-pay-debt-diem-sau-commit`, vòng 2). Biến thể
+  "ngoài giao dịch, TRƯỚC commit" (`VS-pay-debt-diem-ngoai-tx`) trên kho cục bộ bị bắt nhờ khoá bận (C1); trên Turso câu đó chạy được thì
+  C8 bắt (điểm còn lại sau rollback) — chưa chạy trên Turso nên ghi ở đây.
 - try/catch quanh câu ghi điểm TRONG giao dịch (pay-debt mới, LOY-1 cũ): bài thử ném lỗi giả trước khi câu tới kho; lỗi SQL thật giữa giao
   dịch trên Turso/Hrana có làm hỏng giao dịch (kéo theo lần thu) hay không — chưa kiểm.
 - Dữ liệu production: số đơn chưa thu đã có `earn`, đơn mua gói / thẻ còn nợ cũ — máy không đọc Turso.
@@ -100,8 +102,37 @@ Xử lý vòng 1 (vòng sửa 1/3): lỗi 1 → `batDiem = … && !flashApplied`
 về 2025-01-15 (khác quý), so với giờ ghi điểm + đột biến `VS-pay-debt-han-gio-tao`. Lỗi 3 → thêm mục CHƯA KIỂM. Lỗi 4 → đọc `changes`,
 log khi đơn cũ đã có điểm. Gợi ý "gọn hơn": không làm — `bat` / `hanGio` giữ theo kế hoạch đã duyệt (mục 9.3), còn lại là Phát hiện 1–2.
 
+## Soát độc lập vòng 2 (agent, 22.10) — báo cáo nguyên văn (rút gọn phần "đã kiểm đúng")
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/routes/orders.js:1334-1346; dot_bien.py VS-pay-debt-diem-ngoai-tx — thiếu khoá nghiệm thu C "cùng giao dịch": đột biến dời khối
+   `if (diemThu) {…}` xuống SAU `await tx.commit();` (tx.run → run) → thu_P2223 40/40 XANH (SỐNG). C8 không bắt vì lỗi ở câu sau thì code
+   không tới commit. — K3. Gọn: ca C10 bọc tx.commit, đọc earn trong giao dịch ngay trước commit = 1, kèm đột biến "ghi sau commit".
+2. ke_hoach.md:202, trang_thai.md:49,56,69 — hồ sơ nói sai chỗ hở: ke_hoach hứa "ngoai-tx (sau commit) → C8 ĐỎ"; CHƯA KIỂM khoanh "ghi
+   ngoài giao dịch trên Turso" trong khi biến thể trước commit sẽ bị C8 bắt trên Turso; chỗ hở thật là "sau commit". — K1 + K4.
+3. trang_thai.md:25,27 — bảng "Đã sửa" chưa ghi `batDiem … && !flashApplied` (orders.js:1207) và đọc `kqDiem.changes` (orders.js:1343). — K1 nhẹ.
+Xử lý vòng 1: lỗi 1, 2, 4 ĐÚNG (đột biến BẮT); lỗi 3 đã thêm mục nhưng mô tả sai chỗ hở (lỗi 2 trên).
+NGHI NGỜ: E1c `!/diem/` trên String(signup_loi) xanh suông nếu khối bill ném (trả {}); hai cơ chế mốc I8 (bat_bien.js + doiSoat.js);
+  thu_DOISOAT1 D2d THAY bằng ca 400, không giữ dạng "đơn thẻ nợ CŨ → Đối soát XANH"; C4 lỗi giả, chưa kiểm lỗi SQL thật trên Turso.
+NGHIỆM THU:    9/9 mục có bằng chứng · mục thiếu: không có (yếu: C "cùng giao dịch").
+CHƯA SOÁT ĐƯỢC: Turso/Hrana thật; cong.js chay; thu_cong.js "không xác định gốc chung với origin/main" (môi trường); in bill thật;
+  dữ liệu production; màn Bán hàng thật khi giỏ có gói / thẻ chọn ghi nợ.
+BÀI HỌC: KHOÁ — luật "ghi X trong CÙNG giao dịch" phải có ca đọc X TỪ TRONG giao dịch ngay trước commit + đột biến "dời X ra sau commit".
+  NGUYÊN TẮC (K1) — đột biến ghi trong kế hoạch và đột biến thật đã dựng phải là một; đổi thì sửa câu hứa, CHƯA KIỂM nêu đúng biến thể còn sống.
+(Agent ghi đã chạy `--day-du` trong lượt soát: PASS 73 · FAIL 0 · CẢNH BÁO 1.)
+```
+Xử lý vòng 2 (vòng sửa 2/3): lỗi 1 → công tắc `co.truocCommit` trong thu_P2223 (bọc `commit` của giao dịch, đọc bằng chính `tx`) + ca C10
++ đột biến `VS-pay-debt-diem-sau-commit` (BẮT, mẫu `✗ C10`). Lỗi 2 → sửa câu ke_hoach.md mục 9.6 (ghi chú sửa) + mục CHƯA KIỂM. Lỗi 3 → bảng
+"Đã sửa". Nghi ngờ E1c → ca so `signup_nhan === 'Ma don hang'` và `signup_loi === null` (khối bill phải chạy thật). D2d giữ dạng 400 (phiếu
+Đã duyệt 6 cho phép sửa ca này; đơn thẻ nợ cũ: Phát hiện 5 — nhãn D2 của Đối soát chưa có ca dữ liệu thẻ nợ CŨ, không làm trong việc này).
+
 ## E(3) — đã đọc, không hỏi
 `/nhan-diem` đã chặn bill chưa thu đủ: `kiemDonCuaMa` gọi trước mọi lệnh ghi → 400 `BILL_CHUA_THANH_TOAN`. Không đổi; ca E3 canh.
 
 ## Phát hiện
 Xem `ke_hoach.md` mục 8 (Phát hiện 1–3) và cuối mục 9 (Phát hiện 4). Không sửa.
+5. (soát vòng 2) Nhãn D2 của Đối soát (doiSoat.js) với đơn mua thẻ CÒN NỢ dữ liệu cũ: ca D2d của thu_DOISOAT1 nay canh cổng 400, không còn
+   ca nào dựng đơn thẻ nợ CŨ (UPDATE) để canh Đối soát vẫn XANH. Đề xuất việc sau: thêm ca dữ liệu cũ như L6a / B3n.
+6. (soát vòng 1, 2) Chỗ in bill tự đọc `nhandiem_enabled === '1'` và `han_gio || 24` cạnh lời gọi `docCauHinhNhanDiem` (hai câu đọc cùng nhóm
+   khoá) — gom về một lời gọi làm hết Phát hiện 4, nhưng trái kế hoạch 9.3 đã duyệt → chủ quán quyết ở việc sau.

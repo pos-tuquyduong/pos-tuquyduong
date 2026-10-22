@@ -1,7 +1,7 @@
 P22-23 — bằng chứng ĐỎ trên code CHƯA vá (gốc c115944 = PHIEU: P22-23 duyệt kế hoạch; server/ và cong_cu/gia_lap/ của gốc)
 
-1) Bài MỚI cong_cu/thu_P2223.js (bản sau soát vòng 1 — thêm E1c, E1d; C1 tạo khác quý) — lệnh: python3 viec/P22-23/dot_bien.py --goc c115944 (git archive server/ + cong_cu/gia_lap/ của gốc,
-   chạy bài ở HEAD với --may-chu <gốc>/server; bat_bien.js nạp từ <gốc>/cong_cu/gia_lap). Chạy lại 22.10 sau soát vòng 1:
+1) Bài MỚI cong_cu/thu_P2223.js (bản sau soát vòng 2 — vòng 1 thêm E1c, E1d, C1 tạo khác quý; vòng 2 thêm C10, E1c so 'Ma don hang') — lệnh: python3 viec/P22-23/dot_bien.py --goc c115944 (git archive server/ + cong_cu/gia_lap/ của gốc,
+   chạy bài ở HEAD với --may-chu <gốc>/server; bat_bien.js nạp từ <gốc>/cong_cu/gia_lap). Chạy lại 22.10 sau soát vòng 2:
   ✗ B1 bill mang ra bàn (cho_thu, nợ 25.000) có SĐT → 200 pending, 0 earn  — HTTP 200 · earn 1
   ✗ B2 ghi nợ 25.000 → 200 pending, 0 earn  — HTTP 200 · earn 1
   ✗ B3 ví 10.000 + nợ 15.000 → 200 partial, 0 earn  — HTTP 200 · earn 1
@@ -18,16 +18,16 @@ P22-23 — bằng chứng ĐỎ trên code CHƯA vá (gốc c115944 = PHIEU: P22
   ✗ D3 mua gói trả ví 100.000 + nợ 200.000 → 400, ví không bị trừ  — HTTP 200 · … "vi":100000 … → … "vi":0 …
   ✗ D3b mua thẻ + nợ, máy khách gửi payment_status "paid" → 400  — HTTP 200 · …
   ✗ D3c gia hạn gói (customer_package_id + package_buy, không lấy món) GHI NỢ → 400  — HTTP 200 · …
-  ✗ E1c bill đơn Flash KHÔNG hứa điểm (nhân điểm đang bật)  — bill "Tao tai khoan trong 1 ngay de nhan gap 2 diem cua don nay"
+  ✗ E1c bill đơn Flash KHÔNG hứa điểm (nhân điểm đang bật, voucher tắt → bill in "Ma don hang", không lời hứa)  — bill "Ma nhan diem" · "Tao tai khoan trong 1 ngay de nhan gap 2 diem cua don nay"
   ✗ G2b thu đủ chồng thu một phần (một phần vào trước) → một phần 200, thu đủ 409, 0 earn; thu nốt 30.000 → paid, 1 earn  — HTTP 200 / HTTP 409 · DA_THU_ROI · … · 1 / HTTP 200 · 1
   ✗ E1 đơn Flash đã thu → /nhan-diem 400 DON_FLASH_KHONG_DIEM, 0 dòng điểm, mã chưa bị tiêu  — HTTP 200 / HTTP 200 · điểm 40
   ✗ F3 đơn đã thu huỷ giữ 25 điểm; đơn ghi nợ huỷ 0 điểm  — HTTP 200 / HTTP 200 · 25 / 25
   ✗ F1 I8 trên mọi đơn của bài (trừ 3 đơn cố ý đổi cài đặt / ném lỗi ghi) → 0 lệch  — ["đơn …-012: 50 điểm, đúng luật là 25","đơn …-016: 0 điểm, đúng luật là 25"]
   ✗ F2 đơn ghi nợ có earn (dữ liệu cũ): Đối soát thật, tạo 1 giây trước mốc (chưa có) → KHÔNG lệch; đúng mốc → lệch; giả lập (không ctx.thuc) trước mốc → lệch  — trước mốc  · đúng mốc  · giả lập
   ✗ E2 hệ số cài 0,5 (< 1) → bill hứa "gap 2 diem" VÀ /nhan-diem cộng tổng 50 × 2 = 100  — HTTP 200 · bill "Tao tai khoan trong 1 ngay de nhan gap 0.5 diem cua don nay" / HTTP 200 · 100
-  17 đạt · 23 hỏng
+  18 đạt · 23 hỏng
 GỐC c115944: thoát 1
-  Ca XANH trên gốc (hồi quy / K5 — đột biến canh, xem trang_thai.md): A1–A3, C3, C6, D4, D4b, D5, D6, D7, G1, G2, G3, E1b, E1d, E3, E2b.
+  Ca XANH trên gốc (hồi quy / K5 — đột biến canh, xem trang_thai.md): A1–A3, C3, C6, C10 (gốc cộng điểm lúc tạo nên trong giao dịch thu đã có 1 dòng — đột biến VS-pay-debt-diem-sau-commit canh), D4, D4b, D5, D6, D7, G1, G2, G3, E1b, E1d, E3, E2b.
 
 2) Bài CŨ đã sửa — cây gốc dựng bằng `git archive c115944` + bài thử của HEAD chép đè + node_modules nối (đúng cách cổng A11 dựng), chạy ở gốc cây đó:
   node cong_cu/thu_P26c.js
@@ -53,7 +53,7 @@ GỐC c115944: thoát 1
   149 đạt · 10 hỏng
 
 3) Số ca trên code ĐÃ VÁ (HEAD, 22.10):
-SỐ CA cong_cu/thu_P2223.js: 40
+SỐ CA cong_cu/thu_P2223.js: 41
 SỐ CA cong_cu/thu_P26c.js: 157
 SỐ CA cong_cu/thu_DOISOAT1.js: 134
 SỐ CA cong_cu/thu_GOI1.js: 112
