@@ -43,6 +43,9 @@ DOT_BIEN = [
   # ── E: /nhan-diem Flash 0 điểm · hệ số MỘT hàm ──
   ('BV-bill-flash-hua-diem', [(O, "c.nhandiem_enabled === '1' && !flashApplied;", "c.nhandiem_enabled === '1';", 1)], r'✗ E1c', 'p2223'),
   ('VS-pay-debt-han-gio-tao', [(O, "tinhDiemDon(Number(order.total), now)", "tinhDiemDon(Number(order.total), order.created_at)", 1)], r'✗ C1 ', 'p2223'),
+  ('VS-pay-debt-diem-sau-commit', [(O, "      if (diemThu) {\n        try {\n          const kqDiem = await tx.run(", "      if (false) {\n        try {\n          const kqDiem = await tx.run(", 1),
+                                  (O, "        );\n      }\n      await tx.commit();\n    } catch (txErr) {\n      await tx.rollback();\n      throw txErr;\n    }\n\n    res.json({",
+                                   "        );\n      }\n      await tx.commit();\n      if (diemThu) await run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at) VALUES (?, 'earn', ?, ?, ?, ?, ?, ?)`, [order.customer_phone, diemThu.diem, order.id, diemThu.han, 'sau commit', req.user.username, now]);\n    } catch (txErr) {\n      await tx.rollback();\n      throw txErr;\n    }\n\n    res.json({", 1)], r'✗ C10', 'p2223'),
   ('BV-nhan-diem-flash', [(S, "if (Number(don.flash_discount) > 0) {", "if (false) {", 1)], r'✗ E1 ', 'p2223'),
   ('VS-nhan-diem-flash-khong-doc-cot', [(S, "payment_status, flash_discount FROM pos_orders", "payment_status FROM pos_orders", 1)], r'✗ E1 ', 'p2223'),
   ('VS-he-so-bill-cu', [(O, "const { heSo } = await docCauHinhNhanDiem();", "const heSo = Number(c.nhandiem_he_so) || 2;", 1),
