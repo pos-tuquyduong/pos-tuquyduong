@@ -113,7 +113,7 @@ async function main() {
   const vi = (sdt) => so('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0)', [sdt]);
   const soEarn = (id) => so("SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [id]);
   const diemDon = (id) => so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [id]);
-  const dongEarn = (id) => mot("SELECT points, expires_at, reason FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [id]);
+  const dongEarn = (id) => mot("SELECT points, expires_at, reason, created_at FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [id]);
   const thu = (id, soTien, cach = 'cash') => goi('POST', `/orders/${id}/pay-debt`, { payment_method: cach, amount: soTien });
   const donNo = async (sdt, i = 0, them = {}) => {
     const r = await ban({ customer_phone: sdt, items: [mon(i)], payment_method: 'debt', debt_amount: GIA[i], ...them });
@@ -188,6 +188,7 @@ async function main() {
   {
     await datCaiDat('loyalty_expiry_mode', 'quarter');
     const d1 = await donNo(sdtMoi(), 2);
+    await db.run("UPDATE pos_orders SET created_at = '2025-01-15T10:00:00' WHERE id = ?", [d1.id]);   // tạo khác quý với lúc thu
     await datCaiDat('loyalty_earn_per_amount', 2000);
     const t1 = await thu(d1.id, 50000);
     await datCaiDat('loyalty_earn_per_amount', 1000);
@@ -196,7 +197,7 @@ async function main() {
     boQuaF1.add(d1.code);
     k('C1 đơn nợ 50.000, đổi 1.000 → 2.000đ/điểm rồi thu đủ → 1 earn 25 điểm, hạn quý theo giờ thu, lý do như lúc bán; có debt_payment + nhật ký thu',
       t1.status === 200 && a1.tt === 'paid' && await soEarn(d1.id) === 1 && e1?.points === 25 && e1.reason === `Tích điểm đơn ${d1.code}`
-      && e1.expires_at === hanQuy(d1.created_at) && a1.so_thu === 1 && a1.nhat_ky === 1, `${moTa(t1)} · ${JSON.stringify(e1)} · ${JSON.stringify(a1)}`);
+      && e1.expires_at === hanQuy(e1.created_at) && e1.expires_at !== hanQuy('2025-01-15T10:00:00') && a1.so_thu === 1 && a1.nhat_ky === 1, `${moTa(t1)} · ${JSON.stringify(e1)} · ${JSON.stringify(a1)}`);
 
     const d2 = await donNo(sdtMoi(), 2);
     const t2a = await thu(d2.id, 20000);
@@ -351,12 +352,15 @@ async function main() {
     const s1 = sdtMoi();
     const b1 = await trongFlash(() => ban({ customer_phone: s1, items: [mon(0)], payment_method: 'cash', cash_amount: 20000 }));
     const n1 = await nhan(b1, s1);
+    k('E1c bill đơn Flash KHÔNG hứa điểm (nhân điểm đang bật)', b1.status === 200 && !/diem/.test(String(b1.order.signup_loi)),
+      `bill "${b1.order?.signup_loi}"`);
     k('E1 đơn Flash đã thu → /nhan-diem 400 DON_FLASH_KHONG_DIEM, 0 dòng điểm, mã chưa bị tiêu', b1.status === 200 && Number(b1.order.flash_discount) > 0
       && n1.status === 400 && n1.code === 'DON_FLASH_KHONG_DIEM' && await diemDon(b1.order.id) === 0 && (await daNhan(b1))?.diem_nhan_luc === null,
     `${moTa(b1)} / ${moTa(n1)} · điểm ${await diemDon(b1.order?.id)}`);
     const s1b = sdtMoi();
     const b1b = await ban({ customer_phone: s1b, items: [mon(2)], payment_method: 'cash', cash_amount: 50000 });
     const n1b = await nhan(b1b, s1b);
+    k('E1d (K5) bill đơn thường vẫn hứa "gap 2 diem"', String(b1b.order?.signup_loi).includes('gap 2 diem'), `bill "${b1b.order?.signup_loi}"`);
     k('E1b (K5) đơn thường đã thu 50.000 (50 điểm lúc bán) → /nhan-diem 200, tổng 50 × 2 = 100', n1b.status === 200 && await diemDon(b1b.order.id) === 100,
       `${moTa(n1b)} · ${await diemDon(b1b.order?.id)}`);
     const s3 = sdtMoi();
