@@ -465,10 +465,14 @@ async function main() {
     k('D2e (K5) đơn bán THƯỜNG cộng sai 4 điểm → ĐỎ I8 nhưng KHÔNG mang nhãn D2', !!l2e && !l2e.nhan, l2e ? JSON.stringify(l2e) : tom(r));
     await db.run("DELETE FROM pos_point_transactions WHERE reason = 'DS_D2e'");
     k('D2c (K5) mua gói rồi lấy ngay: điểm theo tiền mua (300), không cộng thêm → XANH', diemMgd === 300 && (await ds('chu', 'thang', '2026-11-04')).ket_qua === 'XANH', `${diemMgd} điểm`);
+    // P22-23 (chủ quán chốt 22.10): mua thẻ phải thu đủ — đơn thẻ còn nợ không tạo được nữa (trước: tạo được, điểm theo total).
     const sNo2 = sdtMoi();
-    const theNo = await taoDon({ customer_phone: sNo2, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'debt', debt_amount: Number(hang.card_price) });
-    const diemNo = await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [theNo]);
-    k('D2d (ghi hành vi HIỆN TẠI) đơn thẻ còn nợ: điểm theo `total`, XANH (đổi khi chủ quán chốt khác)', diemNo === Math.floor(Number(hang.card_price) / 1000) && (await ds('chu', 'thang', '2026-11-04')).ket_qua === 'XANH', `${diemNo} điểm`);
+    const soDon = () => so('SELECT COUNT(*) FROM pos_orders');
+    const truocNo = await soDon();
+    const theNo = await goi('POST', '/orders', { customer_name: 'Khách DS1', customer_phone: sNo2, items: [], membership_buy: { tier_id: hang.id },
+      payment_method: 'debt', debt_amount: Number(hang.card_price) });
+    k('D2d mua thẻ GHI NỢ → 400 GOI_THE_CHUA_THU_DU, không thêm đơn; Đối soát vẫn XANH', theNo.status === 400 && theNo.code === 'GOI_THE_CHUA_THU_DU'
+      && await soDon() === truocNo && (await ds('chu', 'thang', '2026-11-04')).ket_qua === 'XANH', moTa(theNo));
   }
 
   // ═════════════════════════════════════════════════════════════════════════

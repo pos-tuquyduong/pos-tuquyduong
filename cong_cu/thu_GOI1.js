@@ -709,8 +709,12 @@ async function main() {
       lech.status === 409 && lech.code === 'GOI_HOAN_DOI_SO' && lech.hoan_du_kien?.tong === 1350000 && await vi(g) === 0 && (await ttGoi(gg.cp)).status === 'active',
       `${moTa(lech)} · ${JSON.stringify(lech.hoan_du_kien)}`);
 
+    // P22-23: mua gói ghi nợ nay 400 (B3n0) — đơn nợ CŨ trên production vẫn có thể còn: mua trả đủ rồi đưa về dạng nợ cũ bằng UPDATE.
     const n = sdtMoi();
-    const gn = await mua30(n, { payment_method: 'debt', cash_amount: 0, debt_amount: 1350000 });
+    const mn = await muaGoi(n, G30, { payment_method: 'debt', cash_amount: 0, debt_amount: 1350000 });
+    k('B3n0 mua gói GHI NỢ → 400 GOI_THE_CHUA_THU_DU', mn.status === 400 && mn.code === 'GOI_THE_CHUA_THU_DU', moTa(mn));
+    const gn = await mua30(n);
+    await db.run("UPDATE pos_orders SET cash_amount = 0, debt_amount = 1350000, payment_status = 'pending', payment_method = 'debt' WHERE id = ?", [gn.don]);
     const dkn = await duKien(gn.cp);
     const rn = await ketThuc(gn.cp, { reason: 'thử', hoan: true });
     const rn2 = await ketThuc(gn.cp, { reason: 'thử', hoan: false });
