@@ -157,6 +157,20 @@ app.get('/api/pos', (req, res) => {
   });
 });
 
+// KH-UI-1: App KH cùng dịch vụ, phục vụ theo tên miền. Chỉ khi KH_HOST đặt VÀ Host khớp (bỏ cổng, không phân biệt hoa/thường)
+// và đường không phải /api/ → app_kh/dist (file tĩnh, rồi index.html cho đường lạ). Còn lại đi tiếp xuống quầy như cũ.
+// Đọc Host thô, không req.hostname (trust proxy sẽ tin X-Forwarded-Host).
+const laYeuCauAppKh = (req) => {
+  const hostKh = (process.env.KH_HOST || '').trim().toLowerCase();
+  const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+  return !!hostKh && host === hostKh && !req.path.startsWith('/api/');
+};
+const phucVuAppKh = express.static(path.join(__dirname, '../app_kh/dist'));
+app.use((req, res, next) => (laYeuCauAppKh(req) ? phucVuAppKh(req, res, next) : next()));
+app.get('/{*splat}', (req, res, next) => (
+  laYeuCauAppKh(req) ? res.sendFile(path.join(__dirname, '../app_kh/dist/index.html')) : next()
+));
+
 // Serve static files (for production)
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
