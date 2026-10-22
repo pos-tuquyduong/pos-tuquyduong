@@ -20,6 +20,7 @@ HP, CU, KI, IX = 'server/utils/helpers.js', 'server/routes/customers.js', 'serve
 DOT_BIEN = [
   # ── A: sinh mã ──
   ('BV-A-qr-sdt', [(HP, "function generateQRCode() {\n", "function generateQRCode(phone) {\n  return `QR-${phone}`;\n", 1)], r"✗ A1 POST /customers"),
+  ('VS-A-math-random', [(HP, "crypto.randomBytes(12)", "Array.from({ length: 12 }, () => Math.floor(Math.random() * 256))", 1)], r"✗ A7 POST /:"),
   ('VS-A-ngan-8', [(HP, "crypto.randomBytes(12)", "crypto.randomBytes(8)", 1)], r"✗ A4 2000 lần"),
   ('BV-A5-khong-kiem-trung', [(HP, "if (!(await queryOne('SELECT 1 FROM pos_customers WHERE qr_code = ?', [ma]))) return ma;", "return ma;", 1)],
    r"✗ A5 trùng 2 lần"),
@@ -40,13 +41,13 @@ DOT_BIEN = [
    r"✗ A7 /kh/toi"),
   # ── B: mã cũ bị từ chối, /toi đổi mã ──
   ('BV-B1-nhan-qr-cu', [(CU, "const customer = code.startsWith(QR_TIEN_TO)", "const customer = true", 1)], r"✗ B1 /qr/QR-<sđt>"),
-  ('BV-B2-toi-khong-doi', [(KI, "    if (await queryOne(`SELECT 1 FROM pos_customers WHERE ${dk}`", "    if (false && await queryOne(`SELECT 1 FROM pos_customers WHERE ${dk}`", 1)],
+  ('BV-B2-toi-khong-doi', [(KI, "if (!String(qr || '').startsWith(QR_TIEN_TO)) {", "if (false) {", 1)],
    r"✗ B2 /toi"),
-  ('VS-F2-toi-luon-sinh-moi', [(KI, "'id = ? AND (qr_code IS NULL OR qr_code NOT LIKE ?)'", "'id = ? AND (qr_code IS NULL OR qr_code NOT LIKE ? OR 1)'", 1)],
+  ('VS-F2-toi-luon-sinh-moi', [(KI, "if (!String(qr || '').startsWith(QR_TIEN_TO)) {", "if (true) {", 1)],
    r"✗ F2 khách đã có mã mới"),
   # ── D: qr chỉ ở /toi, theo token ──
   ('BV-D1-toi-khong-qr', [(KI, "khach: { ...hoSo(req.khach), qr }", "khach: hoSo(req.khach)", 1)], r"✗ D1 cặp A/B"),
-  ('VS-D1-qr-theo-tham-so', [(KI, "WHERE id = ?', [req.khach.id]);\n    res.json", "WHERE id = ?', [req.query.id || req.khach.id]);\n    res.json", 1)], r"✗ D1 cặp A/B"),
+  ('VS-D1-qr-theo-tham-so', [(KI, "SELECT qr_code FROM pos_customers WHERE id = ?', [req.khach.id]", "SELECT qr_code FROM pos_customers WHERE id = ?', [req.query.id || req.khach.id]", 1)], r"✗ D1 cặp A/B"),
   ('VS-D2-qr-vao-hoSo', [(KI, "ngay_tao: kh.created_at });", "ngay_tao: kh.created_at, qr: kh.qr_code || null });", 1)], r"✗ D2 qr"),
   # ── E: quyền + mã lỗi ──
   ('BV-E1-bo-authenticate', [(CU, "router.get('/qr/:code', authenticate, async", "router.get('/qr/:code', async", 1)], r"✗ E1 không token"),
