@@ -58,7 +58,8 @@ async function main() {
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => true, checkStock: async () => ({ sufficient: true, stock: 999 }),
     outStockFIFO: sxGia, inStockReturn: sxGia, callSxApi: sxGia };
 
-  const co = { mocTruocTx: null, nemGhi: null };
+  // co.truocCommit(tx) — chạy NGAY TRƯỚC commit của giao dịch kế tiếp, đọc được dữ liệu bên trong giao dịch (khoá "cùng giao dịch", C10).
+  const co = { mocTruocTx: null, nemGhi: null, truocCommit: null };
   const loiGiaGhi = (sql) => {
     if (co.nemGhi && co.nemGhi.test(String(sql))) { const e = new Error('SQLITE_IOERR: lỗi ghi (giả)'); e.code = 'SQLITE_IOERR'; throw e; }
   };
@@ -68,7 +69,9 @@ async function main() {
     if (moc) await moc();
     const tx = await txGoc(...a);
     const lenh = (f) => async (...b) => { loiGiaGhi(b[0]); return f(...b); };
-    return { ...tx, query: lenh(tx.query), queryOne: lenh(tx.queryOne), run: lenh(tx.run) };
+    const boc = { ...tx, query: lenh(tx.query), queryOne: lenh(tx.queryOne), run: lenh(tx.run) };
+    boc.commit = async (...b) => { const f = co.truocCommit; co.truocCommit = null; if (f) await f(tx); return tx.commit(...b); };
+    return boc;
   };
   db.run = async (sql, a) => { loiGiaGhi(sql); return runGoc(sql, a); };
 
@@ -250,6 +253,14 @@ async function main() {
       t8.status === 500 && a8.tt === 'pending' && a8.no === 25000 && await soEarn(d8.id) === 0 && a8.so_thu === 0 && a8.nhat_ky === 0,
       `${moTa(t8)} · ${JSON.stringify(a8)} · earn ${await soEarn(d8.id)}`);
 
+    const d10 = await donNo(sdtMoi());
+    let trongTx = null;
+    co.truocCommit = async (tx) => { trongTx = Number((await tx.queryOne("SELECT COUNT(*) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [d10.id])).n); };
+    const t10 = await thu(d10.id, 25000);
+    co.truocCommit = null;
+    k('C10 dòng earn nằm TRONG giao dịch thu: đọc ngay trước commit thấy đúng 1 (ghi sau commit → 0)', t10.status === 200 && trongTx === 1
+      && await soEarn(d10.id) === 1, `${moTa(t10)} · trong giao dịch ${trongTx} · sau ${await soEarn(d10.id)}`);
+
     await datCaiDat('loyalty_enabled', 'false');
     const d9 = await donNo(sdtMoi());
     await datCaiDat('loyalty_enabled', 'true');
@@ -352,8 +363,8 @@ async function main() {
     const s1 = sdtMoi();
     const b1 = await trongFlash(() => ban({ customer_phone: s1, items: [mon(0)], payment_method: 'cash', cash_amount: 20000 }));
     const n1 = await nhan(b1, s1);
-    k('E1c bill đơn Flash KHÔNG hứa điểm (nhân điểm đang bật)', b1.status === 200 && !/diem/.test(String(b1.order.signup_loi)),
-      `bill "${b1.order?.signup_loi}"`);
+    k('E1c bill đơn Flash KHÔNG hứa điểm (nhân điểm đang bật, voucher tắt → bill in "Ma don hang", không lời hứa)', b1.status === 200
+      && b1.order.signup_nhan === 'Ma don hang' && b1.order.signup_loi === null, `bill "${b1.order?.signup_nhan}" · "${b1.order?.signup_loi}"`);
     k('E1 đơn Flash đã thu → /nhan-diem 400 DON_FLASH_KHONG_DIEM, 0 dòng điểm, mã chưa bị tiêu', b1.status === 200 && Number(b1.order.flash_discount) > 0
       && n1.status === 400 && n1.code === 'DON_FLASH_KHONG_DIEM' && await diemDon(b1.order.id) === 0 && (await daNhan(b1))?.diem_nhan_luc === null,
     `${moTa(b1)} / ${moTa(n1)} · điểm ${await diemDon(b1.order?.id)}`);
