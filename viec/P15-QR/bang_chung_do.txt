@@ -1,0 +1,42 @@
+# P15-QR — bằng chứng ĐỎ trên code CHƯA vá (22.10.2026)
+# Cách chạy gốc: bài thử BẢN CUỐI (commit d0e5b85 cho thu_P15QR.js, 578e71c cho thu_KH1.js) chạy với server/ của `a5ec1f2`
+#   (PHIEU duyệt — bốn file server/ đặt lại bằng `git checkout -- <file>`, sau đó chép bản vá về). Lệnh: node cong_cu/thu_P15QR.js · node cong_cu/thu_KH1.js
+# Bản vá: server lần đầu ở `189f0f9`, `kh/index.js` sửa lại ở `e6c959b` (soát vòng 1) — số "bản vá" dưới đây chạy lại trên bản cuối, cùng lệnh.
+
+## cong_cu/thu_P15QR.js — bài MỚI
+# Trên gốc: 8 đạt · 20 hỏng (thoát 1). 8 "đạt" là ca canh / K5 xanh cả trên gốc (kế hoạch mục 7 đã ghi): D2, E1 (401 không token / token khách),
+# E2, E3, F1 ×2, D4 dòng đầu (yêu cầu đi qua bộ ghi — chỉ để ca "không chứa mã" không xanh giả), D3. Mỗi ca canh có đột biến bắt (dot_bien.py).
+  ✗ A1 POST /customers → 201, qr TQD-+12 ký tự, không chứa SĐT, hai khách khác mã  — QR-0930000001 · QR-0930000002
+  ✗ A2 POST / kèm người nhận có SĐT → 201, người nhận mã thật riêng ≠ mã mẹ  — HTTP 201 · QR-0930000004 · QR-0930000003
+  ✗ A3 POST /:id/children có SĐT → 201, mã thật  — HTTP 201 · QR-0930000005
+  ✗ A4 2000 lần generateQRCode → đúng dạng, không chứa SĐT, không trùng  — sai 2000 · khác nhau 1
+  ✗ A5 helpers xuất sinhQrKhongTrung, QR_TIEN_TO = "TQD-", QR_THU_TOI_DA = 5  — undefined · undefined · undefined
+  ✗ A5: bài chạy hết mục  — H.sinhQrKhongTrung is not a function
+  ✗ A6 khách mới qua App (xac-minh) → mã thật  — HTTP 200 · QR-0930000006
+  ✗ A7 POST /: lần rút đầu trùng mã có sẵn → vẫn thành công, mã mới ≠ mã có sẵn  — HTTP 201 · QR-0930000008 · rút 0
+  ✗ A7 người nhận trong POST /: lần rút đầu trùng mã có sẵn → vẫn thành công, mã mới ≠ mã có sẵn  — HTTP 201 · QR-0930000010 · rút 0
+  ✗ A7 POST /:id/children: lần rút đầu trùng mã có sẵn → vẫn thành công, mã mới ≠ mã có sẵn  — HTTP 201 · QR-0930000011 · rút 0
+  ✗ A7 /kh/toi đổi mã cũ: lần rút đầu trùng mã có sẵn → vẫn thành công, mã mới ≠ mã có sẵn  — HTTP 200 · QR-0930000012 · rút 0
+  ✗ A8 nhập CSV từ SX khách mới → mã thật (đường sync.js đổi qua helpers.js)  — HTTP 200 · QR-0930000013
+  ✗ B1 /qr/QR-<sđt> (dạng cũ, chưa đổi) → 404 QR_KHONG_CO  — HTTP 200
+  ✗ B2 /toi → qr dạng mới = cột trong kho; /qr/<mới> → 200 đúng khách; /qr/<cũ> → 404  — HTTP 200 · undefined · kho QR-0930000014 · 200 · 200
+  ✗ B3 khách qr_code NULL (chép từ SX) → /toi sinh mã, lưu kho  — undefined
+  ✗ B4 hai /toi đồng thời trên khách cũ → cùng một qr, đúng mã trong kho  — undefined · undefined · QR-0930000016
+  ✗ F2 khách đã có mã mới gọi /toi 2 lần → mã KHÔNG đổi  — QR-0930000017 · undefined · undefined
+  ✗ D1 cặp A/B: /toi của A ra mã A, của B ra mã B; A gửi tham số của B vẫn ra mã A, không chứa mã B  — undefined · undefined · undefined
+  ✗ E1 token quầy + mã TQD- bịa → 404 QR_KHONG_CO  — HTTP 404
+  ✗ D4 nhật ký index.js không chứa mã QR nào  — … | GET /api/pos/customers/qr/QR-0930000025 | … | GET /api/pos/customers/qr/TQD-ZZZZZZZZZZZZ
+  8 đạt · 20 hỏng
+# Soát vòng 1 sửa A7 (`08ced91`: thêm `mau.length > 0`) → chạy lại BẢN BÀI MỚI trên gốc (bốn file server/ chép lại bản `a5ec1f2`):
+#   8 đạt · 20 hỏng — cùng 20 ca đỏ như trên (A7 ×4 vẫn ✗ … rút 0). Trên bản vá: 29 đạt · 0 hỏng.
+# Trên bản vá: 29 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P15QR.js: 29
+
+## cong_cu/thu_KH1.js — bài CŨ, sửa A4 + E1, thêm E1b (đã duyệt 22.10, điểm 1 mục "Đã duyệt" của phiếu)
+# Trên gốc: 154 đạt · 3 hỏng (thoát 1) — ĐÚNG ba ca vừa sửa / thêm đỏ, mọi ca khác giữ xanh:
+  ✗ A4 khách mới: tên đã trim, created_by app_kh, qr TQD-+12 ký tự không chứa SĐT (P15-QR), retail / retail_only  — Chị Mới · app_kh · QR-0920000008 · retail · retail_only
+  ✗ E1 GET /toi → 200, đúng 4 trường ngay_tao · qr · sdt · ten (P15-QR)  — HTTP 200 · ngay_tao,sdt,ten
+  ✗ E1b cặp A/B: qr của A ≠ của B; A gửi sdt của B vẫn ra qr A, không chứa qr B  — undefined · undefined · undefined
+  154 đạt · 3 hỏng
+# Trên bản vá: 157 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_KH1.js: 157

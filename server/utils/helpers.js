@@ -1,6 +1,7 @@
 /**
  * POS System - Helper Functions
  */
+const crypto = require('crypto');
 
 /**
  * Tạo mã đơn hàng: ORD-YYYYMMDD-XXX
@@ -42,10 +43,24 @@ async function taoMaDonTheoSo(queryOne) {
 }
 
 /**
- * Tạo mã QR từ SĐT: QR-0901234567
+ * P15-QR — mã QR thành viên: QR_TIEN_TO + 12 ký tự ngẫu nhiên (≈ 60 bit), KHÔNG suy ra từ SĐT.
+ * Bảng 32 ký tự bỏ I, O cho khỏi nhầm; 256 chia hết 32 nên `byte % 32` không lệch. Đối số cũ (SĐT) bị bỏ qua.
+ * Tiền tố cố định để quầy phân biệt thẻ thành viên với mã khuyến mãi.
  */
-function generateQRCode(phone) {
-  return `QR-${phone}`;
+const QR_TIEN_TO = 'TQD-';
+const QR_BANG_KY_TU = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const QR_THU_TOI_DA = 5;
+function generateQRCode() {
+  return QR_TIEN_TO + Array.from(crypto.randomBytes(12), (b) => QR_BANG_KY_TU[b % 32]).join('');
+}
+
+/** Sinh mã chưa có trong pos_customers.qr_code; trùng thì sinh lại, quá QR_THU_TOI_DA lần thì ném. Nhận queryOne như taoMaDonTheoSo. */
+async function sinhQrKhongTrung(queryOne) {
+  for (let lan = 0; lan < QR_THU_TOI_DA; lan++) {
+    const ma = generateQRCode();
+    if (!(await queryOne('SELECT 1 FROM pos_customers WHERE qr_code = ?', [ma]))) return ma;
+  }
+  throw new Error('không sinh được mã QR chưa trùng');
 }
 
 /**
@@ -215,6 +230,9 @@ module.exports = {
   generateOrderCode,
   taoMaDonTheoSo, // POS-MADON-v1
   generateQRCode,
+  sinhQrKhongTrung, // P15-QR
+  QR_TIEN_TO,
+  QR_THU_TOI_DA,
   formatCurrency,
   formatDateTime,
   formatDate,

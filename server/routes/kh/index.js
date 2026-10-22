@@ -10,7 +10,7 @@ const { query, queryOne, run } = require('../../database');
 const { canCauHinhKhach, xacThucKhach, kyTokenKhach } = require('../../middleware/khachAuth');
 const { chuanSdt, chuanTen, xinMaGui, giuLuotNhanMa, xacMinhMa } = require('../../utils/maKhach');
 const { layDiemKhach, layVoucherKhach, layMaKhachMoi } = require('../../utils/diemKhach');
-const { getNow } = require('../../utils/helpers');
+const { getNow, sinhQrKhongTrung, QR_TIEN_TO } = require('../../utils/helpers');
 const { nhanMaUuDai, nhanDiemMaBill } = require('../signup-codes');
 const { layMenuQuay } = require('../products');
 const { bao, loiMayChu } = require('./loi');
@@ -64,7 +64,24 @@ router.post('/dang-nhap/xac-minh', async (req, res) => {
 // ── Từ đây: token khách bắt buộc ──────────────────────────────────────────
 router.use(xacThucKhach);
 
-router.get('/toi', (req, res) => res.json({ success: true, khach: hoSo(req.khach) }));
+// P15-QR: `qr` CHỈ ở đây (không vào hoSo — xác minh / PUT /toi không trả). Mã chưa có tiền tố (cũ QR-<SĐT> hoặc NULL) → đổi sang mã mới
+// lần đầu khách xem — cùng vị từ startsWith(QR_TIEN_TO) với /customers/qr/:code. Câu ghi so-đổi theo đúng giá trị vừa đọc: hai lượt cùng lúc
+// thì lượt sau changes = 0, đọc lại ra mã của lượt trước.
+router.get('/toi', async (req, res) => {
+  try {
+    const docQr = async () => (await queryOne('SELECT qr_code FROM pos_customers WHERE id = ?', [req.khach.id])).qr_code;
+    let qr = await docQr();
+    if (!String(qr || '').startsWith(QR_TIEN_TO)) {
+      // GET-ghi: đổi mã QR cũ / NULL MỘT lần khi khách xem QR (P15-QR phần B) — lần sau đã có tiền tố, không ghi nữa.
+      await run('UPDATE pos_customers SET qr_code = ?, updated_at = ? WHERE id = ? AND qr_code IS ?',
+        [await sinhQrKhongTrung(queryOne), getNow(), req.khach.id, qr]);
+      qr = await docQr();
+    }
+    res.json({ success: true, khach: { ...hoSo(req.khach), qr } });
+  } catch (err) {
+    loiMayChu(res, err, 'kh toi');
+  }
+});
 
 router.put('/toi', async (req, res) => {
   try {
