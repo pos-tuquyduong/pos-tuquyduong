@@ -247,7 +247,6 @@ async function main() {
     k('F1 mã người nhận tra ra đúng người nhận', !!qCon && rc.status === 200 && rc.j.phone === con, `${qCon} · ${moTa(rc)} · ${rc.j.phone}`);
   });
 
-  sv.close();
   muc('[D4] server/index.js THẬT: tra QR → nhật ký yêu cầu không chứa mã');
   await chay('D4', async () => {
     const s = sdtMoi(); await taoKhach(s); const ma = await qrCua(s);
@@ -266,6 +265,7 @@ async function main() {
     } catch (e) { throw new Error(`${e.message} · tiến trình con: ${ra.slice(-300).replace(/\s+/g, ' ')}`); } finally { con.kill(); }
   });
 
+  sv.close();
   muc('[D3] nhật ký máy chủ của cả bài không chứa mã QR nào');
   const ma = (await db.query('SELECT qr_code FROM pos_customers WHERE qr_code IS NOT NULL')).map((x) => x.qr_code);
   const loLog = nhatKy.filter((d) => ma.some((m) => d.includes(m)));
