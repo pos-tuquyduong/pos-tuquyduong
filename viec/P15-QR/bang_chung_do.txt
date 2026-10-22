@@ -1,7 +1,7 @@
 # P15-QR — bằng chứng ĐỎ trên code CHƯA vá (22.10.2026)
 # Cách chạy gốc: bài thử BẢN CUỐI (commit d0e5b85 cho thu_P15QR.js, 578e71c cho thu_KH1.js) chạy với server/ của `a5ec1f2`
 #   (PHIEU duyệt — bốn file server/ đặt lại bằng `git checkout -- <file>`, sau đó chép bản vá về). Lệnh: node cong_cu/thu_P15QR.js · node cong_cu/thu_KH1.js
-# Bản vá: HEAD sau commit `189f0f9` (server) — cùng hai bài, cùng lệnh.
+# Bản vá: server lần đầu ở `189f0f9`, `kh/index.js` sửa lại ở `e6c959b` (soát vòng 1) — số "bản vá" dưới đây chạy lại trên bản cuối, cùng lệnh.
 
 ## cong_cu/thu_P15QR.js — bài MỚI
 # Trên gốc: 8 đạt · 20 hỏng (thoát 1). 8 "đạt" là ca canh / K5 xanh cả trên gốc (kế hoạch mục 7 đã ghi): D2, E1 (401 không token / token khách),

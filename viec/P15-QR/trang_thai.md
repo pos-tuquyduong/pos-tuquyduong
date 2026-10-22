@@ -30,7 +30,7 @@ f954eb6 P15-QR: ke hoach (cho duyet) + trang thai, cau hoi Q1-Q4
 Q1–Q4 đã được chủ quán trả lời trong mục "Đã duyệt" của phiếu (`a5ec1f2`) — làm theo, không hỏi lại.
 
 ## Bước 4 — bài thử đỏ trước
-- `cong_cu/thu_P15QR.js` (mới, 286 dòng): gốc **8 đạt · 20 hỏng**, bản vá **29 đạt · 0 hỏng**.
+- `cong_cu/thu_P15QR.js` (mới, 287 dòng sau soát vòng 1): gốc **8 đạt · 20 hỏng**, bản vá **29 đạt · 0 hỏng**.
 - `cong_cu/thu_KH1.js` (sửa A4, E1, thêm E1b — đã duyệt): gốc **154 đạt · 3 hỏng** (đúng 3 ca vừa sửa), bản vá **157 đạt · 0 hỏng**.
 - Chi tiết + dòng `SỐ CA`: `bang_chung_do.txt`. Gốc chạy bằng cách đặt lại bốn file `server/` về `a5ec1f2` (`git checkout -- <file>`), bài bản cuối.
 - Sự cố khi viết bài: (1) `sv.close()` đặt trước D4 → D4 "fetch failed" (lỗi bài, sửa `794c0d6`); (2) ca A2 cũ đòi "người nhận không SĐT →
@@ -102,6 +102,46 @@ kết quả kiểm hộp còn mở; NGUYÊN TẮC so khoá giữa hai nguồn ch
 - `python3 viec/P15-QR/dot_bien.py`: ĐỐI-CHỨNG 29/0; **21 đột biến bị bắt · 0 KHÔNG bị bắt (trên 21)**. `thu_KH1.js` 157/0.
 - Lỗi 4: cổng chạy ở bước 11.4 (một lần, gồm `--day-du`).
 
+## Bước 8 — soát độc lập vòng 2 — báo cáo (rút gọn trình bày, giữ nội dung)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. CustomerSearch.jsx:56,169,177,442 — moQuetRef là cờ đúng/sai cho cả màn: quét A, đóng, mở lại, quét B → lượt tra A về trước thấy cờ true,
+   chọn A, đóng hộp; lượt B bỏ. Quầy chọn nhầm A, không báo. Sửa: số phiên. K4 + K7.
+2. trang_thai.md Vòng sửa 1 — hai bản vá quầy (chọn muộn, so SĐT hai vế) không có bài máy, không ghi CHƯA KIỂM, không có thao tác tay tái
+   hiện. K3.
+NGHI NGỜ: QrScanModal.jsx:5-8 chú thích đầu file còn "mã khuyến mãi… không gọi API mới… Cha (Sales.jsx)"; :48-49 "Nhập mã tay bên dưới" sai
+trong hộp Quét thẻ; ke_hoach.md:45 còn `NOT LIKE ?`; bang_chung_do.txt:4 chỉ commit 189f0f9 (kh/index.js đổi sau ở e6c959b); trang_thai "286
+dòng" (thật 287); customers.js:282-295 /qr/:code trả SELECT * (password, pin_code…) mà quầy chỉ cần phone — Phát hiện; customers-v2.js:137 lọc
+SĐT thô (khoảng trống, nhất quán Q3); helpers.js:4 require crypto ngoài vùng sửa (bắt buộc); BV-A-qr-sdt ra "QR-undefined", không đưa đúng
+lỗi cũ (VS-A2/A3 mới đưa QR-<sđt> thật).
+NGHIỆM THU: 5/7 có bằng chứng máy (A, B, D, E, F) · thiếu: C (tay), G vế 2 (tay), D vế "mọi route khách" (nhan-ma-bill / nhan-diem — về
+cấu trúc không lộ được)
+CHƯA SOÁT ĐƯỢC: cong.js chay + --day-du (để 11.4); npm test toàn bộ; giao diện thật; SX thật; log Render ngoài index.js; chay_thu.sh; VS-B4;
+trùng qr trong khe kiểm-rồi-ghi.
+BÀI HỌC: KHOÁ — async từ hộp đóng/mở lại kiểm theo SỐ PHIÊN; NGUYÊN TẮC — mỗi lỗi quầy vá không bài máy: một dòng CHƯA KIỂM + một thao tác
+tay tái hiện; NGUYÊN TẮC — tái dùng component thì sửa chú thích đầu file và lời báo lỗi; KHOÁ — BV- đưa đúng hành vi cũ với đối số thật.
+```
+Đã tự chạy trong lượt soát: thu_P15QR 29/0; thu_KH1 157/0; dot_bien 21/21; bản dựng nháp trùng byte client/dist.
+
+### Vòng sửa 2
+- Lỗi 1: `CustomerSearch.jsx` thay cờ bằng `phienQuetRef` (mở → số dương mới, đóng → số âm); `quetThe` giữ phiên lúc bắt đầu, chỉ chọn khi
+  phiên đó còn đang mở (`f06e658`). CHƯA KIỂM bằng máy (không có bài giao diện) → thao tác tay 4.
+- Lỗi 2: dưới đây "CHƯA KIỂM quầy" từng lỗi + thao tác tay 4, 5.
+- `QrScanModal.jsx`: chú thích đầu file nói đúng hai chỗ dùng; lời lỗi camera "đóng hộp rồi nhập tay" đúng cho cả hai hộp (`916a39f`).
+- `ke_hoach.md` thêm đính chính `NOT LIKE` → `qr_code IS ?`; `bang_chung_do.txt` ghi rõ commit bản vá cuối; Phát hiện thêm `SELECT *`.
+- `BV-A-qr-sdt` giữ: chỗ gọi mới không còn truyền SĐT nên "QR-<sđt>" đúng nghĩa đưa lại qua `VS-A2-con-qr-sdt` / `VS-A3-children-qr-sdt`
+  (chỗ gọi), `BV-A-qr-sdt` canh thân hàm. Ghi vào bài học.
+
+### CHƯA KIỂM quầy — từng chỗ, kèm thao tác tay tái hiện (máy không có bài giao diện, kế hoạch đã duyệt chấp nhận)
+| Chỗ | Thao tác tay (máy quầy / điện thoại) | Mong đợi |
+|---|---|---|
+| 1. Quét thẻ chọn đúng khách (C) | App KH khách thật → mở QR; Bán hàng bấm 📷 Quét thẻ, đưa mã | chọn đúng khách, ví / điểm như khi gõ SĐT |
+| 2. Mã giảm đi đường cũ (C, G) | quét mã khuyến mãi bằng nút ở ô mã giảm; rồi bán một đơn không quét gì | áp mã như cũ; Bán hàng như cũ |
+| 3. Mã cũ / mã giảm ở nút Quét thẻ (C) | in `QR-0912345678`, quét bằng 📷 Quét thẻ; rồi quét một mã giảm bằng 📷 Quét thẻ; rồi đưa thẻ thật | câu "mã kiểu cũ"; "Không phải thẻ thành viên"; camera vẫn chạy, thẻ thật chọn đúng khách |
+| 4. Chọn muộn (soát vòng 1 lỗi 1, vòng 2 lỗi 1) | tắt mạng máy quầy (hoặc để Render ngủ), quét thẻ khách A, ĐÓNG hộp ngay; mở lại, bật mạng, quét thẻ khách B | chọn B (hoặc không chọn ai nếu đóng hẳn) — KHÔNG BAO GIỜ tự chọn A |
+| 5. So SĐT hai vế (soát vòng 1 lỗi 2) | khách có SĐT lưu dạng `84…` trong danh sách quầy (nếu có), quét thẻ | chọn đúng khách, không báo "chưa có trong danh sách quầy" |
+
 ## Câu hỏi
 
 **Q1 (chặn việc) — `thu_KH1.js` sẽ ĐỎ trên code PR, phiếu lại dặn "CHỈ thêm ca; bản gốc chạy trên code PR phải xanh".**
@@ -139,6 +179,9 @@ cạnh `generateQRCode`, đúng một hàm `sinhQrKhongTrung` ngay dưới, và 
 lý do ở `ke_hoach.md` mục 5. Bài thử dự kiến ~230 + 15 dòng, vượt "thử ~200" của phiếu khoảng 20% (thêm ca sau soát).
 
 ## Phát hiện
+- `server/routes/customers.js` `GET /qr/:code` trả `SELECT *` (gồm `password`, `pin_code`, `email`) + `children`; quầy chỉ cần `phone`. Không phải
+  lỗ mới (nhân viên đọc được `SELECT *` ở `GET /customers`), nhưng trái LUAT §4 — đề xuất việc sau thu hẹp cột trả về của các route khách quầy.
+- `server/routes/customers-v2.js` `/search` lọc `c.phone?.includes(q)` trên SĐT thô của SX — khách SX lưu `84…` / `+84…` không ra khi gõ hay quét.
 - **Người nhận KHÔNG SĐT không tạo được** (có từ trước P15-QR): `pos_customers.phone TEXT UNIQUE NOT NULL` (`server/database.js:81`) mà
   `customers.js` POST / (người nhận) và POST /:id/children chèn `phone = NULL` → lỗi ràng buộc → 500; ở POST / khách chính và người nhận trước đó
   ĐÃ ghi rồi mới 500 (không giao dịch). Ngoài Phạm vi (đổi DB bị cấm) — đề xuất việc riêng: chặn 400 khi người nhận thiếu SĐT, hoặc bọc giao dịch.

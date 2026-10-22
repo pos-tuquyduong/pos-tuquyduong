@@ -6,6 +6,8 @@ Bốn chỗ cần chủ quán quyết TRƯỚC khi viết code: `trang_thai.md` 
 
 > **Đính chính (lượt 2, 22.10):** mọi câu "người nhận không SĐT → `qr_code` NULL" trong kế hoạch này (mục 0, 1, 7 A2, 9) SAI: `pos_customers.phone`
 > là `NOT NULL` (`server/database.js:81`) nên người nhận không SĐT không ghi được từ trước việc này — xem `trang_thai.md` Phát hiện. Ca A2 đã bỏ vế đó.
+> **Đính chính 2:** mục 2 tả câu ghi `… qr_code NOT LIKE ?`; code thật (soát vòng 1) dùng MỘT vị từ `startsWith(QR_TIEN_TO)` cùng `/qr/:code` và câu ghi
+> so-đổi `UPDATE … WHERE id = ? AND qr_code IS ?` theo giá trị vừa đọc (`server/routes/kh/index.js`).
 
 ## 0. Hiện trạng (đọc 22.10)
 
