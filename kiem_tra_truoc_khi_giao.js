@@ -492,7 +492,7 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   }
   return ra;
 }
-for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js', 'cong_cu/thu_GOI1.js']) chayBaiThat(bai);
+for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js', 'cong_cu/thu_GOI1.js', 'cong_cu/thu_KH1.js']) chayBaiThat(bai);
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong

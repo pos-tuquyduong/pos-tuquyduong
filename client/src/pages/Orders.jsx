@@ -1039,7 +1039,7 @@ export default function Orders() {
                 }}
               >
                 <Printer size={18} />
-                In hóa đơn
+                In lại
               </button>
             </div>
           </div>
@@ -1326,6 +1326,7 @@ export default function Orders() {
         <InvoicePrint
           order={selectedOrder}
           settings={invoiceSettings}
+          inLai
           onClose={() => setShowInvoiceModal(false)}
           onPrintComplete={() => {
             setShowInvoiceModal(false);

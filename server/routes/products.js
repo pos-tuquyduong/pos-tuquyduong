@@ -17,98 +17,104 @@ const router = express.Router();
  * Lấy danh sách sản phẩm từ SX với giá từ POS
  */
 // POS-1: endpoint này cho phép CẢ người dùng (JWT) LẪN worker web (X-Service-Key, chỉ đọc).
-router.get('/', authenticateServiceOrUser, async (req, res) => {
+router.get('/', authenticateServiceOrUser, xuLyMenu);
+async function xuLyMenu(req, res) {
   try {
-    const { category } = req.query;
-    let products = [];
-
-    // Gọi API từ SX
-    if (isSxConfigured()) {
-      try {
-        products = await callSxApi('/api/pos/products-with-stock');
-
-        // POS-TONCU-v1: goi duoc SX thi NHO LAI so ton va gio biet.
-        // Lan sau SX chet, POS con cai that de tra ve thay vi bia 999.
-        // Chi nho mon CO QUAN KHO va ton la so that (nhom "pha khi khach
-        // goi" tra null — nho null vao la bien no thanh "chua ro ton").
-        // Loi o day KHONG duoc lam hong man ban hang: chi ghi log.
-        try {
-          // ton_luc la GIO VIET NAM (de hien "luc 14:03" cho nguoi nhin).
-          // Cac cot khac cua POS dung datetime('now') = gio UTC — DUNG so sanh
-          // truc tiep ton_luc voi created_at, lech 7 tieng.
-          const nowVn = new Date(Date.now() + 7 * 3600 * 1000)
-            .toISOString().slice(0, 19).replace('T', ' ');
-
-          // Chi GHI KHI TON THAY DOI. Man ban hang tai lai danh sach rat nhieu
-          // lan moi ca; ghi mu quang la 10 luot ghi Turso moi lan tai, phan lon
-          // la ghi lai dung con so cu. Doc 1 luot roi so re hon nhieu.
-          const daNho = await query(
-            'SELECT sx_product_type, sx_product_id, ton_gan_nhat FROM pos_products',
-          );
-          for (const p of products) {
-            if (p.khong_quan_kho) continue;
-            if (typeof p.stock_quantity !== 'number') continue;
-            const cu = daNho.find(
-              (x) => x.sx_product_type === p.sx_product_type &&
-                     String(x.sx_product_id) === String(p.sx_product_id),
-            );
-            if (cu && cu.ton_gan_nhat === p.stock_quantity) continue;
-            await run(
-              `UPDATE pos_products SET ton_gan_nhat = ?, ton_luc = ?
-                WHERE sx_product_type = ? AND sx_product_id = ?`,
-              [p.stock_quantity, nowVn, p.sx_product_type, p.sx_product_id],
-            );
-          }
-        } catch (e) {
-          console.error('Khong ghi duoc ton gan nhat:', e.message);
-        }
-
-        if (category) {
-          products = products.filter(p => p.category === category);
-        }
-
-        console.log(`✅ Loaded ${products.length} products from SX`);
-
-      } catch (err) {
-        console.error('❌ Error loading from SX:', err.message);
-        products = await getFallbackProducts(category);
-      }
-    } else {
-      products = await getFallbackProducts(category);
-    }
-
-    // Merge giá + TIER-2 (SP đặc biệt) từ POS database - SỬA: dùng composite key
-    const prices = await query('SELECT sx_product_type, sx_product_id, price, is_special_group FROM pos_products');
-
-    products = products.map(p => {
-      // TÌM GIÁ BẰNG COMPOSITE KEY (type + id)
-      const priceInfo = prices.find(pr => 
-        pr.sx_product_type === p.sx_product_type && 
-        String(pr.sx_product_id) === String(p.sx_product_id)
-      );
-
-      return {
-        ...p,
-        // Tạo unique_id để frontend phân biệt
-        unique_id: `${p.sx_product_type}_${p.sx_product_id}`,
-        // POS-TONCU-v1: thieu gia thi tra null, KHONG tra 0.
-        // Dung ?? chu khong || — gia 0 that (hang tang) la hop le.
-        // Man ban hang da chan them vao gio khi gia khong hop le; co sellable
-        // de App KH sau nay khong phai tu doan.
-        price: priceInfo?.price ?? null,
-        sellable: typeof priceInfo?.price === 'number' && priceInfo.price > 0,
-        is_special_group: !!priceInfo?.is_special_group,
-        unit: p.category === 'tea' ? 'gói' : 'túi',
-        is_active: 1
-      };
-    });
-
-    res.json(products);
+    res.json(await layMenuQuay(req.query.category));
   } catch (err) {
     console.error('Error in GET /products:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}
+
+// KH-API-1: danh sách món ĐÚNG như quầy thấy (SX + nhớ tồn, hoặc tồn cũ; giá POS) — /api/kh/menu gọi CÙNG hàm. Hàm đặt ngay
+// dưới dòng gắn route: lệnh ghi nhớ tồn vẫn nằm trong khối phép E14 quét cho GET này (không giấu vào hàm phụ ngoài khối).
+async function layMenuQuay(category) {
+  let products = [];
+
+  // Gọi API từ SX
+  if (isSxConfigured()) {
+    try {
+      products = await callSxApi('/api/pos/products-with-stock');
+
+      // POS-TONCU-v1: goi duoc SX thi NHO LAI so ton va gio biet.
+      // Lan sau SX chet, POS con cai that de tra ve thay vi bia 999.
+      // Chi nho mon CO QUAN KHO va ton la so that (nhom "pha khi khach
+      // goi" tra null — nho null vao la bien no thanh "chua ro ton").
+      // Loi o day KHONG duoc lam hong man ban hang: chi ghi log.
+      try {
+        // ton_luc la GIO VIET NAM (de hien "luc 14:03" cho nguoi nhin).
+        // Cac cot khac cua POS dung datetime('now') = gio UTC — DUNG so sanh
+        // truc tiep ton_luc voi created_at, lech 7 tieng.
+        const nowVn = new Date(Date.now() + 7 * 3600 * 1000)
+          .toISOString().slice(0, 19).replace('T', ' ');
+
+        // Chi GHI KHI TON THAY DOI. Man ban hang tai lai danh sach rat nhieu
+        // lan moi ca; ghi mu quang la 10 luot ghi Turso moi lan tai, phan lon
+        // la ghi lai dung con so cu. Doc 1 luot roi so re hon nhieu.
+        const daNho = await query(
+          'SELECT sx_product_type, sx_product_id, ton_gan_nhat FROM pos_products',
+        );
+        for (const p of products) {
+          if (p.khong_quan_kho) continue;
+          if (typeof p.stock_quantity !== 'number') continue;
+          const cu = daNho.find(
+            (x) => x.sx_product_type === p.sx_product_type &&
+                   String(x.sx_product_id) === String(p.sx_product_id),
+          );
+          if (cu && cu.ton_gan_nhat === p.stock_quantity) continue;
+          await run(
+            `UPDATE pos_products SET ton_gan_nhat = ?, ton_luc = ?
+              WHERE sx_product_type = ? AND sx_product_id = ?`,
+            [p.stock_quantity, nowVn, p.sx_product_type, p.sx_product_id],
+          );
+        }
+      } catch (e) {
+        console.error('Khong ghi duoc ton gan nhat:', e.message);
+      }
+
+      if (category) {
+        products = products.filter(p => p.category === category);
+      }
+
+      console.log(`✅ Loaded ${products.length} products from SX`);
+
+    } catch (err) {
+      console.error('❌ Error loading from SX:', err.message);
+      products = await getFallbackProducts(category);
+    }
+  } else {
+    products = await getFallbackProducts(category);
+  }
+
+  // Merge giá + TIER-2 (SP đặc biệt) từ POS database - SỬA: dùng composite key
+  const prices = await query('SELECT sx_product_type, sx_product_id, price, is_special_group FROM pos_products');
+
+  products = products.map(p => {
+    // TÌM GIÁ BẰNG COMPOSITE KEY (type + id)
+    const priceInfo = prices.find(pr => 
+      pr.sx_product_type === p.sx_product_type && 
+      String(pr.sx_product_id) === String(p.sx_product_id)
+    );
+
+    return {
+      ...p,
+      // Tạo unique_id để frontend phân biệt
+      unique_id: `${p.sx_product_type}_${p.sx_product_id}`,
+      // POS-TONCU-v1: thieu gia thi tra null, KHONG tra 0.
+      // Dung ?? chu khong || — gia 0 that (hang tang) la hop le.
+      // Man ban hang da chan them vao gio khi gia khong hop le; co sellable
+      // de App KH sau nay khong phai tu doan.
+      price: priceInfo?.price ?? null,
+      sellable: typeof priceInfo?.price === 'number' && priceInfo.price > 0,
+      is_special_group: !!priceInfo?.is_special_group,
+      unit: p.category === 'tea' ? 'gói' : 'túi',
+      is_active: 1
+    };
+  });
+
+  return products;
+}
 
 /**
  * Fallback khi không kết nối được SX
@@ -275,3 +281,4 @@ router.post('/sync-from-sx', authenticate, checkPermission('manage_settings'), a
 });
 
 module.exports = router;
+module.exports.layMenuQuay = layMenuQuay; // KH-API-1: /api/kh/menu

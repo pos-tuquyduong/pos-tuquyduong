@@ -206,7 +206,7 @@ const KICH_BAN = [
   // KB13 cũng là kịch bản phủ nhánh 'refunded' của I1 (dùng mã rồi hoàn qua yêu cầu + duyệt).
   { ten: 'dùng mã, hoàn tiền rồi huỷ đơn', chay: async (c) => {
     const d = await c.taoDon('KB13', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(0)], payment_method: 'balance', balance_amount: 25000 });
-    const m = await c.claim(d.ma);
+    const m = await c.claim(d.ma, KH.quen);   // KH-API-1 Q11: bill ghi SĐT khách quen → chỉ SĐT đó nhận được mã
     const yc = await c.yeuCau(d.id);
     const dy = await c.duyet(yc.refund_id);
     c.mong('dùng mã → yêu cầu hoàn → duyệt: 200, 200, 200', m.status === 200 && yc.status === 200 && dy.status === 200,
