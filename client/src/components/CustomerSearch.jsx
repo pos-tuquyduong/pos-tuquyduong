@@ -53,6 +53,7 @@ export default function CustomerSearch({
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [moQuet, setMoQuet] = useState(false);
+  const moQuetRef = useRef(false); // tra xong mà hộp đã đóng (thu ngân chọn khách khác) → KHÔNG chọn muộn
   
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
@@ -163,14 +164,17 @@ export default function CustomerSearch({
     try {
       const kh = await customersApi.getByQR(ma);
       const data = await customersV2Api.search(kh.phone);
-      const dong = (data.results || []).find((c) => normalizePhone(c.phone) === kh.phone);
+      const dong = (data.results || []).find((c) => normalizePhone(c.phone) === normalizePhone(kh.phone));
       if (!dong) return "Khách chưa có trong danh sách quầy — tìm theo SĐT.";
-      setMoQuet(false);
+      if (!moQuetRef.current) return;
+      datMoQuet(false);
       handleSelect(dong);
     } catch (err) {
       return err.status === 404 ? "Không phải thẻ thành viên của quán." : "Không tra được thẻ — đóng hộp rồi quét lại, hoặc tìm theo SĐT.";
     }
   };
+
+  const datMoQuet = (mo) => { moQuetRef.current = mo; setMoQuet(mo); };
 
   const handleClear = () => {
     setQuery("");
@@ -435,7 +439,7 @@ export default function CustomerSearch({
       </div>
         <button
           type="button"
-          onClick={() => setMoQuet(true)}
+          onClick={() => datMoQuet(true)}
           title="Quét mã thành viên bằng camera"
           style={{
             whiteSpace: "nowrap",
@@ -450,7 +454,7 @@ export default function CustomerSearch({
           📷 Quét thẻ
         </button>
       </div>
-      {moQuet && <QrScanModal tieuDe="📷 Quét thẻ thành viên" onResult={quetThe} onClose={() => setMoQuet(false)} />}
+      {moQuet && <QrScanModal tieuDe="📷 Quét thẻ thành viên" onResult={quetThe} onClose={() => datMoQuet(false)} />}
 
       {/* Dropdown */}
       {showDropdown && (
