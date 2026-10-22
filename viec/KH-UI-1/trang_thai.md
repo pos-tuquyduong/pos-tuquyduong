@@ -75,3 +75,4 @@ BÀI HỌC:     KHOÁ 2 (ca KH_HOST hoa+trim và đột biến VS-G-kh-host-*; d
 - BỎ: dựng thử `dist` bằng alias — chỉ vì thiếu lockfile (nay đã có).
 
 HEAD ĐÃ KIỂM: 2a58cf8
+HEAD ĐÃ KIỂM: 1396c09
