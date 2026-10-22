@@ -4,7 +4,7 @@ import jsQR from 'jsqr';
 /**
  * A5: Modal quét QR mã khuyến mãi bằng camera.
  * Thuần client — không gọi API mới, không đụng luồng tiền.
- * Đọc được QR → gọi onResult(text) rồi tự đóng. Cha (Sales.jsx) tự quyết định
+ * Đọc được QR → gọi onResult(text), dừng quét; CHA đóng hộp. Cha (Sales.jsx) tự quyết định
  * làm gì với text đọc được (đổ vào ô mã, gọi validateDiscountCode như cũ).
  * P15-QR: onResult được trả (hoặc hứa trả) một CHUỖI lỗi → hiện lỗi trong hộp, camera quét tiếp,
  * bỏ qua đúng mã vừa lỗi (không gọi lặp mỗi khung hình). Trả undefined → như cũ.
@@ -71,8 +71,8 @@ export default function QrScanModal({ onResult, onClose, tieuDe = 'Quét mã QR'
             maLoiRef.current = code.data;
             doneRef.current = false;
             rafRef.current = requestAnimationFrame(tick);
-          });
-          return; // không schedule frame kế, để cleanup lo phần dừng stream
+          }).catch(() => { if (!cancelled) setLoiQuet('Lỗi khi đọc mã — đóng hộp rồi quét lại.'); });
+          return; // dừng quét; chỉ quét tiếp khi onResult trả chuỗi lỗi (.then trên), còn lại cha đóng hộp → cleanup dừng stream
         }
       }
       rafRef.current = requestAnimationFrame(tick);
