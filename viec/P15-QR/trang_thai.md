@@ -62,7 +62,7 @@ tìm theo SĐT."; 404 → "Không phải thẻ thành viên của quán."). `Sal
 - `npm test`: PASS 68 · FAIL 0 · CẢNH BÁO 1 (`route GET có lệnh ghi (3)` — packages.js, products.js, sync.js — có sẵn trên gốc, không phải file việc này).
 - `(cd client && npm run build)` thành công. `bash ban_mau_pos/chay_thu.sh`: 119 đạt · 0 hỏng.
 - `--day-du`: chủ quán dặn chạy ĐÚNG MỘT lần ở cuối — chạy qua `node tu_chay/cong.js chay` (A13 chạy `lenh_kiem_day_du`, `tu_chay/cau_hinh.json:3`).
-- Ngân sách: server 50 dòng thêm / 16 bớt (phiếu ~80) · client +66 / −7 (~120) · thử 286 + 9 (đã duyệt ~245 — vượt ~40 dòng: thêm D4 viết hoa,
+- Ngân sách (lần đo cuối, sau 3 vòng sửa): server +53 / −16 (phiếu ~80) · client +84 / −16 (~120) · thử 286 + 9 (đã duyệt ~245 — vượt ~40 dòng: thêm D4 viết hoa,
   dò nhật ký tiến trình con, A7 ghi / phát lại lần rút ngẫu nhiên).
 
 ## Bước 8 — soát độc lập vòng 1 (agent general-purpose, chỉ đọc) — báo cáo nguyên văn (rút gọn trình bày, giữ nội dung)
@@ -136,11 +136,36 @@ tay tái hiện; NGUYÊN TẮC — tái dùng component thì sửa chú thích �
 ### CHƯA KIỂM quầy — từng chỗ, kèm thao tác tay tái hiện (máy không có bài giao diện, kế hoạch đã duyệt chấp nhận)
 | Chỗ | Thao tác tay (máy quầy / điện thoại) | Mong đợi |
 |---|---|---|
-| 1. Quét thẻ chọn đúng khách (C) | App KH khách thật → mở QR; Bán hàng bấm 📷 Quét thẻ, đưa mã | chọn đúng khách, ví / điểm như khi gõ SĐT |
+| 1. Quét thẻ chọn đúng khách (C) | App KH khách thật → mở QR; Bán hàng bấm 📷 Quét thẻ (cả điện thoại lẫn máy tính), đưa mã | hộp quét phủ CẢ màn (lớp đen toàn màn, không bị bó trong thẻ khách, giỏ / thanh dưới không đè lên); chọn đúng khách, ví / điểm như khi gõ SĐT |
 | 2. Mã giảm đi đường cũ (C, G) | quét mã khuyến mãi bằng nút ở ô mã giảm; rồi bán một đơn không quét gì | áp mã như cũ; Bán hàng như cũ |
 | 3. Mã cũ / mã giảm ở nút Quét thẻ (C) | in `QR-0912345678`, quét bằng 📷 Quét thẻ; rồi quét một mã giảm bằng 📷 Quét thẻ; rồi đưa thẻ thật | câu "mã kiểu cũ"; "Không phải thẻ thành viên"; camera vẫn chạy, thẻ thật chọn đúng khách |
-| 4. Chọn muộn (soát vòng 1 lỗi 1, vòng 2 lỗi 1) | tắt mạng máy quầy (hoặc để Render ngủ), quét thẻ khách A, ĐÓNG hộp ngay; mở lại, bật mạng, quét thẻ khách B | chọn B (hoặc không chọn ai nếu đóng hẳn) — KHÔNG BAO GIỜ tự chọn A |
+| 4. Chọn muộn (soát vòng 1 lỗi 1, vòng 2 lỗi 1) | máy tính quầy: DevTools → Network → Slow 3G (hoặc lúc Render vừa ngủ dậy ~30 s); quét thẻ khách A, ĐÓNG hộp ngay; mở lại, quét thẻ khách B. KHÔNG dùng "tắt mạng" — yêu cầu hỏng ngay, không còn lượt A đang chờ (soát vòng 3) | chọn B (hoặc không chọn ai nếu đóng hẳn) — KHÔNG BAO GIỜ tự chọn A |
 | 5. So SĐT hai vế (soát vòng 1 lỗi 2) | khách có SĐT lưu dạng `84…` trong danh sách quầy (nếu có), quét thẻ | chọn đúng khách, không báo "chưa có trong danh sách quầy" |
+
+## Bước 8 — soát độc lập vòng 3 — báo cáo (rút gọn trình bày, giữ nội dung)
+```
+KHÔNG ĐẠT — mọi lỗi vòng 1, 2 đã sửa đúng trong code; hai lỗi mới:
+1. CustomerSearch.jsx:460 — QrScanModal (fixed, inset 0, z 1000) vẽ BÊN TRONG thẻ khách `.card` (Sales.jsx:898, z-index 100) có
+   backdrop-filter (index.css:123-125) → fixed bị bó trong khung thẻ (Chrome theo đặc tả), .cart-panel / .bottom-nav đè lên; phần còn lại
+   của Bán hàng bấm được khi hộp mở → đặt ví / nợ / chiết khấu rồi bị handleSelectCustomer xoá. Bản vẽ: lớp phủ toàn màn. Sửa: createPortal
+   ra document.body. K4 + K7 (chưa vẽ được trên trình duyệt thật).
+2. trang_thai.md thao tác tay 4 "tắt mạng" không tái hiện cuộc đua: api.request không thời hạn / thử lại, fetch bị từ chối ngay → phép tay
+   xanh oan cả trên bản lỗi. Đổi "Render ngủ / Slow 3G". K3 + K1.
+NGHI NGỜ: ke_hoach mục 3 còn "await onResult(text)"; ngân sách client +66/−7 cũ; datMoQuet số âm/dương có thể là bộ đếm tăng; unmount khi
+selectedCustomer khác null chưa đóng phiên — hiện không đường nào kích hoạt.
+NGHIỆM THU: 7/7 có bằng chứng hoặc CHƯA KIỂM + thao tác tay ghi rõ; C có rủi ro thật (lỗi 1).
+CHƯA SOÁT ĐƯỢC: cong.js chay (11.4); vẽ thật trên trình duyệt; camera / jsQR; SX thật; chay_thu.sh, thu_KH1 không chạy lại; VS-B4.
+BÀI HỌC: KHOÁ hộp fixed dùng lại ở chỗ khác vẽ qua portal; NGUYÊN TẮC thao tác tay tái hiện cuộc đua phải tạo được "đang chờ" thật;
+NGUYÊN TẮC chạy thử thao tác tay trong đầu trên bản CÒN LỖI (K3 áp cả phép tay).
+```
+Đã tự chạy trong lượt soát: thu_P15QR 29/0; dot_bien 21/21; npm test 68/0.
+
+### Vòng sửa 3 (vòng cuối được phép — `so_vong_sua_toi_da`)
+- Lỗi 1: `QrScanModal.jsx` vẽ qua `createPortal(…, document.body)` — một chỗ, đúng cho cả hộp mã giảm và hộp Quét thẻ. CHƯA KIỂM bằng máy
+  (không vẽ trình duyệt) → thao tác tay 1 thêm vế "hộp phủ cả màn".
+- Lỗi 2: thao tác tay 4 đổi sang Slow 3G / Render vừa ngủ dậy.
+- Nghi ngờ: `ke_hoach.md` thêm đính chính 3 (`onResult` qua ref + `Promise.resolve(…).then/.catch`); ngân sách đo lại. `datMoQuet` giữ (đúng,
+  đã soát). Unmount khi đã chọn khách: chỉ `handleSelectCustomer` đặt khách (soát vòng 3 đã kiểm) → ghi đây, không thêm code.
 
 ## Câu hỏi
 

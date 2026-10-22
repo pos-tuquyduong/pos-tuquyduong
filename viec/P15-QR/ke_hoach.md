@@ -8,6 +8,8 @@ Bốn chỗ cần chủ quán quyết TRƯỚC khi viết code: `trang_thai.md` 
 > là `NOT NULL` (`server/database.js:81`) nên người nhận không SĐT không ghi được từ trước việc này — xem `trang_thai.md` Phát hiện. Ca A2 đã bỏ vế đó.
 > **Đính chính 2:** mục 2 tả câu ghi `… qr_code NOT LIKE ?`; code thật (soát vòng 1) dùng MỘT vị từ `startsWith(QR_TIEN_TO)` cùng `/qr/:code` và câu ghi
 > so-đổi `UPDATE … WHERE id = ? AND qr_code IS ?` theo giá trị vừa đọc (`server/routes/kh/index.js`).
+> **Đính chính 3:** mục 3 "`await onResult(text)`" — code thật giữ `onResult` qua ref và gọi `Promise.resolve(onResultRef.current(text)).then(…).catch(…)`;
+> hộp vẽ qua `createPortal` ra `document.body` (soát vòng 3).
 
 ## 0. Hiện trạng (đọc 22.10)
 
