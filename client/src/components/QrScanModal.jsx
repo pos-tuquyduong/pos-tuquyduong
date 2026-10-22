@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import jsQR from 'jsqr';
 
 /**
  * A5: Modal quét QR bằng camera — dùng ở hai chỗ: mã khuyến mãi (Sales.jsx) và Quét thẻ thành viên (CustomerSearch.jsx, P15-QR).
  * Hộp tự nó không gọi API; cha quyết định làm gì với text đọc được.
  * Đọc được QR → gọi onResult(text), dừng quét; CHA đóng hộp.
+ * Vẽ qua portal ra document.body: cha nằm trong .card (backdrop-filter, z-index riêng) thì position:fixed bị bó trong thẻ (P15-QR).
  * P15-QR: onResult được trả (hoặc hứa trả) một CHUỖI lỗi → hiện lỗi trong hộp, camera quét tiếp,
  * bỏ qua đúng mã vừa lỗi (không gọi lặp mỗi khung hình). Trả undefined → như cũ.
  */
@@ -89,7 +91,7 @@ export default function QrScanModal({ onResult, onClose, tieuDe = 'Quét mã QR'
     };
   }, []);
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -167,6 +169,7 @@ export default function QrScanModal({ onResult, onClose, tieuDe = 'Quét mã QR'
         )}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
