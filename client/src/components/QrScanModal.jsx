@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 
 /**
- * A5: Modal quét QR mã khuyến mãi bằng camera.
- * Thuần client — không gọi API mới, không đụng luồng tiền.
- * Đọc được QR → gọi onResult(text), dừng quét; CHA đóng hộp. Cha (Sales.jsx) tự quyết định
- * làm gì với text đọc được (đổ vào ô mã, gọi validateDiscountCode như cũ).
+ * A5: Modal quét QR bằng camera — dùng ở hai chỗ: mã khuyến mãi (Sales.jsx) và Quét thẻ thành viên (CustomerSearch.jsx, P15-QR).
+ * Hộp tự nó không gọi API; cha quyết định làm gì với text đọc được.
+ * Đọc được QR → gọi onResult(text), dừng quét; CHA đóng hộp.
  * P15-QR: onResult được trả (hoặc hứa trả) một CHUỖI lỗi → hiện lỗi trong hộp, camera quét tiếp,
  * bỏ qua đúng mã vừa lỗi (không gọi lặp mỗi khung hình). Trả undefined → như cũ.
  */
@@ -45,8 +44,8 @@ export default function QrScanModal({ onResult, onClose, tieuDe = 'Quét mã QR'
         if (!cancelled) {
           setError(
             err?.name === 'NotAllowedError'
-              ? 'Chưa được cấp quyền camera. Vào cài đặt trình duyệt để bật quyền, hoặc nhập mã tay.'
-              : 'Không mở được camera. Nhập mã tay bên dưới.'
+              ? 'Chưa được cấp quyền camera. Vào cài đặt trình duyệt để bật quyền, hoặc đóng hộp rồi nhập tay.'
+              : 'Không mở được camera. Đóng hộp rồi nhập tay.'
           );
         }
       }
