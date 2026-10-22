@@ -6,7 +6,8 @@ const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { 
-  generateQRCode, 
+  sinhQrKhongTrung, // P15-QR
+  QR_TIEN_TO,
   normalizePhone, 
   isValidPhone,
   getNow 
@@ -275,13 +276,14 @@ router.get('/phone/:phone', authenticate, async (req, res) => {
  */
 router.get('/qr/:code', authenticate, async (req, res) => {
   try {
-    const customer = await queryOne(
-      'SELECT * FROM pos_customers WHERE qr_code = ?',
-      [req.params.code]
-    );
+    // P15-QR: chỉ mã có tiền tố mới; mã cũ QR-<SĐT> (đoán được từ SĐT) bị từ chối như mã không có.
+    const code = String(req.params.code);
+    const customer = code.startsWith(QR_TIEN_TO)
+      ? await queryOne('SELECT * FROM pos_customers WHERE qr_code = ?', [code])
+      : null;
 
     if (!customer) {
-      return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
+      return res.status(404).json({ error: 'Không tìm thấy khách hàng', code: 'QR_KHONG_CO' });
     }
 
     // Lấy danh sách người nhận
@@ -342,7 +344,7 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     // Tạo QR code
-    const qrCode = generateQRCode(normalizedPhone);
+    const qrCode = await sinhQrKhongTrung(queryOne);
 
     // Xác định sync_status
     const syncStatus = customer_type === 'retail' ? 'retail_only' : 'new';
@@ -376,7 +378,7 @@ router.post('/', authenticate, async (req, res) => {
       for (const child of children) {
         if (child.name) {
           const childPhone = child.phone ? normalizePhone(child.phone) : null;
-          const childQR = childPhone ? generateQRCode(childPhone) : null;
+          const childQR = childPhone ? await sinhQrKhongTrung(queryOne) : null;
           
           // Kiểm tra phone trùng nếu có
           if (childPhone) {
@@ -608,7 +610,7 @@ router.post('/:id/children', authenticate, async (req, res) => {
       }
     }
 
-    const qrCode = childPhone ? generateQRCode(childPhone) : null;
+    const qrCode = childPhone ? await sinhQrKhongTrung(queryOne) : null;
 
     const result = await run(`
       INSERT INTO pos_customers (
