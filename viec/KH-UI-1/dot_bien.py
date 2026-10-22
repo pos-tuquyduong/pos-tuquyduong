@@ -31,6 +31,8 @@ DOT_BIEN = [
   ('VS-G-host-khong-bo-cong', [(IX, DOC_HOST, "String(req.headers.host || '').toLowerCase()", 1)], r"✗ H2c Host viết hoa"),
   ('VS-G-host-phan-biet-hoa', [(IX, DOC_HOST, "String(req.headers.host || '').split(':')[0]", 1)], r"✗ H2c Host viết hoa"),
   ('VS-G-tin-forwarded-host', [(IX, DOC_HOST, "req.hostname", 1)], r"✗ H2c X-Forwarded-Host"),
+  ('VS-G-kh-host-khong-chu-thuong', [(IX, "(process.env.KH_HOST || '').trim().toLowerCase()", "(process.env.KH_HOST || '').trim()", 1)], r"✗ H2 Host đúng"),
+  ('VS-G-kh-host-khong-trim', [(IX, "(process.env.KH_HOST || '').trim().toLowerCase()", "(process.env.KH_HOST || '').toLowerCase()", 1)], r"✗ H2 Host đúng"),
   # ── G: KH_HOST chưa đặt = hành vi cũ ──
   ('VS-G-host-rong-khop-rong', [(IX, "return !!hostKh && host === hostKh", "return host === hostKh", 1)], r"✗ H1 Host rỗng"),
 ]

@@ -46,6 +46,7 @@ async function moMayChu(envThem) {
   let log = '';
   con.stdout.on('data', (d) => { log += d; });
   con.stderr.on('data', (d) => { log += d; });
+  process.on('exit', () => { try { con.kill(); } catch { /* đã thoát */ } });   // mọi đường thoát (kể cả catch → exit 2) đều dọn máy chủ con
   const han = Date.now() + 30000;
   for (;;) {
     if (con.exitCode !== null) throw new Error('máy chủ thoát sớm: ' + log.slice(-400));
@@ -99,7 +100,8 @@ function goiHostRong(cong, duong) {
   await mc.dung();
 
   muc('H2 — KH_HOST đặt: chọn thư mục tĩnh theo Host');
-  mc = await moMayChu({ KH_JWT_SECRET: KHOA_KH, JWT_SECRET: KHOA_NV, KH_HOST });
+  // KH_HOST gõ tay trên Render dễ thừa khoảng trắng / chữ hoa: máy chủ phải chuẩn hoá phía KH_HOST (trim + chữ thường), không chỉ phía Host.
+  mc = await moMayChu({ KH_JWT_SECRET: KHOA_KH, JWT_SECRET: KHOA_NV, KH_HOST: `  ${KH_HOST.toUpperCase()} ` });
   r = await goi(mc.cong, '/', KH_HOST);
   k('H2 Host đúng → app_kh/dist/index.html', appKh !== null && r.status === 200 && r.than === appKh, `status ${r.status}`);
   k('H2 App KH khác trang quầy (đối chứng)', appKh !== null && quay !== null && appKh !== quay);

@@ -51,7 +51,8 @@ export default function Don() {
     datDang(true); datLoi('');
     try {
       const r = await layDon(t);
-      datDs((cu) => (t === 1 ? r.data : [...cu, ...r.data]));
+      // Phân trang theo OFFSET: đơn mới làm trang sau lặp lại đơn cuối trang trước → bỏ đơn đã có (key trùng).
+      datDs((cu) => (t === 1 ? r.data : [...cu, ...r.data.filter((d) => !cu.some((c) => c.ma === d.ma))]));
       datTrang(t); datConNua(r.con_nua);
     } catch (e) {
       datLoi(e.message);
