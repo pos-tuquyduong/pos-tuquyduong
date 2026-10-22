@@ -183,3 +183,35 @@ theo per cũ — nếu dựng được tất định, không thì ghi CHƯA KI�
 2. Công thức hạn điểm quý chép lần thứ ba trong signup-codes.js:248-255 (chú thích còn trỏ "orders.js ~787").
 3. Đơn Flash lúc giảm làm tròn ra 0đ (`flashApplied` true, `flash_discount` 0): lúc tạo không điểm, `pay-debt`/I8 xét `flash_discount > 0`
    → coi như không Flash. Ca biên cực hiếm, ghi lại.
+
+## 9. Sửa sau soát độc lập (agent chỉ đọc, 22.10) — đè lên các mục trên khi khác nhau
+1. **Bài NGOÀI Phạm vi sẽ đỏ: `cong_cu/thu_GOI1.js:713` ca B3n** — `mua30(n, { payment_method: 'debt', debt_amount: 1350000 })`, mà `mua30`
+   (thu_GOI1.js:525-528) ném lỗi khi không 200. Ca này canh `DON_CON_NO` của `soTienHoanGoi` (server/utils/tienDaTra.js:79) — đường đó sau
+   việc này chỉ còn cho dữ liệu cũ. Grep mục P7 sót vì `package_buy` nằm trong hàm bọc. → **Câu hỏi 1** trong trang_thai.md (xin thêm
+   `cong_cu/thu_GOI1.js` vào Phạm vi; cách sửa đề xuất như L6a: mua trả đủ rồi `UPDATE` về dạng nợ cũ).
+2. **"Gia hạn gói cũ"**: chú thích code orders.js:194 gọi gia hạn = `customer_package_id` + `package_buy` (mua gói MỚI, không lấy món); phiếu
+   mô tả gia hạn = `customer_package_id` + món `from_package`. Cổng P1 sẽ chặn dạng của code nếu ghi nợ. → **Câu hỏi 2**.
+3. **E(2) thu hẹp**: chỉ lấy `heSo` từ `docCauHinhNhanDiem`; `bat` (`nhandiem_enabled === '1'`) và `hanGio` ở chỗ in bill GIỮ nguyên (phiếu
+   chỉ đòi hệ số). Lệch `bat` / `hanGio` → Phát hiện 4. `VS-he-so-bill-cu` giữ nguyên.
+4. **`tinhDiemDon` ở tầng module orders.js** (trên `POST /`, ngoài ba vùng sửa) — cần vì hai route cùng dùng (LUAT §2). Xin chủ quán duyệt
+   cùng kế hoạch.
+5. **Mốc I8 gọn hơn**: trước mốc (chỉ `ctx.thuc`) không viết hai luật đầy đủ mà chỉ nới đúng hai vế khác nhau — đơn chưa thu đủ chấp nhận
+   {0, g}; đơn Flash đã nhận mã chấp nhận {0, round(g × k)}. Cùng nghĩa với "mới hoặc cũ".
+6. **Ca thêm vào bảng mục 3:**
+   - C8 (C "cùng giao dịch"): `co.nemGhi` vào câu ghi SAU câu ghi điểm (dòng `debt_payment`) → thu lỗi, rollback: đơn vẫn nợ, 0 `earn`, 0
+     `debt_payment`, 0 nhật ký `thu`. Đột biến `VS-pay-debt-diem-ngoai-tx` (ghi điểm sau commit) → C8 ĐỎ.
+   - C9 (C "cài đặt lúc thu", chiều ngược C7): tắt điểm lúc tạo, bật lúc thu → có 1 `earn`.
+   - D1–D3b đo ĐỦ "không ghi gì": số `pos_orders`, `pos_customer_packages`, `pos_membership_purchases`, `pos_balance_transactions`, số dư ví,
+     `pos_stock_pending`, lệnh SX giả, `pos_signup_codes`, `pos_registrations` (gửi `is_new_customer`), `used_count` mã giảm (gửi kèm mã).
+   - F3 (F "đơn huỷ GIỮ như hiện tại"): đơn đã thu có `earn` rồi huỷ → I8 không lệch; đơn chưa thu huỷ → 0 `earn`, không lệch.
+7. **thu_gia_lap.js KHUNG.I8** thêm cả `payment_status` lẫn `created_at` (ca mốc cần); KHUNG.I12 = `KHUNG.I8.slice(2)` nhận cột theo — không
+   hại (không INSERT `pos_orders` theo vị trí).
+8. **Loại sửa bài cũ**: thu_P26c L6a và thu_DOISOAT1 D2d đổi vì cổng D (cố ý đổi hành vi, không phải luật điểm) — ghi đúng loại trong
+   trang_thai.md, KHÔNG vào "Bài thử cũ sửa".
+9. **Đã xét, dự kiến không đổi**: thu_DOISOAT1 F3/F3c (:547-557, điểm theo tháng — đơn nợ tạo và thu cùng tháng); thu_KH1, thu_P20, thu_P21,
+   thu_P26b chỉ dùng đơn đã thu. Xác nhận bằng chạy.
+10. **Đường đọc `nhandiem_he_so` thứ tư**: client/src/pages/Settings.jsx:464 (kiểm hệ số ở màn Cài đặt) — không sửa (cấm client), liệt kê.
+11. Số dòng sửa: `pay-debt` 1239-1368 (không phải 1385); `docCauHinhNhanDiem` signup-codes.js:116-130; `AP_DUNG_TU` doiSoat.js:29-36;
+    `kiemDonCuaMa` còn dùng ở orders.js:517 (voucher mã bill — thêm cột chỉ đọc, không hại).
+
+Phát hiện 4: chỗ in bill bật "Mã nhận điểm" khi `nhandiem_enabled === '1'`, `/nhan-diem` nhận cả `'true'`; hạn giờ `|| 24` vs `> 0 ? : 24`.
