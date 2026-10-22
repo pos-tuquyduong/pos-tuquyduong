@@ -1,0 +1,64 @@
+P22-23 — bằng chứng ĐỎ trên code CHƯA vá (gốc c115944 = PHIEU: P22-23 duyệt kế hoạch; server/ và cong_cu/gia_lap/ của gốc)
+
+1) Bài MỚI cong_cu/thu_P2223.js (bản sau soát vòng 3 — vòng 1 thêm E1c, E1d, C1 tạo khác quý; vòng 2 thêm C10, E1c so 'Ma don hang'; vòng 3 thêm B5, D3d, D3e, C10 kiểm trước) — lệnh: python3 viec/P22-23/dot_bien.py --goc c115944 (git archive server/ + cong_cu/gia_lap/ của gốc,
+   chạy bài ở HEAD với --may-chu <gốc>/server; bat_bien.js nạp từ <gốc>/cong_cu/gia_lap). Chạy lại 22.10 sau soát vòng 3:
+  ✗ B1 bill mang ra bàn (cho_thu, nợ 25.000) có SĐT → 200 pending, 0 earn  — HTTP 200 · earn 1
+  ✗ B2 ghi nợ 25.000 → 200 pending, 0 earn  — HTTP 200 · earn 1
+  ✗ B3 ví 10.000 + nợ 15.000 → 200 partial, 0 earn  — HTTP 200 · earn 1
+  ✗ B4 máy khách gửi payment_status "paid" kèm nợ 25.000 → đơn pending, 0 earn  — HTTP 200 · earn 1
+  ✗ C1 đơn nợ 50.000, đổi 1.000 → 2.000đ/điểm rồi thu đủ → 1 earn 25 điểm, hạn quý theo giờ thu, lý do như lúc bán; có debt_payment + nhật ký thu  — HTTP 200 · {"points":50,...}
+  ✗ C2 thu một phần 20.000 → partial, 0 earn; thu nốt 30.000 → paid, 1 earn 50 điểm  — HTTP 200 · 1 / HTTP 200 · 1 · 50
+  ✗ C4 câu ghi điểm lỗi → thu vẫn 200 paid, có debt_payment + nhật ký thu, 0 earn  — HTTP 200 · {"tt":"paid","no":0,"so_thu":1,"nhat_ky":1} · earn 1
+  ✗ C5 dữ liệu CŨ: đơn nợ đã có earn lúc tạo → thu đủ 200, vẫn đúng 1 earn (không cộng đôi)  — HTTP 200 · 2 · 50
+  ✗ C7 tắt tích điểm lúc thu → thu 200, 0 earn  — HTTP 200 · earn 1
+  ✗ C8 câu ghi SAU câu ghi điểm lỗi → thu 500, rollback trọn: đơn vẫn nợ 25.000 pending, 0 earn, 0 debt_payment, 0 nhật ký thu  — HTTP 500 · LOI_MAY_CHU · … · earn 1
+  ✗ C9 tắt tích điểm lúc tạo, bật lúc thu → thu 200, 1 earn 25 điểm  — HTTP 200 · 0 · 0
+  ✗ D1 mua gói 300.000 GHI NỢ (+ khách mới, + mã giảm) → 400; không đơn, không gói, không ví, không kho, không mã, không khách  — HTTP 200 · {…"pos_orders":16…} → {…"pos_orders":17…}
+  ✗ D2 mua thẻ hội viên CHỜ THU (bill mang ra bàn) → 400, không đơn, không dòng mua thẻ  — HTTP 200 · …
+  ✗ D3 mua gói trả ví 100.000 + nợ 200.000 → 400, ví không bị trừ  — HTTP 200 · … "vi":100000 … → … "vi":0 …
+  ✗ D3b mua thẻ + nợ, máy khách gửi payment_status "paid" → 400  — HTTP 200 · …
+  ✗ D3c gia hạn gói (customer_package_id + package_buy, không lấy món) GHI NỢ → 400  — HTTP 200 · …
+  ✗ E1c bill đơn Flash KHÔNG hứa điểm (nhân điểm đang bật, voucher tắt → bill in "Ma don hang", không lời hứa)  — bill "Ma nhan diem" · "Tao tai khoan trong 1 ngay de nhan gap 2 diem cua don nay"
+  ✗ B5 sát ngưỡng: tiền mặt 24.999 + nợ 1đ → 200 pending, 0 earn  — HTTP 200 · earn 1
+  ✗ C10 đơn nợ chưa có earn trước khi thu; dòng earn nằm TRONG giao dịch thu: đọc ngay trước commit thấy đúng 1 (ghi sau commit → 0)  — trước 1 · …
+  ✗ D3d mua gói, cách trả "cash" (tiền mặt 100.000) kèm nợ 200.000 → 400 (cổng không xét payment_method máy khách gửi)  — HTTP 200 · …
+  ✗ D3e sát ngưỡng: mua gói tiền mặt 299.999 + nợ 1đ → 400  — HTTP 200 · …
+  ✗ G2b thu đủ chồng thu một phần (một phần vào trước) → một phần 200, thu đủ 409, 0 earn; thu nốt 30.000 → paid, 1 earn  — HTTP 200 / HTTP 409 · DA_THU_ROI · … · 1 / HTTP 200 · 1
+  ✗ E1 đơn Flash đã thu → /nhan-diem 400 DON_FLASH_KHONG_DIEM, 0 dòng điểm, mã chưa bị tiêu  — HTTP 200 / HTTP 200 · điểm 40
+  ✗ F3 đơn đã thu huỷ giữ 25 điểm; đơn ghi nợ huỷ 0 điểm  — HTTP 200 / HTTP 200 · 25 / 25
+  ✗ F1 I8 trên mọi đơn của bài (trừ 3 đơn cố ý đổi cài đặt / ném lỗi ghi) → 0 lệch  — ["đơn …-012: 50 điểm, đúng luật là 25","đơn …-016: 0 điểm, đúng luật là 25"]
+  ✗ F2 đơn ghi nợ có earn (dữ liệu cũ): Đối soát thật, tạo 1 giây trước mốc (chưa có) → KHÔNG lệch; đúng mốc → lệch; giả lập (không ctx.thuc) trước mốc → lệch  — trước mốc  · đúng mốc  · giả lập
+  ✗ E2 hệ số cài 0,5 (< 1) → bill hứa "gap 2 diem" VÀ /nhan-diem cộng tổng 50 × 2 = 100  — HTTP 200 · bill "Tao tai khoan trong 1 ngay de nhan gap 0.5 diem cua don nay" / HTTP 200 · 100
+  17 đạt · 27 hỏng
+GỐC c115944: thoát 1
+  Ca XANH trên gốc (hồi quy / K5 — đột biến canh, xem trang_thai.md): A1–A3, C3, C6, D4, D4b, D5, D6, D7, G1, G2, G3, E1b, E1d, E3, E2b.
+
+2) Bài CŨ đã sửa — cây gốc dựng bằng `git archive c115944` + bài thử của HEAD chép đè + node_modules nối (đúng cách cổng A11 dựng), chạy ở gốc cây đó:
+  node cong_cu/thu_P26c.js
+  ✗ L6b mua gói 300.000 trả 100.000 + nợ 200.000 → 400 GOI_THE_CHUA_THU_DU  — HTTP 200
+  156 đạt · 1 hỏng
+  node cong_cu/thu_DOISOAT1.js
+  ✗ D2d mua thẻ GHI NỢ → 400 GOI_THE_CHUA_THU_DU, không thêm đơn; Đối soát vẫn XANH  — HTTP 200
+  133 đạt · 1 hỏng
+  node cong_cu/thu_GOI1.js
+  ✗ B3n0 mua gói GHI NỢ → 400 GOI_THE_CHUA_THU_DU  — HTTP 200
+  111 đạt · 1 hỏng
+  node cong_cu/thu_gia_lap.js
+  ✗ M14 thu đủ nợ bỏ cộng điểm (routes/orders.js)  — chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  ✗ M15 tạo đơn cộng điểm cả đơn chưa thu đủ (routes/orders.js)  — chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  ✗ I8 sạch (P22-23): đơn thu đủ 5 điểm; đơn ghi nợ 0; đơn Flash đã nhận mã 0  — ["đơn N1: 0 điểm, đúng luật là 5","đơn F1: 0 điểm, đúng luật là 10"]
+  ✗ I8 đơn ghi nợ có điểm  — ["đơn F1: 0 điểm, đúng luật là 10"]
+  ✗ I8 đơn thu đủ thiếu điểm  — ["đơn P1: 0 điểm, đúng luật là 5","đơn N1: 0 điểm, đúng luật là 5","đơn F1: 0 điểm, đúng luật là 10"]
+  ✗ I8 đơn Flash nhận mã bill có điểm (luật cũ round(g×k))  — ["đơn N1: 0 điểm, đúng luật là 5"]
+  ✗ I8 sạch Đối soát thật: đơn ghi nợ tạo 1 giây trước mốc, có điểm theo luật cũ  — ["đơn F1: 0 điểm, đúng luật là 10"]
+  ✗ I8 Đối soát thật: đơn ghi nợ có điểm tạo ĐÚNG mốc  — ["đơn F1: 0 điểm, đúng luật là 10"]
+  ✗ I8 Đối soát thật: đơn trước mốc sai cả luật cũ (7 điểm)  — ["đơn N1: 7 điểm, đúng luật là 5","đơn F1: 0 điểm, đúng luật là 10"]
+  ✗ I8 giả lập (không ctx.thuc): đơn ghi nợ trước mốc có điểm  — ["đơn F1: 0 điểm, đúng luật là 10"]
+  149 đạt · 10 hỏng
+
+3) Số ca trên code ĐÃ VÁ (HEAD, 22.10):
+SỐ CA cong_cu/thu_P2223.js: 44
+SỐ CA cong_cu/thu_P26c.js: 157
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
+SỐ CA cong_cu/thu_GOI1.js: 112
+SỐ CA cong_cu/thu_gia_lap.js: 159
