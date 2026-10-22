@@ -1204,7 +1204,7 @@ router.post("/", authenticate, async (req, res) => {
             );
             const c = {};
             for (const r of rows) c[r.key] = r.value;
-            const batDiem = c.nhandiem_enabled === '1';
+            const batDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
             const batVoucher = c.signup_enabled === 'true' || c.signup_enabled === '1';
             const { heSo } = await docCauHinhNhanDiem();   // P22-23: CÙNG hệ số /nhan-diem cộng (hệ số < 1 → 2 ở cả hai)
             const gio = Number(c.nhandiem_han_gio) || 24;
@@ -1333,12 +1333,13 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
       // trong câu ghi chặn cộng đôi đơn CŨ đã có điểm lúc tạo (luật cũ). Lỗi ghi điểm không làm hỏng lần thu (khuôn LOY-1).
       if (diemThu) {
         try {
-          await tx.run(
+          const kqDiem = await tx.run(
             `INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
              SELECT ?, 'earn', ?, ?, ?, ?, ?, ?
              WHERE NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'earn')`,
             [order.customer_phone, diemThu.diem, order.id, diemThu.han, `Tích điểm đơn ${order.code}`, req.user.username, now, order.id],
           );
+          if (kqDiem.changes !== 1) console.log(`ℹ️ Đơn ${order.code} đã có điểm lúc tạo (luật cũ) — không cộng đôi`);
         } catch (loyErr) {
           console.error(`⚠️ Đơn ${order.code} - Ghi điểm khi thu nợ lỗi (bỏ qua, vẫn thu):`, loyErr.message);
         }
