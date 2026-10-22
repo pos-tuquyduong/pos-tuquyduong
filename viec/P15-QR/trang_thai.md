@@ -20,6 +20,51 @@ dự phòng `pos_customers`, chép khách SX), `kh/index.js`, `kh/loi.js`, `midd
 cho "mọi chỗ gọi dùng vòng sinh lại" và `sync.js`, ngân sách thử ghi sai — đã sửa, chi tiết `ke_hoach.md` mục 10.
 `npm test` trên `61e713c`: 68 phép, qua hết. Phiếu dặn chờ duyệt → DỪNG ở đây.
 
+## Lượt 2 (22.10.2026, `/lam-viec P15-QR tiep`) — bước 1
+Nhánh `viec/P15-QR`, cây sạch. HEAD `a5ec1f2` = FETCH_HEAD `a5ec1f2` → không kéo.
+```
+a5ec1f2 PHIEU: P15-QR duyet ke hoach 22.10 (them index.js log, sua thu_KH1 A4/E1, nut Quet the)
+f954eb6 P15-QR: ke hoach (cho duyet) + trang thai, cau hoi Q1-Q4
+61e713c PHIEU: P15-QR
+```
+Q1–Q4 đã được chủ quán trả lời trong mục "Đã duyệt" của phiếu (`a5ec1f2`) — làm theo, không hỏi lại.
+
+## Bước 4 — bài thử đỏ trước
+- `cong_cu/thu_P15QR.js` (mới, 286 dòng): gốc **8 đạt · 20 hỏng**, bản vá **29 đạt · 0 hỏng**.
+- `cong_cu/thu_KH1.js` (sửa A4, E1, thêm E1b — đã duyệt): gốc **154 đạt · 3 hỏng** (đúng 3 ca vừa sửa), bản vá **157 đạt · 0 hỏng**.
+- Chi tiết + dòng `SỐ CA`: `bang_chung_do.txt`. Gốc chạy bằng cách đặt lại bốn file `server/` về `a5ec1f2` (`git checkout -- <file>`), bài bản cuối.
+- Sự cố khi viết bài: (1) `sv.close()` đặt trước D4 → D4 "fetch failed" (lỗi bài, sửa `794c0d6`); (2) ca A2 cũ đòi "người nhận không SĐT →
+  qr NULL" — truy ra `pos_customers.phone TEXT UNIQUE NOT NULL` (`server/database.js:81`): người nhận không SĐT KHÔNG BAO GIỜ ghi được, trên gốc
+  cũng vậy → kế hoạch mục 0 / mục 7 A2 nói sai (K1); bỏ vế đó khỏi A2 (`2936ed7`), ghi Phát hiện; (3) thêm ca D4 đường viết hoa
+  `/Customers/QR/<mã>` (Express khớp route không phân biệt hoa thường — bộ che phải có cờ `i`).
+
+## Bước 5 — sửa
+| Chỗ vá | File | Đột biến |
+|---|---|---|
+| `generateQRCode` ngẫu nhiên `TQD-`+12 | `server/utils/helpers.js` | `BV-A-qr-sdt` · `VS-A-ngan-8` |
+| `sinhQrKhongTrung` (≤ `QR_THU_TOI_DA` = 5) | `server/utils/helpers.js` | `BV-A5-khong-kiem-trung` · `VS-A5-thu-6-lan` |
+| người nhận trong POST / | `server/routes/customers.js` | `VS-A2-con-qr-sdt` · `VS-A7-con-goi-generate` |
+| POST /:id/children | `server/routes/customers.js` | `VS-A3-children-qr-sdt` · `VS-A7-children-goi-generate` |
+| POST / | `server/routes/customers.js` | `VS-A7-post-goi-generate` |
+| `/qr/:code` từ chối mã cũ, 404 `QR_KHONG_CO`, giữ `authenticate` | `server/routes/customers.js` | `BV-B1-nhan-qr-cu` · `BV-E1-bo-code` · `BV-E1-bo-authenticate` |
+| `GET /kh/toi` đổi mã cũ / NULL một lần, chặn đua trong câu ghi | `server/routes/kh/index.js` | `BV-B2-toi-khong-doi` · `VS-F2-toi-luon-sinh-moi` · `VS-A7-toi-goi-generate` |
+| `GET /kh/toi` trả `qr` theo token, không vào `hoSo` | `server/routes/kh/index.js` | `BV-D1-toi-khong-qr` · `VS-D1-qr-theo-tham-so` · `VS-D2-qr-vao-hoSo` |
+| bộ ghi nhật ký che mã sau `/customers/qr/` (cờ `i`) | `server/index.js` | `BV-D4-log-ghi-ma` · `VS-D4-log-phan-biet-hoa` |
+
+`python3 viec/P15-QR/dot_bien.py`: ĐỐI-CHỨNG 29 đạt · 0 hỏng; **20 đột biến bị bắt · 0 KHÔNG bị bắt (trên 20)**.
+`VS-B4-update-khong-dieu-kien` (kế hoạch mục 8) KHÔNG dựng: hai `/toi` đồng thời phụ thuộc thứ tự — không đỏ tất định → CHƯA KIỂM (K3).
+Quầy: `QrScanModal.jsx` (`tieuDe`, lỗi hiện trong hộp, camera quét tiếp, bỏ qua đúng mã vừa lỗi, `onResult` qua ref);
+`CustomerSearch.jsx` (nút 📷 Quét thẻ cạnh ô tìm; `QR-` → câu mã kiểu cũ; ký tự ngoài `[A-Za-z0-9-]` → "Không phải thẻ…"; còn lại
+`customersApi.getByQR` → `customersV2Api.search(SĐT)` → dòng trùng SĐT → `handleSelect`; không có → "Khách chưa có trong danh sách quầy —
+tìm theo SĐT."; 404 → "Không phải thẻ thành viên của quán."). `Sales.jsx` không sửa. `GET /toi` ghi chú `// GET-ghi:` theo quy ước bộ kiểm.
+
+## Bước 6 — kiểm
+- `npm test`: PASS 68 · FAIL 0 · CẢNH BÁO 1 (`route GET có lệnh ghi (3)` — packages.js, products.js, sync.js — có sẵn trên gốc, không phải file việc này).
+- `(cd client && npm run build)` thành công. `bash ban_mau_pos/chay_thu.sh`: 119 đạt · 0 hỏng.
+- `--day-du`: chủ quán dặn chạy ĐÚNG MỘT lần ở cuối — chạy qua `node tu_chay/cong.js chay` (A13 chạy `lenh_kiem_day_du`, `tu_chay/cau_hinh.json:3`).
+- Ngân sách: server 50 dòng thêm / 16 bớt (phiếu ~80) · client +66 / −7 (~120) · thử 286 + 9 (đã duyệt ~245 — vượt ~40 dòng: thêm D4 viết hoa,
+  dò nhật ký tiến trình con, A7 ghi / phát lại lần rút ngẫu nhiên).
+
 ## Câu hỏi
 
 **Q1 (chặn việc) — `thu_KH1.js` sẽ ĐỎ trên code PR, phiếu lại dặn "CHỈ thêm ca; bản gốc chạy trên code PR phải xanh".**
@@ -57,6 +102,9 @@ cạnh `generateQRCode`, đúng một hàm `sinhQrKhongTrung` ngay dưới, và 
 lý do ở `ke_hoach.md` mục 5. Bài thử dự kiến ~230 + 15 dòng, vượt "thử ~200" của phiếu khoảng 20% (thêm ca sau soát).
 
 ## Phát hiện
+- **Người nhận KHÔNG SĐT không tạo được** (có từ trước P15-QR): `pos_customers.phone TEXT UNIQUE NOT NULL` (`server/database.js:81`) mà
+  `customers.js` POST / (người nhận) và POST /:id/children chèn `phone = NULL` → lỗi ràng buộc → 500; ở POST / khách chính và người nhận trước đó
+  ĐÃ ghi rồi mới 500 (không giao dịch). Ngoài Phạm vi (đổi DB bị cấm) — đề xuất việc riêng: chặn 400 khi người nhận thiếu SĐT, hoặc bọc giao dịch.
 - `server/utils/maKhach.js:134-135` và `server/routes/sync.js:290-297` vẫn gọi `generateQRCode(sdt)` (đối số bị bỏ qua sau vá, ra mã thật) nhưng
   KHÔNG có vòng sinh lại khi trùng; `maKhach.js` còn `ON CONFLICT DO NOTHING` → trùng `qr_code` (xác suất ~2⁻⁶⁰) thành 500 "không tạo được khách".
   Ngoài Phạm vi — đề xuất: đổi hai chỗ sang `await sinhQrKhongTrung(...)` ở việc chạm tới hai file đó.
