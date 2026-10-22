@@ -68,6 +68,20 @@ function goi(cong, duong, host, them = {}) {
   });
 }
 
+/** Yêu cầu có tiêu đề Host RỖNG — http.request tự thay Host rỗng bằng Host mặc định nên phải gửi thô qua socket. */
+function goiHostRong(cong, duong) {
+  return new Promise((ok, loi) => {
+    const s = net.connect(cong, '127.0.0.1', () => s.write(`GET ${duong} HTTP/1.1\r\nHost:\r\nConnection: close\r\n\r\n`));
+    let tho = '';
+    s.on('data', (d) => { tho += d; });
+    s.on('error', loi);
+    s.on('close', () => {
+      const i = tho.indexOf('\r\n\r\n');
+      ok({ status: Number(tho.slice(9, 12)), than: i < 0 ? '' : tho.slice(i + 4) });
+    });
+  });
+}
+
 (async () => {
   const KHOA_KH = 'thu_khui1_kh_' + Date.now();
   const KHOA_NV = 'thu_khui1_nv_' + Date.now();
@@ -80,8 +94,8 @@ function goi(cong, duong, host, them = {}) {
   k('H1 chưa đặt KH_HOST, Host = tên App → vẫn client/dist/index.html', quay !== null && r.status === 200 && r.than === quay, `status ${r.status}`);
   r = await goi(mc.cong, '/diem', KH_HOST);
   k('H1 đường lạ → SPA của quầy', quay !== null && r.status === 200 && r.than === quay);
-  r = await goi(mc.cong, '/', '');
-  k('H1 Host rỗng, KH_HOST chưa đặt → vẫn client/dist (rỗng không khớp rỗng)', quay !== null && r.status === 200 && r.than === quay);
+  r = await goiHostRong(mc.cong, '/');
+  k('H1 Host rỗng, KH_HOST chưa đặt → vẫn client/dist (rỗng không khớp rỗng)', quay !== null && r.status === 200 && r.than === quay, `status ${r.status}`);
   await mc.dung();
 
   muc('H2 — KH_HOST đặt: chọn thư mục tĩnh theo Host');
