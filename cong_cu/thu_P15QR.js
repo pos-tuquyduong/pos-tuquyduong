@@ -150,11 +150,12 @@ async function main() {
   await chay('A7', async () => {
     ghi = []; const goc7 = sdtMoi(); await taoKhach(goc7); const mau = ghi; ghi = null;
     const daCo = await qrCua(goc7);
+    // mau rỗng = bộ sinh mã KHÔNG rút crypto.randomBytes (nghiệm thu A) → mọi ca A7 hỏng, không xanh suông.
     const thu = async (ten, boQua, lam, sdtKQ) => {
       phat = { ds: mau.map((b) => Buffer.from(b)), boQua }; const truoc = soRut;
       const r = await lam(); const q = await sdtKQ(); phat = null;
       k(`A7 ${ten}: lần rút đầu trùng mã có sẵn → vẫn thành công, mã mới ≠ mã có sẵn`,
-        r.status < 300 && DANG_MOI.test(q) && q !== daCo && soRut - truoc >= 2 * mau.length, `${moTa(r)} · ${q} · rút ${soRut - truoc}`);
+        mau.length > 0 && r.status < 300 && DANG_MOI.test(q) && q !== daCo && soRut - truoc >= 2 * mau.length, `${moTa(r)} · ${q} · rút ${soRut - truoc}`);
     };
     const a = sdtMoi(); await thu('POST /', 0, () => taoKhach(a), () => qrCua(a));
     const me = sdtMoi(), con = sdtMoi(); await thu('người nhận trong POST /', mau.length, () => taoKhach(me, [{ name: 'Con', phone: con }]), () => qrCua(con));
