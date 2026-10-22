@@ -65,6 +65,43 @@ tìm theo SĐT."; 404 → "Không phải thẻ thành viên của quán."). `Sal
 - Ngân sách: server 50 dòng thêm / 16 bớt (phiếu ~80) · client +66 / −7 (~120) · thử 286 + 9 (đã duyệt ~245 — vượt ~40 dòng: thêm D4 viết hoa,
   dò nhật ký tiến trình con, A7 ghi / phát lại lần rút ngẫu nhiên).
 
+## Bước 8 — soát độc lập vòng 1 (agent general-purpose, chỉ đọc) — báo cáo nguyên văn (rút gọn trình bày, giữ nội dung)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. client/src/components/CustomerSearch.jsx:164-169 — đóng hộp quét lúc đang tra thì khách vẫn bị chọn muộn (quetThe chạy tiếp,
+   setMoQuet(false) + handleSelect(dong)); cờ cancelled của QrScanModal chỉ chặn nhánh lỗi. Sales.jsx:331-343 handleSelectCustomer
+   xoá dùng ví / nợ / gói / chiết khấu → sai người hoặc mất lựa chọn tiền vừa đặt. K7 + K4.
+2. CustomerSearch.jsx:166 — so SĐT chỉ chuẩn hoá một vế; normalizePhone quầy đổi 84…→0…, máy chủ (helpers.js:146-153) chỉ đổi +84 →
+   khách phone "84…" báo oan "chưa có trong danh sách quầy". K4.
+3. cong_cu/thu_P15QR.js:151-157 — A7 xanh suông nếu bộ sinh mã không rút crypto.randomBytes (mau = [] → ">= 0"); không ca nào khoá
+   "sinh bằng crypto". K3.
+4. Cổng chung chưa chạy (LUAT_XAY_APP.md §6.3). K6.
+5. QrScanModal.jsx:7 "rồi tự đóng" và :75 "không schedule frame kế" sai với code. K1.
+NGHI NGỜ: hai vị từ "mã mới" lệch (kh/index.js NOT LIKE không phân biệt hoa thường vs customers.js startsWith); mã lỗi mạng bị bỏ qua tới
+khi đóng hộp; Promise.resolve(...).then không .catch; D2 không gọi /kh/nhan-ma-bill, /kh/nhan-diem (về cấu trúc không lộ được — req.khach
+chỉ có id, phone, name, created_at); customers-v2.js:327, :377 cũng tạo dòng qr_code NULL (Phát hiện thiếu); ke_hoach mục 0/1/7/9 còn câu
+"người nhận không SĐT → qr NULL" sai.
+NGHIỆM THU: 5/7 mục có bằng chứng · mục thiếu: C (không bài máy, thao tác tay chưa làm), G vế 2 (Bán hàng như cũ khi không quét — tay)
+CHƯA SOÁT ĐƯỢC: giao diện thật (camera, jsQR, điện thoại); /v2/customers/search có SX thật; log HTTP của chính Render; SX có gọi
+/customers/qr không; đột biến Math.random (người gác từ chối); kết quả cong.js chay.
+ĐƠN GIẢN: /toi một lần SELECT qr_code, startsWith, UPDATE so-đổi theo giá trị vừa đọc; bài thử vượt ~245 khoảng 50 dòng.
+BÀI HỌC: KHOÁ ca phát lại phải kèm "đã phát lại > 0"; KHOÁ đột biến Math.random; NGUYÊN TẮC việc async từ hộp có nút đóng → MỌI nhánh
+kết quả kiểm hộp còn mở; NGUYÊN TẮC so khoá giữa hai nguồn chuẩn hoá CẢ HAI vế; vị từ "mã mới / cũ" một chỗ.
+```
+Đã tự chạy trong lượt soát: thu_P15QR gốc 8/20, HEAD 29/0; dot_bien 20/20; npm test 68/0; build ra đúng tên dist.
+
+### Vòng sửa 1 (đã kiểm lại từng điểm bằng code trước khi nhận)
+- Lỗi 1: `CustomerSearch.jsx` thêm `moQuetRef` + `datMoQuet`; tra xong mà hộp đã đóng → `return`, không `handleSelect` (`54eca09`).
+- Lỗi 2: so `normalizePhone(c.phone) === normalizePhone(kh.phone)` (xác nhận `helpers.js:148-151` chỉ đổi `+84`).
+- Lỗi 3: A7 thêm `mau.length > 0` (`08ced91`); đột biến mới `VS-A-math-random` → bắt ở A7. Bài đổi → chạy lại trên gốc: vẫn 8 đạt · 20 hỏng.
+- Lỗi 5: sửa hai chú thích `QrScanModal.jsx`; thêm `.catch` (nghi ngờ 3) → lỗi hiện trong hộp.
+- Nghi ngờ 1 + ĐƠN GIẢN: `/toi` một vị từ `startsWith(QR_TIEN_TO)` cùng `/qr/:code`, UPDATE `… WHERE id = ? AND qr_code IS ?` (so-đổi theo
+  giá trị vừa đọc), đường thường 1 truy vấn. Đột biến `BV-B2-*`, `VS-F2-*`, `VS-D1-*` neo lại theo code mới.
+- Không nhận: "chỉ khoá mã khi lỗi 404" — lời nhắc "đóng hộp rồi quét lại" đủ, thêm nhánh không cần cho nghiệm thu.
+- `python3 viec/P15-QR/dot_bien.py`: ĐỐI-CHỨNG 29/0; **21 đột biến bị bắt · 0 KHÔNG bị bắt (trên 21)**. `thu_KH1.js` 157/0.
+- Lỗi 4: cổng chạy ở bước 11.4 (một lần, gồm `--day-du`).
+
 ## Câu hỏi
 
 **Q1 (chặn việc) — `thu_KH1.js` sẽ ĐỎ trên code PR, phiếu lại dặn "CHỈ thêm ca; bản gốc chạy trên code PR phải xanh".**
@@ -108,6 +145,7 @@ lý do ở `ke_hoach.md` mục 5. Bài thử dự kiến ~230 + 15 dòng, vượ
 - `server/utils/maKhach.js:134-135` và `server/routes/sync.js:290-297` vẫn gọi `generateQRCode(sdt)` (đối số bị bỏ qua sau vá, ra mã thật) nhưng
   KHÔNG có vòng sinh lại khi trùng; `maKhach.js` còn `ON CONFLICT DO NOTHING` → trùng `qr_code` (xác suất ~2⁻⁶⁰) thành 500 "không tạo được khách".
   Ngoài Phạm vi — đề xuất: đổi hai chỗ sang `await sinhQrKhongTrung(...)` ở việc chạm tới hai file đó.
-- `server/routes/customers-v2.js:57-66` chép khách SX vào `pos_customers` không ghi `qr_code` (NULL) — kế hoạch phủ bằng đổi mã lúc `/kh/toi`.
+- `server/routes/customers-v2.js:57-66` (chép khách SX), `:327`, `:377` (tạo dòng `pos_customers` từ màn v2) không ghi `qr_code` (NULL) — phủ
+  bằng đổi mã lúc `/kh/toi` (ca B3). Ngoài Phạm vi; đề xuất gọi `sinhQrKhongTrung` khi chạm tới file đó.
 - Ô tìm khách ở quầy không thấy khách chỉ có trong `pos_customers` khi SX đang chạy (xem Q3).
 - `client/src/utils/api.js:318` `getByQR` không `encodeURIComponent` (khác `search` ở `:303`).

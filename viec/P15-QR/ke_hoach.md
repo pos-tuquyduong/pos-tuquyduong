@@ -4,6 +4,9 @@ Soạn 22.10.2026 trên `61e713c` (`PHIEU: P15-QR`). Mọi trích dẫn file:dò
 Bốn chỗ cần chủ quán quyết TRƯỚC khi viết code: `trang_thai.md` → `## Câu hỏi` (Q1, Q4 chặn việc; Q2, Q3 xin xác nhận).
 Đã sửa theo soát độc lập (agent chỉ đọc) — mục 10.
 
+> **Đính chính (lượt 2, 22.10):** mọi câu "người nhận không SĐT → `qr_code` NULL" trong kế hoạch này (mục 0, 1, 7 A2, 9) SAI: `pos_customers.phone`
+> là `NOT NULL` (`server/database.js:81`) nên người nhận không SĐT không ghi được từ trước việc này — xem `trang_thai.md` Phát hiện. Ca A2 đã bỏ vế đó.
+
 ## 0. Hiện trạng (đọc 22.10)
 
 | Chỗ | Bằng chứng | Ghi chú |

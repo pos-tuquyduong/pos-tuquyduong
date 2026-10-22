@@ -27,6 +27,8 @@
   ✗ E1 token quầy + mã TQD- bịa → 404 QR_KHONG_CO  — HTTP 404
   ✗ D4 nhật ký index.js không chứa mã QR nào  — … | GET /api/pos/customers/qr/QR-0930000025 | … | GET /api/pos/customers/qr/TQD-ZZZZZZZZZZZZ
   8 đạt · 20 hỏng
+# Soát vòng 1 sửa A7 (`08ced91`: thêm `mau.length > 0`) → chạy lại BẢN BÀI MỚI trên gốc (bốn file server/ chép lại bản `a5ec1f2`):
+#   8 đạt · 20 hỏng — cùng 20 ca đỏ như trên (A7 ×4 vẫn ✗ … rút 0). Trên bản vá: 29 đạt · 0 hỏng.
 # Trên bản vá: 29 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_P15QR.js: 29
 
