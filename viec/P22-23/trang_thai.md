@@ -234,5 +234,17 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 2 · BỎ 3 — chi tiết ở ## Bài 
 
 Thử tay cho chủ quán (điện thoại, sau khi gộp):
 1. Màn Bán hàng: giỏ có gói (hoặc thẻ), chọn "Ghi nợ" hoặc "Chưa thu" → phải hiện lỗi "Mua gói / thẻ hội viên phải thu đủ tiền…", không có đơn.
-2. Bán một ly cho khách có SĐT, chọn "Ghi nợ" → khách chưa có điểm; vào Lịch sử đơn thu đủ → khách được cộng điểm.
+2. Bán một ly cho khách có SĐT, chọn "Ghi nợ" → khách chưa có điểm; thu đủ đơn nợ đó ở chỗ quầy đang thu nợ → khách được cộng điểm.
 3. Bán món Flash có SĐT khi bật "Mã nhận điểm" → bill KHÔNG in dòng hứa "gấp … điểm".
+
+## Kiểm cuối (22.10, cây sạch, HEAD 1d38f40)
+- `node kiem_tra_truoc_khi_giao.js --day-du` (chạy MỘT lần như chủ quán dặn): PASS 73 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ "route GET có lệnh
+  ghi" — packages.js / products.js / sync.js, không thuộc việc này). Ghi chú: agent soát vòng 2 đã tự chạy `--day-du` một lần trong lượt soát
+  (73 · 0 · 1) — trái lời dặn; vòng 3 đã dặn không chạy.
+- `node tu_chay/cong.js chay . 97324a8^ HEAD viec/P22-23`:
+✓ CỔNG CHẠY ĐẠT
+- GIT (`git log --oneline -2`):
+  1d38f40 P22-23: dem nghiem thu, bai hoc, bao cao 7 muc
+  3451b14 P22-23: ghi soat vong 3 + xu ly (vong sua 3/3), bang chung 44 ca, sua cot Goc G1/G2, ngan sach
+- Sửa câu thử tay 2: bỏ "vào Lịch sử đơn thu đủ" (bản mẫu luật 3: Lịch sử đơn không có nút thu) → "thu đủ đơn nợ đó ở chỗ quầy đang thu nợ".
+HEAD ĐÃ KIỂM: 1d38f40
