@@ -64,17 +64,19 @@ router.post('/dang-nhap/xac-minh', async (req, res) => {
 // ── Từ đây: token khách bắt buộc ──────────────────────────────────────────
 router.use(xacThucKhach);
 
-// P15-QR: `qr` CHỈ ở đây (không vào hoSo — xác minh / PUT /toi không trả). Mã cũ QR-<SĐT> hoặc NULL → đổi sang mã mới lần đầu khách
-// xem; điều kiện trong câu ghi chặn đua — hai lượt cùng lúc thì lượt sau changes = 0, đọc lại ra mã của lượt trước.
+// P15-QR: `qr` CHỈ ở đây (không vào hoSo — xác minh / PUT /toi không trả). Mã chưa có tiền tố (cũ QR-<SĐT> hoặc NULL) → đổi sang mã mới
+// lần đầu khách xem — cùng vị từ startsWith(QR_TIEN_TO) với /customers/qr/:code. Câu ghi so-đổi theo đúng giá trị vừa đọc: hai lượt cùng lúc
+// thì lượt sau changes = 0, đọc lại ra mã của lượt trước.
 router.get('/toi', async (req, res) => {
   try {
-    const dk = 'id = ? AND (qr_code IS NULL OR qr_code NOT LIKE ?)';
-    if (await queryOne(`SELECT 1 FROM pos_customers WHERE ${dk}`, [req.khach.id, QR_TIEN_TO + '%'])) {
-      // GET-ghi: đổi mã QR cũ / NULL MỘT lần khi khách xem QR (P15-QR phần B) — lần sau điều kiện câu ghi không khớp, không ghi nữa.
-      await run(`UPDATE pos_customers SET qr_code = ?, updated_at = ? WHERE ${dk}`,
-        [await sinhQrKhongTrung(queryOne), getNow(), req.khach.id, QR_TIEN_TO + '%']);
+    const docQr = async () => (await queryOne('SELECT qr_code FROM pos_customers WHERE id = ?', [req.khach.id])).qr_code;
+    let qr = await docQr();
+    if (!String(qr || '').startsWith(QR_TIEN_TO)) {
+      // GET-ghi: đổi mã QR cũ / NULL MỘT lần khi khách xem QR (P15-QR phần B) — lần sau đã có tiền tố, không ghi nữa.
+      await run('UPDATE pos_customers SET qr_code = ?, updated_at = ? WHERE id = ? AND qr_code IS ?',
+        [await sinhQrKhongTrung(queryOne), getNow(), req.khach.id, qr]);
+      qr = await docQr();
     }
-    const { qr_code: qr } = await queryOne('SELECT qr_code FROM pos_customers WHERE id = ?', [req.khach.id]);
     res.json({ success: true, khach: { ...hoSo(req.khach), qr } });
   } catch (err) {
     loiMayChu(res, err, 'kh toi');
