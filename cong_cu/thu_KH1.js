@@ -266,8 +266,9 @@ async function main() {
     const du = await xacMinh(m, ma, '  Chị Mới  ');
     const kh = await db.queryOne('SELECT * FROM pos_customers WHERE phone = ?', [m]);
     k('A4 CÙNG mã + ten → 200', la(du, 200), moTa(du));
-    k('A4 khách mới: tên đã trim, created_by app_kh, qr QR-<sđt>, retail / retail_only',
-      !!kh && kh.name === 'Chị Mới' && kh.created_by === 'app_kh' && kh.qr_code === 'QR-' + m && kh.customer_type === 'retail' && kh.sync_status === 'retail_only',
+    k('A4 khách mới: tên đã trim, created_by app_kh, qr TQD-+12 ký tự không chứa SĐT (P15-QR), retail / retail_only',
+      !!kh && kh.name === 'Chị Mới' && kh.created_by === 'app_kh' && /^TQD-[A-Z2-9]{12}$/.test(kh.qr_code) && !kh.qr_code.includes(m.slice(1))
+        && kh.customer_type === 'retail' && kh.sync_status === 'retail_only',
       kh ? `${kh.name} · ${kh.created_by} · ${kh.qr_code} · ${kh.customer_type} · ${kh.sync_status}` : '(không có khách)');
     for (const [nhan, ten, mong] of [['toàn khoảng trắng', '   ', 'CAN_TEN'], ['51 ký tự', 'a'.repeat(51), 'CAN_TEN'], ['50 ký tự', 'b'.repeat(50), 200]]) {
       const x = sdtMoi(); await xinMa(x);
@@ -426,7 +427,12 @@ async function main() {
   await chay('E1', async () => {
     const r = await goi('GET', '/kh/toi', undefined, { tk: A.tk });
     const khoa = Object.keys(r.j.khach || {}).sort();
-    k('E1 GET /toi → 200, đúng 3 trường sdt · ten · ngay_tao', la(r, 200) && bang(khoa, ['ngay_tao', 'sdt', 'ten']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
+    k('E1 GET /toi → 200, đúng 4 trường ngay_tao · qr · sdt · ten (P15-QR)', la(r, 200) && bang(khoa, ['ngay_tao', 'qr', 'sdt', 'ten']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
+    const rB = await goi('GET', '/kh/toi', undefined, { tk: B.tk });
+    const lech = await goi('GET', `/kh/toi?sdt=${B.sdt}&phone=${B.sdt}`, undefined, { tk: A.tk });
+    const qA = (r.j.khach || {}).qr, qB = (rB.j.khach || {}).qr;
+    k('E1b cặp A/B: qr của A ≠ của B; A gửi sdt của B vẫn ra qr A, không chứa qr B',
+      !!qA && !!qB && qA !== qB && (lech.j.khach || {}).qr === qA && !lech.tho.includes(qB), `${qA} · ${qB} · ${(lech.j.khach || {}).qr}`);
     const p = await goi('PUT', '/kh/toi', { ten: ' Tên Đổi ', sdt: B.sdt, phone: B.sdt }, { tk: A.tk });
     const dA = await db.queryOne('SELECT phone, name FROM pos_customers WHERE id = ?', [A.id]);
     k('E1 PUT /toi đổi tên (trim), SĐT KHÔNG đổi dù thân có sdt / phone', la(p, 200) && !!dA && dA.name === 'Tên Đổi' && dA.phone === A.sdt, dA ? `${dA.name} · ${dA.phone}` : '');
