@@ -263,7 +263,7 @@ async function main() {
       await new Promise((ok) => setTimeout(ok, 200));
       k('D4 index.js thật: tra mã đúng → 200, mã bịa → 404 (yêu cầu đi qua bộ ghi)', r.status === 200 && r2.status === 404 && /customers\/qr\//.test(ra), `${r.status} · ${r2.status}`);
       k('D4 nhật ký index.js không chứa mã QR nào', !ra.includes(ma) && !ra.includes('TQD-ZZZZZZZZZZZZ'), ra.split('\n').filter((d) => d.includes('/qr/')).join(' | '));
-    } finally { con.kill(); }
+    } catch (e) { throw new Error(`${e.message} · tiến trình con: ${ra.slice(-300).replace(/\s+/g, ' ')}`); } finally { con.kill(); }
   });
 
   muc('[D3] nhật ký máy chủ của cả bài không chứa mã QR nào');
