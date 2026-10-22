@@ -6,19 +6,21 @@
  * pos_orders — ghi lại ở đây là hai nơi giữ cùng một sự thật, nên không ghi.
  * Khi xem, đường /orders/:id/nhat-ky ghép cả hai nguồn.
  *
- * KHÔNG BAO GIỜ ném lỗi: nhật ký hỏng thì thao tác chính (thu tiền, đổi cách trả)
- * vẫn phải thành công — mất một dòng nhật ký đỡ hại hơn mất một lần thu tiền.
+ * Không truyền tx: ghi riêng và KHÔNG BAO GIỜ ném lỗi — nhật ký hỏng thì thao tác chính
+ * (đổi cách trả) vẫn phải thành công; mất một dòng nhật ký đỡ hại hơn mất một lần thu tiền.
+ * P26d: truyền tx → ghi TRONG giao dịch của thao tác chính và ném lỗi (rollback cả thao
+ * tác). Ghi riêng lúc giao dịch đang giữ khoá ghi thì kho bận → dòng nhật ký mất im lặng.
  */
 const { run } = require('../database');
 const { getNow } = require('./helpers');
 
-async function ghiNhatKy(orderId, loai, noiDung, nguoi, chiTiet) {
+async function ghiNhatKy(orderId, loai, noiDung, nguoi, chiTiet, tx) {
+  const cau = `INSERT INTO pos_order_log (order_id, loai, noi_dung, chi_tiet, nguoi, luc)
+       VALUES (?, ?, ?, ?, ?, ?)`;
+  const thamSo = [orderId, loai, noiDung, chiTiet ? JSON.stringify(chiTiet) : null, nguoi || null, getNow()];
+  if (tx) return tx.run(cau, thamSo);
   try {
-    await run(
-      `INSERT INTO pos_order_log (order_id, loai, noi_dung, chi_tiet, nguoi, luc)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [orderId, loai, noiDung, chiTiet ? JSON.stringify(chiTiet) : null, nguoi || null, getNow()],
-    );
+    await run(cau, thamSo);
   } catch (e) {
     console.error('⚠️ Không ghi được nhật ký đơn', orderId, loai, e.message);
   }

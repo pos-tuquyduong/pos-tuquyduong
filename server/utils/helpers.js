@@ -20,6 +20,10 @@ function generateOrderCode() {
  *
  * Nhận `queryOne` từ nơi gọi để không tạo phụ thuộc vòng giữa helpers và
  * database (helpers hiện không nạp database, giữ nguyên như vậy).
+ *
+ * P26d (10): PHẢI gọi với `tx.queryOne` của giao dịch ghi tạo đơn (BEGIN IMMEDIATE = khoá ghi độc quyền) — hai đơn không đọc
+ * chung một số, `số lớn nhất + 1` luôn trống. Không nuốt lỗi: trong giao dịch, lỗi đọc (kể cả kho bận ở câu đầu) phải
+ * rơi về route để rollback + 409 / 500, không được đi tiếp trên giao dịch đã hỏng. UNIQUE `pos_orders.code` vẫn là chốt cuối.
  */
 async function taoMaDonTheoSo(queryOne) {
   const ngay = new Date()
@@ -29,37 +33,12 @@ async function taoMaDonTheoSo(queryOne) {
 
   // Số lớn nhất đã dùng hôm nay. Đơn CŨ mang mã ngẫu nhiên cũng cùng dạng
   // nên vẫn đếm được — mã mới luôn lớn hơn mọi mã cũ trong ngày.
-  let ke = 1;
-  try {
-    const rows = await queryOne(
-      `SELECT code FROM pos_orders WHERE code LIKE ? ORDER BY LENGTH(code) DESC, code DESC LIMIT 1`,
-      [`${dau}%`],
-    );
-    if (rows && rows.code) {
-      const phan = String(rows.code).slice(dau.length);
-      const so = parseInt(phan, 10);
-      if (Number.isFinite(so)) ke = so + 1;
-    }
-  } catch (e) {
-    // Đọc hỏng thì bắt đầu từ 1 rồi để vòng dưới tự tránh trùng.
-    console.error("Khong doc duoc ma don gan nhat:", e.message);
-  }
-
-  // Hai đơn cùng lúc có thể cùng tính ra một số. Hiếm ở một quầy nhưng vẫn
-  // phải chặn: thử số kế tiếp cho tới khi tìm được mã chưa ai lấy.
-  for (let i = 0; i < 30; i++) {
-    const ma = dau + String(ke + i).padStart(3, "0");
-    try {
-      const da = await queryOne("SELECT id FROM pos_orders WHERE code = ?", [ma]);
-      if (!da) return ma;
-    } catch (e) {
-      return ma; // không kiểm được thì cứ dùng, UNIQUE là chốt cuối
-    }
-  }
-
-  // Hết 30 lần: dùng mã theo mili giây. Xấu nhưng KHÔNG BAO GIỜ được để
-  // việc sinh mã chặn một ca bán thật.
-  return dau + String(Date.now()).slice(-6);
+  const cuoi = await queryOne(
+    `SELECT code FROM pos_orders WHERE code LIKE ? ORDER BY LENGTH(code) DESC, code DESC LIMIT 1`,
+    [`${dau}%`],
+  );
+  const so = cuoi ? parseInt(String(cuoi.code).slice(dau.length), 10) : 0;
+  return dau + String((Number.isFinite(so) ? so : 0) + 1).padStart(3, "0");
 }
 
 /**

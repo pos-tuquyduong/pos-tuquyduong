@@ -1,0 +1,108 @@
+P26d — bằng chứng ĐỎ trên code CHƯA vá (server/ của HEAD ba78550 = server/ của 14169d8, chỉ bài thử đã đổi)
+
+Lệnh (chạy lại 19.10 sau khi thêm 6 ca F2 — chủ quán mở rộng Q3; bài ở HEAD 5a1c099, server/ của gốc 14169d8 lấy bằng git archive ra nháp):
+  node cong_cu/thu_P26b.js --may-chu <nháp>/server | grep -E "✗|✖|đạt ·"
+  ✗ V1 ví balance NULL (dữ liệu cũ) → nạp 10.000 → 200, balance = 10.000 (không NULL), sổ 0 → 10.000  — HTTP 200 · {"balance":null,"total_topup":10000,"total_spent":0} · sổ {"t":0,"s":10000}
+  ✗ V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL)  — HTTP 200 / HTTP 200 · {"balance":55000,"total_topup":null,"total_spent":null}
+  ✗ V3 ví đã mất, huỷ đơn trả ví 25.000 → ví tạo lại: balance 25.000, total_spent 0 (không âm)  — HTTP 200 · {"balance":25000,"total_topup":0,"total_spent":-25000}
+  ✗ H2 lần mở giao dịch thứ 2 gặp bận → 500 DOI_SOAT_DO_DANG, checked 1; ví đã xong khớp sổ, ví dừng chưa đổi  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · checked undefined · undefined: undefined → undefined · undefined: undefined → undefined
+  ✗ D0 CHO_BEGIN_MS: ≥ 1 lượt, mỗi lượt > 0, tổng chờ ≤ 2.000 ms
+  ✗ D4 mở giao dịch lỗi SQLITE_IOERR (không phải bận) → 500 LOI_MAY_CHU, mở đúng 1 lần, không lộ câu nội bộ, ví không đổi  — HTTP 500 · SQLITE_IOERR: P26D_CHUOI_NOI_BO (giả) · mở 1 lần
+  ✗ D4 mở giao dịch lỗi TRANSACTION_CLOSED (không phải bận) → 500 LOI_MAY_CHU, mở đúng 1 lần, không lộ câu nội bộ, ví không đổi  — HTTP 500 · TRANSACTION_CLOSED: P26D_CHUOI_NOI_BO (giả) · mở 1 lần
+  ✗ D4 mở giao dịch lỗi TRANSACTION_TIMEOUT (không phải bận) → 500 LOI_MAY_CHU, mở đúng 1 lần, không lộ câu nội bộ, ví không đổi  — HTTP 500 · TRANSACTION_TIMEOUT: P26D_CHUOI_NOI_BO (giả) · mở 1 lần
+  ✗ D4 mở giao dịch lỗi SQLITE_BUSYX (không phải bận) → 500 LOI_MAY_CHU, mở đúng 1 lần, không lộ câu nội bộ, ví không đổi  — HTTP 500 · SQLITE_BUSYX: P26D_CHUOI_NOI_BO (giả) · mở 1 lần
+  ✗ D5 mở giao dịch lần đầu lỗi bận TRANSACTION_BUSY → thử lại → 200, ví +1.000  — HTTP 500 · TRANSACTION_BUSY: P26D_CHUOI_NOI_BO (giả)
+  ✗ D5 mở giao dịch lần đầu lỗi bận SQLITE_BUSY_SNAPSHOT → thử lại → 200, ví +1.000  — HTTP 500 · SQLITE_BUSY_SNAPSHOT: P26D_CHUOI_NOI_BO (giả)
+  ✗ D8 câu ĐẦU trong giao dịch gặp bận (dạng Turso) → thử lại → 200; giao dịch hỏng đã đóng (lệnh kế tiếp 200), ví +2.000  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại / HTTP 200
+  ✗ D9 kho bận dạng Turso (TRANSACTION_BUSY) hết lượt → loiGhi trả 409 KHO_BAN, ví không đổi  — HTTP 500 · TRANSACTION_BUSY: database is locked (giả)
+  ✗ F1 file có trang "Số dư" (sau một trang thường) → 400 KHOI_PHUC_VI_DON_BI_CHAN; pos_sync_logs VÀ pos_wallets không đổi  — HTTP 200
+  ✗ F2 file có trang "Đơn hàng" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_orders không đổi  — HTTP 500 · SQLITE_CONSTRAINT_FOREIGNKEY: FOREIGN KEY constraint failed
+  ✗ F2 file có trang "Chi tiết đơn" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_order_items không đổi  — HTTP 200
+  ✗ F2 file có trang "Giao dịch số dư" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_balance_transactions không đổi  — HTTP 200
+  ✗ F2 file có trang "Yêu cầu hoàn tiền" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_refund_requests không đổi  — HTTP 200
+  ✗ F2 file có trang "Giao dịch điểm thưởng" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_point_transactions không đổi  — HTTP 200
+  ✗ F2 file có trang "Gói của khách" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_customer_packages không đổi  — HTTP 200
+  ✗ F2 file có trang "Lịch sử mua thẻ" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_membership_purchases không đổi  — HTTP 200
+  ✗ F2 file có trang "Voucher đã phát" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_voucher_grants không đổi  — HTTP 200
+  ✗ F2 file có trang "Hàng hỏng" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_damage_logs không đổi  — HTTP 200
+  ✗ F2 file có trang "Mã chiết khấu" → 400 KHOI_PHUC_VI_DON_BI_CHAN, pos_discount_codes không đổi  — HTTP 200
+  ✗ D1 kho bận 150 ms (người khác đang ghi) → chờ rồi thử lại → 200, ví +1.000 (đọc bằng kết nối khác)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · ví 100000 → 100000
+  ✗ D2 kho bận suốt → 409 KHO_BAN sau khi chờ đủ lượt (1,4–2,5 s), ví không đổi  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · 3 ms
+  ✗ D3 sau một lần BEGIN bận: nạp → 200 và ví +1.000 THẬT; lệnh run sau đó ghi THẬT (kết nối không hỏng)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · ví 100000 → 100000 · run SQLITE_BUSY, dòng 0
+  ✗ D7 run ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; run kế tiếp ghi THẬT (kết nối được thay)  — SQLITE_BUSY / ok · d7a 0 · d7b 0
+  69 đạt · 28 hỏng
+  (stderr "Run error: SQLITE_BUSY: database is locked" của ca bận thật in xen giữa dòng F2 "Mã chiết khấu" — đã tách ra.)
+
+Thêm (19.10): 6 ca F2 mới chạy trên HEAD 5a1c099 (backup.js mới chặn 5 trang, chưa vá mở rộng) → ĐỎ đúng 6 ca:
+  ✗ F2 "Giao dịch điểm thưởng" / "Gói của khách" / "Lịch sử mua thẻ" / "Voucher đã phát" / "Hàng hỏng" / "Mã chiết khấu" — HTTP 200
+  91 đạt · 6 hỏng
+
+Lệnh: node cong_cu/thu_P26c.js | grep -E "✗|✖|đạt ·"
+  ✗ C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau đúng dạng, số liền nhau  — HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code  / HTTP 200 ORD-20261018-100
+  ✗ G1 đơn 2 dùng mã trước → 200; đơn 1 → 400 DISCOUNT_CODE_LIMIT_REACHED (không 500); một đơn mang mã, used_count = 1  — HTTP 200 / HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code · 1 đơn mang mã · used_count 1
+  ✗ H1 huỷ đơn có món SX, câu đọc món ngoài giao dịch gặp bận → 200, đơn cancelled, có nợ kho "in" (kho SX được hoàn)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · cancelled · nợ kho in 0
+  ✗ I1 ghi gói hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không gói, không điểm, không lộ câu nội bộ  — HTTP 200 · đơn 102 → 103 · gói 0
+  ✗ I2 ghi thẻ hội viên hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không thẻ  — HTTP 200 · đơn 104 → 105 · thẻ 0
+  ✗ P1 thu nợ, ghi sổ debt_payment hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 500 · SQLITE_IOERR: P26D_CHUOI_NOI_BO (giả) · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":0}
+  ✗ P2 thu nợ, ghi nhật ký hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":0,"so":1}
+  ✗ P3 thu nợ, kho bận ở câu đầu giao dịch → 409 KHO_BAN, nợ không đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":1}
+  134 đạt · 8 hỏng
+
+Xanh trên gốc CÓ CHỦ ĐÍCH (ca K5 / ca canh đột biến — không tính là ca đỏ): C2, C3, I3, I4, P4, P5 (thu_P26c); V4, H2b, F3 (thu_P26b); H3 của kế hoạch = ca K1 / K1b cũ của thu_P26b.
+
+Sau vá (HEAD 395d31e): node cong_cu/thu_P26b.js → 97 đạt · 0 hỏng · node cong_cu/thu_P26c.js → 142 đạt · 0 hỏng.
+Soát vòng 1 (bfd3aa8, D8 dọn giao dịch hỏng SAU khi chấm — không thêm ca): thu_P26b trên gốc 14169d8 chạy lại → vẫn 69 đạt · 28 hỏng,
+  ✗ D8 … — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại / HTTP 200; trên HEAD 98c2262 → 97 đạt · 0 hỏng.
+
+Q7 (chủ quán trả lời 19.10) — bài ở HEAD 224e684 (thêm F2 ×3, F4, F5; P6 ×5, P7, P8, P9):
+  Trên HEAD 224e684 (code CHƯA vá Q7): thu_P26b 98 đạt · 4 hỏng — ✗ F2 "Mã ưu đãi khách mới" / "Nhật ký đơn" / "Lịch sử dùng khuyến mãi" — HTTP 200;
+    ✗ F4 xem trước file có trang "Nhật ký đơn" → 400 … — HTTP 200.
+  thu_P26c 145 đạt · 5 hỏng — ✗ P6 "abc" — HTTP 500 LOI_MAY_CHU; ✗ P6 −5.000 — HTTP 400 không code; ✗ P6 1.000,5 — HTTP 200 (thu lẻ 1000.5);
+    ✗ P6 số 0 — HTTP 200 (thu đủ); ✗ P6 "5000" — HTTP 200.
+  Trên gốc 14169d8 (server/ lấy bằng git archive ra nháp):
+  node cong_cu/thu_P26b.js --may-chu <nháp>/server → 70 đạt · 32 hỏng (28 ca cũ như trên + 3 ca F2 mới — HTTP 200 + ✗ F4 — HTTP 200; F5 xanh K5)
+  node cong_cu/thu_P26c.js --may-chu <nháp>/server → 137 đạt · 13 hỏng:
+  ✗ C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau đúng dạng, số liền nhau  — HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code  / HTTP 200 ORD-20261019-100
+  ✗ G1 đơn 2 dùng mã trước → 200; đơn 1 → 400 DISCOUNT_CODE_LIMIT_REACHED (không 500); một đơn mang mã, used_count = 1  — HTTP 200 / HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code · 1 đơn mang mã · used_count 1
+  ✗ H1 huỷ đơn có món SX, câu đọc món ngoài giao dịch gặp bận → 200, đơn cancelled, có nợ kho "in" (kho SX được hoàn)  — HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · cancelled · nợ kho in 0
+  ✗ I1 ghi gói hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không gói, không điểm, không lộ câu nội bộ  — HTTP 200 · đơn 102 → 103 · gói 0
+  ✗ I2 ghi thẻ hội viên hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không thẻ  — HTTP 200 · đơn 104 → 105 · thẻ 0
+  ✗ P1 thu nợ, ghi sổ debt_payment hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 500 · SQLITE_IOERR: P26D_CHUOI_NOI_BO (giả) · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":0}
+  ✗ P2 thu nợ, ghi nhật ký hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":0,"so":1}
+  ✗ P3 thu nợ, kho bận ở câu đầu giao dịch → 409 KHO_BAN, nợ không đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":1}
+  ✗ P6 thu nợ amount chuỗi lạ "abc" → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 500 · Only finite numbers (not Infinity or NaN) can be passed as arguments · {"no":25000,"tm":0,"tt":"pending","nk":0,"so":0}
+  ✗ P6 thu nợ amount số âm −5.000 → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 400 · Số tiền thanh toán phải lớn hơn 0 · {"no":25000,"tm":0,"tt":"pending","nk":0,"so":0}
+  ✗ P6 thu nợ amount số lẻ 1.000,5 → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":23999.5,"tm":1000.5,"tt":"partial","nk":1,"so":1}
+  ✗ P6 thu nợ amount số 0 → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":0,"tm":25000,"tt":"paid","nk":1,"so":1}
+  ✗ P6 thu nợ amount chuỗi số "5000" → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi  — HTTP 200 · {"no":20000,"tm":5000,"tt":"partial","nk":1,"so":1}
+  Xanh trên gốc CÓ CHỦ ĐÍCH (K5): F5 (thu_P26b); P7, P8, P9 (thu_P26c).
+Sau vá Q7 (HEAD 90a482f): thu_P26b 102 đạt · 0 hỏng · thu_P26c 150 đạt · 0 hỏng.
+Q8 (chủ quán trả lời 21.10) — vòng sửa 4. Bài ở HEAD db5aa01 / f7c7341 (thu_P26b: D3, D7 đo tới giao dịch thứ hai + run; D10 SELECT bận thật;
+  F1/F2/F4 mã KHOI_PHUC_TRANG_TIEN_BI_CHAN · thu_P26c: P5 siết DA_THU_ROI; P10–P14 code nhánh 400 cũ của pay-debt). 6a22b7a: D7/D10 bắt lỗi đọc
+  của kết nối thứ hai (ca hỏng thay vì bài sập — không đổi điều kiện đạt).
+  Trên server/ của a58bc78 (CHƯA vá Q8 — query() không thay kết nối):
+  node cong_cu/thu_P26b.js → 87 đạt · 16 hỏng:
+  ✗ F1 … → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN … — HTTP 400 · KHOI_PHUC_VI_DON_BI_CHAN · … ; ✗ F2 ×13 (cùng câu: HTTP 400 · KHOI_PHUC_VI_DON_BI_CHAN); ✗ F4 (cùng câu)
+  ✗ D10 SELECT ngoài giao dịch gặp bận thật → ném SQLITE_BUSY; sau đó 2 lần nạp + run ghi THẬT (kết nối được thay)  — SQLITE_BUSY · HTTP 200 / HTTP 409 · KHO_BAN · Đang có thao tác khác ghi sổ — bấm lại · ví 105000 → 106000 · run SQLITE_BUSY, dòng 0
+  (D3, D7 xanh: run() và vòng BEGIN đã thay kết nối ở a58bc78.)
+  node cong_cu/thu_P26c.js → 149 đạt · 6 hỏng:
+  ✗ P5 (K5) thu lại đơn đã thu → 400 DA_THU_ROI, không thêm dòng  — HTTP 400 · Đơn hàng đã được thanh toán đầy đủ
+  ✗ P10 thu nợ cách trả "momo" → 400 CACH_TRA_LA, không ghi gì  — HTTP 400 · Phương thức thanh toán không hợp lệ (cash hoặc transfer)
+  ✗ P11 thu nợ 30.000 > nợ 25.000 → 400 VUOT_QUA_NO, không ghi gì  — HTTP 400 · Số tiền thanh toán không được vượt quá nợ (25,000đ)
+  ✗ P12 thu nợ đơn trả đủ (paid) → 400 DA_THU_ROI  — HTTP 400 · Đơn hàng đã được thanh toán đầy đủ
+  ✗ P13 thu nợ đơn chưa paid mà nợ 0 → 400 DON_KHONG_NO  — HTTP 400 · Đơn hàng không có nợ
+  ✗ P14 thu nợ đơn đã huỷ → 400 DON_KHONG_HOP_LE  — HTTP 200 / HTTP 400 · Đơn hàng đã bị hủy / đã hoàn tiền
+  Trên gốc 14169d8 (server/ lấy bằng git archive ra nháp, bài ở HEAD 6a22b7a):
+  node cong_cu/thu_P26b.js --may-chu <nháp>/server → 70 đạt · 33 hỏng — các ca cũ như trên (V1–V3, H2, D0, D4 ×4, D5 ×2, D8, D9, F1, F2 ×13, F4, D1, D2)
+    + ✗ D3 … — HTTP 409 · KHO_BAN … / HTTP 40… · ✗ D7 … — SQLITE_BUSY · HTTP 409 · KHO_BAN …
+    + ✗ D10 … — SELECT không bận · kết nối khác: SQLITE_BUSY (gốc: kết nối đã hỏng từ D7 — khoá treo; đỏ đúng câu riêng của D10 xem dòng a58bc78 ở trên)
+  node cong_cu/thu_P26c.js --may-chu <nháp>/server → 136 đạt · 19 hỏng — 13 ca cũ (C1, G1, H1, I1, I2, P1, P2, P3, P6 ×5) + P5, P10, P11, P12, P13, P14 (câu như trên).
+  Xanh trên gốc CÓ CHỦ ĐÍCH: không ca mới nào (P5 cũ nay đỏ vì siết code).
+Sau vá Q8 (HEAD 6a22b7a): thu_P26b 103 đạt · 0 hỏng · thu_P26c 155 đạt · 0 hỏng.
+Q9 (chủ quán trả lời 21.10) — thêm P15 vào thu_P26c (bài ở commit e3baed7):
+  Trên server/ của 328cd7c (CHƯA vá 404): node cong_cu/thu_P26c.js → 155 đạt · 1 hỏng:
+  ✗ P15 thu nợ đơn không có → 404 KHONG_TIM_THAY_DON  — HTTP 404 · Không tìm thấy đơn hàng
+  Trên gốc 14169d8: node cong_cu/thu_P26c.js --may-chu <nháp>/server → 136 đạt · 20 hỏng (19 ca như trên + ✗ P15 cùng câu).
+Sau vá (HEAD 074aa4d): thu_P26b 103 đạt · 0 hỏng · thu_P26c 156 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P26b.js: 103
+SỐ CA cong_cu/thu_P26c.js: 156

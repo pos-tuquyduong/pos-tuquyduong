@@ -70,17 +70,32 @@ async function main() {
     outStockFIFO: sxGia('out'), inStockReturn: sxGia('in'),
     callSxApi: async () => { if (sx.che === 'loi') throw new Error('SX lỗi (giả)'); return { ok: true }; } };
 
-  const co = { banCauDau: false };
-  const txGoc = db.beginTransaction;
+  // P26d: co.mocTruocTx — chạy TRỌN một lệnh khác trước khi giao dịch kế tiếp mở (khuôn thu_P20 — chồng nhau TẤT ĐỊNH), tự gỡ;
+  //       co.nemGhi — câu ghi khớp mẫu (cả `db.run` lẫn `tx.run`, để gốc và bản vá cùng gặp) ném lỗi KHÔNG bận, kèm chuỗi lạ BI_MAT;
+  //       co.banDoc — `db.query` (ngoài giao dịch) khớp mẫu ném SQLITE_BUSY một lần (không khớp câu của authenticate).
+  const BI_MAT = 'P26D_CHUOI_NOI_BO';
+  const co = { banCauDau: false, mocTruocTx: null, nemGhi: null, banDoc: null };
+  const loiGiaGhi = (sql) => {
+    if (co.nemGhi && co.nemGhi.test(String(sql))) { const e = new Error(`SQLITE_IOERR: ${BI_MAT} (giả)`); e.code = 'SQLITE_IOERR'; throw e; }
+  };
+  const txGoc = db.beginTransaction, runGoc = db.run, queryGoc = db.query;
   db.beginTransaction = async (...a) => {
+    const moc = co.mocTruocTx; co.mocTruocTx = null;
+    if (moc) await moc();
     const tx = await txGoc(...a);
     let cauDau = co.banCauDau;
     co.banCauDau = false;
     const lenh = (f) => async (...b) => {
       if (cauDau) { cauDau = false; const e = new Error('SQLITE_BUSY: database is locked (giả, câu đầu)'); e.code = 'SQLITE_BUSY'; throw e; }
+      loiGiaGhi(b[0]);
       return f(...b);
     };
     return { ...tx, query: lenh(tx.query), queryOne: lenh(tx.queryOne), run: lenh(tx.run) };
+  };
+  db.run = async (sql, a) => { loiGiaGhi(sql); return runGoc(sql, a); };
+  db.query = async (sql, a) => {
+    if (co.banDoc && co.banDoc.test(String(sql))) { co.banDoc = null; const e = new Error('SQLITE_BUSY: database is locked (giả, đọc)'); e.code = 'SQLITE_BUSY'; throw e; }
+    return queryGoc(sql, a);
   };
 
   const app = express();
@@ -1026,6 +1041,184 @@ async function main() {
     } finally {
       if (bienCu === undefined) delete process.env.JWT_EXPIRES_IN; else process.env.JWT_EXPIRES_IN = bienCu;
     }
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // P26d — mã đơn trong giao dịch (C), KB20 siết (G), huỷ báo đúng sự thật (H1), gói / thẻ trong giao dịch đơn (I), thu nợ một giao dịch (P).
+  const NGAY = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(/-/g, '');
+  const soDon = () => so('SELECT COUNT(*) FROM pos_orders');
+  const donTienMat = (them = {}) => goi('POST', '/orders', { customer_name: 'Khách P26d', items: [mon(0)], payment_method: 'cash',
+    cash_amount: 25000, ...them });
+
+  muc('[P26d C] mã đơn sinh TRONG giao dịch ghi — hai đơn chồng nhau không trùng mã');
+  {
+    let r2 = null;
+    co.mocTruocTx = async () => { r2 = await donTienMat(); };
+    const r1 = await donTienMat();
+    co.mocTruocTx = null;
+    const m1 = String(r1.order?.code || ''), m2 = String(r2?.order?.code || '');
+    const dang = new RegExp(`^ORD-${NGAY}-\\d{3,}$`);
+    k('C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau đúng dạng, số liền nhau',
+      r1.status === 200 && r2?.status === 200 && m1 !== m2 && dang.test(m1) && dang.test(m2)
+        && Number(m1.split('-')[2]) === Number(m2.split('-')[2]) + 1,
+      `${moTa(r1)} ${m1} / ${r2 ? moTa(r2) : 'móc không chạy'} ${m2}`);
+    const truoc = await soDon();
+    co.banCauDau = true;
+    const r3 = await donTienMat();
+    co.banCauDau = false;
+    k('C3 kho bận ở câu đầu giao dịch tạo đơn (câu đọc mã) → 409 KHO_BAN, không đơn mới', r3.status === 409 && r3.code === 'KHO_BAN'
+      && await soDon() === truoc, `${moTa(r3)} · đơn ${truoc} → ${await soDon()}`);
+    await db.run(`INSERT INTO pos_orders (code, customer_name, total, payment_method, status, created_at)
+      VALUES (?, 'mã cũ', 0, 'cash', 'completed', datetime('now'))`,
+      [`ORD-${NGAY}-999`]);
+    const r4 = await donTienMat();
+    k('C2 (K5) ngày có mã cũ ORD-<ngày>-999 → đơn mới ORD-<ngày>-1000', r4.status === 200 && r4.order?.code === `ORD-${NGAY}-1000`,
+      `${moTa(r4)} · ${r4.order?.code}`);
+  }
+
+  muc('[P26d G] KB20 siết — mã dùng-một-lần, hai đơn chồng nhau → đúng 200 + 400 DISCOUNT_CODE_LIMIT_REACHED');
+  {
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active)
+      VALUES ('P26DMOTLAN', 'fixed', 5000, 1, 0, 1)`);
+    const ban = () => donTienMat({ discount_code: 'P26DMOTLAN', cash_amount: 20000 });
+    let r2 = null;
+    co.mocTruocTx = async () => { r2 = await ban(); };
+    const r1 = await ban();
+    co.mocTruocTx = null;
+    const mangMa = await so("SELECT COUNT(*) FROM pos_orders WHERE UPPER(discount_code) = 'P26DMOTLAN'");
+    const daDung = await so("SELECT used_count FROM pos_discount_codes WHERE code = 'P26DMOTLAN'");
+    k('G1 đơn 2 dùng mã trước → 200; đơn 1 → 400 DISCOUNT_CODE_LIMIT_REACHED (không 500); một đơn mang mã, used_count = 1',
+      r2?.status === 200 && r1.status === 400 && r1.code === 'DISCOUNT_CODE_LIMIT_REACHED' && mangMa === 1 && daDung === 1,
+      `${r2 ? moTa(r2) : 'móc không chạy'} / ${moTa(r1)} · ${mangMa} đơn mang mã · used_count ${daDung}`);
+  }
+
+  muc('[P26d H1] huỷ đơn: lỗi đọc món SAU commit không được báo 409 "chưa ghi gì"');
+  {
+    const d = await taoDon({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+    const noIn = () => so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'in'", [d]);
+    co.banDoc = /FROM pos_order_items oi/;
+    const h = await huy(d);
+    co.banDoc = null;
+    const st = (await mot('SELECT status FROM pos_orders WHERE id = ?', [d]))?.status;
+    k('H1 huỷ đơn có món SX, câu đọc món ngoài giao dịch gặp bận → 200, đơn cancelled, có nợ kho "in" (kho SX được hoàn)',
+      !!sp[0].sx_product_type && h.status === 200 && st === 'cancelled' && await noIn() === 1, `${moTa(h)} · ${st} · nợ kho in ${await noIn()}`);
+  }
+
+  muc('[P26d I] mua gói / thẻ hội viên ghi TRONG giao dịch đơn — lỗi ghi thì không báo thành công');
+  {
+    const sdt = sdtMoi();
+    const goiId = await taoGoi(300000, 10);
+    const truoc = await soDon();
+    co.nemGhi = /INSERT INTO pos_customer_packages/;
+    const a = await muaGoi(sdt, goiId, 10, { cash_amount: 300000 });
+    co.nemGhi = null;
+    const goiKhach = () => so('SELECT COUNT(*) FROM pos_customer_packages WHERE customer_phone = ?', [sdt]);
+    const diem = () => so('SELECT COUNT(*) FROM pos_point_transactions WHERE customer_phone = ?', [sdt]);
+    k('I1 ghi gói hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không gói, không điểm, không lộ câu nội bộ',
+      a.status === 500 && a.code === 'LOI_MAY_CHU' && !JSON.stringify(a).includes(BI_MAT) && await soDon() === truoc
+        && await goiKhach() === 0 && await diem() === 0, `${moTa(a)} · đơn ${truoc} → ${await soDon()} · gói ${await goiKhach()}`);
+    const b = await muaGoi(sdt, goiId, 10, { cash_amount: 300000 }, { items: [mon(0, 3, true)] });
+    const cp = await goiCua(b.order?.id);
+    const gan = (await mot('SELECT customer_package_id FROM pos_orders WHERE id = ?', [b.order?.id]))?.customer_package_id;
+    k('I3 (K5) mua gói 10 lượt + lấy ngay 3 → 200, gói giao 3, đơn gắn customer_package_id của gói vừa mua',
+      b.status === 200 && cp > 0 && await daGiao(cp) === 3 && Number(gan) === cp, `${moTa(b)} · gói ${cp} · giao ${await daGiao(cp)} · gắn ${gan}`);
+    const the = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
+    const tien = 25000 + Number(the.card_price);
+    const s2 = sdtMoi();
+    const muaThe = (sdtThe) => goi('POST', '/orders', { customer_phone: sdtThe, customer_name: 'Khách P26d', items: [mon(0)],
+      membership_buy: { tier_id: the.id }, payment_method: 'cash', cash_amount: tien });
+    const theKhach = (x) => so('SELECT COUNT(*) FROM pos_membership_purchases WHERE customer_phone = ?', [x]);
+    const truoc2 = await soDon();
+    co.nemGhi = /INSERT INTO pos_membership_purchases/;
+    const c = await muaThe(s2);
+    co.nemGhi = null;
+    k('I2 ghi thẻ hội viên hỏng → 500 LOI_MAY_CHU (không 200), không đơn mới, không thẻ', c.status === 500 && c.code === 'LOI_MAY_CHU'
+      && await soDon() === truoc2 && await theKhach(s2) === 0, `${moTa(c)} · đơn ${truoc2} → ${await soDon()} · thẻ ${await theKhach(s2)}`);
+    const dd = await muaThe(s2);
+    const hh = await mot('SELECT expires_at FROM pos_membership_purchases WHERE order_id = ?', [dd.order?.id]);
+    k('I4 (K5) mua thẻ hội viên → 200, đúng 1 dòng thẻ gắn đơn, có hạn', dd.status === 200 && await theKhach(s2) === 1 && !!hh?.expires_at,
+      `${moTa(dd)} · thẻ ${await theKhach(s2)} · hạn ${hh?.expires_at}`);
+  }
+
+  muc('[P26d P] thu nợ (pay-debt) — ba lệnh ghi một giao dịch, lỗi không lộ câu nội bộ');
+  {
+    const sdt = sdtMoi();
+    const donNo = () => taoDon({ customer_phone: sdt, items: [mon(0)], payment_method: 'debt', debt_amount: 25000 });
+    const thu = (d) => goi('POST', `/orders/${d}/pay-debt`, { payment_method: 'cash', amount: 25000 });
+    const anh = async (d) => {
+      const o = await mot('SELECT debt_amount, cash_amount, payment_status FROM pos_orders WHERE id = ?', [d]);
+      return { no: Number(o.debt_amount), tm: Number(o.cash_amount), tt: o.payment_status,
+        nk: await so("SELECT COUNT(*) FROM pos_order_log WHERE order_id = ? AND loai = 'thu'", [d]),
+        so: await so("SELECT COUNT(*) FROM pos_balance_transactions WHERE order_id = ? AND type = 'debt_payment'", [d]) };
+    };
+    const khongDoi = (x) => x.no === 25000 && x.tm === 0 && x.tt !== 'paid' && x.nk === 0 && x.so === 0;
+    for (const [ma, mau, ten] of [['P1', /INSERT INTO pos_balance_transactions/, 'ghi sổ debt_payment'], ['P2', /INSERT INTO pos_order_log/, 'ghi nhật ký']]) {
+      const d = await donNo();
+      co.nemGhi = mau;
+      const r = await thu(d);
+      co.nemGhi = null;
+      const x = await anh(d);
+      k(`${ma} thu nợ, ${ten} hỏng → 500 LOI_MAY_CHU không lộ câu nội bộ; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi`,
+        r.status === 500 && r.code === 'LOI_MAY_CHU' && !JSON.stringify(r).includes(BI_MAT) && khongDoi(x), `${moTa(r)} · ${JSON.stringify(x)}`);
+    }
+    const d3 = await donNo();
+    co.banCauDau = true;
+    const r3 = await thu(d3);
+    co.banCauDau = false;
+    const x3 = await anh(d3);
+    k('P3 thu nợ, kho bận ở câu đầu giao dịch → 409 KHO_BAN, nợ không đổi', r3.status === 409 && r3.code === 'KHO_BAN' && khongDoi(x3),
+      `${moTa(r3)} · ${JSON.stringify(x3)}`);
+    const d4 = await donNo();
+    const r4 = await thu(d4);
+    const x4 = await anh(d4);
+    k('P4 (K5) thu nợ thường → 200, nợ 0, paid, tiền mặt 25.000, đúng 1 nhật ký "thu", đúng 1 dòng debt_payment',
+      r4.status === 200 && x4.no === 0 && x4.tt === 'paid' && x4.tm === 25000 && x4.nk === 1 && x4.so === 1, `${moTa(r4)} · ${JSON.stringify(x4)}`);
+    const r5 = await thu(d4);
+    k('P5 (K5) thu lại đơn đã thu → 400 DA_THU_ROI, không thêm dòng', r5.status === 400 && r5.code === 'DA_THU_ROI' && (await anh(d4)).so === 1, moTa(r5));
+    // P26d Q8c: các nhánh 400 cũ của pay-debt có `code` (LUAT §2 — cùng tình huống, cùng mã với route khác).
+    {
+      const d10 = await donNo();
+      const r10 = await goi('POST', `/orders/${d10}/pay-debt`, { payment_method: 'momo', amount: 25000 });
+      k('P10 thu nợ cách trả "momo" → 400 CACH_TRA_LA, không ghi gì', r10.status === 400 && r10.code === 'CACH_TRA_LA' && khongDoi(await anh(d10)), moTa(r10));
+      const d11 = await donNo();
+      const r11 = await goi('POST', `/orders/${d11}/pay-debt`, { payment_method: 'cash', amount: 30000 });
+      k('P11 thu nợ 30.000 > nợ 25.000 → 400 VUOT_QUA_NO, không ghi gì', r11.status === 400 && r11.code === 'VUOT_QUA_NO' && khongDoi(await anh(d11)), moTa(r11));
+      const d12 = await taoDon({ customer_phone: sdt, items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+      const r12 = await goi('POST', `/orders/${d12}/pay-debt`, { payment_method: 'cash', amount: 1000 });
+      k('P12 thu nợ đơn trả đủ (paid) → 400 DA_THU_ROI', r12.status === 400 && r12.code === 'DA_THU_ROI', moTa(r12));
+      const d13 = await donNo();
+      await db.run("UPDATE pos_orders SET debt_amount = 0, payment_status = 'partial' WHERE id = ?", [d13]);
+      const r13 = await goi('POST', `/orders/${d13}/pay-debt`, { payment_method: 'cash', amount: 1000 });
+      k('P13 thu nợ đơn chưa paid mà nợ 0 → 400 DON_KHONG_NO', r13.status === 400 && r13.code === 'DON_KHONG_NO', moTa(r13));
+      const d14 = await donNo();
+      const h14 = await huy(d14);
+      const r14 = await goi('POST', `/orders/${d14}/pay-debt`, { payment_method: 'cash', amount: 25000 });
+      k('P14 thu nợ đơn đã huỷ → 400 DON_KHONG_HOP_LE', h14.status === 200 && r14.status === 400 && r14.code === 'DON_KHONG_HOP_LE', `${moTa(h14)} / ${moTa(r14)}`);
+      const r15 = await goi('POST', '/orders/999999999/pay-debt', { payment_method: 'cash', amount: 1000 });
+      k('P15 thu nợ đơn không có → 404 KHONG_TIM_THAY_DON', r15.status === 404 && r15.code === 'KHONG_TIM_THAY_DON', moTa(r15));
+    }
+    // P26d (chủ quán 19.10): amount không phải số nguyên dương hữu hạn → 400 SO_TIEN_KHONG_HOP_LE, không ghi gì.
+    for (const [ten, so_] of [['chuỗi lạ "abc"', 'abc'], ['số âm −5.000', -5000], ['số lẻ 1.000,5', 1000.5], ['số 0', 0], ['chuỗi số "5000"', '5000']]) {
+      const d = await donNo();
+      const r = await goi('POST', `/orders/${d}/pay-debt`, { payment_method: 'cash', amount: so_ });
+      const x = await anh(d);
+      k(`P6 thu nợ amount ${ten} → 400 SO_TIEN_KHONG_HOP_LE; nợ, tiền mặt, nhật ký, sổ KHÔNG đổi`,
+        r.status === 400 && r.code === 'SO_TIEN_KHONG_HOP_LE' && khongDoi(x), `${moTa(r)} · ${JSON.stringify(x)}`);
+    }
+    const d7 = await donNo();
+    const r7 = await goi('POST', `/orders/${d7}/pay-debt`, { payment_method: 'transfer' });
+    k('P7 (K5) thu nợ KHÔNG gửi amount → 200 thu đủ 25.000', r7.status === 200 && (await anh(d7)).no === 0, moTa(r7));
+    const d8 = await donNo();
+    const r8 = await goi('POST', `/orders/${d8}/pay-debt`, { payment_method: 'cash', amount: 10000 });
+    const x8 = await anh(d8);
+    k('P8 (K5) thu một phần 10.000 (số nguyên) → 200, còn nợ 15.000', r8.status === 200 && x8.no === 15000 && x8.tm === 10000, `${moTa(r8)} · ${JSON.stringify(x8)}`);
+    // Nợ lẻ (chiết khấu % không làm tròn; nợ lấy từ máy khách lúc tạo đơn) — Q8b chủ quán GIỮ: màn Lịch sử đơn gửi amount = debt_amount trong sổ → vẫn phải thu được.
+    const d9 = await donNo();
+    await db.run('UPDATE pos_orders SET debt_amount = 12500.5 WHERE id = ?', [d9]);
+    const r9 = await goi('POST', `/orders/${d9}/pay-debt`, { payment_method: 'cash', amount: 12500.5 });
+    const x9 = await anh(d9);
+    k('P9 (K5) nợ cũ lẻ 12.500,5, amount = đúng nợ trong sổ → 200, nợ 0, paid', r9.status === 200 && x9.no === 0 && x9.tt === 'paid',
+      `${moTa(r9)} · ${JSON.stringify(x9)}`);
   }
 
   sv.close();
