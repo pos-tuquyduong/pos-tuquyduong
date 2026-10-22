@@ -260,3 +260,47 @@ B-MANOI (heredoc nhắc file được bảo vệ). Vượt ngân sách bài th�
 **BỎ**: `sv.close()` trước D4 (lỗi viết bài một lần, đã truy nguyên theo K2); lệnh bị chặn vì cú pháp (đã làm theo hướng dẫn người gác).
 
 **Dọn:** không đề xuất xoá lời dặn nào lượt này.
+
+## Cổng (bước 11.4) — chạy MỘT lần, gồm `--day-du` (A13)
+Lệnh: `node tu_chay/cong.js chay . 61e713c^ HEAD viec/P15-QR` trên HEAD `c2c4783`, cây sạch.
+```
+· CẢNH BÁO A16: `cong_cu/thu_P15QR.js` chạy trên gốc in 28 ca ≠ 29 ca ở head — bài dừng sớm trên gốc thì bỏ qua; …
+✓ CỔNG CHẠY ĐẠT
+```
+Cảnh báo A16: trên gốc mục A5 dừng ở "A5: bài chạy hết mục" (chưa có `sinhQrKhongTrung`) thay cho hai ca A5 sau → 8 + 20 = 28; đúng loại "bài dừng sớm".
+
+## Báo cáo 7 mục
+```
+VIỆC:        P15-QR — QR thành viên thật (mã riêng, không đoán được) · quầy quét QR khách
+ĐÃ SỬA:      server/utils/helpers.js — generateQRCode = TQD- + 12 ký tự crypto.randomBytes; QR_TIEN_TO, QR_THU_TOI_DA, sinhQrKhongTrung
+             server/routes/customers.js — 3 chỗ tạo khách dùng sinhQrKhongTrung; GET /qr/:code chỉ nhận mã có tiền tố, 404 QR_KHONG_CO
+             server/routes/kh/index.js — GET /toi trả qr theo token; mã cũ / NULL đổi một lần (UPDATE … AND qr_code IS ? so-đổi)
+             server/index.js — bộ ghi nhật ký che phần sau /customers/qr/ (cờ i)
+             client/src/components/CustomerSearch.jsx — nút 📷 Quét thẻ; mã → SĐT → chính API ô tìm; số phiên hộp chặn chọn muộn
+             client/src/components/QrScanModal.jsx — tieuDe, lỗi trong hộp + quét tiếp, onResult qua ref, .catch, vẽ qua portal
+             client/dist — dựng lại (index-BsMrK4Yk.js); cong_cu/thu_KH1.js A4, E1, E1b (đã duyệt); cong_cu/thu_P15QR.js mới
+BÀI THỬ:     chạy trên bản chưa vá → ĐỎ: thu_P15QR 8 đạt · 20 hỏng (A1–A8, B1–B4, F2, D1, E1 code, D4 log); thu_KH1 154 · 3 (A4, E1, E1b)
+             sau khi vá → XANH: thu_P15QR 29 · 0; thu_KH1 157 · 0; dot_bien.py 21/21 bị bắt, đối chứng xanh;
+             npm test 68 · 0; chay_thu.sh 119 · 0; cổng ĐẠT (gồm --day-du)
+ĐÃ RÀ K4:    grep "generateQRCode|qr_code|sinhQrKhongTrung" server/ → 3 chỗ customers.js + /kh/toi đổi; maKhach.js:135, sync.js:297 đổi qua
+             thân hàm (A6, A8), không sinh lại khi trùng → Phát hiện; customers-v2.js:58, :327, :377 ghi NULL → /toi đỡ (B3), Phát hiện;
+             route tra qr_code: chỉ /qr/:code; log in req.path: chỉ index.js:69; hoSo dùng 3 chỗ, qr chỉ ở GET /toi (D2)
+CHƯA KIỂM:   toàn bộ giao diện quầy (C, G vế 2) — không có bài máy: camera / jsQR, hộp phủ cả màn (portal), chọn muộn theo số phiên, so SĐT
+             hai vế → thao tác tay 1–5 ở mục "CHƯA KIỂM quầy"; nhánh /v2/customers/search khi SX chạy thật; VS-B4 (hai /toi đồng thời) không
+             có đột biến đỏ tất định; trùng qr_code trong khe kiểm-rồi-ghi (~2⁻⁶⁰ → 500, không hỏng dữ liệu); log HTTP của Render ngoài
+             index.js; /kh/nhan-ma-bill, /kh/nhan-diem không gọi trong D2 (về cấu trúc không lộ — req.khach không có qr_code)
+GIT:         c2c4783 P15-QR: soat xac nhan vong 4 (DAT) + bai hoc
+             36f13ea P15-QR: ra-soat vong 3 + vong sua 3
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 1 — chi tiết ở ## Bài học
+```
+
+## Nghiệm thu — đếm từng mục
+- A mã mới: A1–A4 (dạng, không SĐT, 2000 lần không trùng), A5 (sinh lại, đúng 5 lần), A6 (App), A7 ×4 (mỗi chỗ gọi sinh lại khi trùng), A8 (CSV) · đột biến 11 cái.
+- B mã cũ: B1 (cũ → 404), B2 (đổi khi xem lần đầu, cũ bị từ chối sau đổi), B3 (NULL), B4 (đồng thời), F2 (không đổi lại) · nơi in/lưu dạng cũ: ke_hoach mục 0.
+- C quầy: CHƯA KIỂM bằng máy — thao tác tay 1, 3, 4, 5 (kế hoạch đã duyệt chấp nhận).
+- D khách xem QR: D1 (cặp A/B, tham số bị bỏ qua), D2 (không ở route khách khác), D3 + D4 (không vào log, index.js thật), E1/E1b thu_KH1; bill: InvoicePreview không đọc qr_code.
+- E /qr/:code: E1 (401 không token / token khách; 404 QR_KHONG_CO), E2 (không lộ khách khác), E3 (mã méo); không giới hạn dò — ke_hoach mục 5.
+- F luồng hợp lệ: F1 (tìm tên / SĐT, tạo khách, mã người nhận ra đúng người nhận), A2, F2.
+- G: build thành công, dist trùng byte bản dựng (soát vòng 4); Bán hàng như cũ khi không quét — thao tác tay 2.
+
+HEAD ĐÃ KIỂM: c2c4783
