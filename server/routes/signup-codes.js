@@ -50,7 +50,7 @@ async function kiemDonCuaMa(dong) {
     return { loi: { status: 400, code: 'MA_KHONG_GAN_DON', error: 'Mã này không gắn với đơn nào.' } };
   }
   const don = await queryOne(
-    'SELECT id, code, total, status, payment_status FROM pos_orders WHERE id = ?',
+    'SELECT id, code, total, status, payment_status, flash_discount FROM pos_orders WHERE id = ?',
     [dong.order_id],
   );
   if (!don) {
@@ -200,6 +200,10 @@ async function nhanDiemMaBill(req, res) {
     }
     if (billSdtKhac(dong, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
     const don = kqDon.don;
+    // P22-23 (chủ quán chốt 13.10): đơn giảm Flash 0 điểm — cả lúc bán lẫn nhận bằng mã bill. Chặn TRƯỚC câu chiếm mã: mã không bị tiêu.
+    if (Number(don.flash_discount) > 0) {
+      return res.status(400).json({ success: false, error: 'Đơn có giảm Flash sale không được cộng điểm.', code: 'DON_FLASH_KHONG_DIEM' });
+    }
 
     // Điểm gốc tính theo ĐÚNG cấu hình điểm đang chạy, không tự đặt công thức riêng.
     const loyRows = await query(
@@ -554,3 +558,4 @@ module.exports = router;
 module.exports.kiemDonCuaMa = kiemDonCuaMa; // P20b: POST /orders dùng CÙNG phép kiểm đơn gốc (khuôn wallets.js)
 module.exports.nhanMaUuDai = nhanMaUuDai;     // KH-API-1: /api/kh/nhan-ma-bill
 module.exports.nhanDiemMaBill = nhanDiemMaBill; // KH-API-1: /api/kh/nhan-diem
+module.exports.docCauHinhNhanDiem = docCauHinhNhanDiem; // P22-23: bill in hệ số CÙNG hàm với /nhan-diem
