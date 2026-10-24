@@ -268,3 +268,15 @@ Edit); vượt ngân sách bài thử (410 / ~200).
    (chép bản gốc từ nháp, commit trước khi chạy bài có cụm bí mật, ghi hồ sơ bằng Edit) — không cần khoá mới.
 7. **BỎ** — vượt ngân sách `thu_P24.js`: đã ghi lý do ở `ke_hoach.md` mục 6 (33 ca phủ A–I + K5) — riêng việc này.
 Dọn: không đề xuất xoá lời dặn nào (chưa có phép kiểm thay). `KHUON_LOI.md` không đổi trong việc này.
+
+## Cổng (bước 11.4)
+`node tu_chay/cong.js chay . 4c6e0ce^ HEAD viec/P24` ở HEAD `2221b95`, cây sạch:
+✓ CỔNG CHẠY ĐẠT
+
+GIT (`git log --oneline -2` lúc kiểm):
+```
+2221b95 P24: chat soat thay vong 4 — DAT; nghiem thu, bao cao 7 muc, bai hoc
+906c6b6 P24: soat vong 3 — bao cao + sua; vuot so vong sua, dung hoi chu quan
+```
+
+HEAD ĐÃ KIỂM: 2221b95
