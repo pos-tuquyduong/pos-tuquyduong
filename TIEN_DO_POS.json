@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 38,
-  "cap_nhat": "2026-10-22",
+  "phien_ban_so": 39,
+  "cap_nhat": "2026-10-24",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -16,7 +16,7 @@
     },
     {
       "ma": "P3",
-      "ten": "Ma QR thanh toan payOS — can H1 xong truoc, payOS khong co moi truong thu",
+      "ten": "Ma QR thanh toan payOS — can H1 xong truoc, payOS khong co moi truong thu | MO RONG + PHIEU 24.10 (DAC_TA_BAN_HANG_2410 muc 1.10-1.14): QR payOS may chu tu xac nhan (quay + App KH), PIN khach (bam, sai 5 lan khoa 15 phut), GIU tien tai khoan / diem roi tru khi don xong, xac nhan tay co ly do (owner/manager); KHONG doi cong thuc diem / gia lap (tach DIEM-THAT-1); chu quan da co tai khoan payOS, Render chua tra phi. viec/P3/phieu.md (cho duyet ke hoach)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -126,16 +126,16 @@
     },
     {
       "ma": "P14",
-      "ten": "Ghi chu tung ly: nut mac dinh + ghi chu dac biet tach rieng · nut tach ly · van luu 1 cot notes",
+      "ten": "Ghi chu tung ly: nut mac dinh + ghi chu dac biet tach rieng · nut tach ly · van luu 1 cot notes | GOP 24.10 vao BH-1 / HD-1 / TOPPING-1 (DAC_TA_BAN_HANG_2410 thay ban mau 22-23.09: bo mang ra ban, bo ghi no, bo popup)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
       "ma": "P15",
-      "ten": "Khach: tim ten/SDT + quet QR thanh vien · QR thanh vien la ma rieng that (doi ham helpers.js 68) · bill in diem · ma nhan diem chi khi khong co khach va du diem · chu co dau · PIN khi tieu vi | MO 22.10: phan QR + quay tim / quet = P15-QR (M3); phan con lai (bill in diem, chu co dau, PIN khi tieu vi...) van dang_mo",
+      "ten": "Khach: tim ten/SDT + quet QR thanh vien · QR thanh vien la ma rieng that (doi ham helpers.js 68) · bill in diem · ma nhan diem chi khi khong co khach va du diem · chu co dau · PIN khi tieu vi | MO 22.10: phan QR + quay tim / quet = P15-QR (M3); phan con lai (bill in diem, chu co dau, PIN khi tieu vi...) van dang_mo | 24.10: PIN chuyen sang P3; con lai: ma nhan diem in chu + QR dang ky web KH (ma dien san) - DAC_TA_BAN_HANG_2410 muc 2",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -252,7 +252,79 @@
     },
     {
       "ma": "P24",
-      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22; CHU QUAN CHOT 02.10: DIEM AM; phai sua bat bien I8 cua gia lap",
+      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22; CHU QUAN CHOT 02.10: DIEM AM; phai sua bat bien I8 cua gia lap | PHIEU 24.10: viec/P24/phieu.md (cho duyet ke hoach); chay SONG SONG voi P3 (P24 chi sua huy / xoa)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "QUAY-AN-1",
+      "ten": "Man Ban hang HIEN TAI: an nut Ghi no + Chua thu (khong cong no, chu quan chot 22.10); no cu van thu o Lich su don. [Th] Sonnet, M4. PHIEU 24.10: viec/QUAY-AN-1/phieu.md (chay thang)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "DIEM-THAT-1",
+      "ten": "Diem chi tinh tren tien khach tra that (TM / CK), khong tinh phan tru tai khoan va phi giao (chu quan chot 24.10, ti le van o Cai dat loyalty_earn_per_amount); ma nhan diem khach le cung theo; sua bat bien I8. CHAY SAU P24 (cung sua I8). [T] Opus, M4. DAC_TA_BAN_HANG_2410 muc 1.14",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "UUDAI-1",
+      "ten": "Gia hang hien thi (gia goc gach + gia hang) + giam hang ap ca topping; cai dat tung ma / qua: cong hay khong cong voi giam hang; khong cong -> may chu chon cai loi hon. [T] Opus, M4. DAC_TA_BAN_HANG_2410 muc 1.5-1.6",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TOPPING-1",
+      "ten": "Topping + ghi chu nhanh CAI THEO TUNG SAN PHAM; gia topping; tru kho SX (lo, han dung; het -> mo); topping tren gio / hoa don / tem / hoan. POS + SX. [T] Opus, M5. DAC_TA_BAN_HANG_2410 muc 1.7-1.8",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "BH-1",
+      "ten": "Giao dien man Ban hang moi theo DAC_TA_BAN_HANG_2410 (tu theo man hinh, thanh khach, khung chon mon, to tien + so khac, man ket thuc hoa don + tem); dung API san co + API cua P3 / UUDAI-1 / TOPPING-1. [Th] Sonnet, M5",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "HD-1",
+      "ten": "Hoa don bo cuc moi + tuy chinh chu hoa don & tem (mo rong cai dat invoice_*), gioi han 42 ky tu, khong an duoc tong / thanh toan. [Th] Sonnet, M5. DAC_TA_BAN_HANG_2410 muc 2-3",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-MUA-1",
+      "ten": "Dat don tu App KH, TRA TRUOC bang QR payOS (sau P3); don chi ve quay (kem chuong) khi da tra. Doi ten tu KH-DON-1 (ma co \"-D\" bi luat chan push). [T] Opus, M5",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-UI-2",
+      "ten": "App KH: gio, dat don, theo doi don (theo demo chu quan). [Th] Sonnet, M4",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -261,45 +333,45 @@
     },
     {
       "ma": "P13a",
-      "ten": "Nen P13: them choThu/nhatKy/doiCachTra vao api.js · MOT nguong bill_cho_do_phut (seed + o Cai dat, client fallback 10) · quyen doi_cach_tra (owner+manager+staff, seed ngoai khoi bang rong) + checkPermission o doi-cach-tra",
+      "ten": "Nen P13: them choThu/nhatKy/doiCachTra vao api.js · MOT nguong bill_cho_do_phut (seed + o Cai dat, client fallback 10) · quyen doi_cach_tra (owner+manager+staff, seed ngoai khoi bang rong) + checkPermission o doi-cach-tra | GOP 24.10 vao BH-1 / HD-1 / TOPPING-1 (DAC_TA_BAN_HANG_2410 thay ban mau 22-23.09: bo mang ra ban, bo ghi no, bo popup)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
       "ma": "P13b",
-      "ten": "Day the bill cho thu + thu 2 cham tien mat/chuyen khoan, GHI NGAY (bo hoan tac 5s); xu ly 400 da thu / 409 DA_THU_ROI. Can TRUOC: gate ban mau (bo hoan tac, sua luat 2 va luat 3 — bill mang ra ban chi thu o Ban hang, don ghi no thu o Lich su don) + P22; CHU QUAN CHOT 02.10 cong ban mau: BO hoan tac 5s; bill mang ra ban chi thu o Ban hang, don ghi no chi thu o Lich su don — sua ban_mau_pos/ truoc",
+      "ten": "Day the bill cho thu + thu 2 cham tien mat/chuyen khoan, GHI NGAY (bo hoan tac 5s); xu ly 400 da thu / 409 DA_THU_ROI. Can TRUOC: gate ban mau (bo hoan tac, sua luat 2 va luat 3 — bill mang ra ban chi thu o Ban hang, don ghi no thu o Lich su don) + P22; CHU QUAN CHOT 02.10 cong ban mau: BO hoan tac 5s; bill mang ra ban chi thu o Ban hang, don ghi no chi thu o Lich su don — sua ban_mau_pos/ truoc | GOP 24.10 vao BH-1 / HD-1 / TOPPING-1 (DAC_TA_BAN_HANG_2410 thay ban mau 22-23.09: bo mang ra ban, bo ghi no, bo popup)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
       "ma": "P13c",
-      "ten": "Khung the: huy bill co ly do + xac nhan, an nut voi nguoi khong co quyen cancel_order; In lai tach cho P16",
+      "ten": "Khung the: huy bill co ly do + xac nhan, an nut voi nguoi khong co quyen cancel_order; In lai tach cho P16 | GOP 24.10 vao BH-1 / HD-1 / TOPPING-1 (DAC_TA_BAN_HANG_2410 thay ban mau 22-23.09: bo mang ra ban, bo ghi no, bo popup)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
       "ma": "P13d",
-      "ten": "Ba nut tra tien + day to tien thay popup; ham thuan dungPayloadDon dung chung (C15), giu popup cu lam loi du phong cho ca phuc tap",
+      "ten": "Ba nut tra tien + day to tien thay popup; ham thuan dungPayloadDon dung chung (C15), giu popup cu lam loi du phong cho ca phuc tap | GOP 24.10 vao BH-1 / HD-1 / TOPPING-1 (DAC_TA_BAN_HANG_2410 thay ban mau 22-23.09: bo mang ra ban, bo ghi no, bo popup)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
       "ma": "P13e",
-      "ten": "Hoan thu o Lich su don: quyen hoan_thu (manager), ly do + xac nhan; thu phai la thao tac cuoi, trong ngay (owner: moi ngay + xac nhan them), ma uu dai chua dung; append-only (log hoan_thu, dong debt_payment_hoan am, dong diem am). Can P21, P22; CHU QUAN CHOT 02.10: diem am",
+      "ten": "Hoan thu o Lich su don: quyen hoan_thu (manager), ly do + xac nhan; thu phai la thao tac cuoi, trong ngay (owner: moi ngay + xac nhan them), ma uu dai chua dung; append-only (log hoan_thu, dong debt_payment_hoan am, dong diem am). Can P21, P22; CHU QUAN CHOT 02.10: diem am | GOP 24.10 vao BH-1 / HD-1 / TOPPING-1 (DAC_TA_BAN_HANG_2410 thay ban mau 22-23.09: bo mang ra ban, bo ghi no, bo popup)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
       "ngay": null
@@ -666,43 +738,43 @@
     },
     {
       "ma": "P22-23",
-      "ten": "Diem chi cong khi thu du (don paid cong luc tao; don cho thu / con no cong o pay-debt khi thanh paid, mot giao dich, chong trung F2) + chan mua goi / the chua thu du; sua bat bien I8 (cong_cu/gia_lap/bat_bien.js) cung luc; nhan diem ma bill: flash 0 diem, he so mot ham (LUOI-2 Phat hien 1 va 3). Gop P22 + P23. Sua orders.js -> chay TRUOC P24 va KH-DON-1. Moc M3, Opus. PHIEU 22.10: viec/P22-23/phieu.md (cho duyet ke hoach)",
+      "ten": "Diem chi cong khi thu du (don paid cong luc tao; don cho thu / con no cong o pay-debt khi thanh paid, mot giao dich, chong trung F2) + chan mua goi / the chua thu du; sua bat bien I8 (cong_cu/gia_lap/bat_bien.js) cung luc; nhan diem ma bill: flash 0 diem, he so mot ham (LUOI-2 Phat hien 1 va 3). Gop P22 + P23. Sua orders.js -> chay TRUOC P24 va KH-DON-1. Moc M3, Opus. PHIEU 22.10: viec/P22-23/phieu.md (cho duyet ke hoach) | XONG 22.10 (PR #38, c4fabcd; HEAD may 1d38f40 + chat soat gop: moc DIEM_KHI_THU_TU=2026-10-23, AP_DUNG_TU.I8 giu 2026-10-03)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "P22-23",
+      "commit": "c4fabcd",
+      "ngay": "2026-10-22"
     },
     {
       "ma": "P15-QR",
-      "ten": "QR thanh vien la ma rieng that (helpers.js generateQRCode hien QR-<SDT> doan duoc) + quay tim / quet QR khach + trong /api/kh/toi them qr cho App KH. Dung lai client/dist cung KH-QUAY-1 -> chat xep thu tu gop. Moc M3, Opus. PHIEU 22.10: viec/P15-QR/phieu.md (cho duyet ke hoach)",
+      "ten": "QR thanh vien la ma rieng that (helpers.js generateQRCode hien QR-<SDT> doan duoc) + quay tim / quet QR khach + trong /api/kh/toi them qr cho App KH. Dung lai client/dist cung KH-QUAY-1 -> chat xep thu tu gop. Moc M3, Opus. PHIEU 22.10: viec/P15-QR/phieu.md (cho duyet ke hoach) | XONG 22.10 (PR #40, 423624b; log che ma QR; phan quay chi kiem bang doc code; GET /customers/qr/:code con tra password + pin_code -> sua o P3)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "P15-QR",
+      "commit": "423624b",
+      "ngay": "2026-10-22"
     },
     {
       "ma": "KH-UI-1",
-      "ten": "App KH dot 1 (app_kh/, goi /api/kh cua KH-API-1): menu, dang nhap (ma lay tai quay), nhan ma bill / nhan diem, diem, voucher (gom ma_khach_moi), lich su don, ho so, cho QR thanh vien (cho P15-QR). Demo chu quan chua xong -> lam theo danh sach man, giao dien o src/giaoDien/ de doi theo demo sau. May chu POS phuc vu app_kh/dist theo bien KH_HOST (server/index.js). Chu quan dat KH_JWT_SECRET + KH_HOST tren Render truoc khi thu App that. Moc M3, Sonnet [Th]. PHIEU 22.10: viec/KH-UI-1/phieu.md",
+      "ten": "App KH dot 1 (app_kh/, goi /api/kh cua KH-API-1): menu, dang nhap (ma lay tai quay), nhan ma bill / nhan diem, diem, voucher (gom ma_khach_moi), lich su don, ho so, cho QR thanh vien (cho P15-QR). Demo chu quan chua xong -> lam theo danh sach man, giao dien o src/giaoDien/ de doi theo demo sau. May chu POS phuc vu app_kh/dist theo bien KH_HOST (server/index.js). Chu quan dat KH_JWT_SECRET + KH_HOST tren Render truoc khi thu App that. Moc M3, Sonnet [Th]. PHIEU 22.10: viec/KH-UI-1/phieu.md | XONG 22.10 (PR #41, bd9b920; Render deploy lan dau hong, deploy lai thanh cong; env.example con thieu KH_HOST)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "KH-UI-1",
+      "commit": "bd9b920",
+      "ngay": "2026-10-22"
     },
     {
       "ma": "KH-QUAY-1",
-      "ten": "Nut \"Ma dang nhap App\" o trang Khach hang (Customers.jsx, khung chi tiet khach): goi POST /api/pos/kh/cap-ma, hop hien ma + dong ho 5 phut. Sua client -> client/dist/** trong Pham vi; dung lai dist cung P15-QR -> chat xep thu tu gop. Moc M3, Sonnet [Th]. PHIEU 22.10: viec/KH-QUAY-1/phieu.md",
+      "ten": "Nut \"Ma dang nhap App\" o trang Khach hang (Customers.jsx, khung chi tiet khach): goi POST /api/pos/kh/cap-ma, hop hien ma + dong ho 5 phut. Sua client -> client/dist/** trong Pham vi; dung lai dist cung P15-QR -> chat xep thu tu gop. Moc M3, Sonnet [Th]. PHIEU 22.10: viec/KH-QUAY-1/phieu.md | XONG 22.10 (PR #39, 168b481; 503 theo ma KH_CHUA_CAU_HINH da lam; chu quan thu tay: bao \"App khach chua bat\" vi chua dat KH_JWT_SECRET - dung)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "KH-QUAY-1",
+      "commit": "168b481",
+      "ngay": "2026-10-22"
     },
     {
       "ma": "GIAO-1",
-      "ten": "Giao hang Ahamove (chu quan chot 18-21.10): App bao phi ship (may chu goi Ahamove, khoa chi o may chu); khach tra DUNG phi Ahamove bao; phi ship la dong rieng, khong tich diem, khong ap ma; CHUYEN KHOAN TRUOC, quay xac nhan da nhan tien moi bam \"Goi Ahamove\" (khong COD); lech phi luc goi xe quan chiu, ghi lai cho Doi soat; quay huy chuyen duoc. Chu quan hoi Ahamove co sandbox chua. Moc M5, [T]. Cat theo thu tu: GIAO-1 dung truoc KH-DON-1",
+      "ten": "Giao hang Ahamove (chu quan chot 18-21.10): App bao phi ship (may chu goi Ahamove, khoa chi o may chu); khach tra DUNG phi Ahamove bao; phi ship la dong rieng, khong tich diem, khong ap ma; CHUYEN KHOAN TRUOC, quay xac nhan da nhan tien moi bam \"Goi Ahamove\" (khong COD); lech phi luc goi xe quan chiu, ghi lai cho Doi soat; quay huy chuyen duoc. Chu quan hoi Ahamove co sandbox chua. Moc M5, [T]. Cat theo thu tu: GIAO-1 dung truoc KH-DON-1 | 24.10: QUAY cung giao duoc: chon Giao hang -> tinh phi Ahamove -> thu du (TM/CK) -> nut Goi xe (DAC_TA_BAN_HANG_2410 muc 1.15)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -728,8 +800,8 @@
       "ngay": null
     },
     {
-      "ma": "DON-DEP-v1",
-      "ten": "Bo attached_assets/ khoi git (69 file, 43 MB) sau khi kiem client khong dung @assets; xoa 19 file patch_*.py | + (10.10) CHECKLIST_CODE.md:16 \"26 phep\"; con nhac thu_p1 o CHECKLIST_CODE.md, lui_KHOTHU_v2.sh, patch_pos_khothu_v2.py; viec/AUDIT-1/dot_bien.py: kieu thugl thieu kiem_tra...js (P3), chay khong tham so bo G3 (P4), !D1-E11-P20 / !D1-E11-P26a LAC (P5), so ca nhat ky nguoi gac -> \"KHO BAN\" oan khi chay song song; viec/LUOI-1/trang_thai.md cau \"69 ca ... (62 truoc do)\" sai — 69 va 62 deu la TONG | + Phat hien TU-CHAY-5 (12.10): (1) tu_chay/cai_thu_vien.sh im lang khi HEAD tach roi (them nhanh *) in canh bao + ca trong thu_cong_cu.js); (2) viec/TACH-GL/do_chia.js, do_chia_e2.js cong Buffer khong setEncoding",
+      "ma": "DONDEP-v1",
+      "ten": "Bo attached_assets/ khoi git (69 file, 43 MB) sau khi kiem client khong dung @assets; xoa 19 file patch_*.py | + (10.10) CHECKLIST_CODE.md:16 \"26 phep\"; con nhac thu_p1 o CHECKLIST_CODE.md, lui_KHOTHU_v2.sh, patch_pos_khothu_v2.py; viec/AUDIT-1/dot_bien.py: kieu thugl thieu kiem_tra...js (P3), chay khong tham so bo G3 (P4), !D1-E11-P20 / !D1-E11-P26a LAC (P5), so ca nhat ky nguoi gac -> \"KHO BAN\" oan khi chay song song; viec/LUOI-1/trang_thai.md cau \"69 ca ... (62 truoc do)\" sai — 69 va 62 deu la TONG | + Phat hien TU-CHAY-5 (12.10): (1) tu_chay/cai_thu_vien.sh im lang khi HEAD tach roi (them nhanh *) in canh bao + ca trong thu_cong_cu.js); (2) viec/TACH-GL/do_chia.js, do_chia_e2.js cong Buffer khong setEncoding | DOI TEN 24.10 (ma co \"-D\" bi luat chan push)",
       "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
