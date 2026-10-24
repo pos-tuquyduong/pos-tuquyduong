@@ -2290,7 +2290,6 @@ export default function Sales() {
         cash_received: completedOrder.cashReceived,
         change_amount: completedOrder.change,
         balance_amount: completedOrder.balanceUsed || 0,
-        debt_amount: completedOrder.debtAmount || 0,
         signup_code: completedOrder.signupCode || null,
         signup_nhan: completedOrder.signupNhan || null,   // POS-NHANDIEM-UI-v1
         signup_loi: completedOrder.signupLoi || null
@@ -2302,7 +2301,6 @@ export default function Sales() {
         change: completedOrder.change,
         balanceUsed: completedOrder.balanceUsed,
         balanceAfter: completedOrder.balanceAfter,
-        debtAmount: completedOrder.debtAmount,
         paymentMethod: completedOrder.paymentMethod
       }}
       onClose={() => {
