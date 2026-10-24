@@ -12,6 +12,21 @@
 
 **Chờ duyệt kế hoạch:** viết `viec/P24/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
+**Đã duyệt (chủ quán 24.10, sau khi chat soát kế hoạch `ke_hoach.md` đầu nhánh `4bf6b9f`):** kế hoạch được duyệt nguyên văn kèm các điểm
+sau; máy làm tiếp từ bước 4 (`/lam-viec P24 tiep`) tới hết, không dừng hỏi lại các điểm này:
+1. G-a: `DELETE /:id` đơn `completed` có điểm → trừ điểm y như huỷ, dùng chung hàm `truDiemDon` đặt NGAY TRƯỚC `router.delete`
+   (khe ~1580–1587, như kế hoạch 2.2). Đơn đã huỷ rồi mới xoá: không trừ lần hai.
+2. E-a: dòng trừ chép đúng `expires_at` của `earn` (điểm đã hết hạn thì số dư không đổi, không phạt khách hai lần).
+3. D: CÓ vá lỗ đua — `server/routes/signup-codes.js` đã thêm vào Phạm vi, CHỈ câu chiếm mã (~:278) + `baoChiemHong` (~:282–285) để
+   trả `DON_DA_HUY`; giữ nguyên chuỗi neo `WHERE id = ? AND diem_nhan_luc IS NULL` (kiem_tra_truoc_khi_giao.js:463–469).
+4. Lỗi khi ghi dòng trừ → ROLLBACK cả lệnh huỷ / xoá (không bọc try/catch); sổ điểm luôn cân.
+5. Chọn cách GROUP BY (SĐT, hạn) như kế hoạch 2.1 (A), không theo gợi ý bỏ GROUP BY.
+6. Dòng `adjust` CÓ `order_id` từ nay dành RIÊNG cho "trừ điểm do huỷ / xoá đơn" — ghi một dòng chú thích ngay câu ghi và ở ghi chú
+   đầu `bat_bien.js` (để DIEM-THAT-1 và việc sau không dùng lẫn).
+7. Mốc `HUY_TRU_DIEM_TU = '2026-10-25'` ghi tạm; chat sửa đúng ngày lúc duyệt PR.
+8. Phát hiện ngoài phạm vi (KHÔNG làm ở đây, chat đã ghi cho việc sau): `doiSoat.js:118` gộp điểm trừ do huỷ với đổi quà; hoàn tiền
+   trọn / một phần giữ điểm của đơn.
+
 ## Mục tiêu
 Huỷ một đơn đã có điểm thì điểm của đơn đó bị trừ lại đúng bằng số đã cộng, kể cả khi khách đã tiêu (điểm âm). Sổ điểm chỉ ghi thêm,
 đối soát (I8) canh đúng luật mới.
@@ -34,6 +49,7 @@ Huỷ một đơn đã có điểm thì điểm của đơn đó bị trừ lạ
 ## Phạm vi
 - viec/P24/**
 - server/routes/orders.js
+- server/routes/signup-codes.js
 - cong_cu/gia_lap/bat_bien.js
 - cong_cu/gia_lap/kich_ban.js
 - cong_cu/thu_P24.js
@@ -59,6 +75,6 @@ không (dùng loại dòng sẵn có nếu được; cần loại mới → kế
 không
 
 ## Cấm
-- KHÔNG sửa `refunds.js`, `signup-codes.js` (trừ khi D cần — nêu trong kế hoạch), `server/routes/kh/**`, `client/**`, `server/database.js`.
+- KHÔNG sửa `refunds.js`, `signup-codes.js` ngoài câu chiếm mã + `baoChiemHong` (điểm duyệt 3), `server/routes/kh/**`, `client/**`, `server/database.js`.
 - KHÔNG đổi cách tính điểm cộng (P3), hoàn thu (P13e đã gộp vào việc sau), đổi quà.
 - Mặc định: không sửa tu_chay/, .claude/, .github/, sổ việc. Chỉ push `git push -u origin viec/P24`. Không đụng main, không merge, không tạo PR.
