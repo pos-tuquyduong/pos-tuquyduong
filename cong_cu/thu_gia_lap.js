@@ -559,6 +559,9 @@ async function duLieuTay() {
       HUY_I8(truocMocHuy, truocMoc, 'pending'), null, { thuc: true }],
     ['I8 Đối soát thật (P24): đơn ghi nợ tạo trước mốc thu đủ, huỷ trước mốc huỷ, 7 điểm (sai cả hai luật)', 'I8', 'I8',
       [...HUY_I8(truocMocHuy, truocMoc, 'pending'), "UPDATE pos_point_transactions SET points = 7 WHERE id = 14"], /^đơn H1: 7 điểm, đúng luật là 0$/, { thuc: true }],
+    // Đơn CHƯA huỷ (cancelled_at NULL) thiếu điểm ở Đối soát thật phải lệch — khoá vế `r.status === 'cancelled'` của huyCu (soát vòng 3).
+    ['I8 Đối soát thật (P24): đơn thu đủ CHƯA huỷ thiếu điểm', 'I8', 'I8', [...DON_I8(), 'DELETE FROM pos_point_transactions WHERE id = 11'],
+      /^đơn P1: 0 điểm, đúng luật là 5$/, { thuc: true }],
     ['I8 (P24) dòng adjust KHÔNG gắn đơn', 'I8', 'I8', ["INSERT INTO pos_point_transactions VALUES (2, 'S', 'adjust', -1, NULL)"], /loại dòng điểm lạ "adjust"/, {}],
     ['I12 sạch: quà ↔ dòng redeem cùng SĐT, mã đúng trị giá, dùng 1 lần', 'I12', 'I12', [], null, {}],
     ['I12 quà trỏ dòng không phải redeem', 'I12', 'I12', ["UPDATE pos_point_transactions SET type = 'earn'"], /dòng điểm earn/, {}],
