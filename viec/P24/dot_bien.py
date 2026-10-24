@@ -59,6 +59,8 @@ DOT_BIEN = [
    r'✗ I8 sạch Đối soát thật \(P24\): đơn huỷ dữ liệu cũ KHÔNG cancelled_at', 'gl'),
   ('VS-I8-bo-huycu-luat-cu', [(BB, "if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String", "if (ctx.thuc && r.status !== 'cancelled' && String", 1)],
    r'✗ I8 sạch Đối soát thật \(P24\): đơn ghi nợ tạo trước mốc thu đủ', 'gl'),
+  ('VS-I8-huycu-bo-status', [(BB, "const huyCu = ctx.thuc && r.status === 'cancelled' && (", "const huyCu = ctx.thuc && (", 1)],
+   r'✗ I8 Đối soát thật \(P24\): đơn thu đủ CHƯA huỷ thiếu điểm', 'gl'),
   ('VS-I8-adjust-moi-dong', [(BB, LA, "AND COALESCE(type, '') <> 'adjust'", 1)], r'✗ I8 \(P24\) dòng adjust KHÔNG gắn đơn', 'gl'),
   ('VS-I8-tha-don-huy-tao-truoc-moc', [(BB, "if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String", "if (ctx.thuc && String", 1)],
    r'✗ I8 Đối soát thật \(P24\): đơn TẠO trước mốc', 'gl'),
