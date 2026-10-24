@@ -1590,8 +1590,7 @@ async function truDiemDon(tx, order, nguoi, now, viec) {
      FROM pos_point_transactions
      WHERE order_id = ? AND type = 'earn'
        AND NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust')
-     GROUP BY customer_phone, expires_at
-     HAVING SUM(points) <> 0`,
+     GROUP BY customer_phone, expires_at`,
     [`${viec} đơn ${order.code} — trừ lại điểm`, nguoi, now, order.id, order.id],
   );
 }
