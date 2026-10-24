@@ -398,7 +398,7 @@ async function main() {
     const x2 = await goi('PUT', `/orders/${h2.order?.id}/cancel`, { reason: 'thử P22-23' });
     const lech = await BAT_BIEN.I8((sql, a = []) => db.query(sql, a), {});
     const con = lech.filter((d) => !boQuaF1.has((/^đơn (\S+): /.exec(d) || [])[1]));
-    k('F3 đơn đã thu huỷ giữ 25 điểm; đơn ghi nợ huỷ 0 điểm', x1.status === 200 && x2.status === 200 && await diemDon(h1.order.id) === 25
+    k('F3 (P24) đơn đã thu huỷ → 0 điểm (25 − 25); đơn ghi nợ huỷ 0 điểm', x1.status === 200 && x2.status === 200 && await diemDon(h1.order.id) === 0
       && await diemDon(h2.order.id) === 0, `${moTa(x1)} / ${moTa(x2)} · ${await diemDon(h1.order?.id)} / ${await diemDon(h2.order?.id)}`);
     k(`F1 I8 trên mọi đơn của bài (trừ ${boQuaF1.size} đơn cố ý đổi cài đặt / ném lỗi ghi) → 0 lệch`, con.length === 0, JSON.stringify(con.slice(0, 4)));
 
