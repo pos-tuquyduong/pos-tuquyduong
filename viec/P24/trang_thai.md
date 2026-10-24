@@ -43,12 +43,10 @@
 | (vòng 3) `bat_bien.js` vế `r.status === 'cancelled'` của `huyCu` | VS-I8-huycu-bo-status |
 
 ## Câu hỏi
-**Mở — vượt số vòng sửa (`so_vong_sua_toi_da` = 3), máy DỪNG ở bước 8:** ba vòng `/ra-soat` đều KHÔNG ĐẠT, mỗi vòng bắt một VẾ của nhánh
-I8 đơn huỷ (`bat_bien.js`) chưa có ca giữ (vòng 1: ngày gộp tổng 0; vòng 2: `huyCu ||` luật cũ; vòng 3: `r.status === 'cancelled'`).
-Cả ba đã vá + có ca + đột biến (23/23 BẮT), nhưng bản vá vòng 3 (HEAD `e71f36b`) CHƯA được soát độc lập. Xin chủ quán / chat chọn:
-(a) cho một vòng `/ra-soat` thứ 4 trên HEAD rồi máy làm tiếp bước 9–11; (b) chat tự soát rồi duyệt; (c) gom nhánh I8 đơn huỷ thành một
-tập giá trị chấp nhận (`chap.includes(...)`, người soát vòng 2–3 đề xuất) — gọn hơn, ít vế hơn, nhưng làm rữa thêm neo đột biến của việc
-cũ (`viec/P22-23/dot_bien.py`). Máy chưa ghi báo cáo 7 mục, chưa chạy `cong.js chay`, chưa ghi `HEAD ĐÃ KIỂM`.
+**Đã trả lời — vượt số vòng sửa (`so_vong_sua_toi_da` = 3), máy dừng ở bước 8 (HEAD `906c6b6`):** ba vòng `/ra-soat` đều KHÔNG ĐẠT, mỗi
+vòng bắt một VẾ của nhánh I8 đơn huỷ chưa có ca giữ; cả ba đã vá + ca + đột biến (23/23 BẮT). Phương án hỏi: (a) vòng `/ra-soat` thứ 4;
+(b) chat tự soát rồi duyệt; (c) gom I8 thành tập giá trị chấp nhận. **Chủ quán chọn (b) (24.10): chat soát thay vòng 4 — ĐẠT** (mục "Soát
+vòng 4" cuối file). Không sửa code nữa; ca "duyệt hoàn tiền chen lúc nhận điểm" để việc sau.
 
 Đã chốt (chủ quán 24.10, `bdc530a`, phiếu mục "Đã duyệt"): G-a (xoá trừ như huỷ, hàm chung `truDiemDon`) · E-a (dòng trừ chép hạn) · D có
 (thêm `signup-codes.js` vào Phạm vi) · lỗi ghi dòng trừ → rollback cả lệnh · mốc `HUY_TRU_DIEM_TU = '2026-10-25'` tạm, chat sửa lúc duyệt PR.
@@ -59,6 +57,9 @@ Không còn câu hỏi mở.
 - Hoàn tiền trọn (`refunds.js:158`) và hoàn một phần (báo hỏng, `damages.js`) đều GIỮ điểm của đơn — để việc sau (NT-I).
   Bài thử khoá hành vi hiện tại: `thu_P24.js` I2, I3. `thu_DOISOAT1.js` F3/F3c đổi số mong đợi theo hành vi `tongHop` hiện có
   (điểm trừ tháng = 300 do huỷ đơn mua gói + đổi quà) — khi việc sau tách loại trừ thì sửa lại hai ca này.
+- Ca "duyệt hoàn tiền (refunds.js) chen ĐÚNG lúc nhận điểm mã bill" chưa có bài thử: câu chiếm mã (`signup-codes.js:284`) đòi
+  `status = 'completed'` nên chặn cả đơn vừa chuyển 'refunded', nhưng đột biến `status <> 'cancelled'` sống (người soát vòng 2–3).
+  Chủ quán: để việc sau. Kèm: `'completed'` viết cứng thay vì `TRANG_THAI_DUNG_MA.status` (`signup-codes.js:46`).
 - Dữ liệu Turso thật có đơn huỷ `cancelled_at` NULL không: máy không xem được; I8 coi NULL là huỷ cũ (trước mốc) ở Đối soát thật.
 - Neo đột biến của việc cũ (K4 TU-CHAY-5, so cây gốc fe433ff với HEAD bằng script nháp đếm neo mọi `viec/*/dot_bien.py` trên các file P24
   sửa): P24 làm rữa MỘT neo — `viec/P22-23/dot_bien.py` `VS-I8-moc-ca-gia-lap` (chuỗi `if (ctx.thuc && String(r.created_at) <
@@ -190,3 +191,80 @@ BÀI HỌC: KHOÁ — điều kiện gộp `X && (cột == null || cột < MỐC
 - Chạy lại: thu_gia_lap HEAD 173·0, gốc 164·9; --goc p24 11·22, gl 98·8; `npm test -- --day-du` PASS 74 · FAIL 0.
 - Không làm (để chủ quán chọn ở `## Câu hỏi`): nghi ngờ `status <> 'cancelled'` (duyệt hoàn chen lúc nhận điểm — ngoài phiếu D), dùng
   `TRANG_THAI_DUNG_MA.status` thay `'completed'` viết cứng.
+
+## Soát vòng 4 — chat soát thay vòng 4 — ĐẠT (HEAD `906c6b6`, 24.10)
+Chủ quán chọn (b). Chat đã soát HEAD `906c6b6` ngày 24.10: đọc diff `orders.js`, `signup-codes.js`, `bat_bien.js`; chạy lại thu_P24 33/0,
+thu_P2223 44/0, thu_DOISOAT1 134/0, thu_P26c 157/0, thu_gia_lap 173/0, npm test 68/0 — ĐẠT, không có lỗi tiền / điểm. Ba vòng soát chỉ
+thiếu ca thử ở các vế I8, đều đã khoá bằng ca + đột biến. Không sửa code nữa. Ca "duyệt hoàn tiền chen lúc nhận điểm" để việc sau.
+(Máy chép nguyên lời chat. Lần chạy của máy ở cùng HEAD: `npm test` PASS 70 · `--day-du` PASS 74 · FAIL 0 — khác số 68 chat ghi; máy
+không biết chat chạy ở chế độ nào.)
+
+## Nghiệm thu — đếm từng mục
+- A — `thu_P24.js` A1 (earn lúc tạo), A2 (earn lúc thu nợ), A3 (khách lẻ mã bill, SĐT người nhận), A4 (lỗi ghi → rollback), A4b (dòng trừ
+  TRONG giao dịch), A5 (hai earn → một dòng trừ); dòng cũ giữ nguyên (A1 so lại dòng earn). Đỏ trên gốc.
+- B — B1 số dư −20 qua `/loyalty/points` (`layDiemKhach`, cùng hàm `/api/kh/diem` — `kh/index.js:99`); B2 đổi quà 400. Đỏ trên gốc.
+- C — C1 khách lẻ chưa nhận mã, C2 Flash, C3 ghi nợ chưa thu / thu một phần → 0 dòng điểm.
+- D — D1 huỷ rồi nhận → 400 `DON_DA_HUY` (hành vi sẵn có `signup-codes.js:63`); D2 huỷ chen lúc nhận (đỏ trên gốc); D3 luồng hợp lệ.
+- E — E1 cùng hạn, E2 earn đã hết hạn → số dư không đổi (E-a), E3 hai hạn → hai dòng.
+- F — F1 hai lệnh huỷ chồng → 200 + 400, 1 dòng trừ; F1b; F2 chặn trong câu ghi (đột biến VS-bo-not-exists).
+- G — G1 xoá đơn có earn → trừ (G-a); G2 huỷ rồi xoá → 1 dòng; G3 K5; G4 lỗi ghi khi xoá → rollback.
+- H — I8 `bat_bien.js:8–13, 20, 149–153, 171–172`; `thu_P24.js` H1, H1b, H2, H3; 14 ca I8 dữ liệu tay `thu_gia_lap.js`; KB5
+  `kich_ban.js` (đỏ trên gốc, giả lập I8 0 lệch trên HEAD); 12 đột biến I8 BẮT.
+- I — I1a giao từ gói, I1b mua gói, I1c mua thẻ (ví / gói / thẻ như cũ); I2 duyệt hoàn giữ điểm, I3 báo hỏng hoàn một phần giữ điểm (việc sau).
+9/9 mục có bằng chứng.
+
+## Báo cáo
+```
+VIỆC:        P24 — Huỷ đơn trừ lại điểm đã cộng (cho phép điểm âm) · sửa bất biến I8
+ĐÃ SỬA:      server/routes/orders.js:1583–1599 — hàm truDiemDon: INSERT … SELECT dòng 'adjust' = −SUM(earn) theo (SĐT, hạn), NOT EXISTS
+               chặn trừ lần hai; gọi trong giao dịch huỷ :1467 và xoá :1641 (đơn 'completed'), không bọc try/catch (lỗi → rollback)
+             server/routes/signup-codes.js:284 — câu chiếm mã /nhan-diem thêm AND EXISTS đơn còn 'completed' (huỷ chen giữa không ghi earn);
+               :79–84 baoChiemHong nhận dongDon → trả DON_DA_HUY / DON_DA_HOAN qua kiemDonCuaMa
+             cong_cu/gia_lap/bat_bien.js:8–13, 20, 141, 149–153, 171–172, 345 — I8: đơn huỷ tổng điểm = 0; mốc HUY_TRU_DIEM_TU (tạm
+               '2026-10-25'); Đối soát thật: huỷ trước mốc / cancelled_at NULL nhận cả luật cũ lẫn tổng 0; 'adjust' gắn đơn không "lạ"
+             cong_cu/gia_lap/kich_ban.js KB5 — huỷ đơn có điểm + nhận điểm mã bill rồi huỷ → điểm đơn 0, 1 dòng trừ
+             cong_cu/thu_P24.js (mới, 33 ca) · thu_P2223.js F3 · thu_gia_lap.js +14 ca I8 · thu_DOISOAT1.js F3/F3c ·
+               kiem_tra_truoc_khi_giao.js:495 thêm thu_P24.js cuối mảng bài chạy thật
+BÀI THỬ:     chạy trên bản chưa vá (fe433ff) → ĐỎ: thu_P24 11·22 (A1–A5, B1–B2, D2, E1–E3, F1, G1/G2/G4, H1/H1b/H2, I1b/I1c),
+               thu_P2223 43·1 (F3), thu_gia_lap 164·9 (KB5 ×2 + 7 ca I8), thu_DOISOAT1 132·2 (F3, F3c); sau khi vá → XANH 33 / 44 / 173 / 134;
+               đột biến 23/23 BẮT, đối chứng xanh; npm test -- --day-du PASS 74 · FAIL 0. Chi tiết: bang_chung_do.txt
+ĐÃ RÀ K4:    grep "INSERT INTO pos_point_transactions" server → 4 chỗ: earn orders.js:1059, :1337, signup-codes.js:293 (cả ba gắn
+               order_id → truDiemDon phủ), redeem loyalty.js:125 (không gắn đơn) — đã xử lý hết; chỗ đưa đơn rời 'completed' → 3: huỷ, xoá
+               (đã vá), refunds.js:158 (để việc sau theo phiếu); 9 chỗ đọc pos_point_transactions — không chỗ nào cắt số âm; neo đột biến
+               việc cũ: 1 neo P22-23 rữa (Phát hiện)
+CHƯA KIỂM:   dữ liệu Turso thật (đơn huỷ cancelled_at NULL, đơn ghi nợ mang điểm luật cũ) — I8 coi NULL là huỷ cũ; thử tay số âm trên quầy
+               (Khách hàng) và App KH (màn Điểm) — chưa mở trên điện thoại; /api/kh/diem không gọi thẳng (cùng hàm layDiemKhach);
+               ca "duyệt hoàn tiền chen lúc nhận điểm" (để việc sau); ngày mốc thật HUY_TRU_DIEM_TU (chat sửa lúc duyệt PR);
+               đột biến không chạy giả lập (KB5 chỉ có bằng chứng chạy đủ thu_gia_lap trên gốc); bản vá vòng 3 do chat soát thay
+               (không phải agent /ra-soat)
+GIT:         xem dòng "git log --oneline -2" ngay dưới khối này
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 3 — chi tiết ở ## Bài học
+```
+Thử tay cho chủ quán (sau khi gộp, trên điện thoại): (1) bán 1 ly có SĐT trả tiền mặt → Khách hàng thấy điểm cộng; (2) Lịch sử đơn →
+Huỷ đơn đó → điểm khách về như trước (khách đã đổi quà thì hiện số âm); (3) App KH → Điểm: thấy dòng "Huỷ đơn … — trừ lại điểm".
+
+## Bài học
+Sự cố gom từ việc này: 3 vòng `/ra-soat` KHÔNG ĐẠT (đều một khuôn: vế điều kiện I8 không có ca giữ) → vượt số vòng sửa, phải hỏi;
+`thu_DOISOAT1` F3 đỏ bất ngờ sau vá (Đối soát gộp dòng trừ với đổi quà); người gác chặn: B-BIMAT-CHU ×3 (grep -r ở gốc kho; chạy bài
+chưa commit có cụm bí mật; heredoc ghi hồ sơ có chữ đó), B-PHANTICH ×3 (chuyển hướng ra file, lệnh ghép `cp … && node`, `$'…'`),
+GIT-CHECKOUT ×1 (`git checkout <sha> -- file` lấy bản gốc), B-CD-VITRI ×1, B-MANOI ×1 (heredoc ghi hồ sơ nhắc file được bảo vệ → dùng
+Edit); vượt ngân sách bài thử (410 / ~200).
+
+1. **KHOÁ** — mỗi VẾ của điều kiện mới trong bất biến có một ca + một đột biến gỡ đúng vế đó; dữ liệu thử chọn để các luật cho số KHÁC
+   nhau (đơn ghi nợ / Flash, không chỉ đơn 'paid'); với khuôn `X && (cột == null || cột < MỐC)` phải có ca "dòng ngoài X, cột NULL, sai
+   luật → lệch". Lý do: ba vòng soát liên tiếp, mỗi vòng một vế. Ngoài Phạm vi (bộ khung tự chạy) → đề xuất: phép kiểm của cổng đọc
+   `viec/<MÃ>/dot_bien.py`: mỗi dòng điều kiện đổi trong `cong_cu/gia_lap/bat_bien.js` (theo diff) phải có ≥ 1 đột biến neo vào dòng đó;
+   ca đỏ: P24 HEAD `769d613` (vế `r.status === 'cancelled'` không đột biến nào neo).
+2. **KHOÁ** — mốc chuyển luật trong bất biến (`*_TU`) có ca "trước mốc, dữ liệu theo luật MỚI → sạch" cạnh "trước mốc, luật cũ → sạch"
+   (ngày gộp lẫn hai luật). Đã làm trong Phạm vi cho P24 (`thu_gia_lap.js` ca ngày gộp, ca đỏ trên gốc + đột biến
+   VS-I8-ngay-gop-chi-luat-cu). Đề xuất chung: mẫu ca này cho mọi mốc sau (DIEM-THAT-1).
+3. **NGUYÊN TẮC** — K3, thêm dòng "Chặn (P24)": biểu thức trung gian gộp nhiều vế (`huyCu`) — đột biến từng vế của nó, không chỉ chỗ
+   dùng; mốc "ngày gộp + 1" nghĩa dữ liệu trước mốc theo MỘT TRONG HAI luật — phép tha nhận cả hai. Đã gây: P24 vòng 1–3. Ngoài Phạm vi
+   (`KHUON_LOI.md`) → đề xuất.
+4. **NGUYÊN TẮC** — K4 (tài liệu song song): sau mỗi vòng sửa, grep `ke_hoach.md` tìm mọi tên đột biến / câu tả hành vi cũ, đối chiếu
+   `dot_bien.py --liet-ke` (vòng 2 và 3 đều bắt `ke_hoach.md` lệch code). Ngoài Phạm vi → đề xuất gộp vào dòng "Chặn (TU-CHAY-5)" của K4.
+5. **BỎ** — `thu_DOISOAT1` F3 đỏ sau vá: đúng hành vi, do Đối soát gộp loại trừ (đã ghi Phát hiện, việc sau tách) — một lần.
+6. **BỎ** — người gác chặn (B-PHANTICH / GIT-CHECKOUT / B-CD-VITRI / B-BIMAT-CHU / B-MANOI): luật đã có và đúng, máy làm theo hướng dẫn
+   (chép bản gốc từ nháp, commit trước khi chạy bài có cụm bí mật, ghi hồ sơ bằng Edit) — không cần khoá mới.
+7. **BỎ** — vượt ngân sách `thu_P24.js`: đã ghi lý do ở `ke_hoach.md` mục 6 (33 ca phủ A–I + K5) — riêng việc này.
+Dọn: không đề xuất xoá lời dặn nào (chưa có phép kiểm thay). `KHUON_LOI.md` không đổi trong việc này.
