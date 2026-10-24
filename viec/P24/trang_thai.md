@@ -26,7 +26,7 @@
   `kich_ban.js` (KB5), bài cũ `thu_P2223.js` F3, `thu_gia_lap.js` (+8 ca I8), `thu_DOISOAT1.js` F3/F3c, `kiem_tra_truoc_khi_giao.js`.
 - Bước 6: `npm test` PASS 70 · `--day-du` PASS 74 · FAIL 0 (cảnh báo GET-ghi có sẵn).
 
-## Chỗ vá → đột biến (`viec/P24/dot_bien.py`, 22/22 BẮT sau vòng 2, đối chứng xanh)
+## Chỗ vá → đột biến (`viec/P24/dot_bien.py`, 23/23 BẮT sau vòng 3, đối chứng xanh)
 | Chỗ vá | Đột biến |
 |---|---|
 | `orders.js` gọi `truDiemDon` trong huỷ | BV-xoa-cau-tru-huy · VS-try-catch · VS-tru-sau-commit |
@@ -40,8 +40,16 @@
 | (vòng 1) `orders.js` gọi `truDiemDon` trong xoá — bọc nuốt lỗi | VS-try-catch-xoa |
 | (vòng 1) `bat_bien.js` ngày gộp nhận tổng 0 · NULL cancelled_at | VS-I8-ngay-gop-chi-luat-cu · VS-I8-huy-null-sau-moc |
 | (vòng 2) `bat_bien.js` vế `huyCu ||` tha luật cũ cho đơn huỷ trước mốc | VS-I8-bo-huycu-luat-cu |
+| (vòng 3) `bat_bien.js` vế `r.status === 'cancelled'` của `huyCu` | VS-I8-huycu-bo-status |
 
 ## Câu hỏi
+**Mở — vượt số vòng sửa (`so_vong_sua_toi_da` = 3), máy DỪNG ở bước 8:** ba vòng `/ra-soat` đều KHÔNG ĐẠT, mỗi vòng bắt một VẾ của nhánh
+I8 đơn huỷ (`bat_bien.js`) chưa có ca giữ (vòng 1: ngày gộp tổng 0; vòng 2: `huyCu ||` luật cũ; vòng 3: `r.status === 'cancelled'`).
+Cả ba đã vá + có ca + đột biến (23/23 BẮT), nhưng bản vá vòng 3 (HEAD `e71f36b`) CHƯA được soát độc lập. Xin chủ quán / chat chọn:
+(a) cho một vòng `/ra-soat` thứ 4 trên HEAD rồi máy làm tiếp bước 9–11; (b) chat tự soát rồi duyệt; (c) gom nhánh I8 đơn huỷ thành một
+tập giá trị chấp nhận (`chap.includes(...)`, người soát vòng 2–3 đề xuất) — gọn hơn, ít vế hơn, nhưng làm rữa thêm neo đột biến của việc
+cũ (`viec/P22-23/dot_bien.py`). Máy chưa ghi báo cáo 7 mục, chưa chạy `cong.js chay`, chưa ghi `HEAD ĐÃ KIỂM`.
+
 Đã chốt (chủ quán 24.10, `bdc530a`, phiếu mục "Đã duyệt"): G-a (xoá trừ như huỷ, hàm chung `truDiemDon`) · E-a (dòng trừ chép hạn) · D có
 (thêm `signup-codes.js` vào Phạm vi) · lỗi ghi dòng trừ → rollback cả lệnh · mốc `HUY_TRU_DIEM_TU = '2026-10-25'` tạm, chat sửa lúc duyệt PR.
 Không còn câu hỏi mở.
@@ -145,3 +153,40 @@ BÀI HỌC: KHOÁ — bất biến có HAI mốc chuyển luật chồng nhau (D
 - Không làm: gom I8 thành tập `chap` (đề xuất "đơn giản" của người soát) — đổi chữ thêm làm rữa thêm neo đột biến việc cũ; hai vế
   hiện đã có ca + đột biến riêng. Lời báo "đúng luật là <diemDung>" giữ như khuôn DIEM_KHI_THU_TU.
 - Neo đột biến việc cũ: xem `## Phát hiện`.
+
+## Soát độc lập `/ra-soat` — vòng 3 (HEAD `769d613`)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- cong_cu/gia_lap/bat_bien.js:150 — vế `r.status === 'cancelled'` trong `huyCu` không có ca nào giữ (K3). Đột biến tay
+  `const huyCu = ctx.thuc && (cancelled_at == null || …)` SỐNG ở thu_P24 (33·0), thu_gia_lap --chi-du-lieu-tay, thu_DOISOAT1 (134·0).
+  Hậu quả: đơn CHƯA huỷ có cancelled_at NULL → ở Đối soát thật huyCu đúng với MỌI đơn → vế `(huyCu && so(r.diem) === 0)` tha mọi đơn 0
+  điểm. Probe: đơn paid, completed, 50.000đ, 0 điểm, {thuc:true}: HEAD ["đơn X: 0 điểm, đúng luật là 5"], đột biến [] — Đối soát thật im
+  lặng trước đơn thu đủ thiếu điểm. Mọi ca thuc ở thu_gia_lap.js:540–561 là đơn ghi nợ hoặc đơn huỷ. Sửa: ca DON_I8() bỏ earn P1, {thuc},
+  mong /^đơn P1: 0 điểm, đúng luật là 5$/ + đột biến VS-I8-huycu-bo-status.
+- viec/P24/ke_hoach.md:120–122 — tên đột biến theo bản cũ (VS-duong, BV-xoa-cau-tru, BV-i8-huy) sai với dot_bien.py. — K1 / K4 tài liệu
+- viec/P24/ke_hoach.md:110 F2 ghi "đỏ trên gốc" nhưng xanh trên gốc; :115 I1 "xanh cả gốc" nhưng I1b, I1c ĐỎ; :115 nói I1 phủ "dùng mã"
+  trái với :139; :139 nhắc D3 mà bảng không có D3. — K1 nhẹ
+NGHI NGỜ:
+- signup-codes.js:284 đột biến `status <> 'cancelled'` SỐNG (không ca duyệt hoàn chen lúc nhận điểm) — phiếu D chỉ nói huỷ, không tính lỗi.
+- orders.js:1591 bỏ `AND type = 'earn'` SỐNG — tương đương hiện tại (chỉ adjust gắn đơn, NOT EXISTS chặn; redeem order_id NULL loyalty.js:125).
+- bat_bien.js:150 `<` → `<=` mốc SỐNG — tương đương (cancelled_at luôn có giờ, helpers.js:129 getNow).
+- signup-codes.js:284 viết cứng 'completed' thay vì TRANG_THAI_DUNG_MA.status (:46) — có thể lệch về sau (K4 nhẹ).
+K3: --goc fe433ff p24 11·22, gl 97·8; 22/22 BẮT, 0 LẠC; hở duy nhất: lỗi 1. K4: earn 3 chỗ phủ; 'cancelled' 1 chỗ (orders.js:1446), DELETE 1
+  chỗ (:1684) — đã vá; refunds.js:158 để việc sau; đọc số dư không cắt âm; doiSoat.js:118 mở theo phiếu. K5: không thấy chặn oan.
+  K1: lỗi 2, 3; số ca 33/44/172/134, 22 tên đột biến khớp trang_thai. Đường tiền: không tin client. P1: client/ app_kh/ không đổi.
+Đơn giản: bat_bien.js:150–153 ba biểu thức chồng nhau — chính vì vậy vế status lọt hai vòng; giữ cấu trúc thì cần ca + đột biến từng vế.
+NGHIỆM THU: 9/9 mục có bằng chứng · thiếu: không. H hở K3 (lỗi 1).
+CHƯA SOÁT ĐƯỢC: Turso thật (cancelled_at NULL, đơn ghi nợ mang điểm luật cũ); cong.js chay; thử tay số âm; /api/kh/diem không gọi thẳng; ngày mốc thật.
+BÀI HỌC: KHOÁ — điều kiện gộp `X && (cột == null || cột < MỐC)` mà cột NULL ở mọi dòng ngoài X: vế X phải có ca "dòng ngoài X, cột NULL,
+  sai luật → lệch" + đột biến gỡ X. NGUYÊN TẮC (K3) — đột biến cho nhánh bất biến phải bao từng VẾ của biểu thức trung gian, không chỉ chỗ
+  dùng. NGUYÊN TẮC (K4 tài liệu) — sau mỗi vòng sửa, grep ke_hoach.md tìm mọi tên đột biến, đối chiếu `dot_bien.py --liet-ke`.
+```
+
+### Sửa sau vòng 3 (vòng sửa thứ 3 — cuối cùng được phép)
+- `thu_gia_lap.js` +1 ca: đơn thu đủ CHƯA huỷ thiếu điểm ở Đối soát thật → lệch (ed3404c). `dot_bien.py` +VS-I8-huycu-bo-status → 23/23 BẮT (8677e97).
+- `ke_hoach.md`: tên đột biến thật + trỏ `--liet-ke`; F2 xanh trên gốc (giữ để bắt VS-bo-not-exists); I1 tách I1a/b/c đúng đỏ/xanh, bỏ "dùng
+  mã"; thêm dòng D3 (e71f36b).
+- Chạy lại: thu_gia_lap HEAD 173·0, gốc 164·9; --goc p24 11·22, gl 98·8; `npm test -- --day-du` PASS 74 · FAIL 0.
+- Không làm (để chủ quán chọn ở `## Câu hỏi`): nghi ngờ `status <> 'cancelled'` (duyệt hoàn chen lúc nhận điểm — ngoài phiếu D), dùng
+  `TRANG_THAI_DUNG_MA.status` thay `'completed'` viết cứng.
