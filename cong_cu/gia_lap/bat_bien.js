@@ -7,15 +7,17 @@
  *
  * I8 MÔ TẢ LUẬT ĐIỂM HIỆN TẠI (P22-23, chủ quán chốt 02.10 + 13.10.2026): điểm CHỈ khi
  * đơn đã thu đủ (payment_status 'paid'); đơn giảm Flash 0 điểm, kể cả nhận bằng mã bill;
- * đơn đã huỷ giữ điểm theo trạng thái tiền lúc huỷ. Dữ liệu cũ (đơn chưa thu có điểm theo
- * luật trước) chỉ được tha ở Đối soát thật (ctx.thuc) cho đơn tạo trước DIEM_KHI_THU_TU.
- * P24 (huỷ đơn trừ điểm) PHẢI sửa I8 cùng lúc — phiếu của việc đó phải ghi tên file này.
+ * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
+ * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
+ * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ.
  */
 
 // Chép wallets.js:240 (không export). Bộ kiểm nhóm S so khớp hai bản — sửa một bên là đỏ.
 const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation'];
 // P22-23: ngày đầu luật "thu đủ mới có điểm" chạy trọn = ngày gộp + 1 (khuôn AP_DUNG_TU của doiSoat.js). Chat sửa đúng ngày lúc duyệt PR.
 const DIEM_KHI_THU_TU = '2026-10-23';
+// P24: ngày đầu "huỷ đơn trừ điểm" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
+const HUY_TRU_DIEM_TU = '2026-10-25';
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
 const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
@@ -130,6 +132,7 @@ const BAT_BIEN = {
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
+        o.status, o.cancelled_at,
         COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
@@ -143,9 +146,10 @@ const BAT_BIEN = {
         if (!luatCu && so(r.flash) > 0) return 0;
         return coDiem ? g + Math.round(g * (k - 1)) : Math.round(g * k);
       };
-      const dung = diemDung(false);
+      const huyCu = ctx.thuc && r.status === 'cancelled' && String(r.cancelled_at) < HUY_TRU_DIEM_TU;   // huỷ trước P24: giữ điểm
+      const dung = r.status === 'cancelled' && !huyCu ? 0 : diemDung(false);
       if (so(r.diem) === dung) return [];
-      if (ctx.thuc && String(r.created_at) < DIEM_KHI_THU_TU && so(r.diem) === diemDung(true)) return [];
+      if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String(r.created_at) < DIEM_KHI_THU_TU && so(r.diem) === diemDung(true)) return [];
       return [`đơn ${r.code}: ${so(r.diem)} điểm, đúng luật là ${dung}`];
     });
     // LUOI-1 B1 — vế ĐỔI ĐIỂM (loyalty.js:124–219): mỗi dòng 'redeem' có đúng một quà trỏ tới (point_tx_id) và trừ đúng
@@ -163,7 +167,8 @@ const BAT_BIEN = {
         lech.push(`dòng đổi điểm #${r.id} (${r.customer_phone}): ${so(r.points)} điểm, ${so(r.so_qua)} quà trỏ tới, quà giá ${so(r.gia)} điểm`);
       }
     }
-    const la = await q("SELECT type, COUNT(*) AS n FROM pos_point_transactions WHERE COALESCE(type, '') NOT IN ('earn', 'redeem') GROUP BY type");
+    const la = await q(`SELECT type, COUNT(*) AS n FROM pos_point_transactions WHERE COALESCE(type, '') NOT IN ('earn', 'redeem')
+      AND NOT (COALESCE(type, '') = 'adjust' AND order_id IS NOT NULL) GROUP BY type`);   // P24: 'adjust' gắn đơn = trừ điểm do huỷ / xoá
     return lech.concat(la.map((r) => `loại dòng điểm lạ "${r.type}": ${r.n} dòng`));
   },
   // I9 — mỗi thao tác tiền có đúng một dòng nhật ký đơn (nhatKyDon.js): 'thu' khớp sổ phía quầy (số dòng + số tiền),
@@ -336,4 +341,4 @@ const BAT_BIEN = {
   },
 };
 
-module.exports = { BAT_BIEN, LOAI_TINH_VAO_VI, DIEM_KHI_THU_TU };
+module.exports = { BAT_BIEN, LOAI_TINH_VAO_VI, DIEM_KHI_THU_TU, HUY_TRU_DIEM_TU };
