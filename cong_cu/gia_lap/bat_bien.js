@@ -9,7 +9,7 @@
  * đơn đã thu đủ (payment_status 'paid'); đơn giảm Flash 0 điểm, kể cả nhận bằng mã bill;
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
  * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
- * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ.
+ * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
  */
 
 // Chép wallets.js:240 (không export). Bộ kiểm nhóm S so khớp hai bản — sửa một bên là đỏ.
@@ -146,9 +146,10 @@ const BAT_BIEN = {
         if (!luatCu && so(r.flash) > 0) return 0;
         return coDiem ? g + Math.round(g * (k - 1)) : Math.round(g * k);
       };
-      const huyCu = ctx.thuc && r.status === 'cancelled' && String(r.cancelled_at) < HUY_TRU_DIEM_TU;   // huỷ trước P24: giữ điểm
+      // Huỷ trước mốc (hoặc dữ liệu cũ không cancelled_at): ngày gộp lẫn hai luật → nhận cả "giữ điểm" (cũ) lẫn tổng 0 (P24).
+      const huyCu = ctx.thuc && r.status === 'cancelled' && (r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU);
       const dung = r.status === 'cancelled' && !huyCu ? 0 : diemDung(false);
-      if (so(r.diem) === dung) return [];
+      if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
       if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String(r.created_at) < DIEM_KHI_THU_TU && so(r.diem) === diemDung(true)) return [];
       return [`đơn ${r.code}: ${so(r.diem)} điểm, đúng luật là ${dung}`];
     });
