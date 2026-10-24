@@ -104,22 +104,23 @@ trên toàn bộ kịch bản sẽ bắt mọi đơn huỷ còn điểm. Ca ki�
 | C3 | đơn ghi nợ chưa thu / thu một phần → huỷ → 0 dòng | xanh cả gốc |
 | D1 | huỷ rồi `/nhan-diem` mã chưa dùng → 400 `DON_DA_HUY`, 0 `earn` | xanh cả gốc (hành vi hiện có) |
 | D2 | (nếu chủ chọn vá D) `co.mocTruocTx`: huỷ chen trước giao dịch nhận điểm → nhận 400, tổng điểm đơn 0 | gốc ghi earn sau huỷ |
+| D3 | (K5) nhận điểm mã bill trên đơn còn hiệu lực → 200, 50 điểm | xanh cả gốc |
 | E1 | earn có hạn → dòng trừ cùng `expires_at` | gốc 0 dòng |
 | E2 | earn đã hết hạn (sửa `expires_at` về quá khứ) → huỷ → số dư không đổi (theo E-a) | — |
 | F1 | hai lệnh huỷ chồng nhau (`co.mocTruocTx`) → 200 + 400, đúng 1 dòng `adjust` | gốc 0 dòng |
-| F2 | đột biến tầng 2: dòng `adjust` đã có (chèn tay) + huỷ → không thêm dòng thứ hai | gốc 0 dòng |
+| F2 | đột biến tầng 2: dòng `adjust` đã có (chèn tay) + huỷ → không thêm dòng thứ hai | xanh cả gốc (gốc không ghi dòng nào) — giữ để bắt `VS-bo-not-exists` |
 | G1 | (theo lựa chọn G) xoá đơn completed có earn → G-a: có dòng trừ / G-b: 400 `DON_CO_DIEM` | gốc 200 không trừ |
 | G2 | huỷ rồi xoá → đúng 1 dòng trừ | |
 | H1 | I8 trên mọi đơn của bài → 0 lệch; chèn `earn` vào đơn đã huỷ (không trừ) → I8 lệch "đơn X: n điểm, đúng luật là 0" | gốc I8 không lệch |
 | H2 | `ctx.thuc`: đơn huỷ 1 giây trước `HUY_TRU_DIEM_TU` còn điểm → sạch; đúng mốc → lệch; giả lập (không thuc) → lệch | gốc không có mốc |
-| I1 | huỷ đơn trả ví / dùng mã / mua gói / mua thẻ / giao từ gói → ví, lượt mã, gói, thẻ như cũ (so đúng số) | xanh cả gốc (K5) |
+| I1 | huỷ đơn giao từ gói (I1a) / mua gói trả ví (I1b) / mua thẻ (I1c) → ví, gói, thẻ như cũ (so đúng số) + điểm đơn 0 | I1a xanh cả gốc; I1b, I1c ĐỎ trên gốc (đơn mua gói / thẻ có điểm, gốc giữ) |
 | I2 | duyệt hoàn (`refunds.js`) đơn có điểm → điểm GIỮ nguyên (ghi rõ: việc sau) | xanh cả gốc |
 | I3 | hoàn MỘT PHẦN = báo hỏng hoàn tiền (`damages.js`, đường KB6) trên đơn có điểm → điểm GIỮ nguyên (việc sau) | xanh cả gốc |
 | H3 (giả lập) | `thu_gia_lap.js` chạy kịch bản → KB5 có `mong` "điểm đơn huỷ = 0" xanh, I8 0 lệch. Bằng chứng gốc: chạy đủ `thu_gia_lap.js` với 3 file code của gốc → KB5 đỏ (`bang_chung_do.txt` 2b). `dot_bien.py` KHÔNG có đột biến chạy giả lập (quá nặng) — ca `H3` trong `thu_P24.js` là ca khác ("adjust không gắn đơn") | gốc: mong mới đỏ |
 
-Đột biến (`viec/P24/dot_bien.py`): `VS-bo-not-exists` (bỏ tầng 2) → F2 bắt; `VS-duong` (ghi `+SUM`) → A1/B1 bắt; `VS-bo-han` (ghi
-`NULL` thay `expires_at`) → E1 bắt; `VS-try-catch` (bọc nuốt lỗi) → A4 bắt; `BV-xoa-cau-tru` (gỡ câu INSERT) → A1…H1 bắt;
-`BV-i8-huy` (gỡ nhánh `cancelled` ở I8) → H1 bắt; đối chứng: bản chưa đột biến xanh.
+Đột biến: danh sách THẬT là `python3 viec/P24/dot_bien.py --liet-ke` (23 tên sau soát vòng 3), bảng "chỗ vá → đột biến" ở `trang_thai.md`.
+Bản kế hoạch đầu dùng tên tạm (`VS-duong`, `BV-xoa-cau-tru`, `BV-i8-huy`) — nay là `VS-tru-duong` (bắt A1), `BV-xoa-cau-tru-huy` (A1) +
+`BV-xoa-cau-tru-xoa` (G1), `BV-I8-huy` (H1b). Đối chứng: bản chưa đột biến xanh.
 
 ## 4. Đường song song (K4)
 **Gửi cùng lúc:** Đối soát thật (`doiSoat.js:15,227`) chạy I8 với `ctx.thuc` → sửa `orders.js` mà chưa sửa I8 thì mọi dòng `adjust` báo
