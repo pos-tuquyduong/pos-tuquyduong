@@ -30,8 +30,8 @@ Việc tiền — **chờ chủ quán duyệt** trước khi viết bài thử /
   WHERE order_id = ? AND type = 'earn'
     AND NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust')
   GROUP BY customer_phone, expires_at
-  HAVING SUM(points) <> 0
   ```
+  (Bản đầu có `HAVING SUM(points) <> 0` — bỏ sau soát vòng 1: mọi chỗ ghi `earn` đều ghi số > 0, vế đó là code chết.)
   `reason` = `Huỷ đơn <mã> — trừ lại điểm`. Gom theo (SĐT, hạn): thường đúng MỘT dòng = tổng `earn`; đơn có `earn` của HAI SĐT (bán cho
   SĐT A rồi khách lẻ… — thực tế `billSdtKhac` chặn) hoặc hai hạn khác nhau (điểm lúc bán + bù mã bill ghi ở hai quý) thì mỗi cặp một
   dòng — đúng SĐT, đúng hạn (E). Đơn không `earn` → `GROUP BY` trên tập rỗng ra 0 dòng (C; bỏ `GROUP BY` thì SUM trần ra một
@@ -68,8 +68,9 @@ trừ cả điểm đã hết hạn = khách mất điểm hai lần. → Câu h
 
 ### 2.5 Bất biến I8 (H) — `bat_bien.js`
 - Hằng `HUY_TRU_DIEM_TU = '2026-10-25'` (ghi tạm, khuôn `DIEM_KHI_THU_TU`; chat sửa lúc duyệt PR), export cạnh `DIEM_KHI_THU_TU`.
-- SELECT thêm `o.status, o.cancelled_at`. Đơn `cancelled` → đúng luật = 0. Ngoại lệ: `ctx.thuc` + `cancelled_at < HUY_TRU_DIEM_TU` →
-  so như cũ (`diemDung`, giữ cả nhánh luật cũ trước `DIEM_KHI_THU_TU`).
+- SELECT thêm `o.status, o.cancelled_at`. Đơn `cancelled` → đúng luật = 0. Ngoại lệ: `ctx.thuc` + (`cancelled_at` NULL hoặc
+  `< HUY_TRU_DIEM_TU`) → nhận CẢ luật cũ "giữ điểm" (`diemDung`, kể cả luật trước `DIEM_KHI_THU_TU`) LẪN tổng 0 (ngày gộp lẫn hai luật —
+  sửa sau soát vòng 1; vòng 2 thêm ca đơn ghi nợ để luật cũ ≠ luật mới).
 - Phép "loại lạ" (`:166`): cho `adjust` CÓ `order_id`; `adjust` không gắn đơn vẫn là lạ.
 - Sửa ghi chú đầu file (`:8–12`): "đơn đã huỷ: tổng điểm của đơn = 0 (P24), trừ đơn huỷ trước mốc ở Đối soát thật".
 - +~10 dòng.
@@ -96,7 +97,7 @@ trên toàn bộ kịch bản sẽ bắt mọi đơn huỷ còn điểm. Ca ki�
 | A2 | đơn ghi nợ → thu đủ (earn lúc thu) → huỷ → như A1 | như trên |
 | A3 | khách lẻ nhận điểm bằng mã bill (SĐT người nhận) → huỷ → dòng trừ cho SĐT người nhận | như trên |
 | A4 | cùng giao dịch: `co.nemGhi` làm câu ghi điểm ném → huỷ trả lỗi, đơn vẫn `completed`, ví không đổi | gốc huỷ 200 |
-| B1 | earn 25 → đổi quà 20 → huỷ → số dư = −20 (qua `/loyalty/points/:sdt` và `/api/kh/diem`) | gốc +5 |
+| B1 | earn 25 → đổi quà 20 → huỷ → số dư = −20 (qua `/loyalty/points/:sdt`; `/api/kh/diem` dùng CÙNG hàm `layDiemKhach` — kh/index.js:99, không gọi thẳng) | gốc +5 |
 | B2 | số dư −20 → `/loyalty/redeem` → 400, không thêm dòng `redeem` | gốc số dư +5 → đổi được (đỏ) |
 | C1 | khách lẻ chưa nhận mã → huỷ → 0 dòng điểm | xanh cả gốc (ca "phải KHÔNG X") |
 | C2 | đơn Flash có SĐT → huỷ → 0 dòng | xanh cả gốc |
@@ -114,7 +115,7 @@ trên toàn bộ kịch bản sẽ bắt mọi đơn huỷ còn điểm. Ca ki�
 | I1 | huỷ đơn trả ví / dùng mã / mua gói / mua thẻ / giao từ gói → ví, lượt mã, gói, thẻ như cũ (so đúng số) | xanh cả gốc (K5) |
 | I2 | duyệt hoàn (`refunds.js`) đơn có điểm → điểm GIỮ nguyên (ghi rõ: việc sau) | xanh cả gốc |
 | I3 | hoàn MỘT PHẦN = báo hỏng hoàn tiền (`damages.js`, đường KB6) trên đơn có điểm → điểm GIỮ nguyên (việc sau) | xanh cả gốc |
-| H3 | giả lập: `thu_gia_lap.js` chạy kịch bản → KB5 có `mong` "điểm đơn huỷ = 0" xanh, I8 0 lệch; đột biến `BV-xoa-cau-tru` → KB5 + I8 đỏ | gốc: mong mới đỏ |
+| H3 (giả lập) | `thu_gia_lap.js` chạy kịch bản → KB5 có `mong` "điểm đơn huỷ = 0" xanh, I8 0 lệch. Bằng chứng gốc: chạy đủ `thu_gia_lap.js` với 3 file code của gốc → KB5 đỏ (`bang_chung_do.txt` 2b). `dot_bien.py` KHÔNG có đột biến chạy giả lập (quá nặng) — ca `H3` trong `thu_P24.js` là ca khác ("adjust không gắn đơn") | gốc: mong mới đỏ |
 
 Đột biến (`viec/P24/dot_bien.py`): `VS-bo-not-exists` (bỏ tầng 2) → F2 bắt; `VS-duong` (ghi `+SUM`) → A1/B1 bắt; `VS-bo-han` (ghi
 `NULL` thay `expires_at`) → E1 bắt; `VS-try-catch` (bọc nuốt lỗi) → A4 bắt; `BV-xoa-cau-tru` (gỡ câu INSERT) → A1…H1 bắt;
@@ -135,10 +136,11 @@ Mọi chỗ đưa đơn khỏi `completed`: huỷ (vá), xoá (G), duyệt hoàn
 ## 5. Luồng hợp lệ phải KHÔNG bị chặn (K5)
 Huỷ đơn không SĐT; huỷ đơn Flash; huỷ đơn ghi nợ; huỷ đơn mua gói (quyền refund_package) / mua thẻ / giao từ gói; huỷ đơn đã dùng
 mã giảm; huỷ đơn khách đã tiêu hết điểm (số dư âm KHÔNG chặn huỷ); nhận điểm mã bill trên đơn còn hiệu lực; đổi quà khi số dư đủ;
-xoá đơn đã huỷ. Mỗi luồng có ca trong bảng 3 (C1–C3, I1, B2, D1, G2).
+xoá đơn đã huỷ. Ca trong bảng 3: C1–C3, I1, B2, D1, D3, G2. "Huỷ đơn đã dùng mã giảm" KHÔNG có ca trong `thu_P24.js` — phủ bởi bài cũ
+(`kich_ban.js` KB5b dùng mã rồi huỷ; `thu_P26*`); `truDiemDon` không đụng mã giảm.
 
 ## 6. Ngân sách
-Thực tế: `orders.js` +17 (hàm `truDiemDon` 13 + 2 chỗ gọi; bỏ `HAVING` sau soát vòng 1 vì earn luôn > 0) · `signup-codes.js` +9/−4 ·
+Thực tế: `orders.js` +17 (hàm `truDiemDon` 15 gồm 3 dòng chú thích + 1 dòng trống, 2 chỗ gọi; bỏ `HAVING` sau soát vòng 1 vì earn luôn > 0) · `signup-codes.js` +9/−4 ·
 `thu_P24.js` 410 dòng — vượt ~200 của phiếu vì 33 ca phủ đủ A–I kèm K5 (gói, thẻ, hoàn tiền) và ba công tắc chen / ném / đọc trong giao dịch.
 Ước lượng ban đầu:
 `orders.js` ~12 (+~6 nếu G-a) · `bat_bien.js` ~10 · `kich_ban.js` ~6 · `thu_P24.js` ~220 · `thu_P2223.js` ~2 · `thu_gia_lap.js` ~10
