@@ -193,3 +193,54 @@ mới).
 - Render ngủ: webhook đến lúc máy ngủ → payOS có gửi lại không là CHƯA KIỂM; dự phòng là xác nhận tay (D) + phương án B mục 3.
 - Thay đổi giá / hết hàng trong 10′ giữa tạo phiên và tiền về → chốt thất bại → sự kiện `chua_khop` (đỏ), chủ quán xử (hoàn hoặc
   nạp tài khoản khách — DAC_TA mục 1.13). Không tự nạp.
+
+## 8. Soát độc lập (agent chỉ đọc, 24.10) — đã nhận vào kế hoạch
+Máy đã kiểm lại từng điểm dưới bằng code (`thu_DOISOAT1.js:217–220` chỉ đếm phép tên `I\d+` → thêm `CK`, `XNT` không làm nó đỏ;
+`sync.js:108` `c.*` xuất CSV có lọc cột; `database.js:1459` giao dịch mở lười ở câu đầu).
+
+**Sửa thiết kế (thay chỗ tương ứng ở mục 1 / 3):**
+1. Chế độ "chỉ tính" trả `{total}` TRƯỚC phép đối chiếu tổng thanh toán (`orders.js:825`), không phải trước `beginTransaction` —
+   đặt sau thì `paymentSum = 0 ≠ total`, mọi phiên 400.
+2. Ghi sự kiện payOS và chốt phiên trong CÙNG MỘT giao dịch (sự kiện ghi bằng hook trong giao dịch của `taoDon`). Chốt thất bại
+   trước giao dịch (giá / hàng / flash đổi, 400 của `taoDon`) → một lệnh riêng `cho → loi` + sự kiện `chua_khop`: phiên thôi giữ tiền,
+   quầy KHÔNG còn chốt tiền mặt được trên phiên đó (chặn khách trả hai lần).
+3. Cổng chốt: `WHERE id = ? AND trang_thai = 'cho' AND het_han > ?` (hạn kiểm TRONG giao dịch, hết khe đua với lúc hết hạn).
+   Ngoại lệ: webhook đúng hạn theo `transactionDateTime` (Q-phụ) mà máy chủ nhận muộn — xử như "về muộn" → `chua_khop`. Đơn giản,
+   tiền không mất (chủ quán xử ở Đối soát).
+4. `dangGiu(tx, phone)` = tổng `giu_vi` (phiên của `phone`) + tổng `giu_vi_me` (phiên có `phone_me = phone`); đặt Ở `wallets.js`
+   (cạnh `ghiVi`) — tránh vòng require `wallets → giuCho → orders → wallets`. `taoPhien` đọc số dư + đang giữ TRONG giao dịch ghi
+   (câu đọc đầu tiên trong `tx`) để hai quầy cùng giữ thì một bên thua (F4).
+5. `orders.js`: ngoài thân `POST /` còn thêm MỘT dòng xuất `module.exports.taoDon = taoDon` cạnh `module.exports = router` (dòng 1715)
+   — ngoài "vùng sửa" ghi trong phiếu, xin chủ quán gật cùng Q1.
+6. Gộp `POST /phien/:id/tien-mat` và `/tai-khoan` thành `POST /phien/:id/chot {cash_received?}` (phiên `tien_mat` đòi đủ tiền; phiên
+   `tai_khoan` đòi `con_lai = 0`; phiên `payos` / `ck_tay` → 400 `PHIEN_KHONG_CHOT_TAY`). Bỏ gọi `huyLink` payOS (hạn do POS giữ; tiền về
+   sau huỷ vẫn thành `chua_khop`) — đỡ ~15 dòng.
+7. `customers.js`: thay 10 chỗ gọi `boMat` bằng MỘT middleware đầu router gói `res.json` bỏ khoá `password`, `pin_code` ở mọi mức
+   (mảng, `customer`, `children`) — phủ cả `/search` (179), `PUT /:id/discount` (541), `POST /:id/children` (637) và đường thêm sau này.
+8. Bỏ phần `customers-v2.js` (hiển thị) — `GET /wallets/:phone` có `dang_giu`/`kha_dung` là đủ cho BH-1; F chặn ở chỗ TIÊU (ghiVi).
+   Code còn ~520 dòng.
+9. Q6 "Xoá PIN": nếu chủ quán đồng ý, route đặt ở `thanh-toan.js` (KHÔNG ở `customers.js` — phiếu chỉ cho bỏ trường ở đó).
+
+**Ca thử thêm vào mục 4:**
+- A4 phiên `ck_tay`: `POST /phien/:id/chot` → 400; webhook với `orderCode` của nó → `khong_phien`; chỉ `xac-nhan-tay` chốt được.
+- B10 Đối soát kỳ đó: `chua_khop` → ĐỎ (kết quả `DO`), `khong_phien` → vàng · B11 `data.code !== '00'` → không đơn · B12 giá món đổi
+  giữa tạo phiên và webhook → không đơn, phiên `loi`, `chua_khop`, sau đó `POST /phien/:id/chot` tiền mặt → 409 · B13 chết giữa chừng:
+  móc ném lỗi sau INSERT sự kiện trong giao dịch → rollback cả sự kiện; payOS báo lại → chốt được (không bị nuốt).
+- D5 "ghi nhật ký": phiên lưu `ly_do`, `nguoi_xac_nhan`, `luc`; dòng `pos_order_log` loại `xac_nhan_ck_tay` của đơn (khuôn `nhatKyDon.js`).
+- E9 App KH `PUT /kh/pin` thành công → cột là băm; `PUT` không token → 401 · E6 thêm `/search`, `PUT /:id/discount`, `POST /:id/children`.
+- F7 phiên chỉ trả tài khoản (`con_lai = 0`) chốt → đơn `payment_method` balance, ví trừ đúng · F2/F3 thêm: số dòng `pos_balance_transactions`
+  KHÔNG đổi khi hết hạn / huỷ.
+- G2 đơn có món flash qua phiên → 0 điểm, giống đơn quầy cùng giỏ (`orders.js:854`).
+- Đột biến thêm: `BV-loi-phien` (bỏ `cho → loi` → B12 đỏ), `BV-su-kien-tx` (ghi sự kiện ngoài giao dịch → B13 đỏ), `VS-giu-me` (dangGiu bỏ
+  vế mẹ → F5 đỏ).
+
+**Phát hiện (ngoài Phạm vi, KHÔNG sửa):**
+- `backup.js`: khôi phục bảng `pos_customers` được phép → file khôi phục ghi đè được `pin_code` / gỡ khoá sai PIN (`pin_sai`,
+  `pin_khoa_den`). Đề xuất: đưa `pos_customers` vào `BANG_KHONG_KHOI_PHUC` hoặc bỏ 3 cột PIN khi khôi phục — cần chủ quán quyết (gộp
+  vào Q2).
+- `pay-debt` (`orders.js:1306`, P24) thu nợ bằng CK tay trên đơn đã có tiền mặt → đơn kết hợp tiền mặt + CK mà H không chặn (H chỉ ở
+  `POST /`). Đơn nợ mới không còn sinh ra sau QUAY-AN-1 / DAC_TA 1.1.
+- Câu báo "Hiện có …" ở `orders.js:752–772` và số dư ở `customers.js:158` (/search) đọc số dư THÔ, chưa trừ đang giữ → lời báo có thể nói
+  "đủ" rồi giao dịch trả `SO_DU_KHONG_DU`. Tiền đúng (ghiVi chặn); chỉ lời báo. Sửa 752–772 nằm trong thân POST / — máy sẽ làm cùng
+  (đổi sang đọc `kha_dung`) nếu chủ quán không phản đối.
+- Flash hết giờ giữa tạo phiên và tiền về → tổng đổi → `chua_khop` (đúng luật nhưng có thể hay gặp lúc chuyển giờ flash) — báo trước.
