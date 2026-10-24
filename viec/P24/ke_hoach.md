@@ -56,7 +56,7 @@ Hiện tại: mã đã bị chặn sau khi đơn huỷ (`signup-codes.js:63`, 40
 `kiemDonCuaMa` đọc NGOÀI giao dịch, giao dịch ghi `earn` không kiểm lại trạng thái đơn → huỷ chen giữa (huỷ xong rồi nhận mới ghi)
 thì đơn đã huỷ có `earn` mà không có dòng trừ. Vá cần sửa `signup-codes.js` (phiếu cấm trừ khi D cần) → **Câu hỏi D**. Đề xuất: nối
 vào câu chiếm mã `:278` vế `AND EXISTS (SELECT 1 FROM pos_orders WHERE id = ? AND status = 'completed' AND payment_status = 'paid')`
-(giữ nguyên chuỗi neo `WHERE id = ? AND diem_nhan_luc IS NULL` của `kiem_tra_truoc_khi_giao.js:463–469`). Câu chiếm hỏng hiện đi qua
+(LÀM: chỉ `status = 'completed'` — bỏ vế `payment_status`, vì chỉ pay-debt đổi nó và chỉ theo chiều sang 'paid'; giữ nguyên chuỗi neo `WHERE id = ? AND diem_nhan_luc IS NULL` của `kiem_tra_truoc_khi_giao.js:463–469`). Câu chiếm hỏng hiện đi qua
 `baoChiemHong` (`signup-codes.js:282–285`, chỉ biết "mã đã dùng" / `SDT_DA_NHAN`) → phải sửa cả chỗ đó để trả `DON_DA_HUY` (~+6
 dòng). Cần chủ quán thêm `server/routes/signup-codes.js` vào Phạm vi. Không vá D thì lỗ đua còn đó, và `NOT EXISTS` của dòng trừ
 cũng không cứu được (dòng `adjust` đã có trước `earn` đến muộn) — ghi CHƯA KIỂM.
@@ -97,7 +97,7 @@ trên toàn bộ kịch bản sẽ bắt mọi đơn huỷ còn điểm. Ca ki�
 | A3 | khách lẻ nhận điểm bằng mã bill (SĐT người nhận) → huỷ → dòng trừ cho SĐT người nhận | như trên |
 | A4 | cùng giao dịch: `co.nemGhi` làm câu ghi điểm ném → huỷ trả lỗi, đơn vẫn `completed`, ví không đổi | gốc huỷ 200 |
 | B1 | earn 25 → đổi quà 20 → huỷ → số dư = −20 (qua `/loyalty/points/:sdt` và `/api/kh/diem`) | gốc +5 |
-| B2 | số dư −20 → `/loyalty/redeem` → 400, không thêm dòng `redeem` | (chặn sẵn — ca K5 giữ hành vi, xanh cả gốc) |
+| B2 | số dư −20 → `/loyalty/redeem` → 400, không thêm dòng `redeem` | gốc số dư +5 → đổi được (đỏ) |
 | C1 | khách lẻ chưa nhận mã → huỷ → 0 dòng điểm | xanh cả gốc (ca "phải KHÔNG X") |
 | C2 | đơn Flash có SĐT → huỷ → 0 dòng | xanh cả gốc |
 | C3 | đơn ghi nợ chưa thu / thu một phần → huỷ → 0 dòng | xanh cả gốc |
@@ -138,6 +138,9 @@ mã giảm; huỷ đơn khách đã tiêu hết điểm (số dư âm KHÔNG ch�
 xoá đơn đã huỷ. Mỗi luồng có ca trong bảng 3 (C1–C3, I1, B2, D1, G2).
 
 ## 6. Ngân sách
+Thực tế: `orders.js` +17 (hàm `truDiemDon` 13 + 2 chỗ gọi; bỏ `HAVING` sau soát vòng 1 vì earn luôn > 0) · `signup-codes.js` +9/−4 ·
+`thu_P24.js` 410 dòng — vượt ~200 của phiếu vì 33 ca phủ đủ A–I kèm K5 (gói, thẻ, hoàn tiền) và ba công tắc chen / ném / đọc trong giao dịch.
+Ước lượng ban đầu:
 `orders.js` ~12 (+~6 nếu G-a) · `bat_bien.js` ~10 · `kich_ban.js` ~6 · `thu_P24.js` ~220 · `thu_P2223.js` ~2 · `thu_gia_lap.js` ~10
 · `kiem_tra_truoc_khi_giao.js` 1 · (`signup-codes.js` ~8 nếu duyệt D). Trong ngân sách phiếu.
 

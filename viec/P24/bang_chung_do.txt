@@ -34,28 +34,32 @@ GỐC fe433ff [p24]: thoát 1
  2a) cong_cu/thu_P2223.js (F3 đổi theo luật mới):
   ✗ F3 (P24) đơn đã thu huỷ → 0 điểm (25 − 25); đơn ghi nợ huỷ 0 điểm  — HTTP 200 / HTTP 200 · 25 / 0
   43 đạt · 1 hỏng
- 2b) cong_cu/thu_gia_lap.js (KB5 thêm hai `mong`, thêm 8 ca I8 dữ liệu tay) — chạy đủ:
+ 2b) cong_cu/thu_gia_lap.js (KB5 thêm hai `mong`, thêm 11 ca I8 dữ liệu tay — 3 ca thêm sau soát vòng 1) — chạy đủ, chạy lại sau vòng 1:
   ✗ thoát 0, dòng tổng đúng "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT"  — thoát 1 · Giả lập: 32 kịch bản · 18 bất biến · KHÔNG ĐẠT (2 lệch)
   ✗ KB5 → HTTP: huỷ đơn có điểm → điểm đơn 0, đúng 1 dòng trừ: 2 · 0
   ✗ KB5 → HTTP: dùng mã + nhận điểm mã bill rồi mới huỷ đơn → 200, 200, 200; điểm đơn 0, 1 dòng trừ: HTTP 200 / HTTP 200 / HTTP 200 · 2
   ✗ I8 sạch (P24): đơn huỷ có earn 5 + dòng adjust −5 gắn đơn  — ["đơn H1: 0 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
   ✗ I8 (P24) đơn đã huỷ còn điểm (không dòng trừ)  — []
   ✗ I8 (P24) dòng trừ thiếu: −4 cho earn 5  — ["đơn H1: 1 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ I8 sạch Đối soát thật (P24, ngày gộp): đơn huỷ 1 giây trước mốc huỷ, ĐÃ có dòng trừ  — ["đơn H1: 0 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ I8 Đối soát thật (P24): đơn huỷ trước mốc huỷ, dòng trừ thiếu (−4)  — ["đơn H1: 1 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
   ✗ I8 Đối soát thật (P24): đơn huỷ ĐÚNG mốc huỷ còn điểm  — []
   ✗ I8 giả lập (P24, không ctx.thuc): đơn huỷ trước mốc huỷ còn điểm  — []
   ✗ I8 Đối soát thật (P24): đơn TẠO trước mốc thu đủ nhưng huỷ sau mốc huỷ, còn điểm  — []
-  160 đạt · 7 hỏng
-   (Xanh trên gốc: "I8 sạch Đối soát thật (P24): đơn huỷ 1 giây trước mốc huỷ" và "I8 (P24) dòng adjust KHÔNG gắn đơn" — ca K5 / hành vi sẵn có.)
+  161 đạt · 9 hỏng
+   (Xanh trên gốc: "I8 sạch Đối soát thật (P24): đơn huỷ 1 giây trước mốc huỷ", "… đơn huỷ dữ liệu cũ KHÔNG cancelled_at" và
+   "I8 (P24) dòng adjust KHÔNG gắn đơn" — ca K5 / hành vi sẵn có.)
  2c) cong_cu/thu_DOISOAT1.js (F3, F3c: điểm trừ tháng gồm dòng trừ do huỷ đơn mua gói):
   ✗ F3 tháng 01.2027: tiền mặt 425.000 · CK 50.000 · ví nạp 30.000, chi 0 · điểm cộng 350 trừ 300 (P24: huỷ đơn mua gói trừ lại 300) · nhắc kiểm kê kho  — {…"diem":{"cong":350,"tru":0}}
   ✗ F3c dòng đổi điểm −3 trong tháng 01.2027 → điểm trừ 303 (300 huỷ gói + 3; cộng giữ 350)  — {"cong":350,"tru":3}
   132 đạt · 2 hỏng
 
-3) Sau vá (HEAD f05c62b): thu_P24 33 đạt · 0 hỏng · thu_P2223 44 · 0 · thu_gia_lap 167 · 0 · thu_DOISOAT1 134 · 0;
+3) Sau vá (HEAD f3b913b, sau soát vòng 1): thu_P24 33 đạt · 0 hỏng · thu_P2223 44 · 0 · thu_gia_lap 170 · 0 · thu_DOISOAT1 134 · 0;
    npm test PASS 70 · FAIL 0; npm test -- --day-du PASS 74 · FAIL 0 (cảnh báo "route GET có lệnh ghi" có sẵn từ trước, không do P24).
-   Đột biến: python3 viec/P24/dot_bien.py → ĐỐI CHỨNG XANH (p24 33 · 0, gl 100 · 0) · TỔNG 18 · BẮT 18 · SỐNG 0 · HỎNG 0 · LẠC 0.
+   Đột biến: python3 viec/P24/dot_bien.py → ĐỐI CHỨNG XANH (p24 33 · 0, gl 103 · 0) · TỔNG 21 · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0.
+   --goc fe433ff sau vòng 1: p24 11 đạt · 22 hỏng (thoát 1) · gl (chỉ dữ liệu tay) 95 đạt · 8 hỏng (thoát 1).
 
 SỐ CA cong_cu/thu_P24.js: 33
 SỐ CA cong_cu/thu_P2223.js: 44
-SỐ CA cong_cu/thu_gia_lap.js: 167
+SỐ CA cong_cu/thu_gia_lap.js: 170
 SỐ CA cong_cu/thu_DOISOAT1.js: 134
