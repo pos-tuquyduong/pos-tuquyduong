@@ -75,10 +75,13 @@ async function kiemDonCuaMa(dong) {
 // P20c — câu chiếm mã được 0 dòng có HAI lý do: mã vừa bị người khác chiếm, hoặc SĐT vừa nhận qua một
 // mã KHÁC (phép chặn SĐT nằm ngay trong câu UPDATE). Đọc lại dòng SAU rollback để báo đúng lý do.
 // `cotLuc` chỉ nhận hằng viết trong code ('claimed_at' / 'diem_nhan_luc'), không lấy từ request.
-async function baoChiemHong(res, id, cotLuc, daDung) {
+// P24 (D): `dongDon` (chỉ /nhan-diem truyền) → đơn vừa rời 'completed' thì báo đúng lý do của kiemDonCuaMa (DON_DA_HUY / DON_DA_HOAN).
+async function baoChiemHong(res, id, cotLuc, daDung, dongDon) {
   const d = await queryOne(`SELECT ${cotLuc} AS luc FROM pos_signup_codes WHERE id = ?`, [id]);
   if (!d) return res.status(404).json({ success: false, error: 'Mã không tồn tại', code: 'MA_KHONG_TON_TAI' });
   if (d.luc) return res.status(daDung.status).json({ success: false, error: daDung.error, code: daDung.code });
+  const kqDon = dongDon ? await kiemDonCuaMa(dongDon) : {};
+  if (kqDon.loi) return res.status(kqDon.loi.status).json({ success: false, error: kqDon.loi.error, code: kqDon.loi.code });
   return res.status(400).json({ success: false, error: 'Số điện thoại này đã nhận ưu đãi này từ một mã bill khác.', code: 'SDT_DA_NHAN' });
 }
 
@@ -276,13 +279,15 @@ async function nhanDiemMaBill(req, res) {
       const chiem = await tx.run(
         `UPDATE pos_signup_codes SET diem_nhan_luc = ?, diem_nhan_phone = ?
           WHERE id = ? AND diem_nhan_luc IS NULL` +
-          ' AND (? = 0 OR NOT EXISTS (SELECT 1 FROM pos_signup_codes WHERE diem_nhan_phone = ? AND id <> ?))',
-        [now, phone, dong.id, ch.chiLanDau ? 1 : 0, phone, dong.id],
+          ' AND (? = 0 OR NOT EXISTS (SELECT 1 FROM pos_signup_codes WHERE diem_nhan_phone = ? AND id <> ?))' +
+          // P24 (D): đơn còn 'completed' NGAY trong câu chiếm — phép kiểm đơn ở trên nằm ngoài giao dịch; huỷ chen giữa thì không ghi earn.
+          " AND EXISTS (SELECT 1 FROM pos_orders WHERE id = ? AND status = 'completed')",
+        [now, phone, dong.id, ch.chiLanDau ? 1 : 0, phone, dong.id, don.id],
       );
       if (!chiem || chiem.changes === 0) {
         await tx.rollback();
         return baoChiemHong(res, dong.id, 'diem_nhan_luc',
-          { status: 400, code: 'MA_DA_NHAN_DIEM', error: 'Mã này vừa được dùng để nhận điểm.' });
+          { status: 400, code: 'MA_DA_NHAN_DIEM', error: 'Mã này vừa được dùng để nhận điểm.' }, dong);
       }
       await tx.run(
         `INSERT INTO pos_point_transactions
