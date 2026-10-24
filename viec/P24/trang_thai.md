@@ -26,7 +26,7 @@
   `kich_ban.js` (KB5), bài cũ `thu_P2223.js` F3, `thu_gia_lap.js` (+8 ca I8), `thu_DOISOAT1.js` F3/F3c, `kiem_tra_truoc_khi_giao.js`.
 - Bước 6: `npm test` PASS 70 · `--day-du` PASS 74 · FAIL 0 (cảnh báo GET-ghi có sẵn).
 
-## Chỗ vá → đột biến (`viec/P24/dot_bien.py`, 21/21 BẮT sau vòng 1, đối chứng xanh)
+## Chỗ vá → đột biến (`viec/P24/dot_bien.py`, 22/22 BẮT sau vòng 2, đối chứng xanh)
 | Chỗ vá | Đột biến |
 |---|---|
 | `orders.js` gọi `truDiemDon` trong huỷ | BV-xoa-cau-tru-huy · VS-try-catch · VS-tru-sau-commit |
@@ -39,6 +39,7 @@
 | `bat_bien.js` `adjust` gắn đơn không "lạ" | BV-I8-adjust-la · VS-I8-adjust-moi-dong |
 | (vòng 1) `orders.js` gọi `truDiemDon` trong xoá — bọc nuốt lỗi | VS-try-catch-xoa |
 | (vòng 1) `bat_bien.js` ngày gộp nhận tổng 0 · NULL cancelled_at | VS-I8-ngay-gop-chi-luat-cu · VS-I8-huy-null-sau-moc |
+| (vòng 2) `bat_bien.js` vế `huyCu ||` tha luật cũ cho đơn huỷ trước mốc | VS-I8-bo-huycu-luat-cu |
 
 ## Câu hỏi
 Đã chốt (chủ quán 24.10, `bdc530a`, phiếu mục "Đã duyệt"): G-a (xoá trừ như huỷ, hàm chung `truDiemDon`) · E-a (dòng trừ chép hạn) · D có
@@ -51,6 +52,11 @@ Không còn câu hỏi mở.
   Bài thử khoá hành vi hiện tại: `thu_P24.js` I2, I3. `thu_DOISOAT1.js` F3/F3c đổi số mong đợi theo hành vi `tongHop` hiện có
   (điểm trừ tháng = 300 do huỷ đơn mua gói + đổi quà) — khi việc sau tách loại trừ thì sửa lại hai ca này.
 - Dữ liệu Turso thật có đơn huỷ `cancelled_at` NULL không: máy không xem được; I8 coi NULL là huỷ cũ (trước mốc) ở Đối soát thật.
+- Neo đột biến của việc cũ (K4 TU-CHAY-5, so cây gốc fe433ff với HEAD bằng script nháp đếm neo mọi `viec/*/dot_bien.py` trên các file P24
+  sửa): P24 làm rữa MỘT neo — `viec/P22-23/dot_bien.py` `VS-I8-moc-ca-gia-lap` (chuỗi `if (ctx.thuc && String(r.created_at) <
+  DIEM_KHI_THU_TU` nay là `if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String…`). `viec/P22-23/` ngoài Phạm vi → không sửa;
+  đề xuất: việc sau đổi neo đó. P20c `BV-A3-bo-dieu-kien`, `BV-A1-bo-404` đã rữa SẴN ở gốc (không do P24). `kiem_neo.py` (HOC-2b): 3 neo
+  hỏng sẵn (refunds.js, PHIEN_BAN, thu_cong) — không liên quan P24.
 
 ## Soát độc lập `/ra-soat` — vòng 1 (HEAD `1b46bfe`)
 ```
@@ -94,3 +100,48 @@ BÀI HỌC: KHOÁ — mốc chuyển luật trong bất biến phải có ca "tr
 - `ke_hoach.md`: ghi rõ bỏ vế payment_status (2.3), sửa dòng B2, ngân sách thực tế + lý do thu_P24 dài. `## Câu hỏi` → đã chốt.
 - Không sửa: VS-tru-sdt-cua-don (vẫn BẮT đúng ca A3 — đơn khách lẻ là đúng chỗ so SĐT phải khác SĐT đơn); NT-B phía quầy / App KH: cùng
   hàm `layDiemKhach`, ghi ở CHƯA KIỂM.
+
+## Soát độc lập `/ra-soat` — vòng 2 (HEAD `b084bf8`)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- cong_cu/gia_lap/bat_bien.js:153 — vế `huyCu ||` (tha đơn huỷ trước mốc HUY_TRU_DIEM_TU còn giữ điểm theo luật cũ P22-23: đơn ghi nợ chưa
+  thu tạo trước DIEM_KHI_THU_TU, hoặc Flash có điểm cũ) KHÔNG có ca thử giữ. Đột biến bỏ `huyCu ||` SỐNG ở cả thu_gia_lap --chi-du-lieu-tay
+  (103·0) lẫn thu_P24 (33·0). Mọi ca HUY_I8 là đơn 'paid' không Flash → diemDung(true) = diemDung(false), vế không bao giờ được thử. — K3 (chạm K5)
+- viec/P24/ke_hoach.md — chưa cập nhật theo code sau vòng 1: dòng 33 còn HAVING; dòng 72 "so như cũ" (code nhận thêm tổng 0 + NULL);
+  dòng 99 B1 ghi gọi cả /api/kh/diem (bài chỉ gọi /loyalty/points); dòng 117 H3 hứa đột biến BV-xoa-cau-tru làm KB5 + I8 giả lập đỏ
+  (dot_bien.py không có đột biến chạy giả lập; H3 trong thu_P24.js là ca khác); mục 5 "mỗi luồng có ca" nhưng "huỷ đơn đã dùng mã giảm"
+  không có ca trong thu_P24.js; "truDiemDon 13 dòng" thật là 15. — K1 nhẹ
+NGHI NGỜ:
+- Tự chạy giả lập với orders.js gốc + bat_bien/signup-codes HEAD: I8 báo 12 lệch (KB5, 15, 16, 18, 21, 22, 30, 31) → lời hứa ke_hoach 2.6
+  ĐÚNG, nhưng không nằm trong bộ đột biến của nhánh.
+- bat_bien.js:152–154: đơn huỷ trước mốc lệch cả hai luật vẫn báo "đúng luật là <diemDung>" dù 0 cũng hợp lệ — lời báo hơi lệch, kết luận đúng.
+- VS-tru-sdt-cua-don BẮT nhờ A3 sập 500 (NOT NULL); billSdtKhac làm biến thể COALESCE tương đương → chấp nhận.
+- signup-codes.js:284 chỉ đòi status='completed'; đột biến `status <> 'cancelled'` sẽ sống (không ca duyệt hoàn chen lúc nhận điểm) — ngoài lõi phiếu (D chỉ nói huỷ).
+K3: --goc fe433ff p24 11·22, gl 95·8; thu_gia_lap đủ trên gốc 161·9 khớp bằng chứng; bdc530a ≡ fe433ff ở server/ + gia_lap; 21/21 BẮT, đối
+  chứng xanh. Mốc HUY_TRU_DIEM_TU có ca trên/dưới/ngày gộp/thiếu/NULL/giả lập. Hở duy nhất: lỗi 1.
+K4: earn 3 chỗ (orders.js:1059, :1337, signup-codes.js:293) — truDiemDon phủ; rời 'completed' 3 chỗ (huỷ :1467, xoá :1641 vá; refunds.js:158
+  để việc sau); 9 chỗ đọc điểm không cắt số âm; doiSoat.js:118 còn mở theo phiếu; pos_orders AUTOINCREMENT (database.js:198) → id đơn xoá không bị dùng lại.
+K5: beginTransaction transaction("write") (database.js:1466) — nối tiếp; EXISTS chỉ tác dụng khi chen; D3 khoá luồng hợp lệ; baoChiemHong vẫn
+  SDT_DA_NHAN khi đơn còn completed+paid; huỷ/xoá chỉ ném khi DB lỗi (A4, G4).
+Đường tiền: không tin client. P1: không đụng client/, app_kh/, kh, database.js, refunds.js.
+npm test PASS 70 · --day-du PASS 74 · thu_gia_lap HEAD 170·0.
+Đơn giản: bat_bien.js:150–153 hai if chồng điều kiện khó đọc (chính vì vậy vế huyCu lọt kiểm) — gọn hơn: tập giá trị chấp nhận
+  `chap` rồi `chap.includes(...)`. thu_P24.js 410 dòng, đã ghi lý do.
+NGHIỆM THU: 9/9 có bằng chứng · H có chỗ hở K3 (lỗi 1).
+CHƯA SOÁT ĐƯỢC: Turso thật (đơn huỷ ghi nợ mang điểm luật cũ, cancelled_at NULL); cong.js chay (bước 11); thử tay số âm trên điện thoại;
+  ngày mốc thật HUY_TRU_DIEM_TU.
+BÀI HỌC: KHOÁ — bất biến có HAI mốc chuyển luật chồng nhau (DIEM_KHI_THU_TU × HUY_TRU_DIEM_TU) thì mỗi ô bảng chéo phải có một ca + một
+  đột biến gỡ đúng vế đó; dữ liệu thử chọn để các luật cho số KHÁC nhau (đơn pending / Flash, không phải paid). NGUYÊN TẮC — sửa xong lỗi
+  người soát báo thì grep lại ke_hoach.md tìm mọi câu tả hành vi cũ (K4 tài liệu song song). NGUYÊN TẮC — "kịch bản X phủ Y" phải trỏ tới
+  một đột biến chạy được giả lập, không có thì ghi bằng chứng thay thế.
+```
+
+### Sửa sau vòng 2
+- `thu_gia_lap.js` +2 ca, đơn GHI NỢ (luật cũ 5 ≠ luật mới 0): tạo trước mốc thu đủ + huỷ trước mốc huỷ + còn điểm luật cũ → sạch;
+  cùng đơn 7 điểm (sai cả hai luật) → lệch (f806f37). `dot_bien.py` +VS-I8-bo-huycu-luat-cu → 22/22 BẮT (7a935f7).
+- `ke_hoach.md`: HAVING đã bỏ, mô tả I8 trước mốc nhận hai luật + NULL, B1 chỉ `/loyalty/points` (App KH cùng hàm), H3 giả lập ghi bằng
+  chứng thay thế (chạy đủ thu_gia_lap trên gốc), luồng "huỷ đơn đã dùng mã giảm" do bài cũ phủ, số dòng truDiemDon = 15 (c2139b6).
+- Không làm: gom I8 thành tập `chap` (đề xuất "đơn giản" của người soát) — đổi chữ thêm làm rữa thêm neo đột biến việc cũ; hai vế
+  hiện đã có ca + đột biến riêng. Lời báo "đúng luật là <diemDung>" giữ như khuôn DIEM_KHI_THU_TU.
+- Neo đột biến việc cũ: xem `## Phát hiện`.
