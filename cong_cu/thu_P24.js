@@ -198,7 +198,7 @@ async function main() {
       && truoc === 5 && h.status === 200 && sau === -20, `${moTa(doi)} · ${truoc} → ${moTa(h)} · ${sau}`);
     const soRedeem = await so("SELECT COUNT(*) FROM pos_point_transactions WHERE customer_phone = ? AND type = 'redeem'", [s]);
     const lai = await goi('POST', '/loyalty/redeem', { phone: s, reward_id: q1 });
-    k('B2 (K5 hành vi sẵn có) số dư −20 → đổi quà 1 điểm → 400, không thêm dòng redeem', lai.status === 400 && soRedeem === 1
+    k('B2 số dư −20 (luật sẵn có loyalty.js: số dư < giá) → đổi quà 1 điểm → 400, không thêm dòng redeem', lai.status === 400 && soRedeem === 1
       && await so("SELECT COUNT(*) FROM pos_point_transactions WHERE customer_phone = ? AND type = 'redeem'", [s]) === 1, moTa(lai));
   }
 
