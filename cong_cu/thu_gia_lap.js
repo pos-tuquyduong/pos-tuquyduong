@@ -495,8 +495,8 @@ async function duLieuTay() {
   "INSERT INTO pos_point_transactions VALUES (11, 'S', 'earn', 5, 11)", "INSERT INTO pos_signup_codes VALUES (13, 13, '2026-11-01T11:00:00')"];
   const NO_CO_DIEM = "INSERT INTO pos_point_transactions VALUES (12, 'S', 'earn', 5, 12)";
   // P24: H1 đơn đã thu 5 điểm rồi huỷ lúc `luc` (mặc định sau mốc) — thêm dòng trừ −5 thì sạch, thiếu thì đơn huỷ còn điểm.
-  const HUY_I8 = (luc = "'2026-11-02T10:00:00'") => [...DON_I8(), "INSERT INTO pos_orders VALUES (14, 'H1', 50000, 'S', 0, 'paid', "
-    + `'2026-11-01T10:00:00', 'cancelled', ${luc})`, "INSERT INTO pos_point_transactions VALUES (14, 'S', 'earn', 5, 14)"];
+  const HUY_I8 = (luc = "'2026-11-02T10:00:00'", tao = "'2026-11-01T10:00:00'") => [...DON_I8(), "INSERT INTO pos_orders VALUES (14, 'H1', 50000, 'S', 0, "
+    + `'paid', ${tao}, 'cancelled', ${luc})`, "INSERT INTO pos_point_transactions VALUES (14, 'S', 'earn', 5, 14)"];
   const TRU_I8 = "INSERT INTO pos_point_transactions VALUES (15, 'S', 'adjust', -5, 14)";
   const truocMocHuy = MOC_HUY ? `'${new Date(Date.parse(MOC_HUY + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
   const truocMoc = MOC ? `'${new Date(Date.parse(MOC + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
@@ -548,6 +548,8 @@ async function duLieuTay() {
     ['I8 sạch Đối soát thật (P24): đơn huỷ 1 giây trước mốc huỷ còn điểm (luật cũ)', 'I8', 'I8', HUY_I8(truocMocHuy), null, { thuc: true }],
     ['I8 Đối soát thật (P24): đơn huỷ ĐÚNG mốc huỷ còn điểm', 'I8', 'I8', HUY_I8(`'${MOC_HUY}T00:00:00'`), /^đơn H1: 5 điểm, đúng luật là 0$/, { thuc: true }],
     ['I8 giả lập (P24, không ctx.thuc): đơn huỷ trước mốc huỷ còn điểm', 'I8', 'I8', HUY_I8(truocMocHuy), /^đơn H1: 5 điểm, đúng luật là 0$/, {}],
+    ['I8 Đối soát thật (P24): đơn TẠO trước mốc thu đủ nhưng huỷ sau mốc huỷ, còn điểm', 'I8', 'I8', HUY_I8(undefined, truocMoc),
+      /^đơn H1: 5 điểm, đúng luật là 0$/, { thuc: true }],
     ['I8 (P24) dòng adjust KHÔNG gắn đơn', 'I8', 'I8', ["INSERT INTO pos_point_transactions VALUES (2, 'S', 'adjust', -1, NULL)"], /loại dòng điểm lạ "adjust"/, {}],
     ['I12 sạch: quà ↔ dòng redeem cùng SĐT, mã đúng trị giá, dùng 1 lần', 'I12', 'I12', [], null, {}],
     ['I12 quà trỏ dòng không phải redeem', 'I12', 'I12', ["UPDATE pos_point_transactions SET type = 'earn'"], /dòng điểm earn/, {}],
