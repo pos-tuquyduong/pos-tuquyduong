@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""P24 — đột biến cho MỖI chỗ vá: VS- (vá sai cách) và BV- (bỏ vá). Chạy ở GỐC kho:
+    python3 viec/P24/dot_bien.py [tên...]          (không tên = chạy hết; có ĐỐI CHỨNG trước)
+    python3 viec/P24/dot_bien.py --liet-ke          (chỉ in danh sách)
+    python3 viec/P24/dot_bien.py --goc <sha>        (bằng chứng ĐỎ: bài hiện tại trên server/ + cong_cu/gia_lap/ của commit sha)
+    python3 viec/P24/dot_bien.py --help             (in hướng dẫn này)
+
+Khuôn viec/P22-23/dot_bien.py: chép server/ và cong_cu/gia_lap/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink,
+chỉ đọc), thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, không bao giờ đếm là đạt, K3), chạy bài:
+  'p24' → `node cong_cu/thu_P24.js --may-chu <bản sao server>` (bài nạp bat_bien.js từ <bản sao>/cong_cu/gia_lap);
+  'gl'  → `node cong_cu/thu_gia_lap.js --chi-du-lieu-tay --gia-lap <bản sao>/cong_cu/gia_lap` (I8 trên kho dữ liệu tay).
+BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Thoát 2 / bài sập hoặc đỏ mà không khớp mẫu = LẠC. Xanh trọn = SỐNG.
+Không đụng server/ thật, data/, Turso.
+"""
+import os, re, shutil, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
+
+sys.dont_write_bytecode = True
+GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+O, S, BB = 'server/routes/orders.js', 'server/routes/signup-codes.js', 'cong_cu/gia_lap/bat_bien.js'
+GOI_HUY = '        await truDiemDon(tx, order, req.user.username, now, "Huỷ");\n'
+GOI_XOA = '        await truDiemDon(tx, order, req.user.username, now, "Xoá");\n'
+CHAN = "AND NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust')"
+EXISTS_DON = "\" AND EXISTS (SELECT 1 FROM pos_orders WHERE id = ? AND status = 'completed')\""
+LA = "AND NOT (COALESCE(type, '') = 'adjust' AND order_id IS NOT NULL)"
+
+# (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
+DOT_BIEN = [
+  # ── A/E/F/G: dòng trừ trong giao dịch huỷ / xoá (orders.js truDiemDon) ──
+  ('BV-xoa-cau-tru-huy', [(O, GOI_HUY, '', 1)], r'✗ A1 ', 'p24'),
+  ('BV-xoa-cau-tru-xoa', [(O, GOI_XOA, '', 1)], r'✗ G1 ', 'p24'),
+  ('VS-tru-duong', [(O, "SELECT customer_phone, 'adjust', -SUM(points)", "SELECT customer_phone, 'adjust', SUM(points)", 1)], r'✗ A1 ', 'p24'),
+  ('VS-tru-sdt-cua-don', [(O, "SELECT customer_phone, 'adjust', -SUM(points)",
+                           "SELECT (SELECT o.customer_phone FROM pos_orders o WHERE o.id = order_id), 'adjust', -SUM(points)", 1)], r'✗ A3 ', 'p24'),
+  ('VS-bo-not-exists', [(O, CHAN, 'AND ? IS NOT NULL', 1)], r'✗ F2 ', 'p24'),
+  ('VS-bo-han', [(O, "-SUM(points), order_id, expires_at, ?, ?, ?", "-SUM(points), order_id, NULL, ?, ?, ?", 1)], r'✗ E1 ', 'p24'),
+  ('VS-gom-theo-sdt', [(O, "GROUP BY customer_phone, expires_at`,", "GROUP BY customer_phone`,", 1)], r'✗ E3 ', 'p24'),
+  ('VS-gom-tung-dong', [(O, "GROUP BY customer_phone, expires_at`,", "GROUP BY id`,", 1)], r'✗ A5 ', 'p24'),
+  ('VS-try-catch', [(O, GOI_HUY, '        try { await truDiemDon(tx, order, req.user.username, now, "Huỷ"); } catch (e) { console.error(e.message); }\n', 1)],
+   r'✗ A4 ', 'p24'),
+  ('VS-try-catch-xoa', [(O, GOI_XOA, '        try { await truDiemDon(tx, order, req.user.username, now, "Xoá"); } catch (e) { console.error(e.message); }\n', 1)],
+   r'✗ G4 ', 'p24'),
+  ('VS-tru-sau-commit', [(O, GOI_HUY, '', 1),
+                         (O, "        console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);\n",
+                          "        console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);\n        await truDiemDon({ run }, order, req.user.username, now, \"Huỷ\");\n", 1)],
+   r'✗ A4b', 'p24'),
+  # ── D: nhận điểm mã bill chen huỷ (signup-codes.js) ──
+  ('BV-nhan-diem-bo-exists', [(S, EXISTS_DON, '" AND ? IS NOT NULL"', 1)], r'✗ D2 ', 'p24'),
+  ('VS-bao-chiem-hong-cu', [(S, "error: 'Mã này vừa được dùng để nhận điểm.' }, dong);", "error: 'Mã này vừa được dùng để nhận điểm.' });", 1)],
+   r'✗ D2 ', 'p24'),
+  # ── H: bất biến I8 ──
+  ('BV-I8-huy', [(BB, "const dung = r.status === 'cancelled' && !huyCu ? 0 : diemDung(false);", "const dung = diemDung(false);", 1)], r'✗ H1b', 'p24'),
+  ('VS-I8-moc-ca-gia-lap', [(BB, "const huyCu = ctx.thuc && r.status", "const huyCu = r.status", 1)], r'✗ H2 ', 'p24'),
+  ('VS-I8-moc-nguoc', [(BB, "String(r.cancelled_at) < HUY_TRU_DIEM_TU", "String(r.cancelled_at) >= HUY_TRU_DIEM_TU", 1)], r'✗ H2 ', 'p24'),
+  ('BV-I8-adjust-la', [(BB, LA, 'AND 1', 1)], r'✗ H1 ', 'p24'),
+  ('VS-I8-ngay-gop-chi-luat-cu', [(BB, " || (huyCu && so(r.diem) === 0)) return [];", ") return [];", 1)],
+   r'✗ I8 sạch Đối soát thật \(P24, ngày gộp\)', 'gl'),
+  ('VS-I8-huy-null-sau-moc', [(BB, "(r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU)", "String(r.cancelled_at) < HUY_TRU_DIEM_TU", 1)],
+   r'✗ I8 sạch Đối soát thật \(P24\): đơn huỷ dữ liệu cũ KHÔNG cancelled_at', 'gl'),
+  ('VS-I8-bo-huycu-luat-cu', [(BB, "if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String", "if (ctx.thuc && r.status !== 'cancelled' && String", 1)],
+   r'✗ I8 sạch Đối soát thật \(P24\): đơn ghi nợ tạo trước mốc thu đủ', 'gl'),
+  ('VS-I8-huycu-bo-status', [(BB, "const huyCu = ctx.thuc && r.status === 'cancelled' && (", "const huyCu = ctx.thuc && (", 1)],
+   r'✗ I8 Đối soát thật \(P24\): đơn thu đủ CHƯA huỷ thiếu điểm', 'gl'),
+  ('VS-I8-adjust-moi-dong', [(BB, LA, "AND COALESCE(type, '') <> 'adjust'", 1)], r'✗ I8 \(P24\) dòng adjust KHÔNG gắn đơn', 'gl'),
+  ('VS-I8-tha-don-huy-tao-truoc-moc', [(BB, "if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String", "if (ctx.thuc && String", 1)],
+   r'✗ I8 Đối soát thật \(P24\): đơn TẠO trước mốc', 'gl'),
+]
+
+
+def ban_sao(thay):
+  """Chép server/ + cong_cu/gia_lap/ ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
+  tmp = tempfile.mkdtemp(prefix='dotbien_p24_')
+  shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
+  shutil.copytree(os.path.join(GOC, 'cong_cu', 'gia_lap'), os.path.join(tmp, 'cong_cu', 'gia_lap'))
+  os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+  for f, goc, moi, n in thay:
+    p = os.path.join(tmp, f)
+    if not os.path.realpath(p).startswith(os.path.realpath(tmp) + os.sep):
+      return tmp, f'{f}: đích ghi nằm NGOÀI thư mục tạm'   # K5
+    s = open(p, encoding='utf-8').read()
+    if s.count(goc) != n:
+      return tmp, f'{f}: khớp {s.count(goc)} lần, cần {n}'
+    open(p, 'w', encoding='utf-8').write(s.replace(goc, moi))
+  return tmp, None
+
+
+def lenh(bai, tmp):
+  if bai == 'gl':
+    return ['node', os.path.join(GOC, 'cong_cu', 'thu_gia_lap.js'), '--chi-du-lieu-tay', '--gia-lap', os.path.join(tmp, 'cong_cu', 'gia_lap')]
+  return ['node', os.path.join(GOC, 'cong_cu', 'thu_P24.js'), '--may-chu', os.path.join(tmp, 'server')]
+
+
+def chay(ten, thay, mau, bai):
+  tmp, loi = ban_sao(thay)
+  try:
+    if loi:
+      return ten, 'HỎNG', loi
+    r = subprocess.run(lenh(bai, tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+    ra = (r.stdout or '') + (r.stderr or '')
+    if '--in-ra' in sys.argv: print(f'── {ten}: 12 dòng cuối ──\n' + '\n'.join(ra.strip().splitlines()[-12:]))
+    hong = [l.strip() for l in ra.splitlines() if '✗' in l]
+    if r.returncode == 2 or 'Bài thử sập' in ra or 'bài thử sập' in ra:
+      return ten, 'LẠC', 'bài sập: ' + (hong[-1] if hong else ra.strip().splitlines()[-1][:160] if ra.strip() else '')
+    if r.returncode == 0:
+      return ten, 'SỐNG', 'bài xanh trọn'
+    khop = [l for l in hong if re.search(mau, l)]
+    return (ten, 'BẮT', khop[0][:140]) if khop else (ten, 'LẠC', f'đỏ nhưng không khớp {mau}: ' + ' | '.join(h[:60] for h in hong[:3]))
+  except subprocess.TimeoutExpired:
+    return ten, 'LẠC', 'quá hạn 300 s'
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def doi_chung():
+  tmp, _ = ban_sao([])
+  try:
+    kq = []
+    for bai in ('p24', 'gl'):
+      r = subprocess.run(lenh(bai, tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+      ra = (r.stdout or '') + (r.stderr or '')
+      m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
+      kq.append((r.returncode == 0 and m is not None and m.group(2) == '0', f'{bai}: ' + (m.group(0) if m else ra[-200:])))
+    return all(x for x, _ in kq), ' · '.join(d for _, d in kq)
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def chay_goc(sha):
+  """Bằng chứng ĐỎ trên code chưa vá: chạy bài thử HIỆN TẠI với server/ + cong_cu/gia_lap/ của commit `sha` (git archive, bản chép thật)."""
+  import io, tarfile
+  tmp = tempfile.mkdtemp(prefix='dotbien_p24_goc_')
+  try:
+    tar = subprocess.run(['git', 'archive', sha, 'server', 'cong_cu/gia_lap'], cwd=GOC, capture_output=True, check=True).stdout
+    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
+    os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+    for bai in ('p24', 'gl'):
+      r = subprocess.run(lenh(bai, tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+      ra = ((r.stdout or '') + (r.stderr or '')).strip()
+      print('\n'.join(l for l in ra.splitlines() if '✗' in l or 'đạt ·' in l or 'sập' in l))
+      print(f'GỐC {sha} [{bai}]: thoát {r.returncode}')
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+if __name__ == '__main__':
+  if '--help' in sys.argv or '-h' in sys.argv:
+    print(__doc__); sys.exit(0)
+  if '--goc' in sys.argv:
+    chay_goc(sys.argv[sys.argv.index('--goc') + 1]); sys.exit(0)
+  chon = [a for a in sys.argv[1:] if not a.startswith('--')]
+  if '--liet-ke' in sys.argv:
+    for t, *_ in DOT_BIEN: print(t)
+    sys.exit(0)
+  ds = [d for d in DOT_BIEN if not chon or d[0] in chon]
+  if chon and len(ds) != len(chon):
+    sys.exit('tên không có trong danh sách: ' + ', '.join(set(chon) - {d[0] for d in ds}))
+  ok, dong = doi_chung()
+  print(f'ĐỐI CHỨNG (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
+  if not ok:
+    sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
+  with ThreadPoolExecutor(max_workers=4) as ex:
+    kq = list(ex.map(lambda d: chay(*d), ds))
+  for ten, tt, ghi in kq: print(f'{tt:5} {ten} — {ghi}')
+  dem = {t: sum(1 for _, x, _ in kq if x == t) for t in ('BẮT', 'SỐNG', 'HỎNG', 'LẠC')}
+  print(f'TỔNG {len(kq)} đột biến · BẮT {dem["BẮT"]} · SỐNG {dem["SỐNG"]} · HỎNG {dem["HỎNG"]} · LẠC {dem["LẠC"]}')
+  sys.exit(0 if dem['BẮT'] == len(kq) else 1)

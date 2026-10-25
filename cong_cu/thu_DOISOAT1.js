@@ -548,8 +548,8 @@ async function main() {
       `${moTa(loaiSai)} ; ${daSoSai.map(moTa).join(' ; ')}`);
     const th = await ds('chu', 'thang', '2027-01-06');
     const tp = th.tien || {};
-    k('F3 tháng 01.2027: tiền mặt 425.000 · CK 50.000 · ví nạp 30.000, chi 0 · điểm cộng 350 trừ 0 · nhắc kiểm kê kho',
-      tp.tien_mat?.rong === 425000 && tp.chuyen_khoan?.rong === 50000 && tp.vi?.nap === 30000 && tp.vi?.chi === 0 && tp.diem?.cong === 350 && tp.diem?.tru === 0
+    k('F3 tháng 01.2027: tiền mặt 425.000 · CK 50.000 · ví nạp 30.000, chi 0 · điểm cộng 350 trừ 300 (P24: huỷ đơn mua gói trừ lại 300) · nhắc kiểm kê kho',
+      tp.tien_mat?.rong === 425000 && tp.chuyen_khoan?.rong === 50000 && tp.vi?.nap === 30000 && tp.vi?.chi === 0 && tp.diem?.cong === 350 && tp.diem?.tru === 300
         && typeof th.nhac_kho === 'string' && /kiểm kê kho/i.test(th.nhac_kho), JSON.stringify(tp));
     const idMe = Number((await db.run(`INSERT INTO pos_orders (code, subtotal, total, payment_method, balance_amount, parent_balance_amount, status, payment_status, created_at)
       VALUES ('DS_F3B', 9000, 9000, 'balance', 2000, 7000, 'completed', 'paid', '2027-01-20T10:00:00')`)).lastInsertRowid);
@@ -558,7 +558,7 @@ async function main() {
     await db.run('DELETE FROM pos_orders WHERE id = ?', [idMe]);
     await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_at) VALUES ('0900000006', 'redeem', -3, 'DS_F3C', '2027-01-20T10:00:00')");
     const f3c = await ds('chu', 'thang', '2027-01-06');
-    k('F3c dòng đổi điểm −3 trong tháng 01.2027 → điểm trừ 3 (cộng giữ 350)', f3c.tien?.diem?.tru === 3 && f3c.tien?.diem?.cong === 350, JSON.stringify(f3c.tien?.diem));
+    k('F3c dòng đổi điểm −3 trong tháng 01.2027 → điểm trừ 303 (300 huỷ gói + 3; cộng giữ 350)', f3c.tien?.diem?.tru === 303 && f3c.tien?.diem?.cong === 350, JSON.stringify(f3c.tien?.diem));
     await db.run("DELETE FROM pos_point_transactions WHERE reason = 'DS_F3C'");
     const idHuyVi = Number((await db.run(`INSERT INTO pos_orders (code, subtotal, total, payment_method, balance_amount, status, payment_status, created_at)
       VALUES ('DS_F3D', 4000, 4000, 'balance', 4000, 'cancelled', 'paid', '2027-01-20T10:00:00')`)).lastInsertRowid);

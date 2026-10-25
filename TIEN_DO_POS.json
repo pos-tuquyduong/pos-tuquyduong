@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 39,
-  "cap_nhat": "2026-10-24",
+  "phien_ban_so": 40,
+  "cap_nhat": "2026-10-25",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -16,7 +16,25 @@
     },
     {
       "ma": "P3",
-      "ten": "Ma QR thanh toan payOS — can H1 xong truoc, payOS khong co moi truong thu | MO RONG + PHIEU 24.10 (DAC_TA_BAN_HANG_2410 muc 1.10-1.14): QR payOS may chu tu xac nhan (quay + App KH), PIN khach (bam, sai 5 lan khoa 15 phut), GIU tien tai khoan / diem roi tru khi don xong, xac nhan tay co ly do (owner/manager); KHONG doi cong thuc diem / gia lap (tach DIEM-THAT-1); chu quan da co tai khoan payOS, Render chua tra phi. viec/P3/phieu.md (cho duyet ke hoach)",
+      "ten": "Ma QR thanh toan payOS — can H1 xong truoc, payOS khong co moi truong thu | MO RONG + PHIEU 24.10 (DAC_TA_BAN_HANG_2410 muc 1.10-1.14): QR payOS may chu tu xac nhan (quay + App KH), PIN khach (bam, sai 5 lan khoa 15 phut), GIU tien tai khoan / diem roi tru khi don xong, xac nhan tay co ly do (owner/manager); KHONG doi cong thuc diem / gia lap (tach DIEM-THAT-1); chu quan da co tai khoan payOS, Render chua tra phi. viec/P3/phieu.md (cho duyet ke hoach) | DUYET 24.10 (0a9fb6c): tach P3b (diem trong phien); co thanh_toan_payos_bat_buoc mac dinh 0; backup.js vao Pham vi; noi dung CK <= 9 ky tu (payOS); PIN chu tai khoan bi tru",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "P3b",
+      "ten": "Giu / doi diem trong phien thanh toan + PIN cho doi qua (/loyalty/redeem); tach tu P3 (duyet 24.10), chay sau UUDAI-1. [T] Opus, M5",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "BH-2",
+      "ten": "Man Ban hang moi DOT 2: cam QR payOS + PIN + giu tien (P3), gia hang / cong don (UUDAI-1), topping (TOPPING-1), doi diem (P3b), giao hang (GIAO-1), hoa don + tem (HD-1); chu quan bat tren quay. [Th] Sonnet, M5",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -252,25 +270,25 @@
     },
     {
       "ma": "P24",
-      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22; CHU QUAN CHOT 02.10: DIEM AM; phai sua bat bien I8 cua gia lap | PHIEU 24.10: viec/P24/phieu.md (cho duyet ke hoach); chay SONG SONG voi P3 (P24 chi sua huy / xoa)",
+      "ten": "Huy don tru lai diem da cong, append-only. Lam sau P22; CHU QUAN CHOT 02.10: DIEM AM; phai sua bat bien I8 cua gia lap | PHIEU 24.10: viec/P24/phieu.md (cho duyet ke hoach); chay SONG SONG voi P3 (P24 chi sua huy / xoa) | XONG 25.10 (PR #43, 5cb2a03; 3 vong soat KHONG DAT chi thieu ca thu ve I8 -> chat soat thay vong 4 DAT; moc HUY_TRU_DIEM_TU=2026-10-26; viec sau: hoan tien chen luc nhan diem, o diem tru Doi soat gop voi doi qua, neo dot bien VS-I8-moc-ca-gia-lap cua P22-23)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "P24",
+      "commit": "5cb2a03",
+      "ngay": "2026-10-25"
     },
     {
       "ma": "QUAY-AN-1",
-      "ten": "Man Ban hang HIEN TAI: an nut Ghi no + Chua thu (khong cong no, chu quan chot 22.10); no cu van thu o Lich su don. [Th] Sonnet, M4. PHIEU 24.10: viec/QUAY-AN-1/phieu.md (chay thang)",
+      "ten": "Man Ban hang HIEN TAI: an nut Ghi no + Chua thu (khong cong no, chu quan chot 22.10); no cu van thu o Lich su don. [Th] Sonnet, M4. PHIEU 24.10: viec/QUAY-AN-1/phieu.md (chay thang) | XONG 25.10 (PR #42, cfb3f02; soat vong 1 nhe: bo 2 dong debtAmount chet; may chu mac dinh payment_status paid khi thieu truong)",
       "tang": 1,
-      "trang_thai": "dang_mo",
-      "patch": null,
-      "commit": null,
-      "ngay": null
+      "trang_thai": "xong",
+      "patch": "QUAY-AN-1",
+      "commit": "cfb3f02",
+      "ngay": "2026-10-25"
     },
     {
       "ma": "DIEM-THAT-1",
-      "ten": "Diem chi tinh tren tien khach tra that (TM / CK), khong tinh phan tru tai khoan va phi giao (chu quan chot 24.10, ti le van o Cai dat loyalty_earn_per_amount); ma nhan diem khach le cung theo; sua bat bien I8. CHAY SAU P24 (cung sua I8). [T] Opus, M4. DAC_TA_BAN_HANG_2410 muc 1.14",
+      "ten": "Diem chi tinh tren tien khach tra that (TM / CK), khong tinh phan tru tai khoan va phi giao (chu quan chot 24.10, ti le van o Cai dat loyalty_earn_per_amount); ma nhan diem khach le cung theo; sua bat bien I8. CHAY SAU P24 (cung sua I8). [T] Opus, M4. DAC_TA_BAN_HANG_2410 muc 1.14 | PHIEU 25.10: viec/DIEM-THAT-1/phieu.md (cho duyet ke hoach); gop SAU P3",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -297,7 +315,7 @@
     },
     {
       "ma": "BH-1",
-      "ten": "Giao dien man Ban hang moi theo DAC_TA_BAN_HANG_2410 (tu theo man hinh, thanh khach, khung chon mon, to tien + so khac, man ket thuc hoa don + tem); dung API san co + API cua P3 / UUDAI-1 / TOPPING-1. [Th] Sonnet, M5",
+      "ten": "Giao dien man Ban hang moi theo DAC_TA_BAN_HANG_2410 (tu theo man hinh, thanh khach, khung chon mon, to tien + so khac, man ket thuc hoa don + tem); dung API san co + API cua P3 / UUDAI-1 / TOPPING-1. [Th] Sonnet, M5 | PHIEU 25.10: DOT 1 tren API san co, cong tac theo may mac dinh TAT (man cu van chay); viec/BH-1/phieu.md (chay thang)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
