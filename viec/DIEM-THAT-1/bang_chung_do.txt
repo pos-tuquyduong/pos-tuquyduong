@@ -1,0 +1,61 @@
+DIEM-THAT-1 — bằng chứng ĐỎ trên code CHƯA vá (gốc e403ac5 = "PHIEU: DIEM-THAT-1 duyet ke hoach"; server/ và cong_cu/gia_lap/
+giống hệt 611b043 = main 5cb2a03 + phiếu). Chạy 25.10.
+
+1) Bài MỚI cong_cu/thu_DIEMTHAT1.js — lệnh: python3 viec/DIEM-THAT-1/dot_bien.py --goc e403ac5 (git archive server/ + cong_cu/gia_lap/
+   của gốc, bài ở HEAD với --may-chu <gốc>/server):
+  ✗ A1 tienTinhDiem (server/utils/diemThat.js): … — không có hàm
+  ✗ A2 công thức cũ (total) BIẾN MẤT ở 3 chỗ cộng điểm; … — còn mẫu cũ: ["tinhDiemDon(total,","tinhDiemDon(Number(order.total)","Number(don.total || 0) / moiBaoNhieu"] · định nghĩa ở [] · công thức ở [] · gọi đủ false
+  ✗ B1 trả trọn bằng ví 25.000 → 200 paid, 0 điểm  — HTTP 200 · 25 điểm · 1 earn
+  ✗ B2 ví 10.000 + tiền mặt 15.000 → 15 điểm (chỉ phần tiền mặt)  — HTTP 200 · 25 điểm · 1 earn
+  ✗ B3 tiền mặt 30.000 có phí giao 5.000 → 25 điểm (trừ phí trước khi chia)  — HTTP 200 · 30 điểm · 1 earn
+  ✗ B4 ví mẹ 10.000 + chuyển khoản 15.000 → 15 điểm  — HTTP 200 · 25 điểm · 1 earn
+  ✗ B5 phí giao 5.000 > tiền mặt 3.000 (còn lại ví 27.000) → 0 điểm  — HTTP 200 · 30 điểm · 1 earn
+  ✗ C2 ví 10.000 + nợ 15.000 → thu đủ 15.000 → 15 điểm (không tính phần ví)  — HTTP 200 / HTTP 200 · 25
+  ✗ C3 nợ trọn 30.000 có phí giao 5.000 → thu đủ → 25 điểm  — HTTP 200 / HTTP 200 · 30
+  ✗ C4 ví 10.000 + nợ 15.000 → thu chuyển khoản 5.000 (0 điểm) rồi tiền mặt 10.000 → 15 điểm  — HTTP 200 · 0 / HTTP 200 · 25
+  ✗ C5 hai người cùng bấm thu đủ 15.000 → một 200, một 409 DA_THU_ROI; đúng 1 earn 15 điểm  — HTTP 409 · DA_THU_ROI · … / HTTP 200 · 25
+  ✗ D1 khách lẻ tiền mặt 30.000 có phí giao 5.000 → /nhan-diem 200, 25 × 2 = 50 điểm  — HTTP 200 / HTTP 200 · 60
+  ✗ D2 đơn có SĐT ví 10.000 + tiền mặt 15.000 (15 điểm lúc bán) → /nhan-diem bù đủ 15 × 2 = 30  — HTTP 200 · 50
+  ✗ D3 đơn trả trọn bằng ví → /nhan-diem 400 DON_KHONG_DU_DIEM, 0 điểm, mã CHƯA bị tiêu  — HTTP 200 · 50
+  ✗ E3 huỷ đơn B2 (15 điểm) → 200, đúng 1 dòng trừ −15, điểm đơn 0  — HTTP 200 · {"n":1,"p":-25}
+  ✗ F2 đơn ví trọn có 25 điểm theo total, tạo ĐÚNG mốc (chưa có DIEM_THAT_TU), Đối soát thật → LỆCH  — lệch false
+  ✗ F3 cùng đơn tạo 1 giây TRƯỚC mốc, Đối soát thật → KHÔNG lệch (luật cũ)  — lệch false
+  ✗ F4 cùng đơn trước mốc, giả lập (không ctx.thuc) → LỆCH  — lệch false
+  ✗ F5 đơn có phí giao: 25 điểm (luật mới) sau mốc → KHÔNG lệch; 30 điểm (theo total) sau mốc → LỆCH  — … false · … false
+  11 đạt · 19 hỏng
+GỐC e403ac5 [dt]: thoát 1
+   Xanh cả trên gốc (ca K5 / "không đổi" / chỉ để bắt đột biến): B6 C1 E1 E2 E4 G1 G2 G3 G4 F1 F6.
+
+2) Bài CŨ sửa — chạy trên gốc:
+ 2a) cong_cu/thu_P2223.js (A3 theo luật mới) — dot_bien.py --goc e403ac5 [p2223]:
+  ✗ A3 trả đủ 50.000 bằng ví → 200 paid, 0 earn (DIEM-THAT-1: phần trừ ví không sinh điểm)  — HTTP 200 · 50
+  43 đạt · 1 hỏng
+ 2b) cong_cu/thu_P24.js (A4, A4b, G1, I2: ví 10.000 + tiền mặt 15.000 → 15 điểm) — dot_bien.py --goc e403ac5 [p24]:
+  ✗ A4 câu ghi dòng trừ lỗi → huỷ 500, rollback trọn: đơn vẫn completed, ví vẫn 0, 0 dòng trừ, earn còn 15  — HTTP 500 · LOI_MAY_CHU · … · completed 1 · ví 0
+  ✗ G1 xoá đơn completed có earn 15 → 200, ví hoàn 10.000 (K5), 1 dòng adjust −15 cho SĐT đơn (còn lại dù đơn đã xoá)  — HTTP 200 · ví 10000 · [{…"points":-25…}]
+  ✗ I2 duyệt hoàn tiền (refunds.js) đơn có 15 điểm → 200, ví hoàn, điểm GIỮ 15, 0 dòng trừ (việc sau)  — HTTP 200 / HTTP 200
+  30 đạt · 3 hỏng   (A4b xanh trên gốc: chỉ kiểm điểm đơn về 0 + ví hoàn 10.000 — đúng cả hai luật)
+ 2c) cong_cu/thu_gia_lap.js (khung I8 thêm 3 cột tiền, 6 ca I8 DIEM-THAT-1; kich_ban.js KB5a / KB31 nợ có tiền mặt):
+   - dữ liệu tay, dot_bien.py --goc e403ac5 [gl]: 106 đạt · 6 hỏng, thoát 1 (6 ca DIEM-THAT-1 dưới đây).
+   - chạy ĐỦ (orders.js, signup-codes.js, bat_bien.js chép lại bản e403ac5 bằng `git show`, bài + kich_ban ở HEAD, xong `git checkout --` trả về):
+  ✗ I8 sạch (DIEM-THAT-1): đơn ví trọn 0 điểm; đơn tiền mặt có phí giao 2 điểm (tiền thật / per)  — ["đơn V1: 0 điểm, đúng luật là 5","đơn G1: 2 điểm, đúng luật là 3"]
+  ✗ I8 (DIEM-THAT-1) đơn ví trọn có điểm theo total  — ["đơn G1: 2 điểm, đúng luật là 3"]
+  ✗ I8 (DIEM-THAT-1) đơn có phí giao, điểm theo total (3)  — ["đơn V1: 0 điểm, đúng luật là 5"]
+  ✗ I8 sạch Đối soát thật (DIEM-THAT-1): đơn ví trọn tạo 1 giây trước mốc, điểm theo total (luật cũ)  — ["đơn G1: 2 điểm, đúng luật là 3"]
+  ✗ I8 Đối soát thật (DIEM-THAT-1): đơn ví trọn tạo ĐÚNG mốc, điểm theo total  — ["đơn G1: 2 điểm, đúng luật là 3"]
+  ✗ I8 giả lập (DIEM-THAT-1, không ctx.thuc): đơn ví trọn trước mốc, điểm theo total  — ["đơn G1: 2 điểm, đúng luật là 3"]
+  173 đạt · 6 hỏng
+ 2d) cong_cu/thu_P20.js (ví 10.000 + tiền mặt; thêm ca ví trọn) — cùng cách chép gốc như 2c:
+  ✗ trả trọn bằng ví: /claim → 200; /nhan-diem → 400 DON_KHONG_DU_DIEM (DIEM-THAT-1)  — HTTP 200 / HTTP 200
+  170 đạt · 1 hỏng
+
+3) Sau vá (HEAD 8816b85): thu_DIEMTHAT1 30 đạt · 0 hỏng · thu_P2223 44 · 0 · thu_P24 33 · 0 · thu_P20 171 · 0 · thu_gia_lap 179 · 0;
+   npm test PASS 71 · FAIL 0; npm test -- --day-du PASS 75 · FAIL 0 (cảnh báo "route GET có lệnh ghi (3)" có sẵn từ trước).
+   Đột biến: python3 viec/DIEM-THAT-1/dot_bien.py → ĐỐI CHỨNG XANH (dt 30 · 0, gl 112 · 0) · TỔNG 16 · BẮT 16 · SỐNG 0 · HỎNG 0 · LẠC 0.
+   M15 của thu_gia_lap (tạo đơn cộng điểm cả đơn chưa thu đủ → KB31 → I8) nay BẮT nhờ KB31 nợ có tiền mặt 10.000.
+
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 30
+SỐ CA cong_cu/thu_P2223.js: 44
+SỐ CA cong_cu/thu_P24.js: 33
+SỐ CA cong_cu/thu_gia_lap.js: 179
+SỐ CA cong_cu/thu_P20.js: 171
