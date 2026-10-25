@@ -19,8 +19,8 @@ from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DT, O, S, BB = 'server/utils/diemThat.js', 'server/routes/orders.js', 'server/routes/signup-codes.js', 'cong_cu/gia_lap/bat_bien.js'
-TAO = ('tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total,\n'
-       '        balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now)')
+TAO = ('tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, '
+       'balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now)')
 THU = 'tienTinhDiem({ ...order, [cotTien]: (Number(order[cotTien]) || 0) + paidAmount })'
 G_MOI = 'const g = Math.floor(Math.max(0, Math.round(tra - so(r.shipping_fee))) / per);'
 TRA = 'const tra = Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - so(r.balance_amount) - so(r.parent_balance_amount));'
