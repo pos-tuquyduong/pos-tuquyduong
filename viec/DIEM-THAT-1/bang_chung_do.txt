@@ -62,7 +62,19 @@ GỐC e403ac5 [dt]: thoát 1
    Sau vá: thu_gia_lap 180 đạt · 0 hỏng; npm test -- --day-du PASS 75 · FAIL 0; dot_bien.py TỔNG 19 · BẮT 19 (16 cũ + VS-I8-BO-CK,
    VS-I8-BO-LAM-TRON, VS-I8-MOC-THAT-BO-HUYCU — chạy từng tên, đối chứng dt 30 · 0, gl 113 · 0).
 
-SỐ CA cong_cu/thu_DIEMTHAT1.js: 30
+5) Soát vòng 2 (câu hỏi 4 (b): trần total − ví − ví mẹ trong tienTinhDiem + I8; HEAD 728af71). Bài thử commit TRƯỚC code (7aca85b).
+   Bài hiện tại trên code TRƯỚC vòng 2 — python3 viec/DIEM-THAT-1/dot_bien.py --goc 979b1b2:
+  ✗ A1 … trần total − ví − ví mẹ  — {"cash_amount":25000} → 25000 (đúng 0) | {"cash_amount":25001,"total":25000} → 25001 (đúng 25000) | {"cash_amount":24000,"total":25000,"balance_amount":1001} → 24000 (đúng 23999) | {"cash_amount":10000,"total":25000,"parent_balance_amount":15001} → 10000 (đúng 9999)
+  ✗ B7 ví 1.001 + tiền mặt 24.000 (thừa 1đ, lọt dung sai) → 23 điểm (trần total − ví = 23.999, không 24)  — HTTP 200 · 24 điểm · 1 earn
+  ✗ C6 ví 1.001 + tiền mặt 1 (thừa 1đ lúc tạo) + nợ 23.999 → thu đủ → 23 điểm (trần total − ví, không 24)  — HTTP 200 / HTTP 200 · 24
+  ✗ D4 đơn ví 1.001 + tiền mặt 24.000 (thừa 1đ; 23 điểm lúc bán) → /nhan-diem bù đủ 23 × 2 = 46 (không 47)  — HTTP 200 · 48
+  29 đạt · 4 hỏng
+GỐC 979b1b2 [dt]: thoát 1   (p2223 44 · 0, p24 33 · 0, gl 113 · 0 — bài đó không đổi kỳ vọng ở vòng 2; thu_gia_lap chỉ thêm 2 cột vào khung I8)
+   Trên gốc e403ac5 (chạy lại sau vòng 2): dt 11 đạt · 22 hỏng · p2223 43 · 1 · p24 30 · 3 · gl 106 · 7 — đều thoát 1.
+   Sau vá: thu_DIEMTHAT1 33 · 0; npm test -- --day-du PASS 75 · FAIL 0; dot_bien.py ĐỐI CHỨNG XANH (dt 33 · 0, gl 113 · 0) ·
+   TỔNG 25 · BẮT 25 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 33
 SỐ CA cong_cu/thu_P2223.js: 44
 SỐ CA cong_cu/thu_P24.js: 33
 SỐ CA cong_cu/thu_gia_lap.js: 180

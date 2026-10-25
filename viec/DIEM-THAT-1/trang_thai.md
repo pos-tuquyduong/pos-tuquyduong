@@ -41,6 +41,15 @@
 Tên đột biến: VS-HAM-BO-PHI, VS-HAM-BO-CK, VS-HAM-LAM-TRON, BV-TAO, VS-TAO-PHI-THO, BV-THU, VS-THU-QUEN-LAN-NAY, BV-MA, VS-MA-THIEU-COT,
 BV-I8, BV-I8-tay, VS-I8-BO-PHI, VS-I8-BO-MOC, VS-I8-MOC-GIA-LAP, BV-I8-VE-LUAT-CU, VS-I8-CU-CU-GMOI,
 VS-I8-BO-CK, VS-I8-BO-LAM-TRON, VS-I8-MOC-THAT-BO-HUYCU (soát vòng 1). Kết quả sau vòng 1: TỔNG 19 · BẮT 19 · SỐNG 0 · HỎNG 0 · LẠC 0.
+Vòng 2 (trần total − ví − ví mẹ): VS-HAM-BO-TRAN, VS-HAM-TRAN-BO-VI-ME, VS-TAO-BO-VI, VS-TAO-BO-TOTAL, VS-MA-THIEU-COT-VI, VS-I8-BO-TRAN.
+Kết quả sau vòng 2: TỔNG 25 · BẮT 25 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+| Chỗ vá (vòng 2) | Đột biến | Ca bắt |
+|---|---|---|
+| `diemThat.js` trần `Math.min(traThat, tran)` | `VS-HAM-BO-TRAN` · `VS-HAM-TRAN-BO-VI-ME` | B7 · A1 |
+| `orders.js` POST / truyền `total`, ví, ví mẹ | `VS-TAO-BO-VI` · `VS-TAO-BO-TOTAL` | B7 · G1 |
+| `signup-codes.js` SELECT cột ví | `VS-MA-THIEU-COT-VI` | D4 |
+| `bat_bien.js` I8 cùng trần (`tra`) | `VS-I8-BO-TRAN` | F1 (đơn B7 / C6 / D4) |
 
 ## Soát độc lập — vòng 1 (agent general-purpose, 25.10; chép nguyên báo cáo)
 ```
@@ -96,7 +105,7 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
 (Hai câu hỏi lượt trước đã được chủ quán trả lời trong phiếu, mục "Đã duyệt" 2 và 3.)
 1. ~~`cong_cu/thu_P20.js` ngoài Phạm vi~~ — đã thêm vào Phạm vi; đã sửa như đề xuất.
 2. ~~Bill hứa điểm cho đơn 0 điểm thật~~ — chọn (a): để nguyên, chat ghi cho HD-1 / P15.
-3. **Đơn bán TRƯỚC khi gộp, nhận mã điểm SAU khi gộp (soát vòng 1 lỗi 2).** Khung thời gian: chỉ trong hạn mã (`nhandiem_han_gio`,
+3. **[ĐÃ TRẢ LỜI 25.10: chọn (c) — để nguyên code, chat xử tay nếu Đối soát báo]** **Đơn bán TRƯỚC khi gộp, nhận mã điểm SAU khi gộp (soát vòng 1 lỗi 2).** Khung thời gian: chỉ trong hạn mã (`nhandiem_han_gio`,
    mặc định 24 giờ) sau lúc gộp. Ví dụ đơn ví 10.000 + tiền mặt 15.000, lúc bán được 25 điểm (luật cũ, total); sau gộp `/nhan-diem`
    tính gốc 15 → bù round(15 × (k − 1)) = 15 → tổng 40 (`signup-codes.js:240–242`), không khớp luật nào → Đối soát thật báo lệch đơn đó.
    Chủ quán chọn:
@@ -106,7 +115,7 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
      (30); đơn có earn cũ lớn hơn thì 0 bù (400 `KHONG_THEM_DIEM`). Đổi đường cộng điểm (~3 dòng `signup-codes.js` + ca + đột biến).
    - (c) Để nguyên cả hai; chat xử tay các đơn đó ở Đối soát (dự kiến rất ít — chỉ đơn trộn ví / phí giao, nhận mã trong 24 giờ đầu).
    Máy đề xuất (c) nếu muốn ít đụng nhất, (b) nếu muốn đúng luật mới tuyệt đối. Máy KHÔNG tự chọn.
-4. **Dung sai ±1đ (soát vòng 1 nghi ngờ P4).** Điểm POST / nay lấy từ `cash_amount` / `transfer_amount` máy khách gửi; phép kiểm tổng
+4. **[ĐÃ TRẢ LỜI 25.10: chọn (b) — làm ở vòng 2]** **Dung sai ±1đ (soát vòng 1 nghi ngờ P4).** Điểm POST / nay lấy từ `cash_amount` / `transfer_amount` máy khách gửi; phép kiểm tổng
    cho lệch ±1đ (`orders.js:824–834`) → tối đa +1 điểm / đơn khi total ≡ per − 1 (mod per). Chủ quán chọn: (a) chấp nhận (±1đ có từ
    trước, chỉ ảnh hưởng điểm); (b) trần `min(cash + CK, total − ví − ví mẹ)` ngay ở dòng gọi POST / (vẫn MỘT dòng, trong vùng sửa)
    + 1 ca + 1 đột biến. Máy đề xuất (b) — rẻ, khoá bằng code (C16).
@@ -116,3 +125,18 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
   `server/utils/**` bị cấm → không sửa; việc sau sửa chú thích.
 - Lời hứa "gấp k điểm" trên bill (`orders.js:1207`) vẫn in cho đơn trả trọn bằng tài khoản (0 điểm thật) → khách nhập mã bị 400
   `DON_KHONG_DU_DIEM` (thu_DIEMTHAT1 D3, thu_P20 "trả trọn bằng ví"). Chủ quán đã chọn để HD-1 / P15.
+
+### Xử lý vòng 2 (chủ quán trả lời câu 3, 4 ngày 25.10; bài `7aca85b` → code `728af71`)
+- Câu 3 (c): không đổi code. **Ghi chú K1 cho chủ quán:** lý do "mã nhận điểm chỉ in cho khách lẻ" KHÔNG khớp code — `orders.js:1142–1153`
+  in mã cho MỌI đơn (kể cả có SĐT), trừ SĐT đã từng claim; ca D2 / D4 của bài này là đơn có SĐT trả trộn ví vẫn nhận mã. Vậy đơn trộn
+  ví bán trước gộp, nhận mã trong 24 giờ đầu sau gộp CÓ thể gặp → Đối soát thật báo lệch đơn đó (khách nhận gốc mới + bù theo hệ số,
+  vd 40 thay 30 / 50). (c) vẫn dùng được: chat xử tay theo dòng Đối soát; số đơn có thể nhiều hơn dự tính.
+- Câu 4 (b): trần đặt TRONG `tienTinhDiem` (`server/utils/diemThat.js:9–13`), không chỉ ở dòng gọi POST / — K4: pay-debt (tiền mặt lúc
+  tạo thừa 1đ cộng dồn) và /nhan-diem (đọc cột) cùng lỗ ±1đ; vá ở hàm chung thì ba chỗ gọi cùng khoá. POST / truyền `total`,
+  `actualBalanceAmount`, `actualParentBalanceAmount` (vẫn trong dòng gọi, `orders.js:856–857`); /nhan-diem đọc thêm `balance_amount`,
+  `parent_balance_amount` (`signup-codes.js:54`); I8 cùng trần (`bat_bien.js:146`) để cột thừa 1đ không làm Đối soát đỏ oan.
+  Thiếu `total` → trần 0 → 0 điểm (ca A1 `{cash_amount: 25000}` → 0 khoá mặc định này).
+- K1 nhỏ của vòng 1: dòng `require` dời lên TRƯỚC chú thích P22-23 (`orders.js:40`); tham số `diemDung(luatCu, goc)` không che `g`
+  (`bat_bien.js:149–155`); `ke_hoach.md` mục 1 sửa câu "lưu ĐÚNG phần đã thu" → lệch tối đa ±1đ, chặn bằng trần.
+- Nghiệm thu A của phiếu ghi công thức `max(0, cash + CK − ship)`; nay thêm trần theo quyết định câu 4 (b) — đơn không trừ ví và không
+  thừa 1đ cho đúng số như công thức phiếu (G1–G4 không đổi).
