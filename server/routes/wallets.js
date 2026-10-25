@@ -44,17 +44,31 @@ router.get('/:phone', authenticate, async (req, res) => {
     if (!wallet) {
       wallet = { phone, balance: 0, total_topup: 0, total_spent: 0 };
     }
-    res.json(wallet);
+    const dang_giu = await dangGiu({ queryOne }, phone);   // P3: quầy / App hiện số KHẢ DỤNG
+    res.json({ ...wallet, dang_giu, kha_dung: Number(wallet.balance || 0) - dang_giu });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 /**
+ * P3 — tiền tài khoản đang GIỮ cho phiên thanh toán chưa xong (ví của khách + phần ví mẹ khi con dùng tài khoản mẹ). Phiên giữ khi
+ * trang_thai 'cho' và chưa hết hạn — hết hạn là tự nhả, không ghi gì. `q` = database hoặc tx (đọc trong giao dịch ghi khi chặn tiêu);
+ * `boQua` = mã phiên đang chốt (phần giữ của chính nó không chặn nó).
+ */
+async function dangGiu(q, phone, boQua = 0) {
+  const r = await q.queryOne(`SELECT COALESCE(SUM(CASE WHEN phone = ? THEN giu_vi ELSE 0 END
+      + CASE WHEN phone_me = ? THEN giu_vi_me ELSE 0 END), 0) AS n
+    FROM pos_phien_thanh_toan WHERE trang_thai = 'cho' AND het_han > ? AND (phone = ? OR phone_me = ?) AND id <> ?`,
+  [phone, phone, getNow(), phone, phone, boQua]);
+  return Number(r?.n || 0);
+}
+
+/**
  * P26b — CHỖ DUY NHẤT ghi pos_wallets (bộ kiểm E12 canh), trừ đối soát. Gọi BÊN TRONG giao dịch ghi (beginTransaction
  * là khoá ghi độc quyền): số dư trước/sau đọc trong giao dịch, cộng TƯƠNG ĐỐI, ví chưa có thì tạo, ghi dòng sổ cùng lúc.
  * Trước đây mỗi route đọc số dư NGOÀI giao dịch rồi `SET balance = ?` → hai người bấm gần nhau thì mất một khoản.
- * khongAm: số dư sau < 0 → KHÔNG ghi gì, trả { thieu: true } để chỗ gọi rollback + 400 SO_DU_KHONG_DU.
+ * khongAm: số dư sau < phần đang giữ cho phiên thanh toán (P3, dangGiu) → KHÔNG ghi gì, trả { thieu: true } để chỗ gọi rollback + 400 SO_DU_KHONG_DU.
  * cot/soCot: cột tổng (total_topup / total_spent) cộng thêm — duyệt hoàn, báo hỏng không truyền (như trước P26b).
  */
 async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cachTra = 'cash', ghiChu = null, nguoi, luc = getNow(),
@@ -62,7 +76,7 @@ async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cach
   const w = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
   const truoc = Number(w?.balance || 0);   // P26d (17): NULL đọc như 0 ở đây, và ghi về 0 ngay dưới — MỘT chỗ
   const sau = truoc + soTien;
-  if (khongAm && sau < 0) return { truoc, sau, thieu: true };
+  if (khongAm && sau - (await dangGiu(tx, phone)) < 0) return { truoc, sau, thieu: true };   // P3: không tiêu vào phần đang giữ
   if (w && w.balance == null) await tx.run('UPDATE pos_wallets SET balance = 0 WHERE phone = ? AND balance IS NULL', [phone]);
   const nap = cot === 'total_topup' ? soCot : 0, tieu = cot === 'total_spent' ? soCot : 0;
   const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, total_topup = COALESCE(total_topup, 0) + ?,
@@ -339,3 +353,4 @@ module.exports.ghiVi = ghiVi;
 module.exports.loiGhi = loiGhi;
 module.exports.trongGiaoDich = trongGiaoDich;
 module.exports.ghiHoan = ghiHoan;
+module.exports.dangGiu = dangGiu;

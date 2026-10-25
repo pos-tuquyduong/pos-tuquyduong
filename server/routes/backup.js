@@ -87,6 +87,9 @@ const BACKUP_TABLES = [
   { name: 'pos_stock_pending', label: 'Sổ nợ kho', key: 'id' },
   { name: 'pos_order_log', label: 'Nhật ký đơn', key: 'id' },   // POS-NEN-v1 (P19)
   { name: 'pos_doi_soat_ghi', label: 'Sổ đối soát (két, sao kê)', key: 'id' },
+  { name: 'pos_phien_thanh_toan', label: 'Phiên thanh toán', key: 'id' },   // P3
+  { name: 'pos_payos_su_kien', label: 'Báo tiền về payOS', key: 'id' },     // P3
+  { name: 'pos_nhat_ky_pin', label: 'Nhật ký PIN khách', key: 'id' },       // P3
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -103,7 +106,8 @@ const BACKUP_TABLES = [
 // (cổng chống nhận điểm / voucher hai lần), nhật ký đơn (sổ thu tiền), lượt dùng khuyến mãi.
 const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'pos_balance_transactions', 'pos_refund_requests',
   'pos_point_transactions', 'pos_customer_packages', 'pos_membership_purchases', 'pos_voucher_grants', 'pos_damage_logs',
-  'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage'];
+  'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage',
+  'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin'];   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
 
 /**
  * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.

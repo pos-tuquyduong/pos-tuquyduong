@@ -119,6 +119,9 @@ app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên 
 // KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)
 app.use('/api/kh', require('./routes/kh'));
 app.use('/api/kh', require('./routes/kh/loi').loiTangKh);   // KH-API-1 (G): JSON hỏng / thân quá lớn của /api/kh → { error, code }
+// P3: phiên thanh toán ở quầy (QR payOS, xác nhận tay, PIN khách) + webhook payOS công khai (chỉ tin chữ ký)
+app.use('/api/pos/thanh-toan', require('./routes/thanh-toan'));
+app.use('/api/payos/webhook', require('./routes/thanh-toan').webhook);
 
 // Health check
 app.get('/api/pos/health', (req, res) => {
