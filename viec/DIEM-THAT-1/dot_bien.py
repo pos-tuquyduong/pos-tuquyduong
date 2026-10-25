@@ -34,11 +34,14 @@ DOT_BIEN = [
   # soát vòng 2 (câu hỏi 4 (b)): trần total − ví − ví mẹ
   ('VS-HAM-BO-TRAN', [(DT, 'Math.min(traThat, tran)', 'traThat', 1)], r'✗ B7 ', 'dt'),
   ('VS-HAM-TRAN-BO-VI-ME', [(DT, ' - (Number(dong.parent_balance_amount) || 0)', '', 1)], r'✗ A1 ', 'dt'),
+  # soát vòng 2: vế ví thường của trần trong hàm
+  ('VS-HAM-TRAN-BO-VI', [(DT, ' - (Number(dong.balance_amount) || 0)', '', 1)], r'✗ B7 ', 'dt'),
   ('VS-HAM-LAM-TRON', [(DT, 'Math.max(0, Math.round(', 'Math.max(0, (', 1)], r'✗ A1 ', 'dt'),
   # ── B: POST / ──
   ('BV-TAO', [(O, TAO, 'tinhDiemDon(total, now)', 1)], r'✗ B1 ', 'dt'),
   ('VS-TAO-PHI-THO', [(O, 'shipping_fee: finalShippingFee, total,', 'shipping_fee, total,', 1)], r'✗ B6 ', 'dt'),
   ('VS-TAO-BO-VI', [(O, 'balance_amount: actualBalanceAmount, parent_balance_amount', 'parent_balance_amount', 1)], r'✗ B7 ', 'dt'),
+  ('VS-TAO-BO-VI-ME', [(O, ', parent_balance_amount: actualParentBalanceAmount })', ' })', 1)], r'✗ B8 ', 'dt'),
   ('VS-TAO-BO-TOTAL', [(O, 'shipping_fee: finalShippingFee, total,', 'shipping_fee: finalShippingFee,', 1)], r'✗ G1 ', 'dt'),
   # ── C: pay-debt ──
   ('BV-THU', [(O, 'tinhDiemDon(' + THU + ', now)', 'tinhDiemDon(Number(order.total), now)', 1)], r'✗ C2 ', 'dt'),
@@ -47,7 +50,8 @@ DOT_BIEN = [
   ('BV-MA', [(S, 'Math.floor(tienTinhDiem(don) / moiBaoNhieu)', 'Math.floor(Number(don.total || 0) / moiBaoNhieu)', 1)], r'✗ D1 ', 'dt'),
   ('VS-MA-THIEU-COT', [(S, 'flash_discount, cash_amount, transfer_amount, shipping_fee, balance_amount, parent_balance_amount FROM pos_orders',
                         'flash_discount FROM pos_orders', 1)], r'✗ G4 ', 'dt'),
-  ('VS-MA-THIEU-COT-VI', [(S, ', balance_amount, parent_balance_amount FROM pos_orders', ' FROM pos_orders', 1)], r'✗ D4 ', 'dt'),
+  ('VS-MA-THIEU-COT-VI', [(S, ', balance_amount, parent_balance_amount FROM pos_orders', ', parent_balance_amount FROM pos_orders', 1)], r'✗ D4 ', 'dt'),
+  ('VS-MA-THIEU-COT-VI-ME', [(S, ', balance_amount, parent_balance_amount FROM pos_orders', ', balance_amount FROM pos_orders', 1)], r'✗ D5 ', 'dt'),
   # ── F: bất biến I8 (cong_cu/gia_lap/bat_bien.js) ──
   ('BV-I8', [(BB, G_MOI, 'const g = Math.floor(so(r.total) / per);', 1)], r'✗ F2 ', 'dt'),
   ('BV-I8-tay', [(BB, G_MOI, 'const g = Math.floor(so(r.total) / per);', 1)], r'✗ I8 \(DIEM-THAT-1\) đơn ví trọn có điểm theo total', 'gl'),
@@ -55,6 +59,8 @@ DOT_BIEN = [
   # soát vòng 1: mỗi vế của I8 một đột biến MANG TÊN (CK, làm tròn, vế `cu` của mốc mới)
   ('VS-I8-BO-CK', [(BB, 'Math.min(so(r.cash_amount) + so(r.transfer_amount),', 'Math.min(so(r.cash_amount),', 1)], r'✗ F1 ', 'dt'),
   ('VS-I8-BO-TRAN', [(BB, TRA, 'const tra = so(r.cash_amount) + so(r.transfer_amount);', 1)], r'✗ F1 ', 'dt'),
+  ('VS-I8-TRAN-BO-VI', [(BB, ' - so(r.balance_amount)', '', 1)], r'✗ F1 ', 'dt'),
+  ('VS-I8-TRAN-BO-VI-ME', [(BB, ' - so(r.parent_balance_amount)', '', 1)], r'✗ F1 ', 'dt'),
   ('VS-I8-BO-LAM-TRON', [(BB, 'Math.round(tra - so(r.shipping_fee))', '(tra - so(r.shipping_fee))', 1)],
    r'✗ I8 sạch \(DIEM-THAT-1\): tiền mặt lẻ', 'gl'),
   ('VS-I8-MOC-THAT-BO-HUYCU', [(BB, 'if (cu && String(r.created_at) < DIEM_THAT_TU', 'if (ctx.thuc && String(r.created_at) < DIEM_THAT_TU', 1)],

@@ -107,7 +107,7 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
 2. ~~Bill hứa điểm cho đơn 0 điểm thật~~ — chọn (a): để nguyên, chat ghi cho HD-1 / P15.
 3. **[ĐÃ TRẢ LỜI 25.10: chọn (c) — để nguyên code, chat xử tay nếu Đối soát báo]** **Đơn bán TRƯỚC khi gộp, nhận mã điểm SAU khi gộp (soát vòng 1 lỗi 2).** Khung thời gian: chỉ trong hạn mã (`nhandiem_han_gio`,
    mặc định 24 giờ) sau lúc gộp. Ví dụ đơn ví 10.000 + tiền mặt 15.000, lúc bán được 25 điểm (luật cũ, total); sau gộp `/nhan-diem`
-   tính gốc 15 → bù round(15 × (k − 1)) = 15 → tổng 40 (`signup-codes.js:240–242`), không khớp luật nào → Đối soát thật báo lệch đơn đó.
+   tính gốc 15 → bù round(15 × (k − 1)) = 15 → tổng 40 (`signup-codes.js:244–246`), không khớp luật nào → Đối soát thật báo lệch đơn đó.
    Chủ quán chọn:
    - (a) Để nguyên code; I8 ở Đối soát thật tha thêm tổng `gCu + round(g × (k − 1))` cho đơn tạo trước `DIEM_THAT_TU` (~2 dòng
      `bat_bien.js` + 1 ca + 1 đột biến). Khách nhận 40 (lẫn hai luật) cho các đơn đó.
@@ -116,7 +116,7 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
    - (c) Để nguyên cả hai; chat xử tay các đơn đó ở Đối soát (dự kiến rất ít — chỉ đơn trộn ví / phí giao, nhận mã trong 24 giờ đầu).
    Máy đề xuất (c) nếu muốn ít đụng nhất, (b) nếu muốn đúng luật mới tuyệt đối. Máy KHÔNG tự chọn.
 4. **[ĐÃ TRẢ LỜI 25.10: chọn (b) — làm ở vòng 2]** **Dung sai ±1đ (soát vòng 1 nghi ngờ P4).** Điểm POST / nay lấy từ `cash_amount` / `transfer_amount` máy khách gửi; phép kiểm tổng
-   cho lệch ±1đ (`orders.js:824–834`) → tối đa +1 điểm / đơn khi total ≡ per − 1 (mod per). Chủ quán chọn: (a) chấp nhận (±1đ có từ
+   cho lệch ±1đ (`orders.js:825–836`) → tối đa +1 điểm / đơn khi total ≡ per − 1 (mod per). Chủ quán chọn: (a) chấp nhận (±1đ có từ
    trước, chỉ ảnh hưởng điểm); (b) trần `min(cash + CK, total − ví − ví mẹ)` ngay ở dòng gọi POST / (vẫn MỘT dòng, trong vùng sửa)
    + 1 ca + 1 đột biến. Máy đề xuất (b) — rẻ, khoá bằng code (C16).
 

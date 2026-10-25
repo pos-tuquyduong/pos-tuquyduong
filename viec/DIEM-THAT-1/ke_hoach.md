@@ -16,7 +16,7 @@ Nền `611b043` (= main `5cb2a03` + phiếu). Mọi số dòng dưới đây đ�
 
 Huỷ / xoá (P24, `orders.js:1584–1592`) trừ `-SUM(points)` đã cộng — không tính lại công thức → tự đúng, không sửa.
 Cột `cash_amount` / `transfer_amount` lưu phần đã thu, lệch tối đa ±1đ so với total (POST / chỉ chặn `|paymentSum − total| > 1`
-`:823–834`; pay-debt cộng dồn vào cột `:1323`) → tiền thối không lọt vào điểm; phần thừa 1đ chặn bằng trần total − ví − ví mẹ
+`:825–836`; pay-debt cộng dồn vào cột `:1323`) → tiền thối không lọt vào điểm; phần thừa 1đ chặn bằng trần total − ví − ví mẹ
 (soát vòng 1, chủ quán chốt câu 4 (b) 25.10).
 
 ## 2. Phương án

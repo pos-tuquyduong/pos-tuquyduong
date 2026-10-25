@@ -10,9 +10,8 @@
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
  * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
  * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
- * DIEM-THAT-1: điểm gốc = floor(tiền khách trả thật / per), tiền thật = max(0, round(min(tiền mặt + CK, total − ví − ví mẹ) − phí giao))
- * — công thức RIÊNG, không
- * gọi server/utils/diemThat.js (trọng tài không dùng chung lỗi với code). Đơn tạo trước DIEM_THAT_TU ở Đối soát thật: nhận cả total/per.
+ * DIEM-THAT-1: điểm gốc = floor(tiền khách trả thật / per), tiền thật = max(0, round(min(tiền mặt + CK, total − ví − ví mẹ) − phí giao)) —
+ * công thức RIÊNG, không gọi server/utils/diemThat.js (trọng tài không dùng chung lỗi với code). Đơn tạo trước DIEM_THAT_TU ở Đối soát thật: nhận cả total/per.
  */
 
 // Chép wallets.js:240 (không export). Bộ kiểm nhóm S so khớp hai bản — sửa một bên là đỏ.

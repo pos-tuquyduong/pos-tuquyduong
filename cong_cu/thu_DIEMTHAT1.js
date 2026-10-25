@@ -179,6 +179,8 @@ async function main() {
     // Câu hỏi 4 (b): phép kiểm tổng cho lệch ±1đ (orders.js paymentSum) — tiền mặt thừa 1đ không thêm điểm.
     await caDiem('B7 ví 1.001 + tiền mặt 24.000 (thừa 1đ, lọt dung sai) → 23 điểm (trần total − ví = 23.999, không 24)',
       await ban({ customer_phone: await coVi(1001), payment_method: 'cash', balance_amount: 1001, cash_amount: 24000 }), 23);
+    await caDiem('B8 ví mẹ 15.001 + tiền mặt 10.000 (thừa 1đ, lọt dung sai) → 9 điểm (trần total − ví mẹ = 9.999, không 10)',
+      await ban({ customer_phone: sdtMoi(), parent_phone: await coVi(15001), payment_method: 'cash', cash_amount: 10000, parent_balance_amount: 15001 }), 9);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -248,6 +250,12 @@ async function main() {
     const n4 = await nhan(d4, s4);
     k('D4 đơn ví 1.001 + tiền mặt 24.000 (thừa 1đ; 23 điểm lúc bán) → /nhan-diem bù đủ 23 × 2 = 46 (không 47)', n4.status === 200
       && await diemDon(d4.order.id) === 46, `${moTa(n4)} · ${d4.order && await diemDon(d4.order.id)}`);
+
+    const s5 = sdtMoi();
+    const d5 = await ban({ customer_phone: s5, parent_phone: await coVi(15001), payment_method: 'cash', cash_amount: 10000, parent_balance_amount: 15001 });
+    const n5 = await nhan(d5, s5);
+    k('D5 đơn ví mẹ 15.001 + tiền mặt 10.000 (thừa 1đ; 9 điểm lúc bán) → /nhan-diem bù đủ 9 × 2 = 18 (không 20)', n5.status === 200
+      && await diemDon(d5.order.id) === 18, `${moTa(d5)} / ${moTa(n5)} · ${d5.order && await diemDon(d5.order.id)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
