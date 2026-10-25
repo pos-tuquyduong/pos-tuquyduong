@@ -120,10 +120,16 @@ const KICH_BAN = [
     const truoc = await c.vi(KH.quen);
     const h = await c.goi('chu', 'PUT', `/orders/${d.id}/cancel`, { reason: 'giả lập huỷ' });
     c.mong('huỷ đơn trả ví → 200, ví +25.000', h.status === 200 && await c.vi(KH.quen) === truoc + 25000, c.ma(h));
+    // P24: đơn đã thu đủ có SĐT có điểm → huỷ ghi đúng MỘT dòng trừ, điểm của đơn về 0 (I8 canh mọi đơn huỷ của giả lập).
+    const diemDon = (id) => c.so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [id]);
+    const tru = (id) => c.so("SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust'", [id]);
+    c.mong('huỷ đơn có điểm → điểm đơn 0, đúng 1 dòng trừ', await diemDon(d.id) === 0 && await tru(d.id) === 1, `${await diemDon(d.id)} · ${await tru(d.id)}`);
     const d2 = await c.taoDon('KB5b', { items: [c.mon(3)], payment_method: 'cash', cash_amount: 15000 });
     const m = await c.claim(d2.ma);
+    const n = await c.nhanDiem(d2.ma);
     const h2 = await c.goi('chu', 'PUT', `/orders/${d2.id}/cancel`, { reason: 'huỷ sau khi khách đã dùng mã' });
-    c.mong('dùng mã rồi mới huỷ đơn → 200, 200', m.status === 200 && h2.status === 200, `${c.ma(m)} / ${c.ma(h2)}`);
+    c.mong('dùng mã + nhận điểm mã bill rồi mới huỷ đơn → 200, 200, 200; điểm đơn 0, 1 dòng trừ', m.status === 200 && n.status === 200
+      && h2.status === 200 && await diemDon(d2.id) === 0 && await tru(d2.id) === 1, `${c.ma(m)} / ${c.ma(n)} / ${c.ma(h2)} · ${await diemDon(d2.id)}`);
   } },
   // KB6 đi ĐÚNG đường quầy dùng: Lịch sử đơn → báo hỏng → Hoàn tiền (Orders.jsx:310–322 → damages.js), cộng ví khách.
   // (chủ quán chốt 02.10.2026). POST /refunds (chưa có màn hình gọi) chạy ở KB12.

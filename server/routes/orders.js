@@ -1464,6 +1464,7 @@ router.put(
         // Hoàn lại vào ví khách / mẹ — P26b: qua ghiVi (tương đối, trong giao dịch này). P26c: số tiền theo soTienHoan.
         await hoanVi(tx, order, req.user.username, now, "hủy");
         await traLuotMa(tx, order);
+        await truDiemDon(tx, order, req.user.username, now, "Huỷ");
 
         // ══ GÓI SP: Xử lý khi hủy đơn liên quan gói ══
         // Case 1: Đơn này là đơn "mua gói" → hủy TẤT CẢ customer_packages
@@ -1579,6 +1580,21 @@ router.put(
   },
 );
 
+// P24 (chủ quán duyệt 24.10): đơn rời 'completed' bằng huỷ / xoá → trừ lại điểm đã cộng, cho phép số dư âm. CÙNG giao dịch, KHÔNG
+// bọc try/catch: lỗi ghi → rollback cả lệnh, sổ điểm luôn cân. Dòng 'adjust' CÓ order_id dành RIÊNG cho việc này (I8 canh). Gom
+// theo (SĐT, hạn): chép đúng hạn của earn (earn đã hết hạn → dòng trừ cũng hết hạn, số dư không đổi). NOT EXISTS: không trừ lần hai.
+async function truDiemDon(tx, order, nguoi, now, viec) {
+  await tx.run(
+    `INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
+     SELECT customer_phone, 'adjust', -SUM(points), order_id, expires_at, ?, ?, ?
+     FROM pos_point_transactions
+     WHERE order_id = ? AND type = 'earn'
+       AND NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust')
+     GROUP BY customer_phone, expires_at`,
+    [`${viec} đơn ${order.code} — trừ lại điểm`, nguoi, now, order.id, order.id],
+  );
+}
+
 /**
  * DELETE /api/pos/orders/:id
  * Xóa hẳn đơn hàng (chỉ owner) - hoàn tiền + hoàn kho
@@ -1622,6 +1638,7 @@ router.delete("/:id", authenticate, async (req, res) => {
         }
         await hoanVi(tx, order, req.user.username, now, "xóa");
         await traLuotMa(tx, order);
+        await truDiemDon(tx, order, req.user.username, now, "Xoá");
       }
 
       // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══

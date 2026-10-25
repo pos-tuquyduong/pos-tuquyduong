@@ -1,0 +1,67 @@
+P24 — bằng chứng ĐỎ trên code CHƯA vá (gốc fe433ff = commit bài thử, trước mọi sửa code; server/ và cong_cu/gia_lap/ của gốc
+giống hệt bdc530a "PHIEU: P24 duyet ke hoach")
+
+1) Bài MỚI cong_cu/thu_P24.js — lệnh: python3 viec/P24/dot_bien.py --goc fe433ff (git archive server/ + cong_cu/gia_lap/ của gốc,
+   chạy bài ở HEAD với --may-chu <gốc>/server). Chạy 24.10:
+  ✗ A1 tiền mặt 25.000 có SĐT (earn lúc tạo) → huỷ 200; đúng 1 dòng adjust −25 cho đúng SĐT, lý do có mã đơn; earn giữ nguyên  — HTTP 200 · []
+  ✗ A2 ghi nợ 50.000 → thu đủ (earn lúc thu 50) → huỷ → 1 dòng adjust −50 cho SĐT đơn  — HTTP 200 / HTTP 200 · []
+  ✗ A3 khách lẻ nhận điểm bằng mã bill (50 = 25 × 2) → huỷ → 1 dòng adjust −50 cho SĐT NGƯỜI NHẬN  — HTTP 200 / HTTP 200 · []
+  ✗ A4 câu ghi dòng trừ lỗi → huỷ 500, rollback trọn: đơn vẫn completed, ví vẫn 0, 0 dòng trừ, earn còn 25  — HTTP 200 · completed 0 · ví 25000
+  ✗ A4b dòng trừ nằm TRONG giao dịch huỷ: đọc ngay trước commit thấy 1; ví hoàn 25.000  — HTTP 400 · DON_KHONG_HUY_DUOC · …
+  ✗ A5 đơn có HAI dòng earn cùng SĐT, cùng hạn (25 lúc bán + 25 bù mã bill) → MỘT dòng adjust −50  — HTTP 200 / HTTP 200 · []
+  ✗ B1 earn 25 → đổi quà 20 (còn 5) → huỷ → số dư −20 (GET /loyalty/points, cùng hàm layDiemKhach của App KH)  — HTTP 200 · 5 → HTTP 200 · 5
+  ✗ B2 số dư −20 (luật sẵn có loyalty.js: số dư < giá) → đổi quà 1 điểm → 400, không thêm dòng redeem  — HTTP 200
+  ✗ D2 huỷ chen ĐÚNG lúc nhận điểm (qua phép kiểm ngoài giao dịch, huỷ xong mới ghi) → huỷ 200, nhận 400 DON_DA_HUY, 0 earn, mã chưa bị tiêu  — HTTP 200 / HTTP 200 · earn 1 · điểm 50
+  ✗ E1 earn có hạn quý → dòng trừ cùng hạn  — HTTP 200 · {…"expires_at":"2027-10-01T00:00:00"} · []
+  ✗ E2 earn ĐÃ hết hạn lúc huỷ → dòng trừ −25 cùng hạn đã qua; số dư không đổi (0 → 0)  — HTTP 200 · 0 → 0 · []
+  ✗ E3 hai earn cùng SĐT, KHÁC hạn (lúc bán không hạn + bù mã bill có hạn quý) → hai dòng trừ, mỗi dòng đúng hạn và số của earn tương ứng  — HTTP 200 / HTTP 200 · []
+  ✗ F1 hai lệnh huỷ chồng nhau → 200 + 400 DON_KHONG_HUY_DUOC; đúng 1 dòng adjust, điểm đơn 0  — HTTP 200 / HTTP 400 · DON_KHONG_HUY_DUOC · … · adjust 0
+  ✗ F1b huỷ lần nữa → 400, vẫn 1 dòng adjust  — HTTP 400 · DON_KHONG_HUY_DUOC · …
+  ✗ G1 xoá đơn completed có earn 25 → 200, ví hoàn 25.000 (K5), 1 dòng adjust −25 cho SĐT đơn (còn lại dù đơn đã xoá)  — HTTP 200 · ví 25000 · []
+  ✗ G2 huỷ rồi xoá → 200 + 200, đúng 1 dòng adjust, điểm đơn 0  — HTTP 200 / HTTP 200 · adjust 0
+  ✗ G4 câu ghi dòng trừ lỗi khi xoá → 500, đơn còn nguyên, earn còn 25  — HTTP 200
+  ✗ H1 I8 trên mọi đơn của bài (trừ đơn F2 chèn tay) → 0 lệch (dòng adjust gắn đơn không phải "loại lạ")  — ["loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ H1b đơn đã huỷ còn 25 điểm (không dòng trừ) → I8 lệch "đơn X: 25 điểm, đúng luật là 0"  — ["đơn ORD-20261024-018: 20 điểm, đúng luật là 25", …]
+  ✗ H2 Đối soát thật: đơn huỷ 1 giây trước mốc (chưa có HUY_TRU_DIEM_TU) còn điểm → KHÔNG lệch; huỷ đúng mốc → lệch; giả lập trước mốc → lệch
+  ✗ I1b huỷ đơn mua gói trả ví → 200, ví +100.000, gói xoá, điểm đơn 0  — HTTP 200 · ví 200000 → 300000
+  ✗ I1c huỷ đơn mua thẻ → 200, dòng mua thẻ xoá, ví hoàn đủ, điểm đơn 0  — HTTP 200
+  11 đạt · 22 hỏng
+GỐC fe433ff [p24]: thoát 1
+   Xanh cả trên gốc (ca "phải KHÔNG X" / K5 / hành vi sẵn có): C1 C2 C3 D1 D3 F2 G3 H3 I1a I2 I3.
+
+2) Bài CŨ sửa — chạy trên gốc (ba file code server/routes/orders.js, server/routes/signup-codes.js, cong_cu/gia_lap/bat_bien.js chép
+   lại bản fe433ff, bài ở HEAD, xong `git checkout --` trả về):
+ 2a) cong_cu/thu_P2223.js (F3 đổi theo luật mới):
+  ✗ F3 (P24) đơn đã thu huỷ → 0 điểm (25 − 25); đơn ghi nợ huỷ 0 điểm  — HTTP 200 / HTTP 200 · 25 / 0
+  43 đạt · 1 hỏng
+ 2b) cong_cu/thu_gia_lap.js (KB5 thêm hai `mong`, thêm 14 ca I8 dữ liệu tay — 3 ca sau soát vòng 1, 2 sau vòng 2, 1 sau vòng 3) — chạy đủ, chạy lại sau vòng 3:
+  ✗ thoát 0, dòng tổng đúng "Giả lập: 32 kịch bản · 18 bất biến · ĐẠT"  — thoát 1 · Giả lập: 32 kịch bản · 18 bất biến · KHÔNG ĐẠT (2 lệch)
+  ✗ KB5 → HTTP: huỷ đơn có điểm → điểm đơn 0, đúng 1 dòng trừ: 2 · 0
+  ✗ KB5 → HTTP: dùng mã + nhận điểm mã bill rồi mới huỷ đơn → 200, 200, 200; điểm đơn 0, 1 dòng trừ: HTTP 200 / HTTP 200 / HTTP 200 · 2
+  ✗ I8 sạch (P24): đơn huỷ có earn 5 + dòng adjust −5 gắn đơn  — ["đơn H1: 0 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ I8 (P24) đơn đã huỷ còn điểm (không dòng trừ)  — []
+  ✗ I8 (P24) dòng trừ thiếu: −4 cho earn 5  — ["đơn H1: 1 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ I8 sạch Đối soát thật (P24, ngày gộp): đơn huỷ 1 giây trước mốc huỷ, ĐÃ có dòng trừ  — ["đơn H1: 0 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ I8 Đối soát thật (P24): đơn huỷ trước mốc huỷ, dòng trừ thiếu (−4)  — ["đơn H1: 1 điểm, đúng luật là 5","loại dòng điểm lạ \"adjust\": 1 dòng"]
+  ✗ I8 Đối soát thật (P24): đơn huỷ ĐÚNG mốc huỷ còn điểm  — []
+  ✗ I8 giả lập (P24, không ctx.thuc): đơn huỷ trước mốc huỷ còn điểm  — []
+  ✗ I8 Đối soát thật (P24): đơn TẠO trước mốc thu đủ nhưng huỷ sau mốc huỷ, còn điểm  — []
+  164 đạt · 9 hỏng
+   (Xanh trên gốc: "I8 sạch Đối soát thật (P24): đơn huỷ 1 giây trước mốc huỷ", "… đơn huỷ dữ liệu cũ KHÔNG cancelled_at",
+   "… đơn ghi nợ tạo trước mốc thu đủ, huỷ trước mốc huỷ, còn điểm luật cũ", "… 7 điểm (sai cả hai luật)",
+   "I8 Đối soát thật (P24): đơn thu đủ CHƯA huỷ thiếu điểm" và
+   "I8 (P24) dòng adjust KHÔNG gắn đơn" — ca K5 / hành vi sẵn có.)
+ 2c) cong_cu/thu_DOISOAT1.js (F3, F3c: điểm trừ tháng gồm dòng trừ do huỷ đơn mua gói):
+  ✗ F3 tháng 01.2027: tiền mặt 425.000 · CK 50.000 · ví nạp 30.000, chi 0 · điểm cộng 350 trừ 300 (P24: huỷ đơn mua gói trừ lại 300) · nhắc kiểm kê kho  — {…"diem":{"cong":350,"tru":0}}
+  ✗ F3c dòng đổi điểm −3 trong tháng 01.2027 → điểm trừ 303 (300 huỷ gói + 3; cộng giữ 350)  — {"cong":350,"tru":3}
+  132 đạt · 2 hỏng
+
+3) Sau vá (HEAD e71f36b, sau soát vòng 3): thu_P24 33 đạt · 0 hỏng · thu_P2223 44 · 0 · thu_gia_lap 173 · 0 · thu_DOISOAT1 134 · 0;
+   npm test PASS 70 · FAIL 0; npm test -- --day-du PASS 74 · FAIL 0 (cảnh báo "route GET có lệnh ghi" có sẵn từ trước, không do P24).
+   Đột biến: python3 viec/P24/dot_bien.py → ĐỐI CHỨNG XANH (p24 33 · 0, gl 106 · 0) · TỔNG 23 · BẮT 23 · SỐNG 0 · HỎNG 0 · LẠC 0.
+   --goc fe433ff sau vòng 3: p24 11 đạt · 22 hỏng (thoát 1) · gl (chỉ dữ liệu tay) 98 đạt · 8 hỏng (thoát 1).
+
+SỐ CA cong_cu/thu_P24.js: 33
+SỐ CA cong_cu/thu_P2223.js: 44
+SỐ CA cong_cu/thu_gia_lap.js: 173
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
