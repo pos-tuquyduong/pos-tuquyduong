@@ -280,3 +280,6 @@ GIT (`git log --oneline -2` lúc kiểm):
 ```
 
 HEAD ĐÃ KIỂM: 2221b95
+
+Chat soát 24.10: gộp thử QUAY-AN-1 + P24 trên main 99f5894 không đụng nhau; P24 chat soát thay vòng 4 — ĐẠT; commit ed2516e (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: ed2516e
