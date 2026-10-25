@@ -333,3 +333,6 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 4 (2 đề xuất thêm, 2 đã có) ·
 
 HEAD ĐÃ KIỂM: 614d281
 HEAD ĐÃ KIỂM: 1e31e83
+
+Chat soát 25.10 (thay vòng 4) — ĐẠT: đọc payos.js / thanh-toan.js / giuCho.js; gộp thử với main 5bee3b2 (P24 + QUAY-AN-1) xanh — thu_P3 100/0, thu_P24 33/0, thu_P2223 44/0, thu_DOISOAT1 134/0, thu_gia_lap 173/0, npm test 69/0; commit 88ebe9e (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: 88ebe9e
