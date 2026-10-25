@@ -53,6 +53,9 @@ VS-I8-TRAN-BO-VI, VS-I8-TRAN-BO-VI-ME (VS-MA-THIEU-COT-VI nay chỉ gỡ cột v
 | `signup-codes.js` SELECT cột ví | `VS-MA-THIEU-COT-VI` | D4 |
 | `bat_bien.js` I8 cùng trần (`tra`) | `VS-I8-BO-TRAN` | F1 (đơn B7 / C6 / D4) |
 
+> Số dòng: trong các mục "Xử lý", "Câu hỏi", "Phát hiện" là số ở HEAD `52e9ef9` (kiểm lại vòng 4); trong các báo cáo soát chép
+> nguyên là số lúc soát (sau đó code trôi 1–2 dòng); trong `ke_hoach.md` là số ở nền `611b043` (ghi ở đầu file đó).
+
 ## Soát độc lập — vòng 1 (agent general-purpose, 25.10; chép nguyên báo cáo)
 ```
 KHÔNG ĐẠT
@@ -97,7 +100,7 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
 (Đã rút gọn xuống dòng cho vừa khung — nội dung giữ nguyên.)
 
 ### Xử lý vòng 1 (commit `224d085` + neo `VS-I8-BO-CK`)
-- Lỗi 1 — SỬA: `bat_bien.js:145` thêm `Math.round` (cùng biểu thức với `tienTinhDiem`); `thu_gia_lap.js` thêm ca "I8 sạch (DIEM-THAT-1): tiền
+- Lỗi 1 — SỬA: `bat_bien.js:146` (dòng `g`) thêm `Math.round` (cùng biểu thức với `tienTinhDiem`); `thu_gia_lap.js` thêm ca "I8 sạch (DIEM-THAT-1): tiền
   mặt lẻ 24.999,6 − phí giao 5.000 → 2 điểm"; đột biến `VS-I8-BO-LAM-TRON` đưa ĐÚNG lỗi cũ trở lại → BẮT.
 - Vế chưa có đột biến mang tên — SỬA: thêm `VS-I8-BO-CK`, `VS-I8-MOC-THAT-BO-HUYCU` (BẮT).
 - Lỗi 2 và nghi ngờ ±1đ — quyết định điểm → `## Câu hỏi` 3, 4. DỪNG chờ chủ quán (luật cứng /lam-viec).
@@ -127,7 +130,7 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
    (a) giữ trần ở hàm chung như hiện tại (máy sửa chú thích `diemThat.js:4` cho đúng ngày / câu duyệt);
    (b) chỉ giữ ở dòng gọi POST / (pay-debt, /nhan-diem còn hở ±1đ; bỏ ca C6, D4 và I8 về không trần — ~10 dòng đổi ngược).
    Máy đề xuất (a).
-   Kèm (soát vòng 3, nghi ngờ): đơn CŨ trên production có `parent_balance_amount > 0` mà `parent_phone` NULL (hoàn ví `orders.js:1403`
+   Kèm (soát vòng 3, nghi ngờ): đơn CŨ trên production có `parent_balance_amount > 0` mà `parent_phone` NULL (hoàn ví `orders.js:1402`
    chỉ tính ví mẹ khi có `parent_phone`) thì trần hạ điểm oan khi thu nợ / nhận mã. Đơn mới không gặp. Máy không đo được dữ liệu thật —
    chat chạy giúp `SELECT COUNT(*) FROM pos_orders WHERE parent_balance_amount > 0 AND parent_phone IS NULL` trên Turso; > 0 thì máy thêm
    điều kiện `parent_phone` vào trần (khớp hoanVi).
@@ -140,21 +143,21 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
 ## Phát hiện
 - `server/utils/doiSoat.js:257` chú thích "chủ quán chốt giữ floor(total/per)" cho D2 sẽ cũ sau việc này (I8 tính theo tiền thật).
   `server/utils/**` bị cấm → không sửa; việc sau sửa chú thích.
-- Lời hứa "gấp k điểm" trên bill (`orders.js:1207`) vẫn in cho đơn trả trọn bằng tài khoản (0 điểm thật) → khách nhập mã bị 400
+- Lời hứa "gấp k điểm" trên bill (`orders.js:1209`, chữ ở :1216, :1220) vẫn in cho đơn trả trọn bằng tài khoản (0 điểm thật) → khách nhập mã bị 400
   `DON_KHONG_DU_DIEM` (thu_DIEMTHAT1 D3, thu_P20 "trả trọn bằng ví"). Chủ quán đã chọn để HD-1 / P15.
 
 ### Xử lý vòng 2 (chủ quán trả lời câu 3, 4 ngày 25.10; bài `7aca85b` → code `728af71`)
-- Câu 3 (c): không đổi code. **Ghi chú K1 cho chủ quán:** lý do "mã nhận điểm chỉ in cho khách lẻ" KHÔNG khớp code — `orders.js:1142–1153`
+- Câu 3 (c): không đổi code. **Ghi chú K1 cho chủ quán:** lý do "mã nhận điểm chỉ in cho khách lẻ" KHÔNG khớp code — `orders.js:1145–1172` (luật ở :1145)
   in mã cho MỌI đơn (kể cả có SĐT), trừ SĐT đã từng claim; ca D2 / D4 của bài này là đơn có SĐT trả trộn ví vẫn nhận mã. Vậy đơn trộn
   ví bán trước gộp, nhận mã trong 24 giờ đầu sau gộp CÓ thể gặp → Đối soát thật báo lệch đơn đó (khách nhận gốc mới + bù theo hệ số,
   vd 40 thay 30 / 50). (c) vẫn dùng được: chat xử tay theo dòng Đối soát; số đơn có thể nhiều hơn dự tính.
-- Câu 4 (b): trần đặt TRONG `tienTinhDiem` (`server/utils/diemThat.js:9–13`), không chỉ ở dòng gọi POST / — K4: pay-debt (tiền mặt lúc
+- Câu 4 (b): trần đặt TRONG `tienTinhDiem` (`server/utils/diemThat.js:10–14`), không chỉ ở dòng gọi POST / — K4: pay-debt (tiền mặt lúc
   tạo thừa 1đ cộng dồn) và /nhan-diem (đọc cột) cùng lỗ ±1đ; vá ở hàm chung thì ba chỗ gọi cùng khoá. POST / truyền `total`,
-  `actualBalanceAmount`, `actualParentBalanceAmount` (vẫn trong dòng gọi, `orders.js:856–857`); /nhan-diem đọc thêm `balance_amount`,
-  `parent_balance_amount` (`signup-codes.js:54`); I8 cùng trần (`bat_bien.js:146`) để cột thừa 1đ không làm Đối soát đỏ oan.
+  `actualBalanceAmount`, `actualParentBalanceAmount` (vẫn trong MỘT dòng gọi, `orders.js:856`); /nhan-diem đọc thêm `balance_amount`,
+  `parent_balance_amount` (`signup-codes.js:54`); I8 cùng trần (`bat_bien.js:145`) để cột thừa 1đ không làm Đối soát đỏ oan.
   Thiếu `total` → trần 0 → 0 điểm (ca A1 `{cash_amount: 25000}` → 0 khoá mặc định này).
 - K1 nhỏ của vòng 1: dòng `require` dời lên TRƯỚC chú thích P22-23 (`orders.js:40`); tham số `diemDung(luatCu, goc)` không che `g`
-  (`bat_bien.js:149–155`); `ke_hoach.md` mục 1 sửa câu "lưu ĐÚNG phần đã thu" → lệch tối đa ±1đ, chặn bằng trần.
+  (`bat_bien.js:148–154`); `ke_hoach.md` mục 1 sửa câu "lưu ĐÚNG phần đã thu" → lệch tối đa ±1đ, chặn bằng trần.
 - Nghiệm thu A của phiếu ghi công thức `max(0, cash + CK − ship)`; nay thêm trần theo quyết định câu 4 (b) — đơn không trừ ví và không
   thừa 1đ cho đúng số như công thức phiếu (G1–G4 không đổi).
 
@@ -258,3 +261,92 @@ BÀI HỌC: KHOÁ — sau commit cuối, phép tự kiểm mọi trích file:dò
 
 ### Dừng sau vòng 3 (`so_vong_sua_toi_da` = 3 đã dùng hết) — KHÔNG sửa gì thêm; chờ chủ quán trả lời `## Câu hỏi` 5–7.
 Chưa làm: bước 10 (báo cáo 7 mục), 11 (rút kinh nghiệm, `cong.js chay`, dòng `HEAD ĐÃ KIỂM`).
+
+### Vòng sửa 4 (chủ quán cho 25.10: CHỈ hồ sơ + chú thích + gom dòng; `52e9ef9`) — trả lời câu 5 (a), 6, 7
+- Câu 5 (a): giữ trần ở hàm chung. Kết quả `SELECT COUNT(*) … parent_balance_amount > 0 AND parent_phone IS NULL` chủ quán báo sau —
+  chưa có thì giữ như hiện tại (chủ quán dặn).
+- `diemThat.js:4–6` chú thích ghi đúng người quyết: chủ quán chốt trần ở dòng gọi POST /; đặt ở hàm chung là máy đề xuất, chủ quán giữ.
+- `orders.js:856` dòng gọi POST / gom về ĐÚNG MỘT dòng vật lý (so với nền 611b043: đổi đúng dòng gọi + thêm 2 dòng require / trống ở
+  vùng 39–59; pay-debt 1 dòng) — `git diff 611b043 HEAD --stat -- server/routes/orders.js`: 4 thêm · 2 bớt.
+- Neo đột biến `TAO` trong `dot_bien.py` theo dòng mới; `ke_hoach.md:19` trả về số của nền (`:823–834`, `:1321`).
+- K1 số dòng trong `trang_thai.md` sửa theo HEAD (ghi chú số dòng đặt trên mục soát vòng 1).
+- Câu 7: chấp nhận bài thử 347 dòng.
+- Không đổi logic tiền: dot_bien.py ĐỐI CHỨNG XANH (dt 35 · 0, gl 113 · 0) · TỔNG 30 · BẮT 30; npm test -- --day-du PASS 75 · FAIL 0.
+
+## Bài học (bước 11)
+Sự cố của việc (nguồn: `.tu_chay_nhat_ky.jsonl`, ba báo cáo soát, lịch sử lượt):
+- Người gác chặn phiên chính: B-BIMAT-CHU ×5 (chạy `node` bài có SECRET / TOKEN trước khi commit), B-PHANTICH ×2 (`python3 … && git
+  diff`), B-CHUONGTRINH ×1 (vòng `for` trong lệnh), GIT-CHECKOUT ×1 (`git checkout <sha> -- file` để dựng gốc). Agent soát: B-DICHCHU,
+  SED-I, B-CD-VITRI ×3 (dọn / dựng bản sao trong scratchpad). Bộ phân loại tự chạy không trả phán quyết ~10 lần (môi trường, tạm thời).
+- Lỗi agent soát bắt: vòng 1 — I8 và hàm làm tròn khác nhau; vế chưa có đột biến mang tên; ±1đ máy khách; đơn cũ nhận mã sau gộp.
+  Vòng 2 — vế ví mẹ của trần mới không ca nào bắt (LẶP bài học vòng 1). Vòng 3 — số dòng trích trôi sau commit cuối; chú thích code ghi
+  "chủ quán chốt" cho phần máy tự mở rộng; dòng gọi thành 2 dòng vật lý trong vùng P3.
+- Phải hỏi / dừng: 3 lần (duyệt kế hoạch; câu 3–4; câu 5–7 khi hết 3 vòng sửa). Vượt ngân sách: bài mới 347 dòng (phiếu ~200) — chủ
+  quán chấp nhận.
+
+Xếp ngăn (mỗi bài một ngăn):
+1. **KHOÁ** — mỗi số hạng của biểu thức tiền / điểm một đột biến gỡ RIÊNG, ở hàm + MỖI chỗ gọi + bất biến (vòng 1 rồi lặp ở vòng 2 —
+   lời dặn không đủ). Ngoài Phạm vi (`tu_chay/` đóng băng) → ĐỀ XUẤT: `tu_chay/cong.js` thêm phép A2x đọc `viec/<MÃ>/dot_bien.py`, với mỗi
+   dòng vá có dạng `a + b − c` / `min(…)` trong diff `server/` yêu cầu ít nhất một đột biến có neo chứa từng số hạng; ca đỏ: dot_bien.py
+   của vòng 2 việc này (`979b1b2..728af71`) thiếu neo `parent_balance_amount` ở `orders.js` → phép phải báo ✗.
+2. **KHOÁ** — trích `file:dòng` trong `trang_thai.md` / `ke_hoach.md` phải khớp HEAD (hoặc nền ghi đầu file); vòng 3 "sửa K1" tạo K1 mới.
+   Lời dặn có sẵn (KHUON_LOI.md K1 TU-CHAY-6) vẫn lọt → ĐỀ XUẤT cho `tu_chay/cong.js` (ngoài Phạm vi): phép quét `` `<file>.js:<n>` ``
+   trong hai file đó, so dòng n ở HEAD với chuỗi trích ngay sau (nếu có) — ca đỏ: `trang_thai.md` ở `575d5ee` trích `bat_bien.js:146`
+   cho `const tra` (thật ở :145).
+3. **KHOÁ** — bất biến "trọng tài" chép riêng công thức thì một ca đưa CÙNG bộ đầu vào biên (lẻ, chuỗi, thừa 1đ) qua cả hàm lẫn bất
+   biến. Trong Phạm vi (`thu_DIEMTHAT1.js`) nhưng vòng 4 chủ quán cho CHỈ hồ sơ + chú thích → ĐỀ XUẤT việc sau: ca F7 chạy
+   `tienTinhDiem` và I8 trên cùng 6 đơn tay (24.999,6 · "15000" · thừa 1đ ví · thừa 1đ ví mẹ · thiếu total · NaN), so `floor(tien/per)`
+   = điểm I8 nhận; ca đỏ: bản vòng 1 trước `224d085` (I8 không Math.round).
+4. **NGUYÊN TẮC** (K4, đề xuất thêm vào `KHUON_LOI.md` — ngoài Phạm vi): "Đổi nguồn của một số tiền từ giá trị máy chủ tính sang trường
+   máy khách gửi (dù có phép kiểm tổng) → soát lại dung sai của phép kiểm đó. Đã gây: DIEM-THAT-1 điểm lấy cash_amount, paymentSum cho
+   ±1đ → +1 điểm / đơn."
+5. **NGUYÊN TẮC** (K1, đề xuất `KHUON_LOI.md`): "Câu hỏi quyết định tiền cho chủ quán liệt kê ĐỦ mọi chỗ gọi cùng lỗ; máy mở rộng so
+   với câu trả lời → hỏi lại hoặc nêu NỔI BẬT; chú thích code không ghi 'chủ quán chốt' cho phần máy đề xuất. Đã gây: DIEM-THAT-1 câu 4
+   chỉ nói dòng gọi POST /, trần đặt ở hàm chung, chú thích diemThat.js ghi 'chủ quán chốt'."
+6. **NGUYÊN TẮC** (vùng sửa, đề xuất ghi cạnh luật "Vùng sửa của file chung" trong mẫu phiếu): "'đổi ĐÚNG MỘT dòng' trong vùng việc khác
+   đang sửa = số dòng vật lý không đổi."
+7. **BỎ** — B-BIMAT-CHU ×5: luật skill đã ghi "commit trước rồi chạy"; máy quên, không phải lỗ luật (một khuôn, đã có lời dặn + người gác chặn đúng).
+8. **BỎ** — GIT-CHECKOUT / B-PHANTICH / B-CHUONGTRINH: mỗi lần một, cách làm đúng đã có (git show qua script, lệnh đứng một mình).
+9. **BỎ** — bộ phân loại không phán quyết: lỗi môi trường tạm thời, không do code.
+Dọn: không đề xuất xoá lời dặn nào (KHOÁ 1–2 chưa làm nên lời dặn K1 TU-CHAY-6 / K3 TU-CHAY-5 còn cần).
+
+## Báo cáo 7 mục
+```
+VIỆC:        DIEM-THAT-1 — Điểm thưởng chỉ tính trên tiền khách trả thật
+ĐÃ SỬA:      server/utils/diemThat.js:10–14 — MỚI: tienTinhDiem = max(0, round(min(TM + CK, total − ví − ví mẹ) − phí giao))
+             server/routes/orders.js:40 — require; :856 — POST / gọi tinhDiemDon(tienTinhDiem({…, total, ví, ví mẹ})); :1313 — pay-debt
+               tienTinhDiem({...order, [cotTien]: cột + paidAmount})
+             server/routes/signup-codes.js:25 — require; :54 — kiemDonCuaMa đọc thêm 5 cột tiền; :229 — diemGoc = floor(tienTinhDiem(don)/per)
+             cong_cu/gia_lap/bat_bien.js:24 — DIEM_THAT_TU '2026-10-27' (TẠM, chat sửa = ngày gộp + 1); :145–146 — I8 công thức riêng cùng
+               trần + làm tròn; :148–154 — diemDung(luatCu, goc); :159–161 — đơn trước mốc ở Đối soát thật nhận luật cũ (gCu)
+             cong_cu/gia_lap/kich_ban.js — KB5a ví 10.000 + TM 15.000; KB31 nợ có TM 10.000 (M15 bắt được)
+             kiem_tra_truoc_khi_giao.js:495 — thêm cong_cu/thu_DIEMTHAT1.js cuối mảng
+BÀI THỬ:     thu_DIEMTHAT1.js (mới) trên gốc e403ac5 → ĐỎ 11 đạt · 24 hỏng (A1 A2 B1–B5 B7 B8 C2–C6 D1–D5 E3 F2–F5); sau vá → XANH 35 · 0.
+             Bài cũ sửa: thu_P2223 ĐỎ 43·1 → 44·0 · thu_P24 30·3 → 33·0 · thu_P20 170·1 → 171·0 · thu_gia_lap 173·6 (đủ) / 106·7 (tay)
+             → 180·0. Ca mới vòng 2–3 đỏ trên 979b1b2 (trước trần): A1 B7 B8 C6 D4 D5. Đột biến dot_bien.py: 30/30 BẮT, đối chứng xanh.
+             npm test -- --day-du PASS 75 · FAIL 0 (cảnh báo "route GET có lệnh ghi (3)" có từ trước).
+ĐÃ RÀ K4:    grep "INSERT INTO pos_point_transactions" + 'earn' trong server/ → 3 chỗ (orders.js:1063, :1340, signup-codes.js:296), cả 3 đi
+             qua tienTinhDiem; grep "tinhDiemDon(" → 1 định nghĩa + 2 chỗ gọi, cả 2 đã đổi; grep "loyalty_earn_per_amount" server/ →
+             orders.js tinhDiemDon + signup-codes.js /nhan-diem + database.js (mặc định) — đã xử lý hết; I8 cùng biểu thức với hàm.
+             Chưa xử lý (đã duyệt để sau): lời hứa điểm trên bill orders.js:1209 (HD-1 / P15); chú thích doiSoat.js:257.
+CHƯA KIỂM:   - Dữ liệu production: đơn cũ parent_balance_amount > 0 mà parent_phone NULL (trần hạ điểm oan khi thu nợ / nhận mã) — chờ
+               chủ quán chạy SELECT trên Turso. Cột tiền lẻ / thừa / THIẾU 1đ trên quầy thật (thiếu 1đ → ít hơn luật cũ 1 điểm) — chưa đo.
+             - Đơn bán trước gộp nhận mã sau gộp (câu 3 (c)): Đối soát thật sẽ báo lệch đơn đó — chưa dựng ca, chat xử tay.
+             - thu_P3.js sau khi gộp P3 (chat sửa trong script gộp). Mốc DIEM_THAT_TU '2026-10-27' là TẠM.
+             - Đột biến tương đương Math.max(0, …) (tinhDiemDon / /nhan-diem đã chặn điểm ≤ 0) — không ca nào phân biệt được.
+             - I8 với chuỗi không phải số trong cột tiền: so() ra NaN, hàm ra 0 — chưa có ca (đề xuất KHOÁ 3).
+             - Giao diện: không đổi (không đụng client/); không có thao tác thử tay.
+GIT:         xem dòng "GIT (lần kiểm cuối)" ngay dưới + HEAD ĐÃ KIỂM ở cuối file.
+BÀI HỌC:     KHOÁ 3 (đều ngoài Phạm vi / ngoài phép vòng 4 → đề xuất) · NGUYÊN TẮC 3 (đề xuất KHUON_LOI.md / mẫu phiếu) · BỎ 3 —
+             chi tiết ở ## Bài học.
+```
+Nghiệm thu — đếm từng mục:
+- A — `diemThat.js:10–14` một hàm; A1 (giá trị biên + trần + thiếu total), A2 (mẫu total cũ biến mất, 1 định nghĩa, 1 công thức, 3 chỗ gọi).
+- B — B1 ví trọn 0 · B2 ví + TM 15 · B3 phí giao 25 · B4 ví mẹ + CK 15 · B5 phí > tiền 0 · B6 phí âm 25 · B7 / B8 thừa 1đ (trần).
+- C — C1 TM lúc tạo + thu 25 · C2 ví + nợ 15 · C3 phí giao 25 · C4 hai lần thu 15 · C5 hai người cùng bấm 200 + 409, 1 earn · C6 thừa 1đ.
+- D — D1 khách lẻ phí giao 50 · D2 bù theo tiền thật 30 · D3 ví trọn 400, mã chưa tiêu · D4 / D5 thừa 1đ; thu_P20 "trả trọn bằng ví".
+- E — E1 Flash 0 · E2 nợ chưa thu 0 · E3 huỷ trừ −15 · E4 Flash /nhan-diem 400; thu_P24 A4 / A4b / G1 / I2 (huỷ / xoá / hoàn).
+- F — F1 I8 0 lệch · F2 đúng mốc lệch · F3 trước mốc Đối soát thật tha · F4 giả lập lệch · F5 phí giao · F6 luật cũ-cũ; thu_gia_lap 7 ca
+  I8 tay; mỗi vế một đột biến (phí, CK, làm tròn, trần, ví, ví mẹ, mốc, ctx.thuc, `cu`, vế luật cũ, gCu cũ-cũ) — 30/30 BẮT.
+- G — G1 TM 25 · G2 CK 20 · G3 nợ thu đủ 25 · G4 khách lẻ mã 50 — như luật cũ.
+7/7 mục có bằng chứng.
