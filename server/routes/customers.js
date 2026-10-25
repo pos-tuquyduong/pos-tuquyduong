@@ -12,8 +12,17 @@ const {
   isValidPhone,
   getNow 
 } = require('../utils/helpers');
+const { boMat } = require('../utils/pinKhach'); // P3
 
 const router = express.Router();
+
+// P3 (E): không câu trả nào của /customers lộ `password` / `pin_code` (băm vẫn là bí mật) — bọc res.json MỘT chỗ cho mọi đường,
+// kể cả đường thêm sau; thay bằng `co_pin` để quầy biết khách đã đặt PIN.
+router.use((req, res, next) => {
+  const json = res.json.bind(res);
+  res.json = (than) => json(boMat(than));
+  next();
+});
 
 /**
  * GET /api/pos/customers

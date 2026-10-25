@@ -46,6 +46,8 @@ const AP_DUNG_TU = {
   I19: '2026-10-14',  // P26c
   D1: '2026-10-17',   // P20c
   DEN: null,          // luôn CẦN XEM (không đỏ) — không cần mốc
+  CK: null,           // P3 — bảng mới, không có dòng cũ
+  XNT: null,          // P3 — luôn CẦN XEM
 };
 
 const so = (x) => Number(x || 0);
@@ -222,6 +224,22 @@ async function phepDenLe(q) {
     ngay: r.ngay || null, canXem: true }));
 }
 
+// ─── CK (P3): tiền về payOS mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
+// Báo không thuộc phiên nào (vd payOS thử URL) → CẦN XEM. `luc` ghi bằng getNow (giờ VN).
+async function phepTienVe(q) {
+  const ds = await q(`SELECT id, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
+  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien',
+    mo_ta: `payOS mã ${r.ma_payos}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
+}
+
+// ─── XNT (P3): đơn chuyển khoản XÁC NHẬN TAY (không có báo payOS) — luôn CẦN XEM, so với sao kê ngân hàng.
+async function phepXacNhanTay(q) {
+  const ds = await q(`SELECT p.id, p.con_lai, p.ly_do, p.nguoi_xac_nhan, p.luc_chot, o.code FROM pos_phien_thanh_toan p
+    LEFT JOIN pos_orders o ON o.id = p.order_id WHERE p.nguon = 'tay' AND p.trang_thai = 'da_thu'`);
+  return ds.map((r) => ({ ngay: r.luc_chot || null, canXem: true,
+    mo_ta: `đơn ${r.code}: xác nhận tay chuyển khoản ${tien(r.con_lai)} bởi ${r.nguoi_xac_nhan} — ${r.ly_do} (phiên #${r.id})` }));
+}
+
 async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
   const ky = tinhKy(kieu, ngay);
   const ctx = { thuc: true };
@@ -247,7 +265,7 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
       if (x) them(x.nhom, x.dong);
     }
   }
-  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe]]) {
+  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe], ['CK', phepTienVe], ['XNT', phepXacNhanTay]]) {
     bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
     for (const l of await phep(chiDoc)) {
       const x = xep(ten, l.mo_ta, l.ngay, 'ky', false, l.canXem);

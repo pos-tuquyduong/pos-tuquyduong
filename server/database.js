@@ -958,6 +958,67 @@ async function createTables() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ds_${bang.slice(4)}_order ON ${bang}(order_id)`);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P3: phiên thanh toán — giỏ đã tính + phần GIỮ tài khoản (khách / mẹ) + trạng thái. "Đang giữ" = trang_thai 'cho' và het_han chưa
+  // qua (không hẹn giờ nhả — Render ngủ). Chốt = MỘT câu cho → da_thu trong giao dịch tạo đơn (utils/giuCho.js). ma_payos = mã phiên.
+  // ═══════════════════════════════════════════════════════════════════════════
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_phien_thanh_toan (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      than TEXT NOT NULL,
+      tong INTEGER NOT NULL,
+      phone TEXT,
+      giu_vi INTEGER NOT NULL DEFAULT 0,
+      phone_me TEXT,
+      giu_vi_me INTEGER NOT NULL DEFAULT 0,
+      con_lai INTEGER NOT NULL,
+      cach TEXT NOT NULL,
+      ma_payos INTEGER UNIQUE,
+      noi_dung TEXT,
+      qr TEXT,
+      checkout_url TEXT,
+      trang_thai TEXT NOT NULL DEFAULT 'cho',
+      het_han TEXT NOT NULL,
+      order_id INTEGER,
+      nguon TEXT,
+      ly_do TEXT,
+      nguoi_xac_nhan TEXT,
+      luc_chot TEXT,
+      nguoi_tao TEXT NOT NULL,
+      tao_luc TEXT NOT NULL
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_phien_giu ON pos_phien_thanh_toan(trang_thai, het_han)`);
+  // P3: mỗi báo payOS (đã đúng chữ ký) một dòng, CHỈ THÊM. khoa = orderCode:reference — báo lặp dừng ở UNIQUE.
+  // ket_qua: khop (đã tạo đơn) · chua_khop (tiền về mà không tạo đơn → Đối soát ĐỎ) · khong_phien (vàng) · that_bai (payOS báo không thành).
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_payos_su_kien (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      khoa TEXT UNIQUE NOT NULL,
+      ma_payos INTEGER,
+      so_tien INTEGER,
+      ket_qua TEXT NOT NULL,
+      ly_do TEXT,
+      du_lieu TEXT,
+      luc TEXT NOT NULL
+    )
+  `);
+  // P3: nhật ký đặt / xoá PIN khách (CHỈ THÊM) — viec: dat_quay · dat_app · xoa.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pos_nhat_ky_pin (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      viec TEXT NOT NULL,
+      ly_do TEXT,
+      nguoi TEXT,
+      luc TEXT NOT NULL
+    )
+  `);
+  // P3: đếm PIN sai + khoá đến lúc nào (pin_code đã có từ đầu, nay lưu BĂM bcrypt).
+  for (const cot of ['pin_sai INTEGER NOT NULL DEFAULT 0', 'pin_khoa_den TEXT']) {
+    try { await db.execute(`ALTER TABLE pos_customers ADD COLUMN ${cot}`); } catch (e) { /* cột đã có */ }
+  }
+
   console.log('✅ Đã tạo tất cả các bảng');
 }
 
@@ -1037,6 +1098,14 @@ async function seedDefaultData() {
   for (const [role, allowed] of [['owner', 1], ['staff', 0], ['manager', 0]]) {
     await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, 'refund_package', ?)`, [role, allowed]);
   }
+  // P3: xác nhận tay chuyển khoản + xoá PIN khách — owner / manager 1, staff 0. Chạy mọi lần khởi động như refund_package.
+  for (const quyen of ['xac_nhan_ck_tay', 'xoa_pin_khach']) {
+    for (const [role, allowed] of [['owner', 1], ['manager', 1], ['staff', 0]]) {
+      await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, ?, ?)`, [role, quyen, allowed]);
+    }
+  }
+  // P3: cờ "chuyển khoản / trừ tài khoản chỉ qua phiên" — mặc định 0 (đường cũ như cũ), chủ quán bật khi BH-1 lên quầy.
+  await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES ('thanh_toan_payos_bat_buoc', '0')`);
 
   // Tạo sản phẩm mẫu
   const productsExist = await query("SELECT COUNT(*) as count FROM pos_products");
