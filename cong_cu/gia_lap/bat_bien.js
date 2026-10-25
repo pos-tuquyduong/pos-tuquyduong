@@ -17,7 +17,7 @@ const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation
 // P22-23: ngày đầu luật "thu đủ mới có điểm" chạy trọn = ngày gộp + 1 (khuôn AP_DUNG_TU của doiSoat.js). Chat sửa đúng ngày lúc duyệt PR.
 const DIEM_KHI_THU_TU = '2026-10-23';
 // P24: ngày đầu "huỷ đơn trừ điểm" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
-const HUY_TRU_DIEM_TU = '2026-10-25';
+const HUY_TRU_DIEM_TU = '2026-10-26';
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
 const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
