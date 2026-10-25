@@ -128,10 +128,15 @@ async function main() {
   muc('[A] MỘT hàm tienTinhDiem, không chép công thức');
   {
     const f = typeof tienTinhDiem === 'function' ? tienTinhDiem : () => NaN;
-    const ca = [[{ cash_amount: 25000 }, 25000], [{ cash_amount: 10000.4 }, 10000], [{ cash_amount: 10000, transfer_amount: 5000, shipping_fee: 3000 }, 12000],
-      [{ cash_amount: 3000, shipping_fee: 5000 }, 0], [{ cash_amount: '15000', transfer_amount: null }, 15000], [{}, 0]];
+    const ca = [[{ cash_amount: 25000, total: 25000 }, 25000], [{ cash_amount: 10000.4, total: 20000 }, 10000],
+      [{ cash_amount: 10000, transfer_amount: 5000, shipping_fee: 3000, total: 15000 }, 12000],
+      [{ cash_amount: 3000, shipping_fee: 5000, total: 30000, balance_amount: 27000 }, 0], [{ cash_amount: '15000', transfer_amount: null, total: '15000' }, 15000],
+      [{}, 0], [{ cash_amount: 25000 }, 0],
+      // trần total − ví − ví mẹ (câu hỏi 4 (b)): tiền mặt thừa 1đ trong dung sai phép kiểm tổng không thành tiền tính điểm
+      [{ cash_amount: 25001, total: 25000 }, 25000], [{ cash_amount: 24000, total: 25000, balance_amount: 1001 }, 23999],
+      [{ cash_amount: 10000, total: 25000, parent_balance_amount: 15001 }, 9999]];
     const sai = ca.filter(([d, n]) => f(d) !== n).map(([d, n]) => `${JSON.stringify(d)} → ${f(d)} (đúng ${n})`);
-    k('A1 tienTinhDiem (server/utils/diemThat.js): 25.000 · 10.000,4 → 10.000 · 10.000 + 5.000 − 3.000 = 12.000 · phí > tiền → 0 · chuỗi · thiếu trường → 0',
+    k('A1 tienTinhDiem (server/utils/diemThat.js): 25.000 · 10.000,4 → 10.000 · 10.000 + 5.000 − 3.000 = 12.000 · phí > tiền → 0 · chuỗi · thiếu trường / thiếu total → 0 · trần total − ví − ví mẹ',
       typeof tienTinhDiem === 'function' && sai.length === 0, typeof tienTinhDiem === 'function' ? sai.join(' | ') : 'không có hàm');
 
     const doc = (p) => { try { return fs.readFileSync(path.join(MAY_CHU, p), 'utf8'); } catch { return ''; } };
@@ -171,6 +176,9 @@ async function main() {
       await ban({ customer_phone: await coVi(27000), payment_method: 'cash', balance_amount: 27000, cash_amount: 3000, shipping_fee: 5000 }), 0);
     await caDiem('B6 phí giao âm −5.000 (máy chủ coi 0) + tiền mặt 25.000 → 25 điểm (không 30)',
       await ban({ customer_phone: sdtMoi(), payment_method: 'cash', cash_amount: 25000, shipping_fee: -5000 }), 25);
+    // Câu hỏi 4 (b): phép kiểm tổng cho lệch ±1đ (orders.js paymentSum) — tiền mặt thừa 1đ không thêm điểm.
+    await caDiem('B7 ví 1.001 + tiền mặt 24.000 (thừa 1đ, lọt dung sai) → 23 điểm (trần total − ví = 23.999, không 24)',
+      await ban({ customer_phone: await coVi(1001), payment_method: 'cash', balance_amount: 1001, cash_amount: 24000 }), 23);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -208,6 +216,11 @@ async function main() {
     k('C5 hai người cùng bấm thu đủ 15.000 → một 200, một 409 DA_THU_ROI; đúng 1 earn 15 điểm', ma === '200,409'
       && [r1.code, r2?.code].includes('DA_THU_ROI') && await soEarn(c5.order.id) === 1 && await diemDon(c5.order.id) === 15,
     `${moTa(r1)} / ${r2 && moTa(r2)} · ${c5.order && await diemDon(c5.order.id)}`);
+
+    const c6 = await ban({ customer_phone: await coVi(1001), payment_method: 'debt', balance_amount: 1001, cash_amount: 1, debt_amount: 23999 });
+    const t6 = c6.order ? await thu(c6.order.id, 23999) : {};
+    k('C6 ví 1.001 + tiền mặt 1 (thừa 1đ lúc tạo) + nợ 23.999 → thu đủ → 23 điểm (trần total − ví, không 24)', c6.status === 200 && t6.status === 200
+      && await diemDon(c6.order.id) === 23, `${moTa(c6)} / ${moTa(t6)} · ${c6.order && await diemDon(c6.order.id)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -229,6 +242,12 @@ async function main() {
     const n3 = await nhan(d3, s3);
     k('D3 đơn trả trọn bằng ví → /nhan-diem 400 DON_KHONG_DU_DIEM, 0 điểm, mã CHƯA bị tiêu', n3.status === 400 && n3.code === 'DON_KHONG_DU_DIEM'
       && await diemDon(d3.order.id) === 0 && (await daNhan(d3))?.diem_nhan_luc === null, `${moTa(n3)} · ${d3.order && await diemDon(d3.order.id)}`);
+
+    const s4 = await coVi(1001);
+    const d4 = await ban({ customer_phone: s4, payment_method: 'cash', balance_amount: 1001, cash_amount: 24000 });
+    const n4 = await nhan(d4, s4);
+    k('D4 đơn ví 1.001 + tiền mặt 24.000 (thừa 1đ; 23 điểm lúc bán) → /nhan-diem bù đủ 23 × 2 = 46 (không 47)', n4.status === 200
+      && await diemDon(d4.order.id) === 46, `${moTa(n4)} · ${d4.order && await diemDon(d4.order.id)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

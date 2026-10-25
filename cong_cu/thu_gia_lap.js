@@ -438,7 +438,7 @@ async function duLieuTay() {
       "INSERT INTO pos_orders VALUES (1, 'D1', 'completed')", "INSERT INTO pos_products VALUES (5, 'tra')", 'INSERT INTO pos_order_items VALUES (1, 1, 5)'],
     I8: ["CREATE TABLE pos_settings (key TEXT, value TEXT)", "INSERT INTO pos_settings VALUES ('loyalty_enabled', 'true'), ('loyalty_earn_per_amount', '10000')",
       'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, customer_phone TEXT, flash_discount REAL, payment_status TEXT, created_at TEXT, status TEXT, cancelled_at TEXT,'
-        + ' cash_amount REAL, transfer_amount REAL, shipping_fee REAL)',
+        + ' cash_amount REAL, transfer_amount REAL, shipping_fee REAL, balance_amount REAL, parent_balance_amount REAL)',
       'CREATE TABLE pos_signup_codes (id INTEGER PRIMARY KEY, order_id INTEGER, diem_nhan_luc TEXT)',
       'CREATE TABLE pos_point_transactions (id INTEGER PRIMARY KEY, customer_phone TEXT, type TEXT, points INTEGER, order_id INTEGER)',
       'CREATE TABLE pos_voucher_grants (id INTEGER PRIMARY KEY, code TEXT, customer_phone TEXT, reward_id INTEGER, point_tx_id INTEGER)',
