@@ -403,7 +403,8 @@ async function main() {
       ['GET /:id/children', await goi('GET', `/pos/customers/${kh.id}/children`)], ['POST /:id/children', await goi('POST', `/pos/customers/${kh.id}/children`, { name: 'Con 2', phone: sdtMoi() })]];
     const lo = duong.filter(([, r]) => r.tho.includes('"password"') || r.tho.includes('"pin_code"') || r.tho.includes(kh.pin_code) || r.tho.includes('mat_khau_bam_thu_p3'));
     k(`E6 ${duong.length} đường /customers (qr, id, phone, danh sách, search, tạo, sửa, chiết khấu, con) không trả password / pin_code`,
-      lo.length === 0 && duong.filter(([, r]) => r.status === 200).length >= 8, lo.map(([t]) => t).join(', ') + ' · ' + duong.map(([t, r]) => t + ' ' + r.status).join(', '));
+      lo.length === 0 && duong.filter(([t, r]) => r.status >= 200 && r.status < 300 && t !== 'GET /:id').length === duong.length - 1,   // GET /:id 500 có sẵn (Phát hiện)
+ lo.map(([t]) => t).join(', ') + ' · ' + duong.map(([t, r]) => t + ' ' + r.status).join(', '));
     k('E6 hồ sơ khách có co_pin (quầy biết khách đã đặt PIN, không thấy băm)', duong[2][1].j.co_pin === true, JSON.stringify(duong[2][1].j).slice(0, 80));
     // E7 / E9: App KH đặt / đổi PIN của CHÍNH mình (SĐT từ token).
     const a = await khach(0, '1111'), bb = await khach(0, '2222');
