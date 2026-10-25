@@ -43,6 +43,8 @@ BV-I8, BV-I8-tay, VS-I8-BO-PHI, VS-I8-BO-MOC, VS-I8-MOC-GIA-LAP, BV-I8-VE-LUAT-C
 VS-I8-BO-CK, VS-I8-BO-LAM-TRON, VS-I8-MOC-THAT-BO-HUYCU (soát vòng 1). Kết quả sau vòng 1: TỔNG 19 · BẮT 19 · SỐNG 0 · HỎNG 0 · LẠC 0.
 Vòng 2 (trần total − ví − ví mẹ): VS-HAM-BO-TRAN, VS-HAM-TRAN-BO-VI-ME, VS-TAO-BO-VI, VS-TAO-BO-TOTAL, VS-MA-THIEU-COT-VI, VS-I8-BO-TRAN.
 Kết quả sau vòng 2: TỔNG 25 · BẮT 25 · SỐNG 0 · HỎNG 0 · LẠC 0.
+Vòng 3 (mỗi số hạng trần một đột biến, ở hàm + MỖI chỗ gọi + I8): VS-HAM-TRAN-BO-VI, VS-TAO-BO-VI-ME, VS-MA-THIEU-COT-VI-ME,
+VS-I8-TRAN-BO-VI, VS-I8-TRAN-BO-VI-ME (VS-MA-THIEU-COT-VI nay chỉ gỡ cột ví thường). Kết quả sau vòng 3: TỔNG 30 · BẮT 30.
 
 | Chỗ vá (vòng 2) | Đột biến | Ca bắt |
 |---|---|---|
@@ -140,3 +142,58 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
   (`bat_bien.js:149–155`); `ke_hoach.md` mục 1 sửa câu "lưu ĐÚNG phần đã thu" → lệch tối đa ±1đ, chặn bằng trần.
 - Nghiệm thu A của phiếu ghi công thức `max(0, cash + CK − ship)`; nay thêm trần theo quyết định câu 4 (b) — đơn không trừ ví và không
   thừa 1đ cho đúng số như công thức phiếu (G1–G4 không đổi).
+
+## Soát độc lập — vòng 2 (agent general-purpose, 25.10; chép nguyên báo cáo, rút gọn xuống dòng)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. Vế "ví mẹ" của trần mới không bài thử nào bắt khi gỡ — K3 (+ K1 vì hồ sơ ghi đã phủ). Chỗ: orders.js:857 (parent_balance_amount
+   trong dòng gọi POST /), signup-codes.js:54 (cột parent_balance_amount trong SELECT kiemDonCuaMa), bat_bien.js:146 (- so(r.parent_balance_amount)).
+   4 đột biến tự dựng bằng chay() của dot_bien.py (scratchpad dbt.py): R-TAO-BO-VI-ME SỐNG · R-MA-BO-VI-ME SỐNG · R-I8-BO-VI-ME SỐNG (dt lẫn gl).
+   Đi tới được thật: ví mẹ 15.001 + tiền mặt 10.000, total 25.000 → paymentSum 25.001 lọt ±1đ (orders.js:832); bỏ vế ví mẹ → 10 điểm thay 9.
+   Chỉ A1 (hàm thuần) bắt VS-HAM-TRAN-BO-VI-ME; B7, C6, D4 chỉ ví thường. trang_thai.md ghi VS-TAO-BO-VI / VS-MA-THIEU-COT-VI phủ ví mẹ —
+   sai (VS-TAO-BO-VI chỉ gỡ ví thường; VS-MA-THIEU-COT-VI gỡ hai cột một lúc). Phiếu F đòi mỗi vế một ca + một đột biến gỡ đúng vế;
+   lặp bài học vòng 1. Sửa: ca B8 (ví mẹ 15.001 + TM 10.000 → 9), ca D tương ứng; đột biến VS-TAO-BO-VI-ME, VS-MA-THIEU-COT-VI-ME, VS-I8-TRAN-BO-VI-ME.
+2. diemThat.js:11 vế ví thường chưa có đột biến mang tên (tự dựng R-HAM-TRAN-BO-VI → BẮT ở B7: phủ, hồ sơ chưa ghi) — K3 (hồ sơ), nhẹ.
+3. cong.js chay chưa ghi vào trang_thai.md (LUAT_XAY_APP §6.3) — K6.
+NGHI NGỜ:
+- Chỗ đặt trần: lý do K4 ĐÚNG (C6 pay-debt, D4 /nhan-diem đỏ trên 979b1b2 → lỗ ±1đ có thật ở cả ba chỗ gọi; pay-debt SELECT *
+  orders.js:1262; parent_balance_amount database.js:758, balance_amount database.js:210, REAL DEFAULT 0; Number(x)||0 đỡ NULL). NHƯNG câu 4
+  máy soạn chỉ nói "ngay ở dòng gọi POST /" và chủ quán chọn (b) theo chữ đó — mở rộng sang pay-debt, /nhan-diem, I8 là đổi phạm vi
+  một quy tắc tiền, máy ghi ở "Xử lý vòng 2" nhưng không hỏi lại. Đúng tinh thần (b) (trần chỉ hạ điểm, tối đa phần ±1đ) — nên báo rõ
+  chủ quán trong báo cáo cuối thay vì coi là đã duyệt. Câu 4 tự nó đã sót đường song song (K4) lúc đặt câu hỏi.
+- Thiệt so với vòng 1 ở biên làm tròn: total lẻ 29.999,4, tiền mặt 30.000 → min 29.999,4 → 29.999 — ít hơn vòng 1 một điểm, nhưng bằng
+  luật trước việc (floor(total/per)) → không thiệt so với gốc (G).
+- Thiệt khi máy khách gửi THIẾU 1đ: tiền mặt = total − 1 (lọt dung sai) → có thể thấp hơn luật trước việc 1 điểm; có từ vòng 1; chưa đo
+  quầy thật có gửi thiếu không.
+- Trần khoá chặn trên như luật cũ: ví / ví mẹ chỉ nhận khi > 0 (orders.js:761,777,805) → điểm ≤ floor((total − ship)/per); TM / CK âm
+  không thổi được.
+KẾT QUẢ SOÁT TỪNG MỤC: --goc 979b1b2 khớp hồ sơ (dt 29 · 4: A1 B7 C6 D4; p2223, p24, gl xanh). dot_bien.py đối chứng dt 33·0, gl 113·0 ·
+  TỔNG 25 · BẮT 25. npm test PASS 71; --day-du PASS 75 · FAIL 0. A2 kiểm mẫu cũ BIẾN MẤT (thu_DIEMTHAT1.js:142–158).
+  K4: 3 INSERT 'earn' (orders.js:1062, :1340, signup-codes.js:294) đều qua tienTinhDiem; loyalty.js:125 redeem; orders.js:1591 adjust;
+  I8 (bat_bien.js:146–147) và hàm (diemThat.js:10–12) cùng biểu thức min / round / max.
+  K5: đổi cách trả (don-mo-rong.js:133–149) chặn đơn có ví, giữ tổng TM+CK; gói / thẻ / lấy từ gói / chiết khấu TM = total → như cũ;
+  phí giao nằm trong total (orders.js:734); pay-debt nhiều lần C4 phủ.
+  Đường tiền: TM / CK máy khách nay bị trần theo total + ví máy chủ tính. P1: không đụng client/, app_kh/.
+  Vùng sửa: orders.js chỉ 40, 856–857, 1314; kiem_tra :495. Vượt ngân sách: bài mới 339 dòng (phiếu ~200). I8 ở Đối soát (doiSoat.js:15).
+  K1 lệch nhỏ: trang_thai.md trích signup-codes.js:240–242 (thật 244–246); "orders.js:824–834" (thật 825–836); chú thích bat_bien.js:13–14
+  xuống dòng lạc.
+NGHIỆM THU: 6/7 · thiếu F (vế ví mẹ của I8 không ca + đột biến gỡ đúng vế; R-I8-BO-VI-ME SỐNG). A công thức thêm trần khác chữ phiếu
+  (máy có ghi); B1–B7 (thiếu ví mẹ thừa 1đ); C1–C6; D1–D4; E1–E4 + thu_P24; F1–F6 thiếu vế ví mẹ; G1–G4.
+CHƯA SOÁT ĐƯỢC: không chạy cong.js chay; không chạy lại --goc e403ac5; chưa đo quầy thật lẻ / thừa / thiếu 1đ; không kiểm thu_P3.js
+  sau gộp; dbt.py còn trong scratchpad (ngoài kho).
+BÀI HỌC: KHOÁ — mỗi số hạng của biểu thức trần / tổng (ví, ví mẹ, total, phí) một đột biến gỡ RIÊNG, ở MỖI chỗ gọi và bất biến; đột
+  biến gỡ hai số hạng một lúc không là bằng chứng từng vế — nên thành phép trong dot_bien.py (liệt kê số hạng, sinh đột biến).
+  NGUYÊN TẮC (K4) — câu hỏi quyết định tiền cho chủ quán liệt kê ĐỦ mọi chỗ gọi cùng lỗ; máy mở rộng phạm vi so với câu trả lời →
+  câu hỏi mới hoặc nêu NỔI BẬT trong báo cáo cuối. NGUYÊN TẮC (K3) — bài học vòng trước phải soát lại trên phần vá của vòng sau.
+```
+
+### Xử lý vòng 3 (`d9b0151`) — vòng sửa thứ 3 / 3 (`so_vong_sua_toi_da`)
+- Lỗi 1 — SỬA: ca B8 (POST /, ví mẹ 15.001 + TM 10.000 → 9) và D5 (/nhan-diem → 18); đột biến VS-TAO-BO-VI-ME (B8), VS-MA-THIEU-COT-VI-ME
+  (D5), VS-I8-TRAN-BO-VI-ME (F1, nhờ đơn B8 / D5); VS-MA-THIEU-COT-VI tách chỉ gỡ ví thường (D4). Pay-debt nhận `{...order}` (SELECT *)
+  nên vế ví mẹ ở đó chính là vế trong hàm (VS-HAM-TRAN-BO-VI-ME, A1).
+- Lỗi 2 — SỬA: VS-HAM-TRAN-BO-VI (B7), VS-I8-TRAN-BO-VI (F1).
+- Lỗi 3 — làm ở bước 11.4 (cổng chạy SAU lần sửa cuối).
+- K1 nhỏ — SỬA: số dòng 244–246, 825–836; chú thích đầu bat_bien.js nối lại.
+- Nghi ngờ "mở rộng phạm vi câu 4" — KHÔNG đổi code (đúng tinh thần (b), chỉ hạ điểm tối đa phần ±1đ, và vá ở một chỗ sẽ để hở
+  pay-debt / /nhan-diem); nêu NỔI BẬT trong báo cáo cuối để chủ quán xác nhận.

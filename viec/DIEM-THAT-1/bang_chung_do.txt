@@ -74,7 +74,15 @@ GỐC 979b1b2 [dt]: thoát 1   (p2223 44 · 0, p24 33 · 0, gl 113 · 0 — bài
    Sau vá: thu_DIEMTHAT1 33 · 0; npm test -- --day-du PASS 75 · FAIL 0; dot_bien.py ĐỐI CHỨNG XANH (dt 33 · 0, gl 113 · 0) ·
    TỔNG 25 · BẮT 25 · SỐNG 0 · HỎNG 0 · LẠC 0.
 
-SỐ CA cong_cu/thu_DIEMTHAT1.js: 33
+6) Soát vòng 3 (ca ví mẹ thừa 1đ B8, D5 + đột biến mỗi số hạng trần; HEAD d9b0151 — chỉ đổi bài thử, dot_bien.py, chú thích).
+   --goc 979b1b2 (code trước trần): dt 29 đạt · 6 hỏng, thoát 1 — thêm hai dòng:
+  ✗ B8 ví mẹ 15.001 + tiền mặt 10.000 (thừa 1đ, lọt dung sai) → 9 điểm (trần total − ví mẹ = 9.999, không 10)  — HTTP 200 · 10 điểm · 1 earn
+  ✗ D5 đơn ví mẹ 15.001 + tiền mặt 10.000 (thừa 1đ; 9 điểm lúc bán) → /nhan-diem bù đủ 9 × 2 = 18 (không 20)  — HTTP 200 / HTTP 200 · 20
+   --goc e403ac5 (gốc): dt 11 đạt · 24 hỏng (B8 → 25 điểm, D5 → 50) · p2223 43 · 1 · p24 30 · 3 · gl 106 · 7 — đều thoát 1.
+   Sau vá: thu_DIEMTHAT1 35 · 0; npm test -- --day-du PASS 75 · FAIL 0; dot_bien.py ĐỐI CHỨNG XANH (dt 35 · 0, gl 113 · 0) ·
+   TỔNG 30 · BẮT 30 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 35
 SỐ CA cong_cu/thu_P2223.js: 44
 SỐ CA cong_cu/thu_P24.js: 33
 SỐ CA cong_cu/thu_gia_lap.js: 180
