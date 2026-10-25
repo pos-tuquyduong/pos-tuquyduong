@@ -121,6 +121,21 @@ BÀI HỌC: KHOÁ — bất biến trọng tài chép riêng công thức thì m
    cho lệch ±1đ (`orders.js:825–836`) → tối đa +1 điểm / đơn khi total ≡ per − 1 (mod per). Chủ quán chọn: (a) chấp nhận (±1đ có từ
    trước, chỉ ảnh hưởng điểm); (b) trần `min(cash + CK, total − ví − ví mẹ)` ngay ở dòng gọi POST / (vẫn MỘT dòng, trong vùng sửa)
    + 1 ca + 1 đột biến. Máy đề xuất (b) — rẻ, khoá bằng code (C16).
+5. **Xác nhận phạm vi trần (câu 4 (b)).** Câu 4 máy soạn chỉ ghi "ngay ở dòng gọi POST /" — thiếu sót của máy (K4): cùng lỗ ±1đ có ở
+   pay-debt (tiền mặt lúc tạo thừa 1đ cộng dồn) và /nhan-diem (đọc cột); C6, D4 ĐỎ trên code trước trần (`bang_chung_do.txt` mục 5).
+   Máy đã đặt trần trong `tienTinhDiem` (ba chỗ gọi cùng khoá) + I8 cùng trần. Trần chỉ HẠ điểm, tối đa phần ±1đ. Chủ quán chọn:
+   (a) giữ trần ở hàm chung như hiện tại (máy sửa chú thích `diemThat.js:4` cho đúng ngày / câu duyệt);
+   (b) chỉ giữ ở dòng gọi POST / (pay-debt, /nhan-diem còn hở ±1đ; bỏ ca C6, D4 và I8 về không trần — ~10 dòng đổi ngược).
+   Máy đề xuất (a).
+   Kèm (soát vòng 3, nghi ngờ): đơn CŨ trên production có `parent_balance_amount > 0` mà `parent_phone` NULL (hoàn ví `orders.js:1403`
+   chỉ tính ví mẹ khi có `parent_phone`) thì trần hạ điểm oan khi thu nợ / nhận mã. Đơn mới không gặp. Máy không đo được dữ liệu thật —
+   chat chạy giúp `SELECT COUNT(*) FROM pos_orders WHERE parent_balance_amount > 0 AND parent_phone IS NULL` trên Turso; > 0 thì máy thêm
+   điều kiện `parent_phone` vào trần (khớp hoanVi).
+6. **Cho phép vòng sửa thứ 4 (chỉ hồ sơ + gom dòng)?** Lỗi còn lại của vòng 3 không đụng logic: K1 số dòng trong `trang_thai.md`
+   (:128, :132, :139) và `ke_hoach.md:19` (đưa về số của nền 611b043), chú thích `diemThat.js:4`, và gom dòng gọi POST /
+   (`orders.js:856–857`) về ĐÚNG MỘT dòng vật lý như phiếu (tránh đụng P3 khi gộp). Vượt `so_vong_sua_toi_da` = 3 → cần chủ quán cho phép.
+7. **Ngân sách bài thử:** `thu_DIEMTHAT1.js` 347 dòng (phiếu ~200) — do 3 vòng soát thêm ca (B6–B8, C6, D4–D5, F trần). Chấp nhận, hay
+   máy gom lại (ví dụ dùng chung hàm tạo đơn ví mẹ / ví thường) trong vòng 4?
 
 ## Phát hiện
 - `server/utils/doiSoat.js:257` chú thích "chủ quán chốt giữ floor(total/per)" cho D2 sẽ cũ sau việc này (I8 tính theo tiền thật).
@@ -197,3 +212,49 @@ BÀI HỌC: KHOÁ — mỗi số hạng của biểu thức trần / tổng (ví
 - K1 nhỏ — SỬA: số dòng 244–246, 825–836; chú thích đầu bat_bien.js nối lại.
 - Nghi ngờ "mở rộng phạm vi câu 4" — KHÔNG đổi code (đúng tinh thần (b), chỉ hạ điểm tối đa phần ±1đ, và vá ở một chỗ sẽ để hở
   pay-debt / /nhan-diem); nêu NỔI BẬT trong báo cáo cuối để chủ quán xác nhận.
+
+## Soát độc lập — vòng 3 (agent general-purpose, 25.10; chép nguyên báo cáo, rút gọn xuống dòng)
+```
+KHÔNG ĐẠT (nhẹ) — logic tiền + bài thử đúng, không lỗi logic; còn 4 lỗi K1 (hồ sơ + một chú thích code) + 1 lệch vùng sửa. Hết 3 vòng
+sửa; vá trần ở hàm chung (pay-debt, /nhan-diem) vẫn cần chủ quán xác nhận → vòng sau là hỏi chủ quán, không sửa code.
+LỖI TÌM ĐƯỢC:
+1. server/utils/diemThat.js:4 — chú thích "Trần total − ví − ví mẹ (chủ quán chốt 25.10)": chủ quán chỉ chọn câu 4 (b) với chữ "ngay ở
+   dòng gọi POST /" (trang_thai.md:122); máy tự mở rộng sang pay-debt, /nhan-diem, trang_thai.md:198–199 tự ghi "chờ chủ quán xác nhận".
+   Chú thích khẳng định một quyết định tiền chưa có. — K1 (chú thích là khẳng định, TU-CHAY-6)
+2. trang_thai.md:139 — ghi bat_bien.js:146 (trần I8), :149–155 (diemDung); HEAD thật 145 và 148–154 (commit d9b0151 nối dòng chú thích
+   13–14 làm trôi 1, số trích không kiểm lại ở commit cuối). — K1
+3. ke_hoach.md:19 — vòng 3 đổi :823–834 → :825–836 trong khi ke_hoach.md:3 ghi mọi số dòng đọc ở nền 611b043; ở nền paymentSum ĐÚNG là
+   823–834 → sửa số đúng thành sai. Cùng câu: :1323 không khớp nền (1321) lẫn HEAD (1324). — K1
+4. trang_thai.md:132 trích orders.js:1142–1153 (HEAD: khối in mã từ :1144, chú thích luật :1146); trang_thai.md:128 trích bill hứa điểm
+   orders.js:1207 (HEAD: "gap ${heSo} diem" ở :1217, :1221) — không ghi là số của nền. — K1 nhẹ
+5. server/routes/orders.js:856–857 — phiếu "đổi ĐÚNG MỘT dòng gọi ở POST /", P3 sửa vùng 819–860; dòng gọi nay 2 dòng vật lý (vòng 2) →
+   tăng rủi ro đụng khi gộp sau P3. Lệch vùng sửa nhẹ, các vòng trước chưa nêu.
+NGHI NGỜ:
+- Dữ liệu cũ: hoanVi (orders.js:1403) chỉ tính ví mẹ khi có parent_phone; tienTinhDiem (diemThat.js:11) trừ parent_balance_amount không cần
+  điều kiện đó → đơn CŨ có parent_balance_amount > 0 mà parent_phone NULL thì pay-debt / /nhan-diem hạ điểm oan. Đơn mới không gặp (POST /
+  chỉ lưu actualParentBalanceAmount khi có SĐT mẹ, :781–805, :922). Lịch sử git đã gộp — không truy được; chưa đo dữ liệu thật.
+- I8 vs hàm với chuỗi không phải số: so(x) = Number(x||0) → NaN, hàm Number(x)||0 → 0; cash_amount lưu nguyên giá trị máy khách (:920).
+  Chỉ khi máy khách gửi sai; A1 thử chuỗi số trên hàm, không đưa cùng bộ đầu vào qua I8 (KHOÁ vòng 1 mới làm một nửa).
+- Gửi THIẾU 1đ trong dung sai → ít hơn luật cũ 1 điểm (từ vòng 2), chưa đo quầy thật.
+KẾT QUẢ: dot_bien.py đối chứng dt 35·0, gl 113·0, 30/30 BẮT (VS-TAO-BO-VI-ME B8 → 10; VS-MA-THIEU-COT-VI-ME D5 → 19; VS-I8-TRAN-BO-VI-ME
+  F1 đơn 008 = B8, 019 = D5; VS-HAM-TRAN-BO-VI, VS-TAO-BO-VI B7). Tự dựng thêm 7 (scratchpad/dbt3.py: bỏ TM ở hàm / I8, bỏ total trong
+  trần hàm / I8 (dt + gl), trần +1 hàm / I8) — cả 7 BẮT. --goc 979b1b2 dt 29·6, p2223 44·0, p24 33·0, gl 113·0; --goc e403ac5 dt 11·24,
+  p2223 43·1, p24 30·3, gl 106·7 — khớp bang_chung_do.txt:77–83. A2 kiểm mẫu cũ BIẾN MẤT.
+  K4: 3 INSERT earn (orders.js:1062, :1340, signup-codes.js:294) đều qua tienTinhDiem (orders.js:856, :1314, signup-codes.js:229);
+  loyalty.js:125 redeem; orders.js:1591 trừ SUM; I8 (bat_bien.js:145–146) cùng biểu thức với hàm (diemThat.js:10–12).
+  K5: đổi cách trả (don-mo-rong.js:131–149) chặn đơn có ví, giữ tổng; Sales.jsx:665–702 gửi cash / transfer = phần còn lại sau ví, tiền
+  thối ở cash_received / change_amount; bill chờ thu qua pay-debt; gói / thẻ / chiết khấu / lấy từ gói như cũ; câu 3 (c).
+  Đường tiền: trần chỉ hạ điểm (ví / ví mẹ chỉ nhận khi > 0, orders.js:761, 777, 805). P1: không đụng client/. npm test PASS 71;
+  --day-du PASS 75 · 0. Vùng sửa orders.js 40, 856–857, 1314; kiem_tra :495. Bài mới 347 dòng (~200). I8 ở Đối soát (doiSoat.js:15).
+NGHIỆM THU: 7/7 có bằng chứng (A1–A2 · B1–B8 · C1–C6 · D1–D5 · E1–E4 + thu_P24 · F1–F6 + ca tay gl + đột biến từng vế · G1–G4).
+  Mục A cần chủ quán xác nhận việc mở rộng trần.
+CHƯA SOÁT ĐƯỢC: cong.js chay (cố ý, bước 11.4); thu_P3.js sau gộp; dữ liệu production (parent_balance_amount > 0 mà parent_phone NULL;
+  cột lẻ / thừa / thiếu 1đ); scratchpad/dbt3.py còn (ngoài kho).
+BÀI HỌC: KHOÁ — sau commit cuối, phép tự kiểm mọi trích file:dòng trong trang_thai / ke_hoach khớp HEAD (hoặc nền ghi đầu file); vòng 3
+  "sửa K1" tạo K1 mới. NGUYÊN TẮC (K1) — chú thích code không ghi "chủ quán chốt" cho phần máy tự mở rộng chưa duyệt. NGUYÊN TẮC (vùng
+  sửa) — "đổi ĐÚNG MỘT dòng" trong vùng việc khác đang sửa = số dòng vật lý không đổi. NGUYÊN TẮC (K5 dữ liệu cũ) — hàm chung đọc cột cũ
+  thì soát phép phòng vệ đường song song đã có (như `parent_phone ?` ở hoanVi).
+```
+
+### Dừng sau vòng 3 (`so_vong_sua_toi_da` = 3 đã dùng hết) — KHÔNG sửa gì thêm; chờ chủ quán trả lời `## Câu hỏi` 5–7.
+Chưa làm: bước 10 (báo cáo 7 mục), 11 (rút kinh nghiệm, `cong.js chay`, dòng `HEAD ĐÃ KIỂM`).
