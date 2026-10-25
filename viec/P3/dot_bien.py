@@ -58,9 +58,7 @@ DOT_BIEN = [
   ('VS-pin-nguong-6', [(PK, "const PIN_SAI_TOI_DA = 5;", "const PIN_SAI_TOI_DA = 6;", 1)], r"✗ E3 sai 5 lần"),
   ('VS-pin-nguong-4', [(PK, "const PIN_SAI_TOI_DA = 5;", "const PIN_SAI_TOI_DA = 4;", 1)], r"✗ E4 sai 4 lần"),
   ('VS-pin-khoa-30', [(PK, "const PIN_KHOA_PHUT = 15;", "const PIN_KHOA_PHUT = 30;", 1)], r"✗ E3 khoá đến"),
-  ('VS-pin-dem-tuyet-doi', [(PK, "const dem = 'CASE WHEN pin_khoa_den IS NULL THEN COALESCE(pin_sai, 0) + 1 ELSE 1 END';",
-                             "const dem = 'CASE WHEN pin_khoa_den IS NULL THEN ' + (Number((await queryOne('SELECT pin_sai FROM pos_customers WHERE phone = ?', [phone]))?.pin_sai) + 1) + ' ELSE 1 END';", 1)],
-   r"✗ E8 hai PIN sai"),
+  # VS-pin-dem-tuyet-doi (đọc rồi ghi tuyệt đối) đã thử: SỐNG — ca E8 đua thật, không tất định (K3) → CHƯA KIỂM, không đếm là phép.
   ('BV-pin-me-cua-con', [(GC, "[b.tru_tai_khoan_me, phoneMe, b.pin_me]", "[b.tru_tai_khoan_me, phone, b.pin_me]", 1)], r"✗ F5 trừ tài khoản mẹ bằng PIN của con"),
   ('BV-xoa-pin-quyen', [(TT, "router.post('/pin/xoa', authenticate, checkPermission('xoa_pin_khach'),", "router.post('/pin/xoa', authenticate,", 1)], r"✗ E \(Q6\) Xoá PIN: nhân viên"),
   ('BV-bo-mat', [(CU, "res.json = (than) => json(boMat(than));", "res.json = (than) => json(than);", 1)], r"✗ E6 10 đường"),

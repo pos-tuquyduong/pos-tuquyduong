@@ -451,11 +451,11 @@ async function main() {
     const p2 = (await taoPhien({ sdt: g, sl: 3, cach: 'tai_khoan', pin: PIN })).j.phien;
     await luiPhien(p2.id);
     const kd2 = (await goi('GET', `/pos/wallets/${g}`)).j.kha_dung;
+    const c3 = await goi('POST', `/pos/thanh-toan/phien/${p2.id}/chot`, {});
+    k('F2 phiên hết hạn → khả dụng về 100.000; chốt phiên hết hạn → 409', kd2 === 100000 && la(c3, 409, 'PHIEN_DA_CHOT'), `${kd2} · ${moTa(c3)}`);
     const p3 = (await taoPhien({ sdt: g, sl: 3, cach: 'tai_khoan', pin: PIN })).j.phien;
     const h3 = await goi('POST', `/pos/thanh-toan/phien/${p3.id}/huy`, {});
     const kd3 = (await goi('GET', `/pos/wallets/${g}`)).j.kha_dung;
-    const c3 = await goi('POST', `/pos/thanh-toan/phien/${p2.id}/chot`, {});
-    k('F2 phiên hết hạn → khả dụng về 100.000; chốt phiên hết hạn → 409', kd2 === 100000 && la(c3, 409, 'PHIEN_DA_CHOT'), `${kd2} · ${moTa(c3)}`);
     k('F3 huỷ → nhả (khả dụng 100.000); hết hạn + huỷ KHÔNG thêm dòng sổ ví nào', la(h3, 200) && kd3 === 100000 && await soDongVi() === d1, `${kd3}`);
     const tru3 = await goi('POST', '/pos/wallets/deduct', { phone: g, amount: 100000 }, tkChu);
     k('F2 sau khi nhả → trừ tay đủ 100.000 → 200', la(tru3, 200), moTa(tru3));
