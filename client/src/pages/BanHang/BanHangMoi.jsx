@@ -51,6 +51,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const [xong, setXong] = useState(null);                   // đơn vừa thanh toán
   const [daIn, setDaIn] = useState(false);
   const [moCaiDat, setMoCaiDat] = useState(false);
+  const luotKhach = useRef(0);
   const dangGuiRef = useRef(false);                         // chặn bấm đôi ĐỒNG BỘ (state cập nhật muộn một nhịp)
   const maDong = useRef(1);
 
@@ -72,9 +73,14 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   }, [napSanPham, napFlash]);
 
   const chonKhach = async (c) => {
+    const luot = ++luotKhach.current;                      // tra hạng / điểm về muộn của khách trước thì bỏ
     setKhach(c); setLoi(''); setDungTK(true); setDungMe(false); setHang(null);
+    api.get(`/loyalty/points/${encodeURIComponent(c.phone)}`)
+      .then((r) => { if (luotKhach.current === luot && r.success) setKhach((k) => (k && k.phone === c.phone ? { ...k, points: r.points } : k)); })
+      .catch(() => {});                                    // không tra được điểm: dải khách chỉ không hiện điểm
     try {
       const r = await api.get(`/membership/status/${encodeURIComponent(c.phone)}`);
+      if (luotKhach.current !== luot) return;
       if (r.success) {
         const dung = r.data.status === 'active' || r.data.status === 'expiring_soon';
         const t = dung ? dsHang.find((x) => x.id === r.data.tier_id) : null;
@@ -82,7 +88,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
       }
     } catch { /* không tra được hạng: bán như khách chưa có hạng, máy chủ vẫn tự tính lại */ }
   };
-  const boKhach = () => { setKhach(null); setHang(null); setDungTK(true); setDungMe(false); };
+  const boKhach = () => { luotKhach.current++; setKhach(null); setHang(null); setDungTK(true); setDungMe(false); };
 
   const tinh = useMemo(() => {
     const khachGiam = khach && khach.discount_value > 0 ? { loai: khach.discount_type || 'percent', gia_tri: khach.discount_value } : null;
@@ -214,7 +220,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
             {tinh.giamHang > 0 && <div className="bh-tien-dong"><span>Giảm hạng{hang?.tier_name ? ` ${hang.tier_name}` : ''}</span><span>−{vnd(tinh.giamHang)}</span></div>}
             {tinh.giamKhach > 0 && <div className="bh-tien-dong"><span>Chiết khấu khách</span><span>−{vnd(tinh.giamKhach)}</span></div>}
           </div>
-          <ThuTien key={tinh.tong} tong={tinh.tong} khach={khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
+          <ThuTien key={`${tinh.tong}-${soDuDung}-${soDuMeDung}`} tong={tinh.tong} khach={khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
             dungTK={dungTK} dungMe={dungMe} onDungTK={setDungTK} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />
         </>
       )}

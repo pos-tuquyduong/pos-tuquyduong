@@ -69,7 +69,7 @@ export default function ThuTien({ tong, khach, soDuDung, soDuMeDung, dungTK, dun
               <button className="bh-nut bh-xanh bh-lon" disabled={dangGui || !duDuoc(phaiTra, dua)} onClick={() => onThu({ cach: 'cash', khachDua: dua })}>Đã nhận tiền</button>
             </>
           ) : (
-            <button className="bh-nut bh-xanh bh-lon" disabled={dangGui || phaiTra <= 0} onClick={() => onThu({ cach: 'transfer', khachDua: 0 })}>Đã nhận chuyển khoản · {vnd(phaiTra)}</button>
+            <button className="bh-nut bh-xanh bh-lon" disabled={dangGui} onClick={() => onThu({ cach: 'transfer', khachDua: 0 })}>Đã nhận chuyển khoản · {vnd(phaiTra)}</button>
           )}
         </>
       )}

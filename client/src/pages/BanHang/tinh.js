@@ -19,7 +19,7 @@ const so = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
 // ── Thu tiền mặt ────────────────────────────────────────────────────────────
 export const traLai = (phaiTra, dua) => Math.max(0, so(dua) - so(phaiTra));
 export const conThieu = (phaiTra, dua) => Math.max(0, so(phaiTra) - so(dua));
-export const duDuoc = (phaiTra, dua) => so(phaiTra) > 0 && so(dua) >= so(phaiTra);
+export const duDuoc = (phaiTra, dua) => so(dua) >= so(phaiTra);   // phải trả 0đ (giảm hết) vẫn thu được, như màn cũ
 
 /** "Đúng tiền" + các tờ LỚN HƠN số phải trả, mỗi nút ghi sẵn trả lại. */
 export function danhSachTo(phaiTra) {

@@ -48,8 +48,8 @@ async function main() {
   thu('F3 đưa thiếu 1 đồng → còn thiếu 1, trả lại 0', () => f('conThieu')(86400, 86399) === 1 && f('traLai')(86400, 86399) === 0);
   thu('F4 chưa nhập gì (0 / NaN / undefined) → còn thiếu = phải trả', () =>
     f('conThieu')(50000, 0) === 50000 && f('conThieu')(50000, NaN) === 50000 && f('conThieu')(50000, undefined) === 50000);
-  thu('F5 duDuoc: chỉ true khi đưa ≥ phải trả VÀ phải trả > 0', () =>
-    f('duDuoc')(50000, 50000) === true && f('duDuoc')(50000, 49999) === false && f('duDuoc')(0, 0) === false);
+  thu('F5 duDuoc: true khi đưa ≥ phải trả (kể cả đơn 0đ), false khi thiếu 1 đồng', () =>
+    f('duDuoc')(50000, 50000) === true && f('duDuoc')(50000, 49999) === false && f('duDuoc')(0, 0) === true && f('duDuoc')(50000, 0) === false);
 
   muc('F · dãy tờ');
   const ds = (n) => f('danhSachTo')(n);
@@ -216,8 +216,8 @@ async function main() {
   k('S10 Sales.jsx không nhắc BanHang (màn cũ KHÔNG đổi)', !/BanHang/.test(ban));
   const kiem = DOC('kiem_tra_truoc_khi_giao.js');
   k('S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js', /'cong_cu\/thu_BH1\.js'\]\) chayBaiThat\(bai\)/.test(kiem));
-  k('S12 kết thúc: lưới món khoá tới khi bấm In (cờ daIn)', jsx.some(([, s]) => /daIn/.test(s)));
-  k('S13 nút "Đã nhận tiền" chống bấm đôi (cờ dangGui)', jsx.some(([, s]) => /dangGui/.test(s)));
+  k('S12 kết thúc: lưới món khoá (bh-khoa) khi xong && !daIn', jsx.some(([, s]) => /xong && !daIn \? ' bh-khoa'/.test(s)));
+  k('S13 chống bấm đôi: dangGuiRef chặn trong thu() + nút Đã nhận tiền disabled theo dangGui', jsx.some(([, s]) => /if \(dangGuiRef\.current \|\|/.test(s)) && jsx.some(([, s]) => /disabled=\{dangGui \|\| !duDuoc/.test(s)));
 
   console.log(`\nBH-1: ${dat} đạt · ${hong} hỏng`);
   process.exit(hong ? 1 : 0);
