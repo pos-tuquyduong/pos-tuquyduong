@@ -370,6 +370,8 @@ async function main() {
     const kq = [];
     for (let i = 0; i < 5; i++) kq.push(await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' }));
     const e3 = await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '2468' });
+    const khoa15 = await db.queryOne("SELECT CAST(strftime('%s', pin_khoa_den) AS INTEGER) - CAST(strftime('%s', ?) AS INTEGER) AS n FROM pos_customers WHERE phone = ?", [getNow(), b]).catch(() => null);
+    k('E3 khoá đến = bây giờ + 15 phút (±5 s)', !!khoa15 && Math.abs(khoa15.n - 900) <= 5, JSON.stringify(khoa15));
     k('E3 sai 5 lần (mỗi lần 400 PIN_SAI) → lần 6 dù ĐÚNG → 423 PIN_DANG_KHOA', kq.every((x) => la(x, 400, 'PIN_SAI')) && la(e3, 423, 'PIN_DANG_KHOA'), kq.map(moTa).join(',') + ' / ' + moTa(e3));
     await db.run("UPDATE pos_customers SET pin_khoa_den = strftime('%Y-%m-%dT%H:%M:%S', ?, '-1 seconds') WHERE phone = ?", [getNow(), b]).catch(() => {});
     const e3b = await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '2468' });
