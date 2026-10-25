@@ -142,7 +142,7 @@ const BAT_BIEN = {
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
       LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
     const lech = ds.flatMap((r) => {
-      const g = Math.floor(Math.max(0, so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee)) / per);
+      const g = Math.floor(Math.max(0, Math.round(so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee))) / per);
       const gCu = Math.floor(so(r.total) / per);
       const diemDung = (luatCu, g) => {
         const coDiem = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && g > 0

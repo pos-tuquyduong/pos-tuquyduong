@@ -574,6 +574,9 @@ async function duLieuTay() {
     ['I8 (P24) dòng adjust KHÔNG gắn đơn', 'I8', 'I8', ["INSERT INTO pos_point_transactions VALUES (2, 'S', 'adjust', -1, NULL)"], /loại dòng điểm lạ "adjust"/, {}],
     ['I8 sạch (DIEM-THAT-1): đơn ví trọn 0 điểm; đơn tiền mặt có phí giao 2 điểm (tiền thật / per)', 'I8', 'I8', THAT_I8(), null, {}],
     ['I8 (DIEM-THAT-1) đơn ví trọn có điểm theo total', 'I8', 'I8', [...THAT_I8(), V1_CO_DIEM], /^đơn V1: 5 điểm, đúng luật là 0$/, {}],
+    // Soát vòng 1: cột tiền LẺ (nợ lẻ thu đủ, chiết khấu %) — 24.999,6 − 5.000 = 19.999,6 → làm tròn 20.000 → 2 điểm như tienTinhDiem (bỏ làm tròn → 1).
+    ['I8 sạch (DIEM-THAT-1): tiền mặt lẻ 24.999,6 − phí giao 5.000 làm tròn như tienTinhDiem → 2 điểm', 'I8', 'I8',
+      [...THAT_I8(), 'UPDATE pos_orders SET cash_amount = 24999.6 WHERE id = 22'], null, {}],
     ['I8 (DIEM-THAT-1) đơn có phí giao, điểm theo total (3)', 'I8', 'I8', [...THAT_I8(), 'UPDATE pos_point_transactions SET points = 3 WHERE id = 22'],
       /^đơn G1: 3 điểm, đúng luật là 2$/, {}],
     ['I8 sạch Đối soát thật (DIEM-THAT-1): đơn ví trọn tạo 1 giây trước mốc, điểm theo total (luật cũ)', 'I8', 'I8', [...THAT_I8(truocMocThat), V1_CO_DIEM], null, { thuc: true }],

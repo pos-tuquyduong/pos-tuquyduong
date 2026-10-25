@@ -21,7 +21,7 @@ GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DT, O, S, BB = 'server/utils/diemThat.js', 'server/routes/orders.js', 'server/routes/signup-codes.js', 'cong_cu/gia_lap/bat_bien.js'
 TAO = 'tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee }), now)'
 THU = 'tienTinhDiem({ ...order, [cotTien]: (Number(order[cotTien]) || 0) + paidAmount })'
-G_MOI = 'const g = Math.floor(Math.max(0, so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee)) / per);'
+G_MOI = 'const g = Math.floor(Math.max(0, Math.round(so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee))) / per);'
 VE_THAT = "      if (cu && String(r.created_at) < DIEM_THAT_TU && so(r.diem) === diemDung(false, gCu)) return [];   // DIEM-THAT-1: luật P22-23\n"
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
@@ -44,6 +44,13 @@ DOT_BIEN = [
   ('BV-I8', [(BB, G_MOI, 'const g = Math.floor(so(r.total) / per);', 1)], r'✗ F2 ', 'dt'),
   ('BV-I8-tay', [(BB, G_MOI, 'const g = Math.floor(so(r.total) / per);', 1)], r'✗ I8 \(DIEM-THAT-1\) đơn ví trọn có điểm theo total', 'gl'),
   ('VS-I8-BO-PHI', [(BB, ' - so(r.shipping_fee)', '', 1)], r'✗ F5 ', 'dt'),
+  # soát vòng 1: mỗi vế của I8 một đột biến MANG TÊN (CK, làm tròn, vế `cu` của mốc mới)
+  ('VS-I8-BO-CK', [(BB, ' + so(r.transfer_amount)', '', 1)], r'✗ F1 ', 'dt'),
+  ('VS-I8-BO-LAM-TRON', [(BB, 'Math.max(0, Math.round(so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee)))',
+                          'Math.max(0, so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee))', 1)],
+   r'✗ I8 sạch \(DIEM-THAT-1\): tiền mặt lẻ', 'gl'),
+  ('VS-I8-MOC-THAT-BO-HUYCU', [(BB, 'if (cu && String(r.created_at) < DIEM_THAT_TU', 'if (ctx.thuc && String(r.created_at) < DIEM_THAT_TU', 1)],
+   r'✗ I8 Đối soát thật \(P24\): đơn TẠO trước mốc thu đủ', 'gl'),
   ('VS-I8-BO-MOC', [(BB, 'if (cu && String(r.created_at) < DIEM_THAT_TU && ', 'if (cu && ', 1)], r'✗ F2 ', 'dt'),
   ('VS-I8-MOC-GIA-LAP', [(BB, 'if (cu && String(r.created_at) < DIEM_THAT_TU',
                           "if ((huyCu || r.status !== 'cancelled') && String(r.created_at) < DIEM_THAT_TU", 1)], r'✗ F4 ', 'dt'),
