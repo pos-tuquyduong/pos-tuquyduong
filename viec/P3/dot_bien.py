@@ -34,7 +34,8 @@ DOT_BIEN = [
   # ── B: chữ ký / tiền / hạn ──
   ('BV-chu-ky', [(PO, "return a.length === b.length && crypto.timingSafeEqual(a, b);", "return true;", 1)], r"✗ B1 chữ ký sai"),
   ('VS-khoa-rong', [(PO, "if (!ck || typeof chuKy !== 'string'", "if (typeof chuKy !== 'string'", 1)], r"✗ B2 khoá checksum rỗng"),
-  ('VS-so-tien', [(TT, "const lyDo = Number(d.amount) !== p.con_lai ?", "const lyDo = Math.abs(Number(d.amount) - p.con_lai) > 1000 ?", 1)], r"✗ B6 lệch 1.000đ"),
+  ('VS-so-tien', [(TT, "const lyDo = Number(d.amount) !== p.con_lai ?", "const lyDo = Math.abs(Number(d.amount) - p.con_lai) > 1000 ?", 1)], r"✗ B6 thiếu 1đ"),
+  ('VS-so-tien-dung-sai-1', [(TT, "const lyDo = Number(d.amount) !== p.con_lai ?", "const lyDo = Math.abs(Number(d.amount) - p.con_lai) > 1 ?", 1)], r"✗ B6 (thiếu|trả DƯ) 1đ"),
   ('BV-ve-muon-payos', [(TT, ": luc > p.het_han ? 'tiền về sau khi QR hết hạn' : null;", ": null;", 1)], r"✗ B7 transactionDateTime"),
   ('VS-that-bai', [(TT, "if (b.code !== '00' || d.code !== '00')", "if (b.code !== '00')", 1)], r"✗ B11"),
   # ── A: tạo phiên ──
@@ -78,7 +79,7 @@ DOT_BIEN = [
   # ── H / I: kết hợp, cờ payOS ──
   ('BV-ket-hop', [(OR, "if (Number(cash_amount) > 0 && Number(transfer_amount) > 0) {", "if (false) {", 1)], r"✗ H1"),
   ('VS-co-bo-vi-me', [(OR, " || Number(parent_balance_amount) > 0 || payment_method === \"balance\")", " || payment_method === \"balance\")", 1)], r"✗ I7 cờ BẬT: CK trần"),
-  ('VS-so-tien-du', [(TT, "const lyDo = Number(d.amount) !== p.con_lai ?", "const lyDo = Number(d.amount) < p.con_lai ?", 1)], r"✗ B6 trả DƯ"),
+  ('VS-so-tien-du', [(TT, "const lyDo = Number(d.amount) !== p.con_lai ?", "const lyDo = Number(d.amount) < p.con_lai ?", 1)], r"✗ B6 trả DƯ 1đ"),
   ('BV-co-payos', [(OR, "if (co?.value === \"1\") {", "if (false) {", 1)], r"✗ I7 cờ BẬT: CK trần"),
   ('VS-co-chan-phien', [(OR, "if (!phien && (Number(transfer_amount) > 0", "if ((Number(transfer_amount) > 0", 1)], r"✗ I7 cờ BẬT \(K5\)"),
   # ── Đối soát / sao lưu ──

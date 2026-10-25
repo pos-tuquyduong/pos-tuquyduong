@@ -768,7 +768,7 @@ async function taoDon(req, res, phien = null) {
 
       if (currentBalance < total) {
         return res.status(400).json({
-          error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ, cần: ${total.toLocaleString()}đ`,
+          error: `Số dư không đủ. Khả dụng: ${currentBalance.toLocaleString()}đ, cần: ${total.toLocaleString()}đ`,
           code: "SO_DU_KHONG_DU",
         });
       }
@@ -784,7 +784,7 @@ async function taoDon(req, res, phien = null) {
 
       if (currentBalance < balance_amount) {
         return res.status(400).json({
-          error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ`,
+          error: `Số dư không đủ. Khả dụng: ${currentBalance.toLocaleString()}đ`,
           code: "SO_DU_KHONG_DU",
         });
       }
@@ -805,7 +805,7 @@ async function taoDon(req, res, phien = null) {
 
       if (parentCurrentBalance < parent_balance_amount) {
         return res.status(400).json({
-          error: `Số dư mẹ không đủ. Hiện có: ${parentCurrentBalance.toLocaleString()}đ`,
+          error: `Số dư mẹ không đủ. Khả dụng: ${parentCurrentBalance.toLocaleString()}đ`,
           code: "SO_DU_KHONG_DU",
         });
       }

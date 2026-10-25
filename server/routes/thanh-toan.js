@@ -106,7 +106,7 @@ router.post('/pin/xoa', authenticate, checkPermission('xoa_pin_khach'), async (r
 
 // ── Webhook payOS (công khai) ───────────────────────────────────────────────
 // Sai chữ ký → 400, không ghi gì. Đúng chữ ký → MỖI báo một dòng pos_payos_su_kien (khoa UNIQUE: báo lặp dừng ở đó) và trả 200 để payOS
-// thôi gửi lại — trừ khi máy chủ lỗi giữa chừng (5xx, chưa ghi gì) thì để payOS báo lại.
+// thôi gửi lại — trừ khi máy chủ lỗi giữa chừng (5xx) hoặc kho bận (409 KHO_BAN): chưa ghi gì, để payOS báo lại.
 const DANG_GIO = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
 webhook.post('/', async (req, res) => {
   try {

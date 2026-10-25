@@ -271,12 +271,12 @@ async function main() {
     const [x, y] = await Promise.all([guiWebhook(bao5), guiWebhook(bao5)]);
     k('B5 hai báo CÙNG LÚC → MỘT đơn, ví trừ MỘT lần', x.status === 200 && y.status === 200 && await soDon() === d5 + 1 && await soDu(a5) === 0, moTa(x) + ' / ' + moTa(y));
     const a6 = await khach(30000), p6 = (await taoPhien({ sdt: a6, sl: 2, pin: PIN })).j.phien, d6 = await soDon();
-    const b6 = await guiWebhook(webhook(p6, { amount: p6.con_lai - 1000 }));
-    k('B6 lệch 1.000đ → 200, KHÔNG đơn, sự kiện chua_khop, ví nguyên', la(b6, 200) && await soDon() === d6 && await soDu(a6) === 30000
+    const b6 = await guiWebhook(webhook(p6, { amount: p6.con_lai - 1 }));
+    k('B6 thiếu 1đ → 200, KHÔNG đơn, sự kiện chua_khop, ví nguyên', la(b6, 200) && await soDon() === d6 && await soDu(a6) === 30000
       && (await suKien(p6.id)).map((s) => s.ket_qua).join() === 'chua_khop', moTa(b6));
     const p6b = (await taoPhien({})).j.phien, d6b = await soDon();
-    const b6b = await guiWebhook(webhook(p6b, { amount: p6b.con_lai + 1000 }));
-    k('B6 trả DƯ 1.000đ → 200, KHÔNG đơn, sự kiện chua_khop', la(b6b, 200) && await soDon() === d6b
+    const b6b = await guiWebhook(webhook(p6b, { amount: p6b.con_lai + 1 }));
+    k('B6 trả DƯ 1đ → 200, KHÔNG đơn, sự kiện chua_khop', la(b6b, 200) && await soDon() === d6b
       && (await suKien(p6b.id)).map((s) => s.ket_qua).join() === 'chua_khop', moTa(b6b));
     const p7 = (await taoPhien({})).j.phien;
     await luiPhien(p7.id);

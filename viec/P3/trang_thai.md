@@ -172,7 +172,7 @@ BÀI HỌC: KHOÁ — mỗi nhánh hỏng đụng tiền có ca TẤT ĐỊNH qu
   ca SĐT mẹ = SĐT khách. NGUYÊN TẮC — phép báo sớm trước cổng thật → cổng thật cần ca riêng vượt phép báo sớm; "ca X phủ Y" chỉ ghi khi đột biến xoá Y làm X ĐỎ.
 ```
 
-## Sửa theo soát vòng 2 (25.10) — commit 84c202d, 1c… (neo đột biến)
+## Sửa theo soát vòng 2 (25.10) — commit 84c202d, 0999342 (neo đột biến)
 | Lỗi vòng 2 | Sửa | Ca khoá / đột biến |
 |---|---|---|
 | 1 giữ hai lần khi SĐT mẹ = SĐT khách | `giuCho.js` từ chối `ME_TRUNG_KHACH` trước PIN / giao dịch | F9 · BV-me-trung |
@@ -218,3 +218,37 @@ Bằng chứng gốc dựng lại với bản 84c202d: 4 đạt · 43 hỏng, S�
   `GET /wallets/:phone` (`kha_dung`).
 - `reconcileWallet` ghi tuyệt đối, không biết phần đang giữ (đối soát thủ công — chủ quán bấm).
 - Dòng `chua_khop` cần cách "đã xử lý" ở màn Đối soát (chủ quán quyết luật).
+
+## Bước 8 — soát độc lập vòng 3 (25.10, HEAD d1fcef7) — nguyên báo cáo (rút gọn dòng)
+```
+KHÔNG ĐẠT (một lỗi K3 nhỏ; code đường tiền không thấy lỗi). Chạy lại: thu_P3 100 · 0; gốc 0a9fb6c 4 · 43 khớp bang_chung_do; SỐ CA 100;
+dot_bien.py 63/63, đối chứng 100 · 0; npm test 70 · 0 · 1; --day-du 74 · 0 · 1 (giả lập 35,8 s, thu_gia_lap 55,5 s).
+LỖI TÌM ĐƯỢC:
+1. thanh-toan.js:125 + ca B6 (thu_P3.js:274, 278) — so BẰNG mà ca chỉ lệch ±1.000đ; đột biến `Math.abs(amount − con_lai) > 1` (chép dung sai
+   ±1 của taoDon orders.js:851) SỐNG, 100 · 0. Sửa: B6 thành −1đ / +1đ + đột biến dung sai ±1. — K3.
+   Hồ sơ (K1): trang_thai.md ghi "84c202d, 1c…" — commit neo thật là 0999342.
+Sáu lỗi vòng 2 đã sửa đúng (F9/BV-me-trung, F4b/VS-giu-truoc-tx "B 100000 / A 100000", A6, B14, F10, F8, ngưỡng PIN / lý do / D6).
+NGHI NGỜ (Phát hiện): hết hàng giữa tạo phiên và tiền về → chua_khop ĐỎ (orders.js:385); webhook 5xx tất định lặp mãi → không dòng sự kiện;
+  ME_TRUNG_KHACH chặn cả khi chỉ bật dòng ví mẹ (lời báo lệch); phiên 0đ tiền mặt / payOS → CACH_KHONG_KHOP lời lệch; chú thích webhook bỏ
+  sót 409 KHO_BAN; nhãn "Hiện có" ở orders.js:770, 788, 808; thiếu `reference` → khoá `orderCode:` trùng; kênh payOS chung hai kho;
+  LY_DO_TOI_THIEU trùng số 3 ở wallets.js:223, GIO hai file.
+NGHIỆM THU: 9/10 — thiếu B (khớp tiền chưa khoá ở ±1đ).
+CHƯA SOÁT ĐƯỢC: cong.js chay (không trong danh sách lệnh của người soát); payOS thật; Turso; customers GET /:id (500 có sẵn).
+BÀI HỌC: KHOÁ — so bằng số tiền → ca ±1đ + đột biến dung sai chép từ phép đối chiếu tổng. NGUYÊN TẮC — chép một phép so vốn có dung sai ở
+  chỗ khác là đột biến tự nhiên nhất; ca ngưỡng phải giết đúng dung sai đó.
+```
+
+## Sửa theo soát vòng 3 (vòng sửa thứ 3 = tối đa `so_vong_sua_toi_da`)
+- B6 đổi thành thiếu 1đ / dư 1đ; thêm đột biến VS-so-tien-dung-sai-1. Sửa SHA neo (0999342).
+- Nhỏ, cùng lượt: nhãn "Hiện có" → "Khả dụng" (orders.js, ba lời báo); chú thích webhook nêu 409 KHO_BAN; lời báo ME_TRUNG_KHACH đúng cả khi chỉ
+  bật dòng ví mẹ. Các nghi ngờ khác → Phát hiện (dưới), không sửa.
+- Không mở vòng soát thứ 4 (luật tối đa 3 vòng sửa) — kiểm lại bằng bài thử + đột biến + cổng.
+
+## Phát hiện (thêm ở vòng 3)
+- Hết hàng (checkStock) / Flash hết giờ / mã giảm hết lượt giữa lúc tạo phiên và lúc tiền về → chốt hỏng, tiền về thành `chua_khop` ĐỎ, chủ
+  quán hoàn hoặc nạp tài khoản (DAC_TA 1.13). Không mất tiền.
+- Webhook lỗi 5xx LẶP mãi (không phải bận một lần) → không dòng sự kiện nào; phụ thuộc payOS có gửi lại (CHƯA KIỂM) — đối chiếu sao kê.
+- Webhook thiếu `reference` → khoá chống trùng thành `orderCode:` — hai lần trả khác nhau cho CÙNG một phiên bị gộp (lần sau chỉ có thể là trả
+  thừa sau khi phiên đã chốt). payOS SDK luôn có `reference` (chưa kiểm payOS thật).
+- Phiên tổng 0đ (tien_mat / payos) → `CACH_KHONG_KHOP` với lời "tài khoản đã trả đủ" — lời lệch; đơn 0đ đi POST /orders như cũ.
+- `LY_DO_TOI_THIEU` (thanh-toan.js) và số 3 ở wallets.js /adjust là hai chỗ cùng mức — gộp khi chạm wallets.js lần sau.
