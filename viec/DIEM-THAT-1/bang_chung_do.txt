@@ -54,8 +54,16 @@ GỐC e403ac5 [dt]: thoát 1
    Đột biến: python3 viec/DIEM-THAT-1/dot_bien.py → ĐỐI CHỨNG XANH (dt 30 · 0, gl 112 · 0) · TỔNG 16 · BẮT 16 · SỐNG 0 · HỎNG 0 · LẠC 0.
    M15 của thu_gia_lap (tạo đơn cộng điểm cả đơn chưa thu đủ → KB31 → I8) nay BẮT nhờ KB31 nợ có tiền mặt 10.000.
 
+4) Soát vòng 1 (HEAD 224d085 + neo VS-I8-BO-CK): I8 làm tròn như tienTinhDiem; thu_gia_lap thêm 1 ca I8 "tiền mặt lẻ 24.999,6".
+   --goc e403ac5 [gl]: 106 đạt · 7 hỏng, thoát 1 — thêm dòng:
+  ✗ I8 sạch (DIEM-THAT-1): tiền mặt lẻ 24.999,6 − phí giao 5.000 làm tròn như tienTinhDiem → 2 điểm  — ["đơn V1: 0 điểm, đúng luật là 5","đơn G1: 2 điểm, đúng luật là 3"]
+   (dt 11 · 19, p2223 43 · 1, p24 30 · 3 — không đổi.) Ca này đỏ cả trên bản TRƯỚC vòng 1 (I8 chưa làm tròn): đột biến VS-I8-BO-LAM-TRON
+   đưa đúng lỗi cũ trở lại → BẮT ("đơn G1: 2 điểm, đúng luật là 1").
+   Sau vá: thu_gia_lap 180 đạt · 0 hỏng; npm test -- --day-du PASS 75 · FAIL 0; dot_bien.py TỔNG 19 · BẮT 19 (16 cũ + VS-I8-BO-CK,
+   VS-I8-BO-LAM-TRON, VS-I8-MOC-THAT-BO-HUYCU — chạy từng tên, đối chứng dt 30 · 0, gl 113 · 0).
+
 SỐ CA cong_cu/thu_DIEMTHAT1.js: 30
 SỐ CA cong_cu/thu_P2223.js: 44
 SỐ CA cong_cu/thu_P24.js: 33
-SỐ CA cong_cu/thu_gia_lap.js: 179
+SỐ CA cong_cu/thu_gia_lap.js: 180
 SỐ CA cong_cu/thu_P20.js: 171

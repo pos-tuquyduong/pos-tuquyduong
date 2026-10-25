@@ -45,7 +45,7 @@ DOT_BIEN = [
   ('BV-I8-tay', [(BB, G_MOI, 'const g = Math.floor(so(r.total) / per);', 1)], r'✗ I8 \(DIEM-THAT-1\) đơn ví trọn có điểm theo total', 'gl'),
   ('VS-I8-BO-PHI', [(BB, ' - so(r.shipping_fee)', '', 1)], r'✗ F5 ', 'dt'),
   # soát vòng 1: mỗi vế của I8 một đột biến MANG TÊN (CK, làm tròn, vế `cu` của mốc mới)
-  ('VS-I8-BO-CK', [(BB, ' + so(r.transfer_amount)', '', 1)], r'✗ F1 ', 'dt'),
+  ('VS-I8-BO-CK', [(BB, 'Math.round(so(r.cash_amount) + so(r.transfer_amount) - ', 'Math.round(so(r.cash_amount) - ', 1)], r'✗ F1 ', 'dt'),
   ('VS-I8-BO-LAM-TRON', [(BB, 'Math.max(0, Math.round(so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee)))',
                           'Math.max(0, so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee))', 1)],
    r'✗ I8 sạch \(DIEM-THAT-1\): tiền mặt lẻ', 'gl'),
