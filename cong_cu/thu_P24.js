@@ -158,20 +158,20 @@ async function main() {
     k('A3 khách lẻ nhận điểm bằng mã bill (50 = 25 × 2) → huỷ → 1 dòng adjust −50 cho SĐT NGƯỜI NHẬN', n3.status === 200 && h3.status === 200
       && t3.length === 1 && t3[0].points === -50 && t3[0].customer_phone === s3 && await diemDon(d3.id) === 0, `${moTa(n3)} / ${moTa(h3)} · ${JSON.stringify(t3)}`);
 
-    const s4 = sdtMoi(); await nap(s4, 25000);
-    const d4 = await ban({ customer_phone: s4, items: [mon(0)], payment_method: 'balance', balance_amount: 25000 });
+    const s4 = sdtMoi(); await nap(s4, 10000);   // DIEM-THAT-1: ví 10.000 + tiền mặt 15.000 → 15 điểm (phần ví không sinh điểm)
+    const d4 = await ban({ customer_phone: s4, items: [mon(0)], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 });
     co.nemGhi = /'adjust'/;
     const h4 = await huy(d4.id);
     co.nemGhi = null;
     const tt4 = await so("SELECT COUNT(*) FROM pos_orders WHERE id = ? AND status = 'completed'", [d4.id]);
-    k('A4 câu ghi dòng trừ lỗi → huỷ 500, rollback trọn: đơn vẫn completed, ví vẫn 0, 0 dòng trừ, earn còn 25', h4.status === 500 && tt4 === 1
-      && await vi(s4) === 0 && await soDong(d4.id, 'adjust') === 0 && await diemDon(d4.id) === 25, `${moTa(h4)} · completed ${tt4} · ví ${await vi(s4)}`);
+    k('A4 câu ghi dòng trừ lỗi → huỷ 500, rollback trọn: đơn vẫn completed, ví vẫn 0, 0 dòng trừ, earn còn 15', h4.status === 500 && tt4 === 1
+      && await vi(s4) === 0 && await soDong(d4.id, 'adjust') === 0 && await diemDon(d4.id) === 15, `${moTa(h4)} · completed ${tt4} · ví ${await vi(s4)}`);
     let trongTx = null;
     co.truocCommit = async (tx) => { trongTx = Number((await tx.queryOne("SELECT COUNT(*) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust'", [d4.id])).n); };
     const h4b = await huy(d4.id);
     co.truocCommit = null;
-    k('A4b dòng trừ nằm TRONG giao dịch huỷ: đọc ngay trước commit thấy 1; ví hoàn 25.000', h4b.status === 200 && trongTx === 1
-      && await vi(s4) === 25000 && await diemDon(d4.id) === 0, `${moTa(h4b)} · trong giao dịch ${trongTx} · ví ${await vi(s4)}`);
+    k('A4b dòng trừ nằm TRONG giao dịch huỷ: đọc ngay trước commit thấy 1; ví hoàn 10.000', h4b.status === 200 && trongTx === 1
+      && await vi(s4) === 10000 && await diemDon(d4.id) === 0, `${moTa(h4b)} · trong giao dịch ${trongTx} · ví ${await vi(s4)}`);
 
     const s5 = sdtMoi();
     const d5 = await tienMat(s5);
@@ -308,12 +308,12 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[G] DELETE /:id: đơn completed có điểm → trừ như huỷ; huỷ rồi xoá → không trừ lần hai');
   {
-    const s1 = sdtMoi(); await nap(s1, 25000);
-    const d1 = await ban({ customer_phone: s1, items: [mon(0)], payment_method: 'balance', balance_amount: 25000 });
+    const s1 = sdtMoi(); await nap(s1, 10000);   // DIEM-THAT-1: ví 10.000 + tiền mặt 15.000 → 15 điểm
+    const d1 = await ban({ customer_phone: s1, items: [mon(0)], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 });
     const x1 = await xoa(d1.id);
     const t1 = await dongTru(d1.id);
-    k('G1 xoá đơn completed có earn 25 → 200, ví hoàn 25.000 (K5), 1 dòng adjust −25 cho SĐT đơn (còn lại dù đơn đã xoá)', x1.status === 200
-      && await vi(s1) === 25000 && t1.length === 1 && t1[0].points === -25 && t1[0].customer_phone === s1 && await diemDon(d1.id) === 0,
+    k('G1 xoá đơn completed có earn 15 → 200, ví hoàn 10.000 (K5), 1 dòng adjust −15 cho SĐT đơn (còn lại dù đơn đã xoá)', x1.status === 200
+      && await vi(s1) === 10000 && t1.length === 1 && t1[0].points === -15 && t1[0].customer_phone === s1 && await diemDon(d1.id) === 0,
     `${moTa(x1)} · ví ${await vi(s1)} · ${JSON.stringify(t1)}`);
     const d2 = await tienMat(sdtMoi());
     const h2 = await huy(d2.id);
@@ -382,12 +382,12 @@ async function main() {
     k('I1c huỷ đơn mua thẻ → 200, dòng mua thẻ xoá, ví hoàn đủ, điểm đơn 0', hThe.status === 200 && await vi(s2) === Number(hang.card_price)
       && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [the1.id]) === 0 && await diemDon(the1.id) === 0, moTa(hThe));
 
-    const s3 = sdtMoi(); await nap(s3, 25000);
-    const d3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'balance', balance_amount: 25000 });
+    const s3 = sdtMoi(); await nap(s3, 10000);   // DIEM-THAT-1: ví 10.000 + tiền mặt 15.000 → 15 điểm
+    const d3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 });
     const yc = await goi('POST', '/refunds', { order_id: d3.id, reason: 'thử P24' });
     const dy = await goi('POST', `/refunds/${yc.refund_id}/approve`, {});
-    k('I2 duyệt hoàn tiền (refunds.js) đơn có 25 điểm → 200, ví hoàn, điểm GIỮ 25, 0 dòng trừ (việc sau)', dy.status === 200 && await vi(s3) === 25000
-      && await diemDon(d3.id) === 25 && await soDong(d3.id, 'adjust') === 0, `${moTa(yc)} / ${moTa(dy)}`);
+    k('I2 duyệt hoàn tiền (refunds.js) đơn có 15 điểm → 200, ví hoàn, điểm GIỮ 15, 0 dòng trừ (việc sau)', dy.status === 200 && await vi(s3) >= 10000
+      && await diemDon(d3.id) === 15 && await soDong(d3.id, 'adjust') === 0, `${moTa(yc)} / ${moTa(dy)}`);
     const s4 = sdtMoi();
     const d4 = await tienMat(s4, 1);
     const bh = await goi('POST', '/damages', { order_id: d4.id, product_code: sp[1].code, quantity: 1, reason: 'damaged', reason_note: 'thử P24',

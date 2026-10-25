@@ -289,8 +289,15 @@ async function main() {
       await taoDon('chuyển khoản', { items: [mon()], payment_method: 'transfer', transfer_amount: 25000 }));
 
     const sdtVi = sdtMoi(); await napVi(sdtVi, 100000);
-    await phaiQua('trả bằng ví',
-      await taoDon('ví', { customer_phone: sdtVi, customer_name: 'Khách ví', items: [mon()], payment_method: 'balance', balance_amount: 25000 }));
+    await phaiQua('ví 10.000 + tiền mặt 15.000',
+      await taoDon('ví', { customer_phone: sdtVi, customer_name: 'Khách ví', items: [mon()], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 }));
+    // DIEM-THAT-1: đơn trả TRỌN bằng ví → 0 điểm gốc → /nhan-diem 400 DON_KHONG_DU_DIEM; voucher (/claim) vẫn qua (K5).
+    const sdtViTron = sdtMoi(); await napVi(sdtViTron, 25000);
+    const dViTron = await taoDon('ví trọn', { customer_phone: sdtViTron, customer_name: 'Khách ví', items: [mon()], payment_method: 'balance', balance_amount: 25000 });
+    const cViTron = await claim(dViTron.ma, sdtViTron);
+    const nViTron = await nhanDiem(dViTron.ma, sdtViTron);
+    k('trả trọn bằng ví: /claim → 200; /nhan-diem → 400 DON_KHONG_DU_DIEM (DIEM-THAT-1)', cViTron.status === 200
+      && nViTron.status === 400 && nViTron.code === 'DON_KHONG_DU_DIEM', `${moTa(cViTron)} / ${moTa(nViTron)}`);
 
     // Chiết khấu do MÁY CHỦ tự tra từ hồ sơ khách (orders.js POS-CONGDON-v1 · LO 2),
     // không nhận mức giảm client gửi — nên phải tạo khách có chiết khấu riêng.
