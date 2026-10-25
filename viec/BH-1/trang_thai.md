@@ -81,3 +81,6 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài 
 GIT (lúc báo cáo): ebe722e BH-1 trang_thai · d7c5437 vòng sửa 1 theo soát · 4c79f44 màn Bán hàng mới + dist · 5c8767e tinh.js + bài thử + đột biến
 
 HEAD ĐÃ KIỂM: d7c5437
+
+Chat soát 25.10: gộp main 56e090d (P3) vào BH-1 — mảng bài: chèn thu_BH1.js TRƯỚC thu_P3.js (bài P3 đòi đứng cuối), phép S11 của thu_BH1.js nới thành "có trong mảng"; commit bf0da72 (gộp main / đổi mốc I8) qua hook pre-commit + cổng chạy GitHub.
+HEAD ĐÃ KIỂM: bf0da72
