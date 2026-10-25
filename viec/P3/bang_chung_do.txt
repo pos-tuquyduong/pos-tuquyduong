@@ -1,15 +1,16 @@
-# Bằng chứng ĐỎ — cong_cu/thu_P3.js (bản commit a830070 = bản ở HEAD, sau soát vòng 1) chạy trên bản GỐC: cây của 0a9fb6c
+# Bằng chứng ĐỎ — cong_cu/thu_P3.js (bản commit 84c202d = bản ở HEAD, sau soát vòng 2) chạy trên bản GỐC: cây của 0a9fb6c
 # (PHIEU: P3 duyệt kế hoạch, trước khi vá).
 # Dựng gốc: git archive 0a9fb6c | tar -x -C <nháp>/goc_p3 ; ln -s <kho>/node_modules <nháp>/goc_p3/node_modules ;
-#           chép cong_cu/thu_P3.js (a830070) vào <nháp>/goc_p3/cong_cu/
+#           chép cong_cu/thu_P3.js (84c202d) vào <nháp>/goc_p3/cong_cu/
 # Lệnh:     cd <nháp>/goc_p3 && node cong_cu/thu_P3.js
-# Kết quả gốc: 4 đạt · 40 hỏng, thoát 1. 4 ca đạt là ca CANH luồng cũ (phải xanh cả trước lẫn sau — K5): nạp + trừ đúng khả dụng (F1 K5),
+# Kết quả gốc: 4 đạt · 43 hỏng, thoát 1. 4 ca đạt là ca CANH luồng cũ (phải xanh cả trước lẫn sau — K5): nạp + trừ đúng khả dụng (F1 K5),
 # chỉ chuyển khoản (H K5), I1–I6 luồng cũ, J1 log không lộ khoá.
 # Mục B, C, D (và phần sau của E, F) SẬP giữa chừng trên gốc (chưa có route / bảng phiên / cột PIN) — mỗi mục sập in MỘT dòng ✗, nên từng
-# ca B / C / D chưa từng được thấy đỏ RIÊNG trên gốc: giá trị phân biệt của chúng dựa vào bộ đột biến viec/P3/dot_bien.py (trang_thai.md).
-# Lịch sử: bản 7272331 → gốc 4 · 39 (SỐ CA 85); 88bc75b thêm E3 hạn khoá; 01f7bd1 dời F2; a830070 thêm B6 trả dư, E10, I7 ví mẹ → 4 · 40.
-# Trên code ĐÃ VÁ (HEAD): 88 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_P3.js: 88
+# ca B / C / D / F4b–F10 chưa từng được thấy đỏ RIÊNG trên gốc: giá trị phân biệt của chúng dựa vào bộ đột biến viec/P3/dot_bien.py
+# (63/63 bị bắt — trang_thai.md).
+# Lịch sử: 7272331 → gốc 4 · 39 (SỐ CA 85); a830070 → 4 · 40 (88); 84c202d thêm A6 ×2, E2 ngưỡng, ca vòng 2 → 4 · 43.
+# Trên code ĐÃ VÁ (HEAD): 100 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P3.js: 100
 
   ✗ A1 tạo phiên 50.000 (giữ 30.000 tài khoản) → 200, payOS nhận đúng PHẦN CÒN LẠI 20.000  — HTTP 404 · {}
   ✗ A1 mã đơn payOS = mã phiên, nội dung TQD<mã phiên> ≤ 9 ký tự, không dấu cách
@@ -24,19 +25,22 @@ SỐ CA cong_cu/thu_P3.js: 88
   ✗ A4 phiên ck_tay → xác nhận tay (quản lý) mới chốt được  — HTTP 404
   ✗ A5 mã phiên 999999 → nội dung TQD999999 (9 ký tự) → 200  — HTTP 404
   ✗ A5 mã phiên 1000000 (nội dung 10 ký tự) → 409 MA_PHIEN_QUA_DAI, không gọi payOS  — HTTP 404
+  ✗ A6 payOS từ chối → 502 PAYOS_LOI, phần giữ nhả ngay (khả dụng 30.000)  — HTTP 404 · undefined
+  ✗ A6 payOS vỏ trả sai chữ ký → 502 PAYOS_LOI, phần giữ nhả ngay (khả dụng 30.000)  — HTTP 404 · undefined
   ✗ B: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
   ✗ C: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
   ✗ D: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
   ✗ E1 đặt PIN ở quầy (2 lần khớp) → cột là băm bcrypt, không phải 4 số  — HTTP 404
   ✗ E1 quầy đặt lại khi đã có PIN → 409 PIN_DA_CO  — HTTP 404
   ✗ E2 hai lần lệch → 400 PIN_KHONG_KHOP; không phải 4 chữ số → 400 PIN_KHONG_HOP_LE  — HTTP 404 / HTTP 404
+  ✗ E2 PIN 3 số / 5 số (ngay dưới / ngay trên 4) → 400 PIN_KHONG_HOP_LE  — HTTP 404 / HTTP 404
   ✗ E5 chưa có PIN mà trừ tài khoản → 400 CHUA_CO_PIN  — HTTP 404
   ✗ E5 (Q7) pin_code cũ không phải băm → coi như CHƯA có: trừ tài khoản 400 CHUA_CO_PIN, quầy đặt được  — HTTP 404 / HTTP 404
   ✗ E3 khoá đến = bây giờ + 15 phút (±5 s)  — null
   ✗ E3 sai 5 lần (mỗi lần 400 PIN_SAI) → lần 6 dù ĐÚNG → 423 PIN_DANG_KHOA  — HTTP 404,HTTP 404,HTTP 404,HTTP 404,HTTP 404 / HTTP 404
   ✗ E3 hết 15 phút khoá → PIN đúng qua (200)  — HTTP 404
   ✗ E: bài chạy hết mục  — SQLITE_ERROR: no such column: pin_sai
-  ✗ F1 / F6 phiên giữ 75.000 / 100.000 → GET ví có dang_giu 75.000, kha_dung 25.000; chưa ghi dòng sổ ví nào  — HTTP 404 {"id":5,"phone":"0930000005","balance":100000,…}
+  ✗ F1 / F6 phiên giữ 75.000 / 100.000 → GET ví có dang_giu 75.000, kha_dung 25.000; chưa ghi dòng sổ ví nào  — HTTP 404 {"id":6,"phone":"0930000006","balance":100000,…}
   ✗ F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn quầy trừ 50.000 → 400 SO_DU_KHONG_DU  — HTTP 200 / HTTP 200 / HTTP 400 · SO_DU_KHONG_DU
   ✓ F1 (K5) nạp 5.000 khi đang giữ → 200; trừ đúng bằng khả dụng 30.000 → 200
   ✗ F7 phiên chỉ trả tài khoản chốt → đơn balance 75.000, tiền mặt 0, ví còn 0  — HTTP 404
@@ -56,4 +60,4 @@ SỐ CA cong_cu/thu_P3.js: 88
   ✗ backup.js: pos_phien_thanh_toan + pos_payos_su_kien + pos_nhat_ky_pin trong BANG_KHONG_KHOI_PHUC
   ✗ kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_P3.js'
 
-  4 đạt · 40 hỏng
+  4 đạt · 43 hỏng

@@ -171,3 +171,50 @@ Phát hiện ngoài phạm vi: reconcileWallet ghi tuyệt đối không trừ �
 BÀI HỌC: KHOÁ — mỗi nhánh hỏng đụng tiền có ca TẤT ĐỊNH qua móc sẵn có; đua thật chỉ là bằng chứng khi đột biến đọc-ngoài-giao-dịch làm nó ĐỎ;
   ca SĐT mẹ = SĐT khách. NGUYÊN TẮC — phép báo sớm trước cổng thật → cổng thật cần ca riêng vượt phép báo sớm; "ca X phủ Y" chỉ ghi khi đột biến xoá Y làm X ĐỎ.
 ```
+
+## Sửa theo soát vòng 2 (25.10) — commit 84c202d, 1c… (neo đột biến)
+| Lỗi vòng 2 | Sửa | Ca khoá / đột biến |
+|---|---|---|
+| 1 giữ hai lần khi SĐT mẹ = SĐT khách | `giuCho.js` từ chối `ME_TRUNG_KHACH` trước PIN / giao dịch | F9 · BV-me-trung |
+| 2 F4 không tất định | ca F4b: móc `mocTruocTx` cho phiên B tạo XONG giữa phép kiểm và giao dịch của A | F4b · VS-giu-truoc-tx (đọc số dư + đang giữ NGOÀI giao dịch) |
+| 3 payOS từ chối / vỏ sai chữ ký | payOS giả có chế độ hỏng | A6 ×2 · BV-payos-nha, BV-payos-ky-vo |
+| 4 KHO_BAN | móc ném lỗi bận ở câu cổng chốt | B14 ×2 · VS-webhook-ban, VS-loi-ca-ban |
+| 5 vế hạn trong cổng | móc lùi het_han giữa phép báo sớm và giao dịch | F10 · VS-cong-bo-han |
+| 6 câu "F1 nạp phủ adjust cộng" SAI | sửa câu; thêm ca số dư < đang giữ → điều chỉnh CỘNG qua | F8 · VS-adjust-khong-am |
+| 7 ngưỡng | PIN 3 / 5 số; lý do 2 / đúng 3 ký tự (hằng `LY_DO_TOI_THIEU`); xác nhận tay phiên tiền mặt | E2b, D2b/D2c, D6 · VS-pin-5-so, VS-pin-3-so, VS-ly-do-2, VS-ly-do-4, BV-phien-khong-phai-ck |
+| 8 hồ sơ | mục CHƯA KIỂM + trả lời nghi ngờ (dưới); cong.js chay ở bước 11 | — |
+| nghi ngờ: xác nhận tay trước rồi payOS báo → ĐỎ lý do mơ hồ | lý do ghi rõ "đã xác nhận tay trước (người, đơn #) — tiền về đúng số: đối chiếu, KHÔNG hoàn". Vẫn ĐỎ (kế hoạch B9 đã duyệt kết quả chua_khop) | B9b |
+| nghi ngờ: ma_payos trùng giữa hai kho | env.example dặn kho thử dùng kênh payOS riêng hoặc để trống | (cấu hình — CHƯA KIỂM) |
+
+Đột biến thêm vòng 2: BV-me-trung VS-giu-truoc-tx BV-payos-nha BV-payos-ky-vo VS-webhook-ban VS-loi-ca-ban VS-cong-bo-han VS-adjust-khong-am
+VS-pin-5-so VS-pin-3-so VS-ly-do-2 VS-ly-do-4 BV-phien-khong-phai-ck.
+Kết quả: `python3 viec/P3/dot_bien.py` (đủ, HEAD 84c202d): đối chứng 100 đạt · 0 hỏng; 62/63 bị bắt — BV-ly-do-tay HỎNG (neo lời báo cũ, nay
+là template) → neo lại → chạy riêng: bị bắt. **63/63.**
+`thu_P3.js` 100 đạt · 0 hỏng. `npm test -- --day-du`: PASS 74 · FAIL 0 · CẢNH BÁO 1 (có sẵn); thu_P3 10,8 s, giả lập 35,9 s, thu_gia_lap 57,4 s.
+Bằng chứng gốc dựng lại với bản 84c202d: 4 đạt · 43 hỏng, SỐ CA 100.
+
+## Trả lời các nghi ngờ của người soát (vòng 1–2) — để nguyên, có lý do
+- Xác nhận tay chốt hỏng 4xx → phiên `loi`, không sự kiện: quản lý thấy lỗi NGAY ở quầy (câu trả 4xx) và xử tại chỗ; phiên payOS mà tiền về
+  sau đó vẫn thành dòng `chua_khop` ĐỎ (webhook ghi). Phiên `ck_tay` (QR tĩnh) không có báo nào từ ngân hàng — chỉ sao kê.
+- Dòng `chua_khop` không có cách đánh dấu "đã xử lý" → ngày đó ĐỎ mãi: là quy tắc Đối soát (chủ quán quyết) → ghi Phát hiện, không tự làm.
+- `PUT /api/kh/pin` không cần PIN cũ: đúng Q6 (đăng nhập App đã qua mã một lần). Nhân viên đặt PIN lần đầu cho khách chưa có PIN → vòng qua cờ
+  `VI_PHAI_QUA_PIN` với khách đó: đúng Q6 (quầy đặt khi khách CHƯA có, khách gõ 2 lần) → ghi Phát hiện.
+- `GIO` chép hai nơi / ba hàm `loi` khác dạng: mỗi file một dạng lỗi của tầng mình (route `res`, util `{status, body}`, PIN `{loi}`); gộp phải
+  sửa `kh/loi.js` (ngoài Phạm vi). Để nguyên.
+
+## CHƯA KIỂM (máy không kiểm được — nói thẳng)
+- Định dạng payOS THẬT: đơn vị `expiredAt` (giây — chat đối chiếu tài liệu 24.10), chữ ký vỏ trả, dạng `transactionDateTime` (máy hiểu là giờ VN
+  "YYYY-MM-DD HH:MM:SS"), payOS có gửi lại webhook khi máy chủ trả 409 / Render đang ngủ không. Bài thử dùng payOS GIẢ viết theo SDK.
+- Khoá payOS thật trên Render, URL webhook đã khai ở payOS — chủ quán cài.
+- Dữ liệu `pin_code` cũ trên Turso (Q7 xử: không băm = chưa có PIN).
+- E8 / E10 là đua thật trong một tiến trình Node: E10 có đột biến tất định-về-kết-quả (VS-pin-doc-roi bắt 3/3 lần ở vòng 1; người soát vòng 2
+  thấy 23 so · 7 khoá — số đổi giữa các lần, kết luận "> 3" không đổi). Turso (HTTP) độ trễ khác — chưa thử.
+- `customers.js` GET `/:id` luôn 500 (có sẵn) → đường này chưa từng trả hồ sơ trong bài nên E6 không chứng minh được nó KHÔNG lộ (middleware
+  bọc mọi `res.json` của router — cùng một hàm với 9 đường còn lại).
+- Màn quầy / App KH chưa gọi các API này (BH-1, KH-MUA-1) — chưa thử tay.
+
+## Phát hiện (thêm ở vòng 2)
+- Quầy `Sales.jsx` đọc số dư thô từ `customers-v2.js` (Đã duyệt 11: không sửa) → có phần đang giữ thì quầy đề nghị số không tiêu được; BH-1 dùng
+  `GET /wallets/:phone` (`kha_dung`).
+- `reconcileWallet` ghi tuyệt đối, không biết phần đang giữ (đối soát thủ công — chủ quán bấm).
+- Dòng `chua_khop` cần cách "đã xử lý" ở màn Đối soát (chủ quán quyết luật).
