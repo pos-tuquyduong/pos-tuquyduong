@@ -1,0 +1,55 @@
+# Bằng chứng ĐỎ — cong_cu/thu_P3.js (bản commit 7272331) chạy trên bản GỐC: cây của 0a9fb6c (PHIEU: P3 duyệt kế hoạch, trước khi vá)
+# Dựng gốc: git archive 0a9fb6c | tar -x -C <nháp>/goc_p3 ; ln -s <kho>/node_modules <nháp>/goc_p3/node_modules ;
+#           chép cong_cu/thu_P3.js (7272331) vào <nháp>/goc_p3/cong_cu/
+# Lệnh:     cd <nháp>/goc_p3 && node cong_cu/thu_P3.js
+# Kết quả gốc: 4 đạt · 39 hỏng, thoát 1. 4 ca đạt là ca CANH luồng cũ (phải xanh cả trước lẫn sau — K5): nạp + trừ đúng khả dụng (F1 K5),
+# chỉ chuyển khoản (H K5), I1–I6 luồng cũ, J1 log không lộ khoá.
+# Số ca gốc ít hơn bản vá vì 5 mục (B, C, D, E, F) sập giữa chừng trên gốc (chưa có route / bảng phiên / cột PIN) — mỗi mục sập in MỘT dòng ✗.
+# Trên code ĐÃ VÁ (HEAD có server/ của việc này): 85 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_P3.js: 85
+
+  ✗ A1 tạo phiên 50.000 (giữ 30.000 tài khoản) → 200, payOS nhận đúng PHẦN CÒN LẠI 20.000  — HTTP 404 · {}
+  ✗ A1 mã đơn payOS = mã phiên, nội dung TQD<mã phiên> ≤ 9 ký tự, không dấu cách
+  ✗ A1 chữ ký tạo link đúng công thức payOS, header x-client-id / x-api-key
+  ✗ A1 expiredAt = giây Unix nguyên, hạn 10 phút (±5 s)  — undefined
+  ✗ A1 cột het_han của phiên = bây giờ + 10 phút (±5 s); quầy nhận QR của payOS  — null
+  ✗ A1 phiên thứ hai → mã đơn payOS khác  — HTTP 404
+  ✗ A2 giỏ gửi unit_price / total / tiền sai → payOS vẫn nhận số máy chủ tính 25.000  — HTTP 404
+  ✗ A3 thiếu khoá payOS → 503 PAYOS_CHUA_CAU_HINH, không tạo phiên, không gọi payOS  — HTTP 404
+  ✗ A4 phiên ck_tay → 200, không gọi payOS; tự chốt → 400 PHIEN_KHONG_CHOT_TAY  — HTTP 404 / HTTP 404
+  ✗ A4 webhook mang mã của phiên ck_tay → 200, KHÔNG đơn, sự kiện khong_phien  — HTTP 404
+  ✗ A4 phiên ck_tay → xác nhận tay (quản lý) mới chốt được  — HTTP 404
+  ✗ A5 mã phiên 999999 → nội dung TQD999999 (9 ký tự) → 200  — HTTP 404
+  ✗ A5 mã phiên 1000000 (nội dung 10 ký tự) → 409 MA_PHIEN_QUA_DAI, không gọi payOS  — HTTP 404
+  ✗ B: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
+  ✗ C: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
+  ✗ D: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
+  ✗ E1 đặt PIN ở quầy (2 lần khớp) → cột là băm bcrypt, không phải 4 số  — HTTP 404
+  ✗ E1 quầy đặt lại khi đã có PIN → 409 PIN_DA_CO  — HTTP 404
+  ✗ E2 hai lần lệch → 400 PIN_KHONG_KHOP; không phải 4 chữ số → 400 PIN_KHONG_HOP_LE  — HTTP 404 / HTTP 404
+  ✗ E5 chưa có PIN mà trừ tài khoản → 400 CHUA_CO_PIN  — HTTP 404
+  ✗ E5 (Q7) pin_code cũ không phải băm → coi như CHƯA có: trừ tài khoản 400 CHUA_CO_PIN, quầy đặt được  — HTTP 404 / HTTP 404
+  ✗ E3 sai 5 lần (mỗi lần 400 PIN_SAI) → lần 6 dù ĐÚNG → 423 PIN_DANG_KHOA  — HTTP 404,HTTP 404,HTTP 404,HTTP 404,HTTP 404 / HTTP 404
+  ✗ E3 hết 15 phút khoá → PIN đúng qua (200)  — HTTP 404
+  ✗ E: bài chạy hết mục  — SQLITE_ERROR: no such column: pin_sai
+  ✗ F1 / F6 phiên giữ 75.000 / 100.000 → GET ví có dang_giu 75.000, kha_dung 25.000; chưa ghi dòng sổ ví nào  — HTTP 404 {"id":5,"phone":"0930000005","balance":100000,…}
+  ✗ F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn quầy trừ 50.000 → 400 SO_DU_KHONG_DU  — HTTP 200 / HTTP 200 / HTTP 400 · SO_DU_KHONG_DU
+  ✓ F1 (K5) nạp 5.000 khi đang giữ → 200; trừ đúng bằng khả dụng 30.000 → 200
+  ✗ F7 phiên chỉ trả tài khoản chốt → đơn balance 75.000, tiền mặt 0, ví còn 0  — HTTP 404
+  ✗ F7 chốt lại lần hai → 409 PHIEN_DA_CHOT  — HTTP 404
+  ✗ F: bài chạy hết mục  — Cannot read properties of undefined (reading 'id')
+  ✗ G1 đơn qua phiên = đơn quầy cùng giỏ: 7 điểm  — HTTP 404
+  ✗ G2 đơn Flash qua phiên → tổng 60.000, 0 điểm (như đơn quầy)  — HTTP 404
+  ✗ H1 POST /orders tiền mặt 10.000 + CK 15.000 → 400 TRA_KET_HOP  — HTTP 200
+  ✓ H (K5) chỉ chuyển khoản 25.000 (cờ payOS tắt) → 200
+  ✓ I1–I6 tiền mặt · số dư đủ (2 kiểu) · mua gói · giao từ gói 0đ · mua thẻ · thu nợ CŨ ở pay-debt → 200
+  ✗ I7 cờ BẬT: CK trần → 400 CK_PHAI_QUA_PAYOS; trừ tài khoản ngoài phiên (2 kiểu) → 400 VI_PHAI_QUA_PIN  — HTTP 200, HTTP 200, HTTP 200
+  ✗ I7 cờ BẬT (K5): tiền mặt · giao từ gói 0đ · phiên payOS về → vẫn 200, đơn tạo  — HTTP 200, HTTP 200, HTTP 0
+  ✗ I (K5) khách lẻ (không SĐT) tạo phiên payOS → 200  — HTTP 404
+  ✓ J1 log máy chủ (89 dòng) không chứa khoá checksum / api key
+  ✗ index.js: app.use('/api/pos/thanh-toan', require('./routes/thanh-toan'))
+  ✗ index.js: app.use('/api/payos/webhook', require('./routes/thanh-toan').webhook) TRƯỚC express.static
+  ✗ backup.js: pos_phien_thanh_toan + pos_payos_su_kien + pos_nhat_ky_pin trong BANG_KHONG_KHOI_PHUC
+  ✗ kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_P3.js'
+
+  4 đạt · 39 hỏng
