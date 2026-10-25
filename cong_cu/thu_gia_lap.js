@@ -421,7 +421,7 @@ async function duLieuTay() {
   // P26c (H5): xoá đơn giữ mã ĐÃ dùng làm vết — không tính mồ côi (đã claim / đã nhân điểm).
   await q("INSERT INTO pos_signup_codes (code, order_id, claimed_at) VALUES ('DUNG1', 98, '2026-10-12')");
   await q("INSERT INTO pos_signup_codes (code, order_id, diem_nhan_luc) VALUES ('DUNG2', 98, '2026-10-12')");
-  const { BAT_BIEN, DIEM_KHI_THU_TU: MOC, HUY_TRU_DIEM_TU: MOC_HUY } = require(path.join(GL, 'bat_bien.js'));
+  const { BAT_BIEN, DIEM_KHI_THU_TU: MOC, HUY_TRU_DIEM_TU: MOC_HUY, DIEM_THAT_TU: MOC_THAT } = require(path.join(GL, 'bat_bien.js'));
   const sach = await BAT_BIEN.I2(q, {});
   k('mã gắn đơn có thật; mã ĐÃ dùng của đơn đã xoá → I2 ra 0 dòng', sach.length === 0, JSON.stringify(sach));
   await q("INSERT INTO pos_signup_codes (code, order_id) VALUES ('MA2', NULL), ('MA3', 99)");
@@ -437,7 +437,8 @@ async function duLieuTay() {
       'CREATE TABLE pos_stock_pending (id INTEGER PRIMARY KEY, order_code TEXT, van_tay TEXT, status TEXT)',
       "INSERT INTO pos_orders VALUES (1, 'D1', 'completed')", "INSERT INTO pos_products VALUES (5, 'tra')", 'INSERT INTO pos_order_items VALUES (1, 1, 5)'],
     I8: ["CREATE TABLE pos_settings (key TEXT, value TEXT)", "INSERT INTO pos_settings VALUES ('loyalty_enabled', 'true'), ('loyalty_earn_per_amount', '10000')",
-      'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, customer_phone TEXT, flash_discount REAL, payment_status TEXT, created_at TEXT, status TEXT, cancelled_at TEXT)',
+      'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, customer_phone TEXT, flash_discount REAL, payment_status TEXT, created_at TEXT, status TEXT, cancelled_at TEXT,'
+        + ' cash_amount REAL, transfer_amount REAL, shipping_fee REAL)',
       'CREATE TABLE pos_signup_codes (id INTEGER PRIMARY KEY, order_id INTEGER, diem_nhan_luc TEXT)',
       'CREATE TABLE pos_point_transactions (id INTEGER PRIMARY KEY, customer_phone TEXT, type TEXT, points INTEGER, order_id INTEGER)',
       'CREATE TABLE pos_voucher_grants (id INTEGER PRIMARY KEY, code TEXT, customer_phone TEXT, reward_id INTEGER, point_tx_id INTEGER)',
@@ -489,15 +490,23 @@ async function duLieuTay() {
   KHUNG.I12 = KHUNG.I8.slice(2).concat(['CREATE TABLE pos_discount_codes (code TEXT, discount_type TEXT, discount_value REAL, usage_limit INTEGER, max_discount REAL)',
     "INSERT INTO pos_discount_codes VALUES ('MA1', 'fixed', 5000, 1, 2000)"]);
   // P22-23 (I8 luật thu đủ): P1 thu đủ 5 điểm · N1 ghi nợ 0 điểm · F1 Flash đã thu, đã nhận mã, 0 điểm. 10.000đ/điểm, hệ số mặc định 2.
-  const DON_I8 = (nNo = "'2026-11-01T10:00:00'") => ["INSERT INTO pos_orders (id, code, total, customer_phone, flash_discount, payment_status, created_at)"
-    + " VALUES (11, 'P1', 50000, 'S', 0, 'paid', '2026-11-01T10:00:00'),"
-    + ` (12, 'N1', 50000, 'S', 0, 'pending', ${nNo}), (13, 'F1', 50000, 'S', 5000, 'paid', '2026-11-01T10:00:00')`,
+  // DIEM-THAT-1: đơn đã thu trả tiền mặt bằng total (giữ nghĩa ca cũ), đơn ghi nợ chưa thu 0 đồng.
+  const DON_I8 = (nNo = "'2026-11-01T10:00:00'") => ["INSERT INTO pos_orders (id, code, total, customer_phone, flash_discount, payment_status, created_at, cash_amount)"
+    + " VALUES (11, 'P1', 50000, 'S', 0, 'paid', '2026-11-01T10:00:00', 50000),"
+    + ` (12, 'N1', 50000, 'S', 0, 'pending', ${nNo}, 0), (13, 'F1', 50000, 'S', 5000, 'paid', '2026-11-01T10:00:00', 50000)`,
   "INSERT INTO pos_point_transactions VALUES (11, 'S', 'earn', 5, 11)", "INSERT INTO pos_signup_codes VALUES (13, 13, '2026-11-01T11:00:00')"];
   const NO_CO_DIEM = "INSERT INTO pos_point_transactions VALUES (12, 'S', 'earn', 5, 12)";
   // P24: H1 đơn đã thu 5 điểm rồi huỷ lúc `luc` (mặc định sau mốc) — thêm dòng trừ −5 thì sạch, thiếu thì đơn huỷ còn điểm.
-  const HUY_I8 = (luc = "'2026-11-02T10:00:00'", tao = "'2026-11-01T10:00:00'", tt = 'paid') => [...DON_I8(), "INSERT INTO pos_orders VALUES (14, 'H1', 50000, 'S', 0, "
-    + `'${tt}', ${tao}, 'cancelled', ${luc})`, "INSERT INTO pos_point_transactions VALUES (14, 'S', 'earn', 5, 14)"];
+  const HUY_I8 = (luc = "'2026-11-02T10:00:00'", tao = "'2026-11-01T10:00:00'", tt = 'paid') => [...DON_I8(), 'INSERT INTO pos_orders (id, code, total, customer_phone,'
+    + ` flash_discount, payment_status, created_at, status, cancelled_at, cash_amount) VALUES (14, 'H1', 50000, 'S', 0, '${tt}', ${tao}, 'cancelled', ${luc},`
+    + ` ${tt === 'paid' ? 50000 : 0})`, "INSERT INTO pos_point_transactions VALUES (14, 'S', 'earn', 5, 14)"];
   const TRU_I8 = "INSERT INTO pos_point_transactions VALUES (15, 'S', 'adjust', -5, 14)";
+  // DIEM-THAT-1: V1 trả trọn bằng ví 50.000 (tiền thật 0 → 0 điểm) · G1 tiền mặt 30.000 có phí giao 5.000 (tiền thật 25.000 → 2 điểm, total → 3).
+  const THAT_I8 = (tao = "'2026-11-01T10:00:00'") => ['INSERT INTO pos_orders (id, code, total, customer_phone, flash_discount, payment_status, created_at,'
+    + ` cash_amount, transfer_amount, shipping_fee) VALUES (21, 'V1', 50000, 'S', 0, 'paid', ${tao}, 0, 0, 0),`
+    + " (22, 'G1', 30000, 'S', 0, 'paid', '2026-11-01T10:00:00', 30000, 0, 5000)", "INSERT INTO pos_point_transactions VALUES (22, 'S', 'earn', 2, 22)"];
+  const V1_CO_DIEM = "INSERT INTO pos_point_transactions VALUES (21, 'S', 'earn', 5, 21)";
+  const truocMocThat = MOC_THAT ? `'${new Date(Date.parse(MOC_THAT + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
   const truocMocHuy = MOC_HUY ? `'${new Date(Date.parse(MOC_HUY + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
   const truocMoc = MOC ? `'${new Date(Date.parse(MOC + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
   const VT = 'POS:1:out:0';
@@ -563,6 +572,15 @@ async function duLieuTay() {
     ['I8 Đối soát thật (P24): đơn thu đủ CHƯA huỷ thiếu điểm', 'I8', 'I8', [...DON_I8(), 'DELETE FROM pos_point_transactions WHERE id = 11'],
       /^đơn P1: 0 điểm, đúng luật là 5$/, { thuc: true }],
     ['I8 (P24) dòng adjust KHÔNG gắn đơn', 'I8', 'I8', ["INSERT INTO pos_point_transactions VALUES (2, 'S', 'adjust', -1, NULL)"], /loại dòng điểm lạ "adjust"/, {}],
+    ['I8 sạch (DIEM-THAT-1): đơn ví trọn 0 điểm; đơn tiền mặt có phí giao 2 điểm (tiền thật / per)', 'I8', 'I8', THAT_I8(), null, {}],
+    ['I8 (DIEM-THAT-1) đơn ví trọn có điểm theo total', 'I8', 'I8', [...THAT_I8(), V1_CO_DIEM], /^đơn V1: 5 điểm, đúng luật là 0$/, {}],
+    ['I8 (DIEM-THAT-1) đơn có phí giao, điểm theo total (3)', 'I8', 'I8', [...THAT_I8(), 'UPDATE pos_point_transactions SET points = 3 WHERE id = 22'],
+      /^đơn G1: 3 điểm, đúng luật là 2$/, {}],
+    ['I8 sạch Đối soát thật (DIEM-THAT-1): đơn ví trọn tạo 1 giây trước mốc, điểm theo total (luật cũ)', 'I8', 'I8', [...THAT_I8(truocMocThat), V1_CO_DIEM], null, { thuc: true }],
+    ['I8 Đối soát thật (DIEM-THAT-1): đơn ví trọn tạo ĐÚNG mốc, điểm theo total', 'I8', 'I8', [...THAT_I8(`'${MOC_THAT}T00:00:00'`), V1_CO_DIEM],
+      /^đơn V1: 5 điểm, đúng luật là 0$/, { thuc: true }],
+    ['I8 giả lập (DIEM-THAT-1, không ctx.thuc): đơn ví trọn trước mốc, điểm theo total', 'I8', 'I8', [...THAT_I8(truocMocThat), V1_CO_DIEM],
+      /^đơn V1: 5 điểm, đúng luật là 0$/, {}],
     ['I12 sạch: quà ↔ dòng redeem cùng SĐT, mã đúng trị giá, dùng 1 lần', 'I12', 'I12', [], null, {}],
     ['I12 quà trỏ dòng không phải redeem', 'I12', 'I12', ["UPDATE pos_point_transactions SET type = 'earn'"], /dòng điểm earn/, {}],
     ['I12 dòng redeem của SĐT khác', 'I12', 'I12', ["UPDATE pos_point_transactions SET customer_phone = 'KHAC'"], /mã MA1/, {}],

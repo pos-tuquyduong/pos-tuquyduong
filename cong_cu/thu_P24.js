@@ -386,7 +386,7 @@ async function main() {
     const d3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 });
     const yc = await goi('POST', '/refunds', { order_id: d3.id, reason: 'thử P24' });
     const dy = await goi('POST', `/refunds/${yc.refund_id}/approve`, {});
-    k('I2 duyệt hoàn tiền (refunds.js) đơn có 15 điểm → 200, ví hoàn, điểm GIỮ 15, 0 dòng trừ (việc sau)', dy.status === 200 && await vi(s3) >= 10000
+    k('I2 duyệt hoàn tiền (refunds.js) đơn có 15 điểm → 200, ví hoàn, điểm GIỮ 15, 0 dòng trừ (việc sau)', dy.status === 200 && await vi(s3) === 10000
       && await diemDon(d3.id) === 15 && await soDong(d3.id, 'adjust') === 0, `${moTa(yc)} / ${moTa(dy)}`);
     const s4 = sdtMoi();
     const d4 = await tienMat(s4, 1);
