@@ -74,3 +74,10 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài 
 - NGUYÊN TẮC: khi nghiệm thu liệt kê dữ liệu hiển thị, tra API đang gọi có trả đúng trường đó chưa trước khi viết giao diện (đề xuất K9 cho KHUON_LOI.md, ngoài Phạm vi — chat soát duyệt). Ví dụ thật: điểm khách ở BH-1.
 - BỎ: người gác chặn `sed -i`, `npx`, `cd` ghép, `python3 - <<EOF` (chỉ là cách làm việc, đã đổi sang Edit / file script trong nháp); lỗi nút "Thêm vào giỏ" bị thanh điều hướng đáy che (một lần, đã nâng z-index và có trong ghi chú).
 - Dọn: chưa thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md đã có phép máy làm thay hoàn toàn để đề xuất xoá.
+
+## Cổng
+✓ CỔNG CHẠY ĐẠT (node tu_chay/cong.js chay . 21494c0^ HEAD viec/BH-1, chạy tại ebe722e)
+
+GIT (lúc báo cáo): ebe722e BH-1 trang_thai · d7c5437 vòng sửa 1 theo soát · 4c79f44 màn Bán hàng mới + dist · 5c8767e tinh.js + bài thử + đột biến
+
+HEAD ĐÃ KIỂM: d7c5437
