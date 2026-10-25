@@ -215,7 +215,7 @@ async function main() {
   k('S9 App.jsx: không còn `<Sales />` làm route trang chủ', !/<Route index element=\{<Sales\s*\/>\}/.test(app));
   k('S10 Sales.jsx không nhắc BanHang (màn cũ KHÔNG đổi)', !/BanHang/.test(ban));
   const kiem = DOC('kiem_tra_truoc_khi_giao.js');
-  k('S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js', /'cong_cu\/thu_BH1\.js'\]\) chayBaiThat\(bai\)/.test(kiem));
+  k('S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js', /'cong_cu\/thu_BH1\.js'[,\]][^\n]*chayBaiThat\(bai\)/.test(kiem));
   k('S12 kết thúc: lưới món khoá (bh-khoa) khi xong && !daIn', jsx.some(([, s]) => /xong && !daIn \? ' bh-khoa'/.test(s)));
   k('S13 chống bấm đôi: dangGuiRef chặn trong thu() + nút Đã nhận tiền disabled theo dangGui', jsx.some(([, s]) => /if \(dangGuiRef\.current \|\|/.test(s)) && jsx.some(([, s]) => /disabled=\{dangGui \|\| !duDuoc/.test(s)));
 
