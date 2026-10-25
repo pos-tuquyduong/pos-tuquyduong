@@ -1,14 +1,14 @@
-# Bằng chứng ĐỎ — cong_cu/thu_P3.js (bản commit 84c202d = bản ở HEAD, sau soát vòng 2) chạy trên bản GỐC: cây của 0a9fb6c
+# Bằng chứng ĐỎ — cong_cu/thu_P3.js (bản commit 614d281 = bản ở HEAD, sau soát vòng 3) chạy trên bản GỐC: cây của 0a9fb6c
 # (PHIEU: P3 duyệt kế hoạch, trước khi vá).
 # Dựng gốc: git archive 0a9fb6c | tar -x -C <nháp>/goc_p3 ; ln -s <kho>/node_modules <nháp>/goc_p3/node_modules ;
-#           chép cong_cu/thu_P3.js (84c202d) vào <nháp>/goc_p3/cong_cu/
+#           chép cong_cu/thu_P3.js (614d281) vào <nháp>/goc_p3/cong_cu/
 # Lệnh:     cd <nháp>/goc_p3 && node cong_cu/thu_P3.js
 # Kết quả gốc: 4 đạt · 43 hỏng, thoát 1. 4 ca đạt là ca CANH luồng cũ (phải xanh cả trước lẫn sau — K5): nạp + trừ đúng khả dụng (F1 K5),
 # chỉ chuyển khoản (H K5), I1–I6 luồng cũ, J1 log không lộ khoá.
 # Mục B, C, D (và phần sau của E, F) SẬP giữa chừng trên gốc (chưa có route / bảng phiên / cột PIN) — mỗi mục sập in MỘT dòng ✗, nên từng
 # ca B / C / D / F4b–F10 chưa từng được thấy đỏ RIÊNG trên gốc: giá trị phân biệt của chúng dựa vào bộ đột biến viec/P3/dot_bien.py
 # (63/63 bị bắt — trang_thai.md).
-# Lịch sử: 7272331 → gốc 4 · 39 (SỐ CA 85); a830070 → 4 · 40 (88); 84c202d thêm A6 ×2, E2 ngưỡng, ca vòng 2 → 4 · 43.
+# Lịch sử: 7272331 → gốc 4 · 39 (SỐ CA 85); a830070 → 4 · 40 (88); 84c202d thêm A6 ×2, E2 ngưỡng, ca vòng 2 → 4 · 43; 614d281 chỉ đổi ca B6 (±1đ, mục B sập trên gốc) → vẫn 4 · 43 (chạy lại).
 # Trên code ĐÃ VÁ (HEAD): 100 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_P3.js: 100
 
