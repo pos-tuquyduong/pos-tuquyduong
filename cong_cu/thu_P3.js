@@ -71,9 +71,11 @@ async function main() {
 
   // Móc B13 (chết giữa chừng): câu ghi sự kiện payOS TRONG giao dịch chạy xong thì ném một lần. Gắn TRƯỚC khi nạp route
   // (route lấy beginTransaction lúc require).
-  let mocChetSauSuKien = false;
+  let mocChetSauSuKien = false, mocTruocTx = null;
   const txGoc = db.beginTransaction;
   db.beginTransaction = async (...a) => {
+    const moc = mocTruocTx; mocTruocTx = null;   // B9b: một lệnh chốt khác chạy XONG giữa "phép kiểm ngoài giao dịch" và "mở giao dịch"
+    if (moc) await moc();
     const tx = await txGoc(...a);
     const runGoc = tx.run;
     tx.run = async (sql, p) => {
@@ -278,6 +280,14 @@ async function main() {
     const sk9 = (await suKien(p9.id)).map((s) => s.ket_qua).join(), n9 = (await dongPhien(p9.id))?.nguon;
     k('B9 webhook + xác nhận tay CÙNG LÚC → MỘT đơn; bên thua: webhook chua_khop / xác nhận tay 409', await soDon() === d9 + 1
       && ((n9 === 'payos' && sk9 === 'khop' && la(t9, 409, 'PHIEN_DA_CHOT')) || (n9 === 'tay' && sk9 === 'chua_khop')), `${moTa(w9)} / ${moTa(t9)} · ${n9} · ${sk9}`);
+    const p9b = (await taoPhien({})).j.phien, d9b = await soDon();
+    let t9b = null;
+    mocTruocTx = async () => { t9b = await goi('POST', `/pos/thanh-toan/phien/${p9b.id}/xac-nhan-tay`, { ly_do: 'Chen giữa' }, tkQl); };
+    const w9b = await guiWebhook(webhook(p9b));
+    mocTruocTx = null;
+    k('B9b (tất định) xác nhận tay chốt XONG giữa phép kiểm và giao dịch của webhook → MỘT đơn (nguồn tay), webhook chua_khop',
+      la(w9b, 200) && t9b && la(t9b, 200) && await soDon() === d9b + 1 && (await dongPhien(p9b.id))?.nguon === 'tay'
+      && (await suKien(p9b.id)).map((s) => s.ket_qua).join() === 'chua_khop', `${moTa(w9b)} / ${t9b && moTa(t9b)} · ${await soDon() - d9b} đơn`);
     const p11 = (await taoPhien({})).j.phien, d11 = await soDon();
     const b11 = await guiWebhook(webhook(p11, { code: '01', desc: 'fail' }));
     k('B11 data.code ≠ 00 → 200, KHÔNG đơn, sự kiện that_bai', la(b11, 200) && await soDon() === d11 && (await suKien(p11.id))[0]?.ket_qua === 'that_bai', moTa(b11));
@@ -358,20 +368,20 @@ async function main() {
     k('E5 (Q7) pin_code cũ không phải băm → coi như CHƯA có: trừ tài khoản 400 CHUA_CO_PIN, quầy đặt được', la(e5b, 400, 'CHUA_CO_PIN') && la(e5c, 200), moTa(e5b) + ' / ' + moTa(e5c));
     // E3: sai 5 lần → lần 6 dù đúng vẫn khoá; lùi giờ khoá → mở lại.
     const kq = [];
-    for (let i = 0; i < 5; i++) kq.push(await taoPhien({ sdt: b, cach: 'tien_mat', pin: '0000' }));
-    const e3 = await taoPhien({ sdt: b, cach: 'tien_mat', pin: '2468' });
+    for (let i = 0; i < 5; i++) kq.push(await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' }));
+    const e3 = await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '2468' });
     k('E3 sai 5 lần (mỗi lần 400 PIN_SAI) → lần 6 dù ĐÚNG → 423 PIN_DANG_KHOA', kq.every((x) => la(x, 400, 'PIN_SAI')) && la(e3, 423, 'PIN_DANG_KHOA'), kq.map(moTa).join(',') + ' / ' + moTa(e3));
     await db.run("UPDATE pos_customers SET pin_khoa_den = strftime('%Y-%m-%dT%H:%M:%S', ?, '-1 seconds') WHERE phone = ?", [getNow(), b]).catch(() => {});
-    const e3b = await taoPhien({ sdt: b, cach: 'tien_mat', pin: '2468' });
+    const e3b = await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '2468' });
     k('E3 hết 15 phút khoá → PIN đúng qua (200)', la(e3b, 200), moTa(e3b));
     if (e3b.j.phien) await goi('POST', `/pos/thanh-toan/phien/${e3b.j.phien.id}/huy`, {});
     const kq4 = [];
-    for (let i = 0; i < 4; i++) kq4.push(await taoPhien({ sdt: b, cach: 'tien_mat', pin: '0000' }));
-    const e4 = await taoPhien({ sdt: b, cach: 'tien_mat', pin: '2468' });
+    for (let i = 0; i < 4; i++) kq4.push(await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' }));
+    const e4 = await taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '2468' });
     const dem4 = (await db.queryOne('SELECT pin_sai FROM pos_customers WHERE phone = ?', [b]))?.pin_sai;
     k('E4 sai 4 lần (ngay dưới ngưỡng) + 1 đúng → 200, đếm sai về 0', kq4.every((x) => la(x, 400, 'PIN_SAI')) && la(e4, 200) && Number(dem4) === 0, moTa(e4) + ' · pin_sai=' + dem4);
     if (e4.j.phien) await goi('POST', `/pos/thanh-toan/phien/${e4.j.phien.id}/huy`, {});
-    await Promise.all([taoPhien({ sdt: b, cach: 'tien_mat', pin: '0000' }), taoPhien({ sdt: b, cach: 'tien_mat', pin: '0000' })]);
+    await Promise.all([taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' }), taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' })]);
     k('E8 hai PIN sai CÙNG LÚC → đếm 2 (cộng tương đối)', Number((await db.queryOne('SELECT pin_sai FROM pos_customers WHERE phone = ?', [b]))?.pin_sai) === 2);
     // Xoá PIN (quên PIN): owner / manager, lý do bắt buộc.
     const x1 = await goi('POST', '/pos/thanh-toan/pin/xoa', { phone: b, ly_do: 'Khách quên PIN' }, tkNv);
@@ -390,7 +400,7 @@ async function main() {
       ['GET /phone/:p', await goi('GET', `/pos/customers/phone/${b}`)], ['GET / (danh sách)', await goi('GET', `/pos/customers?search=${b}`)],
       ['GET /search', await goi('GET', `/pos/customers/search?q=${b}`)], ['POST / (tạo)', tao],
       ['PUT /:id', await goi('PUT', `/pos/customers/${kh.id}`, { name: kh.name })], ['PUT /:id/discount', await goi('PUT', `/pos/customers/${kh.id}/discount`, { discount_type: 'percent', discount_value: 0 }, tkChu)],
-      ['GET /:id/children', await goi('GET', `/pos/customers/${kh.id}/children`)], ['POST /:id/children', await goi('POST', `/pos/customers/${kh.id}/children`, { name: 'Con 2' })]];
+      ['GET /:id/children', await goi('GET', `/pos/customers/${kh.id}/children`)], ['POST /:id/children', await goi('POST', `/pos/customers/${kh.id}/children`, { name: 'Con 2', phone: sdtMoi() })]];
     const lo = duong.filter(([, r]) => r.tho.includes('"password"') || r.tho.includes('"pin_code"') || r.tho.includes(kh.pin_code) || r.tho.includes('mat_khau_bam_thu_p3'));
     k(`E6 ${duong.length} đường /customers (qr, id, phone, danh sách, search, tạo, sửa, chiết khấu, con) không trả password / pin_code`,
       lo.length === 0 && duong.filter(([, r]) => r.status === 200).length >= 8, lo.map(([t]) => t).join(', ') + ' · ' + duong.map(([t, r]) => t + ' ' + r.status).join(', '));
@@ -547,8 +557,9 @@ async function main() {
     const iKhong = bk.indexOf('BANG_KHONG_KHOI_PHUC'), khongKP = bk.slice(iKhong, bk.indexOf('];', iKhong));
     k('backup.js: pos_phien_thanh_toan + pos_payos_su_kien + pos_nhat_ky_pin trong BANG_KHONG_KHOI_PHUC',
       ['pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin'].every((t) => khongKP.includes(`'${t}'`)));
-    const kt = bo(fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8'));
-    k("kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_P3.js'", kt.includes("'cong_cu/thu_P3.js'"));
+    // Không cắt chú thích ở đây: bộ kiểm có chuỗi 'server/**' (mở /* giả). Đòi đúng dòng gọi chạy.
+    const kt = fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8');
+    k("kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_P3.js'", /^for \(const bai of \[[^\n]*'cong_cu\/thu_P3\.js'\]\) chayBaiThat\(bai\);$/m.test(kt));
   }
 
   sv.close(); svGia.close();
