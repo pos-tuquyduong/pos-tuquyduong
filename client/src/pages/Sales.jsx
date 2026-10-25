@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { productsApi, ordersApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
-import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, AlertCircle, FileText, Camera } from 'lucide-react';
+import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, Camera } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
 import QrScanModal from '../components/QrScanModal';
@@ -47,17 +47,6 @@ export default function Sales() {
   // State cho thanh toán linh hoạt (V4)
   const [useBalance, setUseBalance] = useState(false);        // Có dùng số dư không
   const [balanceToUse, setBalanceToUse] = useState(0);        // Số tiền dư muốn dùng
-  const [isDebt, setIsDebt] = useState(false);                // Có ghi nợ không
-  const [dueDate, setDueDate] = useState('');                 // Hạn thanh toán
-  // POS-CHUATHU-v1: khách đứng trước quầy chờ trả, KHÁC với nợ khách quen.
-  // Luôn đi kèm isDebt=true (phần còn lại chưa thu). Cờ này chỉ quyết định:
-  // có đòi khách hàng không · có hỏi hạn thanh toán không · ghi payment_method nào.
-  const [choThuTaiQuay, setChoThuTaiQuay] = useState(false);
-  // Hai câu hỏi, mỗi câu MỘT chỗ trả lời — sửa ở đây là mọi nơi đổi theo:
-  const laGhiNo = isDebt && !choThuTaiQuay;          // nợ khách quen (có hạn, cần khách)
-  const cachGhiSo = isDebt                           // chữ ghi vào cột payment_method
-    ? (choThuTaiQuay ? 'cho_thu' : 'debt')
-    : paymentMethod;
 
   // State cho số dư mẹ (khách con)
   const [useParentBalance, setUseParentBalance] = useState(false);  // Có dùng số dư mẹ không
@@ -338,8 +327,6 @@ export default function Sales() {
     setBalanceToUse(0);
     setUseParentBalance(false);
     setParentBalanceToUse(0);
-    setIsDebt(false);
-    setChoThuTaiQuay(false);   // POS-CHUATHU-v1
     setActivePkgId(null);
     // POS-DOIKHACH-v1: PHAI co nhanh else. Truoc day chi biet DIEN khi khach
     // moi co chiet khau, khong biet XOA khi khach moi khong co -> con so cua
@@ -396,8 +383,6 @@ export default function Sales() {
     setBalanceToUse(0);
     setUseParentBalance(false);
     setParentBalanceToUse(0);
-    setIsDebt(false);
-    setChoThuTaiQuay(false);   // POS-CHUATHU-v1
     setPaymentMethod('cash');
     setActivePkgId(null);
     setCustomerPkgs([]);
@@ -643,9 +628,6 @@ export default function Sales() {
   const cashReceivedNum = parseInt(cashReceived) || 0;
   const changeAmount = Math.max(0, cashReceivedNum - remainingAfterBalance);
 
-  // (Đã bỏ biến debtAmount dư thừa ở đây — số tiền ghi nợ thật được tính lại đúng bằng
-  // debtAmountFinal lúc submit đơn, biến này chưa từng được đọc ở đâu, xóa không đổi hành vi)
-
   // Mở popup xác nhận thanh toán
   const openPaymentModal = () => {
     if (cart.length === 0) {
@@ -660,9 +642,6 @@ export default function Sales() {
     setCashReceived('');
     setUseBalance(customerBalance > 0);
     setBalanceToUse(Math.min(customerBalance, total));
-    setIsDebt(false);
-    setChoThuTaiQuay(false);   // POS-CHUATHU-v1
-    setDueDate('');
     setShowPaymentModal(true);
   };
 
@@ -673,21 +652,10 @@ export default function Sales() {
     const parentBalanceUsed = useParentBalance ? actualParentBalanceUsed : 0;
     const remaining = total - balanceUsed - parentBalanceUsed;
 
-    // Validate
-    if (!isDebt) {
-      // Nếu không ghi nợ, phải thanh toán đủ
-      if (paymentMethod === 'cash' && cashReceivedNum < remaining) {
-        setError('Tiền khách đưa chưa đủ');
-        return;
-      }
-    } else if (!choThuTaiQuay) {
-      // Ghi nợ khách quen: bắt buộc có khách để còn biết đòi ai.
-      // POS-CHUATHU-v1: "chưa thu tại quầy" thì KHÔNG đòi — khách đang đứng đó,
-      // và máy chủ vốn không yêu cầu khách (orders.js 726-734).
-      if (!customer) {
-        setError('Vui lòng chọn khách hàng để ghi nợ');
-        return;
-      }
+    // Validate: phải thanh toán đủ
+    if (paymentMethod === 'cash' && cashReceivedNum < remaining) {
+      setError('Tiền khách đưa chưa đủ');
+      return;
     }
 
     setSubmitting(true);
@@ -697,18 +665,11 @@ export default function Sales() {
       // Tính số tiền thanh toán thực tế
       let cashAmount = 0;
       let transferAmount = 0;
-      let debtAmountFinal = 0;
 
-      if (isDebt) {
-        // Ghi nợ toàn bộ phần còn lại
-        debtAmountFinal = remaining;
-      } else {
-        // Thanh toán bình thường
-        if (paymentMethod === 'cash') {
-          cashAmount = remaining;
-        } else if (paymentMethod === 'transfer') {
-          transferAmount = remaining;
-        }
+      if (paymentMethod === 'cash') {
+        cashAmount = remaining;
+      } else if (paymentMethod === 'transfer') {
+        transferAmount = remaining;
       }
 
       const orderData = {
@@ -723,10 +684,7 @@ export default function Sales() {
           from_package: item.fromPkg || false,
           note: item.note ? String(item.note).trim().slice(0, 200) : null,
         })),
-        // POS-CHUATHU-v1: phân biệt "chưa thu tại quầy" với "nợ khách quen".
-        // Cùng vào payment_status='pending', nhưng cuối ca phải nhìn ra đơn nào
-        // cần đi đòi và đơn nào chỉ là khách chưa kịp quét mã.
-        payment_method: cachGhiSo,
+        payment_method: paymentMethod,
         discount: discount,
         discount_reason: discountAmount > 0 ? 'Giảm giá' : null,
         // === Phase B: Chiết khấu + Shipping ===
@@ -738,9 +696,6 @@ export default function Sales() {
         balance_amount: balanceUsed,
         cash_amount: cashAmount,
         transfer_amount: transferAmount,
-        debt_amount: debtAmountFinal,
-        due_date: isDebt && dueDate ? dueDate : null,
-        payment_status: debtAmountFinal > 0 ? (balanceUsed > 0 || parentBalanceUsed > 0 ? 'partial' : 'pending') : 'paid',
         // === Số dư mẹ (nếu có) ===
         parent_phone: parentBalanceUsed > 0 ? parentPhone : null,
         parent_balance_amount: parentBalanceUsed,
@@ -778,12 +733,10 @@ export default function Sales() {
         signupNhan: result.order.signup_nhan || null,  // POS-NHANDIEM-UI-v1: nhãn + lời do máy chủ dựng
         signupLoi: result.order.signup_loi || null,
         total: result.order.total,
-        paymentMethod: cachGhiSo,   // POS-CHUATHU-v1: cùng một nguồn với payload
+        paymentMethod: paymentMethod,
         balanceUsed: balanceUsed,
         cashReceived: cashReceivedNum,
-        change: isDebt ? 0 : changeAmount,
-        debtAmount: debtAmountFinal,
-        dueDate: dueDate,
+        change: changeAmount,
         customerName: customer?.name || 'Khách lẻ',
         customerPhone: customer?.phone || null,
         customerAddress: customer?.address || '',
@@ -812,9 +765,6 @@ export default function Sales() {
       setBalanceToUse(0);
       setUseParentBalance(false);
       setParentBalanceToUse(0);
-      setIsDebt(false);
-      setChoThuTaiQuay(false);   // POS-CHUATHU-v1
-      setDueDate('');
       // === Phase B: Reset chiết khấu + shipping ===
       setDiscountType('percent');
       setDiscountValue(0);
@@ -1967,15 +1917,15 @@ export default function Sales() {
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => { setPaymentMethod('cash'); setIsDebt(false); setChoThuTaiQuay(false); }}
+                  onClick={() => { setPaymentMethod('cash'); }}
                   style={{
                     flex: 1,
                     minWidth: '100px',
                     padding: '0.75rem',
                     border: '2px solid',
-                    borderColor: paymentMethod === 'cash' && !isDebt ? '#3b82f6' : '#e2e8f0',
-                    background: paymentMethod === 'cash' && !isDebt ? '#3b82f6' : 'white',
-                    color: paymentMethod === 'cash' && !isDebt ? 'white' : '#333',
+                    borderColor: paymentMethod === 'cash' ? '#3b82f6' : '#e2e8f0',
+                    background: paymentMethod === 'cash' ? '#3b82f6' : 'white',
+                    color: paymentMethod === 'cash' ? 'white' : '#333',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -1988,15 +1938,15 @@ export default function Sales() {
                   <Banknote size={18} /> Tiền mặt
                 </button>
                 <button
-                  onClick={() => { setPaymentMethod('transfer'); setIsDebt(false); setChoThuTaiQuay(false); }}
+                  onClick={() => { setPaymentMethod('transfer'); }}
                   style={{
                     flex: 1,
                     minWidth: '100px',
                     padding: '0.75rem',
                     border: '2px solid',
-                    borderColor: paymentMethod === 'transfer' && !isDebt ? '#3b82f6' : '#e2e8f0',
-                    background: paymentMethod === 'transfer' && !isDebt ? '#3b82f6' : 'white',
-                    color: paymentMethod === 'transfer' && !isDebt ? 'white' : '#333',
+                    borderColor: paymentMethod === 'transfer' ? '#3b82f6' : '#e2e8f0',
+                    background: paymentMethod === 'transfer' ? '#3b82f6' : 'white',
+                    color: paymentMethod === 'transfer' ? 'white' : '#333',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -2008,63 +1958,12 @@ export default function Sales() {
                 >
                   <CreditCard size={18} /> Chuyển khoản
                 </button>
-                {/* POS-CHUATHU-v1: khách lẻ cũng tạo được đơn chưa thu.
-                    Không đòi khách hàng, không hỏi hạn — bill in ra rồi thu sau. */}
-                <button
-                  onClick={() => {
-                    setIsDebt(true);
-                    setChoThuTaiQuay(true);
-                    setPaymentMethod('debt');
-                    setDueDate('');   // lỡ bấm Ghi nợ trước rồi đổi ý thì bỏ hạn cũ đi
-                  }}
-                  style={{
-                    flex: 1,
-                    minWidth: '100px',
-                    padding: '0.75rem',
-                    border: '2px solid',
-                    borderColor: choThuTaiQuay ? '#0ea5e9' : '#e2e8f0',
-                    background: choThuTaiQuay ? '#0ea5e9' : 'white',
-                    color: choThuTaiQuay ? 'white' : '#333',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    fontWeight: '500'
-                  }}
-                >
-                  <Printer size={18} /> Chưa thu
-                </button>
-                {customer && (
-                  <button
-                    onClick={() => { setIsDebt(true); setChoThuTaiQuay(false); setPaymentMethod('debt'); }}
-                    style={{
-                      flex: 1,
-                      minWidth: '100px',
-                      padding: '0.75rem',
-                      border: '2px solid',
-                      borderColor: laGhiNo ? '#f97316' : '#e2e8f0',
-                      background: laGhiNo ? '#f97316' : 'white',
-                      color: laGhiNo ? 'white' : '#333',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      fontWeight: '500'
-                    }}
-                  >
-                    <FileText size={18} /> Ghi nợ
-                  </button>
-                )}
               </div>
             </div>
           )}
 
           {/* 4. Input tiền mặt (nếu chọn tiền mặt) */}
-          {paymentMethod === 'cash' && !isDebt && remainingAfterBalance > 0 && (
+          {paymentMethod === 'cash' && remainingAfterBalance > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                 Tiền khách đưa
@@ -2128,44 +2027,6 @@ export default function Sales() {
             </div>
           )}
 
-          {/* 5. Hạn thanh toán (nếu ghi nợ) — POS-CHUATHU-v1: không hỏi hạn cho
-              đơn chưa thu tại quầy, khách đang đứng chờ chứ không hẹn ngày trả */}
-          {laGhiNo && (
-            <div style={{ 
-              padding: '1rem', 
-              background: '#fff7ed', 
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              border: '1px solid #fed7aa'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <AlertCircle size={18} color="#ea580c" />
-                <span style={{ fontWeight: 'bold', color: '#ea580c' }}>
-                  Ghi nợ: {formatPrice(remainingAfterBalance)}
-                </span>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                  Hạn thanh toán (không bắt buộc):
-                </label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  style={{
-                    padding: '0.5rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    width: '100%'
-                  }}
-                />
-              </div>
-              <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
-                Nợ hiện tại: {formatPrice(customer?.total_debt || 0)} → Sau đơn này: {formatPrice((customer?.total_debt || 0) + remainingAfterBalance)}
-              </div>
-            </div>
-          )}
-
           {/* 6. Tóm tắt thanh toán */}
           <div style={{ 
             padding: '1rem', 
@@ -2186,18 +2047,10 @@ export default function Sales() {
                 <span style={{ color: '#7c3aed' }}>-{formatPrice(actualParentBalanceUsed)}</span>
               </div>
             )}
-            {!isDebt && remainingAfterBalance > 0 && (
+            {remainingAfterBalance > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
                 <span>{paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}</span>
                 <span>{formatPrice(remainingAfterBalance)}</span>
-              </div>
-            )}
-            {isDebt && remainingAfterBalance > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                <span style={{ color: choThuTaiQuay ? '#0284c7' : '#ea580c' }}>
-                  {choThuTaiQuay ? 'Chưa thu' : 'Ghi nợ'}
-                </span>
-                <span style={{ color: choThuTaiQuay ? '#0284c7' : '#ea580c' }}>{formatPrice(remainingAfterBalance)}</span>
               </div>
             )}
             <div style={{ 
@@ -2250,17 +2103,17 @@ export default function Sales() {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || (!isDebt && paymentMethod === 'cash' && remainingAfterBalance > 0 && cashReceivedNum < remainingAfterBalance)}
+            disabled={submitting || (paymentMethod === 'cash' && remainingAfterBalance > 0 && cashReceivedNum < remainingAfterBalance)}
             style={{
               flex: 2,
               padding: '0.875rem',
-              background: (!isDebt && paymentMethod === 'cash' && remainingAfterBalance > 0 && cashReceivedNum < remainingAfterBalance) 
+              background: (paymentMethod === 'cash' && remainingAfterBalance > 0 && cashReceivedNum < remainingAfterBalance) 
                 ? '#94a3b8' 
-                : choThuTaiQuay ? '#0ea5e9' : isDebt ? '#f97316' : '#22c55e',
+                : '#22c55e',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              cursor: (!isDebt && paymentMethod === 'cash' && remainingAfterBalance > 0 && cashReceivedNum < remainingAfterBalance) 
+              cursor: (paymentMethod === 'cash' && remainingAfterBalance > 0 && cashReceivedNum < remainingAfterBalance) 
                 ? 'not-allowed' 
                 : 'pointer',
               fontWeight: 'bold',
@@ -2269,11 +2122,7 @@ export default function Sales() {
           >
             {submitting
               ? 'Đang xử lý...'
-              : choThuTaiQuay
-                ? '🧾 Tạo đơn — chưa thu'
-                : isDebt
-                  ? '📝 Tạo đơn ghi nợ'
-                  : '✓ Xác nhận thanh toán'}
+              : '✓ Xác nhận thanh toán'}
           </button>
         </div>
       </div>
@@ -2441,7 +2290,6 @@ export default function Sales() {
         cash_received: completedOrder.cashReceived,
         change_amount: completedOrder.change,
         balance_amount: completedOrder.balanceUsed || 0,
-        debt_amount: completedOrder.debtAmount || 0,
         signup_code: completedOrder.signupCode || null,
         signup_nhan: completedOrder.signupNhan || null,   // POS-NHANDIEM-UI-v1
         signup_loi: completedOrder.signupLoi || null
@@ -2453,7 +2301,6 @@ export default function Sales() {
         change: completedOrder.change,
         balanceUsed: completedOrder.balanceUsed,
         balanceAfter: completedOrder.balanceAfter,
-        debtAmount: completedOrder.debtAmount,
         paymentMethod: completedOrder.paymentMethod
       }}
       onClose={() => {
