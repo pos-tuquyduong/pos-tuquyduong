@@ -46,7 +46,7 @@ DOT_BIEN = [
   # ── C / D: không tự đánh dấu đã thu; xác nhận tay ──
   ('VS-chot-ca-payos', [(TT, "if (p.cach !== 'tien_mat' && p.cach !== 'tai_khoan') {", "if (p.cach === 'ck_tay') {", 1)], r"✗ C2 nhân viên tự chốt"),
   ('BV-quyen-tay', [(TT, "router.post('/phien/:id/xac-nhan-tay', authenticate, checkPermission('xac_nhan_ck_tay'),", "router.post('/phien/:id/xac-nhan-tay', authenticate,", 1)], r"✗ D1 nhân viên"),
-  ('BV-ly-do-tay', [(TT, "if (!lyDoHopLe(lyDo)) return loi(res, 400, 'CAN_LY_DO', 'Nhập lý do xác nhận tay", "if (false) return loi(res, 400, 'CAN_LY_DO', 'Nhập lý do xác nhận tay", 1)], r"✗ D2 quản lý thiếu lý do"),
+  ('BV-ly-do-tay', [(TT, "if (!lyDoHopLe(lyDo)) return loi(res, 400, 'CAN_LY_DO',", "if (false) return loi(res, 400, 'CAN_LY_DO',", 1)], r"✗ D2 quản lý thiếu lý do"),
   ('BV-nhat-ky-tay', [(GC, "      if (nguon === 'tay') {\n        await ghiNhatKy(", "      if (false) {\n        await ghiNhatKy(", 1)], r"✗ D5 nhật ký"),
   ('VS-quyen-seed-staff', [(DB, "[['owner', 1], ['manager', 1], ['staff', 0]]", "[['owner', 1], ['manager', 1], ['staff', 1]]", 1)], r"✗ D4 quyền seed"),
   # ── E: PIN ──
