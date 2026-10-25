@@ -350,3 +350,10 @@ Nghiệm thu — đếm từng mục:
   I8 tay; mỗi vế một đột biến (phí, CK, làm tròn, trần, ví, ví mẹ, mốc, ctx.thuc, `cu`, vế luật cũ, gCu cũ-cũ) — 30/30 BẮT.
 - G — G1 TM 25 · G2 CK 20 · G3 nợ thu đủ 25 · G4 khách lẻ mã 50 — như luật cũ.
 7/7 mục có bằng chứng.
+
+## Cổng chạy (bước 11.4)
+- `node tu_chay/cong.js chay . 611b043^ HEAD viec/DIEM-THAT-1` trên HEAD f124184, cây sạch: ✓ CỔNG CHẠY ĐẠT
+- GIT (lần kiểm cuối): f124184 DIEM-THAT-1 vong 4: so dong trang thai theo HEAD, bai hoc, bao cao 7 muc · 52e9ef9 DIEM-THAT-1 vong 4: chu thich tran dung nguoi quyet, gom dong goi POST / ve 1 dong vat ly, neo dot bien, ke hoach so dong theo nen
+- Dừng chờ chat soát. Không merge, không tạo PR.
+
+HEAD ĐÃ KIỂM: f124184
