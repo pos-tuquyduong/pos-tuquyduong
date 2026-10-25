@@ -17,6 +17,6 @@ Lệnh: node cong_cu/thu_BH1.js --goc <bản giải nén 21494c0 của client/sr
 BH-1: 6 đạt · 67 hỏng        (thoát 1)
 
 Trên code đã vá (HEAD): BH-1: 73 đạt · 0 hỏng
-Đột biến: python3 viec/BH-1/dot_bien.py → 38/38 BẮT (đối chứng xanh)
+Đột biến: python3 viec/BH-1/dot_bien.py → 42/42 BẮT (đối chứng xanh)
 
-SỐ CA thu_BH1.js: 73
+SỐ CA cong_cu/thu_BH1.js: 73
