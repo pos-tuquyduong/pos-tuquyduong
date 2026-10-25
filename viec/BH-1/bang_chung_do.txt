@@ -1,0 +1,22 @@
+BH-1 — bằng chứng bài thử ĐỎ trên code gốc (commit PHIEU: BH-1 = 21494c0; chưa có client/src/pages/BanHang/, App.jsx trỏ <Sales />).
+Lệnh: node cong_cu/thu_BH1.js --goc <bản giải nén 21494c0 của client/src/App.jsx, client/src/pages/Sales.jsx, kiem_tra_truoc_khi_giao.js>
+
+  ✗ H · nạp được BanHang/tinh.js  — Cannot find module '.../client/src/pages/BanHang/tinh.js'
+  ✗ F1 … F13 (trả lại · còn thiếu · dãy tờ)  — thiếu hàm traLai / conThieu / duDuoc / danhSachTo
+  ✗ B1 … B6 (tách trang theo độ rộng)        — thiếu hàm tachTrang
+  ✗ A1 … A7 (công tắc theo máy)              — thiếu hàm docCongTac / ghiCongTac
+  ✗ D1 … D15 (giá hạng / giỏ)                — thiếu hàm giaHang / phanTramHang / tinhGio
+  ✗ E1 … E7 (thêm vào giỏ / ghi chú nhanh)   — thiếu hàm kiemTraThem / ghiChuMacDinh / ghepGhiChu
+  ✗ I1 … I9, I11 (payload đơn)               — thiếu hàm tinhGio / dungDonHang
+  ✗ S1  thư mục BanHang/ có file giao diện (.jsx)
+  ✗ S6  dùng chữ "trả lại"      ✗ S7 gọi QrScanModal + InvoicePrint
+  ✗ S8  App.jsx route trang chủ trỏ TrangChu       ✗ S9 App.jsx không còn <Sales /> làm route trang chủ
+  ✗ S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js
+  ✗ S12 cờ daIn   ✗ S13 cờ dangGui
+
+BH-1: 6 đạt · 67 hỏng        (thoát 1)
+
+Trên code đã vá (HEAD): BH-1: 73 đạt · 0 hỏng
+Đột biến: python3 viec/BH-1/dot_bien.py → 38/38 BẮT (đối chứng xanh)
+
+SỐ CA thu_BH1.js: 73
