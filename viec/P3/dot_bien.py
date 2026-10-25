@@ -55,8 +55,11 @@ DOT_BIEN = [
   ('BV-pin-khop', [(PK, "  if (String(pin) !== String(pinLai ?? '')) return loi('PIN_KHONG_KHOP');\n", "", 1)], r"✗ E2 hai lần lệch"),
   ('VS-pin-tho', [(PK, "if (!kh || !laBam(kh.pin_code)) return loi('CHUA_CO_PIN');", "if (!kh || !kh.pin_code) return loi('CHUA_CO_PIN');", 1)], r"✗ E5 \(Q7\)"),
   ('BV-pin-dem', [(PK, "const dem = 'CASE WHEN pin_khoa_den IS NULL THEN COALESCE(pin_sai, 0) + 1 ELSE 1 END';", "const dem = 'COALESCE(pin_sai, 0)';", 1)], r"✗ E3 sai 5 lần"),
-  ('VS-pin-doc-roi', [(PK, "WHERE phone = ? AND (pin_khoa_den IS NULL OR pin_khoa_den <= ?)`", "WHERE phone = ? AND ? IS NOT NULL`", 1),
-                      (PK, "  const now = getNow();\n  const dem", "  const now = getNow();\n  if ((await queryOne('SELECT pin_khoa_den FROM pos_customers WHERE phone = ?', [phone]))?.pin_khoa_den > now) return loi('PIN_DANG_KHOA');\n  const dem", 1)],
+  # Đưa ĐÚNG lỗi vòng soát 1 trở lại: đọc "đang khoá?" → bcrypt (chậm) → rồi mới ghi đếm (không điều kiện).
+  ('VS-pin-doc-roi', [(PK, "  const now = getNow();\n  const dem", "  const now = getNow();\n  if ((await queryOne('SELECT pin_khoa_den FROM pos_customers WHERE phone = ?', [phone]))?.pin_khoa_den > now) return loi('PIN_DANG_KHOA');\n  const dung = await bcrypt.compare(String(pin ?? ''), kh.pin_code);\n  const dem", 1),
+                      (PK, "  const giu = await run(", "  const giu = dung ? { changes: 1 } : await run(", 1),
+                      (PK, "WHERE phone = ? AND (pin_khoa_den IS NULL OR pin_khoa_den <= ?)`", "WHERE phone = ? AND ? IS NOT NULL`", 1),
+                      (PK, "if (!(await bcrypt.compare(String(pin ?? ''), kh.pin_code))) return loi('PIN_SAI');", "if (!dung) return loi('PIN_SAI');", 1)],
    r"✗ E10"),
   ('BV-pin-giu-cho', [(PK, "  if (giu.changes !== 1) return loi('PIN_DANG_KHOA');\n", "", 1)], r"✗ E3 sai 5 lần"),
   ('VS-pin-nguong-6', [(PK, "const PIN_SAI_TOI_DA = 5;", "const PIN_SAI_TOI_DA = 6;", 1)], r"✗ E3 sai 5 lần"),
@@ -68,7 +71,7 @@ DOT_BIEN = [
   ('BV-bo-mat', [(CU, "res.json = (than) => json(boMat(than));", "res.json = (than) => json(than);", 1)], r"✗ E6 10 đường"),
   ('VS-kh-pin-sdt-than', [(KI, "await datPin(req.khach.phone, b.pin,", "await datPin(b.sdt || req.khach.phone, b.pin,", 1)], r"✗ E7 App KH"),
   # ── F: giữ tài khoản ──
-  ('BV-giu-ghivi', [(WA, "if (khongAm && sau - (await dangGiu(tx, phone)) < 0)", "if (khongAm && sau < 0)", 1)], r"✗ F1 đang giữ"),
+  ('BV-giu-ghivi', [(WA, "if (khongAm && sau - giu < 0)", "if (khongAm && sau < 0)", 1)], r"✗ F1 đang giữ"),
   ('VS-giu-het-han', [(WA, "WHERE trang_thai = 'cho' AND het_han > ? AND (phone = ?", "WHERE trang_thai = 'cho' AND ? IS NOT NULL AND (phone = ?", 1)], r"✗ F2 phiên hết hạn"),
   ('VS-giu-me', [(WA, "+ CASE WHEN phone_me = ? THEN giu_vi_me ELSE 0 END), 0) AS n", "+ CASE WHEN ? IS NULL THEN giu_vi_me ELSE 0 END), 0) AS n", 1)], r"✗ F5 giữ 50.000"),
   ('VS-kha-dung-tu-chan', [(OR, "dangGiu({ queryOne }, phone, phien?.id)", "dangGiu({ queryOne }, phone)", 1)], r"✗ F7 phiên chỉ trả tài khoản"),
