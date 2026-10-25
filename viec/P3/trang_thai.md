@@ -58,9 +58,47 @@ Xem `ke_hoach.md` mục 0 (Q1–Q7) — cần chủ quán trả lời trước k
 - `customers.js` POST `/:id/children` không gửi SĐT → 500 (`pos_customers.phone NOT NULL`, code chèn `null`). Có sẵn.
 - `backup.js` xuất bảng `pos_customers` nguyên dòng → file sao lưu có băm PIN (chỉ owner xuất). Khôi phục `pos_customers` ghi đè PIN —
   chủ quán đã ghi việc sau (phiếu "Đã duyệt" 3).
-- Bộ kiểm E14 (route ghi không qua `loiGhi`) đếm 50 < ngưỡng 51 và nhắc HẠ ngưỡng: thân `POST /orders` dời vào hàm `taoDon` nên phép
-  quét theo thân route không thấy nữa (giới hạn "không theo hàm phụ" đã ghi) — KHÔNG phải dọn thật; `taoDon` vẫn gọi `loiGhi`. Máy không hạ.
+- Bộ kiểm E14 (route ghi không qua `loiGhi`) đếm 50 < ngưỡng 51 và nhắc HẠ ngưỡng — người soát đo bằng chính `quetRouteGhi` trên GỐC
+  `98f30df^` cũng ra 50 (danh sách giống hệt HEAD): có sẵn trước P3, không do việc này. Máy không hạ (ngoài Phạm vi của bánh cóc này).
 - `pay-debt` (P24) và `doi-cach-tra` (`don-mo-rong.js`) vẫn nhận chuyển khoản tay khi cờ `thanh_toan_payos_bat_buoc` bật (phiếu: ghi
   Phát hiện, không sửa). `/loyalty/redeem` chưa đòi PIN — việc P3b.
 - Đơn Flash: giờ flash kết thúc giữa lúc tạo phiên và tiền về → tổng đổi → chốt hỏng, tiền về thành `chua_khop` (ĐỎ). Đúng luật, có thể
   gặp lúc chuyển giờ flash.
+
+## Bước 8 — soát độc lập vòng 1 (/ra-soat, agent general-purpose, 25.10) — nguyên báo cáo
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/utils/pinKhach.js:45 và :50-52 — chặn sai PIN bị vượt khi gửi nhiều lượt cùng lúc. Phép xem "đang khoá" là câu ĐỌC trước
+   bcrypt.compare; câu cộng đếm + đặt khoá là câu GHI riêng, chạy sau. Dựng lại: khách đã sai 2 lần, 30 PIN sai cùng lúc → 25 lượt được
+   so (PIN_SAI), chỉ 5 lượt 423 (đúng luật chỉ được 3). Ca E8 chỉ kiểm "đếm 2". Sửa: giữ chỗ lượt thử bằng MỘT câu ghi có điều kiện
+   trước khi so, kiểm changes. — K4 + K3.
+2. server/routes/orders.js:211 (vế parent_balance_amount của cờ thanh_toan_payos_bat_buoc) — không ca nào khoá; đột biến xoá vế SỐNG. — K3.
+3. server/routes/thanh-toan.js:124 / ca B6 — chỉ có ca trả THIẾU 1.000đ, thiếu ca trả DƯ; đột biến `Number(d.amount) < p.con_lai`
+   SỐNG. — K3 (ngưỡng phải có ca ngay trên và ngay dưới).
+4. viec/P3/bang_chung_do.txt:1,8 — bằng chứng ghi cho bản 7272331 (SỐ CA 85) nhưng bài đã đổi ở 88bc75b, 01f7bd1; HEAD 86 ca. Mục B, C, D
+   sập ngay trên gốc → giá trị phân biệt dựa vào bộ đột biến, mà kết quả đột biến (46/46) và `node tu_chay/cong.js chay` chưa ghi
+   vào trang_thai.md. — K3 / A16.
+5. viec/P3/trang_thai.md mục Phát hiện, câu về E14 — SAI: chạy quetRouteGhi trên gốc 98f30df^ và HEAD đều ra 50, danh sách giống hệt.
+   Số 50 có từ trước P3, không do taoDon. — K1.
+6. Lời báo còn đọc số dư THÔ: orders.js:906 (`Hiện có: ${r.truoc}`), wallets.js:193 (`balance: kq.truoc`), wallets.js:233 ("Số dư
+   hiện tại"). Mục "Đã duyệt" 10 mới sửa ở bước kiểm trước (orders.js:767, 783, 804). — K4.
+NGHI NGỜ:
+- ma_payos = id phiên (giuCho.js:66): kho thử Replit dùng chung khoá payOS với Render → mã đơn trùng giữa hai kho, webhook production có
+  thể khớp nhầm phiên cùng id + cùng tiền. Chưa đọc được cấu hình môi trường.
+- giuCho.js:74: expiredAt tính SAU câu ghi het_han → QR payOS sống lâu hơn phiên POS vài phần giây–vài giây.
+- wallets.js:93: mọi lệnh adjust (kể cả CỘNG) đặt khongAm: true → số dư thấp hơn phần đang giữ thì điều chỉnh cộng cũng bị chặn.
+- Xác nhận tay chốt hỏng 4xx → phiên loi, không ghi sự kiện nào; payOS không báo về thì khoản tiền không hiện ở Đối soát.
+- Dòng chua_khop không có cách đánh dấu "đã xử lý" → ngày đó ĐỎ mãi.
+- PUT /api/kh/pin đổi PIN không cần PIN cũ, xoá luôn khoá sai PIN (phiếu Q6 cho phép).
+NGHIỆM THU: 10/10 mục có ca thử, nhưng E (khoá vượt bằng gửi cùng lúc) và B (thiếu ca trả dư) hỏng / phủ thiếu; bằng chứng đỏ cho bài
+  ở HEAD còn thiếu.
+CHƯA SOÁT ĐƯỢC: npm test -- --day-du; node tu_chay/cong.js chay; định dạng payOS thật; pin_code cũ trên Turso; doi-cach-tra đổi được đơn
+  payOS (ngoài phạm vi). Rườm rà nhỏ: thanh-toan.js:125 vế trang_thai thừa; orders.js:767 phien?.id trong nhánh !phien; GIO chép hai nơi;
+  ba hàm loi khác dạng. Đối soát còn thiếu phép so sự kiện khop với transfer_amount của đơn.
+BÀI HỌC:
+- KHOÁ: ca "N PIN sai CÙNG LÚC → số lượt PIN_SAI ≤ 5 − đã sai" + đột biến đưa lại câu đọc rời; ca I7 parent_balance_amount; ca B6 trả DƯ.
+- KHOÁ: SỐ CA trong bang_chung_do.txt phải bằng số ca của bài ở HEAD.
+- NGUYÊN TẮC (K4): cổng đếm / khoá giữ chỗ lượt thử bằng MỘT câu ghi có điều kiện, kiểm changes, TRƯỚC thao tác chậm.
+- NGUYÊN TẮC (K1): câu giải thích một con số của bộ kiểm phải kèm số đo trên GỐC.
+```

@@ -76,7 +76,8 @@ async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cach
   const w = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
   const truoc = Number(w?.balance || 0);   // P26d (17): NULL đọc như 0 ở đây, và ghi về 0 ngay dưới — MỘT chỗ
   const sau = truoc + soTien;
-  if (khongAm && sau - (await dangGiu(tx, phone)) < 0) return { truoc, sau, thieu: true };   // P3: không tiêu vào phần đang giữ
+  const giu = khongAm ? await dangGiu(tx, phone) : 0;   // P3: không tiêu vào phần đang giữ; lời báo đọc số KHẢ DỤNG
+  if (khongAm && sau - giu < 0) return { truoc, sau, thieu: true, khaDung: truoc - giu };
   if (w && w.balance == null) await tx.run('UPDATE pos_wallets SET balance = 0 WHERE phone = ? AND balance IS NULL', [phone]);
   const nap = cot === 'total_topup' ? soCot : 0, tieu = cot === 'total_spent' ? soCot : 0;
   const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, total_topup = COALESCE(total_topup, 0) + ?,
@@ -190,7 +191,7 @@ router.post('/deduct', authenticate, checkPermission('adjust_balance'), async (r
       return r.thieu ? { ...r, huy: true } : r;
     });
     if (kq.thieu) {
-      return res.status(400).json({ error: 'Số dư không đủ', code: 'SO_DU_KHONG_DU', balance: kq.truoc });
+      return res.status(400).json({ error: 'Số dư không đủ', code: 'SO_DU_KHONG_DU', balance: kq.truoc, kha_dung: kq.khaDung });
     }
 
     res.json({ success: true, balance: kq.sau, deducted: deductAmount });
@@ -226,11 +227,11 @@ router.post("/adjust", authenticate, checkPermission("adjust_balance"), async (r
     const kq = await trongGiaoDich(async (tx) => {
       const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'adjust', soTien: adjustAmount,
         ghiChu: reason, nguoi: req.user.username, cot: adjustAmount > 0 ? 'total_topup' : 'total_spent',
-        soCot: Math.abs(adjustAmount), khongAm: true });
+        soCot: Math.abs(adjustAmount), khongAm: adjustAmount < 0 });   // P3: điều chỉnh CỘNG không bị phần đang giữ chặn
       return r.thieu ? { ...r, huy: true } : r;
     });
     if (kq.thieu) {
-      return res.status(400).json({ error: `Không thể giảm. Số dư hiện tại: ${kq.truoc.toLocaleString()}đ`, code: 'SO_DU_KHONG_DU' });
+      return res.status(400).json({ error: `Không thể giảm. Số dư khả dụng: ${kq.khaDung.toLocaleString()}đ`, code: 'SO_DU_KHONG_DU' });
     }
 
     res.json({ success: true, balance: kq.sau, adjusted: adjustAmount });

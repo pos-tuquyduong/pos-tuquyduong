@@ -764,7 +764,7 @@ async function taoDon(req, res, phien = null) {
         "SELECT * FROM pos_wallets WHERE phone = ?",
         [phone],
       );
-      const currentBalance = (wallet?.balance || 0) - (await dangGiu({ queryOne }, phone, phien?.id));   // P3: số KHẢ DỤNG
+      const currentBalance = (wallet?.balance || 0) - (await dangGiu({ queryOne }, phone));   // P3: số KHẢ DỤNG
 
       if (currentBalance < total) {
         return res.status(400).json({
@@ -902,7 +902,7 @@ async function taoDon(req, res, phien = null) {
           ghiChu: tru.ghiChu, nguoi: req.user.username, luc: now, cot: "total_spent", soCot: tru.soTien, khongAm: true });
         if (r.thieu) {
           await tx.rollback();
-          return res.status(400).json({ error: `${tru.nhan} không đủ. Hiện có: ${r.truoc.toLocaleString()}đ`, code: "SO_DU_KHONG_DU" });
+          return res.status(400).json({ error: `${tru.nhan} không đủ. Khả dụng: ${r.khaDung.toLocaleString()}đ`, code: "SO_DU_KHONG_DU" });
         }
         if (tru.khach) balanceAfter = r.sau;
         dongSo.push(r.id);

@@ -122,8 +122,7 @@ webhook.post('/', async (req, res) => {
     if (b.code !== '00' || d.code !== '00') { await ghi('that_bai', `payOS báo ${d.code}`); return res.json({ success: true }); }
     const luc = DANG_GIO.test(String(d.transactionDateTime || '')) ? String(d.transactionDateTime).replace(' ', 'T') : getNow();
     const lyDo = Number(d.amount) !== p.con_lai ? `lệch tiền: về ${d.amount}, phải thu ${p.con_lai}`
-      : p.trang_thai !== 'cho' ? `phiên đang ${p.trang_thai}`
-        : luc > p.het_han ? 'tiền về sau khi QR hết hạn' : null;
+      : luc > p.het_han ? 'tiền về sau khi QR hết hạn' : null;
     if (lyDo) { await ghi('chua_khop', lyDo); return res.json({ success: true }); }
     const kq = await chotPhien(p, 'payos', { suKien: (tx) => tx.run(cauGhi, thamSo('khop', null)) });
     if (kq.status === 200) return res.json({ success: true });

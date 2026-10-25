@@ -259,6 +259,10 @@ async function main() {
     const b6 = await guiWebhook(webhook(p6, { amount: p6.con_lai - 1000 }));
     k('B6 lệch 1.000đ → 200, KHÔNG đơn, sự kiện chua_khop, ví nguyên', la(b6, 200) && await soDon() === d6 && await soDu(a6) === 30000
       && (await suKien(p6.id)).map((s) => s.ket_qua).join() === 'chua_khop', moTa(b6));
+    const p6b = (await taoPhien({})).j.phien, d6b = await soDon();
+    const b6b = await guiWebhook(webhook(p6b, { amount: p6b.con_lai + 1000 }));
+    k('B6 trả DƯ 1.000đ → 200, KHÔNG đơn, sự kiện chua_khop', la(b6b, 200) && await soDon() === d6b
+      && (await suKien(p6b.id)).map((s) => s.ket_qua).join() === 'chua_khop', moTa(b6b));
     const p7 = (await taoPhien({})).j.phien;
     await luiPhien(p7.id);
     const c7 = await goi('GET', `/pos/thanh-toan/phien/${p7.id}`);
@@ -384,6 +388,11 @@ async function main() {
     k('E4 sai 4 lần (ngay dưới ngưỡng) + 1 đúng → 200, đếm sai về 0', kq4.every((x) => la(x, 400, 'PIN_SAI')) && la(e4, 200) && Number(dem4) === 0, moTa(e4) + ' · pin_sai=' + dem4);
     if (e4.j.phien) await goi('POST', `/pos/thanh-toan/phien/${e4.j.phien.id}/huy`, {});
     await Promise.all([taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' }), taoPhien({ sdt: b, sl: 3, cach: 'tien_mat', pin: '0000' })]);
+    const n = await khach(50000, '2468');
+    for (let i = 0; i < 2; i++) await taoPhien({ sdt: n, sl: 3, cach: 'tien_mat', pin: '0000' });
+    const loat = await Promise.all(Array.from({ length: 30 }, () => taoPhien({ sdt: n, sl: 3, cach: 'tien_mat', pin: '0000' })));
+    const soSo = loat.filter((x) => la(x, 400, 'PIN_SAI')).length, soKhoa = loat.filter((x) => la(x, 423, 'PIN_DANG_KHOA')).length;
+    k('E10 đã sai 2 lần, 30 PIN sai CÙNG LÚC → chỉ 3 lượt được so (PIN_SAI), 27 lượt 423 PIN_DANG_KHOA', soSo === 3 && soKhoa === 27, `${soSo} so · ${soKhoa} khoá`);
     k('E8 hai PIN sai CÙNG LÚC → đếm 2 (cộng tương đối)', Number((await db.queryOne('SELECT pin_sai FROM pos_customers WHERE phone = ?', [b]))?.pin_sai) === 2);
     // Xoá PIN (quên PIN): owner / manager, lý do bắt buộc.
     const x1 = await goi('POST', '/pos/thanh-toan/pin/xoa', { phone: b, ly_do: 'Khách quên PIN' }, tkNv);
@@ -530,13 +539,14 @@ async function main() {
     const j1 = await goi('POST', '/pos/orders', { items: [mon(1)], payment_method: 'transfer', transfer_amount: 25000 });
     const j2 = await goi('POST', '/pos/orders', { customer_phone: a, items: [mon(1)], payment_method: 'cash', balance_amount: 25000 });
     const j3 = await goi('POST', '/pos/orders', { customer_phone: a, items: [mon(1)], payment_method: 'balance' });
+    const j3b = await goi('POST', '/pos/orders', { customer_phone: await khach(0, null), items: [mon(1)], payment_method: 'cash', parent_phone: a, parent_balance_amount: 25000 });
     const j4 = await goi('POST', '/pos/orders', { items: [mon(1)], payment_method: 'cash', cash_amount: 25000 });
     const j5 = await goi('POST', '/pos/orders', { customer_phone: a, items: [{ ...mon(1), from_package: true }], customer_package_id: cp?.id, payment_method: 'cash', cash_amount: 0 });
     const pj = (await taoPhien({})).j.phien;
     const j6 = pj ? await guiWebhook(webhook(pj)) : { status: 0, j: {} };
     await datCaiDat('thanh_toan_payos_bat_buoc', '0');
-    k('I7 cờ BẬT: CK trần → 400 CK_PHAI_QUA_PAYOS; trừ tài khoản ngoài phiên (2 kiểu) → 400 VI_PHAI_QUA_PIN', la(j1, 400, 'CK_PHAI_QUA_PAYOS')
-      && la(j2, 400, 'VI_PHAI_QUA_PIN') && la(j3, 400, 'VI_PHAI_QUA_PIN'), [j1, j2, j3].map(moTa).join(', '));
+    k('I7 cờ BẬT: CK trần → 400 CK_PHAI_QUA_PAYOS; trừ tài khoản / ví mẹ ngoài phiên (3 kiểu) → 400 VI_PHAI_QUA_PIN', la(j1, 400, 'CK_PHAI_QUA_PAYOS')
+      && la(j2, 400, 'VI_PHAI_QUA_PIN') && la(j3, 400, 'VI_PHAI_QUA_PIN') && la(j3b, 400, 'VI_PHAI_QUA_PIN'), [j1, j2, j3, j3b].map(moTa).join(', '));
     k('I7 cờ BẬT (K5): tiền mặt · giao từ gói 0đ · phiên payOS về → vẫn 200, đơn tạo', la(j4, 200) && la(j5, 200) && la(j6, 200)
       && !!(await dongPhien(pj?.id))?.order_id, [j4, j5, j6].map(moTa).join(', '));
     const kl = await taoPhien({});

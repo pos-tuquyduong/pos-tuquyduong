@@ -36,21 +36,21 @@ async function datPin(sdt, pin, pinLai, { lanDau, viec, nguoi }) {
   return {};
 }
 
-/** Kiểm PIN của CHỦ tài khoản bị trừ. Đúng → đếm sai về 0. Sai → cộng TƯƠNG ĐỐI (hai lần sai cùng lúc đếm 2); hết khoá thì đếm lại từ 1. */
+/** Kiểm PIN của CHỦ tài khoản bị trừ. MỘT câu ghi giữ chỗ lượt thử TRƯỚC khi so (bcrypt chậm): đếm cộng TƯƠNG ĐỐI, tới ngưỡng thì đặt
+ *  khoá ngay trong câu đó, đang khoá thì changes = 0 → 423 — gửi nhiều lượt cùng lúc cũng chỉ được so tối đa PIN_SAI_TOI_DA lượt.
+ *  Hết khoá thì đếm lại từ 1. PIN đúng → đếm về 0, gỡ khoá. */
 async function kiemPin(sdt, pin) {
   const phone = normalizePhone(sdt);
-  const kh = phone && await queryOne('SELECT pin_code, pin_khoa_den FROM pos_customers WHERE phone = ?', [phone]);
+  const kh = phone && await queryOne('SELECT pin_code FROM pos_customers WHERE phone = ?', [phone]);
   if (!kh || !laBam(kh.pin_code)) return loi('CHUA_CO_PIN');
   const now = getNow();
-  if (kh.pin_khoa_den && kh.pin_khoa_den > now) return loi('PIN_DANG_KHOA');
-  if (await bcrypt.compare(String(pin ?? ''), kh.pin_code)) {
-    await run('UPDATE pos_customers SET pin_sai = 0, pin_khoa_den = NULL WHERE phone = ?', [phone]);
-    return {};
-  }
   const dem = 'CASE WHEN pin_khoa_den IS NULL THEN COALESCE(pin_sai, 0) + 1 ELSE 1 END';
-  await run(`UPDATE pos_customers SET pin_sai = ${dem}, pin_khoa_den = CASE WHEN ${dem} >= ? THEN ${GIO} ELSE NULL END WHERE phone = ?`,
-    [PIN_SAI_TOI_DA, now, `+${PIN_KHOA_PHUT} minutes`, phone]);
-  return loi('PIN_SAI');
+  const giu = await run(`UPDATE pos_customers SET pin_sai = ${dem}, pin_khoa_den = CASE WHEN ${dem} >= ? THEN ${GIO} ELSE NULL END
+    WHERE phone = ? AND (pin_khoa_den IS NULL OR pin_khoa_den <= ?)`, [PIN_SAI_TOI_DA, now, `+${PIN_KHOA_PHUT} minutes`, phone, now]);
+  if (giu.changes !== 1) return loi('PIN_DANG_KHOA');
+  if (!(await bcrypt.compare(String(pin ?? ''), kh.pin_code))) return loi('PIN_SAI');
+  await run('UPDATE pos_customers SET pin_sai = 0, pin_khoa_den = NULL WHERE phone = ?', [phone]);
+  return {};
 }
 
 /** Xoá PIN (khách quên) — owner / manager, lý do bắt buộc ở route. */

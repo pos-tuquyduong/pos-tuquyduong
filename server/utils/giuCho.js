@@ -48,7 +48,7 @@ async function taoPhien(b, nguoi) {
     const kq = await kiemPin(sdt, pin);
     if (kq.loi) return loi(...kq.loi);
   }
-  const now = getNow();
+  const now = getNow(), hetGiay = Math.floor(Date.now() / 1000) + HAN_PHUT * 60;   // QR payOS hết hạn cùng mốc với het_han của phiên
   const kq = await trongGiaoDich(async (tx) => {
     const khaDung = async (sdt) => Math.max(0,
       Number((await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [sdt]))?.balance || 0) - await dangGiu(tx, sdt));
@@ -71,7 +71,7 @@ async function taoPhien(b, nguoi) {
   if (cach === 'payos') {
     try {
       const link = await payos.taoLink({ orderCode: phien.ma_payos, amount: phien.con_lai, description: phien.noi_dung,
-        expiredAt: Math.floor(Date.now() / 1000) + HAN_PHUT * 60 });
+        expiredAt: hetGiay });
       await run('UPDATE pos_phien_thanh_toan SET qr = ?, checkout_url = ? WHERE id = ?', [link.qr, link.checkout_url, phien.id]);
       phien = { ...phien, ...link };
     } catch (e) {
