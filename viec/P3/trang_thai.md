@@ -253,11 +253,11 @@ BÀI HỌC: KHOÁ — so bằng số tiền → ca ±1đ + đột biến dung sa
 - Phiên tổng 0đ (tien_mat / payos) → `CACH_KHONG_KHOP` với lời "tài khoản đã trả đủ" — lời lệch; đơn 0đ đi POST /orders như cũ.
 - `LY_DO_TOI_THIEU` (thanh-toan.js) và số 3 ở wallets.js /adjust là hai chỗ cùng mức — gộp khi chạm wallets.js lần sau.
 
-## Kiểm cuối (HEAD 614d281)
+## Kiểm cuối (HEAD 1e31e83 — code cuối 614d281, 1e31e83 chỉ đổi bang_chung_do.txt)
 - `thu_P3.js` 100 đạt · 0 hỏng. `python3 viec/P3/dot_bien.py` (đủ): đối chứng 100 · 0, **64/64 bị bắt** (thêm VS-so-tien-dung-sai-1 ở vòng 3).
 - `npm test -- --day-du`: PASS 74 · FAIL 0 · CẢNH BÁO 1 (có sẵn: route GET có lệnh ghi ở packages.js / products.js / sync.js); thu_P3 10,1 s,
   giả lập 35,9 s, thu_gia_lap 56,4 s. Gốc: 4 đạt · 43 hỏng (bang_chung_do.txt).
-- `node tu_chay/cong.js chay . 98f30df^ HEAD viec/P3` (HEAD 614d281, cây sạch):
+- `node tu_chay/cong.js chay . 98f30df^ HEAD viec/P3` (HEAD 1e31e83, cây sạch):
   ```
   · CẢNH BÁO A16: `cong_cu/thu_P3.js` chạy trên gốc in 47 ca ≠ 100 ca ở head — bài dừng sớm trên gốc thì bỏ qua; …
   ✓ CỔNG CHẠY ĐẠT
@@ -325,9 +325,11 @@ BÀI THỬ:     cong_cu/thu_P3.js — gốc 0a9fb6c → ĐỎ 4 đạt · 43 h�
 CHƯA KIỂM:   payOS THẬT (đơn vị expiredAt, chữ ký vỏ trả, dạng transactionDateTime, gửi lại khi 409 / Render ngủ); khoá + URL webhook trên Render;
              pin_code cũ trên Turso; đua PIN / giữ trên Turso HTTP; customers GET /:id (500 có sẵn — không chứng minh được không lộ);
              kênh payOS chung hai kho (chỉ có lời dặn env.example); màn quầy / App chưa gọi API (BH-1, KH-MUA-1) — chưa thử tay
-GIT:         614d281 P3: bang chung do chay lai voi bai sau soat vong 3
-             (commit ghi hồ sơ này nằm trên — chỉ đổi viec/P3/trang_thai.md)
+GIT:         1e31e83 P3: bang chung do chay lai voi bai sau soat vong 3
+             614d281 P3: sua theo soat vong 3 — ca B6 lech 1d hai phia + dot bien dung sai 1; nhan Kha dung; chu thich webhook 409
+             (commit ghi hồ sơ nằm trên — chỉ đổi viec/P3/trang_thai.md)
 BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 4 (2 đề xuất thêm, 2 đã có) · BỎ 1 — chi tiết ở ## Bài học
 ```
 
 HEAD ĐÃ KIỂM: 614d281
+HEAD ĐÃ KIỂM: 1e31e83
