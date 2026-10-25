@@ -252,3 +252,82 @@ BÀI HỌC: KHOÁ — so bằng số tiền → ca ±1đ + đột biến dung sa
   thừa sau khi phiên đã chốt). payOS SDK luôn có `reference` (chưa kiểm payOS thật).
 - Phiên tổng 0đ (tien_mat / payos) → `CACH_KHONG_KHOP` với lời "tài khoản đã trả đủ" — lời lệch; đơn 0đ đi POST /orders như cũ.
 - `LY_DO_TOI_THIEU` (thanh-toan.js) và số 3 ở wallets.js /adjust là hai chỗ cùng mức — gộp khi chạm wallets.js lần sau.
+
+## Kiểm cuối (HEAD 614d281)
+- `thu_P3.js` 100 đạt · 0 hỏng. `python3 viec/P3/dot_bien.py` (đủ): đối chứng 100 · 0, **64/64 bị bắt** (thêm VS-so-tien-dung-sai-1 ở vòng 3).
+- `npm test -- --day-du`: PASS 74 · FAIL 0 · CẢNH BÁO 1 (có sẵn: route GET có lệnh ghi ở packages.js / products.js / sync.js); thu_P3 10,1 s,
+  giả lập 35,9 s, thu_gia_lap 56,4 s. Gốc: 4 đạt · 43 hỏng (bang_chung_do.txt).
+- `node tu_chay/cong.js chay . 98f30df^ HEAD viec/P3` (HEAD 614d281, cây sạch):
+  ```
+  · CẢNH BÁO A16: `cong_cu/thu_P3.js` chạy trên gốc in 47 ca ≠ 100 ca ở head — bài dừng sớm trên gốc thì bỏ qua; …
+  ✓ CỔNG CHẠY ĐẠT
+  ```
+  Cảnh báo A16 là đúng dự kiến: trên gốc các mục B, C, D, E, F sập giữa chừng (bang_chung_do.txt ghi rõ).
+
+## Nghiệm thu — đếm từng mục (10/10 có bằng chứng)
+- A Tạo QR: A1 (số còn lại, mã duy nhất, nội dung TQD ≤ 9, chữ ký link, expiredAt giây, het_han 10′, QR), A2 (tiền máy chủ), A3 (503
+  PAYOS_CHUA_CAU_HINH), A4 (QR tĩnh ck_tay chỉ xác nhận tay), A5 (9 / 10 ký tự), A6 (payOS từ chối / ký sai → 502, nhả giữ) · đột biến
+  VS-tien-client, BV-chua-cau-hinh, VS-noi-dung-10, VS-han-15-phut, BV-payos-nha, BV-payos-ky-vo.
+- B Webhook: B1 chữ ký sai, B2 khoá rỗng, B3 một giao dịch (đơn paid, ví, điểm, kho), B4 báo lặp, B5 hai báo cùng lúc, B9b tất định, B6 thiếu /
+  dư 1đ, B7 hết hạn (giờ máy chủ + transactionDateTime), B8 huỷ, B11 code ≠ 00, B12 giá đổi → loi, B13 chết giữa chừng, B14 kho bận, B10 Đối soát ĐỎ.
+- C Trạng thái: C1 (cho / da_thu + mã / het_han / huy / 404), C2 (không tự chốt phiên CK) · VS-tom-het-han, VS-chot-ca-payos.
+- D Xác nhận tay: D1 403, D2 lý do (rỗng / 2 / 3 ký tự), D3 lưu lý do + người + giờ, D4 quyền seed + Đối soát XNT, D5 nhật ký đơn, D6 phiên tiền mặt.
+- E PIN: E1 băm + PIN_DA_CO, E2 khớp / 3–5 số, E3 sai 5 → 423, hạn 15′, mở lại, E4 ngay dưới ngưỡng, E5 chưa có PIN + Q7, E6 10 đường /customers,
+  E7 App KH của chính mình, E8 đếm tương đối, E9 401 + lỗi có code, E10 30 PIN cùng lúc → đúng 3 lượt so, Xoá PIN (Q6).
+- F Giữ: F1/F6 khả dụng ở deduct / adjust / đơn quầy + GET ví, F2 hết hạn, F3 huỷ (không dòng sổ), F4 + F4b hai quầy, F5 ví mẹ (PIN mẹ), F7 trả đủ
+  tài khoản, F8 điều chỉnh cộng, F9 mẹ = khách, F10 hạn trong giao dịch.
+- G Điểm: G1 đơn qua phiên = đơn quầy (7 điểm), G2 Flash 0 điểm; tinhDiemDon không đổi (diff không chạm hàm).
+- H Không kết hợp: H1 TRA_KET_HOP; H2 tài khoản + payOS (B3); H3 tài khoản mẹ + tiền mặt (F5).
+- I K5: I1–I6 luồng cũ 200; I7 cờ bật / tắt (CK, tài khoản, ví mẹ, tiền mặt, giao gói, phiên payOS); khách lẻ payOS; giả lập + thu_gia_lap XANH không sửa.
+- J Không payOS thật: payOS giả 127.0.0.1, khoá thử ngẫu nhiên, J1 log không lộ khoá.
+
+## Bài học
+Sự cố của việc này: (a) 3 vòng soát đều KHÔNG ĐẠT, tổng 15 lỗi — gần hết K3 (ngưỡng thiếu ca một phía, nhánh hỏng không ca, đua không tất định,
+đột biến không đưa đúng lỗi cũ); 1 lỗi đường tiền thật (PIN cùng lúc vượt khoá); 1 lỗi giữ hai lần (mẹ = khách); 2 câu hồ sơ sai (K1).
+(b) Người gác chặn 7 lần: B-BIMAT-CHU ×3 (chạy bài có cụm bí mật chưa commit; một lệnh ghi hồ sơ có chữ đó — đúng luật, dùng Edit), B-PHANTICH ×3
+(gộp lệnh `&&` / pipe sed với lệnh chạy script), B-DICHCHU ×1 (biến trong đích ghi), B-CHUONGTRINH ×1 (Monitor `until`). (c) Bài thử đổi 9 lần sau
+khi ghi bằng chứng → bằng chứng đỏ dựng lại 5 lần. (d) Ngân sách: code ~650 dòng / 400 (≈ 1,6 lần — vượt 1,5: phần thêm chủ yếu do 3 vòng soát
+thêm nhánh lỗi + đường thanh-toan.js), thử ~700 / 450.
+
+1. **KHOÁ** — so BẰNG số tiền / ngưỡng: ca ±1 đơn vị và đột biến "dung sai chép từ phép so có sẵn" (vòng 3 B6). Đề xuất ngoài Phạm vi:
+   `tu_chay/` thêm phép soi `dot_bien.py`: mỗi phép so tiền / ngưỡng mới trong diff có đột biến cả hai phía. Ca đỏ: P3 ở d1fcef7 (B6 ±1.000đ)
+   với đột biến VS-so-tien-dung-sai-1.
+2. **KHOÁ** — `SỐ CA` + commit dòng đầu của bang_chung_do.txt phải khớp commit cuối đổi bài (vòng 1 #4). Đề xuất: `tu_chay/cong.js` A16 so SHA dòng
+   đầu với `git log -1 -- <bài>`. Ca đỏ: P3 ở 263b44a (bằng chứng ghi 7272331, bài đã đổi ở 88bc75b).
+3. **NGUYÊN TẮC (K4)** — cổng ĐẾM / KHOÁ (sai PIN, giới hạn lượt) giữ chỗ lượt thử bằng MỘT câu ghi có điều kiện + kiểm `changes` TRƯỚC thao tác
+   chậm (bcrypt); câu đọc "đang khoá?" rời câu ghi là đường song song. Đã gây: P3 vòng 1 — 30 PIN sai cùng lúc, 25 lượt được so. Đề xuất thêm vào
+   `KHUON_LOI.md` K4 (ngoài Phạm vi).
+4. **NGUYÊN TẮC (K3)** — phép BÁO SỚM đứng trước cổng thật thì cổng thật cần ca riêng vượt qua phép báo sớm (móc trước giao dịch); đột biến gỡ cả
+   hai vế cùng lúc không chứng minh vế nào. Đã gây: P3 vòng 2 #5 (vế het_han trong cổng chốt). Đề xuất gộp vào K3 dòng "Mỗi ca chặn chỉ vi phạm
+   đúng một phép" (ngoài Phạm vi).
+5. **NGUYÊN TẮC (K3)** — đột biến của lỗi người soát báo phải tái hiện ĐÚNG trình tự lỗi cũ (đọc → thao tác chậm → ghi): bản đầu VS-pin-doc-roi
+   đặt câu đọc sát câu ghi nên SỐNG. Đã có ở K3 (TACH-GL) — không thêm, ví dụ thứ hai.
+6. **NGUYÊN TẮC (K1)** — câu giải thích con số của bộ kiểm kèm số đo trên GỐC (vòng 1 #5 E14). Đã có ở K1 — không thêm.
+7. **BỎ** — lệnh bị người gác chặn vì gộp / biến trong đích ghi: luật đã rõ, chỉ là thói quen gõ lệnh.
+Dọn: không đề xuất xoá lời dặn nào. KHUON_LOI.md không đổi ở việc này (ngoài Phạm vi).
+
+## Báo cáo 7 mục
+```
+VIỆC:        P3 — Chuyển khoản qua QR payOS tự xác nhận · PIN khách · giữ rồi trừ tài khoản (phần điểm tách P3b)
+ĐÃ SỬA:      server/utils/giuCho.js (mới) — taoPhien (giữ trong giao dịch ghi) + MỘT chotPhien qua taoDon, cổng cho → da_thu còn hạn
+             server/utils/payos.js (mới) — ký / kiểm chữ ký theo SDK chính thức, tạo link; khoá chỉ ở biến môi trường
+             server/utils/pinKhach.js (mới) — đặt / kiểm (giữ chỗ lượt thử một câu ghi, khoá 15′) / xoá PIN; boMat
+             server/routes/thanh-toan.js (mới) — /phien, /phien/:id, /chot, /huy, /xac-nhan-tay, /pin, /pin/xoa + webhook công khai
+             server/routes/orders.js — thân POST / thành taoDon(req,res,phien); TRA_KET_HOP; cờ thanh_toan_payos_bat_buoc; lời báo khả dụng
+             server/routes/wallets.js — dangGiu; ghiVi không tiêu vào phần đang giữ; GET ví dang_giu / kha_dung; adjust cộng không chặn
+             server/routes/customers.js — middleware bỏ password / pin_code (+ co_pin); server/routes/kh/index.js — PUT /api/kh/pin
+             server/database.js — 3 bảng, 2 cột, 2 quyền, cờ; backup.js; doiSoat.js (CK, XNT); index.js; env.example; kiem_tra (+thu_P3)
+BÀI THỬ:     cong_cu/thu_P3.js — gốc 0a9fb6c → ĐỎ 4 đạt · 43 hỏng (mọi mục A–J; B/C/D sập ở dòng đầu); sau vá → XANH 100 · 0;
+             đột biến 64/64 bị bắt (đối chứng xanh); npm test --day-du 74 · 0 · 1 (giả lập + thu_gia_lap xanh, không sửa); cổng chạy ĐẠT
+ĐÃ RÀ K4:    grep "khongAm: true" server → 3 chỗ tiêu ví, đều qua ghiVi (một chỗ chặn); grep "ghiVi(" → khoản cộng (nạp, hoàn, đền) không chặn;
+             grep SELECT * / c.* pos_customers trong server/routes → customers.js 12 chỗ (bọc một middleware), sync.js / customers-v2.js ánh xạ trường;
+             mọi lối chốt (chot / xac-nhan-tay / webhook) → MỘT chotPhien; hai lối đặt PIN (quầy / App KH) → MỘT datPin; lời báo số dư: 6 chỗ đọc khả dụng
+CHƯA KIỂM:   payOS THẬT (đơn vị expiredAt, chữ ký vỏ trả, dạng transactionDateTime, gửi lại khi 409 / Render ngủ); khoá + URL webhook trên Render;
+             pin_code cũ trên Turso; đua PIN / giữ trên Turso HTTP; customers GET /:id (500 có sẵn — không chứng minh được không lộ);
+             kênh payOS chung hai kho (chỉ có lời dặn env.example); màn quầy / App chưa gọi API (BH-1, KH-MUA-1) — chưa thử tay
+GIT:         614d281 P3: bang chung do chay lai voi bai sau soat vong 3
+             (commit ghi hồ sơ này nằm trên — chỉ đổi viec/P3/trang_thai.md)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 4 (2 đề xuất thêm, 2 đã có) · BỎ 1 — chi tiết ở ## Bài học
+```
+
+HEAD ĐÃ KIỂM: 614d281
