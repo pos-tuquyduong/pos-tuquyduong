@@ -102,3 +102,45 @@ BÀI HỌC:
 - NGUYÊN TẮC (K4): cổng đếm / khoá giữ chỗ lượt thử bằng MỘT câu ghi có điều kiện, kiểm changes, TRƯỚC thao tác chậm.
 - NGUYÊN TẮC (K1): câu giải thích một con số của bộ kiểm phải kèm số đo trên GỐC.
 ```
+
+## Sửa theo soát vòng 1 (25.10) — commit a830070, 9e3c4dd
+| Lỗi người soát | Sửa | Ca khoá |
+|---|---|---|
+| 1 PIN cùng lúc vượt khoá | `pinKhach.js` kiemPin: MỘT câu ghi giữ chỗ lượt thử (đếm + đặt khoá, điều kiện "chưa khoá", kiểm `changes`) TRƯỚC bcrypt | E10 (30 PIN sai cùng lúc → đúng 3 so, 27 khoá) + VS-pin-doc-roi đưa ĐÚNG lỗi cũ trở lại → bắt 3/3 lần (25 so · 5 khoá, khớp số người soát) |
+| 2 vế ví mẹ của cờ không ca | thêm `j3b` vào I7 | VS-co-bo-vi-me |
+| 3 thiếu ca trả DƯ | thêm B6 trả dư 1.000đ | VS-so-tien-du |
+| 4 bằng chứng cũ | dựng lại trên gốc với bản a830070: 4 đạt · 40 hỏng, SỐ CA 88 | bang_chung_do.txt |
+| 5 câu E14 sai | sửa câu Phát hiện (gốc cũng 50) | — |
+| 6 lời báo số dư thô | ghiVi trả `khaDung` khi thiếu; orders.js "Khả dụng", wallets deduct trả `kha_dung`, adjust "Số dư khả dụng" | (lời báo — không so chữ, E12) |
+| nghi ngờ: adjust CỘNG bị chặn | `khongAm: adjustAmount < 0` | (đường cộng; F1 nạp K5 phủ ghiVi không chặn khoản cộng) |
+| nghi ngờ: expiredAt trễ | `hetGiay` lấy cùng lúc `now` trước giao dịch | VS-han-15-phut |
+| rườm rà | bỏ vế `trang_thai !== 'cho'` ở webhook (chotPhien báo sớm 409 → chua_khop); bỏ `phien?.id` trong nhánh `!phien` | B8 vẫn xanh |
+
+## Bước 4 (đột biến) — chỗ vá → đột biến (viec/P3/dot_bien.py, 50 đột biến, đối chứng 88 đạt · 0 hỏng)
+| Chỗ vá | Đột biến |
+|---|---|
+| cổng chốt MỘT lần (giuCho vaoGiaoDich + orders.js) | BV-cong-phien, VS-cong-changes, BV-cong-orders (bắt ở B9b tất định) |
+| gắn đơn vào phiên / chế độ chỉ tính / phiên loi / sự kiện trong giao dịch / UNIQUE khoa | BV-sau-ghi-don, BV-chi-tinh, BV-loi-phien, BV-su-kien-tx, BV-khoa-unique |
+| chữ ký payOS | BV-chu-ky, VS-khoa-rong |
+| khớp tiền / về muộn / thất bại | VS-so-tien, VS-so-tien-du, BV-ve-muon-payos, VS-that-bai |
+| tạo phiên: tiền máy chủ, chưa cấu hình, nội dung ≤ 9, hạn 10′, trạng thái hết hạn | VS-tien-client, BV-chua-cau-hinh, VS-noi-dung-10, VS-han-15-phut, VS-tom-het-han |
+| không tự chốt CK, xác nhận tay (quyền, lý do, nhật ký, seed) | VS-chot-ca-payos, BV-quyen-tay, BV-ly-do-tay, BV-nhat-ky-tay, VS-quyen-seed-staff |
+| PIN (băm, lần đầu, 2 lần gõ, Q7, đếm, giữ chỗ, ngưỡng 5 hai phía, 15′, mẹ Q4, xoá, App KH) | VS-pin-luu-tho, BV-pin-lan-dau, BV-pin-khop, VS-pin-tho, BV-pin-dem, VS-pin-doc-roi, BV-pin-giu-cho, VS-pin-nguong-6, VS-pin-nguong-4, VS-pin-khoa-30, BV-pin-me-cua-con, BV-xoa-pin-quyen, VS-kh-pin-sdt-than |
+| bỏ password / pin_code | BV-bo-mat |
+| giữ tài khoản (ghiVi, hết hạn, mẹ, phiên tự chặn) | BV-giu-ghivi, VS-giu-het-han, VS-giu-me, VS-kha-dung-tu-chan |
+| H / cờ payOS | BV-ket-hop, VS-co-bo-vi-me, BV-co-payos, VS-co-chan-phien |
+| Đối soát / sao lưu | BV-ds-ck, VS-ds-ck-vang, BV-ds-xnt, BV-backup-khong-kp |
+
+Kết quả (chạy đủ ở a830070 + chạy lại 2 tên neo lại ở 9e3c4dd): **50/50 bị bắt** — 48 ở lượt đủ; BV-giu-ghivi (neo chuỗi cũ → HỎNG,
+neo lại) và VS-pin-doc-roi (bản đầu không đưa đúng lỗi cũ → SỐNG, viết lại) bắt ở lượt chạy riêng. Đã thử và BỎ: VS-pin-dem-tuyet-doi
+(E8 đua thật, không tất định — K3), VS-giu-ngoai-tai-khoan (không ca nào thử CACH_KHONG_KHOP — tiền vẫn an toàn nhờ đối chiếu tổng của taoDon).
+
+Tên đột biến: BV-cong-phien VS-cong-changes BV-cong-orders BV-sau-ghi-don BV-chi-tinh BV-loi-phien BV-su-kien-tx BV-khoa-unique BV-chu-ky
+VS-khoa-rong VS-so-tien BV-ve-muon-payos VS-that-bai VS-tien-client BV-chua-cau-hinh VS-noi-dung-10 VS-han-15-phut VS-tom-het-han
+VS-chot-ca-payos BV-quyen-tay BV-ly-do-tay BV-nhat-ky-tay VS-quyen-seed-staff VS-pin-luu-tho BV-pin-lan-dau BV-pin-khop VS-pin-tho BV-pin-dem
+VS-pin-doc-roi BV-pin-giu-cho VS-pin-nguong-6 VS-pin-nguong-4 VS-pin-khoa-30 BV-pin-me-cua-con BV-xoa-pin-quyen BV-bo-mat VS-kh-pin-sdt-than
+BV-giu-ghivi VS-giu-het-han VS-giu-me VS-kha-dung-tu-chan BV-ket-hop VS-co-bo-vi-me VS-so-tien-du BV-co-payos VS-co-chan-phien BV-ds-ck
+VS-ds-ck-vang BV-ds-xnt BV-backup-khong-kp
+
+## Bước 6 (sau vòng 1) — HEAD a830070/9e3c4dd
+- `thu_P3.js` 88 đạt · 0 hỏng. `npm test -- --day-du`: PASS 74 · FAIL 0 · CẢNH BÁO 1 (có sẵn); thu_P3 9,0 s, giả lập 36,5 s, thu_gia_lap 58,3 s.
