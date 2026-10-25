@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import Login from './pages/Login';
 import Layout from './components/Layout';
-import Sales from './pages/Sales';
+import TrangChu from './pages/BanHang';
 import Customers from './pages/Customers';
 import Balance from './pages/Balance';
 import Orders from './pages/Orders';
@@ -54,7 +54,7 @@ function AppRoutes() {
           <Layout />
         </ProtectedRoute>
       }>
-        <Route index element={<Sales />} />
+        <Route index element={<TrangChu />} />
         <Route path="customers" element={<Customers />} />
         <Route path="balance" element={<Balance />} />
         <Route path="orders" element={<Orders />} />
