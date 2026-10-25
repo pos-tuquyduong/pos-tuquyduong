@@ -71,7 +71,7 @@ async function main() {
 
   // Móc B13 (chết giữa chừng): câu ghi sự kiện payOS TRONG giao dịch chạy xong thì ném một lần. Gắn TRƯỚC khi nạp route
   // (route lấy beginTransaction lúc require).
-  let mocChetSauSuKien = false, mocTruocTx = null;
+  let mocChetSauSuKien = false, mocTruocTx = null, mocBan = false;
   const txGoc = db.beginTransaction;
   db.beginTransaction = async (...a) => {
     const moc = mocTruocTx; mocTruocTx = null;   // B9b: một lệnh chốt khác chạy XONG giữa "phép kiểm ngoài giao dịch" và "mở giao dịch"
@@ -81,6 +81,7 @@ async function main() {
     tx.run = async (sql, p) => {
       const kq = await runGoc(sql, p);
       if (mocChetSauSuKien && /INSERT INTO pos_payos_su_kien/.test(sql)) { mocChetSauSuKien = false; throw new Error('chết giữa chừng (bài thử)'); }
+      if (mocBan && /SET trang_thai = 'da_thu'/.test(sql)) { mocBan = false; throw Object.assign(new Error('kho bận (bài thử)'), { code: 'SQLITE_BUSY' }); }
       return kq;
     };
     return tx;
@@ -88,13 +89,15 @@ async function main() {
 
   // payOS giả: ghi lại mọi yêu cầu, trả vỏ có chữ ký đúng (như SDK kiểm).
   const payosNhan = [];
+  let payosHong = null;   // 'tu_choi' | 'ky_sai' — A6
   const gia = express();
   gia.use(express.json());
   gia.post('/v2/payment-requests', (req, res) => {
     payosNhan.push({ headers: req.headers, body: req.body });
     const data = { orderCode: req.body.orderCode, amount: req.body.amount, description: req.body.description, status: 'PENDING',
       paymentLinkId: 'pl_' + req.body.orderCode, qrCode: 'QR_GIA_' + req.body.orderCode, checkoutUrl: 'https://gia/' + req.body.orderCode };
-    res.json({ code: '00', desc: 'success', data, signature: hmac(chuoiKy(data)) });
+    if (payosHong === 'tu_choi') return res.json({ code: '20', desc: 'tu choi (gia)', data: null });
+    res.json({ code: '00', desc: 'success', data, signature: payosHong === 'ky_sai' ? hmac(chuoiKy(data), 'khoa_khac') : hmac(chuoiKy(data)) });
   });
   const svGia = await new Promise((ok) => { const s = gia.listen(0, '127.0.0.1', () => ok(s)); });
   process.env.PAYOS_BASE_URL = `http://127.0.0.1:${svGia.address().port}`;
@@ -225,6 +228,18 @@ async function main() {
     await db.run("UPDATE sqlite_sequence SET seq = 2000 WHERE name = 'pos_phien_thanh_toan'").catch(() => {});
   });
 
+  muc('[A6] payOS từ chối / trả vỏ sai chữ ký → 502, nhả phần giữ');
+  await chay('A6', async () => {
+    const a = await khach(30000);
+    for (const [kieu, nhan] of [['tu_choi', 'từ chối'], ['ky_sai', 'vỏ trả sai chữ ký']]) {
+      payosHong = kieu;
+      const r = await taoPhien({ sdt: a, sl: 2, pin: PIN });
+      payosHong = null;
+      const w = await goi('GET', `/pos/wallets/${a}`);
+      k(`A6 payOS ${nhan} → 502 PAYOS_LOI, phần giữ nhả ngay (khả dụng 30.000)`, la(r, 502, 'PAYOS_LOI') && w.j.kha_dung === 30000, `${moTa(r)} · ${w.j.kha_dung}`);
+    }
+  });
+
   muc('[B] webhook payOS: chữ ký, một lần ghi, tiền về chưa khớp, chết giữa chừng');
   const vB = {};
   await chay('B', async () => {
@@ -313,6 +328,15 @@ async function main() {
     k('B13 chết sau khi ghi sự kiện TRONG giao dịch → 5xx, rollback cả sự kiện, phiên vẫn cho, ví nguyên', b13.status >= 500
       && giua.don === d13 && giua.sk === 0 && giua.tt === 'cho' && giua.vi === 30000, moTa(b13) + ' ' + JSON.stringify(giua));
     k('B13 payOS báo lại → chốt được (không bị nuốt)', la(b13b, 200) && await soDon() === d13 + 1 && (await suKien(p13.id)).map((s) => s.ket_qua).join() === 'khop', moTa(b13b));
+    const a14 = await khach(30000), p14 = (await taoPhien({ sdt: a14, sl: 2, pin: PIN })).j.phien, d14 = await soDon();
+    mocBan = true;
+    const b14 = await guiWebhook(webhook(p14));
+    mocBan = false;
+    const giua14 = { don: await soDon(), sk: (await suKien(p14.id)).length, tt: (await dongPhien(p14.id))?.trang_thai, vi: await soDu(a14) };
+    const b14b = await guiWebhook(webhook(p14));
+    k('B14 kho bận lúc chốt → webhook 409 KHO_BAN (payOS báo lại), KHÔNG sự kiện, phiên vẫn cho, ví nguyên', la(b14, 409, 'KHO_BAN')
+      && giua14.don === d14 && giua14.sk === 0 && giua14.tt === 'cho' && giua14.vi === 30000, moTa(b14) + ' ' + JSON.stringify(giua14));
+    k('B14 payOS báo lại → chốt được', la(b14b, 200) && await soDon() === d14 + 1, moTa(b14b));
     const ds = await chayDoiSoat({ kieu: 'ngay' });
     k('B10 Đối soát hôm nay ĐỎ: dòng CK cho tiền về chưa khớp', ds.ket_qua === 'DO' && ds.do.filter((l) => l.bat_bien === 'CK').length >= 5,
       ds.do.filter((l) => l.bat_bien === 'CK').length + ' dòng');
@@ -340,6 +364,14 @@ async function main() {
     k('D1 nhân viên xác nhận tay → 403', d1.status === 403, moTa(d1));
     const d2 = await goi('POST', `/pos/thanh-toan/phien/${p.id}/xac-nhan-tay`, { ly_do: '  ' }, tkQl);
     k('D2 quản lý thiếu lý do → 400 CAN_LY_DO', la(d2, 400, 'CAN_LY_DO'), moTa(d2));
+    const d2b = await goi('POST', `/pos/thanh-toan/phien/${p.id}/xac-nhan-tay`, { ly_do: ' ab ' }, tkQl);
+    k('D2 lý do 2 ký tự (ngay dưới ngưỡng 3) → 400 CAN_LY_DO', la(d2b, 400, 'CAN_LY_DO'), moTa(d2b));
+    const p3k = (await taoPhien({})).j.phien;
+    const d2c = await goi('POST', `/pos/thanh-toan/phien/${p3k.id}/xac-nhan-tay`, { ly_do: 'abc' }, tkQl);
+    k('D2 lý do đúng 3 ký tự → 200', la(d2c, 200), moTa(d2c));
+    const ptm = (await taoPhien({ cach: 'tien_mat' })).j.phien;
+    const d6 = await goi('POST', `/pos/thanh-toan/phien/${ptm.id}/xac-nhan-tay`, { ly_do: 'thử nhầm phiên' }, tkQl);
+    k('D6 xác nhận tay phiên tiền mặt → 400 PHIEN_KHONG_PHAI_CK', la(d6, 400, 'PHIEN_KHONG_PHAI_CK'), moTa(d6));
     const d3 = await goi('POST', `/pos/thanh-toan/phien/${p.id}/xac-nhan-tay`, { ly_do: 'Sao kê có tiền, webhook lỡ' }, tkQl);
     const pp = await dongPhien(p.id) || {}, don = await db.queryOne('SELECT * FROM pos_orders WHERE id = ?', [pp.order_id || -1]) || {};
     k('D3 quản lý có lý do → đơn CK 25.000; phiên lưu lý do + người + giờ', la(d3, 200) && Number(don.transfer_amount) === 25000
@@ -364,6 +396,9 @@ async function main() {
     const e2 = await goi('POST', '/pos/thanh-toan/pin', { phone: c, pin: '1234', pin_lai: '1243' });
     const e2b = await goi('POST', '/pos/thanh-toan/pin', { phone: c, pin: '12a4', pin_lai: '12a4' });
     k('E2 hai lần lệch → 400 PIN_KHONG_KHOP; không phải 4 chữ số → 400 PIN_KHONG_HOP_LE', la(e2, 400, 'PIN_KHONG_KHOP') && la(e2b, 400, 'PIN_KHONG_HOP_LE'), moTa(e2) + ' / ' + moTa(e2b));
+    const e2c = await goi('POST', '/pos/thanh-toan/pin', { phone: c, pin: '123', pin_lai: '123' });
+    const e2d = await goi('POST', '/pos/thanh-toan/pin', { phone: c, pin: '12345', pin_lai: '12345' });
+    k('E2 PIN 3 số / 5 số (ngay dưới / ngay trên 4) → 400 PIN_KHONG_HOP_LE', la(e2c, 400, 'PIN_KHONG_HOP_LE') && la(e2d, 400, 'PIN_KHONG_HOP_LE'), moTa(e2c) + ' / ' + moTa(e2d));
     const e5 = await taoPhien({ sdt: c, cach: 'tien_mat', pin: '1234' });
     k('E5 chưa có PIN mà trừ tài khoản → 400 CHUA_CO_PIN', la(e5, 400, 'CHUA_CO_PIN'), moTa(e5));
     await db.run("UPDATE pos_customers SET pin_code = '1234' WHERE phone = ?", [c]);
@@ -474,6 +509,29 @@ async function main() {
     const gx = x.j.phien?.giu_vi, gy = y.j.phien?.giu_vi;
     k('F4 hai phiên CÙNG LÚC trên ví 100.000 → tổng giữ đúng 100.000 (một phiên 100.000, phiên kia 0)', la(x, 200) && la(y, 200)
       && gx + gy === 100000 && [gx, gy].sort().join() === '0,100000', `${moTa(x)} ${gx} / ${moTa(y)} ${gy}`);
+    // F4b (tất định): phiên B tạo XONG giữa phép kiểm và giao dịch của phiên A trên cùng ví → A thấy phần B đã giữ.
+    const h2 = await khach(100000);
+    let rB = null;
+    mocTruocTx = async () => { rB = await taoPhien({ sdt: h2, sl: 6, pin: PIN }); };
+    const rA = await taoPhien({ sdt: h2, sl: 6, pin: PIN });
+    mocTruocTx = null;
+    k('F4b (tất định) phiên B giữ XONG giữa phép kiểm và giao dịch của A → B 100.000, A 0 (đọc số dư + đang giữ TRONG giao dịch)',
+      la(rA, 200) && rB && la(rB, 200) && rB.j.phien.giu_vi === 100000 && rA.j.phien.giu_vi === 0, `B ${rB && rB.j.phien?.giu_vi} / A ${rA.j.phien?.giu_vi}`);
+    // F8: số dư đã thấp hơn phần đang giữ (vd đối soát ghi tuyệt đối) → điều chỉnh CỘNG vẫn qua.
+    const q = await khach(50000);
+    const pq = (await taoPhien({ sdt: q, sl: 2, cach: 'tai_khoan', pin: PIN })).j.phien;
+    await db.run('UPDATE pos_wallets SET balance = 30000 WHERE phone = ?', [q]);
+    const cong = await goi('POST', '/pos/wallets/adjust', { phone: q, amount: 10000, reason: 'bù lệch' }, tkChu);
+    k('F8 số dư 30.000 < đang giữ 50.000 → điều chỉnh CỘNG 10.000 vẫn 200', !!pq && la(cong, 200), moTa(cong));
+    // F9: SĐT mẹ = SĐT khách → giữ hai lần một ví → từ chối có mã.
+    const f9 = await taoPhien({ sdt: q, sl: 4, cach: 'tien_mat', pin: PIN, pinMe: PIN, don: { parent_phone: q } });
+    k('F9 trừ tài khoản + tài khoản mẹ cùng MỘT SĐT → 400 ME_TRUNG_KHACH', la(f9, 400, 'ME_TRUNG_KHACH'), moTa(f9));
+    // F10: phiên hết hạn ĐÚNG lúc giữa phép báo sớm và giao dịch chốt → cổng trong giao dịch chặn.
+    const pt10 = (await taoPhien({ sdt: await khach(0, null), cach: 'tien_mat' })).j.phien, d10 = await soDon();
+    mocTruocTx = () => luiPhien(pt10.id);
+    const c10 = await goi('POST', `/pos/thanh-toan/phien/${pt10.id}/chot`, {});
+    mocTruocTx = null;
+    k('F10 hết hạn giữa phép báo sớm và giao dịch → 409 PHIEN_DA_CHOT, KHÔNG đơn', la(c10, 409, 'PHIEN_DA_CHOT') && await soDon() === d10, moTa(c10));
     // F5: tài khoản mẹ — PIN của mẹ (Q4).
     const me = await khach(50000, '8642'), con = await khach(0, '1357', { me });
     const sai = await taoPhien({ sdt: con, sl: 3, cach: 'tien_mat', pinMe: '1357', don: { parent_phone: me } });

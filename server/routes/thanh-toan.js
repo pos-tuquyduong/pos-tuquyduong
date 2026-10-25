@@ -16,7 +16,8 @@ const router = express.Router();
 const webhook = express.Router();
 const tra = (res, kq) => res.status(kq.status).json(kq.body);
 const loi = (res, status, code, error) => res.status(status).json({ error, code });
-const lyDoHopLe = (x) => typeof x === 'string' && x.trim().length >= 3;
+const LY_DO_TOI_THIEU = 3;   // ký tự — cùng mức với điều chỉnh số dư (wallets.js /adjust)
+const lyDoHopLe = (x) => typeof x === 'string' && x.trim().length >= LY_DO_TOI_THIEU;
 const docPhien = (id) => queryOne('SELECT * FROM pos_phien_thanh_toan WHERE id = ?', [id]);
 
 router.post('/phien', authenticate, async (req, res) => {
@@ -69,7 +70,7 @@ router.post('/phien/:id/huy', authenticate, async (req, res) => {
 router.post('/phien/:id/xac-nhan-tay', authenticate, checkPermission('xac_nhan_ck_tay'), async (req, res) => {
   try {
     const lyDo = (req.body || {}).ly_do;
-    if (!lyDoHopLe(lyDo)) return loi(res, 400, 'CAN_LY_DO', 'Nhập lý do xác nhận tay (tối thiểu 3 ký tự)');
+    if (!lyDoHopLe(lyDo)) return loi(res, 400, 'CAN_LY_DO', `Nhập lý do xác nhận tay (tối thiểu ${LY_DO_TOI_THIEU} ký tự)`);
     const p = await docPhien(req.params.id);
     if (!p) return loi(res, 404, 'KHONG_THAY_PHIEN', 'Không tìm thấy phiên thanh toán');
     if (p.cach !== 'payos' && p.cach !== 'ck_tay') return loi(res, 400, 'PHIEN_KHONG_PHAI_CK', 'Chỉ xác nhận tay phiên chuyển khoản');
@@ -94,7 +95,7 @@ router.post('/pin', authenticate, async (req, res) => {
 router.post('/pin/xoa', authenticate, checkPermission('xoa_pin_khach'), async (req, res) => {
   try {
     const b = req.body || {};
-    if (!lyDoHopLe(b.ly_do)) return loi(res, 400, 'CAN_LY_DO', 'Nhập lý do xoá PIN (tối thiểu 3 ký tự)');
+    if (!lyDoHopLe(b.ly_do)) return loi(res, 400, 'CAN_LY_DO', `Nhập lý do xoá PIN (tối thiểu ${LY_DO_TOI_THIEU} ký tự)`);
     const kq = await xoaPin(b.phone, b.ly_do.trim(), req.user.username);
     if (kq.loi) return loi(res, ...kq.loi);
     res.json({ success: true });
@@ -127,7 +128,10 @@ webhook.post('/', async (req, res) => {
     const kq = await chotPhien(p, 'payos', { suKien: (tx) => tx.run(cauGhi, thamSo('khop', null)) });
     if (kq.status === 200) return res.json({ success: true });
     if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
-    await ghi('chua_khop', kq.body?.code === 'PHIEN_DA_CHOT' ? 'phiên đã chốt / hết hạn lúc tiền về' : `không tạo được đơn: ${kq.body?.code || kq.body?.error}`);
+    const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
+    await ghi('chua_khop', !sau ? `không tạo được đơn: ${kq.body?.code || kq.body?.error}`
+      : sau.nguon === 'tay' ? `đã xác nhận tay trước (${sau.nguoi_xac_nhan}, đơn #${sau.order_id}) — tiền về đúng số: đối chiếu, KHÔNG hoàn`
+        : `phiên đang ${sau.trang_thai} lúc tiền về`);
     res.json({ success: true });
   } catch (err) {
     loiGhi(res, err);

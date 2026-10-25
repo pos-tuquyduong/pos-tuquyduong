@@ -112,7 +112,7 @@ BÀI HỌC:
 | 4 bằng chứng cũ | dựng lại trên gốc với bản a830070: 4 đạt · 40 hỏng, SỐ CA 88 | bang_chung_do.txt |
 | 5 câu E14 sai | sửa câu Phát hiện (gốc cũng 50) | — |
 | 6 lời báo số dư thô | ghiVi trả `khaDung` khi thiếu; orders.js "Khả dụng", wallets deduct trả `kha_dung`, adjust "Số dư khả dụng" | (lời báo — không so chữ, E12) |
-| nghi ngờ: adjust CỘNG bị chặn | `khongAm: adjustAmount < 0` | (đường cộng; F1 nạp K5 phủ ghiVi không chặn khoản cộng) |
+| nghi ngờ: adjust CỘNG bị chặn | `khongAm: adjustAmount < 0` | (vòng 2: câu cũ "F1 nạp phủ" SAI — F1 gọi /topup; ca F8 thêm ở vòng 2) |
 | nghi ngờ: expiredAt trễ | `hetGiay` lấy cùng lúc `now` trước giao dịch | VS-han-15-phut |
 | rườm rà | bỏ vế `trang_thai !== 'cho'` ở webhook (chotPhien báo sớm 409 → chua_khop); bỏ `phien?.id` trong nhánh `!phien` | B8 vẫn xanh |
 
@@ -144,3 +144,30 @@ VS-ds-ck-vang BV-ds-xnt BV-backup-khong-kp
 
 ## Bước 6 (sau vòng 1) — HEAD a830070/9e3c4dd
 - `thu_P3.js` 88 đạt · 0 hỏng. `npm test -- --day-du`: PASS 74 · FAIL 0 · CẢNH BÁO 1 (có sẵn); thu_P3 9,0 s, giả lập 36,5 s, thu_gia_lap 58,3 s.
+
+## Bước 8 — soát độc lập vòng 2 (25.10) — nguyên báo cáo (rút gọn dòng, giữ nội dung)
+```
+KHÔNG ĐẠT — sáu lỗi vòng 1 đã sửa đúng (PIN giữ chỗ pinKhach.js; j3b + VS-co-bo-vi-me; B6 dư + VS-so-tien-du; SỐ CA 88 khớp, gốc 4 · 40;
+câu E14; lời báo khả dụng orders.js:905, wallets.js:194, 234). Chạy lại: dot_bien.py 50/50, đối chứng 88 · 0; npm test 70 · 0 · 1.
+LỖI TÌM ĐƯỢC:
+1. giuCho.js:53-56 — giữ hai lần trên cùng một ví khi parent_phone = SĐT khách + bật cả hai: khaDung(phoneMe) không trừ phần giu vừa tính
+   (ví 50.000, đơn 100.000 → giữ 80.000). Chốt: ghiVi lần hai thiếu → 400 → phiên loi; payOS thì khách đã chuyển mà không có đơn. (suy từ code)
+2. giuCho.js:52-56 + F4 — "quầy sau thấy phần đã giữ" chưa khoá tất định: đột biến đọc số dư + đang giữ NGOÀI giao dịch SỐNG. Chú thích
+   giuCho.js:4 khẳng định điều bài không chứng minh. — K3 + K1.
+3. giuCho.js:77-80 — nhánh payOS từ chối (502 PAYOS_LOI, phiên loi nhả phần giữ) không có ca; đột biến xoá câu nhả SỐNG. Phản hồi payOS
+   sai chữ ký (payos.js:46) không có ca. — K3.
+4. thanh-toan.js:325, giuCho.js:114 — nhánh KHO_BAN (webhook trả lỗi để payOS báo lại; phiên không loi) không ca; hai đột biến SỐNG. — K3.
+5. giuCho.js:100 — vế het_han > ? trong cổng chốt không ca riêng (phép báo sớm giuCho.js:89 che); cần ca mocTruocTx lùi het_han. — K3.
+6. wallets.js:230 + trang_thai.md "adjust CỘNG … F1 nạp K5 phủ" — sai: F1 gọi /topup (không khongAm); đặt lại khongAm: true cho adjust SỐNG. — K1 + K3.
+7. Ngưỡng thiếu ca: PIN ^\d{4}$ (3 / 5 số); lý do ≥ 3 ký tự (chỉ có ca rỗng; số viết cứng, LUAT §3); PHIEN_KHONG_PHAI_CK không ca. — K3.
+8. trang_thai.md thiếu: kết quả node tu_chay/cong.js chay; mục CHƯA KIỂM; trả lời các nghi ngờ vòng 1 (ma_payos chung khoá hai kho; xác nhận
+   tay chốt hỏng không để dấu; chua_khop không có "đã xử lý"). — K1 / A16.
+NGHI NGỜ: thanh-toan.js:326 — xác nhận tay trước, payOS báo sau → dòng CK ĐỎ lý do mơ hồ, có thể hoàn nhầm (K8); ma_payos = id phiên hai kho;
+  nhân viên đặt PIN lần đầu cho khách chưa có PIN → vòng qua cờ VI_PHAI_QUA_PIN (đúng Q6, nên ghi Phát hiện); quầy Sales.jsx:628 đọc số dư thô
+  customers-v2.js:146 (Phát hiện BH-1); kiemPin chạy hai lần khi SĐT mẹ = SĐT khách.
+NGHIỆM THU: 10/10 có bằng chứng, thiếu một phần: A (payOS lỗi), B (KHO_BAN, hạn trong giao dịch), E (ngưỡng 4 số), F (F4 không tất định).
+CHƯA SOÁT ĐƯỢC: --day-du; cong.js chay; payOS thật; pin_code cũ Turso; đột biến nháp M1–M35 chạy một lần; lỗi 1 chưa dựng ca.
+Phát hiện ngoài phạm vi: reconcileWallet ghi tuyệt đối không trừ đang giữ; utils/giuCho require routes (đã duyệt 8.4); GIO hai nơi, ba hàm loi.
+BÀI HỌC: KHOÁ — mỗi nhánh hỏng đụng tiền có ca TẤT ĐỊNH qua móc sẵn có; đua thật chỉ là bằng chứng khi đột biến đọc-ngoài-giao-dịch làm nó ĐỎ;
+  ca SĐT mẹ = SĐT khách. NGUYÊN TẮC — phép báo sớm trước cổng thật → cổng thật cần ca riêng vượt phép báo sớm; "ca X phủ Y" chỉ ghi khi đột biến xoá Y làm X ĐỎ.
+```

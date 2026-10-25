@@ -86,6 +86,21 @@ DOT_BIEN = [
   ('VS-ds-ck-vang', [(DS, "canXem: r.ket_qua === 'khong_phien',", "canXem: true,", 1)], r"✗ B10 Đối soát hôm nay ĐỎ"),
   ('BV-ds-xnt', [(DS, ", ['XNT', phepXacNhanTay]", "", 1)], r"✗ D4 Đối soát"),
   ('BV-backup-khong-kp', [(BK, "  'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin'];", "  ];", 1)], r"✗ backup.js"),
+  # ── vòng soát 2: nhánh hỏng đụng tiền, ca tất định ──
+  ('BV-me-trung', [(GC, "  if (phoneMe && phoneMe === phone) return loi(400, 'ME_TRUNG_KHACH',", "  if (false) return loi(400, 'ME_TRUNG_KHACH',", 1)], r"✗ F9"),
+  ('VS-giu-truoc-tx', [(GC, "  const kq = await trongGiaoDich(async (tx) => {\n    const khaDung = async (sdt) => Math.max(0,\n      Number((await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [sdt]))?.balance || 0) - await dangGiu(tx, sdt));",
+                         "  const docTruoc = {};\n  for (const x of [phone, phoneMe].filter(Boolean)) docTruoc[x] = Math.max(0, Number((await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [x]))?.balance || 0) - await dangGiu({ queryOne }, x));\n  const kq = await trongGiaoDich(async (tx) => {\n    const khaDung = async (sdt) => docTruoc[sdt];", 1)], r"✗ F4b"),
+  ('BV-payos-nha', [(GC, "      await run(\"UPDATE pos_phien_thanh_toan SET trang_thai = 'loi' WHERE id = ? AND trang_thai = 'cho'\", [phien.id]);   // nhả phần giữ\n", "", 1)], r"✗ A6 payOS từ chối"),
+  ('BV-payos-ky-vo', [(PO, " || (j.signature && !kiemChuKy(j.data, j.signature))", "", 1)], r"✗ A6 payOS vỏ trả sai chữ ký"),
+  ('VS-webhook-ban', [(TT, "if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);", "if (kq.status >= 500) return tra(res, kq);", 1)], r"✗ B14 kho bận"),
+  ('VS-loi-ca-ban', [(GC, "!['PHIEN_DA_CHOT', 'KHO_BAN'].includes(r.body?.code)", "!['PHIEN_DA_CHOT'].includes(r.body?.code)", 1)], r"✗ B14"),
+  ('VS-cong-bo-han', [(GC, "WHERE id = ? AND trang_thai = 'cho' AND het_han > ?`", "WHERE id = ? AND trang_thai = 'cho' AND ? IS NOT NULL`", 1)], r"✗ F10"),
+  ('VS-adjust-khong-am', [(WA, "khongAm: adjustAmount < 0 });", "khongAm: true });", 1)], r"✗ F8"),
+  ('VS-pin-5-so', [(PK, "if (!/^\\d{4}$/.test(String(pin ?? '')))", "if (!/^\\d{4,5}$/.test(String(pin ?? '')))", 1)], r"✗ E2 PIN 3 số / 5 số"),
+  ('VS-pin-3-so', [(PK, "if (!/^\\d{4}$/.test(String(pin ?? '')))", "if (!/^\\d{3,4}$/.test(String(pin ?? '')))", 1)], r"✗ E2 PIN 3 số / 5 số"),
+  ('VS-ly-do-2', [(TT, "const LY_DO_TOI_THIEU = 3;", "const LY_DO_TOI_THIEU = 2;", 1)], r"✗ D2 lý do 2 ký tự"),
+  ('VS-ly-do-4', [(TT, "const LY_DO_TOI_THIEU = 3;", "const LY_DO_TOI_THIEU = 4;", 1)], r"✗ D2 lý do đúng 3 ký tự"),
+  ('BV-phien-khong-phai-ck', [(TT, "    if (p.cach !== 'payos' && p.cach !== 'ck_tay') return loi(res, 400, 'PHIEN_KHONG_PHAI_CK',", "    if (false) return loi(res, 400, 'PHIEN_KHONG_PHAI_CK',", 1)], r"✗ D6"),
 ]
 
 TONG = re.compile(r'\d+ đạt · \d+ hỏng')

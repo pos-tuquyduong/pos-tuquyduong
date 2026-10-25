@@ -37,6 +37,7 @@ async function taoPhien(b, nguoi) {
   const don = Object.fromEntries(TRUONG_DON.filter((x) => goc[x] !== undefined).map((x) => [x, goc[x]]));
   const phone = normalizePhone(don.customer_phone), phoneMe = b.tru_tai_khoan_me ? normalizePhone(goc.parent_phone) : null;
   if ((b.tru_tai_khoan && !phone) || (b.tru_tai_khoan_me && !phoneMe)) return loi(400, 'CAN_KHACH', 'Trừ tài khoản cần chọn khách (và SĐT mẹ)');
+  if (phoneMe && phoneMe === phone) return loi(400, 'ME_TRUNG_KHACH', 'Tài khoản mẹ trùng tài khoản khách — chỉ bật một dòng trừ');   // giữ hai lần một ví
   if (phoneMe) don.parent_phone = phoneMe;
   const r = gomRes();
   const tinh = await taoDon({ body: don, user: { username: nguoi } }, r, { chiTinh: true });
