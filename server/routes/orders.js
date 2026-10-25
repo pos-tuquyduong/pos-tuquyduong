@@ -37,9 +37,10 @@ const router = express.Router();
 // không bán số lẻ (chủ quán chốt 14.10). Chuỗi số nguyên ("2", " 5") vẫn nhận vì màn hình / bài thử cũ có gửi chuỗi.
 const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
 
+const { tienTinhDiem } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật
+
 // P22-23: MỘT công thức điểm cho đơn thu đủ lúc tạo (POST /) và lúc thu đủ nợ (pay-debt) — đọc cài đặt LÚC GỌI.
 // Trả { diem, han } hoặc null (tắt / cài sai / 0 điểm). Hạn 'quarter' = đầu quý tương ứng năm sau; khác → null (không hết hạn).
-const { tienTinhDiem } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` = tiền khách trả thật (tiền mặt + CK − phí giao)
 async function tinhDiemDon(tong, luc) {
   const loy = {};
   for (const r of await query(
@@ -852,7 +853,8 @@ router.post("/", authenticate, async (req, res) => {
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
-      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee }), now);
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total,
+        balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
       diemTao = null;

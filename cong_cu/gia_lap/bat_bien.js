@@ -10,7 +10,8 @@
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
  * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
  * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
- * DIEM-THAT-1: điểm gốc = floor(tiền khách trả thật / per), tiền thật = max(0, tiền mặt + CK − phí giao) — công thức RIÊNG, không
+ * DIEM-THAT-1: điểm gốc = floor(tiền khách trả thật / per), tiền thật = max(0, round(min(tiền mặt + CK, total − ví − ví mẹ) − phí giao))
+ * — công thức RIÊNG, không
  * gọi server/utils/diemThat.js (trọng tài không dùng chung lỗi với code). Đơn tạo trước DIEM_THAT_TU ở Đối soát thật: nhận cả total/per.
  */
 
@@ -135,21 +136,22 @@ const BAT_BIEN = {
     const per = Number(cfg.loyalty_earn_per_amount);
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
-    const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
+    const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
         o.status, o.cancelled_at,
         COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
       LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
     const lech = ds.flatMap((r) => {
-      const g = Math.floor(Math.max(0, Math.round(so(r.cash_amount) + so(r.transfer_amount) - so(r.shipping_fee))) / per);
+      const tra = Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - so(r.balance_amount) - so(r.parent_balance_amount));
+      const g = Math.floor(Math.max(0, Math.round(tra - so(r.shipping_fee))) / per);
       const gCu = Math.floor(so(r.total) / per);
-      const diemDung = (luatCu, g) => {
-        const coDiem = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && g > 0
+      const diemDung = (luatCu, goc) => {
+        const coDiem = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && goc > 0
           && (luatCu || r.payment_status === 'paid');
-        if (!so(r.da_nhan)) return coDiem ? g : 0;
+        if (!so(r.da_nhan)) return coDiem ? goc : 0;
         if (!luatCu && so(r.flash) > 0) return 0;
-        return coDiem ? g + Math.round(g * (k - 1)) : Math.round(g * k);
+        return coDiem ? goc + Math.round(goc * (k - 1)) : Math.round(goc * k);
       };
       // Huỷ trước mốc (hoặc dữ liệu cũ không cancelled_at): ngày gộp lẫn hai luật → nhận cả "giữ điểm" (cũ) lẫn tổng 0 (P24).
       const huyCu = ctx.thuc && r.status === 'cancelled' && (r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU);

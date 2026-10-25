@@ -51,7 +51,7 @@ async function kiemDonCuaMa(dong) {
     return { loi: { status: 400, code: 'MA_KHONG_GAN_DON', error: 'Mã này không gắn với đơn nào.' } };
   }
   const don = await queryOne(
-    'SELECT id, code, total, status, payment_status, flash_discount, cash_amount, transfer_amount, shipping_fee FROM pos_orders WHERE id = ?',
+    'SELECT id, code, total, status, payment_status, flash_discount, cash_amount, transfer_amount, shipping_fee, balance_amount, parent_balance_amount FROM pos_orders WHERE id = ?',
     [dong.order_id],
   );
   if (!don) {
