@@ -13,6 +13,28 @@
 
 **Chờ duyệt kế hoạch:** viết `viec/P3/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
+**Đã duyệt (chủ quán 24.10, sau khi chat soát kế hoạch `ke_hoach.md` đầu nhánh `7d1cc3c`):** kế hoạch được duyệt, MỤC 8 (soát độc lập)
+thay chỗ tương ứng ở mục 1 / 3; máy làm tiếp từ bước 4 (`/lam-viec P3 tiep`) tới hết, không dừng hỏi lại các điểm này:
+1. TÁCH: P3 KHÔNG làm phần điểm (giữ / đổi điểm trong phiên, PIN cho đổi quà, `/loyalty/redeem`). Phần đó là việc P3b, chat mở sau
+   UUDAI-1. P3 làm: phiên + payOS + webhook + xác nhận tay + PIN + giữ / trừ TIỀN tài khoản.
+2. Q1 (a): cài đặt `thanh_toan_payos_bat_buoc`, mặc định `0` (đường cũ như cũ); bật `1` thì `POST /orders` từ chối `transfer_amount > 0`
+   (`CK_PHAI_QUA_PAYOS`) và trừ tài khoản ngoài phiên (`VI_PHAI_QUA_PIN`). Chủ quán bật khi BH-1 lên quầy. `pay-debt`, `doi-cach-tra`:
+   ghi Phát hiện, không sửa.
+3. Q2: `server/routes/backup.js` đã thêm vào Phạm vi — CHỈ thêm bảng mới vào `BACKUP_TABLES` và `BANG_KHONG_KHOI_PHUC`. Phát hiện
+   "khôi phục `pos_customers` ghi đè PIN": KHÔNG làm ở P3 (chat ghi việc sau; khôi phục vốn chỉ owner).
+4. Q4: trừ tài khoản nào thì PIN của CHỦ tài khoản đó (tài khoản mẹ → PIN của mẹ).
+5. Q5 + payOS (chat đã đối chiếu tài liệu chính thức payos.vn/docs/api 24.10): `description` TỐI ĐA 9 KÝ TỰ (giới hạn của payOS với
+   tài khoản ngân hàng không liên kết qua payOS) → dạng `TQD<mã phiên>`, không dấu cách, ≤ 9 ký tự (mã phiên dài hơn → báo lỗi có mã,
+   không cắt); `expiredAt` = Unix timestamp tính bằng GIÂY (Int32) = hạn phiên 10 phút. Bài thử có ca nội dung ≤ 9 ký tự.
+6. Q6: đồng ý — quầy chỉ đặt PIN khi khách CHƯA có; đổi PIN ở App KH; quên PIN → owner / manager "Xoá PIN" (quyền mới `xoa_pin_khach`,
+   seed owner 1 / manager 1 / staff 0, lý do bắt buộc, ghi nhật ký), route ở `thanh-toan.js`.
+7. Q7: giá trị `pin_code` không mở đầu `$2` (không phải băm bcrypt) coi như CHƯA đặt PIN; không bao giờ so chuỗi thô.
+8. Một dòng `module.exports.taoDon = taoDon` cạnh `module.exports = router` của `orders.js` — được phép (ngoài vùng `POST /`).
+9. Q-phụ: "về muộn" theo `transactionDateTime` payOS ký (> `het_han`); không đọc được thì giờ máy chủ. Phiên `ck_tay` (QR tĩnh) CHỈ
+   chốt bằng xác nhận tay — đồng ý.
+10. Sửa lời báo số dư ở `orders.js:752–772` cho đọc số KHẢ DỤNG (trừ đang giữ) — được phép (trong thân `POST /`).
+11. Theo mục 8.8: KHÔNG sửa `customers-v2.js` (dòng đó còn trong Phạm vi, không dùng).
+
 ## Mục tiêu
 Chuyển khoản không còn phụ thuộc nhân viên nhìn app ngân hàng: máy chủ tạo QR đúng số tiền cho từng đơn và tự ghi "đã thu" khi payOS báo
 tiền về. Tiền trong tài khoản khách và điểm chỉ tiêu được khi khách nhập PIN, được GIỮ trong lúc chờ và chỉ TRỪ khi đơn thật sự xong.
@@ -49,6 +71,7 @@ tiền về. Tiền trong tài khoản khách và điểm chỉ tiêu được k
 - server/routes/wallets.js
 - server/routes/customers.js
 - server/routes/customers-v2.js
+- server/routes/backup.js
 - server/routes/kh/index.js
 - server/index.js
 - server/database.js
