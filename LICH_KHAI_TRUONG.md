@@ -8,6 +8,8 @@
      22.10 (tối): M3 xong sớm 2 ngày — P22-23 #38, KH-QUAY-1 #39, P15-QR #40, KH-UI-1 #41 (main bd9b920). SX làm ĐÚNG cách của POS.
      22–24.10: chủ quán chốt MÀN BÁN HÀNG MỚI (ban_mau_pos/DAC_TA_BAN_HANG_2410.md) và yêu cầu XONG TRƯỚC KHAI TRƯƠNG (không dời):
      không công nợ, không "mang ra bàn", payOS tự xác nhận, PIN + giữ tiền, giá hạng, topping qua SX, hoá đơn + tem tuỳ chỉnh, giao hàng ở quầy.
+     25.10: QUAY-AN-1 #42, P24 #43 xong (main 5cb2a03). P3 duyệt (tách P3b — điểm trong phiên). Mở DIEM-THAT-1 + BH-1 (đợt 1, chạy song
+     song màn cũ, mặc định tắt); thêm P3b, BH-2 (đợt 2: cắm payOS / PIN / topping / đổi điểm / giao hàng / hoá đơn mới vào màn mới).
      Mã việc KHÔNG chứa "-d" / "-f" (kể cả hoa — luật chặn push): KH-DON-1 → KH-MUA-1, HOP-DONG-1 → HOPDONG-1. -->
 
 ## Mốc
@@ -16,8 +18,8 @@
 | M1 | CN 18.10 | LUOI-5, TU-CHAY-8 gộp — bộ khung 1.8.0 đóng băng tới khai trương (xong) |
 | M2 | T4 21.10 | DOI-SOAT-1 · P26d · KH-API-1 · P16 (xong 22.10) · S5 (SX → tách S5a/S5b) |
 | M3 | T7 24.10 | P22-23 · KH-UI-1 · KH-QUAY-1 · P15-QR (xong 22.10) |
-| M4 | T3 27.10 | QUAY-AN-1 · P24 · P3 · DIEM-THAT-1 · UUDAI-1 · KH-UI-2 · KH-OTP-1 · P17 (nếu có máy in) · **SX: SX-KHUNG-1 · HOPDONG-1 · SX-BACKUP-1 · S5a** |
-| M5 | T6 30.10 | TOPPING-1 · BH-1 · HD-1 · P15 (mã điểm + QR đăng ký) · KH-MUA-1 · GIAO-1 · AUDIT-KH · S1 (nhóm lộ) · S5b · X1 · H4 · H5 → **ĐỦ CHỨC NĂNG**. 29–30.10 chỉ sửa lỗi |
+| M4 | T3 27.10 | QUAY-AN-1 · P24 (xong 25.10) · P3 · DIEM-THAT-1 · UUDAI-1 · BH-1 · KH-UI-2 · KH-OTP-1 · P17 (nếu có máy in) · **SX: SX-KHUNG-1 · HOPDONG-1 · SX-BACKUP-1 · S5a** |
+| M5 | T6 30.10 | TOPPING-1 · P3b · BH-2 · HD-1 · P15 (mã điểm + QR đăng ký) · KH-MUA-1 · GIAO-1 · AUDIT-KH · S1 (nhóm lộ) · S5b · X1 · H4 · H5 → **ĐỦ CHỨC NĂNG**. 29–30.10 chỉ sửa lỗi |
 | — | 31.10 → khai trương | Chạy thử với nhân viên: chỉ sửa lỗi, không thêm tính năng |
 
 ## Hạng mục
@@ -30,7 +32,9 @@
 | DIEM-THAT-1 | Điểm chỉ tính trên tiền khách trả thật (tiền mặt / chuyển khoản), không tính phần trừ tài khoản và phí giao; sửa bất biến I8. Chạy SAU P24 (cùng sửa I8) | POS | [T] | M4 |
 | UUDAI-1 | Giá hạng hiển thị + áp cả topping; cài đặt mã / quà nào cộng với giảm hạng; không cộng → máy chủ chọn cái lợi hơn | POS | [T] | M4 |
 | TOPPING-1 | Cài đặt topping + ghi chú theo từng sản phẩm; giá topping; trừ kho SX (lô, hạn dùng); topping trên giỏ / hoá đơn / tem / hoàn | POS + SX | [T] | M5 |
-| BH-1 | Giao diện màn Bán hàng mới theo DAC_TA_BAN_HANG_2410 (tự theo màn hình, thanh khách, khung chọn món, tờ tiền + số khác, màn kết thúc hoá đơn + tem) | POS | [Th] | M5 |
+| BH-1 | Màn Bán hàng mới ĐỢT 1 trên API sẵn có (tự theo màn hình, thanh khách, khung chọn món, tờ tiền + số khác, màn kết thúc); công tắc theo máy, mặc định TẮT — màn cũ vẫn chạy | POS | [Th] | M4 |
+| BH-2 | Màn mới ĐỢT 2: cắm QR payOS + PIN + giữ tiền (P3), giá hạng / cộng dồn (UUDAI-1), topping (TOPPING-1), đổi điểm (P3b), giao hàng (GIAO-1), hoá đơn + tem (HD-1); chủ quán bật trên quầy | POS | [Th] | M5 |
+| P3b | Giữ / đổi điểm trong phiên thanh toán + PIN cho đổi quà (tách từ P3, chạy sau UUDAI-1) | POS | [T] | M5 |
 | HD-1 | Hoá đơn bố cục mới + tuỳ chỉnh chữ hoá đơn & tem (mở rộng màn cài đặt in) | POS | [Th] | M5 |
 | P15 | Phần còn lại: mã nhận điểm in chữ + QR đăng ký web KH (mã điền sẵn); PIN đã chuyển sang P3 | POS | [T] | M5 |
 | KH-MUA-1 | (đổi tên từ KH-DON-1) Đặt đơn từ App KH, TRẢ TRƯỚC bằng QR payOS; đơn chỉ về quầy (kèm chuông) khi đã trả | POS | [T] | M5 |
@@ -45,9 +49,9 @@
 Phần lớn việc tiền cùng sửa `server/routes/orders.js`. Hai việc được chạy SONG SONG khi phiếu ghi vùng sửa KHÔNG chồng nhau
 (git gộp được hai vùng khác nhau của một file); vùng chồng nhau thì chạy nối tiếp. Script gộp của chat DỪNG nếu đụng nhau; riêng
 mảng tên bài thử trong `kiem_tra_truoc_khi_giao.js` (một dòng) thì script gộp tự giữ đủ các tên.
-- Opus làn 1: P3 (tạo đơn + thanh toán) → UUDAI-1 (giá) → KH-MUA-1 → GIAO-1.
+- Opus làn 1: P3 (tạo đơn + thanh toán) → UUDAI-1 (giá) → P3b (điểm trong phiên) → KH-MUA-1 → GIAO-1.
 - Opus làn 2: P24 (đường huỷ / xoá + I8) → DIEM-THAT-1 (công thức điểm + I8) → TOPPING-1 → S5a (SX) → S1 (SX).
-- Sonnet: QUAY-AN-1 → HOPDONG-1 → BH-1 (làm ngay phần dùng API sẵn có, cắm API mới khi việc tiền gộp) → HD-1 → KH-UI-2 → SX-BACKUP-1 → S5b.
+- Sonnet: QUAY-AN-1 (xong) → BH-1 (đợt 1) ∥ HOPDONG-1 → HD-1 → BH-2 (đợt 2) → KH-UI-2 → SX-BACKUP-1 → S5b.
 - Chat soạn phiếu TRƯỚC khi máy rảnh; chủ quán duyệt kế hoạch 2 lần / ngày (NHIP_NGAY_VA_HAN_MUC.md).
 
 ## SX — việc tồn trước khai trương (chi tiết ở TIEN_DO_SX.json của kho SX)
