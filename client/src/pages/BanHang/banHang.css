@@ -1,0 +1,88 @@
+/* Màn Bán hàng mới (BH-1). Mọi lớp bắt đầu bằng bh- để không đụng màn cũ. */
+.bh { --bh-do: #b91c1c; --bh-do-nhat: #fee2e2; --bh-xanh: #15803d; --bh-xam: #64748b; --bh-vien: #e2e8f0;
+  display: flex; flex-direction: column; gap: 0.5rem; height: calc(100vh - 90px); min-height: 480px; position: relative; }
+.bh * { box-sizing: border-box; }
+.bh button { color: #1e293b; font-family: inherit; }
+.bh b { color: inherit; }
+.bh .bh-nut { color: #fff; }
+.bh .bh-nut.bh-phu { color: #1e293b; }
+.bh .bh-tab.bh-chon { color: #fff; }
+.bh .bh-chip.bh-chon { color: var(--bh-do); }
+.bh .bh-nut:disabled { color: #64748b; }
+.bh-than { flex: 1; min-height: 0; display: flex; gap: 0.75rem; }
+.bh-than.bh-hai-trang { display: block; }
+.bh-cot-mon { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow: hidden; }
+.bh-cot-gio { width: 380px; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; overflow-y: auto; }
+.bh-hai-trang .bh-cot-mon, .bh-hai-trang .bh-cot-gio { width: 100%; height: 100%; }
+
+.bh-hang-tren { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.bh-tab { border: 1.5px solid var(--bh-vien); background: #fff; border-radius: 999px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; min-height: 44px; }
+.bh-tab.bh-chon { background: var(--bh-do); border-color: var(--bh-do); color: #fff; }
+.bh-nut-nho { border: 1px solid var(--bh-vien); background: #fff; border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer; min-height: 40px; }
+
+.bh-luoi { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; align-content: start; padding-bottom: 0.5rem; }
+.bh-luoi.bh-khoa { opacity: 0.45; pointer-events: none; }
+.bh-mon { text-align: left; background: #fff; border: 1.5px solid var(--bh-vien); border-radius: 12px; padding: 0.7rem; cursor: pointer; min-height: 88px; display: flex; flex-direction: column; justify-content: space-between; gap: 0.3rem; }
+.bh-mon:disabled { opacity: 0.4; cursor: not-allowed; }
+.bh-mon-ten { font-weight: 700; }
+.bh-mon-ton { font-size: 0.75rem; color: var(--bh-xam); }
+.bh-gia { font-weight: 700; color: var(--bh-do); }
+.bh-gia-goc { text-decoration: line-through; color: var(--bh-xam); font-weight: 400; margin-right: 0.35rem; font-size: 0.85em; }
+
+.bh-khach { background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; padding: 0.5rem; position: relative; }
+.bh-khach-o { display: flex; gap: 0.4rem; }
+.bh-khach-o input { flex: 1; min-height: 44px; border: 1.5px solid var(--bh-vien); border-radius: 8px; padding: 0 0.75rem; font-size: 1rem; }
+.bh-goi-y { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; background: #fff; border: 1px solid var(--bh-vien); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-height: 260px; overflow-y: auto; }
+.bh-goi-y button { display: block; width: 100%; text-align: left; padding: 0.7rem 0.9rem; background: #fff; border: 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; min-height: 48px; }
+.bh-dai-khach { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; background: var(--bh-do-nhat); border-radius: 8px; padding: 0.5rem 0.7rem; }
+.bh-the { font-size: 0.75rem; background: #fff; border-radius: 999px; padding: 0.15rem 0.55rem; font-weight: 600; }
+
+.bh-gio-dau { padding: 0.7rem 0.9rem; font-weight: 700; border-bottom: 1px solid var(--bh-vien); display: flex; justify-content: space-between; align-items: center; }
+.bh-gio-ds { flex: 1 0 auto; min-height: 120px; }
+.bh-dong { display: flex; width: 100%; text-align: left; background: #fff; border: 0; border-bottom: 1px solid #f1f5f9; padding: 0.7rem 0.9rem; gap: 0.6rem; cursor: pointer; min-height: 56px; }
+.bh-dong-ten { flex: 1; min-width: 0; }
+.bh-dong-note { font-size: 0.8rem; color: var(--bh-xam); }
+.bh-dong-tien { text-align: right; white-space: nowrap; }
+.bh-trong { padding: 2rem 1rem; text-align: center; color: var(--bh-xam); }
+.bh-tien-dong { display: flex; justify-content: space-between; padding: 0.15rem 0.9rem; font-size: 0.9rem; }
+.bh-tien-dong.bh-tong { font-size: 1.25rem; font-weight: 800; padding: 0.5rem 0.9rem; }
+.bh-chan-gio { border-top: 1px solid var(--bh-vien); padding: 0.5rem 0 0.7rem; }
+
+.bh-nut { border: 0; border-radius: 10px; padding: 0.8rem 1rem; font-weight: 700; font-size: 1rem; cursor: pointer; min-height: 48px; background: var(--bh-do); color: #fff; }
+.bh-nut:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
+.bh-nut.bh-phu { background: #fff; color: #1e293b; border: 1.5px solid var(--bh-vien); }
+.bh-nut.bh-xanh { background: var(--bh-xanh); }
+.bh-nut.bh-lon { width: calc(100% - 1.8rem); margin: 0.4rem 0.9rem 0; }
+
+.bh-thanh-gio { flex: none; }
+.bh-loi { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; gap: 0.5rem; }
+.bh-ghi-chu-ngu { font-size: 0.8rem; color: var(--bh-xam); }
+
+.bh-to { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; padding: 0.5rem 0.9rem 0; }
+.bh-to button { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+.bh-to small { font-weight: 400; opacity: 0.85; }
+.bh-bao { padding: 0.5rem 0.9rem; font-weight: 700; font-size: 1.1rem; }
+.bh-bao.bh-du { color: var(--bh-xanh); }
+.bh-bao.bh-thieu { color: var(--bh-do); }
+.bh-phim { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; padding: 0.4rem 0.9rem; }
+.bh-phim button { min-height: 52px; font-size: 1.2rem; font-weight: 700; background: #f8fafc; border: 1px solid var(--bh-vien); border-radius: 8px; cursor: pointer; }
+.bh-so-lon { font-size: 1.6rem; font-weight: 800; text-align: right; padding: 0.3rem 0.9rem; min-height: 2.4rem; }
+
+.bh-lop { position: fixed; inset: 0; z-index: 1100; background: rgba(15,23,42,0.5); display: flex; align-items: flex-end; justify-content: center; }
+.bh-khung { background: #fff; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 1rem; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.7rem; }
+.bh-khung.bh-noi { align-self: center; border-radius: 16px; }
+.bh-chip-hang { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.bh-chip { border: 1.5px solid var(--bh-vien); background: #fff; border-radius: 999px; padding: 0.5rem 0.9rem; cursor: pointer; min-height: 44px; font-weight: 600; }
+.bh-chip.bh-chon { background: var(--bh-do-nhat); border-color: var(--bh-do); color: var(--bh-do); }
+.bh-so-ly { display: flex; align-items: center; justify-content: center; gap: 1.2rem; }
+.bh-so-ly button { width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid var(--bh-vien); background: #fff; font-size: 1.5rem; cursor: pointer; }
+.bh-so-ly b { font-size: 1.6rem; min-width: 2ch; text-align: center; }
+.bh-khung input[type=text] { min-height: 44px; border: 1.5px solid var(--bh-vien); border-radius: 8px; padding: 0 0.75rem; font-size: 1rem; width: 100%; }
+
+.bh-xong { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; padding: 1.5rem; text-align: center; }
+.bh-xong h2 { margin: 0; color: var(--bh-xanh); }
+.bh-tra-lai { background: #f0fdf4; border: 2px solid #86efac; border-radius: 16px; padding: 1rem 2rem; }
+.bh-tra-lai b { display: block; font-size: 2.6rem; color: var(--bh-xanh); }
+.bh-cai-dat { position: absolute; right: 0; top: 100%; z-index: 30; background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; padding: 0.9rem; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 0.6rem; }
+
+@media (max-width: 768px) { .bh { height: calc(100dvh - 160px); } }   /* chừa thanh điều hướng đáy của Layout */

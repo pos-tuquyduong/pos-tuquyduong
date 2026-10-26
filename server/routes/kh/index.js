@@ -14,6 +14,7 @@ const { getNow, sinhQrKhongTrung, QR_TIEN_TO } = require('../../utils/helpers');
 const { nhanMaUuDai, nhanDiemMaBill } = require('../signup-codes');
 const { layMenuQuay } = require('../products');
 const { bao, loiMayChu } = require('./loi');
+const { datPin } = require('../../utils/pinKhach');
 
 const router = express.Router();
 const SO_DON_MOI_TRANG = 20;
@@ -161,6 +162,18 @@ const nhanQuaToken = (ham, loai) => async (req, res) => {
 };
 router.post('/nhan-ma-bill', nhanQuaToken(nhanMaUuDai, 'nhan_ma_bill'));
 router.post('/nhan-diem', nhanQuaToken(nhanDiemMaBill, 'nhan_diem'));
+
+// P3 (Q6): khách đặt / đổi PIN của CHÍNH mình — SĐT từ token, mọi sdt / phone trong thân bị bỏ qua. Cùng datPin với quầy.
+router.put('/pin', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const kq = await datPin(req.khach.phone, b.pin, b.pin_lai, { lanDau: false, viec: 'dat_app', nguoi: 'app_kh' });
+    if (kq.loi) return res.status(kq.loi[0]).json({ error: kq.loi[2], code: kq.loi[1] });
+    res.json({ success: true });
+  } catch (err) {
+    loiMayChu(res, err, 'kh pin');
+  }
+});
 
 // G: đường lạ (đã qua token) → 404 có code, không rơi ra trang 404 mặc định.
 router.use((req, res) => bao(res, 'KHONG_TIM_THAY'));

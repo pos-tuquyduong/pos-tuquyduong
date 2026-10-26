@@ -24,7 +24,7 @@ const {
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
-const { ghiVi, loiGhi, ghiHoan } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
+const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
@@ -165,8 +165,11 @@ router.get("/:id", authenticate, async (req, res) => {
  * Tạo đơn hàng mới
  * Hỗ trợ: Thanh toán linh hoạt (số dư + tiền mặt/CK + ghi nợ)
  * Phase B: Hỗ trợ chiết khấu linh hoạt + phí ship
+ * P3: thân route là hàm `taoDon` — chốt phiên thanh toán (utils/giuCho.js) đi ĐÚNG đường này, cùng mọi phép kiểm. `phien`:
+ *   { chiTinh: true } → trả { total } trước phép đối chiếu tiền, không ghi gì (tạo phiên);
+ *   { id, vaoGiaoDich(tx, now), sauGhiDon(tx, orderId, orderCode) } → chốt phiên trong giao dịch tạo đơn.
  */
-router.post("/", authenticate, async (req, res) => {
+async function taoDon(req, res, phien = null) {
   try {
     const {
       customer_phone,
@@ -201,6 +204,20 @@ router.post("/", authenticate, async (req, res) => {
       // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm, cùng đơn với hàng thường) ===
       membership_buy = null, // { tier_id }
     } = req.body;
+
+    // P3 (H, chủ quán chốt 22.10): một đơn KHÔNG trả kết hợp tiền mặt + chuyển khoản; tài khoản + MỘT cách cho phần còn lại thì được.
+    if (Number(cash_amount) > 0 && Number(transfer_amount) > 0) {
+      return res.status(400).json({ error: "Một đơn chỉ trả tiền mặt HOẶC chuyển khoản, không kết hợp", code: "TRA_KET_HOP" });
+    }
+    // P3 (Q1a): cờ bật → chuyển khoản chỉ qua QR payOS, trừ tài khoản chỉ qua phiên có PIN (routes/thanh-toan.js). Chốt phiên có `phien`.
+    if (!phien && (Number(transfer_amount) > 0 || Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
+      const co = await queryOne("SELECT value FROM pos_settings WHERE key = 'thanh_toan_payos_bat_buoc'");
+      if (co?.value === "1") {
+        return res.status(400).json(Number(transfer_amount) > 0
+          ? { error: "Chuyển khoản phải qua QR payOS", code: "CK_PHAI_QUA_PAYOS" }
+          : { error: "Trừ tiền tài khoản phải qua phiên thanh toán có PIN khách", code: "VI_PHAI_QUA_PIN" });
+      }
+    }
 
     // Validate — cho phép items rỗng nếu đang mua gói / mua thẻ hội viên
     if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy) {
@@ -743,17 +760,17 @@ router.post("/", authenticate, async (req, res) => {
 
     // Tính toán số tiền thanh toán thực tế
     // Hỗ trợ cả payment_method cũ (backward compatible) và mới
-    if (payment_method === "balance" && phone) {
+    if (payment_method === "balance" && phone && !phien) {   // P3: chốt phiên trả tài khoản đi nhánh dưới (có cả phần ví mẹ)
       // Cách cũ: thanh toán toàn bộ bằng số dư
       const wallet = await queryOne(
         "SELECT * FROM pos_wallets WHERE phone = ?",
         [phone],
       );
-      const currentBalance = wallet?.balance || 0;
+      const currentBalance = (wallet?.balance || 0) - (await dangGiu({ queryOne }, phone));   // P3: số KHẢ DỤNG
 
       if (currentBalance < total) {
         return res.status(400).json({
-          error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ, cần: ${total.toLocaleString()}đ`,
+          error: `Số dư không đủ. Khả dụng: ${currentBalance.toLocaleString()}đ, cần: ${total.toLocaleString()}đ`,
           code: "SO_DU_KHONG_DU",
         });
       }
@@ -765,11 +782,11 @@ router.post("/", authenticate, async (req, res) => {
         "SELECT * FROM pos_wallets WHERE phone = ?",
         [phone],
       );
-      const currentBalance = wallet?.balance || 0;
+      const currentBalance = (wallet?.balance || 0) - (await dangGiu({ queryOne }, phone, phien?.id));   // P3: số KHẢ DỤNG
 
       if (currentBalance < balance_amount) {
         return res.status(400).json({
-          error: `Số dư không đủ. Hiện có: ${currentBalance.toLocaleString()}đ`,
+          error: `Số dư không đủ. Khả dụng: ${currentBalance.toLocaleString()}đ`,
           code: "SO_DU_KHONG_DU",
         });
       }
@@ -786,11 +803,11 @@ router.post("/", authenticate, async (req, res) => {
         "SELECT * FROM pos_wallets WHERE phone = ?",
         [normalizedParentPhone],
       );
-      const parentCurrentBalance = parentWallet?.balance || 0;
+      const parentCurrentBalance = (parentWallet?.balance || 0) - (await dangGiu({ queryOne }, normalizedParentPhone, phien?.id));
 
       if (parentCurrentBalance < parent_balance_amount) {
         return res.status(400).json({
-          error: `Số dư mẹ không đủ. Hiện có: ${parentCurrentBalance.toLocaleString()}đ`,
+          error: `Số dư mẹ không đủ. Khả dụng: ${parentCurrentBalance.toLocaleString()}đ`,
           code: "SO_DU_KHONG_DU",
         });
       }
@@ -817,6 +834,8 @@ router.post("/", authenticate, async (req, res) => {
       finalDebtAmount = 0;
     }
 
+
+    if (phien?.chiTinh) return { total };   // P3: tạo phiên chỉ cần tổng máy chủ tính (mọi phép kiểm phía trên đã chạy), không ghi gì
 
     // ─── An toàn tiền bạc: đối chiếu tổng thanh toán máy khách gửi lên với total server tự tính ───
     // Máy khách hiện CHƯA biết Flash lúc tính tiền mặt/chuyển khoản/ghi nợ cần thu (tính trước khi
@@ -865,6 +884,12 @@ router.post("/", authenticate, async (req, res) => {
     try {
       orderCode = await taoMaDonTheoSo(tx.queryOne);   // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409
 
+      // P3: chốt phiên — cổng MỘT lần (cho → da_thu, còn hạn) TRƯỚC khi trừ ví: báo lặp / hai báo cùng lúc / tiền mặt + webhook → một đơn.
+      if (phien && !(await phien.vaoGiaoDich(tx, now))) {
+        await tx.rollback();
+        return res.status(409).json({ error: "Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn", code: "PHIEN_DA_CHOT" });
+      }
+
       // 0. Trừ số dư khách / mẹ — P26b: qua ghiVi, đọc số dư + kiểm đủ + trừ TƯƠNG ĐỐI trong giao dịch này (trước đây kiểm
       //    lại riêng rồi `SET balance = ?`). Làm TRƯỚC khi ghi đơn: thiếu → rollback, 400 trước khi đụng mã đơn. Dòng sổ gắn
       //    order_id ngay sau khi có đơn (bước 1).
@@ -879,7 +904,7 @@ router.post("/", authenticate, async (req, res) => {
           ghiChu: tru.ghiChu, nguoi: req.user.username, luc: now, cot: "total_spent", soCot: tru.soTien, khongAm: true });
         if (r.thieu) {
           await tx.rollback();
-          return res.status(400).json({ error: `${tru.nhan} không đủ. Hiện có: ${r.truoc.toLocaleString()}đ`, code: "SO_DU_KHONG_DU" });
+          return res.status(400).json({ error: `${tru.nhan} không đủ. Khả dụng: ${r.khaDung.toLocaleString()}đ`, code: "SO_DU_KHONG_DU" });
         }
         if (tru.khach) balanceAfter = r.sau;
         dongSo.push(r.id);
@@ -927,6 +952,7 @@ router.post("/", authenticate, async (req, res) => {
       );
       orderId = Number(result.lastInsertRowid);
       for (const id of dongSo) await tx.run("UPDATE pos_balance_transactions SET order_id = ? WHERE id = ?", [orderId, id]);
+      if (phien) await phien.sauGhiDon(tx, orderId, orderCode);   // P3: gắn đơn vào phiên (+ nhật ký xác nhận tay) cùng giao dịch
 
       // 2. Thêm chi tiết đơn hàng
       // Lưu ý: package virtual item có product_id âm (-pkg.id) — SQLite/Turso không enforce FK
@@ -1234,7 +1260,8 @@ router.post("/", authenticate, async (req, res) => {
     console.error("Create order error:", err);
     loiGhi(res, err);
   }
-});
+}
+router.post("/", authenticate, (req, res) => taoDon(req, res));
 /**
  * POST /api/pos/orders/:id/pay-debt
  * Xác nhận thanh toán nợ cho đơn hàng
@@ -1732,3 +1759,4 @@ router.delete("/:id", authenticate, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.taoDon = taoDon;   // P3: chốt phiên thanh toán (utils/giuCho.js)
