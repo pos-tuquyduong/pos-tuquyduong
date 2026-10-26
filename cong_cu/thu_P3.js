@@ -261,7 +261,7 @@ async function main() {
     const diem = await db.queryOne("SELECT points FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [don.id || -1]);
     k('B3 đúng chữ ký + mã + tiền → 200, MỘT đơn paid, CK 20.000 + tài khoản 30.000', la(b3, 200) && await soDon() === d0 + 1
       && don.payment_status === 'paid' && Number(don.transfer_amount) === 20000 && Number(don.balance_amount) === 30000 && Number(don.cash_amount) === 0, moTa(b3) + ' ' + JSON.stringify(pp).slice(0, 100));
-    k('B3 ví trừ đúng 30.000 (còn 0), điểm = floor(50.000 / 10.000) = 5, kho SX có dòng ra như đơn quầy', await soDu(a) === 0 && Number(diem?.points) === 5
+    k('B3 ví trừ đúng 30.000 (còn 0), điểm = floor(20.000 / 10.000) = 2 (DIEM-THAT-1: chỉ tiền CK thật, không tính tài khoản), kho SX có dòng ra như đơn quầy', await soDu(a) === 0 && Number(diem?.points) === 2
       && await dem("SELECT COUNT(*) AS n FROM pos_stock_pending WHERE order_id = ? AND direction = 'out'", [don.id || -1]) === 1);
     k('B3 phiên da_thu nguồn payos, sự kiện khop', pp.trang_thai === 'da_thu' && pp.nguon === 'payos' && (await suKien(p.id)).map((x) => x.ket_qua).join() === 'khop');
     for (let i = 0; i < 3; i++) await guiWebhook(bao);

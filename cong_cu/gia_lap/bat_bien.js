@@ -10,6 +10,8 @@
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
  * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
  * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
+ * DIEM-THAT-1: điểm gốc = floor(tiền khách trả thật / per), tiền thật = max(0, round(min(tiền mặt + CK, total − ví − ví mẹ) − phí giao)) —
+ * công thức RIÊNG, không gọi server/utils/diemThat.js (trọng tài không dùng chung lỗi với code). Đơn tạo trước DIEM_THAT_TU ở Đối soát thật: nhận cả total/per.
  */
 
 // Chép wallets.js:240 (không export). Bộ kiểm nhóm S so khớp hai bản — sửa một bên là đỏ.
@@ -18,6 +20,8 @@ const LOAI_TINH_VAO_VI = ['topup', 'purchase', 'refund', 'adjust', 'compensation
 const DIEM_KHI_THU_TU = '2026-10-23';
 // P24: ngày đầu "huỷ đơn trừ điểm" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
 const HUY_TRU_DIEM_TU = '2026-10-26';
+// DIEM-THAT-1: ngày đầu "điểm chỉ trên tiền khách trả thật" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
+const DIEM_THAT_TU = '2026-10-27';
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
 const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
@@ -121,7 +125,7 @@ const BAT_BIEN = {
     for (const h of hong) if (!ctx.sxGia.kbBat.has(h.kb)) lech.push(`SX lỗi ở kịch bản ${h.kb} không bật công tắc lỗi (vân tay ${h.van_tay})`);
     return lech;
   },
-  // I8 — điểm mỗi đơn đúng luật HIỆN TẠI. g = floor(total/per), k = hệ số. Có điểm lúc bán / lúc thu đủ (orders.js tinhDiemDon):
+  // I8 — điểm mỗi đơn đúng luật HIỆN TẠI. g = floor(tiền thật/per) (DIEM-THAT-1; luật cũ gCu = floor(total/per)), k = hệ số. Có điểm lúc bán / lúc thu đủ (orders.js tinhDiemDon):
   // tích điểm bật, có SĐT, total > 0, không Flash, ĐÃ THU ĐỦ. Nhận điểm mã bill (signup-codes.js nhanDiemMaBill): Flash → 0;
   // g + round(g×(k−1)) nếu đơn đã có điểm, round(g×k) nếu chưa. ctx.thuc + đơn tạo trước DIEM_KHI_THU_TU: khớp luật cũ (không xét
   // thu đủ, không xét Flash khi nhận mã) cũng đạt. Giả lập (không ctx.thuc) tạo đơn bằng giờ thật → luôn luật mới.
@@ -131,26 +135,30 @@ const BAT_BIEN = {
     const per = Number(cfg.loyalty_earn_per_amount);
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
-    const ds = await q(`SELECT o.code, o.total, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
+    const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
         o.status, o.cancelled_at,
         COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
       LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
     const lech = ds.flatMap((r) => {
-      const g = Math.floor(so(r.total) / per);
-      const diemDung = (luatCu) => {
-        const coDiem = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && g > 0
+      const tra = Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - so(r.balance_amount) - so(r.parent_balance_amount));
+      const g = Math.floor(Math.max(0, Math.round(tra - so(r.shipping_fee))) / per);
+      const gCu = Math.floor(so(r.total) / per);
+      const diemDung = (luatCu, goc) => {
+        const coDiem = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && goc > 0
           && (luatCu || r.payment_status === 'paid');
-        if (!so(r.da_nhan)) return coDiem ? g : 0;
+        if (!so(r.da_nhan)) return coDiem ? goc : 0;
         if (!luatCu && so(r.flash) > 0) return 0;
-        return coDiem ? g + Math.round(g * (k - 1)) : Math.round(g * k);
+        return coDiem ? goc + Math.round(goc * (k - 1)) : Math.round(goc * k);
       };
       // Huỷ trước mốc (hoặc dữ liệu cũ không cancelled_at): ngày gộp lẫn hai luật → nhận cả "giữ điểm" (cũ) lẫn tổng 0 (P24).
       const huyCu = ctx.thuc && r.status === 'cancelled' && (r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU);
-      const dung = r.status === 'cancelled' && !huyCu ? 0 : diemDung(false);
+      const dung = r.status === 'cancelled' && !huyCu ? 0 : diemDung(false, g);
       if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
-      if (ctx.thuc && (huyCu || r.status !== 'cancelled') && String(r.created_at) < DIEM_KHI_THU_TU && so(r.diem) === diemDung(true)) return [];
+      const cu = ctx.thuc && (huyCu || r.status !== 'cancelled');
+      if (cu && String(r.created_at) < DIEM_THAT_TU && so(r.diem) === diemDung(false, gCu)) return [];   // DIEM-THAT-1: luật P22-23
+      if (cu && String(r.created_at) < DIEM_KHI_THU_TU && so(r.diem) === diemDung(true, gCu)) return [];
       return [`đơn ${r.code}: ${so(r.diem)} điểm, đúng luật là ${dung}`];
     });
     // LUOI-1 B1 — vế ĐỔI ĐIỂM (loyalty.js:124–219): mỗi dòng 'redeem' có đúng một quà trỏ tới (point_tx_id) và trừ đúng
@@ -342,4 +350,4 @@ const BAT_BIEN = {
   },
 };
 
-module.exports = { BAT_BIEN, LOAI_TINH_VAO_VI, DIEM_KHI_THU_TU, HUY_TRU_DIEM_TU };
+module.exports = { BAT_BIEN, LOAI_TINH_VAO_VI, DIEM_KHI_THU_TU, HUY_TRU_DIEM_TU, DIEM_THAT_TU };

@@ -22,6 +22,7 @@ const { query, queryOne, run, beginTransaction } = require('../database');
 const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
 const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
 const { loiMayChu } = require('./kh/loi');
+const { tienTinhDiem } = require('../utils/diemThat'); // DIEM-THAT-1: điểm gốc mã bill theo tiền khách trả thật
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ async function kiemDonCuaMa(dong) {
     return { loi: { status: 400, code: 'MA_KHONG_GAN_DON', error: 'Mã này không gắn với đơn nào.' } };
   }
   const don = await queryOne(
-    'SELECT id, code, total, status, payment_status, flash_discount FROM pos_orders WHERE id = ?',
+    'SELECT id, code, total, status, payment_status, flash_discount, cash_amount, transfer_amount, shipping_fee, balance_amount, parent_balance_amount FROM pos_orders WHERE id = ?',
     [dong.order_id],
   );
   if (!don) {
@@ -225,7 +226,7 @@ async function nhanDiemMaBill(req, res) {
     if (!Number.isFinite(moiBaoNhieu) || moiBaoNhieu < 1) {
       return res.status(400).json({ success: false, error: 'Cấu hình tích điểm chưa hợp lệ.', code: 'CAU_HINH_DIEM_SAI' });
     }
-    const diemGoc = Math.floor(Number(don.total || 0) / moiBaoNhieu);
+    const diemGoc = Math.floor(tienTinhDiem(don) / moiBaoNhieu);   // DIEM-THAT-1: tiền khách trả thật, cùng hàm với lúc bán
     if (diemGoc <= 0) {
       return res.status(400).json({
         success: false,

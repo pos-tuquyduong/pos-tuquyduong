@@ -116,10 +116,12 @@ const KICH_BAN = [
     c.mong('trả đủ nợ → 200 paid', t.status === 200 && t.data?.payment_status === 'paid', c.ma(t));
   } },
   { ten: 'huỷ đơn', chay: async (c) => {
-    const d = await c.taoDon('KB5a', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(0)], payment_method: 'balance', balance_amount: 25000 });
+    // DIEM-THAT-1: ví 10.000 + tiền mặt 15.000 — phần ví không sinh điểm, phần tiền mặt có điểm để huỷ có cái trừ.
+    const d = await c.taoDon('KB5a', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(0)], payment_method: 'cash',
+      balance_amount: 10000, cash_amount: 15000 });
     const truoc = await c.vi(KH.quen);
     const h = await c.goi('chu', 'PUT', `/orders/${d.id}/cancel`, { reason: 'giả lập huỷ' });
-    c.mong('huỷ đơn trả ví → 200, ví +25.000', h.status === 200 && await c.vi(KH.quen) === truoc + 25000, c.ma(h));
+    c.mong('huỷ đơn trả ví 10.000 + tiền mặt → 200, ví +10.000', h.status === 200 && await c.vi(KH.quen) === truoc + 10000, c.ma(h));
     // P24: đơn đã thu đủ có SĐT có điểm → huỷ ghi đúng MỘT dòng trừ, điểm của đơn về 0 (I8 canh mọi đơn huỷ của giả lập).
     const diemDon = (id) => c.so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [id]);
     const tru = (id) => c.so("SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust'", [id]);
@@ -654,7 +656,9 @@ const KICH_BAN = [
       `${c.ma(h)} · ví ${v} → ${await c.vi(S)}`);
     const k = await c.baoHong(d.id, { product_code: c.sp[1].code, quantity: 1, action: 'return_stock', return_to_stock: true });
     c.mong('hoàn kho SX trên đơn đã huỷ → 400 DON_DA_HUY_KHO', k.status === 400 && k.code === 'DON_DA_HUY_KHO', c.ma(k));
-    const n = await c.taoDon('KB31 nợ', { customer_phone: S, customer_name: 'Khách KB31', items: [c.mon(3)], payment_method: 'debt', debt_amount: 15000 });
+    // DIEM-THAT-1: có tiền mặt 10.000 lúc tạo — đơn chưa thu đủ mà cộng điểm (đột biến M15) thì có điểm sai để I8 bắt.
+    const n = await c.taoDon('KB31 nợ', { customer_phone: S, customer_name: 'Khách KB31', items: [c.mon(3)], payment_method: 'cash',
+      cash_amount: 10000, debt_amount: 5000 });
     const dn = await c.baoHong(n.id, { product_code: c.sp[3].code, quantity: 1, action: 'refund', refund_amount: 5000 });
     c.mong('đơn chưa thu → hoàn tiền 400 DON_CHUA_THU', dn.status === 400 && dn.code === 'DON_CHUA_THU', c.ma(dn));
   } },

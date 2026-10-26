@@ -164,7 +164,8 @@ async function main() {
       && e2.expires_at === hanQuy(r2.order.created_at), `${moTa(r2)} · ${JSON.stringify(e2)}`);
     const s3 = sdtMoi(); await nap(s3, 100000);
     const r3 = await ban({ customer_phone: s3, items: [mon(2)], payment_method: 'balance', balance_amount: 50000 });
-    k('A3 trả đủ 50.000 bằng ví → 1 dòng earn 50 điểm', r3.status === 200 && await soEarn(r3.order.id) === 1 && await diemDon(r3.order.id) === 50,
+    k('A3 trả đủ 50.000 bằng ví → 200 paid, 0 earn (DIEM-THAT-1: phần trừ ví không sinh điểm)', r3.status === 200
+      && r3.order.payment_status === 'paid' && await soEarn(r3.order.id) === 0 && await diemDon(r3.order.id) === 0,
       `${moTa(r3)} · ${await diemDon(r3.order?.id)}`);
   }
 
