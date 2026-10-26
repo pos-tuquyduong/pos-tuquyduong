@@ -1,0 +1,83 @@
+# UUDAI-1 — Ưu đãi: mã giảm dùng chung hay không với giá hạng, máy chủ chọn cách lợi hơn
+
+<!-- Phiếu do chat soạn 26.10.2026. Việc tiền [T] — Opus, máy lập kế hoạch, dừng chờ chủ quán duyệt. Nền: main sau khi gộp DIEM-THAT-1.
+     Đặc tả: ban_mau_pos/DAC_TA_BAN_HANG_2410.md mục 1.5–1.6. Chủ quán chốt thêm 26.10 (demo combo
+     claude.ai/artifact/NR3wi1kVEAnyMK4ygGMdck): cài đặt THEO LOẠI mã, chữ trên màn là "Dùng chung với giá hạng"; quà / voucher đổi điểm
+     LUÔN dùng chung; bỏ tích thì khách hội viên chỉ được một trong hai, máy tự chọn cái giảm nhiều hơn và ghi rõ trên giỏ.
+     Code đọc 26.10 (main 9fd32af): giảm hạng TIER-2 orders.js ~625–668 (tierDiscountAmount, tier_unit_price, nhóm đặc biệt
+     special_discount_percent, flash chặn hạng); mã % orders.js ~722 tính trên `subtotal` GỐC (chưa trừ hạng) — sai mục 1.6
+     ("hạng tính trước, ưu đãi tính trên giá đã giảm"); trần mã ~733; mã 1 món (discount_scope 'item', itemScopeDiscount.js);
+     voucher đổi điểm = dòng pos_discount_codes có dòng pos_voucher_grants cùng `code` (loyalty.js ~134). Đơn tạo qua payOS (P3) đi
+     cùng hàm tạo đơn của orders.js. Combo (COMBO-1a) làm SAU việc này, dùng lại hàm của việc này — đừng làm combo ở đây. -->
+
+**Chờ duyệt kế hoạch:** viết `viec/UUDAI-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+
+## Mục tiêu
+Quầy biết chắc một đơn của khách hội viên có mã giảm sẽ tính ra bao nhiêu, theo đúng luật chủ quán đặt trong Cài đặt, và giỏ hiện
+được con số đó TRƯỚC khi thu tiền. Máy chủ là nơi duy nhất quyết số tiền. Phải xong trước BH-2 (màn mới hiện giá hạng / dòng ưu đãi)
+và COMBO-1a (giá combo dùng lại hàm này).
+
+## Nghiệm thu
+Số trong ví dụ: tỉ lệ hạng Vàng 10%, món 39.000đ / 50.000đ; mọi số tiền là số nguyên đồng.
+
+- A MỘT hàm thuần `tinhUuDai(...)` ở FILE MỚI `server/utils/uuDai.js` quyết: tiền giảm hạng, tiền giảm của mã, cách đã chọn
+  (`ca_hai` | `hang` | `ma` | `khong`), số tiền lợi hơn. POST / (tạo đơn, cả đường payOS của P3) và đường mới ở F gọi CÙNG hàm,
+  không chép công thức. Hàm không đọc DB, không đọc giờ.
+- B Dùng chung (cài đặt bật): hạng tính trước, mã tính trên phần CÒN LẠI sau hạng. Ví dụ 2 món 50.000 = 100.000, Vàng 10% → 90.000,
+  mã 10% → giảm 9.000 → tổng 81.000 (code cũ ra 80.000 — đổi có chủ ý). `max_discount`, `min_order` của mã vẫn áp (min_order so với
+  tiền trước mã như cũ — kế hoạch ghi rõ chọn mốc nào). Mã tiền: trừ thẳng, không vượt phần còn lại. Mã giảm 1 món: tính trên giá
+  đơn vị ĐÃ giảm hạng của đúng món đó.
+- C Không dùng chung (cài đặt tắt): máy chủ tính hai cách — chỉ hạng / chỉ mã — lấy tổng THẤP hơn. Bằng nhau → giữ hạng.
+  Ví dụ 2 × 39.000 = 78.000, Vàng 10%: mã 20.000 → chọn mã, tổng 58.000, `tier_discount` = 0; mã 5.000 → chọn hạng, tổng 70.200.
+  Chọn hạng thì mã KHÔNG bị tiêu: `used_count` không tăng, voucher không đổi trạng thái, đơn không ghi mã đó; huỷ / hoàn đơn đó
+  không trả lượt mã. Chọn mã thì vẫn ghi `customer_tier` (tên hạng) nhưng không có giá hạng trên từng món.
+- D Voucher đổi điểm (có dòng `pos_voucher_grants` cùng mã) LUÔN dùng chung với giá hạng, bất kể cài đặt.
+- E Cài đặt: 3 khoá `pos_settings` theo loại mã — giảm %, giảm tiền, giảm 1 món — giá trị chỉ '0' | '1', MẶC ĐỊNH '1' (giữ cách đang
+  chạy: cộng). Seed khi khởi động như các khoá khác. Chỉ người có quyền sửa Cài đặt mới sửa được; giá trị khác '0'/'1' → 400.
+  Trang Cài đặt có khối "Mã giảm & giá hạng": mỗi loại một ô tích "Dùng chung với giá hạng" + một dòng giải thích lời thường
+  ("Bỏ tích: khách hội viên chỉ được một trong hai — giá hạng hoặc mã, máy tự chọn cái giảm nhiều hơn"); dòng "Quà đổi điểm: luôn
+  dùng chung" (chữ, không có ô tích).
+- F Tính thử: `POST /api/pos/orders/tinh-thu` (đăng nhập như bán hàng) nhận đúng phần thân đơn như POST / (món, SĐT, mã) và trả
+  subtotal, tiền giảm hạng, tiền giảm mã, tổng, cách đã chọn + câu ghi giỏ, giá đơn vị theo hạng của từng món (để màn hiện giá gạch).
+  KHÔNG ghi gì: không tạo đơn, không tiêu mã, không giữ tiền, không gọi SX. Cùng một giỏ: số của tinh-thu = số POST / ghi vào đơn.
+- G Không đổi: Flash vẫn chặn giá hạng như cũ; khách lẻ / thẻ hết hạn → không hạng; gói, thẻ hội viên không giảm hạng; nhóm đặc biệt
+  vẫn dùng `special_discount_percent`; đơn không mã cho số y như cũ; công thức điểm DIEM-THAT-1 không đổi (điểm theo tiền thật của
+  tổng mới); phí giao không giảm hạng, không áp mã.
+- K5 luồng hợp lệ không bị chặn: đơn có mã mà khách không có hạng vẫn dùng mã bình thường; mã hết lượt / sai vẫn báo lỗi như cũ
+  (kể cả khi máy sẽ chọn hạng — mã sai thì báo sai, không lặng lẽ bỏ).
+- Ghi chú cho TOPPING-1 (KHÔNG làm ở đây): topping là dòng món → giảm hạng tự áp; COMBO-1a dùng lại `tinhUuDai`.
+
+## Phạm vi
+- viec/UUDAI-1/**
+- server/utils/uuDai.js
+- server/routes/orders.js
+- server/routes/settings.js
+- server/database.js
+- client/src/pages/Settings.jsx
+- client/dist/**
+- cong_cu/thu_UUDAI1.js
+- cong_cu/thu_P26c.js
+- cong_cu/thu_P3.js
+- cong_cu/thu_BH1.js
+- cong_cu/gia_lap/bat_bien.js
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/thu_gia_lap.js
+- kiem_tra_truoc_khi_giao.js
+
+## Ngân sách
+~150 dòng code + ~40 dòng giao diện + ~300 dòng thử.
+**Phương án đơn giản nhất đã xét:** chỉ đổi thứ tự (mã % tính sau hạng) và một cờ chung cho mọi mã — không đủ: chủ quán chốt cài đặt
+theo loại, quà luôn dùng chung, và giỏ phải biết trước máy chọn gì (cần tinh-thu dùng cùng hàm).
+
+## Đổi cấu trúc DB
+không (chỉ thêm 3 dòng seed `pos_settings`)
+
+## Thư viện mới
+không
+
+## Cấm
+- KHÔNG làm combo, topping, đổi điểm trong phiên (P3b), giao hàng; KHÔNG sửa client/src/pages/BanHang/** (BH-2 làm), không sửa
+  server/routes/thanh-toan.js, wallets.js, loyalty.js, discount-codes.js, customers*.js, app_kh/**.
+- KHÔNG đổi tỉ lệ / hạn điểm, mốc DIEM_THAT_TU, HUY_TRU_DIEM_TU.
+- Mặc định: không sửa tu_chay/, .claude/, .github/, sổ việc. Chỉ push `git push -u origin viec/UUDAI-1`. Không đụng main, không merge,
+  không tạo PR.
