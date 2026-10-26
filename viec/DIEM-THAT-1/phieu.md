@@ -55,6 +55,7 @@ khác) và phí giao không sinh điểm, ở mọi đường cộng điểm.
 - cong_cu/thu_gia_lap.js
 - cong_cu/thu_DOISOAT1.js
 - cong_cu/thu_P20.js
+- cong_cu/thu_P3.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
