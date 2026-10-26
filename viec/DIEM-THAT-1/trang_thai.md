@@ -357,3 +357,6 @@ Nghiệm thu — đếm từng mục:
 - Dừng chờ chat soát. Không merge, không tạo PR.
 
 HEAD ĐÃ KIỂM: f124184
+
+Chat soát thay vòng 4 (26.10): đọc code tiền ở d44919e (hàm tienTinhDiem, 3 chỗ gọi), gộp thử main 9fd32af: npm test --day-du 75/0, cổng tĩnh đạt. Gộp: thu_DIEMTHAT1.js chèn trước thu_P3.js; ca B3 thu_P3.js điểm 5 → 2 (thu_P3.js vào Phạm vi bằng commit PHIEU); mốc DIEM_THAT_TU.
+HEAD ĐÃ KIỂM: ac03b89
