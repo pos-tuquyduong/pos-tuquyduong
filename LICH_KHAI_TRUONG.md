@@ -10,7 +10,10 @@
      không công nợ, không "mang ra bàn", payOS tự xác nhận, PIN + giữ tiền, giá hạng, topping qua SX, hoá đơn + tem tuỳ chỉnh, giao hàng ở quầy.
      25.10: QUAY-AN-1 #42, P24 #43 xong (main 5cb2a03). P3 duyệt (tách P3b — điểm trong phiên). Mở DIEM-THAT-1 + BH-1 (đợt 1, chạy song
      song màn cũ, mặc định tắt); thêm P3b, BH-2 (đợt 2: cắm payOS / PIN / topping / đổi điểm / giao hàng / hoá đơn mới vào màn mới).
-     Mã việc KHÔNG chứa "-d" / "-f" (kể cả hoa — luật chặn push): KH-DON-1 → KH-MUA-1, HOP-DONG-1 → HOPDONG-1. -->
+     Mã việc KHÔNG chứa "-d" / "-f" (kể cả hoa — luật chặn push): KH-DON-1 → KH-MUA-1, HOP-DONG-1 → HOPDONG-1.
+     26.10: P3 #44, BH-1 #45 xong (main 9fd32af). DIEM-THAT-1: chat soát thay vòng 4 ĐẠT, gộp sau P3 (ca B3 thu_P3 5 → 2 điểm). Chủ quán
+     duyệt COMBO (demo claude.ai/artifact/NR3wi1kVEAnyMK4ygGMdck): thêm COMBO-1a [T] (sau UUDAI-1, dùng lại hàm ưu đãi) + COMBO-1b [Th]
+     (cùng BH-2). UUDAI-1: cài đặt THEO LOẠI mã "Dùng chung với giá hạng", quà đổi điểm luôn dùng chung — mở nhánh, chờ duyệt kế hoạch. -->
 
 ## Mốc
 | Mốc | Hạn | Phải xong |
@@ -18,8 +21,8 @@
 | M1 | CN 18.10 | LUOI-5, TU-CHAY-8 gộp — bộ khung 1.8.0 đóng băng tới khai trương (xong) |
 | M2 | T4 21.10 | DOI-SOAT-1 · P26d · KH-API-1 · P16 (xong 22.10) · S5 (SX → tách S5a/S5b) |
 | M3 | T7 24.10 | P22-23 · KH-UI-1 · KH-QUAY-1 · P15-QR (xong 22.10) |
-| M4 | T3 27.10 | QUAY-AN-1 · P24 (xong 25.10) · P3 · DIEM-THAT-1 · UUDAI-1 · BH-1 · KH-UI-2 · KH-OTP-1 · P17 (nếu có máy in) · **SX: SX-KHUNG-1 · HOPDONG-1 · SX-BACKUP-1 · S5a** |
-| M5 | T6 30.10 | TOPPING-1 · P3b · BH-2 · HD-1 · P15 (mã điểm + QR đăng ký) · KH-MUA-1 · GIAO-1 · AUDIT-KH · S1 (nhóm lộ) · S5b · X1 · H4 · H5 → **ĐỦ CHỨC NĂNG**. 29–30.10 chỉ sửa lỗi |
+| M4 | T3 27.10 | QUAY-AN-1 · P24 · P3 · BH-1 (xong 25.10) · DIEM-THAT-1 (xong 26.10) · UUDAI-1 · KH-UI-2 · KH-OTP-1 · P17 (nếu có máy in) · **SX: SX-KHUNG-1 · HOPDONG-1 · SX-BACKUP-1 · S5a** |
+| M5 | T6 30.10 | TOPPING-1 · P3b · COMBO-1a · BH-2 · COMBO-1b · HD-1 · P15 (mã điểm + QR đăng ký) · KH-MUA-1 · GIAO-1 · AUDIT-KH · S1 (nhóm lộ) · S5b · X1 · H4 · H5 → **ĐỦ CHỨC NĂNG**. 29–30.10 chỉ sửa lỗi |
 | — | 31.10 → khai trương | Chạy thử với nhân viên: chỉ sửa lỗi, không thêm tính năng |
 
 ## Hạng mục
@@ -30,7 +33,9 @@
 | P24 | Huỷ đơn trừ lại điểm đã cộng (cho phép âm, ghi thêm không xoá), sửa bất biến I8 | POS | [T] | M4 |
 | P3 | Chuyển khoản qua QR payOS, máy chủ tự xác nhận (quầy + App KH); PIN khách; GIỮ tiền tài khoản / điểm rồi trừ khi đơn xong; xác nhận tay có lý do | POS | [T] | M4 |
 | DIEM-THAT-1 | Điểm chỉ tính trên tiền khách trả thật (tiền mặt / chuyển khoản), không tính phần trừ tài khoản và phí giao; sửa bất biến I8. Chạy SAU P24 (cùng sửa I8) | POS | [T] | M4 |
-| UUDAI-1 | Giá hạng hiển thị + áp cả topping; cài đặt mã / quà nào cộng với giảm hạng; không cộng → máy chủ chọn cái lợi hơn | POS | [T] | M4 |
+| UUDAI-1 | Giá hạng hiển thị + áp cả topping; cài đặt theo loại mã "Dùng chung với giá hạng" (quà đổi điểm luôn dùng chung); tính thử cho giỏ; không cộng → máy chủ chọn cái lợi hơn | POS | [T] | M4 |
+| COMBO-1a | Combo cố định (tên, món + SL theo mã SP của SX, giảm % hoặc tiền, bật/tắt) trong Cài đặt sản phẩm; máy chủ tính giá combo, giảm hạng mức riêng cho combo (trên giá combo), ô "Trừ được vào tiền combo" theo loại mã (bỏ tích → mã chỉ trừ món lẻ); tách món con, chia tiền theo tỉ lệ gửi SX; món SX hết / ngừng → combo tự ẩn | POS + SX | [T] | M5 |
+| COMBO-1b | Nhóm "Combo" ở màn Bán hàng mới (thẻ giá gạch + giá combo, mờ khi có món hết), dòng combo trên giỏ / hoá đơn / tem | POS | [Th] | M5 |
 | TOPPING-1 | Cài đặt topping + ghi chú theo từng sản phẩm; giá topping; trừ kho SX (lô, hạn dùng); topping trên giỏ / hoá đơn / tem / hoàn | POS + SX | [T] | M5 |
 | BH-1 | Màn Bán hàng mới ĐỢT 1 trên API sẵn có (tự theo màn hình, thanh khách, khung chọn món, tờ tiền + số khác, màn kết thúc); công tắc theo máy, mặc định TẮT — màn cũ vẫn chạy | POS | [Th] | M4 |
 | BH-2 | Màn mới ĐỢT 2: cắm QR payOS + PIN + giữ tiền (P3), giá hạng / cộng dồn (UUDAI-1), topping (TOPPING-1), đổi điểm (P3b), giao hàng (GIAO-1), hoá đơn + tem (HD-1); chủ quán bật trên quầy | POS | [Th] | M5 |
@@ -49,9 +54,9 @@
 Phần lớn việc tiền cùng sửa `server/routes/orders.js`. Hai việc được chạy SONG SONG khi phiếu ghi vùng sửa KHÔNG chồng nhau
 (git gộp được hai vùng khác nhau của một file); vùng chồng nhau thì chạy nối tiếp. Script gộp của chat DỪNG nếu đụng nhau; riêng
 mảng tên bài thử trong `kiem_tra_truoc_khi_giao.js` (một dòng) thì script gộp tự giữ đủ các tên.
-- Opus làn 1: P3 (tạo đơn + thanh toán) → UUDAI-1 (giá) → P3b (điểm trong phiên) → KH-MUA-1 → GIAO-1.
-- Opus làn 2: P24 (đường huỷ / xoá + I8) → DIEM-THAT-1 (công thức điểm + I8) → TOPPING-1 → S5a (SX) → S1 (SX).
-- Sonnet: QUAY-AN-1 (xong) → BH-1 (đợt 1) ∥ HOPDONG-1 → HD-1 → BH-2 (đợt 2) → KH-UI-2 → SX-BACKUP-1 → S5b.
+- Opus làn 1: P3 (xong) → UUDAI-1 (giá, mở 26.10) → COMBO-1a (giá combo, cùng vùng giá) → P3b (điểm trong phiên) → KH-MUA-1 → GIAO-1.
+- Opus làn 2: P24 (đường huỷ / xoá + I8) → DIEM-THAT-1 (xong 26.10) → TOPPING-1 (cần SX-KHUNG-1) → S5a (SX) → S1 (SX).
+- Sonnet: QUAY-AN-1 (xong) → BH-1 (xong) ∥ HOPDONG-1 → HD-1 → BH-2 (đợt 2) + COMBO-1b → KH-UI-2 → SX-BACKUP-1 → S5b.
 - Chat soạn phiếu TRƯỚC khi máy rảnh; chủ quán duyệt kế hoạch 2 lần / ngày (NHIP_NGAY_VA_HAN_MUC.md).
 
 ## SX — việc tồn trước khai trương (chi tiết ở TIEN_DO_SX.json của kho SX)
