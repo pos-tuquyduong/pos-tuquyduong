@@ -87,3 +87,4 @@ SỐ CA cong_cu/thu_P2223.js: 44
 SỐ CA cong_cu/thu_P24.js: 33
 SỐ CA cong_cu/thu_gia_lap.js: 180
 SỐ CA cong_cu/thu_P20.js: 171
+SỐ CA cong_cu/thu_P3.js: 100
