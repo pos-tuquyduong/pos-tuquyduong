@@ -1,86 +1,69 @@
-# Lịch 14 ngày — cả ba hệ chạy đủ chức năng trước 30.10.2026
+# Lịch tới khai trương — T7 07.11.2026, CHỈ khi xong hết
 
-<!-- Chủ quán chốt 17.10.2026. File này cho MÁY biết mốc và hạng mục; theo dõi hằng ngày (ai làm gì, đối chiếu) ở file Excel
-     LICH_KHAI_TRUONG.xlsx của chủ quán. Chat cập nhật file này khi mốc / hạng mục đổi. Luật xây app ở LUAT_XAY_APP.md.
-     [T] = việc tiền / bảo mật (có "Chờ duyệt kế hoạch") · [Th] = việc thường (chạy thẳng tới hết).
-     18.10: M1 xong (LUOI-5 #32, TU-CHAY-8 #33); đăng nhập App KH = SĐT + mã OTP qua Zalo ZNS → thêm KH-OTP-1 (M4).
-     22.10: M2 xong phía POS (KH-API-1 #34, P16 #35, P26d #36, DOI-SOAT-1 #37); S5 (SX) còn mở — chủ quán chốt làm TRƯỚC khai trương.
-     22.10 (tối): M3 xong sớm 2 ngày — P22-23 #38, KH-QUAY-1 #39, P15-QR #40, KH-UI-1 #41 (main bd9b920). SX làm ĐÚNG cách của POS.
-     22–24.10: chủ quán chốt MÀN BÁN HÀNG MỚI (ban_mau_pos/DAC_TA_BAN_HANG_2410.md) và yêu cầu XONG TRƯỚC KHAI TRƯƠNG (không dời):
-     không công nợ, không "mang ra bàn", payOS tự xác nhận, PIN + giữ tiền, giá hạng, topping qua SX, hoá đơn + tem tuỳ chỉnh, giao hàng ở quầy.
-     25.10: QUAY-AN-1 #42, P24 #43 xong (main 5cb2a03). P3 duyệt (tách P3b — điểm trong phiên). Mở DIEM-THAT-1 + BH-1 (đợt 1, chạy song
-     song màn cũ, mặc định tắt); thêm P3b, BH-2 (đợt 2: cắm payOS / PIN / topping / đổi điểm / giao hàng / hoá đơn mới vào màn mới).
-     Mã việc KHÔNG chứa "-d" / "-f" (kể cả hoa — luật chặn push): KH-DON-1 → KH-MUA-1, HOP-DONG-1 → HOPDONG-1.
-     26.10: P3 #44, BH-1 #45 xong (main 9fd32af). DIEM-THAT-1: chat soát thay vòng 4 ĐẠT, gộp sau P3 (ca B3 thu_P3 5 → 2 điểm). Chủ quán
-     duyệt COMBO (demo claude.ai/artifact/NR3wi1kVEAnyMK4ygGMdck): thêm COMBO-1a [T] (sau UUDAI-1, dùng lại hàm ưu đãi) + COMBO-1b [Th]
-     (cùng BH-2). UUDAI-1: cài đặt THEO LOẠI mã "Dùng chung với giá hạng", quà đổi điểm luôn dùng chung — mở nhánh, chờ duyệt kế hoạch. -->
+<!-- Chủ quán chốt 27.10.2026 (thay lịch 14 ngày 17–30.10). File này cho MÁY biết việc và hạn; theo dõi hằng ngày ở file Excel
+     LICH_KHAI_TRUONG.xlsx của chủ quán. Chat cập nhật file này khi việc / ngày đổi. Luật xây app ở LUAT_XAY_APP.md.
+     [T] = việc tiền / kho / bảo mật (có "Chờ duyệt kế hoạch") · [Th] = việc thường (chạy thẳng tới hết).
+     26–27.10: BỎ app SX — mọi thứ về POS: nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán; khách do POS giữ. Chỉ nhập DANH MỤC
+     từ SX (nguyên liệu, nhóm, sản phẩm, công thức); không lấy tồn, khách, gói đăng ký. App SX tắt khi POS tự trừ kho (KHO-3).
+     27.10: KHAI TRƯƠNG CHỈ KHI MỌI VIỆC TRONG BẢNG DƯỚI XONG và chạy thử đạt — không khai trương với phần làm dở, không dùng phương án
+     dự phòng nào; trễ thì LÙI NGÀY. Chủ quán chọn làm luôn topping theo món (TOPPING-1), đổi điểm trong phiên (P3b), giao Ahamove ở
+     quầy (GIAO-1) trước khai trương → khai trương lùi từ T3 03.11 sang T7 07.11.
+     27.10: App KH ở kho GitHub riêng `app-khach-hang` + máy chủ Render riêng (chat App KH làm). Kho POS chỉ cung cấp cửa `/api/kh`;
+     từ nay KHÔNG sửa `app_kh/` trong kho POS (giữ tới khi app mới chạy, rồi xoá). Đơn ở quầy vẫn đi thẳng POS.
+     UUDAI-1 duyệt 27.10 (f7165ea). -->
 
-## Mốc
-| Mốc | Hạn | Phải xong |
-|---|---|---|
-| M1 | CN 18.10 | LUOI-5, TU-CHAY-8 gộp — bộ khung 1.8.0 đóng băng tới khai trương (xong) |
-| M2 | T4 21.10 | DOI-SOAT-1 · P26d · KH-API-1 · P16 (xong 22.10) · S5 (SX → tách S5a/S5b) |
-| M3 | T7 24.10 | P22-23 · KH-UI-1 · KH-QUAY-1 · P15-QR (xong 22.10) |
-| M4 | T3 27.10 | QUAY-AN-1 · P24 · P3 · BH-1 (xong 25.10) · DIEM-THAT-1 (xong 26.10) · UUDAI-1 · KH-UI-2 · KH-OTP-1 · P17 (nếu có máy in) · **SX: SX-KHUNG-1 · HOPDONG-1 · SX-BACKUP-1 · S5a** |
-| M5 | T6 30.10 | TOPPING-1 · P3b · COMBO-1a · BH-2 · COMBO-1b · HD-1 · P15 (mã điểm + QR đăng ký) · KH-MUA-1 · GIAO-1 · AUDIT-KH · S1 (nhóm lộ) · S5b · X1 · H4 · H5 → **ĐỦ CHỨC NĂNG**. 29–30.10 chỉ sửa lỗi |
-| — | 31.10 → khai trương | Chạy thử với nhân viên: chỉ sửa lỗi, không thêm tính năng |
+## Việc phải xong trước khai trương
+| Mã | Việc | Loại · model | Làn |
+|---|---|---|---|
+| UUDAI-1 | Mã giảm dùng chung / không với giá hạng (cài đặt theo loại mã), máy chủ chọn cách lợi hơn, `tinh-thu` cho giỏ | [T] · Opus | Opus 1 |
+| KH-API-2 | Cửa App KH chỉ đọc: hồ sơ + hạng + số dư ví, danh sách hạng, giờ vàng hôm nay, menu có giá từng hạng (cùng hàm với quầy) | [T] · Opus | Opus 1 |
+| COMBO-1a | Combo cố định, máy chủ tính giá combo, giảm hạng mức riêng cho combo | [T] · Opus | Opus 1 |
+| TOPPING-1 | Topping là sản phẩm POS; cài topping + ghi chú theo từng món; giá; giảm hạng áp cả topping; dòng topping trên giỏ / hoá đơn / tem / hoàn; `/api/kh/menu` có topping theo món | [T] · Opus | Opus 1 |
+| KHO-3 | Menu lấy từ sản phẩm POS; bán trừ kho POS (thành phẩm trước, pha tại chỗ theo công thức, kể cả topping; âm + báo đỏ); kiểm kê cuối ca có duyệt; đóng nối SX | [T] · Opus | Opus 1 |
+| KHO-1 | Bảng kho, nâng cấp dữ liệu đánh số, nhập danh mục từ SX, màn Nguyên liệu + Sản phẩm & công thức | [T] · Opus | Opus 2 |
+| KHO-2 | Pha chế + phiếu xuất có duyệt + in + thành phẩm vào kho; đặt hàng + nhận hàng (theo đơn, mua lẻ); xử lý phát sinh; tồn; phiếu | [T] · Opus | Opus 2 |
+| P3b | Giữ / đổi điểm lấy quà ngay trong phiên thanh toán + PIN | [T] · Opus | Opus 2 |
+| GIAO-1 | Giao Ahamove ở quầy: tính phí → thu đủ → gọi xe; phí là dòng riêng, không giảm, không áp mã, không tích điểm | [T] · Opus | Opus 2 |
+| HD-1 | Hoá đơn mới 2 tờ + QR đăng ký App KH + mã nhận điểm; tuỳ chỉnh chữ hoá đơn & tem | [Th] · Sonnet | Sonnet |
+| BH-2 | Màn Bán hàng mới đợt 2 (payOS + PIN + giữ tiền, giá hạng, hoá đơn HD-1) + COMBO-1b + menu 6 mục (chỉ dời đường dẫn) | [Th] · Sonnet | Sonnet |
+| — | Chủ quán: nhập bản sao lưu SX mới · kiểm kê đầu kỳ (tồn POS bắt đầu từ đây) · tắt SX · chạy thử toàn quán | — | — |
 
-## Hạng mục
-| Mã | Việc | Hệ | Loại | Mốc |
-|---|---|---|---|---|
-| P22-23 · KH-UI-1 · KH-QUAY-1 · P15-QR | (xong 22.10, PR #38–#41) | POS / App KH | — | M3 |
-| QUAY-AN-1 | Màn Bán hàng HIỆN TẠI: ẩn nút "Ghi nợ" + "Chưa thu" (nhân viên tập đúng từ đầu); nợ cũ vẫn thu ở Lịch sử đơn | POS | [Th] | M4 |
-| P24 | Huỷ đơn trừ lại điểm đã cộng (cho phép âm, ghi thêm không xoá), sửa bất biến I8 | POS | [T] | M4 |
-| P3 | Chuyển khoản qua QR payOS, máy chủ tự xác nhận (quầy + App KH); PIN khách; GIỮ tiền tài khoản / điểm rồi trừ khi đơn xong; xác nhận tay có lý do | POS | [T] | M4 |
-| DIEM-THAT-1 | Điểm chỉ tính trên tiền khách trả thật (tiền mặt / chuyển khoản), không tính phần trừ tài khoản và phí giao; sửa bất biến I8. Chạy SAU P24 (cùng sửa I8) | POS | [T] | M4 |
-| UUDAI-1 | Giá hạng hiển thị + áp cả topping; cài đặt theo loại mã "Dùng chung với giá hạng" (quà đổi điểm luôn dùng chung); tính thử cho giỏ; không cộng → máy chủ chọn cái lợi hơn | POS | [T] | M4 |
-| COMBO-1a | Combo cố định (tên, món + SL theo mã SP của SX, giảm % hoặc tiền, bật/tắt) trong Cài đặt sản phẩm; máy chủ tính giá combo, giảm hạng mức riêng cho combo (trên giá combo), ô "Trừ được vào tiền combo" theo loại mã (bỏ tích → mã chỉ trừ món lẻ); tách món con, chia tiền theo tỉ lệ gửi SX; món SX hết / ngừng → combo tự ẩn | POS + SX | [T] | M5 |
-| COMBO-1b | Nhóm "Combo" ở màn Bán hàng mới (thẻ giá gạch + giá combo, mờ khi có món hết), dòng combo trên giỏ / hoá đơn / tem | POS | [Th] | M5 |
-| TOPPING-1 | Cài đặt topping + ghi chú theo từng sản phẩm; giá topping; trừ kho SX (lô, hạn dùng); topping trên giỏ / hoá đơn / tem / hoàn | POS + SX | [T] | M5 |
-| BH-1 | Màn Bán hàng mới ĐỢT 1 trên API sẵn có (tự theo màn hình, thanh khách, khung chọn món, tờ tiền + số khác, màn kết thúc); công tắc theo máy, mặc định TẮT — màn cũ vẫn chạy | POS | [Th] | M4 |
-| BH-2 | Màn mới ĐỢT 2: cắm QR payOS + PIN + giữ tiền (P3), giá hạng / cộng dồn (UUDAI-1), topping (TOPPING-1), đổi điểm (P3b), giao hàng (GIAO-1), hoá đơn + tem (HD-1); chủ quán bật trên quầy | POS | [Th] | M5 |
-| P3b | Giữ / đổi điểm trong phiên thanh toán + PIN cho đổi quà (tách từ P3, chạy sau UUDAI-1) | POS | [T] | M5 |
-| HD-1 | Hoá đơn bố cục mới + tuỳ chỉnh chữ hoá đơn & tem (mở rộng màn cài đặt in) | POS | [Th] | M5 |
-| P15 | Phần còn lại: mã nhận điểm in chữ + QR đăng ký web KH (mã điền sẵn); PIN đã chuyển sang P3 | POS | [T] | M5 |
-| KH-MUA-1 | (đổi tên từ KH-DON-1) Đặt đơn từ App KH, TRẢ TRƯỚC bằng QR payOS; đơn chỉ về quầy (kèm chuông) khi đã trả | POS | [T] | M5 |
-| KH-UI-2 | App KH: giỏ, đặt đơn, theo dõi đơn (theo demo chủ quán) | App KH | [Th] | M4 |
-| KH-OTP-1 | Gửi mã OTP thật qua Zalo ZNS (bên dịch vụ của chủ quán) | POS | [Th] | M4 |
-| P17 | Hàng đợi in + trạm in (máy bill 80mm, máy tem 40×30) | POS | [Th] | M4 |
-| GIAO-1 | Giao hàng Ahamove: App + QUẦY (chọn Giao hàng → tính phí → thu đủ → Gọi xe); phí dòng riêng, không giảm / áp mã / tích điểm; lệch phí quán chịu, ghi cho Đối soát | POS | [T] | M5 |
-| AUDIT-KH | Rà bảo mật App KH: đọc chéo dữ liệu khách, đoán mã, dồn yêu cầu, token | POS | [T] | M5 |
-| X1 · H4 · H5 | Đo tải · dọn dữ liệu thử · chạy lại 3 bộ dò | cả ba | — | M5 |
+TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán hàng mới, SAU khi BH-2 gộp.
 
-## Thứ tự chạy máy (hạn mức: tối đa 2 Opus + 2 Sonnet cùng lúc)
-Phần lớn việc tiền cùng sửa `server/routes/orders.js`. Hai việc được chạy SONG SONG khi phiếu ghi vùng sửa KHÔNG chồng nhau
-(git gộp được hai vùng khác nhau của một file); vùng chồng nhau thì chạy nối tiếp. Script gộp của chat DỪNG nếu đụng nhau; riêng
-mảng tên bài thử trong `kiem_tra_truoc_khi_giao.js` (một dòng) thì script gộp tự giữ đủ các tên.
-- Opus làn 1: P3 (xong) → UUDAI-1 (giá, mở 26.10) → COMBO-1a (giá combo, cùng vùng giá) → P3b (điểm trong phiên) → KH-MUA-1 → GIAO-1.
-- Opus làn 2: P24 (đường huỷ / xoá + I8) → DIEM-THAT-1 (xong 26.10) → TOPPING-1 (cần SX-KHUNG-1) → S5a (SX) → S1 (SX).
-- Sonnet: QUAY-AN-1 (xong) → BH-1 (xong) ∥ HOPDONG-1 → HD-1 → BH-2 (đợt 2) + COMBO-1b → KH-UI-2 → SX-BACKUP-1 → S5b.
-- Chat soạn phiếu TRƯỚC khi máy rảnh; chủ quán duyệt kế hoạch 2 lần / ngày (NHIP_NGAY_VA_HAN_MUC.md).
+## Lịch theo ngày (tối đa 2 Opus + 2 Sonnet cùng lúc; App KH dùng 1 Sonnet)
+| Ngày | Opus làn 1 | Opus làn 2 | Sonnet (POS) |
+|---|---|---|---|
+| T4 28.10 | UUDAI-1 làm + soát | KHO-1 kế hoạch → làm | HD-1 |
+| T5 29.10 | UUDAI-1 gộp → KH-API-2 → COMBO-1a | KHO-1 làm + soát | HD-1 gộp → BH-2 |
+| T6 30.10 | COMBO-1a gộp → TOPPING-1 kế hoạch | KHO-1 gộp → KHO-2 | BH-2 |
+| T7 31.10 | TOPPING-1 làm (máy chủ trước) | KHO-2 làm | BH-2 gộp |
+| CN 01.11 | TOPPING-1 gộp → KHO-3 kế hoạch | KHO-2 gộp → P3b kế hoạch | màn phụ kho nếu cần · sửa lỗi |
+| T2 02.11 | KHO-3 làm | P3b làm | sửa lỗi |
+| T3 03.11 | KHO-3 gộp | P3b gộp → GIAO-1 kế hoạch | sửa lỗi |
+| T4 04.11 | sửa lỗi | GIAO-1 làm | sửa lỗi |
+| T5 05.11 | Chủ quán: nhập bản sao lưu SX mới (tải sáng nay) · kiểm kê đầu kỳ · tắt SX | GIAO-1 gộp | |
+| T6 06.11 | Chạy thử toàn quán với nhân viên — CHỈ sửa lỗi · tối: chủ quán + chat quyết giữ ngày hay lùi | | |
+| T7 07.11 | **Khai trương** (nếu mọi việc trên đạt) | | |
 
-## SX — việc tồn trước khai trương (chi tiết ở TIEN_DO_SX.json của kho SX)
-Dữ liệu SX là thật (quy mô nhỏ) → dùng đúng khoá an toàn của POS: máy không push / merge / đụng `.env`, bài thử chạy trên kho tạm,
-việc [T] duyệt kế hoạch, chủ quán bấm Merge là bước chốt (ở SX, merge `main` = deploy thẳng Railway).
+## Thứ tự gộp — vì sao
+- `server/routes/orders.js` (vùng giá / tạo đơn): UUDAI-1 → KH-API-2 → COMBO-1a → TOPPING-1 → KHO-3 NỐI TIẾP trên làn Opus 1.
+- Làn Opus 2: KHO-1, KHO-2 KHÔNG sửa orders.js. P3b, GIAO-1 có thể chạm orders.js → kế hoạch phải ghi rõ vùng sửa; chồng vùng với
+  việc đang mở ở làn 1 thì chờ việc đó gộp.
+- HD-1 KHÔNG sửa orders.js (cửa hoá đơn đọc riêng).
+- `client/src/components/Layout.jsx` (menu): KHO-1 thêm một mục → BH-2 xếp lại menu 6 mục, gộp SAU KHO-1.
+- `client/src/pages/BanHang/**`: BH-2 gộp trước; TOPPING-1, P3b, GIAO-1 thêm phần màn của mình sau đó.
+- Mảng tên bài thử trong `kiem_tra_truoc_khi_giao.js` (một dòng): script gộp của chat tự giữ đủ các tên.
 
-| Mã | Việc | Loại · model | Ai | Hạn |
-|---|---|---|---|---|
-| BAO-MAT-SX | Kho về riêng tư; đổi `POS_API_KEY` (nằm trong `.replit`) ở Railway + Render; mật khẩu trong file .db cũ (12.2025) còn dùng → đổi | — | Chủ quán | 24.10 |
-| SX-KHUNG-1 | Cài bộ chạy an toàn GỌN vào kho SX: bỏ luật `ask`, hook nhánh `viec/<MÃ>`, người gác phạm vi, cổng kiểm rút gọn (`npm run kiem`) | script chat soạn | Chủ quán chạy | 25.10 |
-| HOPDONG-1 | Hợp đồng 7 cửa POS→SX (`/api/recipes`, `/api/tea-products`, `/api/finished-products`, `…/check-stock`, `…/:id`, `/api/pos/stock/out`, `/api/pos/stock/in`) ở cả hai kho + bài thử; SX giả trong giả lập POS sửa theo | [Th] · Sonnet | Máy | 25.10 |
-| SX-BACKUP-1 | Sao lưu 2 lớp: SX tự chép DB mỗi đêm giữ 7 bản (WAL vẫn tắt) + chủ quán tải bản sao TRƯỚC mỗi lần Merge PR của SX | [Th] · Sonnet | Máy + chủ quán | 26.10 |
-| S5a | Hạn dùng lõi: lô hết hạn `het_han`, không trừ kho qua `stock/out`, không sống lại qua `stock/in`; topping cũng theo luật này | [T] · Opus | Máy | 27.10 |
-| S1 | 27 đường đọc chưa khoá — cửa lộ dữ liệu khách / tiền khoá TRƯỚC khai trương; mỗi cửa khoá xong chạy hợp đồng 7 cửa | [T] · Opus | Máy | 30.10 (nhóm lộ) |
-| S5b | Màn xử lý lô quá hạn (chép khuôn Kho NL), sửa 4 con số "đã hết hạn" | [Th] · Sonnet | Máy | 30.10 |
-| S2 | XÁC MINH 5 phút: bán thử 1 ly cà phê trên SX, mở báo cáo doanh thu; khớp → đóng | — | Chủ quán | 24.10 |
-| S3 | Gộp báo cáo 6 tab còn 3 | [Th] | — | Sau khai trương |
+## Chủ quán cần làm trước khai trương
+- BAO-MAT-SX: kho SX (`tuquyduong/Quan-Ly-San-Xuat`) VẪN CÔNG KHAI → chuyển riêng tư; đổi `POS_API_KEY` ở Railway + Render.
+- Render POS lên gói trả phí trước chạy thử (máy không ngủ, payOS báo tiền về kịp).
+- Ahamove: tài khoản + khoá API cho GIAO-1 (đặt trên Render, không dán vào chat) trước T4 04.11.
+- T5 05.11 sáng: tải bản sao lưu SX mới, gửi file `.db` cho chat.
+- Máy in bill / tem (P17): nếu chưa có máy, in qua trình duyệt ra máy bill như hiện nay.
 
-## Dự phòng (giữ mốc, không hạ chất lượng)
-- payOS / Render trả phí chưa sẵn → tuần chạy thử dùng QR tĩnh + xác nhận tay có lý do; P3 bật khi có. KH-MUA-1 bật sau P3.
-- Màn mới (BH-1) chưa qua kiểm trước 30.10 → giữ màn cũ đã ẩn Ghi nợ / Chưa thu (QUAY-AN-1); không đưa màn chưa kiểm ra quầy.
-- Máy in tem chưa có → in tem qua trình duyệt ra máy bill.
-- Việc [T] trễ → dùng 29–30.10; vẫn trễ thì CHỦ QUÁN quyết: khai trương với dự phòng của việc đó hay lùi ngày.
-
-## Dời sau khai trương
-AUDIT-5 · TU-CHAY-9 · DONG-GOI-1 (đóng gói đầy đủ bộ khung cho SX / App KH) · P7–P9 · P18 · P20d · P25 · MA-GIAM-2 · S1 (nhóm còn lại) · S3 ·
-TIET-KIEM-1 · DONDEP-v1 (đổi tên từ DON-DEP-v1, có "-D") · DOI-SOAT-2 · P26e. P13a–e, P14 GỘP vào BH-1 / HD-1 / TOPPING-1 (24.10).
+## Sau khai trương (đợt 2)
+KH-MUA-1 (đặt đơn App KH) · KH-HOSO-1 (thêm ô hồ sơ khách) · giao việc · phân quyền chi tiết (Ẩn / Chỉ xem / Được làm / Xin phép) ·
+khách hàng cửa sổ chi tiết + ví gia đình PIN theo thành viên (cùng chat App KH) · báo cáo nhập–xuất–tồn, thất thoát, tỉ lệ ra · chấm
+công · gộp sâu menu · chia code cũ theo mục nghiệp vụ · P17 · AUDIT-KH · AUDIT-5 · TU-CHAY-9 · DONG-GOI-1 · P7–P9 · P18 · P20d · P25 ·
+MA-GIAM-2 · TIET-KIEM-1 · DONDEP-v1 · DOI-SOAT-2 · P26e · DOISOAT-XULY-1 · KHACH-LOI-1 · DIEMHOAN-1 · NEO-P2223-1.
+**Bỏ hẳn** (theo hướng bỏ app SX): HOPDONG-1, S5a, S5b, S3, SX-KHUNG-1, phần SX của TOPPING-1. Giữ BAO-MAT-SX tới khi tắt SX.

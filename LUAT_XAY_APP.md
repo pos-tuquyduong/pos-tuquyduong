@@ -16,7 +16,7 @@
 ## 2. Kiến trúc đồng bộ — ai giữ dữ liệu gì
 | Dữ liệu | Nguồn sự thật | Hệ khác |
 |---|---|---|
-| Sản phẩm sản xuất, lô, tồn kho, hạn dùng | **SX** | POS đọc qua `server/utils/sxApi.js`; App KH không gọi SX |
+| Nguyên liệu, sản phẩm = công thức, lô, tồn kho, hạn dùng, phiếu kho | **POS** (`server/kho/`, từ KHO-1) | Tới KHO-3 bán vẫn trừ kho qua SX (`server/utils/sxApi.js`); sau KHO-3 tắt SX. App KH không gọi SX |
 | Giá bán, khách, đơn, tiền, ví, điểm, gói, mã giảm, voucher | **POS máy chủ** | App KH đọc / ghi CHỈ qua `/api/kh/*` của POS |
 | Nội dung trình bày (ảnh, mô tả, bài viết) | App KH | không chứa giá, tồn, điểm |
 - **Quy tắc tiền chỉ nằm ở máy chủ POS.** Màn hình (quầy lẫn App KH) chỉ hiển thị và gửi yêu cầu; máy chủ tự tính lại, không tin số màn hình gửi.
@@ -30,8 +30,12 @@
   truy cập CSDL qua `database.js`. Route khách: `routes/kh/*.js`, mount một chỗ tại `/api/kh`.
 - **Quầy** `client/src/`: `pages/` một màn một file, `components/` phần dùng lại; code MỚI gọi máy chủ qua `utils/api.js` (vài màn cũ còn
   `fetch` trực tiếp — chuyển dần khi chạm tới, không mở việc riêng).
-- **App KH** `app_kh/` (cùng kho POS): `src/pages/`, `src/components/`, `src/api.js` (chỗ duy nhất gọi `/api/kh`), `src/giaoDien/` (màu,
-  chữ, khoảng cách dùng chung). Giao diện theo bản demo chủ quán đã chốt; di động trước; tiếng Việt có dấu.
+- **Mục nghiệp vụ mới** (chủ quán chốt 27.10, kho làm trước): `server/<mục>/` gồm `duong.js` (đường nối), `tinh.js` (phép tính thuần,
+  có bài thử), `duLieu.js` (đọc / ghi CSDL); giao diện `client/src/pages/<Mục>/`. Phần cũ chuyển dần theo mục SAU khai trương.
+- **Nâng cấp dữ liệu** (từ KHO-1): mỗi lần đổi cấu trúc là một bước đánh số `server/nang_cap/NNN_<ten>.js`, chỉ THÊM, tự sao lưu bảng
+  cũ trước bước đụng nó; thông tin riêng của quán nằm trong Cài đặt / hằng số có tên (để đóng gói cho quán khác).
+- **App KH** ở kho GitHub riêng `app-khach-hang` (chat App KH). Kho POS chỉ giữ cửa `/api/kh`; KHÔNG sửa `app_kh/` (bản cũ, xoá khi
+  app mới chạy).
 - Tên hàm / biến mới: tiếng Việt không dấu, rõ nghĩa (`tinhDaTra`, `layDiemKhach`); một hàm làm một việc. File sắp vượt ~500 dòng → tách
   theo việc, KHÔNG tách theo kích thước.
 - Hằng số cấu hình (trần, hạn, hệ số) đặt một chỗ có tên; không rải số trong code. Không để code chết, không chú thích số dòng cứng.
@@ -58,7 +62,7 @@
 4. Giao diện: ghi đúng 1–3 thao tác để chủ quán thử tay trên điện thoại.
 5. Soát độc lập `/ra-soat`; tối đa 3 vòng sửa, quá thì dừng hỏi.
 
-## 7. Nhịp làm việc 14 ngày (17–30.10.2026)
+## 7. Nhịp làm việc tới khai trương (07.11.2026)
 - Việc **tiền / bảo mật**: phiếu có "Chờ duyệt kế hoạch". Việc **thường** (giao diện, in, dọn, hạ tầng): chạy thẳng tới hết, không dừng chờ duyệt.
 - Bộ khung tự chạy ĐÓNG BĂNG sau TU-CHAY-8 tới khai trương; phát hiện về khung → ghi lại, làm sau.
 - Hết việc trong phiếu là dừng; không tự mở việc mới.
