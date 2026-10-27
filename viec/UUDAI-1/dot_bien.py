@@ -47,6 +47,11 @@ DOT_BIEN = [
   ('BV-TINHTHU-CHI-TINH', [(O, '{ chiTinh: true, tinhThu: true }', '{ tinhThu: true }', 1)], r'✗ F1 '),
   ('VS-TINHTHU-NHAN-TIEN', [(O, '"package_buy", "membership_buy"];', '"package_buy", "membership_buy", "payment_method", "balance_amount"];', 1)],
    r'✗ F1b '),
+  # vòng soát 3: gỡ từng trường gói / thẻ khỏi danh sách trắng tinh-thu
+  ('BV-TINHTHU-LAY-GOI', [(O, '"shipping_fee", "customer_package_id", "package_buy"', '"shipping_fee", "package_buy"', 1)], r'✗ K4a '),
+  ('BV-TINHTHU-MUA-GOI', [(O, '"customer_package_id", "package_buy", "membership_buy"', '"customer_package_id", "membership_buy"', 1)], r'✗ K4b '),
+  ('BV-TINHTHU-MUA-THE', [(O, '"package_buy", "membership_buy"];', '"package_buy"];', 1)], r'✗ K4c '),
+  ('VS-SALES-KHOA-GIO-THEO-DOI-TUONG', [(SA, '}, [khoaGio, customer?.phone,', '}, [cart, customer?.phone,', 1)], r'✗ S10 '),
   ('VS-MA-LOI-IM', [(O, '        maLoi = { error: "Mã không tồn tại hoặc đã tắt", code: "MA_KHONG_TON_TAI" };\n', '', 1)], r'✗ F6 '),
   # ── settings.js / database.js ──
   ('BV-CAI-DAT-KIEM', [(ST, '    if (khoaSai) {', '    if (false) {', 1)], r'✗ E3 '),
