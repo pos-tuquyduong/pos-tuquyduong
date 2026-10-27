@@ -717,6 +717,7 @@ const KICH_BAN = [
 // liền nhau và trước 27, {4, 8} (dòng debt_payment của KH.quen — M3 của thu_gia_lap chỉ bắt ở KB8 khi đã có). KB mới: vào lượt
 // ngắn nhất trừ khi dựa vào KB khác; đổi LUOT thì chạy lại thu_gia_lap (E2) — thử trước bằng viec/TACH-GL/do_chia_e2.js. Bảng + số đo:
 // viec/TACH-GL/ke_hoach.md mục 2–3.
+// UUDAI-1: KB33 đổi 3 khoá cài đặt "dùng chung với giá hạng" của kho lượt 1 rồi trả về '1' ở finally — KB thêm vào lượt 1 sau này chạy sau nó.
 const LUOT = [[2, 15, 17, 28, 30, 31, 33], [3, 10, 16, 18, 21, 32], [1, 4, 5, 6, 7, 8, 14, 23, 24, 25, 26, 27], [9, 11, 12, 13, 19, 20, 22, 29]];
 
 module.exports = { KICH_BAN, dungDuLieu, KH, LUOT };
