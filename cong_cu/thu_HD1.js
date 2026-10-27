@@ -124,9 +124,9 @@ async function phanG() {
 
   // 2 tờ
   const to = danhSachTo(HD_QUEN, {});
-  k('G25 mặc định 2 tờ: GIAO KHÁCH rồi LƯU QUẦY', to.length === 2 && to[0].nhan === 'GIAO KHÁCH' && to[1].nhan === 'LƯU QUẦY' && to[0].lien === 'khach' && to[1].lien === 'luu', JSON.stringify(to.map((t) => t.nhan)));
+  k('G25 mặc định 2 tờ: GIAO KHÁCH rồi LƯU QUẦY', to.length === 2 && to[0].nhan === 'GIAO KHÁCH' && to[1]?.nhan === 'LƯU QUẦY' && to[0].lien === 'khach' && to[1]?.lien === 'luu', JSON.stringify(to.map((t) => t.nhan)));
   const bo = (t) => ({ ...t, lien: '', nhan: '', chan: [] });
-  k('G26 hai tờ GIỐNG HỆT, chỉ khác nhãn + chân (cảm ơn / chính sách chỉ ở tờ khách)', bang(bo(to[0]), bo(to[1])) && to[0].chan.some((c) => c.khoa === 'cam_on') && to[0].chan.some((c) => c.khoa === 'chinh_sach') && !to[1]?.chan.some((c) => c.khoa === 'cam_on' || c.khoa === 'chinh_sach'), JSON.stringify([to[0].chan, to[1].chan]));
+  k('G26 hai tờ GIỐNG HỆT, chỉ khác nhãn + chân (cảm ơn / chính sách chỉ ở tờ khách)', bang(bo(to[0]), bo(to[1])) && to[0].chan.some((c) => c.khoa === 'cam_on') && to[0].chan.some((c) => c.khoa === 'chinh_sach') && !to[1]?.chan.some((c) => c.khoa === 'cam_on' || c.khoa === 'chinh_sach'), JSON.stringify([to[0].chan, to[1]?.chan]));
   k('G27 lời cảm ơn tự điền tên khách: "Cảm ơn Chị Hoa!"; khách lẻ: "Cảm ơn quý khách!"', to[0].chan[0].chu === 'Cảm ơn Chị Hoa!' && danhSachTo(HD_LE, {})[0].chan[0].chu === 'Cảm ơn quý khách!', to[0].chan[0].chu);
   k('G28 số tờ: cài 1 → 1 tờ; cài 2 → 2; thiếu → 2; rác ("3", "x") → 2; tham số soTo ghi đè',
     danhSachTo(HD_QUEN, { invoice_so_to: '1' }).length === 1 && danhSachTo(HD_QUEN, { invoice_so_to: '2' }).length === 2 && soToTuCaiDat({}) === 2
