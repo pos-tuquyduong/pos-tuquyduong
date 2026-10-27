@@ -232,6 +232,8 @@ async function phanF() {
   k('F3 chữ tem quá 40 ký tự bị cắt (39 + …), đúng 40 giữ nguyên', tem({ invoice_chu_tem_dau: 'a'.repeat(41) })[0].dau === 'a'.repeat(39) + '…' && tem({ invoice_chu_tem_dau: 'a'.repeat(40) })[0].dau === 'a'.repeat(40));
   k('F4 tắt dòng tem (invoice_an_tem_chan) → không in chân', tem({ invoice_chu_tem_chan: 'x', invoice_an_tem_chan: 'true' }).every((x) => !x.chan));
   k('F5 số bill trên tem + "1/2" + tên món + ghi chú + giờ vẫn đủ', t[0].ma === '012' && t[0].stt === '1/2' && t[0].ten === 'Trà gừng' && t[0].ghiChu === 'Ít đá' && t[0].gio === '09:30');
+  const donLe = { ...don, customer_name: 'Khách lẻ' };
+  k('F7 khách lẻ: {ten_khach} trên tem = "quý khách" (không in "Khách lẻ")', I.dungBoIn(donLe, { invoice_chu_tem_chan: 'Chào {ten_khach}' }, { loai: ['tem'] })[0].trang[0].chan === 'Chào quý khách');
   k('F6 bộ in vẫn: bill 1 trang mặc định (số tờ 2 do hoá đơn nhân, ca P16 giữ nguyên)', I.dungBoIn(don, {}, {}).find((j) => j.loai === 'bill').trang.length === 1);
 }
 
@@ -368,6 +370,16 @@ async function phanA(P) {
   await ban({ customer_phone: sq, items: [mon(0, 3)], payment_method: 'cash', cash_amount: 67500 });
   const aq2 = await hd(rq.order.id);
   k('A24 in lại sau khi khách mua thêm: phần điểm CỦA ĐƠN không đổi (không lấy số dư lúc in)', bang(aq2.h?.diem, truocIn), JSON.stringify([truocIn, aq2.h?.diem]));
+  // đổi quà: voucher đổi bằng điểm trước đơn → "Đổi quà −N" và điểm trước đơn tính cả phần đã đổi
+  const tx = await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at) VALUES (?, 'redeem', -100, NULL, NULL, 'Đổi quà: thử', 'thu', '2020-01-01T00:00:00')", [sq]);
+  await db.run("INSERT INTO pos_voucher_grants (code, customer_phone, status, point_tx_id, granted_at) VALUES ('HD1DOIQUA', ?, 'used', ?, '2020-01-01T00:00:00')", [sq, Number(tx.lastInsertRowid)]);
+  await db.run("UPDATE pos_orders SET discount_code = 'HD1DOIQUA' WHERE id = ?", [rq.order.id]);
+  const aDoi = await hd(rq.order.id);
+  k('A23b có đổi quà (voucher đổi điểm dùng ở đơn này): đổi quà = 100, điểm trước đơn = số dư trước + 100, hiện có = trước − đổi + cộng',
+    aDoi.h?.diem?.doi_qua === 100 && aDoi.h.diem.truoc === truocIn.truoc && aDoi.h.diem.hien_co === aDoi.h.diem.truoc - 100 + aDoi.h.diem.cong, JSON.stringify([truocIn, aDoi.h?.diem]));
+  await db.run("UPDATE pos_orders SET discount_code = NULL WHERE id = ?", [rq.order.id]);
+  await db.run('DELETE FROM pos_voucher_grants WHERE code = ?', ['HD1DOIQUA']);
+  await db.run('DELETE FROM pos_point_transactions WHERE id = ?', [Number(tx.lastInsertRowid)]);
   // tài khoản mẹ + chuyển khoản
   const me = sdtMoi(); await nap(me, 30000);
   const rMe = await ban({ customer_phone: sdtMoi(), parent_phone: me, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
@@ -385,9 +397,9 @@ async function phanA(P) {
   k('A28 (K5) đơn đã huỷ vẫn đọc được, trạng thái "cancelled", mã không hứa điểm', aH.status === 200 && aH.h.don.trang_thai === 'cancelled' && aH.h.ma_nhan_diem?.diem === 0, `${moTa(aH)} ${JSON.stringify(aH.h?.ma_nhan_diem)}`);
   const cu = await db.run(`INSERT INTO pos_orders (code, customer_name, subtotal, discount, total, payment_method, status, created_by, created_at)
     VALUES ('ORD-20260101-001', 'Khách lẻ', 40000, 0, 40000, 'cash', 'completed', 'thu', '2026-01-01T09:00:00')`);
-  await db.run("INSERT INTO pos_order_items (order_id, product_id, product_code, product_name, quantity, unit_price, total_price) VALUES (?, 1, 'X', 'Món cũ', 2, 20000, 40000)", [Number(cu.lastInsertRowid)]);
+  await db.run("INSERT INTO pos_order_items (order_id, product_id, product_code, product_name, quantity, unit_price, total_price, tier_unit_price) VALUES (?, 1, 'X', 'Món cũ', 2, 20000, 40000, 20000)", [Number(cu.lastInsertRowid)]);
   const aCu = await hd(Number(cu.lastInsertRowid));
-  k('A29 (K5) đơn cũ trước HD-1 (cột mới NULL, không cột tiền mặt): 200, tổng các dòng thanh toán = 40.000', aCu.status === 200 && tong(aCu.h.thanh_toan) === 40000 && aCu.h.tien.tong === 40000 && aCu.h.mon[0].gia_hang === null && aCu.h.ma_nhan_diem === null && aCu.h.so_lan_in === 0, `${moTa(aCu)} ${JSON.stringify(aCu.h?.thanh_toan)}`);
+  k('A29 (K5) đơn cũ trước HD-1 (cột mới NULL, không cột tiền mặt; giá hạng = giá gốc không tính là giảm): 200, tổng các dòng thanh toán = 40.000', aCu.status === 200 && tong(aCu.h.thanh_toan) === 40000 && aCu.h.tien.tong === 40000 && aCu.h.mon[0].gia_hang === null && aCu.h.mon[0].thanh_tien === 40000 && aCu.h.ma_nhan_diem === null && aCu.h.so_lan_in === 0, `${moTa(aCu)} ${JSON.stringify(aCu.h?.thanh_toan)}`);
   const cuCk = await db.run(`INSERT INTO pos_orders (code, customer_name, subtotal, total, payment_method, status, created_by, created_at)
     VALUES ('ORD-20260101-002', 'Khách lẻ', 40000, 40000, 'transfer', 'completed', 'thu', '2026-01-01T09:05:00')`);
   k('A30 (K5) đơn cũ chuyển khoản thiếu cột transfer_amount → dồn vào chuyển khoản', bang((await hd(Number(cuCk.lastInsertRowid))).h?.thanh_toan, [{ loai: 'chuyen_khoan', so_tien: 40000 }]));
@@ -416,6 +428,9 @@ async function phanA(P) {
     if (!(r.status === 400 && r.code === 'KHOA_KHONG_AN_DUOC' && !String(ghi?.value || '').startsWith('KHONG_DUOC_GHI_'))) { anhEm = false; chiTiet.push(`${kh}: ${moTa(r)} ghi=${ghi?.value}`); }
   }
   k('E2 ẩn từng mục bắt buộc → 400 KHOA_KHONG_AN_DUOC và KHÔNG ghi gì (kể cả khoá khác cùng yêu cầu)', anhEm, chiTiet.join(' | '));
+  const rAn1 = await goi('PUT', '/settings', { settings: { invoice_an_tong: '1' } });
+  const rAnB = await goi('PUT', '/settings', { settings: { invoice_an_tm: true } });
+  k('E2b ghi ẩn bằng "1" hoặc true (JSON) cũng bị từ chối', rAn1.code === 'KHOA_KHONG_AN_DUOC' && rAnB.code === 'KHOA_KHONG_AN_DUOC', `${moTa(rAn1)} ${moTa(rAnB)}`);
   const rOk = await goi('PUT', '/settings', { settings: { invoice_an_phi_giao: 'true', invoice_chu_tong: 'PHẢI TRẢ', invoice_an_tong: 'false' } });
   k('E3 (K5) ẩn mục không bắt buộc + sửa chữ + "invoice_an_tong: false" → 200, đã ghi', rOk.status === 200 && (await mot("SELECT value FROM pos_settings WHERE key = 'invoice_chu_tong'"))?.value === 'PHẢI TRẢ', moTa(rOk));
   const rSo = await goi('PUT', '/settings', { settings: { invoice_so_to: '3' } });
@@ -439,9 +454,14 @@ async function phanA(P) {
 
   // một cửa: hoá đơn KHÔNG ghi gì
   const truoc = JSON.stringify(await db.query('SELECT id, total, status, payment_status FROM pos_orders ORDER BY id'));
-  await Promise.all([r1.order.id, rq.order.id, rFlash.order.id].map((i) => goi('GET', '/hoa-don/' + i)));
+  await Promise.all([r1.order.id, rq.order.id, rFlash.order.id, r1c.order.id].map((i) => goi('GET', '/hoa-don/' + i)));
   const sau = JSON.stringify(await db.query('SELECT id, total, status, payment_status FROM pos_orders ORDER BY id'));
   k('A34 chỉ ĐỌC: gọi hoá đơn nhiều lần (song song) không đổi đơn nào', truoc === sau);
+  // lỗi máy chủ không lộ chữ nội bộ
+  await db.run('ALTER TABLE pos_invoice_logs RENAME TO pos_invoice_logs_tam');
+  const aLoi = await goi('GET', '/hoa-don/' + r1.order.id);
+  await db.run('ALTER TABLE pos_invoice_logs_tam RENAME TO pos_invoice_logs');
+  k('A36 kho hỏng giữa chừng → 500 chỉ { error, code: LOI_MAY_CHU }, không lộ tên bảng / lỗi nội bộ', aLoi.status === 500 && aLoi.code === 'LOI_MAY_CHU' && !/pos_invoice_logs|no such table|SQL/i.test(JSON.stringify(aLoi)), moTa(aLoi));
   sv.close();
 }
 
