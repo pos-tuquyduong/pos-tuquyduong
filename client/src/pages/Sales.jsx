@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { productsApi, ordersApi } from '../utils/api';
+import { productsApi, ordersApi, api } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
 import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, Camera } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
@@ -77,6 +77,39 @@ export default function Sales() {
   // Check gói đang MUA (is_pkg item in cart) → lấy template để biết SP nào thuộc gói
   const pkgBuyInCart = cart.find(c => c.is_pkg);
   const membershipInCart = cart.find(c => c.is_membership); // TIER-1c
+
+  // UUDAI-1: phần thân đơn quyết số tiền — CÙNG một hàm cho tạo đơn và tinh-thu (máy chủ tính hạng + mã, màn chỉ hiện).
+  const donGuiMayChu = () => ({
+    customer_phone: customer?.phone || null,
+    items: cart.filter(item => !item.is_pkg && !item.is_membership).map(item => ({
+      product_id: item.product_id,
+      sx_product_type: item.sx_product_type,
+      sx_product_id: item.sx_product_id,
+      quantity: item.quantity,
+      from_package: item.fromPkg || false,
+      note: item.note ? String(item.note).trim().slice(0, 200) : null,
+    })),
+    discount_code: discountCodeValid?.valid ? discountCodeValid.code : null,
+    shipping_fee: shippingFee || 0,
+    customer_package_id: activePkgId || null,
+    package_buy: cart.find(c => c.is_pkg) ? {
+      package_id: cart.find(c => c.is_pkg).package_id,
+      total_qty: parseInt(buyQty) || 30,
+      pkg_qty: cart.find(c => c.is_pkg).quantity || 1
+    } : null,
+    membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id } : null,
+  });
+  // UUDAI-1: đơn có mã → hỏi máy chủ số tiền (giá hạng / mã / máy chọn cách nào) mỗi khi giỏ, khách, mã đổi. Không mã → tính như cũ.
+  const [tinhThu, setTinhThu] = useState(null);
+  useEffect(() => {
+    setTinhThu(null);
+    if (!discountCodeValid?.valid || cart.length === 0) return;
+    let boQua = false;
+    api.post('/orders/tinh-thu', donGuiMayChu())
+      .then((r) => { if (!boQua) setTinhThu(r); })
+      .catch((e) => { if (!boQua) setError(e.message || 'Không tính được tiền với mã giảm'); });
+    return () => { boQua = true; };
+  }, [cart, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty]);
   const buyPkgTemplate = pkgBuyInCart ? pkgTemplates.find(t => t.id === pkgBuyInCart.package_id) : null;
   const buyPkgItems = buyPkgTemplate?.package_items ? (typeof buyPkgTemplate.package_items === 'string' ? JSON.parse(buyPkgTemplate.package_items) : buyPkgTemplate.package_items) : [];
   const buyPkgAllowedKeys = new Set(buyPkgItems.map(i => `${i.sx_product_type}_${i.sx_product_id}`));
@@ -133,6 +166,7 @@ export default function Sales() {
   // Bám đúng luật F2: đơn có dính Flash (cartFlashDiscount > 0) → KHÔNG cộng giảm hạng.
   const getTierPrice = (item) => {
     if (!membershipInfo?.usable) return null;
+    if (tinhThu && !tinhThu.tier_discount) return null; // UUDAI-1: máy chủ chọn mã thay giá hạng
     if (item.is_membership || item.is_pkg) return null;
     if (cartFlashDiscount > 0) return null; // đơn dính Flash — hạng không cộng thêm (đúng luật đã chốt)
     const rawRate = item.is_special_group
@@ -584,7 +618,7 @@ export default function Sales() {
   }, 0);
 
   // === TIER-2: giảm theo hạng thành viên (client tự tính, server luôn tính lại — xem getTierPrice) ===
-  const cartTierDiscount = cart.reduce((sum, item) => {
+  const cartTierDiscount = tinhThu ? tinhThu.tier_discount : cart.reduce((sum, item) => {
     const tierPrice = getTierPrice(item);
     if (tierPrice == null) return sum;
     return sum + (item.unit_price - tierPrice) * item.quantity;
@@ -605,9 +639,9 @@ export default function Sales() {
     // Backward compatible
     discountAmount = discount;
   }
-  discountAmount = Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount));
+  discountAmount = tinhThu ? tinhThu.discount_amount : Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount));
 
-  const total = Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount - discountAmount + (shippingFee || 0));
+  const total = tinhThu ? tinhThu.total : Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount - discountAmount + (shippingFee || 0));
 
   // Tính toán thanh toán linh hoạt
   const customerBalance = customer?.balance || 0;
@@ -632,6 +666,10 @@ export default function Sales() {
   const openPaymentModal = () => {
     if (cart.length === 0) {
       setError('Giỏ hàng trống');
+      return;
+    }
+    if (discountCodeValid?.valid && !tinhThu) {   // UUDAI-1: chưa có số máy chủ thì chưa thu — tránh thu theo số tự tính
+      setError('Đang tính tiền với mã giảm — thử lại sau giây lát');
       return;
     }
     loadFlashState(); // làm mới ngay trước khi thanh toán — tránh dùng số Flash quá cũ (>60s)
@@ -672,26 +710,23 @@ export default function Sales() {
         transferAmount = remaining;
       }
 
+      const don = donGuiMayChu();   // UUDAI-1: CÙNG thân với tinh-thu
       const orderData = {
-        customer_phone: customer?.phone || null,
+        customer_phone: don.customer_phone,
+        items: don.items,
+        discount_code: don.discount_code,
+        shipping_fee: don.shipping_fee,
+        customer_package_id: don.customer_package_id,
+        package_buy: don.package_buy,
+        membership_buy: don.membership_buy,
         customer_name: customer?.name || 'Khách lẻ',
         is_new_customer: customer?.isNew || false,
-        items: cart.filter(item => !item.is_pkg && !item.is_membership).map(item => ({
-          product_id: item.product_id,
-          sx_product_type: item.sx_product_type,
-          sx_product_id: item.sx_product_id,
-          quantity: item.quantity,
-          from_package: item.fromPkg || false,
-          note: item.note ? String(item.note).trim().slice(0, 200) : null,
-        })),
         payment_method: paymentMethod,
         discount: discount,
         discount_reason: discountAmount > 0 ? 'Giảm giá' : null,
         // === Phase B: Chiết khấu + Shipping ===
         discount_type: discountCodeValid?.valid ? discountCodeValid.discount_type : (discountValue > 0 ? discountType : null),
         discount_value: discountCodeValid?.valid ? discountCodeValid.discount_value : discountValue,
-        discount_code: discountCodeValid?.valid ? discountCodeValid.code : null,
-        shipping_fee: shippingFee || 0,
         // Thêm thông tin thanh toán linh hoạt
         balance_amount: balanceUsed,
         cash_amount: cashAmount,
@@ -702,15 +737,6 @@ export default function Sales() {
         // === Tiền khách đưa / tiền thối ===
         cash_received: paymentMethod === 'cash' ? cashReceivedNum : 0,
         change_amount: paymentMethod === 'cash' ? Math.max(0, cashReceivedNum - remainingAfterBalance) : 0,
-        // === Gói sản phẩm ===
-        customer_package_id: activePkgId || null,
-        package_buy: cart.find(c => c.is_pkg) ? { 
-          package_id: cart.find(c => c.is_pkg).package_id, 
-          total_qty: parseInt(buyQty) || 30,
-          pkg_qty: cart.find(c => c.is_pkg).quantity || 1
-        } : null,
-        // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm) ===
-        membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id } : null,
       };
 
       const result = await ordersApi.create(orderData);
@@ -1476,6 +1502,9 @@ export default function Sales() {
                   </span>
                   <span>-{formatPrice(discountAmount)}</span>
                 </div>
+              )}
+              {tinhThu?.cau_ghi && (
+                <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginBottom: '0.25rem' }}>{tinhThu.cau_ghi}</div>
               )}
               {shippingFee > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f97316', marginBottom: '0.25rem' }}>
