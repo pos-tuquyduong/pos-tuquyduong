@@ -16,6 +16,7 @@ const fs = require('fs');
 const { query, queryOne, run, saveDatabase } = require('../database');
 const { getToday } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
+const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 
 // Multer config cho upload logo
 const storage = multer.memoryStorage();
@@ -96,6 +97,15 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     // Kiểm tra quyền (chỉ owner/manager được sửa)
     if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: 'Không có quyền sửa cài đặt' });
+    }
+
+    // HD-1: mục bắt buộc của hoá đơn (tên quán, số bill, tổng, thanh toán) không ẩn được; số tờ chỉ 1 hoặc 2 — từ chối TRƯỚC khi ghi gì
+    const anBatBuoc = KHONG_AN_DUOC.filter((k) => ['true', '1'].includes(String(settings['invoice_an_' + k])));
+    if (anBatBuoc.length) {
+      return res.status(400).json({ success: false, error: 'Mục này luôn phải có trên hoá đơn, không ẩn được: ' + anBatBuoc.join(', '), code: 'KHOA_KHONG_AN_DUOC' });
+    }
+    if ('invoice_so_to' in settings && !['1', '2'].includes(String(settings.invoice_so_to))) {
+      return res.status(400).json({ success: false, error: 'Số tờ hoá đơn chỉ là 1 hoặc 2', code: 'SO_TO_KHONG_HOP_LE' });
     }
 
     let updated = 0;
