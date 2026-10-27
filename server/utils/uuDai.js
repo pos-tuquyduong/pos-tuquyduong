@@ -6,7 +6,7 @@
  */
 const { computeItemDiscountAmount } = require('./itemScopeDiscount');
 
-const dong = (n) => `${Math.round(n).toLocaleString('vi-VN')}đ`;
+const inTien = (n) => `${Math.round(n).toLocaleString('vi-VN')}đ`;
 
 /**
  * @param {object} p
@@ -16,16 +16,16 @@ const dong = (n) => `${Math.round(n).toLocaleString('vi-VN')}đ`;
  * @param {number} [p.truTruoc]  giảm Flash đã trừ trước
  * @returns {{ giam_hang:number, gia_hang:Array<number|null>, giam_ma:number, cach:'ca_hai'|'hang'|'ma'|'khong', loi_hon:number, cau_ghi:string }}
  */
-function tinhUuDai({ dong: ds, ma, dungChung, truTruoc = 0, tenHang = '', tenMa = '' }) {
-  const tamTinh = ds.reduce((s, d) => s + d.unit_price * d.quantity, 0);
-  const giaHangDong = ds.map((d) => (d.ti_le_hang > 0 ? Math.round(d.unit_price * (1 - d.ti_le_hang / 100)) : null));
-  const giamHang = ds.reduce((s, d) => s + (d.ti_le_hang > 0 ? Math.round(d.unit_price * d.quantity * d.ti_le_hang / 100) : 0), 0);
+function tinhUuDai({ dong, ma, dungChung, truTruoc = 0, tenHang = '', tenMa = '' }) {
+  const tamTinh = dong.reduce((s, d) => s + d.unit_price * d.quantity, 0);
+  const giaHangDong = dong.map((d) => (d.ti_le_hang > 0 ? Math.round(d.unit_price * (1 - d.ti_le_hang / 100)) : null));
+  const giamHang = dong.reduce((s, d) => s + (d.ti_le_hang > 0 ? Math.round(d.unit_price * d.quantity * d.ti_le_hang / 100) : 0), 0);
 
   const tinhMa = (coHang) => {
     const conLai = Math.max(0, tamTinh - truTruoc - (coHang ? giamHang : 0));
     let g;
     if (ma.mot_mon != null) {
-      const gia = coHang && giaHangDong[ma.mot_mon] != null ? giaHangDong[ma.mot_mon] : ds[ma.mot_mon].unit_price;
+      const gia = coHang && giaHangDong[ma.mot_mon] != null ? giaHangDong[ma.mot_mon] : dong[ma.mot_mon].unit_price;
       g = computeItemDiscountAmount(ma.loai, ma.gia_tri, gia);
     } else if (ma.loai === 'percent') {
       g = Math.round(conLai * ma.gia_tri / 100);
@@ -51,11 +51,11 @@ function tinhUuDai({ dong: ds, ma, dungChung, truTruoc = 0, tenHang = '', tenMa 
   let cau_ghi = '';
   if (cach === 'ca_hai') cau_ghi = `Giá hạng ${tenHang} và mã ${tenMa} dùng chung`;
   else if (ma && giamHang > 0 && cach === 'ma') {
-    cau_ghi = `Dùng mã ${tenMa} (giảm ${dong(giam_ma)}) thay giá hạng ${tenHang} — lợi hơn ${dong(loiHon)}`;
+    cau_ghi = `Dùng mã ${tenMa} (giảm ${inTien(giam_ma)}) thay giá hạng ${tenHang} — lợi hơn ${inTien(loiHon)}`;
   } else if (ma && cach === 'hang') {
-    cau_ghi = `Dùng giá hạng ${tenHang} (giảm ${dong(giamHang)}), không dùng mã ${tenMa} — lợi hơn ${dong(loiHon)}`;
+    cau_ghi = `Dùng giá hạng ${tenHang} (giảm ${inTien(giamHang)}), không dùng mã ${tenMa} — lợi hơn ${inTien(loiHon)}`;
   }
-  return { giam_hang, gia_hang: giam_hang > 0 ? giaHangDong : ds.map(() => null), giam_ma, cach, loi_hon: loiHon, cau_ghi };
+  return { giam_hang, gia_hang: giam_hang > 0 ? giaHangDong : dong.map(() => null), giam_ma, cach, loi_hon: loiHon, cau_ghi };
 }
 
 module.exports = { tinhUuDai };
