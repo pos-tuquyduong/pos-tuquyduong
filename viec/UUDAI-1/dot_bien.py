@@ -24,9 +24,9 @@ DOT_BIEN = [
   # ── A–C: hàm tinhUuDai (server/utils/uuDai.js) ──
   ('VS-MA-TREN-GOC', [(U, '(coHang ? giamHang : 0)', '0', 1)], r'✗ B1 '),
   ('VS-BANG-CHON-MA', [(U, "chiMa > giamHang ? 'ma'", "chiMa >= giamHang ? 'ma'", 1)], r'✗ C3a '),
-  ('VS-MOT-MON-GIA-GOC', [(U, 'coHang && giaHangDong[ma.mot_mon] != null ? giaHangDong[ma.mot_mon] : ds[ma.mot_mon].unit_price',
-                           'ds[ma.mot_mon].unit_price', 1)], r'✗ B5 '),
-  ('VS-CHON-MA-GIU-GIA-HANG', [(U, 'gia_hang: giam_hang > 0 ? giaHangDong : ds.map(() => null)', 'gia_hang: giaHangDong', 1)], r'✗ C1b '),
+  ('VS-MOT-MON-GIA-GOC', [(U, 'coHang && giaHangDong[ma.mot_mon] != null ? giaHangDong[ma.mot_mon] : dong[ma.mot_mon].unit_price',
+                           'dong[ma.mot_mon].unit_price', 1)], r'✗ B5 '),
+  ('VS-CHON-MA-GIU-GIA-HANG', [(U, 'gia_hang: giam_hang > 0 ? giaHangDong : dong.map(() => null)', 'gia_hang: giaHangDong', 1)], r'✗ C1b '),
   ('VS-LUON-CA-HAI', [(U, "else if (dungChung) cach = 'ca_hai';", "else if (true) cach = 'ca_hai';", 1)], r'✗ C1a '),
   ('VS-MA-KHONG-LAM-TRON', [(U, 'g = Math.round(conLai * ma.gia_tri / 100);', 'g = conLai * ma.gia_tri / 100;', 1)], r'✗ A6 '),
   # ── orders.js: cài đặt theo loại, quà luôn dùng chung ──
@@ -53,6 +53,9 @@ DOT_BIEN = [
   ('BV-SETTINGS-QUA', [(SE, 'Quà đổi điểm: luôn dùng chung', 'Quà đổi điểm', 1)], r'✗ E5 '),
   ('BV-SALES-TONG', [(SA, 'const total = tinhThu ? tinhThu.total : ', 'const total = ', 1)], r'✗ S3 '),
   ('VS-SALES-THU-KHI-CHUA-TINH', [(SA, 'if (discountCodeValid?.valid && !tinhThu) {', 'if (false) {', 1)], r'✗ S4 '),
+  ('VS-SALES-GHI-DE-LOI', [(SA, 'setError(tinhThuLoi || ', 'setError(', 1)], r'✗ S6 '),
+  ('VS-SALES-KHONG-HOI-LAI', [(SA, ', flashState, membershipInfo]);', ']);', 1)], r'✗ S7 '),
+  ('VS-SETTINGS-PKGAPI', [(SE, "await api.put('/settings', { settings: uuDaiChung });", "await pkgApi('PUT', '/api/pos/settings', { settings: uuDaiChung });", 1)], r'✗ S8 '),
   ('VS-SALES-HAI-THAN', [(SA, '        discount_code: don.discount_code,\n', '        discount_code: discountCodeValid?.code,\n', 1)], r'✗ S2 '),
 ]
 
