@@ -8,6 +8,8 @@
  *   vừa tạo (POST /orders): `note`; đã lưu (GET /orders/:id): `notes`
  */
 
+import { chuTem } from './hoaDon.js';
+
 export const KHOA_BO_IN = 'invoice_print_set';
 export const LOAI_IN = ['bill', 'tem', 'pha_che'];
 export const NHAN_LOAI = { bill: 'Bill khách', tem: 'Tem cốc', pha_che: 'Phiếu pha chế' };
@@ -76,16 +78,22 @@ function khachTem(don) {
   return [ten && ten !== KHACH_LE ? ten : '', sdt ? sdt.slice(-4) : ''].filter(Boolean).join(' · ');
 }
 
-/** Mỗi đơn vị ly một tem, "1/n"…"n/n" tính riêng từng dòng món. */
-export function dungTem(don, nhomTheoMa, cfg, inLai = false) {
+/**
+ * Mỗi đơn vị ly một tem, "1/n"…"n/n" tính riêng từng dòng món.
+ * HD-1: `settings` (tuỳ chọn) mang chữ dòng đầu / cuối tem (invoice_chu_tem_dau / tem_chan, tự điền {ten_khach}, ≤ 40 ký tự); không có → không dòng.
+ */
+export function dungTem(don, nhomTheoMa, cfg, inLai = false, settings = null) {
   const tem = [];
+  const tenKhach = String(don?.customer_name || '').trim() === KHACH_LE ? '' : String(don?.customer_name || '').trim();
+  const dau = settings ? chuTem(settings, 'tem_dau', tenKhach) : '';
+  const chan = settings ? chuTem(settings, 'tem_chan', tenKhach) : '';
   for (const m of don?.items || []) {
     if (!laMonPha(m, nhomTheoMa, cfg)) continue;
     const n = soLy(m);
     for (let i = 1; i <= n; i++) {
       tem.push({
         kieu: 'tem', ten: cat(String(m.product_name || '')), ghiChu: cat(ghiChuMon(m)), khach: khachTem(don),
-        ma: rutGonMa(don.code), gio: gioHHmm(don.created_at), stt: `${i}/${n}`, inLai,
+        ma: rutGonMa(don.code), gio: gioHHmm(don.created_at), stt: `${i}/${n}`, inLai, dau, chan,
       });
     }
   }
@@ -119,7 +127,7 @@ export function dungBoIn(don, settings, { nhomTheoMa = {}, loai, inLai = false }
     if (ten !== 'bill' && DON_KHONG_PHA.includes(don?.status)) continue;   // đơn huỷ / hoàn tiền: chỉ còn bill, tem + phiếu làm người pha pha thừa ly
     let moi;
     if (ten === 'bill') moi = [{ kieu: 'bill', inLai }];
-    else if (ten === 'tem') moi = dungTem(don, nhomTheoMa, cfg, inLai);
+    else if (ten === 'tem') moi = dungTem(don, nhomTheoMa, cfg, inLai, settings);
     else {
       const p = dungPhieuPhaChe(don, nhomTheoMa, cfg, inLai);
       moi = p.dong.length ? [p] : [];
