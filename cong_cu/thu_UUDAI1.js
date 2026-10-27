@@ -419,7 +419,9 @@ async function main() {
     const sa = docNguon(CLIENT, 'Sales.jsx');
     k('S1 Sales.jsx nạp client `api` có sẵn và hỏi POST /orders/tinh-thu (không fetch trần)', /import \{[^}]*\bapi\b[^}]*\} from '\.\.\/utils\/api'/.test(sa)
       && /api\.post\('\/orders\/tinh-thu'/.test(sa));
-    k('S2 thân tinh-thu và thân tạo đơn dựng từ CÙNG một hàm (monGuiMayChu) — không hai bản lệch nhau', (sa.match(/monGuiMayChu\(\)/g) || []).length >= 2);
+    k('S2 thân tinh-thu và thân tạo đơn dựng từ CÙNG một hàm donGuiMayChu (món, khách, mã, phí giao, gói, thẻ) — không hai bản lệch nhau',
+      /api\.post\('\/orders\/tinh-thu', donGuiMayChu\(\)\)/.test(sa) && /const orderData = \{\s*\.\.\.donGuiMayChu\(\),/.test(sa)
+      && (sa.match(/discount_code: discountCodeValid/g) || []).length === 1 && (sa.match(/membership_buy:/g) || []).length === 1);
     k('S3 có mã → tổng / giảm hạng / giảm mã lấy từ kết quả tinh-thu', /const total = tinhThu \? tinhThu\.total :/.test(sa)
       && /tinhThu \? tinhThu\.tier_discount :/.test(sa) && /tinhThu \? tinhThu\.discount_amount :/.test(sa));
     k('S4 có mã mà chưa có số máy chủ → không mở thu tiền', /discountCodeValid\?\.valid && !tinhThu\)/.test(sa));
