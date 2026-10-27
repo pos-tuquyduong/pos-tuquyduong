@@ -13,7 +13,7 @@ const express = require("express");
 const { query, queryOne, run, beginTransaction } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
 const { generateVoucherCode } = require("../utils/voucherCode");
-const { findEligibleItemForGroup, computeItemDiscountAmount } = require("../utils/itemScopeDiscount");
+const { findEligibleItemForGroup } = require("../utils/itemScopeDiscount");
 const {
   generateOrderCode,
   taoMaDonTheoSo, // POS-MADON-v1
@@ -26,6 +26,7 @@ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
+const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
@@ -379,7 +380,8 @@ async function taoDon(req, res, phien = null) {
 
       // Kiểm tra tồn kho từ SX (cả gói và lẻ đều cần)
       try {
-        const stockCheck = await checkStock(
+        // UUDAI-1: tinh-thu không gọi SX (chỉ tính tiền); tạo đơn, phiên payOS kiểm như cũ.
+        const stockCheck = phien?.tinhThu ? { sufficient: true } : await checkStock(
           product.sx_product_type,
           product.sx_product_id,
           item.quantity,
@@ -542,6 +544,8 @@ async function taoDon(req, res, phien = null) {
     let discountCodeId = null;
     let discountCodeScope = 'order'; // Bước 5: 'order' | 'item' — mặc định 'order' khớp hành vi cũ
     let discountCodeGroupId = null;
+    let maTran = 0;     // UUDAI-1: max_discount của mã đã áp
+    let maLoi = null;   // UUDAI-1: mã gõ vào mà không áp — tinh-thu báo cho giỏ, POST / vẫn bỏ mã như cũ (D3 thu_P26c)
 
     // Ưu tiên 1: Mã chiết khấu
     if (discount_code) {
@@ -583,8 +587,10 @@ async function taoDon(req, res, phien = null) {
         // không có khái niệm đơn tối thiểu (đã chốt lúc thiết kế).
         if (codeRecord.discount_scope !== 'item' && codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
           codeValid = false;
+        if (!codeValid) maLoi = "Mã hết hạn, hết lượt hoặc đơn chưa đủ tối thiểu";
 
         if (codeValid) {
+          maTran = Number(codeRecord.max_discount) || 0;
           finalDiscountType = codeRecord.discount_type;
           finalDiscountValue = codeRecord.discount_value;
           finalDiscountCode = codeRecord.code;
@@ -592,6 +598,8 @@ async function taoDon(req, res, phien = null) {
           discountCodeScope = codeRecord.discount_scope === 'item' ? 'item' : 'order';
           discountCodeGroupId = codeRecord.applicable_group_id || null;
         }
+      } else {
+        maLoi = "Mã không tồn tại hoặc đã tắt";
       }
     }
 
@@ -632,6 +640,7 @@ async function taoDon(req, res, phien = null) {
     let tierDiscountAmount = 0;
     let tierApplied = false;
     let appliedTierName = null; // hóa đơn: hiện đúng tên hạng thật của khách (KH tự đổi tên ở Cài đặt)
+    const tiLeHang = new Map(); // UUDAI-1: món → % hạng; tiền giảm + giá hạng từng món do tinhUuDai tính (bên dưới)
     if (!flashApplied && phone) {
       try {
         const membership = await getMembershipStatus(query, queryOne, getNow, phone);
@@ -650,20 +659,13 @@ async function taoDon(req, res, phien = null) {
               const rawRate = it.is_special_group
                 ? Number(tier.special_discount_percent) || 0
                 : Number(tier.discount_percent) || 0;
-              const rate = Math.min(90, Math.max(0, rawRate));
-              if (rate > 0) {
-                tierDiscountAmount += Math.round(it.unit_price * it.quantity * rate / 100);
-                // Hóa đơn: giá đã giảm CHỈ để hiển thị từng món — không ảnh hưởng total thật.
-                it.tier_unit_price = Math.round(it.unit_price * (1 - rate / 100));
-              }
+              tiLeHang.set(it, Math.min(90, Math.max(0, rawRate)));
             }
-            if (tierDiscountAmount > 0) tierApplied = true;
           }
         }
       } catch (tierErr) {
         console.error("⚠️ TIER-2: lỗi tính giảm hạng (bỏ qua, đơn vẫn chạy):", tierErr.message);
-        tierDiscountAmount = 0;
-        tierApplied = false;
+        tiLeHang.clear();
       }
     }
 
@@ -695,37 +697,46 @@ async function taoDon(req, res, phien = null) {
     // khai báo ở đây để dùng lại lúc gắn signup_unit_price vào orderItems cho hóa đơn.
     let itemScopeTargetItem = null;
 
-    // Tính số tiền chiết khấu
+    // Voucher giảm-1-món: tìm đúng 1 món (giá cao nhất trong nhóm được phép, có mặt trong giỏ) — tiền giảm tính ở tinhUuDai.
     if (discountCodeScope === 'item' && discountCodeId) {
-      // Voucher giảm-1-món: KHÔNG tính theo subtotal — tìm đúng 1 món (giá cao nhất trong
-      // nhóm được phép, có mặt trong giỏ) rồi chỉ giảm trên giá của đúng 1 đơn vị món đó.
       itemScopeTargetItem = await findEligibleItemForGroup(query, discountCodeGroupId, orderItems);
       if (!itemScopeTargetItem) {
         return res.status(400).json({
           error: "Đơn này chưa có món nào được áp mã này",
         });
       }
-      finalDiscountAmount = computeItemDiscountAmount(
-        finalDiscountType, finalDiscountValue, itemScopeTargetItem.unit_price
-      );
-      // Hóa đơn: đánh dấu đúng dòng món được giảm — CHỈ hiển thị, không đổi unit_price gốc
-      // dùng để tính subtotal/total thật (đúng khuôn flash_unit_price/tier_unit_price).
-      itemScopeTargetItem.signup_unit_price = Math.max(0, itemScopeTargetItem.unit_price - finalDiscountAmount);
+    }
+
+    // UUDAI-1: "dùng chung với giá hạng" theo LOẠI mã (Cài đặt); quà đổi điểm (có dòng pos_voucher_grants cùng mã) luôn dùng chung.
+    let dungChung = true;
+    if (discountCodeId) {
+      const khoa = itemScopeTargetItem ? "uudai_chung_hang_item"
+        : finalDiscountType === "percent" ? "uudai_chung_hang_percent" : "uudai_chung_hang_fixed";
+      const qua = await queryOne("SELECT 1 AS co FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?) LIMIT 1", [finalDiscountCode]);
+      dungChung = !!qua || (await queryOne("SELECT value FROM pos_settings WHERE key = ?", [khoa]))?.value !== "0";
+    }
+    const uuDai = tinhUuDai({
+      dong: orderItems.map((it) => ({ unit_price: it.unit_price, quantity: it.quantity, ti_le_hang: tiLeHang.get(it) || 0 })),
+      ma: discountCodeId ? { loai: finalDiscountType, gia_tri: Number(finalDiscountValue) || 0, tran: maTran,
+        mot_mon: itemScopeTargetItem ? orderItems.indexOf(itemScopeTargetItem) : null } : null,
+      dungChung, truTruoc: flashDiscountAmount, tenHang: appliedTierName || "", tenMa: finalDiscountCode || "",
+    });
+    tierDiscountAmount = uuDai.giam_hang;
+    tierApplied = tierDiscountAmount > 0;
+    // Hóa đơn: giá hạng từng món CHỈ để hiển thị — không đổi unit_price gốc dùng tính subtotal/total.
+    orderItems.forEach((it, i) => { if (uuDai.gia_hang[i] != null) it.tier_unit_price = uuDai.gia_hang[i]; });
+    if (uuDai.cach === "hang" && discountCodeId) {
+      // Máy chọn giá hạng: mã KHÔNG tiêu, đơn không ghi mã → huỷ / hoàn không trả lượt (traLuotMa theo discount_code).
+      discountCodeId = null;
+      finalDiscountCode = null;
+      finalDiscountType = null;
+      finalDiscountValue = 0;
+      itemScopeTargetItem = null;
+    }
+    if (discountCodeId) {
+      finalDiscountAmount = uuDai.giam_ma;
     } else if (finalDiscountType === "percent" && finalDiscountValue > 0) {
-      finalDiscountAmount = (subtotal * finalDiscountValue) / 100;
-      // Giới hạn max_discount từ mã CK nếu có
-      if (discountCodeId) {
-        const codeRecord = await queryOne(
-          "SELECT max_discount FROM pos_discount_codes WHERE id = ?",
-          [discountCodeId],
-        );
-        if (
-          codeRecord?.max_discount > 0 &&
-          finalDiscountAmount > codeRecord.max_discount
-        ) {
-          finalDiscountAmount = codeRecord.max_discount;
-        }
-      }
+      finalDiscountAmount = (subtotal * finalDiscountValue) / 100;   // giảm riêng của khách (không mã) — như cũ
     } else if (finalDiscountType === "fixed" && finalDiscountValue > 0) {
       finalDiscountAmount = finalDiscountValue;
     }
@@ -735,10 +746,9 @@ async function taoDon(req, res, phien = null) {
       finalDiscountAmount,
       Math.max(0, subtotal - flashDiscountAmount - tierDiscountAmount),
     );
-    // Nếu bị trần trên cắt bớt, đồng bộ lại giá hiển thị trên hóa đơn cho đúng số thật đã giảm
-    // (ca cực hiếm — flash/tier gần như luôn không cùng áp dụng, nhưng vẫn xử lý cho chắc).
+    // Hóa đơn: đánh dấu đúng dòng món được giảm (giá đã giảm hạng nếu dùng chung) — CHỈ hiển thị.
     if (itemScopeTargetItem) {
-      itemScopeTargetItem.signup_unit_price = Math.max(0, itemScopeTargetItem.unit_price - finalDiscountAmount);
+      itemScopeTargetItem.signup_unit_price = Math.max(0, (itemScopeTargetItem.tier_unit_price ?? itemScopeTargetItem.unit_price) - finalDiscountAmount);
     }
 
     // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
@@ -835,7 +845,14 @@ async function taoDon(req, res, phien = null) {
     }
 
 
-    if (phien?.chiTinh) return { total };   // P3: tạo phiên chỉ cần tổng máy chủ tính (mọi phép kiểm phía trên đã chạy), không ghi gì
+    // P3: tạo phiên chỉ cần tổng máy chủ tính (mọi phép kiểm phía trên đã chạy), không ghi gì. UUDAI-1: tinh-thu đọc thêm `chiTiet`.
+    if (phien?.chiTinh) {
+      return { total, chiTiet: { subtotal, flash_discount: flashDiscountAmount, tier_discount: tierDiscountAmount, discount_amount: finalDiscountAmount,
+        shipping_fee: finalShippingFee, total, customer_tier: appliedTierName, discount_code: finalDiscountCode, cach: uuDai.cach,
+        cau_ghi: uuDai.cau_ghi, ma_loi: maLoi,
+        items: orderItems.map((it) => ({ product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
+          tier_unit_price: it.tier_unit_price ?? null, flash_unit_price: it.flash_unit_price ?? null })) } };
+    }
 
     // ─── An toàn tiền bạc: đối chiếu tổng thanh toán máy khách gửi lên với total server tự tính ───
     // Máy khách hiện CHƯA biết Flash lúc tính tiền mặt/chuyển khoản/ghi nợ cần thu (tính trước khi
@@ -1262,6 +1279,18 @@ async function taoDon(req, res, phien = null) {
   }
 }
 router.post("/", authenticate, (req, res) => taoDon(req, res));
+
+/**
+ * UUDAI-1: POST /api/pos/orders/tinh-thu — giỏ hỏi trước số máy chủ sẽ tính (hạng, mã, cách đã chọn, câu ghi giỏ). Đi ĐÚNG taoDon ở chế
+ * độ chỉ tính (cùng phép kiểm, cùng tinhUuDai) → số tinh-thu = số POST / ghi. Không ghi gì, không gọi SX; thân chỉ nhận các trường
+ * của giỏ (không trường tiền → các nhánh ví / chuyển khoản / nợ không chạy).
+ */
+const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy"];
+router.post("/tinh-thu", authenticate, async (req, res) => {
+  const than = Object.fromEntries(TRUONG_TINH_THU.filter((x) => req.body?.[x] !== undefined).map((x) => [x, req.body[x]]));
+  const kq = await taoDon({ body: than, user: req.user }, res, { chiTinh: true, tinhThu: true });
+  if (!res.headersSent) res.json({ success: true, ...kq.chiTiet });
+});
 /**
  * POST /api/pos/orders/:id/pay-debt
  * Xác nhận thanh toán nợ cho đơn hàng
