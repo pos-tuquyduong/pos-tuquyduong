@@ -80,6 +80,9 @@ export default function Settings() {
   const [tiers, setTiers] = useState([]);
   const [tierRound, setTierRound] = useState({ round_to: 500, round_mode: 'nearest' });
   const [tierValidMonths, setTierValidMonths] = useState(3);
+  // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — '1' cộng, '0' máy chọn cái giảm nhiều hơn
+  const LOAI_MA_CHUNG = [['uudai_chung_hang_percent', 'Mã giảm %'], ['uudai_chung_hang_fixed', 'Mã giảm tiền'], ['uudai_chung_hang_item', 'Mã giảm 1 món']];
+  const [uuDaiChung, setUuDaiChung] = useState({ uudai_chung_hang_percent: '1', uudai_chung_hang_fixed: '1', uudai_chung_hang_item: '1' });
 
   // Backup state
   const [backupInfo, setBackupInfo] = useState(null);
@@ -148,6 +151,7 @@ export default function Settings() {
         await loadFlash();
       } else if (tab === 'tiers') {
         await loadTiers();
+        await loadUuDaiChung();
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -683,6 +687,24 @@ export default function Settings() {
       setMessage('Đã lưu hạng thành viên!');
       setTimeout(() => setMessage(''), 3000);
       await loadTiers();
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    finally { setSaving(false); }
+  };
+  const loadUuDaiChung = async () => {
+    const data = await pkgApi('GET', '/api/pos/settings');
+    if (data.success) {
+      const s = data.data || {};
+      setUuDaiChung(Object.fromEntries(LOAI_MA_CHUNG.map(([k]) => [k, s[k] === '0' ? '0' : '1'])));
+    }
+  };
+  const saveUuDaiChung = async () => {
+    setSaving(true);
+    try {
+      const kq = await pkgApi('PUT', '/api/pos/settings', { settings: uuDaiChung });
+      if (!kq.success) throw new Error(kq.error || 'Không lưu được');
+      setMessage('Đã lưu cách dùng mã giảm với giá hạng');
+      setTimeout(() => setMessage(''), 3000);
+      await loadUuDaiChung();
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
   };
@@ -2094,6 +2116,26 @@ export default function Settings() {
 
               <div style={{ marginTop: '1rem' }}>
                 <button className="btn btn-primary" onClick={saveTiers} disabled={saving}>
+                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
+
+              {/* UUDAI-1: mã giảm dùng chung hay không với giá hạng — theo loại mã */}
+              <div className="card-title" style={{ margin: '1.5rem 0 0.5rem' }}>🎫 Mã giảm & giá hạng</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 0.5rem' }}>
+                Bỏ tích: khách hội viên chỉ được một trong hai — giá hạng hoặc mã, máy tự chọn cái giảm nhiều hơn.
+              </p>
+              {LOAI_MA_CHUNG.map(([k, ten]) => (
+                <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.5rem 0', borderTop: '1px solid #eee' }}>
+                  <input type="checkbox" checked={uuDaiChung[k] === '1'}
+                    onChange={e => setUuDaiChung(prev => ({ ...prev, [k]: e.target.checked ? '1' : '0' }))} />
+                  <span style={{ fontWeight: 600, minWidth: 120 }}>{ten}</span>
+                  <span style={{ fontSize: 13 }}>Dùng chung với giá hạng</span>
+                </label>
+              ))}
+              <div style={{ padding: '0.5rem 0', borderTop: '1px solid #eee', fontSize: 13, color: '#6b7280' }}>Quà đổi điểm: luôn dùng chung</div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <button className="btn btn-primary" onClick={saveUuDaiChung} disabled={saving}>
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
