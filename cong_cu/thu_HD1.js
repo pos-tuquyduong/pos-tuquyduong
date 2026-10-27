@@ -110,6 +110,7 @@ async function phanG() {
   k('G17 N = 0 và không ưu đãi khách mới → KHÔNG in ô mã, không hứa điểm', n0({}).ma_diem === null);
   k('G18 N = 0 nhưng ưu đãi khách mới đang bật → chỉ còn ô ưu đãi, KHÔNG có chữ "điểm" của N',
     n0({ uu_dai: true }).ma_diem?.chu === 'MÃ ƯU ĐÃI KHÁCH MỚI (nhập trong 24 giờ)' && !/\+\d+ điểm/.test(n0({ uu_dai: true }).ma_diem.chu), JSON.stringify(n0({ uu_dai: true }).ma_diem));
+  k('G19b ô mã nhận điểm bị TẮT (invoice_an_ma_diem) và N > 0 → không in ô nào (ưu đãi khách mới không chen vào)', dungHoaDon(HD_LE, { invoice_an_ma_diem: 'true' }).ma_diem === null);
   k('G19 N = 1 (sát ngưỡng) vẫn hứa điểm', n0({ diem: 1 }).ma_diem?.chu.includes('+1 điểm'));
   k('G20 hết phí giao → không dòng phí giao (K5: đơn mang đi)', !khoa(dungHoaDon({ ...HD_LE, tien: { ...HD_LE.tien, phi_giao: 0, tong: 72000 } }, {}).tien).includes('phi_giao'));
   const tk2 = dungHoaDon({ ...HD_QUEN, thanh_toan: [{ loai: 'tai_khoan', so_tien: 20000 }, { loai: 'tai_khoan_me', so_tien: 30000 }, { loai: 'chuyen_khoan', so_tien: 37800 }], khach_dua: 0, tra_lai: 0 }, {});
@@ -125,7 +126,7 @@ async function phanG() {
   const to = danhSachTo(HD_QUEN, {});
   k('G25 mặc định 2 tờ: GIAO KHÁCH rồi LƯU QUẦY', to.length === 2 && to[0].nhan === 'GIAO KHÁCH' && to[1].nhan === 'LƯU QUẦY' && to[0].lien === 'khach' && to[1].lien === 'luu', JSON.stringify(to.map((t) => t.nhan)));
   const bo = (t) => ({ ...t, lien: '', nhan: '', chan: [] });
-  k('G26 hai tờ GIỐNG HỆT, chỉ khác nhãn + chân (cảm ơn / chính sách chỉ ở tờ khách)', bang(bo(to[0]), bo(to[1])) && to[0].chan.some((c) => c.khoa === 'cam_on') && to[0].chan.some((c) => c.khoa === 'chinh_sach') && !to[1].chan.some((c) => c.khoa === 'cam_on' || c.khoa === 'chinh_sach'), JSON.stringify([to[0].chan, to[1].chan]));
+  k('G26 hai tờ GIỐNG HỆT, chỉ khác nhãn + chân (cảm ơn / chính sách chỉ ở tờ khách)', bang(bo(to[0]), bo(to[1])) && to[0].chan.some((c) => c.khoa === 'cam_on') && to[0].chan.some((c) => c.khoa === 'chinh_sach') && !to[1]?.chan.some((c) => c.khoa === 'cam_on' || c.khoa === 'chinh_sach'), JSON.stringify([to[0].chan, to[1].chan]));
   k('G27 lời cảm ơn tự điền tên khách: "Cảm ơn Chị Hoa!"; khách lẻ: "Cảm ơn quý khách!"', to[0].chan[0].chu === 'Cảm ơn Chị Hoa!' && danhSachTo(HD_LE, {})[0].chan[0].chu === 'Cảm ơn quý khách!', to[0].chan[0].chu);
   k('G28 số tờ: cài 1 → 1 tờ; cài 2 → 2; thiếu → 2; rác ("3", "x") → 2; tham số soTo ghi đè',
     danhSachTo(HD_QUEN, { invoice_so_to: '1' }).length === 1 && danhSachTo(HD_QUEN, { invoice_so_to: '2' }).length === 2 && soToTuCaiDat({}) === 2
@@ -145,6 +146,9 @@ async function phanG() {
   k('G36 ẩn tên quán bằng cài đặt: tên quán VẪN in; ẩn cả bốn mục thanh toán + tổng: vẫn in',
     dungHoaDon(HD_QUEN, { invoice_an_ten_quan: 'true' }).dau.ten_quan === 'TỨ QUÝ ĐƯỜNG'
     && khoa(dungHoaDon(HD_QUEN, { invoice_an_tong: 'true', invoice_an_tieu_de_tt: 'true', invoice_an_tm: 'true', invoice_an_tu_tk: 'true' }).thanh_toan).includes('tu_tk'));
+  k('G36b xoá trắng chữ của 7 mục bắt buộc → vẫn in, dùng chữ mặc định (không ẩn được bằng cách xoá chữ)',
+    KHONG_AN.every((kh) => docChu({ [`invoice_chu_${kh}`]: '  ' }).chu[kh] === CHU_MAC_DINH[kh]) && dungHoaDon(HD_QUEN, { invoice_chu_tm: '', invoice_chu_tong: '' }).tien.at(-1).ten === 'TỔNG HÓA ĐƠN'
+    && dong(dungHoaDon(HD_QUEN, { invoice_chu_tm: '' }).thanh_toan, 'tm')?.ten === 'Tiền mặt');
   k('G37 chữ rỗng = ẩn dòng (cảm ơn)', danhSachTo(HD_QUEN, { invoice_chu_cam_on: '  ' })[0].chan.every((c) => c.khoa !== 'cam_on'));
   const sua = dungHoaDon(HD_QUEN, { invoice_chu_tong: 'PHẢI TRẢ', invoice_chu_gia_goc: 'Tiền hàng' });
   k('G38 sửa CHỮ không đổi SỐ: tổng vẫn 87.800đ', dong(sua.tien, 'tong').ten === 'PHẢI TRẢ' && dong(sua.tien, 'tong').tien === '87.800đ' && dong(sua.tien, 'gia_goc').tien === '72.000đ');
@@ -352,6 +356,14 @@ async function phanA(P) {
   k('A18c mã quá hạn (in từ lâu): N = 0 và không còn ưu đãi — /nhan-diem cũng từ chối MA_HET_HAN', aHet.h?.ma_nhan_diem?.diem === 0 && aHet.h.ma_nhan_diem.uu_dai === false
     && (await goi('POST', '/signup-codes/nhan-diem', { code: rHet.order.signup_code, phone: sdtMoi() })).code === 'MA_HET_HAN', JSON.stringify(aHet.h?.ma_nhan_diem));
 
+  // làm tròn xuống: 25.000 ÷ 10.000 = 2,5 → 2 điểm gốc × 2 = 4 (làm tròn lên sẽ ra 6)
+  await datCaiDat('loyalty_earn_per_amount', 10000);
+  const rLe = await ban({ payment_method: 'cash', cash_amount: 25000 });
+  const aLe = await hd(rLe.order.id);
+  const nhanLe = await goi('POST', '/signup-codes/nhan-diem', { code: rLe.order.signup_code, phone: sdtMoi() });
+  await datCaiDat('loyalty_earn_per_amount', 1000);
+  k('A18d điểm gốc làm tròn XUỐNG như /nhan-diem: N = 4 và đúng số được cộng thật', aLe.h?.ma_nhan_diem?.diem === 4 && nhanLe.diem_cong === 4, `${aLe.h?.ma_nhan_diem?.diem} vs ${nhanLe.diem_cong}`);
+
   // khách quen có hạng: mua thẻ, tài khoản, điểm
   const hang = await mot('SELECT id, card_price, name FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
@@ -364,6 +376,7 @@ async function phanA(P) {
   k('A20 món có giá hạng: giá gốc + giá hạng (gạch ngang ở giao diện)', H?.mon[0].gia_goc === 25000 && H.mon[0].gia_hang === 22500 && H.mon[1].gia_hang === 18000 && H.mon[0].thanh_tien === 22500 && H.mon[0].thanh_tien_goc === 25000, JSON.stringify(H?.mon));
   k('A21 chuỗi: giá gốc 45.000 − hạng 4.500 + phí 5.000 = tổng 45.500', H?.tien.gia_goc === 45000 && H.tien.phi_giao === 5000 && H.tien.tong === 45500 && H.tien.gia_goc - H.tien.giam_hang - H.tien.giam_flash - H.tien.giam_ma + H.tien.phi_giao === H.tien.tong, JSON.stringify(H?.tien));
   k('A22 thanh toán: tài khoản 20.000 + tiền mặt = tổng hoá đơn', H && tong(H.thanh_toan) === H.tien.tong && H.thanh_toan[0].loai === 'tai_khoan' && H.thanh_toan[0].so_tien === 20000, JSON.stringify(H?.thanh_toan));
+  await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at) VALUES (?, 'adjust', -7, ?, NULL, 'Hoàn điểm: thử', 'thu', ?)", [sq, rq.order.id, rq.order.created_at]);   // dòng điều chỉnh của đơn KHÔNG phải điểm cộng
   const earn = Number((await mot("SELECT COALESCE(SUM(points),0) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [rq.order.id])).n);
   k('A23 điểm: cộng đơn này = dòng earn của sổ điểm; hiện có = trước + cộng; khách quen không ô mã', H?.diem?.cong === earn && H.diem.hien_co === H.diem.truoc + H.diem.cong && H.diem.doi_qua === 0 && H.ma_nhan_diem === null, JSON.stringify(H?.diem));
   const truocIn = H.diem;

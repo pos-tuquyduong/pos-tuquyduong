@@ -42,7 +42,7 @@ DOT_BIEN = [
   ('VS-HD-SO-LAN-MOI-DON', [(HD, "FROM pos_invoice_logs WHERE order_id = ?', [o.id]", "FROM pos_invoice_logs WHERE ? > 0', [o.id]", 1)], r'✗ A31 '),
   ('VS-HD-GIA-HANG-BANG-GOC', [(HD, 'm.tier_unit_price != null && so(m.tier_unit_price) < goc ?', 'm.tier_unit_price != null ?', 1)], r'✗ A29 '),
   ('VS-HD-SO-BILL-MA-DAY-DU', [(HD, "const soBill = (code) => String(code || '').split('-').pop();", "const soBill = (code) => String(code || '');", 1)], r'✗ A3 '),
-  ('BV-HD-KHONG-GHI', [(HD, "router.get('/:id', authenticate, async (req, res) => {\n  try {", "router.get('/:id', authenticate, async (req, res) => {\n  try {\n    await query(\"UPDATE pos_orders SET status = 'completed' WHERE id = ?\", [req.params.id]);", 1)], r'✗ A34 '),
+  ('BV-HD-KHONG-GHI', [(HD, "router.get('/:id', authenticate, async (req, res) => {\n  try {", "router.get('/:id', authenticate, async (req, res) => {\n  try {\n    await query(\"UPDATE pos_orders SET status = 'completed' WHERE id = ?\", [req.params.id]);", 1)], r'✗ A(28|34) '),
   ('VS-HD-LO-LOI-NOI-BO', [(HD, "res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });", "res.status(500).json({ error: err.message });", 1)], r'✗ A36 '),
   ('BV-MOUNT-HOA-DON', [(IX, "app.use('/api/pos/hoa-don', require('./routes/hoaDon'));", '', 1)], r'✗ A35 '),
   # ── D: /nhan-diem và hoá đơn cùng một hàm ──
@@ -56,12 +56,12 @@ DOT_BIEN = [
   ('VS-ST-KHONG-AN-THIEU-TONG', [(HD, "const KHONG_AN_DUOC = ['ten_quan', 'so_bill', 'tong', ", "const KHONG_AN_DUOC = ['ten_quan', 'so_bill', ", 1)], r'✗ E[12] '),
   ('VS-ST-KHONG-AN-GIA-TRI-1', [(ST, "['true', '1'].includes(String(settings['invoice_an_' + k]))", "['true'].includes(String(settings['invoice_an_' + k]))", 1)], r'✗ E2b '),
   ('VS-ST-SO-TO-BA', [(ST, "['1', '2'].includes(String(settings.invoice_so_to))", "['1', '2', '3'].includes(String(settings.invoice_so_to))", 1)], r'✗ E4 '),
-  ('VS-ST-GHI-TRUOC-KHI-KIEM', [(ST, "    let updated = 0;\n    const timestamp = new Date().toISOString();\n\n", "    let updated = 0;\n    const timestamp = new Date().toISOString();\n    for (const [k0, v0] of Object.entries(settings)) await run(\"INSERT OR REPLACE INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)\", [k0, String(v0), timestamp]);\n\n", 1)], r'✗ E2 '),
+  ('VS-ST-GHI-TRUOC-KHI-KIEM', [(ST, "    // HD-1: mục bắt buộc của hoá đơn", "    for (const [k0, v0] of Object.entries(settings)) await run(\"INSERT OR REPLACE INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)\", [k0, String(v0), 'x']);\n    // HD-1: mục bắt buộc của hoá đơn", 1)], r'✗ E2 '),
   ('VS-SEED-LECH', [(DB, "['invoice_chu_gia_goc', 'Giá gốc']", "['invoice_chu_gia_goc', 'Tiền hàng']", 1)], r'✗ E6 '),
   # ── G: hàm thuần (client/src/utils/hoaDon.js) ──
   ('VS-G-KHONG-AN-BO', [(CH, "an[k] = !KHONG_AN.includes(k) && laBat(", "an[k] = laBat(", 1)], r'✗ G33 '),
   ('VS-G-KHONG-AN-THIEU-TM', [(CH, "'ck', 'tm'];", "'ck'];", 1)], r'✗ (G34|E1) '),
-  ('VS-G-TT-KHONG-AN-HIEN', [(CH, "if (k && (KHONG_AN.includes(k) || hien(k))) tt.push", "if (k && hien(k)) tt.push", 1)], r'✗ G36 '),
+  ('VS-G-KHONG-AN-TRONG-RONG', [(CH, 'if (KHONG_AN.includes(k) && !String(v).trim()) v = CHU_MAC_DINH[k];', '', 1)], r'✗ G36b '),
   ('VS-G-CHU-CU-MAT', [(CH, "else if (KHOA_CU[k] && co(s, KHOA_CU[k])", "else if (false && KHOA_CU[k] && co(s, KHOA_CU[k])", 1)], r'✗ G41 '),
   ('VS-G-KHOA-MOI-KHONG-DE', [(CH, "if (co(s, `invoice_chu_${k}`)) v =", "if (false) v =", 1)], r'✗ (G38|G42|G37) '),
   ('VS-G-DEM-NGUONG', [(CH, 'qua: dai > gioiHan', 'qua: dai >= gioiHan', 1)], r'✗ G40 '),

@@ -54,6 +54,7 @@ export function docChu(settings) {
     if (co(s, `invoice_chu_${k}`)) v = String(s[`invoice_chu_${k}`] ?? '');
     else if (k === 'dia_chi') v = [s.store_address, s.store_phone].map((x) => String(x || '').trim()).filter(Boolean).join(' · ');
     else if (KHOA_CU[k] && co(s, KHOA_CU[k]) && (k !== 'ten_quan' || String(s[KHOA_CU[k]]).trim())) v = String(s[KHOA_CU[k]] ?? '');
+    if (KHONG_AN.includes(k) && !String(v).trim()) v = CHU_MAC_DINH[k];   // xoá trắng chữ của mục bắt buộc = không ẩn được, dùng chữ mặc định
     chu[k] = v;
     an[k] = !KHONG_AN.includes(k) && laBat(s[`invoice_an_${k}`]);
   }
@@ -144,7 +145,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
   const loai = { tai_khoan: 'tu_tk', tai_khoan_me: 'tu_tk_me', chuyen_khoan: 'ck', tien_mat: 'tm', ghi_no: 'ghi_no' };
   for (const t of hd?.thanh_toan || []) {
     const k = loai[t.loai];
-    if (k && (KHONG_AN.includes(k) || hien(k))) tt.push(dong(k, dinhDangTien(t.so_tien)));
+    if (k && hien(k)) tt.push(dong(k, dinhDangTien(t.so_tien)));
   }
   if (hd?.khach_dua > 0 && hien('dua_tra')) tt.push(dong('dua_tra', `${dinhDangTien(hd.khach_dua)} / ${dinhDangTien(hd.tra_lai)}`));
 
