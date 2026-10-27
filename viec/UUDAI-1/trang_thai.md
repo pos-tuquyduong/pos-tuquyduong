@@ -71,6 +71,19 @@ BV-CAI-DAT-DOC, VS-QUA-THEO-CAI-DAT, VS-LOAI-MOT-MON-THEO-KIEU, VS-CHON-HANG-VAN
 VS-CHON-HANG-GIU-GIA-MA-BILL, VS-TINHTHU-GOI-SX, BV-TINHTHU-CHI-TINH, VS-TINHTHU-NHAN-TIEN, VS-MA-LOI-IM, BV-CAI-DAT-KIEM,
 VS-CAI-DAT-NHAN-TRUE, BV-SEED, BV-SETTINGS-QUA, BV-SALES-TONG, VS-SALES-THU-KHI-CHUA-TINH, VS-SALES-HAI-THAN.
 
+## Câu hỏi — CHỜ CHỦ QUÁN (vòng soát 3, 27.10) — máy DỪNG ở đây
+- **Q5 (CHẶN báo xong) — `cach` khi mã gõ vào KHÔNG hợp lệ, khách có hạng.** Kế hoạch đã duyệt viết hai vế tự mâu thuẫn với khách Vàng:
+  `ke_hoach.md:44-45` "KHÔNG bao giờ trả `cach: 'hang'` vì mã sai — mã sai → `cach` tính như không có mã, kèm `ma_loi`", và bảng ca thử
+  `ke_hoach.md:111` "F6 mã sai → `ma_loi`, không `cach 'hang'`". Tính như không có mã thì khách Vàng tất yếu ra `cach 'hang'`
+  (`server/utils/uuDai.js:40`). Máy đang làm và bài thử F6 (`cong_cu/thu_UUDAI1.js`, ca F6) khoá: **`cach: 'hang'` + `ma_loi` + `ma_loi_code`,
+  `cau_ghi` rỗng** — giỏ phân biệt "mã sai" bằng `ma_loi`. Vòng 2 máy tự giải nghĩa câu này mà không hỏi — sai luật; nay hỏi lại. Chủ quán chọn:
+  (a) giữ như máy đang làm (BH-2 đọc `ma_loi` trước `cach`); (b) thêm giá trị `cach` riêng cho mã sai (vd `'ma_sai'`) — đổi `uuDai.js` /
+  `orders.js` + F6, ~5 dòng.
+- **Q4 (cập nhật vòng 3) — đối soát "máy chọn hạng thay mã".** I13 của màn Đối soát (dữ liệu thật) KHÔNG bắt được mã bị tiêu mà đơn không ghi
+  mã (chỉ giả lập bắt — KB33). Muốn màn Đối soát bắt cả chiều này cần một trong hai: (a) đổi I13 ở chế độ thật thành so bằng — đổi
+  `bat_bien.js` / màn Đối soát, có rủi ro báo oan với dữ liệu cũ (lần tăng tay `/increment-usage` không có sổ); (b) lưu `cach` + mã đã gõ
+  trên đơn (đổi DB — phiếu cấm). Cả hai ngoài Phạm vi / đổi quyết định tiền → chủ quán quyết, có thể làm việc sau.
+
 ## Câu hỏi (không chặn — vòng soát 1)
 - **Q4 — đối soát (LUAT_XAY_APP §5):** máy chọn giá hạng thì mã khách gõ bị bỏ, đơn không lưu "máy đã chọn cách nào" (`cach`). Chủ quán
   muốn đối soát "máy chọn hạng thay mã" / "khách đưa mã mà không được dùng" thì cần chỗ lưu — phiếu ghi "Đổi cấu trúc DB: không" và
@@ -186,7 +199,9 @@ hỏi chủ quán; NGUYÊN TẮC luật §5 trước hết tìm bất biến đ�
   `cau_ghi` (rỗng). Ca F6 nay khoá `cach === 'hang'` + `ma_loi_code` + giảm mã 0 cho khách Vàng gõ mã không có.
 - Lỗi 4 → **Quy tắc đối soát (LUAT §5) của tính năng này = bất biến I13 đã có** (`cong_cu/gia_lap/bat_bien.js:247-262`, màn Đối soát qua
   `server/routes/reports.js` → `server/utils/doiSoat.js`): lượt dùng của mỗi mã = số đơn completed đã ghi mã đó. Máy chọn hạng → đơn KHÔNG ghi
-  mã và mã KHÔNG tiêu, nên I13 vẫn đúng; tiêu mà không ghi (lỗi) thì I13 lệch. Thêm kịch bản giả lập **KB33** (`kich_ban.js`, lượt 1) — khách
+  mã và mã KHÔNG tiêu, nên I13 vẫn đúng; tiêu mà không ghi (lỗi) thì I13 lệch — **ĐÍNH CHÍNH vòng 3:** "lệch" chỉ đúng ở GIẢ LẬP (so `!==`).
+  Màn Đối soát chạy `ctx = { thuc: true }` (`server/utils/doiSoat.js:245`), khi đó I13 chỉ báo `used_count < số đơn` hoặc vượt `usage_limit`
+  (`bat_bien.js:261`) — lỗi "chọn hạng mà vẫn tiêu mã" (`used_count > số đơn`) KHÔNG hiện trên màn Đối soát với dữ liệu thật. Xem Q4. Thêm kịch bản giả lập **KB33** (`kich_ban.js`, lượt 1) — khách
   mua thẻ Vàng, tắt 3 khoá, mã 1đ → máy chọn hạng, đơn không ghi mã, mã không tiêu; trả cài đặt về '1' ở `finally`. `thu_gia_lap.js` SO_KB
   32 → 33 (bài cũ sửa, ĐỎ trên gốc — `bang_chung_do.txt`). Đột biến `VS-CHON-HANG-VAN-TIEU-MA-GL` (bài `cong_cu/gia_lap/chay.js`) bị bắt ở
   `✗ KB33 → HTTP: …` (phép của chính KB33; dòng I13 riêng chưa chứng minh tách — ghi CHƯA KIỂM). Phần "lưu `cach` + mã đã gõ trên đơn" vẫn là Q4.
@@ -200,6 +215,58 @@ hỏi chủ quán; NGUYÊN TẮC luật §5 trước hết tìm bất biến đ�
   HỎNG 0 · LẠC 0 (đối chứng 80/0 + giả lập 33 KB ĐẠT); `npm test -- --day-du` PASS 78 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
 - Tên đột biến thêm vòng 2: VS-CHON-HANG-VAN-TIEU-MA-GL, VS-SALES-XOA-KHI-LAM-MOI, BV-SALES-MA-LOI, VS-MA-LOI-KHONG-CODE (bảng chỗ vá → đột
   biến: KB33 giả lập → KB33; Sales khoá chuỗi → S7; Sales hiện ma_loi → S9; orders.js ma_loi_code → F6).
+
+## Soát độc lập — vòng 3 (agent, 27.10) — báo cáo nguyên văn (rút gọn phần trả lời từng mục)
+```
+KHÔNG ĐẠT
+
+Đường tiền ở máy chủ vẫn đúng: một hàm tinhUuDai, máy chủ không tin số màn hình gửi, tinh-thu không ghi gì. Hai lỗi cũ vòng 2 đã sửa thật
+(ma_loi_code đã có; F4 có ca máy chọn MÃ). Còn 4 lỗi phải sửa trước khi giao.
+
+Lệnh đã chạy: dot_bien 30 · BẮT 30 (đối chứng 80/0 + giả lập 33 KB ĐẠT) · --goc 23 · 57 · thu_UUDAI1 80/0 (khớp SỐ CA 80) · thu_gia_lap
+180/0 (khớp SỐ CA 180) · --day-du PASS 78 · FAIL 0 · CẢNH BÁO 1 · một đột biến tự dựng ở scratchpad (lỗi 2).
+
+LỖI TÌM ĐƯỢC:
+1. viec/UUDAI-1/trang_thai.md:189 cùng cong_cu/gia_lap/bat_bien.js:261 và server/utils/doiSoat.js:245 — K1, §5 chưa thật sự đạt: màn Đối soát
+   chạy ctx = { thuc: true }, khi đó I13 chỉ báo used_count < so_don hoặc vượt usage_limit; lỗi "chọn hạng mà mã vẫn tiêu" (used_count > so_don)
+   KHÔNG hiện trên màn Đối soát với dữ liệu thật — chỉ giả lập (so !==) bắt. Ghi đúng giới hạn vào trang_thai / Q4, hoặc thêm quy tắc riêng (hỏi).
+2. server/routes/orders.js:1288 (TRUONG_TINH_THU) — K3/K5: bỏ customer_package_id / package_buy / membership_buy khỏi danh sách trắng trên bản
+   chép → thu_UUDAI1 vẫn 80/0 → đột biến SỐNG. Không lời gọi tinhThu( nào có gói / thẻ / from_package. Cần ca "phải KHÔNG bị chặn" qua tinh-thu:
+   lấy từ gói + mã, mua gói + mã, mua thẻ + mã (tinh-thu = POST) + đột biến gỡ từng trường.
+3. cong_cu/thu_UUDAI1.js:331-333 (F6) đối chiếu ke_hoach.md:45 và :111 — K1, đổi kế hoạch đã duyệt mà không hỏi: kế hoạch ghi "F6 mã sai →
+   ma_loi, không cach 'hang'", bài thử khoá chiều ngược lại. Câu Q2 tự mâu thuẫn với khách Vàng → cần Câu hỏi cho chủ quán chốt.
+4. client/src/pages/Sales.jsx:162, :170 cùng :604-605, :1258 — K4, cùng dạng lỗi 1 vòng 2, sửa nửa vời: khoá chuỗi chỉ cho Flash / hạng;
+   cart vẫn so theo đối tượng, mà cart chứa note. Ô ghi chú gọi updateItemNote mỗi phím → effect setTinhThu(null) → mỗi phím một lần tinh-thu,
+   tổng nháy về công thức cũ, bấm thu ngay sau khi gõ bị chặn "Đang tính tiền…". Tiền không sai (hỏi lại :723 vẫn chặn).
+
+Gợi ý tuỳ chọn: chú thích hợp đồng phien (orders.js:169-171) chưa có chiTiet / tinhThu; chú thích F4 (thu_UUDAI1.js:309) sai với mã 1 món;
+lỗi 400 "chưa có món nào được áp mã này" (orders.js:704) chưa có code; bánh cóc giả lập "≥ 32 kịch bản" có thể nâng 33; KB33 đổi cài đặt chung
+an toàn hôm nay (kho riêng mỗi lượt, tuần tự, finally trả '1') — nên ghi chú ở dòng LUOT.
+
+NGHI NGỜ: KB33 chưa từng chạy trên máy chủ gốc (đỏ của thu_gia_lap chỉ là phép đếm); ca S1–S9 chỉ soi chuỗi; gia_hang chỉ trả khi giảm hạng > 0;
+inTien phụ thuộc ICU của Node.
+NGHIỆM THU: 8/9 · thiếu: ca Sales.jsx của mục Đã duyệt chỉ gián tiếp; K5 (gói / thẻ qua tinh-thu) thủng một phần (lỗi 2).
+CHƯA SOÁT ĐƯỢC: Sales.jsx / Settings.jsx trình duyệt; Turso production; ICU trên Render; tu_chay/cong.js chay; đo lại chia lượt sau KB33.
+BÀI HỌC: KHOÁ mỗi trường danh sách trắng của route mới một ca "phải KHÔNG bị chặn" + đột biến gỡ trường; KHOÁ quy tắc đối soát phải chứng minh ở
+chế độ dữ liệu thật (thuc: true); NGUYÊN TẮC khoá phụ thuộc theo nội dung tính tiền cho MỌI đầu vào effect, kể cả giỏ; NGUYÊN TẮC ca thử đảo
+nghĩa dòng kế hoạch đã duyệt → Câu hỏi, không tự giải nghĩa.
+```
+
+### Xử lý vòng 3 (vòng sửa 3/3 — tối đa, `so_vong_sua_toi_da`)
+- Lỗi 1 → đính chính câu I13 ở "Xử lý vòng 2"; Q4 cập nhật (hai cách, đều ngoài Phạm vi / quyết định tiền).
+- Lỗi 2 → ca K4a (lấy từ gói + mã: 65.200), K4b (mua gói + mã 10 %: 310.500), K4c (mua thẻ + mã: 140.000) qua tinh-thu = POST; đột biến
+  `BV-TINHTHU-LAY-GOI`, `BV-TINHTHU-MUA-GOI`, `BV-TINHTHU-MUA-THE` (gỡ từng trường) đều bị bắt.
+- Lỗi 3 → Câu hỏi Q5 (chặn báo xong). Code + F6 giữ nguyên chờ chủ quán.
+- Lỗi 4 → `Sales.jsx`: `khoaGio` = món, số lượng, lấy từ gói, gói, thẻ (không ghi chú); phụ thuộc effect dùng `khoaGio` thay `cart`. Ca S10,
+  đột biến `VS-SALES-KHOA-GIO-THEO-DOI-TUONG`.
+- Gợi ý đã làm: chú thích hợp đồng `phien` (`orders.js`), chú thích F4, `code: "MA_KHONG_CO_MON"` cho lỗi 400 mã 1 món (khối vừa sửa — LUAT §2),
+  ghi chú KB33 ở dòng `LUOT`. Không làm: nâng bánh cóc giả lập (sửa `kiem_tra_truoc_khi_giao.js` ngoài việc THÊM phép — để chủ quán).
+- Sửa neo `BV-TINHTHU-CHI-TINH` (chú thích mới chứa cùng chuỗi → HỎNG "khớp 2 lần") → neo riêng dòng gọi.
+- Sau vòng 3: `thu_UUDAI1.js` 84 đạt · 0 hỏng (gốc 23 · 61); `thu_gia_lap.js` 180 · 0; đột biến TỔNG 34 (33 BẮT ở lượt chạy đủ + `BV-TINHTHU-CHI-TINH`
+  BẮT sau sửa neo, chạy riêng cùng 4 đột biến mới: 5 · BẮT 5); `npm test -- --day-du` PASS 78 · FAIL 0 · CẢNH BÁO 1 (có từ trước); dist khớp src.
+- Tên đột biến thêm vòng 3: BV-TINHTHU-LAY-GOI, BV-TINHTHU-MUA-GOI, BV-TINHTHU-MUA-THE, VS-SALES-KHOA-GIO-THEO-DOI-TUONG (bảng chỗ vá → đột
+  biến: danh sách trắng tinh-thu → K4a / K4b / K4c; Sales khoá giỏ → S10).
+- Đã dùng hết 3 vòng sửa. Còn Q5 (chặn) + Q4 → DỪNG, chờ chủ quán. Chưa chạy vòng soát 4, chưa ghi báo cáo 7 mục cuối / HEAD ĐÃ KIỂM.
 
 ## Phát hiện (ngoài Phạm vi, không sửa)
 - `discount-codes.js /validate` (`:145-157`) xem trước tiền giảm trên subtotal gốc — sẽ lệch số máy chủ mới với khách có hạng. Màn mới nên

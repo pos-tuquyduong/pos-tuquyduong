@@ -73,7 +73,18 @@ S7 khoá chuỗi Flash / hạng, S9 hiện ma_loi; chạy lại gốc cùng lệ
 (mọi ca F4 đỏ: tinh-thu 404; F6 / K2b đỏ: 404; S7 / S9 đỏ: Sales.jsx gốc không có tinh-thu).
 
 Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 80 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_UUDAI1.js: 80
+
+Vòng sửa 3 (soát độc lập vòng 3, 27.10) — thêm K4a–K4c (lấy từ gói / mua gói / mua thẻ + mã qua tinh-thu = POST), S10 (khoá giỏ theo phần tính
+tiền); chạy lại gốc cùng lệnh (python3 viec/UUDAI-1/dot_bien.py --goc f7165ea): 23 đạt · 61 hỏng, thoát 1. Dòng ✗ MỚI:
+  ✗ K4a LẤY TỪ GÓI 1 món + mua 2 × 39.000, Vàng, mã tiền 5.000 → 78.000 − 7.800 − 5.000 = 65.200: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng  — HTTP 404 · tinh-thu undefined · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (65.200đ). · đơn undefined
+  ✗ K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → 310.500: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng  — HTTP 404 · tinh-thu undefined · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (310.000đ). · đơn undefined
+  ✗ K4c MUA THẺ 100.000 + món 50.000, Vàng, mã tiền 5.000 → 150.000 − 5.000 − 5.000 = 140.000: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng  — HTTP 404 · tinh-thu undefined · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (140.000đ). · đơn undefined
+  ✗ S10 giỏ khoá theo phần tính tiền (món, số lượng, lấy từ gói, gói, thẻ), KHÔNG theo ghi chú — gõ ghi chú không xoá số máy chủ (vòng soát 3)
+  23 đạt · 61 hỏng
+GỐC f7165ea: thoát 1
+
+Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 84 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_UUDAI1.js: 84
 
 Bài CŨ sửa: cong_cu/thu_gia_lap.js — SO_KB 32 → 33 (kịch bản KB33 mới trong cong_cu/gia_lap/kich_ban.js, vòng soát 2). Chạy bài HEAD với giả lập
 của gốc: dựng bản sao server/ + cong_cu/gia_lap/ của f7165ea (git archive) + tu_chay/cau_hinh.json, lệnh
