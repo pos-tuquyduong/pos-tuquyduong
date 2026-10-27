@@ -44,7 +44,7 @@ DOT_BIEN = [
   ('VS-CHON-HANG-GIU-GIA-MA-BILL', [(O, '      finalDiscountValue = 0;\n      itemScopeTargetItem = null;', '      finalDiscountValue = 0;', 1)], r'✗ C7b '),
   # ── orders.js: tinh-thu ──
   ('VS-TINHTHU-GOI-SX', [(O, 'phien?.tinhThu ? { sufficient: true } : ', '', 1)], r'✗ F3 '),
-  ('BV-TINHTHU-CHI-TINH', [(O, '{ chiTinh: true, tinhThu: true }', '{ tinhThu: true }', 1)], r'✗ F1 '),
+  ('BV-TINHTHU-CHI-TINH', [(O, 'res, { chiTinh: true, tinhThu: true });', 'res, { tinhThu: true });', 1)], r'✗ F1 '),
   ('VS-TINHTHU-NHAN-TIEN', [(O, '"package_buy", "membership_buy"];', '"package_buy", "membership_buy", "payment_method", "balance_amount"];', 1)],
    r'✗ F1b '),
   # vòng soát 3: gỡ từng trường gói / thẻ khỏi danh sách trắng tinh-thu
