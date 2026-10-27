@@ -244,6 +244,10 @@ async function main() {
     await caDon('C7a mã 1 món 10 % (3.900) < hạng 7.800 → chọn hạng, 70.200', r7, 70200, 7800, null);
     k('C7b chọn hạng → không dòng nào mang giá mã (signup_unit_price) trên bill', r7.status === 200 && (r7.order?.items || []).every((i) => i.signup_unit_price == null),
       JSON.stringify((r7.order?.items || []).map((i) => i.signup_unit_price)));
+    await chung(1, 1, 0);
+    const m8 = await taoMa('fixed', 9000, { motMon: true });
+    await caDon('C8 mã 1 món kiểu TIỀN theo khoá "1 món" (tắt), không theo khoá "tiền" (bật): 9.000 > hạng 7.800 → chọn mã, 69.000',
+      await ban({ customer_phone: await khachHang(), items: [mon(1, 2)], discount_code: m8 }, 69000), 69000, 0, m8);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
