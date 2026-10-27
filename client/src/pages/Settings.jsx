@@ -6,6 +6,9 @@ import { productsApi, usersApi, api } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 
 
+// UUDAI-1: ba loại mã của khối "Mã giảm & giá hạng" (thẻ Hạng)
+const LOAI_MA_CHUNG = [['uudai_chung_hang_percent', 'Mã giảm %'], ['uudai_chung_hang_fixed', 'Mã giảm tiền'], ['uudai_chung_hang_item', 'Mã giảm 1 món']];
+
 export default function Settings() {
   // Đặt tên tránh trùng với state `permissions` cục bộ (dữ liệu tick-chọn phân quyền,
   // khác hẳn permissions của CHÍNH người đang đăng nhập lấy từ AuthContext).
@@ -80,8 +83,7 @@ export default function Settings() {
   const [tiers, setTiers] = useState([]);
   const [tierRound, setTierRound] = useState({ round_to: 500, round_mode: 'nearest' });
   const [tierValidMonths, setTierValidMonths] = useState(3);
-  // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — '1' cộng, '0' máy chọn cái giảm nhiều hơn
-  const LOAI_MA_CHUNG = [['uudai_chung_hang_percent', 'Mã giảm %'], ['uudai_chung_hang_fixed', 'Mã giảm tiền'], ['uudai_chung_hang_item', 'Mã giảm 1 món']];
+  // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — '1' cộng, '0' máy chọn cái giảm nhiều hơn (LOAI_MA_CHUNG ở đầu file)
   const [uuDaiChung, setUuDaiChung] = useState({ uudai_chung_hang_percent: '1', uudai_chung_hang_fixed: '1', uudai_chung_hang_item: '1' });
 
   // Backup state
