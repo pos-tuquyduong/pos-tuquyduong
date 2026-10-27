@@ -158,6 +158,8 @@ export default function Sales() {
   const [tinhThuLoi, setTinhThuLoi] = useState('');
   const khoaFlash = flashState ? `${flashState.is_flash_now}|${flashState.percent}|${(flashState.product_keys || []).join()}` : '';
   const khoaHang = membershipInfo ? `${membershipInfo.usable}|${membershipInfo.discount_percent}|${membershipInfo.special_discount_percent}` : '';
+  // Giỏ cũng khoá theo phần TÍNH TIỀN (món, số lượng, lấy từ gói, gói, thẻ) — gõ ghi chú ly không hỏi lại máy chủ, không mất số.
+  const khoaGio = JSON.stringify(cart.map((i) => [i.product_id, i.quantity, i.fromPkg, i.is_pkg, i.is_membership, i.package_id, i.tier_id]));
   useEffect(() => {
     setTinhThu(null);
     setTinhThuLoi('');
@@ -167,7 +169,7 @@ export default function Sales() {
       .then((r) => { if (!boQua) setTinhThu(r); })
       .catch((e) => { if (!boQua) { setTinhThuLoi(e.message || 'Không tính được tiền với mã giảm'); setError(e.message || 'Không tính được tiền với mã giảm'); } });
     return () => { boQua = true; };
-  }, [cart, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang]);
+  }, [khoaGio, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang]);
 
   // TIER-2: giá đã giảm theo HẠNG cho 1 item (chỉ hiển thị/tính client — server luôn tự tính lại).
   // Bám đúng luật F2: đơn có dính Flash (cartFlashDiscount > 0) → KHÔNG cộng giảm hạng.
