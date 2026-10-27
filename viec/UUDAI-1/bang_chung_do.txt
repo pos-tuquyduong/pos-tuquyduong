@@ -1,0 +1,65 @@
+UUDAI-1 — bằng chứng ĐỎ trên code CHƯA vá (gốc f7165ea = "PHIEU: UUDAI-1 duyet ke hoach 27.10"; server/ và client/src/ giống hệt
+8b436c0 = phiếu đầu, chỉ khác phiếu). Chạy 27.10.
+
+Bài MỚI cong_cu/thu_UUDAI1.js — lệnh: python3 viec/UUDAI-1/dot_bien.py --goc f7165ea (git archive server/ + client/src/ của gốc, bài ở
+HEAD với --may-chu <gốc>/server; Settings.jsx / Sales.jsx đọc ở <gốc>/client/src/pages):
+  ✗ E1 kho mới khởi động → uudai_chung_hang_percent / _fixed / _item = "1"  — {}
+  ✗ A1 nạp server/utils/uuDai.js, có hàm tinhUuDai
+  ✗ A2 hàm thuần: uuDai.js không nạp database / helpers, không getNow / Date / query
+  ✗ A3 orders.js gọi tinhUuDai đúng MỘT chỗ (taoDon — POST /, tinh-thu, payOS đều qua đó), không còn công thức tiền mã riêng (mã 1 món, trần mã %)
+  ✗ A4 bốn cách: cả hai 10.000+9.000 · mã 0+20.000 · hạng 7.800+0 · không 0+0  — undefined/undefined/undefined undefined/undefined/undefined undefined/undefined/undefined undefined/undefined/undefined
+  ✗ A5 hàm trả giá hạng từng dòng (chọn mã → null) + số tiền lợi hơn  — [null,null,null,null]
+  ✗ A6 tiền giảm mã % làm tròn về đồng: 10 % của 12.345 → 1.235  — undefined
+  ✗ B1 2 × 50.000, Vàng 10 %, mã 10 % → hạng 10.000, mã 9.000, tổng 81.000  — HTTP 400 · Số tiền thanh toán (81.000đ) không khớp tổng đơn hàng thật (80.000đ). · không đơn
+  ✗ B3a đơn tối thiểu 100.000 so với giá GỐC 100.000 → mã áp, 81.000  — HTTP 400 · Số tiền thanh toán (81.000đ) không khớp tổng đơn hàng thật (80.000đ). · không đơn
+  ✗ B5 mã 1 món 20 % trên món 50.000 Vàng → tính trên 45.000: giảm 9.000, tổng 36.000  — HTTP 400 · Số tiền thanh toán (36.000đ) không khớp tổng đơn hàng thật (35.000đ). · không đơn
+  ✗ C1a 2 × 39.000, mã 20.000 → chọn mã, tổng 58.000, tier_discount 0  — HTTP 400 · Số tiền thanh toán (58.000đ) không khớp tổng đơn hàng thật (50.200đ). · không đơn
+  ✗ C1b chọn mã → vẫn ghi customer_tier "Vàng", không món nào có giá hạng, mã tiêu 1 lượt  — undefined · NaN món giá hạng · dùng 0
+  ✗ C2a mã 5.000 → chọn hạng, tổng 70.200, đơn KHÔNG ghi mã  — HTTP 400 · Số tiền thanh toán (70.200đ) không khớp tổng đơn hàng thật (65.200đ). · không đơn
+  ✗ C2b chọn hạng → mã không tiêu (used_count giữ 1), đơn không loại / trị giá mã  — dùng 1 · undefined/undefined
+  ✗ C3a mã 7.800 = hạng 7.800 → bằng nhau giữ hạng, 70.200  — HTTP 400 · Số tiền thanh toán (70.200đ) không khớp tổng đơn hàng thật (62.400đ). · không đơn
+  ✗ C3b mã 7.801 (ngay trên) → chọn mã, 70.199  — HTTP 400 · Số tiền thanh toán (70.199đ) không khớp tổng đơn hàng thật (62.399đ). · không đơn
+  ✗ C5a huỷ đơn chọn hạng → 200, không trả lượt mã (used_count giữ 1)  — HTTP undefined · dùng 1
+  ✗ C7a mã 1 món 10 % (3.900) < hạng 7.800 → chọn hạng, 70.200  — HTTP 400 · Số tiền thanh toán (70.200đ) không khớp tổng đơn hàng thật (66.300đ). · không đơn
+  ✗ C7b chọn hạng → không dòng nào mang giá mã (signup_unit_price) trên bill  — []
+  ✗ C8 mã 1 món kiểu TIỀN theo khoá "1 món" (tắt), không theo khoá "tiền" (bật): 9.000 > hạng 7.800 → chọn mã, 69.000  — HTTP 400 · Số tiền thanh toán (69.000đ) không khớp tổng đơn hàng thật (61.200đ). · không đơn
+  ✗ E3 chủ gửi "2" → 400 CAI_DAT_KHONG_HOP_LE, không ghi khoá nào (kể cả _fixed hợp lệ đi cùng)  — HTTP 200 · [{"key":"uudai_chung_hang_fixed","value":"0"},{"key":"uudai_chung_hang_percent","value":"2"}]
+  ✗ E3 chủ gửi "true" → 400 CAI_DAT_KHONG_HOP_LE, không ghi khoá nào (kể cả _fixed hợp lệ đi cùng)  — HTTP 200 · [{"key":"uudai_chung_hang_fixed","value":"0"},{"key":"uudai_chung_hang_percent","value":"true"}]
+  ✗ E3 chủ gửi "" → 400 CAI_DAT_KHONG_HOP_LE, không ghi khoá nào (kể cả _fixed hợp lệ đi cùng)  — HTTP 200 · [{"key":"uudai_chung_hang_fixed","value":"0"},{"key":"uudai_chung_hang_percent","value":""}]
+  ✗ E5 Settings.jsx: khối "Mã giảm & giá hạng", 3 khoá, ô "Dùng chung với giá hạng", câu bỏ tích, "Quà đổi điểm: luôn dùng chung"
+  ✗ F1 trả subtotal 78.000 · hạng 0 · mã 20.000 · tổng 58.000 · cách "ma" · câu ghi giỏ · giá đơn vị theo hạng từng món  — HTTP 404 · {"status":404}
+  ✗ F2 không ghi: số đơn, lượt mã, phiên thanh toán, voucher giữ nguyên
+  ✗ F3 không gọi SX (checkStock 0 lần)  — 0 lần
+  ✗ F1b thân có trường tiền (ví thiếu) → bỏ qua, vẫn 200 cùng số  — HTTP 404
+  ✗ F4 %, bật: POST / gửi đúng tổng tinh-thu (undefined) → 200, total / hạng / mã của đơn = tinh-thu  — HTTP 404 · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (112.400đ). · undefined · đơn undefined/undefined/undefined
+  ✗ F4 %, tắt: POST / gửi đúng tổng tinh-thu (undefined) → 200, total / hạng / mã của đơn = tinh-thu  — HTTP 404 · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (112.400đ). · undefined · đơn undefined/undefined/undefined
+  ✗ F4 tiền, bật: POST / gửi đúng tổng tinh-thu (undefined) → 200, total / hạng / mã của đơn = tinh-thu  — HTTP 404 · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (120.200đ). · undefined · đơn undefined/undefined/undefined
+  ✗ F4 tiền, tắt: POST / gửi đúng tổng tinh-thu (undefined) → 200, total / hạng / mã của đơn = tinh-thu  — HTTP 404 · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (120.200đ). · undefined · đơn undefined/undefined/undefined
+  ✗ F4 1 món, bật: POST / gửi đúng tổng tinh-thu (undefined) → 200, total / hạng / mã của đơn = tinh-thu  — HTTP 404 · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (116.200đ). · undefined · đơn undefined/undefined/undefined
+  ✗ F4 1 món, tắt: POST / gửi đúng tổng tinh-thu (undefined) → 200, total / hạng / mã của đơn = tinh-thu  — HTTP 404 · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (116.200đ). · undefined · đơn undefined/undefined/undefined
+  ✗ F5 chưa đăng nhập → 401
+  ✗ F6 mã không có → 200, ma_loi có lời, không giảm mã, chỉ hạng (90.000)  — HTTP 404 · undefined · undefined
+  ✗ F7 mã hợp lệ → ma_loi rỗng  — HTTP 404 · undefined
+  ✗ G6 điểm theo tổng mới: đơn B1 81.000 tiền mặt, 1.000đ = 1 điểm → 81 điểm  — NaN
+  ✗ G7 phí giao 20.000 không giảm hạng, không áp mã: 100.000 − 10.000 − 9.000 + 20.000 = 101.000  — HTTP 400 · Số tiền thanh toán (101.000đ) không khớp tổng đơn hàng thật (100.000đ). · không đơn
+  ✗ K2b tinh-thu mã hết hạn → báo ma_loi (không lặng lẽ bỏ)  — HTTP 404 · undefined
+  ✗ K3a payOS / phiên: tổng phiên = tinh-thu = 70.200 (chọn hạng)  — HTTP 200 · phiên 65200 · tinh-thu undefined
+  ✗ K3b chốt phiên (taoDon chạy lại đủ) → đơn 70.200, không ghi mã, mã không tiêu  — HTTP 200 · 65200/UD1_29 · dùng 1
+  ✗ H1 mã còn 1 lượt: đơn A (Vàng → chọn hạng) chồng đơn B (không hạng → dùng mã) → cả hai 200, used_count 1  — HTTP 400 · Số tiền thanh toán (70.200đ) không khớp tổng đơn hàng thật (65.200đ). · B không chạy · dùng 0
+  ✗ H2 hai đơn cùng CHỌN MÃ lượt cuối → một 200, một 400 DISCOUNT_CODE_LIMIT_REACHED, used_count 1  — - · HTTP 400 · Số tiền thanh toán (58.000đ) không khớp tổng đơn hàng thật (50.200đ). · dùng 0
+  ✗ H3 chủ đổi cài đặt giữa tinh-thu (65.200) và POST → POST tính lại 70.200, tiền gửi lệch → 400, không đơn nào ghi  — undefined · HTTP 400 · Số tiền thanh toán (0đ) không khớp tổng đơn hàng thật (65.200đ).
+  ✗ S1 Sales.jsx nạp client `api` có sẵn và hỏi POST /orders/tinh-thu (không fetch trần)
+  ✗ S2 thân tinh-thu và thân tạo đơn dựng từ CÙNG một hàm donGuiMayChu (món, khách, mã, phí giao, gói, thẻ) — không hai bản lệch nhau
+  ✗ S3 có mã → tổng / giảm hạng / giảm mã lấy từ kết quả tinh-thu
+  ✗ S4 có mã mà chưa có số máy chủ → không mở thu tiền
+  ✗ S5 giỏ hiện câu máy chủ ghi (cau_ghi)
+  21 đạt · 50 hỏng
+GỐC f7165ea: thoát 1
+
+Ca XANH trên gốc (canh hồi quy, mỗi ca có đột biến bắt ở dot_bien.py hoặc là luồng hợp lệ K5): B2, B3b, B4, C4, C5b, C6, D1a, D1b, E2, E4,
+G1, G1b, G2, G2b, G3, G4, G5a, G5b, K1 (bật / tắt), K2a.
+
+Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 71 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_UUDAI1.js: 71
+
+Bài cũ: không bài thử cũ nào bị sửa. thu_BH1.js I10/I11 (đọc khoá orderData của Sales.jsx) giữ xanh vì orderData vẫn ghi rõ từng khoá.
