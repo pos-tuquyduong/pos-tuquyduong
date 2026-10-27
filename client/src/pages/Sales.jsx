@@ -92,24 +92,13 @@ export default function Sales() {
     discount_code: discountCodeValid?.valid ? discountCodeValid.code : null,
     shipping_fee: shippingFee || 0,
     customer_package_id: activePkgId || null,
-    package_buy: cart.find(c => c.is_pkg) ? {
-      package_id: cart.find(c => c.is_pkg).package_id,
+    package_buy: pkgBuyInCart ? {
+      package_id: pkgBuyInCart.package_id,
       total_qty: parseInt(buyQty) || 30,
-      pkg_qty: cart.find(c => c.is_pkg).quantity || 1
+      pkg_qty: pkgBuyInCart.quantity || 1
     } : null,
     membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id } : null,
   });
-  // UUDAI-1: đơn có mã → hỏi máy chủ số tiền (giá hạng / mã / máy chọn cách nào) mỗi khi giỏ, khách, mã đổi. Không mã → tính như cũ.
-  const [tinhThu, setTinhThu] = useState(null);
-  useEffect(() => {
-    setTinhThu(null);
-    if (!discountCodeValid?.valid || cart.length === 0) return;
-    let boQua = false;
-    api.post('/orders/tinh-thu', donGuiMayChu())
-      .then((r) => { if (!boQua) setTinhThu(r); })
-      .catch((e) => { if (!boQua) setError(e.message || 'Không tính được tiền với mã giảm'); });
-    return () => { boQua = true; };
-  }, [cart, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty]);
   const buyPkgTemplate = pkgBuyInCart ? pkgTemplates.find(t => t.id === pkgBuyInCart.package_id) : null;
   const buyPkgItems = buyPkgTemplate?.package_items ? (typeof buyPkgTemplate.package_items === 'string' ? JSON.parse(buyPkgTemplate.package_items) : buyPkgTemplate.package_items) : [];
   const buyPkgAllowedKeys = new Set(buyPkgItems.map(i => `${i.sx_product_type}_${i.sx_product_id}`));
@@ -161,6 +150,21 @@ export default function Sales() {
     if (!flashState.product_keys?.includes(uid)) return null;
     return Math.round(item.unit_price * (1 - flashState.percent / 100));
   };
+
+  // UUDAI-1: đơn có mã → hỏi máy chủ số tiền (giá hạng / mã / máy chọn cách nào) mỗi khi giỏ, khách, mã, Flash, hạng đổi.
+  // Không mã → tính như cũ. Lỗi máy chủ (vd Flash + mã %) giữ ở tinhThuLoi để bấm thu vẫn thấy đúng lý do.
+  const [tinhThu, setTinhThu] = useState(null);
+  const [tinhThuLoi, setTinhThuLoi] = useState('');
+  useEffect(() => {
+    setTinhThu(null);
+    setTinhThuLoi('');
+    if (!discountCodeValid?.valid || cart.length === 0) return;
+    let boQua = false;
+    api.post('/orders/tinh-thu', donGuiMayChu())
+      .then((r) => { if (!boQua) setTinhThu(r); })
+      .catch((e) => { if (!boQua) { setTinhThuLoi(e.message || 'Không tính được tiền với mã giảm'); setError(e.message || 'Không tính được tiền với mã giảm'); } });
+    return () => { boQua = true; };
+  }, [cart, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty, flashState, membershipInfo]);
 
   // TIER-2: giá đã giảm theo HẠNG cho 1 item (chỉ hiển thị/tính client — server luôn tự tính lại).
   // Bám đúng luật F2: đơn có dính Flash (cartFlashDiscount > 0) → KHÔNG cộng giảm hạng.
@@ -669,7 +673,7 @@ export default function Sales() {
       return;
     }
     if (discountCodeValid?.valid && !tinhThu) {   // UUDAI-1: chưa có số máy chủ thì chưa thu — tránh thu theo số tự tính
-      setError('Đang tính tiền với mã giảm — thử lại sau giây lát');
+      setError(tinhThuLoi || 'Đang tính tiền với mã giảm — thử lại sau giây lát');
       return;
     }
     loadFlashState(); // làm mới ngay trước khi thanh toán — tránh dùng số Flash quá cũ (>60s)
@@ -711,6 +715,16 @@ export default function Sales() {
       }
 
       const don = donGuiMayChu();   // UUDAI-1: CÙNG thân với tinh-thu
+      if (don.discount_code) {
+        // UUDAI-1: hỏi lại máy chủ ngay trước khi ghi — cài đặt / hạng / Flash có thể vừa đổi; lệch thì cập nhật số, không gửi số cũ.
+        const moi = await api.post('/orders/tinh-thu', don);
+        if (moi.total !== total) {
+          setTinhThu(moi);
+          setError('Tổng tiền vừa đổi theo máy chủ — kiểm lại số rồi bấm thu lại');
+          setSubmitting(false);
+          return;
+        }
+      }
       const orderData = {
         customer_phone: don.customer_phone,
         items: don.items,
