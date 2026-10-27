@@ -342,6 +342,14 @@ async function phanA(P) {
   const aShip = await hd(rShip.order?.id);
   k('A18 phí giao: không tính điểm (N = (25.000 ÷ 1.000) × 2 = 50) và hiện thành dòng riêng', aShip.h?.tien.phi_giao === 23000 && aShip.h.tien.tong === 48000 && aShip.h.ma_nhan_diem?.diem === 50, JSON.stringify([aShip.h?.tien, aShip.h?.ma_nhan_diem]));
 
+  const nhanS = await goi('POST', '/signup-codes/nhan-diem', { code: rShip.order?.signup_code, phone: sdtMoi() });
+  k('A18b đơn có phí giao: N trên hoá đơn = số /nhan-diem cộng THẬT (đường trả thật, không tính phí giao)', nhanS.status === 200 && nhanS.diem_cong === aShip.h?.ma_nhan_diem?.diem, `${moTa(nhanS)} · ${nhanS.diem_cong} vs ${aShip.h?.ma_nhan_diem?.diem}`);
+  const rHet = await ban({ payment_method: 'cash', cash_amount: 25000 });
+  await db.run("UPDATE pos_signup_codes SET issued_at = '2020-01-01T00:00:00' WHERE order_id = ?", [rHet.order.id]);
+  const aHet = await hd(rHet.order.id);
+  k('A18c mã quá hạn (in từ lâu): N = 0 và không còn ưu đãi — /nhan-diem cũng từ chối MA_HET_HAN', aHet.h?.ma_nhan_diem?.diem === 0 && aHet.h.ma_nhan_diem.uu_dai === false
+    && (await goi('POST', '/signup-codes/nhan-diem', { code: rHet.order.signup_code, phone: sdtMoi() })).code === 'MA_HET_HAN', JSON.stringify(aHet.h?.ma_nhan_diem));
+
   // khách quen có hạng: mua thẻ, tài khoản, điểm
   const hang = await mot('SELECT id, card_price, name FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
@@ -384,6 +392,7 @@ async function phanA(P) {
     VALUES ('ORD-20260101-002', 'Khách lẻ', 40000, 40000, 'transfer', 'completed', 'thu', '2026-01-01T09:05:00')`);
   k('A30 (K5) đơn cũ chuyển khoản thiếu cột transfer_amount → dồn vào chuyển khoản', bang((await hd(Number(cuCk.lastInsertRowid))).h?.thanh_toan, [{ loai: 'chuyen_khoan', so_tien: 40000 }]));
   // số lần in
+  await goi('POST', '/settings/invoice/log', { order_id: rq.order.id, order_code: rq.order.code, invoice_number: 'HD-TEST-0', paper_size: '80mm' });   // log của đơn KHÁC không được tính
   const lan0 = (await hd(r1.order.id)).h?.so_lan_in;
   await goi('POST', '/settings/invoice/log', { order_id: r1.order.id, order_code: r1.order.code, invoice_number: 'HD-TEST-1', paper_size: '80mm' });
   await goi('POST', '/settings/invoice/log', { order_id: r1.order.id, order_code: r1.order.code, invoice_number: 'HD-TEST-1', paper_size: '80mm' });
@@ -422,6 +431,11 @@ async function phanA(P) {
     const lech = Object.keys(P.CHU_MAC_DINH).filter((kh) => !['ten_quan', 'dia_chi'].includes(kh) && seed[kh] !== P.CHU_MAC_DINH[kh]);
     k('E6 khoá seed invoice_chu_* ở database.js khớp CHU_MAC_DINH của client (trừ ten_quan, dia_chi theo store_*)', lech.length === 0 && !('ten_quan' in seed) && /\['invoice_so_to', '2'\]/.test(nguon) && /\['invoice_kh_url', ''\]/.test(nguon), 'lệch: ' + lech.join());
   }
+
+  const src = (f) => fs.readFileSync(path.join(GOC, f), 'utf8');
+  k('A35 index.js gắn /api/pos/hoa-don vào routes/hoaDon', /app\.use\('\/api\/pos\/hoa-don',\s*require\('\.\/routes\/hoaDon'\)\)/.test(src('server/index.js')));
+  k('H1 InvoicePrint (Sales · Orders · ManKetThuc dùng chung) vẽ bill từ cửa hoá đơn, giữ bố cục cũ làm dự phòng khi cửa lỗi',
+    /api\.get\(`\/hoa-don\/\$\{order\.id\}`\)/.test(src('client/src/components/InvoicePrint.jsx')) && /danhSachTo\(hd, settings/.test(src('client/src/components/InvoicePrint.jsx')) && /<InvoicePreview\b/.test(src('client/src/components/InvoicePrint.jsx')));
 
   // một cửa: hoá đơn KHÔNG ghi gì
   const truoc = JSON.stringify(await db.query('SELECT id, total, status, payment_status FROM pos_orders ORDER BY id'));
