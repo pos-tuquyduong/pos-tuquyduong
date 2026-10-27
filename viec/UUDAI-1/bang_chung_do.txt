@@ -59,7 +59,16 @@ GỐC f7165ea: thoát 1
 Ca XANH trên gốc (canh hồi quy, mỗi ca có đột biến bắt ở dot_bien.py hoặc là luồng hợp lệ K5): B2, B3b, B4, C4, C5b, C6, D1a, D1b, E2, E4,
 G1, G1b, G2, G2b, G3, G4, G5a, G5b, K1 (bật / tắt), K2a.
 
-Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 71 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_UUDAI1.js: 71
+Vòng sửa 1 (soát độc lập 27.10) — thêm G3b–G3d (mua gói + khách Vàng), S6–S8; chạy lại gốc cùng lệnh: 23 đạt · 54 hỏng, thoát 1.
+Dòng ✗ MỚI so với lần trên (G3b, G3c xanh trên gốc — gói không giảm hạng có từ trước, canh hồi quy):
+  ✗ G3d mua gói + món, Vàng, mã 10 % dùng chung → mã trên phần còn lại (gồm dòng gói như cũ): 350.000 − 5.000 − 34.500 = 310.500  — HTTP 400 · Số tiền thanh toán (310.500đ) không khớp tổng đơn hàng thật (310.000đ). · không đơn
+  ✗ S6 tinh-thu lỗi → giữ lý do máy chủ (tinhThuLoi), bấm thu hiện đúng lý do, không ghi đè bằng "đang tính"
+  ✗ S7 tinh-thu hỏi lại khi Flash / hạng đổi (phụ thuộc flashState, membershipInfo) và ngay trước khi ghi đơn có mã (lệch tổng → cập nhật, không gửi)
+  ✗ S8 Settings.jsx: khối mới gọi máy chủ qua utils/api.js (api.get / api.put), không qua pkgApi / fetch
+  23 đạt · 54 hỏng
+GỐC f7165ea: thoát 1
+
+Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 77 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_UUDAI1.js: 77
 
 Bài cũ: không bài thử cũ nào bị sửa. thu_BH1.js I10/I11 (đọc khoá orderData của Sales.jsx) giữ xanh vì orderData vẫn ghi rõ từng khoá.
