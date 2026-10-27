@@ -306,25 +306,31 @@ async function main() {
     const t2 = await tinhThu({ customer_phone: s, items: [mon(1, 2)], discount_code: m, cash_amount: 1, payment_method: 'balance', balance_amount: 99999999 });
     k('F1b thân có trường tiền (ví thiếu) → bỏ qua, vẫn 200 cùng số', t2.status === 200 && t2.total === 58000, moTa(t2));
     // F4 + S5: cùng giỏ ở 6 cấu hình — số tinh-thu = số POST / ghi; quầy gửi đúng tổng máy chủ → không 400 "không khớp tổng".
-    const caF4 = [['%, bật', [1, 1, 1], () => taoMa('percent', 10)], ['%, tắt', [0, 0, 0], () => taoMa('percent', 10)],
-      ['tiền, bật', [1, 1, 1], () => taoMa('fixed', 5000)], ['tiền, tắt', [0, 0, 0], () => taoMa('fixed', 5000)],
-      ['1 món, bật', [1, 1, 1], () => taoMa('fixed', 9000, { motMon: true })], ['1 món, tắt', [0, 0, 0], () => taoMa('fixed', 9000, { motMon: true })]];
-    for (const [ten, cd, taoM] of caF4) {
+    // Giỏ 50.000 + 2 × 39.000 = 128.000, hạng 12.800, phí giao 10.000. Mỗi cấu hình "tắt" có ca máy chọn MÃ và ca chọn HẠNG (vòng soát 2).
+    const caF4 = [['%, bật', [1, 1, 1], () => taoMa('percent', 10), 'ca_hai', 113680],
+      ['% 20, tắt', [0, 0, 0], () => taoMa('percent', 20), 'ma', 112400], ['% 10 = hạng, tắt', [0, 0, 0], () => taoMa('percent', 10), 'hang', 125200],
+      ['tiền, bật', [1, 1, 1], () => taoMa('fixed', 5000), 'ca_hai', 120200],
+      ['tiền 20.000, tắt', [0, 0, 0], () => taoMa('fixed', 20000), 'ma', 118000], ['tiền 5.000, tắt', [0, 0, 0], () => taoMa('fixed', 5000), 'hang', 125200],
+      ['1 món, bật', [1, 1, 1], () => taoMa('fixed', 9000, { motMon: true }), 'ca_hai', 116200],
+      ['1 món 20.000, tắt', [0, 0, 0], () => taoMa('fixed', 20000, { motMon: true }), 'ma', 118000]];
+    for (const [ten, cd, taoM, cachDung, tongDung] of caF4) {
       await chung(...cd);
       const sdt = await khachHang(), ma = await taoM();
       const than = { customer_phone: sdt, items: [mon(0, 1), mon(1, 2)], discount_code: ma, shipping_fee: 10000 };
       const tt = await tinhThu(than);
       const r = await ban(than, tt.total);
       const d = r.order ? await donDb(r.order.id) : {};
-      k(`F4 ${ten}: POST / gửi đúng tổng tinh-thu (${tt.total}) → 200, total / hạng / mã của đơn = tinh-thu`, tt.status === 200 && r.status === 200
+      k(`F4 ${ten}: tinh-thu cách "${cachDung}" tổng ${tongDung}; POST / gửi đúng tổng đó → 200, total / hạng / mã của đơn = tinh-thu`,
+        tt.status === 200 && tt.cach === cachDung && tt.total === tongDung && r.status === 200
         && Number(d.total) === tt.total && Number(d.tier_discount) === tt.tier_discount && (d.discount_code || null) === (tt.cach === 'hang' ? null : ma),
         `${moTa(tt)} · ${moTa(r)} · ${tt.cach} · đơn ${d.total}/${d.tier_discount}/${d.discount_code}`);
     }
     k('F5 chưa đăng nhập → 401', (await tinhThu({ items: [mon(0)] }, null)).status === 401);
     await chung(1, 1, 1);
     const f6 = await tinhThu({ customer_phone: await khachHang(), items: [mon(0, 2)], discount_code: 'KHONG_CO_MA_NAY' });
-    k('F6 mã không có → 200, ma_loi có lời, không giảm mã, chỉ hạng (90.000)', f6.status === 200 && typeof f6.ma_loi === 'string' && f6.ma_loi.length > 0
-      && f6.discount_amount === 0 && f6.total === 90000, `${moTa(f6)} · ${f6.ma_loi} · ${f6.total}`);
+    k('F6 mã không có → 200, ma_loi có lời + ma_loi_code MA_KHONG_TON_TAI, tính NHƯ KHÔNG MÃ (cách "hang", 90.000, giảm mã 0)',
+      f6.status === 200 && typeof f6.ma_loi === 'string' && f6.ma_loi.length > 0 && f6.ma_loi_code === 'MA_KHONG_TON_TAI'
+      && f6.cach === 'hang' && f6.discount_amount === 0 && f6.total === 90000, `${moTa(f6)} · ${f6.ma_loi} · ${f6.ma_loi_code} · ${f6.cach} · ${f6.total}`);
     const f7 = await tinhThu({ customer_phone: s, items: [mon(1, 2)], discount_code: m });
     k('F7 mã hợp lệ → ma_loi rỗng', f7.status === 200 && !f7.ma_loi, `${moTa(f7)} · ${f7.ma_loi}`);
   });
@@ -385,7 +391,8 @@ async function main() {
     const sk = await khachHang();
     await caDon('K2a mã hết hạn → đơn 200 như cũ, không ghi mã (khách Vàng: 90.000)', await ban({ customer_phone: sk, items: [mon(0, 2)], discount_code: mh }, 90000), 90000, 10000, null);
     const k2 = await tinhThu({ customer_phone: sk, items: [mon(0, 2)], discount_code: mh });
-    k('K2b tinh-thu mã hết hạn → báo ma_loi (không lặng lẽ bỏ)', k2.status === 200 && !!k2.ma_loi, `${moTa(k2)} · ${k2.ma_loi}`);
+    k('K2b tinh-thu mã hết hạn → báo ma_loi + ma_loi_code MA_KHONG_AP_DUNG (không lặng lẽ bỏ)', k2.status === 200 && !!k2.ma_loi
+      && k2.ma_loi_code === 'MA_KHONG_AP_DUNG', `${moTa(k2)} · ${k2.ma_loi} · ${k2.ma_loi_code}`);
     await chung(0, 0, 0);
     const sp3 = await khachHang(), mp = await taoMa('fixed', 5000);
     const than = { customer_phone: sp3, customer_name: 'K', items: [mon(1, 2)], discount_code: mp };
@@ -445,9 +452,12 @@ async function main() {
     k('S5 giỏ hiện câu máy chủ ghi (cau_ghi)', /tinhThu\?\.cau_ghi/.test(sa));
     k('S6 tinh-thu lỗi → giữ lý do máy chủ (tinhThuLoi), bấm thu hiện đúng lý do, không ghi đè bằng "đang tính"',
       /setTinhThuLoi\(e\.message/.test(sa) && /setError\(tinhThuLoi \|\| /.test(sa));
-    k('S7 tinh-thu hỏi lại khi Flash / hạng đổi (phụ thuộc flashState, membershipInfo) và ngay trước khi ghi đơn có mã (lệch tổng → cập nhật, không gửi)',
-      /\[cart, customer\?\.phone, discountCodeValid, shippingFee, activePkgId, buyQty, flashState, membershipInfo\]/.test(sa)
+    k('S7 tinh-thu hỏi lại khi Flash / hạng ĐỔI NỘI DUNG (khoá chuỗi — làm mới 60 giây không xoá số máy chủ) và ngay trước khi ghi đơn có mã',
+      /\[cart, customer\?\.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang\]/.test(sa)
+      && /const khoaFlash = flashState \? `\$\{flashState\.is_flash_now\}\|\$\{flashState\.percent\}\|/.test(sa)
+      && /const khoaHang = membershipInfo \? `\$\{membershipInfo\.usable\}\|\$\{membershipInfo\.discount_percent\}\|\$\{membershipInfo\.special_discount_percent\}`/.test(sa)
       && /const moi = await api\.post\('\/orders\/tinh-thu', don\);\s*if \(moi\.total !== total\) \{\s*setTinhThu\(moi\);/.test(sa));
+    k('S9 giỏ hiện lý do mã không áp (ma_loi) từ tinh-thu', /\{tinhThu\?\.ma_loi && \(/.test(sa) && /\{tinhThu\.ma_loi\}/.test(sa));
     const st2 = docNguon(CLIENT, 'Settings.jsx');
     const khoiUuDai = (st2.match(/const loadUuDaiChung = [\s\S]*?const deleteTier/) || [''])[0];
     k('S8 Settings.jsx: khối mới gọi máy chủ qua utils/api.js (api.get / api.put), không qua pkgApi / fetch',
