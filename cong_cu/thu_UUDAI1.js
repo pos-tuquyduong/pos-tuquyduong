@@ -351,6 +351,16 @@ async function main() {
     await caDon('G2b khách lẻ (không SĐT) + mã 10 % → 90.000', await ban({ items: [mon(0, 2)], discount_code: mG }, 90000), 90000, 0, mG);
     const g3 = await ban({ customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId } }, 145000);
     await caDon('G3 mua thẻ 100.000 + món 50.000, khách Vàng → hạng chỉ trên món: 145.000', g3, 145000, 5000, null);
+    const goiId = Number((await db.run(`INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active)
+      VALUES ('GOI_UUDAI1', 'Gói UUDAI-1', 300000, 'ly', 10, 1)`)).lastInsertRowid);
+    const muaGoi = { items: [mon(0, 1)], package_buy: { package_id: goiId, total_qty: 10, pkg_qty: 1 } };
+    const g3b = await ban({ customer_phone: await khachHang(), ...muaGoi }, 345000);
+    await caDon('G3b mua gói 300.000 + món 50.000, khách Vàng → hạng chỉ trên món: 345.000', g3b, 345000, 5000, null);
+    const giaHangGoi = g3b.order ? await so('SELECT COUNT(*) FROM pos_order_items WHERE order_id = ? AND product_id < 0 AND tier_unit_price IS NOT NULL', [g3b.order.id]) : NaN;
+    k('G3c dòng gói không có giá hạng', giaHangGoi === 0, `${giaHangGoi}`);
+    const mG3 = await taoMa('percent', 10);
+    await caDon('G3d mua gói + món, Vàng, mã 10 % dùng chung → mã trên phần còn lại (gồm dòng gói như cũ): 350.000 − 5.000 − 34.500 = 310.500',
+      await ban({ customer_phone: await khachHang(), ...muaGoi, discount_code: mG3 }, 310500), 310500, 5000, mG3);
     await caDon('G4 nhóm đặc biệt 30.000 → special 20 %: 24.000', await ban({ customer_phone: await khachHang(), items: [mon(2, 1)] }, 24000), 24000, 6000, null);
     const s5 = await khachHang();
     await caDon('G5a đơn KHÔNG mã, khách Vàng → 90.000 như cũ', await ban({ customer_phone: s5, items: [mon(0, 2)] }, 90000), 90000, 10000, null);
@@ -433,6 +443,15 @@ async function main() {
       && /tinhThu \? tinhThu\.tier_discount :/.test(sa) && /tinhThu \? tinhThu\.discount_amount :/.test(sa));
     k('S4 có mã mà chưa có số máy chủ → không mở thu tiền', /discountCodeValid\?\.valid && !tinhThu\)/.test(sa));
     k('S5 giỏ hiện câu máy chủ ghi (cau_ghi)', /tinhThu\?\.cau_ghi/.test(sa));
+    k('S6 tinh-thu lỗi → giữ lý do máy chủ (tinhThuLoi), bấm thu hiện đúng lý do, không ghi đè bằng "đang tính"',
+      /setTinhThuLoi\(e\.message/.test(sa) && /setError\(tinhThuLoi \|\| /.test(sa));
+    k('S7 tinh-thu hỏi lại khi Flash / hạng đổi (phụ thuộc flashState, membershipInfo) và ngay trước khi ghi đơn có mã (lệch tổng → cập nhật, không gửi)',
+      /\[cart, customer\?\.phone, discountCodeValid, shippingFee, activePkgId, buyQty, flashState, membershipInfo\]/.test(sa)
+      && /const moi = await api\.post\('\/orders\/tinh-thu', don\);\s*if \(moi\.total !== total\) \{\s*setTinhThu\(moi\);/.test(sa));
+    const st2 = docNguon(CLIENT, 'Settings.jsx');
+    const khoiUuDai = (st2.match(/const loadUuDaiChung = [\s\S]*?const deleteTier/) || [''])[0];
+    k('S8 Settings.jsx: khối mới gọi máy chủ qua utils/api.js (api.get / api.put), không qua pkgApi / fetch',
+      /api\.get\('\/settings'\)/.test(khoiUuDai) && /api\.put\('\/settings'/.test(khoiUuDai) && !/pkgApi|fetch\(/.test(khoiUuDai));
   }
 
   sv.close();
