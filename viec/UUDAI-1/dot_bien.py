@@ -7,7 +7,8 @@
 
 Khuôn viec/DIEM-THAT-1/dot_bien.py: chép server/ và client/src/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink),
 thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy
-`node cong_cu/thu_UUDAI1.js --may-chu <bản sao>/server` (bài đọc Settings.jsx / Sales.jsx ở <bản sao>/client/src/pages).
+`node cong_cu/thu_UUDAI1.js --may-chu <bản sao>/server` (bài đọc Settings.jsx / Sales.jsx ở <bản sao>/client/src/pages);
+đột biến ghi bài 'gl' chạy `node cong_cu/gia_lap/chay.js --may-chu <bản sao>/server` (KB33 + bất biến I13).
 BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Bài sập (thoát 2) hoặc đỏ không khớp mẫu = LẠC. Xanh trọn = SỐNG.
 Không đụng server/ thật, data/, Turso.
 """
@@ -37,6 +38,8 @@ DOT_BIEN = [
    r'✗ C8 '),
   # ── orders.js: chọn hạng → mã không tiêu, không ghi ──
   ('VS-CHON-HANG-VAN-TIEU-MA', [(O, '      discountCodeId = null;\n      finalDiscountCode = null;', '      finalDiscountCode = null;', 1)], r'✗ C2b '),
+  # vòng soát 2: giả lập KB33 + bất biến I13 (lượt mã = số đơn áp mã) chạy qua nhánh chọn hạng — bài 'gl' = cong_cu/gia_lap/chay.js
+  ('VS-CHON-HANG-VAN-TIEU-MA-GL', [(O, '      discountCodeId = null;\n      finalDiscountCode = null;', '      finalDiscountCode = null;', 1)], r'✗ KB33 → ', 'gl'),
   ('VS-CHON-HANG-VAN-GHI-MA', [(O, '      finalDiscountCode = null;\n      finalDiscountType = null;', '      finalDiscountType = null;', 1)], r'✗ C2a '),
   ('VS-CHON-HANG-GIU-GIA-MA-BILL', [(O, '      finalDiscountValue = 0;\n      itemScopeTargetItem = null;', '      finalDiscountValue = 0;', 1)], r'✗ C7b '),
   # ── orders.js: tinh-thu ──
@@ -44,7 +47,7 @@ DOT_BIEN = [
   ('BV-TINHTHU-CHI-TINH', [(O, '{ chiTinh: true, tinhThu: true }', '{ tinhThu: true }', 1)], r'✗ F1 '),
   ('VS-TINHTHU-NHAN-TIEN', [(O, '"package_buy", "membership_buy"];', '"package_buy", "membership_buy", "payment_method", "balance_amount"];', 1)],
    r'✗ F1b '),
-  ('VS-MA-LOI-IM', [(O, '        maLoi = "Mã không tồn tại hoặc đã tắt";\n', '', 1)], r'✗ F6 '),
+  ('VS-MA-LOI-IM', [(O, '        maLoi = { error: "Mã không tồn tại hoặc đã tắt", code: "MA_KHONG_TON_TAI" };\n', '', 1)], r'✗ F6 '),
   # ── settings.js / database.js ──
   ('BV-CAI-DAT-KIEM', [(ST, '    if (khoaSai) {', '    if (false) {', 1)], r'✗ E3 '),
   ('VS-CAI-DAT-NHAN-TRUE', [(ST, "!['0', '1'].includes(String(value))", "!['0', '1', 'true'].includes(String(value))", 1)], r'✗ E3 chủ gửi "true"'),
@@ -54,7 +57,10 @@ DOT_BIEN = [
   ('BV-SALES-TONG', [(SA, 'const total = tinhThu ? tinhThu.total : ', 'const total = ', 1)], r'✗ S3 '),
   ('VS-SALES-THU-KHI-CHUA-TINH', [(SA, 'if (discountCodeValid?.valid && !tinhThu) {', 'if (false) {', 1)], r'✗ S4 '),
   ('VS-SALES-GHI-DE-LOI', [(SA, 'setError(tinhThuLoi || ', 'setError(', 1)], r'✗ S6 '),
-  ('VS-SALES-KHONG-HOI-LAI', [(SA, ', flashState, membershipInfo]);', ']);', 1)], r'✗ S7 '),
+  ('VS-SALES-KHONG-HOI-LAI', [(SA, ', khoaFlash, khoaHang]);', ']);', 1)], r'✗ S7 '),
+  ('VS-SALES-XOA-KHI-LAM-MOI', [(SA, ', khoaFlash, khoaHang]);', ', flashState, membershipInfo]);', 1)], r'✗ S7 '),
+  ('BV-SALES-MA-LOI', [(SA, '{tinhThu?.ma_loi && (', '{false && (', 1)], r'✗ S9 '),
+  ('VS-MA-LOI-KHONG-CODE', [(O, 'ma_loi_code: maLoi?.code || null,', 'ma_loi_code: null,', 1)], r'✗ F6 '),
   ('VS-SETTINGS-PKGAPI', [(SE, "await api.put('/settings', { settings: uuDaiChung });", "await pkgApi('PUT', '/api/pos/settings', { settings: uuDaiChung });", 1)], r'✗ S8 '),
   ('VS-SALES-HAI-THAN', [(SA, '        discount_code: don.discount_code,\n', '        discount_code: discountCodeValid?.code,\n', 1)], r'✗ S2 '),
 ]
@@ -77,16 +83,18 @@ def ban_sao(thay):
   return tmp, None
 
 
-def lenh(tmp):
+def lenh(tmp, bai='ud'):
+  if bai == 'gl':
+    return ['node', os.path.join(GOC, 'cong_cu', 'gia_lap', 'chay.js'), '--may-chu', os.path.join(tmp, 'server')]
   return ['node', os.path.join(GOC, 'cong_cu', 'thu_UUDAI1.js'), '--may-chu', os.path.join(tmp, 'server')]
 
 
-def chay(ten, thay, mau):
+def chay(ten, thay, mau, bai='ud'):
   tmp, loi = ban_sao(thay)
   try:
     if loi:
       return ten, 'HỎNG', loi
-    r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+    r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = (r.stdout or '') + (r.stderr or '')
     hong = [l.strip() for l in ra.splitlines() if '✗' in l]
     if r.returncode == 2 or 'BÀI SẬP' in ra:
@@ -107,7 +115,10 @@ def doi_chung():
     r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = (r.stdout or '') + (r.stderr or '')
     m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
-    return r.returncode == 0 and m is not None and m.group(2) == '0', (m.group(0) if m else ra[-200:])
+    g = subprocess.run(lenh(tmp, 'gl'), cwd=GOC, capture_output=True, text=True, timeout=300)
+    dong_gl = ((g.stdout or '') + (g.stderr or '')).strip().splitlines()[-1:] or ['']
+    ok = r.returncode == 0 and m is not None and m.group(2) == '0' and g.returncode == 0
+    return ok, (m.group(0) if m else ra[-200:]) + ' · gl: ' + dong_gl[0][:120]
   finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
