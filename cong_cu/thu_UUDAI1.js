@@ -172,6 +172,8 @@ async function main() {
     k('A4 bốn cách: cả hai 10.000+9.000 · mã 0+20.000 · hạng 7.800+0 · không 0+0', tom === 'ca_hai/10000/9000 ma/0/20000 hang/7800/0 khong/0/0', tom);
     k('A5 hàm trả giá hạng từng dòng (chọn mã → null) + số tiền lợi hơn', kq[0].gia_hang?.[0] === 45000 && kq[1].gia_hang?.[0] === null
       && kq[1].loi_hon === 12200 && kq[2].loi_hon === 2800, JSON.stringify([kq[0].gia_hang, kq[1].gia_hang, kq[1].loi_hon, kq[2].loi_hon]));
+    const le = f({ dong: [D(12345, 1, 0)], ma: { loai: 'percent', gia_tri: 10, tran: 0, mot_mon: null }, dungChung: true });
+    k('A6 tiền giảm mã % làm tròn về đồng: 10 % của 12.345 → 1.235', le.giam_ma === 1235, `${le.giam_ma}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
