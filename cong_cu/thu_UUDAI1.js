@@ -306,7 +306,8 @@ async function main() {
     const t2 = await tinhThu({ customer_phone: s, items: [mon(1, 2)], discount_code: m, cash_amount: 1, payment_method: 'balance', balance_amount: 99999999 });
     k('F1b thân có trường tiền (ví thiếu) → bỏ qua, vẫn 200 cùng số', t2.status === 200 && t2.total === 58000, moTa(t2));
     // F4 + S5: cùng giỏ ở 6 cấu hình — số tinh-thu = số POST / ghi; quầy gửi đúng tổng máy chủ → không 400 "không khớp tổng".
-    // Giỏ 50.000 + 2 × 39.000 = 128.000, hạng 12.800, phí giao 10.000. Mỗi cấu hình "tắt" có ca máy chọn MÃ và ca chọn HẠNG (vòng soát 2).
+    // Giỏ 50.000 + 2 × 39.000 = 128.000, hạng 12.800, phí giao 10.000. Cấu hình "tắt": % và tiền có ca máy chọn MÃ lẫn chọn HẠNG; mã 1 món
+    // chỉ có ca chọn MÃ ở đây (ca chọn hạng của mã 1 món: C7a, qua POST).
     const caF4 = [['%, bật', [1, 1, 1], () => taoMa('percent', 10), 'ca_hai', 113680],
       ['% 20, tắt', [0, 0, 0], () => taoMa('percent', 20), 'ma', 112400], ['% 10 = hạng, tắt', [0, 0, 0], () => taoMa('percent', 10), 'hang', 125200],
       ['tiền, bật', [1, 1, 1], () => taoMa('fixed', 5000), 'ca_hai', 120200],
@@ -406,6 +407,32 @@ async function main() {
       && !dch.discount_code && await daDung(mp) === 0, `${moTa(ch)} · ${dch ? dch.total + '/' + dch.discount_code : 'không đơn'} · dùng ${await daDung(mp)}`);
   });
 
+  // Vòng soát 3: mỗi trường gói / thẻ của danh sách trắng tinh-thu có một ca "phải KHÔNG bị chặn" (tinh-thu = POST, đúng số tính tay).
+  await chay('K4', async () => {
+    await chung(1, 1, 1);
+    const goiK4 = Number((await db.run(`INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active)
+      VALUES ('GOI_UUDAI1_K4', 'Gói K4', 300000, 'ly', 10, 1)`)).lastInsertRowid);
+    const caK4 = [];
+    {
+      const s = await khachHang();
+      const cp = Number((await db.run(`INSERT INTO pos_customer_packages (customer_phone, package_id, status, total_qty, delivered_qty, created_at, updated_at)
+        VALUES (?, ?, 'active', 10, 0, datetime('now'), datetime('now'))`, [s, goiK4])).lastInsertRowid);
+      caK4.push(['K4a LẤY TỪ GÓI 1 món + mua 2 × 39.000, Vàng, mã tiền 5.000 → 78.000 − 7.800 − 5.000 = 65.200',
+        { customer_phone: s, items: [{ ...mon(0, 1), from_package: true }, mon(1, 2)], customer_package_id: cp, discount_code: await taoMa('fixed', 5000) }, 65200]);
+    }
+    caK4.push(['K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → 310.500',
+      { customer_phone: await khachHang(), items: [mon(0, 1)], package_buy: { package_id: goiK4, total_qty: 10, pkg_qty: 1 }, discount_code: await taoMa('percent', 10) }, 310500]);
+    caK4.push(['K4c MUA THẺ 100.000 + món 50.000, Vàng, mã tiền 5.000 → 150.000 − 5.000 − 5.000 = 140.000',
+      { customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId }, discount_code: await taoMa('fixed', 5000) }, 140000]);
+    for (const [ten, than, tong] of caK4) {
+      const tt = await tinhThu(than);
+      const r = await ban(than, tt.total);
+      const d = r.order ? await donDb(r.order.id) : {};
+      k(`${ten}: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng`, tt.status === 200 && tt.total === tong && r.status === 200
+        && Number(d.total) === tong, `${moTa(tt)} · tinh-thu ${tt.total} · ${moTa(r)} · đơn ${d.total}`);
+    }
+  });
+
   // ═════════════════════════════════════════════════════════════════════════
   muc('[H] hai quầy cùng bấm');
   await chay('H', async () => {
@@ -453,10 +480,14 @@ async function main() {
     k('S6 tinh-thu lỗi → giữ lý do máy chủ (tinhThuLoi), bấm thu hiện đúng lý do, không ghi đè bằng "đang tính"',
       /setTinhThuLoi\(e\.message/.test(sa) && /setError\(tinhThuLoi \|\| /.test(sa));
     k('S7 tinh-thu hỏi lại khi Flash / hạng ĐỔI NỘI DUNG (khoá chuỗi — làm mới 60 giây không xoá số máy chủ) và ngay trước khi ghi đơn có mã',
-      /\[cart, customer\?\.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang\]/.test(sa)
+      /\[khoaGio, customer\?\.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang\]/.test(sa)
       && /const khoaFlash = flashState \? `\$\{flashState\.is_flash_now\}\|\$\{flashState\.percent\}\|/.test(sa)
       && /const khoaHang = membershipInfo \? `\$\{membershipInfo\.usable\}\|\$\{membershipInfo\.discount_percent\}\|\$\{membershipInfo\.special_discount_percent\}`/.test(sa)
       && /const moi = await api\.post\('\/orders\/tinh-thu', don\);\s*if \(moi\.total !== total\) \{\s*setTinhThu\(moi\);/.test(sa));
+    const khoaGio = (sa.match(/const khoaGio = [^\n]*/) || [''])[0];
+    k('S10 giỏ khoá theo phần tính tiền (món, số lượng, lấy từ gói, gói, thẻ), KHÔNG theo ghi chú — gõ ghi chú không xoá số máy chủ (vòng soát 3)',
+      /\}, \[khoaGio, /.test(sa) && /i\.product_id, i\.quantity, i\.fromPkg, i\.is_pkg, i\.is_membership, i\.package_id, i\.tier_id/.test(khoaGio)
+      && !/note/.test(khoaGio), khoaGio);
     k('S9 giỏ hiện lý do mã không áp (ma_loi) từ tinh-thu', /\{tinhThu\?\.ma_loi && \(/.test(sa) && /\{tinhThu\.ma_loi\}/.test(sa));
     const st2 = docNguon(CLIENT, 'Settings.jsx');
     const khoiUuDai = (st2.match(/const loadUuDaiChung = [\s\S]*?const deleteTier/) || [''])[0];
