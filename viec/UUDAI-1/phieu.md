@@ -10,7 +10,14 @@
      voucher đổi điểm = dòng pos_discount_codes có dòng pos_voucher_grants cùng `code` (loyalty.js ~134). Đơn tạo qua payOS (P3) đi
      cùng hàm tạo đơn của orders.js. Combo (COMBO-1a) làm SAU việc này, dùng lại hàm của việc này — đừng làm combo ở đây. -->
 
-**Chờ duyệt kế hoạch:** viết `viec/UUDAI-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+**Đã duyệt (chủ quán 27.10, sau khi chat soát kế hoạch `ke_hoach.md` đầu nhánh `e3cb1ce`):** kế hoạch được duyệt; máy làm tiếp từ bước 4
+(`/lam-viec UUDAI-1 tiep`) tới hết, không dừng hỏi lại các điểm này:
+1. Q1 = **(a)**: `client/src/pages/Sales.jsx` vào Phạm vi. Khi đơn có mã: màn cũ hỏi `POST /orders/tinh-thu` (qua `api` đã export, KHÔNG sửa
+   `client/src/utils/api.js`) mỗi khi giỏ / khách / mã đổi, dùng số máy chủ trả để hiện và thu tiền. Đơn không mã giữ cách tính cũ.
+   Thêm ca thử: Sales.jsx gửi đúng tổng máy chủ cho khách Vàng + mã % (bật và tắt dùng chung) → không 400 "không khớp tổng".
+2. Q2, Q3, mốc `min_order` theo giá gốc, làm tròn mã % về đồng, cách xếp loại mã: **đồng ý đúng như kế hoạch mục 2**.
+3. `/discount-codes/validate` và `/increment-usage` (file Cấm): giữ ghi Phát hiện, không sửa ở việc này.
+4. BH-2 (màn mới) sẽ dùng `tinh-thu` — việc này chỉ cần đường tinh-thu đúng, không đụng `client/src/pages/BanHang/**`.
 
 ## Mục tiêu
 Quầy biết chắc một đơn của khách hội viên có mã giảm sẽ tính ra bao nhiêu, theo đúng luật chủ quán đặt trong Cài đặt, và giỏ hiện
@@ -54,6 +61,7 @@ Số trong ví dụ: tỉ lệ hạng Vàng 10%, món 39.000đ / 50.000đ; mọi
 - server/routes/settings.js
 - server/database.js
 - client/src/pages/Settings.jsx
+- client/src/pages/Sales.jsx
 - client/dist/**
 - cong_cu/thu_UUDAI1.js
 - cong_cu/thu_P26c.js
