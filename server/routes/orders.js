@@ -167,7 +167,8 @@ router.get("/:id", authenticate, async (req, res) => {
  * Hỗ trợ: Thanh toán linh hoạt (số dư + tiền mặt/CK + ghi nợ)
  * Phase B: Hỗ trợ chiết khấu linh hoạt + phí ship
  * P3: thân route là hàm `taoDon` — chốt phiên thanh toán (utils/giuCho.js) đi ĐÚNG đường này, cùng mọi phép kiểm. `phien`:
- *   { chiTinh: true } → trả { total } trước phép đối chiếu tiền, không ghi gì (tạo phiên);
+ *   { chiTinh: true } → trả { total, chiTiet } trước phép đối chiếu tiền, không ghi gì (tạo phiên; UUDAI-1: tinh-thu đọc chiTiet);
+ *   { chiTinh: true, tinhThu: true } → như trên, thêm: không gọi SX (checkStock) — chỉ POST /tinh-thu dùng;
  *   { id, vaoGiaoDich(tx, now), sauGhiDon(tx, orderId, orderCode) } → chốt phiên trong giao dịch tạo đơn.
  */
 async function taoDon(req, res, phien = null) {
@@ -703,6 +704,7 @@ async function taoDon(req, res, phien = null) {
       if (!itemScopeTargetItem) {
         return res.status(400).json({
           error: "Đơn này chưa có món nào được áp mã này",
+          code: "MA_KHONG_CO_MON",
         });
       }
     }
