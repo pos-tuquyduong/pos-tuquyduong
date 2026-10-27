@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { productsApi, usersApi } from '../utils/api';
+import { productsApi, usersApi, api } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 
 
@@ -690,18 +690,18 @@ export default function Settings() {
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
   };
+  // UUDAI-1: code mới gọi máy chủ qua utils/api.js (LUAT_XAY_APP §3) — không qua pkgApi.
   const loadUuDaiChung = async () => {
-    const data = await pkgApi('GET', '/api/pos/settings');
-    if (data.success) {
+    try {
+      const data = await api.get('/settings');
       const s = data.data || {};
       setUuDaiChung(Object.fromEntries(LOAI_MA_CHUNG.map(([k]) => [k, s[k] === '0' ? '0' : '1'])));
-    }
+    } catch (err) { setMessage('Lỗi: ' + err.message); }
   };
   const saveUuDaiChung = async () => {
     setSaving(true);
     try {
-      const kq = await pkgApi('PUT', '/api/pos/settings', { settings: uuDaiChung });
-      if (!kq.success) throw new Error(kq.error || 'Không lưu được');
+      await api.put('/settings', { settings: uuDaiChung });
       setMessage('Đã lưu cách dùng mã giảm với giá hạng');
       setTimeout(() => setMessage(''), 3000);
       await loadUuDaiChung();
