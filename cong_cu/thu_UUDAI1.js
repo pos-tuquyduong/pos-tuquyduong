@@ -72,7 +72,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan']) app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
+  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets']) app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   let tinhUuDai = null;
@@ -159,8 +159,8 @@ async function main() {
     k('A2 hàm thuần: uuDai.js không nạp database / helpers, không getNow / Date / query',
       nguon.length > 0 && !/require\([^)]*(database|helpers)/.test(nguon) && !/getNow|\bDate\b|query\(/.test(nguon));
     const od = docNguon(MAY_CHU, 'routes', 'orders.js');
-    k('A3 orders.js gọi tinhUuDai đúng MỘT chỗ (taoDon — POST /, tinh-thu, payOS đều qua đó), không còn công thức mã % riêng',
-      (od.match(/tinhUuDai\(/g) || []).length === 1 && !/subtotal \* finalDiscountValue/.test(od));
+    k('A3 orders.js gọi tinhUuDai đúng MỘT chỗ (taoDon — POST /, tinh-thu, payOS đều qua đó), không còn công thức tiền mã riêng (mã 1 món, trần mã %)',
+      (od.match(/tinhUuDai\(/g) || []).length === 1 && !/computeItemDiscountAmount/.test(od) && !/SELECT max_discount FROM/.test(od));
     const D = (gia, sl, tl) => ({ unit_price: gia, quantity: sl, ti_le_hang: tl });
     const kq = [
       f({ dong: [D(50000, 2, 10)], ma: { loai: 'percent', gia_tri: 10, tran: 0, mot_mon: null }, dungChung: true }),
@@ -224,10 +224,14 @@ async function main() {
       await ban({ customer_phone: sdtMoi(), items: [mon(1, 1)], discount_code: m5 }, 34000), 34000, 0, m5);
     const huy = r2.order ? await goi('PUT', `/orders/${r2.order.id}/cancel`, { reason: 'thử UUDAI-1' }) : {};
     k('C5a huỷ đơn chọn hạng → 200, không trả lượt mã (used_count giữ 1)', huy.status === 200 && await daDung(m2) === 1, `${moTa(huy)} · dùng ${await daDung(m2)}`);
-    const r5 = await ban({ customer_phone: await khachHang(), items: [mon(1, 2)], discount_code: m2 }, 70200);
+    const s5 = await khachHang();
+    const nap = await goi('POST', '/wallets/topup', { phone: s5, amount: 70200, customer_name: 'Khách UUDAI-1', payment_method: 'cash' });
+    const r5 = await goi('POST', '/orders', { customer_phone: s5, customer_name: 'Khách UUDAI-1', items: [mon(1, 2)], discount_code: m2,
+      payment_method: 'balance', balance_amount: 70200 });
     const yc = r5.order ? await goi('POST', '/refunds', { order_id: r5.order.id, reason: 'thử UUDAI-1' }) : {};
     const dy = yc.refund_id ? await goi('POST', `/refunds/${yc.refund_id}/approve`, {}) : {};
-    k('C5b duyệt hoàn đơn chọn hạng → không trả lượt mã (used_count giữ 1)', dy.status === 200 && await daDung(m2) === 1, `${moTa(dy)} · dùng ${await daDung(m2)}`);
+    k('C5b duyệt hoàn đơn chọn hạng (trả bằng ví) → 200, không trả lượt mã (used_count giữ 1)', nap.status === 200 && r5.status === 200 && dy.status === 200
+      && await daDung(m2) === 1, `${moTa(nap)} · ${moTa(r5)} · ${moTa(yc)} · ${moTa(dy)} · dùng ${await daDung(m2)}`);
     await chung(0, 1, 0);
     const m6 = await taoMa('fixed', 5000);
     await caDon('C6 chỉ tắt loại % — mã TIỀN vẫn dùng chung: 78.000 − 7.800 − 5.000 = 65.200',
