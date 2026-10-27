@@ -1,0 +1,23 @@
+HD-1 — bằng chứng ĐỎ trên code CHƯA vá (gốc f1fea71 = "PHIEU: HD-1"; server/ + client/src/ của gốc, bài thử HIỆN TẠI cong_cu/thu_HD1.js
+qua `python3 viec/HD-1/dot_bien.py --goc f1fea71`). Chạy 27.10. Bản đầu của bài (trước khi thêm ca A18b/A18c/A23b/A36/E2b/F7/G19b/G36b/A18d)
+trên cùng gốc: 6 đạt · 28 hỏng — các dòng ✗ chính:
+
+  ✗ G0 nạp được client/src/utils/hoaDon.js  — Cannot find module …/client/src/utils/hoaDon.js
+  ✗ C0 nạp được client/src/utils/veQr.js (+ thư viện qrcode-generator 1.4.4)  — Cannot find module …/veQr.js
+  ✗ F2 chữ đầu / chân tem tự điền tên khách, có ở MỌI tem
+  ✗ F3 chữ tem quá 40 ký tự bị cắt (39 + …), đúng 40 giữ nguyên
+  ✗ A0 nạp được server/routes/hoaDon.js  — Cannot find module …/hoaDon.js
+  ✗ A1 chưa đăng nhập → 401  — HTTP 404
+  ✗ A2 đơn không có → 404 KHONG_THAY_DON  — HTTP 404
+  ✗ A3 đơn khách lẻ tiền mặt: số bill = số đơn, mã đơn đúng, tổng 25.000  — HTTP 404
+  ✗ A4 … A8 (thanh toán, khách lẻ, chuỗi cân, món, mã nhận điểm N = 50) — HTTP 404
+  ✗ A9 N trên hoá đơn = số điểm /nhan-diem cộng THẬT  — HTTP 200 · cộng 50 · hoá đơn undefined
+  ✗ A10 … A18 (mã đã dùng, hệ số, Flash, đơn 0 điểm, chương trình tắt, ưu đãi, tích điểm tắt, phí giao) — HTTP 404
+  ✗ A19 … A23 (khách quen có hạng, giá hạng, chuỗi 45.000 − 4.500 + 5.000, thanh toán, điểm) — undefined
+  ✗ A99 phần A chạy hết, không sập  — Cannot read properties of undefined (reading 'diem')
+  6 đạt · 28 hỏng
+
+Bản cuối trên code đã vá: 116 đạt · 1 hỏng (chỉ C0: thư viện qrcode-generator chưa cài — xem trang_thai.md ## Câu hỏi 1).
+
+SỐ CA thu_HD1.js: 117
+(Số này tính cả ca C0 đang đỏ; khi thư viện có mặt C0 đổi thành C1×4 + C2 + C3 → 122 ca. Chạy lại và ghi lại ở bước đó.)
