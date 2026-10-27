@@ -325,7 +325,6 @@ async function phanA(P) {
   k('A13 /nhan-diem cũng từ chối đơn Flash (N = 0 là đúng thật)', nhanF.status === 400 && nhanF.code === 'DON_FLASH_KHONG_DIEM', moTa(nhanF));
   const s0 = sdtMoi(); await nap(s0, 50000);
   const r0 = await ban({ customer_phone: s0, payment_method: 'balance', balance_amount: 25000 });
-  const rLe0 = await ban({ payment_method: 'balance', balance_amount: 0, cash_amount: 0 });
   k('A14 đơn 0 điểm do trừ hết bằng tài khoản (khách có SĐT): không ô mã (mã gắn SĐT)', (await hd(r0.order?.id)).h?.ma_nhan_diem === null);
   await datCaiDat('nhandiem_enabled', 0);
   const rTat = await ban({ payment_method: 'cash', cash_amount: 25000 });
@@ -346,7 +345,7 @@ async function phanA(P) {
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
   const sq = sdtMoi(); await nap(sq, Number(hang.card_price) + 200000);
   const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
-  const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 20500, shipping_fee: 5000 });
+  const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 25500, shipping_fee: 5000 });
   const aq = await hd(rq.order?.id);
   const H = aq.h;
   k('A19 khách quen có hạng: hạng + % lấy từ máy chủ, giảm hạng = 10 % của 45.000', mua.status === 200 && rq.status === 200 && H?.khach.hang === hang.name && H.khach.phan_tram === 10 && H.tien.giam_hang === 4500 && H.khach.la_khach_le === false, `${moTa(mua)} ${moTa(rq)} ${JSON.stringify(H?.khach)} ${H?.tien.giam_hang}`);
@@ -435,7 +434,7 @@ async function main() {
   const P = await phanG();
   await phanC();
   await phanF();
-  await phanA(P && !P.loi ? P : null);
+  try { await phanA(P && !P.loi ? P : null); } catch (e) { noiLai(); k('A99 phần A chạy hết, không sập', false, e.message); }
   console.log(`\n${dat} đạt · ${hong} hỏng\n`);
   process.exit(hong ? 1 : 0);
 }
