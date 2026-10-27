@@ -272,6 +272,7 @@ async function phanA(P) {
   const datCaiDat = (key, v) => db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', [key, String(v)]);
   for (const [key, v] of [['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', 1000], ['loyalty_expiry_mode', 'none'], ['flash_enabled', 'false'],
     ['nhandiem_enabled', 1], ['nhandiem_he_so', 2], ['signup_enabled', 'false']]) await datCaiDat(key, v);
+  for (const [key, v] of [['store_name', 'TỨ QUÝ ĐƯỜNG'], ['store_address', 'LK4 Trương Định'], ['store_phone', '024 2245 5565']]) await datCaiDat(key, v);
   const sp = await db.query('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 2');
   const GIA = [25000, 20000];
   for (const [i, g] of GIA.entries()) await db.run('UPDATE pos_products SET price = ? WHERE id = ?', [g, sp[i].id]);
@@ -303,7 +304,7 @@ async function phanA(P) {
   const a1 = await hd(r1.order?.id);
   k('A3 đơn khách lẻ tiền mặt: số bill = số đơn, mã đơn đúng, tổng 25.000', a1.status === 200 && a1.h?.don.code === r1.order.code && a1.h.don.so_bill === r1.order.code.split('-').pop() && a1.h.tien.tong === 25000 && a1.h.don.id === r1.order.id, moTa(a1));
   k('A4 thanh toán: chỉ tiền mặt 25.000 · khách đưa 30.000 · trả lại 5.000', bang(a1.h?.thanh_toan, [{ loai: 'tien_mat', so_tien: 25000 }]) && a1.h.khach_dua === 30000 && a1.h.tra_lai === 5000, JSON.stringify(a1.h?.thanh_toan));
-  k('A5 khách lẻ: la_khach_le, không mục điểm, quán có tên', a1.h?.khach.la_khach_le === true && a1.h.diem === null && typeof a1.h.quan.ten === 'string' && a1.h.quan.ten.length > 0, JSON.stringify([a1.h?.khach, a1.h?.diem, a1.h?.quan]));
+  k('A5 khách lẻ: la_khach_le, không mục điểm; quán = tên · địa chỉ · SĐT của Cài đặt', a1.h?.khach.la_khach_le === true && a1.h.diem === null && a1.h.quan.ten === 'TỨ QUÝ ĐƯỜNG' && a1.h.quan.dia_chi === 'LK4 Trương Định' && a1.h.quan.sdt === '024 2245 5565', JSON.stringify([a1.h?.khach, a1.h?.diem, a1.h?.quan]));
   k('A6 đơn trả đủ: giá gốc = giảm + tổng chuỗi cân', a1.h && a1.h.tien.gia_goc - a1.h.tien.giam_hang - a1.h.tien.giam_flash - a1.h.tien.giam_ma + a1.h.tien.phi_giao === a1.h.tien.tong);
   k('A7 món: số lượng, tên, giá gốc, thành tiền; không giá hạng', bang(a1.h?.mon.map((m) => [m.so_luong, m.gia_goc, m.gia_hang, m.thanh_tien]), [[1, 25000, null, 25000]]), JSON.stringify(a1.h?.mon));
   // N = số /nhan-diem cộng thật
