@@ -44,7 +44,7 @@ async function dungDiem(o) {
     : 0;
   const truoc = so((await queryOne(
     `SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions
-      WHERE customer_phone = ? AND created_at <= ? AND (order_id IS NULL OR order_id <> ?) AND (expires_at IS NULL OR expires_at > ?)`,
+      WHERE customer_phone = ? AND created_at <= ? AND (order_id IS NULL OR order_id < ?) AND (expires_at IS NULL OR expires_at > ?)`,
     [o.customer_phone, o.created_at, o.id, o.created_at]))?.n);
   return { truoc: truoc + doi, doi_qua: doi, cong, hien_co: truoc + cong };
 }

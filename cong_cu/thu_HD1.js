@@ -79,7 +79,7 @@ async function phanG() {
   muc('[G] hàm thuần client/src/utils/hoaDon.js (dựng dòng, chữ tự điền, đếm, QR, 2 tờ, in lại)');
   const P = await nap('hoaDon.js');
   if (P.loi) { k('G0 nạp được client/src/utils/hoaDon.js', false, P.loi); return null; }
-  const { dungHoaDon, danhSachTo, dienChu, demChu, duongQr, chuGiaGoc, docChu, soToTuCaiDat, chuTem, KHONG_AN, CHU_MAC_DINH, NHOM_CHU, GIOI_HAN_CHU } = P;
+  const { dungHoaDon, danhSachTo, dienChu, demChu, gioiHanChu, duongQr, chuGiaGoc, docChu, soToTuCaiDat, chuTem, KHONG_AN, CHU_MAC_DINH, NHOM_CHU, GIOI_HAN_CHU } = P;
   const khoa = (ds) => ds.map((d) => d.khoa);
   const dong = (ds, kh) => ds.find((d) => d.khoa === kh);
 
@@ -124,7 +124,7 @@ async function phanG() {
   // 2 tờ
   const to = danhSachTo(HD_QUEN, {});
   k('G25 mặc định 2 tờ: GIAO KHÁCH rồi LƯU QUẦY', to.length === 2 && to[0].nhan === 'GIAO KHÁCH' && to[1].nhan === 'LƯU QUẦY' && to[0].lien === 'khach' && to[1].lien === 'luu', JSON.stringify(to.map((t) => t.nhan)));
-  const bo = (t) => ({ ...t, nhan: '', chan: [] });
+  const bo = (t) => ({ ...t, lien: '', nhan: '', chan: [] });
   k('G26 hai tờ GIỐNG HỆT, chỉ khác nhãn + chân (cảm ơn / chính sách chỉ ở tờ khách)', bang(bo(to[0]), bo(to[1])) && to[0].chan.some((c) => c.khoa === 'cam_on') && to[0].chan.some((c) => c.khoa === 'chinh_sach') && !to[1].chan.some((c) => c.khoa === 'cam_on' || c.khoa === 'chinh_sach'), JSON.stringify([to[0].chan, to[1].chan]));
   k('G27 lời cảm ơn tự điền tên khách: "Cảm ơn Chị Hoa!"; khách lẻ: "Cảm ơn quý khách!"', to[0].chan[0].chu === 'Cảm ơn Chị Hoa!' && danhSachTo(HD_LE, {})[0].chan[0].chu === 'Cảm ơn quý khách!', to[0].chan[0].chu);
   k('G28 số tờ: cài 1 → 1 tờ; cài 2 → 2; thiếu → 2; rác ("3", "x") → 2; tham số soTo ghi đè',
@@ -158,8 +158,9 @@ async function phanG() {
   k('G42 khoá mới đè khoá cũ kể cả khi rỗng (chủ quán cố ý xoá)', docChu({ invoice_thank_you: 'cũ', invoice_chu_cam_on: '' }).chu.cam_on === '');
   k('G43 5 nhóm chữ của hoá đơn (+ nhóm Tem) phủ MỌI khoá chữ, không khoá lạ', bang(NHOM_CHU.slice(0, 5).map((n) => n[0]), ['Đầu hoá đơn', 'Tiền hàng', 'Thanh toán', 'Điểm thưởng', 'Chân hoá đơn'])
     && bang(NHOM_CHU.flatMap((n) => n[1].map((x) => x[0])).sort(), Object.keys(CHU_MAC_DINH).sort()));
-  k('G44 mọi chữ mặc định ≤ 42 ký tự (trừ chữ cạnh QR của mẫu chủ quán duyệt)', Object.entries(CHU_MAC_DINH).filter(([kh, v]) => v.length > 42 && kh !== 'chu_qr').length === 0,
-    Object.entries(CHU_MAC_DINH).filter(([kh, v]) => v.length > 42).map(([kh]) => kh).join());
+  k('G44 mọi chữ mặc định (sau khi điền mẫu) nằm trong giới hạn dòng: 42, tem 40; chữ cạnh QR không giới hạn (cột hẹp, xuống dòng)',
+    Object.entries(CHU_MAC_DINH).filter(([kh, v]) => demChu(v, gioiHanChu(kh)).qua).length === 0 && gioiHanChu('chu_qr') === Infinity && gioiHanChu('tem_dau') === 40 && gioiHanChu('cam_on') === 42,
+    Object.entries(CHU_MAC_DINH).filter(([kh, v]) => demChu(v, gioiHanChu(kh)).qua).map(([kh]) => kh).join());
   // QR đường dẫn
   const m = 'https://app.example.vn/?ma={ma}';
   k('G45 duongQr: có mã → thay; không mã → bỏ ?ma; mẫu có tham số khác giữ nguyên dấu ? &',
@@ -177,7 +178,7 @@ async function phanG() {
   let nem = null;
   try { dungHoaDon(null, null); dungHoaDon({}, undefined); danhSachTo(undefined, undefined, undefined); dienChu(undefined); duongQr(undefined); docChu(null); } catch (e) { nem = e.message; }
   k('G51 đầu vào rỗng / rác không ném', nem === null, nem);
-  const tong0 = dungHoaDon({ ...HD_QUEN, tien: { ...HD_QUEN.tien, tong: 0 }, thanh_toan: [] }, {});
+  const tong0 = dungHoaDon({ ...HD_QUEN, tien: { ...HD_QUEN.tien, tong: 0 }, thanh_toan: [], khach_dua: 0 }, {});
   k('G52 đơn 0đ (quà tặng): tổng 0đ, mục thanh toán chỉ còn tiêu đề', dong(tong0.tien, 'tong').tien === '0đ' && bang(khoa(tong0.thanh_toan), ['tieu_de_tt']));
   k('G53 số lẻ / chuỗi từ máy chủ vẫn ra số nguyên đồng', dungHoaDon({ ...HD_QUEN, tien: { ...HD_QUEN.tien, tong: '87800.4' } }, {}).tien.at(-1).tien === '87.800đ');
   k('G54 chân hoá đơn: ghi chú thêm (rỗng mặc định) hiện ở CẢ hai tờ khi có chữ', danhSachTo(HD_QUEN, { invoice_chu_ghi_chu: 'Wifi: abc' }).every((t) => t.chan.some((c) => c.khoa === 'ghi_chu' && c.chu === 'Wifi: abc')));
@@ -302,7 +303,7 @@ async function phanA(P) {
   const a1 = await hd(r1.order?.id);
   k('A3 đơn khách lẻ tiền mặt: số bill = số đơn, mã đơn đúng, tổng 25.000', a1.status === 200 && a1.h?.don.code === r1.order.code && a1.h.don.so_bill === r1.order.code.split('-').pop() && a1.h.tien.tong === 25000 && a1.h.don.id === r1.order.id, moTa(a1));
   k('A4 thanh toán: chỉ tiền mặt 25.000 · khách đưa 30.000 · trả lại 5.000', bang(a1.h?.thanh_toan, [{ loai: 'tien_mat', so_tien: 25000 }]) && a1.h.khach_dua === 30000 && a1.h.tra_lai === 5000, JSON.stringify(a1.h?.thanh_toan));
-  k('A5 khách lẻ: la_khach_le, không mục điểm, quán có tên', a1.h?.khach.la_khach_le === true && a1.h.diem === null && typeof a1.h.quan.ten === 'string' && a1.h.quan.ten.length > 0);
+  k('A5 khách lẻ: la_khach_le, không mục điểm, quán có tên', a1.h?.khach.la_khach_le === true && a1.h.diem === null && typeof a1.h.quan.ten === 'string' && a1.h.quan.ten.length > 0, JSON.stringify([a1.h?.khach, a1.h?.diem, a1.h?.quan]));
   k('A6 đơn trả đủ: giá gốc = giảm + tổng chuỗi cân', a1.h && a1.h.tien.gia_goc - a1.h.tien.giam_hang - a1.h.tien.giam_flash - a1.h.tien.giam_ma + a1.h.tien.phi_giao === a1.h.tien.tong);
   k('A7 món: số lượng, tên, giá gốc, thành tiền; không giá hạng', bang(a1.h?.mon.map((m) => [m.so_luong, m.gia_goc, m.gia_hang, m.thanh_tien]), [[1, 25000, null, 25000]]), JSON.stringify(a1.h?.mon));
   // N = số /nhan-diem cộng thật

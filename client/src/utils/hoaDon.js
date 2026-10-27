@@ -72,9 +72,13 @@ export function dienChu(text, mau = {}) {
     .replace(/[ \t]{2,}/g, ' ').replace(/ +([%,.!])/g, '$1').trim();
 }
 
-/** Đếm ký tự của chữ MẪU (chưa điền): quá GIOI_HAN → báo đỏ. */
+// Chữ cạnh QR nằm trong cột hẹp dưới QR và tự xuống dòng → không có giới hạn một dòng.
+export const gioiHanChu = (khoa) => (khoa === 'chu_qr' ? Infinity : String(khoa).startsWith('tem_') ? GIOI_HAN_TEM : GIOI_HAN_CHU);
+const MAU_DEM = { ten_khach: 'Chị Hoa', hang: 'Vàng', phan_tram: 10, diem: 7, gio: 24 };
+
+/** Đếm ký tự của dòng sau khi điền chữ tự điền mẫu: quá giới hạn → báo đỏ (giấy 58 mm = 42). */
 export function demChu(text, gioiHan = GIOI_HAN_CHU) {
-  const dai = String(text ?? '').length;
+  const dai = dienChu(text, MAU_DEM).length;
   return { dai, gioiHan, qua: dai > gioiHan };
 }
 

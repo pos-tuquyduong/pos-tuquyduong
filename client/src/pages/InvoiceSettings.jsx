@@ -33,7 +33,7 @@ import {
   DON_MAU, NHOM_MAU, docBoIn, dungBoIn,
 } from "../utils/inPhieu";
 import {
-  NHOM_CHU, KHONG_AN, CHU_MAC_DINH, GIOI_HAN_CHU, GIOI_HAN_TEM, KHOA_DIA_CHI_KH, KHOA_SO_TO,
+  NHOM_CHU, KHONG_AN, CHU_MAC_DINH, GIOI_HAN_CHU, GIOI_HAN_TEM, gioiHanChu, KHOA_DIA_CHI_KH, KHOA_SO_TO,
   HOA_DON_MAU_QUEN, HOA_DON_MAU_LE, docChu, soToTuCaiDat, demChu, dungHoaDon,
 } from "../utils/hoaDon";
 
@@ -422,7 +422,7 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
   const settings = { ...caiDat, ...Object.fromEntries(Object.keys(CHU_MAC_DINH).flatMap((k) => [[`invoice_chu_${k}`, c.chu[k]], [`invoice_an_${k}`, c.an[k]]])), [KHOA_SO_TO]: c.soTo, [KHOA_DIA_CHI_KH]: c.khUrl };
   const hd = mau === "quen" ? HOA_DON_MAU_QUEN : HOA_DON_MAU_LE;
   const to = dungHoaDon(hd, settings, { lien });
-  const coQuaDai = NHOM_CHU.some((n) => n[1].some(([k]) => demChu(c.chu[k], k.startsWith("tem_") ? GIOI_HAN_TEM : GIOI_HAN_CHU).qua));
+  const coQuaDai = NHOM_CHU.some((n) => n[1].some(([k]) => demChu(c.chu[k], gioiHanChu(k)).qua));
   const chip = (on) => ({ minHeight: 36, padding: "0 12px", borderRadius: 18, border: "1px solid " + (on ? "#1C1B1A" : "#D6D2CA"), background: on ? "#1C1B1A" : "#fff", color: on ? "#fff" : "#1C1B1A", cursor: "pointer" });
   return (
     <div className="section" style={{ padding: "0.75rem 1rem" }}>
@@ -444,13 +444,13 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
         <details key={ten} style={{ margin: "0.4rem 0" }}>
           <summary style={{ cursor: "pointer", fontWeight: 600 }}>{ten}</summary>
           {dong.map(([k, nhan]) => {
-            const gh = k.startsWith("tem_") ? GIOI_HAN_TEM : GIOI_HAN_CHU;
+            const gh = gioiHanChu(k);
             const dem = demChu(c.chu[k], gh);
             return (
               <div key={k} style={{ display: "flex", gap: 8, alignItems: "center", padding: "3px 0", flexWrap: "wrap" }}>
                 <span style={{ minWidth: 150 }}>{nhan}</span>
                 <input style={{ flex: 1, minWidth: 160 }} value={c.chu[k]} onChange={(e) => sua(k, e.target.value)} />
-                <span style={{ fontSize: 11, color: dem.qua ? "#B42318" : "#8A847A", fontWeight: dem.qua ? 700 : 400 }}>{dem.dai}/{gh}</span>
+                <span style={{ fontSize: 11, color: dem.qua ? "#B42318" : "#8A847A", fontWeight: dem.qua ? 700 : 400 }}>{dem.dai}{Number.isFinite(gh) ? `/${gh}` : ""}</span>
                 {KHONG_AN.includes(k)
                   ? <span style={{ fontSize: 11, color: "#8A847A", minWidth: 84 }}>luôn hiện</span>
                   : <button type="button" style={chip(!c.an[k])} onClick={() => an(k)}>{c.an[k] ? "Đang ẩn" : "Hiện"}</button>}
