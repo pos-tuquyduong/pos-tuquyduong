@@ -151,10 +151,13 @@ export default function Sales() {
     return Math.round(item.unit_price * (1 - flashState.percent / 100));
   };
 
-  // UUDAI-1: đơn có mã → hỏi máy chủ số tiền (giá hạng / mã / máy chọn cách nào) mỗi khi giỏ, khách, mã, Flash, hạng đổi.
+  // UUDAI-1: đơn có mã → hỏi máy chủ số tiền (giá hạng / mã / máy chọn cách nào) mỗi khi giỏ, khách, mã, Flash, hạng ĐỔI NỘI DUNG
+  // (khoá chuỗi — làm mới 60 giây / lúc mở thu tiền mà không đổi gì thì giữ nguyên số máy chủ, không rơi về số tự tính).
   // Không mã → tính như cũ. Lỗi máy chủ (vd Flash + mã %) giữ ở tinhThuLoi để bấm thu vẫn thấy đúng lý do.
   const [tinhThu, setTinhThu] = useState(null);
   const [tinhThuLoi, setTinhThuLoi] = useState('');
+  const khoaFlash = flashState ? `${flashState.is_flash_now}|${flashState.percent}|${(flashState.product_keys || []).join()}` : '';
+  const khoaHang = membershipInfo ? `${membershipInfo.usable}|${membershipInfo.discount_percent}|${membershipInfo.special_discount_percent}` : '';
   useEffect(() => {
     setTinhThu(null);
     setTinhThuLoi('');
@@ -164,7 +167,7 @@ export default function Sales() {
       .then((r) => { if (!boQua) setTinhThu(r); })
       .catch((e) => { if (!boQua) { setTinhThuLoi(e.message || 'Không tính được tiền với mã giảm'); setError(e.message || 'Không tính được tiền với mã giảm'); } });
     return () => { boQua = true; };
-  }, [cart, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty, flashState, membershipInfo]);
+  }, [cart, customer?.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang]);
 
   // TIER-2: giá đã giảm theo HẠNG cho 1 item (chỉ hiển thị/tính client — server luôn tự tính lại).
   // Bám đúng luật F2: đơn có dính Flash (cartFlashDiscount > 0) → KHÔNG cộng giảm hạng.
@@ -1519,6 +1522,9 @@ export default function Sales() {
               )}
               {tinhThu?.cau_ghi && (
                 <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginBottom: '0.25rem' }}>{tinhThu.cau_ghi}</div>
+              )}
+              {tinhThu?.ma_loi && (
+                <div style={{ fontSize: '0.75rem', color: '#ef4444', marginBottom: '0.25rem' }}>Mã không áp: {tinhThu.ma_loi}</div>
               )}
               {shippingFee > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f97316', marginBottom: '0.25rem' }}>
