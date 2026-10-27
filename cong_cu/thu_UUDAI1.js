@@ -212,7 +212,7 @@ async function main() {
     const r2 = await ban({ customer_phone: await khachHang(), items: [mon(1, 2)], discount_code: m2 }, 70200);
     await caDon('C2a mã 5.000 → chọn hạng, tổng 70.200, đơn KHÔNG ghi mã', r2, 70200, 7800, null);
     const d2 = r2.order ? await donDb(r2.order.id) : {};
-    k('C2b chọn hạng → mã không tiêu (used_count giữ 1), đơn không loại / trị giá mã', await daDung(m2) === 1 && !d2.discount_type && !Number(d2.discount_value),
+    k('C2b chọn hạng → mã không tiêu (used_count giữ 1), đơn không loại / trị giá mã', r2.status === 200 && await daDung(m2) === 1 && !d2.discount_type && !Number(d2.discount_value),
       `dùng ${await daDung(m2)} · ${d2.discount_type}/${d2.discount_value}`);
     const m3 = await taoMa('fixed', 7800);
     await caDon('C3a mã 7.800 = hạng 7.800 → bằng nhau giữ hạng, 70.200', await ban({ customer_phone: await khachHang(), items: [mon(1, 2)], discount_code: m3 }, 70200), 70200, 7800, null);
@@ -222,8 +222,8 @@ async function main() {
     await ban({ customer_phone: await khachHang(), items: [mon(1, 2)], discount_code: m5 }, 70200);
     await caDon('C4 mã 1 lượt, đơn chọn hạng không tiêu → đơn sau (khách không hạng) vẫn dùng được, 34.000',
       await ban({ customer_phone: sdtMoi(), items: [mon(1, 1)], discount_code: m5 }, 34000), 34000, 0, m5);
-    if (r2.order) await goi('PUT', `/orders/${r2.order.id}/cancel`, { reason: 'thử UUDAI-1' });
-    k('C5a huỷ đơn chọn hạng → không trả lượt mã (used_count giữ 1)', await daDung(m2) === 1, `dùng ${await daDung(m2)}`);
+    const huy = r2.order ? await goi('PUT', `/orders/${r2.order.id}/cancel`, { reason: 'thử UUDAI-1' }) : {};
+    k('C5a huỷ đơn chọn hạng → 200, không trả lượt mã (used_count giữ 1)', huy.status === 200 && await daDung(m2) === 1, `${moTa(huy)} · dùng ${await daDung(m2)}`);
     const r5 = await ban({ customer_phone: await khachHang(), items: [mon(1, 2)], discount_code: m2 }, 70200);
     const yc = r5.order ? await goi('POST', '/refunds', { order_id: r5.order.id, reason: 'thử UUDAI-1' }) : {};
     const dy = yc.refund_id ? await goi('POST', `/refunds/${yc.refund_id}/approve`, {}) : {};
@@ -289,7 +289,7 @@ async function main() {
       t.status === 200 && t.subtotal === 78000 && t.tier_discount === 0 && t.discount_amount === 20000 && t.total === 58000 && t.cach === 'ma'
       && typeof t.cau_ghi === 'string' && t.cau_ghi.length > 0 && Array.isArray(t.items) && t.items.length === 1 && 'tier_unit_price' in t.items[0],
       `${moTa(t)} · ${JSON.stringify({ ...t, items: undefined })}`);
-    k('F2 không ghi: số đơn, lượt mã, phiên thanh toán, voucher giữ nguyên', await so('SELECT COUNT(*) FROM pos_orders') === truoc.don
+    k('F2 không ghi: số đơn, lượt mã, phiên thanh toán, voucher giữ nguyên', t.status === 200 && await so('SELECT COUNT(*) FROM pos_orders') === truoc.don
       && await daDung(m) === truoc.ma && await so('SELECT COUNT(*) FROM pos_phien_thanh_toan') === truoc.phien
       && await so("SELECT COUNT(*) FROM pos_voucher_grants WHERE status = 'available'") === truoc.qua);
     k('F3 không gọi SX (checkStock 0 lần)', t.status === 200 && demSX.n === truoc.sx, `${demSX.n - truoc.sx} lần`);
