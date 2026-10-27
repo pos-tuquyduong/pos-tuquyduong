@@ -545,7 +545,7 @@ async function taoDon(req, res, phien = null) {
     let discountCodeScope = 'order'; // Bước 5: 'order' | 'item' — mặc định 'order' khớp hành vi cũ
     let discountCodeGroupId = null;
     let maTran = 0;     // UUDAI-1: max_discount của mã đã áp
-    let maLoi = null;   // UUDAI-1: mã gõ vào mà không áp — tinh-thu báo cho giỏ, POST / vẫn bỏ mã như cũ (D3 thu_P26c)
+    let maLoi = null;   // UUDAI-1: mã gõ vào mà không áp — tinh-thu báo cho giỏ (lời + code), POST / vẫn bỏ mã như cũ (D3 thu_P26c)
 
     // Ưu tiên 1: Mã chiết khấu
     if (discount_code) {
@@ -587,7 +587,7 @@ async function taoDon(req, res, phien = null) {
         // không có khái niệm đơn tối thiểu (đã chốt lúc thiết kế).
         if (codeRecord.discount_scope !== 'item' && codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
           codeValid = false;
-        if (!codeValid) maLoi = "Mã hết hạn, hết lượt hoặc đơn chưa đủ tối thiểu";
+        if (!codeValid) maLoi = { error: "Mã hết hạn, hết lượt hoặc đơn chưa đủ tối thiểu", code: "MA_KHONG_AP_DUNG" };
 
         if (codeValid) {
           maTran = Number(codeRecord.max_discount) || 0;
@@ -599,7 +599,7 @@ async function taoDon(req, res, phien = null) {
           discountCodeGroupId = codeRecord.applicable_group_id || null;
         }
       } else {
-        maLoi = "Mã không tồn tại hoặc đã tắt";
+        maLoi = { error: "Mã không tồn tại hoặc đã tắt", code: "MA_KHONG_TON_TAI" };
       }
     }
 
@@ -849,7 +849,7 @@ async function taoDon(req, res, phien = null) {
     if (phien?.chiTinh) {
       return { total, chiTiet: { subtotal, flash_discount: flashDiscountAmount, tier_discount: tierDiscountAmount, discount_amount: finalDiscountAmount,
         shipping_fee: finalShippingFee, total, customer_tier: appliedTierName, discount_code: finalDiscountCode, cach: uuDai.cach,
-        cau_ghi: uuDai.cau_ghi, ma_loi: maLoi,
+        cau_ghi: uuDai.cau_ghi, ma_loi: maLoi?.error || null, ma_loi_code: maLoi?.code || null,
         items: orderItems.map((it) => ({ product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
           tier_unit_price: it.tier_unit_price ?? null, flash_unit_price: it.flash_unit_price ?? null })) } };
     }
