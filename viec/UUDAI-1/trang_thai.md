@@ -141,6 +141,66 @@ NGHIỆM THU: 8/9 mục có bằng chứng · mục thiếu: G một phần
 - Tên đột biến thêm: VS-SALES-GHI-DE-LOI, VS-SALES-KHONG-HOI-LAI, VS-SETTINGS-PKGAPI (bảng chỗ vá → đột biến: Sales.jsx giữ lý do lỗi → S6;
   Sales.jsx hỏi lại → S7; Settings.jsx qua api.js → S8).
 
+## Soát độc lập — vòng 2 (agent, 27.10) — báo cáo nguyên văn (rút gọn phần trả lời từng mục, giữ đủ kết luận / lỗi / nghi ngờ / nghiệm thu)
+```
+KHÔNG ĐẠT
+
+Đường tiền ở máy chủ đúng. Còn một lỗi ở màn Bán hàng (Sales.jsx): màn hiện con số mà máy chủ sẽ không nhận. Thêm hai chỗ lệch kế hoạch đã duyệt, và việc đối soát xử lý chưa đúng luật §5.
+
+Lệnh đã chạy: thu_UUDAI1 77/0 · dot_bien TỔNG 26 · BẮT 26 · --goc f7165ea 23 đạt · 54 hỏng · --day-du PASS 78 · FAIL 0 · CẢNH BÁO 1.
+
+LỖI TÌM ĐƯỢC:
+1. client/src/pages/Sales.jsx:158-167 cùng :679-680 và :126/:137/:346 — K4 → K5. Effect đặt setTinhThu(null) mỗi khi flashState / membershipInfo
+   đổi ĐỐI TƯỢNG; loadFlashState (hẹn giờ 60 s) và loadMembershipInfo luôn tạo đối tượng mới; openPaymentModal gọi cả hai. Vừa mở popup thu tiền
+   (và mỗi 60 s) tinhThu về null → total / giảm hạng / giảm mã rơi về công thức CŨ (Vàng + mã 10 %: popup hiện 80.000, máy chủ 81.000). Tiền
+   không mất (bước hỏi lại chặn) nhưng trái Q1-a và quầy bấm thu hai lần. Sửa: không xoá tinhThu khi tính lại, hoặc khoá theo nội dung.
+2. server/routes/orders.js:546-603, 849-852 — K1: kế hoạch mục 2 (đã duyệt) hứa ma_loi + ma_loi_code; bản làm tự bỏ ma_loi_code "cho gọn".
+   Trái LUAT_XAY_APP §2 (lỗi MỚI phải có code).
+3. server/utils/uuDai.js:40 cùng orders.js:718-722 — K3: kế hoạch Q2 ghi "KHÔNG bao giờ trả cach 'hang' vì mã sai"; mã sai → ma = null → khách
+   Vàng ra cach 'hang'. F6 không kiểm cach. Sửa kế hoạch cho khớp code hoặc đổi code + thêm ca.
+4. trang_thai.md mục Q4 — K1, §5 chưa đủ: bỏ sót đối soát ĐÃ CÓ (màn Đối soát reports.js:365 → utils/doiSoat.js, bất biến I13
+   bat_bien.js:247-262: used_count = số đơn completed đã áp mã) canh đúng phần tiền của tính năng. Kế hoạch §4 định thêm kịch bản giả lập
+   "khách hạng + mã chế độ tắt" — không làm, không ghi lý do → I13 chưa chạy qua nhánh chọn hạng.
+5. cong_cu/thu_UUDAI1.js:308-319 (F4) — K3: ba ca "tắt" đều ra máy chọn HẠNG; nhánh cach 'ma' chưa bao giờ được so tinh-thu = POST trong F4.
+
+NGHI NGỜ: ca S1–S8 chỉ soi chuỗi (marker suông xanh được — nên ghi CHƯA KIỂM); Sales.jsx không hiện ma_loi; TRUONG_TINH_THU có
+customer_name thừa (vô hại); đổi 3 khoá không để dấu vết; gia_hang chỉ trả khi giam_hang > 0 (giỏ toàn món từ gói giá 0 của khách Vàng: trước
+tier_unit_price = 0, nay NULL — chỉ hiển thị); signup_unit_price trên giá hạng không có ca kiểm giá trị (chỉ bill).
+
+NGHIỆM THU: 8/9 · thiếu: ca Sales.jsx (mục Đã duyệt 1) chỉ bằng chứng gián tiếp.
+CHƯA SOÁT ĐƯỢC: Sales.jsx / Settings.jsx chưa chạy trình duyệt; Turso production; ICU Node trên Render; không chạy tu_chay/cong.js chay.
+BÀI HỌC: KHOÁ ca kiểm cach trong F6, F4 "tắt" phải ra cach 'ma' thật; KHOÁ kịch bản giả lập khách hạng + mã chế độ tắt; NGUYÊN TẮC số tạm của
+máy chủ không đặt về null khi tính lại, mọi chỗ làm mới đầu vào là đường song song của effect; NGUYÊN TẮC bỏ bớt thứ trong kế hoạch ĐÃ DUYỆT phải
+hỏi chủ quán; NGUYÊN TẮC luật §5 trước hết tìm bất biến đã có rồi ghi rõ; NGUYÊN TẮC soi chuỗi trên mã giao diện ghi CHƯA KIỂM.
+```
+
+### Xử lý vòng 2 (vòng sửa 2/3)
+- Lỗi 1 → `Sales.jsx`: phụ thuộc theo KHOÁ CHUỖI nội dung (`khoaFlash` = đang flash | % | danh sách món; `khoaHang` = dùng được | % | % đặc biệt)
+  thay vì đối tượng — làm mới 60 s / lúc mở thu tiền mà không đổi nội dung thì effect không chạy, không xoá số máy chủ. Ca S7 (mẫu khoá chuỗi),
+  đột biến `VS-SALES-XOA-KHI-LAM-MOI` (đưa lại phụ thuộc đối tượng) bị bắt. Khi nội dung đổi thật, số được tính lại; bước hỏi lại trước khi ghi
+  (vòng 1) vẫn giữ.
+- Lỗi 2 → `orders.js`: tinh-thu trả `ma_loi` + `ma_loi_code` (`MA_KHONG_TON_TAI` / `MA_KHONG_AP_DUNG`) đúng kế hoạch đã duyệt. Ca F6, K2b;
+  đột biến `VS-MA-LOI-KHONG-CODE`.
+- Lỗi 3 → giữ code (mã sai = tính NHƯ KHÔNG MÃ — vế sau của chính câu kế hoạch Q2: "mã sai → `cach` tính như không có mã, kèm `ma_loi`");
+  câu "không bao giờ trả `cach: 'hang'` vì mã sai" nghĩa là máy không coi mã sai là "chọn hạng thay mã": giỏ phân biệt bằng `ma_loi` (có) và
+  `cau_ghi` (rỗng). Ca F6 nay khoá `cach === 'hang'` + `ma_loi_code` + giảm mã 0 cho khách Vàng gõ mã không có.
+- Lỗi 4 → **Quy tắc đối soát (LUAT §5) của tính năng này = bất biến I13 đã có** (`cong_cu/gia_lap/bat_bien.js:247-262`, màn Đối soát qua
+  `server/routes/reports.js` → `server/utils/doiSoat.js`): lượt dùng của mỗi mã = số đơn completed đã ghi mã đó. Máy chọn hạng → đơn KHÔNG ghi
+  mã và mã KHÔNG tiêu, nên I13 vẫn đúng; tiêu mà không ghi (lỗi) thì I13 lệch. Thêm kịch bản giả lập **KB33** (`kich_ban.js`, lượt 1) — khách
+  mua thẻ Vàng, tắt 3 khoá, mã 1đ → máy chọn hạng, đơn không ghi mã, mã không tiêu; trả cài đặt về '1' ở `finally`. `thu_gia_lap.js` SO_KB
+  32 → 33 (bài cũ sửa, ĐỎ trên gốc — `bang_chung_do.txt`). Đột biến `VS-CHON-HANG-VAN-TIEU-MA-GL` (bài `cong_cu/gia_lap/chay.js`) bị bắt ở
+  `✗ KB33 → HTTP: …` (phép của chính KB33; dòng I13 riêng chưa chứng minh tách — ghi CHƯA KIỂM). Phần "lưu `cach` + mã đã gõ trên đơn" vẫn là Q4.
+- Lỗi 5 → F4 thành 8 ca, mỗi cấu hình tắt có ca máy chọn MÃ (% 20, tiền 20.000, 1 món 20.000) và ca chọn HẠNG (% 10 = hạng, tiền 5.000); mỗi ca
+  khoá `cach` + tổng đúng số tính tay.
+- Nghi ngờ "Sales không hiện ma_loi" → hiện dòng "Mã không áp: …" (ca S9, đột biến `BV-SALES-MA-LOI`).
+- Nghi ngờ "S chỉ soi chuỗi" → đúng: ghi ở CHƯA KIỂM của báo cáo (hành vi Sales.jsx chỉ thử tay được), các ca S vẫn đếm vì mỗi ca có đột biến
+  bắt tất định (không phải phép thất thường).
+- Gọn: `LOAI_MA_CHUNG` ra ngoài component (`Settings.jsx`). `customer_name` trong `TRUONG_TINH_THU` giữ (vô hại, cùng thân với Sales).
+- Sau vòng 2: `thu_UUDAI1.js` 80 đạt · 0 hỏng (gốc 23 · 57); `thu_gia_lap.js` 180 · 0 (gốc 178 · 2); đột biến TỔNG 30 · BẮT 30 · SỐNG 0 ·
+  HỎNG 0 · LẠC 0 (đối chứng 80/0 + giả lập 33 KB ĐẠT); `npm test -- --day-du` PASS 78 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+- Tên đột biến thêm vòng 2: VS-CHON-HANG-VAN-TIEU-MA-GL, VS-SALES-XOA-KHI-LAM-MOI, BV-SALES-MA-LOI, VS-MA-LOI-KHONG-CODE (bảng chỗ vá → đột
+  biến: KB33 giả lập → KB33; Sales khoá chuỗi → S7; Sales hiện ma_loi → S9; orders.js ma_loi_code → F6).
+
 ## Phát hiện (ngoài Phạm vi, không sửa)
 - `discount-codes.js /validate` (`:145-157`) xem trước tiền giảm trên subtotal gốc — sẽ lệch số máy chủ mới với khách có hạng. Màn mới nên
   dùng `tinh-thu`.

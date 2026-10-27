@@ -68,7 +68,21 @@ Dòng ✗ MỚI so với lần trên (G3b, G3c xanh trên gốc — gói không 
   23 đạt · 54 hỏng
 GỐC f7165ea: thoát 1
 
-Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 77 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_UUDAI1.js: 77
+Vòng sửa 2 (soát độc lập vòng 2, 27.10) — F4 thêm ca chọn MÃ / chọn HẠNG ở cấu hình tắt (8 ca), F6 / K2b thêm ma_loi_code + cách,
+S7 khoá chuỗi Flash / hạng, S9 hiện ma_loi; chạy lại gốc cùng lệnh (python3 viec/UUDAI-1/dot_bien.py --goc f7165ea): 23 đạt · 57 hỏng, thoát 1
+(mọi ca F4 đỏ: tinh-thu 404; F6 / K2b đỏ: 404; S7 / S9 đỏ: Sales.jsx gốc không có tinh-thu).
 
-Bài cũ: không bài thử cũ nào bị sửa. thu_BH1.js I10/I11 (đọc khoá orderData của Sales.jsx) giữ xanh vì orderData vẫn ghi rõ từng khoá.
+Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 80 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_UUDAI1.js: 80
+
+Bài CŨ sửa: cong_cu/thu_gia_lap.js — SO_KB 32 → 33 (kịch bản KB33 mới trong cong_cu/gia_lap/kich_ban.js, vòng soát 2). Chạy bài HEAD với giả lập
+của gốc: dựng bản sao server/ + cong_cu/gia_lap/ của f7165ea (git archive) + tu_chay/cau_hinh.json, lệnh
+`node cong_cu/thu_gia_lap.js --gia-lap <bản sao>/cong_cu/gia_lap` → ĐỎ:
+  ✗ thoát 0, dòng tổng đúng "Giả lập: 33 kịch bản · 18 bất biến · ĐẠT"  — thoát 0 · Giả lập: 32 kịch bản · 18 bất biến · ĐẠT
+  ✗ T2 mỗi KB 1…33 chạy đúng một lần (gộp dòng "Lượt k: KB …")  — 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
+  178 đạt · 2 hỏng
+(Lần chạy đầu thiếu tu_chay/cau_hinh.json trong bản sao → giả lập TỪ CHỐI chạy, 47 hỏng vì lý do khác — không dùng làm bằng chứng, K2.)
+Sau khi vá (HEAD): node cong_cu/thu_gia_lap.js → 180 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_gia_lap.js: 180
+
+thu_BH1.js I10/I11 (đọc khoá orderData của Sales.jsx) không sửa — giữ xanh vì orderData vẫn ghi rõ từng khoá.
