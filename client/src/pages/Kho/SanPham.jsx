@@ -8,6 +8,8 @@ import { api } from '../../utils/api';
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
 const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
 const hien = (d) => `${so(d.luong_hien)} ${d.don_vi_hien || d.don_vi_luu || ''}`;   // luong_hien do máy chủ đổi (tinh.doiDonVi)
+// Giá NULL = chưa có giá (món nhập từ SX); giá 0 thật (hàng tặng) là hợp lệ. MỘT vị từ cho cả số đếm lẫn lọc.
+const chuaCoGia = (p) => !!p.is_active && p.price === null;
 
 export default function SanPham({ vaiTro }) {
   const chuQuan = vaiTro === 'owner';
@@ -16,6 +18,7 @@ export default function SanPham({ vaiTro }) {
   const [loi, setLoi] = useState('');
   const [tim, setTim] = useState('');
   const [chon, setChon] = useState(null);
+  const [locGia, setLocGia] = useState(false);
 
   const tai = () => Promise.all([api.get('/kho/san-pham'), api.get('/kho/nguyen-lieu')])
     .then(([sp, n]) => { setDl(sp); setNl(n.nguyen_lieu); }).catch((e) => setLoi(e.message));
@@ -24,16 +27,24 @@ export default function SanPham({ vaiTro }) {
   const theoNhom = useMemo(() => {
     const t = tim.trim().toLowerCase();
     const nhom = [...dl.nhom, { id: null, ten: 'Chưa xếp nhóm' }];
-    return nhom.map((n) => ({ ...n, mon: dl.san_pham.filter((p) => (p.nhom_id ?? null) === n.id && (!t || p.name.toLowerCase().includes(t))) }))
-      .filter((n) => n.mon.length);
-  }, [dl, tim]);
+    return nhom.map((n) => ({ ...n, mon: dl.san_pham.filter((p) => (p.nhom_id ?? null) === n.id && (!t || p.name.toLowerCase().includes(t))
+      && (!locGia || chuaCoGia(p))) })).filter((n) => n.mon.length);
+  }, [dl, tim, locGia]);
 
+  const soChuaGia = dl.san_pham.filter(chuaCoGia).length;
   if (chon) {
     return <ChiTiet sp={chon} dl={dl} nl={nl} chuQuan={chuQuan} dong={(doi) => { setChon(null); if (doi) tai(); }} />;
   }
   return (
     <div>
       {loi && <div className="kho-loi">{loi}</div>}
+      {soChuaGia > 0 && (
+        <div className="kho-canh">
+          <span>⚠️ Thiếu thông tin:</span>
+          <button onClick={() => { setLocGia(!locGia); setTim(''); }}>{soChuaGia} món chưa có giá{locGia ? ' ✓' : ''}</button>
+          <span className="kho-nho">đặt giá ở Cài đặt › Sản phẩm</span>
+        </div>
+      )}
       <div className="kho-hang"><input className="input" placeholder="Tìm món" value={tim} onChange={(e) => setTim(e.target.value)} /></div>
       {theoNhom.map((n) => (
         <div key={n.id ?? 'chua'} style={{ marginBottom: '1rem' }}>
@@ -41,7 +52,7 @@ export default function SanPham({ vaiTro }) {
           <div className="kho-luoi">
             {n.mon.map((p) => (
               <div key={p.id} className={`kho-the ${p.is_active ? '' : 'ngung'}`} onClick={() => setChon(p)}>
-                <b>{p.name}{!p.is_active && ' · ẩn'}</b>
+                <b>{p.name}{!p.is_active && ' · ẩn'}</b>{chuaCoGia(p) && <span className="kho-thieu"> · chưa có giá</span>}
                 <div className="kho-nho">{KIEU[p.kieu]} · {p.cong_thuc.length ? `${p.cong_thuc.length} thành phần` : <span className="kho-thieu">chưa có công thức</span>}</div>
               </div>
             ))}
