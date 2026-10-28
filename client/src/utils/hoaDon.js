@@ -76,6 +76,23 @@ export function chuMacDinhCuaQuan(caiDat) {
   return { ...CHU_MAC_DINH, ten_quan: chu.ten_quan, dia_chi: chu.dia_chi };
 }
 
+/**
+ * Khoá chữ phải GHI khi lưu sau Reset: tất cả, trừ tên quán + địa chỉ/SĐT nếu chưa từng bị ghi đè (chúng vẫn theo store_* — ghim bản sao
+ * tĩnh sẽ làm đổi tên/địa chỉ quán ở Cài đặt không còn đổi bill).
+ */
+export function khoaChuGhiKhiReset(caiDat) {
+  return Object.keys(CHU_MAC_DINH).filter((k) => !['ten_quan', 'dia_chi'].includes(k) || co(caiDat, `invoice_chu_${k}`));
+}
+
+/**
+ * Cài đặt "như thể đã lưu" từ trạng thái đang sửa ở màn Cài đặt (c = { chu, an, soTo, khUrl }): xem trước bill VÀ tem/phiếu dùng chung,
+ * để mọi chữ sửa (kể cả dòng đầu/cuối/IN LẠI của tem) hiện ngay.
+ */
+export function caiDatTuChuDangSua(caiDat, c) {
+  const chuAn = Object.keys(CHU_MAC_DINH).flatMap((k) => [[`invoice_chu_${k}`, c.chu[k]], [`invoice_an_${k}`, c.an[k]]]);
+  return { ...caiDat, ...Object.fromEntries(chuAn), [KHOA_SO_TO]: c.soTo, [KHOA_DIA_CHI_KH]: c.khUrl };
+}
+
 /** Số tờ mỗi lần in: 1 hoặc 2 (mặc định 2). */
 export function soToTuCaiDat(settings) {
   const n = Number(settings?.[KHOA_SO_TO]);
@@ -180,7 +197,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
   let maDiem = null;
   if (m?.ma) {
     if (m.diem > 0 && hien('ma_diem')) maDiem = { chu: d('ma_diem'), ma: m.ma };
-    else if (!(m.diem > 0) && m.uu_dai && hien('ma_uu_dai')) maDiem = { chu: d('ma_uu_dai'), ma: m.ma };
+    else if (!(m.diem > 0) && m.uu_dai && hien('ma_uu_dai')) maDiem = { chu: dienChu(chu.ma_uu_dai, { ...mau, gio: m.han_gio_uu_dai ?? 24 }), ma: m.ma };
   }
 
   const laKhach = lien === 'khach';

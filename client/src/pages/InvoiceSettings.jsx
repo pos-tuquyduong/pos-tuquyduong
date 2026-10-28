@@ -34,7 +34,7 @@ import {
 } from "../utils/inPhieu";
 import {
   NHOM_CHU, KHONG_AN, CHU_MAC_DINH, chuMacDinhCuaQuan, GIOI_HAN_CHU, GIOI_HAN_TEM, gioiHanChu, KHOA_DIA_CHI_KH, KHOA_SO_TO,
-  MAU_XEM_TRUOC, docChu, soToTuCaiDat, demChu, dungHoaDon,
+  MAU_XEM_TRUOC, caiDatTuChuDangSua, khoaChuGhiKhiReset, docChu, soToTuCaiDat, demChu, dungHoaDon,
 } from "../utils/hoaDon";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -419,7 +419,7 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
   const [lien, setLien] = useState("khach");
   const sua = (k, v) => setC((x) => ({ ...x, chu: { ...x.chu, [k]: v }, daSua: x.daSua.includes(k) ? x.daSua : [...x.daSua, k] }));
   const an = (k) => setC((x) => ({ ...x, an: { ...x.an, [k]: !x.an[k] } }));
-  const settings = { ...caiDat, ...Object.fromEntries(Object.keys(CHU_MAC_DINH).flatMap((k) => [[`invoice_chu_${k}`, c.chu[k]], [`invoice_an_${k}`, c.an[k]]])), [KHOA_SO_TO]: c.soTo, [KHOA_DIA_CHI_KH]: c.khUrl };
+  const settings = caiDatTuChuDangSua(caiDat, c);
   const mauDangXem = MAU_XEM_TRUOC.find((m) => m.khoa === mau) || MAU_XEM_TRUOC[0];
   const to = dungHoaDon(mauDangXem.hd, settings, { lien, inLai: mauDangXem.inLai });
   const coQuaDai = NHOM_CHU.some((n) => n[1].some(([k]) => demChu(c.chu[k], gioiHanChu(k)).qua));
@@ -477,13 +477,14 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
 // ═══════════════════════════════════════════════════════════════════════════
 const KHO_THEO_LOAI = { bill: KHO_BILL, tem: KHO_TEM, pha_che: KHO_PHIEU };
 
-function BoInCaiDat({ boIn, setBoIn, xemBill }) {
+function BoInCaiDat({ boIn, setBoIn, xemBill, caiDatChu }) {
   const [xem, setXem] = useState(null);
+  const [xemInLai, setXemInLai] = useState(false);
   const { nhomTheoMa } = useNhomTheoMa();
   const dsNhom = [...new Set(Object.values(nhomTheoMa))];
   const sua = (loai, kv) => setBoIn((b) => ({ ...b, [loai]: { ...b[loai], ...kv } }));
   const viec = xem && xem !== "bill"
-    ? dungBoIn(DON_MAU, { [KHOA_BO_IN]: JSON.stringify(boIn) }, { nhomTheoMa: NHOM_MAU, loai: [xem] })[0] : null;
+    ? dungBoIn(DON_MAU, { ...caiDatChu, [KHOA_BO_IN]: JSON.stringify(boIn) }, { nhomTheoMa: NHOM_MAU, loai: [xem], inLai: xemInLai })[0] : null;
   const dong = { display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", padding: "0.35rem 0" };
   return (
     <div className="section" style={{ padding: "0.75rem 1rem" }}>
@@ -523,6 +524,9 @@ function BoInCaiDat({ boIn, setBoIn, xemBill }) {
         <input type="checkbox" checked={boIn.tu_mo} onChange={(e) => setBoIn((b) => ({ ...b, tu_mo: e.target.checked }))} /> Tự mở in sau thanh toán
       </label>
       {xem === "bill" && <small>Bill: xem ở khung xem trước bên phải.</small>}
+      {xem && xem !== "bill" && (
+        <label style={dong}><input type="checkbox" checked={xemInLai} onChange={(e) => setXemInLai(e.target.checked)} /> Xem dạng IN LẠI</label>
+      )}
       {viec && (
         <div style={{ zoom: 2, display: "inline-block", boxShadow: "0 0 4px #888" }}>
           <VungTrang viec={viec} cha={null} />
@@ -675,7 +679,7 @@ export default function InvoiceSettings() {
       setConfig(DEFAULT_CONFIG);
       setBoIn(docBoIn({}));
       // Tên quán + địa chỉ/SĐT mặc định là của quán (store_*), không phải hằng số: reset không được xoá địa chỉ / đè tên quán
-      setChuHd({ chu: chuMacDinhCuaQuan(caiDatTho), an: Object.fromEntries(Object.keys(CHU_MAC_DINH).map((k) => [k, false])), soTo: soToTuCaiDat({}), khUrl: chuHd.khUrl, daSua: Object.keys(CHU_MAC_DINH) });
+      setChuHd({ chu: chuMacDinhCuaQuan(caiDatTho), an: Object.fromEntries(Object.keys(CHU_MAC_DINH).map((k) => [k, false])), soTo: soToTuCaiDat({}), khUrl: chuHd.khUrl, daSua: khoaChuGhiKhiReset(caiDatTho) });
       setActivePreset("custom");
       showMessage("info", 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
     }
@@ -871,7 +875,7 @@ export default function InvoiceSettings() {
           <h2>📝 Tùy chỉnh</h2>
 
           <fieldset disabled={!boInDaNap} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} />
+            <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} caiDatChu={caiDatTuChuDangSua(caiDatTho, chuHd)} />
           </fieldset>
 
           <fieldset disabled={!chuHdDaNap} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
