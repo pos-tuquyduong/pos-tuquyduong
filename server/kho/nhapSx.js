@@ -173,13 +173,11 @@ async function ghiKeHoach(tx, kh, luc) {
       await tx.run(`INSERT OR IGNORE INTO kho_san_pham (pos_product_id, kieu, nhom_id, sua_luc)
         VALUES (?, ?, (SELECT id FROM kho_nhom_cong_thuc WHERE ten_sx = ?), ?)`, [spId, m.kieu, m.loai, luc]);
     }
-    if (m.cong_thuc && !(await tx.queryOne('SELECT 1 AS co FROM kho_cong_thuc WHERE san_pham_id = ? LIMIT 1', [spId]))) {
-      for (const d of m.cong_thuc) {
-        // nguyên liệu chủ quán đã đổi tên trong POS vẫn tìm ra qua sx_id
-        await tx.run(`INSERT INTO kho_cong_thuc (san_pham_id, nguyen_lieu_id, luong)
-          VALUES (?, (SELECT id FROM kho_nguyen_lieu WHERE ten_chuan = ? OR sx_id = ? ORDER BY ten_chuan = ? DESC LIMIT 1), ?)`,
-        [spId, d.ten_chuan, d.sx_id, d.ten_chuan, d.luong]);
-      }
+    for (const d of m.cong_thuc || []) {   // lapKeHoach chỉ đưa công thức cho món CHƯA có (đọc trong cùng giao dịch)
+      // nguyên liệu chủ quán đã đổi tên trong POS vẫn tìm ra qua sx_id
+      await tx.run(`INSERT INTO kho_cong_thuc (san_pham_id, nguyen_lieu_id, luong)
+        VALUES (?, (SELECT id FROM kho_nguyen_lieu WHERE ten_chuan = ? OR sx_id = ? ORDER BY ten_chuan = ? DESC LIMIT 1), ?)`,
+      [spId, d.ten_chuan, d.sx_id, d.ten_chuan, d.luong]);
     }
   }
 }
