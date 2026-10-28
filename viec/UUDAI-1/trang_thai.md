@@ -451,3 +451,7 @@ e6d9629 UUDAI-1: vong sua 4 — ca gia tri tier_unit_price (F8), mac dinh thieu 
 ```
 
 HEAD ĐÃ KIỂM: aa9d27d
+
+
+Chat soát thay lần 5 (28.10): đọc báo cáo soát 4 + vòng sửa 4 (chỉ thêm bài thử, code không đổi); gộp thử main b4ae8e9: npm test --day-du 78/0.
+HEAD ĐÃ KIỂM: 06b4ac4
