@@ -19,6 +19,15 @@
 3. `/discount-codes/validate` và `/increment-usage` (file Cấm): giữ ghi Phát hiện, không sửa ở việc này.
 4. BH-2 (màn mới) sẽ dùng `tinh-thu` — việc này chỉ cần đường tinh-thu đúng, không đụng `client/src/pages/BanHang/**`.
 
+**Trả lời câu hỏi vòng 3 (chủ quán 27.10, đầu nhánh `4de9e72`):**
+5. Q5 = **(a)** giữ như máy đang làm: mã gõ vào không hợp lệ → tính như không có mã (khách có hạng thì `cach: 'hang'`), kèm `ma_loi` +
+   `ma_loi_code`, `cau_ghi` rỗng; ca F6 khoá đúng hành vi này. Câu "không bao giờ trả `cach: 'hang'` vì mã sai" ở `ke_hoach.md` hiểu là:
+   không được ÂM THẦM coi mã sai là "máy chọn hạng" — giỏ đọc `ma_loi` TRƯỚC `cach` (BH-2 làm theo). Không thêm `'ma_sai'`.
+6. Q4: KHÔNG làm ở việc này (không đổi I13, không đổi DB). Chat ghi thành việc sau khai trương trong sổ. Ghi đúng giới hạn hiện có
+   (chỉ giả lập KB33 bắt "chọn hạng mà vẫn tiêu mã") trong báo cáo là đủ.
+7. Đã dùng hết 3 vòng sửa: `/lam-viec UUDAI-1 tiep` chạy soát độc lập lần 4 + cổng + báo cáo. Soát lần 4 ĐẠT → báo xong. KHÔNG ĐẠT →
+   KHÔNG sửa thêm: ghi nguyên văn báo cáo vào `trang_thai.md`, push, DỪNG — chat soát thay và quyết.
+
 ## Mục tiêu
 Quầy biết chắc một đơn của khách hội viên có mã giảm sẽ tính ra bao nhiêu, theo đúng luật chủ quán đặt trong Cài đặt, và giỏ hiện
 được con số đó TRƯỚC khi thu tiền. Máy chủ là nơi duy nhất quyết số tiền. Phải xong trước BH-2 (màn mới hiện giá hạng / dòng ưu đãi)
