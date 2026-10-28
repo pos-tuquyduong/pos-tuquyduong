@@ -275,3 +275,97 @@ nghĩa dòng kế hoạch đã duyệt → Câu hỏi, không tự giải nghĩa
   'loi' sau khi khách đã trả (`giuCho.js:114-118`). Có từ trước (giá, Flash); việc này thêm một nguồn.
 - `discount-codes.js /increment-usage` (`:355`) — đường tiêu mã thứ hai, không màn nào gọi.
 - Giảm riêng của khách (đọc ở `orders.js:617`, tính ở `:739`, đọc tại HEAD `47a0612`) không làm tròn đồng.
+
+## Làm tiếp (`tiep`, 28.10) — soát lần 4 theo trả lời Q5 / Q4
+- Bước 1: nhánh `viec/UUDAI-1`, cây sạch; HEAD `0d9749d` · FETCH_HEAD `0d9749d` (bằng nhau → không kéo). `git log --oneline -3`:
+  ```
+  0d9749d PHIEU: UUDAI-1 tra loi Q5 (a) + Q4 sau khai truong
+  4de9e72 UUDAI-1: soat vong 3 (KHONG DAT) + xu ly; cau hoi Q5 (cach khi ma sai) + Q4 cap nhat — dung cho chu quan
+  dc8368f UUDAI-1: dot_bien neo BV-TINHTHU-CHI-TINH rieng dong goi
+  ```
+- Q5 = (a), Q4 không làm ở việc này — đã trả lời (phiếu). Mục "Câu hỏi — CHỜ CHỦ QUÁN" phía trên là bản cũ, giữ để đối chiếu.
+- `npm ci` lúc mở phiên hỏng mạng; cài lại tay xong. `npm test`: PASS 74 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+- Soát độc lập lần 4 (agent, 28.10): **KHÔNG ĐẠT** → theo phiếu mục 7: KHÔNG sửa thêm, ghi nguyên văn, push, DỪNG — chat soát thay và quyết.
+  Chưa chạy `tu_chay/cong.js chay`, chưa ghi báo cáo 7 mục / HEAD ĐÃ KIỂM (chỉ làm khi soát ĐẠT).
+
+## Soát độc lập — vòng 4 (agent, 28.10) — báo cáo nguyên văn
+```
+KHÔNG ĐẠT
+
+Đường tiền ở máy chủ đúng. Mọi tính toán đi qua một hàm `tinhUuDai`, máy chủ không tin số màn hình gửi, `tinh-thu` không ghi gì. Ba lỗi vòng 3 đã sửa thật (chi tiết ở mục 2 dưới). Đã kiểm lại Q5 và Q4: code và F6 đúng như chủ quán trả lời, nên không báo lại.
+
+Vẫn KHÔNG ĐẠT vì nghiệm thu F còn một vế không có bằng chứng, và chính dòng vá của vế đó không có bài nào bắt (lỗi 1).
+
+LỆNH ĐÃ CHẠY (lượt này, HEAD 0d9749d)
+- `node cong_cu/thu_UUDAI1.js` → 84 đạt · 0 hỏng (khớp `SỐ CA 84`, `bang_chung_do.txt:87`)
+- `python3 viec/UUDAI-1/dot_bien.py` → đối chứng XANH (84/0, giả lập 33 KB ĐẠT); TỔNG 34 · BẮT 34 · SỐNG 0 · HỎNG 0 · LẠC 0
+- `python3 viec/UUDAI-1/dot_bien.py --goc f7165ea` → 23 đạt · 61 hỏng, thoát 1. Dòng ✗ có ở A1–A6, B, C, E, F, H, K2b, K3, K4, S.
+- `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 78 · FAIL 0 · CẢNH BÁO 1 (có từ trước). Có dòng "✓ dist đã commit KHỚP với src hiện tại". `thu_UUDAI1` xanh trong bộ kiểm.
+- Đột biến tự dựng, để ngoài kho (scratchpad `dot_bien_soat4.py`). Chạy 13 đột biến: 6 BẮT, 7 SỐNG (liệt kê ở lỗi 1–3 và NGHI NGỜ).
+- scratchpad `dot_bien_rong.py`: chạy đột biến "bỏ ghi `tier_unit_price`" qua mọi bài nhận `--may-chu`. Kết quả XANH ở `thu_GOI1` (112/0), `thu_P26a` (16/0), `thu_P26b`, `thu_P26c` và giả lập (33 KB ĐẠT). Bốn bài `thu_DIEMTHAT1`, `thu_P2223`, `thu_P24`, `thu_DOISOAT1` sập ngay trong khung của tôi (thoát 2), nên chưa kết luận được cho bốn bài này.
+
+LỖI TÌM ĐƯỢC
+1. `server/routes/orders.js:729` — khuôn K3: dòng vá không có bài nào bắt, và đây là vế nghiệm thu F.
+   - Dòng này (`orderItems.forEach(... it.tier_unit_price = uuDai.gia_hang[i])`) do việc này viết lại: khối cũ ở `orders.js:665-667` gốc được dời sang `uuDai.gia_hang`.
+   - Xoá dòng đi: `thu_UUDAI1` vẫn 84/0, và cả các bài kể ở trên vẫn xanh.
+   - Lý do không bắt: F1 (`thu_UUDAI1.js:300`) chỉ kiểm có khoá `'tier_unit_price' in t.items[0]`, mà ở ca đó (`cach 'ma'`) giá trị đúng là `null`. C1b và G3c chỉ kiểm phía "KHÔNG có giá hạng". Không ca nào kiểm giá hạng ĐÚNG cho một món (ví dụ Vàng 50.000 → 45.000), dù ở tinh-thu hay ở `pos_order_items`.
+   - Hệ quả: vế F "giá đơn vị theo hạng của từng món (để màn hiện giá gạch)" và vế G "không đổi" của giá hạng trên dòng đơn đều không có bằng chứng.
+   - Đây là cột dính tới tiền: `server/utils/tienDaTra.js:16` dùng `tier_unit_price` để chia tiền đã trả theo dòng (đền bù `damages.js`, phần gói đã dùng trong `soTienHoan` `:37-41`). Code hôm nay đúng, nhưng nếu dòng này hỏng thì không ai biết.
+2. `server/routes/orders.js:718` (`?.value !== "0"`) — khuôn K3: hành vi mặc định khi THIẾU khoá cài đặt chưa có ca khoá.
+   - Đổi thành `=== "1"` thì vẫn 84/0 (đột biến SỐNG).
+   - Tình huống có thật: khôi phục bản sao lưu làm trước UUDAI-1 xoá sạch bảng (`server/routes/backup.js:357` `DELETE FROM pos_settings`), nên ba khoá vắng cho tới lần khởi động sau.
+   - Hôm nay code coi khoá vắng là "dùng chung" (đúng mặc định phiếu E). Thiếu ca "không có dòng cài đặt → `ca_hai`".
+3. `server/routes/orders.js:753` — khuôn K3 (giao diện hoá đơn): giá mã 1 món trên giá đã giảm hạng (`tier_unit_price ?? unit_price`) không có ca kiểm giá trị.
+   - Đổi về `unit_price` thì vẫn 84/0.
+   - Vòng 2 đã nêu ở NGHI NGỜ nhưng chưa xử lý. Nếu hỏng thì bill in giá 1 món sai (ví dụ B5: in 40.000 thay vì 36.000). Không lệch tổng tiền.
+4. `viec/UUDAI-1/trang_thai.md` — khuôn K1/K4 (hồ sơ):
+   - `:39-40` còn ghi "không thêm `ma_loi_code`", ngược code hiện tại (`orders.js:591`, `:602`, `:855`).
+   - Mục Phát hiện `:277` trích `orders.js:617` / `:739` "tại `47a0612`". Ở HEAD hai số đó đã trôi: `:617` là `if (!discountCodeId)`, phép tính giảm riêng nằm ở `:741`.
+   - Mục "Câu hỏi — CHỜ CHỦ QUÁN" `:74-85` vẫn ghi Q5 là CHẶN, chưa ghi câu trả lời 27.10 của phiếu.
+   - Cần sửa khi ghi báo cáo cuối.
+
+NGHI NGỜ
+- `client/src/pages/Sales.jsx:1439`: dòng xanh "✓ {discountCodeValid.message}" lấy từ `/validate`, tính trên giá gốc (`discount-codes.js:118-128` với mã 1 món). Khi máy chọn hạng, dòng này vẫn hiện "✓ Giảm …" cạnh câu `cau_ghi` "không dùng mã". Với mã 1 món dùng chung, nó hiện "Giảm 10.000đ (1 món)" trong khi số máy chủ là 9.000. Chỉ là hiển thị, tổng tiền vẫn đúng. Nhưng đây là đường song song chưa chuyển sang số máy chủ theo Q1-a.
+- Các dòng hiển thị khác bỏ đi mà bài thử vẫn xanh (đột biến SỐNG):
+  - `Sales.jsx:178` (`if (tinhThu && !tinhThu.tier_discount) return null;`): nếu mất, giỏ hiện giá gạch hạng khi máy đã chọn mã.
+  - `uuDai.js:52`: `cau_ghi` của `ca_hai` không ca nào kiểm.
+  - `orders.js:853`: `customer_tier` trả về ở tinh-thu không ca nào kiểm.
+- `uuDai.js:25`: bỏ `truTruoc` khỏi `conLai` thì vẫn 84/0. Hôm nay không gây hại vì `orders.js:747-750` kẹp lại lần nữa. Nhưng hàm "dùng lại cho COMBO-1a" chưa có ca thuần cho Flash + mã tiền lớn hơn phần còn lại.
+- `Settings.jsx:696-702`: nạp cài đặt lỗi thì ô tích giữ mặc định `'1'`. Bấm Lưu sẽ đè `'0'` chủ quán đã đặt (có hiện "Lỗi:…" trước đó).
+- Ca Sales.jsx của mục "Đã duyệt" 1 vẫn chỉ có bằng chứng gián tiếp: F4 / K4 gửi thân cùng dạng với `donGuiMayChu`; S1–S10 chỉ soi chuỗi trong nguồn, có đột biến bắt. Hành vi thật của màn chưa chạy.
+- Tinh-thu cho khách lẻ (không SĐT) + mã chưa có ca riêng; G2b chỉ đi qua POST.
+
+TRẢ LỜI 8 MỤC
+1. K3 — bài có giá trị một phần. Có chạy trên gốc và đỏ thật: 61 hỏng. Đa số ca kiểm hành vi bằng HTTP + DB (tổng tiền, lượt mã, dòng đơn), không chỉ marker. Riêng S1–S10 và E5 là soi chuỗi; marker suông có thể làm chúng xanh, nhưng đột biến của từng ca đều bắt. Lỗ: lỗi 1–3 ở trên.
+2. K4 — ba lỗi vòng 3 đã sửa thật: danh sách trắng tinh-thu (K4a/K4b/K4c cùng `BV-TINHTHU-LAY-GOI/-MUA-GOI/-MUA-THE` đều BẮT); `khoaGio` (`Sales.jsx:162`) không còn ghi chú, S10 cùng `VS-SALES-KHOA-GIO-THEO-DOI-TUONG` BẮT; ghi chú KB33 ở `kich_ban.js:720`. Grep `pos_settings` ở các đường ghi: `settings.js:114` có kiểm; `tiers.js:73-83` không đụng khoá `uudai_`; `backup.js:357` khôi phục không kiểm giá trị, nhưng phía đọc `!== "0"` vẫn an toàn. Grep `discountCodeValid` trong `Sales.jsx`: 13 chỗ; còn `:1208-1209` và `:1439` hiển thị số của `/validate` (xem NGHI NGỜ). Grep `tinhUuDai(` trong `orders.js`: 1 chỗ gọi (`:719`).
+3. K5 — không thấy luồng nào bị chặn oan: kiểm '0'/'1' chỉ áp khoá có tiền tố (E4); tinh-thu đi đủ đường gói / thẻ / lấy gói / phí giao (K4a-c, F4); `Sales.jsx:680` chặn thu khi chưa có số máy chủ, lỗi thật hiện đúng lý do (S6); hỏi lại trước khi ghi (`:723-732`) lệch tổng thì báo, không chặn vĩnh viễn; chọn hạng bỏ mã → giảm riêng không bật lại (đúng Q3); khách không hạng + mã (K1), mã hết hạn (K2a), payOS (K3a/b) đều qua.
+4. K1 — có câu không còn đúng ở HEAD: lỗi 4.
+5. Đường tiền — đúng: `orders.js:1291-1294` lọc thân; tiền mã và hạng tự tra DB (`:552`, `:648`, `:715-718`); `total` do máy chủ tính (`:761-764`); đối chiếu tiền ở `:860+` vẫn chạy cho POST /; lượt mã chỉ tiêu khi `discountCodeId` (`:1006-1044`); chọn hạng thì xoá `discountCodeId` (`:730-736`).
+6. P1 — dist khớp src (`--day-du`).
+7. Nghiệm thu — xem dòng NGHIỆM THU.
+8. Đơn giản — gọn được vài chỗ nhỏ: `orders.js:717` luôn truy vấn `pos_voucher_grants` kể cả khi khoá là '1' (có thể đọc cài đặt trước); `orders.js:1290` `customer_name` trong danh sách trắng là thừa; `uuDai.js:9`, `:51-57` hàm tiền thuần tự dựng câu chữ giao diện (chấp nhận được vì phiếu đòi `cau_ghi`). Không thấy phần lan man ngoài phiếu. Đối soát: theo trả lời Q4 chỉ cần ghi giới hạn — I13 ở chế độ thật (`doiSoat.js:245`, `bat_bien.js:261`) không bắt được "chọn hạng mà vẫn tiêu mã", chỉ giả lập KB33 bắt.
+
+NGHIỆM THU: 7/9 mục có bằng chứng đủ · mục thiếu:
+- F (thiếu một phần): vế "giá đơn vị theo hạng của từng món" không có ca kiểm giá trị (lỗi 1).
+- Ca Sales.jsx của mục "Đã duyệt" 1: chỉ có bằng chứng gián tiếp.
+Từng mục: A có (A1–A6 `thu_UUDAI1.js:155-177`, K3a/K3b payOS) · B có (B1–B5 `:183-200`) · C có (C1a–C8, C5a/C5b `:205-251`) · D có (D1a, D1b `:255-263`) · E có (E1–E5 `:151`, `:267-286`, `--day-du`) · F một phần (F1–F7, F1b, F4 × 8 `:290-337`; thiếu vế giá hạng từng món) · G có (G1–G7, G3b–G3d `:341-381`; riêng giá hạng trên dòng đơn chưa khoá — lỗi 1) · K5 có (K1, K2a, K2b, K4a–c `:385-434`) · Ca Sales.jsx: gián tiếp — F4 + S1–S10, không chạy màn thật.
+
+CHƯA SOÁT ĐƯỢC
+- `node tu_chay/cong.js chay`: người gác chặn `git clone` vào thư mục nháp; chạy trên kho thật thì ghi đè file, nên không chạy.
+- Sales.jsx và Settings.jsx trong trình duyệt.
+- Turso production; ICU của Node trên Render (`toLocaleString('vi-VN')`).
+- Bốn bài `thu_DIEMTHAT1`, `thu_P2223`, `thu_P24`, `thu_DOISOAT1` với đột biến của lỗi 1 (sập trong khung của tôi).
+
+BÀI HỌC
+- KHOÁ: mỗi trường trả về mà nghiệm thu gọi tên phải có MỘT ca kiểm GIÁ TRỊ ĐÚNG khác rỗng, không chỉ kiểm có khoá. Ở đây: ca Vàng 50.000 → `tier_unit_price` 45.000 ở tinh-thu và ở `pos_order_items`, kèm đột biến xoá `orders.js:729`.
+- KHOÁ: ca "không có dòng cài đặt → mặc định dùng chung" (xoá dòng `pos_settings` rồi tạo đơn), kèm đột biến `!== "0"` → `=== "1"`.
+- KHOÁ: ca kiểm giá trị `signup_unit_price` của mã 1 món khi dùng chung với hạng.
+- NGUYÊN TẮC (K3): dời một khối tính tiền sang hàm mới thì MỌI đầu ra của khối cũ (cả cột "chỉ hiển thị" mà nơi khác đọc để hoàn / đền) phải có ca giữ giá trị. "Không đổi" phải được khoá bằng giá trị, không chỉ bằng tổng.
+- NGUYÊN TẮC (K4): chuyển màn sang "số máy chủ" thì grep MỌI chỗ hiện số của nguồn cũ (`discountCodeValid.message`, `discount_amount`), không chỉ dòng tổng.
+- NGUYÊN TẮC (K1): sửa một quyết định trong vòng soát thì grep cả `trang_thai.md` tìm câu cũ trái nghĩa (`ma_loi_code`, Q5).
+```
+
+### Sau vòng 4 — máy DỪNG (phiếu mục 7: hết 3 vòng sửa, soát lần 4 KHÔNG ĐẠT → không sửa thêm)
+- Không sửa code / bài thử. Ghi nhận của máy (không phải quyết định): lỗi 1–3 là lỗ BÀI THỬ (code hôm nay đúng theo người soát), mỗi lỗi ~1 ca +
+  1 đột biến trong `cong_cu/thu_UUDAI1.js` / `viec/UUDAI-1/dot_bien.py` (đều trong Phạm vi); lỗi 4 là hồ sơ (`trang_thai.md`). Chat soát quyết có cho
+  vòng sửa thứ 4 không.
