@@ -19,7 +19,7 @@ const router = express.Router();
 // Gồm MỌI dòng tiền / thanh toán (ẩn một dòng làm chuỗi giá gốc → tổng và tổng các dòng thanh toán không cân với tổng hoá đơn) và
 // các dòng nói tình trạng đơn (huỷ / hoàn, IN LẠI).
 const KHONG_AN_DUOC = [
-  'ten_quan', 'so_bill', 'in_lai', 'da_huy', 'da_hoan',
+  'ten_quan', 'so_bill', 'lien_khach', 'lien_luu', 'in_lai', 'da_huy', 'da_hoan',
   'gia_goc', 'giam_hang', 'giam_flash', 'giam_ma', 'phi_giao', 'tong',
   'tieu_de_tt', 'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',
   'tem_in_lai',
@@ -85,7 +85,7 @@ async function dungMaNhanDiem(o) {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const o = Number.isInteger(id) && id > 0 ? await queryOne('SELECT * FROM pos_orders WHERE id = ?', [id]) : null;
+    const o = /^[1-9]\d{0,14}$/.test(req.params.id) && Number.isSafeInteger(id) ? await queryOne('SELECT * FROM pos_orders WHERE id = ?', [id]) : null;
     if (!o) return res.status(404).json({ error: 'Không tìm thấy đơn hàng', code: 'KHONG_THAY_DON' });
 
     const st = {};
