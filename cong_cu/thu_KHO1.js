@@ -228,11 +228,11 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B] nâng cấp dữ liệu đánh số');
   const cauTruc = async () => JSON.stringify(await db.query("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name"));
-  const ct1 = await cauTruc();
+  const ctLan1 = await cauTruc();
   const nc1 = (await coBang('pos_nang_cap')) ? await db.query('SELECT so, ten FROM pos_nang_cap ORDER BY so') : [];
   k('B1 khởi động lần 1: pos_nang_cap có bước 1 (001_kho)', nc1.length === 1 && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho', JSON.stringify(nc1));
   imLang(); await db.initDatabase(); noiLai();
-  k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ct1 && (await dem('pos_nang_cap')) === 1);
+  k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === 1);
   const chay = nap('nang_cap/chay.js');
   const chayNC = (csdl, thuMuc) => (typeof chay.chayNangCap === 'function' ? chay.chayNangCap(csdl, thuMuc) : Promise.resolve({ hong: 'thiếu chayNangCap' }));
   const dirBuoc = (ten, tep) => {
