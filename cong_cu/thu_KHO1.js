@@ -130,6 +130,9 @@ async function main() {
   for (const r of ['don-mo-rong', 'orders', 'backup']) {
     app.use('/api/pos/' + (r === 'don-mo-rong' ? 'orders' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
+  // Thư mục tạm nhận file của RIÊNG lần chạy này (đặt trước khi nạp duong.js — multer đọc lúc nạp): chạy song song (đột biến) không lẫn file.
+  const nhapSx = nap('kho/nhapSx.js');
+  if (!nhapSx.loiNap) nhapSx.THU_MUC_TAM = path.join(THU_MUC, 'tam_nhap_sx');
   const kho = nap('kho/duong.js');
   if (typeof kho === 'function') app.use('/api/pos/kho', kho);
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -181,7 +184,6 @@ async function main() {
   k('A2 index.js mount /api/pos/kho đúng MỘT lần', (index.match(/app\.use\(\s*['"]\/api\/pos\/kho['"]/g) || []).length === 1);
   const tinhSrc = doc(path.join(MAY_CHU, 'kho', 'tinh.js')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   k('A3 tinh.js THUẦN: không require, không Date / getNow', tinhSrc.length > 0 && !/require\(|\bDate\b|getNow/.test(tinhSrc));
-  const nhapSx = nap('kho/nhapSx.js');
   const bang = nhapSx.BANG_TEN_CHINH_THUC || {};
   k('A4 nhapSx.js có hằng BANG_TEN_CHINH_THUC: 41 tên SX → 37 khoá sau chuẩn hoá', Object.keys(bang).length === 37, `${Object.keys(bang).length} khoá`);
   k('A5 trang Kho có ở client/src/pages/Kho/ + route /kho trong App.jsx + đúng một mục /kho trong Layout.jsx',
