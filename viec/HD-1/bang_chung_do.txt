@@ -35,4 +35,13 @@ Bài thử mới (G34 G35 G35b G50–G57, F8, E1b, A28b A28c A30b A31b) chạy t
   ✗ A31b             nhật ký in đã xoá mềm vẫn tính vào "LẦN n"
 Sau vòng sửa: 138 đạt · 0 hỏng. Đột biến: 79 · BẮT 79 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 138 xanh).
 
-SỐ CA thu_HD1.js: 138
+── Vòng sửa 2 (soát độc lập vòng 2 KHÔNG ĐẠT, 28.10) ──
+Bài thử mới (G78 G79 F9 A28d A28e A28f; mã ca G50–G57 mới đánh lại G70–G77 vì trùng 8 cặp) chạy trên code TRƯỚC vòng sửa 2
+(`python3 viec/HD-1/dot_bien.py --goc 567564c`): 138 đạt · 6 hỏng:
+  ✗ A28d  mã đã CLAIM (claimed_at) vẫn uu_dai = true     ✗ A28e  mã đã nhận điểm (diem_nhan_luc) bị giấu ưu đãi dù còn claim được
+  ✗ A28f  hạn ưu đãi lấy hạn điểm (72) thay vì 24 của /claim; chữ "{gio}" sai
+  ✗ G79   ô ưu đãi in 72 giờ                              ✗ G78   Reset ghim tên quán / địa chỉ thành bản sao tĩnh
+  ✗ F9    xem trước tem ở Cài đặt không nhận chữ tem đang sửa (hàm caiDatTuChuDangSua chưa có)
+Sau vòng sửa 2: 144 đạt · 0 hỏng. Đột biến: 85 · BẮT 85 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 144 xanh).
+
+SỐ CA thu_HD1.js: 144

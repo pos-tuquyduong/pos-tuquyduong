@@ -38,7 +38,14 @@ Báo cáo gốc của agent soát (tóm tắt các lỗi, file:dòng lúc soát)
 6. Reset ghi `invoice_chu_dia_chi=''`/đè tên quán → hàm thuần `chuMacDinhCuaQuan`. Ca G57.
 Nghi ngờ cũng đã xử lý: QR mang `?ma=` của mã chết (G52), dòng "+0" (G53), nhãn huỷ/hoàn ẩn được (khoá không ẩn được), đơn cũ `balance` dồn tiền mặt (A30b), nhật ký in xoá mềm (A31b). Để lại (ghi Phát hiện): in lần hai cùng hộp thoại, tên quán mặc định hằng số, khoản giảm tay hiện nhãn "Giảm mã / quà".
 
-## Bảng chỗ vá → đột biến (viec/HD-1/dot_bien.py; 79 tên; chạy 28.10: BẮT 79 · LẠC 0 · SỐNG 0 · HỎNG 0)
+## Soát độc lập vòng 2 (28.10) — KHÔNG ĐẠT → đã sửa trong vòng sửa 2
+1. `uu_dai` dùng chung cột/hạn của điểm (`diem_nhan_luc`, hạn cấu hình) trong khi `/claim` dùng `claimed_at` + `CODE_EXPIRE_HOURS` = 24 (`signup-codes.js:30,311,319`) → tách `dungDuocDiem` / `dungDuocUuDai` ở `hoaDon.js`, xuất `CODE_EXPIRE_HOURS`, thêm `han_gio_uu_dai` cho chữ "{gio}" của ô ưu đãi. Ca A28d A28e A28f G79.
+2. Xem trước tem ở Cài đặt không nhận chữ tem đang sửa / không có dạng IN LẠI → hàm thuần `caiDatTuChuDangSua` (bill và tem dùng chung) + công tắc "Xem dạng IN LẠI". Ca F9.
+3. Mã ca trùng 8 cặp → đánh lại G70–G77, kiểm bằng grep mọi `k('<mã> ` (không còn trùng).
+Nghi ngờ đã xử lý: Reset ghim tên quán/địa chỉ → `khoaChuGhiKhiReset` (G78). Để lại, ghi nhận: không có ca máy chủ riêng cho đơn `refunded` (hoàn tiền không ghi dòng `adjust` điểm → điểm đã cộng vẫn còn đúng thực tế, `refunds.js:158`); `PHIẾU PHA CHẾ` / nhãn IN LẠI của phiếu pha chế còn chữ cứng (phiếu nội bộ, không phải bill hay tem); 'Khách lẻ' / 'quý khách' mặc định cứng; `KHONG_AN` chép ở hai nơi (server, client) có ca E1 so khớp.
+
+## Bảng chỗ vá → đột biến (viec/HD-1/dot_bien.py; 85 tên; chạy 28.10: BẮT 85 · LẠC 0 · SỐNG 0 · HỎNG 0)
+- vòng sửa 2: VS-HD-UU-DAI-CLAIMED · VS-HD-UU-DAI-DIEM-NHAN-LUC · VS-HD-UU-DAI-HAN-CAU-HINH · VS-G-UU-DAI-GIO-DIEM · VS-G-RESET-GHIM · VS-G-XEM-TRUOC-TEM-BO-CHU (neo của VS-HD-MA-DA-DUNG, VS-HD-MA-HET-HAN, VS-HD-MA-DON-HUY, VS-HD-N-KHONG-TAT-CT, VS-HD-UU-DAI-KHONG-DON, VS-G-UU-DAI-HUA-DIEM cập nhật theo code mới; mã ca bắt G50…G57 → G70…G77)
 - routes/hoaDon.js (cửa A): BV-HD-DANG-NHAP · VS-HD-N-THEO-TOTAL · VS-HD-MA-DA-DUNG · VS-HD-MA-HET-HAN · VS-HD-MA-DON-HUY · VS-HD-KHACH-QUEN-CO-MA · VS-HD-N-KHONG-TAT-CT · VS-HD-GIAM-MA-THEO-COT · VS-HD-TT-BO-DON-LECH · VS-HD-TT-CK-CU · VS-HD-DIEM-TRUOC-DON-SAU · VS-HD-DIEM-DOI-QUA-BO · VS-HD-DIEM-CONG-MOI-LOAI · VS-HD-SO-LAN-MOI-DON · VS-HD-GIA-HANG-BANG-GOC · VS-HD-SO-BILL-MA-DAY-DU · BV-HD-KHONG-GHI · VS-HD-LO-LOI-NOI-BO · BV-MOUNT-HOA-DON
   - vòng sửa 1: VS-HD-HUY-DIEM-ADJUST · VS-HD-UU-DAI-KHONG-DON · VS-HD-BALANCE-TIEN-MAT · VS-HD-LOG-XOA-MEM · VS-HD-KHONG-AN-THIEU-TIEN · VS-HD-KHONG-AN-THIEU-THANH-TOAN
 - utils/nhanDiem.js + signup-codes.js (D): VS-ND-FLASH-HOI · VS-ND-HE-SO-CO-DINH · VS-ND-TICH-DIEM-TAT · VS-ND-LAM-TRON · BV-ND-ROUTE-GOI-HAM

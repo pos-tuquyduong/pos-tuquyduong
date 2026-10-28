@@ -152,29 +152,35 @@ async function phanG() {
     && danhSachTo(HD_QUEN, { invoice_an_cam_on: 'true' })[0].chan.every((c) => c.khoa !== 'cam_on'));
   // HD-1 vòng sửa 1 (soát độc lập): IN LẠI / nhãn có khoá riêng, QR không mã chết, không dòng điểm 0, đủ mẫu xem trước
   const il = (cd, so = 1) => dungHoaDon({ ...HD_QUEN, so_lan_in: so }, cd, { inLai: true }).in_lai;
-  k('G50 dòng IN LẠI có khoá riêng: đổi chữ → bill đổi ("{lan}" tự điền); xoá trắng / ẩn → vẫn in chữ mặc định (luật thiết kế 4)',
+  k('G70 dòng IN LẠI có khoá riêng: đổi chữ → bill đổi ("{lan}" tự điền); xoá trắng / ẩn → vẫn in chữ mặc định (luật thiết kế 4)',
     il({ invoice_chu_in_lai: 'In lần {lan}!' }, 2) === 'In lần 3!' && il({ invoice_chu_in_lai: '  ' }) === 'IN LẠI · LẦN 2' && il({ invoice_an_in_lai: 'true' }) === 'IN LẠI · LẦN 2', il({ invoice_chu_in_lai: 'In lần {lan}!' }, 2));
   const nhan = dungHoaDon(HD_QUEN, { invoice_chu_nhan_khach: 'Quý khách', invoice_chu_nhan_nv: 'Thu ngân' });
-  k('G51 nhãn "Khách:" / "NV:" trên bill sửa được (không còn chữ cứng); mặc định "Khách" / "NV"', nhan.dau.nhan_khach === 'Quý khách' && nhan.dau.nhan_nv === 'Thu ngân' && dungHoaDon(HD_QUEN, {}).dau.nhan_khach === 'Khách' && dungHoaDon(HD_QUEN, {}).dau.nhan_nv === 'NV');
+  k('G71 nhãn "Khách:" / "NV:" trên bill sửa được (không còn chữ cứng); mặc định "Khách" / "NV"', nhan.dau.nhan_khach === 'Quý khách' && nhan.dau.nhan_nv === 'Thu ngân' && dungHoaDon(HD_QUEN, {}).dau.nhan_khach === 'Khách' && dungHoaDon(HD_QUEN, {}).dau.nhan_nv === 'NV');
   const qr0 = (o) => dungHoaDon({ ...HD_LE, ma_nhan_diem: { ma: 'TQD-X', diem: 0, uu_dai: false, han_gio: 24, ...o } }, CD).dau.qr;
-  k('G52 mã không còn dùng được (N = 0, không ưu đãi: đã dùng / hết hạn / đơn huỷ) → QR trần, KHÔNG `?ma=` chết; còn ưu đãi → QR mang mã',
+  k('G72 mã không còn dùng được (N = 0, không ưu đãi: đã dùng / hết hạn / đơn huỷ) → QR trần, KHÔNG `?ma=` chết; còn ưu đãi → QR mang mã',
     qr0({}) === 'https://app.example.vn/' && qr0({ uu_dai: true }) === 'https://app.example.vn/?ma=TQD-X' && qr0({ diem: 3 }) === 'https://app.example.vn/?ma=TQD-X', qr0({}));
   const cong0 = dungHoaDon({ ...HD_QUEN, diem: { truoc: 320, doi_qua: 0, cong: 0, hien_co: 320 } }, {});
-  k('G53 khách quen đơn 0 điểm (Flash / huỷ): KHÔNG in dòng "Cộng đơn này +0"; vẫn có điểm trước và hiện có', bang(khoa(cong0.diem), ['tieu_de_diem', 'diem_truoc', 'diem_co']), khoa(cong0.diem));
+  k('G73 khách quen đơn 0 điểm (Flash / huỷ): KHÔNG in dòng "Cộng đơn này +0"; vẫn có điểm trước và hiện có', bang(khoa(cong0.diem), ['tieu_de_diem', 'diem_truoc', 'diem_co']), khoa(cong0.diem));
   const cm = P.chuMacDinhCuaQuan || (() => ({}));   // gốc chưa có hàm → ca đỏ, không sập
   const macDinh = cm({ store_name: 'QUÁN A', store_address: '12 Phố', store_phone: '0123', invoice_chu_ten_quan: 'cũ', invoice_chu_dia_chi: 'cũ' });
-  k('G57 Reset về mặc định: tên quán + địa chỉ/SĐT theo store_* (không xoá địa chỉ, không đè tên quán bằng hằng số); chữ khác = mặc định',
+  k('G77 Reset về mặc định: tên quán + địa chỉ/SĐT theo store_* (không xoá địa chỉ, không đè tên quán bằng hằng số); chữ khác = mặc định',
     macDinh.ten_quan === 'QUÁN A' && macDinh.dia_chi === '12 Phố · 0123' && macDinh.cam_on === CHU_MAC_DINH.cam_on && macDinh.in_lai === CHU_MAC_DINH.in_lai
     && cm({}).dia_chi === '' && cm({}).ten_quan === CHU_MAC_DINH.ten_quan, JSON.stringify([macDinh.ten_quan, macDinh.dia_chi]));
+  const kr = P.khoaChuGhiKhiReset || (() => null);
+  k('G78 Reset rồi Lưu: ghi mọi khoá chữ, TRỪ tên quán + địa chỉ khi chưa từng bị ghi đè (không ghim bản sao tĩnh làm đổi store_* mất tác dụng); đã ghi đè từ trước → ghi lại',
+    kr({})?.length === Object.keys(CHU_MAC_DINH).length - 2 && !kr({}).includes('ten_quan') && !kr({}).includes('dia_chi') && kr({}).includes('in_lai')
+    && kr({ invoice_chu_ten_quan: 'x' })?.includes('ten_quan') && !kr({ invoice_chu_ten_quan: 'x' }).includes('dia_chi'), JSON.stringify(kr({})));
+  const udGio = dungHoaDon({ ...HD_LE, ma_nhan_diem: { ma: 'TQD-X', diem: 0, uu_dai: true, han_gio: 72, han_gio_uu_dai: 24 } }, CD).ma_diem?.chu;
+  k('G79 ô ưu đãi khách mới dùng hạn của ưu đãi (24), không dùng hạn điểm (72)', udGio === 'MÃ ƯU ĐÃI KHÁCH MỚI (nhập trong 24 giờ)', udGio);
   const tinhTong = (ds) => ds.reduce((s, d) => s + (d.khoa === 'tong' || d.khoa === 'dua_tra' ? 0 : tien(d.tien)), 0);
   const mauXem = P.MAU_XEM_TRUOC || [];
-  k('G54 xem trước đủ 7 mẫu: quen · lẻ · Flash · tài khoản mẹ · huỷ · hoàn · in lại', bang(mauXem.map((x) => x.khoa), ['quen', 'le', 'flash', 'me', 'huy', 'hoan', 'in_lai']), mauXem.map((x) => x.khoa).join());
+  k('G74 xem trước đủ 7 mẫu: quen · lẻ · Flash · tài khoản mẹ · huỷ · hoàn · in lại', bang(mauXem.map((x) => x.khoa), ['quen', 'le', 'flash', 'me', 'huy', 'hoan', 'in_lai']), mauXem.map((x) => x.khoa).join());
   const dung = mauXem.map((x) => ({ x, to: dungHoaDon(x.hd, CD, { inLai: x.inLai }) }));
   const tt = (m) => dung.find((d) => d.x.khoa === m)?.to || { tien: [], thanh_toan: [], ma_diem: null, canh_bao: null, in_lai: null };   // thiếu mẫu → ca đỏ, không sập
-  k('G55 mẫu Flash có dòng Giảm Flash và không hứa điểm; mẫu tài khoản mẹ có dòng Từ tài khoản mẹ + Ghi nợ; huỷ / hoàn có chữ trạng thái; in lại có dòng IN LẠI',
+  k('G75 mẫu Flash có dòng Giảm Flash và không hứa điểm; mẫu tài khoản mẹ có dòng Từ tài khoản mẹ + Ghi nợ; huỷ / hoàn có chữ trạng thái; in lại có dòng IN LẠI',
     khoa(tt('flash').tien).includes('giam_flash') && tt('flash').ma_diem?.chu.startsWith('MÃ ƯU ĐÃI') && khoa(tt('me').thanh_toan).includes('tu_tk_me') && khoa(tt('me').thanh_toan).includes('ghi_no')
     && tt('huy').canh_bao === 'ĐƠN ĐÃ HUỶ' && tt('hoan').canh_bao === 'ĐƠN ĐÃ HOÀN TIỀN' && tt('in_lai').in_lai === 'IN LẠI · LẦN 2' && tt('quen').in_lai === null);
-  k('G56 MỌI mẫu xem trước: tổng các dòng thanh toán = TỔNG HÓA ĐƠN và giá gốc − giảm + phí giao = tổng (chuỗi cân trên giấy)',
+  k('G76 MỌI mẫu xem trước: tổng các dòng thanh toán = TỔNG HÓA ĐƠN và giá gốc − giảm + phí giao = tổng (chuỗi cân trên giấy)',
     dung.every(({ to }) => tinhTong(to.thanh_toan) === tien(to.tien.at(-1).tien) && tien(to.tien[0].tien) + tinhTong(to.tien.slice(1)) === tien(to.tien.at(-1).tien)),
     dung.map(({ x, to }) => `${x.khoa}:${tinhTong(to.thanh_toan)}/${tien(to.tien.at(-1).tien)}`).join(' '));
   k('G36 ẩn tên quán bằng cài đặt: tên quán VẪN in; ẩn cả bốn mục thanh toán + tổng: vẫn in',
@@ -290,6 +296,11 @@ async function phanF() {
   k('F8 nhãn IN LẠI trên tem có khoá riêng (tem_in_lai): đổi chữ → tem đổi; xoá trắng / ẩn → vẫn "IN LẠI"; in lần đầu không nhãn',
     temLai({ invoice_chu_tem_in_lai: 'IN LẠI!' }) === 'IN LẠI!' && temLai({ invoice_chu_tem_in_lai: ' ' }) === 'IN LẠI' && temLai({ invoice_an_tem_in_lai: 'true' }) === 'IN LẠI'
     && tem({}).every((x) => !x.inLai), temLai({ invoice_chu_tem_in_lai: 'IN LẠI!' }));
+  const Hd = await nap('hoaDon.js');
+  const cdXem = Hd.caiDatTuChuDangSua ? Hd.caiDatTuChuDangSua({}, { chu: { ...Hd.CHU_MAC_DINH, tem_dau: 'DAU-MOI', tem_chan: 'CHAN-MOI', tem_in_lai: 'LAI-MOI' }, an: {}, soTo: 2, khUrl: '' }) : {};
+  const temXem = I.dungBoIn(I.DON_MAU, cdXem, { nhomTheoMa: I.NHOM_MAU, loai: ['tem'], inLai: true })[0]?.trang[0];
+  k('F9 xem trước tem ở Cài đặt (cài đặt đang sửa → dungBoIn): dòng đầu / cuối / nhãn IN LẠI sửa là hiện ngay; tem mẫu có dạng IN LẠI',
+    temXem?.dau === 'DAU-MOI' && temXem.chan === 'CHAN-MOI' && temXem.chuInLai === 'LAI-MOI' && temXem.inLai === true, JSON.stringify(temXem));
   k('F6 bộ in vẫn: bill 1 trang mặc định (số tờ 2 do hoá đơn nhân, ca P16 giữ nguyên)', I.dungBoIn(don, {}, {}).find((j) => j.loai === 'bill').trang.length === 1);
 }
 
@@ -491,6 +502,24 @@ async function phanA(P) {
   await db.run("UPDATE pos_orders SET payment_status = 'paid' WHERE id = ?", [rHuyLe.order.id]);
   k('A28c ưu đãi khách mới chỉ khi đơn hoàn tất + đã thu (như /nhan-diem): đơn huỷ hoặc chưa thu → uu_dai = false; đơn hợp lệ → true',
     uuDaiHuy.status === 200 && truocUd?.uu_dai === true && sauUd?.uu_dai === false && sauUd?.diem === 0 && chuaThu?.uu_dai === false, `${moTa(uuDaiHuy)} ${JSON.stringify([truocUd, sauUd, chuaThu])}`);
+  // mỗi loại ưu đãi một cột "đã dùng" + một hạn, đúng như đường dùng nó (soát vòng 2)
+  const rUd = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+  const udTruoc = (await hd(rUd.order.id)).h?.ma_nhan_diem;
+  const rClaim = await goi('POST', '/signup-codes/claim', { code: rUd.order.signup_code, phone: sdtMoi() });
+  const udSau = (await hd(rUd.order.id)).h?.ma_nhan_diem;
+  k('A28d mã đã CLAIM ưu đãi khách mới (claimed_at) → uu_dai = false (bill không còn ô ưu đãi, QR trần); trước khi claim = true; claim thật qua /signup-codes/claim',
+    rClaim.status === 200 && udTruoc?.uu_dai === true && udSau?.uu_dai === false, `${moTa(rClaim)} ${JSON.stringify([udTruoc, udSau])}`);
+  const rNd = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+  const rNhan = await goi('POST', '/signup-codes/nhan-diem', { code: rNd.order.signup_code, phone: sdtMoi() });
+  const ndSau = (await hd(rNd.order.id)).h?.ma_nhan_diem;
+  k('A28e mã đã NHẬN ĐIỂM (diem_nhan_luc) nhưng chưa claim: N = 0 mà ưu đãi khách mới VẪN còn (một mã dùng được cả hai)', rNhan.status === 200 && ndSau?.diem === 0 && ndSau.uu_dai === true, `${moTa(rNhan)} ${JSON.stringify(ndSau)}`);
+  await datCaiDat('nhandiem_han_gio', 72);
+  const rHan = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+  await db.run("UPDATE pos_signup_codes SET issued_at = ? WHERE order_id = ?", [new Date(Date.now() - 40 * 3600000).toISOString().slice(0, 19), rHan.order.id]);
+  const hanSau = (await hd(rHan.order.id)).h?.ma_nhan_diem;
+  await datCaiDat('nhandiem_han_gio', 24);
+  k('A28f hạn ưu đãi theo /claim (24 giờ cố định), hạn điểm theo cấu hình (72): mã in 40 giờ trước → còn hứa điểm, HẾT ưu đãi; han_gio_uu_dai = 24 để chữ "{gio}" của ô ưu đãi đúng',
+    hanSau?.diem > 0 && hanSau.uu_dai === false && hanSau.han_gio === 72 && hanSau.han_gio_uu_dai === 24, JSON.stringify(hanSau));
   // số lần in
   await goi('POST', '/settings/invoice/log', { order_id: rq.order.id, order_code: rq.order.code, invoice_number: 'HD-TEST-0', paper_size: '80mm' });   // log của đơn KHÁC không được tính
   const lan0 = (await hd(r1.order.id)).h?.so_lan_in;
