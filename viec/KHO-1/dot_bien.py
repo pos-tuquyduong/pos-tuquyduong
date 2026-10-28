@@ -67,10 +67,14 @@ DOT_BIEN = [
   ('BV-AN-GIA', [(L, 'nguyen_lieu: anGia ? ds.map(({ gia_nhap, ...r }) => r) : ds,', 'nguyen_lieu: ds,', 1)], r'✗ I16'),
   ('VS-BO-NHOM-GIU', [(L, 'nhom_id = excluded.nhom_id,', 'nhom_id = COALESCE(excluded.nhom_id, kho_san_pham.nhom_id),', 1)], r'✗ I17'),
   # ── vòng sửa 3 (phiếu mục 7: món tạo is_active = 1 giá 0, bỏ "Bật bán") ──
-  ('BV-MON-TAO-AN', [(N, 'VALUES (?, ?, ?, 0, ?, 1, ?, ?)', 'VALUES (?, ?, ?, 0, ?, 0, ?, ?)', 1)], r'✗ (F9|K[1456])'),
-  ('VS-MON-TAO-GIA-NULL', [(N, 'VALUES (?, ?, ?, 0, ?, 1, ?, ?)', 'VALUES (?, ?, ?, NULL, ?, 1, ?, ?)', 1)], r'✗ (F9|K[14])'),
+  ('BV-MON-TAO-AN', [(N, 'VALUES (?, ?, ?, NULL, ?, 1, ?, ?)', 'VALUES (?, ?, ?, NULL, ?, 0, ?, ?)', 1)], r'✗ (F9|K[1456])'),
   ('VS-MON-TAO-MAT-KHOA', [(N, "m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]", "m.loai === 'tea' ? 'gói' : 'túi', null, null]", 1)], r'✗ (F9|K[145])'),
   ('BV-CANH-BAO-MON', [(N, "      cb('MON_CHUA_GIA',", "      if (false) cb('MON_CHUA_GIA',", 1)], r'✗ F2'),
+  # ── vòng sửa 4 (phiếu mục 10–12: món không khoá nối SX không tạo, giá NULL, ô Thiếu thông tin đếm món) ──
+  ('BV-MON-KHONG-KHOA', [(N, '    if (m.khoa_id == null) {', '    if (false) {', 1)], r'✗ (F1|F2|F9|F11|K1|K8) '),
+  ('VS-MON-GIA-0', [(N, 'VALUES (?, ?, ?, NULL, ?, 1, ?, ?)', 'VALUES (?, ?, ?, 0, ?, 1, ?, ?)', 1)], r'✗ (F9|K1b?|H2) '),
+  ('BV-CANH-BAO-CHUA-NOI', [(N, "      cb('MON_CHUA_NOI',", "      if (false) cb('MON_CHUA_NOI',", 1)], r'✗ F2c? '),
+  ('BV-SP-GIA', [(L, 'p.category, p.price, p.is_active', 'p.category, p.is_active', 1)], r'✗ H2 '),
 ]
 
 
