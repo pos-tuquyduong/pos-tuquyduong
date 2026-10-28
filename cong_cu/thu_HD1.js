@@ -220,6 +220,20 @@ async function phanC() {
     k(`C1 giải mã ra đúng đường dẫn (${text.length} ký tự)`, ra === text, `ra "${ra}"`);
   }
   k('C2 qrSvg: chuỗi SVG có <svg và các ô đen; rỗng → ""', typeof V.qrSvg === 'function' && /^<svg[^>]*viewBox/.test(V.qrSvg('https://a.vn/')) && /<path|<rect/.test(V.qrSvg('https://a.vn/')) && V.qrSvg('') === '');
+  {
+    // C4: chính chuỗi SVG in lên bill (không thêm lề) phải đọc được và có viền yên tĩnh ≥ 2 ô
+    const text = 'https://app.example.vn/?ma=TQD-ABCDEFGHJKMN', svg = V.qrSvg(text), heSo = 6;
+    const W0 = Number((/viewBox="0 0 (\d+) /.exec(svg) || [])[1]), n = V.veQr(text).n, W = W0 * heSo;
+    const px = new Uint8ClampedArray(W * W * 4).fill(255);
+    let leMin = Infinity;
+    for (const m of svg.matchAll(/M(\d+) (\d+)h1v1h-1z/g)) {
+      const cx = Number(m[1]), cy = Number(m[2]);
+      leMin = Math.min(leMin, cx, cy, W0 - 1 - cx, W0 - 1 - cy);
+      for (let y = 0; y < heSo; y++) for (let x = 0; x < heSo; x++) { const o = ((cy * heSo + y) * W + cx * heSo + x) * 4; px[o] = px[o + 1] = px[o + 2] = 0; }
+    }
+    let ra; try { ra = jsQR(px, W, W)?.data; } catch (e) { ra = 'LỖI ' + e.message; }
+    k('C4 qrSvg: viền yên tĩnh ≥ 2 ô và ảnh dựng từ chính chuỗi SVG giải mã ra đúng đường dẫn', W0 === n + 4 && leMin >= 2 && ra === text, `W0=${W0} n=${n} leMin=${leMin} ra "${ra}"`);
+  }
   k('C3 veQr(rỗng) không ném, trả ma trận rỗng', (() => { try { const r = V.veQr(''); return r.n === 0; } catch { return false; } })());
 }
 

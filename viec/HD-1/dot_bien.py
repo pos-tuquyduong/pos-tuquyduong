@@ -9,8 +9,7 @@ Khuôn viec/DIEM-THAT-1/dot_bien.py: chép server/ và client/src/ ra thư mục
 chỉ đọc), thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, không bao giờ đếm là đạt, K3), chạy
 `node cong_cu/thu_HD1.js --goc <bản sao>`.
 BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Thoát 2 / bài sập hoặc đỏ mà không khớp mẫu = LẠC. Xanh trọn = SỐNG.
-Đối chứng (bản chưa đột biến) phải xanh TRỪ ca C0 (thư viện qrcode-generator chưa cài — xem trang_thai.md ## Câu hỏi 1); đột biến
-của veQr.js chỉ chạy được khi thư viện có mặt.
+Đối chứng (bản chưa đột biến) phải xanh trọn. Đột biến của veQr.js cần thư viện qrcode-generator có mặt ở client/node_modules.
 Không đụng server/ thật, data/, Turso.
 """
 import os, re, shutil, subprocess, sys, tempfile
@@ -96,7 +95,7 @@ DOT_BIEN = [
   ('BV-IN-QUA-CUA-HOA-DON', [(PR, 'api.get(`/hoa-don/${order.id}`)', 'Promise.reject(new Error("tat"))', 1)], r'✗ H1 '),
   # ── C: QR (cần thư viện qrcode-generator trong client/node_modules) ──
   ('VS-QR-DAO-MAU', [(VQ, 'q.isDark(r, c)', '!q.isDark(r, c)', 1)], r'✗ C1 '),
-  ('VS-QR-KHONG-VIEN', [(VQ, 'const le = 2, W = n + 2 * le;', 'const le = 0, W = n + 2 * le;', 1)], r'✗ C2 '),
+  ('VS-QR-KHONG-VIEN', [(VQ, 'const le = 2, W = n + 2 * le;', 'const le = 0, W = n + 2 * le;', 1)], r'✗ C4 '),
 ]
 
 
