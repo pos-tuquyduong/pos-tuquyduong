@@ -35,4 +35,25 @@ Lệnh: python3 viec/KHO-1/dot_bien.py --goc e4f927f
 (7 xanh = 6 ca K5 ở trên + A5 — bài đọc client/ ở cây hiện tại, server/ ở gốc.)
 
 Trên code đã vá (HEAD 3fbb608): node cong_cu/thu_KHO1.js → 94 đạt · 0 hỏng
-SỐ CA cong_cu/thu_KHO1.js: 94
+(dòng SỐ CA cũ thay bằng dòng ở cuối file — bài đã thêm ca sau vòng soát 1)
+
+── Vòng soát 1 (28.10): thêm ca KHOÁ cho lỗi người soát bắt — bài HEAD cd2b774 ──
+(a) trên server/ TRƯỚC vòng sửa (25a7c99 — bài mới, code cũ): python3 viec/KHO-1/dot_bien.py --goc 25a7c99
+  ✗ F1 ... "mon_tao_an":4,"cong_thuc_ghi":4 ...        (hai món SX cùng mã trong một lô)
+  ✗ F2 đủ 8 loại cảnh báo ...  — thiếu THIEU_GIA
+  ✗ F7 nhóm nguyên liệu: Dược liệu 7 · Rau củ quả 5  — [{"ten":"Dược liệu","so":0},{"ten":"Rau củ quả","so":5}]
+  ✗ F21 nhóm "Dược liệu" chủ quán tạo trước: nhập dùng lại nhóm đó
+  ✗ G4 Dưỡng Nhan Lộ ... — 4 dòng (công thức An Mi Lộ nhét vào DNL)
+  ✗ F16 bản mới hơn ...
+  ✗ I16 nhân viên KHÔNG thấy giá nhập (giá vốn)
+  ✗ I17 chọn "—" (nhom_id null) → bỏ món khỏi nhóm thật
+  ✗ J6 thiếu một bảng kho (nâng cấp hỏng): /backup/info, /export-all, /restore vẫn 200  — HTTP 500 ×3
+  ✗ K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA  — HTTP 404
+  ✗ K6 manager / staff bật bán → 403
+  ✗ K7 chủ quán bật bán → tạo đơn món đó 200  — HTTP 404 | HTTP 400 · Sản phẩm không tồn tại hoặc đã ngừng bán
+  91 đạt · 12 hỏng · GỐC 25a7c99: thoát 1
+(b) trên gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 9 đạt · 94 hỏng · thoát 1
+    9 xanh = A5 (bài đọc client/ hiện tại) + ca K5 "phải KHÔNG đổi": D1, F10, F12, F13, K1, K1b, K2, J6 (gốc chưa có bảng kho nên sao lưu
+    không thiếu gì — J6 đỏ thật ở (a)).
+Trên code đã vá (HEAD cd2b774): node cong_cu/thu_KHO1.js → 103 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 103

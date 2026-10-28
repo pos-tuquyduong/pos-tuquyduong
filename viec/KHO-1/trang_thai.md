@@ -84,3 +84,53 @@
 | `duLieu.xoaNguyenLieu` kiểm đang dùng | `BV-XOA-KIEM-DUNG` (I8) |
 | `backup.js` sao lưu bảng kho | `BV-SAO-LUU-BANG` (J2) |
 | `backup.js` khôi phục kho chỉ khi trống / không khôi phục pos_nang_cap | `BV-KHOI-PHUC-KHO` (J3) · `BV-KHOI-PHUC-NANG-CAP` (J4) |
+
+## Soát độc lập — vòng 1 (`/ra-soat`, 28.10, mốc 40ab1cf^, HEAD 4155f2b) — báo cáo nguyên văn
+
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/kho/nhapSx.js:166-170 — món SX tạo dòng pos_products is_active = 0, nhưng cả hệ thống không có đường nào bật lại is_active = 1 — K5
+   (nặng, đường bán). products.js:164 / :212 khi dòng đã có chỉ UPDATE price; màn Kho không có nút bật. Đặt giá → layMenuQuay trả
+   sellable: true (quầy + App KH hiện món) nhưng POST /orders lọc is_active = 1 (orders.js:349, :354) → 400. Trước KHO-1 đặt giá món chưa
+   có dòng thì INSERT is_active = 1 (products.js:170) và bán được ngay.
+2. cong_cu/thu_KHO1.js:310-313, :401-402 (K1, K2) — K1 chỉ đo menu dự phòng; đường SX nối thật và /api/kh/menu không đo; K2 chỉ bán CT1,
+   không có ca "món tạo ẩn → đặt giá → tạo đơn" — K3.
+3. server/kho/nhapSx.js:107 — chỉ cảnh báo 0 < giá < 1.000; giá 0 / trống không có cảnh báo (phiếu F đòi) — tên ca F2 nói "giá", máy chỉ
+   khoá GIA_BAT_THUONG — K4/K3.
+4. server/routes/backup.js:173, :211, :352 — bước nâng cấp hỏng (thiếu bảng kho_*) → /info, /export-all 500, /restore luôn 500 (khoTrong
+   không bọc lỗi) — K5/K4.
+5. client/src/pages/Kho/NguyenLieu.jsx:100 và :37 — ô "Thiếu thông tin" đếm `n.dang_dung && la(n)`, danh sách lọc `la(n)` — hai biểu thức
+   cho "có gì để làm" và "làm" (BAN-HANG-1) — K4.
+6. server/kho/nhapSx.js:130, :168-171 — trùng mã chỉ so với POS đã có, không so trong cùng lô; món 2 cùng mã bị bỏ, SELECT id theo code trả
+   món 1 → công thức món 2 nhét vào món 1, im lặng — K4.
+7. server/kho/duLieu.js:116 — COALESCE(excluded.nhom_id, …) → chọn "—" không bỏ được nhóm — nhỏ.
+8. server/kho/nhapSx.js:167 — chú thích "quầy chỉ bán khi price > 0 (routes/products.js) — chủ quán đặt giá rồi bật" sai hai chỗ — K1.
+NGHI NGỜ: chay.js:31-44 máy thứ hai chờ BEGIN quá ~1,55 s (Turso, 13 câu) → lỗi BẬN → hong → 503 suốt đời tiến trình; nhapSx.js:37 không
+   ?mode=ro, -wal/-shm có thể còn; nhapSx.js:158/:164 nhóm "Dược liệu" chủ quán tạo trước (ten_sx NULL) → nguyên liệu nhập không có nhóm;
+   duLieu.js:64 nhân viên đọc được gia_nhap (giá vốn, LUAT §4); khôi phục Excel khi kho có dữ liệu thay pos_products → dòng kho trỏ id không
+   còn, GET /trien-khai gặp vòng do khôi phục → 500; trang_thai.md thiếu CHƯA KIỂM, cong.js chay, 1–3 thao tác thử tay.
+NGHIỆM THU: 14/17 · thiếu: F (cảnh báo giá 0), K (menu SX nối thật, /api/kh/menu, đặt giá món ẩn rồi bán), Đã duyệt-3 (không có đường bật bán).
+CHƯA SOÁT ĐƯỢC: Turso thật; file SX 09.10; thao tác tay giao diện; mới chạy 3/29 đột biến; chưa chạy cong.js chay; lỗi 1 kết luận từ đọc code.
+BÀI HỌC: KHOÁ ca "tạo ẩn → PUT /products/price → POST /orders"; KHOÁ K1 đo cả SX nối thật + /api/kh/menu; KHOÁ "nâng cấp hỏng → sao lưu
+   vẫn chạy"; KHOÁ tách ca giá 0; KHOÁ hai món cùng mã trong một lô. NGUYÊN TẮC (K5 mới): tạo dữ liệu ở trạng thái chặn thì phải chỉ ra
+   đường thật đưa nó ra + ca đi hết đường. NGUYÊN TẮC (K4): thêm bảng mà nhánh hỏng làm bảng không tồn tại → grep mọi chỗ duyệt danh sách
+   bảng. NGUYÊN TẮC (K1): chú thích "file X chặn Y" phải mở đúng file X.
+```
+
+### Xử lý vòng 1 (vòng sửa 1/3) — mỗi lỗi một ca đỏ trước (`bang_chung_do.txt` mục (a)), đột biến mới, 103/103, đột biến 38/38 BẮT
+| Lỗi soát | Sửa | Ca · đột biến |
+|---|---|---|
+| 1 không có đường bật bán | `PUT /api/pos/kho/san-pham/:id/ban` (chủ quán; bật cần price > 0 — một câu UPDATE kiểm changes, 400 `CHUA_CO_GIA`) + nút "Bật bán ở quầy / Ẩn khỏi quầy" ở chi tiết món. `products.js` (Cấm) không đụng — món ẩn giữ đúng phiếu Đã duyệt 3 | K4–K7 · `VS-BAT-BAN-KHONG-GIA`, `BV-QUYEN-BAT-BAN` |
+| 2 bài phủ thiếu | K1b menu khi SX nối thật (cùng `layMenuQuay` của `/api/kh/menu`): mỗi món giữ nguyên `sellable` / có giá — xanh cả gốc lẫn vá (K5 "phải KHÔNG đổi"; `price` null → 0 không đổi hiển thị: Sales.jsx:1044-1045 "Chưa có giá" khi không > 0, App KH lọc `sellable`) ; K5–K7 đi hết đường đặt giá → bật → bán | K1b, K7 |
+| 3 thiếu cảnh báo giá 0 | một dòng `THIEU_GIA` gộp tên các nguyên liệu chưa có giá | F2 · `BV-THIEU-GIA` |
+| 4 sao lưu sập khi thiếu bảng | `bangDangCo()` cho /info, /export-all; xem trước đếm `.catch`; `khoTrong` lỗi → coi như kho CÓ dữ liệu (bỏ qua bảng kho) | J6 · `BV-SAO-LUU-BANG-THIEU`, `BV-KHO-TRONG-LOI` |
+| 5 hai vị từ "Thiếu thông tin" | một hàm `thieu_(ma, n)` cho cả số đếm lẫn lọc | (giao diện — thử tay) |
+| 6 trùng mã trong lô | `maSeTao` trong `lapKeHoach` | F1, G4 · `VS-TRUNG-MA-LO` |
+| 7 không bỏ được nhóm | `nhom_id = excluded.nhom_id` (PUT thay cả kiểu + nhóm + công thức) | I17 · `VS-BO-NHOM-GIU` |
+| 8 chú thích sai | sửa chú thích trỏ đúng `getFallbackProducts` / `orders.js` / đường bật bán | — |
+| Nghi ngờ nhóm tạo trước | `ON CONFLICT(ten) DO UPDATE SET ten_sx = COALESCE(...)` cho cả hai bảng nhóm | F21, F7 · `VS-NHOM-CO-SAN` |
+| Nghi ngờ giá vốn với nhân viên | GET nguyên liệu bỏ `gia_nhap` khi vai trò staff (LUAT §4 — chọn phía ít lộ, đảo được); giao diện không hiện giá / ô thiếu thông tin cho staff | I16 · `BV-AN-GIA` |
+| Nghi ngờ -wal/-shm | xoá thêm `-journal`, `-wal`, `-shm` cạnh file tạm; `?mode=ro` libsql 0.4 KHÔNG nhận ("URL_PARAM_NOT_SUPPORTED: Unknown URL query parameter mode" — đã thử) → chỉ chạy SELECT / PRAGMA, file là bản tạm riêng | F14 |
+| Đơn giản: `doiDonVi` chỉ bài thử gọi; `gonTen` chép | máy chủ trả `luong_hien` (= `tinh.doiDonVi`) ở công thức + "Tính cho N phần", giao diện hiện số đó; `tinh.gonTen` dùng chung | E6 |
+Chưa sửa (ghi CHƯA KIỂM ở báo cáo): máy thứ hai chờ BEGIN quá 1,55 s trên Turso; khôi phục Excel thay `pos_products` để lại dòng kho trỏ id cũ.
