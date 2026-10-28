@@ -136,13 +136,16 @@ async function main() {
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   noiLai();
 
-  const mot = async (sql, a = []) => db.queryOne(sql, a);
+  // Bảng chưa có (code gốc) → câu đọc / ghi trả rỗng, ca ✗ chứ không sập cả bài.
+  const q = (sql, a = []) => db.query(sql, a).catch(() => []);
+  const ghiDb = (sql, a = []) => db.run(sql, a).catch(() => null);
+  const mot = async (sql, a = []) => db.queryOne(sql, a).catch(() => null);
   const so = async (sql, a = []) => Number(Object.values((await mot(sql, a)) || { x: NaN })[0]);
   const coBang = async (ten) => (await so("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", [ten])) === 1;
   const chu = await mot("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const nguoi = { chu: chu.id };
   for (const [ten, vaiTro] of [['ql_kho1', 'manager'], ['nv_kho1', 'staff']]) {
-    nguoi[vaiTro] = Number((await db.run("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES (?, 'x', ?, ?, 1)",
+    nguoi[vaiTro] = Number((await ghiDb("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES (?, 'x', ?, ?, 1)",
       [ten, ten, vaiTro])).lastInsertRowid);
   }
   const the = Object.fromEntries(Object.entries(nguoi).map(([a, id]) => [a, jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '3650d' })]));
@@ -227,9 +230,9 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B] nâng cấp dữ liệu đánh số');
-  const cauTruc = async () => JSON.stringify(await db.query("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name"));
+  const cauTruc = async () => JSON.stringify(await q("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name"));
   const ctLan1 = await cauTruc();
-  const nc1 = (await coBang('pos_nang_cap')) ? await db.query('SELECT so, ten FROM pos_nang_cap ORDER BY so') : [];
+  const nc1 = (await coBang('pos_nang_cap')) ? await q('SELECT so, ten FROM pos_nang_cap ORDER BY so') : [];
   k('B1 khởi động lần 1: pos_nang_cap có bước 1 (001_kho)', nc1.length === 1 && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho', JSON.stringify(nc1));
   imLang(); await db.initDatabase(); noiLai();
   k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === 1);
@@ -247,20 +250,20 @@ async function main() {
     'ghichu.txt': 'không phải bước',
   });
   imLang(); const kqHong = await chayNC(db, dHong); noiLai();
-  const daChay = (await coBang('pos_nang_cap')) ? (await db.query('SELECT so FROM pos_nang_cap WHERE so > 900')).map((r) => Number(r.so)) : [];
+  const daChay = (await coBang('pos_nang_cap')) ? (await q('SELECT so FROM pos_nang_cap WHERE so > 900')).map((r) => Number(r.so)) : [];
   k('B3 bước 901 chạy + đánh dấu; 902 hỏng KHÔNG đánh dấu; 903 KHÔNG chạy', JSON.stringify(daChay) === '[901]'
     && (await coBang('thu_a')) && !(await coBang('thu_c')), JSON.stringify(daChay));
   k('B4 bước hỏng rollback cả bước (thu_b không còn) + kết quả nêu "902_hong"', !(await coBang('thu_b')) && /902_hong/.test(String(kqHong?.hong)), String(kqHong?.hong));
-  await db.run('CREATE TABLE thu_co_dong (x)'); await db.run('INSERT INTO thu_co_dong VALUES (1), (2)'); await db.run('CREATE TABLE thu_rong (x)');
+  await ghiDb('CREATE TABLE thu_co_dong (x)'); await ghiDb('INSERT INTO thu_co_dong VALUES (1), (2)'); await ghiDb('CREATE TABLE thu_rong (x)');
   const dCot = dirBuoc('buoc_cot', {
     '904_cot.js': "module.exports.chay = async (tx, { themCot }) => { await themCot('thu_co_dong', 'moi TEXT'); await themCot('thu_rong', 'moi TEXT');"
       + " await themCot('thu_co_dong', 'moi TEXT'); };",
   });
   imLang(); const kqCot = await chayNC(db, dCot); noiLai();
   k('B5 themCot vào bảng CÓ dòng → _sao_luu_904_thu_co_dong đủ 2 dòng, cột mới có', !kqCot?.hong && (await dem('_sao_luu_904_thu_co_dong')) === 2
-    && (await db.query('PRAGMA table_info(thu_co_dong)')).some((c) => c.name === 'moi'), String(kqCot?.hong));
+    && (await q('PRAGMA table_info(thu_co_dong)')).some((c) => c.name === 'moi'), String(kqCot?.hong));
   k('B6 themCot vào bảng rỗng → KHÔNG tạo bảng sao lưu; gọi lại cột đã có → không lỗi', !(await coBang('_sao_luu_904_thu_rong'))
-    && (await db.query('PRAGMA table_info(thu_rong)')).some((c) => c.name === 'moi'));
+    && (await q('PRAGMA table_info(thu_rong)')).some((c) => c.name === 'moi'));
   const tepBuoc = fs.existsSync(path.join(MAY_CHU, 'nang_cap')) ? fs.readdirSync(path.join(MAY_CHU, 'nang_cap')).filter((f) => f.endsWith('.js') && f !== 'chay.js') : [];
   const viPham = tepBuoc.filter((f) => /\b(ALTER\s+TABLE|DROP\s+(TABLE|INDEX|VIEW)|DELETE\s+FROM|RENAME\s)/i.test(doc(path.join(MAY_CHU, 'nang_cap', f))));
   k('B7 bước nâng cấp chỉ THÊM: không ALTER/DROP/DELETE/RENAME viết thẳng (≥ 1 bước để quét)', tepBuoc.length >= 1 && !viPham.length, viPham.join(', '));
@@ -271,7 +274,7 @@ async function main() {
   const db2 = require(duongDB);
   require.cache[duongDB] = dbGoc;
   imLang(); await db2.initDatabase(); noiLai();
-  await db.run('CREATE TABLE thu_dem (buoc INTEGER)');
+  await ghiDb('CREATE TABLE thu_dem (buoc INTEGER)');
   const cham = (n) => `module.exports.chay = async (tx) => { await tx.run('INSERT INTO thu_dem VALUES (${n})'); await new Promise((r) => setTimeout(r, 150)); };`;
   const dSS = dirBuoc('buoc_song_song', { '905_cham.js': cham(905), '906_cham.js': cham(906) });
   imLang(); const ss = await Promise.all([chayNC(db, dSS), chayNC(db2, dSS)]); noiLai();
@@ -292,19 +295,19 @@ async function main() {
   const thieu = []; for (const b of BANG_KHO) if (!(await coBang(b))) thieu.push(b);
   k('C1 đủ 10 bảng kho_*', !thieu.length, 'thiếu ' + thieu.join(', '));
   const nem = async (sql, a = []) => { try { await db.run(sql, a); return false; } catch { return true; } };
-  k('C2 CHECK: kiểu sản phẩm lạ bị từ chối', await nem("INSERT INTO kho_san_pham (pos_product_id, kieu) VALUES (1, 'la')"));
-  k('C3 CHECK: loại phiếu lạ bị từ chối', await nem("INSERT INTO kho_phieu (loai, so_phieu, nguoi_tao, tao_luc) VALUES ('XX', 'T1', 'a', 'b')"));
+  k('C2 CHECK: kiểu sản phẩm lạ bị từ chối', (await coBang('kho_san_pham')) && await nem("INSERT INTO kho_san_pham (pos_product_id, kieu) VALUES (1, 'la')"));
+  k('C3 CHECK: loại phiếu lạ bị từ chối', (await coBang('kho_phieu')) && await nem("INSERT INTO kho_phieu (loai, so_phieu, nguoi_tao, tao_luc) VALUES ('XX', 'T1', 'a', 'b')"));
   k('C4 CHECK: dòng công thức có CẢ nguyên liệu lẫn thành phần bị từ chối',
-    await nem('INSERT INTO kho_cong_thuc (san_pham_id, nguyen_lieu_id, thanh_phan_id, luong) VALUES (1, 1, 2, 1)'));
+    (await coBang('kho_cong_thuc')) && await nem('INSERT INTO kho_cong_thuc (san_pham_id, nguyen_lieu_id, thanh_phan_id, luong) VALUES (1, 1, 2, 1)'));
   let cotTon = [];
-  for (const b of BANG_KHO) if (await coBang(b)) cotTon = cotTon.concat((await db.query(`PRAGMA table_info(${b})`)).filter((c) => /^ton($|_)/.test(c.name) && c.name !== 'ton_toi_thieu').map((c) => b + '.' + c.name));
+  for (const b of BANG_KHO) if (await coBang(b)) cotTon = cotTon.concat((await q(`PRAGMA table_info(${b})`)).filter((c) => /^ton($|_)/.test(c.name) && c.name !== 'ton_toi_thieu').map((c) => b + '.' + c.name));
   k('C5 tồn KHÔNG là ô sửa tay: không cột ton* nào trong bảng kho (trừ ton_toi_thieu)', (await coBang('kho_nguyen_lieu')) && !cotTon.length, cotTon.join(', '));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D/K] một món một dòng — pos_products và menu không đổi');
   const COT_SP = 'id,code,name,category,price,unit,description,image_url,is_active,sort_order,sx_product_type,sx_product_id,is_special_group,created_at,updated_at,ton_gan_nhat,ton_luc';
-  k('D1 pos_products KHÔNG thêm cột', (await db.query('PRAGMA table_info(pos_products)')).map((c) => c.name).join(',') === COT_SP);
-  await db.run("UPDATE pos_products SET price = 25000 WHERE code IN ('CT1', 'CT2')");
+  k('D1 pos_products KHÔNG thêm cột', (await q('PRAGMA table_info(pos_products)')).map((c) => c.name).join(',') === COT_SP);
+  await ghiDb("UPDATE pos_products SET price = 25000 WHERE code IN ('CT1', 'CT2')");
   const { layMenuQuay } = require(path.join(MAY_CHU, 'routes', 'products.js'));
   imLang(); const menuTruoc = JSON.stringify(await layMenuQuay()); noiLai();
 
@@ -326,7 +329,7 @@ async function main() {
   k('F3 bản xem trước nêu tên gộp: Táo đỏ ← Táo đỏ khô, Táo Đỏ', gop && gop.cu.length === 3, JSON.stringify(gop));
   k('F4 xem trước KHÔNG ghi gì', (await dem('kho_nguyen_lieu')) === nlTruoc && (await so('SELECT COUNT(*) FROM pos_products')) === 8);
   const ghi = await nhap('chu', fileSx, true);
-  const nl = await db.query('SELECT * FROM kho_nguyen_lieu ORDER BY ten');
+  const nl = await q('SELECT * FROM kho_nguyen_lieu ORDER BY ten');
   const tenNL = nl.map((r) => r.ten);
   k('G1 nhập → đúng 12 nguyên liệu (gộp đúng bảng tên chính thức)', ghi.status === 200 && JSON.stringify(tenNL) === JSON.stringify(
     ['Cam', 'Cẩu tích', 'Củ dền', 'Gừng', 'Kỷ tử', 'Lá dứa', 'Mè đen rang', 'Mẹ thuốc', 'Táo tươi', 'Táo đỏ', 'Trần bì', 'Đỗ đen rang'].sort()),
@@ -338,12 +341,12 @@ async function main() {
     && nl.every((r) => r.don_vi_luu === 'kg') && nlTen('Cam').don_vi_hien === 'kg');
   k('F6 hạn / tối thiểu: 0 → NULL, có số thì giữ (Lá dứa 3 ngày, 0.5)', nlTen('Cam').han_ngay === null && nlTen('Cam').ton_toi_thieu === null
     && Number(nlTen('Lá dứa').han_ngay) === 3 && gan(Number(nlTen('Lá dứa').ton_toi_thieu), 0.5));
-  const nhomNL = await db.query('SELECT n.ten, COUNT(l.id) AS so FROM kho_nhom_nguyen_lieu n LEFT JOIN kho_nguyen_lieu l ON l.nhom_id = n.id GROUP BY n.id ORDER BY n.ten');
+  const nhomNL = await q('SELECT n.ten, COUNT(l.id) AS so FROM kho_nhom_nguyen_lieu n LEFT JOIN kho_nguyen_lieu l ON l.nhom_id = n.id GROUP BY n.id ORDER BY n.ten');
   k('F7 nhóm nguyên liệu: Dược liệu 7 · Rau củ quả 5 (Lá dứa tên mới juice → Rau củ quả)', JSON.stringify(nhomNL.map((r) => [r.ten, Number(r.so)]))
     === JSON.stringify([['Dược liệu', 7], ['Rau củ quả', 5]]), JSON.stringify(nhomNL));
-  const nhomCT = (await coBang('kho_nhom_cong_thuc')) ? (await db.query('SELECT ten FROM kho_nhom_cong_thuc ORDER BY ten')).map((r) => r.ten) : [];
+  const nhomCT = (await coBang('kho_nhom_cong_thuc')) ? (await q('SELECT ten FROM kho_nhom_cong_thuc ORDER BY ten')).map((r) => r.ten) : [];
   k('F8 nhóm sản phẩm giữ tên SX ("CÀ PHÊ" → "Cà phê"), không lấy nhóm đã tắt', JSON.stringify(nhomCT) === JSON.stringify(['Cà phê', 'Nước ép', 'Trà thảo mộc']), nhomCT.join(', '));
-  const moi = await db.query("SELECT code, name, category, price, is_active, sx_product_type, sx_product_id FROM pos_products WHERE code IN ('DNL', 'CF01', 'CF02', 'CU1', 'CT13') ORDER BY code");
+  const moi = await q("SELECT code, name, category, price, is_active, sx_product_type, sx_product_id FROM pos_products WHERE code IN ('DNL', 'CF01', 'CF02', 'CU1', 'CT13') ORDER BY code");
   k('F9 món SX chưa có ở POS → tạo ẨN giá 0, giữ khoá nối (DNL tea/1, CF02 caphe/5, CF01 không id); bỏ món tắt / nhóm tắt',
     JSON.stringify(moi.map((r) => [r.code, r.category, Number(r.price), Number(r.is_active), r.sx_product_type, r.sx_product_id === null ? null : Number(r.sx_product_id)]))
     === JSON.stringify([['CF01', 'caphe', 0, 0, 'caphe', null], ['CF02', 'caphe', 0, 0, 'caphe', 5], ['DNL', 'tea', 0, 0, 'tea', 1]]), JSON.stringify(moi));
@@ -357,21 +360,21 @@ async function main() {
   const dnl = await ctMon('DNL');
   k('G4 Dưỡng Nhan Lộ: số kg sai số máy lưu làm tròn 6 chữ số (Táo đỏ 0.0042)', dnl.some((r) => r.ten === 'Táo đỏ' && Number(r.luong) === 0.0042) && dnl.length === 3, JSON.stringify(dnl));
   k('G5 Bạc xỉu (nhóm khác): công thức lấy sx_product_ingredients theo sx_products.id (21), không theo legacy_id', JSON.stringify((await ctMon('CF02')).map((r) => r.ten)) === '["Táo tươi"]');
-  const kieu = (await coBang('kho_san_pham')) ? await db.query('SELECT p.code, s.kieu FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id ORDER BY p.code') : [];
+  const kieu = (await coBang('kho_san_pham')) ? await q('SELECT p.code, s.kieu FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id ORDER BY p.code') : [];
   k('F11 kiểu: món có công thức SX → lam_san; Cà Phê Đen → chua_dinh_luong', JSON.stringify(kieu.map((r) => [r.code, r.kieu]))
     === JSON.stringify([['CF01', 'chua_dinh_luong'], ['CF02', 'lam_san'], ['CT1', 'lam_san'], ['DNL', 'lam_san']]), JSON.stringify(kieu));
-  const cot = (await coBang('kho_nguyen_lieu')) ? (await db.query('PRAGMA table_info(kho_nguyen_lieu)')).map((c) => c.name) : [];
+  const cot = (await coBang('kho_nguyen_lieu')) ? (await q('PRAGMA table_info(kho_nguyen_lieu)')).map((c) => c.name) : [];
   k('F12 không lấy tồn / khách: kho_nguyen_lieu không có cột stock, không có bảng customers ở POS', !cot.includes('stock') && !(await coBang('customers')));
   k('F13 file SX KHÔNG bị sửa (băm trước = sau)', bamFile(fileSx) === bamSx);
   const tamDir = nhapSx.THU_MUC_TAM;
   k('F14 file tạm đã xoá (thư mục tạm nhập SX rỗng)', !!tamDir && (!fs.existsSync(tamDir) || fs.readdirSync(tamDir).length === 0), String(tamDir));
-  const bamKho = async () => { const h = crypto.createHash('sha1'); for (const b of BANG_KHO.concat(['pos_products'])) if (await coBang(b)) h.update(JSON.stringify(await db.query(`SELECT * FROM ${b} ORDER BY rowid`))); return h.digest('hex'); };
+  const bamKho = async () => { const h = crypto.createHash('sha1'); for (const b of BANG_KHO.concat(['pos_products'])) if (await coBang(b)) h.update(JSON.stringify(await q(`SELECT * FROM ${b} ORDER BY rowid`))); return h.digest('hex'); };
   const sau1 = await bamKho();
   const lan2 = await nhap('chu', fileSx, true);
   k('F15 nhập lại cùng file → 200, KHÔNG thêm / đổi một dòng', lan2.status === 200 && (await bamKho()) === sau1 && lan2.ke_hoach?.nguyen_lieu_them === 0, moTa(lan2));
-  await db.run("UPDATE kho_nguyen_lieu SET gia_nhap = 50000 WHERE ten = 'Gừng'");
-  await db.run("UPDATE kho_nhom_nguyen_lieu SET ten = 'Thuốc bắc' WHERE ten = 'Dược liệu'");
-  await db.run("DELETE FROM kho_cong_thuc WHERE san_pham_id = (SELECT id FROM pos_products WHERE code = 'CT1') AND nguyen_lieu_id = (SELECT id FROM kho_nguyen_lieu WHERE ten = 'Cam')");
+  await ghiDb("UPDATE kho_nguyen_lieu SET gia_nhap = 50000 WHERE ten = 'Gừng'");
+  await ghiDb("UPDATE kho_nhom_nguyen_lieu SET ten = 'Thuốc bắc' WHERE ten = 'Dược liệu'");
+  await ghiDb("DELETE FROM kho_cong_thuc WHERE san_pham_id = (SELECT id FROM pos_products WHERE code = 'CT1') AND nguyen_lieu_id = (SELECT id FROM kho_nguyen_lieu WHERE ten = 'Cam')");
   const fileSx2 = path.join(THU_MUC, 'sx2.db');
   await dungFileSx(fileSx2, ["INSERT INTO ingredients (id, name, category, price) VALUES (61, 'Hạt sen', 'tea', 200000)"]);
   const lan3 = await nhap('chu', fileSx2, true);
@@ -389,7 +392,7 @@ async function main() {
   k('F18 file không phải bản sao lưu SX → 400 FILE_SX_HONG', rHong.status === 400 && rHong.code === 'FILE_SX_HONG', moTa(rHong));
   k('F19 manager / staff nhập SX → 403', (await nhap('manager', fileSx, false)).status === 403 && (await nhap('staff', fileSx, false)).status === 403);
   // Hai người bấm Nhập cùng lúc trên kho chưa có gì của SX.
-  for (const b of ['kho_cong_thuc', 'kho_san_pham', 'kho_nguyen_lieu', 'kho_nhom_nguyen_lieu', 'kho_nhom_cong_thuc']) if (await coBang(b)) await db.run(`DELETE FROM ${b}`);
+  for (const b of ['kho_cong_thuc', 'kho_san_pham', 'kho_nguyen_lieu', 'kho_nhom_nguyen_lieu', 'kho_nhom_cong_thuc']) if (await coBang(b)) await ghiDb(`DELETE FROM ${b}`);
   const hai = await Promise.all([nhap('chu', fileSx, true), nhap('chu', fileSx, true)]);
   k('F20 hai lần Nhập cùng lúc → không nhân đôi (12 nguyên liệu, 8 dòng công thức)', hai.every((r) => r.status === 200 || r.code === 'KHO_BAN')
     && (await dem('kho_nguyen_lieu')) === 12 && (await dem('kho_cong_thuc')) === 8, hai.map(moTa).join(' | '));
@@ -473,16 +476,16 @@ async function main() {
   k('J2 BACKUP_TABLES cha trước con: nguyên liệu → công thức; phiếu, lô → dòng phiếu', vt('kho_nguyen_lieu') > 0 && vt('kho_cong_thuc') > vt('kho_nguyen_lieu')
     && vt('kho_phieu_dong') > vt('kho_lo') && vt('kho_lo') > vt('kho_phieu') && vt('kho_san_pham') > vt('kho_nhom_cong_thuc'));
   const khoiPhuc = async () => { const f = new FormData(); f.append('file', new Blob([xuat.tep || Buffer.alloc(0)]), 'sl.xlsx'); return goi('POST', '/backup/restore', f); };
-  await db.run("INSERT INTO kho_nguyen_lieu (ten, ten_chuan, don_vi_luu, tao_luc) VALUES ('Sau sao lưu', 'sau sao lưu', 'kg', 'x')").catch(() => {});
-  await db.run("INSERT INTO pos_nang_cap (so, ten, luc) VALUES (999, '999_sau_sao_luu', 'x')").catch(() => {});
-  const bamChiKho = async () => { const h = crypto.createHash('sha1'); for (const b of BANG_KHO) if (await coBang(b)) h.update(JSON.stringify(await db.query(`SELECT * FROM ${b} ORDER BY rowid`))); return h.digest('hex'); };
+  await ghiDb("INSERT INTO kho_nguyen_lieu (ten, ten_chuan, don_vi_luu, tao_luc) VALUES ('Sau sao lưu', 'sau sao lưu', 'kg', 'x')").catch(() => {});
+  await ghiDb("INSERT INTO pos_nang_cap (so, ten, luc) VALUES (999, '999_sau_sao_luu', 'x')").catch(() => {});
+  const bamChiKho = async () => { const h = crypto.createHash('sha1'); for (const b of BANG_KHO) if (await coBang(b)) h.update(JSON.stringify(await q(`SELECT * FROM ${b} ORDER BY rowid`))); return h.digest('hex'); };
   const bamTruoc = await bamChiKho();
   const kp1 = await khoiPhuc();
   k('J3 kho ĐANG có dữ liệu: khôi phục BỎ QUA bảng kho (không đổi một dòng), báo rõ', kp1.status === 200 && (await bamChiKho()) === bamTruoc
     && (kp1.results || []).some((r) => /^kho_/.test(r.table) && r.status === 'skipped'), moTa(kp1));
   k('J4 pos_nang_cap KHÔNG BAO GIỜ khôi phục (dòng 999 thêm sau sao lưu vẫn còn)', (await so('SELECT COUNT(*) FROM pos_nang_cap WHERE so = 999')) === 1);
   const nlSL = (XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find((s) => s === 'Kho - Nguyên liệu') || '_'] || {})).length;
-  for (const b of [...BANG_KHO].reverse()) if (await coBang(b)) await db.run(`DELETE FROM ${b}`);
+  for (const b of [...BANG_KHO].reverse()) if (await coBang(b)) await ghiDb(`DELETE FROM ${b}`);
   const kp2 = await khoiPhuc();
   k('J5 kho TRỐNG: khôi phục đủ nguyên liệu từ file', kp2.status === 200 && nlSL > 0 && (await dem('kho_nguyen_lieu')) === nlSL, `${moTa(kp2)} · file ${nlSL}`);
 
