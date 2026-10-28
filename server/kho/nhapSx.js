@@ -174,7 +174,7 @@ async function ghiKeHoach(tx, kh, luc) {
   for (const m of kh.mon) {
     if (m.pos_id == null) {
       // Món ẩn, giá 0: menu dự phòng chỉ lấy is_active = 1 (routes/products.js getFallbackProducts), tạo đơn chỉ nhận is_active = 1 và
-      // price > 0 (routes/orders.js). Chủ quán đặt giá (PUT /products/price) rồi bật bán (PUT /api/pos/kho/san-pham/:id/ban).
+      // price > 0 (routes/orders.js). Chủ quán đặt giá (PUT /products/price) rồi bật bán (PUT /api/pos/kho/san-pham/:id/bat-ban).
       await tx.run(`INSERT OR IGNORE INTO pos_products (code, name, category, price, unit, is_active, sx_product_type, sx_product_id)
         VALUES (?, ?, ?, 0, ?, 0, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
     }

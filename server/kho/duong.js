@@ -31,7 +31,8 @@ const doc = (lay) => async (req, res) => {
 };
 
 // ── Nguyên liệu ──
-router.get('/nguyen-lieu', doc((req) => duLieu.docNguyenLieu(csdl, req.user.role === 'staff')));
+// Giá nhập (giá vốn) chỉ cho chủ quán / quản lý — danh sách CHO PHÉP, cùng khuôn checkRole (vai trò lạ cũng không thấy).
+router.get('/nguyen-lieu', doc((req) => duLieu.docNguyenLieu(csdl, !['owner', 'manager'].includes(req.user.role))));
 
 router.post('/nguyen-lieu', QUAN_LY, async (req, res) => {
   const cot = duLieu.cotNguyenLieu(req.body || {});
@@ -103,8 +104,9 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   try {
     const kq = await trongGiaoDich(async (tx) => {
       if (await duLieu.demThieu(tx, 'pos_products', [spId, ...dong.filter((d) => d.thanh_phan_id).map((d) => d.thanh_phan_id)])
-        || await duLieu.demThieu(tx, 'kho_nguyen_lieu', dong.filter((d) => d.nguyen_lieu_id).map((d) => d.nguyen_lieu_id))) {
-        return { huy: true, loi: [400, { error: 'Món hoặc nguyên liệu không có', code: 'KHONG_THAY' }] };
+        || await duLieu.demThieu(tx, 'kho_nguyen_lieu', dong.filter((d) => d.nguyen_lieu_id).map((d) => d.nguyen_lieu_id))
+        || (nhomId != null && await duLieu.demThieu(tx, 'kho_nhom_cong_thuc', [Number(nhomId)]))) {
+        return { huy: true, loi: [400, { error: 'Món, nguyên liệu hoặc nhóm không có', code: 'KHONG_THAY' }] };
       }
       const bang = await duLieu.docBangCongThuc(tx);
       bang[spId] = dong.map((d) => (d.nguyen_lieu_id ? { nguyen_lieu_id: d.nguyen_lieu_id, luong: d.luong } : { thanh_phan_id: d.thanh_phan_id, luong: d.luong }));
@@ -123,12 +125,12 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   } catch (e) { loiGhi(res, e); }
 });
 
-// Bật / ẩn món ở quầy (chủ quán): món SX nhập vào được tạo ẩn giá 0 — đặt giá ở màn giá rồi bật ở đây. Bật cần giá > 0 (một câu, kiểm changes).
-router.put('/san-pham/:id/ban', CHU_QUAN, async (req, res) => {
-  const ban = req.body?.ban ? 1 : 0;
+// Bật bán (chủ quán): món SX nhập vào được tạo ẩn giá 0 — đặt giá ở màn giá rồi bật ở đây. CHỈ chiều bật: ẩn món đang bán là đụng đường bán
+// (ngoài phiếu). "Có giá" cùng nghĩa menu quầy (routes/products.js: số > 0); một câu, kiểm changes.
+router.put('/san-pham/:id/bat-ban', CHU_QUAN, async (req, res) => {
   const id = Number(req.params.id);
   try {
-    if ((await csdl.run('UPDATE pos_products SET is_active = ?, updated_at = ? WHERE id = ? AND (? = 0 OR price > 0)', [ban, getNow(), id, ban])).changes) {
+    if ((await csdl.run("UPDATE pos_products SET is_active = 1 WHERE id = ? AND typeof(price) IN ('integer', 'real') AND price > 0", [id])).changes) {
       return res.json({ success: true });
     }
     if (await csdl.queryOne('SELECT 1 AS co FROM pos_products WHERE id = ?', [id])) {

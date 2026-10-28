@@ -66,10 +66,10 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
   const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
     ? { loai: 'nl', id: d.nguyen_lieu_id, so: d.luong_hien }
     : { loai: 'sp', id: d.thanh_phan_id, so: d.luong })) });
-  // Món SX nhập vào được tạo ẨN giá 0: đặt giá ở màn giá như mọi khi, rồi bật bán ở đây (máy chủ đòi giá > 0).
-  const doiBan = async () => {
+  // Món SX nhập vào được tạo ẨN giá 0: đặt giá ở màn giá như mọi khi, rồi bật bán ở đây (máy chủ đòi giá > 0). Chỉ bật, không ẩn.
+  const batBan = async () => {
     setLoi('');
-    try { await api.put(`/kho/san-pham/${sp.id}/ban`, { ban: sp.is_active ? 0 : 1 }); dong(true); } catch (e) { setLoi(e.message); }
+    try { await api.put(`/kho/san-pham/${sp.id}/bat-ban`, {}); dong(true); } catch (e) { setLoi(e.message); }
   };
   const doiDong = (i, gt) => setSua({ ...sua, dong: sua.dong.map((d, j) => (j === i ? { ...d, ...gt } : d)) });
   const luu = async () => {
@@ -141,7 +141,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
       <div className="kho-hang" style={{ marginTop: '1rem' }}>
         {sua && <button className="btn btn-primary" onClick={luu}>Lưu công thức</button>}
         {!sua && chuQuan && <button className="btn btn-primary" onClick={batSua}>Sửa công thức</button>}
-        {!sua && chuQuan && <button className="btn btn-outline" onClick={doiBan}>{sp.is_active ? 'Ẩn khỏi quầy' : 'Bật bán ở quầy'}</button>}
+        {!sua && chuQuan && !sp.is_active && <button className="btn btn-outline" onClick={batBan}>Bật bán ở quầy</button>}
         <button className="btn btn-outline" onClick={() => (sua ? setSua(null) : dong(false))}>{sua ? 'Huỷ' : 'Quay lại'}</button>
       </div>
     </div>

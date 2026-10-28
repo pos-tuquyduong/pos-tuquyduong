@@ -7,7 +7,7 @@ import { api } from '../../utils/api';
 
 const boDau = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const tien = (x) => (x == null ? '—' : Number(x).toLocaleString('vi-VN') + 'đ');
-const THIEU = { gia: ['giá', (n) => n.gia_nhap === null], han: ['hạn dùng', (n) => n.han_ngay == null], toi_thieu: ['tồn tối thiểu', (n) => n.ton_toi_thieu == null] };
+const THIEU = { gia: ['giá', (n) => n.gia_nhap === null || n.gia_nhap === 0], han: ['hạn dùng', (n) => n.han_ngay == null], toi_thieu: ['tồn tối thiểu', (n) => n.ton_toi_thieu == null] };
 // MỘT vị từ cho cả số trên nút lẫn danh sách khi bấm (nguyên liệu ngừng dùng không tính). Nhân viên không nhận gia_nhap (undefined) → không đếm.
 const thieu_ = (ma, n) => !!n.dang_dung && THIEU[ma][1](n);
 const SAP_XEP = {
@@ -107,7 +107,7 @@ export default function NguyenLieu({ vaiTro }) {
         <div className="kho-canh">
           <span>⚠️ Thiếu thông tin:</span>
           {Object.entries(THIEU).map(([ma, [nhan]]) => demThieu[ma] > 0 && (
-            <button key={ma} onClick={() => setThieu(thieu === ma ? null : ma)}>{demThieu[ma]} thiếu {nhan}{thieu === ma ? ' ✓' : ''}</button>
+            <button key={ma} onClick={() => { setThieu(thieu === ma ? null : ma); setTab('tat_ca'); setTim(''); }}>{demThieu[ma]} thiếu {nhan}{thieu === ma ? ' ✓' : ''}</button>
           ))}
         </div>
       )}

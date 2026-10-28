@@ -56,13 +56,19 @@ DOT_BIEN = [
   ('BV-KHOI-PHUC-KHO', [(B, "(tableDef.name.startsWith('kho_') && !khoTrong)", 'false', 1)], r'✗ J3'),
   ('BV-KHOI-PHUC-NANG-CAP', [(B, "if (tableDef.name === 'pos_nang_cap' || ", 'if (', 1)], r'✗ J4'),
   # ── vòng soát 1 ──
-  ('VS-BAT-BAN-KHONG-GIA', [(D, 'WHERE id = ? AND (? = 0 OR price > 0)', 'WHERE id = ? AND (? = 0 OR 1 = 1)', 1)], r'✗ K4'),
-  ('BV-QUYEN-BAT-BAN', [(D, "router.put('/san-pham/:id/ban', CHU_QUAN,", "router.put('/san-pham/:id/ban', QUAN_LY,", 1)], r'✗ K6'),
+  ('VS-BAT-BAN-KHONG-GIA', [(D, "WHERE id = ? AND typeof(price) IN ('integer', 'real') AND price > 0\"", 'WHERE id = ?"', 1)], r'✗ K4'),
+  ('BV-QUYEN-BAT-BAN', [(D, "router.put('/san-pham/:id/bat-ban', CHU_QUAN,", "router.put('/san-pham/:id/bat-ban', QUAN_LY,", 1)], r'✗ K6'),
   ('VS-TRUNG-MA-LO', [(N, '(maSeTao.has(m.code) || hienCo.san_pham.some(', '(hienCo.san_pham.some(', 1)], r'✗ (F1|G4) '),
   ('BV-THIEU-GIA', [(N, "if (thieuGia.length) cb('THIEU_GIA'", "if (false) cb('THIEU_GIA'", 1)], r'✗ F2'),
   ('VS-NHOM-CO-SAN', [(N, 'ON CONFLICT(ten) DO UPDATE SET ten_sx = COALESCE(${bang}.ten_sx, excluded.ten_sx)', 'ON CONFLICT(ten) DO NOTHING', 1)], r'✗ (F7|F21)'),
   ('BV-SAO-LUU-BANG-THIEU', [(B, 'for (const t of await bangDangCo())', 'for (const t of BACKUP_TABLES)', 2)], r'✗ J6'),
-  ('BV-KHO-TRONG-LOI', [(B, "\n      .catch(() => [{ n: 1 }]))[0].n) === 0;", ')[0].n) === 0;', 1)], r'✗ J6'),
+  ('BV-KHO-TRONG-LOI', [(B, "AS n').catch(() => null);", "AS n');", 1)], r'✗ J6'),
+  # ── vòng soát 2 ──
+  ('VS-AN-GIA-DS-CAM', [(D, "!['owner', 'manager'].includes(req.user.role)", "req.user.role === 'staff'", 1)], r'✗ I18'),
+  ('VS-BAT-BAN-DAO', [(D, 'SET is_active = 1 WHERE id = ?', 'SET is_active = 1 - is_active WHERE id = ?', 1)], r'✗ K8'),
+  ('VS-CO-GIA-SQL', [(D, "typeof(price) IN ('integer', 'real') AND price > 0", 'price > 0', 1)], r'✗ K9'),
+  ('BV-NHOM-RAC', [(D, "\n        || (nhomId != null && await duLieu.demThieu(tx, 'kho_nhom_cong_thuc', [Number(nhomId)]))) {", ') {', 1)], r'✗ E18'),
+  ('VS-LY-DO-KHOI-PHUC', [(B, ": demKho ? ['KHO_CO_DU_LIEU',", ": true ? ['KHO_CO_DU_LIEU',", 1)], r'✗ J7'),
   ('BV-AN-GIA', [(L, 'nguyen_lieu: anGia ? ds.map(({ gia_nhap, ...r }) => r) : ds,', 'nguyen_lieu: ds,', 1)], r'✗ I16'),
   ('VS-BO-NHOM-GIU', [(L, 'nhom_id = excluded.nhom_id,', 'nhom_id = COALESCE(excluded.nhom_id, kho_san_pham.nhom_id),', 1)], r'✗ I17'),
 ]

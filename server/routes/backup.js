@@ -356,8 +356,8 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     if (chanTrangTien(res, wb)) return;
     // KHO-1 (chủ quán 28.10): bảng kho_* CHỈ khôi phục khi kho đang TRỐNG (dựng lại máy mới) — đo MỘT lần trước vòng lặp; pos_nang_cap không bao giờ.
     // Thiếu bảng kho (nâng cấp hỏng) → câu đếm lỗi → coi như kho CÓ dữ liệu: bỏ qua bảng kho, phần còn lại khôi phục như cũ.
-    const khoTrong = Number((await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n')
-      .catch(() => [{ n: 1 }]))[0].n) === 0;
+    const demKho = await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n').catch(() => null);
+    const khoTrong = !!demKho && Number(demKho[0].n) === 0;
 
     for (const sheetName of wb.SheetNames) {
       if (sheetName === '_Metadata') continue;
@@ -368,8 +368,9 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
         continue;
       }
       if (tableDef.name === 'pos_nang_cap' || (tableDef.name.startsWith('kho_') && !khoTrong)) {
-        results.push({ sheet: sheetName, table: tableDef.name, status: 'skipped', reason: tableDef.name === 'pos_nang_cap'
-          ? 'Sổ nâng cấp dữ liệu không khôi phục bằng file' : 'Bỏ qua bảng kho vì kho đang có dữ liệu' });
+        const [code, reason] = tableDef.name === 'pos_nang_cap' ? ['NANG_CAP_KHONG_KHOI_PHUC', 'Sổ nâng cấp dữ liệu không khôi phục bằng file']
+          : demKho ? ['KHO_CO_DU_LIEU', 'Bỏ qua bảng kho vì kho đang có dữ liệu'] : ['KHO_KHONG_DEM_DUOC', 'Bỏ qua bảng kho vì không đếm được kho (thiếu bảng?)'];
+        results.push({ sheet: sheetName, table: tableDef.name, status: 'skipped', code, reason });
         continue;
       }
 
