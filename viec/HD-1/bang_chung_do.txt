@@ -52,4 +52,4 @@ Bài thử mới (G80 G81 H2 C5 A2c; A19b A19c A30c đóng lỗ của bài, đã
   ✗ C5    veQr ném khi chuỗi QR quá dài (sập lúc render)      ✗ A2c   "/hoa-don/1e3" và "/1000.0" trả đơn 1000
 Sau vòng sửa 3: 152 đạt · 0 hỏng. Đột biến: 98 · BẮT 98 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 152 xanh).
 
-SỐ CA thu_HD1.js: 152
+SỐ CA cong_cu/thu_HD1.js: 152
