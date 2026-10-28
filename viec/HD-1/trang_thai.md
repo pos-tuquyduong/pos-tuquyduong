@@ -92,3 +92,8 @@ NGHIỆM THU:  A–H có mã + bài thử (8/8) nhưng điểm 2 "Chủ quán 28
 CHƯA KIỂM:   (1) in thật trên máy in / giấy 58–80 mm và tem 40×29,5 mm (tràn dòng, gạch ngang giá), QR quét bằng điện thoại thật; (2) lớp vẽ HoaDonTo + màn Cài đặt chưa mở trên trình duyệt thật (chỉ hàm thuần được thử); (3) dữ liệu production (store_name seed sai dấu, invoice_thank_you cũ, hạng đã đổi %); (4) 3 lỗi còn lại + Câu hỏi 2 (chưa quyết); (5) 10/11 đột biến ngoài danh sách do người soát thử vẫn SỐNG (ngưỡng 24 giờ, Math.max giảm mã, nhánh daCong của /nhan-diem…)
 GIT:         xem git log --oneline -2 (nhánh viec/HD-1 đã push)
 BÀI HỌC:     KHOÁ 6 · NGUYÊN TẮC 6 (đề xuất) · BỎ 2 — chi tiết ở ## Bài học
+
+Cổng `node tu_chay/cong.js chay . f1fea71^ HEAD viec/HD-1` (28.10, HEAD 06621ab, cây sạch):
+✓ CỔNG CHẠY ĐẠT (kèm cảnh báo A16: thu_HD1 trên gốc dừng sớm in 43 ca ≠ 152 ca ở head — bài sập sớm trên gốc, bằng chứng đỏ ở bang_chung_do.txt)
+
+HEAD ĐÃ KIỂM: 06621ab
