@@ -32,7 +32,7 @@ import { X, Printer } from 'lucide-react';
 import InvoicePreview, { HoaDonTo } from './InvoicePreview';
 import { VungTrang, useNhomTheoMa, taiLieuIn, inQuaIframe } from './InPhieu';
 import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn } from '../utils/inPhieu';
-import { danhSachTo } from '../utils/hoaDon';
+import { danhSachTo, sanSangIn } from '../utils/hoaDon';
 import { api } from '../utils/api';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -130,7 +130,7 @@ export default function InvoicePrint({
     return () => { huy = true; };
   }, [order?.id]);
   const cacTo = useMemo(() => (hd ? danhSachTo(hd, settings, { inLai }) : null), [hd, settings, inLai]);
-  const hdSanSang = !order?.id || !!hd || hdLoi;   // in sớm khi chưa có dữ liệu sẽ ra bố cục cũ
+  const sanSangDeIn = sanSangIn({ sanSang, coId: !!order?.id, hd, hdLoi });   // nút In và tự mở in dùng chung: in sớm sẽ ra bố cục cũ
 
   // Get paper config (for print sizing)
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
@@ -384,7 +384,7 @@ export default function InvoicePrint({
 
   // "Tự mở in sau thanh toán": đúng một lần, sau khi tem/phiếu đã vẽ (cần bảng nhóm món) — chỉ ở màn thanh toán, không phải In lại
   useEffect(() => {
-    if (!successInfo || inLai || !boIn.tu_mo || !sanSang || daTuMo.current || !viec.length) return;
+    if (!successInfo || inLai || !boIn.tu_mo || !sanSangDeIn || daTuMo.current || !viec.length) return;
     daTuMo.current = true;
     setTimeout(handlePrint, 0);   // chờ React vẽ xong vùng tem / phiếu
   });
@@ -570,7 +570,7 @@ export default function InvoicePrint({
           </button>
           <button
             onClick={handlePrint}
-            disabled={printing || !sanSang || !hdSanSang || !viec.length}   // chờ bảng nhóm món: in sớm sẽ bỏ qua nhóm đã tắt
+            disabled={printing || !sanSangDeIn || !viec.length}   // chờ bảng nhóm món: in sớm sẽ bỏ qua nhóm đã tắt
             style={{
               flex: 2,
               padding: '0.875rem',

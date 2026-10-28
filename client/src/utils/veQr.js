@@ -9,8 +9,12 @@ export function veQr(text) {
   const s = String(text ?? '');
   if (!s) return { n: 0, hang: [] };
   const q = qrcode(0, 'M');   // 0 = tự chọn cỡ nhỏ nhất đủ chứa; M ≈ 15 % sửa lỗi — in nhiệt 58 mm vẫn quét được
-  q.addData(s, 'Byte');
-  q.make();
+  try {
+    q.addData(s, 'Byte');
+    q.make();
+  } catch {
+    return { n: 0, hang: [] };   // chuỗi quá dài cho mã QR: không vẽ QR, hoá đơn vẫn in đủ phần còn lại (không sập lúc render)
+  }
   const n = q.getModuleCount();
   const hang = Array.from({ length: n }, (_, r) => Array.from({ length: n }, (_, c) => q.isDark(r, c)));
   return { n, hang };

@@ -13,7 +13,7 @@ export const KHOA_DIA_CHI_KH = 'invoice_kh_url';
 export const KHOA_SO_TO = 'invoice_so_to';
 // Máy chủ (routes/hoaDon.js KHONG_AN_DUOC) giữ bản sao của danh sách này — bài thử so hai bên.
 export const KHONG_AN = [
-  'ten_quan', 'so_bill', 'in_lai', 'da_huy', 'da_hoan',
+  'ten_quan', 'so_bill', 'lien_khach', 'lien_luu', 'in_lai', 'da_huy', 'da_hoan',
   'gia_goc', 'giam_hang', 'giam_flash', 'giam_ma', 'phi_giao', 'tong',
   'tieu_de_tt', 'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',
   'tem_in_lai',
@@ -92,6 +92,12 @@ export function caiDatTuChuDangSua(caiDat, c) {
   const chuAn = Object.keys(CHU_MAC_DINH).flatMap((k) => [[`invoice_chu_${k}`, c.chu[k]], [`invoice_an_${k}`, c.an[k]]]);
   return { ...caiDat, ...Object.fromEntries(chuAn), [KHOA_SO_TO]: c.soTo, [KHOA_DIA_CHI_KH]: c.khUrl };
 }
+
+/**
+ * Đủ điều kiện in — nút In VÀ "Tự mở in sau thanh toán" dùng CHUNG vị từ này: bảng nhóm món đã sẵn, và dữ liệu hoá đơn đã về
+ * (hoặc cửa hoá đơn lỗi → bố cục cũ). In sớm hơn sẽ ra bố cục cũ một tờ, không QR, không IN LẠI.
+ */
+export const sanSangIn = ({ sanSang, coId, hd, hdLoi }) => !!sanSang && (!coId || !!hd || !!hdLoi);
 
 /** Số tờ mỗi lần in: 1 hoặc 2 (mặc định 2). */
 export function soToTuCaiDat(settings) {
@@ -256,7 +262,7 @@ export const HOA_DON_MAU_QUEN = {
   tien: { gia_goc: 72000, giam_hang: 7200, giam_flash: 0, giam_ma: 0, ma_giam: null, phi_giao: 23000, tong: 87800 },
   thanh_toan: [{ loai: 'tai_khoan', so_tien: 50000 }, { loai: 'tien_mat', so_tien: 37800 }],
   khach_dua: 50000, tra_lai: 12200,
-  diem: { truoc: 320, doi_qua: 0, cong: 1, hien_co: 321 },
+  diem: { truoc: 320, doi_qua: 100, cong: 1, hien_co: 221 },   // có đổi quà: để dòng "Đổi quà" xem được
   ma_nhan_diem: null, so_lan_in: 0,
 };
 export const HOA_DON_MAU_LE = {
@@ -267,17 +273,17 @@ export const HOA_DON_MAU_LE = {
   thanh_toan: [{ loai: 'tien_mat', so_tien: 95000 }], khach_dua: 100000, tra_lai: 5000,
   diem: null, ma_nhan_diem: { ma: 'TQD-XXXXXXXXXXXX', diem: 7, uu_dai: true, han_gio: 24 },
 };
-// Đơn Flash của khách lẻ: có mã nhưng N = 0 (không hứa điểm), còn ưu đãi khách mới
+// Đơn Flash (có thêm mã giảm) của khách lẻ: có mã nhưng N = 0 (không hứa điểm), còn ưu đãi khách mới
 const HOA_DON_MAU_FLASH = {
   ...HOA_DON_MAU_LE,
-  tien: { gia_goc: 72000, giam_hang: 0, giam_flash: 7000, giam_ma: 0, ma_giam: null, phi_giao: 23000, tong: 88000 },
-  thanh_toan: [{ loai: 'tien_mat', so_tien: 88000 }], khach_dua: 100000, tra_lai: 12000,
+  tien: { gia_goc: 72000, giam_hang: 0, giam_flash: 7000, giam_ma: 3000, ma_giam: 'GIAM3K', phi_giao: 23000, tong: 85000 },
+  thanh_toan: [{ loai: 'tien_mat', so_tien: 85000 }], khach_dua: 100000, tra_lai: 15000,
   ma_nhan_diem: { ma: 'TQD-XXXXXXXXXXXX', diem: 0, uu_dai: true, han_gio: 24 },
 };
-// Khách quen trả bằng tài khoản + tài khoản mẹ + ghi nợ (không tiền mặt)
+// Khách quen trả bằng tài khoản + tài khoản mẹ + chuyển khoản + ghi nợ (không tiền mặt)
 const HOA_DON_MAU_ME = {
   ...HOA_DON_MAU_QUEN,
-  thanh_toan: [{ loai: 'tai_khoan', so_tien: 20000 }, { loai: 'tai_khoan_me', so_tien: 30000 }, { loai: 'ghi_no', so_tien: 37800 }],
+  thanh_toan: [{ loai: 'tai_khoan', so_tien: 20000 }, { loai: 'tai_khoan_me', so_tien: 30000 }, { loai: 'chuyen_khoan', so_tien: 10000 }, { loai: 'ghi_no', so_tien: 27800 }],
   khach_dua: 0, tra_lai: 0,
 };
 const donTrangThai = (trang_thai) => ({
