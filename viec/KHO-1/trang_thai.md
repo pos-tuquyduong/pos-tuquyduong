@@ -367,3 +367,57 @@ BÀI HỌC:
 ## DỪNG (phiếu mục 9 — vòng sửa 3/3 đã dùng hết)
 Soát lần 3 KHÔNG ĐẠT → máy KHÔNG sửa thêm; chat soát thay. Chỗ cần chủ quán quyết (người soát nêu, máy chưa tự kiểm lại bằng chạy thật):
 món SX không có khoá nối (CF01) — không tạo / giữ ẩn; món tạo ghi giá NULL hay 0 (màn `BanHang/BanHangMoi.jsx` hiện "0đ" với giá 0).
+
+## Vòng sửa 4 (28.10, `/lam-viec KHO-1 tiep` — chat soát thay, phiếu mục 10–14)
+- Bước 1 lượt này: nhánh `viec/KHO-1`, cây sạch; hook mở phiên đã kéo `48b16a9 → 8d79a0c`; HEAD `8d79a0c` = FETCH_HEAD `8d79a0c` — bằng nhau,
+  không kéo. `git log --oneline -3`:
+  ```
+  8d79a0c PHIEU: KHO-1 chat soat thay - vong sua 4 (bo mon khong khoa noi SX, gia NULL, thu dung duong batch)
+  c22221b KHO-1: bao cao soat vong 3 (KHONG DAT) nguyen van — dung theo phieu muc 9
+  8be7471 KHO-1: trang thai vong sua 3
+  ```
+- Bài thử sửa TRƯỚC (commit `1c20bc1`), đỏ 10 ca trên `server/` của `8d79a0c` (`bang_chung_do.txt` vòng sửa 4); sau vá 111/0.
+- `npm test -- --day-du` → PASS 78 · FAIL 0 · CẢNH BÁO 1 (`route GET có lệnh ghi (3)` ở `packages.js:194`, `products.js:67`, `sync.js:147` — file
+  KHO-1 không đụng, có từ trước nhánh); dist khớp src.
+
+| Phiếu mục | Sửa | Ca · đột biến |
+|---|---|---|
+| 10 món không khoá nối SX → không tạo dòng `pos_products`, lời "Món <tên> chưa nối được với SX — thêm mới trong POS sau"; nhóm vẫn nhập | `nhapSx.js:131-134` (`lapKeHoach` bỏ qua món `khoa_id == null`, cảnh báo `MON_CHUA_NOI`); bỏ nhánh khớp theo `code` cho món không khoá (`:135`) | F1, F2, F2b, F2c, F9, F11, K1, K8 (F8 giữ nhóm "Cà phê") · `BV-MON-KHONG-KHOA`, `BV-CANH-BAO-CHUA-NOI` |
+| 11 món tạo giá NULL; ô "Thiếu thông tin" đếm món giá NULL | `nhapSx.js:179-182` `VALUES (…, NULL, …)` + chú thích trỏ đúng quy ước POS-TONCU-v1 (`products.js:103-108`) và `orders.js:365`; `duLieu.js:54` trả `p.price`; `SanPham.jsx:12, :34, :41-47, :55` ô "⚠️ Thiếu thông tin: N món chưa có giá" (bấm lọc), thẻ món "· chưa có giá" — MỘT vị từ `chuaCoGia` cho đếm lẫn lọc | F9, K1, K1b (so giá nguyên giá trị), H2 · `VS-MON-GIA-0`, `BV-SP-GIA` |
+| 12 bài đi đúng đường màn thật | K8: `GET /products?active=` (menu dự phòng, có món tạo từ nhập) → gửi LẠI cả danh sách đúng dạng `Settings.jsx savePrices` qua `PUT /products/batch/prices` → 200, `updated` = số món, mọi món đổi giá, không thêm dòng; giữ K5 (`PUT /products/price`); bất biến chạy sau CẢ HAI đường (K6, K9) | K5, K6, K8, K9 · `BV-MON-KHONG-KHOA` làm K8 đỏ (`HTTP 500 · UNIQUE pos_products.code`, đúng lỗi soát vòng 3 số 1) |
+Đột biến đổi: `VS-MON-TAO-GIA-NULL` bỏ (nay là bản vá, thay bằng chiều ngược `VS-MON-GIA-0`); `BV-MON-TAO-AN` neo lại theo `NULL`.
+`python3 viec/KHO-1/dot_bien.py` → ĐỐI CHỨNG XANH 111/0 · TỔNG 45 · BẮT 45 · SỐNG 0 · HỎNG 0 · LẠC 0.
+Toàn bộ tên đột biến hiện có (45): VS-VONG-CHI-TU-THAN, BV-VONG-PUT, VS-TRIEN-KHAI-MOT-TANG, VS-GOP-BO-DAU, VS-TEN-TRUNG-500, BV-NANG-CAP-GOI,
+VS-BO-KHOA-CHAY-DOI, BV-ROLLBACK-BUOC-HONG, BV-DUNG-KHI-HONG, BV-SAO-LUU, VS-SAO-LUU-MOI-BANG, BV-503, VS-CHECK-KIEU, VS-NHAP-GHI-DE,
+BV-CONG-THUC-DA-CO, BV-TRUNG-MA, VS-GIA-NHO, VS-GOP-GIA-DAU, VS-LAM-TRON, VS-SX-THEO-LEGACY, BV-XOA-FILE-TAM, BV-QUYEN-NHAP, BV-QUYEN-CONG-THUC,
+VS-QUYEN-SUA-NL, BV-XOA-KIEM-DUNG, BV-SAO-LUU-BANG, BV-KHOI-PHUC-KHO, BV-KHOI-PHUC-NANG-CAP, VS-TRUNG-MA-LO, BV-THIEU-GIA, VS-NHOM-CO-SAN,
+BV-SAO-LUU-BANG-THIEU, BV-KHO-TRONG-LOI, VS-AN-GIA-DS-CAM, BV-NHOM-RAC, VS-LY-DO-KHOI-PHUC, BV-AN-GIA, VS-BO-NHOM-GIU, BV-MON-TAO-AN,
+VS-MON-TAO-MAT-KHOA, BV-CANH-BAO-MON, BV-MON-KHONG-KHOA, VS-MON-GIA-0, BV-CANH-BAO-CHUA-NOI, BV-SP-GIA.
+
+### Phiếu mục 8 (dòng bắt buộc)
+Giá nhập (giá vốn) tạm ẩn với mọi vai trò khác chủ quán / quản lý: đổi cho nhân viên thấy = sửa danh sách vai trò ở `duong.js` (một dòng) hoặc làm
+trong phân quyền chi tiết sau khai trương.
+
+### Thay "Phát hiện (vòng 3)" — đã cũ
+Phát hiện vòng 3 về CF01 đánh giá nhẹ hơn thực tế (soát vòng 3 lỗi 6: thực tế làm hỏng lưu giá MỌI món qua `batch/prices`). Nay KHÔNG còn: món không
+khoá nối không được tạo (mục 10), K8 khoá đường lưu giá hàng loạt.
+
+### CHƯA KIỂM (vòng 3–4)
+- Turso thật: chưa chạy (bài dùng libsql file). Máy thứ hai chờ BEGIN quá ~1,55 s trên Turso khi hai máy chủ khởi động cùng lúc (nghi ngờ soát
+  vòng 1) — chưa đo được; B8 chỉ chứng minh trên file.
+- File SX 09.10 thật: chưa chạy (phiếu mục 1 — chat chạy khi soát; file có dữ liệu khách).
+- Giao diện: chưa dựng / bấm thử (máy không có trình duyệt điện thoại thật); ô "Thiếu thông tin" món, màn bán mới `BanHangMoi.jsx:186` hiện
+  "Chưa có giá" với giá null — chỉ đọc code (`typeof s.price === 'number'`), không có bài thử giao diện.
+- Khôi phục Excel thay `pos_products` để lại dòng `kho_*` trỏ id cũ (nghi ngờ vòng 1) — chưa sửa, chưa có ca.
+- Gói cũ không khai `package_items` lấy được mọi món `is_active = 1` 0đ (nghi ngờ soát vòng 3, `orders.js:303-343`) — giờ thêm món nhập mới; giống
+  seed, nằm trong lựa chọn (a) của chủ quán; không có ca.
+- Món có sẵn giá 0 hiện "0đ" ở màn bán mới — lỗi CŨ, phiếu mục 11 để BH-2.
+
+### Thao tác thử tay (chủ quán, trên điện thoại, bản thử không nối SX)
+1. Quản lý kho › Nhập từ SX → chọn bản sao lưu SX → xem trước có "Món Cà Phê Đen chưa nối được với SX — thêm mới trong POS sau" và "Món … đã tạo,
+   chưa có giá — đặt giá là bán được" → Nhập → tab Nguyên liệu: gõ "tao do" (không dấu) ra "Táo đỏ"; tab "Dược liệu"; bấm ô "N thiếu giá" ra đúng
+   danh sách, sửa giá một nguyên liệu.
+2. Quản lý kho › Sản phẩm: ô "⚠️ Thiếu thông tin: N món chưa có giá" → bấm ra đúng các món đó; bấm một món → "Tính cho N phần" ra lượng từng
+   nguyên liệu.
+3. Cài đặt › Sản phẩm: điền giá cho món vừa nhập → Lưu (báo "Đã lưu giá thành công!") → Bán hàng (cả màn mới) món đó bán được; ô "món chưa có giá"
+   ở Quản lý kho giảm đi.
