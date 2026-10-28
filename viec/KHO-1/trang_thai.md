@@ -202,3 +202,41 @@ khôi phục khi kho trống nguyên liệu nhưng đã đặt kiểu / nhóm (�
    (c) Giữ như hiện tại (ẩn + nút "Bật bán" ở Quản lý kho) và chấp nhận cửa sổ lệch; chủ quán dặn nhân viên.
 5. **Giá nhập (giá vốn) với nhân viên:** máy đang ẨN với mọi vai trò khác chủ quán / quản lý (LUAT_XAY_APP §4, chọn phía ít lộ). Phiếu I
    chỉ ghi "nhân viên chỉ xem nguyên liệu". Giữ ẩn hay cho nhân viên thấy giá?
+
+## Vòng sửa 3/3 (28.10, `/lam-viec KHO-1 tiep` — làm theo phiếu mục 7–9)
+- Bước 1 lượt này: nhánh `viec/KHO-1`, cây sạch; HEAD `48b16a9` = FETCH_HEAD `48b16a9` — bằng nhau, không kéo. `git log --oneline -3`:
+  ```
+  48b16a9 PHIEU: KHO-1 tra loi cau 4 (a tao hien gia 0) + cau 5 (tam an gia nhap)
+  b7e06fe KHO-1: bao cao soat vong 2 + xu ly; cau hoi 4-5 cho chu quan (dung cho)
+  e5a4e57 KHO-1: vong soat 2 — chi chieu bat ban (bat-ban), co gia cung nghia menu, gia nhap theo danh sach cho phep, kiem nhom co that, ly do bo qua khoi phuc dung; Thieu gia dem ca 0; build dist; dot bien moi
+  ```
+- Đổi model giữa phiên: ~09:14 28.10, ở bước 1 (đối chiếu bản chụp) — dòng ghi công của commit đổi sang model khác. Kết quả trước / sau đều do
+  máy chạy lại trong lượt này (bài thử, đột biến), không chép tay từ lượt trước.
+- Bài thử sửa TRƯỚC (commit `d5005ab`), đỏ 9 ca trên `server/` của `48b16a9` (`bang_chung_do.txt` vòng sửa 3); sau vá 107/0.
+- `npm test` 74/0 · `--day-du` 78/0 (dist khớp src) · cảnh báo E14 có từ trước nhánh (xem Soát kế hoạch).
+
+| Phiếu mục 7 | Sửa | Ca · đột biến |
+|---|---|---|
+| món SX chưa có dòng → `is_active = 1`, giá 0, giữ tên + nhóm + khoá nối | `nhapSx.js` `ghiKeHoach` (chú thích sửa theo đúng `layMenuQuay` / `orders.js`) | F9, K1, K4 · `BV-MON-TAO-AN`, `VS-MON-TAO-GIA-NULL`, `VS-MON-TAO-MAT-KHOA` |
+| bỏ `MON_TAO_AN`; lời "Món <tên> đã tạo, chưa có giá — đặt giá là bán được" | cảnh báo `MON_CHUA_GIA`; số đếm `mon_tao` (màn Nhập SX: "món tạo mới (chưa có giá)") | F1, F2, F2b · `BV-CANH-BAO-MON` |
+| bỏ đường + nút "Bật bán" | gỡ `PUT /kho/san-pham/:id/bat-ban` (`duong.js`) + nút ở `SanPham.jsx` | K7 |
+| đặt giá qua `PUT /products/price` → `sellable: true` VÀ `POST /orders` nhận | không đụng `products.js` / `orders.js` | K5 · K6 = bất biến: MỌI món menu dự phòng + menu SX báo bán được → tạo đơn (đúng thân quầy gửi) nhận |
+Đột biến bỏ cùng đường bị gỡ: `VS-BAT-BAN-KHONG-GIA`, `BV-QUYEN-BAT-BAN`, `VS-BAT-BAN-DAO`, `VS-CO-GIA-SQL`, `VS-MON-TAO-HIEN` (đảo nghĩa → `BV-MON-TAO-AN`).
+`python3 viec/KHO-1/dot_bien.py` → ĐỐI CHỨNG XANH 107/0 · TỔNG 42 · BẮT 42 · SỐNG 0 · HỎNG 0 · LẠC 0.
+Toàn bộ tên đột biến hiện có (42): VS-VONG-CHI-TU-THAN, BV-VONG-PUT, VS-TRIEN-KHAI-MOT-TANG, VS-GOP-BO-DAU, VS-TEN-TRUNG-500, BV-NANG-CAP-GOI,
+VS-BO-KHOA-CHAY-DOI, BV-ROLLBACK-BUOC-HONG, BV-DUNG-KHI-HONG, BV-SAO-LUU, VS-SAO-LUU-MOI-BANG, BV-503, VS-CHECK-KIEU, VS-NHAP-GHI-DE,
+BV-CONG-THUC-DA-CO, BV-TRUNG-MA, VS-GIA-NHO, VS-GOP-GIA-DAU, VS-LAM-TRON, VS-SX-THEO-LEGACY, BV-XOA-FILE-TAM, BV-QUYEN-NHAP, BV-QUYEN-CONG-THUC,
+VS-QUYEN-SUA-NL, BV-XOA-KIEM-DUNG, BV-SAO-LUU-BANG, BV-KHOI-PHUC-KHO, BV-KHOI-PHUC-NANG-CAP, VS-TRUNG-MA-LO, BV-THIEU-GIA, VS-NHOM-CO-SAN,
+BV-SAO-LUU-BANG-THIEU, BV-KHO-TRONG-LOI, VS-AN-GIA-DS-CAM, BV-NHOM-RAC, VS-LY-DO-KHOI-PHUC, BV-AN-GIA, VS-BO-NHOM-GIU, BV-MON-TAO-AN,
+VS-MON-TAO-GIA-NULL, VS-MON-TAO-MAT-KHOA, BV-CANH-BAO-MON.
+
+### Phát hiện (vòng 3 — ngoài Phạm vi, không sửa)
+- Món SX không có `legacy_id` (Cà Phê Đen, CF01 — phiếu mục 3 dặn để `sx_product_id` trống) nay hiện ở menu dự phòng dạng "Chưa có giá"
+  (`caphe_null`), nhưng KHÔNG đặt giá / bán được qua đường thường: `PUT /products/price` tra `sx_product_id = ?` (`products.js:157`) và
+  `POST /orders` tra `sx_product_id = ?` (`orders.js:349`) — so với NULL không bao giờ khớp. Trước KHO-1 món này không có trong POS. Không phải
+  cửa sổ "bán được mà đơn 400" (K6 khoá: giá 0 → sellable false). Sửa cần đụng `products.js` / `orders.js` (Cấm) — chat soát / KHO-3 quyết.
+
+### Thao tác thử tay (chủ quán, trên điện thoại, bản thử)
+1. Quản lý kho › Nhập từ SX → chọn bản sao lưu SX → xem trước có dòng "Món … đã tạo, chưa có giá — đặt giá là bán được" → Nhập.
+2. Màn Bán hàng: món vừa tạo hiện "Chưa có giá", bấm không vào giỏ; màn Sản phẩm (giá) đặt giá món đó → quay lại Bán hàng bán được ngay.
+3. Quản lý kho › Sản phẩm › bấm một món: không còn nút "Bật bán ở quầy"; ô "Tính cho N phần" ra lượng từng nguyên liệu.
