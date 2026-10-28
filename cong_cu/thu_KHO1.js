@@ -155,7 +155,7 @@ async function main() {
   const coBang = async (ten) => (await so("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", [ten])) === 1;
   const chu = await mot("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const nguoi = { chu: chu.id };
-  for (const [ten, vaiTro] of [['ql_kho1', 'manager'], ['nv_kho1', 'staff']]) {
+  for (const [ten, vaiTro] of [['ql_kho1', 'manager'], ['nv_kho1', 'staff'], ['la_kho1', 'la']]) {
     nguoi[vaiTro] = Number((await ghiDb("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES (?, 'x', ?, ?, 1)",
       [ten, ten, vaiTro])).lastInsertRowid);
   }
@@ -235,7 +235,7 @@ async function main() {
   k('E9 "Táo tươi" KHÔNG gộp vào Táo đỏ', tt('Táo tươi') === 'Táo tươi');
   const tenPOS = new Set(Object.values(bang).map((x) => x[0]));
   const nhomPOS = new Set(Object.values(bang).map((x) => x[1]));
-  k('E10 bảng ra đúng 32 tên POS, 2 nhóm (Rau củ quả · Dược liệu)', tenPOS.size === 32 && nhomPOS.size === 2
+  k('G0 bảng ra đúng 32 tên POS, 2 nhóm (Rau củ quả · Dược liệu)', tenPOS.size === 32 && nhomPOS.size === 2
     && nhomPOS.has('Rau củ quả') && nhomPOS.has('Dược liệu'), `${tenPOS.size} tên · ${[...nhomPOS].join(', ')}`);
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -424,6 +424,9 @@ async function main() {
   k('I1 staff XEM nguyên liệu → 200 (kèm nhóm, nhà cung cấp)', ds.status === 200 && Array.isArray(ds.nguyen_lieu) && ds.nguyen_lieu.length === 12
     && Array.isArray(ds.nhom) && Array.isArray(ds.nha_cung_cap), moTa(ds));
   k('I16 nhân viên KHÔNG thấy giá nhập (giá vốn)', (ds.nguyen_lieu || []).length > 0 && ds.nguyen_lieu.every((r) => !('gia_nhap' in r)));
+  const dsLa = await goiAi('la', 'GET', '/kho/nguyen-lieu');
+  k('I18 vai trò lạ (không phải chủ / quản lý) cũng KHÔNG thấy giá nhập — danh sách cho phép, không danh sách cấm',
+    dsLa.status === 200 && (dsLa.nguyen_lieu || []).length > 0 && dsLa.nguyen_lieu.every((r) => !('gia_nhap' in r)), moTa(dsLa));
   const dsQL = await goiAi('manager', 'GET', '/kho/nguyen-lieu');
   const nlDs = (ten) => (dsQL.nguyen_lieu || []).find((r) => r.ten === ten) || {};
   k('H1 "Thiếu thông tin": Cam thiếu giá / hạn / tối thiểu (null), Gừng có giá', nlDs('Cam').gia_nhap === null && nlDs('Cam').han_ngay === null
@@ -475,6 +478,8 @@ async function main() {
   k('E14 lưu vòng A→B→A → 400, lời báo nêu chuỗi tên (Cam Tân Dưỡng → Lục Tân Khí → Cam Tân Dưỡng)', vong.status === 400 && vong.code === 'CONG_THUC_VONG_LAP'
     && (vong.error || '').includes('Cam Tân Dưỡng → Lục Tân Khí → Cam Tân Dưỡng'), moTa(vong));
   k('E15 lưu vòng bị chặn thì công thức cũ giữ nguyên', (await so('SELECT COUNT(*) FROM kho_cong_thuc WHERE san_pham_id = ? AND thanh_phan_id IS NULL', [ct3])) === 1);
+  const nhomRac = await goiAi('chu', 'PUT', `/kho/san-pham/${ct3}`, { kieu: 'lam_san', nhom_id: 987654, cong_thuc: [{ nguyen_lieu_id: await nlId('Táo tươi'), luong: 0.2 }] });
+  k('E18 nhóm không có thật → 400, không lưu nhóm rác', nhomRac.status === 400 && (await mot('SELECT nhom_id FROM kho_san_pham WHERE pos_product_id = ?', [ct3]))?.nhom_id !== 987654, moTa(nhomRac));
   const kieuSai = await goiAi('chu', 'PUT', `/kho/san-pham/${ct3}`, { kieu: 'bay_mau', cong_thuc: [] });
   k('E16 kiểu lạ → 400 KIEU_SAI', kieuSai.status === 400 && kieuSai.code === 'KIEU_SAI', moTa(kieuSai));
   const ct4 = await idSP('CT4'), ct5 = await idSP('CT5');
@@ -508,7 +513,7 @@ async function main() {
   const bamTruoc = await bamChiKho();
   const kp1 = await khoiPhuc();
   k('J3 kho ĐANG có dữ liệu: khôi phục BỎ QUA bảng kho (không đổi một dòng), báo rõ', kp1.status === 200 && (await bamChiKho()) === bamTruoc
-    && (kp1.results || []).some((r) => /^kho_/.test(r.table) && r.status === 'skipped'), moTa(kp1));
+    && (kp1.results || []).some((r) => /^kho_/.test(r.table) && r.status === 'skipped' && r.code === 'KHO_CO_DU_LIEU'), moTa(kp1));
   k('J4 pos_nang_cap KHÔNG BAO GIỜ khôi phục (dòng 999 thêm sau sao lưu vẫn còn)', (await so('SELECT COUNT(*) FROM pos_nang_cap WHERE so = 999')) === 1);
   const nlSL = (XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find((s) => s === 'Kho - Nguyên liệu') || '_'] || {})).length;
   for (const b of [...BANG_KHO].reverse()) if (await coBang(b)) await ghiDb(`DELETE FROM ${b}`);
@@ -522,6 +527,8 @@ async function main() {
   await ghiDb('ALTER TABLE kho_phieu_tam RENAME TO kho_phieu');
   k('J6 thiếu một bảng kho (nâng cấp hỏng): /backup/info, /export-all, /restore vẫn 200', info.status === 200 && xuat2.status === 200 && kp3.status === 200,
     [info, xuat2, kp3].map(moTa).join(' | '));
+  k('J7 đếm kho lỗi → bỏ qua bảng kho với lý do ĐÚNG (không đếm được), không báo "kho có dữ liệu"',
+    (kp3.results || []).some((r) => /^kho_/.test(r.table) && r.code === 'KHO_KHONG_DEM_DUOC') && !(kp3.results || []).some((r) => r.code === 'KHO_CO_DU_LIEU'));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[K] đường bán không đổi');
@@ -533,16 +540,26 @@ async function main() {
   const dnlId = await idSP('DNL');
   const donDnl = () => goi('POST', '/orders', { customer_name: 'Khách KHO1', items: [{ product_id: dnlId, sx_product_type: 'tea', sx_product_id: 1, quantity: 1 }],
     payment_method: 'cash', cash_amount: 30000 });
-  const batSom = await goi('PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 });
+  const batSom = await goi('PUT', `/kho/san-pham/${dnlId}/bat-ban`);
   k('K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA', batSom.status === 400 && batSom.code === 'CHUA_CO_GIA', moTa(batSom));
   const datGia = await goi('PUT', '/products/price', { sx_product_type: 'tea', sx_product_id: 1, price: 30000 });
   const chuaBat = await donDnl();
-  k('K5 đặt giá xong, CHƯA bật → chưa bán (400), món vẫn ẩn ở menu dự phòng', datGia.status === 200 && chuaBat.status === 400, `${moTa(datGia)} | ${moTa(chuaBat)}`);
-  k('K6 manager / staff bật bán → 403', (await goiAi('manager', 'PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 })).status === 403
-    && (await goiAi('staff', 'PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 })).status === 403);
-  const bat = await goi('PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 });
+  imLang(); const duPhong = await layMenuQuay(); noiLai();
+  k('K5 đặt giá xong, CHƯA bật → tạo đơn 400, menu dự phòng KHÔNG có món (tea_1)', datGia.status === 200 && chuaBat.status === 400
+    && !duPhong.some((m) => m.unique_id === 'tea_1'), `${moTa(datGia)} | ${moTa(chuaBat)}`);
+  k('K6 manager / staff bật bán → 403', (await goiAi('manager', 'PUT', `/kho/san-pham/${dnlId}/bat-ban`)).status === 403
+    && (await goiAi('staff', 'PUT', `/kho/san-pham/${dnlId}/bat-ban`)).status === 403);
+  const bat = await goi('PUT', `/kho/san-pham/${dnlId}/bat-ban`);
   const sauBat = await donDnl();
   k('K7 chủ quán bật bán → tạo đơn món đó 200', bat.status === 200 && sauBat.success === true, `${moTa(bat)} | ${moTa(sauBat)}`);
+  // Chỉ có chiều BẬT: gọi lại trên món đang bán không được làm nó tắt; không có đường ẩn món đang bán (đụng đường bán, ngoài phiếu).
+  const batLai = await goi('PUT', `/kho/san-pham/${ct1}/bat-ban`);
+  const an = await goi('PUT', `/kho/san-pham/${ct1}/ban`, { ban: 0 });
+  k('K8 bật lại món đang bán → vẫn bán; KHÔNG có đường ẩn món (404)', batLai.status === 200 && an.status === 404
+    && Number((await mot('SELECT is_active FROM pos_products WHERE id = ?', [ct1]))?.is_active) === 1, `${moTa(batLai)} | ${moTa(an)}`);
+  await ghiDb("UPDATE pos_products SET price = 'abc', is_active = 0 WHERE code = 'CF02'");
+  const batChu = await goi('PUT', `/kho/san-pham/${await idSP('CF02')}/bat-ban`);
+  k('K9 "có giá" cùng nghĩa với menu quầy (số > 0): giá dạng chữ → 400 CHUA_CO_GIA', batChu.status === 400 && batChu.code === 'CHUA_CO_GIA', moTa(batChu));
   const fileTrong = path.join(THU_MUC, 'trong.db');
   delete require.cache[duongDB];
   const db3 = require(duongDB);
