@@ -98,7 +98,20 @@ const BACKUP_TABLES = [
 
   // Nhật ký kỹ thuật — giữ để truy nguyên sự cố
   { name: 'pos_sync_logs', label: 'Nhật ký đồng bộ', key: 'id' },
-  { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' }
+  { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' },
+
+  // KHO-1: nâng cấp dữ liệu + kho (cha trước con). Khôi phục: kho_* chỉ khi kho trống, pos_nang_cap không bao giờ (POST /restore).
+  { name: 'pos_nang_cap', label: 'Nâng cấp dữ liệu', key: 'so' },
+  { name: 'kho_nhom_nguyen_lieu', label: 'Kho - Nhóm nguyên liệu', key: 'id' },
+  { name: 'kho_nha_cung_cap', label: 'Kho - Nhà cung cấp', key: 'id' },
+  { name: 'kho_nguyen_lieu', label: 'Kho - Nguyên liệu', key: 'id' },
+  { name: 'kho_nhom_cong_thuc', label: 'Kho - Nhóm công thức', key: 'id' },
+  { name: 'kho_san_pham', label: 'Kho - Sản phẩm', key: 'pos_product_id' },
+  { name: 'kho_cong_thuc', label: 'Kho - Công thức', key: 'id' },
+  { name: 'kho_dinh_muc', label: 'Kho - Định mức', key: 'id' },
+  { name: 'kho_phieu', label: 'Kho - Phiếu', key: 'id' },
+  { name: 'kho_lo', label: 'Kho - Lô', key: 'id' },
+  { name: 'kho_phieu_dong', label: 'Kho - Dòng phiếu', key: 'id' }
 ];
 
 // P26d (Q3, chủ quán mở rộng 18.10 + Q7a 19.10): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (chặn 400):
@@ -335,6 +348,8 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     // P26d (7), chủ quán chốt Q3: trang tiền không khôi phục bằng file (ví chỉ ghi qua ghiVi, đơn qua đường bán) — chặn TRƯỚC
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
     if (chanTrangTien(res, wb)) return;
+    // KHO-1 (chủ quán 28.10): bảng kho_* CHỈ khôi phục khi kho đang TRỐNG (dựng lại máy mới) — đo MỘT lần trước vòng lặp; pos_nang_cap không bao giờ.
+    const khoTrong = Number((await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n'))[0].n) === 0;
 
     for (const sheetName of wb.SheetNames) {
       if (sheetName === '_Metadata') continue;
@@ -342,6 +357,11 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
       const tableDef = labelToTable[sheetName];
       if (!tableDef) {
         results.push({ sheet: sheetName, status: 'skipped', reason: 'Không nhận diện được bảng' });
+        continue;
+      }
+      if (tableDef.name === 'pos_nang_cap' || (tableDef.name.startsWith('kho_') && !khoTrong)) {
+        results.push({ sheet: sheetName, table: tableDef.name, status: 'skipped', reason: tableDef.name === 'pos_nang_cap'
+          ? 'Sổ nâng cấp dữ liệu không khôi phục bằng file' : 'Bỏ qua bảng kho vì kho đang có dữ liệu' });
         continue;
       }
 

@@ -115,6 +115,7 @@ app.use('/api/pos/damages', damagesRoutes);
 app.use('/api/pos/packages', packagesRoutes);
 app.use('/api/pos/so-no', soNoRoutes);   // POS-DODNO-v1
 app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-v1
+app.use('/api/pos/kho', require('./kho/duong'));   // KHO-1: mục kho (server/kho/)
 app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên cấp mã đăng nhập App cho khách
 // KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)
 app.use('/api/kh', require('./routes/kh'));
