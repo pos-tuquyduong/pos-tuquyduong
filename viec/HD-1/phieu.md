@@ -9,6 +9,18 @@
      điểm do orders.js (~1225–1255) dựng sẵn, không có số điểm. Chạy SONG SONG: UUDAI-1 (orders.js, Sales.jsx), KHO-1, BH-2 (màn bán
      hàng mới sẽ gọi thành phần in của việc này ở màn kết thúc) → giữ đúng Cấm. -->
 
+**Chủ quán 28.10 (sau báo cáo tạm `5f25465`):** thư viện `qrcode-generator` 1.4.4 chủ quán đã cài (commit ngay sau phiếu này) — làm tiếp
+(`/lam-viec HD-1 tiep`) tới hết, không dừng hỏi lại:
+1. Đồng ý 3 chỗ máy tự quyết: chữ cạnh QR không áp giới hạn 42 (cột hẹp, tự xuống dòng); chữ tự điền `{gio}` cho ô mã nhận điểm — số giờ lấy
+   từ cài đặt hạn mã nhận điểm đang có, câu chữ sửa ở Cài đặt hoá đơn; các dòng thêm ngoài mẫu (Giảm Flash sale, Từ tài khoản mẹ, Ghi nợ, ĐƠN
+   ĐÃ HUỶ / HOÀN TIỀN).
+2. **Bill hiện ĐÚNG tình trạng thực tế của đơn:** chỉ in dòng đơn đó thật sự có (không in dòng 0đ, không in mục rỗng); đơn huỷ / hoàn in rõ
+   trạng thái; in lại có "IN LẠI · LẦN n". Tổng các dòng thanh toán = tổng hoá đơn với MỌI ca.
+3. **Cài đặt đầy đủ:** MỌI dòng có thể xuất hiện trên bill và tem — kể cả các dòng thêm ngoài mẫu, dòng IN LẠI, dòng trạng thái huỷ / hoàn — có
+   khoá chữ riêng trong Cài đặt hoá đơn, sửa được, xem trước ngay. Ô xem trước có đủ mẫu: khách quen có hạng · khách lẻ có mã · đơn Flash ·
+   trả bằng tài khoản mẹ · đơn huỷ / hoàn · in lại. Dòng tiền / thanh toán sửa được CHỮ nhưng không tắt được (máy chủ từ chối).
+   Ca thử: mỗi dòng phụ có khoá cài đặt; đổi chữ → bill đổi; tắt dòng tiền → 400.
+
 ## Mục tiêu
 Mọi đơn in ra hoá đơn đúng bố cục chủ quán duyệt: 2 tờ GIAO KHÁCH / LƯU QUẦY, số bill to, QR dẫn khách sang App KH để đăng ký (khách
 lẻ có sẵn mã nhận điểm), mục tiền – thanh toán – điểm rõ ràng; chủ quán tự sửa mọi chữ trên hoá đơn và tem. Phải xong trước khai trương.
