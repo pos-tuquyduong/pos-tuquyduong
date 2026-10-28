@@ -38,6 +38,18 @@ dưới; chỗ nào dưới đây khác `ke_hoach.md` thì làm theo phiếu.
    bất kỳ tên trong nhóm gộp (lấy lớn nhất); đơn vị lưu `kg`; đơn vị hiện `g` cho nhóm Dược liệu, `kg` cho Rau củ quả; `sx_id` = id nhỏ nhất.
 6. **Giá bất thường:** giá < 1.000 đ/kg coi như CHƯA CÓ GIÁ (lưu trống, vào ô "Thiếu thông tin", cảnh báo "giá SX 15đ/kg — có thể gõ thiếu số").
 
+**Trả lời câu hỏi vòng 2 (chủ quán 28.10, đầu nhánh `b7e06fe`) — thay mục 3 phần Đã duyệt ở chỗ khác nhau:**
+7. Câu 4 = **(a)**: món SX chưa có dòng `pos_products` → TẠO với `is_active = 1`, `price = 0` (đúng như seed / `sync-from-sx` đang làm), giữ tên +
+   nhóm + khoá nối SX. Quầy hiện "Chưa có giá" (không bấm bán được); đặt giá ở màn Sản phẩm là bán được ngay. BỎ đường + nút "Bật bán"
+   (`PUT /kho/san-pham/:id/bat-ban`) và cảnh báo `MON_TAO_AN`; lời xem trước đổi thành "Món <tên> đã tạo, chưa có giá — đặt giá là bán được".
+   KHÔNG đụng `products.js` / `orders.js`. Ca thử: món tạo từ nhập → menu có món, `sellable: false`; đặt giá qua `PUT /products/price` →
+   `sellable: true` VÀ `POST /orders` nhận (khoá bất biến "menu bán được thì tạo đơn nhận").
+8. Câu 5: chủ quán CHƯA quyết → TẠM giữ như máy đang làm (giá nhập ẩn với mọi vai trò khác chủ quán / quản lý). Không chặn báo xong; ghi
+   một dòng trong báo cáo: "đổi cho nhân viên thấy = sửa danh sách vai trò ở `duong.js` (một dòng) hoặc làm trong phân quyền chi tiết sau
+   khai trương".
+9. Đây là vòng sửa 3/3. Soát lần 3 ĐẠT → báo xong. KHÔNG ĐẠT → KHÔNG sửa thêm: ghi nguyên văn báo cáo vào `trang_thai.md`, push, DỪNG — chat
+   soát thay.
+
 ## Dữ liệu SX thật (bản sao lưu 09.10 — chat đọc 28.10; `app_config.USE_UNIFIED_PRODUCTS = 'true'`)
 41 tên nguyên liệu → **32** nguyên liệu POS. Gộp (id SX trong ngoặc; tên ghi đúng như SX, kể cả dấu cách thừa):
 | Tên POS | Nhóm | Tên SX gộp vào |
