@@ -27,3 +27,12 @@ Trích các ca đỏ tiêu biểu (đủ từng mục):
 
 Ca XANH trên gốc (đúng — đó là K5 "phải KHÔNG đổi"): D1 pos_products không thêm cột · F10 CT2 giữ tên · F12 không lấy tồn/khách ·
 F13 file SX không bị sửa · K1 menu dự phòng y hệt · K2 tạo đơn vẫn 200 + vẫn trừ kho SX.
+
+── Chạy lại sau khi sửa bài (A16) — bài HEAD 3fbb608 trên server/ của gốc e4f927f ──
+Lệnh: python3 viec/KHO-1/dot_bien.py --goc e4f927f
+  7 đạt · 87 hỏng
+  GỐC e4f927f: thoát 1
+(7 xanh = 6 ca K5 ở trên + A5 — bài đọc client/ ở cây hiện tại, server/ ở gốc.)
+
+Trên code đã vá (HEAD 3fbb608): node cong_cu/thu_KHO1.js → 94 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 94
