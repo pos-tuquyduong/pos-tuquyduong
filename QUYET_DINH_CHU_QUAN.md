@@ -1,0 +1,69 @@
+# Sổ quyết định của chủ quán — POS · SX · App KH
+
+<!-- Một dòng một quyết định, có ngày. Cả hai chat đọc TRƯỚC khi soạn phiếu. Đổi → sửa đúng dòng, ghi "(đổi dd.mm, trước: …)", không xoá.
+     Máy không sửa; chat soạn, chủ quán chạy script. Khi lệch với file khác: file này thắng, rồi sửa file kia. -->
+
+## Chung — dữ liệu và hệ thống
+- 27.10 · POS là nơi DUY NHẤT giữ tiền, ví, điểm, hạng, voucher, giá, món, khách, đơn — và cả kết quả trắc nghiệm (27.10), ghi chép đánh giá Google (28.10).
+- 27.10 · App KH tách kho GitHub riêng (`tuquyduong/APP-KH`); tách máy chủ App KH (Render) SAU khai trương (KH-TACH-1); trước đó trang tĩnh gọi thẳng POS.
+- 27.10 · Kho dữ liệu nhỏ của App KH chỉ giữ: ảnh / chữ trang trí, phiên đăng nhập, đăng ký nhận thông báo, nhắc việc. Không tiền, không dữ liệu khách.
+- 28.10 · Mọi thay đổi trong kho POS (kể cả cổng `/api/kh`) do chat POS làm; chat App KH chỉ sửa kho `APP-KH`, cần gì ở POS thì gửi file yêu cầu.
+- 28.10 · Khớp hai chat: hợp đồng `/api/kh` một chỗ có số phiên bản; đổi cổng là đổi hợp đồng cùng PR; bài thử hợp đồng hai phía; sổ quyết định này;
+  trao đổi bằng file qua chủ quán.
+
+- 28.10 · Mọi hệ thống (POS, App KH, máy App KH sau này) dùng **giờ Việt Nam (UTC+7)**: giờ lưu, giờ so, giờ hiện đều là giờ VN; "bây giờ"
+  lấy từ máy chủ POS, không lấy đồng hồ điện thoại.
+- 28.10 · **Giờ hoạt động của quán = giờ hoạt động của App**: cài một chỗ trong POS (từng ngày trong tuần, ngày nghỉ, câu thông báo). Ngoài
+  giờ App không đặt đơn được và hiện thông báo; máy chủ POS là bên chặn. Quầy KHÔNG bị chặn (nhân viên vẫn bán khi mở sớm / đóng muộn).
+
+## Khai trương
+- 27.10 · Khai trương T7 07.11.2026; chỉ khai trương khi mọi việc trong lịch đã xong, không dùng phương án dự phòng, trễ thì lùi ngày.
+- 27–28.10 · QR hoá đơn dẫn tới App KH mới: `https://tuquyduong.com/?ma={ma}` (khách quen bỏ phần `?ma=`); địa chỉ đặt trong Cài đặt POS, dán ngày 06.11.
+
+## App KH
+- 27–28.10 · App KH là PWA ở `tuquyduong.com` (không tiền tố). Điện thoại trước; máy tính bảng, máy tính, trình duyệt Zalo không vỡ, không méo.
+- 27.10 · Giao diện theo demo `app_kh_demo.html` (patch39); số liệu trong demo chỉ minh hoạ — số thật theo POS.
+- 28.10 · Giao diện App KH đặt trên Cloudflare (miễn phí, không tính dung lượng); máy App KH sau khai trương đặt trên Render.
+- 28.10 · App KH cũ trên Replit (`tuquyduong/TuQuyDuong`) bỏ, dựng mới hoàn toàn.
+
+## Giao hàng
+- 27.10 · Giao hàng dùng Ahamove (không GHN).
+
+## Đánh giá Google
+- 28.10 · Chỉ đánh giá trên Google Maps; không quà / voucher đổi đánh giá; không viết sẵn câu; mời mọi khách như nhau (KHÔNG có điều kiện
+  "khiếu nại"); đơn huỷ / hoàn tiền không mời; không chỉ tiêu theo nhân viên.
+- 28.10 · Toàn bộ dữ liệu, lịch mời, đọc / trả lời Google, màn quản lý ở POS; App KH chỉ làm giao diện khách + gửi thông báo khi POS nhờ.
+
+## Trắc nghiệm thể trạng
+- 27.10 · Lưu bản rút gọn (nhóm thể trạng, ngày) khi khách đồng ý; quán quản lý, theo dõi được (trong POS, theo quyền); khách xoá được.
+
+## Tiền, điểm, quầy (POS)
+- (đã chốt trước) Không công nợ. Mọi chuyển khoản qua QR payOS, máy chủ tự xác nhận. Trừ tài khoản khách phải có PIN khách.
+- (đã chốt trước) Điểm chỉ tính trên tiền khách trả thật (DIEM-THAT-1). Giá hạng: giá gốc gạch ngang + giá hạng. Combo cố định, giảm hạng
+  mức riêng cho combo.
+- 24.10 · Hoá đơn 2 tờ GIAO KHÁCH / LƯU QUẦY (mặc định 2, đổi được 1); tem từng ly; khách lẻ có mã nhận điểm in chữ + QR (+N điểm, hạn theo cài đặt).
+- 26.10 · Mã giảm và giá hạng: máy chủ chọn cách lợi hơn cho khách theo cài đặt từng loại mã (UUDAI-1).
+- 27.10 · Mã gõ sai: bỏ qua mã, vẫn giảm giá hạng, báo "Mã không áp" (UUDAI-1 Q5 = a). Đối soát "máy chọn hạng mà mã vẫn bị tiêu": để sau
+  khai trương.
+- 27.10 · Trước khai trương có: topping theo món, đổi điểm trong phiên thanh toán (P3b), giao Ahamove ở quầy (GIAO-1).
+- 28.10 · Hoá đơn hiện đúng tình trạng thực tế của đơn (chỉ in dòng đơn có); MỌI dòng chữ trên bill và tem sửa được trong Cài đặt; dòng
+  tiền / thanh toán không tắt được; số giờ hạn mã trên bill tự lấy từ cài đặt hạn mã.
+
+## Kho (POS)
+- 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
+  nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).
+- 26.10 · Công thức ghi cho 1 đơn vị; món pha tại chỗ trừ thẳng nguyên liệu, món làm sẵn trừ thành phẩm (lô, hạn); hết hàng làm sẵn vẫn
+  bán, ghi âm, báo đỏ. Nhân viên xuất kho luôn cần duyệt (công tắc Cài đặt); phiếu nhận cần người KHÁC duyệt; kiểm kê đếm mù, quản lý
+  duyệt chênh lệch có lý do; số tồn chỉ đổi qua phiếu; sửa / huỷ phiếu chỉ chủ quán, có lý do, phiếu cũ giữ.
+- 28.10 · 32 nguyên liệu chính thức sau gộp trùng tên SX (Táo đỏ ≠ Táo tươi; Củ dền = Dền đỏ). Nhóm nguyên liệu: Rau củ quả · Dược liệu
+  (theo loại, không theo món dùng).
+- 28.10 · Món SX chưa có giá ở POS: tạo với tên + nhóm, giá trống — đặt giá là bán được. Món không nối được với SX (Cà Phê Đen): thêm mới
+  trong POS sau.
+- 28.10 · Giá nhập nguyên liệu với nhân viên: TẠM ẨN (chủ quán đang cân nhắc).
+- 28.10 · Nâng cấp dữ liệu: bước đánh số, chỉ thêm, chạy trọn gói, không bao giờ chạy đôi; bước lỗi thì quầy vẫn bán, chỉ màn Kho báo lỗi.
+
+## Bảo vệ dữ liệu (POS)
+- 28.10 · Sổ kho không chép đè: khôi phục Excel bỏ qua bảng kho khi kho đang có dữ liệu, chỉ khôi phục kho khi máy trống. Sai số kho sửa
+  bằng phiếu kiểm kê có duyệt.
+- 28.10 · Lên gói Turso Developer (quay lại 10 ngày) trước khai trương, cùng lúc nâng Render; sau khai trương thêm sao lưu tự động hằng
+  đêm ra Google Drive.
