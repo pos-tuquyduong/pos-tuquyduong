@@ -1,0 +1,29 @@
+KHO-1 — bằng chứng ĐỎ trên code gốc (28.10.2026)
+Lệnh: node cong_cu/thu_KHO1.js   ·   cây: c8ee017 (chỉ có bài thử, server/ client/ CHƯA vá — gốc e4f927f)
+
+Dòng tổng: 6 đạt · 88 hỏng   (thoát mã 1, chạy hết, không sập)
+
+Trích các ca đỏ tiêu biểu (đủ từng mục):
+  ✗ A1 server/kho/duong.js có                         (A — chưa có mục kho)
+  ✗ E1 trienKhai lồng 2 tầng × 3 phần ...               (E — chưa có tinh.js)
+  ✗ E3 vòng A→A → ném CONG_THUC_VONG_LAP, chuỗi [5,5]
+  ✗ E9 "Táo tươi" KHÔNG gộp vào Táo đỏ                  (G)
+  ✗ B1 khởi động lần 1: pos_nang_cap có bước 1 (001_kho)  — []
+  ✗ B3 bước 901 chạy + đánh dấu; 902 hỏng KHÔNG đánh dấu; 903 KHÔNG chạy  — []
+  ✗ B5 themCot vào bảng CÓ dòng → _sao_luu_904_thu_co_dong đủ 2 dòng, cột mới có  — thiếu chayNangCap
+  ✗ B8 hai bộ chạy song song cùng CSDL: mỗi bước đúng 1 lần, không bên nào báo hỏng  — thu_dem 0 · thiếu chayNangCap | thiếu chayNangCap
+  ✗ B9 bước hỏng → đường kho trả 503 NANG_CAP_HONG nêu tên bước  — HTTP 404
+  ✗ C1 đủ 10 bảng kho_*  — thiếu kho_nhom_nguyen_lieu, ..., kho_phieu_dong
+  ✗ F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo ẩn, 3 món có công thức  — HTTP 404 {}
+  ✗ G1 nhập → đúng 12 nguyên liệu (gộp đúng bảng tên chính thức)  — HTTP 404
+  ✗ F15 nhập lại cùng file → 200, KHÔNG thêm / đổi một dòng  — HTTP 404
+  ✗ I1 staff XEM nguyên liệu → 200 (kèm nhóm, nhà cung cấp)  — HTTP 404
+  ✗ I15 manager sửa công thức → 403
+  ✗ E14 lưu vòng A→B→A → 400, lời báo nêu chuỗi tên  — HTTP 404
+  ✗ E17 hai người lưu chéo cùng lúc → đúng một 200, một 400 vòng  — HTTP 404 | HTTP 404
+  ✗ J1 xuất sao lưu có đủ 11 trang mới (pos_nang_cap + 10 bảng kho_*)
+  ✗ J3 kho ĐANG có dữ liệu: khôi phục BỎ QUA bảng kho (không đổi một dòng), báo rõ  — HTTP 200
+  ✗ K3 khởi động trên kho trống → tự tạo bảng kho + pos_nang_cap
+
+Ca XANH trên gốc (đúng — đó là K5 "phải KHÔNG đổi"): D1 pos_products không thêm cột · F10 CT2 giữ tên · F12 không lấy tồn/khách ·
+F13 file SX không bị sửa · K1 menu dự phòng y hệt · K2 tạo đơn vẫn 200 + vẫn trừ kho SX.
