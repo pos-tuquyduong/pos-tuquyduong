@@ -127,9 +127,12 @@ function lapKeHoach(sx, hienCo) {
   const mon = [];
   const maSeTao = new Set();
   for (const m of sx.mon) {
-    const sp = hienCo.san_pham.find((p) => (m.khoa_id == null
-      ? p.code === m.code && p.sx_product_id == null
-      : p.sx_product_type === m.loai && Number(p.sx_product_id) === m.khoa_id));
+    // Không khoá nối SX (legacy_id trống): POS không tra được (sx_product_type, sx_product_id) — không tạo dòng (phiếu mục 10)
+    if (m.khoa_id == null) {
+      cb('MON_CHUA_NOI', `Món ${m.ten} chưa nối được với SX — thêm mới trong POS sau`);
+      continue;
+    }
+    const sp = hienCo.san_pham.find((p) => p.sx_product_type === m.loai && Number(p.sx_product_id) === m.khoa_id);
     if (!sp && (maSeTao.has(m.code) || hienCo.san_pham.some((p) => p.code === m.code))) {
       cb('TRUNG_MA', `Mã ${m.code} ("${m.ten}") đã dùng cho món khác ở POS — bỏ qua`);
       continue;
@@ -173,10 +176,10 @@ async function ghiKeHoach(tx, kh, luc) {
   for (const n of kh.nhom_san_pham) await themNhom('kho_nhom_cong_thuc', n.ten, n.ten_sx);
   for (const m of kh.mon) {
     if (m.pos_id == null) {
-      // is_active = 1, giá 0 — như seed (database.js) và POST /products/sync-from-sx: menu (routes/products.js layMenuQuay) cho sellable
-      // false khi giá không > 0, tạo đơn (routes/orders.js) từ chối giá <= 0. Chủ quán đặt giá (PUT /products/price) là bán được ngay.
+      // is_active = 1, giá NULL = chưa có giá (quy ước POS-TONCU-v1 của routes/products.js): menu trả price null, sellable false;
+      // tạo đơn (routes/orders.js) từ chối giá <= 0 (null <= 0). Chủ quán đặt giá ở màn giá (PUT /products/price, /batch/prices) là bán được.
       await tx.run(`INSERT OR IGNORE INTO pos_products (code, name, category, price, unit, is_active, sx_product_type, sx_product_id)
-        VALUES (?, ?, ?, 0, ?, 1, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
+        VALUES (?, ?, ?, NULL, ?, 1, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
     }
     const spId = m.pos_id ?? await idTheo('SELECT id FROM pos_products WHERE code = ?', [m.code]);
     if (m.kieu) {
