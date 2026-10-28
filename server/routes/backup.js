@@ -136,6 +136,12 @@ function chanTrangTien(res, wb) {
   return true;
 }
 
+/** KHO-1: chỉ các bảng ĐANG CÓ — bước nâng cấp hỏng (thiếu bảng kho_*) không được kéo sập sao lưu, lúc cần sao lưu nhất. */
+async function bangDangCo() {
+  const co = new Set((await query("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name));
+  return BACKUP_TABLES.filter((t) => co.has(t.name));
+}
+
 /**
  * Helper: Lấy pos_products với tên mới nhất từ SX
  */
@@ -169,7 +175,7 @@ async function getProductsWithSxNames() {
 router.get('/info', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
     const tables = [];
-    for (const t of BACKUP_TABLES) {
+    for (const t of await bangDangCo()) {
       const result = await query(`SELECT COUNT(*) as count FROM ${t.name}`);
       tables.push({
         name: t.name,
@@ -206,7 +212,7 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     const wb = XLSX.utils.book_new();
 
-    for (const t of BACKUP_TABLES) {
+    for (const t of await bangDangCo()) {
       // Đọc phân trang để không bị treo khi bảng có cột nặng.
       const rows = await readTablePaged(t.name, t.key);
       console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
@@ -303,7 +309,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
 
       let currentCount = 0;
       if (tableDef) {
-        const result = await query(`SELECT COUNT(*) as count FROM ${tableDef.name}`);
+        const result = await query(`SELECT COUNT(*) as count FROM ${tableDef.name}`).catch(() => [{ count: 0 }]);   // KHO-1: bảng chưa có
         currentCount = result[0]?.count || 0;
       }
 
@@ -349,7 +355,9 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
     if (chanTrangTien(res, wb)) return;
     // KHO-1 (chủ quán 28.10): bảng kho_* CHỈ khôi phục khi kho đang TRỐNG (dựng lại máy mới) — đo MỘT lần trước vòng lặp; pos_nang_cap không bao giờ.
-    const khoTrong = Number((await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n'))[0].n) === 0;
+    // Thiếu bảng kho (nâng cấp hỏng) → câu đếm lỗi → coi như kho CÓ dữ liệu: bỏ qua bảng kho, phần còn lại khôi phục như cũ.
+    const khoTrong = Number((await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n')
+      .catch(() => [{ n: 1 }]))[0].n) === 0;
 
     for (const sheetName of wb.SheetNames) {
       if (sheetName === '_Metadata') continue;

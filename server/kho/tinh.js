@@ -4,9 +4,14 @@
 
 const KIEU_SAN_PHAM = ['pha_tai_cho', 'lam_san', 'chua_dinh_luong'];
 
-/** Khoá so tên: NFC, gộp khoảng trắng, chữ thường — GIỮ dấu ("Táo tươi" ≠ "Táo đỏ"). */
+/** Tên gọn: NFC, cắt đầu / cuối, gộp khoảng trắng — giữ hoa / thường. */
+function gonTen(ten) {
+  return String(ten ?? '').normalize('NFC').trim().replace(/\s+/g, ' ');
+}
+
+/** Khoá so tên: gonTen + chữ thường — GIỮ dấu ("Táo tươi" ≠ "Táo đỏ"). */
 function chuanHoaTen(ten) {
-  return String(ten ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi');
+  return gonTen(ten).toLocaleLowerCase('vi');
 }
 
 /** Tên để hiện: như chuanHoaTen rồi viết hoa chữ đầu ("lá  DỨA" → "Lá dứa"). */
@@ -50,4 +55,4 @@ function laTrungKhoa(loi) {
   return /SQLITE_CONSTRAINT_(UNIQUE|PRIMARYKEY)/.test(String(loi && loi.code)) || /UNIQUE constraint|PRIMARY KEY/i.test(String(loi && loi.message));
 }
 
-module.exports = { KIEU_SAN_PHAM, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa };
+module.exports = { KIEU_SAN_PHAM, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa };

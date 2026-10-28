@@ -119,19 +119,25 @@ function lapKeHoach(sx, hienCo) {
   const daCoSx = new Set(hienCo.nguyen_lieu.map((r) => Number(r.sx_id)));
   const nguyen_lieu = [...gopTheo.values()].filter((g) => !daCoNL.has(g.ten_chuan) && !daCoSx.has(g.sx_id))
     .map((g) => ({ ...g, don_vi_luu: 'kg', don_vi_hien: (DON_VI_HIEN[g.nhom] || ['kg'])[0], he_so_doi: (DON_VI_HIEN[g.nhom] || [0, 1])[1] }));
+  const thieuGia = nguyen_lieu.filter((g) => g.gia_nhap == null).map((g) => g.ten);
+  if (thieuGia.length) cb('THIEU_GIA', `${thieuGia.length} nguyên liệu chưa có giá (SX để 0 / trống) — điền ở ô "Thiếu thông tin": ${thieuGia.join(', ')}`);
   const nhom_nguyen_lieu = [...new Set(nguyen_lieu.map((g) => g.nhom).filter((x) => x && !hienCo.nhom_nl.includes(x)))];
   const nhom_san_pham = sx.nhom_sp.filter((n) => !hienCo.nhom_ct.includes(n.code)).map((n) => ({ ten: chuanTenHienThi(n.name), ten_sx: n.code }));
 
   const mon = [];
+  const maSeTao = new Set();
   for (const m of sx.mon) {
     const sp = hienCo.san_pham.find((p) => (m.khoa_id == null
       ? p.code === m.code && p.sx_product_id == null
       : p.sx_product_type === m.loai && Number(p.sx_product_id) === m.khoa_id));
-    if (!sp && hienCo.san_pham.some((p) => p.code === m.code)) {
+    if (!sp && (maSeTao.has(m.code) || hienCo.san_pham.some((p) => p.code === m.code))) {
       cb('TRUNG_MA', `Mã ${m.code} ("${m.ten}") đã dùng cho món khác ở POS — bỏ qua`);
       continue;
     }
-    if (!sp) cb('MON_TAO_AN', `Món ${m.ten} đã tạo ẩn — đặt giá rồi bật bán`);
+    if (!sp) {
+      maSeTao.add(m.code);
+      cb('MON_TAO_AN', `Món ${m.ten} tạo ẩn — đặt giá, rồi bật bán ở Quản lý kho › Sản phẩm`);
+    }
     const dong = new Map();
     for (const d of m.dong) {
       const khoa = sxVePos.get(d.ingredient_id);
@@ -155,16 +161,20 @@ function lapKeHoach(sx, hienCo) {
 /** Ghi kế hoạch trong giao dịch tx (đã đọc hienCo trong CÙNG giao dịch). Mọi câu chỉ THÊM, OR IGNORE theo khoá duy nhất. */
 async function ghiKeHoach(tx, kh, luc) {
   const idTheo = async (sql, a) => Number((await tx.queryOne(sql, a))?.id) || null;
-  for (const ten of kh.nhom_nguyen_lieu) await tx.run('INSERT OR IGNORE INTO kho_nhom_nguyen_lieu (ten, ten_sx) VALUES (?, ?)', [ten, ten]);
+  // Nhóm chủ quán đã tự tạo trùng tên (ten_sx trống) → dùng lại nhóm đó, ghi ten_sx để lần nhập sau khớp
+  const themNhom = (bang, ten, tenSx) => tx.run(`INSERT INTO ${bang} (ten, ten_sx) VALUES (?, ?)
+    ON CONFLICT(ten) DO UPDATE SET ten_sx = COALESCE(${bang}.ten_sx, excluded.ten_sx)`, [ten, tenSx]);
+  for (const ten of kh.nhom_nguyen_lieu) await themNhom('kho_nhom_nguyen_lieu', ten, ten);
   for (const g of kh.nguyen_lieu) {
     await tx.run(`INSERT OR IGNORE INTO kho_nguyen_lieu (ten, ten_chuan, nhom_id, don_vi_luu, don_vi_hien, he_so_doi, gia_nhap, ton_toi_thieu,
       han_ngay, sx_id, tao_luc) VALUES (?, ?, (SELECT id FROM kho_nhom_nguyen_lieu WHERE ten_sx = ?), ?, ?, ?, ?, ?, ?, ?, ?)`,
     [g.ten, g.ten_chuan, g.nhom, g.don_vi_luu, g.don_vi_hien, g.he_so_doi, g.gia_nhap, g.ton_toi_thieu, g.han_ngay, g.sx_id, luc]);
   }
-  for (const n of kh.nhom_san_pham) await tx.run('INSERT OR IGNORE INTO kho_nhom_cong_thuc (ten, ten_sx) VALUES (?, ?)', [n.ten, n.ten_sx]);
+  for (const n of kh.nhom_san_pham) await themNhom('kho_nhom_cong_thuc', n.ten, n.ten_sx);
   for (const m of kh.mon) {
     if (m.pos_id == null) {
-      // Món ẩn, giá 0: menu dự phòng chỉ lấy is_active = 1, quầy chỉ bán khi price > 0 (routes/products.js) — chủ quán đặt giá rồi bật.
+      // Món ẩn, giá 0: menu dự phòng chỉ lấy is_active = 1 (routes/products.js getFallbackProducts), tạo đơn chỉ nhận is_active = 1 và
+      // price > 0 (routes/orders.js). Chủ quán đặt giá (PUT /products/price) rồi bật bán (PUT /api/pos/kho/san-pham/:id/ban).
       await tx.run(`INSERT OR IGNORE INTO pos_products (code, name, category, price, unit, is_active, sx_product_type, sx_product_id)
         VALUES (?, ?, ?, 0, ?, 0, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
     }

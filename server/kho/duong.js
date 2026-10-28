@@ -31,7 +31,7 @@ const doc = (lay) => async (req, res) => {
 };
 
 // ── Nguyên liệu ──
-router.get('/nguyen-lieu', doc(() => duLieu.docNguyenLieu(csdl)));
+router.get('/nguyen-lieu', doc((req) => duLieu.docNguyenLieu(csdl, req.user.role === 'staff')));
 
 router.post('/nguyen-lieu', QUAN_LY, async (req, res) => {
   const cot = duLieu.cotNguyenLieu(req.body || {});
@@ -87,7 +87,7 @@ router.get('/san-pham/:id/trien-khai', QUAN_LY, async (req, res) => {
   try {
     const kq = tinh.trienKhai({ goc: Number(req.params.id), bang: await duLieu.docBangCongThuc(csdl) }, soPhan);
     const nl = new Map((await csdl.query('SELECT id, ten, don_vi_luu, don_vi_hien, he_so_doi FROM kho_nguyen_lieu')).map((r) => [Number(r.id), r]));
-    res.json({ nguyen_lieu: kq.map((d) => ({ ...nl.get(d.nguyen_lieu_id), ...d })) });
+    res.json({ nguyen_lieu: kq.map((d) => { const n = nl.get(d.nguyen_lieu_id) || {}; return { ...n, ...d, luong_hien: tinh.doiDonVi(d.luong, n.he_so_doi || 1) }; }) });
   } catch (e) { console.error('Lỗi triển khai công thức:', e); res.status(500).json({ error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' }); }
 });
 
@@ -123,6 +123,21 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   } catch (e) { loiGhi(res, e); }
 });
 
+// Bật / ẩn món ở quầy (chủ quán): món SX nhập vào được tạo ẩn giá 0 — đặt giá ở màn giá rồi bật ở đây. Bật cần giá > 0 (một câu, kiểm changes).
+router.put('/san-pham/:id/ban', CHU_QUAN, async (req, res) => {
+  const ban = req.body?.ban ? 1 : 0;
+  const id = Number(req.params.id);
+  try {
+    if ((await csdl.run('UPDATE pos_products SET is_active = ?, updated_at = ? WHERE id = ? AND (? = 0 OR price > 0)', [ban, getNow(), id, ban])).changes) {
+      return res.json({ success: true });
+    }
+    if (await csdl.queryOne('SELECT 1 AS co FROM pos_products WHERE id = ?', [id])) {
+      return res.status(400).json({ error: 'Món chưa có giá bán — đặt giá trước rồi mới bật bán', code: 'CHUA_CO_GIA' });
+    }
+    res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
+  } catch (e) { loiGhi(res, e); }
+});
+
 // ── Nhập từ SX (chỉ chủ quán): ghi = '0' xem trước, '1' ghi. File tạm luôn xoá. ──
 const nhanFile = multer({ dest: nhapSx.THU_MUC_TAM, limits: { fileSize: nhapSx.GIOI_HAN_FILE_SX } }).single('file');
 router.post('/nhap-sx', CHU_QUAN, (req, res) => nhanFile(req, res, async (loiNhan) => {
@@ -143,7 +158,7 @@ router.post('/nhap-sx', CHU_QUAN, (req, res) => nhanFile(req, res, async (loiNha
     if (e.code === 'FILE_SX_HONG') return res.status(400).json({ error: e.message, code: e.code });
     loiGhi(res, e);
   } finally {
-    if (req.file) fs.rmSync(req.file.path, { force: true });
+    if (req.file) for (const duoi of ['', '-journal', '-wal', '-shm']) fs.rmSync(req.file.path + duoi, { force: true });
   }
 }));
 
