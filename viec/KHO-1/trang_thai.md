@@ -134,3 +134,71 @@ BÀI HỌC: KHOÁ ca "tạo ẩn → PUT /products/price → POST /orders"; KHO�
 | Nghi ngờ -wal/-shm | xoá thêm `-journal`, `-wal`, `-shm` cạnh file tạm; `?mode=ro` libsql 0.4 KHÔNG nhận ("URL_PARAM_NOT_SUPPORTED: Unknown URL query parameter mode" — đã thử) → chỉ chạy SELECT / PRAGMA, file là bản tạm riêng | F14 |
 | Đơn giản: `doiDonVi` chỉ bài thử gọi; `gonTen` chép | máy chủ trả `luong_hien` (= `tinh.doiDonVi`) ở công thức + "Tính cho N phần", giao diện hiện số đó; `tinh.gonTen` dùng chung | E6 |
 Chưa sửa (ghi CHƯA KIỂM ở báo cáo): máy thứ hai chờ BEGIN quá 1,55 s trên Turso; khôi phục Excel thay `pos_products` để lại dòng kho trỏ id cũ.
+
+## Soát độc lập — vòng 2 (`/ra-soat`, 28.10, HEAD 48c022a) — báo cáo nguyên văn (rút gọn xuống dòng)
+
+```
+KHÔNG ĐẠT
+(Đã chạy: thu_KHO1 103/0; 9 đột biến vòng 1 bắt 9; --goc 25a7c99 91/12 khớp bang_chung_do; --day-du PASS 78 · FAIL 0 · 1 cảnh báo E14 có
+ từ trước. Người soát tự dựng đột biến `const ban = 1;` ở duong.js:128 (nút "Ẩn" mất tác dụng) → bài vẫn 103/0: SỐNG.)
+LỖI TÌM ĐƯỢC:
+1. Nút "Ẩn khỏi quầy" ghi is_active = 0 cho cả món đang bán (duong.js:127-139, SanPham.jsx:184, bấm một lần không hỏi lại). Trước KHO-1
+   không đường nào ghi is_active = 0. Khi SX nối thật, layMenuQuay (products.js:91, :109-112) không lọc is_active, gán sellable = price > 0
+   → quầy (Sales.jsx:1044) và /api/kh/menu (kh/index.js:146) vẫn hiện, POST /orders (orders.js:349, :354) trả 400; món lấy từ gói cũng bị
+   chặn. Chiều ẨN ngoài phiếu, không ca thử (đột biến SỐNG). Cách gọn: bỏ chiều ẩn — K4 + K5, nặng.
+2. Từ lúc đặt giá tới lúc bật, quầy và App KH thấy món "bán được" nhưng tạo đơn 400: món tạo ẩn (nhapSx.js:178) đặt giá qua
+   PUT /products/price (products.js:163-166 chỉ UPDATE giá) → menu SX sellable: true, orders.js:349 vẫn chặn. Lỗi 1 vòng 1 mới bịt bằng
+   LỜI DẶN (cảnh báo MON_TAO_AN nhapSx.js:139), chưa KHOÁ; cửa sổ lệch không ghi ở trang_thai.md. Chạm products.js (Cấm) và Đã duyệt 3
+   → hỏi chủ quán. Dữ kiện: hệ thống vốn có dòng is_active = 1, price = 0 (seed database.js:1130, sync-from-sx products.js:269); tiền đề
+   Đã duyệt 3 ("tạo dòng sẽ hiện lên menu dự phòng") chỉ đúng khi món đã có giá — K5/K1.
+3. Ca K5 tên "…món vẫn ẩn ở menu dự phòng" chỉ kiểm status, không đo menu; K1b chỉ đo menu trước khi đặt giá — K3.
+4. Ẩn giá nhập theo danh sách cấm (role === 'staff', duong.js:34); máy chủ nhận vai trò bất kỳ (users.js:38), có nhắc 'admin'
+   (users.js:193) → dùng danh sách cho phép như checkRole — K4, nhẹ.
+5. duong.js:131 ghi pos_products.updated_at = getNow() (giờ VN, có 'T'), mọi chỗ khác datetime("now") UTC (products.js:164/211/261) — K7.
+6. Ba phép "có giá": bật SQL price > 0 (duong.js:131, chuỗi lọt), menu typeof number && > 0 (products.js:110), tạo đơn !(price <= 0)
+   (orders.js:365) — K4.
+7. "Thiếu giá" NguyenLieu.jsx:10 chỉ đếm null; gõ tay 0 lưu 0 (duLieu.js:26) không bị đếm; phiếu H "đếm giá 0" — K4, nhẹ.
+8. backup.js .catch(() => [{ n: 1 }]) coi lỗi là "kho có dữ liệu", lời báo sai sự thật — K1, nhẹ.
+9. Hai ca cùng mã E10 trong thu_KHO1.js — K3, nhẹ.
+NGHI NGỜ: PUT /san-pham/:id không kiểm nhom_id có thật; themNhom ON CONFLICT(ten) — hai nhóm SX cùng tên hiển thị; nhóm khác hoa/thường
+   (ten UNIQUE BINARY) sinh hai nhóm; khoTrong chỉ đếm kho_phieu + kho_nguyen_lieu (đúng phiếu) → kiểu / nhóm / nhà cung cấp đặt khi kho
+   trống nguyên liệu bị file ghi đè; ẩn giá nhập với nhân viên là máy tự chọn — nên chủ quán xác nhận; số "Thiếu thông tin" tính toàn bộ,
+   danh sách lọc thêm tab + tìm; trang_thai.md chưa có CHƯA KIỂM riêng, cong.js chay, 1–3 thao tác thử tay.
+NGHIỆM THU: 15/17 · thiếu: K (nút Ẩn + cửa sổ đặt giá–chưa bật, không ca), H (chỉ code, chưa ghi thao tác thử tay).
+CHƯA SOÁT ĐƯỢC: Turso thật, file SX 09.10, thao tác tay, mới chạy 9 + 1 đột biến, chưa chạy cong.js chay, lỗi 1–2 kết luận từ đọc code.
+BÀI HỌC: KHOÁ bất biến "layMenuQuay trả sellable: true thì POST /orders phải nhận" (bat_bien.js giả lập); KHOÁ K5 đo đúng điều tên ca nói,
+   ca / gỡ chiều Ẩn kèm đột biến "ban luôn 1"; NGUYÊN TẮC K4: ghi giá trị MỚI vào cột CŨ → grep mọi chỗ đọc, kể cả chỗ KHÔNG lọc cột đó;
+   NGUYÊN TẮC K5: sửa lỗi soát chỉ thêm đúng chiều cần; NGUYÊN TẮC K4: cổng "có giá" mới cùng biểu thức với chỗ dùng.
+```
+
+### Xử lý vòng 2 (vòng sửa 2/3) — ca đỏ trước (`bang_chung_do.txt` vòng 2 (a)), 108/108, đột biến 43/43 BẮT
+| Lỗi soát | Sửa | Ca · đột biến |
+|---|---|---|
+| 1 nút Ẩn | BỎ chiều ẩn: đường đổi thành `PUT /kho/san-pham/:id/bat-ban` chỉ `SET is_active = 1`; nút chỉ hiện với món đang ẩn | K8 · `VS-BAT-BAN-DAO` |
+| 2 cửa sổ đặt giá → chưa bật | **CHƯA SỬA — Câu hỏi 4** (chạm `products.js` Cấm + Đã duyệt 3) | K5 khoá phần không đổi được: menu dự phòng không hiện, tạo đơn 400 |
+| 3 K5 không đo menu | K5 đo menu dự phòng (không có `tea_1`) | K5 |
+| 4 danh sách cấm | `!['owner', 'manager'].includes(role)` | I18 · `VS-AN-GIA-DS-CAM` |
+| 5 updated_at lệch quy ước | đường bật không ghi `updated_at` nữa | — |
+| 6 ba phép "có giá" | bật dùng `typeof(price) IN ('integer','real') AND price > 0` = nghĩa của menu (products.js:110) | K9 · `VS-CO-GIA-SQL` |
+| 7 thiếu giá 0 | vị từ "thiếu giá" = null HOẶC 0 | (giao diện) |
+| 8 lời báo khôi phục | `demKho` null → `code: 'KHO_KHONG_DEM_DUOC'`; có dữ liệu → `KHO_CO_DU_LIEU`; pos_nang_cap → `NANG_CAP_KHONG_KHOI_PHUC` | J3, J7 · `VS-LY-DO-KHOI-PHUC` |
+| 9 trùng mã ca | ca bảng 32 tên đổi thành G0 | — |
+| Nghi ngờ nhóm rác | `demThieu` kiểm `nhom_id` có thật | E18 · `BV-NHOM-RAC` |
+| Nghi ngờ số "Thiếu thông tin" lệch tab / tìm | bấm ô → về tab Tất cả + xoá ô tìm | (giao diện) |
+Chưa sửa (chỉ ghi): hai nhóm SX cùng tên hiển thị / khác hoa-thường (dữ liệu thật chỉ có 3 nhóm khác nhau: Nước ép · Trà thảo mộc · CÀ PHÊ);
+khôi phục khi kho trống nguyên liệu nhưng đã đặt kiểu / nhóm (đúng định nghĩa "kho trống" của phiếu điểm 4).
+
+## Câu hỏi (vòng 2 — DỪNG chờ chủ quán)
+4. **Món SX tạo ẩn: từ lúc đặt giá tới lúc bấm "Bật bán", quầy và App KH thấy món bán được nhưng bấm bán thì báo "đã ngừng bán".**
+   Đã đọc: menu khi SX nối thật (`server/routes/products.js` `layMenuQuay`) không lọc `is_active` và cho `sellable` khi giá > 0; tạo đơn
+   (`server/routes/orders.js:349`, `:354`) chỉ nhận `is_active = 1`; đặt giá (`products.js` `PUT /price`) với dòng đã có chỉ đổi giá.
+   Trước KHO-1, đặt giá món chưa có dòng thì tạo dòng `is_active = 1` → bán được ngay. Hệ thống vốn đã có dòng `is_active = 1, price = 0`
+   (seed `database.js`, `POST /products/sync-from-sx`) — món giá 0 không bán được và hiện "Chưa có giá" ở quầy (`Sales.jsx:1044-1045`),
+   App KH lọc `sellable`. Chọn một:
+   (a) **Tạo món SX với `is_active = 1`, giá 0** (như seed / sync-from-sx đang làm) — đặt giá xong là bán được ngay, đúng như cũ; đổi lại
+       khi mất SX menu dự phòng hiện thêm các món này dưới dạng "Chưa có giá" (không bấm được). Bỏ nút "Bật bán". Máy đề xuất (a): không
+       còn cửa sổ lệch, không thêm thao tác cho chủ quán, không đụng file Cấm.
+   (b) Giữ ẩn (phiếu Đã duyệt 3) + sửa `products.js` (file Cấm) để `PUT /price` cũng bật món — cần chủ quán mở Phạm vi.
+   (c) Giữ như hiện tại (ẩn + nút "Bật bán" ở Quản lý kho) và chấp nhận cửa sổ lệch; chủ quán dặn nhân viên.
+5. **Giá nhập (giá vốn) với nhân viên:** máy đang ẨN với mọi vai trò khác chủ quán / quản lý (LUAT_XAY_APP §4, chọn phía ít lộ). Phiếu I
+   chỉ ghi "nhân viên chỉ xem nguyên liệu". Giữ ẩn hay cho nhân viên thấy giá?

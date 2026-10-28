@@ -56,4 +56,20 @@ Trên code đã vá (HEAD 3fbb608): node cong_cu/thu_KHO1.js → 94 đạt · 0 
     9 xanh = A5 (bài đọc client/ hiện tại) + ca K5 "phải KHÔNG đổi": D1, F10, F12, F13, K1, K1b, K2, J6 (gốc chưa có bảng kho nên sao lưu
     không thiếu gì — J6 đỏ thật ở (a)).
 Trên code đã vá (HEAD cd2b774): node cong_cu/thu_KHO1.js → 103 đạt · 0 hỏng
-SỐ CA cong_cu/thu_KHO1.js: 103
+(dòng SỐ CA vòng 1 thay bằng dòng ở cuối file — bài thêm ca sau vòng soát 2)
+
+── Vòng soát 2 (28.10): ca KHOÁ cho lỗi vòng 2 — bài HEAD e5a4e57 ──
+(a) server/ TRƯỚC vòng sửa 2 (e1197a8): python3 viec/KHO-1/dot_bien.py --goc e1197a8
+  ✗ I18 vai trò lạ (không phải chủ / quản lý) cũng KHÔNG thấy giá nhập
+  ✗ E18 nhóm không có thật → 400, không lưu nhóm rác  — HTTP 200
+  ✗ J3 kho ĐANG có dữ liệu: khôi phục BỎ QUA bảng kho ... (ca giờ đòi code KHO_CO_DU_LIEU)
+  ✗ J7 đếm kho lỗi → bỏ qua bảng kho với lý do ĐÚNG (không đếm được)
+  ✗ K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA  — HTTP 404
+  ✗ K6 manager / staff bật bán → 403
+  ✗ K7 chủ quán bật bán → tạo đơn món đó 200  — HTTP 404 | HTTP 400
+  ✗ K8 bật lại món đang bán → vẫn bán; KHÔNG có đường ẩn món (404)  — HTTP 404 | HTTP 200
+  ✗ K9 "có giá" cùng nghĩa với menu quầy (số > 0): giá dạng chữ → 400 CHUA_CO_GIA  — HTTP 404
+  99 đạt · 9 hỏng · GỐC e1197a8: thoát 1
+(b) gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 9 đạt · 99 hỏng · thoát 1
+Trên code đã vá (HEAD e5a4e57): node cong_cu/thu_KHO1.js → 108 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 108
