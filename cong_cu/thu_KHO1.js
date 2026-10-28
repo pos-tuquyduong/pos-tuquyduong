@@ -97,6 +97,9 @@ async function dungFileSx(duong, them = []) {
     cau.push({ sql: 'INSERT INTO tea_ingredients (tea_product_id, ingredient_id, amount) VALUES (1, ?, ?)', args: [ma, sl] });
   }
   cau.push("INSERT INTO tea_ingredients (tea_product_id, ingredient_id, amount) VALUES (2, 47, 0.001)");
+  // tea 3 trùng MÃ với tea 1 trong CÙNG lô nhập (POS chưa có mã DNL) → phải bỏ qua, không nhét công thức vào món kia
+  cau.push("INSERT INTO tea_products (id, name, code, is_active) VALUES (3, 'An Mi Lộ', 'DNL', 1)");
+  cau.push("INSERT INTO tea_ingredients (tea_product_id, ingredient_id, amount) VALUES (3, 28, 0.001)");
   cau.push(`INSERT INTO product_types (id, code, name, code_prefix, fp_type, is_system, is_active, quan_kho) VALUES
     (1, 'juice', 'Nước ép', 'CT', 'juice', 1, 1, 1), (2, 'tea', 'Trà thảo mộc', 'TEA', 'tea', 1, 1, 1),
     (3, 'caphe', 'CÀ PHÊ', 'CF', 'caphe', 0, 1, 0), (4, 'cu', 'Nhóm cũ', 'CU', 'cu', 0, 0, 1)`);
@@ -122,12 +125,17 @@ async function main() {
   const sxThat = require(duongSX);
   const demSX = { tru: 0 };
   const sxOk = async () => ({ ok: true });
-  require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => false, checkStock: async () => ({ sufficient: true, stock: 999 }),
-    outStockFIFO: async () => { demSX.tru++; return { ok: true }; }, inStockReturn: sxOk, callSxApi: sxOk };
+  // SX nối thật (đường chính ở quầy + /api/kh/menu) chỉ bật khi đo menu; còn lại SX tắt → menu dự phòng.
+  let sxBat = false;
+  const MON_SX = [['juice', 1, 'Hồng Tân Sinh', 'juice'], ['juice', 2, 'Lục Tân Khí', 'juice'], ['tea', 1, 'Dưỡng Nhan Lộ', 'tea'], ['caphe', 5, 'Bạc xỉu', 'caphe']]
+    .map(([t, id, name, category]) => ({ sx_product_type: t, sx_product_id: id, name, category, stock_quantity: 5 }));
+  require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => sxBat, checkStock: async () => ({ sufficient: true, stock: 999 }),
+    outStockFIFO: async () => { demSX.tru++; return { ok: true }; }, inStockReturn: sxOk,
+    callSxApi: async (duong) => (sxBat && /products-with-stock/.test(duong) ? MON_SX.map((m) => ({ ...m })) : { ok: true }) };
 
   const app = express();
   app.use(express.json());
-  for (const r of ['don-mo-rong', 'orders', 'backup']) {
+  for (const r of ['don-mo-rong', 'orders', 'backup', 'products']) {
     app.use('/api/pos/' + (r === 'don-mo-rong' ? 'orders' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   // Thư mục tạm nhận file của RIÊNG lần chạy này (đặt trước khi nạp duong.js — multer đọc lúc nạp): chạy song song (đột biến) không lẫn file.
@@ -311,6 +319,9 @@ async function main() {
   k('D1 pos_products KHÔNG thêm cột', (await q('PRAGMA table_info(pos_products)')).map((c) => c.name).join(',') === COT_SP);
   await ghiDb("UPDATE pos_products SET price = 25000 WHERE code IN ('CT1', 'CT2')");
   const { layMenuQuay } = require(path.join(MAY_CHU, 'routes', 'products.js'));
+  const tomTatMenu = (ds) => JSON.stringify(ds.map((p) => [p.unique_id, p.sellable, p.price > 0]).sort());
+  const menuSx = async () => { sxBat = true; imLang(); try { return tomTatMenu(await layMenuQuay()); } finally { noiLai(); sxBat = false; } };
+  const menuSxTruoc = await menuSx();   // TRƯỚC menu dự phòng: đo SX ghi ton_gan_nhat, menu dự phòng đọc lại số đó
   imLang(); const menuTruoc = JSON.stringify(await layMenuQuay()); noiLai();
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -319,13 +330,14 @@ async function main() {
   await dungFileSx(fileSx);
   const bamSx = bamFile(fileSx);
   const nlTruoc = await dem('kho_nguyen_lieu');
+  const nhomTruoc = await goiAi('manager', 'POST', '/kho/nhom', { ten: 'Dược liệu' });   // chủ quán tự tạo nhóm trùng tên TRƯỚC khi nhập
   const xem = await nhap('chu', fileSx, false);
   const kh = xem.ke_hoach || {};
   k('F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo ẩn, 3 món có công thức', xem.status === 200 && kh.nguyen_lieu_them === 12
     && kh.nhom_san_pham_them === 3 && kh.mon_tao_an === 3 && kh.cong_thuc_ghi === 3, moTa(xem) + ' ' + JSON.stringify(kh).slice(0, 300));
   const loaiCB = new Set((kh.canh_bao || []).map((c) => c.loai));
-  const CB = ['GIA_BAT_THUONG', 'THIEU_DON_VI', 'TEN_MOI', 'THIEU_NGUYEN_LIEU', 'GOP_CONG_THUC', 'TRUNG_MA', 'MON_TAO_AN'];
-  k('F2 đủ 7 loại cảnh báo (giá, thiếu đơn vị, tên mới, công thức trỏ NL không có, hai tên gộp một công thức, trùng mã, món tạo ẩn)',
+  const CB = ['THIEU_GIA', 'GIA_BAT_THUONG', 'THIEU_DON_VI', 'TEN_MOI', 'THIEU_NGUYEN_LIEU', 'GOP_CONG_THUC', 'TRUNG_MA', 'MON_TAO_AN'];
+  k('F2 đủ 8 loại cảnh báo (thiếu giá, giá bất thường, thiếu đơn vị, tên mới, công thức trỏ NL không có, hai tên gộp một công thức, trùng mã, món tạo ẩn)',
     CB.every((c) => loaiCB.has(c)), 'thiếu ' + CB.filter((c) => !loaiCB.has(c)).join(', '));
   const gop = (kh.gop || []).find((g) => g.giu === 'Táo đỏ');
   k('F3 bản xem trước nêu tên gộp: Táo đỏ ← Táo đỏ khô, Táo Đỏ', gop && gop.cu.length === 3, JSON.stringify(gop));
@@ -400,13 +412,20 @@ async function main() {
     && (await dem('kho_nguyen_lieu')) === 12 && (await dem('kho_cong_thuc')) === 8, hai.map(moTa).join(' | '));
   imLang(); const menuSau = JSON.stringify(await layMenuQuay()); noiLai();
   k('K1 menu quầy (mất SX → dự phòng) y hệt trước khi nhập: món tạo ẩn không lên quầy', menuSau === menuTruoc);
+  const menuSxSau = await menuSx();
+  k('K1b menu khi SX nối thật (quầy + /api/kh/menu lọc sellable): mọi món giữ nguyên bán được / có giá như trước khi nhập',
+    menuSxSau === menuSxTruoc && menuSxTruoc.length > 2, `${menuSxTruoc} → ${menuSxSau}`);
+  k('F21 nhóm "Dược liệu" chủ quán tạo trước: nhập dùng lại nhóm đó (không mất nhóm của nguyên liệu)', nhomTruoc.status === 200
+    && (await so("SELECT COUNT(*) FROM kho_nguyen_lieu WHERE nhom_id IS NULL")) === 0);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[I/E/H] đường /api/pos/kho — quyền, công thức, thiếu thông tin');
   const ds = await goiAi('staff', 'GET', '/kho/nguyen-lieu');
   k('I1 staff XEM nguyên liệu → 200 (kèm nhóm, nhà cung cấp)', ds.status === 200 && Array.isArray(ds.nguyen_lieu) && ds.nguyen_lieu.length === 12
     && Array.isArray(ds.nhom) && Array.isArray(ds.nha_cung_cap), moTa(ds));
-  const nlDs = (ten) => (ds.nguyen_lieu || []).find((r) => r.ten === ten) || {};
+  k('I16 nhân viên KHÔNG thấy giá nhập (giá vốn)', (ds.nguyen_lieu || []).length > 0 && ds.nguyen_lieu.every((r) => !('gia_nhap' in r)));
+  const dsQL = await goiAi('manager', 'GET', '/kho/nguyen-lieu');
+  const nlDs = (ten) => (dsQL.nguyen_lieu || []).find((r) => r.ten === ten) || {};
   k('H1 "Thiếu thông tin": Cam thiếu giá / hạn / tối thiểu (null), Gừng có giá', nlDs('Cam').gia_nhap === null && nlDs('Cam').han_ngay === null
     && nlDs('Cam').ton_toi_thieu === null && Number(nlDs('Gừng').gia_nhap) > 0);
   const moiNL = { ten: 'Lá chanh', nhom_id: ds.nhom?.[0]?.id, don_vi_luu: 'kg', don_vi_hien: 'g', he_so_doi: 0.001, gia_nhap: 80000 };
@@ -466,6 +485,11 @@ async function main() {
   const ct6 = await idSP('CT6');
   const macDinh = (sp.san_pham || []).find((s) => s.id === ct6);
   k('D2 món chưa có dòng kho_san_pham → kiểu chua_dinh_luong (mặc định)', macDinh?.kieu === 'chua_dinh_luong', JSON.stringify(macDinh));
+  const nhomSP = Number((await mot('SELECT id FROM kho_nhom_cong_thuc ORDER BY id LIMIT 1'))?.id);
+  await goi('PUT', `/kho/san-pham/${ct6}`, { kieu: 'pha_tai_cho', nhom_id: nhomSP, cong_thuc: [] });
+  const boNhom = await goi('PUT', `/kho/san-pham/${ct6}`, { kieu: 'pha_tai_cho', nhom_id: null, cong_thuc: [] });
+  k('I17 chọn "—" (nhom_id null) → bỏ món khỏi nhóm thật', boNhom.status === 200 && nhomSP > 0
+    && (await mot('SELECT nhom_id FROM kho_san_pham WHERE pos_product_id = ?', [ct6]))?.nhom_id === null, moTa(boNhom));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[J] sao lưu + khôi phục');
@@ -490,6 +514,14 @@ async function main() {
   for (const b of [...BANG_KHO].reverse()) if (await coBang(b)) await ghiDb(`DELETE FROM ${b}`);
   const kp2 = await khoiPhuc();
   k('J5 kho TRỐNG: khôi phục đủ nguyên liệu từ file', kp2.status === 200 && nlSL > 0 && (await dem('kho_nguyen_lieu')) === nlSL, `${moTa(kp2)} · file ${nlSL}`);
+  // Nâng cấp hỏng giữa chừng = thiếu bảng kho: sao lưu / khôi phục (việc cần nhất lúc đó) vẫn phải chạy.
+  await ghiDb('ALTER TABLE kho_phieu RENAME TO kho_phieu_tam');
+  const info = await goi('GET', '/backup/info');
+  const xuat2 = await goi('GET', '/backup/export-all');
+  const kp3 = await khoiPhuc();
+  await ghiDb('ALTER TABLE kho_phieu_tam RENAME TO kho_phieu');
+  k('J6 thiếu một bảng kho (nâng cấp hỏng): /backup/info, /export-all, /restore vẫn 200', info.status === 200 && xuat2.status === 200 && kp3.status === 200,
+    [info, xuat2, kp3].map(moTa).join(' | '));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[K] đường bán không đổi');
@@ -497,6 +529,20 @@ async function main() {
   const don = await goi('POST', '/orders', { customer_name: 'Khách KHO1', items: [{ product_id: ct1, sx_product_type: 'juice', sx_product_id: 1, quantity: 1 }],
     payment_method: 'cash', cash_amount: 25000 });
   k('K2 tạo đơn vẫn 200 và vẫn gửi lệnh trừ kho sang SX', don.success === true && demSX.tru > truoc, `${moTa(don)} · trừ SX ${demSX.tru - truoc}`);
+  // Món SX tạo ẩn: đặt giá ở màn giá như mọi khi → chủ quán bật bán ở màn Kho → bán được (phiếu Đã duyệt 3).
+  const dnlId = await idSP('DNL');
+  const donDnl = () => goi('POST', '/orders', { customer_name: 'Khách KHO1', items: [{ product_id: dnlId, sx_product_type: 'tea', sx_product_id: 1, quantity: 1 }],
+    payment_method: 'cash', cash_amount: 30000 });
+  const batSom = await goi('PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 });
+  k('K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA', batSom.status === 400 && batSom.code === 'CHUA_CO_GIA', moTa(batSom));
+  const datGia = await goi('PUT', '/products/price', { sx_product_type: 'tea', sx_product_id: 1, price: 30000 });
+  const chuaBat = await donDnl();
+  k('K5 đặt giá xong, CHƯA bật → chưa bán (400), món vẫn ẩn ở menu dự phòng', datGia.status === 200 && chuaBat.status === 400, `${moTa(datGia)} | ${moTa(chuaBat)}`);
+  k('K6 manager / staff bật bán → 403', (await goiAi('manager', 'PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 })).status === 403
+    && (await goiAi('staff', 'PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 })).status === 403);
+  const bat = await goi('PUT', `/kho/san-pham/${dnlId}/ban`, { ban: 1 });
+  const sauBat = await donDnl();
+  k('K7 chủ quán bật bán → tạo đơn món đó 200', bat.status === 200 && sauBat.success === true, `${moTa(bat)} | ${moTa(sauBat)}`);
   const fileTrong = path.join(THU_MUC, 'trong.db');
   delete require.cache[duongDB];
   const db3 = require(duongDB);
