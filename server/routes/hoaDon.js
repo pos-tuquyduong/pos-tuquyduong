@@ -16,7 +16,14 @@ const { docCauHinhNhanDiem } = require('./signup-codes');
 const router = express.Router();
 
 // Mục KHÔNG ẩn được khỏi hoá đơn; cài đặt (PUT /settings) từ chối khoá `invoice_an_<mục>`. Client giữ bản sao ở utils/hoaDon.js KHONG_AN.
-const KHONG_AN_DUOC = ['ten_quan', 'so_bill', 'tong', 'tieu_de_tt', 'tu_tk', 'ck', 'tm'];
+// Gồm MỌI dòng tiền / thanh toán (ẩn một dòng làm chuỗi giá gốc → tổng và tổng các dòng thanh toán không cân với tổng hoá đơn) và
+// các dòng nói tình trạng đơn (huỷ / hoàn, IN LẠI).
+const KHONG_AN_DUOC = [
+  'ten_quan', 'so_bill', 'in_lai', 'da_huy', 'da_hoan',
+  'gia_goc', 'giam_hang', 'giam_flash', 'giam_ma', 'phi_giao', 'tong',
+  'tieu_de_tt', 'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',
+  'tem_in_lai',
+];
 
 const so = (v) => Math.round(Number(v) || 0);
 const soBill = (code) => String(code || '').split('-').pop();
@@ -27,7 +34,7 @@ function dungThanhToan(o) {
   const tong = so(o.total);
   const t = { tien_mat: so(o.cash_amount), chuyen_khoan: so(o.transfer_amount), tai_khoan: so(o.balance_amount), tai_khoan_me: so(o.parent_balance_amount), ghi_no: so(o.debt_amount) };
   let lech = tong - Object.values(t).reduce((s, x) => s + x, 0);
-  const chinh = o.payment_method === 'transfer' ? 'chuyen_khoan' : 'tien_mat';
+  const chinh = o.payment_method === 'transfer' ? 'chuyen_khoan' : o.payment_method === 'balance' ? 'tai_khoan' : 'tien_mat';
   if (lech > 0) t[chinh] += lech;
   for (const k of ['tien_mat', 'chuyen_khoan']) if (lech < 0) { const bot = Math.min(t[k], -lech); t[k] -= bot; lech += bot; }
   return ['tai_khoan', 'tai_khoan_me', 'chuyen_khoan', 'tien_mat', 'ghi_no'].filter((k) => t[k] > 0).map((k) => ({ loai: k, so_tien: t[k] }));
@@ -36,7 +43,9 @@ function dungThanhToan(o) {
 /** Điểm của ĐÚNG đơn này (in lại không đổi theo số dư lúc in): trước − đổi quà + cộng = hiện có. Khách lẻ → null. */
 async function dungDiem(o) {
   if (!o.customer_phone) return null;
-  const cong = so((await queryOne("SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions WHERE order_id = ? AND customer_phone = ? AND type = 'earn'", [o.id, o.customer_phone]))?.n);
+  // Đơn rời 'completed' (huỷ / hoàn): P24 ghi dòng 'adjust' âm trừ lại điểm đã cộng (orders.js truDiemDon) → cộng ròng = 0, bill không hứa điểm đã bị trừ.
+  const loaiCong = o.status === 'completed' ? "type = 'earn'" : "type IN ('earn', 'adjust')";
+  const cong = so((await queryOne(`SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions WHERE order_id = ? AND customer_phone = ? AND ${loaiCong}`, [o.id, o.customer_phone]))?.n);
   const doi = o.discount_code
     ? so((await queryOne(
       `SELECT COALESCE(-SUM(t.points), 0) AS n FROM pos_voucher_grants g JOIN pos_point_transactions t ON t.id = g.point_tx_id
@@ -59,13 +68,15 @@ async function dungMaNhanDiem(o) {
   for (const r of await query("SELECT key, value FROM pos_settings WHERE key IN ('signup_enabled')")) cfg[r.key] = r.value;
   const uuDai = cfg.signup_enabled === 'true' || cfg.signup_enabled === '1';
   const hetHan = !((new Date(getNow().replace(' ', 'T') + 'Z') - new Date(String(m.issued_at).replace(' ', 'T') + 'Z')) / 3600000 <= ch.hanGio);
+  // MỘT vị từ cho cả điểm lẫn ưu đãi: đơn phải hoàn tất + đã thu (cùng danh sách trắng với signup-codes.js kiemDonCuaMa)
+  const dungDuoc = !m.diem_nhan_luc && !hetHan && o.status === 'completed' && o.payment_status === 'paid';
   let diem = 0;
-  if (ch.bat && !m.diem_nhan_luc && !hetHan && o.status === 'completed' && o.payment_status === 'paid') {
+  if (ch.bat && dungDuoc) {
     const { loy, daCong } = await docDuLieuNhanDiem(o.id);
     const kq = tinhDiemNhanMa({ don: o, tienDiem: tienTinhDiem(o), ch, loy, daCong });
     diem = kq.loi ? 0 : kq.diemCong;
   }
-  return { ma: m.code, diem, uu_dai: uuDai && !m.diem_nhan_luc && !hetHan, han_gio: ch.hanGio };
+  return { ma: m.code, diem, uu_dai: uuDai && dungDuoc, han_gio: ch.hanGio };
 }
 
 router.get('/:id', authenticate, async (req, res) => {
@@ -85,7 +96,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const phiGiao = so(o.shipping_fee);
     // Khoản giảm bằng mã / quà suy ra từ tổng: giá gốc − hạng − Flash + phí giao − tổng (đơn cũ ghi cột `discount` không thống nhất)
     const giamMa = Math.max(0, gocTong - giamHang - giamFlash + phiGiao - tongDon);
-    const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ?', [o.id]))?.n);
+    const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]))?.n);
 
     res.json({
       success: true,

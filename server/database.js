@@ -1210,6 +1210,10 @@ async function seedDefaultData() {
       ['invoice_chu_ghi_chu', ''],
       ['invoice_chu_da_huy', 'ĐƠN ĐÃ HUỶ'],
       ['invoice_chu_da_hoan', 'ĐƠN ĐÃ HOÀN TIỀN'],
+      ['invoice_chu_in_lai', 'IN LẠI · LẦN {lan}'],
+      ['invoice_chu_nhan_khach', 'Khách'],
+      ['invoice_chu_nhan_nv', 'NV'],
+      ['invoice_chu_tem_in_lai', 'IN LẠI'],
       ['invoice_chu_tem_dau', ''],
       ['invoice_chu_tem_chan', ''],
 
