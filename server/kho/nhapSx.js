@@ -136,7 +136,7 @@ function lapKeHoach(sx, hienCo) {
     }
     if (!sp) {
       maSeTao.add(m.code);
-      cb('MON_TAO_AN', `Món ${m.ten} tạo ẩn — đặt giá, rồi bật bán ở Quản lý kho › Sản phẩm`);
+      cb('MON_CHUA_GIA', `Món ${m.ten} đã tạo, chưa có giá — đặt giá là bán được`);
     }
     const dong = new Map();
     for (const d of m.dong) {
@@ -152,7 +152,7 @@ function lapKeHoach(sx, hienCo) {
   }
   return {
     nguyen_lieu_them: nguyen_lieu.length, nhom_nguyen_lieu_them: nhom_nguyen_lieu.length, nhom_san_pham_them: nhom_san_pham.length,
-    mon_tao_an: mon.filter((m) => m.pos_id == null).length, cong_thuc_ghi: mon.filter((m) => m.cong_thuc).length,
+    mon_tao: mon.filter((m) => m.pos_id == null).length, cong_thuc_ghi: mon.filter((m) => m.cong_thuc).length,
     gop: [...gopTheo.values()].filter((g) => g.ten_sx.length > 1).map((g) => ({ giu: g.ten, cu: g.ten_sx })),
     canh_bao, nguyen_lieu, nhom_nguyen_lieu, nhom_san_pham, mon,
   };
@@ -173,10 +173,10 @@ async function ghiKeHoach(tx, kh, luc) {
   for (const n of kh.nhom_san_pham) await themNhom('kho_nhom_cong_thuc', n.ten, n.ten_sx);
   for (const m of kh.mon) {
     if (m.pos_id == null) {
-      // Món ẩn, giá 0: menu dự phòng chỉ lấy is_active = 1 (routes/products.js getFallbackProducts), tạo đơn chỉ nhận is_active = 1 và
-      // price > 0 (routes/orders.js). Chủ quán đặt giá (PUT /products/price) rồi bật bán (PUT /api/pos/kho/san-pham/:id/bat-ban).
+      // is_active = 1, giá 0 — như seed (database.js) và POST /products/sync-from-sx: menu (routes/products.js layMenuQuay) cho sellable
+      // false khi giá không > 0, tạo đơn (routes/orders.js) từ chối giá <= 0. Chủ quán đặt giá (PUT /products/price) là bán được ngay.
       await tx.run(`INSERT OR IGNORE INTO pos_products (code, name, category, price, unit, is_active, sx_product_type, sx_product_id)
-        VALUES (?, ?, ?, 0, ?, 0, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
+        VALUES (?, ?, ?, 0, ?, 1, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
     }
     const spId = m.pos_id ?? await idTheo('SELECT id FROM pos_products WHERE code = ?', [m.code]);
     if (m.kieu) {

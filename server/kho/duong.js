@@ -125,21 +125,6 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   } catch (e) { loiGhi(res, e); }
 });
 
-// Bật bán (chủ quán): món SX nhập vào được tạo ẩn giá 0 — đặt giá ở màn giá rồi bật ở đây. CHỈ chiều bật: ẩn món đang bán là đụng đường bán
-// (ngoài phiếu). "Có giá" cùng nghĩa menu quầy (routes/products.js: số > 0); một câu, kiểm changes.
-router.put('/san-pham/:id/bat-ban', CHU_QUAN, async (req, res) => {
-  const id = Number(req.params.id);
-  try {
-    if ((await csdl.run("UPDATE pos_products SET is_active = 1 WHERE id = ? AND typeof(price) IN ('integer', 'real') AND price > 0", [id])).changes) {
-      return res.json({ success: true });
-    }
-    if (await csdl.queryOne('SELECT 1 AS co FROM pos_products WHERE id = ?', [id])) {
-      return res.status(400).json({ error: 'Món chưa có giá bán — đặt giá trước rồi mới bật bán', code: 'CHUA_CO_GIA' });
-    }
-    res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
-  } catch (e) { loiGhi(res, e); }
-});
-
 // ── Nhập từ SX (chỉ chủ quán): ghi = '0' xem trước, '1' ghi. File tạm luôn xoá. ──
 const nhanFile = multer({ dest: nhapSx.THU_MUC_TAM, limits: { fileSize: nhapSx.GIOI_HAN_FILE_SX } }).single('file');
 router.post('/nhap-sx', CHU_QUAN, (req, res) => nhanFile(req, res, async (loiNhan) => {

@@ -72,4 +72,23 @@ Trên code đã vá (HEAD cd2b774): node cong_cu/thu_KHO1.js → 103 đạt · 0
   99 đạt · 9 hỏng · GỐC e1197a8: thoát 1
 (b) gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 9 đạt · 99 hỏng · thoát 1
 Trên code đã vá (HEAD e5a4e57): node cong_cu/thu_KHO1.js → 108 đạt · 0 hỏng
-SỐ CA cong_cu/thu_KHO1.js: 108
+(dòng SỐ CA vòng 2 thay bằng dòng ở cuối file — vòng sửa 3 đổi ca K theo phiếu mục 7)
+
+── Vòng sửa 3 (28.10, phiếu mục 7 — câu 4 = (a)): bài sửa TRƯỚC, commit d5005ab ──
+Bỏ ca K4–K9 cũ của đường "Bật bán" (đường bị gỡ); F1/F2/F9/K1 đổi theo món tạo is_active = 1 giá 0; thêm F2b, K4–K7 mới
+(K6 = bất biến "menu báo bán được → POST /orders nhận", đo cả menu dự phòng lẫn menu SX nối thật).
+(a) server/ TRƯỚC vòng sửa 3 (48b16a9): python3 viec/KHO-1/dot_bien.py --goc 48b16a9
+  ✗ F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo mới, 3 món có công thức  — "mon_tao_an":3 (chưa có mon_tao)
+  ✗ F2 đủ 8 loại cảnh báo ...  — thiếu MON_CHUA_GIA
+  ✗ F2b lời xem trước: "Món Dưỡng Nhan Lộ đã tạo, chưa có giá — đặt giá là bán được"
+  ✗ F9 món SX chưa có ở POS → tạo is_active = 1 giá 0 ...  — is_active 0 cả ba món
+  ✗ K1 menu dự phòng: mọi món CŨ y hệt trước khi nhập; thêm đúng 3 món tạo mới, cả 3 "Chưa có giá"  — []
+  ✗ K4 món tạo từ nhập, CHƯA đặt giá: menu dự phòng + menu SX có tea_1, sellable false; tạo đơn → 400  — [null,false]
+  ✗ K5 đặt giá (PUT /products/price) → menu dự phòng + menu SX sellable true VÀ tạo đơn món đó 200  — HTTP 200 | HTTP 400
+  ✗ K6 bất biến: mọi món menu báo bán được (dự phòng + SX) → POST /orders nhận  — 5 món · SX tea_1: HTTP 400 · Sản phẩm không tồn tại hoặc đã ngừng bán
+  ✗ K7 đường "Bật bán" đã bỏ (404) — không còn bước thứ hai  — HTTP 200
+  98 đạt · 9 hỏng · GỐC 48b16a9: thoát 1
+  (K6 đỏ đúng lỗi soát vòng 2 số 2: menu SX nối thật báo bán được, tạo đơn 400.)
+(b) gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 11 đạt · 96 hỏng · thoát 1
+Trên code đã vá: node cong_cu/thu_KHO1.js → 107 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 107

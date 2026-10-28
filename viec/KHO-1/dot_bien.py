@@ -40,7 +40,6 @@ DOT_BIEN = [
                       (N, 'INSERT OR IGNORE INTO kho_nguyen_lieu', 'INSERT OR REPLACE INTO kho_nguyen_lieu', 1)], r'✗ F1[56]'),
   ('BV-CONG-THUC-DA-CO', [(N, 'const ghiCT = dong.size > 0 && !(sp && hienCo.co_cong_thuc.map(Number).includes(Number(sp.id)));', 'const ghiCT = dong.size > 0;', 1)], r'✗ F1[56]'),
   ('BV-TRUNG-MA', [(N, '    if (!sp && (maSeTao.has(m.code) || hienCo.san_pham.some((p) => p.code === m.code))) {', '    if (false) {', 1)], r'✗ F[12] '),
-  ('VS-MON-TAO-HIEN', [(N, 'VALUES (?, ?, ?, 0, ?, 0, ?, ?)', 'VALUES (?, ?, ?, 0, ?, 1, ?, ?)', 1)], r'✗ (F9|K1)'),
   ('VS-GIA-NHO', [(N, 'const gia = Number(n.price) >= GIA_TOI_THIEU ? Number(n.price) : null;', 'const gia = Number(n.price) > 0 ? Number(n.price) : null;', 1)], r'✗ F5'),
   ('VS-GOP-GIA-DAU', [(N, 'gia_nhap: lon(g.gia_nhap, gia)', 'gia_nhap: g.gia_nhap ?? gia', 1)], r'✗ G2'),
   ('VS-LAM-TRON', [(N, 'luong: lamTron6(luong)', 'luong', 1)], r'✗ G4'),
@@ -56,8 +55,6 @@ DOT_BIEN = [
   ('BV-KHOI-PHUC-KHO', [(B, "(tableDef.name.startsWith('kho_') && !khoTrong)", 'false', 1)], r'✗ J3'),
   ('BV-KHOI-PHUC-NANG-CAP', [(B, "if (tableDef.name === 'pos_nang_cap' || ", 'if (', 1)], r'✗ J4'),
   # ── vòng soát 1 ──
-  ('VS-BAT-BAN-KHONG-GIA', [(D, "WHERE id = ? AND typeof(price) IN ('integer', 'real') AND price > 0\"", 'WHERE id = ?"', 1)], r'✗ K4'),
-  ('BV-QUYEN-BAT-BAN', [(D, "router.put('/san-pham/:id/bat-ban', CHU_QUAN,", "router.put('/san-pham/:id/bat-ban', QUAN_LY,", 1)], r'✗ K6'),
   ('VS-TRUNG-MA-LO', [(N, '(maSeTao.has(m.code) || hienCo.san_pham.some(', '(hienCo.san_pham.some(', 1)], r'✗ (F1|G4) '),
   ('BV-THIEU-GIA', [(N, "if (thieuGia.length) cb('THIEU_GIA'", "if (false) cb('THIEU_GIA'", 1)], r'✗ F2'),
   ('VS-NHOM-CO-SAN', [(N, 'ON CONFLICT(ten) DO UPDATE SET ten_sx = COALESCE(${bang}.ten_sx, excluded.ten_sx)', 'ON CONFLICT(ten) DO NOTHING', 1)], r'✗ (F7|F21)'),
@@ -65,12 +62,15 @@ DOT_BIEN = [
   ('BV-KHO-TRONG-LOI', [(B, "AS n').catch(() => null);", "AS n');", 1)], r'✗ J6'),
   # ── vòng soát 2 ──
   ('VS-AN-GIA-DS-CAM', [(D, "!['owner', 'manager'].includes(req.user.role)", "req.user.role === 'staff'", 1)], r'✗ I18'),
-  ('VS-BAT-BAN-DAO', [(D, 'SET is_active = 1 WHERE id = ?', 'SET is_active = 1 - is_active WHERE id = ?', 1)], r'✗ K8'),
-  ('VS-CO-GIA-SQL', [(D, "typeof(price) IN ('integer', 'real') AND price > 0", 'price > 0', 1)], r'✗ K9'),
   ('BV-NHOM-RAC', [(D, "\n        || (nhomId != null && await duLieu.demThieu(tx, 'kho_nhom_cong_thuc', [Number(nhomId)]))) {", ') {', 1)], r'✗ E18'),
   ('VS-LY-DO-KHOI-PHUC', [(B, ": demKho ? ['KHO_CO_DU_LIEU',", ": true ? ['KHO_CO_DU_LIEU',", 1)], r'✗ J7'),
   ('BV-AN-GIA', [(L, 'nguyen_lieu: anGia ? ds.map(({ gia_nhap, ...r }) => r) : ds,', 'nguyen_lieu: ds,', 1)], r'✗ I16'),
   ('VS-BO-NHOM-GIU', [(L, 'nhom_id = excluded.nhom_id,', 'nhom_id = COALESCE(excluded.nhom_id, kho_san_pham.nhom_id),', 1)], r'✗ I17'),
+  # ── vòng sửa 3 (phiếu mục 7: món tạo is_active = 1 giá 0, bỏ "Bật bán") ──
+  ('BV-MON-TAO-AN', [(N, 'VALUES (?, ?, ?, 0, ?, 1, ?, ?)', 'VALUES (?, ?, ?, 0, ?, 0, ?, ?)', 1)], r'✗ (F9|K[1456])'),
+  ('VS-MON-TAO-GIA-NULL', [(N, 'VALUES (?, ?, ?, 0, ?, 1, ?, ?)', 'VALUES (?, ?, ?, NULL, ?, 1, ?, ?)', 1)], r'✗ (F9|K[14])'),
+  ('VS-MON-TAO-MAT-KHOA', [(N, "m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]", "m.loai === 'tea' ? 'gói' : 'túi', null, null]", 1)], r'✗ (F9|K[145])'),
+  ('BV-CANH-BAO-MON', [(N, "      cb('MON_CHUA_GIA',", "      if (false) cb('MON_CHUA_GIA',", 1)], r'✗ F2'),
 ]
 
 

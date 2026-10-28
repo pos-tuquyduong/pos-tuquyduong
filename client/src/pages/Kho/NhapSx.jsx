@@ -38,7 +38,7 @@ export default function NhapSx() {
           {daGhi && <div className="kho-ok">✓ Đã nhập xong.</div>}
           <ul>
             <li>{kh.nguyen_lieu_them} nguyên liệu {daGhi ? 'đã' : 'sẽ'} thêm · {kh.nhom_nguyen_lieu_them} nhóm nguyên liệu</li>
-            <li>{kh.nhom_san_pham_them} nhóm sản phẩm · {kh.mon_tao_an} món tạo ẩn · {kh.cong_thuc_ghi} công thức</li>
+            <li>{kh.nhom_san_pham_them} nhóm sản phẩm · {kh.mon_tao} món tạo mới (chưa có giá) · {kh.cong_thuc_ghi} công thức</li>
           </ul>
           {kh.gop.length > 0 && (
             <>
