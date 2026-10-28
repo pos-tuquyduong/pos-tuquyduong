@@ -358,6 +358,8 @@ async function main() {
   const nhomNL = await q('SELECT n.ten, COUNT(l.id) AS so FROM kho_nhom_nguyen_lieu n LEFT JOIN kho_nguyen_lieu l ON l.nhom_id = n.id GROUP BY n.id ORDER BY n.ten');
   k('F7 nhóm nguyên liệu: Dược liệu 7 · Rau củ quả 5 (Lá dứa tên mới juice → Rau củ quả)', JSON.stringify(nhomNL.map((r) => [r.ten, Number(r.so)]))
     === JSON.stringify([['Dược liệu', 7], ['Rau củ quả', 5]]), JSON.stringify(nhomNL));
+  k('F21 nhóm "Dược liệu" chủ quán tạo trước: nhập dùng lại nhóm đó (không mất nhóm của nguyên liệu)', nhomTruoc.status === 200
+    && (await so("SELECT COUNT(*) FROM kho_nguyen_lieu WHERE nhom_id IS NULL")) === 0);
   const nhomCT = (await coBang('kho_nhom_cong_thuc')) ? (await q('SELECT ten FROM kho_nhom_cong_thuc ORDER BY ten')).map((r) => r.ten) : [];
   k('F8 nhóm sản phẩm giữ tên SX ("CÀ PHÊ" → "Cà phê"), không lấy nhóm đã tắt', JSON.stringify(nhomCT) === JSON.stringify(['Cà phê', 'Nước ép', 'Trà thảo mộc']), nhomCT.join(', '));
   const moi = await q("SELECT code, name, category, price, is_active, sx_product_type, sx_product_id FROM pos_products WHERE code IN ('DNL', 'CF01', 'CF02', 'CU1', 'CT13') ORDER BY code");
@@ -415,8 +417,6 @@ async function main() {
   const menuSxSau = await menuSx();
   k('K1b menu khi SX nối thật (quầy + /api/kh/menu lọc sellable): mọi món giữ nguyên bán được / có giá như trước khi nhập',
     menuSxSau === menuSxTruoc && menuSxTruoc.length > 2, `${menuSxTruoc} → ${menuSxSau}`);
-  k('F21 nhóm "Dược liệu" chủ quán tạo trước: nhập dùng lại nhóm đó (không mất nhóm của nguyên liệu)', nhomTruoc.status === 200
-    && (await so("SELECT COUNT(*) FROM kho_nguyen_lieu WHERE nhom_id IS NULL")) === 0);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[I/E/H] đường /api/pos/kho — quyền, công thức, thiếu thông tin');
