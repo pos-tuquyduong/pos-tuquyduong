@@ -421,3 +421,63 @@ khoá nối không được tạo (mục 10), K8 khoá đường lưu giá hàng
    nguyên liệu.
 3. Cài đặt › Sản phẩm: điền giá cho món vừa nhập → Lưu (báo "Đã lưu giá thành công!") → Bán hàng (cả màn mới) món đó bán được; ô "món chưa có giá"
    ở Quản lý kho giảm đi.
+
+### Đếm nghiệm thu (mỗi mục một dòng, HEAD 69eeb09)
+- A cấu trúc mục nghiệp vụ — A1–A5 ✓.
+- B nâng cấp đánh số — B1–B10 ✓; đột biến BV-NANG-CAP-GOI, VS-BO-KHOA-CHAY-DOI, BV-ROLLBACK-BUOC-HONG, BV-DUNG-KHI-HONG, BV-SAO-LUU, VS-SAO-LUU-MOI-BANG, BV-503 BẮT.
+- C bảng kho — C1–C5 ✓ · VS-CHECK-KIEU.
+- D một món một dòng + kiểu — D1, D2, F11 ✓.
+- E công thức lồng / vòng / số thật — E1–E18 ✓.
+- F nhập từ SX — F1–F21, F2b, F2c ✓ (file 09.10 thật: CHƯA KIỂM, chat chạy).
+- G gộp trùng, 32 tên — G0–G5 ✓.
+- H màn Quản lý — máy: H1 (nguyên liệu thiếu thông tin), H2 (món chưa có giá); phần bấm: 3 thao tác thử tay ở trên (CHƯA KIỂM máy).
+- I quyền ở máy chủ — I1–I18 ✓.
+- J sao lưu — J1–J7 ✓.
+- K không đổi đường bán — K1, K1b, K2–K9 ✓ (K8 đường lưu giá hàng loạt thật, K6 + K9 bất biến sau cả hai đường đặt giá).
+- Đã duyệt 1 file mẫu tự dựng ✓ · 2 B8, B9 ✓ · 3 (phần còn hiệu lực: bỏ món tắt / nhóm tắt) F9 ✓ · 4 J3, J5 ✓ · 5 G0, E8 ✓ · 6 F5 ✓.
+- Mục 7 món tạo `is_active = 1`, đặt giá là bán được — F9, K4, K5, K8, K9 ✓ (giá nay NULL theo mục 11).
+- Mục 8 dòng bắt buộc — có ở "Phiếu mục 8" trên.
+- Mục 10 — F1, F2c, F9, F11, K1 ✓ · BV-MON-KHONG-KHOA, BV-CANH-BAO-CHUA-NOI.
+- Mục 11 — F9, K1, K1b, H2 ✓ · VS-MON-GIA-0, BV-SP-GIA; hiển thị "Chưa có giá" ở `Sales.jsx:1045` / `BanHangMoi.jsx:186`: đọc code, CHƯA KIỂM giao diện.
+- Mục 12 — K8 + K5, K6, K9 ✓; đột biến tạo lại dòng không khoá nối → K8 đỏ (đã chạy riêng `BV-MON-KHONG-KHOA --in-ra`).
+- Mục 13 — dòng mục 8, cổng, CHƯA KIỂM, thao tác thử tay: có.
+- Mục 14 — bài thử 111/0, `--day-du` 78/0, đột biến 45/45, cổng đạt (dưới).
+
+### Cổng
+`node tu_chay/cong.js chay . 40ab1cf^ HEAD viec/KHO-1` (đứng ở HEAD 69eeb09, cây sạch):
+✓ CỔNG CHẠY ĐẠT
+
+SOÁT LẦN 4: chat soát thay (phiếu mục 14 — không gọi agent soát).
+
+## Bài học
+- **KHOÁ** (làm luôn, trong Phạm vi): K8 — ca đi đúng đường màn giá thật (`GET /products` → `PUT /products/batch/prices` cả danh sách), vì vòng 3
+  chỉ thử `PUT /price` theo chữ của phiếu và lọt lỗi 500 (đột biến BV-MON-KHONG-KHOA bắt ở K8).
+- **KHOÁ** (làm luôn): K1b so giá nguyên giá trị (null ≠ 0) — bản cũ so `price > 0` nên ca "phải KHÔNG đổi" không đo được điều có thể đổi (VS-MON-GIA-0 bắt).
+- **KHOÁ** (làm luôn): F2c / F9 / F11 — món không khoá nối SX không có dòng `pos_products` nào; mọi dòng kho tạo phải tra lại được bằng
+  `(sx_product_type, sx_product_id)`.
+- **NGUYÊN TẮC** (đề xuất — `KHUON_LOI.md` ngoài Phạm vi): K5 thêm "Đã gây (KHO-1 vòng 3): món mới lên menu dự phòng → màn Cài đặt gửi LẠI cả danh
+  sách → 500 giữa vòng lặp. Chặn: đổi trạng thái để dữ liệu mới lên một danh sách → liệt kê mọi màn đọc danh sách đó rồi gửi ngược về máy chủ, mỗi
+  màn một ca."
+- **NGUYÊN TẮC** (đề xuất): K3 thêm "Ca chép đường từ phiếu (`PUT /products/price`) vẫn phải mở client xem màn thật gọi đường nào (`api.js:347`)."
+- **BỎ**: người gác chặn `node --check` file có cụm bí mật của bài thử (B-BIMAT-CHU) — luật đã ghi trong skill, máy quên; chạy qua bài thử thật là đủ.
+- **BỎ**: người gác chặn lệnh nối `&&` sau `node` / `python3` (B-PHANTICH, 2 lần) — luật đã ghi trong skill; tách lệnh.
+- **BỎ**: `git rm --cached` bị chặn (GIT-RM) — file bundle dist cũ dùng `git rm -q <file>` là đúng dạng; một lần.
+
+## BÁO CÁO — vòng sửa 4
+```
+VIỆC:        KHO-1 — Kho trong POS phần 1 (vòng sửa 4, phiếu mục 10–14)
+ĐÃ SỬA:      server/kho/nhapSx.js:131-135 — món SX không khoá nối (legacy_id trống) không tạo dòng pos_products, cảnh báo MON_CHUA_NOI
+             server/kho/nhapSx.js:179-182 — món tạo ghi price NULL (chưa có giá), chú thích trỏ đúng products.js POS-TONCU-v1 / orders.js
+             server/kho/duLieu.js:54 — danh sách sản phẩm trả price
+             client/src/pages/Kho/SanPham.jsx:12, :34, :41-47, :55 — ô "Thiếu thông tin: N món chưa có giá" (một vị từ đếm + lọc); build dist
+BÀI THỬ:     cong_cu/thu_KHO1.js trên server 8d79a0c → ĐỎ 10 ca (F1, F2, F2b, F2c, F9, F11, K1, K1b, H2, K8 — K8 HTTP 500 UNIQUE pos_products.code);
+             sau vá → XANH 111/0; đột biến 45/45 BẮT (đối chứng 111/0)
+ĐÃ RÀ K4:    grep "price\|khoa_id" server/kho → 1 chỗ tạo pos_products (nhapSx.js:181), 1 chỗ đọc giá (duLieu.js:54) — đã xử lý; màn bán: Sales.jsx:1045
+             (price > 0) và BanHangMoi.jsx:186 (typeof number) — cả hai hiện "Chưa có giá" với null (đọc code); đường đặt giá: PUT /price + PUT /batch/prices — cả hai có ca
+CHƯA KIỂM:   Turso thật (máy thứ hai chờ BEGIN); file SX 09.10 thật; giao diện (ô món chưa có giá, hai màn bán hiện "Chưa có giá") chỉ đọc code;
+             khôi phục Excel thay pos_products để lại dòng kho trỏ id cũ; gói cũ không khai package_items lấy được món nhập mới 0đ
+GIT:         69eeb09 KHO-1: trang thai vong sua 4 (bang va, dot bien, dong muc 8, CHUA KIEM, thao tac thu tay)
+             54b7356 KHO-1: vong sua 4 — bang chung do (goc 8d79a0c 10 ca do), SO CA 111; dot bien ... (45/45 BAT)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 2 (đề xuất, ngoài Phạm vi) · BỎ 3 — chi tiết ở ## Bài học
+```
+HEAD ĐÃ KIỂM: 69eeb09
