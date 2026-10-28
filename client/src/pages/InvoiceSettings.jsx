@@ -33,8 +33,8 @@ import {
   DON_MAU, NHOM_MAU, docBoIn, dungBoIn,
 } from "../utils/inPhieu";
 import {
-  NHOM_CHU, KHONG_AN, CHU_MAC_DINH, GIOI_HAN_CHU, GIOI_HAN_TEM, gioiHanChu, KHOA_DIA_CHI_KH, KHOA_SO_TO,
-  HOA_DON_MAU_QUEN, HOA_DON_MAU_LE, docChu, soToTuCaiDat, demChu, dungHoaDon,
+  NHOM_CHU, KHONG_AN, CHU_MAC_DINH, chuMacDinhCuaQuan, GIOI_HAN_CHU, GIOI_HAN_TEM, gioiHanChu, KHOA_DIA_CHI_KH, KHOA_SO_TO,
+  MAU_XEM_TRUOC, docChu, soToTuCaiDat, demChu, dungHoaDon,
 } from "../utils/hoaDon";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -420,8 +420,8 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
   const sua = (k, v) => setC((x) => ({ ...x, chu: { ...x.chu, [k]: v }, daSua: x.daSua.includes(k) ? x.daSua : [...x.daSua, k] }));
   const an = (k) => setC((x) => ({ ...x, an: { ...x.an, [k]: !x.an[k] } }));
   const settings = { ...caiDat, ...Object.fromEntries(Object.keys(CHU_MAC_DINH).flatMap((k) => [[`invoice_chu_${k}`, c.chu[k]], [`invoice_an_${k}`, c.an[k]]])), [KHOA_SO_TO]: c.soTo, [KHOA_DIA_CHI_KH]: c.khUrl };
-  const hd = mau === "quen" ? HOA_DON_MAU_QUEN : HOA_DON_MAU_LE;
-  const to = dungHoaDon(hd, settings, { lien });
+  const mauDangXem = MAU_XEM_TRUOC.find((m) => m.khoa === mau) || MAU_XEM_TRUOC[0];
+  const to = dungHoaDon(mauDangXem.hd, settings, { lien, inLai: mauDangXem.inLai });
   const coQuaDai = NHOM_CHU.some((n) => n[1].some(([k]) => demChu(c.chu[k], gioiHanChu(k)).qua));
   const chip = (on) => ({ minHeight: 36, padding: "0 12px", borderRadius: 18, border: "1px solid " + (on ? "#1C1B1A" : "#D6D2CA"), background: on ? "#1C1B1A" : "#fff", color: on ? "#fff" : "#1C1B1A", cursor: "pointer" });
   return (
@@ -459,10 +459,9 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
           })}
         </details>
       ))}
-      <small>Chữ tự điền: {"{ten_khach} {hang} {phan_tram} {diem} {gio}"}. Số tiền, điểm, số bill do máy chủ tính — không sửa ở đây.</small>
-      <div style={{ display: "flex", gap: 8, margin: "0.5rem 0" }}>
-        <button type="button" style={chip(mau === "quen")} onClick={() => setMau("quen")}>Xem với khách quen</button>
-        <button type="button" style={chip(mau === "le")} onClick={() => setMau("le")}>Xem với khách lẻ</button>
+      <small>Chữ tự điền: {"{ten_khach} {hang} {phan_tram} {diem} {gio} {lan}"} (mỗi dòng dùng được những chữ hợp với nó). Số tiền, điểm, số bill do máy chủ tính — không sửa ở đây.</small>
+      <div style={{ display: "flex", gap: 8, margin: "0.5rem 0", flexWrap: "wrap" }}>
+        {MAU_XEM_TRUOC.map((m) => <button key={m.khoa} type="button" style={chip(mau === m.khoa)} onClick={() => setMau(m.khoa)}>{m.nhan}</button>)}
         <button type="button" style={chip(lien === "khach")} onClick={() => setLien("khach")}>Tờ khách</button>
         <button type="button" style={chip(lien === "luu")} onClick={() => setLien("luu")}>Tờ lưu</button>
       </div>
@@ -675,7 +674,8 @@ export default function InvoiceSettings() {
     if (confirm("Bạn có chắc muốn reset về mặc định?")) {
       setConfig(DEFAULT_CONFIG);
       setBoIn(docBoIn({}));
-      setChuHd({ chu: { ...CHU_MAC_DINH }, an: Object.fromEntries(Object.keys(CHU_MAC_DINH).map((k) => [k, false])), soTo: soToTuCaiDat({}), khUrl: chuHd.khUrl, daSua: Object.keys(CHU_MAC_DINH) });
+      // Tên quán + địa chỉ/SĐT mặc định là của quán (store_*), không phải hằng số: reset không được xoá địa chỉ / đè tên quán
+      setChuHd({ chu: chuMacDinhCuaQuan(caiDatTho), an: Object.fromEntries(Object.keys(CHU_MAC_DINH).map((k) => [k, false])), soTo: soToTuCaiDat({}), khUrl: chuHd.khUrl, daSua: Object.keys(CHU_MAC_DINH) });
       setActivePreset("custom");
       showMessage("info", 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
     }

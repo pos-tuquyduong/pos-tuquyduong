@@ -12,7 +12,12 @@ export const SO_TO_MAC_DINH = 2;
 export const KHOA_DIA_CHI_KH = 'invoice_kh_url';
 export const KHOA_SO_TO = 'invoice_so_to';
 // Máy chủ (routes/hoaDon.js KHONG_AN_DUOC) giữ bản sao của danh sách này — bài thử so hai bên.
-export const KHONG_AN = ['ten_quan', 'so_bill', 'tong', 'tieu_de_tt', 'tu_tk', 'ck', 'tm'];
+export const KHONG_AN = [
+  'ten_quan', 'so_bill', 'in_lai', 'da_huy', 'da_hoan',
+  'gia_goc', 'giam_hang', 'giam_flash', 'giam_ma', 'phi_giao', 'tong',
+  'tieu_de_tt', 'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',
+  'tem_in_lai',
+];
 
 export const CHU_MAC_DINH = {
   ten_quan: 'TỨ QUÝ ĐƯỜNG', dia_chi: '', so_bill: 'SỐ BILL', lien_khach: 'GIAO KHÁCH', lien_luu: 'LƯU QUẦY',
@@ -24,18 +29,18 @@ export const CHU_MAC_DINH = {
   tieu_de_diem: 'ĐIỂM THƯỞNG', diem_truoc: 'Điểm trước đơn', diem_doi: 'Đổi quà', diem_cong: 'Cộng đơn này', diem_co: 'Điểm hiện có',
   ma_diem: 'MÃ NHẬN ĐIỂM · +{diem} điểm (nhập trong {gio} giờ)', ma_uu_dai: 'MÃ ƯU ĐÃI KHÁCH MỚI (nhập trong {gio} giờ)',
   cam_on: 'Cảm ơn {ten_khach}!', chinh_sach: 'Ly có vấn đề? Báo quầy trong ngày để đổi.', ghi_chu: '',
-  da_huy: 'ĐƠN ĐÃ HUỶ', da_hoan: 'ĐƠN ĐÃ HOÀN TIỀN',
-  tem_dau: '', tem_chan: '',
+  da_huy: 'ĐƠN ĐÃ HUỶ', da_hoan: 'ĐƠN ĐÃ HOÀN TIỀN', in_lai: 'IN LẠI · LẦN {lan}', nhan_khach: 'Khách', nhan_nv: 'NV',
+  tem_dau: '', tem_chan: '', tem_in_lai: 'IN LẠI',
 };
 
 // Nhóm hiển thị ở màn Cài đặt: [tên nhóm, [[khoá, nhãn]…]]
 export const NHOM_CHU = [
-  ['Đầu hoá đơn', [['ten_quan', 'Tên quán'], ['dia_chi', 'Địa chỉ · SĐT'], ['so_bill', 'Chữ trên số bill'], ['lien_khach', 'Nhãn tờ khách'], ['lien_luu', 'Nhãn tờ lưu'], ['chu_qr', 'Chữ cạnh QR'], ['da_huy', 'Chữ khi đơn huỷ'], ['da_hoan', 'Chữ khi đơn hoàn tiền']]],
+  ['Đầu hoá đơn', [['ten_quan', 'Tên quán'], ['dia_chi', 'Địa chỉ · SĐT'], ['so_bill', 'Chữ trên số bill'], ['lien_khach', 'Nhãn tờ khách'], ['lien_luu', 'Nhãn tờ lưu'], ['chu_qr', 'Chữ cạnh QR'], ['da_huy', 'Chữ khi đơn huỷ'], ['da_hoan', 'Chữ khi đơn hoàn tiền'], ['in_lai', 'Dòng IN LẠI'], ['nhan_khach', 'Nhãn dòng khách'], ['nhan_nv', 'Nhãn nhân viên']]],
   ['Tiền hàng', [['gia_goc', 'Dòng giá gốc'], ['giam_hang', 'Dòng giảm hạng'], ['giam_flash', 'Dòng giảm Flash'], ['giam_ma', 'Dòng giảm mã / quà'], ['phi_giao', 'Dòng phí giao'], ['tong', 'Dòng tổng']]],
   ['Thanh toán', [['tieu_de_tt', 'Tiêu đề mục'], ['tu_tk', 'Trả từ tài khoản'], ['tu_tk_me', 'Trả từ tài khoản mẹ'], ['ck', 'Chuyển khoản'], ['tm', 'Tiền mặt'], ['ghi_no', 'Ghi nợ'], ['dua_tra', 'Khách đưa / trả lại']]],
   ['Điểm thưởng', [['tieu_de_diem', 'Tiêu đề mục'], ['diem_truoc', 'Điểm trước đơn'], ['diem_doi', 'Đổi quà'], ['diem_cong', 'Điểm cộng'], ['diem_co', 'Điểm hiện có'], ['ma_diem', 'Ô mã nhận điểm (khách lẻ)'], ['ma_uu_dai', 'Ô mã ưu đãi (khi không có điểm)']]],
   ['Chân hoá đơn', [['cam_on', 'Lời cảm ơn'], ['chinh_sach', 'Chính sách'], ['ghi_chu', 'Ghi chú thêm']]],
-  ['Tem ly', [['tem_dau', 'Dòng đầu tem'], ['tem_chan', 'Dòng cuối tem']]],
+  ['Tem ly', [['tem_dau', 'Dòng đầu tem'], ['tem_chan', 'Dòng cuối tem'], ['tem_in_lai', 'Nhãn IN LẠI trên tem']]],
 ];
 
 // Khoá cũ của cài đặt hoá đơn (trước HD-1) — chữ chủ quán đã sửa không được mất khi chưa có khoá mới
@@ -61,21 +66,31 @@ export function docChu(settings) {
   return { chu, an };
 }
 
+/**
+ * Chữ mặc định khi bấm Reset: mọi chữ về CHU_MAC_DINH, trừ tên quán + địa chỉ/SĐT — hai thứ này mặc định theo quán (store_*),
+ * nên Reset không được xoá địa chỉ hay đè tên quán bằng hằng số.
+ */
+export function chuMacDinhCuaQuan(caiDat) {
+  const s = caiDat || {};
+  const { chu } = docChu({ store_name: s.store_name, store_address: s.store_address, store_phone: s.store_phone });
+  return { ...CHU_MAC_DINH, ten_quan: chu.ten_quan, dia_chi: chu.dia_chi };
+}
+
 /** Số tờ mỗi lần in: 1 hoặc 2 (mặc định 2). */
 export function soToTuCaiDat(settings) {
   const n = Number(settings?.[KHOA_SO_TO]);
   return n === 1 ? 1 : n === 2 ? 2 : SO_TO_MAC_DINH;
 }
 
-/** Điền {ten_khach} {hang} {phan_tram} {diem} {gio} {ma}; trường thiếu → rỗng. */
+/** Điền {ten_khach} {hang} {phan_tram} {diem} {gio} {ma} {lan}; trường thiếu → rỗng. */
 export function dienChu(text, mau = {}) {
-  return String(text ?? '').replace(/\{(ten_khach|hang|phan_tram|diem|gio|ma)\}/g, (_, k) => (mau[k] === undefined || mau[k] === null ? '' : String(mau[k])))
+  return String(text ?? '').replace(/\{(ten_khach|hang|phan_tram|diem|gio|ma|lan)\}/g, (_, k) => (mau[k] === undefined || mau[k] === null ? '' : String(mau[k])))
     .replace(/[ \t]{2,}/g, ' ').replace(/ +([%,.!])/g, '$1').trim();
 }
 
 // Chữ cạnh QR nằm trong cột hẹp dưới QR và tự xuống dòng → không có giới hạn một dòng.
 export const gioiHanChu = (khoa) => (khoa === 'chu_qr' ? Infinity : String(khoa).startsWith('tem_') ? GIOI_HAN_TEM : GIOI_HAN_CHU);
-const MAU_DEM = { ten_khach: 'Chị Hoa', hang: 'Vàng', phan_tram: 10, diem: 7, gio: 24 };
+const MAU_DEM = { ten_khach: 'Chị Hoa', hang: 'Vàng', phan_tram: 10, diem: 7, gio: 24, lan: 2 };
 
 /** Đếm ký tự của dòng sau khi điền chữ tự điền mẫu: quá giới hạn → báo đỏ (giấy 58 mm = 42). */
 export function demChu(text, gioiHan = GIOI_HAN_CHU) {
@@ -124,9 +139,10 @@ const gioHienThi = (s) => {
 export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {}) {
   const { chu, an } = docChu(settings);
   const khach = hd?.khach || {};
+  const lan = Math.max(2, (Number(hd?.so_lan_in) || 0) + 1);
   const mau = {
     ten_khach: khach.la_khach_le === false && khach.ten ? khach.ten : 'quý khách',
-    hang: khach.hang || '', phan_tram: khach.phan_tram ?? '', diem: hd?.ma_nhan_diem?.diem ?? '', gio: hd?.ma_nhan_diem?.han_gio ?? 24,
+    hang: khach.hang || '', phan_tram: khach.phan_tram ?? '', diem: hd?.ma_nhan_diem?.diem ?? '', gio: hd?.ma_nhan_diem?.han_gio ?? 24, lan,
   };
   const hien = (k) => !an[k] && String(chu[k] ?? '').trim().length > 0;
   const d = (k) => dienChu(chu[k], mau);
@@ -155,7 +171,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
     dg.push(dong('tieu_de_diem', ''));
     if (hien('diem_truoc')) dg.push(dong('diem_truoc', soDiem(diem.truoc)));
     if (diem.doi_qua > 0 && hien('diem_doi')) dg.push(dong('diem_doi', '−' + soDiem(diem.doi_qua)));
-    if (hien('diem_cong')) dg.push(dong('diem_cong', co_dau(diem.cong)));
+    if (diem.cong !== 0 && hien('diem_cong')) dg.push(dong('diem_cong', co_dau(diem.cong)));
     if (hien('diem_co')) dg.push({ ...dong('diem_co', soDiem(diem.hien_co)), dam: true });
   }
 
@@ -175,14 +191,16 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
 
   const trangThai = hd?.don?.trang_thai;
   const canhBao = trangThai === 'cancelled' && hien('da_huy') ? d('da_huy') : trangThai === 'refunded' && hien('da_hoan') ? d('da_hoan') : null;
-  const lan = Math.max(2, (Number(hd?.so_lan_in) || 0) + 1);
+  // QR mang mã chỉ khi mã còn dùng được (hứa điểm hoặc còn ưu đãi); mã đã dùng / hết hạn / đơn huỷ → QR trần, không `?ma=` chết
+  const maDung = m?.ma && (m.diem > 0 || m.uu_dai) ? m.ma : null;
 
   return {
     lien,
     nhan: hien(laKhach ? 'lien_khach' : 'lien_luu') ? d(laKhach ? 'lien_khach' : 'lien_luu') : '',
     dau: {
       ten_quan: d('ten_quan'), dia_chi: hien('dia_chi') ? d('dia_chi') : '', chu_so_bill: d('so_bill'), so_bill: hd?.don?.so_bill ?? '',
-      qr: duongQr(settings?.[KHOA_DIA_CHI_KH], hd?.ma_nhan_diem?.ma), chu_qr: hien('chu_qr') ? d('chu_qr') : '',
+      nhan_khach: d('nhan_khach'), nhan_nv: d('nhan_nv'),
+      qr: duongQr(settings?.[KHOA_DIA_CHI_KH], maDung), chu_qr: hien('chu_qr') ? d('chu_qr') : '',
       gio: gioHienThi(hd?.don?.gio), nhan_vien: hd?.don?.nhan_vien || '', khach: khach.la_khach_le === false ? khach.ten : (khach.ten || 'Khách lẻ'),
     },
     mon: (hd?.mon || []).map((x) => ({
@@ -191,7 +209,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
       chu_giam: x.gia_hang != null ? chuGiaGoc(x.thanh_tien_goc, x.thanh_tien) : '',
     })),
     tien: dongTien, thanh_toan: tt, diem: dg, ma_diem: maDiem, chan,
-    in_lai: inLai ? `IN LẠI · LẦN ${lan}` : null,
+    in_lai: inLai ? d('in_lai') : null,
     canh_bao: canhBao,
   };
 }
@@ -232,3 +250,32 @@ export const HOA_DON_MAU_LE = {
   thanh_toan: [{ loai: 'tien_mat', so_tien: 95000 }], khach_dua: 100000, tra_lai: 5000,
   diem: null, ma_nhan_diem: { ma: 'TQD-XXXXXXXXXXXX', diem: 7, uu_dai: true, han_gio: 24 },
 };
+// Đơn Flash của khách lẻ: có mã nhưng N = 0 (không hứa điểm), còn ưu đãi khách mới
+const HOA_DON_MAU_FLASH = {
+  ...HOA_DON_MAU_LE,
+  tien: { gia_goc: 72000, giam_hang: 0, giam_flash: 7000, giam_ma: 0, ma_giam: null, phi_giao: 23000, tong: 88000 },
+  thanh_toan: [{ loai: 'tien_mat', so_tien: 88000 }], khach_dua: 100000, tra_lai: 12000,
+  ma_nhan_diem: { ma: 'TQD-XXXXXXXXXXXX', diem: 0, uu_dai: true, han_gio: 24 },
+};
+// Khách quen trả bằng tài khoản + tài khoản mẹ + ghi nợ (không tiền mặt)
+const HOA_DON_MAU_ME = {
+  ...HOA_DON_MAU_QUEN,
+  thanh_toan: [{ loai: 'tai_khoan', so_tien: 20000 }, { loai: 'tai_khoan_me', so_tien: 30000 }, { loai: 'ghi_no', so_tien: 37800 }],
+  khach_dua: 0, tra_lai: 0,
+};
+const donTrangThai = (trang_thai) => ({
+  ...HOA_DON_MAU_QUEN,
+  don: { ...HOA_DON_MAU_QUEN.don, trang_thai },
+  diem: { truoc: 320, doi_qua: 0, cong: 0, hien_co: 320 },   // điểm đã cộng bị trừ lại: cộng ròng 0
+});
+
+/** Các mẫu của ô Xem trước ở Cài đặt hoá đơn: { khoa, nhan, hd, inLai }. */
+export const MAU_XEM_TRUOC = [
+  { khoa: 'quen', nhan: 'Khách quen có hạng', hd: HOA_DON_MAU_QUEN, inLai: false },
+  { khoa: 'le', nhan: 'Khách lẻ có mã', hd: HOA_DON_MAU_LE, inLai: false },
+  { khoa: 'flash', nhan: 'Đơn Flash', hd: HOA_DON_MAU_FLASH, inLai: false },
+  { khoa: 'me', nhan: 'Trả bằng tài khoản mẹ', hd: HOA_DON_MAU_ME, inLai: false },
+  { khoa: 'huy', nhan: 'Đơn huỷ', hd: donTrangThai('cancelled'), inLai: false },
+  { khoa: 'hoan', nhan: 'Đơn hoàn tiền', hd: donTrangThai('refunded'), inLai: false },
+  { khoa: 'in_lai', nhan: 'In lại', hd: { ...HOA_DON_MAU_QUEN, so_lan_in: 1 }, inLai: true },
+];

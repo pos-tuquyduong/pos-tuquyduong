@@ -93,7 +93,7 @@ export function dungTem(don, nhomTheoMa, cfg, inLai = false, settings = null) {
     for (let i = 1; i <= n; i++) {
       tem.push({
         kieu: 'tem', ten: cat(String(m.product_name || '')), ghiChu: cat(ghiChuMon(m)), khach: khachTem(don),
-        ma: rutGonMa(don.code), gio: gioHHmm(don.created_at), stt: `${i}/${n}`, inLai, dau, chan,
+        ma: rutGonMa(don.code), gio: gioHHmm(don.created_at), stt: `${i}/${n}`, inLai, chuInLai: inLai && settings ? chuTem(settings, 'tem_in_lai', tenKhach) : 'IN LẠI', dau, chan,
       });
     }
   }
