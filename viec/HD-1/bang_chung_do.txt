@@ -20,4 +20,19 @@ qua `python3 viec/HD-1/dot_bien.py --goc f1fea71`). Chạy lại 28.10 sau khi t
 Bản cuối trên code đã vá (thư viện qrcode-generator 1.4.4 đã cài): 123 đạt · 0 hỏng (C1 ×4 giải mã bằng jsqr · C2 · C3 · C4 viền yên tĩnh).
 Đột biến: 65 · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0 (VS-QR-KHONG-VIEN trước đây SỐNG vì C2 không kiểm viền — đã thêm C4, nay BẮT ở C4).
 
-SỐ CA thu_HD1.js: 123
+── Vòng sửa 1 (soát độc lập KHÔNG ĐẠT, 28.10) ──
+Bài thử mới (G34 G35 G35b G50–G57, F8, E1b, A28b A28c A30b A31b) chạy trên code TRƯỚC vòng sửa (`python3 viec/HD-1/dot_bien.py --goc 020c80e`):
+123 đạt · 15 hỏng — các dòng ✗:
+  ✗ G34 / G35 / E1b  dòng tiền (phí giao, giảm Flash, tài khoản mẹ, ghi nợ, khách đưa) ẩn được — danh sách không ẩn được chỉ có 7 khoá
+  ✗ G50 / F8 / G51   dòng IN LẠI (bill + tem), nhãn "Khách:" / "NV:" viết cứng, chưa có khoá chữ
+  ✗ G52              QR vẫn mang ?ma= của mã đã dùng / hết hạn
+  ✗ G53              khách quen đơn 0 điểm vẫn in "Cộng đơn này +0"
+  ✗ G54 / G55        xem trước chưa có mẫu Flash · tài khoản mẹ · huỷ · hoàn · in lại
+  ✗ G57              Reset ghi đè tên quán / xoá địa chỉ (hàm chuMacDinhCuaQuan chưa có)
+  ✗ A28b             đơn huỷ: "cộng đơn này" +50 dù P24 đã trừ lại (ròng 0)
+  ✗ A28c             đơn huỷ / chưa thu vẫn uu_dai = true
+  ✗ A30b             đơn cũ trả bằng tài khoản thiếu cột → dồn vào tiền mặt
+  ✗ A31b             nhật ký in đã xoá mềm vẫn tính vào "LẦN n"
+Sau vòng sửa: 138 đạt · 0 hỏng. Đột biến: 79 · BẮT 79 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 138 xanh).
+
+SỐ CA thu_HD1.js: 138

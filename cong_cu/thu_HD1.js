@@ -139,10 +139,44 @@ async function phanG() {
   k('G32 in lại: điểm chỉ là phần của đơn (cùng dữ liệu, không số dư lúc in)', bang(dungHoaDon(HD_QUEN, {}, { inLai: true }).diem, q.diem));
 
   // chữ tuỳ chỉnh (E)
-  k('G33 KHÔNG ẩn được 7 mục bắt buộc: cài đặt ghi ẩn vẫn hiện', KHONG_AN.every((kh) => docChu({ [`invoice_an_${kh}`]: 'true' }).an[kh] === false));
-  k('G34 danh sách mục không ẩn được = tên quán, số bill, tổng, thanh toán (7 khoá)', bang([...KHONG_AN].sort(), ['ck', 'so_bill', 'ten_quan', 'tieu_de_tt', 'tm', 'tong', 'tu_tk'].sort()), KHONG_AN.join());
-  const anPhi = dungHoaDon(HD_LE, { invoice_an_phi_giao: 'true' });
-  k('G35 ẩn được dòng phí giao (bật / tắt từng dòng)', !khoa(anPhi.tien).includes('phi_giao'));
+  k('G33 KHÔNG ẩn được các mục bắt buộc: cài đặt ghi ẩn vẫn hiện', KHONG_AN.every((kh) => docChu({ [`invoice_an_${kh}`]: 'true' }).an[kh] === false));
+  const BAT_BUOC = ['ten_quan', 'so_bill', 'in_lai', 'da_huy', 'da_hoan', 'gia_goc', 'giam_hang', 'giam_flash', 'giam_ma', 'phi_giao', 'tong', 'tieu_de_tt', 'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra', 'tem_in_lai'];
+  k('G34 không ẩn được: tên quán, số bill, MỌI dòng tiền (gốc, 3 loại giảm, phí giao, tổng) và thanh toán (kể cả tài khoản mẹ, ghi nợ, khách đưa), dòng IN LẠI, huỷ / hoàn',
+    bang([...KHONG_AN].sort(), [...BAT_BUOC].sort()), KHONG_AN.join());
+  const anPhi = dungHoaDon({ ...HD_LE, tien: { ...HD_LE.tien, giam_flash: 5000, tong: 90000 }, thanh_toan: [{ loai: 'ghi_no', so_tien: 90000 }] },
+    { invoice_an_phi_giao: 'true', invoice_an_giam_flash: 'true', invoice_an_ghi_no: 'true' });
+  k('G35 ẩn dòng phí giao / giảm Flash / ghi nợ bằng cài đặt: vẫn in (chuỗi giá và tổng các dòng thanh toán luôn cân)',
+    khoa(anPhi.tien).includes('phi_giao') && khoa(anPhi.tien).includes('giam_flash') && khoa(anPhi.thanh_toan).includes('ghi_no'), JSON.stringify([khoa(anPhi.tien), khoa(anPhi.thanh_toan)]));
+  k('G35b dòng KHÔNG bắt buộc vẫn ẩn được (bật / tắt từng dòng): điểm trước đơn, chữ cạnh QR, cảm ơn',
+    !khoa(dungHoaDon(HD_QUEN, { invoice_an_diem_truoc: 'true' }).diem).includes('diem_truoc') && dungHoaDon(HD_LE, { ...CD, invoice_an_chu_qr: 'true' }).dau.chu_qr === ''
+    && danhSachTo(HD_QUEN, { invoice_an_cam_on: 'true' })[0].chan.every((c) => c.khoa !== 'cam_on'));
+  // HD-1 vòng sửa 1 (soát độc lập): IN LẠI / nhãn có khoá riêng, QR không mã chết, không dòng điểm 0, đủ mẫu xem trước
+  const il = (cd, so = 1) => dungHoaDon({ ...HD_QUEN, so_lan_in: so }, cd, { inLai: true }).in_lai;
+  k('G50 dòng IN LẠI có khoá riêng: đổi chữ → bill đổi ("{lan}" tự điền); xoá trắng / ẩn → vẫn in chữ mặc định (luật thiết kế 4)',
+    il({ invoice_chu_in_lai: 'In lần {lan}!' }, 2) === 'In lần 3!' && il({ invoice_chu_in_lai: '  ' }) === 'IN LẠI · LẦN 2' && il({ invoice_an_in_lai: 'true' }) === 'IN LẠI · LẦN 2', il({ invoice_chu_in_lai: 'In lần {lan}!' }, 2));
+  const nhan = dungHoaDon(HD_QUEN, { invoice_chu_nhan_khach: 'Quý khách', invoice_chu_nhan_nv: 'Thu ngân' });
+  k('G51 nhãn "Khách:" / "NV:" trên bill sửa được (không còn chữ cứng); mặc định "Khách" / "NV"', nhan.dau.nhan_khach === 'Quý khách' && nhan.dau.nhan_nv === 'Thu ngân' && dungHoaDon(HD_QUEN, {}).dau.nhan_khach === 'Khách' && dungHoaDon(HD_QUEN, {}).dau.nhan_nv === 'NV');
+  const qr0 = (o) => dungHoaDon({ ...HD_LE, ma_nhan_diem: { ma: 'TQD-X', diem: 0, uu_dai: false, han_gio: 24, ...o } }, CD).dau.qr;
+  k('G52 mã không còn dùng được (N = 0, không ưu đãi: đã dùng / hết hạn / đơn huỷ) → QR trần, KHÔNG `?ma=` chết; còn ưu đãi → QR mang mã',
+    qr0({}) === 'https://app.example.vn/' && qr0({ uu_dai: true }) === 'https://app.example.vn/?ma=TQD-X' && qr0({ diem: 3 }) === 'https://app.example.vn/?ma=TQD-X', qr0({}));
+  const cong0 = dungHoaDon({ ...HD_QUEN, diem: { truoc: 320, doi_qua: 0, cong: 0, hien_co: 320 } }, {});
+  k('G53 khách quen đơn 0 điểm (Flash / huỷ): KHÔNG in dòng "Cộng đơn này +0"; vẫn có điểm trước và hiện có', bang(khoa(cong0.diem), ['tieu_de_diem', 'diem_truoc', 'diem_co']), khoa(cong0.diem));
+  const cm = P.chuMacDinhCuaQuan || (() => ({}));   // gốc chưa có hàm → ca đỏ, không sập
+  const macDinh = cm({ store_name: 'QUÁN A', store_address: '12 Phố', store_phone: '0123', invoice_chu_ten_quan: 'cũ', invoice_chu_dia_chi: 'cũ' });
+  k('G57 Reset về mặc định: tên quán + địa chỉ/SĐT theo store_* (không xoá địa chỉ, không đè tên quán bằng hằng số); chữ khác = mặc định',
+    macDinh.ten_quan === 'QUÁN A' && macDinh.dia_chi === '12 Phố · 0123' && macDinh.cam_on === CHU_MAC_DINH.cam_on && macDinh.in_lai === CHU_MAC_DINH.in_lai
+    && cm({}).dia_chi === '' && cm({}).ten_quan === CHU_MAC_DINH.ten_quan, JSON.stringify([macDinh.ten_quan, macDinh.dia_chi]));
+  const tinhTong = (ds) => ds.reduce((s, d) => s + (d.khoa === 'tong' || d.khoa === 'dua_tra' ? 0 : tien(d.tien)), 0);
+  const mauXem = P.MAU_XEM_TRUOC || [];
+  k('G54 xem trước đủ 7 mẫu: quen · lẻ · Flash · tài khoản mẹ · huỷ · hoàn · in lại', bang(mauXem.map((x) => x.khoa), ['quen', 'le', 'flash', 'me', 'huy', 'hoan', 'in_lai']), mauXem.map((x) => x.khoa).join());
+  const dung = mauXem.map((x) => ({ x, to: dungHoaDon(x.hd, CD, { inLai: x.inLai }) }));
+  const tt = (m) => dung.find((d) => d.x.khoa === m)?.to || { tien: [], thanh_toan: [], ma_diem: null, canh_bao: null, in_lai: null };   // thiếu mẫu → ca đỏ, không sập
+  k('G55 mẫu Flash có dòng Giảm Flash và không hứa điểm; mẫu tài khoản mẹ có dòng Từ tài khoản mẹ + Ghi nợ; huỷ / hoàn có chữ trạng thái; in lại có dòng IN LẠI',
+    khoa(tt('flash').tien).includes('giam_flash') && tt('flash').ma_diem?.chu.startsWith('MÃ ƯU ĐÃI') && khoa(tt('me').thanh_toan).includes('tu_tk_me') && khoa(tt('me').thanh_toan).includes('ghi_no')
+    && tt('huy').canh_bao === 'ĐƠN ĐÃ HUỶ' && tt('hoan').canh_bao === 'ĐƠN ĐÃ HOÀN TIỀN' && tt('in_lai').in_lai === 'IN LẠI · LẦN 2' && tt('quen').in_lai === null);
+  k('G56 MỌI mẫu xem trước: tổng các dòng thanh toán = TỔNG HÓA ĐƠN và giá gốc − giảm + phí giao = tổng (chuỗi cân trên giấy)',
+    dung.every(({ to }) => tinhTong(to.thanh_toan) === tien(to.tien.at(-1).tien) && tien(to.tien[0].tien) + tinhTong(to.tien.slice(1)) === tien(to.tien.at(-1).tien)),
+    dung.map(({ x, to }) => `${x.khoa}:${tinhTong(to.thanh_toan)}/${tien(to.tien.at(-1).tien)}`).join(' '));
   k('G36 ẩn tên quán bằng cài đặt: tên quán VẪN in; ẩn cả bốn mục thanh toán + tổng: vẫn in',
     dungHoaDon(HD_QUEN, { invoice_an_ten_quan: 'true' }).dau.ten_quan === 'TỨ QUÝ ĐƯỜNG'
     && khoa(dungHoaDon(HD_QUEN, { invoice_an_tong: 'true', invoice_an_tieu_de_tt: 'true', invoice_an_tm: 'true', invoice_an_tu_tk: 'true' }).thanh_toan).includes('tu_tk'));
@@ -252,6 +286,10 @@ async function phanF() {
   k('F5 số bill trên tem + "1/2" + tên món + ghi chú + giờ vẫn đủ', t[0].ma === '012' && t[0].stt === '1/2' && t[0].ten === 'Trà gừng' && t[0].ghiChu === 'Ít đá' && t[0].gio === '09:30');
   const donLe = { ...don, customer_name: 'Khách lẻ' };
   k('F7 khách lẻ: {ten_khach} trên tem = "quý khách" (không in "Khách lẻ")', I.dungBoIn(donLe, { invoice_chu_tem_chan: 'Chào {ten_khach}' }, { loai: ['tem'] })[0].trang[0].chan === 'Chào quý khách');
+  const temLai = (st) => I.dungBoIn(don, st, { loai: ['tem'], inLai: true })[0].trang[0].chuInLai;
+  k('F8 nhãn IN LẠI trên tem có khoá riêng (tem_in_lai): đổi chữ → tem đổi; xoá trắng / ẩn → vẫn "IN LẠI"; in lần đầu không nhãn',
+    temLai({ invoice_chu_tem_in_lai: 'IN LẠI!' }) === 'IN LẠI!' && temLai({ invoice_chu_tem_in_lai: ' ' }) === 'IN LẠI' && temLai({ invoice_an_tem_in_lai: 'true' }) === 'IN LẠI'
+    && tem({}).every((x) => !x.inLai), temLai({ invoice_chu_tem_in_lai: 'IN LẠI!' }));
   k('F6 bộ in vẫn: bill 1 trang mặc định (số tờ 2 do hoá đơn nhân, ca P16 giữ nguyên)', I.dungBoIn(don, {}, {}).find((j) => j.loai === 'bill').trang.length === 1);
 }
 
@@ -430,12 +468,37 @@ async function phanA(P) {
   const cuCk = await db.run(`INSERT INTO pos_orders (code, customer_name, subtotal, total, payment_method, status, created_by, created_at)
     VALUES ('ORD-20260101-002', 'Khách lẻ', 40000, 40000, 'transfer', 'completed', 'thu', '2026-01-01T09:05:00')`);
   k('A30 (K5) đơn cũ chuyển khoản thiếu cột transfer_amount → dồn vào chuyển khoản', bang((await hd(Number(cuCk.lastInsertRowid))).h?.thanh_toan, [{ loai: 'chuyen_khoan', so_tien: 40000 }]));
+  const cuTk = await db.run(`INSERT INTO pos_orders (code, customer_name, subtotal, total, payment_method, status, created_by, created_at)
+    VALUES ('ORD-20260101-003', 'Khách lẻ', 40000, 40000, 'balance', 'completed', 'thu', '2026-01-01T09:10:00')`);
+  k('A30b (K5) đơn cũ trả bằng tài khoản thiếu cột balance_amount → dồn vào TÀI KHOẢN (không phải tiền mặt)', bang((await hd(Number(cuTk.lastInsertRowid))).h?.thanh_toan, [{ loai: 'tai_khoan', so_tien: 40000 }]));
+  // đơn huỷ / chưa thu: bill đúng tình trạng thực tế (soát độc lập, lỗi 4 và 5)
+  const sh = sdtMoi(); await nap(sh, 100000);
+  const rh = await ban({ customer_phone: sh, items: [mon(0, 2)], payment_method: 'cash', cash_amount: 50000 });
+  await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at) SELECT customer_phone, 'adjust', -SUM(points), order_id, NULL, 'Huỷ đơn: thử', 'thu', created_at FROM pos_point_transactions WHERE order_id = ? AND type = 'earn' GROUP BY customer_phone", [rh.order.id]);
+  const cong0 = Number((await mot("SELECT COALESCE(SUM(points),0) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [rh.order.id])).n);
+  const truocH = (await hd(rh.order.id)).h?.diem;
+  await db.run("UPDATE pos_orders SET status = 'cancelled' WHERE id = ?", [rh.order.id]);
+  const aHuyDiem = (await hd(rh.order.id)).h;
+  k('A28b đơn khách quen ĐÃ HUỶ (P24 đã trừ lại điểm): "cộng đơn này" ròng = 0 (không hứa điểm đã bị trừ), hiện có = điểm trước; đơn còn hiệu lực vẫn cộng đủ',
+    cong0 > 0 && truocH?.cong === cong0 && aHuyDiem?.diem?.cong === 0 && aHuyDiem.diem.hien_co === aHuyDiem.diem.truoc, `${cong0} ${JSON.stringify(truocH)} ${JSON.stringify(aHuyDiem?.diem)}`);
+  const uuDaiHuy = await goi('PUT', '/settings', { settings: { signup_enabled: 'true' } });
+  const rHuyLe = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+  const truocUd = (await hd(rHuyLe.order.id)).h?.ma_nhan_diem;
+  await db.run("UPDATE pos_orders SET status = 'cancelled' WHERE id = ?", [rHuyLe.order.id]);
+  const sauUd = (await hd(rHuyLe.order.id)).h?.ma_nhan_diem;
+  await db.run("UPDATE pos_orders SET status = 'completed', payment_status = 'pending' WHERE id = ?", [rHuyLe.order.id]);
+  const chuaThu = (await hd(rHuyLe.order.id)).h?.ma_nhan_diem;
+  await db.run("UPDATE pos_orders SET payment_status = 'paid' WHERE id = ?", [rHuyLe.order.id]);
+  k('A28c ưu đãi khách mới chỉ khi đơn hoàn tất + đã thu (như /nhan-diem): đơn huỷ hoặc chưa thu → uu_dai = false; đơn hợp lệ → true',
+    uuDaiHuy.status === 200 && truocUd?.uu_dai === true && sauUd?.uu_dai === false && sauUd?.diem === 0 && chuaThu?.uu_dai === false, `${moTa(uuDaiHuy)} ${JSON.stringify([truocUd, sauUd, chuaThu])}`);
   // số lần in
   await goi('POST', '/settings/invoice/log', { order_id: rq.order.id, order_code: rq.order.code, invoice_number: 'HD-TEST-0', paper_size: '80mm' });   // log của đơn KHÁC không được tính
   const lan0 = (await hd(r1.order.id)).h?.so_lan_in;
   await goi('POST', '/settings/invoice/log', { order_id: r1.order.id, order_code: r1.order.code, invoice_number: 'HD-TEST-1', paper_size: '80mm' });
   await goi('POST', '/settings/invoice/log', { order_id: r1.order.id, order_code: r1.order.code, invoice_number: 'HD-TEST-1', paper_size: '80mm' });
   k('A31 số lần đã in = số dòng nhật ký in của đơn (0 → 2)', lan0 === 0 && (await hd(r1.order.id)).h?.so_lan_in === 2, `${lan0} → ${(await hd(r1.order.id)).h?.so_lan_in}`);
+  await db.run("UPDATE pos_invoice_logs SET is_deleted = 1 WHERE id = (SELECT MAX(id) FROM pos_invoice_logs WHERE order_id = ?)", [r1.order.id]);
+  k('A31b nhật ký in đã xoá mềm (is_deleted = 1) không tính vào "LẦN n" (2 → 1)', (await hd(r1.order.id)).h?.so_lan_in === 1, String((await hd(r1.order.id)).h?.so_lan_in));
   // đúng hình dạng cho hàm thuần
   if (P) {
     const dong = P.dungHoaDon(H, { invoice_kh_url: 'https://app.example.vn/?ma={ma}' });
@@ -449,7 +512,9 @@ async function phanA(P) {
   const KHONG_AN_MC = hoaDonRoute?.KHONG_AN_DUOC;
   if (P) k('E1 danh sách mục không ẩn được: client = máy chủ', bang([...(KHONG_AN_MC || [])].sort(), [...P.KHONG_AN].sort()), JSON.stringify(KHONG_AN_MC));
   let anhEm = true; const chiTiet = [];
-  for (const kh of ['ten_quan', 'so_bill', 'tong', 'tieu_de_tt', 'tu_tk', 'ck', 'tm']) {
+  const TIEN_TT = ['gia_goc', 'giam_hang', 'giam_flash', 'giam_ma', 'phi_giao', 'tong', 'tieu_de_tt', 'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra', 'in_lai', 'tem_in_lai', 'da_huy', 'da_hoan'];
+  if (P) k('E1b danh sách máy chủ chứa MỌI dòng tiền / thanh toán / IN LẠI / huỷ-hoàn', TIEN_TT.every((kh) => (KHONG_AN_MC || []).includes(kh)), JSON.stringify(KHONG_AN_MC));
+  for (const kh of KHONG_AN_MC || []) {
     const r = await goi('PUT', '/settings', { settings: { [`invoice_an_${kh}`]: 'true', invoice_chu_ghi_chu: 'KHONG_DUOC_GHI_' + kh } });
     const ghi = await mot("SELECT value FROM pos_settings WHERE key = 'invoice_chu_ghi_chu'");
     if (!(r.status === 400 && r.code === 'KHOA_KHONG_AN_DUOC' && !String(ghi?.value || '').startsWith('KHONG_DUOC_GHI_'))) { anhEm = false; chiTiet.push(`${kh}: ${moTa(r)} ghi=${ghi?.value}`); }
@@ -458,7 +523,7 @@ async function phanA(P) {
   const rAn1 = await goi('PUT', '/settings', { settings: { invoice_an_tong: '1' } });
   const rAnB = await goi('PUT', '/settings', { settings: { invoice_an_tm: true } });
   k('E2b ghi ẩn bằng "1" hoặc true (JSON) cũng bị từ chối', rAn1.code === 'KHOA_KHONG_AN_DUOC' && rAnB.code === 'KHOA_KHONG_AN_DUOC', `${moTa(rAn1)} ${moTa(rAnB)}`);
-  const rOk = await goi('PUT', '/settings', { settings: { invoice_an_phi_giao: 'true', invoice_chu_tong: 'PHẢI TRẢ', invoice_an_tong: 'false' } });
+  const rOk = await goi('PUT', '/settings', { settings: { invoice_an_diem_truoc: 'true', invoice_chu_tong: 'PHẢI TRẢ', invoice_an_tong: 'false' } });
   k('E3 (K5) ẩn mục không bắt buộc + sửa chữ + "invoice_an_tong: false" → 200, đã ghi', rOk.status === 200 && (await mot("SELECT value FROM pos_settings WHERE key = 'invoice_chu_tong'"))?.value === 'PHẢI TRẢ', moTa(rOk));
   const rSo = await goi('PUT', '/settings', { settings: { invoice_so_to: '3' } });
   const rSo1 = await goi('PUT', '/settings', { settings: { invoice_so_to: '1' } });
