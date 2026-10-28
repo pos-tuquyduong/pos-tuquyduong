@@ -67,7 +67,13 @@ DOT_BIEN = [
   ('BV-SALES-MA-LOI', [(SA, '{tinhThu?.ma_loi && (', '{false && (', 1)], r'✗ S9 '),
   ('VS-MA-LOI-KHONG-CODE', [(O, 'ma_loi_code: maLoi?.code || null,', 'ma_loi_code: null,', 1)], r'✗ F6 '),
   ('VS-SETTINGS-PKGAPI', [(SE, "await api.put('/settings', { settings: uuDaiChung });", "await pkgApi('PUT', '/api/pos/settings', { settings: uuDaiChung });", 1)], r'✗ S8 '),
-  ('VS-SALES-HAI-THAN', [(SA, '        discount_code: don.discount_code,\n', '        discount_code: discountCodeValid?.code,\n', 1)], r'✗ S2 '),
+  # vòng sửa 4 (chat soát thay): ca GIÁ TRỊ cho giá hạng từng món, mặc định khi thiếu khoá, giá mã 1 món trên bill
+  ('BV-GIA-HANG-TUNG-MON', [(O, '    orderItems.forEach((it, i) => { if (uuDai.gia_hang[i] != null) it.tier_unit_price = uuDai.gia_hang[i]; });\n', '', 1)],
+   r'✗ F8 '),
+  ('VS-MAC-DINH-THIEU-KHOA', [(O, '[khoa]))?.value !== "0";', '[khoa]))?.value === "1";', 1)], r'✗ E6 '),
+  ('VS-GIA-MA-MOT-MON-GOC', [(O, '(itemScopeTargetItem.tier_unit_price ?? itemScopeTargetItem.unit_price)', 'itemScopeTargetItem.unit_price', 1)],
+   r'✗ B5b '),
+  ('VS-SALES-HAI-THAN',[(SA, '        discount_code: don.discount_code,\n', '        discount_code: discountCodeValid?.code,\n', 1)], r'✗ S2 '),
 ]
 
 

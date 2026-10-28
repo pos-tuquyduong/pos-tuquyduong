@@ -36,8 +36,9 @@
 - Đổi bài sau lần đỏ đầu (đều chạy lại gốc ở `bang_chung_do.txt`): siết C2b / C5a / F2 (xanh suông khi đơn không tạo được — K3);
   A3 khoá đúng công thức mã (giảm riêng của khách giữ công thức cũ theo Q3 — K2); C5b đơn trả bằng ví (duyệt hoàn chỉ nhận đơn ví);
   S2 theo dạng thật của Sales.jsx; thêm A6 (làm tròn mã %), C8 (mã 1 món kiểu tiền theo khoá 1 món) để đột biến không sống.
-- `ma_loi`: hai câu ("Mã không tồn tại hoặc đã tắt" / "Mã hết hạn, hết lượt hoặc đơn chưa đủ tối thiểu"), không thêm `ma_loi_code`
-  (kế hoạch mục 2 ghi "+ code" — bỏ cho gọn; tinh-thu mới, chưa ai đọc mã này).
+- `ma_loi`: hai câu ("Mã không tồn tại hoặc đã tắt" / "Mã hết hạn, hết lượt hoặc đơn chưa đủ tối thiểu"). **Đính chính vòng sửa 4:** lần đầu bỏ
+  `ma_loi_code`; vòng sửa 2 đã thêm lại đúng kế hoạch — tinh-thu nay trả `ma_loi` + `ma_loi_code` (`MA_KHONG_TON_TAI` / `MA_KHONG_AP_DUNG`),
+  ca F6 / K2b khoá.
 - `Sales.jsx`: `orderData` ghi rõ từng khoá lấy từ `don = donGuiMayChu()` (không spread) — để `thu_BH1.js` I10/I11 (đọc khoá orderData từ
   nguồn) giữ nguyên, không phải sửa bài cũ.
 - `kiem_tra_truoc_khi_giao.js`: thêm MỘT dòng `chayBaiThat('cong_cu/thu_UUDAI1.js')` riêng — `thu_P3.js` đòi dòng danh sách kết thúc
@@ -71,8 +72,8 @@ BV-CAI-DAT-DOC, VS-QUA-THEO-CAI-DAT, VS-LOAI-MOT-MON-THEO-KIEU, VS-CHON-HANG-VAN
 VS-CHON-HANG-GIU-GIA-MA-BILL, VS-TINHTHU-GOI-SX, BV-TINHTHU-CHI-TINH, VS-TINHTHU-NHAN-TIEN, VS-MA-LOI-IM, BV-CAI-DAT-KIEM,
 VS-CAI-DAT-NHAN-TRUE, BV-SEED, BV-SETTINGS-QUA, BV-SALES-TONG, VS-SALES-THU-KHI-CHUA-TINH, VS-SALES-HAI-THAN.
 
-## Câu hỏi — CHỜ CHỦ QUÁN (vòng soát 3, 27.10) — máy DỪNG ở đây
-- **Q5 (CHẶN báo xong) — `cach` khi mã gõ vào KHÔNG hợp lệ, khách có hạng.** Kế hoạch đã duyệt viết hai vế tự mâu thuẫn với khách Vàng:
+## Câu hỏi vòng soát 3 (27.10) — ĐÃ TRẢ LỜI (phiếu mục 5–6: Q5 = (a) giữ như máy làm; Q4 không làm ở việc này — việc sau khai trương)
+- **Q5 (đã trả lời (a) — không còn chặn) — `cach` khi mã gõ vào KHÔNG hợp lệ, khách có hạng.** Kế hoạch đã duyệt viết hai vế tự mâu thuẫn với khách Vàng:
   `ke_hoach.md:44-45` "KHÔNG bao giờ trả `cach: 'hang'` vì mã sai — mã sai → `cach` tính như không có mã, kèm `ma_loi`", và bảng ca thử
   `ke_hoach.md:111` "F6 mã sai → `ma_loi`, không `cach 'hang'`". Tính như không có mã thì khách Vàng tất yếu ra `cach 'hang'`
   (`server/utils/uuDai.js:40`). Máy đang làm và bài thử F6 (`cong_cu/thu_UUDAI1.js`, ca F6) khoá: **`cach: 'hang'` + `ma_loi` + `ma_loi_code`,
@@ -274,7 +275,8 @@ nghĩa dòng kế hoạch đã duyệt → Câu hỏi, không tự giải nghĩa
 - Chốt phiên payOS (`giuCho.js:97`) chạy lại `taoDon`: cài đặt / lượt mã / giá đổi giữa lúc tạo phiên và lúc tiền về → chốt 400, phiên
   'loi' sau khi khách đã trả (`giuCho.js:114-118`). Có từ trước (giá, Flash); việc này thêm một nguồn.
 - `discount-codes.js /increment-usage` (`:355`) — đường tiêu mã thứ hai, không màn nào gọi.
-- Giảm riêng của khách (đọc ở `orders.js:617`, tính ở `:739`, đọc tại HEAD `47a0612`) không làm tròn đồng.
+- Giảm riêng của khách (đọc ở `orders.js:620`, tính ở `:741`, đọc lại tại HEAD `e6d9629` — vòng sửa 4; số dòng trôi theo các patch) không
+  làm tròn đồng.
 
 ## Làm tiếp (`tiep`, 28.10) — soát lần 4 theo trả lời Q5 / Q4
 - Bước 1: nhánh `viec/UUDAI-1`, cây sạch; HEAD `0d9749d` · FETCH_HEAD `0d9749d` (bằng nhau → không kéo). `git log --oneline -3`:
@@ -369,3 +371,27 @@ BÀI HỌC
 - Không sửa code / bài thử. Ghi nhận của máy (không phải quyết định): lỗi 1–3 là lỗ BÀI THỬ (code hôm nay đúng theo người soát), mỗi lỗi ~1 ca +
   1 đột biến trong `cong_cu/thu_UUDAI1.js` / `viec/UUDAI-1/dot_bien.py` (đều trong Phạm vi); lỗi 4 là hồ sơ (`trang_thai.md`). Chat soát quyết có cho
   vòng sửa thứ 4 không.
+
+## Làm tiếp (`tiep`, 28.10) — VÒNG SỬA 4 (chat soát thay, phiếu mục 8–10: chỉ thêm bài thử + hồ sơ)
+- Bước 1: nhánh `viec/UUDAI-1`, cây sạch; hook mở phiên kéo `0d9749d → 71f69fc`; HEAD `71f69fc` · FETCH_HEAD `71f69fc` (bằng nhau → không kéo).
+  `git log --oneline -3`:
+  ```
+  71f69fc PHIEU: UUDAI-1 chat soat thay - vong sua 4 chi them bai thu + ho so
+  2388d11 UUDAI-1: soat vong 4 (KHONG DAT) — ghi nguyen van, dung cho chat soat (phieu muc 7)
+  0d9749d PHIEU: UUDAI-1 tra loi Q5 (a) + Q4 sau khai truong
+  ```
+- KHÔNG đổi code chạy (`server/`, `client/src/`). Chỉ đổi `cong_cu/thu_UUDAI1.js`, `viec/UUDAI-1/dot_bien.py`, `bang_chung_do.txt`, `trang_thai.md`.
+- (1) **F8**: khách Vàng, món 50.000 → `tier_unit_price` 45.000 ở tinh-thu VÀ ở `pos_order_items`. Đột biến `BV-GIA-HANG-TUNG-MON` (xoá dòng
+  `orderItems.forEach(... it.tier_unit_price = uuDai.gia_hang[i])`, `orders.js:729`) → BẮT ở ✗ F8 (tinh-thu null).
+- (2) **E6 / E6b**: xoá 3 khoá khỏi `pos_settings` → Vàng + mã 10 % ra 81.000, tinh-thu `ca_hai` (mặc định dùng chung). Đột biến
+  `VS-MAC-DINH-THIEU-KHOA` (`?.value !== "0"` → `=== "1"`, `orders.js:718`) → BẮT ở ✗ E6 (400 lệch tổng).
+- (3) **B5b**: bill mã 1 món dùng chung với hạng: `signup_unit_price` = 45.000 − 9.000 = 36.000. Đột biến `VS-GIA-MA-MOT-MON-GOC`
+  (`tier_unit_price ?? unit_price` → `unit_price`, `orders.js:753`) → BẮT ở ✗ B5b ([41000]).
+- (4) Hồ sơ: đính chính câu "không thêm `ma_loi_code`" (mục Bước 4–6); mục Q5 đổi tiêu đề "ĐÃ TRẢ LỜI"; Phát hiện "giảm riêng" số dòng đọc lại
+  ở HEAD `e6d9629` (`:620` / `:741`). Các số dòng trong báo cáo soát vòng 1–4 là NGUYÊN VĂN của người soát tại commit lúc đó — không sửa.
+- Không ca mới nào bắt lỗi THẬT: trên HEAD cả 4 ca mới xanh ngay (code đúng như người soát kết luận) — phiếu mục 9 không kích hoạt.
+- Kết quả: `thu_UUDAI1.js` 88 đạt · 0 hỏng (gốc `f7165ea`: 23 · 65, `bang_chung_do.txt`); đột biến TỔNG 37 · BẮT 37 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (đối chứng 88/0 + giả lập 33 KB ĐẠT); `npm test -- --day-du` PASS 78 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi — có từ trước); dist khớp src.
+- Tên đột biến thêm vòng sửa 4: BV-GIA-HANG-TUNG-MON, VS-MAC-DINH-THIEU-KHOA, VS-GIA-MA-MOT-MON-GOC (bảng chỗ vá → đột biến:
+  `orders.js` gắn giá hạng từng món → F8; `orders.js` mặc định khi thiếu khoá → E6; `orders.js` giá mã 1 món trên giá hạng → B5b).
+- SOÁT LẦN 5: chat soát thay (phiếu mục 10) — không gọi agent soát độc lập.

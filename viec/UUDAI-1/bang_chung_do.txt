@@ -97,3 +97,19 @@ Sau khi vá (HEAD): node cong_cu/thu_gia_lap.js → 180 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_gia_lap.js: 180
 
 thu_BH1.js I10/I11 (đọc khoá orderData của Sales.jsx) không sửa — giữ xanh vì orderData vẫn ghi rõ từng khoá.
+
+Vòng sửa 4 (chat soát thay sau soát lần 4, phiếu mục 8 — chỉ thêm bài thử): thêm B5b (giá mã 1 món trên bill = giá hạng − mã), F8 (tier_unit_price
+45.000 ở tinh-thu VÀ pos_order_items), E6 / E6b (thiếu 3 khoá cài đặt → mặc định dùng chung). Chạy lại gốc cùng lệnh
+(python3 viec/UUDAI-1/dot_bien.py --goc f7165ea): 23 đạt · 65 hỏng, thoát 1. Dòng ✗ MỚI:
+  ✗ B5b bill dòng món được mã 1 món: giá mã = 45.000 (giá hạng) − 9.000 = 36.000, không phải 50.000 − 9.000 = 41.000  — []
+  ✗ F8 khách Vàng, món 50.000 → tier_unit_price 45.000 ở tinh-thu VÀ ở pos_order_items của đơn đã ghi  — HTTP 404 · tinh-thu undefined · HTTP 200 · dòng đơn 45000
+  ✗ E6 không còn dòng cài đặt nào của 3 khoá → mặc định dùng chung: Vàng + mã 10 % → 81.000  — HTTP 400 · Số tiền thanh toán (81.000đ) không khớp tổng đơn hàng thật (80.000đ). · không đơn
+  ✗ E6b tinh-thu khi thiếu khoá → cách "ca_hai", tổng 81.000  — 0 khoá còn · HTTP 404 · undefined · undefined
+  23 đạt · 65 hỏng
+GỐC f7165ea: thoát 1
+Ghi rõ (K3): trên gốc, B5b đỏ vì đơn B5 không tạo được (400 lệch tổng, items rỗng); F8 đỏ vì gốc chưa có tinh-thu — dòng đơn gốc ĐÃ ghi 45.000.
+Bằng chứng ca bắt đúng lỗ nó canh là ĐỘT BIẾN trên HEAD: BV-GIA-HANG-TUNG-MON → ✗ F8 (tinh-thu null), VS-MAC-DINH-THIEU-KHOA → ✗ E6 (400),
+VS-GIA-MA-MOT-MON-GOC → ✗ B5b ([41000]); ĐỐI CHỨNG 88/0. Không ca nào bắt lỗi thật trong code (code HEAD xanh trọn).
+
+Sau khi vá (HEAD, node cong_cu/thu_UUDAI1.js): 88 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_UUDAI1.js: 88
