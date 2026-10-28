@@ -7,7 +7,9 @@ import { api } from '../../utils/api';
 
 const boDau = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const tien = (x) => (x == null ? '—' : Number(x).toLocaleString('vi-VN') + 'đ');
-const THIEU = { gia: ['giá', (n) => n.gia_nhap == null], han: ['hạn dùng', (n) => n.han_ngay == null], toi_thieu: ['tồn tối thiểu', (n) => n.ton_toi_thieu == null] };
+const THIEU = { gia: ['giá', (n) => n.gia_nhap === null], han: ['hạn dùng', (n) => n.han_ngay == null], toi_thieu: ['tồn tối thiểu', (n) => n.ton_toi_thieu == null] };
+// MỘT vị từ cho cả số trên nút lẫn danh sách khi bấm (nguyên liệu ngừng dùng không tính). Nhân viên không nhận gia_nhap (undefined) → không đếm.
+const thieu_ = (ma, n) => !!n.dang_dung && THIEU[ma][1](n);
 const SAP_XEP = {
   ten: (a, b) => a.ten.localeCompare(b.ten, 'vi'),
   nhom: (a, b) => String(a.nhom_ten || '').localeCompare(String(b.nhom_ten || ''), 'vi') || a.ten.localeCompare(b.ten, 'vi'),
@@ -34,7 +36,7 @@ export default function NguyenLieu({ vaiTro }) {
     const t = boDau(tim.trim());
     return dl.nguyen_lieu
       .filter((n) => tab === 'tat_ca' || n.nhom_id === tab)
-      .filter((n) => !thieu || THIEU[thieu][1](n))
+      .filter((n) => !thieu || thieu_(thieu, n))
       .filter((n) => !t || boDau(n.ten).includes(t))
       .sort(SAP_XEP[sapXep]);
   }, [dl, tim, tab, thieu, sapXep]);
@@ -97,11 +99,11 @@ export default function NguyenLieu({ vaiTro }) {
     );
   }
 
-  const demThieu = Object.fromEntries(Object.entries(THIEU).map(([ma, [, la]]) => [ma, dl.nguyen_lieu.filter((n) => n.dang_dung && la(n)).length]));
+  const demThieu = Object.fromEntries(Object.keys(THIEU).map((ma) => [ma, dl.nguyen_lieu.filter((n) => thieu_(ma, n)).length]));
   return (
     <div>
       {loi && <div className="kho-loi">{loi}</div>}
-      {Object.values(demThieu).some(Boolean) && (
+      {suaDuoc && Object.values(demThieu).some(Boolean) && (
         <div className="kho-canh">
           <span>⚠️ Thiếu thông tin:</span>
           {Object.entries(THIEU).map(([ma, [nhan]]) => demThieu[ma] > 0 && (
@@ -128,8 +130,8 @@ export default function NguyenLieu({ vaiTro }) {
             <b>{n.ten}{!n.dang_dung && ' · ngừng dùng'}</b>
             <div className="kho-nho">{n.nhom_ten || 'Chưa có nhóm'} · đơn vị {n.don_vi_hien || n.don_vi_luu}</div>
             <div className="kho-nho">
-              Giá {n.gia_nhap == null ? <span className="kho-thieu">chưa có</span> : `${tien(n.gia_nhap)}/${n.don_vi_luu}`}
-              {' · '}Hạn {n.han_ngay == null ? <span className="kho-thieu">?</span> : `${n.han_ngay} ngày`}
+              {n.gia_nhap !== undefined && <>Giá {n.gia_nhap === null ? <span className="kho-thieu">chưa có</span> : `${tien(n.gia_nhap)}/${n.don_vi_luu}`}{' · '}</>}
+              Hạn {n.han_ngay == null ? <span className="kho-thieu">?</span> : `${n.han_ngay} ngày`}
               {' · '}Tối thiểu {n.ton_toi_thieu == null ? <span className="kho-thieu">?</span> : `${n.ton_toi_thieu} ${n.don_vi_luu}`}
             </div>
           </div>

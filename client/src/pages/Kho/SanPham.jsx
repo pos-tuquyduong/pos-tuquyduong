@@ -7,7 +7,7 @@ import { api } from '../../utils/api';
 
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
 const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
-const hien = (luong, nl) => `${so(luong / (nl?.he_so_doi || 1))} ${nl?.don_vi_hien || nl?.don_vi_luu || ''}`;
+const hien = (d) => `${so(d.luong_hien)} ${d.don_vi_hien || d.don_vi_luu || ''}`;   // luong_hien do máy chủ đổi (tinh.doiDonVi)
 
 export default function SanPham({ vaiTro }) {
   const chuQuan = vaiTro === 'owner';
@@ -64,8 +64,13 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
     try { setKet((await api.get(`/kho/san-pham/${sp.id}/trien-khai?so_phan=${soPhan}`)).nguyen_lieu); } catch (e) { setLoi(e.message); }
   };
   const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
-    ? { loai: 'nl', id: d.nguyen_lieu_id, so: d.luong / (nlTheo.get(d.nguyen_lieu_id)?.he_so_doi || 1) }
+    ? { loai: 'nl', id: d.nguyen_lieu_id, so: d.luong_hien }
     : { loai: 'sp', id: d.thanh_phan_id, so: d.luong })) });
+  // Món SX nhập vào được tạo ẨN giá 0: đặt giá ở màn giá như mọi khi, rồi bật bán ở đây (máy chủ đòi giá > 0).
+  const doiBan = async () => {
+    setLoi('');
+    try { await api.put(`/kho/san-pham/${sp.id}/ban`, { ban: sp.is_active ? 0 : 1 }); dong(true); } catch (e) { setLoi(e.message); }
+  };
   const doiDong = (i, gt) => setSua({ ...sua, dong: sua.dong.map((d, j) => (j === i ? { ...d, ...gt } : d)) });
   const luu = async () => {
     setLoi('');
@@ -87,7 +92,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
           {sp.cong_thuc.map((d) => (
             <div key={d.id} className="kho-dong">
               <span style={{ flex: 1 }}>{d.nguyen_lieu_ten || d.thanh_phan_ten}</span>
-              <b>{d.nguyen_lieu_id ? hien(d.luong, d) : `${so(d.luong)} phần`}</b>
+              <b>{d.nguyen_lieu_id ? hien(d) : `${so(d.luong)} phần`}</b>
             </div>
           ))}
           {!sp.cong_thuc.length && <p className="text-gray">Chưa có công thức.</p>}
@@ -98,7 +103,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
             <button className="btn btn-outline" onClick={tinh}>Tính</button>
           </div>
           {ket && ket.map((r) => (
-            <div key={r.nguyen_lieu_id} className="kho-dong"><span style={{ flex: 1 }}>{r.ten}</span><b>{hien(r.luong, r)}</b></div>
+            <div key={r.nguyen_lieu_id} className="kho-dong"><span style={{ flex: 1 }}>{r.ten}</span><b>{hien(r)}</b></div>
           ))}
         </>
       )}
@@ -136,6 +141,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
       <div className="kho-hang" style={{ marginTop: '1rem' }}>
         {sua && <button className="btn btn-primary" onClick={luu}>Lưu công thức</button>}
         {!sua && chuQuan && <button className="btn btn-primary" onClick={batSua}>Sửa công thức</button>}
+        {!sua && chuQuan && <button className="btn btn-outline" onClick={doiBan}>{sp.is_active ? 'Ẩn khỏi quầy' : 'Bật bán ở quầy'}</button>}
         <button className="btn btn-outline" onClick={() => (sua ? setSua(null) : dong(false))}>{sua ? 'Huỷ' : 'Quay lại'}</button>
       </div>
     </div>
