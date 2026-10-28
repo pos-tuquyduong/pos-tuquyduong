@@ -470,7 +470,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[J] sao lưu + khôi phục');
   const xuat = await goi('GET', '/backup/export-all');
-  const wb = xuat.tep ? XLSX.read(xuat.tep, { type: 'buffer' }) : { SheetNames: [] };
+  const wb = xuat.tep ? XLSX.read(xuat.tep, { type: 'buffer' }) : { SheetNames: [], Sheets: {} };
   const sheetKho = wb.SheetNames.filter((s) => /kho|nâng cấp/i.test(s));
   k('J1 xuất sao lưu có đủ 11 trang mới (pos_nang_cap + 10 bảng kho_*)', sheetKho.length >= 11, wb.SheetNames.join(' | '));
   const backupSrc = doc(path.join(MAY_CHU, 'routes', 'backup.js'));
