@@ -395,3 +395,59 @@ BÀI HỌC
 - Tên đột biến thêm vòng sửa 4: BV-GIA-HANG-TUNG-MON, VS-MAC-DINH-THIEU-KHOA, VS-GIA-MA-MOT-MON-GOC (bảng chỗ vá → đột biến:
   `orders.js` gắn giá hạng từng món → F8; `orders.js` mặc định khi thiếu khoá → E6; `orders.js` giá mã 1 món trên giá hạng → B5b).
 - SOÁT LẦN 5: chat soát thay (phiếu mục 10) — không gọi agent soát độc lập.
+
+## Cổng (vòng sửa 4)
+- `node tu_chay/cong.js chay . 8b436c0^ HEAD viec/UUDAI-1` tại HEAD `aa9d27d`, cây sạch → `✓ CỔNG CHẠY ĐẠT`.
+
+## Nghiệm thu — đếm từng mục (HEAD `aa9d27d`, `node cong_cu/thu_UUDAI1.js` 88 đạt · 0 hỏng)
+- A một hàm thuần `tinhUuDai`, POST / + payOS + tinh-thu cùng gọi → A1–A6, K3a/K3b (payOS).
+- B dùng chung: hạng trước, mã trên phần còn lại, trần / tối thiểu / mã tiền / mã 1 món → B1–B5, B3a/B3b ngưỡng, B5b (giá mã 1 món trên bill).
+- C không dùng chung: chọn tổng thấp hơn, bằng nhau giữ hạng, không tiêu / không ghi mã, huỷ / hoàn không trả lượt → C1a–C8, C5a/C5b.
+- D quà đổi điểm luôn dùng chung → D1a, D1b.
+- E 3 khoá, seed '1', chỉ quyền Cài đặt, chỉ '0'/'1', trang Cài đặt, mặc định khi thiếu khoá → E1–E5, E6/E6b; `--day-du` dist khớp src.
+- F tinh-thu: trả đủ số, không ghi, không SX, cùng số với POST, giá hạng từng món → F1–F7, F1b, F4 × 8, F8 (giá trị 45.000 tinh-thu + dòng đơn).
+- G không đổi: Flash, thẻ hết hạn, khách lẻ, thẻ / gói, nhóm đặc biệt, không mã, giảm riêng, điểm, phí giao → G1–G7, G3b–G3d, F8 (giá hạng dòng đơn).
+- K5 luồng hợp lệ → K1 (bật / tắt), K2a, K2b, K4a–K4c (gói / thẻ qua tinh-thu); hai quầy H1–H3.
+- Ca Sales.jsx (mục Đã duyệt 1) → F4 (thân cùng dạng `donGuiMayChu`, Vàng + mã % bật / tắt → 200) + S1–S10 soi nguồn, mỗi ca có đột biến bắt.
+  GIÁN TIẾP — màn thật chưa chạy (xem CHƯA KIỂM).
+
+## Báo cáo 7 mục
+```
+VIỆC:        UUDAI-1 — Ưu đãi: mã giảm dùng chung hay không với giá hạng, máy chủ chọn cách lợi hơn
+ĐÃ SỬA:      (cả việc) server/utils/uuDai.js (mới — tinhUuDai) · server/routes/orders.js (taoDon gọi tinhUuDai ~:711-753, cài đặt theo
+             loại :712-718, chọn hạng bỏ mã :730-737, POST /tinh-thu ~:1288-1294) · server/routes/settings.js (chỉ '0'/'1') ·
+             server/database.js (seed 3 khoá) · client/src/pages/Settings.jsx (khối "Mã giảm & giá hạng") · client/src/pages/Sales.jsx
+             (có mã → số tinh-thu) · client/dist · kiem_tra_truoc_khi_giao.js (THÊM chayBaiThat thu_UUDAI1) · cong_cu/gia_lap KB33.
+             Vòng sửa 4: chỉ cong_cu/thu_UUDAI1.js (+ B5b, F8, E6, E6b) và viec/UUDAI-1/** — không đổi code chạy.
+BÀI THỬ:     cong_cu/thu_UUDAI1.js trên gốc f7165ea → ĐỎ 23 đạt · 65 hỏng (A, B, C, E, F, H, K2b, K3, K4, S, B5b, F8, E6) ; HEAD → 88 · 0.
+             cong_cu/thu_gia_lap.js gốc 178 · 2 → HEAD 180 · 0. Đột biến 37 (VS-/BV-) BẮT 37 · SỐNG 0, đối chứng 88/0 + giả lập 33 KB ĐẠT.
+ĐÃ RÀ K4:    grep "tinhUuDai(" orders.js → 1 chỗ gọi; grep "tier_unit_price" orders.js → 4 chỗ (:729 gán, :753 giá mã, :856 tinh-thu,
+             :982-986 ghi dòng) — đều có ca giá trị (F8, B5b); grep "pos_settings WHERE key" khối ưu đãi → 1 chỗ đọc (:718), ca mặc định E6;
+             danh sách trắng tinh-thu → mỗi trường gói / thẻ một ca (K4a–c).
+CHƯA KIỂM:   Sales.jsx / Settings.jsx chưa chạy trong trình duyệt (S1–S10, E5 chỉ soi nguồn); Turso production; ICU của Node trên Render
+             (toLocaleString 'vi-VN' trong cau_ghi); I13 màn Đối soát với dữ liệu thật KHÔNG bắt "chọn hạng mà vẫn tiêu mã" — chỉ giả lập KB33
+             bắt (Q4, việc sau khai trương); Sales.jsx dòng "✓ {discountCodeValid.message}" vẫn hiện số /validate trên giá gốc (chỉ hiển thị,
+             tổng đúng — soát 4 NGHI NGỜ, chưa xử lý); F8 trên gốc đỏ vì chưa có tinh-thu, dòng đơn gốc đã 45.000 — bằng chứng thật là đột biến.
+             Soát lần 5: chat soát thay — không có agent soát độc lập cho vòng sửa 4.
+             Thử tay trên điện thoại: (1) Cài đặt → bỏ tích "Dùng chung với giá hạng" loại giảm % → Lưu; (2) Bán hàng, khách Vàng, 2 món
+             50.000, mã 10 % → giỏ hiện câu máy chọn + tổng 90.000; (3) bật lại tích → tổng 81.000, thu tiền không báo "không khớp tổng".
+GIT:         (xem dòng git log ngay dưới khối này)
+BÀI HỌC:     KHOÁ 0 · NGUYÊN TẮC 1 (đề xuất, ngoài Phạm vi) · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học (bước 11, vòng sửa 4)
+- **NGUYÊN TẮC (đề xuất cho `KHUON_LOI.md` K3 — ngoài Phạm vi, chat soát duyệt):** "Đã gây: UUDAI-1 dời khối giá hạng sang `tinhUuDai`; F1 chỉ
+  kiểm có khoá `tier_unit_price` (ca đó giá trị đúng là null) → xoá dòng gán vẫn 84/0 qua 3 vòng soát. Chặn: mỗi trường nghiệm thu gọi tên
+  (cả cột "chỉ hiển thị" mà nơi khác đọc để hoàn / đền — `tienDaTra.js`) có MỘT ca GIÁ TRỊ khác rỗng + đột biến xoá dòng gán; mỗi giá trị
+  MẶC ĐỊNH có ca thiếu dữ liệu." (đã có ý "Giá trị MẶC ĐỊNH là hành vi" ở K3 — gộp vào câu đó, không thêm dòng).
+- **BỎ:** người gác chặn chạy `thu_UUDAI1.js` chưa commit (B-BIMAT-CHU — bài đặt khoá ký JWT thử) — luật skill đã ghi "commit trước", máy quên; một lần.
+- **BỎ:** người gác chặn heredoc + `&&` chạy script và `$'…'` (B-PHANTICH) — viết file bằng Write rồi chạy riêng; người gác làm đúng việc.
+- Không có lệnh Stop hook đòi git config / amend; không đổi model giữa phiên.
+
+GIT (git log --oneline -2 tại lần kiểm cuối):
+```
+aa9d27d UUDAI-1: vong sua 4 — 3 dot bien moi (BAT 37/37), bang chung do, ho so dinh chinh
+e6d9629 UUDAI-1: vong sua 4 — ca gia tri tier_unit_price (F8), mac dinh thieu khoa (E6), gia ma 1 mon tren gia hang (B5b)
+```
+
+HEAD ĐÃ KIỂM: aa9d27d
