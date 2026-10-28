@@ -44,4 +44,12 @@ Bài thử mới (G78 G79 F9 A28d A28e A28f; mã ca G50–G57 mới đánh lại
   ✗ F9    xem trước tem ở Cài đặt không nhận chữ tem đang sửa (hàm caiDatTuChuDangSua chưa có)
 Sau vòng sửa 2: 144 đạt · 0 hỏng. Đột biến: 85 · BẮT 85 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 144 xanh).
 
-SỐ CA thu_HD1.js: 144
+── Vòng sửa 3 (soát lần 3 KHÔNG ĐẠT, 28.10) ──
+Bài thử mới (G80 G81 H2 C5 A2c; A19b A19c A30c đóng lỗ của bài, đã đúng sẵn trên code) chạy trên code TRƯỚC vòng sửa 3
+(`python3 viec/HD-1/dot_bien.py --goc d784a0e`): 146 đạt · 6 hỏng:
+  ✗ G34   nhãn tờ GIAO KHÁCH / LƯU QUẦY ẩn được              ✗ G80   "Giảm mã / quà" không hiện ở mẫu xem trước nào
+  ✗ G81 + ✗ H2   tự mở in chạy khi chưa có dữ liệu hoá đơn (vị từ `!sanSang` trần) → bill bố cục cũ
+  ✗ C5    veQr ném khi chuỗi QR quá dài (sập lúc render)      ✗ A2c   "/hoa-don/1e3" và "/1000.0" trả đơn 1000
+Sau vòng sửa 3: 152 đạt · 0 hỏng. Đột biến: 98 · BẮT 98 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 152 xanh).
+
+SỐ CA thu_HD1.js: 152

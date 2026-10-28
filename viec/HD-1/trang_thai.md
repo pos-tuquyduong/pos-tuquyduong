@@ -8,7 +8,8 @@
   - 5f25465 HD-1: bằng chứng đỏ, bảng đột biến, báo cáo tạm (chờ thư viện QR)
 
 ## Câu hỏi
-(không còn) — Câu hỏi 1 (thư viện QR) đã được chủ quán trả lời bằng commit 4698af9.
+(Câu hỏi 1 — thư viện QR — đã được chủ quán trả lời bằng commit 4698af9.)
+2. **Bill của đơn CHƯA THU có in mã nhận điểm / ô ưu đãi khách mới + QR mang mã không?** Hiện `server/routes/hoaDon.js` (`donHopLe`: đơn phải `completed` + `paid`) → đơn chưa thu **không** in ô mã và QR không mang `?ma=`; in lại SAU khi thu thì có. Trước HD-1, bill chưa thu vẫn in mã (`signup-codes.js:39-41` ghi "bill mang ra bàn chưa thu vẫn in mã"). Nếu quầy đưa bill chưa thu cho khách rồi thu sau, khách đó không có mã trên tờ đã đưa. Hai lựa chọn: (a) giữ như hiện nay (chỉ in mã khi mã dùng được ngay — đúng "bill đúng tình trạng thực tế"); (b) đơn chưa thu (không huỷ) vẫn in ô mã + QR (mã dùng được sau khi thu, hạn 24 giờ tính từ lúc in). Cả hai đều sửa trong `hoaDon.js` vài dòng + một ca thử; em chưa tự chọn vì đây là cách quầy làm việc. Các phần khác của việc không phụ thuộc câu này.
 
 ## Phát hiện
 - `InvoiceSettings.jsx` ~1370 dòng, `InvoicePreview.jsx` ~830, `orders.js` 1762 — vượt ~500 dòng; không tách trong việc này (ngoài Phạm vi).
@@ -44,7 +45,17 @@ Nghi ngờ cũng đã xử lý: QR mang `?ma=` của mã chết (G52), dòng "+0
 3. Mã ca trùng 8 cặp → đánh lại G70–G77, kiểm bằng grep mọi `k('<mã> ` (không còn trùng).
 Nghi ngờ đã xử lý: Reset ghim tên quán/địa chỉ → `khoaChuGhiKhiReset` (G78). Để lại, ghi nhận: không có ca máy chủ riêng cho đơn `refunded` (hoàn tiền không ghi dòng `adjust` điểm → điểm đã cộng vẫn còn đúng thực tế, `refunds.js:158`); `PHIẾU PHA CHẾ` / nhãn IN LẠI của phiếu pha chế còn chữ cứng (phiếu nội bộ, không phải bill hay tem); 'Khách lẻ' / 'quý khách' mặc định cứng; `KHONG_AN` chép ở hai nơi (server, client) có ca E1 so khớp.
 
-## Bảng chỗ vá → đột biến (viec/HD-1/dot_bien.py; 85 tên; chạy 28.10: BẮT 85 · LẠC 0 · SỐNG 0 · HỎNG 0)
+## Soát độc lập lần 3 (28.10) — KHÔNG ĐẠT → đã sửa trong vòng sửa 3
+1. `InvoicePrint.jsx` tự mở in chờ `sanSang` nhưng không chờ dữ liệu hoá đơn (nút In có `hdSanSang`) → bill tự in ra bố cục cũ, một tờ, không QR / IN LẠI. Gom thành `sanSangIn` ở `utils/hoaDon.js` dùng cho cả nút In lẫn tự mở in. Ca G81, H2.
+2. Mẫu xem trước không phủ "Giảm mã / quà", "Chuyển khoản", "Đổi quà" → thêm vào mẫu Flash / tài khoản mẹ / khách quen; ca G80 đo PHỦ KHOÁ (mỗi khoá chữ hiện ở ≥ 1 mẫu), không đếm tên mẫu.
+3. Đơn chưa thu không in mã → **Câu hỏi 2** (nghiệp vụ, chưa tự quyết).
+4. Lỗ của bài thử: id `1e3`/`1000.0` trả đơn 1000 (server nay chỉ nhận chữ số thập phân; A2c với đơn 1000 có thật); điểm hết hạn, dòng điểm khách khác, tiền mặt lớn hơn tổng, che SĐT (A19b, A19c, A30c); `veQr` ném khi chuỗi quá dài (C5).
+5. Nhãn tờ GIAO KHÁCH / LƯU QUẦY ẩn được → thêm vào danh sách không ẩn được (21 khoá).
+6. Reset dùng `caiDatTho` cũ (chỉ nạp lúc mở trang): sửa tên quán → Lưu → Reset không nạp lại thì không xoá `invoice_chu_ten_quan` cũ. **Để lại** (mức thấp, khó gặp; làm đúng cần nạp lại cài đặt sau Lưu — ngoài ngân sách của vòng này).
+Ghi nhận thêm (hồ sơ chính xác, K1): (a) khối seed `database.js` chỉ chạy khi `pos_settings` còn rỗng → các khoá `invoice_chu_*` / `invoice_so_to` / `invoice_kh_url` KHÔNG vào production hiện có; hành vi đúng nhờ mặc định ở `utils/hoaDon.js` (`docChu`), seed chỉ cho kho mới. (b) Production còn `invoice_thank_you` / `invoice_policy` cũ thì `docChu` dùng chúng trước mẫu mới (chủ ý: không làm mất chữ chủ quán đã sửa) — chủ quán đổi ở Cài đặt hoá đơn. (c) `store_name` seed cũ `'TÚ QUÝ ĐƯỜNG'` (sai dấu) nằm trong khối seed đó; nếu production còn giá trị này, `docChu` ưu tiên nó hơn mặc định — chưa đọc dữ liệu production. (d) `settings.js` import `KHONG_AN_DUOC` từ `routes/hoaDon.js` (kéo cả signup-codes) — nên chuyển sang `utils/` sau.
+
+## Bảng chỗ vá → đột biến (viec/HD-1/dot_bien.py; 98 tên; chạy 28.10: BẮT 98 · LẠC 0 · SỐNG 0 · HỎNG 0)
+- vòng sửa 3: BV-IN-TU-MO-KHONG-DOI-HD · VS-G-SAN-SANG-IN-BO-HD · VS-G-MAU-THIEU-GIAM-MA · VS-G-MAU-THIEU-CK · VS-G-MAU-THIEU-DOI-QUA · VS-G-NHAN-TO-AN-DUOC · VS-HD-NHAN-TO-AN-DUOC · VS-QR-QUA-DAI-NEM · VS-HD-ID-SO-MU · VS-HD-DIEM-HET-HAN-TINH · VS-HD-DIEM-CONG-KHACH-KHAC · VS-HD-TT-LECH-AM-BO · VS-HD-SDT-KHONG-CHE
 - vòng sửa 2: VS-HD-UU-DAI-CLAIMED · VS-HD-UU-DAI-DIEM-NHAN-LUC · VS-HD-UU-DAI-HAN-CAU-HINH · VS-G-UU-DAI-GIO-DIEM · VS-G-RESET-GHIM · VS-G-XEM-TRUOC-TEM-BO-CHU (neo của VS-HD-MA-DA-DUNG, VS-HD-MA-HET-HAN, VS-HD-MA-DON-HUY, VS-HD-N-KHONG-TAT-CT, VS-HD-UU-DAI-KHONG-DON, VS-G-UU-DAI-HUA-DIEM cập nhật theo code mới; mã ca bắt G50…G57 → G70…G77)
 - routes/hoaDon.js (cửa A): BV-HD-DANG-NHAP · VS-HD-N-THEO-TOTAL · VS-HD-MA-DA-DUNG · VS-HD-MA-HET-HAN · VS-HD-MA-DON-HUY · VS-HD-KHACH-QUEN-CO-MA · VS-HD-N-KHONG-TAT-CT · VS-HD-GIAM-MA-THEO-COT · VS-HD-TT-BO-DON-LECH · VS-HD-TT-CK-CU · VS-HD-DIEM-TRUOC-DON-SAU · VS-HD-DIEM-DOI-QUA-BO · VS-HD-DIEM-CONG-MOI-LOAI · VS-HD-SO-LAN-MOI-DON · VS-HD-GIA-HANG-BANG-GOC · VS-HD-SO-BILL-MA-DAY-DU · BV-HD-KHONG-GHI · VS-HD-LO-LOI-NOI-BO · BV-MOUNT-HOA-DON
   - vòng sửa 1: VS-HD-HUY-DIEM-ADJUST · VS-HD-UU-DAI-KHONG-DON · VS-HD-BALANCE-TIEN-MAT · VS-HD-LOG-XOA-MEM · VS-HD-KHONG-AN-THIEU-TIEN · VS-HD-KHONG-AN-THIEU-THANH-TOAN
