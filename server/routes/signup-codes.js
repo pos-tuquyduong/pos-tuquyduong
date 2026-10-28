@@ -523,4 +523,5 @@ module.exports = router;
 module.exports.kiemDonCuaMa = kiemDonCuaMa; // P20b: POST /orders dùng CÙNG phép kiểm đơn gốc (khuôn wallets.js)
 module.exports.nhanMaUuDai = nhanMaUuDai;     // KH-API-1: /api/kh/nhan-ma-bill
 module.exports.nhanDiemMaBill = nhanDiemMaBill; // KH-API-1: /api/kh/nhan-diem
+module.exports.CODE_EXPIRE_HOURS = CODE_EXPIRE_HOURS;   // HD-1: bill hiện ưu đãi theo ĐÚNG hạn của /claim
 module.exports.docCauHinhNhanDiem = docCauHinhNhanDiem; // P22-23: bill in hệ số CÙNG hàm với /nhan-diem

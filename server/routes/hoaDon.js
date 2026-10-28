@@ -11,7 +11,7 @@ const { authenticate } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
 const { tienTinhDiem } = require('../utils/diemThat');
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem');
-const { docCauHinhNhanDiem } = require('./signup-codes');
+const { docCauHinhNhanDiem, CODE_EXPIRE_HOURS } = require('./signup-codes');
 
 const router = express.Router();
 
@@ -61,22 +61,25 @@ async function dungDiem(o) {
 /** Mã in trên bill + số điểm mã sẽ cộng (0 nếu không cộng được / đã dùng / hết hạn). Khách có SĐT → null (mã gắn SĐT, không in ô). */
 async function dungMaNhanDiem(o) {
   if (o.customer_phone) return null;
-  const m = await queryOne('SELECT code, issued_at, diem_nhan_luc FROM pos_signup_codes WHERE order_id = ? ORDER BY id LIMIT 1', [o.id]);
+  const m = await queryOne('SELECT code, issued_at, diem_nhan_luc, claimed_at FROM pos_signup_codes WHERE order_id = ? ORDER BY id LIMIT 1', [o.id]);
   if (!m) return null;
   const ch = await docCauHinhNhanDiem();
   const cfg = {};
   for (const r of await query("SELECT key, value FROM pos_settings WHERE key IN ('signup_enabled')")) cfg[r.key] = r.value;
   const uuDai = cfg.signup_enabled === 'true' || cfg.signup_enabled === '1';
-  const hetHan = !((new Date(getNow().replace(' ', 'T') + 'Z') - new Date(String(m.issued_at).replace(' ', 'T') + 'Z')) / 3600000 <= ch.hanGio);
-  // MỘT vị từ cho cả điểm lẫn ưu đãi: đơn phải hoàn tất + đã thu (cùng danh sách trắng với signup-codes.js kiemDonCuaMa)
-  const dungDuoc = !m.diem_nhan_luc && !hetHan && o.status === 'completed' && o.payment_status === 'paid';
+  const gioDaQua = (new Date(getNow().replace(' ', 'T') + 'Z') - new Date(String(m.issued_at).replace(' ', 'T') + 'Z')) / 3600000;
+  // Đơn phải hoàn tất + đã thu (cùng danh sách trắng với signup-codes.js kiemDonCuaMa). Mỗi loại ưu đãi có cột "đã dùng" và hạn RIÊNG,
+  // đúng như đường dùng nó: điểm (/nhan-diem) = diem_nhan_luc + hạn cấu hình; ưu đãi khách mới (/claim) = claimed_at + CODE_EXPIRE_HOURS.
+  const donHopLe = o.status === 'completed' && o.payment_status === 'paid';
+  const dungDuocDiem = donHopLe && !m.diem_nhan_luc && gioDaQua <= ch.hanGio;
+  const dungDuocUuDai = donHopLe && !m.claimed_at && gioDaQua <= CODE_EXPIRE_HOURS;
   let diem = 0;
-  if (ch.bat && dungDuoc) {
+  if (ch.bat && dungDuocDiem) {
     const { loy, daCong } = await docDuLieuNhanDiem(o.id);
     const kq = tinhDiemNhanMa({ don: o, tienDiem: tienTinhDiem(o), ch, loy, daCong });
     diem = kq.loi ? 0 : kq.diemCong;
   }
-  return { ma: m.code, diem, uu_dai: uuDai && dungDuoc, han_gio: ch.hanGio };
+  return { ma: m.code, diem, uu_dai: uuDai && dungDuocUuDai, han_gio: ch.hanGio, han_gio_uu_dai: CODE_EXPIRE_HOURS };
 }
 
 router.get('/:id', authenticate, async (req, res) => {
