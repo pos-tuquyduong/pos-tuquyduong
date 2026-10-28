@@ -240,3 +240,130 @@ VS-MON-TAO-GIA-NULL, VS-MON-TAO-MAT-KHOA, BV-CANH-BAO-MON.
 1. Quản lý kho › Nhập từ SX → chọn bản sao lưu SX → xem trước có dòng "Món … đã tạo, chưa có giá — đặt giá là bán được" → Nhập.
 2. Màn Bán hàng: món vừa tạo hiện "Chưa có giá", bấm không vào giỏ; màn Sản phẩm (giá) đặt giá món đó → quay lại Bán hàng bán được ngay.
 3. Quản lý kho › Sản phẩm › bấm một món: không còn nút "Bật bán ở quầy"; ô "Tính cho N phần" ra lượng từng nguyên liệu.
+
+## Soát độc lập — vòng 3 (`/ra-soat`, 28.10, mốc 40ab1cf^, HEAD 8be7471) — báo cáo nguyên văn
+- Đổi model giữa phiên lần 2: chủ quán gõ `/model` trong lúc người soát vòng 3 đang chạy (sau push `8be7471`, ở bước 8). Báo cáo dưới do người
+  soát chạy lại đủ lệnh trong lượt của nó.
+
+```
+KHÔNG ĐẠT
+
+(Lệnh đã chạy lượt này: `node cong_cu/thu_KHO1.js` cho 107 đạt · 0 hỏng. `python3 viec/KHO-1/dot_bien.py` cho ĐỐI CHỨNG xanh 107/0, 42 đột biến,
+BẮT 42, SỐNG 0, HỎNG 0, LẠC 0. `--goc 48b16a9` cho 98 đạt · 9 hỏng, khớp `bang_chung_do.txt:77-90`. `npm test -- --day-du` cho PASS 78 · FAIL 0 ·
+1 cảnh báo (E14, có từ trước nhánh), dist khớp src.)
+
+LỖI TÌM ĐƯỢC:
+1. `server/kho/nhapSx.js:178-179` (vòng 3 đổi is_active 0 → 1) + `server/routes/products.js:204-227` + `server/database.js:149` — nút "Lưu giá" ở
+   Cài đặt › Sản phẩm hỏng hẳn khi menu chạy dự phòng. Thuộc khuôn K5 (chặn nhầm luồng hợp lệ), kèm K4. Nặng, chạm đường giá.
+   - Món SX không có `legacy_id` (Cà Phê Đen CF01) nay được tạo thành dòng `is_active = 1`, `sx_product_id = NULL`. Vì `is_active = 1` nên nó
+     hiện ở menu dự phòng (`products.js:126`). Màn giá lấy đúng danh sách này (`Settings.jsx:122` gọi `productsApi.list`, tức `layMenuQuay`).
+   - Bấm Lưu thì màn gửi TẤT CẢ món (`Settings.jsx:406-413`). Với CF01, câu tra `sx_product_id = ?` gặp NULL nên không khớp (`products.js:206`).
+     Máy chủ rơi xuống nhánh `INSERT` với `code = p.code = 'CF01'` (`products.js:217-219`), đụng `code TEXT UNIQUE` (`database.js:149`) và trả 500.
+   - Các món đứng trước CF01 trong vòng lặp đã bị đổi giá rồi (không có giao dịch), các món sau thì không. Lần lưu nào cũng lặp lại y như vậy.
+   - Đường lẻ `PUT /price` với id null thì tạo một dòng rác `CTnull` "Từ SX" thuộc nhóm juice (`products.js:168-180`). Lần thứ hai cũng 500.
+   - Trước KHO-1, CF01 không có trong POS. Ở vòng 2, CF01 có `is_active = 0` nên không lên menu dự phòng. Lỗi này do vòng 3 sinh ra.
+   - Menu dự phòng không phải chuyện hiếm: SX ngủ hoặc chậm là rơi vào nó, Replit không có SX cũng vậy, và sau KHO-3 nó là đường chính. Thao tác
+     thử tay 2 trong `trang_thai.md:241` ("đặt giá món đó") sẽ gặp đúng lỗi này nếu bản thử không nối SX.
+   - Lời xem trước "Món Cà Phê Đen đã tạo, chưa có giá — đặt giá là bán được" (`nhapSx.js:139`) và chú thích `nhapSx.js:176-177` đều SAI với món
+     này (K1).
+   - Phiếu mục 3 ("`sx_product_id` để trống") và mục 7 ("`is_active = 1`, đặt giá là bán được") mâu thuẫn nhau ở món không có khoá nối. Đây là
+     chỗ phải dừng hỏi chủ quán, không tự chọn (CLAUDE.md §9). Hai cách gọn để chủ quán chọn: (a) món `khoa_id == null` thì KHÔNG tạo dòng
+     `pos_products`, chỉ ghi cảnh báo "chưa có mã nối SX — KHO-3 xử lý"; (b) riêng món này giữ `is_active = 0`.
+   - Có thêm: nhiều món không `legacy_id` cùng nhóm sẽ trùng `unique_id` `caphe_null` (`products.js:100`, `:136`), và `prices.find` lấy món đầu
+     cho tất cả.
+   - Ghi chú về căn cứ: kết luận từ đọc code đủ chuỗi gọi như trên. Bản chạy tái hiện trong thư mục nháp bị người gác chặn (cụm JWT trong file),
+     nên chưa chạy được.
+2. `cong_cu/thu_KHO1.js:561` — ca K5 đặt giá qua `PUT /products/price`, nhưng màn giá thật gọi `PUT /products/batch/prices`
+   (`client/src/utils/api.js:347`, `Settings.jsx:406`). Thuộc khuôn K3: tên ca nói "đặt giá", máy kiểm một đường quầy không dùng. Phiếu mục 7 tự
+   ghi `PUT /products/price`, nên đây là lỗ của phiếu được chép nguyên. Không ca nào chạy đường lưu giá hàng loạt trên menu có món mới tạo, nên
+   lỗi 1 lọt.
+3. `client/src/pages/BanHang/BanHangMoi.jsx:186` — màn bán hàng mới hiện "0đ" thay vì "Chưa có giá" cho mọi món nhập tạo ra. Thuộc khuôn K4
+   (hai màn bán) và K1.
+   - Màn mới chỉ hiện "Chưa có giá" khi `typeof s.price !== 'number'`. Trước KHO-1, món SX chưa có dòng POS có `price: null` nên hiện "Chưa có
+     giá". Nay giá là 0 nên hiện "0đ". Bấm vào thì `BanHang/tinh.js:102` từ chối, nên không thủng tiền.
+   - Màn này đang chạy khi bật cài đặt (`BanHang/index.jsx:34`).
+   - `trang_thai.md:125` khẳng định "price null → 0 không đổi hiển thị" nhưng chỉ dẫn `Sales.jsx:1044-1045`.
+   - Ca K1b (`thu_KHO1.js:322` `tomTatMenu`) so `p.price > 0`, tức là gộp mất khác biệt null/0. Đó là ca "phải KHÔNG đổi" nhưng không đo đúng
+     điều có thể đổi (K3).
+   - Đúng ra phải so như `products.js:103-104` (POS-TONCU-v1: "thiếu giá thì trả null, KHÔNG trả 0… giá 0 thật (hàng tặng) là hợp lệ"). Ghi
+     `price = 0` với nghĩa "chưa có giá" đi ngược quy ước này. Phiếu mục 7 ghi chữ "price = 0", nên phải hỏi chủ quán: ghi NULL (đúng quy ước,
+     cả hai màn hiện "Chưa có giá", `orders.js:365` vẫn chặn vì `null <= 0`) hay giữ 0 và sửa màn mới (file Cấm).
+4. `viec/KHO-1/trang_thai.md` thiếu dòng bắt buộc của phiếu mục 8 ("đổi cho nhân viên thấy = sửa danh sách vai trò ở `duong.js` (một dòng)
+   hoặc làm trong phân quyền chi tiết sau khai trương"). `grep "nhân viên thấy\|phân quyền chi tiết"` chỉ ra `:204`, là dòng câu hỏi. Thuộc
+   khuôn K6 (vi phạm luật có sẵn).
+5. `viec/KHO-1/trang_thai.md` vẫn chưa có kết quả `node tu_chay/cong.js chay` (LUAT_XAY_APP §6.3). Hai vòng soát trước đã nêu (`:112`, `:166`).
+   Cũng chưa có mục CHƯA KIỂM riêng cho vòng 3: Turso thật, máy thứ hai chờ BEGIN, file SX 09.10. Thuộc khuôn K6.
+6. `trang_thai.md:233-237` — phần "Phát hiện vòng 3" ghi CF01 chỉ "KHÔNG đặt giá / bán được qua đường thường". Thực tế nó làm hỏng việc lưu giá
+   của MỌI món (lỗi 1), và chưa xét đường `batch/prices` (`products.js:206`, `:217`). Thuộc khuôn K1: khẳng định thiếu căn cứ, đánh giá nhẹ hơn
+   thực tế.
+
+NGHI NGỜ:
+- `orders.js:303-343` và `:415`: gói cũ không khai `package_items` thì không kiểm món, nên mọi dòng `is_active = 1` đều "lấy từ gói" được 0đ.
+  Từ nay có thêm các món nhập mới (trước KHO-1 thì 400 "không tồn tại"). Hành vi này giống seed và nằm trong lựa chọn (a) của chủ quán, nhưng
+  không có ca nào ghi lại.
+- Menu dự phòng ở màn mới hiện thêm tab `caphe` bằng mã thô (`BanHangMoi.jsx:18`, `:164`).
+- `SanPham.jsx:44` vẫn hiện nhãn "· ẩn". Vô hại vì không còn đường ẩn món, dữ liệu cũ vẫn có thể có món ẩn.
+- Hai điểm tồn từ vòng 1 vẫn chưa kiểm: máy thứ hai chờ BEGIN quá 1,55 s trên Turso, và khôi phục Excel thay `pos_products` để lại dòng kho trỏ
+  id cũ.
+
+NGHIỆM THU: 15/19 mục có bằng chứng · mục thiếu: H, K, mục 7, mục 8
+(Tổng 19 = 11 mục A–K + Đã duyệt 1–6 + mục 7 + mục 8. Mục 9 là quy trình, không tính.)
+- A: có — `thu_KHO1.js:192-197` (A1–A5).
+- B: có — B1–B10 (`:246-299`), đột biến BV-NANG-CAP-GOI, VS-BO-KHOA-CHAY-DOI, BV-ROLLBACK-BUOC-HONG, BV-DUNG-KHI-HONG, BV-SAO-LUU,
+  VS-SAO-LUU-MOI-BANG, BV-503 đều BẮT.
+- C: có — C1–C5 (`:306-314`).
+- D: có — D1, D2, F11 (`:319`, `:500`, `:382`).
+- E: có — E1–E18.
+- F: có — F1–F21. File 09.10 thật để chat chạy, theo phiếu mục 1.
+- G: có — G0–G5 (ra 32 tên).
+- H: THIẾU.
+  - Máy chỉ có H1 (dữ liệu "Thiếu thông tin").
+  - 3 thao tác ở `trang_thai.md:240-242` chỉ phủ phần đổi ở vòng 3. Không thao tác nào thử tìm không dấu, sắp xếp, tab nhóm, thêm / sửa /
+    ngừng dùng, nhóm + nhà cung cấp, ô "Thiếu thông tin", dạng thẻ trên điện thoại.
+  - Thao tác 2 có thể vấp lỗi 1.
+  - Theo LUAT §6.4 thì 1–3 thao tác là đủ số lượng, nhưng chúng phải phủ được mục H. Hiện chưa phủ.
+- I: có — I1–I18, đột biến quyền đều BẮT.
+- J: có — J1–J7.
+- K: THIẾU — K1–K7 xanh nhưng chưa khoá đường lưu giá hàng loạt khi menu chạy dự phòng (lỗi 1, 2) và hiển thị giá ở màn bán mới (lỗi 3).
+- Đã duyệt 1: có (file mẫu `:46-115`). Đã duyệt 2: có (B8, B9). Đã duyệt 3: phần còn hiệu lực (CF01 `sx_product_id` trống) có ở F9. Đã duyệt
+  4: có (J3, J5). Đã duyệt 5: có (G0, E8). Đã duyệt 6: có (F5, GIA_BAT_THUONG).
+- Mục 7: THIẾU — lời hứa "đặt giá ở màn Sản phẩm là bán được ngay" sai với CF01 và với đường `batch/prices`, "Quầy hiện Chưa có giá" sai ở
+  BanHangMoi.
+- Mục 8: THIẾU — dòng bắt buộc không có trong `trang_thai.md`.
+
+Các câu còn lại của phiếu soát:
+- K3: đạt cho phần đã phủ. Bài thử đỏ trên bản chưa vá (`--goc 48b16a9` ra 9 ca đỏ, đúng lỗi soát vòng 2). Bài đo hành vi qua route thật, không
+  đo marker. 42/42 đột biến BẮT, có đối chứng. Lỗ của bài là lỗi 2 và 3.
+- K4: `grep "sx_product_id = ?" server` ra 7 chỗ (`orders.js:349`, `products.js:68, :157, :164, :206, :212, :256`). Không chỗ nào khớp dòng
+  NULL. Vòng 3 chưa xử lý chỗ nào trong 7 chỗ đó cho món có khoá nối NULL: chỉ ghi Phát hiện, mà Phát hiện lại bỏ sót `:206/:217`. Màn bán: 2
+  màn (`Sales.jsx:1045`, `BanHangMoi.jsx:186`), mới xét 1.
+- K5: luồng lưu giá hàng loạt khi menu chạy dự phòng bị chặn oan (lỗi 1). Các điều kiện mới khác (bỏ qua mã trùng, bỏ qua khôi phục bảng kho,
+  503 chỉ ở `/api/pos/kho`) không chặn luồng bán.
+- Đường tiền: mục kho không nhận giá bán từ client, món tạo với giá 0, tạo đơn vẫn tự tra giá (`orders.js:365`, `:431`). Giá nhập là giá vốn,
+  chỉ lưu, chưa có luồng tiền, nên chưa cần quy tắc đối soát ở KHO-1.
+- P1: dist khớp src (`--day-du`).
+- Đơn giản: không thấy phần rườm rà đáng kể. Cách gọn cho lỗi 1 (bỏ qua món không có khoá nối) và lỗi 3 (ghi NULL thay 0) mỗi cách chỉ đổi một
+  chỗ, nhưng cả hai đều cần chủ quán quyết vì chạm câu chữ phiếu mục 3 và 7.
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy được tái hiện lỗi 1 (người gác chặn file có cụm JWT trong thư mục nháp). Lỗi 1 kết luận từ đọc code đủ chuỗi gọi.
+- Turso thật, file SX 09.10 thật, thao tác tay trên điện thoại.
+- Chưa chạy `node tu_chay/cong.js chay` vì lệnh có thể ghi file.
+- Màn BanHangMoi chỉ đọc code, chưa dựng giao diện.
+
+BÀI HỌC:
+- KHOÁ: ca "nhập SX xong, menu dự phòng, `PUT /products/batch/prices` với ĐÚNG danh sách `GET /products` trả về → 200 và mọi giá được ghi".
+  Khoá luôn đường lưu giá thật của màn Cài đặt, không chỉ `PUT /price`.
+- KHOÁ: ca "món không có khoá nối SX (`sx_product_id` NULL) không được lên menu nào ở dạng đặt giá được". Hoặc nói rộng hơn: mọi dòng
+  `pos_products` do KHO tạo phải tra lại được bằng `(sx_product_type, sx_product_id) = ?`.
+- KHOÁ: K1b so `price` nguyên giá trị (null ≠ 0), không so `price > 0`.
+- NGUYÊN TẮC (K4): sửa lời hứa "quầy hiện X" thì grep MỌI màn bán (`Sales.jsx` và `BanHang/*`), không dẫn một màn.
+- NGUYÊN TẮC (K5): đổi trạng thái để dữ liệu mới LÊN một danh sách → liệt kê mọi màn đọc danh sách đó rồi gửi ngược về máy chủ. Ở đây là màn
+  giá, nó gửi lại toàn bộ danh sách.
+- NGUYÊN TẮC (K1/K3): ca bài thử chép đường từ phiếu thì vẫn phải mở client kiểm xem màn thật gọi đường nào.
+- NGUYÊN TẮC: hai mục phiếu mâu thuẫn ở một ca biên (mục 3 và mục 7 với CF01) thì dừng hỏi, không ghi thành "Phát hiện".
+```
+
+## DỪNG (phiếu mục 9 — vòng sửa 3/3 đã dùng hết)
+Soát lần 3 KHÔNG ĐẠT → máy KHÔNG sửa thêm; chat soát thay. Chỗ cần chủ quán quyết (người soát nêu, máy chưa tự kiểm lại bằng chạy thật):
+món SX không có khoá nối (CF01) — không tạo / giữ ẩn; món tạo ghi giá NULL hay 0 (màn `BanHang/BanHangMoi.jsx` hiện "0đ" với giá 0).
