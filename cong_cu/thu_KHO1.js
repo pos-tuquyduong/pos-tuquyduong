@@ -333,12 +333,14 @@ async function main() {
   const nhomTruoc = await goiAi('manager', 'POST', '/kho/nhom', { ten: 'Dược liệu' });   // chủ quán tự tạo nhóm trùng tên TRƯỚC khi nhập
   const xem = await nhap('chu', fileSx, false);
   const kh = xem.ke_hoach || {};
-  k('F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo ẩn, 3 món có công thức', xem.status === 200 && kh.nguyen_lieu_them === 12
-    && kh.nhom_san_pham_them === 3 && kh.mon_tao_an === 3 && kh.cong_thuc_ghi === 3, moTa(xem) + ' ' + JSON.stringify(kh).slice(0, 300));
+  k('F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo mới, 3 món có công thức', xem.status === 200 && kh.nguyen_lieu_them === 12
+    && kh.nhom_san_pham_them === 3 && kh.mon_tao === 3 && kh.cong_thuc_ghi === 3, moTa(xem) + ' ' + JSON.stringify(kh).slice(0, 300));
   const loaiCB = new Set((kh.canh_bao || []).map((c) => c.loai));
-  const CB = ['THIEU_GIA', 'GIA_BAT_THUONG', 'THIEU_DON_VI', 'TEN_MOI', 'THIEU_NGUYEN_LIEU', 'GOP_CONG_THUC', 'TRUNG_MA', 'MON_TAO_AN'];
-  k('F2 đủ 8 loại cảnh báo (thiếu giá, giá bất thường, thiếu đơn vị, tên mới, công thức trỏ NL không có, hai tên gộp một công thức, trùng mã, món tạo ẩn)',
-    CB.every((c) => loaiCB.has(c)), 'thiếu ' + CB.filter((c) => !loaiCB.has(c)).join(', '));
+  const CB = ['THIEU_GIA', 'GIA_BAT_THUONG', 'THIEU_DON_VI', 'TEN_MOI', 'THIEU_NGUYEN_LIEU', 'GOP_CONG_THUC', 'TRUNG_MA', 'MON_CHUA_GIA'];
+  k('F2 đủ 8 loại cảnh báo (thiếu giá, giá bất thường, thiếu đơn vị, tên mới, công thức trỏ NL không có, hai tên gộp một công thức, trùng mã, món tạo chưa có giá)',
+    CB.every((c) => loaiCB.has(c)) && !loaiCB.has('MON_TAO_AN'), 'thiếu ' + CB.filter((c) => !loaiCB.has(c)).join(', '));
+  const loiMon = (kh.canh_bao || []).find((c) => c.loai === 'MON_CHUA_GIA')?.loi || '';
+  k('F2b lời xem trước: "Món Dưỡng Nhan Lộ đã tạo, chưa có giá — đặt giá là bán được"', loiMon === 'Món Dưỡng Nhan Lộ đã tạo, chưa có giá — đặt giá là bán được', loiMon);
   const gop = (kh.gop || []).find((g) => g.giu === 'Táo đỏ');
   k('F3 bản xem trước nêu tên gộp: Táo đỏ ← Táo đỏ khô, Táo Đỏ', gop && gop.cu.length === 3, JSON.stringify(gop));
   k('F4 xem trước KHÔNG ghi gì', (await dem('kho_nguyen_lieu')) === nlTruoc && (await so('SELECT COUNT(*) FROM pos_products')) === 8);
@@ -363,9 +365,9 @@ async function main() {
   const nhomCT = (await coBang('kho_nhom_cong_thuc')) ? (await q('SELECT ten FROM kho_nhom_cong_thuc ORDER BY ten')).map((r) => r.ten) : [];
   k('F8 nhóm sản phẩm giữ tên SX ("CÀ PHÊ" → "Cà phê"), không lấy nhóm đã tắt', JSON.stringify(nhomCT) === JSON.stringify(['Cà phê', 'Nước ép', 'Trà thảo mộc']), nhomCT.join(', '));
   const moi = await q("SELECT code, name, category, price, is_active, sx_product_type, sx_product_id FROM pos_products WHERE code IN ('DNL', 'CF01', 'CF02', 'CU1', 'CT13') ORDER BY code");
-  k('F9 món SX chưa có ở POS → tạo ẨN giá 0, giữ khoá nối (DNL tea/1, CF02 caphe/5, CF01 không id); bỏ món tắt / nhóm tắt',
-    JSON.stringify(moi.map((r) => [r.code, r.category, Number(r.price), Number(r.is_active), r.sx_product_type, r.sx_product_id === null ? null : Number(r.sx_product_id)]))
-    === JSON.stringify([['CF01', 'caphe', 0, 0, 'caphe', null], ['CF02', 'caphe', 0, 0, 'caphe', 5], ['DNL', 'tea', 0, 0, 'tea', 1]]), JSON.stringify(moi));
+  k('F9 món SX chưa có ở POS → tạo is_active = 1 giá 0 (như seed / sync-from-sx), giữ khoá nối (DNL tea/1, CF02 caphe/5, CF01 không id); bỏ món tắt / nhóm tắt',
+    JSON.stringify(moi.map((r) => [r.code, r.category, r.price, Number(r.is_active), r.sx_product_type, r.sx_product_id === null ? null : Number(r.sx_product_id)]))
+    === JSON.stringify([['CF01', 'caphe', 0, 1, 'caphe', null], ['CF02', 'caphe', 0, 1, 'caphe', 5], ['DNL', 'tea', 0, 1, 'tea', 1]]), JSON.stringify(moi));
   k('F10 trùng mã khác món (tea 2 mã CT2) → bỏ qua, CT2 cũ giữ nguyên tên', (await mot("SELECT name FROM pos_products WHERE code = 'CT2'"))?.name === 'Lục Tân Khí');
   const ctMon = async (code) => db.query(`SELECT l.ten, c.luong FROM kho_cong_thuc c JOIN kho_nguyen_lieu l ON l.id = c.nguyen_lieu_id
     JOIN pos_products p ON p.id = c.san_pham_id WHERE p.code = ? ORDER BY l.ten`, [code]).catch(() => []);
@@ -412,8 +414,14 @@ async function main() {
   const hai = await Promise.all([nhap('chu', fileSx, true), nhap('chu', fileSx, true)]);
   k('F20 hai lần Nhập cùng lúc → không nhân đôi (12 nguyên liệu, 8 dòng công thức)', hai.every((r) => r.status === 200 || r.code === 'KHO_BAN')
     && (await dem('kho_nguyen_lieu')) === 12 && (await dem('kho_cong_thuc')) === 8, hai.map(moTa).join(' | '));
-  imLang(); const menuSau = JSON.stringify(await layMenuQuay()); noiLai();
-  k('K1 menu quầy (mất SX → dự phòng) y hệt trước khi nhập: món tạo ẩn không lên quầy', menuSau === menuTruoc);
+  imLang(); const menuSau = await layMenuQuay(); noiLai();
+  const cuTruoc = JSON.parse(menuTruoc);
+  const idCu = new Set(cuTruoc.map((m) => m.unique_id));
+  const monMoi = menuSau.filter((m) => !idCu.has(m.unique_id));
+  k('K1 menu dự phòng: mọi món CŨ y hệt trước khi nhập; thêm đúng 3 món tạo mới, cả 3 "Chưa có giá" (sellable false, giá 0)',
+    JSON.stringify(menuSau.filter((m) => idCu.has(m.unique_id))) === menuTruoc && monMoi.length === 3
+    && JSON.stringify(monMoi.map((m) => [m.unique_id, m.sellable, m.price]).sort()) === JSON.stringify([['caphe_5', false, 0], ['caphe_null', false, 0], ['tea_1', false, 0]]),
+    JSON.stringify(monMoi.map((m) => [m.unique_id, m.sellable, m.price])));
   const menuSxSau = await menuSx();
   k('K1b menu khi SX nối thật (quầy + /api/kh/menu lọc sellable): mọi món giữ nguyên bán được / có giá như trước khi nhập',
     menuSxSau === menuSxTruoc && menuSxTruoc.length > 2, `${menuSxTruoc} → ${menuSxSau}`);
@@ -536,30 +544,35 @@ async function main() {
   const don = await goi('POST', '/orders', { customer_name: 'Khách KHO1', items: [{ product_id: ct1, sx_product_type: 'juice', sx_product_id: 1, quantity: 1 }],
     payment_method: 'cash', cash_amount: 25000 });
   k('K2 tạo đơn vẫn 200 và vẫn gửi lệnh trừ kho sang SX', don.success === true && demSX.tru > truoc, `${moTa(don)} · trừ SX ${demSX.tru - truoc}`);
-  // Món SX tạo ẩn: đặt giá ở màn giá như mọi khi → chủ quán bật bán ở màn Kho → bán được (phiếu Đã duyệt 3).
+  // Món SX tạo từ nhập (phiếu mục 7): quầy hiện "Chưa có giá"; đặt giá ở màn giá như mọi khi là bán được ngay — không thêm bước nào.
   const dnlId = await idSP('DNL');
   const donDnl = () => goi('POST', '/orders', { customer_name: 'Khách KHO1', items: [{ product_id: dnlId, sx_product_type: 'tea', sx_product_id: 1, quantity: 1 }],
     payment_method: 'cash', cash_amount: 30000 });
-  const batSom = await goi('PUT', `/kho/san-pham/${dnlId}/bat-ban`);
-  k('K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA', batSom.status === 400 && batSom.code === 'CHUA_CO_GIA', moTa(batSom));
+  const tea1 = (ds) => ds.find((m) => m.unique_id === 'tea_1');
+  const menuHai = async () => { imLang(); const duPhong = await layMenuQuay(); noiLai(); sxBat = true; imLang();
+    try { return { duPhong, sx: await layMenuQuay() }; } finally { noiLai(); sxBat = false; } };
+  const truocGia = await menuHai();
+  const donSom = await donDnl();
+  k('K4 món tạo từ nhập, CHƯA đặt giá: menu dự phòng + menu SX có tea_1, sellable false; tạo đơn → 400', tea1(truocGia.duPhong)?.sellable === false
+    && tea1(truocGia.sx)?.sellable === false && donSom.status === 400, `${JSON.stringify([tea1(truocGia.duPhong), tea1(truocGia.sx)].map((m) => m && m.sellable))} | ${moTa(donSom)}`);
   const datGia = await goi('PUT', '/products/price', { sx_product_type: 'tea', sx_product_id: 1, price: 30000 });
-  const chuaBat = await donDnl();
-  imLang(); const duPhong = await layMenuQuay(); noiLai();
-  k('K5 đặt giá xong, CHƯA bật → tạo đơn 400, menu dự phòng KHÔNG có món (tea_1)', datGia.status === 200 && chuaBat.status === 400
-    && !duPhong.some((m) => m.unique_id === 'tea_1'), `${moTa(datGia)} | ${moTa(chuaBat)}`);
-  k('K6 manager / staff bật bán → 403', (await goiAi('manager', 'PUT', `/kho/san-pham/${dnlId}/bat-ban`)).status === 403
-    && (await goiAi('staff', 'PUT', `/kho/san-pham/${dnlId}/bat-ban`)).status === 403);
-  const bat = await goi('PUT', `/kho/san-pham/${dnlId}/bat-ban`);
-  const sauBat = await donDnl();
-  k('K7 chủ quán bật bán → tạo đơn món đó 200', bat.status === 200 && sauBat.success === true, `${moTa(bat)} | ${moTa(sauBat)}`);
-  // Chỉ có chiều BẬT: gọi lại trên món đang bán không được làm nó tắt; không có đường ẩn món đang bán (đụng đường bán, ngoài phiếu).
-  const batLai = await goi('PUT', `/kho/san-pham/${ct1}/bat-ban`);
-  const an = await goi('PUT', `/kho/san-pham/${ct1}/ban`, { ban: 0 });
-  k('K8 bật lại món đang bán → vẫn bán; KHÔNG có đường ẩn món (404)', batLai.status === 200 && an.status === 404
-    && Number((await mot('SELECT is_active FROM pos_products WHERE id = ?', [ct1]))?.is_active) === 1, `${moTa(batLai)} | ${moTa(an)}`);
-  await ghiDb("UPDATE pos_products SET price = 'abc', is_active = 0 WHERE code = 'CF02'");
-  const batChu = await goi('PUT', `/kho/san-pham/${await idSP('CF02')}/bat-ban`);
-  k('K9 "có giá" cùng nghĩa với menu quầy (số > 0): giá dạng chữ → 400 CHUA_CO_GIA', batChu.status === 400 && batChu.code === 'CHUA_CO_GIA', moTa(batChu));
+  const sauGia = await menuHai();
+  const donSau = await donDnl();
+  k('K5 đặt giá (PUT /products/price) → menu dự phòng + menu SX sellable true VÀ tạo đơn món đó 200', datGia.status === 200 && tea1(sauGia.duPhong)?.sellable === true
+    && tea1(sauGia.sx)?.sellable === true && donSau.success === true, `${moTa(datGia)} | ${moTa(donSau)}`);
+  // Bất biến: món nào menu (dự phòng lẫn SX nối thật) báo bán được thì tạo đơn — đúng thân quầy gửi (BanHang/tinh.js) — phải nhận.
+  const tuChoi = [];
+  for (const [nguon, ds] of [['dự phòng', sauGia.duPhong], ['SX', sauGia.sx]]) {
+    for (const m of ds.filter((x) => x.sellable)) {
+      const r = await goi('POST', '/orders', { customer_name: 'Khách KHO1', items: [{ product_id: m.id, sx_product_type: m.sx_product_type,
+        sx_product_id: m.sx_product_id, quantity: 1 }], payment_method: 'cash', cash_amount: m.price });
+      if (r.success !== true) tuChoi.push(`${nguon} ${m.unique_id}: ${moTa(r)}`);
+    }
+  }
+  const soBan = sauGia.duPhong.filter((x) => x.sellable).length + sauGia.sx.filter((x) => x.sellable).length;
+  k('K6 bất biến: mọi món menu báo bán được (dự phòng + SX) → POST /orders nhận', soBan >= 4 && !tuChoi.length, `${soBan} món · ${tuChoi.join(' | ')}`);
+  const batBo = await goi('PUT', `/kho/san-pham/${dnlId}/bat-ban`);
+  k('K7 đường "Bật bán" đã bỏ (404) — không còn bước thứ hai', batBo.status === 404, moTa(batBo));
   const fileTrong = path.join(THU_MUC, 'trong.db');
   delete require.cache[duongDB];
   const db3 = require(duongDB);
