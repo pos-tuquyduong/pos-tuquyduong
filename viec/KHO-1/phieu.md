@@ -7,13 +7,104 @@
      Demo chủ quán đã duyệt (máy không mở được link, quyết định đã chép vào phiếu): kho claude.ai/artifact/J4ayQU7LUgEh5ZfGCRBzhp,
      sắp xếp POS claude.ai/artifact/YFnr4dnAhVDXUDuPHCt2Rq. Chạy SONG SONG: UUDAI-1 (orders.js, Sales.jsx), HD-1 (hoá đơn), BH-2
      (màn bán hàng + menu 6 mục: Bán hàng · Hôm nay · Đơn hàng · Khách hàng · Kho · Quản lý) — giữ đúng Cấm để gộp không đụng nhau.
-     Dữ liệu SX (bản sao lưu 09.10, chat đã đọc): 41 nguyên liệu → 33 sau gộp; nhiều giá = 0, chưa có tối thiểu / hạn; 9 công thức:
+     Dữ liệu SX (bản sao lưu 09.10, chat đã đọc): 41 nguyên liệu → 32 sau gộp (chủ quán 28.10, xem "Dữ liệu SX thật"); nhiều giá = 0, chưa có tối thiểu / hạn; 9 công thức:
      6 nước thực dưỡng (Hồng Tân Sinh, Lục Tân Khí, Thanh Tân Dưỡng, Tĩnh Nguyên Thủy, Ôn Dương Lộ, Tâm Vệ Lộ — kg cho 1 phần 200 ml)
      + 3 trà gói (Dưỡng Nhan Lộ, Ngọc Thanh Lộ, An Mi Lộ — cho 1 gói). Cấu trúc SX (server.js của kho tuquyduong/Quan-Ly-San-Xuat):
      ingredients, product_types, sx_products (+ legacy_table/legacy_id trỏ recipes / tea_products), sx_product_ingredients,
      recipe_ingredients, tea_ingredients; POS nối món SX bằng (sx_product_type, sx_product_id) = unique_id `${type}_${id}`. -->
 
-**Chờ duyệt kế hoạch:** viết `viec/KHO-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+**Đã duyệt (chủ quán 28.10, sau khi chat soát `ke_hoach.md` đầu nhánh `cd69a8d` và đọc bản sao lưu SX thật 09.10):** kế hoạch duyệt nguyên (cả
+phần "Vòng soát 1"); ngân sách máy chủ ~730 dòng chấp nhận. Máy làm tiếp từ bước 4 (`/lam-viec KHO-1 tiep`) tới hết, KHÔNG dừng hỏi lại các điểm
+dưới; chỗ nào dưới đây khác `ke_hoach.md` thì làm theo phiếu.
+1. **Cấu trúc SX:** dùng mục "Cấu trúc SX" và "Dữ liệu SX thật" bên dưới. KHÔNG xin đọc kho SX. Bài thử tự dựng file `.db` mẫu đúng cấu trúc + đủ
+   các ca trùng tên ở bảng gộp. Ca "bản 09.10" ghi CHƯA KIỂM — chat chạy công cụ nhập trên file thật khi soát (file có dữ liệu khách, KHÔNG vào kho).
+2. **Nâng cấp dữ liệu — chủ quán đặt yêu cầu an toàn tuyệt đối (không chạy đôi, không cộng thêm, không nửa chừng):**
+   - mỗi bước MỘT giao dịch; câu ĐẦU TIÊN của giao dịch là `INSERT INTO pos_nang_cap(so, …)` (khoá chính = số bước) → hai máy chủ khởi động cùng
+     lúc: máy sau đụng khoá → huỷ cả giao dịch, bỏ qua bước, KHÔNG chạy đôi. Thêm ca thử: hai bộ chạy song song trên cùng CSDL → mỗi bước đúng 1 lần.
+   - bước hỏng → quầy VẪN MỞ, đường kho trả 503 `NANG_CAP_HONG` kèm tên bước (đúng đề xuất). KHO-3 xét lại khi bán trừ kho POS.
+   - giữ nguyên: chỉ thêm; `themCot` tự chép bảng sao lưu; bài thử quét câu ALTER/DROP/DELETE/RENAME viết thẳng.
+3. **Món SX chưa có dòng `pos_products`:** TẠO dòng `pos_products` với tên + nhóm (`category` = mã nhóm SX), `price = 0`, `is_active = 0` (ẨN, chưa
+   bán), giữ khoá nối SX; bản xem trước ghi "Món <tên> đã tạo ẩn — đặt giá rồi bật bán". Đã đọc `products.js`: menu quầy chỉ cho bán khi `price > 0`,
+   menu dự phòng chỉ lấy `is_active = 1` → món ẩn giá 0 không lên quầy (ca thử K5 khoá đúng điều này). `code` = mã SX (CT1, DNL, CF01…); trùng
+   `code` đã có mà khác món → cảnh báo, bỏ qua. Món SX không có `legacy_id` (Cà Phê Đen) → `sx_product_id` để trống, chống trùng theo `code`.
+   Bỏ qua món SX đã tắt (`is_active = 0`, vd "Test production owner").
+4. **Khôi phục từ Excel:** bảng `kho_*` CHỈ khôi phục khi kho đang TRỐNG (`kho_phieu` và `kho_nguyen_lieu` đều 0 dòng — tức dựng lại máy mới sau sự
+   cố); kho đang có dữ liệu → BỎ QUA (không xoá, không chèn), kết quả ghi rõ "bỏ qua bảng kho vì kho đang có dữ liệu". `pos_nang_cap` KHÔNG BAO
+   GIỜ khôi phục. Xuất sao lưu vẫn đủ các bảng. Ca thử: kho có dữ liệu + file có trang `kho_*` → kho không đổi một dòng; kho trống → khôi phục đủ.
+5. **Tên chính thức + nhóm nguyên liệu (chủ quán chốt 28.10):** dùng ĐÚNG bảng "Dữ liệu SX thật" bên dưới làm hằng số `BANG_TEN_CHINH_THUC` trong
+   `nhapSx.js` (mọi tên SX → tên POS + nhóm), thay cho `BANG_GOP_TAY` của kế hoạch; tên SX không có trong bảng (bản sao lưu mới hơn) → chuẩn hoá
+   (cắt dấu cách thừa, viết hoa chữ đầu, còn lại thường), nhóm theo `category` (`juice` → Rau củ quả, `tea` → Dược liệu), ghi cảnh báo "tên mới".
+   Công thức trỏ tên bị gộp → trỏ tên chính thức; hai tên gộp cùng một công thức → cộng lượng + cảnh báo. Thuộc tính dòng gộp: giá = giá > 0 của
+   bất kỳ tên trong nhóm gộp (lấy lớn nhất); đơn vị lưu `kg`; đơn vị hiện `g` cho nhóm Dược liệu, `kg` cho Rau củ quả; `sx_id` = id nhỏ nhất.
+6. **Giá bất thường:** giá < 1.000 đ/kg coi như CHƯA CÓ GIÁ (lưu trống, vào ô "Thiếu thông tin", cảnh báo "giá SX 15đ/kg — có thể gõ thiếu số").
+
+## Dữ liệu SX thật (bản sao lưu 09.10 — chat đọc 28.10; `app_config.USE_UNIFIED_PRODUCTS = 'true'`)
+41 tên nguyên liệu → **32** nguyên liệu POS. Gộp (id SX trong ngoặc; tên ghi đúng như SX, kể cả dấu cách thừa):
+| Tên POS | Nhóm | Tên SX gộp vào |
+|---|---|---|
+| Củ dền | Rau củ quả | "Củ dền" (15, giá 65.000) · "Dền Đỏ" (3) — chủ quán: cùng một thứ |
+| Gừng | Rau củ quả | "Gừng" (5) · "Gừng tươi" (33) |
+| Táo đỏ | Dược liệu | "Táo đỏ" (34) · "Táo Đỏ" (51) · "Táo đỏ khô" (27) — "Táo tươi" (28) là thứ KHÁC |
+| Trần bì | Dược liệu | "Trần bì" (39) · "Trần Bì " (53) · "Trần bì khô" (35) |
+| Kỷ tử | Dược liệu | "Kỷ tử" (26) · "Kỳ Tử " (50) |
+| Mẹ thuốc | Dược liệu | "Mẹ Thuốc" (47, giá 120.000) · "Mẹ Thuốc " (48) |
+| Cẩu tích | Dược liệu | "Cẩu tích" (43) · "Cẩu Tích" (49) |
+
+Không gộp, chỉ chuẩn tên:
+- **Rau củ quả:** Bí đỏ (44) · Bông cải xanh (19) · Bạc hà (22) · Cam (1) · Cà rốt (40) · Cải bó xôi (6) · Cải xoăn (16) · Củ cải trắng (7) ·
+  Dưa chuột (8) · Táo tươi (28)
+- **Dược liệu:** Bạch truật chích mật (57) · Cam thảo (52) · Hoàng kỳ (32) · Hoắc hương (54) · Lạc tiên (58) · Mè đen rang (25, giá 15 → trống) ·
+  Phục linh (56) · Sa nhân (55) · Thục địa chế (29) · Vông nem (59) · Ý dĩ (36) · Đương quy (46) · Đảng sâm (45) · Đỗ trọng nam (30) · Đỗ đen rang (24)
+(Rau củ quả 12 · Dược liệu 20 = 32.) Nhóm nguyên liệu POS chỉ có 2: **Rau củ quả**, **Dược liệu** (chủ quán: chia theo loại cho dễ xem, không theo
+món dùng).
+
+Nhóm sản phẩm SX: `juice` "Nước ép" · `tea` "Trà thảo mộc" · `caphe` "CÀ PHÊ" (→ tên POS "Cà phê"; `quan_kho = 0`).
+Món + công thức (gam / 1 phần 200 ml nước ép, / 1 gói trà) sau khi đổi về tên POS — bài thử của chat so đúng các số này:
+- juice 1 Hồng Tân Sinh: Cam 70 · Củ dền 130 · Gừng 2 · Táo tươi 90 · Cà rốt 140
+- juice 2 Lục Tân Khí: Gừng 1 · Cải bó xôi 100 · Củ cải trắng 60 · Dưa chuột 50 · Táo tươi 150
+- juice 5 Thanh Tân Dưỡng: Gừng 3 · Dưa chuột 80 · Bông cải xanh 70 · Bạc hà 3 · Táo tươi 130
+- juice 6 Tĩnh Nguyên Thủy: Đỗ đen rang 5 · Mè đen rang 3 · Kỷ tử 2,5 · Táo đỏ 9 · Táo tươi 50 · Thục địa chế 1,5
+- juice 7 Ôn Dương Lộ: Gừng 1 · Kỷ tử 2,5 · Táo đỏ 9 · Đỗ trọng nam 5 · Hoàng kỳ 2,5 · Ý dĩ 5 · Trần bì 1
+- juice 8 Tâm Vệ Lộ: Gừng 1 · Táo đỏ 5 · Táo tươi 50 · Hoàng kỳ 2,5 · Trần bì 1 · Cà rốt 50 · Cẩu tích 1 · Bí đỏ 50
+- tea 1 Dưỡng Nhan Lộ: Đảng sâm 0,3 · Đương quy 0,3 · Mẹ thuốc 3,5 · Cẩu tích 0,5 · Táo đỏ 4,2 · Cam thảo 0,6 · Trần bì 0,5
+- tea 2 Ngọc Thanh Lộ: Cam thảo · Hoắc hương · Sa nhân · Phục linh · Bạch truật chích mật — mỗi thứ 1 (chủ quán: số tạm, sửa sau trong POS)
+- tea 3 An Mi Lộ: Lạc tiên 1 · Vông nem 1 (số tạm)
+- caphe Cà Phê Đen (CF01, không `legacy_id`, chưa công thức) → kiểu `chua_dinh_luong`
+- bỏ: juice 13 "Test production owner" (đã tắt). Số SX lưu dạng kg có sai số máy (0.004200000000000001) → lưu số làm tròn 6 chữ số sau dấu phẩy.
+
+## Cấu trúc SX (chat chép 28.10 từ server.js SX d1e15d8, đối chiếu bản sao lưu thật 09.10)
+```sql
+CREATE TABLE ingredients (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, unit TEXT DEFAULT 'kg', display_unit TEXT DEFAULT 'kg',
+  price REAL DEFAULT 0, stock REAL DEFAULT 0, min_stock REAL DEFAULT 0, track_inventory INTEGER DEFAULT 0,
+  category TEXT DEFAULT 'juice' /* 'juice' | 'tea' | 'both' | mã khác */, shelf_life_days INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE recipes (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL, days_use INTEGER DEFAULT 4, description TEXT,
+  is_active INTEGER DEFAULT 1, updated_at TEXT);                                   -- nước ép (bảng cũ)
+CREATE TABLE recipe_ingredients (id INTEGER PRIMARY KEY AUTOINCREMENT, recipe_id INTEGER NOT NULL, ingredient_id INTEGER NOT NULL, amount REAL NOT NULL);
+CREATE TABLE tea_products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL, description TEXT, default_interval INTEGER DEFAULT 30,
+  unit TEXT DEFAULT 'gói', created_at TEXT, packages_per_cycle INTEGER DEFAULT 30, is_active INTEGER DEFAULT 1, updated_at TEXT);   -- trà gói (bảng cũ)
+CREATE TABLE tea_ingredients (id INTEGER PRIMARY KEY AUTOINCREMENT, tea_product_id INTEGER NOT NULL, ingredient_id INTEGER NOT NULL, amount REAL NOT NULL);
+CREATE TABLE product_types (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, icon TEXT DEFAULT '',
+  code_prefix TEXT NOT NULL, fp_type TEXT NOT NULL, sales_mode TEXT NOT NULL DEFAULT 'make_to_stock', has_recipe INTEGER NOT NULL DEFAULT 1,
+  deviation_mode TEXT NOT NULL DEFAULT 'exact', deviation_percent REAL DEFAULT 5, unit_internal TEXT DEFAULT 'kg', unit_display TEXT DEFAULT 'túi',
+  conversion_ratio REAL DEFAULT 1, is_system INTEGER NOT NULL DEFAULT 0, is_active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER DEFAULT 0,
+  created_at TEXT, quan_kho INTEGER NOT NULL DEFAULT 1, shelf_life_days INTEGER);  -- nhóm sản phẩm; 'juice' và 'tea' là nhóm hệ thống
+CREATE TABLE sx_products (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, type_id INTEGER NOT NULL,
+  description TEXT, days_use INTEGER, default_interval INTEGER, unit TEXT, is_active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER DEFAULT 0,
+  legacy_table TEXT, legacy_id INTEGER, created_at TEXT, packages_per_cycle INTEGER DEFAULT 30, updated_at TEXT);   -- mô hình gộp (Đợt D)
+CREATE TABLE sx_product_ingredients (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL /* sx_products.id */,
+  ingredient_id INTEGER NOT NULL, amount REAL NOT NULL, unit_internal TEXT, note TEXT);  -- UNIQUE(product_id, ingredient_id)
+-- app_config(key, value): key 'USE_UNIFIED_PRODUCTS' = 'true' → nguồn công thức là sx_products/sx_product_ingredients; khác → bảng cũ.
+-- File sao lưu còn 4 VIEW tự chọn nguồn theo cờ đó: v_recipes(id,…), v_tea_products(id,…), v_recipe_ingredients(recipe_id, ingredient_id, amount),
+-- v_tea_ingredients(tea_product_id, ingredient_id, amount) — id ở các view = id POS đang dùng.
+```
+**Khoá nối POS `(sx_product_type, sx_product_id)` — đúng như SX `/api/pos/products-with-stock` trả:**
+- nước ép: `('juice', v_recipes.id)` · công thức: `v_recipe_ingredients` theo `recipe_id`.
+- trà gói: `('tea', v_tea_products.id)` · công thức: `v_tea_ingredients` theo `tea_product_id`.
+- nhóm khác (`product_types.code NOT IN ('juice','tea')`, `is_active = 1`): `(product_types.code, sx_products.legacy_id)` chỉ với `legacy_id IS NOT NULL`
+  · công thức: `sx_product_ingredients` theo `product_id = sx_products.id` (KHÔNG phải legacy_id).
+- Đọc qua view cho juice/tea (đúng nguồn theo cờ); file thiếu view hay thiếu bảng Đợt D → đọc bảng cũ và ghi cảnh báo, không đoán.
+- `amount` theo đơn vị lưu của nguyên liệu (`ingredients.unit`, thường kg); nước ép = cho 1 phần 200 ml, trà = cho 1 gói. `price` = đồng / 1 đơn vị lưu.
+
 
 ## Mục tiêu
 POS có danh mục kho của riêng mình — nguyên liệu, nhóm, nhà cung cấp, sản phẩm = công thức, định mức, lô, phiếu — nạp được danh
@@ -50,11 +141,10 @@ xử lý phát sinh) và KHO-3 (bán trừ kho POS, kiểm kê cuối ca, tắt 
   theo tên đã chuẩn hoá / mã SX); bản mới hơn chỉ THÊM cái còn thiếu, không ghi đè chỗ chủ quán đã sửa trong POS. Đọc file bằng
   `@libsql/client` (đã có) chỉ đọc; file tạm xoá sau; giới hạn kích thước. Lấy: nguyên liệu (tên, nhóm, đơn vị, giá, hạn, tối thiểu —
   ô trống / 0 GIỮ trống để chủ quán điền), nhóm sản phẩm, sản phẩm, công thức (kế hoạch đọc cấu trúc SX để biết bảng công thức nào đang
-  dùng thật). KHÔNG lấy: tồn, lô, khách, gói đăng ký, giao định kỳ, việc. Nhóm giữ đúng tên SX ("Nước ép", "Trà"…).
+  dùng thật). KHÔNG lấy: tồn, lô, khách, gói đăng ký, giao định kỳ, việc. Nhóm SẢN PHẨM giữ tên SX; nhóm NGUYÊN LIỆU theo mục 5 phần Đã duyệt (Rau củ quả · Dược liệu).
 - G **Gộp trùng:** chuẩn hoá tên (bỏ khoảng thừa, không phân biệt hoa / thường, GIỮ dấu) + bảng gộp tay chủ quán chốt (hằng số trong
-  `nhapSx.js`): Gừng ← Gừng tươi · Kỷ tử ← Kỳ Tử · **Táo đỏ ← Táo đỏ, Táo Đỏ, Táo đỏ khô** (chủ quán 27.10: tên giữ "Táo đỏ"; "Táo
-  tươi" là nguyên liệu KHÁC, KHÔNG gộp) · Trần bì khô ← Trần bì (mọi biến thể) · Cẩu tích, Mẹ thuốc (trùng tên). Công thức trỏ tên bị
-  gộp → trỏ tên giữ; một công thức có cả hai → cộng lượng + ghi cảnh báo ở bản xem trước. Bản 09.10 phải ra 33 nguyên liệu.
+  `nhapSx.js`): đúng bảng "Dữ liệu SX thật" (mục 5 phần Đã duyệt). Công thức trỏ tên bị gộp → trỏ tên chính thức; một công thức có cả
+  hai → cộng lượng + ghi cảnh báo ở bản xem trước. Bản 09.10 phải ra 32 nguyên liệu.
 - H **Màn Quản lý** (đường dẫn mới; việc này chỉ thêm route + MỘT mục "Quản lý kho" vào menu hiện tại — BH-2 xếp vào menu 6 mục):
   - Nguyên liệu: ô tìm (gõ không dấu vẫn ra), sắp xếp (tên · nhóm · giá · mới thêm), tab Tất cả + tab từng nhóm; thêm / sửa / ngừng dùng
     (không xoá cứng nguyên liệu đã nằm trong công thức hay phiếu); quản lý nhóm và nhà cung cấp. Dùng tốt trên điện thoại (dạng thẻ).
