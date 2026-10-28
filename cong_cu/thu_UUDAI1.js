@@ -197,6 +197,10 @@ async function main() {
     const m6 = await taoMa('percent', 20, { motMon: true });
     const r6 = await ban({ customer_phone: await khachHang(), items: [mon(0, 1)], discount_code: m6 }, 36000);
     await caDon('B5 mã 1 món 20 % trên món 50.000 Vàng → tính trên 45.000: giảm 9.000, tổng 36.000', r6, 36000, 5000, m6);
+    // Vòng sửa 4: GIÁ TRỊ giá mã 1 món trên bill (orders.js signup_unit_price = giá đã giảm hạng − tiền mã), không chỉ tổng.
+    const g6 = (r6.order?.items || []).map((i) => i.signup_unit_price);
+    k('B5b bill dòng món được mã 1 món: giá mã = 45.000 (giá hạng) − 9.000 = 36.000, không phải 50.000 − 9.000 = 41.000',
+      r6.status === 200 && g6.length === 1 && g6[0] === 36000, JSON.stringify(g6));
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -334,6 +338,14 @@ async function main() {
       && f6.cach === 'hang' && f6.discount_amount === 0 && f6.total === 90000, `${moTa(f6)} · ${f6.ma_loi} · ${f6.ma_loi_code} · ${f6.cach} · ${f6.total}`);
     const f7 = await tinhThu({ customer_phone: s, items: [mon(1, 2)], discount_code: m });
     k('F7 mã hợp lệ → ma_loi rỗng', f7.status === 200 && !f7.ma_loi, `${moTa(f7)} · ${f7.ma_loi}`);
+    // Vòng sửa 4: GIÁ TRỊ giá hạng từng món (orders.js gắn uuDai.gia_hang vào tier_unit_price) ở tinh-thu VÀ ở dòng đơn đã ghi.
+    const s8 = await khachHang();
+    const f8 = await tinhThu({ customer_phone: s8, items: [mon(0, 1)] });
+    const r8 = await ban({ customer_phone: s8, items: [mon(0, 1)] }, 45000);
+    const g8 = r8.order ? await so('SELECT tier_unit_price FROM pos_order_items WHERE order_id = ? AND product_id = ?', [r8.order.id, sp[0].id]) : NaN;
+    k('F8 khách Vàng, món 50.000 → tier_unit_price 45.000 ở tinh-thu VÀ ở pos_order_items của đơn đã ghi',
+      f8.status === 200 && f8.items?.[0]?.tier_unit_price === 45000 && r8.status === 200 && g8 === 45000,
+      `${moTa(f8)} · tinh-thu ${f8.items?.[0]?.tier_unit_price} · ${moTa(r8)} · dòng đơn ${g8}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -431,6 +443,19 @@ async function main() {
       k(`${ten}: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng`, tt.status === 200 && tt.total === tong && r.status === 200
         && Number(d.total) === tong, `${moTa(tt)} · tinh-thu ${tt.total} · ${moTa(r)} · đơn ${d.total}`);
     }
+  });
+
+  // Vòng sửa 4: THIẾU khoá cài đặt (vd khôi phục bản sao lưu cũ xoá sạch pos_settings) → mặc định "dùng chung" (phiếu E).
+  await chay('E6', async () => {
+    await db.run(`DELETE FROM pos_settings WHERE key IN (${KHOA.map(() => '?').join(',')})`, KHOA);
+    const con = await so(`SELECT COUNT(*) FROM pos_settings WHERE key IN (${KHOA.map(() => '?').join(',')})`, KHOA);
+    const m = await taoMa('percent', 10);
+    const t = await tinhThu({ customer_phone: await khachHang(), items: [mon(0, 2)], discount_code: m });
+    await caDon('E6 không còn dòng cài đặt nào của 3 khoá → mặc định dùng chung: Vàng + mã 10 % → 81.000',
+      await ban({ customer_phone: await khachHang(), items: [mon(0, 2)], discount_code: m }, 81000), 81000, 10000, m);
+    k('E6b tinh-thu khi thiếu khoá → cách "ca_hai", tổng 81.000', con === 0 && t.status === 200 && t.cach === 'ca_hai' && t.total === 81000,
+      `${con} khoá còn · ${moTa(t)} · ${t.cach} · ${t.total}`);
+    await chung(1, 1, 1);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
