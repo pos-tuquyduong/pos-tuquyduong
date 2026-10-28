@@ -27,6 +27,16 @@
    (chỉ giả lập KB33 bắt "chọn hạng mà vẫn tiêu mã") trong báo cáo là đủ.
 7. Đã dùng hết 3 vòng sửa: `/lam-viec UUDAI-1 tiep` chạy soát độc lập lần 4 + cổng + báo cáo. Soát lần 4 ĐẠT → báo xong. KHÔNG ĐẠT →
    KHÔNG sửa thêm: ghi nguyên văn báo cáo vào `trang_thai.md`, push, DỪNG — chat soát thay và quyết.
+**Chat soát thay sau soát lần 4 (28.10, đầu nhánh `2388d11`) — cho VÒNG SỬA 4, chỉ thêm bài thử + hồ sơ:**
+8. Người soát kết luận code đúng, chỉ thiếu ca khoá. Làm ĐÚNG 4 việc, KHÔNG đổi code chạy (`server/`, `client/src/` ngoài bài thử):
+   (1) ca giá trị cho `tier_unit_price`: khách Vàng, món 50.000 → 45.000 ở `tinh-thu` VÀ ở dòng `pos_order_items` đã ghi, + đột biến xoá
+   `orders.js:729`; (2) ca mặc định khi THIẾU khoá cài đặt dùng chung (xoá khoá khỏi `pos_settings`) → hành vi "dùng chung" như hiện nay,
+   + đột biến đảo mặc định `orders.js:718`; (3) ca giá trị giá mã 1 món trên giá đã giảm hạng (`orders.js:753`), + đột biến;
+   (4) sửa các câu cũ trong `trang_thai.md` (ma_loi_code, số dòng trôi, Q5 "chặn") cho khớp hiện tại.
+9. Ca mới đỏ trên code nào thì ghi `bang_chung_do.txt` như luật; nếu một ca mới bắt được LỖI THẬT (code sai, không phải ca thiếu) → KHÔNG sửa
+   code, ghi Câu hỏi, push, DỪNG.
+10. Xong (1)–(4): chạy bài thử, `--day-du`, toàn bộ đột biến, `node tu_chay/cong.js chay`, viết báo cáo 7 mục + dòng HEAD ĐÃ KIỂM, ghi rõ
+   "SOÁT LẦN 5: chat soát thay" — KHÔNG gọi agent soát độc lập lần nữa. Push, DỪNG. Chat soát rồi soạn script gộp.
 
 ## Mục tiêu
 Quầy biết chắc một đơn của khách hội viên có mã giảm sẽ tính ra bao nhiêu, theo đúng luật chủ quán đặt trong Cài đặt, và giỏ hiện
