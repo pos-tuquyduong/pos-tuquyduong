@@ -49,6 +49,19 @@ dưới; chỗ nào dưới đây khác `ke_hoach.md` thì làm theo phiếu.
    khai trương".
 9. Đây là vòng sửa 3/3. Soát lần 3 ĐẠT → báo xong. KHÔNG ĐẠT → KHÔNG sửa thêm: ghi nguyên văn báo cáo vào `trang_thai.md`, push, DỪNG — chat
    soát thay.
+**Chat soát thay sau soát lần 3 (28.10, đầu nhánh `c22221b`) — chủ quán quyết 2 câu, cho VÒNG SỬA 4:**
+10. Món SX KHÔNG có khoá nối SX (`legacy_id` trống — bản 09.10 chỉ có Cà Phê Đen CF01): KHÔNG tạo dòng `pos_products`; xem trước ghi "Món
+   <tên> chưa nối được với SX — thêm mới trong POS sau" (chủ quán 28.10: "nếu không được thì bỏ qua cho dễ, thêm mới trong POS sau").
+   Nhóm sản phẩm của món đó vẫn nhập. Thay phần CF01 ở mục 3 và mục "Dữ liệu SX thật".
+11. Món SX tạo mới ghi giá **NULL** (chưa có giá), KHÔNG ghi 0: cột `pos_products.price` cho phép NULL; menu SX (`typeof price === 'number'`) và
+   màn bán mới (`BanHangMoi.jsx:186`) đều hiện "Chưa có giá"; tạo đơn từ chối. Ô "Thiếu thông tin" đếm món giá NULL. KHÔNG sửa
+   `products.js`, `orders.js`, `BanHang/**` (món có sẵn giá 0 hiện "0đ" ở màn mới là lỗi CŨ — chat ghi cho BH-2).
+12. Bài thử đi ĐÚNG đường màn thật: đặt giá qua `PUT /products/batch/prices` gửi CẢ danh sách menu dự phòng (có món tạo từ nhập) → 200, mọi
+   món đổi giá, không món nào sót (không lỗi giữa chừng); giữ ca qua `PUT /products/price`. Bất biến K6 chạy sau CẢ HAI đường.
+   Đột biến: tạo lại dòng cho món không khoá nối; ghi 0 thay NULL.
+13. Bổ sung hồ sơ: dòng bắt buộc mục 8, kết quả `node tu_chay/cong.js chay`, mục CHƯA KIỂM của vòng 3–4, 1–3 thao tác thử tay cho chủ quán.
+14. Xong: chạy bài thử, `--day-du`, toàn bộ đột biến, cổng, viết báo cáo 7 mục + dòng HEAD ĐÃ KIỂM, ghi "SOÁT LẦN 4: chat soát thay" — KHÔNG
+   gọi agent soát nữa. Ca mới bắt LỖI THẬT ngoài 10–12 → không sửa, ghi Câu hỏi. Push, DỪNG.
 
 ## Dữ liệu SX thật (bản sao lưu 09.10 — chat đọc 28.10; `app_config.USE_UNIFIED_PRODUCTS = 'true'`)
 41 tên nguyên liệu → **32** nguyên liệu POS. Gộp (id SX trong ngoặc; tên ghi đúng như SX, kể cả dấu cách thừa):
