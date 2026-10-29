@@ -215,20 +215,21 @@ async function duyetPhieu(tx, id, nguoi, luc) {
 }
 
 async function tuChoiPhieu(tx, id, nguoi, lyDo, luc) {
-  const kq = await tx.run(`UPDATE kho_phieu SET trang_thai = 'huy', ly_do = ?, nguoi_duyet = ?, duyet_luc = ? WHERE id = ? AND loai = 'PX'
+  const kq = await tx.run(`UPDATE kho_phieu SET trang_thai = 'huy', ly_do = ?, nguoi_huy = ?, huy_luc = ? WHERE id = ? AND loai = 'PX'
     AND trang_thai = 'cho_duyet' AND nguoi_tao <> ?`, [lyDo, nguoi, luc, id, nguoi]);
   return kq.changes ? {} : viSaoKhongDoi(tx, id, nguoi);
 }
 
-/** Chủ quán huỷ (cũng là bước đầu của sửa). GIỮ mọi dòng — phiếu huy rơi khỏi tồn. */
-async function huyPhieu(tx, id, lyDo) {
-  const kq = await tx.run(`UPDATE kho_phieu SET trang_thai = 'huy', ly_do = ? WHERE id = ? AND loai = 'PX' AND trang_thai IN ('cho_duyet', 'da_duyet')`, [lyDo, id]);
+/** Chủ quán huỷ (cũng là bước đầu của sửa). GIỮ mọi dòng — phiếu huy rơi khỏi tồn. Ghi người / giờ huỷ, giữ người đã duyệt. */
+async function huyPhieu(tx, id, lyDo, nguoi, luc) {
+  const kq = await tx.run(`UPDATE kho_phieu SET trang_thai = 'huy', ly_do = ?, nguoi_huy = ?, huy_luc = ? WHERE id = ? AND loai = 'PX'
+    AND trang_thai IN ('cho_duyet', 'da_duyet')`, [lyDo, nguoi, luc, id]);
   return kq.changes ? {} : viSaoKhongDoi(tx, id, null);
 }
 
 /** Sửa = huỷ phiếu cũ + phiếu MỚI thay_cho_id, tự duyệt, hạn lô theo giờ làm THẬT của phiếu cũ. */
 async function suaPhieu(tx, id, mon, nguoi, lyDo, luc) {
-  const huy = await huyPhieu(tx, id, lyDo);
+  const huy = await huyPhieu(tx, id, lyDo, nguoi, luc);
   if (huy.loi) return huy;
   const cu = await tx.queryOne('SELECT duyet_luc FROM kho_phieu WHERE id = ?', [id]);
   return taoPhieuXuat(tx, { mon, nguoi, tuDuyet: true, thayCho: id, lyDo, luc, lucLam: cu.duyet_luc || luc });
