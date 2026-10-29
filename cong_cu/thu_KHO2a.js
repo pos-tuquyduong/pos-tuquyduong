@@ -118,6 +118,9 @@ async function main() {
   k('A0 manager tạo nhóm công thức có "% lệch cho phép" → 200, lưu đúng', nhomA.status === 200 && nhomB.status === 200
     && Number((await mot('SELECT lech_cho_phep FROM kho_nhom_cong_thuc WHERE id = ?', [nhomA.id || 0]))?.lech_cho_phep) === 10, moTa(nhomA));
   k('A0b staff tạo nhóm công thức → 403', (await goi('nv', 'POST', '/kho/nhom-cong-thuc', { ten: 'X' })).status === 403);
+  const nhomC = await goi('ql', 'POST', '/kho/nhom-cong-thuc', { ten: 'Sữa hạt', lech_cho_phep: 0 });
+  k('A0c lệch cho phép 0 % lưu là 0 (cảnh báo mọi lệch), không thành "không cảnh báo"', nhomC.status === 200
+    && (await mot('SELECT lech_cho_phep FROM kho_nhom_cong_thuc WHERE id = ?', [nhomC.id || 0]))?.lech_cho_phep === 0, moTa(nhomC));
   const luuSP = (id, than) => goi('chu', 'PUT', `/kho/san-pham/${id}`, than);
   const kqSP = [
     await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: 5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] }),
@@ -131,6 +134,9 @@ async function main() {
     kqSP.map(moTa).join(' | '));
   await luuSP(s3, { kieu: 'lam_san', nhom_id: null, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
   k('E0b sửa công thức không gửi han_ngay → hạn 5 giữ nguyên', Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay) === 5);
+  const e0c = await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: 0.5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
+  k('E0c hạn dùng không nguyên (0.5 ngày) → 400 HAN_SAI, hạn giữ 5', e0c.status === 400 && e0c.code === 'HAN_SAI'
+    && Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay) === 5, moTa(e0c));
   // Lô nhập sẵn (phiếu PN đã duyệt, dựng bằng SQL — KHO-2b mới có màn nhập)
   let soPN = 0;
   const themLo = async (cot, id, sl, han) => {
@@ -242,8 +248,9 @@ async function main() {
   const pxC4 = await demPX();
   const c4 = await px('ql', [{ san_pham_id: s1, so_phan: 1 }, { san_pham_id: s5, so_phan: 1 }]);
   k('C4 món không công thức → 400 MON_CHUA_CONG_THUC, không ghi gì', c4.status === 400 && c4.code === 'MON_CHUA_CONG_THUC' && (await demPX()) === pxC4, moTa(c4));
-  const c5 = await Promise.all([[], [{ san_pham_id: s1, so_phan: 0 }], [{ san_pham_id: s1, so_phan: -2 }], [{ san_pham_id: s1, so_phan: 'x' }]].map((m) => px('ql', m)));
-  k('C5 số phần ≤ 0 / không phải số / không món → 400 SO_PHAN_SAI', c5.every((r) => r.status === 400 && r.code === 'SO_PHAN_SAI') && (await demPX()) === pxC4, c5.map(moTa).join(' | '));
+  const c5 = await Promise.all([[], [{ san_pham_id: s1, so_phan: 0 }], [{ san_pham_id: s1, so_phan: -2 }], [{ san_pham_id: s1, so_phan: 'x' }],
+    [{ san_pham_id: s2, so_phan: 1 }, { san_pham_id: s2, so_phan: 2 }]].map((m) => px('ql', m)));
+  k('C5 số phần ≤ 0 / không phải số / không món / một món hai lần → 400 SO_PHAN_SAI', c5.every((r) => r.status === 400 && r.code === 'SO_PHAN_SAI') && (await demPX()) === pxC4, c5.map(moTa).join(' | '));
   const lo7 = await demLo();
   const c7 = await Promise.all([px('ql', [{ san_pham_id: s2, so_phan: 1 }], 'g-c7'), px('ql', [{ san_pham_id: s2, so_phan: 1 }], 'g-c7')]);
   k('C7 bấm hai lần (cùng ma_gui, song song) → MỘT phiếu, MỘT lô', (await demPX()) === pxC4 + 1 && (await demLo()) === lo7 + 1
@@ -288,8 +295,9 @@ async function main() {
   const d7a = await goi('ql', 'POST', `/kho/phieu/${d7.phieu?.id}/tu-choi`, { ly_do: '  ' });
   const lo7b = await demLo();
   const d7b = await goi('ql', 'POST', `/kho/phieu/${d7.phieu?.id}/tu-choi`, { ly_do: 'Không đủ người' });
-  k('D7 từ chối không lý do → 400 THIEU_LY_DO; có lý do → huy, lý do lưu, không lô', d7a.status === 400 && d7a.code === 'THIEU_LY_DO' && d7b.status === 200
-    && d7b.phieu?.trang_thai === 'huy' && d7b.phieu?.ly_do === 'Không đủ người' && (await demLo()) === lo7b, `${moTa(d7a)} | ${moTa(d7b)}`);
+  k('D7 từ chối không lý do → 400 THIEU_LY_DO; có lý do → huy, lý do + người từ chối lưu (không ghi vào người duyệt), không lô', d7a.status === 400
+    && d7a.code === 'THIEU_LY_DO' && d7b.status === 200 && d7b.phieu?.trang_thai === 'huy' && d7b.phieu?.ly_do === 'Không đủ người'
+    && d7b.phieu?.nguoi_huy === 'ql_a' && d7b.phieu?.nguoi_duyet === null && (await demLo()) === lo7b, `${moTa(d7a)} | ${JSON.stringify(d7b.phieu || moTa(d7b))}`);
   const caiDat = (ai, v) => goi(ai, 'PUT', '/settings', { settings: { kho_px_nv_can_duyet: v } });
   const d8a = await caiDat('chu', '0');
   const d8p = await px('nv', [{ san_pham_id: s2, so_phan: 1 }], 'g-d8a');
@@ -433,6 +441,8 @@ async function main() {
   const f6a = await kq('ql', d8x.phieu?.id, { san_pham_id: s2 });
   const f6b = await kq('ql', d7.phieu?.id, { san_pham_id: s2 });
   k('F6 ghi kết quả phiếu cho_duyet / huy → 409', f6a.status === 409 && f6b.status === 409, `${moTa(f6a)} | ${moTa(f6b)}`);
+  const f7 = await kq('ql', f4p.phieu?.id, { san_pham_id: s2, so_thuc: -5 });
+  k('F7 số thực ra âm → 400, không ghi dòng', f7.status === 400 && (await so("SELECT COUNT(*) FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'ket_qua'", [f4p.phieu?.id || 0])) === 1, moTa(f7));
   const f5p = await px('ql', [{ san_pham_id: s2, so_phan: 2 }], 'g-f5');
   datGio('2026-11-07T23:30:00');
   const f5a = await goi('nv', 'GET', `/kho/phieu/${f5p.phieu?.id}`);
@@ -487,6 +497,9 @@ async function main() {
   const in1 = await goi('ql', 'POST', `/kho/phieu/${c1id}/in`);
   const in2 = await goi('ql', 'POST', `/kho/phieu/${c1id}/in`);
   k('H2 in: số lần in tăng mỗi lần (sau lần in của G3: 2 rồi 3)', in1.phieu?.so_lan_in === 2 && in2.phieu?.so_lan_in === 3, `${in1.phieu?.so_lan_in} ${in2.phieu?.so_lan_in}`);
+  const in3 = await goi('ql', 'POST', `/kho/phieu/${d8x.phieu?.id}/in`);
+  k('H2b in phiếu CHƯA duyệt → 404, không đếm lần in (duyệt xong mới in)', in3.status === 404
+    && Number((await mot('SELECT so_lan_in FROM kho_phieu WHERE id = ?', [d8x.phieu?.id || 0]))?.so_lan_in) === 0, moTa(in3));
   const dongC1 = await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE phieu_id = ?', [c1id || 0]);
   const tonH = await tonQL();
   datGio('2026-11-08T10:00:00');
@@ -498,6 +511,11 @@ async function main() {
   const h3 = await goi('chu', 'POST', `/kho/phieu/${c1id}/sua`, { mon: [{ san_pham_id: s1, so_phan: 12 }, { san_pham_id: s2, so_phan: 4 }], ly_do: 'ghi nhầm số' });
   const tonH3 = await tonQL();
   const loMoi = await mot('SELECT * FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [h3.phieu?.id || 0, s1]);
+  // Đọc ĐẦU RA máy chủ (GET /ton) — không lặp công thức tồn bằng SQL của bài (soát lần 1)
+  const loTon = (r, id) => ((r.r.thanh_pham || []).find((x) => x.san_pham_id === id)?.lo || []);
+  k('H3c GET /ton sau khi sửa: lô cũ của Nước cam (có kết quả) KHÔNG còn; lô mới 12 phần có', !loTon(tonH3, s1).some((l) => l.id === Number(loS1?.id))
+    && loTon(tonH3, s1).some((l) => l.id === Number(loMoi?.id) && gan(l.con, 12)) && loTon(tonH, s1).some((l) => l.id === Number(loS1?.id)),
+    JSON.stringify(loTon(tonH3, s1)));
   k('H3 chủ quán sửa → phiếu MỚI (thay_cho_id), cũ huy, dòng cũ GIỮ; tồn theo phiếu mới (Cam −0.4, Kỷ tử như cũ); lô cũ + kết quả rơi khỏi tồn; lô mới hạn theo giờ làm CŨ',
     h3.status === 200 && h3.phieu?.thay_cho_id === c1id && h3.phieu?.trang_thai === 'da_duyet'
     && (await mot('SELECT trang_thai FROM kho_phieu WHERE id = ?', [c1id || 0]))?.trang_thai === 'huy'
@@ -512,8 +530,13 @@ async function main() {
   k('H3b phiếu cũ trỏ sang phiếu thay (thay_bang_id), giữ lý do', cuDoc.phieu?.thay_bang_id === h3.phieu?.id && cuDoc.phieu?.ly_do === 'ghi nhầm số', JSON.stringify(cuDoc.phieu));
   const h5Truoc = await tonQL();
   const h5p = await px('ql', [{ san_pham_id: s2, so_phan: 3 }], 'g-h5');
+  const h5Giua = await tonQL();
   const h5 = await goi('chu', 'POST', `/kho/phieu/${h5p.phieu?.id}/huy`, { ly_do: 'làm nhầm' });
   const h5Sau = await tonQL();
+  const loH5 = Number((await mot('SELECT id FROM kho_lo WHERE phieu_id = ?', [h5p.phieu?.id || 0]))?.id);
+  k('H5c GET /ton: lô của phiếu có trước khi huỷ, KHÔNG còn sau khi huỷ; người huỷ = chủ quán, người duyệt giữ nguyên', loTon(h5Giua, s2).some((l) => l.id === loH5)
+    && !loTon(h5Sau, s2).some((l) => l.id === loH5) && h5.phieu?.nguoi_huy === tenDN.chu && h5.phieu?.nguoi_duyet === 'ql_a'
+    && h5.phieu?.huy_luc === '2026-11-08T10:00:00', JSON.stringify([loH5, loTon(h5Sau, s2).map((l) => l.id), h5.phieu?.nguoi_huy, h5.phieu?.nguoi_duyet]));
   k('H5 huỷ phiếu đã duyệt → tồn nguyên liệu về như trước; lô thành phẩm rơi khỏi tồn', h5.status === 200 && h5.phieu?.trang_thai === 'huy'
     && gan(h5Sau.nl(n2).ton, h5Truoc.nl(n2).ton) && (await tonLo((await mot('SELECT id FROM kho_lo WHERE phieu_id = ?', [h5p.phieu?.id || 0]))?.id)) === 0, moTa(h5));
   const h5b = await goi('chu', 'POST', `/kho/phieu/${h5p.phieu?.id}/huy`, { ly_do: 'lần hai' });
