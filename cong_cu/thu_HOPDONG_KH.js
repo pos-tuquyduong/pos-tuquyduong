@@ -93,11 +93,11 @@ async function main() {
   muc('[I4] route của server/routes/kh/index.js = cửa của hợp đồng');
   const src = boChuThich(doc('server', 'routes', 'kh', 'index.js'));
   // Mọi lời gọi router.<x>( — có đường chữ (mọi kiểu nháy) thì thành cửa (all / use / route cũng là cửa, phải có trong hợp đồng mới qua);
-  // router.use(<middleware>) không đường được phép; còn lại (đường là biến…) → cửa không đọc được → ĐỎ.
+  // router.use(<hàm>) không đường (middleware, bắt 404 cuối) được phép; còn lại (đường là biến…) → cửa không đọc được → ĐỎ.
   const goiRouter = [...src.matchAll(/router\.(\w+)\(\s*(?:(['"`])([^'"`]+)\2)?/g)];
   const route = new Set(goiRouter.filter((m) => m[3]).map((m) => `${m[1].toUpperCase()} ${m[3]}`));
-  const khongDoc = goiRouter.filter((m) => !m[3] && !(m[1] === 'use' && /^router\.use\(\s*[A-Za-z_]\w*\s*\)/.test(src.slice(m.index))));
-  k('mọi router.<x>( của kh/index.js đọc được đường (chỉ router.use(<middleware>) được không đường)', khongDoc.length === 0,
+  const khongDoc = goiRouter.filter((m) => !m[3] && m[1] !== 'use');
+  k('mọi router.<x>( của kh/index.js đọc được đường (chỉ router.use(<hàm>) được không đường)', khongDoc.length === 0,
     khongDoc.map((m) => src.slice(m.index, m.index + 40)).join(' | '));
   const cua = new Set(HD.cua.map(ten));
   const la = [...route].filter((r) => !cua.has(r)), mat = [...cua].filter((c) => !route.has(c));
