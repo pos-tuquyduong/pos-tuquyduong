@@ -1,0 +1,115 @@
+KHO-1 — bằng chứng ĐỎ trên code gốc (28.10.2026)
+Lệnh: node cong_cu/thu_KHO1.js   ·   cây: c8ee017 (chỉ có bài thử, server/ client/ CHƯA vá — gốc e4f927f)
+
+Dòng tổng: 6 đạt · 88 hỏng   (thoát mã 1, chạy hết, không sập)
+
+Trích các ca đỏ tiêu biểu (đủ từng mục):
+  ✗ A1 server/kho/duong.js có                         (A — chưa có mục kho)
+  ✗ E1 trienKhai lồng 2 tầng × 3 phần ...               (E — chưa có tinh.js)
+  ✗ E3 vòng A→A → ném CONG_THUC_VONG_LAP, chuỗi [5,5]
+  ✗ E9 "Táo tươi" KHÔNG gộp vào Táo đỏ                  (G)
+  ✗ B1 khởi động lần 1: pos_nang_cap có bước 1 (001_kho)  — []
+  ✗ B3 bước 901 chạy + đánh dấu; 902 hỏng KHÔNG đánh dấu; 903 KHÔNG chạy  — []
+  ✗ B5 themCot vào bảng CÓ dòng → _sao_luu_904_thu_co_dong đủ 2 dòng, cột mới có  — thiếu chayNangCap
+  ✗ B8 hai bộ chạy song song cùng CSDL: mỗi bước đúng 1 lần, không bên nào báo hỏng  — thu_dem 0 · thiếu chayNangCap | thiếu chayNangCap
+  ✗ B9 bước hỏng → đường kho trả 503 NANG_CAP_HONG nêu tên bước  — HTTP 404
+  ✗ C1 đủ 10 bảng kho_*  — thiếu kho_nhom_nguyen_lieu, ..., kho_phieu_dong
+  ✗ F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo ẩn, 3 món có công thức  — HTTP 404 {}
+  ✗ G1 nhập → đúng 12 nguyên liệu (gộp đúng bảng tên chính thức)  — HTTP 404
+  ✗ F15 nhập lại cùng file → 200, KHÔNG thêm / đổi một dòng  — HTTP 404
+  ✗ I1 staff XEM nguyên liệu → 200 (kèm nhóm, nhà cung cấp)  — HTTP 404
+  ✗ I15 manager sửa công thức → 403
+  ✗ E14 lưu vòng A→B→A → 400, lời báo nêu chuỗi tên  — HTTP 404
+  ✗ E17 hai người lưu chéo cùng lúc → đúng một 200, một 400 vòng  — HTTP 404 | HTTP 404
+  ✗ J1 xuất sao lưu có đủ 11 trang mới (pos_nang_cap + 10 bảng kho_*)
+  ✗ J3 kho ĐANG có dữ liệu: khôi phục BỎ QUA bảng kho (không đổi một dòng), báo rõ  — HTTP 200
+  ✗ K3 khởi động trên kho trống → tự tạo bảng kho + pos_nang_cap
+
+Ca XANH trên gốc (đúng — đó là K5 "phải KHÔNG đổi"): D1 pos_products không thêm cột · F10 CT2 giữ tên · F12 không lấy tồn/khách ·
+F13 file SX không bị sửa · K1 menu dự phòng y hệt · K2 tạo đơn vẫn 200 + vẫn trừ kho SX.
+
+── Chạy lại sau khi sửa bài (A16) — bài HEAD 3fbb608 trên server/ của gốc e4f927f ──
+Lệnh: python3 viec/KHO-1/dot_bien.py --goc e4f927f
+  7 đạt · 87 hỏng
+  GỐC e4f927f: thoát 1
+(7 xanh = 6 ca K5 ở trên + A5 — bài đọc client/ ở cây hiện tại, server/ ở gốc.)
+
+Trên code đã vá (HEAD 3fbb608): node cong_cu/thu_KHO1.js → 94 đạt · 0 hỏng
+(dòng SỐ CA cũ thay bằng dòng ở cuối file — bài đã thêm ca sau vòng soát 1)
+
+── Vòng soát 1 (28.10): thêm ca KHOÁ cho lỗi người soát bắt — bài HEAD cd2b774 ──
+(a) trên server/ TRƯỚC vòng sửa (25a7c99 — bài mới, code cũ): python3 viec/KHO-1/dot_bien.py --goc 25a7c99
+  ✗ F1 ... "mon_tao_an":4,"cong_thuc_ghi":4 ...        (hai món SX cùng mã trong một lô)
+  ✗ F2 đủ 8 loại cảnh báo ...  — thiếu THIEU_GIA
+  ✗ F7 nhóm nguyên liệu: Dược liệu 7 · Rau củ quả 5  — [{"ten":"Dược liệu","so":0},{"ten":"Rau củ quả","so":5}]
+  ✗ F21 nhóm "Dược liệu" chủ quán tạo trước: nhập dùng lại nhóm đó
+  ✗ G4 Dưỡng Nhan Lộ ... — 4 dòng (công thức An Mi Lộ nhét vào DNL)
+  ✗ F16 bản mới hơn ...
+  ✗ I16 nhân viên KHÔNG thấy giá nhập (giá vốn)
+  ✗ I17 chọn "—" (nhom_id null) → bỏ món khỏi nhóm thật
+  ✗ J6 thiếu một bảng kho (nâng cấp hỏng): /backup/info, /export-all, /restore vẫn 200  — HTTP 500 ×3
+  ✗ K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA  — HTTP 404
+  ✗ K6 manager / staff bật bán → 403
+  ✗ K7 chủ quán bật bán → tạo đơn món đó 200  — HTTP 404 | HTTP 400 · Sản phẩm không tồn tại hoặc đã ngừng bán
+  91 đạt · 12 hỏng · GỐC 25a7c99: thoát 1
+(b) trên gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 9 đạt · 94 hỏng · thoát 1
+    9 xanh = A5 (bài đọc client/ hiện tại) + ca K5 "phải KHÔNG đổi": D1, F10, F12, F13, K1, K1b, K2, J6 (gốc chưa có bảng kho nên sao lưu
+    không thiếu gì — J6 đỏ thật ở (a)).
+Trên code đã vá (HEAD cd2b774): node cong_cu/thu_KHO1.js → 103 đạt · 0 hỏng
+(dòng SỐ CA vòng 1 thay bằng dòng ở cuối file — bài thêm ca sau vòng soát 2)
+
+── Vòng soát 2 (28.10): ca KHOÁ cho lỗi vòng 2 — bài HEAD e5a4e57 ──
+(a) server/ TRƯỚC vòng sửa 2 (e1197a8): python3 viec/KHO-1/dot_bien.py --goc e1197a8
+  ✗ I18 vai trò lạ (không phải chủ / quản lý) cũng KHÔNG thấy giá nhập
+  ✗ E18 nhóm không có thật → 400, không lưu nhóm rác  — HTTP 200
+  ✗ J3 kho ĐANG có dữ liệu: khôi phục BỎ QUA bảng kho ... (ca giờ đòi code KHO_CO_DU_LIEU)
+  ✗ J7 đếm kho lỗi → bỏ qua bảng kho với lý do ĐÚNG (không đếm được)
+  ✗ K4 bật bán món CHƯA có giá → 400 CHUA_CO_GIA  — HTTP 404
+  ✗ K6 manager / staff bật bán → 403
+  ✗ K7 chủ quán bật bán → tạo đơn món đó 200  — HTTP 404 | HTTP 400
+  ✗ K8 bật lại món đang bán → vẫn bán; KHÔNG có đường ẩn món (404)  — HTTP 404 | HTTP 200
+  ✗ K9 "có giá" cùng nghĩa với menu quầy (số > 0): giá dạng chữ → 400 CHUA_CO_GIA  — HTTP 404
+  99 đạt · 9 hỏng · GỐC e1197a8: thoát 1
+(b) gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 9 đạt · 99 hỏng · thoát 1
+Trên code đã vá (HEAD e5a4e57): node cong_cu/thu_KHO1.js → 108 đạt · 0 hỏng
+(dòng SỐ CA vòng 2 thay bằng dòng ở cuối file — vòng sửa 3 đổi ca K theo phiếu mục 7)
+
+── Vòng sửa 3 (28.10, phiếu mục 7 — câu 4 = (a)): bài sửa TRƯỚC, commit d5005ab ──
+Bỏ ca K4–K9 cũ của đường "Bật bán" (đường bị gỡ); F1/F2/F9/K1 đổi theo món tạo is_active = 1 giá 0; thêm F2b, K4–K7 mới
+(K6 = bất biến "menu báo bán được → POST /orders nhận", đo cả menu dự phòng lẫn menu SX nối thật).
+(a) server/ TRƯỚC vòng sửa 3 (48b16a9): python3 viec/KHO-1/dot_bien.py --goc 48b16a9
+  ✗ F1 xem trước 200: 12 nguyên liệu thêm, 3 nhóm sản phẩm, 3 món tạo mới, 3 món có công thức  — "mon_tao_an":3 (chưa có mon_tao)
+  ✗ F2 đủ 8 loại cảnh báo ...  — thiếu MON_CHUA_GIA
+  ✗ F2b lời xem trước: "Món Dưỡng Nhan Lộ đã tạo, chưa có giá — đặt giá là bán được"
+  ✗ F9 món SX chưa có ở POS → tạo is_active = 1 giá 0 ...  — is_active 0 cả ba món
+  ✗ K1 menu dự phòng: mọi món CŨ y hệt trước khi nhập; thêm đúng 3 món tạo mới, cả 3 "Chưa có giá"  — []
+  ✗ K4 món tạo từ nhập, CHƯA đặt giá: menu dự phòng + menu SX có tea_1, sellable false; tạo đơn → 400  — [null,false]
+  ✗ K5 đặt giá (PUT /products/price) → menu dự phòng + menu SX sellable true VÀ tạo đơn món đó 200  — HTTP 200 | HTTP 400
+  ✗ K6 bất biến: mọi món menu báo bán được (dự phòng + SX) → POST /orders nhận  — 5 món · SX tea_1: HTTP 400 · Sản phẩm không tồn tại hoặc đã ngừng bán
+  ✗ K7 đường "Bật bán" đã bỏ (404) — không còn bước thứ hai  — HTTP 200
+  98 đạt · 9 hỏng · GỐC 48b16a9: thoát 1
+  (K6 đỏ đúng lỗi soát vòng 2 số 2: menu SX nối thật báo bán được, tạo đơn 400.)
+(b) gốc e4f927f: python3 viec/KHO-1/dot_bien.py --goc e4f927f → 11 đạt · 96 hỏng · thoát 1
+Trên code đã vá: node cong_cu/thu_KHO1.js → 107 đạt · 0 hỏng
+(dòng SỐ CA vòng 3 thay bằng dòng ở cuối file — vòng sửa 4 đổi ca theo phiếu mục 10–12)
+
+── Vòng sửa 4 (28.10, phiếu mục 10–12 — chat soát thay): bài sửa TRƯỚC, commit 1c20bc1 ──
+F1/F2/F9/F11/K1 đổi theo: món không khoá nối SX (CF01) KHÔNG tạo, món tạo giá NULL; thêm F2b (CF01 không có lời "đã tạo"), F2c (lời
+"chưa nối được với SX"), H2 (danh sách sản phẩm trả giá cho ô Thiếu thông tin), K8 (đường lưu giá hàng loạt của màn Cài đặt, đúng danh
+sách GET /products ở menu dự phòng), K9 (bất biến chạy lại sau K8); K1b so giá nguyên giá trị (null ≠ 0).
+(a) server/ TRƯỚC vòng sửa 4 (8d79a0c = server của vòng 3): node cong_cu/thu_KHO1.js trên cây 1c20bc1
+  ✗ F1 xem trước 200: ... 2 món tạo mới (Cà Phê Đen không khoá nối → không tạo) ...  — "mon_tao":3
+  ✗ F2 đủ 9 loại cảnh báo ...  — thiếu MON_CHUA_NOI
+  ✗ F2b lời xem trước ...; Cà Phê Đen KHÔNG có lời "đã tạo"  — ... | Món Cà Phê Đen đã tạo, chưa có giá — đặt giá là bán được | ...
+  ✗ F2c món không khoá nối SX: "Món Cà Phê Đen chưa nối được với SX — thêm mới trong POS sau" (đúng một lời)
+  ✗ F9 món SX chưa có ở POS → tạo is_active = 1 giá NULL ...; KHÔNG tạo CF01  — CF01 caphe/null giá 0; CF02, DNL giá 0
+  ✗ F11 kiểu: ... Cà Phê Đen không tạo nên không có dòng kiểu  — có CF01 chua_dinh_luong
+  ✗ K1 menu dự phòng: ... thêm đúng 2 món tạo mới ... giá null; không có caphe_null  — [["caphe_5",false,0],["caphe_null",false,0],["tea_1",false,0]]
+  ✗ K1b menu khi SX nối thật ...  — caphe_5 / tea_1 null → 0
+  ✗ H2 "Thiếu thông tin" món: danh sách sản phẩm trả giá ...  — không có trường price
+  ✗ K8 màn giá lưu hàng loạt (PUT /products/batch/prices ...)  — HTTP 500 · SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_products.code · 11 món · sót caphe_null, tea_1, juice_1..8
+  101 đạt · 10 hỏng · thoát 1
+  (K8 tái hiện đúng lỗi soát vòng 3 số 1: caphe_null → nhánh INSERT code CF01 → 500 giữa vòng lặp, món trước đã đổi giá, món sau không.)
+  Lặp lại bằng python3 viec/KHO-1/dot_bien.py --goc 8d79a0c → cùng 10 ca ✗ · 101 đạt · 10 hỏng · GỐC 8d79a0c: thoát 1
+Trên code đã vá: node cong_cu/thu_KHO1.js → 111 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 111

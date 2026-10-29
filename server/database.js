@@ -16,6 +16,7 @@ const { createClient } = require('@libsql/client');
 const { cauHinhTurso, diaChiSX } = require('./ketNoiKho'); // POS-KHOTHU-v2
 
 let db = null;
+let nangCapHong = null;   // KHO-1: '<NNN_ten>: <lỗi>' khi một bước nâng cấp hỏng — đường kho trả 503, quầy vẫn mở
 
 /**
  * Khởi tạo database - Kết nối Turso
@@ -33,6 +34,9 @@ async function initDatabase() {
   // Tạo bảng và seed data
   await createTables();
   await seedDefaultData();
+  // KHO-1: nâng cấp dữ liệu đánh số (server/nang_cap/) — sau phần tạo bảng / seed cũ
+  nangCapHong = (await require('./nang_cap/chay').chayNangCap({ beginTransaction, query })).hong;
+  if (nangCapHong) console.error('❌ NÂNG CẤP DỮ LIỆU HỎNG — ' + nangCapHong);
 
   return db;
 }
@@ -1574,5 +1578,6 @@ module.exports = {
   beginTransaction,
   saveDatabase,
   laLoiBan,
-  CHO_BEGIN_MS
+  CHO_BEGIN_MS,
+  layNangCapHong: () => nangCapHong
 };

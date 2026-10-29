@@ -98,7 +98,20 @@ const BACKUP_TABLES = [
 
   // Nhật ký kỹ thuật — giữ để truy nguyên sự cố
   { name: 'pos_sync_logs', label: 'Nhật ký đồng bộ', key: 'id' },
-  { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' }
+  { name: 'pos_export_logs', label: 'Nhật ký xuất dữ liệu', key: 'id' },
+
+  // KHO-1: nâng cấp dữ liệu + kho (cha trước con). Khôi phục: kho_* chỉ khi kho trống, pos_nang_cap không bao giờ (POST /restore).
+  { name: 'pos_nang_cap', label: 'Nâng cấp dữ liệu', key: 'so' },
+  { name: 'kho_nhom_nguyen_lieu', label: 'Kho - Nhóm nguyên liệu', key: 'id' },
+  { name: 'kho_nha_cung_cap', label: 'Kho - Nhà cung cấp', key: 'id' },
+  { name: 'kho_nguyen_lieu', label: 'Kho - Nguyên liệu', key: 'id' },
+  { name: 'kho_nhom_cong_thuc', label: 'Kho - Nhóm công thức', key: 'id' },
+  { name: 'kho_san_pham', label: 'Kho - Sản phẩm', key: 'pos_product_id' },
+  { name: 'kho_cong_thuc', label: 'Kho - Công thức', key: 'id' },
+  { name: 'kho_dinh_muc', label: 'Kho - Định mức', key: 'id' },
+  { name: 'kho_phieu', label: 'Kho - Phiếu', key: 'id' },
+  { name: 'kho_lo', label: 'Kho - Lô', key: 'id' },
+  { name: 'kho_phieu_dong', label: 'Kho - Dòng phiếu', key: 'id' }
 ];
 
 // P26d (Q3, chủ quán mở rộng 18.10 + Q7a 19.10): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (chặn 400):
@@ -121,6 +134,12 @@ function chanTrangTien(res, wb) {
     error: `File có trang dính tiền (${bang.join(', ')}) — trang tiền không khôi phục bằng file. `
       + 'Xoá các trang đó khỏi file rồi khôi phục lại phần còn lại' });
   return true;
+}
+
+/** KHO-1: chỉ các bảng ĐANG CÓ — bước nâng cấp hỏng (thiếu bảng kho_*) không được kéo sập sao lưu, lúc cần sao lưu nhất. */
+async function bangDangCo() {
+  const co = new Set((await query("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name));
+  return BACKUP_TABLES.filter((t) => co.has(t.name));
 }
 
 /**
@@ -156,7 +175,7 @@ async function getProductsWithSxNames() {
 router.get('/info', authenticate, checkPermission('export_data'), async (req, res) => {
   try {
     const tables = [];
-    for (const t of BACKUP_TABLES) {
+    for (const t of await bangDangCo()) {
       const result = await query(`SELECT COUNT(*) as count FROM ${t.name}`);
       tables.push({
         name: t.name,
@@ -193,7 +212,7 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     const wb = XLSX.utils.book_new();
 
-    for (const t of BACKUP_TABLES) {
+    for (const t of await bangDangCo()) {
       // Đọc phân trang để không bị treo khi bảng có cột nặng.
       const rows = await readTablePaged(t.name, t.key);
       console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
@@ -290,7 +309,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
 
       let currentCount = 0;
       if (tableDef) {
-        const result = await query(`SELECT COUNT(*) as count FROM ${tableDef.name}`);
+        const result = await query(`SELECT COUNT(*) as count FROM ${tableDef.name}`).catch(() => [{ count: 0 }]);   // KHO-1: bảng chưa có
         currentCount = result[0]?.count || 0;
       }
 
@@ -335,6 +354,10 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     // P26d (7), chủ quán chốt Q3: trang tiền không khôi phục bằng file (ví chỉ ghi qua ghiVi, đơn qua đường bán) — chặn TRƯỚC
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
     if (chanTrangTien(res, wb)) return;
+    // KHO-1 (chủ quán 28.10): bảng kho_* CHỈ khôi phục khi kho đang TRỐNG (dựng lại máy mới) — đo MỘT lần trước vòng lặp; pos_nang_cap không bao giờ.
+    // Thiếu bảng kho (nâng cấp hỏng) → câu đếm lỗi → coi như kho CÓ dữ liệu: bỏ qua bảng kho, phần còn lại khôi phục như cũ.
+    const demKho = await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n').catch(() => null);
+    const khoTrong = !!demKho && Number(demKho[0].n) === 0;
 
     for (const sheetName of wb.SheetNames) {
       if (sheetName === '_Metadata') continue;
@@ -342,6 +365,12 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
       const tableDef = labelToTable[sheetName];
       if (!tableDef) {
         results.push({ sheet: sheetName, status: 'skipped', reason: 'Không nhận diện được bảng' });
+        continue;
+      }
+      if (tableDef.name === 'pos_nang_cap' || (tableDef.name.startsWith('kho_') && !khoTrong)) {
+        const [code, reason] = tableDef.name === 'pos_nang_cap' ? ['NANG_CAP_KHONG_KHOI_PHUC', 'Sổ nâng cấp dữ liệu không khôi phục bằng file']
+          : demKho ? ['KHO_CO_DU_LIEU', 'Bỏ qua bảng kho vì kho đang có dữ liệu'] : ['KHO_KHONG_DEM_DUOC', 'Bỏ qua bảng kho vì không đếm được kho (thiếu bảng?)'];
+        results.push({ sheet: sheetName, table: tableDef.name, status: 'skipped', code, reason });
         continue;
       }
 

@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   Tag,
-  FileText
+  FileText,
+  Warehouse
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 // POS-DODNO-v1: goi qua lop chung, KHONG fetch tran (luat banh coc cua bo kiem)
@@ -69,6 +70,7 @@ export default function Layout() {
     { to: '/balance', icon: Wallet, label: 'Số dư', permission: 'view_customer_balance' },
     { to: '/orders', icon: Package, label: 'Đơn hàng' },
     { to: '/registrations', icon: ClipboardList, label: 'Đăng ký mới' },
+    { to: '/kho', icon: Warehouse, label: 'Quản lý kho' },   // KHO-1 — BH-2 xếp lại vào menu 6 mục
     { to: '/discount-codes', icon: Tag, label: 'Mã chiết khấu', permission: 'manage_users' },
     { to: '/reports', icon: BarChart3, label: 'Báo cáo', permission: 'view_reports' },
     { to: '/refunds', icon: AlertCircle, label: 'Hoàn tiền', permission: 'approve_refund' },
