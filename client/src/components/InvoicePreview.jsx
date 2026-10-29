@@ -3,6 +3,7 @@
  * Hiển thị hóa đơn theo config và size được chọn
  */
 import { useMemo } from 'react';
+import { qrSvg } from '../utils/veQr';
 
 // Sample data for preview
 const SAMPLE_DATA = {
@@ -739,6 +740,88 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
             )}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HD-1 — MỘT TỜ hoá đơn bố cục mới. `to` = kết quả utils/hoaDon.js dungHoaDon (đã dựng đủ chữ + số); file này chỉ VẼ.
+// Máy in nhiệt lệnh thô (P17, sau) dùng `mon[].chu_giam` thay cho gạch ngang.
+// ═══════════════════════════════════════════════════════════════════════════
+const CO_TO = {
+  '58mm': { w: '58mm', chu: 9, qr: 64, bill: 30 },
+  '80mm': { w: '80mm', chu: 11, qr: 84, bill: 40 },
+  a5: { w: '148mm', chu: 13, qr: 110, bill: 52 },
+  a4: { w: '210mm', chu: 15, qr: 130, bill: 60 },
+};
+const hang = { display: 'flex', justifyContent: 'space-between', gap: 8 };
+const tieuDe = { ...hang, fontSize: '0.85em', fontWeight: 700, color: '#444', borderTop: '1px dashed #888', paddingTop: 4, marginTop: 6 };
+
+export function HoaDonTo({ to, size = '80mm', logo = '' }) {
+  const co = CO_TO[size] || CO_TO['80mm'];
+  const svg = useMemo(() => (to?.dau?.qr ? qrSvg(to.dau.qr) : ''), [to?.dau?.qr]);
+  if (!to) return null;
+  const { dau } = to;
+  return (
+    <div className="hoa-don-to" style={{ width: co.w, maxWidth: '100%', boxSizing: 'border-box', padding: '2mm', background: '#fff', color: '#000', fontFamily: 'Arial, sans-serif', fontSize: co.chu, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
+      {to.in_lai && <div style={{ textAlign: 'center', fontWeight: 700, border: '2px solid #000', padding: 2, marginBottom: 6 }}>{to.in_lai}</div>}
+      {to.canh_bao && <div style={{ textAlign: 'center', fontWeight: 700, border: '2px solid #000', padding: 2, marginBottom: 6 }}>{to.canh_bao}</div>}
+      <div style={{ textAlign: 'center' }}>
+        {logo && <img src={logo} alt="" style={{ maxWidth: 70, maxHeight: 70, display: 'block', margin: '0 auto 4px' }} />}
+        <div style={{ fontSize: '1.3em', fontWeight: 700 }}>{dau.ten_quan}</div>
+        {dau.dia_chi && <div style={{ fontSize: '0.9em' }}>{dau.dia_chi}</div>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '6px 0' }}>
+        <div>
+          <div style={{ fontSize: '0.85em' }}>{dau.chu_so_bill}</div>
+          <div style={{ fontSize: co.bill, fontWeight: 900, lineHeight: 1 }}>{dau.so_bill}</div>
+          {to.nhan && <div style={{ display: 'inline-block', border: '2px solid #000', padding: '1px 6px', fontWeight: 700, marginTop: 4 }}>{to.nhan}</div>}
+        </div>
+        {svg && (
+          <div style={{ textAlign: 'center', width: co.qr }}>
+            <div style={{ width: co.qr, height: co.qr }} dangerouslySetInnerHTML={{ __html: svg }} />
+            {dau.chu_qr && <div style={{ fontSize: '0.7em' }}>{dau.chu_qr}</div>}
+          </div>
+        )}
+      </div>
+      <div style={{ borderBottom: '1px dashed #888', paddingBottom: 4, marginBottom: 4 }}>
+        <div>{dau.gio}{dau.nhan_vien && <> · {dau.nhan_nv ? `${dau.nhan_nv}: ` : ''}{dau.nhan_vien}</>}</div>
+        <div>{dau.nhan_khach ? `${dau.nhan_khach}: ` : ''}<b>{dau.khach}</b></div>
+      </div>
+      {to.mon.map((m, i) => (
+        <div key={i} style={{ marginBottom: 3 }}>
+          <div style={hang}>
+            <span>{m.sl} x {m.ten}</span>
+            <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+              {m.tien_goc && <s style={{ color: '#666', marginRight: 4 }}>{m.tien_goc}</s>}
+              <b>{m.tien}</b>
+            </span>
+          </div>
+          {m.ghi_chu && <div style={{ paddingLeft: 12, fontStyle: 'italic', whiteSpace: 'pre-line' }}>— {m.ghi_chu}</div>}
+        </div>
+      ))}
+      <div style={{ borderTop: '1px dashed #888', paddingTop: 4, marginTop: 4 }}>
+        {to.tien.map((d) => (
+          <div key={d.khoa} style={d.dam ? { ...hang, fontWeight: 700, fontSize: '1.2em', borderTop: '1px solid #000', paddingTop: 3, marginTop: 3 } : hang}><span>{d.ten}</span><span>{d.tien}</span></div>
+        ))}
+      </div>
+      {to.thanh_toan.map((d) => (d.khoa === 'tieu_de_tt'
+        ? <div key={d.khoa} style={tieuDe}><span>{d.ten}</span></div>
+        : <div key={d.khoa} style={hang}><span>{d.ten}</span><span>{d.tien}</span></div>))}
+      {to.diem.map((d) => (d.khoa === 'tieu_de_diem'
+        ? <div key={d.khoa} style={tieuDe}><span>{d.ten}</span></div>
+        : <div key={d.khoa} style={d.dam ? { ...hang, fontWeight: 700 } : hang}><span>{d.ten}</span><span>{d.tien}</span></div>))}
+      {to.ma_diem && (
+        <div style={{ border: '1px dashed #000', padding: 4, marginTop: 6, textAlign: 'center' }}>
+          <div style={{ fontWeight: 700 }}>{to.ma_diem.chu}</div>
+          <div style={{ fontFamily: 'monospace', fontSize: '1.3em', letterSpacing: 1 }}>{to.ma_diem.ma}</div>
+        </div>
+      )}
+      {to.chan.length > 0 && (
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          {to.chan.map((c) => <div key={c.khoa} style={{ whiteSpace: 'pre-line' }}>{c.chu}</div>)}
+        </div>
       )}
     </div>
   );

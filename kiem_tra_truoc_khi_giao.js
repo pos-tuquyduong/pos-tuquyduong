@@ -494,6 +494,7 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
 }
 for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js', 'cong_cu/thu_GOI1.js', 'cong_cu/thu_KH1.js', 'cong_cu/thu_P2223.js', 'cong_cu/thu_P24.js', 'cong_cu/thu_BH1.js', 'cong_cu/thu_DIEMTHAT1.js', 'cong_cu/thu_P3.js']) chayBaiThat(bai);
 chayBaiThat('cong_cu/thu_UUDAI1.js');   // UUDAI-1: mã giảm & giá hạng, tinh-thu
+chayBaiThat('cong_cu/thu_HD1.js');   // HD-1: hoá đơn bố cục mới + QR + chữ tuỳ chỉnh (dòng riêng: thu_P3 neo mảng bài, đòi P3 đứng cuối)
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong

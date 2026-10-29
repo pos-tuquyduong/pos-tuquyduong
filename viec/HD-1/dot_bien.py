@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""HD-1 — đột biến cho MỖI chỗ vá: VS- (vá sai cách) và BV- (bỏ vá). Chạy ở GỐC kho:
+    python3 viec/HD-1/dot_bien.py [tên...]          (không tên = chạy hết; có ĐỐI CHỨNG trước)
+    python3 viec/HD-1/dot_bien.py --liet-ke          (chỉ in danh sách)
+    python3 viec/HD-1/dot_bien.py --goc <sha>        (bằng chứng ĐỎ: bài hiện tại trên server/ + client/src/ của commit sha)
+    python3 viec/HD-1/dot_bien.py --help             (in hướng dẫn này)
+
+Khuôn viec/DIEM-THAT-1/dot_bien.py: chép server/ và client/src/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink,
+chỉ đọc), thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, không bao giờ đếm là đạt, K3), chạy
+`node cong_cu/thu_HD1.js --goc <bản sao>`.
+BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Thoát 2 / bài sập hoặc đỏ mà không khớp mẫu = LẠC. Xanh trọn = SỐNG.
+Đối chứng (bản chưa đột biến) phải xanh trọn. Đột biến của veQr.js cần thư viện qrcode-generator có mặt ở client/node_modules.
+Không đụng server/ thật, data/, Turso.
+"""
+import os, re, shutil, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
+
+sys.dont_write_bytecode = True
+GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+HD, ND, SC, ST, IX, DB = ('server/routes/hoaDon.js', 'server/utils/nhanDiem.js', 'server/routes/signup-codes.js',
+                          'server/routes/settings.js', 'server/index.js', 'server/database.js')
+PV = 'client/src/components/InvoicePreview.jsx'
+CH, IP, VQ, PR = ('client/src/utils/hoaDon.js', 'client/src/utils/inPhieu.js', 'client/src/utils/veQr.js',
+                  'client/src/components/InvoicePrint.jsx')
+
+# (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
+DOT_BIEN = [
+  # ── A: cửa dữ liệu (server/routes/hoaDon.js) ──
+  ('BV-HD-DANG-NHAP', [(HD, "router.get('/:id', authenticate, async", "router.get('/:id', async", 1)], r'✗ A1 '),
+  ('VS-HD-N-THEO-TOTAL', [(HD, 'tienDiem: tienTinhDiem(o)', 'tienDiem: Number(o.total)', 1)], r'✗ A18'),
+  ('VS-HD-MA-DA-DUNG', [(HD, 'const dungDuocDiem = donHopLe && !m.diem_nhan_luc && gioDaQua', 'const dungDuocDiem = donHopLe && gioDaQua', 1)], r'✗ A10 '),
+  ('VS-HD-MA-HET-HAN', [(HD, "&& !m.diem_nhan_luc && gioDaQua <= ch.hanGio;", "&& !m.diem_nhan_luc;", 1)], r'✗ A18c '),
+  ('VS-HD-MA-DON-HUY', [(HD, "const donHopLe = o.status === 'completed' && o.payment_status === 'paid';", "const donHopLe = true;", 1)], r'✗ A28 '),
+  ('VS-HD-KHACH-QUEN-CO-MA', [(HD, '  if (o.customer_phone) return null;\n  const m = await queryOne', '  const m = await queryOne', 1)], r'✗ (A14|A23) '),
+  ('VS-HD-N-KHONG-TAT-CT', [(HD, 'if (ch.bat && dungDuocDiem)', 'if (dungDuocDiem)', 1)], r'✗ A15 '),
+  ('VS-HD-GIAM-MA-THEO-COT', [(HD, 'Math.max(0, gocTong - giamHang - giamFlash + phiGiao - tongDon)', 'so(o.discount)', 1)], r'✗ (A21|A12) '),
+  ('VS-HD-TT-BO-DON-LECH', [(HD, '  if (lech > 0) t[chinh] += lech;\n', '', 1)], r'✗ A29 '),
+  ('VS-HD-TT-CK-CU', [(HD, "o.payment_method === 'transfer' ? 'chuyen_khoan' : o.payment_method === 'balance' ? 'tai_khoan' : 'tien_mat'", "'tien_mat'", 1)], r'✗ A30 '),
+  ('VS-HD-DIEM-TRUOC-DON-SAU', [(HD, '(order_id IS NULL OR order_id < ?)', '(order_id IS NULL OR order_id <> ?)', 1)], r'✗ A24 '),
+  ('VS-HD-DIEM-DOI-QUA-BO', [(HD, "const doi = o.discount_code\n", "const doi = false\n", 1)], r'✗ A23b '),
+  ('VS-HD-DIEM-CONG-MOI-LOAI', [(HD, """o.status === 'completed' ? "type = 'earn'" : "type IN ('earn', 'adjust')\"""", '"1 = 1"', 1)], r'✗ A2[34] '),
+  ('VS-HD-SO-LAN-MOI-DON', [(HD, "FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]", "FROM pos_invoice_logs WHERE ? > 0', [o.id]", 1)], r'✗ A31 '),
+  ('VS-HD-GIA-HANG-BANG-GOC', [(HD, 'm.tier_unit_price != null && so(m.tier_unit_price) < goc ?', 'm.tier_unit_price != null ?', 1)], r'✗ A29 '),
+  ('VS-HD-SO-BILL-MA-DAY-DU', [(HD, "const soBill = (code) => String(code || '').split('-').pop();", "const soBill = (code) => String(code || '');", 1)], r'✗ A3 '),
+  ('BV-HD-KHONG-GHI', [(HD, "router.get('/:id', authenticate, async (req, res) => {\n  try {", "router.get('/:id', authenticate, async (req, res) => {\n  try {\n    await query(\"UPDATE pos_orders SET status = 'completed' WHERE id = ?\", [req.params.id]);", 1)], r'✗ A(28|34) '),
+  ('VS-HD-LO-LOI-NOI-BO', [(HD, "res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });", "res.status(500).json({ error: err.message });", 1)], r'✗ A36 '),
+  ('BV-MOUNT-HOA-DON', [(IX, "app.use('/api/pos/hoa-don', require('./routes/hoaDon'));", '', 1)], r'✗ A35 '),
+  # ── D: /nhan-diem và hoá đơn cùng một hàm ──
+  ('VS-ND-FLASH-HOI', [(ND, "if (Number(don.flash_discount) > 0) {", "if (false) {", 1)], r'✗ A12 '),
+  ('VS-ND-HE-SO-CO-DINH', [(ND, ': Math.round(diemGoc * ch.heSo)', ': Math.round(diemGoc * 2)', 1)], r'✗ A11 '),
+  ('VS-ND-TICH-DIEM-TAT', [(ND, "if (loy.loyalty_enabled !== '1' && loy.loyalty_enabled !== 'true') {", "if (false) {", 1)], r'✗ A17 '),
+  ('VS-ND-LAM-TRON', [(ND, 'Math.floor(tienDiem / moiBaoNhieu)', 'Math.round(tienDiem / moiBaoNhieu)', 1)], r'✗ A18'),
+  ('BV-ND-ROUTE-GOI-HAM', [(SC, 'tienDiem: tienTinhDiem(don)', 'tienDiem: Number(don.total || 0)', 1)], r'✗ A18b '),
+  # ── E: PUT /settings ──
+  ('BV-ST-KHONG-AN', [(ST, 'if (anBatBuoc.length) {', 'if (false) {', 1)], r'✗ E2 '),
+  ('VS-ST-KHONG-AN-THIEU-TONG', [(HD, "'phi_giao', 'tong',", "'phi_giao',", 1)], r'✗ E1'),
+  ('VS-ST-KHONG-AN-GIA-TRI-1', [(ST, "['true', '1'].includes(String(settings['invoice_an_' + k]))", "['true'].includes(String(settings['invoice_an_' + k]))", 1)], r'✗ E2b '),
+  ('VS-ST-SO-TO-BA', [(ST, "['1', '2'].includes(String(settings.invoice_so_to))", "['1', '2', '3'].includes(String(settings.invoice_so_to))", 1)], r'✗ E4 '),
+  ('VS-ST-GHI-TRUOC-KHI-KIEM', [(ST, "    // HD-1: mục bắt buộc của hoá đơn", "    for (const [k0, v0] of Object.entries(settings)) await run(\"INSERT OR REPLACE INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)\", [k0, String(v0), 'x']);\n    // HD-1: mục bắt buộc của hoá đơn", 1)], r'✗ E2 '),
+  ('VS-SEED-LECH', [(DB, "['invoice_chu_gia_goc', 'Giá gốc']", "['invoice_chu_gia_goc', 'Tiền hàng']", 1)], r'✗ E6 '),
+  # ── G: hàm thuần (client/src/utils/hoaDon.js) ──
+  ('VS-G-KHONG-AN-BO', [(CH, "an[k] = !KHONG_AN.includes(k) && laBat(", "an[k] = laBat(", 1)], r'✗ G33 '),
+  ('VS-G-KHONG-AN-THIEU-TM', [(CH, "'ck', 'tm', 'ghi_no', 'dua_tra',", "'ck', 'ghi_no', 'dua_tra',", 1)], r'✗ (G34|E1) '),
+  ('VS-G-KHONG-AN-TRONG-RONG', [(CH, 'if (KHONG_AN.includes(k) && !String(v).trim()) v = CHU_MAC_DINH[k];', '', 1)], r'✗ G36b '),
+  ('VS-G-CHU-CU-MAT', [(CH, "else if (KHOA_CU[k] && co(s, KHOA_CU[k])", "else if (false && KHOA_CU[k] && co(s, KHOA_CU[k])", 1)], r'✗ G41 '),
+  ('VS-G-KHOA-MOI-KHONG-DE', [(CH, "if (co(s, `invoice_chu_${k}`)) v =", "if (false) v =", 1)], r'✗ (G38|G42|G37) '),
+  ('VS-G-DEM-NGUONG', [(CH, 'qua: dai > gioiHan', 'qua: dai >= gioiHan', 1)], r'✗ G40 '),
+  ('VS-G-DEM-CHUA-DIEN', [(CH, 'const dai = dienChu(text, MAU_DEM).length;', 'const dai = String(text ?? "").length;', 1)], r'✗ G44 '),
+  ('VS-G-INLAI-LAN-1', [(CH, 'Math.max(2, (Number(hd?.so_lan_in) || 0) + 1)', 'Math.max(1, (Number(hd?.so_lan_in) || 0) + 1)', 1)], r'✗ G31 '),
+  ('BV-G-INLAI', [(CH, "in_lai: inLai ? d('in_lai') : null,", "in_lai: null,", 1)], r'✗ G30 '),
+  ('VS-G-INLAI-LAN-KHONG-TANG', [(CH, '(Number(hd?.so_lan_in) || 0) + 1)', '1)', 1)], r'✗ G31 '),
+  ('VS-G-CHAN-CA-HAI-TO', [(CH, "if (laKhach && hien('cam_on'))", "if (hien('cam_on'))", 1)], r'✗ G26 '),
+  ('VS-G-CHINH-SACH-CA-HAI-TO', [(CH, "if (laKhach && hien('chinh_sach'))", "if (hien('chinh_sach'))", 1)], r'✗ G26 '),
+  ('VS-G-SO-TO-MAC-DINH-1', [(CH, 'export const SO_TO_MAC_DINH = 2;', 'export const SO_TO_MAC_DINH = 1;', 1)], r'✗ G(25|28) '),
+  ('VS-G-SO-TO-RAC', [(CH, 'return n === 1 ? 1 : n === 2 ? 2 : SO_TO_MAC_DINH;', 'return n === 1 ? 1 : n >= 2 ? n : SO_TO_MAC_DINH;', 1)], r'✗ G28 '),
+  ('VS-G-GIAM-HANG-LUON-HIEN', [(CH, 'if (tien.giam_hang > 0 && hien(', 'if (hien(', 1)], r'✗ G12 '),
+  ('VS-G-PHI-GIAO-LUON-HIEN', [(CH, 'if (tien.phi_giao > 0 && hien(', 'if (hien(', 1)], r'✗ G20 '),
+  ('VS-G-N0-VAN-HUA', [(CH, 'if (m.diem > 0 && hien(\'ma_diem\'))', 'if (hien(\'ma_diem\'))', 1)], r'✗ G1[78] '),
+  ('VS-G-N0-KHONG-UU-DAI', [(CH, "else if (!(m.diem > 0) && m.uu_dai && hien('ma_uu_dai'))", "else if (!(m.diem > 0) && hien('ma_uu_dai'))", 1)], r'✗ G17 '),
+  ('VS-G-UU-DAI-HUA-DIEM', [(CH, "else if (!(m.diem > 0) && m.uu_dai && hien('ma_uu_dai')) maDiem = { chu: dienChu(chu.ma_uu_dai, { ...mau, gio: m.han_gio_uu_dai ?? 24 }), ma: m.ma };", "else if (m.uu_dai && hien('ma_uu_dai')) maDiem = { chu: dienChu(chu.ma_uu_dai, { ...mau, gio: m.han_gio_uu_dai ?? 24 }), ma: m.ma };", 1)], r'✗ G19b '),
+  ('VS-G-QR-KHONG-MA-GIU-THAM-SO', [(CH, ".replace(/([?&])ma=\\{ma\\}(&?)/, (_, sep, amp) => (amp ? sep : ''))\n", "\n", 1)], r'✗ G(15|45) '),
+  ('VS-G-QR-THAM-SO-DAU-SAI', [(CH, "(_, sep, amp) => (amp ? sep : '')", "(_, sep, amp) => (amp ? '&' : '')", 1)], r'✗ G45 '),
+  ('VS-G-QR-TRONG-VAN-IN', [(CH, "if (!/^https?:\\/\\/\\S+$/i.test(m)) return '';", "if (!m) return '';", 1)], r'✗ G46 '),
+  ('VS-G-QR-KHONG-MA-HOA', [(CH, 'encodeURIComponent(String(ma))', 'String(ma)', 1)], r'✗ G47 '),
+  ('VS-G-CHU-GIA-GOC-SAI', [(CH, "return `Giá gốc ${so(goc)} → ${so(hang)}`;", "return `Giá gốc ${so(hang)} → ${so(goc)}`;", 1)], r'✗ (G11|G48) '),
+  ('VS-G-TIEN-KHONG-LAM-TRON', [(CH, 'const x = Math.round(Number(n) || 0);', 'const x = Number(n) || 0;', 1)], r'✗ G53 '),
+  ('VS-G-DUA-TRA-LUON-HIEN', [(CH, 'if (hd?.khach_dua > 0 && hien', 'if (hien', 1)], r'✗ G52 '),
+  ('VS-G-HUY-KHONG-BAO', [(CH, "trangThai === 'cancelled' && hien('da_huy')", "false && hien('da_huy')", 1)], r'✗ G49 '),
+  ('VS-G-DIEM-DOI-LUON-HIEN', [(CH, 'if (diem.doi_qua > 0 && hien(', 'if (hien(', 1)], r'✗ G9 '),
+  ('VS-G-TEM-CAT-40', [(CH, "String(s).length > n ? String(s).slice(0, n - 1)", "String(s).length >= n ? String(s).slice(0, n - 1)", 1)], r'✗ (G57|F3) '),
+  # ── F: tem ──
+  ('BV-TEM-CHU-TUY-CHINH', [(IP, "moi = dungTem(don, nhomTheoMa, cfg, inLai, settings);", "moi = dungTem(don, nhomTheoMa, cfg, inLai);", 1)], r'✗ F2 '),
+  ('VS-TEM-CHAN-LAY-DAU', [(IP, "const chan = settings ? chuTem(settings, 'tem_chan', tenKhach) : '';", "const chan = dau;", 1)], r'✗ F2 '),
+  ('VS-TEM-KHACH-LE-TEN', [(IP, "const tenKhach = String(don?.customer_name || '').trim() === KHACH_LE ? '' : String(don?.customer_name || '').trim();", "const tenKhach = String(don?.customer_name || '').trim();", 1)], r'✗ F7 '),
+  # ── H: InvoicePrint đi qua cửa hoá đơn ──
+  ('BV-IN-QUA-CUA-HOA-DON', [(PR, 'api.get(`/hoa-don/${order.id}`)', 'Promise.reject(new Error("tat"))', 1)], r'✗ H1 '),
+  # ── C: QR (cần thư viện qrcode-generator trong client/node_modules) ──
+  ('VS-QR-DAO-MAU', [(VQ, 'q.isDark(r, c)', '!q.isDark(r, c)', 1)], r'✗ C1 '),
+  ('VS-QR-KHONG-VIEN', [(VQ, 'const le = 2, W = n + 2 * le;', 'const le = 0, W = n + 2 * le;', 1)], r'✗ C4 '),
+  # ── Vòng sửa 1 (soát độc lập): bill đúng tình trạng thực tế, mọi dòng có khoá chữ, dòng tiền không tắt được ──
+  ('VS-HD-HUY-DIEM-ADJUST', [(HD, """: "type IN ('earn', 'adjust')\"""", """: "type = 'earn'\"""", 1)], r'✗ A28b'),
+  ('VS-HD-UU-DAI-KHONG-DON', [(HD, 'uu_dai: uuDai && dungDuocUuDai,', 'uu_dai: uuDai && !m.claimed_at && gioDaQua <= CODE_EXPIRE_HOURS,', 1)], r'✗ A28c'),
+  ('VS-HD-UU-DAI-CLAIMED', [(HD, 'const dungDuocUuDai = donHopLe && !m.claimed_at && ', 'const dungDuocUuDai = donHopLe && ', 1)], r'✗ A28d'),
+  ('VS-HD-UU-DAI-DIEM-NHAN-LUC', [(HD, 'const dungDuocUuDai = donHopLe && !m.claimed_at', 'const dungDuocUuDai = donHopLe && !m.diem_nhan_luc && !m.claimed_at', 1)], r'✗ A28e'),
+  ('VS-HD-UU-DAI-HAN-CAU-HINH', [(HD, 'gioDaQua <= CODE_EXPIRE_HOURS;', 'gioDaQua <= ch.hanGio;', 1)], r'✗ A28f'),
+  ('VS-G-UU-DAI-GIO-DIEM', [(CH, 'gio: m.han_gio_uu_dai ?? 24 }', 'gio: m.han_gio }', 1)], r'✗ G79'),
+  ('VS-G-RESET-GHIM', [(CH, "!['ten_quan', 'dia_chi'].includes(k) || co(caiDat, `invoice_chu_${k}`)", 'true', 1)], r'✗ G78'),
+  # ── Vòng sửa 3 (soát lần 3): tự in chờ dữ liệu hoá đơn, mẫu xem trước phủ đủ khoá, lỗ của bài thử ──
+  ('BV-IN-TU-MO-KHONG-DOI-HD', [(PR, '!boIn.tu_mo || !sanSangDeIn || daTuMo.current', '!boIn.tu_mo || !sanSang || daTuMo.current', 1)], r'✗ H2 '),
+  ('VS-G-SAN-SANG-IN-BO-HD', [(CH, '(!coId || !!hd || !!hdLoi)', 'true', 1)], r'✗ G81'),
+  ('VS-G-MAU-THIEU-GIAM-MA', [(CH, "giam_ma: 3000, ma_giam: 'GIAM3K'", "giam_ma: 0, ma_giam: null", 1)], r'✗ G80'),
+  ('VS-G-MAU-THIEU-CK', [(CH, "{ loai: 'chuyen_khoan', so_tien: 10000 }, { loai: 'ghi_no', so_tien: 27800 }", "{ loai: 'ghi_no', so_tien: 37800 }", 1)], r'✗ G80'),
+  ('VS-G-MAU-THIEU-DOI-QUA', [(CH, 'doi_qua: 100, cong: 1, hien_co: 221 }', 'doi_qua: 0, cong: 1, hien_co: 321 }', 1)], r'✗ G80'),
+  ('VS-G-NHAN-TO-AN-DUOC', [(CH, "'so_bill', 'lien_khach', 'lien_luu', 'in_lai'", "'so_bill', 'in_lai'", 1)], r'✗ G34'),
+  ('VS-HD-NHAN-TO-AN-DUOC', [(HD, "'so_bill', 'lien_khach', 'lien_luu', 'in_lai'", "'so_bill', 'in_lai'", 1)], r'✗ E1'),
+  ('VS-QR-QUA-DAI-NEM', [(VQ, 'return { n: 0, hang: [] };   // chuỗi quá dài', "throw new Error('qr');   // chuỗi quá dài", 1)], r'✗ C5'),
+  ('VS-HD-ID-SO-MU', [(HD, r"/^[1-9]\d{0,14}$/.test(req.params.id) && Number.isSafeInteger(id) ?", "Number.isInteger(id) && id > 0 ?", 1)], r'✗ A2c'),
+  ('VS-HD-DIEM-HET-HAN-TINH', [(HD, '(expires_at IS NULL OR expires_at > ?)', '(1 = 1 OR ? IS NULL)', 1)], r'✗ A19c'),
+  ('VS-HD-DIEM-CONG-KHACH-KHAC', [(HD, 'WHERE order_id = ? AND customer_phone = ? AND ${loaiCong}', 'WHERE order_id = ? AND ? IS NOT NULL AND ${loaiCong}', 1)], r'✗ A19c'),
+  ('VS-HD-TT-LECH-AM-BO', [(HD, 'if (lech < 0) { const bot', 'if (false) { const bot', 1)], r'✗ A30c'),
+  ('VS-HD-SDT-KHONG-CHE', [(HD, 'sdt_che: cheSdt(o.customer_phone)', "sdt_che: String(o.customer_phone || '')", 1)], r'✗ A19b'),
+  ('VS-G-XEM-TRUOC-TEM-BO-CHU', [(CH, '...Object.fromEntries(chuAn), ', '', 1)], r'✗ F9'),
+  ('VS-HD-BALANCE-TIEN-MAT', [(HD, " : o.payment_method === 'balance' ? 'tai_khoan' : 'tien_mat'", " : 'tien_mat'", 1)], r'✗ A30b'),
+  ('VS-HD-LOG-XOA-MEM', [(HD, "WHERE order_id = ? AND is_deleted = 0'", "WHERE order_id = ?'", 1)], r'✗ A31b'),
+  ('VS-HD-KHONG-AN-THIEU-TIEN', [(HD, "'giam_ma', 'phi_giao', 'tong',", "'giam_ma', 'tong',", 1)], r'✗ E1'),
+  ('VS-HD-KHONG-AN-THIEU-THANH-TOAN', [(HD, "'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',", "'tu_tk', 'ck', 'tm',", 1)], r'✗ E1'),
+  ('VS-G-KHONG-AN-CLIENT-THIEU-GHI-NO', [(CH, "'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',", "'tu_tk', 'tu_tk_me', 'ck', 'tm',", 1)], r'✗ G34'),
+  ('VS-G-IN-LAI-CUNG', [(CH, "in_lai: inLai ? d('in_lai') : null,", "in_lai: inLai ? `IN LẠI · LẦN ${lan}` : null,", 1)], r'✗ G70'),
+  ('VS-G-NHAN-CUNG', [(CH, "nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',", "nhan_khach: 'Khách', nhan_nv: 'NV',", 1)], r'✗ G71'),
+  ('VS-G-QR-MA-CHET', [(CH, "const maDung = m?.ma && (m.diem > 0 || m.uu_dai) ? m.ma : null;", "const maDung = m?.ma;", 1)], r'✗ G72'),
+  ('VS-G-CONG-0-VAN-IN', [(CH, "if (diem.cong !== 0 && hien('diem_cong'))", "if (hien('diem_cong'))", 1)], r'✗ G73'),
+  ('BV-G-MAU-HOAN', [(CH, "  { khoa: 'hoan', nhan: 'Đơn hoàn tiền', hd: donTrangThai('refunded'), inLai: false },\n", "", 1)], r'✗ G74'),
+  ('VS-G-RESET-HANG-SO', [(CH, "return { ...CHU_MAC_DINH, ten_quan: chu.ten_quan, dia_chi: chu.dia_chi };", "return { ...CHU_MAC_DINH };", 1)], r'✗ G77'),
+  ('VS-TEM-IN-LAI-CUNG', [(IP, "chuInLai: inLai && settings ? chuTem(settings, 'tem_in_lai', tenKhach) : 'IN LẠI'", "chuInLai: 'IN LẠI'", 1)], r'✗ F8'),
+  # ── vòng sửa 4: tiêu đề THANH TOÁN · nhãn Khách / NV · % hạng thật ──
+  ('BV-G-TT-TIEU-DE-LUON', [(CH, "  if (tt.length) tt.unshift(dong('tieu_de_tt', ''));", "  tt.unshift(dong('tieu_de_tt', ''));", 1)], r'✗ G82 '),
+  ('VS-G-TT-TIEU-DE-TU-2-DONG', [(CH, "  if (tt.length) tt.unshift(dong('tieu_de_tt', ''));", "  if (tt.length > 1) tt.unshift(dong('tieu_de_tt', ''));", 1)], r'✗ G82 '),
+  ('BV-G-NHAN-KHACH-NV-KHONG-AN', [(CH, "nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',", "nhan_khach: d('nhan_khach'), nhan_nv: d('nhan_nv'),", 1)], r'✗ G83 '),
+  ('VS-G-NHAN-NV-KHONG-AN', [(CH, "nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',", "nhan_nv: d('nhan_nv'),", 1)], r'✗ G83 '),
+  ('VS-PV-NHAN-KHACH-GHEP-CUNG', [(PV, "<div>{dau.nhan_khach ? `${dau.nhan_khach}: ` : ''}<b>{dau.khach}</b></div>", "<div>{dau.nhan_khach}: <b>{dau.khach}</b></div>", 1)], r'✗ G84 '),
+  ('VS-PV-NHAN-NV-GHEP-CUNG', [(PV, "{dau.nhan_nv ? `${dau.nhan_nv}: ` : ''}{dau.nhan_vien}", "{dau.nhan_nv}: {dau.nhan_vien}", 1)], r'✗ G84 '),
+  ('BV-G-PHAN-TRAM-GIU-DU', [(CH, "mau.phan_tram === undefined || mau.phan_tram === null || mau.phan_tram === '';", "false;", 1)], r'✗ G85 '),
+  ('VS-G-PHAN-TRAM-0-LA-RONG', [(CH, "|| mau.phan_tram === '';", "|| !mau.phan_tram;", 1)], r'✗ G85 '),
+  ('BV-HD-PHAN-TRAM-THEO-HANG', [(HD, "phan_tram: o.customer_tier ? phanTramHang : null,", "phan_tram: o.customer_tier ? Number((await queryOne('SELECT discount_percent FROM pos_membership_tiers WHERE name = ? ORDER BY id LIMIT 1', [o.customer_tier]))?.discount_percent) || 0 : null,", 1)], r'✗ A19d '),
+  ('VS-HD-PHAN-TRAM-DONG-DAU', [(HD, "phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null", "phanTramDong.length ? phanTramDong[0] : null", 1)], r'✗ A19d '),
+  ('VS-HD-PHAN-TRAM-TINH-DONG-KHONG-GIAM', [(HD, "items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map(", "items.map(", 1), (HD, "so(m.unit_price) - so(m.tier_unit_price)) * 100", "so(m.unit_price) - so(m.tier_unit_price ?? m.unit_price)) * 100", 1)], r'✗ A19d '),
+]
+
+
+def ban_sao(thay, goc_sha=None):
+  """Chép server/ + client/src/ ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
+  tmp = tempfile.mkdtemp(prefix='dotbien_hd1_')
+  if goc_sha:
+    import io, tarfile
+    tar = subprocess.run(['git', 'archive', goc_sha, 'server', 'client/src'], cwd=GOC, capture_output=True, check=True).stdout
+    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
+  else:
+    shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
+    shutil.copytree(os.path.join(GOC, 'client', 'src'), os.path.join(tmp, 'client', 'src'))
+  os.makedirs(os.path.join(tmp, 'client'), exist_ok=True)
+  os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+  os.symlink(os.path.join(GOC, 'client', 'node_modules'), os.path.join(tmp, 'client', 'node_modules'))
+  for f, goc, moi, n in thay:
+    p = os.path.join(tmp, f)
+    if not os.path.realpath(p).startswith(os.path.realpath(tmp) + os.sep):
+      return tmp, f'{f}: đích ghi nằm NGOÀI thư mục tạm'   # K5
+    s = open(p, encoding='utf-8').read()
+    if s.count(goc) != n:
+      return tmp, f'{f}: khớp {s.count(goc)} lần, cần {n}'
+    open(p, 'w', encoding='utf-8').write(s.replace(goc, moi))
+  return tmp, None
+
+
+def chay_bai(tmp):
+  r = subprocess.run(['node', os.path.join(GOC, 'cong_cu', 'thu_HD1.js'), '--goc', tmp], cwd=GOC, capture_output=True, text=True, timeout=300)
+  return r.returncode, (r.stdout or '') + (r.stderr or '')
+
+
+def chay(ten, thay, mau):
+  tmp, loi = ban_sao(thay)
+  try:
+    if loi:
+      return ten, 'HỎNG', loi
+    ma, ra = chay_bai(tmp)
+    if '--in-ra' in sys.argv: print(f'── {ten}: 12 dòng cuối ──\n' + '\n'.join(ra.strip().splitlines()[-12:]))
+    hong = [l.strip() for l in ra.splitlines() if '✗' in l]
+    if ma == 2 or 'Bài thử sập' in ra:
+      return ten, 'LẠC', 'bài sập: ' + (hong[-1] if hong else ra.strip().splitlines()[-1][:160] if ra.strip() else '')
+    if ma == 0:
+      return ten, 'SỐNG', 'bài xanh trọn'
+    khop = [l for l in hong if re.search(mau, l)]
+    return (ten, 'BẮT', khop[0][:140]) if khop else (ten, 'LẠC', f'đỏ nhưng không khớp {mau}: ' + ' | '.join(h[:60] for h in hong[:3]))
+  except subprocess.TimeoutExpired:
+    return ten, 'LẠC', 'quá hạn 300 s'
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def doi_chung():
+  tmp, _ = ban_sao([])
+  try:
+    ma, ra = chay_bai(tmp)
+    m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
+    hong = [l.strip() for l in ra.splitlines() if '✗' in l]
+    chi_c0 = all(l.startswith('✗ C0') for l in hong)   # thư viện QR chưa cài là lỗi đã biết, không phải lỗi của đột biến
+    return m is not None and (m.group(2) == '0' or (chi_c0 and m.group(2) == '1')), (m.group(0) if m else ra[-200:])
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def chay_goc(sha):
+  """Bằng chứng ĐỎ trên code chưa vá: chạy bài thử HIỆN TẠI với server/ + client/src/ của commit `sha` (git archive, bản chép thật)."""
+  tmp, _ = ban_sao([], sha)
+  try:
+    ma, ra = chay_bai(tmp)
+    print('\n'.join(l for l in ra.strip().splitlines() if '✗' in l or 'đạt ·' in l or 'sập' in l))
+    print(f'GỐC {sha}: thoát {ma}')
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+if __name__ == '__main__':
+  if '--help' in sys.argv or '-h' in sys.argv:
+    print(__doc__); sys.exit(0)
+  if '--goc' in sys.argv:
+    chay_goc(sys.argv[sys.argv.index('--goc') + 1]); sys.exit(0)
+  chon = [a for a in sys.argv[1:] if not a.startswith('--')]
+  if '--liet-ke' in sys.argv:
+    for t, *_ in DOT_BIEN: print(t)
+    sys.exit(0)
+  ds = [d for d in DOT_BIEN if not chon or d[0] in chon]
+  if chon and len(ds) != len(chon):
+    sys.exit('tên không có trong danh sách: ' + ', '.join(set(chon) - {d[0] for d in ds}))
+  ok, dong = doi_chung()
+  print(f'ĐỐI CHỨNG (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
+  if not ok:
+    sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
+  with ThreadPoolExecutor(max_workers=4) as ex:
+    kq = list(ex.map(lambda d: chay(*d), ds))
+  for ten, tt, ghi in kq: print(f'{tt:5} {ten} — {ghi}')
+  dem = {t: sum(1 for _, x, _ in kq if x == t) for t in ('BẮT', 'SỐNG', 'HỎNG', 'LẠC')}
+  print(f'TỔNG {len(kq)} đột biến · BẮT {dem["BẮT"]} · SỐNG {dem["SỐNG"]} · HỎNG {dem["HỎNG"]} · LẠC {dem["LẠC"]}')
+  sys.exit(0 if dem['BẮT'] == len(kq) else 1)
