@@ -4,7 +4,7 @@
  * KHO-2a — pha chế, phiếu xuất (tạo · duyệt · từ chối · huỷ · sửa · kết quả), tồn. Tồn = Σ dòng phiếu da_duyet; còn lại theo lô = Σ dòng theo lo_id.
  */
 const { addDaysToDateString } = require('../utils/helpers');
-const { gonTen, chuanHoaTen, doiDonVi, laTrungKhoa, SAP_HET_HAN_NGAY, thuCuaNgay, chonDinhMuc, canLam, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong,
+const { gonTen, chuanHoaTen, doiDonVi, laTrungKhoa, SAP_HET_HAN_NGAY, thuCuaNgay, chonDinhMuc, canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong,
   trangThaiKetQua, trangThaiHan, bangPhieu } = require('./tinh');
 
 const soHoacNull = (x) => (x === '' || x == null || !Number.isFinite(Number(x)) ? null : Number(x));
@@ -94,7 +94,7 @@ const theoId = (ds, khoa = 'id') => new Map(ds.map((r) => [Number(r[khoa]), r]))
 const dauHoi = (ds) => ds.map(() => '?').join(', ');
 
 /** Hạn lô = giờ làm + N ngày theo lịch (giữ giờ). N không phải số dương → lô không hạn. */
-const hanLo = (luc, ngay) => (Number(ngay) > 0 ? addDaysToDateString(luc, Number(ngay)) + String(luc).slice(10) : null);
+const hanLo = (luc, ngay) => (soNgayNguyen(ngay) ? addDaysToDateString(luc, soNgayNguyen(ngay)) + String(luc).slice(10) : null);
 
 /** Công tắc "Nhân viên xuất kho cần duyệt": CHỈ '0' là tắt — không có dòng / giá trị lạ (khôi phục sao lưu không qua kiểm) = cần duyệt. */
 const nvCanDuyet = async (csdl) => String((await csdl.queryOne('SELECT value FROM pos_settings WHERE key = ?', [KHOA_CONG_TAC]))?.value) !== '0';
