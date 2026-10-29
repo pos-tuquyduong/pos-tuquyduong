@@ -235,6 +235,17 @@ async function main() {
     await flash('true', await hhmm(-3600), await hhmm(3600), 0);
     const d4 = (await goi('GET', '/kh/gio-vang')).j;
     k('D4 % = 0 → dang_chay false (cùng điều kiện quầy)', d4.dang_chay === false, JSON.stringify(d4));
+    await flash('true', await hhmm(-3600), await hhmm(3600), 20);
+    await datCaiDat('flash_product_keys', '[]');
+    const d6 = (await goi('GET', '/kh/gio-vang')).j;
+    k('D6 bật, có %, KHÔNG có món → như tắt: dang_chay false, phan_tram 0, mon [], bat_dau null (một vị từ)', d6.dang_chay === false && d6.phan_tram === 0
+      && bang(d6.mon, []) && d6.bat_dau === null, JSON.stringify(d6));
+    k('D7 khung qua nửa đêm, giờ CỐ ĐỊNH: 00:30 → bắt đầu hôm qua 22:00 · 23:00 → hôm nay · khung 14–16 lúc 10:00 → hôm nay', !!HD?.khungHangNgay
+      && bang(HD.khungHangNgay('2026-11-02T00:30:00', '22:00', '02:00'), { mo: '2026-11-01T22:00:00', dong: '2026-11-02T02:00:00' })
+      && bang(HD.khungHangNgay('2026-11-02T23:00:00', '22:00', '02:00'), { mo: '2026-11-02T22:00:00', dong: '2026-11-03T02:00:00' })
+      && bang(HD.khungHangNgay('2026-11-02T10:00:00', '14:00', '16:00'), { mo: '2026-11-02T14:00:00', dong: '2026-11-02T16:00:00' }));
+    k('D7 /gio-vang dựng khung bằng khungHangNgay(bayGio, …) — không công thức riêng',
+      /khungHangNgay\(bayGio, f\.start, f\.end\)/.test(fs.readFileSync(path.join(GOC, 'server', 'routes', 'kh', 'index.js'), 'utf8')));
     await datCaiDat('flash_enabled', 'false');
     k('D5 không có trường "suất" (POS không đếm suất)', d1.status === 200 && !/suat/.test(d1.tho), d1.tho.slice(0, 120));
   });
@@ -259,6 +270,15 @@ async function main() {
       .every((kk) => kk in p)) && bang(Object.keys(ds[0]).sort(), ['con_hang', 'gia', 'gia_hang', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc']), Object.keys(ds[0] || {}).join(','));
     k('E4 hạng 0 % → gia = giá gốc', ds.length > 0 && ds.every((p) => p.gia_hang?.find((g) => g.hang_id === hang0)?.gia === p.gia));
     k('E5 giaCacHang giá null / 0 → []', !!GH && bang(GH.giaCacHang(null, false, hang), []) && bang(GH.giaCacHang(0, true, hang), []));
+    // E6 — hạng đã tắt (xoá mềm) mà khách còn thẻ: quầy vẫn giảm (orders.js đọc % không lọc is_active) → /menu của khách đó cũng phải có giá.
+    const kt = await khachMoi();
+    await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at)
+      VALUES (?, ?, 'Đã tắt', 1, NULL, ?, ?)`, [kt.sdt, hangTat, (await luc(-86400)).replace('T', ' '), (await luc(86400)).replace('T', ' ')]);
+    const g6 = (((await goi('GET', '/kh/menu', undefined, kt.tk)).j.data || []).find((p) => p.ma === maMon(0))?.gia_hang || []);
+    const q6 = await tinhThu(kt.sdt, [mon(0)]);
+    k('E6 hạng ĐÃ TẮT, khách còn thẻ → /menu của khách đó có giá hạng đó = tier_unit_price quầy (31.500); khách khác không thấy hạng tắt',
+      g6.find((g) => g.hang_id === hangTat)?.gia === 31500 && q6.j.items?.[0]?.tier_unit_price === 31500
+      && !(ds.find((p) => p.ma === maMon(0))?.gia_hang || []).some((g) => g.hang_id === hangTat), `${JSON.stringify(g6)} · quầy ${q6.j.items?.[0]?.tier_unit_price}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -300,6 +320,16 @@ async function main() {
     ca('F6 dữ liệu lịch hỏng (nhập tay) → coi như chưa cài', '2026-11-08T03:00:00', HD.docCaiDat({ gio_hd_lich: '{hỏng' }), { dang_mo: true });
     k('F7 thứ: 01.11.2026 (Chủ nhật) → 8 · 02.11 → 2 · 07.11 → 7', HD.thuCua('2026-11-01') === 8 && HD.thuCua('2026-11-02') === 2 && HD.thuCua('2026-11-07') === 7);
     ca('F9 câu thông báo điền {gio_mo_lai} cùng ngày → chỉ giờ', '2026-11-02T06:00:00', cd(), { thong_bao: 'Mở lại lúc 07:00' });
+    const caTuan = Object.fromEntries([2, 3, 4, 5, 6, 7, 8].map((t) => [t, { nghi: true }]));
+    ca('F9 nghỉ cả tuần (không có giờ mở lại) → câu KHÔNG cụt', '2026-11-02T10:00:00', cd({ gio_hd_lich: JSON.stringify(caTuan) }),
+      { dang_mo: false, mo_lai_luc: null, thong_bao: 'Mở lại lúc (chưa có lịch)' });
+    const n30tron = HD.docCaiDat({ gio_hd_ngung_truoc_phut: '30' });
+    ca('F12 chưa cài lịch + ngừng trước 30 phút: 23:59 vẫn nhận đơn (mở cả ngày, không có giờ đóng)', '2026-11-02T23:59:00', n30tron, { dang_mo: true, nhan_don: true });
+    ca('F12 chưa cài lịch + N 30 + mai nghỉ: 23:30 → không nhận đơn (đóng thật 00:00)', '2026-11-02T23:30:00',
+      HD.docCaiDat({ gio_hd_ngung_truoc_phut: '30', gio_hd_ngay_nghi: JSON.stringify([{ ngay: '2026-11-03', ly_do: 'x' }]) }), { dang_mo: true, nhan_don: false });
+    const noi = cd({ gio_hd_ngung_truoc_phut: '30', gio_hd_lich: JSON.stringify({ ...LICH, 2: { mo: '07:00', dong: '00:00' }, 3: { mo: '00:00', dong: '22:00' } }) });
+    ca('F12 Thứ Hai 07:00–00:00 nối Thứ Ba 00:00–22:00: 23:45 Thứ Hai vẫn nhận đơn', '2026-11-02T23:45:00', noi, { dang_mo: true, nhan_don: true });
+    ca('F12 ca nối: 21:30 Thứ Ba (đóng 22:00) → không nhận đơn', '2026-11-03T21:30:00', noi, { dang_mo: true, nhan_don: false });
   });
 
   await chay('F8, F10, F11', async () => {
@@ -342,8 +372,12 @@ async function main() {
   const luiMa = async (ma, gio) => db.run('UPDATE pos_signup_codes SET issued_at = ? WHERE code = ?', [await luc(-gio * 3600), ma]);
   await chay('G2', async () => {
     await datCaiDat('nhandiem_han_gio', '48');
-    const ma30 = await donMa(), ma49 = await donMa(), maQuay = await donMa();
-    await luiMa(ma30, 30); await luiMa(ma49, 49); await luiMa(maQuay, 30);
+    const ma30 = await donMa(), ma49 = await donMa(), maQuay = await donMa(), maDuoi = await donMa(), maTren = await donMa();
+    await luiMa(ma30, 30); await luiMa(ma49, 49); await luiMa(maQuay, 30); await luiMa(maDuoi, 48 - 1 / 60); await luiMa(maTren, 48 + 1 / 60);
+    const rDuoi = await goi('POST', '/kh/nhan-ma-bill', { ma: maDuoi }, (await khachMoi()).tk);
+    const rTren = await goi('POST', '/kh/nhan-ma-bill', { ma: maTren }, (await khachMoi()).tk);
+    k('G2 ngưỡng: 47 giờ 59 phút → 200 · 48 giờ 1 phút → 400 MA_HET_HAN', rDuoi.status === 200 && rTren.status === 400 && rTren.j.code === 'MA_HET_HAN',
+      `${moTa(rDuoi)} · ${moTa(rTren)}`);
     const a = await khachMoi(), b = await khachMoi();
     const r30 = await goi('POST', '/kh/nhan-ma-bill', { ma: ma30 }, a.tk);
     const r49 = await goi('POST', '/kh/nhan-ma-bill', { ma: ma49 }, b.tk);
@@ -373,6 +407,7 @@ async function main() {
     const gh = (await goi('GET', '/kh/gio-hoat-dong')).j;
     const r5 = await ban(tron.sdt, [mon(0)], 45000);
     k('J5 quầy bán lúc quán "nghỉ cả tuần" theo giờ hoạt động → 200 (quầy KHÔNG bị chặn)', gh.dang_mo === false && r5.status === 200, `${gh.dang_mo} · ${moTa(r5)}`);
+    k('J5 câu báo khi không có giờ mở lại KHÔNG cụt đuôi', !!gh.thong_bao && !/\s$/.test(gh.thong_bao) && /chưa có lịch/.test(gh.thong_bao), JSON.stringify(gh.thong_bao));
     await datCaiDat('gio_hd_lich', '');
     const ma = await donMa();
     const r6 = await goi('POST', '/pos/signup-codes/nhan-diem', { code: ma, phone: (await khachMoi()).sdt }, tkChu);

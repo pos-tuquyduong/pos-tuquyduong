@@ -10,7 +10,9 @@
  *     + đơn + mã bill: 200 và mỗi đường `tra` có mặt (`a.b` · `x[].y` = mảng KHÔNG rỗng, mọi phần tử có y). Cửa token: true gọi không token
  *     → 401 KH_TOKEN_SAI; token: false → không 401.
  *  3. Mọi `code` thấy trong mọi câu trả lời (kể cả các ca lỗi dò thêm) ∈ ma_loi.
- *  4. Quét tĩnh server/routes/kh/index.js: route không có trong hợp đồng → ĐỎ; cửa hợp đồng không có route → ĐỎ.
+ *  4. Quét tĩnh server/routes/kh/index.js: route không có trong hợp đồng → ĐỎ; cửa hợp đồng không có route → ĐỎ. Bắt mọi `router.<x>(`
+ *     (get/post/…/all/use/route, mọi kiểu nháy); đường không phải chữ viết thẳng → ĐỎ. GIỚI HẠN: chỉ file index.js — router con gắn từ
+ *     file khác (router.use('/x', require(…))) hiện thành cửa "USE /x" → ĐỎ cho tới khi hợp đồng ghi; không theo vào file con.
  *  5. Quét tĩnh mã lỗi trả ra được qua /api/kh ∈ ma_loi. GIỚI HẠN (K4 TU-CHAY-6): chỉ các nguồn liệt kê ở NGUON_MA — không theo hàm phụ
  *     khác; thêm hàm phụ trả `code` cho /api/kh thì thêm nó vào NGUON_MA.
  *  6. Phần chữ: PHIEN_BAN = phien_ban, nhật ký có dòng vN, mỗi cửa một dòng bảng, mỗi mã lỗi có trong mục Mã lỗi.
@@ -90,7 +92,13 @@ async function main() {
   // ── 4. Quét tĩnh route ───────────────────────────────────────────────────
   muc('[I4] route của server/routes/kh/index.js = cửa của hợp đồng');
   const src = boChuThich(doc('server', 'routes', 'kh', 'index.js'));
-  const route = new Set([...src.matchAll(/router\.(get|post|put|delete|patch)\(\s*'([^']+)'/g)].map((m) => `${m[1].toUpperCase()} ${m[2]}`));
+  // Mọi lời gọi router.<x>( — có đường chữ (mọi kiểu nháy) thì thành cửa (all / use / route cũng là cửa, phải có trong hợp đồng mới qua);
+  // router.use(<middleware>) không đường được phép; còn lại (đường là biến…) → cửa không đọc được → ĐỎ.
+  const goiRouter = [...src.matchAll(/router\.(\w+)\(\s*(?:(['"`])([^'"`]+)\2)?/g)];
+  const route = new Set(goiRouter.filter((m) => m[3]).map((m) => `${m[1].toUpperCase()} ${m[3]}`));
+  const khongDoc = goiRouter.filter((m) => !m[3] && !(m[1] === 'use' && /^router\.use\(\s*[A-Za-z_]\w*\s*\)/.test(src.slice(m.index))));
+  k('mọi router.<x>( của kh/index.js đọc được đường (chỉ router.use(<middleware>) được không đường)', khongDoc.length === 0,
+    khongDoc.map((m) => src.slice(m.index, m.index + 40)).join(' | '));
   const cua = new Set(HD.cua.map(ten));
   const la = [...route].filter((r) => !cua.has(r)), mat = [...cua].filter((c) => !route.has(c));
   k(`mọi route dưới /api/kh (${route.size}) có trong hợp đồng`, route.size > 0 && la.length === 0, la.join(', '));
