@@ -8,7 +8,16 @@
      (máy không mở được — quyết định đã chép dưới). Chạy SONG SONG: KH-API-2 (orders.js, Cài đặt), HD-1 (hoá đơn), BH-2 (màn bán hàng,
      menu) — giữ đúng Cấm. -->
 
-**Chờ duyệt kế hoạch:** viết `viec/KHO-2a/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+**Đã duyệt (chủ quán 29.10, sau khi chat soát `ke_hoach.md` đầu nhánh `dfc45b4`):** kế hoạch duyệt nguyên (cả phần sửa theo soát). Máy làm tiếp
+từ bước 4 (`/lam-viec KHO-2a tiep`) tới hết, không dừng hỏi lại các điểm này:
+1. Tỉ lệ ra: CHỈ một ô Cài đặt "% lệch cho phép" theo nhóm món (vd ±10%) — so số thực ra với số chuẩn của công thức; lệch quá → cảnh báo vàng,
+   không chặn. Bỏ ô "% chuẩn".
+2. "Sắp hết hạn" ở màn Tồn: còn **1 ngày trở xuống** → đỏ; quá hạn → đỏ đậm.
+3. Công tắc "Nhân viên xuất kho cần duyệt": chỉ **chủ quán** bật / tắt.
+4. Lô nguyên liệu đã quá hạn: KHÔNG trừ khi xuất (bỏ qua, trừ lô còn hạn); xử lý bằng phiếu phát sinh ở KHO-2b.
+5. "Cho ngày mai": ô "đang có" chỉ tính lô thành phẩm còn hạn lúc 00:00 ngày mai (giờ Việt Nam).
+6. Sau khi tự chốt (qua ngày): KHÔNG cho điền kết quả nữa; sai thì chủ quán sửa phiếu (phiếu mới, có lý do).
+7. Huy hiệu "phiếu chờ duyệt": chỉ trong màn Kho ở việc này (không sửa menu `Layout.jsx` — BH-2 đang sửa menu); đưa ra menu chính làm sau.
 
 ## Mục tiêu
 Nhân viên pha chế mỗi sáng bấm vài lần là có phiếu xuất đúng định lượng, quản lý duyệt trên máy mình, in ra làm theo; kho tự trừ nguyên liệu
