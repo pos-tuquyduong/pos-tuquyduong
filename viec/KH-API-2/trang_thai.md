@@ -386,3 +386,11 @@ ngân sách bài thử (~667 dòng / ~500).
   InvoiceSettings) — ví dụ GioHoatDong.jsx vòng 1. Gộp vào dòng K5 sẵn có (KHUON_LOI.md gần trần).
 - BỎ 1: E15 bắt `18:00–02:00` trong chú thích — một lần, đã viết lại chú thích, không nới phép.
 - BỎ 2: người gác chặn chữ "token" trong nội dung ghi hồ sơ — đã có cách (Edit / Write), luật đúng; khung đóng băng tới khai trương.
+
+## Cổng (bước 11.4)
+`node tu_chay/cong.js chay . 68cbe9d^ HEAD viec/KH-API-2` ở HEAD 438a462, cây sạch → **✓ CỔNG CHẠY ĐẠT**, kèm 2 cảnh báo A16 (không chặn):
+- `thu_HOPDONG_KH.js` gốc 43 ca ≠ head 49: trên gốc hợp đồng là v1 (ít cửa hơn) nên bài sinh ít ca gọi cửa hơn — đúng bản chất, không phải dừng sớm.
+- `thu_KHAPI2.js` gốc 57 ca ≠ head 101: trên gốc chưa có `giaHang.js` / `gioHoatDong.js` nên khối A1–A2b, F1–F14 thay bằng một ca "nạp được" hỏng
+  (ghi ở `bang_chung_do.txt`) — bài dừng sớm từng khối có chủ ý.
+Git: `git log --oneline -2` → `438a462 KH-API-2 vong sua 4: trang thai, nghiem thu, bao cao 7 muc, bai hoc` · `3d99e5e KH-API-2 vong sua 4: dot bien moi ve dung cua dongThat (ho, gon), neo moi`
+HEAD ĐÃ KIỂM: 438a462
