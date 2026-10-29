@@ -5,7 +5,7 @@
  * trên chuỗi giờ VN → kết quả không phụ thuộc TZ máy chủ (Render chạy UTC).
  * Cài đặt ở pos_settings (seed ở database.js):
  *   gio_hd_lich             JSON { "2": { mo, dong } | { nghi: true }, …, "8": … } — thứ 2–7 = Thứ Hai–Thứ Bảy, 8 = Chủ nhật; '' = chưa cài
- *                           (mở cả ngày). dong < mo = qua nửa đêm (18:00–02:00: 01:00 hôm sau còn mở theo lịch hôm trước).
+ *                           (mở cả ngày). dong < mo = qua nửa đêm (mở 18:00, đóng 02:00 → 01:00 hôm sau còn mở theo lịch hôm trước).
  *   gio_hd_ngay_nghi        JSON [{ ngay: 'YYYY-MM-DD', ly_do }] — nghỉ cả ngày (bỏ ca BẮT ĐẦU ngày đó)
  *   gio_hd_thong_bao        câu ngoài giờ, `{gio_mo_lai}` tự điền giờ mở lại
  *   gio_hd_ngung_truoc_phut App ngừng nhận đơn trước giờ đóng N phút (mặc định 0)
