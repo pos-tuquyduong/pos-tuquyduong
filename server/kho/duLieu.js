@@ -93,7 +93,7 @@ const DA_DUYET = "p.trang_thai = 'da_duyet'";
 const theoId = (ds, khoa = 'id') => new Map(ds.map((r) => [Number(r[khoa]), r]));
 const dauHoi = (ds) => ds.map(() => '?').join(', ');
 
-/** Hạn lô = giờ làm + N ngày theo lịch (giữ giờ). N không phải số dương → lô không hạn. */
+/** Hạn lô = giờ làm + N ngày theo lịch (giữ giờ). N không phải số ngày nguyên hợp lệ (soNgayNguyen) → lô không hạn. */
 const hanLo = (luc, ngay) => (soNgayNguyen(ngay) ? addDaysToDateString(luc, soNgayNguyen(ngay)) + String(luc).slice(10) : null);
 
 /** Công tắc "Nhân viên xuất kho cần duyệt": CHỈ '0' là tắt — không có dòng / giá trị lạ (khôi phục sao lưu không qua kiểm) = cần duyệt. */
