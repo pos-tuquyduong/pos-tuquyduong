@@ -53,7 +53,7 @@ Tên đủ (59): BV-khoa-bo-ma, VS-khoa-tinh-ca-ghi-chu, VS-khoa-bo-khach, VS-kh
 ## Báo cáo 7 mục
 VIỆC:        BH-2 — Màn Bán hàng mới đợt 2: thu tiền thật (QR payOS · PIN · giữ tiền) · giá hạng + ưu đãi máy chủ tính · màn kết thúc HD-1 · menu 6 mục
 ĐÃ SỬA:      client/src/pages/BanHang/ (tinh.js, BanHangMoi.jsx, ThuTien.jsx, ManKetThuc.jsx, mới ManPin.jsx, ManQr.jsx); client/src/pages/QuanLy/ (mới menu.js, QuanLy.jsx, ThanhLoi.jsx); client/src/utils/api.js (thanhToanApi, hoaDonApi, ordersApi.tinhThu); client/src/components/Layout.jsx (menu qua dungMenu); client/src/App.jsx (route quan-ly, hom-nay, ThanhLoi); client/dist; cong_cu/thu_BH2.js (mới), kiem_tra_truoc_khi_giao.js (thêm thu_BH2.js).
-BÀI THỬ:     cong_cu/thu_BH2.js trên gốc cbbb809 → ĐỎ 6 đạt · 70 hỏng; sau khi vá → XANH 100 đạt · 0 hỏng. Đột biến 64/64 BẮT. npm test -- --day-du: PASS 81 · FAIL 0 · CẢNH BÁO 1.
+BÀI THỬ:     cong_cu/thu_BH2.js trên gốc cbbb809 → ĐỎ 6 đạt · 70 hỏng; sau khi vá → XANH 100 đạt · 0 hỏng. Đột biến 64/64 BẮT. npm test -- --day-du: PASS 81 · FAIL 0 · CẢNH BÁO 1 (chạy tại 93b7f76).
 ĐÃ RÀ K4:    grep "ordersApi.create" trong BanHang/ → 0 (S3); grep "fetch(" trong BanHang/ + QuanLy/ → 0 (S1); mọi chỗ tạo phiên (chayPhien) đều đi qua kiểm tổng/còn lại với số máy chủ; mọi lối chốt hỏng đều hỏi lại phiên trước khi nhả (tránh đơn đôi).
 CHƯA KIỂM:   (0) phiên QR mồ côi nếu phản hồi tạo phiên mất (phiên tự hết hạn sau 10 phút, ví bị giữ tạm); gõ thêm món trong lúc đang gửi thu có thể mất món (tiền không lệch); ManQr nuốt lỗi hỏi phiên; chưa có bài thử hành vi React cho chayPhien (chỉ hàm thuần + máy chủ thật + khoá cấu trúc); (1) chưa chạy giao diện trong trình duyệt (người gác chặn script có chữ "token"; vite build chỉ chứng minh cú pháp/nhập khẩu); (2) QR payOS thật, webhook thật, in thật (InvoicePrint tự in), tem thật — chưa thử; (3) chiết khấu riêng của khách không áp ở màn mới (xem Câu hỏi); (4) hạng/giá hạng ở lưới món vẫn tính ở máy khách để hiển thị, số trên giỏ/thu là của máy chủ; (5) kịch bản hai quầy cùng giữ một ví chỉ có ở bài P3, không lặp lại ở đây; (6) đồng hồ đếm ngược dựa đồng hồ máy khách, quyết định hết hạn luôn là trạng thái máy chủ; (7) chưa soát kế hoạch bằng agent phụ (bước 3); (8) tay: mở /?man=moi, thử khách lẻ tiền mặt, khách có tài khoản + PIN, QR trên điện thoại.
 GIT:         xem dòng log ở cuối file.
@@ -75,3 +75,10 @@ Không đổi: gọn hoá hoanTatRef/anhQr (đúng chức năng, ghi nhận), t�
 - NGUYÊN TẮC: câu báo cáo dạng "mọi lối … đều …" phải kèm đột biến gỡ vế đó; đường dự phòng phải dùng cùng công thức đường chính (đề xuất cho KHUON_LOI.md, ngoài Phạm vi — chat soát duyệt).
 - BỎ: người gác chặn script nháp có chữ "token" (không chạy được khói giao diện), `sed -i`, `git rm --cached`, vòng `until` — đổi sang Edit / lệnh đơn giản; thu_KHO1 A5 đòi `to: '/kho'` trong Layout.jsx (đã điều chỉnh bố trí, một lần).
 - Dọn: chưa thấy lời dặn nào đã có phép máy làm thay hoàn toàn.
+
+## Cổng
+✓ CỔNG CHẠY ĐẠT (node tu_chay/cong.js chay . cbbb809^ HEAD viec/BH-2, chạy tại 93b7f76; cảnh báo A16: bài chạy trên gốc in 76 ca ≠ 100 — bài dừng sớm trên gốc, bình thường)
+
+GIT (lúc báo cáo): 93b7f76 khôi phục thu_BH1.js như gốc · b141697 màn Bán hàng mới đợt 2
+
+HEAD ĐÃ KIỂM: 93b7f76
