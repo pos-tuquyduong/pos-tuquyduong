@@ -62,6 +62,9 @@ DOT_BIEN = [
   ('BV-GIOHD-DONG-THAT', 'api', [(GD, 'truPhut(dongThat(ca, cd),', 'truPhut(ca.dong,', 1)], r'✗ F12 '),
   ('VS-GIOHD-DONG-THAT-CHI-KHI-CHUA-CAI', 'api', [(GD, 'const tiep = caCuaNgay(dong.slice(0, 10), cd);', 'const tiep = cd.lich ? null : caCuaNgay(dong.slice(0, 10), cd);', 1)],
    r'✗ F12 Thứ Hai'),
+  # vòng sửa 2 (soát vòng 2 lỗi 1, nghi ngờ hom_nay.dong): nối cả ca chồng; hom_nay.dong cùng hàm dongThat
+  ('VS-GIOHD-NOI-CHI-KHI-BANG', 'api', [(GD, 'if (!tiep || tiep.mo > dong || tiep.dong <= dong) break;', 'if (!tiep || tiep.mo !== dong) break;', 1)], r'✗ F13 ca CHỒNG'),
+  ('BV-GIOHD-HOM-NAY-DONG', 'api', [(GD, 'dong: dongThat(ca || homNay, cd) }', 'dong: (ca || homNay).dong }', 1)], r'✗ F12 ca nối: hom_nay'),
   ('BV-GIOHD-CHUA-CO-LICH', 'api', [(GD, ': CHUA_CO_LICH),', ": ''),", 1)], r'✗ (F9 nghỉ cả tuần|J5 câu báo)'),
   ('BV-GIOHD-NGAY-NGHI', 'api', [(GD, '  if (cd.ngayNghi.some((d) => d.ngay === ngay)) return null;\n', '', 1)], r'✗ F3 '),
   ('VS-GIOHD-CHUA-CAI-DONG', 'api', [(GD, "  if (!cd.lich) return { mo: `${ngay}T00:00:00`, dong: `${congNgay(ngay, 1)}T00:00:00` };",
@@ -81,6 +84,8 @@ DOT_BIEN = [
   ('VS-HD-ROUTE-ALL-NHAY-KEP', 'hd', [(K, '// ── Từ đây: token khách bắt buộc', 'router.all("/bi-mat", (req, res) => res.json({}));\n// ── Từ đây: token khách bắt buộc', 1)],
    r'✗ mọi route dưới /api/kh'),
   ('VS-HD-ROUTE-DUONG-BIEN', 'hd', [(K, '// ── Từ đây: token khách bắt buộc', "const DUONG_AN = '/an';\nrouter.get(DUONG_AN, (req, res) => res.json({}));\n// ── Từ đây: token khách bắt buộc", 1)],
+   r'✗ mọi router'),
+  ('VS-HD-ROUTE-USE-ROUTER-CON', 'hd', [(K, '// ── Từ đây: token khách bắt buộc', "router.use(require('./quay'));\n// ── Từ đây: token khách bắt buộc", 1)],
    r'✗ mọi router'),
   ('VS-HD-MA-LOI-NGOAI', 'hd', [(K, "loiMayChu(res, err, 'kh hang');", "res.status(500).json({ error: 'x', code: 'MA_LA_KHONG_CO' });", 1)],
    r'✗ server/routes/kh/index.js'),
