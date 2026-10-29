@@ -170,6 +170,7 @@ async function main() {
       VALUES (?, ?, 'Mẫu', 1000, NULL, ?, datetime('now', '+7 hours', '+300 days'))`, [SDT, hang, getNow()]);
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 80000)', [SDT]);
     maDon = (await don(SDT)).code;
+    if (!maDon) logGoc('DEBUG', JSON.stringify(await goi('POST', '/pos/orders', { items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 1 }], payment_method: 'cash', cash_amount: 50000, customer_phone: SDT, customer_name: 'K' }, tkChu)).slice(0, 400));
     maBill = (await don()).signup_code;
     maDiem = (await don()).signup_code;
   };
