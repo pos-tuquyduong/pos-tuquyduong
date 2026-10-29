@@ -256,3 +256,51 @@ có cụm bí mật của bài thử trước khi commit; B-PHANTICH lệnh ghé
 - **BỎ**: E7 giả định món mới trong seed (một lần, đã có K7 "tên bảng / dữ liệu tra trong code"); đột biến nới mẫu `E0b?` (đã có K3 TACH-GL "đột biến đưa ĐÚNG
   lỗi cũ trở lại" — vi phạm luật có sẵn, không cần luật mới); các lệnh bị người gác chặn (luật người gác đã chặn đúng, làm theo hướng dẫn — không cần thêm).
 - Dọn (11.3): không thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` vừa có phép kiểm làm thay ở việc này.
+
+## Kiểm cuối trên HEAD 8371c25 (cây sạch)
+- `npm test -- --day-du`: PASS 81 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ: route GET có lệnh ghi — packages.js:194, products.js:67, sync.js:147).
+- `node cong_cu/thu_KHO2a.js`: 86 đạt · 0 hỏng · `cong_cu/thu_KHO1.js`: 111 · 0 · `python3 viec/KHO-2a/dot_bien.py`: đối chứng XANH, 57/57 BẮT.
+- `node tu_chay/cong.js chay . 8f88885^ HEAD viec/KHO-2a`:
+```
+✗ [A11] bài thử cũ được miễn nhưng bản gốc đỏ trên code PR: `cong_cu/thu_KHO1.js` (thoát 1):
+  108 đạt · 3 hỏng
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+```
+  Ba ca đỏ của bản GỐC thu_KHO1 trên code PR: B1 / B2 (đếm cứng pos_nang_cap = 1 dòng `001_kho`) và K7 (mong 404 cho đường đã bỏ).
+
+## Câu hỏi
+**Q8 — cổng A11 (HOC-1 d) với `cong_cu/thu_KHO1.js`.** Cổng chạy BẢN GỐC của bài cũ trên code đã vá và đòi xanh. Bản gốc đếm cứng "1 bước nâng cấp" (B1/B2) —
+phiếu bắt buộc thêm bước `server/nang_cap/002_*.js`, và chính phiếu đã dự liệu sửa đúng hai ca này ở `## Bài thử cũ sửa` ("chỉ nếu bước nâng cấp 002 làm đổi số
+bảng / số bước mà ca cũ đếm cứng"). Không có cách vá nào vừa giữ bước 002 vừa cho B1 gốc xanh (sửa 001 thì đụng bước đã chạy ở production). K7: phiếu mục I
+"đường lạ → 403" làm ca gốc (mong 404) đỏ; bản sửa giữ ý nghĩa "đường Bật bán không còn" (403 DUONG_LA). Máy KHÔNG sửa `tu_chay/` (ngoài Phạm vi, K8).
+Chủ quán chọn:
+  (a) chấp nhận ngoại lệ A11 cho việc này (mâu thuẫn phiếu ↔ khung: bước nâng cấp mới luôn làm đỏ ca đếm bước cứng) và ghi đề xuất khung: HOC-1 (d) bỏ qua
+      các ca mục `## Bài thử cũ sửa` nêu đích danh; hoặc
+  (b) K7 trả về 404 cho đường lạ (bỏ phép "đường lạ → 403" của phiếu I) — B1/B2 vẫn đỏ, nên (b) một mình không làm cổng xanh.
+Đề xuất: (a).
+
+## Báo cáo 7 mục
+```
+VIỆC:        KHO-2a — Kho POS phần 2a: pha chế theo định mức · phiếu xuất kho nguyên liệu có duyệt · in · thành phẩm vào kho · tồn · danh sách phiếu
+ĐÃ SỬA:      server/nang_cap/002_kho_pha_che.js — cột han_ngay, lech_cho_phep, so_lan_in, ma_gui, nguoi_huy, huy_luc, loai/cho_mon_id/nguoi/luc + 2 chỉ mục khoá
+             server/kho/tinh.js — thuCuaNgay, chonDinhMuc, canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua,
+               trangThaiHan, bangPhieu, boGia (thuần)
+             server/kho/duLieu.js — conLaiTheoLo (một câu cho Pha chế / Tồn / chia lô), docPhaChe, định mức, taoPhieuXuat, ghiKho (một hàm cho duyệt /
+               tự duyệt / sửa), duyệt / từ chối (cùng khoá trạng thái + người duyệt ≠ người tạo), huỷ, sửa, ghiKetQua, docPhieu, dsPhieu, docTon
+             server/kho/duong.js — /pha-che, /dinh-muc, /nhom-cong-thuc, /phieu-xuat, /phieu, /phieu/:id (+ in, duyet, tu-choi, ket-qua, sua, huy), /ton;
+               han_ngay ở PUT /san-pham/:id; ẩn giá cho nhân viên; đường lạ → 403 DUONG_LA
+             server/kho/nhapSx.js — hạn từ days_use (không đè, số nguyên) · server/routes/settings.js — kho_* chỉ chủ quán, công tắc chỉ 0 / 1
+             client/src/pages/Kho/ — PhaChe, XemPhieu (in 80 mm / A4), DsPhieu, TonKho, DinhMuc, chung.js, inPhieuKho.css; index.jsx tab + huy hiệu; SanPham
+               hạn dùng; client/dist build lại · kiem_tra_truoc_khi_giao.js — chạy thu_KHO2a + phép KHOÁ vị từ async
+BÀI THỬ:     cong_cu/thu_KHO2a.js trên gốc 62a8acb → ĐỎ 5 đạt · 81 hỏng (A1, B1, C1, C7, D3, D5, E2, F4, F5, G3, H3, I2 …); sau vá → XANH 86 · 0.
+             cong_cu/thu_KHO1.js (bài cũ sửa) gốc 110 · 1 (K7) → 111 · 0. Đột biến 57/57 BẮT, đối chứng XANH.
+ĐÃ RÀ K4:    grep "UPDATE kho_phieu" server/kho → 4 chỗ (duyệt, từ chối, huỷ, in) — cả 4 có khoá trạng thái trong câu ghi; grep "han_ngay" đường ghi → PUT,
+             nhapSx (2 đường v_recipes / sx_products), hanLo — cùng soNgayNguyen; grep "new Date|Date.now|CURRENT_TIMESTAMP|datetime(" server/kho → 0 chỗ.
+CHƯA KIỂM:   bản in thật 80 mm / A4, điện thoại, tick mặc định, huy hiệu tự làm mới, tab nhóm / tìm / sắp xếp (chỉ build + so băm dist); Turso thật (bài chạy
+             libsql file); CSDL nào đã chạy bản 002 cũ của nhánh; giá vốn theo gia_nhap hiện tại (chưa có lô nhập có giá — KHO-2b); cổng A11 ĐỎ (Q8).
+GIT:         8371c25 KHO-2a: trang thai — vong sua 3, nghiem thu, bai hoc
+             48389ad KHO-2a buoc 11 KHOA: bo kiem chan vi tu async trong every/some/filter/find cua bai thu (K3)
+BÀI HỌC:     KHOÁ 2 (1 làm luôn: phép vị từ async; 1 đề xuất cong.js) · NGUYÊN TẮC 3 (đề xuất KHUON_LOI K3 / K4 / K5) · BỎ 3 — chi tiết ở ## Bài học
+```
+
+HEAD ĐÃ KIỂM: 8371c25
