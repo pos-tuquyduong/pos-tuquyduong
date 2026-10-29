@@ -100,3 +100,22 @@ Cổng `node tu_chay/cong.js chay . f1fea71^ HEAD viec/HD-1` (28.10, HEAD 06621a
 ✓ CỔNG CHẠY ĐẠT (kèm cảnh báo A16: thu_HD1 trên gốc dừng sớm in 43 ca ≠ 152 ca ở head — bài sập sớm trên gốc, bằng chứng đỏ ở bang_chung_do.txt)
 
 HEAD ĐÃ KIỂM: 06621ab
+
+## Vòng sửa 4 (29.10, luật `LUAT_XAY_APP.md` §6 mục 5) — SOÁT LẦN CUỐI: chat soát thay
+Sửa ĐÚNG 3 lỗi lần soát cuối, không thêm gì khác. Không gọi agent soát nữa.
+1. Tiêu đề THANH TOÁN: `client/src/utils/hoaDon.js` — chỉ thêm tiêu đề khi có ≥ 1 dòng thanh toán. Ca G82, G52 (đổi cho khớp phiếu "không in mục rỗng").
+2. Nhãn Khách / NV: `hoaDon.js` qua `hien()` (Ẩn / để trống → nhãn rỗng); `InvoicePreview.jsx` ghép ": " chỉ khi có nhãn. Ca G83, G84; G71 giữ xanh.
+3. % hạng: `server/routes/hoaDon.js` suy từ giá đã lưu từng dòng (`unit_price` vs `tier_unit_price`, làm tròn số nguyên); mọi dòng giảm cùng % → số đó, khác nhau / không dòng nào giảm → null; `dienChu` bỏ cả "{phan_tram}%" khi không có %. Số tiền giảm không đổi. Ca G85, A19d; A19 giữ xanh. Truy vấn bảng hạng không còn dùng nên đã xoá.
+Bảng chỗ vá → đột biến (11 tên mới): BV-G-TT-TIEU-DE-LUON · VS-G-TT-TIEU-DE-TU-2-DONG · BV-G-NHAN-KHACH-NV-KHONG-AN · VS-G-NHAN-NV-KHONG-AN · VS-PV-NHAN-KHACH-GHEP-CUNG · VS-PV-NHAN-NV-GHEP-CUNG · BV-G-PHAN-TRAM-GIU-DU · VS-G-PHAN-TRAM-0-LA-RONG · BV-HD-PHAN-TRAM-THEO-HANG · VS-HD-PHAN-TRAM-DONG-DAU · VS-HD-PHAN-TRAM-TINH-DONG-KHONG-GIAM (neo của VS-G-NHAN-CUNG cập nhật theo code mới). Chạy: 109 tên · BẮT 109 · SỐNG 0 · LẠC 0 · HỎNG 0, đối chứng 157 xanh.
+Cổng: `node tu_chay/cong.js chay . feda0b0 HEAD viec/HD-1` → ✓ CỔNG CHẠY ĐẠT (cảnh báo A16 có sẵn: bài dừng sớm trên gốc, 44 ≠ 157). Mốc `f1fea71^` cho ✗ [A16] thiếu SỐ CA của thu_KHO1 / thu_UUDAI1 / thu_gia_lap — ba bài đó đến từ lần gộp main (KHO-1, UUDAI-1), không phải của việc này; chat soát lưu ý khi chạy cổng với mốc cũ.
+
+## Báo cáo (vòng sửa 4)
+VIỆC:        HD-1 — Hoá đơn bố cục mới + tuỳ chỉnh chữ hoá đơn và tem — vòng sửa 4 (3 lỗi hiển thị)
+ĐÃ SỬA:      client/src/utils/hoaDon.js (tiêu đề THANH TOÁN, nhãn qua hien(), dienChu bỏ %) · client/src/components/InvoicePreview.jsx (ghép ": ") · server/routes/hoaDon.js (% hạng từ giá đã lưu) · client/dist (đã build) · cong_cu/thu_HD1.js (G82–G85, A19d, G52, G84 regex) · viec/HD-1/dot_bien.py
+BÀI THỬ:     trên 092ee5e → ĐỎ (151 đạt · 6 hỏng: G82 G83 G84 G85 G52 A19d); sau vá → 157 đạt · 0 hỏng; 109 đột biến BẮT 109; `npm test -- --day-du` PASS 80 · FAIL 0 · CẢNH BÁO 1 (có sẵn)
+ĐÃ RÀ K4:    grep "nhan_khach|nhan_nv" client/src → hoaDon.js + InvoicePreview.jsx, đã xử lý hết; grep "tieu_de_tt" → 1 chỗ dựng; grep "phan_tram" server → 1 chỗ (hoaDon.js) và client chỉ điền chữ
+CHƯA KIỂM:   in thật / xem trên trình duyệt (lớp vẽ JSX chỉ thử bằng đối chiếu mã nguồn); % hạng làm tròn nguyên — giá hạng đã làm tròn tiền có thể lệch < 0,5% vẫn ra cùng số; tem 40×29,5 mm; dữ liệu production; nhánh 10 đột biến ngoài danh sách của lần soát trước
+GIT:         fad0d78 (đã push) + commit trạng thái này
+BÀI HỌC:     KHOÁ 3 (G82–G85 / A19d: mỗi ô bill rỗng một ca; nhãn tính theo công thức cùng nguồn với số tiền) · NGUYÊN TẮC 0 · BỎ 1 (G84 regex nhận nhầm chuỗi mẫu `${…}:` — sửa ngay)
+
+HEAD ĐÃ KIỂM: fad0d78
