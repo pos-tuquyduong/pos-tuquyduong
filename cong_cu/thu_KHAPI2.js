@@ -38,8 +38,9 @@ const k = (ten, dung, them = '') => {
 };
 const muc = (t) => console.log(`\n${C.dam}${t}${C.het}`);
 const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
-const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
-const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
+let sau = 0;   // số lời gọi đang chạy (A4 gọi song song) — chỉ nối log lại khi lời gọi cuối xong
+const imLang = () => { sau++; console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
+const noiLai = (het = false) => { sau = het ? 0 : Math.max(0, sau - 1); if (!sau) { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; } };
 const thuNap = (p) => { try { return require(p); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return null; throw e; } };
 const GIO = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
 const bang = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -84,7 +85,7 @@ async function main() {
   const moTa = (r) => `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}`;
   const datCaiDat = (key, v) => db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', [key, String(v)]);
   const luc = async (giay) => (await db.queryOne("SELECT strftime('%Y-%m-%dT%H:%M:%S', ?, ?) AS t", [getNow(), `${giay} seconds`])).t;
-  const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.message); } };
+  const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(true); k(`${ten}: bài chạy hết mục`, false, e.message); } };
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'], ['nhandiem_enabled', '1'],
     ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false'], ['thanh_toan_payos_bat_buoc', '0']]) await datCaiDat(a, b);
 
@@ -185,8 +186,8 @@ async function main() {
     k('B4 chưa mua hạng → hang: null', b4.status === 200 && b4.j.khach && b4.j.khach.hang === null, JSON.stringify(b4.j.khach?.hang));
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 100000)', [ca.sdt]);
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 5000)', [chua.sdt]);
-    const phien = async (sdt, giu, hanGiay) => db.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, con_lai, cach, trang_thai, het_han)
-      VALUES ('{}', ?, ?, ?, 0, 'vi', 'cho', ?)`, [giu, sdt, giu, await luc(hanGiay)]);
+    const phien = async (sdt, giu, hanGiay) => db.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, con_lai, cach, trang_thai, het_han,
+      nguoi_tao, tao_luc) VALUES ('{}', ?, ?, ?, 0, 'vi', 'cho', ?, 'thu', ?)`, [giu, sdt, giu, await luc(hanGiay), getNow()]);
     await phien(ca.sdt, 30000, 600);
     await phien(ca.sdt, 20000, -60);   // phiên đã hết hạn → tự nhả, không trừ
     const b5 = await toi(ca);
@@ -400,7 +401,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  noiLai();
+  noiLai(true);
   console.error(`\n${C.do}✖ Bài thử sập: ${e.message}${C.het}\n`);
   try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ }
   process.exit(2);
