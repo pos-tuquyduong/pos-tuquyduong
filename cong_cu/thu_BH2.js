@@ -87,7 +87,7 @@ async function main() {
     const b = t('thanTinhThu')(gio, null, '');
     return b.customer_phone === null && b.discount_code === null && !('unit_price' in b.items[0]) && !('total' in b) && !('payment_method' in b);
   });
-  const mayChu = { khoa: ktT(gio, khach, ''), total: 86400 };
+  const mayChu = { khoa: (() => { try { return ktT(gio, khach, ''); } catch { return 'chua-co-ham'; } })(), total: 86400 };
   const sang = (o) => t('nutThuSang')({ coSo: true, dangGui: false, cach: 'tien_mat', phaiTra: 86400, dua: 100000, ...o });
   thu('A11 đủ điều kiện → nút sáng', () => sang({}) === true);
   thu('A12 CHƯA có số máy chủ → nút thu tắt (mọi cách trả)', () =>
