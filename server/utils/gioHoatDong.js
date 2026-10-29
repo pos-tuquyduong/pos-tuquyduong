@@ -14,6 +14,7 @@ const THU = [2, 3, 4, 5, 6, 7, 8];
 const KHOA = ['gio_hd_lich', 'gio_hd_ngay_nghi', 'gio_hd_thong_bao', 'gio_hd_ngung_truoc_phut'];
 const NGUNG_TOI_DA = 600;
 const SO_NGAY_DO = 400;   // tìm giờ mở lại tối đa ngần này ngày (nghỉ dài hơn → mo_lai_luc null)
+const CHUA_CO_LICH = '(chưa có lịch)';   // điền vào {gio_mo_lai} khi không tìm được giờ mở lại
 const GIO_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const ms = (ngay) => Date.UTC(+ngay.slice(0, 4), +ngay.slice(5, 7) - 1, +ngay.slice(8, 10));
@@ -21,7 +22,7 @@ const congNgay = (ngay, n) => new Date(ms(ngay) + n * 86400000).toISOString().sl
 const laNgay = (s) => typeof s === 'string' && /^\d{4}-\d\d-\d\d$/.test(s) && congNgay(s, 0) === s;
 /** Thứ của ngày: 2–7 = Thứ Hai–Thứ Bảy, 8 = Chủ nhật. */
 const thuCua = (ngay) => { const d = new Date(ms(ngay)).getUTCDay(); return d === 0 ? 8 : d + 1; };
-const congPhut = (gio, phut) => new Date(Date.parse(gio + 'Z') - phut * 60000).toISOString().slice(0, 19);
+const truPhut = (gio, phut) => new Date(Date.parse(gio + 'Z') - phut * 60000).toISOString().slice(0, 19);
 const docJson = (s, macDinh) => { try { return JSON.parse(s); } catch { return macDinh; } };
 
 /** Lỗi của một ô lịch / null. */
@@ -81,6 +82,24 @@ function khungGio(ngay, mo, dong) {
   return { mo: `${ngay}T${mo}:00`, dong: `${dong > mo ? ngay : congNgay(ngay, 1)}T${dong}:00` };
 }
 
+/** Khung HH:mm lặp hằng ngày (giờ vàng): khung qua nửa đêm mà bây giờ còn trước giờ kết thúc → khung bắt đầu từ hôm qua. */
+function khungHangNgay(bayGio, mo, dong) {
+  const ngay = bayGio.slice(0, 10);
+  return khungGio(mo > dong && bayGio.slice(11, 16) < dong ? congNgay(ngay, -1) : ngay, mo, dong);
+}
+
+/** Giờ đóng THẬT của ca: ca hôm sau mở đúng lúc ca này đóng (chưa cài lịch, lịch 00:00 nối tiếp) thì nối liền — "ngừng trước N phút" tính
+ *  theo giờ đóng thật, không cắt oan mỗi nửa đêm. */
+function dongThat(ca, cd) {
+  let dong = ca.dong;
+  for (let i = 0; i <= SO_NGAY_DO; i++) {
+    const tiep = caCuaNgay(dong.slice(0, 10), cd);
+    if (!tiep || tiep.mo !== dong) break;
+    dong = tiep.dong;
+  }
+  return dong;
+}
+
 /** Quán có đang mở lúc `bayGio` không. `nhan_don` = mở VÀ còn trước (giờ đóng − N phút). hom_nay = ca đang mở, không thì ca của hôm nay. */
 function dangMo(bayGio, cd) {
   const ngay = bayGio.slice(0, 10);
@@ -97,10 +116,10 @@ function dangMo(bayGio, cd) {
   const caiLich = !!cd.lich;
   return {
     dang_mo: !!ca,
-    nhan_don: !!ca && bayGio < congPhut(ca.dong, cd.ngungTruocPhut),
+    nhan_don: !!ca && bayGio < truPhut(dongThat(ca, cd), cd.ngungTruocPhut),
     hom_nay: caiLich ? ca || homNay : null,
     mo_lai_luc: moLai,
-    thong_bao: ca ? '' : cd.thongBao.replace(/\{gio_mo_lai\}/g, moLai ? inGioMoLai(moLai, ngay) : ''),
+    thong_bao: ca ? '' : cd.thongBao.replace(/\{gio_mo_lai\}/g, moLai ? inGioMoLai(moLai, ngay) : CHUA_CO_LICH),
   };
 }
 
@@ -121,4 +140,4 @@ function traGioHoatDong(bayGio, cd) {
   };
 }
 
-module.exports = { thuCua, congNgay, kiemCaiDat, docCaiDat, khungGio, dangMo, traGioHoatDong };
+module.exports = { thuCua, kiemCaiDat, docCaiDat, khungHangNgay, dangMo, traGioHoatDong };

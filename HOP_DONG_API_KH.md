@@ -42,15 +42,15 @@ DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middle
   `phan_tram_nhom_dac_biet` cho món nhóm đặc biệt (đã kẹp 0–90). `het_han` là giờ VN.
 - `so_du_vi`: số đồng KHẢ DỤNG của ví riêng khách = số dư − tiền đang giữ cho phiên thanh toán chưa xong (đúng số quầy hiện). Không cộng ví
   gia đình. Không có ví → 0.
-- `gia_hang` (của `/menu`): giá MỘT ly theo từng hạng đang bật (`hang_id` = `id` của `/hang`), máy chủ tính CÙNG hàm với quầy. Hạng 0 % →
+- `gia_hang` (của `/menu`): giá MỘT ly theo từng hạng đang bật (`hang_id` = `id` của `/hang`) + hạng của chính khách nếu hạng đó đã tắt mà thẻ còn hạn (quầy vẫn giảm), máy chủ tính CÙNG hàm với quầy. Hạng 0 % →
   `gia` = giá gốc. Giá món không phải số > 0 → `[]`. Đơn có món đang giờ vàng thì quầy KHÔNG giảm hạng cho cả đơn — App hiện giá giờ vàng.
 - **Giờ vàng:** `dang_chay` = đang trong khung VÀ có % VÀ có món (cùng điều kiện quầy giảm giá). Bật mà ngoài khung → `dang_chay: false`
-  nhưng `bat_dau / ket_thuc` là khung hôm nay (khung qua nửa đêm đang chạy sau 00:00 thì `bat_dau` là hôm qua). Tắt / % = 0 → `bat_dau`,
+  nhưng `bat_dau / ket_thuc` là khung hôm nay (khung qua nửa đêm đang chạy sau 00:00 thì `bat_dau` là hôm qua). Tắt / % = 0 / không có món → `bat_dau`,
   `ket_thuc` `null`, `phan_tram` 0, `mon` `[]`.
 - **Giờ hoạt động:** `bay_gio` = giờ VN của máy chủ (App lấy "bây giờ" ở đây). `dang_mo` = quán đang mở THẬT theo lịch; `nhan_don` = còn nhận
-  đơn App (đã trừ "ngừng nhận đơn trước giờ đóng N phút") — KH-MUA-1 chặn theo `nhan_don`. `hom_nay` = ca đang mở, không thì ca bắt đầu
+  đơn App (đã trừ "ngừng nhận đơn trước giờ đóng N phút"; ca hôm sau mở đúng lúc ca này đóng — vd chưa cài lịch — thì tính theo giờ đóng của cả chuỗi) — KH-MUA-1 chặn theo `nhan_don`. `hom_nay` = ca đang mở, không thì ca bắt đầu
   hôm nay; `dong` là giờ đóng thật (qua nửa đêm thì là ngày hôm sau); chưa cài lịch / nghỉ → `null`. `mo_lai_luc` chỉ có khi `dang_mo:
-  false`. `thong_bao` = câu ngoài giờ đã điền giờ mở lại; đang mở → `''`. `thu` 2–7 = Thứ Hai–Thứ Bảy, 8 = Chủ nhật; `mo / dong` dạng
+  false`. `thong_bao` = câu ngoài giờ đã điền giờ mở lại (không tìm được giờ mở lại → điền `(chưa có lịch)`); đang mở → `''`. `thu` 2–7 = Thứ Hai–Thứ Bảy, 8 = Chủ nhật; `mo / dong` dạng
   `HH:mm`, `null` khi nghỉ hoặc chưa cài lịch. `ngay_nghi` chỉ gồm ngày từ hôm nay trở đi. Chưa cài gì → mở cả ngày, `thong_bao` rỗng.
   Quầy KHÔNG bị chặn theo giờ hoạt động.
 
