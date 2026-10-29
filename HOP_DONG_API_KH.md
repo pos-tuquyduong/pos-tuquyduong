@@ -48,8 +48,8 @@ DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middle
   nhưng `bat_dau / ket_thuc` là khung hôm nay (khung qua nửa đêm đang chạy sau 00:00 thì `bat_dau` là hôm qua). Tắt / % = 0 / không có món → `bat_dau`,
   `ket_thuc` `null`, `phan_tram` 0, `mon` `[]`.
 - **Giờ hoạt động:** `bay_gio` = giờ VN của máy chủ (App lấy "bây giờ" ở đây). `dang_mo` = quán đang mở THẬT theo lịch; `nhan_don` = còn nhận
-  đơn App (đã trừ "ngừng nhận đơn trước giờ đóng N phút"; ca hôm sau mở đúng lúc ca này đóng — vd chưa cài lịch — thì tính theo giờ đóng của cả chuỗi) — KH-MUA-1 chặn theo `nhan_don`. `hom_nay` = ca đang mở, không thì ca bắt đầu
-  hôm nay; `dong` là giờ đóng thật (qua nửa đêm thì là ngày hôm sau); chưa cài lịch / nghỉ → `null`. `mo_lai_luc` chỉ có khi `dang_mo:
+  đơn App (đã trừ "ngừng nhận đơn trước giờ đóng N phút"; ca sau mở đúng lúc / trước khi ca này đóng — vd chưa cài lịch — thì tính theo giờ đóng của cả chuỗi) — KH-MUA-1 chặn theo `nhan_don`. `hom_nay` = ca đang mở, không thì ca bắt đầu
+  hôm nay; `dong` là giờ đóng thật (qua nửa đêm thì là ngày hôm sau; ca sau nối liền / chồng lên thì là giờ đóng của cả chuỗi — cùng mốc `nhan_don` dùng); chưa cài lịch / nghỉ → `null`. `mo_lai_luc` chỉ có khi `dang_mo:
   false`. `thong_bao` = câu ngoài giờ đã điền giờ mở lại (không tìm được giờ mở lại → điền `(chưa có lịch)`); đang mở → `''`. `thu` 2–7 = Thứ Hai–Thứ Bảy, 8 = Chủ nhật; `mo / dong` dạng
   `HH:mm`, `null` khi nghỉ hoặc chưa cài lịch. `ngay_nghi` chỉ gồm ngày từ hôm nay trở đi. Chưa cài gì → mở cả ngày, `thong_bao` rỗng.
   Quầy KHÔNG bị chặn theo giờ hoạt động.

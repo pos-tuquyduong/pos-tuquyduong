@@ -88,19 +88,20 @@ function khungHangNgay(bayGio, mo, dong) {
   return khungGio(mo > dong && bayGio.slice(11, 16) < dong ? congNgay(ngay, -1) : ngay, mo, dong);
 }
 
-/** Giờ đóng THẬT của ca: ca hôm sau mở đúng lúc ca này đóng (chưa cài lịch, lịch 00:00 nối tiếp) thì nối liền — "ngừng trước N phút" tính
- *  theo giờ đóng thật, không cắt oan mỗi nửa đêm. */
+/** Giờ đóng THẬT của ca: ca bắt đầu trong ngày đóng mở lúc / trước khi ca này đóng và đóng muộn hơn (nối liền: chưa cài lịch, lịch 00:00 nối
+ *  tiếp; chồng nhau) thì nối — MỘT hàm cho `nhan_don` và `hom_nay.dong`, "ngừng trước N phút" không cắt oan giữa hai ca liền. */
 function dongThat(ca, cd) {
   let dong = ca.dong;
   for (let i = 0; i <= SO_NGAY_DO; i++) {
     const tiep = caCuaNgay(dong.slice(0, 10), cd);
-    if (!tiep || tiep.mo !== dong) break;
+    if (!tiep || tiep.mo > dong || tiep.dong <= dong) break;
     dong = tiep.dong;
   }
   return dong;
 }
 
-/** Quán có đang mở lúc `bayGio` không. `nhan_don` = mở VÀ còn trước (giờ đóng − N phút). hom_nay = ca đang mở, không thì ca của hôm nay. */
+/** Quán có đang mở lúc `bayGio` không. `nhan_don` = mở VÀ còn trước (giờ đóng thật − N phút). hom_nay = ca đang mở, không thì ca của hôm nay,
+ *  `dong` là giờ đóng thật. */
 function dangMo(bayGio, cd) {
   const ngay = bayGio.slice(0, 10);
   const trong = (ca) => ca && ca.mo <= bayGio && bayGio < ca.dong;
@@ -117,7 +118,7 @@ function dangMo(bayGio, cd) {
   return {
     dang_mo: !!ca,
     nhan_don: !!ca && bayGio < truPhut(dongThat(ca, cd), cd.ngungTruocPhut),
-    hom_nay: caiLich ? ca || homNay : null,
+    hom_nay: caiLich && (ca || homNay) ? { mo: (ca || homNay).mo, dong: dongThat(ca || homNay, cd) } : null,
     mo_lai_luc: moLai,
     thong_bao: ca ? '' : cd.thongBao.replace(/\{gio_mo_lai\}/g, moLai ? inGioMoLai(moLai, ngay) : CHUA_CO_LICH),
   };
