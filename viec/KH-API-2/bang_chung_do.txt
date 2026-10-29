@@ -68,7 +68,7 @@ Code gốc = cây ab51a8a (chưa có giaHang.js, gioHoatDong.js, 4 cửa mới, 
   thu_KHAPI2.js     84 đạt · 0 hỏng (A2b chạy — nạp được BanHang/tinh.js)
   thu_HOPDONG_KH.js 48 đạt · 0 hỏng
 
-SỐ CA cong_cu/thu_KHAPI2.js: 98
+SỐ CA cong_cu/thu_KHAPI2.js: 101
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 49
 
 ════ node cong_cu/thu_KH1.js — bài CŨ sửa 2 ca (Q4, commit 0091a2c) — trên code GỐC (server/ ở ab51a8a) ════
@@ -113,3 +113,10 @@ Trên code TRƯỚC vòng sửa 2 (63cabce code + bài 4fa1869):
   96 đạt · 2 hỏng   (F13 09:30 xanh — khoá biên; thu_HOPDONG_KH 49 · 0 — ca router.use siết khoá bằng đột biến VS-HD-ROUTE-USE-ROUTER-CON)
 Trên code GỐC (ab51a8a, bài 4fa1869): thu_KHAPI2.js 10 đạt · 47 hỏng (F12/F13 không chạy — module chưa có) · thu_HOPDONG_KH.js 40 đạt · 3 hỏng
 Trên code ĐÃ VÁ (59397b4): thu_KHAPI2.js 98 · 0 · thu_HOPDONG_KH.js 49 · 0 (dòng số ca ở trên đã sửa theo).
+
+════ VÒNG SỬA 4 (chat soát thay — soát vòng 3 lỗi 1) — bài thêm 3 ca F14 (0d2db23), chạy lại cả hai phía (A16) ════
+F14 (ca HỞ, ca GỌN, qua nửa đêm nối qua nửa đêm) là ca KHOÁ HỒI QUY: hành vi đã đúng từ vòng sửa 2 (soát vòng 3 đo tay ra ĐÚNG), nên xanh
+trên code trước vòng sửa 4; giá trị của ca đo bằng đột biến xoá đúng một vế: BV-GIOHD-DUNG-HO → ✗ F14 ca HỞ, BV-GIOHD-DUNG-GON → ✗ F14 ca
+GỌN (cả hai BẮT, dot_bien.py 45/45).
+Trên code GỐC (ab51a8a, bài 0d2db23): thu_KHAPI2.js 10 đạt · 47 hỏng (F14 không chạy — module chưa có) · thu_HOPDONG_KH.js 40 đạt · 3 hỏng
+Trên code ĐÃ VÁ (3d99e5e): thu_KHAPI2.js 101 · 0 · thu_HOPDONG_KH.js 49 · 0 (dòng số ca ở trên đã sửa theo).

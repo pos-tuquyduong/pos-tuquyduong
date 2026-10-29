@@ -244,7 +244,7 @@ một hàm cho mọi trường trả ra (nhan_don và hom_nay.dong). NGUYÊN T�
 Ca thử thêm TRƯỚC (`4fa1869`) → 2 ca đỏ trên code chưa sửa (ghi `bang_chung_do.txt`), rồi sửa:
 | Lỗi soát | Sửa | Ca | Đột biến |
 |---|---|---|---|
-| 1 ca chồng nhau bị cắt | `dongThat` nối khi ca sau mở lúc / trước giờ đóng VÀ đóng muộn hơn (bằng · chồng); hở thì dừng | F13 ×2 | VS-GIOHD-NOI-CHI-KHI-BANG |
+| 1 ca chồng nhau bị cắt | `dongThat` nối khi ca sau mở lúc / trước giờ đóng VÀ đóng muộn hơn (bằng · chồng); hở / gọn thì dừng | F13 ×2 (chồng) — vế hở / gọn chưa có ca, khoá ở vòng sửa 4 (F14) | VS-GIOHD-NOI-CHI-KHI-BANG |
 | nghi ngờ hai nghĩa "giờ đóng thật" | `hom_nay.dong` = `dongThat` (MỘT hàm với `nhan_don`); hợp đồng ghi rõ | F12 hom_nay, F13 09:30 | BV-GIOHD-HOM-NAY-DONG |
 | 2 router.use không đường lọt | chỉ nhận hàm mũi tên tại chỗ / tên lấy từ `server/middleware/`; ghi giới hạn đầu file | I4 | VS-HD-ROUTE-USE-ROUTER-CON |
 | nghi ngờ hẹn giờ xoá lời tải lỗi | hẹn giờ chỉ xoá đúng câu "Đã lưu giờ hoạt động" | — (giao diện, CHƯA KIỂM bằng máy) | — |
@@ -295,3 +295,94 @@ BÀI HỌC: KHOÁ — mỗi vế của điều kiện dừng / nối một ca ri
 18→02 + 00:30→01:30 lúc 01:20 vẫn nhận đơn). NGUYÊN TẮC (K3) — bảng "lỗi → ca" chỉ trỏ ca mà đột biến xoá đúng nhánh làm ĐỎ; vế "dừng" không
 ca nào chạm là lời hứa. NGUYÊN TẮC (đơn giản) — giá trị dẫn xuất dùng cho hai trường tính một lần.
 ```
+
+## Vòng sửa 4 (LUAT_XAY_APP §6.5 — soát vòng 3 chỉ còn lỗi NHẸ)
+SOÁT LẦN CUỐI: chat soát thay
+| Lỗi soát vòng 3 | Sửa | Ca | Đột biến |
+|---|---|---|---|
+| 1 hai vế dừng của `dongThat` không ca nào khoá | thêm F14: ca HỞ (18:00–02:00 + Thứ Ba 07:00–22:00, 01:40 không nhận đơn, hom_nay.dong 02:00), ca GỌN (18:00–02:00 + 00:30–01:30, 01:20 vẫn nhận đơn, hom_nay.dong 02:00), qua nửa đêm nối qua nửa đêm (Thứ Ba 01:00–00:30 → hom_nay.dong Thứ Tư 00:30); sửa dòng bảng vòng sửa 2 | F14 ×3 | BV-GIOHD-DUNG-HO · BV-GIOHD-DUNG-GON |
+| nghi ngờ useHopLe | ghi giới hạn đầu `thu_HOPDONG_KH.js` (chỉ xét ký tự đầu — `(require(…))` / mũi tên gọi router con vẫn lọt, phải cố tình) | — | — |
+| nghi ngờ dongThat gọi 2 lần | `dangMo` tính `dong` một lần cho `nhan_don` và `hom_nay` (neo VS-GIOHD-NGUNG-LE, BV-GIOHD-DONG-THAT, BV-GIOHD-HOM-NAY-DONG đổi theo) | F5, F12 | (neo mới) |
+| nghi ngờ hợp đồng thiếu vế | thêm "VÀ đóng muộn hơn" | — | — |
+Kết quả: `thu_KHAPI2.js` 101 · 0; `thu_HOPDONG_KH.js` 49 · 0; `thu_KH1.js` 157 · 0 (trong `--day-du`); `dot_bien.py` **TỔNG 45 · BẮT 45 · SỐNG 0 ·
+HỎNG 0 · LẠC 0** (đối chứng xanh); `npm test -- --day-du` PASS 81 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi ở packages.js / products.js /
+sync.js — có từ trước), "dist đã commit KHỚP với src hiện tại".
+Tên đột biến thêm ở vòng sửa 4 (đủ 2): BV-GIOHD-DUNG-HO, BV-GIOHD-DUNG-GON. Không gọi agent soát nữa (§6.5).
+
+## Nghiệm thu — đếm từng mục (bằng chứng ở HEAD vòng sửa 4)
+- A Một hàm % hạng: `server/utils/giaHang.js` (tiLeHangMon, giaHangMon gọi tinhUuDai, giaCacHang); `orders.js` gọi tiLeHangMon (9 dòng đổi) —
+  `thu_KHAPI2` A1, A2, A2b, A3 (/menu = tinh-thu = POST /orders), A4 (hai đơn cùng lúc), A5; thu_UUDAI1, thu_P26c, thu_gia_lap xanh nguyên
+  trong `--day-du` (không sửa ca cũ). Đột biến BV-GIAHANG-KEP, VS-GIAHANG-*, BV-ORDERS-GIAHANG, VS-ORDERS-BO-NHOM.
+- B `/toi` hang + so_du_vi: B1–B7 + `thu_KH1` E1 (6 trường); BV-TOI-HANG, VS-TOI-HANG-KHONG-XET-HET-HAN, VS-TOI-SO-DU-KHONG-TRU-GIU.
+- C `/hang`: C1 ×2; VS-HANG-CA-HANG-TAT, VS-HANG-CAN-TOKEN.
+- D `/gio-vang`: D1–D7 (D6 không món, D7 khung qua nửa đêm giờ cố định); VS-GIOVANG-*, BV-GIOVANG-*.
+- E `/menu` gia_hang: E1–E6 + `thu_KH1` E5 (8 khoá); BV-MENU-GIA-HANG, VS-MENU-BO-NHOM, BV-MENU-HANG-TAT, BV-GIACACHANG-GIA-0.
+- F Giờ hoạt động: F1–F14 (TZ=UTC; nửa đêm, ngày nghỉ, nghỉ cả ngày, ngừng trước N, chưa cài, ca nối / chồng / hở / gọn), F8 / F10 / F11 qua
+  HTTP; màn Cài đặt `CaiDat/GioHoatDong.jsx` (build + so băm dist; thử tay ở dưới); VS-GIOHD-*, BV-GIOHD-*.
+- G Lỗi hợp đồng v1: G1 ×2 (LOI_MAY_CHU, khoá hồi quy), G2 (48 giờ: 30 giờ nhận, 49 giờ từ chối, lời "48 giờ", ngưỡng 47:59 / 48:01, quầy
+  /claim cùng hạn), G3 (đường quầy lời cũ); BV-HANMA-24, VS-HANMA-LOI-CUNG, VS-HANMA-LECH-1-GIO.
+- H Hợp đồng v2: `HOP_DONG_API_KH.md` PHIEN_BAN 2, khối máy đọc 15 cửa, 37 mã, nhật ký v2, bỏ "Lỗi đã biết" — `thu_HOPDONG_KH` I1–I3;
+  BV-HD-PHIEN-BAN.
+- I Bài thử hợp đồng: `cong_cu/thu_HOPDONG_KH.js` 49 ca, ghép `kiem_tra_truoc_khi_giao.js` (giữ thu_P3.js cuối); VS-HD-* (route ngoài hợp
+  đồng, router.all nháy kép, đường biến, router con không đường, mã lỗi ngoài, thiếu trường).
+- J K5: J2 (không hạng giá gốc), J3 (giờ vàng không giảm hạng), J5 (quầy bán khi quán nghỉ cả tuần + câu báo không cụt), J6 (nhận điểm ở
+  quầy); App KH v1 qua `thu_KH1` 157 ca + cửa cũ trong `thu_HOPDONG_KH`; mã giảm qua thu_UUDAI1.
+Đủ 10/10 mục có bằng chứng.
+
+## Thử tay cho chủ quán (điện thoại, §6.4)
+1. Cài đặt → thẻ "Giờ hoạt động": bật "Dùng lịch tuần", đặt Thứ Hai 07:00 → 22:00, bấm Lưu, tải lại trang → giờ vẫn còn.
+2. Thêm ngày nghỉ đặc biệt là HÔM NAY, Lưu → mở `pos-tuquyduong.io.vn/api/kh/gio-hoat-dong` thấy `"dang_mo":false` và câu báo có giờ mở lại.
+3. Lúc đó bán một đơn ở màn Bán hàng → vẫn bán, in bình thường (quầy không bị chặn). Thử xong xoá ngày nghỉ, Lưu.
+
+## Báo cáo 7 mục
+```
+VIỆC:        KH-API-2 — Cửa App KH (chỉ đọc) + giờ hoạt động + hợp đồng /api/kh v2 + bài thử hợp đồng
+ĐÃ SỬA:      server/utils/giaHang.js (mới) — tiLeHangMon / giaHangMon (gọi tinhUuDai) / giaCacHang
+             server/routes/orders.js (taoDon, vòng giảm hạng) — gọi tiLeHangMon thay công thức % riêng (9 dòng)
+             server/routes/kh/index.js — GET /hang, /gio-vang, /gio-hoat-dong (không cần đăng nhập); /toi thêm hang, so_du_vi (theCuaKhach,
+               soDuVi); /menu thêm gia_hang (+ hạng đã tắt của chính khách)
+             server/utils/gioHoatDong.js (mới) — kiemCaiDat, docCaiDat, dangMo (dongThat nối ca), khungHangNgay, traGioHoatDong
+             server/routes/settings.js PUT / — kiemCaiDat các khoá gio_hd_* (sai một khoá không ghi khoá nào)
+             server/routes/signup-codes.js nhanMaUuDai — hạn mã + lời báo theo cài đặt hạn mã (Q1 a)
+             server/database.js seedDefaultData — 4 khoá gio_hd_* (INSERT OR IGNORE)
+             client/src/pages/CaiDat/GioHoatDong.jsx (mới) + Settings.jsx thẻ "Giờ hoạt động"; client/dist build lại
+             HOP_DONG_API_KH.md v2; cong_cu/thu_KHAPI2.js, cong_cu/thu_HOPDONG_KH.js (mới), cong_cu/thu_KH1.js E1/E5 (Q4);
+             kiem_tra_truoc_khi_giao.js thêm 2 bài
+BÀI THỬ:     chạy trên bản chưa vá (ab51a8a) → ĐỎ: thu_KHAPI2 10 đạt · 47 hỏng; thu_HOPDONG_KH 40 · 3; thu_KH1 155 · 2 (E1, E5);
+             mỗi vòng sửa: ca mới ĐỎ trên code trước vòng (8 / 2 ca) hoặc khoá bằng đột biến (G2 ngưỡng, F14, quét route);
+             sau khi vá → XANH: 101 · 0 / 49 · 0 / 157 · 0; dot_bien.py 45/45 BẮT, đối chứng xanh; npm test -- --day-du PASS 81 FAIL 0
+ĐÃ RÀ K4:    grep "discount_percent\|special_discount_percent" server/routes/orders.js → 1 chỗ quyết % (taoDon; tinh-thu, payOS đi qua) đã gọi hàm;
+             grep "CODE_EXPIRE_HOURS\|nhandiem_han_gio" server → 3 chỗ: signup-codes.js nhanMaUuDai + nhanDiemMaBill (docCauHinhNhanDiem),
+             orders.js `|| 24` (phiếu mục 4 để lại, ghi Phát hiện); grep "router\.\w+(" server/routes/kh/index.js → 16 cửa = hợp đồng;
+             vị từ "hạng của khách" (theCuaKhach) dùng chung /toi + /menu; vị từ "giờ vàng bật" một `bat` khớp orders.js F2;
+             "giờ đóng thật" một hàm dongThat cho nhan_don + hom_nay
+CHƯA KIỂM:   - Màn Giờ hoạt động trên điện thoại thật (chỉ build + so băm dist; chặn Lưu khi tải lỗi không có ca máy) — thử tay 3 bước ở trên.
+             - Seed INSERT OR IGNORE 4 khoá gio_hd_* trên kho Turso thật (chỉ chạy trên kho tạm libsql file).
+             - Promise.all ở /menu trên Turso thật (kho tạm: an toàn; soát vòng 2 đọc database.js thấy query độc lập).
+             - App KH mới (kho tuquyduong/APP-KH) chưa gọi thử 3 cửa mới — chỉ bài thử phía POS.
+             - D7 ca 2 dò chữ `khungHangNgay(bayGio, f.start, f.end)` (route đọc giờ thật) — đổi tên biến là đỏ oan.
+             - G2: `>` vs `>=` đúng mốc 48:00:00 không phân biệt được (lệch mili-giây) — chỉ khoá ±1 phút.
+             - thu_HOPDONG_KH useHopLe chỉ xét ký tự đầu (giới hạn đã ghi đầu file).
+             - Hợp đồng DOC_TU_CODE chưa có SHA (chốt khi gộp main).
+GIT:         xem dòng "git log --oneline -2" ghi ngay dưới sau commit báo cáo
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học
+Sự cố của việc: 3 vòng soát KHÔNG ĐẠT (lỗi nhẹ) + vòng sửa 4; 1 đột biến SỐNG lần đầu (VS-HD-MA-LOI-NGOAI); 1 cảnh báo E15 MỌC THÊM do chính việc
+(`18:00–02:00` khớp dạng số dòng); người gác chặn 7 lệnh của phiên chính (B-BIMAT-CHU ×3: chữ "token" trong nội dung ghi hồ sơ / chạy bài có
+chữ TOKEN chưa commit; B-PHANTICH ×2: `sed` sau lệnh node, heredoc dài; B-CD-VITRI ×1; GIT-RM `--cached`) — đều làm theo hướng dẫn; vượt
+ngân sách bài thử (~667 dòng / ~500).
+- KHOÁ 1 (đã làm, trong Phạm vi): mỗi vế của điều kiện dừng / nối một ca riêng + đột biến xoá đúng vế (F14 + BV-GIOHD-DUNG-HO / -GON); ca
+  đỏ trước: đột biến SỐNG khi chưa có F14 (soát vòng 3 đo).
+- KHOÁ 2 (đã làm, trong Phạm vi): bài hợp đồng quét mã lỗi viết trần `code: '…'` và mọi dạng `router.<x>(` (đột biến VS-HD-MA-LOI-NGOAI SỐNG
+  trước khi siết; VS-HD-ROUTE-* BẮT).
+- NGUYÊN TẮC 1 (đề xuất KHUON_LOI.md K4 — ngoài Phạm vi): thêm cửa thứ hai đọc cùng khái niệm thì so CẢ BỘ LỌC, không chỉ công thức — ví dụ
+  KH-API-2: /menu lọc hạng `is_active` còn quầy không lọc; /gio-vang `bat` không xét `product_keys` còn `dang_chay` có. Gộp vào dòng "MỘT vị
+  từ" (BAN-HANG-1), không mở mục mới.
+- NGUYÊN TẮC 2 (đề xuất KHUON_LOI.md K3 — ngoài Phạm vi): luật "mỗi luồng một ca + đột biến gỡ vế" (TU-CHAY-5) đã có nhưng vẫn bị bỏ qua cho
+  điều kiện DỪNG của vòng lặp — thêm ví dụ KH-API-2 F14 (hở / gọn) và câu "bảng lỗi → ca chỉ trỏ ca mà đột biến xoá nhánh làm ĐỎ".
+- NGUYÊN TẮC 3 (đề xuất KHUON_LOI.md K5 — ngoài Phạm vi): màn Cài đặt gửi một NHÓM khoá phải chặn Lưu khi chưa nạp được (khuôn `boIn null`
+  InvoiceSettings) — ví dụ GioHoatDong.jsx vòng 1. Gộp vào dòng K5 sẵn có (KHUON_LOI.md gần trần).
+- BỎ 1: E15 bắt `18:00–02:00` trong chú thích — một lần, đã viết lại chú thích, không nới phép.
+- BỎ 2: người gác chặn chữ "token" trong nội dung ghi hồ sơ — đã có cách (Edit / Write), luật đúng; khung đóng băng tới khai trương.
