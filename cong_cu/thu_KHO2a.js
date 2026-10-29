@@ -113,6 +113,7 @@ async function main() {
   const s3 = await themSP('K2A3', 'Siro đường');
   const s4 = await themSP('K2A4', 'Cà phê pha');
   const s5 = await themSP('K2A5', 'Món trống');
+  const s6 = await themSP('K2A6', 'Sữa hạt');
   const nhomA = await goi('ql', 'POST', '/kho/nhom-cong-thuc', { ten: 'Nước ép', lech_cho_phep: 10 });
   const nhomB = await goi('ql', 'POST', '/kho/nhom-cong-thuc', { ten: 'Trà', lech_cho_phep: 30 });
   k('A0 manager tạo nhóm công thức có "% lệch cho phép" → 200, lưu đúng', nhomA.status === 200 && nhomB.status === 200
@@ -121,6 +122,9 @@ async function main() {
   const nhomC = await goi('ql', 'POST', '/kho/nhom-cong-thuc', { ten: 'Sữa hạt', lech_cho_phep: 0 });
   k('A0c lệch cho phép 0 % lưu là 0 (cảnh báo mọi lệch), không thành "không cảnh báo"', nhomC.status === 200
     && (await mot('SELECT lech_cho_phep FROM kho_nhom_cong_thuc WHERE id = ?', [nhomC.id || 0]))?.lech_cho_phep === 0, moTa(nhomC));
+  const nhomAm = await goi('ql', 'POST', '/kho/nhom-cong-thuc', { ten: 'Thử âm', lech_cho_phep: -5 });
+  k('A0d lệch cho phép âm → không lưu số âm (null = không cảnh báo)', nhomAm.status === 200
+    && (await mot('SELECT lech_cho_phep FROM kho_nhom_cong_thuc WHERE id = ?', [nhomAm.id || 0]))?.lech_cho_phep === null, moTa(nhomAm));
   const luuSP = (id, than) => goi('chu', 'PUT', `/kho/san-pham/${id}`, than);
   const kqSP = [
     await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: 5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] }),
@@ -128,6 +132,7 @@ async function main() {
     await luuSP(s2, { kieu: 'lam_san', nhom_id: nhomB.id ?? null, cong_thuc: [{ nguyen_lieu_id: n2, luong: 0.005 }] }),
     await luuSP(s4, { kieu: 'pha_tai_cho', nhom_id: null, cong_thuc: [{ nguyen_lieu_id: n1, luong: 0.01 }] }),
     await luuSP(s5, { kieu: 'lam_san', nhom_id: null, cong_thuc: [] }),
+    await luuSP(s6, { kieu: 'lam_san', nhom_id: nhomC.id ?? null, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] }),
   ];
   k('E0 PUT /san-pham/:id nhận hạn dùng (han_ngay) — Nước cam 2 ngày; không gửi trường thì KHÔNG xoá hạn đã có',
     kqSP.every((r) => r.status === 200) && Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s1]))?.han_ngay) === 2,
@@ -137,6 +142,15 @@ async function main() {
   const e0c = await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: 0.5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
   k('E0c hạn dùng không nguyên (0.5 ngày) → 400 HAN_SAI, hạn giữ 5', e0c.status === 400 && e0c.code === 'HAN_SAI'
     && Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay) === 5, moTa(e0c));
+  // K5: SanPham.jsx LUÔN gửi han_ngay — null khi ô trống; '' từ ô nhập; 1 = ngay trên ngưỡng
+  const hanS3 = async () => (await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay;
+  const e0d = [];
+  for (const h of [null, '', 1, 5]) {
+    const r = await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: h, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
+    e0d.push(`${r.status}:${await hanS3()}`);
+  }
+  k('E0d hạn trống (null / \'\') → 200, bỏ hạn; 1 ngày → 200 lưu 1; 5 → 200 (không chặn oan màn công thức)', JSON.stringify(e0d) === '["200:null","200:null","200:1","200:5"]',
+    JSON.stringify(e0d));
   // Lô nhập sẵn (phiếu PN đã duyệt, dựng bằng SQL — KHO-2b mới có màn nhập)
   let soPN = 0;
   const themLo = async (cot, id, sl, han) => {
@@ -239,7 +253,7 @@ async function main() {
     Number(loS2?.gia_von) === 450 && loS1?.gia_von === null, JSON.stringify([loS1?.gia_von, loS2?.gia_von]));
   const hl = (a, b) => thu(() => fn(dl, 'hanLo')(a, b)).kq;
   k('E5 hanLo qua cuối tháng / năm, không hạn → null', hl('2026-01-31T10:00:00', 1) === '2026-02-01T10:00:00'
-    && hl('2026-12-31T23:30:00', 1) === '2027-01-01T23:30:00' && hl('2026-11-07T06:00:00', null) === null);
+    && hl('2026-12-31T23:30:00', 1) === '2027-01-01T23:30:00' && hl('2026-11-07T06:00:00', null) === null && hl('2026-11-07T06:00:00', 1.5) === null);
   // C6: sửa công thức SAU khi tạo → phiếu vẫn số cũ
   await luuSP(s1, { kieu: 'lam_san', nhom_id: nhomA.id ?? null, cong_thuc: [{ nguyen_lieu_id: n1, luong: 0.3 }, { thanh_phan_id: s3, luong: 0.5 }] });
   const c1doc = await goi('nv', 'GET', `/kho/phieu/${c1id}`);
@@ -396,8 +410,8 @@ async function main() {
     "INSERT INTO recipes VALUES (1, 'Hồng Tân Sinh', 'CT1', 3, 1), (2, 'Lục Tân Khí', 'CT2', 5, 1)",
     'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount) VALUES (1, 1, 0.1), (2, 1, 0.2)',
     "INSERT INTO product_types VALUES (1, 'juice', 'Nước ép', 1, 0), (2, 'tea', 'Trà', 1, 1), (3, 'caphe', 'Cà phê', 1, 2)",
-    "INSERT INTO sx_products VALUES (21, 'CF02', 'Bạc xỉu', 3, 1, 5, 2)",
-    'INSERT INTO sx_product_ingredients (product_id, ingredient_id, amount) VALUES (21, 1, 0.01)',
+    "INSERT INTO sx_products VALUES (21, 'CF02', 'Bạc xỉu', 3, 1, 5, 2), (22, 'CF03', 'Sữa đậu', 3, 1, 6, 1.5)",
+    'INSERT INTO sx_product_ingredients (product_id, ingredient_id, amount) VALUES (21, 1, 0.01), (22, 1, 0.02)',
   ]) await cs.execute(c);
   cs.close();
   const ct1 = await mot("SELECT id FROM pos_products WHERE code = 'CT1'");
@@ -409,8 +423,8 @@ async function main() {
   const nhapR = await fetch(goc + '/kho/nhap-sx', { method: 'POST', headers: { Authorization: 'Bearer ' + the.chu }, body: f }).then((r) => r.status).catch(() => 0);
   noiLai();
   const hanCode = async (code) => (await mot('SELECT s.han_ngay FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id WHERE p.code = ?', [code]))?.han_ngay;
-  k('E7 nhập SX điền hạn từ days_use: CT2 (v_recipes) = 5, CF02 (sx_products) = 2; CT1 đã có 7 → KHÔNG đè', nhapR === 200
-    && Number(await hanCode('CT2')) === 5 && Number(await hanCode('CF02')) === 2 && Number(await hanCode('CT1')) === 7,
+  k('E7 nhập SX điền hạn từ days_use: CT2 (v_recipes) = 5, CF02 (sx_products) = 2; CT1 đã có 7 → KHÔNG đè; days_use lẻ 1.5 (CF03) → để trống', nhapR === 200
+    && Number(await hanCode('CT2')) === 5 && Number(await hanCode('CF02')) === 2 && Number(await hanCode('CT1')) === 7 && (await hanCode('CF03')) === null,
     `${nhapR} · ${await hanCode('CT2')} · ${await hanCode('CF02')} · ${await hanCode('CT1')}`);
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -429,9 +443,14 @@ async function main() {
     const r = await kq('ql', p.phieu?.id, { san_pham_id: sp, so_thuc: thuc });
     return r.status === 200 ? r.lech : 'HTTP ' + r.status;
   };
-  const f3 = [await lechMon(s1, 10, 8), await lechMon(s1, 10, 9), await lechMon(s1, 10, 11.1), await lechMon(s2, 10, 8), await lechMon(s3, 10, 1)];
-  k('F3 lệch 20 % ở nhóm 10 % → vàng; đúng 10 % → không; 11 % → vàng; nhóm 30 % lệch 20 % → không; món không nhóm → không; VẪN ghi',
-    JSON.stringify(f3) === '[true,false,true,false,false]', JSON.stringify(f3));
+  const f3 = [await lechMon(s1, 10, 8), await lechMon(s1, 10, 9), await lechMon(s1, 10, 11.1), await lechMon(s2, 10, 8), await lechMon(s3, 10, 1),
+    await lechMon(s6, 10, 9.9), await lechMon(s6, 10, 10)];
+  k('F3 lệch 20 % ở nhóm 10 % → vàng; đúng 10 % → không; 11 % → vàng; nhóm 30 % lệch 20 % → không; món không nhóm → không; nhóm 0 % lệch 1 % → vàng,'
+    + ' đúng chuẩn → không; VẪN ghi', JSON.stringify(f3) === '[true,false,true,false,false,true,false]', JSON.stringify(f3));
+  const f3c = await goi('nv', 'GET', `/kho/phieu/${(await mot("SELECT phieu_id FROM kho_phieu_dong WHERE loai = 'ket_qua' AND san_pham_id = ? ORDER BY id LIMIT 1", [s6]))?.phieu_id}`);
+  k('F3c màn xem phiếu cũng báo lệch ở nhóm 0 % (cùng hàm, đọc lệch từ nhóm)', tm(f3c, s6).ket_qua?.lech === true, JSON.stringify(tm(f3c, s6).ket_qua));
+  const f7b = await lechMon(s2, 10, 0);
+  k('F7b số thực = 0 (mẻ hỏng) → 200, VẪN ghi (không chặn oan), nhóm 30 % → vàng', f7b === true, String(f7b));
   const lc = (a, b, c) => thu(() => fn(t, 'lechQuaNguong')(a, b, c)).kq;
   k('F3b lechQuaNguong thuần: (10, 8, 10) true · (10, 9, 10) false · (10, 8, null) false', lc(10, 8, 10) === true && lc(10, 9, 10) === false && lc(10, 8, null) === false);
   const f4p = await px('ql', [{ san_pham_id: s1, so_phan: 5 }], 'g-f4');
