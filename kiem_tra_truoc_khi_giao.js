@@ -787,6 +787,11 @@ chac('.gitignore có attached_assets/',
 chayBaiThat('cong_cu/thu_DOISOAT1.js');   // DOI-SOAT-1: màn Đối soát (bất biến trên dữ liệu thật, chỉ đọc)
 chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ liệu đánh số, nhập SX, đường /api/pos/kho
 chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
+// KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
+// thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
+const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;
+const viTuAsync = fs.readdirSync(path.join(GOC, 'cong_cu')).filter((f) => /^thu_.*\.js$/.test(f) && MAU_VI_TU_ASYNC.test(doc('cong_cu/' + f)));
+chac('bài thử cong_cu/thu_*.js không dùng vị từ async trong every / some / filter / find (luôn đúng — K3)', !viTuAsync.length, viTuAsync.join(', '));
 nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-KHOTHU-v2)');
 
 // K1 — chỉ ketNoiKho.js được đọc 2 biến kết nối. Kiểm MẪU NGUY HIỂM VẮNG MẶT
