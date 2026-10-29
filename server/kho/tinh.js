@@ -52,6 +52,7 @@ function trienKhai(congThuc, soPhan) {
 
 // ── KHO-2a: pha chế · phiếu xuất · kết quả · tồn ──
 const SAP_HET_HAN_NGAY = 1;   // còn ≤ 1 ngày → đỏ "sắp hết hạn" (chủ quán chốt 29.10)
+const HAN_NGAY_TOI_DA = 3650;   // hạn dùng thành phẩm tối đa 10 năm — số lớn hơn làm phép cộng ngày theo lịch ném lỗi (Date ngoài tầm)
 const SAI_SO = 1e-9;
 const KHOA_GIA = ['gia_nhap', 'don_gia', 'gia_von'];
 
@@ -70,8 +71,8 @@ function chonDinhMuc(dong, thu) {
 
 const canLam = (dinhMuc, dangCo) => Math.max(0, dinhMuc - dangCo);
 
-/** Số ngày hạn dùng: số NGUYÊN > 0, còn lại null. MỘT vị từ cho PUT /san-pham, nhập SX và hanLo (cộng ngày theo lịch cắt phần lẻ). */
-const soNgayNguyen = (x) => (x !== '' && x != null && Number.isInteger(Number(x)) && Number(x) > 0 ? Number(x) : null);
+/** Số ngày hạn dùng: chữ số thập phân nguyên, 1 … HAN_NGAY_TOI_DA, còn lại null (true, '0x10', 1.5, 0 đều null). MỘT vị từ cho PUT /san-pham, nhập SX, hanLo. */
+const soNgayNguyen = (x) => (/^\d+$/.test(String(x ?? '').trim()) && Number(x) >= 1 && Number(x) <= HAN_NGAY_TOI_DA ? Number(x) : null);
 
 /** mon = [{ san_pham_id, so_phan }] → { theo_mon: [{ san_pham_id, so_phan, nguyen_lieu }], thieu_cong_thuc: [id] }. MỘT hàm cho tạo và sửa phiếu. */
 function lapPhieuXuat(mon, bang) {
@@ -162,5 +163,5 @@ function laTrungKhoa(loi) {
   return /SQLITE_CONSTRAINT_(UNIQUE|PRIMARYKEY)/.test(String(loi && loi.code)) || /UNIQUE constraint|PRIMARY KEY/i.test(String(loi && loi.message));
 }
 
-module.exports = { KIEU_SAN_PHAM, SAP_HET_HAN_NGAY, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa, thuCuaNgay, chonDinhMuc,
+module.exports = { KIEU_SAN_PHAM, SAP_HET_HAN_NGAY, HAN_NGAY_TOI_DA, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa, thuCuaNgay, chonDinhMuc,
   canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia };
