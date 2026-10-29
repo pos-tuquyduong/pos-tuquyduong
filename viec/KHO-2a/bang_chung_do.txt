@@ -1,5 +1,5 @@
 KHO-2a — bằng chứng ĐỎ trên code gốc (29.10.2026)
-Gốc: 62a8acb (PHIEU: KHO-2a duyệt kế hoạch — server/ chưa vá). Bài thử: bản ở HEAD (vòng sửa 2, commit e2a1b6a).
+Gốc: 62a8acb (PHIEU: KHO-2a duyệt kế hoạch — server/ chưa vá). Bài thử: bản ở HEAD (vòng sửa 3, commit 053ff05).
 Lệnh: python3 viec/KHO-2a/dot_bien.py --goc 62a8acb   (git archive server/ của gốc → node cong_cu/thu_KHO2a.js --may-chu <bản chép>)
 
 cong_cu/thu_KHO2a.js trên gốc: 5 đạt · 81 hỏng (thoát 1, chạy hết, không sập)
@@ -35,6 +35,8 @@ Vòng sửa 1 — bài mới trên server/ TRƯỚC vòng sửa (d9914bd): 78 đ
 các ca mới còn lại (C5 món trùng, F7 số thực âm, H2b in chưa duyệt, H3c tồn thành phẩm đọc GET /ton) khoá code đã đúng — đột biến bắt (dot_bien.py).
 Vòng sửa 2 — bài mới trên server/ TRƯỚC vòng sửa 2 (903ea8f): 84 đạt · 2 hỏng (E5 hanLo 1.5 ngày, E7 days_use lẻ từ SX);
 các ca mới còn lại (A0d lệch âm, E0d hạn null / '' / 1, F3 + F3c nhóm 0 %, F7b số thực 0) khoá code đã đúng hoặc luồng "phải KHÔNG bị chặn" — đột biến bắt.
+Vòng sửa 3 — bài mới trên server/ TRƯỚC vòng sửa 3 (db7ef39): 85 đạt · 1 hỏng (E0d: 0 / 3651 / true / '0x10' / 1e9 được nhận);
+E7 thêm ca days_use lẻ ở đường v_recipes (CT3) — khoá code vòng 2 đã vá, đột biến VS-han-recipe-le bắt.
 Trên code đã vá (HEAD): thu_KHO2a 86 đạt · 0 hỏng · thu_KHO1 111 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_KHO2a.js: 86
 SỐ CA cong_cu/thu_KHO1.js: 111
