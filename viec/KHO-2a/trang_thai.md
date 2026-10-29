@@ -173,3 +173,4 @@ Sửa đúng từng lỗi lần soát 2 nêu (bài e2a1b6a · vá tới 4ef1ae3)
   duLieu.lechCuaMon). A0d lệch âm → không lưu số âm.
 - F7b số thực = 0 (mẻ hỏng) → 200, vẫn ghi (K5).
 - Bài mới trên bản trước vòng sửa 2 (903ea8f): 84 · 2 (E5, E7); gốc 62a8acb: 5 · 81; HEAD: 86 · 0.
+- Đột biến vòng 2: đối chứng XANH 86 · 0; 53/53 BẮT (VS-han-xoa-khi-khong-gui lần đầu LẠC vì đỏ ở E0 thay vì E0b — mẫu nới thành `E0b?`, BẮT).
