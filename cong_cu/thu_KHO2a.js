@@ -59,7 +59,8 @@ async function main() {
   await db.initDatabase();
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const demSX = { tru: 0 };
-  require.cache[duongSX].exports = { ...require(duongSX), isSxConfigured: () => false, checkStock: async () => ({ sufficient: true, stock: 999 }),
+  const sxThat = require(duongSX);
+  require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => false, checkStock: async () => ({ sufficient: true, stock: 999 }),
     outStockFIFO: async () => { demSX.tru++; return { ok: true }; }, inStockReturn: async () => ({ ok: true }), callSxApi: async () => ({ ok: true }) };
   const app = express();
   app.use(express.json());
