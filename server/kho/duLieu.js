@@ -54,7 +54,7 @@ async function docBangCongThuc(csdl) {
 async function docSanPham(csdl) {
   const dong = await csdl.query(`SELECT c.*, l.ten AS nguyen_lieu_ten, l.don_vi_luu, l.don_vi_hien, l.he_so_doi, p.name AS thanh_phan_ten
     FROM kho_cong_thuc c LEFT JOIN kho_nguyen_lieu l ON l.id = c.nguyen_lieu_id LEFT JOIN pos_products p ON p.id = c.thanh_phan_id ORDER BY c.id`);
-  const sp = await csdl.query(`SELECT p.id, p.code, p.name, p.category, p.price, p.is_active, COALESCE(s.kieu, 'chua_dinh_luong') AS kieu, s.nhom_id
+  const sp = await csdl.query(`SELECT p.id, p.code, p.name, p.category, p.price, p.is_active, COALESCE(s.kieu, 'chua_dinh_luong') AS kieu, s.nhom_id, s.han_ngay
     FROM pos_products p LEFT JOIN kho_san_pham s ON s.pos_product_id = p.id ORDER BY p.sort_order, p.name`);
   return {
     san_pham: sp.map((p) => ({ ...p, cong_thuc: dong.filter((d) => d.san_pham_id === p.id)
@@ -128,7 +128,7 @@ async function docDinhMuc(csdl) {
   return {
     mon: (await docMonLamSan(csdl)).map(({ co_ct, ...m }) => ({ ...m, san_pham_id: Number(m.san_pham_id),
       dinh_muc: dm.filter((d) => Number(d.san_pham_id) === Number(m.san_pham_id)).map((d) => ({ thu: d.thu, so_luong: d.so_luong })) })),
-    nhom: await csdl.query('SELECT id, ten, lech_cho_phep FROM kho_nhom_cong_thuc ORDER BY thu_tu, ten'),
+    nhom: await csdl.query('SELECT id, ten, thu_tu, lech_cho_phep FROM kho_nhom_cong_thuc ORDER BY thu_tu, ten'),
     nv_can_duyet: await nvCanDuyet(csdl),
   };
 }
