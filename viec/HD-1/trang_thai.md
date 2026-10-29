@@ -6,10 +6,14 @@
   - 4698af9 HD-1: them thu vien qrcode-generator 1.4.4 (chu quan cai - phieu cho phep, nguoi gac chan may)
   - 391bc9d PHIEU: HD-1 chu quan chot 28.10 (bill dung tinh trang thuc te, cai dat day du moi dong)
   - 5f25465 HD-1: bằng chứng đỏ, bảng đột biến, báo cáo tạm (chờ thư viện QR)
+- 29.10 (vòng sửa 4, `/lam-viec HD-1 tiep`): nhánh viec/HD-1; HEAD = FETCH_HEAD = 092ee5e (cây sạch, không kéo, bằng nhau)
+  - 092ee5e PHIEU: HD-1 vong sua 4 theo luat moi (3 loi hien thi) + dong cau hoi don chua thu (chu quan 29.10)
+  - c022ed5 GOP-HD-1 gop main feda0b0 (UUDAI-1 + KHO-1 + so v44; chu quan, chat soat 29.10)
+  - feda0b0 TIEN-DO: UUDAI-1 (0a543cf), KHO-1 (65eb00d) xong; luat vong sua 4 + du lieu cu; quyet dinh khong co bill chua tra; HD-1 vong 4 — so v44
 
 ## Câu hỏi
 (Câu hỏi 1 — thư viện QR — đã được chủ quán trả lời bằng commit 4698af9.)
-2. **Bill của đơn CHƯA THU có in mã nhận điểm / ô ưu đãi khách mới + QR mang mã không?** Hiện `server/routes/hoaDon.js` (`donHopLe`: đơn phải `completed` + `paid`) → đơn chưa thu **không** in ô mã và QR không mang `?ma=`; in lại SAU khi thu thì có. Trước HD-1, bill chưa thu vẫn in mã (`signup-codes.js:39-41` ghi "bill mang ra bàn chưa thu vẫn in mã"). Nếu quầy đưa bill chưa thu cho khách rồi thu sau, khách đó không có mã trên tờ đã đưa. Hai lựa chọn: (a) giữ như hiện nay (chỉ in mã khi mã dùng được ngay — đúng "bill đúng tình trạng thực tế"); (b) đơn chưa thu (không huỷ) vẫn in ô mã + QR (mã dùng được sau khi thu, hạn 24 giờ tính từ lúc in). Cả hai đều sửa trong `hoaDon.js` vài dòng + một ca thử; em chưa tự chọn vì đây là cách quầy làm việc. Các phần khác của việc không phụ thuộc câu này.
+(Câu hỏi 2 — bill đơn chưa thu — ĐÃ ĐÓNG bởi `QUYET_DINH_CHU_QUAN.md` 29.10: không có bill chưa trả; đơn nợ cũ in lại KHÔNG in mã nhận điểm / ô ưu đãi / QR mang mã, giữ như code hiện tại. Câu hỏi 3 — vượt 3 vòng sửa — đã xử lý bằng vòng sửa 4 theo `LUAT_XAY_APP.md` §6 mục 5.)
 
 ## Phát hiện
 - `InvoiceSettings.jsx` ~1370 dòng, `InvoicePreview.jsx` ~830, `orders.js` 1762 — vượt ~500 dòng; không tách trong việc này (ngoài Phạm vi).
@@ -75,7 +79,6 @@ Nghi ngờ/chưa kiểm được: tem 40×29,5 mm có thể cắt dòng cuối /
 - InvoicePrint.jsx (H): BV-IN-QUA-CUA-HOA-DON
 - veQr.js (C): VS-QR-DAO-MAU · VS-QR-KHONG-VIEN
 
-3. **Vượt 3 vòng sửa:** soát xác nhận lần 4 vẫn còn 3 lỗi nhẹ–vừa (mục "Soát xác nhận lần 4"). Chủ quán chọn: (a) cho thêm một vòng sửa ở phiếu HD-1 (`/lam-viec HD-1 tiep`), hoặc (b) tách phiếu `HD-1b`. Em dừng, không sửa tiếp.
 
 ## Bài học
 - KHOÁ (đã làm trong Phạm vi): G80 (phủ khoá: mỗi khoá chữ hiện ở ≥ 1 mẫu xem trước), G81 + H2 (một vị từ "đủ điều kiện in" cho nút In và tự mở in), A2c (id chỉ chữ số thập phân), A19b/A19c/A30c (lỗ của bài thử); đột biến 98 tên, mỗi chỗ vá có VS-/BV-.
