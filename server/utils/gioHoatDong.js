@@ -114,11 +114,11 @@ function dangMo(bayGio, cd) {
       if (c && c.mo > bayGio) moLai = c.mo;
     }
   }
-  const caiLich = !!cd.lich;
+  const goc = ca || homNay, dong = goc && dongThat(goc, cd);   // MỘT giờ đóng thật cho nhan_don và hom_nay
   return {
     dang_mo: !!ca,
-    nhan_don: !!ca && bayGio < truPhut(dongThat(ca, cd), cd.ngungTruocPhut),
-    hom_nay: caiLich && (ca || homNay) ? { mo: (ca || homNay).mo, dong: dongThat(ca || homNay, cd) } : null,
+    nhan_don: !!ca && bayGio < truPhut(dong, cd.ngungTruocPhut),
+    hom_nay: cd.lich && goc ? { mo: goc.mo, dong } : null,
     mo_lai_luc: moLai,
     thong_bao: ca ? '' : cd.thongBao.replace(/\{gio_mo_lai\}/g, moLai ? inGioMoLai(moLai, ngay) : CHUA_CO_LICH),
   };
