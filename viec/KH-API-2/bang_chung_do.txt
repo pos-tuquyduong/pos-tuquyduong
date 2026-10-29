@@ -120,3 +120,7 @@ trên code trước vòng sửa 4; giá trị của ca đo bằng đột biến 
 GỌN (cả hai BẮT, dot_bien.py 45/45).
 Trên code GỐC (ab51a8a, bài 0d2db23): thu_KHAPI2.js 10 đạt · 47 hỏng (F14 không chạy — module chưa có) · thu_HOPDONG_KH.js 40 đạt · 3 hỏng
 Trên code ĐÃ VÁ (3d99e5e): thu_KHAPI2.js 101 · 0 · thu_HOPDONG_KH.js 49 · 0 (dòng số ca ở trên đã sửa theo).
+
+Chat soát thay khi gộp (29.10): sửa vênh với HD-1 → ca A28f của cong_cu/thu_HD1.js đổi (hạn ưu đãi theo cấu hình, Q1 a).
+Trên code GỐC (main 0e846ff): thu_HD1.js ĐỎ đúng A28f (uu_dai false, han_gio_uu_dai 24). Trên code PR: thu_HD1.js 157 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_HD1.js: 157
