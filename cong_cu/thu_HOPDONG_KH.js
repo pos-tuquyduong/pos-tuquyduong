@@ -12,7 +12,8 @@
  *  3. Mọi `code` thấy trong mọi câu trả lời (kể cả các ca lỗi dò thêm) ∈ ma_loi.
  *  4. Quét tĩnh server/routes/kh/index.js: route không có trong hợp đồng → ĐỎ; cửa hợp đồng không có route → ĐỎ. Bắt mọi `router.<x>(`
  *     (get/post/…/all/use/route, mọi kiểu nháy); đường không phải chữ viết thẳng → ĐỎ; router.use không đường chỉ nhận hàm mũi tên tại
- *     chỗ hoặc tên lấy từ server/middleware/ (router con không đường → ĐỎ). GIỚI HẠN: chỉ file index.js — router con gắn từ
+ *     chỗ hoặc tên lấy từ server/middleware/ (router con không đường → ĐỎ) — GIỚI HẠN: chỉ xét ký tự đầu, nên hàm mũi tên gọi router con
+ *     bên trong, hay `(require(…))` bọc ngoặc, vẫn lọt (phải cố tình; soát người đọc). Chỉ file index.js — router con gắn từ
  *     file khác (router.use('/x', require(…))) hiện thành cửa "USE /x" → ĐỎ cho tới khi hợp đồng ghi; không theo vào file con.
  *  5. Quét tĩnh mã lỗi trả ra được qua /api/kh ∈ ma_loi. GIỚI HẠN (K4 TU-CHAY-6): chỉ các nguồn liệt kê ở NGUON_MA — không theo hàm phụ
  *     khác; thêm hàm phụ trả `code` cho /api/kh thì thêm nó vào NGUON_MA.

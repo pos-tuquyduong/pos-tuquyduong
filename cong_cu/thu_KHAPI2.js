@@ -334,6 +334,14 @@ async function main() {
       { hom_nay: { mo: '2026-11-02T07:00:00', dong: '2026-11-03T22:00:00' } });
     const chong = cd({ gio_hd_ngung_truoc_phut: '30', gio_hd_lich: JSON.stringify({ ...LICH, 2: { mo: '18:00', dong: '02:00' }, 3: { mo: '01:00', dong: '10:00' } }) });
     ca('F13 ca CHỒNG nhau (Thứ Hai 18:00–02:00, Thứ Ba 01:00–10:00), N 30: 01:40 vẫn nhận đơn', '2026-11-03T01:40:00', chong, { dang_mo: true, nhan_don: true });
+    // F14 — mỗi vế dừng của dongThat một ca (soát vòng 3): HỞ (ca sau mở SAU giờ đóng) · GỌN (ca sau đóng TRƯỚC giờ đóng) · qua nửa đêm nối qua nửa đêm
+    const lich2 = (t3) => cd({ gio_hd_ngung_truoc_phut: '30', gio_hd_lich: JSON.stringify({ ...LICH, 2: { mo: '18:00', dong: '02:00' }, 3: t3 }) });
+    ca('F14 ca HỞ (18:00–02:00, Thứ Ba 07:00–22:00): 01:40 → không nhận đơn, hom_nay.dong 02:00', '2026-11-03T01:40:00', lich2({ mo: '07:00', dong: '22:00' }),
+      { dang_mo: true, nhan_don: false, hom_nay: { mo: '2026-11-02T18:00:00', dong: '2026-11-03T02:00:00' } });
+    ca('F14 ca GỌN (18:00–02:00, Thứ Ba 00:30–01:30): 01:20 → vẫn nhận đơn, hom_nay.dong 02:00', '2026-11-03T01:20:00', lich2({ mo: '00:30', dong: '01:30' }),
+      { dang_mo: true, nhan_don: true, hom_nay: { mo: '2026-11-02T18:00:00', dong: '2026-11-03T02:00:00' } });
+    ca('F14 qua nửa đêm nối qua nửa đêm (Thứ Ba 01:00–00:30): 01:30 Thứ Ba → hom_nay.dong Thứ Tư 00:30', '2026-11-03T01:30:00', lich2({ mo: '01:00', dong: '00:30' }),
+      { dang_mo: true, nhan_don: true, hom_nay: { mo: '2026-11-02T18:00:00', dong: '2026-11-04T00:30:00' } });
     ca('F13 ca chồng: 09:30 Thứ Ba (đóng 10:00) → không nhận đơn; hom_nay.dong = 10:00', '2026-11-03T09:30:00', chong, { dang_mo: true, nhan_don: false,
       hom_nay: { mo: '2026-11-03T01:00:00', dong: '2026-11-03T10:00:00' } });
   });
