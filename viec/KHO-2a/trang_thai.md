@@ -49,7 +49,7 @@ Xem mục "Câu hỏi cho chủ quán" cuối `ke_hoach.md` (Q1–Q7) — trả 
   manager để ca chỉ thử MỘT phép (K3).
 - Ca F6b ban đầu xanh oan với đột biến `VS-ket-qua-phieu-sua` (phiếu sửa giữ ngày làm cũ → 409 `DA_TU_CHOT` che phép "phiếu sửa không điền") →
   sửa ca so đúng mã `PHIEU_KHONG_DIEN`; chạy lại bằng chứng gốc + cả bộ đột biến.
-- `npm test -- --day-du`: PASS 80 · FAIL 0 · CẢNH BÁO 1 (xem dòng cảnh báo ở bước 6 dưới).
+- `npm test -- --day-du`: PASS 80 · FAIL 0 · CẢNH BÁO 1 — cảnh báo có từ trước, ngoài việc này: "route GET có lệnh ghi (3) — packages.js:194, products.js:67, sync.js:147" (xem ## Phát hiện).
 - Ngân sách: máy chủ ~554 dòng (phiếu ~650) · giao diện ~542 (~750) · bài thử ~600 (~500 — vượt ~20 %: 76 ca phủ đủ A–J + 4 ca đua + bảng quyền 16 đường × 5).
 
 ### Chỗ vá → đột biến (`viec/KHO-2a/dot_bien.py`, đối chứng XANH 76 · 0; 37/37 BẮT)
@@ -82,3 +82,65 @@ Xem mục "Câu hỏi cho chủ quán" cuối `ke_hoach.md` (Q1–Q7) — trả 
 | đường lạ → 403 | BV-duong-la-403 |
 
 Tên đột biến (đủ): VS-dangco-tinh-lo-het-han · VS-thu-gio-may · VS-mai-moc-bay-gio · VS-vai-tro-la-qua · BV-dinh-muc-xoa-cu · VS-tong-khong-trien-khai · BV-ma-gui · BV-tra-phieu-da-co · BV-khoa-trang-thai-duyet · BV-chan-tu-duyet · VS-tu-choi-khong-chan-nguoi-tao · BV-khoa-trang-thai-tu-choi · BV-ly-do-tu-choi · VS-nhan-vien-duyet · VS-cong-tac-khac-0-la-tat · BV-cong-tac-chi-chu-quan · BV-cong-tac-gia-tri-la · VS-fefo-han-xa-truoc · BV-lo-qua-han · VS-gia-von-thieu-gia · VS-han-xoa-khi-khong-gui · BV-han-tu-sx · VS-han-de-o-co-san · VS-han-sx-cot-cu · BV-chi-muc-ket-qua · BV-bat-trung-ket-qua · VS-lech-lon-bang · VS-tu-chot-gio-may · VS-ket-qua-phieu-sua · VS-ton-tinh-cho-duyet · VS-sap-het-nho-hon · BV-an-gia-phan-hoi-ghi · BV-dem-in · VS-sua-lo-han-gio-sua · VS-quan-ly-sua-phieu · BV-huy-khoa-trang-thai · BV-duong-la-403
+
+## Soát độc lập lần 1 (/ra-soat, agent general-purpose, mốc 8f88885^..d9914bd) — KHÔNG ĐẠT
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- cong_cu/thu_KHO2a.js:415 (tonLo) dùng ở H3/H5 — K3: "lô cũ + kết quả rơi khỏi tồn" kiểm bằng SQL của chính bài, không đọc GET /ton, /pha-che.
+  Đột biến bỏ `AND ${DA_DUYET}` trong conLaiTheoLo (duLieu.js:103-104) → bài vẫn XANH (SỐNG). Nghiệm thu H phần thành phẩm không có phép canh.
+- server/kho/duong.js:243 — K3: chặn in phiếu chưa duyệt không có ca (bỏ điều kiện vẫn XANH).
+- server/kho/duong.js:259 — K3: chặn số thực ra < 0 không có ca (thay bằng false vẫn XANH).
+- server/kho/duong.js:170 — K3: chặn trùng món trong một phiếu không có ca (bỏ vẫn XANH).
+- server/kho/duong.js:64,106 + duLieu.js:97 — kiểm đầu vào thiếu: han_ngay lẻ lọt (0.5 → lô hết hạn ngay khi vào kho; addDaysToDateString cắt phần lẻ).
+- server/kho/duLieu.js:225 + XemPhieu.jsx:73 — K4: huỷ và từ chối cùng `huy`; huyPhieu không ghi ai / lúc huỷ; phiếu đã duyệt rồi chủ quán huỷ hiện
+  "Từ chối: <người duyệt>" — đổ sai người.
+- server/nang_cap/002_kho_pha_che.js:11 — thiết kế: CHECK trên kho_phieu_dong.loai khoá cứng tập giá trị (SQLite không đổi được CHECK) — KHO-2b/KHO-3
+  thêm loại dòng phải dựng lại bảng. Gọn hơn: bỏ CHECK.
+- viec/KHO-2a/trang_thai.md:52 — K1 / LUAT §6: "xem dòng cảnh báo ở bước 6 dưới" không có; thiếu kết quả cong.js chay, thiếu 1–3 thao tác thử tay,
+  thiếu CHƯA KIỂM.
+NGHI NGỜ: soDuong(0) → null (lệch 0 % thành "không cảnh báo"); đơn giá / giá vốn lấy gia_nhap hiện tại, không theo lô (đúng tới KHO-2b);
+  so han_dung > luc theo chuỗi — lô hạn dạng ngày thuần sẽ bị coi quá hạn trong ngày hết hạn; sửa phiếu không bỏ được một món; is_active = 1 không ca;
+  ẩn giá ba chỗ (duong.js:162, 234, 281) chứ không phải một.
+NGHIỆM THU: 10/10 mục có bằng chứng máy chủ; lỗ: H (tồn thành phẩm theo phiếu còn hiệu lực chưa có phép; in phiếu chờ duyệt chưa có phép);
+  B/C/D/G có phần chỉ thử tay mà trang_thai không ghi.
+CHƯA SOÁT ĐƯỢC: --day-du chưa xong lúc nộp; --goc không chạy lại; cong.js chưa chạy; Turso thật; bản in / điện thoại; inPhieuKho.css, kho.css chưa đọc.
+BÀI HỌC: KHOÁ — ca hứa hành vi máy chủ phải đọc ĐẦU RA đường máy chủ, không lặp công thức bằng SQL; mỗi phép kiểm đầu vào / WHERE mới một VS-.
+  NGUYÊN TẮC — hai thao tác dùng chung một trạng thái thì sổ ghi trường phân biệt; CHECK liệt kê giá trị trong SQLite là khoá vĩnh viễn;
+  số "ngày" vào addDaysToDateString phải là số nguyên.
+```
+
+## Vòng sửa 1
+Sửa đúng từng lỗi lần soát 1 nêu (bài thử 6054c54 · vá 903ea8f trở về trước):
+- K3 tồn thành phẩm: thêm H3c / H5c đọc ĐẦU RA `GET /ton` (lô cũ / lô phiếu huỷ không còn, lô mới có) — đột biến `VS-lo-tinh-moi-trang-thai` (bỏ
+  `AND ${DA_DUYET}` trong conLaiTheoLo) nay BẮT.
+- K3 phép chưa có ca: H2b in phiếu chưa duyệt → 404 (`BV-in-chua-duyet`); F7 số thực âm → 400 (`BV-so-thuc-am`); C5 một món hai lần → 400 (`BV-mon-trung`).
+- Hạn dùng lẻ: `PUT /san-pham/:id` chỉ nhận số NGUYÊN ngày > 0, null / '' = bỏ hạn, sai → 400 `HAN_SAI` (E0c, `VS-han-le`).
+- Huỷ / từ chối: bước 002 thêm `kho_phieu.nguoi_huy`, `huy_luc`; từ chối và huỷ ghi vào đó, KHÔNG ghi đè người duyệt (D7, H5c, `BV-ghi-nguoi-huy`,
+  `VS-tu-choi-ghi-nguoi-duyet`); XemPhieu hiện "Duyệt: …" và "Huỷ / Từ chối / Sửa: …" riêng.
+- Bỏ CHECK trên `kho_phieu_dong.loai` (bước 002 chưa lên production — sửa trong nhánh, không cần bước 003).
+- Nghi ngờ "lệch 0 %": `lech_cho_phep` nhận số ≥ 0 (0 = cảnh báo mọi lệch) — A0c, `VS-lech-0-la-khong`.
+- Neo đột biến theo code mới (VS-han-xoa-khi-khong-gui, BV-huy-khoa-trang-thai HỎNG lần chạy đầu vì neo cũ → sửa neo, BẮT).
+- Bài mới trên server trước vòng sửa (d9914bd): 78 · 4 (đỏ đúng 4 ca chạm lỗi thật); trên gốc 62a8acb: 5 · 77; HEAD: 82 · 0. Đột biến: đối chứng XANH
+  82 · 0, 45/45 BẮT.
+- Không sửa (ghi Phát hiện): giá theo lô, hạn lô dạng ngày thuần, sửa phiếu bỏ một món, ẩn giá ba chỗ (gọn hoá — hành vi đúng, G3 canh).
+
+## Thao tác chủ quán thử tay trên điện thoại
+1. Đăng nhập nhân viên → Kho › Pha chế › "Cho hôm nay": món cần làm > 0 đã tick sẵn; sửa số phần một món; bấm "Xuất kho nguyên liệu" → phiếu "Chờ duyệt".
+2. Đăng nhập quản lý (máy khác) → Kho: tab Phiếu có huy hiệu số (≤ 30 s) → mở phiếu → Duyệt → "In 80 mm": giấy có A (ô ☐), B (cả mẻ + 1 phần), C (ô điền);
+   in lần hai có dòng "IN LẠI · LẦN 2".
+3. Trên phiếu đã duyệt bấm "✓ Đúng chuẩn" một món, "Khác" một món (số + ghi chú) → Kho › Tồn kho › Thành phẩm thấy lô đúng số, hạn; tab nhóm / tìm không dấu.
+
+## CHƯA KIỂM
+- Bản in thật 80 mm / A4 (khổ giấy, ô ☐, dòng "IN LẠI"), giao diện điện thoại, tick mặc định, huy hiệu tự làm mới, tab nhóm / tìm / sắp xếp ở Tồn — máy
+  không chạy trình duyệt cho các màn này; chỉ build xanh + `--day-du` so băm dist.
+- Turso thật: giao dịch ghi và mã bận chỉ thử trên libsql file (bài thử); ca đua chấp nhận `KHO_BAN`.
+- `afterprint` / `window.print()` khác nhau giữa trình duyệt điện thoại — chưa thử.
+- Giá vốn lô thành phẩm dùng `gia_nhap` hiện tại của nguyên liệu (chưa có lô nhập có giá — KHO-2b).
+
+## Phát hiện
+- Bộ kiểm cảnh báo có từ trước: route GET có lệnh ghi — packages.js:194, products.js:67, sync.js:147 (ngoài Phạm vi).
+- KHO-2b: lô nguyên liệu nhập nên lưu hạn dạng `YYYY-MM-DDTHH:mm:ss` (so chuỗi `han_dung > luc`); hạn ngày thuần sẽ bị coi quá hạn ngay trong ngày hết hạn.
+- KHO-2b: khi có lô nhập có giá, đơn giá dòng xuất / giá vốn nên lấy giá của LÔ bị trừ thay vì `gia_nhap` hiện tại.
+- Sửa phiếu chỉ đổi số phần (≥ 1 món, số phần > 0); bỏ hẳn một món = sửa thành phiếu không có món đó — giao diện chưa có nút bỏ món (phiếu không ghi).
+- Ẩn giá đang ở ba chỗ gọi `boGia` trong duong.js + vị từ riêng của KHO-1 (`/nguyen-lieu`) — có thể gom khi chạm tới.
