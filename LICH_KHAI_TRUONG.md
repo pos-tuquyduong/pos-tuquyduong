@@ -8,7 +8,7 @@
      27.10: KHAI TRƯƠNG CHỈ KHI MỌI VIỆC TRONG BẢNG DƯỚI XONG và chạy thử đạt — không khai trương với phần làm dở, không dùng phương án
      dự phòng nào; trễ thì LÙI NGÀY. Chủ quán chọn làm luôn topping theo món (TOPPING-1), đổi điểm trong phiên (P3b), giao Ahamove ở
      quầy (GIAO-1) trước khai trương → khai trương lùi từ T3 03.11 sang T7 07.11.
-     27.10: App KH ở kho GitHub riêng `app-khach-hang` + máy chủ Render riêng (chat App KH làm). Kho POS chỉ cung cấp cửa `/api/kh`;
+     27.10: App KH ở kho GitHub riêng `tuquyduong/APP-KH`, giao diện trên Cloudflare (tuquyduong.com); máy chủ App KH trên Render SAU khai trương (chat App KH làm). 28.10: cổng `/api/kh` theo hợp đồng `HOP_DONG_API_KH.md`; quyết định chung ở `QUYET_DINH_CHU_QUAN.md`. Kho POS chỉ cung cấp cửa `/api/kh`;
      từ nay KHÔNG sửa `app_kh/` trong kho POS (giữ tới khi app mới chạy, rồi xoá). Đơn ở quầy vẫn đi thẳng POS.
      UUDAI-1 duyệt 27.10 (f7165ea). -->
 
@@ -16,7 +16,8 @@
 | Mã | Việc | Loại · model | Làn |
 |---|---|---|---|
 | UUDAI-1 | Mã giảm dùng chung / không với giá hạng (cài đặt theo loại mã), máy chủ chọn cách lợi hơn, `tinh-thu` cho giỏ | [T] · Opus | Opus 1 |
-| KH-API-2 | Cửa App KH chỉ đọc: hồ sơ + hạng + số dư ví, danh sách hạng, giờ vàng hôm nay, menu có giá từng hạng (cùng hàm với quầy) | [T] · Opus | Opus 1 |
+| KH-API-2 | Cửa App KH chỉ đọc: hồ sơ + hạng + số dư ví, danh sách hạng, giờ vàng hôm nay, menu có giá từng hạng (cùng hàm với quầy); cài đặt **giờ hoạt động** + cửa giờ hoạt động cho App; hợp đồng v2 + bài thử hợp đồng | [T] · Opus | Opus 1 |
+| GIO-VN-1 | Mọi hệ thống dùng **giờ Việt Nam**: mọi chỗ ghi giờ còn theo giờ quốc tế (UTC) đổi về giờ VN; dữ liệu cũ đổi qua nâng cấp có sao lưu | [T] · Opus | Opus 1 |
 | COMBO-1a | Combo cố định, máy chủ tính giá combo, giảm hạng mức riêng cho combo | [T] · Opus | Opus 1 |
 | TOPPING-1 | Topping là sản phẩm POS; cài topping + ghi chú theo từng món; giá; giảm hạng áp cả topping; dòng topping trên giỏ / hoá đơn / tem / hoàn; `/api/kh/menu` có topping theo món | [T] · Opus | Opus 1 |
 | KHO-3 | Menu lấy từ sản phẩm POS; bán trừ kho POS (thành phẩm trước, pha tại chỗ theo công thức, kể cả topping; âm + báo đỏ); kiểm kê cuối ca có duyệt; đóng nối SX | [T] · Opus | Opus 1 |
@@ -40,7 +41,7 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 | CN 01.11 | TOPPING-1 gộp → KHO-3 kế hoạch | KHO-2 gộp → P3b kế hoạch | màn phụ kho nếu cần · sửa lỗi |
 | T2 02.11 | KHO-3 làm | P3b làm | sửa lỗi |
 | T3 03.11 | KHO-3 gộp | P3b gộp → GIAO-1 kế hoạch | sửa lỗi |
-| T4 04.11 | sửa lỗi | GIAO-1 làm | sửa lỗi |
+| T4 04.11 | GIO-VN-1 (kế hoạch tối T3) | GIAO-1 làm | sửa lỗi |
 | T5 05.11 | Chủ quán: nhập bản sao lưu SX mới (tải sáng nay) · kiểm kê đầu kỳ · tắt SX | GIAO-1 gộp | |
 | T6 06.11 | Chạy thử toàn quán với nhân viên — CHỈ sửa lỗi · tối: chủ quán + chat quyết giữ ngày hay lùi | | |
 | T7 07.11 | **Khai trương** (nếu mọi việc trên đạt) | | |
@@ -56,13 +57,16 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 
 ## Chủ quán cần làm trước khai trương
 - BAO-MAT-SX: kho SX (`tuquyduong/Quan-Ly-San-Xuat`) VẪN CÔNG KHAI → chuyển riêng tư; đổi `POS_API_KEY` ở Railway + Render.
-- Render POS lên gói trả phí trước chạy thử (máy không ngủ, payOS báo tiền về kịp).
+- Render POS lên gói trả phí + Turso lên gói Developer (quay lại dữ liệu 10 ngày) trước chạy thử (máy không ngủ, payOS báo tiền về kịp).
+- T6 06.11: dán `https://tuquyduong.com/?ma={ma}` vào Cài đặt hoá đơn → ô "Địa chỉ đăng ký App KH" (khi chat App KH báo app đã chạy).
+- Xin quyền Google Business Profile API sớm (duyệt vài ngày – vài tuần) và lấy link đánh giá Google của quán — cho DG-GOOGLE-1.
 - Ahamove: tài khoản + khoá API cho GIAO-1 (đặt trên Render, không dán vào chat) trước T4 04.11.
 - T5 05.11 sáng: tải bản sao lưu SX mới, gửi file `.db` cho chat.
 - Máy in bill / tem (P17): nếu chưa có máy, in qua trình duyệt ra máy bill như hiện nay.
 
 ## Sau khai trương (đợt 2)
-KH-MUA-1 (đặt đơn App KH) · KH-HOSO-1 (thêm ô hồ sơ khách) · giao việc · phân quyền chi tiết (Ẩn / Chỉ xem / Được làm / Xin phép) ·
+KH-MUA-1 (đặt đơn App KH) · KH-HOSO-1 (thêm ô hồ sơ khách) · DG-GOOGLE-1 (đánh giá Google, toàn bộ ở POS) · SAOLUU-DEM-1 (sao lưu tự
+động hằng đêm) · KHOIPHUC-1 (khôi phục Excel cho đơn / ví / điểm chỉ khi máy trống) · giao việc · phân quyền chi tiết (Ẩn / Chỉ xem / Được làm / Xin phép) ·
 khách hàng cửa sổ chi tiết + ví gia đình PIN theo thành viên (cùng chat App KH) · báo cáo nhập–xuất–tồn, thất thoát, tỉ lệ ra · chấm
 công · gộp sâu menu · chia code cũ theo mục nghiệp vụ · P17 · AUDIT-KH · AUDIT-5 · TU-CHAY-9 · DONG-GOI-1 · P7–P9 · P18 · P20d · P25 ·
 MA-GIAM-2 · TIET-KIEM-1 · DONDEP-v1 · DOI-SOAT-2 · P26e · DOISOAT-XULY-1 · KHACH-LOI-1 · DIEMHOAN-1 · NEO-P2223-1.

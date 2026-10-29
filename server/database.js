@@ -1110,6 +1110,10 @@ async function seedDefaultData() {
   }
   // P3: cờ "chuyển khoản / trừ tài khoản chỉ qua phiên" — mặc định 0 (đường cũ như cũ), chủ quán bật khi BH-1 lên quầy.
   await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES ('thanh_toan_payos_bat_buoc', '0')`);
+  // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — mặc định '1' (cộng, như cách đang chạy). Quà đổi điểm luôn dùng chung.
+  for (const khoa of ['uudai_chung_hang_percent', 'uudai_chung_hang_fixed', 'uudai_chung_hang_item']) {
+    await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, '1')`, [khoa]);
+  }
 
   // Tạo sản phẩm mẫu
   const productsExist = await query("SELECT COUNT(*) as count FROM pos_products");

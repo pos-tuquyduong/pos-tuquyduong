@@ -1,6 +1,6 @@
 # Luật xây app Tứ Quý Đường — POS · SX · App KH
 
-<!-- Chủ quán chốt 17.10.2026. CLAUDE.md nạp file này vào MỌI phiên (@LUAT_XAY_APP.md). Máy KHÔNG sửa file này (hiện là lời
+<!-- Chủ quán chốt 17.10.2026. Bản GỐC ở kho POS; kho App KH (`tuquyduong/APP-KH`) chép theo. CLAUDE.md nạp file này vào MỌI phiên (@LUAT_XAY_APP.md). Máy KHÔNG sửa file này (hiện là lời
      dặn, người gác chưa khoá — thêm vào file luật ở việc khung sau); muốn đổi thì ghi Phát hiện, chủ quán duyệt, chat ghi. Khi hai luật mâu thuẫn: an toàn tiền & dữ liệu khách >
      đúng > đơn giản > nhanh. -->
 
@@ -18,12 +18,20 @@
 |---|---|---|
 | Nguyên liệu, sản phẩm = công thức, lô, tồn kho, hạn dùng, phiếu kho | **POS** (`server/kho/`, từ KHO-1) | Tới KHO-3 bán vẫn trừ kho qua SX (`server/utils/sxApi.js`); sau KHO-3 tắt SX. App KH không gọi SX |
 | Giá bán, khách, đơn, tiền, ví, điểm, gói, mã giảm, voucher | **POS máy chủ** | App KH đọc / ghi CHỈ qua `/api/kh/*` của POS |
-| Nội dung trình bày (ảnh, mô tả, bài viết) | App KH | không chứa giá, tồn, điểm |
+| Kết quả trắc nghiệm thể trạng (bản rút gọn), đánh giá Google (cài đặt, lời mời, ghi chép, đọc / trả lời Google) | **POS** | App KH chỉ làm giao diện khách + gửi thông báo khi POS nhờ |
+| Ảnh / chữ trang trí, phiên đăng nhập, đăng ký nhận thông báo, nhắc việc | kho dữ liệu nhỏ của App KH | không tiền, không dữ liệu khách, không giá / tồn / điểm |
+- **Cổng `/api/kh` = hợp đồng `HOP_DONG_API_KH.md`** (nguồn duy nhất, có `PHIEN_BAN`). PR nào đổi cửa dưới `/api/kh` (`server/routes/kh/index.js`,
+  `loi.js`, `server/middleware/khachAuth.js`, hàm tạo dữ liệu trả cho App KH) → CÙNG PR sửa hợp đồng + tăng `PHIEN_BAN` + ghi nhật ký cuối file.
+  Không xoá / đổi tên trường đang dùng; buộc phải thì giữ trường cũ song song ít nhất một đợt và báo App KH bằng file. Bài thử
+  `cong_cu/thu_HOPDONG_KH.js` (từ KH-API-2) canh hợp đồng khớp code.
+- **Sổ quyết định `QUYET_DINH_CHU_QUAN.md`:** đọc TRƯỚC khi lập kế hoạch; lệch với file khác → sổ này thắng, ghi Phát hiện. Máy không sửa.
 - **Quy tắc tiền chỉ nằm ở máy chủ POS.** Màn hình (quầy lẫn App KH) chỉ hiển thị và gửi yêu cầu; máy chủ tự tính lại, không tin số màn hình gửi.
 - **Một quy tắc — một hàm.** Tính đã trả, trần hoàn, gói, mã… đã có hàm chung trong `server/utils/` thì GỌI hàm đó; không chép công thức.
 - **Mã lỗi dùng chung.** Lỗi MỚI trả `{ error: '<lời tiếng Việt cho người dùng>', code: 'MA_IN_HOA' }`; cùng tình huống → cùng `code` ở mọi
   route (lỗi cũ chưa có `code` thì thêm khi chạm tới).
-- **Thời gian** dùng `getNow` (`server/utils/helpers.js`; Render chạy UTC); số tiền là số nguyên đồng.
+- **Thời gian = giờ Việt Nam (UTC+7) ở MỌI hệ thống** (chủ quán chốt 28.10): ghi, so, trả ra đều qua `getNow` (`server/utils/helpers.js`; Render
+  chạy UTC), định dạng `YYYY-MM-DDTHH:mm:ss` không hậu tố. KHÔNG ghi `CURRENT_TIMESTAMP` / `datetime('now')`, KHÔNG so giờ lưu với
+  `Date.now()` trần. App KH lấy "bây giờ" từ máy chủ POS, không tin đồng hồ điện thoại. Số tiền là số nguyên đồng.
 
 ## 3. Bố trí code — đơn giản để sửa và nâng cấp
 - **Máy chủ POS** `server/`: `routes/<tài-nguyên>.js` chỉ nhận yêu cầu, kiểm quyền, gọi hàm; quy tắc nghiệp vụ dùng lại ở ≥ 2 chỗ → `utils/<tênViệc>.js`;
@@ -34,8 +42,8 @@
   có bài thử), `duLieu.js` (đọc / ghi CSDL); giao diện `client/src/pages/<Mục>/`. Phần cũ chuyển dần theo mục SAU khai trương.
 - **Nâng cấp dữ liệu** (từ KHO-1): mỗi lần đổi cấu trúc là một bước đánh số `server/nang_cap/NNN_<ten>.js`, chỉ THÊM, tự sao lưu bảng
   cũ trước bước đụng nó; thông tin riêng của quán nằm trong Cài đặt / hằng số có tên (để đóng gói cho quán khác).
-- **App KH** ở kho GitHub riêng `app-khach-hang` (chat App KH). Kho POS chỉ giữ cửa `/api/kh`; KHÔNG sửa `app_kh/` (bản cũ, xoá khi
-  app mới chạy).
+- **App KH** ở kho GitHub riêng `tuquyduong/APP-KH` (chat App KH); kho POS không còn phần giao diện App KH — chỉ giữ cửa `/api/kh`.
+  KHÔNG sửa `app_kh/` (bản cũ, xoá khi app mới chạy). Trao đổi hai chat chỉ bằng file qua chủ quán (`YEU_CAU_APPKH_*.md` / `TRA_LOI_POS_*.md`).
 - Tên hàm / biến mới: tiếng Việt không dấu, rõ nghĩa (`tinhDaTra`, `layDiemKhach`); một hàm làm một việc. File sắp vượt ~500 dòng → tách
   theo việc, KHÔNG tách theo kích thước.
 - Hằng số cấu hình (trần, hạn, hệ số) đặt một chỗ có tên; không rải số trong code. Không để code chết, không chú thích số dòng cứng.
