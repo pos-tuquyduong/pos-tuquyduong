@@ -144,3 +144,32 @@ Sửa đúng từng lỗi lần soát 1 nêu (bài thử 6054c54 · vá 903ea8f 
 - KHO-2b: khi có lô nhập có giá, đơn giá dòng xuất / giá vốn nên lấy giá của LÔ bị trừ thay vì `gia_nhap` hiện tại.
 - Sửa phiếu chỉ đổi số phần (≥ 1 món, số phần > 0); bỏ hẳn một món = sửa thành phiếu không có món đó — giao diện chưa có nút bỏ món (phiếu không ghi).
 - Ẩn giá đang ở ba chỗ gọi `boGia` trong duong.js + vị từ riêng của KHO-1 (`/nguyen-lieu`) — có thể gom khi chạm tới.
+
+## Soát độc lập lần 2 (/ra-soat, mốc 8f88885^..HEAD sau vòng sửa 1) — KHÔNG ĐẠT (mọi lỗi NHẸ)
+```
+LỖI TÌM ĐƯỢC:
+- cong_cu/thu_KHO2a.js:121-123 (A0c) — K3 + K1: ca hứa "lệch 0 % = cảnh báo mọi lệch" nhưng chỉ kiểm giá trị LƯU; tinh.js:105 (`lechChoPhep != null`) và
+  duLieu.js:239 (`?? null`) không có ca — đột biến `!!lechChoPhep` / `|| null` SỐNG. — NHẸ
+- server/kho/duong.js:107-111 (HAN_SAI) — K5 + K3: SanPham.jsx:87 LUÔN gửi han_ngay (null khi trống); không ca nào gửi null / ''; đột biến null → 0 → 400
+  SỐNG; ngưỡng `> 0` → `> 1` SỐNG. — NHẸ
+- server/kho/duong.js:264 (F7) — K5: không ca "số thực = 0" (mẻ hỏng); đột biến `> 0` SỐNG. — NHẸ
+- server/kho/duong.js:64 (soKhongAm) — K3: không ca % lệch âm; đột biến nới SỐNG. — NHẸ
+- server/kho/nhapSx.js:33, :192 + duLieu.js:97 — K4: hạn lẻ chỉ vá ở PUT; nhập SX nhận days_use lẻ, hanLo vẫn cắt phần lẻ; hạn lẻ từ SX làm lần lưu sau 400.
+  Gọn: một vị từ "số ngày nguyên > 0" cho PUT, nhapSx, hanLo. — NHẸ
+- viec/KHO-2a/trang_thai.md — K6: vẫn thiếu kết quả cong.js chay và --day-du trên HEAD sau vòng sửa (LUAT §6.3). — NHẸ
+NGHI NGỜ: sửa nội dung bước 002 đã đánh số — CSDL nào đã chạy 002 cũ sẽ bỏ qua; "002 chưa lên production" chưa kiểm được từ đây. PUT nhóm công thức không
+  gửi lech_cho_phep → xoá về null (ngược quy ước han_ngay; DinhMuc.jsx gửi đủ). Phiếu huy không in được, không ca. Nhãn "Từ chối / huỷ" chung.
+NGHIỆM THU: 10/10 mục có bằng chứng; thiếu điều kiện LUAT §6.3 (cong.js, --day-du trên HEAD).
+BÀI HỌC: KHOÁ — mỗi phép kiểm đầu vào mới kèm ca "phải KHÔNG bị chặn" cho đúng giá trị màn hình gửi (null, '', 0) + ca ngay trên / dưới ngưỡng; ca mang
+  tên một HÀNH VI kiểm ĐẦU RA hành vi, đột biến đưa lỗi cũ ở mọi chỗ tiêu thụ. NGUYÊN TẮC — vá kiểm đầu vào thì grep MỌI đường ghi cùng cột + chỗ đọc,
+  một vị từ dùng chung; không sửa nội dung bước nâng cấp đã đánh số khi nó có thể đã chạy — thêm bước mới.
+```
+
+## Vòng sửa 2
+Sửa đúng từng lỗi lần soát 2 nêu (bài e2a1b6a · vá tới 4ef1ae3):
+- Một vị từ `tinh.soNgayNguyen` (số ngày NGUYÊN > 0) cho cả ba chỗ: `PUT /san-pham/:id` (sai → 400 HAN_SAI, null / '' = bỏ hạn), nhập SX (`days_use` lẻ → để
+  trống), `hanLo` (K4). Ca E0d (null / '' / 1 / 5 → 200), E5 (hanLo 1.5 → null), E7 (CF03 days_use 1.5 → trống).
+- Lệch 0 %: ca theo HÀNH VI — F3 nhóm 0 % lệch 1 % → vàng, đúng chuẩn → không; F3c màn xem phiếu cũng báo; đột biến ở hai chỗ tiêu thụ (tinh.lechQuaNguong,
+  duLieu.lechCuaMon). A0d lệch âm → không lưu số âm.
+- F7b số thực = 0 (mẻ hỏng) → 200, vẫn ghi (K5).
+- Bài mới trên bản trước vòng sửa 2 (903ea8f): 84 · 2 (E5, E7); gốc 62a8acb: 5 · 81; HEAD: 86 · 0.
