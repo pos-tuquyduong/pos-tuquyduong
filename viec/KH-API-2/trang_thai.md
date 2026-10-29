@@ -254,3 +254,44 @@ hành vi, ca 2 chỉ khoá rằng route dùng đúng hàm đó (bị BV-GIOVANG-
 Kết quả: `thu_KHAPI2.js` 98 · 0; `thu_HOPDONG_KH.js` 49 · 0; `dot_bien.py` **TỔNG 43 · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0** (đối chứng xanh);
 `npm test -- --day-du` PASS 81 · FAIL 0 · CẢNH BÁO 1 (có từ trước), "dist đã commit KHỚP với src hiện tại".
 Tên đột biến thêm ở vòng sửa 2 (đủ 3): VS-GIOHD-NOI-CHI-KHI-BANG, BV-GIOHD-HOM-NAY-DONG, VS-HD-ROUTE-USE-ROUTER-CON.
+
+## Soát vòng 3 (/ra-soat, agent độc lập, HEAD 6b9703e) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ: không lỗi nào đụng tiền, điểm, ví, bảo mật, ngoài Phạm vi hay file Cấm. Theo LUAT_XAY_APP §6.5 thì làm vòng sửa 4
+ngay trong phiếu.)
+Chạy lại: thu_KHAPI2 98 · 0; thu_HOPDONG_KH 49 · 0; thu_KH1 157 · 0; dot_bien.py TỔNG 43 · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0; npm test --
+--day-du PASS 81 · FAIL 0 · CẢNH BÁO 1 (có từ trước); cong.js tinh chỉ đỏ A19.
+Vòng sửa 2 đúng. dangMo theo từng quan hệ hai ca đều ĐÚNG: bằng (Thứ Hai 07→00, Thứ Ba 00→22 nối); chồng (18→02 + 01→10 nối tới 10:00);
+hở (18→02 + 07→22 dừng 02:00, 01:40 không nhận đơn); gọn (Thứ Ba 00:30→01:30 giữ 02:00, 01:20 vẫn nhận đơn); qua nửa đêm nối qua nửa đêm
+(Thứ Ba 01:00→00:30 nối tới Thứ Tư 00:30); ngày nghỉ rơi vào ngày nối cắt đúng 02:00; hom_nay khi đóng: 23:00 ca hôm nay, 03:00 ca hôm nay
+dong đã nối, ngày nghỉ null; vòng lặp dừng (chặn SO_NGAY_DO, dong tăng ngặt; chưa cài lịch 401 vòng < 1 ms). Không lỗi hành vi mới.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/gioHoatDong.js:97 (`if (!tiep || tiep.mo > dong || tiep.dong <= dong) break;`) cùng cong_cu/thu_KHAPI2.js:335-338 và
+   viec/KH-API-2/trang_thai.md:247 — K3 — NHẸ. Hai vế dừng không có ca nào khoá (chép F1–F13 chạy trong bộ nhớ): bỏ vế `tiep.mo > dong`
+   SỐNG (ca HỞ 18→02 + 07→22 bị nối, 01:40 nhan_don true, hom_nay.dong Thứ Ba 22:00); bỏ vế `tiep.dong <= dong` SỐNG (ca GỌN 00:30→01:30
+   kéo giờ đóng về 01:30, 01:20 nhan_don false — chặn oan); chỉ `>` → `>=` bị BẮT (F12). Bảng vòng sửa 2 (trang_thai.md:247) ghi "hở thì
+   dừng" trỏ "F13 ×2" nhưng cả hai F13 là ca chồng. Sửa: hai ca F14 (hở: 01:40 nhan_don false, hom_nay.dong 02:00; gọn: 01:20 nhan_don true,
+   hom_nay.dong 02:00) mỗi ca một đột biến xoá đúng một vế; nên thêm ca qua nửa đêm nối qua nửa đêm; sửa dòng :247.
+
+NGHI NGỜ: thu_HOPDONG_KH.js:102 useHopLe cho qua ký tự đầu `(` → `router.use((require('./quay')))` hoặc
+`router.use((req,res,n)=>con(req,res,n))` lọt (phải cố tình; giới hạn :14-16 chưa nói); gioHoatDong.js:120-121 gọi dongThat hai lần cùng
+ca; HOP_DONG_API_KH.md dòng nhan_don thiếu vế "và đóng muộn hơn" (rất nhẹ); GioHoatDong.jsx:56 đúng, chưa có ca máy (CHƯA KIỂM).
+
+8 mục: K3 F12/F13 đỏ trước vá, kiểm hành vi giờ cố định (D7 ca 2 dò chữ, đã ghi lý do), lỗ: lỗi 1. K4 dongThat 2 chỗ gọi cùng hàm; gio_hd_*
+chỉ ghi qua PUT / (settings.js:89, kiểm :108); % hạng orders.js:658 + giaHang.js:11 một hàm. K5 chưa cài lịch (F6, F12), nối bằng (F12),
+chồng (F13), ngày nghỉ (F3), qua nửa đêm (F2, F5) đúng; ca gọn đúng nhưng không khoá; quầy không bị chặn (gioHoatDong chỉ gọi từ
+kh/index.js:24, settings.js:19). K1 trang_thai.md:247 không căn cứ (lỗi 1); chú thích gioHoatDong.js:91-92, :103-104 khớp. Đường tiền: không
+tiền từ client; giaHangMon → tinhUuDai; hạng tắt của khách (kh/index.js:207); so_du_vi = balance − dangGiu; monKhach danh sách trắng;
+/don/:ma lọc customer_phone. P1 d55b809 đổi src + dist cùng commit, --day-du FAIL 0. Đơn giản: gioHoatDong.js:117-121 tính dongThat một lần.
+
+NGHIỆM THU: 10/10 (A thu_KHAPI2 [A] + thu_UUDAI1, P26c, gia_lap; B [B] + thu_KH1 E1; C [C]; D D1–D7; E [E] + thu_KH1 E5; F F1–F13, F8/F10/F11
+qua HTTP; G G1–G3 + ngưỡng; H thu_HOPDONG_KH + BV-HD-PHIEN-BAN; I I2–I5, kiem_tra_truoc_khi_giao.js:495; J [J] + thu_KH1 157) — riêng F còn lỗ
+khoá vế hở / gọn (lỗi 1).
+
+CHƯA SOÁT ĐƯỢC: cong.js chay; trang_thai thiếu CHƯA KIỂM, 1–3 thao tác thử tay, HEAD ĐÃ KIỂM; GioHoatDong.jsx trên điện thoại; seed trên Turso.
+
+BÀI HỌC: KHOÁ — mỗi vế của điều kiện dừng / nối một ca riêng + đột biến xoá đúng vế đó (hở 18→02 + 07→22 lúc 01:40 không nhận đơn; gọn
+18→02 + 00:30→01:30 lúc 01:20 vẫn nhận đơn). NGUYÊN TẮC (K3) — bảng "lỗi → ca" chỉ trỏ ca mà đột biến xoá đúng nhánh làm ĐỎ; vế "dừng" không
+ca nào chạm là lời hứa. NGUYÊN TẮC (đơn giản) — giá trị dẫn xuất dùng cho hai trường tính một lần.
+```
