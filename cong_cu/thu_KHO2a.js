@@ -299,6 +299,8 @@ async function main() {
   const d8n = await px('nv', [{ san_pham_id: s2, so_phan: 1 }], 'g-d8n');
   k('D8 công tắc = "0" → staff tự duyệt; giá trị lạ "x" / không có dòng → vẫn cần duyệt', d8a.status === 200 && d8p.phieu?.trang_thai === 'da_duyet'
     && d8x.phieu?.trang_thai === 'cho_duyet' && d8n.phieu?.trang_thai === 'cho_duyet', [d8a, d8p, d8x, d8n].map((r) => r.phieu?.trang_thai || moTa(r)).join(' | '));
+  // Quản lý được chủ quán cấp quyền cài đặt (Cài đặt › Phân quyền) — D10 chỉ thử MỘT phép: khoá kho_* chỉ chủ quán.
+  await ghiDb("INSERT OR REPLACE INTO pos_permissions (role, permission, allowed) VALUES ('manager', 'manage_settings', 1)");
   const d10a = await caiDat('chu', '2');
   const d10b = await caiDat('ql', '0');
   k('D10 công tắc chỉ nhận 0 / 1; manager đổi → 403 (chỉ chủ quán); không ghi', d10a.status === 400 && d10b.status === 403
