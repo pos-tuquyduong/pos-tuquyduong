@@ -48,7 +48,7 @@ DOT_BIEN = [
   ('VS-fefo-han-xa-truoc', [(L, "[nlId, luc], 'han_dung IS NULL, han_dung, id')", "[nlId, luc], 'han_dung IS NULL, han_dung DESC, id')", 1)], r'✗ E2 '),
   ('BV-lo-qua-han', [(L, "'l.nguyen_lieu_id = ? AND (l.han_dung IS NULL OR l.han_dung > ?)', [nlId, luc]", "'l.nguyen_lieu_id = ? AND ? IS NOT NULL', [nlId, luc]", 1)], r'✗ E2 '),
   ('VS-gia-von-thieu-gia', [(L, 'cua.length && cua.every((x) => giaCua(x) != null) ?', 'cua.length ?', 1)], r'✗ E4 '),
-  ('VS-han-xoa-khi-khong-gui', [(D, "const hanNgay = 'han_ngay' in req.body ? soDuong(req.body.han_ngay) : undefined;", 'const hanNgay = soDuong(req.body.han_ngay);', 1)], r'✗ E0b '),
+  ('VS-han-xoa-khi-khong-gui', [(D, "const hanNgay = !('han_ngay' in req.body) ? undefined :", "const hanNgay = !('han_ngay' in req.body) ? null :", 1)], r'✗ E0b '),
   ('BV-han-tu-sx', [(N, "    if (m.han_ngay) await tx.run('UPDATE kho_san_pham SET han_ngay = ? WHERE pos_product_id = ? AND han_ngay IS NULL', [m.han_ngay, spId]);\n", '', 1)], r'✗ E7 '),
   ('VS-han-de-o-co-san', [(N, 'WHERE pos_product_id = ? AND han_ngay IS NULL', 'WHERE pos_product_id = ?', 1)], r'✗ E7 '),
   ('VS-han-sx-cot-cu', [(N, '`SELECT p.*, t.code AS loai FROM sx_products p', '`SELECT p.id, p.code, p.name, p.legacy_id, t.code AS loai FROM sx_products p', 1)], r'✗ E7 '),
@@ -67,7 +67,7 @@ DOT_BIEN = [
   ('BV-dem-in', [(D, 'SET so_lan_in = so_lan_in + 1 WHERE', 'SET so_lan_in = 1 WHERE', 1)], r'✗ H2 '),
   ('VS-sua-lo-han-gio-sua', [(L, 'lucLam: cu.duyet_luc || luc', 'lucLam: luc', 1)], r'✗ H3 '),
   ('VS-quan-ly-sua-phieu', [(D, "router.post('/phieu/:id/sua', CHU_QUAN,", "router.post('/phieu/:id/sua', QUAN_LY,", 1)], r'✗ (H4|I1) '),
-  ('BV-huy-khoa-trang-thai', [(L, "AND trang_thai IN ('cho_duyet', 'da_duyet')`, [lyDo, id]);", '`, [lyDo, id]);', 1)], r'✗ H5b '),
+  ('BV-huy-khoa-trang-thai', [(L, "\n    AND trang_thai IN ('cho_duyet', 'da_duyet')`, [lyDo, nguoi, luc, id]);", '`, [lyDo, nguoi, luc, id]);', 1)], r'✗ H5b '),
   # ── vòng sửa 1 (soát lần 1) ──
   ('VS-lo-tinh-moi-trang-thai', [(L, "WHERE d.lo_id = l.id AND ${DA_DUYET}) AS con", 'WHERE d.lo_id = l.id) AS con', 1)], r'✗ (H3c|H5c|B1) '),
   ('BV-in-chua-duyet', [(D, "WHERE id = ? AND trang_thai = 'da_duyet'\", [id]);", 'WHERE id = ?", [id]);', 1)], r'✗ H2b '),
