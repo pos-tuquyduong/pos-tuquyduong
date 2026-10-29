@@ -98,8 +98,14 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
       return res.status(403).json({ success: false, error: 'Không có quyền sửa cài đặt' });
     }
 
-    // UUDAI-1: "dùng chung với giá hạng" theo loại mã chỉ nhận '0' | '1' — kiểm HẾT trước khi ghi khoá nào.
-    const khoaSai = Object.entries(settings).find(([key, value]) => key.startsWith('uudai_chung_hang_') && !['0', '1'].includes(String(value)));
+    // KHO-2a: khoá kho_* (công tắc "Nhân viên xuất kho cần duyệt") chỉ chủ quán đổi (chủ quán chốt 29.10).
+    if (Object.keys(settings).some((key) => key.startsWith('kho_')) && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, error: 'Chỉ chủ quán đổi cài đặt kho', code: 'CHI_CHU_QUAN' });
+    }
+
+    // UUDAI-1: "dùng chung với giá hạng" theo loại mã chỉ nhận '0' | '1' — kiểm HẾT trước khi ghi khoá nào. KHO-2a: công tắc duyệt cũng vậy.
+    const khoaSai = Object.entries(settings).find(([key, value]) => (key.startsWith('uudai_chung_hang_') || key === 'kho_px_nv_can_duyet')
+      && !['0', '1'].includes(String(value)));
     if (khoaSai) {
       return res.status(400).json({ success: false, error: `Cài đặt ${khoaSai[0]} chỉ nhận 0 hoặc 1`, code: 'CAI_DAT_KHONG_HOP_LE' });
     }
