@@ -481,3 +481,7 @@ GIT:         69eeb09 KHO-1: trang thai vong sua 4 (bang va, dot bien, dong muc 8
 BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 2 (đề xuất, ngoài Phạm vi) · BỎ 3 — chi tiết ở ## Bài học
 ```
 HEAD ĐÃ KIỂM: 69eeb09
+
+
+Chat soát thay lần 4 (28.10): đọc báo cáo vòng sửa 4; gộp thử main + UUDAI-1: npm test --day-du 79/0 (client/dist dựng lại); nhập thử bản sao lưu SX 09.10 thật: 32 nguyên liệu, 7 nhóm gộp đúng phiếu, 10 món (Cà Phê Đen có khoá nối caphe/1 → tạo, chưa định lượng), 9 công thức.
+HEAD ĐÃ KIỂM: 20be623
