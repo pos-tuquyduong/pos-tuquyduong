@@ -105,8 +105,8 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   // KHO-2a: không gửi han_ngay = giữ hạn đang có (màn công thức cũ không gửi trường này); null / '' = bỏ hạn; còn lại phải là số NGUYÊN ngày > 0
   // (addDaysToDateString cắt phần lẻ — 0.5 ngày thành lô hết hạn ngay lúc vào kho)
   const hanVao = req.body.han_ngay;
-  const hanNgay = !('han_ngay' in req.body) ? undefined : hanVao === null || hanVao === '' ? null : Number(hanVao);
-  if (hanNgay != null && !(Number.isInteger(hanNgay) && hanNgay > 0)) {
+  const hanNgay = 'han_ngay' in req.body ? tinh.soNgayNguyen(hanVao) : undefined;
+  if (hanNgay === null && hanVao !== null && hanVao !== '') {
     return res.status(400).json({ error: 'Hạn dùng phải là số ngày nguyên lớn hơn 0', code: 'HAN_SAI' });
   }
   const dong = Array.isArray(dongVao) ? dongVao.map((d) => ({ nguyen_lieu_id: Number(d.nguyen_lieu_id) || null,
