@@ -53,7 +53,7 @@ const tim = (s, re) => [...s.matchAll(re)].map((m) => m[1]);
 const NGUON_MA = [
   ['server/routes/kh/loi.js', 'const LOI = {', '};', /^\s+([A-Z][A-Z0-9_]+): \[/gm],
   ['server/routes/kh/loi.js', 'function loiMayChu', null, /code: '([A-Z][A-Z0-9_]+)'/g],
-  ['server/routes/kh/index.js', '', null, /bao\(res, '([A-Z][A-Z0-9_]+)'\)/g],
+  ['server/routes/kh/index.js', '', null, /(?:bao\(res, |code: )'([A-Z][A-Z0-9_]+)'/g],
   ['server/middleware/khachAuth.js', '', null, /code: '([A-Z][A-Z0-9_]+)'/g],
   ['server/utils/maKhach.js', '', null, /loi: '([A-Z][A-Z0-9_]+)'/g],
   ['server/utils/pinKhach.js', 'async function datPin', 'async function', /loi\('([A-Z][A-Z0-9_]+)'\)/g],
