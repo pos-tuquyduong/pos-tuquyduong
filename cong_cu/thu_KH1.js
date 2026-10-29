@@ -427,7 +427,7 @@ async function main() {
   await chay('E1', async () => {
     const r = await goi('GET', '/kh/toi', undefined, { tk: A.tk });
     const khoa = Object.keys(r.j.khach || {}).sort();
-    k('E1 GET /toi → 200, đúng 4 trường ngay_tao · qr · sdt · ten (P15-QR)', la(r, 200) && bang(khoa, ['ngay_tao', 'qr', 'sdt', 'ten']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
+    k('E1 GET /toi → 200, đúng 6 trường hang · ngay_tao · qr · sdt · so_du_vi · ten (P15-QR, KH-API-2)', la(r, 200) && bang(khoa, ['hang', 'ngay_tao', 'qr', 'sdt', 'so_du_vi', 'ten']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
     const rB = await goi('GET', '/kh/toi', undefined, { tk: B.tk });
     const lech = await goi('GET', `/kh/toi?sdt=${B.sdt}&phone=${B.sdt}`, undefined, { tk: A.tk });
     const qA = (r.j.khach || {}).qr, qB = (rB.j.khach || {}).qr;
@@ -513,7 +513,7 @@ async function main() {
     const giaMoi = await db.query('SELECT * FROM pos_products WHERE is_active = 1');
     const r = await goi('GET', '/kh/menu', undefined, { tk: A.tk });
     const data = r.j.data || [];
-    const KHOA = ['con_hang', 'gia', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc'];
+    const KHOA = ['con_hang', 'gia', 'gia_hang', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc'];
     k('E5 mỗi món ĐÚNG bộ khoá danh sách trắng', la(r, 200) && data.length > 0 && data.every((x) => bang(Object.keys(x).sort(), KHOA)), data[0] ? Object.keys(data[0]).join(',') : moTa(r));
     const theo = (id) => { const p = giaMoi.find((x) => x.id === id); return data.find((x) => x.ma === `${p.sx_product_type}_${p.sx_product_id}`); };
     k('E5 menu có món giá > 0, KHÔNG có món giá 0', !!theo(ds[0].id) && !theo(ds[3].id));

@@ -11,7 +11,7 @@ const { authenticate } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
 const { tienTinhDiem } = require('../utils/diemThat');
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem');
-const { docCauHinhNhanDiem, CODE_EXPIRE_HOURS } = require('./signup-codes');
+const { docCauHinhNhanDiem } = require('./signup-codes');
 
 const router = express.Router();
 
@@ -69,17 +69,17 @@ async function dungMaNhanDiem(o) {
   const uuDai = cfg.signup_enabled === 'true' || cfg.signup_enabled === '1';
   const gioDaQua = (new Date(getNow().replace(' ', 'T') + 'Z') - new Date(String(m.issued_at).replace(' ', 'T') + 'Z')) / 3600000;
   // Đơn phải hoàn tất + đã thu (cùng danh sách trắng với signup-codes.js kiemDonCuaMa). Mỗi loại ưu đãi có cột "đã dùng" và hạn RIÊNG,
-  // đúng như đường dùng nó: điểm (/nhan-diem) = diem_nhan_luc + hạn cấu hình; ưu đãi khách mới (/claim) = claimed_at + CODE_EXPIRE_HOURS.
+  // đúng như đường dùng nó: điểm (/nhan-diem) = diem_nhan_luc + hạn cấu hình; ưu đãi khách mới (/claim) = claimed_at + CÙNG hạn cấu hình (KH-API-2 Q1 a: /claim theo cài đặt).
   const donHopLe = o.status === 'completed' && o.payment_status === 'paid';
   const dungDuocDiem = donHopLe && !m.diem_nhan_luc && gioDaQua <= ch.hanGio;
-  const dungDuocUuDai = donHopLe && !m.claimed_at && gioDaQua <= CODE_EXPIRE_HOURS;
+  const dungDuocUuDai = donHopLe && !m.claimed_at && gioDaQua <= ch.hanGio;
   let diem = 0;
   if (ch.bat && dungDuocDiem) {
     const { loy, daCong } = await docDuLieuNhanDiem(o.id);
     const kq = tinhDiemNhanMa({ don: o, tienDiem: tienTinhDiem(o), ch, loy, daCong });
     diem = kq.loi ? 0 : kq.diemCong;
   }
-  return { ma: m.code, diem, uu_dai: uuDai && dungDuocUuDai, han_gio: ch.hanGio, han_gio_uu_dai: CODE_EXPIRE_HOURS };
+  return { ma: m.code, diem, uu_dai: uuDai && dungDuocUuDai, han_gio: ch.hanGio, han_gio_uu_dai: ch.hanGio };
 }
 
 router.get('/:id', authenticate, async (req, res) => {
