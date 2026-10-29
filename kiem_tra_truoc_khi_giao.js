@@ -786,6 +786,7 @@ chac('.gitignore có attached_assets/',
 // ═══════════════════════════════════════════════════════════════════════════
 chayBaiThat('cong_cu/thu_DOISOAT1.js');   // DOI-SOAT-1: màn Đối soát (bất biến trên dữ liệu thật, chỉ đọc)
 chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ liệu đánh số, nhập SX, đường /api/pos/kho
+chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
 nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-KHOTHU-v2)');
 
 // K1 — chỉ ketNoiKho.js được đọc 2 biến kết nối. Kiểm MẪU NGUY HIỂM VẮNG MẶT
