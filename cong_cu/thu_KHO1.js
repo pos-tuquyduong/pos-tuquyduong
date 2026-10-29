@@ -243,9 +243,12 @@ async function main() {
   const cauTruc = async () => JSON.stringify(await q("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name"));
   const ctLan1 = await cauTruc();
   const nc1 = (await coBang('pos_nang_cap')) ? await q('SELECT so, ten FROM pos_nang_cap ORDER BY so') : [];
-  k('B1 khởi động lần 1: pos_nang_cap có bước 1 (001_kho)', nc1.length === 1 && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho', JSON.stringify(nc1));
+  // Số bước = số file NNN_*.js thật trong server/nang_cap (KHO-2a thêm 002) — không đếm cứng
+  const soBuoc = fs.existsSync(path.join(MAY_CHU, 'nang_cap')) ? fs.readdirSync(path.join(MAY_CHU, 'nang_cap')).filter((f) => /^\d{3}_[a-z0-9_]+\.js$/.test(f)).length : 0;
+  k('B1 khởi động lần 1: pos_nang_cap đủ mọi bước, bước 1 là 001_kho', soBuoc >= 1 && nc1.length === soBuoc && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho',
+    JSON.stringify(nc1));
   imLang(); await db.initDatabase(); noiLai();
-  k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === 1);
+  k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === soBuoc);
   const chay = nap('nang_cap/chay.js');
   const chayNC = (csdl, thuMuc) => (typeof chay.chayNangCap === 'function' ? chay.chayNangCap(csdl, thuMuc) : Promise.resolve({ hong: 'thiếu chayNangCap' }));
   const dirBuoc = (ten, tep) => {
@@ -601,7 +604,8 @@ async function main() {
     && (await so('SELECT COUNT(*) FROM pos_products')) === soDongTruoc, `${moTa(luuLo)} · ${menuGia.length} món · sót ${sot.join(', ')}`);
   await batBien('K9 (sau PUT /products/batch/prices)', await menuHai(), 6);
   const batBo = await goi('PUT', `/kho/san-pham/${dnlId}/bat-ban`);
-  k('K7 đường "Bật bán" đã bỏ (404) — không còn bước thứ hai', batBo.status === 404, moTa(batBo));
+  // KHO-2a (phiếu I): đường lạ dưới /api/pos/kho → 403 DUONG_LA thay cho 404 — ý nghĩa giữ: đường "Bật bán" không còn
+  k('K7 đường "Bật bán" đã bỏ (đường lạ → 403 DUONG_LA) — không còn bước thứ hai', batBo.status === 403 && batBo.code === 'DUONG_LA', moTa(batBo));
   const fileTrong = path.join(THU_MUC, 'trong.db');
   delete require.cache[duongDB];
   const db3 = require(duongDB);
