@@ -505,7 +505,9 @@ async function main() {
     && gan(tonH3.nl(n1).ton, tonH.nl(n1).ton - 0.4) && gan(tonH3.nl(n2).ton, tonH.nl(n2).ton) && (await tonLo(loS1?.id)) === 0
     && loMoi && Number(loMoi.so_luong) === 12 && loMoi.han_dung === '2026-11-09T06:00:00', `${moTa(h3)} ${JSON.stringify(loMoi)}`);
   const h3k = await kq('chu', h3.phieu?.id, { san_pham_id: s1, so_thuc: 1 });
-  k('F6b phiếu sửa: không mở lại ô kết quả → 409; trạng thái đã chốt (không tu_chot)', h3k.status === 409 && tm(h3, s1).ket_qua?.trang_thai === 'da_dien', moTa(h3k));
+  // Phiếu sửa giữ ngày làm cũ (đã qua ngày) — so đúng mã PHIEU_KHONG_DIEN để ca không đỏ / xanh nhờ phép tự chốt (K3: một ca một phép)
+  k('F6b phiếu sửa: không mở lại ô kết quả → 409 PHIEU_KHONG_DIEN; trạng thái đã chốt (không tu_chot)', h3k.status === 409 && h3k.code === 'PHIEU_KHONG_DIEN'
+    && tm(h3, s1).ket_qua?.trang_thai === 'da_dien', moTa(h3k));
   const cuDoc = await goi('ql', 'GET', `/kho/phieu/${c1id}`);
   k('H3b phiếu cũ trỏ sang phiếu thay (thay_bang_id), giữ lý do', cuDoc.phieu?.thay_bang_id === h3.phieu?.id && cuDoc.phieu?.ly_do === 'ghi nhầm số', JSON.stringify(cuDoc.phieu));
   const h5Truoc = await tonQL();
