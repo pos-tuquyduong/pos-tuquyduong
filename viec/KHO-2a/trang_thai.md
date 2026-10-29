@@ -15,5 +15,15 @@
   `client/src/pages/Kho/index.jsx`, `Layout.jsx` (navItems, vòng hỏi 60 s), `cong_cu/thu_KHO1.js` (B1/B2 đếm cứng 1 bước).
 - Kế hoạch: `viec/KHO-2a/ke_hoach.md`. Phiếu dặn **Chờ duyệt kế hoạch** → commit, push, DỪNG ở bước 3.
 
+## Soát kế hoạch (agent phụ chỉ đọc, 4 câu)
+- Phạm vi / Cấm: không file nào ngoài Phạm vi. Sửa theo soát: huy hiệu rời `Layout.jsx` về màn Kho (phiếu: Layout chỉ route) + Q7.
+- Ngắn hơn: bỏ cột "% chuẩn" tới khi Q1 trả lời; bỏ đường đếm riêng (dùng `GET /phieu?trang_thai=cho_duyet`); hạn món vào `PUT /san-pham/:id`
+  có sẵn; lệch theo nhóm vào vòng thêm / sửa chung; `hanLo` dùng lại `addDaysToDateString`; một câu `conLaiTheoLo` dùng chung.
+- Ca thiếu đã thêm: I2 → 403 (phiếu ghi "đường lạ → 403"), C7 bấm hai lần (khoá `ma_gui`), C8 đơn vị hiện, D11 từ chối song song duyệt,
+  D12 tự từ chối, E8 một giao dịch, F3 hai nhóm khác ngưỡng + món không nhóm, H7 huỷ phiếu chờ duyệt, G3 ẩn giá cả phản hồi đường ghi.
+- Đường song song đã vá trong kế hoạch: từ chối cùng điều kiện khoá với duyệt; sửa phiếu giữ giờ làm cũ cho hạn lô, không mở lại kết quả;
+  công tắc chỉ '0' là tắt (khôi phục sao lưu ghi `pos_settings` không qua kiểm).
+- Nền sai đã sửa: `nhapSx.js:64` đọc `sx_products` bằng cột tường minh (không có `days_use`); ca đua chấp nhận `KHO_BAN`.
+
 ## Câu hỏi
-Xem mục "Câu hỏi cho chủ quán" cuối `ke_hoach.md` (Q1–Q6) — trả lời cùng lúc duyệt kế hoạch.
+Xem mục "Câu hỏi cho chủ quán" cuối `ke_hoach.md` (Q1–Q7) — trả lời cùng lúc duyệt kế hoạch.
