@@ -1,0 +1,23 @@
+BH-2 — bằng chứng bài thử ĐỎ trên code gốc (commit PHIEU: BH-2 = cbbb809: BanHang/tinh.js chưa có hàm đợt 2, chưa có QuanLy/menu.js, api.js chưa có thanhToanApi/hoaDonApi).
+Lệnh: node cong_cu/thu_BH2.js --goc <bản giải nén cbbb809 của client/src + kiem_tra_truoc_khi_giao.js>   (máy chủ luôn là server/ của kho)
+
+  ✗ A1 … A15 (khoá tính, thân tinh-thu, nút thu, coGia)        — thiếu hàm khoaTinh / thanTinhThu / coSoMayChu / nutThuSang / coGia
+  ✗ B2, B3 (Đã nhận tiền chỉ sáng khi đủ)                      — thiếu hàm nutThuSang
+  ✗ C1 … C7 (đếm ngược theo het_han, trạng thái phiên)         — thiếu hàm conLaiGiay / dinhDangDemNguoc / hanhDongPhien
+  ✗ D1 … D17 (chia tài khoản, cách trả, PIN, thân /phien)      — thiếu hàm chiaTra / cachTraKhaDung / xuLyLoiPin / datPinHopLe / nhapPhim / thanPhien
+  ✗ F1 … F3, F5 … F8 (menu 6 mục theo quyền, lưới Quản lý)     — không nạp được QuanLy/menu.js
+  ✗ R0 (ca thật trên máy chủ)                                  — thiếu thanTinhThu + thanPhien nên không dựng được thân yêu cầu
+  ✗ S2 … S10, S14, S15, S17, S18 (cấu trúc nguồn)              — chưa có ManQr/ManPin, ManKetThuc chưa vẽ HD-1, Layout chưa dùng dungMenu, App chưa có route, api.js chưa có API
+
+BH-2: 7 đạt · 64 hỏng        (thoát 1)
+
+Trên code đã vá (HEAD): BH-2: 95 đạt · 0 hỏng
+Đột biến: python3 viec/BH-2/dot_bien.py → 59/59 BẮT (đối chứng xanh; vòng đầu 58/59, SỐNG BV-lien-chong-bam-doi → siết S12 bắt đúng `if (dangGuiRef.current || !coSo)`)
+
+Bài thử cũ sửa — cong_cu/thu_BH1.js (xanh trên gốc, sửa đúng phần phiếu cho phép):
+  - bỏ mục I (I1–I11: payload POST /orders do dungDonHang dựng) vì màn mới thu qua phiên thanh toán; thân yêu cầu do thanPhien dựng được thử trên MÁY CHỦ THẬT ở thu_BH2.js (D15–D17, R4–R14).
+  - S13 đổi regex theo chỗ mới: `if (dangGuiRef.current ||` (chayPhien) + `nutThuSang({ coSo, dangGui`.
+  BH-1: 62 đạt · 0 hỏng
+
+SỐ CA cong_cu/thu_BH2.js: 95
+SỐ CA cong_cu/thu_BH1.js: 62

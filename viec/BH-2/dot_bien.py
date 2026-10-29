@@ -75,7 +75,7 @@ DOT_BIEN = [
   ('BV-qr-khong-hoi-phien', [(QR, 'thanhToanApi.hoiPhien(phien.id)', 'thanhToanApi.huyPhien(phien.id)', 1)], 'S5'),
   ('BV-ket-thuc-mat-to-luu', [(KT, "['luu', 'Tờ lưu']", "['luu', 'Tờ 2']", 1)], 'S9'),
   ('BV-ket-thuc-mat-tra-lai', [(KT, 'Trả lại khách<b>', 'Tiền thối<b>', 1)], 'S10'),
-  ('BV-lien-chong-bam-doi', [(BHM, 'if (dangGuiRef.current || !coSo) return;', 'if (!coSo) return;', 1)], 'S13'),
+  ('BV-lien-chong-bam-doi', [(BHM, 'if (dangGuiRef.current || !coSo) return;', 'if (!coSo) return;', 1)], 'S12'),
   ('BV-khoa-luoi-sau-thanh-toan', [(BHM, "xong && !daIn ? ' bh-khoa' : ''", "''", 1)], 'S12'),
   ('VS-layout-con-dang-ky-moi', [(LAYOUT, '  const gan = ', "  const dangKy = 'Đăng ký mới';\n  const gan = ", 1)], 'S14'),
   ('BV-app-mat-route-quan-ly', [(APP, 'path="quan-ly"', 'path="quan-ly-x"', 1)], 'S15'),
