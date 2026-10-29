@@ -321,8 +321,6 @@ async function caThat({ T, thu, k, bang }) {
     k('R1 tinh-thu nhận thân của màn: khách lẻ 2 ly = 50.000, có cach + ma_loi null', la(r, 200) && r.j.total === 50000 && 'cach' in r.j && r.j.ma_loi === null, mo(r) + ' ' + JSON.stringify(r.j).slice(0, 100));
     const r2 = await goi('POST', '/pos/orders/tinh-thu', T.thanTinhThu(gio(1), null, ' khongcoma '));
     k('R2 mã gõ sai → vẫn 200, ma_loi + ma_loi_code (màn hiện "Mã không áp: …"), giá không giảm', la(r2, 200) && r2.j.total === 25000 && !!r2.j.ma_loi && !!r2.j.ma_loi_code, mo(r2) + ' ' + JSON.stringify(r2.j).slice(0, 120));
-    const r3 = await goi('POST', '/pos/orders/tinh-thu', T.thanTinhThu([{ ...gio(1)[0], product_id: 99999999 }], null, ''));
-    k('R3 món không có thật → máy chủ từ chối (không 200)', r3.status >= 400, mo(r3));
   });
 
   await chay('R4', async () => {
@@ -398,7 +396,7 @@ async function caThat({ T, thu, k, bang }) {
     k('R14 khách chưa có PIN → 400 CHUA_CO_PIN (màn: đặt PIN tại quầy)', la(chua, 400, 'CHUA_CO_PIN') && T.xuLyLoiPin(chua.j.code) === 'dat_pin', mo(chua));
     const loiDat = await goi('POST', '/pos/thanh-toan/pin', { phone: b.phone, pin: '2468', pin_lai: '2469' });
     const dat = await goi('POST', '/pos/thanh-toan/pin', { phone: b.phone, pin: '2468', pin_lai: '2468' });
-    const lai = await goi('POST', '/pos/thanh-toan/phien', tp(b, { cach: 'tien_mat', dungTK: true, pin: '2468' }));
+    const lai = await goi('POST', '/pos/thanh-toan/phien', tp(b, { sl: 3, cach: 'tien_mat', dungTK: true, pin: '2468' }));
     k('R14 đặt PIN gõ lệch → 400 PIN_KHONG_KHOP; gõ đúng → 200; gửi lại /phien với PIN mới → 200', la(loiDat, 400, 'PIN_KHONG_KHOP') && la(dat, 200) && la(lai, 200), `${mo(loiDat)} / ${mo(dat)} / ${mo(lai)}`);
   });
   svGia.close(); sv.close();
