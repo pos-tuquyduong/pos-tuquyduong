@@ -394,3 +394,7 @@ ngân sách bài thử (~667 dòng / ~500).
   (ghi ở `bang_chung_do.txt`) — bài dừng sớm từng khối có chủ ý.
 Git: `git log --oneline -2` → `438a462 KH-API-2 vong sua 4: trang thai, nghiem thu, bao cao 7 muc, bai hoc` · `3d99e5e KH-API-2 vong sua 4: dot bien moi ve dung cua dongThat (ho, gon), neo moi`
 HEAD ĐÃ KIỂM: 438a462
+
+
+Chat soát thay (29.10): đọc báo cáo vòng sửa 4; gộp thử main 0e846ff — vênh ngữ nghĩa hằng CODE_EXPIRE_HOURS (HD-1 dùng, việc này bỏ) sửa theo Q1 a: bill dùng cùng hạn cấu hình, ca A28f thu_HD1 đổi theo; npm test --day-du xanh trên bản gộp.
+HEAD ĐÃ KIỂM: 7bd95ed
