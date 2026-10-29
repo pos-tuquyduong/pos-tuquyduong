@@ -23,6 +23,9 @@ thử ~500 dòng chấp nhận (giữ phép quét mã lỗi). Máy làm tiếp t
 4. Phát hiện `tier_round_to` không dùng, giờ UTC ở PUT /settings, 3 cách xét giờ vàng, 2 cách đọc giờ hạn mã: KHÔNG sửa ở việc này (chat ghi sổ).
 5. Q4 (29.10) = ĐỒNG Ý: thêm `cong_cu/thu_KH1.js` vào Phạm vi; sửa ĐÚNG 2 dòng danh sách trắng (E1 `/toi` 6 trường, E5 `/menu` 8 khoá) — vẫn so
    BẰNG, không nới. Từ nay theo `LUAT_XAY_APP.md` §6 mục 7: trường hợp này không cần dừng hỏi.
+6. Chat soát thay + gộp main (29.10): vênh ngữ nghĩa với HD-1 — hoá đơn (`server/routes/hoaDon.js`) dùng hằng `CODE_EXPIRE_HOURS` mà việc này bỏ (Q1 a).
+   Chat sửa trong commit gộp: hoá đơn dùng CÙNG hạn cấu hình; ca A28f `cong_cu/thu_HD1.js` đổi theo (đỏ trên gốc, xanh trên mới). Hai file này thêm
+   vào Phạm vi (cổng A6).
 
 ## Mục tiêu
 App KH mới (đợt 1, trước khai trương 07.11) đọc được đủ số thật từ POS: hạng + số dư ví của khách, danh sách hạng, giờ vàng hôm nay, giá
@@ -72,6 +75,8 @@ canh hợp đồng khớp code từ nay về sau.
 - cong_cu/thu_KHAPI2.js
 - cong_cu/thu_HOPDONG_KH.js
 - cong_cu/thu_KH1.js
+- server/routes/hoaDon.js
+- cong_cu/thu_HD1.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
