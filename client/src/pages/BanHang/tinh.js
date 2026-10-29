@@ -1,6 +1,6 @@
 /**
  * BanHang/tinh.js — phép tính THUẦN của màn Bán hàng mới (không React, không gọi máy chủ).
- * Bài thử: cong_cu/thu_BH1.js. Tiền luôn do máy chủ quyết; ở đây chỉ để hiển thị và dựng payload đúng như Sales.jsx.
+ * Bài thử: cong_cu/thu_BH1.js, cong_cu/thu_BH2.js. Tiền luôn do máy chủ quyết; ở đây chỉ để hiển thị và dựng thân yêu cầu.
  */
 
 export { ghiChuMacDinh } from './ghiChuMacDinh.js';
@@ -96,10 +96,13 @@ export function tinhGio(gio, ctx = {}) {
   return { tamTinh, giamFlash, giamHang, giamKhach, tong, dong };
 }
 
+/** Món có giá bán dùng được? 0 / âm / thiếu / chữ → "Chưa có giá", không chạm được. */
+export const coGia = (sp) => typeof sp?.price === 'number' && sp.price > 0;
+
 // ── Thêm vào giỏ / ghi chú ──────────────────────────────────────────────────
 /** Trả chuỗi lỗi (tiếng Việt) hoặc null nếu thêm được. soDangCo = số lượng món này đã trong giỏ. */
 export function kiemTraThem(sp, soDangCo, them = 1) {
-  if (!(typeof sp.price === 'number' && sp.price > 0)) return `${sp.name} chưa có giá bán`;
+  if (!coGia(sp)) return `${sp.name} chưa có giá bán`;
   if (sp.khong_quan_kho) return null;
   if (sp.stock_quantity === 0) return `${sp.name} hiện hết hàng trong kho SX`;
   if (sp.stock_quantity > 0 && soDangCo + them > sp.stock_quantity) return `Không đủ hàng. Tồn kho: ${sp.stock_quantity}`;
@@ -114,19 +117,22 @@ export function ghepGhiChu(nhan, tuGo) {
   return ds.join(', ').slice(0, GHI_CHU_TOI_DA);
 }
 
-// ── Payload POST /orders — cùng khoá với orderData của Sales.jsx ─────────────
-/**
- * cach: 'cash' | 'transfer' | 'balance'. soDuDung/soDuMeDung: số tiền trừ tài khoản (đã chặn ≤ tổng ở nơi gọi).
- * Đợt 1 không gói / thẻ / phí giao / mã giảm giá → các khoá đó giữ giá trị rỗng như Sales.jsx khi không dùng.
- */
-export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDung = 0, khachDua = 0 }) {
-  const tong = tamTinh.tong;
-  const conLai = tong - soDuDung - soDuMeDung;
-  const coKhachGiam = so(khach?.discount_value) > 0 && tamTinh.giamKhach > 0;
+// ── Giá do máy chủ tính (POST /orders/tinh-thu) ─────────────────────────────
+const chuanMa = (ma) => String(ma || '').trim().toUpperCase();
+
+/** Khoá phần giỏ ảnh hưởng tiền: SĐT + tổng số lượng từng món + mã. Ghi chú / tách dòng KHÔNG đổi khoá → không gọi lại máy chủ. */
+export function khoaTinh(gio, khach, ma) {
+  const soLuong = {};
+  for (const m of gio) soLuong[m.product_id] = (soLuong[m.product_id] || 0) + m.quantity;
+  const mon = Object.keys(soLuong).sort((a, b) => a - b).map((id) => [Number(id), soLuong[id]]);
+  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma) });
+}
+
+/** Thân tinh-thu / phần `don` của phiên: CHỈ khách, món, mã — không trường tiền nào (máy chủ tự tra giá). */
+export function thanTinhThu(gio, khach, ma) {
   return {
     customer_phone: khach?.phone || null,
     customer_name: khach?.name || 'Khách lẻ',
-    is_new_customer: khach?.isNew || false,
     items: gio.map((m) => ({
       product_id: m.product_id,
       sx_product_type: m.sx_product_type,
@@ -135,22 +141,83 @@ export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDun
       from_package: false,
       note: m.note ? String(m.note).trim().slice(0, GHI_CHU_TOI_DA) : null,
     })),
-    payment_method: cach,
-    discount: 0,
-    discount_reason: tamTinh.giamKhach > 0 ? 'Giảm giá' : null,
-    discount_type: coKhachGiam ? (khach.discount_type || 'percent') : null,
-    discount_value: coKhachGiam ? khach.discount_value : 0,
-    discount_code: null,
-    shipping_fee: 0,
-    balance_amount: soDuDung,
-    cash_amount: cach === 'cash' ? conLai : 0,
-    transfer_amount: cach === 'transfer' ? conLai : 0,
-    parent_phone: soDuMeDung > 0 ? khach?.parent_phone || null : null,
-    parent_balance_amount: soDuMeDung,
-    cash_received: cach === 'cash' ? so(khachDua) : 0,
-    change_amount: cach === 'cash' ? traLai(conLai, khachDua) : 0,
-    customer_package_id: null,
-    package_buy: null,
-    membership_buy: null,
+    discount_code: chuanMa(ma) || null,
   };
+}
+
+/** Có số máy chủ cho ĐÚNG giỏ đang hiện? (số của giỏ cũ về muộn / chưa về → không thu). */
+export const coSoMayChu = (mayChu, khoa) => !!mayChu && mayChu.khoa === khoa && Number.isFinite(mayChu.total);
+
+// ── Chia tiền: tài khoản khách / mẹ / phần còn lại ──────────────────────────
+export function chiaTra({ tong, khach, dungTK, dungMe }) {
+  const t = Math.max(0, so(tong));
+  const soDuDung = dungTK ? Math.min(Math.max(0, so(khach?.balance)), t) : 0;
+  const soDuMeDung = dungMe ? Math.min(Math.max(0, so(khach?.parent_balance)), t - soDuDung) : 0;
+  return { soDuDung, soDuMeDung, phaiTra: t - soDuDung - soDuMeDung };
+}
+
+/** Cách trả còn lại sau khi trừ tài khoản: còn phải trả → tiền mặt hoặc QR (không trộn); hết (kể cả đơn 0đ) → chỉ "tai_khoan". */
+export const cachTraKhaDung = ({ phaiTra }) => (so(phaiTra) > 0 ? ['tien_mat', 'chuyen_khoan'] : ['tai_khoan']);
+
+/** Nút thu sáng? Chưa có số máy chủ (coSo) thì KHÔNG bao giờ sáng. */
+export function nutThuSang({ coSo, dangGui, cach, phaiTra, dua }) {
+  if (!coSo || dangGui) return false;
+  if (cach === 'tien_mat') return duDuoc(phaiTra, dua);
+  if (cach === 'chuyen_khoan') return so(phaiTra) > 0;
+  return cach === 'tai_khoan';
+}
+
+/** Thân POST /thanh-toan/phien. PIN chỉ gửi khi có trừ tài khoản (máy chủ kiểm PIN của CHỦ tài khoản bị trừ). */
+export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe }) {
+  const don = thanTinhThu(gio, khach, ma);
+  if (dungMe && khach?.parent_phone) don.parent_phone = khach.parent_phone;
+  const than = { cach, don, tru_tai_khoan: !!dungTK, tru_tai_khoan_me: !!dungMe };
+  if (dungTK) than.pin = pin;
+  if (dungMe) than.pin_me = pinMe;
+  return than;
+}
+
+// ── PIN khách ───────────────────────────────────────────────────────────────
+export const DO_DAI_PIN = 4;
+
+/** Lỗi PIN của máy chủ → việc màn phải làm. */
+export function xuLyLoiPin(code) {
+  if (code === 'PIN_SAI') return 'nhap_lai';
+  if (code === 'PIN_DANG_KHOA') return 've_gio';
+  if (code === 'CHUA_CO_PIN') return 'dat_pin';
+  return 'loi';
+}
+
+/** Đặt PIN tại quầy (gõ 2 lần): trả mã lỗi (cùng mã máy chủ) hoặc null. */
+export function datPinHopLe(pin, lai) {
+  if (!/^\d{4}$/.test(String(pin ?? ''))) return 'PIN_KHONG_HOP_LE';
+  return String(pin) === String(lai ?? '') ? null : 'PIN_KHONG_KHOP';
+}
+
+/** Bàn phím PIN: chữ số thêm tới tối đa 4, ⌫ xoá một, phím lạ bỏ qua. */
+export function nhapPhim(hienTai, phim) {
+  const cur = String(hienTai || '');
+  if (phim === '⌫') return cur.slice(0, -1);
+  return /^\d$/.test(phim) && cur.length < DO_DAI_PIN ? cur + phim : cur;
+}
+
+// ── QR payOS: đếm ngược theo het_han MÁY CHỦ trả, trạng thái phiên ───────────
+const MUI_VN = '+07:00';   // het_han là giờ Việt Nam không hậu tố (getNow của máy chủ)
+
+/** Số giây còn lại tới het_han (làm tròn lên, không âm); hạn lạ / rỗng → 0. */
+export function conLaiGiay(hetHan, bayGioMs) {
+  const m = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/.test(String(hetHan || '')) ? Date.parse(hetHan + MUI_VN) : NaN;
+  if (!Number.isFinite(m)) return 0;
+  return Math.max(0, Math.ceil((m - bayGioMs) / 1000));
+}
+
+export function dinhDangDemNguoc(giay) {
+  const g = Math.max(0, Math.floor(so(giay)));
+  return `${String(Math.floor(g / 60)).padStart(2, '0')}:${String(g % 60).padStart(2, '0')}`;
+}
+
+/** Trạng thái phiên máy chủ báo → việc màn phải làm: doi · xong (sang màn kết thúc) · nha (quay về giỏ). Lạ → doi. */
+export function hanhDongPhien(trangThai) {
+  if (trangThai === 'da_thu') return 'xong';
+  return ['het_han', 'huy', 'loi'].includes(trangThai) ? 'nha' : 'doi';
 }

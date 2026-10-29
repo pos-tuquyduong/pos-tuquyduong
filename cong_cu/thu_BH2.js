@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRÊN CODE CHƯA VÁ (tinh.js chưa có hàm đợt 2, chưa có QuanLy/menu.js). Xanh ngay từ đầu = vô giá trị (K3).
  *  Chạy ở GỐC kho POS:   node cong_cu/thu_BH2.js [--goc <thư mục>]     (in "n đạt · 0 hỏng")
- *  --goc: chạy trên bản sao cây kho (đột biến, viec/BH-2/dot_bien.py). Phần máy chủ luôn dùng server/ của --goc.
+ *  --goc: chạy trên bản sao client/src + bộ kiểm (đột biến, viec/BH-2/dot_bien.py). Máy chủ (server/) luôn là của kho thật.
  *
  *  [1] Hàm thuần (tinh.js, QuanLy/menu.js — ES module, nạp bằng import()).
  *  [2] Ca THẬT: thân yêu cầu do CHÍNH hàm của màn dựng (thanTinhThu, thanPhien) được gửi vào máy chủ thật (database.js + libsql trên
@@ -22,6 +22,7 @@ const { execFileSync } = require('child_process');
 
 const iG = process.argv.indexOf('--goc');
 const GOC = path.resolve(iG > 0 ? process.argv[iG + 1] : path.join(__dirname, '..'));
+const ROOT = path.join(__dirname, '..');                    // máy chủ + thư viện luôn là của kho thật (--goc chỉ thay phần client + bộ kiểm)
 const SRC = path.join(GOC, 'client', 'src');
 const BH = path.join(SRC, 'pages', 'BanHang');
 const DOC = (...p) => fs.readFileSync(path.join(GOC, ...p), 'utf8');
@@ -29,7 +30,7 @@ const CO = (...p) => fs.existsSync(path.join(GOC, ...p));
 
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_bh2_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
-const duongKN = require.resolve(path.join(GOC, 'server', 'ketNoiKho.js'));
+const duongKN = require.resolve(path.join(ROOT, 'server', 'ketNoiKho.js'));
 require.cache[duongKN] = {
   id: duongKN, filename: duongKN, loaded: true,
   exports: { laMayThu: () => true, cauHinhTurso: () => ({ laMayThu: true, cauHinh: { url: 'file:' + FILE_KHO } }), diaChiSX: () => '', FILE_THU: FILE_KHO },
@@ -129,6 +130,8 @@ async function main() {
   thu('D2 bỏ tài khoản → không trừ, phải trả = tổng', () => bang(chia({ dungTK: false }), { soDuDung: 0, soDuMeDung: 0, phaiTra: 86400 }));
   thu('D3 tài khoản mẹ là dòng riêng: chỉ trừ khi bật, và chỉ phần còn lại sau tài khoản khách', () =>
     bang(chia({ dungMe: true }), { soDuDung: 50000, soDuMeDung: 20000, phaiTra: 16400 }) && bang(chia({ dungTK: false, dungMe: true }), { soDuDung: 0, soDuMeDung: 20000, phaiTra: 66400 }));
+  thu('D3b tài khoản mẹ chỉ trừ phần CÒN LẠI: khách 80.000 + mẹ 20.000, đơn 86.400 → mẹ trừ 6.400, phải trả 0', () =>
+    bang(chia({ khach: { balance: 80000, parent_balance: 20000 }, dungMe: true }), { soDuDung: 80000, soDuMeDung: 6400, phaiTra: 0 }));
   thu('D4 số dư lớn hơn tổng → trừ đúng tổng, phải trả 0', () => bang(chia({ khach: { balance: 999999 } }), { soDuDung: 86400, soDuMeDung: 0, phaiTra: 0 }));
   thu('D5 khách lẻ / không có số dư → không trừ', () => bang(chia({ khach: null }), { soDuDung: 0, soDuMeDung: 0, phaiTra: 86400 }) && bang(chia({ khach: { balance: 0 } }), { soDuDung: 0, soDuMeDung: 0, phaiTra: 86400 }));
   thu('D6 số dư âm / chữ → coi 0, không làm phải trả vượt tổng', () => chia({ khach: { balance: -5000 } }).phaiTra === 86400 && chia({ khach: { balance: 'abc' } }).phaiTra === 86400);
@@ -249,10 +252,10 @@ async function caThat({ T, thu, k, bang }) {
   let express, jwt, db, getNow;
   try {
     imLang();
-    express = require(path.join(GOC, 'node_modules', 'express'));
-    jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
-    db = require(path.join(GOC, 'server', 'database.js'));
-    ({ getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js')));
+    express = require(path.join(ROOT, 'node_modules', 'express'));
+    jwt = require(path.join(ROOT, 'node_modules', 'jsonwebtoken'));
+    db = require(path.join(ROOT, 'server', 'database.js'));
+    ({ getNow } = require(path.join(ROOT, 'server', 'utils', 'helpers.js')));
     await db.initDatabase();
   } catch (e) { noiLai(); k('R0 dựng được kho thử + máy chủ', false, e.message); return; }
   const chuoiKy = (d) => Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '' : d[x]}`).join('&');
@@ -266,7 +269,7 @@ async function caThat({ T, thu, k, bang }) {
   });
   const svGia = await new Promise((ok) => { const s = gia.listen(0, '127.0.0.1', () => ok(s)); });
   process.env.PAYOS_BASE_URL = `http://127.0.0.1:${svGia.address().port}`;
-  const R = (n) => path.join(GOC, 'server', 'routes', n);
+  const R = (n) => path.join(ROOT, 'server', 'routes', n);
   const app = express();
   app.use(express.json());
   app.use('/api/pos/orders', require(R('orders.js')));
