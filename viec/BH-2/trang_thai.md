@@ -13,7 +13,7 @@
 - "Hôm nay" = route `/hom-nay` dùng lại `Reports` (mặc định đã là hôm nay). Ô Quản lý chỉ dẫn tới TRANG (Settings/Kho giữ tab bằng state, không đọc query; không sửa được). Lối Hoàn tiền / Số dư: `ThanhLoi` bọc ngoài `Orders` / `Customers` ở App.jsx.
 - Màn kết thúc vẽ tab Tờ khách / Tờ lưu / Tem bằng HD-1; nút In mở `InvoicePrint` (cấm sửa) ở chế độ tự in với cài đặt ghi đè (số tờ, tu_mo) — đường in duy nhất của quầy.
 - `menu.js` giữ tên + quyền + thứ tự; Layout giữ icon theo đường dẫn (bài thu_KHO1 A5 đòi đúng một `to: '/kho'` trong Layout.jsx).
-- `dungDonHang` và ca I1–I11 của thu_BH1 bỏ (thân đơn giờ do phiên dựng, thử trên máy chủ thật).
+- `dungDonHang` (+ ca I1–I11 của thu_BH1) GIỮ nguyên: cổng A11 đòi bài BH-1 gốc còn xanh. Màn mới không gọi nó nữa → là mã chết; đề xuất chủ quán duyệt xoá cùng ca I1–I11 ở việc sau.
 
 ## Câu hỏi
 - **Chiết khấu riêng của khách** (`discount_type/value` trên hồ sơ khách): `tinh-thu` và phiên KHÔNG nhận trường này (danh sách trắng máy chủ) → màn mới KHÔNG áp, khác màn cũ. Chủ quán quyết: chấp nhận / cần máy chủ nhận trường này (việc có `server/`). Trước khi quyết, đừng bật màn mới cho khách có chiết khấu riêng.
@@ -48,11 +48,11 @@ Tên đủ (59): BV-khoa-bo-ma, VS-khoa-tinh-ca-ghi-chu, VS-khoa-bo-khach, VS-kh
 - D: D1–D17, R11–R14 (giữ → chốt, tài khoản đủ, PIN sai 5 lần → 423, chưa có PIN → đặt → gửi lại).
 - E: R5 (`GET /hoa-don/:id` đủ phần màn vẽ) · S9–S10 · S11–S12.
 - F: F1–F8 · S14–S15.
-- G: G1 (git: `server/`, Sales.jsx, file Cấm không đổi) · S16 (công tắc mặc định TẮT, route index TrangChu) · thu_BH1 còn 62 đạt.
+- G: G1 (git: `server/`, Sales.jsx, file Cấm không đổi) · S16 (công tắc mặc định TẮT, route index TrangChu) · thu_BH1 còn 73 đạt.
 
 ## Báo cáo 7 mục
 VIỆC:        BH-2 — Màn Bán hàng mới đợt 2: thu tiền thật (QR payOS · PIN · giữ tiền) · giá hạng + ưu đãi máy chủ tính · màn kết thúc HD-1 · menu 6 mục
-ĐÃ SỬA:      client/src/pages/BanHang/ (tinh.js, BanHangMoi.jsx, ThuTien.jsx, ManKetThuc.jsx, mới ManPin.jsx, ManQr.jsx); client/src/pages/QuanLy/ (mới menu.js, QuanLy.jsx, ThanhLoi.jsx); client/src/utils/api.js (thanhToanApi, hoaDonApi, ordersApi.tinhThu); client/src/components/Layout.jsx (menu qua dungMenu); client/src/App.jsx (route quan-ly, hom-nay, ThanhLoi); client/dist; cong_cu/thu_BH2.js (mới), cong_cu/thu_BH1.js (bỏ mục I), kiem_tra_truoc_khi_giao.js (thêm thu_BH2.js).
+ĐÃ SỬA:      client/src/pages/BanHang/ (tinh.js, BanHangMoi.jsx, ThuTien.jsx, ManKetThuc.jsx, mới ManPin.jsx, ManQr.jsx); client/src/pages/QuanLy/ (mới menu.js, QuanLy.jsx, ThanhLoi.jsx); client/src/utils/api.js (thanhToanApi, hoaDonApi, ordersApi.tinhThu); client/src/components/Layout.jsx (menu qua dungMenu); client/src/App.jsx (route quan-ly, hom-nay, ThanhLoi); client/dist; cong_cu/thu_BH2.js (mới), kiem_tra_truoc_khi_giao.js (thêm thu_BH2.js).
 BÀI THỬ:     cong_cu/thu_BH2.js trên gốc cbbb809 → ĐỎ 6 đạt · 70 hỏng; sau khi vá → XANH 100 đạt · 0 hỏng. Đột biến 64/64 BẮT. npm test -- --day-du: PASS 81 · FAIL 0 · CẢNH BÁO 1.
 ĐÃ RÀ K4:    grep "ordersApi.create" trong BanHang/ → 0 (S3); grep "fetch(" trong BanHang/ + QuanLy/ → 0 (S1); mọi chỗ tạo phiên (chayPhien) đều đi qua kiểm tổng/còn lại với số máy chủ; mọi lối chốt hỏng đều hỏi lại phiên trước khi nhả (tránh đơn đôi).
 CHƯA KIỂM:   (0) phiên QR mồ côi nếu phản hồi tạo phiên mất (phiên tự hết hạn sau 10 phút, ví bị giữ tạm); gõ thêm món trong lúc đang gửi thu có thể mất món (tiền không lệch); ManQr nuốt lỗi hỏi phiên; chưa có bài thử hành vi React cho chayPhien (chỉ hàm thuần + máy chủ thật + khoá cấu trúc); (1) chưa chạy giao diện trong trình duyệt (người gác chặn script có chữ "token"; vite build chỉ chứng minh cú pháp/nhập khẩu); (2) QR payOS thật, webhook thật, in thật (InvoicePrint tự in), tem thật — chưa thử; (3) chiết khấu riêng của khách không áp ở màn mới (xem Câu hỏi); (4) hạng/giá hạng ở lưới món vẫn tính ở máy khách để hiển thị, số trên giỏ/thu là của máy chủ; (5) kịch bản hai quầy cùng giữ một ví chỉ có ở bài P3, không lặp lại ở đây; (6) đồng hồ đếm ngược dựa đồng hồ máy khách, quyết định hết hạn luôn là trạng thái máy chủ; (7) chưa soát kế hoạch bằng agent phụ (bước 3); (8) tay: mở /?man=moi, thử khách lẻ tiền mặt, khách có tài khoản + PIN, QR trên điện thoại.
@@ -65,7 +65,7 @@ KHÔNG ĐẠT. Lỗi: (1) hoanTat dự phòng khi đọc đơn hỏng hiện "Tr
 2. Khoá chiết khấu riêng: `coChietKhauRieng` → ThuTien không sáng + dòng cảnh báo đỏ (D18, S19 + BV-chiet-khau-rieng-khong-khoa, BV-man-moi-bo-khoa-chiet-khau). Chủ quán vẫn cần quyết (xem Câu hỏi).
 3. Số dư lệch → `lamMoiSoDu` nạp lại trước khi báo (S21 + BV-khong-nap-lai-so-du).
 4. Chốt hỏng + hỏi phiên hỏng → báo "KHÔNG thu lại ngay, mở Đơn hàng kiểm tra", không nhả (S22 + BV-mat-mang-van-nha-phien). Thêm nút "Thử lại" khi tinh-thu lỗi.
-Không đổi: gọn hoá hoanTatRef/anhQr (đúng chức năng, ghi nhận), tách chayPhien thành file riêng (BanHangMoi ~400 dòng, dưới 500), B3 giữ (hàm thuần giống màn cũ), thu_BH1 bỏ mục I — **chủ quán duyệt giúp** (ca I11 là ca duy nhất khoá chiết khấu riêng; nay D18/S19 thay vai trò).
+Không đổi: gọn hoá hoanTatRef/anhQr (đúng chức năng, ghi nhận), tách chayPhien thành file riêng (BanHangMoi ~400 dòng, dưới 500), B3 giữ (hàm thuần giống màn cũ), thu_BH1 giữ nguyên (cổng A11), `dungDonHang` thành mã chết — chủ quán duyệt xoá ở việc sau.
 
 ## Bài học
 

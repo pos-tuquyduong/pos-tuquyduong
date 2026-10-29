@@ -117,6 +117,47 @@ export function ghepGhiChu(nhan, tuGo) {
   return ds.join(', ').slice(0, GHI_CHU_TOI_DA);
 }
 
+// ── Payload POST /orders (đợt 1 — màn mới KHÔNG còn dùng: thu qua phiên; giữ vì thu_BH1 I1–I11 khoá, chờ chủ quán duyệt xoá) ──
+/**
+ * cach: 'cash' | 'transfer' | 'balance'. soDuDung/soDuMeDung: số tiền trừ tài khoản (đã chặn ≤ tổng ở nơi gọi).
+ * Đợt 1 không gói / thẻ / phí giao / mã giảm giá → các khoá đó giữ giá trị rỗng như Sales.jsx khi không dùng.
+ */
+export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDung = 0, khachDua = 0 }) {
+  const tong = tamTinh.tong;
+  const conLai = tong - soDuDung - soDuMeDung;
+  const coKhachGiam = so(khach?.discount_value) > 0 && tamTinh.giamKhach > 0;
+  return {
+    customer_phone: khach?.phone || null,
+    customer_name: khach?.name || 'Khách lẻ',
+    is_new_customer: khach?.isNew || false,
+    items: gio.map((m) => ({
+      product_id: m.product_id,
+      sx_product_type: m.sx_product_type,
+      sx_product_id: m.sx_product_id,
+      quantity: m.quantity,
+      from_package: false,
+      note: m.note ? String(m.note).trim().slice(0, GHI_CHU_TOI_DA) : null,
+    })),
+    payment_method: cach,
+    discount: 0,
+    discount_reason: tamTinh.giamKhach > 0 ? 'Giảm giá' : null,
+    discount_type: coKhachGiam ? (khach.discount_type || 'percent') : null,
+    discount_value: coKhachGiam ? khach.discount_value : 0,
+    discount_code: null,
+    shipping_fee: 0,
+    balance_amount: soDuDung,
+    cash_amount: cach === 'cash' ? conLai : 0,
+    transfer_amount: cach === 'transfer' ? conLai : 0,
+    parent_phone: soDuMeDung > 0 ? khach?.parent_phone || null : null,
+    parent_balance_amount: soDuMeDung,
+    cash_received: cach === 'cash' ? so(khachDua) : 0,
+    change_amount: cach === 'cash' ? traLai(conLai, khachDua) : 0,
+    customer_package_id: null,
+    package_buy: null,
+    membership_buy: null,
+  };
+}
+
 // ── Giá do máy chủ tính (POST /orders/tinh-thu) ─────────────────────────────
 const chuanMa = (ma) => String(ma || '').trim().toUpperCase();
 

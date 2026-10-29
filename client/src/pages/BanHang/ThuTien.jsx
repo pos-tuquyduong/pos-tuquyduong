@@ -67,7 +67,7 @@ export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDu
                   {duDuoc(phaiTra, dua) ? `Trả lại ${vnd(traLai(phaiTra, dua))}` : `Còn thiếu ${vnd(conThieu(phaiTra, dua))}`}
                 </div>
               )}
-              <button className="bh-nut bh-xanh bh-lon" disabled={!sang('tien_mat', dua)} onClick={() => onThu({ cach: 'tien_mat', khachDua: dua })}>Đã nhận tiền</button>
+              <button className="bh-nut bh-xanh bh-lon" disabled={dangGui || !duDuoc(phaiTra, dua) || !sang('tien_mat', dua)} onClick={() => onThu({ cach: 'tien_mat', khachDua: dua })}>Đã nhận tiền</button>
             </>
           ) : (
             <button className="bh-nut bh-xanh bh-lon" disabled={!sang('chuyen_khoan')} onClick={() => onThu({ cach: 'chuyen_khoan' })}>Hiện mã QR · {vnd(phaiTra)}</button>

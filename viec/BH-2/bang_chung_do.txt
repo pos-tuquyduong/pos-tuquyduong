@@ -14,10 +14,6 @@ BH-2: 6 đạt · 70 hỏng        (thoát 1)
 Trên code đã vá (HEAD): BH-2: 100 đạt · 0 hỏng
 Đột biến: python3 viec/BH-2/dot_bien.py → 64/64 BẮT (đối chứng xanh; vòng đầu 58/59, SỐNG BV-lien-chong-bam-doi → siết S12 bắt đúng `if (dangGuiRef.current || !coSo)`)
 
-Bài thử cũ sửa — cong_cu/thu_BH1.js (xanh trên gốc, sửa đúng phần phiếu cho phép):
-  - bỏ mục I (I1–I11: payload POST /orders do dungDonHang dựng) vì màn mới thu qua phiên thanh toán; thân yêu cầu do thanPhien dựng được thử trên MÁY CHỦ THẬT ở thu_BH2.js (D15–D17, R4–R14).
-  - S13 đổi regex theo chỗ mới: `if (dangGuiRef.current ||` (chayPhien) + `nutThuSang({ coSo, dangGui`.
-  BH-1: 62 đạt · 0 hỏng
+thu_BH1.js: KHÔNG sửa (cổng A11 đòi bản gốc còn xanh trên code PR): dungDonHang giữ trong tinh.js (mã không còn dùng ở màn mới, chờ chủ quán duyệt xoá); BH-1: 73 đạt · 0 hỏng.
 
 SỐ CA cong_cu/thu_BH2.js: 100
-SỐ CA cong_cu/thu_BH1.js: 62
