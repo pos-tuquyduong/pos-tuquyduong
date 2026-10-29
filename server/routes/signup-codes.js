@@ -2,7 +2,7 @@
  * POS System - Signup Codes Routes (Bước 4 của "Ưu đãi khách mới")
  *
  * POST /claim: cửa nhận mã — khách nhập mã in trên bill lúc tạo tài khoản App KH.
- * Kiểm hạn 24h (rolling từ lúc mã được in) + chặn SĐT đã từng claim (bất kể mã nào) →
+ * Kiểm hạn theo cài đặt hạn mã nhandiem_han_gio (rolling từ lúc in — KH-API-2, đúng số giờ bill in) + chặn SĐT đã từng claim →
  * phát ra 1 voucher THẬT trong pos_discount_codes, dùng đúng cấu hình owner đặt trong
  * Cài đặt (đọc qua pos_settings, key tiền tố `signup_`).
  *
@@ -26,7 +26,6 @@ const { tienTinhDiem } = require('../utils/diemThat'); // DIEM-THAT-1: điểm g
 
 const router = express.Router();
 
-const CODE_EXPIRE_HOURS = 24;
 const DEFAULT_VALID_DAYS = 30;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -353,12 +352,14 @@ async function nhanMaUuDai(req, res) {
       return res.status(409).json({ success: false, error: 'Mã này đã được sử dụng', code: 'MA_DA_DUNG' });
     }
 
-    // Hạn 24h rolling từ lúc in — so sánh bằng mili-giây, không phụ thuộc múi giờ chuỗi.
+    // Hạn rolling từ lúc in — KH-API-2 (chủ quán chốt 29.10, Q1 a): số giờ = cài đặt hạn mã, ĐÚNG số bill in (orders.js), cùng
+    // docCauHinhNhanDiem với /nhan-diem. So sánh bằng mili-giây, không phụ thuộc múi giờ chuỗi.
+    const { hanGio } = await docCauHinhNhanDiem();
     const issuedMs = new Date(signupRow.issued_at.replace(' ', 'T') + 'Z').getTime();
     const nowMs = new Date(now.replace(' ', 'T') + 'Z').getTime();
     const hoursPassed = (nowMs - issuedMs) / (1000 * 60 * 60);
-    if (!Number.isFinite(hoursPassed) || hoursPassed > CODE_EXPIRE_HOURS) {
-      return res.status(400).json({ success: false, error: 'Mã đã hết hạn (quá 24 giờ kể từ lúc in)', code: 'MA_HET_HAN' });
+    if (!Number.isFinite(hoursPassed) || hoursPassed > hanGio) {
+      return res.status(400).json({ success: false, error: `Mã đã hết hạn (quá ${hanGio} giờ kể từ lúc in)`, code: 'MA_HET_HAN' });
     }
 
     // Chặn theo SĐT (không theo mã) — 1 SĐT chỉ claim được đúng 1 lần trong đời, bất kể mã nào.

@@ -16,6 +16,7 @@ const fs = require('fs');
 const { query, queryOne, run, saveDatabase } = require('../database');
 const { getToday } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
+const { kiemCaiDat } = require('../utils/gioHoatDong');
 
 // Multer config cho upload logo
 const storage = multer.memoryStorage();
@@ -103,6 +104,9 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if (khoaSai) {
       return res.status(400).json({ success: false, error: `Cài đặt ${khoaSai[0]} chỉ nhận 0 hoặc 1`, code: 'CAI_DAT_KHONG_HOP_LE' });
     }
+    // KH-API-2: giờ hoạt động (gio_hd_*) — cùng luật: sai một khoá thì không ghi khoá nào.
+    const loiGio = kiemCaiDat(settings);
+    if (loiGio) return res.status(400).json({ success: false, error: loiGio, code: 'CAI_DAT_KHONG_HOP_LE' });
 
     let updated = 0;
     const timestamp = new Date().toISOString();

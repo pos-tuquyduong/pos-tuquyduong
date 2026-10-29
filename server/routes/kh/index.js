@@ -4,6 +4,8 @@
  * - Ngoài hai đường đăng nhập, mọi đường cần token KHÁCH (xacThucKhach). SĐT LUÔN là req.khach.phone — sdt / phone /
  *   customer_phone trong tham số hay thân yêu cầu bị bỏ qua (F3).
  * - Tiền / điểm / voucher / mã bill đi qua ĐÚNG hàm quầy đang dùng (diemKhach.js, signup-codes.js, products.js).
+ * - KH-API-2: giá hạng qua giaHang.js (cùng hàm orders.js), giờ vàng qua readFlashState, giờ hoạt động qua gioHoatDong.js.
+ * - Mọi cửa ở đây phải có trong HOP_DONG_API_KH.md (bài thử cong_cu/thu_HOPDONG_KH.js canh).
  */
 const express = require('express');
 const { query, queryOne, run } = require('../../database');
@@ -15,6 +17,11 @@ const { nhanMaUuDai, nhanDiemMaBill } = require('../signup-codes');
 const { layMenuQuay } = require('../products');
 const { bao, loiMayChu } = require('./loi');
 const { datPin } = require('../../utils/pinKhach');
+const { dangGiu } = require('../wallets');
+const { getMembershipStatus, isTierUsable } = require('../../utils/membershipStatus');
+const { readFlashState } = require('../../utils/flashState');
+const { tiLeHangMon, giaCacHang } = require('../../utils/giaHang');
+const { docCaiDat, khungGio, congNgay, traGioHoatDong } = require('../../utils/gioHoatDong');
 
 const router = express.Router();
 const SO_DON_MOI_TRANG = 20;
@@ -26,11 +33,26 @@ const tomDon = (o) => ({
 });
 const COT_DON = 'id, code, created_at, total, debt_amount, status, payment_status';
 // Danh sách TRẮNG trường món (E5) — không giá vốn, không số tồn thật. ton_cu + ton_luc: mất SX thì App hiện "theo số lúc …" (CLAUDE.md §5.8).
-const monKhach = (p) => ({
+const monKhach = (p, dsHang) => ({
   ma: p.unique_id, ten: p.name, nhom: p.category, gia: p.price,
   con_hang: p.khong_quan_kho ? true : typeof p.stock_quantity === 'number' ? p.stock_quantity > 0 : null,
   ton_cu: !!p.ton_cu, ton_luc: p.ton_luc || null,
+  gia_hang: giaCacHang(p.price, p.is_special_group, dsHang),
 });
+// Hạng đang bật — cùng thứ tự GET /api/pos/tiers.
+const hangDangBat = () => query('SELECT * FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order ASC, card_price ASC');
+const phanTram = (h) => ({ phan_tram: tiLeHangMon(h, false), phan_tram_nhom_dac_biet: tiLeHangMon(h, true) });
+// Hạng DÙNG ĐƯỢC của khách — CÙNG hai hàm và CÙNG câu đọc % (không lọc is_active) với giảm hạng ở orders.js; hết / chưa có → null.
+async function hangCuaKhach(phone) {
+  const m = await getMembershipStatus(query, queryOne, getNow, phone);
+  const h = isTierUsable(m.status) && await queryOne('SELECT id, name, discount_percent, special_discount_percent FROM pos_membership_tiers WHERE id = ?', [m.tier_id]);
+  return h ? { id: h.id, ten: h.name, ...phanTram(h), het_han: String(m.expires_at).replace(' ', 'T') } : null;
+}
+// Số dư KHẢ DỤNG của ví riêng khách = số quầy hiện (GET /api/pos/wallets/:phone: balance − dangGiu). Không cộng ví mẹ (chủ quán 29.10).
+async function soDuVi(phone) {
+  const v = await queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
+  return Math.round(Number(v?.balance || 0) - (await dangGiu({ queryOne }, phone)));
+}
 
 router.use(canCauHinhKhach);
 
@@ -62,6 +84,42 @@ router.post('/dang-nhap/xac-minh', async (req, res) => {
   }
 });
 
+// ── Đọc chung, không cần token (KH-API-2) — đứng TRƯỚC xacThucKhach ────────
+router.get('/hang', async (req, res) => {
+  try {
+    const ds = await hangDangBat();
+    res.json({ success: true, data: ds.map((h) => ({ id: h.id, ten: h.name, ...phanTram(h), gia_the: Number(h.card_price) || 0, thu_tu: h.sort_order })) });
+  } catch (err) {
+    loiMayChu(res, err, 'kh hang');
+  }
+});
+
+// Giờ vàng = flash sale. dang_chay CÙNG điều kiện quầy giảm giá (orders.js F2). POS không đếm suất → không có trường suất.
+router.get('/gio-vang', async (req, res) => {
+  try {
+    const f = await readFlashState(query, getNow);
+    const bat = f.enabled && !!f.start && !!f.end && f.start !== f.end && f.percent > 0;
+    const bayGio = getNow(), ngay = bayGio.slice(0, 10);
+    // Khung qua nửa đêm đang chạy sau 00:00 thì bắt đầu từ hôm qua.
+    const khung = bat ? khungGio(f.start > f.end && bayGio.slice(11, 16) < f.end ? congNgay(ngay, -1) : ngay, f.start, f.end) : null;
+    res.json({
+      success: true, dang_chay: f.is_flash_now && f.percent > 0 && f.product_keys.length > 0,
+      bat_dau: khung ? khung.mo : null, ket_thuc: khung ? khung.dong : null, phan_tram: bat ? f.percent : 0, mon: bat ? f.product_keys : [],
+    });
+  } catch (err) {
+    loiMayChu(res, err, 'kh gio-vang');
+  }
+});
+
+router.get('/gio-hoat-dong', async (req, res) => {
+  try {
+    const rows = await query("SELECT key, value FROM pos_settings WHERE key LIKE 'gio_hd_%'");
+    res.json({ success: true, ...traGioHoatDong(getNow(), docCaiDat(Object.fromEntries(rows.map((r) => [r.key, r.value])))) });
+  } catch (err) {
+    loiMayChu(res, err, 'kh gio-hoat-dong');
+  }
+});
+
 // ── Từ đây: token khách bắt buộc ──────────────────────────────────────────
 router.use(xacThucKhach);
 
@@ -78,7 +136,8 @@ router.get('/toi', async (req, res) => {
         [await sinhQrKhongTrung(queryOne), getNow(), req.khach.id, qr]);
       qr = await docQr();
     }
-    res.json({ success: true, khach: { ...hoSo(req.khach), qr } });
+    const phone = req.khach.phone;
+    res.json({ success: true, khach: { ...hoSo(req.khach), qr, hang: await hangCuaKhach(phone), so_du_vi: await soDuVi(phone) } });
   } catch (err) {
     loiMayChu(res, err, 'kh toi');
   }
@@ -142,8 +201,8 @@ router.get('/don/:ma', async (req, res) => {
 
 router.get('/menu', async (req, res) => {
   try {
-    const mon = await layMenuQuay();
-    res.json({ success: true, data: mon.filter((p) => p.sellable).map(monKhach) });
+    const [mon, dsHang] = [await layMenuQuay(), await hangDangBat()];
+    res.json({ success: true, data: mon.filter((p) => p.sellable).map((p) => monKhach(p, dsHang)) });
   } catch (err) {
     loiMayChu(res, err, 'kh menu');
   }
