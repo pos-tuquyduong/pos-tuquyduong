@@ -32,7 +32,7 @@ const loiFileSx = (chiTiet) => Object.assign(new Error('File không phải bản
 const lamTron6 = (x) => Math.round(x * 1e6) / 1e6;   // số kg SX có sai số máy (0.004200000000000001)
 const duong = (x) => (Number(x) > 0 ? Number(x) : null);
 
-/** Đọc file SX (chỉ SELECT). Trả { nguyen_lieu, nhom_sp, mon, canh_bao }; mon = { loai, khoa_id, code, ten, dong: [{ ingredient_id, amount }] }. */
+/** Đọc file SX (chỉ SELECT). Trả { nguyen_lieu, nhom_sp, mon, canh_bao }; mon = { loai, khoa_id, code, ten, dong: [{ ingredient_id, amount }], han_ngay }. */
 async function docFileSx(duongFile) {
   const c = createClient({ url: 'file:' + duongFile });
   try {
@@ -54,16 +54,18 @@ async function docFileSx(duongFile) {
       ['tea', 'v_tea_products', 'tea_products', 'v_tea_ingredients', 'tea_ingredients', 'tea_product_id']]) {
       const dongCua = nhomDong(await doc(`SELECT * FROM ${nguon(vDong, bDong)}`), cot);
       for (const r of (await doc(`SELECT * FROM ${nguon(vMon, bMon)}`)).filter(conDung)) {
-        mon.push({ loai, khoa_id: Number(r.id), code: r.code, ten: r.name, dong: dongCua(r.id) });
+        mon.push({ loai, khoa_id: Number(r.id), code: r.code, ten: r.name, dong: dongCua(r.id), han_ngay: duong(r.days_use) });
       }
     }
     let nhom_sp = [{ code: 'juice', name: 'Nước ép' }, { code: 'tea', name: 'Trà' }];
     if (co.has('product_types') && co.has('sx_products') && co.has('sx_product_ingredients')) {
       nhom_sp = await doc('SELECT code, name FROM product_types WHERE is_active = 1 ORDER BY sort_order, id');
       const dongCua = nhomDong(await doc('SELECT * FROM sx_product_ingredients'), 'product_id');
-      for (const r of await doc(`SELECT p.id, p.code, p.name, p.legacy_id, t.code AS loai FROM sx_products p JOIN product_types t ON t.id = p.type_id
+      // p.* (không liệt kê cột): days_use chỉ có ở bản SX mới — bản cũ không có cột thì hạn để trống
+      for (const r of await doc(`SELECT p.*, t.code AS loai FROM sx_products p JOIN product_types t ON t.id = p.type_id
         WHERE p.is_active = 1 AND t.is_active = 1 AND t.code NOT IN ('juice', 'tea')`)) {
-        mon.push({ loai: r.loai, khoa_id: r.legacy_id == null ? null : Number(r.legacy_id), code: r.code, ten: r.name, dong: dongCua(r.id) });
+        mon.push({ loai: r.loai, khoa_id: r.legacy_id == null ? null : Number(r.legacy_id), code: r.code, ten: r.name, dong: dongCua(r.id),
+          han_ngay: duong(r.days_use) });
       }
     } else {
       canh_bao.push({ loai: 'THIEU_VIEW', loi: 'File không có bảng nhóm sản phẩm (Đợt D) — chỉ nhập nước ép và trà' });
@@ -149,7 +151,7 @@ function lapKeHoach(sx, hienCo) {
       dong.set(khoa, (dong.get(khoa) || 0) + d.amount);
     }
     const ghiCT = dong.size > 0 && !(sp && hienCo.co_cong_thuc.map(Number).includes(Number(sp.id)));
-    mon.push({ loai: m.loai, khoa_id: m.khoa_id, code: m.code, ten: m.ten, pos_id: sp ? Number(sp.id) : null,
+    mon.push({ loai: m.loai, khoa_id: m.khoa_id, code: m.code, ten: m.ten, pos_id: sp ? Number(sp.id) : null, han_ngay: m.han_ngay ?? null,
       kieu: sp && hienCo.co_kho_sp.map(Number).includes(Number(sp.id)) ? null : (dong.size ? 'lam_san' : 'chua_dinh_luong'),
       cong_thuc: ghiCT ? [...dong].map(([ten_chuan, luong]) => ({ ten_chuan, sx_id: gopTheo.get(ten_chuan).sx_id, luong: lamTron6(luong) })) : null });
   }
@@ -186,6 +188,8 @@ async function ghiKeHoach(tx, kh, luc) {
       await tx.run(`INSERT OR IGNORE INTO kho_san_pham (pos_product_id, kieu, nhom_id, sua_luc)
         VALUES (?, ?, (SELECT id FROM kho_nhom_cong_thuc WHERE ten_sx = ?), ?)`, [spId, m.kieu, m.loai, luc]);
     }
+    // KHO-2a: hạn dùng thành phẩm từ days_use của SX — chỉ điền ô còn trống, không đè chỗ chủ quán đã đặt
+    if (m.han_ngay) await tx.run('UPDATE kho_san_pham SET han_ngay = ? WHERE pos_product_id = ? AND han_ngay IS NULL', [m.han_ngay, spId]);
     for (const d of m.cong_thuc || []) {   // lapKeHoach chỉ đưa công thức cho món CHƯA có (đọc trong cùng giao dịch)
       // nguyên liệu chủ quán đã đổi tên trong POS vẫn tìm ra qua sx_id
       await tx.run(`INSERT INTO kho_cong_thuc (san_pham_id, nguyen_lieu_id, luong)
