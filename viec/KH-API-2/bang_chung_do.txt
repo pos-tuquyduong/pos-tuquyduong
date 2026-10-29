@@ -70,3 +70,19 @@ Code gốc = cây ab51a8a (chưa có giaHang.js, gioHoatDong.js, 4 cửa mới, 
 
 SỐ CA cong_cu/thu_KHAPI2.js: 84
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 48
+
+════ node cong_cu/thu_KH1.js — bài CŨ sửa 2 ca (Q4, commit 0091a2c) — trên code GỐC (server/ ở ab51a8a) ════
+  ✗ E1 GET /toi → 200, đúng 6 trường hang · ngay_tao · qr · sdt · so_du_vi · ten (P15-QR, KH-API-2)  — HTTP 200 · ngay_tao,qr,sdt,ten
+  ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng  — ma,ten,nhom,gia,con_hang,ton_cu,ton_luc
+  155 đạt · 2 hỏng
+Trên code ĐÃ VÁ (0091a2c): 157 đạt · 0 hỏng
+
+SỐ CA cong_cu/thu_KH1.js: 157
+
+════ node cong_cu/thu_HOPDONG_KH.js — CHẠY LẠI sau khi siết phép quét mã lỗi kh/index.js (a86f449, đột biến VS-HD-MA-LOI-NGOAI sống) ════
+Trên code GỐC (server/ + HOP_DONG_API_KH.md ở ab51a8a, bài ở a86f449):
+  ✗ không còn dòng "Lỗi đã biết (sửa ở KH-API-2)"
+  ✗ cửa /gio-vang ghi rõ "không có suất"
+  ✗ server/routes/signup-codes.js: 23 mã đều trong ma_loi  — MA_KHONG_GAN_DON, DON_DA_HUY, DON_DA_HOAN, DON_KHONG_HOP_LE, BILL_CHUA_THANH_TOAN, BILL_SDT_KHAC, NHANDIEM_DANG_TAT, MA_DA_NHAN_DIEM, TICH_DIEM_DANG_TAT, DON_KHONG_DU_DIEM, KHONG_THEM_DIEM, MA_TRUNG
+  39 đạt · 3 hỏng
+Trên code ĐÃ VÁ (a86f449): 48 đạt · 0 hỏng — số ca không đổi (48, dòng số ca ở trên vẫn đúng).
