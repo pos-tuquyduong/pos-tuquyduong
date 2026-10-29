@@ -61,10 +61,10 @@ router.delete('/nguyen-lieu/:id', QUAN_LY, async (req, res) => {
 });
 
 // ── Nhóm nguyên liệu, nhà cung cấp, nhóm công thức (KHO-2a: % lệch cho phép): cùng một khuôn thêm / sửa ──
-const soDuong = (x) => (Number(x) > 0 && Number.isFinite(Number(x)) ? Number(x) : null);
+const soKhongAm = (x) => (x !== '' && x != null && Number(x) >= 0 && Number.isFinite(Number(x)) ? Number(x) : null);
 for (const [duong, bang, cot] of [['nhom', 'kho_nhom_nguyen_lieu', ['ten', 'thu_tu']], ['nha-cung-cap', 'kho_nha_cung_cap', ['ten', 'sdt', 'ghi_chu', 'dang_dung']],
   ['nhom-cong-thuc', 'kho_nhom_cong_thuc', ['ten', 'thu_tu', 'lech_cho_phep']]]) {
-  const giaTri = (b) => cot.map((c) => (c === 'ten' ? String(b.ten ?? '').trim() : c === 'lech_cho_phep' ? soDuong(b[c])
+  const giaTri = (b) => cot.map((c) => (c === 'ten' ? String(b.ten ?? '').trim() : c === 'lech_cho_phep' ? soKhongAm(b[c])
     : b[c] ?? (c === 'dang_dung' ? 1 : c === 'thu_tu' ? 0 : null)));
   router.post(`/${duong}`, QUAN_LY, async (req, res) => {
     const v = giaTri(req.body || {});
@@ -102,8 +102,13 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   const spId = Number(req.params.id);
   const { kieu, nhom_id: nhomId = null, cong_thuc: dongVao = [] } = req.body || {};
   if (!tinh.KIEU_SAN_PHAM.includes(kieu)) return res.status(400).json({ error: 'Kiểu sản phẩm không hợp lệ', code: 'KIEU_SAI' });
-  // KHO-2a: không gửi han_ngay = giữ hạn đang có (màn công thức cũ không gửi trường này)
-  const hanNgay = 'han_ngay' in req.body ? soDuong(req.body.han_ngay) : undefined;
+  // KHO-2a: không gửi han_ngay = giữ hạn đang có (màn công thức cũ không gửi trường này); null / '' = bỏ hạn; còn lại phải là số NGUYÊN ngày > 0
+  // (addDaysToDateString cắt phần lẻ — 0.5 ngày thành lô hết hạn ngay lúc vào kho)
+  const hanVao = req.body.han_ngay;
+  const hanNgay = !('han_ngay' in req.body) ? undefined : hanVao === null || hanVao === '' ? null : Number(hanVao);
+  if (hanNgay != null && !(Number.isInteger(hanNgay) && hanNgay > 0)) {
+    return res.status(400).json({ error: 'Hạn dùng phải là số ngày nguyên lớn hơn 0', code: 'HAN_SAI' });
+  }
   const dong = Array.isArray(dongVao) ? dongVao.map((d) => ({ nguyen_lieu_id: Number(d.nguyen_lieu_id) || null,
     thanh_phan_id: Number(d.thanh_phan_id) || null, luong: Number(d.luong) })) : null;
   if (!dong || dong.some((d) => !(d.luong > 0) || !Number.isFinite(d.luong) || !d.nguyen_lieu_id === !d.thanh_phan_id)) {
@@ -268,8 +273,8 @@ router.post('/phieu/:id/ket-qua', NHAN_VIEN, (req, res, next) => {
   return r.loi ? r : { id, lech: r.lech };
 }));
 
-router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx) => {
-  const r = await duLieu.huyPhieu(tx, Number(req.params.id), lyDoCua(req));
+router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
+  const r = await duLieu.huyPhieu(tx, Number(req.params.id), lyDoCua(req), req.user.username, luc);
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
