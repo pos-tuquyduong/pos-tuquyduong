@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Settings as IconCaiDat, ShoppingCart, ArrowLeft } from 'lucide-react';
-import { api, ordersApi, productsApi, thanhToanApi } from '../../utils/api';
+import { api, customersV2Api, ordersApi, productsApi, thanhToanApi } from '../../utils/api';
 import { getLogo } from '../../utils/logoCache';
 import ThanhKhach from './ThanhKhach';
 import KhungChonMon from './KhungChonMon';
@@ -14,7 +14,7 @@ import ThuTien from './ThuTien';
 import ManKetThuc from './ManKetThuc';
 import ManPin from './ManPin';
 import ManQr from './ManQr';
-import { chiaTra, coGia, coSoMayChu, giaHang, hanhDongPhien, khoaTinh, kiemTraThem, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
+import { chiaTra, coChietKhauRieng, coGia, coSoMayChu, giaHang, hanhDongPhien, khoaTinh, kiemTraThem, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
 import './banHang.css';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
@@ -122,6 +122,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   }, [khoa, lanTinhLai]);   // eslint-disable-line react-hooks/exhaustive-deps -- gio / khach / ma đã nằm trong `khoa`
 
   const coSo = coSoMayChu(mayChu, khoa);
+  const chanChietKhau = coChietKhauRieng(khach);          // máy chủ chưa nhận chiết khấu riêng của khách → không thu ở màn mới (khác màn cũ)
   const tinh = useMemo(() => tinhGio(gio, { flash, hang }), [gio, flash, hang]);   // chỉ để hiện giá dòng khi chưa có số máy chủ
   const tong = coSo ? Math.round(mayChu.total) : tinh.tong;
   const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK, dungMe });
@@ -168,8 +169,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   /** Đơn đã ghi (id) → màn kết thúc. Lấy dòng đơn đã lưu; không lấy được thì vẫn sang màn kết thúc (hoá đơn tải lại bằng id). */
   const hoanTat = async (id, anh, cach, khachDua) => {
     if (!id) { setQr(null); setLoi('Tiền đã nhận nhưng chưa thấy mã đơn — mở mục Đơn hàng để kiểm tra, đừng thu lại'); return; }
-    let dong = { id };
-    try { dong = await ordersApi.get(id); } catch { /* giữ {id} */ }
+    let dong = { id, total: anh.tong, payment_method: CACH_DON[cach], cash_received: khachDua, change_amount: cach === 'tien_mat' ? Math.max(0, khachDua - anh.phaiTra) : 0 };   // dự phòng cùng công thức máy chủ: tiền thối = khách đưa − còn lại
+    try { dong = await ordersApi.get(id); } catch { /* giữ số tính từ phiên: đơn đã ghi, màn kết thúc vẫn đúng tiền thối */ }
     const kh = anh.khach;
     const cachDon = dong.payment_method || CACH_DON[cach];
     setXong({
@@ -186,10 +187,20 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   };
   hoanTatRef.current = hoanTat;
 
+  /** Nạp lại số dư khách / mẹ từ máy chủ (số dư lúc chọn khách có thể đã cũ). */
+  const lamMoiSoDu = async () => {
+    if (!khach) return;
+    try {
+      const ds = (await customersV2Api.search(khach.phone)).results || [];
+      const moi = ds.find((c) => c.phone === khach.phone);
+      if (moi) setKhach((k) => (k && k.phone === moi.phone ? { ...k, balance: moi.balance, parent_balance: moi.parent_balance } : k));
+    } catch { /* không nạp được: lần thu sau báo lệch tiếp, không sai tiền */ }
+  };
+
   const chayPhien = async ({ cach, khachDua = 0, pin, pinMe }) => {
     if (dangGuiRef.current || !coSo) return;
     dangGuiRef.current = true; setDangGui(true); setLoi('');
-    const anh = { khach, soDuDung, soDuMeDung };
+    const anh = { khach, soDuDung, soDuMeDung, tong, phaiTra };
     let phien = null;
     try {
       const than = thanPhien({ gio, khach, ma, cach: cach === 'chuyen_khoan' ? 'payos' : cach, dungTK: soDuDung > 0, dungMe: soDuMeDung > 0, pin, pinMe });
@@ -198,6 +209,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
         const p = phien; phien = null;
         await nhaPhien(p);
         setHoiPin(null); setLanTinhLai((n) => n + 1);
+        await lamMoiSoDu();                                 // số dư đổi (quầy khác đang giữ ví) → nạp lại, không thì bấm lại vẫn lệch
         setLoi('Giá hoặc số dư vừa thay đổi — kiểm tra lại giỏ rồi thu lại');
         return;
       }
@@ -211,6 +223,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
         const p = phien; phien = null;
         const tt = await thanhToanApi.hoiPhien(p.id).catch(() => null);
         if (hanhDongPhien(tt?.phien?.trang_thai) === 'xong') await hoanTat(tt.phien.order?.id, anh, cach, khachDua);
+        else if (!tt) setLoi('Mất kết nối khi chốt — KHÔNG thu lại ngay: mở mục Đơn hàng xem đơn đã ghi chưa, rồi mới thu tiếp');
         else { await nhaPhien(p); setLoi(e.message || 'Không thu được tiền'); }
       } else {
         const viec = xuLyLoiPin(e.code);
@@ -324,14 +337,15 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
                 {mayChu.ma_loi && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem', color: 'var(--bh-do)' }}>Mã không áp: {mayChu.ma_loi}</div>}
               </>
             ) : (
-              <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>{loiTinh || 'Đang hỏi máy chủ giá…'}</div>
+              <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>{loiTinh || 'Đang hỏi máy chủ giá…'} {loiTinh && <button className="bh-nut-nho" onClick={() => setLanTinhLai((n) => n + 1)}>Thử lại</button>}</div>
             )}
+            {chanChietKhau && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem', color: 'var(--bh-do)' }}>Khách có chiết khấu riêng — màn mới chưa áp được. Bỏ chọn khách hoặc tắt màn mới (⚙) để bán ở màn cũ.</div>}
             <div className="bh-tien-dong">
               <input value={maGo} onChange={(e) => setMaGo(e.target.value)} onBlur={() => setMa(maGo)} onKeyDown={(e) => { if (e.key === 'Enter') setMa(maGo); }}
                 placeholder="Mã giảm giá (nếu có)" maxLength={40} style={{ flex: 1, minHeight: 40, border: '1px solid var(--bh-vien)', borderRadius: 8, padding: '0 0.6rem' }} />
             </div>
           </div>
-          <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
+          <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo && !chanChietKhau} tong={tong} phaiTra={phaiTra} khach={khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
             dungTK={dungTK} dungMe={dungMe} onDungTK={setDungTK} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />
         </>
       )}

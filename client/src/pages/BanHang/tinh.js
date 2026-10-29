@@ -148,6 +148,9 @@ export function thanTinhThu(gio, khach, ma) {
 /** Có số máy chủ cho ĐÚNG giỏ đang hiện? (số của giỏ cũ về muộn / chưa về → không thu). */
 export const coSoMayChu = (mayChu, khoa) => !!mayChu && mayChu.khoa === khoa && Number.isFinite(mayChu.total);
 
+/** Khách có chiết khấu riêng trên hồ sơ? Máy chủ (tinh-thu / phiên) chưa nhận trường này → màn mới không thu cho khách đó. */
+export const coChietKhauRieng = (khach) => so(khach?.discount_value) > 0;
+
 // ── Chia tiền: tài khoản khách / mẹ / phần còn lại ──────────────────────────
 export function chiaTra({ tong, khach, dungTK, dungMe }) {
   const t = Math.max(0, so(tong));
