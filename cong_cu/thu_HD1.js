@@ -187,6 +187,22 @@ async function phanG() {
   k('G81 điều kiện in dùng chung (nút In + tự mở in): chưa có bảng nhóm → chưa; có đơn mà chưa có dữ liệu hoá đơn (hd null, chưa lỗi) → chưa; hd về → in; cửa lỗi → in (bố cục cũ); đơn chưa lưu (không id) → in',
     ssi({ sanSang: true, coId: true, hd: null, hdLoi: false }) === false && ssi({ sanSang: false, coId: true, hd: {}, hdLoi: false }) === false
     && ssi({ sanSang: true, coId: true, hd: {}, hdLoi: false }) === true && ssi({ sanSang: true, coId: true, hd: null, hdLoi: true }) === true && ssi({ sanSang: true, coId: false, hd: null, hdLoi: false }) === true);
+  // HD-1 vòng sửa 4 (soát lần cuối 28.10)
+  const ttHet = dungHoaDon({ ...HD_QUEN, thanh_toan: [], khach_dua: 0, tra_lai: 0 }, {});
+  const ttLa = dungHoaDon({ ...HD_QUEN, thanh_toan: [{ loai: 'khong_biet', so_tien: 87800 }], khach_dua: 0 }, {});   // loại lạ → không có dòng nào
+  k('G82 mục THANH TOÁN không có dòng nào (đơn 0đ lấy hết từ gói) → KHÔNG in tiêu đề; có ≥ 1 dòng (kể cả chỉ "Khách đưa") → tiêu đề đứng đầu',
+    ttHet.thanh_toan.length === 0 && ttLa.thanh_toan.length === 0 && khoa(dungHoaDon(HD_QUEN, {}).thanh_toan)[0] === 'tieu_de_tt'
+    && bang(khoa(dungHoaDon({ ...HD_QUEN, thanh_toan: [], khach_dua: 100000, tra_lai: 12200 }, {}).thanh_toan), ['tieu_de_tt', 'dua_tra']), khoa(ttHet.thanh_toan));
+  const nk = (cd) => { const d = dungHoaDon(HD_QUEN, cd).dau; return [d.nhan_khach, d.nhan_nv]; };
+  k('G83 nhãn "Khách" / "NV": nút Ẩn → nhãn rỗng; chữ để trống → nhãn rỗng (bill in giá trị KHÔNG kèm ": "); mặc định vẫn "Khách" / "NV"',
+    bang(nk({ invoice_an_nhan_khach: 'true' }), ['', 'NV']) && bang(nk({ invoice_an_nhan_nv: 'true' }), ['Khách', '']) && bang(nk({ invoice_chu_nhan_khach: '  ', invoice_chu_nhan_nv: '' }), ['', '']) && bang(nk({}), ['Khách', 'NV']), JSON.stringify(nk({ invoice_chu_nhan_khach: '' })));
+  const docNguon = (f) => fs.readFileSync(path.join(GOC, f), 'utf8');
+  const jsxPreview = docNguon('client/src/components/InvoicePreview.jsx');
+  k('G84 InvoicePreview: nhãn rỗng thì không in ": " (ghép ": " chỉ khi có nhãn) — cả khách lẫn NV',
+    !/\{dau\.nhan_khach\}:/.test(jsxPreview) && !/\{dau\.nhan_nv\}:/.test(jsxPreview) && /dau\.nhan_khach \?/.test(jsxPreview) && /dau\.nhan_nv \?/.test(jsxPreview));
+  const gh = (pt) => dong(dungHoaDon({ ...HD_QUEN, khach: { ...HD_QUEN.khach, phan_tram: pt } }, {}).tien, 'giam_hang').ten;
+  k('G85 nhãn "Giảm hạng": có % → "Giảm hạng Vàng 10%"; không suy ra % (null / rỗng) → "Giảm hạng Vàng" KHÔNG kèm "%" hay khoảng trắng thừa; % = 0 vẫn là số',
+    gh(10) === 'Giảm hạng Vàng 10%' && gh(null) === 'Giảm hạng Vàng' && gh('') === 'Giảm hạng Vàng' && gh(0) === 'Giảm hạng Vàng 0%', JSON.stringify([gh(10), gh(null), gh(0)]));
   const kr = P.khoaChuGhiKhiReset || (() => null);
   k('G78 Reset rồi Lưu: ghi mọi khoá chữ, TRỪ tên quán + địa chỉ khi chưa từng bị ghi đè (không ghim bản sao tĩnh làm đổi store_* mất tác dụng); đã ghi đè từ trước → ghi lại',
     kr({})?.length === Object.keys(CHU_MAC_DINH).length - 2 && !kr({}).includes('ten_quan') && !kr({}).includes('dia_chi') && kr({}).includes('in_lai')
@@ -244,7 +260,7 @@ async function phanG() {
   try { dungHoaDon(null, null); dungHoaDon({}, undefined); danhSachTo(undefined, undefined, undefined); dienChu(undefined); duongQr(undefined); docChu(null); } catch (e) { nem = e.message; }
   k('G51 đầu vào rỗng / rác không ném', nem === null, nem);
   const tong0 = dungHoaDon({ ...HD_QUEN, tien: { ...HD_QUEN.tien, tong: 0 }, thanh_toan: [], khach_dua: 0 }, {});
-  k('G52 đơn 0đ (quà tặng): tổng 0đ, mục thanh toán chỉ còn tiêu đề', dong(tong0.tien, 'tong').tien === '0đ' && bang(khoa(tong0.thanh_toan), ['tieu_de_tt']));
+  k('G52 đơn 0đ (quà tặng): tổng 0đ, mục thanh toán KHÔNG in gì (không tiêu đề trơ trọi — vòng sửa 4)', dong(tong0.tien, 'tong').tien === '0đ' && bang(khoa(tong0.thanh_toan), []), khoa(tong0.thanh_toan));
   k('G53 số lẻ / chuỗi từ máy chủ vẫn ra số nguyên đồng', dungHoaDon({ ...HD_QUEN, tien: { ...HD_QUEN.tien, tong: '87800.4' } }, {}).tien.at(-1).tien === '87.800đ');
   k('G54 chân hoá đơn: ghi chú thêm (rỗng mặc định) hiện ở CẢ hai tờ khi có chữ', danhSachTo(HD_QUEN, { invoice_chu_ghi_chu: 'Wifi: abc' }).every((t) => t.chan.some((c) => c.khoa === 'ghi_chu' && c.chu === 'Wifi: abc')));
   k('G55 địa chỉ · SĐT lấy cài đặt cũ khi chưa có khoá mới', dungHoaDon(HD_QUEN, { store_address: 'LK4', store_phone: '024' }).dau.dia_chi === 'LK4 · 024' && dungHoaDon(HD_QUEN, {}).dau.dia_chi === '');
@@ -476,6 +492,22 @@ async function phanA(P) {
   k('A20 món có giá hạng: giá gốc + giá hạng (gạch ngang ở giao diện)', H?.mon[0].gia_goc === 25000 && H.mon[0].gia_hang === 22500 && H.mon[1].gia_hang === 18000 && H.mon[0].thanh_tien === 22500 && H.mon[0].thanh_tien_goc === 25000, JSON.stringify(H?.mon));
   k('A21 chuỗi: giá gốc 45.000 − hạng 4.500 + phí 5.000 = tổng 45.500', H?.tien.gia_goc === 45000 && H.tien.phi_giao === 5000 && H.tien.tong === 45500 && H.tien.gia_goc - H.tien.giam_hang - H.tien.giam_flash - H.tien.giam_ma + H.tien.phi_giao === H.tien.tong, JSON.stringify(H?.tien));
   k('A22 thanh toán: tài khoản 20.000 + tiền mặt = tổng hoá đơn', H && tong(H.thanh_toan) === H.tien.tong && H.thanh_toan[0].loai === 'tai_khoan' && H.thanh_toan[0].so_tien === 20000, JSON.stringify(H?.thanh_toan));
+  // HD-1 vòng sửa 4 (lỗi 3): % hạng trên bill = % THẬT đã giảm của từng dòng (giá gốc vs tier_unit_price đã lưu), không lấy % hiện tại của hạng
+  const dongGia = await db.query('SELECT id, tier_unit_price FROM pos_order_items WHERE order_id = ? ORDER BY id', [rq.order.id]);
+  const datGiaHang = async (a, b) => { await db.run('UPDATE pos_order_items SET tier_unit_price = ? WHERE id = ?', [a, dongGia[0].id]); await db.run('UPDATE pos_order_items SET tier_unit_price = ? WHERE id = ?', [b, dongGia[1].id]); };
+  const phanTramHang = async () => (await hd(rq.order.id)).h?.khach.phan_tram;
+  await db.run('UPDATE pos_membership_tiers SET discount_percent = 25 WHERE id = ?', [hang.id]);   // hạng đổi % sau khi bán
+  const ptDoiHang = await phanTramHang();
+  await datGiaHang(22500, 19000);   // dòng 1 giảm 10%, dòng 2 giảm 5%
+  const ptLech = await phanTramHang();
+  await datGiaHang(null, 18000);   // dòng 1 không giảm (nhóm đặc biệt), dòng 2 giảm 10%
+  const ptMotDong = await phanTramHang();
+  await datGiaHang(null, null);
+  const ptKhongGiam = await phanTramHang();
+  await datGiaHang(dongGia[0].tier_unit_price, dongGia[1].tier_unit_price);
+  await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
+  k('A19d % hạng lấy từ giá đã lưu của đơn: hạng đổi % sau khi bán (10 → 25) vẫn ra 10; các dòng giảm khác % hoặc không dòng nào giảm → null (bill in "Giảm hạng <tên>" không %); dòng không giảm bị bỏ qua',
+    ptDoiHang === 10 && ptLech === null && ptMotDong === 10 && ptKhongGiam === null && (await phanTramHang()) === 10, JSON.stringify([ptDoiHang, ptLech, ptMotDong, ptKhongGiam]));
   await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at) VALUES (?, 'adjust', -7, ?, NULL, 'Hoàn điểm: thử', 'thu', ?)", [sq, rq.order.id, rq.order.created_at]);   // dòng điều chỉnh của đơn KHÔNG phải điểm cộng
   const earn = Number((await mot("SELECT COALESCE(SUM(points),0) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [rq.order.id])).n);
   k('A23 điểm: cộng đơn này = dòng earn của sổ điểm; hiện có = trước + cộng; khách quen không ô mã', H?.diem?.cong === earn && H.diem.hien_co === H.diem.truoc + H.diem.cong && H.diem.doi_qua === 0 && H.ma_nhan_diem === null, JSON.stringify(H?.diem));
