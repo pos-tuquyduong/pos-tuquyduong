@@ -35,22 +35,34 @@ DOT_BIEN = [
   ('VS-ORDERS-BO-NHOM', 'api', [(O, 'tiLeHang.set(it, tiLeHangMon(tier, it.is_special_group));', 'tiLeHang.set(it, tiLeHangMon(tier, false));', 1)],
    r'✗ A3 (tinh-thu|POST)'),
   # ── B: /toi hang + so_du_vi ──
-  ('BV-TOI-HANG', 'api', [(K, 'hang: await hangCuaKhach(phone), ', '', 1)], r'✗ B1 '),
+  ('BV-TOI-HANG', 'api', [(K, 'qr, hang, so_du_vi', 'qr, so_du_vi', 1)], r'✗ B1 '),
   ('VS-TOI-HANG-KHONG-XET-HET-HAN', 'api', [(K, 'const h = isTierUsable(m.status) && await', 'const h = m.tier_id && await', 1)], r'✗ B3 '),
   ('VS-TOI-SO-DU-KHONG-TRU-GIU', 'api', [(K, ' - (await dangGiu({ queryOne }, phone))', '', 1)], r'✗ B5 '),
   # ── C: /hang ──
   ('VS-HANG-CA-HANG-TAT', 'api', [(K, "FROM pos_membership_tiers WHERE is_active = 1 ORDER BY", 'FROM pos_membership_tiers ORDER BY', 1)], r'✗ C1 '),
   ('VS-HANG-CAN-TOKEN', 'api', [(K, "router.get('/hang', async", "router.get('/hang', xacThucKhach, async", 1)], r'✗ C1 '),
   # ── D: /gio-vang ──
-  ('VS-GIOVANG-BO-PERCENT', 'api', [(K, 'dang_chay: f.is_flash_now && f.percent > 0 &&', 'dang_chay: f.is_flash_now &&', 1)], r'✗ D4 '),
+  ('VS-GIOVANG-BO-PERCENT', 'api', [(K, 'dang_chay: bat && f.is_flash_now', 'dang_chay: f.is_flash_now', 1)], r'✗ D4 '),
+  # vòng sửa 1 (soát lỗi 4, 6): một vị từ `bat` có xét món; khung qua nửa đêm tất định
+  ('BV-GIOVANG-KHONG-MON', 'api', [(K, ' && f.percent > 0 && f.product_keys.length > 0;', ' && f.percent > 0;', 1)], r'✗ D6 '),
+  ('VS-GIOVANG-KHUNG-QUA-DEM', 'api', [(GD, "mo > dong && bayGio.slice(11, 16) < dong ? congNgay(ngay, -1) : ngay", 'ngay', 1)], r'✗ D7 khung'),
+  ('BV-GIOVANG-KHUNG-ROUTE', 'api', [(K, 'khungHangNgay(bayGio, f.start, f.end)', "khungHangNgay(bayGio.slice(0, 10) + 'T12:00:00', f.start, f.end)", 1)],
+   r'✗ D7 /gio-vang'),
   ('BV-GIOVANG-TAT', 'api', [(K, 'mon: bat ? f.product_keys : []', 'mon: f.product_keys', 1)], r'✗ D3 '),
   # ── E: /menu gia_hang ──
   ('BV-MENU-GIA-HANG', 'api', [(K, 'gia_hang: giaCacHang(p.price, p.is_special_group, dsHang),', 'gia_hang: [],', 1)], r'✗ (A3|E1) '),
+  # vòng sửa 1 (soát lỗi 3): hạng đã tắt mà khách còn thẻ
+  ('BV-MENU-HANG-TAT', 'api', [(K, '    if (the && !dsHang.some((h) => h.id === the.h.id)) dsHang.push(the.h);\n', '', 1)], r'✗ E6 '),
   ('VS-MENU-BO-NHOM', 'api', [(K, 'giaCacHang(p.price, p.is_special_group, dsHang)', 'giaCacHang(p.price, false, dsHang)', 1)], r'✗ (A3|E2) '),
   # ── F: giờ hoạt động ──
   ('VS-GIOHD-GIO-MAY', 'api', [(K, 'traGioHoatDong(getNow(),', 'traGioHoatDong(new Date().toISOString().slice(0, 19),', 1)], r'✗ F8 '),
   ('VS-GIOHD-QUA-NUA-DEM', 'api', [(GD, 'const ca = trong(homQua) ? homQua : trong(homNay)', 'const ca = trong(homNay)', 1)], r'✗ F2 01:00'),
-  ('VS-GIOHD-NGUNG-LE', 'api', [(GD, 'bayGio < congPhut(ca.dong, cd.ngungTruocPhut)', 'bayGio <= congPhut(ca.dong, cd.ngungTruocPhut)', 1)], r'✗ F5 ngừng'),
+  ('VS-GIOHD-NGUNG-LE', 'api', [(GD, 'bayGio < truPhut(dongThat(ca, cd), cd.ngungTruocPhut)', 'bayGio <= truPhut(dongThat(ca, cd), cd.ngungTruocPhut)', 1)], r'✗ F5 ngừng'),
+  # vòng sửa 1 (soát lỗi 2, 5): giờ đóng thật nối ca; câu báo không cụt
+  ('BV-GIOHD-DONG-THAT', 'api', [(GD, 'truPhut(dongThat(ca, cd),', 'truPhut(ca.dong,', 1)], r'✗ F12 '),
+  ('VS-GIOHD-DONG-THAT-CHI-KHI-CHUA-CAI', 'api', [(GD, 'const tiep = caCuaNgay(dong.slice(0, 10), cd);', 'const tiep = cd.lich ? null : caCuaNgay(dong.slice(0, 10), cd);', 1)],
+   r'✗ F12 Thứ Hai'),
+  ('BV-GIOHD-CHUA-CO-LICH', 'api', [(GD, ': CHUA_CO_LICH),', ": ''),", 1)], r'✗ (F9 nghỉ cả tuần|J5 câu báo)'),
   ('BV-GIOHD-NGAY-NGHI', 'api', [(GD, '  if (cd.ngayNghi.some((d) => d.ngay === ngay)) return null;\n', '', 1)], r'✗ F3 '),
   ('VS-GIOHD-CHUA-CAI-DONG', 'api', [(GD, "  if (!cd.lich) return { mo: `${ngay}T00:00:00`, dong: `${congNgay(ngay, 1)}T00:00:00` };",
                                       '  if (!cd.lich) return null;', 1)], r'✗ F6 '),
@@ -60,10 +72,16 @@ DOT_BIEN = [
    r'✗ F10 PUT ngày sai'),
   # ── G: hạn mã theo cài đặt ──
   ('BV-HANMA-24', 'api', [(SC, 'hoursPassed > hanGio', 'hoursPassed > 24', 1)], r'✗ G2 cài hạn 48'),
+  ('VS-HANMA-LECH-1-GIO', 'api', [(SC, 'hoursPassed > hanGio', 'hoursPassed > hanGio + 1', 1)], r'✗ G2 ngưỡng'),
   ('VS-HANMA-LOI-CUNG', 'api', [(SC, '(quá ${hanGio} giờ kể từ lúc in)', '(quá 24 giờ kể từ lúc in)', 1)], r'✗ G2 mã in 49'),
   # ── I: hợp đồng khớp code (thu_HOPDONG_KH.js) ──
   ('VS-HD-ROUTE-NGOAI-HOP-DONG', 'hd', [(K, '// ── Từ đây: token khách bắt buộc', "router.get('/bi-mat', (req, res) => res.json({}));\n// ── Từ đây: token khách bắt buộc", 1)],
    r'✗ mọi route dưới /api/kh'),
+  # vòng sửa 1 (soát lỗi 6): quét route mọi kiểu
+  ('VS-HD-ROUTE-ALL-NHAY-KEP', 'hd', [(K, '// ── Từ đây: token khách bắt buộc', 'router.all("/bi-mat", (req, res) => res.json({}));\n// ── Từ đây: token khách bắt buộc', 1)],
+   r'✗ mọi route dưới /api/kh'),
+  ('VS-HD-ROUTE-DUONG-BIEN', 'hd', [(K, '// ── Từ đây: token khách bắt buộc', "const DUONG_AN = '/an';\nrouter.get(DUONG_AN, (req, res) => res.json({}));\n// ── Từ đây: token khách bắt buộc", 1)],
+   r'✗ mọi router'),
   ('VS-HD-MA-LOI-NGOAI', 'hd', [(K, "loiMayChu(res, err, 'kh hang');", "res.status(500).json({ error: 'x', code: 'MA_LA_KHONG_CO' });", 1)],
    r'✗ server/routes/kh/index.js'),
   ('VS-HD-TOI-THIEU-TRUONG', 'hd', [(K, ', so_du_vi: await soDuVi(phone)', '', 1)], r'✗ GET /toi → 200'),
