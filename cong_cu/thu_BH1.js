@@ -8,7 +8,7 @@
  *
  *  tinh.js là ES module không phụ thuộc React → nạp bằng import() trực tiếp (không dựng giả lập).
  *  Phần cấu trúc đọc file nguồn: BanHang/ không `fetch` trần, không tạo khách ở quầy, không Ghi nợ / Chưa thu, localStorage trong try;
- *  (BH-2 bỏ ca khoá payload đơn: màn mới thu qua phiên thanh toán — xem thu_BH2.js).
+ *  khoá payload đơn == khoá `orderData` của Sales.jsx (đơn từ màn mới "y như màn cũ").
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -141,11 +141,63 @@ async function main() {
     return g(['Ít đá', 'Ít ngọt'], ' ít đá ') === 'Ít đá, Ít ngọt' && g([], '') === '' && g(['a'], 'x'.repeat(300)).length === 200;
   });
 
-  // BH-2: mục I (payload POST /orders do dungDonHang dựng) bỏ — màn mới thu qua phiên thanh toán, thân yêu cầu do thanPhien dựng và
-  // được thử trên máy chủ thật ở cong_cu/thu_BH2.js (mục D, R).
+  muc('I · payload đơn (K5: y như màn cũ)');
+  const gio = [{ product_id: 7, sx_product_type: 'juice', sx_product_id: 3, quantity: 2, unit_price: 35000, note: '  Ít đá ' }];
+  const khach = { phone: '0912345678', name: 'Chị Hoa', balance: 50000 };
+  const tinh = (ctx = {}) => f('tinhGio')(gio, ctx);
+  const dung = (o) => f('dungDonHang')({ gio, tamTinh: tinh(), ...o });
+  thu('I1 tiền mặt đúng tiền (khách lẻ): cash_amount = tổng, cash_received = tổng, trả lại 0', () => {
+    const d = dung({ cach: 'cash', khachDua: 70000 });
+    return d.payment_method === 'cash' && d.cash_amount === 70000 && d.cash_received === 70000 && d.change_amount === 0 &&
+      d.transfer_amount === 0 && d.balance_amount === 0 && d.customer_phone === null && d.customer_name === 'Khách lẻ';
+  });
+  thu('I2 tiền mặt số khác: đưa 100.000 → cash_received 100.000, change_amount 30.000, cash_amount vẫn 70.000', () => {
+    const d = dung({ cach: 'cash', khachDua: 100000 });
+    return d.cash_amount === 70000 && d.cash_received === 100000 && d.change_amount === 30000;
+  });
+  thu('I3 chuyển khoản: transfer_amount = tổng, cash 0, cash_received 0', () => {
+    const d = dung({ cach: 'transfer' });
+    return d.payment_method === 'transfer' && d.transfer_amount === 70000 && d.cash_amount === 0 && d.cash_received === 0 && d.change_amount === 0;
+  });
+  thu('I4 khách quen trừ số dư một phần (50.000) + tiền mặt 20.000', () => {
+    const d = dung({ cach: 'cash', khach, soDuDung: 50000, khachDua: 20000 });
+    return d.balance_amount === 50000 && d.cash_amount === 20000 && d.cash_received === 20000 && d.change_amount === 0 &&
+      d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && d.payment_method === 'cash';
+  });
+  thu('I5 số dư đủ trả hết → payment_method "balance", balance_amount = tổng, cash/transfer 0', () => {
+    const d = dung({ cach: 'balance', khach: { ...khach, balance: 100000 }, soDuDung: 70000 });
+    return d.payment_method === 'balance' && d.balance_amount === 70000 && d.cash_amount === 0 && d.transfer_amount === 0 && d.cash_received === 0;
+  });
+  thu('I6 số dư mẹ: gửi parent_phone + parent_balance_amount; mặc định không có', () => {
+    const co = dung({ cach: 'cash', khach: { ...khach, parent_phone: '0900000000' }, soDuMeDung: 10000, khachDua: 10000 });
+    const khong = dung({ cach: 'cash', khach: { ...khach, parent_phone: '0900000000' }, khachDua: 70000 });   // có mẹ nhưng không dùng → không gửi
+    return co.parent_phone === '0900000000' && co.parent_balance_amount === 10000 && khong.parent_phone === null && khong.parent_balance_amount === 0;
+  });
+  thu('I7 món: from_package false, ghi chú cắt khoảng trắng, không gói / thẻ', () => {
+    const d = dung({ cach: 'cash', khachDua: 70000 });
+    const it = d.items[0];
+    return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7 &&
+      d.package_buy === null && d.membership_buy === null && d.customer_package_id === null && d.shipping_fee === 0;
+  });
+  thu('I8 chiết khấu riêng của khách được gửi (discount_type / discount_value) như màn cũ', () => {
+    const d = dung({ cach: 'cash', khach: { ...khach, discount_type: 'percent', discount_value: 10 }, tamTinh: tinh({ khachGiam: { loai: 'percent', gia_tri: 10 } }), khachDua: 63000 });
+    return d.discount_type === 'percent' && d.discount_value === 10;
+  });
+  thu('I9 không chiết khấu → discount_type null, discount_value 0', () => { const d = dung({ cach: 'cash', khachDua: 70000 }); return d.discount_type === null && d.discount_value === 0; });
+
+  // Tập khoá == tập khoá orderData của Sales.jsx (đọc từ nguồn, không tự gõ)
+  const ban = DOC('client', 'src', 'pages', 'Sales.jsx');
+  const m = ban.match(/const orderData = \{([\s\S]*?)\n      \};/);
+  const khoaCu = m ? [...m[1].matchAll(/^\s{8}([a-z_]+):/gm)].map((x) => x[1]).sort() : [];
+  thu('I10 tìm được khoá orderData trong Sales.jsx (≥ 20 khoá)', () => khoaCu.length >= 20, 'tìm được ' + khoaCu.length);
+  thu('I11 tập khoá payload màn mới == tập khoá orderData màn cũ', () => {
+    const d = dung({ cach: 'cash', khachDua: 70000 });
+    const moi = Object.keys(d).sort();
+    if (!bang(moi, khoaCu)) throw new Error('khác: ' + moi.filter((x) => !khoaCu.includes(x)).concat(khoaCu.filter((x) => !moi.includes(x))).join(','));
+    return true;
+  });
 
   muc('Cấu trúc nguồn');
-  const ban = DOC('client', 'src', 'pages', 'Sales.jsx');
   const F = docBanHang();
   const tenFile = Object.keys(F);
   k('S1 thư mục BanHang/ có file giao diện (.jsx)', tenFile.some((n) => n.endsWith('.jsx')));
@@ -165,7 +217,7 @@ async function main() {
   const kiem = DOC('kiem_tra_truoc_khi_giao.js');
   k('S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js', /'cong_cu\/thu_BH1\.js'[,\]][^\n]*chayBaiThat\(bai\)/.test(kiem));
   k('S12 kết thúc: lưới món khoá (bh-khoa) khi xong && !daIn', jsx.some(([, s]) => /xong && !daIn \? ' bh-khoa'/.test(s)));
-  k('S13 chống bấm đôi: dangGuiRef chặn trong thu() / chayPhien() + nút thu tắt theo dangGui (nutThuSang)', jsx.some(([, s]) => /if \(dangGuiRef\.current \|\|/.test(s)) && jsx.some(([, s]) => /nutThuSang\(\{ coSo, dangGui/.test(s)));
+  k('S13 chống bấm đôi: dangGuiRef chặn trong thu() + nút Đã nhận tiền disabled theo dangGui', jsx.some(([, s]) => /if \(dangGuiRef\.current \|\|/.test(s)) && jsx.some(([, s]) => /disabled=\{dangGui \|\| !duDuoc/.test(s)));
 
   console.log(`\nBH-1: ${dat} đạt · ${hong} hỏng`);
   process.exit(hong ? 1 : 0);
