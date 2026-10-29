@@ -199,7 +199,7 @@ async function phanG() {
   const docNguon = (f) => fs.readFileSync(path.join(GOC, f), 'utf8');
   const jsxPreview = docNguon('client/src/components/InvoicePreview.jsx');
   k('G84 InvoicePreview: nhãn rỗng thì không in ": " (ghép ": " chỉ khi có nhãn) — cả khách lẫn NV',
-    !/\{dau\.nhan_khach\}:/.test(jsxPreview) && !/\{dau\.nhan_nv\}:/.test(jsxPreview) && /dau\.nhan_khach \?/.test(jsxPreview) && /dau\.nhan_nv \?/.test(jsxPreview));
+    !/[^$]\{dau\.nhan_khach\}:/.test(jsxPreview) && !/[^$]\{dau\.nhan_nv\}:/.test(jsxPreview) && /dau\.nhan_khach \?/.test(jsxPreview) && /dau\.nhan_nv \?/.test(jsxPreview));
   const gh = (pt) => dong(dungHoaDon({ ...HD_QUEN, khach: { ...HD_QUEN.khach, phan_tram: pt } }, {}).tien, 'giam_hang').ten;
   k('G85 nhãn "Giảm hạng": có % → "Giảm hạng Vàng 10%"; không suy ra % (null / rỗng) → "Giảm hạng Vàng" KHÔNG kèm "%" hay khoảng trắng thừa; % = 0 vẫn là số',
     gh(10) === 'Giảm hạng Vàng 10%' && gh(null) === 'Giảm hạng Vàng' && gh('') === 'Giảm hạng Vàng' && gh(0) === 'Giảm hạng Vàng 0%', JSON.stringify([gh(10), gh(null), gh(0)]));
