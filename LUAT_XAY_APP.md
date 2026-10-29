@@ -75,6 +75,9 @@
    - Còn lỗi tiền / điểm / ví / bảo mật / ngoài Phạm vi → dừng, ghi `## Câu hỏi` như cũ.
 6. **Trường hợp chỉ còn trong dữ liệu cũ** (vd đơn nợ trước khi bỏ ghi nợ): chọn cách an toàn nhất — hiện đúng như dữ liệu, không hứa
    điểm / tiền / mã — ghi một dòng Phát hiện, KHÔNG dừng hỏi. Câu nào `QUYET_DINH_CHU_QUAN.md` đã trả lời thì không hỏi lại.
+7. **Bài thử cũ khoá ĐÚNG danh sách trường** (danh sách trắng) mà phiếu thêm trường mới → được sửa đúng các dòng danh sách đó để thêm
+   trường phiếu ghi (vẫn so BẰNG, không nới thành "có ít nhất"), ghi `SỐ CA` như luật; KHÔNG dừng hỏi xin thêm vào Phạm vi (chủ quán
+   chốt 29.10).
 
 ## 7. Nhịp làm việc tới khai trương (07.11.2026)
 - Việc **tiền / bảo mật**: phiếu có "Chờ duyệt kế hoạch". Việc **thường** (giao diện, in, dọn, hạ tầng): chạy thẳng tới hết, không dừng chờ duyệt.
