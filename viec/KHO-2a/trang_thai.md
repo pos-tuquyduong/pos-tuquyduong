@@ -132,6 +132,8 @@ Sửa đúng từng lỗi lần soát 1 nêu (bài thử 6054c54 · vá 903ea8f 
 3. Trên phiếu đã duyệt bấm "✓ Đúng chuẩn" một món, "Khác" một món (số + ghi chú) → Kho › Tồn kho › Thành phẩm thấy lô đúng số, hạn; tab nhóm / tìm không dấu.
 
 ## CHƯA KIỂM
+- Bước 002 sửa nội dung trong nhánh (vòng sửa 1: bỏ CHECK, thêm nguoi_huy / huy_luc) — máy chỉ thấy nhánh viec/KHO-2a (không ref main), không
+  kiểm được CSDL nào (Replit pos_thu.db, máy dev) đã chạy bản 002 cũ của nhánh; CSDL đó sẽ bỏ qua 002 mới → huỷ / từ chối 500. Chủ quán xác nhận chưa chạy nhánh.
 - Bản in thật 80 mm / A4 (khổ giấy, ô ☐, dòng "IN LẠI"), giao diện điện thoại, tick mặc định, huy hiệu tự làm mới, tab nhóm / tìm / sắp xếp ở Tồn — máy
   không chạy trình duyệt cho các màn này; chỉ build xanh + `--day-du` so băm dist.
 - Turso thật: giao dịch ghi và mã bận chỉ thử trên libsql file (bài thử); ca đua chấp nhận `KHO_BAN`.
@@ -195,3 +197,62 @@ BÀI HỌC: KHOÁ — vị từ đầu vào dùng chung có trần dưới + tr�
 ```
 
 ## Vòng sửa 3 (cuối — so_vong_sua_toi_da; lần soát cuối chỉ lỗi NHẸ → LUAT §6.5: sửa đúng các lỗi lần soát nêu, không gọi agent soát nữa)
+Sửa đúng 6 lỗi lần soát 3 nêu (bài 053ff05 · vá 4b2b77d):
+- `tinh.soNgayNguyen`: chữ số thập phân nguyên, 1 … `HAN_NGAY_TOI_DA` (3650, hằng số có tên) — true / '0x10' / 1.5 / 0 / 3651 / 1e9 → null; PUT → 400 HAN_SAI
+  (lời nêu trần). E0d: null / '' / 1 / 3650 → 200; 0 / 3651 / true / '0x10' / 1e9 → 400, giữ hạn cũ. Đột biến VS-han-0-ngay, BV-han-tran-tren, VS-han-tran-lech.
+- E7 thêm days_use lẻ ở đường v_recipes (recipe 3 nối vào CT3 có sẵn — lần chạy đầu ca giả định món mới, đỏ oan, truy nguyên K2: database.js:1124 seed
+  CT3 = juice/3). Đột biến VS-han-recipe-le neo đúng dòng v_recipes.
+- VS-han-xoa-khi-khong-gui đổi về tái hiện ĐÚNG lỗi cũ (duLieu.luuSanPham luôn ghi `hanNgay ?? null`), mẫu `✗ E0b ` (bỏ mẫu nới `E0b?`).
+- Chú thích hanLo sửa theo soNgayNguyen (K1).
+- Bài mới trên bản trước vòng sửa 3 (db7ef39): 85 · 1 (E0d); gốc 62a8acb: 5 · 81; HEAD: 86 · 0. Đột biến: đối chứng XANH 86 · 0, 57/57 BẮT.
+- Nghi ngờ lần 3 (không sửa — ghi Phát hiện dưới): sửa phiếu chờ duyệt = duyệt luôn; in phiếu huỷ → 404; hạn nguyên liệu chưa qua soNgayNguyen; days_use lẻ
+  bỏ trống không cảnh báo; so_thuc "Infinity".
+
+SOÁT LẦN CUỐI: chat soát thay
+
+### Phát hiện (thêm sau soát lần 3)
+- Chủ quán bấm "Sửa" trên phiếu CHỜ duyệt → phiếu cũ huỷ, phiếu mới tự duyệt + ghi kho ngay (người duyệt = chủ quán). Đúng luật "chủ quán tự duyệt" nhưng
+  phiếu chưa ghi rõ — chủ quán xác nhận khi thử.
+- In phiếu đã huỷ trả 404 (chỉ phiếu đã duyệt in được) — phiếu chỉ nói "in lại", chưa nói phiếu huỷ.
+- KHO-2b: `kho_nguyen_lieu.han_ngay` (cotNguyenLieu, nhập SX shelf_life_days) chưa qua `soNgayNguyen` — lô nhập dùng hanLo sẽ ra "không hạn" nếu số lẻ.
+- Nhập SX: days_use lẻ bị để trống không kèm cảnh báo trong bản xem trước.
+- `POST /ket-qua` nhận so_thuc "Infinity" (Number('Infinity') >= 0).
+
+## Nghiệm thu — đếm từng mục (bài `cong_cu/thu_KHO2a.js`, HEAD 86 · 0)
+- A Định mức theo thứ: A0–A4 (+ A0c, A0d nhóm lệch). ✓
+- B Pha chế (định mức · đang có · cần làm, hôm nay / ngày mai): B1–B5. ✓ — tick mặc định / sửa số phần: thử tay (CHƯA KIỂM).
+- C MỘT phiếu PX, bảng tổng + theo công thức, đơn vị theo số phần, số phiếu: C1–C8, C3b, C3c. ✓ — bản in 80 mm / A4: thử tay.
+- D Duyệt (nhân viên chờ, quản lý tự duyệt, không tự duyệt, công tắc, đua): D1–D12, D10b. ✓ — huy hiệu tự làm mới: thử tay.
+- E Ghi kho một giao dịch, lô hạn gần trước, tồn âm không chặn, thành phẩm lô + hạn + giá vốn, bước 002, nhập SX hạn: E0–E8 (E0b–E0d). ✓
+- F Kết quả (✓ / số thực + ghi chú, lệch vàng không chặn, tự chốt qua ngày VN): F1–F7b, F3b, F3c, F5b. ✓
+- G Tồn (Σ phiếu đã duyệt, dưới tối thiểu / âm, lô + hạn, nhân viên không giá): G1–G3b. ✓ — tab nhóm / tìm / sắp xếp: thử tay.
+- H Danh sách, in lại, sửa / huỷ chỉ chủ quán có lý do, phiếu mới thay_cho_id, tồn theo phiếu còn hiệu lực: H1–H7, H2b, H3b, H3c, H5b, H5c. ✓
+- I Quyền ở máy chủ, đường lạ / vai trò lạ 403: I1 (16 đường × 5), I2. ✓
+- J Bán hàng như cũ: J1 + `cong_cu/thu_KHO1.js` 111 · 0. ✓
+10/10 mục có bằng chứng bài thử; phần giao diện thuần ghi ở CHƯA KIỂM + 3 thao tác thử tay.
+
+## Bài học
+Sự cố của việc này (bước 11.1): bài thử tự viết ca rỗng `every(async …)` (bắt khi đọc lại trước commit); D10 đầu tiên đỏ / xanh nhờ phép khác (manager thiếu
+manage_settings); F6b xanh oan (DA_TU_CHOT che phép phiếu sửa); 3 lần soát độc lập KHÔNG ĐẠT (lần 1: 8 lỗi — ca tồn thành phẩm đọc SQL của bài, phép đầu vào
+không ca, huỷ / từ chối chung trạng thái, CHECK trên cột loai; lần 2: ca lệch 0 % kiểm giá trị lưu, thiếu ca null / '' / 0, K4 nhập SX; lần 3: vị từ hạn không
+trần, thiếu ca biên 0, đột biến nới mẫu); E7 đỏ oan do giả định món mới (seed có CT3); người gác chặn 11 lệnh của phiên chính + agent (B-BIMAT-CHU chạy bài
+có cụm bí mật của bài thử trước khi commit; B-PHANTICH lệnh ghép / `$'…'` / `;`; B-CHUONGTRINH `for`; B-CD-VITRI `cd` giữa lệnh; GIT-BRANCH `--contains`).
+- **KHOÁ** (làm luôn, trong Phạm vi): `kiem_tra_truoc_khi_giao.js` chặn vị từ async trong `every / some / filter / find` của `cong_cu/thu_*.js` (luôn đúng → ca
+  xanh oan). Ca đỏ: biểu thức của phép bắt đúng dòng lỗi đã viết `['so_lan_in', 'ma_gui'].every(async (c) => …)` và không bắt dòng sửa (node -e, bước 11);
+  trên HEAD 0 file vi phạm. Lý do KHOÁ: mẫu máy tìm được 100 %, không lời dặn nào thay được.
+- **KHOÁ** (đề xuất, ngoài Phạm vi — `tu_chay/`): cổng `cong.js` liệt kê điều kiện mới trong diff (`WHERE … AND`, `return res.status(4xx)`, `if (!(…))`) và
+  đòi mỗi điều kiện một tên đột biến trong `viec/<MÃ>/dot_bien.py` neo đúng dòng đó. Ca đỏ: diff vòng sửa 0 của việc này (in chưa duyệt, số thực âm, món trùng
+  không có đột biến).
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K3, ngoài Phạm vi): "Ca mang tên một HÀNH VI máy chủ đọc ĐẦU RA của đường máy chủ (`GET /ton`, mã HTTP, cờ trả về),
+  không lặp công thức bằng SQL của bài — Đã gây: KHO-2a H3/H5 'rơi khỏi tồn' kiểm bằng SQL riêng, đột biến bỏ lọc da_duyet SỐNG; A0c 'lệch 0 % = cảnh báo'
+  kiểm giá trị lưu."
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K5, ngoài Phạm vi): "Phép kiểm đầu vào mới kèm ca 'phải KHÔNG bị chặn' cho ĐÚNG giá trị màn hình gửi (null khi ô
+  trống, '', 0) + ca ngay trên / dưới MỖI trần (dưới lẫn trên, trần trên lấy từ giới hạn hàm tiêu thụ) — Đã gây: KHO-2a HAN_SAI thiếu ca null (SanPham.jsx
+  luôn gửi han_ngay), soNgayNguyen không trần → addDaysToDateString ném RangeError."
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K4, ngoài Phạm vi): "Hai thao tác cùng đổi về một trạng thái (từ chối / huỷ → huy) thì sổ ghi trường phân biệt
+  (người, lúc) — không suy ra từ trường khác. Đã gây: KHO-2a phiếu duyệt rồi huỷ hiện 'Từ chối: <người duyệt>'." Kèm: "CHECK liệt kê giá trị trong SQLite
+  là khoá vĩnh viễn — danh sách loại dùng chung nhiều đợt đặt trong code" và "bước nâng cấp đã có thể chạy ở CSDL nào đó thì không sửa nội dung — thêm bước
+  mới" (002 sửa trong nhánh chưa gộp — xem CHƯA KIỂM).
+- **BỎ**: E7 giả định món mới trong seed (một lần, đã có K7 "tên bảng / dữ liệu tra trong code"); đột biến nới mẫu `E0b?` (đã có K3 TACH-GL "đột biến đưa ĐÚNG
+  lỗi cũ trở lại" — vi phạm luật có sẵn, không cần luật mới); các lệnh bị người gác chặn (luật người gác đã chặn đúng, làm theo hướng dẫn — không cần thêm).
+- Dọn (11.3): không thấy lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` vừa có phép kiểm làm thay ở việc này.
