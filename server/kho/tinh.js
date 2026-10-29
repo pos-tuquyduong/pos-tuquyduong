@@ -129,12 +129,11 @@ function bangPhieu(dong, nl, ten) {
     const m = new Map();
     for (const d of ds) {
       const id = Number(d.nguyen_lieu_id);
-      const g = m.get(id) || { luong: 0, lo: [], don_gia: d.don_gia };
+      const g = m.get(id) || { luong: 0, don_gia: d.don_gia };
       g.luong += -d.so_luong;
-      if (d.lo_id != null) g.lo.push({ lo_id: Number(d.lo_id), luong: -d.so_luong });
       m.set(id, g);
     }
-    return [...m].map(([id, g]) => ({ ...hien(id, g.luong), lo: g.lo, don_gia: g.don_gia }));
+    return [...m].map(([id, g]) => ({ ...hien(id, g.luong), don_gia: g.don_gia }));
   };
   const xuat = dong.filter((d) => d.loai === 'xuat');
   return {
