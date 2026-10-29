@@ -68,6 +68,18 @@ DOT_BIEN = [
   ('VS-sua-lo-han-gio-sua', [(L, 'lucLam: cu.duyet_luc || luc', 'lucLam: luc', 1)], r'✗ H3 '),
   ('VS-quan-ly-sua-phieu', [(D, "router.post('/phieu/:id/sua', CHU_QUAN,", "router.post('/phieu/:id/sua', QUAN_LY,", 1)], r'✗ (H4|I1) '),
   ('BV-huy-khoa-trang-thai', [(L, "AND trang_thai IN ('cho_duyet', 'da_duyet')`, [lyDo, id]);", '`, [lyDo, id]);', 1)], r'✗ H5b '),
+  # ── vòng sửa 1 (soát lần 1) ──
+  ('VS-lo-tinh-moi-trang-thai', [(L, "WHERE d.lo_id = l.id AND ${DA_DUYET}) AS con", 'WHERE d.lo_id = l.id) AS con', 1)], r'✗ (H3c|H5c|B1) '),
+  ('BV-in-chua-duyet', [(D, "WHERE id = ? AND trang_thai = 'da_duyet'\", [id]);", 'WHERE id = ?", [id]);', 1)], r'✗ H2b '),
+  ('BV-so-thuc-am', [(D, "(soThuc != null && soThuc !== '' && !(Number(soThuc) >= 0))", 'false', 1)], r'✗ F7 '),
+  ('BV-mon-trung', [(D, ' && new Set(mon.map((m) => m.san_pham_id)).size === mon.length', '', 1)], r'✗ C5 '),
+  ('VS-han-le', [(D, '!(Number.isInteger(hanNgay) && hanNgay > 0)', '!(hanNgay > 0)', 1)], r'✗ E0c '),
+  ('BV-ghi-nguoi-huy', [(L, "SET trang_thai = 'huy', ly_do = ?, nguoi_huy = ?, huy_luc = ? WHERE id = ? AND loai = 'PX'\n    AND trang_thai IN",
+    "SET trang_thai = 'huy', ly_do = ? WHERE id = ? AND loai = 'PX' AND ? IS NOT NULL AND ? IS NOT NULL\n    AND trang_thai IN", 1),
+    (L, '[lyDo, nguoi, luc, id]);', '[lyDo, id, nguoi, luc]);', 1)], r'✗ H5c '),
+  ('VS-tu-choi-ghi-nguoi-duyet', [(L, "SET trang_thai = 'huy', ly_do = ?, nguoi_huy = ?, huy_luc = ? WHERE id = ? AND loai = 'PX'\n    AND trang_thai = 'cho_duyet'",
+    "SET trang_thai = 'huy', ly_do = ?, nguoi_duyet = ?, duyet_luc = ? WHERE id = ? AND loai = 'PX'\n    AND trang_thai = 'cho_duyet'", 1)], r'✗ D7 '),
+  ('VS-lech-0-la-khong', [(D, "c === 'lech_cho_phep' ? soKhongAm(b[c])", "c === 'lech_cho_phep' ? (Number(b[c]) > 0 ? Number(b[c]) : null)", 1)], r'✗ A0c '),
   # ── I: quyền ──
   ('BV-duong-la-403', [(D, "router.use((req, res) => res.status(403).json({ error: 'Không có quyền truy cập đường này', code: 'DUONG_LA' }));\n", '', 1)], r'✗ I2 '),
 ]
