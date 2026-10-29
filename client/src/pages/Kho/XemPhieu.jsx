@@ -70,7 +70,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         <h3 className="card-title">{p.so_phieu} · {TRANG_THAI[p.trang_thai]}</h3>
         {p.so_lan_in >= 2 && kho && <div className="kho-in-lai">IN LẠI · LẦN {p.so_lan_in}</div>}
         <div className="kho-nho">
-          Tạo: {p.nguoi_tao} · {gio(p.tao_luc)}{p.nguoi_duyet && ` — ${p.trang_thai === 'huy' && !p.thay_bang_id ? 'Từ chối' : 'Duyệt'}: ${p.nguoi_duyet} · ${gio(p.duyet_luc)}`}
+          Tạo: {p.nguoi_tao} · {gio(p.tao_luc)}{p.nguoi_duyet && ` — Duyệt: ${p.nguoi_duyet} · ${gio(p.duyet_luc)}`}
+          {p.nguoi_huy && ` — ${p.thay_bang_id ? 'Sửa' : p.nguoi_duyet ? 'Huỷ' : 'Từ chối / huỷ'}: ${p.nguoi_huy} · ${gio(p.huy_luc)}`}
         </div>
         {p.ly_do && <div className="kho-nho">Lý do: {p.ly_do}</div>}
         {p.thay_cho_id && <div className="kho-nho kho-khong-in"><button className="kho-lien-ket" onClick={() => moPhieu(p.thay_cho_id)}>Thay cho phiếu cũ</button></div>}
