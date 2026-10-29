@@ -225,7 +225,7 @@ async function main() {
   k('S10 ManKetThuc: nút "In hoá đơn (n tờ) + N tem", chọn 1 / 2 tờ, ô "Trả lại khách"', /In hoá đơn \(/.test(kt) && /\+ \$\{?[^}]*\}? tem|tem/.test(kt) && /Trả lại khách/.test(kt) && /soTo/.test(kt));
   k('S11 màn kết thúc không in khi chưa thanh toán: chỉ dựng từ đơn đã có id (xong)', /don\.order\.id|order\.id/.test(kt) || /xong/.test(moi('BanHangMoi.jsx')));
   const lay = moi('BanHangMoi.jsx');
-  k('S12 lưới khoá tới khi In (bh-khoa khi xong && !daIn); chống bấm đôi dangGuiRef', /xong && !daIn \? ' bh-khoa'/.test(lay) && /dangGuiRef\.current/.test(lay));
+  k('S12 lưới khoá tới khi In (bh-khoa khi xong && !daIn); chống bấm đôi dangGuiRef', /xong && !daIn \? ' bh-khoa'/.test(lay) && /if \(dangGuiRef\.current \|\| !coSo\)/.test(lay));
   k('S13 không công nợ / ghi nợ trong màn mới', Object.values(F).every((s) => !/Ghi nợ|Chưa thu|mang ra bàn/i.test(s)));
   const layout = DOC('client', 'src', 'components', 'Layout.jsx'), app = DOC('client', 'src', 'App.jsx');
   k('S14 Layout.jsx dùng dungMenu (menu một chỗ), không còn nhãn "Đăng ký mới"', /dungMenu/.test(layout) && !/Đăng ký mới/.test(layout));
