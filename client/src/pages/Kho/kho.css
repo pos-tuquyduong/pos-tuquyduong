@@ -1,0 +1,21 @@
+/* KHO-1 — màn Quản lý kho: dạng thẻ, dùng tốt trên điện thoại */
+.kho-tabs { display: flex; gap: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+.kho-tab { padding: 0.45rem 0.9rem; border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; white-space: nowrap; cursor: pointer; font-size: 0.9rem; }
+.kho-tab.on { background: #0f766e; border-color: #0f766e; color: #fff; }
+.kho-hang { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.75rem; }
+.kho-hang .input { flex: 1; min-width: 10rem; }
+.kho-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.6rem; }
+.kho-the { border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.7rem 0.85rem; background: #fff; cursor: pointer; }
+.kho-the.ngung { opacity: 0.55; }
+.kho-the b { display: block; margin-bottom: 0.2rem; }
+.kho-nho { font-size: 0.8rem; color: #64748b; }
+.kho-thieu { color: #b45309; font-weight: 600; }
+.kho-canh { background: #fef3c7; border-radius: 10px; padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+.kho-canh button { background: none; border: 0; color: #92400e; text-decoration: underline; cursor: pointer; font-weight: 600; }
+.kho-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.6rem; }
+.kho-form label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: #475569; }
+.kho-dong { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; }
+.kho-dong select { flex: 2; min-width: 9rem; }
+.kho-dong .input { flex: 1; min-width: 5rem; }
+.kho-loi { color: #b91c1c; margin: 0.5rem 0; }
+.kho-ok { color: #047857; margin: 0.5rem 0; }

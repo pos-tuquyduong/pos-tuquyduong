@@ -16,6 +16,7 @@ const { createClient } = require('@libsql/client');
 const { cauHinhTurso, diaChiSX } = require('./ketNoiKho'); // POS-KHOTHU-v2
 
 let db = null;
+let nangCapHong = null;   // KHO-1: '<NNN_ten>: <lỗi>' khi một bước nâng cấp hỏng — đường kho trả 503, quầy vẫn mở
 
 /**
  * Khởi tạo database - Kết nối Turso
@@ -33,6 +34,9 @@ async function initDatabase() {
   // Tạo bảng và seed data
   await createTables();
   await seedDefaultData();
+  // KHO-1: nâng cấp dữ liệu đánh số (server/nang_cap/) — sau phần tạo bảng / seed cũ
+  nangCapHong = (await require('./nang_cap/chay').chayNangCap({ beginTransaction, query })).hong;
+  if (nangCapHong) console.error('❌ NÂNG CẤP DỮ LIỆU HỎNG — ' + nangCapHong);
 
   return db;
 }
@@ -1106,6 +1110,10 @@ async function seedDefaultData() {
   }
   // P3: cờ "chuyển khoản / trừ tài khoản chỉ qua phiên" — mặc định 0 (đường cũ như cũ), chủ quán bật khi BH-1 lên quầy.
   await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES ('thanh_toan_payos_bat_buoc', '0')`);
+  // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — mặc định '1' (cộng, như cách đang chạy). Quà đổi điểm luôn dùng chung.
+  for (const khoa of ['uudai_chung_hang_percent', 'uudai_chung_hang_fixed', 'uudai_chung_hang_item']) {
+    await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, '1')`, [khoa]);
+  }
 
   // Tạo sản phẩm mẫu
   const productsExist = await query("SELECT COUNT(*) as count FROM pos_products");
@@ -1609,5 +1617,6 @@ module.exports = {
   beginTransaction,
   saveDatabase,
   laLoiBan,
-  CHO_BEGIN_MS
+  CHO_BEGIN_MS,
+  layNangCapHong: () => nangCapHong
 };

@@ -107,6 +107,11 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if ('invoice_so_to' in settings && !['1', '2'].includes(String(settings.invoice_so_to))) {
       return res.status(400).json({ success: false, error: 'Số tờ hoá đơn chỉ là 1 hoặc 2', code: 'SO_TO_KHONG_HOP_LE' });
     }
+    // UUDAI-1: "dùng chung với giá hạng" theo loại mã chỉ nhận '0' | '1' — kiểm HẾT trước khi ghi khoá nào.
+    const khoaSai = Object.entries(settings).find(([key, value]) => key.startsWith('uudai_chung_hang_') && !['0', '1'].includes(String(value)));
+    if (khoaSai) {
+      return res.status(400).json({ success: false, error: `Cài đặt ${khoaSai[0]} chỉ nhận 0 hoặc 1`, code: 'CAI_DAT_KHONG_HOP_LE' });
+    }
 
     let updated = 0;
     const timestamp = new Date().toISOString();
