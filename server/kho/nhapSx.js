@@ -6,7 +6,7 @@
 const os = require('os');
 const path = require('path');
 const { createClient } = require('@libsql/client');
-const { chuanHoaTen, chuanTenHienThi } = require('./tinh');
+const { chuanHoaTen, chuanTenHienThi, soNgayNguyen } = require('./tinh');
 
 // ── Thông tin riêng của quán (chủ quán chốt 28.10) — đóng gói cho quán khác thì thay khối này ──
 const TEN_CHINH_THUC = [   // [tên POS, nhóm, các tên SX gộp vào]
@@ -54,7 +54,7 @@ async function docFileSx(duongFile) {
       ['tea', 'v_tea_products', 'tea_products', 'v_tea_ingredients', 'tea_ingredients', 'tea_product_id']]) {
       const dongCua = nhomDong(await doc(`SELECT * FROM ${nguon(vDong, bDong)}`), cot);
       for (const r of (await doc(`SELECT * FROM ${nguon(vMon, bMon)}`)).filter(conDung)) {
-        mon.push({ loai, khoa_id: Number(r.id), code: r.code, ten: r.name, dong: dongCua(r.id), han_ngay: duong(r.days_use) });
+        mon.push({ loai, khoa_id: Number(r.id), code: r.code, ten: r.name, dong: dongCua(r.id), han_ngay: soNgayNguyen(r.days_use) });
       }
     }
     let nhom_sp = [{ code: 'juice', name: 'Nước ép' }, { code: 'tea', name: 'Trà' }];
@@ -65,7 +65,7 @@ async function docFileSx(duongFile) {
       for (const r of await doc(`SELECT p.*, t.code AS loai FROM sx_products p JOIN product_types t ON t.id = p.type_id
         WHERE p.is_active = 1 AND t.is_active = 1 AND t.code NOT IN ('juice', 'tea')`)) {
         mon.push({ loai: r.loai, khoa_id: r.legacy_id == null ? null : Number(r.legacy_id), code: r.code, ten: r.name, dong: dongCua(r.id),
-          han_ngay: duong(r.days_use) });
+          han_ngay: soNgayNguyen(r.days_use) });
       }
     } else {
       canh_bao.push({ loai: 'THIEU_VIEW', loi: 'File không có bảng nhóm sản phẩm (Đợt D) — chỉ nhập nước ép và trà' });
