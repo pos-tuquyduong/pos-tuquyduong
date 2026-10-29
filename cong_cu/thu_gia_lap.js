@@ -52,7 +52,7 @@ process.on('exit', () => { try { fs.rmSync(TAM, { recursive: true, force: true }
 // Con tự thử của ca DON: in TAM rồi `--con-het` thoát 0 / `--con-nem` ném. Cờ argv — biến môi trường thì lọt từ shell / cổng (soát vòng 3).
 const CHE_CON = { '--con-het': 'het', '--con-nem': 'nem' }[process.argv[2]];
 if (CHE_CON) { console.log('TAM ' + TAM); if (CHE_CON === 'nem') throw new Error('nem thu'); process.exit(0); }
-const SO_KB = 32;   // P26c: + KB30–KB32
+const SO_KB = 33;   // P26c: + KB30–KB32 · UUDAI-1: + KB33
 const DONG_DAT = `Giả lập: ${SO_KB} kịch bản · 18 bất biến · ĐẠT`;
 
 let dat = 0;

@@ -690,6 +690,26 @@ const KICH_BAN = [
     c.mong('đơn khách lẻ có mã bill chưa dùng → chủ xoá → 200, mã bill bị xoá theo', !!bill.ma && xb.status === 200
       && await c.so('SELECT COUNT(*) FROM pos_signup_codes WHERE code = ?', [bill.ma]) === 0, `${bill.ma} · ${c.ma(xb)}`);
   } },
+  { ten: 'UUDAI-1: khách hạng + mã, tắt "dùng chung với giá hạng" → máy chọn hạng, mã KHÔNG tiêu (I13 qua nhánh chọn hạng)', chay: async (c) => {
+    const S = sdtMoi();
+    const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 AND discount_percent > 0 ORDER BY sort_order, id LIMIT 1');
+    await c.taoDon('KB33 mua thẻ', { customer_phone: S, customer_name: 'Khách KB33', items: [], membership_buy: { tier_id: hang.id },
+      payment_method: 'cash', cash_amount: Number(hang.card_price) });
+    await c.db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
+      VALUES ('KB33_1LUOT', 'fixed', 1, 0, 0, 1, 0, 1)`);
+    const khoa = (v) => ({ settings: { uudai_chung_hang_percent: v, uudai_chung_hang_fixed: v, uudai_chung_hang_item: v } });
+    const tat = await c.goi('chu', 'PUT', '/settings', khoa('0'));
+    try {
+      const than = { customer_phone: S, customer_name: 'Khách KB33', items: [c.mon(0, 2)], discount_code: 'KB33_1LUOT' };
+      const t = await c.goi('chu', 'POST', '/orders/tinh-thu', than);
+      const d = await c.taoDon('KB33 chọn hạng', { ...than, payment_method: 'cash', cash_amount: t.total });
+      const dung = await c.so("SELECT used_count FROM pos_discount_codes WHERE code = 'KB33_1LUOT'");
+      c.mong('mã 1đ < giá hạng → máy chọn hạng: đơn không ghi mã, có giảm hạng, mã không tiêu', tat.status === 200 && t.cach === 'hang'
+        && !d.discount_code && Number(d.tier_discount) > 0 && dung === 0, `${c.ma(tat)} · ${t.cach} · mã ${d.discount_code} · hạng ${d.tier_discount} · dùng ${dung}`);
+    } finally {
+      await c.goi('chu', 'PUT', '/settings', khoa('1'));
+    }
+  } },
 ];
 
 // TACH-GL — chia lượt: mỗi lượt một tiến trình, các lượt chạy CÙNG LÚC (chay.js); mỗi KB đúng một lượt (chay.js kiểm lúc chạy),
@@ -697,6 +717,7 @@ const KICH_BAN = [
 // liền nhau và trước 27, {4, 8} (dòng debt_payment của KH.quen — M3 của thu_gia_lap chỉ bắt ở KB8 khi đã có). KB mới: vào lượt
 // ngắn nhất trừ khi dựa vào KB khác; đổi LUOT thì chạy lại thu_gia_lap (E2) — thử trước bằng viec/TACH-GL/do_chia_e2.js. Bảng + số đo:
 // viec/TACH-GL/ke_hoach.md mục 2–3.
-const LUOT = [[2, 15, 17, 28, 30, 31], [3, 10, 16, 18, 21, 32], [1, 4, 5, 6, 7, 8, 14, 23, 24, 25, 26, 27], [9, 11, 12, 13, 19, 20, 22, 29]];
+// UUDAI-1: KB33 đổi 3 khoá cài đặt "dùng chung với giá hạng" của kho lượt 1 rồi trả về '1' ở finally — KB thêm vào lượt 1 sau này chạy sau nó.
+const LUOT = [[2, 15, 17, 28, 30, 31, 33], [3, 10, 16, 18, 21, 32], [1, 4, 5, 6, 7, 8, 14, 23, 24, 25, 26, 27], [9, 11, 12, 13, 19, 20, 22, 29]];
 
 module.exports = { KICH_BAN, dungDuLieu, KH, LUOT };
