@@ -11,7 +11,16 @@
      nhan-diem gọi hàm quầy trong server/routes/signup-codes.js — catch trả 500 { error: err.message } KHÔNG có code; lời MA_HET_HAN
      viết cứng "24 giờ". Cài đặt lưu ở pos_settings qua server/routes/settings.js. -->
 
-**Chờ duyệt kế hoạch:** viết `viec/KH-API-2/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+**Đã duyệt (chủ quán 29.10, sau khi chat soát `ke_hoach.md` đầu nhánh `9da2e9e`):** kế hoạch duyệt nguyên (cả phần soát của agent phụ); bài
+thử ~500 dòng chấp nhận (giữ phép quét mã lỗi). Máy làm tiếp từ bước 4 (`/lam-viec KH-API-2 tiep`) tới hết, không dừng hỏi lại các điểm này:
+1. Q1 = **(a)**: hạn mã ưu đãi khách mới — cả phép SO lẫn lời báo đều lấy số giờ từ cài đặt hạn mã (bill hứa bao nhiêu giờ thì máy cho đúng
+   bấy nhiêu). Đây là sửa lỗi có chủ quán duyệt: được đổi hành vi đường quầy ĐÚNG chỗ này (thay câu "Đường quầy giữ nguyên" của mục G cho
+   riêng điểm này); thêm ca: cài 48 giờ → giờ thứ 30 nhận được, giờ thứ 49 bị từ chối, lời báo ghi "48 giờ".
+2. Q2 = đồng ý: `so_du_vi` = số dư KHẢ DỤNG của ví riêng khách (số dư − tiền đang giữ cho phiên thanh toán chưa xong), đúng số quầy hiện;
+   KHÔNG cộng ví mẹ / ví gia đình (làm sau).
+3. Q3 = **thêm trường riêng**: `dang_mo` = quán đang mở THẬT theo giờ hoạt động; thêm `nhan_don` = còn nhận đơn App (đã trừ "ngừng nhận đơn
+   trước giờ đóng N phút"); `hom_nay.dong` = giờ đóng thật. Hàm thuần trả cả hai; KH-MUA-1 sau này chặn theo `nhan_don`. Ghi vào hợp đồng v2.
+4. Phát hiện `tier_round_to` không dùng, giờ UTC ở PUT /settings, 3 cách xét giờ vàng, 2 cách đọc giờ hạn mã: KHÔNG sửa ở việc này (chat ghi sổ).
 
 ## Mục tiêu
 App KH mới (đợt 1, trước khai trương 07.11) đọc được đủ số thật từ POS: hạng + số dư ví của khách, danh sách hạng, giờ vàng hôm nay, giá
