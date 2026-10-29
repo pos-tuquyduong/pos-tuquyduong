@@ -70,6 +70,9 @@ function chonDinhMuc(dong, thu) {
 
 const canLam = (dinhMuc, dangCo) => Math.max(0, dinhMuc - dangCo);
 
+/** Số ngày hạn dùng: số NGUYÊN > 0, còn lại null. MỘT vị từ cho PUT /san-pham, nhập SX và hanLo (cộng ngày theo lịch cắt phần lẻ). */
+const soNgayNguyen = (x) => (x !== '' && x != null && Number.isInteger(Number(x)) && Number(x) > 0 ? Number(x) : null);
+
 /** mon = [{ san_pham_id, so_phan }] → { theo_mon: [{ san_pham_id, so_phan, nguyen_lieu }], thieu_cong_thuc: [id] }. MỘT hàm cho tạo và sửa phiếu. */
 function lapPhieuXuat(mon, bang) {
   const thieu_cong_thuc = mon.filter((m) => !(bang[m.san_pham_id] || []).length).map((m) => m.san_pham_id);
@@ -160,4 +163,4 @@ function laTrungKhoa(loi) {
 }
 
 module.exports = { KIEU_SAN_PHAM, SAP_HET_HAN_NGAY, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa, thuCuaNgay, chonDinhMuc,
-  canLam, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia };
+  canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia };
