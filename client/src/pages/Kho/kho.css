@@ -19,3 +19,15 @@
 .kho-dong .input { flex: 1; min-width: 5rem; }
 .kho-loi { color: #b91c1c; margin: 0.5rem 0; }
 .kho-ok { color: #047857; margin: 0.5rem 0; }
+/* KHO-2a — pha chế, phiếu, tồn */
+.kho-huy-hieu { display: inline-block; margin-left: 0.35rem; min-width: 1.3rem; padding: 0 0.35rem; border-radius: 999px; background: #dc2626; color: #fff; font-size: 0.75rem; font-weight: 700; }
+.kho-chon { border-color: #0f766e; box-shadow: 0 0 0 1px #0f766e inset; }
+.kho-nut-lon { width: 100%; margin-top: 1rem; padding: 0.9rem; font-size: 1.05rem; }
+.kho-muc { margin: 0.9rem 0 0.4rem; font-weight: 700; }
+.kho-mon { border-top: 1px solid #e2e8f0; padding-top: 0.4rem; margin-bottom: 0.5rem; }
+.kho-am { color: #b91c1c; }
+.kho-dam { font-weight: 700; }
+.kho-vang, .kho-lech { background: #fef3c7; }
+.kho-lien-ket { background: none; border: 0; color: #0f766e; text-decoration: underline; cursor: pointer; padding: 0; }
+.kho-dinh-muc { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: 0.35rem; margin: 0.4rem 0; }
+.kho-dinh-muc label { display: flex; flex-direction: column; gap: 0.15rem; }
