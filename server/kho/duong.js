@@ -107,7 +107,7 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   const hanVao = req.body.han_ngay;
   const hanNgay = 'han_ngay' in req.body ? tinh.soNgayNguyen(hanVao) : undefined;
   if (hanNgay === null && hanVao !== null && hanVao !== '') {
-    return res.status(400).json({ error: 'Hạn dùng phải là số ngày nguyên lớn hơn 0', code: 'HAN_SAI' });
+    return res.status(400).json({ error: `Hạn dùng phải là số ngày nguyên từ 1 tới ${tinh.HAN_NGAY_TOI_DA}`, code: 'HAN_SAI' });
   }
   const dong = Array.isArray(dongVao) ? dongVao.map((d) => ({ nguyen_lieu_id: Number(d.nguyen_lieu_id) || null,
     thanh_phan_id: Number(d.thanh_phan_id) || null, luong: Number(d.luong) })) : null;
