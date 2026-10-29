@@ -16,6 +16,9 @@
  * - inLai: true → in lại từ màn Đơn hàng (bill + tem + phiếu đều mang dòng "IN LẠI")
  * - nhomTheoMa: bảng mã món → nhóm nếu nơi gọi đã có (Sales); không có thì tự tải
  *
+ * HD-1: bill vẽ từ GET /api/pos/hoa-don/:id (một cửa dữ liệu, cùng số lúc mua và lúc in lại) — 2 tờ GIAO KHÁCH / LƯU QUẦY
+ * (cài đặt `invoice_so_to`). Cửa lỗi / đơn không có id → rơi về bố cục cũ (InvoicePreview), việc in không bị chặn.
+ *
  * P16: ngoài bill còn tem cốc + phiếu pha chế; loại nào in, mấy bản: cài đặt `invoice_print_set`
  * (utils/inPhieu.js). Bấm In → lần lượt từng loại, mỗi loại một hộp in.
  *
@@ -26,9 +29,11 @@
 
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { X, Printer } from 'lucide-react';
-import InvoicePreview from './InvoicePreview';
+import InvoicePreview, { HoaDonTo } from './InvoicePreview';
 import { VungTrang, useNhomTheoMa, taiLieuIn, inQuaIframe } from './InPhieu';
 import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn } from '../utils/inPhieu';
+import { danhSachTo, sanSangIn } from '../utils/hoaDon';
+import { api } from '../utils/api';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAPER SIZE CONFIG - Chuẩn kích thước thực tế
@@ -104,6 +109,8 @@ export default function InvoicePrint({
   const [invoiceNumber, setInvoiceNumber] = useState(order.invoice_number || '');
   const [chon, setChon] = useState(() => Object.fromEntries(LOAI_IN.map((l) => [l, boIn[l].bat])));
   const [xem, setXem] = useState('bill');
+  const [hd, setHd] = useState(null);          // HD-1: dữ liệu hoá đơn từ máy chủ
+  const [hdLoi, setHdLoi] = useState(false);
   const printRef = useRef(null);
   const vungRef = useRef({});
   const daTuMo = useRef(false);
@@ -113,6 +120,17 @@ export default function InvoicePrint({
     [order, settings, nhomTheoMa, inLai],
   );
   const viec = tatCa.filter((v) => chon[v.loai]);
+
+  useEffect(() => {
+    if (!order?.id) return undefined;
+    let huy = false;
+    api.get(`/hoa-don/${order.id}`)
+      .then((r) => { if (!huy) setHd(r.hoa_don); })
+      .catch((e) => { console.warn('Không tải được dữ liệu hoá đơn (dùng bố cục cũ):', e); if (!huy) setHdLoi(true); });
+    return () => { huy = true; };
+  }, [order?.id]);
+  const cacTo = useMemo(() => (hd ? danhSachTo(hd, settings, { inLai }) : null), [hd, settings, inLai]);
+  const sanSangDeIn = sanSangIn({ sanSang, coId: !!order?.id, hd, hdLoi });   // nút In và tự mở in dùng chung: in sớm sẽ ra bố cục cũ
 
   // Get paper config (for print sizing)
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
@@ -258,7 +276,7 @@ export default function InvoicePrint({
       }
 
       // Dựng tài liệu in (iframe ẩn: không dính chặn popup khi in nhiều loại liên tiếp)
-      const banner = viecBill.inLai
+      const banner = viecBill.inLai && !cacTo   // bố cục mới tự mang dòng "IN LẠI · LẦN n"
         ? '<div style="text-align:center;font-weight:bold;border:2px solid #000;padding:2px;margin-bottom:6px">IN LẠI</div>' : '';
       const thanBill = viecBill.trang.map((_, i) =>
         `<div${i < viecBill.trang.length - 1 ? ' style="page-break-after:always"' : ''}>${banner}${printRef.current.innerHTML}</div>`).join('');
@@ -366,7 +384,7 @@ export default function InvoicePrint({
 
   // "Tự mở in sau thanh toán": đúng một lần, sau khi tem/phiếu đã vẽ (cần bảng nhóm món) — chỉ ở màn thanh toán, không phải In lại
   useEffect(() => {
-    if (!successInfo || inLai || !boIn.tu_mo || !sanSang || daTuMo.current || !viec.length) return;
+    if (!successInfo || inLai || !boIn.tu_mo || !sanSangDeIn || daTuMo.current || !viec.length) return;
     daTuMo.current = true;
     setTimeout(handlePrint, 0);   // chờ React vẽ xong vùng tem / phiếu
   });
@@ -504,12 +522,18 @@ export default function InvoicePrint({
         }}>
           <div style={{ display: xem === 'bill' ? 'block' : 'none' }}>
             <div ref={printRef}>
-              <InvoicePreview
-                config={invoiceConfig}
-                size={paperSize}
-                logo={settings.store_logo || ''}
-                orderData={orderData}
-              />
+              {cacTo ? cacTo.map((to, i) => (
+                <div key={to.lien} style={i < cacTo.length - 1 ? { pageBreakAfter: 'always' } : undefined}>
+                  <HoaDonTo to={to} size={paperSize} logo={settings.store_logo || ''} />
+                </div>
+              )) : (
+                <InvoicePreview
+                  config={invoiceConfig}
+                  size={paperSize}
+                  logo={settings.store_logo || ''}
+                  orderData={orderData}
+                />
+              )}
             </div>
           </div>
           {tatCa.filter((v) => v.loai !== 'bill').map((v) => (
@@ -546,7 +570,7 @@ export default function InvoicePrint({
           </button>
           <button
             onClick={handlePrint}
-            disabled={printing || !sanSang || !viec.length}   // chờ bảng nhóm món: in sớm sẽ bỏ qua nhóm đã tắt
+            disabled={printing || !sanSangDeIn || !viec.length}   // chờ bảng nhóm món: in sớm sẽ bỏ qua nhóm đã tắt
             style={{
               flex: 2,
               padding: '0.875rem',

@@ -26,6 +26,10 @@
 - 28.10 · Giao diện App KH đặt trên Cloudflare (miễn phí, không tính dung lượng); máy App KH sau khai trương đặt trên Render.
 - 28.10 · App KH cũ trên Replit (`tuquyduong/TuQuyDuong`) bỏ, dựng mới hoàn toàn.
 
+- 29.10 · Số dư ví hiện trên App = số khách **dùng được ngay** của ví riêng (đã trừ tiền đang tạm giữ khi thanh toán dở), chưa cộng ví gia đình.
+- 29.10 · Giờ hoạt động có HAI thông tin: "quán đang mở" (giờ mở thật) và "còn nhận đơn App" (đã trừ ngừng nhận trước giờ đóng); lúc giữa hai mốc
+  App báo "Quán mở tới … · đã ngừng nhận đơn qua App".
+
 ## Giao hàng
 - 27.10 · Giao hàng dùng Ahamove (không GHN).
 
@@ -51,6 +55,7 @@
 
 - 29.10 · **Không có bill chưa trả tiền:** khách luôn trả đủ tại quầy rồi mới in bill. Đơn còn nợ chỉ là dữ liệu CŨ (trước khi bỏ ghi nợ):
   in lại thì in đúng như dữ liệu, KHÔNG in mã nhận điểm / ô ưu đãi / QR mang mã. Máy không hỏi lại về đơn chưa trả.
+- 29.10 · Hạn mã nhận điểm / mã ưu đãi khách mới: máy cho đúng số giờ đã cài (bill hứa bao nhiêu giờ thì cho bấy nhiêu), cả quầy lẫn App.
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
@@ -65,6 +70,10 @@
   không nối được)
 - 28.10 · Giá nhập nguyên liệu với nhân viên: TẠM ẨN (chủ quán đang cân nhắc).
 - 28.10 · Nâng cấp dữ liệu: bước đánh số, chỉ thêm, chạy trọn gói, không bao giờ chạy đôi; bước lỗi thì quầy vẫn bán, chỉ màn Kho báo lỗi.
+- 29.10 · Pha chế (KHO-2a): chỉ cài "% lệch cho phép" theo nhóm món (lệch quá → cảnh báo vàng, không chặn); "sắp hết hạn" = còn ≤ 1 ngày;
+  công tắc "nhân viên xuất kho cần duyệt" chỉ chủ quán bật / tắt; lô nguyên liệu quá hạn KHÔNG trừ khi xuất (xử lý bằng phiếu phát sinh);
+  "cho ngày mai" chỉ tính thành phẩm còn hạn lúc 00:00 ngày mai; qua ngày đã tự chốt thì không điền kết quả nữa (sai → chủ quán sửa phiếu);
+  huy hiệu phiếu chờ duyệt tạm chỉ trong màn Kho.
 
 ## Bảo vệ dữ liệu (POS)
 - 28.10 · Sổ kho không chép đè: khôi phục Excel bỏ qua bảng kho khi kho đang có dữ liệu, chỉ khôi phục kho khi máy trống. Sai số kho sửa

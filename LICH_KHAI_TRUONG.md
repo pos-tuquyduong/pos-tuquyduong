@@ -26,8 +26,9 @@
 | KHO-2b | Đặt hàng (theo công thức / từng nguyên liệu, duyệt theo hạn mức) + nhận hàng (theo đơn, mua lẻ) + xử lý phát sinh | [T] · Opus | Opus 2 |
 | P3b | Giữ / đổi điểm lấy quà ngay trong phiên thanh toán + PIN | [T] · Opus | Opus 2 |
 | GIAO-1 | Giao Ahamove ở quầy: tính phí → thu đủ → gọi xe; phí là dòng riêng, không giảm, không áp mã, không tích điểm | [T] · Opus | Opus 2 |
-| HD-1 | Hoá đơn mới 2 tờ + QR đăng ký App KH + mã nhận điểm; tuỳ chỉnh chữ hoá đơn & tem | [Th] · Sonnet | Sonnet |
-| BH-2 | Màn Bán hàng mới đợt 2 (payOS + PIN + giữ tiền, giá hạng, hoá đơn HD-1) + COMBO-1b + menu 6 mục (chỉ dời đường dẫn) | [Th] · Sonnet | Sonnet |
+| ~~HD-1~~ ✅ 29.10 | Hoá đơn mới 2 tờ + QR đăng ký App KH + mã nhận điểm; tuỳ chỉnh chữ hoá đơn & tem | [Th] · Sonnet | Sonnet |
+| BH-2 | Màn Bán hàng mới đợt 2 (QR payOS + PIN + giữ tiền, giá hạng + ưu đãi máy chủ tính, màn kết thúc in hoá đơn HD-1) + menu 6 mục (chỉ dời đường dẫn) | [Th] · Sonnet | Sonnet |
+| COMBO-1b | Nhóm "Combo" trên màn Bán hàng mới (thẻ giá gốc gạch + giá combo, dòng combo trên giỏ / hoá đơn / tem) — SAU COMBO-1a và BH-2 | [Th] · Sonnet | Sonnet |
 | — | Chủ quán: nhập bản sao lưu SX mới · kiểm kê đầu kỳ (tồn POS bắt đầu từ đây) · tắt SX · chạy thử toàn quán | — | — |
 
 TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán hàng mới, SAU khi BH-2 gộp.
@@ -36,8 +37,8 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 | Ngày | Opus làn 1 | Opus làn 2 | Sonnet (POS) |
 |---|---|---|---|
 | T4 28.10 | UUDAI-1 làm + soát ✓ | KHO-1 làm + soát ✓ | HD-1 ✓ (3 vòng sửa) |
-| T5 29.10 | UUDAI-1 gộp ✓ → KH-API-2 kế hoạch → làm | KHO-1 gộp ✓ → KHO-2a kế hoạch → làm | HD-1 vòng sửa 4 |
-| T6 30.10 | KH-API-2 gộp → COMBO-1a | KHO-2a làm + soát | HD-1 gộp → BH-2 |
+| T5 29.10 | UUDAI-1 gộp ✓ → KH-API-2 kế hoạch ✓ → làm | KHO-1 gộp ✓ → KHO-2a kế hoạch ✓ → làm | HD-1 vòng sửa 4 ✓ gộp ✓ → BH-2 |
+| T6 30.10 | KH-API-2 gộp → COMBO-1a | KHO-2a làm + soát | BH-2 |
 | T7 31.10 | COMBO-1a gộp → TOPPING-1 kế hoạch → làm | KHO-2a gộp → KHO-2b | BH-2 · **tối: xem tiến độ, quyết giữ hay lùi ngày** |
 | CN 01.11 | TOPPING-1 làm + gộp | KHO-2b làm | BH-2 |
 | T2 02.11 | KHO-3 kế hoạch → làm | KHO-2b gộp → P3b | BH-2 gộp |

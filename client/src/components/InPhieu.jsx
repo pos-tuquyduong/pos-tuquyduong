@@ -35,15 +35,21 @@ export function useNhomTheoMa(bietSan) {
 
 // ─── Trang tem / phiếu ───────────────────────────────────────────────────
 const chuKieu = { fontFamily: 'Arial, sans-serif', color: '#000', boxSizing: 'border-box', overflow: 'hidden', background: '#fff' };
-const nhanInLai = <b style={{ border: '1px solid #000', padding: '0 1mm', marginLeft: '1mm' }}>IN LẠI</b>;
+const nhanInLai = (chu = 'IN LẠI') => <b style={{ border: '1px solid #000', padding: '0 1mm', marginLeft: '1mm' }}>{chu}</b>;
 
 function Tem({ t }) {
+  // HD-1: số bill TO ở đầu tem; dòng đầu / cuối là chữ chủ quán tự đặt (trống thì không có)
   return (
-    <div className="trang" style={{ ...chuKieu, width: '40mm', height: '29.5mm', padding: '1.5mm', fontSize: '8pt', lineHeight: 1.2, pageBreakAfter: 'always' }}>
-      <div style={{ fontSize: '10pt', fontWeight: 'bold' }}>{t.ten} <span style={{ fontWeight: 'normal', fontSize: '8pt' }}>{t.stt}</span></div>
+    <div className="trang" style={{ ...chuKieu, width: '40mm', height: '29.5mm', padding: '1mm 1.5mm', fontSize: '7.5pt', lineHeight: 1.15, pageBreakAfter: 'always' }}>
+      {t.dau && <div style={{ fontSize: '6.5pt', textAlign: 'center' }}>{t.dau}</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontSize: '15pt', fontWeight: 'bold' }}>#{t.ma}</span>
+        <span style={{ fontSize: '10pt', fontWeight: 'bold' }}>{t.stt}</span>
+      </div>
+      <div style={{ fontSize: '9.5pt', fontWeight: 'bold' }}>{t.ten}</div>
       {t.ghiChu && <div style={{ fontWeight: 'bold', whiteSpace: 'pre-line' }}>{t.ghiChu}</div>}
-      {t.khach && <div>{t.khach}</div>}
-      <div>#{t.ma} · {t.gio}{t.inLai && nhanInLai}</div>
+      <div>{[t.khach, t.gio].filter(Boolean).join(' · ')}{t.inLai && nhanInLai(t.chuInLai)}</div>
+      {t.chan && <div style={{ fontSize: '6.5pt', textAlign: 'center' }}>{t.chan}</div>}
     </div>
   );
 }
@@ -51,7 +57,7 @@ function Tem({ t }) {
 function PhieuPhaChe({ p, kho }) {
   return (
     <div className="trang" style={{ ...chuKieu, width: kho === '58mm' ? '52mm' : '72mm', padding: '2mm', fontSize: '11pt', pageBreakAfter: 'always' }}>
-      <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13pt' }}>PHIẾU PHA CHẾ{p.inLai && nhanInLai}</div>
+      <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13pt' }}>PHIẾU PHA CHẾ{p.inLai && nhanInLai()}</div>
       <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '1.5mm', marginBottom: '1.5mm' }}>{p.ma} · {p.gio}</div>
       {p.dong.map((d, i) => (
         <div key={i} style={{ marginBottom: '1mm' }}>
