@@ -68,7 +68,7 @@ Code gốc = cây ab51a8a (chưa có giaHang.js, gioHoatDong.js, 4 cửa mới, 
   thu_KHAPI2.js     84 đạt · 0 hỏng (A2b chạy — nạp được BanHang/tinh.js)
   thu_HOPDONG_KH.js 48 đạt · 0 hỏng
 
-SỐ CA cong_cu/thu_KHAPI2.js: 95
+SỐ CA cong_cu/thu_KHAPI2.js: 98
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 49
 
 ════ node cong_cu/thu_KH1.js — bài CŨ sửa 2 ca (Q4, commit 0091a2c) — trên code GỐC (server/ ở ab51a8a) ════
@@ -105,3 +105,11 @@ Trên code GỐC (server/ + hợp đồng ở ab51a8a, bài ở 7b9b819):
   thu_KHAPI2.js     10 đạt · 47 hỏng (thêm ✗ D6, D7 ×2, E6, G2 ngưỡng, J5 câu báo so với lần ghi đầu; F9/F12 không chạy — module chưa có)
   thu_HOPDONG_KH.js 40 đạt · 3 hỏng (cùng 3 ca đỏ như lần ghi đầu)
 Trên code ĐÃ VÁ (ac6178d): thu_KHAPI2.js 95 đạt · 0 hỏng · thu_HOPDONG_KH.js 49 đạt · 0 hỏng (dòng số ca ở trên đã sửa theo).
+
+════ VÒNG SỬA 2 (soát vòng 2 lỗi 1, 2 + nghi ngờ hom_nay.dong) — bài thêm ca (4fa1869), chạy lại cả hai phía (A16) ════
+Trên code TRƯỚC vòng sửa 2 (63cabce code + bài 4fa1869):
+  ✗ F12 ca nối: hom_nay.dong = giờ đóng của cả chuỗi (cùng hàm với nhan_don) — hom_nay={"mo":"2026-11-02T07:00:00","dong":"2026-11-03T00:00:00"}
+  ✗ F13 ca CHỒNG nhau (Thứ Hai 18:00–02:00, Thứ Ba 01:00–10:00), N 30: 01:40 vẫn nhận đơn — nhan_don=false
+  96 đạt · 2 hỏng   (F13 09:30 xanh — khoá biên; thu_HOPDONG_KH 49 · 0 — ca router.use siết khoá bằng đột biến VS-HD-ROUTE-USE-ROUTER-CON)
+Trên code GỐC (ab51a8a, bài 4fa1869): thu_KHAPI2.js 10 đạt · 47 hỏng (F12/F13 không chạy — module chưa có) · thu_HOPDONG_KH.js 40 đạt · 3 hỏng
+Trên code ĐÃ VÁ (59397b4): thu_KHAPI2.js 98 · 0 · thu_HOPDONG_KH.js 49 · 0 (dòng số ca ở trên đã sửa theo).

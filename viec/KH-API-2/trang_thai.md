@@ -109,7 +109,7 @@ Bài sửa ĐỎ trên gốc (gốc trả 4 / 7 khoá) → theo A11 KHÔNG cần
   `DON_KHONG_HOP_LE`, `KHONG_THEM_DIEM`, `MA_KHONG_GAN_DON`, `TICH_DIEM_DANG_TAT`, `MA_TRUNG` (dòng 51–94 `kiemDonCuaMa` / `baoChiemHong` / `LOI_BILL_SDT_KHAC`, 156–252 `nhanDiemMaBill`, 404 `nhanMaUuDai`). Thêm vào v2 (H).
 - Ba biểu thức "đang giờ vàng" khác nhau: `orders.js:512`, `Sales.jsx:147` (không xét `product_keys`), `/gio-vang` (vòng sửa 1 đã khớp
   orders.js: có % VÀ có món) — Sales.jsx trong Cấm.
-- Số giờ hạn mã trên bill `Number(c.nhandiem_han_gio) || 24` (`orders.js:1252`) khác `docCauHinhNhanDiem` (`signup-codes.js:119`) với giá trị
+- Số giờ hạn mã trên bill `Number(c.nhandiem_han_gio) || 24` (`orders.js:1252`) khác `docCauHinhNhanDiem` (đọc `hanGio` ở `signup-codes.js:126`) với giá trị
   âm (chỉ dữ liệu nhập tay).
 - (vòng sửa 1) Câu báo ngoài giờ khi KHÔNG tìm được giờ mở lại (nghỉ cả tuần / nghỉ quá 400 ngày): máy điền `(chưa có lịch)` vào
   `{gio_mo_lai}` (`server/utils/gioHoatDong.js` hằng `CHUA_CO_LICH`) thay vì để câu cụt — chữ này chủ quán đổi được ở hằng số nếu muốn câu khác.
@@ -239,3 +239,18 @@ BÀI HỌC: KHOÁ — ca ca chồng nhau (Thứ Hai 18:00→02:00, Thứ Ba 01:0
 không đường → ĐỎ kèm đột biến. NGUYÊN TẮC (K4) — vá "nối liền" phủ mọi quan hệ hai ca (bằng / chồng / hở); một khái niệm ("giờ đóng thật")
 một hàm cho mọi trường trả ra (nhan_don và hom_nay.dong). NGUYÊN TẮC (K3) — ca "dùng hàm X" kiểm bằng hành vi ở giờ cố định, không dò chữ.
 ```
+
+## Vòng sửa 2 (theo soát vòng 2 — mọi lỗi NHẸ)
+Ca thử thêm TRƯỚC (`4fa1869`) → 2 ca đỏ trên code chưa sửa (ghi `bang_chung_do.txt`), rồi sửa:
+| Lỗi soát | Sửa | Ca | Đột biến |
+|---|---|---|---|
+| 1 ca chồng nhau bị cắt | `dongThat` nối khi ca sau mở lúc / trước giờ đóng VÀ đóng muộn hơn (bằng · chồng); hở thì dừng | F13 ×2 | VS-GIOHD-NOI-CHI-KHI-BANG |
+| nghi ngờ hai nghĩa "giờ đóng thật" | `hom_nay.dong` = `dongThat` (MỘT hàm với `nhan_don`); hợp đồng ghi rõ | F12 hom_nay, F13 09:30 | BV-GIOHD-HOM-NAY-DONG |
+| 2 router.use không đường lọt | chỉ nhận hàm mũi tên tại chỗ / tên lấy từ `server/middleware/`; ghi giới hạn đầu file | I4 | VS-HD-ROUTE-USE-ROUTER-CON |
+| nghi ngờ hẹn giờ xoá lời tải lỗi | hẹn giờ chỉ xoá đúng câu "Đã lưu giờ hoạt động" | — (giao diện, CHƯA KIỂM bằng máy) | — |
+| K1 signup-codes.js:119 | Phát hiện ghi `:126` (dòng đọc `hanGio`) | — | — |
+Không sửa: D7 ca 2 soi chữ `khungHangNgay(bayGio, f.start, f.end)` — route đọc giờ thật nên không gọi được ở giờ cố định; ca 1 kiểm hàm bằng
+hành vi, ca 2 chỉ khoá rằng route dùng đúng hàm đó (bị BV-GIOVANG-KHUNG-ROUTE bắt). Đổi tên biến thì ca này đỏ — chấp nhận (K2: truy nguyên trước).
+Kết quả: `thu_KHAPI2.js` 98 · 0; `thu_HOPDONG_KH.js` 49 · 0; `dot_bien.py` **TỔNG 43 · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0** (đối chứng xanh);
+`npm test -- --day-du` PASS 81 · FAIL 0 · CẢNH BÁO 1 (có từ trước), "dist đã commit KHỚP với src hiện tại".
+Tên đột biến thêm ở vòng sửa 2 (đủ 3): VS-GIOHD-NOI-CHI-KHI-BANG, BV-GIOHD-HOM-NAY-DONG, VS-HD-ROUTE-USE-ROUTER-CON.
