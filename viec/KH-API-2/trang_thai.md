@@ -99,15 +99,28 @@ Bài sửa ĐỎ trên gốc (gốc trả 4 / 7 khoá) → theo A11 KHÔNG cần
 - Cài đặt làm tròn giá hạng (`tier_round_to`, `tier_round_mode` — `server/routes/tiers.js:27-34`, màn Cài đặt) được lưu nhưng KHÔNG nơi
   nào áp: `grep -rln "round_to\|tier_round" client/src server` chỉ ra Settings.jsx, database.js, tiers.js. Quầy tính giá hạng bằng
   `Math.round` tới đồng (`server/utils/uuDai.js:21`). Chủ quán chỉnh "làm tròn 500đ" sẽ không thấy gì đổi. Ngoài phạm vi — không sửa.
-- `PUT /api/pos/settings` ghi `updated_at = new Date().toISOString()` (giờ UTC, `server/routes/settings.js:109`) — trái luật giờ VN; thuộc GIO-VN-1.
-- Hợp đồng v1 ghi "Lỗi đã biết: 500 không `code`" ở `nhan-ma-bill` / `nhan-diem` — code hiện tại ĐÃ trả `LOI_MAY_CHU` khi gọi từ App
-  (`server/routes/signup-codes.js:318` và `:470`: `if (req.khach) return loiMayChu(...)`; `quaToken` ở `server/routes/kh/index.js:154`
-  truyền `khach`). Dòng hợp đồng đã cũ; KH-API-2 chỉ khoá bằng ca thử + bỏ dòng.
+- `PUT /api/pos/settings` ghi `updated_at = new Date().toISOString()` (giờ UTC, `server/routes/settings.js:112`, HEAD sau vòng sửa 1) — trái
+  luật giờ VN; thuộc GIO-VN-1.
+- Hợp đồng v1 ghi "Lỗi đã biết: 500 không `code`" ở `nhan-ma-bill` / `nhan-diem` — code ĐÃ trả `LOI_MAY_CHU` khi gọi từ App
+  (`server/routes/signup-codes.js:317` và `:471`: `if (req.khach) return loiMayChu(...)`; hàm chuyển yêu cầu ở `server/routes/kh/index.js:216`
+  truyền `khach`). Dòng hợp đồng đã cũ; KH-API-2 chỉ khoá bằng ca thử + bỏ dòng. (Số dòng đọc lại ở HEAD vòng sửa 1 — soát lỗi 7.)
 - Hợp đồng v1 THIẾU 12 mã lỗi mà hai cửa trên trả thật (đếm `grep -o "code: '[A-Z_]*'" server/routes/signup-codes.js`):
   `NHANDIEM_DANG_TAT`, `MA_DA_NHAN_DIEM`, `BILL_CHUA_THANH_TOAN`, `BILL_SDT_KHAC`, `DON_DA_HUY`, `DON_DA_HOAN`, `DON_KHONG_DU_DIEM`,
   `DON_KHONG_HOP_LE`, `KHONG_THEM_DIEM`, `MA_KHONG_GAN_DON`, `TICH_DIEM_DANG_TAT`, `MA_TRUNG` (dòng 51–94 `kiemDonCuaMa` / `baoChiemHong` / `LOI_BILL_SDT_KHAC`, 156–252 `nhanDiemMaBill`, 404 `nhanMaUuDai`). Thêm vào v2 (H).
-- Ba biểu thức "đang giờ vàng" khác nhau: `orders.js:511`, `Sales.jsx:147` (không xét `product_keys`), `/gio-vang` mới — Sales.jsx trong Cấm.
-- Số giờ hạn mã trên bill `Number(c.nhandiem_han_gio) || 24` (`orders.js:1257`) khác `docCauHinhNhanDiem` (`signup-codes.js:127-131`) với giá trị âm (chỉ dữ liệu nhập tay).
+- Ba biểu thức "đang giờ vàng" khác nhau: `orders.js:512`, `Sales.jsx:147` (không xét `product_keys`), `/gio-vang` (vòng sửa 1 đã khớp
+  orders.js: có % VÀ có món) — Sales.jsx trong Cấm.
+- Số giờ hạn mã trên bill `Number(c.nhandiem_han_gio) || 24` (`orders.js:1252`) khác `docCauHinhNhanDiem` (`signup-codes.js:119`) với giá trị
+  âm (chỉ dữ liệu nhập tay).
+- (vòng sửa 1) Câu báo ngoài giờ khi KHÔNG tìm được giờ mở lại (nghỉ cả tuần / nghỉ quá 400 ngày): máy điền `(chưa có lịch)` vào
+  `{gio_mo_lai}` (`server/utils/gioHoatDong.js` hằng `CHUA_CO_LICH`) thay vì để câu cụt — chữ này chủ quán đổi được ở hằng số nếu muốn câu khác.
+- (soát vòng 1, NGHI NGỜ) Lịch tuần không đặt được "mở 24 giờ" cho MỘT ngày (`mo === dong` bị chặn ở `loiNgayLich`); cách hiện có: bỏ chọn
+  "Dùng lịch tuần" (mở cả ngày mọi ngày). Chủ quán cần thì mở việc sau.
+- (soát vòng 1, NGHI NGỜ) `/toi` `hang.het_han` sẽ là chuỗi `"null"` nếu `pos_membership_purchases.expires_at` NULL — chưa có dữ liệu như vậy
+  (chỗ ghi duy nhất `orders.js` luôn có hạn). Không sửa.
+- `HOP_DONG_API_KH.md` dòng `DOC_TU_CODE` ghi nhánh, chưa có SHA: SHA chỉ chốt được khi gộp vào main — chat ghi khi gộp.
+- Ngân sách bài thử: `thu_KHAPI2.js` 443 + `thu_HOPDONG_KH.js` 220 + `thu_KH1.js` 4 dòng đổi ≈ 667 dòng (phiếu ~450, chủ quán chấp nhận ~500)
+  — vượt do vòng sửa 1 thêm ca soát yêu cầu (D6, D7, E6, F9, F12, G2 ngưỡng, J5, quét route). Máy chủ + giao diện 389 dòng thêm (ngân sách
+  ~550).
 
 ## Soát vòng 1 (/ra-soat, agent độc lập, HEAD a585fec) — chép nguyên báo cáo
 ```
@@ -165,3 +178,21 @@ thêm router.all / router.route / router.use('/…' và mọi kiểu nháy. NGUY
 nạp được (khuôn boIn null của InvoiceSettings). NGUYÊN TẮC (K4): một khái niệm chỉ MỘT vị từ trong cùng file — so cả bộ lọc (is_active,
 product_keys). NGUYÊN TẮC (K3): ca có nhánh phụ thuộc giờ phải dựng giờ cố định.
 ```
+
+## Vòng sửa 1 (theo soát vòng 1 — mọi lỗi NHẸ)
+Bài thử thêm ca TRƯỚC (`81372a1`, `7b9b819`), chạy trên code chưa sửa → 8 ca đỏ (ghi `bang_chung_do.txt`), rồi sửa:
+| Lỗi soát | Sửa | Ca | Đột biến |
+|---|---|---|---|
+| 1 Lưu khi tải lỗi xoá cài đặt | `GioHoatDong.jsx`: `taiLoi` → nút Lưu tắt + `luu` thoát sớm (khuôn `boIn null` InvoiceSettings) | — (giao diện, CHƯA KIỂM bằng máy) | — |
+| 2 nhan_don cắt oan mỗi nửa đêm | `gioHoatDong.js` `dongThat`: nối ca hôm sau mở đúng lúc ca này đóng; `nhan_don` theo giờ đóng thật | F12 ×4 | BV-GIOHD-DONG-THAT · VS-GIOHD-DONG-THAT-CHI-KHI-CHUA-CAI · VS-GIOHD-NGUNG-LE (neo mới) |
+| 3 /menu thiếu hạng đã tắt của khách | `kh/index.js` `theCuaKhach` dùng chung /toi và /menu; /menu thêm hạng của khách nếu đã tắt | E6 (so với tier_unit_price quầy) | BV-MENU-HANG-TAT |
+| 4 /gio-vang hai vị từ | MỘT `bat` (có % VÀ có món, như orders.js F2); `dang_chay = bat && is_flash_now` | D6 | BV-GIOVANG-KHONG-MON · VS-GIOVANG-BO-PERCENT (neo mới) |
+| 5 câu báo cụt | `CHUA_CO_LICH` điền khi không có giờ mở lại | F9, J5 | BV-GIOHD-CHUA-CO-LICH |
+| 6 bài hở | khung giờ vàng → hàm thuần `khungHangNgay` + ca giờ cố định; G2 47:59 / 48:01; quét route mọi `router.<x>(`, mọi nháy, đường biến → ĐỎ, ghi giới hạn đầu file | D7 ×2, G2 ngưỡng, I4 | VS-GIOVANG-KHUNG-QUA-DEM · BV-GIOVANG-KHUNG-ROUTE · VS-HANMA-LECH-1-GIO · VS-HD-ROUTE-ALL-NHAY-KEP · VS-HD-ROUTE-DUONG-BIEN |
+| 7 K1 | Phát hiện ghi lại số dòng ở HEAD; bỏ câu "chỉ đặt đơn trong giờ"; DOC_TU_CODE → Phát hiện | — | — |
+| 8 chưa gọn | `Promise.all` ở /menu; `congPhut` → `truPhut`; bỏ `Math.round` ở soDuVi; bỏ export `congNgay`, `khungGio` không ai dùng; ngân sách → Phát hiện | (B5 vẫn kiểm số nguyên) | — |
+Hợp đồng: ghi rõ `gia_hang` có hạng đã tắt của chính khách, giờ vàng "không có món" như tắt, `nhan_don` theo chuỗi ca nối, `(chưa có lịch)`.
+Kết quả: `thu_KHAPI2.js` 95 · 0; `thu_HOPDONG_KH.js` 49 · 0; `dot_bien.py` **TỔNG 40 · BẮT 40 · SỐNG 0 · HỎNG 0 · LẠC 0** (đối chứng xanh);
+`npm test -- --day-du` PASS 81 · FAIL 0 · CẢNH BÁO 1 (có từ trước), "dist đã commit KHỚP với src hiện tại".
+Tên đột biến thêm ở vòng sửa 1 (đủ 10): BV-GIOVANG-KHONG-MON, VS-GIOVANG-KHUNG-QUA-DEM, BV-GIOVANG-KHUNG-ROUTE, BV-MENU-HANG-TAT, BV-GIOHD-DONG-THAT,
+VS-GIOHD-DONG-THAT-CHI-KHI-CHUA-CAI, BV-GIOHD-CHUA-CO-LICH, VS-HANMA-LECH-1-GIO, VS-HD-ROUTE-ALL-NHAY-KEP, VS-HD-ROUTE-DUONG-BIEN.

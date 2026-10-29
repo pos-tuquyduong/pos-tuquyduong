@@ -68,8 +68,8 @@ Code gốc = cây ab51a8a (chưa có giaHang.js, gioHoatDong.js, 4 cửa mới, 
   thu_KHAPI2.js     84 đạt · 0 hỏng (A2b chạy — nạp được BanHang/tinh.js)
   thu_HOPDONG_KH.js 48 đạt · 0 hỏng
 
-SỐ CA cong_cu/thu_KHAPI2.js: 84
-SỐ CA cong_cu/thu_HOPDONG_KH.js: 48
+SỐ CA cong_cu/thu_KHAPI2.js: 95
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 49
 
 ════ node cong_cu/thu_KH1.js — bài CŨ sửa 2 ca (Q4, commit 0091a2c) — trên code GỐC (server/ ở ab51a8a) ════
   ✗ E1 GET /toi → 200, đúng 6 trường hang · ngay_tao · qr · sdt · so_du_vi · ten (P15-QR, KH-API-2)  — HTTP 200 · ngay_tao,qr,sdt,ten
@@ -86,3 +86,22 @@ Trên code GỐC (server/ + HOP_DONG_API_KH.md ở ab51a8a, bài ở a86f449):
   ✗ server/routes/signup-codes.js: 23 mã đều trong ma_loi  — MA_KHONG_GAN_DON, DON_DA_HUY, DON_DA_HOAN, DON_KHONG_HOP_LE, BILL_CHUA_THANH_TOAN, BILL_SDT_KHAC, NHANDIEM_DANG_TAT, MA_DA_NHAN_DIEM, TICH_DIEM_DANG_TAT, DON_KHONG_DU_DIEM, KHONG_THEM_DIEM, MA_TRUNG
   39 đạt · 3 hỏng
 Trên code ĐÃ VÁ (a86f449): 48 đạt · 0 hỏng — số ca không đổi (48, dòng số ca ở trên vẫn đúng).
+
+════ VÒNG SỬA 1 (soát lỗi 1–8) — hai bài thêm ca (81372a1, 7b9b819), chạy lại cả hai phía (A16) ════
+Trên code TRƯỚC vòng sửa (HEAD dfaed82 code + bài 81372a1) — ca mới ĐỎ:
+  ✗ D6 bật, có %, KHÔNG có món → như tắt: dang_chay false, phan_tram 0, mon [], bat_dau null (một vị từ)
+  ✗ D7 khung qua nửa đêm, giờ CỐ ĐỊNH (khungHangNgay chưa có)
+  ✗ D7 /gio-vang dựng khung bằng khungHangNgay(bayGio, …)
+  ✗ E6 hạng ĐÃ TẮT, khách còn thẻ → /menu của khách đó có giá hạng đó (không có dòng hạng tắt)
+  ✗ F9 nghỉ cả tuần → câu KHÔNG cụt — thong_bao="Mở lại lúc "
+  ✗ F12 chưa cài lịch + ngừng trước 30 phút: 23:59 vẫn nhận đơn — nhan_don=false
+  ✗ F12 Thứ Hai 07:00–00:00 nối Thứ Ba 00:00–22:00: 23:45 vẫn nhận đơn — nhan_don=false
+  ✗ J5 câu báo khi không có giờ mở lại KHÔNG cụt đuôi — "Nghỉ — mở lại "
+  87 đạt · 8 hỏng   (G2 ngưỡng 47:59 / 48:01 xanh — khoá hồi quy, bắt bằng đột biến VS-HANMA-LECH-1-GIO)
+  thu_HOPDONG_KH.js: ca mới "mọi router.<x>( đọc được đường" xanh trước vòng sửa — khoá phép quét, bắt bằng đột biến VS-HD-ROUTE-DUONG-BIEN /
+  VS-HD-ROUTE-ALL-NHAY-KEP.
+
+Trên code GỐC (server/ + hợp đồng ở ab51a8a, bài ở 7b9b819):
+  thu_KHAPI2.js     10 đạt · 47 hỏng (thêm ✗ D6, D7 ×2, E6, G2 ngưỡng, J5 câu báo so với lần ghi đầu; F9/F12 không chạy — module chưa có)
+  thu_HOPDONG_KH.js 40 đạt · 3 hỏng (cùng 3 ca đỏ như lần ghi đầu)
+Trên code ĐÃ VÁ (ac6178d): thu_KHAPI2.js 95 đạt · 0 hỏng · thu_HOPDONG_KH.js 49 đạt · 0 hỏng (dòng số ca ở trên đã sửa theo).
