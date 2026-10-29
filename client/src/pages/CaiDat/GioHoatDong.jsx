@@ -14,6 +14,7 @@ const docJson = (s, macDinh) => { try { return JSON.parse(s); } catch { return m
 export default function GioHoatDong() {
   const [dangTai, setDangTai] = useState(true);
   const [dangLuu, setDangLuu] = useState(false);
+  const [taiLoi, setTaiLoi] = useState(false);   // chưa nạp được cài đặt → KHÔNG cho Lưu (Lưu gửi đủ 4 khoá, sẽ xoá cài đặt đã có)
   const [thongDiep, setThongDiep] = useState('');
   const [coLich, setCoLich] = useState(false);
   const [lich, setLich] = useState(() => Object.fromEntries(THU.map(([t]) => [t, { ...NGAY_MAC_DINH }])));
@@ -31,7 +32,8 @@ export default function GioHoatDong() {
       setNgayNghi(docJson(s.gio_hd_ngay_nghi || '[]', []));
       setThongBao(s.gio_hd_thong_bao || '');
       setNgung(s.gio_hd_ngung_truoc_phut || '0');
-    } catch (err) { setThongDiep('Lỗi: ' + err.message); }
+      setTaiLoi(false);
+    } catch (err) { setTaiLoi(true); setThongDiep('Lỗi: chưa tải được cài đặt — tải lại trang trước khi sửa (' + err.message + ')'); }
     finally { setDangTai(false); }
   };
   useEffect(() => { tai(); }, []);
@@ -40,6 +42,7 @@ export default function GioHoatDong() {
   const suaNghi = (i, truong, v) => setNgayNghi((cu) => cu.map((d, j) => (j === i ? { ...d, [truong]: v } : d)));
 
   const luu = async () => {
+    if (taiLoi) return;
     setDangLuu(true);
     try {
       const lichLuu = Object.fromEntries(THU.map(([t]) => [t, lich[t].nghi ? { nghi: true } : { mo: lich[t].mo, dong: lich[t].dong }]));
@@ -62,7 +65,7 @@ export default function GioHoatDong() {
     <>
       <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🕘 Giờ hoạt động</div>
       <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
-        App khách xem quán đang mở hay nghỉ và chỉ đặt đơn trong giờ. <b>Quầy bán bình thường, không bị chặn.</b> Giờ đóng nhỏ hơn giờ mở = mở
+        App khách xem quán đang mở hay nghỉ. <b>Quầy bán bình thường, không bị chặn.</b> Giờ đóng nhỏ hơn giờ mở = mở
         qua nửa đêm (vd 18:00 → 02:00).
       </p>
       {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
@@ -115,7 +118,7 @@ export default function GioHoatDong() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-        <button className="btn btn-primary" onClick={luu} disabled={dangLuu}><Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}</button>
+        <button className="btn btn-primary" onClick={luu} disabled={dangLuu || taiLoi}><Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}</button>
       </div>
     </>
   );
