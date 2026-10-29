@@ -49,6 +49,9 @@
 - 28.10 · Hoá đơn hiện đúng tình trạng thực tế của đơn (chỉ in dòng đơn có); MỌI dòng chữ trên bill và tem sửa được trong Cài đặt; dòng
   tiền / thanh toán không tắt được; số giờ hạn mã trên bill tự lấy từ cài đặt hạn mã.
 
+- 29.10 · **Không có bill chưa trả tiền:** khách luôn trả đủ tại quầy rồi mới in bill. Đơn còn nợ chỉ là dữ liệu CŨ (trước khi bỏ ghi nợ):
+  in lại thì in đúng như dữ liệu, KHÔNG in mã nhận điểm / ô ưu đãi / QR mang mã. Máy không hỏi lại về đơn chưa trả.
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).
@@ -57,8 +60,9 @@
   duyệt chênh lệch có lý do; số tồn chỉ đổi qua phiếu; sửa / huỷ phiếu chỉ chủ quán, có lý do, phiếu cũ giữ.
 - 28.10 · 32 nguyên liệu chính thức sau gộp trùng tên SX (Táo đỏ ≠ Táo tươi; Củ dền = Dền đỏ). Nhóm nguyên liệu: Rau củ quả · Dược liệu
   (theo loại, không theo món dùng).
-- 28.10 · Món SX chưa có giá ở POS: tạo với tên + nhóm, giá trống — đặt giá là bán được. Món không nối được với SX (Cà Phê Đen): thêm mới
-  trong POS sau.
+- 28.10 · Món SX chưa có giá ở POS: tạo với tên + nhóm, giá trống — đặt giá là bán được. Món không nối được với SX: thêm mới
+  trong POS sau (bản 09.10 không có món nào như vậy — Cà Phê Đen CÓ nối, nhập bình thường). (đổi 29.10, trước: ghi nhầm Cà Phê Đen
+  không nối được)
 - 28.10 · Giá nhập nguyên liệu với nhân viên: TẠM ẨN (chủ quán đang cân nhắc).
 - 28.10 · Nâng cấp dữ liệu: bước đánh số, chỉ thêm, chạy trọn gói, không bao giờ chạy đôi; bước lỗi thì quầy vẫn bán, chỉ màn Kho báo lỗi.
 

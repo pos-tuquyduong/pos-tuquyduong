@@ -68,7 +68,13 @@
 2. Việc tiền / bảo mật: đột biến VS- + BV- cho mỗi chỗ vá, có đối chứng; ca K5 cho đường hợp lệ (không chặn oan).
 3. `npm test` và `--day-du` xanh; **`node tu_chay/cong.js chay` ĐẠT** — ghi kết quả vào `trang_thai.md`.
 4. Giao diện: ghi đúng 1–3 thao tác để chủ quán thử tay trên điện thoại.
-5. Soát độc lập `/ra-soat`; tối đa 3 vòng sửa, quá thì dừng hỏi.
+5. Soát độc lập `/ra-soat`; tối đa 3 vòng sửa. **Hết 3 vòng (chủ quán chốt 29.10 — luật này thắng bước 8 của `/lam-viec`):**
+   - Lần soát cuối chỉ còn lỗi NHẸ — không đụng tiền / điểm / ví, không lộ thông tin, không ngoài Phạm vi, không file Cấm → KHÔNG hỏi
+     chủ quán "sửa ở đâu": làm luôn **vòng sửa 4** ngay trong phiếu (chỉ đúng các lỗi lần soát nêu + ca thử + đột biến), chạy bài thử,
+     `--day-du`, cổng, ghi `SOÁT LẦN CUỐI: chat soát thay` + báo cáo 7 mục, push, DỪNG. Không gọi agent soát nữa; chat soát thay.
+   - Còn lỗi tiền / điểm / ví / bảo mật / ngoài Phạm vi → dừng, ghi `## Câu hỏi` như cũ.
+6. **Trường hợp chỉ còn trong dữ liệu cũ** (vd đơn nợ trước khi bỏ ghi nợ): chọn cách an toàn nhất — hiện đúng như dữ liệu, không hứa
+   điểm / tiền / mã — ghi một dòng Phát hiện, KHÔNG dừng hỏi. Câu nào `QUYET_DINH_CHU_QUAN.md` đã trả lời thì không hỏi lại.
 
 ## 7. Nhịp làm việc tới khai trương (07.11.2026)
 - Việc **tiền / bảo mật**: phiếu có "Chờ duyệt kế hoạch". Việc **thường** (giao diện, in, dọn, hạ tầng): chạy thẳng tới hết, không dừng chờ duyệt.
