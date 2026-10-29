@@ -53,7 +53,7 @@ export default function GioHoatDong() {
         gio_hd_ngung_truoc_phut: String(ngung).trim() || '0',
       } });
       setThongDiep('Đã lưu giờ hoạt động');
-      setTimeout(() => setThongDiep(''), 3000);
+      setTimeout(() => setThongDiep((t) => (t === 'Đã lưu giờ hoạt động' ? '' : t)), 3000);   // không xoá lời báo tải lỗi của tai() sau đó
       await tai();
     } catch (err) { setThongDiep('Lỗi: ' + err.message); }
     finally { setDangLuu(false); }
