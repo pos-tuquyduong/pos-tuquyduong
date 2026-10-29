@@ -196,3 +196,46 @@ Kết quả: `thu_KHAPI2.js` 95 · 0; `thu_HOPDONG_KH.js` 49 · 0; `dot_bien.py`
 `npm test -- --day-du` PASS 81 · FAIL 0 · CẢNH BÁO 1 (có từ trước), "dist đã commit KHỚP với src hiện tại".
 Tên đột biến thêm ở vòng sửa 1 (đủ 10): BV-GIOVANG-KHONG-MON, VS-GIOVANG-KHUNG-QUA-DEM, BV-GIOVANG-KHUNG-ROUTE, BV-MENU-HANG-TAT, BV-GIOHD-DONG-THAT,
 VS-GIOHD-DONG-THAT-CHI-KHI-CHUA-CAI, BV-GIOHD-CHUA-CO-LICH, VS-HANMA-LECH-1-GIO, VS-HD-ROUTE-ALL-NHAY-KEP, VS-HD-ROUTE-DUONG-BIEN.
+
+## Soát vòng 2 (/ra-soat, agent độc lập, HEAD f9cf44f) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT (chỉ lỗi NHẸ: không lỗi nào đụng tiền, điểm, ví, bảo mật hay ngoài Phạm vi)
+Chạy lại: thu_KHAPI2 95 · 0; thu_HOPDONG_KH 49 · 0; dot_bien.py TỔNG 40 · BẮT 40 · SỐNG 0 · HỎNG 0 · LẠC 0; npm test -- --day-du
+PASS 81 · FAIL 0 · CẢNH BÁO 1 (có từ trước). Vòng sửa 1 xử lý đúng 7/8 lỗi; lỗi 2 mới vá một nửa.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/gioHoatDong.js:97 (`if (!tiep || tiep.mo !== dong) break;`) cùng :36-57 (kiemCaiDat không chặn ca chồng nhau) — K4 / K5 —
+   NHẸ. Chỉ nối khi ca sau mở ĐÚNG lúc ca trước đóng. Lịch Thứ Hai 18:00→02:00, Thứ Ba 01:00→10:00 được PUT nhận; N = 30: 01:40 Thứ Ba
+   dang_mo true, nhan_don false; 02:10 lại nhan_don true — cắt oan 30 phút. 01:20–02:00 hom_nay vẫn là ca Thứ Hai. Sửa: nối khi
+   tiep.mo <= dong && tiep.dong > dong, hoặc kiemCaiDat chặn ca chồng. Cần ca thử + đột biến.
+2. cong_cu/thu_HOPDONG_KH.js:98-100 — router.use(<gì đó>) không đường đều cho qua; router.use(require('./khac')) thêm cửa dưới /api/kh mà
+   bài không ĐỎ. Giới hạn đầu file (:13-15) không nói ca này; không đột biến. Sửa: router.use(x) chỉ hợp lệ khi x là hàm khai báo trong
+   file / middleware (canCauHinhKhach, xacThucKhach) hoặc hàm mũi tên. K4 (TU-CHAY-6) / K3 — NHẸ.
+
+NGHI NGỜ:
+- gioHoatDong.js:120 + HOP_DONG_API_KH.md ("dong là giờ đóng thật"): hom_nay.dong là giờ đóng MỘT ca, nhan_don theo cả chuỗi ca nối.
+  Lịch Thứ Hai 07:00→00:00 nối Thứ Ba 00:00→22:00, 23:50 → hom_nay.dong 2026-11-03T00:00:00. Hai nghĩa "giờ đóng thật" (K4).
+- GioHoatDong.jsx:55-57: lưu xong hẹn 3 giây xoá thông điệp rồi gọi tai(); tai() lỗi thì câu "chưa tải được" bị xoá, nút Lưu tắt không lời
+  giải thích. Không mất dữ liệu.
+- thu_KHAPI2.js D7 ca thứ hai dò chữ `khungHangNgay(bayGio, f.start, f.end)` — đổi tên biến là ĐỎ oan (K2).
+- /menu Promise.all (kh/index.js:205) an toàn: query độc lập, mảng mới (database.js:1455-1468); push(the.h) chỉ vào mảng của lượt này (E6).
+- Hiệu năng dongThat khi chưa cài lịch: 401 vòng, 0,4 ms / lượt — không đáng lo.
+
+8 mục: K3 — 8 ca mới ĐỎ trước vòng sửa; G2 ngưỡng + quét route khoá bằng đột biến; chỉ D7 ca 2 soi chữ. K4 — hạng qua theCuaKhach
+(kh/index.js:46-50) cùng orders.js:658; giờ vàng một vị từ bat (:102) khớp orders.js:512; hạn mã signup-codes.js:357/:177 docCauHinhNhanDiem,
+orders.js:1252 `|| 24` đã ghi Phát hiện; không còn tên cũ; chưa xử lý lỗi 1, 2. K5 — J5, F12, E6, D6 khoá; còn chặn oan ca chồng (lỗi 1).
+K1 — số dòng Phát hiện khớp; signup-codes.js:119 trỏ dòng khai báo hàm, đọc hanGio ở :126 (rất nhẹ). Đường tiền — không tiền từ client;
+giaHangMon gọi tinhUuDai; so_du_vi = balance − dangGiu; SĐT từ req.khach; the.h không trả ra ngoài. P1 — dist build cùng PR, --day-du FAIL 0.
+Đơn giản — vòng 1 đã gọn; cách gọn cho lỗi 1: điều kiện nối <= thay ===.
+
+NGHIỆM THU: 10/10 (A: A1–A5 + thu_UUDAI1/P26c/gia_lap; B: B1–B7; C: C1; D: D1–D7; E: E1–E6; F: F1–F12 TZ=UTC, giao diện chỉ build + so
+băm; G: G1–G3 + ngưỡng 47:59 / 48:01; H: thu_HOPDONG_KH + BV-HD-PHIEN-BAN; I: 49 ca, kiem_tra_truoc_khi_giao.js:495; J: J2, J3, J5, J6 +
+thu_KH1 157 ca).
+
+CHƯA SOÁT ĐƯỢC: cong.js chay; GioHoatDong.jsx trên điện thoại thật (sửa lỗi 1 vòng 1 không ca máy); seed trên Turso; trang_thai thiếu CHƯA
+KIỂM, thao tác thử tay, HEAD ĐÃ KIỂM (bước 11).
+
+BÀI HỌC: KHOÁ — ca ca chồng nhau (Thứ Hai 18:00→02:00, Thứ Ba 01:00→10:00, N 30) phải nhan_don true lúc 01:40; ca router.use(require(...))
+không đường → ĐỎ kèm đột biến. NGUYÊN TẮC (K4) — vá "nối liền" phủ mọi quan hệ hai ca (bằng / chồng / hở); một khái niệm ("giờ đóng thật")
+một hàm cho mọi trường trả ra (nhan_don và hom_nay.dong). NGUYÊN TẮC (K3) — ca "dùng hàm X" kiểm bằng hành vi ở giờ cố định, không dò chữ.
+```
