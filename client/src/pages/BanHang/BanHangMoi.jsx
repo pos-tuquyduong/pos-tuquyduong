@@ -169,8 +169,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   /** Đơn đã ghi (id) → màn kết thúc. Lấy dòng đơn đã lưu; không lấy được thì vẫn sang màn kết thúc (hoá đơn tải lại bằng id). */
   const hoanTat = async (id, anh, cach, khachDua) => {
     if (!id) { setQr(null); setLoi('Tiền đã nhận nhưng chưa thấy mã đơn — mở mục Đơn hàng để kiểm tra, đừng thu lại'); return; }
-    let dong = { id, total: anh.tong, payment_method: CACH_DON[cach], cash_received: khachDua, change_amount: cach === 'tien_mat' ? Math.max(0, khachDua - anh.phaiTra) : 0 };   // dự phòng cùng công thức máy chủ: tiền thối = khách đưa − còn lại
-    try { dong = await ordersApi.get(id); } catch { /* giữ số tính từ phiên: đơn đã ghi, màn kết thúc vẫn đúng tiền thối */ }
+    let dong = { id, total: anh.tong, payment_method: CACH_DON[cach], cash_received: khachDua, change_amount: cach === 'tien_mat' ? Math.max(0, khachDua - anh.phaiTra) : 0 };   // dự phòng cùng công thức máy chủ: trả lại = khách đưa − còn lại
+    try { dong = await ordersApi.get(id); } catch { /* giữ số tính từ phiên: đơn đã ghi, màn kết thúc vẫn đúng tiền trả lại */ }
     const kh = anh.khach;
     const cachDon = dong.payment_method || CACH_DON[cach];
     setXong({
