@@ -21,6 +21,22 @@
    trả bằng tài khoản mẹ · đơn huỷ / hoàn · in lại. Dòng tiền / thanh toán sửa được CHỮ nhưng không tắt được (máy chủ từ chối).
    Ca thử: mỗi dòng phụ có khoá cài đặt; đổi chữ → bill đổi; tắt dòng tiền → 400.
 
+**Chủ quán 29.10 (sau soát lần 3, đầu nhánh `4fe877f`) — VÒNG SỬA 4 theo luật mới `LUAT_XAY_APP.md` §6 mục 5 (Sonnet):**
+4. Chat đã gộp main mới (UUDAI-1 + KHO-1 + sổ v44) vào nhánh: 3 chỗ đụng nhau giữ CẢ HAI bên (`kiem_tra_truoc_khi_giao.js` hai dòng
+   `chayBaiThat`, `server/index.js` hai dòng mount, `server/routes/settings.js` khối kiểm HD-1 rồi khối kiểm UUDAI-1), `client/dist` dựng
+   lại; gộp thử `npm test -- --day-du` 80/0. Làm tiếp trên nền này.
+5. Sửa ĐÚNG 3 lỗi lần soát cuối (không thêm gì khác):
+   (1) mục THANH TOÁN không có dòng nào (đơn 0đ lấy hết từ gói) → không in tiêu đề "THANH TOÁN";
+   (2) nhãn "Khách" / "NV": nút Hiện/Ẩn ở Cài đặt có tác dụng; chữ nhãn để trống → in giá trị KHÔNG kèm ": ";
+   (3) nhãn "% hạng": lấy % THẬT đã giảm trên đơn từ giá đã lưu của từng dòng (giá gốc và `tier_unit_price` — có từ UUDAI-1), không lấy
+       % hiện tại của hạng. Mọi dòng có giảm hạng cùng một % → in "… 10%"; các dòng khác % hoặc không suy ra được → in "Giảm hạng <tên>"
+       KHÔNG kèm %. Số tiền giảm giữ nguyên như hiện tại.
+   Mỗi lỗi: ca thử đỏ trên `4fe877f` + đột biến; ca đã có giữ xanh.
+6. Câu hỏi "bill đơn chưa thu" ĐÃ ĐÓNG (`QUYET_DINH_CHU_QUAN.md` 29.10): không có bill chưa trả; đơn nợ cũ in lại → KHÔNG in mã nhận điểm /
+   ô ưu đãi / QR mang mã (giữ như code hiện tại). Xoá câu này khỏi `## Câu hỏi` của `trang_thai.md`.
+7. Xong: bài thử, `--day-du`, toàn bộ đột biến, `node tu_chay/cong.js chay`, báo cáo 7 mục + dòng HEAD ĐÃ KIỂM, ghi
+   "SOÁT LẦN CUỐI: chat soát thay" — KHÔNG gọi agent soát nữa. Push, DỪNG. Chat soát rồi soạn script gộp.
+
 ## Mục tiêu
 Mọi đơn in ra hoá đơn đúng bố cục chủ quán duyệt: 2 tờ GIAO KHÁCH / LƯU QUẦY, số bill to, QR dẫn khách sang App KH để đăng ký (khách
 lẻ có sẵn mã nhận điểm), mục tiền – thanh toán – điểm rõ ràng; chủ quán tự sửa mọi chữ trên hoá đơn và tem. Phải xong trước khai trương.
