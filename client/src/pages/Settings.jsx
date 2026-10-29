@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
+import GioHoatDong from './CaiDat/GioHoatDong';
 
 
 // UUDAI-1: ba loại mã của khối "Mã giảm & giá hạng" (thẻ Hạng)
@@ -21,7 +22,7 @@ export default function Settings() {
     products: 'manage_settings', packages: 'manage_users', users: 'manage_users',
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
-    tiers: 'manage_promotions',
+    tiers: 'manage_promotions', gioHoatDong: 'manage_settings',
   };
   const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
 
@@ -214,7 +215,7 @@ export default function Settings() {
   // thi mo dung the dau tien HO XEM DUOC.
   const NHOM_THE = [
     { ma: 'ban', ten: 'Bán hàng', the: [
-      ['products', 'manage_settings'], ['packages', 'manage_users'],
+      ['products', 'manage_settings'], ['packages', 'manage_users'], ['gioHoatDong', 'manage_settings'],
     ]},
     { ma: 'khach', ten: 'Khách hàng', the: [
       ['loyalty', 'manage_settings'], ['signup', 'manage_settings'],
@@ -989,6 +990,11 @@ export default function Settings() {
           <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('packages')}
             style={{ background: tab === 'packages' ? '#7c3aed' : undefined, borderColor: tab === 'packages' ? '#7c3aed' : undefined }}>
             📦 Gói SP
+          </button>
+          )}
+          {theTrongNhom.includes('gioHoatDong') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'gioHoatDong' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('gioHoatDong')}>
+            🕘 Giờ hoạt động
           </button>
           )}
           {theTrongNhom.includes('users') && hasPermission('manage_users') && (
@@ -2142,6 +2148,8 @@ export default function Settings() {
                 </button>
               </div>
             </>
+          ) : tab === 'gioHoatDong' ? (
+            <GioHoatDong />
           ) : null}
         </div>
       </div>
