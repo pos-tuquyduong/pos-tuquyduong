@@ -18,6 +18,9 @@ từ bước 4 (`/lam-viec KHO-2a tiep`) tới hết, không dừng hỏi lại 
 5. "Cho ngày mai": ô "đang có" chỉ tính lô thành phẩm còn hạn lúc 00:00 ngày mai (giờ Việt Nam).
 6. Sau khi tự chốt (qua ngày): KHÔNG cho điền kết quả nữa; sai thì chủ quán sửa phiếu (phiếu mới, có lý do).
 7. Huy hiệu "phiếu chờ duyệt": chỉ trong màn Kho ở việc này (không sửa menu `Layout.jsx` — BH-2 đang sửa menu); đưa ra menu chính làm sau.
+8. Q8 (chat soát 29.10): BỎ mục `## Bài thử cũ sửa` (chat đặt nhầm từ đầu). `cong_cu/thu_KHO1.js` đổi vì hành vi ĐƯỢC DUYỆT đổi (bước 002, đường
+   lạ → 403) nên là bài thử SỬA bình thường: cổng đòi bản mới ĐỎ trên code gốc (B1/B2 đếm 2 bước, K7 mong 403 — đều đỏ trên gốc) và XANH trên
+   code mới. Mục miễn chỉ dành cho bài cũ đổi mà vẫn xanh trên gốc. Không sửa `tu_chay/`. Máy chạy lại cổng; đạt thì báo xong.
 
 ## Mục tiêu
 Nhân viên pha chế mỗi sáng bấm vài lần là có phiếu xuất đúng định lượng, quản lý duyệt trên máy mình, in ra làm theo; kho tự trừ nguyên liệu
@@ -69,9 +72,6 @@ Có — `cong_cu/thu_KHO2a.js` ĐỎ trên code gốc: cần làm = định mứ
 thức lồng; nhân viên tạo → chờ duyệt, quản lý tạo → tự duyệt, người tạo tự duyệt → 403; duyệt song song 2 lần → 1 lần ghi; trừ nguyên liệu
 âm vẫn ghi + cờ; thành phẩm vào lô đúng hạn; điều chỉnh kết quả; tự chốt qua ngày (chạy với `TZ=UTC`, ngày theo giờ VN); sửa phiếu → phiếu
 mới + cũ `huy`, tồn đúng; nhân viên đọc tồn không có giá.
-
-## Bài thử cũ sửa
-- cong_cu/thu_KHO1.js — chỉ nếu bước nâng cấp 002 làm đổi số bảng / số bước mà ca cũ đếm cứng; ca cũ giữ ý nghĩa
 
 ## Ngân sách
 ~650 dòng máy chủ + ~750 dòng giao diện + ~500 dòng thử. `Layout.jsx` / `App.jsx`: chỉ route trong mục Kho.
