@@ -21,6 +21,8 @@ thử ~500 dòng chấp nhận (giữ phép quét mã lỗi). Máy làm tiếp t
 3. Q3 = **thêm trường riêng**: `dang_mo` = quán đang mở THẬT theo giờ hoạt động; thêm `nhan_don` = còn nhận đơn App (đã trừ "ngừng nhận đơn
    trước giờ đóng N phút"); `hom_nay.dong` = giờ đóng thật. Hàm thuần trả cả hai; KH-MUA-1 sau này chặn theo `nhan_don`. Ghi vào hợp đồng v2.
 4. Phát hiện `tier_round_to` không dùng, giờ UTC ở PUT /settings, 3 cách xét giờ vàng, 2 cách đọc giờ hạn mã: KHÔNG sửa ở việc này (chat ghi sổ).
+5. Q4 (29.10) = ĐỒNG Ý: thêm `cong_cu/thu_KH1.js` vào Phạm vi; sửa ĐÚNG 2 dòng danh sách trắng (E1 `/toi` 6 trường, E5 `/menu` 8 khoá) — vẫn so
+   BẰNG, không nới. Từ nay theo `LUAT_XAY_APP.md` §6 mục 7: trường hợp này không cần dừng hỏi.
 
 ## Mục tiêu
 App KH mới (đợt 1, trước khai trương 07.11) đọc được đủ số thật từ POS: hạng + số dư ví của khách, danh sách hạng, giờ vàng hôm nay, giá
@@ -69,6 +71,7 @@ canh hợp đồng khớp code từ nay về sau.
 - HOP_DONG_API_KH.md
 - cong_cu/thu_KHAPI2.js
 - cong_cu/thu_HOPDONG_KH.js
+- cong_cu/thu_KH1.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
