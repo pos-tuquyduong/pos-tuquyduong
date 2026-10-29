@@ -145,11 +145,12 @@ async function main() {
   // K5: SanPham.jsx LUÔN gửi han_ngay — null khi ô trống; '' từ ô nhập; 1 = ngay trên ngưỡng
   const hanS3 = async () => (await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay;
   const e0d = [];
-  for (const h of [null, '', 1, 5]) {
+  for (const h of [null, '', 1, 3650, 0, 3651, true, '0x10', 1e9, 5]) {
     const r = await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: h, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
     e0d.push(`${r.status}:${await hanS3()}`);
   }
-  k('E0d hạn trống (null / \'\') → 200, bỏ hạn; 1 ngày → 200 lưu 1; 5 → 200 (không chặn oan màn công thức)', JSON.stringify(e0d) === '["200:null","200:null","200:1","200:5"]',
+  k('E0d hạn trống (null / \'\') → 200, bỏ hạn; 1 / 3650 (trần) → 200; 0 / 3651 / true / \'0x10\' / 1e9 → 400 HAN_SAI giữ hạn cũ; 5 → 200',
+    JSON.stringify(e0d) === '["200:null","200:null","200:1","200:3650","400:3650","400:3650","400:3650","400:3650","400:3650","200:5"]',
     JSON.stringify(e0d));
   // Lô nhập sẵn (phiếu PN đã duyệt, dựng bằng SQL — KHO-2b mới có màn nhập)
   let soPN = 0;
@@ -407,8 +408,8 @@ async function main() {
     'CREATE VIEW v_recipe_ingredients AS SELECT recipe_id, ingredient_id, amount FROM recipe_ingredients',
     'CREATE VIEW v_tea_ingredients AS SELECT tea_product_id, ingredient_id, amount FROM tea_ingredients',
     "INSERT INTO ingredients VALUES (1, 'Cam', 'kg', 30000, 'juice', 0, 0, 0)",
-    "INSERT INTO recipes VALUES (1, 'Hồng Tân Sinh', 'CT1', 3, 1), (2, 'Lục Tân Khí', 'CT2', 5, 1)",
-    'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount) VALUES (1, 1, 0.1), (2, 1, 0.2)',
+    "INSERT INTO recipes VALUES (1, 'Hồng Tân Sinh', 'CT1', 3, 1), (2, 'Lục Tân Khí', 'CT2', 5, 1), (3, 'Nước lẻ hạn', 'K2AR3', 2.5, 1)",
+    'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount) VALUES (1, 1, 0.1), (2, 1, 0.2), (3, 1, 0.3)',
     "INSERT INTO product_types VALUES (1, 'juice', 'Nước ép', 1, 0), (2, 'tea', 'Trà', 1, 1), (3, 'caphe', 'Cà phê', 1, 2)",
     "INSERT INTO sx_products VALUES (21, 'CF02', 'Bạc xỉu', 3, 1, 5, 2), (22, 'CF03', 'Sữa đậu', 3, 1, 6, 1.5)",
     'INSERT INTO sx_product_ingredients (product_id, ingredient_id, amount) VALUES (21, 1, 0.01), (22, 1, 0.02)',
@@ -423,8 +424,9 @@ async function main() {
   const nhapR = await fetch(goc + '/kho/nhap-sx', { method: 'POST', headers: { Authorization: 'Bearer ' + the.chu }, body: f }).then((r) => r.status).catch(() => 0);
   noiLai();
   const hanCode = async (code) => (await mot('SELECT s.han_ngay FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id WHERE p.code = ?', [code]))?.han_ngay;
-  k('E7 nhập SX điền hạn từ days_use: CT2 (v_recipes) = 5, CF02 (sx_products) = 2; CT1 đã có 7 → KHÔNG đè; days_use lẻ 1.5 (CF03) → để trống', nhapR === 200
-    && Number(await hanCode('CT2')) === 5 && Number(await hanCode('CF02')) === 2 && Number(await hanCode('CT1')) === 7 && (await hanCode('CF03')) === null,
+  k('E7 nhập SX điền hạn từ days_use: CT2 (v_recipes) = 5, CF02 (sx_products) = 2; CT1 đã có 7 → KHÔNG đè; days_use lẻ (CF03 sx_products 1.5, K2AR3 v_recipes 2.5) → để trống', nhapR === 200
+    && Number(await hanCode('CT2')) === 5 && Number(await hanCode('CF02')) === 2 && Number(await hanCode('CT1')) === 7 && (await hanCode('CF03')) === null
+    && (await so("SELECT COUNT(*) FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id WHERE p.code = 'K2AR3' AND s.han_ngay IS NULL")) === 1,
     `${nhapR} · ${await hanCode('CT2')} · ${await hanCode('CF02')} · ${await hanCode('CT1')}`);
 
   // ═════════════════════════════════════════════════════════════════════════
