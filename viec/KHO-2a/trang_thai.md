@@ -174,3 +174,24 @@ Sửa đúng từng lỗi lần soát 2 nêu (bài e2a1b6a · vá tới 4ef1ae3)
 - F7b số thực = 0 (mẻ hỏng) → 200, vẫn ghi (K5).
 - Bài mới trên bản trước vòng sửa 2 (903ea8f): 84 · 2 (E5, E7); gốc 62a8acb: 5 · 81; HEAD: 86 · 0.
 - Đột biến vòng 2: đối chứng XANH 86 · 0; 53/53 BẮT (VS-han-xoa-khi-khong-gui lần đầu LẠC vì đỏ ở E0 thay vì E0b — mẫu nới thành `E0b?`, BẮT).
+
+## Soát độc lập lần 3 (/ra-soat, HEAD db7ef39) — KHÔNG ĐẠT (mọi lỗi NHẸ — không tiền / điểm / ví / bảo mật / ngoài Phạm vi / file Cấm)
+```
+LỖI TÌM ĐƯỢC:
+- server/kho/tinh.js:74 (soNgayNguyen) — không trần trên: han_ngay 1e9 → addDaysToDateString ném RangeError → duyệt / tự duyệt món đó 500; vị từ nhận true → 1,
+  '0x10' → 16. Gọn: hằng số có tên HAN_NGAY_TOI_DA trong cùng vị từ + ca ngay trên / dưới. — K5/K4 — NHẸ
+- server/kho/tinh.js:74 — K3: ngưỡng > 0 thiếu ca ngay dưới (0); đột biến `>= 0` SỐNG. — NHẸ
+- server/kho/nhapSx.js:57 (v_recipes) — K4/K3: E7 chỉ có ca days_use lẻ ở đường sx_products; trả :57 về duong() SỐNG. — NHẸ
+- viec/KHO-2a/dot_bien.py:51 (VS-han-xoa-khi-khong-gui, mẫu nới E0b?) — K3 (TACH-GL): đột biến không còn tái hiện đúng lỗi cũ "không gửi = xoá hạn";
+  thay bằng đột biến ở duLieu.js:70 (luôn ghi hanNgay ?? null), mẫu về `✗ E0b `. — NHẸ
+- server/kho/duLieu.js:96 — K1: chú thích "N không phải số dương" sai sau soNgayNguyen. — NHẸ
+- viec/KHO-2a/trang_thai.md — LUAT §6.3: chưa ghi cong.js chay và --day-du trên HEAD sau vòng sửa 2. — NHẸ
+NGHI NGỜ: sửa phiếu CHỜ duyệt = duyệt luôn + ghi kho (người duyệt = chủ quán) — chưa ghi là hành vi chủ quán muốn → Phát hiện; in phiếu huy → 404 không ca;
+  han_ngay NGUYÊN LIỆU (cotNguyenLieu, nhapSx shelf_life_days) chưa qua soNgayNguyen — KHO-2b; days_use lẻ bỏ trống im lặng, không cảnh báo;
+  so_thuc "Infinity" qua được >= 0.
+NGHIỆM THU: 10/10 mục (A … J) có bằng chứng máy chủ, 86 · 0; phần giao diện ghi trung thực ở CHƯA KIỂM + 3 thao tác thử tay. Thiếu: LUAT §6.3.
+BÀI HỌC: KHOÁ — vị từ đầu vào dùng chung có trần dưới + trần trên lấy từ giới hạn hàm tiêu thụ, mỗi trần ca ngay trên + dưới; vá N đường ghi thì N ca, đột
+  biến neo đúng từng đường. NGUYÊN TẮC — đột biến LẠC vì phép khác bắt trước → thay đột biến cho tái hiện đúng lỗi cũ, không nới mẫu.
+```
+
+## Vòng sửa 3 (cuối — so_vong_sua_toi_da; lần soát cuối chỉ lỗi NHẸ → LUAT §6.5: sửa đúng các lỗi lần soát nêu, không gọi agent soát nữa)
