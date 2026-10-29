@@ -91,10 +91,13 @@ router.get('/:id', authenticate, async (req, res) => {
     const st = {};
     for (const r of await query("SELECT key, value FROM pos_settings WHERE key IN ('store_name','store_address','store_phone')")) st[r.key] = r.value;
     const items = await query('SELECT * FROM pos_order_items WHERE order_id = ? ORDER BY id', [o.id]);
-    const tier = o.customer_tier ? await queryOne('SELECT discount_percent FROM pos_membership_tiers WHERE name = ? ORDER BY id LIMIT 1', [o.customer_tier]) : null;
     const gocTong = so(o.subtotal);
     const tongDon = so(o.total);
     const giamHang = so(o.tier_discount);
+    // % hạng THẬT đã giảm lúc bán, suy từ giá đã lưu của từng dòng (không lấy % hiện tại của hạng: hạng có thể đã đổi, món nhóm đặc biệt bỏ qua thẻ).
+    // Mọi dòng có giảm cùng một % → số đó; các dòng khác % hoặc không dòng nào giảm → null (bill chỉ in tên hạng, không kèm %).
+    const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
+    const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
     const giamFlash = so(o.flash_discount);
     const phiGiao = so(o.shipping_fee);
     // Khoản giảm bằng mã / quà suy ra từ tổng: giá gốc − hạng − Flash + phí giao − tổng (đơn cũ ghi cột `discount` không thống nhất)
@@ -108,7 +111,7 @@ router.get('/:id', authenticate, async (req, res) => {
         don: { id: o.id, code: o.code, so_bill: soBill(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status },
         khach: {
           ten: o.customer_name || 'Khách lẻ', sdt_che: cheSdt(o.customer_phone), la_khach_le: !o.customer_phone,
-          hang: o.customer_tier || null, phan_tram: o.customer_tier ? (tier ? Number(tier.discount_percent) || 0 : (gocTong > 0 ? Math.round(giamHang * 100 / gocTong) : 0)) : null,
+          hang: o.customer_tier || null, phan_tram: o.customer_tier ? phanTramHang : null,
         },
         mon: items.map((m) => {
           const sl = so(m.quantity);

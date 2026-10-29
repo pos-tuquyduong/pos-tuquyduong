@@ -107,7 +107,8 @@ export function soToTuCaiDat(settings) {
 
 /** Điền {ten_khach} {hang} {phan_tram} {diem} {gio} {ma} {lan}; trường thiếu → rỗng. */
 export function dienChu(text, mau = {}) {
-  return String(text ?? '').replace(/\{(ten_khach|hang|phan_tram|diem|gio|ma|lan)\}/g, (_, k) => (mau[k] === undefined || mau[k] === null ? '' : String(mau[k])))
+  const khongCoPhanTram = mau.phan_tram === undefined || mau.phan_tram === null || mau.phan_tram === '';   // nhãn "Giảm hạng Vàng 10%" → "Giảm hạng Vàng"
+  return String(khongCoPhanTram ? String(text ?? '').replace(/ *\{phan_tram\} *%?/g, ' ') : text ?? '').replace(/\{(ten_khach|hang|phan_tram|diem|gio|ma|lan)\}/g, (_, k) => (mau[k] === undefined || mau[k] === null ? '' : String(mau[k])))
     .replace(/[ \t]{2,}/g, ' ').replace(/ +([%,.!])/g, '$1').trim();
 }
 
@@ -180,13 +181,14 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
   if (tien.phi_giao > 0 && hien('phi_giao')) dongTien.push(dong('phi_giao', '+' + dinhDangTien(tien.phi_giao)));
   dongTien.push(dong('tong', dinhDangTien(tien.tong), true));
 
-  const tt = [dong('tieu_de_tt', '')];
+  const tt = [];
   const loai = { tai_khoan: 'tu_tk', tai_khoan_me: 'tu_tk_me', chuyen_khoan: 'ck', tien_mat: 'tm', ghi_no: 'ghi_no' };
   for (const t of hd?.thanh_toan || []) {
     const k = loai[t.loai];
     if (k && hien(k)) tt.push(dong(k, dinhDangTien(t.so_tien)));
   }
   if (hd?.khach_dua > 0 && hien('dua_tra')) tt.push(dong('dua_tra', `${dinhDangTien(hd.khach_dua)} / ${dinhDangTien(hd.tra_lai)}`));
+  if (tt.length) tt.unshift(dong('tieu_de_tt', ''));   // không dòng nào (đơn 0đ lấy hết từ gói) → không in tiêu đề trơ trọi
 
   const dg = [];
   const diem = hd?.diem;
@@ -222,7 +224,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
     nhan: hien(laKhach ? 'lien_khach' : 'lien_luu') ? d(laKhach ? 'lien_khach' : 'lien_luu') : '',
     dau: {
       ten_quan: d('ten_quan'), dia_chi: hien('dia_chi') ? d('dia_chi') : '', chu_so_bill: d('so_bill'), so_bill: hd?.don?.so_bill ?? '',
-      nhan_khach: d('nhan_khach'), nhan_nv: d('nhan_nv'),
+      nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',
       qr: duongQr(settings?.[KHOA_DIA_CHI_KH], maDung), chu_qr: hien('chu_qr') ? d('chu_qr') : '',
       gio: gioHienThi(hd?.don?.gio), nhan_vien: hd?.don?.nhan_vien || '', khach: khach.la_khach_le === false ? khach.ten : (khach.ten || 'Khách lẻ'),
     },

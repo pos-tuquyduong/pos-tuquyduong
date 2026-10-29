@@ -52,4 +52,13 @@ Bài thử mới (G80 G81 H2 C5 A2c; A19b A19c A30c đóng lỗ của bài, đã
   ✗ C5    veQr ném khi chuỗi QR quá dài (sập lúc render)      ✗ A2c   "/hoa-don/1e3" và "/1000.0" trả đơn 1000
 Sau vòng sửa 3: 152 đạt · 0 hỏng. Đột biến: 98 · BẮT 98 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 152 xanh).
 
-SỐ CA cong_cu/thu_HD1.js: 152
+── Vòng sửa 4 (luật mới LUAT_XAY_APP §6 mục 5, 29.10) ──
+Bài thử mới (G82 G83 G84 G85 A19d; G52 đổi cho khớp phiếu "không in mục rỗng") chạy trên code TRƯỚC vòng sửa 4
+(`python3 viec/HD-1/dot_bien.py --goc 092ee5e`): 151 đạt · 6 hỏng — các dòng ✗:
+  ✗ G82 / G52  đơn 0đ in tiêu đề THANH TOÁN trơ trọi (tieu_de_tt)
+  ✗ G83 / G84  nhãn "Khách" / "NV": nút Ẩn không có tác dụng; nhãn trống vẫn in ": "
+  ✗ G85        "Giảm hạng Vàng%" khi không có %
+  ✗ A19d       % hạng lấy % hiện tại của hạng (hạng đổi 10 → 25 sau khi bán vẫn ra 25; các dòng giảm khác % vẫn ra một số)
+Sau vòng sửa 4: 157 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_HD1.js: 157

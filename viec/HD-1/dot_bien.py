@@ -19,6 +19,7 @@ sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 HD, ND, SC, ST, IX, DB = ('server/routes/hoaDon.js', 'server/utils/nhanDiem.js', 'server/routes/signup-codes.js',
                           'server/routes/settings.js', 'server/index.js', 'server/database.js')
+PV = 'client/src/components/InvoicePreview.jsx'
 CH, IP, VQ, PR = ('client/src/utils/hoaDon.js', 'client/src/utils/inPhieu.js', 'client/src/utils/veQr.js',
                   'client/src/components/InvoicePrint.jsx')
 
@@ -125,12 +126,24 @@ DOT_BIEN = [
   ('VS-HD-KHONG-AN-THIEU-THANH-TOAN', [(HD, "'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',", "'tu_tk', 'ck', 'tm',", 1)], r'✗ E1'),
   ('VS-G-KHONG-AN-CLIENT-THIEU-GHI-NO', [(CH, "'tu_tk', 'tu_tk_me', 'ck', 'tm', 'ghi_no', 'dua_tra',", "'tu_tk', 'tu_tk_me', 'ck', 'tm',", 1)], r'✗ G34'),
   ('VS-G-IN-LAI-CUNG', [(CH, "in_lai: inLai ? d('in_lai') : null,", "in_lai: inLai ? `IN LẠI · LẦN ${lan}` : null,", 1)], r'✗ G70'),
-  ('VS-G-NHAN-CUNG', [(CH, "nhan_khach: d('nhan_khach'), nhan_nv: d('nhan_nv'),", "nhan_khach: 'Khách', nhan_nv: 'NV',", 1)], r'✗ G71'),
+  ('VS-G-NHAN-CUNG', [(CH, "nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',", "nhan_khach: 'Khách', nhan_nv: 'NV',", 1)], r'✗ G71'),
   ('VS-G-QR-MA-CHET', [(CH, "const maDung = m?.ma && (m.diem > 0 || m.uu_dai) ? m.ma : null;", "const maDung = m?.ma;", 1)], r'✗ G72'),
   ('VS-G-CONG-0-VAN-IN', [(CH, "if (diem.cong !== 0 && hien('diem_cong'))", "if (hien('diem_cong'))", 1)], r'✗ G73'),
   ('BV-G-MAU-HOAN', [(CH, "  { khoa: 'hoan', nhan: 'Đơn hoàn tiền', hd: donTrangThai('refunded'), inLai: false },\n", "", 1)], r'✗ G74'),
   ('VS-G-RESET-HANG-SO', [(CH, "return { ...CHU_MAC_DINH, ten_quan: chu.ten_quan, dia_chi: chu.dia_chi };", "return { ...CHU_MAC_DINH };", 1)], r'✗ G77'),
   ('VS-TEM-IN-LAI-CUNG', [(IP, "chuInLai: inLai && settings ? chuTem(settings, 'tem_in_lai', tenKhach) : 'IN LẠI'", "chuInLai: 'IN LẠI'", 1)], r'✗ F8'),
+  # ── vòng sửa 4: tiêu đề THANH TOÁN · nhãn Khách / NV · % hạng thật ──
+  ('BV-G-TT-TIEU-DE-LUON', [(CH, "  if (tt.length) tt.unshift(dong('tieu_de_tt', ''));", "  tt.unshift(dong('tieu_de_tt', ''));", 1)], r'✗ G82 '),
+  ('VS-G-TT-TIEU-DE-TU-2-DONG', [(CH, "  if (tt.length) tt.unshift(dong('tieu_de_tt', ''));", "  if (tt.length > 1) tt.unshift(dong('tieu_de_tt', ''));", 1)], r'✗ G82 '),
+  ('BV-G-NHAN-KHACH-NV-KHONG-AN', [(CH, "nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',", "nhan_khach: d('nhan_khach'), nhan_nv: d('nhan_nv'),", 1)], r'✗ G83 '),
+  ('VS-G-NHAN-NV-KHONG-AN', [(CH, "nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',", "nhan_nv: d('nhan_nv'),", 1)], r'✗ G83 '),
+  ('VS-PV-NHAN-KHACH-GHEP-CUNG', [(PV, "<div>{dau.nhan_khach ? `${dau.nhan_khach}: ` : ''}<b>{dau.khach}</b></div>", "<div>{dau.nhan_khach}: <b>{dau.khach}</b></div>", 1)], r'✗ G84 '),
+  ('VS-PV-NHAN-NV-GHEP-CUNG', [(PV, "{dau.nhan_nv ? `${dau.nhan_nv}: ` : ''}{dau.nhan_vien}", "{dau.nhan_nv}: {dau.nhan_vien}", 1)], r'✗ G84 '),
+  ('BV-G-PHAN-TRAM-GIU-DU', [(CH, "mau.phan_tram === undefined || mau.phan_tram === null || mau.phan_tram === '';", "false;", 1)], r'✗ G85 '),
+  ('VS-G-PHAN-TRAM-0-LA-RONG', [(CH, "|| mau.phan_tram === '';", "|| !mau.phan_tram;", 1)], r'✗ G85 '),
+  ('BV-HD-PHAN-TRAM-THEO-HANG', [(HD, "phan_tram: o.customer_tier ? phanTramHang : null,", "phan_tram: o.customer_tier ? Number((await queryOne('SELECT discount_percent FROM pos_membership_tiers WHERE name = ? ORDER BY id LIMIT 1', [o.customer_tier]))?.discount_percent) || 0 : null,", 1)], r'✗ A19d '),
+  ('VS-HD-PHAN-TRAM-DONG-DAU', [(HD, "phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null", "phanTramDong.length ? phanTramDong[0] : null", 1)], r'✗ A19d '),
+  ('VS-HD-PHAN-TRAM-TINH-DONG-KHONG-GIAM', [(HD, "items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map(", "items.map(", 1), (HD, "so(m.unit_price) - so(m.tier_unit_price)) * 100", "so(m.unit_price) - so(m.tier_unit_price ?? m.unit_price)) * 100", 1)], r'✗ A19d '),
 ]
 
 
