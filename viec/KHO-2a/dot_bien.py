@@ -48,7 +48,7 @@ DOT_BIEN = [
   ('VS-fefo-han-xa-truoc', [(L, "[nlId, luc], 'han_dung IS NULL, han_dung, id')", "[nlId, luc], 'han_dung IS NULL, han_dung DESC, id')", 1)], r'✗ E2 '),
   ('BV-lo-qua-han', [(L, "'l.nguyen_lieu_id = ? AND (l.han_dung IS NULL OR l.han_dung > ?)', [nlId, luc]", "'l.nguyen_lieu_id = ? AND ? IS NOT NULL', [nlId, luc]", 1)], r'✗ E2 '),
   ('VS-gia-von-thieu-gia', [(L, 'cua.length && cua.every((x) => giaCua(x) != null) ?', 'cua.length ?', 1)], r'✗ E4 '),
-  ('VS-han-xoa-khi-khong-gui', [(D, "const hanNgay = 'han_ngay' in req.body ? tinh.soNgayNguyen(hanVao) : undefined;", 'const hanNgay = tinh.soNgayNguyen(hanVao);', 1)], r'✗ E0b '),
+  ('VS-han-xoa-khi-khong-gui', [(D, "const hanNgay = 'han_ngay' in req.body ? tinh.soNgayNguyen(hanVao) : undefined;", 'const hanNgay = tinh.soNgayNguyen(hanVao);', 1)], r'✗ E0b? '),
   ('BV-han-tu-sx', [(N, "    if (m.han_ngay) await tx.run('UPDATE kho_san_pham SET han_ngay = ? WHERE pos_product_id = ? AND han_ngay IS NULL', [m.han_ngay, spId]);\n", '', 1)], r'✗ E7 '),
   ('VS-han-de-o-co-san', [(N, 'WHERE pos_product_id = ? AND han_ngay IS NULL', 'WHERE pos_product_id = ?', 1)], r'✗ E7 '),
   ('VS-han-sx-cot-cu', [(N, '`SELECT p.*, t.code AS loai FROM sx_products p', '`SELECT p.id, p.code, p.name, p.legacy_id, t.code AS loai FROM sx_products p', 1)], r'✗ E7 '),
