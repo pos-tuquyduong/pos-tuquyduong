@@ -57,14 +57,17 @@ DOT_BIEN = [
   # ── F: giờ hoạt động ──
   ('VS-GIOHD-GIO-MAY', 'api', [(K, 'traGioHoatDong(getNow(),', 'traGioHoatDong(new Date().toISOString().slice(0, 19),', 1)], r'✗ F8 '),
   ('VS-GIOHD-QUA-NUA-DEM', 'api', [(GD, 'const ca = trong(homQua) ? homQua : trong(homNay)', 'const ca = trong(homNay)', 1)], r'✗ F2 01:00'),
-  ('VS-GIOHD-NGUNG-LE', 'api', [(GD, 'bayGio < truPhut(dongThat(ca, cd), cd.ngungTruocPhut)', 'bayGio <= truPhut(dongThat(ca, cd), cd.ngungTruocPhut)', 1)], r'✗ F5 ngừng'),
+  ('VS-GIOHD-NGUNG-LE', 'api', [(GD, 'bayGio < truPhut(dong, cd.ngungTruocPhut)', 'bayGio <= truPhut(dong, cd.ngungTruocPhut)', 1)], r'✗ F5 ngừng'),
   # vòng sửa 1 (soát lỗi 2, 5): giờ đóng thật nối ca; câu báo không cụt
-  ('BV-GIOHD-DONG-THAT', 'api', [(GD, 'truPhut(dongThat(ca, cd),', 'truPhut(ca.dong,', 1)], r'✗ F12 '),
+  ('BV-GIOHD-DONG-THAT', 'api', [(GD, 'dong = goc && dongThat(goc, cd);', 'dong = goc && goc.dong;', 1)], r'✗ F12 '),
   ('VS-GIOHD-DONG-THAT-CHI-KHI-CHUA-CAI', 'api', [(GD, 'const tiep = caCuaNgay(dong.slice(0, 10), cd);', 'const tiep = cd.lich ? null : caCuaNgay(dong.slice(0, 10), cd);', 1)],
    r'✗ F12 Thứ Hai'),
   # vòng sửa 2 (soát vòng 2 lỗi 1, nghi ngờ hom_nay.dong): nối cả ca chồng; hom_nay.dong cùng hàm dongThat
   ('VS-GIOHD-NOI-CHI-KHI-BANG', 'api', [(GD, 'if (!tiep || tiep.mo > dong || tiep.dong <= dong) break;', 'if (!tiep || tiep.mo !== dong) break;', 1)], r'✗ F13 ca CHỒNG'),
-  ('BV-GIOHD-HOM-NAY-DONG', 'api', [(GD, 'dong: dongThat(ca || homNay, cd) }', 'dong: (ca || homNay).dong }', 1)], r'✗ F12 ca nối: hom_nay'),
+  ('BV-GIOHD-HOM-NAY-DONG', 'api', [(GD, '{ mo: goc.mo, dong }', '{ mo: goc.mo, dong: goc.dong }', 1)], r'✗ F12 ca nối: hom_nay'),
+  # vòng sửa 4 (soát vòng 3 lỗi 1): mỗi vế dừng của dongThat một đột biến
+  ('BV-GIOHD-DUNG-HO', 'api', [(GD, 'if (!tiep || tiep.mo > dong || tiep.dong <= dong) break;', 'if (!tiep || tiep.dong <= dong) break;', 1)], r'✗ F14 ca HỞ'),
+  ('BV-GIOHD-DUNG-GON', 'api', [(GD, 'if (!tiep || tiep.mo > dong || tiep.dong <= dong) break;', 'if (!tiep || tiep.mo > dong) break;', 1)], r'✗ F14 ca GỌN'),
   ('BV-GIOHD-CHUA-CO-LICH', 'api', [(GD, ': CHUA_CO_LICH),', ": ''),", 1)], r'✗ (F9 nghỉ cả tuần|J5 câu báo)'),
   ('BV-GIOHD-NGAY-NGHI', 'api', [(GD, '  if (cd.ngayNghi.some((d) => d.ngay === ngay)) return null;\n', '', 1)], r'✗ F3 '),
   ('VS-GIOHD-CHUA-CAI-DONG', 'api', [(GD, "  if (!cd.lich) return { mo: `${ngay}T00:00:00`, dong: `${congNgay(ngay, 1)}T00:00:00` };",
