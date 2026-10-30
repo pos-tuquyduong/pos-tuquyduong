@@ -89,7 +89,18 @@ chép bài thử của HEAD vào <nháp>/goc55/cong_cu/, HOP_DONG_API_KH.md lấ
   ✗ A6 khách mới qua App (xac-minh, có xung_ho — KH-API-3) → mã thật, lưu đúng xung_ho  — HTTP 200 · TQD-EJ33D83T88NY · xung_ho undefined
   Trên code ĐÃ VÁ → 29 đạt · 0 hỏng.
 
-SỐ CA cong_cu/thu_KHAPI3.js: 63
+── VÒNG SỬA 2 (soát vòng 2) — node cong_cu/thu_KHAPI3.js thêm A4d, D3b (cửa sổ phút / giờ qua CHÍNH hàm bọc), A3 tiêu đề Authorization rỗng,
+   C2 địa chỉ 300 ký tự dạng NFD; C4b chỉ kiểm bước 3 (không dính danh sách bước) ──
+  Trên HEAD TRƯỚC vá (bài 465da5f, maKhach.js chưa đổi) → 65 đạt · 2 hỏng:
+  ✗ A4d giuLuotMenu: 300 lượt qua; lượt 301 ở 59 999 ms chặn; đủ 60 000 ms → qua lại  — [false,false]
+  ✗ D3b giuLuotGiaHan: 10 lượt qua; lượt 11 ở 3 599 999 ms chặn; đủ 3 600 000 ms → qua lại  — [false,false]
+  (A3 tiêu đề rỗng, C2 NFD: khoá hồi quy — xanh trên HEAD trước vá, khoá bằng hai đột biến tiêu đề rỗng / VS-DIA-CHI-KHONG-NFC.)
+  Trên gốc 55a8f29 → 15 đạt · 50 hỏng (thoát 1); có: ✗ A4d … — false · ✗ D3b … — false · ✗ C4b … — bước 1 ·
+  ✗ C2 PUT dia_chi 300 ký tự dạng NFD → 200, CSDL lưu dạng NFC — HTTP 400 · TEN_KHONG_HOP_LE
+  Trên code ĐÃ VÁ → 67 đạt · 0 hỏng. Đột biến 38/38 BẮT (thêm VS-MENU-CUA-SO-GIO, VS-GIA-HAN-CUA-SO-PHUT, VS-DIA-CHI-KHONG-NFC và một đột biến
+  tiêu đề rỗng), đối chứng XANH (api 67/0 · hd 67/0). Gốc in 65 ca ≠ 67 ở head: 2 ca C4 chỉ chạy khi có bước 3 (đúng thiết kế, A16).
+
+SỐ CA cong_cu/thu_KHAPI3.js: 67
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 67
 SỐ CA cong_cu/thu_KHUI1.js: 41

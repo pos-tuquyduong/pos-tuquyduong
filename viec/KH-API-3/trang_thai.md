@@ -17,6 +17,8 @@
   câu 3 một địa chỉ chung quầy ↔ App).
 - Bước 4–6: bài thử đỏ trên gốc (`bang_chung_do.txt`), code vá, `thu_KHAPI3.js` 58/58, `thu_KH1.js` 157/157, `thu_HOPDONG_KH.js` 67/67,
   đột biến 28/28 BẮT. `npm test` / `--day-du`: xanh trừ `cong_cu/thu_KHO1.js` (ngoài Phạm vi — Câu hỏi 1).
+- (Số trên là của lần đầu. HIỆN TẠI sau vòng sửa 2: `thu_KHAPI3.js` 67/67, `thu_KHUI1.js` 41/41, `thu_P15QR.js` 29/29, đột biến 38/38 BẮT,
+  `npm test -- --day-du` PASS 86 · FAIL 0 — xem `## Vòng sửa 2` và báo cáo 7 mục CUỐI file.)
 
 ## Phiên tiếp 30.10 (phiếu đã sửa: Phạm vi + `## Bài thử cũ sửa` + 003 khi thiếu bảng)
 - Sau gộp main: `npm test` đỏ đúng một chỗ — `thu_KHO2a.js` E6b (`003_xung_ho_khach: no such table: pos_customers`). `thu_KHO1.js` xanh (KHO-2a đã sửa).
@@ -42,19 +44,25 @@
 | `PUT /toi` ba trường | VS-PUT-RONG, VS-PUT-XUNG-HO-RONG-XOA |
 | `hoSo` thêm trường | BV-HOSO-XUNG-HO |
 | bước nâng cấp 003 | BV-NANG-CAP-003 |
+| trần cứng bộ đếm (vòng sửa 1) | BV-BO-DEM-TRAN, VS-BO-DEM-XOA-SOM |
+| `chuanDiaChi` sai kiểu / null (vòng sửa 1) | BV-DIA-CHI-KIEU, VS-DIA-CHI-NULL-KHONG-XOA |
+| cửa sổ phút / giờ trong `GIOI_HAN`, hàm bọc nhận `luc` (vòng sửa 2) | VS-MENU-CUA-SO-GIO, VS-GIA-HAN-CUA-SO-PHUT |
+| `tuyChonKhach`: tiêu đề rỗng = CÓ gửi (khoá hồi quy, vòng sửa 2) | VS-AUTH-RONG-LA-KHONG-TOKEN |
+| `chuanDiaChi` chuẩn NFC (khoá hồi quy, vòng sửa 2) | VS-DIA-CHI-KHONG-NFC |
 | 003 bỏ qua khi chưa có bảng `pos_customers` (thu_KHO2a E6b) | BV-003-KIEM-BANG, VS-003-SAI-TEN-BANG |
 | `POST /gia-han` + trần | BV-GIA-HAN-TRAN, VS-GIA-HAN-UTC, VS-GIA-HAN-BANG-LAN-THU |
 | hợp đồng v3 + bài thử hợp đồng | BV-HOPDONG-TUY-CHON, VS-HOPDONG-GIA-TRI-LA, BV-HOPDONG-GIA-HAN |
 
 Mọi tên đột biến: BV-MENU-BAT-DANG-NHAP · VS-MENU-NUOT-MA-SAI · BV-MENU-GIOI-HAN · VS-MENU-TRAN-301 · VS-MENU-DEM-CA-CO-DANG-NHAP · VS-CUA-SO-LECH ·
-VS-TRAN-LECH · BV-XUNG-HO-CAN-TEN · VS-XUNG-HO-LA · VS-XUNG-HO-THIEU-BAN · VS-DIA-CHI-300 · VS-DIA-CHI-KHONG-CAT · BV-INSERT-XUNG-HO · BV-GIA-HAN-MA ·
+VS-TRAN-LECH · VS-MENU-CUA-SO-GIO · VS-AUTH-RONG-LA-KHONG-TOKEN · BV-BO-DEM-TRAN · VS-BO-DEM-XOA-SOM · BV-DIA-CHI-KIEU · VS-DIA-CHI-NULL-KHONG-XOA ·
+VS-DIA-CHI-KHONG-NFC · BV-XUNG-HO-CAN-TEN · VS-XUNG-HO-LA · VS-XUNG-HO-THIEU-BAN · VS-DIA-CHI-300 · VS-DIA-CHI-KHONG-CAT · BV-INSERT-XUNG-HO · BV-GIA-HAN-MA ·
 VS-GIA-HAN-11-PHUT · VS-GIA-HAN-MA-MAI · VS-KIEM-CA-KHACH-CU · VS-PUT-RONG · VS-PUT-DIA-CHI-KHONG-XOA · VS-PUT-XUNG-HO-RONG-XOA · BV-HOSO-XUNG-HO ·
-BV-NANG-CAP-003 · BV-003-KIEM-BANG · VS-003-SAI-TEN-BANG · BV-GIA-HAN-TRAN · VS-GIA-HAN-UTC · VS-GIA-HAN-BANG-LAN-THU · BV-HOPDONG-TUY-CHON · VS-HOPDONG-GIA-TRI-LA · BV-HOPDONG-GIA-HAN
+BV-NANG-CAP-003 · BV-003-KIEM-BANG · VS-003-SAI-TEN-BANG · VS-GIA-HAN-CUA-SO-PHUT · BV-GIA-HAN-TRAN · VS-GIA-HAN-UTC · VS-GIA-HAN-BANG-LAN-THU · BV-HOPDONG-TUY-CHON · VS-HOPDONG-GIA-TRI-LA · BV-HOPDONG-GIA-HAN
 
 Lần chạy đầu: 27/28 BẮT — VS-KIEM-CA-KHACH-CU SỐNG vì chính đột biến viết sai (vẫn giữ `if (sai) return sai;` trong khối khách mới → hành vi
 không đổi). Sửa đột biến (83b28af) → BẮT. Không đổi bài thử.
 
-## Câu hỏi (chờ chủ quán — người gác chặn sửa file ngoài Phạm vi và chặn sửa phiếu, `G5-NGOAIPV` / `G1-PHIEU`)
+## Câu hỏi — ĐÃ TRẢ LỜI (chat sửa phiếu 628fce8, 30.10; `thu_KHO1.js` không cần sửa sau khi gộp KHO-2a). Giữ lại làm lịch sử.
 Chủ quán đã duyệt thêm hai file vào Phạm vi nhưng phiếu chưa ghi, nên máy không sửa được. Nhờ chat sửa `viec/KH-API-3/phieu.md`:
 1. Thêm vào `## Phạm vi`:
    - `cong_cu/thu_KHUI1.js` (đã duyệt — ca H3 "menu không token → 401" thành "/toi không token → 401" + "menu không token → 200")
@@ -122,9 +130,9 @@ nêu "bước trước hỏng → cửa này 500" ở CHƯA KIỂM.
   → 400 + CSDL không đổi, C2 `dia_chi: null` → xoá. Chạy lại trên gốc: 14 đạt · 46 hỏng; trên code vá: 62 đạt · 0 hỏng (`bang_chung_do.txt`).
 - `dot_bien.py`: thêm BV-BO-DEM-TRAN, VS-BO-DEM-XOA-SOM, BV-DIA-CHI-KIEU, VS-DIA-CHI-NULL-KHONG-XOA → **32/32 BẮT**, đối chứng XANH.
 - `server/routes/kh/index.js:4` tách dòng chú thích dài. `hanTokenKhach` giữ (mở `helpers.js` là việc sau — ngoài Phạm vi).
-- Chưa soát vòng 2: bộ kiểm còn đỏ vì `thu_KHO1.js` (ngoài Phạm vi) và phiếu còn chờ sửa — soát lại khi `/lam-viec KH-API-3 tiep`.
+- (Lúc đó) chưa soát vòng 2 vì bộ kiểm còn đỏ — đã soát ở phiên tiếp 30.10, xem `## Soát độc lập — vòng 2`.
 
-## Cổng (`node tu_chay/cong.js chay . 55a8f29^ HEAD viec/KH-API-3`, HEAD 8be85de, cây sạch)
+## Cổng — LẦN CŨ ở HEAD 8be85de (hết hiệu lực; lần mới ở cuối file)
 ```
 · CẢNH BÁO A16: `cong_cu/thu_KHAPI3.js` chạy trên gốc in 60 ca ≠ 62 ca ở head — (2 ca C4 chỉ chạy khi có bước 3 — đúng thiết kế)
 ✗ [A11] bài thử `cong_cu/thu_HOPDONG_KH.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
@@ -134,7 +142,7 @@ nêu "bước trước hỏng → cửa này 500" ở CHƯA KIỂM.
 ```
 Cả ba chờ chủ quán sửa phiếu (mục Câu hỏi): A11 ← dòng `## Bài thử cũ sửa` cho `thu_HOPDONG_KH.js`; A13 ← `thu_KHO1.js` vào Phạm vi.
 
-## Nghiệm thu — đếm từng mục
+## Nghiệm thu — đếm từng mục (bản CŨ ở 8be85de; bản hiện tại ở cuối file)
 - A `/menu` không bắt buộc token: A1 (không token = có token, cả gia_hang), A2, A3 (sai / hết hạn / `Bearer null` / Basic → 401), A4 (300 → 200,
   301 → 429, IP khác 200, có token không đếm), A4b (cửa sổ 59 999 / 60 000 ms), A4c (trần bộ đếm), A5 (không hạng tắt) — `thu_KHAPI3.js` [A];
   không thêm trường món: A1 so BẰNG nguyên `data` với lượt có token + `thu_KH1.js` E5 danh sách trắng món. ✓
@@ -149,7 +157,7 @@ Cả ba chờ chủ quán sửa phiếu (mục Câu hỏi): A11 ← dòng `## B�
 - F K5: F1 (khách cũ `{ sdt, ma }`), C3/F2 (`PUT { ten }`), A2 (menu có token), B8, F4 (gia hạn không ăn trần nhận mã bill); quầy / nhận điểm /
   PIN: `thu_KH1.js` 157/157, `thu_KHAPI2.js` xanh trong `npm test`. ✓ — trừ "App v2 tạo khách MỚI" (chủ quán quyết đổi, 30.10).
 
-## Báo cáo 7 mục
+## Báo cáo 7 mục — bản CŨ ở 8be85de (bản hiện tại ở cuối file)
 ```
 VIỆC:        KH-API-3 — Cửa App KH: menu không cần đăng nhập · đăng ký 3 bước (xưng hô, địa chỉ) · tự gia hạn đăng nhập · hợp đồng v3
 ĐÃ SỬA:      server/routes/kh/index.js — /menu dời lên trước xacThucKhach với tuyChonKhach + giuLuotMenu; hoSo thêm xung_ho, dia_chi;
@@ -182,7 +190,7 @@ GIT:         8be85de KH-API-3: bang chung vong sua 1 (SO CA 62)
 BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
 ```
 
-## Bài học
+## Bài học — vòng 1 (bản cuối ở cuối file)
 Sự cố của việc: (1) kế hoạch sót `thu_KHO1.js` khoá cứng danh sách bước nâng cấp → bộ kiểm đỏ, phải dừng hỏi; (2) agent soát kế hoạch bắt
 `thu_KH1.js` sẽ đỏ hàng loạt + câu `strftime(tao_luc,'+5 minutes')` thiếu định dạng; (3) đột biến VS-KIEM-CA-KHACH-CU SỐNG vì chính đột
 biến không đổi hành vi; (4) soát vòng 1: hai lời hợp đồng không có ca, bộ đếm không trần; (5) người gác chặn: B-BIMAT-CHU (chữ `KH_TOKEN_SAI`
