@@ -2,7 +2,7 @@
  * POS System - Signup Codes Routes (Bước 4 của "Ưu đãi khách mới")
  *
  * POST /claim: cửa nhận mã — khách nhập mã in trên bill lúc tạo tài khoản App KH.
- * Kiểm hạn 24h (rolling từ lúc mã được in) + chặn SĐT đã từng claim (bất kể mã nào) →
+ * Kiểm hạn theo cài đặt hạn mã nhandiem_han_gio (rolling từ lúc in — KH-API-2, đúng số giờ bill in) + chặn SĐT đã từng claim →
  * phát ra 1 voucher THẬT trong pos_discount_codes, dùng đúng cấu hình owner đặt trong
  * Cài đặt (đọc qua pos_settings, key tiền tố `signup_`).
  *
@@ -23,10 +23,10 @@ const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../ut
 const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
 const { loiMayChu } = require('./kh/loi');
 const { tienTinhDiem } = require('../utils/diemThat'); // DIEM-THAT-1: điểm gốc mã bill theo tiền khách trả thật
+const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem'); // HD-1: cùng hàm với hoá đơn
 
 const router = express.Router();
 
-const CODE_EXPIRE_HOURS = 24;
 const DEFAULT_VALID_DAYS = 30;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -204,54 +204,12 @@ async function nhanDiemMaBill(req, res) {
     }
     if (billSdtKhac(dong, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
     const don = kqDon.don;
-    // P22-23 (chủ quán chốt 13.10): đơn giảm Flash 0 điểm — cả lúc bán lẫn nhận bằng mã bill. Chặn TRƯỚC câu chiếm mã: mã không bị tiêu.
-    if (Number(don.flash_discount) > 0) {
-      return res.status(400).json({ success: false, error: 'Đơn có giảm Flash sale không được cộng điểm.', code: 'DON_FLASH_KHONG_DIEM' });
-    }
-
-    // Điểm gốc tính theo ĐÚNG cấu hình điểm đang chạy, không tự đặt công thức riêng.
-    const loyRows = await query(
-      "SELECT key, value FROM pos_settings WHERE key IN ('loyalty_enabled','loyalty_earn_per_amount','loyalty_expiry_mode')",
-    );
-    const loy = {};
-    for (const r of loyRows) loy[r.key] = r.value;
-    if (loy.loyalty_enabled !== '1' && loy.loyalty_enabled !== 'true') {
-      return res.status(400).json({
-        success: false,
-        error: 'Chương trình tích điểm đang tắt.',
-        code: 'TICH_DIEM_DANG_TAT',
-      });
-    }
-    const moiBaoNhieu = Number(loy.loyalty_earn_per_amount);
-    if (!Number.isFinite(moiBaoNhieu) || moiBaoNhieu < 1) {
-      return res.status(400).json({ success: false, error: 'Cấu hình tích điểm chưa hợp lệ.', code: 'CAU_HINH_DIEM_SAI' });
-    }
-    const diemGoc = Math.floor(tienTinhDiem(don) / moiBaoNhieu);   // DIEM-THAT-1: tiền khách trả thật, cùng hàm với lúc bán
-    if (diemGoc <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Đơn này không đủ để tính điểm.',
-        code: 'DON_KHONG_DU_DIEM',
-      });
-    }
-
-    // Đơn đã được cộng điểm lúc bán (khách có cho SĐT) thì chỉ cộng BÙ phần
-    // còn thiếu, để tổng đúng bằng gốc x hệ số — KHÔNG cộng đôi.
-    const daCong = await queryOne(
-      "SELECT id FROM pos_point_transactions WHERE order_id = ? AND type = 'earn' LIMIT 1",
-      [don.id],
-    );
-    const diemCong = daCong
-      ? Math.round(diemGoc * (ch.heSo - 1))
-      : Math.round(diemGoc * ch.heSo);
-
-    if (diemCong <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Hệ số hiện tại không cộng thêm điểm nào cho đơn này.',
-        code: 'KHONG_THEM_DIEM',
-      });
-    }
+    // HD-1: phép tính điểm nằm ở utils/nhanDiem.js — hoá đơn in cùng một hàm (P22-23: Flash 0 điểm; DIEM-THAT-1: tiền trả thật).
+    // Chặn TRƯỚC câu chiếm mã: mã không bị tiêu. Đơn đã cộng điểm lúc bán (khách có cho SĐT) thì chỉ cộng BÙ phần còn thiếu.
+    const { loy, daCong } = await docDuLieuNhanDiem(don.id);
+    const kqDiem = tinhDiemNhanMa({ don, tienDiem: tienTinhDiem(don), ch, loy, daCong });
+    if (kqDiem.loi) return res.status(kqDiem.loi.status).json({ success: false, error: kqDiem.loi.error, code: kqDiem.loi.code });
+    const { diemGoc, diemCong } = kqDiem;
 
     const now = getNow();
 
@@ -353,12 +311,14 @@ async function nhanMaUuDai(req, res) {
       return res.status(409).json({ success: false, error: 'Mã này đã được sử dụng', code: 'MA_DA_DUNG' });
     }
 
-    // Hạn 24h rolling từ lúc in — so sánh bằng mili-giây, không phụ thuộc múi giờ chuỗi.
+    // Hạn rolling từ lúc in — KH-API-2 (chủ quán chốt 29.10, Q1 a): số giờ = cài đặt hạn mã, ĐÚNG số bill in (orders.js), cùng
+    // docCauHinhNhanDiem với /nhan-diem. So sánh bằng mili-giây, không phụ thuộc múi giờ chuỗi.
+    const { hanGio } = await docCauHinhNhanDiem();
     const issuedMs = new Date(signupRow.issued_at.replace(' ', 'T') + 'Z').getTime();
     const nowMs = new Date(now.replace(' ', 'T') + 'Z').getTime();
     const hoursPassed = (nowMs - issuedMs) / (1000 * 60 * 60);
-    if (!Number.isFinite(hoursPassed) || hoursPassed > CODE_EXPIRE_HOURS) {
-      return res.status(400).json({ success: false, error: 'Mã đã hết hạn (quá 24 giờ kể từ lúc in)', code: 'MA_HET_HAN' });
+    if (!Number.isFinite(hoursPassed) || hoursPassed > hanGio) {
+      return res.status(400).json({ success: false, error: `Mã đã hết hạn (quá ${hanGio} giờ kể từ lúc in)`, code: 'MA_HET_HAN' });
     }
 
     // Chặn theo SĐT (không theo mã) — 1 SĐT chỉ claim được đúng 1 lần trong đời, bất kể mã nào.

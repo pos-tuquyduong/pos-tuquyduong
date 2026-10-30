@@ -971,3 +971,11 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q4): `
    đọc git. Dùng để chạy `thu_P26b.js` / giả lập trên code gốc mà không đụng cây làm việc.
 7. **Chính PR của HOC-2 chạy cổng LUẬT CŨ** (cổng lấy `cong.js` của main): A16–A18 áp từ việc sau. Hồ sơ HOC-2 tự
    chạy `cong.js` mới trên bản sao kho, ghi vào `viec/HOC-2/trang_thai.md` (A6).
+
+### KHUNG-KEO-1 (30.10.2026, tu-chay 1.8.1)
+
+- Phiên máy mây mở từ bản chụp cũ quá 50 commit (KHO-2a: `8f88885`, nhánh đã 55 commit sau) → kho nông, bước 1.3 không thấy tổ tiên
+  chung, dừng hỏi chủ quán hai lần. Chủ quán duyệt 30.10: người gác cho `git fetch [-q] --unshallow origin viec/<MÃ>` (chỉ tải thêm lịch
+  sử, không đổi file / nhánh; `--depth`, `--deepen` vẫn chặn); skill bước 1.3: kho nông + lệch hai phía → unshallow rồi so lại một lần,
+  vẫn lệch mới dừng. `--ff-only` vẫn là lớp chặn cuối: không cùng đường thì git tự từ chối.
+- Stop hook đòi đổi tác giả / amend / rebase / git config: không làm, không hỏi chủ quán.

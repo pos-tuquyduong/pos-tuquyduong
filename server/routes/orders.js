@@ -27,6 +27,7 @@ const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
 const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
+const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
@@ -654,13 +655,7 @@ async function taoDon(req, res, phien = null) {
             appliedTierName = membership.tier_name;
             for (const it of orderItems) {
               if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
-              // Math.min(90, ...) là phòng vệ 2 lớp — Settings đã chặn 0-90 lúc lưu rồi,
-              // nhưng nếu dữ liệu lỡ bị hỏng (vd nhập tay thẳng vào DB), tuyệt đối không để
-              // % giảm vượt 90 khiến giá món sau giảm thành ÂM (khách được "trả tiền" thay vì trả).
-              const rawRate = it.is_special_group
-                ? Number(tier.special_discount_percent) || 0
-                : Number(tier.discount_percent) || 0;
-              tiLeHang.set(it, Math.min(90, Math.max(0, rawRate)));
+              tiLeHang.set(it, tiLeHangMon(tier, it.is_special_group)); // KH-API-2: cùng hàm với /api/kh/menu (kẹp 0–90 ở giaHang.js)
             }
           }
         }

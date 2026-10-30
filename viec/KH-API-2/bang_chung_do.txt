@@ -1,0 +1,126 @@
+KH-API-2 — bằng chứng đỏ (29.10.2026)
+
+Code gốc = cây ab51a8a (chưa có giaHang.js, gioHoatDong.js, 4 cửa mới, hợp đồng v1). Bài thử commit trước khi vá: 8e5ebd7 → 1803088.
+
+════ node cong_cu/thu_KHAPI2.js — trên code GỐC (bài ở 1803088, server/ ở ab51a8a) ════
+  ✗ A · nạp được server/utils/giaHang.js
+  ✗ A3 /menu gia_hang của hạng khách: món thường 39.375 (12,5 %), món đặc biệt 31.000 (7 % riêng)  — HTTP 200 · undefined · undefined
+  ✗ A3 tinh-thu tier_unit_price từng món = gia_hang của /menu (cùng khách, cùng hạng)  — HTTP 200 · 39375,31000
+  ✗ A3 POST /orders thật: tier_unit_price đã ghi = gia_hang của /menu; tổng 70.375  — HTTP 200 · 39375,31000 · tổng 70375
+  ✓ A4 hai POST /orders cùng lúc, hai khách cùng hạng → cả hai 200, giá hạng 39.375 / 31.000, tổng 70.375
+  ✗ B1 hạng active → hang { id, ten, phan_tram 12.5, phan_tram_nhom_dac_biet 7, het_han } đúng 5 trường  — HTTP 200 · undefined
+  ✗ B1 het_han = expires_at của lần mua, dạng YYYY-MM-DDTHH:mm:ss
+  ✗ B2 hạng sắp hết (3 ngày) → vẫn có hang
+  ✗ B3 hạng đã hết hạn → hang: null
+  ✗ B4 chưa mua hạng → hang: null
+  ✗ B5 so_du_vi = 100.000 − 30.000 đang giữ (phiên hết hạn không trừ) = 70.000, số nguyên  — undefined
+  ✗ B5 không có ví → so_du_vi 0
+  ✗ B6 khách A (không hạng) → hang null, so_du_vi 5.000 của A (không lộ số của khách khác)  — {"sdt":"0937500007","ten":"Khách 7","ngay_tao":"2026-10-29T11:03:02","qr":"TQD-8TKUWKN84PMF"}
+  ✓ B7 trường cũ sdt, ten, ngay_tao, qr giữ nguyên
+  ✗ C1 không token → 200, đúng các hạng đang bật theo thứ tự sort_order, không có hạng tắt  — HTTP 401 · KH_TOKEN_SAI ·
+  ✗ C1 mỗi hạng ĐÚNG 6 trường { id, ten, phan_tram, phan_tram_nhom_dac_biet, gia_the, thu_tu }
+  ✗ D1 đang trong khung → dang_chay true, phan_tram 20, mon = [mã món]  — HTTP 401 · KH_TOKEN_SAI
+  ✗ D1 bat_dau ≤ bây giờ < ket_thuc, giờ đầy đủ YYYY-MM-DDTHH:mm:ss  — undefined · 2026-10-29T11:03:02 · undefined
+  ✗ D2 bật nhưng ngoài khung → dang_chay false (vẫn có giờ khung)
+  ✗ D3 tắt → dang_chay false, mon []
+  ✗ D4 % = 0 → dang_chay false (cùng điều kiện quầy)
+  ✗ D5 không có trường "suất" (POS không đếm suất)
+  ✗ E1 mỗi món có gia_hang đủ hạng đang bật, giá = giaHangMon(gia, tiLeHangMon(hạng, nhóm))  — HTTP 200 · juice_1 undefined | juice_2 undefined
+  ✗ E2 món nhóm đặc biệt dùng % riêng (hạng thử 7 % → 31.000, không phải 12,5 % → 29.166)
+  ✗ E3 trường cũ y nguyên (ma, ten, nhom, gia, con_hang, ton_cu, ton_luc)  — ma,ten,nhom,gia,con_hang,ton_cu,ton_luc
+  ✗ E4 hạng 0 % → gia = giá gốc
+  ✗ E5 giaCacHang giá null / 0 → []
+  ✗ F · nạp được server/utils/gioHoatDong.js
+  ✗ F8 không token → 200; bay_gio = giờ VN tính độc lập (lệch ≤ 5 giây) dù máy chạy TZ=UTC  — HTTP 401 · KH_TOKEN_SAI
+  ✗ F8 đủ trường bay_gio, dang_mo, nhan_don, hom_nay, mo_lai_luc, thong_bao, lich_tuan, ngay_nghi  — error,code
+  ✗ F6 kho mới (seed) → mở cả ngày, thong_bao rỗng, lich_tuan thứ 2…8
+  ✗ F10 PUT giờ 25:00 → 400 CAI_DAT_KHONG_HOP_LE, không khoá nào được ghi  — HTTP 200 · {"value":"KHÔNG ĐƯỢC GHI"}
+  ✗ F10 PUT JSON hỏng → 400 CAI_DAT_KHONG_HOP_LE, không khoá nào được ghi  — HTTP 200 · {"value":"KHÔNG ĐƯỢC GHI"}
+  ✗ F10 PUT thiếu một thứ → 400 CAI_DAT_KHONG_HOP_LE, không khoá nào được ghi  — HTTP 200 · {"value":"KHÔNG ĐƯỢC GHI"}
+  ✗ F10 PUT N âm → 400 CAI_DAT_KHONG_HOP_LE, không khoá nào được ghi  — HTTP 200 · {"value":"KHÔNG ĐƯỢC GHI"}
+  ✗ F10 PUT ngày sai 30/02 → 400 CAI_DAT_KHONG_HOP_LE, không khoá nào được ghi  — HTTP 200 · {"value":"KHÔNG ĐƯỢC GHI"}
+  ✗ F10 PUT khoá lạ → 400 CAI_DAT_KHONG_HOP_LE, không khoá nào được ghi  — HTTP 200 · {"value":"KHÔNG ĐƯỢC GHI"}
+  ✗ F10 PUT đúng → 200; cửa đọc ra lịch tuần + ngày nghỉ vừa lưu  — HTTP 200 · {"error":"Phiên đăng nhập không hợp lệ — đăng nhập lại","code":"KH_TOKEN_SAI"}
+  ✗ F8 mọi giờ trả ra khớp YYYY-MM-DDTHH:mm:ss
+  ✓ F11 khoá khác (uudai_chung_hang_percent, invoice_policy) vẫn lưu được → 200
+  ✓ F10 xoá lịch bằng chuỗi rỗng → 200 (về "chưa cài")
+  ✗ G2 cài hạn 48 giờ: mã in 30 giờ trước → App nhận được (200)  — HTTP 400 · MA_HET_HAN · Mã đã hết hạn (quá 24 giờ kể từ lúc in)
+  ✗ G2 mã in 49 giờ trước → 400 MA_HET_HAN, lời ghi "48 giờ"  — HTTP 400 · MA_HET_HAN · Mã đã hết hạn (quá 24 giờ kể từ lúc in)
+  ✗ G2 đường quầy /claim cùng hạn theo cài đặt (mã 30 giờ → 200)  — HTTP 400 · MA_HET_HAN · Mã đã hết hạn (quá 24 giờ kể từ lúc in)
+  ✓ J2 khách không hạng → giá gốc, không tier_unit_price
+  ✓ J3 đơn dính giờ vàng → KHÔNG giảm hạng (như cũ): tổng 36.000, tier_discount 0
+  ✗ J5 quầy bán lúc quán "nghỉ cả tuần" theo giờ hoạt động → 200 (quầy KHÔNG bị chặn)  — undefined · HTTP 200
+  ✓ J6 nhận điểm ở quầy /api/pos/signup-codes/nhan-diem → 200
+  ✓ G1 /kh/nhan-ma-bill lỗi máy → 500 LOI_MAY_CHU, lời không chứa lời máy (khoá hồi quy)
+  ✓ G1 /kh/nhan-diem lỗi máy → 500 LOI_MAY_CHU, lời không chứa lời máy (khoá hồi quy)
+  ✓ G3 đường quầy /api/pos/signup-codes/claim lỗi máy → 500 lời cũ ({ success: false, error })
+  10 đạt · 41 hỏng
+  (A1/A2/A2b, F1–F9 không chạy trên gốc: module chưa có → ca "nạp được" hỏng thay.)
+  Ca xanh trên gốc là ca khoá hồi quy / K5 (A4, B7, F11, J2, J3, J6, G1, G3) — chủ ý.
+
+════ node cong_cu/thu_HOPDONG_KH.js — trên code GỐC (hợp đồng v1, server/ ở ab51a8a) ════
+  ✗ không còn dòng "Lỗi đã biết (sửa ở KH-API-2)"
+  ✗ cửa /gio-vang ghi rõ "không có suất"
+  ✗ server/routes/signup-codes.js: 23 mã đều trong ma_loi  — MA_KHONG_GAN_DON, DON_DA_HUY, DON_DA_HOAN, DON_KHONG_HOP_LE, BILL_CHUA_THANH_TOAN, BILL_SDT_KHAC, NHANDIEM_DANG_TAT, MA_DA_NHAN_DIEM, TICH_DIEM_DANG_TAT, DON_KHONG_DU_DIEM, KHONG_THEM_DIEM, MA_TRUNG
+  39 đạt · 3 hỏng
+
+════ Trên code ĐÃ VÁ (c8e42ce + 85ed323) ════
+  thu_KHAPI2.js     84 đạt · 0 hỏng (A2b chạy — nạp được BanHang/tinh.js)
+  thu_HOPDONG_KH.js 48 đạt · 0 hỏng
+
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 49
+
+════ node cong_cu/thu_KH1.js — bài CŨ sửa 2 ca (Q4, commit 0091a2c) — trên code GỐC (server/ ở ab51a8a) ════
+  ✗ E1 GET /toi → 200, đúng 6 trường hang · ngay_tao · qr · sdt · so_du_vi · ten (P15-QR, KH-API-2)  — HTTP 200 · ngay_tao,qr,sdt,ten
+  ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng  — ma,ten,nhom,gia,con_hang,ton_cu,ton_luc
+  155 đạt · 2 hỏng
+Trên code ĐÃ VÁ (0091a2c): 157 đạt · 0 hỏng
+
+SỐ CA cong_cu/thu_KH1.js: 157
+
+════ node cong_cu/thu_HOPDONG_KH.js — CHẠY LẠI sau khi siết phép quét mã lỗi kh/index.js (a86f449, đột biến VS-HD-MA-LOI-NGOAI sống) ════
+Trên code GỐC (server/ + HOP_DONG_API_KH.md ở ab51a8a, bài ở a86f449):
+  ✗ không còn dòng "Lỗi đã biết (sửa ở KH-API-2)"
+  ✗ cửa /gio-vang ghi rõ "không có suất"
+  ✗ server/routes/signup-codes.js: 23 mã đều trong ma_loi  — MA_KHONG_GAN_DON, DON_DA_HUY, DON_DA_HOAN, DON_KHONG_HOP_LE, BILL_CHUA_THANH_TOAN, BILL_SDT_KHAC, NHANDIEM_DANG_TAT, MA_DA_NHAN_DIEM, TICH_DIEM_DANG_TAT, DON_KHONG_DU_DIEM, KHONG_THEM_DIEM, MA_TRUNG
+  39 đạt · 3 hỏng
+Trên code ĐÃ VÁ (a86f449): 48 đạt · 0 hỏng — số ca không đổi (48, dòng số ca ở trên vẫn đúng).
+
+════ VÒNG SỬA 1 (soát lỗi 1–8) — hai bài thêm ca (81372a1, 7b9b819), chạy lại cả hai phía (A16) ════
+Trên code TRƯỚC vòng sửa (HEAD dfaed82 code + bài 81372a1) — ca mới ĐỎ:
+  ✗ D6 bật, có %, KHÔNG có món → như tắt: dang_chay false, phan_tram 0, mon [], bat_dau null (một vị từ)
+  ✗ D7 khung qua nửa đêm, giờ CỐ ĐỊNH (khungHangNgay chưa có)
+  ✗ D7 /gio-vang dựng khung bằng khungHangNgay(bayGio, …)
+  ✗ E6 hạng ĐÃ TẮT, khách còn thẻ → /menu của khách đó có giá hạng đó (không có dòng hạng tắt)
+  ✗ F9 nghỉ cả tuần → câu KHÔNG cụt — thong_bao="Mở lại lúc "
+  ✗ F12 chưa cài lịch + ngừng trước 30 phút: 23:59 vẫn nhận đơn — nhan_don=false
+  ✗ F12 Thứ Hai 07:00–00:00 nối Thứ Ba 00:00–22:00: 23:45 vẫn nhận đơn — nhan_don=false
+  ✗ J5 câu báo khi không có giờ mở lại KHÔNG cụt đuôi — "Nghỉ — mở lại "
+  87 đạt · 8 hỏng   (G2 ngưỡng 47:59 / 48:01 xanh — khoá hồi quy, bắt bằng đột biến VS-HANMA-LECH-1-GIO)
+  thu_HOPDONG_KH.js: ca mới "mọi router.<x>( đọc được đường" xanh trước vòng sửa — khoá phép quét, bắt bằng đột biến VS-HD-ROUTE-DUONG-BIEN /
+  VS-HD-ROUTE-ALL-NHAY-KEP.
+
+Trên code GỐC (server/ + hợp đồng ở ab51a8a, bài ở 7b9b819):
+  thu_KHAPI2.js     10 đạt · 47 hỏng (thêm ✗ D6, D7 ×2, E6, G2 ngưỡng, J5 câu báo so với lần ghi đầu; F9/F12 không chạy — module chưa có)
+  thu_HOPDONG_KH.js 40 đạt · 3 hỏng (cùng 3 ca đỏ như lần ghi đầu)
+Trên code ĐÃ VÁ (ac6178d): thu_KHAPI2.js 95 đạt · 0 hỏng · thu_HOPDONG_KH.js 49 đạt · 0 hỏng (dòng số ca ở trên đã sửa theo).
+
+════ VÒNG SỬA 2 (soát vòng 2 lỗi 1, 2 + nghi ngờ hom_nay.dong) — bài thêm ca (4fa1869), chạy lại cả hai phía (A16) ════
+Trên code TRƯỚC vòng sửa 2 (63cabce code + bài 4fa1869):
+  ✗ F12 ca nối: hom_nay.dong = giờ đóng của cả chuỗi (cùng hàm với nhan_don) — hom_nay={"mo":"2026-11-02T07:00:00","dong":"2026-11-03T00:00:00"}
+  ✗ F13 ca CHỒNG nhau (Thứ Hai 18:00–02:00, Thứ Ba 01:00–10:00), N 30: 01:40 vẫn nhận đơn — nhan_don=false
+  96 đạt · 2 hỏng   (F13 09:30 xanh — khoá biên; thu_HOPDONG_KH 49 · 0 — ca router.use siết khoá bằng đột biến VS-HD-ROUTE-USE-ROUTER-CON)
+Trên code GỐC (ab51a8a, bài 4fa1869): thu_KHAPI2.js 10 đạt · 47 hỏng (F12/F13 không chạy — module chưa có) · thu_HOPDONG_KH.js 40 đạt · 3 hỏng
+Trên code ĐÃ VÁ (59397b4): thu_KHAPI2.js 98 · 0 · thu_HOPDONG_KH.js 49 · 0 (dòng số ca ở trên đã sửa theo).
+
+════ VÒNG SỬA 4 (chat soát thay — soát vòng 3 lỗi 1) — bài thêm 3 ca F14 (0d2db23), chạy lại cả hai phía (A16) ════
+F14 (ca HỞ, ca GỌN, qua nửa đêm nối qua nửa đêm) là ca KHOÁ HỒI QUY: hành vi đã đúng từ vòng sửa 2 (soát vòng 3 đo tay ra ĐÚNG), nên xanh
+trên code trước vòng sửa 4; giá trị của ca đo bằng đột biến xoá đúng một vế: BV-GIOHD-DUNG-HO → ✗ F14 ca HỞ, BV-GIOHD-DUNG-GON → ✗ F14 ca
+GỌN (cả hai BẮT, dot_bien.py 45/45).
+Trên code GỐC (ab51a8a, bài 0d2db23): thu_KHAPI2.js 10 đạt · 47 hỏng (F14 không chạy — module chưa có) · thu_HOPDONG_KH.js 40 đạt · 3 hỏng
+Trên code ĐÃ VÁ (3d99e5e): thu_KHAPI2.js 101 · 0 · thu_HOPDONG_KH.js 49 · 0 (dòng số ca ở trên đã sửa theo).
+
+Chat soát thay khi gộp (29.10): sửa vênh với HD-1 → ca A28f của cong_cu/thu_HD1.js đổi (hạn ưu đãi theo cấu hình, Q1 a).
+Trên code GỐC (main 0e846ff): thu_HD1.js ĐỎ đúng A28f (uu_dai false, han_gio_uu_dai 24). Trên code PR: thu_HD1.js 157 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_HD1.js: 157

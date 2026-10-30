@@ -1,0 +1,64 @@
+HD-1 — bằng chứng ĐỎ trên code CHƯA vá (gốc f1fea71 = "PHIEU: HD-1"; server/ + client/src/ của gốc, bài thử HIỆN TẠI cong_cu/thu_HD1.js
+qua `python3 viec/HD-1/dot_bien.py --goc f1fea71`). Chạy lại 28.10 sau khi thêm ca C4 (viền yên tĩnh QR) — bài hiện tại trên gốc:
+6 đạt · 32 hỏng — các dòng ✗ chính:
+
+  ✗ G0 nạp được client/src/utils/hoaDon.js  — Cannot find module …/client/src/utils/hoaDon.js
+  ✗ C0 nạp được client/src/utils/veQr.js (+ thư viện qrcode-generator 1.4.4)  — Cannot find module …/veQr.js
+  ✗ F2 chữ đầu / chân tem tự điền tên khách, có ở MỌI tem
+  ✗ F7 khách lẻ: {ten_khach} trên tem = "quý khách" (không in "Khách lẻ")
+  ✗ A0 nạp được server/routes/hoaDon.js  — Cannot find module …/hoaDon.js
+  ✗ A1 chưa đăng nhập → 401  — HTTP 404
+  ✗ A2 đơn không có → 404 KHONG_THAY_DON  — HTTP 404
+  ✗ A3 đơn khách lẻ tiền mặt: số bill = số đơn, mã đơn đúng, tổng 25.000  — HTTP 404
+  ✗ A4 … A8 (thanh toán, khách lẻ, chuỗi cân, món, mã nhận điểm N = 50) — HTTP 404
+  ✗ A9 N trên hoá đơn = số điểm /nhan-diem cộng THẬT  — HTTP 200 · cộng 50 · hoá đơn undefined
+  ✗ A10 … A18d (mã đã dùng, hệ số, Flash, đơn 0 điểm, chương trình tắt, ưu đãi, tích điểm tắt, phí giao, mã quá hạn, làm tròn) — HTTP 404 / undefined
+  ✗ A19 … A23 (khách quen có hạng, giá hạng, chuỗi 45.000 − 4.500 + 5.000, thanh toán, điểm) — undefined
+  ✗ A99 phần A chạy hết, không sập  — Cannot read properties of undefined (reading 'diem')
+  6 đạt · 32 hỏng
+
+Bản cuối trên code đã vá (thư viện qrcode-generator 1.4.4 đã cài): 123 đạt · 0 hỏng (C1 ×4 giải mã bằng jsqr · C2 · C3 · C4 viền yên tĩnh).
+Đột biến: 65 · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0 (VS-QR-KHONG-VIEN trước đây SỐNG vì C2 không kiểm viền — đã thêm C4, nay BẮT ở C4).
+
+── Vòng sửa 1 (soát độc lập KHÔNG ĐẠT, 28.10) ──
+Bài thử mới (G34 G35 G35b G50–G57, F8, E1b, A28b A28c A30b A31b) chạy trên code TRƯỚC vòng sửa (`python3 viec/HD-1/dot_bien.py --goc 020c80e`):
+123 đạt · 15 hỏng — các dòng ✗:
+  ✗ G34 / G35 / E1b  dòng tiền (phí giao, giảm Flash, tài khoản mẹ, ghi nợ, khách đưa) ẩn được — danh sách không ẩn được chỉ có 7 khoá
+  ✗ G50 / F8 / G51   dòng IN LẠI (bill + tem), nhãn "Khách:" / "NV:" viết cứng, chưa có khoá chữ
+  ✗ G52              QR vẫn mang ?ma= của mã đã dùng / hết hạn
+  ✗ G53              khách quen đơn 0 điểm vẫn in "Cộng đơn này +0"
+  ✗ G54 / G55        xem trước chưa có mẫu Flash · tài khoản mẹ · huỷ · hoàn · in lại
+  ✗ G57              Reset ghi đè tên quán / xoá địa chỉ (hàm chuMacDinhCuaQuan chưa có)
+  ✗ A28b             đơn huỷ: "cộng đơn này" +50 dù P24 đã trừ lại (ròng 0)
+  ✗ A28c             đơn huỷ / chưa thu vẫn uu_dai = true
+  ✗ A30b             đơn cũ trả bằng tài khoản thiếu cột → dồn vào tiền mặt
+  ✗ A31b             nhật ký in đã xoá mềm vẫn tính vào "LẦN n"
+Sau vòng sửa: 138 đạt · 0 hỏng. Đột biến: 79 · BẮT 79 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 138 xanh).
+
+── Vòng sửa 2 (soát độc lập vòng 2 KHÔNG ĐẠT, 28.10) ──
+Bài thử mới (G78 G79 F9 A28d A28e A28f; mã ca G50–G57 mới đánh lại G70–G77 vì trùng 8 cặp) chạy trên code TRƯỚC vòng sửa 2
+(`python3 viec/HD-1/dot_bien.py --goc 567564c`): 138 đạt · 6 hỏng:
+  ✗ A28d  mã đã CLAIM (claimed_at) vẫn uu_dai = true     ✗ A28e  mã đã nhận điểm (diem_nhan_luc) bị giấu ưu đãi dù còn claim được
+  ✗ A28f  hạn ưu đãi lấy hạn điểm (72) thay vì 24 của /claim; chữ "{gio}" sai
+  ✗ G79   ô ưu đãi in 72 giờ                              ✗ G78   Reset ghim tên quán / địa chỉ thành bản sao tĩnh
+  ✗ F9    xem trước tem ở Cài đặt không nhận chữ tem đang sửa (hàm caiDatTuChuDangSua chưa có)
+Sau vòng sửa 2: 144 đạt · 0 hỏng. Đột biến: 85 · BẮT 85 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 144 xanh).
+
+── Vòng sửa 3 (soát lần 3 KHÔNG ĐẠT, 28.10) ──
+Bài thử mới (G80 G81 H2 C5 A2c; A19b A19c A30c đóng lỗ của bài, đã đúng sẵn trên code) chạy trên code TRƯỚC vòng sửa 3
+(`python3 viec/HD-1/dot_bien.py --goc d784a0e`): 146 đạt · 6 hỏng:
+  ✗ G34   nhãn tờ GIAO KHÁCH / LƯU QUẦY ẩn được              ✗ G80   "Giảm mã / quà" không hiện ở mẫu xem trước nào
+  ✗ G81 + ✗ H2   tự mở in chạy khi chưa có dữ liệu hoá đơn (vị từ `!sanSang` trần) → bill bố cục cũ
+  ✗ C5    veQr ném khi chuỗi QR quá dài (sập lúc render)      ✗ A2c   "/hoa-don/1e3" và "/1000.0" trả đơn 1000
+Sau vòng sửa 3: 152 đạt · 0 hỏng. Đột biến: 98 · BẮT 98 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 152 xanh).
+
+── Vòng sửa 4 (luật mới LUAT_XAY_APP §6 mục 5, 29.10) ──
+Bài thử mới (G82 G83 G84 G85 A19d; G52 đổi cho khớp phiếu "không in mục rỗng") chạy trên code TRƯỚC vòng sửa 4
+(`python3 viec/HD-1/dot_bien.py --goc 092ee5e`): 151 đạt · 6 hỏng — các dòng ✗:
+  ✗ G82 / G52  đơn 0đ in tiêu đề THANH TOÁN trơ trọi (tieu_de_tt)
+  ✗ G83 / G84  nhãn "Khách" / "NV": nút Ẩn không có tác dụng; nhãn trống vẫn in ": "
+  ✗ G85        "Giảm hạng Vàng%" khi không có %
+  ✗ A19d       % hạng lấy % hiện tại của hạng (hạng đổi 10 → 25 sau khi bán vẫn ra 25; các dòng giảm khác % vẫn ra một số)
+Sau vòng sửa 4: 157 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_HD1.js: 157

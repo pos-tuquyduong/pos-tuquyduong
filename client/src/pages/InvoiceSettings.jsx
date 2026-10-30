@@ -25,13 +25,17 @@ import {
   Trash2,
   Eye,
 } from "lucide-react";
-import InvoicePreview from "../components/InvoicePreview";
+import InvoicePreview, { HoaDonTo } from "../components/InvoicePreview";
 import { VungTrang, useNhomTheoMa } from "../components/InPhieu";
 import { getLogo } from "../utils/logoCache";
 import {
   KHOA_BO_IN, LOAI_IN, NHAN_LOAI, NHAN_NHOM, KHO_BILL, KHO_TEM, KHO_PHIEU, SO_BAN_TOI_DA,
   DON_MAU, NHOM_MAU, docBoIn, dungBoIn,
 } from "../utils/inPhieu";
+import {
+  NHOM_CHU, KHONG_AN, CHU_MAC_DINH, chuMacDinhCuaQuan, GIOI_HAN_CHU, GIOI_HAN_TEM, gioiHanChu, KHOA_DIA_CHI_KH, KHOA_SO_TO,
+  MAU_XEM_TRUOC, caiDatTuChuDangSua, khoaChuGhiKhiReset, docChu, soToTuCaiDat, demChu, dungHoaDon,
+} from "../utils/hoaDon";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DEFAULT CONFIG
@@ -353,7 +357,7 @@ const api = {
     }
   },
 
-  saveConfig: async (config, boIn) => {
+  saveConfig: async (config, boIn, chuHd) => {
     const token = localStorage.getItem("pos_token");
     const res = await fetch("/api/pos/settings", {
       method: "PUT",
@@ -363,7 +367,7 @@ const api = {
       },
       body: JSON.stringify({
         // boIn null = chưa nạp được từ máy chủ → KHÔNG gửi khoá này (tránh ghi đè cài đặt đã lưu bằng mặc định)
-        settings: { invoice_config: JSON.stringify(config), ...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn) } : {}) },
+        settings: { invoice_config: JSON.stringify(config), ...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn) } : {}), ...(chuHd || {}) },
       }),
     });
     const data = await res.json();
@@ -398,17 +402,89 @@ const api = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HD-1 — KHỐI "CHỮ TRÊN HOÁ ĐƠN & TEM" (ngoài component chính: tránh mất focus)
+// Chữ = invoice_chu_<khoá>, ẩn = invoice_an_<khoá>; KHÔNG sửa được số tiền / điểm / số bill; mục trong KHONG_AN không ẩn được.
+// ═══════════════════════════════════════════════════════════════════════════
+function chuHdThanhCaiDat(c) {
+  const out = { [KHOA_SO_TO]: String(c.soTo), [KHOA_DIA_CHI_KH]: c.khUrl.trim() };
+  for (const k of Object.keys(CHU_MAC_DINH)) {
+    if (c.daSua.includes(k)) out[`invoice_chu_${k}`] = c.chu[k];
+    if (!KHONG_AN.includes(k)) out[`invoice_an_${k}`] = c.an[k] ? "true" : "false";
+  }
+  return out;
+}
+
+function ChuHoaDon({ c, setC, caiDat, size }) {
+  const [mau, setMau] = useState("quen");
+  const [lien, setLien] = useState("khach");
+  const sua = (k, v) => setC((x) => ({ ...x, chu: { ...x.chu, [k]: v }, daSua: x.daSua.includes(k) ? x.daSua : [...x.daSua, k] }));
+  const an = (k) => setC((x) => ({ ...x, an: { ...x.an, [k]: !x.an[k] } }));
+  const settings = caiDatTuChuDangSua(caiDat, c);
+  const mauDangXem = MAU_XEM_TRUOC.find((m) => m.khoa === mau) || MAU_XEM_TRUOC[0];
+  const to = dungHoaDon(mauDangXem.hd, settings, { lien, inLai: mauDangXem.inLai });
+  const coQuaDai = NHOM_CHU.some((n) => n[1].some(([k]) => demChu(c.chu[k], gioiHanChu(k)).qua));
+  const chip = (on) => ({ minHeight: 36, padding: "0 12px", borderRadius: 18, border: "1px solid " + (on ? "#1C1B1A" : "#D6D2CA"), background: on ? "#1C1B1A" : "#fff", color: on ? "#fff" : "#1C1B1A", cursor: "pointer" });
+  return (
+    <div className="section" style={{ padding: "0.75rem 1rem" }}>
+      <b>🧾 Chữ trên hoá đơn &amp; tem</b>
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", padding: "0.35rem 0" }}>
+        <label>Số tờ mỗi lần in{" "}
+          <select value={c.soTo} onChange={(e) => setC((x) => ({ ...x, soTo: Number(e.target.value) }))}>
+            <option value={2}>2 tờ (giao khách + lưu quầy)</option>
+            <option value={1}>1 tờ</option>
+          </select>
+        </label>
+      </div>
+      <label style={{ display: "block", padding: "0.35rem 0" }}>Địa chỉ đăng ký App KH (in thành QR; {"{ma}"} = mã nhận điểm của khách lẻ){" "}
+        <input style={{ width: "100%" }} value={c.khUrl} placeholder="https://<địa-chỉ-app>/?ma={ma}" onChange={(e) => setC((x) => ({ ...x, khUrl: e.target.value }))} />
+      </label>
+      {!c.khUrl.trim() && <div style={{ color: "#B42318", fontSize: 13 }}>⚠ Chưa có địa chỉ App KH — hoá đơn sẽ KHÔNG in QR đăng ký.</div>}
+      {coQuaDai && <div style={{ color: "#B42318", fontSize: 13, fontWeight: 700 }}>⚠ Có dòng quá {GIOI_HAN_CHU} ký tự (tem: {GIOI_HAN_TEM}) — giấy 58 mm sẽ bị cắt / xuống dòng.</div>}
+      {NHOM_CHU.map(([ten, dong]) => (
+        <details key={ten} style={{ margin: "0.4rem 0" }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>{ten}</summary>
+          {dong.map(([k, nhan]) => {
+            const gh = gioiHanChu(k);
+            const dem = demChu(c.chu[k], gh);
+            return (
+              <div key={k} style={{ display: "flex", gap: 8, alignItems: "center", padding: "3px 0", flexWrap: "wrap" }}>
+                <span style={{ minWidth: 150 }}>{nhan}</span>
+                <input style={{ flex: 1, minWidth: 160 }} value={c.chu[k]} onChange={(e) => sua(k, e.target.value)} />
+                <span style={{ fontSize: 11, color: dem.qua ? "#B42318" : "#8A847A", fontWeight: dem.qua ? 700 : 400 }}>{dem.dai}{Number.isFinite(gh) ? `/${gh}` : ""}</span>
+                {KHONG_AN.includes(k)
+                  ? <span style={{ fontSize: 11, color: "#8A847A", minWidth: 84 }}>luôn hiện</span>
+                  : <button type="button" style={chip(!c.an[k])} onClick={() => an(k)}>{c.an[k] ? "Đang ẩn" : "Hiện"}</button>}
+              </div>
+            );
+          })}
+        </details>
+      ))}
+      <small>Chữ tự điền: {"{ten_khach} {hang} {phan_tram} {diem} {gio} {lan}"} (mỗi dòng dùng được những chữ hợp với nó). Số tiền, điểm, số bill do máy chủ tính — không sửa ở đây.</small>
+      <div style={{ display: "flex", gap: 8, margin: "0.5rem 0", flexWrap: "wrap" }}>
+        {MAU_XEM_TRUOC.map((m) => <button key={m.khoa} type="button" style={chip(mau === m.khoa)} onClick={() => setMau(m.khoa)}>{m.nhan}</button>)}
+        <button type="button" style={chip(lien === "khach")} onClick={() => setLien("khach")}>Tờ khách</button>
+        <button type="button" style={chip(lien === "luu")} onClick={() => setLien("luu")}>Tờ lưu</button>
+      </div>
+      <div style={{ background: "#e5e7eb", padding: 8, display: "flex", justifyContent: "center", overflow: "auto" }}>
+        <HoaDonTo to={to} size={size === "a4" || size === "a5" ? "80mm" : size} />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // P16 — KHỐI "BỘ IN SAU THANH TOÁN" (ngoài component chính: tránh mất focus)
 // ═══════════════════════════════════════════════════════════════════════════
 const KHO_THEO_LOAI = { bill: KHO_BILL, tem: KHO_TEM, pha_che: KHO_PHIEU };
 
-function BoInCaiDat({ boIn, setBoIn, xemBill }) {
+function BoInCaiDat({ boIn, setBoIn, xemBill, caiDatChu }) {
   const [xem, setXem] = useState(null);
+  const [xemInLai, setXemInLai] = useState(false);
   const { nhomTheoMa } = useNhomTheoMa();
   const dsNhom = [...new Set(Object.values(nhomTheoMa))];
   const sua = (loai, kv) => setBoIn((b) => ({ ...b, [loai]: { ...b[loai], ...kv } }));
   const viec = xem && xem !== "bill"
-    ? dungBoIn(DON_MAU, { [KHOA_BO_IN]: JSON.stringify(boIn) }, { nhomTheoMa: NHOM_MAU, loai: [xem] })[0] : null;
+    ? dungBoIn(DON_MAU, { ...caiDatChu, [KHOA_BO_IN]: JSON.stringify(boIn) }, { nhomTheoMa: NHOM_MAU, loai: [xem], inLai: xemInLai })[0] : null;
   const dong = { display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", padding: "0.35rem 0" };
   return (
     <div className="section" style={{ padding: "0.75rem 1rem" }}>
@@ -448,6 +524,9 @@ function BoInCaiDat({ boIn, setBoIn, xemBill }) {
         <input type="checkbox" checked={boIn.tu_mo} onChange={(e) => setBoIn((b) => ({ ...b, tu_mo: e.target.checked }))} /> Tự mở in sau thanh toán
       </label>
       {xem === "bill" && <small>Bill: xem ở khung xem trước bên phải.</small>}
+      {xem && xem !== "bill" && (
+        <label style={dong}><input type="checkbox" checked={xemInLai} onChange={(e) => setXemInLai(e.target.checked)} /> Xem dạng IN LẠI</label>
+      )}
       {viec && (
         <div style={{ zoom: 2, display: "inline-block", boxShadow: "0 0 4px #888" }}>
           <VungTrang viec={viec} cha={null} />
@@ -465,6 +544,9 @@ export default function InvoiceSettings() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [boIn, setBoIn] = useState(() => docBoIn({}));   // P16: bộ in sau thanh toán
   const [boInDaNap, setBoInDaNap] = useState(false);     // chỉ true khi đã đọc được từ máy chủ (không có bản nháp trong cache)
+  const [chuHd, setChuHd] = useState(() => ({ ...docChu({}), soTo: soToTuCaiDat({}), khUrl: "", daSua: [] }));   // HD-1
+  const [chuHdDaNap, setChuHdDaNap] = useState(false);
+  const [caiDatTho, setCaiDatTho] = useState({});
   const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -531,6 +613,9 @@ export default function InvoiceSettings() {
         setConfig(newConfig);
         setBoIn(docBoIn(settings));
         setBoInDaNap(true);
+        setChuHd({ ...docChu(settings), soTo: soToTuCaiDat(settings), khUrl: String(settings[KHOA_DIA_CHI_KH] || ""), daSua: [] });
+        setCaiDatTho(settings);
+        setChuHdDaNap(true);
 
         // Logo: dùng shared helper (cache-first, chỉ gọi API nếu cache trống)
         const newLogo = await getLogo();
@@ -569,7 +654,7 @@ export default function InvoiceSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.saveConfig(config, boInDaNap ? boIn : null);
+      await api.saveConfig(config, boInDaNap ? boIn : null, chuHdDaNap ? chuHdThanhCaiDat(chuHd) : null);
       // Update cache
       try {
         localStorage.setItem(
@@ -593,6 +678,8 @@ export default function InvoiceSettings() {
     if (confirm("Bạn có chắc muốn reset về mặc định?")) {
       setConfig(DEFAULT_CONFIG);
       setBoIn(docBoIn({}));
+      // Tên quán + địa chỉ/SĐT mặc định là của quán (store_*), không phải hằng số: reset không được xoá địa chỉ / đè tên quán
+      setChuHd({ chu: chuMacDinhCuaQuan(caiDatTho), an: Object.fromEntries(Object.keys(CHU_MAC_DINH).map((k) => [k, false])), soTo: soToTuCaiDat({}), khUrl: chuHd.khUrl, daSua: khoaChuGhiKhiReset(caiDatTho) });
       setActivePreset("custom");
       showMessage("info", 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
     }
@@ -788,7 +875,11 @@ export default function InvoiceSettings() {
           <h2>📝 Tùy chỉnh</h2>
 
           <fieldset disabled={!boInDaNap} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} />
+            <BoInCaiDat boIn={boIn} setBoIn={setBoIn} xemBill={() => setPreviewSize(boIn.bill.kho)} caiDatChu={caiDatTuChuDangSua(caiDatTho, chuHd)} />
+          </fieldset>
+
+          <fieldset disabled={!chuHdDaNap} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <ChuHoaDon c={chuHd} setC={setChuHd} caiDat={caiDatTho} size={boIn.bill.kho} />
           </fieldset>
 
           {/* HEADER Section */}

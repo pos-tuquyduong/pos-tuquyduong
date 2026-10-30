@@ -1114,6 +1114,11 @@ async function seedDefaultData() {
   for (const khoa of ['uudai_chung_hang_percent', 'uudai_chung_hang_fixed', 'uudai_chung_hang_item']) {
     await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, '1')`, [khoa]);
   }
+  // KH-API-2: giờ hoạt động (server/utils/gioHoatDong.js) — lịch '' = chưa cài = mở cả ngày; không đè cài đặt đã có.
+  for (const [khoa, v] of [['gio_hd_lich', ''], ['gio_hd_ngay_nghi', '[]'], ['gio_hd_thong_bao', 'Quán đang nghỉ — mở lại lúc {gio_mo_lai}'],
+    ['gio_hd_ngung_truoc_phut', '0']]) {
+    await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, ?)`, [khoa, v]);
+  }
 
   // Tạo sản phẩm mẫu
   const productsExist = await query("SELECT COUNT(*) as count FROM pos_products");
@@ -1185,6 +1190,45 @@ async function seedDefaultData() {
       ['invoice_thank_you', 'Cảm ơn quý khách đã mua hàng!'],
       ['invoice_policy', 'Đổi trả trong 24h với hóa đơn'],
       ['invoice_note', ''],
+
+      // HD-1: chữ hoá đơn + tem (mỗi chữ một khoá; mục ẩn = invoice_an_<khoá>; ten_quan / dia_chi theo store_*) — mặc định khớp utils/hoaDon.js CHU_MAC_DINH
+      ['invoice_so_to', '2'],
+      ['invoice_kh_url', ''],
+      ['invoice_chu_so_bill', 'SỐ BILL'],
+      ['invoice_chu_lien_khach', 'GIAO KHÁCH'],
+      ['invoice_chu_lien_luu', 'LƯU QUẦY'],
+      ['invoice_chu_chu_qr', 'Quét để đăng ký tài khoản — mã điểm điền sẵn'],
+      ['invoice_chu_gia_goc', 'Giá gốc'],
+      ['invoice_chu_giam_hang', 'Giảm hạng {hang} {phan_tram}%'],
+      ['invoice_chu_giam_flash', 'Giảm Flash sale'],
+      ['invoice_chu_giam_ma', 'Giảm mã / quà'],
+      ['invoice_chu_phi_giao', 'Phí giao Ahamove'],
+      ['invoice_chu_tong', 'TỔNG HÓA ĐƠN'],
+      ['invoice_chu_tieu_de_tt', 'THANH TOÁN'],
+      ['invoice_chu_tu_tk', 'Từ tài khoản'],
+      ['invoice_chu_tu_tk_me', 'Từ tài khoản mẹ'],
+      ['invoice_chu_ck', 'Chuyển khoản (payOS)'],
+      ['invoice_chu_tm', 'Tiền mặt'],
+      ['invoice_chu_ghi_no', 'Ghi nợ'],
+      ['invoice_chu_dua_tra', 'Khách đưa / Trả lại'],
+      ['invoice_chu_tieu_de_diem', 'ĐIỂM THƯỞNG'],
+      ['invoice_chu_diem_truoc', 'Điểm trước đơn'],
+      ['invoice_chu_diem_doi', 'Đổi quà'],
+      ['invoice_chu_diem_cong', 'Cộng đơn này'],
+      ['invoice_chu_diem_co', 'Điểm hiện có'],
+      ['invoice_chu_ma_diem', 'MÃ NHẬN ĐIỂM · +{diem} điểm (nhập trong {gio} giờ)'],
+      ['invoice_chu_ma_uu_dai', 'MÃ ƯU ĐÃI KHÁCH MỚI (nhập trong {gio} giờ)'],
+      ['invoice_chu_cam_on', 'Cảm ơn {ten_khach}!'],
+      ['invoice_chu_chinh_sach', 'Ly có vấn đề? Báo quầy trong ngày để đổi.'],
+      ['invoice_chu_ghi_chu', ''],
+      ['invoice_chu_da_huy', 'ĐƠN ĐÃ HUỶ'],
+      ['invoice_chu_da_hoan', 'ĐƠN ĐÃ HOÀN TIỀN'],
+      ['invoice_chu_in_lai', 'IN LẠI · LẦN {lan}'],
+      ['invoice_chu_nhan_khach', 'Khách'],
+      ['invoice_chu_nhan_nv', 'NV'],
+      ['invoice_chu_tem_in_lai', 'IN LẠI'],
+      ['invoice_chu_tem_dau', ''],
+      ['invoice_chu_tem_chan', ''],
 
       // Zalo (chuẩn bị sẵn)
       ['zalo_enabled', 'false'],
@@ -1361,7 +1405,7 @@ async function seedDefaultData() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG: MÃ ƯU ĐÃI KHÁCH MỚI (Bước 3, 08.08.2026) — in trên bill, đổi lấy tài khoản App KH
   // 2 tầng hạn TÁCH BIỆT, đừng gộp chung 1 cột:
-  //   - issued_at/CODE_EXPIRE_HOURS (hằng số 24h, xem signup-codes.js): cửa sổ để claim
+  //   - issued_at + cài đặt hạn mã nhandiem_han_gio (mặc định 24h, xem signup-codes.js /claim): cửa sổ để claim
   //   - claimed_at + voucher sinh ra sau claim có hạn riêng (30 ngày, tính ở bước claim)
   // is_signup_code KHÔNG cần cột riêng — INERT hoàn toàn với đơn hàng/tiền: chỉ đọc
   // customer_phone của đơn để quyết định có in mã hay không, không ghi ngược lại đơn hàng.

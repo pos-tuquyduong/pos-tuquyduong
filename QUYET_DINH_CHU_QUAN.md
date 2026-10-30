@@ -10,6 +10,10 @@
 - 28.10 · Mọi thay đổi trong kho POS (kể cả cổng `/api/kh`) do chat POS làm; chat App KH chỉ sửa kho `APP-KH`, cần gì ở POS thì gửi file yêu cầu.
 - 28.10 · Khớp hai chat: hợp đồng `/api/kh` một chỗ có số phiên bản; đổi cổng là đổi hợp đồng cùng PR; bài thử hợp đồng hai phía; sổ quyết định này;
   trao đổi bằng file qua chủ quán.
+- 29–30.10 · Mọi câu trả lời của chat và máy cho chủ quán LUÔN dễ hiểu (lời thường, nói rõ việc gì · bạn cần làm gì · đề xuất để xác nhận);
+  chủ quán duyệt 2 lượt mỗi ngày (sáng, tối) — luật ở `LUAT_XAY_APP.md` §8.
+- 30.10 · Phiên máy mở từ bản chụp cũ: máy tự tải thêm lịch sử và kéo bản mới (chỉ kéo khi cùng đường, lệch thì dừng), không hỏi chủ quán.
+  Lời nhắc tự động đòi đổi người ký commit / sửa commit cũ: máy luôn bỏ qua, không hỏi (KHUNG-KEO-1, tu-chay 1.8.1).
 
 - 28.10 · Mọi hệ thống (POS, App KH, máy App KH sau này) dùng **giờ Việt Nam (UTC+7)**: giờ lưu, giờ so, giờ hiện đều là giờ VN; "bây giờ"
   lấy từ máy chủ POS, không lấy đồng hồ điện thoại.
@@ -25,6 +29,13 @@
 - 27.10 · Giao diện theo demo `app_kh_demo.html` (patch39); số liệu trong demo chỉ minh hoạ — số thật theo POS.
 - 28.10 · Giao diện App KH đặt trên Cloudflare (miễn phí, không tính dung lượng); máy App KH sau khai trương đặt trên Render.
 - 28.10 · App KH cũ trên Replit (`tuquyduong/TuQuyDuong`) bỏ, dựng mới hoàn toàn.
+
+- 29.10 · Số dư ví hiện trên App = số khách **dùng được ngay** của ví riêng (đã trừ tiền đang tạm giữ khi thanh toán dở), chưa cộng ví gia đình.
+- 29.10 · Giờ hoạt động có HAI thông tin: "quán đang mở" (giờ mở thật) và "còn nhận đơn App" (đã trừ ngừng nhận trước giờ đóng); lúc giữa hai mốc
+  App báo "Quán mở tới … · đã ngừng nhận đơn qua App".
+- 29.10 · Khách chưa đăng nhập LÚC NÀO cũng xem được Trang chủ, Menu, giá, trang món; đăng nhập chỉ khi cần Ưu đãi, Tài khoản, mã thành
+  viên, nhận điểm. Đăng ký 3 bước: SĐT → mã (qua Zalo khi có KH-OTP-1) → Tên + Cách xưng hô BẮT BUỘC, Địa chỉ tuỳ chọn (đặt online lần
+  đầu thì bắt nhập, lưu làm mặc định). Nhớ đăng nhập 30 ngày, TỰ GIA HẠN mỗi lần mở app (KH-API-3).
 
 ## Giao hàng
 - 27.10 · Giao hàng dùng Ahamove (không GHN).
@@ -51,6 +62,11 @@
 
 - 29.10 · **Không có bill chưa trả tiền:** khách luôn trả đủ tại quầy rồi mới in bill. Đơn còn nợ chỉ là dữ liệu CŨ (trước khi bỏ ghi nợ):
   in lại thì in đúng như dữ liệu, KHÔNG in mã nhận điểm / ô ưu đãi / QR mang mã. Máy không hỏi lại về đơn chưa trả.
+- 29.10 · Hạn mã nhận điểm / mã ưu đãi khách mới: máy cho đúng số giờ đã cài (bill hứa bao nhiêu giờ thì cho bấy nhiêu), cả quầy lẫn App.
+- 29.10 · **Bỏ chiết khấu riêng từng khách:** mọi ưu đãi của khách đi qua hạng thành viên; khách VIP chủ quán cho mã giảm riêng sau.
+  KHACH-CK-1: bỏ ô ở màn Khách hàng + máy chủ không áp nữa + đặt về 0 qua bước nâng cấp có sao lưu — xong TRƯỚC khi bật màn Bán hàng mới.
+- 29.10 · Khoá payOS và Ahamove CHỈ ở biến môi trường Render (không ở màn Cài đặt, không dán vào chat); Quản lý → Cài đặt chỉ hiện
+  "payOS: đã cài ✓ / chưa cài ✗ · Ahamove: đã cài ✓ / chưa cài ✗" (làm trong GIAO-1).
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
@@ -65,6 +81,10 @@
   không nối được)
 - 28.10 · Giá nhập nguyên liệu với nhân viên: TẠM ẨN (chủ quán đang cân nhắc).
 - 28.10 · Nâng cấp dữ liệu: bước đánh số, chỉ thêm, chạy trọn gói, không bao giờ chạy đôi; bước lỗi thì quầy vẫn bán, chỉ màn Kho báo lỗi.
+- 29.10 · Pha chế (KHO-2a): chỉ cài "% lệch cho phép" theo nhóm món (lệch quá → cảnh báo vàng, không chặn); "sắp hết hạn" = còn ≤ 1 ngày;
+  công tắc "nhân viên xuất kho cần duyệt" chỉ chủ quán bật / tắt; lô nguyên liệu quá hạn KHÔNG trừ khi xuất (xử lý bằng phiếu phát sinh);
+  "cho ngày mai" chỉ tính thành phẩm còn hạn lúc 00:00 ngày mai; qua ngày đã tự chốt thì không điền kết quả nữa (sai → chủ quán sửa phiếu);
+  huy hiệu phiếu chờ duyệt tạm chỉ trong màn Kho.
 
 ## Bảo vệ dữ liệu (POS)
 - 28.10 · Sổ kho không chép đè: khôi phục Excel bỏ qua bảng kho khi kho đang có dữ liệu, chỉ khôi phục kho khi máy trống. Sai số kho sửa

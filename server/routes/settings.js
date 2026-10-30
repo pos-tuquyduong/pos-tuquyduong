@@ -16,6 +16,8 @@ const fs = require('fs');
 const { query, queryOne, run, saveDatabase } = require('../database');
 const { getToday } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
+const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
+const { kiemCaiDat } = require('../utils/gioHoatDong');
 
 // Multer config cho upload logo
 const storage = multer.memoryStorage();
@@ -103,12 +105,23 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
       return res.status(403).json({ success: false, error: 'Chỉ chủ quán đổi cài đặt kho', code: 'CHI_CHU_QUAN' });
     }
 
+    // HD-1: mục bắt buộc của hoá đơn (tên quán, số bill, tổng, thanh toán) không ẩn được; số tờ chỉ 1 hoặc 2 — từ chối TRƯỚC khi ghi gì
+    const anBatBuoc = KHONG_AN_DUOC.filter((k) => ['true', '1'].includes(String(settings['invoice_an_' + k])));
+    if (anBatBuoc.length) {
+      return res.status(400).json({ success: false, error: 'Mục này luôn phải có trên hoá đơn, không ẩn được: ' + anBatBuoc.join(', '), code: 'KHOA_KHONG_AN_DUOC' });
+    }
+    if ('invoice_so_to' in settings && !['1', '2'].includes(String(settings.invoice_so_to))) {
+      return res.status(400).json({ success: false, error: 'Số tờ hoá đơn chỉ là 1 hoặc 2', code: 'SO_TO_KHONG_HOP_LE' });
+    }
     // UUDAI-1: "dùng chung với giá hạng" theo loại mã chỉ nhận '0' | '1' — kiểm HẾT trước khi ghi khoá nào. KHO-2a: công tắc duyệt cũng vậy.
     const khoaSai = Object.entries(settings).find(([key, value]) => (key.startsWith('uudai_chung_hang_') || key === 'kho_px_nv_can_duyet')
       && !['0', '1'].includes(String(value)));
     if (khoaSai) {
       return res.status(400).json({ success: false, error: `Cài đặt ${khoaSai[0]} chỉ nhận 0 hoặc 1`, code: 'CAI_DAT_KHONG_HOP_LE' });
     }
+    // KH-API-2: giờ hoạt động (gio_hd_*) — cùng luật: sai một khoá thì không ghi khoá nào.
+    const loiGio = kiemCaiDat(settings);
+    if (loiGio) return res.status(400).json({ success: false, error: loiGio, code: 'CAI_DAT_KHONG_HOP_LE' });
 
     let updated = 0;
     const timestamp = new Date().toISOString();

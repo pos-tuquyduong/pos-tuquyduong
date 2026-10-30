@@ -609,7 +609,9 @@ function veNhanhViec(w, nc, cwd) {
 // Không đạt → GIT-PUSH. main còn được lớp 1 (deny Bash(git push *main*)) và GitHub chặn thêm.
 // TU-CHAY-5 B3: fetch / pull đi CÙNG hàm (mã GIT-KEO): fetch cờ chỉ -q; pull cờ chỉ -q, --no-rebase, --ff-only và BẮT BUỘC cả hai
 // cờ sau (thứ tự tự do) — --ff-only không viết lại lịch sử, không tạo commit gộp; lệch hai phía thì git tự từ chối.
-const KEO_CO = { fetch: [new Set(['-q']), []], pull: [new Set(['-q', '--no-rebase', '--ff-only']), ['--no-rebase', '--ff-only']] };
+// KHUNG-KEO-1 (30.10, chủ quán duyệt): fetch nhận thêm --unshallow — chỉ tải thêm lịch sử cho kho nông (phiên mở từ bản chụp cũ quá
+// 50 commit không thấy tổ tiên chung), không đổi file, không đổi nhánh; vẫn đúng origin viec/<MÃ>. --depth / --deepen vẫn chặn.
+const KEO_CO = { fetch: [new Set(['-q', '--unshallow']), []], pull: [new Set(['-q', '--no-rebase', '--ff-only']), ['--no-rebase', '--ff-only']] };
 function xetDongBo(ma, mau, coCho, coPhai, r, nc, cwd) {
   const vt = [], co = new Set();
   for (const w of r) {
