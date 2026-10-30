@@ -33,7 +33,8 @@ tuỳ chọn); khách dùng thường xuyên không bao giờ phải đăng nh�
 - E **Hợp đồng v3** cùng PR: `/menu` ghi token "không bắt buộc" — khối máy đọc dùng `"token": "tuy_chon"` (bài thử hợp đồng hiểu ba giá trị
   `true` / `false` / `"tuy_chon"`: gọi cả có lẫn không token); thêm `xung_ho`, `dia_chi` ở `/toi`, thân mới của `xac-minh` / `PUT /toi`, cửa
   `/gia-han`, mã lỗi mới; `PHIEN_BAN` 3, dòng nhật ký. `thu_HOPDONG_KH.js` xanh với v3.
-- F **K5:** quầy, nhận điểm, PIN, đăng nhập khách cũ chạy y như cũ; App bản đang dùng (v2) không vỡ.
+- F **K5:** quầy, nhận điểm, PIN, đăng nhập khách cũ chạy y như cũ; App bản đang dùng (v2): khách CŨ đăng nhập / xem / nhận điểm như cũ, khách
+  MỚI cần ô xưng hô (chủ quán chốt 30.10 — xưng hô bắt buộc; App KH thêm ô trước khai trương, nhật ký hợp đồng v3 ghi rõ).
 
 ## Phạm vi
 - viec/KH-API-3/**
@@ -45,12 +46,28 @@ tuỳ chọn); khách dùng thường xuyên không bao giờ phải đăng nh�
 - cong_cu/thu_KHAPI3.js
 - cong_cu/thu_HOPDONG_KH.js
 - cong_cu/thu_KH1.js
+- cong_cu/thu_KHUI1.js
+- cong_cu/thu_P15QR.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_KHAPI3.js` ĐỎ trên code gốc: menu không token 200 + đủ trường; token sai 401; 301 lần / phút → 429 nhưng 200 lần → 200; khách
 mới thiếu xưng hô → `CAN_TEN`, xưng hô lạ → `XUNG_HO_SAI`; mã đã đúng + `CAN_TEN` → 12 phút sau vẫn dùng được, 16 phút sau hết; tạo khách lưu
 đủ 3 trường; `PUT /toi` đổi / xoá địa chỉ; gia hạn đúng 30 ngày, token hết hạn → 401, gọi dồn → 429; chạy với `TZ=UTC`, giờ trả theo giờ VN.
+
+## Bài thử cũ sửa
+- cong_cu/thu_HOPDONG_KH.js — hiểu token "tuy_chon" + xác minh gửi xung_ho; xanh trên gốc vì hợp đồng v2 không có cửa tuy_chon
+
+## Ghi chú chat (30.10, trả lời ## Câu hỏi của trang_thai.md)
+- Chat đã GỘP main c8edb66 (BH-2 + KHO-2a) vào nhánh này (commit GOP-KH-API-3). Kéo về rồi làm tiếp.
+- `cong_cu/thu_KHO1.js`: KHO-2a đã đổi B1 / B2 sang đếm số file bước thật → sau gộp XANH với 003. KHÔNG thêm vào Phạm vi, không sửa.
+- `cong_cu/thu_KHUI1.js` (ca H3) và `cong_cu/thu_P15QR.js` (ca A6): bài SỬA bình thường (LUAT §6.8), KHÔNG vào `## Bài thử cũ sửa` — bản mới
+  phải ĐỎ trên gốc: H3 mong menu không token → 200; A6 ngoài gửi `xung_ho` còn kiểm khách mới LƯU đúng `xung_ho` (gốc không lưu → đỏ). Ghi `SỐ CA`.
+- MỚI sau gộp: `cong_cu/thu_KHO2a.js` ca E6b đỏ — nó chạy CẢ thư mục `server/nang_cap/` trên kho thử chỉ có bảng kho, bước 003 gặp
+  `no such table: pos_customers`. Sửa ở bước 003 (trong Phạm vi), KHÔNG sửa thu_KHO2a: bảng `pos_customers` chưa có thì bỏ qua (thật ra không xảy ra —
+  `database.js` chạy `createTables()` trước `chayNangCap`), ghi chú lý do ngay trong file; thêm ca vào `thu_KHAPI3.js` (kho không có bảng khách → 003
+  chạy xong không lỗi; kho có bảng → thêm cột) + đột biến bỏ phép kiểm bảng.
+- Soát vòng 2 như kế hoạch; xong chạy lại bộ kiểm + cổng, báo cáo theo LUAT §8 (lời thường trước).
 
 ## Ngân sách
 ~220 dòng máy chủ + ~350 dòng thử. Danh sách trắng `/toi` ở `thu_KH1.js` mở thêm đúng 2 trường theo LUAT §6 mục 7.
