@@ -274,6 +274,20 @@ async function main() {
       const lan2 = await chayNangCap({ beginTransaction: txGoc, query: db.query });
       k('C4 chạy lần hai → không lỗi (bỏ qua bước đã chạy)', lan2.hong === null, lan2.hong || '');
     }
+    // C4b: kho chỉ có bảng kho (thu_KHO2a E6b chạy cả thư mục nang_cap trên kho như vậy) → 003 không có pos_customers để thêm cột.
+    const { createClient } = require(path.join(GOC, 'node_modules', '@libsql', 'client'));
+    const cb = createClient({ url: 'file:' + path.join(THU_MUC, 'khong_bang_khach.db') });
+    const dong = async (exe) => (await exe).rows.map((x) => ({ ...x }));
+    const bocTx = (tx) => ({ query: (s, a = []) => dong(tx.execute({ sql: s, args: a })), queryOne: async (s, a = []) => (await dong(tx.execute({ sql: s, args: a })))[0],
+      run: (s, a = []) => tx.execute({ sql: s, args: a }), commit: () => tx.commit(), rollback: () => tx.rollback() });
+    const cbDb = { query: (s, a = []) => dong(cb.execute({ sql: s, args: a })), beginTransaction: async () => bocTx(await cb.transaction('write')) };
+    const lanB = await chayNangCap(cbDb);
+    const buocB = (await cbDb.query('SELECT so FROM pos_nang_cap ORDER BY so')).map((x) => Number(x.so)).join(',');
+    const buocTep = fs.readdirSync(path.join(GOC, 'server', 'nang_cap')).filter((f) => /^\d{3}_.+\.js$/.test(f)).map((f) => Number(f.slice(0, 3))).sort((a, b) => a - b).join(',');
+    const bangKhach = await cbDb.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'pos_customers'");
+    k('C4b kho không có bảng pos_customers → nâng cấp chạy hết không lỗi, ghi đủ mọi bước (có 3), không tự tạo bảng khách',
+      lanB.hong === null && buocB === buocTep && buocTep.split(',').includes('3') && bangKhach.length === 0, `${lanB.hong || ''} · bước ${buocB} / tệp ${buocTep}`);
+    cb.close();
   });
 
   muc('[D] POST /gia-han');
