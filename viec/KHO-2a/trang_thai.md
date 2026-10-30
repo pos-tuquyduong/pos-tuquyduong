@@ -304,3 +304,7 @@ BÀI HỌC:     KHOÁ 2 (1 làm luôn: phép vị từ async; 1 đề xuất con
 ```
 
 HEAD ĐÃ KIỂM: 8371c25
+
+
+Chat soát (30.10): đọc 3 lần soát độc lập + vòng sửa 3 (chỉ lỗi NHẸ, đã sửa đủ), nghiệm thu 10/10. Q8: chat đã bỏ mục "Bài thử cũ sửa" (phiếu 1a0b55d, LUAT §6.8) — thu_KHO1 là bài sửa thường. Phát hiện (sửa phiếu chờ duyệt = chủ quán duyệt luôn; phiếu huỷ không in): giữ, chủ quán xác nhận khi thử tay; phần hạn nguyên liệu → KHO-2b. Máy mây kẹt bản chụp cũ nên chat gộp: main 23d2369, đụng settings.js (giữ cả ba phép), dist dựng lại; npm test --day-du xanh trên bản gộp.
+HEAD ĐÃ KIỂM: cfcadf3
