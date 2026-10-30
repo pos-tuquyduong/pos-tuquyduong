@@ -1,7 +1,8 @@
 /**
  * KH-API-1 — cổng App KH, gắn MỘT chỗ tại /api/kh (index.js máy chủ). Luật:
  * - Thiếu / sai cấu hình KH_JWT_SECRET → mọi đường 503 (canCauHinhKhach đứng đầu router).
- * - Đường đăng nhập + đọc chung (hang, gio-vang, gio-hoat-dong, menu — KH-API-3: token không bắt buộc) đứng TRƯỚC xacThucKhach; còn lại cần token KHÁCH. SĐT LUÔN là req.khach.phone — sdt / phone /
+ * - Đăng nhập + đọc chung (hang, gio-vang, gio-hoat-dong; menu: token không bắt buộc — KH-API-3) đứng TRƯỚC xacThucKhach;
+ *   còn lại cần token KHÁCH. SĐT LUÔN là req.khach.phone — sdt / phone /
  *   customer_phone trong tham số hay thân yêu cầu bị bỏ qua (F3).
  * - Tiền / điểm / voucher / mã bill đi qua ĐÚNG hàm quầy đang dùng (diemKhach.js, signup-codes.js, products.js).
  * - KH-API-2: giá hạng qua giaHang.js (cùng hàm orders.js), giờ vàng qua readFlashState, giờ hoạt động qua gioHoatDong.js.
