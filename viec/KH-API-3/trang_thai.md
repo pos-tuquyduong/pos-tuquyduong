@@ -210,3 +210,83 @@ HEAD ĐÃ KIỂM: 8be85de
   A13 npm test, A13 --day-du — đều do thu_KHO1.js / phiếu chờ sửa) + CẢNH BÁO A16 60 ≠ 62 như trên. Không thêm lỗi mới.
 
 HEAD ĐÃ KIỂM: 23c75a4
+
+## Soát độc lập (/ra-soat) — vòng 2 (HEAD 0157f1a), báo cáo nguyên văn
+Tóm tắt của người soát: vòng sửa 1 đã vá đúng cả 3 lỗi của vòng 1. Bước 003, ca C4b, H3 và A6 đúng và đỏ trên gốc. `npm test` xanh (PASS 82 · FAIL 0 · CẢNH BÁO 1). `thu_KHUI1.js` chạy tay 41/0, `thu_P15QR.js` 29/0. Sáu đột biến mới và của vòng 1 đều BẮT, đối chứng xanh. Nhưng tôi dựng thêm 5 đột biến (bản sao tạm, khuôn `dot_bien.py`, không sửa kho) và cả 5 đều SỐNG. Trong đó hai cái là lời hợp đồng chưa có ca nào khoá, đúng bài học vòng 1 → KHÔNG ĐẠT, chỉ lỗi NHẸ (không đụng tiền, điểm, ví, không lộ dữ liệu).
+
+```
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+- server/utils/maKhach.js:83 — cửa sổ "mỗi PHÚT" của giới hạn /menu không có ca khoá. Đột biến `60 * 1000` → `3600 * 1000`
+  (giới hạn thành 300 lần / GIỜ mỗi IP) cho thu_KHAPI3.js xanh trọn 63/0 (SỐNG). A4 chỉ dội 301 lượt trong cùng một giây, còn A4b
+  gọi thẳng giuLuotBoNho với ms tự truyền, không qua giuLuotMenu. Phiếu A và HOP_DONG_API_KH.md (bảng cửa + nhật ký v3) hứa
+  "≤ 300 lần / phút / IP". Vì sao đáng lo: nhiều khách dùng chung một IP (wifi quán, mạng di động) thì 300 lần / giờ có thể chặn oan.
+  — K3 (lời hợp đồng không trỏ tới ca nào — lặp lại đúng bài học vòng 1)
+- server/utils/maKhach.js:84 — cửa sổ "mỗi GIỜ" của /gia-han cũng không có ca khoá. Đột biến `3600 * 1000` → `60 * 1000`
+  (10 lần / phút) SỐNG; D3 gọi 11 lần liền nhau. Hợp đồng ghi "chặn > 10 lần / giờ mỗi khách". — K3
+- server/utils/maKhach.js:83-84 — hai độ dài cửa sổ là số viết thẳng trong hàm bọc, không nằm trong GIOI_HAN (LUAT §3: hằng số cấu
+  hình đặt một chỗ có tên). Cách gọn: thêm MENU_CUA_SO_MS / GIA_HAN_CUA_SO_MS vào GIOI_HAN; hai hàm bọc nhận thêm `luc`; ca A4b /
+  D3 gọi giuLuotMenu(ip, t0 + 59 999 / 60 000) và giuLuotGiaHan(id, t0 + 3 599 999 / 3 600 000); thêm đột biến cho từng cửa sổ. — K3 + LUAT §3
+- server/utils/maKhach.js:78 — `boDem.set(khoa, { bat_dau, dem: 1, ms })`: trường `ms` không chỗ nào đọc (grep `\.ms\b` → 0).
+  Code chết sót từ bản dọn của vòng 1. Bỏ `ms`. — LUAT §3 (không để code chết)
+- viec/KH-API-3/trang_thai.md:123,125,165,167,172,179 — "Báo cáo 7 mục" và "Vòng sửa 1" còn ghi số cũ: 62/62, 32/32, "npm test đỏ vì
+  thu_KHO1", "thu_KHUI1 / thu_P15QR chưa sửa", "Soát vòng 2 chưa chạy". Mục "## Câu hỏi" đã được trả lời mà còn để nguyên. Bảng
+  "Chỗ vá → đột biến" và dòng "Mọi tên đột biến" (30 tên) thiếu 4 đột biến vòng 1 (BV-BO-DEM-TRAN, VS-BO-DEM-XOA-SOM,
+  BV-DIA-CHI-KIEU, VS-DIA-CHI-NULL-KHONG-XOA); 4 tên này chỉ có ở dòng 123. Hiện tại: 63 ca, 34/34 đột biến BẮT. Không có kết quả
+  cổng `node tu_chay/cong.js chay` nào sau 628fce8 (LUAT §6.3). — K4 (sửa một câu tài liệu → grep cả file) / K1
+
+NGHI NGỜ:
+- server/nang_cap/003_xung_ho_khach.js:9 — thiếu bảng thì `return`, nhưng bộ chạy (server/nang_cap/chay.js:32 INSERT pos_nang_cap
+  trước khi chạy bước) vẫn ghi bước 3 là ĐÃ CHẠY. Hệ quả: kho nào từng chạy nâng cấp khi chưa có bảng khách, sau đó mới tạo bảng, sẽ
+  không bao giờ có cột xung_ho, và mọi đăng ký App trả 500 mà không báo gì. Máy thật không gặp: đã đọc database.js:35 createTables
+  chạy trước database.js:38 chayNangCap, và pos_customers được tạo ở database.js:83. Chat đã chỉ định cách này nên tôi không xếp là
+  lỗi; nên ghi vào CHƯA KIỂM.
+- server/utils/maKhach.js:74-76 — /menu và /gia-han dùng CHUNG một Map. Dội /menu từ ≥ 10 000 IP (một dải IPv6 là đủ) thì Map bị
+  `clear()`, kéo theo cả bộ đếm gia hạn của mọi khách. Tác động thấp (gia hạn chỉ là chống gọi dồn, không đụng tiền), nhưng hồ sơ
+  chưa nêu.
+- server/middleware/khachAuth.js:50 — đột biến `=== undefined` → `!req.headers.authorization` (coi tiêu đề Authorization rỗng là
+  "không token") SỐNG. Hợp đồng ghi "CÓ gửi mà sai → 401"; ca tiêu đề rỗng chưa có. Nhẹ.
+- server/utils/maKhach.js:63 — đột biến bỏ `.normalize('NFC')` trong chuanDiaChi SỐNG. Địa chỉ gõ dạng NFD (dấu tách rời) dài gần 300
+  ký tự có thể bị đếm thành > 300 → 400 oan. Nhẹ.
+- server/utils/maKhach.js:167 — bỏ `dung_luc IS NULL` trong câu UPDATE gia hạn mã: đột biến SỐNG, nhưng câu SELECT ở :151 đã lọc mã
+  đã dùng nên chỉ còn cửa đua. Vô hại, chỉ ghi lại.
+- cong_cu/thu_KHAPI3.js:286 C4b lấy kết quả mong đợi từ danh sách file thật trong server/nang_cap. Một bước 004 sau này đụng bảng
+  không phải kho sẽ làm thu_KHAPI3 đỏ dù không liên quan việc này (dính chùm). Gọn hơn: chỉ kiểm bước 3 được ghi + `hong === null` +
+  không tạo pos_customers.
+
+8 MỤC:
+1. K3: C4b đỏ trên gốc và trên 628fce8 (bang_chung_do.txt:72-77). H3 / A6 đỏ trên gốc (:80-91). Không có ca nào chỉ dò marker. Đã
+   chạy lại BV-003-KIEM-BANG, VS-003-SAI-TEN-BANG và 4 đột biến vòng 1: 6/6 BẮT, đối chứng XANH 63/0 · 67/0. Lỗ: hai cửa sổ thời gian
+   (LỖI 1–2), NFC, tiêu đề rỗng.
+2. K4: grep `FROM pos_customers` trong kh/, maKhach.js, khachAuth.js → 5 chỗ. Đường cần xung_ho dùng `SELECT *` (index.js:82,
+   khachAuth.js:38); 3 chỗ còn lại chỉ đọc id / qr_code — không thiếu. grep `giuLuotBoNho` → 2 hàm bọc, cả hai thiếu ca khoá cửa sổ.
+   Tài liệu trang_thai.md còn 6 câu cũ.
+3. K5: luồng hợp lệ qua chỗ mới thêm — production (có bảng → thêm cột), kho thử Replit (createTables trước), thu_KHO2a E6b (chỉ bảng
+   kho, xanh trong npm test), menu có token (A2, A4), khách cũ { sdt, ma } (F1), PUT { ten } App v2 (C3/F2), quầy và nhận điểm
+   (thu_KH1 xanh). Không thấy luồng nào bị chặn oan. App v2 không tạo được khách MỚI là quyết định của chủ quán ngày 30.10.
+4. K1: chú thích 003 đúng (database.js:35,38,83). Chú thích maKhach.js:69-72 khớp code (đã bỏ câu "Render một máy"). Lời giải thích
+   H2f trong thu_KHUI1.js:63 khớp với :133 (so bằng nguyên văn file dist). trang_thai còn câu cũ (đã nêu ở LỖI).
+5. Đường tiền: không đụng tiền, ví, điểm. Server không nhận trường tiền nào từ client. req.khach giờ là cả hàng khách (có pin_code đã
+   băm) nhưng chỉ đi ra ngoài qua danh sách trắng hoSo (index.js:31). signup-codes.js:138,276,430 chỉ xét req.khach có / không.
+6. P1: `git diff 1930351 HEAD -- client app_kh` rỗng. Mọi commit của việc chỉ chạm file trong Phạm vi.
+7. Nghiệm thu: xem dòng dưới.
+8. Đơn giản: số cửa sổ viết thẳng (:83-84), trường `ms` chết (:78), C4b dính chùm với danh sách bước (:286), trang_thai chồng nhiều
+   bản cũ.
+
+NGHIỆM THU:    5/6 mục đủ bằng chứng · mục thiếu: A — phần "/ phút" của giới hạn 300 lượt chưa có ca khoá (đột biến cửa sổ SỐNG).
+               Mục D có ghi "(vd > 10 lần / giờ)" nên tính là đạt, nhưng cửa sổ giờ cũng chưa khoá.
+               Đã có: B (B1–B8, B4b), C (C1–C4, C4b), D (D1–D4), E (thu_HOPDONG_KH 67/0 + 3 đột biến HD),
+               F (F1, F2, F4, B8, thu_KH1 / thu_KHAPI2 xanh trong npm test; App v2 tạo khách mới là quyết định 30.10).
+
+CHƯA SOÁT ĐƯỢC: chưa chạy `--day-du` và cổng `tu_chay/cong.js` (trang_thai cũng chưa có kết quả cổng tại HEAD 0157f1a); chưa chạy
+               đủ 34 đột biến (chỉ 6 + 5 đột biến của tôi); số tầng proxy thật trên Render; bước 003 trên Turso production (thời gian
+               chép bảng sao lưu); App KH bản thật.
+
+BÀI HỌC:       KHOÁ — mỗi hàm bọc của bộ đếm (giuLuotMenu, giuLuotGiaHan) cần ca ngay dưới / ngay trên cửa sổ, gọi qua CHÍNH hàm bọc,
+               kèm đột biến đổi cửa sổ; độ dài cửa sổ đặt trong GIOI_HAN. NGUYÊN TẮC (K3) — "ngưỡng N / ĐƠN VỊ THỜI GIAN" là HAI phép:
+               ca dội N+1 lượt chỉ khoá N, phải có thêm ca khoá đơn vị thời gian. Bài học vòng 1 ("mỗi lời hợp đồng trỏ tới một ca")
+               đã được áp cho mã lỗi và giá trị nhưng sót con số thời gian → nên ghi câu này thẳng vào KHUON_LOI.md K3. NGUYÊN TẮC (K4) —
+               sau mỗi vòng sửa, grep trang_thai.md tìm mọi câu trích số ca / số đột biến / trạng thái cũ, và bảng chỗ vá → đột biến
+               phải có đủ tên trong dot_bien.py.
+```
