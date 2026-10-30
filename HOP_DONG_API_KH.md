@@ -9,7 +9,8 @@ DOC_TU_CODE: POS nhánh viec/KH-API-3 (server/routes/kh/index.js, loi.js, middle
      Khối HOP_DONG_MAY_DOC là phần máy đọc: bài thử hợp đồng của POS và bộ kiểm của App KH cùng dựa vào nó. -->
 
 ## Chung
-- Địa chỉ: `https://pos-tuquyduong.io.vn/api/kh`. Mọi câu trả lời thành công có `success: true`.
+- Địa chỉ: `https://www.pos-tuquyduong.io.vn/api/kh` (CÓ `www` — bản không `www` tự chuyển hướng, trình duyệt chặn yêu cầu bị chuyển
+  hướng từ App). Mọi câu trả lời thành công có `success: true`.
 - Đăng nhập xong nhận `token`; các cửa "token: có" gửi `Authorization: Bearer <token>`. Thiếu / sai / hết hạn → 401 `KH_TOKEN_SAI`.
   Cửa "token: không bắt buộc" (`/menu`, từ v3): KHÔNG gửi tiêu đề `Authorization` thì vẫn 200; CÓ gửi mà sai / hết hạn (kể cả `Bearer null`)
   → 401 `KH_TOKEN_SAI` — chưa đăng nhập / đã đăng xuất thì App KHÔNG gửi tiêu đề này.
@@ -61,7 +62,9 @@ DOC_TU_CODE: POS nhánh viec/KH-API-3 (server/routes/kh/index.js, loi.js, middle
 - `gia_hang` (của `/menu`): giá MỘT ly theo từng hạng đang bật (`hang_id` = `id` của `/hang`) + hạng của chính khách nếu hạng đó đã tắt mà thẻ còn hạn (quầy vẫn giảm), máy chủ tính CÙNG hàm với quầy. Hạng 0 % →
   `gia` = giá gốc. Giá món không phải số > 0 → `[]`. Đơn có món đang giờ vàng thì quầy KHÔNG giảm hạng cho cả đơn — App hiện giá giờ vàng.
 - **Giờ vàng:** `dang_chay` = đang trong khung VÀ có % VÀ có món (cùng điều kiện quầy giảm giá). Bật mà ngoài khung → `dang_chay: false`
-  nhưng `bat_dau / ket_thuc` là khung hôm nay (khung qua nửa đêm đang chạy sau 00:00 thì `bat_dau` là hôm qua). Tắt / % = 0 / không có món → `bat_dau`,
+  nhưng `bat_dau / ket_thuc` là khung hôm nay (khung qua nửa đêm đang chạy sau 00:00 thì `bat_dau` là hôm qua). `bat_dau`, `ket_thuc` là giờ
+  Việt Nam dạng đầy đủ `YYYY-MM-DDTHH:mm:ss` (không hậu tố); khung qua nửa đêm (giờ kết thúc ≤ giờ bắt đầu, vd 22:00–02:00) thì `ket_thuc` là
+  ngày HÔM SAU của `bat_dau`. Tắt / % = 0 / không có món → `bat_dau`,
   `ket_thuc` `null`, `phan_tram` 0, `mon` `[]`.
 - **Giờ hoạt động:** `bay_gio` = giờ VN của máy chủ (App lấy "bây giờ" ở đây). `dang_mo` = quán đang mở THẬT theo lịch; `nhan_don` = còn nhận
   đơn App (đã trừ "ngừng nhận đơn trước giờ đóng N phút"; ca sau mở đúng lúc / trước khi ca này đóng VÀ đóng muộn hơn — vd chưa cài lịch — thì tính theo giờ đóng của cả chuỗi) — KH-MUA-1 chặn theo `nhan_don`. `hom_nay` = ca đang mở, không thì ca bắt đầu
@@ -130,4 +133,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   nhận `xung_ho` (BẮT BUỘC với khách mới) + `dia_chi`, mã đúng + `CAN_TEN` sống thêm 10 phút một lần; `/toi`, `PUT /toi`, xác minh trả thêm
   `xung_ho`, `dia_chi`; `PUT /toi` sửa được `ten` / `xung_ho` / `dia_chi`; thêm `POST /gia-han`; mã lỗi `XUNG_HO_SAI`, `DIA_CHI_QUA_DAI`. Không
   xoá / đổi tên trường cũ. **Báo App KH:** App bản cũ (chỉ có ô Tên) KHÔNG tạo được khách MỚI nữa (luôn `CAN_TEN`) — App cần ô Cách xưng hô
-  trước khai trương (chủ quán chốt 30.10); khách cũ trên App bản cũ vẫn đăng nhập, xem, sửa tên như trước.
+  trước khai trương (chủ quán chốt 30.10); khách cũ trên App bản cũ vẫn đăng nhập, xem, sửa tên như trước. Chữ (chủ quán duyệt 30.10, không
+  đổi code): Địa chỉ đổi sang `https://www.pos-tuquyduong.io.vn/api/kh`; mục Giờ vàng ghi rõ dạng giờ `bat_dau` / `ket_thuc` và khung qua nửa đêm.
