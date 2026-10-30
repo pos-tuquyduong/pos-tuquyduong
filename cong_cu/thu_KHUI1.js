@@ -60,6 +60,7 @@ async function moMayChu(envThem) {
 function goi(cong, duong, host, them = {}) {
   return new Promise((ok, loi) => {
     const yc = http.request({ host: '127.0.0.1', port: cong, path: duong, headers: { ...(host === undefined ? {} : { Host: host }), ...them } }, (res) => {
+      res.setEncoding('utf8');   // ghép mẩu theo ký tự: chữ nhiều byte rơi đúng ranh giới mẩu không bị hỏng (H2f đỏ oan sau khi dist đổi)
       let than = '';
       res.on('data', (d) => { than += d; });
       res.on('end', () => ok({ status: res.statusCode, than }));
