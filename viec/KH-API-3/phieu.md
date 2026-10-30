@@ -55,9 +55,6 @@ Có — `cong_cu/thu_KHAPI3.js` ĐỎ trên code gốc: menu không token 200 + 
 mới thiếu xưng hô → `CAN_TEN`, xưng hô lạ → `XUNG_HO_SAI`; mã đã đúng + `CAN_TEN` → 12 phút sau vẫn dùng được, 16 phút sau hết; tạo khách lưu
 đủ 3 trường; `PUT /toi` đổi / xoá địa chỉ; gia hạn đúng 30 ngày, token hết hạn → 401, gọi dồn → 429; chạy với `TZ=UTC`, giờ trả theo giờ VN.
 
-## Bài thử cũ sửa
-- cong_cu/thu_HOPDONG_KH.js — hiểu token "tuy_chon" + xác minh gửi xung_ho; xanh trên gốc vì hợp đồng v2 không có cửa tuy_chon
-
 ## Ghi chú chat (30.10, trả lời ## Câu hỏi của trang_thai.md)
 - Chat đã GỘP main c8edb66 (BH-2 + KHO-2a) vào nhánh này (commit GOP-KH-API-3). Kéo về rồi làm tiếp.
 - `cong_cu/thu_KHO1.js`: KHO-2a đã đổi B1 / B2 sang đếm số file bước thật → sau gộp XANH với 003. KHÔNG thêm vào Phạm vi, không sửa.
@@ -67,6 +64,8 @@ mới thiếu xưng hô → `CAN_TEN`, xưng hô lạ → `XUNG_HO_SAI`; mã đ�
   `no such table: pos_customers`. Sửa ở bước 003 (trong Phạm vi), KHÔNG sửa thu_KHO2a: bảng `pos_customers` chưa có thì bỏ qua (thật ra không xảy ra —
   `database.js` chạy `createTables()` trước `chayNangCap`), ghi chú lý do ngay trong file; thêm ca vào `thu_KHAPI3.js` (kho không có bảng khách → 003
   chạy xong không lỗi; kho có bảng → thêm cột) + đột biến bỏ phép kiểm bảng.
+- 31.10 (Q A11 của máy): BỎ mục `## Bài thử cũ sửa` — chat đặt nhầm. `cong_cu/thu_HOPDONG_KH.js` là bài SỬA bình thường (LUAT §6.8):
+  bản gốc không gửi `xung_ho` nên đỏ trên code mới (xưng hô bắt buộc, chủ quán duyệt 30.10); bản mới đỏ trên gốc (64 · 1), xanh trên HEAD. Chạy lại cổng, soát vòng 3.
 - Soát vòng 2 như kế hoạch; xong chạy lại bộ kiểm + cổng, báo cáo theo LUAT §8 (lời thường trước).
 
 ## Ngân sách
