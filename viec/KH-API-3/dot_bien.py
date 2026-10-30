@@ -30,6 +30,9 @@ DOT_BIEN = [
   ('VS-MENU-TRAN-301', 'api', [(M, 'MENU_IP_PHUT: 300,', 'MENU_IP_PHUT: 301,', 1)], r'✗ A4 lượt 301'),
   ('VS-MENU-DEM-CA-CO-DANG-NHAP', 'api', [(K, 'if (!req.khach && !giuLuotMenu(', 'if (!giuLuotMenu(', 1)], r'✗ A4 có token'),
   ('VS-CUA-SO-LECH', 'api', [(M, 'luc - o.bat_dau >= ms)', 'luc - o.bat_dau > ms)', 1)], r'✗ A4b '),
+  # vòng sửa 1 (soát lỗi 3): trần cứng bộ đếm
+  ('BV-BO-DEM-TRAN', 'api', [(M, '  if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();\n', '', 1)], r'✗ A4c '),
+  ('VS-BO-DEM-XOA-SOM', 'api', [(M, 'if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();', 'if (boDem.size >= 5) boDem.clear();', 1)], r'✗ A4c '),
   ('VS-TRAN-LECH', 'api', [(M, 'if (o.dem >= tran) return false;', 'if (o.dem > tran) return false;', 1)], r'✗ A4'),
   # ── B: đăng ký 3 bước ──
   ('BV-XUNG-HO-CAN-TEN', 'api', [(M, 'if (!tenMoi || !xhMoi) {', 'if (!tenMoi) {', 1)], r'✗ B1 '),
@@ -37,6 +40,10 @@ DOT_BIEN = [
   ('VS-XUNG-HO-THIEU-BAN', 'api', [(M, "'em', 'ban'];", "'em'];", 1)], r'✗ B2 đủ 7'),
   ('VS-DIA-CHI-300', 'api', [(M, 'length > GIOI_HAN.DIA_CHI_TOI_DA)', 'length >= GIOI_HAN.DIA_CHI_TOI_DA)', 1)], r'✗ B3 '),
   ('VS-DIA-CHI-KHONG-CAT', 'api', [(M, "const t = v.normalize('NFC').trim();", 'const t = v;', 1)], r'✗ (B3|B4|C2) '),
+  # vòng sửa 1 (soát lỗi 1, 2): dia_chi sai kiểu → 400 (không 500); null → xoá
+  ('BV-DIA-CHI-KIEU', 'api', [(M, "  if (typeof v !== 'string') return { loi: 'YEU_CAU_KHONG_HOP_LE' };\n", '', 1)], r'✗ (B3|C2) .*không phải chuỗi'),
+  ('VS-DIA-CHI-NULL-KHONG-XOA', 'api', [(M, '  if (v === undefined || v === null) return null;\n  if (typeof v', '  if (v === undefined) return null;\n  if (typeof v', 1)],
+   r'✗ C2 PUT dia_chi null'),
   ('BV-INSERT-XUNG-HO', 'api', [(M, '[sdt, tenMoi, xhMoi, dcMoi, generateQRCode(sdt), now]', '[sdt, tenMoi, null, dcMoi, generateQRCode(sdt), now]', 1)], r'✗ (B4|B2 đủ 7) '),
   ('BV-GIA-HAN-MA', 'api', [(M, UPDATE_HAN, '', 1)], r'✗ B5 .*590'),
   ('VS-GIA-HAN-11-PHUT', 'api', [(M, 'THEM_PHUT_CAN_TEN: 10,', 'THEM_PHUT_CAN_TEN: 11,', 1)], r'✗ B5 .*610'),
