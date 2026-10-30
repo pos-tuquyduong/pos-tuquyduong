@@ -408,3 +408,10 @@ trang_thai còn câu cũ; (4) cổng A11: phiếu xếp thu_HOPDONG_KH vào "Bà
 - **BỎ**: người gác chặn chữ in hoa trong lệnh — skill đã dặn (Edit / commit trước); lần này chỉ quên.
 
 HEAD ĐÃ KIỂM: 4ee6a7c
+
+## Phiên tiếp 31.10 (chat bỏ `## Bài thử cũ sửa`, a0b4e52)
+- Đối chiếu: hook mở phiên kéo 15f25e6 → a0b4e52; HEAD `a0b4e52` = FETCH_HEAD `a0b4e52`, cây sạch — không kéo.
+  - a0b4e52 PHIEU: KH-API-3 bo muc Bai thu cu sua (thu_HOPDONG_KH la bai sua thuong, Q A11)
+  - 15f25e6 KH-API-3: vong sua 2 xong — cau hoi A11 (phieu), cong, nghiem thu, bao cao 7 muc, bai hoc
+  - 4ee6a7c KH-API-3: bang chung thu_HOPDONG_KH (SO CA 68) + so ca bai vao qua gop main
+- Cổng ở a0b4e52: `✓ CỔNG CHẠY ĐẠT` (3 CẢNH BÁO A16 số ca gốc ≠ head như đã giải thích ở trên). Câu hỏi vòng 2 đã được trả lời.
