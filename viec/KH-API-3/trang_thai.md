@@ -17,7 +17,7 @@
   câu 3 một địa chỉ chung quầy ↔ App).
 - Bước 4–6: bài thử đỏ trên gốc (`bang_chung_do.txt`), code vá, `thu_KHAPI3.js` 58/58, `thu_KH1.js` 157/157, `thu_HOPDONG_KH.js` 67/67,
   đột biến 28/28 BẮT. `npm test` / `--day-du`: xanh trừ `cong_cu/thu_KHO1.js` (ngoài Phạm vi — Câu hỏi 1).
-- (Số trên là của lần đầu. HIỆN TẠI sau vòng sửa 2: `thu_KHAPI3.js` 67/67, `thu_KHUI1.js` 41/41, `thu_P15QR.js` 29/29, đột biến 38/38 BẮT,
+- (Số trên là của lần đầu. HIỆN TẠI (vòng sửa 3, 31.10): `thu_KHAPI3.js` 67/67, `thu_KHUI1.js` 41/41, `thu_P15QR.js` 29/29, đột biến 39/39 BẮT,
   `npm test -- --day-du` PASS 86 · FAIL 0 — xem `## Vòng sửa 2` và báo cáo 7 mục CUỐI file.)
 
 ## Phiên tiếp 30.10 (phiếu đã sửa: Phạm vi + `## Bài thử cũ sửa` + 003 khi thiếu bảng)
@@ -51,13 +51,13 @@
 | `chuanDiaChi` chuẩn NFC (khoá hồi quy, vòng sửa 2) | VS-DIA-CHI-KHONG-NFC |
 | 003 bỏ qua khi chưa có bảng `pos_customers` (thu_KHO2a E6b) | BV-003-KIEM-BANG, VS-003-SAI-TEN-BANG |
 | `POST /gia-han` + trần | BV-GIA-HAN-TRAN, VS-GIA-HAN-UTC, VS-GIA-HAN-BANG-LAN-THU |
-| hợp đồng v3 + bài thử hợp đồng | BV-HOPDONG-TUY-CHON, VS-HOPDONG-GIA-TRI-LA, BV-HOPDONG-GIA-HAN |
+| hợp đồng v3 + bài thử hợp đồng | BV-HOPDONG-TUY-CHON, VS-HOPDONG-GIA-TRI-LA, BV-HOPDONG-GIA-HAN, BV-HOPDONG-INSERT-DIA-CHI |
 
 Mọi tên đột biến: BV-MENU-BAT-DANG-NHAP · VS-MENU-NUOT-MA-SAI · BV-MENU-GIOI-HAN · VS-MENU-TRAN-301 · VS-MENU-DEM-CA-CO-DANG-NHAP · VS-CUA-SO-LECH ·
 VS-TRAN-LECH · VS-MENU-CUA-SO-GIO · VS-AUTH-RONG-LA-KHONG-TOKEN · BV-BO-DEM-TRAN · VS-BO-DEM-XOA-SOM · BV-DIA-CHI-KIEU · VS-DIA-CHI-NULL-KHONG-XOA ·
 VS-DIA-CHI-KHONG-NFC · BV-XUNG-HO-CAN-TEN · VS-XUNG-HO-LA · VS-XUNG-HO-THIEU-BAN · VS-DIA-CHI-300 · VS-DIA-CHI-KHONG-CAT · BV-INSERT-XUNG-HO · BV-GIA-HAN-MA ·
 VS-GIA-HAN-11-PHUT · VS-GIA-HAN-MA-MAI · VS-KIEM-CA-KHACH-CU · VS-PUT-RONG · VS-PUT-DIA-CHI-KHONG-XOA · VS-PUT-XUNG-HO-RONG-XOA · BV-HOSO-XUNG-HO ·
-BV-NANG-CAP-003 · BV-003-KIEM-BANG · VS-003-SAI-TEN-BANG · VS-GIA-HAN-CUA-SO-PHUT · BV-GIA-HAN-TRAN · VS-GIA-HAN-UTC · VS-GIA-HAN-BANG-LAN-THU · BV-HOPDONG-TUY-CHON · VS-HOPDONG-GIA-TRI-LA · BV-HOPDONG-GIA-HAN
+BV-NANG-CAP-003 · BV-003-KIEM-BANG · VS-003-SAI-TEN-BANG · VS-GIA-HAN-CUA-SO-PHUT · BV-GIA-HAN-TRAN · VS-GIA-HAN-UTC · VS-GIA-HAN-BANG-LAN-THU · BV-HOPDONG-TUY-CHON · VS-HOPDONG-GIA-TRI-LA · BV-HOPDONG-GIA-HAN · BV-HOPDONG-INSERT-DIA-CHI
 
 Lần chạy đầu: 27/28 BẮT — VS-KIEM-CA-KHACH-CU SỐNG vì chính đột biến viết sai (vẫn giữ `if (sai) return sai;` trong khối khách mới → hành vi
 không đổi). Sửa đột biến (83b28af) → BẮT. Không đổi bài thử.
@@ -328,7 +328,7 @@ giờ xanh được).
 (mục còn rỗng thì xoá cả tiêu đề). Máy đã chuẩn bị sẵn: bài nay ĐỎ trên gốc (ca "xác minh khách mẫu mới: khach.xung_ho / khach.dia_chi = đúng
 giá trị gửi", 64 đạt · 1 hỏng), xanh trên HEAD 68/68, `SỐ CA` 68 đã ghi. Sửa phiếu xong → `/lam-viec KH-API-3 tiep`: chạy lại cổng, soát vòng 3.
 
-## Cổng (`node tu_chay/cong.js chay . 55a8f29^ HEAD viec/KH-API-3`, HEAD 4ee6a7c, cây sạch)
+## Cổng (`node tu_chay/cong.js chay . 55a8f29^ HEAD viec/KH-API-3`, HEAD 4ee6a7c, cây sạch) — CŨ, cổng nay ĐẠT (cuối file)
 ```
 · CẢNH BÁO A16: `cong_cu/thu_BH2.js` chạy trên gốc in 76 ca ≠ 100 ca ở head — (bài của BH-2, vào qua gộp main)
 · CẢNH BÁO A16: `cong_cu/thu_HOPDONG_KH.js` chạy trên gốc in 65 ca ≠ 68 ca ở head — (hợp đồng v2 của gốc ít cửa hơn — đúng thiết kế)
@@ -344,7 +344,7 @@ giá trị gửi", 64 đạt · 1 hỏng), xanh trên HEAD 68/68, `SỐ CA` 68 �
 - Cổng `tu_chay/cong.js chay` lấy mốc trước commit gộp main → bài của việc khác (thu_BH2, thu_KHO1, thu_KHO2a) bị coi là "PR đổi" (A16). Khung
   đóng băng tới khai trương — ghi lại để làm sau.
 
-## Nghiệm thu — đếm từng mục (HEAD 4ee6a7c)
+## Nghiệm thu — đếm từng mục (HEAD 4ee6a7c — CŨ; bản hiện tại ở cuối file)
 - A `/menu` không bắt buộc token: A1, A2, A3 (sai / hết hạn / `Bearer null` / Basic / tiêu đề rỗng → 401), A4 (300 → 200, 301 → 429, IP khác,
   có token không đếm), A4b, A4c (trần bộ đếm), **A4d (cửa sổ một PHÚT qua `giuLuotMenu`)**, A5 — `thu_KHAPI3.js`; không thêm trường món: A1 so
   BẰNG + `thu_KH1.js` E5. `thu_KHUI1.js` H3 (menu không token 200 ở cả hai Host). ✓
@@ -358,7 +358,7 @@ giá trị gửi", 64 đạt · 1 hỏng), xanh trên HEAD 68/68, `SỐ CA` 68 �
 - F K5: F1 (khách cũ `{ sdt, ma }`), C3/F2 (`PUT { ten }`), A2, B8, F4; quầy / nhận điểm / PIN: `thu_KH1.js` 157/157, `thu_KHAPI2.js` xanh trong
   `npm test`. ✓ — "App v2 tạo khách MỚI" đổi theo quyết định chủ quán 30.10.
 
-## Báo cáo 7 mục (HEAD 4ee6a7c)
+## Báo cáo 7 mục (HEAD 4ee6a7c — CŨ; bản hiện tại ở cuối file)
 ```
 VIỆC:        KH-API-3 — Cửa App KH: menu không cần đăng nhập · đăng ký 3 bước (xưng hô, địa chỉ) · tự gia hạn đăng nhập · hợp đồng v3
 ĐÃ SỬA:      server/routes/kh/index.js — /menu trước xacThucKhach với tuyChonKhach + giuLuotMenu; hoSo + xung_ho, dia_chi; xác minh nhận
