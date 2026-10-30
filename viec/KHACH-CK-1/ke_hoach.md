@@ -148,3 +148,30 @@ P20) · hoàn / huỷ · điểm · sửa ghi chú khách (B5) · PUT value 0 (B
 
 ## 8. Ngân sách
 Máy chủ ~+40/−35 (orders 5, customers 8, v2 8, 004 25) · giao diện ~−110/+10 · thử ~230 mới + ~40 sửa. Trong ngân sách phiếu.
+
+## 9. Soát kế hoạch (agent phụ chỉ đọc) — đã nhận và sửa
+- Q1 ngoài Phạm vi: không. Ghi thêm:
+  - A7 đổi một hành vi phụ ở Giờ vàng (Flash): khách có hồ sơ 10 % mua trong giờ Flash hiện bị 400 (`orders.js:686`, do LO 2 nạp % ở `:627`).
+    Sau việc này đơn đi qua với giá Flash. Hệ quả của bỏ LO 2, không đổi luật Flash — báo chủ quán.
+  - Đột biến cũ của việc khác sẽ lạc neo: `viec/BH-1/dot_bien.py:42`, `viec/BH-2/dot_bien.py:85-86`, `viec/LUOI-5/dot_bien.py:57-58`. Ngoài
+    Phạm vi, không sửa — ghi Phát hiện (chạy `python3 viec/HOC-2b/kiem_neo.py` ở bước 6 để thấy chính xác).
+- Q2 ngắn hơn — nhận cả hai:
+  - 004 bỏ đếm `n` + `changes === n`: có dòng ≠ 0 thì sao lưu, UPDATE, log số `changes` (C4 đọc log).
+  - Không sửa `CustomerInput.jsx:83-84,119-120` (D chỉ đòi bỏ huy hiệu `:279-284`).
+- Q3 ca thiếu — thêm vào bảng mục 3:
+  - F3 giảm tay theo đơn ở màn cũ không đổi: đọc mã `Sales.jsx` — ô nhập `setDiscountValue(Math.max(0, parseInt(` và
+    `discount_value: discountCodeValid?.valid ? … : discountValue` còn y nguyên. Máy chủ: POST `/orders` gửi `discount_type 'percent', discount_value 10`
+    không mã → tổng đủ (như gốc — đối chứng).
+  - B7 (đã có trong đột biến) đưa vào bảng: PUT customers.js value `-5` → hồ sơ vẫn 0.
+  - D1 dò `discount_value` trên MỌI tên biến trong `Sales.jsx` ngoài các dòng gửi thân đơn / in hoá đơn (dò `\.discount_value\s*>\s*0` không phân biệt
+    tên đối tượng) — để khôi phục nhánh `selectedCustomer.discount_value` ở `:378` cũng bị bắt; đột biến `BV-SALES-CHON-KHACH` khôi phục nhánh đó.
+- Q4 đường song song sót — **khôi phục sao lưu**: `backup.js:42` có `pos_customers`, khôi phục ghi lại mọi cột; `backup.js:103` không bao giờ khôi
+  phục `pos_nang_cap` → 004 không chạy lại. Khôi phục bản sao lưu trước 004 sẽ đem mức > 0 trở lại hồ sơ. Tiền vẫn đúng (máy chủ thôi áp, màn không
+  hiện), nhưng trái C "dữ liệu cũ về 0". `backup.js` ngoài Phạm vi → ghi Phát hiện + câu hỏi 4 (mục 5).
+- `chay.js:7` ghi "Bước chỉ THÊM (bảng / cột / chỉ mục)" — 004 là bước đầu đổi DỮ LIỆU. Sửa chú thích cùng commit (K1: chú thích là khẳng định):
+  "bước đổi dữ liệu phải sao lưu bảng trước (như themCot)".
+
+### Bổ sung mục 5
+4. Khôi phục bản sao lưu cũ đem mức chiết khấu riêng trở lại hồ sơ (vô hại về tiền). Đề xuất: chấp nhận, không sửa `backup.js` trong việc này;
+   muốn chặn hẳn thì mở việc nhỏ sau (khôi phục xong đặt `discount_value = 0`).
+5. Đơn giờ Flash của khách từng có chiết khấu % riêng: trước bị chặn (400), sau đi qua với giá Flash. Đề xuất: đồng ý (đúng luật Flash hiện hành).

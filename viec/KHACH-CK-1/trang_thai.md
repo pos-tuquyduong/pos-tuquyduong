@@ -9,7 +9,7 @@
   - `c8edb66 Merge pull request #53 from pos-tuquyduong/viec/KHO-2a`
 
 ## Tiến độ
-- Bước 2 (đọc) xong. Bước 3 (kế hoạch) xong — `ke_hoach.md`. Phiếu dặn **Chờ duyệt kế hoạch** → DỪNG ở bước 3, chưa sửa code, chưa viết bài thử.
+- Bước 2 (đọc) xong. Bước 3 (kế hoạch) xong — `ke_hoach.md`, đã soát bằng agent phụ (mục 9). Phiếu dặn **Chờ duyệt kế hoạch** → DỪNG ở bước 3, chưa sửa code, chưa viết bài thử.
 
 ## Câu hỏi
 Xem `ke_hoach.md` mục 5 (đề xuất sẵn):
@@ -18,7 +18,12 @@ Xem `ke_hoach.md` mục 5 (đề xuất sẵn):
    giảm" từ chiết khấu hồ sơ sang mã giảm → vẫn xanh trên gốc → cổng A11 đòi mục này. Các bài cũ còn lại (UUDAI1 G5b, P26c X1, BH1 D13/D14/I8,
    BH2 coChietKhauRieng/S19) đỏ trên gốc vì hành vi đã duyệt đổi → LUAT §6.8, không cần mục đó.
 
+3. Khôi phục sao lưu cũ đem mức > 0 trở lại (ke_hoach §9) — đề xuất chấp nhận, không sửa `backup.js`.
+4. Đơn giờ Flash của khách từng có % riêng: trước 400, sau đi qua giá Flash — đề xuất đồng ý.
+
 ## Phát hiện
+- `server/routes/backup.js` khôi phục `pos_customers` đủ cột, không khôi phục `pos_nang_cap` → bản sao lưu trước 004 đem lại mức chiết khấu riêng.
+- Đột biến cũ sẽ lạc neo sau việc này: `viec/BH-1/dot_bien.py:42`, `viec/BH-2/dot_bien.py:85-86`, `viec/LUOI-5/dot_bien.py:57-58`.
 - Ô "Chiết khấu" giảm tay ở màn Bán hàng cũ (`client/src/pages/Sales.jsx` ~1464–1490) không có tác dụng ở máy chủ từ POS-CONGDON-v1 (máy chủ bỏ
   qua `discount_type/value` của thân); tổng hiện theo tinh-thu nên chỉ lộ khi tinh-thu lỗi. Phiếu dặn giữ (F) — để việc sau dọn.
 - Cửa `PUT /api/pos/customers/:id/discount` (`server/routes/customers.js` ~508) quầy không gọi; chỉ `cong_cu/thu_P3.js:448` khoá quyền. Dọn sau
