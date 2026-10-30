@@ -7,12 +7,26 @@
   - 7a3930f TIEN-DO: KH-API-2 (6f2c30b) xong; mo KH-API-3; them KHACH-CK-1; quyet dinh 29-30.10; luat noi de hieu + duyet 2 luot; tu-chay 1.8.1 (KHUNG-KEO-1) — so v47
   - 6f2c30b Merge pull request #51 from pos-tuquyduong/viec/KH-API-2
 - Phiên tiếp (sau duyệt): HEAD `236b3dc` = FETCH_HEAD `236b3dc` — không kéo.
+- Phiên tiếp 30.10 (sau khi chat sửa phiếu): hook mở phiên kéo 55a8f29 → 628fce8; HEAD `628fce8` = FETCH_HEAD `628fce8`, cây sạch — không kéo.
+  - 628fce8 PHIEU: KH-API-3 tra loi cau hoi 30.10 (Pham vi + Bai thu cu sua + 003 khi thieu bang)
+  - 1930351 GOP-KH-API-3 gop main c8edb66 (chat 30.10, truoc khi may lam tiep)
+  - c8edb66 Merge pull request #53 from pos-tuquyduong/viec/KHO-2a
 
 ## Tiến độ
 - Bước 3: kế hoạch duyệt 30.10 (chủ quán: câu 1 đồng ý thêm `thu_KHUI1.js`, `thu_P15QR.js` vào Phạm vi; câu 2 xưng hô bắt buộc với khách mới;
   câu 3 một địa chỉ chung quầy ↔ App).
 - Bước 4–6: bài thử đỏ trên gốc (`bang_chung_do.txt`), code vá, `thu_KHAPI3.js` 58/58, `thu_KH1.js` 157/157, `thu_HOPDONG_KH.js` 67/67,
   đột biến 28/28 BẮT. `npm test` / `--day-du`: xanh trừ `cong_cu/thu_KHO1.js` (ngoài Phạm vi — Câu hỏi 1).
+
+## Phiên tiếp 30.10 (phiếu đã sửa: Phạm vi + `## Bài thử cũ sửa` + 003 khi thiếu bảng)
+- Sau gộp main: `npm test` đỏ đúng một chỗ — `thu_KHO2a.js` E6b (`003_xung_ho_khach: no such table: pos_customers`). `thu_KHO1.js` xanh (KHO-2a đã sửa).
+- `cong_cu/thu_KHAPI3.js` thêm C4b (kho chỉ bảng kho → nâng cấp chạy hết, ghi đủ mọi bước theo DANH SÁCH FILE thật, không tự tạo bảng khách) —
+  đỏ trên HEAD chưa vá và trên gốc; `server/nang_cap/003_xung_ho_khach.js` bỏ qua khi chưa có bảng (chú thích lý do trong file) → 63/63.
+- `cong_cu/thu_KHUI1.js` H3 (menu không token → 200, /toi không token → 401) và `cong_cu/thu_P15QR.js` A6 (lưu đúng xung_ho): đỏ trên gốc, xanh
+  trên HEAD (41/41, 29/29). Thêm `res.setEncoding('utf8')` trong `goi` của `thu_KHUI1.js`: H2f đỏ oan trên HEAD vì dist mới có chữ nhiều byte rơi
+  đúng ranh giới mẩu (`than += d` cắt đôi ký tự) — K2, truy nguyên rồi mới sửa.
+- Đột biến 34/34 BẮT, đối chứng XANH. `npm test -- --day-du`: PASS 86 · FAIL 0 · CẢNH BÁO 1 (`GET có lệnh ghi` packages.js / products.js /
+  sync.js — có từ trước, ngoài Phạm vi).
 
 ## Chỗ vá → đột biến (`viec/KH-API-3/dot_bien.py`)
 | Chỗ vá | Đột biến |
@@ -28,13 +42,14 @@
 | `PUT /toi` ba trường | VS-PUT-RONG, VS-PUT-XUNG-HO-RONG-XOA |
 | `hoSo` thêm trường | BV-HOSO-XUNG-HO |
 | bước nâng cấp 003 | BV-NANG-CAP-003 |
+| 003 bỏ qua khi chưa có bảng `pos_customers` (thu_KHO2a E6b) | BV-003-KIEM-BANG, VS-003-SAI-TEN-BANG |
 | `POST /gia-han` + trần | BV-GIA-HAN-TRAN, VS-GIA-HAN-UTC, VS-GIA-HAN-BANG-LAN-THU |
 | hợp đồng v3 + bài thử hợp đồng | BV-HOPDONG-TUY-CHON, VS-HOPDONG-GIA-TRI-LA, BV-HOPDONG-GIA-HAN |
 
 Mọi tên đột biến: BV-MENU-BAT-DANG-NHAP · VS-MENU-NUOT-MA-SAI · BV-MENU-GIOI-HAN · VS-MENU-TRAN-301 · VS-MENU-DEM-CA-CO-DANG-NHAP · VS-CUA-SO-LECH ·
 VS-TRAN-LECH · BV-XUNG-HO-CAN-TEN · VS-XUNG-HO-LA · VS-XUNG-HO-THIEU-BAN · VS-DIA-CHI-300 · VS-DIA-CHI-KHONG-CAT · BV-INSERT-XUNG-HO · BV-GIA-HAN-MA ·
 VS-GIA-HAN-11-PHUT · VS-GIA-HAN-MA-MAI · VS-KIEM-CA-KHACH-CU · VS-PUT-RONG · VS-PUT-DIA-CHI-KHONG-XOA · VS-PUT-XUNG-HO-RONG-XOA · BV-HOSO-XUNG-HO ·
-BV-NANG-CAP-003 · BV-GIA-HAN-TRAN · VS-GIA-HAN-UTC · VS-GIA-HAN-BANG-LAN-THU · BV-HOPDONG-TUY-CHON · VS-HOPDONG-GIA-TRI-LA · BV-HOPDONG-GIA-HAN
+BV-NANG-CAP-003 · BV-003-KIEM-BANG · VS-003-SAI-TEN-BANG · BV-GIA-HAN-TRAN · VS-GIA-HAN-UTC · VS-GIA-HAN-BANG-LAN-THU · BV-HOPDONG-TUY-CHON · VS-HOPDONG-GIA-TRI-LA · BV-HOPDONG-GIA-HAN
 
 Lần chạy đầu: 27/28 BẮT — VS-KIEM-CA-KHACH-CU SỐNG vì chính đột biến viết sai (vẫn giữ `if (sai) return sai;` trong khối khách mới → hành vi
 không đổi). Sửa đột biến (83b28af) → BẮT. Không đổi bài thử.

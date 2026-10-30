@@ -67,6 +67,30 @@ chép bài thử của HEAD vào <nháp>/goc55/cong_cu/, HOP_DONG_API_KH.md lấ
   → cần dòng trong mục `## Bài thử cũ sửa` của phiếu (cổng A11) — đã ghi ## Câu hỏi trong trang_thai.md.
   Trên code ĐÃ VÁ (+ hợp đồng v3): 67 đạt · 0 hỏng.
 
-SỐ CA cong_cu/thu_KHAPI3.js: 62
+════ Phiên tiếp 30.10 (sau khi chat sửa phiếu 628fce8) — gốc vẫn là cây 55a8f29, bản sao `python3 cong_cu/ban_sao_goc.py 55a8f29 <nháp>/goc55`
+     + `git archive 55a8f29 client/dist app_kh package.json HOP_DONG_API_KH.md`, chép bài của HEAD vào <nháp>/goc55/cong_cu/ ════
+
+── node cong_cu/thu_KHAPI3.js (thêm C4b: 003 trên kho không có bảng pos_customers) ──
+  Trên gốc 55a8f29 → 14 đạt · 47 hỏng (thoát 1); ca mới:
+  ✗ C4b kho không có bảng pos_customers → nâng cấp chạy hết không lỗi, ghi đủ mọi bước (có 3), không tự tạo bảng khách  —  · bước 1 / tệp 1
+  Trên HEAD TRƯỚC vá 003 (628fce8 + bài b7cbc24) → 62 đạt · 1 hỏng:
+  ✗ C4b … — 003_xung_ho_khach: SQLITE_ERROR: no such table: pos_customers · bước 1,2 / tệp 1,2,3
+  Trên code ĐÃ VÁ → 63 đạt · 0 hỏng. Đột biến 34/34 BẮT (thêm BV-003-KIEM-BANG, VS-003-SAI-TEN-BANG), đối chứng XANH.
+
+── node cong_cu/thu_KHUI1.js — bài SỬA (LUAT §6.8): H3 "menu không token → 401" thành "/toi không token → 401" + "menu không token → 200" ──
+  Trên gốc 55a8f29 → 39 đạt · 2 hỏng (thoát 1):
+  ✗ H3 /api/kh/menu không token ở Host kh.thu.test → 200 JSON (KH-API-3: xem menu không cần đăng nhập)  — status 401
+  ✗ H3 /api/kh/menu không token ở Host pos.thu.test → 200 JSON (KH-API-3: xem menu không cần đăng nhập)  — status 401
+  Trên code ĐÃ VÁ → 41 đạt · 0 hỏng. (Trước khi thêm `res.setEncoding('utf8')` ở hàm goi, HEAD đỏ oan H2f: dist mới có chữ nhiều byte rơi
+  đúng ranh giới mẩu — gốc xanh H2f vì dist cũ. Không phải hành vi máy chủ.)
+
+── node cong_cu/thu_P15QR.js — bài SỬA (LUAT §6.8): A6 gửi xung_ho + kiểm khách mới LƯU đúng xung_ho ──
+  Trên gốc 55a8f29 → 28 đạt · 1 hỏng (thoát 1):
+  ✗ A6 khách mới qua App (xac-minh, có xung_ho — KH-API-3) → mã thật, lưu đúng xung_ho  — HTTP 200 · TQD-EJ33D83T88NY · xung_ho undefined
+  Trên code ĐÃ VÁ → 29 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_KHAPI3.js: 63
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 67
+SỐ CA cong_cu/thu_KHUI1.js: 41
+SỐ CA cong_cu/thu_P15QR.js: 29
