@@ -1,0 +1,63 @@
+KH-API-3 — bằng chứng đỏ (30.10.2026)
+
+Code gốc = cây 55a8f29 (PHIEU: KH-API-3). Bản sao gốc dựng bằng `python3 cong_cu/ban_sao_goc.py 55a8f29 <nháp>/goc55` (server/ của gốc),
+chép bài thử của HEAD vào <nháp>/goc55/cong_cu/, HOP_DONG_API_KH.md lấy của gốc (`git show 55a8f29:HOP_DONG_API_KH.md`, bản v2).
+
+════ node cong_cu/thu_KHAPI3.js — trên code GỐC (bài ở 860611c) → 14 đạt · 42 hỏng (thoát 1) ════
+  ✗ A1 không token → 200, data GIỐNG HỆT lượt có token (cùng trường, cùng gia_hang)  — HTTP 401 · KH_TOKEN_SAI
+  ✗ A5 không token: gia_hang KHÔNG có hạng đã tắt
+  ✗ A4 cùng IP 300 lượt không token → lượt 300 vẫn 200  — HTTP 401 · KH_TOKEN_SAI
+  ✗ A4 lượt 301 → 429 QUA_NHIEU_LAN  — HTTP 401 · KH_TOKEN_SAI
+  ✗ A4 IP khác cùng lúc → 200  — HTTP 401 · KH_TOKEN_SAI
+  ✗ A4b giuLuotBoNho: 2 lượt qua, lượt 3 trong cửa sổ (59 999 ms) chặn, đủ 60 000 ms → qua lại  — false
+  ✗ B1 khách mới có tên, thiếu xưng hô → 400 CAN_TEN  — HTTP 200
+  ✗ B1 có xưng hô, thiếu tên → 400 CAN_TEN  — HTTP 400 · MA_HET_HAN
+  ✗ B2 xung_ho "ong" → 400 XUNG_HO_SAI  — HTTP 400 · MA_HET_HAN
+  ✗ B2 XUNG_HO_SAI không tốn lượt thử mã, mã chưa tiêu
+  ✗ B3 dia_chi 301 ký tự → 400 DIA_CHI_QUA_DAI  — HTTP 400 · MA_HET_HAN
+  ✗ B3 dia_chi đúng 300 ký tự (sau khi cắt khoảng trắng) → 200  — HTTP 400 · MA_HET_HAN
+  ✗ B4 CSDL lưu đủ: name, xung_ho, address đã cắt khoảng trắng  — Anh Mới · undefined · 4
+  ✗ B4 câu trả lời xác minh có xung_ho, dia_chi
+  ✗ B2 đủ 7 xưng hô anh · chi · co · chu · bac · em · ban → tạo được, lưu đúng  — [false,false,false,false,false,false,false]
+  ✗ B5 mã App: CAN_TEN rồi 590 giây sau → 200 (còn trong 10 phút thêm)  — HTTP 200 → HTTP 400 · MA_HET_HAN
+  ✗ B5 mã App: CAN_TEN rồi 610 giây sau → 400 MA_HET_HAN (quá 10 phút)  — HTTP 200 → HTTP 400 · MA_HET_HAN
+  ✗ B5 mã quầy: CAN_TEN rồi 590 giây sau → 200 (còn trong 10 phút thêm)  — HTTP 200 → HTTP 400 · MA_HET_HAN
+  ✗ B5 mã quầy: CAN_TEN rồi 610 giây sau → 400 MA_HET_HAN (quá 10 phút)  — HTTP 200 → HTTP 400 · MA_HET_HAN
+  ✗ B6 CAN_TEN lần hai → het_han KHÔNG đổi (chỉ thêm 10 phút MỘT lần)  — 2026-10-30T11:55:55 → 2026-10-30T11:55:55
+  ✗ B7 hai yêu cầu song song cùng mã sau CAN_TEN → đúng MỘT 200, một khách  — HTTP 400 · MA_HET_HAN / HTTP 400 · MA_HET_HAN
+  ✗ B8 khách CŨ đăng nhập kèm xưng hô lạ + địa chỉ 400 ký tự → 200, CSDL không đổi  — HTTP 200
+  ✗ C1 khách quầy: GET /toi có xung_ho null, dia_chi = address quầy  — HTTP 200
+  ✗ C1 khách App: GET /toi có xung_ho, dia_chi  — HTTP 200
+  ✗ C2 PUT dia_chi → 200, CSDL đổi (đã cắt), câu trả lời có trường mới  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C2 PUT dia_chi 301 ký tự → 400 DIA_CHI_QUA_DAI, CSDL không đổi  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C2 PUT xung_ho → 200, CSDL đổi  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C2 PUT xung_ho "ong" → 400 XUNG_HO_SAI, CSDL không đổi  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C2 PUT xung_ho "" → 400 XUNG_HO_SAI, CSDL không đổi  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C2 PUT dia_chi "" → 200, address NULL (xoá)  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C3 PUT {} → 400 YEU_CAU_KHONG_HOP_LE  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C3/F2 PUT { ten } (App v2) → 200, chỉ đổi tên  — HTTP 200
+  ✗ C4 kho mới: pos_nang_cap có bước 3, pos_customers có cột xung_ho  — (không có bước 3)
+  ✗ D1 → 200, token mới ký khoá khách, cùng id, hạn 30 ngày  — HTTP 404 · KHONG_TIM_THAY
+  ✗ D1 het_han = exp đổi sang giờ VN (TZ=UTC), dạng YYYY-MM-DDTHH:mm:ss không hậu tố  — undefined ≠
+  ✗ D1 het_han cách giờ VN hiện tại 30 ngày (± 60 giây)  — null
+  ✗ D1 token mới gọi /toi được  — HTTP 401 · KH_TOKEN_SAI
+  ✗ D4 token CŨ vẫn gọi /toi được (không thu hồi — tới hạn cũ)  — HTTP 200
+  ✗ D3 khách gọi 10 lần / giờ → lượt 10 vẫn 200  — HTTP 404 · KHONG_TIM_THAY
+  ✗ D3 lượt 11 → 429 QUA_NHIEU_LAN  — HTTP 404 · KHONG_TIM_THAY
+  ✗ D3 khách khác không bị ảnh hưởng → 200  — HTTP 404 · KHONG_TIM_THAY
+  ✗ F4 sau 11 lần gia hạn, nhận mã bill KHÔNG bị 429 (gia hạn không ăn trần pos_kh_lan_thu)  — HTTP 400 · UU_DAI_DANG_TAT
+  (14 ca xanh trên gốc là hồi quy: A2, A3 ×4, A4 có token, B4 không địa chỉ, B4b, B6 mã sai, D2 ×3, F1; ca C4 thứ 2–3 chỉ chạy khi có bước 3)
+  Trên code ĐÃ VÁ: 58 đạt · 0 hỏng.
+
+════ node cong_cu/thu_KH1.js — bài SỬA (LUAT §6 mục 7 + 8): trên code GỐC → 156 đạt · 1 hỏng (thoát 1) ════
+  ✗ E1 GET /toi → 200, đúng 8 trường dia_chi · hang · ngay_tao · qr · sdt · so_du_vi · ten · xung_ho (P15-QR, KH-API-2, KH-API-3)  — HTTP 200 · hang,ngay_tao,qr,sdt,so_du_vi,ten
+  Trên code ĐÃ VÁ: 157 đạt · 0 hỏng.
+
+════ node cong_cu/thu_HOPDONG_KH.js — bài SỬA: trên code GỐC (+ hợp đồng v2 của gốc) → 64 đạt · 0 hỏng (XANH) ════
+  Xanh trên gốc: hợp đồng v2 không có cửa "tuy_chon" nên nhánh mới không chạy; THAN xác minh gửi thêm xung_ho / dia_chi thì gốc bỏ qua.
+  → cần dòng trong mục `## Bài thử cũ sửa` của phiếu (cổng A11) — đã ghi ## Câu hỏi trong trang_thai.md.
+  Trên code ĐÃ VÁ (+ hợp đồng v3): 67 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_KHAPI3.js: 58
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 67
