@@ -415,3 +415,76 @@ HEAD ĐÃ KIỂM: 4ee6a7c
   - 15f25e6 KH-API-3: vong sua 2 xong — cau hoi A11 (phieu), cong, nghiem thu, bao cao 7 muc, bai hoc
   - 4ee6a7c KH-API-3: bang chung thu_HOPDONG_KH (SO CA 68) + so ca bai vao qua gop main
 - Cổng ở a0b4e52: `✓ CỔNG CHẠY ĐẠT` (3 CẢNH BÁO A16 số ca gốc ≠ head như đã giải thích ở trên). Câu hỏi vòng 2 đã được trả lời.
+
+## Soát độc lập (/ra-soat) — vòng 3 (HEAD 57289ab), báo cáo nguyên văn
+Tóm tắt của người soát: Code đạt: vòng sửa 2 đã vá đúng và đủ cả 4 lỗi code mà vòng 2 nêu, mình dựng thêm 5 đột biến cho phần code mới, 4 cái bị bài thử bắt. Còn lại 2 lỗi NHẸ, đều nằm trong hồ sơ trang_thai.md (số đã cũ, thiếu một tên đột biến, báo cáo 7 mục chưa cập nhật), không đụng tiền, điểm, ví, không lộ dữ liệu. Theo LUAT §6.5 thì máy làm vòng sửa 4 cho phần chữ, không cần hỏi chủ quán.
+
+```
+KHÔNG ĐẠT  (chỉ còn lỗi NHẸ ở hồ sơ, code đạt → vòng sửa 4 theo LUAT §6.5, không cần dừng hỏi)
+
+LỖI TÌM ĐƯỢC:
+- NHẸ · viec/KH-API-3/trang_thai.md:20 — "HIỆN TẠI sau vòng sửa 2: … đột biến 38/38 BẮT", thực tế là 39/39 (chính file
+  ghi ở :313 và :374; mình chạy lại dot_bien.py ở HEAD: TỔNG 39 · BẮT 39). Bảng "Chỗ vá → đột biến" (dòng hợp đồng v3, :54)
+  và dòng "Mọi tên đột biến" (:56–60) thiếu BV-HOPDONG-INSERT-DIA-CHI. Đây đúng là lỗi 5 của vòng 2, lặp lại:
+  thêm đột biến ở d5d735b nhưng không grep lại trang_thai — K4 (máy đã tự đề xuất đúng nguyên tắc này ở mục Bài học mà chưa áp).
+- NHẸ · viec/KH-API-3/trang_thai.md:363–391 — "Báo cáo 7 mục (HEAD 4ee6a7c)" là báo cáo mới nhất trong file, và :19 trỏ
+  người đọc tới nó, nhưng mục CHƯA KIỂM vẫn ghi "Cổng ĐỎ A11 … Soát vòng 3 chưa chạy". Mục "Phiên tiếp 31.10" (:410–417) ghi
+  cổng ĐẠT nhưng không có báo cáo 7 mục mới, không có dòng HEAD ĐÃ KIỂM. Mình chạy cổng ở HEAD 57289ab:
+  `✓ CỔNG CHẠY ĐẠT` (3 CẢNH BÁO A16 như đã giải thích). — K1/K4
+
+NGHI NGỜ:
+- server/utils/maKhach.js:66 — đếm độ dài địa chỉ theo điểm mã (`[...t].length`). Đột biến của mình đổi thành `t.length`
+  (đếm đơn vị UTF-16) → thu_KHAPI3 xanh trọn (SỐNG). Hợp đồng HOP_DONG_API_KH.md:46 hứa "≤ 300 ký tự", mà ca 300 ký tự chỉ
+  dùng chữ trong BMP (ASCII, 'ệ'). Địa chỉ có emoji / chữ ngoài BMP mới lệch. Tác động rất thấp. Cùng họ với lỗi NFC vòng 2
+  (con số trong hợp đồng chưa có ca khoá) — K3.
+- server/utils/maKhach.js:57 — `xung_ho: ""` ở xác minh khách mới coi là "thiếu" → CAN_TEN (đúng ý hợp đồng :28 "thiếu …
+  → CAN_TEN"). Nhưng đột biến bỏ `v === ''` (thành XUNG_HO_SAI) SỐNG — chưa có ca. Nhẹ.
+- server/utils/maKhach.js:169 — bỏ `dung_luc IS NULL` trong UPDATE gia hạn mã vẫn SỐNG (vòng 2 đã xếp vô hại; mình xác nhận
+  lại: SELECT ở :152–154 đã lọc dung_luc).
+- maKhach.js:72 chú thích "`luc` = Date.now()" — nay hai hàm bọc nhận `luc` từ bài thử. Mặc định vẫn đúng như chú thích,
+  chỉ là nói chưa hết. Rất nhẹ.
+
+8 MỤC:
+1. K3: A4d (thu_KHAPI3.js:154–158) và D3b (:326–330) gọi qua CHÍNH giuLuotMenu / giuLuotGiaHan, có ca ngay dưới và ngay
+   trên cửa sổ. Trước vá ĐỎ [false,false] (bang_chung_do.txt:95–96), trên gốc cũng đỏ. Đột biến của mình đều BẮT:
+   bỏ `luc` khỏi hàm bọc → A4d đỏ; cửa sổ 59 s → A4d đỏ; cửa sổ 61 phút → D3b đỏ. A3 tiêu đề rỗng (:137) thật sự gửi
+   `Authorization: ''` (:92, `o.auth !== undefined`). Ca C2 NFD (:262–264) có ca ngay dưới; ca ngay trên là B3 301. Ca mới
+   của thu_HOPDONG_KH.js:200–205 so ĐÚNG giá trị gửi ở :168. Đỏ trên gốc 64/1 (bang_chung:108–109), có đột biến
+   BV-HOPDONG-INSERT-DIA-CHI. Không ca nào chỉ dò marker. Toàn bộ 39 đột biến: BẮT 39, đối chứng XANH (api 67/0 · hd 68/0).
+2. K4: grep `giuLuotBoNho|giuLuotMenu|giuLuotGiaHan` trong server/ → 1 hàm gốc + 2 hàm bọc (maKhach.js:77,85,86) + 2 chỗ gọi
+   (index.js:129,186). Cả hai hàm bọc đã có ca khoá cửa sổ. grep `60 \* 1000|3600 \* 1000` trong maKhach.js → chỉ còn ở
+   GIOI_HAN (:27,29). grep `\.ms\b|ms:` → 0, trường chết đã bỏ (:80). Chỗ chưa xử lý: trang_thai.md :20, :54, :56 (ở LỖI).
+3. K5: luồng đi qua chỗ đổi của vòng sửa 2 — /menu không token (A4, A4d), /menu có token không đếm (A4), gia hạn thường
+   (D1, D3 "khách khác"), quầy / nhận điểm / PIN (thu_KH1 trong npm test xanh), khách cũ { sdt, ma } (F1), PUT { ten } (C3),
+   thu_KHUI1 41/0, thu_P15QR 29/0 (chạy tay ở HEAD). Không thấy luồng nào bị chặn oan. Tiêu đề Authorization rỗng → 401 đã
+   ghi ở hợp đồng :15–16 ("CÓ gửi mà sai → 401; chưa đăng nhập thì App KHÔNG gửi tiêu đề").
+4. K1: chú thích maKhach.js:24–30, 70–75 khớp code. 003_xung_ho_khach.js:5–6 khớp. trang_thai còn câu cũ (ở LỖI).
+5. Đường tiền: không đụng. Route không nhận trường tiền nào từ client. req.khach (SELECT * ở khachAuth.js:38) chỉ đi ra
+   ngoài qua danh sách trắng hoSo (index.js:31).
+6. P1: `git diff --name-only 1930351 HEAD` chỉ ra cong_cu/ (4 bài), server/nang_cap/003, server/utils/maKhach.js,
+   viec/KH-API-3/*. Không đụng client/, app_kh/, orders/thanh-toan/wallets, tu_chay/.github/.claude. Mọi file đều trong Phạm vi.
+7. Nghiệm thu: xem dòng dưới.
+8. Đơn giản: vòng sửa 2 gọn — 2 hằng số có tên, hàm bọc thêm đúng một tham số, C4b bỏ phần dính danh sách file. Không thấy
+   chỗ rườm rà mới. Chỗ đáng gọn duy nhất là trang_thai.md chồng nhiều bản cũ: nên thay báo cáo 7 mục cũ bằng một bản ở HEAD
+   thay vì giữ thêm bản.
+
+NGHIỆM THU:    6/6 mục có bằng chứng · mục thiếu: không có
+  A: thu_KHAPI3 A1–A5, A4b, A4c, A4d; thu_KHUI1 H3. B: B1–B8, B4b; thu_P15QR A6. C: C1–C4, C4b (NFD, null, sai kiểu).
+  D: D1–D4, D3b. E: HOP_DONG_API_KH.md PHIEN_BAN 3 + nhật ký v3; thu_HOPDONG_KH 68/0; 4 đột biến hợp đồng.
+  F: F1, F2/C3, F4, B8; thu_KH1 / thu_KHAPI2 xanh trong npm test (PASS 86 · FAIL 0 · CẢNH BÁO 1 có từ trước).
+  Cổng `node tu_chay/cong.js chay . 55a8f29^ HEAD viec/KH-API-3` ở 57289ab: ✓ CỔNG CHẠY ĐẠT.
+
+CHƯA SOÁT ĐƯỢC: số tầng proxy thật trên Render / Cloudflare (giới hạn theo IP của /menu phụ thuộc điều này); bước 003 trên
+  Turso production (thời gian chép bảng sao lưu); App KH bản thật (ô xưng hô, bỏ token khi /menu trả 401); bộ đếm trong bộ
+  nhớ khi chạy nhiều tiến trình. Đột biến X-CAN-TEN-TRUOC-SAI của mình (bỏ `if (sai) return sai;`) làm bài sập vì libsql
+  panic khi gắn object vào câu SQL — tức hỏng do chính đột biến, không phải lỗi code; không tính là phép.
+
+BÀI HỌC:
+- KHOÁ (đề xuất, ngoài Phạm vi): cổng / bộ kiểm so danh sách tên trong `dot_bien.py --liet-ke` với bảng "Chỗ vá → đột biến"
+  của trang_thai.md. Lỗi "thiếu tên đột biến trong hồ sơ" đã lặp 2 vòng liền dù đã có NGUYÊN TẮC → lời dặn không đủ, cần
+  khoá (C16).
+- NGUYÊN TẮC (K3): con số "N ký tự" trong hợp đồng phải nói rõ đếm theo gì và có ca chữ ngoài BMP; chỉ ca ASCII / 'ệ' thì
+  không phân biệt được cách đếm điểm mã với cách đếm UTF-16.
+- NGUYÊN TẮC (K4): sau mỗi lần cổng đổi trạng thái (ĐỎ → ĐẠT), báo cáo 7 mục mới nhất phải viết lại ở HEAD, không chỉ thêm
+  một mục ghi chú.
+```
