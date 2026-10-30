@@ -186,3 +186,12 @@ trong lệnh bash — dùng Edit), B-PHANTICH (chuyển hướng ra file), B-CD-
 - **BỎ**: `strftime` thiếu chuỗi định dạng — bắt ở bước soát kế hoạch, chưa vào code.
 
 HEAD ĐÃ KIỂM: 8be85de
+
+## Thêm việc (chủ quán duyệt 30.10) — chỉ chữ trong HOP_DONG_API_KH.md, không đổi code
+- Địa chỉ → `https://www.pos-tuquyduong.io.vn/api/kh` (bản không www tự chuyển hướng, trình duyệt chặn).
+- Giờ vàng: `bat_dau` / `ket_thuc` dạng `YYYY-MM-DDTHH:mm:ss` giờ VN; khung qua nửa đêm thì `ket_thuc` là ngày hôm sau — khớp code
+  `server/utils/gioHoatDong.js:82` (`khungGio`: `${ngay}T${mo}:00`, `dong > mo ? ngay : congNgay(ngay, 1)`) và `:86–88` (`khungHangNgay`).
+- Commit 23c75a4. `thu_HOPDONG_KH.js` 67 đạt · 0 hỏng (SỐ CA không đổi). Cổng chạy lại ở 23c75a4: y nguyên 3 dòng ✗ cũ (A11 thu_HOPDONG_KH,
+  A13 npm test, A13 --day-du — đều do thu_KHO1.js / phiếu chờ sửa) + CẢNH BÁO A16 60 ≠ 62 như trên. Không thêm lỗi mới.
+
+HEAD ĐÃ KIỂM: 23c75a4
