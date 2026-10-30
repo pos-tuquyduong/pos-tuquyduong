@@ -488,3 +488,75 @@ BÀI HỌC:
 - NGUYÊN TẮC (K4): sau mỗi lần cổng đổi trạng thái (ĐỎ → ĐẠT), báo cáo 7 mục mới nhất phải viết lại ở HEAD, không chỉ thêm
   một mục ghi chú.
 ```
+
+## Vòng sửa 3 (31.10) — đúng hai lỗi NHẸ của soát vòng 3, chỉ chữ trong trang_thai.md, không đổi code
+- Dòng "HIỆN TẠI": đột biến 39/39 (không phải 38/38). Bảng "Chỗ vá → đột biến" + dòng "Mọi tên đột biến": thêm BV-HOPDONG-INSERT-DIA-CHI.
+  Kiểm bằng máy: đọc mọi tên `('VS-…' / 'BV-…'` trong `dot_bien.py` (39 tên) — tên nào cũng có trong bảng và trong dòng tên.
+- Đánh dấu cổng / nghiệm thu / báo cáo 7 mục ở 4ee6a7c là CŨ; bản hiện tại viết lại dưới đây ở HEAD.
+- Đây là vòng sửa thứ 3 (tối đa của `so_vong_sua_toi_da`). Thay đổi chỉ là chữ hồ sơ, không có code → không gọi soát vòng 4.
+  SOÁT LẦN CUỐI: chat soát thay.
+- Bốn điểm nghi ngờ của soát vòng 3 KHÔNG sửa (không nằm trong LỖI): đếm địa chỉ theo điểm mã chưa có ca chữ ngoài BMP; `xung_ho: ""` khi đăng
+  ký → CAN_TEN chưa có ca; `dung_luc IS NULL` trong UPDATE gia hạn mã (vô hại); chú thích `luc` ở maKhach.js nói chưa hết. Đưa vào CHƯA KIỂM.
+
+## Cổng (`node tu_chay/cong.js chay . 55a8f29^ HEAD viec/KH-API-3`, HEAD 3e76b52, cây sạch)
+✓ CỔNG CHẠY ĐẠT
+(kèm 3 CẢNH BÁO A16 số ca gốc ≠ head: thu_BH2 76 ≠ 100 — bài BH-2 vào qua gộp main; thu_HOPDONG_KH 65 ≠ 68 — hợp đồng v2 ít cửa hơn;
+thu_KHAPI3 65 ≠ 67 — 2 ca C4 chỉ chạy khi có bước 3.) `npm test -- --day-du` ở 3e76b52: PASS 86 · FAIL 0 · CẢNH BÁO 1 (`GET có lệnh ghi`
+packages.js / products.js / sync.js — có từ trước, ngoài Phạm vi).
+
+## Nghiệm thu — đếm từng mục (HEAD 3e76b52) — 6/6
+- A `/menu` không bắt buộc token: thu_KHAPI3 A1 (không token = có token, cả gia_hang), A2, A3 (sai / hết hạn / `Bearer null` / Basic / tiêu đề
+  rỗng → 401), A4 (300 → 200, 301 → 429, IP khác, có token không đếm), A4b, A4c (trần bộ đếm), A4d (cửa sổ một phút qua giuLuotMenu), A5;
+  thu_KHUI1 H3; không thêm trường món: A1 so BẰNG + thu_KH1 E5. ✓
+- B Đăng ký 3 bước: thu_KHAPI3 B1–B8, B4b; thu_P15QR A6 (lưu xung_ho). ✓
+- C Hồ sơ: thu_KHAPI3 C1, C2 (đổi / xoá "" + null / 301 / sai kiểu / NFD / xưng hô sai + rỗng), C3, C4 (003 + sao lưu + chạy lại), C4b (kho
+  không bảng khách); không commit nào đụng `client/`. ✓
+- D Tự gia hạn: thu_KHAPI3 D1 (30 ngày, giờ VN với TZ=UTC), D2, D3, D3b (cửa sổ một giờ qua giuLuotGiaHan), D4 (token cũ dùng tới hạn cũ). ✓
+- E Hợp đồng v3: HOP_DONG_API_KH.md PHIEN_BAN 3 + nhật ký; thu_HOPDONG_KH 68/68; 4 đột biến hợp đồng; cổng A11 ĐẠT (phiếu a0b4e52). ✓
+- F K5: F1, F2/C3, F4, B8; thu_KH1 157/157, thu_KHAPI2 xanh trong npm test. ✓ — "App v2 tạo khách MỚI" đổi theo quyết định chủ quán 30.10.
+
+## Báo cáo 7 mục — CUỐI (HEAD 3e76b52)
+```
+VIỆC:        KH-API-3 — Cửa App KH: menu không cần đăng nhập · đăng ký 3 bước (xưng hô, địa chỉ) · tự gia hạn đăng nhập · hợp đồng v3
+ĐÃ SỬA:      server/routes/kh/index.js — /menu trước xacThucKhach với tuyChonKhach + giuLuotMenu; hoSo + xung_ho, dia_chi; xác minh nhận
+               { ten, xungHo, diaChi }; PUT /toi ba trường; POST /gia-han
+             server/utils/maKhach.js — XUNG_HO, chuanXungHo, chuanDiaChi; giuLuotBoNho (trần cứng) + giuLuotMenu / giuLuotGiaHan (cửa sổ
+               trong GIOI_HAN, nhận luc); xacMinhMa: CAN_TEN khi thiếu tên / xưng hô + mã sống thêm 10 phút một lần; INSERT lưu xung_ho + address
+             server/middleware/khachAuth.js — SELECT *, tuyChonKhach, hanTokenKhach · server/routes/kh/loi.js — XUNG_HO_SAI, DIA_CHI_QUA_DAI
+             server/nang_cap/003_xung_ho_khach.js — themCot pos_customers.xung_ho; bỏ qua khi chưa có bảng (thu_KHO2a E6b)
+             HOP_DONG_API_KH.md — v3 · kiem_tra_truoc_khi_giao.js — thêm thu_KHAPI3.js vào danh sách chạy
+             Bài thử: thu_KHAPI3 (mới), thu_KH1, thu_HOPDONG_KH, thu_KHUI1 (H3 + setEncoding), thu_P15QR (A6)
+BÀI THỬ:     gốc 55a8f29 → ĐỎ: thu_KHAPI3 15 đạt · 50 hỏng, thu_HOPDONG_KH 64/1, thu_KHUI1 39/2, thu_P15QR 28/1, thu_KH1 156/1;
+             sau vá → XANH 67 · 68 · 41 · 29 · 157. Đột biến 39/39 BẮT, đối chứng XANH. npm test -- --day-du PASS 86 · FAIL 0.
+             Cổng ✓ CỔNG CHẠY ĐẠT ở 3e76b52. Soát độc lập 3 vòng; vòng 3: code đạt, nghiệm thu 6/6, 2 lỗi chữ hồ sơ đã sửa.
+ĐÃ RÀ K4:    grep "xacMinhMa\|hoSo(\|CAN_TEN\|kyTokenKhach\|pos_kh_lan_thu\|giuLuotBoNho\|giuLuotMenu\|giuLuotGiaHan" trong server/ →
+             1 nơi gọi xacMinhMa, 3 nơi hoSo, CAN_TEN chỉ maKhach.js + loi.js, 1 hàm gốc + 2 hàm bọc bộ đếm (cả hai có ca cửa sổ) + 2 chỗ
+             gọi, pos_kh_lan_thu chỉ giuLuotNhanMa; grep "60 \* 1000\|3600 \* 1000" maKhach.js → chỉ trong GIOI_HAN; grep "FROM
+             pos_customers" trong kh/ + maKhach.js + khachAuth.js → 5 chỗ, đường cần xung_ho dùng SELECT *. Tên đột biến: 39/39 có trong
+             bảng hồ sơ (kiểm bằng máy). Đã xử lý hết trong Phạm vi.
+CHƯA KIỂM:   - Số tầng proxy Render / Cloudflare: sai thì mọi khách chung một IP → giới hạn 300 / phút của /menu có thể chặn oan giờ đông.
+             - Bộ đếm trong bộ nhớ đếm theo tiến trình (khởi động lại về 0, nhiều tiến trình đếm riêng); /menu và /gia-han chung một Map
+               (dội ≥ 10 000 IP thì xoá cả bộ đếm gia hạn).
+             - Bước 003 gặp kho chưa có bảng pos_customers vẫn ghi "đã chạy" — kho đó tạo bảng sau sẽ không có cột xung_ho. Máy thật không
+               gặp (database.js:35 createTables trước :38 chayNangCap) — chỉ đọc code. Bước nâng cấp trước hỏng → 003 không chạy → đăng ký
+               khách mới qua App và PUT /toi có xung_ho trả 500. Chưa thử trên Turso thật (thời gian chép _sao_luu_003_pos_customers).
+             - Chưa có ca: địa chỉ chữ ngoài BMP (emoji) — đếm theo điểm mã, đột biến đếm UTF-16 SỐNG; `xung_ho: ""` khi đăng ký → CAN_TEN.
+             - App KH bản thật: chưa có ô xưng hô (khách mới không đăng ký được tới khi App lên bản mới); App phải bỏ token khi /menu trả 401.
+             - Vòng sửa 3 chỉ chữ hồ sơ — không có soát độc lập vòng 4 (chat soát thay). Không có giao diện → không có thao tác thử tay.
+GIT:         3e76b52 KH-API-3: vong sua 3 — so dot bien 39/39, du ten BV-HOPDONG-INSERT-DIA-CHI, danh dau bao cao cu
+             ab1633b KH-API-3: bao cao soat vong 3 (nguyen van)
+BÀI HỌC:     KHOÁ 1 (+2 đề xuất ngoài Phạm vi) · NGUYÊN TẮC 5 · BỎ 1 — chi tiết ở ## Bài học — phiên 30.10 và ## Bài học — bổ sung 31.10
+```
+
+## Bài học — bổ sung 31.10 (soát vòng 3)
+- **KHOÁ** (đề xuất, ngoài Phạm vi — `tu_chay/cong.js` đóng băng tới khai trương): cổng đọc mọi tên `('VS-…' / 'BV-…'` trong `viec/<MÃ>/dot_bien.py`
+  và đòi CẢ bảng "Chỗ vá → đột biến" lẫn dòng "Mọi tên đột biến" của `trang_thai.md` có đủ (A17 mở rộng). Ca đỏ: KH-API-3 ở 57289ab thiếu
+  BV-HOPDONG-INSERT-DIA-CHI. Lý do KHOÁ chứ không NGUYÊN TẮC: lỗi lặp 2 vòng soát liền dù đã ghi nguyên tắc ở vòng 2 (C16). Phiên này máy đã
+  kiểm tay bằng đoạn python (đọc dot_bien.py, so trang_thai.md) trước khi báo xong.
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K3): "Con số 'N ký tự' trong hợp đồng: nói rõ đếm theo gì, có ca chữ ngoài BMP — ca ASCII / 'ệ' không
+  phân biệt đếm điểm mã với đếm UTF-16. Đã gây: KH-API-3 soát vòng 3, đột biến `[...t].length` → `t.length` SỐNG."
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K4): "Cổng đổi trạng thái (ĐỎ → ĐẠT) thì viết lại báo cáo 7 mục ở HEAD, không chỉ thêm một mục ghi chú.
+  Đã gây: KH-API-3 soát vòng 3 lỗi 2."
+- **BỎ**: người gác chặn B-PHANTICH khi ghép `python3 <file> --liet-ke` với vòng lặp shell — luật có sẵn (lệnh chạy script đứng một mình), lần này quên.
+
+HEAD ĐÃ KIỂM: 3e76b52
