@@ -1114,6 +1114,11 @@ async function seedDefaultData() {
   for (const khoa of ['uudai_chung_hang_percent', 'uudai_chung_hang_fixed', 'uudai_chung_hang_item']) {
     await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, '1')`, [khoa]);
   }
+  // KH-API-2: giờ hoạt động (server/utils/gioHoatDong.js) — lịch '' = chưa cài = mở cả ngày; không đè cài đặt đã có.
+  for (const [khoa, v] of [['gio_hd_lich', ''], ['gio_hd_ngay_nghi', '[]'], ['gio_hd_thong_bao', 'Quán đang nghỉ — mở lại lúc {gio_mo_lai}'],
+    ['gio_hd_ngung_truoc_phut', '0']]) {
+    await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, ?)`, [khoa, v]);
+  }
 
   // Tạo sản phẩm mẫu
   const productsExist = await query("SELECT COUNT(*) as count FROM pos_products");
@@ -1400,7 +1405,7 @@ async function seedDefaultData() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG: MÃ ƯU ĐÃI KHÁCH MỚI (Bước 3, 08.08.2026) — in trên bill, đổi lấy tài khoản App KH
   // 2 tầng hạn TÁCH BIỆT, đừng gộp chung 1 cột:
-  //   - issued_at/CODE_EXPIRE_HOURS (hằng số 24h, xem signup-codes.js): cửa sổ để claim
+  //   - issued_at + cài đặt hạn mã nhandiem_han_gio (mặc định 24h, xem signup-codes.js /claim): cửa sổ để claim
   //   - claimed_at + voucher sinh ra sau claim có hạn riêng (30 ngày, tính ở bước claim)
   // is_signup_code KHÔNG cần cột riêng — INERT hoàn toàn với đơn hàng/tiền: chỉ đọc
   // customer_phone của đơn để quyết định có in mã hay không, không ghi ngược lại đơn hàng.

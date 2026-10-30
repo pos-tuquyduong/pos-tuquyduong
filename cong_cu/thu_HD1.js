@@ -587,8 +587,8 @@ async function phanA(P) {
   await db.run("UPDATE pos_signup_codes SET issued_at = ? WHERE order_id = ?", [new Date(Date.now() - 40 * 3600000).toISOString().slice(0, 19), rHan.order.id]);
   const hanSau = (await hd(rHan.order.id)).h?.ma_nhan_diem;
   await datCaiDat('nhandiem_han_gio', 24);
-  k('A28f hạn ưu đãi theo /claim (24 giờ cố định), hạn điểm theo cấu hình (72): mã in 40 giờ trước → còn hứa điểm, HẾT ưu đãi; han_gio_uu_dai = 24 để chữ "{gio}" của ô ưu đãi đúng',
-    hanSau?.diem > 0 && hanSau.uu_dai === false && hanSau.han_gio === 72 && hanSau.han_gio_uu_dai === 24, JSON.stringify(hanSau));
+  k('A28f hạn ưu đãi khách mới = CÙNG hạn cấu hình với điểm (KH-API-2 Q1 a, chủ quán 29.10: bill hứa bao nhiêu giờ thì /claim cho bấy nhiêu): cấu hình 72, mã in 40 giờ trước → còn hứa điểm VÀ còn ưu đãi; han_gio_uu_dai = 72',
+    hanSau?.diem > 0 && hanSau.uu_dai === true && hanSau.han_gio === 72 && hanSau.han_gio_uu_dai === 72, JSON.stringify(hanSau));
   const cuThua = await db.run(`INSERT INTO pos_orders (code, customer_name, subtotal, total, payment_method, cash_amount, status, created_by, created_at)
     VALUES ('ORD-20260101-004', 'Khách lẻ', 40000, 40000, 'cash', 50000, 'completed', 'thu', '2026-01-01T09:20:00')`);
   k('A30c (K5) đơn cũ ghi tiền mặt LỚN hơn tổng (khách đưa 50.000 cho đơn 40.000): tổng các dòng thanh toán vẫn = tổng hoá đơn', bang((await hd(Number(cuThua.lastInsertRowid))).h?.thanh_toan, [{ loai: 'tien_mat', so_tien: 40000 }]));

@@ -245,8 +245,15 @@ async function main() {
   if (CO('.git')) {
     let doi = '';
     try {
-      doi = execFileSync('git', ['status', '--porcelain', '--', 'server', 'client/src/pages/Sales.jsx', 'client/src/pages/Settings.jsx', 'client/src/pages/InvoiceSettings.jsx', 'client/src/pages/Kho', 'client/src/utils/hoaDon.js', 'client/src/utils/veQr.js', 'client/src/components/InvoicePrint.jsx', 'client/src/components/InvoicePreview.jsx'], { cwd: GOC, encoding: 'utf8' });
-      doi += execFileSync('git', ['diff', '--name-only', 'cbbb809', 'HEAD', '--', 'server', 'client/src/pages/Sales.jsx', 'client/src/pages/Settings.jsx', 'client/src/pages/InvoiceSettings.jsx', 'client/src/pages/Kho', 'client/src/utils/hoaDon.js', 'client/src/utils/veQr.js', 'client/src/components/InvoicePrint.jsx', 'client/src/components/InvoicePreview.jsx'], { cwd: GOC, encoding: 'utf8' });
+      // Gộp vào main (chat, 30.10): chỉ xét commit CỦA việc BH-2 (tiêu đề "BH-2:") từ phiếu cbbb809 — không xét cây làm việc / commit việc
+      // khác (sau gộp, main đổi máy chủ là bình thường; việc khác đang sửa server/ chạy bộ kiểm không được đỏ ở đây).
+      const ds = ['server', 'client/src/pages/Sales.jsx', 'client/src/pages/Settings.jsx', 'client/src/pages/InvoiceSettings.jsx', 'client/src/pages/Kho',
+        'client/src/utils/hoaDon.js', 'client/src/utils/veQr.js', 'client/src/components/InvoicePrint.jsx', 'client/src/components/InvoicePreview.jsx'];
+      let cuaBH2 = false;
+      for (const d of execFileSync('git', ['log', '--format=@%s', '--name-only', 'cbbb809..HEAD', '--', ...ds], { cwd: GOC, encoding: 'utf8' }).split('\n')) {
+        if (d.startsWith('@')) cuaBH2 = d.startsWith('@BH-2:');
+        else if (d.trim() && cuaBH2) doi += d + '\n';
+      }
     } catch (e) { doi = 'git lỗi: ' + e.message; }
     k('G1 máy chủ + Sales.jsx + file Cấm không đổi so với phiếu (K5)', doi.trim() === '', doi.trim().split('\n').slice(0, 4).join(' | '));
   }
