@@ -1,9 +1,9 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 2
-NGAY: 2026-10-29
-DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js datPin, utils/maKhach.js,
-  routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
+PHIEN_BAN: 3
+NGAY: 2026-10-30
+DOC_TU_CODE: POS nhánh viec/KH-API-3 (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js datPin, utils/maKhach.js,
+  routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, nang_cap/003_xung_ho_khach.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
 <!-- Nguồn DUY NHẤT về cổng /api/kh. Chủ: POS. Đổi cổng → đổi file này cùng PR, tăng PHIEN_BAN, ghi nhật ký (luật L2).
      Khối HOP_DONG_MAY_DOC là phần máy đọc: bài thử hợp đồng của POS và bộ kiểm của App KH cùng dựa vào nó. -->
@@ -11,6 +11,8 @@ DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middle
 ## Chung
 - Địa chỉ: `https://pos-tuquyduong.io.vn/api/kh`. Mọi câu trả lời thành công có `success: true`.
 - Đăng nhập xong nhận `token`; các cửa "token: có" gửi `Authorization: Bearer <token>`. Thiếu / sai / hết hạn → 401 `KH_TOKEN_SAI`.
+  Cửa "token: không bắt buộc" (`/menu`, từ v3): KHÔNG gửi tiêu đề `Authorization` thì vẫn 200; CÓ gửi mà sai / hết hạn (kể cả `Bearer null`)
+  → 401 `KH_TOKEN_SAI` — chưa đăng nhập / đã đăng xuất thì App KHÔNG gửi tiêu đề này.
 - Lỗi luôn `{ error: '<lời tiếng Việt>', code: 'MA_IN_HOA' }` — App hiện nguyên `error`.
 - SĐT khách luôn lấy từ token, không bao giờ từ thân yêu cầu. Đơn / dữ liệu của khách khác → 404 như không có.
 - **Giờ:** mọi trường giờ (`ngay`, `ngay_tao`, `ton_luc`…) là **giờ Việt Nam**, dạng `YYYY-MM-DDTHH:mm:ss`, KHÔNG có hậu tố múi giờ. App KHÔNG
@@ -18,17 +20,18 @@ DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middle
   hoạt động, từ v2), không lấy đồng hồ điện thoại. Lỗi đã biết: một số giờ CŨ (vd ngày tạo của vài khách) còn lưu theo giờ quốc tế, có
   dấu cách thay chữ `T` — GIO-VN-1 sửa trước khai trương.
 
-## Các cửa (phiên bản 2)
+## Các cửa (phiên bản 3)
 | Cửa | Token | Gửi | Trả (ngoài `success`) |
 |---|---|---|---|
 | `POST /dang-nhap/xin-ma` | không | `{ sdt }` | `lay_ma_tai_quay` (true = khách hỏi mã ở quầy) |
-| `POST /dang-nhap/xac-minh` | không | `{ sdt, ma, ten? }` (mã 6 số; khách mới thiếu tên → `CAN_TEN`) | `token`, `khach { sdt, ten, ngay_tao }` |
+| `POST /dang-nhap/xac-minh` | không | `{ sdt, ma, ten?, xung_ho?, dia_chi? }` (mã 6 số; khách MỚI thiếu `ten` hoặc `xung_ho` → `CAN_TEN`; khách cũ: ba trường bị bỏ qua) — xem "Đăng ký 3 bước" | `token`, `khach { sdt, ten, ngay_tao, xung_ho, dia_chi }` |
 | `GET /hang` | không | — | `data[] { id, ten, phan_tram, phan_tram_nhom_dac_biet, gia_the, thu_tu }` — hạng đang bật, xếp theo `thu_tu` rồi `gia_the` |
 | `GET /gio-vang` | không | — | `dang_chay, bat_dau, ket_thuc, phan_tram, mon[]` (mã món = `ma` của `/menu`) — xem "Giờ vàng". **Không có suất** (POS không đếm suất) |
 | `GET /gio-hoat-dong` | không | — | `bay_gio, dang_mo, nhan_don, hom_nay { mo, dong } \| null, mo_lai_luc \| null, thong_bao, lich_tuan[] { thu, mo, dong, nghi }, ngay_nghi[] { ngay, ly_do }` — xem "Giờ hoạt động" |
-| `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null`; `so_du_vi` xem dưới |
-| `PUT /toi` | có | `{ ten }` | `khach { sdt, ten, ngay_tao }` |
-| `GET /menu` | có | — | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia } }` — `con_hang` có thể `null` |
+| `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null`; `so_du_vi` xem dưới |
+| `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi? }` — ít nhất một khoá; xem "Hồ sơ" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi }` |
+| `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
+| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia } }` — `con_hang` có thể `null` |
 | `GET /diem` | có | — | `points`, `history` |
 | `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` |
 | `GET /don` | có | `?trang=N` (20 đơn / trang) | `trang`, `con_nua`, `data[] { ma, ngay, tong, da_tra, trang_thai, thanh_toan }` |
@@ -36,6 +39,19 @@ DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middle
 | `POST /nhan-ma-bill` | có | `{ ma }` | kết quả nhận ưu đãi khách mới |
 | `POST /nhan-diem` | có | `{ ma }` | kết quả nhân điểm theo mã trên bill |
 | `PUT /pin` | có | `{ pin, pin_lai }` (4 số) | — |
+
+### Ghi chú v3
+- **Đăng ký 3 bước:** SĐT → mã → `ten` + `xung_ho` (BẮT BUỘC với khách mới) + `dia_chi` (tuỳ chọn). `xung_ho` ∈ `anh · chi · co · chu · bac · em ·
+  ban` (sai → 400 `XUNG_HO_SAI`); `dia_chi` ≤ 300 ký tự sau khi cắt khoảng trắng (dài quá → 400 `DIA_CHI_QUA_DAI`; không phải chuỗi → 400
+  `YEU_CAU_KHONG_HOP_LE`). Mã đúng mà còn thiếu thông tin → `CAN_TEN` và mã sống thêm 10 phút tính từ lúc đó (một lần) để khách điền.
+  Các lỗi này chỉ trả khi mã đúng và SĐT chưa là khách; không tốn lượt thử mã. Khách đã có: `ten` / `xung_ho` / `dia_chi` gửi kèm bị bỏ qua.
+- **Hồ sơ:** `xung_ho` / `dia_chi` = `null` khi chưa có. `dia_chi` là MỘT địa chỉ dùng chung với quầy (in trên hoá đơn) — sửa / xoá trên App thì
+  quầy thấy theo. `PUT /toi`: trường nào có khoá trong thân thì sửa; thân không có khoá nào → 400 `YEU_CAU_KHONG_HOP_LE`; `ten` rỗng →
+  `TEN_KHONG_HOP_LE`; `xung_ho` rỗng / sai → `XUNG_HO_SAI` (không xoá được xưng hô); `dia_chi: ""` hoặc `null` → xoá địa chỉ.
+- **Tự gia hạn:** `POST /gia-han` cần token CÒN HẠN → token mới 30 ngày; `het_han` là giờ VN. App gọi khi mở app, tối đa 1 lần / ngày; máy chủ
+  chặn > 10 lần / giờ mỗi khách (429 `QUA_NHIEU_LAN`). Token cũ KHÔNG bị thu hồi — vẫn dùng được tới hạn cũ (App thay bằng token mới). Không
+  mở app 30 ngày → token hết hạn (401) → khách nhận mã lại.
+- Giới hạn của `/menu` (không token) và `/gia-han` đếm trong bộ nhớ máy chủ: máy chủ khởi động lại thì đếm lại từ 0.
 
 ### Ghi chú các trường mới (v2)
 - `hang` (của `/toi`): hạng khách ĐANG dùng được (còn hạn, kể cả sắp hết); hết hạn / chưa mua → `null`. `phan_tram` cho món thường,
@@ -56,7 +72,7 @@ DOC_TU_CODE: POS nhánh viec/KH-API-2 (server/routes/kh/index.js, loi.js, middle
 
 ## Mã lỗi
 `KH_CHUA_CAU_HINH` 503 · `KH_TOKEN_SAI` 401 · `SDT_KHONG_HOP_LE` 400 · `QUA_NHIEU_LAN` 429 · `MA_SAI` 400 · `MA_HET_HAN` 400 · `CAN_TEN` 400 ·
-`TEN_KHONG_HOP_LE` 400 · `KHONG_THAY_DON` 404 · `KHONG_TIM_THAY` 404 · `YEU_CAU_KHONG_HOP_LE` 400 · `LOI_MAY_CHU` 500 · `KHO_BAN` 409 ·
+`TEN_KHONG_HOP_LE` 400 · `XUNG_HO_SAI` 400 · `DIA_CHI_QUA_DAI` 400 · `KHONG_THAY_DON` 404 · `KHONG_TIM_THAY` 404 · `YEU_CAU_KHONG_HOP_LE` 400 · `LOI_MAY_CHU` 500 · `KHO_BAN` 409 ·
 `PUT /pin`: `PIN_KHONG_HOP_LE` 400 · `PIN_KHONG_KHOP` 400 · `PIN_DA_CO` 409 · `KHACH_KHONG_TON_TAI` 404.
 `nhan-ma-bill` / `nhan-diem` dùng hàm quầy, thêm các mã: `THIEU_MA` 400 · `MA_KHONG_TON_TAI` 404 · `MA_DA_DUNG` 409 · `UU_DAI_DANG_TAT` 400 ·
 `SDT_DA_NHAN` 400 · `DON_FLASH_KHONG_DIEM` 400 · `CAU_HINH_DIEM_SAI` 400 · `CHUA_CAU_HINH_NHOM` 500 · `MA_KHONG_GAN_DON` 400 · `KHONG_THAY_DON` 404 ·
@@ -74,17 +90,18 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 2,
+  "phien_ban": 3,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
-    { "pt": "POST", "duong": "/dang-nhap/xac-minh", "token": false, "tra": ["token", "khach.sdt", "khach.ten", "khach.ngay_tao"] },
+    { "pt": "POST", "duong": "/dang-nhap/xac-minh", "token": false, "tra": ["token", "khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi"] },
     { "pt": "GET", "duong": "/hang", "token": false, "tra": ["data[].id", "data[].ten", "data[].phan_tram", "data[].phan_tram_nhom_dac_biet", "data[].gia_the", "data[].thu_tu"] },
     { "pt": "GET", "duong": "/gio-vang", "token": false, "tra": ["dang_chay", "bat_dau", "ket_thuc", "phan_tram", "mon"] },
     { "pt": "GET", "duong": "/gio-hoat-dong", "token": false, "tra": ["bay_gio", "dang_mo", "nhan_don", "hom_nay", "mo_lai_luc", "thong_bao", "lich_tuan[].thu", "lich_tuan[].mo", "lich_tuan[].dong", "lich_tuan[].nghi", "ngay_nghi"] },
-    { "pt": "GET", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.qr", "khach.hang.id", "khach.hang.ten", "khach.hang.phan_tram", "khach.hang.phan_tram_nhom_dac_biet", "khach.hang.het_han", "khach.so_du_vi"] },
-    { "pt": "PUT", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao"] },
-    { "pt": "GET", "duong": "/menu", "token": true, "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia"] },
+    { "pt": "GET", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.qr", "khach.hang.id", "khach.hang.ten", "khach.hang.phan_tram", "khach.hang.phan_tram_nhom_dac_biet", "khach.hang.het_han", "khach.so_du_vi"] },
+    { "pt": "PUT", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi"] },
+    { "pt": "POST", "duong": "/gia-han", "token": true, "tra": ["token", "het_han"] },
+    { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia"] },
     { "pt": "GET", "duong": "/diem", "token": true, "tra": ["points", "history"] },
     { "pt": "GET", "duong": "/voucher", "token": true, "tra": ["data", "ma_khach_moi"] },
     { "pt": "GET", "duong": "/don", "token": true, "tra": ["trang", "con_nua", "data[].ma", "data[].ngay", "data[].tong", "data[].da_tra", "data[].trang_thai", "data[].thanh_toan"] },
@@ -93,7 +110,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     { "pt": "POST", "duong": "/nhan-diem", "token": true, "tra": [] },
     { "pt": "PUT", "duong": "/pin", "token": true, "tra": [] }
   ],
-  "ma_loi": ["KH_CHUA_CAU_HINH", "KH_TOKEN_SAI", "SDT_KHONG_HOP_LE", "QUA_NHIEU_LAN", "MA_SAI", "MA_HET_HAN", "CAN_TEN", "TEN_KHONG_HOP_LE",
+  "ma_loi": ["KH_CHUA_CAU_HINH", "KH_TOKEN_SAI", "SDT_KHONG_HOP_LE", "QUA_NHIEU_LAN", "MA_SAI", "MA_HET_HAN", "CAN_TEN", "TEN_KHONG_HOP_LE", "XUNG_HO_SAI", "DIA_CHI_QUA_DAI",
     "KHONG_THAY_DON", "KHONG_TIM_THAY", "YEU_CAU_KHONG_HOP_LE", "LOI_MAY_CHU", "KHO_BAN",
     "PIN_KHONG_HOP_LE", "PIN_KHONG_KHOP", "PIN_DA_CO", "KHACH_KHONG_TON_TAI",
     "THIEU_MA", "MA_KHONG_TON_TAI", "MA_DA_DUNG", "UU_DAI_DANG_TAT", "SDT_DA_NHAN", "DON_FLASH_KHONG_DIEM", "CAU_HINH_DIEM_SAI", "CHUA_CAU_HINH_NHOM",
@@ -109,3 +126,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 - v2 · 29.10.2026 · KH-API-2: thêm `GET /hang`, `GET /gio-vang`, `GET /gio-hoat-dong` (không cần token); `/toi` thêm `hang`, `so_du_vi`;
   `/menu` thêm `gia_hang`; thêm 12 mã lỗi có thật của `nhan-ma-bill` / `nhan-diem`; hạn `nhan-ma-bill` theo cài đặt hạn mã; bỏ dòng "Lỗi đã
   biết" (code đã trả `LOI_MAY_CHU`). Không đổi / xoá trường cũ — App v1 chạy nguyên. Bài thử `cong_cu/thu_HOPDONG_KH.js` canh từ bản này.
+- v3 · 30.10.2026 · KH-API-3: `GET /menu` token KHÔNG bắt buộc (khối máy đọc `"token": "tuy_chon"`; không token ≤ 300 lần / phút / IP); xác minh
+  nhận `xung_ho` (BẮT BUỘC với khách mới) + `dia_chi`, mã đúng + `CAN_TEN` sống thêm 10 phút một lần; `/toi`, `PUT /toi`, xác minh trả thêm
+  `xung_ho`, `dia_chi`; `PUT /toi` sửa được `ten` / `xung_ho` / `dia_chi`; thêm `POST /gia-han`; mã lỗi `XUNG_HO_SAI`, `DIA_CHI_QUA_DAI`. Không
+  xoá / đổi tên trường cũ. **Báo App KH:** App bản cũ (chỉ có ô Tên) KHÔNG tạo được khách MỚI nữa (luôn `CAN_TEN`) — App cần ô Cách xưng hô
+  trước khai trương (chủ quán chốt 30.10); khách cũ trên App bản cũ vẫn đăng nhập, xem, sửa tên như trước.
