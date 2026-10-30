@@ -33,6 +33,22 @@
 - 29.10 · Số dư ví hiện trên App = số khách **dùng được ngay** của ví riêng (đã trừ tiền đang tạm giữ khi thanh toán dở), chưa cộng ví gia đình.
 - 29.10 · Giờ hoạt động có HAI thông tin: "quán đang mở" (giờ mở thật) và "còn nhận đơn App" (đã trừ ngừng nhận trước giờ đóng); lúc giữa hai mốc
   App báo "Quán mở tới … · đã ngừng nhận đơn qua App".
+- 30.10 · **Đặt đơn online trên App KH TỪ KHAI TRƯƠNG**, đủ 5 mục: nhận tại quán + trả QR payOS (KH-MUA-1) · trả ví + PIN (KH-MUA-1) ·
+  giao Ahamove (KH-MUA-2, sau GIAO-1) · topping / combo trong giỏ (phần `/api/kh` của TOPPING-1, COMBO-1a) · đổi điểm khi trả (P3b).
+  Kịp thì khai trương 07.11, không kịp thì LÙI — không bỏ mục nào. Máy chủ tính lại toàn bộ tiền đơn online bằng CÙNG hàm quầy.
+- 30.10 · Chỉ 3 thứ cần đăng nhập ở App KH: Kế hoạch, trắc nghiệm thể chất, tích điểm (điểm, voucher, nhận mã). Mọi thứ khác (menu, combo,
+  ưu đãi, Giờ vàng, giá từng hạng) mở cho khách vãng lai. Ngoài giờ: xem được, không đặt được (POS chặn).
+- 30.10 · Chia cài đặt: sai thì mất tiền → POS; chỉ hiển thị → phần nội dung App KH. Thông tin NGẮN của món (nhu cầu, thể chất, mô tả,
+  công dụng, thành phần — cho nhân viên quầy) ở POS, App KH đọc lại (KH-SP-1, trước khai trương); ảnh món sau khai trương (KH-SP-2).
+  "Bán chạy nhất" chủ quán tự chọn ở App KH — POS không đếm ly.
+- 30.10 · Khách có nhiều địa chỉ, một mặc định (KH-HOSO-1, sau khai trương; `dia_chi` một chuỗi của v3 = địa chỉ mặc định). Địa chỉ dùng
+  CHUNG cho quầy và App (khách sửa trong App thì hoá đơn quầy in địa chỉ mới).
+- 30.10 · Trắc nghiệm: hỏi khách đồng ý chia sẻ trước khi hiện kết quả; đồng ý hay không đều xem như nhau; chỉ khi đồng ý mới gửi kết quả
+  rút gọn về POS, hiện ở chi tiết khách (KH-TN-1, sau khai trương — thông tin sức khoẻ, làm kỹ).
+- 30.10 · Xưng hô BẮT BUỘC với khách mới đăng ký App (App bản cũ chỉ có ô Tên sẽ không tạo được khách mới — App KH thêm ô trước khai trương).
+- 30.10 · Giờ vàng ở Cài đặt POS: chọn vài món hoặc tất cả; mỗi lựa chọn giảm % HOẶC đặt giá còn lại; giờ bắt đầu / kết thúc. Giờ vàng
+  KHÔNG cộng thêm giảm hạng (luật quầy có sẵn). App KH chỉ đọc từ POS (GIOVANG-1, `gia_mon[]`).
+- 30.10 · App KH gọi POS ở `https://www.pos-tuquyduong.io.vn` (bản có www). `KH_JWT_SECRET` đã đặt trên Render 30.10.
 - 29.10 · Khách chưa đăng nhập LÚC NÀO cũng xem được Trang chủ, Menu, giá, trang món; đăng nhập chỉ khi cần Ưu đãi, Tài khoản, mã thành
   viên, nhận điểm. Đăng ký 3 bước: SĐT → mã (qua Zalo khi có KH-OTP-1) → Tên + Cách xưng hô BẮT BUỘC, Địa chỉ tuỳ chọn (đặt online lần
   đầu thì bắt nhập, lưu làm mặc định). Nhớ đăng nhập 30 ngày, TỰ GIA HẠN mỗi lần mở app (KH-API-3).

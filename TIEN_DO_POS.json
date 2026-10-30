@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 47,
-  "cap_nhat": "2026-10-30",
+  "phien_ban_so": 48,
+  "cap_nhat": "2026-10-31",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -34,16 +34,16 @@
     },
     {
       "ma": "BH-2",
-      "ten": "Man Ban hang moi DOT 2: cam QR payOS + PIN + giu tien (P3), gia hang / cong don (UUDAI-1), topping (TOPPING-1), doi diem (P3b), giao hang (GIAO-1), hoa don + tem (HD-1); chu quan bat tren quay. [Th] Sonnet, M5 | THEM 26.10: man San pham hien gia tung hang (DAC_TA 1.5); goi POST /orders/tinh-thu (UUDAI-1) de hien gia gach + dong uu dai; man cu: chon tru so du khong du -> khong con nut nao (may chu 400) — man moi xu ly; lam cung COMBO-1b | 27.10: dot nay = man moi + COMBO-1b + menu 6 muc (Ban hang · Hom nay · Don hang · Khach hang · Kho · Quan ly; chi doi duong dan) + man ket thuc in hoa don HD-1 + QR payOS / PIN / giu tien (P3) + gia hang / tinh-thu (UUDAI-1); KHONG gom P3b, GIAO-1, TOPPING-1 (moi viec tu lam phan giao dien cua minh tren man moi sau BH-2). Gop SAU KHO-1 (Layout.jsx). Truoc khai truong | 28.10: mon gia 0 hien \"Chua co gia\" o man moi (dang hien 0d - loi cu, chat thay khi soat KHO-1) | PHIEU 29.10: viec/BH-2/phieu.md — tinh-thu, tien mat, QR payOS, tai khoan + PIN + giu tien, man ket thuc HD-1, menu 6 muc; KHONG gom COMBO-1b (sau COMBO-1a) va gia tung hang o man San pham (BH-3)",
+      "ten": "Man Ban hang moi DOT 2: cam QR payOS + PIN + giu tien (P3), gia hang / cong don (UUDAI-1), topping (TOPPING-1), doi diem (P3b), giao hang (GIAO-1), hoa don + tem (HD-1); chu quan bat tren quay. [Th] Sonnet, M5 | THEM 26.10: man San pham hien gia tung hang (DAC_TA 1.5); goi POST /orders/tinh-thu (UUDAI-1) de hien gia gach + dong uu dai; man cu: chon tru so du khong du -> khong con nut nao (may chu 400) — man moi xu ly; lam cung COMBO-1b | 27.10: dot nay = man moi + COMBO-1b + menu 6 muc (Ban hang · Hom nay · Don hang · Khach hang · Kho · Quan ly; chi doi duong dan) + man ket thuc in hoa don HD-1 + QR payOS / PIN / giu tien (P3) + gia hang / tinh-thu (UUDAI-1); KHONG gom P3b, GIAO-1, TOPPING-1 (moi viec tu lam phan giao dien cua minh tren man moi sau BH-2). Gop SAU KHO-1 (Layout.jsx). Truoc khai truong | 28.10: mon gia 0 hien \"Chua co gia\" o man moi (dang hien 0d - loi cu, chat thay khi soat KHO-1) | PHIEU 29.10: viec/BH-2/phieu.md — tinh-thu, tien mat, QR payOS, tai khoan + PIN + giu tien, man ket thuc HD-1, menu 6 muc; KHONG gom COMBO-1b (sau COMBO-1a) va gia tung hang o man San pham (BH-3) | XONG 30.10 (PR #52, 23d2369; chat gop main 7a3930f + G1 thu_BH2 chi xet commit BH-2)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "23d2369",
+      "ngay": "2026-10-30"
     },
     {
       "ma": "KHACH-CK-1",
-      "ten": "Bo chiet khau rieng tung khach (chu quan chon a 29.10): bo o o man Khach hang + may chu khong ap + dat ve 0 qua buoc nang cap co sao luu (kiem truoc khach nao dang co). [T]. Phai xong TRUOC khi bat man Ban hang moi (BH-2 khoa thu tien voi khach co chiet khau rieng)",
+      "ten": "Bo chiet khau rieng tung khach (chu quan chon a 29.10): bo o o man Khach hang + may chu khong ap + dat ve 0 qua buoc nang cap co sao luu (kiem truoc khach nao dang co). [T]. Phai xong TRUOC khi bat man Ban hang moi (BH-2 khoa thu tien voi khach co chiet khau rieng) | PHIEU 31.10: viec/KHACH-CK-1/phieu.md (cho duyet ke hoach), lan Opus 2, buoc nang cap 004",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -398,12 +398,12 @@
     },
     {
       "ma": "KHO-2a",
-      "ten": "Kho POS phan 2a: dinh muc + man Pha che (Cho hom nay / ngay mai, can lam = dinh muc - dang co) + MOT phieu xuat kho nguyen lieu (bang tong o tren, moi cong thuc mot bang ngay duoi ten; in A tong / B dinh luong / C ket qua); nhan vien LUON can duyet (cong tac Cai dat), quan ly / chu tu duyet, duyet tren may nguoi duyet khong PIN rieng; duyet xong in -> tru nguyen lieu (lo han gan truoc, thieu van ghi am + bao do), thanh pham vao lo ngay theo so chuan (han = gio lam + han dung cua mon); ket qua khac thi sua so + ghi chu, lech qua nguong (Cai dat) chi canh bao, qua ngay chua dien tu chot; ton kho; danh sach phieu, sua / huy chi chu quan co ly do (phieu moi thay_cho_id). [T] Opus, truoc khai truong | PHIEU 29.10: viec/KHO-2a/phieu.md | 29.10: DUYET ke hoach (7 cau tra loi chu quan, ghi QUYET_DINH)",
+      "ten": "Kho POS phan 2a: dinh muc + man Pha che (Cho hom nay / ngay mai, can lam = dinh muc - dang co) + MOT phieu xuat kho nguyen lieu (bang tong o tren, moi cong thuc mot bang ngay duoi ten; in A tong / B dinh luong / C ket qua); nhan vien LUON can duyet (cong tac Cai dat), quan ly / chu tu duyet, duyet tren may nguoi duyet khong PIN rieng; duyet xong in -> tru nguyen lieu (lo han gan truoc, thieu van ghi am + bao do), thanh pham vao lo ngay theo so chuan (han = gio lam + han dung cua mon); ket qua khac thi sua so + ghi chu, lech qua nguong (Cai dat) chi canh bao, qua ngay chua dien tu chot; ton kho; danh sach phieu, sua / huy chi chu quan co ly do (phieu moi thay_cho_id). [T] Opus, truoc khai truong | PHIEU 29.10: viec/KHO-2a/phieu.md | 29.10: DUYET ke hoach (7 cau tra loi chu quan, ghi QUYET_DINH) | XONG 30.10 (PR #53, c8edb66; may may kep ban chup cu -> chat gop main 23d2369 + ghi ten 8 dot bien, cong A17)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "c8edb66",
+      "ngay": "2026-10-30"
     },
     {
       "ma": "KHO-2b",
@@ -434,7 +434,25 @@
     },
     {
       "ma": "KH-API-3",
-      "ten": "Cua App KH: GET /menu khong can token (gioi han rat cao), dang ky 3 buoc (xung_ho bat buoc, dia_chi tuy chon), /toi them xung_ho + dia_chi, POST /gia-han tu gia han 30 ngay, hop dong v3. PHIEU 30.10: viec/KH-API-3/phieu.md (cho duyet ke hoach)",
+      "ten": "Cua App KH: GET /menu khong can token (gioi han rat cao), dang ky 3 buoc (xung_ho bat buoc, dia_chi tuy chon), /toi them xung_ho + dia_chi, POST /gia-han tu gia han 30 ngay, hop dong v3. PHIEU 30.10: viec/KH-API-3/phieu.md (cho duyet ke hoach) | 30.10: chat gop main c8edb66 + sua phieu (Pham vi thu_KHUI1, thu_P15QR; Bai thu cu sua thu_HOPDONG_KH; 003 bo qua khi kho thieu bang khach)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "GIOVANG-1",
+      "ten": "Gio vang (chu quan chot 30.10): Cai dat chon vai mon / tat ca, moi lua chon giam % HOAC dat gia con lai, gio bat dau / ket thuc; quay + may chu tinh theo do (khong cong giam hang - luat co san); /api/kh/gio-vang giu mon[] + them gia_mon[] { ma, gia_goc, gia }. [T] Opus lan 1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-SP-1",
+      "ten": "Thong tin ngan cua mon o man San pham POS (App KH yeu cau c 30.10): nhu_cau[] 6 ma, the_chat[] 9 ma, mo_ta 160, cong_dung 160, thanh_phan 200 ky tu; hien gon o quay; /api/kh/menu tra them (anh = null). [Th] Sonnet, mo khi KH-API-3 gop",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -443,7 +461,25 @@
     },
     {
       "ma": "KH-HOSO-1",
-      "ten": "Ho so khach them o: xung ho, email, gioi tinh, ngay sinh, dia chi, thong tin hoa don - POS luu + /api/kh doc / sua (App KH yeu cau 27.10). Sau khai truong, dung nang cap du lieu danh so cua KHO-1",
+      "ten": "Ho so khach them o: xung ho, email, gioi tinh, ngay sinh, dia chi, thong tin hoa don - POS luu + /api/kh doc / sua (App KH yeu cau 27.10). Sau khai truong, dung nang cap du lieu danh so cua KHO-1 | 30.10: them nhieu dia chi (toi da 5, dung 1 mac dinh; dia_chi cua v3 = mac dinh) — sau khai truong",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-SP-2",
+      "ten": "Anh mon (1 anh vuong, luu cho BEN ngoai may Render) cho POS + /api/kh/menu truong anh — sau khai truong",
+      "tang": 2,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-TN-1",
+      "ten": "Luu ket qua trac nghiem khi khach DONG Y (PUT / DELETE /trac-nghiem, /toi.trac_nghiem, dong_y_luc), hien o chi tiet khach chi nguoi co quyen; thong tin suc khoe: khong log, xoa han khi rut — sau khai truong",
       "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -488,7 +524,16 @@
     },
     {
       "ma": "KH-MUA-1",
-      "ten": "Dat don tu App KH, TRA TRUOC bang QR payOS (sau P3); don chi ve quay (kem chuong) khi da tra. Doi ten tu KH-DON-1 (ma co \"-D\" bi luat chan push). [T] Opus, M5 | 27.10: sau khai truong (dot 2) | 28.10: may chu POS TU CHOI don App ngoai gio hoat dong (code NGOAI_GIO_HOAT_DONG, goi ham dangMo cua KH-API-2, khong tin dong ho dien thoai); App tat nut dat + hien thong bao",
+      "ten": "Dat don tu App KH, TRA TRUOC bang QR payOS (sau P3); don chi ve quay (kem chuong) khi da tra. Doi ten tu KH-DON-1 (ma co \"-D\" bi luat chan push). [T] Opus, M5 | 27.10: sau khai truong (dot 2) | 28.10: may chu POS TU CHOI don App ngoai gio hoat dong (code NGOAI_GIO_HOAT_DONG, goi ham dangMo cua KH-API-2, khong tin dong ho dien thoai); App tat nut dat + hien thong bao | 30.10 chu quan dua TRUOC khai truong: bao gia gio, nhan tai quan, tra QR payOS hoac vi + PIN, trang thai, huy don chua tra; giao Ahamove tach KH-MUA-2",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-MUA-2",
+      "ten": "App KH giao Ahamove (chu quan 30.10, truoc khai truong): bao phi theo dia chi, khach tra dung phi, trang thai giao + tai xe; dung chung ham GIAO-1. [T] Opus lan 2, SAU GIAO-1",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
