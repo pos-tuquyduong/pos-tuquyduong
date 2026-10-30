@@ -25,6 +25,7 @@ const GIOI_HAN = {
   DIA_CHI_TOI_DA: 300,      // địa chỉ khách ≤ 300 ký tự
   MENU_IP_PHUT: 300,        // GET /menu KHÔNG token: ≤ 300 lần / IP / phút (chống quá tải — khách thật không chạm)
   GIA_HAN_KHACH_GIO: 10,    // POST /gia-han: ≤ 10 lần / khách / giờ
+  BO_DEM_TOI_DA: 10000,     // bộ đếm trong bộ nhớ giữ tối đa 10 000 khoá (giuLuotBoNho)
 };
 const XUNG_HO = ['anh', 'chi', 'co', 'chu', 'bac', 'em', 'ban'];
 
@@ -65,12 +66,14 @@ function chuanDiaChi(v) {
 }
 
 /**
- * Giới hạn lượt TRONG BỘ NHỚ, cửa sổ cố định (KH-API-3: menu không token, gia hạn) — không ghi CSDL mỗi lượt xem. Render chạy một máy;
- * khởi động lại thì đếm về 0 (chống quá tải, không phải khoá tiền). `luc` = Date.now(): chỉ đo khoảng trong bộ nhớ, không lưu. → true | false.
+ * Giới hạn lượt TRONG BỘ NHỚ, cửa sổ cố định (KH-API-3: menu không token, gia hạn) — không ghi CSDL mỗi lượt xem. Đếm theo TIẾN TRÌNH:
+ * khởi động lại thì về 0, nhiều tiến trình thì mỗi cái đếm riêng (chống quá tải, không phải khoá tiền). `luc` = Date.now(): chỉ đo
+ * khoảng trong bộ nhớ, không lưu. Trần cứng BO_DEM_TOI_DA khoá: chạm trần (bị dội nhiều địa chỉ) → xoá sạch, đếm lại — bộ nhớ không
+ * phình, mỗi lượt O(1), không duyệt Map. → true | false.
  */
 const boDem = new Map();
 function giuLuotBoNho(khoa, tran, ms, luc = Date.now()) {
-  if (boDem.size > 5000) for (const [kk, v] of boDem) if (luc - v.bat_dau >= v.ms) boDem.delete(kk);   // chỉ xoá khoá đã hết cửa sổ
+  if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();
   const o = boDem.get(khoa);
   if (!o || luc - o.bat_dau >= ms) { boDem.set(khoa, { bat_dau: luc, dem: 1, ms }); return true; }
   if (o.dem >= tran) return false;
