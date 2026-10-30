@@ -71,6 +71,7 @@ DOT_BIEN = [
   # ── E: hợp đồng v3 (thu_HOPDONG_KH.js) ──
   ('BV-HOPDONG-TUY-CHON', 'hd', [(HD, '"duong": "/menu", "token": "tuy_chon"', '"duong": "/menu", "token": true', 1)], r'✗ GET /menu không token'),
   ('VS-HOPDONG-GIA-TRI-LA', 'hd', [(HD, '"duong": "/menu", "token": "tuy_chon"', '"duong": "/menu", "token": "co"', 1)], r'✗ GET /menu token: "co"'),
+  ('BV-HOPDONG-INSERT-DIA-CHI', 'hd', [(M, '[sdt, tenMoi, xhMoi, dcMoi, generateQRCode(sdt), now]', '[sdt, tenMoi, xhMoi, null, generateQRCode(sdt), now]', 1)], r'✗ xác minh khách mẫu mới'),
   ('BV-HOPDONG-GIA-HAN', 'hd', [(HD, '    { "pt": "POST", "duong": "/gia-han", "token": true, "tra": ["token", "het_han"] },\n', '', 1)], r'✗ mọi route dưới /api/kh'),
 ]
 
