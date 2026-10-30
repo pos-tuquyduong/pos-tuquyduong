@@ -78,8 +78,23 @@
 7. **Bài thử cũ khoá ĐÚNG danh sách trường** (danh sách trắng) mà phiếu thêm trường mới → được sửa đúng các dòng danh sách đó để thêm
    trường phiếu ghi (vẫn so BẰNG, không nới thành "có ít nhất"), ghi `SỐ CA` như luật; KHÔNG dừng hỏi xin thêm vào Phạm vi (chủ quán
    chốt 29.10).
+8. **Bài thử cũ phải đổi vì hành vi ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi** → là bài SỬA bình thường (bản mới đỏ trên code gốc, xanh trên code mới,
+   ghi `SỐ CA`), KHÔNG ghi vào `## Bài thử cũ sửa` — mục đó chỉ dành cho bài cũ đổi mà VẪN XANH trên gốc (HOC-1 d bắt bản gốc phải xanh;
+   vụ KHO-2a cổng A11, 29.10).
 
 ## 7. Nhịp làm việc tới khai trương (07.11.2026)
 - Việc **tiền / bảo mật**: phiếu có "Chờ duyệt kế hoạch". Việc **thường** (giao diện, in, dọn, hạ tầng): chạy thẳng tới hết, không dừng chờ duyệt.
-- Bộ khung tự chạy ĐÓNG BĂNG sau TU-CHAY-8 tới khai trương; phát hiện về khung → ghi lại, làm sau.
+- Bộ khung tự chạy ĐÓNG BĂNG sau TU-CHAY-8 tới khai trương; phát hiện về khung → ghi lại, làm sau. (Ngoại lệ chủ quán duyệt 30.10:
+  KHUNG-KEO-1, tu-chay 1.8.1 — máy tự tải thêm lịch sử khi phiên mở từ bản chụp cũ, không dừng hỏi.)
 - Hết việc trong phiếu là dừng; không tự mở việc mới.
+
+## 8. Nói với chủ quán (chủ quán chốt 29–30.10 — áp cho MỌI chat và MỌI máy, POS · SX · App KH)
+1. **Luôn luôn dễ hiểu.** Lời thường, ít thuật ngữ; chữ kỹ thuật bắt buộc dùng thì giải thích bằng một câu đời thường. Mỗi lần nói rõ
+   "việc này là gì" rồi "bạn cần làm gì" (dán gì, bấm gì, theo thứ tự). Cần chủ quán quyết: giải thích dễ hiểu + nêu đề xuất của mình để
+   chủ quán chỉ cần xác nhận. Xưng "mình" – "bạn". Máy: câu trả lời cuối phiên mở đầu bằng 2–3 câu lời thường (đã làm gì, kết quả ra sao,
+   bạn cần làm gì) trước phần chi tiết.
+2. **Đã quyết thì ghi, không hỏi lại.** Điều chủ quán đã quyết → chat ghi vào `QUYET_DINH_CHU_QUAN.md` / file này ở lần ghi sổ kế tiếp.
+   Câu đã có trả lời ở hai file đó thì máy và chat không hỏi lại.
+3. **Duyệt hai lượt mỗi ngày.** Chat gom việc của chủ quán thành 2 lượt: **sáng** (một danh sách dán / bấm để các máy chạy cả ngày) và
+   **tối** (xem kết quả, Merge). Chuyện luật đã có cách xử lý an toàn thì máy tự xử lý, không dừng hỏi; chỉ dừng khi đụng tiền / điểm /
+   ví / dữ liệu khách / bảo mật / ngoài Phạm vi, hoặc luật chưa có câu trả lời.

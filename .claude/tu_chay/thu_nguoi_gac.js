@@ -248,13 +248,13 @@ for (const l of ['git fetch origin viec/X', 'git fetch -q origin viec/X', 'git f
   'git pull --no-rebase --ff-only origin viec/X', 'git pull --ff-only --no-rebase origin viec/X',
   'git pull --ff-only --no-rebase -q origin viec/X', 'git pull -q --no-rebase origin viec/X --ff-only',
   "git fetch 'origin' \"viec/X\"", 'cd viec/X && git fetch origin viec/X', 'timeout 60 git fetch -q origin viec/X',
-  'git fetch origin viec/X && git merge-base --is-ancestor HEAD FETCH_HEAD']) B(l, 'CHO');
+  'git fetch origin viec/X && git merge-base --is-ancestor HEAD FETCH_HEAD', 'git fetch -q --unshallow origin viec/X']) B(l, 'CHO');
 ca('Monitor fetch nhánh việc', 'Monitor', { command: 'git fetch origin viec/X' }, 'CHO');
 for (const l of ['git fetch', 'git fetch origin', 'git fetch origin viec/Y', 'git fetch origin main', 'git fetch origin viec/x',
   'git fetch upstream viec/X', 'git fetch https://github.com/a/b viec/X', 'git fetch . viec/X', 'git fetch origin viec/X viec/X',
   'git fetch origin viec/X:viec/X', 'git fetch origin +viec/X', 'git fetch origin :viec/X', 'git fetch origin viec/X:main',
   'git fetch origin refs/heads/viec/X', 'git fetch --quiet origin viec/X', 'git fetch --all', 'git fetch --prune origin viec/X',
-  'git fetch --depth=1 origin viec/X', 'git fetch --unshallow origin viec/X', 'git fetch --force origin viec/X',
+  'git fetch --depth=1 origin viec/X', 'git fetch --deepen=200 origin viec/X', 'git fetch --force origin viec/X',
   'git fetch -f origin viec/X', 'git fetch --upload-pack=x origin viec/X', 'git fetch --tags origin viec/X',
   'git fetch -qf origin viec/X', 'git fetch origin viec/$B', 'git fetch origin `echo viec/X`',
   'git pull', 'git pull origin viec/X', 'git pull --ff-only origin viec/X', 'git pull --no-rebase origin viec/X',
