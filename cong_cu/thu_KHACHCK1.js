@@ -15,6 +15,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
 const iMC = process.argv.indexOf('--may-chu');
@@ -237,11 +238,9 @@ async function main() {
       && !/applyCustomerDiscount/.test(sa) && !/[cC]ustomer\??\.discount_(value|type)/.test(sa));
     k('D1d CustomerInput.jsx không còn huy hiệu CK', ci.length > 0 && !/customerData\.discount_value|CK:/.test(ci));
     k('D1e Customers.jsx không còn bộ lọc has_discount, cột / form mức chiết khấu', cu.length > 0 && !/has_discount|discount_value|discount_type|formatDiscount|Chiết khấu mặc định/.test(cu));
-    // D2: chạy hàm thật của tinh.js (ESM → chép sang .mjs tạm).
-    const tep = path.join(THU_MUC, 'tinh.mjs');
-    fs.writeFileSync(tep, tinh.replace(/^import .*$/gm, ''));
+    // D2: chạy hàm thật của tinh.js (ES module thuần, nạp thẳng như thu_BH1).
     let m = {};
-    try { m = await import('file://' + tep); } catch (e) { k('D2 nạp tinh.js', false, e.message); }
+    try { m = await import(pathToFileURL(path.join(CLIENT, 'pages', 'BanHang', 'tinh.js')).href); } catch (e) { k('D2 nạp tinh.js', false, e.message); }
     const sp1 = { product_id: 1, sx_product_type: 'a', sx_product_id: 1, unit_price: 100000, quantity: 1 };
     const g = typeof m.tinhGio === 'function' ? m.tinhGio([sp1], { khachGiam: { loai: 'percent', gia_tri: 10 } }) : {};
     const d = typeof m.dungDonHang === 'function' && typeof m.tinhGio === 'function'
