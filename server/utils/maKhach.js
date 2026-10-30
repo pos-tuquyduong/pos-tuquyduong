@@ -24,7 +24,9 @@ const GIOI_HAN = {
   THEM_PHUT_CAN_TEN: 10,    // mã đúng mà khách mới còn thiếu thông tin (CAN_TEN): mã sống thêm 10 phút, MỘT lần (KH-API-3)
   DIA_CHI_TOI_DA: 300,      // địa chỉ khách ≤ 300 ký tự
   MENU_IP_PHUT: 300,        // GET /menu KHÔNG token: ≤ 300 lần / IP / phút (chống quá tải — khách thật không chạm)
+  MENU_CUA_SO_MS: 60 * 1000,   // … cửa sổ đếm của MENU_IP_PHUT: một phút
   GIA_HAN_KHACH_GIO: 10,    // POST /gia-han: ≤ 10 lần / khách / giờ
+  GIA_HAN_CUA_SO_MS: 3600 * 1000,   // … cửa sổ đếm của GIA_HAN_KHACH_GIO: một giờ
   BO_DEM_TOI_DA: 10000,     // bộ đếm trong bộ nhớ giữ tối đa 10 000 khoá (giuLuotBoNho)
 };
 const XUNG_HO = ['anh', 'chi', 'co', 'chu', 'bac', 'em', 'ban'];
@@ -75,13 +77,13 @@ const boDem = new Map();
 function giuLuotBoNho(khoa, tran, ms, luc = Date.now()) {
   if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();
   const o = boDem.get(khoa);
-  if (!o || luc - o.bat_dau >= ms) { boDem.set(khoa, { bat_dau: luc, dem: 1, ms }); return true; }
+  if (!o || luc - o.bat_dau >= ms) { boDem.set(khoa, { bat_dau: luc, dem: 1 }); return true; }
   if (o.dem >= tran) return false;
   o.dem++;
   return true;
 }
-const giuLuotMenu = (ip) => giuLuotBoNho(`menu:${ip}`, GIOI_HAN.MENU_IP_PHUT, 60 * 1000);
-const giuLuotGiaHan = (khachId) => giuLuotBoNho(`gia_han:${khachId}`, GIOI_HAN.GIA_HAN_KHACH_GIO, 3600 * 1000);
+const giuLuotMenu = (ip, luc) => giuLuotBoNho(`menu:${ip}`, GIOI_HAN.MENU_IP_PHUT, GIOI_HAN.MENU_CUA_SO_MS, luc);
+const giuLuotGiaHan = (khachId, luc) => giuLuotBoNho(`gia_han:${khachId}`, GIOI_HAN.GIA_HAN_KHACH_GIO, GIOI_HAN.GIA_HAN_CUA_SO_MS, luc);
 
 function bamMa(sdt, ma) {
   const khoa = khoaKhach();
