@@ -42,7 +42,7 @@ DOT_BIEN = [
   ('VS-GIA-HAN-11-PHUT', 'api', [(M, 'THEM_PHUT_CAN_TEN: 10,', 'THEM_PHUT_CAN_TEN: 11,', 1)], r'✗ B5 .*610'),
   ('VS-GIA-HAN-MA-MAI', 'api', [(M, 'AND het_han = ${GIO}`,', 'AND (het_han = ${GIO} OR 1)`,', 1)], r'✗ B6 CAN_TEN lần hai'),
   ('VS-KIEM-CA-KHACH-CU', 'api', [(M, '  if (dung && !khach) {\n    const sai = [xhMoi, dcMoi].find((x) => x && x.loi);\n',
-                                   '  const sai = [xhMoi, dcMoi].find((x) => x && x.loi);\n  if (dung && !khach) {\n', 1)], r'✗ B8 '),
+                                   '  const sai = [xhMoi, dcMoi].find((x) => x && x.loi);\n  if (sai) return sai;\n  if (dung && !khach) {\n', 1)], r'✗ B8 '),
   # ── C: hồ sơ ──
   ('VS-PUT-RONG', 'api', [(K, "    if (!cot.length) return bao(res, 'YEU_CAU_KHONG_HOP_LE');\n",
                            '    if (!cot.length) return res.json({ success: true, khach: hoSo(req.khach) });\n', 1)], r'✗ C3 PUT \{\}'),
