@@ -298,3 +298,113 @@ BÀI HỌC:       KHOÁ — mỗi hàm bọc của bộ đếm (giuLuotMenu, giu
                sau mỗi vòng sửa, grep trang_thai.md tìm mọi câu trích số ca / số đột biến / trạng thái cũ, và bảng chỗ vá → đột biến
                phải có đủ tên trong dot_bien.py.
 ```
+
+## Vòng sửa 2 (đúng các lỗi soát vòng 2 nêu + hai điểm nghi ngờ rẻ)
+- `server/utils/maKhach.js`: `GIOI_HAN.MENU_CUA_SO_MS` (1 phút), `GIOI_HAN.GIA_HAN_CUA_SO_MS` (1 giờ) thay số viết thẳng; `giuLuotMenu(ip, luc)`,
+  `giuLuotGiaHan(khachId, luc)` nhận `luc` (route không truyền → mặc định `Date.now()` của `giuLuotBoNho`); bỏ trường `ms` chết trong `boDem.set`.
+- `cong_cu/thu_KHAPI3.js`: A4d (300 lượt qua; lượt 301 ở 59 999 ms chặn; 60 000 ms qua lại — gọi qua CHÍNH `giuLuotMenu`), D3b (10 / 3 599 999 /
+  3 600 000 ms qua CHÍNH `giuLuotGiaHan`) — đỏ trên HEAD trước vá; A3 thêm tiêu đề Authorization rỗng → 401; C2 địa chỉ 300 ký tự dạng NFD → 200 +
+  lưu NFC (hai ca khoá hồi quy, có đột biến); C4b chỉ kiểm "ghi bước 3" — không còn dính danh sách bước (nghi ngờ 6 của soát).
+- `dot_bien.py`: VS-MENU-CUA-SO-GIO, VS-GIA-HAN-CUA-SO-PHUT, VS-DIA-CHI-KHONG-NFC, đột biến tiêu đề rỗng (tên trong bảng trên).
+- `trang_thai.md`: đánh dấu mục cũ (Câu hỏi đã trả lời, cổng / nghiệm thu / báo cáo cũ ở 8be85de), bảng chỗ vá → đột biến đủ tên.
+- Cổng lần đầu sau vòng sửa 2 (HEAD 315c803) đỏ 4 lý do: A16 × 3 thiếu `SỐ CA` của `thu_BH2.js`, `thu_KHO1.js`, `thu_KHO2a.js` (bài việc KHÁC,
+  vào qua commit gộp 1930351 — cổng so từ 55a8f29^) → ghi số ca thật ở HEAD, khớp bằng chứng của chính KHO-2a / BH-2; A11 `thu_HOPDONG_KH.js` —
+  xem Câu hỏi vòng 2. Thêm ca thật cho `thu_HOPDONG_KH.js` (xác minh khách mẫu trả đúng xung_ho / dia_chi) — đỏ trên gốc 64/1, xanh 68/68,
+  đột biến BV-HOPDONG-INSERT-DIA-CHI. Tổng đột biến **39/39 BẮT**, đối chứng XANH.
+- Các điểm nghi ngờ còn lại của soát vòng 2 (không sửa): 003 thiếu bảng vẫn ghi đã chạy → CHƯA KIỂM; /menu và /gia-han chung một Map → Phát hiện;
+  bỏ `dung_luc IS NULL` trong UPDATE gia hạn mã — soát xếp vô hại.
+
+## Câu hỏi vòng 2 (chờ chat sửa phiếu — máy không sửa được phiếu, `G1-PHIEU`)
+Cổng chỉ còn ĐỎ một lý do:
+```
+✗ [A11] bài thử cũ được miễn nhưng bản gốc đỏ trên code PR: `cong_cu/thu_HOPDONG_KH.js` (thoát 1):
+  … 28 đạt · 2 hỏng
+```
+Truy nguyên (chạy tay bản 55a8f29 của bài trên code HEAD): 2 ca đỏ là `POST /dang-nhap/xac-minh → 200` (trả `CAN_TEN` vì bản cũ không gửi
+`xung_ho`) và "khách mẫu đăng nhập được". Đây là hành vi chủ quán ĐÃ DUYỆT đổi (30.10: xưng hô bắt buộc với khách mới) → theo LUAT §6 mục 8,
+bài này là bài SỬA bình thường, KHÔNG thuộc `## Bài thử cũ sửa` (mục đó chỉ cho bài cũ đổi mà bản gốc vẫn xanh trên code mới — ở đây không bao
+giờ xanh được).
+**Đề xuất (chỉ cần xác nhận):** chat xoá dòng `- cong_cu/thu_HOPDONG_KH.js — …` khỏi `## Bài thử cũ sửa` của `viec/KH-API-3/phieu.md`
+(mục còn rỗng thì xoá cả tiêu đề). Máy đã chuẩn bị sẵn: bài nay ĐỎ trên gốc (ca "xác minh khách mẫu mới: khach.xung_ho / khach.dia_chi = đúng
+giá trị gửi", 64 đạt · 1 hỏng), xanh trên HEAD 68/68, `SỐ CA` 68 đã ghi. Sửa phiếu xong → `/lam-viec KH-API-3 tiep`: chạy lại cổng, soát vòng 3.
+
+## Cổng (`node tu_chay/cong.js chay . 55a8f29^ HEAD viec/KH-API-3`, HEAD 4ee6a7c, cây sạch)
+```
+· CẢNH BÁO A16: `cong_cu/thu_BH2.js` chạy trên gốc in 76 ca ≠ 100 ca ở head — (bài của BH-2, vào qua gộp main)
+· CẢNH BÁO A16: `cong_cu/thu_HOPDONG_KH.js` chạy trên gốc in 65 ca ≠ 68 ca ở head — (hợp đồng v2 của gốc ít cửa hơn — đúng thiết kế)
+· CẢNH BÁO A16: `cong_cu/thu_KHAPI3.js` chạy trên gốc in 65 ca ≠ 67 ca ở head — (2 ca C4 chỉ chạy khi có bước 3 — đúng thiết kế)
+✗ [A11] bài thử cũ được miễn nhưng bản gốc đỏ trên code PR: `cong_cu/thu_HOPDONG_KH.js` (thoát 1):
+✗ CỔNG ĐỎ (CHẠY) — 1 lý do
+```
+`npm test -- --day-du`: PASS 86 · FAIL 0 · CẢNH BÁO 1 (`GET có lệnh ghi` packages.js / products.js / sync.js — có từ trước, ngoài Phạm vi).
+
+## Phát hiện (thêm, phiên 30.10)
+- `server/utils/maKhach.js` `boDem`: /menu và /gia-han dùng chung một Map; dội /menu từ ≥ 10 000 IP thì `clear()` xoá cả bộ đếm gia hạn (chống
+  gọi dồn, không đụng tiền). Tách hai Map là việc nhỏ nếu chủ quán muốn.
+- Cổng `tu_chay/cong.js chay` lấy mốc trước commit gộp main → bài của việc khác (thu_BH2, thu_KHO1, thu_KHO2a) bị coi là "PR đổi" (A16). Khung
+  đóng băng tới khai trương — ghi lại để làm sau.
+
+## Nghiệm thu — đếm từng mục (HEAD 4ee6a7c)
+- A `/menu` không bắt buộc token: A1, A2, A3 (sai / hết hạn / `Bearer null` / Basic / tiêu đề rỗng → 401), A4 (300 → 200, 301 → 429, IP khác,
+  có token không đếm), A4b, A4c (trần bộ đếm), **A4d (cửa sổ một PHÚT qua `giuLuotMenu`)**, A5 — `thu_KHAPI3.js`; không thêm trường món: A1 so
+  BẰNG + `thu_KH1.js` E5. `thu_KHUI1.js` H3 (menu không token 200 ở cả hai Host). ✓
+- B Đăng ký 3 bước: B1–B8, B4b — `thu_KHAPI3.js`; `thu_P15QR.js` A6 (khách mới qua App lưu xung_ho). ✓
+- C Hồ sơ: C1, C2 (đổi / xoá `""` + `null` / 301 / sai kiểu / NFD / xưng hô sai + rỗng), C3, C4 (bước 003, sao lưu, chạy lại), C4b (kho không
+  bảng khách). Màn quầy không đổi: không commit nào đụng `client/`. ✓
+- D Tự gia hạn: D1 (30 ngày, giờ VN với TZ=UTC), D2, D3 (10 → 200, 11 → 429, khách khác 200), **D3b (cửa sổ một GIỜ qua `giuLuotGiaHan`)**, D4
+  (token cũ còn dùng tới hạn cũ — `ke_hoach.md` Phần 4). ✓
+- E Hợp đồng v3: PHIEN_BAN 3 + nhật ký; `thu_HOPDONG_KH.js` 68/68 (tuy_chon có / không / sai token; khách mẫu trả đúng xung_ho / dia_chi);
+  đột biến BV-HOPDONG-TUY-CHON, VS-HOPDONG-GIA-TRI-LA, BV-HOPDONG-GIA-HAN, BV-HOPDONG-INSERT-DIA-CHI. ✓ code — cổng A11 chờ phiếu (Câu hỏi vòng 2).
+- F K5: F1 (khách cũ `{ sdt, ma }`), C3/F2 (`PUT { ten }`), A2, B8, F4; quầy / nhận điểm / PIN: `thu_KH1.js` 157/157, `thu_KHAPI2.js` xanh trong
+  `npm test`. ✓ — "App v2 tạo khách MỚI" đổi theo quyết định chủ quán 30.10.
+
+## Báo cáo 7 mục (HEAD 4ee6a7c)
+```
+VIỆC:        KH-API-3 — Cửa App KH: menu không cần đăng nhập · đăng ký 3 bước (xưng hô, địa chỉ) · tự gia hạn đăng nhập · hợp đồng v3
+ĐÃ SỬA:      server/routes/kh/index.js — /menu trước xacThucKhach với tuyChonKhach + giuLuotMenu; hoSo + xung_ho, dia_chi; xác minh nhận
+               { ten, xungHo, diaChi }; PUT /toi ba trường; POST /gia-han
+             server/utils/maKhach.js — XUNG_HO, chuanXungHo, chuanDiaChi; giuLuotBoNho (trần cứng) + giuLuotMenu / giuLuotGiaHan (cửa sổ
+               trong GIOI_HAN, nhận luc); xacMinhMa: CAN_TEN khi thiếu tên / xưng hô + mã sống thêm 10 phút một lần; INSERT lưu xung_ho + address
+             server/middleware/khachAuth.js — SELECT *, tuyChonKhach, hanTokenKhach · server/routes/kh/loi.js — XUNG_HO_SAI, DIA_CHI_QUA_DAI
+             server/nang_cap/003_xung_ho_khach.js — themCot pos_customers.xung_ho; bỏ qua khi chưa có bảng (thu_KHO2a E6b)
+             HOP_DONG_API_KH.md — v3 · kiem_tra_truoc_khi_giao.js — thêm thu_KHAPI3.js vào danh sách chạy
+             Bài thử: thu_KHAPI3.js (mới), thu_KH1.js, thu_HOPDONG_KH.js, thu_KHUI1.js (H3 + setEncoding), thu_P15QR.js (A6)
+BÀI THỬ:     thu_KHAPI3.js gốc 55a8f29 → ĐỎ 15 đạt · 50 hỏng; sau vá → XANH 67/67. thu_KH1.js gốc 156/1 → 157/157.
+             thu_HOPDONG_KH.js gốc 64/1 → 68/68. thu_KHUI1.js gốc 39/2 (H3) → 41/41. thu_P15QR.js gốc 28/1 (A6) → 29/29.
+             Đột biến 39/39 BẮT, đối chứng XANH. npm test -- --day-du: PASS 86 · FAIL 0.
+ĐÃ RÀ K4:    grep "xacMinhMa\|hoSo(\|CAN_TEN\|kyTokenKhach\|pos_kh_lan_thu\|giuLuotBoNho" trong server/ → 1 nơi gọi xacMinhMa, 3 nơi hoSo,
+             CAN_TEN chỉ maKhach.js + loi.js, 2 hàm bọc giuLuotBoNho (cả hai có ca cửa sổ), pos_kh_lan_thu chỉ giuLuotNhanMa; grep
+             "FROM pos_customers" trong kh/ + maKhach.js + khachAuth.js → 5 chỗ, đường cần xung_ho dùng SELECT *. Bài khẳng định hành vi
+             cũ: thu_KH1, thu_HOPDONG_KH, thu_KHUI1, thu_P15QR đã sửa; thu_KHO1 xanh sau gộp KHO-2a. Đã xử lý hết trong Phạm vi.
+CHƯA KIỂM:   - Cổng ĐỎ A11 tới khi chat bỏ thu_HOPDONG_KH.js khỏi "## Bài thử cũ sửa" của phiếu (Câu hỏi vòng 2). Soát vòng 3 chưa chạy.
+             - Số tầng proxy Render / Cloudflare: sai thì mọi khách chung một IP → giới hạn 300 / phút của /menu có thể chặn oan giờ đông.
+             - Bộ đếm trong bộ nhớ đếm theo tiến trình (khởi động lại về 0, nhiều tiến trình đếm riêng); /menu và /gia-han chung một Map.
+             - Bước 003 gặp kho chưa có bảng pos_customers thì vẫn ghi "đã chạy" — kho đó tạo bảng sau sẽ không bao giờ có cột xung_ho. Máy
+               thật không gặp (database.js:35 createTables trước database.js:38 chayNangCap) — chỉ đọc code, chưa thử trên Turso.
+             - Bước nâng cấp trước hỏng → 003 không chạy → mọi ĐĂNG KÝ khách mới qua App và PUT /toi có xung_ho trả 500. Chưa thử trên
+               Turso thật: thời gian chép _sao_luu_003_pos_customers (bảng sao lưu chứa bản chép dữ liệu khách).
+             - App KH bản thật: chưa có ô xưng hô (khách mới không đăng ký được tới khi App lên bản mới); App phải bỏ token khi /menu trả 401.
+             - Không có giao diện → không có thao tác thử tay trên điện thoại.
+GIT:         4ee6a7c KH-API-3: bang chung thu_HOPDONG_KH (SO CA 68) + so ca bai vao qua gop main
+             d5d735b KH-API-3: dot bien BV-HOPDONG-INSERT-DIA-CHI
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 3 · BỎ 1 — chi tiết ở ## Bài học — phiên 30.10
+```
+
+## Bài học — phiên 30.10 (gom cả vòng 1)
+Sự cố phiên này: (1) bước 003 làm thu_KHO2a đỏ sau gộp — bài kho chạy cả thư mục nang_cap trên kho chỉ bảng kho; (2) thu_KHUI1 H2f đỏ oan do
+ghép mẩu UTF-8 bằng `than += d`; (3) soát vòng 2: hai cửa sổ thời gian không có ca (đột biến 1 phút ↔ 1 giờ SỐNG), số viết thẳng, trường chết,
+trang_thai còn câu cũ; (4) cổng A11: phiếu xếp thu_HOPDONG_KH vào "Bài thử cũ sửa" dù hành vi đã duyệt đổi (LUAT §6.8) — phải hỏi lại;
+(5) người gác chặn B-BIMAT-CHU 5 lần (chữ in hoa trong lệnh / file chạy) — dùng Edit, commit trước rồi chạy; B-PHANTICH, TAR-X (biến shell).
+- **KHOÁ** (trong Phạm vi — ĐÃ LÀM): A4d / D3b gọi qua CHÍNH hàm bọc + đột biến đổi cửa sổ; C4b khoá 003 trên kho không bảng khách.
+- **KHOÁ** (ngoài Phạm vi — đề xuất, `tu_chay/cong.js` đóng băng): phép A11 kiểm thêm — mục "Bài thử cũ sửa" mà bản gốc ĐỎ trên code PR thì báo
+  "đây là bài sửa theo LUAT §6.8, bỏ khỏi Bài thử cũ sửa" ngay trong dòng ✗ (ca đỏ: phiếu KH-API-3 628fce8). Và mốc A16 bỏ qua file chỉ đổi ở
+  commit gộp main (ca đỏ: thu_BH2 / thu_KHO1 / thu_KHO2a ở nhánh này).
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K3, ngoài Phạm vi): "Ngưỡng N / ĐƠN VỊ THỜI GIAN là HAI phép: ca dội N+1 lượt chỉ khoá N; phải có ca
+  ngay dưới / ngay trên cửa sổ gọi qua CHÍNH hàm dùng thật. Đã gây: KH-API-3 soát vòng 2 — đổi 1 phút thành 1 giờ vẫn 63/63 xanh."
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K4): "Sau mỗi vòng sửa, grep trang_thai.md tìm mọi câu trích số ca / số đột biến / trạng thái cũ; bảng
+  chỗ vá → đột biến đủ tên trong dot_bien.py. Đã gây: KH-API-3 soát vòng 2 lỗi 5."
+- **NGUYÊN TẮC** (đề xuất `KHUON_LOI.md` K5 hoặc K2): "Bài thử đọc HTTP thì `res.setEncoding('utf8')` — ghép Buffer bằng `+=` cắt đôi chữ
+  nhiều byte, đỏ oan khi dữ liệu đổi. Đã gây: thu_KHUI1 H2f sau khi dist đổi."
+- **BỎ**: người gác chặn chữ in hoa trong lệnh — skill đã dặn (Edit / commit trước); lần này chỉ quên.
+
+HEAD ĐÃ KIỂM: 4ee6a7c
