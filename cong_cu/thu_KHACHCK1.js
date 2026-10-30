@@ -176,9 +176,11 @@ async function main() {
     const b6 = await goi('PUT', `/customers/${kh3.id}/discount`, { discount_type: 'percent', discount_value: 0, discount_note: 'Ghi chú v1' });
     k('B6 (K5) PUT customers/:id/discount mức 0 → 200, ghi chú lưu', b6.status === 200 && (await mucHoSo(s1)).discount_note === 'Ghi chú v1', moTa(b6));
     const b7 = await goi('PUT', `/customers/${kh3.id}/discount`, { discount_type: 'fixed', discount_value: -5 });
+    const h7 = await mucHoSo(s1);
     const b7b = await goi('PUT', `/v2/customers/${s1}/discount`, { discount_type: 'fixed', discount_value: -5 });
-    k('B7 mức âm −5 ở cả hai cửa → hồ sơ vẫn 0, type mặc định percent (không ghi số thân gửi)', Number((await mucHoSo(s1)).discount_value) === 0
-      && (await mucHoSo(s1)).discount_type === 'percent', `${moTa(b7)} / ${moTa(b7b)} · ${JSON.stringify(await mucHoSo(s1))}`);
+    const h7b = await mucHoSo(s1);
+    k('B7 mức âm −5, loại fixed ở TỪNG cửa → sau mỗi cửa hồ sơ vẫn 0, loại percent (không ghi số / loại thân gửi)', [h7, h7b].every((h) =>
+      Number(h.discount_value) === 0 && h.discount_type === 'percent'), `${moTa(b7)} ${JSON.stringify(h7)} / ${moTa(b7b)} ${JSON.stringify(h7b)}`);
     // F2 hai người cùng bấm: một gửi mức 5, một chỉ ghi chú.
     const [c1, c2] = await Promise.all([goi('PUT', `/v2/customers/${s1}/discount`, { discount_type: 'percent', discount_value: 5 }),
       goi('PUT', `/v2/customers/${s1}/discount`, { discount_note: 'Cùng lúc' })]);
