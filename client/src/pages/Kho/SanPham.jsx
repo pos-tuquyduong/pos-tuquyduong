@@ -1,6 +1,6 @@
 /**
  * KHO-1 — Sản phẩm & công thức: danh sách theo nhóm; bấm món → công thức cho 1 đơn vị + "Tính cho N phần" (máy chủ triển khai,
- * cùng hàm tinh.trienKhai). Chỉ chủ quán sửa kiểu + công thức (máy chủ kiểm). Lượng lưu theo đơn vị LƯU, hiện theo đơn vị hiện.
+ * cùng hàm tinh.trienKhai). Chỉ chủ quán sửa kiểu + công thức + hạn dùng (KHO-2a) (máy chủ kiểm). Lượng lưu theo đơn vị LƯU, hiện theo đơn vị hiện.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
@@ -74,7 +74,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
     setLoi('');
     try { setKet((await api.get(`/kho/san-pham/${sp.id}/trien-khai?so_phan=${soPhan}`)).nguyen_lieu); } catch (e) { setLoi(e.message); }
   };
-  const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
+  const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', han_ngay: sp.han_ngay ?? '', dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
     ? { loai: 'nl', id: d.nguyen_lieu_id, so: d.luong_hien }
     : { loai: 'sp', id: d.thanh_phan_id, so: d.luong })) });
   const doiDong = (i, gt) => setSua({ ...sua, dong: sua.dong.map((d, j) => (j === i ? { ...d, ...gt } : d)) });
@@ -84,7 +84,8 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
       ? { nguyen_lieu_id: Number(d.id), luong: Number(d.so) * (nlTheo.get(Number(d.id))?.he_so_doi || 1) }
       : { thanh_phan_id: Number(d.id), luong: Number(d.so) }));
     try {
-      await api.put(`/kho/san-pham/${sp.id}`, { kieu: sua.kieu, nhom_id: sua.nhom_id ? Number(sua.nhom_id) : null, cong_thuc: congThuc });
+      await api.put(`/kho/san-pham/${sp.id}`, { kieu: sua.kieu, nhom_id: sua.nhom_id ? Number(sua.nhom_id) : null, han_ngay: sua.han_ngay === '' ? null : Number(sua.han_ngay),
+        cong_thuc: congThuc });
       dong(true);
     } catch (e) { setLoi(e.message); }
   };
@@ -92,7 +93,8 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <h3 className="card-title">{sp.name}</h3>
-      <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}</div>
+      <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}
+        {sp.kieu === 'lam_san' && ` · hạn dùng ${sp.han_ngay ? sp.han_ngay + ' ngày' : 'chưa đặt'}`}</div>
       {!sua && (
         <>
           {sp.cong_thuc.map((d) => (
@@ -126,6 +128,9 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
                 <option value="">—</option>
                 {dl.nhom.map((n) => <option key={n.id} value={n.id}>{n.ten}</option>)}
               </select>
+            </label>
+            <label>Hạn dùng thành phẩm (ngày)
+              <input className="input" type="number" min="1" step="1" value={sua.han_ngay} onChange={(e) => setSua({ ...sua, han_ngay: e.target.value })} />
             </label>
           </div>
           {sua.dong.map((d, i) => (
