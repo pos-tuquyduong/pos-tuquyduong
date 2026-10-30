@@ -1,0 +1,81 @@
+KHACH-CK-1 — bằng chứng bài thử ĐỎ trên code gốc (commit PHIEU: KHACH-CK-1 = 29db8d3; server/ và client/src/ giống c8edb66). Chạy 30.10.
+
+━━ 1. Bài HIỆN TẠI trên code GỐC 29db8d3 ━━
+Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --goc 29db8d3 thu_KHACHCK1.js thu_UUDAI1.js thu_P26c.js thu_P20.js thu_GOI1.js thu_BH1.js thu_BH2.js
+(git archive server/ + client/src/ + kiem_tra_truoc_khi_giao.js của gốc, cong_cu/ của HEAD, node_modules nối symlink)
+
+── thu_KHACHCK1.js (bài MỚI):
+  ✗ A1 hồ sơ percent 10, không mã, 2 × 50.000 → tổng 100.000 (không 90.000)  — HTTP 400 · Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (90.000đ). · tổng NaN
+  ✗ A2 hồ sơ fixed 5.000, không mã, 50.000 → tổng 50.000 (không 45.000)  — HTTP 400 · Số tiền thanh toán (50.000đ) không khớp tổng đơn hàng thật (45.000đ). · tổng NaN
+  ✗ A3 tinh-thu cùng giỏ A1 → total 100.000 (cùng số POST /orders ghi)  — HTTP 200 · total 90000
+  ✗ A5 đối chứng hạng: Vàng 10 % + hồ sơ 10 %, 2 × 50.000 → chỉ giảm hạng: 90.000  — HTTP 400 · … (80.000đ)
+  ✗ A7 Giờ vàng 20 %: khách hồ sơ 10 % mua 50.000 → giá Flash 40.000, KHÔNG 400 "chỉ dùng voucher TIỀN"  — HTTP 400 · Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.
+  ✗ B1 PUT v2 percent 5 → 400 CHIET_KHAU_RIENG_DA_BO, hồ sơ vẫn 0 / không ghi ghi chú  — HTTP 200 · {"discount_type":"percent","discount_value":5,"discount_note":"x"}
+  ✗ B2 PUT v2 fixed "5000" (chuỗi) → 400 cùng mã  — HTTP 200
+  ✗ B3 PUT customers/:id/discount percent 5 → 400 cùng mã  — HTTP 200
+  ✗ B4 PUT v2 khách chưa có hồ sơ, mức 5 → 400 và KHÔNG tạo dòng  — HTTP 200
+  ✗ B7 mức âm −5, loại fixed ở TỪNG cửa → sau mỗi cửa hồ sơ vẫn 0, loại percent  — HTTP 200 {"discount_type":"fixed","discount_value":-5,…}
+  ✗ B8 hai người cùng bấm (mức 5 + chỉ ghi chú) → 400 + 200, hồ sơ cuối mức 0, ghi chú "Cùng lúc"  — HTTP 200 / HTTP 200
+  ✗ C0 có server/nang_cap/004_bo_chiet_khau_rieng.js xuất chay()
+  ✗ C5 bộ chạy đã ghi bước 4 vào pos_nang_cap lúc khởi động  — null
+  ✗ C1a trước có N = 10 khách mức ≠ 0 (N ≥ 6) → sau 0; type về percent  — còn 10 · lệch type 3
+  ✗ C1b bảng _sao_luu_004_pos_customers đủ 13 dòng, 10 dòng giữ đúng mức cũ  — không có bảng
+  ✗ C4 log nâng cấp báo số khách bị đặt lại (10)
+  ✗ C2 chạy thân 004 lần 2 → cấu trúc CSDL y hệt, bảng sao lưu không thêm dòng, không lỗi  — không có bước
+  ✗ C6 kho trống chưa có bảng pos_customers → 004 không lỗi, không tạo bảng nào  — Cannot read properties of null (reading 'chay')
+  ✗ D1a tinh.js không còn khachGiam / giamKhach / coChietKhauRieng
+  ✗ D1b BanHangMoi.jsx không còn chanChietKhau / coChietKhauRieng; ThuTien nhận coSo={coSo}
+  ✗ D1c Sales.jsx không còn applyCustomerDiscount, không đọc <khách>.discount_value / discount_type (mọi tên biến)
+  ✗ D1d CustomerInput.jsx không còn huy hiệu CK
+  ✗ D1e Customers.jsx không còn bộ lọc has_discount, cột / form mức chiết khấu
+  ✗ D2 tinhGio bỏ qua khachGiam cũ (tổng 100.000); dungDonHang khách hồ sơ 10 % → gửi discount_type null, discount_value 0  — tổng 90000 · percent/10
+  ✗ E1b Customers.jsx nhãn "Ghi chú khách", vẫn gửi discount_note qua updateDiscount
+  ✗ E1c Customers.jsx hiện ghi chú khi có (không còn điều kiện mức > 0)
+  8 đạt · 26 hỏng — thoát 1
+  (xanh trên gốc — đối chứng K5: A6 mã thắng, A8 khách không hồ sơ, B5/B6 chỉ ghi chú / mức 0, C3, E1a, F3a/F3b)
+
+── thu_UUDAI1.js (bài SỬA — LUAT §6.8):
+  ✗ G5b đơn KHÔNG mã, Vàng + hồ sơ cũ giảm riêng 5 % → KHACH-CK-1: hồ sơ không còn giảm, chỉ hạng: 90.000  — HTTP 400 · … (85.000đ)
+  87 đạt · 1 hỏng — thoát 1
+── thu_P26c.js (bài SỬA):
+  ✗ X1a khách chưa có hồ sơ, đặt chiết khấu cố định 5.000 → 400 CHIET_KHAU_RIENG_DA_BO, không tạo hồ sơ; đơn 25.000 → tổng 25.000  — HTTP 200 / HTTP 400 · … (20.000đ)
+  ✗ X1b khách có hồ sơ, đặt 20 % → 400 cùng mã, hồ sơ vẫn 0; đơn 50.000 → tổng 50.000  — HTTP 200 / HTTP 400 · … (40.000đ)
+  155 đạt · 2 hỏng — thoát 1
+── thu_P20.js (bài SỬA — ca "có chiết khấu" dựng bằng mã giảm + ca MỚI hồ sơ cũ):
+  ✗ hồ sơ cũ fixed 5.000, không mã, trả 25.000 → 200, tổng 25.000 (chiết khấu riêng đã bỏ — KHACH-CK-1)  — HTTP 400 · … (20.000đ)
+  171 đạt · 1 hỏng — thoát 1
+── thu_GOI1.js (bài SỬA — B3c / B3p dựng bằng mã giảm 10 % + ca MỚI B3c2):
+  ✗ B3c2 hồ sơ cũ percent 10, mua gói 30 không mã, trả 1.350.000 → 200, tổng 1.350.000 (chiết khấu riêng đã bỏ)  — HTTP 400 · … (1.215.000đ)
+  112 đạt · 1 hỏng — thoát 1
+── thu_BH1.js (bài SỬA):
+  ✗ D13 khachGiam 10 % truyền vào (kiểu cũ) bị bỏ qua: tổng 100.000
+  ✗ D14 khachGiam cố định 50.000 (kiểu cũ) bị bỏ qua: tổng 30.000, không còn khoá giamKhach
+  ✗ I8 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount_type null, discount_value 0, discount_reason null) — KHACH-CK-1
+  BH-1: 70 đạt · 3 hỏng — thoát 1
+── thu_BH2.js (bài SỬA):
+  ✗ D18 KHACH-CK-1: bỏ chiết khấu riêng từng khách → tinh.js không còn xuất coChietKhauRieng (không còn khoá thu theo hồ sơ)
+  ✗ S19 KHACH-CK-1: ThuTien sáng theo đúng coSo (không còn khoá chanChietKhau theo hồ sơ khách)
+  BH-2: 97 đạt · 2 hỏng — thoát 1
+
+━━ 2. Bản GỐC 29db8d3 của bài cũ trên code MỚI (chủ quán dặn khi duyệt: bản gốc phải đỏ) ━━
+Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --bai-cu 29db8d3 thu_P20.js thu_GOI1.js thu_UUDAI1.js thu_P26c.js thu_BH1.js thu_BH2.js
+  thu_P20.js   — ✖ Bài thử sập: Không tạo được đơn "chiết khấu": 400 Số tiền thanh toán (20.000đ) không khớp tổng đơn hàng thật (25.000đ). — thoát 2
+  thu_GOI1.js  — ✖ Bài thử sập: không mua được gói 30: HTTP 400 · Số tiền thanh toán (1.215.000đ) không khớp tổng đơn hàng thật (1.350.000đ). — thoát 2
+                 (bài dừng ở B3c — ca B3p 1.237.500 nằm sau, cùng nguyên nhân)
+  thu_UUDAI1.js — ✗ G5b … → 85.000 — HTTP 400 · Số tiền thanh toán (85.000đ) không khớp tổng đơn hàng thật (90.000đ). — 87 đạt · 1 hỏng, thoát 1
+  thu_P26c.js  — ✗ X1a … → 200; đơn 25.000 → tổng 20.000 — HTTP 400 · CHIET_KHAU_RIENG_DA_BO … ; ✗ X1b … → 200; tổng 40.000 — 155 đạt · 2 hỏng, thoát 1
+  thu_BH1.js   — ✗ D13, ✗ D14, ✗ I8 — BH-1: 70 đạt · 3 hỏng, thoát 1
+  thu_BH2.js   — ✗ D18 (thiếu hàm coChietKhauRieng), ✗ S19 — BH-2: 97 đạt · 2 hỏng, thoát 1
+→ Mọi bài cũ đổi đều ĐỎ ở dạng gốc trên code mới → không cần `## Bài thử cũ sửa` (chủ quán chốt khi duyệt kế hoạch).
+
+━━ 3. Trên code đã vá (HEAD) — đối chứng của dot_bien.py ━━
+  thu_KHACHCK1.js 34 đạt · 0 hỏng · thu_UUDAI1.js 88 · thu_P26c.js 157 · thu_P20.js 172 · thu_GOI1.js 113 · BH-1 73 · BH-2 99 (đều 0 hỏng)
+Đột biến: python3 viec/KHACH-CK-1/dot_bien.py → TỔNG 34 đột biến · BẮT 34 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 7 bài xanh)
+
+SỐ CA cong_cu/thu_KHACHCK1.js: 34
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+SỐ CA cong_cu/thu_P26c.js: 157
+SỐ CA cong_cu/thu_P20.js: 172
+SỐ CA cong_cu/thu_GOI1.js: 113
+SỐ CA cong_cu/thu_BH1.js: 73
+SỐ CA cong_cu/thu_BH2.js: 99
