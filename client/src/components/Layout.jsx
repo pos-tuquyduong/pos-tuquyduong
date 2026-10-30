@@ -8,20 +8,16 @@ import ErrorBoundary from './ErrorBoundary';
 import { 
   ShoppingCart, 
   Users, 
-  Wallet, 
   Package, 
-  ClipboardList, 
   BarChart3,
-  Settings,
   LogOut,
-  AlertCircle,
   Menu,
   X,
-  Tag,
-  FileText,
-  Warehouse
+  Warehouse,
+  LayoutGrid
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { dungMenu } from '../pages/QuanLy/menu';
 // POS-DODNO-v1: goi qua lop chung, KHONG fetch tran (luat banh coc cua bo kiem)
 import { soNoApi } from '../utils/api';
 
@@ -64,27 +60,19 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const navItems = [
-    { to: '/', icon: ShoppingCart, label: 'Bán hàng' },
-    { to: '/customers', icon: Users, label: 'Khách hàng' },
-    { to: '/balance', icon: Wallet, label: 'Số dư', permission: 'view_customer_balance' },
-    { to: '/orders', icon: Package, label: 'Đơn hàng' },
-    { to: '/registrations', icon: ClipboardList, label: 'Đăng ký mới' },
-    { to: '/kho', icon: Warehouse, label: 'Quản lý kho' },   // KHO-1 — BH-2 xếp lại vào menu 6 mục
-    { to: '/discount-codes', icon: Tag, label: 'Mã chiết khấu', permission: 'manage_users' },
-    { to: '/reports', icon: BarChart3, label: 'Báo cáo', permission: 'view_reports' },
-    { to: '/refunds', icon: AlertCircle, label: 'Hoàn tiền', permission: 'approve_refund' },
-    { to: '/settings', icon: Settings, label: 'Cài đặt', permission: 'manage_users' },
-    { to: '/invoice-settings', icon: FileText, label: 'Cài đặt HĐ', permission: 'manage_users' },
+  // BH-2: menu 6 mục (máy tính) / 5 mục (điện thoại) — danh sách và quyền ở pages/QuanLy/menu.js. Các màn cũ chuyển vào trang Quản lý.
+  const bieuTuong = [
+    { to: '/', icon: ShoppingCart },
+    { to: '/hom-nay', icon: BarChart3 },
+    { to: '/orders', icon: Package },
+    { to: '/customers', icon: Users },
+    { to: '/kho', icon: Warehouse },
+    { to: '/quan-ly', icon: LayoutGrid },
   ];
-
-  // Menu items cho bottom nav (5 quan trọng nhất)
-  const bottomNavItems = [
-    { to: '/', icon: ShoppingCart, label: 'Bán hàng' },
-    { to: '/customers', icon: Users, label: 'Khách' },
-    { to: '/orders', icon: Package, label: 'Đơn hàng' },
-    { to: '/balance', icon: Wallet, label: 'Số dư', permission: 'view_customer_balance' },
-  ];
+  const { mayTinh, dienThoai } = dungMenu(hasPermission);
+  const gan = (m) => ({ ...m, icon: bieuTuong.find((b) => b.to === m.to)?.icon || Menu });   // "Thêm" (to: null) dùng icon Menu
+  const navItems = mayTinh.map(gan);
+  const bottomNavItems = dienThoai.map(gan);
 
   return (
     <div className="app-layout">
@@ -120,9 +108,6 @@ export default function Layout() {
         )}
         <nav className="sidebar-nav" style={{ flex: 1, paddingTop: '0.5rem' }}>
           {navItems.map((item) => {
-            if (item.permission && !hasPermission(item.permission)) {
-              return null;
-            }
             return (
               <NavLink
                 key={item.to}
@@ -131,7 +116,7 @@ export default function Layout() {
                 end={item.to === '/'}
               >
                 <item.icon size={20} />
-                <span>{item.label}</span>
+                <span>{item.ten}</span>
               </NavLink>
             );
           })}
@@ -176,29 +161,22 @@ export default function Layout() {
 
       {/* Bottom Navigation - Mobile */}
       <nav className="bottom-nav">
-        {bottomNavItems.map((item) => {
-          if (item.permission && !hasPermission(item.permission)) {
-            return null;
-          }
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-              end={item.to === '/'}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
-        <button 
-          className="bottom-nav-item"
-          onClick={() => setMobileMenuOpen(true)}
-        >
-          <Menu size={20} />
-          <span>Menu</span>
-        </button>
+        {bottomNavItems.map((item) => (item.to === null ? (
+          <button key={item.ten} className="bottom-nav-item" onClick={() => setMobileMenuOpen(true)}>
+            <item.icon size={20} />
+            <span>{item.ten}</span>
+          </button>
+        ) : (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+            end={item.to === '/'}
+          >
+            <item.icon size={20} />
+            <span>{item.ten}</span>
+          </NavLink>
+        )))}
       </nav>
 
       {/* Mobile Menu Overlay */}
@@ -222,9 +200,6 @@ export default function Layout() {
             </div>
             <nav className="mobile-menu-nav">
               {navItems.map((item) => {
-                if (item.permission && !hasPermission(item.permission)) {
-                  return null;
-                }
                 return (
                   <NavLink
                     key={item.to}
@@ -234,7 +209,7 @@ export default function Layout() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <item.icon size={20} />
-                    <span>{item.label}</span>
+                    <span>{item.ten}</span>
                   </NavLink>
                 );
               })}

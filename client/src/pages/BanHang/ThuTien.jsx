@@ -1,24 +1,23 @@
 /**
- * Thu tiền: tiền mặt (dãy tờ + bàn phím số có 000) · chuyển khoản (như màn cũ) · trừ tài khoản.
- * Bán hàng không có công nợ (DAC_TA_BAN_HANG_2410 mục 1.1). Đợt 2 (BH-2) thay chuyển khoản bằng QR payOS.
+ * Thu tiền (BH-2): trừ tài khoản khách / mẹ (nút Bỏ) · tiền mặt (dãy tờ + bàn phím số có 000) · chuyển khoản = QR payOS.
+ * Bán hàng không có công nợ; không trộn tiền mặt + chuyển khoản. Màn chỉ chọn cách — máy chủ tính, giữ và chốt tiền (BanHangMoi → phiên).
+ * Nút thu CHỈ sáng khi có số máy chủ cho đúng giỏ này (`coSo`).
  */
 import { useState } from 'react';
-import { conThieu, danhSachTo, duDuoc, traLai } from './tinh';
+import { cachTraKhaDung, conThieu, danhSachTo, duDuoc, nutThuSang, traLai } from './tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const PHIM = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'];
 
-export default function ThuTien({ tong, khach, soDuDung, soDuMeDung, dungTK, dungMe, onDungTK, onDungMe, dangGui, onThu }) {
-  const [cach, setCach] = useState('cash');
+export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDung, dungTK, dungMe, onDungTK, onDungMe, dangGui, onThu }) {
+  const [cach, setCach] = useState('tien_mat');
   const [dua, setDua] = useState(0);
   const [moPhim, setMoPhim] = useState(false);
 
-  const phaiTra = tong - soDuDung - soDuMeDung;
-  const duTaiKhoan = tong > 0 && phaiTra <= 0;
   const coMe = (khach?.parent_balance || 0) > 0;
+  const dsCach = cachTraKhaDung({ phaiTra });
   const bam = (p) => setDua((n) => (p === '⌫' ? Math.floor(n / 10) : Number(String(n === 0 ? '' : n) + p)));
-
-  const guiDuTK = () => onThu({ cach: soDuMeDung > 0 ? 'cash' : 'balance', khachDua: 0 });
+  const sang = (c, d = 0) => nutThuSang({ coSo, dangGui, cach: c, phaiTra, dua: d });
 
   return (
     <div className="bh-chan-gio">
@@ -34,17 +33,19 @@ export default function ThuTien({ tong, khach, soDuDung, soDuMeDung, dungTK, dun
           <span>{dungMe ? <>−{vnd(soDuMeDung)} <button className="bh-nut-nho" onClick={() => onDungMe(false)}>Bỏ</button></> : <button className="bh-nut-nho" onClick={() => onDungMe(true)}>Dùng</button>}</span>
         </div>
       )}
-      <div className="bh-tien-dong bh-tong"><span>Phải trả</span><span>{vnd(Math.max(0, phaiTra))}</span></div>
+      <div className="bh-tien-dong bh-tong"><span>Phải trả</span><span>{coSo ? vnd(phaiTra) : 'Đang tính…'}</span></div>
 
-      {duTaiKhoan ? (
-        <button className="bh-nut bh-xanh bh-lon" disabled={dangGui} onClick={guiDuTK}>Trả đủ bằng tài khoản</button>
+      {dsCach[0] === 'tai_khoan' ? (
+        <button className="bh-nut bh-xanh bh-lon" disabled={!sang('tai_khoan')} onClick={() => onThu({ cach: 'tai_khoan' })}>
+          {soDuDung + soDuMeDung > 0 ? 'Trả đủ bằng tài khoản' : 'Đơn 0đ — hoàn tất'}
+        </button>
       ) : (
         <>
           <div className="bh-to">
-            <button className={`bh-nut ${cach === 'cash' ? '' : 'bh-phu'}`} onClick={() => setCach('cash')}>Tiền mặt</button>
-            <button className={`bh-nut ${cach === 'transfer' ? '' : 'bh-phu'}`} onClick={() => setCach('transfer')}>Chuyển khoản</button>
+            <button className={`bh-nut ${cach === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => setCach('tien_mat')}>Tiền mặt</button>
+            <button className={`bh-nut ${cach === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => setCach('chuyen_khoan')}>Chuyển khoản</button>
           </div>
-          {cach === 'cash' ? (
+          {cach === 'tien_mat' ? (
             <>
               <div className="bh-to">
                 {danhSachTo(phaiTra).map((t) => (
@@ -66,10 +67,10 @@ export default function ThuTien({ tong, khach, soDuDung, soDuMeDung, dungTK, dun
                   {duDuoc(phaiTra, dua) ? `Trả lại ${vnd(traLai(phaiTra, dua))}` : `Còn thiếu ${vnd(conThieu(phaiTra, dua))}`}
                 </div>
               )}
-              <button className="bh-nut bh-xanh bh-lon" disabled={dangGui || !duDuoc(phaiTra, dua)} onClick={() => onThu({ cach: 'cash', khachDua: dua })}>Đã nhận tiền</button>
+              <button className="bh-nut bh-xanh bh-lon" disabled={dangGui || !duDuoc(phaiTra, dua) || !sang('tien_mat', dua)} onClick={() => onThu({ cach: 'tien_mat', khachDua: dua })}>Đã nhận tiền</button>
             </>
           ) : (
-            <button className="bh-nut bh-xanh bh-lon" disabled={dangGui} onClick={() => onThu({ cach: 'transfer', khachDua: 0 })}>Đã nhận chuyển khoản · {vnd(phaiTra)}</button>
+            <button className="bh-nut bh-xanh bh-lon" disabled={!sang('chuyen_khoan')} onClick={() => onThu({ cach: 'chuyen_khoan' })}>Hiện mã QR · {vnd(phaiTra)}</button>
           )}
         </>
       )}

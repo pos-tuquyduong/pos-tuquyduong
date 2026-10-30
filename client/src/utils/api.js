@@ -361,10 +361,24 @@ export const ordersApi = {
   },
   get: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
+  tinhThu: (data) => api.post('/orders/tinh-thu', data),   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì
   cancel: (id, reason) => api.put(`/orders/${id}/cancel`, { reason }),
   delete: (id) => api.delete(`/orders/${id}`),
   payDebt: (id, data) => api.post(`/orders/${id}/pay-debt`, data)
 };
+
+// BH-2 · Phiên thanh toán (P3): giữ tiền tài khoản → chốt (tiền mặt / tài khoản) hoặc QR payOS tự xác nhận
+export const thanhToanApi = {
+  taoPhien: (data) => api.post('/thanh-toan/phien', data),
+  hoiPhien: (id) => api.get(`/thanh-toan/phien/${id}`),
+  chotPhien: (id, data = {}) => api.post(`/thanh-toan/phien/${id}/chot`, data),
+  huyPhien: (id) => api.post(`/thanh-toan/phien/${id}/huy`, {}),
+  xacNhanTay: (id, lyDo) => api.post(`/thanh-toan/phien/${id}/xac-nhan-tay`, { ly_do: lyDo }),
+  datPin: (phone, pin, pinLai) => api.post('/thanh-toan/pin', { phone, pin, pin_lai: pinLai })
+};
+
+// BH-2 · Dữ liệu hoá đơn (HD-1): một cửa, chỉ đọc
+export const hoaDonApi = { lay: (id) => api.get(`/hoa-don/${id}`) };
 
 // Refunds API
 export const refundsApi = {
