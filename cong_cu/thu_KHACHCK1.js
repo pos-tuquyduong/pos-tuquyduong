@@ -221,6 +221,18 @@ async function main() {
     const log2 = buoc ? await chayBuoc() : 'không có bước';
     k('C2 chạy thân 004 lần 2 → cấu trúc CSDL y hệt, bảng sao lưu không thêm dòng, không lỗi', buoc && (await cauTruc()) === ct1
       && (await so(`SELECT COUNT(*) FROM ${coSL ? BANG_SAO_LUU : 'pos_customers'}`)) === dong1 && !/LỖI/.test(log2), log2);
+    // C6: kho trống chưa có bảng pos_customers (thu_KHO2a E6b chạy mọi bước trên kho như vậy) → 004 không lỗi, không tạo gì.
+    const { createClient } = require(path.join(GOC, 'node_modules', '@libsql', 'client'));
+    const c6 = createClient({ url: 'file:' + path.join(THU_MUC, 'trong.db') });
+    let loi6 = null;
+    try {
+      const tx6 = await c6.transaction('write');
+      const rows = async (sql, a = []) => (await tx6.execute({ sql, args: a })).rows.map((r) => ({ ...r }));
+      try { await buoc.chay({ query: rows, queryOne: async (sql, a) => (await rows(sql, a))[0], run: (sql, a = []) => tx6.execute({ sql, args: a }) }); await tx6.commit(); } catch (e) { await tx6.rollback(); throw e; }
+    } catch (e) { loi6 = e.message; }
+    const bang6 = buoc ? (await c6.execute("SELECT COUNT(*) AS n FROM sqlite_master")).rows[0].n : -1;
+    c6.close();
+    k('C6 kho trống chưa có bảng pos_customers → 004 không lỗi, không tạo bảng nào', buoc && !loi6 && Number(bang6) === 0, loi6 || `${bang6} bảng`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
