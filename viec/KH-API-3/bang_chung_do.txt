@@ -100,8 +100,22 @@ chép bài thử của HEAD vào <nháp>/goc55/cong_cu/, HOP_DONG_API_KH.md lấ
   Trên code ĐÃ VÁ → 67 đạt · 0 hỏng. Đột biến 38/38 BẮT (thêm VS-MENU-CUA-SO-GIO, VS-GIA-HAN-CUA-SO-PHUT, VS-DIA-CHI-KHONG-NFC và một đột biến
   tiêu đề rỗng), đối chứng XANH (api 67/0 · hd 67/0). Gốc in 65 ca ≠ 67 ở head: 2 ca C4 chỉ chạy khi có bước 3 (đúng thiết kế, A16).
 
+── node cong_cu/thu_HOPDONG_KH.js — thêm ca "xác minh khách mẫu mới: khach.xung_ho / khach.dia_chi = đúng giá trị gửi" ──
+  Lý do: bản gốc của bài chạy trên code mới ĐỎ (28 đạt · 2 hỏng — xác minh không xung_ho → CAN_TEN, đúng quyết định chủ quán 30.10), nên bài
+  thuộc LUAT §6.8 (bài sửa vì hành vi đã duyệt đổi), phải đỏ trên gốc. Ca mới là hành vi thật: gốc không lưu / không trả xung_ho, dia_chi.
+  Trên gốc 55a8f29 (+ hợp đồng v2 của gốc) → 64 đạt · 1 hỏng (thoát 1):
+  ✗ xác minh khách mẫu mới: khach.xung_ho / khach.dia_chi = đúng giá trị gửi  — {"sdt":"0936123456","ten":"Khách mẫu","ngay_tao":"2026-10-30T16:00:04"}
+  Trên code ĐÃ VÁ (+ hợp đồng v3) → 68 đạt · 0 hỏng. Đột biến BV-HOPDONG-INSERT-DIA-CHI BẮT; tổng 39/39 BẮT, đối chứng XANH (api 67/0 · hd 68/0).
+
+── Bài của việc KHÁC vào nhánh qua commit gộp main 1930351 (cổng so từ 55a8f29^ nên thấy chúng là "đổi") — số ca chạy ở HEAD d5d735b,
+   khớp đúng dòng SỐ CA trong bằng chứng của chính việc đó (`git show c8edb66:viec/KHO-2a/bang_chung_do.txt`, `…/BH-2/…`). Việc này KHÔNG sửa ba bài này. ──
+  node cong_cu/thu_KHO1.js → 111 đạt · 0 hỏng · node cong_cu/thu_KHO2a.js → 86 đạt · 0 hỏng · node cong_cu/thu_BH2.js → BH-2: 100 đạt · 0 hỏng
+
 SỐ CA cong_cu/thu_KHAPI3.js: 67
 SỐ CA cong_cu/thu_KH1.js: 157
-SỐ CA cong_cu/thu_HOPDONG_KH.js: 67
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 68
 SỐ CA cong_cu/thu_KHUI1.js: 41
 SỐ CA cong_cu/thu_P15QR.js: 29
+SỐ CA cong_cu/thu_KHO1.js: 111
+SỐ CA cong_cu/thu_KHO2a.js: 86
+SỐ CA cong_cu/thu_BH2.js: 100
