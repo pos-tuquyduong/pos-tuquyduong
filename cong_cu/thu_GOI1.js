@@ -637,13 +637,22 @@ async function main() {
     const rb = await ketThuc(gb.cp, { reason: 'chưa lấy', hoan: true, so_tien: 1350000 });
     k('B3b chưa lấy lần nào → hoàn đủ giá đã trả 1.350.000', rb.status === 200 && await vi(b) === 1350000, `${moTa(rb)} · ví ${await vi(b)}`);
 
-    const c = sdtMoi();   // chiết khấu đơn do máy chủ tra từ hồ sơ khách (orders.js, LO 2) — không tin tờ khai
-    await db.run("INSERT INTO pos_customers (phone, name, sx_status, discount_type, discount_value) VALUES (?, 'Khách CK GOI2', 'active', 'percent', 10)", [c]);
-    const gc = await mua30(c, { cash_amount: 1215000 });
+    // Giảm 10 % dựng bằng MÃ GIẢM (KHACH-CK-1, chủ quán 29.10: bỏ chiết khấu riêng trong hồ sơ khách — bản cũ dựng bằng hồ sơ 10 %).
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
+      VALUES ('GOI2_GIAM10', 'percent', 10, 0, 0, 0, 0, 1)`);
+    const c = sdtMoi();
+    const gc = await mua30(c, { cash_amount: 1215000, discount_code: 'GOI2_GIAM10' });
     dungGoi(await lay(c, gc.cp, [[0, 10]]), 'B3c lấy 10 CT1');
     const dkc = await duKien(gc.cp);
     k('B3c mua có giảm 10 % (trả 1.215.000), đã lấy 10/30 → hoàn theo giá ĐÃ TRẢ 1.215.000 × 20/30 = 810.000 (giá niêm yết ra 900.000)', dkc.data?.tong === 810000
       && (await ketThuc(gc.cp, { reason: 'thử', hoan: true, so_tien: 810000 })).status === 200 && await vi(c) === 810000, `${JSON.stringify(dkc.data)} · ví ${await vi(c)}`);
+
+    // KHACH-CK-1: hồ sơ dữ liệu cũ percent 10, mua gói KHÔNG mã, trả đủ niêm yết 1.350.000 → 200, tổng KHÔNG giảm (gốc tự giảm → 400).
+    const cHs = sdtMoi();
+    await db.run("INSERT INTO pos_customers (phone, name, sx_status, discount_type, discount_value) VALUES (?, 'Khách hồ sơ cũ GOI2', 'active', 'percent', 10)", [cHs]);
+    const mHs = await muaGoi(cHs, G30, { cash_amount: 1350000 });
+    k('B3c2 hồ sơ cũ percent 10, mua gói 30 không mã, trả 1.350.000 → 200, tổng 1.350.000 (chiết khấu riêng đã bỏ)', mHs.status === 200
+      && Number(mHs.order?.total) === 1350000, `${moTa(mHs)} · tổng ${mHs.order?.total}`);
 
     const d = sdtMoi();
     const md = await muaGoi(d, G30, { package_buy: { package_id: G30, total_qty: 30, pkg_qty: 2 }, cash_amount: 2700000 });
@@ -743,8 +752,7 @@ async function main() {
     // LUOI-3 — AU3-13 / AU3-14: trần "hoàn ≤ total − đã nhận (hoàn + ĐỀN)" chỉ chặn khi sổ có khoản đền VƯỢT số đã trả của dòng — đó là
     // DỮ LIỆU TRƯỚC P26c 12.10 (trần đền theo giá gốc), còn trên production; qua API hiện nay không dựng được (viec/LUOI-3/ke_hoach.md mục 0).
     const p = sdtMoi();
-    await db.run("INSERT INTO pos_customers (phone, name, sx_status, discount_type, discount_value) VALUES (?, 'Khách CK LUOI3', 'active', 'percent', 10)", [p]);
-    const gp = await mua30(p, { items: [mon(2, 1, false)], cash_amount: 1237500 });
+    const gp = await mua30(p, { items: [mon(2, 1, false)], cash_amount: 1237500, discount_code: 'GOI2_GIAM10' });   // giảm 10 % bằng mã (KHACH-CK-1)
     await db.run("UPDATE pos_orders SET created_at = '2026-09-30 08:00:00' WHERE id = ?", [gp.don]);   // đơn cũ: mua trước, đền sau, cả hai trước P26c
     await db.run(`INSERT INTO pos_damage_logs (order_id, order_code, customer_phone, product_code, product_name, quantity, unit_price, damage_value,
       reason, action, refund_amount, returned_to_stock, created_at) VALUES (?, ?, ?, ?, ?, 1, 25000, 25000, 'damaged', 'refund', 25000, 0, '2026-10-01 09:00:00')`,
