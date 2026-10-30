@@ -1,0 +1,42 @@
+KHO-2a — bằng chứng ĐỎ trên code gốc (29.10.2026)
+Gốc: 62a8acb (PHIEU: KHO-2a duyệt kế hoạch — server/ chưa vá). Bài thử: bản ở HEAD (vòng sửa 3, commit 053ff05).
+Lệnh: python3 viec/KHO-2a/dot_bien.py --goc 62a8acb   (git archive server/ của gốc → node cong_cu/thu_KHO2a.js --may-chu <bản chép>)
+
+cong_cu/thu_KHO2a.js trên gốc: 5 đạt · 81 hỏng (thoát 1, chạy hết, không sập)
+  ✗ A1 manager đặt định mức mọi ngày 10 + thứ 7 = 15 → GET trả đúng; …  — HTTP 404
+  ✗ B1 định mức 10, lô còn hạn 4 + 3, lô HẾT HẠN 5 → đang có 7, cần làm 3  — HTTP 404 {}
+  ✗ B3 dưới TZ=UTC: hôm nay = thứ 7 (định mức 15, …); ngày mai = CN (…)  — {} | {}
+  ✗ C1 bảng tổng = Σ trienKhai (lồng): Cam 2 kg · Đường 0.5 kg · Kỷ tử 0.02 kg; …  — HTTP 404
+  ✗ C7 bấm hai lần (cùng ma_gui, song song) → MỘT phiếu, MỘT lô  — HTTP 404 | HTTP 404
+  ✗ D3 người tạo tự duyệt → 403 TU_DUYET, không ghi gì  — HTTP 404
+  ✗ D5 hai người duyệt song song → một 200, một 409; MỘT lô, dòng ghi một lần  — HTTP 404 | HTTP 404 · lô +0 · dòng +0
+  ✗ D10 công tắc chỉ nhận 0 / 1; manager đổi → 403 (chỉ chủ quán); không ghi  — HTTP 200 | HTTP 200
+  ✗ E2 trừ lô hạn gần trước: lô B 1 kg → lô A 0.5 kg → thiếu 0.5 kg lo_id NULL; lô quá hạn C KHÔNG bị trừ  — []
+  ✗ E6 bước 002 đã chạy: cột … có  — [{"so":1,"ten":"001_kho"}]
+  ✗ E7 nhập SX điền hạn từ days_use: CT2 (v_recipes) = 5, CF02 (sx_products) = 2; CT1 đã có 7 → KHÔNG đè  — 200 · undefined · …
+  ✗ E8 MỘT giao dịch: chèn lô hỏng giữa chừng → …  — HTTP 404 | HTTP 404
+  ✗ F4 hai kết quả song song cùng món → MỘT dòng; bên thua 409  — HTTP 404 | HTTP 404
+  ✗ F5 cùng ngày 23:30 VN → cho_dien; qua ngày VN … → tu_chot …; ghi → 409 DA_TU_CHOT  — undefined · undefined · HTTP 404
+  ✗ G1 tồn nguyên liệu = Σ dòng phiếu da_duyet (bỏ cho_duyet / huy); …  — HTTP 404 {}
+  ✗ G3 nhân viên: /ton, /pha-che, /phieu, /phieu/:id, POST /phieu-xuat, /ket-qua, /in → KHÔNG có gia_nhap / gia_von / don_gia  — 404: | …
+  ✗ H3 chủ quán sửa → phiếu MỚI (thay_cho_id), cũ huy, dòng cũ GIỮ; …  — HTTP 404 null
+  ✗ H6 sửa song song với duyệt → phiếu gốc huy, đúng MỘT phiếu thay …  — HTTP 404 | HTTP 404 · undefined · lô 0
+  ✗ I1 bảng quyền: mỗi đường × owner / manager / staff / vai trò lạ / không token đúng mã  — la GET /kho/pha-che → 404 | …
+  ✗ I2 đường lạ dưới /api/pos/kho → 403 DUONG_LA, không lộ dữ liệu  — HTTP 404 | HTTP 404 | HTTP 404
+Ca XANH trên gốc (đúng — không phụ thuộc server/ gốc hoặc là K5 "phải KHÔNG đổi"): J1 bán hàng y như cũ · K1 bộ kiểm chạy bài
+(kiem_tra ở cây làm việc) · K2 màn Kho (client ở cây làm việc) · K3 tinh.js thuần · E0 (PUT /san-pham có sẵn trả 200 — ca vẫn đỏ ở E0b).
+
+cong_cu/thu_KHO1.js (bài cũ sửa — mục "## Bài thử cũ sửa" của phiếu) trên gốc: 110 đạt · 1 hỏng (thoát 1)
+Lệnh: python3 viec/KHO-1/dot_bien.py --goc 62a8acb
+  ✗ K7 đường "Bật bán" đã bỏ (đường lạ → 403 DUONG_LA) — không còn bước thứ hai  — HTTP 404
+(B1/B2 đếm theo số file bước thật: trên gốc 1 bước → vẫn xanh; ý nghĩa ca cũ giữ.)
+
+Vòng sửa 1 — bài mới trên server/ TRƯỚC vòng sửa (d9914bd): 78 đạt · 4 hỏng (A0c lệch 0 %, E0c hạn lẻ, D7 người từ chối, H5c người huỷ);
+các ca mới còn lại (C5 món trùng, F7 số thực âm, H2b in chưa duyệt, H3c tồn thành phẩm đọc GET /ton) khoá code đã đúng — đột biến bắt (dot_bien.py).
+Vòng sửa 2 — bài mới trên server/ TRƯỚC vòng sửa 2 (903ea8f): 84 đạt · 2 hỏng (E5 hanLo 1.5 ngày, E7 days_use lẻ từ SX);
+các ca mới còn lại (A0d lệch âm, E0d hạn null / '' / 1, F3 + F3c nhóm 0 %, F7b số thực 0) khoá code đã đúng hoặc luồng "phải KHÔNG bị chặn" — đột biến bắt.
+Vòng sửa 3 — bài mới trên server/ TRƯỚC vòng sửa 3 (db7ef39): 85 đạt · 1 hỏng (E0d: 0 / 3651 / true / '0x10' / 1e9 được nhận);
+E7 thêm ca days_use lẻ ở đường v_recipes (CT3) — khoá code vòng 2 đã vá, đột biến VS-han-recipe-le bắt.
+Trên code đã vá (HEAD): thu_KHO2a 86 đạt · 0 hỏng · thu_KHO1 111 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_KHO2a.js: 86
+SỐ CA cong_cu/thu_KHO1.js: 111

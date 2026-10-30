@@ -18,6 +18,8 @@ import Settings from './pages/Settings';
 import DiscountCodes from './pages/DiscountCodes';
 import InvoiceSettings from './pages/InvoiceSettings';
 import Kho from './pages/Kho';
+import QuanLy from './pages/QuanLy/QuanLy';
+import ThanhLoi from './pages/QuanLy/ThanhLoi';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -56,9 +58,9 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<TrangChu />} />
-        <Route path="customers" element={<Customers />} />
+        <Route path="customers" element={<ThanhLoi man="customers"><Customers /></ThanhLoi>} />
         <Route path="balance" element={<Balance />} />
-        <Route path="orders" element={<Orders />} />
+        <Route path="orders" element={<ThanhLoi man="orders"><Orders /></ThanhLoi>} />
         <Route path="registrations" element={<Registrations />} />
         <Route path="sync" element={<Navigate to="/registrations" replace />} />
         <Route path="reports" element={<Reports />} />
@@ -67,6 +69,8 @@ function AppRoutes() {
         <Route path="settings" element={<Settings />} />
         <Route path="invoice-settings" element={<InvoiceSettings />} />
         <Route path="kho" element={<Kho />} />
+        <Route path="hom-nay" element={<Reports />} />   {/* BH-2: "Hôm nay" = Báo cáo / Đối soát (mặc định đã là ngày hôm nay) */}
+        <Route path="quan-ly" element={<QuanLy />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

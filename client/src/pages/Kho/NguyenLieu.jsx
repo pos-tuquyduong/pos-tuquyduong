@@ -4,9 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
-
-const boDau = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-const tien = (x) => (x == null ? '—' : Number(x).toLocaleString('vi-VN') + 'đ');
+import { boDau, tien } from './chung';
 const THIEU = { gia: ['giá', (n) => n.gia_nhap === null || n.gia_nhap === 0], han: ['hạn dùng', (n) => n.han_ngay == null], toi_thieu: ['tồn tối thiểu', (n) => n.ton_toi_thieu == null] };
 // MỘT vị từ cho cả số trên nút lẫn danh sách khi bấm (nguyên liệu ngừng dùng không tính). Nhân viên không nhận gia_nhap (undefined) → không đếm.
 const thieu_ = (ma, n) => !!n.dang_dung && THIEU[ma][1](n);
