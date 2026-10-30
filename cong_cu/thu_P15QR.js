@@ -144,8 +144,10 @@ async function main() {
   await chay('A6', async () => {
     const s = sdtMoi();
     await goi('POST', '/kh/dang-nhap/xin-ma', { sdt: s }, null);
-    const r = await goi('POST', '/kh/dang-nhap/xac-minh', { sdt: s, ma: guiMa.layMaGiaCuoi().ma, ten: 'Khách App' }, null);
-    k('A6 khách mới qua App (xac-minh) → mã thật', r.status === 200 && DANG_MOI.test(await qrCua(s)), `${moTa(r)} · ${await qrCua(s)}`);
+    const r = await goi('POST', '/kh/dang-nhap/xac-minh', { sdt: s, ma: guiMa.layMaGiaCuoi().ma, ten: 'Khách App', xung_ho: 'chi' }, null);
+    const xh = ((await db.queryOne('SELECT * FROM pos_customers WHERE phone = ?', [s])) || {}).xung_ho;
+    k('A6 khách mới qua App (xac-minh, có xung_ho — KH-API-3) → mã thật, lưu đúng xung_ho', r.status === 200 && DANG_MOI.test(await qrCua(s)) && xh === 'chi',
+      `${moTa(r)} · ${await qrCua(s)} · xung_ho ${xh}`);
   });
   await chay('A7', async () => {
     ghi = []; const goc7 = sdtMoi(); await taoKhach(goc7); const mau = ghi; ghi = null;
