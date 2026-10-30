@@ -1,7 +1,7 @@
 /**
  * KH-API-1 — cổng App KH, gắn MỘT chỗ tại /api/kh (index.js máy chủ). Luật:
  * - Thiếu / sai cấu hình KH_JWT_SECRET → mọi đường 503 (canCauHinhKhach đứng đầu router).
- * - Ngoài hai đường đăng nhập, mọi đường cần token KHÁCH (xacThucKhach). SĐT LUÔN là req.khach.phone — sdt / phone /
+ * - Đường đăng nhập + đọc chung (hang, gio-vang, gio-hoat-dong, menu — KH-API-3: token không bắt buộc) đứng TRƯỚC xacThucKhach; còn lại cần token KHÁCH. SĐT LUÔN là req.khach.phone — sdt / phone /
  *   customer_phone trong tham số hay thân yêu cầu bị bỏ qua (F3).
  * - Tiền / điểm / voucher / mã bill đi qua ĐÚNG hàm quầy đang dùng (diemKhach.js, signup-codes.js, products.js).
  * - KH-API-2: giá hạng qua giaHang.js (cùng hàm orders.js), giờ vàng qua readFlashState, giờ hoạt động qua gioHoatDong.js.
@@ -9,8 +9,8 @@
  */
 const express = require('express');
 const { query, queryOne, run } = require('../../database');
-const { canCauHinhKhach, xacThucKhach, kyTokenKhach } = require('../../middleware/khachAuth');
-const { chuanSdt, chuanTen, xinMaGui, giuLuotNhanMa, xacMinhMa } = require('../../utils/maKhach');
+const { canCauHinhKhach, xacThucKhach, tuyChonKhach, kyTokenKhach, hanTokenKhach } = require('../../middleware/khachAuth');
+const { chuanSdt, chuanTen, chuanXungHo, chuanDiaChi, giuLuotMenu, giuLuotGiaHan, xinMaGui, giuLuotNhanMa, xacMinhMa } = require('../../utils/maKhach');
 const { layDiemKhach, layVoucherKhach, layMaKhachMoi } = require('../../utils/diemKhach');
 const { getNow, sinhQrKhongTrung, QR_TIEN_TO } = require('../../utils/helpers');
 const { nhanMaUuDai, nhanDiemMaBill } = require('../signup-codes');
@@ -26,7 +26,8 @@ const { docCaiDat, khungHangNgay, traGioHoatDong } = require('../../utils/gioHoa
 const router = express.Router();
 const SO_DON_MOI_TRANG = 20;
 
-const hoSo = (kh) => ({ sdt: kh.phone, ten: kh.name, ngay_tao: kh.created_at });
+// Danh sách TRẮNG hồ sơ — kh là cả hàng pos_customers (SELECT *). dia_chi = cột address dùng chung với quầy (chủ quán 30.10).
+const hoSo = (kh) => ({ sdt: kh.phone, ten: kh.name, ngay_tao: kh.created_at, xung_ho: kh.xung_ho ?? null, dia_chi: kh.address ?? null });
 const tomDon = (o) => ({
   ma: o.code, ngay: o.created_at, tong: o.total, da_tra: Number(o.total || 0) - Number(o.debt_amount || 0),
   trang_thai: o.status, thanh_toan: o.payment_status,
@@ -75,9 +76,9 @@ router.post('/dang-nhap/xac-minh', async (req, res) => {
     const b = req.body || {};
     const sdt = chuanSdt(b.sdt);
     if (!sdt) return bao(res, 'SDT_KHONG_HOP_LE');
-    const kq = await xacMinhMa(sdt, String(b.ma ?? ''), b.ten);
+    const kq = await xacMinhMa(sdt, String(b.ma ?? ''), { ten: b.ten, xungHo: b.xung_ho, diaChi: b.dia_chi });
     if (kq.loi) return bao(res, kq.loi);
-    const kh = await queryOne('SELECT id, phone, name, created_at FROM pos_customers WHERE id = ?', [kq.khachId]);
+    const kh = await queryOne('SELECT * FROM pos_customers WHERE id = ?', [kq.khachId]);
     res.json({ success: true, token: kyTokenKhach(kh.id), khach: hoSo(kh) });
   } catch (err) {
     loiMayChu(res, err, 'kh xac-minh');
@@ -120,6 +121,20 @@ router.get('/gio-hoat-dong', async (req, res) => {
   }
 });
 
+// KH-API-3: token KHÔNG bắt buộc (khách chưa đăng nhập vẫn xem menu + giá). Gửi token mà sai → 401 như mọi cửa. Không token → giới hạn
+// MENU_IP_PHUT lượt / IP / phút (bộ nhớ); có token không đếm.
+router.get('/menu', tuyChonKhach, async (req, res) => {
+  try {
+    if (!req.khach && !giuLuotMenu(req.ip || '')) return bao(res, 'QUA_NHIEU_LAN');
+    const [mon, dsHang, the] = await Promise.all([layMenuQuay(), hangDangBat(), req.khach && theCuaKhach(req.khach.phone)]);
+    // Hạng đã tắt mà khách còn thẻ: quầy vẫn giảm (orders.js không lọc is_active) → giá hạng đó cũng hiện cho chính khách này.
+    if (the && !dsHang.some((h) => h.id === the.h.id)) dsHang.push(the.h);
+    res.json({ success: true, data: mon.filter((p) => p.sellable).map((p) => monKhach(p, dsHang)) });
+  } catch (err) {
+    loiMayChu(res, err, 'kh menu');
+  }
+});
+
 // ── Từ đây: token khách bắt buộc ──────────────────────────────────────────
 router.use(xacThucKhach);
 
@@ -144,14 +159,34 @@ router.get('/toi', async (req, res) => {
   }
 });
 
+// KH-API-3: sửa ten / xung_ho / dia_chi — trường nào có khoá trong thân thì sửa, ít nhất một. Cùng hàm kiểm với đăng ký (maKhach.js).
+// ten / xung_ho gửi mà rỗng → lỗi (không xoá được); dia_chi rỗng / null → xoá. MỘT câu UPDATE chỉ các cột được gửi.
 router.put('/toi', async (req, res) => {
   try {
-    const ten = chuanTen((req.body || {}).ten);
-    if (!ten) return bao(res, 'TEN_KHONG_HOP_LE');
-    await run('UPDATE pos_customers SET name = ?, updated_at = ? WHERE id = ?', [ten, getNow(), req.khach.id]);
-    res.json({ success: true, khach: hoSo({ ...req.khach, name: ten }) });
+    const b = req.body || {};
+    const doi = {};
+    if ('ten' in b) { doi.name = chuanTen(b.ten); if (!doi.name) return bao(res, 'TEN_KHONG_HOP_LE'); }
+    if ('xung_ho' in b) { doi.xung_ho = chuanXungHo(b.xung_ho); if (!doi.xung_ho || doi.xung_ho.loi) return bao(res, 'XUNG_HO_SAI'); }
+    if ('dia_chi' in b) { doi.address = chuanDiaChi(b.dia_chi); if (doi.address && doi.address.loi) return bao(res, doi.address.loi); }
+    const cot = Object.keys(doi);
+    if (!cot.length) return bao(res, 'YEU_CAU_KHONG_HOP_LE');
+    await run(`UPDATE pos_customers SET ${cot.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE id = ?`,
+      [...Object.values(doi), getNow(), req.khach.id]);
+    res.json({ success: true, khach: hoSo({ ...req.khach, ...doi }) });
   } catch (err) {
-    loiMayChu(res, err, 'kh sua ten');
+    loiMayChu(res, err, 'kh sua ho so');
+  }
+});
+
+// KH-API-3 (D): token CÒN HẠN → token mới 30 ngày. Token cũ KHÔNG thu hồi (JWT không lưu ở máy chủ; sổ phiên là KH-TACH-1) — tự hết
+// đúng hạn cũ. GIA_HAN_KHACH_GIO lượt / khách / giờ (bộ nhớ, KHÔNG ghi pos_kh_lan_thu — bảng đó là trần nhận mã bill / nhận điểm).
+router.post('/gia-han', (req, res) => {
+  try {
+    if (!giuLuotGiaHan(req.khach.id)) return bao(res, 'QUA_NHIEU_LAN');
+    const token = kyTokenKhach(req.khach.id);
+    res.json({ success: true, token, het_han: hanTokenKhach(token) });
+  } catch (err) {
+    loiMayChu(res, err, 'kh gia-han');
   }
 });
 
@@ -197,17 +232,6 @@ router.get('/don/:ma', async (req, res) => {
     })) } });
   } catch (err) {
     loiMayChu(res, err, 'kh chi tiet don');
-  }
-});
-
-router.get('/menu', async (req, res) => {
-  try {
-    const [mon, dsHang, the] = await Promise.all([layMenuQuay(), hangDangBat(), theCuaKhach(req.khach.phone)]);
-    // Hạng đã tắt mà khách còn thẻ: quầy vẫn giảm (orders.js không lọc is_active) → giá hạng đó cũng hiện cho chính khách này.
-    if (the && !dsHang.some((h) => h.id === the.h.id)) dsHang.push(the.h);
-    res.json({ success: true, data: mon.filter((p) => p.sellable).map((p) => monKhach(p, dsHang)) });
-  } catch (err) {
-    loiMayChu(res, err, 'kh menu');
   }
 });
 
