@@ -308,3 +308,12 @@ HEAD ĐÃ KIỂM: 8371c25
 
 Chat soát (30.10): đọc 3 lần soát độc lập + vòng sửa 3 (chỉ lỗi NHẸ, đã sửa đủ), nghiệm thu 10/10. Q8: chat đã bỏ mục "Bài thử cũ sửa" (phiếu 1a0b55d, LUAT §6.8) — thu_KHO1 là bài sửa thường. Phát hiện (sửa phiếu chờ duyệt = chủ quán duyệt luôn; phiếu huỷ không in): giữ, chủ quán xác nhận khi thử tay; phần hạn nguyên liệu → KHO-2b. Máy mây kẹt bản chụp cũ nên chat gộp: main 23d2369, đụng settings.js (giữ cả ba phép), dist dựng lại; npm test --day-du xanh trên bản gộp.
 HEAD ĐÃ KIỂM: cfcadf3
+
+
+## Đột biến vòng sửa 2 (chat ghi tên 30.10 — cổng A17; đều nằm trong 57/57 BẮT ở kiểm cuối)
+- `VS-lech-0-tinh`, `VS-lech-0-doc` — lệch cho phép = 0 % vẫn là ngưỡng (không coi là "không cài"), cả lúc tính lẫn lúc đọc → bắt ở F3.
+- `VS-lech-am-nhan` — lệch cho phép âm bị từ chối → A0d.
+- `VS-han-null-chan` — ô hạn trống (null / '') không bị chặn, chỉ chặn giá trị sai → E0d.
+- `VS-han-1-ngay` — hạn 1 ngày là hợp lệ (trần dưới) → E0d.
+- `VS-so-thuc-0-chan` — số thực 0 hợp lệ ở kết quả → F7b.
+- `VS-han-sx-le`, `VS-hanlo-cat-le` — hạn nhập SX / hạn lô qua `soNgayNguyen` (số lẻ không thành hạn) → E7, E5.
