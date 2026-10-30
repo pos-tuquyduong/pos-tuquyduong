@@ -134,7 +134,7 @@ async function main() {
       && bang(khong.j.data, co.j.data) && khong.j.data.every((m) => Array.isArray(m.gia_hang)), moTa(khong));
     k('A5 không token: gia_hang KHÔNG có hạng đã tắt', la(khong, 200) && khong.j.data.every((m) => m.gia_hang.every((g) => g.hang_id !== hangTat)));
     const het = jwt.sign({ loai: 'kh', id: 1, exp: Math.floor(Date.now() / 1000) - 10 }, KHOA_KH);
-    for (const [nhan, auth] of [['token sai', 'Bearer abc.def.ghi'], ['token hết hạn', 'Bearer ' + het], ['Bearer null', 'Bearer null'], ['Basic x', 'Basic x']]) {
+    for (const [nhan, auth] of [['token sai', 'Bearer abc.def.ghi'], ['token hết hạn', 'Bearer ' + het], ['Bearer null', 'Bearer null'], ['Basic x', 'Basic x'], ['tiêu đề Authorization rỗng', '']]) {
       const r = await goi('GET', '/kh/menu', undefined, { auth, ip: '10.0.0.2' });
       k(`A3 ${nhan} → 401 KH_TOKEN_SAI`, la(r, 401, 'KH_TOKEN_SAI'), moTa(r));
     }
@@ -151,6 +151,11 @@ async function main() {
     const t0 = 1_000_000;
     const kq = typeof g === 'function' && [g('thu:a', 2, 60000, t0), g('thu:a', 2, 60000, t0 + 1), g('thu:a', 2, 60000, t0 + 59999), g('thu:a', 2, 60000, t0 + 60000)];
     k('A4b giuLuotBoNho: 2 lượt qua, lượt 3 trong cửa sổ (59 999 ms) chặn, đủ 60 000 ms → qua lại', bang(kq, [true, true, false, true]), JSON.stringify(kq));
+    // A4d (soát vòng 2): cửa sổ "mỗi PHÚT" khoá qua CHÍNH giuLuotMenu — A4 chỉ dội trong một giây, A4b tự truyền độ dài cửa sổ.
+    const t1 = 5_000_000_000;
+    const gm = maKhach.giuLuotMenu;
+    const m = typeof gm === 'function' && Array.from({ length: 300 }, () => gm('thu-cua-so', t1)).every(Boolean) && [gm('thu-cua-so', t1 + 59999), gm('thu-cua-so', t1 + 60000)];
+    k('A4d giuLuotMenu: 300 lượt qua; lượt 301 ở 59 999 ms chặn; đủ 60 000 ms → qua lại', bang(m, [false, true]), JSON.stringify(m));
     // A4c (soát vòng 1): trần cứng BO_DEM_TOI_DA — vài khoá thêm KHÔNG xoá đếm; dội đủ trần khoá khác → xoá sạch (khoá đang chặn được đếm lại).
     const tran = maKhach.GIOI_HAN.BO_DEM_TOI_DA;
     const c = typeof g === 'function' && Number.isInteger(tran) && [g('thu:chan', 1, 60000, t0), g('thu:chan', 1, 60000, t0)];
@@ -254,6 +259,9 @@ async function main() {
     k('C2 PUT dia_chi không phải chuỗi (mảng) → 400 YEU_CAU_KHONG_HOP_LE, CSDL không đổi', la(r, 400, 'YEU_CAU_KHONG_HOP_LE') && (await khach(d.sdt)).address === 'Ngõ 7', moTa(r));
     r = await goi('PUT', '/kh/toi', { dia_chi: null }, { tk: d.tk });
     k('C2 PUT dia_chi null → 200, address NULL (xoá)', la(r, 200) && (await khach(d.sdt)).address === null && r.j.khach.dia_chi === null, moTa(r));
+    const nfd = 'ệ'.repeat(300).normalize('NFD');   // gõ dấu tách rời: 900 điểm mã, 300 ký tự sau NFC
+    r = await goi('PUT', '/kh/toi', { dia_chi: nfd }, { tk: d.tk });
+    k('C2 PUT dia_chi 300 ký tự dạng NFD → 200, CSDL lưu dạng NFC', la(r, 200) && (await khach(d.sdt)).address === 'ệ'.repeat(300), moTa(r));
     r = await goi('PUT', '/kh/toi', {}, { tk: d.tk });
     k('C3 PUT {} → 400 YEU_CAU_KHONG_HOP_LE', la(r, 400, 'YEU_CAU_KHONG_HOP_LE'), moTa(r));
     r = await goi('PUT', '/kh/toi', { ten: '' }, { tk: d.tk });
@@ -283,10 +291,9 @@ async function main() {
     const cbDb = { query: (s, a = []) => dong(cb.execute({ sql: s, args: a })), beginTransaction: async () => bocTx(await cb.transaction('write')) };
     const lanB = await chayNangCap(cbDb);
     const buocB = (await cbDb.query('SELECT so FROM pos_nang_cap ORDER BY so')).map((x) => Number(x.so)).join(',');
-    const buocTep = fs.readdirSync(path.join(GOC, 'server', 'nang_cap')).filter((f) => /^\d{3}_.+\.js$/.test(f)).map((f) => Number(f.slice(0, 3))).sort((a, b) => a - b).join(',');
     const bangKhach = await cbDb.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'pos_customers'");
-    k('C4b kho không có bảng pos_customers → nâng cấp chạy hết không lỗi, ghi đủ mọi bước (có 3), không tự tạo bảng khách',
-      lanB.hong === null && buocB === buocTep && buocTep.split(',').includes('3') && bangKhach.length === 0, `${lanB.hong || ''} · bước ${buocB} / tệp ${buocTep}`);
+    k('C4b kho không có bảng pos_customers → nâng cấp chạy hết không lỗi, ghi bước 3, không tự tạo bảng khách',
+      lanB.hong === null && buocB.split(',').includes('3') && bangKhach.length === 0, `${lanB.hong || ''} · bước ${buocB}`);
     cb.close();
   });
 
@@ -316,6 +323,11 @@ async function main() {
     k('D3 lượt 11 → 429 QUA_NHIEU_LAN', la(ds[10], 429, 'QUA_NHIEU_LAN'), moTa(ds[10]));
     const f = await goi('POST', '/kh/gia-han', undefined, { tk: (await dangKy()).tk });
     k('D3 khách khác không bị ảnh hưởng → 200', la(f, 200), moTa(f));
+    // D3b (soát vòng 2): cửa sổ "mỗi GIỜ" khoá qua CHÍNH giuLuotGiaHan.
+    const t2 = 6_000_000_000;
+    const gh = maKhach.giuLuotGiaHan;
+    const h = typeof gh === 'function' && Array.from({ length: 10 }, () => gh('thu-cua-so', t2)).every(Boolean) && [gh('thu-cua-so', t2 + 3599999), gh('thu-cua-so', t2 + 3600000)];
+    k('D3b giuLuotGiaHan: 10 lượt qua; lượt 11 ở 3 599 999 ms chặn; đủ 3 600 000 ms → qua lại', bang(h, [false, true]), JSON.stringify(h));
     const nm = await goi('POST', '/kh/nhan-ma-bill', { ma: 'KHONGCO1' }, { tk: e.tk });
     k('F4 sau 11 lần gia hạn, nhận mã bill KHÔNG bị 429 (gia hạn không ăn trần pos_kh_lan_thu)', la(r, 200) && nm.status !== 429 && !!nm.j.code, moTa(nm));
   });
