@@ -244,7 +244,7 @@ async function main() {
     const sp1 = { product_id: 1, sx_product_type: 'a', sx_product_id: 1, unit_price: 100000, quantity: 1 };
     const g = typeof m.tinhGio === 'function' ? m.tinhGio([sp1], { khachGiam: { loai: 'percent', gia_tri: 10 } }) : {};
     const d = typeof m.dungDonHang === 'function' && typeof m.tinhGio === 'function'
-      ? m.dungDonHang({ gio: [sp1], tamTinh: m.tinhGio([sp1], {}), cach: 'cash', khach: { phone: '0900000000', name: 'A', discount_type: 'percent', discount_value: 10 }, khachDua: 100000 }) : {};
+      ? m.dungDonHang({ gio: [sp1], tamTinh: g, cach: 'cash', khach: { phone: '0900000000', name: 'A', discount_type: 'percent', discount_value: 10 }, khachDua: 100000 }) : {};
     k('D2 tinhGio bỏ qua khachGiam cũ (tổng 100.000); dungDonHang khách hồ sơ 10 % → gửi discount_type null, discount_value 0',
       g.tong === 100000 && d.discount_type === null && d.discount_value === 0, `tổng ${g.tong} · ${d.discount_type}/${d.discount_value}`);
   });
