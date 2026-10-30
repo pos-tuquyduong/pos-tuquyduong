@@ -82,3 +82,7 @@ Không đổi: gọn hoá hoanTatRef/anhQr (đúng chức năng, ghi nhận), t�
 GIT (lúc báo cáo): 93b7f76 khôi phục thu_BH1.js như gốc · b141697 màn Bán hàng mới đợt 2
 
 HEAD ĐÃ KIỂM: 93b7f76
+
+
+Chat soát (30.10): đọc báo cáo + vòng sửa 1, đối chiếu luồng thu với máy chủ phiên (tên trường, cách trả, chốt, hỏi phiên khi chốt hỏng) — khớp. Câu hỏi chiết khấu riêng: chủ quán đã chốt bỏ (KHACH-CK-1, sổ v47) — khoá ở màn mới giữ tới khi xong. dungDonHang + thu_BH1 I1–I11: xoá ở DONDEP-v1. Gộp main 7a3930f: đụng mảng bài (thêm thu_BH2), dist dựng lại, ca G1 chỉ xét commit BH-2; npm test --day-du xanh trên bản gộp.
+HEAD ĐÃ KIỂM: 3ac3853
