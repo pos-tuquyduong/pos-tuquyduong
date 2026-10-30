@@ -33,7 +33,9 @@ async function xacThucKhach(req, res, next) {
   try { tt = jwt.verify(h.slice(7), khoaKhach()); } catch { return tuChoi(); }
   if (!tt || tt.loai !== 'kh') return tuChoi();
   try {
-    const khach = await queryOne('SELECT id, phone, name, created_at FROM pos_customers WHERE id = ?', [tt.id]);
+    // SELECT * (KH-API-3): không nêu tên cột của bước nâng cấp (xung_ho) — bước đó chưa chạy thì chỉ thiếu trường, không 500 mọi cửa.
+    // Ra ngoài chỉ qua danh sách trắng hoSo (routes/kh/index.js).
+    const khach = await queryOne('SELECT * FROM pos_customers WHERE id = ?', [tt.id]);
     if (!khach) return tuChoi();
     req.khach = khach;
     next();
@@ -43,4 +45,15 @@ async function xacThucKhach(req, res, next) {
   }
 }
 
-module.exports = { khoaKhach, canCauHinhKhach, kyTokenKhach, xacThucKhach };
+/** KH-API-3 — token KHÔNG bắt buộc: không gửi tiêu đề Authorization → req.khach = null; CÓ gửi → kiểm y như xacThucKhach (sai → 401). */
+function tuyChonKhach(req, res, next) {
+  if (req.headers.authorization === undefined) { req.khach = null; return next(); }
+  return xacThucKhach(req, res, next);
+}
+
+/** Giờ hết hạn của token khách, giờ VN dạng YYYY-MM-DDTHH:mm:ss — cùng cách định dạng với getNow (utils/helpers.js). */
+function hanTokenKhach(token) {
+  return new Date(jwt.decode(token).exp * 1000).toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(' ', 'T');
+}
+
+module.exports = { khoaKhach, canCauHinhKhach, kyTokenKhach, xacThucKhach, tuyChonKhach, hanTokenKhach };
