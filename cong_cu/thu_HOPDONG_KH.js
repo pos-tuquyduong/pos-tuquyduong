@@ -197,7 +197,12 @@ async function main() {
     const thieu = (c.tra || []).filter((d) => !coDuong(r.j, d.split('.')));
     k(`${ten(c)} → 200, đủ ${(c.tra || []).length} trường`, r.status === 200 && r.j.success === true && thieu.length === 0,
       `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}${thieu.length ? ' · thiếu ' + thieu.join(', ') : ''}`);
-    if (ten(c) === 'POST /dang-nhap/xac-minh') { tk = r.j.token || null; if (tk) await chuanBi(); }
+    if (ten(c) === 'POST /dang-nhap/xac-minh') {
+      // v3 (KH-API-3): khách MỚI đăng ký với xưng hô + địa chỉ → câu trả lời mang ĐÚNG giá trị đã gửi (không chỉ có tên trường).
+      k('xác minh khách mẫu mới: khach.xung_ho / khach.dia_chi = đúng giá trị gửi', r.j.khach?.xung_ho === 'chi' && r.j.khach?.dia_chi === 'Số 1 Phố Mẫu',
+        JSON.stringify(r.j.khach || null));
+      tk = r.j.token || null; if (tk) await chuanBi();
+    }
     const kt = await goi(c.pt, url, than);
     if (c.token === 'tuy_chon') {
       const thieuK = (c.tra || []).filter((d) => !coDuong(kt.j, d.split('.')));
