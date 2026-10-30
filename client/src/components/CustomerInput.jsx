@@ -276,14 +276,6 @@ export default function CustomerInput({ onCustomerChange }) {
               </span>
             )}
             
-            {customerData.discount_value > 0 && (
-              <span style={{ fontSize: '0.85rem', color: '#2563eb' }}>
-                🏷️ CK: {customerData.discount_type === 'percent' 
-                  ? `${customerData.discount_value}%` 
-                  : `${formatMoney(customerData.discount_value)}đ`}
-              </span>
-            )}
-            
             {customerData.source === 'sx' && (
               <span style={{ fontSize: '0.8rem', color: '#666' }}>
                 (Đã sync SX)
