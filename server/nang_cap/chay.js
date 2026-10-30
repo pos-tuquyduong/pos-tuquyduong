@@ -5,6 +5,7 @@
  * khởi động cùng lúc thì máy sau đụng khoá, huỷ cả giao dịch, bỏ qua bước — không chạy đôi, không nửa chừng. Bước hỏng → rollback,
  * DỪNG (không chạy bước sau), trả { hong: '<NNN_ten>: <lỗi>' }; database.js giữ lại để đường kho trả 503 — quầy vẫn mở.
  * Bước chỉ THÊM (bảng / cột / chỉ mục) và viết lặp lại được; thêm cột vào bảng có sẵn PHẢI qua themCot (tự chép bảng sao lưu trước).
+ * Bước đổi DỮ LIỆU (từ 004) chép bảng sang _sao_luu_<NNN>_<bang> trước khi UPDATE, cùng khuôn themCot; không DELETE / DROP.
  * Nhận hàm giao dịch từ database.js (không require nó — tránh vòng nạp; bài thử chạy được trên thư mục bước giả).
  */
 const fs = require('fs');

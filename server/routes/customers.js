@@ -499,15 +499,16 @@ router.put('/:id', authenticate, async (req, res) => {
 
 /**
  * PUT /api/pos/customers/:id/discount
- * Cập nhật chiết khấu cho khách hàng
+ * KHACH-CK-1: chỉ còn ghi "Ghi chú khách" (cột discount_note, in trên hoá đơn). Chiết khấu riêng từng khách đã bỏ (chủ quán 29.10)
+ * → mức > 0 trả 400 CHIET_KHAU_RIENG_DA_BO (cùng câu, cùng mã với customers-v2.js); mức luôn ghi 0, loại về mặc định 'percent'.
  */
-// POS-ANTOAN-v1: chiet khau rieng cua khach la uu dai thuong mai, phai co
-// quyen moi dat duoc. Truoc day bat ky nhan vien nao cung dat duoc — va vi
-// POS-CONGDON-v1 lam may chu TU TRA con so nay khi ban, dat 90% o day nghia
-// la ban giam 90% ma khong qua bat ky cong nao.
+// POS-ANTOAN-v1: giữ quyền manage_settings như cũ.
 router.put('/:id/discount', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
-    const { discount_type, discount_value, discount_note } = req.body;
+    const { discount_value, discount_note } = req.body;
+    if (Number(discount_value) > 0) {
+      return res.status(400).json({ error: 'Đã bỏ chiết khấu riêng từng khách — dùng hạng thành viên hoặc mã giảm', code: 'CHIET_KHAU_RIENG_DA_BO' });
+    }
 
     const customer = await queryOne(
       'SELECT * FROM pos_customers WHERE id = ?',
@@ -518,25 +519,14 @@ router.put('/:id/discount', authenticate, checkPermission('manage_settings'), as
       return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
     }
 
-    // Validate
-    if (discount_type && !['percent', 'fixed'].includes(discount_type)) {
-      return res.status(400).json({ error: 'Loại chiết khấu không hợp lệ' });
-    }
-
-    if (discount_type === 'percent' && discount_value > 100) {
-      return res.status(400).json({ error: 'Phần trăm chiết khấu không được vượt quá 100%' });
-    }
-
     await run(`
       UPDATE pos_customers SET
-        discount_type = ?,
-        discount_value = ?,
+        discount_type = 'percent',
+        discount_value = 0,
         discount_note = ?,
         updated_at = ?
       WHERE id = ?
     `, [
-      discount_type || 'percent',
-      discount_value || 0,
       discount_note || null,
       getNow(),
       req.params.id
@@ -550,7 +540,7 @@ router.put('/:id/discount', authenticate, checkPermission('manage_settings'), as
     res.json({ 
       success: true, 
       customer: updated,
-      message: 'Đã cập nhật chiết khấu cho khách hàng'
+      message: 'Đã cập nhật ghi chú khách'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

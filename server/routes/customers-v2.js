@@ -337,7 +337,8 @@ router.put("/:phone/address", authenticate, checkPermission('manage_users'), asy
 
 /**
  * PUT /api/pos/v2/customers/:phone/discount
- * Cập nhật chiết khấu + ghi chú cho khách
+ * KHACH-CK-1: chỉ còn ghi "Ghi chú khách" (cột discount_note, in trên hoá đơn) — đường màn Khách hàng dùng. Chiết khấu riêng từng
+ * khách đã bỏ (chủ quán 29.10) → mức > 0 trả 400 CHIET_KHAU_RIENG_DA_BO (cùng câu, cùng mã với customers.js); mức luôn ghi 0.
  */
 router.put("/:phone/discount", authenticate, checkPermission('manage_users'), async (req, res) => {
   try {
@@ -346,44 +347,33 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
       return res.status(400).json({ error: "SĐT không hợp lệ" });
     }
 
-    const { discount_type, discount_value, discount_note } = req.body;
-    
-    // Validate discount
-    if (discount_type && !['percent', 'fixed'].includes(discount_type)) {
-      return res.status(400).json({ error: "Loại chiết khấu không hợp lệ (percent/fixed)" });
-    }
-    
-    const value = parseFloat(discount_value) || 0;
-    if (discount_type === 'percent' && (value < 0 || value > 100)) {
-      return res.status(400).json({ error: "Phần trăm phải từ 0-100" });
-    }
-    if (discount_type === 'fixed' && value < 0) {
-      return res.status(400).json({ error: "Số tiền không được âm" });
+    const { discount_value, discount_note } = req.body;
+    if (Number(discount_value) > 0) {
+      return res.status(400).json({ error: 'Đã bỏ chiết khấu riêng từng khách — dùng hạng thành viên hoặc mã giảm', code: 'CHIET_KHAU_RIENG_DA_BO' });
     }
 
     // Kiểm tra khách có tồn tại trong pos_customers không
     const existing = await queryOne("SELECT id FROM pos_customers WHERE phone = ?", [phone]);
     
     if (existing) {
-      // Update
       await run(`
         UPDATE pos_customers 
-        SET discount_type = ?, discount_value = ?, discount_note = ?, updated_at = CURRENT_TIMESTAMP 
+        SET discount_type = 'percent', discount_value = 0, discount_note = ?, updated_at = ?
         WHERE phone = ?
-      `, [discount_type || null, value, discount_note || null, phone]);
+      `, [discount_note || null, getNow(), phone]);
     } else {
       // Insert mới (khách từ SX hoặc chưa có trong pos_customers)
       await run(`
         INSERT INTO pos_customers (phone, name, discount_type, discount_value, discount_note, created_at) 
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [phone, 'Khách hàng', discount_type || null, value, discount_note || null]);
+        VALUES (?, ?, 'percent', 0, ?, ?)
+      `, [phone, 'Khách hàng', discount_note || null, getNow()]);
     }
 
     res.json({ 
       success: true, 
       phone,
-      discount_type: discount_type || null,
-      discount_value: value,
+      discount_type: 'percent',
+      discount_value: 0,
       discount_note: discount_note || null
     });
   } catch (err) {
