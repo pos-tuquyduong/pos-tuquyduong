@@ -34,6 +34,8 @@ DOT_BIEN = [
   ('BV-BO-DEM-TRAN', 'api', [(M, '  if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();\n', '', 1)], r'✗ A4c '),
   ('VS-BO-DEM-XOA-SOM', 'api', [(M, 'if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();', 'if (boDem.size >= 5) boDem.clear();', 1)], r'✗ A4c '),
   ('VS-TRAN-LECH', 'api', [(M, 'if (o.dem >= tran) return false;', 'if (o.dem > tran) return false;', 1)], r'✗ A4'),
+  ('VS-MENU-CUA-SO-GIO', 'api', [(M, 'MENU_CUA_SO_MS: 60 * 1000,', 'MENU_CUA_SO_MS: 3600 * 1000,', 1)], r'✗ A4d '),
+  ('VS-AUTH-RONG-LA-KHONG-TOKEN', 'api', [(A, 'if (req.headers.authorization === undefined)', 'if (!req.headers.authorization)', 1)], r'✗ A3 tiêu đề Authorization rỗng'),
   # ── B: đăng ký 3 bước ──
   ('BV-XUNG-HO-CAN-TEN', 'api', [(M, 'if (!tenMoi || !xhMoi) {', 'if (!tenMoi) {', 1)], r'✗ B1 '),
   ('VS-XUNG-HO-LA', 'api', [(M, "return XUNG_HO.includes(v) ? v : { loi: 'XUNG_HO_SAI' };", 'return v;', 1)], r'✗ (B2|C2) '),
@@ -56,10 +58,12 @@ DOT_BIEN = [
   ('VS-PUT-DIA-CHI-KHONG-XOA', 'api', [(M, '  return t || null;\n', '  return t;\n', 1)], r'✗ C2 PUT dia_chi ""'),
   ('VS-PUT-XUNG-HO-RONG-XOA', 'api', [(K, 'if (!doi.xung_ho || doi.xung_ho.loi)', 'if (doi.xung_ho && doi.xung_ho.loi)', 1)], r'✗ C2 PUT xung_ho ""'),
   ('BV-HOSO-XUNG-HO', 'api', [(K, 'ngay_tao: kh.created_at, xung_ho: kh.xung_ho ?? null, dia_chi: kh.address ?? null });', 'ngay_tao: kh.created_at });', 1)], r'✗ C1 '),
+  ('VS-DIA-CHI-KHONG-NFC', 'api', [(M, "const t = v.normalize('NFC').trim();", 'const t = v.trim();', 1)], r'✗ C2 PUT dia_chi 300 ký tự dạng NFD'),
   ('BV-NANG-CAP-003', 'api', [(N, "  await themCot('pos_customers', 'xung_ho TEXT');\n", '', 1)], r'✗ C4 '),
   ('BV-003-KIEM-BANG', 'api', [(N, "  if (!(await tx.queryOne(\"SELECT 1 AS co FROM sqlite_master WHERE type = 'table' AND name = 'pos_customers'\"))) return;\n", '', 1)], r'✗ C4b '),
   ('VS-003-SAI-TEN-BANG', 'api', [(N, "AND name = 'pos_customers'\"", "AND name = 'pos_customer'\"", 1)], r'✗ C4 kho mới'),
   # ── D: tự gia hạn ──
+  ('VS-GIA-HAN-CUA-SO-PHUT', 'api', [(M, 'GIA_HAN_CUA_SO_MS: 3600 * 1000,', 'GIA_HAN_CUA_SO_MS: 60 * 1000,', 1)], r'✗ D3b '),
   ('BV-GIA-HAN-TRAN', 'api', [(K, "    if (!giuLuotGiaHan(req.khach.id)) return bao(res, 'QUA_NHIEU_LAN');\n", '', 1)], r'✗ D3 lượt 11'),
   ('VS-GIA-HAN-UTC', 'api', [(A, "{ timeZone: 'Asia/Ho_Chi_Minh' }", "{ timeZone: 'UTC' }", 1)], r'✗ D1 het_han'),
   ('VS-GIA-HAN-BANG-LAN-THU', 'api', [(K, "router.post('/gia-han', (req, res) =>", "router.post('/gia-han', async (req, res) =>", 1),
