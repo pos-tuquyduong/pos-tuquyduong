@@ -49,6 +49,15 @@ chép bài thử của HEAD vào <nháp>/goc55/cong_cu/, HOP_DONG_API_KH.md lấ
   (14 ca xanh trên gốc là hồi quy: A2, A3 ×4, A4 có token, B4 không địa chỉ, B4b, B6 mã sai, D2 ×3, F1; ca C4 thứ 2–3 chỉ chạy khi có bước 3)
   Trên code ĐÃ VÁ: 58 đạt · 0 hỏng.
 
+════ VÒNG SỬA 1 (soát độc lập: dia_chi sai kiểu / null chưa có ca, bộ đếm không trần cứng) — bài đổi ở ef52f21, chạy LẠI trên GỐC 55a8f29 ════
+  node cong_cu/thu_KHAPI3.js trên gốc → 14 đạt · 46 hỏng (thoát 1) — 42 dòng ✗ như trên, thêm 4 ca mới:
+  ✗ A4c bộ đếm: thêm 10 khoá vẫn chặn; dội undefined khoá khác (chạm trần) → xoá sạch, khoá cũ qua lại  — [null,false,false,false]
+  ✗ B3 dia_chi không phải chuỗi (số) → 400 YEU_CAU_KHONG_HOP_LE  — HTTP 400 · MA_HET_HAN
+  ✗ C2 PUT dia_chi không phải chuỗi (mảng) → 400 YEU_CAU_KHONG_HOP_LE, CSDL không đổi  — HTTP 400 · TEN_KHONG_HOP_LE
+  ✗ C2 PUT dia_chi null → 200, address NULL (xoá)  — HTTP 400 · TEN_KHONG_HOP_LE
+  Trên code ĐÃ VÁ (sau vòng sửa 1): 62 đạt · 0 hỏng. Đột biến 32/32 BẮT (thêm BV-BO-DEM-TRAN, VS-BO-DEM-XOA-SOM, BV-DIA-CHI-KIEU,
+  VS-DIA-CHI-NULL-KHONG-XOA — A4c đỏ trên bản trước vòng sửa, xem BV-BO-DEM-TRAN; B3/C2 kiểu + null là khoá hồi quy, có đột biến).
+
 ════ node cong_cu/thu_KH1.js — bài SỬA (LUAT §6 mục 7 + 8): trên code GỐC → 156 đạt · 1 hỏng (thoát 1) ════
   ✗ E1 GET /toi → 200, đúng 8 trường dia_chi · hang · ngay_tao · qr · sdt · so_du_vi · ten · xung_ho (P15-QR, KH-API-2, KH-API-3)  — HTTP 200 · hang,ngay_tao,qr,sdt,so_du_vi,ten
   Trên code ĐÃ VÁ: 157 đạt · 0 hỏng.
@@ -58,6 +67,6 @@ chép bài thử của HEAD vào <nháp>/goc55/cong_cu/, HOP_DONG_API_KH.md lấ
   → cần dòng trong mục `## Bài thử cũ sửa` của phiếu (cổng A11) — đã ghi ## Câu hỏi trong trang_thai.md.
   Trên code ĐÃ VÁ (+ hợp đồng v3): 67 đạt · 0 hỏng.
 
-SỐ CA cong_cu/thu_KHAPI3.js: 58
+SỐ CA cong_cu/thu_KHAPI3.js: 62
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 67
