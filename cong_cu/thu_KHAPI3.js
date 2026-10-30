@@ -151,6 +151,15 @@ async function main() {
     const t0 = 1_000_000;
     const kq = typeof g === 'function' && [g('thu:a', 2, 60000, t0), g('thu:a', 2, 60000, t0 + 1), g('thu:a', 2, 60000, t0 + 59999), g('thu:a', 2, 60000, t0 + 60000)];
     k('A4b giuLuotBoNho: 2 lượt qua, lượt 3 trong cửa sổ (59 999 ms) chặn, đủ 60 000 ms → qua lại', bang(kq, [true, true, false, true]), JSON.stringify(kq));
+    // A4c (soát vòng 1): trần cứng BO_DEM_TOI_DA — vài khoá thêm KHÔNG xoá đếm; dội đủ trần khoá khác → xoá sạch (khoá đang chặn được đếm lại).
+    const tran = maKhach.GIOI_HAN.BO_DEM_TOI_DA;
+    const c = typeof g === 'function' && Number.isInteger(tran) && [g('thu:chan', 1, 60000, t0), g('thu:chan', 1, 60000, t0)];
+    if (c) for (let i = 0; i < 10; i++) g('thu:it' + i, 1, 60000, t0);
+    const conChan = c && g('thu:chan', 1, 60000, t0);
+    if (c) for (let i = 0; i < tran; i++) g('thu:doi' + i, 1, 60000, t0);
+    const sauDoi = c && g('thu:chan', 1, 60000, t0);
+    k(`A4c bộ đếm: thêm 10 khoá vẫn chặn; dội ${tran} khoá khác (chạm trần) → xoá sạch, khoá cũ qua lại`, tran === 10000 && bang(c, [true, false]) && conChan === false && sauDoi === true,
+      JSON.stringify([tran, c, conChan, sauDoi]));
   });
 
   muc('[B] Đăng ký 3 bước');
@@ -165,6 +174,8 @@ async function main() {
     k('B2 XUNG_HO_SAI không tốn lượt thử mã, mã chưa tiêu', Number((await dongMa(s)).so_lan_thu) === 0 && (await dongMa(s)).dung_luc === null);
     r = await xacMinh({ sdt: s, ma, ten: 'Anh Mới', xung_ho: 'anh', dia_chi: 'x'.repeat(301) });
     k('B3 dia_chi 301 ký tự → 400 DIA_CHI_QUA_DAI', la(r, 400, 'DIA_CHI_QUA_DAI'), moTa(r));
+    r = await xacMinh({ sdt: s, ma, ten: 'Anh Mới', xung_ho: 'anh', dia_chi: 5 });
+    k('B3 dia_chi không phải chuỗi (số) → 400 YEU_CAU_KHONG_HOP_LE', la(r, 400, 'YEU_CAU_KHONG_HOP_LE'), moTa(r));
     r = await xacMinh({ sdt: s, ma, ten: '  Anh Mới  ', xung_ho: 'anh', dia_chi: '  ' + 'đ'.repeat(300) + '  ' });
     const kh = await khach(s);
     k('B3 dia_chi đúng 300 ký tự (sau khi cắt khoảng trắng) → 200', la(r, 200), moTa(r));
@@ -238,6 +249,11 @@ async function main() {
     }
     r = await goi('PUT', '/kh/toi', { dia_chi: '' }, { tk: d.tk });
     k('C2 PUT dia_chi "" → 200, address NULL (xoá)', la(r, 200) && (await khach(d.sdt)).address === null && r.j.khach.dia_chi === null, moTa(r));
+    await goi('PUT', '/kh/toi', { dia_chi: 'Ngõ 7' }, { tk: d.tk });
+    r = await goi('PUT', '/kh/toi', { dia_chi: [1] }, { tk: d.tk });
+    k('C2 PUT dia_chi không phải chuỗi (mảng) → 400 YEU_CAU_KHONG_HOP_LE, CSDL không đổi', la(r, 400, 'YEU_CAU_KHONG_HOP_LE') && (await khach(d.sdt)).address === 'Ngõ 7', moTa(r));
+    r = await goi('PUT', '/kh/toi', { dia_chi: null }, { tk: d.tk });
+    k('C2 PUT dia_chi null → 200, address NULL (xoá)', la(r, 200) && (await khach(d.sdt)).address === null && r.j.khach.dia_chi === null, moTa(r));
     r = await goi('PUT', '/kh/toi', {}, { tk: d.tk });
     k('C3 PUT {} → 400 YEU_CAU_KHONG_HOP_LE', la(r, 400, 'YEU_CAU_KHONG_HOP_LE'), moTa(r));
     r = await goi('PUT', '/kh/toi', { ten: '' }, { tk: d.tk });
