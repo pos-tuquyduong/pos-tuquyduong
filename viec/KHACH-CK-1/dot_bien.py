@@ -178,6 +178,7 @@ def bang_chung(sha, bai_ds, bai_cu):
       ma, ra = chay_bai(tmp, bai)
       print(f'── {bai} ({"bản bài " + sha + " trên code HIỆN TẠI" if bai_cu else "bài HIỆN TẠI trên code " + sha}):')
       print('\n'.join('  ' + l.strip() for l in ra.splitlines() if '✗' in l or re.search(r'\d+ đạt · \d+ hỏng', l) or 'SẬP' in l))
+      if ma == 2: print('\n'.join('  ' + l.strip() for l in ra.strip().splitlines()[-4:]))   # bài sập: in lý do
       print(f'  thoát {ma}')
   finally:
     shutil.rmtree(tmp, ignore_errors=True)
