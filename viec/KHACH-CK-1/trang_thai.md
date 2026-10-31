@@ -71,6 +71,35 @@ BÀI HỌC: KHOÁ — hồ sơ viết "tổng hiện theo X" phải trích ĐI�
   payOS; dựa A3 (tinh-thu cùng hàm `taoDon`).
 - Kết quả: `thu_KHACHCK1.js` 37 đạt (gốc 10 đạt · 27 hỏng); đột biến 35 · BẮT 35; `npm test` PASS 82 · FAIL 0 · CẢNH BÁO 1 (cũ).
 
+### Vòng 2 (31.10, HEAD `f463a0f`) — KHÔNG ĐẠT (chỉ lỗi NHẸ) — chép nguyên phần kết luận:
+```
+LỖI TÌM ĐƯỢC:
+ 1. cong_cu/thu_KHACHCK1.js:252-253 (D1c) — tên ca hứa "mọi tên biến", regex chỉ /[cC]ustomer\??\.discount_(value|type)/; khôi phục nhánh
+    điền mức bằng tên khác (c., data., kh.) vẫn XANH. — K3 — NHẸ
+ 2. bang_chung_do.txt mục 3 — còn "34 đạt", "TỔNG 34 đột biến" (thật 37 / 35). — K4 — NHẸ
+ 3. trang_thai.md ## Tiến độ ("DỪNG ở đây … chưa chạy /ra-soat") và ## Câu hỏi mục 1 — đã cũ sau 5d8a630. — K1 — NHẸ
+ 4. ke_hoach.md mục 3 — tên đột biến dự kiến (VS-LO2-CHI-PERCENT, VS-CHAN-V2-PARSE, VS-CHAN-V1-GHI-THAN, VS-004-KHONG-SAO-LUU,
+    VS-004-SAO-LUU-SAU) không có trong dot_bien.py; VS-LO2-CHI-PERCENT không có đột biến tương ứng. — K4 — NHẸ
+Đã kiểm, không lỗi: vòng sửa orders.js tương đương (finalDiscountType/Value 615-718 chỉ gán ở 616-617, 662 trong if(false), 713-714);
+ mọi chỗ dùng phía dưới đúng; mã / hạng / gói / Giờ vàng xanh.
+NGHI NGỜ: 004 CREATE TABLE IF NOT EXISTS không sao lưu lại nếu bảng sao lưu đã có (bộ chạy khoá pos_nang_cap nên bình thường không xảy ra);
+ log 004 in trước commit; bảng sao lưu chép cả pin_code (như 002); phiên payOS lập trước deploy cho khách có mức riêng.
+NGHIỆM THU: 6/6 (A4 payOS CHƯA KIỂM, dựa A3).
+Đơn giản (không bắt buộc): orders.js:542-543 khởi tạo từ thân rồi LO 2 xoá — có thể khởi tạo thẳng null / 0.
+CHƯA SOÁT ĐƯỢC: 004 trên Turso thật; payOS; thử tay giao diện; kiem_neo.py đột biến cũ; cong.js chay.
+BÀI HỌC: KHOÁ — tên ca hứa "mọi tên biến" thì regex không gắn tên đối tượng + đột biến dùng tên khác; NGUYÊN TẮC — sau mỗi vòng sửa grep cả
+ viec/<MÃ>/ tìm số cũ, tên đột biến cũ, dòng "DỪNG / chờ" và câu hỏi đã trả lời.
+```
+### Vòng sửa 2 — đã làm
+- Lỗi 1: D1c gom MỌI `<x>.discount_value / discount_type` trong Sales.jsx, chỉ cho `discountCodeValid` (mã), `order` / `completedOrder`
+  (đơn đã tạo, in hoá đơn); đỏ trên gốc (in đủ tên), đột biến mới `VS-SALES-TEN-KHAC` (điền mức qua `kh`) bị bắt — bản D1c cũ không bắt.
+- Lỗi 2: `bang_chung_do.txt` mục 3 ghi rõ "lần đầu, số đã cũ", thêm mục 3b số hiện hành (37 ca, 37 đột biến).
+- Lỗi 3: `## Tiến độ` và `## Câu hỏi` ghi đúng trạng thái (câu 1 ĐÃ TRẢ LỜI ở `5d8a630`).
+- Lỗi 4: `ke_hoach.md` thêm bảng đối chiếu tên dự kiến → tên thật; dựng `VS-LO2-CHI-PERCENT` (chỉ áp nhánh fixed) — bắt ở A2.
+- Nghi ngờ 004 IF NOT EXISTS / log trước commit: không sửa — cùng khuôn `themCot` / bước 002, bộ chạy khoá `pos_nang_cap`; ghi CHƯA KIỂM
+  phần Turso. Gợi ý đơn giản orders.js:542-543: không làm (không bắt buộc, đổi thêm dòng tiền ngoài ý vòng sửa).
+- Kết quả: đột biến 37 · BẮT 37 · SỐNG 0; `thu_KHACHCK1.js` 37 đạt (gốc 10 · 27 hỏng).
+
 ## Câu hỏi
 _(Không còn câu mở. Câu 1 dưới đây ĐÃ ĐƯỢC TRẢ LỜI — chủ quán thêm 6 file vào Phạm vi ở `5d8a630`; giữ để tra lại.)_
 1. **[ĐÃ TRẢ LỜI] Thêm 6 bài thử cũ vào `## Phạm vi` của phiếu (đúng tên từng file).** Kế hoạch đã duyệt (mục 4) và lời duyệt của bạn yêu cầu sửa các bài
