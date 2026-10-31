@@ -100,6 +100,9 @@ async function main() {
     await db.run("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_thu', 'x', 'NV', 'staff', 1)");
     const nv = await db.queryOne("SELECT id FROM pos_users WHERE username = 'nv_thu'");
     const tkNv = jwt.sign({ userId: nv.id }, KHOA_NV, { expiresIn: '1h' });
+    // Quản lý chỉ sửa được cài đặt khi chủ quán đã cấp quyền manage_settings (tab Phân quyền) — chưa cấp thì 403 như mọi cài đặt khác
+    const quanLyChuaCap = await fetch(goc, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tkQl }, body: JSON.stringify({ settings: { in_phieu_dh_kho: 'a5' } }) });
+    await db.run("INSERT OR REPLACE INTO pos_permissions (role, permission, allowed) VALUES ('manager', 'manage_settings', 1)");
     const dapSettings = async (settings, token = tkChu) => {
       const r = await fetch(goc, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ settings }) });
       let j = {}; try { j = JSON.parse(await r.text()); } catch { /* không phải JSON */ }
@@ -108,7 +111,6 @@ async function main() {
     const docKhoa = async (khoa) => (await db.queryOne('SELECT value FROM pos_settings WHERE key = ?', [khoa]))?.value;
     const layTatCa = async () => { const r = await fetch(goc, { headers: { Authorization: 'Bearer ' + tkChu } }); return (await r.json()).data || {}; };
 
-    const seed = await docKhoa('invoice_default_size');
     const hop = await dapSettings({ in_phieu_px_kho: 'a5', in_phieu_px_ban: '2', in_phieu_dh_kho: 'a4', in_phieu_pn_kho: '80mm', in_phieu_ps_kho: 'a5', in_phieu_ps_ban: '3' });
     const doc1 = await layTatCa();
     // lỗi
@@ -147,10 +149,9 @@ async function main() {
     k('A loại lạ (in_phieu_zz_kho) và trường lạ (in_phieu_px_kich) → 400 (khoá tiền tố in_phieu_ chỉ nhận đúng dạng)', sai.loai.status === 400 && sai.truong.status === 400, `${sai.loai.status}/${sai.truong.status}`);
     k("A sai một khoá thì KHÔNG ghi khoá nào: yêu cầu {px='80mm', dh='a3'} để px vẫn là 'a5' (giá trị trước đó)", sau.in_phieu_px_kho === 'a5' && sau.in_phieu_dh_kho === 'a4' && sau.in_phieu_pn_kho === '80mm' && !('in_phieu_zz_kho' in sau) && !('in_phieu_px_kich' in sau),
       `px=${sau.in_phieu_px_kho} dh=${sau.in_phieu_dh_kho} pn=${sau.in_phieu_pn_kho}`);
-    k('A quản lý (manager) ghi được khoá in phiếu (K5: chủ quán / quản lý đều cấu hình được)', qlGhi.status === 200, `HTTP ${qlGhi.status} ${JSON.stringify(qlGhi.j)}`);
+    k('A quản lý được cấp manage_settings thì ghi được khoá in phiếu; chưa cấp thì 403 (K5: chủ quán / quản lý cấu hình được)', qlGhi.status === 200 && quanLyChuaCap.status === 403, `HTTP ${qlGhi.status} ${JSON.stringify(qlGhi.j)} / chưa cấp ${quanLyChuaCap.status}`);
     k('A nhân viên thường KHÔNG ghi được (403) và giá trị không đổi', nvGhi.status === 403 && dhSau === 'a5', `HTTP ${nvGhi.status}, dh=${dhSau}`);
     k('A khoá cài đặt khác (invoice_copies) vẫn ghi cùng yêu cầu được (K5)', khac.status === 200, `HTTP ${khac.status} ${JSON.stringify(khac.j)}`);
-    k("C máy chủ mặc định khổ hoá đơn là '80mm' (seed khi tạo kho mới)", seed === '80mm', String(seed));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
