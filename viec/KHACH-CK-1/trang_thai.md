@@ -8,6 +8,10 @@
   - `a3192b7 TIEN-DO: BH-2 (23d2369), KHO-2a (c8edb66) xong; mo KHACH-CK-1; them GIOVANG-1, KH-SP-1, KH-MUA-2, KH-SP-2, KH-TN-1; quyet dinh 30.10 (dat don online truoc khai truong); lich moi — so v48`
   - `c8edb66 Merge pull request #53 from pos-tuquyduong/viec/KHO-2a`
 - Phiên làm tiếp (sau duyệt): HEAD `c4b0ce5` · FETCH_HEAD `c4b0ce5` — bằng nhau, không kéo.
+- Phiên làm tiếp (sau sửa Phạm vi, 31.10): HEAD `5d8a630` · FETCH_HEAD `5d8a630` — bằng nhau, không kéo. `git log --oneline -3`:
+  - `5d8a630 PHIEU: KHACH-CK-1 them 6 bai thu cu vao Pham vi (LUAT 6.8, chu quan duyet ke hoach 31.10)`
+  - `aa89606 KHACH-CK-1: trang thai — bang dot bien, cau hoi Pham vi (6 bai thu cu)`
+  - `3775014 KHACH-CK-1: bang chung do (bai moi tren goc, ban goc bai cu tren code moi, SO CA)`
 
 ## Duyệt kế hoạch (chủ quán, 30.10)
 - Giữ hai cửa ghi, chỉ chặn mức > 0: đồng ý.
