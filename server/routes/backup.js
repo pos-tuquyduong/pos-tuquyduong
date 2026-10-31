@@ -306,7 +306,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
 
     res.json({ success: true, preview });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);   // SAOLUU-2: cùng khuôn /restore — có code, không lộ câu nội bộ
   }
 });
 

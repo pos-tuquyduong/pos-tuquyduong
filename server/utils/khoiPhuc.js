@@ -47,8 +47,9 @@ async function lapKeHoach(wb, bangSaoLuu) {
     if (!cotBang.size) { boQua('BANG_CHUA_CO', 'Bỏ qua vì cơ sở dữ liệu chưa có bảng này'); continue; }
     if (!dong.length) { boQua('TRANG_TRONG', 'Không có dữ liệu'); continue; }   // chủ quán 31.10: trang trống → bỏ qua, KHÔNG xoá bảng
     const cotTrang = Object.keys(dong[0]);
-    keHoach.push({ ...muc, status: 'se_khoi_phuc', dong, cot: cotTrang.filter((c) => cotBang.has(c)),
-      cot_bo_qua: cotTrang.filter((c) => !cotBang.has(c)) });
+    const cot = cotTrang.filter((c) => cotBang.has(c));
+    if (!cot.length) { boQua('KHONG_CO_COT_KHOP', 'Bỏ qua vì không cột nào của trang khớp bảng'); continue; }
+    keHoach.push({ ...muc, status: 'se_khoi_phuc', dong, cot, cot_bo_qua: cotTrang.filter((c) => !cotBang.has(c)) });
   }
   return keHoach;
 }
