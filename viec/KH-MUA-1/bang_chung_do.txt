@@ -37,7 +37,15 @@ Vòng sửa 2 (bản bài 0b61623 — thêm V8, V9, ngưỡng lượt 10 / 11):
       — HTTP 200 · HTTP 400 · HET_HANG · HTTP 200 · ví 50000      (lần gửi giữa chừng nhận 200 cho đơn rồi bị xoá)
   (V9 và ca ngưỡng 10 / 11 XANH trên e520d46 — là ca PHỦ đột biến VS-DON-KHOA-CHET-120 và trần lượt, không phải ca đỏ.)
   Sau vá vòng 2 (HEAD dc6501e): 120 đạt · 0 hỏng
-SỐ CA thu_KHMUA1.js: 120
+(SỐ CA của vòng 2 cũ: 120 — thay bằng dòng dưới)
+
+Vòng sửa 4 (chat soát thay — bản bài 9d0b2c8, thêm V1b, V10):
+  Trên gốc 76ce7c5:  11 đạt · 111 hỏng  → ĐỎ
+  Trên HEAD TRƯỚC vá vòng 4 (code ffa5cce): 121 đạt · 1 hỏng → ĐỎ ĐÚNG lỗi soát vòng 3 báo:
+    ✗ V1b đơn ví lỗi SAU chốt (chưa gửi lại) → huỷ trả 400 DA_TRA_GOI_QUAN như GET /don đang hiện da_tra, không 404  — HTTP 404 · KHONG_THAY_DON
+  (V10 XANH trên ffa5cce — ca PHỦ cho 3 đột biến soát vòng 3 dựng mà SỐNG: BV-LUOI-BO-THAY-DUOC, BV-DSDON-BO-THAY-DUOC, BV-HUY-BO-THAY-DUOC.)
+  Sau vá vòng 4 (HEAD 941f798): 122 đạt · 0 hỏng
+SỐ CA thu_KHMUA1.js: 122
 
 Bảng số chụp K1 (luồng quầy, chủ quán Q8/K): tinh-thu subtotal 80000 · giảm hạng 8000 · giảm mã 5000 · total 67000 · POST /orders total 67000 ·
 phiên tài khoản tổng 27000 · chốt 200 · số dư sau 173000 — trên gốc và sau vá BẰNG nhau.
@@ -65,3 +73,5 @@ Vòng sửa 1: ĐỐI CHỨNG XANH (mua 118/0 · hd 81/0) · TỔNG 38 đột bi
 neo lại BV-BO-XOA-GIU-KHOA, BV-QUAY-THAY-DON-CHO-TRA, BV-DOI-TIEN-TRINH-CHUA-TRA theo code mới).
 Vòng sửa 2: ĐỐI CHỨNG XANH (mua 120/0 · hd 81/0) · TỔNG 39 đột biến · BẮT 39 · SỐNG 0 · HỎNG 0 · LẠC 0 (bỏ BV-DANG-XU-LY-GIU-KHOA — bắt nhờ
 bài sập; thêm VS-DON-KHOA-CHET-120, VS-CO-PHIEN-LA-XONG đưa ĐÚNG lỗi cũ trở lại). `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1.
+Vòng sửa 4: ĐỐI CHỨNG XANH (mua 122/0 · hd 81/0) · TỔNG 43 đột biến · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0. `npm test -- --day-du`: PASS 88 · FAIL 0 ·
+CẢNH BÁO 1 (có sẵn), dist khớp src.
