@@ -124,7 +124,7 @@ async function main() {
   // ── 5. Quét tĩnh mã lỗi ──────────────────────────────────────────────────
   muc('[I5] mã lỗi trả ra được qua /api/kh ∈ ma_loi (nguồn: NGUON_MA)');
   for (const [f, tu, den, re] of NGUON_MA) {
-    const khoi = cat(doc(f), tu, den);
+    const khoi = cat(fs.existsSync(path.join(GOC, f)) ? doc(f) : '', tu, den);   // file nguồn chưa có (code gốc) → ✗ "không thấy mã nào", không sập
     const ds = [...new Set(tim(boChuThich(khoi), re))];
     const ngoai = ds.filter((m) => !MA.has(m));
     k(`${f}${tu ? ` (${tu.slice(0, 28)}…)` : ''}: ${ds.length} mã đều trong ma_loi`, ds.length > 0 && ngoai.length === 0, ngoai.join(', ') || 'không thấy mã nào — nguồn đổi chỗ?');
