@@ -88,3 +88,5 @@ CHƯA KIỂM:   giao diện KHÔNG chạy thật trên trình duyệt (chỉ bui
 GIT:         xem dòng dưới
 BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 (đề xuất) · BỎ 1 — chi tiết ở ## Bài học
 ```
+
+HEAD ĐÃ KIỂM: f81ec27
