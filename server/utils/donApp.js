@@ -6,6 +6,8 @@
  *   không cần ghi gì (dangGiu chỉ đếm phiên `cho` còn hạn).
  * - Luật 4xx (chủ quán 31.10): MỌI trả lời 4xx của datDon = chưa tạo đơn, chưa giữ / trừ ví, KHÔNG giữ khoá gửi — dòng giữ khoá bị xoá,
  *   phiên lỡ tạo bị huỷ (finally). Ngoại lệ đã duyệt (Q8): chốt ví hỏng sau khi tạo phiên để lại một dòng phiên `loi` không giữ tiền.
+ * - Dọn dẹp (finally) đọc lại CSDL, không tin cờ trong bộ nhớ: phiên đã `da_thu` (lỗi ném SAU khi chốt ví đã ghi) → GIỮ dòng đơn App để
+ *   gửi lại cùng khoá trả đúng đơn đó, không trừ ví lần hai (soát vòng 1).
  */
 const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
@@ -23,12 +25,12 @@ const GIOI = {
   KHOA_GUI: /^[A-Za-z0-9-]{16,64}$/,
   NHO_KHOA_GIAY: 24 * 3600,      // gửi lại cùng khoá trong 24 giờ → đơn cũ; quá → KHOA_GUI_DA_DUNG (khoá duy nhất mãi trong CSDL)
   LUOI_GIAY: 10,                 // lưới thứ hai: cùng giỏ, đơn trước còn cho_tra
-  GIU_KHOA_CHET_GIAY: 120,       // dòng giữ khoá chưa có phiên quá lâu = yêu cầu đã chết giữa chừng → bỏ
   LUOT_DAT: 10, LUOT_CUA_SO_MS: 10 * 60000,   // Q9: 10 lần / 10 phút mỗi khách (gửi lại cùng khoá không tính)
   BO_DEM_TOI_DA: 10000,
 };
 const CACH_TRA = { qr: { cach: 'payos', vi: false }, vi: { cach: 'tai_khoan', vi: true }, vi_qr: { cach: 'payos', vi: true } };
 const HUY = ['cancelled', 'refunded'];
+const DON_CON = "o.status NOT IN ('cancelled', 'refunded')";   // cùng danh sách HUY, trong câu SQL
 // Mã lỗi của taoPhien / chotPhien giữ nguyên khi trả App; mã khác → DON_KHONG_HOP_LE (lời báo giữ nguyên) — mọi mã App nhận có trong hợp đồng.
 const GIU_MA = ['CACH_KHONG_KHOP', 'CHUA_CO_PIN', 'PIN_SAI', 'PIN_DANG_KHOA', 'PAYOS_CHUA_CAU_HINH', 'PAYOS_LOI', 'KHO_BAN'];
 const CHU_MA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -176,12 +178,9 @@ async function datDon(khach, b) {
   if (typeof khoa !== 'string' || !GIOI.KHOA_GUI.test(khoa)) return thanLoi('KHOA_GUI_SAI');
   const bam = bamGio(b);
   const cu = await queryOne('SELECT * FROM pos_don_app WHERE phone = ? AND khoa_gui = ?', [phone, khoa]);
-  if (cu && !cu.phien_id) {
-    if (cu.tao_luc > truGiay(GIOI.GIU_KHOA_CHET_GIAY)) return thanLoi('DANG_XU_LY');
-    await run('DELETE FROM pos_don_app WHERE id = ? AND phien_id IS NULL', [cu.id]);
-  } else if (cu) {
-    return cu.bam === bam && cu.tao_luc > truGiay(GIOI.NHO_KHOA_GIAY) ? traDon(cu, true) : thanLoi('KHOA_GUI_DA_DUNG');
-  }
+  // Dòng giữ khoá chưa có phiên = yêu cầu cùng khoá đang chạy → 503, KHÔNG bao giờ tự xoá dòng của yêu cầu khác (soát vòng 1, lỗi 2).
+  if (cu && !cu.phien_id) return thanLoi('DANG_XU_LY');
+  if (cu) return cu.bam === bam && cu.tao_luc > truGiay(GIOI.NHO_KHOA_GIAY) ? traDon(cu, true) : thanLoi('KHOA_GUI_DA_DUNG');
   const cho = giuLuotDat(khach.id);
   if (cho) return thanLoi('QUA_NHIEU_LAN', { thu_lai_sau_giay: cho });
   const tra = CACH_TRA[b.cach_tra];
@@ -214,6 +213,10 @@ async function datDon(khach, b) {
     const tp = await taoPhien({ cach: tra.cach, don, tru_tai_khoan: tra.vi, pin: b.pin }, NGUOI);
     if (tp.status !== 200) return chuanLoi(tp, kq.gio.mon, kq.d.ten);
     phienId = tp.body.phien.id;
+    // Gắn phiên NGAY (trước khi chốt): lỗi ném sau đó thì dòng đơn App vẫn trỏ đúng phiên — finally xét theo trạng thái phiên trong CSDL.
+    if ((await run('UPDATE pos_don_app SET phien_id = ? WHERE id = ? AND phien_id IS NULL', [phienId, appId])).changes !== 1) {
+      throw new Error('KH-MUA-1: mất dòng giữ khoá gửi');
+    }
     if (tp.body.phien.tong !== kq.bao.tong) {   // giá đổi đúng giữa báo giá và tạo phiên
       const moi = await kiemVaBaoGia(khach, b);
       return moi.status ? moi : thanLoi('GIA_DA_DOI', { bao_gia: moi.bao });
@@ -222,14 +225,14 @@ async function datDon(khach, b) {
       const c = await chotPhien(await docPhien(phienId), 'tai_khoan', { nguoi: NGUOI });
       if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(c.status === 200 ? { status: 500, body: {} } : c, kq.gio.mon, kq.d.ten);
     }
-    await run('UPDATE pos_don_app SET phien_id = ? WHERE id = ?', [phienId, appId]);
     xong = true;
     return traDon({ ma, phien_id: phienId, tien_trinh_quay: '' }, false);
   } finally {
     if (!xong) {
       try {
         if (phienId) await huyPhien(phienId);
-        await run('DELETE FROM pos_don_app WHERE id = ? AND phien_id IS NULL', [appId]);
+        await run(`DELETE FROM pos_don_app WHERE id = ? AND NOT EXISTS (SELECT 1 FROM pos_phien_thanh_toan p
+          WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu')`, [appId]);
       } catch (e) { console.error('KH-MUA-1 dọn giữ khoá lỗi:', e.message); }
     }
   }
@@ -284,12 +287,12 @@ async function huyDon(phone, ma) {
 }
 
 // ── Quầy ────────────────────────────────────────────────────────────────────
-/** Đơn App ĐÃ TRẢ: hôm nay + đơn chưa xong từ trước. Đơn chưa trả không có. */
+/** Đơn App ĐÃ TRẢ: hôm nay + đơn chưa xong (và không bị huỷ / hoàn) từ trước. Đơn chưa trả không có. */
 async function dsQuay() {
   const ds = await query(`SELECT a.id, a.ma, a.than, a.tien_trinh_quay, a.nguoi_lam, a.luc_lam, a.nguoi_xong, a.luc_xong,
       p.giu_vi, p.con_lai, p.trang_thai AS p_tt, p.het_han, p.luc_chot, o.code, o.customer_name, o.status
     FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id JOIN pos_orders o ON o.id = p.order_id
-    WHERE p.trang_thai = 'da_thu' AND (a.tien_trinh_quay <> 'xong' OR p.luc_chot >= ?) ORDER BY a.id DESC LIMIT 100`, [getNow().slice(0, 10) + 'T00:00:00']);
+    WHERE p.trang_thai = 'da_thu' AND (p.luc_chot >= ? OR (a.tien_trinh_quay <> 'xong' AND ${DON_CON})) ORDER BY a.id DESC LIMIT 100`, [getNow().slice(0, 10) + 'T00:00:00']);
   return ds.map((r) => ({
     id: r.id, ma: r.ma, ma_bill: r.code, gio: r.luc_chot, ten_khach: r.customer_name,
     mon: JSON.parse(r.than).dong.map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu })),
@@ -299,11 +302,12 @@ async function dsQuay() {
   }));
 }
 
-/** Đang làm ('' → dang_lam) · Xong (dang_lam → xong); chỉ đơn đã trả. Câu ghi có điều kiện — bấm lại / hai máy cùng bấm → false. */
+/** Đang làm ('' → dang_lam) · Xong (dang_lam → xong); chỉ đơn đã trả, chưa bị huỷ / hoàn. Câu ghi có điều kiện — bấm lại / hai máy cùng bấm → false. */
 async function doiTienTrinh(id, buoc, nguoi) {
   const [tu, cotNguoi, cotLuc] = buoc === 'dang_lam' ? ['', 'nguoi_lam', 'luc_lam'] : ['dang_lam', 'nguoi_xong', 'luc_xong'];
   const r = await run(`UPDATE pos_don_app SET tien_trinh_quay = ?, ${cotNguoi} = ?, ${cotLuc} = ? WHERE id = ? AND tien_trinh_quay = ?
-    AND EXISTS (SELECT 1 FROM pos_phien_thanh_toan p WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu')`, [buoc, nguoi, getNow(), id, tu]);
+    AND EXISTS (SELECT 1 FROM pos_phien_thanh_toan p JOIN pos_orders o ON o.id = p.order_id
+      WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu' AND ${DON_CON})`, [buoc, nguoi, getNow(), id, tu]);
   return r.changes === 1;
 }
 
