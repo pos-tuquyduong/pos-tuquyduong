@@ -19,6 +19,21 @@ const { authenticate, checkPermission } = require('../middleware/auth');
 const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 const { kiemCaiDat } = require('../utils/gioHoatDong');
 const TIENG_CHUONG = ['ding', 'chuong', 'bip'];   // KH-MUA-1: cùng danh sách client/src/components/DonAppNoi.jsx
+// KHO-IN-1: cài đặt in phiếu kho — in_phieu_<loai>_kho (khổ) / in_phieu_<loai>_ban (số bản). Cùng danh sách client/src/utils/inPhieu.js
+// (KHO_PHIEU_KHO · LOAI_PHIEU_KHO · SO_BAN_TOI_DA). Khổ nhiệt 58mm là của hoá đơn khách, KHÔNG dùng cho phiếu kho.
+const KHO_IN_PHIEU = ['80mm', 'a5', 'a4'];
+const SO_BAN_IN_TOI_DA = 3;
+const KHOA_IN_PHIEU = /^in_phieu_(px|dh|pn|ps)_(kho|ban)$/;
+/** Khoá in_phieu_* sai dạng / sai giá trị → trả khoá đó; không sai → null. */
+function khoaInPhieuSai(settings) {
+  return Object.entries(settings).find(([key, value]) => {
+    if (!key.startsWith('in_phieu_')) return false;
+    const m = KHOA_IN_PHIEU.exec(key);
+    if (!m) return true;
+    const v = String(value);
+    return m[2] === 'kho' ? !KHO_IN_PHIEU.includes(v) : !(/^\d$/.test(v) && Number(v) >= 1 && Number(v) <= SO_BAN_IN_TOI_DA);
+  })?.[0] || null;
+}
 
 // Multer config cho upload logo
 const storage = multer.memoryStorage();
@@ -130,6 +145,9 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
       || (key === 'don_app_chuong_tieng' && !TIENG_CHUONG.includes(String(value)))
       || (key === 'don_app_chuong_am_luong' && !(/^\d{1,3}$/.test(String(value)) && Number(value) <= 100)));
     if (chuongSai) return res.status(400).json({ success: false, error: `Cài đặt ${chuongSai[0]} không hợp lệ`, code: 'CAI_DAT_KHONG_HOP_LE' });
+    // KHO-IN-1: khổ + số bản in phiếu kho — sai một khoá thì không ghi khoá nào.
+    const inPhieuSai = khoaInPhieuSai(settings);
+    if (inPhieuSai) return res.status(400).json({ success: false, error: `Cài đặt ${inPhieuSai} không hợp lệ`, code: 'CAI_DAT_KHONG_HOP_LE' });
     // KH-API-2: giờ hoạt động (gio_hd_*) — cùng luật: sai một khoá thì không ghi khoá nào.
     const loiGio = kiemCaiDat(settings);
     if (loiGio) return res.status(400).json({ success: false, error: loiGio, code: 'CAI_DAT_KHONG_HOP_LE' });
@@ -276,7 +294,7 @@ router.get('/invoice/next-number', authenticate, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 router.post('/invoice/log', authenticate, async (req, res) => {
   try {
-    const { order_id, order_code, invoice_number, paper_size = 'a5', print_type = 'print' } = req.body;
+    const { order_id, order_code, invoice_number, paper_size = '80mm', print_type = 'print' } = req.body;
 
     if (!order_id || !order_code || !invoice_number) {
       return res.status(400).json({ 

@@ -1158,7 +1158,7 @@ async function seedDefaultData() {
       ['store_logo', ''],
 
       // Cài đặt in
-      ['invoice_default_size', 'a5'],
+      ['invoice_default_size', '80mm'],
       ['invoice_quick_size', '80mm'],
       ['invoice_copies', '1'],
       ['invoice_auto_print', 'false'],
