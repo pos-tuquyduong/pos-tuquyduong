@@ -16,5 +16,5 @@ BH-CKTAY-1 — bằng chứng ĐỎ trên code gốc c0e8af8 (phiếu), lệnh:
   thoát 1
 
 Sau khi vá: thu_BHCKTAY1.js 11 đạt · 0 hỏng; thu_KHACHCK1.js 37 đạt · 0 hỏng. Đột biến: 14 BẮT · 0 SỐNG · 0 LẠC.
-SỐ CA thu_BHCKTAY1.js: 11
-SỐ CA thu_KHACHCK1.js: 37
+SỐ CA cong_cu/thu_BHCKTAY1.js: 11
+SỐ CA cong_cu/thu_KHACHCK1.js: 37
