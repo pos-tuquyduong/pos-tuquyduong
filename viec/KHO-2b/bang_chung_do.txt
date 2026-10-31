@@ -1,0 +1,51 @@
+KHO-2b — bằng chứng ĐỎ trên code gốc (31.10.2026)
+Gốc: 617f4e4 (PHIEU: KHO-2b — server/ chưa vá). Bài thử: cong_cu/thu_KHO2b.js ở commit 8ad6107 (sau vòng sửa 4).
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc 617f4e4   (git archive server/ của gốc → node cong_cu/thu_KHO2b.js --may-chu <bản chép>)
+
+Lần chạy đầu (trước khi sửa bất kỳ file nào, cây làm việc = gốc + bài thử, commit 3343ba5): 5 đạt · 62 hỏng (thoát 1, chạy hết, không sập).
+
+cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 67 hỏng (thoát 1, chạy hết, không sập) — bản bài trước vòng sửa 1 (95671d6): 11 đạt · 56 hỏng; sau vòng 1: 11 · 62; sau vòng 2: 11 · 65
+  ✗ N1 bước 007 đã chạy: kho_phieu.don_id, kho_phieu.su_co, kho_phieu_dong.han_dung có
+  ✗ A1 theo công thức: Nước cam ×10 + Trà gừng ×4 → Cam 2 · Gừng 0.5 + 0.4 gộp · Kỷ tử 0.02 …  — HTTP 403 · DUONG_LA
+  ✗ A2 · A3 · A4 · A5 · A5b · A6 · A7 · A7b · A8 · A10 · A12 · A13
+  ✗ A10 hạn mức đặt hàng: quản lý đổi → 403; âm / chữ / số lẻ → 400; không ghi  — HTTP 403 | HTTP 200 | HTTP 200 | HTTP 200
+  ✗ B1 phiếu nhận chờ duyệt; chính người tạo duyệt → 403 TU_DUYET; tồn + lô không đổi  — HTTP 403 · DUONG_LA | HTTP 500
+  ✗ B2 · B3 · B4 · B4b · B5 · B7 · B8/C1 · B9 · C0 · C2 · G3
+  ✗ H2/H3 phiếu xuất (KHO-2a) trừ lô của phiếu nhận hạn gần trước (Cam lô 10/11), KHÔNG trừ lô đã quá hạn  — lo_id null (gốc chưa có lô nguyên liệu nào)
+  ✗ D1 · D2 · D3 · D4 · D4b · D5 · D6 · D6b · D8 · D9 · D10 · D11 · D12 · D13
+  ✗ E1 bấm hai lần cùng ma_gui (song song) → MỘT phiếu cho DH, PN, PS  — ["DH:0:false","PN:0:false","PS:0:false"]
+  ✗ E2 · E3 · E3b · E4 · E4b · E5 · E5b · E5c · E5d
+  ✗ E4b chủ quán sửa phiếu nhận → …  — HTTP 400 · SO_PHAN_SAI (gốc chỉ sửa được phiếu xuất)
+  ✗ F2 · F3 · F4 · F4b · F6
+  ✗ (vòng sửa 1) D14 · F5 · E4c · E4d · E5e · H4 (H4 đỏ vì gốc không có cột don_id / su_co trong sao lưu)
+  ✗ (vòng sửa 2) E4e · E5f · E6
+  ✗ (vòng sửa 4) E7 · E8
+Ca XANH trên gốc (đúng — không phụ thuộc server/ gốc): A9 (gốc không có đơn nào → tồn không đổi), A11 (không có dòng), B6 (không có
+dòng ngoài đơn), K4 (giá nhập không đổi), F1 (công thức tồn của bài khớp /ton) — các ca này ĐỎ khi đột biến tương ứng (BV-DH-VAO-TON bắt A9);
+G1 · G2 · C3 · G3b · D7 · K1 đọc client/ và kiem_tra ở cây làm việc (lần chạy đầu 3343ba5 chúng ĐỎ: 5 đạt · 62 hỏng).
+
+Bài thử cũ: KHÔNG sửa thu_KHO1.js, thu_KHO2a.js — chạy nguyên vẹn trên code mới: 111 đạt · 0 hỏng, 86 đạt · 0 hỏng.
+
+Vòng sửa 1 — bài thử hiện tại trên server/ TRƯỚC vòng sửa (d050f97): 68 đạt · 5 hỏng (thoát 1) — đỏ đúng các lỗi người soát báo:
+  ✗ D14 … phiếu 2 → 409 KHONG_DU_TON …  — HTTP 200 | HTTP 200   (lỗi 3: lô chọn sẵn không kiểm lại khi duyệt)
+  ✗ F5 … — HTTP 409 · PHIEU_DA_XU_LY (phiếu 2 đã bị duyệt lố ở D14)
+  ✗ E4c sửa không gửi ghi chú / nhà cung cấp → GIỮ "HĐ 777" + nhà cung cấp  — [null,null]   (lỗi 2)
+  ✗ E4d chủ quán sửa phiếu nhận CHỜ DUYỆT của chính mình → 409  — HTTP 200   (lỗi 4)
+  ✗ E5e sửa phiếu hết hạn với thân kèm lo_id + san_pham_id → 200  — HTTP 400 · DONG_SAI   (lỗi 1)
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc d050f97
+
+Vòng sửa 2 — bài thử hiện tại trên server/ TRƯỚC vòng sửa 2 (4cb3790): 74 đạt · 2 hỏng (thoát 1):
+  ✗ E5f sửa phiếu dùng nội bộ → giữ cho_mon_id  — HTTP 200 [null,null]   (lỗi 2 soát lần 2)
+  ✗ E6 lô thành phẩm đã bị phát sinh trừ: huỷ / sửa phiếu xuất → 409 LO_DA_BI_TRU  — HTTP 200 (huỷ được → tồn TP hiện 0, Σ dòng −1)   (lỗi 1)
+  E4e (sửa PN theo đơn giữ đơn) XANH trên 4cb3790 — hành vi đã đúng từ vòng 1, ca thêm để khoá (lỗi 3 = thiếu ca); đột biến BV-SUA-GIU-DON bắt nó.
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc 4cb3790
+
+Vòng sửa 4 — bài thử hiện tại trên server/ TRƯỚC vòng sửa 4 (fa55546): 76 đạt · 2 hỏng (thoát 1):
+  ✗ E7 sửa phiếu nhận / phát sinh ĐÃ HUỶ → 409 PHIEU_DA_XU_LY  — HTTP 409 · PHIEU_CHUA_DUYET | HTTP 409 · PHIEU_CHUA_DUYET   (lỗi 1 soát lần 3)
+  ✗ E8 nhân viên tạo phiếu phát sinh gửi cho_mon_id → máy chủ bỏ qua  — HTTP 200 [999999]   (lỗi 3)
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc fa55546
+
+Đột biến (python3 viec/KHO-2b/dot_bien.py): ĐỐI CHỨNG XANH · 78 đạt · 0 hỏng · TỔNG 35 đột biến · BẮT 35 · SỐNG 0 · HỎNG 0 · LẠC 0
+(lần chạy đầu vòng 4: BV-SUA-CHI-DA-DUYET HỎNG — neo khớp 0 lần vì dòng neo vừa đổi; sửa neo ở 0e3cedd, chạy lại 35/35 BẮT)
+
+SỐ CA cong_cu/thu_KHO2b.js: 78

@@ -8,3 +8,7 @@ export const gio = (luc) => (luc ? `${luc.slice(11, 16)} ${luc.slice(8, 10)}/${l
 export const maGuiMoi = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 export const TRANG_THAI = { nhap: 'Nháp', cho_duyet: 'Chờ duyệt', da_duyet: 'Đã duyệt', huy: 'Đã huỷ' };
 export const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+/** KHO-2b: lượng gõ theo đơn vị HIỆN → đơn vị LƯU gửi máy chủ (1 đơn vị hiện = he_so_doi đơn vị lưu) và ngược lại. */
+export const veLuu = (x, heSo) => Number(x) * (heSo || 1);
+export const raHien = (x, heSo) => Number(x) / (heSo || 1);
+export const SU_CO = { hong: 'Hỏng', do_vo: 'Đổ vỡ', het_han: 'Hết hạn', noi_bo: 'Dùng nội bộ', khac: 'Khác' };

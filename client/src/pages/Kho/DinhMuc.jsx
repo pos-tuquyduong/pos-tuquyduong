@@ -1,6 +1,6 @@
 /**
  * KHO-2a — Định mức (chủ / quản lý): mỗi món làm sẵn "mọi ngày" + 7 ô theo thứ (trống = theo mọi ngày); "% lệch cho phép" theo nhóm món;
- * công tắc "Nhân viên xuất kho cần duyệt" (chỉ chủ quán — máy chủ kiểm).
+ * công tắc "Nhân viên xuất kho cần duyệt" (chỉ chủ quán — máy chủ kiểm). KHO-2b: cạnh đó hai hạn mức (đồng) đặt hàng / dùng nội bộ — chỉ chủ quán.
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
@@ -15,6 +15,7 @@ export default function DinhMuc({ vaiTro }) {
   const [lech, setLech] = useState({});   // nhom id → chuỗi %
   const [loi, setLoi] = useState('');
   const [bao, setBao] = useState('');
+  const [hanMuc, setHanMuc] = useState({});   // kho_han_muc_* → chuỗi đang sửa
 
   const tai = () => api.get('/kho/dinh-muc').then((r) => {
     setDl(r);
@@ -30,6 +31,7 @@ export default function DinhMuc({ vaiTro }) {
   const luuMon = (m) => lam(() => api.put('/kho/dinh-muc', { san_pham_id: m.san_pham_id,
     dinh_muc: O.filter((t) => (nhap[m.san_pham_id]?.[t] ?? '') !== '').map((t) => ({ thu: t === '' ? null : t, so_luong: Number(nhap[m.san_pham_id][t]) })) }), `Đã lưu ${m.ten}`);
   const luuLech = (n) => lam(() => api.put(`/kho/nhom-cong-thuc/${n.id}`, { ten: n.ten, thu_tu: n.thu_tu, lech_cho_phep: lech[n.id] === '' ? null : Number(lech[n.id]) }), `Đã lưu ${n.ten}`);
+  const luuHanMuc = (khoa) => lam(() => api.put('/settings', { settings: { [khoa]: String(hanMuc[khoa]).trim() } }), 'Đã lưu hạn mức');
   const doiCongTac = () => lam(() => api.put('/settings', { settings: { kho_px_nv_can_duyet: dl.nv_can_duyet ? '0' : '1' } }), 'Đã đổi công tắc');
 
   if (!dl) return loi ? <div className="kho-loi">{loi}</div> : <p>Đang tải…</p>;
@@ -40,6 +42,14 @@ export default function DinhMuc({ vaiTro }) {
       {vaiTro === 'owner' && (
         <label className="kho-hang"><input type="checkbox" checked={dl.nv_can_duyet} onChange={doiCongTac} /> Nhân viên xuất kho cần duyệt</label>
       )}
+      {vaiTro === 'owner' && [['kho_han_muc_dat_hang', 'han_muc_dat_hang', 'Hạn mức đặt hàng quản lý tự duyệt (đ)'], ['kho_han_muc_noi_bo', 'han_muc_noi_bo', 'Hạn mức dùng nội bộ / người / ngày (đ)']]
+        .map(([khoa, truong, nhan]) => (
+          <div key={khoa} className="kho-dong">
+            <span style={{ flex: 1 }}>{nhan}</span>
+            <input className="input kho-hep" type="number" min="0" step="1000" inputMode="numeric" value={hanMuc[khoa] ?? dl[truong]} onChange={(e) => setHanMuc({ ...hanMuc, [khoa]: e.target.value })} />
+            <button className="btn btn-sm btn-outline" disabled={hanMuc[khoa] == null} onClick={() => luuHanMuc(khoa)}>Lưu</button>
+          </div>
+        ))}
       <h3 className="card-title">Định mức mỗi ngày (số phần)</h3>
       {!dl.mon.length && <p className="text-gray">Chưa có món làm sẵn.</p>}
       {dl.mon.map((m) => (

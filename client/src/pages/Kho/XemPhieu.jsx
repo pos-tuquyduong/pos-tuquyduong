@@ -2,14 +2,55 @@
  * KHO-2a — xem / duyệt / in một phiếu xuất. A tổng cần lấy (ô ☐) · B định lượng từng công thức ngay dưới tên món (cả mẻ + 1 phần) ·
  * C kết quả (✓ một chạm / sửa số + ghi chú; vàng khi lệch quá ngưỡng; "tự chốt" khi qua ngày). Mọi số do máy chủ trả — ở đây chỉ hiện.
  * In: POST /in đếm lần (lần ≥ 2 in "IN LẠI · LẦN n") rồi window.print(); máy in lỗi không đụng sổ. Phiếu chờ duyệt tự làm mới 15 s.
+ * KHO-2b: DH / PN / PS hiện bảng dòng (BangDong) thay cho A/B/C; đơn vượt hạn mức chỉ chủ quán thấy nút Duyệt; chủ quán sửa số từng dòng.
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
-import { so, tien, gio, TRANG_THAI } from './chung';
+import { so, tien, gio, TRANG_THAI, SU_CO, veLuu } from './chung';
 
 const LAM_MOI_MS = 15000;
 const KHO_IN = { k80: '@page { size: 80mm auto; margin: 3mm; }', a4: '@page { size: A4; margin: 12mm; }' };
 const luong = (n) => `${so(n.luong_hien)} ${n.don_vi || ''}`;
+const TEN_LOAI = { DH: 'Đơn đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu xử lý phát sinh' };
+
+/** KHO-2b: bảng dòng của DH / PN / PS — dòng lệch đơn / ngoài đơn tô vàng (cờ máy chủ); đơn đã duyệt kèm phần còn chờ nhận. */
+function BangDong({ dl, kho }) {
+  const p = dl.phieu;
+  return (
+    <>
+      <div className="kho-nho">{TEN_LOAI[p.loai]}{p.su_co && ` · ${SU_CO[p.su_co]}`}{p.ghi_chu && ` · ${p.ghi_chu}`}
+        {p.tong_uoc_tinh != null && <span className="kho-khong-in"> · ước tính {tien(p.tong_uoc_tinh)}</span>}</div>
+      {p.can_chu_quan && <div className="kho-canh kho-khong-in">Vượt hạn mức đặt hàng — chỉ chủ quán duyệt</div>}
+      {dl.dong.map((d) => (
+        <div key={d.id} className={`kho-dong ${d.lech || d.ngoai_don ? 'kho-vang' : ''}`}>
+          {p.loai === 'DH' && <span className="kho-o">☐</span>}
+          <span style={{ flex: 1 }}>{d.ten}{d.ngoai_don && ' · ngoài đơn'}{d.han_dung && <span className="kho-nho"> · hạn {gio(d.han_dung)}</span>}</span>
+          <b>{luong(d)}</b>
+          {d.don_gia != null && <span className="kho-nho kho-khong-in"> · {tien(d.don_gia)}</span>}
+        </div>
+      ))}
+      {dl.con_lai && !kho && (
+        <div className="kho-khong-in">
+          <h4 className="kho-muc">Còn chờ nhận</h4>
+          {dl.con_lai.every((d) => d.con_lai <= 1e-9) && <div className="kho-ok">Đã nhận đủ — đơn đóng</div>}
+          {dl.con_lai.filter((d) => d.con_lai > 1e-9).map((d) => (
+            <div key={d.nguyen_lieu_id} className="kho-dong"><span style={{ flex: 1 }}>{d.ten}</span><b>{so(d.con_lai_hien)} / {so(d.dat_hien)} {d.don_vi}</b></div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Thân sửa theo loại: số mới từng dòng (đơn vị hiện) → đúng dạng thân của đường tạo phiếu loại đó. */
+function thanSua(dl, sua) {
+  const p = dl.phieu;
+  const dong = dl.dong.filter((d) => Number(sua[d.id]) > 0).map((d) => ({ ...d, moi: veLuu(sua[d.id], d.luong / d.luong_hien || 1) }));
+  if (p.loai === 'DH') return { nguyen_lieu: dong.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi })) };
+  if (p.loai === 'PN') return { dong: dong.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi, don_gia: d.don_gia ?? null, han_dung: d.han_dung })) };
+  return { su_co: p.su_co, ghi_chu: p.ghi_chu, muc: dong.map((d) => (p.su_co === 'het_han' && d.lo_id ? { lo_id: d.lo_id, luong: d.moi }
+    : d.nguyen_lieu_id ? { nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi, cho_mon_id: d.cho_mon_id } : { san_pham_id: d.san_pham_id, luong: d.moi })) };
+}
 
 export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
   const [dl, setDl] = useState(null);
@@ -48,7 +89,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
   const luuSua = async () => {
     const l = hoiLyDo('Lý do sửa phiếu?');
     if (!l) return;
-    const r = await ghi(() => api.post(`/kho/phieu/${id}/sua`, { ly_do: l, mon: Object.entries(sua).map(([sp, sl]) => ({ san_pham_id: Number(sp), so_phan: Number(sl) })) }));
+    const than = dl.phieu.loai === 'PX' ? { mon: Object.entries(sua).map(([sp, sl]) => ({ san_pham_id: Number(sp), so_phan: Number(sl) })) } : thanSua(dl, sua);
+    const r = await ghi(() => api.post(`/kho/phieu/${id}/sua`, { ly_do: l, ...than }));
     if (r?.phieu) { setSua(null); moPhieu(r.phieu.id); }
   };
   const inRa = async (k) => { if (await ghi(() => api.post(`/kho/phieu/${id}/in`))) setKho(k); };
@@ -63,6 +105,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
   const quanLy = vaiTro === 'owner' || vaiTro === 'manager';
   const chuQuan = vaiTro === 'owner';
   const daDuyet = p.trang_thai === 'da_duyet';
+  const laPX = p.loai === 'PX';
 
   return (
     <div>
@@ -77,7 +120,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {p.thay_cho_id && <div className="kho-nho kho-khong-in"><button className="kho-lien-ket" onClick={() => moPhieu(p.thay_cho_id)}>Thay cho phiếu cũ</button></div>}
         {p.thay_bang_id && <div className="kho-canh kho-khong-in">Phiếu đã được sửa — <button onClick={() => moPhieu(p.thay_bang_id)}>xem phiếu thay</button></div>}
 
-        <h4 className="kho-muc">A · Tổng cần lấy</h4>
+        {!laPX && <BangDong dl={dl} kho={kho} />}
+        {laPX && <h4 className="kho-muc">A · Tổng cần lấy</h4>}
         {dl.tong.map((n) => (
           <div key={n.nguyen_lieu_id} className={`kho-dong ${n.am ? 'kho-am' : ''}`}>
             <span className="kho-o">☐</span><span style={{ flex: 1 }}>{n.ten}</span><b>{luong(n)}</b>
@@ -86,7 +130,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
           </div>
         ))}
 
-        <h4 className="kho-muc">B · Định lượng từng công thức</h4>
+        {laPX && <h4 className="kho-muc">B · Định lượng từng công thức</h4>}
         {dl.theo_mon.map((m) => (
           <div key={m.san_pham_id} className="kho-mon">
             <b>{m.ten} — {so(m.so_phan)} phần</b>{m.han_dung && <span className="kho-nho"> · hạn {gio(m.han_dung)}</span>}
@@ -98,8 +142,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
           </div>
         ))}
 
-        {daDuyet && <h4 className="kho-muc">C · Kết quả</h4>}
-        {daDuyet && dl.theo_mon.map((m) => {
+        {daDuyet && laPX && <h4 className="kho-muc">C · Kết quả</h4>}
+        {daDuyet && laPX && dl.theo_mon.map((m) => {
           const k = m.ket_qua;
           const n = nhap[m.san_pham_id];
           return (
@@ -125,12 +169,16 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
             </div>
           );
         })}
-        {kho && <div className="kho-nho" style={{ marginTop: '0.6rem' }}>Người lấy hàng: ________ · Người pha: ________</div>}
+        {kho && <div className="kho-nho" style={{ marginTop: '0.6rem' }}>{laPX ? 'Người lấy hàng: ________ · Người pha: ________' : 'Người lập: ________ · Người nhận / duyệt: ________'}</div>}
       </div>
 
       {loi && <div className="kho-loi">{loi}</div>}
       {sua && (
         <div className="card kho-khong-in" style={{ padding: '0.75rem', marginTop: '0.75rem' }}>
+          {!laPX && dl.dong.map((d) => (
+            <div key={d.id} className="kho-dong"><span style={{ flex: 1 }}>{d.ten}</span>
+              <input className="input kho-hep" type="number" min="0" step="any" value={sua[d.id]} onChange={(e) => setSua({ ...sua, [d.id]: e.target.value })} /> {d.don_vi}</div>
+          ))}
           {dl.theo_mon.map((m) => (
             <div key={m.san_pham_id} className="kho-dong"><span style={{ flex: 1 }}>{m.ten}</span>
               <input className="input" type="number" min="0" step="any" style={{ maxWidth: '6rem' }} value={sua[m.san_pham_id]}
@@ -142,7 +190,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
       )}
       <div className="kho-hang kho-khong-in" style={{ marginTop: '1rem' }}>
         {p.trang_thai === 'cho_duyet' && !quanLy && <span className="kho-thieu">Chờ quản lý duyệt — màn tự làm mới</span>}
-        {p.trang_thai === 'cho_duyet' && quanLy && p.nguoi_tao !== tenDangNhap && (
+        {p.trang_thai === 'cho_duyet' && quanLy && p.nguoi_tao !== tenDangNhap && (!p.can_chu_quan || chuQuan) && (
           <>
             <button className="btn btn-primary" disabled={dangGhi} onClick={() => ghi(() => api.post(`/kho/phieu/${id}/duyet`))}>Duyệt</button>
             <button className="btn btn-outline" disabled={dangGhi} onClick={tuChoi}>Từ chối</button>
@@ -150,9 +198,10 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         )}
         {daDuyet && <button className="btn btn-outline" disabled={dangGhi} onClick={() => inRa('k80')}>In 80 mm</button>}
         {daDuyet && <button className="btn btn-outline" disabled={dangGhi} onClick={() => inRa('a4')}>In A4</button>}
-        {chuQuan && p.loai === 'PX' && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && !sua && (
+        {chuQuan && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && !sua && (
           <>
-            <button className="btn btn-outline" onClick={() => setSua(Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)])))}>Sửa</button>
+            {(laPX || daDuyet) && <button className="btn btn-outline" onClick={() => setSua(laPX ? Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)]))
+              : Object.fromEntries(dl.dong.map((d) => [d.id, String(d.luong_hien)])))}>Sửa</button>}
             <button className="btn btn-outline" disabled={dangGhi} onClick={huy}>Huỷ phiếu</button>
           </>
         )}
