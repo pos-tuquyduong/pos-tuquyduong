@@ -258,7 +258,11 @@ async function main() {
       .filter((ten) => !['discountCodeValid', 'order', 'completedOrder'].includes(ten));
     k('D1c Sales.jsx không còn applyCustomerDiscount, không đọc <khách>.discount_value / discount_type (mọi tên biến)', sa.length > 0
       && !/applyCustomerDiscount/.test(sa) && docMuc.length === 0, docMuc.join(', '));
-    k('D1d CustomerInput.jsx không còn huy hiệu CK', ci.length > 0 && !/customerData\.discount_value|CK:/.test(ci));
+    // Mọi tên biến: chỉ còn ĐÚNG hai chỗ chép phản hồi máy chủ vào trạng thái (`data.discount_type / data.discount_value || 0`, giữ theo
+    // kế hoạch §9 Q2) — thêm một chỗ đọc nào (huy hiệu qua tên khác) là đỏ.
+    const docMucCI = [...ci.matchAll(/(\w+)\??\.discount_(value|type)\b/g)].map((m) => `${m[1]}.${m[2]}`);
+    k('D1d CustomerInput.jsx không còn huy hiệu CK (mọi tên biến)', ci.length > 0 && !/CK:/.test(ci)
+      && JSON.stringify(docMucCI) === JSON.stringify(['data.type', 'data.value']), docMucCI.join(', '));
     k('D1e Customers.jsx không còn bộ lọc has_discount, cột / form mức chiết khấu', cu.length > 0 && !/has_discount|discount_value|discount_type|formatDiscount|Chiết khấu mặc định/.test(cu));
     // D2: chạy hàm thật của tinh.js (ES module thuần, nạp thẳng như thu_BH1).
     let m = {};
