@@ -29,3 +29,14 @@ VS-IS-GUI-KHO-THO (bỏ `khoHoaDon(...)` quanh `boIn.bill.kho`) là đột biế
 - Khối seed `defaultSettings` trong `database.js` chỉ chạy khi bảng `pos_settings` rỗng; kho mới/thử có thể đã có dòng khác trước đó (chưa kiểm lại bằng lệnh; không dựa vào đó) → seed '80mm' chỉ là cho đủ đường; dữ liệu thật vẫn 'a5' và vẫn đọc ra 80mm ở màn hình (khoHoaDon). Không sửa dữ liệu.
 - Các `viec/*/dot_bien.py` cũ (KH-QUAY-2…) còn neo `value={khoHoaDon(config.default_size)}`, seed `'a5'` — sẽ HỎNG nếu ai chạy lại; đó là hồ sơ lịch sử của việc đã đóng, không có cổng nào chạy chúng.
 - Phiếu pha chế SAU THANH TOÁN (từng đơn, khổ 80mm/58mm ở Cài đặt hoá đơn → "Bộ in") KHÁC "phiếu xuất / pha chế" của màn Kho (PX, từ tab Pha chế). Mình hiểu "phiếu pha chế" trong nghiệm thu A là PX của kho (có A5/A4) và KHÔNG đụng phiếu pha chế từng đơn (giữ nhiệt 58/80, mục D). Nếu chủ quán muốn phiếu pha chế từng đơn cũng có A5/A4 thì cần phiếu riêng.
+
+## Soát độc lập vòng 1 (`/ra-soat`, báo cáo về qua SubagentHandback)
+KHÔNG ĐẠT (lỗi nhẹ, không đụng tiền). Tóm tắt nguyên văn các lỗi và cách xử lý:
+1. `thu_KHOIN1.js:171` / `XemPhieu.jsx:108` — K3: ca chỉ kiểm đối số 1 của `docInPhieuKho`; đổi đối số loại thành `'PX'` vẫn xanh → ĐÃ VÁ: ca đòi đối số 2 = `dl?.phieu.loai`; đột biến VS-XP-LOAI-CUNG, VS-XP-LOAI-SAI-TRUONG.
+2. `InvoiceSettings.jsx` ô "Khổ mặc định" — K5: chưa nạp được bộ in thì lưu không gửi khổ nhưng vẫn báo "đã lưu" → ĐÃ VÁ: `<select disabled={!boInDaNap}>`; ca + đột biến BV-IS-O-KHO-KHONG-KHOA.
+3. `trang_thai.md` — K1: gõ sai `'a80mm'`, và câu "undefined" chưa dẫn được → ĐÃ SỬA.
+4. `database.js:579` cột `paper_size DEFAULT 'a5'` — K4 lẻ → ĐÃ ĐỔI '80mm' (route luôn truyền giá trị nên không đổi hành vi).
+Nghi ngờ đã xét: ca "dòng bảng không tràn" yếu → ĐÃ SIẾT (đòi nằm trong khối @media print); `invoice_default_size` ghi song song `boIn.bill.kho` — GIỮ có chủ ý (máy chưa có bộ in lưu vẫn đúng, hai giá trị luôn ghi cùng lúc từ một ô); cỡ chữ `.kho-in-a4 15px` là thay đổi nhìn thấy nhỏ (A4 trước chưa có cỡ riêng) — xin chủ quán nhìn thử.
+Nghiệm thu soát: A đạt · C đạt · B thiếu kết xuất in thật (không có trình duyệt) · D đạt có điều kiện.
+Bài học soát: KHOÁ — ca đọc nguồn phải khớp CẢ BỘ đối số lời gọi; NGUYÊN TẮC — chuyển nguồn ghi sang nơi có cổng "đã nạp" thì khoá luôn ô đó khi chưa nạp.
+Đột biến sau vòng 1: `dot_bien.py` 57 đột biến · BẮT 57 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh: 66 · 55 · 90).

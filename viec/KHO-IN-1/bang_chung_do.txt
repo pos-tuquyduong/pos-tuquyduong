@@ -13,9 +13,9 @@ $ node cong_cu/thu_KHOIN1.js --goc <bản chép của 7fc9bff>
   ✗ C seed máy chủ: invoice_default_size = '80mm' (không còn 'a5')
   ✗ C đường đọc máy chủ: log in hoá đơn không còn mặc định paper_size 'a5'
   (… tổng 48 ca ✗; 17 ca xanh trên gốc đúng dự kiến: nhóm K5 [D] và ca "luồng hợp lệ" của [A] — máy chủ gốc vẫn nhận khoá cài đặt khác, quản lý có quyền ghi được)
-(tổng dòng bài in: SỐ CA = 65; 48 hỏng · 17 đạt)
+(sau soát vòng 1, bài thêm 1 ca khoá ô khổ: SỐ CA = 66; trên gốc 49 hỏng · 17 đạt)
 
-Trên code đã vá (HEAD): 65 đạt · 0 hỏng.
+Trên code đã vá (HEAD): 66 đạt · 0 hỏng.
 
 $ node cong_cu/thu_KHQUAY2.js --goc <bản chép của 7fc9bff>      (bài cũ sửa vì hành vi đã được chủ quán duyệt đổi — luật 6.8)
   ✗ B2 InvoiceSettings: giá trị cũ lưu trong cấu hình được đọc qua khoHoaDon (ô chọn hiện đúng khổ, không trống)
@@ -23,6 +23,6 @@ $ node cong_cu/thu_KHQUAY2.js --goc <bản chép của 7fc9bff>      (bài cũ s
   ✗ C5 KHO-IN-1 đổi seed invoice_default_size sang '80mm' (dữ liệu thật đang là a5 vẫn đọc ra 80mm, không sửa dữ liệu — ca B1)
 (thu_KHQUAY2: 3 hỏng · 52 đạt trên gốc; trên HEAD: 55 đạt · 0 hỏng.)
 
-═══ Dòng SỐ CA cho cổng A16 (số = dòng tổng trên code ĐÃ VÁ, HEAD 52dde2c) ═══
-SỐ CA cong_cu/thu_KHOIN1.js: 65
+═══ Dòng SỐ CA cho cổng A16 (số = dòng tổng trên code ĐÃ VÁ, HEAD d5f0538) ═══
+SỐ CA cong_cu/thu_KHOIN1.js: 66
 SỐ CA cong_cu/thu_KHQUAY2.js: 55
