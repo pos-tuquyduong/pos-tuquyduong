@@ -82,7 +82,7 @@ async function main() {
   // ── Dữ liệu nền ──
   const chu = await db.queryOne("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const tkChu = jwt.sign({ userId: chu.id }, KHOA_NV, { expiresIn: '1h' });
-  const nvId = Number((await db.run(`INSERT INTO pos_users (username, password_hash, display_name, role, is_active) VALUES ('nv_thu', 'x', 'NV thử', 'staff', 1)`)).lastInsertRowid);
+  const nvId = Number((await db.run(`INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_thu', 'x', 'NV thử', 'staff', 1)`)).lastInsertRowid);
   const tkNv = jwt.sign({ userId: nvId }, KHOA_NV, { expiresIn: '1h' });
   const datCaiDat = (key, value) => db.run(`INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [key, String(value), getNow()]);
