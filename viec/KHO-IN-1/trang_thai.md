@@ -26,6 +26,6 @@ VS-IS-GUI-KHO-THO (bỏ `khoHoaDon(...)` quanh `boIn.bill.kho`) là đột biế
 
 ## Phát hiện (ngoài phạm vi, không sửa)
 - Quản lý (`manager`) KHÔNG có sẵn quyền `manage_settings` trong seed (`server/database.js` không có dòng nào cho quyền đó) → quản lý chỉ lưu được Cài đặt in phiếu khi chủ quán cấp quyền ở tab Phân quyền. Đúng như mọi cài đặt khác; ghi lại vì phiếu nói "chủ quán / quản lý".
-- Khối seed `defaultSettings` trong `database.js` chỉ chạy khi bảng `pos_settings` rỗng; kho mới/thử có thể đã có dòng khác trước đó (test chạy thật cho `invoice_default_size` = undefined) → seed 'a80mm' chỉ là cho đủ đường; dữ liệu thật vẫn 'a5' và vẫn đọc ra 80mm ở màn hình (khoHoaDon). Không sửa dữ liệu.
+- Khối seed `defaultSettings` trong `database.js` chỉ chạy khi bảng `pos_settings` rỗng; kho mới/thử có thể đã có dòng khác trước đó (chưa kiểm lại bằng lệnh; không dựa vào đó) → seed '80mm' chỉ là cho đủ đường; dữ liệu thật vẫn 'a5' và vẫn đọc ra 80mm ở màn hình (khoHoaDon). Không sửa dữ liệu.
 - Các `viec/*/dot_bien.py` cũ (KH-QUAY-2…) còn neo `value={khoHoaDon(config.default_size)}`, seed `'a5'` — sẽ HỎNG nếu ai chạy lại; đó là hồ sơ lịch sử của việc đã đóng, không có cổng nào chạy chúng.
 - Phiếu pha chế SAU THANH TOÁN (từng đơn, khổ 80mm/58mm ở Cài đặt hoá đơn → "Bộ in") KHÁC "phiếu xuất / pha chế" của màn Kho (PX, từ tab Pha chế). Mình hiểu "phiếu pha chế" trong nghiệm thu A là PX của kho (có A5/A4) và KHÔNG đụng phiếu pha chế từng đơn (giữ nhiệt 58/80, mục D). Nếu chủ quán muốn phiếu pha chế từng đơn cũng có A5/A4 thì cần phiếu riêng.

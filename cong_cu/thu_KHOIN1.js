@@ -168,7 +168,7 @@ async function main() {
     // cài đặt tải từ máy chủ → vào state → chính state đó đưa cho docInPhieuKho (không đưa {} hay hằng)
     const tai = /api\.get\('\/settings'\)\.then\(\(\w+\) => (set\w+)\(/.exec(xem);
     const bien = tai && new RegExp('const \\[(\\w+), ' + tai[1] + '\\] = useState\\(').exec(xem);
-    k('B màn đọc cài đặt từ máy chủ rồi chọn khổ qua docInPhieuKho (một hàm chung; đối số là state vừa nạp từ GET /settings)', !!bien && new RegExp('docInPhieuKho\\(' + bien[1] + ',').test(xem), String(tai && tai[1]));
+    k('B màn đọc cài đặt từ máy chủ rồi chọn khổ qua docInPhieuKho (một hàm chung; đối số 1 là state vừa nạp từ GET /settings, đối số 2 là loại của phiếu đang xem)', !!bien && new RegExp('docInPhieuKho\\(' + bien[1] + ', dl\\?\\.phieu\\.loai\\)').test(xem), String(tai && tai[1]));
   }
   k('B nút in dựng từ thuTuNutIn(khổ mặc định) — khổ mặc định đứng đầu, không viết cứng 3 nút', /thuTuNutIn\(/.test(xem) && !/inRa\('(a4|a5|80mm|k80)'\)/.test(xem));
   k('B mọi nút in gọi cùng một hàm inRa (cùng đường ghi đếm lần in rồi mới in)', /inRa\(\s*\w+\s*\)/.test(xem) && /api\.post\(`\/kho\/phieu\/\$\{id\}\/in`\)/.test(xem));
@@ -181,7 +181,7 @@ async function main() {
   k('B CSS in: ngắt trang giữa các bản (.kho-ban { break-after: page })', /\.kho-ban\s*\{[^}]*break-after:\s*page/.test(css));
   k('B CSS in: các bản sau bản đầu HIỆN khi in (display: block trong @media print)', /@media print\s*\{[\s\S]*\.kho-ban:not\(:first-child\)\s*\{\s*display:\s*block/.test(css));
   k('B CSS màn hình: chỉ bản đầu hiện (các bản sau display: none ngoài @media print)', /^\.kho-ban:not\(:first-child\)\s*\{\s*display:\s*none/m.test(css));
-  k('B CSS in: dòng bảng không tràn (xuống dòng khi dài, không cắt chữ): overflow-wrap hoặc word-break trong khối .kho-in', /\.kho-in[^{]*\{[^}]*(overflow-wrap|word-break)/.test(css) || /(overflow-wrap|word-break)/.test(css));
+  k('B CSS in: dòng bảng không tràn (xuống dòng khi dài, không cắt chữ): overflow-wrap hoặc word-break trong khối .kho-in', /@media print\s*\{[\s\S]*\.kho-in\s*\{[^}]*(overflow-wrap|word-break)/.test(css));
   k('B nút khổ A5/A4/80mm có nhãn tiếng Việt rõ (mm / A5 / A4)', /In 80 mm|80 mm/.test(xem) && /A5/.test(xem) && /A4/.test(xem));
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -202,6 +202,7 @@ async function main() {
   k('C ô "Khổ mặc định" đọc từ khổ bill của bộ in (một nguồn với lệnh in), không đọc config.default_size', /Khổ mặc định:[\s\S]{0,300}value=\{khoHoaDon\(boIn\.bill\.kho\)\}/.test(is) && !/value=\{khoHoaDon\(config\.default_size\)\}/.test(is));
   k('C đổi ô → sửa boIn.bill.kho (không chỉ config.default_size)', /Khổ mặc định:[\s\S]{0,500}setBoIn\(/.test(is) && /Khổ mặc định:[\s\S]{0,500}bill:\s*\{\s*\.\.\.\w+\.bill,\s*kho:/.test(is));
   k('C lưu: gửi invoice_default_size = khổ bill (khoá mà docBoIn đọc khi chưa có bộ in lưu) cùng yêu cầu', /invoice_default_size:\s*khoHoaDon\(boIn\.bill\.kho\)|invoice_default_size:\s*boIn\.bill\.kho/.test(is));
+  k('C ô khổ mặc định khoá khi chưa nạp bộ in (disabled={!boInDaNap} ngay trong <select> Khổ mặc định) — không báo "đã lưu" oan', /Khổ mặc định:[\s\S]{0,200}<select\s+disabled=\{!boInDaNap\}/.test(is));
   k('C chỉ gửi invoice_default_size khi đã nạp bộ in (không ghi đè bằng mặc định khi tải hỏng)', /boIn\s*\?\s*\{[^}]*invoice_default_size/.test(is));
   const srv = doc('server/routes/settings.js');
   const dbs = doc('server/database.js');
