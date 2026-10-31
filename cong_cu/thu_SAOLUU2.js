@@ -164,6 +164,20 @@ async function main() {
     k('B5 trang con đứng TRƯỚC trang cha trong file (khoá ngoại bật) → 200, đủ cả nhóm lẫn thành viên (chèn cha trước, xoá con trước)',
       b5.status === 200 && (await THU.db.query('SELECT id FROM pos_product_group_members WHERE group_id = 77')).length === 1
       && (await THU.db.query('SELECT id FROM pos_product_groups')).length === 1, moTa(b5));
+    // Dòng trống GIỮA trang (người sửa file xoá một dòng): sheet_to_json bỏ dòng trống → số dòng báo phải là dòng Excel THẬT (5), không phải thứ tự (4).
+    const wbTrong = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wbTrong, XLSX.utils.aoa_to_sheet([['id', 'type'], [9100, 'a'], [9101, 'b'], [], [9102, null]]), 'Nhật ký đồng bộ');
+    const b6 = await THU.gui(XLSX.write(wbTrong, { type: 'buffer', bookType: 'xlsx' }));
+    k('B6 dòng trống giữa trang → lỗi NOT NULL báo đúng dòng Excel 5 (không phải 4); không đổi gì', b6.status === 400 && b6.dong === 5
+      && (await THU.bam()) === truoc, `${moTa(b6)} · dong ${b6.dong}`);
+    // Lỗi HẠ TẦNG (không phải dữ liệu của dòng — mạng, Turso hết giờ…): giả bằng trigger đọc bảng không có → SQLITE_ERROR khi chèn.
+    await THU.db.run('CREATE TRIGGER thu_loi_ha_tang BEFORE INSERT ON pos_sync_logs BEGIN SELECT * FROM bang_khong_co_thu; END');
+    const truocB7 = await THU.bam();
+    const b7 = await THU.gui(tepTu([['Nhật ký đồng bộ', nhatKy(2, { type: 'b7' })]]));
+    const sauB7 = await THU.bam();
+    await THU.db.run('DROP TRIGGER thu_loi_ha_tang');
+    k('B7 lỗi không phải dữ liệu (SQLITE_ERROR) → 500 LOI_MAY_CHU, KHÔNG báo "dòng N hỏng"; không đổi gì', b7.status === 500 && b7.code === 'LOI_MAY_CHU'
+      && b7.dong === undefined && sauB7 === truocB7, moTa(b7));
     const kp = doc(path.join(MAY_CHU, 'utils', 'khoiPhuc.js'));
     k('B3 server/utils/khoiPhuc.js có và không còn console.error (lỗi chèn không bị nuốt)', kp.length > 0 && !/console\.error/.test(bo(kp)));
   }

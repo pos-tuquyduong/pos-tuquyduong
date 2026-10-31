@@ -33,6 +33,9 @@ DOT_BIEN = [
   ('BV-NANG-CAP', [(K, "if (bang.name === 'pos_nang_cap') {", 'if (false) {', 1)], r'✗ (C4|E2) '),
   ('BV-KHO-TRONG-LOI', [(K, "AS n').catch(() => null);", "AS n');", 1)], r'✗ E8 '),
   ('VS-LY-DO-KHOI-PHUC', [(K, '      if (demKho) boQua(', '      if (true) boQua(', 1)], r'✗ E8 '),
+  # ── vòng sửa 1 (soát độc lập: lỗi hạ tầng báo nhầm thành dòng hỏng · số dòng lệch khi có dòng trống) ──
+  ('VS-LOI-HA-TANG-THANH-DONG', [(K, '      if (!laLoiDuLieu(err)) throw err;\n', "      if (String(err?.code) === 'SQLITE_BUSY') throw err;\n", 1)], r'✗ B7 '),
+  ('VS-SO-DONG-THU-TU', [(K, 'for (const d of m.dong) await chay(m, d.__rowNum__ + 1,', 'for (const [i, d] of m.dong.entries()) await chay(m, i + 2,', 1)], r'✗ B6 '),
   ('VS-TRANG-TRONG-XOA', [(K, "    if (!dong.length) { boQua('TRANG_TRONG', 'Không có dữ liệu'); continue; }", '', 1)], r'✗ E7 '),
 ]
 
