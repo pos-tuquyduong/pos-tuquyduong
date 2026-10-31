@@ -48,6 +48,8 @@ DOT_BIEN = [
   ('BV-LO2-UUDAI1', BV_LO2, r'✗ G5b ', 'thu_UUDAI1.js'),
   ('BV-LO2-GOI1', BV_LO2, r'✗ B3c2 ', 'thu_GOI1.js'),
   ('BV-LO2-P20', BV_LO2, r'✗ hồ sơ cũ fixed 5\.000', 'thu_P20.js'),
+  ('VS-LO2-CHI-PERCENT', [(O, LO2_MOI, LO2_CU.replace('if (mucCK > 0) {', 'if (mucCK > 0 && khCK.discount_type === "fixed") {'), 1), (O, TINH_MOI, TINH_CU, 1)],
+   r'✗ A2 ', 'thu_KHACHCK1.js'),
   ('VS-LO2-TIN-TO-KHAI', [(O, LO2_MOI, '    if (!discountCodeId) {\n      finalDiscountType = discount_type;\n      finalDiscountValue = discount_value;\n    }\n', 1)],
    r'✗ F3c ', 'thu_KHACHCK1.js'),
   # ── hai cửa ghi: chặn mức > 0 ──
