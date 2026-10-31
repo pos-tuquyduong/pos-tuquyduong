@@ -70,3 +70,56 @@ BV-HOPDONG-CUA-DON, VS-HOPDONG-MA-THIEU.
   thêm `code` thật ở orders.js nên làm ở việc sau.
 - Bộ kiểm có sẵn 1 cảnh báo (GET có lệnh ghi: packages.js:194, products.js:67, sync.js:147) — có từ trước việc này.
 - Người gác chặn vòng `for` trong bash (B-CHUONGTRINH) — chạy lặp bài thử phải gõ từng lần.
+
+## Soát độc lập — vòng 1 (agent /ra-soat, 31.10) — chép nguyên
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/utils/donApp.js:221–233 (lỗi tiền, khuôn K4 + K3). Với cách trả `vi`: `chotPhien` đã ghi xong (đơn thật đã có, ví đã trừ), sau đó
+   `docPhien` ở dòng 223 hoặc câu `UPDATE pos_don_app SET phien_id` ở dòng 225 ném lỗi (Turso chập mạng). `finally` 229–232 vẫn thấy xong=false,
+   xoá dòng giữ khoá (phien_id IS NULL). App nhận 500 LOI_MAY_CHU; gửi lại cùng khoa_gui → không còn khoá → phiên mới → trừ ví lần hai. Đơn đã trả
+   lần đầu mất dòng pos_don_app → dsQuay không thấy, chuông không kêu. Cách sửa gọn: ghi phien_id ngay sau taoPhien (trước khi chốt); finally chỉ
+   xoá dòng khi phiên không da_thu.
+2. server/utils/donApp.js:180–181 và :225 (K4; LUAT §5 "kiểm changes"). Yêu cầu chạy quá GIU_KHOA_CHET_GIAY = 120 s (SX treo: checkStock 8 s mỗi món,
+   gọi ở taoPhien và chotPhien) → lần gửi lại cùng khoá xoá dòng giữ khoá của nó, tạo phiên thứ hai; yêu cầu đầu UPDATE 0 dòng không kiểm changes,
+   vẫn trả 200, đơn không có dòng App (quầy không thấy). Khách có thể có hai đơn.
+3. client/src/components/DonAppNoi.jsx:57–63 + server/utils/donApp.js:292 (K4: hai vị từ lệch nhau). Chuông xét "mới" theo id pos_don_app (thứ tự
+   TẠO), đơn hiện ở quầy khi TRẢ xong. Đơn A (id 10) trả QR chậm, B (id 11) trả ví ngay → mốc 11 → A trả xong không bao giờ kêu. Không bài thử.
+4. server/utils/donApp.js:288–292 và :303–306 (nhẹ, K4). Đơn App đã trả mà quầy huỷ / hoàn (da_huy) vẫn nằm mãi trong danh sách quầy
+   (tien_trinh_quay <> 'xong'); doiTienTrinh không xét trạng thái đơn thật — ghi được "Đang làm" cho đơn đã huỷ.
+5. 7 đột biến tự dựng đều SỐNG (K3): X-BO-HUY-PHIEN (huyPhien trong finally :231), X-BO-GIA-DOI-SAU-PHIEN (:217–220), X-BO-DANG-XU-LY-CHET,
+   X-GIU-KHOA-CHET-MAI (:180), X-TRUNG-KHOA-NEM (:207), X-CHOT-VI-BO-KIEM-DA-THU (:223), X-QUAY-KHONG-LOC-HOM-NAY (:292). Ca E5 "song song" thật ra
+   chạy NỐI TIẾP, chưa lần nào vào nhánh UNIQUE / DANG_XU_LY — câu bang_chung_do.txt:21 không chứng minh "cùng lúc → một đơn".
+6. trang_thai.md (K6): chưa ghi `node tu_chay/cong.js chay` (LUAT §6.3), chưa có 1–3 thao tác thử tay (§6.4), chưa có mục CHƯA KIỂM.
+NGHI NGỜ: lưới 10 giây không nhớ khoá mới (gửi lại khoá đó sau 10 s → đơn cho_tra thứ hai, không mất tiền ví); quay.js GET /don-app + đổi tiến
+  trình chỉ authenticate (phiếu không nêu quyền); Map lượt 10.000 khách clear() toàn bộ; nút cố định góc trên phải có thể đè nút màn Bán hàng;
+  tiền mới chưa có quy tắc đối soát riêng (dựa chua_khop sẵn có, màn Đối soát chưa nhận ra đơn App).
+NGHIỆM THU: 7/11 (A, B, C, F, G, I, J). Thiếu: D (ca DON_KHONG_HOP_LE; GIA_DA_DOI sau tạo phiên + huỷ phiên ở finally; Q8 chốt ví hỏng qua POST /don);
+  E (cùng lúc thật); H (giao diện: huy hiệu, chuông máy ở quán, mặc định tắt, một lần, không kêu lại — không bài thử, không thao tác thử tay, lỗi 3);
+  K (K1 chưa so hoàn, Giờ vàng quầy, đối soát; điểm chỉ "> 0").
+CHƯA SOÁT ĐƯỢC: chưa dựng lỗi 1, 2 thành bài thử đỏ; chưa thử giao diện trên máy; chưa chạy cong.js chay; chưa rà mục G CHECKLIST từng dòng;
+  chưa kiểm KH-SP-1 đã gộp main.
+BÀI HỌC: KHOÁ — ca "lỗi ném SAU chotPhien → gửi lại cùng khoa_gui → ví trừ một lần, đơn vẫn ở quầy"; thêm 7 đột biến mục 5 kèm ca bắt; ca song song
+  phải chồng thật (móc làm chậm sau INSERT giữ khoá). NGUYÊN TẮC (K4) — finally / dọn dẹp sau giao dịch có thể đã ghi thì đọc lại trạng thái CSDL
+  trước khi xoá / huỷ, không dựa cờ trong bộ nhớ. (K4, giao diện) "mới" của chuông theo đúng mốc làm đơn hiện ở quầy. (K3) ca "song song" chỉ là
+  bằng chứng khi đột biến gỡ cổng chống đua làm nó đỏ.
+```
+
+## Vòng sửa 1 (theo soát vòng 1)
+| Lỗi soát | Sửa | Ca thử (đỏ trước vá) | Đột biến |
+|---|---|---|---|
+| 1 — lỗi ném SAU chốt ví → gửi lại trừ ví lần hai | donApp.js: gắn `phien_id` NGAY sau taoPhien (kiểm `changes`); finally chỉ xoá dòng đơn App khi phiên KHÔNG `da_thu` (đọc CSDL) | V1 (đỏ: ví 0 · đơn +2) | VS-FINALLY-TIN-CO-BO-NHO |
+| 2 — tự xoá dòng giữ khoá sau 120 s | bỏ hẳn cơ chế "khoá chết"; dòng giữ khoá chưa có phiên → luôn 503 `DANG_XU_LY`; hợp đồng: sau ~1 phút xem `GET /don` trước khi đặt lại | V3 | BV-DANG-XU-LY-GIU-KHOA |
+| 3 — chuông theo id lúc tạo | DonAppNoi.jsx: "mới" = id chưa có trong tập id đã thấy ở danh sách quầy (đơn vào danh sách khi đã trả) | — (giao diện: thử tay) | — |
+| 4 — đơn huỷ / hoàn kẹt ở quầy, vẫn bấm được | dsQuay: đơn trước hôm nay chỉ hiện khi chưa xong VÀ chưa huỷ / hoàn; doiTienTrinh đòi đơn thật chưa huỷ / hoàn | V7 (đỏ) | VS-QUAY-KHONG-LOC-HOM-NAY · VS-QUAY-BAM-DON-HUY |
+| 5 — 7 đột biến sống | thêm ca V2 (hai yêu cầu chồng thật — rào ở bước tra khoá), V3 (tra khoá lúc dòng giữ khoá chưa có phiên), V4 (giá đổi đúng lúc tạo phiên → huỷ phiên, nhả ví), V5 (chốt ví hỏng — Q8), V6 (DON_KHONG_HOP_LE) | V2–V6 | BV-FINALLY-HUY-PHIEN · BV-GIA-DOI-SAU-PHIEN · BV-TRUNG-KHOA-NEM · VS-CHOT-VI-BO-KIEM-DA-THU |
+| nghiệm thu K | K1 thêm Giờ vàng ở quầy + điểm so BẰNG số gốc (6) | K1 | — |
+| 6 — cổng chạy / thử tay / CHƯA KIỂM | ghi ở báo cáo 7 mục + bước 11 | — | — |
+
+Không sửa (lý do): lưới 10 giây không nhớ khoá mới — hợp đồng dặn App gửi lại bằng khoá CŨ; quyền GET /don-app chỉ `authenticate` — phiếu H đòi
+"MỌI máy nhân viên đang đăng nhập" thấy đơn; Map lượt clear() ở 10.000 khách — cùng khuôn giuLuotBoNho có sẵn; hai lần hỏi /don-app khi mở màn
+Đơn App — chấp nhận (15 s một lần).
+Tên đột biến thêm ở vòng 1: VS-FINALLY-TIN-CO-BO-NHO, BV-FINALLY-HUY-PHIEN, BV-GIA-DOI-SAU-PHIEN, BV-DANG-XU-LY-GIU-KHOA, BV-TRUNG-KHOA-NEM,
+VS-CHOT-VI-BO-KIEM-DA-THU, VS-QUAY-KHONG-LOC-HOM-NAY, VS-QUAY-BAM-DON-HUY. `python3 viec/KH-MUA-1/dot_bien.py`: 38 / 38 BẮT, đối chứng xanh.
+`npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1 (có sẵn từ trước).
+

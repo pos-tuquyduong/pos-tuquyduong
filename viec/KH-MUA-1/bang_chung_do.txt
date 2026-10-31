@@ -18,8 +18,17 @@ Trên gốc 76ce7c5 (bản bài thử cf76fee):  10 đạt · 100 hỏng  → Đ
     ✓ K1 quầy: điểm cộng của 2 đơn quầy > 0 (đường điểm chạy)
   Mẫu dòng đỏ trên gốc: ✗ A1 … HTTP 404 · KHONG_TIM_THAY · ✗ D1 NGOAI_GIO → 400 … HTTP 404 · KHONG_TIM_THAY · ✗ H2 đơn chưa trả KHÔNG hiện ở
   quầy — HTTP 404 · ✗ H5 cài đặt chuông: sai giá trị → 400 … HTTP 200 / HTTP 200 … · ✗ F1 GET /don thấy đơn App cho_tra …
-Sau vá (HEAD, bản cf76fee): 110 đạt · 0 hỏng — chạy 4 lần liền đều 110/0 (E5, G6 song song xanh cả 4 lần).
-SỐ CA thu_KHMUA1.js: 110
+Sau vá (HEAD, bản cf76fee): 110 đạt · 0 hỏng — chạy 4 lần liền đều 110/0 (E5, G6 xanh cả 4 lần; soát vòng 1 chỉ ra E5 thật ra chạy NỐI
+TIẾP — ca chồng thật là V2, V3 thêm ở vòng sửa 1).
+
+Vòng sửa 1 (bản bài 2beffa7 — thêm mục [V] + K1 số Giờ vàng quầy / điểm bằng số):
+  Trên gốc 76ce7c5:  11 đạt · 107 hỏng  → ĐỎ (11 ca đạt = 10 ca ở trên + "K1 quầy: điểm = 6 (số gốc); Giờ vàng quầy … (5000 · 0 · 20000 · 20000 · 5000)")
+  Trên HEAD TRƯỚC vá vòng 1 (b5098db, code 5691060) — bài [V] mới: 115 đạt · 2 hỏng → ĐỎ ĐÚNG lỗi soát báo:
+    ✗ V1 lỗi ném SAU khi chốt ví đã ghi → gửi lại cùng khoá → đơn cũ (trung, da_tra), ví trừ MỘT lần, đơn vẫn hiện ở quầy
+      — HTTP 500 · LOI_MAY_CHU → HTTP 200 · ví 0 · đơn +2          (trừ ví HAI lần, hai đơn)
+    ✗ V7 quầy: xong hôm qua ẩn · đang làm hôm qua hiện · đã huỷ hôm qua ẩn, bấm Đang làm → 409 — [đơn huỷ còn hiện] · HTTP 200
+  Sau vá vòng 1 (HEAD 7ad14ec): 118 đạt · 0 hỏng
+SỐ CA thu_KHMUA1.js: 118
 
 Bảng số chụp K1 (luồng quầy, chủ quán Q8/K): tinh-thu subtotal 80000 · giảm hạng 8000 · giảm mã 5000 · total 67000 · POST /orders total 67000 ·
 phiên tài khoản tổng 27000 · chốt 200 · số dư sau 173000 — trên gốc và sau vá BẰNG nhau.
@@ -38,8 +47,10 @@ Sau vá (HEAD): 81 đạt · 0 hỏng
 SỐ CA thu_HOPDONG_KH.js: 81
 
 ═══ Bài cũ chạy lại sau vá (không sửa) ═══
-thu_KH1.js 157 đạt · 0 hỏng · thu_KHAPI3.js 67 đạt · 0 hỏng · `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn
+thu_KH1.js 157 đạt · 0 hỏng · thu_KHAPI3.js 67 đạt · 0 hỏng · `npm test -- --day-du` (cả sau vòng sửa 1): PASS 88 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn
 từ trước: GET có lệnh ghi ở packages.js:194, products.js:67, sync.js:147 — không phải file của việc này).
 
 ═══ Đột biến (python3 viec/KH-MUA-1/dot_bien.py) ═══
 ĐỐI CHỨNG XANH (mua 110/0 · hd 81/0) · TỔNG 30 đột biến · BẮT 30 · SỐNG 0 · HỎNG 0 · LẠC 0
+Vòng sửa 1: ĐỐI CHỨNG XANH (mua 118/0 · hd 81/0) · TỔNG 38 đột biến · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0 (thêm 8 đột biến cho chỗ vá vòng 1,
+neo lại BV-BO-XOA-GIU-KHOA, BV-QUAY-THAY-DON-CHO-TRA, BV-DOI-TIEN-TRINH-CHUA-TRA theo code mới).
