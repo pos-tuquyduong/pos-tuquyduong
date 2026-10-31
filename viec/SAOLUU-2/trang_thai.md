@@ -309,3 +309,11 @@ vượt ngân sách 32 dòng do ca thêm theo soát.
   (Gộp được vào K1 / K4 sẵn có — không mở K9, không tăng số khuôn.)
 - **BỎ:** (a) 6 lệnh bị người gác chặn — luật đã có và bắt đúng, lỗi do mình viết lệnh gộp; không cần khoá thêm. (b) D2e tự so với chính nó —
   K3 đã có dòng "ca phải ĐỎ khớp câu kết luận", tự bắt trước commit.
+
+## Cổng
+- `node tu_chay/cong.js chay . e94c504^ HEAD viec/SAOLUU-2` (ở b888eb6, cây sạch) → ✓ CỔNG CHẠY ĐẠT
+- GIT: git log --oneline -2 (ở b888eb6):
+  - b888eb6 SAOLUU-2: bao cao soat vong 3 + vong sua cuoi + bao cao 7 muc + bai hoc
+  - 8815e3c SAOLUU-2 vong sua cuoi: neo BV-LOC-COT theo dong moi
+
+HEAD ĐÃ KIỂM: b888eb6
