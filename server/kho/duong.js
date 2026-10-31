@@ -2,6 +2,8 @@
  * KHO-1 — đường /api/pos/kho: nhận yêu cầu, kiểm quyền (ở MÁY CHỦ), gọi hàm của tinh.js / duLieu.js / nhapSx.js.
  * Quyền (phiếu I): chủ quán mọi thứ · quản lý thêm / sửa nguyên liệu, nhóm, nhà cung cấp, xem công thức · nhân viên chỉ xem nguyên liệu.
  * KHO-2a: chủ — mọi thứ · quản lý — định mức, tạo + duyệt phiếu, xem giá · nhân viên — Pha chế, tạo phiếu, tồn KHÔNG giá. Đường lạ → 403.
+ * KHO-2b: đặt hàng (DH) · nhận hàng (PN) · phát sinh (PS) — mọi vai trò tạo; duyệt / từ chối quản lý (người KHÁC người tạo), đơn vượt hạn mức chỉ chủ quán;
+ * sửa / huỷ chỉ chủ quán. Hàm tạo ở nhapHang.js / phatSinh.js.
  * Ghi: trongGiaoDich + loiGhi dùng chung (kho bận → 409 KHO_BAN).
  */
 const fs = require('fs');
@@ -14,6 +16,8 @@ const { getNow, addDaysToDateString } = require('../utils/helpers');
 const tinh = require('./tinh');
 const duLieu = require('./duLieu');
 const nhapSx = require('./nhapSx');
+const nhapHang = require('./nhapHang');
+const phatSinh = require('./phatSinh');
 
 const router = express.Router();
 const QUAN_LY = checkRole('owner', 'manager');
@@ -175,7 +179,8 @@ function monHopLe(ds) {
   const dung = mon.every((m) => m.san_pham_id > 0 && m.so_phan > 0 && Number.isFinite(m.so_phan)) && new Set(mon.map((m) => m.san_pham_id)).size === mon.length;
   return dung ? mon : null;
 }
-const soPhanSai = (res) => res.status(400).json({ error: 'Chọn ít nhất một món, số phần lớn hơn 0', code: 'SO_PHAN_SAI' });
+const LOI_SO_PHAN = { error: 'Chọn ít nhất một món, số phần lớn hơn 0', code: 'SO_PHAN_SAI' };
+const soPhanSai = (res) => res.status(400).json(LOI_SO_PHAN);
 
 async function traPhieu(req, res, id, them = {}) {
   const p = await duLieu.docPhieu(csdl, id, getNow().slice(0, 10));
@@ -231,10 +236,27 @@ router.put('/dinh-muc', QUAN_LY, async (req, res) => {
 
 // Nhân viên tạo → chờ duyệt (trừ khi chủ quán tắt công tắc); quản lý / chủ → tự duyệt. Cùng ma_gui (bấm hai lần) → trả phiếu đã tạo.
 const maGuiCua = (req) => (req.body?.ma_gui ? String(req.body.ma_gui).slice(0, 80) : null);
+const timMaGui = async (req) => (maGuiCua(req) ? Number((await csdl.queryOne('SELECT id FROM kho_phieu WHERE ma_gui = ?', [maGuiCua(req)]))?.id) || null : null);
 router.post('/phieu-xuat', NHAN_VIEN, (req, res, next) => (monHopLe(req.body?.mon) ? next() : soPhanSai(res)), ghiPhieu(async (req, tx, luc) => (
   duLieu.taoPhieuXuat(tx, { mon: monHopLe(req.body.mon), nguoi: req.user.username, maGui: maGuiCua(req), luc, lucLam: luc,
     tuDuyet: VAI_QUAN_LY.includes(req.user.role) || !(await duLieu.nvCanDuyet(tx)) })
-), async (req) => (maGuiCua(req) ? Number((await csdl.queryOne('SELECT id FROM kho_phieu WHERE ma_gui = ?', [maGuiCua(req)]))?.id) || null : null)));
+), timMaGui));
+
+// ── KHO-2b: đặt hàng · nhận hàng · phát sinh. THAN: thân yêu cầu → đối số hàm tạo — MỘT chỗ cho tạo và sửa. ──
+const soId = (x) => (Number(x) > 0 ? Number(x) : null);
+const chuHoacNull = (x) => String(x ?? '').trim() || null;
+const THAN = {
+  DH: (b) => ({ mon: b.mon ?? [], nguyenLieu: b.nguyen_lieu ?? [], nccId: soId(b.nha_cung_cap_id), ghiChu: chuHoacNull(b.ghi_chu) }),
+  PN: (b) => ({ donId: soId(b.don_id), dong: b.dong, nccId: soId(b.nha_cung_cap_id), ghiChu: chuHoacNull(b.ghi_chu) }),
+  PS: (b) => ({ suCo: b.su_co, muc: b.muc, ghiChu: chuHoacNull(b.ghi_chu) }),
+};
+const TAO = { DH: nhapHang.taoDatHang, PN: nhapHang.taoPhieuNhan, PS: phatSinh.taoPhatSinh };
+const nguoiCua = (req, luc) => ({ nguoi: req.user.username, vaiTro: req.user.role, quanLy: VAI_QUAN_LY.includes(req.user.role), maGui: maGuiCua(req), luc });
+for (const [duong, loai] of [['phieu-dat', 'DH'], ['phieu-nhan', 'PN'], ['phieu-phat-sinh', 'PS']]) {
+  router.post(`/${duong}`, NHAN_VIEN, ghiPhieu((req, tx, luc) => TAO[loai](tx, { ...THAN[loai](req.body || {}), ...nguoiCua(req, luc) }), timMaGui));
+}
+router.get('/goi-y-nhap', NHAN_VIEN, doc((req) => nhapHang.goiYNhap(csdl, getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
+router.get('/phat-sinh/goi-y', NHAN_VIEN, doc((req) => phatSinh.goiY(csdl, String(req.query.su_co || ''), getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
 
 router.get('/phieu', NHAN_VIEN, doc((req) => duLieu.dsPhieu(csdl, req.query, getNow().slice(0, 10)).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
 
@@ -250,7 +272,7 @@ router.post('/phieu/:id/in', NHAN_VIEN, ghiPhieu(async (req, tx) => {
 }));
 
 router.post('/phieu/:id/duyet', QUAN_LY, ghiPhieu(async (req, tx, luc) => {
-  const r = await duLieu.duyetPhieu(tx, Number(req.params.id), req.user.username, luc);
+  const r = await duLieu.duyetPhieu(tx, Number(req.params.id), req.user.username, luc, req.user.role);
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
@@ -278,10 +300,20 @@ router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
-router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => {
-  if (!lyDoCua(req)) return thieuLyDo(res);
-  return monHopLe(req.body?.mon) ? next() : soPhanSai(res);
-}, ghiPhieu((req, tx, luc) => duLieu.suaPhieu(tx, Number(req.params.id), monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc)));
+// Sửa = huỷ phiếu cũ + phiếu MỚI thay_cho_id tự duyệt. Rẽ theo loại TRƯỚC khi kiểm thân — thân sai loại → 400, rollback (phiếu cũ còn nguyên).
+router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
+  const id = Number(req.params.id);
+  const cu = await tx.queryOne('SELECT loai, don_id FROM kho_phieu WHERE id = ?', [id]);
+  if (!cu || cu.loai === 'PX') {
+    return monHopLe(req.body.mon) ? duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc)
+      : { loi: [400, LOI_SO_PHAN] };
+  }
+  if (!TAO[cu.loai]) return { loi: [400, { error: 'Loại phiếu này không sửa được', code: 'KHONG_SUA_DUOC' }] };
+  const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);
+  if (huy.loi) return huy;
+  return TAO[cu.loai](tx, { ...THAN[cu.loai](req.body), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
+    thayCho: id, lyDo: lyDoCua(req), ep: true });
+}));
 
 router.get('/ton', NHAN_VIEN, doc((req) => duLieu.docTon(csdl, getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
 

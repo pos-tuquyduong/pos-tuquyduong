@@ -54,7 +54,7 @@ function trienKhai(congThuc, soPhan) {
 const SAP_HET_HAN_NGAY = 1;   // còn ≤ 1 ngày → đỏ "sắp hết hạn" (chủ quán chốt 29.10)
 const HAN_NGAY_TOI_DA = 3650;   // hạn dùng thành phẩm tối đa 10 năm — số lớn hơn làm phép cộng ngày theo lịch ném lỗi (Date ngoài tầm)
 const SAI_SO = 1e-9;
-const KHOA_GIA = ['gia_nhap', 'don_gia', 'gia_von'];
+const KHOA_GIA = ['gia_nhap', 'don_gia', 'gia_von', 'tong_uoc_tinh', 'gia_tri', 'da_dung', 'han_muc'];   // KHO-2b: mọi khoá tiền trả ra phải ở đây
 
 /** Thứ trong tuần (0 = chủ nhật) của 'YYYY-MM-DD' theo LỊCH — không dính múi giờ máy (Render chạy UTC). */
 function thuCuaNgay(ngay) {
@@ -158,10 +158,50 @@ function boGia(x) {
   return x;
 }
 
+// ── KHO-2b: đặt hàng · nhận hàng · phát sinh ──
+const HAN_MUC_DAT_HANG_MAC_DINH = 500000;   // quản lý tự duyệt đơn đặt hàng tới mức này (chủ quán chốt 26.10)
+const HAN_MUC_NOI_BO_MAC_DINH = 50000;   // dùng nội bộ / người / ngày theo giá vốn (chủ quán chốt 31.10)
+const SU_CO = ['hong', 'do_vo', 'het_han', 'noi_bo', 'khac'];
+const HAY_MUA_SO = 8;   // tab "Sắp hết & hay mua": số nguyên liệu nhận nhiều nhất …
+const HAY_MUA_NGAY = 30;   // … trong ngần này ngày
+
+/** Hạn mức từ Cài đặt: không có dòng → mặc định; số nguyên ≥ 0 → số đó; giá trị lạ (khôi phục không qua kiểm) → 0 = chặt nhất. */
+const hanMuc = (giaTri, macDinh) => (giaTri == null ? macDinh : /^\d+$/.test(String(giaTri).trim()) ? Number(giaTri) : 0);
+
+/** Tổng tiền dòng [{ so_luong, don_gia }] = Σ |lượng| × giá, làm tròn đồng; một dòng thiếu giá → null. */
+const tongTien = (dong) => (dong.every((d) => d.don_gia != null) ? Math.round(dong.reduce((t, d) => t + Math.abs(d.so_luong) * d.don_gia, 0)) : null);
+
+/** MỘT vị từ cho tạo và duyệt: tổng không tính được = coi như vượt. */
+const trongHanMuc = (tong, muc) => tong != null && tong <= muc;
+
+/** Gộp lượng theo nguyên liệu, giữ thứ tự gặp đầu: [{ nguyen_lieu_id, luong }] → cùng dạng, mỗi nguyên liệu một dòng. */
+function gopLuong(ds) {
+  const m = new Map();
+  for (const d of ds) m.set(d.nguyen_lieu_id, (m.get(d.nguyen_lieu_id) || 0) + d.luong);
+  return [...m].map(([nguyen_lieu_id, luong]) => ({ nguyen_lieu_id, luong }));
+}
+
+/** Phần còn lại của đơn: dòng đặt [{ nguyen_lieu_id, so_luong }] trừ dòng đã nhận (cùng dạng). Trả mỗi dòng đặt + cờ đơn đã đủ. */
+function conLaiDon(dat, nhan) {
+  const daNhan = new Map(gopLuong(nhan.map((d) => ({ nguyen_lieu_id: Number(d.nguyen_lieu_id), luong: Number(d.so_luong) }))).map((d) => [d.nguyen_lieu_id, d.luong]));
+  const con_lai = gopLuong(dat.map((d) => ({ nguyen_lieu_id: Number(d.nguyen_lieu_id), luong: Number(d.so_luong) })))
+    .map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, dat: d.luong, da_nhan: daNhan.get(d.nguyen_lieu_id) || 0, con_lai: Math.max(0, d.luong - (daNhan.get(d.nguyen_lieu_id) || 0)) }));
+  return { con_lai, du: con_lai.every((d) => d.con_lai <= SAI_SO) };
+}
+
+/** Hạn gõ tay: 'YYYY-MM-DD' → cuối ngày đó; 'YYYY-MM-DDTHH:mm:ss' giữ; trống → null; sai dạng → undefined (đường trả 400). */
+function chuanHan(x) {
+  const s = String(x ?? '').trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s + 'T23:59:59';
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) ? s : undefined;
+}
+
 /** Lỗi do đụng khoá duy nhất / khoá chính (tên trùng, bước nâng cấp đã chạy). */
 function laTrungKhoa(loi) {
   return /SQLITE_CONSTRAINT_(UNIQUE|PRIMARYKEY)/.test(String(loi && loi.code)) || /UNIQUE constraint|PRIMARY KEY/i.test(String(loi && loi.message));
 }
 
 module.exports = { KIEU_SAN_PHAM, SAP_HET_HAN_NGAY, HAN_NGAY_TOI_DA, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa, thuCuaNgay, chonDinhMuc,
-  canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia };
+  canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia,
+  HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SU_CO, HAY_MUA_SO, HAY_MUA_NGAY, SAI_SO, hanMuc, tongTien, trongHanMuc, gopLuong, conLaiDon, chuanHan };

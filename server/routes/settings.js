@@ -119,6 +119,11 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if (khoaSai) {
       return res.status(400).json({ success: false, error: `Cài đặt ${khoaSai[0]} chỉ nhận 0 hoặc 1`, code: 'CAI_DAT_KHONG_HOP_LE' });
     }
+    // KHO-2b: hạn mức đặt hàng / dùng nội bộ (đồng) — số nguyên ≥ 0, sai một khoá thì không ghi khoá nào.
+    const hanMucSai = Object.entries(settings).find(([key, value]) => ['kho_han_muc_dat_hang', 'kho_han_muc_noi_bo'].includes(key) && !/^\d+$/.test(String(value).trim()));
+    if (hanMucSai) {
+      return res.status(400).json({ success: false, error: `Cài đặt ${hanMucSai[0]} phải là số đồng nguyên ≥ 0`, code: 'CAI_DAT_KHONG_HOP_LE' });
+    }
     // KH-API-2: giờ hoạt động (gio_hd_*) — cùng luật: sai một khoá thì không ghi khoá nào.
     const loiGio = kiemCaiDat(settings);
     if (loiGio) return res.status(400).json({ success: false, error: loiGio, code: 'CAI_DAT_KHONG_HOP_LE' });
