@@ -174,6 +174,14 @@ async function main() {
     k('B8 món CHƯA có giá vẫn nhập được: tạo hàng, price 0, giữ thông tin', la(moi, 200) && !!hm && hm.price === 0 && hm.mo_ta === 'Món chưa có giá' && bang(JSON.parse(hm.nhu_cau), ['tinh_tao']), JSON.stringify(hm));
     const trong = ((await goi('GET', '/kh/menu')).j.data || []).some((m) => m.ma === 'tea_899');
     k('B8 món giá 0 vẫn KHÔNG vào menu khách (chưa bán được)', !trong);
+
+    // K5: giá + bật/tắt đặc biệt vẫn sửa được như cũ, và không xoá thông tin món đã nhập.
+    await ghi({ mo_ta: 'Còn nguyên sau khi đổi giá', nhu_cau: ['bo_khi'] });
+    const doiGia = await goi('PUT', '/pos/products/price', { sx_product_type: 'juice', sx_product_id: 801, price: 31000 }, { tk: tkChu });
+    const doiLo = await goi('PUT', '/pos/products/batch/prices', { products: [{ sx_product_type: 'juice', sx_product_id: 801, price: 32000, is_special_group: true }] }, { tk: tkChu });
+    const h9 = await hang('juice', 801);
+    k('B9 K5 đổi giá (PUT /price, batch/prices) vẫn chạy và KHÔNG xoá thông tin món', la(doiGia, 200) && la(doiLo, 200) && h9.price === 32000 && h9.is_special_group === 1
+      && h9.mo_ta === 'Còn nguyên sau khi đổi giá' && bang(JSON.parse(h9.nhu_cau), ['bo_khi']), JSON.stringify(h9));
   });
 
   muc('[C] /api/kh/menu — trường mới, món chưa nhập, trường cũ không đổi');
@@ -204,6 +212,19 @@ async function main() {
     const doc = (ten) => Number((gh.match(new RegExp(`${ten}:\\s*(\\d+)`)) || [])[1]);
     k('D3 giới hạn ký tự của giao diện = máy chủ (160 / 160 / 200)', doc('mo_ta') === may.GIOI_HAN.mo_ta && doc('cong_dung') === may.GIOI_HAN.cong_dung
       && doc('thanh_phan') === may.GIOI_HAN.thanh_phan, gh.trim());
+  });
+
+  muc('[E] Hợp đồng v4 khớp menu thật (thu_HOPDONG_KH.js chỉ kiểm chiều "trường trong hợp đồng có thật")');
+  await chay('E', async () => {
+    const hd = nguonSX('HOP_DONG_API_KH.md');
+    const khoi = JSON.parse(hd.match(/<!-- HOP_DONG_MAY_DOC -->\s*```json\n([\s\S]*?)```/)[1]);
+    const cua = khoi.cua.find((c) => c.pt === 'GET' && c.duong === '/menu');
+    const truong = [...new Set(cua.tra.map((t) => t.replace(/^data\[\]\./, '').split('[]')[0].split('.')[0]))].sort();
+    const m = await monTrongMenu('juice_801');
+    k('E1 mọi trường mà /menu trả ra đều có trong hợp đồng, và ngược lại (cùng bộ khoá)', !!cua && !!m && bang(truong, Object.keys(m).sort()), `${truong.join(',')} ≠ ${Object.keys(m || {}).sort().join(',')}`);
+    const dau = Number((hd.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
+    k('E2 PHIEN_BAN đầu file = phien_ban trong khối máy đọc, và ≥ 4', dau === khoi.phien_ban && dau >= 4, `${dau} / ${khoi.phien_ban}`);
+    k('E3 nhật ký có dòng v4 nhắc KH-SP-1', /^- v4 · .*KH-SP-1/m.test(hd));
   });
 
   sv.close();

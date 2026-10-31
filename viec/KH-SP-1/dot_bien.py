@@ -45,6 +45,7 @@ DOT_BIEN = [
   ('VS-MANG-RONG-KHONG-XOA', 'sp', [(T, ' || (Array.isArray(v) && v.length === 0)', '', 1)], r'✗ B4 '),
   ('VS-TRUONG-VANG-GHI-DE', 'sp', [(T, 'if (!(cot in b)) continue;', '', 2)], r'✗ B[1567] '),
   # ── B: cửa ghi (routes/products.js) ──
+  ('VS-DOI-GIA-XOA-THONG-TIN', 'sp', [(P, "'UPDATE pos_products SET price = ?, is_special_group = ?,", "'UPDATE pos_products SET nhu_cau = NULL, price = ?, is_special_group = ?,", 1)], r'✗ B9 '),
   ('BV-QUYEN-CAI-DAT', 'sp', [(P, CUA_GHI, "router.put('/thong-tin', authenticate, async", 1)], r'✗ B6 nhân viên'),
   ('BV-DANG-NHAP', 'sp', [(P, CUA_GHI, "router.put('/thong-tin', async", 1)], r'✗ B6 '),
   ('BV-TAO-HANG-MON-MOI', 'sp', [(P, 'if (!sua.changes) {', 'if (false) {', 1)], r'✗ B8 '),
@@ -64,8 +65,10 @@ DOT_BIEN = [
   ('VS-GIAO-DIEN-MA-THE-CHAT', 'sp', [(CL, "ma: 'dac_bam'", "ma: 'dac_bam2'", 1)], r'✗ D2 '),
   ('VS-GIAO-DIEN-GIOI-HAN', 'sp', [(CL, 'mo_ta: 160,', 'mo_ta: 150,', 1)], r'✗ D3 '),
   # ── E: hợp đồng v4 (thu_HOPDONG_KH.js) ──
-  ('BV-HOPDONG-ANH', 'hd', [(HD, ', "data[].anh"]', ']', 1)], r'✗ '),
-  ('BV-HOPDONG-NHU-CAU', 'hd', [(HD, ', "data[].nhu_cau"', '', 1)], r'✗ '),
+  ('BV-HOPDONG-ANH', 'sp', [(HD, ', "data[].anh"]', ']', 1)], r'✗ E1 '),
+  ('BV-HOPDONG-NHU-CAU', 'sp', [(HD, ', "data[].nhu_cau"', '', 1)], r'✗ E1 '),
+  ('VS-HOPDONG-PHIEN-BAN', 'sp', [(HD, 'PHIEN_BAN: 4', 'PHIEN_BAN: 3', 1)], r'✗ E2 '),
+  ('BV-HOPDONG-NHAT-KY', 'sp', [(HD, '- v4 · 31.10.2026 · KH-SP-1:', '- v4 · 31.10.2026 · KH-X:', 1)], r'✗ E3 '),
   ('VS-HOPDONG-TEN-LA', 'hd', [(HD, '"data[].thanh_phan"', '"data[].thanh_phan_x"', 1)], r'✗ '),
 ]
 
