@@ -160,7 +160,7 @@ async function main() {
   const optIs = [...is.matchAll(/<option\s+value="([^"]*)"/g)].map((x) => x[1]);
   k('B2 InvoiceSettings "Khổ mặc định": chỉ còn <option> 58mm · 80mm', bang(optIs.filter((v) => /mm$|^a[45]$/.test(v)), ['58mm', '80mm']), JSON.stringify(optIs));
   k("B2 InvoiceSettings: khổ mặc định cấu hình không còn 'a5' / 'a4'", !/default_size:\s*["']a[45]["']/.test(is) && !/useState\(["']a[45]["']\)/.test(is) && !/\[\s*"58mm",\s*"80mm",\s*"a5"/.test(is));
-  k('B2 InvoiceSettings: giá trị cũ lưu trong cấu hình được đọc qua khoHoaDon (ô chọn hiện đúng khổ, không trống)', /value=\{khoHoaDon\(config\.default_size\)\}/.test(is));
+  k('B2 InvoiceSettings: giá trị cũ lưu trong cấu hình được đọc qua khoHoaDon (ô chọn hiện đúng khổ, không trống)', /value=\{khoHoaDon\(boIn\.bill\.kho\)\}/.test(is));
   k("B2 InvoiceSettings: nút xem trước không còn A4 / A5", !/\["58mm",\s*"80mm",\s*"a5",\s*"a4"\]/.test(is));
   const khoaPv = (() => { const m = /const baseStyles = \{\n([\s\S]*?)\n    \};/.exec(ipv); return m ? [...m[1].matchAll(/^ {6}(?:'([^']+)'|([A-Za-z0-9_]+)):/gm)].map((x) => x[1] || x[2]) : null; })();
   k('B2 InvoicePreview: kiểu theo khổ chỉ còn 58mm · 80mm', !!khoaPv && bang(khoaPv, ['58mm', '80mm']), JSON.stringify(khoaPv));
@@ -176,12 +176,12 @@ async function main() {
   k('C1 phiếu pha chế chọn 58mm vẫn được; tem lạ → 40x30', inPhieu.docBoIn({ [inPhieu.KHOA_BO_IN]: JSON.stringify({ pha_che: { kho: '58mm' }, tem: { kho: 'a4' } }) }).pha_che.kho === '58mm');
   const inpPhieu = doc('client/src/components/InPhieu.jsx');
   const xem = doc('client/src/pages/Kho/XemPhieu.jsx');
-  k("C2 phiếu kho / in phiếu giữ A5 · A4 (InPhieu.jsx KHO_GIAY, XemPhieu 'In A4')", /KHO_GIAY\s*=\s*\{[^}]*a5[^}]*a4/.test(inpPhieu) && /inRa\('a4'\)/.test(xem));
+  k("C2 phiếu kho / in phiếu giữ A5 · A4 (InPhieu.jsx KHO_GIAY, XemPhieu: KHO_IN có a5 · a4; KHO-IN-1 đổi nút cứng thành thuTuNutIn)", /KHO_GIAY\s*=\s*\{[^}]*a5[^}]*a4/.test(inpPhieu) && /KHO_IN = \{[\s\S]*?a5:[\s\S]*?a4:/.test(xem) && /thuTuNutIn\(/.test(xem));
   k('C3 nút "Mã đăng nhập App" trong chi tiết khách chạy như cũ (key theo SĐT)', /<MaDangNhapApp key=\{selectedCustomer\.phone\} sdt=\{selectedCustomer\.phone\} \/>/.test(kh));
   k('C3 MaDangNhapApp vẫn gọi POST /kh/cap-ma, giữ khoá chống bấm đôi', /api\.post\('\/kh\/cap-ma', \{ sdt \}\)/.test(ma) && /dangBay\.current/.test(ma));
   k('C4 hoá đơn 2 tờ HD-1 vẫn vẽ bằng HoaDonTo (58mm · 80mm)', /export function HoaDonTo/.test(ipv) && /<HoaDonTo\b/.test(ip));
   k("C4 InvoicePrint vẫn truyền khổ cho tờ in lại / in 2 tờ (size={paperSize})", /size=\{paperSize\}/.test(ip));
-  k('C5 máy chủ KHÔNG đổi: seed invoice_default_size còn nguyên (dữ liệu thật có thể đang là a5)', /invoice_default_size',\s*'a5'/.test(doc('server/database.js')));
+  k("C5 KHO-IN-1 đổi seed invoice_default_size sang '80mm' (dữ liệu thật đang là a5 vẫn đọc ra 80mm, không sửa dữ liệu — ca B1)", /invoice_default_size',\s*'80mm'/.test(doc('server/database.js')));
 
   console.log(`\nSỐ CA: ${dat + hong}`);
   console.log(`${dat} đạt · ${hong} hỏng`);

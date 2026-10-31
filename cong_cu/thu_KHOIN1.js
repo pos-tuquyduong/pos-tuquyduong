@@ -158,7 +158,7 @@ async function main() {
   muc('[B] Màn xem phiếu (XemPhieu.jsx) — đủ 3 khổ, khổ mặc định đứng đầu (đọc nguồn, bắt theo hành vi)');
   const xemTho = doc('client/src/pages/Kho/XemPhieu.jsx');
   const xem = boChuThich(xemTho);
-  const kieuIn = (() => { const m = /const KHO_IN = \{([\s\S]*?)\n\};|const KHO_IN = \{([^}]*)\};/.exec(xem); return m ? (m[1] || m[2]) : ''; })();
+  const kieuIn = (() => { const m = /const KHO_IN = \{([\s\S]*?)\};\n/.exec(xem); return m ? m[1] : ''; })();
   const khoaKieu = [...kieuIn.matchAll(/(?:'([^']+)'|"([^"]+)"|\b([A-Za-z0-9_]+))\s*:\s*['"`]@page/g)].map((x) => x[1] || x[2] || x[3]);
   k('B KHO_IN có đủ 3 khổ 80mm · a5 · a4 (đúng tên khổ của KHO_PHIEU_KHO)', bang(khoaKieu, inPhieu.KHO_PHIEU_KHO || []), JSON.stringify(khoaKieu));
   k('B @page: 80mm auto · A5 · A4', /size:\s*80mm auto/.test(kieuIn) && /size:\s*A5\b/.test(kieuIn) && /size:\s*A4\b/.test(kieuIn));
