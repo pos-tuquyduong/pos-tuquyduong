@@ -51,7 +51,6 @@ function khoaBang(nguon, ten) {
   if (!m) return null;
   return [...m[1].matchAll(/^ {2}(?:'([^']+)'|"([^"]+)"|([A-Za-z0-9_]+)):/gm)].map((x) => x[1] || x[2] || x[3]);
 }
-const conA4A5 = (s) => /(^|[^A-Za-z0-9])(a5|a4)([^A-Za-z0-9]|$)/i.test(s);
 
 async function main() {
   const maApp = await nap('client/src/utils/maApp.js');
@@ -183,7 +182,6 @@ async function main() {
   k('C4 hoá đơn 2 tờ HD-1 vẫn vẽ bằng HoaDonTo (58mm · 80mm)', /export function HoaDonTo/.test(ipv) && /<HoaDonTo\b/.test(ip));
   k("C4 InvoicePrint vẫn truyền khổ cho tờ in lại / in 2 tờ (size={paperSize})", /size=\{paperSize\}/.test(ip));
   k('C5 máy chủ KHÔNG đổi: seed invoice_default_size còn nguyên (dữ liệu thật có thể đang là a5)', /invoice_default_size',\s*'a5'/.test(doc('server/database.js')));
-  void conA4A5;
 
   console.log(`\nSỐ CA: ${dat + hong}`);
   console.log(`${dat} đạt · ${hong} hỏng`);

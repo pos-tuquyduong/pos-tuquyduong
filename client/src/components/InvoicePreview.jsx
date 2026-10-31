@@ -129,7 +129,6 @@ export default function InvoicePreview({ config, size = '80mm', logo = '', order
       className="invoice-preview-wrapper"
       style={{
         width: styles.width,
-        minHeight: styles.minHeight || 'auto',
         padding: styles.padding,
         fontSize: styles.fontSize,
         lineHeight: styles.lineHeight,
