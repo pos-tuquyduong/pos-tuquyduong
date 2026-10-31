@@ -291,7 +291,8 @@ async function main() {
   const d2b = await duyet('ql', d2.phieu?.id);
   const psN1 = (await dongCua(d2.phieu?.id)).map((d) => [Number(d.lo_id), Number(d.so_luong)]);
   k('D2 hỏng: nhân viên → chờ duyệt (tồn chưa đổi); duyệt → trừ FEFO KỂ CẢ lô quá hạn: lô 01/11 −0.5 rồi lô 10/11 −0.2', d2.phieu?.trang_thai === 'cho_duyet'
-    && bang(tonD2, tonD) && d2b.status === 200 && JSON.stringify(psN1) === JSON.stringify([[loA, -0.5], [loCam, -0.2]]) && gan(await ton(n1), tonD[n1] - 0.7),
+    && bang(tonD2, tonD) && d2b.status === 200 && psN1.length === 2 && psN1[0][0] === loA && gan(psN1[0][1], -0.5) && psN1[1][0] === loCam && gan(psN1[1][1], -0.2)
+    && gan(await ton(n1), tonD[n1] - 0.7),
     `${moTa(d2)} | ${moTa(d2b)} ${JSON.stringify(psN1)}`);
   k('D6 phiếu phát sinh có người / giờ / loại chuyện', d2.phieu?.nguoi_tao === 'nv_a' && d2.phieu?.tao_luc === '2026-11-07T12:00:00' && d2.phieu?.su_co === 'hong',
     JSON.stringify(d2.phieu));
