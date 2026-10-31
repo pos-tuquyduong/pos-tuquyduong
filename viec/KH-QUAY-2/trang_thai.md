@@ -68,3 +68,7 @@ BÀI HỌC:     KHOÁ 0 · NGUYÊN TẮC 2 (đề xuất) · BỎ 1
 Cổng chạy ở 16a7033: ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 16a7033
+
+
+Chat soát (31.10): soát độc lập ĐẠT (4/4), code dư đã dọn. Hai phát hiện (máy chủ còn mặc định a5; ô "Khổ mặc định" ở Cài đặt hoá đơn lưu config.default_size mà lệnh in đọc invoice_default_size) → việc KHO-IN-1. Chat gộp main (đụng kiem_tra_truoc_khi_giao.js — giữ cả 3 dòng bài), dist dựng lại.
+HEAD ĐÃ KIỂM: 11ca2a2
