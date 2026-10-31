@@ -5,6 +5,13 @@
 
 const LOI_MAC_DINH = 'Không lấy được mã — thử lại';
 
+/** SĐT gõ ở ô "số mới" → '0…' (bỏ ký tự lạ, 84 đầu → 0, giống normalizePhone của quầy; hợp lệ = 0 + 9–10 số như máy chủ), hoặc null. */
+export function chuanSdtQuay(v) {
+  let p = String(v ?? '').replace(/\D/g, '');
+  if (p.startsWith('84') && p.length >= 11) p = '0' + p.slice(2);
+  return /^0\d{9,10}$/.test(p) ? p : null;
+}
+
 /** Số giây → "m:ss"; âm, lẻ, không phải số đều an toàn ("0:00"). */
 export function dinhDangDemNguoc(giay) {
   const g = Number.isFinite(giay) ? Math.max(0, Math.floor(giay)) : 0;

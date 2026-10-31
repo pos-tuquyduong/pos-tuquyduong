@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../utils/api';
 import { dinhDangDemNguoc, giayConLai, loiMaApp } from '../utils/maApp';
 
-export default function MaDangNhapApp({ sdt }) {
+export default function MaDangNhapApp({ sdt, tuLay = false }) {   // tuLay: vào là lấy mã luôn (ô số mới đã kiểm SĐT)
   const [ma, setMa] = useState(null);            // { ma, hetHanLuc }
   const [giay, setGiay] = useState(0);
   const [dangLay, setDangLay] = useState(false);
@@ -47,6 +47,8 @@ export default function MaDangNhapApp({ sdt }) {
       if (conSong.current) setDangLay(false);
     }
   };
+
+  useEffect(() => { if (tuLay) layMa(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps -- một lần khi mở; layMa có khoá dangBay
 
   const hetHan = ma && giay <= 0;
 
