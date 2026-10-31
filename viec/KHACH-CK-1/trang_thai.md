@@ -26,19 +26,19 @@
   P26c / BH1 / BH2 đỏ trên code mới — P20 sập ở "20.000 ≠ 25.000", GOI1 sập ở "1.215.000 ≠ 1.350.000").
 - Bước 5 (sửa) xong. Bước 6: `npm test -- --day-du` → PASS 86 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ "route GET có lệnh ghi (3)" ở
   packages.js / products.js / sync.js — không thuộc việc này). Đã build `client/dist`.
-- Bước 4 đợt 2: `node tu_chay/cong.js tinh . 29db8d3^ HEAD viec/KHACH-CK-1` → ĐỎ A6 (Phạm vi) — xem `## Câu hỏi`. **DỪNG ở đây** chờ chủ
-  quán sửa phiếu; chưa chạy `/ra-soat`, chưa báo cáo 7 mục.
+- Bước 4 đợt 2: `node tu_chay/cong.js tinh . 29db8d3^ HEAD viec/KHACH-CK-1` → ĐỎ A6 (Phạm vi) — đã dừng hỏi; chủ quán sửa phiếu ở
+  `5d8a630` (thêm 6 bài cũ vào Phạm vi). Phiên tiếp 31.10: cổng tĩnh chỉ còn A19 (chưa tới bước 11.4) → soát độc lập (`## Soát độc lập`).
 
-## Chỗ vá → đột biến (`python3 viec/KHACH-CK-1/dot_bien.py` → vòng 1: 35 đột biến · BẮT 35 · SỐNG 0 · HỎNG 0 · LẠC 0, đối chứng 7 bài xanh)
+## Chỗ vá → đột biến (`python3 viec/KHACH-CK-1/dot_bien.py` → vòng 2: 37 đột biến · BẮT 37 · SỐNG 0 · HỎNG 0 · LẠC 0, đối chứng 7 bài xanh)
 | Chỗ vá | Đột biến |
 |---|---|
-| `server/routes/orders.js` LO 2 — máy chủ thôi đọc chiết khấu hồ sơ; vòng 1 bỏ hai nhánh tính theo mức (đã chết) — BV-LO2* đưa lại CẢ hai | BV-LO2, BV-LO2-TINHTHU, BV-LO2-FLASH, BV-LO2-UUDAI1, BV-LO2-GOI1, BV-LO2-P20, VS-LO2-TIN-TO-KHAI (bắt ở F3c) |
+| `server/routes/orders.js` LO 2 — máy chủ thôi đọc chiết khấu hồ sơ; vòng 1 bỏ hai nhánh tính theo mức (đã chết) — BV-LO2* đưa lại CẢ hai | BV-LO2, BV-LO2-TINHTHU, BV-LO2-FLASH, BV-LO2-UUDAI1, BV-LO2-GOI1, BV-LO2-P20, VS-LO2-CHI-PERCENT, VS-LO2-TIN-TO-KHAI (bắt ở F3c) |
 | `server/routes/customers-v2.js` PUT `/:phone/discount` chặn > 0, ghi 0 (UPDATE và INSERT) | BV-CHAN-V2, BV-CHAN-V2-INSERT, BV-CHAN-V2-P26C, VS-CHAN-V2-CHI-PERCENT, VS-V2-GHI-MUC-THAN, VS-V2-INSERT-GHI-MUC-THAN |
 | `server/routes/customers.js` PUT `/:id/discount` chặn > 0, ghi 0 | BV-CHAN-V1, VS-CHAN-V1-CHI-FIXED, VS-V1-GHI-LOAI-THAN |
 | `server/nang_cap/004_bo_chiet_khau_rieng.js` | BV-004-SAO-LUU, VS-004-SAO-LUU-SAU-UPDATE, VS-004-CHI-PERCENT, VS-004-CHI-DUONG, VS-004-LUON-SAO-LUU, BV-004-BANG-TRONG, VS-004-KHONG-LOG |
 | `client/src/pages/BanHang/tinh.js` (tinhGio, dungDonHang, coChietKhauRieng) | BV-TINH-KHACHGIAM, BV-TINH-KHACHGIAM-BH1, BV-DUNG-DON-GUI-MUC, BV-TINH-COCHIETKHAURIENG |
 | `client/src/pages/BanHang/BanHangMoi.jsx` bỏ khoá chanChietKhau | BV-CHAN-BANHANGMOI, BV-CHAN-BANHANGMOI-BH2 |
-| `client/src/pages/Sales.jsx` bỏ điền mức khách khi chọn khách / chữ "KH:" | BV-SALES-CHON-KHACH |
+| `client/src/pages/Sales.jsx` bỏ điền mức khách khi chọn khách / chữ "KH:" | BV-SALES-CHON-KHACH, VS-SALES-TEN-KHAC |
 | `client/src/components/CustomerInput.jsx` bỏ huy hiệu | BV-CUSTOMERINPUT-HUY-HIEU |
 | `client/src/pages/Customers.jsx` bỏ lọc / cột / form; nhãn Ghi chú khách | BV-CUSTOMERS-LOC, VS-NHAN-GHI-CHU, VS-CUSTOMERS-GHI-CHU-KHI-CO-CK, VS-CUSTOMERS-MAT-GHI-CHU |
 
@@ -72,7 +72,8 @@ BÀI HỌC: KHOÁ — hồ sơ viết "tổng hiện theo X" phải trích ĐI�
 - Kết quả: `thu_KHACHCK1.js` 37 đạt (gốc 10 đạt · 27 hỏng); đột biến 35 · BẮT 35; `npm test` PASS 82 · FAIL 0 · CẢNH BÁO 1 (cũ).
 
 ## Câu hỏi
-1. **Thêm 6 bài thử cũ vào `## Phạm vi` của phiếu (đúng tên từng file).** Kế hoạch đã duyệt (mục 4) và lời duyệt của bạn yêu cầu sửa các bài
+_(Không còn câu mở. Câu 1 dưới đây ĐÃ ĐƯỢC TRẢ LỜI — chủ quán thêm 6 file vào Phạm vi ở `5d8a630`; giữ để tra lại.)_
+1. **[ĐÃ TRẢ LỜI] Thêm 6 bài thử cũ vào `## Phạm vi` của phiếu (đúng tên từng file).** Kế hoạch đã duyệt (mục 4) và lời duyệt của bạn yêu cầu sửa các bài
    này theo LUAT §6.8 — mình đã sửa, mỗi bài đỏ ở dạng gốc trên code mới và bản mới đỏ trên code gốc (`bang_chung_do.txt`). Nhưng cổng chỉ đọc
    Phạm vi từ phiếu, mà phiếu chỉ có commit `PHIEU: KHACH-CK-1` của bạn được sửa (A7) → máy không tự thêm được. Dòng cổng
    (`node tu_chay/cong.js tinh . 29db8d3^ HEAD viec/KHACH-CK-1`, HEAD `3775014`):
