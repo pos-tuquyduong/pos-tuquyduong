@@ -52,3 +52,7 @@ Thử tay 1–3 thao tác cho chủ quán: (1) mở màn Bán hàng cũ, thêm m
 ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: d80ebf1
+
+
+Chat soát (31.10) thay soát vòng 2: đọc diff Sales.jsx — bỏ state / ô / nhánh giảm tay; thân không mã gửi discount_type null, discount_value 0, discount 0, giữ tập khoá (thu_BH1 I10); 2 lỗi soát vòng 1 đã sửa (nối bộ kiểm, ca A5 theo hành vi). Chat gộp main (Sales.jsx tự gộp được với KH-SP-1), dist dựng lại.
+HEAD ĐÃ KIỂM: e356f49
