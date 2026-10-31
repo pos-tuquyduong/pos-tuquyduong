@@ -46,6 +46,12 @@ lưu). Ưu đãi của khách chỉ còn: hạng thành viên, mã giảm, Giờ
 - client/src/pages/BanHang/**
 - client/dist/**
 - cong_cu/thu_KHACHCK1.js
+- cong_cu/thu_BH1.js
+- cong_cu/thu_BH2.js
+- cong_cu/thu_GOI1.js
+- cong_cu/thu_P20.js
+- cong_cu/thu_P26c.js
+- cong_cu/thu_UUDAI1.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
