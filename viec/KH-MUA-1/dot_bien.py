@@ -68,6 +68,11 @@ DOT_BIEN = [
     "  if (cu && !cu.phien_id && cu.tao_luc < truGiay(120)) { await run('DELETE FROM pos_don_app WHERE id = ?', [cu.id]); cu = null; }\n"
     '  if (cu && !cu.xong) {\n', 1)], r'✗ V9 '),
   ('VS-CO-PHIEN-LA-XONG', 'mua', [(D, '  if (cu && !cu.xong) {\n', '  if (cu && !cu.phien_id) {\n', 1)], r'✗ V8 '),
+  # vòng sửa 4 (soát vòng 3 lỗi 1, 2): mỗi chỗ đọc vị từ THAY_DUOC một đột biến — lưới 10 giây, đơn chưa trả của GET /don, huỷ
+  ('BV-LUOI-BO-THAY-DUOC', 'mua', [(D, 'WHERE a.phone = ? AND ${THAY_DUOC} AND a.bam = ?', 'WHERE a.phone = ? AND a.bam = ?', 1)], r'✗ V10 '),
+  ('BV-DSDON-BO-THAY-DUOC', 'mua', [(D, 'WHERE a.phone = ? AND ${THAY_DUOC} AND p.order_id IS NULL)', 'WHERE a.phone = ? AND p.order_id IS NULL)', 1)], r'✗ V10 '),
+  ('BV-HUY-BO-THAY-DUOC', 'mua', [(D, 'WHERE a.phone = ? AND a.ma = ? AND ${THAY_DUOC}`', 'WHERE a.phone = ? AND a.ma = ?`', 1)], r'✗ V10 '),
+  ('VS-HUY-CHI-XONG', 'mua', [(D, 'WHERE a.phone = ? AND a.ma = ? AND ${THAY_DUOC}`', 'WHERE a.phone = ? AND a.ma = ? AND a.xong = 1`', 1)], r'✗ V1b '),
   ('BV-TRUNG-KHOA-NEM', 'mua', [(D, "    if (laTrungKhoa(e)) return thanLoi('DANG_XU_LY');", '', 1)], r'✗ V2 '),
   ('VS-CHOT-VI-BO-KIEM-DA-THU', 'mua', [(D, "if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(", 'if (false) return chuanLoi(', 1)], r'✗ V5 '),
   ('VS-QUAY-KHONG-LOC-HOM-NAY', 'mua', [(D, 'p.luc_chot >= ? OR (', 'p.luc_chot >= ? OR 1 OR (', 1)], r'✗ V7 '),
