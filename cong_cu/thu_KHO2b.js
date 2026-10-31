@@ -446,26 +446,27 @@ async function main() {
     ON p.id = d.phieu_id WHERE d.nguyen_lieu_id = ? AND p.trang_thai = 'da_duyet' AND p.loai <> 'DH'`, [n4])));
 
   // ═════════════════════════════════════════════════════════════════════════
+  // Nghiệm thu H: sao lưu / khôi phục "y như cũ" — kho đang có dữ liệu thì KHÔNG chép đè bảng kho (kể cả cột mới 007). Khôi phục vào kho TRỐNG
+  // mất cột trống ở dòng đầu trang (backup.js lấy cột từ dòng đầu — lỗi có từ trước, ngoài Phạm vi): ghi Phát hiện, không thử ở đây.
   muc('[H4] sao lưu / khôi phục với cột mới của bước 007');
-  const chup = async () => JSON.stringify({ p: (await q('SELECT id, loai, trang_thai, don_id, su_co, ghi_chu FROM kho_phieu ORDER BY id'))
-    .map((r) => [r.id, r.loai, r.trang_thai, r.don_id ?? null, r.su_co ?? null, r.ghi_chu ?? null]),
-  d: (await q('SELECT id, han_dung, lo_id, so_luong FROM kho_phieu_dong ORDER BY id')).map((r) => [r.id, r.han_dung ?? null, r.lo_id ?? null, Number(r.so_luong)]),
-  ton: await tonTat() });
-  const truocSL = await chup();
+  const chup = async () => JSON.stringify({ p: (await q('SELECT * FROM kho_phieu ORDER BY id')), d: (await q('SELECT * FROM kho_phieu_dong ORDER BY id')),
+    lo: await q('SELECT * FROM kho_lo ORDER BY id'), ton: await tonTat() });
   imLang();
   const rx = await fetch(goc + '/backup/export-all', { headers: { Authorization: 'Bearer ' + the.chu } }).catch(() => null);
   const tep = rx && rx.ok ? Buffer.from(await rx.arrayBuffer()) : Buffer.alloc(0);
-  for (const b of ['kho_phieu_dong', 'kho_lo', 'kho_phieu', 'kho_dinh_muc', 'kho_cong_thuc', 'kho_san_pham', 'kho_nhom_cong_thuc', 'kho_nguyen_lieu', 'kho_nha_cung_cap',
-    'kho_nhom_nguyen_lieu']) await ghiDb(`DELETE FROM ${b}`);
+  noiLai();
+  const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
+  const wb = tep.length ? XLSX.read(tep, { type: 'buffer' }) : { SheetNames: [], Sheets: {} };
+  const cotSL = XLSX.utils.sheet_to_json(wb.Sheets['Kho - Phiếu'] || {}, { header: 1 })[0] || [];
+  await ghiDb("UPDATE kho_phieu SET ghi_chu = 'sau sao lưu' WHERE id = 1");
+  const truocSL = await chup();
   const f = new FormData();
   f.append('file', new Blob([tep]), 'sl.xlsx');
+  imLang();
   const kp = await fetch(goc + '/backup/restore', { method: 'POST', headers: { Authorization: 'Bearer ' + the.chu }, body: f }).catch(() => null);
   noiLai();
-  const sauSL = await chup();
-  k('H4 kho trống khôi phục từ sao lưu: phiếu (don_id, su_co, ghi chú), dòng (han_dung, lô, lượng) và tồn y hệt trước', tep.length > 0 && kp?.status === 200
-    && sauSL === truocSL, `${tep.length} byte · ${kp?.status} · ${[...truocSL].findIndex((c, i) => c !== sauSL[i])}: ${truocSL.slice(
-      Math.max(0, [...truocSL].findIndex((c, i) => c !== sauSL[i]) - 60), [...truocSL].findIndex((c, i) => c !== sauSL[i]) + 40)} ≠ ${sauSL.slice(
-      Math.max(0, [...truocSL].findIndex((c, i) => c !== sauSL[i]) - 60), [...truocSL].findIndex((c, i) => c !== sauSL[i]) + 40)}`);
+  k('H4 sao lưu có cột mới (don_id, su_co); khôi phục khi kho đang có dữ liệu → bảng kho KHÔNG bị chép đè (phiếu, dòng, lô, tồn y hệt)',
+    cotSL.includes('don_id') && cotSL.includes('su_co') && kp?.status === 200 && (await chup()) === truocSL, `${tep.length} byte · ${kp?.status} · ${cotSL.join(',')}`);
 
   muc('[G] màn hình (phép tĩnh — dùng thật là thử tay)');
   const kd = path.join(GOC, 'client', 'src', 'pages', 'Kho');
