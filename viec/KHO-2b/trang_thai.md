@@ -79,3 +79,47 @@ BV-HAN-MUC-CAI-DAT, BV-PN-NGUOI-KHAC, VS-PN-CONG-LUC-TAO, BV-GHI-KHO-NHAN, BV-CO
 VS-FEFO-BO-LO-QUA-HAN, BV-HAN-MUC-NOI-BO, VS-NOI-BO-KHONG-CONG-DON, VS-NOI-BO-CONG-NGUOI-KHAC, VS-NOI-BO-CONG-NGAY-CU, VS-TP-THIEU-LO-GHI-AM,
 BV-MA-GUI-MOI, BV-BOGIA-TONG-UOC-TINH, VS-SUA-KHONG-HUY-CU, BV-SUA-RE-LOAI-TRUOC, BV-007-DON-ID.
 
+## Soát độc lập — lần 1 (agent general-purpose, /ra-soat) — chép nguyên
+```
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+1. client/src/pages/Kho/XemPhieu.jsx:51 + server/kho/phatSinh.js:86 — Chủ quán sửa phiếu phát sinh "Hết hạn" từ màn hình luôn bị 400 DONG_SAI.
+   thanSua gửi cả lo_id lẫn nguyen_lieu_id (hoặc san_pham_id), vì docPhieuNhap trả đủ cả hai cho dòng lô.
+   Máy chủ đòi đúng MỘT trong ba khoá.
+   E5b (thu_KHO2b.js:377) tự soạn thân `{nguyen_lieu_id, su_co:'hong'}` nên không đi qua thanSua — xanh oan. — K3 + K4.
+2. client/src/pages/Kho/XemPhieu.jsx:49-50 + server/kho/duong.js:249-250,314 — Sửa phiếu nhận / đơn đặt hàng làm MẤT ghi_chu và nha_cung_cap_id.
+   Ô ghi chú là chỗ ghi "số hoá đơn" thay cho ảnh hoá đơn → sửa một con số là mất dấu hoá đơn. E4b / E5c không kiểm hai trường này. — K4.
+3. server/kho/phatSinh.js:111 + phatSinh.js:47-49 — phiếu phát sinh chọn lô ("Hết hạn") mà đang chờ duyệt thì lúc duyệt KHÔNG kiểm lại lô.
+   Hai nhân viên cùng báo hết hạn một lô thành phẩm → duyệt xong lô thành phẩm thành âm; conLaiTheoLo lọc `con > 1e-9` nên lô âm biến mất
+   khỏi tồn thành phẩm → tồn thành phẩm ≠ Σ dòng phiếu đã duyệt (vỡ nghiệm thu F). Chú thích phatSinh.js:4 vì thế sai.
+   Suy ra từ đọc code, CHƯA dựng lại bằng chạy. — K4 + K1.
+4. server/kho/duong.js:304-316 + duLieu.js:259-262 + nhapHang.js ep→tuDuyet + XemPhieu.jsx:201 — chủ quán tạo phiếu nhận (chờ duyệt) rồi bấm "Sửa"
+   chính phiếu đó → phiếu mới TỰ DUYỆT, cộng kho — vòng qua luật "người KHÁC duyệt" (B8). Quyết định 3 chỉ nói "sửa phiếu nhận ĐÃ DUYỆT".
+   Phát sinh vượt hạn mức của chính chủ quán cũng vòng được. — K5 (lỗ quyền).
+
+NGHI NGỜ:
+- NhanHang.jsx:59,65 — ô giá không ghi đơn vị thật (giá là đồng / 1 đơn vị lưu) → giá vốn lô có thể lệch nhiều lần.
+- duLieu.js:250 — quản lý TỪ CHỐI được đơn vượt hạn mức chỉ chủ quán duyệt được. Phiếu không nói rõ.
+- phatSinh.js:74 — chú thích "phiếu thiếu giá … không cộng" nhưng SQL lọc THEO DÒNG. Hướng an toàn, chú thích sai (K1).
+- PhatSinh.jsx:52 — tab "Tất cả" cho hỏng / đổ vỡ / khác hiện toàn bộ thành một danh sách dài (ngược tinh thần mục C).
+- nhapHang.js:86 — danh sách đơn mở chỉ xét 50 đơn đã duyệt mới nhất.
+- trang_thai.md chưa có: kết quả `node tu_chay/cong.js chay`, mục CHƯA KIỂM, 1–3 thao tác thử tay.
+
+NGHIỆM THU: 36/40 vế có bằng chứng · thiếu: F PS bị TỪ CHỐI · F DH bị TỪ CHỐI · G điện thoại 360–430 px (không phép, không ghi CHƯA KIỂM) ·
+  H sao lưu / khôi phục với cột mới của 007.
+
+CHƯA SOÁT ĐƯỢC: lỗi 3 chưa dựng bằng chạy; hiển thị điện thoại + in 80 mm / A4 DH/PN/PS; khôi phục file sao lưu cũ (trước 007); cong.js chay;
+  hiệu năng Turso (goiYNhap N+1 tới 50 đơn, dsPhieu dhCanChuQuan mỗi DH chờ duyệt).
+
+ĐƠN GIẢN: duong.js:304-316 luật sửa nằm trong route — lấy ghi_chu / ncc / su_co của phiếu cũ làm mặc định; tinh.js:57 KHOA_GIA có khoá chết
+  'gia_tri', 'da_dung', 'han_muc'; duLieu.js chuoiDon vòng lặp (CTE đệ quy là đủ); tiền mới (giá trị nhập PN, hao hụt PS) chưa có quy tắc đối soát.
+
+BÀI HỌC:
+- KHOÁ: ca sửa gửi ĐÚNG thân màn hình tạo ra cho mọi loại × su_co, so trường giữ nguyên (ghi_chu, ncc, su_co, don_id) trước–sau.
+- KHOÁ: ca "duyệt muộn" cho dòng có lo_id chọn sẵn — lô bị trừ giữa lúc tạo và lúc duyệt → 409, tồn thành phẩm = Σ dòng.
+- KHOÁ: ca "chủ quán sửa phiếu nhận CHỜ DUYỆT của chính mình" → không được tự cộng kho.
+- NGUYÊN TẮC (K4): phép kiểm lúc TẠO phiếu chờ duyệt phải chạy lại lúc DUYỆT; "sửa = tạo lại" phải mang theo MỌI trường của phiếu cũ.
+- NGUYÊN TẮC (K3): ca sửa / đường phụ mà bài tự soạn thân thì không chứng minh được màn hình gửi đúng.
+```
+

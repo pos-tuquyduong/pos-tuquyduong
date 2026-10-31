@@ -13,6 +13,7 @@ export default function PhatSinh({ moPhieu }) {
   const [buoc, setBuoc] = useState(1);
   const [suCo, setSuCo] = useState('');
   const [ds, setDs] = useState([]);
+  const [nhom, setNhom] = useState([]);
   const [chon, setChon] = useState({});   // khoá → lượng theo đơn vị hiện (chuỗi)
   const [ghiChu, setGhiChu] = useState('');
   const [loi, setLoi] = useState('');
@@ -24,6 +25,7 @@ export default function PhatSinh({ moPhieu }) {
     try {
       const r = await api.get(`/kho/phat-sinh/goi-y?su_co=${ma}`);
       setDs(r.muc.map((m) => ({ ...m, id: khoaCua(m), ton_hien: m.con == null ? null : raHien(m.con, m.he_so_doi) })));
+      setNhom(r.nhom || []);
       setSuCo(ma); setChon({}); setMaGui(maGuiMoi()); setBuoc(2);
     } catch (e) { setLoi(e.message); }
   };
@@ -49,7 +51,8 @@ export default function PhatSinh({ moPhieu }) {
       {buoc === 2 && (
         <>
           <h4 className="kho-muc">2 · Món nào?</h4>
-          <ChonNguyenLieu ds={ds} daChon={daChon} tabDau={{ ten: 'Tất cả', loc: () => true }}
+          {/* hết hạn / nội bộ: máy chủ đã lọc còn ít món → một tab; hỏng / đổ vỡ / khác: tab Thành phẩm + nhóm nguyên liệu, không danh sách dài */}
+          <ChonNguyenLieu ds={ds} daChon={daChon} nhom={nhom} tabDau={nhom.length ? { ten: 'Thành phẩm', loc: (m) => m.nhom_id === 'tp' } : { ten: 'Tất cả', loc: () => true }}
             chon={(m) => { const c = { ...chon }; if (m.id in c) delete c[m.id]; else c[m.id] = ''; setChon(c); }}>
             <div className="kho-nho">{daChon.map((k) => theoKhoa.get(k).ten).join(', ')}</div>
           </ChonNguyenLieu>

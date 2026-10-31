@@ -52,10 +52,17 @@ DOT_BIEN = [
   # ── E: bấm hai lần · giá · sửa ──
   ('BV-MA-GUI-MOI', [(D, 'TAO[loai](tx, { ...THAN[loai](req.body || {}), ...nguoiCua(req, luc) }), timMaGui));',
     'TAO[loai](tx, { ...THAN[loai](req.body || {}), ...nguoiCua(req, luc) })));', 1)], r'✗ E1 '),
-  ('BV-BOGIA-TONG-UOC-TINH', [(T, "'gia_von', 'tong_uoc_tinh',", "'gia_von',", 1)], r'✗ E3 '),
+  ('BV-BOGIA-TONG-UOC-TINH', [(T, "'gia_von', 'tong_uoc_tinh']", "'gia_von']", 1)], r'✗ E3 '),
   ('VS-SUA-KHONG-HUY-CU', [(D, '  const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);\n  if (huy.loi) return huy;\n  return TAO',
     '  return TAO', 1)], r'✗ E4b '),
   ('BV-SUA-RE-LOAI-TRUOC', [(D, "if (!cu || cu.loai === 'PX') {", 'if (true) {', 1)], r'✗ E4 '),
+  # ── soát lần 1: sửa giữ trường cũ · sửa chỉ phiếu đã duyệt · thân sửa hết hạn của màn hình · duyệt kiểm lại lô chọn sẵn ──
+  ('BV-SUA-GIU-TRUONG-CU', [(D, "THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body })", 'THAN[cu.loai](req.body)', 1)],
+    r'✗ E4c '),
+  ('BV-SUA-CHI-DA-DUYET', [(D, "if (cu.trang_thai !== 'da_duyet') return", 'if (false) return', 1)], r'✗ E4d '),
+  ('VS-PS-LO-KEM-KHOA', [(PS, "nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null,",
+    'nguyen_lieu_id: Number(m?.nguyen_lieu_id) || null, san_pham_id: Number(m?.san_pham_id) || null,', 1)], r'✗ E5e '),
+  ('BV-DUYET-KIEM-LO', [(PS, ") < -${tinh.SAI_SO} LIMIT 1`, [id])) {", ") < -1e9 LIMIT 1`, [id])) {", 1)], r'✗ D14 '),
   # ── bước 007 ──
   ('BV-007-DON-ID', [(B7, "  await themCot('kho_phieu', 'don_id INTEGER');\n", '', 1)], r'✗ N1 '),
 ]

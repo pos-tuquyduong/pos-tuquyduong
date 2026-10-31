@@ -54,7 +54,7 @@ function trienKhai(congThuc, soPhan) {
 const SAP_HET_HAN_NGAY = 1;   // còn ≤ 1 ngày → đỏ "sắp hết hạn" (chủ quán chốt 29.10)
 const HAN_NGAY_TOI_DA = 3650;   // hạn dùng thành phẩm tối đa 10 năm — số lớn hơn làm phép cộng ngày theo lịch ném lỗi (Date ngoài tầm)
 const SAI_SO = 1e-9;
-const KHOA_GIA = ['gia_nhap', 'don_gia', 'gia_von', 'tong_uoc_tinh', 'gia_tri', 'da_dung', 'han_muc'];   // KHO-2b: mọi khoá tiền trả ra phải ở đây
+const KHOA_GIA = ['gia_nhap', 'don_gia', 'gia_von', 'tong_uoc_tinh'];   // KHO-2b: mọi khoá tiền trả ra phải ở đây
 
 /** Thứ trong tuần (0 = chủ nhật) của 'YYYY-MM-DD' theo LỊCH — không dính múi giờ máy (Render chạy UTC). */
 function thuCuaNgay(ngay) {

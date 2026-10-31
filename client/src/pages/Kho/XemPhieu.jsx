@@ -48,8 +48,8 @@ function thanSua(dl, sua) {
   const dong = dl.dong.filter((d) => Number(sua[d.id]) > 0).map((d) => ({ ...d, moi: veLuu(sua[d.id], d.luong / d.luong_hien || 1) }));
   if (p.loai === 'DH') return { nguyen_lieu: dong.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi })) };
   if (p.loai === 'PN') return { dong: dong.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi, don_gia: d.don_gia ?? null, han_dung: d.han_dung })) };
-  return { su_co: p.su_co, ghi_chu: p.ghi_chu, muc: dong.map((d) => ({ lo_id: p.su_co === 'het_han' ? d.lo_id : null,
-    nguyen_lieu_id: d.nguyen_lieu_id, san_pham_id: d.nguyen_lieu_id ? null : d.san_pham_id, luong: d.moi })) };
+  return { su_co: p.su_co, ghi_chu: p.ghi_chu, muc: dong.map((d) => (p.su_co === 'het_han' && d.lo_id ? { lo_id: d.lo_id, luong: d.moi }
+    : d.nguyen_lieu_id ? { nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi } : { san_pham_id: d.san_pham_id, luong: d.moi })) };
 }
 
 export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
@@ -200,8 +200,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {daDuyet && <button className="btn btn-outline" disabled={dangGhi} onClick={() => inRa('a4')}>In A4</button>}
         {chuQuan && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && !sua && (
           <>
-            <button className="btn btn-outline" onClick={() => setSua(laPX ? Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)]))
-              : Object.fromEntries(dl.dong.map((d) => [d.id, String(d.luong_hien)])))}>Sửa</button>
+            {(laPX || daDuyet) && <button className="btn btn-outline" onClick={() => setSua(laPX ? Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)]))
+              : Object.fromEntries(dl.dong.map((d) => [d.id, String(d.luong_hien)])))}>Sửa</button>}
             <button className="btn btn-outline" disabled={dangGhi} onClick={huy}>Huỷ phiếu</button>
           </>
         )}

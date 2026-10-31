@@ -8,7 +8,7 @@ import { api } from '../../utils/api';
 import ChonNguyenLieu from './ChonNguyenLieu';
 import { so, gio, maGuiMoi, veLuu, raHien } from './chung';
 
-const dongMoi = (n, datHien = null) => ({ nguyen_lieu_id: n.id, ten: n.ten, don_vi: n.don_vi, he_so_doi: n.he_so_doi, dat: datHien,
+const dongMoi = (n, datHien = null) => ({ nguyen_lieu_id: n.id, ten: n.ten, don_vi: n.don_vi, don_vi_luu: n.don_vi_luu, he_so_doi: n.he_so_doi, dat: datHien,
   tick: datHien == null, nhan: datHien == null ? '' : String(datHien), gia: '', han: '' });
 
 export default function NhanHang({ moPhieu }) {
@@ -56,7 +56,7 @@ export default function NhanHang({ moPhieu }) {
             <b style={{ flex: '1 1 8rem' }}>{d.ten}{d.dat != null ? <span className="kho-nho"> · đặt {so(d.dat)} {d.don_vi}</span> : don && <span className="kho-nho"> · ngoài đơn</span>}</b>
             <input className="input kho-hep" type="number" min="0" step="any" inputMode="decimal" placeholder={d.don_vi} value={d.nhan}
               onChange={(e) => doi(i, { nhan: e.target.value, tick: true })} />
-            <input className="input kho-hep" type="number" min="0" step="1" inputMode="numeric" placeholder="giá" value={d.gia} onChange={(e) => doi(i, { gia: e.target.value })} />
+            <input className="input kho-hep" type="number" min="0" step="1" inputMode="numeric" placeholder={`đ/${d.don_vi_luu}`} title={`Giá nhập: đồng cho 1 ${d.don_vi_luu}`} value={d.gia} onChange={(e) => doi(i, { gia: e.target.value })} />
             <input className="input kho-hep" type="date" title="Hạn dùng (trống = tự tính)" value={d.han} onChange={(e) => doi(i, { han: e.target.value })} />
             {d.dat == null && <button className="kho-lien-ket" onClick={() => setDong(dong.filter((_, j) => j !== i))}>Bỏ</button>}
           </div>

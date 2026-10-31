@@ -301,17 +301,20 @@ router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
 }));
 
 // Sửa = huỷ phiếu cũ + phiếu MỚI thay_cho_id tự duyệt. Rẽ theo loại TRƯỚC khi kiểm thân — thân sai loại → 400, rollback (phiếu cũ còn nguyên).
+// DH / PN / PS: chỉ sửa phiếu ĐÃ duyệt (chủ quán chốt 31.10) — sửa phiếu chờ duyệt sẽ tự duyệt, vòng qua luật người KHÁC duyệt. Trường không gửi
+// (ghi chú = số hoá đơn, nhà cung cấp, loại chuyện) lấy của phiếu cũ.
 router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
   const id = Number(req.params.id);
-  const cu = await tx.queryOne('SELECT loai, don_id FROM kho_phieu WHERE id = ?', [id]);
+  const cu = await tx.queryOne('SELECT loai, trang_thai, don_id, nha_cung_cap_id, ghi_chu, su_co FROM kho_phieu WHERE id = ?', [id]);
   if (!cu || cu.loai === 'PX') {
     return monHopLe(req.body.mon) ? duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc)
       : { loi: [400, LOI_SO_PHAN] };
   }
   if (!TAO[cu.loai]) return { loi: [400, { error: 'Loại phiếu này không sửa được', code: 'KHONG_SUA_DUOC' }] };
+  if (cu.trang_thai !== 'da_duyet') return { loi: [409, { error: 'Chỉ sửa phiếu đã duyệt — phiếu chờ duyệt thì từ chối / huỷ rồi tạo lại', code: 'PHIEU_CHUA_DUYET' }] };
   const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);
   if (huy.loi) return huy;
-  return TAO[cu.loai](tx, { ...THAN[cu.loai](req.body), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
+  return TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
     thayCho: id, lyDo: lyDoCua(req), ep: true });
 }));
 

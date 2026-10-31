@@ -1,7 +1,8 @@
 /**
  * KHO-2b — xử lý phát sinh (PS): hỏng · đổ vỡ · hết hạn · dùng nội bộ · khác. Dòng 'phat_sinh' (−lượng, đơn giá = giá vốn để đo hạn mức).
  * Trừ kho lúc DUYỆT theo lô hạn gần trước (FEFO) KỂ CẢ lô quá hạn (khác phiếu xuất: đây là bỏ hàng); chọn đúng lô (hết hạn) thì trừ lô đó.
- * Món pha tại chỗ → trừ nguyên liệu theo công thức. Thành phẩm không đủ lô → 409 KHONG_DU_TON (tồn thành phẩm = Σ lô, không ghi âm được).
+ * Món pha tại chỗ → trừ nguyên liệu theo công thức. Thành phẩm không đủ lô, hoặc lô đã chọn bị trừ hết giữa lúc tạo và lúc duyệt → 409
+ * KHONG_DU_TON, rollback (tồn thành phẩm = Σ lô còn hàng — lô âm sẽ biến khỏi tồn).
  * Dùng nội bộ vượt hạn mức (đồng / người / ngày giờ VN theo giá vốn; thiếu giá = vượt — chủ quán chốt 31.10) → luôn chờ duyệt; còn lại quản lý tự
  * duyệt, nhân viên theo công tắc "nhân viên xuất kho cần duyệt".
  */
@@ -26,7 +27,8 @@ async function goiY(csdl, suCo, luc) {
         don_vi: n ? n.don_vi_hien || n.don_vi_luu : 'phần', he_so_doi: n ? n.he_so_doi : 1, con: Number(l.con), han_dung: l.han_dung };
     }) };
   }
-  const thanhPham = ton.thanh_pham.filter((m) => m.ton > tinh.SAI_SO).map((m) => ({ san_pham_id: m.san_pham_id, ten: m.ten, nhom_id: m.nhom_id, don_vi: 'phần', he_so_doi: 1, con: m.ton }));
+  // thành phẩm xếp chung một tab "Thành phẩm" (nhom_id 'tp' — không lẫn với nhóm nguyên liệu)
+  const thanhPham = ton.thanh_pham.filter((m) => m.ton > tinh.SAI_SO).map((m) => ({ san_pham_id: m.san_pham_id, ten: m.ten, nhom_id: 'tp', don_vi: 'phần', he_so_doi: 1, con: m.ton }));
   if (suCo === 'noi_bo') {
     const bang = await duLieu.docBangCongThuc(csdl);
     const pha = await csdl.query(`SELECT p.id, p.name FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id WHERE s.kieu = 'pha_tai_cho' AND p.is_active = 1
@@ -36,7 +38,7 @@ async function goiY(csdl, suCo, luc) {
         return { ...d, ten: n.ten, don_vi: n.don_vi_hien || n.don_vi_luu, he_so_doi: n.he_so_doi }; }) }))] };
   }
   return { muc: [...ton.nguyen_lieu.filter((n) => n.dang_dung).map((n) => ({ nguyen_lieu_id: n.id, ten: n.ten, nhom_id: n.nhom_id, don_vi: n.don_vi_hien || n.don_vi_luu,
-    he_so_doi: n.he_so_doi, con: n.ton })), ...thanhPham] };
+    he_so_doi: n.he_so_doi, con: n.ton })), ...thanhPham], nhom: ton.nhom_nguyen_lieu };
 }
 
 /** Mục người chọn → dòng phiếu { nguyen_lieu_id | san_pham_id, lo_id, luong, cho_mon_id, don_gia } hoặc { loi }. */
@@ -71,7 +73,7 @@ async function lapDong(tx, muc) {
     : d.lo_id ? { ...d, don_gia: d.gia_lo ?? null } : d)) };
 }
 
-/** Đã dùng nội bộ trong ngày (giờ VN) của một người — phiếu chờ duyệt / đã duyệt; phiếu thiếu giá đã đi đường duyệt riêng, không cộng. */
+/** Đã dùng nội bộ trong ngày (giờ VN) của một người — phiếu chờ duyệt / đã duyệt; dòng thiếu giá không cộng (phiếu có nó đã phải chờ duyệt). */
 async function daDungNoiBo(tx, nguoi, ngay) {
   const ds = await tx.query(`SELECT d.so_luong, d.don_gia FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE p.loai = 'PS' AND p.su_co = 'noi_bo'
     AND p.nguoi_tao = ? AND substr(p.tao_luc, 1, 10) = ? AND p.trang_thai IN ('cho_duyet', 'da_duyet') AND d.loai = 'phat_sinh' AND d.don_gia IS NOT NULL`, [nguoi, ngay]);
@@ -81,8 +83,9 @@ async function daDungNoiBo(tx, nguoi, ngay) {
 async function taoPhatSinh(tx, { suCo, muc, ghiChu, nguoi, quanLy, maGui, luc, thayCho = null, lyDo = null, ep = false }) {
   if (!tinh.SU_CO.includes(suCo)) return loi(400, 'SU_CO_SAI', 'Chọn chuyện gì xảy ra');
   if (suCo === 'khac' && !ghiChu) return loi(400, 'THIEU_GHI_CHU', 'Chuyện "khác" cần ghi rõ là chuyện gì');
-  const ds = Array.isArray(muc) ? muc.map((m) => ({ lo_id: Number(m?.lo_id) || null, nguyen_lieu_id: Number(m?.nguyen_lieu_id) || null,
-    san_pham_id: Number(m?.san_pham_id) || null, luong: Number(m?.luong) })) : [];
+  // Có lô thì lô quyết định món (màn sửa gửi kèm id nguyên liệu / món của lô) — bỏ hai khoá kia.
+  const ds = Array.isArray(muc) ? muc.map((m) => { const lo = Number(m?.lo_id) || null;
+    return { lo_id: lo, nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null, luong: Number(m?.luong) }; }) : [];
   if (!ds.length || ds.some((m) => [m.lo_id, m.nguyen_lieu_id, m.san_pham_id].filter((x) => x > 0).length !== 1 || !(m.luong > 0) || !Number.isFinite(m.luong))) {
     return loi(400, 'DONG_SAI', 'Chọn món và số lượng lớn hơn 0');
   }
@@ -107,6 +110,11 @@ async function taoPhatSinh(tx, { suCo, muc, ghiChu, nguoi, quanLy, maGui, luc, t
 
 /** Phiếu VỪA chuyển da_duyet: dòng chưa có lô → chia theo lô FEFO (dòng nhận mảnh đầu, mảnh sau thêm dòng). Thành phẩm thiếu lô → { loi }. */
 async function ghiKhoPhatSinh(tx, id) {
+  // Lô chọn sẵn (hết hạn): phiếu này đã da_duyet nên dòng của nó đã tính — lô nào thành âm là đã bị phiếu khác trừ trước
+  if (await tx.queryOne(`SELECT 1 AS am FROM kho_lo l WHERE l.id IN (SELECT lo_id FROM kho_phieu_dong WHERE phieu_id = ? AND lo_id IS NOT NULL) AND (SELECT COALESCE(SUM(d.so_luong), 0)
+    FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE d.lo_id = l.id AND p.trang_thai = 'da_duyet' AND p.loai <> 'DH') < -${tinh.SAI_SO} LIMIT 1`, [id])) {
+    return khongDuTon();
+  }
   const nhom = new Map();
   for (const d of await tx.query("SELECT * FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'phat_sinh' AND lo_id IS NULL ORDER BY id", [id])) {
     const khoa = d.nguyen_lieu_id != null ? `nguyen_lieu_id:${d.nguyen_lieu_id}` : `san_pham_id:${d.san_pham_id}`;
