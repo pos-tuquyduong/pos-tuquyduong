@@ -115,7 +115,7 @@ async function main() {
   const trangThai = (khoa) => goi('GET', '/man-khach/trang-thai', undefined, null, khoa ? { [H_KHOA]: khoa } : {});
   const taoPhien = async (items, them = {}) => (await goi('POST', '/thanh-toan/phien', { cach: 'payos', don: { items, ...them } }, tkNv)).j.phien;
   const baoPhien = (quayId, phienId) => goi('POST', '/man-khach/quay/phien', { quay_id: quayId, phien_id: phienId }, tkNv);
-  const luiGio = (id, giay) => db.run(`UPDATE pos_phien_thanh_toan SET luc_chot = strftime('%Y-%m-%dT%H:%M:%S', luc_chot, '-${giay} seconds') WHERE id = ?`, [id]);
+  const luiGio = (id, giay) => db.run(`UPDATE pos_phien_thanh_toan SET luc_chot = strftime('%Y-%m-%dT%H:%M:%S', luc_chot, ?) WHERE id = ?`, [`${-giay} seconds`, id]);
 
   // ═════════════ A. Ghép máy ═════════════
   muc('A. Ghép máy');
