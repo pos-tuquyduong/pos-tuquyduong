@@ -7,6 +7,7 @@
  * - Tiền / điểm / voucher / mã bill đi qua ĐÚNG hàm quầy đang dùng (diemKhach.js, signup-codes.js, products.js).
  * - KH-API-2: giá hạng qua giaHang.js (cùng hàm orders.js), giờ vàng qua readFlashState, giờ hoạt động qua gioHoatDong.js.
  * - Mọi cửa ở đây phải có trong HOP_DONG_API_KH.md (bài thử cong_cu/thu_HOPDONG_KH.js canh).
+ * - KH-MUA-1: đặt đơn / đơn của khách qua utils/donApp.js (báo giá = taoDon chỉ tính; tạo đơn = phiên thanh toán giuCho.js).
  */
 const express = require('express');
 const { query, queryOne, run } = require('../../database');
@@ -23,17 +24,14 @@ const { getMembershipStatus, isTierUsable } = require('../../utils/membershipSta
 const { readFlashState } = require('../../utils/flashState');
 const { tiLeHangMon, giaCacHang } = require('../../utils/giaHang');
 const { docCaiDat, khungHangNgay, traGioHoatDong } = require('../../utils/gioHoatDong');
+const donApp = require('../../utils/donApp');
 
 const router = express.Router();
 const SO_DON_MOI_TRANG = 20;
 
 // Danh sách TRẮNG hồ sơ — kh là cả hàng pos_customers (SELECT *). dia_chi = cột address dùng chung với quầy (chủ quán 30.10).
 const hoSo = (kh) => ({ sdt: kh.phone, ten: kh.name, ngay_tao: kh.created_at, xung_ho: kh.xung_ho ?? null, dia_chi: kh.address ?? null });
-const tomDon = (o) => ({
-  ma: o.code, ngay: o.created_at, tong: o.total, da_tra: Number(o.total || 0) - Number(o.debt_amount || 0),
-  trang_thai: o.status, thanh_toan: o.payment_status,
-});
-const COT_DON = 'id, code, created_at, total, debt_amount, status, payment_status';
+const tra = (res, kq) => res.status(kq.status).json(kq.body);
 // Danh sách TRẮNG trường món (E5) — không giá vốn, không số tồn thật. ton_cu + ton_luc: mất SX thì App hiện "theo số lúc …" (CLAUDE.md §5.8).
 const monKhach = (p, dsHang) => ({
   ma: p.unique_id, ten: p.name, nhom: p.category, gia: p.price,
@@ -209,30 +207,49 @@ router.get('/voucher', async (req, res) => {
   }
 });
 
+// KH-MUA-1: đơn quầy + đơn App (cả đơn App chưa trả), mỗi đơn có tien_trinh. MỘT câu đọc ở donApp.js.
 router.get('/don', async (req, res) => {
   try {
     const trang = Math.max(1, parseInt(req.query.trang, 10) || 1);
-    const ds = await query(`SELECT ${COT_DON} FROM pos_orders WHERE customer_phone = ? ORDER BY id DESC LIMIT ? OFFSET ?`,
-      [req.khach.phone, SO_DON_MOI_TRANG + 1, (trang - 1) * SO_DON_MOI_TRANG]);
-    res.json({ success: true, trang, con_nua: ds.length > SO_DON_MOI_TRANG, data: ds.slice(0, SO_DON_MOI_TRANG).map(tomDon) });
+    res.json({ success: true, ...(await donApp.dsDon(req.khach.phone, trang, SO_DON_MOI_TRANG)) });
   } catch (err) {
     loiMayChu(res, err, 'kh don');
   }
 });
 
-// Đơn của khách khác → 404 như đơn không có (không lộ đơn tồn tại — phiếu F3).
+// Mã App hoặc mã bill. Đơn của khách khác → 404 như đơn không có (không lộ đơn tồn tại — phiếu F3).
 router.get('/don/:ma', async (req, res) => {
   try {
-    const o = await queryOne(`SELECT ${COT_DON} FROM pos_orders WHERE customer_phone = ? AND code = ?`, [req.khach.phone, req.params.ma]);
-    if (!o) return bao(res, 'KHONG_THAY_DON');
-    const mon = await query(`SELECT product_name, quantity, unit_price, flash_unit_price, tier_unit_price, total_price, notes
-      FROM pos_order_items WHERE order_id = ? ORDER BY id`, [o.id]);
-    res.json({ success: true, don: { ...tomDon(o), mon: mon.map((d) => ({
-      ten: d.product_name, so_luong: d.quantity, don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price,
-      thanh_tien: d.total_price, ghi_chu: d.notes,
-    })) } });
+    const don = await donApp.chiTietDon(req.khach.phone, req.params.ma);
+    if (!don) return bao(res, 'KHONG_THAY_DON');
+    res.json({ success: true, don });
   } catch (err) {
     loiMayChu(res, err, 'kh chi tiet don');
+  }
+});
+
+// KH-MUA-1 — báo giá (không ghi gì), đặt đơn, huỷ đơn chưa trả. Khách = req.khach (token); số tiền App gửi không được đọc.
+router.post('/gio/bao-gia', async (req, res) => {
+  try {
+    tra(res, await donApp.baoGiaKhach(req.khach, req.body || {}));
+  } catch (err) {
+    loiMayChu(res, err, 'kh bao-gia');
+  }
+});
+
+router.post('/don', async (req, res) => {
+  try {
+    tra(res, await donApp.datDon(req.khach, req.body || {}));
+  } catch (err) {
+    loiMayChu(res, err, 'kh dat don');
+  }
+});
+
+router.post('/don/:ma/huy', async (req, res) => {
+  try {
+    tra(res, await donApp.huyDon(req.khach.phone, req.params.ma));
+  } catch (err) {
+    loiMayChu(res, err, 'kh huy don');
   }
 });
 
