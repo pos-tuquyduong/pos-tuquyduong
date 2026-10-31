@@ -9,7 +9,7 @@ import ManThu from './ManThu';
 import TrangRanh from './TrangRanh';
 
 const NHIP_THU_MS = 1500;       // đang thu / vừa thu: ≤ 2 giây từ lúc quầy mở QR tới lúc màn khách hiện
-const NHIP_RANH_MS = 4000;
+const NHIP_RANH_MS = 2000;       // cũng ≤ 2 giây: QR vừa mở phải lên màn khách trong ≤ 2 giây dù đang rảnh
 const NHIP_LOI_MS = 5000;
 const NHIP_NOI_DUNG_MS = 60000;
 const SO_LAN_LOI_BAO = 3;       // hỏng liên tiếp bấy nhiêu lần mới báo "mất kết nối"

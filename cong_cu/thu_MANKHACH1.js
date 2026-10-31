@@ -149,6 +149,10 @@ async function main() {
     await goi('GET', '/man-khach/may', undefined, null, { [H_KHOA]: g1.j.khoa }), await goi('POST', '/man-khach/quay/mo', {}, null, { [H_KHOA]: g1.j.khoa }),
     await goi('GET', '/thanh-toan/phien/1', undefined, null, { [H_KHOA]: g1.j.khoa })];
   k('A14 khoá màn khách KHÔNG mở đường nhân viên (cài đặt, tính giá, danh sách máy, mở quầy, phiên)', duongNv.every((r) => r.status === 401), duongNv.map(mt).join(' | '));
+  // Cổng theo ĐỐI TƯỢNG (mọi route của router), không chỉ /quay/mo: không token → 401; /noi-dung không khoá → 401
+  const khongToken = [await goi('POST', '/man-khach/quay/doi-ma', { quay_id: q1.quay_id }), await goi('POST', '/man-khach/quay/phien', { quay_id: q1.quay_id, phien_id: 1 }),
+    await goi('POST', '/man-khach/may/1/thu-hoi', {}), await goi('GET', '/man-khach/may'), await goi('GET', '/man-khach/noi-dung')];
+  k('A17 mọi route nhân viên (/quay/doi-ma · /quay/phien · /may · thu hồi) không token → 401; /noi-dung không khoá → 401', khongToken.every((r) => r.status === 401), khongToken.map(mt).join(' | '));
   const dsNv = await goi('GET', '/man-khach/may', undefined, tkNv);
   k('A15 nhân viên không quyền cài đặt xem / thu hồi máy → 403', la(dsNv, 403) && la(await goi('POST', '/man-khach/may/1/thu-hoi', {}, tkNv), 403), mt(dsNv));
 

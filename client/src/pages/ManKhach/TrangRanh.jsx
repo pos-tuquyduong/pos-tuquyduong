@@ -2,7 +2,7 @@
  * Nội dung lúc rảnh: chạy vòng các "trang" quán đã cài (thứ tự, bật / tắt, số giây do máy chủ trả trong `nd.trang`).
  * Trang không có gì để hiện thì bỏ qua (Giờ vàng không chạy, chưa có địa chỉ App, menu rỗng). Trang "ảnh" chờ KH-SP-2: chưa vẽ.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { qrSvg } from '../../utils/veQr';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
@@ -26,11 +26,15 @@ export default function TrangRanh({ nd }) {
   const ds = useMemo(() => dungDanhSach(nd), [nd]);
   const [i, setI] = useState(0);
   const cur = ds.length ? ds[i % ds.length] : null;
+  // Hẹn giờ chỉ phụ thuộc số thứ tự trang (i) — nội dung làm mới mỗi phút KHÔNG được đặt lại đồng hồ (trang ≥ 60 giây từng đứng yên).
+  const giayRef = useRef(0);
+  giayRef.current = cur ? cur.giay : 0;
+  const coTrang = !!cur;
   useEffect(() => {
-    if (!cur) return undefined;
-    const h = setTimeout(() => setI((n) => n + 1), cur.giay * 1000);
+    if (!coTrang) return undefined;
+    const h = setTimeout(() => setI((n) => n + 1), giayRef.current * 1000);
     return () => clearTimeout(h);
-  }, [cur, i]);
+  }, [coTrang, i]);
   const svgApp = useMemo(() => (cur?.dia_chi ? qrSvg(cur.dia_chi) : ''), [cur?.dia_chi]);
 
   if (!cur) return <div className="mk-giua"><div className="mk-to">Xin chào quý khách</div></div>;

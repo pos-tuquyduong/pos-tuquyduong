@@ -19,7 +19,8 @@
 .mk-qr-khung { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
 .mk-qr { width: min(46vw, 78vh); height: min(46vw, 78vh); background: #fff; border-radius: 16px; padding: 0.8rem; }
 .mk-tien { font-size: clamp(2rem, 7vmin, 4.5rem); font-weight: 800; color: #fde68a; }
-.mk-ds { display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; max-height: 100%; overflow: hidden; }
+.mk-ds { display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; max-height: 100%; overflow-y: auto; }   /* dòng "Cần thanh toán" không bao giờ bị cắt: danh sách dài thì cuộn */
+.mk-ds .mk-dong-tong { position: sticky; bottom: 0; background: #0f172a; padding-top: 0.4rem; }
 .mk-dong { display: flex; justify-content: space-between; gap: 1rem; font-size: clamp(1.1rem, 3vmin, 1.9rem); border-bottom: 1px solid #334155; padding-bottom: 0.4rem; }
 .mk-dong-giam { color: #86efac; }
 .mk-dong-tong { font-weight: 800; border-bottom: 0; color: #fde68a; }
