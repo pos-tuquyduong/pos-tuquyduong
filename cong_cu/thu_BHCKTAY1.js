@@ -51,6 +51,13 @@ async function main() {
   k('A4 giảm trên màn chỉ từ mã / máy chủ: discountAmount = số tinh-thu hoặc discount_amount của mã',
     /discountAmount = discountCodeValid\.discount_amount \|\| 0;/.test(sa) && /tinhThu \? tinhThu\.discount_amount/.test(sa));
 
+  // A5 theo HÀNH VI, không theo tên: khối tính discountAmount (trước dòng gán từ tinhThu) chỉ có MỘT phép gán và không có nhánh else
+  // → state tên khác (giamTay…) cộng vào giảm cũng đỏ.
+  const khoiGiam = (sa.match(/let discountAmount = 0;([\s\S]*?)discountAmount = tinhThu \?/) || [])[1] || '';
+  k('A5 khối tính giảm chỉ một phép gán (từ mã) và không nhánh else — không nguồn giảm tay dưới tên nào',
+    (khoiGiam.match(/discountAmount\s*=[^=]/g) || []).length === 1 && !/\belse\b/.test(khoiGiam) && /discountCodeValid\.discount_amount/.test(khoiGiam),
+    khoiGiam.trim().replace(/\s+/g, ' ').slice(0, 120));
+
   console.log('\n[B] thân đơn giữ đủ khoá, giá trị giảm tay = 0');
   const orderData = (sa.match(/const orderData = \{([\s\S]*?)\n      \};/) || [])[1] || '';
   const bieuThuc = Object.fromEntries([...orderData.matchAll(/^\s{8}(discount|discount_type|discount_value):\s*(.*),$/gm)].map((x) => [x[1], x[2]]));

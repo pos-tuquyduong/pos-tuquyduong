@@ -31,6 +31,7 @@ DOT_BIEN = [
   # ── nhánh tính giảm tay ──
   ('BV-NHANH-GIAM-TAY', [(SA, NHANH, "    discountAmount = discountCodeValid.discount_amount || 0;\n  } else if (discount > 0) {\n    discountAmount = discount;\n  }\n", 1)], r'✗ A3 ', BAI),
   ('BV-NHANH-PHAN-TRAM', [(SA, NHANH, "    discountAmount = discountCodeValid.discount_amount || 0;\n  } else if (discountType === 'percent' && discountValue > 0) {\n    discountAmount = subtotal * discountValue / 100;\n  }\n", 1)], r'✗ A3 ', BAI),
+  ('VS-NHANH-TEN-KHAC', [(SA, NHANH, "    discountAmount = discountCodeValid.discount_amount || 0;\n  } else if (giamTay > 0) {\n    discountAmount = giamTay;\n  }\n", 1)], r'✗ A5 ', BAI),
   ('BV-STATE', [(SA, STATE, "  const [discountType, setDiscountType] = useState('percent');\n" + STATE, 1)], r'✗ A2 ', BAI),
   # ── thân đơn ──
   ('BV-THAN-LOAI', [(SA, TYPE, "discount_type: discountCodeValid?.valid ? discountCodeValid.discount_type : (discountValue > 0 ? discountType : null),", 1)], r'✗ B2 ', BAI),
