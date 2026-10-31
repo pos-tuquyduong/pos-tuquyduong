@@ -214,6 +214,13 @@ async function main() {
   const th5 = (await trangThai(g2.j.khoa)).j.thu || {};
   k('B16 giỏ dựng lại lệch tổng phiên (Giờ vàng hết giữa chừng) → bỏ danh sách món, vẫn hiện ĐÚNG số phiên (20.000)', th5.con_lai === 20000 && th5.mon === null && th5.tam_tinh === null && (th5.giam || []).length === 0,
     JSON.stringify(th5));
+  // Trừ tài khoản: phải trả (con_lai) khác tổng. Giữ ví thật cần PIN + nạp ví → bài chỉ sửa hàng phiên để thử cách màn khách đọc và hiện số.
+  const p6 = await taoPhien([mon(0, 2), mon(1, 1)]);
+  await db.run('UPDATE pos_phien_thanh_toan SET giu_vi = 30000, con_lai = tong - 30000 WHERE id = ?', [p6.id]);
+  await baoPhien(q2.quay_id, p6.id);
+  const th6 = (await trangThai(g2.j.khoa)).j.thu || {};
+  k('B17 phiên có trừ tài khoản → hiện "phải trả" = phần còn lại (50.000) khác tổng (80.000), kèm dòng trừ tài khoản 30.000',
+    th6.con_lai === 50000 && th6.tong === 80000 && th6.tru_tai_khoan === 30000, JSON.stringify(th6));
 
   // ═════════════ C/D. Nội dung rảnh + cài đặt ═════════════
   muc('C/D. Nội dung rảnh + Cài đặt → Màn khách');
@@ -228,7 +235,7 @@ async function main() {
   const luuOk = await goi('PUT', '/settings', { settings: { man_khach_trang: JSON.stringify(cauHinh), man_khach_dia_chi_app: 'https://app-kh.pages.dev', man_khach_hien_ten: '0' } }, tkChu);
   const n1 = await noiDung();
   k('D1 lưu danh sách trang + địa chỉ App → 200; màn khách đọc lại đúng thứ tự, trang tắt bị bỏ, địa chỉ có mặt',
-    la(luuOk, 200) && n1.j.trang.map((t) => t.loai).join(',') === 'chu,menu,qr_app' && n1.j.trang[0].giay === 12 && n1.j.trang[0].tieu_de === 'Chào mừng' && n1.j.dia_chi_app === 'https://app-kh.pages.dev',
+    la(luuOk, 200) && (n1.j.trang || []).map((t) => t.loai).join(',') === 'chu,menu,qr_app' && n1.j.trang?.[0]?.giay === 12 && n1.j.trang?.[0]?.tieu_de === 'Chào mừng' && n1.j.dia_chi_app === 'https://app-kh.pages.dev',
     mt(luuOk) + ' ' + JSON.stringify(n1.j.trang));
   const truoc = await so("SELECT COUNT(*) AS n FROM pos_settings WHERE key LIKE 'man_khach_%'");
   const sai = [
@@ -245,7 +252,7 @@ async function main() {
     await goi('PUT', '/settings', { settings: { man_khach_hien_ten: '2' } }, tkChu)];
   k('D3 JSON hỏng · địa chỉ không phải http(s) · hiện tên ≠ 0/1 → 400', sai2.every((r) => la(r, 400, 'CAI_DAT_KHONG_HOP_LE')), sai2.map(mt).join(' | '));
   const sau = await so("SELECT COUNT(*) AS n FROM pos_settings WHERE key LIKE 'man_khach_%'");
-  k('D4 sau mọi ca sai, cài đặt cũ còn nguyên', sau === truoc && (await noiDung()).j.trang[0].tieu_de === 'Chào mừng', `${truoc}→${sau}`);
+  k('D4 sau mọi ca sai, cài đặt cũ còn nguyên', sau === truoc && (await noiDung()).j.trang?.[0]?.tieu_de === 'Chào mừng', `${truoc}→${sau}`);
   const bien = await goi('PUT', '/settings', { settings: { man_khach_trang: JSON.stringify([{ loai: 'menu', bat: true, giay: 3 }, { loai: 'chu', bat: true, giay: 120, noi_dung: 'a'.repeat(500) }]) } }, tkChu);
   k('D5 biên hợp lệ (3 giây · 120 giây · chữ 500 ký tự) → 200', la(bien, 200), mt(bien));
   await datCaiDat('flash_enabled', 'true'); await datCaiDat('flash_product_keys', JSON.stringify([ma(0)]));
@@ -262,11 +269,11 @@ async function main() {
   muc('Thu hồi khoá');
   const ds = await goi('GET', '/man-khach/may', undefined, tkChu);
   const mayA = (ds.j.may || []).find((m) => m.ten === 'Màn A');
-  k('E1 chủ quán xem được danh sách máy đã ghép (tên, quầy, giờ ghép), KHÔNG kèm khoá / băm', la(ds, 200) && ds.j.may.length === 2 && mayA && !/khoa|bam/i.test(JSON.stringify(ds.j.may)), mt(ds) + ' ' + JSON.stringify(ds.j).slice(0, 160));
-  const thuHoi = await goi('POST', `/man-khach/may/${mayA.id}/thu-hoi`, {}, tkChu);
+  k('E1 chủ quán xem được danh sách máy đã ghép (tên, quầy, giờ ghép), KHÔNG kèm khoá / băm', la(ds, 200) && (ds.j.may || []).length === 2 && mayA && !/khoa|bam/i.test(JSON.stringify(ds.j.may)), mt(ds) + ' ' + JSON.stringify(ds.j).slice(0, 160));
+  const thuHoi = await goi('POST', `/man-khach/may/${mayA?.id}/thu-hoi`, {}, tkChu);
   const sauTh = await trangThai(g1.j.khoa), sauTh2 = await goi('GET', '/man-khach/noi-dung', undefined, null, { [H_KHOA]: g1.j.khoa }), conB = await trangThai(g2.j.khoa);
   k('E2 thu hồi → màn A mất quyền (trạng thái + nội dung → 401 KHOA_THU_HOI); màn B không ảnh hưởng', la(thuHoi, 200) && la(sauTh, 401, 'KHOA_THU_HOI') && la(sauTh2, 401, 'KHOA_THU_HOI') && la(conB, 200), mt(sauTh) + ' / ' + mt(conB));
-  const gLai = await ghep(dm.j.ma, 'Màn A mới');
+  const gLai = await ghep(dm.j.ma || '', 'Màn A mới');
   k('E3 sau thu hồi, ghép lại bằng mã hiện tại → khoá mới chạy được', la(gLai, 200) && la(await trangThai(gLai.j.khoa), 200), mt(gLai));
 
   // ═════════════ F. K5 — chưa ghép màn nào, bán hàng chạy như cũ ═════════════
