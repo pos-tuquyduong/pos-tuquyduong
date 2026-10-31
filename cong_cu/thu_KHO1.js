@@ -318,7 +318,7 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D/K] một món một dòng — pos_products và menu không đổi');
-  const COT_SP = 'id,code,name,category,price,unit,description,image_url,is_active,sort_order,sx_product_type,sx_product_id,is_special_group,created_at,updated_at,ton_gan_nhat,ton_luc';
+  const COT_SP = 'id,code,name,category,price,unit,description,image_url,is_active,sort_order,sx_product_type,sx_product_id,is_special_group,created_at,updated_at,ton_gan_nhat,ton_luc,nhu_cau,the_chat,mo_ta,cong_dung,thanh_phan';
   k('D1 pos_products KHÔNG thêm cột', (await q('PRAGMA table_info(pos_products)')).map((c) => c.name).join(',') === COT_SP);
   await ghiDb("UPDATE pos_products SET price = 25000 WHERE code IN ('CT1', 'CT2')");
   const { layMenuQuay } = require(path.join(MAY_CHU, 'routes', 'products.js'));

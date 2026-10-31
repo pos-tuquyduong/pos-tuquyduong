@@ -23,6 +23,8 @@
 .bh-luoi { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; align-content: start; padding-bottom: 0.5rem; }
 .bh-luoi.bh-khoa { opacity: 0.45; pointer-events: none; }
 .bh-mon { text-align: left; background: #fff; border: 1.5px solid var(--bh-vien); border-radius: 12px; padding: 0.7rem; cursor: pointer; min-height: 88px; display: flex; flex-direction: column; justify-content: space-between; gap: 0.3rem; }
+.bh-mon-bao { position: relative; display: flex; }
+.bh-mon-bao > .bh-mon { flex: 1; padding-right: 2rem; }
 .bh-mon:disabled { opacity: 0.4; cursor: not-allowed; }
 .bh-mon-ten { font-weight: 700; }
 .bh-mon-ton { font-size: 0.75rem; color: var(--bh-xam); }

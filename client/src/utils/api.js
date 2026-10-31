@@ -344,7 +344,8 @@ export const productsApi = {
   update: (id, data) => api.put(`/products/${id}`, data),
   updatePrice: (id, price) => api.put(`/products/${id}/price`, { price }),
   toggle: (id) => api.put(`/products/${id}/toggle`, {}),
-  updatePricesBatch: (products) => api.put('/products/batch/prices', { products })
+  updatePricesBatch: (products) => api.put('/products/batch/prices', { products }),
+  updateThongTin: (data) => api.put('/products/thong-tin', data)
 };
 
 // POS-DODNO-v1 · So no kho

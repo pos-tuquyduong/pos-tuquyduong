@@ -1,0 +1,22 @@
+KH-SP-1 — bằng chứng ĐỎ: cong_cu/thu_KHSP1.js (bản cuối, sau commit thêm B9 + mục E) chạy trên bản gốc 0ee84b9 (git archive HEAD, node_modules nối vào)
+Kết quả bản gốc: "3 đạt · 10 hỏng" (bài sập giữa mục B vì cửa ghi 404 — đúng kỳ vọng):
+  ✗ A1 pos_products có đủ 5 cột mới — id,code,...,ton_gan_nhat,ton_luc (thiếu nhu_cau, the_chat, mo_ta, cong_dung, thanh_phan)
+  ✗ A2 pos_nang_cap ghi bước 5 — [1,2,3,4]
+  ✗ B1 chủ ghi đủ 5 trường → 200 — HTTP 404
+  ✗ B: bài chạy hết mục — "undefined" is not valid JSON
+  ✗ C1 món đã nhập … anh null — menu chỉ có ma,ten,nhom,gia,con_hang,ton_cu,ton_luc,gia_hang
+  ✗ C2 món chưa nhập: [] / [] / null / null / null / anh null
+  ✗ C3 mỗi món ĐÚNG bộ khoá: 8 cũ + 5 mới + anh
+  ✗ D: bài chạy hết mục — Cannot find module server/utils/thongTinMon.js
+  ✗ E2 PHIEN_BAN … ≥ 4 — 3 / 3
+  ✗ E3 nhật ký có dòng v4 nhắc KH-SP-1
+Sau khi vá: 43 đạt · 0 hỏng (vòng sửa 1 thêm 2 ca B8 tên/mã hàng mới; bản gốc vẫn đỏ: cửa ghi 404)
+SỐ CA cong_cu/thu_KHSP1.js: 43
+
+Ba bài cũ sửa ĐÚNG dòng danh sách trắng (LUẬT §6 mục 7–8; bản mới ĐỎ trên gốc 0ee84b9, XANH trên code đã vá — không phải "Bài thử cũ sửa"):
+  thu_KH1.js     gốc: ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng — 156 đạt · 1 hỏng | vá: 157 đạt · 0 hỏng
+  thu_KHAPI2.js  gốc: ✗ E3 trường cũ y nguyên (…)                  — 100 đạt · 1 hỏng | vá: 101 đạt · 0 hỏng
+  thu_KHO1.js    gốc: ✗ D1 pos_products KHÔNG thêm cột              — 110 đạt · 1 hỏng | vá: 111 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_KHO1.js: 111

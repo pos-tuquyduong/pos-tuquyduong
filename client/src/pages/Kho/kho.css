@@ -31,3 +31,10 @@
 .kho-lien-ket { background: none; border: 0; color: #0f766e; text-decoration: underline; cursor: pointer; padding: 0; }
 .kho-dinh-muc { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: 0.35rem; margin: 0.4rem 0; }
 .kho-dinh-muc label { display: flex; flex-direction: column; gap: 0.15rem; }
+/* KHO-2b — bộ chọn ô chạm, khung Đã chọn, bước phát sinh (điện thoại 360–430 px: ô co về 2 cột, dòng tự xuống hàng) */
+.kho-da-chon { border: 2px solid #0f766e; border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem; background: #f0fdfa; }
+.kho-o-cham { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: 0.45rem; }
+.kho-o-chon { min-height: 3.2rem; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; padding: 0.4rem; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 0.1rem; }
+.kho-dong .input.kho-hep { flex: 0 1 6rem; min-width: 4.5rem; }
+.kho-buoc { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.5rem; }
+.kho-buoc .btn { padding: 0.9rem 0.5rem; }
