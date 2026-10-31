@@ -1,10 +1,10 @@
 KHO-2b — bằng chứng ĐỎ trên code gốc (31.10.2026)
-Gốc: 617f4e4 (PHIEU: KHO-2b — server/ chưa vá). Bài thử: cong_cu/thu_KHO2b.js ở commit 2d4e381 (sau vòng sửa 2).
+Gốc: 617f4e4 (PHIEU: KHO-2b — server/ chưa vá). Bài thử: cong_cu/thu_KHO2b.js ở commit 8ad6107 (sau vòng sửa 4).
 Lệnh: python3 viec/KHO-2b/dot_bien.py --goc 617f4e4   (git archive server/ của gốc → node cong_cu/thu_KHO2b.js --may-chu <bản chép>)
 
 Lần chạy đầu (trước khi sửa bất kỳ file nào, cây làm việc = gốc + bài thử, commit 3343ba5): 5 đạt · 62 hỏng (thoát 1, chạy hết, không sập).
 
-cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 65 hỏng (thoát 1, chạy hết, không sập) — bản bài trước vòng sửa 1 (95671d6): 11 đạt · 56 hỏng; sau vòng 1: 11 · 62
+cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 67 hỏng (thoát 1, chạy hết, không sập) — bản bài trước vòng sửa 1 (95671d6): 11 đạt · 56 hỏng; sau vòng 1: 11 · 62; sau vòng 2: 11 · 65
   ✗ N1 bước 007 đã chạy: kho_phieu.don_id, kho_phieu.su_co, kho_phieu_dong.han_dung có
   ✗ A1 theo công thức: Nước cam ×10 + Trà gừng ×4 → Cam 2 · Gừng 0.5 + 0.4 gộp · Kỷ tử 0.02 …  — HTTP 403 · DUONG_LA
   ✗ A2 · A3 · A4 · A5 · A5b · A6 · A7 · A7b · A8 · A10 · A12 · A13
@@ -19,6 +19,7 @@ cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 65 hỏng (thoát 1, ch�
   ✗ F2 · F3 · F4 · F4b · F6
   ✗ (vòng sửa 1) D14 · F5 · E4c · E4d · E5e · H4 (H4 đỏ vì gốc không có cột don_id / su_co trong sao lưu)
   ✗ (vòng sửa 2) E4e · E5f · E6
+  ✗ (vòng sửa 4) E7 · E8
 Ca XANH trên gốc (đúng — không phụ thuộc server/ gốc): A9 (gốc không có đơn nào → tồn không đổi), A11 (không có dòng), B6 (không có
 dòng ngoài đơn), K4 (giá nhập không đổi), F1 (công thức tồn của bài khớp /ton) — các ca này ĐỎ khi đột biến tương ứng (BV-DH-VAO-TON bắt A9);
 G1 · G2 · C3 · G3b · D7 · K1 đọc client/ và kiem_tra ở cây làm việc (lần chạy đầu 3343ba5 chúng ĐỎ: 5 đạt · 62 hỏng).
@@ -39,6 +40,12 @@ Vòng sửa 2 — bài thử hiện tại trên server/ TRƯỚC vòng sửa 2 (
   E4e (sửa PN theo đơn giữ đơn) XANH trên 4cb3790 — hành vi đã đúng từ vòng 1, ca thêm để khoá (lỗi 3 = thiếu ca); đột biến BV-SUA-GIU-DON bắt nó.
 Lệnh: python3 viec/KHO-2b/dot_bien.py --goc 4cb3790
 
-Đột biến (python3 viec/KHO-2b/dot_bien.py): ĐỐI CHỨNG XANH · 76 đạt · 0 hỏng · TỔNG 33 đột biến · BẮT 33 · SỐNG 0 · HỎNG 0 · LẠC 0
+Vòng sửa 4 — bài thử hiện tại trên server/ TRƯỚC vòng sửa 4 (fa55546): 76 đạt · 2 hỏng (thoát 1):
+  ✗ E7 sửa phiếu nhận / phát sinh ĐÃ HUỶ → 409 PHIEU_DA_XU_LY  — HTTP 409 · PHIEU_CHUA_DUYET | HTTP 409 · PHIEU_CHUA_DUYET   (lỗi 1 soát lần 3)
+  ✗ E8 nhân viên tạo phiếu phát sinh gửi cho_mon_id → máy chủ bỏ qua  — HTTP 200 [999999]   (lỗi 3)
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc fa55546
 
-SỐ CA cong_cu/thu_KHO2b.js: 76
+Đột biến (python3 viec/KHO-2b/dot_bien.py): ĐỐI CHỨNG XANH · 78 đạt · 0 hỏng · TỔNG 35 đột biến · BẮT 35 · SỐNG 0 · HỎNG 0 · LẠC 0
+(lần chạy đầu vòng 4: BV-SUA-CHI-DA-DUYET HỎNG — neo khớp 0 lần vì dòng neo vừa đổi; sửa neo ở 0e3cedd, chạy lại 35/35 BẮT)
+
+SỐ CA cong_cu/thu_KHO2b.js: 78

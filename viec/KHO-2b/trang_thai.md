@@ -47,6 +47,13 @@
   "người khác duyệt" đã bịt cho DH / PN / PS; không sửa vì mục Cấm "không đổi luồng PX". Đề xuất gom vào việc sau.
 - Nguyên liệu: huỷ / sửa phiếu nhận khi lô đã bị phiếu khác trừ vẫn cho (luật KHO-2a: tồn nguyên liệu = Σ dòng, được âm, báo đỏ) — lô cũ âm tự ẩn nên
   tổng các lô có thể lớn hơn tồn; phiếu "hết hạn" chọn lô vẫn trừ theo lô. Thành phẩm thì bị chặn (LO_DA_BI_TRU) vì tồn thành phẩm = Σ lô.
+- (soát 3) Ghi KẾT QUẢ phiếu xuất sau khi phiếu phát sinh đã trừ cùng lô thành phẩm (`duLieu.ghiKetQua`) có thể làm lô âm và ẩn khỏi tồn thành phẩm —
+  cùng dạng LO_DA_BI_TRU nhưng ở luồng PX (mục Cấm) → chưa sửa, chưa dựng bằng chạy. Đề xuất việc sau: ghiKetQua kiểm lô không âm.
+- (soát 3) Chủ quán SỬA phiếu nhận khi lô NGUYÊN LIỆU đã bị phiếu khác trừ vẫn cho (chỉ thành phẩm bị chặn) — lô mới đủ lượng, lô cũ âm ẩn, gợi ý "hết hạn"
+  có thể báo lô còn nhiều hơn tồn. Kế hoạch §7 chỉ duyệt trường hợp HUỶ. **Bạn xác nhận giúp:** giữ như vậy, hay chặn sửa như thành phẩm (đề xuất: chặn —
+  an toàn hơn, ~1 dòng, làm ở việc sau).
+- (soát 3) Chủ quán sửa phiếu dùng nội bộ → phiếu mới ghi người tạo là chủ quán, nên hạn mức nội bộ trong ngày của người gốc được "trả lại" (log người gốc
+  vẫn ở phiếu cũ qua thay_cho_id). Màn Nhận hàng theo đơn bỏ qua dòng của nguyên liệu đã "Ngừng dùng". Phiếu nhận trỏ đơn đã bị sửa tính cờ lệch theo đơn cũ.
 - Đơn đặt hàng bị huỷ khi phiếu nhận theo đơn còn chờ duyệt: lúc duyệt không kiểm lại đơn — giữ vậy (hàng đã về thật).
 - Sao lưu Excel (`server/routes/backup.js`, ngoài Phạm vi) lấy bảng theo danh sách cứng: bảng mới nào của kho cũng KHÔNG được sao lưu nếu không sửa file đó — lý do kế hoạch không thêm bảng.
 
@@ -94,12 +101,15 @@
 | (vòng 2) `duLieu.js` huyPhieu chặn khi lô thành phẩm đã bị phiếu khác trừ | BV-LO-TP-DA-BI-TRU | E6 |
 | (vòng 2) `duong.js` sửa PN giữ don_id | BV-SUA-GIU-DON | E4e |
 | (vòng 2) `phatSinh.js` dòng nguyên liệu giữ cho_mon_id khi sửa | BV-NOI-BO-GIU-MON | E5f |
+| (vòng 4) `duong.js` sửa phiếu đã huỷ → PHIEU_DA_XU_LY (chỉ phiếu CHỜ DUYỆT mới PHIEU_CHUA_DUYET) | VS-SUA-HUY-SAI-MA | E7 |
+| (vòng 4) `phatSinh.js` cho_mon_id chỉ nhận ở đường sửa | BV-CHO-MON-CHI-KHI-SUA | E8 |
 
 Tên đột biến: BV-DH-VAO-TON, VS-DH-KHONG-GOP, VS-HAN-MUC-LON-HON-BANG, VS-THIEU-GIA-DUOI-HAN-MUC, VS-DH-NV-TU-DUYET, BV-CAN-CHU-QUAN, BV-DS-CAN-CHU-QUAN,
 BV-HAN-MUC-CAI-DAT, BV-PN-NGUOI-KHAC, VS-PN-CONG-LUC-TAO, BV-GHI-KHO-NHAN, BV-CON-LAI-TRU-PN-CHO, BV-DON-DA-DONG, BV-HAN-TU-DIEN, BV-LECH-PN,
 VS-FEFO-BO-LO-QUA-HAN, BV-HAN-MUC-NOI-BO, VS-NOI-BO-KHONG-CONG-DON, VS-NOI-BO-CONG-NGUOI-KHAC, VS-NOI-BO-CONG-NGAY-CU, VS-TP-THIEU-LO-GHI-AM,
 BV-MA-GUI-MOI, BV-BOGIA-TONG-UOC-TINH, VS-SUA-KHONG-HUY-CU, BV-SUA-RE-LOAI-TRUOC, BV-007-DON-ID,
-BV-SUA-GIU-TRUONG-CU, BV-SUA-CHI-DA-DUYET, VS-PS-LO-KEM-KHOA, BV-DUYET-KIEM-LO, BV-LO-TP-DA-BI-TRU, BV-SUA-GIU-DON, BV-NOI-BO-GIU-MON.
+BV-SUA-GIU-TRUONG-CU, BV-SUA-CHI-DA-DUYET, VS-PS-LO-KEM-KHOA, BV-DUYET-KIEM-LO, BV-LO-TP-DA-BI-TRU, BV-SUA-GIU-DON, BV-NOI-BO-GIU-MON,
+VS-SUA-HUY-SAI-MA, BV-CHO-MON-CHI-KHI-SUA.
 
 ## Soát độc lập — lần 1 (agent general-purpose, /ra-soat) — chép nguyên
 ```
@@ -206,4 +216,78 @@ CHƯA SOÁT ĐƯỢC: cong.js chay; điện thoại, ô ngày hẹp, in 80 mm / 
 BÀI HỌC: KHOÁ ca "sửa / huỷ phiếu ĐÃ HUỶ" mọi loại → cùng mã PHIEU_DA_XU_LY; KHOÁ trường "giữ lúc sửa" chỉ nhận ở đường sửa;
   NGUYÊN TẮC (K4) chặn "lô bị phiếu khác trừ" phủ mọi dòng ghi lên lô (huỷ, sửa, ket_qua); NGUYÊN TẮC (K1) số trong tiêu đề hồ sơ cập nhật cùng bảng.
 ```
+
+## Vòng sửa 4 (LUAT §6.5 — soát lần 3 chỉ còn lỗi NHẸ)
+SOÁT LẦN CUỐI: chat soát thay
+- Lỗi 1: `duong.js` sửa: chỉ phiếu CHỜ DUYỆT trả PHIEU_CHUA_DUYET; phiếu đã huỷ đi qua huyPhieu → 409 PHIEU_DA_XU_LY như phiếu xuất. Ca E7.
+- Lỗi 3: `phatSinh.js` cho_mon_id chỉ nhận khi chủ quán sửa (ep); tạo mới bỏ qua. Ca E8.
+- Lỗi 2 (hồ sơ): tiêu đề bảng đột biến bỏ con số cũ; thêm CHƯA KIỂM, thao tác thử tay, kết quả cổng (dưới).
+- Nghi ngờ của soát 3 → Phát hiện (một câu cần bạn xác nhận: sửa phiếu nhận khi lô nguyên liệu đã bị trừ).
+- Kết quả: thu_KHO2b 78/78 · `npm test -- --day-du` PASS 88 · FAIL 0 · CẢNH BÁO 1 (có từ trước) · thu_KHO1, thu_KHO2a xanh · dist khớp src ·
+  đột biến 35/35 BẮT · bài hiện tại trên fa55546 đỏ đúng E7, E8.
+
+## Nghiệm thu — đếm từng mục
+- A Đơn đặt hàng: theo công thức + gộp (A1, A2) · lẻ (A2) · chỉ lượng, không công thức (A11) · giá ước tính theo giá nhập (A12) · nhân viên → chờ duyệt (A6) ·
+  quản lý ≤ hạn mức tự duyệt / > hạn mức chờ, ngay trên / dưới (A4, A7b) · thiếu giá = vượt (A8) · chỉ chủ quán duyệt > hạn mức (A5, A5b) · Cài đặt mặc định
+  500.000, chỉ chủ quán đổi, giá trị sai 400 (A7, A10) · không đổi tồn (A9) · in (A13) · xem trước khi gửi: bảng "Đơn sẽ gửi" ở DatHang.jsx — THỬ TAY.
+- B Nhận theo đơn: bảng tick / "Nhận đủ tất cả" / dòng lệch vàng (G3b tĩnh + G3 cờ máy chủ) · thêm dòng ngoài đơn (B6, G3) · hạn từng lô (B7) · giá thật → giá
+  vốn lô (B2) · người KHÁC duyệt, chính người tạo 403 (B1, B8/C1) · duyệt mới tạo lô + cộng kho, một giao dịch (B1, B2, F2) · từ chối có lý do (B3) ·
+  nhận thiếu còn mở / đủ thì đóng / từ chối mở lại (B4, B4b, B5) · đơn chưa duyệt 409 (B9).
+- C Mua lẻ: không đơn, cùng luật duyệt (B8/C1) · khung "Đã chọn", tab "Sắp hết & hay mua", tab nhóm, lọc tên (C3 tĩnh, C2 dữ liệu gợi ý).
+- D Phát sinh 4 bước (D7 tĩnh) · chỉ hiện thứ liên quan: hết hạn (D1), nội bộ (D3) · FEFO kể cả lô quá hạn (D2) · lô chọn (D12, D14) · hạn mức nội bộ người /
+  ngày, cộng dồn, sang ngày, người khác không cộng, vượt → chờ duyệt, quản lý duyệt (D4, D4b, D9) · thiếu giá = vượt (D11) · chỉ chủ quán đổi (D8) ·
+  trong hạn mức theo công tắc (D2 bật, D4 tắt, D10 quản lý) · món pha tại chỗ trừ theo công thức (D5) · log người / giờ / lý do (D6, D6b) · đổ vỡ (D10).
+- E Bấm hai lần một phiếu DH / PN / PS (E1) · số phiếu (E2) · nhân viên không thấy giá (E3, E3b) · sửa / huỷ chỉ chủ quán, có lý do, phiếu cũ giữ
+  (E4, E4b–E4e, E5, E5b–E5f, E7) · chặn khi thành phẩm đã bị trừ (E6).
+- F Tồn đúng: DH (A9) · PN tạo / duyệt / từ chối / huỷ / sửa (B1, B2, B3, F6, E4b) · PS tạo / duyệt / huỷ / sửa / từ chối (D2, E5, E5b, F5) · DH từ chối (F5) ·
+  duyệt song song một lần PN / PS / DH (F2, F4, F4b) · nội bộ song song quanh ngưỡng (F3) · tồn = Σ dòng (F1).
+- G Tab hay dùng trước (G1) · huy hiệu một vòng 30 s, gồm DH / PN / PS, quản lý bỏ đơn cần chủ quán (G2, A5b) · điện thoại 360–430 px — THỬ TAY.
+- H Pha chế, phiếu xuất, tồn, nguyên liệu, công thức, nhập SX, bán hàng: thu_KHO1 111/111 + thu_KHO2a 86/86 nguyên vẹn (gồm `/orders` J1) · PX dùng lô
+  phiếu nhận, bỏ lô quá hạn (H2/H3) · sao lưu có cột mới, khôi phục khi kho có dữ liệu không chép đè (H4).
+
+## Thao tác bạn thử tay trên điện thoại (sau khi gộp)
+1. Kho → **Nhận hàng** → Mua lẻ → chạm 2 ô nguyên liệu, gõ số + giá (đ/kg) → Gửi. Đăng nhập tài khoản KHÁC → Kho → Phiếu → mở phiếu → Duyệt → Tồn kho tăng.
+2. Kho → **Phát sinh** → Hỏng → chạm 1 món → Tiếp → gõ số → Xem phiếu → Gửi. Xem màn không bị kéo ngang.
+3. Kho → **Đặt hàng** → chọn món + số phần → Thêm → xem bảng "Đơn sẽ gửi" → Gửi → (quản lý / chủ quán) In 80 mm.
+
+## Báo cáo
+```
+VIỆC:        KHO-2b — đặt hàng có hạn mức · nhận hàng (theo đơn / mua lẻ) người KHÁC duyệt · xử lý phát sinh 4 bước
+ĐÃ SỬA:      server/nang_cap/007_kho_nhap_hang.js — 3 cột (don_id, su_co, kho_phieu_dong.han_dung), không bảng mới
+             server/kho/tinh.js — hạn mức (mặc định 500.000 / 50.000), tongTien, trongHanMuc, gopLuong, conLaiDon, chuanHan; KHOA_GIA + tong_uoc_tinh
+             server/kho/duLieu.js — DA_DUYET bỏ DH khỏi tồn; soPhieuMoi, themPhieu; duyệt / từ chối / huỷ chung mọi loại (đơn vượt hạn mức → CAN_CHU_QUAN;
+               lô thành phẩm bị phiếu khác trừ → LO_DA_BI_TRU); docPhieuNhap, docConLaiDon, dsPhieu (hang, can_chu_quan); docDinhMuc (hạn mức)
+             server/kho/nhapHang.js (mới) — taoDatHang, taoPhieuNhan, ghiKhoNhan, goiYNhap
+             server/kho/phatSinh.js (mới) — goiY, taoPhatSinh (hạn mức nội bộ), ghiKhoPhatSinh (FEFO, kiểm lô chọn sẵn)
+             server/kho/duong.js — /phieu-dat, /phieu-nhan, /phieu-phat-sinh (ma_gui), /goi-y-nhap, /phat-sinh/goi-y; sửa rẽ theo loại, giữ trường cũ
+             server/routes/settings.js — kho_han_muc_* số nguyên ≥ 0
+             client/src/pages/Kho/ — ChonNguyenLieu, NhanHang, DatHang, PhatSinh (mới); XemPhieu, index, DsPhieu, DinhMuc, chung, kho.css; client/dist build lại
+             cong_cu/thu_KHO2b.js (mới, 78 ca); kiem_tra_truoc_khi_giao.js +1 dòng chạy bài
+BÀI THỬ:     chạy trên bản chưa vá (617f4e4) → ĐỎ 67/78 (bang_chung_do.txt); mỗi vòng sửa đỏ đúng ca lỗi trên bản trước vòng (d050f97: 5 · 4cb3790: 2 ·
+             fa55546: 2); sau vá → XANH 78/78; đột biến 35/35 BẮT, đối chứng xanh; thu_KHO1 111/111, thu_KHO2a 86/86; --day-du PASS 88 · FAIL 0
+ĐÃ RÀ K4:    grep "loai = 'PX'" server/kho → 1 chỗ còn (ghiKetQua, có chủ ý), 4 hàm duyệt / từ chối / huỷ / vì-sao đã bỏ; grep "'da_duyet'" cộng sổ → mọi
+             câu tồn qua DA_DUYET (duLieu 2, phatSinh 1); khoá tiền → KHOA_GIA (E3 quét sâu); ma_gui → 3 đường mới dùng timMaGui; kiểm lúc tạo chạy lại lúc
+             duyệt: hạn mức DH, lô chọn sẵn PS; sửa giữ ghi_chu / NCC / su_co / don_id / cho_mon_id
+CHƯA KIỂM:   màn điện thoại 360–430 px, ô ngày hẹp, in 80 mm / A4 của DH / PN / PS (thử tay ở trên); tốc độ trên Turso (gợi ý nhập đọc lặp tới 50 đơn,
+             danh sách phiếu đọc hạn mức mỗi đơn chờ); khôi phục sao lưu vào kho TRỐNG — hỏng sẵn ở backup.js (Phát hiện); ghi kết quả phiếu xuất sau khi
+             phát sinh trừ cùng lô (Phát hiện, chưa dựng bằng chạy); hạn mức nội bộ khi chủ quán sửa phiếu của người khác
+GIT:         (xem dòng git log ở cuối file)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài học
+```
+Ngân sách: máy chủ 456 dòng thêm (~400, +14% — phần "hay mua", gợi ý phát sinh và 4 vòng soát) · giao diện 422 (~450) · thử 526 (~500, +5%).
+
+## Bài học
+Sự cố gom được: soát độc lập 3 lần bắt 4 + 1 nặng + 2 nhẹ lỗi thật (đường sửa, lô bị phiếu khác trừ, kiểm lúc tạo không chạy lại lúc duyệt, mã lỗi lệch);
+người gác chặn 5 lệnh (B-PHANTICH ×2: gộp python + node một dòng, `$'…'`; B-BIMAT-CHU: chạy bài thử có cụm bí mật chưa commit; B-CD-VITRI: `cd client`
+giữa lệnh; GIT-LENH: `git stash list`); đột biến lạc neo một lần sau khi đổi dòng (vòng 4); vượt ngân sách máy chủ 14%.
+- **KHOÁ** (ngoài Phạm vi — đề xuất): `cong_cu/thu_KHO1.js` (hoặc bài mới cho backup) ca "khôi phục vào kho TRỐNG: mọi cột y hệt trước, kể cả cột trống ở
+  dòng đầu" — ĐỎ trên `backup.js:388` hiện tại; sửa `backup.js` lấy cột theo hợp các dòng. Lý do KHOÁ: lỗi âm thầm mất dữ liệu đúng lúc cần khôi phục.
+- **KHOÁ** (đã làm trong Phạm vi): mỗi lỗi người soát báo có ca đỏ trên bản trước vòng + đột biến đưa đúng lỗi trở lại (E4c–E8, D14, E6; 9 đột biến vòng).
+- **KHOÁ** (đề xuất, `tu_chay/` ngoài Phạm vi): `dot_bien.py` chạy ngay sau mỗi commit đổi `server/` để bắt neo lạc sớm (vòng 4 phát hiện muộn một bước).
+- **NGUYÊN TẮC** (đề xuất thêm vào KHUON_LOI.md K4, ngoài Phạm vi): "Sửa = huỷ + tạo lại" phải mang theo MỌI trường của phiếu cũ VÀ trạng thái người khác
+  đã ghi lên đối tượng cũ (lượng đã trừ trên lô); phép kiểm lúc TẠO phiếu chờ duyệt phải chạy lại lúc DUYỆT. Đã gây: KHO-2b soát 1 lỗi 2–3, soát 2 lỗi 1.
+- **NGUYÊN TẮC** (đề xuất K3): ca thử của đường phụ (sửa) phải gửi ĐÚNG thân màn hình dựng (thanSua), không tự soạn thân gọn hơn. Đã gây: E5b xanh oan, soát 1 lỗi 1.
+- **NGUYÊN TẮC** (đề xuất K4): cùng tình huống → cùng mã lỗi ở mọi loại phiếu; thêm loại phiếu vào hàm chung thì rà mã lỗi từng nhánh. Đã gây: soát 3 lỗi 1.
+- **BỎ**: các lệnh bị người gác chặn — luật đã có, lỗi thao tác một lần (tách lệnh, commit bài thử trước khi chạy). `git stash list` — chỉ để xem, không cần.
+- Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md được phép kiểm mới làm thay trong việc này.
 
