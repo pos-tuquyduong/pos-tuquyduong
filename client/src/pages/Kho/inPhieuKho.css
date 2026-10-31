@@ -1,4 +1,6 @@
-/* KHO-2a — in phiếu kho: chỉ khối .kho-in ra giấy; khổ giấy (@page 80mm / A4) do XemPhieu chèn lúc bấm In. Không dùng InPhieu.jsx (Cấm). */
+/* KHO-2a — in phiếu kho: chỉ khối .kho-in ra giấy; khổ giấy (@page 80mm / A5 / A4) do XemPhieu chèn lúc bấm In. Không dùng InPhieu.jsx (Cấm).
+   KHO-IN-1: số bản = số khối .kho-ban trong .kho-in (mỗi bản một tờ, ngắt trang giữa các bản); chữ dài xuống dòng, không bị cắt. */
+.kho-ban:not(:first-child) { display: none; }
 .kho-in-lai { font-weight: 700; font-size: 1.05rem; border: 2px solid #000; text-align: center; padding: 0.2rem; margin: 0.3rem 0; }
 .kho-o { display: inline-block; width: 1.2rem; }
 @media print {
@@ -8,6 +10,13 @@
   .kho-in .kho-khong-in, .kho-in button, .kho-in input { display: none !important; }
   .kho-in .kho-dong { margin-bottom: 0.15rem; }
   .kho-in .kho-nho { color: #000; }
-  .kho-in-80 { font-size: 11px; }
-  .kho-in-80 .card-title { font-size: 13px; }
+  .kho-in { overflow-wrap: anywhere; }
+  .kho-in .kho-dong > span { min-width: 0; }
+  .kho-ban:not(:first-child) { display: block; }
+  .kho-ban { break-after: page; page-break-after: always; }
+  .kho-ban:last-child { break-after: auto; page-break-after: auto; }
+  .kho-in-80mm { font-size: 11px; }
+  .kho-in-80mm .card-title { font-size: 13px; }
+  .kho-in-a5 { font-size: 13px; }
+  .kho-in-a4 { font-size: 15px; }
 }

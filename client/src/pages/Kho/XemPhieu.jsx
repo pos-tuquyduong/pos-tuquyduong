@@ -7,9 +7,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
 import { so, tien, gio, TRANG_THAI, SU_CO, veLuu } from './chung';
+import { docInPhieuKho, thuTuNutIn } from '../../utils/inPhieu';
 
 const LAM_MOI_MS = 15000;
-const KHO_IN = { k80: '@page { size: 80mm auto; margin: 3mm; }', a4: '@page { size: A4; margin: 12mm; }' };
+// KHO-IN-1: khổ giấy theo tên khổ của KHO_PHIEU_KHO (utils/inPhieu.js); khổ mặc định của từng loại do Cài đặt in phiếu quyết định.
+const KHO_IN = { '80mm': '@page { size: 80mm auto; margin: 3mm; }', a5: '@page { size: A5; margin: 8mm; }', a4: '@page { size: A4; margin: 12mm; }' };
+const NHAN_NUT_IN = { '80mm': 'In 80 mm', a5: 'In A5', a4: 'In A4' };
 const luong = (n) => `${so(n.luong_hien)} ${n.don_vi || ''}`;
 const TEN_LOAI = { DH: 'Đơn đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu xử lý phát sinh' };
 
@@ -56,12 +59,14 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
   const [dl, setDl] = useState(null);
   const [loi, setLoi] = useState('');
   const [dangGhi, setDangGhi] = useState(false);
-  const [kho, setKho] = useState(null);   // khổ đang in: k80 | a4
+  const [kho, setKho] = useState(null);   // khổ đang in: 80mm | a5 | a4
+  const [caiDat, setCaiDat] = useState({});   // khổ + số bản mặc định (in_phieu_*); không tải được → mặc định 80mm, 1 bản
   const [nhap, setNhap] = useState({});   // san_pham_id → { so_thuc, ghi_chu } đang sửa
   const [sua, setSua] = useState(null);   // chủ quán sửa: san_pham_id → số phần
 
   const tai = () => api.get(`/kho/phieu/${id}`).then(setDl).catch((e) => setLoi(e.message));
   useEffect(() => { setDl(null); tai(); }, [id]);
+  useEffect(() => { api.get('/settings').then((r) => setCaiDat(r.data || {})).catch(() => {}); }, []);
   useEffect(() => {
     if (dl?.phieu.trang_thai !== 'cho_duyet') return undefined;
     const t = setInterval(tai, LAM_MOI_MS);
@@ -100,6 +105,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
     return r;
   });
 
+  const mac = docInPhieuKho(caiDat, dl?.phieu.loai);
   if (!dl) return <div>{loi ? <div className="kho-loi">{loi}</div> : 'Đang tải…'}<button className="btn btn-outline" onClick={dong}>Quay lại</button></div>;
   const p = dl.phieu;
   const quanLy = vaiTro === 'owner' || vaiTro === 'manager';
@@ -107,9 +113,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
   const daDuyet = p.trang_thai === 'da_duyet';
   const laPX = p.loai === 'PX';
 
-  return (
-    <div>
-      <div className={`kho-in ${kho === 'k80' ? 'kho-in-80' : ''}`}>
+  const noiDung = (
+    <>
         <h3 className="card-title">{p.so_phieu} · {TRANG_THAI[p.trang_thai]}</h3>
         {p.so_lan_in >= 2 && kho && <div className="kho-in-lai">IN LẠI · LẦN {p.so_lan_in}</div>}
         <div className="kho-nho">
@@ -170,6 +175,13 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
           );
         })}
         {kho && <div className="kho-nho" style={{ marginTop: '0.6rem' }}>{laPX ? 'Người lấy hàng: ________ · Người pha: ________' : 'Người lập: ________ · Người nhận / duyệt: ________'}</div>}
+    </>
+  );
+
+  return (
+    <div>
+      <div className={`kho-in ${kho ? `kho-in-${kho}` : ''}`}>
+        {Array.from({ length: kho ? mac.ban : 1 }, (_, i) => <div key={i} className="kho-ban">{noiDung}</div>)}
       </div>
 
       {loi && <div className="kho-loi">{loi}</div>}
@@ -196,8 +208,9 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
             <button className="btn btn-outline" disabled={dangGhi} onClick={tuChoi}>Từ chối</button>
           </>
         )}
-        {daDuyet && <button className="btn btn-outline" disabled={dangGhi} onClick={() => inRa('k80')}>In 80 mm</button>}
-        {daDuyet && <button className="btn btn-outline" disabled={dangGhi} onClick={() => inRa('a4')}>In A4</button>}
+        {daDuyet && thuTuNutIn(mac.kho).map((k, i) => (
+          <button key={k} className={`btn ${i === 0 ? 'btn-primary' : 'btn-outline'}`} disabled={dangGhi} onClick={() => inRa(k)}>{NHAN_NUT_IN[k]}{i === 0 && ` · mặc định${mac.ban > 1 ? ` · ${mac.ban} bản` : ''}`}</button>
+        ))}
         {chuQuan && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && !sua && (
           <>
             {(laPX || daDuyet) && <button className="btn btn-outline" onClick={() => setSua(laPX ? Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)]))
