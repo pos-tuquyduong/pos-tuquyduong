@@ -40,3 +40,25 @@ Nghi ngờ đã xét: ca "dòng bảng không tràn" yếu → ĐÃ SIẾT (đò
 Nghiệm thu soát: A đạt · C đạt · B thiếu kết xuất in thật (không có trình duyệt) · D đạt có điều kiện.
 Bài học soát: KHOÁ — ca đọc nguồn phải khớp CẢ BỘ đối số lời gọi; NGUYÊN TẮC — chuyển nguồn ghi sang nơi có cổng "đã nạp" thì khoá luôn ô đó khi chưa nạp.
 Đột biến sau vòng 1: `dot_bien.py` 57 đột biến · BẮT 57 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh: 66 · 55 · 90).
+
+## Cổng PR
+`node tu_chay/cong.js chay . 7fc9bff^ HEAD viec/KHO-IN-1` (HEAD 0b40ae5, cây sạch): ✓ CỔNG CHẠY ĐẠT.
+`npm test` 89 PASS · 0 FAIL · 1 CẢNH BÁO (cảnh báo có từ trước, không phải của việc này); `--day-du` 93 PASS · 0 FAIL.
+
+## Bài học
+Sự cố của việc: (a) người gác chặn lệnh chạy bài thử có cụm bí mật (B-BIMAT-CHU) → phải commit bài trước rồi mới chạy; chặn lệnh ghép (B-PHANTICH), ghi ngoài kho (G0-NGOAI, B-DICHCHU), `git stash` (GIT-LENH); (b) 3 đột biến SỐNG lần đầu + 1 lỗ do soát bắt (đối số loại); (c) quản lý không có sẵn `manage_settings`, seed không chạy trên kho mới — bài thử phải bắt theo thực tế chứ không theo tưởng tượng.
+- KHOÁ 3 (làm xong, trong Phạm vi): ca đọc nguồn khớp cả bộ đối số `docInPhieuKho(caiDat, dl?.phieu.loai)` + VS-XP-LOAI-CUNG; ca "tên khoá lạ mang giá trị hợp lệ" + VS-SV-TRUONG-LA (giá trị sai che mất lỗi tên khoá); ca ô khổ khoá khi chưa nạp + BV-IS-O-KHO-KHONG-KHOA. Tất cả đỏ trên gốc (SỐ CA 66, 49 ✗).
+- NGUYÊN TẮC 1 (đề xuất, `KHUON_LOI.md` ngoài Phạm vi — chat soát duyệt): thêm vào K5 "Đã gây: ô Khổ mặc định đổi nguồn ghi sang chỗ có cổng 'đã nạp' mà ô vẫn sửa được khi chưa nạp → báo 'đã lưu' oan. Chặn: đổi nguồn ghi của một ô thì khoá ô đó cùng điều kiện với nguồn mới." Và vào K3: "ca từ chối thử tên khoá lạ thì dùng giá trị HỢP LỆ, đừng để giá trị sai che lỗi tên".
+- BỎ 2: seed `pos_settings` không chạy trên kho mới (đã ghi ở Phát hiện); đột biến tương đương VS-IS-GUI-KHO-THO.
+- Dọn: không đề xuất xoá lời dặn nào.
+
+## Báo cáo
+VIỆC:        KHO-IN-1 — Cài đặt in phiếu (80mm / A5 / A4 cho từng loại phiếu kho) · khổ hoá đơn mặc định có tác dụng thật
+ĐÃ SỬA:      server/routes/settings.js:22-36,148-151 (khoaInPhieuSai + 400 CAI_DAT_KHONG_HOP_LE) · :297 (paper_size '80mm') · server/database.js seed + cột paper_size '80mm' · client/src/utils/inPhieu.js (KHO_PHIEU_KHO, docInPhieuKho, thuTuNutIn) · Kho/XemPhieu.jsx (3 khổ, nút mặc định đứng đầu, số bản) · Kho/inPhieuKho.css · CaiDat/InPhieu.jsx (mới) + Settings.jsx (tab "In phiếu kho") · InvoiceSettings.jsx (ô Khổ mặc định đọc/ghi boIn.bill.kho + invoice_default_size, khoá khi chưa nạp) · client/dist build lại
+BÀI THỬ:     thu_KHOIN1.js trên gốc 7fc9bff → ĐỎ 49/66 (A: khổ lạ trả 200 thay vì 400; B: KHO_IN chỉ k80/a4; C: ô khổ ghi config.default_size, seed 'a5'); sau vá → XANH 66/66. thu_KHQUAY2.js sửa 3 ca (hành vi đã duyệt): đỏ 3 trên gốc, xanh 55/55. Đột biến 57/57 BẮT. npm test 89 PASS, --day-du 93 PASS, cổng PR ĐẠT.
+ĐÃ RÀ K4:    grep "window.print" client/src → 1 chỗ (XemPhieu.jsx); grep "default_size|invoice_default_size|paper_size" client/src server → mọi chỗ đã xử lý (config.default_size không còn ai đọc; cột paper_size đổi theo); XemPhieu chỉ mount ở Kho/index.jsx và DsPhieu.jsx.
+CHƯA KIỂM:   (1) KHÔNG có trình duyệt/máy in: chưa kiểm bằng mắt khổ A5/A4/80mm có tràn/cắt chữ không, và ngắt trang giữa nhiều bản (.kho-in position:absolute + .kho-ban break-after) — chỉ kiểm CSS bằng regex; (2) cỡ chữ A4 (15px) và A5 (13px) mình tự chọn, chủ quán nhìn thử; (3) máy in thật; (4) "phiếu pha chế" trong nghiệm thu A mình hiểu là PX của màn Kho — chờ chủ quán xác nhận; phiếu pha chế sau thanh toán (nhiệt 58/80) không đụng; (5) chưa thử trên Render/Turso thật.
+GIT:         xem git log --oneline -2 ở câu trả lời.
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 1 (đề xuất) · BỎ 2
+
+HEAD ĐÃ KIỂM: 0b40ae5
