@@ -79,7 +79,12 @@ async function main() {
   const ma = doc('client/src/components/MaDangNhapApp.jsx');
   k('A2 có components/MaAppSoMoi.jsx', qs.length > 0);
   k('A2 ô dùng lại MaDangNhapApp (không viết lại mã + đếm ngược)', /import\s+MaDangNhapApp\s+from\s+'\.\/MaDangNhapApp'/.test(qs) && /<MaDangNhapApp\b/.test(qs));
-  k('A2 SĐT sai dạng chặn bằng chuanSdtQuay TRƯỚC khi hiện thành phần gọi máy chủ', /chuanSdtQuay/.test(qs) && /import[^;]*chuanSdtQuay[^;]*maApp/.test(qs));
+  const bienKiem = (/const\s+(\w+)\s*=\s*chuanSdtQuay\(/.exec(qs) || [])[1];
+  k('A2 SĐT sai dạng bị chặn: số đưa đi chỉ lấy từ kết quả chuanSdtQuay (không dùng chữ gõ thô)', !!bienKiem && /import[^;]*chuanSdtQuay[^;]*maApp/.test(qs)
+    && new RegExp('setSdt\\(' + bienKiem + '\\b').test(qs) && !/setSdt\(go\b/.test(qs), String(bienKiem));
+  k('A2 MaDangNhapApp (nơi duy nhất gọi máy chủ) chỉ hiện khi đã có số qua kiểm: {sdt && <MaDangNhapApp', /\{sdt\s*&&\s*<MaDangNhapApp\b/.test(qs));
+  k('A2 SĐT sai dạng → báo lỗi ngay trong ô (có chỗ hiện lời báo)', /setLoi\(\s*s\s*\?\s*''\s*:\s*'[^']*SĐT[^']*'\s*\)/.test(qs) || /setLoi\(\s*s\s*\?\s*''\s*:\s*`[^`]*SĐT[^`]*`\s*\)/.test(qs));
+  k('A2 MaDangNhapApp có prop tuLay: vào là lấy mã (ô số mới không bắt bấm hai lần)', /tuLay/.test(ma) && /<MaDangNhapApp\b[^>]*\btuLay\b/.test(qs));
   k('A2 ô KHÔNG tự gọi máy chủ (chỉ MaDangNhapApp gọi /kh/cap-ma)', !/api\.(post|get|put)|fetch\(/.test(qs) && /api\.post\('\/kh\/cap-ma'/.test(ma));
   k('A2 ô KHÔNG tạo khách và KHÔNG ghi mã ra ngoài state', !/customers|localStorage|sessionStorage/i.test(qs));
   k('A2 có chỗ nhập SĐT (input) và nút', /<input\b/.test(qs) && /<button\b/.test(qs));
@@ -151,12 +156,12 @@ async function main() {
   const is = doc('client/src/pages/InvoiceSettings.jsx');
   const khoaIp = khoaBang(ip, 'PAPER_SIZES');
   k('B2 InvoicePrint: bảng PAPER_SIZES chỉ còn 58mm · 80mm', !!khoaIp && bang(khoaIp, ['58mm', '80mm']), JSON.stringify(khoaIp));
-  k('B2 InvoicePrint: khổ khởi tạo đi qua khoHoaDon (khổ lạ không rơi về A5)', /khoHoaDon/.test(ip) && !/PAPER_SIZES\[paperSize\]\s*\|\|\s*PAPER_SIZES\['a5'\]/.test(ip));
+  k('B2 InvoicePrint: khổ khởi tạo đi qua khoHoaDon (khổ lạ không rơi về A5)', /useState\(khoHoaDon\(/.test(ip) &&!/PAPER_SIZES\[paperSize\]\s*\|\|\s*PAPER_SIZES\['a5'\]/.test(ip));
   k('B2 InvoicePrint: hết nhánh in A4 / A5 (@page, bề ngang hộp)', !/'a4'|'a5'|"a4"|"a5"/.test(ip.replace(/\/\/.*$/gm, '')), (ip.match(/.*['"]a[45]['"].*/g) || [])[0]);
   const optIs = [...is.matchAll(/<option\s+value="([^"]*)"/g)].map((x) => x[1]);
   k('B2 InvoiceSettings "Khổ mặc định": chỉ còn <option> 58mm · 80mm', bang(optIs.filter((v) => /mm$|^a[45]$/.test(v)), ['58mm', '80mm']), JSON.stringify(optIs));
   k("B2 InvoiceSettings: khổ mặc định cấu hình không còn 'a5' / 'a4'", !/default_size:\s*["']a[45]["']/.test(is) && !/useState\(["']a[45]["']\)/.test(is) && !/\[\s*"58mm",\s*"80mm",\s*"a5"/.test(is));
-  k('B2 InvoiceSettings: giá trị cũ lưu trong cấu hình được đọc qua khoHoaDon', /khoHoaDon/.test(is));
+  k('B2 InvoiceSettings: giá trị cũ lưu trong cấu hình được đọc qua khoHoaDon (ô chọn hiện đúng khổ, không trống)', /value=\{khoHoaDon\(config\.default_size\)\}/.test(is));
   k("B2 InvoiceSettings: nút xem trước không còn A4 / A5", !/\["58mm",\s*"80mm",\s*"a5",\s*"a4"\]/.test(is));
   const khoaPv = (() => { const m = /const baseStyles = \{\n([\s\S]*?)\n    \};/.exec(ipv); return m ? [...m[1].matchAll(/^ {6}(?:'([^']+)'|([A-Za-z0-9_]+)):/gm)].map((x) => x[1] || x[2]) : null; })();
   k('B2 InvoicePreview: kiểu theo khổ chỉ còn 58mm · 80mm', !!khoaPv && bang(khoaPv, ['58mm', '80mm']), JSON.stringify(khoaPv));
