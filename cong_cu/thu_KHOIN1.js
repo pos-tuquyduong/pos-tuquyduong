@@ -122,7 +122,8 @@ async function main() {
     sai.ban4 = await dapSettings({ in_phieu_pn_ban: '4' });
     sai.banChu = await dapSettings({ in_phieu_pn_ban: 'hai' });
     sai.loai = await dapSettings({ in_phieu_zz_kho: 'a5' });
-    sai.truong = await dapSettings({ in_phieu_px_kich: 'a5' });
+    sai.truong = await dapSettings({ in_phieu_px_kich: '2' });   // giá trị hợp lệ của một số bản — chỉ TÊN khoá sai
+    sai.loaiBan = await dapSettings({ in_phieu_zz_ban: '2' });
     const sau = await layTatCa();
     // ngay trên / dưới ngưỡng
     const ban1 = await dapSettings({ in_phieu_pn_ban: '1' });
@@ -146,7 +147,7 @@ async function main() {
     k('A khổ rỗng → 400', sai.rong.status === 400, `${sai.rong.status}`);
     k('A số bản: ngay dưới (0) → 400, ngay trên (4) → 400, chữ → 400', sai.ban0.status === 400 && sai.ban4.status === 400 && sai.banChu.status === 400, `${sai.ban0.status}/${sai.ban4.status}/${sai.banChu.status}`);
     k('A số bản: ranh giới 1 và 3 → 200', ban1.status === 200 && ban3.status === 200, `${ban1.status}/${ban3.status}`);
-    k('A loại lạ (in_phieu_zz_kho) và trường lạ (in_phieu_px_kich) → 400 (khoá tiền tố in_phieu_ chỉ nhận đúng dạng)', sai.loai.status === 400 && sai.truong.status === 400, `${sai.loai.status}/${sai.truong.status}`);
+    k('A loại lạ (zz_kho = a5, zz_ban = 2) và trường lạ (px_kich = 2; giá trị hợp lệ, chỉ tên khoá sai) → 400 (khoá tiền tố in_phieu_ chỉ nhận đúng dạng)', sai.loai.status === 400 && sai.truong.status === 400 && sai.loaiBan.status === 400, `${sai.loai.status}/${sai.truong.status}/${sai.loaiBan.status}`);
     k("A sai một khoá thì KHÔNG ghi khoá nào: yêu cầu {px='80mm', dh='a3'} để px vẫn là 'a5' (giá trị trước đó)", sau.in_phieu_px_kho === 'a5' && sau.in_phieu_dh_kho === 'a4' && sau.in_phieu_pn_kho === '80mm' && !('in_phieu_zz_kho' in sau) && !('in_phieu_px_kich' in sau),
       `px=${sau.in_phieu_px_kho} dh=${sau.in_phieu_dh_kho} pn=${sau.in_phieu_pn_kho}`);
     k('A quản lý được cấp manage_settings thì ghi được khoá in phiếu; chưa cấp thì 403 (K5: chủ quán / quản lý cấu hình được)', qlGhi.status === 200 && quanLyChuaCap.status === 403, `HTTP ${qlGhi.status} ${JSON.stringify(qlGhi.j)} / chưa cấp ${quanLyChuaCap.status}`);
@@ -172,7 +173,7 @@ async function main() {
   k('B nút in dựng từ thuTuNutIn(khổ mặc định) — khổ mặc định đứng đầu, không viết cứng 3 nút', /thuTuNutIn\(/.test(xem) && !/inRa\('(a4|a5|80mm|k80)'\)/.test(xem));
   k('B mọi nút in gọi cùng một hàm inRa (cùng đường ghi đếm lần in rồi mới in)', /inRa\(\s*\w+\s*\)/.test(xem) && /api\.post\(`\/kho\/phieu\/\$\{id\}\/in`\)/.test(xem));
   k('B nút khổ mặc định được tô nổi (btn-primary), các nút khác btn-outline', /btn-primary|btn-outline/.test(xem) && /i === 0 \? 'btn-primary' : 'btn-outline'|=== macDinh \? 'btn-primary' : 'btn-outline'|khoMacDinh \? 'btn-primary' : 'btn-outline'/.test(xem));
-  k('B số bản: khối in được dựng đúng `ban` lần khi in (không in 1 tờ rồi nhắc người dùng bấm lại)', /Array\.from\(\{\s*length:\s*kho\s*\?\s*\w*\.?ban/.test(xem) || /Array\.from\(\{\s*length:\s*\w+\s*\}/.test(xem));
+  k('B số bản: khối in được dựng đúng `ban` lần khi in (không in 1 tờ rồi nhắc người dùng bấm lại)', /Array\.from\(\{\s*length:\s*kho\s*\?\s*\w+\.ban\s*:\s*1\s*\}/.test(xem));
   k('B tờ in thêm vẫn mang chữ "IN LẠI · LẦN n" (luật 4) ở MỌI bản', /IN LẠI · LẦN \{p\.so_lan_in\}/.test(xem));
   k('B lệnh in vẫn: ghi đếm lần in (POST /in) TRƯỚC khi mở hộp in; máy in lỗi không đụng sổ (luật 2, 5)', /if \(await ghi\(\(\) => api\.post\(`\/kho\/phieu\/\$\{id\}\/in`\)\)\) setKho\(/.test(xem));
   const css = doc('client/src/pages/Kho/inPhieuKho.css');

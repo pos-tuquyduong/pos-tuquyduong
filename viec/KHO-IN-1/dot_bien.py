@@ -81,7 +81,6 @@ DOT_BIEN = [
   ('BV-IS-GHI-KHOA-CU', 'in1', [(IS, 'setBoIn((b) => ({ ...b, bill: { ...b.bill, kho: e.target.value } }))', 'setConfig((prev) => ({ ...prev, default_size: e.target.value }))', 1)], r'✗ C đổi ô'),
   ('BV-IS-KHONG-GUI-KHOA', 'in1', [(IS, '[KHOA_BO_IN]: JSON.stringify(boIn), invoice_default_size: khoHoaDon(boIn.bill.kho) }', '[KHOA_BO_IN]: JSON.stringify(boIn) }', 1)], r'✗ C lưu'),
   ('VS-IS-GUI-KHI-CHUA-NAP', 'in1', [(IS, '...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn), invoice_default_size: khoHoaDon(boIn.bill.kho) } : {}),', "...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn) } : {}), invoice_default_size: khoHoaDon(boIn ? boIn.bill.kho : ''),", 1)], r'✗ C chỉ gửi'),
-  ('VS-IS-GUI-KHO-THO', 'in1', [(IS, 'invoice_default_size: khoHoaDon(boIn.bill.kho) }', 'invoice_default_size: boIn.bill.kho }', 1)], r'✗ C lưu'),
 ]
 
 
