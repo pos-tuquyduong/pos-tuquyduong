@@ -15,6 +15,7 @@ import ManKetThuc from './ManKetThuc';
 import ManPin from './ManPin';
 import ManQr from './ManQr';
 import { chiaTra, coGia, coSoMayChu, giaHang, hanhDongPhien, khoaTinh, kiemTraThem, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
+import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
@@ -281,13 +282,16 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
           const g = coGia(s) ? giaMotLy(s) : 0;
           const het = !s.khong_quan_kho && s.stock_quantity === 0;
           return (
-            <button key={s.id} className="bh-mon" disabled={het || !coGia(s)} onClick={() => chamMon(s)}>
-              <span className="bh-mon-ten">{s.name}</span>
-              {coGia(s)
-                ? <span>{g < s.price && <span className="bh-gia-goc">{vnd(s.price)}</span>}<span className="bh-gia">{vnd(g)}</span></span>
-                : <span className="bh-mon-ton">Chưa có giá</span>}
-              {het && <span className="bh-mon-ton">Hết hàng</span>}
-            </button>
+            <div key={s.id} className="bh-mon-bao">
+              <button className="bh-mon" disabled={het || !coGia(s)} onClick={() => chamMon(s)}>
+                <span className="bh-mon-ten">{s.name}</span>
+                {coGia(s)
+                  ? <span>{g < s.price && <span className="bh-gia-goc">{vnd(s.price)}</span>}<span className="bh-gia">{vnd(g)}</span></span>
+                  : <span className="bh-mon-ton">Chưa có giá</span>}
+                {het && <span className="bh-mon-ton">Hết hàng</span>}
+              </button>
+              <NutThongTin mon={s} kieu={{ top: 6, right: 6 }} />
+            </div>
           );
         })}
       </div>

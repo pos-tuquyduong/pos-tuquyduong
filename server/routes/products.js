@@ -9,6 +9,8 @@ const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, authenticateServiceOrUser, checkPermission } = require('../middleware/auth');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
+const { getNow } = require('../utils/helpers');
+const { COT_THONG_TIN, chuanThongTin, docThongTin } = require('../utils/thongTinMon');
 
 const router = express.Router();
 
@@ -88,7 +90,7 @@ async function layMenuQuay(category) {
   }
 
   // Merge giá + TIER-2 (SP đặc biệt) từ POS database - SỬA: dùng composite key
-  const prices = await query('SELECT sx_product_type, sx_product_id, price, is_special_group FROM pos_products');
+  const prices = await query(`SELECT sx_product_type, sx_product_id, price, is_special_group, ${COT_THONG_TIN.join(', ')} FROM pos_products`);
 
   products = products.map(p => {
     // TÌM GIÁ BẰNG COMPOSITE KEY (type + id)
@@ -108,6 +110,7 @@ async function layMenuQuay(category) {
       price: priceInfo?.price ?? null,
       sellable: typeof priceInfo?.price === 'number' && priceInfo.price > 0,
       is_special_group: !!priceInfo?.is_special_group,
+      ...docThongTin(priceInfo), // KH-SP-1: thông tin ngắn của món
       unit: p.category === 'tea' ? 'gói' : 'túi',
       is_active: 1
     };
@@ -235,6 +238,54 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
     res.json({ success: true, updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Tên / mã món do giao diện gửi kèm (lấy từ SX) — chỉ dùng khi PHẢI tạo hàng mới, để hoá đơn không in "Từ SX".
+const tenHopLe = (v) => (typeof v === 'string' && v.trim() && [...v.trim()].length <= 100 ? v.trim() : null);
+
+const LOI_THONG_TIN = {
+  MA_KHONG_HOP_LE: 'Nhu cầu hoặc thể chất có mã không hợp lệ',
+  QUA_DAI: 'Mô tả, công dụng hoặc thành phần dài quá giới hạn',
+  YEU_CAU_KHONG_HOP_LE: 'Thông tin món không hợp lệ',
+};
+
+/**
+ * PUT /api/pos/products/thong-tin  (KH-SP-1)
+ * Ghi thông tin ngắn của món: nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan — trường nào có khoá thì ghi, rỗng = xoá.
+ * Món chưa có hàng trong pos_products (chưa đặt giá) vẫn nhập được: tạo hàng giá 0 (chưa bán được, như đồng bộ SX), mang `name` / `code` gửi kèm.
+ */
+router.put('/thong-tin', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const { sx_product_type: loai, sx_product_id: ma } = b;
+    if (!loai || typeof loai !== 'string' || ma === undefined || ma === null || ma === '') {
+      return res.status(400).json({ error: 'Thiếu thông tin món', code: 'YEU_CAU_KHONG_HOP_LE' });
+    }
+    const kq = chuanThongTin(b);
+    if (kq.loi) return res.status(400).json({ error: LOI_THONG_TIN[kq.loi], code: kq.loi });
+    const cot = Object.keys(kq.doi);
+    if (!cot.length) return res.status(400).json({ error: LOI_THONG_TIN.YEU_CAU_KHONG_HOP_LE, code: 'YEU_CAU_KHONG_HOP_LE' });
+
+    const bayGio = getNow();
+    const gia = [...cot.map((c) => kq.doi[c]), bayGio];
+    const sua = await run(
+      `UPDATE pos_products SET ${cot.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE sx_product_type = ? AND sx_product_id = ?`,
+      [...gia, loai, ma],
+    );
+    if (!sua.changes) {
+      await run(
+        `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, created_at, updated_at, ${cot.join(', ')})
+         VALUES (?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ${cot.map(() => '?').join(', ')})`,
+        [tenHopLe(b.code) || `${loai === 'tea' ? 'TEA' : 'CT'}${ma}`, tenHopLe(b.name) || 'Từ SX', loai === 'tea' ? 'tea' : 'juice', loai, ma, loai === 'tea' ? 'gói' : 'túi',
+          bayGio, bayGio, ...cot.map((c) => kq.doi[c])],
+      );
+    }
+    const hang = await queryOne('SELECT * FROM pos_products WHERE sx_product_type = ? AND sx_product_id = ?', [loai, ma]);
+    res.json({ success: true, sx_product_type: loai, sx_product_id: ma, ...docThongTin(hang) });
+  } catch (err) {
+    console.error('PUT /products/thong-tin:', err.message);
+    res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });
   }
 });
 

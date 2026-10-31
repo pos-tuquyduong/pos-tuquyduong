@@ -12,6 +12,7 @@ import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCirc
 import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
 import QrScanModal from '../components/QrScanModal';
+import { NutThongTin } from '../components/ThongTinMon';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -1053,6 +1054,7 @@ export default function Sales() {
                   e.currentTarget.style.borderColor = inPkg ? '#c4b5fd' : '#e2e8f0';
                 }}
               >
+                <NutThongTin mon={product} kieu={{ top: 4, left: 4 }} />
                 <div style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '0.5rem' }}>
                   {product.icon || '📦'}
                 </div>
