@@ -87,7 +87,7 @@ const formatCurrency = (num) => {
   return new Intl.NumberFormat('vi-VN').format(num);
 };
 
-export default function InvoicePreview({ config, size = 'a5', logo = '', orderData = null }) {
+export default function InvoicePreview({ config, size = '80mm', logo = '', orderData = null }) {
   // Dùng orderData thật nếu có, nếu không dùng SAMPLE_DATA (cho preview trong settings)
   const data = orderData || SAMPLE_DATA;
   // Compute styles based on size
@@ -112,31 +112,9 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         qrSize: '35px',
         titleSize: '12px',
         borderStyle: 'dashed'
-      },
-      'a5': {
-        width: '148mm',
-        minHeight: '210mm',
-        padding: '8mm',
-        fontSize: '11px',
-        lineHeight: '1.5',
-        logoSize: '50px',
-        qrSize: '50px',
-        titleSize: '16px',
-        borderStyle: 'solid'
-      },
-      'a4': {
-        width: '210mm',
-        minHeight: '297mm',
-        padding: '10mm',
-        fontSize: '12px',
-        lineHeight: '1.6',
-        logoSize: '60px',
-        qrSize: '60px',
-        titleSize: '18px',
-        borderStyle: 'solid'
       }
     };
-    return baseStyles[size] || baseStyles['a5'];
+    return baseStyles[size] || baseStyles['80mm'];
   }, [size]);
 
   // Get alignment style
@@ -145,9 +123,6 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
     if (align === 'justify') return 'space-between';
     return align;
   };
-
-  // Check if thermal (58mm or 80mm)
-  const isThermal = size === '58mm' || size === '80mm';
 
   return (
     <div 
@@ -173,13 +148,12 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
-          gap: isThermal ? '2mm' : '4mm',
-          marginBottom: isThermal ? '2mm' : '5mm'
+          gap: '2mm',
+          marginBottom: '2mm'
         }}
       >
       <div style={{ flex: 1, textAlign: getAlign('header') }}>
         {/* Thermal: Logo + Name + QR inline */}
-        {isThermal ? (
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -237,88 +211,15 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
               }}>QR</div>
             )}
           </div>
-        ) : (
-          /* A5/A4: Full header */
-          <>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start',
-              justifyContent: config.align?.header === 'center' ? 'center' : 'space-between',
-              gap: '5mm',
-              marginBottom: '3mm'
-            }}>
-              {config.show?.qr_code && (
-                <div style={{ 
-                  width: styles.qrSize, 
-                  height: styles.qrSize, 
-                  background: '#f0f0f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '8px',
-                  flexShrink: 0,
-                  border: '1px solid #ddd'
-                }}>QR Code</div>
-              )}
-
-              <div style={{ flex: 1, textAlign: 'center' }}>
-                {config.show?.logo && (
-                  <div style={{ 
-                    width: styles.logoSize, 
-                    height: styles.logoSize, 
-                    margin: '0 auto 2mm',
-                  }}>
-                    {logo ? (
-                      <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <div style={{ 
-                        width: '100%', height: '100%', 
-                        background: '#f0f0f0', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        fontSize: '10px',
-                        color: '#999',
-                        borderRadius: '4px'
-                      }}>LOGO</div>
-                    )}
-                  </div>
-                )}
-                
-                {config.show?.store_name && (
-                  <div style={{ fontWeight: 'bold', fontSize: styles.titleSize, marginBottom: '1mm' }}>
-                    {config.text?.store_name || 'TỨ QUÝ ĐƯỜNG'}
-                  </div>
-                )}
-                
-                {config.show?.slogan && config.text?.slogan && (
-                  <div style={{ fontStyle: 'italic', color: '#666', marginBottom: '1mm' }}>
-                    "{config.text.slogan}"
-                  </div>
-                )}
-              </div>
-
-              {/* Spacer for balance when QR is shown */}
-              {config.show?.qr_code && <div style={{ width: styles.qrSize, flexShrink: 0 }} />}
-            </div>
-
-            {/* Contact info */}
-            <div style={{ fontSize: '0.9em', color: '#444', textAlign: 'center' }}>
-              {config.show?.address && <div>{config.text?.address || 'Địa chỉ cửa hàng'}</div>}
-              {config.show?.phone && <div>Hotline: {config.text?.phone || '024 2245 5565'}</div>}
-              {config.show?.email && config.text?.email && <div>Email: {config.text.email}</div>}
-            </div>
-          </>
-        )}
       </div>
 
       {config.show?.order_code && (
         <div style={{
           flexShrink: 0,
           background: '#f5f0e8',
-          borderRadius: isThermal ? '4px' : '6px',
-          padding: isThermal ? '2px 6px' : '4px 10px',
-          fontSize: isThermal ? '13px' : '18px',
+          borderRadius: '4px',
+          padding: '2px 6px',
+          fontSize: '13px',
           fontWeight: 'bold',
           color: '#8b3a1a'
         }}>
@@ -330,7 +231,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       {/* Divider */}
       <div style={{ 
         borderTop: `1px ${styles.borderStyle} #999`, 
-        margin: isThermal ? '2mm 0' : '4mm 0' 
+        margin: '2mm 0' 
       }} />
 
       {/* ═══════════════════════════════════════════════════════════════════════════
@@ -339,8 +240,8 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       <div style={{ 
         textAlign: 'center', 
         fontWeight: 'bold', 
-        fontSize: isThermal ? '11px' : '14px',
-        margin: isThermal ? '2mm 0' : '4mm 0'
+        fontSize: '11px',
+        margin: '2mm 0'
       }}>
         HÓA ĐƠN BÁN HÀNG
       </div>
@@ -353,7 +254,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         flexWrap: 'wrap',
         justifyContent: getAlign('order_info'),
         gap: '1mm 3mm',
-        marginBottom: isThermal ? '2mm' : '4mm',
+        marginBottom: '2mm',
         fontSize: '0.9em'
       }}>
         {config.show?.invoice_number && (
@@ -368,7 +269,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       </div>
 
       {/* Divider */}
-      <div style={{ borderTop: `1px ${styles.borderStyle} #ccc`, margin: isThermal ? '2mm 0' : '3mm 0' }} />
+      <div style={{ borderTop: `1px ${styles.borderStyle} #ccc`, margin: '2mm 0' }} />
 
       {/* ═══════════════════════════════════════════════════════════════════════════
           CUSTOMER INFO
@@ -376,7 +277,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       {(config.show?.customer_name || config.show?.customer_phone || config.show?.customer_address) && (
         <div style={{ 
           textAlign: getAlign('customer'),
-          marginBottom: isThermal ? '2mm' : '4mm',
+          marginBottom: '2mm',
           fontSize: '0.95em'
         }}>
           {config.show?.customer_name && (
@@ -419,8 +320,8 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       <table style={{ 
         width: '100%', 
         borderCollapse: 'collapse',
-        fontSize: isThermal ? '8px' : '0.9em',
-        marginBottom: isThermal ? '2mm' : '4mm'
+        fontSize: '8px',
+        marginBottom: '2mm'
       }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #999' }}>
@@ -456,11 +357,11 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
                 {config.show?.col_stt && <td style={{ padding: '1mm', textAlign: 'center', verticalAlign: 'top' }}>{idx + 1}</td>}
                 {config.show?.col_product_code && <td style={{ padding: '1mm', verticalAlign: 'top' }}>{item.code}</td>}
                 <td style={{ padding: '1mm' }}>
-                  <div style={{ fontSize: isThermal ? '1.5em' : '1.25em', fontWeight: 'bold' }}>{item.name}</div>
+                  <div style={{ fontSize: '1.5em', fontWeight: 'bold' }}>{item.name}</div>
                   {item.note && (
                     <div style={{
                       display: 'inline-block',
-                      fontSize: isThermal ? '1.1em' : '1em',
+                      fontSize: '1.1em',
                       fontWeight: 'bold',
                       color: '#0f6e56',
                       background: '#e1f5ee',
@@ -501,8 +402,8 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       <div style={{ 
         textAlign: getAlign('totals'),
         borderTop: '1px solid #999',
-        paddingTop: isThermal ? '2mm' : '3mm',
-        marginBottom: isThermal ? '2mm' : '4mm'
+        paddingTop: '2mm',
+        marginBottom: '2mm'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
           <span>Tiền hàng:</span>
@@ -530,7 +431,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           display: 'flex', 
           justifyContent: 'space-between', 
           fontWeight: 'bold',
-          fontSize: isThermal ? '10px' : '1.1em',
+          fontSize: '10px',
           borderTop: '1px dashed #999',
           paddingTop: '2mm',
           marginTop: '2mm'
@@ -556,7 +457,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       ═══════════════════════════════════════════════════════════════════════════ */}
       {data.payment_method && (
         <div style={{ 
-          marginBottom: isThermal ? '2mm' : '4mm',
+          marginBottom: '2mm',
           fontSize: '0.9em'
         }}>
           {/* Phương thức thanh toán */}
@@ -618,14 +519,14 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
         <div style={{ 
           display: 'flex', 
           gap: '4mm', 
-          marginBottom: isThermal ? '2mm' : '4mm',
+          marginBottom: '2mm',
           fontSize: '0.9em'
         }}>
           <span>Xác nhận TT:</span>
           <label style={{ display: 'flex', alignItems: 'center', gap: '1mm' }}>
             <span style={{ 
-              width: isThermal ? '10px' : '12px', 
-              height: isThermal ? '10px' : '12px', 
+              width: '10px', 
+              height: '10px', 
               border: '1px solid #333',
               display: 'inline-block'
             }} />
@@ -633,8 +534,8 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '1mm' }}>
             <span style={{ 
-              width: isThermal ? '10px' : '12px', 
-              height: isThermal ? '10px' : '12px', 
+              width: '10px', 
+              height: '10px', 
               border: '1px solid #333',
               display: 'inline-block'
             }} />
@@ -648,7 +549,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       ═══════════════════════════════════════════════════════════════════════════ */}
       {(config.show?.sig_seller || config.show?.sig_shipper || config.show?.sig_customer) && (
         <>
-          <div style={{ borderTop: `1px ${styles.borderStyle} #ccc`, margin: isThermal ? '2mm 0' : '4mm 0' }} />
+          <div style={{ borderTop: `1px ${styles.borderStyle} #ccc`, margin: '2mm 0' }} />
           
           <div style={{ 
             display: 'flex', 
@@ -661,7 +562,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '500', marginBottom: '1mm' }}>NV Bán hàng</div>
                 <div style={{ 
-                  height: isThermal ? '12mm' : '20mm', 
+                  height: '12mm', 
                   borderBottom: '1px dotted #999',
                   marginBottom: '1mm'
                 }} />
@@ -673,7 +574,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '500', marginBottom: '1mm' }}>NV Giao hàng</div>
                 <div style={{ 
-                  height: isThermal ? '12mm' : '20mm', 
+                  height: '12mm', 
                   borderBottom: '1px dotted #999',
                   marginBottom: '1mm'
                 }} />
@@ -685,7 +586,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '500', marginBottom: '1mm' }}>Khách hàng</div>
                 <div style={{ 
-                  height: isThermal ? '12mm' : '20mm', 
+                  height: '12mm', 
                   borderBottom: '1px dotted #999',
                   marginBottom: '1mm'
                 }} />
@@ -703,7 +604,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       ═══════════════════════════════════════════════════════════════════════════ */}
       {data.signup_code && (
         <>
-          <div style={{ borderTop: `1px dashed #ccc`, margin: isThermal ? '2mm 0' : '4mm 0' }} />
+          <div style={{ borderTop: `1px dashed #ccc`, margin: '2mm 0' }} />
           <div style={{ textAlign: 'center', fontSize: '0.9em' }}>
             <div style={{ color: '#666', marginBottom: '1mm' }}>{data.signup_nhan || 'Mã ưu đãi khách mới'}</div>
             <div style={{ fontWeight: 'bold', fontSize: '1.3em', letterSpacing: '2px', marginBottom: '1mm' }}>
@@ -725,7 +626,7 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
       ═══════════════════════════════════════════════════════════════════════════ */}
       {(config.show?.thank_you || config.show?.policy) && (
         <>
-          <div style={{ borderTop: `1px ${styles.borderStyle} #ccc`, margin: isThermal ? '2mm 0' : '5mm 0' }} />
+          <div style={{ borderTop: `1px ${styles.borderStyle} #ccc`, margin: '2mm 0' }} />
           
           <div style={{ textAlign: getAlign('footer'), fontSize: '0.9em' }}>
             {config.show?.thank_you && config.text?.thank_you && (
@@ -752,8 +653,6 @@ export default function InvoicePreview({ config, size = 'a5', logo = '', orderDa
 const CO_TO = {
   '58mm': { w: '58mm', chu: 9, qr: 64, bill: 30 },
   '80mm': { w: '80mm', chu: 11, qr: 84, bill: 40 },
-  a5: { w: '148mm', chu: 13, qr: 110, bill: 52 },
-  a4: { w: '210mm', chu: 15, qr: 130, bill: 60 },
 };
 const hang = { display: 'flex', justifyContent: 'space-between', gap: 8 };
 const tieuDe = { ...hang, fontSize: '0.85em', fontWeight: 700, color: '#444', borderTop: '1px dashed #888', paddingTop: 4, marginTop: 6 };

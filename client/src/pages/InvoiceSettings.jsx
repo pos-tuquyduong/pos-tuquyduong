@@ -30,7 +30,7 @@ import { VungTrang, useNhomTheoMa } from "../components/InPhieu";
 import { getLogo } from "../utils/logoCache";
 import {
   KHOA_BO_IN, LOAI_IN, NHAN_LOAI, NHAN_NHOM, KHO_BILL, KHO_TEM, KHO_PHIEU, SO_BAN_TOI_DA,
-  DON_MAU, NHOM_MAU, docBoIn, dungBoIn,
+  DON_MAU, NHOM_MAU, docBoIn, dungBoIn, khoHoaDon,
 } from "../utils/inPhieu";
 import {
   NHOM_CHU, KHONG_AN, CHU_MAC_DINH, chuMacDinhCuaQuan, GIOI_HAN_CHU, GIOI_HAN_TEM, gioiHanChu, KHOA_DIA_CHI_KH, KHOA_SO_TO,
@@ -41,7 +41,7 @@ import {
 // DEFAULT CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 const DEFAULT_CONFIG = {
-  default_size: "a5",
+  default_size: "80mm",
   text: {
     store_name: "TỨ QUÝ ĐƯỜNG",
     slogan: "Sức khỏe từ thiên nhiên",
@@ -466,7 +466,7 @@ function ChuHoaDon({ c, setC, caiDat, size }) {
         <button type="button" style={chip(lien === "luu")} onClick={() => setLien("luu")}>Tờ lưu</button>
       </div>
       <div style={{ background: "#e5e7eb", padding: 8, display: "flex", justifyContent: "center", overflow: "auto" }}>
-        <HoaDonTo to={to} size={size === "a4" || size === "a5" ? "80mm" : size} />
+        <HoaDonTo to={to} size={size} />
       </div>
     </div>
   );
@@ -551,7 +551,7 @@ export default function InvoiceSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
-  const [previewSize, setPreviewSize] = useState("a5");
+  const [previewSize, setPreviewSize] = useState("80mm");
   const [expandedSections, setExpandedSections] = useState({
     header: true,
     order_info: true,
@@ -855,15 +855,13 @@ export default function InvoiceSettings() {
         <div className="size-selector">
           <span>Khổ mặc định:</span>
           <select
-            value={config.default_size}
+            value={khoHoaDon(config.default_size)}
             onChange={(e) =>
               setConfig((prev) => ({ ...prev, default_size: e.target.value }))
             }
           >
             <option value="58mm">58mm</option>
             <option value="80mm">80mm</option>
-            <option value="a5">A5</option>
-            <option value="a4">A4</option>
           </select>
         </div>
       </div>
@@ -1268,7 +1266,7 @@ export default function InvoiceSettings() {
               <Eye size={18} /> Xem trước
             </h2>
             <div className="preview-size-buttons">
-              {["58mm", "80mm", "a5", "a4"].map((size) => (
+              {KHO_BILL.map((size) => (
                 <button
                   key={size}
                   className={`size-btn ${previewSize === size ? "active" : ""}`}
