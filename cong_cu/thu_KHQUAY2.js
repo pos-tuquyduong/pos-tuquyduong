@@ -84,7 +84,7 @@ async function main() {
     && new RegExp('setSdt\\(' + bienKiem + '\\b').test(qs) && !/setSdt\(go\b/.test(qs), String(bienKiem));
   k('A2 MaDangNhapApp (nơi duy nhất gọi máy chủ) chỉ hiện khi đã có số qua kiểm: {sdt && <MaDangNhapApp', /\{sdt\s*&&\s*<MaDangNhapApp\b/.test(qs));
   k('A2 SĐT sai dạng → báo lỗi ngay trong ô (có chỗ hiện lời báo)', /setLoi\(\s*s\s*\?\s*''\s*:\s*'[^']*SĐT[^']*'\s*\)/.test(qs) || /setLoi\(\s*s\s*\?\s*''\s*:\s*`[^`]*SĐT[^`]*`\s*\)/.test(qs));
-  k('A2 MaDangNhapApp có prop tuLay: vào là lấy mã (ô số mới không bắt bấm hai lần)', /tuLay/.test(ma) && /<MaDangNhapApp\b[^>]*\btuLay\b/.test(qs));
+  k('A2 MaDangNhapApp có prop tuLay: vào là lấy mã (ô số mới không bắt bấm hai lần)', /if \(tuLay\) layMa\(\)/.test(ma) && /<MaDangNhapApp\b[^>]*\btuLay\b/.test(qs));
   k('A2 ô KHÔNG tự gọi máy chủ (chỉ MaDangNhapApp gọi /kh/cap-ma)', !/api\.(post|get|put)|fetch\(/.test(qs) && /api\.post\('\/kh\/cap-ma'/.test(ma));
   k('A2 ô KHÔNG tạo khách và KHÔNG ghi mã ra ngoài state', !/customers|localStorage|sessionStorage/i.test(qs));
   k('A2 có chỗ nhập SĐT (input) và nút', /<input\b/.test(qs) && /<button\b/.test(qs));
