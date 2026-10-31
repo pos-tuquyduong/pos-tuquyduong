@@ -18,7 +18,7 @@ Bạn cần: đọc mục 5 (hai chỗ mình đề xuất, bạn chỉ cần xá
 | Cửa ghi 2 | `server/routes/customers-v2.js:342-391` `PUT /:phone/discount` (`manage_users`) | ghi type/value/note, chưa có hồ sơ thì INSERT. Là đường DUY NHẤT màn Khách hàng sửa **ghi chú khách** (`Customers.jsx:247`, `api.js:305`). |
 | Các đường ghi khác | `customers.js` POST `/` `:314`, PUT `/:id` `:445`, POST `/:id/children`; `customers-v2.js:58,320-327`; `sync.js:262-305`; `maKhach.js:134` | KHÔNG ghi `discount_value` (đã đọc danh sách cột). Không cần sửa. |
 | Đọc / trả ra | `customers.js:164-166`; `customers-v2.js:96,149-151,179-182,260-262,283-286,416,444-446,478,499-501` | trả `discount_*` cho màn hình. Sau nâng cấp mọi giá trị = 0. |
-| Màn cũ | `Sales.jsx:328-335` applyCustomerDiscount; `:378-384` điền mức khách khi chọn khách; `:1449-1461` chữ "(KH: x%)" | Tổng hiển thị lấy từ tinh-thu (`:651,653`) nên mức giả chỉ lộ khi tinh-thu lỗi. |
+| Màn cũ | `Sales.jsx:328-335` applyCustomerDiscount; `:378-384` điền mức khách khi chọn khách; `:1449-1461` chữ "(KH: x%)" | ~~Tổng hiển thị lấy từ tinh-thu nên mức giả chỉ lộ khi tinh-thu lỗi~~ — SAI (người soát vòng 1 bắt): `Sales.jsx:166` chỉ gọi tinh-thu khi CÓ mã hợp lệ; không mã thì tổng tự tính có trừ giảm tay (`:624-636`), máy chủ bỏ qua → 400 "không khớp" (`orders.js:846`). |
 | Màn mới | `BanHang/tinh.js:77-96` `khachGiam` trong `tinhGio`; `:128,143-145` `dungDonHang` gửi mức khách; `:192-193` `coChietKhauRieng`; `BanHangMoi.jsx:17,125,342,348` khoá `chanChietKhau` | |
 | Màn Khách hàng | `Customers.jsx:60-62,96,156-158,248-250,305,370,399,441,499-512,824-866,870-880,921` | bộ lọc "Có CK", cột CK, khung "Chiết khấu mặc định", nhãn "Lý do chiết khấu", chú "Chiết khấu tự động áp dụng khi bán hàng", ghi chú chỉ hiện khi CK > 0 (`:441`). |
 | Ô chọn khách | `CustomerInput.jsx:83-84,119-120,279-284` | huy hiệu "🏷️ CK: x". |
@@ -134,7 +134,8 @@ B3c / B3p / P20 dùng mã thay hồ sơ thì không còn đỏ trên gốc (ch�
    khấu hồ sơ — sau việc này phải dựng bằng mã giảm; đổi cách dựng nên vẫn xanh trên code gốc → cổng A11 đòi mục đó. Đề xuất: đồng ý, chat thêm mục
    vào phiếu khi duyệt.
 3. (Không cần quyết, chỉ báo) Ô "Chiết khấu" giảm tay ở màn cũ (`Sales.jsx:1464-1490`) — máy chủ đã bỏ qua số này từ POS-CONGDON-v1, màn hiện tổng
-   theo tinh-thu. Phiếu dặn giữ nguyên (F) — mình giữ, ghi Phát hiện.
+   theo tinh-thu. Phiếu dặn giữ nguyên (F) — mình giữ, ghi Phát hiện. **Sửa (vòng soát 1):** câu "màn hiện tổng theo tinh-thu" SAI — xem
+   `## Phát hiện` của `trang_thai.md`.
 
 ## 6. Đường song song đã canh (K4)
 - Áp: chỉ một khối (LO 2) cho tạo đơn / tinh-thu / payOS — ca A1, A3. `giuCho.js`, `thanh-toan.js` (Cấm) chỉ chuyển thân, không áp (`giuCho.js:19` danh sách trường không có `discount_value`).
