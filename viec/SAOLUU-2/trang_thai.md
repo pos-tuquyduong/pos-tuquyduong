@@ -30,7 +30,7 @@
 - Thêm ca E8 (thiếu bảng kho → `KHO_KHONG_DEM_DUOC`): phần kho đã dời từ backup.js sang khoiPhuc.js nên 4 neo đột biến của KHO-1 rữa
   (xem Phát hiện) — chuyển hai phép tương ứng sang bộ đột biến của việc này.
 
-### Bảng chỗ vá → đột biến (`viec/SAOLUU-2/dot_bien.py`, 17/17 BẮT, đối chứng 30 đạt · 0 hỏng — sau vòng sửa 1)
+### Bảng chỗ vá → đột biến (`viec/SAOLUU-2/dot_bien.py`, 20/20 BẮT, đối chứng 33 đạt · 0 hỏng — sau vòng sửa 2)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | khoiPhuc.js `docTrang` — ô trống = null | `VS-DONG-DAU` | A1 |
@@ -50,16 +50,22 @@
 | khoiPhuc.js — trang trống bỏ qua, không xoá bảng | `VS-TRANG-TRONG-XOA` | E7 |
 | khoiPhuc.js `laLoiDuLieu` — chỉ lỗi dữ liệu báo dòng hỏng (vòng sửa 1) | `VS-LOI-HA-TANG-THANH-DONG` | B7 |
 | khoiPhuc.js — số dòng Excel thật `__rowNum__ + 1` (vòng sửa 1) | `VS-SO-DONG-THU-TU` | B6 |
+| khoiPhuc.js `lyDo(err, dangXoa)` — câu khoá ngoại theo xoá / chèn (vòng sửa 2) | `VS-KHOA-NGOAI-MOT-CAU` | B9 |
+| khoiPhuc.js `laLoiDuLieu` — nhận SQLITE_MISMATCH (vòng sửa 2) | `BV-MISMATCH` | B8 |
+| khoiPhuc.js — lỗi ở câu xoá không có số dòng (vòng sửa 2) | `VS-DONG-CAU-XOA` | B10 |
 
 Tên đột biến: VS-DONG-DAU · VS-RONG-THANH-NULL · BV-LOC-COT · VS-NUOT-LOI · VS-NGOAI-GIAO-DICH · VS-THU-TU-FILE · BV-BANG-CHUA-CO ·
 BV-XEM-TRUOC · BV-DON-APP · BV-SAO-LUU-DON-APP · BV-KHO-CO-DU-LIEU · BV-NANG-CAP · BV-KHO-TRONG-LOI · VS-LY-DO-KHOI-PHUC · VS-TRANG-TRONG-XOA ·
-VS-LOI-HA-TANG-THANH-DONG · VS-SO-DONG-THU-TU
+VS-LOI-HA-TANG-THANH-DONG · VS-SO-DONG-THU-TU · VS-KHOA-NGOAI-MOT-CAU · BV-MISMATCH · VS-DONG-CAU-XOA
 
 ### Kiểm (bước 6)
 - `node cong_cu/thu_SAOLUU2.js` → 30 đạt · 0 hỏng (sau vòng sửa 1). Gốc e94c504 → 12 đạt · 18 hỏng (`bang_chung_do.txt`).
 - Bài cũ chạy lại sau vá: thu_KHO1 111/0 · thu_P26b 103/0 · thu_P3 100/0 — không phải sửa bài cũ nào.
 - `npm test` → PASS 84 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có từ trước: GET có lệnh ghi ở packages.js / products.js / sync.js).
-- Không đụng client/src → không cần build / --day-du.
+- Không đụng client/src → không cần build. `node kiem_tra_truoc_khi_giao.js --day-du` (sau vòng sửa 2, d819beb) → PASS 88 · FAIL 0 ·
+  CẢNH BÁO 1 (cảnh báo cũ). `npm test` → PASS 84 · FAIL 0 · CẢNH BÁO 1.
+- Sau vòng sửa 2: `node cong_cu/thu_SAOLUU2.js` → 34 đạt · 0 hỏng; gốc e94c504 → 13 đạt · 21 hỏng; `dot_bien.py` → đối chứng 33/0 lúc chạy (trước
+  D2d), 20/20 BẮT. Số dòng (wc -l ở d819beb): khoiPhuc.js 74 · thu_SAOLUU2.js 320 · backup.js +23 / −97.
 - Số dòng (ĐO LẠI sau vòng sửa 1, `wc -l` ở 1a4bdea): server/utils/khoiPhuc.js 75 dòng mới; backup.js +22 / −95 (ròng −73) → máy chủ ròng
   ≈ +2; bài thử 306 dòng — trong ngân sách (~150 máy chủ + ~300 thử). (Lần ghi trước "81" / "≈ 250" là SAI — soát độc lập bắt, K1.)
 
@@ -115,7 +121,54 @@ xếp cha/con đã có ca B5 + đột biến, và PRAGMA trong giao dịch tươ
 chốt đủ bảng hở (a)(b)(c) → đề xuất KHOÁ ở Bài học (phiếu chỉ đòi mức BACKUP_TABLES; hôm nay không có bảng nào lọt); (4) đo kho trống ngoài
 giao dịch → có từ trước, chủ quán chốt khôi phục khi đóng cửa.
 
+## Soát độc lập — vòng 2 (agent general-purpose) — báo cáo (giữ nguyên ý, lược phần đã rà)
+```
+KHÔNG ĐẠT — mọi lỗi còn lại NHẸ (không tiền / điểm / ví, không lộ dữ liệu, không ngoài Phạm vi, không file Cấm).
+ĐÃ CHẠY: thu_SAOLUU2 30/0 · dot_bien 17/17 BẮT · gốc e94c504 12/18 · 3479327 28/2 (B6, B7) · npm test PASS 84 · bài cũ KHO1 111/0, P26b 103/0,
+  P3 100/0 · node tu_chay/cong.js chay . e94c504^ HEAD viec/SAOLUU-2: CỔNG CHẠY ĐẠT · origin..HEAD rỗng.
+LỖI TÌM ĐƯỢC:
+1. server/utils/khoiPhuc.js:16 — câu khoá ngoại "còn dữ liệu khác trỏ tới" chỉ đúng khi XOÁ cha; CHÈN dòng con trỏ tới cha không có phải là
+   "trỏ tới dữ liệu không có". Đã đo: libsql ra SQLITE_CONSTRAINT_FOREIGNKEY cả hai chiều. (K1)
+2. cong_cu/thu_SAOLUU2.js — ba nhánh của đường báo lỗi chưa có ca: (a) SQLITE_MISMATCH / "sai kiểu dữ liệu"; (b) câu khoá ngoại; (c) lỗi ở câu
+   DELETE (dong = null, nhánh ${dong ? … : ''} backup.js:340). Gỡ MISMATCH hoặc đổi câu thì bài vẫn xanh. (K3)
+3. trang_thai.md CHƯA KIỂM thiếu: laLoiDuLieu tách theo err.code chỉ đo trên kho file; trên Turso mã đi qua hrana (hrana.js:292-295) — nếu khác
+   thì mọi dòng hỏng ra 500 thay vì "trang · dòng · lý do" (dữ liệu vẫn an toàn). (K1)
+4. server/nang_cap/001_kho.js:6 — chú thích "khôi phục Excel … → 500 giữa chừng" nay đã sai; ngoài Phạm vi + Cấm → phải ghi Phát hiện. (K1/K4)
+5. trang_thai.md:58-62 — chưa ghi --day-du và node tu_chay/cong.js chay (LUAT §6.3); "không cần --day-du" trái luật.
+NGHI NGỜ: Turso cắt giao dịch kéo dài → khôi phục bảng lớn luôn 500 (đã ghi CHƯA KIỂM; đề nghị thử Turso thật TRƯỚC khi Merge; dự phòng
+  db.batch); backup.js:346-348 catch ngoài /restore còn trả err.message không code; trang tiền chỉ chặn ở chỗ gọi (chanTrangTien), không trong
+  thucHien; phép chốt đủ bảng không bỏ chú thích khi quét BACKUP_TABLES, readdirSync không đệ quy; pos_doi_soat_ghi (sổ két) không trong
+  BANG_KHONG_KHOI_PHUC — có từ trước, nêu để chủ quán xét.
+ĐƠN GIẢN: một luật hai phép (E8 kiem_tra:388-398 quét database.js; D2c quét database.js + nang_cap/); khoiPhuc.js tự viết begin/commit/rollback
+  trong khi trongGiaoDich (wallets.js:127) có sẵn, giuCho.js:10 đã dùng từ utils.
+NGHIỆM THU: 6/6 có bằng chứng · thiếu: không (riêng ba nhánh lý do ở lỗi 2 chưa phủ).
+CHƯA SOÁT ĐƯỢC: Turso thật (hạn giờ, mã lỗi qua hrana, khoá ghi); file .xlsx lưu lại bằng Excel / Google Sheets; ô > 32.767 ký tự (qr_code
+  base64) khi xuất — có từ trước; chưa chạy riêng --day-du (cổng A13 đã chạy, ĐẠT).
+BÀI HỌC: KHOÁ — mỗi nhánh LY_DO một ca + đột biến, có ca lỗi ở câu DELETE · KHOÁ — phép chốt đủ bảng bỏ chú thích + quét đệ quy, gộp E8/D2c ·
+  NGUYÊN TẮC (K1) — câu báo theo mã lỗi đúng nghĩa ở MỌI loại câu lệnh sinh ra mã đó · NGUYÊN TẮC (K1/K4) — phân loại theo err.code chỉ đo trên
+  kho file → CHƯA KIỂM Turso · NGUYÊN TẮC (K4 TU-CHAY-6) — đổi hành vi mà chú thích ở file ngoài Phạm vi mô tả → grep + ghi Phát hiện.
+```
+
+### Vòng sửa 2 — chỉ đúng các lỗi lần soát nêu
+| Lỗi soát nêu | Sửa | Ca thử | Đột biến |
+|---|---|---|---|
+| 1 câu khoá ngoại sai nghĩa khi chèn | khoiPhuc.js `lyDo(err, dangXoa)`: xoá → "còn dữ liệu ở bảng khác trỏ tới bảng này"; chèn → "trỏ tới dữ liệu không có" | B9 (đỏ trên 11dfaef), B10 | VS-KHOA-NGOAI-MOT-CAU |
+| 2a nhánh SQLITE_MISMATCH chưa có ca | — (code đúng) | B8 (ca phủ, xanh trên 11dfaef) | BV-MISMATCH |
+| 2c lỗi ở câu DELETE chưa có ca | — | B10 (đỏ trên 11dfaef: câu sai) — 400, `dong` null, lời báo không có "dòng" | VS-DONG-CAU-XOA |
+| 3 CHƯA KIỂM mã lỗi Turso | thêm vào CHƯA KIỂM | — | — |
+| 4 chú thích 001_kho.js:6 đã sai | ghi Phát hiện (file Cấm) | — | — |
+| 5 chưa ghi --day-du + cổng | chạy + ghi ở mục Kiểm | — | — |
+| ĐƠN GIẢN: tự viết begin/commit/rollback | dùng lại `trongGiaoDich` (wallets.js:126) như giuCho.js | B1, B2, B4 (không đổi gì) | VS-NUOT-LOI, VS-NGOAI-GIAO-DICH |
+| NGHI NGỜ: catch ngoài /restore lộ err.message | `loiGhi(res, err)` (500 LOI_MAY_CHU có code) | B7 đi qua nhánh trong; nhánh ngoài cùng hàm | — |
+| BÀI HỌC KHOÁ (file trong Phạm vi): phép chốt đủ bảng | `bangThieu` bỏ dòng chú thích; quét `nang_cap/` đệ quy | D2d (bảng chỉ còn ở dòng `//` → báo thiếu) | — |
+Không làm (có lý do): gộp E8 với D2c — E8 nằm trong bộ kiểm cũ (quét database.js), D2c rộng hơn; gộp = sửa phép kiểm có sẵn, để chat xét
+(đề xuất ở Bài học). `pos_doi_soat_ghi` vào BANG_KHONG_KHOI_PHUC — quyết định nghiệp vụ, ngoài phiếu → Phát hiện. Trang tiền khoá trong
+`thucHien` — phiếu giữ luật ở chỗ gọi (chanTrangTien một vị từ cho cả hai route, P26d Q7d), có ca E1/C3 → không đổi.
+
 ## CHƯA KIỂM
+- **Mã lỗi trên Turso:** `laLoiDuLieu` (khoiPhuc.js) nhận lỗi dữ liệu theo `err.code` `SQLITE_CONSTRAINT*` / `SQLITE_MISMATCH` — chỉ đo trên kho
+  file libsql. Trên Turso mã đi qua giao thức hrana; nếu khác, dòng hỏng sẽ ra 500 "Lỗi máy chủ" thay vì "trang · dòng · lý do" — dữ liệu
+  vẫn KHÔNG đổi (rollback), chỉ mất lời báo chi tiết. Thử cùng lúc với mục hạn giờ dưới đây.
 - **Turso thật — hạn giờ giao dịch tương tác:** cả lần khôi phục là MỘT giao dịch, mỗi dòng một lượt gọi HTTP. Nếu Turso cắt giao dịch kéo dài
   (người soát nhớ ~5 giây, CHƯA xác minh), khôi phục bảng lớn (vài trăm khách, cột qr_code nặng) có thể hỏng trên production — sau vòng sửa 1
   lỗi đó ra 500 LOI_MAY_CHU và KHÔNG đổi dữ liệu (rollback), nhưng khôi phục không làm được. **Cần chủ quán / chat thử một lần trên Turso thật
@@ -140,3 +193,9 @@ giao dịch → có từ trước, chủ quán chốt khôi phục khi đóng c�
   file) còn trỏ tới: `pos_orders.promotion_id` → pos_promotions (database.js:230), `pos_customer_packages.package_id` → pos_packages
   (database.js:887). Code gốc gặp cùng chỗ này thì 500 giữa chừng (đã xoá vài bảng). Nay: không đổi gì + nói rõ. Khôi phục vào CSDL TRỐNG
   (máy mới) không bị — đúng ca cứu máy của phiếu.
+- **Chú thích đã sai ở file Cấm:** `server/nang_cap/001_kho.js:6` ghi "khôi phục Excel xoá cả bảng pos_products / bảng cha → 500 giữa chừng".
+  Sau việc này khôi phục ra 400 KHOI_PHUC_DONG_HONG và không đổi gì. File bước nâng cấp — Cấm sửa; đề xuất sửa chú thích ở việc sau.
+- **Sổ két / sao kê `pos_doi_soat_ghi`** (backup.js BACKUP_TABLES "Sổ đối soát (két, sao kê)") KHÔNG nằm trong BANG_KHONG_KHOI_PHUC → khôi phục
+  file xoá rồi ghi lại sổ này (ngược "sổ chỉ thêm", CLAUDE.md §5.4). Có từ trước, ngoài phiếu — chủ quán xét có đưa vào danh sách chặn không.
+- **Một luật hai phép:** E8 (kiem_tra_truoc_khi_giao.js, quét database.js) và D2c (thu_SAOLUU2.js `bangThieu`, quét database.js + nang_cap/**).
+  Đề xuất việc sau: bỏ E8 hoặc cho E8 dùng chung `bangThieu`.
