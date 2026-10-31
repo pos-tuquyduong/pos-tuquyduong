@@ -855,6 +855,7 @@ export default function InvoiceSettings() {
         <div className="size-selector">
           <span>Khổ mặc định:</span>
           <select
+            disabled={!boInDaNap}   // chưa nạp được bộ in thì không sửa (lưu sẽ không gửi khổ, tránh báo "đã lưu" oan)
             value={khoHoaDon(boIn.bill.kho)}
             onChange={(e) =>
               setBoIn((b) => ({ ...b, bill: { ...b.bill, kho: e.target.value } }))

@@ -576,7 +576,7 @@ async function createTables() {
       order_id INTEGER NOT NULL,
       order_code TEXT NOT NULL,
       invoice_number TEXT NOT NULL,
-      paper_size TEXT DEFAULT 'a5',
+      paper_size TEXT DEFAULT '80mm',
       printed_by INTEGER,
       printed_by_name TEXT,
       printed_at TEXT DEFAULT CURRENT_TIMESTAMP,
