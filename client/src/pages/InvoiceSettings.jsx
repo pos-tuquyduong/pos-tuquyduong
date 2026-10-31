@@ -41,7 +41,6 @@ import {
 // DEFAULT CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 const DEFAULT_CONFIG = {
-  default_size: "80mm",
   text: {
     store_name: "TỨ QUÝ ĐƯỜNG",
     slogan: "Sức khỏe từ thiên nhiên",
@@ -367,7 +366,8 @@ const api = {
       },
       body: JSON.stringify({
         // boIn null = chưa nạp được từ máy chủ → KHÔNG gửi khoá này (tránh ghi đè cài đặt đã lưu bằng mặc định)
-        settings: { invoice_config: JSON.stringify(config), ...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn) } : {}), ...(chuHd || {}) },
+        // KHO-IN-1: khổ hoá đơn khách MỘT nguồn = boIn.bill.kho; invoice_default_size (khoá lệnh in đọc khi chưa có bộ in lưu) ghi cùng giá trị
+        settings: { invoice_config: JSON.stringify(config), ...(boIn ? { [KHOA_BO_IN]: JSON.stringify(boIn), invoice_default_size: khoHoaDon(boIn.bill.kho) } : {}), ...(chuHd || {}) },
       }),
     });
     const data = await res.json();
@@ -855,9 +855,9 @@ export default function InvoiceSettings() {
         <div className="size-selector">
           <span>Khổ mặc định:</span>
           <select
-            value={khoHoaDon(config.default_size)}
+            value={khoHoaDon(boIn.bill.kho)}
             onChange={(e) =>
-              setConfig((prev) => ({ ...prev, default_size: e.target.value }))
+              setBoIn((b) => ({ ...b, bill: { ...b.bill, kho: e.target.value } }))
             }
           >
             <option value="58mm">58mm</option>
