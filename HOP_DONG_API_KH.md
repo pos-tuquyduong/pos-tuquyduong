@@ -1,9 +1,9 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 3
-NGAY: 2026-10-30
-DOC_TU_CODE: POS nhánh viec/KH-API-3 (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js datPin, utils/maKhach.js,
-  routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, nang_cap/003_xung_ho_khach.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
+PHIEN_BAN: 4
+NGAY: 2026-10-31
+DOC_TU_CODE: POS nhánh viec/KH-SP-1 (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js datPin, utils/maKhach.js,
+  routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, nang_cap/003_xung_ho_khach.js, nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
 <!-- Nguồn DUY NHẤT về cổng /api/kh. Chủ: POS. Đổi cổng → đổi file này cùng PR, tăng PHIEN_BAN, ghi nhật ký (luật L2).
      Khối HOP_DONG_MAY_DOC là phần máy đọc: bài thử hợp đồng của POS và bộ kiểm của App KH cùng dựa vào nó. -->
@@ -32,7 +32,7 @@ DOC_TU_CODE: POS nhánh viec/KH-API-3 (server/routes/kh/index.js, loi.js, middle
 | `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null`; `so_du_vi` xem dưới |
 | `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi? }` — ít nhất một khoá; xem "Hồ sơ" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi }` |
 | `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
-| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia } }` — `con_hang` có thể `null` |
+| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
 | `GET /diem` | có | — | `points`, `history` |
 | `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` |
 | `GET /don` | có | `?trang=N` (20 đơn / trang) | `trang`, `con_nua`, `data[] { ma, ngay, tong, da_tra, trang_thai, thanh_toan }` |
@@ -40,6 +40,15 @@ DOC_TU_CODE: POS nhánh viec/KH-API-3 (server/routes/kh/index.js, loi.js, middle
 | `POST /nhan-ma-bill` | có | `{ ma }` | kết quả nhận ưu đãi khách mới |
 | `POST /nhan-diem` | có | `{ ma }` | kết quả nhân điểm theo mã trên bill |
 | `PUT /pin` | có | `{ pin, pin_lai }` (4 số) | — |
+
+### Ghi chú v4 — thông tin ngắn của món (`/menu`)
+- Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (luôn
+  `null` — ảnh món làm sau, KH-SP-2; App giữ ô ảnh chờ). Quầy nhập ở Cài đặt → Sản phẩm; không trường nào khác của `/menu` đổi.
+- Mã `nhu_cau` ∈ `ngu_ngon` (Ngủ ngon) · `dep_da` (Đẹp da) · `am_bung` (Ấm bụng) · `tinh_tao` (Tỉnh táo) · `bo_khi` (Bổ khí) · `giai_nhiet` (Giải nhiệt).
+  Mã `the_chat` ∈ `binh_hoa` (Bình hoà) · `khi_hu` (Khí hư) · `duong_hu` (Dương hư) · `am_hu` (Âm hư) · `dam_thap` (Đàm thấp) · `thap_nhiet`
+  (Thấp nhiệt) · `huyet_u` (Huyết ứ) · `khi_uat` (Khí uất) · `dac_bam` (Đặc bẩm). Nguồn mã: `server/utils/thongTinMon.js`; mã mới thì thêm vào
+  đó, tăng PHIEN_BAN, App hiện nguyên mã lạ (đừng báo lỗi). Độ dài tối đa: `mo_ta` 160 · `cong_dung` 160 · `thanh_phan` 200 ký tự.
+- Cửa ghi nằm ở quầy (`PUT /api/pos/products/thong-tin`, quyền cài đặt) — KHÔNG thuộc `/api/kh`; App KH chỉ đọc.
 
 ### Ghi chú v3
 - **Đăng ký 3 bước:** SĐT → mã → `ten` + `xung_ho` (BẮT BUỘC với khách mới) + `dia_chi` (tuỳ chọn). `xung_ho` ∈ `anh · chi · co · chu · bac · em ·
@@ -93,7 +102,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 3,
+  "phien_ban": 4,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -104,7 +113,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     { "pt": "GET", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.qr", "khach.hang.id", "khach.hang.ten", "khach.hang.phan_tram", "khach.hang.phan_tram_nhom_dac_biet", "khach.hang.het_han", "khach.so_du_vi"] },
     { "pt": "PUT", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi"] },
     { "pt": "POST", "duong": "/gia-han", "token": true, "tra": ["token", "het_han"] },
-    { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia"] },
+    { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia", "data[].nhu_cau", "data[].the_chat", "data[].mo_ta", "data[].cong_dung", "data[].thanh_phan", "data[].anh"] },
     { "pt": "GET", "duong": "/diem", "token": true, "tra": ["points", "history"] },
     { "pt": "GET", "duong": "/voucher", "token": true, "tra": ["data", "ma_khach_moi"] },
     { "pt": "GET", "duong": "/don", "token": true, "tra": ["trang", "con_nua", "data[].ma", "data[].ngay", "data[].tong", "data[].da_tra", "data[].trang_thai", "data[].thanh_toan"] },
@@ -135,3 +144,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   xoá / đổi tên trường cũ. **Báo App KH:** App bản cũ (chỉ có ô Tên) KHÔNG tạo được khách MỚI nữa (luôn `CAN_TEN`) — App cần ô Cách xưng hô
   trước khai trương (chủ quán chốt 30.10); khách cũ trên App bản cũ vẫn đăng nhập, xem, sửa tên như trước. Chữ (chủ quán duyệt 30.10, không
   đổi code): Địa chỉ đổi sang `https://www.pos-tuquyduong.io.vn/api/kh`; mục Giờ vàng ghi rõ dạng giờ `bat_dau` / `ket_thuc` và khung qua nửa đêm.
+- v4 · 31.10.2026 · KH-SP-1: `GET /menu` mỗi món thêm `nhu_cau[]`, `the_chat[]`, `mo_ta`, `cong_dung`, `thanh_phan`, `anh` (luôn `null`); danh sách mã nhu
+  cầu / thể chất và giới hạn ký tự ghi ở "Ghi chú v4". Không xoá / đổi tên trường cũ — App v3 bỏ qua trường lạ là chạy nguyên.

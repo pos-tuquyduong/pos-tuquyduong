@@ -267,7 +267,7 @@ async function main() {
     k('E2 món nhóm đặc biệt dùng % riêng (hạng thử 7 % → 31.000, không phải 12,5 % → 29.166)',
       md?.gia_hang?.find((g) => g.hang_id === hangThu)?.gia === 31000, JSON.stringify(md?.gia_hang));
     k('E3 trường cũ y nguyên (ma, ten, nhom, gia, con_hang, ton_cu, ton_luc)', ds.length > 0 && ds.every((p) => ['ma', 'ten', 'nhom', 'gia', 'con_hang', 'ton_cu', 'ton_luc']
-      .every((kk) => kk in p)) && bang(Object.keys(ds[0]).sort(), ['con_hang', 'gia', 'gia_hang', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc']), Object.keys(ds[0] || {}).join(','));
+      .every((kk) => kk in p)) && bang(Object.keys(ds[0]).sort(), ['anh', 'con_hang', 'cong_dung', 'gia', 'gia_hang', 'ma', 'mo_ta', 'nhom', 'nhu_cau', 'ten', 'thanh_phan', 'the_chat', 'ton_cu', 'ton_luc']), Object.keys(ds[0] || {}).join(','));
     k('E4 hạng 0 % → gia = giá gốc', ds.length > 0 && ds.every((p) => p.gia_hang?.find((g) => g.hang_id === hang0)?.gia === p.gia));
     k('E5 giaCacHang giá null / 0 → []', !!GH && bang(GH.giaCacHang(null, false, hang), []) && bang(GH.giaCacHang(0, true, hang), []));
     // E6 — hạng đã tắt (xoá mềm) mà khách còn thẻ: quầy vẫn giảm (orders.js đọc % không lọc is_active) → /menu của khách đó cũng phải có giá.
