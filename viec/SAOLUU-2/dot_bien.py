@@ -24,6 +24,9 @@ DOT_BIEN = [
   ('BV-LOC-COT', [(K, 'cot: cotTrang.filter((c) => cotBang.has(c))', 'cot: cotTrang', 1)], r'✗ A3 '),
   ('VS-NUOT-LOI', [(K, '      if (!laLoiDuLieu(err)) throw err;\n      throw Object.assign(', '      if (!laLoiDuLieu(err)) throw err;\n      return; throw Object.assign(', 1)], r'✗ B[124] '),
   ('VS-NGOAI-GIAO-DICH', [(K, 'await chay(m, null, `DELETE FROM ${m.table}`, []);', "await require('../database').run(`DELETE FROM ${m.table}`);", 1)], r'✗ B1 '),
+  ('BV-ROLLBACK', [(K, '  await trongGiaoDich(async (tx) => {', "  const tx = await require('../database').beginTransaction(); tx.rollback = tx.commit; await (async () => {", 1),
+                   (K, '      for (const d of m.dong) await chay(m, d.__rowNum__ + 1, sql, m.cot.map((c) => d[c]));   // dòng Excel thật (__rowNum__ đếm từ 0, đã tính dòng trống bị bỏ)\n    }\n  });',
+                       '      for (const d of m.dong) await chay(m, d.__rowNum__ + 1, sql, m.cot.map((c) => d[c]));\n    }\n  })().catch(async (e) => { await tx.commit(); throw e; }); await tx.commit();', 1)], r'✗ B[124] '),
   ('VS-THU-TU-FILE', [(K, ".filter((m) => m.status === 'se_khoi_phuc').sort((a, b) => a.viTri - b.viTri);", ".filter((m) => m.status === 'se_khoi_phuc');", 1)], r'✗ B5 '),
   ('BV-BANG-CHUA-CO', [(K, "    if (!cotBang.size) { boQua('BANG_CHUA_CO', 'Bỏ qua vì cơ sở dữ liệu chưa có bảng này'); continue; }\n", '', 1)], r'✗ (C5|D3) '),
   ('BV-XEM-TRUOC', [(B, 'preview.push({ ...m, currentRows', 'preview.push({ sheet: m.sheet, table: m.table, label: m.label, recognized: m.recognized, fileRows: m.fileRows, currentRows', 1)], r'✗ C[1245] '),
@@ -36,6 +39,10 @@ DOT_BIEN = [
   # ── vòng sửa 1 (soát độc lập: lỗi hạ tầng báo nhầm thành dòng hỏng · số dòng lệch khi có dòng trống) ──
   ('VS-LOI-HA-TANG-THANH-DONG', [(K, '      if (!laLoiDuLieu(err)) throw err;\n', "      if (String(err?.code) === 'SQLITE_BUSY') throw err;\n", 1)], r'✗ B7 '),
   ('VS-SO-DONG-THU-TU', [(K, 'for (const d of m.dong) await chay(m, d.__rowNum__ + 1,', 'for (const [i, d] of m.dong.entries()) await chay(m, i + 2,', 1)], r'✗ B6 '),
+  # ── vòng sửa 2 (soát độc lập vòng 2: mỗi nhánh lý do một ca; câu khoá ngoại theo xoá / chèn) ──
+  ('VS-KHOA-NGOAI-MOT-CAU', [(K, 'ly_do: lyDo(err, soDong === null)', 'ly_do: lyDo(err, true)', 1)], r'✗ B9 '),
+  ('BV-MISMATCH', [(K, '/^SQLITE_(CONSTRAINT|MISMATCH)/', '/^SQLITE_(CONSTRAINT)/', 1)], r'✗ B8 '),
+  ('VS-DONG-CAU-XOA', [(K, 'await chay(m, null, `DELETE FROM', 'await chay(m, 1, `DELETE FROM', 1)], r'✗ B10 '),
   ('VS-TRANG-TRONG-XOA', [(K, "    if (!dong.length) { boQua('TRANG_TRONG', 'Không có dữ liệu'); continue; }", '', 1)], r'✗ E7 '),
 ]
 

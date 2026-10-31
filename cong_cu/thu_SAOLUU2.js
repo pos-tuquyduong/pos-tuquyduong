@@ -179,6 +179,18 @@ async function main() {
     await THU.db.run('DROP TRIGGER thu_loi_ha_tang');
     k('B7 lỗi không phải dữ liệu (SQLITE_ERROR) → 500 LOI_MAY_CHU, KHÔNG báo "dòng N hỏng"; không đổi gì', b7.status === 500 && b7.code === 'LOI_MAY_CHU'
       && b7.dong === undefined && sauB7 === truocB7, moTa(b7));
+    // Mỗi nhánh lý do có một ca (vòng soát 2). Lúc này CSDL có nhóm 77 + một thành viên trỏ tới nó (từ B5).
+    const truocB8 = await THU.bam();
+    const b8 = await THU.gui(tepTu([['Nhật ký đồng bộ', [{ id: 9200, type: 'ok' }, { id: 'abc', type: 'sai kiểu id' }]]]));
+    k('B8 chữ trong cột id số (SQLITE_MISMATCH) → 400, dòng 3, lý do "sai kiểu dữ liệu"; không đổi gì', b8.status === 400
+      && b8.code === 'KHOI_PHUC_DONG_HONG' && b8.dong === 3 && b8.ly_do === 'sai kiểu dữ liệu' && (await THU.bam()) === truocB8, `${moTa(b8)} · ${b8.ly_do}`);
+    const b9 = await THU.gui(tepTu([['Thành viên nhóm SP', [{ id: 2, group_id: 999, sx_product_type: 'juice', sx_product_id: 2 }]]]));
+    k('B9 CHÈN dòng con trỏ tới nhóm không có → 400, dòng 2, lý do "trỏ tới dữ liệu không có"; không đổi gì', b9.status === 400 && b9.dong === 2
+      && /trỏ tới dữ liệu không có/.test(b9.ly_do || '') && (await THU.bam()) === truocB8, `${moTa(b9)} · ${b9.ly_do}`);
+    const b10 = await THU.gui(tepTu([['Nhóm sản phẩm', [{ id: 78, code: 'G78', name: 'Nhóm 78' }]]]));
+    k('B10 XOÁ bảng cha khi bảng khác còn trỏ tới (không khôi phục trang con) → 400, KHÔNG có số dòng, lý do "còn dữ liệu ở bảng khác trỏ tới"; không đổi gì',
+      b10.status === 400 && b10.code === 'KHOI_PHUC_DONG_HONG' && b10.dong === null && /bảng khác trỏ tới/.test(b10.ly_do || '')
+      && !/dòng/.test(b10.error || '') && (await THU.bam()) === truocB8, `${moTa(b10)} · dong ${b10.dong}`);
     const kp = doc(path.join(MAY_CHU, 'utils', 'khoiPhuc.js'));
     k('B3 server/utils/khoiPhuc.js có và không còn console.error (lỗi chèn không bị nuốt)', kp.length > 0 && !/console\.error/.test(bo(kp)));
   }
