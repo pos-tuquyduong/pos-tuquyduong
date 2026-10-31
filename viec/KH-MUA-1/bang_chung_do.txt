@@ -75,3 +75,10 @@ Vòng sửa 2: ĐỐI CHỨNG XANH (mua 120/0 · hd 81/0) · TỔNG 39 đột bi
 bài sập; thêm VS-DON-KHOA-CHET-120, VS-CO-PHIEN-LA-XONG đưa ĐÚNG lỗi cũ trở lại). `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1.
 Vòng sửa 4: ĐỐI CHỨNG XANH (mua 122/0 · hd 81/0) · TỔNG 43 đột biến · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0. `npm test -- --day-du`: PASS 88 · FAIL 0 ·
 CẢNH BÁO 1 (có sẵn), dist khớp src.
+
+═══ Dòng SỐ CA cho cổng A16 (đường dẫn đầy đủ; số = dòng tổng trên code ĐÃ VÁ, HEAD 941f798) ═══
+SỐ CA cong_cu/thu_KHMUA1.js: 122
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 81
+Ghi chú cổng: A16 CẢNH BÁO (không chặn) thu_HOPDONG_KH trên gốc in 72 ca ≠ 81. Bằng chứng đỏ máy tự chạy ở trên là 73 đạt · 8 hỏng = 81 ca (gốc
++ hợp đồng v5). Chưa đọc tu_chay/cong.js để biết cổng dựng gốc với hợp đồng nào — lệch số ca CHƯA KIỂM nguyên nhân.
+
