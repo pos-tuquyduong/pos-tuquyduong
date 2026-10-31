@@ -399,14 +399,14 @@ async function main() {
       () => goi('POST', '/kh/don', dup, kh.tk));
     // 429: khách riêng, dồn tới trần bằng yêu cầu hỏng ở bước sau bộ đếm (cach_nhan lạ).
     const q = await khach(100000);
-    let r429 = null;
-    for (let i = 0; i < 12 && !r429; i++) {
-      const r = await goi('POST', '/kh/don', { ...than(), cach_nhan: 'bay' }, q.tk);
-      if (r.status === 429) r429 = r;
-    }
+    // Ngưỡng Q9 (soát vòng 2, lỗi 6): lần 1–10 qua bộ đếm (dừng ở bước sau: 400), lần 11 → 429.
+    const muoi = [];
+    for (let i = 0; i < 10; i++) muoi.push(await goi('POST', '/kh/don', { ...than(), cach_nhan: 'bay' }, q.tk));
+    const r429 = muoi.every((r) => la(r, 400, 'YEU_CAU_KHONG_HOP_LE')) ? await goi('POST', '/kh/don', { ...than(), cach_nhan: 'bay' }, q.tk) : null;
     const tq = await chup(q.sdt);
     const r12 = await goi('POST', '/kh/don', than(), q.tk);
-    k('D1 / K3 hết lượt → 429 QUA_NHIEU_LAN có thu_lai_sau_giay (số nguyên > 0), bảng không đổi', !!r429 && la(r12, 429, 'QUA_NHIEU_LAN')
+    k('D1 / K3 lần 1–10 qua bộ đếm, lần 11 → 429 QUA_NHIEU_LAN có thu_lai_sau_giay (số nguyên > 0), bảng không đổi', !!r429 && la(r429, 429, 'QUA_NHIEU_LAN')
+      && la(r12, 429, 'QUA_NHIEU_LAN')
       && Number.isInteger(r12.j.thu_lai_sau_giay) && r12.j.thu_lai_sau_giay > 0 && (await chup(q.sdt)) === tq, `${r429 && moTa(r429)} · ${JSON.stringify(r12.j)}`);
     const r13 = await goi('POST', '/kh/don', than(), (await khach(100000)).tk);
     k('K3 khách khác vẫn đặt được khi khách kia hết lượt', la(r13, 200), moTa(r13));
@@ -626,6 +626,31 @@ async function main() {
     await flash(false);
     k('V6 lỗi đơn không có mã riêng (tổng đổi lúc chốt, lệch số ví đã giữ — taoDon 400 không code) → 400 DON_KHONG_HOP_LE, bảng không đổi', la(r6, 400, 'DON_KHONG_HOP_LE')
       && (await chupGiu(k6.sdt)) === tr6, `${moTa(r6)} · ${tr6} → ${await chupGiu(k6.sdt)}`);
+
+    // Vòng sửa 2 (soát vòng 2, lỗi 1): gửi lại cùng khoá ĐÚNG lúc yêu cầu đầu đang chốt ví (phiên đã gắn vào dòng đơn App), rồi yêu cầu đầu hỏng.
+    const k8 = await khach(100000);
+    const t8 = than();
+    let lan8 = 0, giua8 = null;
+    mocCS = async () => {
+      if (++lan8 === 2) { giua8 = await goi('POST', '/kh/don', t8, k8.tk); return { sufficient: false, stock: 1 }; }   // lần 2 = lúc chốt
+      return { sufficient: true };
+    };
+    const r8 = await goi('POST', '/kh/don', t8, k8.tk);
+    mocCS = null;
+    const sau8 = await goi('POST', '/kh/don', t8, k8.tk);
+    k('V8 gửi lại cùng khoá TRONG LÚC yêu cầu đầu đang chốt ví → 503 DANG_XU_LY (không 200 một đơn sắp bị xoá); yêu cầu đầu hỏng HET_HANG → gửi lại'
+      + ' sau đó xử lý như lần đầu (200 da_tra, trung false), ví trừ một lần', !!giua8 && la(giua8, 503, 'DANG_XU_LY') && la(r8, 400, 'HET_HANG') && la(sau8, 200)
+      && sau8.j.trung === false && sau8.j.tien_trinh === 'da_tra' && (await soDu(k8.sdt)) === 50000,
+    `${giua8 && moTa(giua8)} · ${moTa(r8)} · ${moTa(sau8)} · ví ${await soDu(k8.sdt)}`);
+
+    // Vòng sửa 2 (soát vòng 2, lỗi 2): dòng giữ khoá chưa có phiên đã 3 phút (yêu cầu kia có thể còn chạy — SX treo) → KHÔNG tự xoá.
+    const k9 = await khach(100000);
+    const t9 = than();
+    await db.run(`INSERT INTO pos_don_app (ma, phone, khoa_gui, bam, than, tao_luc) VALUES (?, ?, ?, 'x', '{}', strftime('%Y-%m-%dT%H:%M:%S', ?, '-180 seconds'))`,
+      ['AKET' + ngauNhien().slice(0, 5).toUpperCase(), k9.sdt, t9.khoa_gui, getNow()]).catch(() => {});
+    const r9 = await goi('POST', '/kh/don', t9, k9.tk);
+    k('V9 dòng giữ khoá chưa có phiên đã 3 phút → 503 DANG_XU_LY, dòng đó còn nguyên, không đơn, không trừ ví', la(r9, 503, 'DANG_XU_LY')
+      && (await so('SELECT COUNT(*) AS n FROM pos_don_app WHERE phone = ? AND phien_id IS NULL', [k9.sdt])) === 1 && (await soDu(k9.sdt)) === 100000, moTa(r9));
 
     // Danh sách quầy: đơn xong HÔM QUA ẩn; đơn đang làm từ hôm qua vẫn hiện; đơn đã huỷ / hoàn từ hôm qua ẩn và không bấm được.
     const k7 = await khach(300000);
