@@ -43,6 +43,11 @@
 - Quản lý TỪ CHỐI được đơn vượt hạn mức (chỉ chủ quán duyệt được) — giữ vậy: từ chối không đổi kho / tiền, nhân viên tạo lại được. Bạn muốn chỉ chủ quán
   từ chối thì báo.
 - Màn Nhận hàng chỉ xét 50 đơn đã duyệt mới nhất (`nhapHang.js` goiYNhap) — đơn cũ hơn còn mở sẽ không hiện; huỷ đơn cũ không nhận nữa để danh sách gọn.
+- Chủ quán vẫn sửa được phiếu XUẤT chờ duyệt của chính mình thành phiếu tự duyệt (có từ KHO-2a, `duong.js` nhánh PX → `duLieu.suaPhieu`) — cùng lỗ
+  "người khác duyệt" đã bịt cho DH / PN / PS; không sửa vì mục Cấm "không đổi luồng PX". Đề xuất gom vào việc sau.
+- Nguyên liệu: huỷ / sửa phiếu nhận khi lô đã bị phiếu khác trừ vẫn cho (luật KHO-2a: tồn nguyên liệu = Σ dòng, được âm, báo đỏ) — lô cũ âm tự ẩn nên
+  tổng các lô có thể lớn hơn tồn; phiếu "hết hạn" chọn lô vẫn trừ theo lô. Thành phẩm thì bị chặn (LO_DA_BI_TRU) vì tồn thành phẩm = Σ lô.
+- Đơn đặt hàng bị huỷ khi phiếu nhận theo đơn còn chờ duyệt: lúc duyệt không kiểm lại đơn — giữ vậy (hàng đã về thật).
 - Sao lưu Excel (`server/routes/backup.js`, ngoài Phạm vi) lấy bảng theo danh sách cứng: bảng mới nào của kho cũng KHÔNG được sao lưu nếu không sửa file đó — lý do kế hoạch không thêm bảng.
 
 ## Làm tiếp (31.10) — chủ quán duyệt kế hoạch, 4 câu theo đề xuất
@@ -86,12 +91,15 @@
 | (vòng 1) `duong.js` DH / PN / PS chỉ sửa phiếu đã duyệt | BV-SUA-CHI-DA-DUYET | E4d |
 | (vòng 1) `phatSinh.js` có lô thì bỏ id nguyên liệu / món kèm theo | VS-PS-LO-KEM-KHOA | E5e |
 | (vòng 1) `phatSinh.js` ghiKhoPhatSinh kiểm lại lô chọn sẵn khi duyệt | BV-DUYET-KIEM-LO | D14 |
+| (vòng 2) `duLieu.js` huyPhieu chặn khi lô thành phẩm đã bị phiếu khác trừ | BV-LO-TP-DA-BI-TRU | E6 |
+| (vòng 2) `duong.js` sửa PN giữ don_id | BV-SUA-GIU-DON | E4e |
+| (vòng 2) `phatSinh.js` dòng nguyên liệu giữ cho_mon_id khi sửa | BV-NOI-BO-GIU-MON | E5f |
 
 Tên đột biến: BV-DH-VAO-TON, VS-DH-KHONG-GOP, VS-HAN-MUC-LON-HON-BANG, VS-THIEU-GIA-DUOI-HAN-MUC, VS-DH-NV-TU-DUYET, BV-CAN-CHU-QUAN, BV-DS-CAN-CHU-QUAN,
 BV-HAN-MUC-CAI-DAT, BV-PN-NGUOI-KHAC, VS-PN-CONG-LUC-TAO, BV-GHI-KHO-NHAN, BV-CON-LAI-TRU-PN-CHO, BV-DON-DA-DONG, BV-HAN-TU-DIEN, BV-LECH-PN,
 VS-FEFO-BO-LO-QUA-HAN, BV-HAN-MUC-NOI-BO, VS-NOI-BO-KHONG-CONG-DON, VS-NOI-BO-CONG-NGUOI-KHAC, VS-NOI-BO-CONG-NGAY-CU, VS-TP-THIEU-LO-GHI-AM,
 BV-MA-GUI-MOI, BV-BOGIA-TONG-UOC-TINH, VS-SUA-KHONG-HUY-CU, BV-SUA-RE-LOAI-TRUOC, BV-007-DON-ID,
-BV-SUA-GIU-TRUONG-CU, BV-SUA-CHI-DA-DUYET, VS-PS-LO-KEM-KHOA, BV-DUYET-KIEM-LO.
+BV-SUA-GIU-TRUONG-CU, BV-SUA-CHI-DA-DUYET, VS-PS-LO-KEM-KHOA, BV-DUYET-KIEM-LO, BV-LO-TP-DA-BI-TRU, BV-SUA-GIU-DON, BV-NOI-BO-GIU-MON.
 
 ## Soát độc lập — lần 1 (agent general-purpose, /ra-soat) — chép nguyên
 ```
@@ -169,4 +177,14 @@ CHƯA SOÁT ĐƯỢC: đột biến bỏ don_id (người gác chặn chép serv
 BÀI HỌC: KHOÁ ca "sửa phiếu sinh lô sau khi lô bị phiếu KHÁC trừ" (PX + PN); KHOÁ ca sửa PN theo đơn + đột biến gỡ donId;
   NGUYÊN TẮC (K4): "sửa = huỷ + tạo lại" phải mang cả trạng thái người khác đã ghi lên đối tượng cũ; một điều kiện "đã duyệt, tính vào tồn" là MỘT hằng.
 ```
+
+## Vòng sửa 2 (sau soát lần 2)
+- Lỗi 1 (NẶNG): `duLieu.js` huyPhieu (dùng chung cho huỷ và bước đầu của sửa, mọi loại) chặn 409 LO_DA_BI_TRU khi lô THÀNH PHẨM của phiếu đã bị phiếu
+  khác (đã duyệt) trừ. Chỉ xảy ra từ KHO-2b (phát sinh trừ lô của phiếu xuất) — luồng phiếu xuất cũ không đổi (thu_KHO2a 86/86). Ca E6, đỏ trên 4cb3790.
+  Phần nguyên liệu giữ luật KHO-2a → Phát hiện.
+- Lỗi 2: dòng nguyên liệu phiếu phát sinh nhận cho_mon_id; màn sửa gửi kèm. Ca E5f.
+- Lỗi 3: ca E4e sửa PN theo đơn + đột biến BV-SUA-GIU-DON.
+- Lỗi 4: phatSinh dùng `duLieu.DA_DUYET`; nhapHang dùng `duLieu.KHOA_HAN_MUC_DAT_HANG`. Lỗi 5: chú thích `duong.js` sửa đúng nguồn quyết định.
+- Nghi ngờ: tab "Chưa xếp nhóm" chỉ hiện khi có nhóm; PX chờ duyệt tự sửa, đơn huỷ khi PN chờ → Phát hiện.
+- Kết quả: thu_KHO2b 76/76 · `npm test -- --day-du` PASS 88 · FAIL 0 · CẢNH BÁO 1 (có từ trước; gồm thu_KHO1, thu_KHO2a xanh) · dist khớp src · đột biến 33/33 BẮT.
 
