@@ -333,8 +333,11 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] luật 4xx: MỌI lỗi có mã của POST /don = chưa tạo đơn, chưa giữ / trừ ví (đếm bảng từng mã)');
   await chay('D', async () => {
-    const kh = await khach(100000);
-    const ca = async (ten, status, code, gui) => {
+    // Mỗi ca một khách mới (trần 10 lượt / 10 phút theo khách — Q9); chuanBi chạy TRƯỚC khi chụp bảng.
+    let kh = null;
+    const ca = async (ten, status, code, gui, chuanBi = async () => {}) => {
+      kh = await khach(100000);
+      await chuanBi();
       const truoc = await chup(kh.sdt);
       const r = await gui();
       const sau = await chup(kh.sdt);
@@ -366,8 +369,8 @@ async function main() {
     mocBan = false;
     const kt = await ca('không token', 401, 'KH_TOKEN_SAI', () => goi('POST', '/kh/don', than()));
     const dup = than();
-    await goi('POST', '/kh/don', dup, kh.tk);
-    await ca('khoá dùng lại thân khác', 409, 'KHOA_GUI_DA_DUNG', () => goi('POST', '/kh/don', { ...dup, mon: [{ ma: ma(1), so_luong: 1 }], tong_da_xem: 30000 }, kh.tk));
+    await ca('khoá dùng lại thân khác', 409, 'KHOA_GUI_DA_DUNG', () => goi('POST', '/kh/don', { ...dup, mon: [{ ma: ma(1), so_luong: 1 }], tong_da_xem: 30000 }, kh.tk),
+      () => goi('POST', '/kh/don', dup, kh.tk));
     // 429: khách riêng, dồn tới trần bằng yêu cầu hỏng ở bước sau bộ đếm (cach_nhan lạ).
     const q = await khach(100000);
     let r429 = null;
@@ -379,7 +382,7 @@ async function main() {
     const r12 = await goi('POST', '/kh/don', than(), q.tk);
     k('D1 / K3 hết lượt → 429 QUA_NHIEU_LAN có thu_lai_sau_giay (số nguyên > 0), bảng không đổi', !!r429 && la(r12, 429, 'QUA_NHIEU_LAN')
       && Number.isInteger(r12.j.thu_lai_sau_giay) && r12.j.thu_lai_sau_giay > 0 && (await chup(q.sdt)) === tq, `${r429 && moTa(r429)} · ${JSON.stringify(r12.j)}`);
-    const r13 = await goi('POST', '/kh/don', than(), kh.tk);
+    const r13 = await goi('POST', '/kh/don', than(), (await khach(100000)).tk);
     k('K3 khách khác vẫn đặt được khi khách kia hết lượt', la(r13, 200), moTa(r13));
     k('K2 POST /don không token → 401', la(kt, 401, 'KH_TOKEN_SAI'));
   });
@@ -451,8 +454,8 @@ async function main() {
       await goi('POST', '/kh/don', than({ khoa_gui: 'a'.repeat(65) }), kh.tk), await goi('POST', '/kh/don', than({ khoa_gui: 'khoa_co_gach_duoi_x' }), kh.tk),
       await goi('POST', '/kh/don', than({ khoa_gui: 12345678901234567 }), kh.tk)];
     k('E3 thiếu khoá / 15 ký tự / 65 / có "_" / số → 400 KHOA_GUI_SAI', sai.every((r) => la(r, 400, 'KHOA_GUI_SAI')), sai.map(moTa).join(' / '));
-    const k16 = await goi('POST', '/kh/don', than({ khoa_gui: 'A1-' + ngauNhien().slice(0, 13), mon: [{ ma: ma(0), so_luong: 1 }], tong_da_xem: 25000 }), kh.tk);
-    const k64 = await goi('POST', '/kh/don', than({ khoa_gui: ('Z9-' + ngauNhien() + ngauNhien() + ngauNhien()).slice(0, 64), mon: [{ ma: ma(1), so_luong: 1 }],
+    const k16 = await goi('POST', '/kh/don', than({ khoa_gui: 'A1-' + ngauNhien().slice(0, 13), cach_tra: 'qr', mon: [{ ma: ma(0), so_luong: 1 }], tong_da_xem: 25000 }), kh.tk);
+    const k64 = await goi('POST', '/kh/don', than({ khoa_gui: ('Z9-' + ngauNhien() + ngauNhien() + ngauNhien()).slice(0, 64), cach_tra: 'qr', mon: [{ ma: ma(1), so_luong: 1 }],
       tong_da_xem: 30000 }), kh.tk);
     k('E3 khoá đúng 16 và đúng 64 ký tự → qua', la(k16, 200) && la(k64, 200), `${moTa(k16)} / ${moTa(k64)}`);
 
@@ -580,7 +583,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[G] huỷ POST /don/:ma/huy');
   await chay('G', async () => {
-    const kh = await khach(30000);
+    const kh = await khach(20000);
     const r1 = await dat1(kh, gio(), { cach_tra: 'vi_qr', pin: '1357' });
     const giu = await dangGiu(kh.sdt);
     const h1 = await goi('POST', `/kh/don/${r1.j.ma_don}/huy`, {}, kh.tk);
