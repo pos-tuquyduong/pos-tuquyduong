@@ -48,6 +48,7 @@ const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.war
 const chuoiKy = (d) => Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '' : d[x]}`).join('&');
 const hmac = (s) => crypto.createHmac('sha256', KHOA.ck).update(s).digest('hex');
 const GIO_VN = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
+const DIEM_GOC = -1;   // K1: điểm của 2 đơn quầy mục [K] — số chụp trên code GỐC (bang_chung_do.txt)
 
 async function main() {
   imLang();
@@ -836,6 +837,16 @@ async function main() {
     k(`K1 quầy: tinh-thu / POST /orders / phiên tài khoản cho cùng giỏ ra đúng số chụp trên gốc (${MONG.slice(0, 8).join(' · ')})`,
       la(tt1, 200) && la(o1, 200) && la(chot, 200) && so1.slice(0, 8).join(',') === MONG.slice(0, 8).join(','), so1.join(','));
     k('K1 quầy: điểm cộng của 2 đơn quầy > 0 (đường điểm chạy)', diem > 0, String(diem));
+    // Soát vòng 1: so BẰNG số chụp trên gốc — điểm cụ thể + Giờ vàng ở quầy (tinh-thu và POST /orders).
+    await flash(true, 20);
+    const tt2 = await goi('POST', '/pos/orders/tinh-thu', { customer_phone: kh.sdt, items: [monQuay(0, 1)] }, tkChu);
+    const o2 = await goi('POST', '/pos/orders', { items: [monQuay(0, 1)], payment_method: 'cash', cash_amount: tt2.j.total, customer_phone: kh.sdt,
+      customer_name: 'K' }, tkChu);
+    await flash(false);
+    const so2 = [diem, tt2.j.flash_discount, tt2.j.tier_discount, tt2.j.total, o2.j.order?.total, o2.j.order?.flash_discount];
+    const MONG2 = [DIEM_GOC, 5000, 0, 20000, 20000, 5000];
+    k(`K1 quầy: điểm = ${DIEM_GOC} (số gốc); Giờ vàng quầy tinh-thu / POST /orders ra đúng số gốc (${MONG2.slice(1).join(' · ')})`, la(o2, 200)
+      && so2.join(',') === MONG2.join(','), so2.join(','));
   });
 
   sv.close(); svGia.close();
