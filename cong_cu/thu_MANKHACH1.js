@@ -179,7 +179,9 @@ async function main() {
   await baoPhien(q2.quay_id, p2.id);
   const tg = await trangThai(g2.j.khoa);
   const gi = (tg.j.thu || {}).giam || [];
-  k('B9 có Giờ vàng → dòng giảm 5.000 (số máy chủ) và còn phải trả 20.000', gi.length === 1 && gi[0].tien === 5000 && (tg.j.thu || {}).con_lai === 20000 && p2.tong === 20000, JSON.stringify(gi) + ' / ' + p2.tong);
+  k('B9 có Giờ vàng → món ghi giá gốc 25.000 + dòng giảm 5.000 (số máy chủ), còn phải trả 20.000 (không trừ Giờ vàng hai lần)',
+    gi.length === 1 && gi[0].tien === 5000 && ((tg.j.thu || {}).mon || [])[0]?.thanh_tien === 25000 && (tg.j.thu || {}).tam_tinh === 25000 && (tg.j.thu || {}).con_lai === 20000 && p2.tong === 20000,
+    JSON.stringify(tg.j.thu || {}) + ' / ' + p2.tong);
   await datCaiDat('flash_enabled', 'false');
   // chốt phiên (quầy bấm xác nhận tay — cùng đường chốt của quầy) → cảm ơn → rảnh
   const chot = await goi('POST', `/thanh-toan/phien/${p1.id}/xac-nhan-tay`, { ly_do: 'thử màn khách' }, tkChu);
@@ -204,6 +206,14 @@ async function main() {
   await db.run('UPDATE pos_phien_thanh_toan SET qr = NULL WHERE id = ?', [p4.id]);
   const th4 = await trangThai(g2.j.khoa);
   k('B15 phiên không có QR (tiền mặt…) → không hiện thu, vẫn rảnh', th4.j.che_do === 'ranh', th4.j.che_do);
+  // Giờ vàng hết GIỮA phiên: máy chủ dựng lại giỏ ra tổng khác phiên → không hiện danh sách món sai, chỉ hiện đúng số phiên.
+  await datCaiDat('flash_enabled', 'true');
+  const p5 = await taoPhien([mon(0, 1)]);
+  await datCaiDat('flash_enabled', 'false');
+  await baoPhien(q2.quay_id, p5.id);
+  const th5 = (await trangThai(g2.j.khoa)).j.thu || {};
+  k('B16 giỏ dựng lại lệch tổng phiên (Giờ vàng hết giữa chừng) → bỏ danh sách món, vẫn hiện ĐÚNG số phiên (20.000)', th5.con_lai === 20000 && th5.mon === null && th5.tam_tinh === null && (th5.giam || []).length === 0,
+    JSON.stringify(th5));
 
   // ═════════════ C/D. Nội dung rảnh + cài đặt ═════════════
   muc('C/D. Nội dung rảnh + Cài đặt → Màn khách');
