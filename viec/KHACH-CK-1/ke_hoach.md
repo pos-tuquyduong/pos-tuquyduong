@@ -95,12 +95,12 @@ Bạn cần: đọc mục 5 (hai chỗ mình đề xuất, bạn chỉ cần xá
 | C | C2 gọi thân 004 lần 2 → cấu trúc CSDL (PRAGMA / sqlite_master) y hệt, không đổi dòng | |
 | C | C3 kho không có khách nào ≠ 0 → không tạo bảng sao lưu | |
 | C | C4 log có "3 khách" (bắt `console.log`) | |
-| D | D1 đọc mã thật `client/src/pages/BanHang/tinh.js`: không còn `khachGiam`, `coChietKhauRieng`; `BanHangMoi.jsx` không còn `chanChietKhau`; `Sales.jsx` không còn `applyCustomerDiscount` / `customer.discount_value`; `CustomerInput.jsx` không còn `discount_value`; `Customers.jsx` không còn `has_discount` / `discount_value` (kiểm MẪU NGUY HIỂM vắng mặt — E11) | gốc có |
+| D | D1 đọc mã thật `client/src/pages/BanHang/tinh.js`: không còn `khachGiam`, `coChietKhauRieng`; `BanHangMoi.jsx` không còn `chanChietKhau`; `Sales.jsx` không còn `applyCustomerDiscount` / `customer.discount_value`; `CustomerInput.jsx` không còn huy hiệu ("CK:" hay bất kỳ chỗ đọc mức nào ngoài hai dòng chép phản hồi `data.discount_*` giữ theo §9 Q2 — sửa ở vòng soát 3); `Customers.jsx` không còn `has_discount` / `discount_value` (kiểm MẪU NGUY HIỂM vắng mặt — E11) | gốc có |
 | D | D2 `tinhGio` gọi với `khachGiam` cũ → tổng không giảm; `dungDonHang` khách có `discount_value 10` → gửi `discount_value 0` | gốc giảm / gửi 10 |
 | E | E1 khách có `discount_note = 'Ít đá'` → `Sales.jsx`, `Orders.jsx`, `BanHangMoi.jsx` vẫn có `customer_note: …discount_note` (đọc mã); `Customers.jsx` có nhãn "Ghi chú khách" và vẫn gửi `discount_note` | gốc nhãn "Lý do chiết khấu" → đỏ |
 | E | E2 GET `/v2/customers/:sdt` trả `discount_note` sau PUT note (B5) | xanh |
 | F | F1 chạy cả `npm test` (mọi bài thật: GOI1, P20, P26c, UUDAI1, BH1, BH2, KHAPI2, HOPDONG_KH, gia_lap…) xanh — quầy bán, hoàn, ví, điểm, hạng, mã, hoá đơn, App KH | |
-| F | F2 ca hai người cùng bấm (đụng tiền): hai PUT v2 song song cùng khách, một value 5 một chỉ note → cái value 5 bị 400, cái note 200, hồ sơ cuối value 0 | gốc có thể còn 5 |
+| F | F2 (trong bài tên **B8**) ca hai người cùng bấm (đụng tiền): hai PUT v2 song song cùng khách, một value 5 một chỉ note → cái value 5 bị 400, cái note 200, hồ sơ cuối value 0 | gốc có thể còn 5 |
 
 Đột biến (`dot_bien.py`, mỗi cái một dòng tên nguyên chuỗi):
 - `BV-LO2` khôi phục khối LO 2 gốc → A1/A2/A3/A5/A7 bắt.
