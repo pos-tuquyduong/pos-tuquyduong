@@ -195,7 +195,7 @@ async function main() {
       && trang.cong_dung === null && trang.thanh_phan === null && trang.anh === null, JSON.stringify(trang));
     k('C3 mỗi món ĐÚNG bộ khoá: 8 cũ + 5 mới + anh, không trường nào khác', !!m && !!trang && bang(Object.keys(m).sort(), KHOA_MENU_MOI) && bang(Object.keys(trang).sort(), KHOA_MENU_MOI), Object.keys(m || {}).join(','));
     const con = { ma: m.ma, ten: m.ten, nhom: m.nhom, gia: m.gia };
-    k('C4 trường cũ không đổi (ma, ten, nhom, gia = 25000)', con.ma === 'juice_801' && con.gia === 25000 && typeof con.ten === 'string' && con.nhom === 'juice', JSON.stringify(con));
+    k('C4 trường cũ không đổi (ma, ten, nhom, gia = giá trong kho)', con.ma === 'juice_801' && con.gia === (await hang('juice', 801)).price && typeof con.ten === 'string' && con.nhom === 'juice', JSON.stringify(con));
   });
 
   muc('[D] Hằng số giao diện = máy chủ (đọc NGUỒN client/src/utils/thongTinMon.js)');
