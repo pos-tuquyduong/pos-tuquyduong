@@ -17,7 +17,7 @@
 |---|---|---|---|
 | ~~UUDAI-1~~ ✅ 29.10 | Mã giảm dùng chung / không với giá hạng (cài đặt theo loại mã), máy chủ chọn cách lợi hơn, `tinh-thu` cho giỏ | [T] · Opus | Opus 1 |
 | ~~KH-API-2~~ ✅ 29.10 | Cửa App KH chỉ đọc: hồ sơ + hạng + số dư ví, danh sách hạng, giờ vàng hôm nay, menu có giá từng hạng (cùng hàm với quầy); cài đặt **giờ hoạt động** + cửa giờ hoạt động cho App; hợp đồng v2 + bài thử hợp đồng | [T] · Opus | Opus 1 |
-| KH-API-3 | Cửa App KH: xem menu không cần đăng nhập · đăng ký 3 bước (xưng hô, địa chỉ) · tự gia hạn đăng nhập 30 ngày · hợp đồng v3 | [T] · Opus | Opus 1 |
+| ~~KH-API-3~~ ✅ 31.10 | Cửa App KH: xem menu không cần đăng nhập · đăng ký 3 bước (xưng hô, địa chỉ) · tự gia hạn đăng nhập 30 ngày · hợp đồng v3 | [T] · Opus | Opus 1 |
 | GIO-VN-1 | Mọi hệ thống dùng **giờ Việt Nam**: mọi chỗ ghi giờ còn theo giờ quốc tế (UTC) đổi về giờ VN; dữ liệu cũ đổi qua nâng cấp có sao lưu | [T] · Opus | Opus 1 |
 | COMBO-1a | Combo cố định, máy chủ tính giá combo, giảm hạng mức riêng cho combo | [T] · Opus | Opus 1 |
 | TOPPING-1 | Topping là sản phẩm POS; cài topping + ghi chú theo từng món; giá; giảm hạng áp cả topping; dòng topping trên giỏ / hoá đơn / tem / hoàn; `/api/kh/menu` có topping theo món | [T] · Opus | Opus 1 |
@@ -29,9 +29,10 @@
 | GIAO-1 | Giao Ahamove ở quầy: tính phí → thu đủ → gọi xe; phí là dòng riêng, không giảm, không áp mã, không tích điểm | [T] · Opus | Opus 2 |
 | ~~HD-1~~ ✅ 29.10 | Hoá đơn mới 2 tờ + QR đăng ký App KH + mã nhận điểm; tuỳ chỉnh chữ hoá đơn & tem | [Th] · Sonnet | Sonnet |
 | ~~BH-2~~ ✅ 30.10 | Màn Bán hàng mới đợt 2 (QR payOS + PIN + giữ tiền, giá hạng + ưu đãi máy chủ tính, màn kết thúc in hoá đơn HD-1) + menu 6 mục (chỉ dời đường dẫn) | [Th] · Sonnet | Sonnet |
-| KHACH-CK-1 | Bỏ chiết khấu riêng từng khách: bỏ ô ở màn Khách hàng, máy chủ không áp, đặt về 0 có sao lưu — TRƯỚC khi bật màn Bán hàng mới | [T] · Opus | Opus 2 |
+| ~~KHACH-CK-1~~ ✅ 31.10 | Bỏ chiết khấu riêng từng khách: bỏ ô ở màn Khách hàng, máy chủ không áp, đặt về 0 có sao lưu — TRƯỚC khi bật màn Bán hàng mới | [T] · Opus | Opus 2 |
 | GIOVANG-1 | Giờ vàng: cài món (vài món / tất cả) + giờ + giảm % HOẶC giá còn lại từng món; quầy + máy chủ tính theo đó; `/api/kh/gio-vang` thêm `gia_mon[]` | [T] · Opus | Opus 1 |
 | KH-SP-1 | Thông tin ngắn của món ở màn Sản phẩm POS (nhu cầu, thể chất, mô tả, công dụng, thành phần) + hiện gọn ở quầy + `/api/kh/menu` trả thêm — mở khi KH-API-3 gộp | [Th] · Sonnet | Sonnet |
+| BH-CKTAY-1 | Bỏ hẳn ô "Chiết khấu" giảm tay ở màn Bán hàng cũ (máy chủ đã không nhận — gõ vào là đơn không lưu được) | [Th] · Sonnet | Sonnet |
 | KH-MUA-1 | App KH đặt đơn: báo giá giỏ, tạo đơn nhận tại quán, trả QR payOS hoặc ví + PIN (dùng lại `tinh-thu` + phiên thanh toán quầy), đơn về quầy kèm chuông khi đã trả, trạng thái đơn, huỷ đơn chưa trả | [T] · Opus | Opus 1 |
 | KH-MUA-2 | App KH giao Ahamove: báo phí theo địa chỉ, trả đúng phí, trạng thái giao (dùng chung hàm GIAO-1) — SAU GIAO-1 | [T] · Opus | Opus 2 |
 | COMBO-1b | Nhóm "Combo" trên màn Bán hàng mới (thẻ giá gốc gạch + giá combo, dòng combo trên giỏ / hoá đơn / tem) — SAU COMBO-1a và BH-2 | [Th] · Sonnet | Sonnet |
@@ -44,10 +45,10 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 |---|---|---|---|
 | T5 29.10 | UUDAI-1 ✓ · KH-API-2 ✓ | KHO-1 ✓ · KHO-2a làm | HD-1 ✓ · BH-2 ✓ (xong sáng 29.10) |
 | T6 30.10 | KH-API-3 làm | KHO-2a ✓ (chat gộp) | BH-2 gộp ✓ |
-| T7 31.10 | KH-API-3 sửa + soát + gộp → KH-MUA-1 kế hoạch | KHACH-CK-1 kế hoạch → làm | KH-SP-1 (khi KH-API-3 gộp) · **tối: quyết ngày** |
-| CN 01.11 | KH-MUA-1 làm | KHACH-CK-1 gộp → KHO-2b kế hoạch → làm | KH-SP-1 |
-| T2 02.11 | KH-MUA-1 soát + gộp | KHO-2b làm | KH-SP-1 gộp |
-| T3 03.11 | COMBO-1a | KHO-2b gộp → P3b | COMBO-1b (sau COMBO-1a) · **tối: quyết ngày** |
+| T7 31.10 | KH-API-3 ✓ (gộp #54) → KH-MUA-1 kế hoạch | KHACH-CK-1 ✓ (gộp #55, sớm 1 ngày) → KHO-2b kế hoạch | KH-SP-1 làm · **tối: quyết ngày** |
+| CN 01.11 | KH-MUA-1 làm | KHO-2b làm | KH-SP-1 gộp → BH-CKTAY-1 |
+| T2 02.11 | KH-MUA-1 soát + gộp | KHO-2b soát + gộp | BH-CKTAY-1 gộp |
+| T3 03.11 | COMBO-1a | P3b | COMBO-1b (sau COMBO-1a) · **tối: quyết ngày** |
 | T4 04.11 | TOPPING-1 | P3b gộp → GIAO-1 | |
 | T5 05.11 | TOPPING-1 gộp → GIOVANG-1 | GIAO-1 | |
 | T6 06.11 | KHO-3 | GIAO-1 gộp → KH-MUA-2 | |
@@ -56,6 +57,9 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 
 Ước tính tối 30.10: đủ mọi việc trên + chạy thử thì khai trương rơi vào khoảng **T4 11.11 – T5 12.11**; việc nào xong sớm thì cả hàng
 dồn lên. Mỗi việc online (topping, combo, đổi điểm) làm luôn phần `/api/kh` của mình. Chủ quán + chat chốt ngày tối 31.10 và tối 03.11.
+Tối 31.10: KH-API-3 đúng lịch, KHACH-CK-1 sớm 1 ngày → làn Opus 2 sớm khoảng nửa ngày; ước tính giữ **T4 11.11**, chốt lại tối 03.11.
+Bước nâng cấp đã giữ số: 005 KH-SP-1 · 006 KH-MUA-1 · 007 KHO-2b. Hợp đồng `/api/kh`: v4 KH-SP-1 · v5 KH-MUA-1.
+Ba việc cùng sửa `client/src/pages/Settings.jsx` và `client/dist/` (KH-SP-1, KH-MUA-1, KHO-2b) → script gộp của chat dựng lại `client/dist`.
 
 ## Thứ tự gộp — vì sao
 - `server/routes/orders.js` (vùng giá / tạo đơn): UUDAI-1 → KH-API-2 → COMBO-1a → TOPPING-1 → KHO-3 NỐI TIẾP trên làn Opus 1.

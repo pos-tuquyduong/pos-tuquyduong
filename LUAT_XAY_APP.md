@@ -81,6 +81,9 @@
 8. **Bài thử cũ phải đổi vì hành vi ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi** → là bài SỬA bình thường (bản mới đỏ trên code gốc, xanh trên code mới,
    ghi `SỐ CA`), KHÔNG ghi vào `## Bài thử cũ sửa` — mục đó chỉ dành cho bài cũ đổi mà VẪN XANH trên gốc (HOC-1 d bắt bản gốc phải xanh;
    vụ KHO-2a cổng A11, 29.10).
+9. **Trước khi đề xuất / ghi một bài vào `## Bài thử cũ sửa`** (máy trong kế hoạch, chat trong phiếu): CHẠY bản GỐC bài đó trên code MỚI.
+   Đỏ → KHÔNG phải mục đó; là bài sửa thường (mục 8) — thêm một ca đỏ trên gốc nếu bản mới vẫn xanh trên gốc. Đã sai 3 lần (KHO-2a Q8,
+   KH-API-3 A11, KHACH-CK-1 kế hoạch 31.10).
 
 ## 7. Nhịp làm việc tới khai trương (07.11.2026)
 - Việc **tiền / bảo mật**: phiếu có "Chờ duyệt kế hoạch". Việc **thường** (giao diện, in, dọn, hạ tầng): chạy thẳng tới hết, không dừng chờ duyệt.

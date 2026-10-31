@@ -52,6 +52,10 @@
 - 29.10 · Khách chưa đăng nhập LÚC NÀO cũng xem được Trang chủ, Menu, giá, trang món; đăng nhập chỉ khi cần Ưu đãi, Tài khoản, mã thành
   viên, nhận điểm. Đăng ký 3 bước: SĐT → mã (qua Zalo khi có KH-OTP-1) → Tên + Cách xưng hô BẮT BUỘC, Địa chỉ tuỳ chọn (đặt online lần
   đầu thì bắt nhập, lưu làm mặc định). Nhớ đăng nhập 30 ngày, TỰ GIA HẠN mỗi lần mở app (KH-API-3).
+- 31.10 · Địa chỉ của khách ở quầy và ở App là MỘT ô (cột address dùng chung — KH-API-3 đã làm): sửa ở đâu thì nơi kia thấy ngay.
+- 31.10 · Đặt đơn App (KH-MUA-1): khách trả được bằng QR payOS, ví + PIN, hoặc **ví một phần + QR phần còn lại** (giữ ví trước, như quầy).
+  An toàn tiền: MỌI lỗi có mã (4xx) của tạo đơn = chưa tạo đơn, chưa giữ / trừ ví; mỗi lần bấm Đặt có một khoá gửi — gửi lại cùng khoá
+  trả đúng đơn cũ, không trừ ví hai lần. Loại giảm trên báo giá: `ma_giam` · `hang` · `gio_vang`.
 
 ## Giao hàng
 - 27.10 · Giao hàng dùng Ahamove (không GHN).
@@ -81,6 +85,11 @@
 - 29.10 · Hạn mã nhận điểm / mã ưu đãi khách mới: máy cho đúng số giờ đã cài (bill hứa bao nhiêu giờ thì cho bấy nhiêu), cả quầy lẫn App.
 - 29.10 · **Bỏ chiết khấu riêng từng khách:** mọi ưu đãi của khách đi qua hạng thành viên; khách VIP chủ quán cho mã giảm riêng sau.
   KHACH-CK-1: bỏ ô ở màn Khách hàng + máy chủ không áp nữa + đặt về 0 qua bước nâng cấp có sao lưu — xong TRƯỚC khi bật màn Bán hàng mới.
+- 31.10 · KHACH-CK-1 (đã gộp): hai cửa ghi chiết khấu chỉ còn lưu "Ghi chú khách" (in trên hoá đơn), mức > 0 bị từ chối. Khôi phục một
+  bản sao lưu cũ có thể đem mức giảm riêng trở lại hồ sơ — CHẤP NHẬN (máy chủ không áp, màn không hiện; không sửa backup.js). Khách từng có
+  % riêng mua trong Giờ vàng → theo giá Giờ vàng như mọi khách.
+- 31.10 · **Bỏ hẳn giảm tay ở quầy:** màn Bán hàng (cũ và mới) KHÔNG có ô giảm tay; ở quầy chỉ giảm qua mã giảm, hạng thành viên, Giờ vàng.
+  Máy chủ không nhận mức giảm nào màn hình gửi. Cần giảm cho khách quen / bù món lỗi → quản lý tạo mã giảm (BH-CKTAY-1 bỏ ô ở màn cũ).
 - 29.10 · Khoá payOS và Ahamove CHỈ ở biến môi trường Render (không ở màn Cài đặt, không dán vào chat); Quản lý → Cài đặt chỉ hiện
   "payOS: đã cài ✓ / chưa cài ✗ · Ahamove: đã cài ✓ / chưa cài ✗" (làm trong GIAO-1).
 
