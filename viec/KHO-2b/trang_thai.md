@@ -291,3 +291,10 @@ giữa lệnh; GIT-LENH: `git stash list`); đột biến lạc neo một lần 
 - **BỎ**: các lệnh bị người gác chặn — luật đã có, lỗi thao tác một lần (tách lệnh, commit bài thử trước khi chạy). `git stash list` — chỉ để xem, không cần.
 - Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md được phép kiểm mới làm thay trong việc này.
 
+## Cổng
+`node tu_chay/cong.js chay . 617f4e4^ HEAD viec/KHO-2b` (HEAD a38593c, cây sạch): ✓ CỔNG CHẠY ĐẠT
+GIT (git log --oneline -2 lúc kiểm):
+  a38593c KHO-2b: vong sua 4 ghi ho so, nghiem thu, bao cao 7 muc, bai hoc
+  0e3cedd KHO-2b: neo dot bien BV-SUA-CHI-DA-DUYET theo dong moi
+
+HEAD ĐÃ KIỂM: a38593c
