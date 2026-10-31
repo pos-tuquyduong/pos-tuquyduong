@@ -95,6 +95,8 @@ DOT_BIEN = [
    r'✗ D18 ', 'thu_BH2.js'),
   # ── màn cũ, ô chọn khách, màn Khách hàng ──
   ('BV-SALES-CHON-KHACH', [(SA, CHON_KHACH, CHON_KHACH_CU, 1)], r'✗ D1c ', 'thu_KHACHCK1.js'),
+  ('VS-SALES-TEN-KHAC', [(SA, CHON_KHACH, CHON_KHACH_CU.replace('selectedCustomer', 'kh').replace("    if (kh?", "    const kh = selectedCustomer;\n    if (kh?"), 1)],
+   r'✗ D1c ', 'thu_KHACHCK1.js'),
   ('BV-CUSTOMERINPUT-HUY-HIEU', [(CI, "            {customerData.source === 'sx' && (",
                                  "            {customerData.discount_value > 0 && <span>🏷️ CK: {customerData.discount_value}</span>}\n            {customerData.source === 'sx' && (", 1)],
    r'✗ D1d ', 'thu_KHACHCK1.js'),
