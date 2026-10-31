@@ -1,0 +1,18 @@
+BH-CKTAY-1 — bằng chứng ĐỎ trên code gốc c0e8af8 (phiếu), lệnh:
+    python3 viec/BH-CKTAY-1/dot_bien.py --goc c0e8af8 thu_BHCKTAY1.js thu_KHACHCK1.js
+
+── thu_BHCKTAY1.js (bài HIỆN TẠI trên code c0e8af8):
+  ✗ A1 không ô nhập nào ghi vào mức giảm (setDiscount / setDiscountType / setDiscountValue)
+  ✗ A2 không còn state discount / discountType / discountValue
+  ✗ A3 không còn nhánh cộng giảm ngoài mã (discount > 0, nhánh % / đ cố định)
+  ✗ B2 không mã, ô từng gõ 10 % → discount 0, discount_type null, discount_value 0  — {"discount":0,"discount_type":"percent","discount_value":10}
+  6 đạt · 4 hỏng
+  thoát 1
+── thu_KHACHCK1.js (bài HIỆN TẠI trên code c0e8af8):
+  ✗ F3a (BH-CKTAY-1) Sales.jsx bỏ hẳn ô giảm tay; không mã thì gửi discount_value 0
+  36 đạt · 1 hỏng
+  thoát 1
+
+Sau khi vá: thu_BHCKTAY1.js 10 đạt · 0 hỏng; thu_KHACHCK1.js 37 đạt · 0 hỏng.
+SỐ CA thu_BHCKTAY1.js: 10
+SỐ CA thu_KHACHCK1.js: 37
