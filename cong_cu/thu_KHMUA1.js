@@ -48,7 +48,7 @@ const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.war
 const chuoiKy = (d) => Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '' : d[x]}`).join('&');
 const hmac = (s) => crypto.createHmac('sha256', KHOA.ck).update(s).digest('hex');
 const GIO_VN = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
-const DIEM_GOC = -1;   // K1: điểm của 2 đơn quầy mục [K] — số chụp trên code GỐC (bang_chung_do.txt)
+const DIEM_GOC = 6;   // K1: điểm của 2 đơn quầy mục [K] — số chụp trên code GỐC (bang_chung_do.txt)
 
 async function main() {
   imLang();
