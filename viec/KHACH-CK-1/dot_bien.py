@@ -49,7 +49,7 @@ DOT_BIEN = [
   ('BV-LO2-GOI1', BV_LO2, r'✗ B3c2 ', 'thu_GOI1.js'),
   ('BV-LO2-P20', BV_LO2, r'✗ hồ sơ cũ fixed 5\.000', 'thu_P20.js'),
   ('VS-LO2-TIN-TO-KHAI', [(O, LO2_MOI, '    if (!discountCodeId) {\n      finalDiscountType = discount_type;\n      finalDiscountValue = discount_value;\n    }\n', 1)],
-   r'✗ F3b ', 'thu_KHACHCK1.js'),
+   r'✗ F3c ', 'thu_KHACHCK1.js'),
   # ── hai cửa ghi: chặn mức > 0 ──
   ('BV-CHAN-V2', [(C2, CHAN, '    if (false) {\n', 1)], r'✗ B1 ', 'thu_KHACHCK1.js'),
   ('BV-CHAN-V2-INSERT', [(C2, CHAN, '    if (false) {\n', 1)], r'✗ B4 ', 'thu_KHACHCK1.js'),
