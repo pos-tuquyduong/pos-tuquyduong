@@ -62,7 +62,7 @@
 - Bài thử viết trước, đỏ trên gốc: `bang_chung_do.txt`. Sau vá: thu_KHO2b 67/67 · thu_KHO2a 86/86 · thu_KHO1 111/111 · `npm test -- --day-du` PASS 88 · FAIL 0 ·
   CẢNH BÁO 1 (route GET có lệnh ghi ở packages.js / products.js / sync.js — có từ trước, ngoài Phạm vi).
 
-## Chỗ vá → đột biến (viec/KHO-2b/dot_bien.py — 26 đột biến, BẮT 26)
+## Chỗ vá → đột biến (viec/KHO-2b/dot_bien.py — số đột biến và kết quả mới nhất ở cuối file, mục Vòng sửa 4)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | `duLieu.js` DA_DUYET bỏ phiếu DH khỏi tồn | BV-DH-VAO-TON | A9 |
@@ -187,4 +187,23 @@ BÀI HỌC: KHOÁ ca "sửa phiếu sinh lô sau khi lô bị phiếu KHÁC tr�
 - Lỗi 4: phatSinh dùng `duLieu.DA_DUYET`; nhapHang dùng `duLieu.KHOA_HAN_MUC_DAT_HANG`. Lỗi 5: chú thích `duong.js` sửa đúng nguồn quyết định.
 - Nghi ngờ: tab "Chưa xếp nhóm" chỉ hiện khi có nhóm; PX chờ duyệt tự sửa, đơn huỷ khi PN chờ → Phát hiện.
 - Kết quả: thu_KHO2b 76/76 · `npm test -- --day-du` PASS 88 · FAIL 0 · CẢNH BÁO 1 (có từ trước; gồm thu_KHO1, thu_KHO2a xanh) · dist khớp src · đột biến 33/33 BẮT.
+
+## Soát độc lập — lần 3 (cuối) — chép nguyên ý
+```
+KHÔNG ĐẠT — chỉ còn lỗi NHẸ → LUAT §6.5: vòng sửa 4 trong phiếu. Ba bản sửa vòng 2 đúng và đủ. thu_KHO2b 76/76 · KHO-2a 86/86 · KHO-1 111/111 ·
+--day-du PASS 88 · FAIL 0 · CẢNH BÁO 1 (có từ trước) · dist khớp src · đột biến vòng 2 BẮT 3/3.
+LỖI TÌM ĐƯỢC:
+1. server/kho/duong.js:315 — sửa phiếu DH / PN / PS ĐÃ HUỶ trả 409 PHIEU_CHUA_DUYET kèm lời sai; PX cùng tình huống trả PHIEU_DA_XU_LY
+   (huyPhieu → viSaoKhongDoi). Trái LUAT §2 "cùng tình huống → cùng code". Không ca thử. — K4 — NHẸ.
+2. viec/KHO-2b/trang_thai.md — tiêu đề "26 đột biến, BẮT 26" đã cũ (nay 33); thiếu kết quả `cong.js chay`, CHƯA KIỂM, thao tác thử tay. — K1/K6 — NHẸ.
+3. server/kho/phatSinh.js:54 + :89 — cho_mon_id màn hình gửi được nhận ở MỌI lần tạo PS, không kiểm món có thật; chỉ để hiển thị. — K5 — NHẸ.
+NGHI NGỜ: sửa PN khi lô nguyên liệu đã bị phiếu khác trừ (chỉ chặn thành phẩm) — kế hoạch §7 chỉ chấp nhận HUỶ, đề nghị chủ quán xác nhận riêng cho
+  SỬA; ghi kết quả phiếu xuất sau khi phát sinh trừ cùng lô thành phẩm (ghiKetQua) → lô âm ẩn — đụng luồng PX (Cấm) → Phát hiện, chưa dựng bằng chạy;
+  sửa phiếu nội bộ ghi người tạo phiếu mới là chủ quán → hạn mức nội bộ trong ngày chuyển từ người gốc sang chủ quán; NhanHang.jsx:32 bỏ im lặng dòng
+  đơn của nguyên liệu đã ngừng dùng; duLieu.js:363 phiếu nhận trỏ đơn cũ (đã sửa) tính cờ lệch theo đơn cũ.
+NGHIỆM THU: 42/44 — thử tay, chưa ghi: A "xem trước khi gửi nhà cung cấp" (DatHang.jsx bảng "Đơn sẽ gửi"); G điện thoại 360–430 px.
+CHƯA SOÁT ĐƯỢC: cong.js chay; điện thoại, ô ngày hẹp, in 80 mm / A4; hai nghi ngờ lô âm ẩn chưa dựng bằng chạy; khôi phục file cũ vào kho trống; Turso.
+BÀI HỌC: KHOÁ ca "sửa / huỷ phiếu ĐÃ HUỶ" mọi loại → cùng mã PHIEU_DA_XU_LY; KHOÁ trường "giữ lúc sửa" chỉ nhận ở đường sửa;
+  NGUYÊN TẮC (K4) chặn "lô bị phiếu khác trừ" phủ mọi dòng ghi lên lô (huỷ, sửa, ket_qua); NGUYÊN TẮC (K1) số trong tiêu đề hồ sơ cập nhật cùng bảng.
+```
 

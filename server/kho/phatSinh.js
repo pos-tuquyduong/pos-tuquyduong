@@ -86,7 +86,7 @@ async function taoPhatSinh(tx, { suCo, muc, ghiChu, nguoi, quanLy, maGui, luc, t
   // Có lô thì lô quyết định món (màn sửa gửi kèm id nguyên liệu / món của lô) — bỏ hai khoá kia.
   const ds = Array.isArray(muc) ? muc.map((m) => { const lo = Number(m?.lo_id) || null;
     return { lo_id: lo, nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null, luong: Number(m?.luong),
-      cho_mon_id: Number(m?.cho_mon_id) || null }; }) : [];
+      cho_mon_id: ep ? Number(m?.cho_mon_id) || null : null }; }) : [];   // cho_mon_id chỉ nhận khi chủ quán sửa (giữ "ly gì" của phiếu cũ)
   if (!ds.length || ds.some((m) => [m.lo_id, m.nguyen_lieu_id, m.san_pham_id].filter((x) => x > 0).length !== 1 || !(m.luong > 0) || !Number.isFinite(m.luong))) {
     return loi(400, 'DONG_SAI', 'Chọn món và số lượng lớn hơn 0');
   }

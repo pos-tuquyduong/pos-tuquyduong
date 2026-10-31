@@ -312,7 +312,8 @@ router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
       : { loi: [400, LOI_SO_PHAN] };
   }
   if (!TAO[cu.loai]) return { loi: [400, { error: 'Loại phiếu này không sửa được', code: 'KHONG_SUA_DUOC' }] };
-  if (cu.trang_thai !== 'da_duyet') return { loi: [409, { error: 'Chỉ sửa phiếu đã duyệt — phiếu chờ duyệt thì từ chối / huỷ rồi tạo lại', code: 'PHIEU_CHUA_DUYET' }] };
+  if (cu.trang_thai === 'cho_duyet') return { loi: [409, { error: 'Chỉ sửa phiếu đã duyệt — phiếu chờ duyệt thì từ chối / huỷ rồi tạo lại', code: 'PHIEU_CHUA_DUYET' }] };
+  // phiếu đã huỷ: huyPhieu trả 409 PHIEU_DA_XU_LY — cùng mã với phiếu xuất (LUAT §2)
   const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);
   if (huy.loi) return huy;
   return TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
