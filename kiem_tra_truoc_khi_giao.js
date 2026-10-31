@@ -794,6 +794,7 @@ chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có 
 chayBaiThat('cong_cu/thu_KHO2b.js');   // KHO-2b: đặt hàng có hạn mức, nhận hàng người khác duyệt, xử lý phát sinh, tồn
 chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
 chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
+chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;

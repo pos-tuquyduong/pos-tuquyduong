@@ -14,6 +14,7 @@ import ThuTien from './ThuTien';
 import ManKetThuc from './ManKetThuc';
 import ManPin from './ManPin';
 import ManQr from './ManQr';
+import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
 import { chiaTra, coGia, coSoMayChu, giaHang, hanhDongPhien, khoaTinh, kiemTraThem, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
 import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
@@ -70,6 +71,9 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const anhQr = useRef(null);                               // khách + tiền trừ tài khoản lúc hiện QR (để dựng màn kết thúc)
   const hoanTatRef = useRef(null);
   const maDong = useRef(1);
+  const manKhach = useQuayManKhach();                       // MANKHACH-1: mã ghép màn khách + báo phiên QR (chỉ hiển thị, lỗi nuốt im)
+  const baoManKhach = manKhach.baoPhien;
+  useEffect(() => { if (qr?.id) baoManKhach(qr.id); }, [qr?.id, baoManKhach]);
 
   const napSanPham = useCallback(async () => {
     try { setSp(await productsApi.list({ with_stock: 'true' })); } catch (e) { setLoi('Không thể tải danh sách sản phẩm: ' + e.message); }
@@ -356,7 +360,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
 
   return (
     <div className="bh">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, position: 'relative' }}>
+        <MaGhepManKhach q={manKhach.q} lamMoi={manKhach.lamMoi} />
         <button className="bh-nut-nho" onClick={() => setMoCaiDat((v) => !v)} aria-label="Cài đặt màn bán hàng"><IconCaiDat size={16} /> Màn bán hàng</button>
         {moCaiDat && (
           <div className="bh-cai-dat">

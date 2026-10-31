@@ -378,6 +378,19 @@ export const thanhToanApi = {
   datPin: (phone, pin, pinLai) => api.post('/thanh-toan/pin', { phone, pin, pin_lai: pinLai })
 };
 
+// MANKHACH-1 · Màn khách. Quầy dùng JWT nhân viên; màn khách dùng khoá riêng ở header (không đăng nhập nhân viên).
+const tieuDeKhoa = (khoa) => ({ headers: { 'X-Man-Khach-Khoa': khoa } });
+export const manKhachApi = {
+  moQuay: (quayId) => api.post('/man-khach/quay/mo', { quay_id: quayId || undefined }),
+  doiMa: (quayId) => api.post('/man-khach/quay/doi-ma', { quay_id: quayId }),
+  baoPhien: (quayId, phienId) => api.post('/man-khach/quay/phien', { quay_id: quayId, phien_id: phienId }),
+  danhSachMay: () => api.get('/man-khach/may'),
+  thuHoi: (id) => api.post(`/man-khach/may/${id}/thu-hoi`, {}),
+  ghep: (ma, ten) => api.post('/man-khach/ghep', { ma, ten }),
+  trangThai: (khoa) => api.request('/man-khach/trang-thai', { method: 'GET', ...tieuDeKhoa(khoa) }),
+  noiDung: (khoa) => api.request('/man-khach/noi-dung', { method: 'GET', ...tieuDeKhoa(khoa) })
+};
+
 // BH-2 · Dữ liệu hoá đơn (HD-1): một cửa, chỉ đọc
 export const hoaDonApi = { lay: (id) => api.get(`/hoa-don/${id}`) };
 

@@ -1,0 +1,38 @@
+/* Màn khách (MANKHACH-1). Mọi lớp bắt đầu bằng mk- ; nền tối, chữ to, đọc được từ xa; ngang và dọc đều dùng được. */
+.mk { position: fixed; inset: 0; background: #0f172a; color: #f8fafc; font-family: inherit; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+.mk * { box-sizing: border-box; }
+.mk b { color: inherit; }
+.mk-giua { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem; padding: 2rem; text-align: center; }
+.mk-to { font-size: clamp(1.6rem, 5vmin, 3.2rem); font-weight: 800; }
+.mk-vua { font-size: clamp(1.1rem, 3vmin, 1.8rem); }
+.mk-mo { color: #94a3b8; }
+.mk-vang { position: absolute; top: 0.6rem; right: 0.8rem; background: #f59e0b; color: #1c1917; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 0.85rem; font-weight: 700; }
+
+/* ghép */
+.mk-o-ma { font-size: clamp(2rem, 8vmin, 4rem); letter-spacing: 0.4em; text-align: center; width: 100%; max-width: 20rem; padding: 0.6rem; border-radius: 12px; border: 2px solid #475569; background: #1e293b; color: #fff; }
+.mk-nut { background: #dc2626; color: #fff; border: 0; border-radius: 12px; padding: 0.9rem 2.2rem; font-size: 1.3rem; font-weight: 700; min-height: 56px; cursor: pointer; }
+.mk-nut:disabled { opacity: 0.5; }
+.mk-loi { color: #fca5a5; min-height: 1.5em; }
+
+/* lúc thu */
+.mk-thu { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; padding: 2rem; align-items: center; min-height: 0; }
+.mk-qr-khung { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
+.mk-qr { width: min(46vw, 78vh); height: min(46vw, 78vh); background: #fff; border-radius: 16px; padding: 0.8rem; }
+.mk-tien { font-size: clamp(2rem, 7vmin, 4.5rem); font-weight: 800; color: #fde68a; }
+.mk-ds { display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; max-height: 100%; overflow: hidden; }
+.mk-dong { display: flex; justify-content: space-between; gap: 1rem; font-size: clamp(1.1rem, 3vmin, 1.9rem); border-bottom: 1px solid #334155; padding-bottom: 0.4rem; }
+.mk-dong-giam { color: #86efac; }
+.mk-dong-tong { font-weight: 800; border-bottom: 0; color: #fde68a; }
+@media (orientation: portrait) {
+  .mk-thu { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 1.2rem; padding: 1.2rem; align-items: start; }
+  .mk-qr { width: min(80vw, 46vh); height: min(80vw, 46vh); }
+}
+
+/* trang lúc rảnh */
+.mk-trang { flex: 1; padding: 2.5rem; display: flex; flex-direction: column; gap: 1.2rem; min-height: 0; animation: mk-hien 0.6s ease; }
+@keyframes mk-hien { from { opacity: 0; } to { opacity: 1; } }
+.mk-menu { columns: 2 22rem; column-gap: 3rem; }
+.mk-menu .mk-dong { break-inside: avoid; }
+.mk-het { text-decoration: line-through; color: #64748b; }
+.mk-ten-het { font-size: 0.7em; background: #475569; border-radius: 6px; padding: 0 0.4rem; margin-left: 0.5rem; text-decoration: none; display: inline-block; }
+.mk-qr-app { width: min(55vw, 55vh); height: min(55vw, 55vh); background: #fff; border-radius: 16px; padding: 0.8rem; }

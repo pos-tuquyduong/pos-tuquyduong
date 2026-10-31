@@ -51,7 +51,7 @@ DOT_BIEN = [
   ('BV-DONG-GIAM-KHONG-HIEN', 'mk', [(U, 'if (tien > 0) hien.giam.push', 'if (false) hien.giam.push', 1)], r'✗ B9 '),
   ('VS-THANH-TIEN-TRU-GIO-VANG-HAI-LAN', 'mk', [(U, 'thanh_tien: Math.round(it.unit_price * it.quantity)', 'thanh_tien: Math.round((it.flash_unit_price ?? it.unit_price) * it.quantity)', 1)], r'✗ B9 '),
   ('VS-QR-TU-DUNG-LAI', 'mk', [(U, 'phien_id: p.id, qr: p.qr,', "phien_id: p.id, qr: 'QR_TU_DUNG_' + p.id,", 1)], r'✗ B3 '),
-  ('VS-SO-PHAI-TRA-LA-TONG', 'mk', [(U, 'tong: p.tong, con_lai: p.con_lai,', 'tong: p.tong, con_lai: p.tong,', 1)], r'✗ B3 '),
+  ('VS-SO-PHAI-TRA-LA-TONG', 'mk', [(U, 'tong: p.tong, con_lai: p.con_lai,', 'tong: p.tong, con_lai: p.tong,', 1)], r'✗ B17 '),
   # ── C/D: nội dung rảnh · cài đặt ──
   ('BV-KIEM-CAI-DAT-MAN-KHACH', 'mk', [(S, 'if (loiMan) return res.status(400)', 'if (false) return res.status(400)', 1)], r'✗ D2 '),
   ('VS-GIAY-TOI-THIEU-LECH', 'mk', [(U, 't.giay < GIAY_TOI_THIEU', 't.giay < GIAY_TOI_THIEU - 1', 1)], r'✗ D2 '),
