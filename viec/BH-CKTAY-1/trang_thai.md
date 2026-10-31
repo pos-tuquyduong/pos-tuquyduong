@@ -47,3 +47,8 @@ Thử tay 1–3 thao tác cho chủ quán: (1) mở màn Bán hàng cũ, thêm m
 - NGUYÊN TẮC 0: bài kiểm "vắng mặt" phải có đột biến dùng TÊN KHÁC — đã nằm trong K3 ("đột biến nới phép / tên riêng"), không mở mục mới.
 - BỎ 0.
 - Đề xuất ngoài Phạm vi: không.
+
+## Cổng
+✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: d80ebf1
