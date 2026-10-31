@@ -330,3 +330,7 @@ GIT (báo cáo 7 mục) — `git log --oneline -2` lúc kiểm cuối:
 3b6c812 KH-MUA-1: soat vong 3 (chep nguyen) + vong sua 4 (chat soat thay) + nghiem thu + bao cao 7 muc + bai hoc
 
 HEAD ĐÃ KIỂM: 9d0356d
+
+
+Chat soát (31.10): 3 lần soát độc lập (vòng 1, 2 bắt lỗi tiền NẶNG, đã sửa có bài thử đỏ trên gốc) + vòng sửa 4 (lỗi nhẹ) — chat soát thay soát lần cuối; đọc datDon (khoá gửi, tong_da_xem, dọn khi lỗi theo trạng thái phiên trong CSDL). Chat gộp main (+KH-SP-1, KHO-2b, BH-CKTAY-1, KH-QUAY-2): hợp đồng v4 + v5 → v5 gồm cả hai, settings.js / Settings.jsx giữ cả hai phía, dist dựng lại; --day-du PASS 92.
+HEAD ĐÃ KIỂM: bbb0892
