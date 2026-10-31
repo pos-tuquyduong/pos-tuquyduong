@@ -319,7 +319,7 @@ async function main() {
     d14a.phieu?.trang_thai === 'cho_duyet' && d14b.phieu?.trang_thai === 'cho_duyet' && d14x.status === 200 && d14y.status === 409 && d14y.code === 'KHONG_DU_TON'
     && (await ttCua(d14b.phieu?.id)) === 'cho_duyet' && gan(await tonTP(s1), 0), `${conS1} · ${moTa(d14x)} | ${moTa(d14y)} · tồn ${await tonTP(s1)}`);
   const f5t = await tonTat();
-  const f5 = [await goi('ql2', 'POST', `/kho/phieu/${d14b.phieu?.id}/tu-choi`, { ly_do: 'Trùng phiếu' }), await goi('ql', 'POST', `/kho/phieu/${a8.phieu?.id}/tu-choi`, { ly_do: 'Không cần' })];
+  const f5 = [await goi('ql2', 'POST', `/kho/phieu/${d14b.phieu?.id}/tu-choi`, { ly_do: 'Trùng phiếu' }), await goi('ql2', 'POST', `/kho/phieu/${a8.phieu?.id}/tu-choi`, { ly_do: 'Không cần' })];
   k('F5 từ chối phiếu phát sinh và đơn đặt hàng → huỷ, tồn không đổi', f5.every((r) => r.status === 200 && r.phieu?.trang_thai === 'huy') && bang(await tonTat(), f5t)
     && gan(await tonTP(s1), 0), f5.map(moTa).join(' | '));
   // nội bộ — hạn mức theo người / ngày
@@ -463,7 +463,9 @@ async function main() {
   noiLai();
   const sauSL = await chup();
   k('H4 kho trống khôi phục từ sao lưu: phiếu (don_id, su_co, ghi chú), dòng (han_dung, lô, lượng) và tồn y hệt trước', tep.length > 0 && kp?.status === 200
-    && sauSL === truocSL, `${tep.length} byte · ${kp?.status} · ${truocSL === sauSL ? '' : sauSL.slice(0, 200)}`);
+    && sauSL === truocSL, `${tep.length} byte · ${kp?.status} · ${[...truocSL].findIndex((c, i) => c !== sauSL[i])}: ${truocSL.slice(
+      Math.max(0, [...truocSL].findIndex((c, i) => c !== sauSL[i]) - 60), [...truocSL].findIndex((c, i) => c !== sauSL[i]) + 40)} ≠ ${sauSL.slice(
+      Math.max(0, [...truocSL].findIndex((c, i) => c !== sauSL[i]) - 60), [...truocSL].findIndex((c, i) => c !== sauSL[i]) + 40)}`);
 
   muc('[G] màn hình (phép tĩnh — dùng thật là thử tay)');
   const kd = path.join(GOC, 'client', 'src', 'pages', 'Kho');
