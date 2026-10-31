@@ -50,7 +50,7 @@ DOT_BIEN = [
   ('BV-IS-XEM-TRUOC-A4', 'q2', [(IS, '{KHO_BILL.map((size) => (', '{["58mm", "80mm", "a5", "a4"].map((size) => (', 1)], r'✗ B2 InvoiceSettings: nút xem trước'),
   ('BV-PV-CO-TO-A5', 'q2', [(PV, "  '80mm': { w: '80mm', chu: 11, qr: 84, bill: 40 },", "  '80mm': { w: '80mm', chu: 11, qr: 84, bill: 40 },\n  a5: { w: '148mm', chu: 13, qr: 110, bill: 52 },", 1)], r'✗ B2 InvoicePreview \(HoaDonTo CO_TO\)'),
   ('BV-PV-KIEU-A5', 'q2', [(PV, "      '80mm': {\n", "      'a5': { width: '148mm' },\n      '80mm': {\n", 1)], r'✗ B2 InvoicePreview: kiểu theo khổ'),
-  ('BV-PV-MAC-DINH-A5', 'q2', [(PV, "size = '80mm', logo = ''", "size = 'a5', logo = ''", 1)], r'✗ B2 InvoicePreview: không còn khổ mặc định'),
+  ('BV-PV-MAC-DINH-A5', 'q2', [(PV, "InvoicePreview({ config, size = '80mm'", "InvoicePreview({ config, size = 'a5'", 1)], r'✗ B2 InvoicePreview: không còn khổ mặc định'),
   # ── C: K5 — bản vá quá tay sẽ bị bắt ──
   ('VS-QUA-TAY-KHO-PHIEU', 'q2', [(IPH, ", a5: 'A5', a4: 'A4' };", ' };', 1)], r'✗ C2 phiếu kho'),
   ('VS-QUA-TAY-KHO-PHA-CHE', 'q2', [(UI, "export const KHO_PHIEU = ['80mm', '58mm'];", "export const KHO_PHIEU = ['80mm'];", 1)], r'✗ C1 khổ phiếu pha chế'),
