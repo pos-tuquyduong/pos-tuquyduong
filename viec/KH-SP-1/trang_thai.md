@@ -66,3 +66,25 @@
 - NGUYÊN TẮC 2 (đề xuất): việc có giao diện mà không có bài thử bấm thật phải ghi sẵn 1–3 thao tác thử tay (đã ghi ở trên).
 - KHOÁ 2 (đề xuất, ngoài Phạm vi): nâng `thu_HOPDONG_KH.js` kiểm hai chiều (trường thêm trong code mà quên ghi hợp đồng) cho mọi cửa; đỏ trước bằng đột biến BV-HOPDONG-ANH.
 - BỎ 1: lệnh bị người gác chặn vì ghép nhiều lệnh/heredoc — chỉ lỗi thao tác, đã tách lệnh.
+
+## Cổng và báo cáo 7 mục
+✓ CỔNG CHẠY ĐẠT  (`node tu_chay/cong.js chay . 0ee84b9^ HEAD viec/KH-SP-1`; kèm cảnh báo A16: bài thử mới dừng sớm trên gốc — 13 ca ≠ 43 — vì cửa ghi 404, đúng chủ ý)
+`npm test` PASS 83 · `npm test -- --day-du` PASS 87 · FAIL 0 · đột biến 41/41 BẮT.
+
+```
+VIỆC:        KH-SP-1 — Thông tin ngắn của món: nhập ở màn Sản phẩm · hiện gọn ở quầy · /api/kh/menu trả thêm (hợp đồng v4)
+ĐÃ SỬA:      server/nang_cap/005_thong_tin_mon.js — 5 cột pos_products · server/utils/thongTinMon.js — hằng số mã + kiểm + đọc ra ·
+             server/routes/products.js (cửa PUT /thong-tin, layMenuQuay trả thêm) · server/routes/kh/index.js (monKhach +6 trường) ·
+             client/src/components/ThongTinMon.jsx + utils/thongTinMon.js + utils/api.js · Settings.jsx (nút Nhập/Sửa + form) ·
+             Sales.jsx và BanHang/BanHangMoi.jsx (+banHang.css) (dấu ⓘ) · client/dist (đã build) · HOP_DONG_API_KH.md v4 ·
+             danh sách trắng ở thu_KH1.js E5, thu_KHAPI2.js E3, thu_KHO1.js D1
+BÀI THỬ:     cong_cu/thu_KHSP1.js trên gốc 0ee84b9 → ĐỎ (13 ca: thiếu cột, cửa ghi 404, menu thiếu trường, thiếu hằng số, hợp đồng v3); sau vá → XANH 43/43.
+             3 bài cũ sửa dòng danh sách: đỏ trên gốc, xanh sau vá (bang_chung_do.txt). Đột biến 41/41 BẮT (dot_bien.py).
+ĐÃ RÀ K4:    grep "pos_products" trong server/ → backup.js (SELECT * / cột động), orders.js (SELECT *), nhapSx.js, kho/duLieu.js, database.js:
+             không chỗ nào liệt kê cột cố định; 5 chỗ INSERT, chỉ chỗ mới ở products.js do việc này thêm. Sót đã bắt: tên 'Từ SX' (đã sửa).
+CHƯA KIỂM:   giao diện KHÔNG chạy thật trên trình duyệt (chỉ build + đọc code + người soát đọc): form Nhập/Sửa, dấu ⓘ, thẻ, bố cục ô món ở
+             BanHangMoi — cần chủ quán thử 3 thao tác ở trên. Không có ca riêng cho hoàn / Giờ vàng / sync-from-sx với hàng đã có thông tin
+             (chỉ đọc code: cột mới đi theo SELECT *). Đua hai PUT cùng món mới có thể 500 (như /price). Ký tự điều khiển trong chữ chưa chặn.
+GIT:         xem dòng dưới
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 (đề xuất) · BỎ 1 — chi tiết ở ## Bài học
+```
