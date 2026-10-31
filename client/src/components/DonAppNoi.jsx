@@ -1,7 +1,8 @@
 // KH-MUA-1 (H) — đơn App về quầy, thấy từ MỌI màn (gắn trong Layout): hỏi GET /api/pos/kh/don-app mỗi NHIP_MS, hiện nút "Đơn App" kèm số
 // đơn đã trả chưa bấm "Đang làm" (bấm → /don-app). Render ngủ khi không ai mở → hỏi theo nhịp, không websocket.
-// Chuông chỉ kêu ở máy bật "Máy ở quán" (lưu riêng máy, mặc định tắt) VÀ Cài đặt chuông bật; kêu MỘT lần mỗi đơn mới — nhớ id lớn nhất đã
-// xét trong localStorage → tải lại trang không kêu lại; máy chưa có mốc thì lần đầu chỉ ghi mốc, không kêu dồn đơn cũ.
+// Chuông chỉ kêu ở máy bật "Máy ở quán" (lưu riêng máy, mặc định tắt) VÀ Cài đặt chuông bật; kêu MỘT lần mỗi đơn mới. "Mới" = id CHƯA có
+// trong tập id đã thấy ở danh sách quầy (localStorage). Danh sách chỉ có đơn ĐÃ TRẢ, nên đơn vào tập đúng lúc trả xong — không theo id lúc tạo
+// (đơn tạo trước mà trả sau vẫn kêu — soát vòng 1). Tải lại trang không kêu lại; máy chưa có tập thì lần đầu chỉ ghi, không kêu dồn đơn cũ.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -10,7 +11,7 @@ export const TIENG_CHUONG = [['ding', 'Ding'], ['chuong', 'Chuông hai tiếng']
 export const AM_LUONG_MAC_DINH = 70;
 const NHIP_MS = 15000;
 const KHOA_MAY = 'may_o_quan';
-const KHOA_DA_XET = 'don_app_da_xet';
+const KHOA_DA_THAY = 'don_app_da_thay';   // JSON mảng id đơn đã thấy ở danh sách quầy
 
 const docMay = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const ghiMay = (k, v) => { try { localStorage.setItem(k, v); } catch { /* trình duyệt chặn lưu — bỏ qua */ } };
@@ -54,12 +55,12 @@ export default function DonAppNoi() {
         const ds = (await api.get('/kh/don-app')).data || [];
         if (tat) return;
         setSoMoi(ds.filter((d) => d.tien_trinh === 'da_tra').length);
-        const lonNhat = ds.reduce((m, d) => Math.max(m, d.id), 0);
-        const moc = docMay(KHOA_DA_XET);
-        if (moc === null) { ghiMay(KHOA_DA_XET, String(lonNhat)); return; }
-        if (lonNhat <= Number(moc)) return;
-        ghiMay(KHOA_DA_XET, String(lonNhat));
-        if (!mayOQuan() || !ds.some((d) => d.id > Number(moc) && d.tien_trinh === 'da_tra')) return;
+        let daThay = null;
+        const tho = docMay(KHOA_DA_THAY);   // null = máy chưa có tập (lần đầu) → chỉ ghi, không kêu
+        try { daThay = tho === null ? null : new Set(JSON.parse(tho)); } catch { daThay = null; }
+        const moi = ds.filter((d) => daThay && !daThay.has(d.id));
+        ghiMay(KHOA_DA_THAY, JSON.stringify(ds.map((d) => d.id)));   // danh sách ≤ 100 đơn: chỉ cần nhớ đúng các id đang có
+        if (!daThay || !mayOQuan() || !moi.some((d) => d.tien_trinh === 'da_tra')) return;
         const s = (await api.get('/settings')).data || {};
         if (s.don_app_chuong_bat !== '0') keuChuong(s.don_app_chuong_tieng, s.don_app_chuong_am_luong ?? AM_LUONG_MAC_DINH);
       } catch { /* im lặng: đài báo hỏng không được làm hỏng màn hình */ }
