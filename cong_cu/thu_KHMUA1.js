@@ -575,6 +575,11 @@ async function main() {
     mocNemSauChot = true;
     const r1 = await goi('POST', '/kh/don', t1, k1.tk);
     mocNemSauChot = false;
+    // Vòng sửa 4 (soát vòng 3, lỗi 2): đơn đã trả mà dòng chưa đánh dấu xong — huỷ phải như mọi đơn đã trả (400), không 404.
+    const maV1 = (await db.queryOne('SELECT ma FROM pos_don_app WHERE phone = ?', [k1.sdt]).catch(() => null))?.ma;
+    const huyV1 = await goi('POST', `/kh/don/${maV1}/huy`, {}, k1.tk);
+    k('V1b đơn ví lỗi SAU chốt (chưa gửi lại) → huỷ trả 400 DA_TRA_GOI_QUAN như GET /don đang hiện da_tra, không 404', !!maV1 && la(huyV1, 400, 'DA_TRA_GOI_QUAN'),
+      moTa(huyV1));
     const r2 = await goi('POST', '/kh/don', t1, k1.tk);
     const ds1 = await quay();
     k('V1 lỗi ném SAU khi chốt ví đã ghi → gửi lại cùng khoá → đơn cũ (trung, da_tra), ví trừ MỘT lần, đơn vẫn hiện ở quầy', r1.status >= 500
@@ -642,6 +647,27 @@ async function main() {
       + ' sau đó xử lý như lần đầu (200 da_tra, trung false), ví trừ một lần', !!giua8 && la(giua8, 503, 'DANG_XU_LY') && la(r8, 400, 'HET_HANG') && la(sau8, 200)
       && sau8.j.trung === false && sau8.j.tien_trinh === 'da_tra' && (await soDu(k8.sdt)) === 50000,
     `${giua8 && moTa(giua8)} · ${moTa(r8)} · ${moTa(sau8)} · ví ${await soDu(k8.sdt)}`);
+
+    // Vòng sửa 4 (soát vòng 3, lỗi 1): lúc yêu cầu đầu ĐANG chốt ví (dòng đơn App có phiên `cho`, chưa xong) — App KHÔNG thấy đơn đó ở GET /don,
+    // không huỷ được nó (404), và yêu cầu khoá KHÁC cùng giỏ không được nhận 200 trung đơn đó (lưới 10 giây chỉ xét đơn đã xong).
+    const k10 = await khach(100000);
+    let lan10 = 0, ds10 = null, huy10 = null, khac10 = null;
+    mocCS = async () => {
+      if (++lan10 === 2) {   // lần 2 = lúc yêu cầu đầu chốt ví
+        ds10 = await goi('GET', '/kh/don', undefined, k10.tk);
+        const maDo = (await db.queryOne('SELECT ma FROM pos_don_app WHERE phone = ? ORDER BY id LIMIT 1', [k10.sdt]).catch(() => null))?.ma;
+        huy10 = await goi('POST', `/kh/don/${maDo}/huy`, {}, k10.tk);
+        khac10 = await goi('POST', '/kh/don', than(), k10.tk);
+        return { sufficient: false, stock: 1 };
+      }
+      return { sufficient: true };
+    };
+    const r10 = await goi('POST', '/kh/don', than(), k10.tk);
+    mocCS = null;
+    k('V10 lúc yêu cầu đầu đang dở: GET /don không thấy nó · huỷ nó → 404 · khoá KHÁC cùng giỏ → đơn MỚI (trung false), không nhận đơn sắp bị xoá',
+      la(ds10 || { j: {} }, 200) && (ds10.j.data || []).length === 0 && la(huy10 || { j: {} }, 404, 'KHONG_THAY_DON') && la(khac10 || { j: {} }, 200)
+      && khac10.j.trung === false && la(r10, 400, 'HET_HANG') && (await soDu(k10.sdt)) === 50000,
+    `ds ${ds10 && JSON.stringify(ds10.j.data)} · huỷ ${huy10 && moTa(huy10)} · khác ${khac10 && moTa(khac10)} trung ${khac10?.j.trung} · đầu ${moTa(r10)}`);
 
     // Vòng sửa 2 (soát vòng 2, lỗi 2): dòng giữ khoá chưa có phiên đã 3 phút (yêu cầu kia có thể còn chạy — SX treo) → KHÔNG tự xoá.
     const k9 = await khach(100000);
