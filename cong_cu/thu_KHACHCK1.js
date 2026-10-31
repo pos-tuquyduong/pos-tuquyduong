@@ -181,6 +181,11 @@ async function main() {
     const h7b = await mucHoSo(s1);
     k('B7 mức âm −5, loại fixed ở TỪNG cửa → sau mỗi cửa hồ sơ vẫn 0, loại percent (không ghi số / loại thân gửi)', [h7, h7b].every((h) =>
       Number(h.discount_value) === 0 && h.discount_type === 'percent'), `${moTa(b7)} ${JSON.stringify(h7)} / ${moTa(b7b)} ${JSON.stringify(h7b)}`);
+    const s7c = sdtMoi();
+    const b7c = await goi('PUT', `/v2/customers/${s7c}/discount`, { discount_type: 'fixed', discount_value: -5, discount_note: 'Mới âm' });
+    const h7c = await mucHoSo(s7c);
+    k('B7c PUT v2 khách CHƯA có hồ sơ, mức −5 loại fixed → tạo với mức 0, loại percent (nhánh INSERT)', b7c.status === 200
+      && Number(h7c?.discount_value) === 0 && h7c?.discount_type === 'percent' && h7c?.discount_note === 'Mới âm', `${moTa(b7c)} ${JSON.stringify(h7c)}`);
     // F2 hai người cùng bấm: một gửi mức 5, một chỉ ghi chú.
     const [c1, c2] = await Promise.all([goi('PUT', `/v2/customers/${s1}/discount`, { discount_type: 'percent', discount_value: 5 }),
       goi('PUT', `/v2/customers/${s1}/discount`, { discount_note: 'Cùng lúc' })]);
@@ -275,6 +280,11 @@ async function main() {
     k('E1b Customers.jsx nhãn "Ghi chú khách", vẫn gửi discount_note qua updateDiscount', /Ghi chú khách/.test(cu) && !/Lý do chiết khấu/.test(cu)
       && /updateDiscount\(selectedCustomer\.phone, \{\s*discount_note: detailForm\.discount_note\s*\}\)/.test(cu));
     k('E1c Customers.jsx hiện ghi chú khi có (không còn điều kiện mức > 0)', /\{c\.discount_note && \(/.test(cu));
+    const s2 = sdtMoi();
+    await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 0)', [s2]);
+    await db.run("INSERT INTO pos_customers (phone, name, discount_type, discount_value, discount_note) VALUES (?, 'E2', 'percent', 0, 'Ít đá')", [s2]);
+    const e2 = await goi('GET', `/v2/customers/${s2}`);
+    k('E2 (K5) GET /v2/customers/:sdt vẫn trả discount_note (màn chọn khách đọc ghi chú từ đây)', e2.status === 200 && e2.discount_note === 'Ít đá', moTa(e2));
   });
 
   // ═════════════════════════════════════════════════════════════════════════
