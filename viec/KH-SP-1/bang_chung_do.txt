@@ -10,8 +10,8 @@ Kết quả bản gốc: "3 đạt · 10 hỏng" (bài sập giữa mục B vì 
   ✗ D: bài chạy hết mục — Cannot find module server/utils/thongTinMon.js
   ✗ E2 PHIEN_BAN … ≥ 4 — 3 / 3
   ✗ E3 nhật ký có dòng v4 nhắc KH-SP-1
-Sau khi vá: 41 đạt · 0 hỏng
-SỐ CA thu_KHSP1.js: 41
+Sau khi vá: 43 đạt · 0 hỏng (vòng sửa 1 thêm 2 ca B8 tên/mã hàng mới; bản gốc vẫn đỏ: cửa ghi 404)
+SỐ CA thu_KHSP1.js: 43
 
 Ba bài cũ sửa ĐÚNG dòng danh sách trắng (LUẬT §6 mục 7–8; bản mới ĐỎ trên gốc 0ee84b9, XANH trên code đã vá — không phải "Bài thử cũ sửa"):
   thu_KH1.js     gốc: ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng — 156 đạt · 1 hỏng | vá: 157 đạt · 0 hỏng

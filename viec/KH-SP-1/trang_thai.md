@@ -15,7 +15,7 @@
 - Trường vắng khoá trong thân `PUT` = giữ nguyên (khuôn `PUT /api/kh/toi`); form giao diện luôn gửi đủ 5 trường.
 - Món chưa có hàng `pos_products` (chưa đặt giá): cửa ghi tạo hàng giá 0 (khuôn `sync-from-sx`) → chưa bán được, không vào menu khách.
 
-## Bảng "chỗ vá → đột biến" (viec/KH-SP-1/dot_bien.py — 39 đột biến, BẮT 39 · SỐNG 0 · HỎNG 0 · LẠC 0; đối chứng XANH)
+## Bảng "chỗ vá → đột biến" (viec/KH-SP-1/dot_bien.py — 41 đột biến, BẮT 41 · SỐNG 0 · HỎNG 0 · LẠC 0; đối chứng XANH)
 | Chỗ vá | Đột biến |
 |---|---|
 | nang_cap/005 thêm 5 cột | BV-005-COT · VS-005-THIEU-COT |
@@ -26,7 +26,7 @@
 | thongTinMon.js rỗng = xoá, cắt khoảng trắng | VS-KHONG-CAT-KHOANG-TRANG · VS-RONG-KHONG-XOA · VS-MANG-RONG-KHONG-XOA |
 | thongTinMon.js trường vắng giữ nguyên | VS-TRUONG-VANG-GHI-DE |
 | products.js quyền + đăng nhập | BV-QUYEN-CAI-DAT · BV-DANG-NHAP |
-| products.js tạo hàng món chưa có giá (giá 0) | BV-TAO-HANG-MON-MOI · VS-HANG-MOI-CO-GIA |
+| products.js tạo hàng món chưa có giá (giá 0, tên + mã thật) | BV-TAO-HANG-MON-MOI · VS-HANG-MOI-CO-GIA · BV-TEN-HANG-MOI · BV-MA-HANG-MOI |
 | products.js ghi không đổi giá (K5) | VS-GHI-DOI-GIA · VS-DOI-GIA-XOA-THONG-TIN |
 | products.js kiểm món + có trường để ghi | BV-THIEU-LOAI-MON · BV-KHONG-TRUONG-NAO |
 | products.js quầy thấy thông tin | BV-QUAY-THONG-TIN |
@@ -44,5 +44,25 @@
 - Cảnh báo cũ "route GET có lệnh ghi (3)" (packages.js, products.js:69 = ghi nhớ tồn trong `layMenuQuay`, sync.js) có từ trước việc này, không đổi.
 - `GET /api/pos/products` (quầy) nay trả thêm 5 trường (`nhu_cau[]`…); `Sales.jsx` / `BanHangMoi.jsx` tự dùng, không bài thử cũ nào khoá bộ khoá của nó.
 
-## Câu hỏi
-(không có)
+## Soát độc lập (/ra-soat) — vòng 1: KHÔNG ĐẠT → đã sửa
+- LỖI 1 (K5+K3): `PUT /thong-tin` tạo hàng mới tên cứng 'Từ SX' → hoá đơn có thể in "Từ SX" (batch giá chỉ UPDATE giá, không sửa tên). ĐÃ SỬA:
+  form gửi kèm `name` / `code`, cửa ghi dùng khi tạo hàng (`tenHopLe`, products.js); thêm 2 ca B8 + đột biến BV-TEN-HANG-MOI, BV-MA-HANG-MOI.
+- LỖI 2 (ghi nhận): hàng mới giá 0, `nhapSx.js` dùng NULL — cùng nghĩa "chưa bán được" (sellable cần > 0); `sync-from-sx` cũng dùng 0. Giữ nguyên.
+- Nghi ngờ nhẹ, KHÔNG sửa (ngoài mục tiêu/giống `/price`): UPDATE-rồi-INSERT không giao dịch (đua hai PUT cùng món mới → 500); `sx_product_type`
+  không kiểm ∈ {tea,juice}; ký tự điều khiển trong chữ; `MA_KHONG_HOP_LE`/`QUA_DAI` không có trong `ma_loi` hợp đồng (cửa ghi ngoài /api/kh — chủ ý, ghi ở "Ghi chú v4").
+  Đã sửa: client đếm ký tự sau `trim` (khớp máy chủ).
+- Nghiệm thu theo người soát: A, D, E có; F có phần (không có ca riêng cho hoàn / Giờ vàng — cột mới chỉ thêm vào SELECT *); B, C chỉ có build
+  + đọc code, không bài thử bấm thật → chủ quán thử tay (dưới).
+
+## Thử tay cho chủ quán (điện thoại / máy quầy)
+1. Cài đặt → Sản phẩm → bấm "Nhập" ở một món → chọn vài nút nhu cầu / thể chất, gõ mô tả → "Lưu thông tin món" (thấy "Đã lưu"). Thử một món CHƯA đặt giá.
+2. Màn Bán hàng (cũ và mới): món vừa nhập có dấu ⓘ; chạm ⓘ → hiện thẻ, chạm ngoài đóng — giỏ KHÔNG thêm món. Món chưa nhập không có dấu.
+3. Mở menu App KH (`/api/kh/menu`) → món có `nhu_cau`, `mo_ta`…; món chưa nhập có `[]` / `null`; `anh` luôn `null`.
+
+## Bài học
+- KHOÁ 1: ca B8 (tên + mã hàng mới) + 2 đột biến — đã làm (thu_KHSP1.js, dot_bien.py). Lỗi soát bắt: đường INSERT mới vào `pos_products` mang tên cứng.
+- NGUYÊN TẮC 1 (đề xuất, ngoài Phạm vi — `KHUON_LOI.md`): K4 — `pos_products` có 5 chỗ INSERT (products.js ×3, nhapSx.js, database.js) với quy ước tên/giá khác nhau;
+  thêm chỗ thứ sáu thì gom qua một hàm tạo hàng chung trước. Ví dụ thật: vòng soát 1 KH-SP-1.
+- NGUYÊN TẮC 2 (đề xuất): việc có giao diện mà không có bài thử bấm thật phải ghi sẵn 1–3 thao tác thử tay (đã ghi ở trên).
+- KHOÁ 2 (đề xuất, ngoài Phạm vi): nâng `thu_HOPDONG_KH.js` kiểm hai chiều (trường thêm trong code mà quên ghi hợp đồng) cho mọi cửa; đỏ trước bằng đột biến BV-HOPDONG-ANH.
+- BỎ 1: lệnh bị người gác chặn vì ghép nhiều lệnh/heredoc — chỉ lỗi thao tác, đã tách lệnh.
