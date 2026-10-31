@@ -7,15 +7,19 @@
  * Luật trang tiền (chanTrangTien) ở backup.js, chạy TRƯỚC hàm này.
  */
 const XLSX = require('xlsx');
-const { query, beginTransaction } = require('../database');
+const { query } = require('../database');
+const { trongGiaoDich } = require('../routes/wallets');   // cùng khuôn giuCho.js: một giao dịch, lỗi thì rollback rồi ném tiếp
 
 const docTrang = (ws) => XLSX.utils.sheet_to_json(ws, { defval: null });
 
 // Lý do ngắn cho chủ quán — không trả nguyên lời SQLite (LUAT §4).
 const LY_DO = [[/CHECK constraint/i, 'vi phạm CHECK (giá trị không được phép)'], [/NOT NULL constraint/i, 'thiếu giá trị bắt buộc (NOT NULL)'],
-  [/UNIQUE constraint|PRIMARY KEY/i, 'trùng khoá (UNIQUE)'], [/FOREIGN KEY constraint/i, 'còn dữ liệu khác trỏ tới (khoá ngoại)'],
+  [/UNIQUE constraint|PRIMARY KEY/i, 'trùng khoá (UNIQUE)'],
   [/datatype mismatch/i, 'sai kiểu dữ liệu']];
-const lyDo = (err) => (LY_DO.find(([m]) => m.test(String(err?.message))) || [null, 'dữ liệu không hợp lệ'])[1];
+// Khoá ngoại: cùng một mã mà nghĩa NGƯỢC nhau — xoá bảng cha khi bảng khác còn trỏ tới, hay chèn dòng con trỏ tới dòng không có.
+const lyDo = (err, dangXoa) => (/FOREIGN KEY constraint/i.test(String(err?.message))
+  ? (dangXoa ? 'còn dữ liệu ở bảng khác trỏ tới bảng này (khoá ngoại)' : 'trỏ tới dữ liệu không có (khoá ngoại)')
+  : (LY_DO.find(([m]) => m.test(String(err?.message))) || [null, 'dữ liệu không hợp lệ'])[1]);
 // CHỈ lỗi DỮ LIỆU của dòng (ràng buộc / sai kiểu) mới báo "dòng N hỏng"; lỗi hạ tầng (mạng, Turso hết giờ, kho bận…) ném nguyên → 500 / 409.
 const laLoiDuLieu = (err) => /^SQLITE_(CONSTRAINT|MISMATCH)/.test(String(err?.code));
 
@@ -52,24 +56,19 @@ async function lapKeHoach(wb, bangSaoLuu) {
 /** Chạy kế hoạch trong MỘT giao dịch. Lỗi dữ liệu → ném { loiDong: { bang, trang, dong, ly_do } }; lỗi khác (kho bận, mạng) → ném nguyên lỗi. */
 async function thucHien(keHoach) {
   const lam = keHoach.filter((m) => m.status === 'se_khoi_phuc').sort((a, b) => a.viTri - b.viTri);
-  const tx = await beginTransaction();
-  const chay = async (m, soDong, sql, args) => {
-    try { await tx.run(sql, args); } catch (err) {
-      if (!laLoiDuLieu(err)) throw err;
-      throw Object.assign(new Error(err.message), { loiDong: { bang: m.table, trang: m.sheet, dong: soDong, ly_do: lyDo(err) } });
-    }
-  };
-  try {
+  await trongGiaoDich(async (tx) => {
+    const chay = async (m, soDong, sql, args) => {   // soDong null = câu xoá bảng
+      try { await tx.run(sql, args); } catch (err) {
+        if (!laLoiDuLieu(err)) throw err;
+        throw Object.assign(new Error(err.message), { loiDong: { bang: m.table, trang: m.sheet, dong: soDong, ly_do: lyDo(err, soDong === null) } });
+      }
+    };
     for (const m of [...lam].reverse()) await chay(m, null, `DELETE FROM ${m.table}`, []);
     for (const m of lam) {
       const sql = `INSERT INTO ${m.table} (${m.cot.map((c) => `"${c}"`).join(', ')}) VALUES (${m.cot.map(() => '?').join(', ')})`;
       for (const d of m.dong) await chay(m, d.__rowNum__ + 1, sql, m.cot.map((c) => d[c]));   // dòng Excel thật (__rowNum__ đếm từ 0, đã tính dòng trống bị bỏ)
     }
-    await tx.commit();
-  } catch (err) {
-    await tx.rollback();
-    throw err;
-  }
+  });
 }
 
 module.exports = { docTrang, lapKeHoach, thucHien };

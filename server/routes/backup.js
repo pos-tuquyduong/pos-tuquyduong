@@ -344,8 +344,7 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
 
     res.json({ success: true, message: 'Khôi phục hoàn tất', results });
   } catch (err) {
-    console.error('Restore error:', err);
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);   // SAOLUU-2: có code, không lộ câu nội bộ (LUAT §2, §4)
   }
 });
 
