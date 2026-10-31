@@ -62,7 +62,7 @@ export function FormThongTinMon({ mon, onXong }) {
   const luu = async () => {
     setDangLuu(true); setLoi(''); setDaLuu(false);
     try {
-      const kq = await productsApi.updateThongTin({ sx_product_type: mon.sx_product_type, sx_product_id: mon.sx_product_id, nhu_cau: nhuCau, the_chat: theChat, ...chu });
+      const kq = await productsApi.updateThongTin({ sx_product_type: mon.sx_product_type, sx_product_id: mon.sx_product_id, name: mon.name, code: mon.code, nhu_cau: nhuCau, the_chat: theChat, ...chu });
       setDaLuu(true);
       onXong?.({ nhu_cau: kq.nhu_cau, the_chat: kq.the_chat, mo_ta: kq.mo_ta, cong_dung: kq.cong_dung, thanh_phan: kq.thanh_phan });
     } catch (e) {
@@ -83,13 +83,13 @@ export function FormThongTinMon({ mon, onXong }) {
       {nhomNut('Thể chất hợp', THE_CHAT, theChat, setTheChat)}
       {CHU.map(([cot, ten]) => (
         <label key={cot} style={{ display: 'block', marginBottom: 6 }}>
-          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{ten} — còn {GIOI_HAN[cot] - demKyTu(chu[cot])} ký tự</span>
+          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{ten} — còn {GIOI_HAN[cot] - demKyTu(chu[cot].trim())} ký tự</span>
           <textarea className="input" rows={2} style={{ width: '100%' }} value={chu[cot]}
             onChange={(e) => { setChu({ ...chu, [cot]: e.target.value }); setDaLuu(false); }} />
         </label>
       ))}
       <button type="button" className="btn btn-primary" onClick={luu}
-        disabled={dangLuu || CHU.some(([cot]) => demKyTu(chu[cot]) > GIOI_HAN[cot])}>
+        disabled={dangLuu || CHU.some(([cot]) => demKyTu(chu[cot].trim()) > GIOI_HAN[cot])}>
         {dangLuu ? 'Đang lưu...' : 'Lưu thông tin món'}
       </button>
       {daLuu && <span style={{ marginLeft: 10, color: '#16a34a', fontSize: '0.85rem' }}>Đã lưu</span>}

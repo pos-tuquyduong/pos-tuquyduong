@@ -241,6 +241,9 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
   }
 });
 
+// Tên / mã món do giao diện gửi kèm (lấy từ SX) — chỉ dùng khi PHẢI tạo hàng mới, để hoá đơn không in "Từ SX".
+const tenHopLe = (v) => (typeof v === 'string' && v.trim() && [...v.trim()].length <= 100 ? v.trim() : null);
+
 const LOI_THONG_TIN = {
   MA_KHONG_HOP_LE: 'Nhu cầu hoặc thể chất có mã không hợp lệ',
   QUA_DAI: 'Mô tả, công dụng hoặc thành phần dài quá giới hạn',
@@ -250,7 +253,7 @@ const LOI_THONG_TIN = {
 /**
  * PUT /api/pos/products/thong-tin  (KH-SP-1)
  * Ghi thông tin ngắn của món: nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan — trường nào có khoá thì ghi, rỗng = xoá.
- * Món chưa có hàng trong pos_products (chưa đặt giá) vẫn nhập được: tạo hàng giá 0 (chưa bán được, như đồng bộ SX).
+ * Món chưa có hàng trong pos_products (chưa đặt giá) vẫn nhập được: tạo hàng giá 0 (chưa bán được, như đồng bộ SX), mang `name` / `code` gửi kèm.
  */
 router.put('/thong-tin', authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
@@ -274,7 +277,7 @@ router.put('/thong-tin', authenticate, checkPermission('manage_settings'), async
       await run(
         `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, created_at, updated_at, ${cot.join(', ')})
          VALUES (?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ${cot.map(() => '?').join(', ')})`,
-        [`${loai === 'tea' ? 'TEA' : 'CT'}${ma}`, 'Từ SX', loai === 'tea' ? 'tea' : 'juice', loai, ma, loai === 'tea' ? 'gói' : 'túi',
+        [tenHopLe(b.code) || `${loai === 'tea' ? 'TEA' : 'CT'}${ma}`, tenHopLe(b.name) || 'Từ SX', loai === 'tea' ? 'tea' : 'juice', loai, ma, loai === 'tea' ? 'gói' : 'túi',
           bayGio, bayGio, ...cot.map((c) => kq.doi[c])],
       );
     }

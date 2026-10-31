@@ -169,9 +169,12 @@ async function main() {
     k('B7 thiếu sx_product_type / sx_product_id → 400', la(thieu, 400, 'YEU_CAU_KHONG_HOP_LE'), moTa(thieu));
     k('B7 không trường thông tin nào → 400', la(rong, 400, 'YEU_CAU_KHONG_HOP_LE'), moTa(rong));
 
-    const moi = await goi('PUT', '/pos/products/thong-tin', { sx_product_type: 'tea', sx_product_id: 899, mo_ta: 'Món chưa có giá', nhu_cau: ['tinh_tao'] }, { tk: tkChu });
+    const moi = await goi('PUT', '/pos/products/thong-tin', { sx_product_type: 'tea', sx_product_id: 899, name: 'Trà thử 899', code: 'TEA_THU899', mo_ta: 'Món chưa có giá', nhu_cau: ['tinh_tao'] }, { tk: tkChu });
     const hm = await hang('tea', 899);
     k('B8 món CHƯA có giá vẫn nhập được: tạo hàng, price 0, giữ thông tin', la(moi, 200) && !!hm && hm.price === 0 && hm.mo_ta === 'Món chưa có giá' && bang(JSON.parse(hm.nhu_cau), ['tinh_tao']), JSON.stringify(hm));
+    k('B8 hàng mới mang tên + mã gửi kèm (không phải "Từ SX"), hoá đơn in đúng tên', !!hm && hm.name === 'Trà thử 899' && hm.code === 'TEA_THU899', JSON.stringify(hm));
+    const sx = await goi('PUT', '/pos/products/thong-tin', { sx_product_type: 'juice', sx_product_id: 898, mo_ta: 'Không gửi tên' }, { tk: tkChu });
+    k('B8 không gửi tên / mã → vẫn tạo được, mã theo khuôn CT<id>', la(sx, 200) && (await hang('juice', 898))?.code === 'CT898');
     const trong = ((await goi('GET', '/kh/menu')).j.data || []).some((m) => m.ma === 'tea_899');
     k('B8 món giá 0 vẫn KHÔNG vào menu khách (chưa bán được)', !trong);
 

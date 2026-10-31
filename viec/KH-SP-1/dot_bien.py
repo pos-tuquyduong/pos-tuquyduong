@@ -48,6 +48,8 @@ DOT_BIEN = [
   ('VS-DOI-GIA-XOA-THONG-TIN', 'sp', [(P, "'UPDATE pos_products SET price = ?, is_special_group = ?,", "'UPDATE pos_products SET nhu_cau = NULL, price = ?, is_special_group = ?,", 1)], r'✗ B9 '),
   ('BV-QUYEN-CAI-DAT', 'sp', [(P, CUA_GHI, "router.put('/thong-tin', authenticate, async", 1)], r'✗ B6 nhân viên'),
   ('BV-DANG-NHAP', 'sp', [(P, CUA_GHI, "router.put('/thong-tin', async", 1)], r'✗ B6 '),
+  ('BV-TEN-HANG-MOI', 'sp', [(P, 'tenHopLe(b.name) || ', '', 1)], r'✗ B8 hàng mới mang tên'),
+  ('BV-MA-HANG-MOI', 'sp', [(P, 'tenHopLe(b.code) || ', '', 1)], r'✗ B8 hàng mới mang tên'),
   ('BV-TAO-HANG-MON-MOI', 'sp', [(P, 'if (!sua.changes) {', 'if (false) {', 1)], r'✗ B8 '),
   ('VS-HANG-MOI-CO-GIA', 'sp', [(P, "VALUES (?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ${cot", "VALUES (?, ?, ?, ?, ?, 1, ?, 1, ?, ?, ${cot", 1)], r'✗ B8 '),
   ('VS-GHI-DOI-GIA', 'sp', [(P, 'SET ${cot.map((c) => `${c} = ?`)', 'SET price = 0, ${cot.map((c) => `${c} = ?`)', 1)], r'✗ B1 K5'),
