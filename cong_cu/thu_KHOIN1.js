@@ -163,7 +163,12 @@ async function main() {
   k('B KHO_IN có đủ 3 khổ 80mm · a5 · a4 (đúng tên khổ của KHO_PHIEU_KHO)', bang(khoaKieu, inPhieu.KHO_PHIEU_KHO || []), JSON.stringify(khoaKieu));
   k('B @page: 80mm auto · A5 · A4', /size:\s*80mm auto/.test(kieuIn) && /size:\s*A5\b/.test(kieuIn) && /size:\s*A4\b/.test(kieuIn));
   k('B khổ A5 có lề (margin) riêng, không để lề mặc định cắt chữ', /size:\s*A5;\s*margin:\s*\d+mm/.test(kieuIn) && /size:\s*A4;\s*margin:\s*\d+mm/.test(kieuIn));
-  k('B màn đọc cài đặt từ máy chủ rồi chọn khổ qua docInPhieuKho (một hàm chung, không chép công thức)', /docInPhieuKho\(/.test(xem) && /api\.get\('\/settings'\)/.test(xem));
+  {
+    // cài đặt tải từ máy chủ → vào state → chính state đó đưa cho docInPhieuKho (không đưa {} hay hằng)
+    const tai = /api\.get\('\/settings'\)\.then\(\(\w+\) => (set\w+)\(/.exec(xem);
+    const bien = tai && new RegExp('const \\[(\\w+), ' + tai[1] + '\\] = useState\\(').exec(xem);
+    k('B màn đọc cài đặt từ máy chủ rồi chọn khổ qua docInPhieuKho (một hàm chung; đối số là state vừa nạp từ GET /settings)', !!bien && new RegExp('docInPhieuKho\\(' + bien[1] + ',').test(xem), String(tai && tai[1]));
+  }
   k('B nút in dựng từ thuTuNutIn(khổ mặc định) — khổ mặc định đứng đầu, không viết cứng 3 nút', /thuTuNutIn\(/.test(xem) && !/inRa\('(a4|a5|80mm|k80)'\)/.test(xem));
   k('B mọi nút in gọi cùng một hàm inRa (cùng đường ghi đếm lần in rồi mới in)', /inRa\(\s*\w+\s*\)/.test(xem) && /api\.post\(`\/kho\/phieu\/\$\{id\}\/in`\)/.test(xem));
   k('B nút khổ mặc định được tô nổi (btn-primary), các nút khác btn-outline', /btn-primary|btn-outline/.test(xem) && /i === 0 \? 'btn-primary' : 'btn-outline'|=== macDinh \? 'btn-primary' : 'btn-outline'|khoMacDinh \? 'btn-primary' : 'btn-outline'/.test(xem));
@@ -171,7 +176,10 @@ async function main() {
   k('B tờ in thêm vẫn mang chữ "IN LẠI · LẦN n" (luật 4) ở MỌI bản', /IN LẠI · LẦN \{p\.so_lan_in\}/.test(xem));
   k('B lệnh in vẫn: ghi đếm lần in (POST /in) TRƯỚC khi mở hộp in; máy in lỗi không đụng sổ (luật 2, 5)', /if \(await ghi\(\(\) => api\.post\(`\/kho\/phieu\/\$\{id\}\/in`\)\)\) setKho\(/.test(xem));
   const css = doc('client/src/pages/Kho/inPhieuKho.css');
-  k('B CSS in: có kiểu cho khổ a5 và a4 (cỡ chữ / ngắt trang giữa các bản)', /kho-in-a5/.test(css) && /break-after|page-break-after/.test(css), '');
+  k('B CSS in: có kiểu cho khổ a5 và a4 (cỡ chữ)', /\.kho-in-a5\s*\{[^}]*font-size/.test(css) && /\.kho-in-a4\s*\{[^}]*font-size/.test(css));
+  k('B CSS in: ngắt trang giữa các bản (.kho-ban { break-after: page })', /\.kho-ban\s*\{[^}]*break-after:\s*page/.test(css));
+  k('B CSS in: các bản sau bản đầu HIỆN khi in (display: block trong @media print)', /@media print\s*\{[\s\S]*\.kho-ban:not\(:first-child\)\s*\{\s*display:\s*block/.test(css));
+  k('B CSS màn hình: chỉ bản đầu hiện (các bản sau display: none ngoài @media print)', /^\.kho-ban:not\(:first-child\)\s*\{\s*display:\s*none/m.test(css));
   k('B CSS in: dòng bảng không tràn (xuống dòng khi dài, không cắt chữ): overflow-wrap hoặc word-break trong khối .kho-in', /\.kho-in[^{]*\{[^}]*(overflow-wrap|word-break)/.test(css) || /(overflow-wrap|word-break)/.test(css));
   k('B nút khổ A5/A4/80mm có nhãn tiếng Việt rõ (mm / A5 / A4)', /In 80 mm|80 mm/.test(xem) && /A5/.test(xem) && /A4/.test(xem));
 
@@ -181,9 +189,10 @@ async function main() {
   const st = boChuThich(doc('client/src/pages/Settings.jsx'));
   k('B2 có pages/CaiDat/InPhieu.jsx', cd.length > 0);
   k('B2 khối liệt kê đủ 4 loại phiếu từ LOAI_PHIEU_KHO (không viết cứng tên loại)', /LOAI_PHIEU_KHO/.test(cd) && /KHO_PHIEU_KHO/.test(cd) && /SO_BAN_TOI_DA/.test(cd));
-  k('B2 lưu qua PUT /settings bằng khoaInPhieu (đúng khoá màn xem phiếu đọc)', /api\.put\('\/settings'/.test(cd) && /khoaInPhieu\(/.test(cd));
-  k('B2 đọc lại qua docInPhieuKho (cùng hàm với màn xem phiếu)', /docInPhieuKho\(/.test(cd) && /api\.get\('\/settings'\)/.test(cd));
-  k('B2 không cho Lưu khi chưa tải được cài đặt (tránh ghi đè bằng mặc định)', /taiLoi|daTai|chuaTai/.test(cd));
+  k('B2 lưu qua PUT /settings: khoá _kho nhận khổ, khoá _ban nhận số bản (đúng khoá màn xem phiếu đọc)', /api\.put\('\/settings'/.test(cd)
+    && /settings\[khoaInPhieu\(\w+, 'kho'\)\] = \w+\[\w+\]\.kho\b/.test(cd) && /settings\[khoaInPhieu\(\w+, 'ban'\)\] = String\(\w+\[\w+\]\.ban\)/.test(cd));
+  k('B2 đọc lại từ GET /settings qua docInPhieuKho (cùng hàm với màn xem phiếu)', /api\.get\('\/settings'\)\.then\(\(\w+\) => \{[\s\S]{0,200}docInPhieuKho\(\w+\.data/.test(cd));
+  k('B2 không cho Lưu khi chưa tải được cài đặt (hàm luu thoát sớm khi tải lỗi / chưa có dữ liệu)', /const luu = async \(\) => \{\s*if \(taiLoi \|\| !\w+\) return;/.test(cd));
   k('B2 Settings.jsx import và vẽ khối, có tab riêng quyền manage_settings', /from '\.\/CaiDat\/InPhieu'/.test(st) && /<InPhieu\b/.test(st) && /inPhieu:\s*'manage_settings'/.test(st) && /\['inPhieu',\s*'manage_settings'\]/.test(st));
 
   // ═════════════════════════════════════════════════════════════════════════
