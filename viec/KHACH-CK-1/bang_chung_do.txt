@@ -101,4 +101,5 @@ SỐ CA cong_cu/thu_P26c.js: 157
 SỐ CA cong_cu/thu_P20.js: 172
 SỐ CA cong_cu/thu_GOI1.js: 113
 SỐ CA cong_cu/thu_BH1.js: 73
-SỐ CA cong_cu/thu_BH2.js: 99
+SỐ CA cong_cu/thu_BH2.js: 100
+(BH-2 in 100 ca khi chạy trong kho — ca G1 chỉ chạy khi có .git, thu_BH2.js:244; bản sao đột biến không có .git nên đối chứng in 99. Sửa theo cổng A16, 31.10.)
