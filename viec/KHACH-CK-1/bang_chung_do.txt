@@ -57,6 +57,15 @@ Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --goc 29db8d3 thu_KHACHCK1.js thu_UU
   ✗ S19 KHACH-CK-1: ThuTien sáng theo đúng coSo (không còn khoá chanChietKhau theo hồ sơ khách)
   BH-2: 97 đạt · 2 hỏng — thoát 1
 
+━━ 1b. VÒNG SỬA 1 (31.10, sau soát độc lập) — bài thu_KHACHCK1.js thêm B7c, E2, F3c; chạy lại trên gốc ━━
+Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --goc 29db8d3 thu_KHACHCK1.js
+  (mọi dòng ✗ của mục 1 vẫn đỏ y như trên, thêm:)
+  ✗ B7c PUT v2 khách CHƯA có hồ sơ, mức −5 loại fixed → tạo với mức 0, loại percent (nhánh INSERT)  — HTTP 400 · Số tiền không được âm null
+  10 đạt · 27 hỏng — thoát 1
+  (E2, F3c là ca K5 / đối chứng — xanh trên gốc, đúng ý: gốc không có hồ sơ mức ở khách E2 / F3b.)
+Trên HEAD: thu_KHACHCK1.js 37 đạt · 0 hỏng.
+Đột biến vòng 1: python3 viec/KHACH-CK-1/dot_bien.py → TỔNG 35 đột biến · BẮT 35 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 7 bài xanh, thu_KHACHCK1 37).
+
 ━━ 2. Bản GỐC 29db8d3 của bài cũ trên code MỚI (chủ quán dặn khi duyệt: bản gốc phải đỏ) ━━
 Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --bai-cu 29db8d3 thu_P20.js thu_GOI1.js thu_UUDAI1.js thu_P26c.js thu_BH1.js thu_BH2.js
   thu_P20.js   — ✖ Bài thử sập: Không tạo được đơn "chiết khấu": 400 Số tiền thanh toán (20.000đ) không khớp tổng đơn hàng thật (25.000đ). — thoát 2
@@ -72,7 +81,7 @@ Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --bai-cu 29db8d3 thu_P20.js thu_GOI1
   thu_KHACHCK1.js 34 đạt · 0 hỏng · thu_UUDAI1.js 88 · thu_P26c.js 157 · thu_P20.js 172 · thu_GOI1.js 113 · BH-1 73 · BH-2 99 (đều 0 hỏng)
 Đột biến: python3 viec/KHACH-CK-1/dot_bien.py → TỔNG 34 đột biến · BẮT 34 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 7 bài xanh)
 
-SỐ CA cong_cu/thu_KHACHCK1.js: 34
+SỐ CA cong_cu/thu_KHACHCK1.js: 37
 SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_P26c.js: 157
 SỐ CA cong_cu/thu_P20.js: 172
