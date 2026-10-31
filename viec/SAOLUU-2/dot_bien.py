@@ -40,6 +40,9 @@ DOT_BIEN = [
   ('VS-KHOA-NGOAI-MOT-CAU', [(K, 'ly_do: lyDo(err, soDong === null)', 'ly_do: lyDo(err, true)', 1)], r'✗ B9 '),
   ('BV-MISMATCH', [(K, '/^SQLITE_(CONSTRAINT|MISMATCH)/', '/^SQLITE_(CONSTRAINT)/', 1)], r'✗ B8 '),
   ('VS-DONG-CAU-XOA', [(K, 'await chay(m, null, `DELETE FROM', 'await chay(m, 1, `DELETE FROM', 1)], r'✗ B10 '),
+  # ── vòng sửa cuối (soát vòng 3: catch xem trước lộ câu nội bộ · trang không cột khớp → 500) ──
+  ('BV-LOI-GHI-XEM-TRUOC', [(B, '    loiGhi(res, err);   // SAOLUU-2: cùng khuôn /restore', '    res.status(500).json({ error: err.message });   //', 1)], r'✗ B11 '),
+  ('BV-KHONG-CO-COT', [(K, "    if (!cot.length) { boQua('KHONG_CO_COT_KHOP', 'Bỏ qua vì không cột nào của trang khớp bảng'); continue; }\n", '', 1)], r'✗ C6 '),
   ('VS-TRANG-TRONG-XOA', [(K, "    if (!dong.length) { boQua('TRANG_TRONG', 'Không có dữ liệu'); continue; }", '', 1)], r'✗ E7 '),
 ]
 

@@ -196,6 +196,9 @@ async function main() {
       && !/dòng/.test(b10.error || '') && (await THU.bam()) === truocB8, `${moTa(b10)} · dong ${b10.dong}`);
     const kp = doc(path.join(MAY_CHU, 'utils', 'khoiPhuc.js'));
     k('B3 server/utils/khoiPhuc.js có và không còn console.error (lỗi chèn không bị nuốt)', kp.length > 0 && !/console\.error/.test(bo(kp)));
+    const haiRoute = bo(backupSrc).slice(bo(backupSrc).indexOf("'/preview-restore'"));
+    k('B11 /preview-restore và /restore không trả nguyên câu lỗi nội bộ (err.message) — lỗi máy chủ qua loiGhi (có code)',
+      haiRoute.length > 0 && !/err\.message/.test(haiRoute) && (haiRoute.match(/loiGhi\(res, err\)/g) || []).length >= 2);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -206,6 +209,14 @@ async function main() {
     const p1 = (x1.preview || [])[0];
     k('C1 xem trước file có cột lạ → cot_bo_qua = ["cot_la"], fileRows 2 (như khôi phục báo)', x1.status === 200
       && JSON.stringify(p1?.cot_bo_qua) === '["cot_la"]' && p1?.fileRows === 2, JSON.stringify(p1));
+    // Trang nhận diện được nhưng KHÔNG cột nào khớp bảng → bỏ qua có mã (xem trước = khôi phục), không 500 "lỗi máy chủ", không xoá bảng.
+    const tepLech = tepTu([['Nhật ký đồng bộ', [{ cot_la_1: 'x', cot_la_2: 'y' }]]]);
+    const truocC6 = await THU.bam();
+    const x6 = await THU.gui(tepLech, '/preview-restore');
+    const r6 = await THU.gui(tepLech);
+    k('C6 trang không có cột nào khớp bảng → xem trước VÀ khôi phục: skipped KHONG_CO_COT_KHOP, 200; không đổi gì',
+      (x6.preview || [])[0]?.code === 'KHONG_CO_COT_KHOP' && r6.status === 200 && (r6.results || [])[0]?.code === 'KHONG_CO_COT_KHOP'
+      && (await THU.bam()) === truocC6, `${moTa(r6)} · ${JSON.stringify(x6.preview)}`);
     await THU.db.run("INSERT INTO kho_nguyen_lieu (ten, ten_chuan, don_vi_luu, tao_luc) VALUES ('Có sẵn', 'co san', 'kg', 'x')");
     const tepKho = tepTu([['Kho - Nguyên liệu', [{ id: 50, ten: 'Từ file', ten_chuan: 'tu file', don_vi_luu: 'kg', tao_luc: 'x' }]],
       ['Nâng cấp dữ liệu', [{ so: 999, ten: 'gia', luc: 'x' }]]]);
