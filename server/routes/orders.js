@@ -609,27 +609,12 @@ async function taoDon(req, res, phien = null) {
     const phone = normalizePhone(customer_phone);
 
     // ═══ POS-CONGDON-v1 · LO 2: thoi tin muc giam gui len ════════════════
-    // Truoc day: finalDiscountValue = discount_value lay THANG tu to khai,
-    // khong can ma chiet khau nao -> khai giam 90% thi duoc giam 90%.
-    // Nay: khong co ma chiet khau hop le thi may chu TU DOC chiet khau rieng
-    // cua khach tu ho so. Man ban hang von cung chi gui so lay tu ho so do,
-    // nen quay KHONG doi gi — chi khac la so tien nay do may chu tu tra.
-    // Khach vang lai (khong so dien thoai) -> khong co chiet khau rieng.
+    // discount_type / discount_value cua to khai KHONG BAO GIO duoc dung: khong co ma chiet khau hop le thi don khong giam theo muc
+    // nao. KHACH-CK-1 (chu quan 29.10): bo chiet khau rieng tung khach — may chu thoi doc muc giam trong ho so khach; uu dai cua
+    // khach chi con hang thanh vien (TIER-2 ben duoi), ma giam, Gio vang.
     if (!discountCodeId) {
-      const khCK = phone
-        ? await queryOne(
-            "SELECT discount_type, discount_value FROM pos_customers WHERE phone = ?",
-            [phone],
-          )
-        : null;
-      const mucCK = Number(khCK?.discount_value || 0);
-      if (mucCK > 0) {
-        finalDiscountType = khCK.discount_type || "percent";
-        finalDiscountValue = mucCK;
-      } else {
-        finalDiscountType = null;
-        finalDiscountValue = 0;
-      }
+      finalDiscountType = null;
+      finalDiscountValue = 0;
     }
     // ═══ het POS-CONGDON-v1 · LO 2 ═══════════════════════════════════════
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
@@ -665,8 +650,7 @@ async function taoDon(req, res, phien = null) {
       }
     }
 
-    // Ưu tiên 2: Chiết khấu từ request (discount_type + discount_value)
-    // Đã có từ params
+    // Ưu tiên 2 cũ (chiết khấu từ request, rồi chiết khấu riêng trong hồ sơ khách) đã bỏ — xem LO 2 ở trên.
 
     // Ưu tiên 3: Chiết khấu cũ (discount số cố định) - backward compatible
     // ═══ POS-CONGDON-v1: TAT duong nay ══════════════════════════════════
@@ -680,7 +664,7 @@ async function taoDon(req, res, phien = null) {
     }
     // ═══ het POS-CONGDON-v1 · LO 2b ═════════════════════════════════════
 
-    // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
+    // F2: đang flash → CHẶN voucher kiểu %. Voucher TIỀN vẫn được.
     // Áp dụng cho CẢ voucher giảm-1-món (Bước 5) vì đọc finalDiscountType từ codeRecord.discount_type
     // như cũ, không phân biệt scope — tái dùng đúng điều kiện có sẵn, không viết luật riêng.
     if (flashApplied && finalDiscountType === "percent" && finalDiscountValue > 0) {
@@ -730,13 +714,8 @@ async function taoDon(req, res, phien = null) {
       finalDiscountValue = 0;
       itemScopeTargetItem = null;
     }
-    if (discountCodeId) {
-      finalDiscountAmount = uuDai.giam_ma;
-    } else if (finalDiscountType === "percent" && finalDiscountValue > 0) {
-      finalDiscountAmount = (subtotal * finalDiscountValue) / 100;   // giảm riêng của khách (không mã) — như cũ
-    } else if (finalDiscountType === "fixed" && finalDiscountValue > 0) {
-      finalDiscountAmount = finalDiscountValue;
-    }
+    // KHACH-CK-1: không mã thì không có mức giảm nào (LO 2) — chỉ còn giảm của mã.
+    if (discountCodeId) finalDiscountAmount = uuDai.giam_ma;
 
     // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash + giảm hạng
     finalDiscountAmount = Math.min(

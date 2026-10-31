@@ -122,8 +122,9 @@ async function main() {
     const flash = { is_flash_now: false, percent: 20, product_keys: ['juice_1'] };
     return f('tinhGio')([sp(1, 100000)], { flash }).tong === 100000;
   });
-  thu('D13 chiết khấu riêng của khách: 10% trên tạm tính', () => f('tinhGio')([sp(1, 100000)], { khachGiam: { loai: 'percent', gia_tri: 10 } }).tong === 90000);
-  thu('D14 chiết khấu cố định lớn hơn đơn → chặn ở đơn (giảm = 30.000), tổng 0 (không âm)', () => { const g = f('tinhGio')([sp(1, 30000)], { khachGiam: { loai: 'fixed', gia_tri: 50000 } }); return g.tong === 0 && g.giamKhach === 30000; });
+  // KHACH-CK-1 (chủ quán 29.10): bỏ chiết khấu riêng từng khách — tinhGio không còn nhận khachGiam.
+  thu('D13 khachGiam 10 % truyền vào (kiểu cũ) bị bỏ qua: tổng 100.000', () => f('tinhGio')([sp(1, 100000)], { khachGiam: { loai: 'percent', gia_tri: 10 } }).tong === 100000);
+  thu('D14 khachGiam cố định 50.000 (kiểu cũ) bị bỏ qua: tổng 30.000, không còn khoá giamKhach', () => { const g = f('tinhGio')([sp(1, 30000)], { khachGiam: { loai: 'fixed', gia_tri: 50000 } }); return g.tong === 30000 && !('giamKhach' in g); });
   thu('D15 giỏ trống → mọi số 0', () => { const g = f('tinhGio')([], {}); return g.tamTinh === 0 && g.tong === 0; });
 
   muc('E · thêm vào giỏ / ghi chú nhanh');
@@ -179,9 +180,9 @@ async function main() {
     return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7 &&
       d.package_buy === null && d.membership_buy === null && d.customer_package_id === null && d.shipping_fee === 0;
   });
-  thu('I8 chiết khấu riêng của khách được gửi (discount_type / discount_value) như màn cũ', () => {
-    const d = dung({ cach: 'cash', khach: { ...khach, discount_type: 'percent', discount_value: 10 }, tamTinh: tinh({ khachGiam: { loai: 'percent', gia_tri: 10 } }), khachDua: 63000 });
-    return d.discount_type === 'percent' && d.discount_value === 10;
+  thu('I8 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount_type null, discount_value 0, discount_reason null) — KHACH-CK-1', () => {
+    const d = dung({ cach: 'cash', khach: { ...khach, discount_type: 'percent', discount_value: 10 }, tamTinh: tinh({ khachGiam: { loai: 'percent', gia_tri: 10 } }), khachDua: 70000 });
+    return d.discount_type === null && d.discount_value === 0 && d.discount_reason === null;
   });
   thu('I9 không chiết khấu → discount_type null, discount_value 0', () => { const d = dung({ cach: 'cash', khachDua: 70000 }); return d.discount_type === null && d.discount_value === 0; });
 

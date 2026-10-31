@@ -74,10 +74,10 @@ const khoaMon = (m) => `${m.sx_product_type}_${m.sx_product_id}`;
 
 /**
  * gio: [{ sx_product_type, sx_product_id, unit_price, quantity, is_special_group }]
- * ctx: { flash: {is_flash_now, percent, product_keys}, hang: {usable,…}, khachGiam: {loai:'percent'|'fixed', gia_tri} }
+ * ctx: { flash: {is_flash_now, percent, product_keys}, hang: {usable,…} } — KHACH-CK-1: không còn chiết khấu riêng của khách.
  */
 export function tinhGio(gio, ctx = {}) {
-  const { flash, hang, khachGiam } = ctx;
+  const { flash, hang } = ctx;
   const flashChay = !!(flash && flash.is_flash_now && flash.percent);
   const giaFlash = (m) => (flashChay && flash.product_keys?.includes(khoaMon(m))
     ? Math.round(m.unit_price * (1 - flash.percent / 100)) : null);
@@ -85,15 +85,9 @@ export function tinhGio(gio, ctx = {}) {
   const giamFlash = gio.reduce((s, m) => { const g = giaFlash(m); return g == null ? s : s + (m.unit_price - g) * m.quantity; }, 0);
   const giaHangMon = (m) => (giamFlash > 0 ? m.unit_price : giaHang(m.unit_price, phanTramHang(hang, m.is_special_group)).hang);   // đơn dính Flash → hạng không cộng
   const giamHang = gio.reduce((s, m) => s + (m.unit_price - giaHangMon(m)) * m.quantity, 0);
-
-  let giamKhach = 0;
-  if (khachGiam && so(khachGiam.gia_tri) > 0) {
-    giamKhach = khachGiam.loai === 'fixed' ? so(khachGiam.gia_tri) : (tamTinh * so(khachGiam.gia_tri)) / 100;
-  }
-  giamKhach = Math.min(giamKhach, Math.max(0, tamTinh - giamFlash - giamHang));
-  const tong = Math.max(0, tamTinh - giamFlash - giamHang - giamKhach);
+  const tong = Math.max(0, tamTinh - giamFlash - giamHang);
   const dong = gio.map((m) => ({ ...m, giaHang: giaHangMon(m), giaFlash: giaFlash(m) }));
-  return { tamTinh, giamFlash, giamHang, giamKhach, tong, dong };
+  return { tamTinh, giamFlash, giamHang, tong, dong };
 }
 
 /** Món có giá bán dùng được? 0 / âm / thiếu / chữ → "Chưa có giá", không chạm được. */
@@ -125,7 +119,6 @@ export function ghepGhiChu(nhan, tuGo) {
 export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDung = 0, khachDua = 0 }) {
   const tong = tamTinh.tong;
   const conLai = tong - soDuDung - soDuMeDung;
-  const coKhachGiam = so(khach?.discount_value) > 0 && tamTinh.giamKhach > 0;
   return {
     customer_phone: khach?.phone || null,
     customer_name: khach?.name || 'Khách lẻ',
@@ -140,9 +133,9 @@ export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDun
     })),
     payment_method: cach,
     discount: 0,
-    discount_reason: tamTinh.giamKhach > 0 ? 'Giảm giá' : null,
-    discount_type: coKhachGiam ? (khach.discount_type || 'percent') : null,
-    discount_value: coKhachGiam ? khach.discount_value : 0,
+    discount_reason: null,
+    discount_type: null,
+    discount_value: 0,
     discount_code: null,
     shipping_fee: 0,
     balance_amount: soDuDung,
@@ -188,9 +181,6 @@ export function thanTinhThu(gio, khach, ma) {
 
 /** Có số máy chủ cho ĐÚNG giỏ đang hiện? (số của giỏ cũ về muộn / chưa về → không thu). */
 export const coSoMayChu = (mayChu, khoa) => !!mayChu && mayChu.khoa === khoa && Number.isFinite(mayChu.total);
-
-/** Khách có chiết khấu riêng trên hồ sơ? Máy chủ (tinh-thu / phiên) chưa nhận trường này → màn mới không thu cho khách đó. */
-export const coChietKhauRieng = (khach) => so(khach?.discount_value) > 0;
 
 // ── Chia tiền: tài khoản khách / mẹ / phần còn lại ──────────────────────────
 export function chiaTra({ tong, khach, dungTK, dungMe }) {

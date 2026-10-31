@@ -166,9 +166,8 @@ async function main() {
     return bo.every((x) => !(x in a) && !(x in a.don)) && a.don.items.every((i) => !('unit_price' in i));
   });
 
-  thu('D18 khách có chiết khấu riêng (máy chủ chưa nhận) → bị khoá thu ở màn mới; không có / 0 / lạ → không khoá', () =>
-    t('coChietKhauRieng')({ discount_value: 10 }) === true && t('coChietKhauRieng')({ discount_value: 0 }) === false && t('coChietKhauRieng')(null) === false &&
-    t('coChietKhauRieng')({ discount_value: 'abc' }) === false);
+  thu('D18 KHACH-CK-1: bỏ chiết khấu riêng từng khách → tinh.js không còn xuất coChietKhauRieng (không còn khoá thu theo hồ sơ)', () =>
+    T && !('coChietKhauRieng' in T));
 
   // ═══ F · menu ══════════════════════════════════════════════════════════════
   muc('F · menu 6 mục theo quyền');
@@ -230,7 +229,7 @@ async function main() {
   k('S11 màn kết thúc không in khi chưa thanh toán: chỉ dựng từ đơn đã có id (xong)', /don\.order\.id|order\.id/.test(kt) || /xong/.test(moi('BanHangMoi.jsx')));
   const lay = moi('BanHangMoi.jsx');
   k('S12 lưới khoá tới khi In (bh-khoa khi xong && !daIn); chống bấm đôi dangGuiRef', /xong && !daIn \? ' bh-khoa'/.test(lay) && /if \(dangGuiRef\.current \|\| !coSo\)/.test(lay));
-  k('S19 chiết khấu riêng của khách: ThuTien chỉ sáng khi coSo && !chanChietKhau (khoá, không chỉ lời dặn)', /coSo=\{coSo && !chanChietKhau\}/.test(lay) && /coChietKhauRieng\(khach\)/.test(lay));
+  k('S19 KHACH-CK-1: ThuTien sáng theo đúng coSo (không còn khoá chanChietKhau theo hồ sơ khách)', /coSo=\{coSo\}/.test(lay) && !/chanChietKhau|coChietKhauRieng/.test(lay));
   k('S20 hoanTat dự phòng: tiền thối = khách đưa − còn lại (cùng công thức máy chủ), tổng từ phiên — không "Trả lại 0đ" khi đọc đơn hỏng', /change_amount: cach === 'tien_mat' \? Math\.max\(0, khachDua - anh\.phaiTra\)/.test(lay) && /total: anh\.tong/.test(lay));
   k('S21 số dư lệch giữ tiền → nạp lại số dư (lamMoiSoDu) trước khi báo', /await lamMoiSoDu\(\)/.test(lay));
   k('S22 chốt hỏng mà hỏi lại phiên cũng hỏng → báo "KHÔNG thu lại ngay", không nhả phiên', /else if \(!tt\) setLoi\('Mất kết nối khi chốt/.test(lay));

@@ -384,7 +384,7 @@ async function main() {
     const s5 = await khachHang();
     await caDon('G5a đơn KHÔNG mã, khách Vàng → 90.000 như cũ', await ban({ customer_phone: s5, items: [mon(0, 2)] }, 90000), 90000, 10000, null);
     await db.run("INSERT INTO pos_customers (phone, name, discount_type, discount_value, created_at) VALUES (?, 'Khách giảm riêng', 'percent', 5, datetime('now'))", [s5]);
-    await caDon('G5b đơn KHÔNG mã, Vàng + giảm riêng 5 % (trên giá gốc như cũ) → 85.000', await ban({ customer_phone: s5, items: [mon(0, 2)] }, 85000), 85000, 10000, null);
+    await caDon('G5b đơn KHÔNG mã, Vàng + hồ sơ cũ giảm riêng 5 % → KHACH-CK-1: hồ sơ không còn giảm, chỉ hạng: 90.000', await ban({ customer_phone: s5, items: [mon(0, 2)] }, 90000), 90000, 10000, null);
     const diem = donB1 ? await so("SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [donB1]) : NaN;
     k('G6 điểm theo tổng mới: đơn B1 81.000 tiền mặt, 1.000đ = 1 điểm → 81 điểm', diem === 81, `${diem}`);
     const mG7 = await taoMa('percent', 10);

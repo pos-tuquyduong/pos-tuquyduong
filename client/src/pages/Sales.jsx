@@ -324,16 +324,6 @@ export default function Sales() {
     validateDiscountCode(code);
   };
 
-  // Áp dụng chiết khấu mặc định của khách hàng
-  const applyCustomerDiscount = () => {
-    if (customer?.discount_value > 0) {
-      setDiscountType(customer.discount_type || 'percent');
-      setDiscountValue(customer.discount_value);
-      setDiscountCode('');
-      setDiscountCodeValid(null);
-    }
-  };
-
   // TIER-2: tra hạng hiện tại của khách + gộp % giảm từ danh sách hạng đã tải sẵn (membershipTiers)
   // — không sửa API tra cứu, chỉ tra cứu status + tự lookup rate cục bộ, tránh gọi API 2 lần.
   const loadMembershipInfo = async (phone) => {
@@ -371,17 +361,10 @@ export default function Sales() {
     setUseParentBalance(false);
     setParentBalanceToUse(0);
     setActivePkgId(null);
-    // POS-DOIKHACH-v1: PHAI co nhanh else. Truoc day chi biet DIEN khi khach
-    // moi co chiet khau, khong biet XOA khi khach moi khong co -> con so cua
-    // khach TRUOC van nam nguyen do va khach SAU duoc giam oan.
-    // `handleClearCustomer` da don dung tu truoc; day la lam not duong con lai.
-    if (selectedCustomer?.discount_value > 0) {
-      setDiscountType(selectedCustomer.discount_type || 'percent');
-      setDiscountValue(selectedCustomer.discount_value);
-    } else {
-      setDiscountType('percent');
-      setDiscountValue(0);
-    }
+    // POS-DOIKHACH-v1: doi khach thi XOA giam tay cua khach truoc (khong mang sang khach sau).
+    // KHACH-CK-1: khong con chiet khau rieng cua khach de dien vao.
+    setDiscountType('percent');
+    setDiscountValue(0);
     // Ma chiet khau luon xoa: no gan voi khach hoac voi lan mua do,
     // khong mang sang nguoi khac duoc.
     setDiscountCode('');
@@ -1446,19 +1429,6 @@ export default function Sales() {
                 <div style={{ marginBottom: '0.75rem' }}>
                   <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.25rem' }}>
                     Chiết khấu
-                    {customer?.discount_value > 0 && (
-                      <span 
-                        onClick={applyCustomerDiscount}
-                        style={{ 
-                          marginLeft: '0.5rem', 
-                          color: '#3b82f6', 
-                          cursor: 'pointer',
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        (KH: {customer.discount_type === 'percent' ? customer.discount_value + '%' : customer.discount_value.toLocaleString() + 'đ'})
-                      </span>
-                    )}
                   </label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <select

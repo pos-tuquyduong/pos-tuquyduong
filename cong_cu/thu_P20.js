@@ -299,12 +299,18 @@ async function main() {
     k('trả trọn bằng ví: /claim → 200; /nhan-diem → 400 DON_KHONG_DU_DIEM (DIEM-THAT-1)', cViTron.status === 200
       && nViTron.status === 400 && nViTron.code === 'DON_KHONG_DU_DIEM', `${moTa(cViTron)} / ${moTa(nViTron)}`);
 
-    // Chiết khấu do MÁY CHỦ tự tra từ hồ sơ khách (orders.js POS-CONGDON-v1 · LO 2),
-    // không nhận mức giảm client gửi — nên phải tạo khách có chiết khấu riêng.
+    // Đơn có giảm: máy chủ không nhận mức giảm client gửi, và từ KHACH-CK-1 (chủ quán 29.10) cũng không còn chiết khấu riêng
+    // trong hồ sơ khách — đơn có giảm dựng bằng mã giảm tiền 5.000 (bản cũ dựng bằng hồ sơ fixed 5000).
     const sdtCK = sdtMoi();
-    await db.run(`INSERT INTO pos_customers (phone, name, discount_type, discount_value) VALUES (?, 'Khách CK', 'fixed', 5000)`, [sdtCK]);
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active) VALUES ('P20_GIAM5K', 'fixed', 5000, 0, 0, 1)`);
     await phaiQua('có chiết khấu',
-      await taoDon('chiết khấu', { customer_phone: sdtCK, customer_name: 'Khách CK', items: [mon()], payment_method: 'cash', cash_amount: 20000 }));
+      await taoDon('chiết khấu', { customer_phone: sdtCK, customer_name: 'Khách CK', items: [mon()], payment_method: 'cash', cash_amount: 20000, discount_code: 'P20_GIAM5K' }));
+    // KHACH-CK-1: hồ sơ dữ liệu cũ fixed 5000, mua KHÔNG mã, trả đủ 25.000 → đơn qua, tổng KHÔNG giảm (gốc tự giảm 5.000 → 400 không khớp).
+    const sdtHoSo = sdtMoi();
+    await db.run(`INSERT INTO pos_customers (phone, name, discount_type, discount_value) VALUES (?, 'Khách hồ sơ cũ', 'fixed', 5000)`, [sdtHoSo]);
+    const rHoSo = await goi('POST', '/orders', { customer_phone: sdtHoSo, customer_name: 'Khách hồ sơ cũ', items: [mon()], payment_method: 'cash', cash_amount: 25000 });
+    k('hồ sơ cũ fixed 5.000, không mã, trả 25.000 → 200, tổng 25.000 (chiết khấu riêng đã bỏ — KHACH-CK-1)', rHoSo.status === 200
+      && Number(rHoSo.order?.total) === 25000, `${moTa(rHoSo)} · tổng ${rHoSo.order?.total}`);
 
     const sdtKH = sdtMoi(); await napVi(sdtKH, 10000);
     await phaiQua('trả kết hợp đủ tiền (ví + tiền mặt)',

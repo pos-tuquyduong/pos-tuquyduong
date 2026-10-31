@@ -789,21 +789,24 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // Ca HỒI QUY LUOI-5: code quầy đang đúng — mỗi ca đỏ khi đột biến AU4-21 tương ứng (viec/LUOI-5/dot_bien.py).
-  muc('[X] LUOI-5 — chiết khấu riêng của khách (PUT /v2/customers/:sdt/discount): máy chủ tự áp khi bán');
+  // Ca LUOI-5 đổi theo KHACH-CK-1 (chủ quán 29.10 bỏ chiết khấu riêng) — đột biến AU4-21 của viec/LUOI-5/dot_bien.py không còn neo.
+  muc('[X] LUOI-5 → KHACH-CK-1 — chiết khấu riêng của khách đã bỏ: PUT /v2/customers/:sdt/discount mức > 0 bị từ chối, đơn không giảm');
   {
     const ck = (sdt, body) => goi('PUT', `/v2/customers/${sdt}/discount`, body);
     const sdt = sdtMoi();
     const chuaCoHoSo = await so('SELECT COUNT(*) FROM pos_customers WHERE phone = ?', [sdt]) === 0;   // PUT đầu đi nhánh INSERT
     const c1 = await ck(sdt, { discount_type: 'fixed', discount_value: 5000 });
-    const x1 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(0)], payment_method: 'cash', cash_amount: 20000 });
-    k('X1a khách chưa có hồ sơ, đặt chiết khấu cố định 5.000 → 200; đơn 25.000 → tổng 20.000 (máy chủ tự áp từ hồ sơ)', chuaCoHoSo && c1.status === 200
-      && x1.status === 200 && Number(x1.order?.total) === 20000, `${moTa(c1)} / ${moTa(x1)} · tổng ${x1.order?.total}`);
-    // Hồ sơ đã có (PUT đầu) → PUT sau đi nhánh UPDATE. 20 % (không phải 10 %: 50.000 × 0,9 = 45.000 trùng 50.000 − 5.000 → đột biến lọt).
+    const x1 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+    k('X1a khách chưa có hồ sơ, đặt chiết khấu cố định 5.000 → 400 CHIET_KHAU_RIENG_DA_BO, không tạo hồ sơ; đơn 25.000 → tổng 25.000', chuaCoHoSo
+      && c1.status === 400 && c1.code === 'CHIET_KHAU_RIENG_DA_BO' && await so('SELECT COUNT(*) FROM pos_customers WHERE phone = ?', [sdt]) === 0
+      && x1.status === 200 && Number(x1.order?.total) === 25000, `${moTa(c1)} / ${moTa(x1)} · tổng ${x1.order?.total}`);
+    // Hồ sơ đã có (dựng thẳng như dữ liệu cũ; OR IGNORE: trên code gốc PUT đầu đã tạo) → PUT đi nhánh UPDATE.
+    await db.run("INSERT OR IGNORE INTO pos_customers (phone, name, discount_type, discount_value) VALUES (?, 'Khách P26c', 'percent', 0)", [sdt]);
     const c2 = await ck(sdt, { discount_type: 'percent', discount_value: 20 });
-    const x2 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(2)], payment_method: 'cash', cash_amount: 40000 });
-    k('X1b sửa sang 20 % → 200; đơn 50.000 → tổng 40.000', c2.status === 200 && x2.status === 200 && Number(x2.order?.total) === 40000,
-      `${moTa(c2)} / ${moTa(x2)} · tổng ${x2.order?.total}`);
+    const x2 = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [mon(2)], payment_method: 'cash', cash_amount: 50000 });
+    k('X1b khách có hồ sơ, đặt 20 % → 400 cùng mã, hồ sơ vẫn 0; đơn 50.000 → tổng 50.000', c2.status === 400 && c2.code === 'CHIET_KHAU_RIENG_DA_BO'
+      && await so('SELECT discount_value FROM pos_customers WHERE phone = ?', [sdt]) === 0 && x2.status === 200 && Number(x2.order?.total) === 50000,
+    `${moTa(c2)} / ${moTa(x2)} · tổng ${x2.order?.total}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
