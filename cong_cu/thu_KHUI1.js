@@ -60,6 +60,7 @@ async function moMayChu(envThem) {
 function goi(cong, duong, host, them = {}) {
   return new Promise((ok, loi) => {
     const yc = http.request({ host: '127.0.0.1', port: cong, path: duong, headers: { ...(host === undefined ? {} : { Host: host }), ...them } }, (res) => {
+      res.setEncoding('utf8');   // ghép mẩu theo ký tự: chữ nhiều byte rơi đúng ranh giới mẩu không bị hỏng (H2f đỏ oan sau khi dist đổi)
       let than = '';
       res.on('data', (d) => { than += d; });
       res.on('end', () => ok({ status: res.statusCode, than }));
@@ -135,9 +136,12 @@ function goiHostRong(cong, duong) {
   for (const host of [KH_HOST, 'pos.thu.test']) {
     r = await goi(mc.cong, '/api/pos/health', host);
     k(`H2d /api/pos/health ở Host ${host} vẫn JSON của máy chủ`, r.status === 200 && r.than.includes('"status":"ok"'));
-    r = await goi(mc.cong, '/api/kh/menu', host);
+    r = await goi(mc.cong, '/api/kh/toi', host);
     let ma = ''; try { ma = JSON.parse(r.than).code; } catch { /* không phải JSON */ }
-    k(`H3 /api/kh/menu không token ở Host ${host} → 401 KH_TOKEN_SAI`, r.status === 401 && ma === 'KH_TOKEN_SAI', `status ${r.status}`);
+    k(`H3 /api/kh/toi không token ở Host ${host} → 401 KH_TOKEN_SAI`, r.status === 401 && ma === 'KH_TOKEN_SAI', `status ${r.status}`);
+    r = await goi(mc.cong, '/api/kh/menu', host);
+    let menu = null; try { menu = JSON.parse(r.than); } catch { /* không phải JSON */ }
+    k(`H3 /api/kh/menu không token ở Host ${host} → 200 JSON (KH-API-3: xem menu không cần đăng nhập)`, r.status === 200 && !!menu && menu.success === true, `status ${r.status}`);
   }
   r = await goi(mc.cong, '/api/khong-co', KH_HOST);
   k('H2d /api/ lạ ở Host App KH → 404 JSON, không trả trang HTML', r.status === 404 && !r.than.includes('<html'));

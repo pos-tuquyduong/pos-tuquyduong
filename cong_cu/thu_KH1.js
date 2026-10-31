@@ -162,7 +162,8 @@ async function main() {
     if (maGia()) daCap.add(maGia());
     return r;
   };
-  const xacMinh = (sdt, ma, ten) => goi('POST', '/kh/dang-nhap/xac-minh', ten === undefined ? { sdt, ma } : { sdt, ma, ten });
+  // KH-API-3: khách mới phải có tên + xưng hô — có ten thì gửi kèm xung_ho (khách cũ: máy chủ bỏ qua); không ten → không gửi gì (ca CAN_TEN).
+  const xacMinh = (sdt, ma, ten) => goi('POST', '/kh/dang-nhap/xac-minh', ten === undefined ? { sdt, ma } : { sdt, ma, ten, xung_ho: 'anh' });
   // Đăng nhập trọn vẹn một khách (tạo khách nếu mới) → { sdt, tk, id }.
   const dangNhap = async (ten = 'Khách thử', sdt = sdtMoi()) => {
     await xinMa(sdt);
@@ -427,7 +428,7 @@ async function main() {
   await chay('E1', async () => {
     const r = await goi('GET', '/kh/toi', undefined, { tk: A.tk });
     const khoa = Object.keys(r.j.khach || {}).sort();
-    k('E1 GET /toi → 200, đúng 6 trường hang · ngay_tao · qr · sdt · so_du_vi · ten (P15-QR, KH-API-2)', la(r, 200) && bang(khoa, ['hang', 'ngay_tao', 'qr', 'sdt', 'so_du_vi', 'ten']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
+    k('E1 GET /toi → 200, đúng 8 trường dia_chi · hang · ngay_tao · qr · sdt · so_du_vi · ten · xung_ho (P15-QR, KH-API-2, KH-API-3)', la(r, 200) && bang(khoa, ['dia_chi', 'hang', 'ngay_tao', 'qr', 'sdt', 'so_du_vi', 'ten', 'xung_ho']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
     const rB = await goi('GET', '/kh/toi', undefined, { tk: B.tk });
     const lech = await goi('GET', `/kh/toi?sdt=${B.sdt}&phone=${B.sdt}`, undefined, { tk: A.tk });
     const qA = (r.j.khach || {}).qr, qB = (rB.j.khach || {}).qr;

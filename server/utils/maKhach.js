@@ -21,7 +21,15 @@ const GIOI_HAN = {
   TEN_TOI_DA: 50,     // tên khách 1–50 ký tự
   NHAN_SDT_GIO: 10,   // App nhận mã bill + nhận điểm (chung): ≤ 10 lần / khách / giờ (Q9)
   NHAN_IP_GIO: 30,    // ... ≤ 30 lần / IP / giờ
+  THEM_PHUT_CAN_TEN: 10,    // mã đúng mà khách mới còn thiếu thông tin (CAN_TEN): mã sống thêm 10 phút, MỘT lần (KH-API-3)
+  DIA_CHI_TOI_DA: 300,      // địa chỉ khách ≤ 300 ký tự
+  MENU_IP_PHUT: 300,        // GET /menu KHÔNG token: ≤ 300 lần / IP / phút (chống quá tải — khách thật không chạm)
+  MENU_CUA_SO_MS: 60 * 1000,   // … cửa sổ đếm của MENU_IP_PHUT: một phút
+  GIA_HAN_KHACH_GIO: 10,    // POST /gia-han: ≤ 10 lần / khách / giờ
+  GIA_HAN_CUA_SO_MS: 3600 * 1000,   // … cửa sổ đếm của GIA_HAN_KHACH_GIO: một giờ
+  BO_DEM_TOI_DA: 10000,     // bộ đếm trong bộ nhớ giữ tối đa 10 000 khoá (giuLuotBoNho)
 };
+const XUNG_HO = ['anh', 'chi', 'co', 'chu', 'bac', 'em', 'ban'];
 
 const DANG_GIO = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
 const GIO = "strftime('%Y-%m-%dT%H:%M:%S', ?, ?)";   // (now, '-60 seconds') → cùng dạng getNow()
@@ -43,6 +51,39 @@ function chuanTen(ten) {
   const t = typeof ten === 'string' ? ten.normalize('NFC').trim() : '';
   return t && [...t].length <= GIOI_HAN.TEN_TOI_DA ? t : null;
 }
+
+/** Xưng hô: không gửi / null / '' → null (không có); trong XUNG_HO → giá trị; còn lại → { loi }. */
+function chuanXungHo(v) {
+  if (v === undefined || v === null || v === '') return null;
+  return XUNG_HO.includes(v) ? v : { loi: 'XUNG_HO_SAI' };
+}
+
+/** Địa chỉ: không gửi / null / toàn khoảng trắng → null; chuỗi đã trim (NFC) ≤ DIA_CHI_TOI_DA; dài quá / sai kiểu → { loi }. */
+function chuanDiaChi(v) {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== 'string') return { loi: 'YEU_CAU_KHONG_HOP_LE' };
+  const t = v.normalize('NFC').trim();
+  if ([...t].length > GIOI_HAN.DIA_CHI_TOI_DA) return { loi: 'DIA_CHI_QUA_DAI' };
+  return t || null;
+}
+
+/**
+ * Giới hạn lượt TRONG BỘ NHỚ, cửa sổ cố định (KH-API-3: menu không token, gia hạn) — không ghi CSDL mỗi lượt xem. Đếm theo TIẾN TRÌNH:
+ * khởi động lại thì về 0, nhiều tiến trình thì mỗi cái đếm riêng (chống quá tải, không phải khoá tiền). `luc` = Date.now(): chỉ đo
+ * khoảng trong bộ nhớ, không lưu. Trần cứng BO_DEM_TOI_DA khoá: chạm trần (bị dội nhiều địa chỉ) → xoá sạch, đếm lại — bộ nhớ không
+ * phình, mỗi lượt O(1), không duyệt Map. → true | false.
+ */
+const boDem = new Map();
+function giuLuotBoNho(khoa, tran, ms, luc = Date.now()) {
+  if (boDem.size >= GIOI_HAN.BO_DEM_TOI_DA) boDem.clear();
+  const o = boDem.get(khoa);
+  if (!o || luc - o.bat_dau >= ms) { boDem.set(khoa, { bat_dau: luc, dem: 1 }); return true; }
+  if (o.dem >= tran) return false;
+  o.dem++;
+  return true;
+}
+const giuLuotMenu = (ip, luc) => giuLuotBoNho(`menu:${ip}`, GIOI_HAN.MENU_IP_PHUT, GIOI_HAN.MENU_CUA_SO_MS, luc);
+const giuLuotGiaHan = (khachId, luc) => giuLuotBoNho(`gia_han:${khachId}`, GIOI_HAN.GIA_HAN_KHACH_GIO, GIOI_HAN.GIA_HAN_CUA_SO_MS, luc);
 
 function bamMa(sdt, ma) {
   const khoa = khoaKhach();
@@ -99,13 +140,16 @@ async function giuLuotNhanMa(sdt, ip, loai) {
  * A2–A4, B2 — xác minh → { khachId } | { loi }. Thứ tự:
  *  1. mã MỚI NHẤT còn hiệu lực của SĐT; không có → MA_HET_HAN;
  *  2. mã App → trần lượt sai theo SĐT (tính theo lúc tạo mã; mã sống 5 phút nên lệch tối đa chừng đó);
- *  3. mã đúng + SĐT chưa là khách + thiếu tên → CAN_TEN, KHÔNG ghi gì (mã còn nguyên; chỉ người cầm mã đúng thấy câu này);
+ *  3. mã đúng + SĐT chưa là khách (chỉ người cầm mã đúng thấy các câu này, không tốn lượt thử):
+ *     xưng hô / địa chỉ sai dạng → XUNG_HO_SAI / DIA_CHI_QUA_DAI; thiếu tên HOẶC xưng hô → CAN_TEN, chỉ ghi một việc: mã sống thêm
+ *     THEM_PHUT_CAN_TEN phút, MỘT lần (điều kiện het_han còn bằng hạn gốc tao_luc + HAN_MA_PHUT). Khách cũ: ba trường bị bỏ qua.
  *  4. giữ một lượt thử bằng câu có điều kiện (100 lần đoán song song cũng chỉ 5 lượt) → sai → MA_SAI;
- *  5. giao dịch: chiếm mã `AND dung_luc IS NULL` + kiểm changes → tạo khách nếu chưa có (như quầy: khách lẻ, không xuất SX).
+ *  5. giao dịch: chiếm mã `AND dung_luc IS NULL` + kiểm changes → tạo khách nếu chưa có (như quầy: khách lẻ, không xuất SX), lưu tên +
+ *     xưng hô + địa chỉ trong CÙNG giao dịch.
  */
-async function xacMinhMa(sdt, ma, ten) {
+async function xacMinhMa(sdt, ma, { ten, xungHo, diaChi } = {}) {
   const now = bayGio();
-  const dong = await queryOne(`SELECT id, ma_bam, nguon FROM pos_kh_ma_dang_nhap
+  const dong = await queryOne(`SELECT id, ma_bam, nguon, tao_luc FROM pos_kh_ma_dang_nhap
     WHERE sdt = ? AND dung_luc IS NULL AND het_han > ? AND so_lan_thu < ?
     ORDER BY id DESC LIMIT 1`, [sdt, now, GIOI_HAN.THU_MOI_MA]);
   if (!dong) return { loi: 'MA_HET_HAN' };
@@ -117,8 +161,16 @@ async function xacMinhMa(sdt, ma, ten) {
   const bam = /^\d{6}$/.test(ma) ? bamMa(sdt, ma) : '';
   const dung = bam.length === dong.ma_bam.length && crypto.timingSafeEqual(Buffer.from(bam), Buffer.from(dong.ma_bam));
   const khach = await queryOne('SELECT id FROM pos_customers WHERE phone = ?', [sdt]);
-  const tenMoi = chuanTen(ten);
-  if (dung && !khach && !tenMoi) return { loi: 'CAN_TEN' };
+  const tenMoi = chuanTen(ten), xhMoi = chuanXungHo(xungHo), dcMoi = chuanDiaChi(diaChi);
+  if (dung && !khach) {
+    const sai = [xhMoi, dcMoi].find((x) => x && x.loi);
+    if (sai) return sai;
+    if (!tenMoi || !xhMoi) {
+      await run(`UPDATE pos_kh_ma_dang_nhap SET het_han = ${GIO} WHERE id = ? AND dung_luc IS NULL AND het_han = ${GIO}`,
+        [now, `+${GIOI_HAN.THEM_PHUT_CAN_TEN} minutes`, dong.id, dong.tao_luc, hanMa()]);
+      return { loi: 'CAN_TEN' };
+    }
+  }
 
   const giu = await run(`UPDATE pos_kh_ma_dang_nhap SET so_lan_thu = so_lan_thu + 1
     WHERE id = ? AND so_lan_thu < ? AND dung_luc IS NULL`, [dong.id, GIOI_HAN.THU_MOI_MA]);
@@ -131,8 +183,8 @@ async function xacMinhMa(sdt, ma, ten) {
       WHERE id = ? AND dung_luc IS NULL`, [now, dong.id]);
     if (!chiem || chiem.changes !== 1) { await tx.rollback(); return { loi: 'MA_HET_HAN' }; }
     if (!khach) {
-      await tx.run(`INSERT INTO pos_customers (phone, name, qr_code, customer_type, sync_status, created_by, created_at)
-        VALUES (?, ?, ?, 'retail', 'retail_only', 'app_kh', ?) ON CONFLICT DO NOTHING`, [sdt, tenMoi, generateQRCode(sdt), now]);
+      await tx.run(`INSERT INTO pos_customers (phone, name, xung_ho, address, qr_code, customer_type, sync_status, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, 'retail', 'retail_only', 'app_kh', ?) ON CONFLICT DO NOTHING`, [sdt, tenMoi, xhMoi, dcMoi, generateQRCode(sdt), now]);
     }
     const kh = await tx.queryOne('SELECT id FROM pos_customers WHERE phone = ?', [sdt]);
     if (!kh) throw new Error('không tạo được khách');
@@ -144,4 +196,4 @@ async function xacMinhMa(sdt, ma, ten) {
   }
 }
 
-module.exports = { GIOI_HAN, chuanSdt, chuanTen, capMaQuay, xinMaGui, giuLuotNhanMa, xacMinhMa };
+module.exports = { GIOI_HAN, chuanSdt, chuanTen, chuanXungHo, chuanDiaChi, giuLuotBoNho, giuLuotMenu, giuLuotGiaHan, capMaQuay, xinMaGui, giuLuotNhanMa, xacMinhMa };

@@ -8,7 +8,8 @@
  *  1. Đọc khối JSON giữa <!-- HOP_DONG_MAY_DOC --> và <!-- HET HOP_DONG_MAY_DOC -->.
  *  2. Gọi TỪNG cửa trên kho thử (khuôn thu_KH1.js: database.js thật, kho tạm, chỉ thay ketNoiKho) với khách mẫu có hạng + ví + điểm
  *     + đơn + mã bill: 200 và mỗi đường `tra` có mặt (`a.b` · `x[].y` = mảng KHÔNG rỗng, mọi phần tử có y). Cửa token: true gọi không token
- *     → 401 KH_TOKEN_SAI; token: false → không 401.
+ *     → 401 KH_TOKEN_SAI; token: false → không 401; token: "tuy_chon" (KH-API-3) → gọi CÓ token và KHÔNG token đều 200 + đủ `tra`, token SAI
+ *     → 401 KH_TOKEN_SAI. Giá trị token khác ba giá trị này → ĐỎ.
  *  3. Mọi `code` thấy trong mọi câu trả lời (kể cả các ca lỗi dò thêm) ∈ ma_loi.
  *  4. Quét tĩnh server/routes/kh/index.js: route không có trong hợp đồng → ĐỎ; cửa hợp đồng không có route → ĐỎ. Bắt mọi `router.<x>(`
  *     (get/post/…/all/use/route, mọi kiểu nháy); đường không phải chữ viết thẳng → ĐỎ; router.use không đường chỉ nhận hàm mũi tên tại
@@ -164,7 +165,7 @@ async function main() {
   let tk = null, maBill = null, maDiem = null, maDon = null;
   const THAN = {
     'POST /dang-nhap/xin-ma': () => ({ sdt: SDT }),
-    'POST /dang-nhap/xac-minh': () => ({ sdt: SDT, ma: guiMa.layMaGiaCuoi()?.ma, ten: 'Khách mẫu' }),
+    'POST /dang-nhap/xac-minh': () => ({ sdt: SDT, ma: guiMa.layMaGiaCuoi()?.ma, ten: 'Khách mẫu', xung_ho: 'chi', dia_chi: 'Số 1 Phố Mẫu' }),
     'PUT /toi': () => ({ ten: 'Khách mẫu' }),
     'POST /nhan-ma-bill': () => ({ ma: maBill }),
     'POST /nhan-diem': () => ({ ma: maDiem }),
@@ -196,9 +197,23 @@ async function main() {
     const thieu = (c.tra || []).filter((d) => !coDuong(r.j, d.split('.')));
     k(`${ten(c)} → 200, đủ ${(c.tra || []).length} trường`, r.status === 200 && r.j.success === true && thieu.length === 0,
       `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}${thieu.length ? ' · thiếu ' + thieu.join(', ') : ''}`);
-    if (ten(c) === 'POST /dang-nhap/xac-minh') { tk = r.j.token || null; if (tk) await chuanBi(); }
+    if (ten(c) === 'POST /dang-nhap/xac-minh') {
+      // v3 (KH-API-3): khách MỚI đăng ký với xưng hô + địa chỉ → câu trả lời mang ĐÚNG giá trị đã gửi (không chỉ có tên trường).
+      k('xác minh khách mẫu mới: khach.xung_ho / khach.dia_chi = đúng giá trị gửi', r.j.khach?.xung_ho === 'chi' && r.j.khach?.dia_chi === 'Số 1 Phố Mẫu',
+        JSON.stringify(r.j.khach || null));
+      tk = r.j.token || null; if (tk) await chuanBi();
+    }
     const kt = await goi(c.pt, url, than);
-    k(`${ten(c)} không token → ${c.token ? '401 KH_TOKEN_SAI' : 'không 401'}`, c.token ? kt.status === 401 && kt.j.code === 'KH_TOKEN_SAI' : kt.status !== 401, `HTTP ${kt.status}`);
+    if (c.token === 'tuy_chon') {
+      const thieuK = (c.tra || []).filter((d) => !coDuong(kt.j, d.split('.')));
+      k(`${ten(c)} (token tuy_chon) không token → 200, đủ ${(c.tra || []).length} trường`, kt.status === 200 && kt.j.success === true && thieuK.length === 0,
+        `HTTP ${kt.status}${kt.j.code ? ' · ' + kt.j.code : ''}${thieuK.length ? ' · thiếu ' + thieuK.join(', ') : ''}`);
+      const sai = await goi(c.pt, url, than, 'khong.phai.token');
+      k(`${ten(c)} (token tuy_chon) token SAI → 401 KH_TOKEN_SAI`, sai.status === 401 && sai.j.code === 'KH_TOKEN_SAI', `HTTP ${sai.status}`);
+    } else {
+      k(`${ten(c)} token: ${JSON.stringify(c.token)} là true / false / "tuy_chon"`, c.token === true || c.token === false);
+      k(`${ten(c)} không token → ${c.token ? '401 KH_TOKEN_SAI' : 'không 401'}`, c.token ? kt.status === 401 && kt.j.code === 'KH_TOKEN_SAI' : kt.status !== 401, `HTTP ${kt.status}`);
+    }
   }
 
   muc('[I3] mọi `code` trả về (kể cả các ca lỗi dò thêm) ∈ ma_loi');
