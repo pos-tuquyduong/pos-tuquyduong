@@ -1,0 +1,28 @@
+KHO-2b — bằng chứng ĐỎ trên code gốc (31.10.2026)
+Gốc: 617f4e4 (PHIEU: KHO-2b — server/ chưa vá). Bài thử: cong_cu/thu_KHO2b.js ở commit 95671d6.
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc 617f4e4   (git archive server/ của gốc → node cong_cu/thu_KHO2b.js --may-chu <bản chép>)
+
+Lần chạy đầu (trước khi sửa bất kỳ file nào, cây làm việc = gốc + bài thử, commit 3343ba5): 5 đạt · 62 hỏng (thoát 1, chạy hết, không sập).
+
+cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 56 hỏng (thoát 1, chạy hết, không sập)
+  ✗ N1 bước 007 đã chạy: kho_phieu.don_id, kho_phieu.su_co, kho_phieu_dong.han_dung có
+  ✗ A1 theo công thức: Nước cam ×10 + Trà gừng ×4 → Cam 2 · Gừng 0.5 + 0.4 gộp · Kỷ tử 0.02 …  — HTTP 403 · DUONG_LA
+  ✗ A2 · A3 · A4 · A5 · A5b · A6 · A7 · A7b · A8 · A10 · A12 · A13
+  ✗ A10 hạn mức đặt hàng: quản lý đổi → 403; âm / chữ / số lẻ → 400; không ghi  — HTTP 403 | HTTP 200 | HTTP 200 | HTTP 200
+  ✗ B1 phiếu nhận chờ duyệt; chính người tạo duyệt → 403 TU_DUYET; tồn + lô không đổi  — HTTP 403 · DUONG_LA | HTTP 500
+  ✗ B2 · B3 · B4 · B4b · B5 · B7 · B8/C1 · B9 · C0 · C2 · G3
+  ✗ H2/H3 phiếu xuất (KHO-2a) trừ lô của phiếu nhận hạn gần trước (Cam lô 10/11), KHÔNG trừ lô đã quá hạn  — lo_id null (gốc chưa có lô nguyên liệu nào)
+  ✗ D1 · D2 · D3 · D4 · D4b · D5 · D6 · D6b · D8 · D9 · D10 · D11 · D12 · D13
+  ✗ E1 bấm hai lần cùng ma_gui (song song) → MỘT phiếu cho DH, PN, PS  — ["DH:0:false","PN:0:false","PS:0:false"]
+  ✗ E2 · E3 · E3b · E4 · E4b · E5 · E5b · E5c · E5d
+  ✗ E4b chủ quán sửa phiếu nhận → …  — HTTP 400 · SO_PHAN_SAI (gốc chỉ sửa được phiếu xuất)
+  ✗ F2 · F3 · F4 · F4b · F6
+Ca XANH trên gốc (đúng — không phụ thuộc server/ gốc): A9 (gốc không có đơn nào → tồn không đổi), A11 (không có dòng), B6 (không có
+dòng ngoài đơn), K4 (giá nhập không đổi), F1 (công thức tồn của bài khớp /ton) — các ca này ĐỎ khi đột biến tương ứng (BV-DH-VAO-TON bắt A9);
+G1 · G2 · C3 · G3b · D7 · K1 đọc client/ và kiem_tra ở cây làm việc (lần chạy đầu 3343ba5 chúng ĐỎ: 5 đạt · 62 hỏng).
+
+Bài thử cũ: KHÔNG sửa thu_KHO1.js, thu_KHO2a.js — chạy nguyên vẹn trên code mới: 111 đạt · 0 hỏng, 86 đạt · 0 hỏng.
+
+Đột biến (python3 viec/KHO-2b/dot_bien.py): ĐỐI CHỨNG XANH · 67 đạt · 0 hỏng · TỔNG 26 đột biến · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+SỐ CA cong_cu/thu_KHO2b.js: 67
