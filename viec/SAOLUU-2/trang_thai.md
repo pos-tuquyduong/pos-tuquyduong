@@ -30,7 +30,7 @@
 - Thêm ca E8 (thiếu bảng kho → `KHO_KHONG_DEM_DUOC`): phần kho đã dời từ backup.js sang khoiPhuc.js nên 4 neo đột biến của KHO-1 rữa
   (xem Phát hiện) — chuyển hai phép tương ứng sang bộ đột biến của việc này.
 
-### Bảng chỗ vá → đột biến (`viec/SAOLUU-2/dot_bien.py`, 15/15 BẮT, đối chứng 28 đạt · 0 hỏng)
+### Bảng chỗ vá → đột biến (`viec/SAOLUU-2/dot_bien.py`, 17/17 BẮT, đối chứng 30 đạt · 0 hỏng — sau vòng sửa 1)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | khoiPhuc.js `docTrang` — ô trống = null | `VS-DONG-DAU` | A1 |
@@ -48,16 +48,83 @@
 | khoiPhuc.js — đếm kho lỗi không sập (dời) | `BV-KHO-TRONG-LOI` | E8 |
 | khoiPhuc.js — lý do KHO_KHONG_DEM_DUOC (dời) | `VS-LY-DO-KHOI-PHUC` | E8 |
 | khoiPhuc.js — trang trống bỏ qua, không xoá bảng | `VS-TRANG-TRONG-XOA` | E7 |
+| khoiPhuc.js `laLoiDuLieu` — chỉ lỗi dữ liệu báo dòng hỏng (vòng sửa 1) | `VS-LOI-HA-TANG-THANH-DONG` | B7 |
+| khoiPhuc.js — số dòng Excel thật `__rowNum__ + 1` (vòng sửa 1) | `VS-SO-DONG-THU-TU` | B6 |
 
 Tên đột biến: VS-DONG-DAU · VS-RONG-THANH-NULL · BV-LOC-COT · VS-NUOT-LOI · VS-NGOAI-GIAO-DICH · VS-THU-TU-FILE · BV-BANG-CHUA-CO ·
-BV-XEM-TRUOC · BV-DON-APP · BV-SAO-LUU-DON-APP · BV-KHO-CO-DU-LIEU · BV-NANG-CAP · BV-KHO-TRONG-LOI · VS-LY-DO-KHOI-PHUC · VS-TRANG-TRONG-XOA
+BV-XEM-TRUOC · BV-DON-APP · BV-SAO-LUU-DON-APP · BV-KHO-CO-DU-LIEU · BV-NANG-CAP · BV-KHO-TRONG-LOI · VS-LY-DO-KHOI-PHUC · VS-TRANG-TRONG-XOA ·
+VS-LOI-HA-TANG-THANH-DONG · VS-SO-DONG-THU-TU
 
 ### Kiểm (bước 6)
-- `node cong_cu/thu_SAOLUU2.js` → 28 đạt · 0 hỏng. Gốc e94c504 → 12 đạt · 16 hỏng (`bang_chung_do.txt`).
+- `node cong_cu/thu_SAOLUU2.js` → 30 đạt · 0 hỏng (sau vòng sửa 1). Gốc e94c504 → 12 đạt · 18 hỏng (`bang_chung_do.txt`).
 - Bài cũ chạy lại sau vá: thu_KHO1 111/0 · thu_P26b 103/0 · thu_P3 100/0 — không phải sửa bài cũ nào.
 - `npm test` → PASS 84 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có từ trước: GET có lệnh ghi ở packages.js / products.js / sync.js).
 - Không đụng client/src → không cần build / --day-du.
-- Số dòng: server/utils/khoiPhuc.js 81 dòng mới; backup.js +22 / −95 (ròng −73) → máy chủ ròng ≈ +8; bài thử ≈ 250 — trong ngân sách.
+- Số dòng (ĐO LẠI sau vòng sửa 1, `wc -l` ở 1a4bdea): server/utils/khoiPhuc.js 75 dòng mới; backup.js +22 / −95 (ròng −73) → máy chủ ròng
+  ≈ +2; bài thử 306 dòng — trong ngân sách (~150 máy chủ + ~300 thử). (Lần ghi trước "81" / "≈ 250" là SAI — soát độc lập bắt, K1.)
+
+## Soát độc lập — vòng 1 (agent general-purpose, /ra-soat) — NGUYÊN báo cáo
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- server/utils/khoiPhuc.js:55-57 — Mọi lỗi không phải "kho bận" đều bị coi là lỗi dữ liệu của một dòng. Ví dụ: Turso hết giờ giao dịch
+  (TRANSACTION_TIMEOUT — database.js:1550 có nêu mã này), mất mạng (fetch failed), hoặc BEGIN hỏng. Khi đó lyDo() (dòng 18) rơi về câu mặc
+  định 'dữ liệu không hợp lệ', và backup.js:337-340 trả 400 KHOI_PHUC_DONG_HONG "Trang X dòng N: dữ liệu không hợp lệ". Chủ quán sẽ đi sửa
+  một dòng Excel không có lỗi gì. Dữ liệu vẫn được giữ nguyên nhờ rollback, nhưng lời báo sai. Lỗi ở câu DELETE còn báo "Trang X: dữ liệu
+  không hợp lệ" với dong = null. Cách sửa gọn: chỉ gắn loiDong khi err.code bắt đầu bằng SQLITE_CONSTRAINT / SQLITE_MISMATCH hoặc khi LY_DO
+  khớp; còn lại ném nguyên lỗi → loiGhi → 500 LOI_MAY_CHU. Hiện chưa có ca thử nào cho lỗi không phải dữ liệu. — K1 + K3.
+- viec/SAOLUU-2/trang_thai.md, mục "Kiểm (bước 6)", dòng "Số dòng" — Ghi "khoiPhuc.js 81 dòng mới". Thực tế wc -l ra 73. Ghi "bài thử
+  ≈ 250", thực tế 291. — K1.
+- viec/SAOLUU-2/trang_thai.md — Chưa có mục CHƯA KIỂM, dù ke_hoach.md:101-103 đã hứa ghi lại (Turso thật). ke_hoach.md:65 cũng hứa ghi
+  CHƯA KIỂM cho cột don_id: grep don_id trong database.js và nang_cap/ ra rỗng, nên nghiệm thu A về don_id chưa phủ được. — Thiếu mục bắt buộc.
+- server/utils/khoiPhuc.js:64 — Số dòng Excel tính bằng i + 2, nên lệch khi giữa trang có dòng trống: sheet_to_json bỏ dòng trống. Đã đo
+  bằng chạy: xoá dòng giữa thì dòng sau có __rowNum__ = 3 (dòng Excel 4), nhưng code báo dòng 3. Sửa gọn: d.__rowNum__ + 1. — Nhẹ, K1.
+NGHI NGỜ:
+- Turso: cả lần khôi phục chạy trong MỘT giao dịch tương tác, mỗi dòng một lượt gọi HTTP (khoiPhuc.js:61-65). Nếu Turso / sqld có hạn giờ
+  cho giao dịch tương tác (khoảng 5 giây, CHƯA kiểm được), thì khôi phục vài trăm khách sẽ luôn hỏng trên production. Cần thử trên Turso
+  thật trước khai trương.
+- Khoá ngoại: có cách đơn giản hơn: PRAGMA defer_foreign_keys = ON trong giao dịch (khoá ngoại kiểm lúc commit), bỏ được phần sắp xếp
+  cha/con. Chưa thử PRAGMA này trong giao dịch tương tác Turso.
+- Phép chốt "đủ bảng" (thu_SAOLUU2.js:89-95) có ba chỗ hở: (a) chỉ bắt CREATE TABLE IF NOT EXISTS; (b) readdirSync không đệ quy, phiếu ghi
+  server/nang_cap/**; (c) không canh bảng tiền mới vào BACKUP_TABLES mà quên BANG_KHONG_KHOI_PHUC. Ghi để xét KHOÁ.
+- khoiPhuc.js:23 đo "kho trống" ngoài giao dịch rồi xoá kho trong giao dịch. Có từ trước; chủ quán đã chốt chỉ khôi phục khi đóng cửa.
+NGHIỆM THU: 6/6 mục có bằng chứng (A: A1–A4 + F1, don_id phải ghi CHƯA KIỂM · B: B1, B2, B4, B5 + B3 · C: C1–C5 · D: D1, D2a–c ·
+  E: E1–E8 (E5 dùng file tự dựng) · F: F1). Mục thiếu: không.
+CHƯA SOÁT ĐƯỢC: hành vi trên Turso thật (hạn giờ giao dịch, PRAGMA, thời gian giữ khoá); file .xlsx sau khi mở / lưu lại bằng Excel thật;
+  bộ đột biến KHO-1 (đã ghi Phát hiện).
+BÀI HỌC:
+- KHOÁ: ca "lỗi không phải dữ liệu" phải ra 500 LOI_MAY_CHU, không 400 KHOI_PHUC_DONG_HONG; kèm đột biến đưa lỗi phân loại cũ trở lại.
+- KHOÁ: phép chốt đủ bảng bắt cả CREATE TABLE không IF NOT EXISTS, quét đệ quy nang_cap/, đòi mọi bảng tiền có trong BANG_KHONG_KHOI_PHUC.
+- NGUYÊN TẮC (K1/K4): gom lỗi thành "lý do cho người dùng" → một vị từ tách lỗi DỮ LIỆU khỏi lỗi HẠ TẦNG; câu mặc định không gán cho mọi lỗi lạ.
+- NGUYÊN TẮC (K1): số dòng / số lượng trong trang_thai.md đo lại ở commit cuối (wc -l).
+- NGUYÊN TẮC: đổi đường ghi sang "một giao dịch tương tác cho cả lô" trên Turso → ca đo hoặc CHƯA KIỂM về hạn giờ giao dịch.
+```
+(Báo cáo dài hơn ở bản gốc — phần "ĐÃ RÀ TỪNG MỤC" lược: K3 đỏ trên gốc 16 hỏng, 15/15 đột biến BẮT; K4 mọi chỗ đọc trang qua docTrang;
+K5 mọi luồng hợp lệ có ca; đường tiền chanTrangTien chạy trước ở cả hai route; P1 không đụng client.)
+
+### Vòng sửa 1 — chỉ đúng các lỗi lần soát nêu
+| Lỗi soát nêu | Sửa | Ca thử (đỏ trên bản vá trước vòng sửa 3479327) | Đột biến |
+|---|---|---|---|
+| lỗi hạ tầng báo nhầm "dòng N hỏng" | khoiPhuc.js `laLoiDuLieu`: chỉ `SQLITE_CONSTRAINT*` / `SQLITE_MISMATCH` thành loiDong; còn lại ném nguyên → `loiGhi` (500 LOI_MAY_CHU / 409 KHO_BAN) | B7 (trigger đọc bảng không có → SQLITE_ERROR) | VS-LOI-HA-TANG-THANH-DONG |
+| số dòng lệch khi có dòng trống | `d.__rowNum__ + 1` | B6 (dòng trống giữa trang → báo dòng Excel 5) | VS-SO-DONG-THU-TU |
+| số liệu sai trong trang_thai.md | đo lại `wc -l` (mục Kiểm) | — | — |
+| thiếu CHƯA KIỂM (Turso, don_id) | thêm mục CHƯA KIỂM bên dưới | — | — |
+
+Nghi ngờ của người soát — xử lý: (1) hạn giờ giao dịch Turso → CHƯA KIỂM (máy không có Turso); (2) `defer_foreign_keys` → KHÔNG đổi: sắp
+xếp cha/con đã có ca B5 + đột biến, và PRAGMA trong giao dịch tương tác Turso chưa thử được — đổi sang cách chưa đo là rủi ro hơn; (3) phép
+chốt đủ bảng hở (a)(b)(c) → đề xuất KHOÁ ở Bài học (phiếu chỉ đòi mức BACKUP_TABLES; hôm nay không có bảng nào lọt); (4) đo kho trống ngoài
+giao dịch → có từ trước, chủ quán chốt khôi phục khi đóng cửa.
+
+## CHƯA KIỂM
+- **Turso thật — hạn giờ giao dịch tương tác:** cả lần khôi phục là MỘT giao dịch, mỗi dòng một lượt gọi HTTP. Nếu Turso cắt giao dịch kéo dài
+  (người soát nhớ ~5 giây, CHƯA xác minh), khôi phục bảng lớn (vài trăm khách, cột qr_code nặng) có thể hỏng trên production — sau vòng sửa 1
+  lỗi đó ra 500 LOI_MAY_CHU và KHÔNG đổi dữ liệu (rollback), nhưng khôi phục không làm được. **Cần chủ quán / chat thử một lần trên Turso thật
+  (bản sao dữ liệu, ngoài giờ bán) trước khai trương** — đây là đường cứu khi mất máy. Bài thử chỉ chạy trên kho file libsql.
+- Khoá ghi trên Turso trong lúc khôi phục: chủ quán đã chấp nhận (chỉ khôi phục khi đóng cửa).
+- Cột `don_id` (phiếu nghiệm thu A): grep `don_id` trong server/database.js + server/nang_cap/ ra rỗng ở nền này → không có bảng nào để thử.
+  Cột trống dòng đầu được phủ chung bằng A1, A2, F1 (cùng một đường đọc `docTrang`).
+- File .xlsx đã mở và lưu lại bằng Excel / Google Sheets thật (ô `''` có thể bị bỏ, kiểu ô số có thể đổi) — bài thử chỉ dùng file do thư viện xlsx dựng.
+- Bộ đột biến KHO-1 có 4 neo rữa — không chạy lại (ngoài Phạm vi, xem Phát hiện).
 
 ## Câu hỏi
 (không còn — câu trang trống đã được chủ quán trả lời 31.10)
