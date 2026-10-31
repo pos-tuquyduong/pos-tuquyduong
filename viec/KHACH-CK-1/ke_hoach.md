@@ -109,6 +109,9 @@ Bạn cần: đọc mục 5 (hai chỗ mình đề xuất, bạn chỉ cần xá
 - `BV-CHAN-V1` gỡ chặn cửa customers.js → B3 bắt. `VS-CHAN-V1-GHI-THAN` chặn đúng nhưng câu UPDATE vẫn ghi `discount_value` từ thân (âm "-5" lọt vào hồ sơ) → ca thêm B7 (PUT value −5 → hồ sơ 0) bắt.
 - `VS-004-KHONG-SAO-LUU` bỏ câu sao lưu → C1 bắt. `VS-004-SAO-LUU-SAU` sao lưu SAU UPDATE → C1 (mức cũ trong bảng sao lưu) bắt. `VS-004-CHI-PERCENT` UPDATE thêm `AND discount_type = 'percent'` → C1 bắt.
 - `BV-TINH-KHACHGIAM` khôi phục `khachGiam` → D1/D2 bắt. `VS-NHAN-GHI-CHU` giữ nhãn cũ → E1 bắt.
+- **Tên khi dựng (vòng soát 2 bắt lệch tên):** danh sách trên là dự kiến; tên THẬT nằm ở `dot_bien.py` và bảng của `trang_thai.md`:
+  `VS-CHAN-V2-PARSE` → `VS-CHAN-V2-CHI-PERCENT` (B2, chuỗi "5000" vẫn chặn) · `VS-CHAN-V1-GHI-THAN` → `VS-V1-GHI-LOAI-THAN` (B7) ·
+  `VS-004-KHONG-SAO-LUU` → `BV-004-SAO-LUU` · `VS-004-SAO-LUU-SAU` → `VS-004-SAO-LUU-SAU-UPDATE`; `VS-LO2-CHI-PERCENT` dựng ở vòng sửa 2.
 
 ## 4. Bài thử cũ phải sửa (LUAT §6.8 — hành vi chủ quán đã duyệt đổi 29.10)
 
