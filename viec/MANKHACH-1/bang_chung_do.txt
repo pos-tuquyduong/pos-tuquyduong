@@ -7,11 +7,11 @@ chạy `cd <nháp>/goc && node cong_cu/thu_MANKHACH1.js`).
 Trên gốc 10b1abc:  0 đạt · 1 hỏng  → ĐỎ
     ✗ có routes/man-khach.js nạp được — Cannot find module '…/server/routes/man-khach.js'
   (Gốc chưa có route / bảng màn khách nên bài dừng ngay ở ca đầu; sức bắt từng ca chứng minh bằng ĐỘT BIẾN bên dưới, không bằng ca đỏ này.)
-Sau vá (HEAD): 49 đạt · 0 hỏng
-SỐ CA thu_MANKHACH1.js: 49
+Sau vá (HEAD, sau vòng sửa 1 thêm ca A17): 50 đạt · 0 hỏng
+SỐ CA cong_cu/thu_MANKHACH1.js: 50
 
 ═══ Đột biến (viec/MANKHACH-1/dot_bien.py) ═══
 Đối chứng (bản chưa đột biến): XANH · 49 đạt · 0 hỏng
-TỔNG 45 đột biến · BẮT 45 · SỐNG 0 · HỎNG 0 · LẠC 0
+TỔNG 45 đột biến · BẮT 45 · SỐNG 0 · HỎNG 0 · LẠC 0   (sau vòng sửa 1: 50 đột biến · BẮT 50, đối chứng 50 đạt)
   (lần chạy đầu: 40 BẮT · 4 LẠC · 1 SỐNG — 4 LẠC do bài sập khi ghép hỏng sớm → sửa bài chịu được lỗi; 1 SỐNG là VS-SO-PHAI-TRA-LA-TONG
    vì chưa có ca phiên trừ tài khoản → thêm ca B17.)
