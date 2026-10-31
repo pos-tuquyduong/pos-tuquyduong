@@ -1,46 +1,24 @@
-# SAOLUU-2 — bằng chứng đỏ: node cong_cu/thu_SAOLUU2.js trên code GỐC (bài 7ab1e0c, server/ chưa vá = e94c504)
+# SAOLUU-2 — bằng chứng đỏ: bài cong_cu/thu_SAOLUU2.js (HEAD, 27 ca) chạy trên server/ GỐC e94c504
+# lệnh: python3 viec/SAOLUU-2/dot_bien.py --goc e94c504   (lần ghi đầu ở 7ab1e0c, 26 ca, 15 hỏng — thay bằng lần này sau khi thêm ca B5)
 
-THỬ SAOLUU-2 — khôi phục sao lưu an toàn
-
-[D] đủ bảng
-  ✓ D2c mọi bảng database.js + nang_cap/ đều trong BACKUP_TABLES (47 bảng; bỏ qua _sao_luu_*)
-  ✓ D2a phép chốt BẮT được bảng bị bỏ khỏi BACKUP_TABLES (bản sao backup.js không có kho_lo)
-  ✓ D2b phép chốt BẮT được bảng mới ở một bước nâng cấp quên thêm vào sao lưu (file nháp 999 trong bộ nhớ, không ghi vào kho)
   ✗ D1 pos_don_app (KH-MUA-1) có trong BACKUP_TABLES VÀ BANG_KHONG_KHOI_PHUC
-
-[A] không mất cột
   ✗ A1 dòng đầu trống notes / xung_ho / address → dòng 2 vẫn đủ cả ba cột  — HTTP 200 · {"notes":null,"xung_ho":null,"address":null}
   ✗ A2 bảng khác (Nhật ký đồng bộ): dòng đầu trống ba cột → dòng 2 đủ  — HTTP 200 · {"details":null,"error_message":null,"created_by":null}
   ✗ A3 cột lạ trong file → 200, đủ 2 dòng, cot_bo_qua = ["cot_la"]  — HTTP 200 · {"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","status":"restored","rows":0,"total":2}
   ✗ A4 ô chữ rỗng '' khôi phục ra '' (không thành null)  — HTTP 200 · {"notes":null}
-
-[B] không mất dòng âm thầm — tất cả hoặc không
   ✗ B1 kho trống, trang 2 dòng Excel 4 vi phạm CHECK → 400 KHOI_PHUC_DONG_HONG, bảng + dòng + lý do; MỌI bảng không đổi (cả trang 1)  — HTTP 200 · bang undefined dong undefined ly_do undefined
   ✗ B2 trùng khoá chính ở dòng Excel 4 → 400, lý do trùng khoá; không đổi gì  — HTTP 200 · undefined
   ✗ B4 thiếu giá trị bắt buộc (NOT NULL) ở dòng Excel 3 → 400, không đổi gì  — HTTP 200
+  ✗ B5 trang con đứng TRƯỚC trang cha trong file (khoá ngoại bật) → 200, đủ cả nhóm lẫn thành viên (chèn cha trước, xoá con trước)  — HTTP 200
   ✗ B3 server/utils/khoiPhuc.js có và không còn console.error (lỗi chèn không bị nuốt)
-
-[C] xem trước khớp khôi phục
   ✗ C1 xem trước file có cột lạ → cot_bo_qua = ["cot_la"], fileRows 2 (như khôi phục báo)  — {"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","label":"Nhật ký đồng bộ","recognized":true,"fileRows":2,"currentRows":1}
   ✗ C2 xem trước trang kho khi kho CÓ dữ liệu → skipped KHO_CO_DU_LIEU (như khôi phục)  — [{"sheet":"Kho - Nguyên liệu","table":"kho_nguyen_lieu","label":"Kho - Nguyên liệu","recognized":true,"fileRows":1,"currentRows":3},{"sheet":"Nâng cấp dữ liệu","table":"pos_nang_cap","label":"Nâng cấp dữ liệu","recognized":true,"fileRows":1,"currentRows":5}]
   ✗ C4 xem trước trang Nâng cấp dữ liệu → skipped NANG_CAP_KHONG_KHOI_PHUC
-  ✓ C3 (giữ) xem trước trang tiền có dòng → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN
-  ✓ E2 khôi phục khi kho CÓ dữ liệu → bỏ bảng kho (KHO_CO_DU_LIEU); E3 pos_nang_cap không khôi phục; không đổi gì
   ✗ C5 xem trước bảng chưa có trong CSDL → skipped BANG_CHUA_CO  — [{"sheet":"Cài đặt","table":"pos_settings","label":"Cài đặt","recognized":true,"fileRows":1,"currentRows":23},{"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","label":"Nhật ký đồng bộ","recognized":true,"fileRows":1,"currentRows":0}]
   ✗ D3 khôi phục bảng chưa có trong CSDL → 200, skipped BANG_CHUA_CO; trang Cài đặt vẫn khôi phục  — HTTP 500 · SQLITE_ERROR: no such table: pos_sync_logs
-
-[E] giữ luật cũ
-  ✓ E1 trang tiền có dòng → 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN trước mọi ghi
-  ✓ E4 nhân viên không phải owner → 403 cả khôi phục lẫn xem trước
-  ✓ E5 (K5) file cũ thiếu cột mới (không có xung_ho / address) → 200, khách vào đủ
-  ✓ E7 kết quả giữ hình dạng màn Cài đặt đọc: success, status 'restored', rows 2, total 2; trang lạ + trang trống → skipped
-  ✓ E6 xuất như cũ: export-all có đủ trang của bảng đang có + _Metadata; export/:table 200 trả file
-
-[R] hai owner cùng bấm khôi phục một file
-  ✓ R1 mỗi lượt 200 hoặc 409 KHO_BAN; kết quả cuối đúng 40 dòng của file (không nhân đôi, không lẫn)
-
-[F] vòng tròn: sao lưu → khôi phục vào CSDL trống → sao lưu lại → giống từng ô
   ✗ F1 10 trang khôi phục — hai file giống từng ô (kể cả ô trống / ô chữ rỗng / kho)  — HTTP 200 · lệch: Khách hàng, Cài đặt, Nhật ký đồng bộ, Kho - Nguyên liệu
+  11 đạt · 16 hỏng
+GỐC e94c504: thoát 1
 
-  11 đạt · 15 hỏng
-
+# trên code ĐÃ VÁ (c7a8a76): node cong_cu/thu_SAOLUU2.js → 27 đạt · 0 hỏng
+SỐ CA cong_cu/thu_SAOLUU2.js: 27

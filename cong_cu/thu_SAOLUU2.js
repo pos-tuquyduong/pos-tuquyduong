@@ -223,6 +223,14 @@ async function main() {
     k("E7 kết quả giữ hình dạng màn Cài đặt đọc: success, status 'restored', rows 2, total 2; trang lạ + trang trống → skipped",
       e7.success === true && r7?.status === 'restored' && r7?.rows === 2 && r7?.total === 2
       && (e7.results || []).filter((r) => r.status === 'skipped').length === 2, JSON.stringify(e7.results));
+    // Nâng cấp hỏng = thiếu một bảng kho: đếm kho lỗi → bỏ bảng kho với lý do ĐÚNG; phần còn lại vẫn khôi phục (KHO-1 J6/J7, nay ở khoiPhuc.js).
+    await THU.db.run('ALTER TABLE kho_phieu RENAME TO kho_phieu_tam');
+    const e8 = await THU.gui(tepTu([['Cài đặt', [{ key: 'thu_e8', value: '1' }]], ['Kho - Nhà cung cấp', [{ id: 1, ten: 'NCC' }]]]));
+    await THU.db.run('ALTER TABLE kho_phieu_tam RENAME TO kho_phieu');
+    const r8 = (e8.results || []).find((r) => r.sheet === 'Kho - Nhà cung cấp');
+    k('E8 thiếu bảng kho (nâng cấp hỏng) → 200, bảng kho skipped KHO_KHONG_DEM_DUOC (không báo "kho có dữ liệu"); Cài đặt vẫn khôi phục',
+      e8.status === 200 && r8?.code === 'KHO_KHONG_DEM_DUOC' && !!(await THU.db.queryOne("SELECT 1 AS x FROM pos_settings WHERE key = 'thu_e8'")),
+      `${moTa(e8)} · ${JSON.stringify(r8)}`);
     const e6 = await THU.goi('GET', '/export-all');
     const ten = e6.tep ? docTep(e6.tep).SheetNames : [];
     const mot = await THU.goi('GET', '/export/pos_sync_logs');

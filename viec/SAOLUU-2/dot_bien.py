@@ -31,6 +31,8 @@ DOT_BIEN = [
   ('BV-SAO-LUU-DON-APP', [(B, "  { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },", '', 1)], r'✗ D1 '),
   ('BV-KHO-CO-DU-LIEU', [(K, "if (bang.name.startsWith('kho_') && !khoTrong) {", 'if (false) {', 1)], r'✗ (C2|E2) '),
   ('BV-NANG-CAP', [(K, "if (bang.name === 'pos_nang_cap') {", 'if (false) {', 1)], r'✗ (C4|E2) '),
+  ('BV-KHO-TRONG-LOI', [(K, "AS n').catch(() => null);", "AS n');", 1)], r'✗ E8 '),
+  ('VS-LY-DO-KHOI-PHUC', [(K, '      if (demKho) boQua(', '      if (true) boQua(', 1)], r'✗ E8 '),
   ('VS-TRANG-TRONG-XOA', [(K, "    if (!dong.length) { boQua('TRANG_TRONG', 'Không có dữ liệu'); continue; }", '', 1)], r'✗ E7 '),
 ]
 
