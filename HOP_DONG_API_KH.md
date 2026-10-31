@@ -65,12 +65,13 @@ DOC_TU_CODE: POS nhánh viec/KH-MUA-1 (server/routes/kh/index.js, loi.js, middle
     bấm lại. Thiếu / sai dạng (chuỗi, số lẻ, âm) → 400 `YEU_CAU_KHONG_HOP_LE`.
   - `vi` → chốt ngay: đơn thật, `tien_trinh: da_tra`, `qr: null`. `qr` / `vi_qr` → `tien_trinh: cho_tra`, `qr { chuoi, het_han }` (chuỗi VietQR để vẽ
     mã; hết hạn sau 10 phút — `het_han` giờ VN). Đơn CHỈ thành đơn thật (về quầy, kêu chuông) khi tiền về đủ.
-  - Mỗi khách ≤ 10 lần / 10 phút (đếm trong bộ nhớ máy chủ) → 429 `QUA_NHIEU_LAN` kèm `thu_lai_sau_giay`. Gửi lại cùng `khoa_gui` không tính lượt.
+  - Mỗi khách ≤ 10 lần / 10 phút (đếm trong bộ nhớ máy chủ) → 429 `QUA_NHIEU_LAN` kèm `thu_lai_sau_giay`. Gửi lại cùng `khoa_gui` mà nhận đơn cũ
+    (200 `trung`), 409 `KHOA_GUI_DA_DUNG` hay 503 `DANG_XU_LY` thì không tính lượt; sau một trả lời 4xx khoá được xử lý như lần đầu nên CÓ tính lượt.
 - **Luật 4xx:** MỌI trả lời 4xx của `POST /don` = chưa tạo đơn, chưa giữ / trừ ví. Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như lần đầu.
 - **`khoa_gui`** (BẮT BUỘC): 16–64 ký tự `A-Z a-z 0-9 -`; mỗi lần khách bấm Đặt một khoá mới, gửi lại (mạng chập chờn, 5xx) dùng ĐÚNG khoá đó.
   Sai / thiếu → 400 `KHOA_GUI_SAI`. Cùng khoá + cùng giỏ (món, SL, ghi chú, mã, cách nhận, cách trả — `pin`, `tong_da_xem` không tính) trong 24 giờ
   → 200 đơn cũ, `trung: true` (không giữ ví lần hai); cùng khoá mà giỏ khác, hoặc quá 24 giờ → 409 `KHOA_GUI_DA_DUNG` (khoá nhớ theo khách).
-  Hai yêu cầu cùng khoá đến cùng lúc → một đơn; yêu cầu kia nhận 503 `DANG_XU_LY` — gửi lại cùng khoá sau 2 giây (lần đầu xong thì nhận
+  Hai yêu cầu cùng khoá đến cùng lúc, hoặc gửi lại khi lần đầu chưa xong (kể cả `vi` đang chốt) → một đơn; yêu cầu kia nhận 503 `DANG_XU_LY` — gửi lại cùng khoá sau 2 giây (lần đầu xong thì nhận
   đúng đơn đó). Vẫn `DANG_XU_LY` sau khoảng 1 phút → App mở `GET /don` xem đơn đã có chưa (đơn hiện ở đó ngay khi đã có phiên trả tiền)
   rồi mới cho khách bấm Đặt lại (khoá mới) — máy chủ KHÔNG tự bỏ khoá đang xử lý. Lưới thứ hai: khoá KHÁC nhưng
   cùng giỏ, đơn trước còn `cho_tra`, trong 10 giây → trả đơn trước `trung: true`.
