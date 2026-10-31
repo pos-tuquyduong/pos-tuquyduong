@@ -1,5 +1,5 @@
-# SAOLUU-2 — bằng chứng đỏ: bài cong_cu/thu_SAOLUU2.js (HEAD, 27 ca) chạy trên server/ GỐC e94c504
-# lệnh: python3 viec/SAOLUU-2/dot_bien.py --goc e94c504   (lần ghi đầu ở 7ab1e0c, 26 ca, 15 hỏng — thay bằng lần này sau khi thêm ca B5)
+# SAOLUU-2 — bằng chứng đỏ: bài cong_cu/thu_SAOLUU2.js (HEAD ce5fcbc, 28 ca) chạy trên server/ GỐC e94c504
+# lệnh: python3 viec/SAOLUU-2/dot_bien.py --goc e94c504   (lần ghi trước: 26 ca ở 7ab1e0c, 27 ca sau B5 — thay bằng lần này sau khi thêm ca E8)
 
   ✗ D1 pos_don_app (KH-MUA-1) có trong BACKUP_TABLES VÀ BANG_KHONG_KHOI_PHUC
   ✗ A1 dòng đầu trống notes / xung_ho / address → dòng 2 vẫn đủ cả ba cột  — HTTP 200 · {"notes":null,"xung_ho":null,"address":null}
@@ -17,8 +17,8 @@
   ✗ C5 xem trước bảng chưa có trong CSDL → skipped BANG_CHUA_CO  — [{"sheet":"Cài đặt","table":"pos_settings","label":"Cài đặt","recognized":true,"fileRows":1,"currentRows":23},{"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","label":"Nhật ký đồng bộ","recognized":true,"fileRows":1,"currentRows":0}]
   ✗ D3 khôi phục bảng chưa có trong CSDL → 200, skipped BANG_CHUA_CO; trang Cài đặt vẫn khôi phục  — HTTP 500 · SQLITE_ERROR: no such table: pos_sync_logs
   ✗ F1 10 trang khôi phục — hai file giống từng ô (kể cả ô trống / ô chữ rỗng / kho)  — HTTP 200 · lệch: Khách hàng, Cài đặt, Nhật ký đồng bộ, Kho - Nguyên liệu
-  11 đạt · 16 hỏng
+  12 đạt · 16 hỏng
 GỐC e94c504: thoát 1
 
-# trên code ĐÃ VÁ (c7a8a76): node cong_cu/thu_SAOLUU2.js → 27 đạt · 0 hỏng
-SỐ CA cong_cu/thu_SAOLUU2.js: 27
+# trên code ĐÃ VÁ (ce5fcbc): đối chứng dot_bien.py → 28 đạt · 0 hỏng
+SỐ CA cong_cu/thu_SAOLUU2.js: 28
