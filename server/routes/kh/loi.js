@@ -16,11 +16,31 @@ const LOI = {
   KHONG_THAY_DON: [404, 'Không tìm thấy đơn'],
   KHONG_TIM_THAY: [404, 'Không có chức năng này'],
   YEU_CAU_KHONG_HOP_LE: [400, 'Yêu cầu không hợp lệ'],
+  LOI_MAY_CHU: [500, 'Lỗi máy chủ, thử lại sau'],
+  // KH-MUA-1 — đặt đơn App
+  CHUA_GIAO: [400, 'Chưa nhận giao hàng qua App — chọn nhận tại quán'],
+  NGOAI_GIO: [400, 'Quán đang ngoài giờ mở cửa — chưa nhận đơn'],
+  QUA_GIO_NHAN_DON: [400, 'Quán sắp đóng cửa — đã ngừng nhận đơn qua App'],
+  HET_HANG: [400, 'Món đã hết hàng'],
+  MON_KHONG_BAN: [400, 'Món này hiện không bán'],
+  KHOA_GUI_SAI: [400, 'Khoá gửi không hợp lệ'],
+  KHOA_GUI_DA_DUNG: [409, 'Khoá gửi đã dùng cho một đơn khác'],
+  DANG_XU_LY: [503, 'Đơn đang được xử lý — thử lại sau giây lát'],
+  GIA_DA_DOI: [409, 'Giá đơn vừa thay đổi — xem lại tổng tiền rồi đặt lại'],
+  VI_KHONG_DU: [400, 'Ví không đủ trả cả đơn'],
+  DA_TRA_GOI_QUAN: [400, 'Đơn đã trả tiền — muốn huỷ hãy gọi quán'],
+  DON_KHONG_HOP_LE: [400, 'Đơn không hợp lệ'],
 };
 
-function bao(res, code) {
+/** { status, body } của một lỗi — `them` thêm trường (ma, thu_lai_sau_giay, bao_gia) hoặc thay `error` bằng lời cụ thể hơn. */
+function thanLoi(code, them = {}) {
   const [status, error] = LOI[code];
-  return res.status(status).json({ error, code });
+  return { status, body: { error, code, ...them } };
+}
+
+function bao(res, code, them) {
+  const t = thanLoi(code, them);
+  return res.status(t.status).json(t.body);
 }
 
 /** Kho bận → 409 KHO_BAN (dùng lại loiGhi); lỗi khác → 500 LOI_MAY_CHU, lời báo chỉ vào log. */
@@ -40,4 +60,4 @@ function loiTangKh(err, req, res, next) {
   return loiMayChu(res, err, 'kh');
 }
 
-module.exports = { bao, loiMayChu, loiTangKh };
+module.exports = { bao, thanLoi, loiMayChu, loiTangKh };
