@@ -22,7 +22,7 @@ DOT_BIEN = [
   ('VS-DONG-DAU', [(K, 'XLSX.utils.sheet_to_json(ws, { defval: null })', 'XLSX.utils.sheet_to_json(ws)', 1)], r'✗ (A[12]|F1) '),
   ('VS-RONG-THANH-NULL', [(K, 'm.cot.map((c) => d[c])', "m.cot.map((c) => (d[c] === '' ? null : d[c]))", 1)], r'✗ (A4|F1) '),
   ('BV-LOC-COT', [(K, 'cot: cotTrang.filter((c) => cotBang.has(c))', 'cot: cotTrang', 1)], r'✗ A3 '),
-  ('VS-NUOT-LOI', [(K, '      if (!laLoiDuLieu(err)) throw err;\n      throw Object.assign(', '      if (!laLoiDuLieu(err)) throw err;\n      return; throw Object.assign(', 1)], r'✗ B[124] '),
+  ('VS-NUOT-LOI', [(K, '        if (!laLoiDuLieu(err)) throw err;\n        throw Object.assign(', '        if (!laLoiDuLieu(err)) throw err;\n        return; throw Object.assign(', 1)], r'✗ B[124] '),
   ('VS-NGOAI-GIAO-DICH', [(K, 'await chay(m, null, `DELETE FROM ${m.table}`, []);', "await require('../database').run(`DELETE FROM ${m.table}`);", 1)], r'✗ B1 '),
   ('VS-THU-TU-FILE', [(K, ".filter((m) => m.status === 'se_khoi_phuc').sort((a, b) => a.viTri - b.viTri);", ".filter((m) => m.status === 'se_khoi_phuc');", 1)], r'✗ B5 '),
   ('BV-BANG-CHUA-CO', [(K, "    if (!cotBang.size) { boQua('BANG_CHUA_CO', 'Bỏ qua vì cơ sở dữ liệu chưa có bảng này'); continue; }\n", '', 1)], r'✗ (C5|D3) '),
