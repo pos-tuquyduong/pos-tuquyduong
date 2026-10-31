@@ -59,7 +59,7 @@ DOT_BIEN = [
   # ── soát lần 1: sửa giữ trường cũ · sửa chỉ phiếu đã duyệt · thân sửa hết hạn của màn hình · duyệt kiểm lại lô chọn sẵn ──
   ('BV-SUA-GIU-TRUONG-CU', [(D, "THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body })", 'THAN[cu.loai](req.body)', 1)],
     r'✗ E4c '),
-  ('BV-SUA-CHI-DA-DUYET', [(D, "if (cu.trang_thai !== 'da_duyet') return", 'if (false) return', 1)], r'✗ E4d '),
+  ('BV-SUA-CHI-DA-DUYET', [(D, "if (cu.trang_thai === 'cho_duyet') return", 'if (false) return', 1)], r'✗ E4d '),
   ('VS-PS-LO-KEM-KHOA', [(PS, "nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null,",
     'nguyen_lieu_id: Number(m?.nguyen_lieu_id) || null, san_pham_id: Number(m?.san_pham_id) || null,', 1)], r'✗ E5e '),
   ('BV-DUYET-KIEM-LO', [(PS, ") < -${tinh.SAI_SO} LIMIT 1`, [id])) {", ") < -1e9 LIMIT 1`, [id])) {", 1)], r'✗ D14 '),
