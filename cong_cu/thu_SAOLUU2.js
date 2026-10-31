@@ -158,6 +158,12 @@ async function main() {
     const b4 = await THU.gui(tepTu([['Nhật ký đồng bộ', [{ id: 1, type: 'ok' }, { id: 2, type: null, file_name: 'thiếu type' }]]]));
     k('B4 thiếu giá trị bắt buộc (NOT NULL) ở dòng Excel 3 → 400, không đổi gì', b4.status === 400 && b4.dong === 3 && /NOT NULL/.test(b4.ly_do || '')
       && (await THU.bam()) === truoc, moTa(b4));
+    // libsql BẬT khoá ngoại (PRAGMA foreign_keys = 1): pos_product_group_members.group_id → pos_product_groups. File đặt trang CON trước trang CHA.
+    const b5 = await THU.gui(tepTu([['Thành viên nhóm SP', [{ id: 1, group_id: 77, sx_product_type: 'juice', sx_product_id: 1 }]],
+      ['Nhóm sản phẩm', [{ id: 77, code: 'G77', name: 'Nhóm 77' }]]]));
+    k('B5 trang con đứng TRƯỚC trang cha trong file (khoá ngoại bật) → 200, đủ cả nhóm lẫn thành viên (chèn cha trước, xoá con trước)',
+      b5.status === 200 && (await THU.db.query('SELECT id FROM pos_product_group_members WHERE group_id = 77')).length === 1
+      && (await THU.db.query('SELECT id FROM pos_product_groups')).length === 1, moTa(b5));
     const kp = doc(path.join(MAY_CHU, 'utils', 'khoiPhuc.js'));
     k('B3 server/utils/khoiPhuc.js có và không còn console.error (lỗi chèn không bị nuốt)', kp.length > 0 && !/console\.error/.test(bo(kp)));
   }
