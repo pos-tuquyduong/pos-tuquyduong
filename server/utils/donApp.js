@@ -6,6 +6,10 @@
  *   không cần ghi gì (dangGiu chỉ đếm phiên `cho` còn hạn).
  * - Luật 4xx (chủ quán 31.10): MỌI trả lời 4xx của datDon = chưa tạo đơn, chưa giữ / trừ ví, KHÔNG giữ khoá gửi — dòng giữ khoá bị xoá,
  *   phiên lỡ tạo bị huỷ (finally). Ngoại lệ đã duyệt (Q8): chốt ví hỏng sau khi tạo phiên để lại một dòng phiên `loi` không giữ tiền.
+ *   Ngoại lệ còn lại: taoPhien tự ném SAU khi giao dịch phiên đã ghi (phienId chưa về) → phiên `cho` mồ côi giữ ví tới hết hạn (HAN_PHUT) rồi
+ *   tự nhả; App nhận 5xx, không 4xx.
+ * - "Đã tạo xong" là cột `xong` riêng (soát vòng 2) — có phien_id KHÔNG có nghĩa là xong: tra khoá / lưới 10 giây / đơn của khách / huỷ chỉ
+ *   đọc dòng xong = 1.
  * - Dọn dẹp (finally) đọc lại CSDL, không tin cờ trong bộ nhớ: phiên đã `da_thu` (lỗi ném SAU khi chốt ví đã ghi) → GIỮ dòng đơn App để
  *   gửi lại cùng khoá trả đúng đơn đó, không trừ ví lần hai (soát vòng 1).
  */
@@ -177,9 +181,14 @@ async function datDon(khach, b) {
   const phone = khach.phone, khoa = b.khoa_gui;
   if (typeof khoa !== 'string' || !GIOI.KHOA_GUI.test(khoa)) return thanLoi('KHOA_GUI_SAI');
   const bam = bamGio(b);
-  const cu = await queryOne('SELECT * FROM pos_don_app WHERE phone = ? AND khoa_gui = ?', [phone, khoa]);
-  // Dòng giữ khoá chưa có phiên = yêu cầu cùng khoá đang chạy → 503, KHÔNG bao giờ tự xoá dòng của yêu cầu khác (soát vòng 1, lỗi 2).
-  if (cu && !cu.phien_id) return thanLoi('DANG_XU_LY');
+  let cu = await queryOne('SELECT * FROM pos_don_app WHERE phone = ? AND khoa_gui = ?', [phone, khoa]);
+  // Dòng chưa tạo xong = yêu cầu cùng khoá đang chạy → 503, KHÔNG bao giờ tự xoá dòng của yêu cầu khác (soát vòng 1, lỗi 2) — trừ khi phiên đã
+  // da_thu (lỗi ném SAU khi chốt ví đã ghi): đơn đã có → đánh dấu xong, trả đúng đơn đó (không trừ ví lần hai).
+  if (cu && !cu.xong) {
+    const p = cu.phien_id ? await docPhien(cu.phien_id) : null;
+    if (!p || p.trang_thai !== 'da_thu') return thanLoi('DANG_XU_LY');
+    await run('UPDATE pos_don_app SET xong = 1 WHERE id = ?', [cu.id]);
+  }
   if (cu) return cu.bam === bam && cu.tao_luc > truGiay(GIOI.NHO_KHOA_GIAY) ? traDon(cu, true) : thanLoi('KHOA_GUI_DA_DUNG');
   const cho = giuLuotDat(khach.id);
   if (cho) return thanLoi('QUA_NHIEU_LAN', { thu_lai_sau_giay: cho });
@@ -191,7 +200,7 @@ async function datDon(khach, b) {
   const kq = await kiemVaBaoGia(khach, b);
   if (kq.status) return kq;
   const trung = await queryOne(`SELECT a.* FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id
-    WHERE a.phone = ? AND a.bam = ? AND a.tao_luc > ? AND p.trang_thai = 'cho' AND p.het_han > ? ORDER BY a.id DESC LIMIT 1`,
+    WHERE a.phone = ? AND a.xong = 1 AND a.bam = ? AND a.tao_luc > ? AND p.trang_thai = 'cho' AND p.het_han > ? ORDER BY a.id DESC LIMIT 1`,
   [phone, bam, truGiay(GIOI.LUOI_GIAY), getNow()]);
   if (trung) return traDon(trung, true);
   if (kq.bao.tong !== b.tong_da_xem) return thanLoi('GIA_DA_DOI', { bao_gia: kq.bao });
@@ -225,6 +234,7 @@ async function datDon(khach, b) {
       const c = await chotPhien(await docPhien(phienId), 'tai_khoan', { nguoi: NGUOI });
       if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(c.status === 200 ? { status: 500, body: {} } : c, kq.gio.mon, kq.d.ten);
     }
+    await run('UPDATE pos_don_app SET xong = 1 WHERE id = ?', [appId]);
     xong = true;
     return traDon({ ma, phien_id: phienId, tien_trinh_quay: '' }, false);
   } finally {
@@ -247,7 +257,7 @@ const CAU_DON = `SELECT * FROM (
     WHERE o.customer_phone = ?
     UNION ALL
     SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0
-    FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id WHERE a.phone = ? AND p.order_id IS NULL)`;
+    FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id WHERE a.phone = ? AND a.xong = 1 AND p.order_id IS NULL)`;
 
 function tomDon(r) {
   const tt = r.ma_app ? tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, r.loai ? { status: r.trang_thai } : null, r.tien_trinh_quay)
@@ -279,7 +289,7 @@ async function chiTietDon(phone, ma) {
 }
 
 async function huyDon(phone, ma) {
-  const a = await queryOne('SELECT * FROM pos_don_app WHERE phone = ? AND ma = ? AND phien_id IS NOT NULL', [phone, ma]);
+  const a = await queryOne('SELECT * FROM pos_don_app WHERE phone = ? AND ma = ? AND xong = 1', [phone, ma]);
   if (!a) return thanLoi('KHONG_THAY_DON');
   await huyPhien(a.phien_id);   // đua với webhook: cùng điều kiện trang_thai = 'cho' với cổng chốt — một bên thắng
   const kq = await traDon(a, false);
