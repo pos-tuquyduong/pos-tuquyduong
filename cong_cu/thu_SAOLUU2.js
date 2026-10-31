@@ -89,6 +89,7 @@ const nhatKy = (n, them = {}) => Array.from({ length: n }, (_, i) => ({ id: 9000
 function bangThieu(nguon, backupSrc) {
   const tao = new Set();
   for (const s of nguon) for (const m of s.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)) if (!m[1].startsWith('_sao_luu_')) tao.add(m[1]);
+  backupSrc = backupSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');   // dòng `// { name: 'x' }` không được tính là có
   const i = backupSrc.indexOf('BACKUP_TABLES');
   const ds = i < 0 ? '' : backupSrc.slice(i, backupSrc.indexOf('];', i));
   return { tao: [...tao], thieu: [...tao].filter((t) => !new RegExp(`name:\\s*'${t}'`).test(ds)) };
@@ -99,7 +100,7 @@ async function main() {
   const backupSrc = doc(path.join(MAY_CHU, 'routes', 'backup.js'));
   const thuMucNC = path.join(MAY_CHU, 'nang_cap');
   const nguonBang = [doc(path.join(MAY_CHU, 'database.js')),
-    ...fs.readdirSync(thuMucNC).filter((f) => f.endsWith('.js')).map((f) => doc(path.join(thuMucNC, f)))];
+    ...fs.readdirSync(thuMucNC, { recursive: true }).filter((f) => f.endsWith('.js')).map((f) => doc(path.join(thuMucNC, f)))];   // phiếu: nang_cap/**
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] đủ bảng');
@@ -110,6 +111,8 @@ async function main() {
     JSON.stringify(bangThieu(nguonBang, backupSrc.replace(/\{ name: 'kho_lo'[^}]*\},?/, '')).thieu) === '["kho_lo"]');
   k('D2b phép chốt BẮT được bảng mới ở một bước nâng cấp quên thêm vào sao lưu (file nháp 999 trong bộ nhớ, không ghi vào kho)',
     JSON.stringify(bangThieu([...nguonBang, '`CREATE TABLE IF NOT EXISTS bang_moi_thu (id INTEGER)`'], backupSrc).thieu) === '["bang_moi_thu"]');
+  k('D2d phép chốt BẮT được bảng chỉ còn ở dòng CHÚ THÍCH trong BACKUP_TABLES (bản sao backup.js: dòng kho_lo thành // …)',
+    JSON.stringify(bangThieu(nguonBang, backupSrc.replace("  { name: 'kho_lo',", "  // { name: 'kho_lo',")).thieu) === '["kho_lo"]');
   const bo = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const bk = bo(backupSrc);
   const khongKP = bk.slice(bk.indexOf('BANG_KHONG_KHOI_PHUC'), bk.indexOf('];', bk.indexOf('BANG_KHONG_KHOI_PHUC')));
