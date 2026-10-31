@@ -63,7 +63,11 @@ DOT_BIEN = [
   ('VS-FINALLY-TIN-CO-BO-NHO', 'mua', [(D, " AND NOT EXISTS (SELECT 1 FROM pos_phien_thanh_toan p\n          WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu')`", '`', 1)], r'✗ V1 '),
   ('BV-FINALLY-HUY-PHIEN', 'mua', [(D, '        if (phienId) await huyPhien(phienId);\n', '', 1)], r'✗ V4 '),
   ('BV-GIA-DOI-SAU-PHIEN', 'mua', [(D, 'if (tp.body.phien.tong !== kq.bao.tong) {', 'if (false) {', 1)], r'✗ V4 '),
-  ('BV-DANG-XU-LY-GIU-KHOA', 'mua', [(D, "  if (cu && !cu.phien_id) return thanLoi('DANG_XU_LY');\n", '', 1)], r'✗ V3 '),
+  # vòng sửa 2 (soát vòng 2 lỗi 1, 2): đưa ĐÚNG lỗi cũ trở lại — "dọn khoá chết 120 giây" và "có phien_id = đã xong"
+  ('VS-DON-KHOA-CHET-120', 'mua', [(D, '  if (cu && !cu.xong) {\n',
+    "  if (cu && !cu.phien_id && cu.tao_luc < truGiay(120)) { await run('DELETE FROM pos_don_app WHERE id = ?', [cu.id]); cu = null; }\n"
+    '  if (cu && !cu.xong) {\n', 1)], r'✗ V9 '),
+  ('VS-CO-PHIEN-LA-XONG', 'mua', [(D, '  if (cu && !cu.xong) {\n', '  if (cu && !cu.phien_id) {\n', 1)], r'✗ V8 '),
   ('BV-TRUNG-KHOA-NEM', 'mua', [(D, "    if (laTrungKhoa(e)) return thanLoi('DANG_XU_LY');", '', 1)], r'✗ V2 '),
   ('VS-CHOT-VI-BO-KIEM-DA-THU', 'mua', [(D, "if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(", 'if (false) return chuanLoi(', 1)], r'✗ V5 '),
   ('VS-QUAY-KHONG-LOC-HOM-NAY', 'mua', [(D, 'p.luc_chot >= ? OR (', 'p.luc_chot >= ? OR 1 OR (', 1)], r'✗ V7 '),
