@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 import GioHoatDong from './CaiDat/GioHoatDong';
+import CaiDatChuong from '../components/CaiDatChuong';
 
 
 // UUDAI-1: ba loại mã của khối "Mã giảm & giá hạng" (thẻ Hạng)
@@ -2149,7 +2150,7 @@ export default function Settings() {
               </div>
             </>
           ) : tab === 'gioHoatDong' ? (
-            <GioHoatDong />
+            <><GioHoatDong /><CaiDatChuong /></>   /* KH-MUA-1: chuông đơn App cùng thẻ giờ hoạt động */
           ) : null}
         </div>
       </div>
