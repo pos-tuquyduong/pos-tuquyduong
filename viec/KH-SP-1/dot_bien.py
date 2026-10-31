@@ -75,8 +75,8 @@ def ban_sao(thay):
   tmp = tempfile.mkdtemp(prefix='dotbien_khsp1_')
   shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
   shutil.copytree(os.path.join(GOC, 'cong_cu'), os.path.join(tmp, 'cong_cu'))
-  os.makedirs(os.path.join(tmp, 'client', 'src', 'utils'))
-  for f in (HD, CL):
+  shutil.copytree(os.path.join(GOC, 'client', 'src'), os.path.join(tmp, 'client', 'src'))   # thu_KHO2a K2 đọc màn Kho
+  for f in (HD, 'kiem_tra_truoc_khi_giao.js'):                                              # thu_KHO2a K1 đọc bộ kiểm
     shutil.copyfile(os.path.join(GOC, f), os.path.join(tmp, f))
   os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
   for f, goc, moi, n in thay:
