@@ -295,6 +295,9 @@ async function main() {
       && /discount_value: discountCodeValid\?\.valid \? discountCodeValid\.discount_value : discountValue,/.test(sa));
     const r = await ban({ customer_phone: sdtMoi(), items: [mon(1, 1)], discount_type: 'percent', discount_value: 10 }, 30000);
     await caDon('F3b đối chứng: thân gửi percent 10 không mã → máy chủ không tin tờ khai, tổng 30.000 như cũ', r, 30000);
+    const d3 = r.order ? await mot('SELECT discount_type, discount_value FROM pos_orders WHERE id = ?', [r.order.id]) : null;
+    k('F3c cùng đơn F3b: dòng đơn ghi discount_type null, discount_value 0 (không ghi mức tờ khai)', d3 && d3.discount_type === null
+      && Number(d3.discount_value) === 0, JSON.stringify(d3));
   });
 
   sv.close();
