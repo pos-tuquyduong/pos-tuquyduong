@@ -21,7 +21,8 @@
   giờ App không đặt đơn được và hiện thông báo; máy chủ POS là bên chặn. Quầy KHÔNG bị chặn (nhân viên vẫn bán khi mở sớm / đóng muộn).
 
 ## Khai trương
-- 27.10 · Khai trương T7 07.11.2026; chỉ khai trương khi mọi việc trong lịch đã xong, không dùng phương án dự phòng, trễ thì lùi ngày.
+- 27.10 · KHÔNG chốt ngày trước: làm nhanh nhất có thể, khai trương theo thời gian hoàn thành mọi việc trong lịch; không dùng phương án dự
+  phòng. (đổi 31.10, trước: khai trương T7 07.11.2026, trễ thì lùi ngày)
 - 27–28.10 · QR hoá đơn dẫn tới App KH mới: `https://tuquyduong.com/?ma={ma}` (khách quen bỏ phần `?ma=`); địa chỉ đặt trong Cài đặt POS, dán ngày 06.11.
 
 ## App KH
@@ -56,6 +57,14 @@
 - 31.10 · Đặt đơn App (KH-MUA-1): khách trả được bằng QR payOS, ví + PIN, hoặc **ví một phần + QR phần còn lại** (giữ ví trước, như quầy).
   An toàn tiền: MỌI lỗi có mã (4xx) của tạo đơn = chưa tạo đơn, chưa giữ / trừ ví; mỗi lần bấm Đặt có một khoá gửi — gửi lại cùng khoá
   trả đúng đơn cũ, không trừ ví hai lần. Loại giảm trên báo giá: `ma_giam` · `hang` · `gio_vang`.
+- 31.10 · Đặt đơn App — duyệt kế hoạch KH-MUA-1: cài đặt chuông (bật / tắt, tiếng, âm lượng) chung cả quán ở Cài đặt, công tắc "Máy ở
+  quán" riêng từng máy · chọn ví + QR khi ví 0đ → đi như QR · mã hợp lệ mà giá hạng lợi hơn → App giải thích · huỷ đơn đã huỷ không báo lỗi ·
+  tiền QR về sau khi đơn đã huỷ / hết hạn → App báo "Quán đã nhận tiền, nhân viên sẽ liên hệ", hoàn qua Đối soát · món chưa rõ tồn vẫn đặt
+  được như quầy · tối đa 10 lần đặt / 10 phút / khách (gửi lại cùng khoá không tính) · mã không áp → đặt theo số báo giá không mã, báo lý do ·
+  App gửi "tổng đã xem" (`tong_da_xem`), lệch số máy chủ tính → 409 `GIA_DA_DOI` kèm báo giá mới, KHÔNG tạo gì · lỗi 4xx không giữ khoá gửi.
+- 31.10 · Mã thông tin món là mã CHUNG hai hệ (App KH xác nhận): nhu cầu `ngu_ngon dep_da am_bung tinh_tao bo_khi giai_nhiet`; thể chất
+  `binh_hoa khi_hu duong_hu am_hu dam_thap thap_nhiet huyet_u khi_uat dac_bam` (KH-TN-1 dùng lại). Thêm mã → báo App trước.
+- 31.10 · Chưa có Zalo ZNS: khách MỚI lấy mã đăng nhập App ở quầy theo SĐT, KHÔNG tạo khách trước (để App hỏi tên + xưng hô) — KH-QUAY-2.
 
 ## Giao hàng
 - 27.10 · Giao hàng dùng Ahamove (không GHN).
@@ -90,6 +99,10 @@
   % riêng mua trong Giờ vàng → theo giá Giờ vàng như mọi khách.
 - 31.10 · **Bỏ hẳn giảm tay ở quầy:** màn Bán hàng (cũ và mới) KHÔNG có ô giảm tay; ở quầy chỉ giảm qua mã giảm, hạng thành viên, Giờ vàng.
   Máy chủ không nhận mức giảm nào màn hình gửi. Cần giảm cho khách quen / bù món lỗi → quản lý tạo mã giảm (BH-CKTAY-1 bỏ ô ở màn cũ).
+- 31.10 · payOS chạy thật (chủ quán thử đơn QR 2.000đ: tiền về, máy tự xác nhận). Màn Bán hàng mới được bật từng máy (`/?man=moi`;
+  về màn cũ `/?man=cu`). Huỷ đơn đã chuyển khoản: POS không tự trả tiền — nhân viên chuyển trả tay.
+- 31.10 · HOÁ ĐƠN KHÁCH chỉ in khổ nhỏ dọc (58mm / 80mm) — bỏ A4 / A5 khỏi chỗ chọn khổ hoá đơn; cài đặt cũ A4 / A5 đọc ra 80mm (KH-QUAY-2).
+  CÁC LOẠI PHIẾU (xuất / nhập kho, đặt hàng, phát sinh, pha chế…) VẪN có lựa chọn 80mm / A5 / A4 và có phần Cài đặt in phiếu (KHO-IN-1).
 - 29.10 · Khoá payOS và Ahamove CHỈ ở biến môi trường Render (không ở màn Cài đặt, không dán vào chat); Quản lý → Cài đặt chỉ hiện
   "payOS: đã cài ✓ / chưa cài ✗ · Ahamove: đã cài ✓ / chưa cài ✗" (làm trong GIAO-1).
 
@@ -110,6 +123,11 @@
   công tắc "nhân viên xuất kho cần duyệt" chỉ chủ quán bật / tắt; lô nguyên liệu quá hạn KHÔNG trừ khi xuất (xử lý bằng phiếu phát sinh);
   "cho ngày mai" chỉ tính thành phẩm còn hạn lúc 00:00 ngày mai; qua ngày đã tự chốt thì không điền kết quả nữa (sai → chủ quán sửa phiếu);
   huy hiệu phiếu chờ duyệt tạm chỉ trong màn Kho.
+- 31.10 · KHO-2b (duyệt kế hoạch): hoãn chụp ảnh hoá đơn nhập tới việc lưu ảnh sau khai trương — tạm ghi số hoá đơn vào ghi chú · hạn mức
+  dùng nội bộ theo NGƯỜI theo NGÀY, tính bằng giá vốn, mặc định 50.000đ (Cài đặt, chỉ chủ quán đổi), món chưa có giá coi như vượt · chủ quán
+  sửa phiếu nhận đã duyệt → phiếu mới tự duyệt (như phiếu xuất) · nhận hàng KHÔNG tự đổi giá nhập (sửa tay ở màn Nguyên liệu).
+- 31.10 · Khôi phục sao lưu phải an toàn trước khai trương: không mất cột / dòng, hỏng thì không đổi gì; bảng mới nào cũng phải nằm trong
+  sao lưu (SAOLUU-2 — KHO-2b phát hiện lỗi mất dữ liệu khi khôi phục vào máy trống).
 
 ## Bảo vệ dữ liệu (POS)
 - 28.10 · Sổ kho không chép đè: khôi phục Excel bỏ qua bảng kho khi kho đang có dữ liệu, chỉ khôi phục kho khi máy trống. Sai số kho sửa
