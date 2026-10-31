@@ -28,7 +28,16 @@ Vòng sửa 1 (bản bài 2beffa7 — thêm mục [V] + K1 số Giờ vàng qu�
       — HTTP 500 · LOI_MAY_CHU → HTTP 200 · ví 0 · đơn +2          (trừ ví HAI lần, hai đơn)
     ✗ V7 quầy: xong hôm qua ẩn · đang làm hôm qua hiện · đã huỷ hôm qua ẩn, bấm Đang làm → 409 — [đơn huỷ còn hiện] · HTTP 200
   Sau vá vòng 1 (HEAD 7ad14ec): 118 đạt · 0 hỏng
-SỐ CA thu_KHMUA1.js: 118
+(SỐ CA của vòng 1 cũ: 118 — thay bằng dòng dưới)
+
+Vòng sửa 2 (bản bài 0b61623 — thêm V8, V9, ngưỡng lượt 10 / 11):
+  Trên gốc 76ce7c5:  11 đạt · 109 hỏng  → ĐỎ (11 ca đạt như vòng 1)
+  Trên HEAD TRƯỚC vá vòng 2 (code e520d46): 119 đạt · 1 hỏng → ĐỎ ĐÚNG lỗi soát vòng 2 báo:
+    ✗ V8 gửi lại cùng khoá TRONG LÚC yêu cầu đầu đang chốt ví → 503 DANG_XU_LY (không 200 một đơn sắp bị xoá); yêu cầu đầu hỏng HET_HANG → …
+      — HTTP 200 · HTTP 400 · HET_HANG · HTTP 200 · ví 50000      (lần gửi giữa chừng nhận 200 cho đơn rồi bị xoá)
+  (V9 và ca ngưỡng 10 / 11 XANH trên e520d46 — là ca PHỦ đột biến VS-DON-KHOA-CHET-120 và trần lượt, không phải ca đỏ.)
+  Sau vá vòng 2 (HEAD dc6501e): 120 đạt · 0 hỏng
+SỐ CA thu_KHMUA1.js: 120
 
 Bảng số chụp K1 (luồng quầy, chủ quán Q8/K): tinh-thu subtotal 80000 · giảm hạng 8000 · giảm mã 5000 · total 67000 · POST /orders total 67000 ·
 phiên tài khoản tổng 27000 · chốt 200 · số dư sau 173000 — trên gốc và sau vá BẰNG nhau.
@@ -54,3 +63,5 @@ từ trước: GET có lệnh ghi ở packages.js:194, products.js:67, sync.js:1
 ĐỐI CHỨNG XANH (mua 110/0 · hd 81/0) · TỔNG 30 đột biến · BẮT 30 · SỐNG 0 · HỎNG 0 · LẠC 0
 Vòng sửa 1: ĐỐI CHỨNG XANH (mua 118/0 · hd 81/0) · TỔNG 38 đột biến · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0 (thêm 8 đột biến cho chỗ vá vòng 1,
 neo lại BV-BO-XOA-GIU-KHOA, BV-QUAY-THAY-DON-CHO-TRA, BV-DOI-TIEN-TRINH-CHUA-TRA theo code mới).
+Vòng sửa 2: ĐỐI CHỨNG XANH (mua 120/0 · hd 81/0) · TỔNG 39 đột biến · BẮT 39 · SỐNG 0 · HỎNG 0 · LẠC 0 (bỏ BV-DANG-XU-LY-GIU-KHOA — bắt nhờ
+bài sập; thêm VS-DON-KHOA-CHET-120, VS-CO-PHIEN-LA-XONG đưa ĐÚNG lỗi cũ trở lại). `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1.

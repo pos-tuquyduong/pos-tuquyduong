@@ -40,7 +40,7 @@
 - Ngân sách: máy chủ ~450 dòng thêm (phiếu ~350; vượt vì hai điều chủ quán thêm + tính lại không mã Q10 + so lại tổng sau khi tạo phiên);
   giao diện ~240 (phiếu ~200); thử ~795 (phiếu ~450; vượt vì mục [P], [R] chủ quán thêm và các ca soát kế hoạch đòi).
 
-## Chỗ vá → đột biến (cổng A17, A18) — `python3 viec/KH-MUA-1/dot_bien.py`: 30 / 30 BẮT, đối chứng xanh
+## Chỗ vá → đột biến (cổng A17, A18) — `python3 viec/KH-MUA-1/dot_bien.py`: 30 / 30 BẮT lúc viết bảng này (hiện 39 / 39 — xem vòng sửa 1, 2), đối chứng xanh
 | Chỗ vá | Đột biến |
 |---|---|
 | giờ hoạt động `kiemGio` (B) | BV-BO-KIEM-GIO · VS-GIO-CHI-DANG-MO |
@@ -109,10 +109,10 @@ BÀI HỌC: KHOÁ — ca "lỗi ném SAU chotPhien → gửi lại cùng khoa_gu
 | Lỗi soát | Sửa | Ca thử (đỏ trước vá) | Đột biến |
 |---|---|---|---|
 | 1 — lỗi ném SAU chốt ví → gửi lại trừ ví lần hai | donApp.js: gắn `phien_id` NGAY sau taoPhien (kiểm `changes`); finally chỉ xoá dòng đơn App khi phiên KHÔNG `da_thu` (đọc CSDL) | V1 (đỏ: ví 0 · đơn +2) | VS-FINALLY-TIN-CO-BO-NHO |
-| 2 — tự xoá dòng giữ khoá sau 120 s | bỏ hẳn cơ chế "khoá chết"; dòng giữ khoá chưa có phiên → luôn 503 `DANG_XU_LY`; hợp đồng: sau ~1 phút xem `GET /don` trước khi đặt lại | V3 | BV-DANG-XU-LY-GIU-KHOA |
+| 2 — tự xoá dòng giữ khoá sau 120 s | bỏ hẳn cơ chế "khoá chết"; dòng giữ khoá chưa có phiên → luôn 503 `DANG_XU_LY`; hợp đồng: sau ~1 phút xem `GET /don` trước khi đặt lại | V3 (ca phủ — xanh trước vá) | BV-DANG-XU-LY-GIU-KHOA (vòng 2: thay bằng VS-DON-KHOA-CHET-120) |
 | 3 — chuông theo id lúc tạo | DonAppNoi.jsx: "mới" = id chưa có trong tập id đã thấy ở danh sách quầy (đơn vào danh sách khi đã trả) | — (giao diện: thử tay) | — |
 | 4 — đơn huỷ / hoàn kẹt ở quầy, vẫn bấm được | dsQuay: đơn trước hôm nay chỉ hiện khi chưa xong VÀ chưa huỷ / hoàn; doiTienTrinh đòi đơn thật chưa huỷ / hoàn | V7 (đỏ) | VS-QUAY-KHONG-LOC-HOM-NAY · VS-QUAY-BAM-DON-HUY |
-| 5 — 7 đột biến sống | thêm ca V2 (hai yêu cầu chồng thật — rào ở bước tra khoá), V3 (tra khoá lúc dòng giữ khoá chưa có phiên), V4 (giá đổi đúng lúc tạo phiên → huỷ phiên, nhả ví), V5 (chốt ví hỏng — Q8), V6 (DON_KHONG_HOP_LE) | V2–V6 | BV-FINALLY-HUY-PHIEN · BV-GIA-DOI-SAU-PHIEN · BV-TRUNG-KHOA-NEM · VS-CHOT-VI-BO-KIEM-DA-THU |
+| 5 — 7 đột biến sống | thêm ca V2 (hai yêu cầu chồng thật — rào ở bước tra khoá), V3 (tra khoá lúc dòng giữ khoá chưa có phiên), V4 (giá đổi đúng lúc tạo phiên → huỷ phiên, nhả ví), V5 (chốt ví hỏng — Q8), V6 (DON_KHONG_HOP_LE) | V2–V6 là ca PHỦ đột biến (xanh trước vá, không phải ca đỏ — soát vòng 2 lỗi 3) | BV-FINALLY-HUY-PHIEN · BV-GIA-DOI-SAU-PHIEN · BV-TRUNG-KHOA-NEM · VS-CHOT-VI-BO-KIEM-DA-THU |
 | nghiệm thu K | K1 thêm Giờ vàng ở quầy + điểm so BẰNG số gốc (6) | K1 | — |
 | 6 — cổng chạy / thử tay / CHƯA KIỂM | ghi ở báo cáo 7 mục + bước 11 | — | — |
 
@@ -122,4 +122,83 @@ Không sửa (lý do): lưới 10 giây không nhớ khoá mới — hợp đồ
 Tên đột biến thêm ở vòng 1: VS-FINALLY-TIN-CO-BO-NHO, BV-FINALLY-HUY-PHIEN, BV-GIA-DOI-SAU-PHIEN, BV-DANG-XU-LY-GIU-KHOA, BV-TRUNG-KHOA-NEM,
 VS-CHOT-VI-BO-KIEM-DA-THU, VS-QUAY-KHONG-LOC-HOM-NAY, VS-QUAY-BAM-DON-HUY. `python3 viec/KH-MUA-1/dot_bien.py`: 38 / 38 BẮT, đối chứng xanh.
 `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1 (có sẵn từ trước).
+
+## Soát độc lập — vòng 2 (agent /ra-soat mới, HEAD e520d46) — chép nguyên
+```
+KHÔNG ĐẠT
+Chạy trên e520d46: thu_KHMUA1 118/0 · thu_HOPDONG_KH 81/0 · dot_bien 38/38 BẮT · --day-du PASS 88 FAIL 0 CẢNH BÁO 1 (có sẵn).
+LỖI TÌM ĐƯỢC:
+1. donApp.js:182–183 + :217 + :220–222 + :233–235 — K4 (đường song song do chính bản vá lỗi 1 tạo ra) — NẶNG (tiền). phien_id gắn ngay sau
+   taoPhien; tra khoá chỉ coi phien_id IS NULL là "đang xử lý", dòng có phien_id coi là xong → traDon(cu, true) khi yêu cầu đầu còn chạy.
+   (a) qr / vi_qr: giá đổi lúc tạo phiên, yêu cầu 1 đang tính lại báo giá; App gửi lại cùng khoá → 200 trung cho_tra kèm QR thật; yêu cầu 1 trả
+   409 GIA_DA_DOI, finally huỷ phiên + XOÁ dòng đơn App; khách quét QR (link payOS không bị huỷ) → tiền về → PHIEN_DA_CHOT → chua_khop; App mất dấu
+   đơn (GET /don/:ma 404, cờ tien_ve_cho_doi_soat không hiện) — trái nghiệm thu I. (b) vi: gửi lại trong lúc chotPhien chạy → 200 cho_tra,
+   qr { chuoi: null } — trái hợp đồng "vi → da_tra"; chốt hỏng sau đó (như V5) → đơn App vừa nhận bị xoá → 404. Sửa gọn: dấu "tạo xong"; tra khoá
+   trả DANG_XU_LY khi chưa tạo xong và phiên chưa da_thu. (Chưa chạy được bản tái hiện — người gác chặn script nháp có chữ [cụm bí mật — máy thay chữ gốc vì người gác chặn chữ đó].)
+2. dot_bien.py:66 BV-DANG-XU-LY-GIU-KHOA — K3 (TACH-GL) — NHẸ: chỉ xoá dòng 182, V3 bắt vì traDon sập (docPhien(null) → 500), không vì lỗi cũ
+   quay lại; không ca nào thử quá 120 giây → thêm lại "dọn khoá chết" vẫn xanh. Lỗi 2 vòng 1 chưa được khoá.
+3. trang_thai.md:110–117 — K1 — NHẸ: bảng "Vòng sửa 1" ghi V2–V6, V3 là "đỏ trước vá" nhưng bang_chung_do.txt:29–33 chỉ có V1, V7 hỏng — V2–V6 là ca
+   phủ đột biến. Dòng 63 còn "30 / 30 BẮT" (thật 38).
+4. trang_thai.md — K6, LUAT §6.3/§6.4 — NHẸ: chưa có kết quả cong.js chay, 1–3 thao tác thử tay, mục CHƯA KIỂM.
+5. HOP_DONG_API_KH.md "Gửi lại cùng khoa_gui không tính lượt" vs donApp.js:180–185 — K1 — NHẸ: sau 4xx dòng khoá bị xoá, gửi lại cùng khoá CÓ tính
+   lượt (ca R "hết lượt" cho thấy).
+6. thu_KHMUA1.js:402–409 (và :556–559) — K3 ngưỡng — NHẸ: trần 10 lần / 10 phút không bị khoá; đổi LUOT_DAT thành 5 hay 11 vẫn xanh. Thiếu ca
+   "lần 10 qua, lần 11 bị chặn".
+7. donApp.js:213 — K4 — NHẸ: taoPhien ném lỗi sau khi giao dịch đã ghi (giuCho.js:71 / :80) → phienId null, finally không huỷ → phiên cho mồ côi
+   giữ ví (vi_qr) tối đa 10 phút. Không mất tiền nhưng chú thích dòng 7–8 "phiên lỡ tạo bị huỷ" không đúng cho đường này.
+8. LUAT §5 — NHẸ, nhắc lại: chưa có quy tắc đối soát riêng cho đơn App; mục "Không sửa" không nêu lý do.
+NGHI NGỜ: huyPhien ở finally hỏng → dòng đơn App trỏ phiên cho, gửi lại nhận cho_tra dù lần đầu 4xx; sập giữa INSERT giữ khoá và UPDATE phien_id
+  → DANG_XU_LY vĩnh viễn, ví giữ 10 phút; vi bấm đúp hai khoá khác → lưới 10 giây chỉ xét phiên cho → trừ ví hai lần (đúng chữ phiếu E);
+  DonAppNoi.jsx:30 AudioContext không resume() → Chrome có thể im sau tải lại; localStorage bị chặn → daThay luôn null, không bao giờ kêu;
+  dsQuay LIMIT 100.
+NGHIỆM THU: 9/11 · thiếu H (giao diện: không bài thử, chưa ghi CHƯA KIỂM / thử tay), K (hoàn + đối soát chưa so số trước–sau).
+CHƯA SOÁT ĐƯỢC: bản tái hiện lỗi 1; cong.js chay; giao diện máy thật; mục G CHECKLIST; KH-SP-1.
+BÀI HỌC: KHOÁ — ca "gửi lại cùng khoá trong lúc yêu cầu đầu đang chạy sau khi đã gắn phiên, rồi yêu cầu đầu thất bại → DANG_XU_LY"; đột biến thêm
+  lại "dọn khoá chết 120 giây" + ca quá 120 giây; ca ngưỡng lượt 10 qua / 11 chặn. NGUYÊN TẮC (K4) — dời mốc "đã ghi" sớm hơn thì rà mọi chỗ ĐỌC
+  mốc đó; trạng thái "đang dở" cần dấu riêng. (K1) cột "đỏ trước vá" chỉ ghi ca thật sự hỏng trong bang_chung.
+```
+
+## Vòng sửa 2 (theo soát vòng 2)
+| Lỗi soát vòng 2 | Sửa | Ca thử | Đột biến |
+|---|---|---|---|
+| 1 (NẶNG) — có phien_id bị coi là "tạo xong" → gửi lại giữa chừng nhận 200 cho đơn sắp bị xoá | 006 thêm cột `xong` (bảng mới của việc này, CHƯA gộp main / chưa chạy kho thật nên sửa tại chỗ); tra khoá: chưa xong → 503 `DANG_XU_LY`, trừ phiên đã `da_thu` (lỗi sau chốt) → đánh dấu xong, trả đơn; lưới 10 giây, `GET /don` (đơn chưa trả), huỷ chỉ đọc `xong = 1`; đánh dấu xong ngay trước khi trả 200 | V8 (ĐỎ trước vá: gửi giữa chừng nhận 200) | VS-CO-PHIEN-LA-XONG |
+| 2 — đột biến khoá chết bắt nhờ bài sập | ca V9 (dòng giữ khoá 3 phút → 503, không xoá) + đột biến đưa đúng cơ chế 120 giây trở lại | V9 (ca phủ) | VS-DON-KHOA-CHET-120 |
+| 3 — ghi "đỏ trước vá" cho ca phủ; "30 / 30" cũ | sửa bảng vòng 1; số hiện tại 39 / 39 | — | — |
+| 4 — cổng chạy / thử tay / CHƯA KIỂM | mục "Thử tay", "CHƯA KIỂM" dưới; cổng chạy ghi ở bước 11.4 | — | — |
+| 5 — hợp đồng "không tính lượt" sai | sửa câu: gửi lại nhận đơn cũ / 409 / 503 không tính; sau 4xx thì tính | — | — |
+| 6 — ngưỡng lượt không khoá | ca D: lần 1–10 qua bộ đếm, lần 11 → 429 | D1 / K3 (ca phủ) | BV-TRAN-LUOT |
+| 7 — chú thích "phiên lỡ tạo bị huỷ" sai cho đường taoPhien tự ném | sửa chú thích đầu donApp.js (phiên mồ côi tự nhả sau HAN_PHUT) | — (CHƯA KIỂM) | — |
+| 8 — quy tắc đối soát | mục "Quy tắc đối soát" dưới | — | — |
+| nghi ngờ AudioContext treo | DonAppNoi gọi `ac.resume()` | — (thử tay) | — |
+
+`python3 viec/KH-MUA-1/dot_bien.py`: 39 / 39 BẮT, đối chứng xanh (mua 120/0 · hd 81/0). `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+
+## Quy tắc đối soát (LUAT §5)
+Đơn App KHÔNG có đường tiền riêng: tiền đi qua phiên thanh toán (`pos_phien_thanh_toan`, `nguoi_tao = 'app_kh'`) và đơn thật (`pos_orders`,
+`created_by = 'app_kh'`) — màn Đối soát hiện có đã đếm hai thứ này như đơn quầy trả QR / ví. Quy tắc ngày: (1) mỗi phiên App `da_thu` có đúng một
+đơn thật (`order_id`), số QR = `transfer_amount`, số ví = `balance_amount`; (2) mọi báo payOS của phiên App không tạo được đơn nằm ở
+`pos_payos_su_kien.ket_qua = 'chua_khop'` (Đối soát ĐỎ) — quán hoàn tay, App hiện `tien_ve_cho_doi_soat`; (3) phiên App `cho` hết hạn không có
+dòng tiền nào. Màn Đối soát CHƯA tách riêng dòng "đơn App" — ghi Phát hiện, việc sau (không trong Phạm vi: doiSoat.js / DoiSoat.jsx).
+
+## Thử tay cho chủ quán (giao diện — máy không kiểm được)
+1. Máy quầy: mở màn bất kỳ → góc trên phải có nút "🔔 Đơn App". Bấm → màn Đơn App; tick "Máy ở quán" → bấm "Thử chuông" phải nghe tiếng.
+2. Đặt một đơn thử từ App (trả ví) → trong ~15 giây nút chuyển đỏ "1 mới" và máy đã tick "Máy ở quán" kêu MỘT lần; máy KHÔNG tick không kêu;
+   tải lại trang → không kêu lại. Bấm "Đang làm" rồi "Xong" → App thấy tiến trình đổi.
+3. Cài đặt › Giờ hoạt động (cuối thẻ) → "Chuông đơn App": đổi tiếng / âm lượng, bấm "Thử", Lưu; tắt chuông → đơn mới không kêu ở mọi máy.
+
+## CHƯA KIỂM
+- Toàn bộ giao diện quầy (nút Đơn App, chuông Web Audio, công tắc Máy ở quán, kêu một lần, không kêu lại khi tải trang, thẻ cài đặt chuông, nút
+  cố định có đè nút màn Bán hàng không) — không có bài thử trình duyệt; chỉ thử tay ở trên. Trình duyệt chặn localStorage thì chuông không kêu.
+- payOS THẬT (chỉ thử với máy payOS giả trên 127.0.0.1) và Turso thật (thử trên libsql file).
+- taoPhien tự ném lỗi SAU khi giao dịch phiên đã ghi (giuCho.js) → phiên mồ côi giữ ví tới hết hạn 10 phút — không dựng được tất định, chỉ đọc code.
+- huyPhien trong finally hỏng (mạng) → dòng đơn App trỏ phiên `cho`; sập máy chủ giữa giữ khoá và gắn phiên → khoá `DANG_XU_LY` mãi (hợp đồng
+  dặn App xem `GET /don` rồi đặt lại bằng khoá mới).
+- Lưới 10 giây chỉ xét phiên `cho`: `vi` bấm đúp bằng HAI khoá khác nhau → hai đơn, trừ ví hai lần (đúng chữ phiếu E; App phải giữ khoá cũ khi
+  gửi lại).
+- Hai yêu cầu cùng giỏ, hai khoá khác nhau, đến cùng mili-giây → lưới 10 giây có thể lọt cả hai (không có ràng buộc CSDL cho lưới hai).
+- `dsQuay` LIMIT 100 — ngày rất đông có thể đẩy đơn cũ khỏi danh sách quầy.
+- KH-SP-1 đã gộp main chưa (người gác không cho kéo main) — số hợp đồng v5 / bước 006 chờ chat sắp khi gộp.
+- Nghiệm thu K phần hoàn / đối soát: code hoàn (orders.js), đối soát (doiSoat.js), phiên quầy (thanh-toan.js, giuCho.js trừ một dòng export) KHÔNG
+  đổi (`git diff 5e797f2^ HEAD --stat`); bằng chứng là bộ cũ chạy trong `npm test` vẫn xanh: thu_P26b (hoàn), thu_DOISOAT1 (đối soát), thu_P3
+  (phiên quầy + webhook), thu_UUDAI1 (mã / hạng), cộng K1 so số chụp trên gốc (tinh-thu, đơn, phiên tài khoản, điểm 6, Giờ vàng quầy).
 
