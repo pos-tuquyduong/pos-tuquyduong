@@ -63,6 +63,11 @@ DOT_BIEN = [
   ('VS-PS-LO-KEM-KHOA', [(PS, "nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null,",
     'nguyen_lieu_id: Number(m?.nguyen_lieu_id) || null, san_pham_id: Number(m?.san_pham_id) || null,', 1)], r'✗ E5e '),
   ('BV-DUYET-KIEM-LO', [(PS, ") < -${tinh.SAI_SO} LIMIT 1`, [id])) {", ") < -1e9 LIMIT 1`, [id])) {", 1)], r'✗ D14 '),
+  # ── soát lần 2: lô thành phẩm đã bị phiếu khác trừ · sửa PN theo đơn giữ đơn · sửa nội bộ giữ món ──
+  ('BV-LO-TP-DA-BI-TRU', [(L, '  if (await loThanhPhamDaBiTru(tx, id)) {', '  if (false) {', 1)], r'✗ E6 '),
+  ('BV-SUA-GIU-DON', [(D, 'donId: cu.don_id == null ? null : Number(cu.don_id),', 'donId: null,', 1)], r'✗ E4e '),
+  ('BV-NOI-BO-GIU-MON', [(PS, 'dong.push({ nguyen_lieu_id: m.nguyen_lieu_id, luong: m.luong, cho_mon_id: m.cho_mon_id });', 'dong.push({ nguyen_lieu_id: m.nguyen_lieu_id, luong: m.luong });', 1)],
+    r'✗ E5f '),
   # ── bước 007 ──
   ('BV-007-DON-ID', [(B7, "  await themCot('kho_phieu', 'don_id INTEGER');\n", '', 1)], r'✗ N1 '),
 ]

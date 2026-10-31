@@ -393,6 +393,10 @@ async function main() {
   const e4d = await goi('chu', 'POST', `/kho/phieu/${pnCho.phieu?.id}/sua`, { ly_do: 'sửa', dong: [{ nguyen_lieu_id: n4, luong: 6 }] });
   k('E4d chủ quán sửa phiếu nhận CHỜ DUYỆT của chính mình → 409 PHIEU_CHUA_DUYET; không tự duyệt, tồn không đổi', e4d.status === 409 && e4d.code === 'PHIEU_CHUA_DUYET'
     && (await ttCua(pnCho.phieu?.id)) === 'cho_duyet' && gan(await ton(n4), tonE4d), moTa(e4d));
+  // E4e (soát lần 2): sửa phiếu nhận THEO ĐƠN — phiếu mới giữ don_id, đơn đã đủ KHÔNG mở lại
+  const e4e = await goi('chu', 'POST', `/kho/phieu/${pn2b.phieu?.id}/sua`, { ly_do: 'Ghi lại', dong: [{ nguyen_lieu_id: n4, luong: 0.4 }, { nguyen_lieu_id: n2, luong: 0.02 }] });
+  k('E4e chủ quán sửa phiếu nhận theo đơn → phiếu mới giữ đơn; đơn đã nhận đủ vẫn đóng', e4e.status === 200 && Number(e4e.phieu?.don_id) === dh1
+    && !((await goi('ql', 'GET', '/kho/goi-y-nhap')).don_mo || []).some((d) => d.id === dh1), `${moTa(e4e)} · don ${e4e.phieu?.don_id}`);
   const tonE5 = await tonTat();
   const e5 = [await goi('chu', 'POST', `/kho/phieu/${d10.phieu?.id}/huy`, { ly_do: '' }), await goi('chu', 'POST', `/kho/phieu/${d10.phieu?.id}/huy`, { ly_do: 'Nhầm' })];
   k('E5 huỷ phiếu phát sinh: thiếu lý do → 400; có lý do → huỷ, Gừng cộng lại 0.1', e5[0].status === 400 && e5[1].status === 200 && e5[1].phieu?.trang_thai === 'huy'
@@ -405,6 +409,11 @@ async function main() {
   const e5e = await goi('chu', 'POST', `/kho/phieu/${d12.phieu?.id}/sua`, { ly_do: 'Chỉ hỏng nửa', su_co: 'het_han', muc: [{ lo_id: loS1, san_pham_id: s1, luong: 0.5 }] });
   k('E5e sửa phiếu hết hạn với thân kèm cả lo_id lẫn san_pham_id → 200, phiếu mới trừ đúng lô, thành phẩm cộng lại 0.5', e5e.status === 200
     && e5e.phieu?.su_co === 'het_han' && (await dongCua(e5e.phieu?.id)).every((d) => Number(d.lo_id) === loS1) && gan(await tonTP(s1), tpE5e + 0.5), moTa(e5e));
+  // E5f (soát lần 2): sửa phiếu nội bộ món pha tại chỗ với thân như màn hình (dòng nguyên liệu kèm cho_mon_id) → phiếu mới vẫn biết là ly gì
+  const e5f = await goi('chu', 'POST', `/kho/phieu/${d4a.phieu?.id}/sua`, { ly_do: 'Ghi lại', su_co: 'noi_bo',
+    muc: [{ nguyen_lieu_id: n1, luong: 0.01, cho_mon_id: s3 }, { nguyen_lieu_id: n2, luong: 0.002, cho_mon_id: s3 }] });
+  k('E5f sửa phiếu dùng nội bộ (Cà phê pha) → dòng phiếu mới giữ cho_mon_id = món', e5f.status === 200
+    && (await dongCua(e5f.phieu?.id)).every((d) => Number(d.cho_mon_id) === s3), `${moTa(e5f)} ${JSON.stringify((await dongCua(e5f.phieu?.id)).map((d) => d.cho_mon_id))}`);
   const e5c = await goi('chu', 'POST', `/kho/phieu/${dh1}/sua`, { ly_do: 'Thêm Gừng', nguyen_lieu: [{ nguyen_lieu_id: n4, luong: 2 }, { nguyen_lieu_id: n1, luong: 2 }] });
   const dMoi = ((await goi('ql', 'GET', '/kho/goi-y-nhap')).don_mo || []).find((d) => d.id === e5c.phieu?.id);
   k('E5c chủ quán sửa đơn → đơn mới tự duyệt; phần còn lại tính cả phiếu nhận của đơn cũ (Gừng 2 − 1.0 = 1.0, Cam 0)', e5c.status === 200
@@ -412,6 +421,17 @@ async function main() {
   const tonE5d = await tonTat();
   const e5d = await goi('chu', 'POST', `/kho/phieu/${a7a.phieu?.id}/huy`, { ly_do: 'Không đặt nữa' });
   k('E5d huỷ đơn đã duyệt → huỷ, tồn không đổi', e5d.status === 200 && e5d.phieu?.trang_thai === 'huy' && bang(await tonTat(), tonE5d), moTa(e5d));
+  // E6 (soát lần 2): lô THÀNH PHẨM của phiếu xuất đã bị phiếu phát sinh trừ → huỷ / sửa phiếu xuất bị chặn (không thì tồn thành phẩm ≠ Σ dòng)
+  const px6 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: s2, so_phan: 2 }], ma_gui: 'g-px6' });
+  const ps6 = await taoPS('ql', { su_co: 'hong', muc: [{ san_pham_id: s2, luong: 1 }] }, 'g-ps6');
+  const e6 = [await goi('chu', 'POST', `/kho/phieu/${px6.phieu?.id}/huy`, { ly_do: 'x' }),
+    await goi('chu', 'POST', `/kho/phieu/${px6.phieu?.id}/sua`, { ly_do: 'x', mon: [{ san_pham_id: s2, so_phan: 2 }] })];
+  const tp6 = await tonTP(s2);
+  const e6b = [await goi('chu', 'POST', `/kho/phieu/${ps6.phieu?.id}/huy`, { ly_do: 'nhầm' }), await goi('chu', 'POST', `/kho/phieu/${px6.phieu?.id}/huy`, { ly_do: 'x' })];
+  k('E6 thành phẩm đã bị phiếu phát sinh trừ: huỷ / sửa phiếu xuất → 409 LO_DA_BI_TRU, tồn Trà gừng giữ 1; huỷ phát sinh trước rồi huỷ xuất → được, tồn 0',
+    px6.status === 200 && ps6.phieu?.trang_thai === 'da_duyet' && e6.every((r) => r.status === 409 && r.code === 'LO_DA_BI_TRU') && gan(tp6, 1)
+    && (await ttCua(px6.phieu?.id)) === 'huy' && e6b.every((r) => r.status === 200) && gan(await tonTP(s2), 0),
+  `${e6.map(moTa).join(' | ')} · tồn ${tp6} · ${e6b.map(moTa).join(' | ')}`);
   // F — đua + tồn
   const dua = async (tao, goiA, goiB) => {
     const p = await tao();
