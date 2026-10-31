@@ -70,7 +70,9 @@ DOC_TU_CODE: POS nhánh viec/KH-MUA-1 (server/routes/kh/index.js, loi.js, middle
 - **`khoa_gui`** (BẮT BUỘC): 16–64 ký tự `A-Z a-z 0-9 -`; mỗi lần khách bấm Đặt một khoá mới, gửi lại (mạng chập chờn, 5xx) dùng ĐÚNG khoá đó.
   Sai / thiếu → 400 `KHOA_GUI_SAI`. Cùng khoá + cùng giỏ (món, SL, ghi chú, mã, cách nhận, cách trả — `pin`, `tong_da_xem` không tính) trong 24 giờ
   → 200 đơn cũ, `trung: true` (không giữ ví lần hai); cùng khoá mà giỏ khác, hoặc quá 24 giờ → 409 `KHOA_GUI_DA_DUNG` (khoá nhớ theo khách).
-  Hai yêu cầu cùng khoá đến cùng lúc → một đơn; yêu cầu kia nhận 503 `DANG_XU_LY` — gửi lại cùng khoá sau 2 giây. Lưới thứ hai: khoá KHÁC nhưng
+  Hai yêu cầu cùng khoá đến cùng lúc → một đơn; yêu cầu kia nhận 503 `DANG_XU_LY` — gửi lại cùng khoá sau 2 giây (lần đầu xong thì nhận
+  đúng đơn đó). Vẫn `DANG_XU_LY` sau khoảng 1 phút → App mở `GET /don` xem đơn đã có chưa (đơn hiện ở đó ngay khi đã có phiên trả tiền)
+  rồi mới cho khách bấm Đặt lại (khoá mới) — máy chủ KHÔNG tự bỏ khoá đang xử lý. Lưới thứ hai: khoá KHÁC nhưng
   cùng giỏ, đơn trước còn `cho_tra`, trong 10 giây → trả đơn trước `trung: true`.
 - **`tien_trinh`:** `cho_tra` (chờ tiền) · `da_tra` (đã trả, quán chưa làm) · `dang_lam` · `xong` · `da_huy` (khách huỷ, QR hết hạn chưa trả, hoặc đơn
   bị huỷ / hoàn). Đơn quầy: `xong` / `da_huy`. KH-MUA-2 thêm bước giao. `qr` chỉ có khi `cho_tra` (cùng mã lúc tạo), khác → `null`. QR hết hạn → `da_huy`,
