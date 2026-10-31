@@ -11,7 +11,7 @@ export default function ChonNguyenLieu({ ds, nhom = [], hayMua = [], daChon, cho
   const [tim, setTim] = useState('');
   const t = boDau(tim.trim());
   const dau = tabDau || { ten: 'Sắp hết & hay mua', loc: (n) => n.duoi_toi_thieu || hayMua.includes(n.id) };
-  const tabs = [{ id: 'dau', ten: dau.ten }, ...nhom, ...(ds.some((n) => n.nhom_id == null) ? [{ id: 'khac', ten: 'Chưa xếp nhóm' }] : [])];
+  const tabs = [{ id: 'dau', ten: dau.ten }, ...nhom, ...(nhom.length && ds.some((n) => n.nhom_id == null) ? [{ id: 'khac', ten: 'Chưa xếp nhóm' }] : [])];
   const hien = t ? ds.filter((n) => boDau(n.ten).includes(t))
     : ds.filter(tab === 'dau' ? dau.loc : tab === 'khac' ? (n) => n.nhom_id == null : (n) => n.nhom_id === tab);
 

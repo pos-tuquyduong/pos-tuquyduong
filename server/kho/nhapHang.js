@@ -29,7 +29,7 @@ async function taoDatHang(tx, { mon, nguyenLieu, nccId, ghiChu, nguoi, vaiTro, m
   const gia = duLieu.theoId(await tx.query(`SELECT id, gia_nhap FROM kho_nguyen_lieu WHERE id IN (${duLieu.dauHoi(ids)})`, ids));
   const dong = gop.map((d) => ({ ...d, don_gia: gia.get(d.nguyen_lieu_id)?.gia_nhap ?? null }));
   const tong = tinh.tongTien(dong.map((d) => ({ so_luong: d.luong, don_gia: d.don_gia })));
-  const tuDuyet = ep || vaiTro === 'owner' || (vaiTro === 'manager' && tinh.trongHanMuc(tong, await duLieu.docHanMuc(tx, 'kho_han_muc_dat_hang')));
+  const tuDuyet = ep || vaiTro === 'owner' || (vaiTro === 'manager' && tinh.trongHanMuc(tong, await duLieu.docHanMuc(tx, duLieu.KHOA_HAN_MUC_DAT_HANG)));
   const id = await duLieu.themPhieu(tx, { loai: 'DH', tuDuyet, nguoi, luc, nccId, ghiChu, thayCho, lyDo, maGui });
   for (const d of dong) {
     await tx.run("INSERT INTO kho_phieu_dong (phieu_id, nguyen_lieu_id, so_luong, don_gia, loai, nguoi, luc) VALUES (?, ?, ?, ?, 'dat', ?, ?)",

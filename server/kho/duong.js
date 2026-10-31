@@ -301,7 +301,8 @@ router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
 }));
 
 // Sửa = huỷ phiếu cũ + phiếu MỚI thay_cho_id tự duyệt. Rẽ theo loại TRƯỚC khi kiểm thân — thân sai loại → 400, rollback (phiếu cũ còn nguyên).
-// DH / PN / PS: chỉ sửa phiếu ĐÃ duyệt (chủ quán chốt 31.10) — sửa phiếu chờ duyệt sẽ tự duyệt, vòng qua luật người KHÁC duyệt. Trường không gửi
+// DH / PN / PS: chỉ sửa phiếu ĐÃ duyệt (chủ quán chốt 31.10 cho phiếu nhận; DH / PS cùng luật — vòng sửa 1: sửa phiếu chờ duyệt sẽ tự duyệt,
+// vòng qua luật người KHÁC duyệt / hạn mức). Huỷ / sửa bị chặn khi lô thành phẩm đã bị phiếu khác trừ (duLieu.huyPhieu). Trường không gửi
 // (ghi chú = số hoá đơn, nhà cung cấp, loại chuyện) lấy của phiếu cũ.
 router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
   const id = Number(req.params.id);

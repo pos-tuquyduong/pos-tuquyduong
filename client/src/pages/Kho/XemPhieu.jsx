@@ -49,7 +49,7 @@ function thanSua(dl, sua) {
   if (p.loai === 'DH') return { nguyen_lieu: dong.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi })) };
   if (p.loai === 'PN') return { dong: dong.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi, don_gia: d.don_gia ?? null, han_dung: d.han_dung })) };
   return { su_co: p.su_co, ghi_chu: p.ghi_chu, muc: dong.map((d) => (p.su_co === 'het_han' && d.lo_id ? { lo_id: d.lo_id, luong: d.moi }
-    : d.nguyen_lieu_id ? { nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi } : { san_pham_id: d.san_pham_id, luong: d.moi })) };
+    : d.nguyen_lieu_id ? { nguyen_lieu_id: d.nguyen_lieu_id, luong: d.moi, cho_mon_id: d.cho_mon_id } : { san_pham_id: d.san_pham_id, luong: d.moi })) };
 }
 
 export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {

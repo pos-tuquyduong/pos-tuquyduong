@@ -51,7 +51,7 @@ async function lapDong(tx, muc) {
       if (!l || m.luong > Number(l.con) + tinh.SAI_SO) return khongDuTon();
       dong.push({ nguyen_lieu_id: l.nguyen_lieu_id, san_pham_id: l.san_pham_id, lo_id: m.lo_id, luong: m.luong, gia_lo: l.gia_von });
     } else if (m.nguyen_lieu_id) {
-      dong.push({ nguyen_lieu_id: m.nguyen_lieu_id, luong: m.luong });
+      dong.push({ nguyen_lieu_id: m.nguyen_lieu_id, luong: m.luong, cho_mon_id: m.cho_mon_id });   // cho_mon_id: sửa phiếu nội bộ giữ "ly gì"
     } else if ((await tx.queryOne('SELECT kieu FROM kho_san_pham WHERE pos_product_id = ?', [m.san_pham_id]))?.kieu === 'pha_tai_cho') {
       const px = tinh.lapPhieuXuat([{ san_pham_id: m.san_pham_id, so_phan: m.luong }], bang);
       if (px.thieu_cong_thuc.length) return loi(400, 'MON_CHUA_CONG_THUC', 'Món chưa có công thức');
@@ -85,7 +85,8 @@ async function taoPhatSinh(tx, { suCo, muc, ghiChu, nguoi, quanLy, maGui, luc, t
   if (suCo === 'khac' && !ghiChu) return loi(400, 'THIEU_GHI_CHU', 'Chuyện "khác" cần ghi rõ là chuyện gì');
   // Có lô thì lô quyết định món (màn sửa gửi kèm id nguyên liệu / món của lô) — bỏ hai khoá kia.
   const ds = Array.isArray(muc) ? muc.map((m) => { const lo = Number(m?.lo_id) || null;
-    return { lo_id: lo, nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null, luong: Number(m?.luong) }; }) : [];
+    return { lo_id: lo, nguyen_lieu_id: lo ? null : Number(m?.nguyen_lieu_id) || null, san_pham_id: lo ? null : Number(m?.san_pham_id) || null, luong: Number(m?.luong),
+      cho_mon_id: Number(m?.cho_mon_id) || null }; }) : [];
   if (!ds.length || ds.some((m) => [m.lo_id, m.nguyen_lieu_id, m.san_pham_id].filter((x) => x > 0).length !== 1 || !(m.luong > 0) || !Number.isFinite(m.luong))) {
     return loi(400, 'DONG_SAI', 'Chọn món và số lượng lớn hơn 0');
   }
@@ -112,7 +113,7 @@ async function taoPhatSinh(tx, { suCo, muc, ghiChu, nguoi, quanLy, maGui, luc, t
 async function ghiKhoPhatSinh(tx, id) {
   // Lô chọn sẵn (hết hạn): phiếu này đã da_duyet nên dòng của nó đã tính — lô nào thành âm là đã bị phiếu khác trừ trước
   if (await tx.queryOne(`SELECT 1 AS am FROM kho_lo l WHERE l.id IN (SELECT lo_id FROM kho_phieu_dong WHERE phieu_id = ? AND lo_id IS NOT NULL) AND (SELECT COALESCE(SUM(d.so_luong), 0)
-    FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE d.lo_id = l.id AND p.trang_thai = 'da_duyet' AND p.loai <> 'DH') < -${tinh.SAI_SO} LIMIT 1`, [id])) {
+    FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE d.lo_id = l.id AND ${duLieu.DA_DUYET}) < -${tinh.SAI_SO} LIMIT 1`, [id])) {
     return khongDuTon();
   }
   const nhom = new Map();

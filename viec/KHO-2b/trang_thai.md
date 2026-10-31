@@ -147,3 +147,26 @@ BÀI HỌC:
 - Nghiệm thu thiếu: F5 (từ chối PS và DH, tồn không đổi); H4 (sao lưu có cột mới; khôi phục khi kho có dữ liệu không chép đè); G điện thoại → CHƯA KIỂM (thử tay).
 - Kết quả: thu_KHO2b 73/73 · KHO-2a 86/86 · KHO-1 111/111 · `npm test -- --day-du` PASS 88 · FAIL 0 · CẢNH BÁO 1 (có từ trước) · đột biến 30/30 BẮT.
 
+## Soát độc lập — lần 2 — chép nguyên (rút gọn định dạng, giữ đủ ý)
+```
+KHÔNG ĐẠT — 4 lỗi lần 1 đã sửa đúng (đột biến BẮT 4/4), thu_KHO2b 73/73, --day-du PASS 88 · FAIL 0, dist khớp src.
+LỖI TÌM ĐƯỢC:
+1. NẶNG (kho) — K4 + K3. duong.js:315-318 (sửa PN = huỷ + phiếu mới tự duyệt), duLieu.js:266-271 (suaPhieu PX), nhapHang.js:62.
+   "Sửa = huỷ + tạo lại" sinh lô MỚI đầy đủ; phần phiếu KHÁC đã trừ nằm trên lô CŨ → lô cũ âm, tự ẩn (conLaiTheoLo lọc con > 1e-9).
+   Dựng bằng chạy: (a) PX 10 phần → PS hỏng 3 → tồn TP 7; chủ quán sửa PX (giữ 10) → tồn TP 10, Σ dòng = 7.
+   (b) PN Gừng 10 → PS trừ 4 → sửa PN thành 9 → tồn 4 (đúng) nhưng lô mới 9, lô cũ −4 ẩn; PS hết hạn trên lô mới bỏ 9 → tồn Gừng −5.
+   F1 chỉ so tồn Gừng với Σ dòng. Sửa ở luồng PX đụng mục Cấm → cần chủ quán quyết hướng.
+2. NHẸ — K4. XemPhieu.jsx:51-52 + phatSinh.js:53-54: sửa phiếu nội bộ món pha tại chỗ → phiếu mới mất cho_mon_id.
+3. NHẸ — K3. duong.js:317 mang don_id khi sửa PN nhưng không ca nào sửa PN THEO ĐƠN; xoá vế donId bài vẫn xanh (suy từ đọc code).
+4. NHẸ — K4. phatSinh.js:114-115 chép tay `p.trang_thai = 'da_duyet' AND p.loai <> 'DH'` thay vì dùng DA_DUYET (duLieu.js:93).
+5. NHẸ — K1. Chú thích duong.js:304 "chỉ sửa phiếu ĐÃ duyệt (chủ quán chốt 31.10)" cho DH / PN / PS — quyết định 3 chỉ nói phiếu NHẬN.
+NGHI NGỜ: chủ quán vẫn sửa PX CHỜ DUYỆT của mình thành tự duyệt (duong.js:309-311, có từ KHO-2a, đụng Cấm → Phát hiện); huỷ PX sau
+  phát sinh → tồn TP 0 trong khi Σ dòng −3; PN theo đơn: đơn bị huỷ lúc PN còn chờ duyệt — lúc duyệt không kiểm lại đơn (hợp lý, chưa ghi);
+  nhapHang.js:32 viết chuỗi khoá hạn mức trực tiếp; trang_thai.md thiếu cong.js chay, CHƯA KIỂM, thao tác thử tay; tab "Chưa xếp nhóm" thừa ở hết hạn.
+NGHIỆM THU: 41/43 · thiếu: F "tồn trước–sau kể cả sửa" (bằng chứng NGƯỢC — lỗi 1); G điện thoại — CHƯA KIỂM, thử tay.
+ĐƠN GIẢN: phatSinh dùng DA_DUYET; xuất KHOA_HAN_MUC_DAT_HANG; dsPhieu đọc hạn mức một lần; chuoiDon CTE; goiYNhap gộp truy vấn.
+CHƯA SOÁT ĐƯỢC: đột biến bỏ don_id (người gác chặn chép server/); điện thoại + in; cong.js chay; khôi phục file cũ vào kho trống; tốc độ Turso.
+BÀI HỌC: KHOÁ ca "sửa phiếu sinh lô sau khi lô bị phiếu KHÁC trừ" (PX + PN); KHOÁ ca sửa PN theo đơn + đột biến gỡ donId;
+  NGUYÊN TẮC (K4): "sửa = huỷ + tạo lại" phải mang cả trạng thái người khác đã ghi lên đối tượng cũ; một điều kiện "đã duyệt, tính vào tồn" là MỘT hằng.
+```
+

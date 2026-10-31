@@ -255,8 +255,16 @@ async function tuChoiPhieu(tx, id, nguoi, lyDo, luc) {
   return kq.changes ? {} : viSaoKhongDoi(tx, id, nguoi);
 }
 
+/** KHO-2b: lô THÀNH PHẨM của phiếu đã bị phiếu KHÁC (đã duyệt — vd phát sinh) trừ? Huỷ / sửa lúc đó làm lô cũ âm và biến khỏi tồn thành phẩm
+ * (tồn thành phẩm = Σ lô còn hàng) → chặn. Nguyên liệu giữ luật KHO-2a: tồn = Σ dòng, âm thì báo đỏ. */
+const loThanhPhamDaBiTru = (tx, id) => tx.queryOne(`SELECT 1 AS co FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id JOIN kho_lo l ON l.id = d.lo_id
+  WHERE l.phieu_id = ? AND l.san_pham_id IS NOT NULL AND d.phieu_id <> ? AND ${DA_DUYET} LIMIT 1`, [id, id]);
+
 /** Chủ quán huỷ (cũng là bước đầu của sửa). GIỮ mọi dòng — phiếu huy rơi khỏi tồn. Ghi người / giờ huỷ, giữ người đã duyệt. */
 async function huyPhieu(tx, id, lyDo, nguoi, luc) {
+  if (await loThanhPhamDaBiTru(tx, id)) {
+    return { loi: [409, { error: 'Thành phẩm của phiếu này đã bị phiếu khác trừ (vd phiếu phát sinh) — huỷ / sửa phiếu đó trước', code: 'LO_DA_BI_TRU' }] };
+  }
   const kq = await tx.run(`UPDATE kho_phieu SET trang_thai = 'huy', ly_do = ?, nguoi_huy = ?, huy_luc = ? WHERE id = ?
     AND trang_thai IN ('cho_duyet', 'da_duyet')`, [lyDo, nguoi, luc, id]);
   return kq.changes ? {} : viSaoKhongDoi(tx, id, null);
@@ -425,4 +433,4 @@ async function docTon(csdl, bayGio) {
 module.exports = { docNguyenLieu, cotNguyenLieu, themNguyenLieu, suaNguyenLieu, xoaNguyenLieu, docBangCongThuc, docSanPham, luuSanPham,
   demThieu, tenSanPham, hanLo, nvCanDuyet, docPhaChe, docDinhMuc, luuDinhMuc, taoPhieuXuat, duyetPhieu, tuChoiPhieu, huyPhieu,
   suaPhieu, ghiKetQua, docPhieu, dsPhieu, docTon,
-  KHOA_HAN_MUC_NOI_BO, theoId, dauHoi, conLaiTheoLo, docHanMuc, soPhieuMoi, themPhieu, docConLaiDon };
+  KHOA_HAN_MUC_DAT_HANG, KHOA_HAN_MUC_NOI_BO, DA_DUYET, theoId, dauHoi, conLaiTheoLo, docHanMuc, soPhieuMoi, themPhieu, docConLaiDon };
