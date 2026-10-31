@@ -167,9 +167,10 @@ async function main() {
     // Dòng trống GIỮA trang (người sửa file xoá một dòng): sheet_to_json bỏ dòng trống → số dòng báo phải là dòng Excel THẬT (5), không phải thứ tự (4).
     const wbTrong = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wbTrong, XLSX.utils.aoa_to_sheet([['id', 'type'], [9100, 'a'], [9101, 'b'], [], [9102, null]]), 'Nhật ký đồng bộ');
+    const truocB6 = await THU.bam();
     const b6 = await THU.gui(XLSX.write(wbTrong, { type: 'buffer', bookType: 'xlsx' }));
     k('B6 dòng trống giữa trang → lỗi NOT NULL báo đúng dòng Excel 5 (không phải 4); không đổi gì', b6.status === 400 && b6.dong === 5
-      && (await THU.bam()) === truoc, `${moTa(b6)} · dong ${b6.dong}`);
+      && (await THU.bam()) === truocB6, `${moTa(b6)} · dong ${b6.dong}`);
     // Lỗi HẠ TẦNG (không phải dữ liệu của dòng — mạng, Turso hết giờ…): giả bằng trigger đọc bảng không có → SQLITE_ERROR khi chèn.
     await THU.db.run('CREATE TRIGGER thu_loi_ha_tang BEFORE INSERT ON pos_sync_logs BEGIN SELECT * FROM bang_khong_co_thu; END');
     const truocB7 = await THU.bam();
