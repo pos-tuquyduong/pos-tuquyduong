@@ -253,8 +253,11 @@ async function main() {
     k('D1a tinh.js không còn khachGiam / giamKhach / coChietKhauRieng', tinh.length > 0 && !/khachGiam|giamKhach|coChietKhauRieng/.test(tinh));
     k('D1b BanHangMoi.jsx không còn chanChietKhau / coChietKhauRieng; ThuTien nhận coSo={coSo}', moi.length > 0 && !/chanChietKhau|coChietKhauRieng/.test(moi)
       && /coSo=\{coSo\}/.test(moi));
+    // Mọi `<x>.discount_value / discount_type` trong Sales.jsx — chỉ được là của mã giảm hoặc của đơn đã tạo (hoá đơn), không tên khác.
+    const docMuc = [...sa.matchAll(/(\w+)\??\.discount_(?:value|type)\b/g)].map((m) => m[1])
+      .filter((ten) => !['discountCodeValid', 'order', 'completedOrder'].includes(ten));
     k('D1c Sales.jsx không còn applyCustomerDiscount, không đọc <khách>.discount_value / discount_type (mọi tên biến)', sa.length > 0
-      && !/applyCustomerDiscount/.test(sa) && !/[cC]ustomer\??\.discount_(value|type)/.test(sa));
+      && !/applyCustomerDiscount/.test(sa) && docMuc.length === 0, docMuc.join(', '));
     k('D1d CustomerInput.jsx không còn huy hiệu CK', ci.length > 0 && !/customerData\.discount_value|CK:/.test(ci));
     k('D1e Customers.jsx không còn bộ lọc has_discount, cột / form mức chiết khấu', cu.length > 0 && !/has_discount|discount_value|discount_type|formatDiscount|Chiết khấu mặc định/.test(cu));
     // D2: chạy hàm thật của tinh.js (ES module thuần, nạp thẳng như thu_BH1).
