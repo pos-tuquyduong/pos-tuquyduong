@@ -10,7 +10,7 @@
  * Props:
  * - order: Object chứa thông tin đơn hàng
  * - settings: Object chứa cài đặt hóa đơn từ pos_settings
- * - paperSize: '58mm' | '80mm' | 'a5' | 'a4' (default từ settings)
+ * - paperSize: '58mm' | '80mm' (default từ settings; giá trị lạ / A5 / A4 cũ → 80mm — KH-QUAY-2)
  * - onClose: Function đóng modal
  * - onPrintComplete: Function callback sau khi in xong
  * - inLai: true → in lại từ màn Đơn hàng (bill + tem + phiếu đều mang dòng "IN LẠI")
@@ -31,7 +31,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { X, Printer } from 'lucide-react';
 import InvoicePreview, { HoaDonTo } from './InvoicePreview';
 import { VungTrang, useNhomTheoMa, taiLieuIn, inQuaIframe } from './InPhieu';
-import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn } from '../utils/inPhieu';
+import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn, khoHoaDon } from '../utils/inPhieu';
 import { danhSachTo, sanSangIn } from '../utils/hoaDon';
 import { api } from '../utils/api';
 
@@ -56,24 +56,6 @@ const PAPER_SIZES = {
     fontSize: '10px',
     padding: '10px',
     productColWidth: '48%'
-  },
-  'a5': { 
-    width: '148mm',
-    minWidth: '400px',
-    maxWidth: '560px',
-    name: 'A5 (148×210mm)', 
-    fontSize: '12px',
-    padding: '16px',
-    productColWidth: '50%'
-  },
-  'a4': { 
-    width: '210mm',
-    minWidth: '600px',
-    maxWidth: '794px',
-    name: 'A4 (210×297mm)', 
-    fontSize: '14px',
-    padding: '20px',
-    productColWidth: '55%'
   }
 };
 
@@ -104,7 +86,7 @@ export default function InvoicePrint({
   onPrintComplete
 }) {
   const boIn = useMemo(() => docBoIn(settings), [settings]);
-  const [paperSize, setPaperSize] = useState(initialPaperSize || boIn.bill.kho);
+  const [paperSize, setPaperSize] = useState(khoHoaDon(initialPaperSize || boIn.bill.kho));
   const [printing, setPrinting] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState(order.invoice_number || '');
   const [chon, setChon] = useState(() => Object.fromEntries(LOAI_IN.map((l) => [l, boIn[l].bat])));
@@ -133,7 +115,7 @@ export default function InvoicePrint({
   const sanSangDeIn = sanSangIn({ sanSang, coId: !!order?.id, hd, hdLoi });   // nút In và tự mở in dùng chung: in sớm sẽ ra bố cục cũ
 
   // Get paper config (for print sizing)
-  const paper = PAPER_SIZES[paperSize] || PAPER_SIZES['a5'];
+  const paper = PAPER_SIZES[paperSize];
 
   // Parse invoice_config từ settings (cùng format với InvoiceSettings/InvoicePreview)
   const invoiceConfig = useMemo(() => {
@@ -341,8 +323,8 @@ export default function InvoicePrint({
                 padding: ${paper.padding};
               }
               @page { 
-                size: ${paperSize === 'a4' ? 'A4' : paperSize === 'a5' ? 'A5' : paper.width + ' auto'}; 
-                margin: ${paperSize === 'a4' || paperSize === 'a5' ? '10mm' : '2mm'}; 
+                size: ${paper.width} auto; 
+                margin: 2mm; 
               }
             }
           </style>
@@ -407,7 +389,7 @@ export default function InvoicePrint({
         background: 'white',
         borderRadius: '12px',
         width: '95%',
-        maxWidth: paperSize === 'a4' ? '850px' : paperSize === 'a5' ? '620px' : '450px',
+        maxWidth: '450px',
         maxHeight: '90vh',
         overflow: 'hidden',
         display: 'flex',
