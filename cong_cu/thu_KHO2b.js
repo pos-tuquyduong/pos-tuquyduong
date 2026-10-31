@@ -68,6 +68,7 @@ async function main() {
   const app = express();
   app.use(express.json());
   app.use('/api/pos/settings', require(path.join(MAY_CHU, 'routes', 'settings.js')));
+  app.use('/api/pos/backup', require(path.join(MAY_CHU, 'routes', 'backup.js')));
   const kho = nap('kho/duong.js');
   if (typeof kho === 'function') app.use('/api/pos/kho', kho);
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -307,6 +308,20 @@ async function main() {
   const dong12 = await dongCua(d12.phieu?.id);
   k('D12 hết hạn theo lô: trừ đúng lô đã chọn (thành phẩm Nước cam −1)', dong12.length === 1 && Number(dong12[0].lo_id) === loS1 && gan(await tonTP(s1), tp12 - 1),
     JSON.stringify(dong12));
+  // D14 (soát lần 1): hai người cùng báo hết hạn phần còn lại của MỘT lô, cả hai chờ duyệt → duyệt phiếu thứ hai phải bị chặn
+  const conS1 = Number((await q(`SELECT COALESCE(SUM(d.so_luong), 0) AS c FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id
+    WHERE d.lo_id = ? AND p.trang_thai = 'da_duyet'`, [loS1]))[0]?.c);
+  const d14a = await taoPS('nv', { su_co: 'het_han', muc: [{ lo_id: loS1, luong: conS1 }] }, 'g-d14a');
+  const d14b = await taoPS('nv2', { su_co: 'het_han', muc: [{ lo_id: loS1, luong: conS1 }] }, 'g-d14b');
+  const d14x = await duyet('ql', d14a.phieu?.id);
+  const d14y = await duyet('ql', d14b.phieu?.id);
+  k('D14 hai phiếu hết hạn cùng một lô (đều chờ duyệt): duyệt phiếu 1 → 200; phiếu 2 → 409 KHONG_DU_TON, vẫn chờ duyệt; tồn thành phẩm 0, không âm',
+    d14a.phieu?.trang_thai === 'cho_duyet' && d14b.phieu?.trang_thai === 'cho_duyet' && d14x.status === 200 && d14y.status === 409 && d14y.code === 'KHONG_DU_TON'
+    && (await ttCua(d14b.phieu?.id)) === 'cho_duyet' && gan(await tonTP(s1), 0), `${conS1} · ${moTa(d14x)} | ${moTa(d14y)} · tồn ${await tonTP(s1)}`);
+  const f5t = await tonTat();
+  const f5 = [await goi('ql2', 'POST', `/kho/phieu/${d14b.phieu?.id}/tu-choi`, { ly_do: 'Trùng phiếu' }), await goi('ql', 'POST', `/kho/phieu/${a8.phieu?.id}/tu-choi`, { ly_do: 'Không cần' })];
+  k('F5 từ chối phiếu phát sinh và đơn đặt hàng → huỷ, tồn không đổi', f5.every((r) => r.status === 200 && r.phieu?.trang_thai === 'huy') && bang(await tonTat(), f5t)
+    && gan(await tonTP(s1), 0), f5.map(moTa).join(' | '));
   // nội bộ — hạn mức theo người / ngày
   await caiDat('chu', 'kho_px_nv_can_duyet', '0');
   const d8 = [await caiDat('ql', 'kho_han_muc_noi_bo', '960'), await caiDat('chu', 'kho_han_muc_noi_bo', '-1'), await caiDat('chu', 'kho_han_muc_noi_bo', 'x')];
@@ -357,7 +372,8 @@ async function main() {
   k('E3 nhân viên: mọi phản hồi DH / PN / PS / gợi ý / xem phiếu / danh sách KHÔNG có khoá tiền', !lo3.length, lo3.join(' | '));
   k('E3b quản lý thấy giá ở cùng phiếu (đối chứng — phép quét thật sự tìm được khoá)', khoaTien(await goi('ql', 'GET', `/kho/phieu/${dh1}`)).has('don_gia'));
   // sửa / huỷ
-  const pnS = await taoPN('nv', { dong: [{ nguyen_lieu_id: n4, luong: 2, don_gia: 20000 }] }, 'g-pns');
+  const ncc = Number((await ghiDb("INSERT INTO kho_nha_cung_cap (ten) VALUES ('Chợ đầu mối')"))?.lastInsertRowid);
+  const pnS = await taoPN('nv', { dong: [{ nguyen_lieu_id: n4, luong: 2, don_gia: 20000 }], ghi_chu: 'HĐ 777', nha_cung_cap_id: ncc }, 'g-pns');
   await duyet('ql', pnS.phieu?.id);
   const tonE4 = await ton(n4);
   const e4 = [await goi('ql', 'POST', `/kho/phieu/${pnS.phieu?.id}/huy`, { ly_do: 'x' }), await goi('ql', 'POST', `/kho/phieu/${pnS.phieu?.id}/sua`, { ly_do: 'x', dong: [] }),
@@ -370,6 +386,13 @@ async function main() {
   k('E4b chủ quán sửa phiếu nhận → phiếu cũ huỷ (giữ), phiếu MỚI thay_cho_id tự duyệt; tồn Gừng = trước − 2 + 1.5', e4b.status === 200
     && e4b.phieu?.thay_cho_id === pnS.phieu?.id && e4b.phieu?.trang_thai === 'da_duyet' && (await ttCua(pnS.phieu?.id)) === 'huy' && gan(await ton(n4), tonE4 - 0.5)
     && (await dongCua(pnS.phieu?.id)).length === 1, moTa(e4b));
+  k('E4c sửa không gửi ghi chú / nhà cung cấp → phiếu mới GIỮ số hoá đơn "HĐ 777" và nhà cung cấp của phiếu cũ', e4b.phieu?.ghi_chu === 'HĐ 777'
+    && Number(e4b.phieu?.nha_cung_cap_id) === ncc, JSON.stringify([e4b.phieu?.ghi_chu, e4b.phieu?.nha_cung_cap_id]));
+  const pnCho = await taoPN('chu', { dong: [{ nguyen_lieu_id: n4, luong: 5 }] }, 'g-pncho');
+  const tonE4d = await ton(n4);
+  const e4d = await goi('chu', 'POST', `/kho/phieu/${pnCho.phieu?.id}/sua`, { ly_do: 'sửa', dong: [{ nguyen_lieu_id: n4, luong: 6 }] });
+  k('E4d chủ quán sửa phiếu nhận CHỜ DUYỆT của chính mình → 409 PHIEU_CHUA_DUYET; không tự duyệt, tồn không đổi', e4d.status === 409 && e4d.code === 'PHIEU_CHUA_DUYET'
+    && (await ttCua(pnCho.phieu?.id)) === 'cho_duyet' && gan(await ton(n4), tonE4d), moTa(e4d));
   const tonE5 = await tonTat();
   const e5 = [await goi('chu', 'POST', `/kho/phieu/${d10.phieu?.id}/huy`, { ly_do: '' }), await goi('chu', 'POST', `/kho/phieu/${d10.phieu?.id}/huy`, { ly_do: 'Nhầm' })];
   k('E5 huỷ phiếu phát sinh: thiếu lý do → 400; có lý do → huỷ, Gừng cộng lại 0.1', e5[0].status === 400 && e5[1].status === 200 && e5[1].phieu?.trang_thai === 'huy'
@@ -377,6 +400,11 @@ async function main() {
   const e5b = await goi('chu', 'POST', `/kho/phieu/${d2.phieu?.id}/sua`, { ly_do: 'Chỉ hỏng 0.3', su_co: 'hong', muc: [{ nguyen_lieu_id: n1, luong: 0.3 }] });
   k('E5b chủ quán sửa phiếu phát sinh → phiếu mới tự duyệt, tồn Cam cộng lại 0.4', e5b.status === 200 && e5b.phieu?.thay_cho_id === d2.phieu?.id
     && gan(await ton(n1), tonE5[n1] + 0.4), moTa(e5b));
+  // E5e: thân y như màn XemPhieu (thanSua) dựng cho dòng lô — lo_id KÈM san_pham_id của lô (docPhieuNhap trả cả hai)
+  const tpE5e = await tonTP(s1);
+  const e5e = await goi('chu', 'POST', `/kho/phieu/${d12.phieu?.id}/sua`, { ly_do: 'Chỉ hỏng nửa', su_co: 'het_han', muc: [{ lo_id: loS1, san_pham_id: s1, luong: 0.5 }] });
+  k('E5e sửa phiếu hết hạn với thân kèm cả lo_id lẫn san_pham_id → 200, phiếu mới trừ đúng lô, thành phẩm cộng lại 0.5', e5e.status === 200
+    && e5e.phieu?.su_co === 'het_han' && (await dongCua(e5e.phieu?.id)).every((d) => Number(d.lo_id) === loS1) && gan(await tonTP(s1), tpE5e + 0.5), moTa(e5e));
   const e5c = await goi('chu', 'POST', `/kho/phieu/${dh1}/sua`, { ly_do: 'Thêm Gừng', nguyen_lieu: [{ nguyen_lieu_id: n4, luong: 2 }, { nguyen_lieu_id: n1, luong: 2 }] });
   const dMoi = ((await goi('ql', 'GET', '/kho/goi-y-nhap')).don_mo || []).find((d) => d.id === e5c.phieu?.id);
   k('E5c chủ quán sửa đơn → đơn mới tự duyệt; phần còn lại tính cả phiếu nhận của đơn cũ (Gừng 2 − 1.0 = 1.0, Cam 0)', e5c.status === 200
@@ -418,6 +446,25 @@ async function main() {
     ON p.id = d.phieu_id WHERE d.nguyen_lieu_id = ? AND p.trang_thai = 'da_duyet' AND p.loai <> 'DH'`, [n4])));
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[H4] sao lưu / khôi phục với cột mới của bước 007');
+  const chup = async () => JSON.stringify({ p: (await q('SELECT id, loai, trang_thai, don_id, su_co, ghi_chu FROM kho_phieu ORDER BY id'))
+    .map((r) => [r.id, r.loai, r.trang_thai, r.don_id ?? null, r.su_co ?? null, r.ghi_chu ?? null]),
+  d: (await q('SELECT id, han_dung, lo_id, so_luong FROM kho_phieu_dong ORDER BY id')).map((r) => [r.id, r.han_dung ?? null, r.lo_id ?? null, Number(r.so_luong)]),
+  ton: await tonTat() });
+  const truocSL = await chup();
+  imLang();
+  const rx = await fetch(goc + '/backup/export-all', { headers: { Authorization: 'Bearer ' + the.chu } }).catch(() => null);
+  const tep = rx && rx.ok ? Buffer.from(await rx.arrayBuffer()) : Buffer.alloc(0);
+  for (const b of ['kho_phieu_dong', 'kho_lo', 'kho_phieu', 'kho_dinh_muc', 'kho_cong_thuc', 'kho_san_pham', 'kho_nhom_cong_thuc', 'kho_nguyen_lieu', 'kho_nha_cung_cap',
+    'kho_nhom_nguyen_lieu']) await ghiDb(`DELETE FROM ${b}`);
+  const f = new FormData();
+  f.append('file', new Blob([tep]), 'sl.xlsx');
+  const kp = await fetch(goc + '/backup/restore', { method: 'POST', headers: { Authorization: 'Bearer ' + the.chu }, body: f }).catch(() => null);
+  noiLai();
+  const sauSL = await chup();
+  k('H4 kho trống khôi phục từ sao lưu: phiếu (don_id, su_co, ghi chú), dòng (han_dung, lô, lượng) và tồn y hệt trước', tep.length > 0 && kp?.status === 200
+    && sauSL === truocSL, `${tep.length} byte · ${kp?.status} · ${truocSL === sauSL ? '' : sauSL.slice(0, 200)}`);
+
   muc('[G] màn hình (phép tĩnh — dùng thật là thử tay)');
   const kd = path.join(GOC, 'client', 'src', 'pages', 'Kho');
   const idx = doc(path.join(kd, 'index.jsx'));
