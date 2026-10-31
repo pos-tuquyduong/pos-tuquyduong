@@ -51,6 +51,8 @@ hỏi. App KH đọc từ `/api/kh/menu` để hiện trang món.
 - cong_cu/thu_KH1.js
 - cong_cu/thu_HOPDONG_KH.js
 - cong_cu/thu_KHAPI3.js
+- cong_cu/thu_KHAPI2.js
+- cong_cu/thu_KHO1.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
