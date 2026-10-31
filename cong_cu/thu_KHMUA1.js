@@ -59,9 +59,34 @@ async function main() {
 
   // C10: SX báo thiếu hàng lúc tạo phiên — móc checkStock TRƯỚC khi nạp orders.js (orders.js lấy hàm lúc require).
   const sx = require(path.join(GOC, 'server', 'utils', 'sxApi.js'));
-  let tonGia = null;
+  let tonGia = null, mocCS = null;   // mocCS: hàm thay checkStock cho một ca (vòng sửa 1: đổi giá / hết hàng ĐÚNG lúc tạo phiên hay chốt)
   const csGoc = sx.checkStock;
-  sx.checkStock = async (...a) => (tonGia ? { sufficient: false, stock: tonGia } : csGoc(...a));
+  sx.checkStock = async (...a) => (mocCS ? mocCS(...a) : tonGia ? { sufficient: false, stock: tonGia } : csGoc(...a));
+  // Vòng sửa 1 (soát lỗi 1, 5): móc đọc / ghi CSDL — gắn TRƯỚC khi nạp route (donApp / giuCho lấy hàm lúc require).
+  //  mocNemSauChot: lần đọc phiên đầu tiên thấy da_thu thì ném (mạng chập SAU khi chốt ví đã ghi xong).
+  //  rao: hai lần tra khoá gửi chờ nhau rồi cùng đi tiếp → hai yêu cầu chồng thật, cùng tới INSERT giữ khoá.
+  //  mocCham: INSERT giữ khoá xong thì chờ 400 ms → yêu cầu thứ hai tra khoá đúng lúc dòng giữ khoá chưa có phiên.
+  let mocNemSauChot = false, rao = null, mocCham = false;
+  const ngu = (ms) => new Promise((ok) => setTimeout(ok, ms));
+  const qoGoc = db.queryOne;
+  db.queryOne = async (sql, p) => {
+    if (rao && /FROM pos_don_app WHERE phone = \? AND khoa_gui = \?/.test(sql)) {
+      const r0 = rao;
+      await new Promise((ok) => { r0.cho.push(ok); if (r0.cho.length >= 2) { rao = null; r0.cho.forEach((f) => f()); } });
+    }
+    const r = await qoGoc(sql, p);
+    if (mocNemSauChot && /FROM pos_phien_thanh_toan WHERE id = \?/.test(sql) && r?.trang_thai === 'da_thu') {
+      mocNemSauChot = false;
+      throw new Error('mạng chập sau khi chốt (bài thử)');
+    }
+    return r;
+  };
+  const runGocDb = db.run;
+  db.run = async (sql, p) => {
+    const r = await runGocDb(sql, p);
+    if (mocCham && /INSERT INTO pos_don_app/.test(sql)) { mocCham = false; await ngu(400); }
+    return r;
+  };
   // D (KHO_BAN): câu ghi phiên trong giao dịch ném "kho bận" một lần.
   let mocBan = false;
   const txGoc = db.beginTransaction;
@@ -532,6 +557,89 @@ async function main() {
     const dnGoc = Date.now;
     await lai('hết lượt', 429, 'QUA_NHIEU_LAN', k5, than(), async () => { const t = dnGoc(); Date.now = () => dnGoc() - t + t + 11 * 60000; });
     Date.now = dnGoc;
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[V] vòng sửa 1 — lỗi SAU chốt ví · yêu cầu chồng thật · giá đổi sau tạo phiên · chốt ví hỏng · danh sách quầy');
+  await chay('V', async () => {
+    // Đếm cho ca có phiên lỡ tạo (Q8: phiên `huy` / `loi` còn dòng nhưng KHÔNG giữ tiền): đơn, đơn App, phiên đang giữ, đang giữ ví, số dư.
+    const chupGiu = async (sdt) => [await so('SELECT COUNT(*) AS n FROM pos_orders'), await so('SELECT COUNT(*) AS n FROM pos_don_app'),
+      await so("SELECT COUNT(*) AS n FROM pos_phien_thanh_toan WHERE trang_thai = 'cho'"), await dangGiu(sdt), await soDu(sdt)].join('/');
+    const quay = async () => (await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || [];
+    const than = (them = {}) => ({ ...gio(), khoa_gui: khoaMoi(), cach_tra: 'vi', pin: '1357', tong_da_xem: 50000, ...them });
+
+    const k1 = await khach(100000);
+    const t1 = than();
+    const donTruoc = await so('SELECT COUNT(*) AS n FROM pos_orders');
+    mocNemSauChot = true;
+    const r1 = await goi('POST', '/kh/don', t1, k1.tk);
+    mocNemSauChot = false;
+    const r2 = await goi('POST', '/kh/don', t1, k1.tk);
+    const ds1 = await quay();
+    k('V1 lỗi ném SAU khi chốt ví đã ghi → gửi lại cùng khoá → đơn cũ (trung, da_tra), ví trừ MỘT lần, đơn vẫn hiện ở quầy', r1.status >= 500
+      && la(r2, 200) && r2.j.trung === true && r2.j.tien_trinh === 'da_tra' && (await soDu(k1.sdt)) === 50000
+      && (await so('SELECT COUNT(*) AS n FROM pos_orders')) === donTruoc + 1 && ds1.some((d) => d.ma === r2.j.ma_don),
+    `${moTa(r1)} → ${moTa(r2)} · ví ${await soDu(k1.sdt)} · đơn +${(await so('SELECT COUNT(*) AS n FROM pos_orders')) - donTruoc}`);
+
+    const k2 = await khach(100000);
+    const t2 = than();
+    rao = { cho: [] };
+    const [a, b] = await Promise.all([goi('POST', '/kh/don', t2, k2.tk), goi('POST', '/kh/don', t2, k2.tk)]);
+    rao = null;
+    k('V2 hai yêu cầu cùng khoá CHỒNG thật (cùng qua bước tra khoá) → một 200, một 503 DANG_XU_LY; một đơn App, ví trừ một lần',
+      [a, b].filter((r) => la(r, 200)).length === 1 && [a, b].filter((r) => la(r, 503, 'DANG_XU_LY')).length === 1
+      && (await so('SELECT COUNT(*) AS n FROM pos_don_app WHERE phone = ?', [k2.sdt])) === 1 && (await soDu(k2.sdt)) === 50000, `${moTa(a)} / ${moTa(b)}`);
+
+    const k3 = await khach(100000);
+    const t3 = than();
+    mocCham = true;
+    const [c1, c2] = await Promise.all([goi('POST', '/kh/don', t3, k3.tk), ngu(150).then(() => goi('POST', '/kh/don', t3, k3.tk))]);
+    k('V3 yêu cầu sau tra khoá đúng lúc dòng giữ khoá chưa có phiên → 503 DANG_XU_LY; yêu cầu đầu 200; một đơn', la(c1, 200) && la(c2, 503, 'DANG_XU_LY')
+      && (await soDu(k3.sdt)) === 50000, `${moTa(c1)} / ${moTa(c2)}`);
+
+    const k4 = await khach(20000);
+    const tr4 = await chupGiu(k4.sdt);
+    mocCS = async () => { mocCS = null; await flash(true, 20); return { sufficient: true }; };   // Giờ vàng bật ĐÚNG lúc tạo phiên
+    const r4 = await goi('POST', '/kh/don', than({ cach_tra: 'vi_qr' }), k4.tk);
+    mocCS = null;
+    const moi4 = await baoGia(k4, gio());
+    await flash(false);
+    k('V4 giá đổi giữa báo giá và tạo phiên → 409 GIA_DA_DOI kèm báo giá mới; phiên lỡ tạo bị huỷ (ví nhả), không đơn App', la(r4, 409, 'GIA_DA_DOI')
+      && r4.j.bao_gia?.tong === moi4.j.tong && r4.j.bao_gia?.tong !== 50000 && (await chupGiu(k4.sdt)) === tr4, `${moTa(r4)} · ${tr4} → ${await chupGiu(k4.sdt)}`);
+
+    const k5 = await khach(100000);
+    const tr5 = await chupGiu(k5.sdt);
+    let lan = 0;
+    mocCS = async () => (++lan >= 2 ? { sufficient: false, stock: 1 } : { sufficient: true });   // tạo phiên còn hàng, lúc chốt hết
+    const r5 = await goi('POST', '/kh/don', than(), k5.tk);
+    mocCS = null;
+    k('V5 trả ví: chốt hỏng sau khi tạo phiên (hết hàng lúc chốt) → 400 HET_HANG, không đơn, không trừ / giữ ví (Q8)', la(r5, 400, 'HET_HANG')
+      && (await chupGiu(k5.sdt)) === tr5, `${moTa(r5)} · ${tr5} → ${await chupGiu(k5.sdt)}`);
+
+    const k6 = await khach(100000);
+    const tr6 = await chupGiu(k6.sdt);
+    let lan6 = 0;
+    mocCS = async () => { if (++lan6 >= 2) await flash(true, 20); return { sufficient: true }; };   // Giờ vàng bật ĐÚNG lúc chốt ví
+    const r6 = await goi('POST', '/kh/don', than(), k6.tk);
+    mocCS = null;
+    await flash(false);
+    k('V6 lỗi đơn không có mã riêng (tổng đổi lúc chốt, lệch số ví đã giữ — taoDon 400 không code) → 400 DON_KHONG_HOP_LE, bảng không đổi', la(r6, 400, 'DON_KHONG_HOP_LE')
+      && (await chupGiu(k6.sdt)) === tr6, `${moTa(r6)} · ${tr6} → ${await chupGiu(k6.sdt)}`);
+
+    // Danh sách quầy: đơn xong HÔM QUA ẩn; đơn đang làm từ hôm qua vẫn hiện; đơn đã huỷ / hoàn từ hôm qua ẩn và không bấm được.
+    const k7 = await khach(300000);
+    const dat = async () => (await goi('POST', '/kh/don', than({ khoa_gui: khoaMoi() }), k7.tk)).j.ma_don;
+    const [m1, m2, m3] = [await dat(), await dat(), await dat()];
+    const id = async (m) => (await donApp(m))?.id;
+    await goi('POST', `/pos/kh/don-app/${await id(m1)}/dang-lam`, {}, tkChu);
+    await goi('POST', `/pos/kh/don-app/${await id(m1)}/xong`, {}, tkChu);
+    await goi('POST', `/pos/kh/don-app/${await id(m2)}/dang-lam`, {}, tkChu);
+    for (const m of [m1, m2, m3]) await lui('pos_phien_thanh_toan', 'luc_chot', 'id = ?', [(await donApp(m))?.phien_id], 86400);
+    await db.run("UPDATE pos_orders SET status = 'cancelled' WHERE id = ?", [(await phienCua(m3))?.order_id]);
+    const ds7 = (await quay()).map((d) => d.ma);
+    const bam3 = await goi('POST', `/pos/kh/don-app/${await id(m3)}/dang-lam`, {}, tkChu);
+    k('V7 quầy: xong hôm qua ẩn · đang làm hôm qua hiện · đã huỷ hôm qua ẩn, bấm Đang làm → 409', !ds7.includes(m1) && ds7.includes(m2) && !ds7.includes(m3)
+      && la(bam3, 409, 'DA_DOI_TIEN_TRINH'), `${JSON.stringify(ds7.filter((m) => [m1, m2, m3].includes(m)))} · ${moTa(bam3)}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
