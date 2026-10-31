@@ -39,6 +39,12 @@ process.env.JWT_SECRET = KHOA_NV;
 process.env.KH_JWT_SECRET = 'thu_hopdong_kh_' + Date.now();
 process.env.POS_SERVICE_API_KEY = 'khoa_dich_vu_thu_hopdong';
 process.env.GUI_MA_KHACH = 'gia';
+// v5 (KH-MUA-1): POST /don cách qr cần payOS — máy giả trên 127.0.0.1 (khuôn thu_P3.js), khoá thử sinh lúc chạy.
+const KHOA_PAYOS = 'ck_hopdong_' + Date.now();
+process.env.PAYOS_CLIENT_ID = 'id_hopdong'; process.env.PAYOS_API_KEY = 'api_hopdong'; process.env.PAYOS_CHECKSUM_KEY = KHOA_PAYOS;
+process.env.PAYOS_RETURN_URL = 'https://thu.hopdong.local/tra-ve';
+// Câu luật 4xx chủ quán duyệt 31.10 — hợp đồng phải ghi NGUYÊN câu.
+const CAU_LUAT_4XX = 'Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như lần đầu.';
 
 const C = { do: '\x1b[31m', xanh: '\x1b[32m', dam: '\x1b[1m', het: '\x1b[0m' };
 let dat = 0, hong = 0;
@@ -63,6 +69,9 @@ const NGUON_MA = [
   ['server/utils/maKhach.js', '', null, /loi: '([A-Z][A-Z0-9_]+)'/g],
   ['server/utils/pinKhach.js', 'async function datPin', 'async function', /loi\('([A-Z][A-Z0-9_]+)'\)/g],
   ['server/routes/wallets.js', 'function loiGhi', 'function ', /code: '([A-Z][A-Z0-9_]+)'/g],
+  // v5 (KH-MUA-1): đặt đơn — mã của donApp.js + mã taoPhien / chotPhien giữ nguyên (GIU_MA); mã khác bị đổi thành DON_KHONG_HOP_LE.
+  ['server/utils/donApp.js', '', null, /thanLoi\('([A-Z][A-Z0-9_]+)'/g],
+  ['server/utils/donApp.js', 'const GIU_MA', ';', /'([A-Z][A-Z0-9_]+)'/g],
   // nhan-ma-bill / nhan-diem gọi hàm quầy: từ đầu file tới route quầy đầu tiên SAU hai hàm (GET / danh sách mã — không thuộc /api/kh).
   ['server/routes/signup-codes.js', '', "router.get('/', authenticate", /code: '([A-Z][A-Z0-9_]+)'/g],
 ];
@@ -89,6 +98,8 @@ async function main() {
   const thieuMa = HD.ma_loi.filter((m) => !chuMa.includes('`' + m + '`'));
   k(`mỗi mã của ma_loi có trong mục chữ "Mã lỗi" (${HD.ma_loi.length} mã)`, thieuMa.length === 0, thieuMa.join(', '));
   k('không còn dòng "Lỗi đã biết (sửa ở KH-API-2)"', !md.includes('Lỗi đã biết (sửa ở KH-API-2)'));
+  k('v5: hợp đồng ghi NGUYÊN câu luật 4xx của POST /don (chủ quán duyệt 31.10)', md.includes(CAU_LUAT_4XX));
+  k('v5: hợp đồng ghi dạng 409 GIA_DA_DOI có bao_gia', /`\{ error, code: "GIA_DA_DOI", bao_gia: \{/.test(md));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 
@@ -133,6 +144,17 @@ async function main() {
   app.use('/api/kh', require(R('kh')));
   app.use('/api/kh', require(R('kh/loi.js')).loiTangKh);
   const guiMa = require(path.join(GOC, 'server', 'utils', 'guiMaKhach.js'));
+  const crypto = require('crypto');
+  const ky = (d) => crypto.createHmac('sha256', KHOA_PAYOS).update(Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '' : d[x]}`).join('&')).digest('hex');
+  const gia = express();
+  gia.use(express.json());
+  gia.post('/v2/payment-requests', (req, res) => {
+    const data = { orderCode: req.body.orderCode, amount: req.body.amount, description: req.body.description, status: 'PENDING',
+      paymentLinkId: 'pl_' + req.body.orderCode, qrCode: 'QR_GIA_' + req.body.orderCode, checkoutUrl: 'https://gia/' + req.body.orderCode };
+    res.json({ code: '00', desc: 'success', data, signature: ky(data) });
+  });
+  const svGia = await new Promise((ok) => { const s = gia.listen(0, '127.0.0.1', () => ok(s)); });
+  process.env.PAYOS_BASE_URL = `http://127.0.0.1:${svGia.address().port}`;
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
   noiLai();
@@ -162,7 +184,11 @@ async function main() {
 
   // Khách mẫu: đăng nhập thật qua hai cửa đầu (lấy ở vòng gọi), rồi có hạng + ví + điểm + đơn + mã bill.
   const SDT = '0936123456';
-  let tk = null, maBill = null, maDiem = null, maDon = null;
+  let tk = null, maBill = null, maDiem = null, maDon = null, maDonApp = null;
+  // v5: giỏ mẫu của báo giá / đặt đơn (món sp, mã = `ma` của /menu); POST /don lấy tong_da_xem từ báo giá ngay trước, cách qr → cho_tra (huỷ được).
+  const gioMau = () => ({ mon: [{ ma: `${sp.sx_product_type}_${sp.sx_product_id}`, so_luong: 1, ghi_chu: 'ít đá' }], cach_nhan: 'tai_quan' });
+  const datMau = async () => ({ ...gioMau(), cach_tra: 'qr', khoa_gui: 'khoa-hop-dong-' + Date.now(),
+    tong_da_xem: (await goi('POST', '/kh/gio/bao-gia', gioMau(), tk)).j.tong });
   const THAN = {
     'POST /dang-nhap/xin-ma': () => ({ sdt: SDT }),
     'POST /dang-nhap/xac-minh': () => ({ sdt: SDT, ma: guiMa.layMaGiaCuoi()?.ma, ten: 'Khách mẫu', xung_ho: 'chi', dia_chi: 'Số 1 Phố Mẫu' }),
@@ -170,6 +196,9 @@ async function main() {
     'POST /nhan-ma-bill': () => ({ ma: maBill }),
     'POST /nhan-diem': () => ({ ma: maDiem }),
     'PUT /pin': () => ({ pin: '1234', pin_lai: '1234' }),
+    'POST /gio/bao-gia': gioMau,
+    'POST /don': datMau,
+    'POST /don/:ma/huy': () => ({}),
   };
   const coDuong = (o, phan) => {
     if (!phan.length) return true;
@@ -191,9 +220,10 @@ async function main() {
   muc('[I2] gọi TỪNG cửa: 200 + đủ trường `tra`; token: true thiếu token → 401 KH_TOKEN_SAI');
   for (const c of HD.cua) {
     if (c.token && !tk) { k('khách mẫu đăng nhập được qua hai cửa đăng nhập (có token)', false); break; }
-    const url = '/kh' + c.duong.replace(':ma', encodeURIComponent(maDon || 'x'));
-    const than = THAN[ten(c)] ? THAN[ten(c)]() : undefined;
+    const url = '/kh' + c.duong.replace(':ma', encodeURIComponent((c.duong.endsWith('/huy') ? maDonApp : maDon) || 'x'));
+    const than = THAN[ten(c)] ? await THAN[ten(c)]() : undefined;
     const r = await goi(c.pt, url, than, c.token ? tk : null);
+    if (ten(c) === 'POST /don') maDonApp = r.j.ma_don || null;
     const thieu = (c.tra || []).filter((d) => !coDuong(r.j, d.split('.')));
     k(`${ten(c)} → 200, đủ ${(c.tra || []).length} trường`, r.status === 200 && r.j.success === true && thieu.length === 0,
       `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}${thieu.length ? ' · thiếu ' + thieu.join(', ') : ''}`);
@@ -219,10 +249,15 @@ async function main() {
   muc('[I3] mọi `code` trả về (kể cả các ca lỗi dò thêm) ∈ ma_loi');
   for (const [pt, url, than] of [['POST', '/kh/dang-nhap/xin-ma', { sdt: 'abc' }], ['POST', '/kh/dang-nhap/xac-minh', { sdt: SDT, ma: '000000' }],
     ['GET', '/kh/don/KHONG-CO'], ['POST', '/kh/nhan-ma-bill', { ma: 'KHONGCO1' }], ['POST', '/kh/nhan-diem', { ma: '' }], ['POST', '/kh/nhan-ma-bill', { ma: maBill }],
-    ['PUT', '/kh/pin', { pin: '12', pin_lai: '12' }], ['PUT', '/kh/toi', { ten: '' }], ['GET', '/kh/khong-co-duong']]) await goi(pt, url, than, tk);
+    ['PUT', '/kh/pin', { pin: '12', pin_lai: '12' }], ['PUT', '/kh/toi', { ten: '' }], ['GET', '/kh/khong-co-duong'],
+    // v5: đặt đơn
+    ['POST', '/kh/gio/bao-gia', { ...gioMau(), cach_nhan: 'giao' }], ['POST', '/kh/gio/bao-gia', { ...gioMau(), ma_giam: 'KHONGCO' }],
+    ['POST', '/kh/don', { ...gioMau(), khoa_gui: 'ngan' }], ['POST', '/kh/don', { ...gioMau(), cach_tra: 'qr', khoa_gui: 'khoa-hop-dong-gia-doi', tong_da_xem: 1 }],
+    ['POST', '/kh/don', { ...gioMau(), cach_tra: 'vi', pin: '0000', khoa_gui: 'khoa-hop-dong-pin-sai', tong_da_xem: 45000 }],
+    ['POST', '/kh/don/KHONGCO/huy', {}]]) await goi(pt, url, than, tk);
   const ngoai = maThay.filter((m) => !MA.has(m.split(' ')[0]));
   k(`${maThay.length} mã thấy trong câu trả lời đều thuộc ma_loi`, maThay.length >= 8 && ngoai.length === 0, ngoai.join(' | '));
-  sv.close();
+  sv.close(); svGia.close();
   return ket();
 }
 
