@@ -59,9 +59,9 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[A1] Hàm chuẩn hoá SĐT của ô "số mới" (utils/maApp.js chuanSdtQuay)');
-  const cs = maApp.chuanSdtQuay;
-  k('A1 có hàm chuanSdtQuay', typeof cs === 'function');
-  if (typeof cs === 'function') {
+  const cs = (v) => { try { return maApp.chuanSdtQuay(v); } catch { return 'LỖI: chưa có hàm'; } };   // thiếu hàm → mọi ca dưới ĐỎ, số ca không đổi
+  k('A1 có hàm chuanSdtQuay', typeof maApp.chuanSdtQuay === 'function');
+  {
     k('A1 "0912345678" → giữ nguyên', cs('0912345678') === '0912345678', String(cs('0912345678')));
     k('A1 có khoảng trắng / chấm / gạch → bỏ', cs(' 0912 345.678 ') === '0912345678' && cs('0912-345-678') === '0912345678');
     k('A1 +84 / 84 đầu → 0 (cùng luật normalizePhone của quầy)', cs('+84 912 345 678') === '0912345678' && cs('84912345678') === '0912345678');
@@ -128,9 +128,9 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B1] Hàm khổ hoá đơn dùng chung (utils/inPhieu.js khoHoaDon)');
-  const kho = inPhieu.khoHoaDon;
-  k('B1 có hàm khoHoaDon', typeof kho === 'function');
-  if (typeof kho === 'function') {
+  const kho = (v) => { try { return inPhieu.khoHoaDon(v); } catch { return 'LỖI: chưa có hàm'; } };
+  k('B1 có hàm khoHoaDon', typeof inPhieu.khoHoaDon === 'function');
+  {
     k("B1 'a5' / 'a4' → '80mm'", kho('a5') === '80mm' && kho('a4') === '80mm', `${kho('a5')} ${kho('a4')}`);
     k("B1 rỗng / undefined / null / lạ / hoa-thường lạ → '80mm'", ['', undefined, null, 'xyz', 'A5', 'A4', 0, {}].every((v) => kho(v) === '80mm'));
     k("B1 khổ nhiệt giữ nguyên: '58mm' → '58mm', '80mm' → '80mm'", kho('58mm') === '58mm' && kho('80mm') === '80mm');
