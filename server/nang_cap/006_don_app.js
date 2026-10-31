@@ -5,7 +5,8 @@
  *   khoa_gui      khoá chống gửi trùng của App, duy nhất THEO KHÁCH (UNIQUE phone + khoa_gui)
  *   bam           sha256 của giỏ (món, SL, ghi chú, mã giảm, cách nhận, cách trả) — so khoá trùng + lưới 10 giây; không có PIN
  *   than          bản chụp giỏ đã tính (JSON) — App xem đơn chưa trả; không có PIN
- *   phien_id      NULL = đang tạo (giữ khoá); có = đã có phiên thanh toán
+ *   phien_id      NULL = chưa có phiên; có = đã có phiên thanh toán (gắn NGAY sau khi tạo phiên, trước khi chốt ví)
+ *   xong          0 = đang tạo (giữ khoá — gửi lại cùng khoá nhận DANG_XU_LY); 1 = đã tạo xong, trả cho App được
  *   tien_trinh_quay  '' · dang_lam · xong (quầy bấm, ghi người + giờ)
  */
 const CAU = [
@@ -17,6 +18,7 @@ const CAU = [
     bam TEXT NOT NULL,
     than TEXT NOT NULL,
     phien_id INTEGER,
+    xong INTEGER NOT NULL DEFAULT 0,
     tien_trinh_quay TEXT NOT NULL DEFAULT '',
     nguoi_lam TEXT,
     luc_lam TEXT,
