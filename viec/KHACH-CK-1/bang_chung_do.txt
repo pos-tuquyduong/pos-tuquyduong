@@ -77,9 +77,16 @@ Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --bai-cu 29db8d3 thu_P20.js thu_GOI1
   thu_BH2.js   — ✗ D18 (thiếu hàm coChietKhauRieng), ✗ S19 — BH-2: 97 đạt · 2 hỏng, thoát 1
 → Mọi bài cũ đổi đều ĐỎ ở dạng gốc trên code mới → không cần `## Bài thử cũ sửa` (chủ quán chốt khi duyệt kế hoạch).
 
-━━ 3. Trên code đã vá (HEAD) — đối chứng của dot_bien.py ━━
+━━ 3. Trên code đã vá — LẦN ĐẦU 30.10 (số đã cũ; số hiện hành ở mục 3b) ━━
   thu_KHACHCK1.js 34 đạt · 0 hỏng · thu_UUDAI1.js 88 · thu_P26c.js 157 · thu_P20.js 172 · thu_GOI1.js 113 · BH-1 73 · BH-2 99 (đều 0 hỏng)
 Đột biến: python3 viec/KHACH-CK-1/dot_bien.py → TỔNG 34 đột biến · BẮT 34 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 7 bài xanh)
+
+━━ 3b. VÒNG SỬA 2 (31.10) — D1c dò mọi tên biến; đột biến thêm VS-SALES-TEN-KHAC, VS-LO2-CHI-PERCENT ━━
+Lệnh: python3 viec/KHACH-CK-1/dot_bien.py --goc 29db8d3 thu_KHACHCK1.js
+  ✗ D1c Sales.jsx không còn applyCustomerDiscount, không đọc <khách>.discount_value / discount_type (mọi tên biến)  — customer, customer, customer, selectedCustomer, selectedCustomer, selectedCustomer, customer, customer, customer, customer
+  10 đạt · 27 hỏng (cùng các dòng ✗ của mục 1 + 1b)
+Trên HEAD — đối chứng: thu_KHACHCK1.js 37 · thu_UUDAI1.js 88 · thu_P26c.js 157 · thu_P20.js 172 · thu_GOI1.js 113 · BH-1 73 · BH-2 99 (đều 0 hỏng)
+Đột biến: python3 viec/KHACH-CK-1/dot_bien.py → TỔNG 37 đột biến · BẮT 37 · SỐNG 0 · HỎNG 0 · LẠC 0
 
 SỐ CA cong_cu/thu_KHACHCK1.js: 37
 SỐ CA cong_cu/thu_UUDAI1.js: 88
