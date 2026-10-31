@@ -7,7 +7,7 @@
  * Luật trang tiền (chanTrangTien) ở backup.js, chạy TRƯỚC hàm này.
  */
 const XLSX = require('xlsx');
-const { query, beginTransaction, laLoiBan } = require('../database');
+const { query, beginTransaction } = require('../database');
 
 const docTrang = (ws) => XLSX.utils.sheet_to_json(ws, { defval: null });
 
@@ -16,6 +16,8 @@ const LY_DO = [[/CHECK constraint/i, 'vi phạm CHECK (giá trị không đượ
   [/UNIQUE constraint|PRIMARY KEY/i, 'trùng khoá (UNIQUE)'], [/FOREIGN KEY constraint/i, 'còn dữ liệu khác trỏ tới (khoá ngoại)'],
   [/datatype mismatch/i, 'sai kiểu dữ liệu']];
 const lyDo = (err) => (LY_DO.find(([m]) => m.test(String(err?.message))) || [null, 'dữ liệu không hợp lệ'])[1];
+// CHỈ lỗi DỮ LIỆU của dòng (ràng buộc / sai kiểu) mới báo "dòng N hỏng"; lỗi hạ tầng (mạng, Turso hết giờ, kho bận…) ném nguyên → 500 / 409.
+const laLoiDuLieu = (err) => /^SQLITE_(CONSTRAINT|MISMATCH)/.test(String(err?.code));
 
 /** Kế hoạch từng trang của file: { sheet, table, label, recognized, fileRows, status: 'se_khoi_phuc' | 'skipped', code?, reason?, cot, cot_bo_qua, dong, viTri }. */
 async function lapKeHoach(wb, bangSaoLuu) {
@@ -47,13 +49,13 @@ async function lapKeHoach(wb, bangSaoLuu) {
   return keHoach;
 }
 
-/** Chạy kế hoạch trong MỘT giao dịch. Lỗi dữ liệu → ném { loiDong: { bang, trang, dong, ly_do } }; kho bận → ném nguyên lỗi (laLoiBan). */
+/** Chạy kế hoạch trong MỘT giao dịch. Lỗi dữ liệu → ném { loiDong: { bang, trang, dong, ly_do } }; lỗi khác (kho bận, mạng) → ném nguyên lỗi. */
 async function thucHien(keHoach) {
   const lam = keHoach.filter((m) => m.status === 'se_khoi_phuc').sort((a, b) => a.viTri - b.viTri);
   const tx = await beginTransaction();
   const chay = async (m, soDong, sql, args) => {
     try { await tx.run(sql, args); } catch (err) {
-      if (laLoiBan(err)) throw err;
+      if (!laLoiDuLieu(err)) throw err;
       throw Object.assign(new Error(err.message), { loiDong: { bang: m.table, trang: m.sheet, dong: soDong, ly_do: lyDo(err) } });
     }
   };
@@ -61,7 +63,7 @@ async function thucHien(keHoach) {
     for (const m of [...lam].reverse()) await chay(m, null, `DELETE FROM ${m.table}`, []);
     for (const m of lam) {
       const sql = `INSERT INTO ${m.table} (${m.cot.map((c) => `"${c}"`).join(', ')}) VALUES (${m.cot.map(() => '?').join(', ')})`;
-      for (const [i, d] of m.dong.entries()) await chay(m, i + 2, sql, m.cot.map((c) => d[c]));   // dòng Excel: tiêu đề là dòng 1
+      for (const d of m.dong) await chay(m, d.__rowNum__ + 1, sql, m.cot.map((c) => d[c]));   // dòng Excel thật (__rowNum__ đếm từ 0, đã tính dòng trống bị bỏ)
     }
     await tx.commit();
   } catch (err) {
