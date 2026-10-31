@@ -10,3 +10,11 @@ Kết quả bản gốc: "2 đạt · 8 hỏng" (bài sập giữa mục B vì c
   ✗ D: bài chạy hết mục — Cannot find module server/utils/thongTinMon.js
 Sau khi vá: 37 đạt · 0 hỏng
 SỐ CA thu_KHSP1.js: 37
+
+Ba bài cũ sửa ĐÚNG dòng danh sách trắng (LUẬT §6 mục 7–8; bản mới ĐỎ trên gốc 0ee84b9, XANH trên code đã vá — không phải "Bài thử cũ sửa"):
+  thu_KH1.js     gốc: ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng — 156 đạt · 1 hỏng | vá: 157 đạt · 0 hỏng
+  thu_KHAPI2.js  gốc: ✗ E3 trường cũ y nguyên (…)                  — 100 đạt · 1 hỏng | vá: 101 đạt · 0 hỏng
+  thu_KHO1.js    gốc: ✗ D1 pos_products KHÔNG thêm cột              — 110 đạt · 1 hỏng | vá: 111 đạt · 0 hỏng
+SỐ CA thu_KH1.js: 157
+SỐ CA thu_KHAPI2.js: 101
+SỐ CA thu_KHO1.js: 111
