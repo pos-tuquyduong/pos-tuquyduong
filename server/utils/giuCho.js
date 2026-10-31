@@ -119,4 +119,4 @@ async function chotPhien(phien, nguon, them = {}) {
   return { status: r.statusCode, body: r.body };
 }
 
-module.exports = { taoPhien, chotPhien, tomPhien, HAN_PHUT };
+module.exports = { taoPhien, chotPhien, tomPhien, gomRes, HAN_PHUT };

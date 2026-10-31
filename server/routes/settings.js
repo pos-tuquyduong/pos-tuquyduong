@@ -18,6 +18,7 @@ const { getToday } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 const { kiemCaiDat } = require('../utils/gioHoatDong');
+const TIENG_CHUONG = ['ding', 'chuong', 'bip'];   // KH-MUA-1: cùng danh sách client/src/components/DonAppNoi.jsx
 
 // Multer config cho upload logo
 const storage = multer.memoryStorage();
@@ -124,6 +125,11 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if (hanMucSai) {
       return res.status(400).json({ success: false, error: `Cài đặt ${hanMucSai[0]} phải là số đồng nguyên ≥ 0`, code: 'CAI_DAT_KHONG_HOP_LE' });
     }
+    // KH-MUA-1: chuông đơn App — bật 0/1, tiếng trong danh sách, âm lượng nguyên 0–100 (sai âm lượng thì Web Audio lỗi im lặng).
+    const chuongSai = Object.entries(settings).find(([key, value]) => (key === 'don_app_chuong_bat' && !['0', '1'].includes(String(value)))
+      || (key === 'don_app_chuong_tieng' && !TIENG_CHUONG.includes(String(value)))
+      || (key === 'don_app_chuong_am_luong' && !(/^\d{1,3}$/.test(String(value)) && Number(value) <= 100)));
+    if (chuongSai) return res.status(400).json({ success: false, error: `Cài đặt ${chuongSai[0]} không hợp lệ`, code: 'CAI_DAT_KHONG_HOP_LE' });
     // KH-API-2: giờ hoạt động (gio_hd_*) — cùng luật: sai một khoá thì không ghi khoá nào.
     const loiGio = kiemCaiDat(settings);
     if (loiGio) return res.status(400).json({ success: false, error: loiGio, code: 'CAI_DAT_KHONG_HOP_LE' });

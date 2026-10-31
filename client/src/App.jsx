@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import Login from './pages/Login';
 import Layout from './components/Layout';
+import DonApp from './pages/DonApp';
 import TrangChu from './pages/BanHang';
 import Customers from './pages/Customers';
 import Balance from './pages/Balance';
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="kho" element={<Kho />} />
         <Route path="hom-nay" element={<Reports />} />   {/* BH-2: "Hôm nay" = Báo cáo / Đối soát (mặc định đã là ngày hôm nay) */}
         <Route path="quan-ly" element={<QuanLy />} />
+        <Route path="don-app" element={<ThanhLoi man="don-app"><DonApp /></ThanhLoi>} />   {/* KH-MUA-1 */}
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

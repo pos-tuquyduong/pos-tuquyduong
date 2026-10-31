@@ -496,6 +496,7 @@ for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a
 chayBaiThat('cong_cu/thu_UUDAI1.js');   // UUDAI-1: mã giảm & giá hạng, tinh-thu
 chayBaiThat('cong_cu/thu_BHCKTAY1.js');   // BH-CKTAY-1: màn Bán hàng cũ bỏ ô giảm tay
 chayBaiThat('cong_cu/thu_KHACHCK1.js');   // KHACH-CK-1: bỏ chiết khấu riêng từng khách (máy chủ, cửa ghi, nâng cấp 004, màn hình)
+chayBaiThat('cong_cu/thu_KHMUA1.js');   // KH-MUA-1: App KH đặt đơn nhận tại quán (báo giá, tạo đơn qua phiên thanh toán, chống trùng, tiến trình, quầy)
 chayBaiThat('cong_cu/thu_HD1.js');   // HD-1: hoá đơn bố cục mới + QR + chữ tuỳ chỉnh (dòng riêng: thu_P3 neo mảng bài, đòi P3 đứng cuối)
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch

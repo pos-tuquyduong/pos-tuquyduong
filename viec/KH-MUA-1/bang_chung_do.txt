@@ -1,0 +1,84 @@
+KH-MUA-1 — bằng chứng bài thử ĐỎ trên code gốc, XANH sau vá (31.10.2026)
+
+Code gốc = 76ce7c5 (server/ dựng bằng `python3 cong_cu/ban_sao_goc.py 76ce7c5 <nháp>/goc`, chép bài thử bản ĐÃ COMMIT vào <nháp>/goc/cong_cu,
+hợp đồng v5 vào <nháp>/goc; chạy `cd <nháp>/goc && node cong_cu/<bài>`).
+
+═══ cong_cu/thu_KHMUA1.js (bài mới) ═══
+Trên gốc 76ce7c5 (bản bài thử cf76fee):  10 đạt · 100 hỏng  → ĐỎ
+  Ca đạt trên gốc (đều là ca "luồng cũ / không ghi gì" — đúng ý, không phải ca vá):
+    ✓ A4 báo giá không ghi gì (đếm bảng trước = sau)
+    ✓ K2 báo giá không token → 401 KH_TOKEN_SAI
+    ✓ B bảng không đổi sau mọi ca chặn
+    ✓ C1 chưa có đơn thật (đơn chỉ thành khi trả đủ)
+    ✓ D1 KH_TOKEN_SAI → 401, bảng trước = sau
+    ✓ K2 POST /don không token → 401
+    ✓ F5 khách khác đọc đơn App / đơn quầy của người kia → 404 KHONG_THAY_DON; danh sách không có
+    ✓ H5 âm lượng biên 0 → lưu
+    ✓ K1 quầy: tinh-thu / POST /orders / phiên tài khoản cho cùng giỏ ra đúng số chụp trên gốc (80000 · 8000 · 5000 · 67000 · 67000 · 27000 · 200 · 173000)
+    ✓ K1 quầy: điểm cộng của 2 đơn quầy > 0 (đường điểm chạy)
+  Mẫu dòng đỏ trên gốc: ✗ A1 … HTTP 404 · KHONG_TIM_THAY · ✗ D1 NGOAI_GIO → 400 … HTTP 404 · KHONG_TIM_THAY · ✗ H2 đơn chưa trả KHÔNG hiện ở
+  quầy — HTTP 404 · ✗ H5 cài đặt chuông: sai giá trị → 400 … HTTP 200 / HTTP 200 … · ✗ F1 GET /don thấy đơn App cho_tra …
+Sau vá (HEAD, bản cf76fee): 110 đạt · 0 hỏng — chạy 4 lần liền đều 110/0 (E5, G6 xanh cả 4 lần; soát vòng 1 chỉ ra E5 thật ra chạy NỐI
+TIẾP — ca chồng thật là V2, V3 thêm ở vòng sửa 1).
+
+Vòng sửa 1 (bản bài 2beffa7 — thêm mục [V] + K1 số Giờ vàng quầy / điểm bằng số):
+  Trên gốc 76ce7c5:  11 đạt · 107 hỏng  → ĐỎ (11 ca đạt = 10 ca ở trên + "K1 quầy: điểm = 6 (số gốc); Giờ vàng quầy … (5000 · 0 · 20000 · 20000 · 5000)")
+  Trên HEAD TRƯỚC vá vòng 1 (b5098db, code 5691060) — bài [V] mới: 115 đạt · 2 hỏng → ĐỎ ĐÚNG lỗi soát báo:
+    ✗ V1 lỗi ném SAU khi chốt ví đã ghi → gửi lại cùng khoá → đơn cũ (trung, da_tra), ví trừ MỘT lần, đơn vẫn hiện ở quầy
+      — HTTP 500 · LOI_MAY_CHU → HTTP 200 · ví 0 · đơn +2          (trừ ví HAI lần, hai đơn)
+    ✗ V7 quầy: xong hôm qua ẩn · đang làm hôm qua hiện · đã huỷ hôm qua ẩn, bấm Đang làm → 409 — [đơn huỷ còn hiện] · HTTP 200
+  Sau vá vòng 1 (HEAD 7ad14ec): 118 đạt · 0 hỏng
+(SỐ CA của vòng 1 cũ: 118 — thay bằng dòng dưới)
+
+Vòng sửa 2 (bản bài 0b61623 — thêm V8, V9, ngưỡng lượt 10 / 11):
+  Trên gốc 76ce7c5:  11 đạt · 109 hỏng  → ĐỎ (11 ca đạt như vòng 1)
+  Trên HEAD TRƯỚC vá vòng 2 (code e520d46): 119 đạt · 1 hỏng → ĐỎ ĐÚNG lỗi soát vòng 2 báo:
+    ✗ V8 gửi lại cùng khoá TRONG LÚC yêu cầu đầu đang chốt ví → 503 DANG_XU_LY (không 200 một đơn sắp bị xoá); yêu cầu đầu hỏng HET_HANG → …
+      — HTTP 200 · HTTP 400 · HET_HANG · HTTP 200 · ví 50000      (lần gửi giữa chừng nhận 200 cho đơn rồi bị xoá)
+  (V9 và ca ngưỡng 10 / 11 XANH trên e520d46 — là ca PHỦ đột biến VS-DON-KHOA-CHET-120 và trần lượt, không phải ca đỏ.)
+  Sau vá vòng 2 (HEAD dc6501e): 120 đạt · 0 hỏng
+(SỐ CA của vòng 2 cũ: 120 — thay bằng dòng dưới)
+
+Vòng sửa 4 (chat soát thay — bản bài 9d0b2c8, thêm V1b, V10):
+  Trên gốc 76ce7c5:  11 đạt · 111 hỏng  → ĐỎ
+  Trên HEAD TRƯỚC vá vòng 4 (code ffa5cce): 121 đạt · 1 hỏng → ĐỎ ĐÚNG lỗi soát vòng 3 báo:
+    ✗ V1b đơn ví lỗi SAU chốt (chưa gửi lại) → huỷ trả 400 DA_TRA_GOI_QUAN như GET /don đang hiện da_tra, không 404  — HTTP 404 · KHONG_THAY_DON
+  (V10 XANH trên ffa5cce — ca PHỦ cho 3 đột biến soát vòng 3 dựng mà SỐNG: BV-LUOI-BO-THAY-DUOC, BV-DSDON-BO-THAY-DUOC, BV-HUY-BO-THAY-DUOC.)
+  Sau vá vòng 4 (HEAD 941f798): 122 đạt · 0 hỏng
+SỐ CA thu_KHMUA1.js: 122
+
+Bảng số chụp K1 (luồng quầy, chủ quán Q8/K): tinh-thu subtotal 80000 · giảm hạng 8000 · giảm mã 5000 · total 67000 · POST /orders total 67000 ·
+phiên tài khoản tổng 27000 · chốt 200 · số dư sau 173000 — trên gốc và sau vá BẰNG nhau.
+
+═══ cong_cu/thu_HOPDONG_KH.js (bài cũ SỬA vì hợp đồng đổi — LUAT §6.8: đỏ trên gốc, xanh trên mới) ═══
+Trên gốc 76ce7c5 (bản bài 7dbdaf3 + HOP_DONG_API_KH.md v5):  73 đạt · 8 hỏng  → ĐỎ
+  ✗ mọi cửa hợp đồng có route (19)  — POST /gio/bao-gia, POST /don, POST /don/:ma/huy
+  ✗ server/utils/donApp.js: 0 mã đều trong ma_loi  — không thấy mã nào — nguồn đổi chỗ?
+  ✗ server/utils/donApp.js (const GIU_MA…): 0 mã đều trong ma_loi  — không thấy mã nào — nguồn đổi chỗ?
+  ✗ GET /don → 200, đủ 11 trường  — HTTP 200 · thiếu data[].tien_trinh, data[].qr, data[].tien_ve_cho_doi_soat
+  ✗ GET /don/:ma → 200, đủ 15 trường  — HTTP 200 · thiếu don.tien_trinh, don.qr, don.tien_ve_cho_doi_soat, don.mon[].ma
+  ✗ POST /gio/bao-gia → 200, đủ 10 trường  — HTTP 404 · KHONG_TIM_THAY · thiếu …
+  ✗ POST /don → 200, đủ 8 trường  — HTTP 404 · KHONG_TIM_THAY · thiếu …
+  ✗ POST /don/:ma/huy → 200, đủ 2 trường  — HTTP 404 · KHONG_TIM_THAY · thiếu ma_don, tien_trinh
+Sau vá (HEAD): 81 đạt · 0 hỏng
+SỐ CA thu_HOPDONG_KH.js: 81
+
+═══ Bài cũ chạy lại sau vá (không sửa) ═══
+thu_KH1.js 157 đạt · 0 hỏng · thu_KHAPI3.js 67 đạt · 0 hỏng · `npm test -- --day-du` (cả sau vòng sửa 1): PASS 88 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn
+từ trước: GET có lệnh ghi ở packages.js:194, products.js:67, sync.js:147 — không phải file của việc này).
+
+═══ Đột biến (python3 viec/KH-MUA-1/dot_bien.py) ═══
+ĐỐI CHỨNG XANH (mua 110/0 · hd 81/0) · TỔNG 30 đột biến · BẮT 30 · SỐNG 0 · HỎNG 0 · LẠC 0
+Vòng sửa 1: ĐỐI CHỨNG XANH (mua 118/0 · hd 81/0) · TỔNG 38 đột biến · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0 (thêm 8 đột biến cho chỗ vá vòng 1,
+neo lại BV-BO-XOA-GIU-KHOA, BV-QUAY-THAY-DON-CHO-TRA, BV-DOI-TIEN-TRINH-CHUA-TRA theo code mới).
+Vòng sửa 2: ĐỐI CHỨNG XANH (mua 120/0 · hd 81/0) · TỔNG 39 đột biến · BẮT 39 · SỐNG 0 · HỎNG 0 · LẠC 0 (bỏ BV-DANG-XU-LY-GIU-KHOA — bắt nhờ
+bài sập; thêm VS-DON-KHOA-CHET-120, VS-CO-PHIEN-LA-XONG đưa ĐÚNG lỗi cũ trở lại). `npm test -- --day-du`: PASS 88 · FAIL 0 · CẢNH BÁO 1.
+Vòng sửa 4: ĐỐI CHỨNG XANH (mua 122/0 · hd 81/0) · TỔNG 43 đột biến · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0. `npm test -- --day-du`: PASS 88 · FAIL 0 ·
+CẢNH BÁO 1 (có sẵn), dist khớp src.
+
+═══ Dòng SỐ CA cho cổng A16 (đường dẫn đầy đủ; số = dòng tổng trên code ĐÃ VÁ, HEAD 941f798) ═══
+SỐ CA cong_cu/thu_KHMUA1.js: 122
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 81
+Ghi chú cổng: A16 CẢNH BÁO (không chặn) thu_HOPDONG_KH trên gốc in 72 ca ≠ 81. Bằng chứng đỏ máy tự chạy ở trên là 73 đạt · 8 hỏng = 81 ca (gốc
++ hợp đồng v5). Chưa đọc tu_chay/cong.js để biết cổng dựng gốc với hợp đồng nào — lệch số ca CHƯA KIỂM nguyên nhân.
+
