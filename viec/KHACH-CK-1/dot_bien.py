@@ -26,6 +26,12 @@ LO2_MOI = '    if (!discountCodeId) {\n      finalDiscountType = null;\n      fi
 LO2_CU = ('    if (!discountCodeId) {\n      const khCK = phone\n        ? await queryOne("SELECT discount_type, discount_value FROM pos_customers WHERE phone = ?", [phone])\n        : null;\n'
           '      const mucCK = Number(khCK?.discount_value || 0);\n      if (mucCK > 0) {\n        finalDiscountType = khCK.discount_type || "percent";\n'
           '        finalDiscountValue = mucCK;\n      } else {\n        finalDiscountType = null;\n        finalDiscountValue = 0;\n      }\n    }\n')
+# Bỏ vá LO 2 = đưa lại CẢ khối đọc hồ sơ LẪN hai nhánh tính tiền theo mức (vòng sửa 1 xoá hai nhánh đã chết).
+TINH_MOI = '    if (discountCodeId) finalDiscountAmount = uuDai.giam_ma;\n'
+TINH_CU = ('    if (discountCodeId) {\n      finalDiscountAmount = uuDai.giam_ma;\n    } else if (finalDiscountType === "percent" && finalDiscountValue > 0) {\n'
+           '      finalDiscountAmount = (subtotal * finalDiscountValue) / 100;\n    } else if (finalDiscountType === "fixed" && finalDiscountValue > 0) {\n'
+           '      finalDiscountAmount = finalDiscountValue;\n    }\n')
+BV_LO2 = [(O, LO2_MOI, LO2_CU, 1), (O, TINH_MOI, TINH_CU, 1)]
 CHAN = '    if (Number(discount_value) > 0) {\n'
 SAO_LUU = "  await tx.run('CREATE TABLE IF NOT EXISTS _sao_luu_004_pos_customers AS SELECT * FROM pos_customers');\n"
 DAT_LAI = "  const kq = await tx.run(`UPDATE pos_customers SET discount_value = 0, discount_type = 'percent' WHERE ${CO_MUC}`);\n"
@@ -36,12 +42,12 @@ CHON_KHACH_CU = ("    if (selectedCustomer?.discount_value > 0) {\n      setDisc
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
 DOT_BIEN = [
   # ── orders.js LO 2: máy chủ không áp chiết khấu hồ sơ ──
-  ('BV-LO2', [(O, LO2_MOI, LO2_CU, 1)], r'✗ A1 ', 'thu_KHACHCK1.js'),
-  ('BV-LO2-TINHTHU', [(O, LO2_MOI, LO2_CU, 1)], r'✗ A3 ', 'thu_KHACHCK1.js'),
-  ('BV-LO2-FLASH', [(O, LO2_MOI, LO2_CU, 1)], r'✗ A7 ', 'thu_KHACHCK1.js'),
-  ('BV-LO2-UUDAI1', [(O, LO2_MOI, LO2_CU, 1)], r'✗ G5b ', 'thu_UUDAI1.js'),
-  ('BV-LO2-GOI1', [(O, LO2_MOI, LO2_CU, 1)], r'✗ B3c2 ', 'thu_GOI1.js'),
-  ('BV-LO2-P20', [(O, LO2_MOI, LO2_CU, 1)], r'✗ hồ sơ cũ fixed 5\.000', 'thu_P20.js'),
+  ('BV-LO2', BV_LO2, r'✗ A1 ', 'thu_KHACHCK1.js'),
+  ('BV-LO2-TINHTHU', BV_LO2, r'✗ A3 ', 'thu_KHACHCK1.js'),
+  ('BV-LO2-FLASH', BV_LO2, r'✗ A7 ', 'thu_KHACHCK1.js'),
+  ('BV-LO2-UUDAI1', BV_LO2, r'✗ G5b ', 'thu_UUDAI1.js'),
+  ('BV-LO2-GOI1', BV_LO2, r'✗ B3c2 ', 'thu_GOI1.js'),
+  ('BV-LO2-P20', BV_LO2, r'✗ hồ sơ cũ fixed 5\.000', 'thu_P20.js'),
   ('VS-LO2-TIN-TO-KHAI', [(O, LO2_MOI, '    if (!discountCodeId) {\n      finalDiscountType = discount_type;\n      finalDiscountValue = discount_value;\n    }\n', 1)],
    r'✗ F3b ', 'thu_KHACHCK1.js'),
   # ── hai cửa ghi: chặn mức > 0 ──
@@ -53,6 +59,10 @@ DOT_BIEN = [
                           "SET discount_type = 'percent', discount_value = 0 + " + "?, discount_note = ?, updated_at = ?", 1),
                          (C2, '`, [discount_note || null, getNow(), phone]);', '`, [Number(discount_value) || 0, discount_note || null, getNow(), phone]);', 1)],
    r'✗ B7 ', 'thu_KHACHCK1.js'),
+  ('VS-V2-INSERT-GHI-MUC-THAN', [(C2, "VALUES (?, ?, 'percent', 0, ?, ?)", "VALUES (?, ?, COALESCE(?, 'percent'), 0 + " + "?, ?, ?)", 1),
+                                (C2, "[phone, 'Khách hàng', discount_note || null, getNow()]",
+                                 "[phone, 'Khách hàng', req.body.discount_type || null, Number(discount_value) || 0, discount_note || null, getNow()]", 1)],
+   r'✗ B7c ', 'thu_KHACHCK1.js'),
   ('BV-CHAN-V1', [(C1, CHAN, '    if (false) {\n', 1)], r'✗ B3 ', 'thu_KHACHCK1.js'),
   ('VS-CHAN-V1-CHI-FIXED', [(C1, CHAN, "    if (req.body.discount_type === 'fixed' && Number(discount_value) > 0) {\n", 1)], r'✗ B3 ', 'thu_KHACHCK1.js'),
   ('VS-V1-GHI-LOAI-THAN', [(C1, "        discount_type = 'percent',\n", "        discount_type = COALESCE(?, 'percent'),\n", 1),
