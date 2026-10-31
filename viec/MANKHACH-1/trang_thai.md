@@ -75,4 +75,11 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
 
 ## Chạy thử tay (2 thao tác, trên điện thoại/máy tính bảng)
 1. Màn Bán hàng mới → "Màn khách" → xem mã; trên máy tính bảng mở `/man-khach`, nhập mã → thấy nội dung rảnh. Cài đặt → Màn khách chỉnh trang.
-2. Thu một đơn bằng QR → màn khách hiện QR + món + tổng; tiền về → "Cảm ơn" rồi về nội dung rảnh.
+2. Thu một đơn bằng QR → màn khách hiện QR + màn + tổng; tiền về → "Cảm ơn" rồi về nội dung rảnh.
+
+## Kết quả cuối (sau vòng sửa 1)
+- `npm test -- --day-du`: PASS 93 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn, chưa đọc nội dung); "dist đã commit KHỚP với src".
+- `node tu_chay/cong.js chay . 10b1abc^ HEAD viec/MANKHACH-1`: ✓ CỔNG CHẠY ĐẠT (kèm CẢNH BÁO A16: trên gốc bài dừng sớm ở ca đầu vì chưa có route — đã giải thích ở bang_chung_do.txt).
+- Soát độc lập: vòng 1 KHÔNG ĐẠT → đã sửa 4 điểm (còn lại là câu hỏi 2–4). Chưa chạy lần soát vòng 2 — chat soát kiểm lại.
+
+HEAD ĐÃ KIỂM: 00cb63b
