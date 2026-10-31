@@ -298,3 +298,7 @@ GIT (git log --oneline -2 lúc kiểm):
   0e3cedd KHO-2b: neo dot bien BV-SUA-CHI-DA-DUYET theo dong moi
 
 HEAD ĐÃ KIỂM: a38593c
+
+
+Chat soát (31.10): đọc 3 lần soát độc lập + vòng sửa 4 (chỉ lỗi NHẸ, đã sửa đủ — chat soát thay soát lần cuối), kế hoạch đã duyệt 4 câu. Chặn huỷ / sửa phiếu nhận khi lô nguyên liệu đã bị trừ và lỗ sửa phiếu xuất chờ duyệt → KHO-IN-1 / việc sau; lỗi khôi phục sao lưu → SAOLUU-2. Chat gộp main, dist dựng lại.
+HEAD ĐÃ KIỂM: e443b31
