@@ -34,6 +34,15 @@
    **Đề xuất: KHÔNG tự đổi trong việc này** — lô nhập vẫn giữ giá thật riêng; bạn vẫn đổi giá nhập tay ở màn Nguyên liệu. Muốn tự đổi thì mở việc riêng sau.
 
 ## Phát hiện
+- **Khôi phục sao lưu vào kho TRỐNG làm mất dữ liệu cột** (`server/routes/backup.js:388`, ngoài Phạm vi, lỗi có từ trước): cột lấy từ `Object.keys(rows[0])`
+  — cột nào trống ở DÒNG ĐẦU trang Excel thì bị bỏ ở MỌI dòng (đo bằng chạy: ghi chú, don_id của phiếu mất sạch); dòng vi phạm CHECK (vd dòng thành
+  phẩm mất san_pham_id) bị nuốt lỗi `Insert error` và mất. Đề xuất việc riêng: lấy cột theo hợp các dòng (hoặc `sheet_to_json(ws, { defval: null })`),
+  báo số dòng lỗi. Khôi phục khi kho ĐANG có dữ liệu thì bỏ qua bảng kho như cũ (ca H4).
+- Tiền mới chưa có quy tắc đối soát (LUAT §5): giá trị nhập theo giá thật (PN) và hao hụt / dùng nội bộ theo giá vốn (PS). Đề xuất gom vào việc kiểm kê
+  (KK) / màn Đối soát sau khai trương: tổng nhập theo ngày × nhà cung cấp, tổng hao hụt theo loại chuyện × người.
+- Quản lý TỪ CHỐI được đơn vượt hạn mức (chỉ chủ quán duyệt được) — giữ vậy: từ chối không đổi kho / tiền, nhân viên tạo lại được. Bạn muốn chỉ chủ quán
+  từ chối thì báo.
+- Màn Nhận hàng chỉ xét 50 đơn đã duyệt mới nhất (`nhapHang.js` goiYNhap) — đơn cũ hơn còn mở sẽ không hiện; huỷ đơn cũ không nhận nữa để danh sách gọn.
 - Sao lưu Excel (`server/routes/backup.js`, ngoài Phạm vi) lấy bảng theo danh sách cứng: bảng mới nào của kho cũng KHÔNG được sao lưu nếu không sửa file đó — lý do kế hoạch không thêm bảng.
 
 ## Làm tiếp (31.10) — chủ quán duyệt kế hoạch, 4 câu theo đề xuất
@@ -73,11 +82,16 @@
 | `duong.js` sửa = huỷ cũ + phiếu mới | VS-SUA-KHONG-HUY-CU | E4b |
 | `duong.js` sửa rẽ theo loại trước khi kiểm thân | BV-SUA-RE-LOAI-TRUOC | E4 |
 | `nang_cap/007` cột don_id | BV-007-DON-ID | N1 |
+| (vòng 1) `duong.js` sửa lấy ghi chú / NCC / loại chuyện của phiếu cũ | BV-SUA-GIU-TRUONG-CU | E4c |
+| (vòng 1) `duong.js` DH / PN / PS chỉ sửa phiếu đã duyệt | BV-SUA-CHI-DA-DUYET | E4d |
+| (vòng 1) `phatSinh.js` có lô thì bỏ id nguyên liệu / món kèm theo | VS-PS-LO-KEM-KHOA | E5e |
+| (vòng 1) `phatSinh.js` ghiKhoPhatSinh kiểm lại lô chọn sẵn khi duyệt | BV-DUYET-KIEM-LO | D14 |
 
 Tên đột biến: BV-DH-VAO-TON, VS-DH-KHONG-GOP, VS-HAN-MUC-LON-HON-BANG, VS-THIEU-GIA-DUOI-HAN-MUC, VS-DH-NV-TU-DUYET, BV-CAN-CHU-QUAN, BV-DS-CAN-CHU-QUAN,
 BV-HAN-MUC-CAI-DAT, BV-PN-NGUOI-KHAC, VS-PN-CONG-LUC-TAO, BV-GHI-KHO-NHAN, BV-CON-LAI-TRU-PN-CHO, BV-DON-DA-DONG, BV-HAN-TU-DIEN, BV-LECH-PN,
 VS-FEFO-BO-LO-QUA-HAN, BV-HAN-MUC-NOI-BO, VS-NOI-BO-KHONG-CONG-DON, VS-NOI-BO-CONG-NGUOI-KHAC, VS-NOI-BO-CONG-NGAY-CU, VS-TP-THIEU-LO-GHI-AM,
-BV-MA-GUI-MOI, BV-BOGIA-TONG-UOC-TINH, VS-SUA-KHONG-HUY-CU, BV-SUA-RE-LOAI-TRUOC, BV-007-DON-ID.
+BV-MA-GUI-MOI, BV-BOGIA-TONG-UOC-TINH, VS-SUA-KHONG-HUY-CU, BV-SUA-RE-LOAI-TRUOC, BV-007-DON-ID,
+BV-SUA-GIU-TRUONG-CU, BV-SUA-CHI-DA-DUYET, VS-PS-LO-KEM-KHOA, BV-DUYET-KIEM-LO.
 
 ## Soát độc lập — lần 1 (agent general-purpose, /ra-soat) — chép nguyên
 ```
@@ -122,4 +136,14 @@ BÀI HỌC:
 - NGUYÊN TẮC (K4): phép kiểm lúc TẠO phiếu chờ duyệt phải chạy lại lúc DUYỆT; "sửa = tạo lại" phải mang theo MỌI trường của phiếu cũ.
 - NGUYÊN TẮC (K3): ca sửa / đường phụ mà bài tự soạn thân thì không chứng minh được màn hình gửi đúng.
 ```
+
+## Vòng sửa 1 (sau soát lần 1)
+- Lỗi 1: `phatSinh.js` có lô thì bỏ id nguyên liệu / món kèm theo; `XemPhieu.jsx` thanSua chỉ gửi lo_id cho dòng lô hết hạn. Ca E5e (thân như màn hình).
+- Lỗi 2: `duong.js` sửa lấy ghi chú / nhà cung cấp / loại chuyện của phiếu cũ làm mặc định. Ca E4c.
+- Lỗi 3: `phatSinh.js` ghiKhoPhatSinh kiểm lại lô chọn sẵn lúc duyệt (lô thành âm → 409, rollback). Ca D14 — lỗi dựng lại được bằng chạy (d050f97: 200 | 200).
+- Lỗi 4: `duong.js` DH / PN / PS chỉ sửa phiếu đã duyệt (409 PHIEU_CHUA_DUYET); nút Sửa chỉ hiện khi đã duyệt. Ca E4d.
+- Nghi ngờ: ô giá ghi `đ/<đơn vị lưu>`; chú thích phatSinh sửa đúng (lọc theo dòng); Phát sinh "hỏng / đổ vỡ / khác" có tab Thành phẩm + nhóm nguyên liệu
+  (không danh sách dài); bỏ khoá chết `gia_tri`, `da_dung`, `han_muc` khỏi KHOA_GIA; quản lý từ chối đơn vượt hạn mức, giới hạn 50 đơn → Phát hiện.
+- Nghiệm thu thiếu: F5 (từ chối PS và DH, tồn không đổi); H4 (sao lưu có cột mới; khôi phục khi kho có dữ liệu không chép đè); G điện thoại → CHƯA KIỂM (thử tay).
+- Kết quả: thu_KHO2b 73/73 · KHO-2a 86/86 · KHO-1 111/111 · `npm test -- --day-du` PASS 88 · FAIL 0 · CẢNH BÁO 1 (có từ trước) · đột biến 30/30 BẮT.
 

@@ -1,10 +1,10 @@
 KHO-2b — bằng chứng ĐỎ trên code gốc (31.10.2026)
-Gốc: 617f4e4 (PHIEU: KHO-2b — server/ chưa vá). Bài thử: cong_cu/thu_KHO2b.js ở commit 95671d6.
+Gốc: 617f4e4 (PHIEU: KHO-2b — server/ chưa vá). Bài thử: cong_cu/thu_KHO2b.js ở commit 2ece15a (sau vòng sửa 1).
 Lệnh: python3 viec/KHO-2b/dot_bien.py --goc 617f4e4   (git archive server/ của gốc → node cong_cu/thu_KHO2b.js --may-chu <bản chép>)
 
 Lần chạy đầu (trước khi sửa bất kỳ file nào, cây làm việc = gốc + bài thử, commit 3343ba5): 5 đạt · 62 hỏng (thoát 1, chạy hết, không sập).
 
-cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 56 hỏng (thoát 1, chạy hết, không sập)
+cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 62 hỏng (thoát 1, chạy hết, không sập) — bản trước vòng sửa 1 (95671d6): 11 đạt · 56 hỏng
   ✗ N1 bước 007 đã chạy: kho_phieu.don_id, kho_phieu.su_co, kho_phieu_dong.han_dung có
   ✗ A1 theo công thức: Nước cam ×10 + Trà gừng ×4 → Cam 2 · Gừng 0.5 + 0.4 gộp · Kỷ tử 0.02 …  — HTTP 403 · DUONG_LA
   ✗ A2 · A3 · A4 · A5 · A5b · A6 · A7 · A7b · A8 · A10 · A12 · A13
@@ -17,12 +17,21 @@ cong_cu/thu_KHO2b.js trên server/ gốc: 11 đạt · 56 hỏng (thoát 1, ch�
   ✗ E2 · E3 · E3b · E4 · E4b · E5 · E5b · E5c · E5d
   ✗ E4b chủ quán sửa phiếu nhận → …  — HTTP 400 · SO_PHAN_SAI (gốc chỉ sửa được phiếu xuất)
   ✗ F2 · F3 · F4 · F4b · F6
+  ✗ (vòng sửa 1) D14 · F5 · E4c · E4d · E5e · H4 (H4 đỏ vì gốc không có cột don_id / su_co trong sao lưu)
 Ca XANH trên gốc (đúng — không phụ thuộc server/ gốc): A9 (gốc không có đơn nào → tồn không đổi), A11 (không có dòng), B6 (không có
 dòng ngoài đơn), K4 (giá nhập không đổi), F1 (công thức tồn của bài khớp /ton) — các ca này ĐỎ khi đột biến tương ứng (BV-DH-VAO-TON bắt A9);
 G1 · G2 · C3 · G3b · D7 · K1 đọc client/ và kiem_tra ở cây làm việc (lần chạy đầu 3343ba5 chúng ĐỎ: 5 đạt · 62 hỏng).
 
 Bài thử cũ: KHÔNG sửa thu_KHO1.js, thu_KHO2a.js — chạy nguyên vẹn trên code mới: 111 đạt · 0 hỏng, 86 đạt · 0 hỏng.
 
-Đột biến (python3 viec/KHO-2b/dot_bien.py): ĐỐI CHỨNG XANH · 67 đạt · 0 hỏng · TỔNG 26 đột biến · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0
+Vòng sửa 1 — bài thử hiện tại trên server/ TRƯỚC vòng sửa (d050f97): 68 đạt · 5 hỏng (thoát 1) — đỏ đúng các lỗi người soát báo:
+  ✗ D14 … phiếu 2 → 409 KHONG_DU_TON …  — HTTP 200 | HTTP 200   (lỗi 3: lô chọn sẵn không kiểm lại khi duyệt)
+  ✗ F5 … — HTTP 409 · PHIEU_DA_XU_LY (phiếu 2 đã bị duyệt lố ở D14)
+  ✗ E4c sửa không gửi ghi chú / nhà cung cấp → GIỮ "HĐ 777" + nhà cung cấp  — [null,null]   (lỗi 2)
+  ✗ E4d chủ quán sửa phiếu nhận CHỜ DUYỆT của chính mình → 409  — HTTP 200   (lỗi 4)
+  ✗ E5e sửa phiếu hết hạn với thân kèm lo_id + san_pham_id → 200  — HTTP 400 · DONG_SAI   (lỗi 1)
+Lệnh: python3 viec/KHO-2b/dot_bien.py --goc d050f97
 
-SỐ CA cong_cu/thu_KHO2b.js: 67
+Đột biến (python3 viec/KHO-2b/dot_bien.py): ĐỐI CHỨNG XANH · 73 đạt · 0 hỏng · TỔNG 30 đột biến · BẮT 30 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+SỐ CA cong_cu/thu_KHO2b.js: 73
