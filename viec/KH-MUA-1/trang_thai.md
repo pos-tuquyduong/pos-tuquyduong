@@ -330,4 +330,3 @@ GIT (báo cáo 7 mục) — `git log --oneline -2` lúc kiểm cuối:
 3b6c812 KH-MUA-1: soat vong 3 (chep nguyen) + vong sua 4 (chat soat thay) + nghiem thu + bao cao 7 muc + bai hoc
 
 HEAD ĐÃ KIỂM: 9d0356d
-
