@@ -18,7 +18,8 @@ GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 D, I, Q = 'server/utils/donApp.js', 'server/routes/kh/index.js', 'server/routes/kh/quay.js'
 S, HD = 'server/routes/settings.js', 'HOP_DONG_API_KH.md'
 BAI = {'mua': 'cong_cu/thu_KHMUA1.js', 'hd': 'cong_cu/thu_HOPDONG_KH.js'}
-XOA_GIU_KHOA = "        await run('DELETE FROM pos_don_app WHERE id = ? AND phien_id IS NULL', [appId]);\n"
+XOA_GIU_KHOA = ("        await run(`DELETE FROM pos_don_app WHERE id = ? AND NOT EXISTS (SELECT 1 FROM pos_phien_thanh_toan p\n"
+                "          WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu')`, [appId]);\n")
 
 # (tên, bài, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
 DOT_BIEN = [
@@ -52,10 +53,21 @@ DOT_BIEN = [
   ('BV-BO-DIEU-KIEN-SDT-DON', 'mua', [(D, '    WHERE o.customer_phone = ?\n', '    WHERE (o.customer_phone = ? OR 1)\n', 1)], r'✗ F5 '),
   ('VS-HUY-DA-TRA', 'mua', [(D, "kq.body.tien_trinh === 'da_huy' ? {", "kq.body.tien_trinh !== 'cho_tra' ? {", 1)], r'✗ G2 '),
   # ── H: quầy · chuông ──
-  ('BV-QUAY-THAY-DON-CHO-TRA', 'mua', [(D, "JOIN pos_orders o ON o.id = p.order_id\n    WHERE p.trang_thai = 'da_thu' AND (", "LEFT JOIN pos_orders o ON o.id = p.order_id\n    WHERE 1 AND (", 1)], r'✗ H2 '),
-  ('BV-DOI-TIEN-TRINH-CHUA-TRA', 'mua', [(D, "\n    AND EXISTS (SELECT 1 FROM pos_phien_thanh_toan p WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu')`", '`', 1)], r'✗ H3 đơn chưa trả'),
+  ('BV-QUAY-THAY-DON-CHO-TRA', 'mua', [(D, " JOIN pos_orders o ON o.id = p.order_id\n    WHERE p.trang_thai = 'da_thu' AND (p.luc_chot >= ? OR (",
+                                         " LEFT JOIN pos_orders o ON o.id = p.order_id\n    WHERE 1 AND (1 OR (", 1)], r'✗ H2 '),
+  ('BV-DOI-TIEN-TRINH-CHUA-TRA', 'mua', [(D, "\n    AND EXISTS (SELECT 1 FROM pos_phien_thanh_toan p JOIN pos_orders o ON o.id = p.order_id\n"
+                                           "      WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu' AND ${DON_CON})`", '`', 1)], r'✗ H3 đơn chưa trả'),
   ('BV-CHUONG-KIEM', 'mua', [(S, "    if (chuongSai) return res.status(400)", "    if (false) return res.status(400)", 1)], r'✗ H5 '),
   ('VS-AM-LUONG-101', 'mua', [(S, 'Number(value) <= 100)', 'Number(value) <= 101)', 1)], r'✗ H5 '),
+  # ── vòng sửa 1 (soát độc lập lỗi 1–5) ──
+  ('VS-FINALLY-TIN-CO-BO-NHO', 'mua', [(D, " AND NOT EXISTS (SELECT 1 FROM pos_phien_thanh_toan p\n          WHERE p.id = pos_don_app.phien_id AND p.trang_thai = 'da_thu')`", '`', 1)], r'✗ V1 '),
+  ('BV-FINALLY-HUY-PHIEN', 'mua', [(D, '        if (phienId) await huyPhien(phienId);\n', '', 1)], r'✗ V4 '),
+  ('BV-GIA-DOI-SAU-PHIEN', 'mua', [(D, 'if (tp.body.phien.tong !== kq.bao.tong) {', 'if (false) {', 1)], r'✗ V4 '),
+  ('BV-DANG-XU-LY-GIU-KHOA', 'mua', [(D, "  if (cu && !cu.phien_id) return thanLoi('DANG_XU_LY');\n", '', 1)], r'✗ V3 '),
+  ('BV-TRUNG-KHOA-NEM', 'mua', [(D, "    if (laTrungKhoa(e)) return thanLoi('DANG_XU_LY');", '', 1)], r'✗ V2 '),
+  ('VS-CHOT-VI-BO-KIEM-DA-THU', 'mua', [(D, "if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(", 'if (false) return chuanLoi(', 1)], r'✗ V5 '),
+  ('VS-QUAY-KHONG-LOC-HOM-NAY', 'mua', [(D, 'p.luc_chot >= ? OR (', 'p.luc_chot >= ? OR 1 OR (', 1)], r'✗ V7 '),
+  ('VS-QUAY-BAM-DON-HUY', 'mua', [(D, "p.trang_thai = 'da_thu' AND ${DON_CON})`", "p.trang_thai = 'da_thu')`", 1)], r'✗ V7 '),
   # ── I: tiền về muộn ──
   ('BV-TIEN-VE-CO', 'mua', [(D, "const CO_TIEN_VE = \"EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua = 'chua_khop')\";", 'const CO_TIEN_VE = "0";', 1)], r'✗ I1 '),
   # ── J: hợp đồng v5 (thu_HOPDONG_KH.js) ──
