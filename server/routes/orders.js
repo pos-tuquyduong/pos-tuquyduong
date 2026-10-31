@@ -664,7 +664,7 @@ async function taoDon(req, res, phien = null) {
     }
     // ═══ het POS-CONGDON-v1 · LO 2b ═════════════════════════════════════
 
-    // F2: đang flash → CHẶN giảm kiểu % (voucher % hoặc giảm tay %). Voucher TIỀN vẫn được.
+    // F2: đang flash → CHẶN voucher kiểu %. Voucher TIỀN vẫn được.
     // Áp dụng cho CẢ voucher giảm-1-món (Bước 5) vì đọc finalDiscountType từ codeRecord.discount_type
     // như cũ, không phân biệt scope — tái dùng đúng điều kiện có sẵn, không viết luật riêng.
     if (flashApplied && finalDiscountType === "percent" && finalDiscountValue > 0) {
@@ -714,13 +714,8 @@ async function taoDon(req, res, phien = null) {
       finalDiscountValue = 0;
       itemScopeTargetItem = null;
     }
-    if (discountCodeId) {
-      finalDiscountAmount = uuDai.giam_ma;
-    } else if (finalDiscountType === "percent" && finalDiscountValue > 0) {
-      finalDiscountAmount = (subtotal * finalDiscountValue) / 100;   // giảm riêng của khách (không mã) — như cũ
-    } else if (finalDiscountType === "fixed" && finalDiscountValue > 0) {
-      finalDiscountAmount = finalDiscountValue;
-    }
+    // KHACH-CK-1: không mã thì không có mức giảm nào (LO 2) — chỉ còn giảm của mã.
+    if (discountCodeId) finalDiscountAmount = uuDai.giam_ma;
 
     // Đảm bảo chiết khấu (voucher/tay) không vượt phần CÒN LẠI sau giảm flash + giảm hạng
     finalDiscountAmount = Math.min(
