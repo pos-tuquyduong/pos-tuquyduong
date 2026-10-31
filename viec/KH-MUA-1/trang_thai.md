@@ -321,3 +321,13 @@ và đã phải đổi chữ trong bản chép báo cáo soát); bài thử tự
 - BỎ 2: Express 5 không nhận `:x(a|b)` — bài sập ngay lần chạy đầu, không lên production được.
 Dọn: không lời dặn nào trong KHUON_LOI.md / CLAUDE.md đã có phép kiểm làm thay mới trong việc này. Đề xuất ngoài Phạm vi máy KHÔNG tự làm.
 
+## Cổng (bước 11.4) — `node tu_chay/cong.js chay . 5e797f2^ HEAD viec/KH-MUA-1` trên HEAD 9d0356d, cây sạch
+✓ CỔNG CHẠY ĐẠT
+(một CẢNH BÁO không chặn: "A16: cong_cu/thu_HOPDONG_KH.js chạy trên gốc in 72 ca ≠ 81 ca ở head" — xem ghi chú cuối bang_chung_do.txt.)
+
+GIT (báo cáo 7 mục) — `git log --oneline -2` lúc kiểm cuối:
+9d0356d KH-MUA-1: bang chung — dong SO CA duong dan day du (cong A16)
+3b6c812 KH-MUA-1: soat vong 3 (chep nguyen) + vong sua 4 (chat soat thay) + nghiem thu + bao cao 7 muc + bai hoc
+
+HEAD ĐÃ KIỂM: 9d0356d
+
