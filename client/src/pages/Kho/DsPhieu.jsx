@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
-import { gio, TRANG_THAI } from './chung';
+import { gio, TRANG_THAI, SU_CO } from './chung';
 
 const LOAI = { PX: 'Xuất', PN: 'Nhập', DH: 'Đặt hàng', PS: 'Phát sinh', KK: 'Kiểm kê' };
 
@@ -12,7 +12,7 @@ function DongPhieu({ p, mo }) {
   return (
     <div className={`kho-the ${p.trang_thai === 'huy' ? 'ngung' : ''}`} onClick={() => mo(p.id)}>
       <b>{p.so_phieu} · {TRANG_THAI[p.trang_thai]}{p.ket_qua === 'tu_chot' && <span className="kho-thieu"> · tự chốt</span>}</b>
-      <div className="kho-nho">{p.mon || LOAI[p.loai]}</div>
+      <div className="kho-nho">{p.mon || `${LOAI[p.loai]}${p.su_co ? ` · ${SU_CO[p.su_co]}` : ''}${p.hang ? ` · ${p.hang}` : ''}${p.can_chu_quan ? ' · cần chủ quán' : ''}`}</div>
       <div className="kho-nho">{p.nguoi_tao} · {gio(p.tao_luc)}{p.so_lan_in > 0 && ` · đã in ${p.so_lan_in}`}</div>
     </div>
   );

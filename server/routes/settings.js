@@ -120,6 +120,11 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if (khoaSai) {
       return res.status(400).json({ success: false, error: `Cài đặt ${khoaSai[0]} chỉ nhận 0 hoặc 1`, code: 'CAI_DAT_KHONG_HOP_LE' });
     }
+    // KHO-2b: hạn mức đặt hàng / dùng nội bộ (đồng) — số nguyên ≥ 0, sai một khoá thì không ghi khoá nào.
+    const hanMucSai = Object.entries(settings).find(([key, value]) => ['kho_han_muc_dat_hang', 'kho_han_muc_noi_bo'].includes(key) && !/^\d+$/.test(String(value).trim()));
+    if (hanMucSai) {
+      return res.status(400).json({ success: false, error: `Cài đặt ${hanMucSai[0]} phải là số đồng nguyên ≥ 0`, code: 'CAI_DAT_KHONG_HOP_LE' });
+    }
     // KH-MUA-1: chuông đơn App — bật 0/1, tiếng trong danh sách, âm lượng nguyên 0–100 (sai âm lượng thì Web Audio lỗi im lặng).
     const chuongSai = Object.entries(settings).find(([key, value]) => (key === 'don_app_chuong_bat' && !['0', '1'].includes(String(value)))
       || (key === 'don_app_chuong_tieng' && !TIENG_CHUONG.includes(String(value)))

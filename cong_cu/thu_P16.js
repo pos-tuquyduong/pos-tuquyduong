@@ -44,7 +44,7 @@ async function main() {
   ca('C5 settings undefined cũng ra mặc định', bang(docBoIn(undefined), macDinh));
   ca('C6 JSON hỏng → mặc định', bang(docBoIn({ [KHOA_BO_IN]: '{hỏng' }), macDinh));
   ca('C7 khổ bill mặc định theo invoice_default_size', docBoIn({ invoice_default_size: '80mm' }).bill.kho === '80mm');
-  ca('C8 khổ bill lạ → rơi về khổ mặc định', docBoIn({ invoice_default_size: 'a5', [KHOA_BO_IN]: JSON.stringify({ bill: { kho: 'xyz' } }) }).bill.kho === 'a5');
+  ca('C8 khổ bill lạ → rơi về khổ mặc định', docBoIn({ invoice_default_size: 'a5', [KHOA_BO_IN]: JSON.stringify({ bill: { kho: 'xyz' } }) }).bill.kho === '80mm');   // KH-QUAY-2: khổ cũ a5 không còn → khổ mặc định 80mm
   ca('C9 chỉ ghi đè một loại, loại khác giữ mặc định', cauHinh({ tem: { bat: false } }).pha_che.bat === true && cauHinh({ tem: { bat: false } }).tem.bat === false);
   ca('C10 MAC_DINH_BO_IN không bị sửa chéo', MAC_DINH_BO_IN.tem.bat === true);
   // số bản: ngay dưới / ngay trên ngưỡng (K3)
@@ -63,7 +63,7 @@ async function main() {
   ca('C22 JSON là mảng → mặc định', bang(docBoIn({ [KHOA_BO_IN]: '[1,2]' }), macDinh));
   const docAnToan = (s) => { try { return bang(docBoIn({ [KHOA_BO_IN]: s }), macDinh); } catch { return false; } };
   ca('C23 JSON "null" / số / chuỗi → mặc định, không ném', ['null', '5', '"x"'].every(docAnToan));
-  ca('C24 không truyền gì: khổ bill a5 · tem 40x30 · phiếu 80mm', macDinh.bill.kho === 'a5' && macDinh.tem.kho === '40x30' && macDinh.pha_che.kho === '80mm', [macDinh.bill.kho, macDinh.tem.kho, macDinh.pha_che.kho]);
+  ca('C24 không truyền gì: khổ bill 80mm · tem 40x30 · phiếu 80mm', macDinh.bill.kho === '80mm' && macDinh.tem.kho === '40x30' && macDinh.pha_che.kho === '80mm', [macDinh.bill.kho, macDinh.tem.kho, macDinh.pha_che.kho]);
   ca('C25 khổ phiếu chỉ nhận khổ của phiếu (a5 → về mặc định 80mm), tem không nhận khổ bill',
     cauHinh({ pha_che: { kho: 'a5' }, tem: { kho: 'a4' } }).pha_che.kho === '80mm' && cauHinh({ tem: { kho: 'a4' } }).tem.kho === '40x30');
   ca('C26 số bản lẻ làm tròn xuống: 1.5 → 1 · 2.9 → 2', ban(1.5) === 1 && ban(2.9) === 2, [ban(1.5), ban(2.9)]);

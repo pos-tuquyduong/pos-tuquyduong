@@ -1,4 +1,4 @@
-# Lịch tới khai trương — T7 07.11.2026, CHỈ khi xong hết
+# Lịch tới khai trương — làm nhanh nhất, khai trương khi xong hết (không chốt ngày trước — chủ quán 31.10)
 
 <!-- Chủ quán chốt 27.10.2026 (thay lịch 14 ngày 17–30.10). File này cho MÁY biết việc và hạn; theo dõi hằng ngày ở file Excel
      LICH_KHAI_TRUONG.xlsx của chủ quán. Chat cập nhật file này khi việc / ngày đổi. Luật xây app ở LUAT_XAY_APP.md.
@@ -31,8 +31,11 @@
 | ~~BH-2~~ ✅ 30.10 | Màn Bán hàng mới đợt 2 (QR payOS + PIN + giữ tiền, giá hạng + ưu đãi máy chủ tính, màn kết thúc in hoá đơn HD-1) + menu 6 mục (chỉ dời đường dẫn) | [Th] · Sonnet | Sonnet |
 | ~~KHACH-CK-1~~ ✅ 31.10 | Bỏ chiết khấu riêng từng khách: bỏ ô ở màn Khách hàng, máy chủ không áp, đặt về 0 có sao lưu — TRƯỚC khi bật màn Bán hàng mới | [T] · Opus | Opus 2 |
 | GIOVANG-1 | Giờ vàng: cài món (vài món / tất cả) + giờ + giảm % HOẶC giá còn lại từng món; quầy + máy chủ tính theo đó; `/api/kh/gio-vang` thêm `gia_mon[]` | [T] · Opus | Opus 1 |
-| KH-SP-1 | Thông tin ngắn của món ở màn Sản phẩm POS (nhu cầu, thể chất, mô tả, công dụng, thành phần) + hiện gọn ở quầy + `/api/kh/menu` trả thêm — mở khi KH-API-3 gộp | [Th] · Sonnet | Sonnet |
+| ~~KH-SP-1~~ ✅ 31.10 | Thông tin ngắn của món ở màn Sản phẩm POS (nhu cầu, thể chất, mô tả, công dụng, thành phần) + hiện gọn ở quầy + `/api/kh/menu` trả thêm — mở khi KH-API-3 gộp | [Th] · Sonnet | Sonnet |
 | BH-CKTAY-1 | Bỏ hẳn ô "Chiết khấu" giảm tay ở màn Bán hàng cũ (máy chủ đã không nhận — gõ vào là đơn không lưu được) | [Th] · Sonnet | Sonnet |
+| KH-QUAY-2 | Quầy: cấp mã đăng nhập App cho SĐT mới (không tạo khách trước) · hoá đơn khách chỉ khổ nhiệt (bỏ A4 / A5 của hoá đơn) | [Th] · Sonnet | Sonnet |
+| SAOLUU-2 | Khôi phục sao lưu an toàn: không mất cột / dòng, hỏng thì không đổi gì, mọi bảng nằm trong sao lưu (thêm pos_don_app) | [T] · Opus | Opus 2 (sau KHO-2b) |
+| KHO-IN-1 | Cài đặt in phiếu kho (80mm / A5 / A4 cho xuất, nhập, đặt hàng, phát sinh…) + chặn huỷ / sửa phiếu nhận khi lô nguyên liệu đã bị trừ (nếu chủ quán đồng ý) — phiếu mở khi KHO-2b gộp | [Th] · Sonnet | Sonnet |
 | KH-MUA-1 | App KH đặt đơn: báo giá giỏ, tạo đơn nhận tại quán, trả QR payOS hoặc ví + PIN (dùng lại `tinh-thu` + phiên thanh toán quầy), đơn về quầy kèm chuông khi đã trả, trạng thái đơn, huỷ đơn chưa trả | [T] · Opus | Opus 1 |
 | KH-MUA-2 | App KH giao Ahamove: báo phí theo địa chỉ, trả đúng phí, trạng thái giao (dùng chung hàm GIAO-1) — SAU GIAO-1 | [T] · Opus | Opus 2 |
 | COMBO-1b | Nhóm "Combo" trên màn Bán hàng mới (thẻ giá gốc gạch + giá combo, dòng combo trên giỏ / hoá đơn / tem) — SAU COMBO-1a và BH-2 | [Th] · Sonnet | Sonnet |
@@ -47,7 +50,7 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 | T6 30.10 | KH-API-3 làm | KHO-2a ✓ (chat gộp) | BH-2 gộp ✓ |
 | T7 31.10 | KH-API-3 ✓ (gộp #54) → KH-MUA-1 kế hoạch | KHACH-CK-1 ✓ (gộp #55, sớm 1 ngày) → KHO-2b kế hoạch | KH-SP-1 làm · **tối: quyết ngày** |
 | CN 01.11 | KH-MUA-1 làm | KHO-2b làm | KH-SP-1 gộp → BH-CKTAY-1 |
-| T2 02.11 | KH-MUA-1 soát + gộp | KHO-2b soát + gộp | BH-CKTAY-1 gộp |
+| T2 02.11 | KH-MUA-1 soát + gộp | KHO-2b soát + gộp | BH-CKTAY-1 gộp → KH-QUAY-2 |
 | T3 03.11 | COMBO-1a | P3b | COMBO-1b (sau COMBO-1a) · **tối: quyết ngày** |
 | T4 04.11 | TOPPING-1 | P3b gộp → GIAO-1 | |
 | T5 05.11 | TOPPING-1 gộp → GIOVANG-1 | GIAO-1 | |
@@ -57,7 +60,8 @@ TOPPING-1, P3b, GIAO-1 tự làm phần giao diện của mình trên màn Bán 
 
 Ước tính tối 30.10: đủ mọi việc trên + chạy thử thì khai trương rơi vào khoảng **T4 11.11 – T5 12.11**; việc nào xong sớm thì cả hàng
 dồn lên. Mỗi việc online (topping, combo, đổi điểm) làm luôn phần `/api/kh` của mình. Chủ quán + chat chốt ngày tối 31.10 và tối 03.11.
-Tối 31.10: KH-API-3 đúng lịch, KHACH-CK-1 sớm 1 ngày → làn Opus 2 sớm khoảng nửa ngày; ước tính giữ **T4 11.11**, chốt lại tối 03.11.
+Tối 31.10: KH-API-3 đúng lịch, KHACH-CK-1 + KH-SP-1 sớm 1 ngày. **Chủ quán chốt 31.10: không chốt ngày trước — làm nhanh nhất, khai
+trương theo thời gian hoàn thành** (bảng ngày trên chỉ là thứ tự dự kiến; xong sớm thì việc sau dồn lên ngay).
 Bước nâng cấp đã giữ số: 005 KH-SP-1 · 006 KH-MUA-1 · 007 KHO-2b. Hợp đồng `/api/kh`: v4 KH-SP-1 · v5 KH-MUA-1.
 Ba việc cùng sửa `client/src/pages/Settings.jsx` và `client/dist/` (KH-SP-1, KH-MUA-1, KHO-2b) → script gộp của chat dựng lại `client/dist`.
 

@@ -1,0 +1,25 @@
+KH-QUAY-2 — bằng chứng ĐỎ trên code gốc (42b3ea5, trích bản chép git archive vào thư mục nháp), bài thử cong_cu/thu_KHQUAY2.js (526b7a9)
+
+$ node cong_cu/thu_KHQUAY2.js      (chạy trong bản chép của 42b3ea5)
+  ✗ A1 có hàm chuanSdtQuay
+  ✗ A2 có components/MaAppSoMoi.jsx
+  ✗ A2 màn Khách hàng gắn <MaAppSoMoi />
+  ✗ B1 có hàm khoHoaDon
+  ✗ B1 KHO_BILL chỉ còn ["58mm","80mm"]  — ["58mm","80mm","a5","a4"]
+  ✗ B1 không có cài đặt → khổ bill mặc định '80mm'  — a5
+  ✗ B1 cài đặt cũ invoice_default_size = 'a5' / 'a4' → bill.kho '80mm'
+  ✗ B2 InvoicePrint: bảng PAPER_SIZES chỉ còn 58mm · 80mm  — ["58mm","80mm","a5","a4"]
+  ✗ B2 InvoiceSettings "Khổ mặc định": chỉ còn <option> 58mm · 80mm  — ["58mm","80mm","a5","a4"]
+  ✗ B2 InvoicePreview: kiểu theo khổ chỉ còn 58mm · 80mm  — ["58mm","80mm","a5","a4"]
+  ✗ B2 InvoicePreview (HoaDonTo CO_TO): chỉ còn 58mm · 80mm  — ["58mm","80mm","a5","a4"]
+  (… tổng 39 ca ✗; các ca K5 [C] và [A3] máy chủ xanh trên gốc đúng như dự kiến: máy chủ không đổi)
+SỐ CA: 55
+16 đạt · 39 hỏng
+
+Trên code đã vá (HEAD): 55 đạt · 0 hỏng.
+
+Bài cũ sửa theo quyết định chủ quán 31.10 (khổ bill mặc định a5 → 80mm) — bài sửa thường, ĐỎ trên gốc:
+  cong_cu/thu_P16.js  C8 + C24 (khổ bill mặc định 'a5' → '80mm'): trên gốc bản MỚI của bài đỏ ở C8, C24.
+
+SỐ CA cong_cu/thu_KHQUAY2.js: 55
+SỐ CA cong_cu/thu_P16.js: 90

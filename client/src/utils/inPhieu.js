@@ -14,7 +14,7 @@ export const KHOA_BO_IN = 'invoice_print_set';
 export const LOAI_IN = ['bill', 'tem', 'pha_che'];
 export const NHAN_LOAI = { bill: 'Bill khách', tem: 'Tem cốc', pha_che: 'Phiếu pha chế' };
 export const NHAN_NHOM = { juice: 'Nước ép', tea: 'Trà' };   // nhãn hiển thị; nhóm lạ hiện đúng mã của nó
-export const KHO_BILL = ['58mm', '80mm', 'a5', 'a4'];
+export const KHO_BILL = ['58mm', '80mm'];   // KH-QUAY-2: hoá đơn khách chỉ in khổ nhiệt (phiếu kho vẫn có A5 / A4 ở chỗ khác)
 export const KHO_TEM = ['40x30'];
 export const KHO_PHIEU = ['80mm', '58mm'];
 export const SO_BAN_TOI_DA = 3;
@@ -23,7 +23,7 @@ const DON_KHONG_PHA = ['cancelled', 'refunded'];   // pos_orders.status đã hu�
 const KHACH_LE = 'Khách lẻ';          // chuỗi máy chủ gán khi đơn không có tên (orders.js)
 
 export const MAC_DINH_BO_IN = {
-  bill: { bat: true, ban: 1, kho: 'a5' },   // khổ bill thiếu cài đặt → invoice_default_size (nếu hợp lệ) → khổ này
+  bill: { bat: true, ban: 1, kho: '80mm' },   // khổ bill thiếu cài đặt → invoice_default_size (nếu hợp lệ) → khổ này
   tem: { bat: true, ban: 1, kho: KHO_TEM[0] },
   pha_che: { bat: true, ban: 1, kho: KHO_PHIEU[0] },
   khong_pha: [],                            // nhóm món KHÔNG phải đồ uống pha: không tem, không vào phiếu pha chế
@@ -36,6 +36,9 @@ const soBan = (v, macDinh) => {
   return Math.min(SO_BAN_TOI_DA, Math.max(1, Math.floor(n)));
 };
 const chonKho = (v, ds, macDinh) => (ds.includes(v) ? v : macDinh);
+
+/** Khổ hoá đơn khách đọc ra từ giá trị đã lưu: 58mm / 80mm giữ, mọi giá trị khác (a5, a4, rỗng, lạ) → 80mm. Không sửa dữ liệu lưu. */
+export const khoHoaDon = (v) => chonKho(v, KHO_BILL, MAC_DINH_BO_IN.bill.kho);
 
 /** Đọc cài đặt bộ in; thiếu / hỏng → mặc định. Luôn trả bản mới, không dùng chung với MAC_DINH_BO_IN. */
 export function docBoIn(settings) {
@@ -51,7 +54,7 @@ export function docBoIn(settings) {
     kho: chonKho(luu[ten]?.kho, dsKho, khoMacDinh),
   });
   return {
-    bill: loai('bill', KHO_BILL, chonKho(settings?.invoice_default_size, KHO_BILL, D.bill.kho)),
+    bill: loai('bill', KHO_BILL, khoHoaDon(settings?.invoice_default_size)),
     tem: loai('tem', KHO_TEM, D.tem.kho),
     pha_che: loai('pha_che', KHO_PHIEU, D.pha_che.kho),
     khong_pha: Array.isArray(luu.khong_pha) ? luu.khong_pha.filter((g) => typeof g === 'string') : [],

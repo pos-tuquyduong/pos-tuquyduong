@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, customersV2Api, registrationsApi } from '../utils/api';
 import MaDangNhapApp from '../components/MaDangNhapApp';
+import MaAppSoMoi from '../components/MaAppSoMoi';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
 
 export default function Customers() {
@@ -312,6 +313,8 @@ export default function Customers() {
       <div className="page-content">
         {error && <div className="alert alert-danger">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
+
+        <MaAppSoMoi />
 
         {/* Stats */}
         <div className="grid grid-4 mb-2">

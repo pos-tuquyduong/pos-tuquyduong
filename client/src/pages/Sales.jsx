@@ -12,6 +12,7 @@ import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCirc
 import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
 import QrScanModal from '../components/QrScanModal';
+import { NutThongTin } from '../components/ThongTinMon';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -26,7 +27,6 @@ export default function Sales() {
   // giữ nguyên hành vi hiện tại (banner chưa từng hiện), chỉ bỏ setter chưa dùng để hết lỗi lint.
   // Muốn bật banner "thành công" thật thì cần nối setSuccess(...) ở chỗ tạo đơn xong — việc riêng, chưa làm ở đây.
   const [success] = useState('');
-  const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [category, setCategory] = useState('all');
 
@@ -53,8 +53,6 @@ export default function Sales() {
   const [parentBalanceToUse, setParentBalanceToUse] = useState(0);  // Số tiền dư mẹ muốn dùng
 
   // === Phase B: State cho chiết khấu + shipping ===
-  const [discountType, setDiscountType] = useState('percent'); // 'percent' | 'fixed'
-  const [discountValue, setDiscountValue] = useState(0);       // Giá trị chiết khấu
   const [discountCode, setDiscountCode] = useState('');        // Mã chiết khấu
   const [discountCodeValid, setDiscountCodeValid] = useState(null); // Kết quả validate mã
   const [showQrScan, setShowQrScan] = useState(false);          // A5: mở/đóng modal quét QR
@@ -363,8 +361,6 @@ export default function Sales() {
     setActivePkgId(null);
     // POS-DOIKHACH-v1: doi khach thi XOA giam tay cua khach truoc (khong mang sang khach sau).
     // KHACH-CK-1: khong con chiet khau rieng cua khach de dien vao.
-    setDiscountType('percent');
-    setDiscountValue(0);
     // Ma chiet khau luon xoa: no gan voi khach hoac voi lan mua do,
     // khong mang sang nguoi khac duoc.
     setDiscountCode('');
@@ -413,8 +409,6 @@ export default function Sales() {
     setActivePkgId(null);
     setCustomerPkgs([]);
     // === Phase B: Reset chiết khấu ===
-    setDiscountType('percent');
-    setDiscountValue(0);
     setDiscountCode('');
     setDiscountCodeValid(null);
   };
@@ -619,17 +613,8 @@ export default function Sales() {
   // === Phase B: Tính chiết khấu ===
   let discountAmount = 0;
   if (discountCodeValid?.valid) {
-    // Ưu tiên 1: Mã chiết khấu đã validate
+    // Chỉ mã giảm đã validate (BH-CKTAY-1: bỏ giảm tay)
     discountAmount = discountCodeValid.discount_amount || 0;
-  } else if (discountType === 'percent' && discountValue > 0) {
-    // Ưu tiên 2: Chiết khấu %
-    discountAmount = subtotal * discountValue / 100;
-  } else if (discountType === 'fixed' && discountValue > 0) {
-    // Ưu tiên 3: Chiết khấu số tiền cố định
-    discountAmount = discountValue;
-  } else if (discount > 0) {
-    // Backward compatible
-    discountAmount = discount;
   }
   discountAmount = tinhThu ? tinhThu.discount_amount : Math.min(discountAmount, Math.max(0, subtotal - cartFlashDiscount - cartTierDiscount));
 
@@ -724,11 +709,11 @@ export default function Sales() {
         customer_name: customer?.name || 'Khách lẻ',
         is_new_customer: customer?.isNew || false,
         payment_method: paymentMethod,
-        discount: discount,
+        discount: 0,
         discount_reason: discountAmount > 0 ? 'Giảm giá' : null,
         // === Phase B: Chiết khấu + Shipping ===
-        discount_type: discountCodeValid?.valid ? discountCodeValid.discount_type : (discountValue > 0 ? discountType : null),
-        discount_value: discountCodeValid?.valid ? discountCodeValid.discount_value : discountValue,
+        discount_type: discountCodeValid?.valid ? discountCodeValid.discount_type : null,
+        discount_value: discountCodeValid?.valid ? discountCodeValid.discount_value : 0,
         // Thêm thông tin thanh toán linh hoạt
         balance_amount: balanceUsed,
         cash_amount: cashAmount,
@@ -787,15 +772,12 @@ export default function Sales() {
       setCustomer(null);
       setMembershipInfo(null);
       setSearchPhone('');
-      setDiscount(0);
       setPaymentMethod('cash');
       setUseBalance(false);
       setBalanceToUse(0);
       setUseParentBalance(false);
       setParentBalanceToUse(0);
       // === Phase B: Reset chiết khấu + shipping ===
-      setDiscountType('percent');
-      setDiscountValue(0);
       setDiscountCode('');
       setDiscountCodeValid(null);
       setShippingFee(0);
@@ -1053,6 +1035,7 @@ export default function Sales() {
                   e.currentTarget.style.borderColor = inPkg ? '#c4b5fd' : '#e2e8f0';
                 }}
               >
+                <NutThongTin mon={product} kieu={{ top: 4, left: 4 }} />
                 <div style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '0.5rem' }}>
                   {product.icon || '📦'}
                 </div>
@@ -1424,39 +1407,6 @@ export default function Sales() {
                 )}
               </div>
 
-              {/* Chiết khấu manual (ẩn nếu đã dùng mã) */}
-              {!discountCodeValid?.valid && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.25rem' }}>
-                    Chiết khấu
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <select
-                      value={discountType}
-                      onChange={(e) => setDiscountType(e.target.value)}
-                      style={{
-                        padding: '0.5rem',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '6px',
-                        background: 'white',
-                        width: '80px'
-                      }}
-                    >
-                      <option value="percent">%</option>
-                      <option value="fixed">đ</option>
-                    </select>
-                    <input
-                      type="number"
-                      className="input"
-                      value={discountValue || ''}
-                      onChange={(e) => setDiscountValue(Math.max(0, parseInt(e.target.value) || 0))}
-                      placeholder="0"
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                </div>
-              )}
-
               {/* Phí vận chuyển */}
               <div>
                 <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.25rem' }}>
@@ -1487,7 +1437,6 @@ export default function Sales() {
                   <span>
                     Chiết khấu
                     {discountCodeValid?.valid && <span style={{ fontSize: '0.75rem' }}> ({discountCodeValid.code})</span>}
-                    {!discountCodeValid?.valid && discountType === 'percent' && discountValue > 0 && <span style={{ fontSize: '0.75rem' }}> ({discountValue}%)</span>}
                   </span>
                   <span>-{formatPrice(discountAmount)}</span>
                 </div>
@@ -1724,16 +1673,16 @@ export default function Sales() {
             borderRadius: '8px',
             marginBottom: '1rem'
           }}>
-            {(discount > 0 || shippingFee > 0) && (
+            {(discountAmount > 0 || shippingFee > 0) && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Tạm tính</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                {discount > 0 && (
+                {discountAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                   <span>Giảm giá</span>
-                  <span>-{formatPrice(discount)}</span>
+                  <span>-{formatPrice(discountAmount)}</span>
                 </div>
                 )}
                 {shippingFee > 0 && (

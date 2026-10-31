@@ -1,11 +1,12 @@
 // Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup + HÓA ĐƠN (Phase A)
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 import GioHoatDong from './CaiDat/GioHoatDong';
 import CaiDatChuong from '../components/CaiDatChuong';
+import { FormThongTinMon } from '../components/ThongTinMon';
 
 
 // UUDAI-1: ba loại mã của khối "Mã giảm & giá hạng" (thẻ Hạng)
@@ -29,6 +30,7 @@ export default function Settings() {
 
   const [tab, setTab] = useState(firstVisibleTab);
   const [products, setProducts] = useState([]);
+  const [monMoThongTin, setMonMoThongTin] = useState(null); // KH-SP-1: món đang mở ô "Thông tin món" (unique id)
   const [users, setUsers] = useState([]);
   const [permissions, setPermissions] = useState({});
   const [allPerms, setAllPerms] = useState([]);
@@ -1082,11 +1084,13 @@ export default function Settings() {
                       </div>
                     </th>
                     <th>Trạng thái</th>
+                    <th>Thông tin món</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map(p => (
-                    <tr key={getUniqueId(p)}>
+                    <Fragment key={getUniqueId(p)}>
+                    <tr>
                       <td>
                         <span style={{ marginRight: '0.25rem' }}>{p.icon || (p.category === 'tea' ? '🍵' : '🥤')}</span>
                         <strong style={{ color: p.color || '#333' }}>{p.code}</strong>
@@ -1153,7 +1157,19 @@ export default function Settings() {
                           <span className="badge badge-gray">Tạm dừng</span>
                         }
                       </td>
+                      <td>
+                        <button className={`btn ${monMoThongTin === getUniqueId(p) ? 'btn-primary' : 'btn-outline'}`}
+                          onClick={() => setMonMoThongTin(monMoThongTin === getUniqueId(p) ? null : getUniqueId(p))}>
+                          {(p.nhu_cau?.length || p.the_chat?.length || p.mo_ta || p.cong_dung || p.thanh_phan) ? 'Sửa' : 'Nhập'}
+                        </button>
+                      </td>
                     </tr>
+                    {monMoThongTin === getUniqueId(p) && (
+                      <tr><td colSpan={7} style={{ background: '#f9fafb' }}>
+                        <FormThongTinMon mon={p} onXong={(tt) => setProducts(ps => ps.map(x => getUniqueId(x) === getUniqueId(p) ? { ...x, ...tt } : x))} />
+                      </td></tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

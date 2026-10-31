@@ -494,6 +494,7 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
 }
 for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js', 'cong_cu/thu_GOI1.js', 'cong_cu/thu_KH1.js', 'cong_cu/thu_P2223.js', 'cong_cu/thu_P24.js', 'cong_cu/thu_BH1.js', 'cong_cu/thu_BH2.js', 'cong_cu/thu_DIEMTHAT1.js', 'cong_cu/thu_KHAPI2.js', 'cong_cu/thu_KHAPI3.js', 'cong_cu/thu_HOPDONG_KH.js', 'cong_cu/thu_P3.js']) chayBaiThat(bai);
 chayBaiThat('cong_cu/thu_UUDAI1.js');   // UUDAI-1: mã giảm & giá hạng, tinh-thu
+chayBaiThat('cong_cu/thu_BHCKTAY1.js');   // BH-CKTAY-1: màn Bán hàng cũ bỏ ô giảm tay
 chayBaiThat('cong_cu/thu_KHACHCK1.js');   // KHACH-CK-1: bỏ chiết khấu riêng từng khách (máy chủ, cửa ghi, nâng cấp 004, màn hình)
 chayBaiThat('cong_cu/thu_KHMUA1.js');   // KH-MUA-1: App KH đặt đơn nhận tại quán (báo giá, tạo đơn qua phiên thanh toán, chống trùng, tiến trình, quầy)
 chayBaiThat('cong_cu/thu_HD1.js');   // HD-1: hoá đơn bố cục mới + QR + chữ tuỳ chỉnh (dòng riêng: thu_P3 neo mảng bài, đòi P3 đứng cuối)
@@ -790,6 +791,9 @@ chac('.gitignore có attached_assets/',
 chayBaiThat('cong_cu/thu_DOISOAT1.js');   // DOI-SOAT-1: màn Đối soát (bất biến trên dữ liệu thật, chỉ đọc)
 chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ liệu đánh số, nhập SX, đường /api/pos/kho
 chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
+chayBaiThat('cong_cu/thu_KHO2b.js');   // KHO-2b: đặt hàng có hạn mức, nhận hàng người khác duyệt, xử lý phát sinh, tồn
+chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
+chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;

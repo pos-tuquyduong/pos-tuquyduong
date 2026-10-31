@@ -295,11 +295,11 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[F] giảm tay theo đơn ở màn cũ không đổi');
+  muc('[F] giảm tay theo đơn: máy chủ không tin tờ khai; màn cũ không còn ô giảm tay (BH-CKTAY-1)');
   await chay('F', async () => {
     const sa = docNguon(CLIENT, 'pages', 'Sales.jsx');
-    k('F3a Sales.jsx còn ô giảm tay và vẫn gửi discount_value = discountValue khi không mã', /setDiscountValue\(Math\.max\(0, parseInt\(/.test(sa)
-      && /discount_value: discountCodeValid\?\.valid \? discountCodeValid\.discount_value : discountValue,/.test(sa));
+    k('F3a (BH-CKTAY-1) Sales.jsx bỏ hẳn ô giảm tay; không mã thì gửi discount_value 0', !/setDiscountValue\(/.test(sa)
+      && /discount_value: discountCodeValid\?\.valid \? discountCodeValid\.discount_value : 0,/.test(sa));
     const r = await ban({ customer_phone: sdtMoi(), items: [mon(1, 1)], discount_type: 'percent', discount_value: 10 }, 30000);
     await caDon('F3b đối chứng: thân gửi percent 10 không mã → máy chủ không tin tờ khai, tổng 30.000 như cũ', r, 30000);
     const d3 = r.order ? await mot('SELECT discount_type, discount_value FROM pos_orders WHERE id = ?', [r.order.id]) : null;
