@@ -218,3 +218,11 @@ BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 2 · BỎ 3 — chi tiết ở ## Bài 
    trích con số cũ"; trùng bài 3 phần đề xuất cổng.
 6. **BỎ** — 3 vòng soát + vòng sửa 4: mọi lỗi nhẹ, không đụng tiền; đúng nhịp LUAT §6.5.
 
+## Cổng (bước 11.4)
+- `node tu_chay/cong.js chay . 29db8d3^ HEAD viec/KHACH-CK-1` lần 1 (HEAD `15cd62e`): `✗ [A16] … "SỐ CA cong_cu/thu_BH2.js: 99" ≠ 100 ca ở head`
+  — ca G1 của thu_BH2 chỉ chạy khi có `.git` (`thu_BH2.js:244`), số 99 lấy từ bản sao đột biến; sửa thành 100 (`dc4b384`).
+- Lần 2 (HEAD `dc4b384`): `✓ CỔNG CHẠY ĐẠT` (kèm `· CẢNH BÁO A16: thu_BH2.js chạy trên gốc in 99 ca ≠ 100` — cùng nguyên nhân G1 / `.git`).
+- `git log --oneline -2` lúc kiểm: `dc4b384 KHACH-CK-1: bang chung do — SO CA thu_BH2 = 100 (ca G1 can .git; cong A16)` ·
+  `15cd62e KHACH-CK-1: trang thai — soat vong 3, vong sua 4 (chat soat thay), bao cao 7 muc, bai hoc`
+
+HEAD ĐÃ KIỂM: dc4b384
