@@ -1,0 +1,34 @@
+# SAOLUU-2 — bằng chứng đỏ: bài cong_cu/thu_SAOLUU2.js (36 ca, sau vòng sửa cuối) chạy trên server/ GỐC e94c504
+# lệnh: python3 viec/SAOLUU-2/dot_bien.py --goc e94c504   (lần ghi trước: 26 → 27 → 28 → 30 → 34 ca; thay bằng lần này sau vòng sửa cuối)
+
+  ✗ D1 pos_don_app (KH-MUA-1) có trong BACKUP_TABLES VÀ BANG_KHONG_KHOI_PHUC
+  ✗ A1 dòng đầu trống notes / xung_ho / address → dòng 2 vẫn đủ cả ba cột  — HTTP 200 · {"notes":null,"xung_ho":null,"address":null}
+  ✗ A2 bảng khác (Nhật ký đồng bộ): dòng đầu trống ba cột → dòng 2 đủ  — HTTP 200 · {"details":null,"error_message":null,"created_by":null}
+  ✗ A3 cột lạ trong file → 200, đủ 2 dòng, cot_bo_qua = ["cot_la"]  — HTTP 200 · {"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","status":"restored","rows":0,"total":2}
+  ✗ A4 ô chữ rỗng '' khôi phục ra '' (không thành null)  — HTTP 200 · {"notes":null}
+  ✗ B1 kho trống, trang 2 dòng Excel 4 vi phạm CHECK → 400 KHOI_PHUC_DONG_HONG, bảng + dòng + lý do; MỌI bảng không đổi (cả trang 1)  — HTTP 200 · bang undefined dong undefined ly_do undefined
+  ✗ B2 trùng khoá chính ở dòng Excel 4 → 400, lý do trùng khoá; không đổi gì  — HTTP 200 · undefined
+  ✗ B4 thiếu giá trị bắt buộc (NOT NULL) ở dòng Excel 3 → 400, không đổi gì  — HTTP 200
+  ✗ B5 trang con đứng TRƯỚC trang cha trong file (khoá ngoại bật) → 200, đủ cả nhóm lẫn thành viên (chèn cha trước, xoá con trước)  — HTTP 200
+  ✗ B6 dòng trống giữa trang → lỗi NOT NULL báo đúng dòng Excel 5 (không phải 4); không đổi gì  — HTTP 200 · dong undefined
+  ✗ B7 lỗi không phải dữ liệu (SQLITE_ERROR) → 500 LOI_MAY_CHU, KHÔNG báo "dòng N hỏng"; không đổi gì  — HTTP 200
+  ✗ B8 chữ trong cột id số (SQLITE_MISMATCH) → 400, dòng 3, lý do "sai kiểu dữ liệu"; không đổi gì  — HTTP 200 · undefined
+  ✗ B9 CHÈN dòng con trỏ tới nhóm không có → 400, dòng 2, lý do "trỏ tới dữ liệu không có"; không đổi gì  — HTTP 200 · undefined
+  ✗ B10 XOÁ bảng cha khi bảng khác còn trỏ tới (không khôi phục trang con) → 400, KHÔNG có số dòng, lý do "còn dữ liệu ở bảng khác trỏ tới"; không đổi gì  — HTTP 200 · dong undefined
+  ✗ B3 server/utils/khoiPhuc.js có và không còn console.error (lỗi chèn không bị nuốt)
+  ✗ B11 /preview-restore và /restore không trả nguyên câu lỗi nội bộ (err.message) — lỗi máy chủ qua loiGhi (có code)
+  ✗ C1 xem trước file có cột lạ → cot_bo_qua = ["cot_la"], fileRows 2 (như khôi phục báo)  — {"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","label":"Nhật ký đồng bộ","recognized":true,"fileRows":2,"currentRows":1}
+  ✗ C6 trang không có cột nào khớp bảng → xem trước VÀ khôi phục: skipped KHONG_CO_COT_KHOP, 200; không đổi gì  — HTTP 200 · [{"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","label":"Nhật ký đồng bộ","recognized":true,"fileRows":1,"currentRows":1}]
+  ✗ C2 xem trước trang kho khi kho CÓ dữ liệu → skipped KHO_CO_DU_LIEU (như khôi phục)  — [{"sheet":"Kho - Nguyên liệu","table":"kho_nguyen_lieu","label":"Kho - Nguyên liệu","recognized":true,"fileRows":1,"currentRows":3},{"sheet":"Nâng cấp dữ liệu","table":"pos_nang_cap","label":"Nâng cấp dữ liệu","recognized":true,"fileRows":1,"currentRows":5}]
+  ✗ C4 xem trước trang Nâng cấp dữ liệu → skipped NANG_CAP_KHONG_KHOI_PHUC
+  ✗ C5 xem trước bảng chưa có trong CSDL → skipped BANG_CHUA_CO  — [{"sheet":"Cài đặt","table":"pos_settings","label":"Cài đặt","recognized":true,"fileRows":1,"currentRows":23},{"sheet":"Nhật ký đồng bộ","table":"pos_sync_logs","label":"Nhật ký đồng bộ","recognized":true,"fileRows":1,"currentRows":0}]
+  ✗ D3 khôi phục bảng chưa có trong CSDL → 200, skipped BANG_CHUA_CO; trang Cài đặt vẫn khôi phục  — HTTP 500 · SQLITE_ERROR: no such table: pos_sync_logs
+  ✗ F1 10 trang khôi phục — hai file giống từng ô (kể cả ô trống / ô chữ rỗng / kho)  — HTTP 200 · lệch: Khách hàng, Cài đặt, Nhật ký đồng bộ, Kho - Nguyên liệu
+  13 đạt · 23 hỏng
+GỐC e94c504: thoát 1
+
+# vòng sửa 1 — B6/B7 trên bản vá TRƯỚC vòng sửa 1 (server/ của 3479327): dot_bien.py --goc HEAD lúc đó → 28 đạt · 2 hỏng (✗ B6, ✗ B7), thoát 1
+# vòng sửa 2 — B8/B9/B10 trên bản vá TRƯỚC vòng sửa 2 (server/ của 11dfaef): → 31 đạt · 2 hỏng (✗ B9, ✗ B10), thoát 1; B8 xanh (nhánh SQLITE_MISMATCH có từ vòng 1 — ca phủ, đột biến BV-MISMATCH canh)
+# vòng sửa cuối — B11/C6 trên bản vá TRƯỚC vòng sửa cuối (server/ của a549173): → 34 đạt · 2 hỏng (✗ B11, ✗ C6), thoát 1
+# trên code ĐÃ VÁ (8815e3c): dot_bien.py đối chứng → 36 đạt · 0 hỏng
+SỐ CA cong_cu/thu_SAOLUU2.js: 36

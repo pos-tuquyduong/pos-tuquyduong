@@ -9,7 +9,9 @@ const router = express.Router();
 const XLSX = require('xlsx');
 const multer = require('multer');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { query, run } = require('../database');
+const { query } = require('../database');
+const { docTrang, lapKeHoach, thucHien } = require('../utils/khoiPhuc');
+const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ câu nội bộ
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -90,6 +92,7 @@ const BACKUP_TABLES = [
   { name: 'pos_phien_thanh_toan', label: 'Phiên thanh toán', key: 'id' },   // P3
   { name: 'pos_payos_su_kien', label: 'Báo tiền về payOS', key: 'id' },     // P3
   { name: 'pos_nhat_ky_pin', label: 'Nhật ký PIN khách', key: 'id' },       // P3
+  { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },               // SAOLUU-2: bảng của KH-MUA-1 (bước 006) — chưa có thì bangDangCo bỏ qua
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -120,7 +123,8 @@ const BACKUP_TABLES = [
 const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'pos_balance_transactions', 'pos_refund_requests',
   'pos_point_transactions', 'pos_customer_packages', 'pos_membership_purchases', 'pos_voucher_grants', 'pos_damage_logs',
   'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage',
-  'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin'];   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
+  'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin',   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
+  'pos_don_app'];   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
 
 /**
  * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
@@ -128,7 +132,7 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
  */
 function chanTrangTien(res, wb) {
   const bang = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(BACKUP_TABLES.find((t) => t.label === s)?.name)
-    && XLSX.utils.sheet_to_json(wb.Sheets[s]).length > 0);
+    && docTrang(wb.Sheets[s]).length > 0);
   if (!bang.length) return false;
   res.status(400).json({ code: 'KHOI_PHUC_TRANG_TIEN_BI_CHAN', bang,
     error: `File có trang dính tiền (${bang.join(', ')}) — trang tiền không khôi phục bằng file. `
@@ -293,39 +297,16 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
 
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
     if (chanTrangTien(res, wb)) return;
+    // SAOLUU-2 (C): cùng kế hoạch với /restore — cột bỏ qua, trang bỏ qua (mã + lý do), số dòng đọc cùng một cách.
     const preview = [];
-
-    const labelToTable = {};
-    for (const t of BACKUP_TABLES) {
-      labelToTable[t.label] = t;
-    }
-
-    for (const sheetName of wb.SheetNames) {
-      if (sheetName === '_Metadata') continue;
-
-      const tableDef = labelToTable[sheetName];
-      const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws);
-
-      let currentCount = 0;
-      if (tableDef) {
-        const result = await query(`SELECT COUNT(*) as count FROM ${tableDef.name}`).catch(() => [{ count: 0 }]);   // KHO-1: bảng chưa có
-        currentCount = result[0]?.count || 0;
-      }
-
-      preview.push({
-        sheet: sheetName,
-        table: tableDef?.name || 'unknown',
-        label: tableDef?.label || sheetName,
-        recognized: !!tableDef,
-        fileRows: rows.length,
-        currentRows: currentCount
-      });
+    for (const { dong, viTri, cot, ...m } of await lapKeHoach(wb, BACKUP_TABLES)) {
+      const dem = m.recognized ? await query(`SELECT COUNT(*) as count FROM ${m.table}`).catch(() => [{ count: 0 }]) : [{ count: 0 }];   // KHO-1: bảng chưa có
+      preview.push({ ...m, currentRows: dem[0]?.count || 0 });
     }
 
     res.json({ success: true, preview });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);   // SAOLUU-2: cùng khuôn /restore — có code, không lộ câu nội bộ
   }
 });
 
@@ -344,81 +325,26 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     }
 
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const results = [];
-
-    const labelToTable = {};
-    for (const t of BACKUP_TABLES) {
-      labelToTable[t.label] = t;
-    }
 
     // P26d (7), chủ quán chốt Q3: trang tiền không khôi phục bằng file (ví chỉ ghi qua ghiVi, đơn qua đường bán) — chặn TRƯỚC
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
     if (chanTrangTien(res, wb)) return;
-    // KHO-1 (chủ quán 28.10): bảng kho_* CHỈ khôi phục khi kho đang TRỐNG (dựng lại máy mới) — đo MỘT lần trước vòng lặp; pos_nang_cap không bao giờ.
-    // Thiếu bảng kho (nâng cấp hỏng) → câu đếm lỗi → coi như kho CÓ dữ liệu: bỏ qua bảng kho, phần còn lại khôi phục như cũ.
-    const demKho = await query('SELECT (SELECT COUNT(*) FROM kho_phieu) + (SELECT COUNT(*) FROM kho_nguyen_lieu) AS n').catch(() => null);
-    const khoTrong = !!demKho && Number(demKho[0].n) === 0;
-
-    for (const sheetName of wb.SheetNames) {
-      if (sheetName === '_Metadata') continue;
-
-      const tableDef = labelToTable[sheetName];
-      if (!tableDef) {
-        results.push({ sheet: sheetName, status: 'skipped', reason: 'Không nhận diện được bảng' });
-        continue;
-      }
-      if (tableDef.name === 'pos_nang_cap' || (tableDef.name.startsWith('kho_') && !khoTrong)) {
-        const [code, reason] = tableDef.name === 'pos_nang_cap' ? ['NANG_CAP_KHONG_KHOI_PHUC', 'Sổ nâng cấp dữ liệu không khôi phục bằng file']
-          : demKho ? ['KHO_CO_DU_LIEU', 'Bỏ qua bảng kho vì kho đang có dữ liệu'] : ['KHO_KHONG_DEM_DUOC', 'Bỏ qua bảng kho vì không đếm được kho (thiếu bảng?)'];
-        results.push({ sheet: sheetName, table: tableDef.name, status: 'skipped', code, reason });
-        continue;
-      }
-
-      const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws);
-
-      if (rows.length === 0) {
-        results.push({ sheet: sheetName, table: tableDef.name, status: 'skipped', reason: 'Không có dữ liệu' });
-        continue;
-      }
-
-      // Xóa data cũ rồi insert mới
-      await run(`DELETE FROM ${tableDef.name}`);
-
-      let inserted = 0;
-      const columns = Object.keys(rows[0]);
-
-      for (const row of rows) {
-        const values = columns.map(col => {
-          const val = row[col];
-          if (val === undefined || val === null || val === '') return null;
-          return val;
-        });
-
-        const placeholders = columns.map(() => '?').join(', ');
-        const colNames = columns.map(c => `"${c}"`).join(', ');
-
-        try {
-          await run(`INSERT INTO ${tableDef.name} (${colNames}) VALUES (${placeholders})`, values);
-          inserted++;
-        } catch (insertErr) {
-          console.error(`Insert error [${tableDef.name}]:`, insertErr.message);
-        }
-      }
-
-      results.push({
-        sheet: sheetName,
-        table: tableDef.name,
-        status: 'restored',
-        rows: inserted,
-        total: rows.length
-      });
+    // SAOLUU-2: kế hoạch (kho_* chỉ khi kho trống, pos_nang_cap không bao giờ, cột ∩ bảng) rồi MỘT giao dịch — dòng hỏng → không đổi gì.
+    const keHoach = await lapKeHoach(wb, BACKUP_TABLES);
+    try {
+      await thucHien(keHoach);
+    } catch (err) {
+      if (!err.loiDong) return loiGhi(res, err);
+      const { bang, trang, dong, ly_do } = err.loiDong;
+      return res.status(400).json({ code: 'KHOI_PHUC_DONG_HONG', bang, trang, dong, ly_do,
+        error: `Trang "${trang}"${dong ? ` dòng ${dong}` : ''}: ${ly_do} — chưa khôi phục gì, dữ liệu giữ nguyên` });
     }
+    const results = keHoach.map(({ sheet, table, status, code, reason, fileRows, cot_bo_qua }) => (status === 'skipped'
+      ? { sheet, table, status, code, reason } : { sheet, table, status: 'restored', rows: fileRows, total: fileRows, cot_bo_qua }));
 
     res.json({ success: true, message: 'Khôi phục hoàn tất', results });
   } catch (err) {
-    console.error('Restore error:', err);
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);   // SAOLUU-2: có code, không lộ câu nội bộ (LUAT §2, §4)
   }
 });
 
