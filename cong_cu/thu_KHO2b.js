@@ -414,6 +414,14 @@ async function main() {
     muc: [{ nguyen_lieu_id: n1, luong: 0.01, cho_mon_id: s3 }, { nguyen_lieu_id: n2, luong: 0.002, cho_mon_id: s3 }] });
   k('E5f sửa phiếu dùng nội bộ (Cà phê pha) → dòng phiếu mới giữ cho_mon_id = món', e5f.status === 200
     && (await dongCua(e5f.phieu?.id)).every((d) => Number(d.cho_mon_id) === s3), `${moTa(e5f)} ${JSON.stringify((await dongCua(e5f.phieu?.id)).map((d) => d.cho_mon_id))}`);
+  // E7 / E8 (soát lần 3): sửa phiếu ĐÃ HUỶ → cùng mã với phiếu xuất; cho_mon_id chỉ nhận ở đường sửa
+  const e7 = [await goi('chu', 'POST', `/kho/phieu/${pnS.phieu?.id}/sua`, { ly_do: 'lần hai', dong: [{ nguyen_lieu_id: n4, luong: 1 }] }),
+    await goi('chu', 'POST', `/kho/phieu/${d4a.phieu?.id}/sua`, { ly_do: 'lần hai', su_co: 'noi_bo', muc: [{ nguyen_lieu_id: n1, luong: 0.01 }] })];
+  k('E7 sửa phiếu nhận / phát sinh ĐÃ HUỶ → 409 PHIEU_DA_XU_LY (cùng mã phiếu xuất), không thêm phiếu', e7.every((r) => r.status === 409 && r.code === 'PHIEU_DA_XU_LY')
+    && (await so('SELECT COUNT(*) FROM kho_phieu WHERE thay_cho_id IN (?, ?)', [pnS.phieu?.id || 0, d4a.phieu?.id || 0])) === 2, e7.map(moTa).join(' | '));
+  const e8 = await taoPS('nv', { su_co: 'hong', muc: [{ nguyen_lieu_id: n4, luong: 0.01, cho_mon_id: 999999 }] }, 'g-e8');
+  k('E8 nhân viên tạo phiếu phát sinh gửi cho_mon_id → máy chủ bỏ qua (chỉ đường sửa giữ "ly gì")', e8.status === 200
+    && (await dongCua(e8.phieu?.id)).every((d) => d.cho_mon_id === null), `${moTa(e8)} ${JSON.stringify((await dongCua(e8.phieu?.id)).map((d) => d.cho_mon_id))}`);
   const e5c = await goi('chu', 'POST', `/kho/phieu/${dh1}/sua`, { ly_do: 'Thêm Gừng', nguyen_lieu: [{ nguyen_lieu_id: n4, luong: 2 }, { nguyen_lieu_id: n1, luong: 2 }] });
   const dMoi = ((await goi('ql', 'GET', '/kho/goi-y-nhap')).don_mo || []).find((d) => d.id === e5c.phieu?.id);
   k('E5c chủ quán sửa đơn → đơn mới tự duyệt; phần còn lại tính cả phiếu nhận của đơn cũ (Gừng 2 − 1.0 = 1.0, Cam 0)', e5c.status === 200

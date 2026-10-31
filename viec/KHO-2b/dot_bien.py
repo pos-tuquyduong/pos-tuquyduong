@@ -68,6 +68,9 @@ DOT_BIEN = [
   ('BV-SUA-GIU-DON', [(D, 'donId: cu.don_id == null ? null : Number(cu.don_id),', 'donId: null,', 1)], r'✗ E4e '),
   ('BV-NOI-BO-GIU-MON', [(PS, 'dong.push({ nguyen_lieu_id: m.nguyen_lieu_id, luong: m.luong, cho_mon_id: m.cho_mon_id });', 'dong.push({ nguyen_lieu_id: m.nguyen_lieu_id, luong: m.luong });', 1)],
     r'✗ E5f '),
+  # ── vòng sửa 4 (soát lần 3): sửa phiếu đã huỷ cùng mã · cho_mon_id chỉ ở đường sửa ──
+  ('VS-SUA-HUY-SAI-MA', [(D, "if (cu.trang_thai === 'cho_duyet') return", "if (cu.trang_thai !== 'da_duyet') return", 1)], r'✗ E7 '),
+  ('BV-CHO-MON-CHI-KHI-SUA', [(PS, 'cho_mon_id: ep ? Number(m?.cho_mon_id) || null : null };', 'cho_mon_id: Number(m?.cho_mon_id) || null };', 1)], r'✗ E8 '),
   # ── bước 007 ──
   ('BV-007-DON-ID', [(B7, "  await themCot('kho_phieu', 'don_id INTEGER');\n", '', 1)], r'✗ N1 '),
 ]
