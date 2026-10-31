@@ -20,6 +20,7 @@ import { useState, useEffect } from 'react';
 import { dungMenu } from '../pages/QuanLy/menu';
 // POS-DODNO-v1: goi qua lop chung, KHONG fetch tran (luat banh coc cua bo kiem)
 import { soNoApi } from '../utils/api';
+import DonAppNoi from './DonAppNoi';   // KH-MUA-1: đơn App + chuông, thấy từ mọi màn
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
@@ -150,6 +151,7 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="main-content">
+        <DonAppNoi />
         {/* POS-2 (POS-ERRHANDLING-v1) — lưới đỡ BÊN TRONG: một màn hình vỡ
             thì sidebar và bottom-nav vẫn còn, nhân viên chuyển sang tab khác
             bán tiếp được. key theo đường dẫn để mỗi lần chuyển tab là lưới đỡ
