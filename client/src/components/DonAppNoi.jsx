@@ -28,6 +28,7 @@ export function keuChuong(tieng, amLuong = AM_LUONG_MAC_DINH) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ac = new AC();
+    if (ac.resume) ac.resume();   // Chrome tạo AudioContext ở trạng thái treo khi chưa có thao tác người dùng
     for (const [tan, sau, dai] of NOT[tieng] || NOT.ding) {
       const o = ac.createOscillator();
       const g = ac.createGain();
