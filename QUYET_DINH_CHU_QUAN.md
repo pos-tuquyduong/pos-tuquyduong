@@ -65,6 +65,9 @@
 - 31.10 · Mã thông tin món là mã CHUNG hai hệ (App KH xác nhận): nhu cầu `ngu_ngon dep_da am_bung tinh_tao bo_khi giai_nhiet`; thể chất
   `binh_hoa khi_hu duong_hu am_hu dam_thap thap_nhiet huyet_u khi_uat dac_bam` (KH-TN-1 dùng lại). Thêm mã → báo App trước.
 - 31.10 · Chưa có Zalo ZNS: khách MỚI lấy mã đăng nhập App ở quầy theo SĐT, KHÔNG tạo khách trước (để App hỏi tên + xưng hô) — KH-QUAY-2.
+- 31.10 · SĐT đăng ký mới (App hoặc quầy) BẮT ĐẦU TỪ 0: điểm / voucher còn lại của dữ liệu cũ cùng số mà không có hồ sơ → khoá có lý do; lịch sử
+  đơn cũ giữ để đối soát nhưng KHÔNG hiện cho người đăng ký sau (nhà mạng cấp lại số cũ). Dọn dữ liệu thử trước khai trương: máy liệt kê → chủ
+  quán duyệt → dọn, sao lưu trước (KH-SDT-1).
 
 ## Giao hàng
 - 27.10 · Giao hàng dùng Ahamove (không GHN).
@@ -101,6 +104,11 @@
   Máy chủ không nhận mức giảm nào màn hình gửi. Cần giảm cho khách quen / bù món lỗi → quản lý tạo mã giảm (BH-CKTAY-1 bỏ ô ở màn cũ).
 - 31.10 · payOS chạy thật (chủ quán thử đơn QR 2.000đ: tiền về, máy tự xác nhận). Màn Bán hàng mới được bật từng máy (`/?man=moi`;
   về màn cũ `/?man=cu`). Huỷ đơn đã chuyển khoản: POS không tự trả tiền — nhân viên chuyển trả tay.
+- 31.10 · Chuyển cổng thanh toán QR sang **SePay** (phí thấp hơn), ĐỦ chức năng như payOS (quầy + App: QR tự xác nhận, hết hạn, huỷ, xác nhận
+  tay, ví + QR, đối soát). POS tự dựng VietQR, SePay báo tiền về (xác thực HMAC-SHA256). payOS GIỮ làm dự phòng, bật lại bằng công tắc (SEPAY-1).
+- 31.10 · **Màn khách:** một máy tính bảng quay về phía khách, ghép với máy quầy (máy quầy là máy tính bảng / điện thoại). Lúc thu: hiện QR + món
+  + tổng; tiền về: "Cảm ơn". Lúc rảnh: chạy nội dung quán TỰ CÀI (menu, Giờ vàng, QR App, giới thiệu, quảng cáo; ảnh khi có chỗ lưu ảnh)
+  (MANKHACH-1).
 - 31.10 · HOÁ ĐƠN KHÁCH chỉ in khổ nhỏ dọc (58mm / 80mm) — bỏ A4 / A5 khỏi chỗ chọn khổ hoá đơn; cài đặt cũ A4 / A5 đọc ra 80mm (KH-QUAY-2).
   CÁC LOẠI PHIẾU (xuất / nhập kho, đặt hàng, phát sinh, pha chế…) VẪN có lựa chọn 80mm / A5 / A4 và có phần Cài đặt in phiếu (KHO-IN-1).
 - 29.10 · Khoá payOS và Ahamove CHỈ ở biến môi trường Render (không ở màn Cài đặt, không dán vào chat); Quản lý → Cài đặt chỉ hiện
@@ -128,6 +136,11 @@
   sửa phiếu nhận đã duyệt → phiếu mới tự duyệt (như phiếu xuất) · nhận hàng KHÔNG tự đổi giá nhập (sửa tay ở màn Nguyên liệu).
 - 31.10 · Khôi phục sao lưu phải an toàn trước khai trương: không mất cột / dòng, hỏng thì không đổi gì; bảng mới nào cũng phải nằm trong
   sao lưu (SAOLUU-2 — KHO-2b phát hiện lỗi mất dữ liệu khi khôi phục vào máy trống).
+- 31.10 · Chỉ khôi phục sao lưu khi quán đã ĐÓNG CỬA (lúc khôi phục, dữ liệu bị khoá ghi). Trang trống trong file sao lưu → bỏ qua, KHÔNG xoá
+  bảng.
+- 31.10 · Sửa phiếu nhận khi lô đã bị dùng bớt: VẪN cho sửa (số lượng, giá, hạn dùng, ghi chú); sửa xong số liệu phải KHỚP thực tế — còn lại = số
+  mới − phần đã dùng, không cho số nhỏ hơn phần đã dùng (báo "đã dùng X"); lô đã dùng thì KHÔNG huỷ được phiếu nhận. Cả nguyên liệu và thành
+  phẩm (KHO-2c).
 
 ## Bảo vệ dữ liệu (POS)
 - 28.10 · Sổ kho không chép đè: khôi phục Excel bỏ qua bảng kho khi kho đang có dữ liệu, chỉ khôi phục kho khi máy trống. Sai số kho sửa
