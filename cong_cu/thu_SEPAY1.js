@@ -104,6 +104,7 @@ async function main() {
   app.use(express.json());
   app.use('/api/pos/orders', require(R('orders.js')));
   app.use('/api/pos/wallets', require(R('wallets.js')));
+  app.use('/api/pos/refunds', require(R('refunds.js')));
   const tt = require(R('thanh-toan.js'));
   app.use('/api/pos/thanh-toan', tt);
   app.use('/api/payos/webhook', tt.webhook);
@@ -284,6 +285,12 @@ async function main() {
       && pp.trang_thai === 'da_thu' && pp.nguon === 'sepay', JSON.stringify(pp).slice(0, 160));
     k('C5 sự kiện khop, khoa = sepay:<id giao dịch>, so_tien 20.000, ma_payos = mã phiên', sk.ket_qua === 'khop' && sk.khoa === 'sepay:' + b1.id
       && Number(sk.so_tien) === 20000 && Number(sk.ma_payos) === p.id, JSON.stringify(sk).slice(0, 160));
+    // E2b: đơn chốt qua SePay hoàn trên quầy như đơn payOS — trả đúng phần ví 30.000 đã trừ, đơn refunded.
+    const yc = await goi('POST', '/pos/refunds', { order_id: pp.order_id, reason: 'thử SEPAY-1' });
+    const dy = await goi('POST', `/pos/refunds/${yc.j.refund_id}/approve`, {});
+    const sau = await db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [pp.order_id || -1]).catch(() => null);
+    k('E2b hoàn đơn SePay (yêu cầu + duyệt) → ví nhận lại đúng 30.000 phần tài khoản, đơn refunded', la(yc, 200) && la(dy, 200)
+      && dy.j.tong_hoan === 30000 && await soDu(a.sdt) === 30000 && sau?.status === 'refunded', moTa(yc) + ' / ' + moTa(dy) + ' · ' + sau?.status);
     const lap = [];
     for (let i = 0; i < 3; i++) lap.push(await guiSepay(b1));
     k('C6 báo lặp 3 lần cùng id → mỗi lần 200 {"success":true}, vẫn MỘT đơn, MỘT sự kiện', lap.every(daNhan) && pp.order_id
@@ -362,9 +369,9 @@ async function main() {
     const kh = await khach(0);
     const gio = { mon: [{ ma: `${sp.sx_product_type}_${sp.sx_product_id}`, so_luong: 1 }], cach_nhan: 'tai_quan' };
     let soKhoa = 0;
-    const datApp = async () => {
-      const tong = (await goi('POST', '/kh/gio/bao-gia', gio, kh.tk)).j.tong;
-      return goi('POST', '/kh/don', { ...gio, khoa_gui: `khoa-sepay-${++soKhoa}-${ngauNhien().slice(0, 8)}`, cach_tra: 'qr', tong_da_xem: tong }, kh.tk);
+    const datApp = async (k1 = kh, them = { cach_tra: 'qr' }) => {
+      const tong = (await goi('POST', '/kh/gio/bao-gia', gio, k1.tk)).j.tong;
+      return goi('POST', '/kh/don', { ...gio, khoa_gui: `khoa-sepay-${++soKhoa}-${ngauNhien().slice(0, 8)}`, tong_da_xem: tong, ...them }, k1.tk);
     };
     const phienCua = async (ma) => { const d = await db.queryOne('SELECT phien_id FROM pos_don_app WHERE ma = ?', [ma]).catch(() => null); return d ? dongPhien(d.phien_id) : null; };
     const r1 = await datApp();
@@ -381,6 +388,15 @@ async function main() {
     const c2 = await goi('GET', `/kh/don/${r2.j.ma_don}`, undefined, kh.tk);
     k('C18 tiền SePay về sau khi khách huỷ → da_huy + tien_ve_cho_doi_soat true, không đơn thật', daNhan(w2) && c2.j.don?.tien_trinh === 'da_huy'
       && c2.j.don.tien_ve_cho_doi_soat === true && !(await phienCua(r2.j.ma_don))?.order_id, JSON.stringify(c2.j.don || null).slice(0, 160));
+    const kv = await khach(10000);
+    const r3 = await datApp(kv, { cach_tra: 'vi_qr', pin: '1357' });
+    const p3 = await phienCua(r3.j.ma_don) || {}, f3 = tlv(String(r3.j.qr?.chuoi || ''));
+    k('C18b đơn App vi_qr (ví 10.000) → giữ 10.000, VietQR 54 = 15000 (phần còn lại)', la(r3, 200) && r3.j.giu_vi === 10000 && r3.j.con_lai === 15000
+      && f3['54'] === '15000', moTa(r3) + ' ' + JSON.stringify(r3.j).slice(0, 160));
+    const w3 = await guiSepay(bao(p3));
+    const c3 = await goi('GET', `/kh/don/${r3.j.ma_don}`, undefined, kv.tk);
+    k('C18b tiền SePay 15.000 về → da_tra, ví trừ đúng 10.000 (còn 0)', daNhan(w3) && c3.j.don?.tien_trinh === 'da_tra' && await soDu(kv.sdt) === 0,
+      moTa(w3) + ' · ' + c3.j.don?.tien_trinh + ' · ' + await soDu(kv.sdt));
   });
 
   muc('[D] Đối soát — tiền SePay chưa khớp / không phiên cùng bảng, cùng loại dòng với payOS, ghi rõ nguồn');
@@ -395,6 +411,9 @@ async function main() {
     k('D1 CẦN XEM có dòng SePay "không thuộc phiên nào" (kể cả báo không mã: "mã —"); không dòng SePay không_phien nào ở ĐỎ',
       ck('can_xem').some((m) => /^SePay giao dịch \d+, mã —: về .* không thuộc phiên nào/.test(m))
       && !ck('do').some((m) => /^SePay.*không thuộc phiên nào/.test(m)), ck('can_xem').slice(0, 3).join(' | '));
+    k('D2 dòng "cùng một khoản báo qua hai cổng … KHÔNG hoàn" (C14b) ở CẦN XEM, KHÔNG ở ĐỎ (ĐỎ = phải hoàn / nạp)',
+      ck('can_xem').some((m) => /hai cổng.*KHÔNG hoàn/.test(m)) && !ck('do').some((m) => /hai cổng/.test(m)), ck('do').filter((m) => /hai cổng/.test(m)).join(' | '));
+    k('D2 dòng "đã xác nhận tay … KHÔNG hoàn" (C14) GIỮ ở ĐỎ như trước (nghiệm thu E: đối soát cũ không đổi)', ck('do').some((m) => /đã xác nhận tay trước/.test(m)));
   });
 
   muc('[X·T·F] không lộ khoá; index.js gắn thân thô đúng chỗ; bộ kiểm chạy bài này; hướng dẫn cài');
