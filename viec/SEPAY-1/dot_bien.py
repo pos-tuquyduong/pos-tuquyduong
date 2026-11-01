@@ -54,6 +54,11 @@ DOT_BIEN = [
   # vòng sửa 1 (soát vòng 1 lỗi 2): dòng "hai cổng … KHÔNG hoàn" ở CẦN XEM; dòng "xác nhận tay … KHÔNG hoàn" cũ giữ ĐỎ
   ('BV-hai-cong-can-xem', 'sp', [(DS, " || String(r.ly_do || '').includes(LY_DO_HAI_CONG)", '', 1)], r'✗ D2 dòng "cùng một khoản'),
   ('VS-can-xem-moi-khong-hoan', 'sp', [(DS, ".includes(LY_DO_HAI_CONG)", ".includes('KHÔNG hoàn')", 1)], r'✗ D2 dòng "đã xác nhận tay'),
+  # vòng sửa 2 (soát vòng 2): "hai cổng" chỉ khi cổng này chưa báo; hai chiều; thân thiếu id; không lưu số dư
+  ('BV-hai-cong-da-bao', 'sp', [(TT, ' && sau.nguon !== t.nguon && !daBao', ' && sau.nguon !== t.nguon', 1)], r'✗ C14c '),
+  ('VS-hai-cong-mot-chieu', 'sp', [(TT, ' && sau.nguon !== t.nguon && !daBao', " && t.nguon === 'sepay' && sau.nguon === 'payos' && !daBao", 1)], r'✗ C14d '),
+  ('BV-bao-thieu-id', 'sp', [(TT, ' || b.id == null)', ')', 1)], r'✗ C9b '),
+  ('BV-luu-so-du', 'sp', [(TT, 'duLieu: { ...b, accumulated: undefined }', 'duLieu: b', 1)], r'✗ C5b '),
   # ── hàm chung xuLyTienVe: webhook payOS cũ (thu_P3) canh ──
   ('BV-lech-tien-ham-chung', 'p3', [(TT, "const lyDo = t.soTien !== p.con_lai ? ", 'const lyDo = false ? ', 1)], r'✗ B6 '),
 ]
