@@ -72,3 +72,44 @@
 - Chữ "payOS" người dùng thấy ngoài Phạm vi: tờ in `client/src/utils/hoaDon.js:27` và mặc định `server/database.js:1210`
   (`invoice_chu_ck` = "Chuyển khoản (payOS)") — đổi được ở Cài đặt chữ hoá đơn, sẽ ghi vào `cai_dat_sepay.md`; câu lỗi
   `server/routes/orders.js:220` "Chuyển khoản phải qua QR payOS" (`CK_PHAI_QUA_PAYOS`); nhãn sao lưu `server/routes/backup.js:91`.
+
+## Soát độc lập — vòng 1 (agent general-purpose, 01.11) — chép nguyên báo cáo
+
+```
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+- viec/SEPAY-1/cai_dat_sepay.md:59-60 (mục 5) mâu thuẫn với dòng 17 (mục 1.3, bật "Bỏ qua giao dịch không có mã thanh toán") — K1. Mục 5 hứa:
+  khách sửa / xoá nội dung TQD thì Đối soát hiện dòng vàng "SePay giao dịch … không thuộc phiên nào". Khi đã bật lọc ở 1.3, SePay không gửi
+  giao dịch `code === null` (tai_lieu_sepay.md:26) → POS không thấy khoản đó; đơn App khách sửa nội dung → `tien_ve_cho_doi_soat` false.
+  Phiếu cũng mâu thuẫn: Nghiệm thu C đòi ghi khong_phien cho giao dịch không mã, F đòi bật lọc. Đề xuất: TẮT lọc + sửa câu mục 5. Cần chủ quán.
+- server/utils/doiSoat.js:229-233 — chua_khop luôn vào ĐỎ (canXem chỉ khong_phien, dòng 232), chú thích 227 nói ĐỎ = "hoàn hoặc nạp". Lý do mới
+  "cùng một khoản báo qua hai cổng … KHÔNG hoàn" (thanh-toan.js:135-136) nằm trong nhóm "phải hoàn" — K4. Xảy ra hằng ngày khi bật webhook SePay
+  trước CONG_QR=sepay / giữ SePay sau khi về payOS. (Câu "đã xác nhận tay … KHÔNG hoàn" có sẵn cũng cùng lỗi.)
+- viec/SEPAY-1/cai_dat_sepay.md:44-45 và env.example:49 — K1. "QR SePay … về muộn, máy chủ vẫn nhận và chốt được" sai một phần: chotPhien
+  (giuCho.js:90) từ chối khi het_han <= getNow(); giữ khoá chỉ có tác dụng ghi khoản đó vào Đối soát.
+- Nghiệm thu E thiếu bằng chứng — K3: phương án A hứa chạy lại dưới SePay "ví + QR, huỷ, xác nhận tay, hết hạn, đơn App, hoàn, đối soát";
+  thu_SEPAY1.js không có ca hoàn, đơn App chỉ `qr` (thu_SEPAY1.js:367), không có `vi_qr`.
+
+NGHI NGỜ:
+- sepay.js:12 MA_PHIEN chỉ chặn chữ số dính ngay sau mã; ngân hàng gộp số sau mã ngắn ("TQD12"+"34") → khớp nhầm phiên 1234; so số tiền đúng
+  con_lai (thanh-toan.js:125) chặn phần lớn. Khả năng thấp, không có ca.
+- Không so accountNumber (kế hoạch 7.4): công ty SePay theo dõi thêm tài khoản riêng của chủ → chuyển TQD<n> vào đó vẫn chốt đơn. Nên để
+  chủ quán biết.
+- cai_dat_sepay.md:10 tên menu "Cấu hình công ty → Cấu trúc mã thanh toán" không có trong tai_lieu_sepay.md (K1).
+- Dòng khong_phien "SePay báo tiền ra" hiện chữ "về <tiền>" (doiSoat.js:233) — nhẹ.
+- tai_lieu_sepay.md là bản tóm tắt; công thức chữ ký / câu trả dựa vào đó.
+
+NGHIỆM THU:    5/6 mục có bằng chứng · mục thiếu: E (hoàn dưới cổng SePay; đơn App vi_qr qua SePay)
+
+CHƯA SOÁT ĐƯỢC: chạy lại bài trên gốc (người gác chặn symlink); chỉ chạy lại 2/26 đột biến (BẮT 2); tài liệu SePay gốc; payOS có báo
+giao dịch không qua link của nó không; www trên Render; tờ in thật.
+
+BÀI HỌC:
+- KHOÁ: tài liệu hứa "Đối soát hiện dòng X" thì có ca chạy đúng cấu hình đã dặn mà vẫn thấy dòng đó — hoặc cấm hứa.
+- NGUYÊN TẮC (K4): thêm lý do mới vào bảng sự kiện ("KHÔNG hoàn") thì rà nơi xếp nhóm ở Đối soát.
+- NGUYÊN TẮC (K1): hướng dẫn cài là khẳng định về hành vi — mỗi câu "máy sẽ làm X" trỏ tới một ca chạy đúng cấu hình hướng dẫn dặn; soát
+  mâu thuẫn giữa các mục trong cùng file.
+- NGUYÊN TẮC (K3): luồng nào phương án chủ quán duyệt liệt kê thì mỗi luồng một ca — đếm danh sách, không lấy mẫu.
+```
+(Bản trên rút gọn phần "Kết quả từng mục soát" 1–8 của báo cáo — các mục đó không nêu lỗi mới ngoài danh sách LỖI / NGHI NGỜ.)
