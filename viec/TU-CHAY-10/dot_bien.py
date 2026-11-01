@@ -18,6 +18,8 @@ DB = [
      'TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"'),
     ('VS-A20-lay-tieu-de-dau', 'tu_chay/cong.js', "if (gan.length > 1) return", "if (gan.length > 9) return",
      'TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật'),
+    ('VS-A20-cau-lap-chung', 'tu_chay/cong.js', "if (baoMat && baoMat.lap) doLy(", "if (false) doLy(",
+     'TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật'),
     ('BV-A20', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = null;",
      'TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)'),
 ]
