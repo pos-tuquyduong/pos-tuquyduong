@@ -292,6 +292,16 @@ async function main() {
   const sBan = await goi('POST', '/man-khach/quay/phien', { quay_id: 'khongco', phien_id: pk.id }, tkNv);
   k('F2 báo phiên cho quầy không tồn tại → 404 KHONG_THAY_QUAY (không tự tạo)', la(sBan, 404, 'KHONG_THAY_QUAY'), mt(sBan));
 
+  // ═════════════ S. Sao lưu (gộp main 01.11 — SAOLUU-2 đã có phép chốt "mọi bảng phải có trong sao lưu") ═════════════
+  muc('S. Sao lưu');
+  const bk = fs.readFileSync(path.join(GOC, 'server', 'routes', 'backup.js'), 'utf8');
+  const iKP = bk.indexOf('const BANG_KHONG_KHOI_PHUC');
+  const khongKP = iKP < 0 ? '' : bk.slice(iKP, bk.indexOf('];', iKP));
+  const coTen = (t) => new RegExp(`^\\s*\\{ name: '${t}'`, 'm').test(bk);
+  k('S1 hai bảng màn khách có trong BACKUP_TABLES và CHẶN khôi phục bằng file (khôi phục file cũ làm sống lại màn đã thu hồi)',
+    ['pos_man_khach_quay', 'pos_man_khach_may'].every((t) => coTen(t) && khongKP.includes(`'${t}'`)));
+  k('S2 sổ két / sao kê (pos_doi_soat_ghi) CHẶN khôi phục bằng file (chủ quán 01.11)', coTen('pos_doi_soat_ghi') && khongKP.includes("'pos_doi_soat_ghi'"));
+
   // ═════════════ A+. Giới hạn lần thử (CHẠY CUỐI) ═════════════
   muc('A+. Giới hạn đoán mã');
   const qx = await moQuay();
