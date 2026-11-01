@@ -224,12 +224,13 @@ async function phepDenLe(q) {
     ngay: r.ngay || null, canXem: true }));
 }
 
-// ─── CK (P3): tiền về payOS mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
-// Báo không thuộc phiên nào (vd payOS thử URL) → CẦN XEM. `luc` ghi bằng getNow (giờ VN).
+// ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
+// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
 async function phepTienVe(q) {
-  const ds = await q(`SELECT id, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
+  const ds = await q(`SELECT id, khoa, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
+  const nguon = (r) => (String(r.khoa).startsWith('sepay:') ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
   return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien',
-    mo_ta: `payOS mã ${r.ma_payos}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
+    mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
 }
 
 // ─── XNT (P3): đơn chuyển khoản XÁC NHẬN TAY (không có báo payOS) — luôn CẦN XEM, so với sao kê ngân hàng.
