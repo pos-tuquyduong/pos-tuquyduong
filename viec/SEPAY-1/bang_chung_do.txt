@@ -1,10 +1,10 @@
 SEPAY-1 — bằng chứng đỏ (01.11.2026)
 
-Bản bài thử: cong_cu/thu_SEPAY1.js ở commit 249dc45 (bản cuối).
+Bản bài thử: cong_cu/thu_SEPAY1.js ở commit ad922e3 (bản cuối, vòng sửa 1).
 Code GỐC: `git archive 912576e` (PHIEU: SEPAY-1 — code server/ giống mốc^) giải vào thư mục nháp, chép bài thử vào, node_modules nối symlink.
 Lệnh: cd <nháp>/goc && node cong_cu/thu_SEPAY1.js
 
-TRÊN CODE GỐC → ĐỎ: 9 đạt · 51 hỏng (thoát 1). Các dòng đỏ (tên ca):
+TRÊN CODE GỐC → ĐỎ: 9 đạt · 56 hỏng (thoát 1). (Bản 249dc45 trước vòng sửa: 9 đạt · 51 hỏng.) Các dòng đỏ (tên ca):
   ✗ A2 ×5 (thiếu / sai SEPAY_BIN, SEPAY_SO_TK, SEPAY_KHOA_WEBHOOK, BIN 5 số, số TK 20 ký tự) — HTTP 200 (gốc không có cổng SePay, vẫn gọi payOS)
   ✗ A3 CONG_QR lạ → 503 — HTTP 200
   ✗ A7 báo SePay khi CONG_QR=payos — HTTP 404 (gốc không có /api/sepay/webhook)
@@ -20,15 +20,18 @@ TRÊN CODE GỐC → ĐỎ: 9 đạt · 51 hỏng (thoát 1). Các dòng đỏ (
   ✗ D1 ×2 (Đối soát dòng "SePay giao dịch …") — gốc chỉ có "payOS mã …"
   ✗ T1, T2 (index.js express.raw + mount webhookSepay), T3 (bộ kiểm chạy bài này)
   ✗ F1 ×2 (cai_dat_sepay.md chưa có)
+  ✗ (vòng sửa 1) E2b hoàn đơn SePay — HTTP 404 / 404 (gốc không chốt được đơn SePay); C18b ×2 đơn App vi_qr (VietQR; tiền SePay về — 404);
+    D2 ×2 (dòng "hai cổng" ở CẦN XEM; dòng "xác nhận tay" giữ ĐỎ — gốc không có dòng SePay nào)
 Các ca XANH trên gốc (đúng ý — luồng phải KHÔNG đổi / tự kiểm bài): A1 (mặc định payOS), A5 (tiền mặt / QR tĩnh), A6 (báo payOS khi
 CONG_QR=sepay), B0 (vectơ CRC), B2 (CRC có răng), B4 (het_han), C8 phiên vẫn cho, C10b phiên 6 số vẫn cho, X1 (log không lộ khoá).
 
-TRÊN CODE ĐÃ VÁ (HEAD) → XANH: 60 đạt · 0 hỏng (thoát 0).
+TRÊN CODE ĐÃ VÁ (HEAD) → XANH: 65 đạt · 0 hỏng (thoát 0).
 
 Lịch sử đổi bài sau lần chạy đỏ đầu (c6c0f15 → 249dc45), mỗi lần đã chạy lại trên gốc (đỏ) và trên code vá:
   - a49f607 tên ca C16 / C16b rõ ràng (không đổi phép)
   - 7e959f0 C11 soi đúng dòng của giao dịch đó (C8 cũng ghi dòng khong_phien mang mã phiên — phép cũ đỏ oan, K2); T1/T2 neo DÒNG mã thay vì
     cắt chú thích (chuỗi '*/*' của express.raw mở một "/*" giả — phép cũ đỏ oan, K2)
   - 249dc45 C10b dùng phiên 6 chữ số (đột biến VS-ma-khong-chan-so SỐNG với phiên 2 chữ số — K3)
+  - ad922e3 (soát vòng 1) thêm E2b, C18b ×2, D2 ×2. D2 "hai cổng" ĐỎ trên code trước vòng sửa (64 đạt · 1 hỏng ở 9dd8787+), xanh sau 7c68b0e.
 
-SỐ CA cong_cu/thu_SEPAY1.js: 60
+SỐ CA cong_cu/thu_SEPAY1.js: 65
