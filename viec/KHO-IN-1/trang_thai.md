@@ -12,6 +12,7 @@ Nhánh `viec/KHO-IN-1`; HEAD = FETCH_HEAD = `7fc9bff` lúc mở phiên (không k
 | Chỗ vá | Đột biến |
 |---|---|
 | `server/routes/settings.js` — `khoaInPhieuSai` + cổng 400 (khổ, số bản, tên khoá) | BV-SV-BO-KIEM · VS-SV-KHO-58 · VS-SV-KHO-THIEU-A5 · VS-SV-BAN-TOI-DA-4 · VS-SV-BAN-TOI-DA-2 · VS-SV-BAN-TOI-THIEU-0 · VS-SV-LOAI-LA · VS-SV-TRUONG-LA · VS-SV-CHAN-QUA-TAY · VS-SV-GHI-TRUOC-KIEM |
+| (đợt 01.11) `settings.js` KHO_IN_PHIEU, `inPhieu.js`, `XemPhieu.jsx`, `inPhieuKho.css`, `CaiDat/InPhieu.jsx` bỏ 80mm | VS-SV-KHO-CON-80 · VS-UI-MAC-DINH-80MM · BV-XP-CON-NUT-80MM · BV-XP-CON-PAGE-80MM · BV-CSS-CON-80MM · BV-CD-CON-80MM · VS-CD-DOC-THO |
 | `settings.js` log in hoá đơn `paper_size` mặc định · `database.js` seed `invoice_default_size` | BV-SV-LOG-A5 · BV-SEED-A5 |
 | `client/src/utils/inPhieu.js` — `KHO_PHIEU_KHO`, `khoaInPhieu`, `docInPhieuKho`, `thuTuNutIn` | BV-UI-THIEU-A5 · VS-UI-KHOA-VIET-HOA · VS-UI-BAN-TOI-DA-4 · VS-UI-BAN-TOI-THIEU-0 · VS-UI-MAC-DINH-A4 · VS-UI-KHONG-KIEM-KHO · VS-UI-CHUNG-KHOA · VS-UI-BAN-CHUNG-KHOA · VS-UI-NUT-KHONG-DAU · VS-UI-NUT-LAP · VS-UI-NUT-KHO-LA |
 | K5 quá tay (hoá đơn khách / bộ in sau thanh toán) | VS-QUA-TAY-KHO-BILL-A5 · VS-QUA-TAY-KHO-PHA-CHE · VS-QUA-TAY-BO-IN-MAC-DINH · VS-QUA-TAY-XP-MAT-KHOI-B · VS-QUA-TAY-XP-MAT-CHU-KY |
@@ -28,7 +29,7 @@ VS-IS-GUI-KHO-THO (bỏ `khoHoaDon(...)` quanh `boIn.bill.kho`) là đột biế
 - Quản lý (`manager`) KHÔNG có sẵn quyền `manage_settings` trong seed (`server/database.js` không có dòng nào cho quyền đó) → quản lý chỉ lưu được Cài đặt in phiếu khi chủ quán cấp quyền ở tab Phân quyền. Đúng như mọi cài đặt khác; ghi lại vì phiếu nói "chủ quán / quản lý".
 - Khối seed `defaultSettings` trong `database.js` chỉ chạy khi bảng `pos_settings` rỗng; kho mới/thử có thể đã có dòng khác trước đó (chưa kiểm lại bằng lệnh; không dựa vào đó) → seed '80mm' chỉ là cho đủ đường; dữ liệu thật vẫn 'a5' và vẫn đọc ra 80mm ở màn hình (khoHoaDon). Không sửa dữ liệu.
 - Các `viec/*/dot_bien.py` cũ (KH-QUAY-2…) còn neo `value={khoHoaDon(config.default_size)}`, seed `'a5'` — sẽ HỎNG nếu ai chạy lại; đó là hồ sơ lịch sử của việc đã đóng, không có cổng nào chạy chúng.
-- Phiếu pha chế SAU THANH TOÁN (từng đơn, khổ 80mm/58mm ở Cài đặt hoá đơn → "Bộ in") KHÁC "phiếu xuất / pha chế" của màn Kho (PX, từ tab Pha chế). Mình hiểu "phiếu pha chế" trong nghiệm thu A là PX của kho (có A5/A4) và KHÔNG đụng phiếu pha chế từng đơn (giữ nhiệt 58/80, mục D). Nếu chủ quán muốn phiếu pha chế từng đơn cũng có A5/A4 thì cần phiếu riêng.
+- [ĐÃ CHỐT 01.11 — phiếu sửa: phiếu kho chỉ A5/A4; hoá đơn + phiếu pha chế từng đơn chỉ khổ nhỏ] Phiếu pha chế SAU THANH TOÁN (từng đơn, khổ 80mm/58mm ở Cài đặt hoá đơn → "Bộ in") KHÁC "phiếu xuất / pha chế" của màn Kho (PX, từ tab Pha chế). Mình hiểu "phiếu pha chế" trong nghiệm thu A là PX của kho (có A5/A4) và KHÔNG đụng phiếu pha chế từng đơn (giữ nhiệt 58/80, mục D). Nếu chủ quán muốn phiếu pha chế từng đơn cũng có A5/A4 thì cần phiếu riêng.
 
 ## Soát độc lập vòng 1 (`/ra-soat`, báo cáo về qua SubagentHandback)
 KHÔNG ĐẠT (lỗi nhẹ, không đụng tiền). Tóm tắt nguyên văn các lỗi và cách xử lý:
@@ -61,4 +62,27 @@ CHƯA KIỂM:   (1) KHÔNG có trình duyệt/máy in: chưa kiểm bằng mắt
 GIT:         xem git log --oneline -2 ở câu trả lời.
 BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 1 (đề xuất) · BỎ 2
 
-HEAD ĐÃ KIỂM: 0b40ae5
+## ĐỢT 2 — phiếu sửa 01.11 (07de9bb) — phần này THAY các số cũ ở trên (80mm / 3 khổ / 66 ca / 57 đột biến)
+Phiếu kho chỉ A5/A4, mặc định A5, bỏ nút và lựa chọn 80mm, giá trị lưu cũ '80mm' đọc ra A5 (không sửa dữ liệu); máy chủ trả 400 nếu ghi '80mm' cho khoá phiếu kho. Ô Khổ mặc định hoá đơn đã chỉ 58mm/80mm từ trước (InvoiceSettings.jsx:856-868) nên không phải sửa.
+Commit: a63565a (bài thử) · f7a1e20 (code) · 936029e (dist + đột biến) + commit hồ sơ này.
+Bài thử: thu_KHOIN1 đỏ 16/69 trên code 07de9bb → xanh 69/69; thu_KHQUAY2 55/55; đột biến 64/64 BẮT (0 sống · 0 hỏng · 0 lạc). npm test 89 PASS · 0 FAIL · 1 CẢNH BÁO (cũ); --day-du 93 PASS · 0 FAIL.
+
+### Soát độc lập đợt 2 (`/ra-soat`, vòng 1 của đợt) — KHÔNG ĐẠT (chỉ lỗi hồ sơ, code sạch)
+1. trang_thai.md còn số/câu cũ (80mm, 3 khổ, 66/66, 57/57, HEAD ĐÃ KIỂM 0b40ae5; "chờ chủ quán xác nhận" PX) → ĐÃ SỬA ở mục này + bảng đột biến + dòng Phát hiện; Báo cáo 7 mục viết lại bên dưới.
+2. ke_hoach.md còn "80mm/1 bản như cũ", "đủ 3 khổ" → ĐÃ SỬA.
+3. bang_chung_do.txt gõ sai "ttổng" → ĐÃ SỬA.
+4. components/InPhieu.jsx:10 KHO_GIAY còn a5/a4/80mm — ngoài thay đổi, bài thử D3 đang khoá nó; ghi Phát hiện, KHÔNG sửa (ngoài việc).
+5. Lỗ đột biến: CaiDat/InPhieu.jsx bỏ docInPhieuKho khi đọc → ĐÃ THÊM VS-CD-DOC-THO (bắt `✗ B2 đọc lại`).
+Soát xác nhận: grep 80mm/k80/In 80 trong client/src + server không còn chỗ phiếu kho; K5 dữ liệu cũ '80mm' PUT lại không bị 400 oan (CaiDat/InPhieu.jsx:19,30); không đụng đường tiền; dist khớp (không còn "In 80 mm").
+Nghiệm thu: A, C, D đạt; B đạt phần code (2 nút A5/A4, mặc định đứng đầu) — chưa xem bằng mắt/in thật.
+Bài học soát: NGUYÊN TẮC — khi phiếu sửa giữa chừng, sửa hồ sơ (trang_thai, ke_hoach, báo cáo) cùng đợt với code.
+
+### Báo cáo 7 mục (đợt 2)
+VIỆC:        KHO-IN-1 — Cài đặt in phiếu kho (A5 / A4, mặc định A5) · khổ hoá đơn mặc định có tác dụng thật
+ĐÃ SỬA:      server/routes/settings.js:24 (KHO_IN_PHIEU = a5, a4) · client/src/utils/inPhieu.js (KHO_PHIEU_KHO = a5, a4; mặc định a5) · Kho/XemPhieu.jsx (bỏ @page + nút 80mm) · Kho/inPhieuKho.css (bỏ .kho-in-80mm) · CaiDat/InPhieu.jsx (bỏ lựa chọn 80mm) · client/dist build lại · cong_cu/thu_KHOIN1.js
+BÀI THỬ:     chạy trên code 07de9bb → ĐỎ 16/69 (KHO_PHIEU_KHO còn 80mm, mặc định 80mm, '80mm' ghi được 200, nút 80 mm còn); sau vá → XANH 69/69; đột biến 64/64 BẮT
+ĐÃ RÀ K4:    grep "80mm|k80|In 80|80 mm" client/src server → mọi chỗ phiếu kho đã bỏ; chỗ còn lại là hoá đơn/tem/phiếu pha chế đơn (đúng phiếu); XemPhieu chỉ mount ở Kho/index.jsx và DsPhieu.jsx
+CHƯA KIỂM:   (1) chưa xem bằng mắt/máy in bố cục A5/A4 (tràn, cắt chữ, ngắt trang nhiều bản; cỡ chữ 13px/15px mình chọn); (2) máy in thật; (3) chưa thử trên Render/Turso; (4) quản lý cần chủ quán cấp manage_settings; (5) KHO_GIAY ở components/InPhieu.jsx còn a5/a4 — ngoài việc
+GIT:         git log --oneline -2 ở câu trả lời
+BÀI HỌC:     KHOÁ 1 (VS-CD-DOC-THO, đã làm) · NGUYÊN TẮC 1 (đề xuất cho KHUON_LOI.md K1: sửa hồ sơ việc cùng đợt khi phiếu đổi; A19 nên bắt hồ sơ còn chuỗi khổ cũ) · BỎ 0
+

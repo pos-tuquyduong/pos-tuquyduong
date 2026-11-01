@@ -36,6 +36,6 @@ Bài thử cong_cu/thu_KHOIN1.js (commit a63565a) chạy trên code của 07de9b
   ✗ D5 chưa có cài đặt → nút đầu là 'In A5'
   (+ 7 ca B0/A khác cùng nguồn). Sau vá (f7a1e20): 69 đạt · 0 hỏng.
 
-═══ Dòng SỐ CA cho cổng A16 (số = dòng ttổng trên code ĐÃ VÁ) ═══
+═══ Dòng SỐ CA cho cổng A16 (số = dòng tổng trên code ĐÃ VÁ) ═══
 SỐ CA cong_cu/thu_KHOIN1.js: 69
 SỐ CA cong_cu/thu_KHQUAY2.js: 55

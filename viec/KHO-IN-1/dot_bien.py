@@ -66,6 +66,7 @@ DOT_BIEN = [
   ('BV-XP-CON-NUT-80MM', 'in1', [(XP, "const NHAN_NUT_IN = { a5:", "const NHAN_NUT_IN = { '80mm': 'In 80 mm', a5:", 1)], r'✗ B nút khổ có nhãn'),
   ('BV-XP-CON-PAGE-80MM', 'in1', [(XP, "const KHO_IN = { a5:", "const KHO_IN = { '80mm': '@page { size: 80mm auto; margin: 3mm; }', a5:", 1)], r'✗ B @page'),
   ('BV-CSS-CON-80MM', 'in1', [(CSS, '  .kho-in-a5 { font-size: 13px; }\n', '  .kho-in-80mm { font-size: 11px; }\n  .kho-in-a5 { font-size: 13px; }\n', 1)], r'✗ B nút khổ có nhãn'),
+  ('VS-CD-DOC-THO', 'in1', [(CD, 'docInPhieuKho(r.data || {}, l)', "({ kho: (r.data || {})[khoaInPhieu(l, 'kho')] || 'a5', ban: 1 })", 1)], r'✗ B2 đọc lại'),
   ('BV-CD-CON-80MM', 'in1', [(CD, "const NHAN_KHO = { a5: 'A5', a4: 'A4' };", "const NHAN_KHO = { '80mm': '80 mm', a5: 'A5', a4: 'A4' };", 1)], r'✗ B2 khối Cài đặt in phiếu chỉ có'),
   ('BV-XP-KHONG-TO-MAC-DINH', 'in1', [(XP, "i === 0 ? 'btn-primary' : 'btn-outline'", "'btn-outline'", 1)], r'✗ B nút khổ mặc định được tô nổi'),
   ('VS-XP-IN-TRUOC-GHI', 'in1', [(XP, "const inRa = async (k) => { if (await ghi(() => api.post(`/kho/phieu/${id}/in`))) setKho(k); };", "const inRa = async (k) => { setKho(k); await ghi(() => api.post(`/kho/phieu/${id}/in`)); };", 1)], r'✗ B lệnh in vẫn'),
