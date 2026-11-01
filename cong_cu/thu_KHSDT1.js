@@ -396,7 +396,10 @@ async function main() {
     k('D12 màn gọi liệt kê + dọn qua api (không fetch trần)', /api\.post\(\s*'\/don-thu\/liet-ke'/.test(dt) && /api\.post\(\s*'\/don-thu\/don'/.test(dt) && !/\bfetch\s*\(/.test(dt));
     k('D12 màn có nút tải sao lưu toàn bộ (/backup/export-all) và đánh dấu đã tải', /api\.download\(\s*'\/backup\/export-all'/.test(dt) && /setDaTaiSaoLuu\(\s*true\s*\)/.test(dt));
     k('D12 màn dùng moNutDon cho nút Dọn và tải bản chụp sau khi dọn', /disabled=\{!moNutDon\(/.test(dt) && /ban_chup/.test(dt));
-    k('D12 đổi tiêu chí → bỏ kết quả + bỏ dấu đã tải', /setKetQua\(null\)/.test(dt) && /setDaTaiDs\(false\)/.test(dt) && /setDaTaiSaoLuu\(false\)/.test(dt));
+    const doiTc = (/const doiTieuChi = [^\n]*/.exec(dt) || [''])[0];
+    k('D12 đổi tiêu chí (ô ngày + ô SĐT qua doiTieuChi) → bỏ kết quả + bỏ dấu đã tải danh sách / sao lưu',
+      /setKetQua\(null\)/.test(doiTc) && /setDaTaiDs\(false\)/.test(doiTc) && /setDaTaiSaoLuu\(false\)/.test(doiTc)
+      && /type="date"[^>]*onChange=\{doiTieuChi\(setNgay\)\}/.test(dt) && /<textarea[^>]*onChange=\{doiTieuChi\(setOSdt\)\}/.test(dt), doiTc);
     const ql = sach(doc('client/src/pages/QuanLy/QuanLy.jsx'));
     k("D12 Quản lý: ô Dọn dữ liệu thử chỉ hiện với owner", /role\s*===\s*'owner'\s*&&[\s\S]{0,400}to="\/don-thu"/.test(ql));
     k('D12 App.jsx có route /don-thu tới DonThu', /path="don-thu"\s+element=\{<DonThu\s*\/>\}/.test(doc('client/src/App.jsx')));
