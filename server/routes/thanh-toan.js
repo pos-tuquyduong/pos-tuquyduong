@@ -12,6 +12,7 @@ const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
+const { LY_DO_HAI_CONG } = require('../utils/congQr');
 
 const router = express.Router();
 const webhook = express.Router();
@@ -133,7 +134,7 @@ async function xuLyTienVe(res, t) {
   return ghi('chua_khop', !sau ? `không tạo được đơn: ${kq.body?.code || kq.body?.error}`
     : sau.nguon === 'tay' ? `đã xác nhận tay trước (${sau.nguoi_xac_nhan}, đơn #${sau.order_id}) — tiền về đúng số: đối chiếu, KHÔNG hoàn`
       : sau.trang_thai === 'da_thu' && TEN_CONG[sau.nguon] && sau.nguon !== t.nguon
-        ? `đã chốt bằng báo ${TEN_CONG[sau.nguon]} (đơn #${sau.order_id}) — cùng một khoản báo qua hai cổng: đối chiếu sao kê, KHÔNG hoàn`
+        ? `đã chốt bằng báo ${TEN_CONG[sau.nguon]} (đơn #${sau.order_id}) — ${LY_DO_HAI_CONG}: đối chiếu sao kê, KHÔNG hoàn`
         : `phiên đang ${sau.trang_thai} lúc tiền về`);
 }
 

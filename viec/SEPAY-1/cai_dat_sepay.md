@@ -8,13 +8,13 @@ tài khoản quán; khi tiền về, SePay báo cho máy chủ và đơn tự ch
 ## 1. Trên trang SePay (my.sepay.vn)
 
 1. Liên kết tài khoản ngân hàng nhận tiền của quán (nếu chưa).
-2. **Cấu hình công ty → Cấu trúc mã thanh toán:** tiền tố `TQD`, phần sau là **số**, dài 1 đến 6 chữ số. (Máy chủ ghi nội dung chuyển khoản
+2. **Cấu trúc mã thanh toán** (trong phần cấu hình công ty của SePay — tên menu theo trang SePay, máy chưa đọc được trang): tiền tố `TQD`, phần sau là **số**, dài 1 đến 6 chữ số. (Máy chủ ghi nội dung chuyển khoản
    dạng `TQD123`.)
 3. **Tích hợp webhook → Thêm webhook:**
    - Địa chỉ gọi: `https://www.pos-tuquyduong.io.vn/api/sepay/webhook`
    - Kiểu nội dung: `application/json`
    - Sự kiện: **chỉ tiền vào**
-   - **Bỏ qua giao dịch không có mã thanh toán:** bật
+   - **Bỏ qua giao dịch không có mã thanh toán:** bật (theo phiếu — xem mục 5 điều này có nghĩa gì)
    - Bảo mật / xác thực: **HMAC-SHA256** → SePay hiện **Secret Key** đúng MỘT lần: chép ngay vào ô `SEPAY_KHOA_WEBHOOK` ở Render (bước 2).
      Không dán khoá vào chat, tin nhắn hay file nào khác.
 
@@ -41,17 +41,21 @@ dùng QR tĩnh + xác nhận tay như khi payOS chưa cài. Không mất tiền,
 
 ## 4. Quay về payOS (một bước)
 
-Render: đặt `CONG_QR=payos` (hoặc xoá biến). **Giữ nguyên ba biến SePay ít nhất một ngày**: QR SePay khách đã quét trước lúc đổi vẫn có thể
-về muộn, máy chủ vẫn nhận và chốt được — xoá khoá thì báo đó bị từ chối, phải xác nhận tay.
+Render: đặt `CONG_QR=payos` (hoặc xoá biến). **Giữ nguyên ba biến SePay ít nhất một ngày**: QR SePay khách quét trước lúc đổi mà trả trong
+hạn 10 phút vẫn tự chốt; trả muộn hơn thì (như payOS) không tạo đơn nhưng vẫn được ghi vào Đối soát để hoàn / nạp. Xoá khoá thì báo SePay bị
+từ chối: không tự chốt, không có dấu vết trong Đối soát.
 
 **Khi đã quay về payOS lâu dài:** tắt webhook trên trang SePay. Nếu để cả hai cổng cùng theo dõi một tài khoản, một lần chuyển khoản có thể được
-báo hai lần (payOS và SePay): đơn vẫn chỉ tạo MỘT lần, báo thứ hai hiện ở Đối soát dòng "đã chốt bằng báo payOS … cùng một khoản báo qua hai
-cổng: đối chiếu sao kê, KHÔNG hoàn" — **không hoàn tiền** cho dòng đó.
+báo hai lần (payOS và SePay): đơn vẫn chỉ tạo MỘT lần, báo thứ hai hiện ở Đối soát mục CẦN XEM (vàng, không phải đỏ) dòng "đã chốt bằng
+báo payOS … cùng một khoản báo qua hai cổng: đối chiếu sao kê, KHÔNG hoàn" — **không hoàn tiền** cho dòng đó. Việc này cũng xảy ra trong lúc
+cài (bước 1 bật webhook SePay khi quầy còn chạy payOS) — bình thường, không hoàn.
 
 ## 5. Điều nên biết
 
-- Khách sửa / xoá nội dung `TQD…` khi chuyển → máy không biết tiền của đơn nào: đơn không tự chốt, Đối soát hiện dòng vàng "SePay giao dịch …
-  không thuộc phiên nào". Quản lý xác nhận tay đơn đó (như hôm nay).
+- Khách **xoá** mã `TQD…` khỏi nội dung khi chuyển → vì đã bật "Bỏ qua giao dịch không có mã thanh toán", SePay KHÔNG báo về máy chủ: đơn không
+  tự chốt và Đối soát KHÔNG có dòng nào cho khoản đó. Nhân viên xem app ngân hàng của quán rồi quản lý xác nhận tay (như hôm nay). Đơn App mà
+  khách xoá mã → hết 10 phút đơn thành "đã huỷ", App KHÔNG báo "quán đã nhận tiền" — khách phải gọi quán. Khách chỉ **thêm chữ** quanh mã
+  (vd "CK TQD123 tra sua") thì vẫn tự chốt.
 - Chuyển thiếu / dư, chuyển sau khi QR hết hạn 10 phút, hoặc sau khi đơn đã huỷ → không tạo đơn, Đối soát hiện dòng đỏ để hoàn hoặc nạp vào tài
   khoản khách — như payOS.
 - Máy chủ KHÔNG so số tài khoản trong báo SePay với `SEPAY_SO_TK` (chữ ký đã chống báo giả; so số dễ lệch định dạng làm mọi QR phải xác nhận tay).

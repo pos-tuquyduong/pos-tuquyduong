@@ -51,6 +51,9 @@ DOT_BIEN = [
   ('VS-qr-tinh', 'sp', [(VQ, "truong('01', '12')", "truong('01', '11')", 1)], r'✗ B1 VietQR: 00=01'),
   # ── D: Đối soát ──
   ('BV-nguon-doi-soat', 'sp', [(DS, 'mo_ta: `${nguon(r)}: về', 'mo_ta: `payOS mã ${r.ma_payos}: về', 1)], r'✗ D1 '),
+  # vòng sửa 1 (soát vòng 1 lỗi 2): dòng "hai cổng … KHÔNG hoàn" ở CẦN XEM; dòng "xác nhận tay … KHÔNG hoàn" cũ giữ ĐỎ
+  ('BV-hai-cong-can-xem', 'sp', [(DS, " || String(r.ly_do || '').includes(LY_DO_HAI_CONG)", '', 1)], r'✗ D2 dòng "cùng một khoản'),
+  ('VS-can-xem-moi-khong-hoan', 'sp', [(DS, ".includes(LY_DO_HAI_CONG)", ".includes('KHÔNG hoàn')", 1)], r'✗ D2 dòng "đã xác nhận tay'),
   # ── hàm chung xuLyTienVe: webhook payOS cũ (thu_P3) canh ──
   ('BV-lech-tien-ham-chung', 'p3', [(TT, "const lyDo = t.soTien !== p.con_lai ? ", 'const lyDo = false ? ', 1)], r'✗ B6 '),
 ]

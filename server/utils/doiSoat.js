@@ -10,6 +10,7 @@
  */
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString } = require('./helpers');
+const { LY_DO_HAI_CONG } = require('./congQr');
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
 const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
@@ -225,11 +226,11 @@ async function phepDenLe(q) {
 }
 
 // ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
-// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
+// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
 async function phepTienVe(q) {
   const ds = await q(`SELECT id, khoa, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
   const nguon = (r) => (String(r.khoa).startsWith('sepay:') ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
-  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien',
+  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien' || String(r.ly_do || '').includes(LY_DO_HAI_CONG),
     mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
 }
 
