@@ -60,6 +60,7 @@ def ban_sao(thay):
   """Chép server/ + bài thử + bộ kiểm + hướng dẫn ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
   tmp = tempfile.mkdtemp(prefix='dotbien_sepay1_')
   shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
+  shutil.copytree(os.path.join(GOC, 'cong_cu', 'gia_lap'), os.path.join(tmp, 'cong_cu', 'gia_lap'))   # doiSoat.js nạp bat_bien.js ở đây
   for f in CHEP:
     os.makedirs(os.path.dirname(os.path.join(tmp, f)), exist_ok=True)
     shutil.copyfile(os.path.join(GOC, f), os.path.join(tmp, f))
@@ -107,7 +108,7 @@ def doi_chung():
       ma, ra = chay_bai(tmp, bai)
       m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
       ok = ok and ma == 0 and m is not None and m.group(2) == '0'
-      dong.append(f'{bai}: ' + (m.group(0) if m else ra[-160:]))
+      dong.append(f'{bai}: ' + (m.group(0) if m else ra[-160:]) + ''.join(' | ' + l.strip()[:140] for l in ra.splitlines() if '✗' in l))
     return ok, ' · '.join(dong)
   finally:
     shutil.rmtree(tmp, ignore_errors=True)
