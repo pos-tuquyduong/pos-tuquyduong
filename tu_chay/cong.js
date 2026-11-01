@@ -74,15 +74,16 @@ function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "
   return ra;
 }
 // TU-CHAY-10 A20: không có tiêu đề nào giống "Soát bảo mật" → null; tiêu đề giống mà sai dạng (hoa thường, ###, có đuôi) → { lech };
-// đúng "## Soát bảo mật" → { dau: dòng không rỗng đầu tiên tới tiêu đề kế ('' = mục rỗng) }. Bắt RỘNG rồi đòi đúng dạng (soát vòng 1:
-// đọc sát chữ thì tiêu đề lệch thành "không có mục" — cổng mở cửa).
+// hai tiêu đề trở lên → { lech } (chỉ được MỘT mục); đúng MỘT "## Soát bảo mật" → { dau: dòng không rỗng đầu tiên tới tiêu đề kế
+// ('' = mục rỗng) }. Bắt RỘNG rồi đòi đúng dạng, đúng MỘT (soát vòng 1: đọc sát chữ thì tiêu đề lệch thành "không có mục"; vòng 2:
+// lấy tiêu đề đầu thì mục "không" đứng trước che mục "có" — cả hai làm cổng mở cửa).
 function mucBaoMat(phieu) {
   const dong = phieu.normalize('NFC').split('\n').map((d) => d.trim());
   const gan = dong.filter((d) => /^#+\s*soát\s*bảo\s*mật/iu.test(d));
   if (!gan.length) return null;
-  const lech = gan.find((d) => !/^##\s+Soát bảo mật$/.test(d));
-  if (lech) return { lech };
-  const i = dong.findIndex((d) => /^##\s+Soát bảo mật$/.test(d));
+  if (gan.length > 1) return { lech: `${gan.join(' / ')} (${gan.length} tiêu đề — chỉ được MỘT mục)` };
+  if (!/^##\s+Soát bảo mật$/.test(gan[0])) return { lech: gan[0] };
+  const i = dong.indexOf(gan[0]);
   for (let j = i + 1; j < dong.length && !/^#/.test(dong[j]); j++) if (dong[j]) return { dau: dong[j] };
   return { dau: '' };
 }
