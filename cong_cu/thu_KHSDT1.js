@@ -55,7 +55,9 @@ const CON = '0900000005'; // con của K (K trả hộ) — đơn của con ph�
 const R = '0900000004';   // khách thật ngoài danh sách: trả bằng ví, gói không gắn đơn
 const P6 = '0900000006';  // dòng cộng trước X, dòng trừ sau X → điểm âm nếu chỉ dọn theo ngày
 const P7 = '0900000008';  // như P6 nhưng lô điểm ĐÃ HẾT HẠN → không âm (không chặn oan)
-const SO_DON_LON = 40;    // đơn thử có ghi chú dài — bản chụp vượt trần một ô Excel (32767 ký tự)
+const PM = '0900000009';  // trong danh sách, trả hộ đơn của CON2 (ngoài danh sách) → giữ cả số
+const CON2 = '0900000010';
+const SO_DON_LON = 40;   // đơn thử có ghi chú dài — bản chụp vượt trần một ô Excel (32767 ký tự)
 
 async function main() {
   imLang();
@@ -150,6 +152,13 @@ async function main() {
   const O3a = await don('ORD-20261002-001', T3, '2026-10-02T10:00:00', false);
   await diem(T3, 500, '2026-10-02T10:00:00', O3a, false);
   await don('ORD-HOMNAY-T3', T3, homNay, false);
+
+  // PM — trong danh sách, ví 0, nhưng đã trả hộ (bằng ví) đơn SAU X của CON2 (ngoài danh sách) → đơn đó ở lại → giữ CẢ SỐ PM
+  await them('pos_customers', { phone: PM, name: 'Mẹ thử', created_at: '2026-10-01T08:00:00' });
+  await them('pos_wallets', { phone: PM, balance: 0, total_topup: 50000, total_spent: 50000 });
+  await so(PM, 'topup', 50000, '2026-10-01T08:00:00', null, false);
+  const OCm = await don('ORD-20261010-001', CON2, '2026-10-10T10:00:00', false, { parent_phone: PM, parent_balance_amount: 50000, payment_method: 'balance' });
+  await so(PM, 'purchase', -50000, '2026-10-10T10:00:00', OCm, false);
 
   // K — khách thật ví ≠ 0, CÓ trong danh sách SĐT: không một dòng nào của K bị đụng, kể cả trước X
   await them('pos_customers', { phone: K, name: 'Khách thật', created_at: '2026-07-01T08:00:00' });
@@ -324,7 +333,7 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  const TC = { truoc_ngay: X, sdt: [T2, K, T3, P6] };
+  const TC = { truoc_ngay: X, sdt: [T2, K, T3, P6, PM] };
   muc('[D5] Dọn: chữ xác nhận, mã xác nhận, dữ liệu đổi giữa hai bước');
   let l3;
   {
@@ -332,6 +341,8 @@ async function main() {
     l3 = await goi('/liet-ke', TC);
     noiLai();
     k('D5 (điều kiện) liệt kê đủ tiêu chí: không còn điểm âm', l3.status === 200 && (l3.j.diem_am || []).length === 0 && !!l3.j.ma_xac_nhan, JSON.stringify(l3.j.diem_am));
+    k('D5 số trả hộ (bằng ví) đơn của số ngoài danh sách → giữ cả số; danh sách xoá sạch chỉ T2 + P6', bang(l3.j.giu_lai && l3.j.giu_lai.sdt, [K, T3, PM]) && bang(l3.j.sdt, [T2, P6]),
+      `${JSON.stringify(l3.j.giu_lai && l3.j.giu_lai.sdt)} / ${JSON.stringify(l3.j.sdt)}`);
     const truoc = bam(await chup());
     imLang();
     const a = await goi('/don', { ...TC, ma_xac_nhan: l3.j.ma_xac_nhan });
