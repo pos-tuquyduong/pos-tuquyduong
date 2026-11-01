@@ -181,3 +181,40 @@ mồ côi) là đầu vào hợp lệ · NGUYÊN TẮC — lời hứa trong k�
 | nghi: UTF-16 | cắt phần không cắt đôi cặp thay thế | CHƯA KIỂM bằng ca (khó dựng tất định) |
 Thêm khi làm: vị từ "giữ cả số vì dòng gắn đơn còn" ban đầu tính cả mã bill → giữ oan T2 (mã bill T2 nhận trên đơn thật R) → loại mã bill
 khỏi vị từ đó (VS-ma-bill-giu-so bắt).
+
+## Soát độc lập vòng 3 (agent phụ mới, chỉ đọc) — tóm tắt báo cáo
+KHÔNG ĐẠT — vòng sửa 1, 2 đúng (người soát kiểm lại từng chỗ trên code: chiaGiu, vị từ `khac`, traLuotMa chỉ completed, mồ côi, hoá đơn năm
+nay, mẹ của khách, sua_truoc, che bí mật, UTF-16; tự cài thêm đột biến bỏ `coVi.has(o.parent_phone)` → bài đỏ 10 ca). Còn:
+1. NẶNG (tiền: đối soát két) — donThu.js `ket_se_lech` chỉ lấy ngày có đơn bị xoá VÀ có đếm két đúng ngày đó. Két một ngày = để lại của lần
+   đếm trước + tiền vào / ra cả KHOẢNG tới ngày đó (doiSoat.js:127-133 soKet, :96-113 tienTheoSo: bán theo ngày tạo, thu nợ theo
+   `pos_order_log.luc`, huỷ theo `cancelled_at`, nạp ví). Người soát chạy thử X = 2026-09-01: (a) đếm két 08-01 và 08-10, xoá đơn tiền mặt
+   08-05 → két 08-10 `khop` thành `lech 50000`; (b) đơn nợ tạo 08-31, thu nợ tiền mặt 09-02 (ngày SAU X, có đếm két) → két 09-02 `khop`
+   thành `lech 30000`. Cả hai `ket_se_lech: []`. Chú thích donThu.js sai (K1); E3 chỉ chạy két hôm nay (K3).
+2. NHẸ — `sua_truoc` ghi vào MỘT ô details, không chia phần (cùng khuôn lỗi 2 vòng 1).
+3. NHẸ — số giữ cả số vì gói / mẹ / dòng gắn đơn không dọn: màn / CSV không có lý do (CSV ghi "xem lý do ở ví / đơn" — sai với ca đó).
+4. NHẸ — ke_hoach.md mục 4 dòng E2 còn lời hứa "gói … → NULL"; danh sách đột biến mục 4 cũ.
+5. NHẸ — UTF-16 dựng ca tất định được (emoji ở vị trí 29.999); trang_thai.md chưa ghi npm test / --day-du / cổng / báo cáo 7 mục.
+NGHI NGỜ: sao lưu export-all KHÔNG khôi phục được bảng tiền (backup.js:119-122) — màn không nói dọn xong chỉ còn bản chụp JSON · lời dặn
+"phiếu kho / payOS chỉ liệt kê" mà công cụ không liệt kê kho_phieu / payOS · pos_don_app của số thử ở lại · giao dịch dài trên Turso ·
+nhật ký (tên, SĐT, ví khách bị xoá) nhân viên đọc được qua GET /sync/logs · Q8.
+NGHIỆM THU: 2/3 · thiếu E (lỗi 1). Đường tiền ✓ (server không lấy số tiền từ client). P1 ✓ (--day-du khớp, PASS 93).
+BÀI HỌC: KHOÁ — công cụ xoá theo ngày có ca đối soát két của NGÀY ĐƯỢC GIỮ mà khoảng két trùm dữ liệu bị xoá; chạy chayDoiSoat kiểu ngày
+cho mọi ngày có đếm két · NGUYÊN TẮC K4 — dòng tiền có NGÀY RIÊNG (thu nợ, huỷ, nạp ví) đi theo đơn bị xoá phải xét theo ngày của chính
+dòng đó · KHOÁ — mọi ô ghi vào pos_sync_logs qua cùng một hàm chia phần.
+
+## DỪNG sau 3 vòng soát (LUAT §6.5): còn lỗi NẶNG đụng tiền / đối soát → KHÔNG tự làm vòng sửa 4, hỏi chủ quán (Q9).
+Lỗi NHẸ 2–5 làm cùng lúc với Q9 khi chủ quán trả lời.
+
+## Câu hỏi (thêm)
+- **Q9 — két các ngày bị ảnh hưởng khi dọn (quan trọng, đụng đối soát).** Màn Đối soát tính két một ngày = tiền để lại lần đếm TRƯỚC + mọi
+  tiền mặt vào / ra từ đó tới hết ngày này (bán, thu nợ theo ngày thu, huỷ theo ngày huỷ, nạp ví). Xoá đơn thử thì các lần đếm két SAU đơn đó
+  (tới lần đếm kế tiếp) sẽ báo "lệch" — kể cả một ngày THẬT sau ngày X nếu tiền của đơn thử (thu nợ / huỷ) rơi vào ngày đó.
+  **Đề xuất của mình (bạn chỉ cần xác nhận):**
+  (1) Két của ngày TRƯỚC ngày X (giai đoạn thử) được phép báo lệch sau khi dọn — máy liệt kê ĐÚNG các ngày đó (tính theo cả khoảng, mọi
+      loại tiền) trên màn + file danh sách để bạn biết trước.
+  (2) Két của ngày TỪ ngày X trở đi KHÔNG được đổi: đơn thử nào có tiền rơi vào khoảng tính của một lần đếm két từ ngày X trở đi → máy GIỮ
+      lại đơn đó (ghi lý do), không xoá.
+  (3) Bài thử chạy đối soát két cho MỌI ngày có đếm két trước và sau khi dọn: ngày ≥ X không đổi, ngày < X đổi thì phải nằm trong danh sách.
+  Nếu bạn muốn đơn giản hơn: chạy công cụ trước khi đếm két thật lần đầu (ngày X = ngày bắt đầu bán thật, chưa đếm két ngày nào từ X) thì
+  (2) không bao giờ xảy ra — nhưng máy vẫn nên khoá (2), vì khoá chứ không dặn.
+- **Q8** (vẫn chờ) — dọn theo ngày chạm điểm / voucher giai đoạn thử của khách thật.
