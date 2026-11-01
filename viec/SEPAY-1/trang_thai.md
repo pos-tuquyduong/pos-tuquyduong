@@ -25,8 +25,32 @@
 
 ## Tiến độ
 
-- Bước 2 (đọc) xong · Bước 3 (kế hoạch) xong: `ke_hoach.md`, đã có agent phụ chỉ đọc soát 4 câu (sửa đè ở mục 6 của kế hoạch).
-- Phiếu dặn **Chờ duyệt kế hoạch** → DỪNG ở bước 3. Chưa viết bài thử, chưa sửa code.
+- 31.10: Bước 2 (đọc) xong · Bước 3 (kế hoạch) xong: `ke_hoach.md`, đã có agent phụ chỉ đọc soát 4 câu (sửa đè ở mục 6 của kế hoạch).
+  Phiếu dặn **Chờ duyệt kế hoạch** → DỪNG ở bước 3.
+- 01.11: chủ quán trả lời Q1–Q3 → làm tiếp. Bước 4 bài thử `cong_cu/thu_SEPAY1.js` ĐỎ trên gốc (9 đạt · 51 hỏng — `bang_chung_do.txt`).
+  Bước 5 code: `vietQr.js`, `sepay.js`, `congQr.js` (mới), `payos.js`, `giuCho.js`, `thanh-toan.js`, `index.js`, `doiSoat.js`; chữ:
+  `env.example`, `HOP_DONG_API_KH.md` v6, `cai_dat_sepay.md`; bộ kiểm chạy bài mới. Bài thử XANH 60 đạt · 0 hỏng.
+  Bước 6 `npm test`: PASS 89 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn: route GET có lệnh ghi ở packages.js / products.js / sync.js — không
+  thuộc việc này). Không đụng `client/` → không build.
+- Đột biến `python3 viec/SEPAY-1/dot_bien.py`: ĐỐI CHỨNG XANH (sp 60 · p3 100) · TỔNG 26 · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+## Chỗ vá → đột biến (cổng A17 / A18)
+
+| Chỗ vá | Đột biến (tên NGUYÊN) | Ca bắt |
+|---|---|---|
+| `sepay.js kiemBao` so chữ ký | `BV-chu-ky` | C1 |
+| `sepay.js kiemBao` ký trên thân THÔ | `VS-ky-lai-json` | C3 298 s (thân thụt lề) |
+| `sepay.js kiemBao` mốc giờ | `BV-moc-gio` · `VS-moc-gio-mot-phia` · `VS-nguong-6-phut` · `VS-nguong-290-giay` | C3 302 s · C4 · C3 302 s · C3 298 s |
+| `sepay.js docBao` khoá chống trùng | `BV-chong-trung` | C5 / C6 |
+| `sepay.js` mã phiên `MA_PHIEN` | `VS-ma-dau-chuoi` · `VS-ma-khong-chan-so` · `VS-ma-chi-code` | C11 · C10b · C11 |
+| `sepay.js daCauHinh` dạng BIN / số TK | `BV-dang-bin-so-tk` | A2 sai dạng |
+| `thanh-toan.js` webhook SePay: tiền ra, nguồn | `VS-tien-ra` · `VS-nguon-sepay-thanh-payos` | C8 · A7 / C5 |
+| `thanh-toan.js xuLyTienVe`: hai cổng, 5xx, câu "đã nhận", lệch tiền (payOS cũ) | `BV-hai-cong` · `BV-5xx-tra-loi` · `VS-tra-202` · `BV-lech-tien-ham-chung` | C14b · C16 · C8 · thu_P3 B6 |
+| `index.js` thân thô | `BV-raw` | T1 |
+| `congQr.js` mặc định, giá trị lạ | `VS-cong-mac-dinh-sepay` · `VS-cong-la-thanh-payos` | A1 · A3 |
+| `giuCho.js` hỏi cổng / một chỗ chọn / số tiền QR | `BV-giuCho-kiem-cau-hinh` · `VS-doc-cong-ngoai` · `VS-so-tien-tong` | A2 · A4 · B1 |
+| `vietQr.js` CRC / QR động | `VS-crc-sai` · `VS-qr-tinh` | B2 · B1 |
+| `doiSoat.js` nguồn | `BV-nguon-doi-soat` | D1 |
 
 ## Câu hỏi
 
