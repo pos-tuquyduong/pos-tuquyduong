@@ -37,6 +37,7 @@ Khách tự quét QR trên màn của mình, nhân viên không phải xoay máy
 - server/utils/manKhach.js
 - server/index.js
 - server/routes/settings.js
+- server/routes/backup.js
 - server/nang_cap/**
 - client/src/pages/ManKhach/**
 - client/src/pages/BanHang/BanHangMoi.jsx
