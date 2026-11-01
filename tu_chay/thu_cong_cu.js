@@ -488,13 +488,13 @@ function baiTaiLieu() {
   const sb = doc(path.join(__dirname, 'lenh_soat_bao_mat.md')) || '';
   chac('TU-CHAY-10 A lenh_soat_bao_mat: frontmatter description; ghi nguồn anthropics/claude-code-security-review + MIT + Copyright (c) 2025 Anthropic',
     /^---\ndescription: \S/.test(sb) && ['anthropics/claude-code-security-review', 'MIT', 'Copyright (c) 2025 Anthropic'].every((x) => sb.includes(x)));
-  chac('TU-CHAY-10 A lenh_soat_bao_mat: bước 1 lấy diff như /ra-soat (mốc PHIEU có neo), không dùng origin/HEAD',
-    sb.includes('--grep="^PHIEU: ') && sb.includes('([^A-Za-z0-9._-]|$)') && /git diff [^\n]*\^ HEAD/.test(sb) && !sb.includes('origin/HEAD'));
+  chac('TU-CHAY-10 A lenh_soat_bao_mat: bước 1 lấy diff như /ra-soat (mốc PHIEU có neo), không còn dòng lệnh !`git … origin/HEAD` của bản gốc',
+    sb.includes('--grep="^PHIEU: ') && sb.includes('([^A-Za-z0-9._-]|$)') && /git diff [^\n]*\^ HEAD/.test(sb) && !sb.includes('!`git'));
   chac('TU-CHAY-10 A lenh_soat_bao_mat: giữ nguyên các nhóm của bản gốc + lọc báo nhầm bằng subagent riêng, bỏ điểm < 8; nộp SubagentHandback',
     ['SECURITY CATEGORIES TO EXAMINE', 'HARD EXCLUSIONS', 'PRECEDENTS', 'SIGNAL QUALITY CRITERIA', 'CONFIDENCE SCORING', 'REQUIRED OUTPUT FORMAT',
       'confidence less than 8', 'SubagentHandback'].every((x) => sb.includes(x)));
   chac('TU-CHAY-10 A lenh_soat_bao_mat: mục "Tiền lệ của kho này" (webhook chữ ký + phát lại, số tiền máy khách, người khác, mã ngắn = XÁC THỰC, lộ khoá), không chữ POS',
-    /Tiền lệ của kho này/.test(sb) && ['chữ ký', 'phát lại', 'máy khách', 'người khác', 'XÁC THỰC', 'token'].every((x) => sau(sb, 'Tiền lệ của kho này', 1500).includes(x))
+    ['chữ ký', 'phát lại', 'máy khách', 'người khác', 'XÁC THỰC', 'token'].every((x) => sau(sb, '\n## Tiền lệ của kho này', 1500).includes(x))
     && !/\bPOS\b|Tứ Quý|pos-tuquyduong/.test(sb));
   const s8b = muc(sk, '\n8b. **', '\n9. **');
   chac('TU-CHAY-10 B skill bước 8b: giữa bước 8 và 9, chỉ khi ## Soát bảo mật bắt đầu "có", chạy /soat-bao-mat, tối đa 2 lần, dòng SOÁT BẢO MẬT: ĐẠT / KHÔNG ĐẠT, trước 11.4',
