@@ -2,7 +2,7 @@
  * P3 — phiên thanh toán: GIỮ tiền tài khoản (khách / mẹ) cho một đơn đang lập, rồi CHỐT bằng ĐÚNG đường tạo đơn của quầy (taoDon).
  * - Tạo phiên: thân đơn lọc theo danh sách TRẮNG (mọi trường tiền do phiên quyết), tổng do taoDon chế độ "chỉ tính" ra; PIN của CHỦ
  *   tài khoản bị trừ (Q4); số dư + đang giữ đọc TRONG giao dịch ghi — hai quầy cùng giữ trên một ví thì quầy sau thấy phần đã giữ.
- * - Chốt (tiền mặt / tài khoản / payOS / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
+ * - Chốt (tiền mặt / tài khoản / QR payOS · SePay / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
  * - Hết hạn = tự nhả theo đồng hồ (Render ngủ, không hẹn giờ); huỷ / hết hạn không ghi dòng tiền nào.
  */
 const { queryOne, run } = require('../database');
@@ -11,10 +11,10 @@ const { trongGiaoDich, dangGiu } = require('../routes/wallets');
 const { taoDon } = require('../routes/orders');
 const { ghiNhatKy, tien } = require('./nhatKyDon');
 const { kiemPin } = require('./pinKhach');
-const payos = require('./payos');
+const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
 
 const HAN_PHUT = 10;
-const NOI_DUNG_TOI_DA = 9;   // payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
+const NOI_DUNG_TOI_DA = 9;   // chung hai cổng QR — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
 const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
   'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy'];
@@ -32,7 +32,8 @@ const tomPhien = (p, order = null) => ({
 async function taoPhien(b, nguoi) {
   const { cach } = b;
   if (!CACH.includes(cach)) return loi(400, 'CACH_KHONG_HOP_LE', 'Cách trả phải là payos, ck_tay, tien_mat hoặc tai_khoan');
-  if (cach === 'payos' && !payos.daCauHinh()) return loi(503, 'PAYOS_CHUA_CAU_HINH', 'Chưa cài khoá payOS — dùng QR tĩnh của quán (xác nhận tay)');
+  const cong = cach === 'payos' ? congQr() : null;
+  if (cach === 'payos' && !cong?.daCauHinh()) return loi(503, 'PAYOS_CHUA_CAU_HINH', 'Chưa cài cổng QR chuyển khoản — dùng QR tĩnh của quán (xác nhận tay)');
   const goc = b.don && typeof b.don === 'object' ? b.don : {};
   const don = Object.fromEntries(TRUONG_DON.filter((x) => goc[x] !== undefined).map((x) => [x, goc[x]]));
   const phone = normalizePhone(don.customer_phone), phoneMe = b.tru_tai_khoan_me ? normalizePhone(goc.parent_phone) : null;
@@ -49,7 +50,7 @@ async function taoPhien(b, nguoi) {
     const kq = await kiemPin(sdt, pin);
     if (kq.loi) return loi(...kq.loi);
   }
-  const now = getNow(), hetGiay = Math.floor(Date.now() / 1000) + HAN_PHUT * 60;   // QR payOS hết hạn cùng mốc với het_han của phiên
+  const now = getNow(), hetGiay = Math.floor(Date.now() / 1000) + HAN_PHUT * 60;   // QR (payOS) hết hạn cùng mốc với het_han của phiên
   const kq = await trongGiaoDich(async (tx) => {
     const khaDung = async (sdt) => Math.max(0,
       Number((await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [sdt]))?.balance || 0) - await dangGiu(tx, sdt));
@@ -71,20 +72,19 @@ async function taoPhien(b, nguoi) {
   let phien = await queryOne('SELECT * FROM pos_phien_thanh_toan WHERE id = ?', [kq.id]);
   if (cach === 'payos') {
     try {
-      const link = await payos.taoLink({ orderCode: phien.ma_payos, amount: phien.con_lai, description: phien.noi_dung,
-        expiredAt: hetGiay });
+      const link = await cong.taoQr({ id: phien.ma_payos, soTien: phien.con_lai, noiDung: phien.noi_dung, hetGiay });
       await run('UPDATE pos_phien_thanh_toan SET qr = ?, checkout_url = ? WHERE id = ?', [link.qr, link.checkout_url, phien.id]);
       phien = { ...phien, ...link };
     } catch (e) {
-      console.error('payOS tạo link lỗi:', e.message);
+      console.error('Cổng QR tạo QR lỗi:', e.message);
       await run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi' WHERE id = ? AND trang_thai = 'cho'", [phien.id]);   // nhả phần giữ
-      return loi(502, 'PAYOS_LOI', 'payOS không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');
+      return loi(502, 'PAYOS_LOI', 'Cổng QR không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');
     }
   }
   return { status: 200, body: { success: true, phien: tomPhien(phien) } };
 }
 
-/** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · tay. them: { khachDua, nguoi, lyDo, suKien(tx) — ghi trong giao dịch }. */
+/** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · sepay · tay. them: { khachDua, nguoi, lyDo, suKien(tx) — ghi trong giao dịch }. */
 async function chotPhien(phien, nguon, them = {}) {
   // Báo sớm theo trạng thái vừa đọc (khỏi tính lại đơn); cổng THẬT là câu ghi cho → da_thu trong giao dịch (vaoGiaoDich).
   if (phien.trang_thai !== 'cho' || phien.het_han <= getNow()) return loi(409, 'PHIEN_DA_CHOT', 'Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn');
