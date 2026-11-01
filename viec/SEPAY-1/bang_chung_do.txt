@@ -1,0 +1,34 @@
+SEPAY-1 — bằng chứng đỏ (01.11.2026)
+
+Bản bài thử: cong_cu/thu_SEPAY1.js ở commit 249dc45 (bản cuối).
+Code GỐC: `git archive 912576e` (PHIEU: SEPAY-1 — code server/ giống mốc^) giải vào thư mục nháp, chép bài thử vào, node_modules nối symlink.
+Lệnh: cd <nháp>/goc && node cong_cu/thu_SEPAY1.js
+
+TRÊN CODE GỐC → ĐỎ: 9 đạt · 51 hỏng (thoát 1). Các dòng đỏ (tên ca):
+  ✗ A2 ×5 (thiếu / sai SEPAY_BIN, SEPAY_SO_TK, SEPAY_KHOA_WEBHOOK, BIN 5 số, số TK 20 ký tự) — HTTP 200 (gốc không có cổng SePay, vẫn gọi payOS)
+  ✗ A3 CONG_QR lạ → 503 — HTTP 200
+  ✗ A7 báo SePay khi CONG_QR=payos — HTTP 404 (gốc không có /api/sepay/webhook)
+  ✗ A4 CONG_QR chỉ đọc ở congQr.js; giuCho không require payos
+  ✗ B1 ×3 (checkout_url null; trường VietQR; BIN / số TK / 54 = 20000 / 62.08) — gốc trả QR_GIA_11 của payOS
+  ✗ B2 CRC — R_GIA_11
+  ✗ B3 không gọi mạng
+  ✗ C1, C1 (thân bị sửa), C2, C2b, C3 (302 s), C4 (+302 s), C1b — HTTP 404
+  ✗ C3 (298 s, thân thô thụt lề) → 200 {"success":true} — HTTP 404 Cannot POST /api/sepay/webhook
+  ✗ C5 ×2, C6, C7, C8, C9, C10, C10b, C11, C12 ×2, C13 ×2, C14, C14b, E2a, C16 ×2, C16b ×2 — HTTP 404
+  ✗ E3 POST /kh/don cách qr → qr.chuoi là VietQR — gốc trả "QR_GIA_24"
+  ✗ C18 ×2 (tiền SePay về → da_tra; về sau huỷ → tien_ve_cho_doi_soat)
+  ✗ D1 ×2 (Đối soát dòng "SePay giao dịch …") — gốc chỉ có "payOS mã …"
+  ✗ T1, T2 (index.js express.raw + mount webhookSepay), T3 (bộ kiểm chạy bài này)
+  ✗ F1 ×2 (cai_dat_sepay.md chưa có)
+Các ca XANH trên gốc (đúng ý — luồng phải KHÔNG đổi / tự kiểm bài): A1 (mặc định payOS), A5 (tiền mặt / QR tĩnh), A6 (báo payOS khi
+CONG_QR=sepay), B0 (vectơ CRC), B2 (CRC có răng), B4 (het_han), C8 phiên vẫn cho, C10b phiên 6 số vẫn cho, X1 (log không lộ khoá).
+
+TRÊN CODE ĐÃ VÁ (HEAD) → XANH: 60 đạt · 0 hỏng (thoát 0).
+
+Lịch sử đổi bài sau lần chạy đỏ đầu (c6c0f15 → 249dc45), mỗi lần đã chạy lại trên gốc (đỏ) và trên code vá:
+  - a49f607 tên ca C16 / C16b rõ ràng (không đổi phép)
+  - 7e959f0 C11 soi đúng dòng của giao dịch đó (C8 cũng ghi dòng khong_phien mang mã phiên — phép cũ đỏ oan, K2); T1/T2 neo DÒNG mã thay vì
+    cắt chú thích (chuỗi '*/*' của express.raw mở một "/*" giả — phép cũ đỏ oan, K2)
+  - 249dc45 C10b dùng phiên 6 chữ số (đột biến VS-ma-khong-chan-so SỐNG với phiên 2 chữ số — K3)
+
+SỐ CA cong_cu/thu_SEPAY1.js: 60
