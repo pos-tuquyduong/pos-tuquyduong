@@ -218,3 +218,49 @@ Lỗi NHẸ 2–5 làm cùng lúc với Q9 khi chủ quán trả lời.
   Nếu bạn muốn đơn giản hơn: chạy công cụ trước khi đếm két thật lần đầu (ngày X = ngày bắt đầu bán thật, chưa đếm két ngày nào từ X) thì
   (2) không bao giờ xảy ra — nhưng máy vẫn nên khoá (2), vì khoá chứ không dặn.
 - **Q8** (vẫn chờ) — dọn theo ngày chạm điểm / voucher giai đoạn thử của khách thật.
+
+## Kiểm (bước 6, 11.4)
+- `node cong_cu/thu_KHSDT1.js` → 87 đạt · 0 hỏng (SỐ CA 87).
+- `npm test` → ĐẾM: PASS 89 · FAIL 0 · CẢNH BÁO 1 (lần đầu); `npm test -- --day-du` sau vòng sửa 2 → PASS 93 · FAIL 0 · CẢNH BÁO 1
+  (cảnh báo không thuộc việc này — người soát vòng 3 xác nhận); "dist đã commit KHỚP với src".
+- `python3 viec/KH-SDT-1/dot_bien.py` → ĐỐI CHỨNG XANH · 43/43 BẮT.
+- `node tu_chay/cong.js chay . 87aa996^ HEAD viec/KH-SDT-1` → ✓ CỔNG CHẠY ĐẠT (ở 0188baa).
+
+## Bài học
+1. **KHOÁ (đã làm, trong Phạm vi):** bài thử công cụ xoá hàng loạt chạy đối soát trước–sau (E3), tải sao lưu sau dọn (E4), dò PRAGMA mọi
+   bảng có cột SĐT / order_id phải có chủ (D14), sổ ví dùng loại dòng thật. Lý do: vòng 1 bài xanh 67/67 trên dữ liệu bịa trong khi sổ ví
+   lệch và sao lưu hỏng.
+2. **KHOÁ (đề xuất, ngoài Phạm vi — `kiem_tra_truoc_khi_giao.js` / khung):** phép kiểm "mọi INSERT vào `pos_sync_logs` đi qua một hàm chia
+   phần ≤ 32.767 ký tự / ô" (vòng 3 lỗi 2: `sua_truoc` một ô). Ca đỏ: chèn ô 40.000 ký tự rồi gọi export-all → 500.
+3. **NGUYÊN TẮC (đề xuất K4, `KHUON_LOI.md` ngoài Phạm vi):** "Công cụ xoá / sửa hàng loạt làm cùng việc với route có sẵn (xoá đơn) phải
+   GỌI chung phần bù VÀ chép cả điều kiện bao quanh (status === 'completed')" — Đã gây: vòng 2 trả lượt mã cho đơn đã huỷ (CHUNG 3 → 1).
+4. **NGUYÊN TẮC (đề xuất K4):** "Xoá sạch theo khoá X mà giữ một phần dòng của X là tạo lại mồ côi — giữ cả cụm hoặc xoá cả cụm; dòng tiền có
+   NGÀY RIÊNG (thu nợ, huỷ, nạp ví) xét theo ngày của chính nó" — Đã gây: vòng 1 xoá hồ sơ còn đơn hôm nay; vòng 3 két ngày sau X lệch.
+5. **NGUYÊN TẮC (đề xuất K1):** "Lời hứa trong kế hoạch phải là một ca thử hoặc xoá khỏi kế hoạch khi đổi cách" — Đã gây: "đặt NULL gói"
+   còn ở ke_hoach.md sau khi bỏ.
+6. **BỎ:** người gác chặn chạy bài thử chứa cụm bí mật khi chưa commit (B-BIMAT-CHU) — luật đã có, làm theo (commit trước rồi chạy).
+7. **BỎ:** neo đột biến lệch sau khi đổi chữ code (3 HỎNG ở vòng 2) — bộ đột biến đã báo HỎNG đúng cách, sửa neo.
+
+## Báo cáo 7 mục
+VIỆC:        KH-SDT-1 — (theo chủ quán đổi 01.11) chỉ còn công cụ dọn dữ liệu thử trước khai trương; khoá dữ liệu cũ BỎ.
+ĐÃ SỬA:      server/utils/donThu.js (mới) — chọn dòng một hàm cho liệt kê + dọn, giữ cả cụm (chiaGiu), dọn một giao dịch, nhật ký chia
+             phần + che cột bí mật, trả lượt mã đơn completed · server/routes/don-thu.js (mới) — /liet-ke, /don chỉ owner · server/index.js
+             — mount /api/pos/don-thu · client/src/pages/DonThu.jsx (mới) + QuanLy/donThu.js (mới) — liệt kê → tải CSV → tải sao lưu → gõ
+             chữ → Dọn · QuanLy.jsx — ô chỉ owner · App.jsx — route /don-thu · client/dist build · kiem_tra_truoc_khi_giao.js — chạy bài mới.
+BÀI THỬ:     cong_cu/thu_KHSDT1.js — gốc 720d08d ĐỎ (7 đạt · 45 hỏng, ✗ D0 chưa có route); bản vá vòng 1 / giữa vòng đỏ đúng từng lỗi người
+             soát nêu (bang_chung_do.txt); sau vá XANH 87/87. Đột biến 43/43 BẮT.
+ĐÃ RÀ K4:    PRAGMA mọi bảng có cột SĐT / order_id → 0 bảng vô chủ (D14); mọi cột SĐT của bảng con (DONG_CON_CO_SDT, 6 cặp); đường xoá đơn
+             orders.js DELETE (traLuotMa + điều kiện completed); huỷ / hoàn. CHƯA xử lý: khoảng két (Q9 — NẶNG, chờ chủ quán) + lỗi nhẹ
+             vòng 3 (sua_truoc một ô, lý do giữ số, ke_hoach mục 4, ca UTF-16).
+CHƯA KIỂM:   - Lỗi NẶNG vòng 3 chưa sửa: dọn có thể làm két một ngày THẬT sau X báo lệch (Q9). Công cụ CHƯA nên chạy trên production.
+             - Chủ quán đã thật sự LƯU file sao lưu (màn chỉ biết đã bấm tải); sao lưu không khôi phục được bảng tiền — lấy lại chỉ từ bản chụp JSON.
+             - Turso production: giao dịch dài, cỡ bản chụp.
+             - Ca UTF-16 cắt đôi emoji ở ranh giới phần (code đúng khi đọc, chưa có ca).
+             - Phiên đăng nhập App KH đang mở của số bị xoá hồ sơ; số thử có trên SX được đồng bộ nhập lại sau dọn.
+             - Nhật ký (tên, SĐT, ví khách bị xoá) nhân viên đọc được qua GET /sync/logs — chỉ che PIN / mật khẩu / mã băm.
+             - Q8 (khách thật theo ngày) chờ chủ quán.
+GIT:         0188baa KH-SDT-1: bao cao soat vong 3 + cau hoi Q9 (ket doi soat) — DUNG cho chu quan
+             9d9a216 KH-SDT-1: ho so vong sua 2 — bao cao soat 2, bang chung do, Q7 xu ly trong pham vi
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+
+HEAD ĐÃ KIỂM: 0188baa
