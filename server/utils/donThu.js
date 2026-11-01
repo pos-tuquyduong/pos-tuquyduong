@@ -30,7 +30,7 @@ const BANG_THEO_DON = ['pos_order_items', 'pos_refund_requests', 'pos_damage_log
 // Theo ngày X: [bảng, cột SĐT, cột giờ, có order_id] — dòng gắn đơn chỉ đi theo đơn.
 const BANG_THEO_NGAY = [['pos_point_transactions', 'customer_phone', 'created_at', true], ['pos_voucher_grants', 'customer_phone', 'granted_at', false],
   ['pos_kh_ma_dang_nhap', 'sdt', 'tao_luc', false], ['pos_kh_lan_thu', 'sdt', 'tao_luc', false]];
-// Theo SĐT: [bảng, các cột SĐT, có order_id] — dòng gắn đơn KHÔNG dọn chỉ đi khi đơn đó dọn.
+// Theo SĐT: [bảng, các cột SĐT, có order_id] — số có dòng gắn đơn KHÔNG dọn thì cả số được giữ (chiaGiu).
 const BANG_THEO_SDT = [['pos_customers', ['phone'], false], ['pos_wallets', ['phone'], false], ['pos_registrations', ['phone'], false],
   ['pos_voucher_grants', ['customer_phone'], false], ['pos_kh_ma_dang_nhap', ['sdt'], false], ['pos_kh_lan_thu', ['sdt'], false],
   ['pos_signup_codes', ['claimed_phone', 'diem_nhan_phone'], false], ['pos_point_transactions', ['customer_phone'], true],
@@ -73,7 +73,7 @@ function docTieuChi(than, homNay) {
 }
 
 /** Đơn ứng viên → { giu: Map(id → lý do), P: SĐT xoá sạch }. Lặp tới khi đứng yên: giữ một đơn có thể kéo theo giữ cả số / gói. */
-async function chiaGiu(q, ung, X, L, coVi, homNay) {
+async function chiaGiu(q, ung, L, coVi, homNay) {
   const id = trong(ung.map((o) => o.id));
   const tap = async (sql) => new Set((await q.query(sql)).map((r) => Number(r.order_id)));
   const coPhien = await tap(`SELECT DISTINCT order_id FROM pos_phien_thanh_toan WHERE order_id IN ${id}`);
@@ -83,6 +83,11 @@ async function chiaGiu(q, ung, X, L, coVi, homNay) {
     OR id IN (SELECT customer_package_id FROM pos_orders WHERE id IN ${id})${L.length ? ` OR customer_phone IN (${dau(L)})` : ''}`, L);
   const goiTheoId = new Map(goi.map((g) => [Number(g.id), g]));
   const dungGoi = await q.query(`SELECT id, customer_package_id FROM pos_orders WHERE customer_package_id IN ${trong([...goiTheoId.keys()])}`);
+  // Dòng gắn đơn của các số trong danh sách (điểm, sổ ví, gói, thẻ) — đơn đó không dọn (vd số này trả hộ đơn của số khác) → giữ cả số.
+  const ganDon = [];
+  for (const [t, , coDon] of L.length ? BANG_THEO_SDT : []) {
+    if (coDon) ganDon.push(...await q.query(`SELECT DISTINCT customer_phone, order_id FROM ${t} WHERE order_id IS NOT NULL AND customer_phone IN (${dau(L)})`, L));
+  }
   const laUng = new Set(ung.map((o) => Number(o.id)));
   const giu = new Map();
   for (const o of ung) {
@@ -94,15 +99,16 @@ async function chiaGiu(q, ung, X, L, coVi, homNay) {
     if (l) giu.set(Number(o.id), l);
   }
   for (;;) {
-    const sdtGiu = new Set(ung.filter((o) => giu.has(Number(o.id))).flatMap((o) => [o.customer_phone, o.parent_phone]));
-    const P = L.filter((s) => !coVi.has(s) && !sdtGiu.has(s));
     const xoaDon = (d) => laUng.has(Number(d)) && !giu.has(Number(d));
+    const sdtGiu = new Set([...ung.filter((o) => giu.has(Number(o.id))).flatMap((o) => [o.customer_phone, o.parent_phone]),
+      ...ganDon.filter((r) => !xoaDon(r.order_id)).map((r) => r.customer_phone)]);
+    const P = L.filter((s) => !coVi.has(s) && !sdtGiu.has(s));
     const goiXoa = (g) => (g.order_id != null ? xoaDon(g.order_id) : P.includes(g.customer_phone));
     let doi = false;
     for (const o of ung) {
       if (giu.has(Number(o.id))) continue;
       const g = goiTheoId.get(Number(o.customer_package_id));
-      const l = !(X && o.created_at < X) && !P.includes(o.customer_phone) ? 'SĐT này được giữ lại cả số'
+      const l = !o.theo_ngay && !P.includes(o.customer_phone) ? 'SĐT này được giữ lại cả số'
         : soVi.some((r) => Number(r.order_id) === Number(o.id) && !P.includes(r.customer_phone)) ? 'Có dòng sổ ví của SĐT không dọn (ví phải khớp sổ)'
         : g && !goiXoa(g) ? 'Lấy từ gói còn giữ'
           : goi.some((m) => Number(m.order_id) === Number(o.id) && dungGoi.some((d) => Number(d.customer_package_id) === Number(m.id) && !xoaDon(d.id)))
@@ -117,9 +123,11 @@ async function chiaGiu(q, ung, X, L, coVi, homNay) {
 async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay, now) {
   const vi = await q.query('SELECT phone, balance FROM pos_wallets WHERE balance <> 0');
   const coVi = new Set(vi.map((v) => v.phone));
-  const ung = await q.query(`SELECT id, code, created_at, customer_phone, parent_phone, total, status, customer_package_id FROM pos_orders
-    WHERE ${X ? 'created_at < ?' : '0'}${L.length ? ` OR customer_phone IN (${dau(L)})` : ''} ORDER BY id`, [...(X ? [X] : []), ...L]);
-  const { giu, P } = await chiaGiu(q, ung, X, L, coVi, homNay);
+  const theoNgay = X ? 'created_at < ?' : '0';   // MỘT vị từ ngày: chọn đơn + đánh dấu đơn chọn theo ngày (theo_ngay)
+  const ung = await q.query(`SELECT id, code, created_at, customer_phone, parent_phone, total, status, customer_package_id,
+      (${theoNgay}) AS theo_ngay FROM pos_orders WHERE ${theoNgay}${L.length ? ` OR customer_phone IN (${dau(L)})` : ''} ORDER BY id`,
+    [...(X ? [X, X] : []), ...L]);
+  const { giu, P } = await chiaGiu(q, ung, L, coVi, homNay);
   const don = ung.filter((o) => !giu.has(Number(o.id)));
   const O = trong(don.map((o) => o.id));
   const ids = new Map(THU_TU_XOA.map((t) => [t, new Set()]));
@@ -132,9 +140,8 @@ async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay, now) {
     }
   }
   if (P.length) {
-    for (const [t, cots, coDon] of BANG_THEO_SDT) {
-      await gom(t, `(${cots.map((c) => `${c} IN (${dau(P)})`).join(' OR ')})${coDon ? ` AND (order_id IS NULL OR order_id IN ${O})` : ''}`,
-        cots.flatMap(() => P));
+    for (const [t, cots] of BANG_THEO_SDT) {
+      await gom(t, cots.map((c) => `${c} IN (${dau(P)})`).join(' OR '), cots.flatMap(() => P));   // số trong P không còn dòng gắn đơn giữ (chiaGiu)
     }
   }
   // Mã giảm riêng của voucher / mã bill bị dọn (cùng code — loyalty.js, signup-codes.js).
