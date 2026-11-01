@@ -4,7 +4,7 @@
  * chốt tay CHỈ qua xac-nhan-tay (quyền xac_nhan_ck_tay, có lý do). Mọi lối chốt đi qua MỘT chotPhien (utils/giuCho.js).
  */
 const express = require('express');
-const { queryOne, run } = require('../database');
+const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
 const { loiGhi } = require('./wallets');
@@ -12,7 +12,7 @@ const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
-const { LY_DO_HAI_CONG } = require('../utils/congQr');
+const { LY_DO_HAI_CONG, congCuaKhoa } = require('../utils/congQr');
 
 const router = express.Router();
 const webhook = express.Router();
@@ -131,9 +131,11 @@ async function xuLyTienVe(res, t) {
   if (kq.status === 200) return res.json({ success: true });
   if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
   const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
+  // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và cổng này CHƯA báo gì cho phiên — cổng này báo lần nữa là khách chuyển thêm thật (phải hoàn).
+  const daBao = sau ? (await query('SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ?', [t.ma])).some((x) => congCuaKhoa(x.khoa) === t.nguon) : false;
   return ghi('chua_khop', !sau ? `không tạo được đơn: ${kq.body?.code || kq.body?.error}`
     : sau.nguon === 'tay' ? `đã xác nhận tay trước (${sau.nguoi_xac_nhan}, đơn #${sau.order_id}) — tiền về đúng số: đối chiếu, KHÔNG hoàn`
-      : sau.trang_thai === 'da_thu' && TEN_CONG[sau.nguon] && sau.nguon !== t.nguon
+      : sau.trang_thai === 'da_thu' && TEN_CONG[sau.nguon] && sau.nguon !== t.nguon && !daBao
         ? `đã chốt bằng báo ${TEN_CONG[sau.nguon]} (đơn #${sau.order_id}) — ${LY_DO_HAI_CONG}: đối chiếu sao kê, KHÔNG hoàn`
         : `phiên đang ${sau.trang_thai} lúc tiền về`);
 }
@@ -160,7 +162,8 @@ webhookSepay.post('/', async (req, res) => {
     try { b = JSON.parse(req.body.toString('utf8')); } catch { b = null; }
     if (!b || typeof b !== 'object' || b.id == null) return res.status(400).json({ success: false, error: 'Thân báo không hợp lệ', code: 'BAO_KHONG_HOP_LE' });
     const d = sepay.docBao(b);
-    await xuLyTienVe(res, { ...d, duLieu: b, nguon: 'sepay', boQua: !d.vao ? 'SePay báo tiền ra' : !d.ma ? 'không có mã TQD trong nội dung' : null,
+    await xuLyTienVe(res, { ...d, duLieu: { ...b, accumulated: undefined }, nguon: 'sepay',   // không lưu số dư tài khoản quán
+      boQua: !d.vao ? 'SePay báo tiền ra' : !d.ma ? 'không có mã TQD trong nội dung' : null,
       khongPhien: `mã TQD${d.ma} không thuộc phiên nào` });
   } catch (err) {
     loiGhi(res, err);

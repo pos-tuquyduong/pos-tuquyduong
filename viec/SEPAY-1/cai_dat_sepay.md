@@ -25,7 +25,7 @@ tài khoản quán; khi tiền về, SePay báo cho máy chủ và đơn tự ch
 | `SEPAY_BIN` | mã BIN của ngân hàng nhận tiền — đúng 6 chữ số (tra bảng BIN VietQR của ngân hàng; vd Vietcombank, BIDV… mỗi ngân hàng một mã) |
 | `SEPAY_SO_TK` | số tài khoản nhận tiền, chỉ chữ số / chữ, không dấu cách |
 | `SEPAY_KHOA_WEBHOOK` | Secret Key vừa chép ở bước 1.3 |
-| `CONG_QR` | `sepay` — chỉ đặt SAU khi đã thử xong bước 3 |
+| `CONG_QR` | `sepay` — đặt ở bước 3.1 khi bắt đầu thử (thử không được thì đặt lại `payos`, xem mục 4) |
 
 Thiếu hoặc sai dạng một trong ba biến SePay mà `CONG_QR=sepay` → quầy báo "Chưa cài cổng QR chuyển khoản" (mã `PAYOS_CHUA_CAU_HINH`) và
 dùng QR tĩnh + xác nhận tay như khi payOS chưa cài. Không mất tiền, chỉ chậm.
@@ -35,9 +35,9 @@ dùng QR tĩnh + xác nhận tay như khi payOS chưa cài. Không mất tiền,
 1. Render: điền `SEPAY_BIN`, `SEPAY_SO_TK`, `SEPAY_KHOA_WEBHOOK`, đặt `CONG_QR=sepay`, lưu (Render khởi động lại ~1 phút).
 2. Tạm đặt một món giá 2.000đ (ở chỗ bạn vẫn sửa giá món; thử xong trả giá cũ). Quầy: bán đúng món đó, chọn QR.
 3. Dùng app ngân hàng quét QR: tên tài khoản phải là của quán, số tiền 2.000, nội dung `TQD…` — **không sửa nội dung**, chuyển.
-4. Trong khoảng 5–30 giây màn quầy phải tự báo đã thu và in bill. Quản lý → Đối soát hôm nay KHÔNG có dòng đỏ "SePay giao dịch…".
-5. Không tự chốt sau 1 phút → mở trang SePay xem lịch sử webhook của giao dịch đó (mã trả về): 401 = khoá sai → dán lại Secret Key; 404 =
-   địa chỉ sai. Trong lúc đó xác nhận tay đơn thử như bình thường.
+4. Sau khi chuyển, chờ vài chục giây: màn quầy phải tự báo đã thu và in bill. Quản lý → Đối soát hôm nay KHÔNG có dòng đỏ "SePay giao dịch…".
+5. Không tự chốt sau 1–2 phút → mở trang SePay xem lịch sử webhook của giao dịch đó (mã trả về): 401 = chữ ký không qua (thường là khoá sai →
+   dán lại Secret Key; hiếm hơn là đồng hồ hai bên lệch quá 5 phút); 404 = địa chỉ sai. Trong lúc đó xác nhận tay đơn thử như bình thường.
 
 ## 4. Quay về payOS (một bước)
 
@@ -47,7 +47,8 @@ từ chối: không tự chốt, không có dấu vết trong Đối soát.
 
 **Khi đã quay về payOS lâu dài:** tắt webhook trên trang SePay. Nếu để cả hai cổng cùng theo dõi một tài khoản, một lần chuyển khoản có thể được
 báo hai lần (payOS và SePay): đơn vẫn chỉ tạo MỘT lần, báo thứ hai hiện ở Đối soát mục CẦN XEM (vàng, không phải đỏ) dòng "đã chốt bằng
-báo payOS … cùng một khoản báo qua hai cổng: đối chiếu sao kê, KHÔNG hoàn" — **không hoàn tiền** cho dòng đó. Việc này cũng xảy ra trong lúc
+báo payOS …" hoặc "đã chốt bằng báo SePay …" kèm "cùng một khoản báo qua hai cổng: đối chiếu sao kê, KHÔNG hoàn" — **không hoàn tiền** cho dòng
+đó. Khách chuyển THÊM một lần thật cho đơn đã trả thì dòng đó hiện ĐỎ ("phiên đang da_thu lúc tiền về") — dòng đỏ này mới là tiền phải hoàn. Việc này cũng xảy ra trong lúc
 cài (bước 1 bật webhook SePay khi quầy còn chạy payOS) — bình thường, không hoàn.
 
 ## 5. Điều nên biết
