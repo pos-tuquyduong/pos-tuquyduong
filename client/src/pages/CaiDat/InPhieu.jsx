@@ -1,4 +1,4 @@
-// KHO-IN-1 — thẻ Cài đặt "In phiếu kho": mỗi loại phiếu (xuất / đặt hàng / nhận / phát sinh) chọn khổ giấy mặc định 80mm · A5 · A4 và số bản.
+// KHO-IN-1 — thẻ Cài đặt "In phiếu kho": mỗi loại phiếu (xuất / đặt hàng / nhận / phát sinh) chọn khổ giấy mặc định A5 · A4 và số bản.
 // Lưu 8 khoá in_phieu_<loai>_kho / _ban qua PUT /settings (máy chủ kiểm giá trị — sai một khoá thì không ghi khoá nào), dùng chung mọi máy.
 // Màn xem phiếu kho đọc lại bằng docInPhieuKho: nút khổ mặc định đứng đầu, vẫn đổi được khổ lúc in. Hoá đơn khách KHÔNG ở đây (chỉ khổ nhiệt).
 import { useState, useEffect } from 'react';
@@ -6,7 +6,7 @@ import { Save } from 'lucide-react';
 import { api } from '../../utils/api';
 import { KHO_PHIEU_KHO, LOAI_PHIEU_KHO, SO_BAN_TOI_DA, khoaInPhieu, docInPhieuKho } from '../../utils/inPhieu';
 
-const NHAN_KHO = { '80mm': '80 mm (máy in nhiệt)', a5: 'A5', a4: 'A4' };
+const NHAN_KHO = { a5: 'A5', a4: 'A4' };
 
 export default function InPhieu() {
   const [gia, setGia] = useState(null);   // loại → { kho, ban }; null = chưa tải xong

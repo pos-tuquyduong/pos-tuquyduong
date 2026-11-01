@@ -11,8 +11,8 @@ import { docInPhieuKho, thuTuNutIn } from '../../utils/inPhieu';
 
 const LAM_MOI_MS = 15000;
 // KHO-IN-1: khổ giấy theo tên khổ của KHO_PHIEU_KHO (utils/inPhieu.js); khổ mặc định của từng loại do Cài đặt in phiếu quyết định.
-const KHO_IN = { '80mm': '@page { size: 80mm auto; margin: 3mm; }', a5: '@page { size: A5; margin: 8mm; }', a4: '@page { size: A4; margin: 12mm; }' };
-const NHAN_NUT_IN = { '80mm': 'In 80 mm', a5: 'In A5', a4: 'In A4' };
+const KHO_IN = { a5: '@page { size: A5; margin: 8mm; }', a4: '@page { size: A4; margin: 12mm; }' };
+const NHAN_NUT_IN = { a5: 'In A5', a4: 'In A4' };
 const luong = (n) => `${so(n.luong_hien)} ${n.don_vi || ''}`;
 const TEN_LOAI = { DH: 'Đơn đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu xử lý phát sinh' };
 
@@ -59,8 +59,8 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
   const [dl, setDl] = useState(null);
   const [loi, setLoi] = useState('');
   const [dangGhi, setDangGhi] = useState(false);
-  const [kho, setKho] = useState(null);   // khổ đang in: 80mm | a5 | a4
-  const [caiDat, setCaiDat] = useState({});   // khổ + số bản mặc định (in_phieu_*); không tải được → mặc định 80mm, 1 bản
+  const [kho, setKho] = useState(null);   // khổ đang in: a5 | a4
+  const [caiDat, setCaiDat] = useState({});   // khổ + số bản mặc định (in_phieu_*); không tải được → mặc định A5, 1 bản
   const [nhap, setNhap] = useState({});   // san_pham_id → { so_thuc, ghi_chu } đang sửa
   const [sua, setSua] = useState(null);   // chủ quán sửa: san_pham_id → số phần
 

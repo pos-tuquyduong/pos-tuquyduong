@@ -42,13 +42,13 @@ export const khoHoaDon = (v) => chonKho(v, KHO_BILL, MAC_DINH_BO_IN.bill.kho);
 
 // ─── KHO-IN-1: khổ + số bản mặc định của từng loại phiếu KHO (xuất / đặt hàng / nhận / phát sinh) ───
 // Lưu ở máy chủ: in_phieu_<loai>_kho · in_phieu_<loai>_ban (dùng chung mọi máy). Máy chủ kiểm cùng danh sách (server/routes/settings.js).
-export const KHO_PHIEU_KHO = ['80mm', 'a5', 'a4'];
+export const KHO_PHIEU_KHO = ['a5', 'a4'];   // chủ quán chốt 01.11: phiếu kho chỉ A5 / A4; giá trị lưu cũ '80mm' đọc ra A5
 export const LOAI_PHIEU_KHO = { PX: 'Phiếu xuất / pha chế', DH: 'Phiếu đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu phát sinh' };
 export const MAC_DINH_PHIEU_KHO = { kho: KHO_PHIEU_KHO[0], ban: 1 };
 
 export const khoaInPhieu = (loai, truong) => `in_phieu_${String(loai).toLowerCase()}_${truong}`;
 
-/** Khổ + số bản của một loại phiếu kho; thiếu / lạ → mặc định (80mm, 1 bản). Số bản chỉ nhận 1..SO_BAN_TOI_DA ở dạng nguyên. */
+/** Khổ + số bản của một loại phiếu kho; thiếu / lạ / '80mm' cũ → mặc định (A5, 1 bản). Số bản chỉ nhận 1..SO_BAN_TOI_DA ở dạng nguyên. */
 export function docInPhieuKho(settings, loai) {
   if (!LOAI_PHIEU_KHO[loai]) return { ...MAC_DINH_PHIEU_KHO };
   const ban = /^\d$/.test(String(settings?.[khoaInPhieu(loai, 'ban')])) ? Number(settings[khoaInPhieu(loai, 'ban')]) : 0;
@@ -58,7 +58,7 @@ export function docInPhieuKho(settings, loai) {
   };
 }
 
-/** Thứ tự nút in: khổ mặc định đứng đầu, hai khổ còn lại giữ thứ tự của KHO_PHIEU_KHO. Khổ lạ → coi như 80mm. */
+/** Thứ tự nút in: khổ mặc định đứng đầu, khổ còn lại giữ thứ tự của KHO_PHIEU_KHO. Khổ lạ → coi như A5. */
 export const thuTuNutIn = (khoMacDinh) => {
   const dau = chonKho(khoMacDinh, KHO_PHIEU_KHO, MAC_DINH_PHIEU_KHO.kho);
   return [dau, ...KHO_PHIEU_KHO.filter((x) => x !== dau)];

@@ -20,8 +20,8 @@ const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 const { kiemCaiDat } = require('../utils/gioHoatDong');
 const TIENG_CHUONG = ['ding', 'chuong', 'bip'];   // KH-MUA-1: cùng danh sách client/src/components/DonAppNoi.jsx
 // KHO-IN-1: cài đặt in phiếu kho — in_phieu_<loai>_kho (khổ) / in_phieu_<loai>_ban (số bản). Cùng danh sách client/src/utils/inPhieu.js
-// (KHO_PHIEU_KHO · LOAI_PHIEU_KHO · SO_BAN_TOI_DA). Khổ nhiệt 58mm là của hoá đơn khách, KHÔNG dùng cho phiếu kho.
-const KHO_IN_PHIEU = ['80mm', 'a5', 'a4'];
+// (KHO_PHIEU_KHO · LOAI_PHIEU_KHO · SO_BAN_TOI_DA). Phiếu kho CHỈ A5 / A4 (chủ quán chốt 01.11); khổ nhiệt là của hoá đơn khách.
+const KHO_IN_PHIEU = ['a5', 'a4'];
 const SO_BAN_IN_TOI_DA = 3;
 const KHOA_IN_PHIEU = /^in_phieu_(px|dh|pn|ps)_(kho|ban)$/;
 /** Khoá in_phieu_* sai dạng / sai giá trị → trả khoá đó; không sai → null. */
