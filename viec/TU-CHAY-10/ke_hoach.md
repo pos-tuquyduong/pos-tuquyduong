@@ -98,8 +98,9 @@ Phiếu đã ghi `thu_cong.js` ở `## Bài thử cũ sửa` → cổng chạy B
 - `thu_nguoi_gac.js:800-802` (danh sách trắng `ban_cai`) — chờ Câu hỏi 1.
 
 ## Phần G — chép sang APP-KH
-File tu_chay/ đổi: `lenh_soat_bao_mat.md` (mới), `skill_lam_viec.md`, `MAU_PHIEU.md`, `cong.js`, `thu_cong.js`, `PHIEN_BAN`, `THIET_KE.md`,
-(`thu_nguoi_gac.js` nếu được duyệt); `cau_hinh.json` KHÔNG chép nguyên — APP-KH chỉ thêm đúng mục `ban_cai` mới (phiếu mục A, F).
+File tu_chay/ đổi (cập nhật 01.11 sau khi chủ quán duyệt Phạm vi — danh sách CUỐI ở `trang_thai.md` mục "Chép sang APP-KH"):
+`lenh_soat_bao_mat.md` (mới), `skill_lam_viec.md`, `MAU_PHIEU.md`, `cong.js`, `thu_cong.js`, `thu_nguoi_gac.js`, `thu_cong_cu.js`, `PHIEN_BAN`,
+`THIET_KE.md`; `cau_hinh.json` KHÔNG chép nguyên — APP-KH chỉ thêm đúng mục `ban_cai` mới (phiếu mục A, F).
 Lưu ý cho chat: `thu_nguoi_gac.js:800-802` của APP-KH cũng khoá ban_cai — nếu bản APP-KH giống hệt thì chép được; khác thì chat sửa danh
 sách đó. Xác nhận "không chữ POS / đường dẫn riêng": `grep -n "POS\|pos-tuquyduong\|Tứ Quý\|server/\|client/" <phần mới>` trên diff của 4 file
 chữ (lệnh, skill, mẫu phiếu, THIET_KE đoạn mới) và khối A20 — kết quả chép vào `trang_thai.md`. (Bài thử dùng kho giả có `server/` sẵn —
