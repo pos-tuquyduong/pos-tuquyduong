@@ -1,7 +1,18 @@
 TU-CHAY-10 — bằng chứng bài thử ĐỎ trên code gốc (tu-chay 1.8.1, 9ce1a32), XANH trên code đã vá
 Cây gốc: git archive 9ce1a32 (giải nén trong nháp) + ba bài thử của HEAD chép đè; chạy `node tu_chay/<bài>` trong cây đó.
 
-== tu_chay/thu_cong.js trên GỐC — chạy lại sau soát vòng 2 (thêm ca hai tiêu đề, HEAD 2567e2e) — BẰNG CHỨNG HIỆN HÀNH ==
+== tu_chay/thu_cong.js trên GỐC — chạy lại sau vòng sửa 4 (ca hai tiêu đề đòi câu báo riêng, HEAD 43e95db) — BẰNG CHỨNG HIỆN HÀNH ==
+thu_cong phần 1/3: 48/142 đơn vị · 146 phép · 15 chỗ hỏng
+thu_cong phần 2/3: 47/142 đơn vị · 121 phép · 12 chỗ hỏng
+thu_cong phần 3/3: 47/142 đơn vị · 124 phép · 17 chỗ hỏng
+  (12 ca "phải ĐỎ" như lần vòng 2 dưới đây; ca hai tiêu đề thêm phép:)
+  ✗ TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có): lý do có "chỉ được MỘT mục ## Soát bảo mật" — ✓ CỔNG TĨNH ĐẠT
+thu_cong: 391 phép · 44 chỗ hỏng
+Trên code đã vá (sau vòng 4): thu_cong: 391 phép · 0 chỗ hỏng — ✓ XANH.
+Bản GỐC thu_cong.js (9ce1a32) trên code đã vá (sau vòng 4): thu_cong: 337 phép · 0 chỗ hỏng — ✓ XANH.
+thu_cong_cu.js (regex đòi thêm chữ "mục lặp") trên GỐC: 117 phép · 8 chỗ hỏng; trên code đã vá: 117 · 0.
+
+== tu_chay/thu_cong.js trên GỐC — chạy lại sau soát vòng 2 (thêm ca hai tiêu đề, HEAD 2567e2e) ==
 thu_cong phần 1/3: 48/142 đơn vị · 146 phép · 15 chỗ hỏng
 thu_cong phần 2/3: 47/142 đơn vị · 121 phép · 12 chỗ hỏng
 thu_cong phần 3/3: 47/142 đơn vị · 123 phép · 16 chỗ hỏng
@@ -70,6 +81,6 @@ thu_cong_cu: 116 phép · 7 chỗ hỏng
   ĐỎ — 7 chỗ hỏng
 Trên code đã vá: thu_cong_cu: 116 phép · 0 chỗ hỏng — ✓ XANH.
 
-SỐ CA tu_chay/thu_cong.js: 390
+SỐ CA tu_chay/thu_cong.js: 391
 SỐ CA tu_chay/thu_nguoi_gac.js: 1193
 SỐ CA tu_chay/thu_cong_cu.js: 117
