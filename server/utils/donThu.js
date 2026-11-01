@@ -5,18 +5,24 @@
  *
  * Tiêu chí (hợp hai phần):
  *  - truoc_ngay X (< hôm nay): đơn tạo trước X + dòng gắn đơn; điểm không gắn đơn, voucher, mã / lần thử App trước X.
- *    KHÔNG xoá hồ sơ khách, ví, sổ ví, gói / thẻ không gắn đơn theo ngày (hồ sơ có thể là khách thật).
+ *    KHÔNG xoá hồ sơ khách, ví, sổ ví không gắn đơn, gói / thẻ không gắn đơn theo ngày (hồ sơ có thể là khách thật).
  *  - sdt [..]: mọi đơn + mọi dòng của số đó (hồ sơ, ví 0, sổ ví, điểm, voucher, gói, thẻ, đăng ký, mã bill đã nhận, mã App).
- * Giữ lại (chỉ liệt kê): SĐT ví ≠ 0 (cả đơn số đó trả hộ) · đơn có phiên thanh toán (tiền ngân hàng) · đơn hôm nay (mã đơn = số lớn
- * nhất trong ngày + 1). Không bao giờ dọn: đối soát, payOS, phiên, đơn App, PIN, kho, sản phẩm, cài đặt, nhân viên.
- * Điểm âm sau dọn → từ chối (DIEM_AM). Nhật ký + bản chụp nguyên dòng: pos_sync_logs type 'don_thu' (bảng đã nằm trong sao lưu).
+ * Giữ lại CẢ CỤM (liệt kê, không xoá): đơn hôm nay (mã đơn = số lớn nhất trong ngày + 1) · đơn có phiên thanh toán (tiền ngân hàng) ·
+ * đơn còn nợ kho SX · đơn của / trả hộ bởi SĐT ví ≠ 0 · đơn có dòng sổ ví của SĐT không dọn (xoá thì ví lệch sổ — đối soát I4) · đơn lấy
+ * từ gói còn giữ / đơn mua gói mà đơn giữ lại đang dùng. SĐT trong danh sách có đơn bị giữ → giữ nguyên cả số (không xoá nửa chừng).
+ * Không bao giờ dọn: đối soát, payOS, phiên, đơn App, PIN, kho, sản phẩm, cài đặt, nhân viên. Điểm âm sau dọn → từ chối (DIEM_AM).
+ * Xoá đơn có mã giảm → trả lượt mã như xoá đơn (`traLuotMa`). Nhật ký: pos_sync_logs 'don_thu' (số dòng + băm) và các phần
+ * 'don_thu_chup' (bản chụp ≤ PHAN ký tự / ô — sao lưu Excel không nhận ô dài hơn 32767; cột bí mật che bằng '[ẩn]').
  */
 const crypto = require('crypto');
 const { beginTransaction, query } = require('../database');
 const { getNow, getToday } = require('./helpers');
+const { traLuotMa } = require('./tienDaTra');
 
 const CHU_XAC_NHAN = 'DON DU LIEU THU';
 const VI_KHAC_0 = 'SELECT phone FROM pos_wallets WHERE balance <> 0';
+const PHAN = 30000;                                   // ký tự / ô nhật ký — dưới trần 32767 của ô Excel (sao lưu export-all)
+const COT_BI_MAT = ['pin_code', 'password', 'ma_bam'];  // nhật ký nhân viên đọc được (GET /sync/logs) — che trong bản lưu
 
 // Bảng gắn đơn qua order_id (con có khoá ngoại tới pos_orders đứng trước — khoá ngoại đang bật).
 const BANG_THEO_DON = ['pos_order_items', 'pos_refund_requests', 'pos_damage_logs', 'pos_promotion_usage', 'pos_invoice_logs',
@@ -36,6 +42,7 @@ const THU_TU_XOA = [...BANG_THEO_DON, 'pos_voucher_grants', 'pos_discount_codes'
 const loi = (status, code, error) => ({ loi: { status, code, error } });
 const trong = (ids) => `(${ids.map(Number).join(',')})`;
 const dau = (ds) => ds.map(() => '?').join(', ');
+const bam = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
 function chuanSdt(v) {
   let s = String(v ?? '').replace(/[\s.\-]/g, '');
@@ -65,23 +72,55 @@ function docTieuChi(than, homNay) {
   return { tieuChi: { truoc_ngay: truocNgay, sdt } };
 }
 
-/** Chọn mọi dòng sẽ dọn. `q` = kết nối thường (liệt kê) hoặc giao dịch (dọn). Không ghi gì. */
-async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay) {
-  const vi = await q.query('SELECT phone, balance FROM pos_wallets WHERE balance <> 0');
-  const baoVe = new Set(vi.map((v) => v.phone));
-  const P = L.filter((s) => !baoVe.has(s));
-  const ung = await q.query(`SELECT id, code, created_at, customer_phone, parent_phone, total, status FROM pos_orders
-    WHERE created_at < ? AND (${X ? 'created_at < ?' : '0'}${L.length ? ` OR customer_phone IN (${dau(L)})` : ''}) ORDER BY id`,
-    [homNay, ...(X ? [X] : []), ...L]);
-  const coPhien = new Set((await q.query(`SELECT DISTINCT order_id FROM pos_phien_thanh_toan WHERE order_id IN ${trong(ung.map((o) => o.id))}`))
-    .map((r) => Number(r.order_id)));
-  const giuDon = [], don = [];
+/** Đơn ứng viên → { giu: Map(id → lý do), P: SĐT xoá sạch }. Lặp tới khi đứng yên: giữ một đơn có thể kéo theo giữ cả số / gói. */
+async function chiaGiu(q, ung, X, L, coVi, homNay) {
+  const id = trong(ung.map((o) => o.id));
+  const tap = async (sql) => new Set((await q.query(sql)).map((r) => Number(r.order_id)));
+  const coPhien = await tap(`SELECT DISTINCT order_id FROM pos_phien_thanh_toan WHERE order_id IN ${id}`);
+  const noKho = await tap(`SELECT DISTINCT order_id FROM pos_stock_pending WHERE order_id IN ${id}`);
+  const soVi = await q.query(`SELECT DISTINCT order_id, customer_phone FROM pos_balance_transactions WHERE order_id IN ${id}`);
+  const goi = await q.query(`SELECT id, customer_phone, order_id FROM pos_customer_packages WHERE order_id IN ${id}
+    OR id IN (SELECT customer_package_id FROM pos_orders WHERE id IN ${id})${L.length ? ` OR customer_phone IN (${dau(L)})` : ''}`, L);
+  const goiTheoId = new Map(goi.map((g) => [Number(g.id), g]));
+  const dungGoi = await q.query(`SELECT id, customer_package_id FROM pos_orders WHERE customer_package_id IN ${trong([...goiTheoId.keys()])}`);
+  const laUng = new Set(ung.map((o) => Number(o.id)));
+  const giu = new Map();
   for (const o of ung) {
-    const lyDo = baoVe.has(o.customer_phone) ? `SĐT ${o.customer_phone} còn số dư ví`
-      : baoVe.has(o.parent_phone) ? `Người trả hộ ${o.parent_phone} còn số dư ví`
-        : coPhien.has(Number(o.id)) ? 'Có phiên thanh toán (tiền ngân hàng) — không dọn' : '';
-    (lyDo ? giuDon : don).push(lyDo ? { code: o.code, created_at: o.created_at, ly_do: lyDo } : o);
+    const l = o.created_at >= homNay ? 'Đơn hôm nay — không dọn (mã đơn trong ngày sẽ bị dùng lại)'
+      : coVi.has(o.customer_phone) ? `SĐT ${o.customer_phone} còn số dư ví`
+        : coVi.has(o.parent_phone) ? `Người trả hộ ${o.parent_phone} còn số dư ví`
+          : coPhien.has(Number(o.id)) ? 'Có phiên thanh toán (tiền ngân hàng)'
+            : noKho.has(Number(o.id)) ? 'Còn việc kho chưa gửi sang SX' : '';
+    if (l) giu.set(Number(o.id), l);
   }
+  for (;;) {
+    const sdtGiu = new Set(ung.filter((o) => giu.has(Number(o.id))).flatMap((o) => [o.customer_phone, o.parent_phone]));
+    const P = L.filter((s) => !coVi.has(s) && !sdtGiu.has(s));
+    const xoaDon = (d) => laUng.has(Number(d)) && !giu.has(Number(d));
+    const goiXoa = (g) => (g.order_id != null ? xoaDon(g.order_id) : P.includes(g.customer_phone));
+    let doi = false;
+    for (const o of ung) {
+      if (giu.has(Number(o.id))) continue;
+      const g = goiTheoId.get(Number(o.customer_package_id));
+      const l = !(X && o.created_at < X) && !P.includes(o.customer_phone) ? 'SĐT này được giữ lại cả số'
+        : soVi.some((r) => Number(r.order_id) === Number(o.id) && !P.includes(r.customer_phone)) ? 'Có dòng sổ ví của SĐT không dọn (ví phải khớp sổ)'
+        : g && !goiXoa(g) ? 'Lấy từ gói còn giữ'
+          : goi.some((m) => Number(m.order_id) === Number(o.id) && dungGoi.some((d) => Number(d.customer_package_id) === Number(m.id) && !xoaDon(d.id)))
+            ? 'Mua gói mà đơn giữ lại đang dùng' : '';
+      if (l) { giu.set(Number(o.id), l); doi = true; }
+    }
+    if (!doi) return { giu, P };
+  }
+}
+
+/** Chọn mọi dòng sẽ dọn. `q` = kết nối thường (liệt kê) hoặc giao dịch (dọn). Không ghi gì. */
+async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay, now) {
+  const vi = await q.query('SELECT phone, balance FROM pos_wallets WHERE balance <> 0');
+  const coVi = new Set(vi.map((v) => v.phone));
+  const ung = await q.query(`SELECT id, code, created_at, customer_phone, parent_phone, total, status, customer_package_id FROM pos_orders
+    WHERE ${X ? 'created_at < ?' : '0'}${L.length ? ` OR customer_phone IN (${dau(L)})` : ''} ORDER BY id`, [...(X ? [X] : []), ...L]);
+  const { giu, P } = await chiaGiu(q, ung, X, L, coVi, homNay);
+  const don = ung.filter((o) => !giu.has(Number(o.id)));
   const O = trong(don.map((o) => o.id));
   const ids = new Map(THU_TU_XOA.map((t) => [t, new Set()]));
   const gom = async (t, sql, args = []) => { for (const r of await q.query(`SELECT id FROM ${t} WHERE ${sql}`, args)) ids.get(t).add(Number(r.id)); };
@@ -105,11 +144,12 @@ async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay) {
   ].map((r) => String(r.code).toUpperCase()))];
   if (maGiam.length) await gom('pos_discount_codes', `UPPER(code) IN (${dau(maGiam)})`, maGiam);
 
+  // Điểm âm: CÙNG vị từ còn hạn với số dư thật (diemKhach.js BALANCE_SQL) — dòng hết hạn không tính.
   const diemChon = trong([...ids.get('pos_point_transactions')]);
-  const diemAm = (await q.query(`SELECT customer_phone AS phone,
-      SUM(CASE WHEN id IN ${diemChon} THEN 0 ELSE points END) AS con_lai FROM pos_point_transactions
-    WHERE customer_phone IN (SELECT customer_phone FROM pos_point_transactions WHERE id IN ${diemChon}) GROUP BY customer_phone`))
-    .filter((r) => Number(r.con_lai) < 0).map((r) => ({ phone: r.phone, con_lai: Number(r.con_lai) }));
+  const diem = await q.query(`SELECT customer_phone AS phone, SUM(CASE WHEN id IN ${diemChon} THEN 0 ELSE points END) AS con_lai,
+      SUM(CASE WHEN id IN ${diemChon} THEN points ELSE 0 END) AS mat FROM pos_point_transactions
+    WHERE (expires_at IS NULL OR expires_at > ?) AND customer_phone IN (SELECT customer_phone FROM pos_point_transactions WHERE id IN ${diemChon})
+    GROUP BY customer_phone`, [now]);
 
   const tieuChi = { truoc_ngay: X, sdt: P };
   const idTheoBang = Object.fromEntries(THU_TU_XOA.map((t) => [t, [...ids.get(t)].sort((a, b) => a - b)]).filter(([, a]) => a.length));
@@ -120,10 +160,15 @@ async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay) {
     tong_dong: Object.values(idTheoBang).reduce((s, a) => s + a.length, 0),
     don: don.map(({ id, code, created_at, customer_phone, total, status }) => ({ id, code, created_at, customer_phone, total, status })),
     tong_tien: don.reduce((s, o) => s + Number(o.total || 0), 0),
+    tong_diem_con_han: diem.reduce((s, r) => s + Number(r.mat || 0), 0),
     sdt: P,
-    giu_lai: { vi: vi.filter((v) => viLienQuan.has(v.phone)), don: giuDon },
-    diem_am: diemAm,
-    ma_xac_nhan: crypto.createHash('sha256').update(JSON.stringify({ tieuChi, idTheoBang })).digest('hex'),
+    giu_lai: {
+      vi: vi.filter((v) => viLienQuan.has(v.phone)),
+      sdt: L.filter((s) => !P.includes(s)),
+      don: ung.filter((o) => giu.has(Number(o.id))).map((o) => ({ code: o.code, created_at: o.created_at, customer_phone: o.customer_phone, ly_do: giu.get(Number(o.id)) })),
+    },
+    diem_am: diem.filter((r) => Number(r.con_lai) < 0).map((r) => ({ phone: r.phone, con_lai: Number(r.con_lai) })),
+    ma_xac_nhan: bam(JSON.stringify({ tieuChi, idTheoBang })),
     idTheoBang,
   };
 }
@@ -132,11 +177,11 @@ async function lietKe(than) {
   const homNay = getToday();
   const tc = docTieuChi(than, homNay);
   if (tc.loi) return tc;
-  const { idTheoBang, ...kq } = await chonDong({ query }, tc.tieuChi, homNay);
+  const { idTheoBang, ...kq } = await chonDong({ query }, tc.tieuChi, homNay, getNow());
   return kq;
 }
 
-/** Dọn trong MỘT giao dịch: chọn lại, so mã, chụp nguyên dòng, xoá, ghi nhật ký. Hỏng ở bất kỳ bước nào → không xoá gì. */
+/** Dọn trong MỘT giao dịch: chọn lại, so mã, chụp nguyên dòng, trả lượt mã, xoá, ghi nhật ký. Hỏng ở bất kỳ bước nào → không xoá gì. */
 async function donDuLieuThu(than, nguoi) {
   const homNay = getToday();
   const tc = docTieuChi(than, homNay);
@@ -144,7 +189,8 @@ async function donDuLieuThu(than, nguoi) {
   if (than.go_xac_nhan !== CHU_XAC_NHAN) return loi(400, 'CHU_XAC_NHAN_SAI', `Gõ đúng "${CHU_XAC_NHAN}" để dọn`);
   const tx = await beginTransaction();
   try {
-    const c = await chonDong(tx, tc.tieuChi, homNay);
+    const now = getNow();
+    const c = await chonDong(tx, tc.tieuChi, homNay, now);
     let tra = null;
     if (c.ma_xac_nhan !== than.ma_xac_nhan) tra = loi(409, 'DANH_SACH_DA_DOI', 'Dữ liệu đã đổi từ lúc liệt kê — liệt kê lại, tải lại danh sách rồi dọn');
     else if (c.diem_am.length) tra = loi(409, 'DIEM_AM', 'Có SĐT sẽ bị điểm âm — thêm số đó vào danh sách SĐT hoặc đổi ngày');
@@ -152,19 +198,23 @@ async function donDuLieuThu(than, nguoi) {
     if (tra) { await tx.rollback(); return tra; }
     const banChup = {};
     for (const [t, a] of Object.entries(c.idTheoBang)) banChup[t] = await tx.query(`SELECT * FROM ${t} WHERE id IN ${trong(a)} ORDER BY id`);
-    const goi = trong(c.idTheoBang.pos_customer_packages || []);
-    const boGoi = await tx.query(`SELECT id AS order_id, customer_package_id FROM pos_orders WHERE customer_package_id IN ${goi}
-      AND id NOT IN ${trong(c.idTheoBang.pos_orders || [])}`);
-    if (boGoi.length) await tx.run(`UPDATE pos_orders SET customer_package_id = NULL WHERE id IN ${trong(boGoi.map((r) => r.order_id))}`);
+    for (const o of banChup.pos_orders || []) await traLuotMa(tx, o);   // như xoá đơn (orders.js DELETE)
     for (const t of THU_TU_XOA) {
       const a = c.idTheoBang[t];
       if (!a) continue;
       const r = await tx.run(`DELETE FROM ${t} WHERE id IN ${trong(a)}`);
       if (r.changes !== a.length) throw new Error(`${t}: xoá ${r.changes}/${a.length} dòng`);
     }
+    const luu = JSON.stringify(banChup, (k, v) => (COT_BI_MAT.includes(k) && v != null ? '[ẩn]' : v));
+    const phan = [];
+    for (let i = 0; i < luu.length; i += PHAN) phan.push(luu.slice(i, i + PHAN));
     const nk = await tx.run(`INSERT INTO pos_sync_logs (type, record_count, details, status, created_by, created_at)
       VALUES ('don_thu', ?, ?, 'success', ?, ?)`,
-      [c.tong_dong, JSON.stringify({ tieu_chi: c.tieu_chi, so_dong: c.so_dong, bo_goi: boGoi, ban_chup: banChup }), nguoi, getNow()]);
+      [c.tong_dong, JSON.stringify({ tieu_chi: c.tieu_chi, so_dong: c.so_dong, so_phan: phan.length, bam_ban_chup: bam(luu) }), nguoi, now]);
+    for (const [i, p] of phan.entries()) {
+      await tx.run(`INSERT INTO pos_sync_logs (type, file_name, record_count, details, status, created_by, created_at)
+        VALUES ('don_thu_chup', ?, ?, ?, 'success', ?, ?)`, [`don_thu#${nk.lastInsertRowid}`, i + 1, p, nguoi, now]);
+    }
     await tx.commit();
     return { da_don: c.tong_dong, so_dong: c.so_dong, nhat_ky_id: nk.lastInsertRowid, ban_chup: banChup };
   } catch (e) {
