@@ -29,7 +29,7 @@ Chủ quán chọn **ngày X** (trước hôm nay) và / hoặc **danh sách SĐ
      nhật ký PIN, phiếu / lô kho, sổ nợ kho, sản phẩm, cài đặt, nhân viên (Q5a).
 - **Điểm âm:** phần ngày X có thể xoá dòng cộng mà để lại dòng trừ sau X → số dư âm. Máy tính trước; có số nào âm → liệt kê và **từ chối
   dọn** (409 `DIEM_AM`) cho tới khi chủ quán thêm số đó vào danh sách SĐT hoặc đổi ngày.
-- Gói bị xoá mà đơn giữ lại còn trỏ tới (`customer_package_id`) → đặt NULL (cùng cách xoá đơn `orders.js:1683`).
+- (Bỏ ở vòng sửa 1: "đặt NULL gói" — thay bằng giữ cả cụm, mục 7.)
 - Mã giảm của voucher / mã bill bị xoá (`pos_discount_codes` cùng `code` — `loyalty.js:134`, `signup-codes.js:355`) xoá theo.
 
 ## 3. Thiết kế — phương án
@@ -89,3 +89,11 @@ hồ sơ khi dọn theo ngày · đơn hôm nay giữ · ví ≠ 0 giữ · Đ�
   `pin_code`, `password`, `ma_bam` (GET `/sync/logs` mọi nhân viên đọc được — `sync.js:346`). Bản đủ cột chỉ trả về cho chủ quán tải.
 - Bài thử: sổ ví loại thật, đối soát `chayDoiSoat` trước–sau (E3), sao lưu export-all sau dọn (E4).
 - CHƯA làm (ngoài Phạm vi → Câu hỏi): số hoá đơn tiếp theo = COUNT (`settings.js:246–258`) — xoá hoá đơn thử làm số mới trùng số đã in.
+
+## 8. Sửa theo soát độc lập vòng 2 (01.11)
+- MỘT vị từ giữ đơn: dòng gắn đơn (điểm, sổ ví, gói, thẻ, mã bill) của SĐT khác chủ đơn — hoặc dòng sổ ví bất kỳ — mà số đó không dọn.
+- Trả lượt mã chỉ đơn `completed` (như `orders.js:1668`); nhật ký chụp dòng bị sửa (`sua_truoc`).
+- Dòng có order_id trỏ tới đơn đã xoá: không giữ gì, dọn được (theo SĐT và theo ngày).
+- Giữ cả số khi: gói của số đang được đơn không dọn dùng; số là mẹ của khách không xoá.
+- Hoá đơn năm nay: xoá hết hoặc không xoá (số kế tiếp = đếm — `settings.js:246–258`) → Q7 xong trong Phạm vi.
+- Két ngày thử đã đếm: liệt kê `ket_se_lech`.

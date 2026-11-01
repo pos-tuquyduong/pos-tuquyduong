@@ -136,6 +136,8 @@ là tạo lại mồ côi · NGUYÊN TẮC bảo mật — bản chụp dữ li�
 Thêm khi làm (đột biến lộ ra): luật "đơn chỉ chọn theo SĐT" dùng biểu thức ngày riêng → gom MỘT vị từ `theo_ngay` trong câu SQL.
 
 ## Câu hỏi (cho chủ quán — mỗi câu có đề xuất)
+- ~~Q7~~ — ĐÃ xử lý trong Phạm vi ở vòng sửa 2 (người soát vòng 2 gợi ý): công cụ xoá HẾT hoặc KHÔNG xoá hoá đơn năm nay — còn hoá đơn
+  năm nay ở đơn giữ thì đơn thử có hoá đơn năm nay cũng giữ (ca D13). Không cần sửa `settings.js`. Đề xuất cũ để tham khảo:
 - **Q7 — số hoá đơn.** Máy tính số hoá đơn kế tiếp bằng cách ĐẾM hoá đơn trong năm (`server/routes/settings.js:246–258`). Dọn xoá hoá đơn
   thử → đếm giảm → số mới có thể TRÙNG số đã in trên tờ hoá đơn của đơn còn giữ (xoá một đơn ở quầy cũng bị y như vậy từ trước).
   **Đề xuất:** sửa cách tính thành "số lớn nhất đã dùng + 1" — một phiếu nhỏ riêng (hoặc cho thêm `server/routes/settings.js` vào
@@ -144,3 +146,38 @@ Thêm khi làm (đột biến lộ ra): luật "đơn chỉ chọn theo SĐT" d�
 - **Q8 — dọn theo ngày chạm cả khách thật.** Chọn "trước ngày X" thì điểm / voucher / gói / thẻ phát sinh trong giai đoạn thử của khách
   THẬT (khách SX có hồ sơ) cũng bị dọn — hồ sơ, ví, sổ ví của họ thì giữ. **Đề xuất:** giữ như vậy (giai đoạn thử là thử) — bạn duyệt trên
   file danh sách trước khi gõ chữ. Muốn giữ điểm khách thật thì nói, mình đổi "theo ngày" chỉ dọn số không có hồ sơ.
+
+## Soát độc lập vòng 2 (agent phụ mới, chỉ đọc) — tóm tắt báo cáo
+KHÔNG ĐẠT — vòng sửa 1 đúng (kiểm lại trên code), còn 2 lỗi NẶNG mới, người soát chạy thử ra được:
+1. NẶNG — donThu.js BANG_THEO_DON + maGiam + chiaGiu chỉ canh sổ ví của số khác: khách THẬT B nhận mã bill in trên đơn thử → xoá đơn thử
+   xoá luôn điểm của B (order_id = đơn thử, signup-codes.js:251-256), mã bill B đã nhận, mã giảm của B (kể cả dòng SAU X). K4.
+2. NẶNG — donThu.js traLuotMa cho MỌI đơn xoá, kể cả đơn đã huỷ / hoàn (đã trả lượt ở orders.js:1500, refunds.js:172); xoá đơn ở quầy chỉ
+   trả khi completed (orders.js:1672-1674) → mã chung được thêm lượt, I13 có thể đỏ. K4.
+3. NHẸ — dòng điểm / sổ ví trỏ tới đơn đã xoá ở quầy → cả số bị giữ vĩnh viễn; theo ngày cũng không dọn (`order_id IS NULL`). K4/K5.
+4. NHẸ — gói không gắn đơn của số trong P bị xoá trong khi đơn số khác đang lấy từ gói; ke_hoach.md:32 hứa "đặt NULL" (K1).
+5. NHẸ — xoá hồ sơ số trong P không xét parent_phone của khách / đăng ký khác.
+6. NHẸ — dòng traLuotMa sửa không được chụp vào nhật ký.
+7. NHẸ — trang_thai.md chưa ghi npm test / --day-du / cong.js / báo cáo 7 mục; chưa có phép dò PRAGMA.
+NGHI NGỜ: két ngày thử đã đếm sẽ lệch · số thử có trên SX nhập lại · token App của số bị xoá · voucher phát trước X dùng trên đơn sau X ·
+cắt đôi cặp UTF-16 ở ranh giới phần nhật ký · Q8.
+NGHIỆM THU: 2/3 · thiếu E (lỗi 1, 2). Đơn giản: một vị từ "dòng gắn order_id thuộc SĐT không trong P"; coi order_id mồ côi là xoá được;
+lọc completed trước traLuotMa; Q7 làm được trong Phạm vi (giữ đơn có hoá đơn năm nay trừ khi xoá hết).
+BÀI HỌC: KHOÁ — ca "dòng con gắn đơn bị xoá nhưng thuộc SĐT KHÁC" cho mọi cột SĐT của bảng con · KHOÁ — chép phần bù của route có sẵn
+thì chép cả điều kiện bao quanh (status === 'completed') + ca đơn huỷ / hoàn · NGUYÊN TẮC K4 — dữ liệu do đường xoá cũ để lại (order_id
+mồ côi) là đầu vào hợp lệ · NGUYÊN TẮC — lời hứa trong kế hoạch phải là một ca thử hoặc xoá khỏi kế hoạch.
+
+## Vòng sửa 2 — xử lý từng lỗi
+| Lỗi | Xử lý | Bằng chứng |
+|---|---|---|
+| 1 mã bill khách thật | MỘT vị từ `khac(o)`: dòng gắn đơn (điểm, sổ ví, gói, thẻ, mã bill claimed / diem_nhan) của SĐT khác chủ đơn (hoặc sổ ví bất kỳ) mà số đó không dọn → giữ đơn | D3 "mã bill khách thật B"; BV-giu-so-khac |
+| 2 trả lượt 2 lần | chỉ đơn `completed` (như orders.js:1668) | E2 (đơn huỷ dùng CHUNG); BV-tra-luot-moi-don |
+| 3 mồ côi | ganDon chỉ xét đơn còn tồn tại; theo ngày dọn điểm có order_id mồ côi | D1 (T1 +50 mồ côi), D5 (CM); BV-mo-coi, BV-mo-coi-ngay |
+| 4 gói số khác dùng | gói của số trong danh sách mà đơn không dọn đang dùng → giữ cả số; bỏ lời hứa "đặt NULL" khỏi kế hoạch | D5 (G); BV-goi-so-khac |
+| 5 mẹ của khách | số là mẹ (pos_customers / pos_registrations.parent_phone) của khách không xoá → giữ cả số | D5 (M2); BV-me-cua-khach |
+| 6 dòng sửa | nhật ký `sua_truoc` chụp mã giảm + voucher trước traLuotMa | D6 "chụp dòng bị SỬA"; BV-sua-truoc |
+| 7 hồ sơ / PRAGMA | `BANG_KHONG_DON` + ca D14 dò PRAGMA mọi bảng có cột SĐT / order_id; kết quả npm test ghi dưới | D14; BV-bang-khong-don |
+| Q7 số hoá đơn | xoá hết hoặc không xoá hoá đơn năm nay | D13; BV-hoa-don-nam |
+| nghi: két | liệt kê `ket_se_lech` (màn + CSV) — không chặn, sổ đối soát không dọn (chủ quán chốt chỉ liệt kê) | D1 két; BV-ket |
+| nghi: UTF-16 | cắt phần không cắt đôi cặp thay thế | CHƯA KIỂM bằng ca (khó dựng tất định) |
+Thêm khi làm: vị từ "giữ cả số vì dòng gắn đơn còn" ban đầu tính cả mã bill → giữ oan T2 (mã bill T2 nhận trên đơn thật R) → loại mã bill
+khỏi vị từ đó (VS-ma-bill-giu-so bắt).

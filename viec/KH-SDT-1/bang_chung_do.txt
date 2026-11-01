@@ -51,3 +51,20 @@ SỐ CA cong_cu/thu_KHSDT1.js: 81
 
 Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (81 đạt · 0 hỏng) · TỔNG 32 đột biến · BẮT 31 · HỎNG 1 (neo cũ
 BV-giu-don-theo-so) → sửa neo, chạy riêng: BẮT 1. Tổng 32/32 BẮT.
+
+═══ Vòng sửa 2 (sau soát độc lập vòng 2 KHÔNG ĐẠT) — bài cong_cu/thu_KHSDT1.js bản 528530e, 87 ca ═══
+Trên bản vá vòng 1 8980369 (bản sao server/ + cong_cu nối): 55 đạt · 32 hỏng, đỏ đúng các lỗi vòng 2:
+  ✗ D3 đơn thử có mã bill khách thật B đã nhận điểm / ưu đãi → giữ lại (điểm + mã của B còn)          (lỗi 1)
+  ✗ E2 xoá đơn dùng mã → trả lượt mã CHỈ cho đơn completed (CHUNG 3 → 2, đơn đã huỷ không trả thêm) … — 1 available   (lỗi 2)
+  ✗ D5 giữ cả số: … (PM), … (G), … (M2); số chỉ còn dòng mồ côi (CM) xoá được — ["0900000003","0900000007", …   (lỗi 3, 4, 5)
+  ✗ D6 nhật ký chụp dòng bị SỬA trước khi trả lượt (mã CHUNG dùng 3, voucher DDR used) — {}                 (lỗi 6)
+  ✗ D13 còn hoá đơn năm nay ở đơn giữ (hôm nay) → đơn thử có hoá đơn năm nay cũng giữ, có lý do — ["ORD-20260825-001"]   (Q7)
+  ✗ D14 không bảng nào có cột SĐT / order_id mà vô chủ — kho_nha_cung_cap, … (bài học vòng 1: dò PRAGMA)
+  ✗ D1 liệt kê ngày thử đã đếm két (sổ đối soát không dọn) → két sẽ lệch: 2026-08-06                     (nghi ngờ két)
+Trên gốc 720d08d (bản 528530e): 7 đạt · 45 hỏng rồi sập ở bước đối soát (bản sao chỉ có server/) — ✗ D0 nạp được server/routes/don-thu.js, mọi ca D* 404.
+
+Kết quả trên code đã vá (HEAD việc): 87 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_KHSDT1.js: 87
+
+Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (87 đạt · 0 hỏng) · TỔNG 43 · BẮT 40 · HỎNG 3 (neo cũ: BV-giu-mua-goi,
+BV-giu-ca-so, BV-tra-luot-ma — code đổi chữ) → sửa neo, chạy riêng 3 tên: BẮT 3. Tổng 43/43 BẮT.
