@@ -165,3 +165,21 @@ quá khứ) · `VS-nguong-6-phut` · `BV-chong-trung` (khoá theo `Date.now()`) 
 7. **E dưới cổng `sepay`:** kế hoạch chạy lại các LUỒNG trong `thu_SEPAY1` (phương án A), không chạy nguyên 4 bài cũ dưới `sepay`
    (phương án B: thêm cờ argv `--cong sepay` cho từng bài cũ, đổi máy payOS giả + công thức ký → ~+40 dòng × 4 bài, vượt ngân sách thử 400).
    Chủ quán chọn ở Câu hỏi Q2.
+
+## 7. Sau khi có tài liệu (01.11) — chủ quán đã trả lời Q1–Q3; các điểm SỬA đè lên mục 0–6
+
+1. **Mục 0 đã có lời đáp** (`tai_lieu_sepay.md`): header `X-SePay-Signature: sha256=<hex>` + `X-SePay-Timestamp` (giây Unix); chuỗi ký =
+   `ts + "." + thân THÔ`; lệch > 300 giây → từ chối; trường `id` (khoá chống trùng `sepay:<id>`), `transferType` (`in`/`out`), `transferAmount`,
+   `code` (có thể `null`), `content`, `transactionDate` (`YYYY-MM-DD HH:mm:ss` giờ VN — cùng dạng `DANG_GIO` của payOS); "đã nhận" = HTTP 200
+   + `{"success": true}` — trùng đúng câu webhook payOS đang trả → hàm chung trả một kiểu cho cả hai. Sai chữ ký → 401 `CHU_KY_SAI`.
+   `express.raw` gắn cho riêng `/api/sepay/webhook`.
+2. **Q2 = A:** bài cũ KHÔNG sửa dòng nào (bỏ ý ghim `CONG_QR=payos` ở mục 6.4): mặc định đã là payOS, và nếu shell đặt `CONG_QR=sepay` thì bài cũ
+   chỉ ĐỎ oan (không thiếu khoá SePay → 503), không xanh oan. Không sửa bài cũ → không cần `## Bài thử cũ sửa` (cổng A11).
+3. **Q3 = mặc định payOS** — giữ như mục 2.
+4. **Không kiểm `accountNumber`** (tài liệu khuyên ở mục "bảo mật khác"): chữ ký HMAC đã chống báo giả; so số tài khoản thì một lệch định dạng
+   (dấu cách, số 0 đầu) là MỌI QR phải xác nhận tay. Tiền vào tài khoản khác của chính quán vẫn là tiền của quán. Ghi ở `cai_dat_sepay.md`.
+5. **Thêm (K4 — một khoản báo qua HAI cổng):** khi chủ quán quay về payOS mà webhook SePay còn bật, một lần chuyển khoản `TQD<n>` có thể được cả
+   payOS lẫn SePay báo. Báo tới sau gặp phiên đã chốt bằng cổng kia → ghi `chua_khop` câu "đã chốt bằng báo <cổng> … cùng một khoản báo qua hai
+   cổng: đối chiếu sao kê, KHÔNG hoàn" (khuôn câu "đã xác nhận tay … KHÔNG hoàn" sẵn có) — ca C14b. Không đổi CSDL.
+6. **Mã thanh toán:** tìm `TQD(\d{1,6})` không theo sau bởi chữ số, trong `code` rồi tới `content`, không phân biệt hoa thường.
+7. **`SEPAY_BIN` / `SEPAY_SO_TK` sai dạng** (BIN không đủ 6 chữ số; số TK ngoài 1–19 chữ/số) → coi như chưa cài (503) — không dựng QR hỏng.

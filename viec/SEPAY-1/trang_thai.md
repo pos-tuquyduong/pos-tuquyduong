@@ -11,6 +11,18 @@
   596c346 Merge pull request #60 from pos-tuquyduong/viec/KH-MUA-1
   ```
 
+## Bước 1 — làm tiếp (01.11.2026)
+
+- Nhánh `viec/SEPAY-1`; cây sạch. HEAD `f6663aa` · FETCH_HEAD `f6663aa` — bằng nhau, không kéo (hook mở phiên đã kéo `912576e → f6663aa`).
+- `git log --oneline -3`:
+  ```
+  f6663aa SEPAY-1: tai lieu SePay (Webhook + HMAC-SHA256) — chat lay tu developer.sepay.vn 01.11
+  5f4ef1b SEPAY-1: ke hoach cho duyet + trang thai (cau hoi: tai lieu SePay bi chan mang, bai cu duoi cong sepay, mac dinh cong tac)
+  912576e PHIEU: SEPAY-1
+  ```
+- Chủ quán trả lời 01.11: Q1 tài liệu ở `tai_lieu_sepay.md`; Q2 đồng ý phương án A; Q3 đồng ý mặc định payOS. Coi là duyệt kế hoạch → làm tiếp
+  từ bước 4. Chỉnh kế hoạch theo tài liệu: `ke_hoach.md` mục 7.
+
 ## Tiến độ
 
 - Bước 2 (đọc) xong · Bước 3 (kế hoạch) xong: `ke_hoach.md`, đã có agent phụ chỉ đọc soát 4 câu (sửa đè ở mục 6 của kế hoạch).
