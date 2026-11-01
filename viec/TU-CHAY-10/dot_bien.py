@@ -14,19 +14,26 @@ DB = [
     ('VS-A20-chi-tinh', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = cheDo === 'tinh' ? mucBaoMat(phieu) : null;",
      'TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)'),
     ('VS-A20-dat-mot-phan', 'tu_chay/cong.js', "/^SOÁT BẢO MẬT: ĐẠT\\s*$/u", "/^SOÁT BẢO MẬT: /u", 'TU-CHAY-10 A20 có + KHÔNG ĐẠT'),
-    ('BV-A20', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = null;",
+    ('VS-A20-tieu-de-sat-chu', 'tu_chay/cong.js', "/^#+\\s*soát\\s*bảo\\s*mật/iu", "/^##\\s+Soát bảo mật$/u",
+     'TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"'),
+    ('BV-A20','tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = null;",
      'TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)'),
 ]
 
 
+KHO = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+
 def dung(tar, dich):
+    # K5 (soát vòng 1): kiểm đích TRƯỚC khi xoá / giải nén, so với gốc kho (không so với thư mục đang đứng)
+    thuc = os.path.realpath(dich)
+    if thuc == KHO or thuc.startswith(KHO + os.sep):
+        sys.exit(f'thư mục tạm {thuc} nằm trong kho {KHO} — dừng, không ghi xuyên vào kho thật')
     if os.path.exists(dich):
         shutil.rmtree(dich)
     os.makedirs(dich)
     with tarfile.open(tar) as t:
         t.extractall(dich)
-    if os.path.realpath(dich).startswith(os.path.realpath(os.getcwd()) + os.sep):
-        sys.exit('thư mục tạm nằm trong kho — dừng (K5: không ghi xuyên vào kho thật)')
 
 
 def chay(dich):
