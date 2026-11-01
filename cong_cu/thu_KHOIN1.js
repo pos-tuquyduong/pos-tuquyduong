@@ -53,30 +53,31 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B0] Hàm thuần: khổ + số bản của từng loại phiếu kho (utils/inPhieu.js)');
   const goi = (ten, ...a) => { try { return inPhieu[ten](...a); } catch { return 'LỖI: chưa có hàm'; } };
-  k('B0 KHO_PHIEU_KHO = 80mm · a5 · a4', bang(inPhieu.KHO_PHIEU_KHO, ['80mm', 'a5', 'a4']), JSON.stringify(inPhieu.KHO_PHIEU_KHO));
+  k('B0 KHO_PHIEU_KHO = a5 · a4 (KHÔNG 80mm — chủ quán chốt 01.11)', bang(inPhieu.KHO_PHIEU_KHO, ['a5', 'a4']), JSON.stringify(inPhieu.KHO_PHIEU_KHO));
   k('B0 có đủ 4 loại phiếu kho PX · DH · PN · PS', !!inPhieu.LOAI_PHIEU_KHO && bang(Object.keys(inPhieu.LOAI_PHIEU_KHO), LOAI), JSON.stringify(inPhieu.LOAI_PHIEU_KHO));
   k('B0 tên khoá: in_phieu_<loai>_kho / _ban', goi('khoaInPhieu', 'PX', 'kho') === 'in_phieu_px_kho' && goi('khoaInPhieu', 'PS', 'ban') === 'in_phieu_ps_ban',
     `${goi('khoaInPhieu', 'PX', 'kho')} ${goi('khoaInPhieu', 'PS', 'ban')}`);
   {
     const mac = goi('docInPhieuKho', {}, 'PX');
-    k("B0 chưa có cài đặt → 80mm, 1 bản (hành vi cũ của phiếu kho: nút 'In 80 mm' đứng đầu)", mac?.kho === '80mm' && mac?.ban === 1, JSON.stringify(mac));
-    k('B0 settings undefined / null → mặc định, không sập', goi('docInPhieuKho', undefined, 'DH')?.kho === '80mm' && goi('docInPhieuKho', null, 'DH')?.ban === 1);
+    k("B0 chưa có cài đặt → A5, 1 bản", mac?.kho === 'a5' && mac?.ban === 1, JSON.stringify(mac));
+    k('B0 settings undefined / null → mặc định, không sập', goi('docInPhieuKho', undefined, 'DH')?.kho === 'a5' && goi('docInPhieuKho', null, 'DH')?.ban === 1);
     const s = { in_phieu_px_kho: 'a5', in_phieu_dh_kho: 'a4', in_phieu_pn_kho: '80mm', in_phieu_dh_ban: '2', in_phieu_ps_ban: '3' };
-    k('B0 mỗi loại đọc đúng khoá của nó (PX=a5, DH=a4, PN=80mm, PS=mặc định)',
-      goi('docInPhieuKho', s, 'PX')?.kho === 'a5' && goi('docInPhieuKho', s, 'DH')?.kho === 'a4' && goi('docInPhieuKho', s, 'PN')?.kho === '80mm' && goi('docInPhieuKho', s, 'PS')?.kho === '80mm');
+    k("B0 mỗi loại đọc đúng khoá của nó (PX=a5, DH=a4, PN='80mm' cũ → a5, PS=mặc định a5)",
+      goi('docInPhieuKho', s, 'PX')?.kho === 'a5' && goi('docInPhieuKho', s, 'DH')?.kho === 'a4' && goi('docInPhieuKho', s, 'PN')?.kho === 'a5' && goi('docInPhieuKho', s, 'PS')?.kho === 'a5');
+    k("B0 giá trị lưu cũ '80mm' đọc ra A5 cho cả 4 loại (không sửa dữ liệu)", LOAI.every((l) => goi('docInPhieuKho', { ['in_phieu_' + l.toLowerCase() + '_kho']: '80mm' }, l)?.kho === 'a5'));
     k('B0 số bản đọc đúng theo loại (DH=2, PS=3, PX=1)', goi('docInPhieuKho', s, 'DH')?.ban === 2 && goi('docInPhieuKho', s, 'PS')?.ban === 3 && goi('docInPhieuKho', s, 'PX')?.ban === 1);
-    k('B0 khổ lạ / hoa-thường lạ / 58mm / 40x30 → rơi về 80mm', ['a3', 'A4', '58mm', '40x30', '', 5].every((v) => goi('docInPhieuKho', { in_phieu_px_kho: v }, 'PX')?.kho === '80mm'));
+    k('B0 khổ lạ / hoa-thường lạ / 58mm / 40x30 / 80mm → rơi về A5', ['a3', 'A4', '58mm', '40x30', '80mm', '', 5].every((v) => goi('docInPhieuKho', { in_phieu_px_kho: v }, 'PX')?.kho === 'a5'));
     k('B0 số bản: ngay dưới 1 (0, -1) → 1; ngay trên 3 (4, 99) → 1 (giá trị hỏng về mặc định); 1 và 3 giữ', goi('docInPhieuKho', { in_phieu_px_ban: '0' }, 'PX')?.ban === 1
       && goi('docInPhieuKho', { in_phieu_px_ban: '-1' }, 'PX')?.ban === 1 && goi('docInPhieuKho', { in_phieu_px_ban: '4' }, 'PX')?.ban === 1 && goi('docInPhieuKho', { in_phieu_px_ban: '99' }, 'PX')?.ban === 1
       && goi('docInPhieuKho', { in_phieu_px_ban: '1' }, 'PX')?.ban === 1 && goi('docInPhieuKho', { in_phieu_px_ban: '3' }, 'PX')?.ban === 3);
     k('B0 số bản chữ / rỗng / thập phân → 1', ['abc', '', '2.5', null].every((v) => goi('docInPhieuKho', { in_phieu_px_ban: v }, 'PX')?.ban === 1));
-    k('B0 loại lạ → mặc định, không sập', goi('docInPhieuKho', s, 'ZZ')?.kho === '80mm');
+    k('B0 loại lạ → mặc định, không sập', goi('docInPhieuKho', s, 'ZZ')?.kho === 'a5');
   }
   {
     const t = goi('thuTuNutIn', 'a5');
-    k('B0 thứ tự nút: khổ mặc định đứng đầu, đủ 3 khổ, không trùng', Array.isArray(t) && t[0] === 'a5' && t.length === 3 && new Set(t).size === 3 && ['80mm', 'a5', 'a4'].every((x) => t.includes(x)), JSON.stringify(t));
-    k('B0 mặc định a4 → a4 đứng đầu; 80mm → 80mm đứng đầu (giữ thứ tự còn lại)', goi('thuTuNutIn', 'a4')?.[0] === 'a4' && bang(goi('thuTuNutIn', '80mm'), ['80mm', 'a5', 'a4']));
-    k('B0 khổ lạ truyền vào → vẫn ra đủ 3 nút, 80mm đứng đầu', bang(goi('thuTuNutIn', 'xyz'), ['80mm', 'a5', 'a4']));
+    k('B0 thứ tự nút: khổ mặc định đứng đầu, đủ 2 khổ, không trùng', Array.isArray(t) && t[0] === 'a5' && t.length === 2 && new Set(t).size === 2 && ['a5', 'a4'].every((x) => t.includes(x)), JSON.stringify(t));
+    k('B0 mặc định a4 → [a4, a5]; a5 → [a5, a4]', bang(goi('thuTuNutIn', 'a4'), ['a4', 'a5']) && bang(goi('thuTuNutIn', 'a5'), ['a5', 'a4']));
+    k("B0 khổ lạ / '80mm' cũ truyền vào → vẫn ra đủ 2 nút, A5 đứng đầu", bang(goi('thuTuNutIn', 'xyz'), ['a5', 'a4']) && bang(goi('thuTuNutIn', '80mm'), ['a5', 'a4']));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -111,11 +112,12 @@ async function main() {
     const docKhoa = async (khoa) => (await db.queryOne('SELECT value FROM pos_settings WHERE key = ?', [khoa]))?.value;
     const layTatCa = async () => { const r = await fetch(goc, { headers: { Authorization: 'Bearer ' + tkChu } }); return (await r.json()).data || {}; };
 
-    const hop = await dapSettings({ in_phieu_px_kho: 'a5', in_phieu_px_ban: '2', in_phieu_dh_kho: 'a4', in_phieu_pn_kho: '80mm', in_phieu_ps_kho: 'a5', in_phieu_ps_ban: '3' });
+    const hop = await dapSettings({ in_phieu_px_kho: 'a5', in_phieu_px_ban: '2', in_phieu_dh_kho: 'a4', in_phieu_pn_kho: 'a4', in_phieu_ps_kho: 'a5', in_phieu_ps_ban: '3' });
     const doc1 = await layTatCa();
     // lỗi
     const sai = {};
-    sai.kho = await dapSettings({ in_phieu_px_kho: '80mm', in_phieu_dh_kho: 'a3' });
+    sai.kho = await dapSettings({ in_phieu_px_kho: 'a5', in_phieu_dh_kho: 'a3' });
+    sai.kho80 = await dapSettings({ in_phieu_pn_kho: '80mm' });
     sai.kho58 = await dapSettings({ in_phieu_pn_kho: '58mm' });
     sai.rong = await dapSettings({ in_phieu_pn_kho: '' });
     sai.ban0 = await dapSettings({ in_phieu_pn_ban: '0' });
@@ -138,17 +140,18 @@ async function main() {
     noiLai();
 
     k('A hợp lệ → 200', hop.status === 200 && hop.j.success === true, `HTTP ${hop.status} ${JSON.stringify(hop.j)}`);
-    k('A lưu rồi đọc lại ĐÚNG (PX=a5/2, DH=a4, PN=80mm, PS=a5/3) — dùng chung mọi máy qua GET /settings',
-      doc1.in_phieu_px_kho === 'a5' && doc1.in_phieu_px_ban === '2' && doc1.in_phieu_dh_kho === 'a4' && doc1.in_phieu_pn_kho === '80mm' && doc1.in_phieu_ps_kho === 'a5' && doc1.in_phieu_ps_ban === '3',
+    k('A lưu rồi đọc lại ĐÚNG (PX=a5/2, DH=a4, PN=a4, PS=a5/3) — dùng chung mọi máy qua GET /settings',
+      doc1.in_phieu_px_kho === 'a5' && doc1.in_phieu_px_ban === '2' && doc1.in_phieu_dh_kho === 'a4' && doc1.in_phieu_pn_kho === 'a4' && doc1.in_phieu_ps_kho === 'a5' && doc1.in_phieu_ps_ban === '3',
       JSON.stringify(Object.fromEntries(Object.entries(doc1).filter(([x]) => x.startsWith('in_phieu_')))));
     k('A đọc lại qua hàm của màn hình ra đúng khổ + số bản (khép vòng lưu → đọc)', goi('docInPhieuKho', doc1, 'PX')?.kho === 'a5' && goi('docInPhieuKho', doc1, 'PX')?.ban === 2 && goi('docInPhieuKho', doc1, 'PS')?.ban === 3);
     k("A khổ lạ 'a3' → 400 CAI_DAT_KHONG_HOP_LE", sai.kho.status === 400 && sai.kho.j.code === 'CAI_DAT_KHONG_HOP_LE', `${sai.kho.status} ${JSON.stringify(sai.kho.j)}`);
-    k("A khổ nhiệt '58mm' KHÔNG hợp lệ cho phiếu kho (chỉ 80mm · a5 · a4) → 400", sai.kho58.status === 400 && sai.kho58.j.code === 'CAI_DAT_KHONG_HOP_LE', `${sai.kho58.status}`);
+    k("A khổ nhiệt '80mm' KHÔNG còn hợp lệ cho phiếu kho (chỉ a5 · a4) → 400", sai.kho80.status === 400 && sai.kho80.j.code === 'CAI_DAT_KHONG_HOP_LE', `${sai.kho80.status}`);
+    k("A khổ nhiệt '58mm' KHÔNG hợp lệ cho phiếu kho (chỉ a5 · a4) → 400", sai.kho58.status === 400 && sai.kho58.j.code === 'CAI_DAT_KHONG_HOP_LE', `${sai.kho58.status}`);
     k('A khổ rỗng → 400', sai.rong.status === 400, `${sai.rong.status}`);
     k('A số bản: ngay dưới (0) → 400, ngay trên (4) → 400, chữ → 400', sai.ban0.status === 400 && sai.ban4.status === 400 && sai.banChu.status === 400, `${sai.ban0.status}/${sai.ban4.status}/${sai.banChu.status}`);
     k('A số bản: ranh giới 1 và 3 → 200', ban1.status === 200 && ban3.status === 200, `${ban1.status}/${ban3.status}`);
     k('A loại lạ (zz_kho = a5, zz_ban = 2) và trường lạ (px_kich = 2; giá trị hợp lệ, chỉ tên khoá sai) → 400 (khoá tiền tố in_phieu_ chỉ nhận đúng dạng)', sai.loai.status === 400 && sai.truong.status === 400 && sai.loaiBan.status === 400, `${sai.loai.status}/${sai.truong.status}/${sai.loaiBan.status}`);
-    k("A sai một khoá thì KHÔNG ghi khoá nào: yêu cầu {px='80mm', dh='a3'} để px vẫn là 'a5' (giá trị trước đó)", sau.in_phieu_px_kho === 'a5' && sau.in_phieu_dh_kho === 'a4' && sau.in_phieu_pn_kho === '80mm' && !('in_phieu_zz_kho' in sau) && !('in_phieu_px_kich' in sau),
+    k("A sai một khoá thì KHÔNG ghi khoá nào: yêu cầu {px='a5', dh='a3'} để dh vẫn là 'a4' (giá trị trước đó)", sau.in_phieu_px_kho === 'a5' && sau.in_phieu_dh_kho === 'a4' && sau.in_phieu_pn_kho === 'a4' && !('in_phieu_zz_kho' in sau) && !('in_phieu_px_kich' in sau),
       `px=${sau.in_phieu_px_kho} dh=${sau.in_phieu_dh_kho} pn=${sau.in_phieu_pn_kho}`);
     k('A quản lý được cấp manage_settings thì ghi được khoá in phiếu; chưa cấp thì 403 (K5: chủ quán / quản lý cấu hình được)', qlGhi.status === 200 && quanLyChuaCap.status === 403, `HTTP ${qlGhi.status} ${JSON.stringify(qlGhi.j)} / chưa cấp ${quanLyChuaCap.status}`);
     k('A nhân viên thường KHÔNG ghi được (403) và giá trị không đổi', nvGhi.status === 403 && dhSau === 'a5', `HTTP ${nvGhi.status}, dh=${dhSau}`);
@@ -156,13 +159,13 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[B] Màn xem phiếu (XemPhieu.jsx) — đủ 3 khổ, khổ mặc định đứng đầu (đọc nguồn, bắt theo hành vi)');
+  muc('[B] Màn xem phiếu (XemPhieu.jsx) — ĐÚNG 2 khổ A5 / A4, khổ mặc định đứng đầu (đọc nguồn, bắt theo hành vi)');
   const xemTho = doc('client/src/pages/Kho/XemPhieu.jsx');
   const xem = boChuThich(xemTho);
   const kieuIn = (() => { const m = /const KHO_IN = \{([\s\S]*?)\};\n/.exec(xem); return m ? m[1] : ''; })();
   const khoaKieu = [...kieuIn.matchAll(/(?:'([^']+)'|"([^"]+)"|\b([A-Za-z0-9_]+))\s*:\s*['"`]@page/g)].map((x) => x[1] || x[2] || x[3]);
-  k('B KHO_IN có đủ 3 khổ 80mm · a5 · a4 (đúng tên khổ của KHO_PHIEU_KHO)', bang(khoaKieu, inPhieu.KHO_PHIEU_KHO || []), JSON.stringify(khoaKieu));
-  k('B @page: 80mm auto · A5 · A4', /size:\s*80mm auto/.test(kieuIn) && /size:\s*A5\b/.test(kieuIn) && /size:\s*A4\b/.test(kieuIn));
+  k('B KHO_IN có ĐÚNG 2 khổ a5 · a4 (đúng tên khổ của KHO_PHIEU_KHO, không 80mm)', bang(khoaKieu, inPhieu.KHO_PHIEU_KHO || []), JSON.stringify(khoaKieu));
+  k('B @page: A5 · A4, không còn 80mm auto', !/80mm/.test(kieuIn) && /size:\s*A5\b/.test(kieuIn) && /size:\s*A4\b/.test(kieuIn));
   k('B khổ A5 có lề (margin) riêng, không để lề mặc định cắt chữ', /size:\s*A5;\s*margin:\s*\d+mm/.test(kieuIn) && /size:\s*A4;\s*margin:\s*\d+mm/.test(kieuIn));
   {
     // cài đặt tải từ máy chủ → vào state → chính state đó đưa cho docInPhieuKho (không đưa {} hay hằng)
@@ -170,7 +173,7 @@ async function main() {
     const bien = tai && new RegExp('const \\[(\\w+), ' + tai[1] + '\\] = useState\\(').exec(xem);
     k('B màn đọc cài đặt từ máy chủ rồi chọn khổ qua docInPhieuKho (một hàm chung; đối số 1 là state vừa nạp từ GET /settings, đối số 2 là loại của phiếu đang xem)', !!bien && new RegExp('docInPhieuKho\\(' + bien[1] + ', dl\\?\\.phieu\\.loai\\)').test(xem), String(tai && tai[1]));
   }
-  k('B nút in dựng từ thuTuNutIn(khổ mặc định) — khổ mặc định đứng đầu, không viết cứng 3 nút', /thuTuNutIn\(/.test(xem) && !/inRa\('(a4|a5|80mm|k80)'\)/.test(xem));
+  k('B nút in dựng từ thuTuNutIn(khổ mặc định) — khổ mặc định đứng đầu, không viết cứng nút', /thuTuNutIn\(/.test(xem) && !/inRa\('(a4|a5|80mm|k80)'\)/.test(xem));
   k('B mọi nút in gọi cùng một hàm inRa (cùng đường ghi đếm lần in rồi mới in)', /inRa\(\s*\w+\s*\)/.test(xem) && /api\.post\(`\/kho\/phieu\/\$\{id\}\/in`\)/.test(xem));
   k('B nút khổ mặc định được tô nổi (btn-primary), các nút khác btn-outline', /btn-primary|btn-outline/.test(xem) && /i === 0 \? 'btn-primary' : 'btn-outline'|=== macDinh \? 'btn-primary' : 'btn-outline'|khoMacDinh \? 'btn-primary' : 'btn-outline'/.test(xem));
   k('B số bản: khối in được dựng đúng `ban` lần khi in (không in 1 tờ rồi nhắc người dùng bấm lại)', /Array\.from\(\{\s*length:\s*kho\s*\?\s*\w+\.ban\s*:\s*1\s*\}/.test(xem));
@@ -182,7 +185,7 @@ async function main() {
   k('B CSS in: các bản sau bản đầu HIỆN khi in (display: block trong @media print)', /@media print\s*\{[\s\S]*\.kho-ban:not\(:first-child\)\s*\{\s*display:\s*block/.test(css));
   k('B CSS màn hình: chỉ bản đầu hiện (các bản sau display: none ngoài @media print)', /^\.kho-ban:not\(:first-child\)\s*\{\s*display:\s*none/m.test(css));
   k('B CSS in: dòng bảng không tràn (xuống dòng khi dài, không cắt chữ): overflow-wrap hoặc word-break trong khối .kho-in', /@media print\s*\{[\s\S]*\.kho-in\s*\{[^}]*(overflow-wrap|word-break)/.test(css));
-  k('B nút khổ A5/A4/80mm có nhãn tiếng Việt rõ (mm / A5 / A4)', /In 80 mm|80 mm/.test(xem) && /A5/.test(xem) && /A4/.test(xem));
+  k('B nút khổ có nhãn In A5 / In A4 và KHÔNG còn nút 80 mm (cả màn xem phiếu lẫn CSS)', /In A5/.test(xem) && /In A4/.test(xem) && !/80\s?mm/i.test(xem) && !/80mm/.test(css));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B2] Khối "Cài đặt in phiếu" (pages/CaiDat/InPhieu.jsx) gắn vào Cài đặt');
@@ -218,6 +221,7 @@ async function main() {
   const ipv = doc('client/src/components/InvoicePreview.jsx');
   const inpPhieu = doc('client/src/components/InPhieu.jsx');
   k("D1 hoá đơn khách vẫn chỉ khổ nhiệt: KHO_BILL = 58mm · 80mm (KHÔNG thêm A4 / A5 cho hoá đơn khách)", bang(inPhieu.KHO_BILL, ['58mm', '80mm']));
+  k('B2 khối Cài đặt in phiếu chỉ có A5 / A4 (không nhãn 80 mm)', !/80\s?mm/i.test(cd) && /A5/.test(cd) && /A4/.test(cd));
   k('D1 khổ tem / phiếu pha chế sau thanh toán không đổi: KHO_TEM ["40x30"], KHO_PHIEU ["80mm","58mm"]', bang(inPhieu.KHO_TEM, ['40x30']) && bang(inPhieu.KHO_PHIEU, ['80mm', '58mm']));
   k('D1 bộ in sau thanh toán mặc định không đổi: bill 80mm/1, tem 40x30/1, phiếu pha chế 80mm/1', (() => { const m = inPhieu.docBoIn({}); return m.bill.kho === '80mm' && m.bill.ban === 1 && m.tem.kho === '40x30' && m.pha_che.kho === '80mm' && m.pha_che.ban === 1 && m.tu_mo === false; })());
   k("D2 hoá đơn 2 tờ HD-1 vẫn vẽ bằng HoaDonTo, tờ in lại giữ size={paperSize}", /export function HoaDonTo/.test(ipv) && /<HoaDonTo\b/.test(ip) && /size=\{paperSize\}/.test(ip));
@@ -225,7 +229,7 @@ async function main() {
   k('D4 nội dung phiếu kho không đổi: vẫn các khối A · Tổng cần lấy, B · Định lượng, C · Kết quả, chữ ký "Người lập"/"Người lấy hàng"', /A · Tổng cần lấy/.test(xemTho) && /B · Định lượng từng công thức/.test(xemTho) && /C · Kết quả/.test(xemTho)
     && /Người lấy hàng: ________ · Người pha: ________/.test(xemTho) && /Người lập: ________ · Người nhận \/ duyệt: ________/.test(xemTho));
   k('D4 màn xem phiếu vẫn là nơi DUY NHẤT gọi `/in` (đếm lần in) — khối cài đặt mới KHÔNG gọi', !/\/in`|\/in'/.test(cd) && /\/in`/.test(xem));
-  k("D5 mặc định XemPhieu khi chưa có cài đặt giữ 80mm đầu tiên: nút đầu là 'In 80 mm' như cũ (quầy đang dùng)", bang(goi('thuTuNutIn', goi('docInPhieuKho', {}, 'PX')?.kho), ['80mm', 'a5', 'a4']));
+  k("D5 chưa có cài đặt → nút đầu là 'In A5' (mặc định mới 01.11)", bang(goi('thuTuNutIn', goi('docInPhieuKho', {}, 'PX')?.kho), ['a5', 'a4']));
 
   console.log(`\nSỐ CA: ${dat + hong}`);
   console.log(`${dat} đạt · ${hong} hỏng`);
