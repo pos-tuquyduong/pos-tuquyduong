@@ -1,0 +1,68 @@
+# TU-CHAY-10 — đột biến cổng A20 (tu_chay/cong.js). Mỗi đột biến: (tên, file, chuỗi tìm, chuỗi thay, ca thu_cong.js phải bắt).
+# Cách chạy (cây HEAD giải nén từ `git archive -o <tar> HEAD`, thư mục làm việc ngoài kho):
+#   python3 viec/TU-CHAY-10/dot_bien.py <head.tar> <thư mục tạm> [tên …]
+# Luật (K3): ĐỐI CHỨNG (không đột biến) phải XANH; mỗi đột biến: chuỗi tìm khớp ĐÚNG 1 lần, bài thử ĐỎ VÀ có dòng ✗ của ca phải bắt
+# → BẮT; bài sập / không in dòng tổng ≠ BẮT.
+import os, re, shutil, subprocess, sys, tarfile
+
+DB = [
+    ('VS-A20-dong-dau', 'tu_chay/cong.js', "matchAll(/^SOÁT BẢO MẬT:.*$/gm)].pop();", "matchAll(/^SOÁT BẢO MẬT:.*$/gm)][0];",
+     'TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT'),
+    ('VS-A20-bo-ranh-gioi', 'tu_chay/cong.js', "(có|không)(?![\\p{L}\\p{N}])/iu", "(có|không)/iu", 'TU-CHAY-10 A20 chữ dính'),
+    ('VS-A20-bo-hoa-thuong', 'tu_chay/cong.js', "(?![\\p{L}\\p{N}])/iu.exec(baoMat)", "(?![\\p{L}\\p{N}])/u.exec(baoMat)",
+     'TU-CHAY-10 A20 K5 "- Có — tiền"'),
+    ('VS-A20-chi-tinh', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = cheDo === 'tinh' ? mucBaoMat(phieu) : null;",
+     'TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)'),
+    ('VS-A20-dat-mot-phan', 'tu_chay/cong.js', "/^SOÁT BẢO MẬT: ĐẠT\\s*$/u", "/^SOÁT BẢO MẬT: /u", 'TU-CHAY-10 A20 có + KHÔNG ĐẠT'),
+    ('BV-A20', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = null;",
+     'TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)'),
+]
+
+
+def dung(tar, dich):
+    if os.path.exists(dich):
+        shutil.rmtree(dich)
+    os.makedirs(dich)
+    with tarfile.open(tar) as t:
+        t.extractall(dich)
+    if os.path.realpath(dich).startswith(os.path.realpath(os.getcwd()) + os.sep):
+        sys.exit('thư mục tạm nằm trong kho — dừng (K5: không ghi xuyên vào kho thật)')
+
+
+def chay(dich):
+    r = subprocess.run(['node', 'tu_chay/thu_cong.js'], cwd=dich, capture_output=True, text=True, timeout=600)
+    ra = r.stdout + r.stderr
+    return r.returncode, ra, re.search(r'^thu_cong: \d+ phép · \d+ chỗ hỏng', ra, re.M) is not None
+
+
+def main():
+    tar, tam = sys.argv[1], sys.argv[2]
+    chon = sys.argv[3:]
+    d = os.path.join(tam, 'doi_chung')
+    dung(tar, d)
+    ma, ra, tong = chay(d)
+    print(f'ĐỐI CHỨNG: thoát {ma} → {"XANH" if ma == 0 and tong else "HỎNG — bỏ cả đợt"}')
+    if ma != 0 or not tong:
+        print(ra[-2000:])
+        sys.exit(1)
+    song = 0
+    for ten, f, tim, thay, ca in DB:
+        if chon and ten not in chon:
+            continue
+        d = os.path.join(tam, ten)
+        dung(tar, d)
+        p = os.path.join(d, f)
+        s = open(p, encoding='utf-8').read()
+        if s.count(tim) != 1:
+            print(f'{ten}: LẠC — chuỗi tìm khớp {s.count(tim)} lần')
+            song += 1
+            continue
+        open(p, 'w', encoding='utf-8').write(s.replace(tim, thay))
+        ma, ra, tong = chay(d)
+        bat = ma != 0 and tong and any(l.startswith('  ✗ ' + ca) for l in ra.split('\n'))
+        print(f'{ten}: {"BẮT" if bat else "SỐNG"} (thoát {ma}, ca "{ca}")')
+        song += 0 if bat else 1
+    sys.exit(1 if song else 0)
+
+
+main()
