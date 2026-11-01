@@ -118,6 +118,7 @@ app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-
 app.use('/api/pos/kho', require('./kho/duong'));   // KHO-1: mục kho (server/kho/)
 app.use('/api/pos/hoa-don', require('./routes/hoaDon'));   // HD-1: một cửa dữ liệu hoá đơn (chỉ đọc)
 app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên cấp mã đăng nhập App cho khách
+app.use('/api/pos/don-thu', require('./routes/don-thu'));   // KH-SDT-1: dọn dữ liệu thử trước khai trương (chỉ chủ quán)
 // KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)
 app.use('/api/kh', require('./routes/kh'));
 app.use('/api/kh', require('./routes/kh/loi').loiTangKh);   // KH-API-1 (G): JSON hỏng / thân quá lớn của /api/kh → { error, code }
