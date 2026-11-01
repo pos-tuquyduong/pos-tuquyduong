@@ -539,7 +539,7 @@ function baiCong() {
   }
   // Soát vòng 2: hai tiêu đề đúng dạng — cổng từng lấy cái ĐẦU ("không") rồi bỏ qua cái sau ("có") → phải đỏ, chỉ được MỘT mục
   ca('TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có)', [phieuMoi('\n## Soát bảo mật\nkhông — x\n\n## Soát bảo mật\ncó — tiền\n'),
-    ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' }]], 'ĐỎ', DO20('tinh', 'MỘT mục'));
+    ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' }]], 'ĐỎ', DO20('tinh', 'chỉ được MỘT mục ## Soát bảo mật', 'xoá tiêu đề thừa'));
   ca('TU-CHAY-10 A20 K5 không — …, trang_thai không có dòng', BM('không — chỉ sửa khung', ''), 'ĐẠT');
   ca('TU-CHAY-10 A20 K5 "- Có — tiền" (gạch đầu dòng, hoa) + ĐẠT', BM('- Có — tiền', DAT), 'ĐẠT', { che: 'tinh' });
   ca('TU-CHAY-10 A20 K5 PR thêm mục ban_cai lenh_soat_bao_mat.md + nguồn + chủ quán đã cài', [['PHIEU: X lenh', { 'viec/X/phieu.md':
