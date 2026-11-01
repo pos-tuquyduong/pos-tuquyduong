@@ -75,6 +75,7 @@ export default function DonThu() {
           {gl.vi.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại — ví còn tiền (xử lý tay): {gl.vi.map((v) => `${v.phone} ${tien(v.balance)}`).join(', ')}</div>}
           {gl.sdt.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại cả số (không xoá sạch): {gl.sdt.join(', ')}</div>}
           {gl.don.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại {gl.don.length} đơn: {gl.don.map((d) => `${d.code} (${d.ly_do})`).join('; ')}</div>}
+          {(ketQua.ket_se_lech || []).length > 0 && <div style={{ color: '#d97706' }}>Lưu ý: két các ngày {ketQua.ket_se_lech.join(', ')} đã đếm — dọn xong màn Đối soát ngày đó sẽ báo lệch (sổ đối soát thử không dọn).</div>}
           {ketQua.diem_am.length > 0 && <div style={{ color: '#dc2626' }}>KHÔNG dọn được — các số sau sẽ bị điểm âm, thêm vào ô SĐT rồi liệt kê lại: {ketQua.diem_am.map((d) => d.phone).join(', ')}</div>}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={taiDanhSach}>{daTaiDs ? '✓ ' : ''}Tải danh sách (CSV)</button>
