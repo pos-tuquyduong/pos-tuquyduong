@@ -67,7 +67,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
    cổng `chay` sẽ bắt — bài cũ sửa mà xanh trên gốc → cần `## Bài thử cũ sửa` (A11); không bài nào đỏ trên gốc → cần `## Bài thử đỏ`
    (A12) — gom MỘT câu hỏi đủ cả hai (LUOI-2 hỏi 2 lần); (ii) chạy `node tu_chay/cong.js tinh . <mốc>^ HEAD viec/$0` (mốc = commit
    `PHIEU: $0` đầu tiên, lệnh ở `/ra-soat` bước 1) để kiểm Phạm vi / A7 / A17 với file ĐÃ commit, dẫn NGUYÊN dòng ✗ liên quan vào
-   câu hỏi; `✗ [A19]` (chưa tới 11.4), `✗ [A8]` (việc sửa `tu_chay/`, chủ quán cài sau) và `✗ [A20]` (chưa tới 8b) ở bước này là bình thường, không hỏi.
+   câu hỏi; `✗ [A19]` (chưa tới 11.4), `✗ [A8]` (việc sửa `tu_chay/`, chủ quán cài sau) và `✗ [A20]` đòi SOÁT BẢO MẬT: ĐẠT (chưa tới 8b) ở bước này là bình thường, không hỏi;
+   `✗ [A20]` báo tiêu đề lệch, giá trị lạ hay mục lặp là lỗi phiếu → ghi `## Câu hỏi` ngay, dừng.
    `bang_chung_do.txt` có một dòng `SỐ CA <bài thử>: <N>` cho mỗi bài đỏ (N = tổng số ca bài in ở dòng tổng khi chạy trên code ĐÃ VÁ); đổi bài
    sau khi ghi → chạy lại trên gốc (bằng chứng đỏ) và trên code đã vá (số ca), chép lại cả hai (cổng A16).
    Đổi bài thử của chính bộ khung mà bài tự thử chính nó qua tiến trình con (vd `tu_chay/thu_cong.js`) — xanh trên gốc → ghi TRƯỚC vào
@@ -83,7 +84,7 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
 8. **Soát độc lập** bằng `/ra-soat`. KHÔNG ĐẠT → sửa, quay lại bước 6. Tối đa 3 vòng sửa
    (`so_vong_sua_toi_da` trong `cau_hinh.json`); quá thì ghi `## Câu hỏi` và dừng.
 8b. **Soát bảo mật** — chỉ khi phiếu có `## Soát bảo mật` mà dòng đầu (không rỗng) bắt đầu `có` (hoa thường như nhau, được có
-   `- ` / `* ` ở đầu — cùng cách đọc với cổng A20; tiêu đề viết lệch thì cổng đỏ, hỏi chủ quán sửa phiếu); không có mục
+   `- ` / `* ` ở đầu — cùng cách đọc với cổng A20; tiêu đề lệch, giá trị lạ hay mục lặp thì cổng đỏ → ghi `## Câu hỏi`, dừng); không có mục
    hoặc `không` → bỏ qua bước này. Chạy `/soat-bao-mat`; báo cáo chép NGUYÊN VĂN vào `trang_thai.md` mục `## Soát bảo mật`. Lỗi còn lại
    sau lọc = lỗi thật → vòng sửa như mọi lỗi (bước 4: bài thử đỏ trước, đột biến; rồi bước 5–8), rồi soát bảo mật lại. Tối đa 2 lần soát
    bảo mật — lần 2 còn lỗi thì ghi `## Câu hỏi` và dừng. Kết thúc bằng MỘT dòng riêng `SOÁT BẢO MẬT: ĐẠT` hoặc
