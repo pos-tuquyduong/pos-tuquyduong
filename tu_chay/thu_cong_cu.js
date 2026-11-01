@@ -503,8 +503,8 @@ function baiTaiLieu() {
   chac('TU-CHAY-10 B skill bước 4: [A20] cùng câu "bình thường" với [A19] / [A8]', /\[A19\][^]*\[A8\][^]*\[A20\][^.]*bình thường/.test(b4), b4.slice(0, 200));
   // Soát vòng 2: A20 báo tiêu đề lệch / giá trị lạ là lỗi PHIẾU — máy hỏi sớm (bước 4 và 8b), không gộp vào "bình thường"
   chac('TU-CHAY-10 B skill: A20 tiêu đề lệch / giá trị lạ / mục lặp → ## Câu hỏi sớm (bước 4 và 8b); chỉ "thiếu SOÁT BẢO MẬT: ĐẠT" là bình thường ở bước 4',
-    /\[A20\][^.]*SOÁT BẢO MẬT: ĐẠT/.test(b4) && /tiêu đề lệch[^.]*giá trị lạ[^.]*## Câu hỏi/.test(b4)
-    && /tiêu đề lệch[^.]*giá trị lạ[^.]*## Câu hỏi/.test(s8b), sau(b4, '[A20]', 200));
+    /\[A20\][^.]*SOÁT BẢO MẬT: ĐẠT/.test(b4) && /tiêu đề lệch[^.]*giá trị lạ[^.]*mục lặp[^.]*## Câu hỏi/.test(b4)
+    && /tiêu đề lệch[^.]*giá trị lạ[^.]*mục lặp[^.]*## Câu hỏi/.test(s8b), sau(b4, '[A20]', 200));
   const mpB = muc(mp, '## Soát bảo mật', '## Cấm');
   chac('TU-CHAY-10 D MAU_PHIEU: mục ## Soát bảo mật trước ## Cấm, dòng mẫu "có — <lý do…>" + "không — <lý do>"',
     mp.indexOf('## Soát bảo mật') >= 0 && mp.indexOf('## Soát bảo mật') < mp.indexOf('## Cấm') && /^có — </m.test(mpB) && mpB.includes('không — <lý do>'), mpB);
