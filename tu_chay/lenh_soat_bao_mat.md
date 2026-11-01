@@ -4,7 +4,7 @@ description: Soát bảo mật thay đổi của cả nhánh việc bằng subag
 
 <!-- Nguồn: tu_chay/lenh_soat_bao_mat.md (TU-CHAY-10). Chủ quán cài thành .claude/commands/soat-bao-mat.md bằng
      bash tu_chay/cai_dat.sh. Không sửa bản trong .claude/.
-     Lời nhắc tiếng Anh bên dưới chép nguyên văn từ anthropics/claude-code-security-review, file
+     Lời nhắc tiếng Anh bên dưới chép lại (bản lấy bằng WebFetch 01.11, chưa so từng byte) từ anthropics/claude-code-security-review, file
      .claude/commands/security-review.md — MIT License, Copyright (c) 2025 Anthropic. Chỉ thay phần lấy diff
      (bản gốc dùng origin/HEAD, máy mây không có ref đó) và thêm mục "Tiền lệ của kho này". -->
 
@@ -23,7 +23,8 @@ git diff <mốc>^ HEAD
 git status --short
 ```
 
-Thay `<MÃ>` và `<mốc>` bằng giá trị thật. Có thay đổi chưa commit thì đưa thêm `git diff`.
+Thay `<MÃ>` và `<mốc>` bằng giá trị thật. Có thay đổi chưa commit thì đưa thêm `git diff`. (Thêm `git log` so với
+`/ra-soat` vì bản gốc đưa khối COMMITS cho người soát.)
 
 **Bước 2 — tìm lỗ hổng.** Khởi chạy MỘT subagent độc lập (công cụ Agent, loại "general-purpose"), chỉ đọc: không sửa
 file, không commit. Đưa cho nó: tên nhánh, mốc, danh sách file đổi, danh sách commit, toàn bộ diff ở bước 1, mục
