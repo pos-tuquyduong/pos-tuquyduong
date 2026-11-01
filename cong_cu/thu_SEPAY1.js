@@ -304,8 +304,9 @@ async function main() {
     await khongPhien('C9 không có mã (code null, nội dung không TQD)', bao(p8, { code: null, content: 'chuyen tien tra sua' }));
     await khongPhien('C10 mã TQD không thuộc phiên nào', bao(p8, { code: 'TQD99999', content: 'TQD99999' }));
     await khongPhien('C10b mã dính thêm chữ số (TQD<mã>7) — không khớp nhầm phiên <mã>', bao(p8, { code: null, content: `CK TQD${p8.id}7 tra sua` }));
-    const r11 = await guiSepay(bao(p8, { code: null, content: `NGUYEN VAN A CK tqd${p8.id} tra sua` }));
-    k('C11 code null, mã kẹp giữa nội dung (chữ thường) → khớp, chốt phiên', daNhan(r11) && (await dongPhien(p8.id))?.nguon === 'sepay' && await ketQua(p8.id) === 'khop', moTa(r11));
+    const b11 = bao(p8, { code: null, content: `NGUYEN VAN A CK tqd${p8.id} tra sua` }), r11 = await guiSepay(b11);
+    const s11 = await db.queryOne('SELECT ket_qua FROM pos_payos_su_kien WHERE khoa = ?', ['sepay:' + b11.id]).catch(() => null);
+    k('C11 code null, mã kẹp giữa nội dung (chữ thường) → khớp, chốt phiên', daNhan(r11) && (await dongPhien(p8.id))?.nguon === 'sepay' && s11?.ket_qua === 'khop', moTa(r11) + ' · ' + s11?.ket_qua);
     const lech = async (ten, them, mau) => {
       const pl = (await taoPhien()).j.phien, d = await soDon();
       if (them === 'het_han') await luiPhien(pl.id);
@@ -396,12 +397,14 @@ async function main() {
   {
     const lo = nhatKy.filter((l) => l.includes(SP.khoa) || l.includes(KHOA.ck));
     k('X1 log máy chủ suốt bài không chứa khoá webhook SePay / khoá payOS', lo.length === 0, lo[0]);
-    const src = bo(fs.readFileSync(path.join(GOC, 'server', 'index.js'), 'utf8'));
-    const iRaw = src.indexOf("app.use('/api/sepay/webhook', express.raw({ type: '*/*', limit: '100kb' }))"), iJson = src.indexOf('app.use(express.json(');
-    k("T1 index.js: express.raw cho RIÊNG '/api/sepay/webhook' đứng TRƯỚC express.json", iRaw > 0 && iJson > 0 && iRaw < iJson);
+    // Không cắt chú thích bằng bo(): chuỗi '*/*' của express.raw mở một "/*" giả. Đòi đúng DÒNG mã (neo đầu dòng — dòng chú thích không khớp).
+    const src = fs.readFileSync(path.join(GOC, 'server', 'index.js'), 'utf8');
+    const viTri = (re) => { const m = re.exec(src); return m ? m.index : -1; };
+    const iRaw = viTri(/^app\.use\('\/api\/sepay\/webhook', express\.raw\(\{ type: '\*\/\*', limit: '100kb' \}\)\);/m), iJson = viTri(/^app\.use\(express\.json\(/m);
+    const iSepay = viTri(/^app\.use\('\/api\/sepay\/webhook', require\('\.\/routes\/thanh-toan'\)\.webhookSepay\);/m);
+    k("T1 index.js: express.raw cho RIÊNG '/api/sepay/webhook' đứng TRƯỚC express.json", iRaw >= 0 && iJson >= 0 && iRaw < iJson, `${iRaw} / ${iJson}`);
     k("T2 index.js: app.use('/api/sepay/webhook', require('./routes/thanh-toan').webhookSepay) trước express.static; webhook payOS vẫn gắn",
-      src.includes("app.use('/api/sepay/webhook', require('./routes/thanh-toan').webhookSepay)") && src.includes("app.use('/api/payos/webhook', require('./routes/thanh-toan').webhook)")
-      && src.indexOf('webhookSepay') < src.indexOf('app.use(express.static('));
+      iSepay >= 0 && viTri(/^app\.use\('\/api\/payos\/webhook', require\('\.\/routes\/thanh-toan'\)\.webhook\);/m) >= 0 && iSepay < viTri(/^app\.use\(express\.static\(/m));
     const kt = fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8');
     k("T3 kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_SEPAY1.js'", /^chayBaiThat\('cong_cu\/thu_SEPAY1\.js'\);/m.test(kt));
     let hd = '';
