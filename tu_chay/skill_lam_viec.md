@@ -82,7 +82,8 @@ Việc: `$0`. Có chữ `tiep` ở sau thì đang làm tiếp việc dở. Ngu�
 7. **Commit từng file** (`git add <file>` từng cái), mỗi bước một commit có mã việc ở đầu dòng.
 8. **Soát độc lập** bằng `/ra-soat`. KHÔNG ĐẠT → sửa, quay lại bước 6. Tối đa 3 vòng sửa
    (`so_vong_sua_toi_da` trong `cau_hinh.json`); quá thì ghi `## Câu hỏi` và dừng.
-8b. **Soát bảo mật** — chỉ khi phiếu có `## Soát bảo mật` mà dòng đầu (không rỗng) bắt đầu `có` (hoa thường như nhau); không có mục
+8b. **Soát bảo mật** — chỉ khi phiếu có `## Soát bảo mật` mà dòng đầu (không rỗng) bắt đầu `có` (hoa thường như nhau, được có
+   `- ` / `* ` ở đầu — cùng cách đọc với cổng A20; tiêu đề viết lệch thì cổng đỏ, hỏi chủ quán sửa phiếu); không có mục
    hoặc `không` → bỏ qua bước này. Chạy `/soat-bao-mat`; báo cáo chép NGUYÊN VĂN vào `trang_thai.md` mục `## Soát bảo mật`. Lỗi còn lại
    sau lọc = lỗi thật → vòng sửa như mọi lỗi (bước 4: bài thử đỏ trước, đột biến; rồi bước 5–8), rồi soát bảo mật lại. Tối đa 2 lần soát
    bảo mật — lần 2 còn lỗi thì ghi `## Câu hỏi` và dừng. Kết thúc bằng MỘT dòng riêng `SOÁT BẢO MẬT: ĐẠT` hoặc
