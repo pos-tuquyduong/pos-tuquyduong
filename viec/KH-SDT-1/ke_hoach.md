@@ -77,3 +77,15 @@ hồ sơ khi dọn theo ngày · đơn hôm nay giữ · ví ≠ 0 giữ · Đ�
 
 ## 6. Câu hỏi — không còn (Q1–Q6 đã trả lời 01.11). Lựa chọn an toàn máy tự làm (LUAT §6.6), ghi để chủ quán biết:
 đơn có phiên thanh toán và đơn hôm nay được giữ lại; điểm âm thì từ chối dọn.
+
+## 7. Sửa theo soát độc lập vòng 1 (01.11) — luật "giữ cả cụm hoặc xoá cả cụm"
+- Dọn theo ngày KHÔNG xoá dòng sổ ví nào; đơn có dòng sổ ví của SĐT không dọn → giữ (ví phải khớp sổ — đối soát I4, `reconcileWallet`).
+- Đơn giữ thêm: hôm nay (giờ hiện ở danh sách giữ), còn nợ kho SX (`pos_stock_pending`), lấy từ gói còn giữ, mua gói mà đơn giữ đang dùng.
+- SĐT trong danh sách có đơn bị giữ, hoặc có dòng điểm / sổ ví / gói / thẻ gắn đơn không dọn (vd trả hộ đơn số khác) → giữ CẢ SỐ
+  (`giu_lai.sdt`), đơn chỉ chọn theo số đó cũng giữ. Lặp tới khi đứng yên (`chiaGiu`).
+- Xoá đơn có mã → `traLuotMa` (cùng hàm xoá đơn `orders.js` dùng).
+- Điểm âm: cùng vị từ còn hạn với `BALANCE_SQL` (`diemKhach.js:9`).
+- Nhật ký: dòng `don_thu` chỉ số dòng + băm; bản chụp chia phần `don_thu_chup` ≤ 30.000 ký tự / ô (ô Excel của sao lưu ≤ 32.767), che
+  `pin_code`, `password`, `ma_bam` (GET `/sync/logs` mọi nhân viên đọc được — `sync.js:346`). Bản đủ cột chỉ trả về cho chủ quán tải.
+- Bài thử: sổ ví loại thật, đối soát `chayDoiSoat` trước–sau (E3), sao lưu export-all sau dọn (E4).
+- CHƯA làm (ngoài Phạm vi → Câu hỏi): số hoá đơn tiếp theo = COUNT (`settings.js:246–258`) — xoá hoá đơn thử làm số mới trùng số đã in.

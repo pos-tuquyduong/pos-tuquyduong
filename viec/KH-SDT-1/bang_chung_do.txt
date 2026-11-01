@@ -27,7 +27,27 @@ Kết quả trên gốc: 9 đạt · 58 hỏng (SỐ CA: 67). Đỏ đúng chỗ
 báo oan; E2 tổng tiền; E2 hồ sơ R còn) — đúng: gốc không xoá gì. Mỗi ca đó có đột biến làm nó đỏ trên code đã vá (dot_bien.py:
 VS-xoa-ngay-ho-so, VS-ngoai-giao-dich, ...).
 
-Kết quả trên code đã vá (HEAD việc): 67 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_KHSDT1.js: 67
+(vòng đầu — bản bài 9eb9d6e, 67 ca; đã thay bằng bản dưới.)
 
-Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (67 đạt · 0 hỏng) · TỔNG 23 đột biến · BẮT 23 · SỐNG 0 · HỎNG 0 · LẠC 0
+═══ Vòng sửa 1 (sau soát độc lập KHÔNG ĐẠT) — bài cong_cu/thu_KHSDT1.js bản 24471c8, 81 ca ═══
+Trên code GỐC 720d08d (python3 cong_cu/ban_sao_goc.py 720d08d <nháp>/goc_720d08d; node cong_cu/thu_KHSDT1.js --goc <nháp>/goc_720d08d):
+  7 đạt · 43 hỏng rồi "✗ bài thử sập — Cannot find module '../../cong_cu/gia_lap/bat_bien.js'" ở bước đối soát trước D6 (bản sao gốc chỉ
+  có server/). Mọi ca D0–D5, D8–D11 đã chạy: đỏ vì 404 (chưa có route). Đỏ đúng — không có route thì không ca dọn nào xanh được.
+Trên bản vá vòng đầu 522c157 (bản sao server/ + cong_cu nối): 36 đạt · 44 hỏng, gồm đúng các lỗi người soát nêu:
+  ✗ D1 theo ngày KHÔNG xoá dòng sổ ví nào (ví của R phải khớp sổ)
+  ✗ D3 đơn còn nợ kho SX → giữ lại · ✗ D3 đơn R mua bằng ví (sổ ví của số không dọn) → giữ lại · ✗ D3 đơn R lấy từ gói còn giữ → giữ lại
+  ✗ D10 không chặn oan: P7 lô đã hết hạn (số dư thật 0) … → [{"phone":"0900000006",…},{"phone":"0900000008","con_lai":-300}]
+  ✗ D2 … K (ví) và T3 (đơn hôm nay) KHÔNG nằm trong danh sách xoá sạch — ["0900000002","0900000007"]
+  ✗ D2 đơn: chỉ O2 (đơn cũ của T3 giữ theo số …) — ["ORD-20261002-001","ORD-20261020-001"]
+  ✗ E2 xoá đơn dùng mã → trả lượt mã (CHUNG 3 → 2) … — 3 used
+Trên bản vá giữa vòng 8f886c5: 60 đạt · 21 hỏng —
+  ✗ D5 số trả hộ (bằng ví) đơn của số ngoài danh sách → giữ cả số … — ["0900000003","0900000007"] / ["0900000002","0900000006","0900000009"]
+  ✗ E3 đối soát (chayDoiSoat ngày hôm nay + tháng 8 + tháng 10): KHÔNG thêm dòng lệch nào sau khi dọn — I4 ví 0900000009: số dư 0đ ≠ sổ -50.000đ
+E4 (sao lưu export-all sau dọn) và che bí mật trong nhật ký: bản 522c157 không tới được bước dọn (bị DIEM_AM oan của P7) → chứng minh
+bằng đột biến VS-chup-mot-o (một ô) và BV-che-bi-mat — cả hai BẮT.
+
+Kết quả trên code đã vá (HEAD việc): 81 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_KHSDT1.js: 81
+
+Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (81 đạt · 0 hỏng) · TỔNG 32 đột biến · BẮT 31 · HỎNG 1 (neo cũ
+BV-giu-don-theo-so) → sửa neo, chạy riêng: BẮT 1. Tổng 32/32 BẮT.
