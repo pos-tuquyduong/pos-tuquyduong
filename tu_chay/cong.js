@@ -73,6 +73,13 @@ function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "
   }
   return ra;
 }
+function mucBaoMat(phieu) { // TU-CHAY-10 A20: "## Soát bảo mật" → dòng không rỗng đầu tiên tới tiêu đề kế ('' = mục rỗng); không có mục → null
+  const dong = phieu.normalize('NFC').split('\n');
+  const i = dong.findIndex((d) => /^##\s+Soát bảo mật\s*$/.test(d.trim()));
+  if (i < 0) return null;
+  for (let j = i + 1; j < dong.length && !/^#/.test(dong[j]); j++) if (dong[j].trim()) return dong[j].trim();
+  return '';
+}
 
 function soCa(ra, chiCa = false) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử in (bỏ mã màu) — ba dạng đang có trong kho; không có → null
   // TU-CHAY-5 C2 (chủ quán chốt Q5) — chiCa: chỉ phần SỐ CA: "x/B ca người gác … · C phép khác" → B (thêm luật người gác là thêm
@@ -116,6 +123,17 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   const coCode = doi.some((f) => laCode(f.p));
   const mien = mucMien(phieu);
   if (mien && coCode) ghi.push('miễn bài thử đỏ (phiếu ## Bài thử đỏ): ' + mien);
+  // A20 (TU-CHAY-10) — phiếu có "## Soát bảo mật": dòng đầu bắt đầu có / không (hoa thường như nhau); "có" → dòng "SOÁT BẢO MẬT: …"
+  // CUỐI của trang_thai.md ở head phải là ĐẠT (skill bước 8b; lần soát sau thắng lần trước). Không có mục → không kiểm. Một chỗ cho tinh + chay.
+  const baoMat = mucBaoMat(phieu);
+  const coKhong = baoMat === null ? null : /^[-*]?\s*(có|không)(?![\p{L}\p{N}])/iu.exec(baoMat);
+  if (baoMat !== null && !coKhong) doLy('A20', `${P_PHIEU} ## Soát bảo mật: dòng đầu phải ghi "có — <lý do>" hoặc "không — <lý do>" (có hoặc không), đang là "${baoMat}"`);
+  else if (coKhong && coKhong[1].toLowerCase() === 'có') {
+    const cuoi = [...String(blob(thuMuc, head, `viec/${ma}/trang_thai.md`) || '').normalize('NFC').matchAll(/^SOÁT BẢO MẬT:.*$/gm)].pop();
+    if (!cuoi || !/^SOÁT BẢO MẬT: ĐẠT\s*$/u.test(cuoi[0])) {
+      doLy('A20', `phiếu ghi Soát bảo mật: có mà dòng "SOÁT BẢO MẬT: …" cuối của viec/${ma}/trang_thai.md ${cuoi ? `là "${cuoi[0].trim()}"` : 'chưa có'} — cần "SOÁT BẢO MẬT: ĐẠT" (skill bước 8b)`);
+    }
+  }
 
   if (cheDo === 'tinh') {
     // A7/A4 — phiếu, biên bản soát chỉ đổi ở commit "PHIEU: <MÃ>", và commit đó chỉ đụng viec/<MÃ>/
