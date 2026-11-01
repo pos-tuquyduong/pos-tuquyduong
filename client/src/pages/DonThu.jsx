@@ -48,14 +48,14 @@ export default function DonThu() {
     setXong(kq); setKetQua(null); setDaTaiDs(false); setDaTaiSaoLuu(false); setGo('');
   });
 
-  const gl = ketQua?.giu_lai || { vi: [], don: [] };
+  const gl = ketQua?.giu_lai || { vi: [], sdt: [], don: [] };
   return (
     <div>
       <header className="page-header"><h1>Dọn dữ liệu thử</h1></header>
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 820 }}>
         <div className="card" style={{ padding: '1rem' }}>
           Chạy <b>một lần</b> trước khai trương. Xoá đơn / điểm / voucher của giai đoạn thử. <b>Không</b> xoá: SĐT còn tiền ví, đơn có
-          tiền ngân hàng (QR), đơn hôm nay, đối soát, kho, sản phẩm, cài đặt.
+          tiền ngân hàng (QR), đơn hôm nay, đơn còn nợ kho, đơn trả bằng ví / lấy từ gói của khách không dọn, đối soát, kho, sản phẩm, cài đặt. Số nào còn đơn phải giữ thì giữ cả số.
         </div>
         <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <b>1. Chọn dữ liệu thử</b>
@@ -69,10 +69,11 @@ export default function DonThu() {
           {xong.da_don > 0 ? `Đã dọn ${xong.da_don} dòng. Bản chụp các dòng đã xoá đã tải về và lưu trong nhật ký #${xong.nhat_ky_id}.` : 'Không còn gì để dọn.'}
         </div>}
         {ketQua && <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <b>2. Xem danh sách — {ketQua.tong_dong} dòng, {ketQua.don.length} đơn ({tien(ketQua.tong_tien)})</b>
+          <b>2. Xem danh sách — {ketQua.tong_dong} dòng, {ketQua.don.length} đơn ({tien(ketQua.tong_tien)}) · {ketQua.tong_diem_con_han} điểm còn hạn sẽ mất</b>
           <div style={{ fontSize: '0.85rem' }}>{Object.entries(ketQua.so_dong).map(([b, n]) => `${b}: ${n}`).join(' · ') || 'Không có gì để dọn'}</div>
           {ketQua.sdt.length > 0 && <div>SĐT xoá sạch: {ketQua.sdt.join(', ')}</div>}
           {gl.vi.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại — ví còn tiền (xử lý tay): {gl.vi.map((v) => `${v.phone} ${tien(v.balance)}`).join(', ')}</div>}
+          {gl.sdt.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại cả số (không xoá sạch): {gl.sdt.join(', ')}</div>}
           {gl.don.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại {gl.don.length} đơn: {gl.don.map((d) => `${d.code} (${d.ly_do})`).join('; ')}</div>}
           {ketQua.diem_am.length > 0 && <div style={{ color: '#dc2626' }}>KHÔNG dọn được — các số sau sẽ bị điểm âm, thêm vào ô SĐT rồi liệt kê lại: {ketQua.diem_am.map((d) => d.phone).join(', ')}</div>}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>

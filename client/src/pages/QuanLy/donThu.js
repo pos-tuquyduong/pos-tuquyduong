@@ -15,9 +15,11 @@ const dong = (...cot) => cot.map(o).join(',');
 export function dungCsv(kq) {
   const ra = ['﻿' + dong('Phần', 'Mục', 'Ngày', 'SĐT', 'Số tiền / số dòng', 'Ghi chú')];
   for (const [bang, n] of Object.entries(kq.so_dong || {})) ra.push(dong('Số dòng sẽ xoá', bang, '', '', n, ''));
+  ra.push(dong('Tổng', 'đơn', '', '', kq.tong_tien, `${(kq.don || []).length} đơn`), dong('Tổng', 'điểm còn hạn sẽ mất', '', '', kq.tong_diem_con_han, ''));
   for (const d of kq.don || []) ra.push(dong('Đơn sẽ xoá', d.code, d.created_at, d.customer_phone, d.total, d.status));
   for (const s of kq.sdt || []) ra.push(dong('SĐT xoá sạch', '', '', s, '', ''));
   for (const v of (kq.giu_lai && kq.giu_lai.vi) || []) ra.push(dong('GIỮ LẠI — ví còn tiền', '', '', v.phone, v.balance, 'xử lý tay'));
+  for (const p of (kq.giu_lai && kq.giu_lai.sdt) || []) ra.push(dong('GIỮ LẠI — SĐT (không xoá sạch)', '', '', p, '', 'xem lý do ở ví / đơn của số này'));
   for (const d of (kq.giu_lai && kq.giu_lai.don) || []) ra.push(dong('GIỮ LẠI — đơn', d.code, d.created_at, '', '', d.ly_do));
   for (const d of kq.diem_am || []) ra.push(dong('CHẶN — điểm âm', '', '', d.phone, d.con_lai, 'thêm số này vào danh sách SĐT'));
   return ra.join('\r\n');
