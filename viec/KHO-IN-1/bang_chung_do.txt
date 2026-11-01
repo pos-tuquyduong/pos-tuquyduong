@@ -23,6 +23,19 @@ $ node cong_cu/thu_KHQUAY2.js --goc <bản chép của 7fc9bff>      (bài cũ s
   ✗ C5 KHO-IN-1 đổi seed invoice_default_size sang '80mm' (dữ liệu thật đang là a5 vẫn đọc ra 80mm, không sửa dữ liệu — ca B1)
 (thu_KHQUAY2: 3 hỏng · 52 đạt trên gốc; trên HEAD: 55 đạt · 0 hỏng.)
 
-═══ Dòng SỐ CA cho cổng A16 (số = dòng tổng trên code ĐÃ VÁ, HEAD d5f0538) ═══
-SỐ CA cong_cu/thu_KHOIN1.js: 66
+═══ ĐỢT 2 — phiếu sửa 01.11 (07de9bb): phiếu kho chỉ A5/A4, mặc định A5, bỏ 80mm ═══
+Bài thử cong_cu/thu_KHOIN1.js (commit a63565a) chạy trên code của 07de9bb (5 file phiếu kho/cài đặt lấy lại từ HEAD~1) → ĐỎ 16 ca, 53 đạt:
+  ✗ B0 KHO_PHIEU_KHO = a5 · a4 (KHÔNG 80mm)  — ["80mm","a5","a4"]
+  ✗ B0 chưa có cài đặt → A5, 1 bản  — {"kho":"80mm","ban":1}
+  ✗ B0 giá trị lưu cũ '80mm' đọc ra A5 cho cả 4 loại
+  ✗ B0 thứ tự nút … đủ 2 khổ  — ["a5","80mm","a4"]
+  ✗ A khổ nhiệt '80mm' KHÔNG còn hợp lệ cho phiếu kho (chỉ a5 · a4) → 400  — 200
+  ✗ B @page: A5 · A4, không còn 80mm auto
+  ✗ B nút khổ có nhãn In A5 / In A4 và KHÔNG còn nút 80 mm
+  ✗ B2 khối Cài đặt in phiếu chỉ có A5 / A4 (không nhãn 80 mm)
+  ✗ D5 chưa có cài đặt → nút đầu là 'In A5'
+  (+ 7 ca B0/A khác cùng nguồn). Sau vá (f7a1e20): 69 đạt · 0 hỏng.
+
+═══ Dòng SỐ CA cho cổng A16 (số = dòng ttổng trên code ĐÃ VÁ) ═══
+SỐ CA cong_cu/thu_KHOIN1.js: 69
 SỐ CA cong_cu/thu_KHQUAY2.js: 55
