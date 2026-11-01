@@ -73,12 +73,18 @@ function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "
   }
   return ra;
 }
-function mucBaoMat(phieu) { // TU-CHAY-10 A20: "## Soát bảo mật" → dòng không rỗng đầu tiên tới tiêu đề kế ('' = mục rỗng); không có mục → null
-  const dong = phieu.normalize('NFC').split('\n');
-  const i = dong.findIndex((d) => /^##\s+Soát bảo mật\s*$/.test(d.trim()));
-  if (i < 0) return null;
-  for (let j = i + 1; j < dong.length && !/^#/.test(dong[j]); j++) if (dong[j].trim()) return dong[j].trim();
-  return '';
+// TU-CHAY-10 A20: không có tiêu đề nào giống "Soát bảo mật" → null; tiêu đề giống mà sai dạng (hoa thường, ###, có đuôi) → { lech };
+// đúng "## Soát bảo mật" → { dau: dòng không rỗng đầu tiên tới tiêu đề kế ('' = mục rỗng) }. Bắt RỘNG rồi đòi đúng dạng (soát vòng 1:
+// đọc sát chữ thì tiêu đề lệch thành "không có mục" — cổng mở cửa).
+function mucBaoMat(phieu) {
+  const dong = phieu.normalize('NFC').split('\n').map((d) => d.trim());
+  const gan = dong.filter((d) => /^#+\s*soát\s*bảo\s*mật/iu.test(d));
+  if (!gan.length) return null;
+  const lech = gan.find((d) => !/^##\s+Soát bảo mật$/.test(d));
+  if (lech) return { lech };
+  const i = dong.findIndex((d) => /^##\s+Soát bảo mật$/.test(d));
+  for (let j = i + 1; j < dong.length && !/^#/.test(dong[j]); j++) if (dong[j]) return { dau: dong[j] };
+  return { dau: '' };
 }
 
 function soCa(ra, chiCa = false) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử in (bỏ mã màu) — ba dạng đang có trong kho; không có → null
@@ -126,8 +132,9 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   // A20 (TU-CHAY-10) — phiếu có "## Soát bảo mật": dòng đầu bắt đầu có / không (hoa thường như nhau); "có" → dòng "SOÁT BẢO MẬT: …"
   // CUỐI của trang_thai.md ở head phải là ĐẠT (skill bước 8b; lần soát sau thắng lần trước). Không có mục → không kiểm. Một chỗ cho tinh + chay.
   const baoMat = mucBaoMat(phieu);
-  const coKhong = baoMat === null ? null : /^[-*]?\s*(có|không)(?![\p{L}\p{N}])/iu.exec(baoMat);
-  if (baoMat !== null && !coKhong) doLy('A20', `${P_PHIEU} ## Soát bảo mật: dòng đầu phải ghi "có — <lý do>" hoặc "không — <lý do>" (có hoặc không), đang là "${baoMat}"`);
+  const coKhong = baoMat && 'dau' in baoMat ? /^[-*]?\s*(có|không)(?![\p{L}\p{N}])/iu.exec(baoMat.dau) : null;
+  if (baoMat && baoMat.lech) doLy('A20', `${P_PHIEU}: tiêu đề "${baoMat.lech}" phải viết đúng "## Soát bảo mật" (một dòng riêng; có / không ghi ở dòng dưới)`);
+  else if (baoMat && !coKhong) doLy('A20', `${P_PHIEU} ## Soát bảo mật: dòng đầu phải ghi "có — <lý do>" hoặc "không — <lý do>" (có hoặc không), đang là "${baoMat.dau}"`);
   else if (coKhong && coKhong[1].toLowerCase() === 'có') {
     const cuoi = [...String(blob(thuMuc, head, `viec/${ma}/trang_thai.md`) || '').normalize('NFC').matchAll(/^SOÁT BẢO MẬT:.*$/gm)].pop();
     if (!cuoi || !/^SOÁT BẢO MẬT: ĐẠT\s*$/u.test(cuoi[0])) {
