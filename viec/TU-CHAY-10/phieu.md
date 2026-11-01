@@ -34,7 +34,8 @@ dùng được cho kho App KH (chỉ khác cau_hinh.json một mục ban_cai).
   chép NGUYÊN VĂN báo cáo vào `trang_thai.md` mục `## Soát bảo mật`; lỗi còn lại sau lọc = lỗi thật → vòng sửa như mọi lỗi (bài thử đỏ trước,
   đột biến), rồi soát bảo mật lại; tối đa 2 lần soát bảo mật — còn lỗi thì `## Câu hỏi` và dừng. Kết thúc bằng MỘT dòng riêng
   `SOÁT BẢO MẬT: ĐẠT` (không còn lỗi) hoặc `SOÁT BẢO MẬT: KHÔNG ĐẠT — <số lỗi>` . Bước này nằm TRƯỚC bước 11.4 (HEAD ĐÃ KIỂM). Không có mục
-  hoặc `không` → bỏ qua bước 8b. Thêm đúng các dòng cần thiết, không đổi các bước khác.
+  hoặc `không` → bỏ qua bước 8b. Thêm đúng các dòng cần thiết, không đổi các bước khác — trừ câu ở bước 4 đang kể ✗ [A19] / ✗ [A8] là bình thường: thêm ✗ [A20]
+  vào câu đó (chủ quán 01.11, để bước 4 không dừng hỏi oan khi chưa tới bước 8b).
 - C **Cổng A20** (`tu_chay/cong.js`, cả `tinh` lẫn `chay` như các phép đọc phiếu khác): phiếu ở head có `## Soát bảo mật` →
   dòng đầu không rỗng phải bắt đầu `có` hoặc `không` (khác → ✗ A20 "ghi có hoặc không"); `có` → `viec/<MÃ>/trang_thai.md` ở head phải có một
   dòng đúng `^SOÁT BẢO MẬT: ĐẠT` (thiếu / KHÔNG ĐẠT → ✗ A20). Phiếu không có mục → không kiểm (phiếu cũ, việc đang chạy giữ nguyên).
@@ -56,6 +57,8 @@ dùng được cho kho App KH (chỉ khác cau_hinh.json một mục ban_cai).
 - tu_chay/MAU_PHIEU.md
 - tu_chay/cong.js
 - tu_chay/thu_cong.js
+- tu_chay/thu_nguoi_gac.js
+- tu_chay/thu_cong_cu.js
 - tu_chay/cau_hinh.json
 - tu_chay/PHIEN_BAN
 - tu_chay/THIET_KE.md
