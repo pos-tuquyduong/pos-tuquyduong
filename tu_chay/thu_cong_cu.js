@@ -484,6 +484,26 @@ function baiTaiLieu() {
     /đọc cả file script/.test(lc) && /cụm bí mật[^]*Edit\/Write[^]*không dùng lệnh bash/.test(sau(lc, 'cụm bí mật')), lc.slice(0, 120));
   chac('TU-CHAY-8 A7 skill bước 1.1: HEAD tách rời trỏ đúng commit của viec/<MÃ> → chạy `git checkout viec/$0` rồi đi tiếp, không dừng',
     /`git checkout viec\/\$0`[^]*đi tiếp, không dừng/.test(sau(b1, 'HEAD tách rời')), sau(b1, 'HEAD tách rời', 200));
+  // ── TU-CHAY-10 ── /soat-bao-mat (nguồn lời nhắc Anthropic, MIT), skill bước 8b, mẫu phiếu ## Soát bảo mật, câu bước 4 có [A20]
+  const sb = doc(path.join(__dirname, 'lenh_soat_bao_mat.md')) || '';
+  chac('TU-CHAY-10 A lenh_soat_bao_mat: frontmatter description; ghi nguồn anthropics/claude-code-security-review + MIT + Copyright (c) 2025 Anthropic',
+    /^---\ndescription: \S/.test(sb) && ['anthropics/claude-code-security-review', 'MIT', 'Copyright (c) 2025 Anthropic'].every((x) => sb.includes(x)));
+  chac('TU-CHAY-10 A lenh_soat_bao_mat: bước 1 lấy diff như /ra-soat (mốc PHIEU có neo), không dùng origin/HEAD',
+    sb.includes('--grep="^PHIEU: ') && sb.includes('([^A-Za-z0-9._-]|$)') && /git diff [^\n]*\^ HEAD/.test(sb) && !sb.includes('origin/HEAD'));
+  chac('TU-CHAY-10 A lenh_soat_bao_mat: giữ nguyên các nhóm của bản gốc + lọc báo nhầm bằng subagent riêng, bỏ điểm < 8; nộp SubagentHandback',
+    ['SECURITY CATEGORIES TO EXAMINE', 'HARD EXCLUSIONS', 'PRECEDENTS', 'SIGNAL QUALITY CRITERIA', 'CONFIDENCE SCORING', 'REQUIRED OUTPUT FORMAT',
+      'confidence less than 8', 'SubagentHandback'].every((x) => sb.includes(x)));
+  chac('TU-CHAY-10 A lenh_soat_bao_mat: mục "Tiền lệ của kho này" (webhook chữ ký + phát lại, số tiền máy khách, người khác, mã ngắn = XÁC THỰC, lộ khoá), không chữ POS',
+    /Tiền lệ của kho này/.test(sb) && ['chữ ký', 'phát lại', 'máy khách', 'người khác', 'XÁC THỰC', 'token'].every((x) => sau(sb, 'Tiền lệ của kho này', 1500).includes(x))
+    && !/\bPOS\b|Tứ Quý|pos-tuquyduong/.test(sb));
+  const s8b = muc(sk, '\n8b. **', '\n9. **');
+  chac('TU-CHAY-10 B skill bước 8b: giữa bước 8 và 9, chỉ khi ## Soát bảo mật bắt đầu "có", chạy /soat-bao-mat, tối đa 2 lần, dòng SOÁT BẢO MẬT: ĐẠT / KHÔNG ĐẠT, trước 11.4',
+    sk.indexOf('\n8. **') < sk.indexOf('\n8b. **') && ['## Soát bảo mật', '`có`', '/soat-bao-mat', 'NGUYÊN VĂN', 'Tối đa 2', 'SOÁT BẢO MẬT: ĐẠT',
+      'SOÁT BẢO MẬT: KHÔNG ĐẠT', '11.4'].every((x) => s8b.includes(x)), s8b.slice(0, 200));
+  chac('TU-CHAY-10 B skill bước 4: [A20] cùng câu "bình thường" với [A19] / [A8]', /\[A19\][^]*\[A8\][^]*\[A20\][^.]*bình thường/.test(b4), b4.slice(0, 200));
+  const mpB = muc(mp, '## Soát bảo mật', '## Cấm');
+  chac('TU-CHAY-10 D MAU_PHIEU: mục ## Soát bảo mật trước ## Cấm, dòng mẫu "có — <lý do…>" + "không — <lý do>"',
+    mp.indexOf('## Soát bảo mật') >= 0 && mp.indexOf('## Soát bảo mật') < mp.indexOf('## Cấm') && /^có — </m.test(mpB) && mpB.includes('không — <lý do>'), mpB);
 }
 
 // ═══ HOC-1 C · T2 của kiem_tra_truoc_khi_giao.js bỏ thư mục con ═══════════════
