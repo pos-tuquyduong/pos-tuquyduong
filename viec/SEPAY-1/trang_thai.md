@@ -52,6 +52,8 @@
 | `vietQr.js` CRC / QR động | `VS-crc-sai` · `VS-qr-tinh` | B2 · B1 |
 | `doiSoat.js` nguồn | `BV-nguon-doi-soat` | D1 |
 | `doiSoat.js` dòng "hai cổng" → CẦN XEM (vòng sửa 1) | `BV-hai-cong-can-xem` · `VS-can-xem-moi-khong-hoan` | D2 · D2 |
+| `thanh-toan.js` "hai cổng" chỉ khi cổng này chưa báo, hai chiều (vòng sửa 2) | `BV-hai-cong-da-bao` · `VS-hai-cong-mot-chieu` | C14c · C14d |
+| `thanh-toan.js` thân thiếu id / không lưu số dư (vòng sửa 2) | `BV-bao-thieu-id` · `BV-luu-so-du` | C9b · C5b |
 
 ## Câu hỏi
 
@@ -174,3 +176,18 @@ BÀI HỌC:
 - NGUYÊN TẮC (K1): hướng dẫn cài chạy được đúng thứ tự viết; soát chéo câu "chỉ làm X sau Y".
 - NGUYÊN TẮC (bảo mật): ghi nguyên thân báo bên ngoài thì bỏ trường nhạy cảm không dùng (số dư).
 ```
+
+## Vòng sửa 2 (01.11) — theo soát vòng 2
+
+- Lỗi NẶNG (K4): "hai cổng" chỉ khi phiên do cổng KIA chốt VÀ cổng đang báo chưa có dòng nào cho phiên đó (`congCuaKhoa` ở `congQr.js` — một chỗ
+  biết dạng khoá, `doiSoat.js` cũng dùng). Khách chuyển thêm lần thật → "phiên đang da_thu lúc tiền về" ở ĐỎ. Ca C14c + D2 (dòng ĐỎ); đột biến
+  `BV-hai-cong-da-bao`.
+- Chiều ngược (K3): ca C14d (SePay chốt, payOS báo sau → "đã chốt bằng báo SePay … hai cổng"; payOS báo lần 2 → "phiên đang da_thu"); đột biến
+  `VS-hai-cong-mot-chieu` (đúng đột biến M10 người soát dùng).
+- Thân báo thiếu id / không phải JSON: ca C9b; đột biến `BV-bao-thieu-id` (đúng M8).
+- Nghi ngờ bảo mật đã làm: `du_lieu` không lưu `accumulated` (số dư tài khoản quán) — ca C5b, đột biến `BV-luu-so-du`.
+- `cai_dat_sepay.md`: dòng `CONG_QR` khớp bước 3.1; bỏ "5–30 giây" (không căn cứ); 401 = chữ ký không qua (khoá sai hoặc lệch giờ > 5 phút);
+  nhắc cả câu "đã chốt bằng báo SePay"; nói rõ dòng ĐỎ "phiên đang da_thu" mới là tiền phải hoàn.
+- Không làm: `CONG_QR` chỉ dấu cách → 503 (an toàn, không đoán); gọn `xuLyTienVe` (ghi lại cho việc sau).
+- Bài thử 70 đạt · 0 hỏng (trước vòng sửa 2: 66 · 4); trên gốc 9 · 61. Đột biến TỔNG 32 · BẮT 32 (31 trong lượt chạy đủ + `VS-nguon-sepay-thanh-payos`
+  chạy riêng sau khi sửa neo — dòng mã xuống hàng làm neo HỎNG, K4). `npm test` PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
