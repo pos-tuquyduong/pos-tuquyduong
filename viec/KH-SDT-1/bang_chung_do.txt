@@ -1,0 +1,33 @@
+KH-SDT-1 — bằng chứng bài thử ĐỎ trên code gốc
+
+Bài: cong_cu/thu_KHSDT1.js (bản commit 9eb9d6e)
+Code gốc: 720d08d (cây trước mọi sửa code của việc này) — dựng bằng
+  python3 cong_cu/ban_sao_goc.py 720d08d <nháp>/goc_720d08d
+  node cong_cu/thu_KHSDT1.js --goc <nháp>/goc_720d08d
+(bản sao chỉ có server/ — client/src/DonThu.jsx, QuanLy/donThu.js không có trên gốc; App.jsx / QuanLy.jsx gốc cũng chưa có route / ô
+→ các ca D12 đỏ như nhau.)
+
+Kết quả trên gốc: 9 đạt · 58 hỏng (SỐ CA: 67). Đỏ đúng chỗ — chưa có route (404), chưa có màn:
+  ✗ D0 nạp được server/routes/don-thu.js
+  ✗ D9 nhân viên liệt kê → 403 CHI_CHU_QUAN  — 404 {}
+  ✗ D8 ngày X = hôm nay → 400 NGAY_KHONG_HOP_LE  — 404 {}
+  ✗ D1 đơn trước X: đúng O1, 31/08 23:59:59, O6 (...)  — []
+  ✗ D3 đơn có phiên thanh toán → giữ lại, có lý do  — []
+  ✗ D10 dọn khi có điểm âm → 409 DIEM_AM  — 404 {}
+  ✗ D2 đơn: chỉ O2 (đơn hôm nay của T2 giữ, đơn số khác không vào)  — []
+  ✗ D5 sai mã xác nhận → 409 DANH_SACH_DA_DOI  — 404
+  ✗ D11 ghi nhật ký hỏng → không 200  — 404
+  ✗ D6 200, da_don = tổng dòng đã liệt kê = số dòng bài gắn nhãn xoá  — 404 da_don=undefined liệt kê=undefined nhãn=38
+  ✗ E2 đơn hôm nay giữ, gói của nó bị dọn → customer_package_id NULL (như xoá đơn)  — 1
+  ✗ D7 liệt kê lại → 0 dòng  — 404 undefined
+  ✗ D12 nút Dọn ĐÓNG khi thiếu một điều kiện (...)
+  ✗ D12 server/index.js mount /api/pos/don-thu
+  (đủ 58 dòng ✗ — chạy lại lệnh trên để xem)
+9 ca xanh trên gốc là ca "không ghi gì / không đổi" (D8, D4, D5, D11 kho không đổi; D1 không chạm hồ sơ; D1 không dọn sổ tiền; D10 không
+báo oan; E2 tổng tiền; E2 hồ sơ R còn) — đúng: gốc không xoá gì. Mỗi ca đó có đột biến làm nó đỏ trên code đã vá (dot_bien.py:
+VS-xoa-ngay-ho-so, VS-ngoai-giao-dich, ...).
+
+Kết quả trên code đã vá (HEAD việc): 67 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_KHSDT1.js: 67
+
+Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (67 đạt · 0 hỏng) · TỔNG 23 đột biến · BẮT 23 · SỐNG 0 · HỎNG 0 · LẠC 0
