@@ -89,6 +89,9 @@ async function main() {
     return id;
   };
   const homNay = getNow();
+  // khoá ngoại đang BẬT (libsql): khuyến mãi + gói mẫu có thật, máy chủ phải xoá con trước cha
+  const KM = await them('pos_promotions', { code: 'KM_THU', name: 'KM thử', type: 'percent', value: 10 });
+  const GOI = await them('pos_packages', { code: 'GOI_THU', name: 'Gói thử', total_qty: 10 });
   const don = (code, phone, luc, xoa, them2 = {}) => them('pos_orders', { code, customer_phone: phone, total: 50000, payment_method: 'cash', status: 'completed', created_at: luc, ...them2 }, xoa);
   const diem = (phone, points, luc, orderId, xoa, type = 'earn') => them('pos_point_transactions', { customer_phone: phone, type, points, order_id: orderId, created_at: luc, expires_at: '2027-12-31T23:59:59' }, xoa);
 
@@ -99,7 +102,7 @@ async function main() {
   await them('pos_order_log', { order_id: O1, loai: 'tao', luc: '2026-08-06T10:00:00' }, true);
   await them('pos_refund_requests', { order_id: O1, customer_phone: T1 }, true);
   await them('pos_damage_logs', { order_id: O1, product_code: 'TRA', quantity: 1, reason: 'vỡ', action: 'doi' }, true);
-  await them('pos_promotion_usage', { promotion_id: 1, order_id: O1, customer_phone: T1 }, true);
+  await them('pos_promotion_usage', { promotion_id: KM, order_id: O1, customer_phone: T1 }, true);
   await them('pos_balance_transactions', { customer_phone: T1, type: 'payment', amount: -1, order_id: O1, created_at: '2026-08-06T10:00:00' }, true);
   await diem(T1, 500, '2026-08-06T10:00:00', O1, true);
   await them('pos_signup_codes', { code: 'TQDT1', order_id: O1, order_customer_phone: T1, claimed_at: '2026-08-07T09:00:00', claimed_phone: T1 }, true);
@@ -122,7 +125,7 @@ async function main() {
   await them('pos_order_items', { order_id: O2, product_name: 'Gói', quantity: 1, unit_price: 100000, total_price: 100000 }, true);
   await them('pos_balance_transactions', { customer_phone: T2, type: 'payment', amount: -100000, order_id: O2, created_at: '2026-10-20T09:00:00' }, true);
   await diem(T2, 1000, '2026-10-20T09:00:00', O2, true);
-  const GOI2 = await them('pos_customer_packages', { customer_phone: T2, package_id: 1, order_id: O2, total_qty: 10, created_at: '2026-10-20T09:00:00' }, true);
+  const GOI2 = await them('pos_customer_packages', { customer_phone: T2, package_id: GOI, order_id: O2, total_qty: 10, created_at: '2026-10-20T09:00:00' }, true);
   await them('pos_membership_purchases', { customer_phone: T2, tier_id: 1, tier_name: 'Vàng', order_id: O2, purchased_at: '2026-10-20T09:00:00', expires_at: '2027-10-20T09:00:00' }, true);
   await them('pos_registrations', { phone: T2, name: 'Thử 2' }, true);
   await them('pos_kh_ma_dang_nhap', { sdt: T2, ma_bam: 'z', nguon: 'gui', tao_luc: '2026-10-21T08:00:00', het_han: '2026-10-21T08:05:00' }, true);
@@ -146,7 +149,7 @@ async function main() {
   await them('pos_wallets', { phone: R, balance: 0 });
   await them('pos_balance_transactions', { customer_phone: R, type: 'topup', amount: 0, created_at: '2026-08-02T08:00:00' });
   await diem(R, 100, '2026-08-03T08:00:00', null, true, 'bonus');
-  await them('pos_customer_packages', { customer_phone: R, package_id: 1, total_qty: 5, created_at: '2026-08-04T08:00:00' });
+  await them('pos_customer_packages', { customer_phone: R, package_id: GOI, total_qty: 5, created_at: '2026-08-04T08:00:00' });
   await them('pos_membership_purchases', { customer_phone: R, tier_id: 1, tier_name: 'Vàng', purchased_at: '2026-08-04T08:00:00', expires_at: '2027-08-04T08:00:00' });
   const O4 = await don('ORD-20261015-001', R, '2026-10-15T10:00:00', false);
   await diem(R, 500, '2026-10-15T10:00:00', O4, false);
