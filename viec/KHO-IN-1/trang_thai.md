@@ -86,3 +86,7 @@ CHƯA KIỂM:   (1) chưa xem bằng mắt/máy in bố cục A5/A4 (tràn, cắ
 GIT:         git log --oneline -2 ở câu trả lời
 BÀI HỌC:     KHOÁ 1 (VS-CD-DOC-THO, đã làm) · NGUYÊN TẮC 1 (đề xuất cho KHUON_LOI.md K1: sửa hồ sơ việc cùng đợt khi phiếu đổi; A19 nên bắt hồ sơ còn chuỗi khổ cũ) · BỎ 0
 
+## Cổng PR (đợt 2)
+`node tu_chay/cong.js chay . 7fc9bff^ HEAD viec/KHO-IN-1` (HEAD 02e0251, cây sạch): ✓ CỔNG CHẠY ĐẠT.
+
+HEAD ĐÃ KIỂM: 02e0251
