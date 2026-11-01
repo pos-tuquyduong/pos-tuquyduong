@@ -34,7 +34,7 @@ DOT_BIEN = [
   ('VS-ma-dau-chuoi', 'sp', [(SP, r"const MA_PHIEN = /TQD(\d{1,6})(?!\d)/i;", r"const MA_PHIEN = /^TQD(\d{1,6})(?!\d)/i;", 1)], r'✗ C11 '),
   ('VS-ma-khong-chan-so', 'sp', [(SP, r"const MA_PHIEN = /TQD(\d{1,6})(?!\d)/i;", r"const MA_PHIEN = /TQD(\d{1,6})/i;", 1)], r'✗ C10b '),
   ('VS-ma-chi-code', 'sp', [(SP, " || MA_PHIEN.exec(String(b.content ?? ''))", '', 1)], r'✗ C11 '),
-  ('VS-nguon-sepay-thanh-payos', 'sp', [(TT, "nguon: 'sepay', boQua", "nguon: 'payos', boQua", 1)], r'✗ (A7|C5) '),
+  ('VS-nguon-sepay-thanh-payos', 'sp', [(TT, "nguon: 'sepay',   // không lưu số dư", "nguon: 'payos',   // không lưu số dư", 1)], r'✗ (A7|C5) '),
   ('BV-hai-cong', 'sp', [(TT, "sau.trang_thai === 'da_thu' && TEN_CONG[sau.nguon] && sau.nguon !== t.nguon", 'false', 1)], r'✗ C14b '),
   ('BV-5xx-tra-loi', 'sp', [(TT, "  if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);\n", '', 1)], r'✗ C16 '),
   ('VS-tra-202', 'sp', [(TT, 'await run(CAU_GHI, thamSo(ketQua, lyDo)); res.json({ success: true });', 'await run(CAU_GHI, thamSo(ketQua, lyDo)); res.status(202).json({ success: true });', 1)], r'✗ C8 '),
