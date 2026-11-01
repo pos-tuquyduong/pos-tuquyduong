@@ -1,7 +1,26 @@
 TU-CHAY-10 — bằng chứng bài thử ĐỎ trên code gốc (tu-chay 1.8.1, 9ce1a32), XANH trên code đã vá
 Cây gốc: git archive 9ce1a32 (giải nén trong nháp) + ba bài thử của HEAD chép đè; chạy `node tu_chay/<bài>` trong cây đó.
 
-== tu_chay/thu_cong.js trên GỐC ==
+== tu_chay/thu_cong.js trên GỐC — chạy lại sau soát vòng 1 (thêm 3 ca tiêu đề lệch, HEAD 3009890 trở đi) ==
+thu_cong phần 1/3: 47/141 đơn vị · 145 phép · 15 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT → dòng cuối thắng: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 chữ dính "cóthể": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 tiêu đề lệch "### Soát bảo mật": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong phần 2/3: 47/141 đơn vị · 123 phép · 12 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + KHÔNG ĐẠT: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 mục rỗng tới tiêu đề kế: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 tiêu đề lệch "## Soát bảo mật: có — tiền": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong phần 3/3: 47/141 đơn vị · 117 phép · 12 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 giá trị lạ: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong: 385 phép · 39 chỗ hỏng
+  ĐỎ — 39 chỗ hỏng
+Trên code đã vá (sau vòng 1): thu_cong: 385 phép · 0 chỗ hỏng — ✓ XANH.
+Bản GỐC thu_cong.js (9ce1a32) trên code đã vá (sau vòng 1): thu_cong: 337 phép · 0 chỗ hỏng — ✓ XANH.
+
+== tu_chay/thu_cong.js trên GỐC — lần đầu (trước soát vòng 1, giữ để đối chiếu) ==
 thu_cong phần 1/3: 46/138 đơn vị · 141 phép · 11 chỗ hỏng
   ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
   ✗ TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT → dòng cuối thắng: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
@@ -16,8 +35,7 @@ thu_cong phần 3/3: 46/138 đơn vị · 112 phép · 8 chỗ hỏng
 thu_cong: 372 phép · 27 chỗ hỏng
   ĐỎ — 27 chỗ hỏng
 (Các ca K5 — có + ĐẠT, KHÔNG ĐẠT rồi ĐẠT, không — …, "- Có — tiền", PR thêm mục ban_cai soat-bao-mat — XANH cả trên gốc: đúng ý, không bị chặn.)
-Trên code đã vá: thu_cong: 372 phép · 0 chỗ hỏng — ✓ XANH.
-Bản GỐC thu_cong.js (9ce1a32, ## Bài thử cũ sửa) chạy trên code đã vá: thu_cong: 337 phép · 0 chỗ hỏng — ✓ XANH.
+Trên code đã vá (lần đầu): thu_cong: 372 phép · 0 chỗ hỏng — ✓ XANH.
 
 == tu_chay/thu_nguoi_gac.js trên GỐC ==
 thu_nguoi_gac: 1011/1011 ca người gác đúng mã · 180 phép khác
@@ -37,6 +55,6 @@ thu_cong_cu: 116 phép · 7 chỗ hỏng
   ĐỎ — 7 chỗ hỏng
 Trên code đã vá: thu_cong_cu: 116 phép · 0 chỗ hỏng — ✓ XANH.
 
-SỐ CA tu_chay/thu_cong.js: 372
+SỐ CA tu_chay/thu_cong.js: 385
 SỐ CA tu_chay/thu_nguoi_gac.js: 1193
 SỐ CA tu_chay/thu_cong_cu.js: 116
