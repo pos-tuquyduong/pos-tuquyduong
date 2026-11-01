@@ -191,3 +191,63 @@ BÀI HỌC:
 - Không làm: `CONG_QR` chỉ dấu cách → 503 (an toàn, không đoán); gọn `xuLyTienVe` (ghi lại cho việc sau).
 - Bài thử 70 đạt · 0 hỏng (trước vòng sửa 2: 66 · 4); trên gốc 9 · 61. Đột biến TỔNG 32 · BẮT 32 (31 trong lượt chạy đủ + `VS-nguon-sepay-thanh-payos`
   chạy riêng sau khi sửa neo — dòng mã xuống hàng làm neo HỎNG, K4). `npm test` PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+
+## Soát độc lập — vòng 3 (agent general-purpose mới, 01.11) — chép báo cáo
+
+```
+KHÔNG ĐẠT
+Chạy lại: HEAD 70 · 0; gốc 912576e^ (git archive, chép thật cả node_modules) 9 · 61; npm test PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn);
+3 đột biến vòng sửa (BV-hai-cong-da-bao, VS-hai-cong-mot-chieu, BV-hai-cong-can-xem) BẮT, đối chứng xanh; bài thử riêng trong nháp trên bản sao HEAD.
+
+LỖI TÌM ĐƯỢC:
+- server/routes/thanh-toan.js:127-128 và 135-140 — chỉ nhánh PHIEN_DA_CHOT + da_thu (dòng 138) gộp "hai cổng". Ba nhánh khác ghi chua_khop không
+  xét cổng kia đã báo cùng khoản chưa: lệch tiền / hết hạn (127-128), "phiên đang huy" (140), và lần báo thứ hai sau khi cả hai cổng đã báo.
+  Chạy thật qua chayDoiSoat: S1 hết hạn, hai cổng báo → ĐỎ ×2; S2 lệch 1.000đ → ĐỎ ×2; S3 đã huỷ → ĐỎ ×2; S5 khách chuyển thêm lần thật, hai
+  cổng báo → ĐỎ ×2 "phiên đang da_thu". Một khoản thành hai dòng "phải hoàn / nạp". K4. NẶNG (tiền). Cách gọn: thay daBao bằng ghép cặp, áp cho
+  MỌI lý do chua_khop: "hai cổng" khi số dòng tiền vào (khop/chua_khop) của cổng kia cho mã này nhiều hơn số dòng của cổng đang báo.
+- viec/SEPAY-1/cai_dat_sepay.md:47-52, 59-60 — "dòng đỏ này mới là tiền phải hoàn", "lệch / hết hạn / huỷ → dòng đỏ để hoàn": trong cấu hình hai
+  cổng (hướng dẫn gọi là bình thường lúc cài) một khoản ra hai dòng đỏ → làm theo là hoàn hai lần. K1 + K4. NẶNG, đi cùng lỗi trên.
+- server/routes/thanh-toan.js:135 — daBao đếm MỌI dòng của cổng cho mã, kể cả khong_phien (tiền ra, báo trước khi có phiên). S7: SePay tiền ra mang
+  TQD6, payOS chốt, SePay báo đúng khoản → ĐỎ "phiên đang da_thu" thay vì CẦN XEM. Chỉ khi cài nhầm sự kiện tiền ra / mã trùng. K4/K5. NHẸ. Sửa:
+  lọc ket_qua IN ('khop','chua_khop').
+- server/utils/doiSoat.js:234 — dòng khong_phien "SePay báo tiền ra" hiện "về 25.000đ" — sai nghĩa. NHẸ.
+- server/utils/doiSoat.js:233 — xếp CẦN XEM bằng tìm cụm chữ trong ly_do; gọn hơn: ket_qua riêng (vd trung_cong). xuLyTienVe có biểu thức lồng 4
+  tầng (136-140) và tự gọi res. NHẸ.
+
+NGHI NGỜ:
+- Lỗi NẶNG chỉ thành tiền thật khi payOS có gửi báo cho khoản lệch / quá hạn / đã huỷ / chuyển thêm (code P3 sẵn có đã giả định payOS báo lệch và
+  quá hạn), chưa đọc tài liệu payOS.
+- S4: payOS đã chốt; webhook SePay bật SAU lần chuyển thứ nhất; khách chuyển thêm, chỉ SePay báo → CẦN XEM "hai cổng … KHÔNG hoàn" trong khi phải
+  hoàn. Hiếm.
+- Hai báo SePay hai giao dịch khác nhau tới CÙNG lúc → cả hai thấy daBao = false → cả hai "hai cổng". Hiếm.
+- Q5 (accountNumber), mã ngắn dính số: chủ quán chưa trả lời.
+
+NGHIỆM THU: 6/6 mục có bằng chứng · mục thiếu: không. Vẫn KHÔNG ĐẠT vì lỗi NẶNG ở D/C.
+CHƯA SOÁT ĐƯỢC: payOS có báo khoản lệch / quá hạn / huỷ / chuyển thêm không; trang SePay thật; chỉ chạy lại 3/32 đột biến; không chạy
+`node tu_chay/cong.js chay`; không thử điện thoại / tờ in thật.
+BÀI HỌC:
+- KHOÁ: gộp trùng giữa hai nguồn báo phải áp cho MỌI nhánh ghi cùng loại dòng, có ca "hai nguồn cùng báo" cho từng nhánh: lệch, hết hạn, huỷ,
+  chuyển thêm.
+- NGUYÊN TẮC (K4): sửa một nhánh của biểu thức lồng nhiều tầng → liệt kê mọi nhánh anh em, hỏi từng nhánh.
+- NGUYÊN TẮC (K1): câu "dòng ĐỎ = phải hoàn" phải đúng trong MỌI cấu hình hướng dẫn gọi là bình thường.
+- NGUYÊN TẮC (đồng bộ): nhóm trên màn tiền xếp theo mã (ket_qua), không tìm cụm chữ trong lý do.
+- NGUYÊN TẮC (K4): phép "đã có dòng X chưa" lọc đúng loại dòng.
+```
+
+## DỪNG — hết 3 vòng soát, còn lỗi tiền (LUAT_XAY_APP §6.5)
+
+Trạng thái lúc dừng: HEAD là commit trạng thái này; bài thử 70 · 0, đột biến 32 · 32, `npm test` PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn). Chưa chạy
+cổng `node tu_chay/cong.js chay`, chưa ghi `HEAD ĐÃ KIỂM`, chưa có báo cáo 7 mục — chờ chủ quán trả lời Q6.
+
+## Câu hỏi (vòng 3 — CHẶN)
+
+- **Q6 — Khi payOS và SePay CÙNG theo dõi một tài khoản, một khoản tiền có thể hiện HAI dòng đỏ ở Đối soát.**
+  *Chuyện gì:* trong lúc cài (bật webhook SePay khi quầy còn chạy payOS) hoặc sau khi quay về payOS mà chưa tắt webhook SePay, một lần khách chuyển
+  khoản bị CẢ HAI cổng báo. Khi khoản đó tạo được đơn, máy đã gộp đúng (một dòng vàng "KHÔNG hoàn"). Nhưng khi khoản đó KHÔNG tạo đơn (chuyển
+  lệch số, chuyển sau 10 phút, chuyển sau khi huỷ, khách chuyển thêm), máy ghi hai dòng ĐỎ — nhìn như hai khoản phải hoàn, dễ hoàn hai lần.
+  *Đề xuất của máy (làm thêm một vòng sửa, ~20 dòng máy chủ + ~6 ca thử):* gộp theo cặp cho MỌI loại dòng đỏ — báo thứ hai của cùng một khoản
+  (cổng kia đã báo cùng mã phiên, cùng số tiền, mà cổng này chưa) ghi một loại dòng riêng "trùng hai cổng", Đối soát xếp vào mục CẦN XEM theo loại
+  dòng đó (không dò câu chữ); chỉ đếm dòng tiền vào khớp phiên; sửa hướng dẫn cài cho đúng. Một khoản → một dòng đỏ, như khi chỉ có một cổng.
+  *Phương án đơn giản hơn nhưng dựa vào lời dặn (không khuyên):* giữ code, dặn trong hướng dẫn "không bao giờ để cả hai webhook cùng bật" — luật kho
+  là "bịt bằng KHOÁ, không bằng LỜI DẶN" nên máy không chọn.
+  *Bạn cần làm:* trả lời "Q6 đồng ý đề xuất" (máy làm vòng sửa 4 rồi soát lại) hoặc chọn khác. Các câu Q4, Q5 ở trên không chặn, trả lời khi rảnh.
