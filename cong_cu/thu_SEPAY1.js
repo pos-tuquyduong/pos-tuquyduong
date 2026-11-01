@@ -338,16 +338,16 @@ async function main() {
     const rE = await guiSepay(bao(pE)), sE = (await suKien(pE.id))[0] || {};
     k('E2a phiên SePay đã huỷ, tiền về → chua_khop "phiên đang huy", không đơn', daNhan(rE) && sE.ket_qua === 'chua_khop' && /huy/.test(sE.ly_do)
       && !(await dongPhien(pE.id))?.order_id, sE.ly_do);
-    for (const [ten, moc] of [['C16 kho bận lúc chốt → 409 KHO_BAN', 'ban'], ['C16b chết sau câu ghi sự kiện trong giao dịch → 5xx', 'chet']]) {
+    for (const [ma, ten, moc] of [['C16', 'kho bận lúc chốt → 409 KHO_BAN', 'ban'], ['C16b', 'chết sau câu ghi sự kiện trong giao dịch → 5xx', 'chet']]) {
       const ak = await khach(30000), pk = (await taoPhien({ sdt: ak.sdt, sl: 2 })).j.phien, dk = await soDon(), bk = bao(pk);
       if (moc === 'ban') mocBan = true; else mocChet = true;
       const r = await guiSepay(bk);
       mocBan = mocChet = false;
       const giua = [await soDon() - dk, (await suKien(pk.id)).length, (await dongPhien(pk.id))?.trang_thai, await soDu(ak.sdt)].join('/');
       const lai = await guiSepay(bk);
-      k(`${ten} (SePay gửi lại), chưa ghi sự kiện, phiên cho, ví nguyên`, (moc === 'ban' ? la(r, 409, 'KHO_BAN') : r.status >= 500) && !daNhan(r)
+      k(`${ma} ${ten} (SePay gửi lại), chưa ghi sự kiện, phiên cho, ví nguyên`, (moc === 'ban' ? la(r, 409, 'KHO_BAN') : r.status >= 500) && !daNhan(r)
         && giua === '0/0/cho/30000', moTa(r) + ' · ' + giua);
-      k(`${ten.slice(0, 4)} gửi lại cùng id → chốt được (không bị nuốt)`, daNhan(lai) && await soDon() === dk + 1 && await ketQua(pk.id) === 'khop', moTa(lai));
+      k(`${ma} gửi lại cùng id → chốt được (không bị nuốt)`, daNhan(lai) && await soDon() === dk + 1 && await ketQua(pk.id) === 'khop', moTa(lai));
     }
   });
 
