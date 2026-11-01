@@ -9,7 +9,7 @@ DB = [
     ('VS-A20-dong-dau', 'tu_chay/cong.js', "matchAll(/^SOÁT BẢO MẬT:.*$/gm)].pop();", "matchAll(/^SOÁT BẢO MẬT:.*$/gm)][0];",
      'TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT'),
     ('VS-A20-bo-ranh-gioi', 'tu_chay/cong.js', "(có|không)(?![\\p{L}\\p{N}])/iu", "(có|không)/iu", 'TU-CHAY-10 A20 chữ dính'),
-    ('VS-A20-bo-hoa-thuong', 'tu_chay/cong.js', "(?![\\p{L}\\p{N}])/iu.exec(baoMat)", "(?![\\p{L}\\p{N}])/u.exec(baoMat)",
+    ('VS-A20-bo-hoa-thuong', 'tu_chay/cong.js', "(?![\\p{L}\\p{N}])/iu.exec(baoMat.dau)", "(?![\\p{L}\\p{N}])/u.exec(baoMat.dau)",
      'TU-CHAY-10 A20 K5 "- Có — tiền"'),
     ('VS-A20-chi-tinh', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = cheDo === 'tinh' ? mucBaoMat(phieu) : null;",
      'TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)'),
