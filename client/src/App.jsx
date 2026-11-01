@@ -21,6 +21,7 @@ import InvoiceSettings from './pages/InvoiceSettings';
 import Kho from './pages/Kho';
 import QuanLy from './pages/QuanLy/QuanLy';
 import ThanhLoi from './pages/QuanLy/ThanhLoi';
+import ManKhach from './pages/ManKhach';   // MANKHACH-1
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -74,6 +75,9 @@ function AppRoutes() {
         <Route path="quan-ly" element={<QuanLy />} />
         <Route path="don-app" element={<ThanhLoi man="don-app"><DonApp /></ThanhLoi>} />   {/* KH-MUA-1 */}
       </Route>
+
+      {/* MANKHACH-1: máy tính bảng quay về phía khách — không cần đăng nhập nhân viên (dùng khoá ghép riêng) */}
+      <Route path="/man-khach" element={<ManKhach />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
