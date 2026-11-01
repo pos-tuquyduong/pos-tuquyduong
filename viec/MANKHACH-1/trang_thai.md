@@ -83,3 +83,14 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
 - Soát độc lập: vòng 1 KHÔNG ĐẠT → đã sửa 4 điểm (còn lại là câu hỏi 2–4). Chưa chạy lần soát vòng 2 — chat soát kiểm lại.
 
 HEAD ĐÃ KIỂM: 00cb63b
+
+## Chat soát + gộp (01.11.2026)
+- Chat soát lại vòng sửa 1 (thay vòng soát lại chưa chạy): ĐẠT. Cổng xác thực đủ: /quay/* cần token nhân viên; /may + thu hồi cần thêm
+  manage_settings; /trang-thai + /noi-dung cần khoá màn khách và chỉ đọc quầy đã ghép; chỉ POST /ghep công khai (giới hạn lần sai). Khoá lưu
+  dạng băm; dựng danh sách món dùng taoDon chiTinh + tinhThu (không ghi, không gọi SX); QR vẽ SVG chỉ từ số (không chèn chữ thô).
+- Soát bảo mật (chat, theo lời nhắc /security-review): không có lỗ chặn gộp. Rủi ro đã nhận cho khai trương: mã ghép dùng nhiều lần trong
+  10 phút; chống dò mã theo IP trong bộ nhớ (cả quán chung Wi-Fi bị khoá tạm 10 phút nếu ai đó nhập sai 5 lần).
+- Câu hỏi 1 (sao lưu): chat gộp main aed6128 (SAOLUU-2) và thêm pos_man_khach_quay, pos_man_khach_may vào BACKUP_TABLES + BANG_KHONG_KHOI_PHUC;
+  kèm pos_doi_soat_ghi vào BANG_KHONG_KHOI_PHUC (chủ quán đồng ý 01.11: sổ két / sao kê không khôi phục bằng file). Ca S1, S2 trong
+  thu_MANKHACH1 (52 ca). Câu 2–4: giữ như máy làm (đề xuất của chat; chủ quán muốn đổi thì phiếu nhỏ sau).
+HEAD ĐÃ KIỂM: 77d0c8f
