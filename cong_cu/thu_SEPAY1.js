@@ -285,6 +285,13 @@ async function main() {
       && pp.trang_thai === 'da_thu' && pp.nguon === 'sepay', JSON.stringify(pp).slice(0, 160));
     k('C5 sự kiện khop, khoa = sepay:<id giao dịch>, so_tien 20.000, ma_payos = mã phiên', sk.ket_qua === 'khop' && sk.khoa === 'sepay:' + b1.id
       && Number(sk.so_tien) === 20000 && Number(sk.ma_payos) === p.id, JSON.stringify(sk).slice(0, 160));
+    const duLieu = (() => { try { return JSON.parse(sk.du_lieu); } catch { return {}; } })();
+    k('C5b du_lieu giữ thân báo (id, content) nhưng BỎ accumulated (số dư tài khoản quán)', duLieu.id === b1.id && !!duLieu.content && !('accumulated' in duLieu),
+      String(sk.du_lieu).slice(0, 120));
+    const sk0 = await soSuKien(), than9 = JSON.stringify({ ...b1, id: undefined });
+    const r9a = await guiSepay(null, { tho: than9 }), r9b = await guiSepay(null, { tho: 'khong phai json' });
+    k('C9b thân đúng chữ ký nhưng thiếu id / không phải JSON → 400 BAO_KHONG_HOP_LE, không ghi dòng nào', la(r9a, 400, 'BAO_KHONG_HOP_LE')
+      && la(r9b, 400, 'BAO_KHONG_HOP_LE') && await soSuKien() === sk0, moTa(r9a) + ' / ' + moTa(r9b));
     // E2b: đơn chốt qua SePay hoàn trên quầy như đơn payOS — trả đúng phần ví 30.000 đã trừ, đơn refunded.
     const yc = await goi('POST', '/pos/refunds', { order_id: pp.order_id, reason: 'thử SEPAY-1' });
     const dy = await goi('POST', `/pos/refunds/${yc.j.refund_id}/approve`, {});
@@ -345,6 +352,19 @@ async function main() {
     k('C14b một khoản báo qua HAI cổng (payOS chốt trước, SePay báo sau) → không đơn thứ hai; dòng SePay chua_khop "hai cổng … KHÔNG hoàn"',
       la(w14b, 200) && daNhan(r14b) && await soDon() === d14b && s14b.length === 2 && s14b[0] === 'khop:null'
       && /^chua_khop:.*hai cổng.*KHÔNG hoàn/.test(s14b[1]), s14b.join(' | '));
+    // C14c: khách chuyển THÊM một lần thật (giao dịch SePay khác) → không phải "hai cổng" (SePay đã báo phiên này) → chua_khop thường (ĐỎ, phải hoàn).
+    const r14c = await guiSepay(bao(p14b)), s14c = (await suKien(p14b.id)).map((s) => s.ket_qua + ':' + s.ly_do);
+    k('C14c SePay báo lần 2 (giao dịch khác) cho phiên payOS đã chốt → chua_khop "phiên đang da_thu", KHÔNG phải "hai cổng"', daNhan(r14c)
+      && s14c.length === 3 && /^chua_khop:phiên đang da_thu/.test(s14c[2]), s14c.join(' | '));
+    // C14d: chiều ngược — SePay chốt trước, payOS báo sau (lúc cài: CONG_QR=payos, webhook SePay đã bật); payOS báo lần 2 → chua_khop thường.
+    datCong('payos');
+    const p14d = (await taoPhien()).j.phien;
+    datCong('sepay');
+    const r14d = await guiSepay(bao(p14d)), w14d = await guiPayos(p14d), w14e = await guiPayos(p14d);
+    const s14d = (await suKien(p14d.id)).map((s) => s.ket_qua + ':' + s.ly_do);
+    k('C14d SePay chốt trước, payOS báo sau → dòng payOS "đã chốt bằng báo SePay … hai cổng … KHÔNG hoàn"; payOS báo lần 2 → "phiên đang da_thu"',
+      daNhan(r14d) && la(w14d, 200) && la(w14e, 200) && (await dongPhien(p14d.id))?.nguon === 'sepay' && s14d.length === 3 && s14d[0] === 'khop:null'
+      && /^chua_khop:đã chốt bằng báo SePay.*hai cổng.*KHÔNG hoàn/.test(s14d[1]) && /^chua_khop:phiên đang da_thu/.test(s14d[2]), s14d.join(' | '));
     const pE = (await taoPhien()).j.phien;
     await goi('POST', `/pos/thanh-toan/phien/${pE.id}/huy`, {});
     const rE = await guiSepay(bao(pE)), sE = (await suKien(pE.id))[0] || {};
@@ -413,6 +433,7 @@ async function main() {
       && !ck('do').some((m) => /^SePay.*không thuộc phiên nào/.test(m)), ck('can_xem').slice(0, 3).join(' | '));
     k('D2 dòng "cùng một khoản báo qua hai cổng … KHÔNG hoàn" (C14b) ở CẦN XEM, KHÔNG ở ĐỎ (ĐỎ = phải hoàn / nạp)',
       ck('can_xem').some((m) => /hai cổng.*KHÔNG hoàn/.test(m)) && !ck('do').some((m) => /hai cổng/.test(m)), ck('do').filter((m) => /hai cổng/.test(m)).join(' | '));
+    k('D2 dòng SePay "phiên đang da_thu" (C14c — khách chuyển thêm lần thật) ở ĐỎ', ck('do').some((m) => /^SePay giao dịch .*phiên đang da_thu/.test(m)));
     k('D2 dòng "đã xác nhận tay … KHÔNG hoàn" (C14) GIỮ ở ĐỎ như trước (nghiệm thu E: đối soát cũ không đổi)', ck('do').some((m) => /đã xác nhận tay trước/.test(m)));
   });
 
