@@ -66,7 +66,10 @@
 | một khối chung cho tinh + chay | VS-A20-chi-tinh | có + thiếu dòng (chay) |
 | dòng ĐẠT phải đúng nguyên dòng | VS-A20-dat-mot-phan | có + KHÔNG ĐẠT |
 | bắt rộng tiêu đề rồi đòi đúng dạng (vòng 1) | VS-A20-tieu-de-sat-chu | tiêu đề lệch "## Soát Bảo Mật" |
+| hơn MỘT tiêu đề → `{ lap }` (vòng 2) | VS-A20-lay-tieu-de-dau | hai tiêu đề ## Soát bảo mật |
+| câu báo riêng cho mục lặp (vòng 4) | VS-A20-cau-lap-chung | hai tiêu đề ## Soát bảo mật |
 | gỡ cả phép | BV-A20 | có + thiếu dòng (tinh) |
+| skill 8b / bước 4 ghi "mục lặp" (vòng 4, đột biến tay trên bản sao) | xoá "hay mục lặp" khỏi skill bước 4 | thu_cong_cu "A20 tiêu đề lệch / giá trị lạ / mục lặp" |
 - Lần 1 (trước vòng 1, 6 đột biến): ĐỐI CHỨNG XANH; VS-A20-dong-dau, VS-A20-bo-ranh-gioi, VS-A20-bo-hoa-thuong, VS-A20-chi-tinh,
   VS-A20-dat-mot-phan, BV-A20: BẮT cả 6.
 - Đột biến DB trong `thu_cong.js` (tắt A20 → ca thành ĐẠT): 4 ca (thiếu dòng tinh, thiếu dòng chay, giá trị lạ, tiêu đề lệch hoa).
@@ -223,3 +226,153 @@ BÀI HỌC:
   MẬT: ĐẠT" (bình thường) với "tiêu đề lệch, giá trị lạ hay mục lặp" (lỗi phiếu → `## Câu hỏi`, dừng); 8b ghi cùng ý.
 - Không làm: nghi ngờ "không — <lý do>" của mẫu được nhận (phiếu C không đòi lý do); START ANALYSIS của bản gốc giữ để không đổi lời
   nhắc (bước 2–4 tiếng Việt nói rõ phiên chính làm gì); `server/moi.js` trong ca K5 là lỗ có sẵn của ca cũ.
+
+## Đột biến — lần 3 (sau vòng sửa 2, HEAD 2567e2e, `dot_bien.py` chép nguyên kết quả)
+```
+ĐỐI CHỨNG: thoát 0 → XANH
+VS-A20-dong-dau: BẮT (thoát 1, ca "TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT")
+VS-A20-bo-ranh-gioi: BẮT (thoát 1, ca "TU-CHAY-10 A20 chữ dính")
+VS-A20-bo-hoa-thuong: BẮT (thoát 1, ca "TU-CHAY-10 A20 K5 "- Có — tiền"")
+VS-A20-chi-tinh: BẮT (thoát 1, ca "TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)")
+VS-A20-dat-mot-phan: BẮT (thoát 1, ca "TU-CHAY-10 A20 có + KHÔNG ĐẠT")
+VS-A20-tieu-de-sat-chu: BẮT (thoát 1, ca "TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"")
+VS-A20-lay-tieu-de-dau: BẮT (thoát 1, ca "TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật")
+BV-A20: BẮT (thoát 1, ca "TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)")
+```
+
+## Soát độc lập vòng 3 (`/ra-soat`, vòng cuối) — báo cáo nguyên văn
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ, không lỗi nào đụng tiền, điểm, ví hay bảo mật)
+
+Tóm lại: hai lỗi của vòng 2 đã sửa đúng ở phần code. Cổng `mucBaoMat` giờ chỉ nhận MỘT mục. Skill bước 4 và 8b đã tách "đòi SOÁT BẢO MẬT: ĐẠT" (bình thường) với "lỗi phiếu" (hỏi). Mình tự chạy lại: thu_cong 390 · 0, thu_cong_cu 117 · 0, thu_nguoi_gac 1011/1011 · 182, npm test "Qua hết" (thoát 0). `cong.js tinh` chỉ còn ✗ [A8] và ✗ [A19], hai cái này lúc này là bình thường. Trong 60 phiếu ở kho, không phiếu nào bị chặn oan. Còn hai lỗi nhẹ về hồ sơ và bài thử chữ: kết quả đột biến sau vòng sửa 2 chưa được ghi, và một phép chữ có tên rộng hơn phần máy kiểm thật. Theo LUAT §6.5, đây là vòng sửa 4 do chat soát thay.
+
+LỖI TÌM ĐƯỢC:
+- viec/TU-CHAY-10/trang_thai.md:60-73 và :159-163, :217-225 — hồ sơ chưa ghi kết quả lần chạy dot_bien.py sau vòng sửa 2. Câu "đối chứng xanh + 8/8 BẮT" chỉ có trong lời người làm, trong kho không có dòng nào: grep "8/8" chỉ khớp :194, mà dòng đó là NGHIỆM THU của bản soát vòng 2. Bảng "chỗ vá → đột biến" (:62-70) cũng thiếu hàng cho đột biến mới VS-A20-lay-tieu-de-dau (dot_bien.py:18-19, ca thu_cong.js:541). Tên đột biến chỉ được nhắc trong câu văn ở :220. Không có bản ghi thì không ai kiểm lại được rằng đột biến vá lỗi vòng 2 thật sự bị BẮT. Khuôn K3/K1 (A17/A18 đòi bảng + kết quả). NHẸ. Cách sửa: thêm hàng `| hơn MỘT tiêu đề → lech (vòng 2) | VS-A20-lay-tieu-de-dau | hai tiêu đề ## Soát bảo mật |` và mục "Đột biến — lần 3" ghi ĐỐI CHỨNG + 8 dòng BẮT, chép nguyên văn từ lần chạy.
+- tu_chay/thu_cong_cu.js:505-507 — tên phép ghi "tiêu đề lệch / giá trị lạ / **mục lặp** → ## Câu hỏi sớm", nhưng regex chỉ đòi `tiêu đề lệch[^.]*giá trị lạ[^.]*## Câu hỏi`. Chữ "mục lặp" không được kiểm ở cả b4 lẫn s8b. Xoá "hay mục lặp" khỏi skill_lam_viec.md:71 và :87 thì phép vẫn xanh. Đúng khuôn K3 "tên ca nói một đằng, máy kiểm một nẻo" (P26b M6). NHẸ. Cách sửa: thêm `mục lặp` vào hai regex, ví dụ `/tiêu đề lệch[^.]*giá trị lạ[^.]*mục lặp[^.]*## Câu hỏi/`.
+- tu_chay/cong.js:84 với :137 — với hai tiêu đề đúng dạng, thông báo in ra là `tiêu đề "## Soát bảo mật / ## Soát bảo mật (2 tiêu đề — chỉ được MỘT mục)" phải viết đúng "## Soát bảo mật" (một dòng riêng; …)`. Câu này bảo người đọc viết lại cho đúng một tiêu đề vốn đã đúng, và không nói tiêu đề thừa nằm ở đâu: trong chú thích hay trong khối mã. Cổng vẫn đỏ đúng. Chỉ có lời dẫn gây hiểu nhầm cho chủ quán / chat khi sửa phiếu. NHẸ (dễ đọc, không mở cửa). Cách sửa: `lech` của nhánh lặp mang câu riêng, ví dụ `{ lech, lap: true }`, và :137 in "chỉ được MỘT mục ## Soát bảo mật (kể cả trong chú thích / khối mã)".
+
+NGHI NGỜ:
+- skill_lam_viec.md:66-71 — câu "✗ [A20] báo tiêu đề lệch … → ## Câu hỏi ngay" nằm trong nhánh (ii). Nhánh này chỉ chạy "Trước khi xin chủ quán sửa phiếu" (:66). Ở luồng bình thường, không cần xin sửa phiếu thì bước 4 không chạy `cong.js tinh`, nên phiếu ghi giá trị lạ chỉ lộ ra ở 8b (:86-87), tức là sau khi đã làm xong code và /ra-soat. Vậy "hỏi sớm" chỉ sớm hơn 11.4, chưa phải sớm thật. Phiếu B chỉ cho đổi câu ở bước 4, nên muốn kiểm sớm thật ở bước 2/3 là việc sau. Không tính là lỗi.
+- skill:86 viết "dòng đầu bắt đầu `có`". Cổng (cong.js:136) còn đòi ranh giới chữ, nên "cóthể" là giá trị lạ. Skill chỉ nói "cùng cách đọc với cổng A20" chứ không nêu ranh giới. Hai cách diễn đạt cho một vị từ (K4 BAN-HANG-1). Chiều sai này an toàn, vì máy sẽ soát thừa rồi cổng đỏ.
+- cong.js:82 — một dòng trong chú thích HTML hay khối mã của phiếu mà bắt đầu bằng `## Soát bảo mật` thì giờ bị đếm là mục lặp và cổng đỏ. Đỏ đúng chiều an toàn. Grep `^\s*#+\s*so[áa]t\s*b[ảa]o\s*m[ậa]t` (không phân biệt hoa thường) trên viec/ chỉ khớp viec/TU-CHAY-10/phieu.md:82. Cả 60 tiêu đề phiếu đều có dạng `# <MÃ> —`, nên tiêu đề dòng 1 không khớp được.
+
+Rà theo 8 mục:
+1. K3: ca vòng 2 ở thu_cong.js:540-542 đỏ trên gốc (bang_chung_do.txt:8, "phải ĐỎ — ✓ CỔNG TĨNH ĐẠT"), xanh trên HEAD (mình chạy được 390 · 0). DB đột biến tắt-A20 có ca này (thu_cong.js:577). Đột biến VS-A20-lay-tieu-de-dau (`> 1` → `> 9`) đưa ĐÚNG lỗi cũ trở lại: với hai tiêu đề, code rơi về `indexOf(gan[0])`, lấy cái đầu là "không". Neo khớp 1 lần (cong.js:84). Dòng ĐẠT viết tay vẫn qua cổng; đây là điều đã biết (Phát hiện 2), không tính.
+2. K4: các hàm cùng khuôn đọc mục phiếu là mucMien :58 và mucBaiThuCu :65, cả hai không đổi (Cấm A1–A19). Đã đổi đủ ba chỗ đọc "Soát bảo mật": cong.js:80-89, skill :86-87, MAU_PHIEU.md:64-67. THIET_KE.md:986 đã cập nhật "hơn MỘT mục". Chỗ chưa xử lý: chữ "mục lặp" chưa vào phép thu_cong_cu (lỗi 2).
+3. K5: các luồng hợp lệ đi qua điều kiện mới: phiếu không có mục (59 phiếu, bản gốc thu_cong 337 · 0 theo bang_chung_do:12), `không — …` (ca :543), `- Có — tiền` (:544), có + ĐẠT, KHÔNG ĐẠT rồi ĐẠT, PR thêm ban_cai (:545-552), và chính phiếu TU-CHAY-10 (`không`, tinh không có A20). Không luồng nào bị chặn oan.
+4. K1: chú thích cong.js:76-79 khớp code :80-89. Câu "8/8 BẮT" chưa có bằng chứng trong kho (lỗi 1).
+5. Đường tiền: `git diff --stat abed525^ HEAD` không có server/ hay client/. Không áp.
+6. P1: không đụng client/. Không áp.
+8. Đơn giản: mucBaoMat gọn (9 dòng, một regex lọc, một phép đếm). Thông báo lặp nên tách riêng (lỗi 3).
+
+NGHIỆM THU: 8/8 mục có bằng chứng · mục thiếu: không (✗ A8 / A19 chờ chủ quán / bước 11.4, đúng như dặn)
+- A: tu_chay/lenh_soat_bao_mat.md:1-55 (frontmatter, nguồn MIT :7-8, bước 1-4, Tiền lệ :47-55) và :200-217 (lời nhắc gốc); thu_cong_cu.js:488-499.
+- B: skill_lam_viec.md:70-71 (bước 4) và :86-92 (8b); thu_cong_cu.js:500-507 (thiếu "mục lặp", lỗi 2).
+- C: cong.js:76-89 và :133-145, cả tinh lẫn chay (khối chạy trước `if (cheDo === 'tinh')`); thu_cong.js:519-552.
+- D: MAU_PHIEU.md:64-67; thu_cong_cu.js:508-510.
+- E: thu_cong.js:525-552 đủ 7 loại ca phiếu đòi, thêm 3 ca tiêu đề lệch và 1 ca lặp; bang_chung_do.txt.
+- F: PHIEN_BAN `tu-chay 1.9.0`; THIET_KE.md:983-992; cau_hinh.json:16 (đúng một mục thêm); thu_nguoi_gac.js:800-803.
+- G: trang_thai.md:142-149 (danh sách + grep). Mình grep lại phần thêm của tu_chay/: chỉ có `server/moi.js` trong ca thử thu_cong.js (lỗ có sẵn) và chính regex "không chữ POS".
+- H: tự chạy thu_cong 390 · 0, thu_cong_cu 117 · 0, thu_nguoi_gac 1011/1011 · 182, npm test thoát 0.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy dot_bien.py (bị dặn), `--day-du`, `cong.js chay`. Vì vậy chưa tự xác nhận "8/8 BẮT", và hồ sơ cũng không ghi kết quả này (lỗi 1).
+- Không chạy được thu_cong.js gốc 9ce1a32 + bài HEAD (390 · 43), con số chỉ lấy từ bang_chung_do.txt:4-11.
+- Không so từng byte lời nhắc với bản gốc Anthropic, và chưa chạy `/soat-bao-mat` thật (chưa cài).
+- Không thấy được phiếu của việc đang chạy trên các nhánh khác, chỉ thấy 60 phiếu trong cây hiện tại.
+
+BÀI HỌC:
+- KHOÁ (thu_cong_cu.js): phép chữ có tên kể N trường hợp thì regex phải đòi đủ cả N chữ (thêm "mục lặp"). Kèm ca đột biến xoá "mục lặp" khỏi skill → phép phải ĐỎ.
+- NGUYÊN TẮC (K3/A17): mỗi vòng sửa thêm đột biến mới thì cùng commit hồ sơ phải có hàng bảng "chỗ vá → đột biến" và kết quả lần chạy mới (đối chứng + từng dòng BẮT). Lời "n/n BẮT" chỉ nói miệng không phải bằng chứng.
+- NGUYÊN TẮC (dễ hiểu, LUAT §8.1): mỗi nhánh đỏ của cổng có câu thông báo riêng, nói đúng chỗ phải sửa. Không dùng chung câu "viết đúng tiêu đề" cho trường hợp tiêu đề vốn đúng nhưng bị lặp.
+```
+
+## Vòng sửa 4 (LUAT_XAY_APP §6.5 — hết 3 vòng, lần soát cuối chỉ còn lỗi NHẸ → làm ngay trong phiếu, không gọi soát nữa)
+- Lỗi 1 (hồ sơ chưa ghi đột biến lần 3): đã chép nguyên kết quả lần 3 ở trên; bảng "chỗ vá → đột biến" thêm hàng VS-A20-lay-tieu-de-dau,
+  VS-A20-cau-lap-chung và đột biến tay của skill.
+- Lỗi 2 (phép chữ không kiểm "mục lặp"): regex `thu_cong_cu.js` đòi thêm `mục lặp` ở cả b4 và s8b (`3d9713d`). Đột biến tay trên bản sao
+  HEAD trong nháp: xoá "hay mục lặp" khỏi skill bước 4 → `thu_cong_cu: 117 phép · 1 chỗ hỏng` (đúng phép này) = BẮT; đối chứng (HEAD
+  nguyên) 117 · 0.
+- Lỗi 3 (câu báo mục lặp gây hiểu nhầm): ca ĐỎ trước — ca hai tiêu đề đòi câu "chỉ được MỘT mục ## Soát bảo mật" + "xoá tiêu đề thừa"
+  (`4d5a31d`… commit thử trước vá; đỏ trên code vòng 2: 391 · 2). Vá: `mucBaoMat` trả `{ lap: n }`, cổng in câu riêng "có n tiêu đề giống
+  "Soát bảo mật" — chỉ được MỘT mục ## Soát bảo mật (kể cả dòng nằm trong chú thích / khối mã): xoá tiêu đề thừa" (`810d223`).
+  Đột biến mới VS-A20-cau-lap-chung (đưa lại câu chung).
+- Không làm (lần soát chỉ ghi Nghi ngờ, không phải lỗi): kiểm phiếu sớm ở bước 2/3 (ngoài phiếu B); ranh giới chữ trong câu skill.
+
+## Đột biến — lần 4 (sau vòng sửa 4, HEAD 43e95db, chép nguyên)
+```
+ĐỐI CHỨNG: thoát 0 → XANH
+VS-A20-dong-dau: BẮT (thoát 1, ca "TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT")
+VS-A20-bo-ranh-gioi: BẮT (thoát 1, ca "TU-CHAY-10 A20 chữ dính")
+VS-A20-bo-hoa-thuong: BẮT (thoát 1, ca "TU-CHAY-10 A20 K5 "- Có — tiền"")
+VS-A20-chi-tinh: BẮT (thoát 1, ca "TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)")
+VS-A20-dat-mot-phan: BẮT (thoát 1, ca "TU-CHAY-10 A20 có + KHÔNG ĐẠT")
+VS-A20-tieu-de-sat-chu: BẮT (thoát 1, ca "TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"")
+VS-A20-lay-tieu-de-dau: BẮT (thoát 1, ca "TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật")
+VS-A20-cau-lap-chung: BẮT (thoát 1, ca "TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật")
+BV-A20: BẮT (thoát 1, ca "TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)")
+```
+Kiểm sau vòng 4: `thu_cong.js` 391 · 0 (gốc 391 · 44); bản gốc `thu_cong.js` trên code mới 337 · 0; `thu_cong_cu.js` 117 · 0 (gốc 117 · 8);
+`thu_nguoi_gac.js` 1011/1011 · 182 phép khác; `npm test` PASS 87 · FAIL 0 · CẢNH BÁO 4; `npm test -- --day-du` PASS 91 · FAIL 0 · CẢNH BÁO 4.
+
+SOÁT LẦN CUỐI: chat soát thay
+
+## Bài học
+- **KHOÁ (đã làm, trong Phạm vi):** cổng an ninh "bắt buộc khi có mục X" phải bắt RỘNG mục X rồi đòi đúng dạng, đúng MỘT — ca tiêu đề lệch
+  (3 dạng) + ca hai tiêu đề trong `thu_cong.js`, đột biến VS-A20-tieu-de-sat-chu / VS-A20-lay-tieu-de-dau. Lý do: hai vòng soát liền
+  bắt cổng "mở cửa" khi đọc sát chữ.
+- **KHOÁ (đã làm):** phép chữ kể N trường hợp đòi đủ N chữ (`thu_cong_cu.js` "mục lặp") + đột biến tay xoá chữ → ĐỎ.
+- **KHOÁ (đề xuất, ngoài Phạm vi — việc sau):** A20 gắn SHA như A19 (dòng `SOÁT BẢO MẬT: ĐẠT <SHA>`, không commit đổi code nào sau SHA);
+  file `tu_chay/cong.js` + `thu_cong.js`, ca đỏ "ĐẠT <SHA cũ> rồi commit đổi server/". Hiện chỉ là lời dặn ở skill 8b.
+- **KHOÁ (đề xuất, ngoài Phạm vi):** `kiem_tra_truoc_khi_giao.js:653` nâng `NGUONG_THU_CONG_DON_VI` 126 → 142 sau khi gộp (bộ kiểm tự in).
+- **NGUYÊN TẮC (đề xuất cho `KHUON_LOI.md` K4 — ngoài Phạm vi):** "Đã gây: TU-CHAY-10 cổng A20 đọc tiêu đề sát chữ → `## Soát Bảo Mật`
+  thành 'không có mục' (vòng 1); sửa xong lấy tiêu đề ĐẦU → mục 'không' che mục 'có' (vòng 2). Chặn: phép 'bắt buộc khi có mục X' nhận
+  diện X rộng (hoa thường, mọi cấp #, có đuôi, lặp) rồi đòi đúng dạng + đúng MỘT; mỗi nhánh đỏ một câu báo riêng." Gộp vào một gạch của K4
+  (không thêm dòng mới để giữ `khuon_loi_toi_da`).
+- **NGUYÊN TẮC (đề xuất cho `KHUON_LOI.md` K3):** mỗi vòng sửa thêm đột biến → cùng commit hồ sơ ghi hàng bảng + kết quả chạy nguyên văn;
+  đổi code vòng sửa → chạy lại đủ bộ đột biến (TU-CHAY-10 vòng 1: neo VS-A20-bo-hoa-thuong LẠC vì `exec(baoMat)` → `exec(baoMat.dau)`).
+  Đã có ý gần ở K4 TU-CHAY-5 ("đổi tên phép → mẫu đột biến LẠC") — chỉ nối thêm ví dụ.
+- **NGUYÊN TẮC (đề xuất cho K5, nối HOC-2b):** công cụ chép-rồi-sửa kiểm `realpath` đích TRƯỚC khi xoá / giải nén, so với gốc kho (không
+  so `getcwd()`) — `dot_bien.py` vòng 1.
+- **BỎ:** `thu_cong_cu.js` soi nhầm chuỗi ở dòng chú thích nguồn (K2 — truy nguyên trước, sửa sau; đã có khuôn K2, chỉ một lần).
+- **BỎ:** người gác chặn `time`, `until`, `sed -i`, `rm -rf` trong nháp, `git -C`, script python nhắc file bảo vệ chưa commit, lệnh chạy
+  script nối sau `git commit &&` — đều đúng luật đã có (B-CHUONGTRINH, SED-I, GIT-TUYCHON, B-MANOI, B-PHANTICH); làm lại theo hướng dẫn.
+  Một lần chạy lại bị hỏng vì `rm -rf` bị từ chối nên dùng thư mục CŨ — phát hiện bằng grep nội dung trước khi tin kết quả, chạy lại
+  thư mục mới.
+- Dọn: không lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` vừa có phép làm thay.
+
+## Nghiệm thu — đếm từng mục
+- A lệnh `/soat-bao-mat`: `tu_chay/lenh_soat_bao_mat.md` (bước 1 như /ra-soat + git log, bước 2 subagent, bước 3 lọc < 8, bước 4 ghi,
+  Tiền lệ 5 dạng, nguồn MIT); phép `thu_cong_cu.js` "TU-CHAY-10 A …" ×4 (đỏ gốc, xanh HEAD); mục `ban_cai` thêm ở `cau_hinh.json`.
+  So từng byte với bản gốc: CHƯA KIỂM.
+- B skill 8b + câu bước 4: `tu_chay/skill_lam_viec.md` bước 4 và 8b; phép `thu_cong_cu.js` "TU-CHAY-10 B …" ×3 + đột biến tay.
+- C cổng A20 tinh + chay: `tu_chay/cong.js` `mucBaoMat` + khối A20 trước `if (cheDo === 'tinh')`; ca `thu_cong.js` (thiếu dòng tinh /
+  chay, KHÔNG ĐẠT, dòng cuối thắng, giá trị lạ, chữ dính, mục rỗng, tiêu đề lệch ×3, hai tiêu đề); DB A20 ×5; `dot_bien.py` 9/9 BẮT.
+- D mẫu phiếu: `tu_chay/MAU_PHIEU.md` mục `## Soát bảo mật` trước `## Cấm`; phép "TU-CHAY-10 D MAU_PHIEU".
+- E bài thử khung: `thu_cong.js` đủ 7 loại ca phiếu đòi (thiếu dòng → ✗; KHÔNG ĐẠT → ✗; ĐẠT → qua; lạ → ✗; không mục → qua (mọi ca cũ +
+  bản gốc 337 · 0); không → qua; PR thêm ban_cai soat-bao-mat → qua); đỏ trên 1.8.1: `bang_chung_do.txt` (391 · 44).
+- F: `PHIEN_BAN` = `tu-chay 1.9.0`; `THIET_KE.md` mục `### TU-CHAY-10 (01.11.2026, tu-chay 1.9.0)` (phép TU-CHAY-8 A5 xanh);
+  `cau_hinh.json` đúng một mục thêm; `thu_nguoi_gac.js` danh sách trắng 4 mục (đỏ gốc, xanh HEAD).
+- G: mục "Chép sang APP-KH" ở trên (danh sách + grep); phép "không chữ POS" của `thu_cong_cu.js`.
+- H: `thu_cong.js` 391 · 0, bản gốc 337 · 0, `thu_nguoi_gac.js` 1011/1011 · 182, `thu_cong_cu.js` 117 · 0, `npm test` 87 · 0 FAIL,
+  `--day-du` 91 · 0 FAIL; cổng chay ở dưới.
+→ 8/8 mục có bằng chứng (A còn phần "so từng byte" ghi CHƯA KIỂM).
+
+## Báo cáo 7 mục
+```
+VIỆC:        TU-CHAY-10 — Bộ khung 1.9.0: soát bảo mật tự động (/soat-bao-mat + skill 8b + cổng A20)
+ĐÃ SỬA:      tu_chay/lenh_soat_bao_mat.md (mới) — lệnh soát bảo mật: diff theo mốc PHIEU, lời nhắc Anthropic (MIT), lọc báo nhầm < 8, Tiền lệ
+             tu_chay/cong.js mucBaoMat + khối A20 — tiêu đề đúng MỘT "## Soát bảo mật", có/không; "có" → dòng SOÁT BẢO MẬT: cuối = ĐẠT
+             tu_chay/skill_lam_viec.md — bước 8b; câu bước 4 thêm [A20] (đòi ĐẠT = bình thường; lỗi phiếu = hỏi ngay)
+             tu_chay/MAU_PHIEU.md — mục ## Soát bảo mật; tu_chay/cau_hinh.json — một mục ban_cai; PHIEN_BAN 1.9.0; THIET_KE.md mục TU-CHAY-10
+             tu_chay/thu_cong.js (ca A20 + DB), thu_nguoi_gac.js (danh sách ban_cai), thu_cong_cu.js (phép chữ lệnh / skill / mẫu)
+BÀI THỬ:     chạy trên bản chưa vá (9ce1a32) → ĐỎ: thu_cong 391 · 44 (12 ca A20 "phải ĐỎ" thành ĐẠT), thu_nguoi_gac 1 (ban_cai), thu_cong_cu 117 · 8;
+             sau khi vá → XANH (391 · 0, 1011/1011 · 182, 117 · 0); bản gốc thu_cong.js trên code mới 337 · 0; dot_bien.py 9/9 BẮT + đối chứng
+ĐÃ RÀ K4:    grep "^#+\s*soát\s*bảo\s*mật" (iu) trong viec/**/phieu.md → 1 chỗ (phiếu này, đúng dạng); ba chỗ đọc "có" (cổng, skill 8b, mẫu
+             phiếu) cùng một luật; đọc trang_thai bằng blob như A17/A19, không sửa A1–A19
+CHƯA KIỂM:   /soat-bao-mat chưa chạy thật (chờ chủ quán cài bằng cai_dat; việc này ghi "không"); lời nhắc chưa so từng byte với bản gốc
+             (lấy qua WebFetch); A20 không gắn SHA — sửa code sau lần soát mà quên soát lại thì cổng không thấy; dòng ĐẠT viết tay vẫn qua
+             cổng; subagent lồng subagent (bước 3 lọc) chưa thử; thu_cong.js/thu_cong_cu.js khi chép sang APP-KH chưa chạy bên đó
+GIT:         (xem git log --oneline -2 ở dòng dưới, ghi sau commit này)
+BÀI HỌC:     KHOÁ 4 (2 đã làm, 2 đề xuất) · NGUYÊN TẮC 3 (đề xuất) · BỎ 2 — chi tiết ở ## Bài học
+```
