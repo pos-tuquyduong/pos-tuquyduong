@@ -303,7 +303,11 @@ async function main() {
     k('C8 phiên đó vẫn cho', (await dongPhien(p8.id))?.trang_thai === 'cho');
     await khongPhien('C9 không có mã (code null, nội dung không TQD)', bao(p8, { code: null, content: 'chuyen tien tra sua' }));
     await khongPhien('C10 mã TQD không thuộc phiên nào', bao(p8, { code: 'TQD99999', content: 'TQD99999' }));
-    await khongPhien('C10b mã dính thêm chữ số (TQD<mã>7) — không khớp nhầm phiên <mã>', bao(p8, { code: null, content: `CK TQD${p8.id}7 tra sua` }));
+    // C10b: phiên mã 6 chữ số (tối đa) + nội dung dính thêm chữ số → không được cắt 6 số đầu để khớp nhầm phiên đó.
+    await db.run("UPDATE sqlite_sequence SET seq = 199998 WHERE name = 'pos_phien_thanh_toan'");
+    const p6 = (await taoPhien()).j.phien || {};
+    await khongPhien('C10b mã dính thêm chữ số (TQD<mã 6 số>0) — không khớp nhầm phiên <mã>', bao(p6, { code: null, content: `CK TQD${p6.id}0 tra sua` }));
+    k('C10b phiên 6 chữ số đó vẫn cho, không đơn', p6.id === 199999 && (await dongPhien(p6.id))?.trang_thai === 'cho', String(p6.id));
     const b11 = bao(p8, { code: null, content: `NGUYEN VAN A CK tqd${p8.id} tra sua` }), r11 = await guiSepay(b11);
     const s11 = await db.queryOne('SELECT ket_qua FROM pos_payos_su_kien WHERE khoa = ?', ['sepay:' + b11.id]).catch(() => null);
     k('C11 code null, mã kẹp giữa nội dung (chữ thường) → khớp, chốt phiên', daNhan(r11) && (await dongPhien(p8.id))?.nguon === 'sepay' && s11?.ket_qua === 'khop', moTa(r11) + ' · ' + s11?.ket_qua);
