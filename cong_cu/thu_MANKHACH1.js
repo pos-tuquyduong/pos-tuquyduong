@@ -133,6 +133,8 @@ async function main() {
   k('A7 hai quầy ghép ra hai khoá khác nhau', g1.j.khoa && g2.j.khoa && g1.j.khoa !== g2.j.khoa);
   const luu = await db.query('SELECT * FROM pos_man_khach_may').catch(() => []);
   k('A8 kho KHÔNG lưu khoá gốc (chỉ băm)', luu.length === 2 && luu.every((m) => !JSON.stringify(m).includes(g1.j.khoa) && !JSON.stringify(m).includes(g2.j.khoa)), JSON.stringify(luu).slice(0, 120));
+  const gMot = await ghep(q1.ma, 'Màn lạ');
+  k('A18 mã đã ghép xong là HẾT hiệu lực — ghép lần 2 bằng chính mã đó → 400 MA_GHEP_SAI (chủ quán 01.11: mã dùng một lần)', la(gMot, 400, 'MA_GHEP_SAI'), mt(gMot));
   await db.run("UPDATE pos_man_khach_quay SET ma_het_han = '2000-01-01T00:00:00' WHERE id = ?", [q2.quay_id]);
   const gHet = await ghep(q2.ma);
   k('A9 mã HẾT HẠN → 400 MA_GHEP_SAI', la(gHet, 400, 'MA_GHEP_SAI'), mt(gHet));

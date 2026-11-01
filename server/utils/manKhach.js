@@ -88,6 +88,7 @@ async function ghep(ma, ten, ip) {
   const khoa = crypto.randomBytes(24).toString('hex');
   const tenGon = (typeof ten === 'string' ? ten.trim() : '').slice(0, TEN_MAY_TOI_DA) || 'Màn khách';
   await run('INSERT INTO pos_man_khach_may (quay_id, ten, khoa_bam, tao_luc) VALUES (?, ?, ?, ?)', [q.id, tenGon, bam(khoa), getNow()]);
+  await run('UPDATE pos_man_khach_quay SET ma_het_han = ? WHERE id = ?', [getNow(), q.id]);   // chủ quán 01.11: mã ghép dùng MỘT lần — ghép xong là hết hiệu lực
   return { khoa, ten: tenGon };
 }
 

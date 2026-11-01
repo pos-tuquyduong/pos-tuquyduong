@@ -8,7 +8,8 @@ Trên gốc 10b1abc:  0 đạt · 1 hỏng  → ĐỎ
     ✗ có routes/man-khach.js nạp được — Cannot find module '…/server/routes/man-khach.js'
   (Gốc chưa có route / bảng màn khách nên bài dừng ngay ở ca đầu; sức bắt từng ca chứng minh bằng ĐỘT BIẾN bên dưới, không bằng ca đỏ này.)
 Sau vá (HEAD, sau vòng sửa 1 thêm ca A17): 50 đạt · 0 hỏng
-SỐ CA cong_cu/thu_MANKHACH1.js: 52
+SỐ CA cong_cu/thu_MANKHACH1.js: 53
+  (01.11 chủ quán chốt mã ghép dùng MỘT lần: chat thêm ca A18; trên code trước sửa A18 đỏ (HTTP 200, ghép lần 2 vẫn được) — 51 đạt · 2 hỏng.)
   (gộp main aed6128 01.11: chat thêm ca S1, S2 — sao lưu bảng màn khách + chặn khôi phục sổ két; đột biến tay: bỏ từng tên khỏi
    BACKUP_TABLES / BANG_KHONG_KHOI_PHUC → S1 hoặc S2 đỏ, 51 đạt · 1 hỏng.)
 
