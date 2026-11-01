@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 51,
+  "phien_ban_so": 52,
   "cap_nhat": "2026-10-31",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -481,10 +481,10 @@
       "ma": "SAOLUU-2",
       "ten": "Khoi phuc sao luu an toan (KHO-2b phat hien 31.10: cot trong o dong dau trang Excel mat o moi dong, dong loi bi nuot, khong giao dich): cot = hop moi dong loc theo PRAGMA, mot giao dich toan bo, loi co code; them pos_don_app vao sao luu (khong khoi phuc); bai thu chot moi bang phai co trong BACKUP_TABLES. [T] Opus 2 sau KHO-2b, truoc khai truong | 31.10 chu quan duyet ke hoach (trang trong: bo qua, khong xoa bang; chi khoi phuc khi quan dong cua); dang lam",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "c8284ad",
+      "ngay": "2026-10-31"
     },
     {
       "ma": "KHO-IN-1",
@@ -967,6 +967,15 @@
     {
       "ma": "TU-CHAY-9",
       "ten": "Bo khung: moi bai thu thong nhat ma thoat (0 xanh, 1 do ca, 2 sap) - luat sap cua bo dot bien doc ma thoat thay do chuoi (AU4-17..19, boc.py lo 4 vong soat); dung moi cong_cu/thu_*.js -> lam SAU LUOI-5 gop",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-10",
+      "ten": "Bo khung 1.9.0: soat bao mat tu dong - phieu co muc \"## Soat bao mat: co\" thi may tu chay /soat-bao-mat (loi nhac /security-review cua Anthropic) truoc khi bao xong, cong A20 chan neu chua DAT; chep y sang kho APP-KH (chu quan chot 31.10, mo dong bang bo khung chi cho viec nay). Opus",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
