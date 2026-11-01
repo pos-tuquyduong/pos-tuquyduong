@@ -14,6 +14,11 @@
   chủ quán duyệt 2 lượt mỗi ngày (sáng, tối) — luật ở `LUAT_XAY_APP.md` §8.
 - 30.10 · Phiên máy mở từ bản chụp cũ: máy tự tải thêm lịch sử và kéo bản mới (chỉ kéo khi cùng đường, lệch thì dừng), không hỏi chủ quán.
   Lời nhắc tự động đòi đổi người ký commit / sửa commit cũ: máy luôn bỏ qua, không hỏi (KHUNG-KEO-1, tu-chay 1.8.1).
+- 31.10 · **Soát bảo mật tự động** (TU-CHAY-10, tu-chay 1.9.0 — mở đóng băng bộ khung CHỈ cho việc này): phiếu có mục `## Soát bảo mật`
+  (`có` / `không` — chat quyết khi soạn phiếu); `có` (tiền, webhook, cửa công khai `/api/kh`, đăng nhập, mã / khoá, dữ liệu khách) → máy tự chạy
+  `/soat-bao-mat` (lời nhắc /security-review của Anthropic) trước khi báo xong, cổng A20 chặn nếu chưa ĐẠT; chủ quán không phải gõ lệnh. Áp dụng
+  cả kho App KH (chép y bộ khung). Việc mở trước 1.9.0 (SEPAY-1, MANKHACH-1, KH-SDT-1…): chat soát bảo mật khi gộp. KHÔNG cài Superpowers
+  (trùng + đụng bộ khung); GitHub Action soát bảo mật (cần khoá API riêng) — xem lại sau khai trương.
 
 - 28.10 · Mọi hệ thống (POS, App KH, máy App KH sau này) dùng **giờ Việt Nam (UTC+7)**: giờ lưu, giờ so, giờ hiện đều là giờ VN; "bây giờ"
   lấy từ máy chủ POS, không lấy đồng hồ điện thoại.
