@@ -152,3 +152,74 @@ Anthropic; không có chữ POS / đường dẫn riêng của kho POS. `thu_con
 1. `kiem_tra_truoc_khi_giao.js:653` bánh cóc `NGUONG_THU_CONG_DON_VI = 126`; `thu_cong.js` giờ 141 đơn vị → bộ kiểm in "NÂNG lên 141".
    File luật ngoài Phạm vi → chat / chủ quán nâng sau khi gộp (chỉ siết, đúng chiều bánh cóc).
 2. Cổng A20 chưa gắn SHA như A19 và chỉ đọc dòng chữ `SOÁT BẢO MẬT: ĐẠT` (marker suông viết tay vẫn qua) — xem Bài học.
+3. (soát vòng 2, nghi ngờ) Tiêu đề không dấu / có số (`## Soat bao mat`, `## 8. Soát bảo mật`) cổng không nhận là mục; `**có**`,
+   `` `có` ``, `<!-- -->` ngay dưới tiêu đề → đỏ "có hoặc không" (đỏ đúng chiều an toàn, có thể làm máy dừng). Chat soạn phiếu theo mẫu
+   nên ít gặp — không sửa trong việc này.
+
+## Đột biến — lần 2 (sau vòng sửa 1)
+- ĐỐI CHỨNG XANH; VS-A20-dong-dau, VS-A20-bo-ranh-gioi, VS-A20-chi-tinh, VS-A20-dat-mot-phan, VS-A20-tieu-de-sat-chu, BV-A20: BẮT.
+  VS-A20-bo-hoa-thuong LẠC (neo `exec(baoMat)` đổi thành `exec(baoMat.dau)` ở vòng 1 — K4 "đổi code → neo đột biến lạc") → sửa neo
+  (`49d9ad5`), chạy lại riêng: ĐỐI CHỨNG XANH, BẮT.
+
+## Soát độc lập vòng 2 (`/ra-soat`) — báo cáo nguyên văn
+```
+KHÔNG ĐẠT
+
+Tóm lại: bốn lỗi của vòng 1 đã sửa đúng. Mình tự chạy lại các bài thử và đều xanh: thu_cong.js 385 phép · 0 hỏng, thu_cong_cu 116 · 0, thu_nguoi_gac 1011/1011 · 182, npm test qua hết. Cổng `tinh` chỉ còn ✗ [A8] và ✗ [A19], cả hai là bình thường lúc này; A17 đã hết. Còn hai lỗi NHẸ. Lỗi nặng hơn trong hai lỗi là cách sửa "bắt rộng" của vòng 1 vẫn còn một đường để cổng tự mở. Cả hai lỗi không đụng tiền, điểm hay ví, và mỗi lỗi sửa chỉ khoảng một dòng.
+
+LỖI TÌM ĐƯỢC:
+- tu_chay/cong.js:79-89 (`mucBaoMat`): cổng còn tự mở (fail-open) khi phiếu có hai tiêu đề `## Soát bảo mật` cùng đúng dạng. Hàm `findIndex` (:85) chỉ lấy tiêu đề ĐẦU TIÊN, còn phép `lech` (:83) chỉ bắt tiêu đề sai dạng, không bắt tiêu đề lặp. Mình đo bằng đúng hàm lấy từ cong.js:
+  - `## Soát bảo mật\nkhông\n## Soát bảo mật\ncó` → `{dau:"không"}`, cổng bỏ qua.
+  - Một khối chú thích HTML `<!-- … \n## Soát bảo mật\nkhông\n-->` đặt trước mục thật `## Soát bảo mật\ncó` → `{dau:"không"}`.
+  - Một khối mã ``` chứa `## Soát bảo mật\nkhông` đặt trước mục thật → cũng `{dau:"không"}`.
+  Đây đúng là khuôn lỗi vòng 1 đã rút bài học ("nhận diện mục X phải bắt mọi biến thể"): còn một biến thể thì cổng an ninh vẫn mở. Khuôn K3 (thiếu ca cho tiêu đề lặp) và K4. Mức NHẸ, vì đây là cổng quy trình, không đụng tiền / điểm / ví. Cách gọn: đòi `gan.length === 1 && /^##\s+Soát bảo mật$/.test(gan[0])`, khác thì trả `{ lech }` (vừa gọn hơn :83-85, vừa bỏ được `findIndex` lặp lại cùng regex). Thêm ca "hai tiêu đề, cái đầu `không`" và một đột biến đưa lại `find` thay cho phép đếm.
+- tu_chay/skill_lam_viec.md:70 với :85-87: skill không hướng dẫn đủ cả ba kết quả của A20. Bước 4 (:70) gọi mọi `✗ [A20]` là "bình thường, không hỏi", không tách ba loại thông báo của cổng (cong.js:136 tiêu đề lệch, :137 "có hoặc không", :141 thiếu ĐẠT). Bước 8b nói rõ tiêu đề lệch thì hỏi, nhưng chỉ có hai nhánh `có` / không mục-hoặc-`không`. Giá trị lạ (vd `chưa rõ — …`) không thuộc nhánh nào, nên máy bỏ qua 8b, tới cổng 11.4 mới đỏ — phải chạy hết cả việc mới phát hiện, mà phiếu chỉ sửa được qua commit PHIEU (A7). Khuôn K4 (một vị từ, hai cách diễn đạt — BAN-HANG-1) / K5 (máy dừng muộn). Mức NHẸ. Cách gọn: câu ở bước 4 ghi "`✗ [A20]` … cần SOÁT BẢO MẬT: ĐẠT (chưa tới 8b)"; 8b thêm "dòng đầu không phải có / không, hoặc tiêu đề lệch → `## Câu hỏi`, dừng".
+
+NGHI NGỜ:
+- Cổng vẫn chỉ đọc một dòng chữ `SOÁT BẢO MẬT: ĐẠT` (cong.js:139-140) và không gắn SHA. Máy viết tay dòng đó là xanh, và sửa code sau lần soát thì cổng không thấy. Hồ sơ đã tự nêu (THIET_KE.md:988-989, trang_thai "Phát hiện" 2), và phiếu mục C chỉ đòi dòng chữ, nên mình không tính là lỗi. Cổng hiện bịt bằng LỜI DẶN (skill:89-90 "soát bảo mật lại"), chưa bằng KHOÁ.
+- Có ba chỗ cổng đỏ đúng chiều an toàn nhưng làm máy dừng oan. Phiếu hợp lệ về ý mà ghi `**có**`, `` `có` ``, `> có`, `- [x] có`, hoặc có dòng `<!-- … -->` ngay dưới tiêu đề → `dau` là chính dòng đó → ✗ "có hoặc không". Tiêu đề có NBSP → lệch. Ngược lại, có tiêu đề cổng không nhận là mục, tức là mở cửa: `## Soat bao mat` (không dấu), `## 8. Soát bảo mật`, `## Soát bảo-mật` → null (đã đo). Cả hai loại đều ít khả năng gặp vì chat viết phiếu.
+- cong.js:135: `không — <lý do>` (dòng mẫu chưa điền) vẫn được nhận là `không` hợp lệ. Trong khi đó `mucMien` (:62) cố ý loại dạng `<lý do>` của mẫu. Phiếu C không đòi lý do, nên không tính là lỗi, nhưng hai mục lệch nhau.
+- lenh_soat_bao_mat.md:210-217: khối START ANALYSIS gốc ("Your final reply must contain the markdown report and nothing else") vẫn nằm trong lệnh mà phiên chính đọc. Nó chồng với bước 2-4 tiếng Việt (:28-45: phiên chính chép vào trang_thai rồi skill đi tiếp). Hai lời dặn có thể kéo ngược nhau ở chỗ "trả lời cuối". Khối này nằm ngoài phần được giao cho subagent (:32, chỉ tới hết FALSE POSITIVE FILTERING), nên ổn ở phía subagent. Chưa chạy thật nên chưa biết.
+- thu_cong.js:542 dùng hàng mẫu `server/moi.js` để làm "code". Bài này chép sang APP-KH (G), nhưng cau_hinh của APP-KH khác. Nếu laCode / Phạm vi bên đó khác thì ca K5 có thể đổi nghĩa. Lỗ này có sẵn từ ca cũ ~:262, không phải do việc này.
+
+Rà theo 8 mục:
+1. K3: các ca A20 ở thu_cong.js:525-542 kiểm sự VẮNG mặt của dòng ĐẠT, có ca "ĐẠT rồi KHÔNG ĐẠT" (:529). Dòng chữ suông ở ĐẦU mục không làm xanh được (ca giá trị lạ, chữ dính, mục rỗng). bang_chung_do.txt:4-17 cho thấy đủ 12 ca đỏ trên 9ce1a32, kể cả 3 ca tiêu đề lệch. Đột biến VS-A20-tieu-de-sat-chu (dot_bien.py:17) đưa đúng lỗi vòng 1 trở lại. Lỗi dot_bien vòng 1 đã sửa: phép kiểm realpath so với gốc kho chạy TRƯỚC rmtree (:24-33). Còn thiếu: ca tiêu đề lặp (lỗi 1).
+2. K4: grep `^#+\s*soát\s*bảo\s*mật` (iu) trên 60 file viec/*/phieu.md → đúng 1 tiêu đề (viec/TU-CHAY-10/phieu.md:82, dạng đúng, `không`). Dòng tiêu đề `# TU-CHAY-10 … soát bảo mật …` (:1) không khớp, vì regex neo `^#+\s*soát`. Các hàm đọc mục cùng khuôn là mucMien :58 và mucBaiThuCu :65, cả hai không bị đổi. Chỗ chưa xử lý: tiêu đề lặp (lỗi 1) và cách skill đọc giá trị lạ (lỗi 2).
+3. K5: các luồng đi qua điều kiện mới — phiếu không có mục (60 phiếu, bản gốc thu_cong 337·0), `không — …` (:540), `- Có` (:541), `##  Soát bảo mật` hai dấu cách, CRLF, chữ tổ hợp (NFD) đều được nhận. KHÔNG ĐẠT rồi ĐẠT (:530), PR thêm ban_cai (:542). Không phiếu nào trong kho bị chặn oan. Các dạng chặn oan theo chiều an toàn: xem NGHI NGỜ.
+4. K1: câu "nguyên văn" đã đổi thành "chép lại (… chưa so từng byte)" ở lenh:7 và THIET_KE:990. Danh sách G ở ke_hoach.md:101-104 và trang_thai đã cập nhật. Câu "thu_cong_cu đọc ../CLAUDE.md / ../KHUON_LOI.md" khớp thu_cong_cu.js:327 và :364. Mình grep lại các dòng THÊM trong tu_chay/: không có chữ POS / Tứ Quý / pos-tuquyduong; "server/" chỉ xuất hiện ở hàng mẫu thu_cong.js:306 của diff.
+5. Đường tiền: diff không đụng server/ (git diff --stat). Không áp.
+6. P1: không đụng client/. Không áp.
+8. Đơn giản: mucBaoMat :81-85 chạy regex ba lần (filter, find, findIndex). Đổi sang phép đếm `gan.length === 1` thì gọn hơn và sửa luôn lỗi 1. Phần còn lại gọn: khối A20 ~12 dòng, một chỗ cho cả tinh và chay. Mình đồng ý lý do giữ `PHIEU.replace` ở ca :542 (vì A6 file luật).
+
+NGHIỆM THU: 8/8 mục có bằng chứng · mục thiếu: không (✗ A8 / A19 chờ chủ quán, không tính).
+- A: lenh_soat_bao_mat.md (bước 1-4 :14-45, Tiền lệ :47-55, lời nhắc :57-217); thu_cong_cu.js:489-497.
+- B: skill_lam_viec.md:70 và :85-91; thu_cong_cu.js:499-503 (nội dung còn thiếu: lỗi 2).
+- C: cong.js:76-89 và :132-143; thu_cong.js:525-542; DB :572-573; dot_bien.py 7 đột biến.
+- D: MAU_PHIEU.md:64-67; thu_cong_cu.js:504-506.
+- E: thu_cong.js:525-542, đủ 7 loại ca phiếu đòi + 3 ca tiêu đề lệch; bang_chung_do.txt.
+- F: PHIEN_BAN `tu-chay 1.9.0`; THIET_KE.md:983-992; cau_hinh.json:16; thu_nguoi_gac.js:800-803.
+- G: ke_hoach.md:100-104; trang_thai mục "Chép sang APP-KH" (danh sách + kết quả grep); mình grep lại thấy khớp.
+- H: mình tự chạy thu_cong 385·0, thu_cong_cu 116·0, thu_nguoi_gac 1011/1011·182, npm test xanh.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy dot_bien.py (bị dặn), `--day-du`, `cong.js chay`.
+- Không so từng byte lời nhắc với bản gốc Anthropic (không có quyền mạng / gh).
+- Không chạy được `/soat-bao-mat` thật (chưa cài, và subagent lồng subagent chưa thử).
+- Script đo mucBaoMat của mình chạy bằng cách eval hàm lấy từ cong.js, không qua cổng đầy đủ — kết quả nghĩa là hàm trả "không", chưa đo tới dòng ✗ của cổng.
+
+BÀI HỌC:
+- KHOÁ (thu_cong.js): ca "phiếu hai tiêu đề `## Soát bảo mật`, cái đầu `không`, cái sau `có`" → ✗ A20, kèm đột biến đưa lại cách lấy tiêu đề đầu tiên.
+- KHOÁ (thu_cong_cu.js): skill bước 4 / 8b phải nói cách xử lý khi A20 báo tiêu đề lệch hoặc giá trị lạ (dừng hỏi sớm), không gộp chung "bình thường".
+- NGUYÊN TẮC (K4, nối bài học vòng 1): "bắt rộng rồi đòi đúng dạng" phải đòi đúng MỘT mục. Mục lặp, mục nằm trong chú thích hay khối mã là biến thể thứ hai của tiêu đề lệch, và một cổng chỉ lấy mục đầu tiên sẽ mở cửa ở đó.
+- KHOÁ đề xuất (việc sau, ngoài Phạm vi): A20 gắn SHA như A19.
+```
+
+## Vòng sửa 2
+- Lỗi 1 (hai tiêu đề → lấy cái đầu, cổng mở): ca ĐỎ trước `TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có)` (commit
+  trước khi vá; đỏ trên code vòng 1: 390 phép · 4 chỗ hỏng). Vá `mucBaoMat`: hơn một tiêu đề giống "Soát bảo mật" → `{ lech }` "chỉ được
+  MỘT mục" (bắt luôn tiêu đề nằm trong chú thích / khối mã); bỏ `find` + `findIndex` lặp regex. Đột biến mới VS-A20-lay-tieu-de-dau;
+  DB A20 thêm ca này.
+- Lỗi 2 (skill gộp mọi ✗ A20 là "bình thường"): phép chữ mới ở `thu_cong_cu.js` (đỏ trước: 117 · 1); skill bước 4 tách "đòi SOÁT BẢO
+  MẬT: ĐẠT" (bình thường) với "tiêu đề lệch, giá trị lạ hay mục lặp" (lỗi phiếu → `## Câu hỏi`, dừng); 8b ghi cùng ý.
+- Không làm: nghi ngờ "không — <lý do>" của mẫu được nhận (phiếu C không đòi lý do); START ANALYSIS của bản gốc giữ để không đổi lời
+  nhắc (bước 2–4 tiếng Việt nói rõ phiên chính làm gì); `server/moi.js` trong ca K5 là lỗ có sẵn của ca cũ.
