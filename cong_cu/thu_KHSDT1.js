@@ -6,8 +6,10 @@
  *  BÀI NÀY PHẢI ĐỎ TRÊN CODE CHƯA VÁ (chưa có route /api/pos/don-thu, chưa có màn). Xanh ngay từ đầu = vô giá trị (K3).
  *
  *  Chạy ở GỐC kho POS:   node cong_cu/thu_KHSDT1.js
- *  Máy chủ: database.js thật + libsql thật trên file kho TẠM, route thật qua HTTP. Dữ liệu mẫu gắn nhãn TỪNG DÒNG "phải xoá" (XOA) —
- *  bài tự là đáp án độc lập: mọi dòng KHÔNG nhãn của MỌI bảng phải còn nguyên từng cột sau khi dọn (E — K5).
+ *  Máy chủ: database.js thật + libsql thật (khoá ngoại BẬT) trên file kho TẠM, route thật qua HTTP. Dữ liệu mẫu gắn nhãn TỪNG DÒNG
+ *  "phải xoá" (XOA) — bài tự là đáp án độc lập: mọi dòng KHÔNG nhãn của MỌI bảng còn nguyên từng cột sau khi dọn, trừ đúng các
+ *  cột bù ghi sẵn (trả lượt mã). Sổ ví dùng loại dòng THẬT (topup / purchase — wallets.js LOAI_TINH_VAO_VI) để đối soát I4 có nghĩa;
+ *  đối soát (utils/doiSoat.js chayDoiSoat) chạy trước–sau, không được thêm dòng lệch nào. Sao lưu export-all phải chạy được sau dọn.
  *  Giao diện: hàm thuần client/src/pages/QuanLy/donThu.js gọi thẳng; .jsx đọc nguồn. Bản đột biến: --goc <thư mục gốc kho>.
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -46,11 +48,14 @@ const sach = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, 
 
 const X = '2026-09-01';   // ngày X: dọn mọi giao dịch có created_at < X
 const T1 = '0912345678';  // số thử mồ côi (không hồ sơ) — dọn theo NGÀY
-const T2 = '0900000002';  // số thử có hồ sơ — dọn theo DANH SÁCH SĐT
+const T2 = '0900000002';  // số thử có hồ sơ — dọn theo DANH SÁCH SĐT, xoá sạch
+const T3 = '0900000007';  // trong danh sách nhưng có đơn hôm nay → giữ CẢ SỐ (không xoá nửa chừng)
 const K = '0900000003';   // khách thật ví 50.000 — có trong danh sách SĐT nhưng PHẢI giữ nguyên
 const CON = '0900000005'; // con của K (K trả hộ) — đơn của con phải giữ
-const R = '0900000004';   // khách thật ngoài danh sách, có hồ sơ từ trước X
-const P6 = '0900000006';  // số có dòng cộng trước X, dòng trừ sau X → điểm âm nếu chỉ dọn theo ngày
+const R = '0900000004';   // khách thật ngoài danh sách: trả bằng ví, gói không gắn đơn
+const P6 = '0900000006';  // dòng cộng trước X, dòng trừ sau X → điểm âm nếu chỉ dọn theo ngày
+const P7 = '0900000008';  // như P6 nhưng lô điểm ĐÃ HẾT HẠN → không âm (không chặn oan)
+const SO_DON_LON = 40;    // đơn thử có ghi chú dài — bản chụp vượt trần một ô Excel (32767 ký tự)
 
 async function main() {
   imLang();
@@ -58,13 +63,15 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow, getToday } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
+  const { chayDoiSoat } = require(path.join(GOC, 'server', 'utils', 'doiSoat.js'));
   await db.initDatabase();
   const app = express();
   app.use(express.json({ limit: '5mb' }));
   let coRoute = true;
   try { app.use('/api/pos/don-thu', require(path.join(GOC, 'server', 'routes', 'don-thu.js'))); } catch { coRoute = false; }
+  app.use('/api/pos/backup', require(path.join(GOC, 'server', 'routes', 'backup.js')));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
-  const goc = `http://127.0.0.1:${sv.address().port}/api/pos/don-thu`;
+  const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   const chu = await db.queryOne("SELECT id, username FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const nv = await db.run("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_khsdt1', 'x', 'NV', 'staff', 1)");
   const tkChu = jwt.sign({ userId: chu.id }, KHOA_NV, { expiresIn: '1h' });
@@ -73,7 +80,7 @@ async function main() {
     const h = { 'Content-Type': 'application/json' };
     if (token) h.Authorization = 'Bearer ' + token;
     try {
-      const r = await fetch(goc + duong, { method: 'POST', headers: h, body: JSON.stringify(than) });
+      const r = await fetch(goc + '/don-thu' + duong, { method: 'POST', headers: h, body: JSON.stringify(than) });
       let j = {}; try { j = JSON.parse(await r.text()); } catch { /* không phải JSON */ }
       return { status: r.status, j };
     } catch (e) { return { status: 0, j: { loi: e.message } }; }
@@ -89,11 +96,13 @@ async function main() {
     return id;
   };
   const homNay = getNow();
+  const don = (code, phone, luc, xoa, them2 = {}) => them('pos_orders', { code, customer_phone: phone, total: 50000, payment_method: 'cash', status: 'completed', created_at: luc, ...them2 }, xoa);
+  const diem = (phone, points, luc, orderId, xoa, type = 'earn', het = '2027-12-31T23:59:59') => them('pos_point_transactions', { customer_phone: phone, type, points, order_id: orderId, created_at: luc, expires_at: het }, xoa);
+  const so = (phone, type, amount, luc, orderId, xoa) => them('pos_balance_transactions', { customer_phone: phone, type, amount, order_id: orderId, created_at: luc }, xoa);
   // khoá ngoại đang BẬT (libsql): khuyến mãi + gói mẫu có thật, máy chủ phải xoá con trước cha
   const KM = await them('pos_promotions', { code: 'KM_THU', name: 'KM thử', type: 'percent', value: 10 });
   const GOI = await them('pos_packages', { code: 'GOI_THU', name: 'Gói thử', total_qty: 10 });
-  const don = (code, phone, luc, xoa, them2 = {}) => them('pos_orders', { code, customer_phone: phone, total: 50000, payment_method: 'cash', status: 'completed', created_at: luc, ...them2 }, xoa);
-  const diem = (phone, points, luc, orderId, xoa, type = 'earn') => them('pos_point_transactions', { customer_phone: phone, type, points, order_id: orderId, created_at: luc, expires_at: '2027-12-31T23:59:59' }, xoa);
+  const CHUNG = await them('pos_discount_codes', { code: 'CHUNG', discount_type: 'fixed', discount_value: 5000, usage_limit: 10, used_count: 3 });
 
   // T1 — số mồ côi: mọi thứ trước X phải đi; dòng ĐÚNG ngày X và sau X phải ở lại
   const O1 = await don('ORD-20260806-751', T1, '2026-08-06T10:00:00', true);
@@ -103,7 +112,6 @@ async function main() {
   await them('pos_refund_requests', { order_id: O1, customer_phone: T1 }, true);
   await them('pos_damage_logs', { order_id: O1, product_code: 'TRA', quantity: 1, reason: 'vỡ', action: 'doi' }, true);
   await them('pos_promotion_usage', { promotion_id: KM, order_id: O1, customer_phone: T1 }, true);
-  await them('pos_balance_transactions', { customer_phone: T1, type: 'payment', amount: -1, order_id: O1, created_at: '2026-08-06T10:00:00' }, true);
   await diem(T1, 500, '2026-08-06T10:00:00', O1, true);
   await them('pos_signup_codes', { code: 'TQDT1', order_id: O1, order_customer_phone: T1, claimed_at: '2026-08-07T09:00:00', claimed_phone: T1 }, true);
   await them('pos_discount_codes', { code: 'TQDT1', discount_type: 'fixed', discount_value: 10000 }, true);
@@ -116,58 +124,78 @@ async function main() {
   await don('ORD-20260901-001', null, X + 'T00:00:00', false);       // ĐÚNG X → giữ (so nhỏ hơn, không nhỏ hơn hoặc bằng)
   await diem(T1, 100, '2026-09-15T10:00:00', null, false, 'adjust');  // sau X → giữ
   await them('pos_kh_ma_dang_nhap', { sdt: T1, ma_bam: 'y', nguon: 'quay', tao_luc: '2026-09-15T10:00:00', het_han: '2026-09-15T10:05:00' }, false);
+  // T1 mua gói trước X, đơn lấy từ gói HÔM NAY → đơn mua gói giữ (gói đang dùng), đơn hôm nay giữ
+  await don('ORD-20260812-001', T1, '2026-08-12T10:00:00', false);
+  const OB = Number((await db.queryOne("SELECT id FROM pos_orders WHERE code = 'ORD-20260812-001'")).id);
+  const GPT = await them('pos_customer_packages', { customer_phone: T1, package_id: GOI, order_id: OB, total_qty: 10, delivered_qty: 1, created_at: '2026-08-12T10:00:00' });
+  await don('ORD-HOMNAY-T1GOI', T1, homNay, false, { customer_package_id: GPT });
 
-  // T2 — số thử có hồ sơ, dọn theo danh sách: mọi bảng; đơn HÔM NAY giữ (và dòng gắn đơn đó giữ)
-  await them('pos_customers', { phone: T2, name: 'Thử 2', created_at: '2026-10-20T08:00:00' }, true);
+  // T2 — số thử có hồ sơ, dọn theo danh sách: mọi bảng, sổ ví khớp ví (nạp 100.000, mua bằng ví 100.000, ví 0)
+  await them('pos_customers', { phone: T2, name: 'Thử 2', pin_code: '$2b$10$bammau', created_at: '2026-10-20T08:00:00' }, true);
   await them('pos_wallets', { phone: T2, balance: 0, total_topup: 100000, total_spent: 100000 }, true);
-  await them('pos_balance_transactions', { customer_phone: T2, type: 'topup', amount: 100000, created_at: '2026-10-20T08:00:00' }, true);
-  const O2 = await don('ORD-20261020-001', T2, '2026-10-20T09:00:00', true);
+  await so(T2, 'topup', 100000, '2026-10-20T08:00:00', null, true);
+  const O2 = await don('ORD-20261020-001', T2, '2026-10-20T09:00:00', true, { payment_method: 'balance', balance_amount: 100000, total: 100000 });
   await them('pos_order_items', { order_id: O2, product_name: 'Gói', quantity: 1, unit_price: 100000, total_price: 100000 }, true);
-  await them('pos_balance_transactions', { customer_phone: T2, type: 'payment', amount: -100000, order_id: O2, created_at: '2026-10-20T09:00:00' }, true);
+  await so(T2, 'purchase', -100000, '2026-10-20T09:00:00', O2, true);
   await diem(T2, 1000, '2026-10-20T09:00:00', O2, true);
-  const GOI2 = await them('pos_customer_packages', { customer_phone: T2, package_id: GOI, order_id: O2, total_qty: 10, created_at: '2026-10-20T09:00:00' }, true);
+  await them('pos_customer_packages', { customer_phone: T2, package_id: GOI, order_id: O2, total_qty: 10, created_at: '2026-10-20T09:00:00' }, true);
   await them('pos_membership_purchases', { customer_phone: T2, tier_id: 1, tier_name: 'Vàng', order_id: O2, purchased_at: '2026-10-20T09:00:00', expires_at: '2027-10-20T09:00:00' }, true);
   await them('pos_registrations', { phone: T2, name: 'Thử 2' }, true);
   await them('pos_kh_ma_dang_nhap', { sdt: T2, ma_bam: 'z', nguon: 'gui', tao_luc: '2026-10-21T08:00:00', het_han: '2026-10-21T08:05:00' }, true);
   await them('pos_voucher_grants', { code: 'DDT2', customer_phone: T2, status: 'used', granted_at: '2026-10-21T08:00:00' }, true);
   await them('pos_discount_codes', { code: 'DDT2', discount_type: 'fixed', discount_value: 20000 }, true);
-  const O8 = await don('ORD-HOMNAY-T2', T2, homNay, false, { customer_package_id: GOI2 });   // hôm nay → giữ; gói trỏ tới bị xoá → NULL
-  await diem(T2, 50, homNay, O8, false);
+
+  // T3 — trong danh sách, có đơn hôm nay → giữ CẢ SỐ: hồ sơ, đơn cũ, điểm
+  await them('pos_customers', { phone: T3, name: 'Thử 3', created_at: '2026-10-01T08:00:00' });
+  const O3a = await don('ORD-20261002-001', T3, '2026-10-02T10:00:00', false);
+  await diem(T3, 500, '2026-10-02T10:00:00', O3a, false);
+  await don('ORD-HOMNAY-T3', T3, homNay, false);
 
   // K — khách thật ví ≠ 0, CÓ trong danh sách SĐT: không một dòng nào của K bị đụng, kể cả trước X
   await them('pos_customers', { phone: K, name: 'Khách thật', created_at: '2026-07-01T08:00:00' });
   await them('pos_wallets', { phone: K, balance: 50000, total_topup: 50000 });
-  await them('pos_balance_transactions', { customer_phone: K, type: 'topup', amount: 50000, created_at: '2026-07-01T08:00:00' });
-  const O3 = await don('ORD-20260820-001', K, '2026-08-20T10:00:00', false);
-  await diem(K, 500, '2026-08-20T10:00:00', O3, false);
+  await so(K, 'topup', 50000, '2026-07-01T08:00:00', null, false);
+  const OK = await don('ORD-20260820-001', K, '2026-08-20T10:00:00', false);
+  await diem(K, 500, '2026-08-20T10:00:00', OK, false);
   await them('pos_voucher_grants', { code: 'DDK', customer_phone: K, status: 'available', granted_at: '2026-08-21T10:00:00' });
   await them('pos_discount_codes', { code: 'DDK', discount_type: 'fixed', discount_value: 20000 });
   await don('ORD-20260809-001', CON, '2026-08-09T10:00:00', false, { parent_phone: K });   // K trả hộ con → giữ
 
-  // R — khách thật ngoài danh sách: hồ sơ / ví / sổ ví / gói / thẻ giữ dù trước X; dòng điểm không gắn đơn trước X thì dọn
+  // R — khách thật ngoài danh sách: nạp + mua bằng ví trước X (ví 0) → đơn giữ để ví khớp sổ; gói không gắn đơn → đơn lấy từ gói giữ
   await them('pos_customers', { phone: R, name: 'Khách R', created_at: '2026-08-01T08:00:00' });
-  await them('pos_wallets', { phone: R, balance: 0 });
-  await them('pos_balance_transactions', { customer_phone: R, type: 'topup', amount: 0, created_at: '2026-08-02T08:00:00' });
+  await them('pos_wallets', { phone: R, balance: 0, total_topup: 100000, total_spent: 100000 });
+  await so(R, 'topup', 100000, '2026-08-02T08:00:00', null, false);
+  const OR1 = await don('ORD-20260802-001', R, '2026-08-02T09:00:00', false, { payment_method: 'balance', balance_amount: 100000, total: 100000 });
+  await so(R, 'purchase', -100000, '2026-08-02T09:00:00', OR1, false);
   await diem(R, 100, '2026-08-03T08:00:00', null, true, 'bonus');
-  await them('pos_customer_packages', { customer_phone: R, package_id: GOI, total_qty: 5, created_at: '2026-08-04T08:00:00' });
+  const GR = await them('pos_customer_packages', { customer_phone: R, package_id: GOI, total_qty: 5, delivered_qty: 1, created_at: '2026-08-04T08:00:00' });
+  await don('ORD-20260804-001', R, '2026-08-04T10:00:00', false, { customer_package_id: GR, total: 0 });
   await them('pos_membership_purchases', { customer_phone: R, tier_id: 1, tier_name: 'Vàng', purchased_at: '2026-08-04T08:00:00', expires_at: '2027-08-04T08:00:00' });
   const O4 = await don('ORD-20261015-001', R, '2026-10-15T10:00:00', false);
   await diem(R, 500, '2026-10-15T10:00:00', O4, false);
-  await them('pos_voucher_grants', { code: 'DDR', customer_phone: R, status: 'available', granted_at: '2026-10-16T10:00:00' });
-  await them('pos_discount_codes', { code: 'DDR', discount_type: 'fixed', discount_value: 20000 });
   await them('pos_signup_codes', { code: 'TQDT2', order_id: O4, order_customer_phone: R, claimed_at: '2026-10-16T09:00:00', claimed_phone: T2 }, true);   // mã trên bill R, số thử T2 nhận
   await them('pos_discount_codes', { code: 'TQDT2', discount_type: 'fixed', discount_value: 10000 }, true);
 
-  // Đơn không SĐT: có phiên thanh toán (tiền ngân hàng) → giữ; thường → xoá; hôm nay → giữ
+  // Đơn không SĐT: có phiên (tiền ngân hàng) → giữ; nợ kho SX → giữ; dùng mã CHUNG → xoá + trả lượt + voucher R về available
   const O5 = await don('ORD-20260807-001', null, '2026-08-07T10:00:00', false, { payment_method: 'transfer' });
   await them('pos_phien_thanh_toan', { than: '{}', tong: 50000, con_lai: 0, cach: 'qr', het_han: '2026-08-07T10:15:00', order_id: O5, nguoi_tao: 'x', tao_luc: '2026-08-07T10:00:00', trang_thai: 'da_thu' });
-  const O6 = await don('ORD-20260808-001', null, '2026-08-08T10:00:00', true);
+  const OS = await don('ORD-20260813-001', null, '2026-08-13T10:00:00', false);
+  await them('pos_stock_pending', { order_code: 'ORD-20260813-001', order_id: OS, sx_product_type: 'tra', sx_product_id: 1, quantity: 1 });
+  const O6 = await don('ORD-20260808-001', null, '2026-08-08T10:00:00', true, { discount_code: 'chung', discount_type: 'fixed', discount_value: 5000 });
   await them('pos_order_items', { order_id: O6, product_name: 'Nước', quantity: 2, unit_price: 25000, total_price: 50000 }, true);
+  const DDR = await them('pos_voucher_grants', { code: 'DDR', customer_phone: R, status: 'used', granted_at: '2026-10-16T10:00:00', used_order_id: O6, used_at: '2026-10-16T11:00:00' });
+  await them('pos_discount_codes', { code: 'DDR', discount_type: 'fixed', discount_value: 20000 });
   await don('ORD-HOMNAY-LE', null, homNay, false);
+  for (let i = 1; i <= SO_DON_LON; i++) {
+    await don(`ORD-THU-${String(i).padStart(3, '0')}`, null, '2026-08-20T12:00:00', true, { notes: 'ghi chú thử '.repeat(90) });
+  }
 
-  // P6 — dòng cộng trước X (đi theo ngày), dòng trừ sau X (ở lại) → điểm âm nếu không có P6 trong danh sách
+  // P6 — cộng trước X (đi theo ngày), trừ sau X (ở lại) → điểm âm nếu không có P6 trong danh sách
   await diem(P6, 300, '2026-08-05T10:00:00', null, true);
   await diem(P6, -300, '2026-10-05T10:00:00', null, true, 'redeem');
+  // P7 — cùng cảnh nhưng lô điểm đã hết hạn (dòng trừ chép hạn lô) → số dư thật = 0, KHÔNG được báo âm
+  await diem(P7, 300, '2026-08-05T10:00:00', null, true, 'earn', '2026-10-01T00:00:00');
+  await diem(P7, -300, '2026-09-10T10:00:00', null, false, 'redeem', '2026-10-01T00:00:00');
 
   const tatBang = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")).map((r) => r.name);
   const chup = async () => {
@@ -177,6 +205,14 @@ async function main() {
   };
   const bam = (o) => crypto.createHash('sha256').update(JSON.stringify(o)).digest('hex');
   const demXoa = (t) => [...XOA].filter((x) => x.startsWith(t + ':')).length;
+  const doiSoat = async () => {
+    const ds = [];
+    for (const [kieu, ngay] of [['ngay', getToday()], ['thang', '2026-08-15'], ['thang', '2026-10-15']]) {
+      const r = await chayDoiSoat({ kieu, ngay });
+      for (const l of [...r.do, ...r.can_xem]) ds.push(`${l.bat_bien} ${l.mo_ta}`);
+    }
+    return new Set(ds);
+  };
   noiLai();
 
   muc('[D0] Có route /api/pos/don-thu');
@@ -226,35 +262,43 @@ async function main() {
   imLang();
   const l1 = await goi('/liet-ke', { truoc_ngay: X });
   noiLai();
-  const ma = (l) => (l.j.don || []).map((d) => d.code).sort();
+  const ma = (l) => (l.j.don || []).map((d) => d.code).filter((c) => !c.startsWith('ORD-THU-')).sort();
+  const soLon = (l) => (l.j.don || []).filter((d) => d.code.startsWith('ORD-THU-')).length;
   {
     k('D1 200', l1.status === 200, `${l1.status} ${JSON.stringify(l1.j).slice(0, 200)}`);
-    k('D1 đơn trước X: đúng O1, 31/08 23:59:59, O6 (không đơn đúng X, không đơn của K / con K, không đơn có phiên, không đơn hôm nay)',
-      bang(ma(l1), ['ORD-20260806-751', 'ORD-20260808-001', 'ORD-20260831-001']), JSON.stringify(ma(l1)));
+    k('D1 đơn trước X: đúng O1, 31/08 23:59:59, O6 + 40 đơn thử (không đơn đúng X, không đơn bị giữ)',
+      bang(ma(l1), ['ORD-20260806-751', 'ORD-20260808-001', 'ORD-20260831-001']) && soLon(l1) === SO_DON_LON, `${JSON.stringify(ma(l1))} + ${soLon(l1)}`);
     const sd = l1.j.so_dong || {};
-    k('D1 dòng gắn đơn đi theo đơn (chi tiết 2, nhật ký đơn, hoá đơn, hoàn, hỏng, khuyến mãi, sổ ví theo đơn)',
+    k('D1 dòng gắn đơn đi theo đơn (chi tiết 2, nhật ký đơn, hoá đơn, hoàn, hỏng, khuyến mãi)',
       sd.pos_order_items === 2 && sd.pos_order_log === 1 && sd.pos_invoice_logs === 1 && sd.pos_refund_requests === 1 && sd.pos_damage_logs === 1
-      && sd.pos_promotion_usage === 1 && sd.pos_balance_transactions === 1, JSON.stringify(sd));
-    k('D1 điểm trước X: O1 +500, T1 −200, R +100, P6 +300 (không dòng sau X, không dòng của K)', sd.pos_point_transactions === 4, String(sd.pos_point_transactions));
-    k('D1 voucher trước X: chỉ của T1 (K giữ) + mã giảm của voucher và mã bill đơn O1', sd.pos_voucher_grants === 1 && sd.pos_discount_codes === 2 && sd.pos_signup_codes === 1, JSON.stringify(sd));
+      && sd.pos_promotion_usage === 1, JSON.stringify(sd));
+    k('D1 theo ngày KHÔNG xoá dòng sổ ví nào (ví của R phải khớp sổ)', !sd.pos_balance_transactions, JSON.stringify(sd));
+    k('D1 điểm trước X: O1 +500, T1 −200, R +100, P6 +300, P7 +300 (không dòng sau X, không dòng của K / T3 / đơn giữ)', sd.pos_point_transactions === 5, String(sd.pos_point_transactions));
+    k('D1 voucher trước X: chỉ của T1 (K giữ) + mã giảm của voucher và mã bill đơn O1 (mã CHUNG không xoá)', sd.pos_voucher_grants === 1 && sd.pos_discount_codes === 2 && sd.pos_signup_codes === 1, JSON.stringify(sd));
     k('D1 mã đăng nhập / lần thử App trước X', sd.pos_kh_ma_dang_nhap === 1 && sd.pos_kh_lan_thu === 1, JSON.stringify(sd));
     k('D1 theo ngày KHÔNG chạm hồ sơ khách, ví, gói / thẻ không gắn đơn', !sd.pos_customers && !sd.pos_wallets && !sd.pos_customer_packages && !sd.pos_membership_purchases, JSON.stringify(sd));
-    k('D1 tổng tiền = tổng đơn sẽ dọn (3 × 50.000)', l1.j.tong_tien === 150000, String(l1.j.tong_tien));
-    k('D1 không bao giờ dọn sổ tiền / kho / phiên / đơn App', ['pos_doi_soat_ghi', 'pos_payos_su_kien', 'pos_phien_thanh_toan', 'pos_don_app', 'pos_nhat_ky_pin', 'pos_stock_pending', 'pos_products', 'pos_settings', 'pos_users', 'pos_sync_logs'].every((t) => !sd[t]));
+    k('D1 tổng tiền = tổng đơn sẽ dọn (43 × 50.000)', l1.j.tong_tien === 50000 * (3 + SO_DON_LON), String(l1.j.tong_tien));
+    k('D1 tổng điểm còn hạn sẽ mất: 500 − 200 + 100 + 300 (P7 hết hạn không tính)', l1.j.tong_diem_con_han === 700, String(l1.j.tong_diem_con_han));
+    k('D1 không bao giờ dọn sổ tiền / kho / phiên / đơn App', ['pos_doi_soat_ghi', 'pos_payos_su_kien', 'pos_phien_thanh_toan', 'pos_don_app', 'pos_nhat_ky_pin', 'pos_stock_pending', 'pos_products', 'pos_settings', 'pos_users', 'pos_sync_logs', 'pos_packages'].every((t) => !sd[t]));
   }
-  muc('[D3] Giữ lại: ví ≠ 0, đơn có phiên thanh toán');
+  muc('[D3] Giữ lại cả cụm: ví ≠ 0, phiên, nợ kho, sổ ví, gói');
   {
     const gd = (l1.j.giu_lai && l1.j.giu_lai.don) || [];
-    k('D3 đơn có phiên thanh toán → giữ lại, có lý do', gd.some((d) => d.code === 'ORD-20260807-001' && d.ly_do), JSON.stringify(gd));
-    k('D3 đơn K trả hộ con (ví K ≠ 0) → giữ lại', gd.some((d) => d.code === 'ORD-20260809-001' && d.ly_do), JSON.stringify(gd));
-    k('D3 đơn của K (ví ≠ 0) trước X → giữ lại', gd.some((d) => d.code === 'ORD-20260820-001'), JSON.stringify(gd));
+    const co = (code, re) => gd.some((d) => d.code === code && re.test(d.ly_do || ''));
+    k('D3 đơn có phiên thanh toán → giữ lại', co('ORD-20260807-001', /phiên/), JSON.stringify(gd));
+    k('D3 đơn K trả hộ con (ví K ≠ 0) → giữ lại', co('ORD-20260809-001', /trả hộ/));
+    k('D3 đơn của K (ví ≠ 0) trước X → giữ lại', co('ORD-20260820-001', /ví/));
+    k('D3 đơn còn nợ kho SX → giữ lại', co('ORD-20260813-001', /kho/));
+    k('D3 đơn R mua bằng ví (sổ ví của số không dọn) → giữ lại', co('ORD-20260802-001', /sổ ví/));
+    k('D3 đơn R lấy từ gói còn giữ → giữ lại', co('ORD-20260804-001', /gói còn giữ/));
+    k('D3 đơn T1 mua gói mà đơn hôm nay đang dùng → giữ lại', co('ORD-20260812-001', /Mua gói/));
     k('D3 ví ≠ 0 của K liệt kê riêng kèm số dư', ((l1.j.giu_lai && l1.j.giu_lai.vi) || []).some((v) => v.phone === K && Number(v.balance) === 50000), JSON.stringify(l1.j.giu_lai && l1.j.giu_lai.vi));
   }
-  muc('[D10] Điểm âm → báo + từ chối dọn');
+  muc('[D10] Điểm âm → báo + từ chối dọn (cùng vị từ còn hạn với số dư thật)');
   {
     const da = l1.j.diem_am || [];
-    k('D10 P6 (cộng trước X, trừ sau X) → diem_am có P6 còn −300', da.length === 1 && da[0].phone === P6 && Number(da[0].con_lai) === -300, JSON.stringify(da));
-    k('D10 không báo oan: T1 còn +100 sau X, R còn +500 → không âm', !da.some((d) => d.phone === T1 || d.phone === R));
+    k('D10 P6 (cộng trước X, trừ sau X) → diem_am có P6 còn −300', da.some((d) => d.phone === P6 && Number(d.con_lai) === -300), JSON.stringify(da));
+    k('D10 không chặn oan: P7 lô đã hết hạn (số dư thật 0), T1 còn +100, R còn +500 → không âm', da.length === 1, JSON.stringify(da));
     imLang();
     const r = await goi('/don', { truoc_ngay: X, ma_xac_nhan: l1.j.ma_xac_nhan, go_xac_nhan: 'DON DU LIEU THU' });
     noiLai();
@@ -266,20 +310,21 @@ async function main() {
   muc('[D2] Liệt kê theo danh sách SĐT');
   {
     imLang();
-    const l2 = await goi('/liet-ke', { sdt: [' 0900 000 002 ', K] });
+    const l2 = await goi('/liet-ke', { sdt: [' 0900 000 002 ', K, T3] });
     noiLai();
     const sd = l2.j.so_dong || {};
-    k('D2 200, SĐT chuẩn hoá (khoảng trắng bỏ), K không nằm trong danh sách dọn', l2.status === 200 && bang(l2.j.sdt, [T2]), `${l2.status} ${JSON.stringify(l2.j.sdt)}`);
-    k('D2 đơn: chỉ O2 (đơn hôm nay của T2 giữ, đơn số khác không vào)', bang(ma(l2), ['ORD-20261020-001']), JSON.stringify(ma(l2)));
-    k('D2 đủ mọi bảng của T2: hồ sơ, ví 0, sổ ví 2, điểm 1 (không dòng của đơn hôm nay), gói, thẻ, đăng ký, mã App, voucher, mã bill đã nhận',
+    k('D2 200, SĐT chuẩn hoá (khoảng trắng bỏ); K (ví) và T3 (đơn hôm nay) KHÔNG nằm trong danh sách xoá sạch', l2.status === 200 && bang(l2.j.sdt, [T2]), `${l2.status} ${JSON.stringify(l2.j.sdt)}`);
+    k('D2 K và T3 hiện ở giữ lại (SĐT)', bang(l2.j.giu_lai && l2.j.giu_lai.sdt, [K, T3]), JSON.stringify(l2.j.giu_lai && l2.j.giu_lai.sdt));
+    k('D2 đơn: chỉ O2 (đơn cũ của T3 giữ theo số, đơn số khác không vào)', bang(ma(l2), ['ORD-20261020-001']), JSON.stringify(ma(l2)));
+    k('D2 đơn hôm nay của T3 hiện ở giữ lại có lý do', ((l2.j.giu_lai && l2.j.giu_lai.don) || []).some((d) => d.code === 'ORD-HOMNAY-T3' && /hôm nay/.test(d.ly_do)));
+    k('D2 đủ mọi bảng của T2: hồ sơ, ví 0, sổ ví 2, điểm 1, gói, thẻ, đăng ký, mã App, voucher, mã bill đã nhận; T3 không một dòng',
       sd.pos_customers === 1 && sd.pos_wallets === 1 && sd.pos_balance_transactions === 2 && sd.pos_point_transactions === 1 && sd.pos_customer_packages === 1
       && sd.pos_membership_purchases === 1 && sd.pos_registrations === 1 && sd.pos_kh_ma_dang_nhap === 1 && sd.pos_voucher_grants === 1
       && sd.pos_signup_codes === 1 && sd.pos_discount_codes === 2, JSON.stringify(sd));
-    k('D2 ví K liệt kê ở giữ lại', ((l2.j.giu_lai && l2.j.giu_lai.vi) || []).some((v) => v.phone === K));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  const TC = { truoc_ngay: X, sdt: [T2, K, P6] };
+  const TC = { truoc_ngay: X, sdt: [T2, K, T3, P6] };
   muc('[D5] Dọn: chữ xác nhận, mã xác nhận, dữ liệu đổi giữa hai bước');
   let l3;
   {
@@ -299,7 +344,6 @@ async function main() {
     k('D5 sai mã xác nhận → 409 DANH_SACH_DA_DOI', c.status === 409 && c.j.code === 'DANH_SACH_DA_DOI', `${c.status}`);
     k('D5 thiếu mã xác nhận → 409 DANH_SACH_DA_DOI', d.status === 409 && d.j.code === 'DANH_SACH_DA_DOI', `${d.status}`);
     k('D5 kho không đổi', truoc === bam(await chup()));
-    // dữ liệu mới xuất hiện giữa liệt kê và dọn
     imLang();
     await don('ORD-20260811-001', null, '2026-08-11T10:00:00', true);
     const e = await goi('/don', { ...TC, ma_xac_nhan: l3.j.ma_xac_nhan, go_xac_nhan: 'DON DU LIEU THU' });
@@ -322,6 +366,9 @@ async function main() {
   }
 
   muc('[D6] Dọn đúng → đúng số dòng đã liệt kê + nhật ký đủ');
+  imLang();
+  const dsTruoc = await doiSoat();
+  noiLai();
   const trc = await chup();
   imLang();
   const r6 = await goi('/don', { ...TC, ma_xac_nhan: l3.j.ma_xac_nhan, go_xac_nhan: 'DON DU LIEU THU' });
@@ -337,28 +384,52 @@ async function main() {
     const nk = (sau.pos_sync_logs || []).filter((r) => r.type === 'don_thu');
     let ct = {}; try { ct = JSON.parse(nk[0] && nk[0].details); } catch { /* hỏng */ }
     k('D6 đúng MỘT dòng nhật ký don_thu, có người + lúc (giờ VN) + số dòng', nk.length === 1 && nk[0].created_by === chu.username && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(String(nk[0].created_at)) && Number(nk[0].record_count) === XOA.size,
-      JSON.stringify(nk.map((r) => ({ ...r, details: undefined }))));
-    k('D6 nhật ký có tiêu chí + số dòng từng bảng', !!ct.tieu_chi && ct.tieu_chi.truoc_ngay === X && bang(ct.tieu_chi.sdt, [T2, P6]) && bang(ct.so_dong, r6.j.so_dong), JSON.stringify(ct.tieu_chi));
+      JSON.stringify(nk.map((r) => ({ ...r, details: String(r.details).slice(0, 80) }))));
+    k('D6 nhật ký có tiêu chí (SĐT xoá sạch thật) + số dòng từng bảng', !!ct.tieu_chi && ct.tieu_chi.truoc_ngay === X && bang(ct.tieu_chi.sdt, [T2, P6]) && bang(ct.so_dong, r6.j.so_dong), JSON.stringify(ct.tieu_chi));
+    const phan = (sau.pos_sync_logs || []).filter((r) => r.type === 'don_thu_chup' && r.file_name === `don_thu#${nk[0] && nk[0].id}`).sort((a, b) => a.record_count - b.record_count);
+    const ghep = phan.map((r) => r.details).join('');
+    let chupNk = {}; try { chupNk = JSON.parse(ghep); } catch { /* hỏng */ }
+    k('D6 bản chụp trong nhật ký chia phần, mỗi ô ≤ 32767 ký tự (trần ô Excel của sao lưu)', phan.length >= 2 && phan.length === ct.so_phan && phan.every((r) => String(r.details).length <= 32767)
+      && (sau.pos_sync_logs || []).every((r) => String(r.details ?? '').length <= 32767), `${phan.length} phần / so_phan ${ct.so_phan}`);
+    k('D6 băm bản chụp trong nhật ký khớp phần ghép', ct.bam_ban_chup === crypto.createHash('sha256').update(ghep).digest('hex'));
     const goc1 = (trc.pos_orders || []).find((r) => r.code === 'ORD-20260806-751');
-    const chup1 = ((ct.ban_chup || {}).pos_orders || []).find((r) => r.code === 'ORD-20260806-751');
-    k('D6 bản chụp giữ NGUYÊN dòng đã xoá (mọi cột)', !!goc1 && bang(chup1, goc1), JSON.stringify(chup1));
-    k('D6 bản chụp có đủ mọi dòng đã xoá', Object.values(ct.ban_chup || {}).reduce((s, a) => s + a.length, 0) === XOA.size);
-    k('D6 trả bản chụp cho màn hình tải về (khác rỗng, bằng bản trong nhật ký)', !!r6.j.ban_chup && Object.keys(r6.j.ban_chup).length > 0 && bang(r6.j.ban_chup, ct.ban_chup));
+    k('D6 bản chụp nhật ký giữ NGUYÊN dòng đã xoá (mọi cột)', !!goc1 && bang(((chupNk.pos_orders || []).find((r) => r.code === 'ORD-20260806-751')), goc1));
+    k('D6 bản chụp nhật ký đủ mọi dòng đã xoá', Object.values(chupNk).reduce((s, a) => s + a.length, 0) === XOA.size);
+    const khT2 = (chupNk.pos_customers || []).find((r) => r.phone === T2);
+    k('D6 nhật ký (nhân viên đọc được qua /sync/logs) che PIN / mật khẩu / mã băm: "[ẩn]"', !!khT2 && khT2.pin_code === '[ẩn]' && !ghep.includes('$2b$10$bammau'), JSON.stringify(khT2 && khT2.pin_code));
+    const khTra = ((r6.j.ban_chup || {}).pos_customers || []).find((r) => r.phone === T2);
+    k('D6 bản chụp trả về cho chủ quán tải: đủ dòng, giữ nguyên cột (kể cả PIN băm)', !!khTra && khTra.pin_code === '$2b$10$bammau'
+      && Object.values(r6.j.ban_chup || {}).reduce((s, a) => s + a.length, 0) === XOA.size);
   }
-  muc('[E] K5 — dòng ngoài tiêu chí còn nguyên từng cột');
+  muc('[E] K5 — dòng ngoài tiêu chí còn nguyên từng cột; đối soát; sao lưu');
   {
     const lech = [];
     for (const t of tatBang) {
-      const mong = (trc[t] || []).filter((r) => !XOA.has(`${t}:${r.id}`)).map((r) => (t === 'pos_orders' && Number(r.id) === O8 ? { ...r, customer_package_id: null } : r));
-      const that = (sau[t] || []).filter((r) => !(t === 'pos_sync_logs' && r.type === 'don_thu'));
+      const mong = (trc[t] || []).filter((r) => !XOA.has(`${t}:${r.id}`)).map((r) => {
+        if (t === 'pos_discount_codes' && Number(r.id) === CHUNG) return { ...r, used_count: r.used_count - 1 };
+        if (t === 'pos_voucher_grants' && Number(r.id) === DDR) return { ...r, status: 'available', used_order_id: null, used_at: null };
+        return r;
+      });
+      const that = (sau[t] || []).filter((r) => !(t === 'pos_sync_logs' && /^don_thu/.test(r.type)));
       if (!bang(mong, that)) lech.push(t);
     }
-    k('E1 mọi bảng: dòng KHÔNG gắn nhãn trước = sau (hồ sơ, ví, sổ ví, điểm, voucher, gói, thẻ của K / R / con K; sản phẩm, cài đặt…)', lech.length === 0, lech.join(', '));
-    const o8 = (sau.pos_orders || []).find((r) => Number(r.id) === O8);
-    k('E2 đơn hôm nay giữ, gói của nó bị dọn → customer_package_id NULL (như xoá đơn)', !!o8 && o8.customer_package_id === null, JSON.stringify(o8 && o8.customer_package_id));
+    k('E1 mọi bảng: dòng KHÔNG gắn nhãn trước = sau (hồ sơ, ví, sổ ví, điểm, voucher, gói, thẻ của K / R / T3 / con K; sản phẩm…), trừ cột bù', lech.length === 0, lech.join(', '));
+    const chung = (sau.pos_discount_codes || []).find((r) => Number(r.id) === CHUNG);
+    const ddr = (sau.pos_voucher_grants || []).find((r) => Number(r.id) === DDR);
+    k('E2 xoá đơn dùng mã → trả lượt mã (CHUNG 3 → 2) + voucher R về available (như xoá đơn, traLuotMa)', chung && chung.used_count === 2 && ddr && ddr.status === 'available' && ddr.used_order_id === null, `${chung && chung.used_count} ${ddr && ddr.status}`);
     const tien = (o) => (o.pos_orders || []).filter((r) => !XOA.has(`pos_orders:${r.id}`)).reduce((s, r) => s + Number(r.total), 0);
     k('E2 tổng tiền các đơn KHÔNG dọn bằng nhau trước–sau', tien(trc) === tien(sau));
-    k('E2 hồ sơ khách R (trước X, ngoài danh sách) còn', (sau.pos_customers || []).some((r) => r.phone === R));
+    k('E2 hồ sơ khách R, T3, K còn', [R, T3, K].every((p) => (sau.pos_customers || []).some((r) => r.phone === p)));
+    imLang();
+    const dsSau = await doiSoat();
+    noiLai();
+    const moi = [...dsSau].filter((l) => !dsTruoc.has(l));
+    k('E3 đối soát (chayDoiSoat ngày hôm nay + tháng 8 + tháng 10): KHÔNG thêm dòng lệch nào sau khi dọn', moi.length === 0, moi.slice(0, 3).join(' | '));
+    imLang();
+    let sl = { status: 0 };
+    try { sl = await fetch(goc + '/backup/export-all', { headers: { Authorization: 'Bearer ' + tkChu } }); } catch { /* sập */ }
+    noiLai();
+    k('E4 sao lưu toàn bộ (/backup/export-all) vẫn tải được SAU khi dọn (nhật ký lớn)', sl.status === 200, String(sl.status));
   }
 
   muc('[D7] Chạy lại → không còn gì');
@@ -382,10 +453,10 @@ async function main() {
     const svDt = (() => { try { return require(path.join(GOC, 'server', 'utils', 'donThu.js')); } catch { return {}; } })();
     k('D12 chữ xác nhận màn hình = máy chủ = "DON DU LIEU THU"', M.CHU_XAC_NHAN === 'DON DU LIEU THU' && svDt.CHU_XAC_NHAN === M.CHU_XAC_NHAN, `${M.CHU_XAC_NHAN}/${svDt.CHU_XAC_NHAN}`);
     k('D12 đọc ô SĐT: tách dòng / dấu phẩy, bỏ khoảng trắng, bỏ dòng trống', bang(f('docDanhSachSdt')('0900 000 002\n\n 0900000003 , 0900000006'), [T2, K, P6]));
-    const kq = { tong_dong: 5, diem_am: [], don: [{ code: 'ORD-A', created_at: '2026-08-06T10:00:00', customer_phone: T1, total: 50000 }],
-      sdt: [T2], so_dong: { pos_orders: 1 }, giu_lai: { vi: [{ phone: K, balance: 50000 }], don: [{ code: 'ORD-B', ly_do: 'có phiên' }] } };
+    const kq = { tong_dong: 5, tong_tien: 50000, tong_diem_con_han: 700, diem_am: [], don: [{ code: 'ORD-A', created_at: '2026-08-06T10:00:00', customer_phone: T1, total: 50000 }],
+      sdt: [T2], so_dong: { pos_orders: 1 }, giu_lai: { vi: [{ phone: K, balance: 50000 }], sdt: [T3], don: [{ code: 'ORD-B', ly_do: 'có phiên' }] } };
     const csv = String(f('dungCsv')(kq) || '');
-    k('D12 CSV có đơn (mã, ngày, SĐT, tiền), SĐT dọn, số dòng từng bảng, phần giữ lại', ['ORD-A', '2026-08-06T10:00:00', T1, '50000', T2, 'pos_orders', K, 'ORD-B', 'có phiên'].every((x) => csv.includes(x)), csv.slice(0, 200));
+    k('D12 CSV có đơn (mã, ngày, SĐT, tiền), SĐT dọn, số dòng từng bảng, tổng điểm, phần giữ lại (ví, SĐT, đơn)', ['ORD-A', '2026-08-06T10:00:00', T1, '50000', T2, 'pos_orders', '700', K, T3, 'ORD-B', 'có phiên'].every((x) => csv.includes(x)), csv.slice(0, 200));
     const du = { ketQua: kq, daTaiDs: true, daTaiSaoLuu: true, go: 'DON DU LIEU THU' };
     const mo = f('moNutDon');
     k('D12 nút Dọn mở khi đủ điều kiện', mo(du) === true);
@@ -400,6 +471,7 @@ async function main() {
     k('D12 đổi tiêu chí (ô ngày + ô SĐT qua doiTieuChi) → bỏ kết quả + bỏ dấu đã tải danh sách / sao lưu',
       /setKetQua\(null\)/.test(doiTc) && /setDaTaiDs\(false\)/.test(doiTc) && /setDaTaiSaoLuu\(false\)/.test(doiTc)
       && /type="date"[^>]*onChange=\{doiTieuChi\(setNgay\)\}/.test(dt) && /<textarea[^>]*onChange=\{doiTieuChi\(setOSdt\)\}/.test(dt), doiTc);
+    k('D12 màn hiện SĐT giữ lại', /gl\.sdt/.test(dt));
     const ql = sach(doc('client/src/pages/QuanLy/QuanLy.jsx'));
     k("D12 Quản lý: ô Dọn dữ liệu thử chỉ hiện với owner", /role\s*===\s*'owner'\s*&&[\s\S]{0,400}to="\/don-thu"/.test(ql));
     k('D12 App.jsx có route /don-thu tới DonThu', /path="don-thu"\s+element=\{<DonThu\s*\/>\}/.test(doc('client/src/App.jsx')));
