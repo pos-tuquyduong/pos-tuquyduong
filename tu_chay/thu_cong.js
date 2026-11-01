@@ -537,6 +537,9 @@ function baiCong() {
     ca(`TU-CHAY-10 A20 tiêu đề lệch "${td}"`, [phieuMoi(`\n${td}\ncó — tiền\n`), ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' + DAT }]],
       'ĐỎ', DO20('tinh', 'phải viết đúng "## Soát bảo mật"'));
   }
+  // Soát vòng 2: hai tiêu đề đúng dạng — cổng từng lấy cái ĐẦU ("không") rồi bỏ qua cái sau ("có") → phải đỏ, chỉ được MỘT mục
+  ca('TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có)', [phieuMoi('\n## Soát bảo mật\nkhông — x\n\n## Soát bảo mật\ncó — tiền\n'),
+    ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' }]], 'ĐỎ', DO20('tinh', 'MỘT mục'));
   ca('TU-CHAY-10 A20 K5 không — …, trang_thai không có dòng', BM('không — chỉ sửa khung', ''), 'ĐẠT');
   ca('TU-CHAY-10 A20 K5 "- Có — tiền" (gạch đầu dòng, hoa) + ĐẠT', BM('- Có — tiền', DAT), 'ĐẠT', { che: 'tinh' });
   ca('TU-CHAY-10 A20 K5 PR thêm mục ban_cai lenh_soat_bao_mat.md + nguồn + chủ quán đã cài', [['PHIEU: X lenh', { 'viec/X/phieu.md':
@@ -570,7 +573,8 @@ function baiCong() {
     ['A19', 'TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code', 'tinh'],
     ['A19', 'TU-CHAY-5 A19 "+ commit này" cha sai', 'tinh'], ['A19', 'TU-CHAY-5 A19 gộp main SAU lần kiểm', 'tinh'],
     ['A20', 'TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)', 'tinh'], ['A20', 'TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)', 'chay'],
-    ['A20', 'TU-CHAY-10 A20 giá trị lạ', 'tinh'], ['A20', 'TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"', 'tinh']];
+    ['A20', 'TU-CHAY-10 A20 giá trị lạ', 'tinh'], ['A20', 'TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"', 'tinh'],
+    ['A20', 'TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có)', 'tinh']];
   if (mod && typeof mod.cong === 'function') {
     for (const [ma, ten, cheDo] of DB) {
       if (CUA[ten] === false) continue; // ca thuộc phần khác — phần đó chạy đột biến của nó
