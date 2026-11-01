@@ -343,7 +343,7 @@ async function main() {
     const chup1 = ((ct.ban_chup || {}).pos_orders || []).find((r) => r.code === 'ORD-20260806-751');
     k('D6 bản chụp giữ NGUYÊN dòng đã xoá (mọi cột)', !!goc1 && bang(chup1, goc1), JSON.stringify(chup1));
     k('D6 bản chụp có đủ mọi dòng đã xoá', Object.values(ct.ban_chup || {}).reduce((s, a) => s + a.length, 0) === XOA.size);
-    k('D6 trả bản chụp cho màn hình tải về', bang(r6.j.ban_chup, ct.ban_chup));
+    k('D6 trả bản chụp cho màn hình tải về (khác rỗng, bằng bản trong nhật ký)', !!r6.j.ban_chup && Object.keys(r6.j.ban_chup).length > 0 && bang(r6.j.ban_chup, ct.ban_chup));
   }
   muc('[E] K5 — dòng ngoài tiêu chí còn nguyên từng cột');
   {
