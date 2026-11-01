@@ -16,7 +16,9 @@ DB = [
     ('VS-A20-dat-mot-phan', 'tu_chay/cong.js', "/^SOÁT BẢO MẬT: ĐẠT\\s*$/u", "/^SOÁT BẢO MẬT: /u", 'TU-CHAY-10 A20 có + KHÔNG ĐẠT'),
     ('VS-A20-tieu-de-sat-chu', 'tu_chay/cong.js', "/^#+\\s*soát\\s*bảo\\s*mật/iu", "/^##\\s+Soát bảo mật$/u",
      'TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"'),
-    ('BV-A20','tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = null;",
+    ('VS-A20-lay-tieu-de-dau', 'tu_chay/cong.js', "if (gan.length > 1) return", "if (gan.length > 9) return",
+     'TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật'),
+    ('BV-A20', 'tu_chay/cong.js', "const baoMat = mucBaoMat(phieu);", "const baoMat = null;",
      'TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)'),
 ]
 
