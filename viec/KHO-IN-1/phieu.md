@@ -1,8 +1,10 @@
-# KHO-IN-1 — Cài đặt in phiếu (80mm / A5 / A4 cho từng loại phiếu kho) · khổ hoá đơn mặc định thật sự có tác dụng
+# KHO-IN-1 — Cài đặt in phiếu (A5 / A4 cho từng loại phiếu kho) · khổ hoá đơn mặc định thật sự có tác dụng
 
 <!-- Phiếu do chat soạn 31.10.2026. Việc thường [Th] — Sonnet, chạy thẳng tới hết. Nền: main sau sổ v51 (KHO-2b, KH-QUAY-2 đã gộp).
      Chủ quán chốt 31.10 (QUYET_DINH_CHU_QUAN.md): HOÁ ĐƠN KHÁCH chỉ khổ nhiệt (KH-QUAY-2 đã làm); CÁC LOẠI PHIẾU (xuất / nhập kho, đặt hàng,
      phát sinh, pha chế…) VẪN có lựa chọn 80mm / A5 / A4 và có phần Cài đặt in phiếu.
+     ĐỔI 01.11 (chủ quán, thay câu trên): phiếu KHO (xuất PX, đặt hàng DH, nhận PN, phát sinh PS) CHỈ A5 hoặc A4 — KHÔNG 80mm.
+     Hoá đơn khách và phiếu pha chế từng đơn sau thanh toán CHỈ khổ nhỏ (giấy nhiệt) — không A5 / A4.
      KH-QUAY-2 phát hiện (trang_thai mục Phát hiện): máy chủ còn mặc định khổ hoá đơn 'a5' (server/database.js ~1161 seed invoice_default_size,
      server/routes/settings.js ~268); ô "Khổ mặc định" ở Cài đặt hoá đơn lưu `config.default_size` mà lệnh in đọc `invoice_default_size` → nghi ô
      đó không có tác dụng.
@@ -19,12 +21,12 @@
 Mỗi loại phiếu kho in đúng khổ quán chọn sẵn (vẫn đổi được khi in); ô khổ hoá đơn mặc định thật sự quyết định khổ in.
 
 ## Nghiệm thu
-- A **Cài đặt in phiếu** (một khối mới, chủ quán / quản lý): mỗi loại phiếu (xuất PX, đặt hàng DH, nhận PN, phát sinh PS, phiếu pha chế) chọn khổ
-  mặc định 80mm / A5 / A4 và số bản. Lưu ở cài đặt máy chủ (khoá mới, kiểm giá trị — sai → 400), dùng chung mọi máy.
-- B **Khi in phiếu:** màn xem phiếu có đủ 3 khổ, nút khổ mặc định của loại đó đứng đầu / được chọn sẵn; bố cục A5 / A4 / 80mm không tràn, không cắt
+- A **Cài đặt in phiếu** (một khối mới, chủ quán / quản lý): mỗi loại phiếu KHO (xuất PX, đặt hàng DH, nhận PN, phát sinh PS) chọn khổ
+  mặc định A5 / A4 (mặc định A5; giá trị lưu cũ '80mm' hoặc lạ khi ĐỌC ra A5, không sửa dữ liệu) và số bản. Phiếu pha chế từng đơn không ở đây. Lưu ở cài đặt máy chủ (khoá mới, kiểm giá trị — sai → 400), dùng chung mọi máy.
+- B **Khi in phiếu:** màn xem phiếu kho có ĐÚNG 2 khổ A5 / A4 (không còn nút 80mm), nút khổ mặc định của loại đó đứng đầu / được chọn sẵn; bố cục A5 / A4 không tràn, không cắt
   chữ (bảng dòng, chữ ký, số phiếu).
 - C **Khổ hoá đơn mặc định:** ô "Khổ mặc định" ở Cài đặt hoá đơn ghi đúng khoá mà lệnh in đọc (một nguồn); máy chủ mặc định '80mm' (seed + đường
-  đọc), giá trị cũ 'a5' / 'a4' vẫn đọc ra 80mm như KH-QUAY-2 (không sửa dữ liệu).
+  đọc), giá trị cũ 'a5' / 'a4' vẫn đọc ra 80mm như KH-QUAY-2 (không sửa dữ liệu). Ô này chỉ cho chọn khổ nhỏ (giấy nhiệt) — không có A5 / A4.
 - D **K5:** hoá đơn 2 tờ HD-1, tem, in lại ở Đơn hàng, nội dung phiếu kho không đổi.
 
 ## Phạm vi
@@ -46,7 +48,7 @@ Mỗi loại phiếu kho in đúng khổ quán chọn sẵn (vẫn đổi đư�
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
-Có — `cong_cu/thu_KHOIN1.js` ĐỎ trên code gốc: khoá cài đặt khổ phiếu lưu / đọc đúng, giá trị lạ → 400; màn xem phiếu có đủ 80mm / A5 / A4, mặc định
+Có — `cong_cu/thu_KHOIN1.js` ĐỎ trên code gốc: khoá cài đặt khổ phiếu lưu / đọc đúng, giá trị lạ → 400; màn xem phiếu kho chỉ A5 / A4 (không 80mm), mặc định
 theo cài đặt (đọc nguồn, bắt theo hành vi); ô khổ hoá đơn ghi đúng khoá lệnh in đọc; máy chủ mặc định 80mm.
 
 ## Ngân sách
