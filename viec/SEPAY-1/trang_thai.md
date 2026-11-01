@@ -139,3 +139,38 @@ BÀI HỌC:
   chọn này (code đã ghi `khong_phien` sẵn). Đề xuất: giữ BẬT như phiếu; nếu thấy sót tiền thì tắt trên trang SePay, không cần sửa code.
 - **Q5 — Có so số tài khoản nhận không?** Máy KHÔNG so (lý do ở `ke_hoach.md` 7.4). Nếu tài khoản SePay của quán theo dõi thêm tài khoản riêng
   của chủ quán, một khoản `TQD<n>` chuyển nhầm vào tài khoản riêng vẫn chốt đơn. Đề xuất: chỉ liên kết tài khoản quán với SePay.
+
+## Soát độc lập — vòng 2 (agent general-purpose mới, 01.11) — chép báo cáo
+
+```
+KHÔNG ĐẠT
+Chạy lại: bài thử trên bản chụp 912576e^ (git archive, chép thật) 9 đạt · 56 hỏng; HEAD 65 · 0; npm test PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn);
+3 đột biến của máy (VS-ma-khong-chan-so, BV-hai-cong-can-xem, VS-moc-gio-mot-phia) BẮT; 5 đột biến tự viết (M8, M10 SỐNG).
+
+LỖI TÌM ĐƯỢC:
+- server/routes/thanh-toan.js:136-137 — "hai cổng" đoán chỉ từ sau.nguon !== t.nguon, không xét cổng này đã báo cho phiên đó chưa. payOS chốt,
+  khách chuyển thêm lần 2 thật (id SePay khác) → cả hai báo SePay ghi "hai cổng … KHÔNG hoàn", xếp CẦN XEM (doiSoat.js:233) — khoản trả thừa
+  bị dặn KHÔNG hoàn. K4. NẶNG (tiền). Sửa: chỉ coi "hai cổng" khi cổng t.nguon chưa có dòng nào cho ma_payos này; ca "payOS chốt → SePay 2 giao
+  dịch → dòng thứ 2 vào ĐỎ".
+- cong_cu/thu_SEPAY1.js:340-347 (C14b) chỉ một chiều; chiều ngược (SePay chốt, payOS báo sau) không có ca — đột biến M10 (chỉ chiều
+  sepay-sau-payos) SỐNG 65/0. K3. NHẸ.
+- viec/SEPAY-1/cai_dat_sepay.md:28 "CONG_QR chỉ đặt SAU khi thử xong bước 3" trái bước 3.1 (dòng 35 đặt CONG_QR=sepay để thử). K1. NHẸ.
+- cai_dat_sepay.md:49-50 chỉ trích câu "đã chốt bằng báo payOS"; chiều ngược "đã chốt bằng báo SePay" không nhắc. K4. NHẸ.
+- cai_dat_sepay.md:39 "401 = khoá sai" — 401 còn do lệch giờ > 300 s (sepay.js:27); dòng 38 "5–30 giây" không căn cứ. K1. NHẸ.
+- cong_cu/thu_SEPAY1.js: không ca thân báo thiếu id / không phải JSON — đột biến M8 (bỏ `|| b.id == null`, thanh-toan.js:161) SỐNG. K3. NHẸ.
+
+NGHI NGỜ:
+- du_lieu (thanh-toan.js:121) lưu nguyên thân SePay gồm accumulated (số dư tài khoản quán) — nên bỏ trường đó khi ghi.
+- congQr.js:12 CONG_QR chỉ dấu cách → 503 thay vì payOS. Rất nhẹ.
+- Không so accountNumber (Q5), mã ngắn dính số (vòng 1) — đã ghi câu hỏi.
+- dot_bien.py:76 symlink node_modules — người soát chỉ kiểm lại 3/28.
+
+NGHIỆM THU: 6/6 mục có bằng chứng · mục thiếu: không (C còn lỗ chiều ngược "hai cổng").
+CHƯA SOÁT ĐƯỢC: trọn 28 đột biến; payOS có báo lần chuyển thứ hai vào link đã trả không; tài liệu SePay gốc; tên menu SePay; www Render;
+ngân hàng thật giữ mã TQD / khoá số tiền QR động.
+BÀI HỌC:
+- KHOÁ: suy luận "trùng báo giữa hai nguồn" phải có ca "cùng nguồn báo lần 2 (giao dịch khác)" cho kết quả khác ca "nguồn kia báo".
+- NGUYÊN TẮC (K3): điều kiện hai chiều → mỗi chiều một ca + đột biến "chỉ một chiều".
+- NGUYÊN TẮC (K1): hướng dẫn cài chạy được đúng thứ tự viết; soát chéo câu "chỉ làm X sau Y".
+- NGUYÊN TẮC (bảo mật): ghi nguyên thân báo bên ngoài thì bỏ trường nhạy cảm không dùng (số dư).
+```
