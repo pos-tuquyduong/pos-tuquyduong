@@ -1,7 +1,7 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 5
-NGAY: 2026-10-31
+PHIEN_BAN: 6
+NGAY: 2026-11-01
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/giuCho.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
@@ -90,7 +90,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
 - **Huỷ** (`POST /don/:ma/huy`): chỉ đơn `cho_tra` → `da_huy`, nhả ví; đơn đã `da_huy` → 200 `da_huy`; đã trả → 400 `DA_TRA_GOI_QUAN` (khách gọi quán).
 - **Tiền về muộn / lệch:** tiền QR về khi đơn đã `da_huy` (hoặc lệch số) → máy chủ KHÔNG tạo đơn; đơn hiện `da_huy` + `tien_ve_cho_doi_soat: true`
   — App báo "Quán đã nhận tiền, nhân viên sẽ liên hệ" (quán hoàn qua Đối soát). Khác → `false`.
-- Lỗi máy bất ngờ → 500 `LOI_MAY_CHU`; payOS chưa cài → 503 `PAYOS_CHUA_CAU_HINH`; payOS lỗi → 502 `PAYOS_LOI` (gửi lại cùng khoá); kho bận → 409
+- Lỗi máy bất ngờ → 500 `LOI_MAY_CHU`; cổng QR (SePay / payOS) chưa cài → 503 `PAYOS_CHUA_CAU_HINH`; cổng QR lỗi → 502 `PAYOS_LOI` (gửi lại cùng khoá); kho bận → 409
   `KHO_BAN` (gửi lại cùng khoá). Lỗi khác của đơn → 400 `DON_KHONG_HOP_LE` (App hiện nguyên `error`).
 
 ### Ghi chú v3
@@ -148,7 +148,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 5,
+  "phien_ban": 6,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -203,3 +203,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   Mã lỗi mới của đặt đơn (thay tên đã hẹn `NGOAI_GIO_HOAT_DONG` bằng `NGOAI_GIO` + `QUA_GIO_NHAN_DON`, đã báo App ở TRA_LOI_POS_31102026). Chủ quán
   duyệt 31.10: `tong_da_xem` + 409 `GIA_DA_DOI` kèm `bao_gia`; "Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như
   lần đầu." Không xoá / đổi tên trường cũ.
+- v6 · 01.11.2026 · SEPAY-1: QR chuyển khoản đi qua SePay (POS tự dựng VietQR; `qr.chuoi` là chuỗi VietQR chuẩn NAPAS, vẽ như cũ), payOS giữ làm
+  dự phòng bằng công tắc ở máy chủ. KHÔNG đổi trường, mã lỗi, HTTP: `PAYOS_CHUA_CAU_HINH` / `PAYOS_LOI` giữ tên, chỉ đổi câu `error` (bỏ chữ
+  "payOS"). Với SePay gần như không còn 502 (tạo QR không gọi mạng). App không phải sửa gì.
