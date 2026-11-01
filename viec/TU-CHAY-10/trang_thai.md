@@ -376,3 +376,16 @@ CHƯA KIỂM:   /soat-bao-mat chưa chạy thật (chờ chủ quán cài bằng
 GIT:         (xem git log --oneline -2 ở dòng dưới, ghi sau commit này)
 BÀI HỌC:     KHOÁ 4 (2 đã làm, 2 đề xuất) · NGUYÊN TẮC 3 (đề xuất) · BỎ 2 — chi tiết ở ## Bài học
 ```
+GIT (`git log --oneline -2` tại lần kiểm cuối):
+```
+fbb23b4 TU-CHAY-10: trang thai soat vong 3, vong sua 4, bai hoc, bao cao 7 muc
+ab5dc44 TU-CHAY-10 vong sua 4: bang chung do (391)
+```
+
+## Cổng chạy (bước 11.4) — `node tu_chay/cong.js chay . abed525^ HEAD viec/TU-CHAY-10` tại fbb23b4, cây sạch
+- `✗ [A8] bản cài lệch kết quả cai_dat.js: .claude/commands/soat-bao-mat.md, .claude/skills/lam-viec/SKILL.md, .claude/tu_chay/MAU_PHIEU.md,
+  .claude/tu_chay/PHIEN_BAN, .claude/tu_chay/THIET_KE.md, .claude/tu_chay/cau_hinh.json, .claude/tu_chay/cong.js, .claude/tu_chay/lenh_soat_bao_mat.md, …
+  — chủ quán chạy bash tu_chay/cai_dat.sh trên nhánh việc` → ✗ [A8] chờ chủ quán cài (việc sửa `tu_chay/`, bình thường).
+- `✗ CỔNG ĐỎ (CHẠY) — 1 lý do` (chỉ A8). Không ✗ A11 / A12 / A13 / A16 / A20.
+
+HEAD ĐÃ KIỂM: fbb23b4
