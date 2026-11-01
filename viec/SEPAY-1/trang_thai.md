@@ -51,6 +51,7 @@
 | `giuCho.js` hỏi cổng / một chỗ chọn / số tiền QR | `BV-giuCho-kiem-cau-hinh` · `VS-doc-cong-ngoai` · `VS-so-tien-tong` | A2 · A4 · B1 |
 | `vietQr.js` CRC / QR động | `VS-crc-sai` · `VS-qr-tinh` | B2 · B1 |
 | `doiSoat.js` nguồn | `BV-nguon-doi-soat` | D1 |
+| `doiSoat.js` dòng "hai cổng" → CẦN XEM (vòng sửa 1) | `BV-hai-cong-can-xem` · `VS-can-xem-moi-khong-hoan` | D2 · D2 |
 
 ## Câu hỏi
 
@@ -68,6 +69,9 @@
   cài mạng cho chủ quán.
 
 ## Phát hiện (ngoài Phạm vi — không sửa)
+
+- (soát vòng 1) Dòng Đối soát "đã xác nhận tay trước … KHÔNG hoàn" (có từ P3) nằm ở nhóm ĐỎ ("hoàn hoặc nạp") — dễ hoàn nhầm. Không đổi vì
+  nghiệm thu E "đối soát cũ không đổi"; nên chuyển sang CẦN XEM ở việc sau (một dòng ở `doiSoat.js` phepTienVe).
 
 - Chữ "payOS" người dùng thấy ngoài Phạm vi: tờ in `client/src/utils/hoaDon.js:27` và mặc định `server/database.js:1210`
   (`invoice_chu_ck` = "Chuyển khoản (payOS)") — đổi được ở Cài đặt chữ hoá đơn, sẽ ghi vào `cai_dat_sepay.md`; câu lỗi
@@ -113,3 +117,25 @@ BÀI HỌC:
 - NGUYÊN TẮC (K3): luồng nào phương án chủ quán duyệt liệt kê thì mỗi luồng một ca — đếm danh sách, không lấy mẫu.
 ```
 (Bản trên rút gọn phần "Kết quả từng mục soát" 1–8 của báo cáo — các mục đó không nêu lỗi mới ngoài danh sách LỖI / NGHI NGỜ.)
+
+## Vòng sửa 1 (01.11) — theo soát vòng 1
+
+- Lỗi 2 (K4): dòng "cùng một khoản báo qua hai cổng … KHÔNG hoàn" chuyển sang CẦN XEM — cụm `LY_DO_HAI_CONG` đặt MỘT chỗ ở `congQr.js`, câu ở
+  `thanh-toan.js` và phép xếp nhóm ở `doiSoat.js` cùng dùng. Dòng "đã xác nhận tay … KHÔNG hoàn" có từ trước GIỮ ở ĐỎ (nghiệm thu E: đối soát cũ
+  không đổi) — ghi Phát hiện. Ca D2 ×2 (đỏ trên code trước vòng sửa: 64 đạt · 1 hỏng); đột biến `BV-hai-cong-can-xem`, `VS-can-xem-moi-khong-hoan`.
+- Lỗi 1, 3 (K1): sửa `cai_dat_sepay.md` mục 1.2 (tên menu SePay chưa đọc được), mục 4 (tiền về muộn: trong hạn tự chốt, quá hạn ghi Đối soát),
+  mục 4 cuối (dòng hai cổng ở CẦN XEM, kể cả lúc cài), mục 5 (đã bật lọc "bỏ qua không mã" → khách XOÁ mã thì SePay không báo, Đối soát không có
+  dòng, xác nhận tay; đơn App hết hạn thành đã huỷ). `env.example`, chú thích `congQr.js` sửa cùng câu.
+- Lỗi 4 (K3, nghiệm thu E): thêm E2b (hoàn đơn chốt qua SePay: ví nhận lại đúng 30.000, đơn refunded), C18b ×2 (đơn App `vi_qr` qua SePay).
+- Bài thử 65 đạt · 0 hỏng; trên gốc 9 đạt · 56 hỏng. Đột biến: TỔNG 28 · BẮT 28. `npm test`: PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+- Không làm (nghi ngờ của người soát, ghi lại): mã ngắn bị ngân hàng dính số phía sau (chặn chủ yếu bằng so đúng số tiền); không so
+  `accountNumber` (kế hoạch 7.4); chữ "về" cho dòng tiền ra (chỉ khi bật nhầm sự kiện tiền ra); gọn `xuLyTienVe` (trả kết quả thay vì ghi `res`).
+
+## Câu hỏi (không chặn — máy đã làm theo phiếu, chủ quán quyết khi rảnh)
+
+- **Q4 — Lọc "Bỏ qua giao dịch không có mã thanh toán" trên SePay.** Phiếu (mục F) dặn BẬT; máy làm theo. Hệ quả: khách xoá mã `TQD…` khi chuyển
+  thì POS không thấy khoản đó (không tự chốt, Đối soát không có dòng) — nhân viên tra app ngân hàng rồi xác nhận tay, như hôm nay. TẮT lọc thì
+  mọi tiền vào (kể cả tiền không liên quan đơn) hiện ở Đối soát mục CẦN XEM — đầy đủ hơn nhưng nhiều dòng hơn. Máy không sửa code gì cho lựa
+  chọn này (code đã ghi `khong_phien` sẵn). Đề xuất: giữ BẬT như phiếu; nếu thấy sót tiền thì tắt trên trang SePay, không cần sửa code.
+- **Q5 — Có so số tài khoản nhận không?** Máy KHÔNG so (lý do ở `ke_hoach.md` 7.4). Nếu tài khoản SePay của quán theo dõi thêm tài khoản riêng
+  của chủ quán, một khoản `TQD<n>` chuyển nhầm vào tài khoản riêng vẫn chốt đơn. Đề xuất: chỉ liên kết tài khoản quán với SePay.
