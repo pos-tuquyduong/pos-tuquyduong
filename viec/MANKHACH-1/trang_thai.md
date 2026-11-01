@@ -94,3 +94,8 @@ HEAD ĐÃ KIỂM: 00cb63b
   kèm pos_doi_soat_ghi vào BANG_KHONG_KHOI_PHUC (chủ quán đồng ý 01.11: sổ két / sao kê không khôi phục bằng file). Ca S1, S2 trong
   thu_MANKHACH1 (52 ca). Câu 2–4: giữ như máy làm (đề xuất của chat; chủ quán muốn đổi thì phiếu nhỏ sau).
 HEAD ĐÃ KIỂM: 77d0c8f
+
+## Chủ quán trả lời câu 2–4 (01.11.2026)
+- Câu 2: mã ghép dùng MỘT lần — ghép thành công là mã hết hiệu lực (chat sửa utils/manKhach.js ghep + ca A18, 53 ca).
+- Câu 3: giữ (chỉ ghép một lần lúc dựng quán). Câu 4: giữ — màn khách hiện như hoá đơn khách nhận; không bao giờ SĐT / số dư / điểm.
+HEAD ĐÃ KIỂM: a70fe23
