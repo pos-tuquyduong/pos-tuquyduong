@@ -70,9 +70,9 @@
 - 31.10 · Mã thông tin món là mã CHUNG hai hệ (App KH xác nhận): nhu cầu `ngu_ngon dep_da am_bung tinh_tao bo_khi giai_nhiet`; thể chất
   `binh_hoa khi_hu duong_hu am_hu dam_thap thap_nhiet huyet_u khi_uat dac_bam` (KH-TN-1 dùng lại). Thêm mã → báo App trước.
 - 31.10 · Chưa có Zalo ZNS: khách MỚI lấy mã đăng nhập App ở quầy theo SĐT, KHÔNG tạo khách trước (để App hỏi tên + xưng hô) — KH-QUAY-2.
-- 31.10 · SĐT đăng ký mới (App hoặc quầy) BẮT ĐẦU TỪ 0: điểm / voucher còn lại của dữ liệu cũ cùng số mà không có hồ sơ → khoá có lý do; lịch sử
-  đơn cũ giữ để đối soát nhưng KHÔNG hiện cho người đăng ký sau (nhà mạng cấp lại số cũ). Dọn dữ liệu thử trước khai trương: máy liệt kê → chủ
-  quán duyệt → dọn, sao lưu trước (KH-SDT-1).
+- 31.10 → ĐỔI 01.11 · SĐT đăng ký: KHÔNG khoá dữ liệu cũ — khách tạo tài khoản bằng SĐT của mình thì giữ TOÀN BỘ dữ liệu của số đó (đổi số
+  là hãn hữu, quán xử lý tay). Dọn dữ liệu thử MỘT lần trước khai trương: máy liệt kê → tải danh sách → tải sao lưu → gõ xác nhận (KH-SDT-1);
+  két các ngày thử được phép lệch, két từ ngày bán thật không đổi (Q9); dọn theo ngày kể cả điểm / voucher thử của khách thật (Q8).
 
 ## Giao hàng
 - 27.10 · Giao hàng dùng Ahamove (không GHN).
@@ -114,10 +114,39 @@
 - 31.10 · **Màn khách:** một máy tính bảng quay về phía khách, ghép với máy quầy (máy quầy là máy tính bảng / điện thoại). Lúc thu: hiện QR + món
   + tổng; tiền về: "Cảm ơn". Lúc rảnh: chạy nội dung quán TỰ CÀI (menu, Giờ vàng, QR App, giới thiệu, quảng cáo; ảnh khi có chỗ lưu ảnh)
   (MANKHACH-1).
-- 31.10 · HOÁ ĐƠN KHÁCH chỉ in khổ nhỏ dọc (58mm / 80mm) — bỏ A4 / A5 khỏi chỗ chọn khổ hoá đơn; cài đặt cũ A4 / A5 đọc ra 80mm (KH-QUAY-2).
-  CÁC LOẠI PHIẾU (xuất / nhập kho, đặt hàng, phát sinh, pha chế…) VẪN có lựa chọn 80mm / A5 / A4 và có phần Cài đặt in phiếu (KHO-IN-1).
+- 31.10 → ĐỔI 01.11 · HOÁ ĐƠN KHÁCH và PHIẾU PHA CHẾ từng đơn chỉ in khổ nhỏ (58mm / 80mm). Phiếu của màn KHO (xuất, đặt hàng, nhận,
+  phát sinh) CHỈ A5 hoặc A4, mặc định A5, có phần Cài đặt in phiếu (KHO-IN-1 đã gộp).
 - 29.10 · Khoá payOS và Ahamove CHỈ ở biến môi trường Render (không ở màn Cài đặt, không dán vào chat); Quản lý → Cài đặt chỉ hiện
   "payOS: đã cài ✓ / chưa cài ✗ · Ahamove: đã cài ✓ / chưa cài ✗" (làm trong GIAO-1).
+
+## Đợt quyết định 01–02.11.2026 (chi tiết từng màn: thiet_ke/THIET_KE_DOT2.md · demo đã duyệt: thiet_ke/demo_dot2.html, demo_man_khach.html)
+- 01.11 · Sổ két / sao kê (pos_doi_soat_ghi) + hai bảng màn khách: có trong sao lưu nhưng CHẶN khôi phục bằng file (gộp MANKHACH-1).
+- 01.11 · Màn khách: ghép MỘT lần, mã ghép dùng một lần; hiện như hoá đơn khách nhận, không bao giờ SĐT / số dư / điểm. 02.11: hiện hoá đơn
+  khi bấm Thanh toán với MỌI cách trả (không nút riêng); khách nhập PIN trên màn khách; nội dung rảnh = MỘT danh sách phát (ảnh, video, mẫu có
+  sẵn), file lưu ở chỗ lưu chung, máy màn khách tải về một lần (MANKHACH-2a / 2b).
+- 01.11 · Tiền mặt làm tròn đến 1.000 — phần lẻ TỪ 600 trở lên tròn lên, 500 trở xuống tròn xuống; chữ "Trả lại" (không "tiền thối"); nút mệnh
+  giá bấm = 1 tờ. Tài khoản chỉ đủ một phần: trừ tài khoản TRƯỚC rồi mới thu phần còn lại bằng tiền mặt / QR.
+- 01.11 · Một cổng QR tại một thời điểm (payOS HOẶC SePay); tắt lọc "bỏ qua giao dịch không mã" trên SePay; máy kiểm số tài khoản nhận (SEPAY-1).
+- 01.11 · Hạng: chủ quán thêm hạng, thứ bậc; Vàng BÁN theo gói (1 / 3 tháng, giá đặt sau, linh động thêm gói), mua thêm thì hạn CỘNG NỐI;
+  Kim Cương CHỈ chủ quán CẤP, có hạn tuỳ chọn hoặc không thời hạn; có hạng cao hơn thì không mua hạng thấp hơn; Kim Cương hết hạn → về Vàng
+  nếu Vàng còn hạn; chưa bán thẻ nào trước khai trương (HANG-1).
+- 01–02.11 · Ví: gói nạp ("khách trả" / "vào tài khoản" sửa được); nạp KHÔNG hoàn; nạp KHÔNG tích điểm, TIÊU tiền tài khoản THÌ tích điểm (đổi
+  luật 24.10); khách tự nạp trên App bằng QR — trước khai trương. HAI loại tiền tặng tách hẳn: THƯỞNG NẠP (không hạn, gộp số dư) và QUÀ CHÀO
+  MỪNG (mã mở tài khoản lần đầu, một lần, CÓ hạn, đếm ngược); không có điều kiện đơn tối thiểu; trừ quà chào mừng trước (NAP-1, NAP-2, QUA-1).
+  Sổ sách: nạp chưa là doanh thu; báo cáo 3 ô (tiền thật vào quán · bán được bao nhiêu với 2 dòng tặng riêng · quán đang giữ hộ khách).
+- 01–02.11 · Bán trên nền tảng (Grab / Shopee / Be): bảng giá kênh (% cộng, sửa riêng món), sửa giá từng dòng lúc nhập đơn kênh, số đơn = mã
+  nền tảng (không trùng), bill gắn túi (có mã quà chào mừng + QR) + bill nội bộ (phí, thuế, dự kiến về); làm kịp khai trương (KENH-1).
+- 02.11 · Ghi chú món LÚC NÀO CŨNG CÓ ở mọi kênh (nút chọn nhanh + gõ tự do) — làm trong TOPPING-1.
+- 02.11 · Bản in: ô số bill / mã kênh to, đóng khung góc phải; đầu bill theo ĐƠN VỊ BÁN, không chồng chữ; hoá đơn App lấy ĐÚNG mẫu hoá đơn POS
+  (HD-KH-1).
+- 02.11 · Giao hàng: KHÔNG BAO GIỜ thu hộ (COD); miễn / hỗ trợ phí giao có cài đặt, mặc định KHÔNG miễn; giao thất bại do khách → KHÔNG hoàn
+  tiền (ghi rõ trước khi đặt).
+- 01–02.11 · Đơn vị bán (nhiều hộ kinh doanh, đổi theo ca): mỗi đơn vị có tài khoản + cài đặt SePay riêng; đổi đơn vị phải có PIN; hoá đơn theo
+  đơn vị — SAU khai trương (DONVI-1); SEPAY-1 làm sẵn nền (lưu số TK nhận).
+- 01–02.11 · Chương trình đặc biệt (thẻ Cài đặt riêng): học sinh giỏi (miễn 1 đồ uống, gia đình đi kèm giảm 50% không giới hạn món trong 1 hoá
+  đơn); sinh nhật giảm 50% CẢ ĐƠN, một đơn, ĐÚNG ngày, đối chiếu căn cước thật khớp tài khoản (không lưu số căn cước); ngày sinh nhập một lần —
+  App có ô ngày sinh + danh sách chương trình trước khai trương (CT-1a, CT-1b).
+- 02.11 · Hợp đồng `/api/kh` v7 viết TRƯỚC khi POS code (mục "Đã hẹn") để App KH làm song song.
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,

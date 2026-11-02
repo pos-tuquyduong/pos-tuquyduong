@@ -538,7 +538,7 @@ chayBaiThat('cong_cu/thu_SAOLUU2.js');   // SAOLUU-2: khôi phục sao lưu tấ
 // Chú thích bỏ nhưng GIỮ xuống dòng (boGhiChu gộp dòng → số dòng trôi). Bài thử: cong_cu/thu_TOCDO1.js mục R cắt đúng hai hàm dưới.
 // GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (customers-v2.js GET gọi fetchSXCustomers → INSERT
 // pos_customers) không bắt — đúng chữ phiếu A2, ghi Phát hiện cho việc quầy.
-const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 51;
+const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 50;   // bánh cóc: hạ 51 → 50 (bộ kiểm báo đã dọn 1 chỗ — chat sổ v53, 02.11)
 function xetBanhCoc(n, nguong) { // 'canh' = mọc thêm · 'ha' = đã dọn, hạ ngưỡng · 'dung' = đúng ngưỡng
   return n > nguong ? 'canh' : n < nguong ? 'ha' : 'dung';
 }
@@ -650,7 +650,7 @@ function lyDoChayThuCong() {
 // TU-CHAY-8 A1 (Q3): thu_cong.js gọi không đối số = điều phối n phần `--phan i/n` chạy CÙNG LÚC. Bộ kiểm không tin dòng tổng của điều
 // phối — tự đếm dòng "thu_cong phần i/n: a/T đơn vị" của từng phần: đủ phần 1..n, cùng n, cùng T, Σa = T (mỗi đơn vị chạy đúng một lần).
 // Q6 bánh cóc: T (tổng đơn vị = lời gọi ca() + khối riêng + bài nhỏ) chỉ được HẠ khi chủ quán duyệt; thêm ca thì NÂNG ngưỡng.
-const NGUONG_THU_CONG_DON_VI = 126;   // TU-CHAY-8: 126 đơn vị = 337 phép (--phan 1/1, 17.10)
+const NGUONG_THU_CONG_DON_VI = 142;   // TU-CHAY-8: 126 đơn vị (17.10) · TU-CHAY-10: 142 đơn vị = 391 phép (3 phần, chat đếm 02.11, sổ v53)
 function kiemPhanThuCong(ra) { // → null | lý do thiếu phép
   const ph = [...String(ra || '').replace(/\x1b\[[0-9;]*m/g, '').matchAll(/^thu_cong phần (\d+)\/(\d+): (\d+)\/(\d+) đơn vị · \d+ phép/gm)]
     .map((m) => m.slice(1, 5).map(Number));
