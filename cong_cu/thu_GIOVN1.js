@@ -375,10 +375,13 @@ async function main() {
   const idKp = 990001;
   try {
     await khoiPhuc.thucHien([{ status: 'se_khoi_phuc', viTri: 0, table: 'pos_damage_logs', sheet: 'Sự cố', cot: ['id', 'order_id', 'order_code', 'product_code', 'product_name', 'quantity', 'reason', 'action', 'processed_by_name', 'created_at'],
-      dong: [{ __rowNum__: 1, id: idKp, order_id: 1, order_code: 'KP', product_code: 'X', product_name: 'X', quantity: 1, reason: 'damaged', action: 'remake', processed_by_name: 'thu', created_at: '2026-02-01 20:00:00' }] }]);
+      dong: [{ __rowNum__: 1, id: idKp, order_id: 1, order_code: 'KP', product_code: 'X', product_name: 'X', quantity: 1, reason: 'damaged', action: 'remake', processed_by_name: 'thu', created_at: '2026-02-01 20:00:00' }] }], { banCu: true });
   } catch (e) { loiGoc('  (khôi phục hỏng: ' + e.message + ')'); }
   const kp = await motDong('SELECT created_at AS v FROM pos_damage_logs WHERE id = ?', [idKp]);
   k('B6 khôi phục bản sao lưu CŨ (giờ UTC dấu cách) → ra giờ VN dạng T', kp?.v === '2026-02-02T03:00:00', String(kp?.v));
+  const bk = doc(path.join(MAY_CHU, 'routes', 'backup.js'));
+  k('B6b route khôi phục coi file là bản CŨ khi backup_date không phải giờ VN dạng T (file mới khôi phục y nguyên — SAOLUU-2 F1)',
+    /banCu:\s*!\/\^\\d\{4\}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\$\/\.test\(ngaySao\)/.test(bk) && /backup_date: getNow\(\)/.test(bk));
 
   muc('E. App KH');
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
