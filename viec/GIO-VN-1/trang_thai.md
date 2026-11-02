@@ -25,12 +25,12 @@
 
 ## Bước 4–6 (lượt 2)
 - Bài thử `cong_cu/thu_GIOVN1.js` viết TRƯỚC, đỏ trên gốc 36b98b8, xanh trên HEAD — số mới nhất (sau vòng sửa 2): gốc 17 đạt · 29 hỏng,
-  HEAD 46 đạt · 0 hỏng (`bang_chung_do.txt`).
+  HEAD 46 đạt · 0 hỏng; sau vòng sửa 4: gốc 17 đạt · 32 hỏng, HEAD 49 đạt · 0 hỏng (`bang_chung_do.txt`).
 - `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn: route GET có lệnh ghi). Build `client/dist` xong.
 - Giữa chừng `thu_SAOLUU2` F1 đỏ: khôi phục chuẩn hoá giờ cả file MỚI làm sao lưu → khôi phục không còn y hệt → chỉ chuẩn hoá khi file là bản
   CŨ (`backup_date` không phải giờ VN dạng T — mọi file ghi từ nay mang `backup_date: getNow()`). Không sửa bài cũ.
 
-### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 43/43 BẮT sau vòng sửa 2)
+### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 48/48 BẮT sau vòng sửa 4)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | `nang_cap/012` chạy được | BV-012 | B1 |
@@ -69,13 +69,17 @@
 | `backup.js` themTrangMeta backup_date dạng T (vòng 2) | VS-SAO-LUU-NGAY-DAU-CACH | B6b |
 | `khoiPhuc.js` không sao lưu khi khôi phục (vòng 2) | VS-KHOI-PHUC-CO-SAO-LUU | B6c |
 | `sync.js` cảnh báo đã xuất > 2 ngày (vòng 2) | BV-SYNC-DA-XUAT | C11 |
+| `doSoNo.js` resolved_at (vòng 4) | BV-DOSONO-DAU-CACH | A2i |
+| `customers-v2.js` cacheCustomersToLocal (vòng 4) | BV-KHACH-SX-CACHE · BV-KHACH-SX-CAP-NHAT | A2j |
+| `chuanHoaGio.js` MAU_CACH đủ 19 ký tự (vòng 4) | VS-012-MAU-THIEU-GIAY · VS-012-MAU-NOI-HET | B1d |
 
 Tên đột biến: BV-012 · VS-012-VN-CUNG-CONG-7 · VS-012-COT-LAN-CUNG-DOI · VS-012-Z-THIEU-MAU-MILI-GIAY · BV-012-SAO-LUU · BV-012-SO-VI ·
 BV-012-HAN-THE · BV-KHOI-PHUC · VS-KHOI-PHUC-MOI-FILE · BV-DAMAGES · BV-SETTINGS · BV-PACKAGES · BV-IN-HOA-DON · BV-GIEO-CHU · BV-NHOM-MON ·
 BV-TON-LUC · BV-NGAY-MAN-QUAY · BV-QUET-M5 · VS-THE-DAU-CACH · BV-THE-THEO-MUI-GIO-MAY · VS-DEN-BU-HAI-LAN · BV-HOM-NAY · BV-NAM-HOA-DON ·
 BV-SYNC · BV-HOP-DONG · BV-012-KHACH · BV-012-BUOC-RONG · VS-KHOI-PHUC-BO-QUA-BAN-CU · BV-HAN-MA-THEO-UTC · BV-HAN-MA-BILL-THEO-UTC ·
 BV-HAN-GOI-THEO-UTC · BV-PHIEN-QR-THEO-UTC · BV-012-DON · VS-012-DON-KIEU-VN · BV-012-VI · BV-012-MON · BV-012-MA-GIAM · BV-012-TON-CHO ·
-BV-012-NHOM-MON · VS-012-COT-THUA · VS-SAO-LUU-NGAY-DAU-CACH · VS-KHOI-PHUC-CO-SAO-LUU · BV-SYNC-DA-XUAT
+BV-012-NHOM-MON · VS-012-COT-THUA · VS-SAO-LUU-NGAY-DAU-CACH · VS-KHOI-PHUC-CO-SAO-LUU · BV-SYNC-DA-XUAT · BV-DOSONO-DAU-CACH ·
+BV-KHACH-SX-CACHE · BV-KHACH-SX-CAP-NHAT · VS-012-MAU-THIEU-GIAY · VS-012-MAU-NOI-HET
 
 ## Soát độc lập — vòng 1 (agent /ra-soat, nguyên văn)
 ```
@@ -163,7 +167,70 @@ phiếu (LUAT §6.5), chỉ đúng 3 lỗi trên + ca thử + đột biến. Kh�
   điện thoại đặt giờ VN (quầy hiện nay), chỉ lệch khi máy đặt múi khác. Không sửa trong việc này.
 - `cong_cu/thu_GIOVN1.js` E2 viết cứng `PHIEN_BAN = 6` (chủ quán: tăng 1 so với main) — HANG-1 / NAP-1 cùng tăng thì chat sửa số ở bài lúc gộp.
 - `/api/pos/health` `timestamp` đổi từ đuôi Z sang giờ VN dạng T — chưa biết hệ ngoài (SX, theo dõi) có đọc trường này không.
-- `doSoNo.js` (đẩy tồn SX) và `customers-v2.js` `cacheCustomersToLocal` (khách từ SX) chỉ canh bằng phép quét chữ — cần SX thật để chạy.
+- (vòng sửa 4) dòng cũ "doSoNo / cacheCustomersToLocal cần SX thật" khai SAI — đã có khuôn SX giả (thu_P26c.js); nay có ca A2i, A2j + đột biến.
+- Bước 012 trên ngày không có thật khớp mẫu (vd '2026-13-45 10:00:00') → strftime ra NULL; cột NOT NULL thì bước hỏng → kho 503 (quầy vẫn bán).
+  Chưa thấy dữ liệu kiểu này; chưa đếm trên Turso. Thêm cột thừa vào COT_CACH ở bảng chỉ ghi getNow không bị chặn hết (chỉ 3 cột canh).
 - Kế hoạch soát độc lập (agent chỉ đọc) — 4 câu, đã sửa theo (ghi cuối `ke_hoach.md`).
 - `pos_settings.updated_at` có giá trị dấu cách lẫn UTC / VN — không biết chắc, bước 012 để nguyên.
 - `formatDateTime` / `formatDate` (`server/utils/helpers.js:79-101`) xuất ra nhưng không ai gọi — code chết, ngoài mục tiêu, không sửa.
+
+## Vòng sửa 4 (LUAT §6.5 — chat soát thay)
+Đúng 3 lỗi NHẸ của lần soát cuối, mỗi lỗi ca thử + đột biến:
+1. Khai sai "cần SX thật" → ca A2i (doSoNo, SX giả bật / tắt được), A2j (bộ nhớ đệm khách SX); đột biến BV-DOSONO-DAU-CACH, BV-KHACH-SX-CACHE,
+   BV-KHACH-SX-CAP-NHAT BẮT. Dòng Phát hiện sai đã sửa.
+2. Mẫu GLOB → ca B1d (5 giá trị lạ trong cột UTC giữ nguyên); đột biến VS-012-MAU-THIEU-GIAY, VS-012-MAU-NOI-HET BẮT.
+3. `backup.js`: `themTrangMeta` dời lên TRÊN khối chú thích P26d — chú thích lại dính đúng `chanTrangTien`.
+Chạy: thu_GIOVN1 HEAD 49 đạt · 0 hỏng, gốc 17 đạt · 32 hỏng; dot_bien 48/48 BẮT; `npm test -- --day-du` PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn),
+dist KHỚP src.
+SOÁT LẦN CUỐI: chat soát thay
+
+## Thử tay trên điện thoại (chủ quán, sau khi Merge + Render chạy lại)
+1. Sáng sớm (trước 7 giờ) mở **Lịch sử đơn** — ô ngày mặc định phải là HÔM NAY, các đơn bán từ 0 giờ hiện ra.
+2. Mở **Báo cáo** — ngày mặc định hôm nay, "từ ngày" là ngày 1 của tháng này.
+3. **Cài đặt → Sao lưu → Tải về** — tên file mang ngày hôm nay theo giờ VN.
+
+## Báo cáo 7 mục
+```
+VIỆC:        GIO-VN-1 — Mọi giờ lưu / so / trả ra là giờ Việt Nam (UTC+7), dữ liệu cũ đổi qua bước nâng cấp có sao lưu
+ĐÃ SỬA:      server/database.js (gieo dữ liệu: 14 chỗ truyền getNow) · server/routes/{damages,products,customers-v2,settings,packages,backup,
+             sync,registrations,users,product-groups}.js + server/index.js + server/kho/nhapSx.js + server/utils/doSoNo.js — mọi
+             CURRENT_TIMESTAMP / datetime('now'[, '+7 hours']) / toISOString / INSERT bỏ trống cột DEFAULT → getNow / getToday (ke_hoach.md A.1–A.5)
+             · server/routes/orders.js:132 hôm nay = getToday; :1063-1065 (= 1062-1064 gốc) hạn thẻ tính trên giờ VN, dạng T · server/utils/
+             helpers.js addMonthsSafe phép UTC (chỉ orders.js gọi) · server/utils/doiSoat.js:221 DEN chỉ bù +7 cho dòng cũ dấu cách ·
+             server/utils/chuanHoaGio.js (MỚI — quy tắc đổi giờ cũ, COT_CACH 17 bảng) + server/nang_cap/012_gio_viet_nam.js (gọi lại) ·
+             server/utils/khoiPhuc.js + routes/backup.js: khôi phục bản sao lưu CŨ đổi giờ, bản mới y nguyên (_Metadata cho mọi file xuất) ·
+             client/src/utils/ngayVN.js (MỚI) + pages/{Orders,Reports,Settings}.jsx + utils/api.js: ngày theo giờ VN; build client/dist ·
+             HOP_DONG_API_KH.md v6 (bỏ "Lỗi đã biết", NGAY, nhật ký) · kiem_tra_truoc_khi_giao.js chạy thêm thu_GIOVN1.js
+BÀI THỬ:     cong_cu/thu_GIOVN1.js chạy trên gốc 36b98b8 → ĐỎ 17 đạt · 32 hỏng (A1 63 vi phạm quét, A2*, A3, C5–C7, C11, B*, E*); sau vá → XANH
+             49 đạt · 0 hỏng. Đột biến viec/GIO-VN-1/dot_bien.py 48/48 BẮT. npm test -- --day-du PASS 97 · FAIL 0.
+ĐÃ RÀ K4:    grep "CURRENT_TIMESTAMP|datetime('now'|date('now'|localtime|toISOString()|'+7 hours'|7 * 3600|new Date().get" trong server/ → 63 chỗ
+             (phép quét A1 đếm, gồm 18 INSERT bỏ trống cột DEFAULT) → đã xử lý hết, còn 2 ngoại lệ có lý do (doiSoat dòng cũ, chuanHoaGio +7);
+             chỗ đọc bù +7 (doiSoat) + đường khôi phục sao lưu (khoiPhuc / backup export-all + export/:table) + client/src toISOString().slice(0, 10)
+             (Orders, Reports, Settings, api.js) đã xử lý.
+CHƯA KIỂM:   bước 012 trên dữ liệu Turso THẬT (số dòng đổi từng bảng, thời gian, dung lượng _sao_luu_012_*) — chỉ thử trên kho tạm; phân loại cột
+             dựa vào rà lịch sử git (agent phụ + kiểm tay một phần), không có bản chụp production; nút "tháng này / tháng trước" Lịch sử đơn theo
+             giờ điện thoại; hệ ngoài đọc /api/pos/health.timestamp (đổi Z → T); màn quầy chưa thử tay trên điện thoại; E2 viết cứng PHIEN_BAN 6
+             (gộp HANG-1 / NAP-1 phải sửa số); phép quét M3 không bắt `const d = new Date(); d.toISOString()` hay toLocaleString thiếu timeZone.
+GIT:         (xem dòng git log ngay dưới khi ghi lần cuối)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học
+Sự cố của việc: kế hoạch hứa ca C2/C3/C4/C10 rồi bỏ sót (vòng 1); ca khôi phục sao lưu soi chữ (vòng 1); bảng phân loại 17 bảng chỉ canh 6
+(vòng 2, NẶNG); khai "cần SX thật" trong khi khuôn SX giả có sẵn, mẫu GLOB không ca khoá, chèn hàm làm lệch khối chú thích (vòng 3); bài cũ
+thu_SAOLUU2 F1 đỏ giữa chừng (khôi phục đổi giờ cả file mới); người gác chặn 6 lệnh (B-PHANTICH: lệnh chạy script ghép thêm lệnh / ${…} / for;
+B-BIMAT-CHU: bài thử chứa cụm khoá phải commit trước khi chạy, script sửa bài có cụm khoá phải dùng Edit; GIT-KEO: fetch origin main; SED-I).
+- **KHOÁ** (ngoài Phạm vi — đề xuất, `tu_chay/cong.js`): mỗi dòng "Ca thử" trong bảng nghiệm thu của `ke_hoach.md` (mã dạng `C2`, `B1c`…)
+  phải có ca `k('C2 …')` cùng mã trong bài thử của việc; ca đỏ: kế hoạch có C2 mà bài không có → ✗. Lý do: vòng 1 bắt đúng lỗi này.
+- **KHOÁ** (ngoài Phạm vi — đề xuất, mục khuôn đột biến của skill / cong.js): bước đổi DỮ LIỆU có bảng phân loại (vd COT_CACH) → bài thử phải
+  gieo MỖI mục + đột biến "xoá mục" / "đổi loại" BẮT. Đã làm trong việc này (B1c + 8 đột biến); đề xuất thành phép cổng chung.
+- **KHOÁ** (ngoài Phạm vi — đề xuất, `tu_chay/skill_lam_viec.md` bước 8): sau MỖI vòng sửa có thêm đột biến chạy `cong.js tinh` trước khi
+  gọi lại /ra-soat (A17 đỏ ở vòng 2 vì quên).
+- **NGUYÊN TẮC** (K3 — đề xuất thêm vào KHUON_LOI.md, ngoài Phạm vi): ca "đỏ trên gốc" mà gốc dùng `'now'` của SQLite (đồng hồ THẬT) còn bài
+  dùng đồng hồ GIẢ → đỏ chỉ vì hai đồng hồ lệch; phải có đột biến trả lại lỗi cũ cùng đồng hồ giả (việc này: BV-HOM-NAY, BV-SYNC…).
+- **NGUYÊN TẮC** (K1 — đề xuất): dòng Phát hiện / CHƯA KIỂM kiểu "cần X thật mới thử được" phải ghi đã tìm khuôn giả có sẵn chưa
+  (`grep -l "require.cache.*sxApi" cong_cu/`) — vòng 3 bắt đúng lỗi này.
+- **NGUYÊN TẮC** (K1 TU-CHAY-6 — đề xuất): chèn hàm mới giữa file → khối `/** */` ngay trên chỗ chèn phải còn dính đúng hàm của nó.
+- **BỎ**: SQL động trên mọi bảng không ngoặc kép tên (một lần, đã sửa trong code, chưa từng hỏng thật). **BỎ**: E1 tên "mọi giờ" mà dữ liệu
+  không có đơn — một lần, đã sửa (ca E1 nay báo cửa nào không có giờ để đo).
+Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md có phép kiểm làm thay mới từ việc này.
