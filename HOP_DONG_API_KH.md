@@ -1,7 +1,7 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
 PHIEN_BAN: 6
-NGAY: 2026-10-31
+NGAY: 2026-11-02
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/giuCho.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
@@ -21,7 +21,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
   đưa thẳng vào `new Date(...)` (trình duyệt sẽ hiểu là giờ máy khách) — đọc như giờ `Asia/Ho_Chi_Minh`. "Bây giờ" lấy từ máy chủ (cửa giờ
   hoạt động, từ v2), không lấy đồng hồ điện thoại.
 
-## Các cửa (phiên bản 5)
+## Các cửa (phiên bản 6)
 | Cửa | Token | Gửi | Trả (ngoài `success`) |
 |---|---|---|---|
 | `POST /dang-nhap/xin-ma` | không | `{ sdt }` | `lay_ma_tai_quay` (true = khách hỏi mã ở quầy) |

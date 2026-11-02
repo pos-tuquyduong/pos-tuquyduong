@@ -9,7 +9,7 @@
 const XLSX = require('xlsx');
 const { query } = require('../database');
 const { trongGiaoDich } = require('../routes/wallets');   // cùng khuôn giuCho.js: một giao dịch, lỗi thì rollback rồi ném tiếp
-const { chuanHoaGio } = require('../nang_cap/012_gio_viet_nam');   // GIO-VN-1: bản sao lưu cũ còn giờ UTC → đổi giờ VN như bước 012
+const { chuanHoaGio } = require('./chuanHoaGio');   // GIO-VN-1: bản sao lưu cũ còn giờ UTC → đổi giờ VN như bước 012
 
 const docTrang = (ws) => XLSX.utils.sheet_to_json(ws, { defval: null });
 

@@ -10,7 +10,7 @@
  *  Phần:
  *   D  phép QUÉT chặn tái phạm (hàm quet) — ca chuỗi giả từng mẫu; A1 quét server/ thật = 0 vi phạm, ngoại lệ chết → đỏ.
  *   A  route thật ghi giờ dạng T ≈ getNow · A3 hàm ngày của màn quầy (client/src/utils/ngayVN.js).
- *   B  bước nâng cấp 012 (server/nang_cap/012_gio_viet_nam.js — chuanHoaGio) trên dữ liệu cũ gieo tay · B6 khôi phục sao lưu.
+ *   B  bước nâng cấp 012 (server/nang_cap/012_gio_viet_nam.js → utils/chuanHoaGio.js) trên dữ liệu cũ gieo tay · B6 khôi phục sao lưu qua route.
  *   C  so giờ quanh 00:00 và 07:00 giờ VN (07:00 VN = 00:00 UTC, mốc đổi ngày của máy chủ).
  *   E  giờ trả ra /api/kh đúng dạng; hợp đồng bỏ "Lỗi đã biết", PHIEN_BAN 6.
  *  GIỚI HẠN quét (K4 TU-CHAY-6): chỉ soi chữ trong file server/**.js — giờ dựng qua hàm phụ ở file khác / SQL ghép động (khoiPhuc.js INSERT
@@ -65,7 +65,7 @@ const MAU = [
 // Ngoại lệ: [file, chuỗi phải có trên dòng, lý do]. Ngoại lệ không còn khớp vi phạm nào → ĐỎ (khỏi để ngoại lệ chết).
 const NGOAI_LE = [
   ['server/utils/doiSoat.js', "ELSE DATETIME(created_at, '+7 hours') END", 'dữ liệu CŨ chưa qua bước 012 (pos_damage_logs dấu cách = UTC) — dạng T lấy nguyên'],
-  ['server/nang_cap/012_gio_viet_nam.js', 'const CONG7 = (c) =>', 'chính bước đổi giờ CŨ (UTC) sang giờ VN: +7 giờ trên giá trị đã lưu, không phải đồng hồ máy'],
+  ['server/utils/chuanHoaGio.js', 'const CONG7 = (c) =>', 'chính bước đổi giờ CŨ (UTC) sang giờ VN: +7 giờ trên giá trị đã lưu, không phải đồng hồ máy'],
 ];
 function boChuThich(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
@@ -170,7 +170,7 @@ async function main() {
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => false, checkStock: async () => ({ sufficient: true }), outStockFIFO: sxOk, inStockReturn: sxOk, callSxApi: sxOk };
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync']) {
+  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync', 'signup-codes', 'backup']) {
     app.use('/api/pos/' + (r === 'customers-v2' ? 'customers' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   app.use('/api/kh', require(path.join(MAY_CHU, 'routes', 'kh')));
@@ -288,6 +288,35 @@ async function main() {
   const old = (tt.warnings || []).find((w) => w.type === 'old_new');
   k('C11 10.04 09:00 VN: khách tạo 25 giờ trước có cảnh báo tồn, 23 giờ trước không (đếm = 1)', old?.count === 1, JSON.stringify(tt.warnings));
 
+  const { layMaKhachMoi } = require(path.join(MAY_CHU, 'utils', 'diemKhach.js'));
+  await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, valid_to, is_active, created_at) VALUES ('GV1C2', 'fixed', 5000, '2027-01-01', 1, '2026-12-01T10:00:00')");
+  await db.run("INSERT INTO pos_signup_codes (code, issued_at, claimed_at, claimed_phone) VALUES ('GV1C2', '2026-12-01T10:00:00', '2026-12-01T11:00:00', '0938000040')");
+  const conMa = async (moc) => { datVN(moc); return (await layMaKhachMoi('0938000040')).some((d) => d.code === 'GV1C2'); };
+  const c2 = [await conMa('2027-01-01T06:59:59'), await conMa('2027-01-01T23:59:59'), await conMa('2027-01-02T00:00:00'), await conMa('2027-01-02T06:59:59')];
+  k('C2 mã giảm hạn 01.01.2027: 01.01 06:59:59 / 23:59:59 còn; 02.01 00:00:00 / 06:59:59 (UTC còn 01.01) hết (hồi quy)', c2.join(',') === 'true,true,false,false', c2.join(','));
+
+  await datCai('nhandiem_enabled', '1'); await datCai('nhandiem_han_gio', '24');
+  for (const ma of ['GV1C3A', 'GV1C3B']) await db.run('INSERT INTO pos_signup_codes (code, order_id, issued_at) VALUES (?, NULL, ?)', [ma, '2027-01-05T07:00:00']);
+  const nhanDiem = async (ma, moc) => { datVN(moc); return (await goi('POST', '/api/pos/signup-codes/nhan-diem', { code: ma, phone: '0938000041' })).code; };
+  const c3a = await nhanDiem('GV1C3A', '2027-01-06T06:59:59'), c3b = await nhanDiem('GV1C3B', '2027-01-06T07:00:01');
+  await datCai('nhandiem_enabled', '0');
+  k('C3 mã bill in 05.01 07:00, hạn 24 giờ: 06.01 06:59:59 chưa hết hạn, 07:00:01 → MA_HET_HAN (hồi quy)', c3a !== 'MA_HET_HAN' && c3b === 'MA_HET_HAN', `${c3a} / ${c3b}`);
+
+  const { gomTheoKhach } = require(path.join(MAY_CHU, 'utils', 'goiKhach.js'));
+  const ngayChua = (lan, moc) => { datVN(moc); return gomTheoKhach([{ customer_phone: '0938000042', status: 'active', total_qty: 5, delivered_qty: 1, last_delivery_at: lan }])[0].ngay_chua_lay; };
+  const c4 = [ngayChua('2027-01-05T23:59:59', '2027-01-06T00:00:00'), ngayChua('2027-01-05T23:59:59', '2027-01-06T23:59:59'),
+    ngayChua('2027-01-05T06:59:59', '2027-01-05T07:00:00'), ngayChua('2027-01-05T06:59:59', '2027-01-06T06:59:59')];
+  k('C4 gói: lần lấy cuối 23:59:59 / 06:59:59 → 1 giây sau 0 ngày, đủ 24 giờ 1 ngày (hồi quy)', c4.join(',') === '0,1,0,1', c4.join(','));
+
+  const giuCho = require(path.join(MAY_CHU, 'utils', 'giuCho.js'));
+  const taoPhienLuc = async (moc) => { datVN(moc); imLang(); const r = await giuCho.taoPhien({ cach: 'ck_tay', don: { items: [mon] } }, 'thu').catch((e) => ({ loi: e.message })); noiLai();
+    return { r, p: await motDong('SELECT * FROM pos_phien_thanh_toan ORDER BY id DESC LIMIT 1') }; };
+  const tt10 = (p, moc) => { datVN(moc); return giuCho.tomPhien(p).trang_thai; };
+  const q1 = await taoPhienLuc('2027-01-01T23:55:00'), q2 = await taoPhienLuc('2027-01-02T06:55:00');
+  const c10 = [q1.p?.het_han, tt10(q1.p || {}, '2027-01-02T00:04:59'), tt10(q1.p || {}, '2027-01-02T00:05:00'), q2.p?.het_han, tt10(q2.p || {}, '2027-01-02T07:04:59'), tt10(q2.p || {}, '2027-01-02T07:05:00')];
+  k('C10 phiên QR tạo 23:55 / 06:55 VN hết 00:05 / 07:05 (dạng T): 1 giây trước còn chờ, đúng mốc hết hạn (hồi quy)',
+    c10.join(',') === '2027-01-02T00:05:00,cho,het_han,2027-01-02T07:05:00,cho,het_han', c10.join(',') + (q1.r?.loi ? ' · ' + q1.r.loi : '') + (q1.r?.status >= 400 ? ' · ' + JSON.stringify(q1.r.body) : ''));
+
   const { readFlashState } = require(path.join(MAY_CHU, 'utils', 'flashState.js'));
   await datCai('flash_enabled', 'true'); await datCai('flash_percent', '10'); await datCai('flash_product_keys', JSON.stringify([`${sp[0].sx_product_type}_${sp[0].sx_product_id}`]));
   const fl = async (bd, kt, moc) => { await datCai('flash_start', bd); await datCai('flash_end', kt); datVN(moc); return (await readFlashState(db.query, getNow)).is_flash_now; };
@@ -305,7 +334,7 @@ async function main() {
   muc('B. Bước nâng cấp 012 — dữ liệu cũ');
   let buoc = null, loiBuoc = '';
   try { buoc = require(path.join(MAY_CHU, 'nang_cap', '012_gio_viet_nam.js')); } catch (e) { loiBuoc = e.message; }
-  k('B0 có server/nang_cap/012_gio_viet_nam.js xuất chay + chuanHoaGio', !!(buoc && buoc.chay && buoc.chuanHoaGio), loiBuoc);
+  k('B0 có server/nang_cap/012_gio_viet_nam.js xuất chay', typeof buoc?.chay === 'function', loiBuoc);
   const GIEO = [   // [bảng, cột, id dòng (tạo mới), giá trị cũ, giá trị phải ra]
     ['pos_damage_logs', 'created_at', '2027-01-06 17:30:00', '2027-01-07T00:30:00'],            // loại 2: UTC dấu cách → +7
     ['pos_balance_transactions', 'created_at', '2026-03-01 18:00:00', '2026-03-02T01:00:00'],   // loại 2 (Q1 chủ quán: sổ ví đổi GIỜ)
@@ -346,9 +375,9 @@ async function main() {
   const tienTruoc = JSON.stringify(await tongTien());
   const dsTruoc = JSON.stringify(await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2026-11-02' }).catch((e) => e.message));
   const chayBuoc = async () => { const tx = await db.beginTransaction(); imLang();
-    try { const r = await buoc.chuanHoaGio(tx); await tx.commit(); return { r, log: [...nhatKy] }; } catch (e) { await tx.rollback(); return { loi: e.message, log: [] }; } finally { noiLai(); } };
+    try { const r = await buoc.chay(tx); await tx.commit(); return { r, log: [...nhatKy] }; } catch (e) { await tx.rollback(); return { loi: e.message, log: [] }; } finally { noiLai(); } };
   noiLai();
-  const lan1 = buoc?.chuanHoaGio ? await chayBuoc() : { loi: 'chưa có bước', log: [] };
+  const lan1 = buoc?.chay ? await chayBuoc() : { loi: 'chưa có bước', log: [] };
   const sau1 = await docGieo();
   k('B1 đổi đúng từng loại: UTC dấu cách +7 (sự cố, sổ ví) · VN dấu cách chỉ đổi T (in, hạn thẻ) · đuôi Z +7 · cột lẫn để nguyên',
     GIEO.slice(0, 7).every((g, i) => sau1[i] === g[3]), GIEO.slice(0, 7).map((g, i) => `${g[0]}.${g[1]}=${sau1[i]}`).join(' | ') + (lan1.loi ? ' · ' + lan1.loi : ''));
@@ -359,7 +388,7 @@ async function main() {
   const saoLuu = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_damage_logs WHERE id = ?", [idGieo[0]]).catch(() => null);
   const saoVi = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_balance_transactions WHERE id = ?", [idGieo[1]]).catch(() => null);
   k('B2 bảng sao lưu _sao_luu_012_<bảng> giữ giá trị GỐC (sự cố, sổ ví)', saoLuu?.v === GIEO[0][2] && saoVi?.v === GIEO[1][2], `${saoLuu?.v} / ${saoVi?.v}`);
-  const lan2 = buoc?.chuanHoaGio ? await chayBuoc() : { loi: 'chưa có bước', log: [] };
+  const lan2 = buoc?.chay ? await chayBuoc() : { loi: 'chưa có bước', log: [] };
   const sau2 = await docGieo();
   k('B3 chạy lần hai: không dòng "đổi", dữ liệu bằng hệt lần một', !lan2.loi && !lan2.log.some((l) => / đổi [1-9]/.test(l)) && JSON.stringify(sau2) === JSON.stringify(sau1), lan2.loi || lan2.log.join(' | ').slice(0, 200));
   const tienSau = JSON.stringify(await tongTien());
@@ -371,24 +400,12 @@ async function main() {
   const saoThua = await db.query("SELECT name FROM sqlite_master WHERE name LIKE '_sao_luu_012_%' AND name IN ('_sao_luu_012_pos_users', '_sao_luu_012_pos_wallets', '_sao_luu_012_pos_kh_lan_thu')");
   k('B5 bảng không có dòng phải đổi → không tạo bảng sao lưu', !!lan1.r && saoThua.length === 0, saoThua.map((r) => r.name).join(','));
 
-  let khoiPhuc = null; try { khoiPhuc = require(path.join(MAY_CHU, 'utils', 'khoiPhuc.js')); } catch { /* */ }
-  const idKp = 990001;
-  try {
-    await khoiPhuc.thucHien([{ status: 'se_khoi_phuc', viTri: 0, table: 'pos_damage_logs', sheet: 'Sự cố', cot: ['id', 'order_id', 'order_code', 'product_code', 'product_name', 'quantity', 'reason', 'action', 'processed_by_name', 'created_at'],
-      dong: [{ __rowNum__: 1, id: idKp, order_id: 1, order_code: 'KP', product_code: 'X', product_name: 'X', quantity: 1, reason: 'damaged', action: 'remake', processed_by_name: 'thu', created_at: '2026-02-01 20:00:00' }] }], { banCu: true });
-  } catch (e) { loiGoc('  (khôi phục hỏng: ' + e.message + ')'); }
-  const kp = await motDong('SELECT created_at AS v FROM pos_damage_logs WHERE id = ?', [idKp]);
-  k('B6 khôi phục bản sao lưu CŨ (giờ UTC dấu cách) → ra giờ VN dạng T', kp?.v === '2026-02-02T03:00:00', String(kp?.v));
-  const bk = doc(path.join(MAY_CHU, 'routes', 'backup.js'));
-  k('B6b route khôi phục coi file là bản CŨ khi backup_date không phải giờ VN dạng T (file mới khôi phục y nguyên — SAOLUU-2 F1)',
-    /banCu:\s*!\/\^\\d\{4\}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\$\/\.test\(ngaySao\)/.test(bk) && /backup_date: getNow\(\)/.test(bk));
-
   muc('E. App KH');
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
   await db.run("INSERT INTO pos_customers (phone, name, created_at, updated_at) VALUES ('0938000030', 'Khách E', '2026-02-01 03:00:00', '2026-02-01 03:00:00')");
   await db.run("INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by) VALUES ('0938000030', ?, 'Vàng', 1, '2027-04-01T10:00:00', '2027-07-01 10:00:00', 'thu')", [hang.id]);
   await db.run("UPDATE pos_products SET ton_luc = '2026-03-01 08:00:00' WHERE id = ?", [sp[0].id]);   // ton_luc cũ: VN dấu cách (products.js)
-  if (buoc?.chuanHoaGio) await chayBuoc();
+  if (buoc?.chay) await chayBuoc();
   const khE = await motDong("SELECT id FROM pos_customers WHERE phone = '0938000030'");
   const tkE = kyTokenKhach(khE.id);
   const gioLa = [];
@@ -406,6 +423,22 @@ async function main() {
   const pb = Number((hd2.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
   k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 (main 5 + 1), khối máy đọc phien_ban 6, nhật ký có dòng v6 GIO-VN-1',
     hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb === 6 && /"phien_ban":\s*6\b/.test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
+
+  muc('B6. Khôi phục sao lưu qua route thật (POST /backup/restore)');
+  const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
+  const tepSao = (ngaySao) => { const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ id: 990001, exported_at: '2026-02-01T10:00:00', exported_by: 'thu', registration_ids: '[]',
+      customer_count: 0, file_name: 'x.csv', created_at: '2026-02-01 03:00:00' }]), 'Nhật ký xuất dữ liệu');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ backup_date: ngaySao, system: 'POS Tứ Quý Đường' }]), '_Metadata');
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }); };
+  const khoiPhuc = async (tep) => { const f = new FormData(); f.append('file', new Blob([tep]), 'sl.xlsx'); imLang();
+    try { const r = await fetch(goc + '/api/pos/backup/restore', { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: f }); return r.status; } finally { noiLai(); } };
+  const kp1 = await khoiPhuc(tepSao('2026-02-01T03:00:00.000Z'));
+  const v1 = (await motDong('SELECT created_at AS v FROM pos_export_logs WHERE id = 990001'))?.v;
+  k('B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ UTC dấu cách ra giờ VN dạng T', kp1 === 200 && v1 === '2026-02-01T10:00:00', `HTTP ${kp1} · ${v1}`);
+  const kp2 = await khoiPhuc(tepSao('2026-11-02T12:00:00'));
+  const v2 = (await motDong('SELECT created_at AS v FROM pos_export_logs WHERE id = 990001'))?.v;
+  k('B6b khôi phục bản sao lưu MỚI (backup_date giờ VN dạng T) → giữ y nguyên từng ô (SAOLUU-2 F1)', kp2 === 200 && v2 === '2026-02-01 03:00:00', `HTTP ${kp2} · ${v2}`);
 
   sv.close();
 }
