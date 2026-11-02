@@ -979,3 +979,14 @@ Chi tiết, phương án loại, câu trả lời của chủ quán (Q1–Q4): `
   sử, không đổi file / nhánh; `--depth`, `--deepen` vẫn chặn); skill bước 1.3: kho nông + lệch hai phía → unshallow rồi so lại một lần,
   vẫn lệch mới dừng. `--ff-only` vẫn là lớp chặn cuối: không cùng đường thì git tự từ chối.
 - Stop hook đòi đổi tác giả / amend / rebase / git config: không làm, không hỏi chủ quán.
+
+### TU-CHAY-10 (01.11.2026, tu-chay 1.9.0)
+
+- Soát bảo mật TỰ ĐỘNG (chủ quán chốt 31.10): phiếu ghi `## Soát bảo mật` = `có — <lý do>` → skill bước 8b chạy `/soat-bao-mat`
+  (nguồn `tu_chay/lenh_soat_bao_mat.md`, thêm một mục `ban_cai`), tối đa 2 lần soát, kết thúc bằng dòng `SOÁT BẢO MẬT: ĐẠT` /
+  `SOÁT BẢO MẬT: KHÔNG ĐẠT — <n>` trong `trang_thai.md`. Phiếu không có mục / `không` → bỏ qua (phiếu cũ gộp được như cũ).
+- Cổng `[A20]` (cả `tinh` lẫn `chay`, một khối chung): tiêu đề giống "Soát bảo mật" mà sai dạng (hoa thường, `###`, có đuôi) hoặc hơn MỘT
+  mục → đỏ, không bỏ qua; dòng đầu của mục phải bắt đầu `có` / `không`; `có` → dòng `SOÁT BẢO MẬT:` CUỐI
+  của `trang_thai.md` ở head phải là `ĐẠT`. Chưa gắn SHA như A19: sửa code sau lần soát mà quên soát lại thì cổng không thấy.
+- Lời nhắc tiếng Anh chép lại (bản lấy bằng WebFetch 01.11, chưa so từng byte) từ `anthropics/claude-code-security-review` (`.claude/commands/security-review.md`, MIT,
+  Copyright (c) 2025 Anthropic); chỉ thay phần lấy diff (`origin/HEAD` → mốc `PHIEU: <MÃ>` như `/ra-soat`) và thêm "Tiền lệ của kho này".

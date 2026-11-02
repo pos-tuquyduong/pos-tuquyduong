@@ -18,6 +18,7 @@ const { getToday } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 const { kiemCaiDat } = require('../utils/gioHoatDong');
+const { kiemCaiDat: kiemManKhach } = require('../utils/manKhach');   // MANKHACH-1
 const TIENG_CHUONG = ['ding', 'chuong', 'bip'];   // KH-MUA-1: cùng danh sách client/src/components/DonAppNoi.jsx
 // KHO-IN-1: cài đặt in phiếu kho — in_phieu_<loai>_kho (khổ) / in_phieu_<loai>_ban (số bản). Cùng danh sách client/src/utils/inPhieu.js
 // (KHO_PHIEU_KHO · LOAI_PHIEU_KHO · SO_BAN_TOI_DA). Phiếu kho CHỈ A5 / A4 (chủ quán chốt 01.11); khổ nhiệt là của hoá đơn khách.
@@ -151,6 +152,9 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     // KH-API-2: giờ hoạt động (gio_hd_*) — cùng luật: sai một khoá thì không ghi khoá nào.
     const loiGio = kiemCaiDat(settings);
     if (loiGio) return res.status(400).json({ success: false, error: loiGio, code: 'CAI_DAT_KHONG_HOP_LE' });
+    // MANKHACH-1: màn khách (man_khach_*) — cùng luật: sai một khoá thì không ghi khoá nào.
+    const loiMan = kiemManKhach(settings);
+    if (loiMan) return res.status(400).json({ success: false, error: loiMan, code: 'CAI_DAT_KHONG_HOP_LE' });
 
     let updated = 0;
     const timestamp = new Date().toISOString();

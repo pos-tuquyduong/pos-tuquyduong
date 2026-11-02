@@ -34,11 +34,12 @@
 | ~~KH-SP-1~~ ✅ 31.10 | Thông tin ngắn của món ở màn Sản phẩm POS (nhu cầu, thể chất, mô tả, công dụng, thành phần) + hiện gọn ở quầy + `/api/kh/menu` trả thêm — mở khi KH-API-3 gộp | [Th] · Sonnet | Sonnet |
 | ~~BH-CKTAY-1~~ ✅ 31.10 | Bỏ hẳn ô "Chiết khấu" giảm tay ở màn Bán hàng cũ (máy chủ đã không nhận — gõ vào là đơn không lưu được) | [Th] · Sonnet | Sonnet |
 | ~~KH-QUAY-2~~ ✅ 31.10 | Quầy: cấp mã đăng nhập App cho SĐT mới (không tạo khách trước) · hoá đơn khách chỉ khổ nhiệt (bỏ A4 / A5 của hoá đơn) | [Th] · Sonnet | Sonnet |
-| SAOLUU-2 | Khôi phục sao lưu an toàn: không mất cột / dòng, hỏng thì không đổi gì, mọi bảng nằm trong sao lưu (thêm pos_don_app) | [T] · Opus | Opus 2 (sau KHO-2b) |
+| ~~SAOLUU-2~~ ✅ 31.10 | Khôi phục sao lưu an toàn: không mất cột / dòng, hỏng thì không đổi gì, mọi bảng nằm trong sao lưu (thêm pos_don_app) | [T] · Opus | Opus 2 (sau KHO-2b) |
 | KHO-IN-1 | Cài đặt in phiếu (80mm / A5 / A4 cho từng loại phiếu kho) + khổ hoá đơn mặc định thật sự có tác dụng | [Th] · Sonnet | Sonnet |
 | SEPAY-1 | Thanh toán QR qua SePay đủ chức năng như payOS (quầy + App), payOS giữ dự phòng bằng công tắc | [T] · Opus | Opus 1 |
 | MANKHACH-1 | Màn khách: máy tính bảng ghép máy quầy — QR + món + tổng lúc thu; nội dung quán tự cài lúc rảnh | [Th] · Sonnet | Sonnet 2 |
 | KH-SDT-1 | SĐT đăng ký mới bắt đầu từ 0 (khoá điểm / voucher mồ côi, không hiện lịch sử cũ) + công cụ dọn dữ liệu thử có duyệt | [T] · Opus | Opus 2 (sau SAOLUU-2) |
+| TU-CHAY-10 | Bộ khung 1.9.0: soát bảo mật tự động (/soat-bao-mat + cổng A20) — xong thì chat cài trên POS và chép sang APP-KH | Bộ khung · Opus | Opus phụ (phiên ngắn, chạy ngay nếu còn hạn mức; không thì sau SEPAY-1) |
 | KHO-2c | Sửa phiếu nhận khi lô đã dùng: vẫn sửa được, số liệu khớp thực tế; lô đã dùng không huỷ được | [T] · Opus | Opus 2 (sau KH-SDT-1) |
 | ~~KH-MUA-1~~ ✅ 31.10 | App KH đặt đơn: báo giá giỏ, tạo đơn nhận tại quán, trả QR payOS hoặc ví + PIN (dùng lại `tinh-thu` + phiên thanh toán quầy), đơn về quầy kèm chuông khi đã trả, trạng thái đơn, huỷ đơn chưa trả | [T] · Opus | Opus 1 |
 | KH-MUA-2 | App KH giao Ahamove: báo phí theo địa chỉ, trả đúng phí, trạng thái giao (dùng chung hàm GIAO-1) — SAU GIAO-1 | [T] · Opus | Opus 2 |
