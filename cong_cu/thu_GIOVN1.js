@@ -317,12 +317,13 @@ async function main() {
     ['pos_discount_codes', 'valid_from', '2026-11-01', '2026-11-01'],                           // ngày thuần → không đụng
   ];
   const idGieo = [];
+  const donB = await taoDon({});   // đơn thật rồi đặt giờ cũ: created_at đã đúng giờ VN (K5), cancelled_at đuôi Z (getNow 03–07.01)
+  await db.run("UPDATE pos_orders SET created_at = '2026-11-01T09:00:00' WHERE id = ?", [donB]);
   imLang();
-  const dk = await db.run("INSERT INTO pos_orders (code, total, subtotal, status, created_by, created_at) VALUES ('GV1B', 1, 1, 'completed', 'thu', '2026-11-01T09:00:00')").catch(() => null);
   for (const [bang, cot, cu] of GIEO) {
     let id = null;
     try {
-      if (bang === 'pos_orders') id = Number(dk.lastInsertRowid);
+      if (bang === 'pos_orders') id = donB;
       else if (bang === 'pos_settings') { await db.run("INSERT INTO pos_settings (key, value, updated_at) VALUES ('gv1_lan', '1', ?)", [cu]); id = 'gv1_lan'; }
       else if (bang === 'pos_damage_logs') id = Number((await db.run("INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, processed_by_name, created_at) VALUES (1, 'X', 'X', 'X', 1, 'damaged', 'remake', 0, 'thu', ?)", [cu])).lastInsertRowid);
       else if (bang === 'pos_balance_transactions') id = Number((await db.run("INSERT INTO pos_balance_transactions (customer_phone, type, amount, balance_before, balance_after, created_by, created_at) VALUES ('0938000020', 'topup', 1000, 0, 1000, 'thu', ?)", [cu])).lastInsertRowid);
@@ -377,7 +378,7 @@ async function main() {
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
   await db.run("INSERT INTO pos_customers (phone, name, created_at, updated_at) VALUES ('0938000030', 'Khách E', '2026-02-01 03:00:00', '2026-02-01 03:00:00')");
   await db.run("INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by) VALUES ('0938000030', ?, 'Vàng', 1, '2027-04-01T10:00:00', '2027-07-01 10:00:00', 'thu')", [hang.id]);
-  await db.run("UPDATE pos_products SET ton_luc = '2026-03-01 08:00:00', ton_cu = 1 WHERE id = ?", [sp[0].id]).catch(() => null);
+  await db.run("UPDATE pos_products SET ton_luc = '2026-03-01 08:00:00' WHERE id = ?", [sp[0].id]);   // ton_luc cũ: VN dấu cách (products.js)
   if (buoc?.chuanHoaGio) await chayBuoc();
   const khE = await motDong("SELECT id FROM pos_customers WHERE phone = '0938000030'");
   const tkE = kyTokenKhach(khE.id);
