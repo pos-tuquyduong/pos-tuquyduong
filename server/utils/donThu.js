@@ -11,10 +11,14 @@
  * đơn còn nợ kho SX · đơn của / trả hộ bởi SĐT ví ≠ 0 · đơn có dòng sổ ví của số không dọn, hoặc dòng điểm / gói / thẻ / mã bill của SĐT
  * KHÁC chủ đơn mà số đó không dọn · đơn lấy từ gói còn giữ / mua gói mà đơn giữ đang dùng · hoá đơn năm nay khi còn hoá đơn khác của năm
  * giữ lại. SĐT trong danh sách có đơn giữ, có dòng gắn đơn còn giữ, có gói đang được đơn giữ dùng, hoặc là mẹ của khách không xoá → giữ
- * cả số. Dòng mồ côi (order_id trỏ tới đơn đã xoá) dọn được. Két các ngày thử đã đếm: chỉ liệt kê (ket_se_lech).
+ * cả số. Dòng mồ côi (order_id trỏ tới đơn đã xoá) dọn được.
+ * Két đã đếm (sổ đối soát không dọn — chủ quán chốt 02.11, Q9): két một ngày = để lại lần đếm TRƯỚC + tiền mặt cả KHOẢNG tới ngày đó
+ * (doiSoat.js soKet). Két TRƯỚC ngày X được lệch — liệt kê đúng ngày (ket_se_lech); két TỪ ngày X (không chọn ngày: mọi két) không được
+ * đổi → đơn có tiền mặt rơi vào khoảng của két đó giữ lại, SĐT có nạp ví tiền mặt rơi vào đó giữ cả số.
  * Không bao giờ dọn: đối soát, payOS, phiên, đơn App, PIN, kho, sản phẩm, cài đặt, nhân viên. Điểm âm sau dọn → từ chối (DIEM_AM).
- * Xoá đơn completed có mã giảm → trả lượt mã như xoá đơn (`traLuotMa`; dòng bị sửa chụp ở sua_truoc). Nhật ký: pos_sync_logs 'don_thu' (số dòng + băm) và các phần
- * 'don_thu_chup' (bản chụp ≤ PHAN ký tự / ô — sao lưu Excel không nhận ô dài hơn 32767; cột bí mật che bằng '[ẩn]').
+ * Xoá đơn completed có mã giảm → trả lượt mã như xoá đơn (`traLuotMa`). Nhật ký: pos_sync_logs 'don_thu' (tiêu chí, số dòng, băm) và các
+ * phần 'don_thu_chup' = { xoa: dòng đã xoá, sua_truoc: dòng trả lượt TRƯỚC khi sửa } chia ≤ PHAN ký tự / ô (sao lưu Excel không nhận ô
+ * dài hơn 32767); cột bí mật che bằng '[ẩn]'.
  */
 const crypto = require('crypto');
 const { beginTransaction, query } = require('../database');
@@ -52,6 +56,38 @@ const trong = (ids) => `(${ids.map(Number).join(',')})`;
 const dau = (ds) => ds.map(() => '?').join(', ');
 const bam = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
+/** Chuỗi → các phần ≤ PHAN ký tự; không cắt đôi cặp thay thế UTF-16 (emoji trong ghi chú). */
+function chiaPhan(chuoi) {
+  const phan = [];
+  for (let i = 0; i < chuoi.length;) {
+    let j = Math.min(i + PHAN, chuoi.length);
+    if (j < chuoi.length && /[\uD800-\uDBFF]/.test(chuoi[j - 1])) j--;
+    phan.push(chuoi.slice(i, j)); i = j;
+  }
+  return phan;
+}
+
+// Tiền mặt vào (+) / ra (−) két theo ngày của từng đơn ('d<id>') và nạp ví của từng SĐT ('s<sđt>') — CÙNG công thức doiSoat.js
+// tienTheoSo('cash'): bán = cash_amount − thu nợ, theo ngày tạo; thu nợ theo ngày thu; huỷ (trừ đơn mua gói) trả ra theo ngày huỷ.
+const J_TIEN_MAT = `CASE WHEN json_valid(chi_tiet) THEN (CASE WHEN json_extract(chi_tiet, '$.cach') = 'cash' THEN json_extract(chi_tiet, '$.so_tien') END) END`;
+const tienMatTheoNgay = (q, idDon, sdt) => q.query(`SELECT 'd' || o.id AS khoa, DATE(o.created_at) AS ngay, o.cash_amount
+    - (SELECT COALESCE(SUM(${J_TIEN_MAT}), 0) FROM pos_order_log WHERE order_id = o.id AND loai = 'thu') AS n FROM pos_orders o WHERE o.id IN ${trong(idDon)}
+  UNION ALL SELECT 'd' || order_id, DATE(luc), ${J_TIEN_MAT} FROM pos_order_log WHERE loai = 'thu' AND order_id IN ${trong(idDon)}
+  UNION ALL SELECT 'd' || o.id, DATE(o.cancelled_at), -o.cash_amount FROM pos_orders o WHERE o.status = 'cancelled' AND o.id IN ${trong(idDon)}
+    AND NOT EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)
+  UNION ALL SELECT 's' || customer_phone, DATE(created_at), amount FROM pos_balance_transactions WHERE type = 'topup'
+    AND COALESCE(payment_method, 'cash') = 'cash' AND customer_phone IN (${dau(sdt)})`, sdt);
+/** Dòng tiền → các khoá (gom theo `khoa(dòng, két)`) có tổng khác 0 trong một két đã đếm. Tiền ngày e thuộc lần đếm ĐẦU TIÊN từ e,
+ *  nếu trước e đã có lần đếm (két chưa có mốc thì không có số theo sổ để lệch). */
+function ketBiDoi(dong, ngayKet, khoa) {
+  const tong = new Map();
+  for (const r of dong) {
+    const i = ngayKet.findIndex((k) => k >= r.ngay);
+    if (i > 0 && r.n) tong.set(khoa(r, ngayKet[i]), (tong.get(khoa(r, ngayKet[i])) || 0) + Number(r.n));
+  }
+  return [...tong].filter(([, n]) => Math.round(n) !== 0).map(([k]) => k);
+}
+
 function chuanSdt(v) {
   let s = String(v ?? '').replace(/[\s.\-]/g, '');
   if (s.startsWith('+84')) s = '0' + s.slice(3);
@@ -81,7 +117,7 @@ function docTieuChi(than, homNay) {
 }
 
 /** Đơn ứng viên → { giu: Map(id → lý do), P: SĐT xoá sạch }. Lặp tới khi đứng yên: giữ một đơn có thể kéo theo giữ cả số / gói. */
-async function chiaGiu(q, ung, L, coVi, homNay) {
+async function chiaGiu(q, ung, L, coVi, homNay, X, ngayKet) {
   const id = trong(ung.map((o) => o.id));
   const tap = async (sql) => new Set((await q.query(sql)).map((r) => Number(r.order_id)));
   const coPhien = await tap(`SELECT DISTINCT order_id FROM pos_phien_thanh_toan WHERE order_id IN ${id}`);
@@ -105,6 +141,11 @@ async function chiaGiu(q, ung, L, coVi, homNay) {
     UNION SELECT phone, parent_phone FROM pos_registrations WHERE parent_phone IN (${dau(L)})`, [...L, ...L]) : [];
   // Số hoá đơn kế tiếp = ĐẾM hoá đơn trong năm (settings.js invoice/next-number): xoá HẾT hoặc KHÔNG xoá hoá đơn năm nay, không xoá một phần.
   const hdNam = await q.query('SELECT DISTINCT order_id FROM pos_invoice_logs WHERE invoice_number LIKE ?', [`%/${homNay.slice(0, 4)}`]);
+  // Két không được đổi (từ ngày X; không chọn ngày → mọi két): khoá → ngày két đầu tiên bị đổi.
+  const ketGiu = new Map();
+  for (const [kh, ky] of ketBiDoi(await tienMatTheoNgay(q, ung.map((o) => o.id), L), ngayKet, (r, ky) => `${r.khoa}|${ky}`)
+    .map((k) => k.split('|')).filter(([, ky]) => !X || ky >= X).sort((a, b) => (a[1] < b[1] ? -1 : 1))) if (!ketGiu.has(kh)) ketGiu.set(kh, ky);
+  const veKet = (ky) => `rơi vào két ngày ${ky} đã đếm (két ${X ? 'từ ngày X' : 'đã đếm'} không được đổi)`;
   const laUng = new Set(ung.map((o) => Number(o.id)));
   const giu = new Map();
   for (const o of ung) {
@@ -112,18 +153,25 @@ async function chiaGiu(q, ung, L, coVi, homNay) {
       : coVi.has(o.customer_phone) ? `SĐT ${o.customer_phone} còn số dư ví`
         : coVi.has(o.parent_phone) ? `Người trả hộ ${o.parent_phone} còn số dư ví`
           : coPhien.has(Number(o.id)) ? 'Có phiên thanh toán (tiền ngân hàng)'
-            : noKho.has(Number(o.id)) ? 'Còn việc kho chưa gửi sang SX' : '';
+            : noKho.has(Number(o.id)) ? 'Còn việc kho chưa gửi sang SX'
+              : ketGiu.has('d' + o.id) ? `Tiền mặt của đơn ${veKet(ketGiu.get('d' + o.id))}` : '';
     if (l) giu.set(Number(o.id), l);
   }
   for (;;) {
     const xoaDon = (d) => laUng.has(Number(d)) && !giu.has(Number(d));
-    const sdtGiu = new Set([...ung.filter((o) => giu.has(Number(o.id))).flatMap((o) => [o.customer_phone, o.parent_phone]),
-      ...ganDon.filter((r) => !xoaDon(r.order_id)).map((r) => r.phone),
-      ...goi.filter((g) => dungGoi.some((d) => Number(d.customer_package_id) === Number(g.id) && !xoaDon(d.id))).map((g) => g.customer_phone)]);
-    let P = L.filter((s) => !coVi.has(s) && !sdtGiu.has(s));
+    const sdtGiu = new Map();   // SĐT → lý do giữ cả số (lý do đầu tiên)
+    const giuSo = (ds, l) => { for (const s of ds) if (s && !sdtGiu.has(s)) sdtGiu.set(s, typeof l === 'function' ? l(s) : l); };
+    giuSo(L.filter((s) => coVi.has(s)), 'Còn số dư ví (xử lý tay)');
+    giuSo(L.filter((s) => ketGiu.has('s' + s)), (s) => `Nạp ví tiền mặt ${veKet(ketGiu.get('s' + s))}`);
+    giuSo(ung.filter((o) => giu.has(Number(o.id))).flatMap((o) => [o.customer_phone, o.parent_phone]), 'Có đơn phải giữ lại (lý do ở từng đơn)');
+    giuSo(ganDon.filter((r) => !xoaDon(r.order_id)).map((r) => r.phone), 'Có dòng điểm / sổ ví / gói / thẻ gắn đơn không dọn');
+    giuSo(goi.filter((g) => dungGoi.some((d) => Number(d.customer_package_id) === Number(g.id) && !xoaDon(d.id))).map((g) => g.customer_phone),
+      'Có gói đang được đơn không dọn dùng');
+    let P = L.filter((s) => !sdtGiu.has(s));
     for (let n = -1; n !== P.length;) {   // số là mẹ của khách KHÔNG xoá → giữ (con không trỏ tới mẹ đã xoá)
       n = P.length;
-      P = P.filter((s) => !conCua.some((c) => c.parent_phone === s && !P.includes(c.phone)));
+      giuSo(P.filter((s) => conCua.some((c) => c.parent_phone === s && !P.includes(c.phone))), 'Là người thân chính (trả hộ) của khách không xoá');
+      P = P.filter((s) => !sdtGiu.has(s));
     }
     const goiXoa = (g) => (g.order_id != null ? xoaDon(g.order_id) : P.includes(g.customer_phone));
     const hdGiu = hdNam.some((r) => !xoaDon(r.order_id));
@@ -140,7 +188,7 @@ async function chiaGiu(q, ung, L, coVi, homNay) {
               : hdGiu && hdNam.some((r) => Number(r.order_id) === Number(o.id)) ? 'Có hoá đơn năm nay mà hoá đơn khác của năm còn giữ (số hoá đơn sẽ trùng)' : '';
       if (l) { giu.set(Number(o.id), l); doi = true; }
     }
-    if (!doi) return { giu, P };
+    if (!doi) return { giu, P, lyDoSdt: Object.fromEntries(L.filter((s) => !P.includes(s)).map((s) => [s, sdtGiu.get(s)])) };
   }
 }
 
@@ -152,7 +200,8 @@ async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay, now) {
   const ung = await q.query(`SELECT id, code, created_at, customer_phone, parent_phone, total, status, customer_package_id,
       (${theoNgay}) AS theo_ngay FROM pos_orders WHERE ${theoNgay}${L.length ? ` OR customer_phone IN (${dau(L)})` : ''} ORDER BY id`,
     [...(X ? [X, X] : []), ...L]);
-  const { giu, P } = await chiaGiu(q, ung, L, coVi, homNay);
+  const ngayKet = (await q.query("SELECT DISTINCT ky FROM pos_doi_soat_ghi WHERE loai = 'ket' ORDER BY ky")).map((r) => r.ky);
+  const { giu, P, lyDoSdt } = await chiaGiu(q, ung, L, coVi, homNay, X, ngayKet);
   const don = ung.filter((o) => !giu.has(Number(o.id)));
   const O = trong(don.map((o) => o.id));
   const ids = new Map(THU_TU_XOA.map((t) => [t, new Set()]));
@@ -184,9 +233,8 @@ async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay, now) {
     WHERE (expires_at IS NULL OR expires_at > ?) AND customer_phone IN (SELECT customer_phone FROM pos_point_transactions WHERE id IN ${diemChon})
     GROUP BY customer_phone`, [now]);
 
-  // Ngày thử đã đếm két (sổ đối soát — KHÔNG dọn): xoá đơn tiền mặt các ngày đó thì màn Đối soát thấy két lệch → chỉ liệt kê để chủ quán biết.
-  const ngayDon = [...new Set(don.map((o) => String(o.created_at).slice(0, 10)))];
-  const ket = await q.query(`SELECT DISTINCT ky FROM pos_doi_soat_ghi WHERE loai = 'ket' AND ky IN (${dau(ngayDon)}) ORDER BY ky`, ngayDon);
+  // Két sẽ lệch sau khi dọn: tổng tiền mặt của mọi đơn + nạp ví bị dọn trong khoảng của từng két (chỉ còn két < X — chiaGiu đã giữ phần còn lại).
+  const ketLech = ketBiDoi(await tienMatTheoNgay(q, don.map((o) => o.id), P), ngayKet, (r, ky) => ky).sort();
   const tieuChi = { truoc_ngay: X, sdt: P };
   const idTheoBang = Object.fromEntries(THU_TU_XOA.map((t) => [t, [...ids.get(t)].sort((a, b) => a - b)]).filter(([, a]) => a.length));
   const viLienQuan = new Set([...L, ...ung.flatMap((o) => [o.customer_phone, o.parent_phone])]);
@@ -201,10 +249,11 @@ async function chonDong(q, { truoc_ngay: X, sdt: L }, homNay, now) {
     giu_lai: {
       vi: vi.filter((v) => viLienQuan.has(v.phone)),
       sdt: L.filter((s) => !P.includes(s)),
+      ly_do_sdt: lyDoSdt,
       don: ung.filter((o) => giu.has(Number(o.id))).map((o) => ({ code: o.code, created_at: o.created_at, customer_phone: o.customer_phone, ly_do: giu.get(Number(o.id)) })),
     },
     diem_am: diem.filter((r) => Number(r.con_lai) < 0).map((r) => ({ phone: r.phone, con_lai: Number(r.con_lai) })),
-    ket_se_lech: ket.map((r) => r.ky),
+    ket_se_lech: ketLech,
     ma_xac_nhan: bam(JSON.stringify({ tieuChi, idTheoBang })),
     idTheoBang,
   };
@@ -248,16 +297,11 @@ async function donDuLieuThu(than, nguoi) {
       const r = await tx.run(`DELETE FROM ${t} WHERE id IN ${trong(a)}`);
       if (r.changes !== a.length) throw new Error(`${t}: xoá ${r.changes}/${a.length} dòng`);
     }
-    const luu = JSON.stringify(banChup, (k, v) => (COT_BI_MAT.includes(k) && v != null ? '[ẩn]' : v));
-    const phan = [];
-    for (let i = 0; i < luu.length;) {   // không cắt đôi cặp thay thế UTF-16 (emoji trong ghi chú)
-      let j = Math.min(i + PHAN, luu.length);
-      if (j < luu.length && /[\uD800-\uDBFF]/.test(luu[j - 1])) j--;
-      phan.push(luu.slice(i, j)); i = j;
-    }
+    const luu = JSON.stringify({ xoa: banChup, sua_truoc: suaTruoc }, (k, v) => (COT_BI_MAT.includes(k) && v != null ? '[ẩn]' : v));
+    const phan = chiaPhan(luu);
     const nk = await tx.run(`INSERT INTO pos_sync_logs (type, record_count, details, status, created_by, created_at)
       VALUES ('don_thu', ?, ?, 'success', ?, ?)`,
-      [c.tong_dong, JSON.stringify({ tieu_chi: c.tieu_chi, so_dong: c.so_dong, so_phan: phan.length, bam_ban_chup: bam(luu), sua_truoc: suaTruoc }), nguoi, now]);
+      [c.tong_dong, JSON.stringify({ tieu_chi: c.tieu_chi, so_dong: c.so_dong, so_phan: phan.length, bam_ban_chup: bam(luu) }), nguoi, now]);
     for (const [i, p] of phan.entries()) {
       await tx.run(`INSERT INTO pos_sync_logs (type, file_name, record_count, details, status, created_by, created_at)
         VALUES ('don_thu_chup', ?, ?, ?, 'success', ?, ?)`, [`don_thu#${nk.lastInsertRowid}`, i + 1, p, nguoi, now]);
@@ -270,4 +314,4 @@ async function donDuLieuThu(than, nguoi) {
   }
 }
 
-module.exports = { CHU_XAC_NHAN, THU_TU_XOA, BANG_KHONG_DON, lietKe, donDuLieuThu };
+module.exports = { CHU_XAC_NHAN, THU_TU_XOA, BANG_KHONG_DON, chiaPhan, lietKe, donDuLieuThu };
