@@ -797,9 +797,10 @@ if (coXet) {
     && JSON.stringify(ch.muc_gac) === JSON.stringify({ matcher: '*', hooks: [{ type: 'command',
       command: 'node "$CLAUDE_PROJECT_DIR/.claude/tu_chay/nguoi_gac.js" || exit 2', timeout: 30 }] }),
     JSON.stringify(ch && ch.muc_gac));
-  chac('cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng)', !!ch
+  chac('cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng, /soat-bao-mat)', !!ch
     && JSON.stringify(ch.ban_cai) === JSON.stringify([['skill_lam_viec.md', '.claude/skills/lam-viec/SKILL.md'],
-      ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml']]), JSON.stringify(ch && ch.ban_cai));
+      ['lenh_ra_soat.md', '.claude/commands/ra-soat.md'], ['cong_github.yml', '.github/workflows/cong.yml'],
+      ['lenh_soat_bao_mat.md', '.claude/commands/soat-bao-mat.md']]), JSON.stringify(ch && ch.ban_cai));
   let pb = '';
   try { pb = fs.readFileSync(path.join(__dirname, 'PHIEN_BAN'), 'utf8').trim(); } catch {}
   chac('PHIEN_BAN dạng tu-chay x.y.z (TU-CHAY-8 A5: không ghim số — mục THIET_KE canh ở thu_cong_cu.js)', /^tu-chay \d+\.\d+\.\d+$/.test(pb), pb || '(không có)');
