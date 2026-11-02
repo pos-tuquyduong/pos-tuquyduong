@@ -65,6 +65,7 @@ const MAU = [
 // Ngoại lệ: [file, chuỗi phải có trên dòng, lý do]. Ngoại lệ không còn khớp vi phạm nào → ĐỎ (khỏi để ngoại lệ chết).
 const NGOAI_LE = [
   ['server/utils/doiSoat.js', "ELSE DATETIME(created_at, '+7 hours') END", 'dữ liệu CŨ chưa qua bước 012 (pos_damage_logs dấu cách = UTC) — dạng T lấy nguyên'],
+  ['server/nang_cap/012_gio_viet_nam.js', 'const CONG7 = (c) =>', 'chính bước đổi giờ CŨ (UTC) sang giờ VN: +7 giờ trên giá trị đã lưu, không phải đồng hồ máy'],
 ];
 function boChuThich(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
@@ -361,7 +362,9 @@ async function main() {
   const tienSau = JSON.stringify(await tongTien());
   const dsSau = JSON.stringify(await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2026-11-02' }).catch((e) => e.message));
   k('B4 (K5) dòng đã đúng giờ VN + ngày thuần không đổi; tổng tiền đơn / ví / điểm / số gói trước = sau', sau1[7] === GIEO[7][3] && sau1[8] === GIEO[8][3] && tienTruoc === tienSau, `${sau1[7]} · ${sau1[8]} · ${tienTruoc} → ${tienSau}`);
-  k('K5b đối soát ngày 02.11.2026 (dữ liệu dạng T) trước = sau bước 012', !!lan1.r && dsTruoc === dsSau, dsTruoc === dsSau ? '' : 'lệch');
+  const lech = [...dsTruoc].findIndex((c, i) => c !== dsSau[i]);
+  k('K5b đối soát ngày 02.11.2026 (dữ liệu dạng T) trước = sau bước 012', !!lan1.r && dsTruoc === dsSau,
+    dsTruoc === dsSau ? '' : `lệch ở: ${dsTruoc.slice(Math.max(0, lech - 80), lech + 80)} ⇒ ${dsSau.slice(Math.max(0, lech - 80), lech + 80)}`);
   const saoThua = await db.query("SELECT name FROM sqlite_master WHERE name LIKE '_sao_luu_012_%' AND name IN ('_sao_luu_012_pos_users', '_sao_luu_012_pos_wallets', '_sao_luu_012_pos_kh_lan_thu')");
   k('B5 bảng không có dòng phải đổi → không tạo bảng sao lưu', !!lan1.r && saoThua.length === 0, saoThua.map((r) => r.name).join(','));
 
@@ -396,7 +399,7 @@ async function main() {
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));
   const pb = Number((hd2.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
   k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 (main 5 + 1), khối máy đọc phien_ban 6, nhật ký có dòng v6 GIO-VN-1',
-    hd2.length > 0 && !/Lỗi đã biết/.test(hd2) && pb === 6 && /"phien_ban":\s*6\b/.test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
+    hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb === 6 && /"phien_ban":\s*6\b/.test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
 
   sv.close();
 }
