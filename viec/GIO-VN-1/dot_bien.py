@@ -42,6 +42,12 @@ DOT_BIEN = [
   ('VS-SAO-LUU-NGAY-DAU-CACH', [('server/routes/backup.js', '[{ backup_date: getNow(), system:', "[{ backup_date: getNow().replace('T', ' '), system:", 1)], r'✗ B6b '),
   ('VS-KHOI-PHUC-CO-SAO-LUU', [('server/utils/khoiPhuc.js', '    if (banCu) await chuanHoaGio(tx, { saoLuu: false });', '    if (banCu) await chuanHoaGio(tx);', 1)], r'✗ B6c '),
   ('BV-SYNC-DA-XUAT', [('server/routes/sync.js', "      AND exported_at < strftime('%Y-%m-%dT%H:%M:%S', ?, '-2 day')\n    `, [getNow()]);", "      AND datetime(exported_at) < datetime('now', '-2 day')\n    `);", 1)], r'✗ C11 '),
+  # ── vòng sửa 4 (lần soát cuối: N17 / R5 / R8 / N15 / N2 sống) ──
+  ('BV-DOSONO-DAU-CACH', [('server/utils/doSoNo.js', '          [getNow(), d.id],', "          [getNow().replace(/T/, ' '), d.id],", 1)], r'✗ A2i '),
+  ('BV-KHACH-SX-CACHE', [('server/routes/customers-v2.js', "        VALUES (?, ?, ?, ?, 'active', ?, ?)\n        ON CONFLICT(phone) DO UPDATE SET", "        VALUES (?, ?, ?, ?, 'active', datetime(?, '+0 hours'), ?)\n        ON CONFLICT(phone) DO UPDATE SET", 1)], r'✗ A2j '),
+  ('BV-KHACH-SX-CAP-NHAT', [('server/routes/customers-v2.js', '          updated_at = excluded.updated_at', '          updated_at = CURRENT_TIMESTAMP', 1)], r'✗ A2j '),
+  ('VS-012-MAU-THIEU-GIAY', [(B, "const MAU_CACH = `'${NGAY} ${GIO}'`;", "const MAU_CACH = `'${NGAY} ${SO}${SO}:${SO}${SO}*'`;", 1)], r'✗ B1d '),
+  ('VS-012-MAU-NOI-HET', [(B, "const MAU_CACH = `'${NGAY} ${GIO}'`;", "const MAU_CACH = `'${NGAY} *'`;", 1)], r'✗ B1d '),
   ('VS-KHOI-PHUC-MOI-FILE', [('server/routes/backup.js', "{ banCu: !/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d$/.test(ngaySao) }", '{ banCu: true }', 1)], r'✗ B6b '),
   # ── A: chỗ ghi ──
   ('BV-DAMAGES', [('server/routes/damages.js', "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)", "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))", 1), ('server/routes/damages.js', 'req.user.id, req.user.display_name || req.user.username, getNow()\n', 'req.user.id, req.user.display_name || req.user.username\n', 1)], r'✗ A2d '),
