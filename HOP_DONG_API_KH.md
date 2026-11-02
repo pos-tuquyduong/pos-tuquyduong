@@ -149,6 +149,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   - QUA-1 — `/toi.khach` thêm `qua_chao_mung: { so_tien, het_han } | null` (chỉ khi còn hạn và còn tiền; đếm ngược theo `bay_gio` của
     `/gio-hoat-dong`). `so_du_vi` = số dư (tiền nạp + thưởng nạp) + quà chào mừng còn hạn — dùng được HẾT cho mọi đơn, không có đơn tối thiểu.
     Khi trả bằng tài khoản: trừ quà chào mừng TRƯỚC. "Thưởng nạp" KHÔNG có hạn và KHÔNG tách dòng trên App.
+    App hiện ô "Số dư ví" = `so_du_vi`, dưới là dòng nhỏ "Trong đó Quà chào mừng … — còn …" khi `qua_chao_mung` khác `null` (chủ quán 02.11);
+    KHÔNG có trường `so_du_nap` (App 02.11d bỏ đề nghị).
   - NAP-2 — `GET /goi-nap` (không token): `data[] { ma, tra, vao }` (gói đang bật). `POST /nap` (token): `{ ma_goi, khoa_gui }` → `phien { ma,
     qr { chuoi, het_han }, tien_trinh }`; luật 4xx / 5xx và khoá gửi y như `POST /don` (4xx = chưa tạo gì). `GET /nap/:ma` (token): đọc lại
     phiên (`tien_trinh`: `cho_tra` | `da_nap` | `het_han` | `huy`). Nạp xong → `so_du_vi` tăng. Mã lỗi: `GOI_NAP_KHONG_CO` 404,
@@ -163,6 +165,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     (≤ 120 ký tự) — in lên phiếu pha chế, tem, hoá đơn.
   - HD-KH-1 — `GET /don/:ma` thêm `hoa_don[] { loai, trai, phai, dam, gach, ghi_chu }`: các dòng hoá đơn dựng SẴN bằng CÙNG hàm của hoá đơn
     in ở quầy (đầu theo đơn vị bán). App chỉ vẽ theo, không tự tính / tự xếp.
+    `GET /don/:ma` và mỗi đơn của `GET /don` thêm `cach_tra` (`qr` | `vi` | `vi_qr`), `giu_vi`, `con_lai` — đơn App: đúng như `POST /don` đã trả;
+    đơn quầy: `null` (App 02.11c/d — tải lại / máy khác vẫn biết đã giữ ví bao nhiêu, còn quét QR bao nhiêu).
 - TOPPING-1: `/menu` thêm topping theo món + giá.
 - Đánh giá Google: `loi-moi-danh-gia`, `su-kien`, cờ trên `/don` (tên cuối do POS chốt).
 
