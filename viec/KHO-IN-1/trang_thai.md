@@ -90,3 +90,7 @@ BÀI HỌC:     KHOÁ 1 (VS-CD-DOC-THO, đã làm) · NGUYÊN TẮC 1 (đề xu�
 `node tu_chay/cong.js chay . 7fc9bff^ HEAD viec/KHO-IN-1` (HEAD 02e0251, cây sạch): ✓ CỔNG CHẠY ĐẠT.
 
 HEAD ĐÃ KIỂM: 02e0251
+
+
+Chat soát (01.11): đọc báo cáo 7 mục + hồ sơ — phiếu kho chỉ A5 / A4 (mặc định A5, 80mm cũ đọc ra A5), hoá đơn + phiếu pha chế từng đơn giữ khổ nhỏ: khớp phiếu sửa 01.11. Gộp main ae27536 (MANKHACH-1): đụng Settings.jsx (giữ cả hai thẻ), mảng bài (giữ cả hai), dist dựng lại; thu_KHOIN1 69/0, thu_MANKHACH1 53/0, npm test --day-du xanh trên bản gộp.
+HEAD ĐÃ KIỂM: 7595497
