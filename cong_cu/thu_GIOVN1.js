@@ -417,7 +417,7 @@ async function main() {
     GIEO.slice(0, 7).every((g, i) => sau1[i] === g[3]), GIEO.slice(0, 7).map((g, i) => `${g[0]}.${g[1]}=${sau1[i]}`).join(' | ') + (lan1.loi ? ' · ' + lan1.loi : ''));
   k('B1b in một dòng cho mỗi cột đổi (`🔧 Nâng cấp 012: <bảng>.<cột> đổi n dòng`) + dòng "để nguyên" cho cột lẫn',
     ['pos_damage_logs.created_at đổi 1', 'pos_balance_transactions.created_at đổi 1', 'pos_invoice_logs.printed_at đổi 1', 'pos_packages.created_at đổi 1']
-      .every((x) => lan1.log.some((l) => l.includes('Nâng cấp 012') && new RegExp(x.replace(/\./g, '\\.').replace(/ 1$/, ' [1-9]\\d* dòng')).test(l))) && lan1.log.some((l) => l.includes('pos_settings.updated_at') && /để nguyên 1/.test(l)),
+      .every((x) => lan1.log.some((l) => l.includes('Nâng cấp 012') && new RegExp(x.replace(/\./g, '\\.').replace(/ 1$/, ' [1-9]\\d* dòng')).test(l))) && lan1.log.some((l) => l.includes('pos_settings.updated_at') && /để nguyên 2 dòng/.test(l)),
     lan1.log.join(' | ').slice(0, 300));
   const plSau = await Promise.all(PHAN_LOAI.map(([b, c], i) => (dongPL[i] == null ? null : motDong(`SELECT ${c} AS v FROM ${b} WHERE rowid = ?`, [dongPL[i]]).then((r) => r?.v ?? null))));
   const plSai = PHAN_LOAI.filter(([, , l], i) => plSau[i] !== MOI[l]).map(([b, c, l], i) => `${b}.${c}(${l})=${plSau[PHAN_LOAI.findIndex((x) => x[0] === b && x[1] === c)]}`);
