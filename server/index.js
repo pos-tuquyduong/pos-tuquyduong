@@ -14,6 +14,7 @@ const cors = require('cors');
 const path = require('path');
 
 const { initDatabase } = require('./database');
+const { getNow } = require('./utils/helpers');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -66,7 +67,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging — P15-QR: che mã QR thành viên (sau /customers/qr/) để mã không nằm trong log
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} | ${req.method} ${req.path.replace(/(\/customers\/qr\/).*/i, '$1***')}`);
+  console.log(`${getNow()} | ${req.method} ${req.path.replace(/(\/customers\/qr\/).*/i, '$1***')}`);
   next();
 });
 
@@ -130,7 +131,7 @@ app.use('/api/payos/webhook', require('./routes/thanh-toan').webhook);
 app.get('/api/pos/health', (req, res) => {
   res.json({
     status: 'ok',
-    timestamp: new Date().toISOString(),
+    timestamp: getNow(),
     version: '2.2.0',
     service: 'POS System',
     design: 'phone-based identity',

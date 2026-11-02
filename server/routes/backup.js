@@ -10,6 +10,7 @@ const XLSX = require('xlsx');
 const multer = require('multer');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { query } = require('../database');
+const { getNow, getToday } = require('../utils/helpers');
 const { docTrang, lapKeHoach, thucHien } = require('../utils/khoiPhuc');
 const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ câu nội bộ
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
@@ -230,7 +231,7 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     // Sheet metadata
     const meta = [{
-      backup_date: new Date().toISOString(),
+      backup_date: getNow(),
       system: 'POS Tứ Quý Đường',
       version: '1.0',
       tables: BACKUP_TABLES.map(t => t.name).join(', ')
@@ -238,7 +239,7 @@ router.get('/export-all', authenticate, async (req, res) => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(meta), '_Metadata');
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `POS-backup-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `POS-backup-${getToday()}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -271,7 +272,7 @@ router.get('/export/:table', authenticate, async (req, res) => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `POS-${tableDef.name}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `POS-${tableDef.name}-${getToday()}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -335,8 +336,10 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2: kế hoạch (kho_* chỉ khi kho trống, pos_nang_cap không bao giờ, cột ∩ bảng) rồi MỘT giao dịch — dòng hỏng → không đổi gì.
     const keHoach = await lapKeHoach(wb, BACKUP_TABLES);
+    // GIO-VN-1: file ghi từ khi có getNow mang backup_date dạng giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString, đuôi Z) → đổi giờ cũ.
+    const ngaySao = wb.Sheets._Metadata ? String(docTrang(wb.Sheets._Metadata)[0]?.backup_date ?? '') : '';
     try {
-      await thucHien(keHoach);
+      await thucHien(keHoach, { banCu: !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/.test(ngaySao) });
     } catch (err) {
       if (!err.loiDong) return loiGhi(res, err);
       const { bang, trang, dong, ly_do } = err.loiDong;

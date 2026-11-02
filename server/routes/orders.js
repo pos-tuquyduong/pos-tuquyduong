@@ -129,7 +129,8 @@ router.get("/", authenticate, async (req, res) => {
       if (from) { statsSql += ` AND DATE(created_at) >= ?`; statsParams.push(from); }
       if (to) { statsSql += ` AND DATE(created_at) <= ?`; statsParams.push(to); }
     } else {
-      statsSql += ` AND DATE(created_at) = DATE('now', 'localtime')`;
+      statsSql += ` AND DATE(created_at) = ?`;   // GIO-VN-1: hôm nay theo giờ VN (máy chủ chạy UTC)
+      statsParams.push(getToday());
     }
     const todayStats = await queryOne(statsSql, statsParams);
 
@@ -1059,9 +1060,9 @@ async function taoDon(req, res, phien = null) {
         let validMonths = parseInt(settingsRows[0]?.value, 10);
         if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
 
-        const nowDate = new Date(now.replace(' ', 'T'));
+        const nowDate = new Date(now + 'Z');   // giờ VN coi như UTC → cộng tháng không theo múi giờ máy (GIO-VN-1)
         const expiresDate = addMonthsSafe(nowDate, validMonths);
-        const expiresAt = expiresDate.toISOString().slice(0, 19).replace('T', ' ');
+        const expiresAt = expiresDate.toISOString().slice(0, 19);
 
         await tx.run(
           `INSERT INTO pos_membership_purchases

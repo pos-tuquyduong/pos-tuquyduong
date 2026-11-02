@@ -8,7 +8,7 @@
 const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow, normalizePhone } = require('../utils/helpers');
+const { getNow, getToday, normalizePhone } = require('../utils/helpers');
 const { RELATIONSHIP_VALUES } = require('../constants/relationships');
 
 const router = express.Router();
@@ -66,7 +66,7 @@ router.get('/export/csv', authenticate, checkPermission('export_data'), async (r
       ...rows.map(row => row.map(cell => `"${(cell + '').replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
-    const fileName = `dang-ky-moi_${new Date().toISOString().slice(0,10)}.csv`;
+    const fileName = `dang-ky-moi_${getToday()}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -91,7 +91,7 @@ router.post('/confirm-export', authenticate, checkPermission('export_data'), asy
 
     const ids = pending.map(r => r.id);
     const now = getNow();
-    const fileName = `dang-ky-moi_${new Date().toISOString().slice(0,10)}.csv`;
+    const fileName = `dang-ky-moi_${getToday()}.csv`;
 
     // Đánh dấu exported
     const placeholders = ids.map(() => '?').join(',');
@@ -99,8 +99,8 @@ router.post('/confirm-export', authenticate, checkPermission('export_data'), asy
       [now, req.user.username, ...ids]);
 
     // Ghi log
-    await run(`INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count, file_name) VALUES (?, ?, ?, ?, ?)`,
-      [now, req.user.username, JSON.stringify(ids), ids.length, fileName]);
+    await run(`INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count, file_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [now, req.user.username, JSON.stringify(ids), ids.length, fileName, now]);
 
     res.json({ 
       success: true, 
