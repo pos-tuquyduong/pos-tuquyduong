@@ -357,3 +357,7 @@ CHƯA KIỂM:   - Chủ quán đã thật sự LƯU file sao lưu (màn chỉ bi
              - Không có soát độc lập bằng agent cho vòng 4 (chat soát thay theo LUAT §6.5).
 GIT:         (xem dòng git log ở câu trả lời cuối phiên)
 BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài học (vòng 4)
+
+- `node tu_chay/cong.js chay . 87aa996^ HEAD viec/KH-SDT-1` (ở 15c9ade) → ✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 15c9ade
