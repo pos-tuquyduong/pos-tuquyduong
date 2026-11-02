@@ -42,8 +42,7 @@ Trên gốc 36b98b8:  11 đạt · 29 hỏng  → ĐỎ
   ✗ B6b route khôi phục coi file là bản CŨ khi backup_date không phải giờ VN dạng T (file mới khôi phục y nguyên — SAOLUU-2 F1)
   ✗ E1 mọi giờ trong /api/kh … — /toi.khach.ngay_tao=2026-02-01 03:00:00 | /menu.data.1.ton_luc=2026-03-01 08:00:00 · /toi:200 /menu:200 …
   ✗ E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 … — PHIEN_BAN 5
-Sau vá (HEAD): 40 đạt · 0 hỏng
-SỐ CA cong_cu/thu_GIOVN1.js: 44
+Sau vá (lần ghi đầu): 40 đạt · 0 hỏng — số ca hiện tại xem dòng SỐ CA cuối file (vòng sửa 2)
 
 ═══ Bài cũ ═══
 Không sửa bài cũ nào. `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn trên gốc: "route GET có lệnh ghi" packages /
@@ -68,6 +67,25 @@ Bài thêm ca C2 (hạn mã giảm), C3 (hạn mã bill), C4 (hạn gói), C10 (
   ✗ B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ UTC dấu cách ra giờ VN dạng T  — HTTP 200 · 2026-02-01 03:00:00
   ✓ B6b khôi phục bản sao lưu MỚI (backup_date giờ VN dạng T) → giữ y nguyên từng ô (K5 — xanh trên gốc là đúng)
   (các ca A / C5–C11 / B / E đỏ như lần đầu)
-Sau vá (HEAD): 44 đạt · 0 hỏng
+Sau vá (vòng 1): 44 đạt · 0 hỏng
 Đột biến: ĐỐI CHỨNG XANH · 44 đạt · 0 hỏng · TỔNG 32 đột biến · BẮT 32 · SỐNG 0 · HỎNG 0 · LẠC 0
   (thêm BV-012-BUOC-RONG, VS-KHOI-PHUC-BO-QUA-BAN-CU — đột biến người soát dựng được, trước đây SỐNG — và 4 đột biến hồi quy C)
+
+═══ Vòng sửa 2 (soát độc lập vòng 2 KHÔNG ĐẠT) ═══
+Bài thêm B1c (MỌI mục bảng phân loại — 26 cột / 19 bảng, gồm 3 cột chỉ getNow phải để nguyên), B6 / B6c / B6b khứ hồi xuất → khôi phục qua
+route thật (trang 'Đăng ký mới'), mốc 00:00 cho C3 / C9, hai phía cho C7a / C7b, mốc đúng 24 / 48 giờ cho C11 (gồm cảnh báo đã xuất), E1 khách
+có đơn + điểm. Chạy lại trên gốc 36b98b8: 17 đạt · 29 hỏng → ĐỎ:
+  ✗ C7a … — 3,3,3 / 1,1,0
+  ✗ C7b … — 2026 · {"month":"2026-12", …}
+  ✗ C11 10.04 07:00:01 VN: khách mới tạo 24 giờ + 1 giây có cảnh báo … — []
+  ✗ B1c MỌI mục phân loại (26 cột / 19 bảng) đổi đúng loại … — pos_users.created_at(utc)=2026-03-01 18:00:00 | …
+  ✗ E1 giờ trong /api/kh … — /toi.khach.ngay_tao=2026-02-01 03:00:00 …
+  ✗ B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ đuôi Z ra giờ VN dạng T  — HTTP 200 · 2026-02-01T03:00:00.000Z
+  ✓ B6c / B6b (K5 — gốc không đổi giờ khi khôi phục, xanh là đúng; sức bắt: VS-KHOI-PHUC-CO-SAO-LUU, VS-SAO-LUU-NGAY-DAU-CACH)
+  ✓ C2 / C3 / C4 / C8 / C9 / C10 (hồi quy)
+  (A / C5 / C6 / B0–B5 / E2 đỏ như các lần trước)
+Sau vá (HEAD): 46 đạt · 0 hỏng
+SỐ CA cong_cu/thu_GIOVN1.js: 46
+Đột biến: ĐỐI CHỨNG XANH · 46 đạt · 0 hỏng · TỔNG 43 đột biến · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (thêm 8 đột biến bảng phân loại — BV-012-DON, VS-012-DON-KIEU-VN, BV-012-VI, BV-012-MON, BV-012-MA-GIAM, BV-012-TON-CHO, BV-012-NHOM-MON,
+   VS-012-COT-THUA — và VS-SAO-LUU-NGAY-DAU-CACH, VS-KHOI-PHUC-CO-SAO-LUU, BV-SYNC-DA-XUAT: các đột biến người soát vòng 2 dựng được, trước đây SỐNG)

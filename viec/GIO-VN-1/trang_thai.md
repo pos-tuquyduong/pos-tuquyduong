@@ -24,12 +24,13 @@
   (`getUTC*`/`setUTC*`) để kết quả không theo múi giờ máy — khối mua thẻ chỉ đổi dòng 1062 và 1064.
 
 ## Bước 4–6 (lượt 2)
-- Bài thử `cong_cu/thu_GIOVN1.js` viết TRƯỚC, đỏ trên gốc 36b98b8 (11 đạt · 29 hỏng), xanh trên HEAD (40 đạt · 0 hỏng) — `bang_chung_do.txt`.
+- Bài thử `cong_cu/thu_GIOVN1.js` viết TRƯỚC, đỏ trên gốc 36b98b8, xanh trên HEAD — số mới nhất (sau vòng sửa 2): gốc 17 đạt · 29 hỏng,
+  HEAD 46 đạt · 0 hỏng (`bang_chung_do.txt`).
 - `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn: route GET có lệnh ghi). Build `client/dist` xong.
 - Giữa chừng `thu_SAOLUU2` F1 đỏ: khôi phục chuẩn hoá giờ cả file MỚI làm sao lưu → khôi phục không còn y hệt → chỉ chuẩn hoá khi file là bản
   CŨ (`backup_date` không phải giờ VN dạng T — mọi file ghi từ nay mang `backup_date: getNow()`). Không sửa bài cũ.
 
-### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 26/26 BẮT)
+### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 43/43 BẮT sau vòng sửa 2)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | `nang_cap/012` chạy được | BV-012 | B1 |
@@ -58,11 +59,23 @@
 | `settings.js` năm số hoá đơn | BV-NAM-HOA-DON | C7b |
 | `sync.js` cảnh báo tồn | BV-SYNC | C11 |
 | `HOP_DONG_API_KH.md` | BV-HOP-DONG | E2 |
+| bước 012 chỉ gọi `chuanHoaGio` (vòng 1) | BV-012-BUOC-RONG | B1 |
+| `backup.js` đọc backup_date của file (vòng 1) | VS-KHOI-PHUC-BO-QUA-BAN-CU | B6 |
+| `diemKhach.js` hạn mã khách mới — hồi quy (vòng 1) | BV-HAN-MA-THEO-UTC | C2 |
+| `signup-codes.js` hạn mã bill — hồi quy (vòng 1) | BV-HAN-MA-BILL-THEO-UTC | C3 |
+| `goiKhach.js` ngày chưa lấy gói — hồi quy (vòng 1) | BV-HAN-GOI-THEO-UTC | C4 |
+| `giuCho.js` phiên QR — hồi quy (vòng 1) | BV-PHIEN-QR-THEO-UTC | C10 |
+| `chuanHoaGio.js` COT_CACH từng mục (vòng 2) | BV-012-DON · VS-012-DON-KIEU-VN · BV-012-VI · BV-012-MON · BV-012-MA-GIAM · BV-012-TON-CHO · BV-012-NHOM-MON · VS-012-COT-THUA | B1c |
+| `backup.js` themTrangMeta backup_date dạng T (vòng 2) | VS-SAO-LUU-NGAY-DAU-CACH | B6b |
+| `khoiPhuc.js` không sao lưu khi khôi phục (vòng 2) | VS-KHOI-PHUC-CO-SAO-LUU | B6c |
+| `sync.js` cảnh báo đã xuất > 2 ngày (vòng 2) | BV-SYNC-DA-XUAT | C11 |
 
 Tên đột biến: BV-012 · VS-012-VN-CUNG-CONG-7 · VS-012-COT-LAN-CUNG-DOI · VS-012-Z-THIEU-MAU-MILI-GIAY · BV-012-SAO-LUU · BV-012-SO-VI ·
 BV-012-HAN-THE · BV-KHOI-PHUC · VS-KHOI-PHUC-MOI-FILE · BV-DAMAGES · BV-SETTINGS · BV-PACKAGES · BV-IN-HOA-DON · BV-GIEO-CHU · BV-NHOM-MON ·
 BV-TON-LUC · BV-NGAY-MAN-QUAY · BV-QUET-M5 · VS-THE-DAU-CACH · BV-THE-THEO-MUI-GIO-MAY · VS-DEN-BU-HAI-LAN · BV-HOM-NAY · BV-NAM-HOA-DON ·
-BV-SYNC · BV-HOP-DONG · BV-012-KHACH
+BV-SYNC · BV-HOP-DONG · BV-012-KHACH · BV-012-BUOC-RONG · VS-KHOI-PHUC-BO-QUA-BAN-CU · BV-HAN-MA-THEO-UTC · BV-HAN-MA-BILL-THEO-UTC ·
+BV-HAN-GOI-THEO-UTC · BV-PHIEN-QR-THEO-UTC · BV-012-DON · VS-012-DON-KIEU-VN · BV-012-VI · BV-012-MON · BV-012-MA-GIAM · BV-012-TON-CHO ·
+BV-012-NHOM-MON · VS-012-COT-THUA · VS-SAO-LUU-NGAY-DAU-CACH · VS-KHOI-PHUC-CO-SAO-LUU · BV-SYNC-DA-XUAT
 
 ## Soát độc lập — vòng 1 (agent /ra-soat, nguyên văn)
 ```
@@ -119,6 +132,11 @@ BÀI HỌC: KHOÁ mỗi mục bảng phân loại có dòng gieo + đột biến
 - (không còn — kế hoạch đã duyệt ở Lượt 2)
 
 ## Phát hiện
+- `client/src/pages/Orders.jsx:92-95` nút "tháng này / tháng trước" lấy ranh tháng theo giờ của điện thoại (getFullYear / getMonth) — đúng khi
+  điện thoại đặt giờ VN (quầy hiện nay), chỉ lệch khi máy đặt múi khác. Không sửa trong việc này.
+- `cong_cu/thu_GIOVN1.js` E2 viết cứng `PHIEN_BAN = 6` (chủ quán: tăng 1 so với main) — HANG-1 / NAP-1 cùng tăng thì chat sửa số ở bài lúc gộp.
+- `/api/pos/health` `timestamp` đổi từ đuôi Z sang giờ VN dạng T — chưa biết hệ ngoài (SX, theo dõi) có đọc trường này không.
+- `doSoNo.js` (đẩy tồn SX) và `customers-v2.js` `cacheCustomersToLocal` (khách từ SX) chỉ canh bằng phép quét chữ — cần SX thật để chạy.
 - Kế hoạch soát độc lập (agent chỉ đọc) — 4 câu, đã sửa theo (ghi cuối `ke_hoach.md`).
 - `pos_settings.updated_at` có giá trị dấu cách lẫn UTC / VN — không biết chắc, bước 012 để nguyên.
 - `formatDateTime` / `formatDate` (`server/utils/helpers.js:79-101`) xuất ra nhưng không ai gọi — code chết, ngoài mục tiêu, không sửa.
