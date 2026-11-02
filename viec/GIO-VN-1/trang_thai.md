@@ -211,7 +211,8 @@ CHƯA KIỂM:   bước 012 trên dữ liệu Turso THẬT (số dòng đổi t�
              dựa vào rà lịch sử git (agent phụ + kiểm tay một phần), không có bản chụp production; nút "tháng này / tháng trước" Lịch sử đơn theo
              giờ điện thoại; hệ ngoài đọc /api/pos/health.timestamp (đổi Z → T); màn quầy chưa thử tay trên điện thoại; E2 viết cứng PHIEN_BAN 6
              (gộp HANG-1 / NAP-1 phải sửa số); phép quét M3 không bắt `const d = new Date(); d.toISOString()` hay toLocaleString thiếu timeZone.
-GIT:         (xem dòng git log ngay dưới khi ghi lần cuối)
+GIT:         69b8ba4 GIO-VN-1: vong sua 4 xong — bang chung, bao cao 7 muc, bai hoc, thu tay
+             8ce618e GIO-VN-1: vong sua 4 — dot bien doSoNo, khach SX, mau GLOB
 BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
 ```
 
@@ -234,3 +235,8 @@ B-BIMAT-CHU: bài thử chứa cụm khoá phải commit trước khi chạy, sc
 - **BỎ**: SQL động trên mọi bảng không ngoặc kép tên (một lần, đã sửa trong code, chưa từng hỏng thật). **BỎ**: E1 tên "mọi giờ" mà dữ liệu
   không có đơn — một lần, đã sửa (ca E1 nay báo cửa nào không có giờ để đo).
 Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md có phép kiểm làm thay mới từ việc này.
+
+## Cổng
+`node tu_chay/cong.js chay . 36b98b8^ HEAD viec/GIO-VN-1` (cây sạch, HEAD 69b8ba4): ✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 69b8ba4
