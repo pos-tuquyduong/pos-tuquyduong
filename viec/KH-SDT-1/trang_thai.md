@@ -264,3 +264,49 @@ GIT:         0188baa KH-SDT-1: bao cao soat vong 3 + cau hoi Q9 (ket doi soat) �
 BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
 
 HEAD ĐÃ KIỂM: 0188baa
+
+## Làm tiếp 02.11.2026 — chủ quán trả lời Q8, Q9 → vòng sửa 4 (Q9 + 4 lỗi nhẹ vòng 3, một lượt)
+- Bước 1: nhánh `viec/KH-SDT-1`, cây sạch. HEAD `c8ef3b8` · FETCH_HEAD `c8ef3b8` — bằng nhau, không kéo (hook mở phiên đã kéo 87aa996 → c8ef3b8).
+  ```
+  c8ef3b8 KH-SDT-1: kiem, bai hoc, bao cao 7 muc — dung cho chu quan tra loi Q8, Q9
+  0188baa KH-SDT-1: bao cao soat vong 3 + cau hoi Q9 (ket doi soat) — DUNG cho chu quan
+  9d9a216 KH-SDT-1: ho so vong sua 2 — bao cao soat 2, bang chung do, Q7 xu ly trong pham vi
+  ```
+- Chủ quán 02.11: **Q9 đồng ý đề xuất** — két trước ngày X được lệch (máy liệt kê trước); đơn thử có tiền rơi vào khoảng tính két từ ngày
+  X thì giữ lại. **Q8 đồng ý giữ như đề xuất** — dọn theo ngày chạm cả điểm / voucher giai đoạn thử của khách thật (hồ sơ, ví, sổ ví giữ),
+  chủ quán duyệt trên file danh sách. Sửa Q9 + lỗi nhẹ 2–5 trong một lượt (chat soát thay — LUAT §6.5, chủ quán dặn thẳng).
+- Lựa chọn an toàn máy tự làm (LUAT §6.6): KHÔNG chọn ngày (chỉ theo SĐT) → coi MỌI két đã đếm là không được đổi (đơn có tiền vào két
+  nào cũng giữ, lý do ghi rõ); muốn dọn thì thêm ngày X sau các két thử. Nạp ví tiền mặt của số trong danh sách rơi vào két ≥ X → giữ cả số.
+
+### Vòng sửa 4 — xử lý từng lỗi
+| Lỗi (vòng soát 3) | Xử lý | Bằng chứng |
+|---|---|---|
+| 1 NẶNG két (Q9) | `tienMatTheoNgay` (cùng công thức `tienTheoSo('cash')`: bán − thu nợ ngày tạo, thu nợ ngày thu, huỷ ngày huỷ, nạp ví) + `ketBiDoi` (tiền ngày e → lần đếm đầu từ e, có mốc trước). Két ≥ X (không ngày: mọi két) đổi → giữ đơn / giữ cả số; `ket_se_lech` = két < X có tổng bị dọn ≠ 0 | D1 két, D3 huỷ đúng X, D3 nợ thu sau X, D5 T4, D15, E5 (so `chayDoiSoat` thật mọi ngày két) |
+| 2 sua_truoc một ô | bản chụp chia phần = `{ xoa, sua_truoc }`; details chỉ tiêu chí + số dòng + băm | D6 sua_truoc; BV-sua-truoc, VS-sua-truoc-mot-o |
+| 3 lý do giữ số | `giu_lai.ly_do_sdt` (lý do đầu tiên); màn + CSV ghi đúng lý do từng số | D2, D5 lý do, D12 CSV / màn; BV-ly-do-sdt, BV-csv-ly-do, BV-man-ly-do |
+| 4 kế hoạch cũ | `ke_hoach.md` mục 4 bỏ "gói → NULL", danh sách đột biến trỏ về `dot_bien.py`; thêm mục 9 | — (hồ sơ) |
+| 5 UTF-16 | tách `chiaPhan` (xuất ra), ca emoji ở vị trí 29.999 | D16; BV-chia-utf16 |
+
+### Chỗ vá → đột biến (thêm ở vòng 4; bảng cũ phía trên vẫn đúng — neo đổi: BV-giu-so-gan-don-khac, BV-goi-so-khac, BV-me-cua-khach, BV-sua-truoc, BV-ket, BV-giu-ca-so)
+| Chỗ vá | Đột biến |
+|---|---|
+| chiaGiu: đơn có tiền mặt vào két không được đổi → giữ | BV-giu-ket-don |
+| két được bảo vệ TỪ ngày X (gồm ngày X) | VS-ket-tu-sau-x |
+| không chọn ngày → mọi két được bảo vệ | VS-ket-chi-khi-co-ngay |
+| tiền thuộc lần đếm đầu từ ngày đó (cả khoảng) | VS-ket-cung-ngay |
+| két chưa có mốc không lệch | VS-ket-khong-moc |
+| thu nợ theo ngày thu | VS-ket-bo-thu-no |
+| huỷ theo ngày huỷ | VS-ket-bo-huy |
+| nạp ví tiền mặt → giữ cả số | BV-nap-ket |
+| `ket_se_lech` theo khoảng | BV-ket |
+| sua_truoc trong phần chia | BV-sua-truoc, VS-sua-truoc-mot-o |
+| `ly_do_sdt` máy chủ / CSV / màn | BV-ly-do-sdt, BV-csv-ly-do, BV-man-ly-do |
+| `chiaPhan` không cắt đôi cặp UTF-16 | BV-chia-utf16 |
+| số có đơn giữ → giữ cả số (neo mới) | BV-giu-ca-so |
+Kết quả: ĐỐI CHỨNG XANH (95 đạt) · TỔNG 56 · BẮT 56 (BV-giu-ca-so lần đầu SỐNG — neo cũ thành tương đương → đổi neo, chạy riêng BẮT).
+
+### Luồng hợp lệ KHÔNG bị chặn (K5) — mỗi luồng một ca
+- Đơn 0đ tiền mặt nằm trong khoảng két ≥ X (ORD-20260831-001) → vẫn dọn: D1 danh sách đơn.
+- Đơn trước lần đếm két đầu tiên (ORD-20260725-001) → dọn, không báo két nào lệch: D1 két, E5.
+- Đơn tiền mặt có két < X (O1, T5) → dọn + liệt kê: D1, E5.
+- Số T2 nạp ví tiền mặt 20/10 (không két nào sau) → vẫn xoá sạch: D5 `sdt` = [T2, P6, CM].

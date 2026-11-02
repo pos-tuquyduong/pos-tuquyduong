@@ -68,3 +68,27 @@ SỐ CA cong_cu/thu_KHSDT1.js: 87
 
 Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (87 đạt · 0 hỏng) · TỔNG 43 · BẮT 40 · HỎNG 3 (neo cũ: BV-giu-mua-goi,
 BV-giu-ca-so, BV-tra-luot-ma — code đổi chữ) → sửa neo, chạy riêng 3 tên: BẮT 3. Tổng 43/43 BẮT.
+
+═══ Vòng sửa 4 — Q9 (két, chủ quán chốt 02.11) + 4 lỗi nhẹ vòng soát 3 — bài cong_cu/thu_KHSDT1.js bản b4f8b40, 95 ca ═══
+Trên code GỐC của lượt này c8ef3b8 (cây trước vòng 4; bản sao server/ + cong_cu/ + client/src/ bằng git archive vào nháp;
+node cong_cu/thu_KHSDT1.js --goc <nháp>/goc_c8ef3b8): 70 đạt · 25 hỏng, đỏ đúng các lỗi vòng 3:
+  ✗ D1 két < X sẽ lệch, tính theo KHOẢNG két … 06/08 + 30/08 (đơn T5 ngày 20/08, không có két đúng ngày đơn …)      (lỗi 1 — khoảng két)
+  ✗ D3 đơn thử huỷ ĐÚNG ngày X (tiền trả ra rơi vào két X) → giữ lại, lý do két — []                              (lỗi 1 — huỷ sau X)
+  ✗ D3 đơn thử nợ, thu tiền mặt SAU X (két 02/09) → giữ lại, lý do két                                             (lỗi 1 (b) người soát)
+  ✗ D15 đơn T5 (tiền vào két 30/08) → giữ lại, lý do két; T5 giữ cả số; không két nào lệch — 200 [] []             (không chọn ngày)
+  ✗ D5 giữ cả số: … nạp ví vào két ≥ X (T4) … — […] / ["0900000002","0900000006","0900000011","0900000017"]         (nạp ví)
+  ✗ E5 két MỌI ngày đã đếm (chayDoiSoat kiểu ngày): ngày từ X không đổi … — đổi ["2026-08-06","2026-08-30","2026-09-01","2026-09-02", …
+  ✗ D6 nhật ký chụp dòng bị SỬA … — trong các phần chia, KHÔNG ở một ô details — {}                               (lỗi 2)
+  ✗ D2 SĐT giữ lại có lý do: K ví, T3 đơn phải giữ — {} · ✗ D5 mỗi SĐT giữ cả số có lý do đúng … — {}
+  ✗ D12 CSV: SĐT giữ lại ghi ĐÚNG lý do của số đó (không câu chung) · ✗ D12 màn hiện SĐT giữ lại kèm lý do            (lỗi 3)
+  ✗ D16 chia phần nhật ký: emoji ở vị trí 29.999 không bị cắt đôi … — [] []                                         (lỗi 5)
+  (các dòng ✗ D1 đơn / D6 số dòng / E1 / E2 còn lại: hệ quả cùng lỗi — gốc dọn luôn đơn huỷ sau X, đơn nợ thu sau X, số T4.)
+Lần chạy đầu bản 4924085: ca D1 két XANH trùng hợp trên gốc (két 31/08 trùng ngày đơn 0đ 31/08) → đổi két sang 30/08 (0da496c) để ca
+phân biệt được code cũ (K3); thêm đơn 25/07 trước lần đếm đầu (b4f8b40) cho đột biến VS-ket-khong-moc. Hai lần đều chạy lại trên gốc: đỏ.
+
+Kết quả trên code đã vá (HEAD việc): 95 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_KHSDT1.js: 95
+
+Đột biến: python3 viec/KH-SDT-1/dot_bien.py → ĐỐI CHỨNG XANH (95 đạt · 0 hỏng) · TỔNG 56 · BẮT 55 · SỐNG 1 (BV-giu-ca-so — neo cũ
+thành tương đương vì code mới lọc lại P trong vòng "mẹ của khách") → đổi neo sang dòng "số có đơn giữ → giữ cả số", chạy riêng: BẮT 1.
+Tổng 56/56 BẮT.

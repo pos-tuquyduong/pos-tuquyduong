@@ -66,9 +66,12 @@ Ngân sách: máy chủ ~220, giao diện ~190, thử ~380 — trong ngân sách
 | D11 | D (giao dịch) | Ép lỗi giữa chừng (bảng nhật ký hỏng) → không xoá dòng nào |
 | D12 | D | Giao diện (hàm thuần + nguồn): CSV đủ đơn / SĐT / giữ lại; nút Dọn chỉ mở đủ 6 điều kiện; có nút tải sao lưu gọi `/backup/export-all`; ô owner trong Quản lý; route `/don-thu`; chữ xác nhận cùng một chuỗi với máy chủ |
 | E1 | E (K5) | Khách có hồ sơ ngoài tiêu chí: điểm, voucher, ví, sổ ví, gói, thẻ, đơn — băm từng bảng trước = sau dọn |
-| E2 | E (K5) | Đơn ngoài tiêu chí: tổng tiền đơn theo ngày (Báo cáo) và các bảng con không đổi; gói đơn giữ lại trỏ tới gói bị xoá → NULL, đơn còn |
-Đột biến (`dot_bien.py`): `BV-chi-chu-quan`, `VS-bo-so-ma`, `VS-don-vi-khac-0`, `VS-don-hom-nay`, `BV-giu-phien`, `BV-diem-am`,
-`VS-ngoai-giao-dich`, `VS-sai-chu`, `BV-nut-sao-luu`.
+| E2 | E (K5) | Đơn ngoài tiêu chí: tổng tiền đơn không đổi; trả lượt mã chỉ đơn completed; gói còn giữ thì đơn dùng gói / mua gói giữ lại (không đặt NULL) |
+| E3 | E (K5) | Đối soát `chayDoiSoat` (hôm nay + tháng 8 + tháng 10) không thêm dòng lệch |
+| E4 | E | Sao lưu `/backup/export-all` tải được sau dọn (nhật ký lớn) |
+| E5 | E (Q9) | Két MỌI ngày đã đếm trước–sau: ngày ≥ X không đổi; ngày < X đổi đúng bằng `ket_se_lech` |
+| D13–D16 | D | Hoá đơn năm nay xoá hết / không xoá · dò PRAGMA mọi bảng có chủ · chỉ theo SĐT → mọi két giữ nguyên · chia phần không cắt đôi emoji |
+Đột biến: danh sách đầy đủ ở `dot_bien.py` (`--liet-ke`) và bảng "chỗ vá → đột biến" trong `trang_thai.md` — không chép lại ở đây.
 CHƯA KIỂM được bằng máy: chủ quán đã thật sự LƯU file sao lưu (màn chỉ biết đã bấm tải); chạy trên Turso production (cỡ bản chụp).
 
 ## 5. Luồng hợp lệ phải KHÔNG bị chặn / KHÔNG đổi (K5)
@@ -97,3 +100,14 @@ hồ sơ khi dọn theo ngày · đơn hôm nay giữ · ví ≠ 0 giữ · Đ�
 - Giữ cả số khi: gói của số đang được đơn không dọn dùng; số là mẹ của khách không xoá.
 - Hoá đơn năm nay: xoá hết hoặc không xoá (số kế tiếp = đếm — `settings.js:246–258`) → Q7 xong trong Phạm vi.
 - Két ngày thử đã đếm: liệt kê `ket_se_lech`.
+
+## 9. Q9 — két đã đếm (chủ quán chốt 02.11) + lỗi nhẹ vòng soát 3
+- Két một ngày = để lại lần đếm TRƯỚC + tiền mặt cả KHOẢNG (`doiSoat.js` soKet / tienTheoSo). Tiền mặt của từng đơn / nạp ví theo ngày:
+  bán (cash_amount − thu nợ) ngày tạo, thu nợ ngày thu, huỷ (trừ đơn mua gói) ngày huỷ, nạp ví tiền mặt ngày nạp — cùng công thức tienTheoSo.
+  Tiền ngày e thuộc lần đếm đầu tiên từ e (nếu trước e đã có lần đếm).
+- Két từ ngày X (không chọn ngày → mọi két) không được đổi: đơn có tổng tiền mặt ≠ 0 trong khoảng của két đó → giữ (lý do két); SĐT trong
+  danh sách có nạp ví tiền mặt rơi vào đó → giữ cả số. Két < X được lệch: `ket_se_lech` = két có tổng tiền bị dọn ≠ 0 (màn + CSV).
+- Lỗi nhẹ: `sua_truoc` vào bản chụp chia phần (`{ xoa, sua_truoc }`); `giu_lai.ly_do_sdt` (màn + CSV ghi đúng lý do từng số); `chiaPhan`
+  xuất ra để thử emoji ở vị trí 29.999 (D16); mục 4 bỏ lời hứa "gói → NULL".
+- Phương án B (loại): chạy `soKet` trước / sau trong giao dịch — doiSoat đọc qua kết nối chung, không qua `tx` (Turso: giao dịch khác
+  kết nối) → không thấy dòng đã xoá trong giao dịch; phải chép công thức. Bài E5 so với `chayDoiSoat` thật để khoá công thức chép.
