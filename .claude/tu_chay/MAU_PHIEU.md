@@ -61,6 +61,11 @@ không
 ## Thư viện mới
 không
 
+## Soát bảo mật
+có — <lý do: cửa công khai / webhook / tiền / đăng nhập / dữ liệu khách>
+<hoặc: không — <lý do>. Dòng đầu bắt đầu "có" → máy chạy /soat-bao-mat ở skill bước 8b và cổng PR (A20) đòi dòng
+ "SOÁT BẢO MẬT: ĐẠT" cuối trong trang_thai.md; giá trị khác "có" / "không" → cổng đỏ. Phiếu không có mục này → không soát.>
+
 ## Cấm
 <Thêm nếu có. Mặc định luôn áp dụng: không sửa .claude/, không merge, không tạo PR, không đụng main,
  chỉ push đúng git push -u origin viec/<MÃ>, không sửa sổ việc, không chạy patch_*.py.>
