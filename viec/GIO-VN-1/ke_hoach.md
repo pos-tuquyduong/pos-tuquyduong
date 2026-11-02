@@ -102,7 +102,8 @@ _sao_luu_012_<bảng> AS SELECT * FROM <bảng>` TRƯỚC khi UPDATE; không DEL
 
 **Cách nhận biết — chỉ ba loại chắc chắn, còn lại để nguyên:**
 1. **Đuôi `Z`** (`YYYY-MM-DDTHH:MM:SS(.sss)Z`, do `toISOString()`): chắc chắn UTC ở BẤT KỲ cột nào → `strftime('%Y-%m-%dT%H:%M:%S', cot, '+7 hours')`
-   (SQLite hiểu hậu tố `Z`). Áp mọi cột giờ trong danh sách dưới.
+   (SQLite hiểu hậu tố `Z`). Áp MỌI cột chữ / ngày giờ của mọi bảng (kể cả giá trị từ ngoài như CSV SX — đuôi Z vẫn chắc chắn là UTC; soát vòng 1).
+   Quy tắc nằm ở `server/utils/chuanHoaGio.js` (bước 012 + khôi phục sao lưu cũ cùng gọi — soát vòng 1).
 2. **Dấu cách ở cột mà MỌI nơi ghi (code hiện tại + toàn bộ lịch sử git từ 03.01.2026) chỉ ghi UTC** → `+7 hours`, đổi sang `T`.
 3. **Dấu cách ở cột mà MỌI nơi ghi chỉ ghi giờ VN** (`+7 hours`, `nowVn`, `orders.js:1064`) → chỉ thay dấu cách bằng `T`, KHÔNG cộng giờ.
 - Cột **lẫn** (lịch sử có cả UTC dấu cách lẫn VN dấu cách) → **không đổi dòng dấu cách nào**, in số dòng để nguyên; ghi Phát hiện để chủ

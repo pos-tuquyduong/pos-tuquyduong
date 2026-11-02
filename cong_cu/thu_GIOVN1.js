@@ -14,7 +14,8 @@
  *   C  so giờ quanh 00:00 và 07:00 giờ VN (07:00 VN = 00:00 UTC, mốc đổi ngày của máy chủ).
  *   E  giờ trả ra /api/kh đúng dạng; hợp đồng bỏ "Lỗi đã biết", PHIEN_BAN 6.
  *  GIỚI HẠN quét (K4 TU-CHAY-6): chỉ soi chữ trong file server/**.js — giờ dựng qua hàm phụ ở file khác / SQL ghép động (khoiPhuc.js INSERT
- *  theo cột của file Excel) không thấy; mẫu 5 chỉ đọc INSERT có danh sách cột viết thẳng.
+ *  theo cột của file Excel) không thấy; mẫu 5 chỉ đọc INSERT có danh sách cột viết thẳng. M3 chỉ bắt đồng hồ trần viết LIỀN
+ *  (`new Date().toISOString()`) — tách hai bước (`const d = new Date(); d.toISOString()`) hay `toLocaleString()` thiếu timeZone thì lọt.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 process.env.TZ = 'UTC';

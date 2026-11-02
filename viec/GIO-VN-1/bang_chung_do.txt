@@ -43,7 +43,7 @@ Trên gốc 36b98b8:  11 đạt · 29 hỏng  → ĐỎ
   ✗ E1 mọi giờ trong /api/kh … — /toi.khach.ngay_tao=2026-02-01 03:00:00 | /menu.data.1.ton_luc=2026-03-01 08:00:00 · /toi:200 /menu:200 …
   ✗ E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 … — PHIEN_BAN 5
 Sau vá (HEAD): 40 đạt · 0 hỏng
-SỐ CA cong_cu/thu_GIOVN1.js: 40
+SỐ CA cong_cu/thu_GIOVN1.js: 44
 
 ═══ Bài cũ ═══
 Không sửa bài cũ nào. `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn trên gốc: "route GET có lệnh ghi" packages /
@@ -58,3 +58,16 @@ products / sync — không do việc này). Giữa chừng thu_SAOLUU2 F1 đỏ 
 TỔNG 26 đột biến · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0
   (lần chạy đầu: 24 BẮT · 1 SỐNG · 1 LẠC — SỐNG là BV-THE-THEO-MUI-GIO-MAY: mốc 31.01 tình cờ cho cùng kết quả ở hai cách cộng tháng → đổi
    mốc C5b sang 30.01; LẠC là BV-GIEO-CHU: bước 012 chạy lúc khởi tạo kho tự chữa dòng gieo giờ UTC nên A2h xanh, chỉ phép quét A1 bắt → mẫu ✗ A1.)
+
+═══ Vòng sửa 1 (soát độc lập KHÔNG ĐẠT) ═══
+Bài thêm ca C2 (hạn mã giảm), C3 (hạn mã bill), C4 (hạn gói), C10 (phiên QR 10 phút); B6 / B6b chạy qua route POST /backup/restore thật
+(thay ca soi chữ). Chạy lại trên gốc 36b98b8: 16 đạt · 28 hỏng → ĐỎ:
+  ✓ C2 / C3 / C4 / C10 (hồi quy — code so giờ này đúng sẵn; sức bắt chứng minh bằng đột biến BV-HAN-MA-THEO-UTC, BV-HAN-MA-BILL-THEO-UTC,
+    BV-HAN-GOI-THEO-UTC, BV-PHIEN-QR-THEO-UTC đưa lại đúng cách so UTC cũ)
+  ✗ B0 có server/nang_cap/012_gio_viet_nam.js xuất chay  — Cannot find module …
+  ✗ B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ UTC dấu cách ra giờ VN dạng T  — HTTP 200 · 2026-02-01 03:00:00
+  ✓ B6b khôi phục bản sao lưu MỚI (backup_date giờ VN dạng T) → giữ y nguyên từng ô (K5 — xanh trên gốc là đúng)
+  (các ca A / C5–C11 / B / E đỏ như lần đầu)
+Sau vá (HEAD): 44 đạt · 0 hỏng
+Đột biến: ĐỐI CHỨNG XANH · 44 đạt · 0 hỏng · TỔNG 32 đột biến · BẮT 32 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (thêm BV-012-BUOC-RONG, VS-KHOI-PHUC-BO-QUA-BAN-CU — đột biến người soát dựng được, trước đây SỐNG — và 4 đột biến hồi quy C)

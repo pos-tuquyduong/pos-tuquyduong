@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-B = 'server/nang_cap/012_gio_viet_nam.js'
+B = 'server/utils/chuanHoaGio.js'   # quy tắc bước 012 (bước chỉ gọi lại)
 BAI = 'cong_cu/thu_GIOVN1.js'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
@@ -28,6 +28,8 @@ DOT_BIEN = [
   ('BV-012-SO-VI', [(B, '  pos_balance_transactions: { created_at: UTC },\n', '', 1)], r'✗ B1 '),
   ('BV-012-HAN-THE', [(B, '  pos_membership_purchases: { expires_at: VN },\n', '', 1)], r'✗ B1 '),
   ('BV-KHOI-PHUC', [('server/utils/khoiPhuc.js', '    if (banCu) await chuanHoaGio(tx, { saoLuu: false });', '', 1)], r'✗ B6 '),
+  ('BV-012-BUOC-RONG', [('server/nang_cap/012_gio_viet_nam.js', 'module.exports.chay = (tx) => chuanHoaGio(tx);', 'module.exports.chay = async () => [];', 1)], r'✗ B1 '),
+  ('VS-KHOI-PHUC-BO-QUA-BAN-CU', [('server/routes/backup.js', "    const ngaySao = wb.Sheets._Metadata ? String(docTrang(wb.Sheets._Metadata)[0]?.backup_date ?? '') : '';", '    const ngaySao = getNow();', 1)], r'✗ B6 '),
   ('VS-KHOI-PHUC-MOI-FILE', [('server/routes/backup.js', "{ banCu: !/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d$/.test(ngaySao) }", '{ banCu: true }', 1)], r'✗ B6b '),
   # ── A: chỗ ghi ──
   ('BV-DAMAGES', [('server/routes/damages.js', "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)", "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))", 1), ('server/routes/damages.js', 'req.user.id, req.user.display_name || req.user.username, getNow()\n', 'req.user.id, req.user.display_name || req.user.username\n', 1)], r'✗ A2d '),
@@ -52,6 +54,11 @@ DOT_BIEN = [
   ('BV-NAM-HOA-DON', [('server/routes/settings.js', '    const currentYear = Number(getToday().slice(0, 4));   // GIO-VN-1: năm theo giờ VN', '    const currentYear = new Date().getFullYear();', 2)], r'✗ C7b '),
   ('BV-SYNC', [('server/routes/sync.js', "      AND created_at < strftime('%Y-%m-%dT%H:%M:%S', ?, '-1 day')\n    `, [getNow()]);",
                 "      AND datetime(created_at) < datetime('now', '-1 day')\n    `);", 1)], r'✗ C11 '),
+  # ── C hồi quy: đưa lại đúng cách so giờ UTC cũ (code chưa đổi — chứng minh ca có sức bắt, K3) ──
+  ('BV-HAN-MA-THEO-UTC', [('server/utils/diemKhach.js', '    [phone, getNow().slice(0, 10)],', '    [phone, new Date().toISOString().slice(0, 10)],', 1)], r'✗ C2 '),
+  ('BV-HAN-MA-BILL-THEO-UTC', [('server/routes/signup-codes.js', "    const bayGio = new Date(getNow().replace(' ', 'T') + 'Z').getTime();", '    const bayGio = Date.now();', 1)], r'✗ C3 '),
+  ('BV-HAN-GOI-THEO-UTC', [('server/utils/goiKhach.js', 'bayGio = new Date(getNow()).getTime()) {', 'bayGio = Date.now()) {', 1)], r'✗ C4 '),
+  ('BV-PHIEN-QR-THEO-UTC', [('server/utils/giuCho.js', "p.het_han <= getNow() ? 'het_han'", "p.het_han <= new Date().toISOString().slice(0, 19) ? 'het_han'", 1)], r'✗ C10 '),
   # ── E: App KH ──
   ('BV-HOP-DONG', [('HOP_DONG_API_KH.md', '  hoạt động, từ v2), không lấy đồng hồ điện thoại.\n',
                     '  hoạt động, từ v2), không lấy đồng hồ điện thoại. Lỗi đã biết: một số giờ CŨ còn lưu theo giờ quốc tế.\n', 1)], r'✗ E2 '),
