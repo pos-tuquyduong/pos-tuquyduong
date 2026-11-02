@@ -16,13 +16,14 @@ import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import { useAuth } from '../contexts/AuthContext';
+import { ngayVN } from '../utils/ngayVN';
 
 export default function Orders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = ngayVN();
   // GOI-2 (Q5.4): /orders?code=<mã đơn>&ngay=<YYYY-MM-DD> (từ Báo cáo → Gói SP) — điền sẵn ô tìm và mở đúng NGÀY của đơn (màn chỉ tải đơn theo ngày).
   const [searchParams] = useSearchParams();
   const ngayMo = searchParams.get('ngay') || today;
@@ -75,7 +76,7 @@ export default function Orders() {
   const applyPreset = (preset) => {
     setDatePreset(preset);
     const now = new Date();
-    const fmt = d => d.toISOString().slice(0, 10);
+    const fmt = ngayVN;
     switch (preset) {
       case 'today':
         setDateFrom(fmt(now)); setDateTo(fmt(now)); break;

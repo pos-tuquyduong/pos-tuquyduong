@@ -4,6 +4,8 @@
  * Phase B: Thêm customersV2Api.updateDiscount
  */
 
+import { ngayVN } from './ngayVN';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api/pos';
 
 /**
@@ -281,7 +283,7 @@ export const registrationsApi = {
   stats: () => api.get('/registrations/stats/summary'),
 
   // Export 2 bước
-  exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${new Date().toISOString().slice(0,10)}.csv`),
+  exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${ngayVN()}.csv`),
   confirmExport: () => api.post('/registrations/confirm-export', {}),
 
   // Hoàn tác
@@ -417,7 +419,7 @@ export const stockApi = {
 export const syncApi = {
   status: () => api.get('/sync/status'),
   exportPreview: () => api.get('/sync/export/preview'),
-  export: () => api.download('/sync/export', `khach-moi_${new Date().toISOString().slice(0,10)}.csv`),
+  export: () => api.download('/sync/export', `khach-moi_${ngayVN()}.csv`),
   import: (file) => {
     const formData = new FormData();
     formData.append('file', file);

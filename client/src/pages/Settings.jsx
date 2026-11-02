@@ -3,6 +3,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
+import { ngayVN } from '../utils/ngayVN';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
@@ -856,7 +857,7 @@ export default function Settings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `POS-backup-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `POS-backup-${ngayVN()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       setMessage('✅ Đã tải file backup');
@@ -881,7 +882,7 @@ export default function Settings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `POS-${tableName}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `POS-${tableName}-${ngayVN()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
