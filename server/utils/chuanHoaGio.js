@@ -15,6 +15,7 @@ const GIO = `${SO}${SO}:${SO}${SO}:${SO}${SO}`;
 const MAU_CACH = `'${NGAY} ${GIO}'`;
 const MAU_Z = [`'${NGAY}T${GIO}Z'`, `'${NGAY}T${GIO}.${SO}${SO}${SO}Z'`];
 const CONG7 = (c) => `strftime('%Y-%m-%dT%H:%M:%S', ${c}, '+7 hours')`;
+const ten = (x) => `"${String(x).replace(/"/g, '""')}"`;   // tên bảng / cột trong ngoặc kép — chạy trên MỌI bảng của kho thật (tên lạ, từ khoá)
 
 const UTC = 'UTC dấu cách', VN = 'VN dấu cách', LAN = 'lẫn';
 const COT_CACH = {
@@ -42,23 +43,24 @@ async function chuanHoaGio(tx, { saoLuu = true } = {}) {
   const bangs = (await tx.query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
     AND name NOT LIKE '\\_sao\\_luu\\_%' ESCAPE '\\' AND name <> 'pos_nang_cap' ORDER BY name`)).map((r) => r.name);
   for (const bang of bangs) {
-    const cot = (await tx.query(`PRAGMA table_info(${bang})`)).filter((c) => /TEXT|DATE|TIME|^$/i.test(c.type || '')).map((c) => c.name);
+    const cot = (await tx.query(`PRAGMA table_info(${ten(bang)})`)).filter((c) => /TEXT|DATE|TIME|^$/i.test(c.type || '')).map((c) => c.name);
     if (!cot.length) continue;
     const viec = [];   // [cột, loại, điều kiện, giá trị mới]
-    for (const c of cot) {
-      viec.push([c, 'đuôi Z', MAU_Z.map((m) => `${c} GLOB ${m}`).join(' OR '), CONG7(c)]);
-      const loai = COT_CACH[bang]?.[c];
-      if (loai) viec.push([c, loai, `${c} GLOB ${MAU_CACH}`, loai === UTC ? CONG7(c) : `substr(${c}, 1, 10) || 'T' || substr(${c}, 12)`]);
+    for (const cTen of cot) {
+      const c = ten(cTen);
+      viec.push([c, 'đuôi Z', MAU_Z.map((m) => `${c} GLOB ${m}`).join(' OR '), CONG7(c), cTen]);
+      const loai = COT_CACH[bang]?.[cTen];
+      if (loai) viec.push([c, loai, `${c} GLOB ${MAU_CACH}`, loai === UTC ? CONG7(c) : `substr(${c}, 1, 10) || 'T' || substr(${c}, 12)`, cTen]);
     }
-    const dem = await tx.queryOne(`SELECT ${viec.map((v, i) => `SUM(CASE WHEN ${v[2]} THEN 1 ELSE 0 END) AS n${i}`).join(', ')} FROM ${bang}`);
+    const dem = await tx.queryOne(`SELECT ${viec.map((v, i) => `SUM(CASE WHEN ${v[2]} THEN 1 ELSE 0 END) AS n${i}`).join(', ')} FROM ${ten(bang)}`);
     let daLuu = false;
-    for (const [i, [c, loai, dk, moi]] of viec.entries()) {
+    for (const [i, [c, loai, dk, moi, cTen]] of viec.entries()) {
       const n = Number(dem[`n${i}`] || 0);
       if (!n) continue;
-      if (loai === LAN) { ketQua.push({ bang, cot: c, loai, doi: 0, deNguyen: n }); continue; }
-      if (saoLuu && !daLuu) { await tx.run(`CREATE TABLE IF NOT EXISTS _sao_luu_012_${bang} AS SELECT * FROM ${bang}`); daLuu = true; }
-      const r = await tx.run(`UPDATE ${bang} SET ${c} = ${moi} WHERE ${dk}`);
-      ketQua.push({ bang, cot: c, loai, doi: Number(r.changes ?? r.rowsAffected ?? n), deNguyen: 0 });
+      if (loai === LAN) { ketQua.push({ bang, cot: cTen, loai, doi: 0, deNguyen: n }); continue; }
+      if (saoLuu && !daLuu) { await tx.run(`CREATE TABLE IF NOT EXISTS ${ten('_sao_luu_012_' + bang)} AS SELECT * FROM ${ten(bang)}`); daLuu = true; }
+      const r = await tx.run(`UPDATE ${ten(bang)} SET ${c} = ${moi} WHERE ${dk}`);
+      ketQua.push({ bang, cot: cTen, loai, doi: Number(r.changes ?? r.rowsAffected ?? n), deNguyen: 0 });
     }
   }
   for (const k of ketQua) {

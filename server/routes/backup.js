@@ -135,6 +135,11 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
  * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
  * Màn Cài đặt hiện `error` ngay ở bước xem trước. Trả true khi đã trả lời 400.
  */
+/** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */
+function themTrangMeta(wb, bang) {
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ backup_date: getNow(), system: 'POS Tứ Quý Đường', version: '1.0', tables: bang }]), '_Metadata');
+}
+
 function chanTrangTien(res, wb) {
   const bang = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(BACKUP_TABLES.find((t) => t.label === s)?.name)
     && docTrang(wb.Sheets[s]).length > 0);
@@ -229,14 +234,7 @@ router.get('/export-all', authenticate, async (req, res) => {
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
     }
 
-    // Sheet metadata
-    const meta = [{
-      backup_date: getNow(),
-      system: 'POS Tứ Quý Đường',
-      version: '1.0',
-      tables: BACKUP_TABLES.map(t => t.name).join(', ')
-    }];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(meta), '_Metadata');
+    themTrangMeta(wb, BACKUP_TABLES.map(t => t.name).join(', '));
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const filename = `POS-backup-${getToday()}.xlsx`;
@@ -270,6 +268,7 @@ router.get('/export/:table', authenticate, async (req, res) => {
     const rows = await readTablePaged(tableDef.name, tableDef.key);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
+    themTrangMeta(wb, tableDef.name);
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const filename = `POS-${tableDef.name}-${getToday()}.xlsx`;
@@ -336,7 +335,8 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2: kế hoạch (kho_* chỉ khi kho trống, pos_nang_cap không bao giờ, cột ∩ bảng) rồi MỘT giao dịch — dòng hỏng → không đổi gì.
     const keHoach = await lapKeHoach(wb, BACKUP_TABLES);
-    // GIO-VN-1: file ghi từ khi có getNow mang backup_date dạng giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString, đuôi Z) → đổi giờ cũ.
+    // GIO-VN-1: file ghi từ GIO-VN-1 (themTrangMeta) mang backup_date giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString đuôi Z, hoặc xuất một
+    // bảng trước đây không có _Metadata) → đổi giờ cũ như bước 012.
     const ngaySao = wb.Sheets._Metadata ? String(docTrang(wb.Sheets._Metadata)[0]?.backup_date ?? '') : '';
     try {
       await thucHien(keHoach, { banCu: !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/.test(ngaySao) });

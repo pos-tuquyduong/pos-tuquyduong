@@ -88,6 +88,33 @@ BÀI HỌC: KHOÁ ca /restore qua route thật (Z / T) thay B6b soi chữ + đ�
 ```
 (Bản đầy đủ phần NGHI NGỜ / NGHIỆM THU từng mục ở báo cáo agent; chép rút gọn các câu dài đánh dấu "…".)
 
+## Soát độc lập — vòng 2 (agent /ra-soat)
+```
+KHÔNG ĐẠT — 5 lỗi vòng 1 đã sửa đúng (C2/C3/C4/C10 có ca + đột biến BẮT; B6/B6b qua route thật, đột biến ngaySao = getNow() BẮT; chuanHoaGio ở
+utils/; hợp đồng NGAY + "phiên bản 6"; mục Câu hỏi cập nhật). Chạy lại: HEAD 44/0, gốc 16/28, dot_bien 32/32, --day-du 97/0/1.
+LỖI TÌM ĐƯỢC:
+ 1. NẶNG — server/utils/chuanHoaGio.js:19-37 (COT_CACH): bài thử chỉ gieo 6/17 bảng; đột biến tự dựng SỐNG (44/0): R12 xoá pos_orders,
+    R13 đổi pos_orders sang VN, R14 xoá pos_wallets (ví), R15 bỏ created_at/updated_at pos_products, R16 xoá pos_discount_codes.valid_to,
+    R17 xoá pos_stock_pending. — K3 + K4.
+ 2. NHẸ — trang_thai.md thiếu 6 tên đột biến (BV-012-BUOC-RONG, VS-KHOI-PHUC-BO-QUA-BAN-CU, BV-HAN-MA-THEO-UTC, BV-HAN-MA-BILL-THEO-UTC,
+    BV-HAN-GOI-THEO-UTC, BV-PHIEN-QR-THEO-UTC); cổng A17 ĐỎ; bảng vẫn ghi 26/26. — K6.
+ 3. NHẸ — vá chỉ canh bằng quét chữ, đột biến lặng SỐNG: R10 backup.js:234 backup_date dấu cách (B6b dựng _Metadata tay, không khứ hồi
+    xuất → khôi phục); R4 sync.js:80 exported_at; R9 doSoNo.js:83 '\x20'; R5/R8 customers-v2.js:58-66 (cacheCustomersToLocal); R3 khoiPhuc
+    gọi với sao lưu bật. — K3.
+ 4. NHẸ — C chưa đủ mốc: C3 chỉ 07:00; C9 không có 00:00 (kế hoạch hứa); C7a/C7b một phía (06:59); C11 không mốc. — K1 + K4.
+ 5. NHẸ — E1 tên "mọi giờ trong /api/kh" nhưng khách không có đơn / điểm / voucher. — K3.
+ 6. NHẸ — backup.js:339 chú thích sai ("từ khi có getNow" — backup_date dạng T chỉ có từ GIO-VN-1) K1; backup.js:258-280 /export/:table
+    không ghi _Metadata → file một bảng của code MỚI khôi phục bị coi là bản cũ. — K4/K5.
+ 7. NHẸ — hồ sơ còn số cũ (trang_thai "11/29 · 40", bang_chung_do "Sau vá 40" cạnh "SỐ CA 44"). — K1/K4.
+NGHI NGỜ: chuanHoaGio.js:45,49,51,60 ghép tên bảng / cột không ngoặc kép (Turso production có thể có bảng / cột cũ tên lạ → 012 hỏng →
+ kho 503, bước sau bị chặn); _sao_luu_012_* chép bảng lớn (dung lượng / thời gian Turso chưa đo); Orders.jsx:92-95 ranh tháng theo giờ điện
+ thoại (chưa ghi Phát hiện); E2 viết cứng PHIEN_BAN = 6 (gộp HANG-1 / NAP-1 phải sửa bài); lịch sử git chỉ soát một phần.
+NGHIỆM THU: 3/6 đủ (A, D, K5) · thiếu: B (11/17 bảng), C (mốc), E (đơn / điểm).
+CHƯA SOÁT ĐƯỢC: Turso production; cong.js chay; thử tay; toàn bộ lịch sử git từng cột; hệ ngoài đọc /api/pos/health.timestamp.
+BÀI HỌC: KHOÁ mỗi mục bảng phân loại có dòng gieo + đột biến xoá / đổi loại BẮT; KHOÁ khứ hồi xuất → khôi phục qua route; KHOÁ chạy
+ cong.js tinh sau mỗi vòng sửa (A17); NGUYÊN TẮC SQL động trên mọi bảng production → ngoặc kép tên; NGUYÊN TẮC tên ca "mọi X" chỉ khi gieo có X.
+```
+
 ## Câu hỏi
 - (không còn — kế hoạch đã duyệt ở Lượt 2)
 

@@ -271,23 +271,29 @@ async function main() {
     maDen.every((m) => coDen(n7, m) && !coDen(n6, m)), `07.01: ${maDen.map((m) => coDen(n7, m)).join(',')} · 06.01: ${maDen.map((m) => coDen(n6, m)).join(',')} ${n7.loi || ''}`);
 
   datVN('2027-03-01T00:10:00'); await taoDon({});
-  datVN('2027-03-01T06:59:00');
-  const tk1 = await goi('GET', '/api/pos/orders');
-  const soHomNay = await motDong("SELECT COUNT(*) AS n FROM pos_orders WHERE created_at >= '2027-03-01T00:00:00' AND created_at < '2027-03-02T00:00:00'");
-  k('C7a 06:59 VN ngày 01.03: thống kê "hôm nay" của Lịch sử đơn đếm đơn lúc 00:10 VN', Number(tk1.todayStats?.order_count) === Number(soHomNay.n) && Number(soHomNay.n) > 0,
-    `${tk1.todayStats?.order_count} / ${soHomNay.n}`);
+  const soNgay = async (ngay) => Number((await motDong("SELECT COUNT(*) AS n FROM pos_orders WHERE substr(created_at, 1, 10) = ?", [ngay])).n);
+  const homNay = async (moc) => { datVN(moc); return Number((await goi('GET', '/api/pos/orders')).todayStats?.order_count); };
+  const c7a = [await homNay('2027-03-01T06:59:00'), await homNay('2027-03-01T07:00:00'), await homNay('2027-02-28T23:59:59')];
+  const c7aMong = [await soNgay('2027-03-01'), await soNgay('2027-03-01'), await soNgay('2027-02-28')];
+  k('C7a thống kê "hôm nay" của Lịch sử đơn: 01.03 06:59 và 07:00 VN đếm đơn lúc 00:10 VN; 28.02 23:59:59 không đếm', c7aMong[0] > 0 && c7a.join(',') === c7aMong.join(','),
+    `${c7a.join(',')} / ${c7aMong.join(',')}`);
+  datVN('2026-12-31T23:59:59');
+  const so0 = await goi('GET', '/api/pos/settings/invoice/next-number');
+  const sc0 = await goi('GET', '/api/pos/damages/stats');
   datVN('2027-01-01T06:59:00');
   const so1 = await goi('GET', '/api/pos/settings/invoice/next-number');
   const sc1 = await goi('GET', '/api/pos/damages/stats');
-  k('C7b 06:59 VN ngày 01.01.2027: số hoá đơn năm 2027, thống kê sự cố tháng 2027-01', so1.data?.year === 2027 && sc1.month === '2027-01',
+  k('C7b số hoá đơn / thống kê sự cố: 31.12.2026 23:59:59 → 2026 / 2026-12; 01.01.2027 06:59 VN → 2027 / 2027-01', so0.data?.year === 2026 && sc0.month === '2026-12' && so1.data?.year === 2027 && sc1.month === '2027-01',
     `${so1.data?.year} · ${JSON.stringify(sc1).slice(0, 120)}`);
 
-  await db.run("INSERT INTO pos_customers (phone, name, sync_status, created_at) VALUES ('0938000011', 'K 25h', 'new', '2027-04-09T08:59:00'), ('0938000012', 'K 23h', 'new', '2027-04-09T10:01:00')");
-  datVN('2027-04-10T09:00:00');
-  await db.run("UPDATE pos_customers SET sync_status = 'synced' WHERE sync_status = 'new' AND phone NOT IN ('0938000011', '0938000012')");
+  await db.run("INSERT INTO pos_customers (phone, name, sync_status, created_at) VALUES ('0938000011', 'K 24h+1s', 'new', '2027-04-09T07:00:00'), ('0938000012', 'K 24h-1s', 'new', '2027-04-09T07:00:02')");
+  await db.run("INSERT INTO pos_customers (phone, name, sync_status, created_at, exported_at) VALUES ('0938000013', 'X 48h+1s', 'exported', '2027-04-01T07:00:00', '2027-04-08T07:00:00'), ('0938000014', 'X 48h-1s', 'exported', '2027-04-01T07:00:00', '2027-04-08T07:00:02')");
+  datVN('2027-04-10T07:00:01');
+  await db.run("UPDATE pos_customers SET sync_status = 'synced' WHERE sync_status IN ('new', 'exported') AND phone NOT IN ('0938000011', '0938000012', '0938000013', '0938000014')");
   const tt = await goi('GET', '/api/pos/sync/status');
-  const old = (tt.warnings || []).find((w) => w.type === 'old_new');
-  k('C11 10.04 09:00 VN: khách tạo 25 giờ trước có cảnh báo tồn, 23 giờ trước không (đếm = 1)', old?.count === 1, JSON.stringify(tt.warnings));
+  const old = (tt.warnings || []).find((w) => w.type === 'old_new'), oldX = (tt.warnings || []).find((w) => w.type !== 'old_new');
+  k('C11 10.04 07:00:01 VN: khách mới tạo 24 giờ + 1 giây có cảnh báo, 24 giờ − 1 giây không; đã xuất 48 giờ ± 1 giây cũng vậy (đếm = 1 mỗi loại)',
+    old?.count === 1 && oldX?.count === 1, JSON.stringify(tt.warnings));
 
   const { layMaKhachMoi } = require(path.join(MAY_CHU, 'utils', 'diemKhach.js'));
   await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, valid_to, is_active, created_at) VALUES ('GV1C2', 'fixed', 5000, '2027-01-01', 1, '2026-12-01T10:00:00')");
@@ -297,11 +303,15 @@ async function main() {
   k('C2 mã giảm hạn 01.01.2027: 01.01 06:59:59 / 23:59:59 còn; 02.01 00:00:00 / 06:59:59 (UTC còn 01.01) hết (hồi quy)', c2.join(',') === 'true,true,false,false', c2.join(','));
 
   await datCai('nhandiem_enabled', '1'); await datCai('nhandiem_han_gio', '24');
-  for (const ma of ['GV1C3A', 'GV1C3B']) await db.run('INSERT INTO pos_signup_codes (code, order_id, issued_at) VALUES (?, NULL, ?)', [ma, '2027-01-05T07:00:00']);
+  for (const [ma, luc] of [['GV1C3A', '2027-01-05T07:00:00'], ['GV1C3B', '2027-01-05T07:00:00'], ['GV1C3C', '2027-01-05T00:00:00'], ['GV1C3D', '2027-01-05T00:00:00']]) {
+    await db.run('INSERT INTO pos_signup_codes (code, order_id, issued_at) VALUES (?, NULL, ?)', [ma, luc]);
+  }
   const nhanDiem = async (ma, moc) => { datVN(moc); return (await goi('POST', '/api/pos/signup-codes/nhan-diem', { code: ma, phone: '0938000041' })).code; };
   const c3a = await nhanDiem('GV1C3A', '2027-01-06T06:59:59'), c3b = await nhanDiem('GV1C3B', '2027-01-06T07:00:01');
+  const c3c = await nhanDiem('GV1C3C', '2027-01-05T23:59:59'), c3d = await nhanDiem('GV1C3D', '2027-01-06T00:00:01');
   await datCai('nhandiem_enabled', '0');
-  k('C3 mã bill in 05.01 07:00, hạn 24 giờ: 06.01 06:59:59 chưa hết hạn, 07:00:01 → MA_HET_HAN (hồi quy)', c3a !== 'MA_HET_HAN' && c3b === 'MA_HET_HAN', `${c3a} / ${c3b}`);
+  k('C3 mã bill hạn 24 giờ: in 05.01 07:00 → 06.01 06:59:59 chưa hết, 07:00:01 MA_HET_HAN; in 05.01 00:00 → 23:59:59 chưa hết, 06.01 00:00:01 MA_HET_HAN (hồi quy)',
+    c3a !== 'MA_HET_HAN' && c3b === 'MA_HET_HAN' && c3c !== 'MA_HET_HAN' && c3d === 'MA_HET_HAN', `${c3a} / ${c3b} / ${c3c} / ${c3d}`);
 
   const { gomTheoKhach } = require(path.join(MAY_CHU, 'utils', 'goiKhach.js'));
   const ngayChua = (lan, moc) => { datVN(moc); return gomTheoKhach([{ customer_phone: '0938000042', status: 'active', total_qty: 5, delivered_qty: 1, last_delivery_at: lan }])[0].ngay_chua_lay; };
@@ -329,8 +339,11 @@ async function main() {
   await datCai('gio_hd_lich', JSON.stringify(lich));
   const hd = async (moc) => { datVN(moc); return (await goi('GET', '/api/kh/gio-hoat-dong', null, null)).dang_mo; };
   const c9 = [await hd('2027-01-02T06:59:59'), await hd('2027-01-02T07:00:00'), await hd('2027-01-02T22:59:59'), await hd('2027-01-02T23:00:00')];
+  await datCai('gio_hd_lich', JSON.stringify(Object.fromEntries([2, 3, 4, 5, 6, 7, 8].map((t) => [t, { mo: '00:00', dong: '06:00' }]))));
+  c9.push(await hd('2027-01-01T23:59:59'), await hd('2027-01-02T00:00:00'), await hd('2027-01-02T05:59:59'), await hd('2027-01-02T06:00:00'));
   await datCai('gio_hd_lich', '');
-  k('C9 giờ hoạt động 07:00–23:00: 06:59:59 đóng, 07:00 mở, 22:59:59 mở, 23:00 đóng (hồi quy)', c9.join(',') === 'false,true,true,false', c9.join(','));
+  k('C9 giờ hoạt động 07:00–23:00: 06:59:59 đóng, 07:00 mở, 22:59:59 mở, 23:00 đóng; 00:00–06:00: 23:59:59 hôm trước đóng, 00:00 mở, 05:59:59 mở, 06:00 đóng (hồi quy)',
+    c9.join(',') === 'false,true,true,false,false,true,true,false', c9.join(','));
 
   muc('B. Bước nâng cấp 012 — dữ liệu cũ');
   let buoc = null, loiBuoc = '';
@@ -369,6 +382,26 @@ async function main() {
     } catch (e) { loiGoc(`  (gieo ${bang} hỏng: ${e.message})`); }
     idGieo.push(id);
   }
+  // B1c: mỗi mục phân loại một dòng gieo (dòng ĐẦU mỗi bảng), cùng giá trị cũ / mới với B1 — chép ĐỘC LẬP từ ke_hoach.md mục B, không đọc
+  // từ code (xoá / đổi loại một mục ở utils/chuanHoaGio.js → đỏ). KHONG_DUNG: cột chỉ ghi getNow — dấu cách ở đó KHÔNG được đổi (K5).
+  const PHAN_LOAI = [['pos_users', 'created_at', 'utc'], ['pos_permissions', 'created_at', 'utc'], ['pos_customers', 'created_at', 'utc'],
+    ['pos_customers', 'updated_at', 'utc'], ['pos_products', 'created_at', 'utc'], ['pos_products', 'updated_at', 'utc'], ['pos_products', 'ton_luc', 'vn'],
+    ['pos_orders', 'created_at', 'utc'], ['pos_wallets', 'created_at', 'utc'], ['pos_wallets', 'updated_at', 'utc'], ['pos_balance_transactions', 'created_at', 'utc'],
+    ['pos_damage_logs', 'created_at', 'utc'], ['pos_stock_pending', 'resolved_at', 'utc'], ['pos_export_logs', 'created_at', 'utc'],
+    ['pos_membership_tiers', 'created_at', 'utc'], ['pos_membership_tiers', 'updated_at', 'vn'], ['pos_product_groups', 'created_at', 'utc'],
+    ['pos_product_group_members', 'created_at', 'utc'], ['pos_invoice_logs', 'printed_at', 'vn'], ['pos_invoice_logs', 'deleted_at', 'vn'],
+    ['pos_membership_purchases', 'expires_at', 'vn'], ['pos_discount_codes', 'valid_to', 'vn'], ['pos_settings', 'updated_at', 'lan'],
+    ['pos_point_transactions', 'created_at', 'khong'], ['pos_orders', 'cancelled_at', 'khong'], ['pos_signup_codes', 'issued_at', 'khong']];
+  const CU = { utc: '2026-03-01 18:00:00', vn: '2026-05-05 08:00:00', lan: '2026-07-01 10:00:00', khong: '2026-08-08 08:00:00' };
+  const MOI = { utc: '2026-03-02T01:00:00', vn: '2026-05-05T08:00:00', lan: '2026-07-01 10:00:00', khong: '2026-08-08 08:00:00' };
+  await db.run("INSERT INTO pos_stock_pending (order_code, sx_product_type, sx_product_id, quantity, status) VALUES ('GV1SP', 'juice', 1, 1, 'resolved')");
+  await db.run("INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count) VALUES ('2026-11-01T09:00:00', 'thu', '[]', 0)");
+  const dongPL = [];
+  for (const [b, c, l] of PHAN_LOAI) {
+    const r = await motDong(`SELECT rowid AS r FROM ${b} ORDER BY rowid LIMIT 1`);
+    if (r) await db.run(`UPDATE ${b} SET ${c} = ? WHERE rowid = ?`, [CU[l], r.r]);
+    dongPL.push(r?.r ?? null);
+  }
   const khoaCot = (bang) => (bang === 'pos_settings' ? 'key' : 'id');
   const docGieo = async () => Promise.all(GIEO.map(([bang, cot], i) => motDong(`SELECT ${cot} AS v FROM ${bang} WHERE ${khoaCot(bang)} = ?`, [idGieo[i]]).then((r) => r?.v ?? null)));
   const tongTien = () => motDong('SELECT (SELECT COALESCE(SUM(total),0) FROM pos_orders) AS d, (SELECT COALESCE(SUM(amount),0) FROM pos_balance_transactions) AS v, (SELECT COALESCE(SUM(points),0) FROM pos_point_transactions) AS p, (SELECT COUNT(*) FROM pos_customer_packages) AS g');
@@ -386,6 +419,10 @@ async function main() {
     ['pos_damage_logs.created_at đổi 1', 'pos_balance_transactions.created_at đổi 1', 'pos_invoice_logs.printed_at đổi 1', 'pos_packages.created_at đổi 1']
       .every((s) => lan1.log.some((l) => l.includes('Nâng cấp 012') && l.includes(s))) && lan1.log.some((l) => l.includes('pos_settings.updated_at') && /để nguyên 1/.test(l)),
     lan1.log.join(' | ').slice(0, 300));
+  const plSau = await Promise.all(PHAN_LOAI.map(([b, c], i) => (dongPL[i] == null ? null : motDong(`SELECT ${c} AS v FROM ${b} WHERE rowid = ?`, [dongPL[i]]).then((r) => r?.v ?? null))));
+  const plSai = PHAN_LOAI.filter(([, , l], i) => plSau[i] !== MOI[l]).map(([b, c, l], i) => `${b}.${c}(${l})=${plSau[PHAN_LOAI.findIndex((x) => x[0] === b && x[1] === c)]}`);
+  k(`B1c MỌI mục phân loại (${PHAN_LOAI.length} cột / ${new Set(PHAN_LOAI.map((x) => x[0])).size} bảng) đổi đúng loại: UTC +7 · VN chỉ đổi T · lẫn và cột chỉ getNow để nguyên`,
+    dongPL.every((x) => x != null) && plSai.length === 0, plSai.join(' | ') + (dongPL.some((x) => x == null) ? ' · thiếu dòng gieo: ' + PHAN_LOAI.filter((_, i) => dongPL[i] == null).map((x) => x[0]).join(',') : ''));
   const saoLuu = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_damage_logs WHERE id = ?", [idGieo[0]]).catch(() => null);
   const saoVi = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_balance_transactions WHERE id = ?", [idGieo[1]]).catch(() => null);
   k('B2 bảng sao lưu _sao_luu_012_<bảng> giữ giá trị GỐC (sự cố, sổ ví)', saoLuu?.v === GIEO[0][2] && saoVi?.v === GIEO[1][2], `${saoLuu?.v} / ${saoVi?.v}`);
@@ -407,39 +444,51 @@ async function main() {
   await db.run("INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by) VALUES ('0938000030', ?, 'Vàng', 1, '2027-04-01T10:00:00', '2027-07-01 10:00:00', 'thu')", [hang.id]);
   await db.run("UPDATE pos_products SET ton_luc = '2026-03-01 08:00:00' WHERE id = ?", [sp[0].id]);   // ton_luc cũ: VN dấu cách (products.js)
   if (buoc?.chay) await chayBuoc();
+  datVN('2027-05-02T06:30:00');
+  await taoDon({ customer_phone: '0938000030' });
+  await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, expires_at, reason, created_by, created_at) VALUES ('0938000030', 'earn', 5, '2028-04-01T00:00:00', 'thử', 'thu', ?)", [getNow()]);
   const khE = await motDong("SELECT id FROM pos_customers WHERE phone = '0938000030'");
   const tkE = kyTokenKhach(khE.id);
-  const gioLa = [];
+  const gioLa = [], gioDi = [];
   const di = (o, duong) => {
-    if (typeof o === 'string') { if (/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d/.test(o) && !DANG_T.test(o)) gioLa.push(`${duong}=${o}`); }
+    if (typeof o === 'string') { if (/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d/.test(o)) { gioDi.push(duong.split('.')[0]); if (!DANG_T.test(o)) gioLa.push(`${duong}=${o}`); } }
     else if (o && typeof o === 'object') for (const [a, b] of Object.entries(o)) di(b, `${duong}.${a}`);
   };
   const cua = ['/toi', '/menu', '/diem', '/voucher', '/don', '/hang', '/gio-vang', '/gio-hoat-dong'];
   const traVe = [];
   for (const c of cua) { const r = await goi('GET', '/api/kh' + c, null, tkE); traVe.push(`${c}:${r.status}`); di(r, c); }
   const toi = await goi('GET', '/api/kh/toi', null, tkE);
-  k('E1 mọi giờ trong /api/kh (dữ liệu cũ đã nâng cấp) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN', gioLa.length === 0 && JSON.stringify(toi).includes('2026-02-01T10:00:00'),
-    gioLa.slice(0, 5).join(' | ') + ' · ' + traVe.join(' '));
+  const coGio = ['/toi', '/menu', '/diem', '/don', '/gio-hoat-dong'].filter((c) => !gioDi.includes(c));
+  k('E1 giờ trong /api/kh (hồ sơ, hạng, menu ton_luc, điểm, đơn, giờ hoạt động — dữ liệu cũ đã nâng cấp) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN',
+    gioLa.length === 0 && coGio.length === 0 && JSON.stringify(toi).includes('2026-02-01T10:00:00'),
+    gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') : '') + ' · ' + traVe.join(' '));
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));
   const pb = Number((hd2.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
   k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 (main 5 + 1), khối máy đọc phien_ban 6, nhật ký có dòng v6 GIO-VN-1',
     hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb === 6 && /"phien_ban":\s*6\b/.test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
 
-  muc('B6. Khôi phục sao lưu qua route thật (POST /backup/restore)');
+  muc('B6. Khôi phục sao lưu qua route thật (POST /backup/restore, GET /backup/export/:table)');
   const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
-  const tepSao = (ngaySao) => { const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ id: 990001, exported_at: '2026-02-01T10:00:00', exported_by: 'thu', registration_ids: '[]',
-      customer_count: 0, file_name: 'x.csv', created_at: '2026-02-01 03:00:00' }]), 'Nhật ký xuất dữ liệu');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ backup_date: ngaySao, system: 'POS Tứ Quý Đường' }]), '_Metadata');
+  const DK = { id: 990001, phone: '0938000050', name: 'ĐK GV1', status: 'pending' };
+  const tepCu = () => { const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ ...DK, created_at: '2026-02-01T03:00:00.000Z' }]), 'Đăng ký mới');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ backup_date: '2026-02-01T03:00:00.000Z', system: 'POS Tứ Quý Đường' }]), '_Metadata');
     return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }); };
   const khoiPhuc = async (tep) => { const f = new FormData(); f.append('file', new Blob([tep]), 'sl.xlsx'); imLang();
     try { const r = await fetch(goc + '/api/pos/backup/restore', { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: f }); return r.status; } finally { noiLai(); } };
-  const kp1 = await khoiPhuc(tepSao('2026-02-01T03:00:00.000Z'));
-  const v1 = (await motDong('SELECT created_at AS v FROM pos_export_logs WHERE id = 990001'))?.v;
-  k('B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ UTC dấu cách ra giờ VN dạng T', kp1 === 200 && v1 === '2026-02-01T10:00:00', `HTTP ${kp1} · ${v1}`);
-  const kp2 = await khoiPhuc(tepSao('2026-11-02T12:00:00'));
-  const v2 = (await motDong('SELECT created_at AS v FROM pos_export_logs WHERE id = 990001'))?.v;
-  k('B6b khôi phục bản sao lưu MỚI (backup_date giờ VN dạng T) → giữ y nguyên từng ô (SAOLUU-2 F1)', kp2 === 200 && v2 === '2026-02-01 03:00:00', `HTTP ${kp2} · ${v2}`);
+  const xuat = async (bang) => { imLang();
+    try { const r = await fetch(goc + '/api/pos/backup/export/' + bang, { headers: { Authorization: 'Bearer ' + tk } }); return r.status === 200 ? Buffer.from(await r.arrayBuffer()) : null; } finally { noiLai(); } };
+  const docDK = async () => (await motDong('SELECT created_at AS v FROM pos_registrations WHERE id = 990001'))?.v;
+  const kp1 = await khoiPhuc(tepCu());
+  const v1 = await docDK();
+  k('B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ đuôi Z ra giờ VN dạng T', kp1 === 200 && v1 === '2026-02-01T10:00:00', `HTTP ${kp1} · ${v1}`);
+  const coSao = await motDong("SELECT COUNT(*) AS n FROM sqlite_master WHERE name = '_sao_luu_012_pos_registrations'");
+  k('B6c khôi phục KHÔNG tạo bảng _sao_luu_012_* (bản gốc là chính file vừa nạp)', Number(coSao?.n) === 0, String(coSao?.n));
+  await db.run("UPDATE pos_registrations SET created_at = '2026-02-01T03:00:00.000Z' WHERE id = 990001");
+  const tepMoi = await xuat('pos_registrations');
+  const kp2 = tepMoi ? await khoiPhuc(tepMoi) : 0;
+  const v2 = await docDK();
+  k('B6b khứ hồi: xuất một bảng bằng route (code mới) → khôi phục chính file đó → giữ y nguyên từng ô (SAOLUU-2 F1)', kp2 === 200 && v2 === '2026-02-01T03:00:00.000Z', `HTTP ${kp2} · ${v2}`);
 
   sv.close();
 }
