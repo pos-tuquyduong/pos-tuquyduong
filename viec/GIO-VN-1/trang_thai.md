@@ -23,6 +23,47 @@
 - #26 tính hạn trên `Date.parse(now + 'Z')`; `addMonthsSafe` (`helpers.js:220-227`, chỉ `orders.js:1063` gọi — grep) chuyển sang phép UTC
   (`getUTC*`/`setUTC*`) để kết quả không theo múi giờ máy — khối mua thẻ chỉ đổi dòng 1062 và 1064.
 
+## Bước 4–6 (lượt 2)
+- Bài thử `cong_cu/thu_GIOVN1.js` viết TRƯỚC, đỏ trên gốc 36b98b8 (11 đạt · 29 hỏng), xanh trên HEAD (40 đạt · 0 hỏng) — `bang_chung_do.txt`.
+- `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn: route GET có lệnh ghi). Build `client/dist` xong.
+- Giữa chừng `thu_SAOLUU2` F1 đỏ: khôi phục chuẩn hoá giờ cả file MỚI làm sao lưu → khôi phục không còn y hệt → chỉ chuẩn hoá khi file là bản
+  CŨ (`backup_date` không phải giờ VN dạng T — mọi file ghi từ nay mang `backup_date: getNow()`). Không sửa bài cũ.
+
+### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 26/26 BẮT)
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| `nang_cap/012` chạy được | BV-012 | B1 |
+| 012: VN dấu cách chỉ đổi T | VS-012-VN-CUNG-CONG-7 | B1 |
+| 012: cột lẫn để nguyên (Q3) | VS-012-COT-LAN-CUNG-DOI | B1 |
+| 012: đuôi Z có mili-giây | VS-012-Z-THIEU-MAU-MILI-GIAY | B1 |
+| 012: sao lưu trước khi đổi | BV-012-SAO-LUU | B2 |
+| 012: sổ ví đổi giờ (Q1) | BV-012-SO-VI | B1 |
+| 012: hạn thẻ cũ (Q2) | BV-012-HAN-THE | B1 |
+| 012: ngày tạo khách (App KH) | BV-012-KHACH | E1 |
+| `khoiPhuc.js` chuẩn hoá bản cũ | BV-KHOI-PHUC | B6 |
+| `backup.js` chỉ bản cũ mới chuẩn hoá | VS-KHOI-PHUC-MOI-FILE | B6b |
+| `damages.js` created_at | BV-DAMAGES | A2d |
+| `settings.js` updated_at (3 chỗ) | BV-SETTINGS | A2a |
+| `packages.js` | BV-PACKAGES | A2b |
+| `settings.js` nhật ký in | BV-IN-HOA-DON | A2c |
+| `database.js` gieo dữ liệu | BV-GIEO-CHU | A1 (bước 012 chữa dòng gieo nên chỉ phép quét bắt) |
+| `product-groups.js` | BV-NHOM-MON | A2f |
+| `products.js` ton_luc | BV-TON-LUC | A1 |
+| `client/src/utils/ngayVN.js` | BV-NGAY-MAN-QUAY | A3 |
+| phép quét M5 (D) | BV-QUET-M5 | D5 |
+| `orders.js:1064` hạn thẻ dạng T | VS-THE-DAU-CACH | C5a |
+| `helpers.js` addMonthsSafe UTC | BV-THE-THEO-MUI-GIO-MAY | C5b |
+| `doiSoat.js` DEN không bù hai lần | VS-DEN-BU-HAI-LAN | C6 |
+| `orders.js:132` hôm nay | BV-HOM-NAY | C7a |
+| `settings.js` năm số hoá đơn | BV-NAM-HOA-DON | C7b |
+| `sync.js` cảnh báo tồn | BV-SYNC | C11 |
+| `HOP_DONG_API_KH.md` | BV-HOP-DONG | E2 |
+
+Tên đột biến: BV-012 · VS-012-VN-CUNG-CONG-7 · VS-012-COT-LAN-CUNG-DOI · VS-012-Z-THIEU-MAU-MILI-GIAY · BV-012-SAO-LUU · BV-012-SO-VI ·
+BV-012-HAN-THE · BV-KHOI-PHUC · VS-KHOI-PHUC-MOI-FILE · BV-DAMAGES · BV-SETTINGS · BV-PACKAGES · BV-IN-HOA-DON · BV-GIEO-CHU · BV-NHOM-MON ·
+BV-TON-LUC · BV-NGAY-MAN-QUAY · BV-QUET-M5 · VS-THE-DAU-CACH · BV-THE-THEO-MUI-GIO-MAY · VS-DEN-BU-HAI-LAN · BV-HOM-NAY · BV-NAM-HOA-DON ·
+BV-SYNC · BV-HOP-DONG · BV-012-KHACH
+
 ## Câu hỏi
 - Chờ duyệt kế hoạch (phiếu dặn). Ba câu cần chủ quán xác nhận ở cuối `ke_hoach.md` mục "Câu hỏi cho chủ quán" (sổ ví đổi giờ; hạn thẻ cũ; `pos_settings.updated_at` để nguyên).
 
