@@ -114,7 +114,37 @@ _sao_luu_012_<bảng> AS SELECT * FROM <bảng>` TRƯỚC khi UPDATE; không DEL
 
 **Danh sách bảng / cột và loại** — BẢNG DƯỚI ĐIỀN TỪ RÀ LỊCH SỬ GIT (agent phụ, chỉ đọc), mỗi dòng có nơi ghi + commit:
 
-<!-- BANG_COT -->
+Rà toàn bộ 1996 commit của `server/` và `pos-system/server/` (agent phụ chỉ đọc; mình kiểm lại tay: `getNow` chỉ đổi ở `9b3fa8e` 03.01 —
+`toISOString()` đuôi Z — và `a9f177f` 07.01 03:26 UTC — giờ VN dạng `T`, tới nay; `damages.js:195` `datetime('now')`; khuôn P26b `17d403c`).
+→ **`getNow` chưa bao giờ ra dấu cách**, nên dấu cách chỉ đến từ các nơi ghi kể dưới.
+
+| Loại | bảng.cột | nơi ghi (code / commit) |
+|---|---|---|
+| 2 · UTC dấu cách → +7 | `pos_users.created_at` | DEFAULT `database.js:1040`; `users.js:57` getNow |
+| 2 | `pos_permissions.created_at` | chỉ DEFAULT (`database.js:1094/1103/1108`, `users.js:215`) |
+| 2 | `pos_customers.created_at`, `updated_at` | `customers-v2.js:58-65, 321, 328` CURRENT_TIMESTAMP / DEFAULT (`48d10ff`, `84cc683`, `71c2c00`→`486cc0a`); còn lại getNow |
+| 2 | `pos_products.created_at`, `updated_at` | DEFAULT (`database.js:1139`, `kho/nhapSx.js:183`, `products.js:220, 320`); `datetime("now")` `products.js:167/174/215/314` |
+| 2 | `pos_orders.created_at` | DEFAULT trong khoảng `36008e4` (06.01) → `8c239dc` (07.01); sau đó getNow |
+| 2 | `pos_wallets.created_at`, `updated_at` · `pos_balance_transactions.created_at` | `damages.js` `datetime('now')` + DEFAULT (`13b1076` 07.02 → `17d403c` 03.10), DEFAULT `36008e4`→`ff25512`; còn lại getNow |
+| 2 | `pos_damage_logs.created_at` | chỉ `damages.js:195` `datetime('now')` |
+| 2 | `pos_stock_pending.resolved_at` | chỉ `doSoNo.js:80` `datetime('now')` |
+| 2 | `pos_export_logs.created_at` · `pos_membership_tiers.created_at` · `pos_product_groups.created_at` · `pos_product_group_members.created_at` | chỉ DEFAULT |
+| 3 · VN dấu cách → chỉ đổi `T` | `pos_products.ton_luc` | chỉ `products.js:51-52` (`58753d6`) |
+| 3 | `pos_invoice_logs.printed_at`, `deleted_at` | chỉ `settings.js:315/423/455` `+7 hours` |
+| 3 | `pos_membership_tiers.updated_at` | gieo `database.js:1330` `+7 hours`; `tiers.js` getNow |
+| 3 | `pos_membership_purchases.expires_at` | chỉ `orders.js:1062-1064` (`e4b9bd4`) — giờ VN **khi máy chạy TZ UTC** (Render: có; xem Câu hỏi 2) |
+| 3 | `pos_discount_codes.valid_to` | thường là ngày thuần (không khớp mẫu); riêng `a70b920`→`e72424c` (~2 giờ, 09.08) ghi VN dấu cách |
+| **lẫn** → để nguyên dấu cách | `pos_settings.updated_at` | DEFAULT (UTC) + `+7 hours` (VN) + Z — chỉ đổi dòng đuôi Z; dòng dấu cách in số "để nguyên", ghi Phát hiện. Cột này không ai đọc để so (chỉ ghi chép). |
+| 1 · chỉ đuôi Z | `pos_packages.created_at/updated_at`, `pos_customer_packages.created_at/updated_at`, `pos_settings.updated_at`, và MỌI cột getNow (Z trong 03.01–07.01: `pos_orders.*`, `pos_users.last_login`, …) | `packages.js:60-66, 118, 136, 194, 247`; `settings.js:160/205/251`; getNow cũ `9b3fa8e` |
+| không đụng | cột chỉ getNow từ sau 07.01 (đơn, điểm, phiếu kho, phiên, mã…); ngày thuần (`due_date`, `valid_from`, `han_dung`, `pos_voucher_grants.expires_at`); giá trị từ ngoài (`sx_start_date/sx_end_date` từ CSV SX, `pos_payos_su_kien.luc` từ webhook) | — |
+
+**Đường song song K4 — khôi phục sao lưu** (`server/utils/khoiPhuc.js:58-73` chép nguyên giá trị từ file Excel vào mọi bảng): khôi phục một
+bản sao lưu CŨ (trước 012) sau khi 012 đã chạy sẽ đưa giờ UTC trở lại mà 012 không chạy lần nữa. Sửa: phần đổi của 012 viết thành hàm
+`chuanHoaGio(tx, { saoLuu })` xuất ra; `thucHien` gọi nó cuối cùng giao dịch khôi phục (`saoLuu: false` — bản gốc chính là file vừa nạp).
+Bản sao lưu MỚI (sau 012) toàn dạng `T` → hàm không đổi gì. Ca B6: khôi phục bản có giờ cũ → ra giờ VN.
+
+**Tiền / sổ cái:** `pos_balance_transactions` là sổ chỉ-thêm (CLAUDE.md §5.4). Bước 012 chỉ đổi cột GIỜ `created_at` của các dòng ghi
+UTC (không đổi số tiền, không thêm / xoá dòng), có bảng sao lưu. Xin chủ quán xác nhận ở Câu hỏi 1.
 
 ---
 
@@ -164,7 +194,7 @@ Phá thử (K3): mỗi mẫu 1–5 một ca chuỗi giả phải ĐỎ + đúng 
 | Nghiệm thu | Ca trong `cong_cu/thu_GIOVN1.js` | Đỏ trên gốc? |
 |---|---|---|
 | A | A1 quét D trên `server/` thật = 0 vi phạm (gốc: ~45) · A2 gọi route thật (tạo sự cố, đổi giá SX, đánh dấu tồn đọng xong, tạo gói, lưu cài đặt, in hoá đơn, xoá log in, khách từ SX, nhóm món, quyền) → giờ ghi dạng `T`, lệch `getNow` ≤ 2 giây | ĐỎ |
-| B | B1 kho có dòng cũ ba loại + cột lẫn → đúng số dòng đổi mỗi bảng, đúng giá trị (+7 / chỉ đổi `T` / để nguyên) · B2 bảng `_sao_luu_012_<bảng>` có bản gốc · B3 chạy lần hai: 0 dòng đổi, dữ liệu bằng hệt · B4 dòng đã đúng giờ VN không đổi (K5) · B5 kho trống: không tạo bảng sao lưu | ĐỎ (chưa có bước 012) |
+| B | B1 kho có dòng cũ ba loại + cột lẫn → đúng số dòng đổi mỗi bảng, đúng giá trị (+7 / chỉ đổi `T` / để nguyên) · B2 bảng `_sao_luu_012_<bảng>` có bản gốc · B3 chạy lần hai: 0 dòng đổi, dữ liệu bằng hệt · B4 dòng đã đúng giờ VN không đổi (K5) · B5 kho trống: không tạo bảng sao lưu · B6 khôi phục sao lưu có giờ cũ → giờ VN (đường `khoiPhuc.js`) | ĐỎ (chưa có bước 012) |
 | C | C1–C11 ở bảng C | C5, C6, C7, C11 ĐỎ; còn lại hồi quy |
 | D | D1–D5 phá thử từng mẫu + ca chú thích + ca giữa dòng; D6 ngoại lệ chết → đỏ | ĐỎ (chưa có bài) |
 | E | E1 đi khắp JSON `/api/kh` trên dữ liệu cũ đã nâng cấp · E2 hợp đồng không còn "Lỗi đã biết", `PHIEN_BAN` tăng, nhật ký có dòng | ĐỎ |
@@ -188,5 +218,12 @@ mốc × 11 phép.
 
 ## Vùng sửa (cho chat gộp với làn 2 HANG-1)
 Rải 1 dòng ở: `database.js` (khối gieo dữ liệu 1036–1450), `routes/{damages,products,customers-v2,settings,packages,backup,sync,
-registrations,users,product-groups,orders}.js`, `utils/{doSoNo,doiSoat}.js`, `kho/nhapSx.js`, `index.js`. `orders.js` chỉ dòng 132 và
+registrations,users,product-groups,orders}.js`, `utils/{doSoNo,doiSoat,khoiPhuc}.js`, `kho/nhapSx.js`, `index.js`. `orders.js` chỉ dòng 132 và
 1064 — HANG-1 (hạn thẻ cộng nối) gần như chắc đụng **`orders.js:1055-1072`** (khối mua thẻ) → chồng vùng, chat gộp.
+
+## Câu hỏi cho chủ quán (cần xác nhận khi duyệt)
+1. **Sổ ví** `pos_balance_transactions` (và `pos_wallets`): cho phép bước 012 đổi GIỜ (chỉ cột `created_at`, có sao lưu) của các dòng
+   ghi theo giờ quốc tế? Số tiền không đổi. **Đề xuất: cho phép** — không đổi thì lịch sử ví hiện sớm 7 tiếng và đối soát theo ngày lệch.
+2. **Hạn thẻ hạng** `pos_membership_purchases.expires_at`: code cũ chỉ ra giờ VN khi máy chạy giờ UTC. Production (Render) chạy UTC → đúng.
+   Kho thử Replit có thể khác — không ảnh hưởng tiền thật. **Đề xuất:** coi là giờ VN (chỉ đổi dấu cách → `T`).
+3. `pos_settings.updated_at` dòng dấu cách không biết chắc → để nguyên (chỉ là giờ "lần sửa cuối" của cài đặt, không ai so). **Đề xuất: để nguyên.**
