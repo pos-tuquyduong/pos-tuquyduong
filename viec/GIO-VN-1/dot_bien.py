@@ -30,9 +30,7 @@ DOT_BIEN = [
   ('BV-KHOI-PHUC', [('server/utils/khoiPhuc.js', '    if (banCu) await chuanHoaGio(tx, { saoLuu: false });', '', 1)], r'✗ B6 '),
   ('VS-KHOI-PHUC-MOI-FILE', [('server/routes/backup.js', "{ banCu: !/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d$/.test(ngaySao) }", '{ banCu: true }', 1)], r'✗ B6b '),
   # ── A: chỗ ghi ──
-  ('BV-DAMAGES', [('server/routes/damages.js', "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)",
-                   "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))", 1),
-                  ('server/routes/damages.js', 'req.user.id, req.user.display_name || req.user.username, getNow()\n', 'req.user.id, req.user.display_name || req.user.username\n', 1)], r'✗ A2d '),
+  ('BV-DAMAGES', [('server/routes/damages.js', "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)", "processed_by, processed_by_name, created_at\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))", 1), ('server/routes/damages.js', 'req.user.id, req.user.display_name || req.user.username, getNow()\n', 'req.user.id, req.user.display_name || req.user.username\n', 1)], r'✗ A2d '),
   ('BV-SETTINGS', [('server/routes/settings.js', '    const timestamp = getNow();', '    const timestamp = new Date().toISOString();', 3)], r'✗ A2a '),
   ('BV-PACKAGES', [('server/routes/packages.js', '    const now = getNow();', '    const now = new Date().toISOString();', 2)], r'✗ A2b '),
   ('BV-IN-HOA-DON', [('server/routes/settings.js', '      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', "      ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(?, '+0 hours'))", 1)], r'✗ A2c '),
