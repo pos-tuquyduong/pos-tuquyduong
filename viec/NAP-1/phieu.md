@@ -1,0 +1,75 @@
+# NAP-1 — Gói nạp tiền (quầy), thưởng nạp không hạn, ví hai ngăn, tích điểm khi tiêu ví, sổ sách tiền nạp
+
+<!-- Phiếu do chat soạn 02.11.2026 (sổ v53). Việc [T] (tiền / ví) — Opus làn 2 SAU HANG-1, lập kế hoạch, DỪNG chờ duyệt.
+     Thiết kế đã duyệt: thiet_ke/THIET_KE_DOT2.md mục M4. Tách 3 việc nối tiếp (chat soát lịch 02.11): NAP-1 (việc này: gói nạp ở quầy + ví
+     hai ngăn tiền nạp / thưởng nạp + sổ sách), NAP-2 (App tự nạp bằng QR + cửa lịch sử ví), QUA-1 (quà chào mừng có hạn + đếm ngược). NAP-1
+     dựng ngăn ví sao cho QUA-1 chỉ THÊM ngăn thứ ba (thứ tự trừ: quà chào mừng trước).
+     Hiện trạng chat đọc 02.11 trên main d1b57b8: pos_wallets (phone, balance, total_topup, total_spent); sổ pos_balance_transactions (type,
+     amount, balance_before/after, order_id, payment_method); routes/wallets.js POST /topup (nạp tay, quyền topup_balance), /deduct, /adjust;
+     trả đơn bằng ví + ví mẹ trong orders.js / giuCho.js (P3, BH-2); điểm hiện KHÔNG tính phần trả bằng ví (luật 24.10 — ĐỔI ở việc này). -->
+
+**Chờ duyệt kế hoạch:** viết `viec/NAP-1/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
+
+## Mục tiêu
+Quầy bán gói nạp ("trả 100.000 vào 105.000") như bán hàng; số dư tăng ngay; máy biết rõ phần nào là tiền khách trả, phần nào là thưởng — báo cáo
+doanh thu thật không bị đội.
+
+## Nghiệm thu
+- A **Gói nạp** (Cài đặt sản phẩm, quyền quản lý sản phẩm): thêm / sửa / bật / tắt; mỗi gói "khách trả" > 0 và "vào tài khoản" ≥ "khách trả";
+  sai → 400.
+- B **Bán gói ở quầy:** nhóm "Nạp tiền" trên màn Bán hàng; bắt buộc chọn khách (SĐT); máy chủ tự tra gói; trả tiền mặt / QR (cổng QR đang chọn);
+  KHÔNG trả bằng ví, KHÔNG mã giảm, KHÔNG giảm hạng, KHÔNG ghi nợ, KHÔNG gộp chung đơn có món (kế hoạch chọn: chặn gộp hay tách dòng — nêu lý do);
+  thu đủ → số dư tăng NGAY trong cùng giao dịch, sổ ví ghi rõ phần nạp + phần thưởng. Huỷ trước khi thu đủ → không cộng gì.
+- C **Ví hai ngăn:** số dư = tiền nạp + thưởng nạp (thưởng KHÔNG hạn). Mọi lối trừ ví (trả đơn, ví mẹ, trừ tay) trừ hai ngăn theo TỶ LỆ đang có;
+  mọi lối cộng lại (hoàn đơn, huỷ đơn trả ví) trả về ĐÚNG ngăn đã trừ. Tổng hai ngăn LUÔN = balance (bất biến, có kiểm tra đối soát ví).
+  Ví cũ (trước việc này) = toàn bộ là tiền nạp.
+- D **Tiền nạp không hoàn:** không có lối hoàn tiền nạp; điều chỉnh tay (quyền adjust_balance) ghi lý do như hiện nay.
+- E **Điểm:** lúc nạp KHÔNG tích điểm; trả đơn bằng ví (cả hai ngăn) CÓ tích điểm như tiền mặt (đổi luật 24.10 — chủ quán 01.11).
+- F **Sổ sách:** Đối soát / báo cáo: tiền nạp vào két / QR đúng ngày (khớp két, sao kê); doanh thu bán hàng tách dòng "Thưởng nạp đã dùng" (khoản
+  giảm); báo cáo "Quán đang giữ hộ khách" = tổng số dư cuối kỳ tách tiền nạp / thưởng nạp. Nạp không phải doanh thu.
+- K5 **Không đổi:** nạp tay cũ (/topup) vẫn chạy (ghi toàn bộ là tiền nạp); trả ví, ví mẹ, ví + QR, P22-23 (điểm khi thu đủ), P24, hoàn; bài thử cũ xanh
+  trừ phần CỐ Ý đổi ở E (ghi rõ trong kế hoạch).
+
+## Phạm vi
+- viec/NAP-1/**
+- server/routes/wallets.js
+- server/routes/orders.js
+- server/routes/refunds.js
+- server/routes/products.js
+- server/routes/reports.js
+- server/routes/loyalty.js
+- server/utils/giuCho.js
+- server/utils/doiSoat.js
+- server/utils/viKhach.js
+- server/routes/goi-nap.js
+- server/index.js
+- server/routes/backup.js
+- server/nang_cap/014_nap.js
+- server/nang_cap/chay.js
+- client/src/**
+- client/dist/**
+- cong_cu/thu_NAP1.js
+- kiem_tra_truoc_khi_giao.js
+
+## Bài thử đỏ
+Có — `cong_cu/thu_NAP1.js` ĐỎ trên code gốc: tạo gói + giá trị sai 400; bán gói tiền mặt / QR → số dư tăng đúng hai ngăn; chặn trả gói bằng ví / mã;
+trả đơn bằng ví trừ đúng tỷ lệ; hoàn trả đúng ngăn; bất biến hai ngăn = balance qua chuỗi nạp → trả → hoàn → ví mẹ; điểm cộng khi trả ví, không
+cộng khi nạp; báo cáo tách thưởng nạp đã dùng.
+
+## Ngân sách
+~320 dòng máy chủ + ~200 dòng giao diện + ~500 dòng thử.
+**Phương án đơn giản nhất đã xét:** thêm MỘT cột "phần thưởng còn lại" cho ví + cột phần thưởng cho mỗi dòng sổ ví; một hàm trừ / cộng ví dùng
+chung mọi lối (không rải phép tính tỷ lệ khắp nơi).
+
+## Đổi cấu trúc DB
+có — chỉ THÊM (bước 014): bảng gói nạp; cột ngăn thưởng của ví; cột phần thưởng của dòng sổ ví. Bảng mới vào BACKUP_TABLES; bảng ví / sổ ví vẫn
+chặn khôi phục như hiện nay.
+
+## Thư viện mới
+không
+
+## Soát bảo mật
+có — tiền / ví: giá gói máy chủ tra, chặn vòng nạp bằng ví, quyền tạo gói.
+
+## Cấm
+Không làm App nạp (NAP-2), quà chào mừng (QUA-1). Không đổi cách tính giá hạng.
