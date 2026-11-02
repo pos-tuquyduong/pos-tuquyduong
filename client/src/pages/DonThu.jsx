@@ -55,7 +55,7 @@ export default function DonThu() {
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 820 }}>
         <div className="card" style={{ padding: '1rem' }}>
           Chạy <b>một lần</b> trước khai trương. Xoá đơn / điểm / voucher của giai đoạn thử. <b>Không</b> xoá: SĐT còn tiền ví, đơn có
-          tiền ngân hàng (QR), đơn hôm nay, đơn còn nợ kho, đơn trả bằng ví / lấy từ gói của khách không dọn, đối soát, kho, sản phẩm, cài đặt. Số nào còn đơn phải giữ thì giữ cả số.
+          tiền ngân hàng (QR), đơn hôm nay, đơn còn nợ kho, đơn trả bằng ví / lấy từ gói của khách không dọn, đơn có tiền mặt vào két đã đếm từ ngày X, đối soát, kho, sản phẩm, cài đặt. Số nào còn đơn phải giữ thì giữ cả số.
         </div>
         <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <b>1. Chọn dữ liệu thử</b>
@@ -73,9 +73,9 @@ export default function DonThu() {
           <div style={{ fontSize: '0.85rem' }}>{Object.entries(ketQua.so_dong).map(([b, n]) => `${b}: ${n}`).join(' · ') || 'Không có gì để dọn'}</div>
           {ketQua.sdt.length > 0 && <div>SĐT xoá sạch: {ketQua.sdt.join(', ')}</div>}
           {gl.vi.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại — ví còn tiền (xử lý tay): {gl.vi.map((v) => `${v.phone} ${tien(v.balance)}`).join(', ')}</div>}
-          {gl.sdt.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại cả số (không xoá sạch): {gl.sdt.join(', ')}</div>}
+          {gl.sdt.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại cả số (không xoá sạch): {gl.sdt.map((p) => `${p} (${(gl.ly_do_sdt || {})[p] || ''})`).join('; ')}</div>}
           {gl.don.length > 0 && <div style={{ color: '#d97706' }}>Giữ lại {gl.don.length} đơn: {gl.don.map((d) => `${d.code} (${d.ly_do})`).join('; ')}</div>}
-          {(ketQua.ket_se_lech || []).length > 0 && <div style={{ color: '#d97706' }}>Lưu ý: két các ngày {ketQua.ket_se_lech.join(', ')} đã đếm — dọn xong màn Đối soát ngày đó sẽ báo lệch (sổ đối soát thử không dọn).</div>}
+          {(ketQua.ket_se_lech || []).length > 0 && <div style={{ color: '#d97706' }}>Lưu ý: két các ngày {ketQua.ket_se_lech.join(', ')} (trước ngày X) đã đếm — dọn xong màn Đối soát ngày đó sẽ báo lệch (sổ đối soát thử không dọn). Két từ ngày X không đổi: đơn có tiền rơi vào đó được giữ lại.</div>}
           {ketQua.diem_am.length > 0 && <div style={{ color: '#dc2626' }}>KHÔNG dọn được — các số sau sẽ bị điểm âm, thêm vào ô SĐT rồi liệt kê lại: {ketQua.diem_am.map((d) => d.phone).join(', ')}</div>}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={taiDanhSach}>{daTaiDs ? '✓ ' : ''}Tải danh sách (CSV)</button>
