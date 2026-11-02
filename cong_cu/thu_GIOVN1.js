@@ -327,7 +327,10 @@ async function main() {
       if (bang === 'pos_orders') id = donB;
       else if (bang === 'pos_settings') { await db.run("INSERT INTO pos_settings (key, value, updated_at) VALUES ('gv1_lan', '1', ?)", [cu]); id = 'gv1_lan'; }
       else if (bang === 'pos_damage_logs') id = Number((await db.run("INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, processed_by_name, created_at) VALUES (1, 'X', 'X', 'X', 1, 'damaged', 'remake', 0, 'thu', ?)", [cu])).lastInsertRowid);
-      else if (bang === 'pos_balance_transactions') id = Number((await db.run("INSERT INTO pos_balance_transactions (customer_phone, type, amount, balance_before, balance_after, created_by, created_at) VALUES ('0938000020', 'topup', 1000, 0, 1000, 'thu', ?)", [cu])).lastInsertRowid);
+      else if (bang === 'pos_balance_transactions') {   // sổ ví có ví khớp số dư (dòng hợp lệ — K5b chỉ đo GIỜ đổi, không đo lệch ví)
+        await db.run("INSERT INTO pos_wallets (phone, balance, total_topup, created_at, updated_at) VALUES ('0938000020', 1000, 1000, '2026-03-02T01:00:00', '2026-03-02T01:00:00')");
+        id = Number((await db.run("INSERT INTO pos_balance_transactions (customer_phone, type, amount, balance_before, balance_after, created_by, created_at) VALUES ('0938000020', 'topup', 1000, 0, 1000, 'thu', ?)", [cu])).lastInsertRowid);
+      }
       else if (bang === 'pos_invoice_logs') id = Number((await db.run("INSERT INTO pos_invoice_logs (order_id, order_code, invoice_number, printed_at) VALUES (1, 'X', '9/2026', ?)", [cu])).lastInsertRowid);
       else if (bang === 'pos_membership_purchases') id = Number((await db.run("INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by) VALUES ('0938000021', 1, 'Vàng', 1, '2026-11-02T10:00:00', ?, 'thu')", [cu])).lastInsertRowid);
       else if (bang === 'pos_packages') id = Number((await db.run("INSERT INTO pos_packages (code, name, price, unit, total_qty, created_at, updated_at) VALUES ('GV1B', 'B', 1, 'ly', 1, ?, '2026-11-01T09:00:00')", [cu])).lastInsertRowid);
