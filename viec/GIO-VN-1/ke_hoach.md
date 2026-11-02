@@ -57,7 +57,7 @@ chiếu danh sách cột của mọi `INSERT INTO <bảng> (…)` trong `server/
 ### A.4 Dạng giờ VN nhưng dấu cách (so chuỗi với `getNow` sẽ sai — xem C)
 | # | file:dòng | sửa |
 |---|---|---|
-| 26 | `server/routes/orders.js:1064` | `pos_membership_purchases.expires_at` = `…toISOString().slice(0,19).replace('T',' ')` → bỏ `.replace('T',' ')` (giữ nguyên phép cộng tháng, đúng giờ VN) |
+| 26 | `server/routes/orders.js:1062-1064` | `pos_membership_purchases.expires_at`: `new Date(now)` + `addMonthsSafe` dùng giờ của MÁY rồi `toISOString` → chỉ đúng khi máy chạy UTC, và dấu cách. Sửa: tính trên `Date.parse(now + 'Z')` bằng phép UTC thuần (khuôn `manKhach.js:35`; cộng tháng chốt cuối tháng như `addMonthsSafe`), ra dạng `T` — đúng ở mọi múi giờ máy |
 
 ### A.5 "Hôm nay / bây giờ" lấy theo đồng hồ máy chủ (UTC)
 | # | file:dòng | lỗi | sửa |
@@ -154,16 +154,16 @@ Bài thử dùng giờ GIẢ của máy chủ (thay `Date` toàn cục trong bà
 trước), 06:59:59, 07:00:00 (= UTC 00:00 — mốc đổi ngày UTC).
 | Phép so | chỗ (file:dòng) | trạng thái | ca thử |
 |---|---|---|---|
-| Hạn điểm `expires_at > now` | `diemKhach.js:12`, `hoaDon.js:56`, `customers-v2.js:218` | hạn ghi `YYYY-MM-01T00:00:00` (`orders.js:60`, `signup-codes.js:226`) đúng dạng — đúng | C1: điểm hạn `2027-01-01T00:00:00`: 31.12 23:59:59 còn, 01.01 00:00:00 hết (không hết sớm 7 giờ, không sống thêm 7 giờ) |
+| Hạn điểm `expires_at > now` | `diemKhach.js:12`, `hoaDon.js:56`, `customers-v2.js:218` | hạn ghi `YYYY-MM-01T00:00:00` (`orders.js:60`, `signup-codes.js:226`) đúng dạng — đúng | C1: điểm hạn `2027-01-01T00:00:00`: 31.12 23:59:59 còn, 01.01 00:00:00 hết; 31.12 06:59:59 / 07:00:00 (mốc đổi ngày UTC) đều còn |
 | Hạn mã giảm `valid_from/valid_to` vs `getToday()` | `orders.js:576-580`, `diemKhach.js:76` | ngày thuần, đúng | C2: mã `valid_to = hôm nay`: 23:59:59 dùng được; 00:00 hôm sau hết; 06:59 VN (UTC còn hôm qua) vẫn hết |
 | Hạn mã bill (giờ) `issued_at` + hạn giờ | `signup-codes.js:175-176, 317-318`, `hoaDon.js:70` | cùng quy ước VN — đúng nếu `issued_at` VN (`orders.js:1182` ghi `now`) | C3: mã in lúc 07:00 hạn 24 giờ: hôm sau 06:59:59 dùng được, 07:00:00 hết |
-| Hạn gói | `goiKhach.js:43-59` | cùng quy ước — đúng; `packages.js` ghi `Z` → sửa A.2 #12 | C4: `updated_at` sau kết thúc gói là dạng `T` không đuôi |
-| **Hạn thẻ hạng** `expires_at > now` | `customers-v2.js:218` (dòng thẻ), `membershipStatus.js:17-18` | **LỖI**: `expires_at` dấu cách (`orders.js:1064`) so chuỗi với `getNow` dạng `T` → ngày hết hạn bị coi hết từ 00:00 (sớm tới ~24 giờ) ở chỗ so chuỗi. Sửa A.4 #26 + bước 012 loại 3 | C5: thẻ mua 02.11 10:00, hạn 3 tháng → 02.02 09:59:59 còn hạng, 10:00:00 hết — ở mọi chỗ đọc hạng (`membershipStatus`, danh sách khách, `/api/kh` hồ sơ) |
-| Đối soát ngày | `doiSoat.js:221` (DEN) + mọi `DATE(created_at)` lọc ngày (`orders.js:89-130`, `reports.js:125`, `damages.js:41-46, 88-103`) | DEN bù +7 (A.6 #31); sự cố mới ghi UTC (A.1 #1) | C6: sự cố tạo lúc VN 00:30 ngày 07.01 (UTC 17:30 ngày 06.01) → đối soát / thống kê sự cố ra ngày 07.01 VN, không ra 06.01 |
+| Hạn gói | `goiKhach.js:43-59` (mili-giây) | cùng quy ước — đúng; `packages.js` ghi `Z` → sửa A.2 #12 | C4: `updated_at` sau kết thúc gói dạng `T`; `ngay_chua_lay` quanh mốc: lần lấy cuối 23:59:59 / 06:59:59 → 1 giây sau vẫn 0 ngày, đủ 24 giờ → 1 ngày |
+| Hạn thẻ hạng | `membershipStatus.js:17-19`, `customers-v2.js:237-239`, `kh/index.js:49-51` | so bằng mili-giây sau `.replace(' ','T')` — ĐÚNG trên Render (soát kế hoạch bắt: mình ghi nhầm là so chuỗi; `customers-v2.js:218` là câu đọc ĐIỂM). Lỗi thật chỉ là cách GHI phụ thuộc múi giờ máy (A.4 #26) | C5: thẻ mua 02.11 00:00:00 và 07:00:00 VN, hạn 3 tháng → `expires_at` = `2027-02-02T00:00:00` / `T07:00:00` dạng `T`, và đúng như vậy cả khi tiến trình chạy `TZ=Asia/Ho_Chi_Minh` (ca con chạy với biến TZ khác); 1 giây trước còn hạng, đúng mốc hết |
+| Đối soát ngày | `doiSoat.js:221` (DEN) + mọi `DATE(created_at)` lọc ngày (`orders.js:89-130`, `reports.js:125`, `damages.js:41-46, 88-103`) | DEN bù +7 (A.6 #31); sự cố mới ghi UTC (A.1 #1) | C6: sự cố tạo lúc VN 00:30 ngày 07.01 (UTC 17:30 ngày 06.01) và lúc VN 06:59 / 07:00 → đối soát / thống kê sự cố ra ngày 07.01 VN cả ba |
 | Thống kê "hôm nay" | `orders.js:132`, `damages.js:76-77`, `settings.js:270, 474` | **LỖI** (A.5) | C7: lúc VN 06:59 ngày 01.01.2027: đơn lúc 00:10 VN đếm vào hôm nay; số hoá đơn năm 2027 |
-| Giờ vàng | `flashState.js:53` `getNow().slice(11,16)` | đúng | C8: khung 22:00–02:00 ở 00:00 VN đang chạy (không có ca sai — ca hồi quy) |
-| Giờ hoạt động | `gioHoatDong.js` (getNow + phép thuần) | đúng | C9: khung 06:00–22:00: 06:59 VN mở (UTC 23:59 hôm trước) |
-| Phiên QR 10 phút | `giuCho.js:21, 52, 90, 101` | đúng (strftime trên getNow) | C10: phiên tạo 23:55 VN hết 00:05 VN, `het_han` dạng `T` |
+| Giờ vàng | `flashState.js:53` `getNow().slice(11,16)` | đúng | C8: khung 22:00–02:00 ở 00:00 VN đang chạy; khung 07:00–09:00: 06:59:59 chưa, 07:00:00 chạy (ca hồi quy) |
+| Giờ hoạt động | `gioHoatDong.js` (getNow + phép thuần) | đúng | C9: khung 07:00–23:59: 06:59:59 đóng, 07:00:00 mở; khung 00:00–…: 23:59:59 hôm trước đóng, 00:00:00 mở |
+| Phiên QR 10 phút | `giuCho.js:21, 52, 90, 101` | đúng (strftime trên getNow) | C10: phiên tạo 23:55 VN hết 00:05 VN; tạo 06:55 hết 07:05; `het_han` dạng `T` |
 | Cảnh báo khách tồn | `sync.js:65, 79` | **LỖI** nhẹ (A.5 #28) | C11: khách tạo 25 giờ trước theo giờ VN → có cảnh báo; 23 giờ → không |
 
 C8–C10 là ca HỒI QUY (đúng sẵn, xanh trên gốc) — đi cùng bài, không tính là ca đỏ.
@@ -173,10 +173,11 @@ C8–C10 là ca HỒI QUY (đúng sẵn, xanh trên gốc) — đi cùng bài, k
 ## D · Chặn tái phạm — `cong_cu/thu_GIOVN1.js` phần QUÉT
 Quét mọi `server/**/*.js` (trừ `node_modules`), bỏ chú thích (`//`, `/* */`, dòng `*`), ĐỎ khi gặp:
 1. `CURRENT_TIMESTAMP` ngoài dòng định nghĩa cột `DEFAULT CURRENT_TIMESTAMP`;
-2. `datetime('now'` / `datetime("now"` / `date('now'` / `'localtime'` / `'+7 hours'` trong câu SQL;
+2. KHÔNG phân biệt hoa thường: mọi `'now'` / `"now"` trong SQL (`datetime`, `date`, `strftime`, `julianday`…), `unixepoch(`, `'localtime'`, `'+7 hours'`;
 3. `new Date().toISOString()`, `new Date(Date.now()`, `new Date().get…()` (đồng hồ máy chủ trần);
 4. `.replace('T', ' ')` (dựng giờ dấu cách);
-5. INSERT bỏ trống cột `DEFAULT CURRENT_TIMESTAMP` (cùng phép quét A.3).
+5. INSERT bỏ trống cột `DEFAULT CURRENT_TIMESTAMP` (cùng phép quét A.3) — bảng/cột DEFAULT đọc từ MỌI `CREATE TABLE` trong `server/**` (gồm `nang_cap/`, `kho/`), không riêng `database.js`.
+Đăng ký bài: thêm `chayBaiThat('cong_cu/thu_GIOVN1.js')` vào `kiem_tra_truoc_khi_giao.js` (chỉ THÊM phép, cạnh dòng 495-501).
 Ngoại lệ: danh sách `NGOAI_LE = [['file', 'mẫu', 'lý do'], …]` — đúng những chỗ ở "Không sửa" của A có khớp mẫu (hiện chỉ dự kiến:
 `doiSoat.js` nhánh `'+7 hours'` cho dữ liệu cũ). Ngoại lệ không còn khớp → ĐỎ (khỏi để ngoại lệ chết).
 Phá thử (K3): mỗi mẫu 1–5 một ca chuỗi giả phải ĐỎ + đúng tên mẫu; ca chú thích chứa mẫu → không đỏ; ca chuỗi `datetime('now'` GIỮA dòng.
@@ -193,12 +194,12 @@ Phá thử (K3): mỗi mẫu 1–5 một ca chuỗi giả phải ĐỎ + đúng 
 ## Ca thử ↔ Nghiệm thu (1-1)
 | Nghiệm thu | Ca trong `cong_cu/thu_GIOVN1.js` | Đỏ trên gốc? |
 |---|---|---|
-| A | A1 quét D trên `server/` thật = 0 vi phạm (gốc: ~45) · A2 gọi route thật (tạo sự cố, đổi giá SX, đánh dấu tồn đọng xong, tạo gói, lưu cài đặt, in hoá đơn, xoá log in, khách từ SX, nhóm món, quyền) → giờ ghi dạng `T`, lệch `getNow` ≤ 2 giây | ĐỎ |
-| B | B1 kho có dòng cũ ba loại + cột lẫn → đúng số dòng đổi mỗi bảng, đúng giá trị (+7 / chỉ đổi `T` / để nguyên) · B2 bảng `_sao_luu_012_<bảng>` có bản gốc · B3 chạy lần hai: 0 dòng đổi, dữ liệu bằng hệt · B4 dòng đã đúng giờ VN không đổi (K5) · B5 kho trống: không tạo bảng sao lưu · B6 khôi phục sao lưu có giờ cũ → giờ VN (đường `khoiPhuc.js`) | ĐỎ (chưa có bước 012) |
-| C | C1–C11 ở bảng C | C5, C6, C7, C11 ĐỎ; còn lại hồi quy |
+| A | A1 quét D trên `server/` thật = 0 vi phạm (gốc: ~45) · A3 hàm ngày của màn quầy (`client/src/utils/`) chạy dưới `TZ=UTC` lúc VN 06:59 → ngày VN · A2 gọi route thật (tạo sự cố, đổi giá SX, đánh dấu tồn đọng xong, tạo gói, lưu cài đặt, in hoá đơn, xoá log in, khách từ SX, nhóm món, quyền) → giờ ghi dạng `T`, lệch `getNow` ≤ 2 giây | ĐỎ |
+| B | B1 kho có dòng cũ ba loại + cột lẫn → đúng số dòng đổi mỗi bảng (đếm trong CSDL VÀ khớp dòng in `🔧 Nâng cấp 012: …`), đúng giá trị (+7 / chỉ đổi `T` / để nguyên) · B2 bảng `_sao_luu_012_<bảng>` có bản gốc · B3 chạy lần hai: 0 dòng đổi, dữ liệu bằng hệt · B4 dòng đã đúng giờ VN không đổi (K5) · B5 kho trống: không tạo bảng sao lưu · B6 khôi phục sao lưu có giờ cũ → giờ VN (đường `khoiPhuc.js`) | ĐỎ (chưa có bước 012) |
+| C | C1–C11 ở bảng C | C5 (ca TZ khác), C6, C7, C11 ĐỎ; còn lại hồi quy |
 | D | D1–D5 phá thử từng mẫu + ca chú thích + ca giữa dòng; D6 ngoại lệ chết → đỏ | ĐỎ (chưa có bài) |
 | E | E1 đi khắp JSON `/api/kh` trên dữ liệu cũ đã nâng cấp · E2 hợp đồng không còn "Lỗi đã biết", `PHIEN_BAN` tăng, nhật ký có dòng | ĐỎ |
-| K5 | `npm test` (mọi bài cũ, gồm `thu_DOISOAT1` DEN1/DEN2 dữ liệu cũ) xanh · B4 · đơn / điểm / ví / gói đã đúng giờ VN giữ nguyên tổng trước = sau bước 012 | — |
+| K5 | `npm test` (mọi bài cũ, gồm `thu_DOISOAT1` DEN1/DEN2 dữ liệu cũ) xanh · B4 · đơn / điểm / ví / gói đã đúng giờ VN giữ nguyên tổng trước = sau bước 012 · K5b đối soát một ngày có dữ liệu dạng `T` (đơn, ví, điểm): kết quả JSON trước = sau bước 012 | — |
 Đụng tiền? Không ghi tiền mới; bước 012 chỉ đổi cột giờ. "Hai người cùng bấm": bước 012 chạy trong một giao dịch có khoá `pos_nang_cap`
 (chay.js) — hai máy cùng khởi động thì máy sau bỏ qua; ca đã có ở `thu_KHO1.js`, không viết lại.
 
@@ -224,6 +225,12 @@ registrations,users,product-groups,orders}.js`, `utils/{doSoNo,doiSoat,khoiPhuc}
 ## Câu hỏi cho chủ quán (cần xác nhận khi duyệt)
 1. **Sổ ví** `pos_balance_transactions` (và `pos_wallets`): cho phép bước 012 đổi GIỜ (chỉ cột `created_at`, có sao lưu) của các dòng
    ghi theo giờ quốc tế? Số tiền không đổi. **Đề xuất: cho phép** — không đổi thì lịch sử ví hiện sớm 7 tiếng và đối soát theo ngày lệch.
-2. **Hạn thẻ hạng** `pos_membership_purchases.expires_at`: code cũ chỉ ra giờ VN khi máy chạy giờ UTC. Production (Render) chạy UTC → đúng.
-   Kho thử Replit có thể khác — không ảnh hưởng tiền thật. **Đề xuất:** coi là giờ VN (chỉ đổi dấu cách → `T`).
+2. **Hạn thẻ hạng** `pos_membership_purchases.expires_at` cũ: code cũ chỉ ra giờ VN khi máy chạy giờ UTC. Production (Render) chạy UTC → đúng;
+   kho thử Replit có thể khác — không phải tiền thật. **Đề xuất:** coi dữ liệu cũ là giờ VN (chỉ đổi dấu cách → `T`); code mới (#26) hết phụ thuộc múi giờ.
 3. `pos_settings.updated_at` dòng dấu cách không biết chắc → để nguyên (chỉ là giờ "lần sửa cuối" của cài đặt, không ai so). **Đề xuất: để nguyên.**
+
+## Soát kế hoạch (agent độc lập, chỉ đọc) — đã sửa theo
+- (1) không ra ngoài Phạm vi; thêm bước đăng ký bài ở `kiem_tra_truoc_khi_giao.js`.
+- (2) #26 tính bằng phép UTC thuần thay vì chỉ bỏ `.replace` — không thêm dòng, hết phụ thuộc múi giờ máy.
+- (3) C5 mình ghi nhầm "so chuỗi" (K1) → sửa mô tả, ca đỏ là ca múi giờ máy khác; thêm mốc 00:00 / 07:00 cho C1, C4, C6, C8, C9, C10; thêm K5b đối soát trước = sau; A3 ca hàm ngày màn quầy; B1 khớp dòng in.
+- (4) phép quét D: không phân biệt hoa thường (`DATE('now'` ở `orders.js:132`), bắt mọi `'now'`, `unixepoch(`, đọc `CREATE TABLE` cả `nang_cap/`, `kho/`. Không có chỗ bù giờ hai lần ngoài `doiSoat.js:221`.
