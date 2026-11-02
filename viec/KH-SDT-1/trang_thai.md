@@ -310,3 +310,50 @@ Kết quả: ĐỐI CHỨNG XANH (95 đạt) · TỔNG 56 · BẮT 56 (BV-giu-ca
 - Đơn trước lần đếm két đầu tiên (ORD-20260725-001) → dọn, không báo két nào lệch: D1 két, E5.
 - Đơn tiền mặt có két < X (O1, T5) → dọn + liệt kê: D1, E5.
 - Số T2 nạp ví tiền mặt 20/10 (không két nào sau) → vẫn xoá sạch: D5 `sdt` = [T2, P6, CM].
+
+### Kiểm (vòng 4)
+- `node cong_cu/thu_KHSDT1.js` → 95 đạt · 0 hỏng (SỐ CA 95). Trên gốc c8ef3b8 → 70 đạt · 25 hỏng (`bang_chung_do.txt`).
+- `python3 viec/KH-SDT-1/dot_bien.py` → ĐỐI CHỨNG XANH · 56/56 BẮT.
+- `npm test -- --day-du` → ĐẾM: PASS 93 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không thuộc việc này); "dist đã commit KHỚP với src hiện tại".
+- `node tu_chay/cong.js tinh . 87aa996^ HEAD viec/KH-SDT-1` (trước 11.4) → chỉ `✗ [A19]` (dòng HEAD ĐÃ KIỂM cũ — bình thường).
+- SOÁT LẦN CUỐI: chat soát thay (LUAT §6.5 — chủ quán dặn sửa Q9 + lỗi nhẹ trong một lượt; không gọi agent soát nữa).
+
+### Nghiệm thu — đếm từng mục
+- A Điều tra: `ke_hoach.md` mục 1 (không đổi ở vòng này).
+- B, C: chủ quán BỎ 01.11 (Q1) — không làm.
+- D Công cụ dọn: liệt kê D1/D2/D15, CSV + màn D12, dọn chỉ khi gõ chữ D5, sao lưu trước (nút D12, E4), một giao dịch D11, nhật ký D6
+  (chia phần, sua_truoc, che bí mật, D16 emoji), ví ≠ 0 không dọn D3, chạy lại không làm gì D7.
+- E K5: E1 (mọi dòng không nhãn còn nguyên từng cột), E2 (tiền đơn giữ, trả lượt mã), E3 (đối soát không thêm lệch), E5 (két mọi ngày:
+  ≥ X không đổi, < X đổi đúng bằng danh sách), luồng hợp lệ ở mục "Luồng hợp lệ KHÔNG bị chặn" trên.
+
+## Bài học (vòng 4)
+1. **KHOÁ (đã làm, trong Phạm vi):** công thức tiền két chép từ `doiSoat.js tienTheoSo` (doiSoat đọc qua kết nối chung, không qua `tx`) →
+   E5 so két MỌI ngày bằng `chayDoiSoat` thật trước–sau, nên công thức chép lệch là bài đỏ. **Đề xuất ngoài Phạm vi:** `doiSoat.js` xuất
+   một hàm "tiền mặt theo ngày của danh sách đơn" nhận kết nối `q`, để `donThu.js` gọi chung (bỏ bản chép) — việc sau.
+2. **NGUYÊN TẮC (đề xuất K3, ngoài Phạm vi `KHUON_LOI.md`):** "Ca liệt kê theo NGÀY phải có dữ liệu mà cách tính cũ và mới cho kết quả
+   khác nhau — ngày của sự kiện ≠ ngày được tính" — Đã gây: lượt này ca D1 két xanh trùng hợp trên gốc (két 31/08 trùng ngày một đơn 0đ
+   31/08); bắt được nhờ chạy bài trên gốc, đổi két sang 30/08.
+3. **BỎ:** đột biến BV-giu-ca-so thành tương đương sau khi đổi cách lọc P (SỐNG) — bộ đột biến báo đúng, đổi neo; đã có luật.
+4. **BỎ:** người gác chặn `git worktree` (GIT-LENH), `until` (B-CHUONGTRINH), python heredoc nối lệnh (B-PHANTICH), chạy bài chứa cụm bí
+   mật chưa commit (B-BIMAT-CHU) — đều làm theo hướng dẫn (script trong nháp, commit trước rồi chạy).
+
+## Báo cáo 7 mục (vòng 4)
+VIỆC:        KH-SDT-1 — công cụ dọn dữ liệu thử; vòng 4: Q9 (két) + 4 lỗi nhẹ vòng soát 3.
+ĐÃ SỬA:      server/utils/donThu.js — tienMatTheoNgay + ketBiDoi (két theo KHOẢNG), chiaGiu giữ đơn / số có tiền mặt vào két từ X (không
+             ngày: mọi két), ket_se_lech theo khoảng, giu_lai.ly_do_sdt, chiaPhan (xuất ra), sua_truoc vào phần chia ·
+             client/src/pages/QuanLy/donThu.js — CSV lý do từng số · client/src/pages/DonThu.jsx — màn lý do + ghi chú két · client/dist build.
+BÀI THỬ:     cong_cu/thu_KHSDT1.js — gốc c8ef3b8 ĐỎ 70 đạt · 25 hỏng (D1 két, D3 huỷ X / nợ, D15, D5 T4, E5, D6 sua_truoc, D2/D5/D12 lý do,
+             D16); sau vá XANH 95/95. Đột biến 56/56 BẮT.
+ĐÃ RÀ K4:    mọi dòng tiền mặt két tính (`doiSoat.js tienTheoSo`: bán, thu nợ, nạp ví, huỷ) → 4 nhánh trong tienMatTheoNgay, mỗi nhánh một
+             đột biến; mọi đường xoá dòng tiền mặt của công cụ: đơn (theo ngày + theo SĐT) và nạp ví (chỉ theo SĐT — theo ngày không xoá
+             sổ ví) → cả hai canh két; mọi ô ghi pos_sync_logs của công cụ (don_thu, don_thu_chup) → sua_truoc vào phần chia.
+CHƯA KIỂM:   - Chủ quán đã thật sự LƯU file sao lưu (màn chỉ biết đã bấm tải); sao lưu export-all không khôi phục được bảng tiền — lấy lại
+               chỉ từ bản chụp JSON.
+             - Turso production: giao dịch dài, cỡ bản chụp.
+             - Công thức két là bản CHÉP của tienTheoSo — E5 khoá trên dữ liệu thử; đổi doiSoat sau này mà quên donThu thì chỉ bài E5 bắt.
+             - Tiền chuyển khoản không xét (két chỉ tiền mặt) — đúng soKet; sao kê CK tuần không được canh.
+             - Phiên đăng nhập App KH đang mở của số bị xoá hồ sơ; số thử có trên SX được đồng bộ nhập lại sau dọn.
+             - Nhật ký (tên, SĐT, ví khách bị xoá) nhân viên đọc được qua GET /sync/logs — chỉ che PIN / mật khẩu / mã băm.
+             - Không có soát độc lập bằng agent cho vòng 4 (chat soát thay theo LUAT §6.5).
+GIT:         (xem dòng git log ở câu trả lời cuối phiên)
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài học (vòng 4)
