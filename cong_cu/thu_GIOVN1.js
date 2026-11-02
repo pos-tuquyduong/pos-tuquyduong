@@ -417,7 +417,7 @@ async function main() {
     GIEO.slice(0, 7).every((g, i) => sau1[i] === g[3]), GIEO.slice(0, 7).map((g, i) => `${g[0]}.${g[1]}=${sau1[i]}`).join(' | ') + (lan1.loi ? ' · ' + lan1.loi : ''));
   k('B1b in một dòng cho mỗi cột đổi (`🔧 Nâng cấp 012: <bảng>.<cột> đổi n dòng`) + dòng "để nguyên" cho cột lẫn',
     ['pos_damage_logs.created_at đổi 1', 'pos_balance_transactions.created_at đổi 1', 'pos_invoice_logs.printed_at đổi 1', 'pos_packages.created_at đổi 1']
-      .every((s) => lan1.log.some((l) => l.includes('Nâng cấp 012') && l.includes(s))) && lan1.log.some((l) => l.includes('pos_settings.updated_at') && /để nguyên 1/.test(l)),
+      .every((x) => lan1.log.some((l) => l.includes('Nâng cấp 012') && new RegExp(x.replace(/\./g, '\\.').replace(/ 1$/, ' [1-9]\\d* dòng')).test(l))) && lan1.log.some((l) => l.includes('pos_settings.updated_at') && /để nguyên 1/.test(l)),
     lan1.log.join(' | ').slice(0, 300));
   const plSau = await Promise.all(PHAN_LOAI.map(([b, c], i) => (dongPL[i] == null ? null : motDong(`SELECT ${c} AS v FROM ${b} WHERE rowid = ?`, [dongPL[i]]).then((r) => r?.v ?? null))));
   const plSai = PHAN_LOAI.filter(([, , l], i) => plSau[i] !== MOI[l]).map(([b, c, l], i) => `${b}.${c}(${l})=${plSau[PHAN_LOAI.findIndex((x) => x[0] === b && x[1] === c)]}`);
@@ -435,17 +435,17 @@ async function main() {
   const lech = [...dsTruoc].findIndex((c, i) => c !== dsSau[i]);
   k('K5b đối soát ngày 02.11.2026 (dữ liệu dạng T) trước = sau bước 012', !!lan1.r && dsTruoc === dsSau,
     dsTruoc === dsSau ? '' : `lệch ở: ${dsTruoc.slice(Math.max(0, lech - 80), lech + 80)} ⇒ ${dsSau.slice(Math.max(0, lech - 80), lech + 80)}`);
-  const saoThua = await db.query("SELECT name FROM sqlite_master WHERE name LIKE '_sao_luu_012_%' AND name IN ('_sao_luu_012_pos_users', '_sao_luu_012_pos_wallets', '_sao_luu_012_pos_kh_lan_thu')");
+  const saoThua = await db.query("SELECT name FROM sqlite_master WHERE name LIKE '_sao_luu_012_%' AND name IN ('_sao_luu_012_pos_kh_lan_thu', '_sao_luu_012_pos_refund_requests', '_sao_luu_012_pos_registrations')");
   k('B5 bảng không có dòng phải đổi → không tạo bảng sao lưu', !!lan1.r && saoThua.length === 0, saoThua.map((r) => r.name).join(','));
 
   muc('E. App KH');
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
   await db.run("INSERT INTO pos_customers (phone, name, created_at, updated_at) VALUES ('0938000030', 'Khách E', '2026-02-01 03:00:00', '2026-02-01 03:00:00')");
+  datVN('2027-05-02T06:30:00');
+  const donE = await taoDon({ customer_phone: '0938000030' });   // TRƯỚC khi có hạng (giá hạng làm lệch tiền mặt 25.000)
   await db.run("INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by) VALUES ('0938000030', ?, 'Vàng', 1, '2027-04-01T10:00:00', '2027-07-01 10:00:00', 'thu')", [hang.id]);
   await db.run("UPDATE pos_products SET ton_luc = '2026-03-01 08:00:00' WHERE id = ?", [sp[0].id]);   // ton_luc cũ: VN dấu cách (products.js)
   if (buoc?.chay) await chayBuoc();
-  datVN('2027-05-02T06:30:00');
-  await taoDon({ customer_phone: '0938000030' });
   await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, expires_at, reason, created_by, created_at) VALUES ('0938000030', 'earn', 5, '2028-04-01T00:00:00', 'thử', 'thu', ?)", [getNow()]);
   const khE = await motDong("SELECT id FROM pos_customers WHERE phone = '0938000030'");
   const tkE = kyTokenKhach(khE.id);
@@ -461,7 +461,7 @@ async function main() {
   const coGio = ['/toi', '/menu', '/diem', '/don', '/gio-hoat-dong'].filter((c) => !gioDi.includes(c));
   k('E1 giờ trong /api/kh (hồ sơ, hạng, menu ton_luc, điểm, đơn, giờ hoạt động — dữ liệu cũ đã nâng cấp) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN',
     gioLa.length === 0 && coGio.length === 0 && JSON.stringify(toi).includes('2026-02-01T10:00:00'),
-    gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') : '') + ' · ' + traVe.join(' '));
+    gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') + ` (đơn E ${donE})` : '') + ' · ' + traVe.join(' '));
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));
   const pb = Number((hd2.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
   k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 (main 5 + 1), khối máy đọc phien_ban 6, nhật ký có dòng v6 GIO-VN-1',
