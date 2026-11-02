@@ -256,18 +256,16 @@ async function main() {
   k('C1 điểm hạn 01.01.2027 00:00: 31.12 06:59:59 / 07:00 / 23:59:59 còn 10, 01.01 00:00:00 hết (hồi quy)', c1.join(',') === '10,10,10,0', c1.join(','));
 
   const doiSoat = require(path.join(MAY_CHU, 'utils', 'doiSoat.js'));
-  const denLe = async (moc) => { datVN(moc); const d = await taoDon({});
-    const ma = (await motDong('SELECT code FROM pos_orders WHERE id = ?', [d])).code;
-    await db.run('INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, created_by, created_at) VALUES (?, ?, ?, ?, 1, ?, ?, 10000, ?, ?)',
-      [d, ma, sp[0].code, sp[0].name, 'damaged', 'refund', 'thu', getNow()]).catch(() => null);
-    return ma; };
+  const denLe = async (moc) => { datVN(moc); const d = await taoDon({});   // route thật (damages.js) — đền tiền đơn KHÔNG SĐT
+    await goi('POST', '/api/pos/damages', { order_id: d, product_code: sp[0].code, quantity: 1, reason: 'damaged', action: 'refund', refund_amount: 10000 });
+    return (await motDong('SELECT code FROM pos_orders WHERE id = ?', [d])).code; };
   const maDen = [await denLe('2027-01-07T00:30:00'), await denLe('2027-01-07T06:59:00'), await denLe('2027-01-07T07:00:00')];
   imLang();
   const n7 = await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2027-01-07' }).catch((e) => ({ loi: e.message }));
   const n6 = await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2027-01-06' }).catch((e) => ({ loi: e.message }));
   noiLai();
   const coDen = (r, ma) => (r.can_xem || []).some((l) => l.bat_bien === 'DEN' && l.mo_ta.includes(ma));
-  k('C6 đền tiền khách lẻ lúc 00:30 / 06:59 / 07:00 VN ngày 07.01 (ghi bằng getNow) → đối soát ngày 07.01, không ra 06.01',
+  k('C6 đền tiền khách lẻ (route thật) lúc 00:30 / 06:59 / 07:00 VN ngày 07.01 → đối soát ngày 07.01, không ra 06.01',
     maDen.every((m) => coDen(n7, m) && !coDen(n6, m)), `07.01: ${maDen.map((m) => coDen(n7, m)).join(',')} · 06.01: ${maDen.map((m) => coDen(n6, m)).join(',')} ${n7.loi || ''}`);
 
   datVN('2027-03-01T00:10:00'); await taoDon({});
@@ -279,7 +277,7 @@ async function main() {
   datVN('2027-01-01T06:59:00');
   const so1 = await goi('GET', '/api/pos/settings/invoice/next-number');
   const sc1 = await goi('GET', '/api/pos/damages/stats');
-  k('C7b 06:59 VN ngày 01.01.2027: số hoá đơn năm 2027, thống kê sự cố tháng 2027-01', so1.data?.year === 2027 && /^2027-0?1$|^2027-01$/.test(String(sc1.month || sc1.data?.month || `${sc1.year || ''}-${sc1.thang || ''}`)) || (so1.data?.year === 2027 && JSON.stringify(sc1).includes('2027-01')),
+  k('C7b 06:59 VN ngày 01.01.2027: số hoá đơn năm 2027, thống kê sự cố tháng 2027-01', so1.data?.year === 2027 && sc1.month === '2027-01',
     `${so1.data?.year} · ${JSON.stringify(sc1).slice(0, 120)}`);
 
   await db.run("INSERT INTO pos_customers (phone, name, sync_status, created_at) VALUES ('0938000011', 'K 25h', 'new', '2027-04-09T08:59:00'), ('0938000012', 'K 23h', 'new', '2027-04-09T10:01:00')");
@@ -291,7 +289,7 @@ async function main() {
 
   const { readFlashState } = require(path.join(MAY_CHU, 'utils', 'flashState.js'));
   await datCai('flash_enabled', 'true'); await datCai('flash_percent', '10'); await datCai('flash_product_keys', JSON.stringify([`${sp[0].sx_product_type}_${sp[0].sx_product_id}`]));
-  const fl = async (bd, kt, moc) => { await datCai('flash_start', bd); await datCai('flash_end', kt); datVN(moc); return (await readFlashState()).is_flash_now; };
+  const fl = async (bd, kt, moc) => { await datCai('flash_start', bd); await datCai('flash_end', kt); datVN(moc); return (await readFlashState(db.query, getNow)).is_flash_now; };
   const c8 = [await fl('22:00', '02:00', '2027-01-02T00:00:00'), await fl('07:00', '09:00', '2027-01-02T06:59:59'), await fl('07:00', '09:00', '2027-01-02T07:00:00')];
   await datCai('flash_enabled', 'false');
   k('C8 giờ vàng 22:00–02:00 lúc 00:00 VN đang chạy; 07:00–09:00: 06:59:59 chưa, 07:00:00 chạy (hồi quy)', c8.join(',') === 'true,false,true', c8.join(','));
@@ -326,7 +324,7 @@ async function main() {
     try {
       if (bang === 'pos_orders') id = Number(dk.lastInsertRowid);
       else if (bang === 'pos_settings') { await db.run("INSERT INTO pos_settings (key, value, updated_at) VALUES ('gv1_lan', '1', ?)", [cu]); id = 'gv1_lan'; }
-      else if (bang === 'pos_damage_logs') id = Number((await db.run("INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, created_by, created_at) VALUES (1, 'X', 'X', 'X', 1, 'damaged', 'remake', 0, 'thu', ?)", [cu])).lastInsertRowid);
+      else if (bang === 'pos_damage_logs') id = Number((await db.run("INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, processed_by_name, created_at) VALUES (1, 'X', 'X', 'X', 1, 'damaged', 'remake', 0, 'thu', ?)", [cu])).lastInsertRowid);
       else if (bang === 'pos_balance_transactions') id = Number((await db.run("INSERT INTO pos_balance_transactions (customer_phone, type, amount, balance_before, balance_after, created_by, created_at) VALUES ('0938000020', 'topup', 1000, 0, 1000, 'thu', ?)", [cu])).lastInsertRowid);
       else if (bang === 'pos_invoice_logs') id = Number((await db.run("INSERT INTO pos_invoice_logs (order_id, order_code, invoice_number, printed_at) VALUES (1, 'X', '9/2026', ?)", [cu])).lastInsertRowid);
       else if (bang === 'pos_membership_purchases') id = Number((await db.run("INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by) VALUES ('0938000021', 1, 'Vàng', 1, '2026-11-02T10:00:00', ?, 'thu')", [cu])).lastInsertRowid);
@@ -369,8 +367,8 @@ async function main() {
   let khoiPhuc = null; try { khoiPhuc = require(path.join(MAY_CHU, 'utils', 'khoiPhuc.js')); } catch { /* */ }
   const idKp = 990001;
   try {
-    await khoiPhuc.thucHien([{ status: 'se_khoi_phuc', viTri: 0, table: 'pos_damage_logs', sheet: 'Sự cố', cot: ['id', 'order_id', 'order_code', 'product_code', 'product_name', 'quantity', 'reason', 'action', 'created_by', 'created_at'],
-      dong: [{ __rowNum__: 1, id: idKp, order_id: 1, order_code: 'KP', product_code: 'X', product_name: 'X', quantity: 1, reason: 'damaged', action: 'remake', created_by: 'thu', created_at: '2026-02-01 20:00:00' }] }]);
+    await khoiPhuc.thucHien([{ status: 'se_khoi_phuc', viTri: 0, table: 'pos_damage_logs', sheet: 'Sự cố', cot: ['id', 'order_id', 'order_code', 'product_code', 'product_name', 'quantity', 'reason', 'action', 'processed_by_name', 'created_at'],
+      dong: [{ __rowNum__: 1, id: idKp, order_id: 1, order_code: 'KP', product_code: 'X', product_name: 'X', quantity: 1, reason: 'damaged', action: 'remake', processed_by_name: 'thu', created_at: '2026-02-01 20:00:00' }] }]);
   } catch (e) { loiGoc('  (khôi phục hỏng: ' + e.message + ')'); }
   const kp = await motDong('SELECT created_at AS v FROM pos_damage_logs WHERE id = ?', [idKp]);
   k('B6 khôi phục bản sao lưu CŨ (giờ UTC dấu cách) → ra giờ VN dạng T', kp?.v === '2026-02-02T03:00:00', String(kp?.v));
