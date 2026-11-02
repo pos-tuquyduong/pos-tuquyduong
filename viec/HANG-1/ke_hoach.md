@@ -37,10 +37,13 @@ Chọn **B**: gói luôn đọc / ghi cùng hạng (PUT gửi cả danh sách), 
 - `pos_membership_tiers`: `cach_co TEXT NOT NULL DEFAULT 'ban'` (`ban` | `chi_cap`), `goi TEXT NOT NULL DEFAULT '[]'`
   (`[{ so_thang, gia, bat }]`, `gia` null = chưa đặt giá). **Thứ bậc = cột `sort_order` có sẵn** (lớn = cao — seed đã là Vàng 1 < Bạch Kim 2;
   `/hang` đã trả nó là `thu_tu`). Không thêm cột thứ bậc.
-- `pos_membership_purchases`: `loai TEXT NOT NULL DEFAULT 'ban'` (`ban` | `cap` | `thu_hoi`), `so_thang INTEGER`, `vo_han INTEGER NOT NULL
-  DEFAULT 0`. Người cấp = `created_by` có sẵn, lúc cấp = `purchased_at` có sẵn. Dòng cũ (không `so_thang`) vẫn đọc đúng theo `expires_at`.
+- `pos_membership_purchases`: `loai TEXT NOT NULL DEFAULT 'ban'` (`ban` | `cap` | `thu_hoi`), `so_thang INTEGER`. **Không thêm cột
+  `vo_han`** (soát kế hoạch): cấp không thời hạn = `loai='cap'`, `so_thang` NULL, `expires_at = HAN_VO_HAN` — một cách ghi, không hai. Người cấp = `created_by` có sẵn, lúc cấp = `purchased_at` có sẵn. Dòng cũ (không `so_thang`) vẫn đọc đúng theo `expires_at`.
 - Dữ liệu: `Vàng` (đúng tên) → `cach_co='ban'`, `goi` = 1 tháng + 3 tháng, giá trống, bật; `Kim Cương` (nếu có) → `chi_cap`, `goi='[]'`.
   Chỉ đổi khi `goi` còn `'[]'` (chạy lại không đè cài đặt chủ quán).
+- Thứ bậc: đánh lại `sort_order` của các hạng đang bật thành 1..n theo thứ tự đang hiện (`sort_order, card_price, id`) — kho có hạng
+  `sort_order` 0 (mặc định cột) hoặc trùng thì lần Lưu đầu không bị 400 oan; "cao nhất" không mơ hồ. Kim Cương thêm tay mà đứng dưới Vàng
+  thì chủ quán bấm ▲ (không tự đoán thứ bậc thay chủ quán).
 - Quyền mới `cap_hang`: owner 1 · manager 0 · staff 0 (`INSERT OR IGNORE pos_permissions`, như khuôn `database.js:1106-1110`).
 - Dòng mua / cấp thẻ vẫn CHẶN khôi phục như nay (`backup.js:126`) — không đổi `backup.js`. Không có bảng mới → SAOLUU-2 không phải thêm.
 - `chay.js`: không phải sửa (bước 013 theo đúng khuôn `chay(tx, { themCot })`).
@@ -56,20 +59,23 @@ Chọn **B**: gói luôn đọc / ghi cùng hạng (PUT gửi cả danh sách), 
 Chọn **B**. Hàm thuần `tinhHang(dongSo, dsHang, bayGio)` (không đụng CSDL, dễ thử) đi qua sổ của MỘT khách theo `purchased_at, id`:
 - `ban` có `so_thang`: hạn = cộng tháng (lớn hơn của hạn đang còn và lúc mua) — **cộng nối**; dòng cũ không `so_thang`: hạn = lớn hơn của
   hạn đang có và `expires_at`.
-- `cap`: hạn = `vo_han` ? vô hạn : lúc cấp + số tháng (ĐẶT LẠI, như demo tab 2 — `demo_dot2.html` dòng `KH.the.filter(...)` rồi `push`).
+- `cap`: hạn = (`so_thang` NULL) ? vô hạn : lúc cấp + số tháng (ĐẶT LẠI, như demo tab 2 — `demo_dot2.html` dòng `KH.the.filter(...)` rồi `push`).
 - `thu_hoi`: hạng đó hết.
 - Kết quả: hạng dùng được = vô hạn hoặc hạn > bây giờ; **hạng hiện tại = `sort_order` lớn nhất** trong các hạng dùng được (hạng trên hết
   hạn → tự về hạng dưới). Không hạng nào còn hạn mà sổ có dòng → `status 'expired'` với hạng hết gần nhất (màn Khách hiện như nay).
-- Trả thêm `vo_han`, `thu_bac`, `cac_hang[] { tier_id, tier_name, thu_bac, het_han, vo_han }` (cho "Còn giữ: …" và khoá gói ở quầy);
-  giữ nguyên `tier_id, tier_name, expires_at, days_remaining, status` (vô hạn: `expires_at`/`days_remaining` = null, status `active`).
+- Trả thêm `vo_han` (bool), `thu_bac` (khoá gói ở quầy chỉ cần số này). Bỏ `cac_hang[]` / "Còn giữ: …" của demo — không có trong nghiệm
+  thu (soát kế hoạch câu 2); giữ nguyên `tier_id, tier_name, expires_at, days_remaining, status` (vô hạn: `expires_at`/`days_remaining` = null, status `active`).
 - `getMembershipStatus(query, queryOne, getNow, phone)` GIỮ chữ ký → `orders.js`, `kh/index.js`, `membership.js` không đổi lời gọi.
   Thêm `hangNhieuKhach(query, getNow)` (2 câu SQL, gom theo SĐT, gọi CÙNG `tinhHang`) cho `customers-v2.js` — xoá câu SQL riêng ở đó.
 - Cộng tháng `congThang(chuoiGioVN, n)` tính trên chuỗi `YYYY-MM-DDTHH:mm:ss` (Date.UTC) — không lệch theo múi giờ máy (thay
   `addMonthsSafe + toISOString` ở `orders.js:1062-1064`). Hạn vô hạn ghi vào `expires_at` (cột NOT NULL) bằng hằng số có tên `HAN_VO_HAN =
-  '9999-12-31T23:59:59'` — sự thật là cột `vo_han`; người đọc cũ nào sót cũng hiểu là "còn hạn" (chiều an toàn).
+  '9999-12-31T23:59:59'`; người đọc cũ nào sót cũng hiểu là "còn hạn" (chiều an toàn). Mọi chỗ trả ra ngoài đổi nó thành `null`
+  (`kh/index.js:51` đang `String(m.expires_at)` → phải sửa đúng dòng này, không để ra `"null"` hay `9999-…`).
 - `expires_at` của dòng mới = hạn của hạng đó NGAY SAU dòng này (để nhật ký hiện "đến …"); chỉ để xem, hàm không dùng nó cho dòng mới.
 
 ## 3. Cài đặt hạng — `server/routes/tiers.js` (nghiệm thu A)
+- `card_price` thôi dùng (giữ cột, không đọc / không ghi): bỏ cổng `card_price` ở PUT (`tiers.js:54-58` — giữ thì hạng mới 400), xếp
+  `ORDER BY sort_order, id` ở `tiers.js:25` và `kh/index.js:45`; Settings / Sales thôi hiện ô giá thẻ.
 - GET: thêm `cach_co`, `goi` (mảng), bỏ `valid_months` (hạn theo gói). Trả được nguyên vào PUT (bài P26a C9 gửi lại GET → 200).
 - PUT `{ tiers[] }`: một hàm `kiemHang(t)` kiểm HẾT trước khi ghi (tên khác rỗng, `sort_order` nguyên ≥ 1 và **không trùng** giữa các hạng
   đang bật — trùng thì "cao nhất" mơ hồ; % 0–90 như cũ; `cach_co` ∈ ban/chi_cap; gói: `so_thang` nguyên 1–60 không trùng trong hạng, `gia`
@@ -90,7 +96,8 @@ Chọn **B**. Hàm thuần `tinhHang(dongSo, dsHang, bayGio)` (không đụng CS
 
 ## 5. Cấp / thu hồi hạng — `server/routes/membership.js` (nghiệm thu C) — phụ thuộc câu hỏi Q1
 - `POST /cap { phone, tier_id, so_thang | null (= không thời hạn), pin }` — `checkPermission('cap_hang')` + PIN chủ quán. Hạng phải `chi_cap`
-  (khác → 400 `HANG_KHONG_PHAI_CHI_CAP`), khách phải có trong `pos_customers` (không tạo khách — luật thiết kế 6), `so_thang` nguyên 1–60.
+  (khác → 400 `HANG_KHONG_PHAI_CHI_CAP`), SĐT chuẩn hoá được (cùng điều kiện với mua thẻ `orders.js:233` — màn Khách gộp cả khách SX chưa có
+  dòng `pos_customers`, đòi dòng đó là chặn oan; chỉ ghi sổ thẻ, không tạo khách), `so_thang` nguyên 1–60.
   Ghi một dòng `loai='cap', price_paid=0, order_id=NULL, created_by=<người cấp>`. Không thu tiền, không qua đơn.
 - `POST /thu-hoi { phone, tier_id, pin }` — cùng quyền + PIN; chỉ khi khách đang giữ hạng `chi_cap` đó → dòng `loai='thu_hoi'`.
 - `GET /nhat-ky/:phone` (đăng nhập) — các dòng sổ của khách, mới trước (loại, hạng, số tháng / vô hạn, giá, đơn, lúc, ai).
@@ -107,55 +114,67 @@ Chọn **B**. Hàm thuần `tinhHang(dongSo, dsHang, bayGio)` (không đụng CS
 - `Settings.jsx` thẻ Hạng: mỗi hạng một thẻ (tên, "Thứ bậc n", ▲▼ đổi bậc, % thường, % nhóm đặc biệt, nút đôi Bán / Chỉ cấp, danh sách gói
   ☐Bán · tháng · giá · Xoá gói · ＋ Thêm gói), ＋ Thêm hạng, 💾 Lưu; Xoá hạng **bấm 2 lần** ("Bấm lần nữa để xoá"), bỏ `window.confirm`;
   bỏ ô "số tháng hiệu lực". Không có ô % combo (COMBO-1a — Cấm). Ô đặt PIN chủ quán (nếu Q1-a). Gọi máy chủ qua `utils/api.js`.
-- `Sales.jsx` "🎟️ Mua thẻ": mỗi gói một nút "Vàng 3 tháng · 300.000đ"; gói chưa giá không hiện; khách có hạng cao hơn → nút khoá + lý do
+- `Sales.jsx` "🎟️ Mua thẻ": `unique_key` và `khoaGio` (`:160`, `:524`) thêm `so_thang` — đổi 1 → 3 tháng phải hỏi lại `/tinh-thu`;
+  mỗi gói một nút "Vàng 3 tháng · 300.000đ"; gói chưa giá không hiện; khách có hạng cao hơn → nút khoá + lý do
   "Khách đang có hạng cao hơn"; giỏ gửi `{ tier_id, so_thang }`. Giá hiện trên giỏ chỉ để xem (máy chủ tự tính).
-- `Customers.jsx`: hạng hiện tại + hạn ("Không thời hạn") + "Còn giữ: …"; khối "Cấp hạng" chỉ hiện khi `hasPermission('cap_hang')` (chọn
+- `Customers.jsx`: danh sách (`:494-495`) và chi tiết: hạng hiện tại + hạn ("Không thời hạn" — không để "Còn null ngày"); khối "Cấp hạng" chỉ hiện khi `hasPermission('cap_hang')` (chọn
   hạng chi_cap, 1/3/6/12 tháng hoặc Không thời hạn, ô PIN, Cấp; Thu hồi cạnh hạng đã cấp); "Nhật ký hạng".
 - Chủ quán thử tay trên điện thoại (LUAT §6.4): (1) Cài đặt → Hạng: thêm hạng, ▲▼, đặt giá gói Vàng, Lưu; (2) Bán hàng: chọn khách →
   Mua thẻ → Vàng 1 tháng → thu; (3) Khách hàng → khách đó → Cấp Kim Cương không thời hạn bằng PIN → thấy hạng đổi + nhật ký.
 
 ## 8. Bài thử `cong_cu/thu_HANG1.js` (khuôn `thu_P2223.js`: database.js + libsql thật trên kho tạm, route thật) — ánh xạ nghiệm thu
 
-| Nghiệm thu | Ca (mỗi ca ĐỎ trên gốc) |
+| Nghiệm thu | Ca (ca chặn / ca hành vi mới ĐỎ trên gốc; ca K5 "phải KHÔNG bị chặn" — A5b, A7, B4b, K1–K5 — vốn xanh trên gốc, là đối chứng) |
 |---|---|
 | A | A1 PUT thêm hạng không id + 2 gói → 200, GET thấy; A2 sửa gói (xoá một, thêm một) → đúng danh sách; A3 ngưỡng `so_thang` 0 / 1 / 60 / 61 / 1,5 → 400/200/200/400/400; A4 giá âm, giá lẻ, `cach_co` lạ, `sort_order` trùng → 400 `HANG_KHONG_HOP_LE`; A5 xoá hạng có khách còn hạn → 409 `HANG_CON_KHACH`, hạng vẫn bật; A5b (K5) xoá hạng khách đã hết hạn → 200; A6 `chi_cap` gửi kèm gói → lưu `[]`; A7 staff PUT → 403 |
-| B | B1 bán Vàng 3 tháng, máy khách gửi `unit_price` 1đ → tổng = giá gói; B2 gói chưa giá / gói tắt / tháng không có → 400 `GOI_HANG_KHONG_BAN`; B3 hạng chi_cap → 400 `HANG_CHI_CAP`; B4 có Kim Cương còn hạn mua Vàng → 400 `DA_CO_HANG_CAO_HON`; B4b (K5) Kim Cương HẾT hạn mua Vàng → 200; B5 mua Vàng 1 tháng hai lần → hạn = lần 1 + 1 tháng + 1 tháng (cộng nối, so BẰNG chuỗi); B5b mua lần 2 sau khi lần 1 hết hạn → tính từ lúc mua; B6 **hai quầy cùng bấm** (co.mocTruocTx: lệnh 2 chạy trọn trước giao dịch lệnh 1) → 2 dòng, hạn = +2 kỳ; B7 thiếu `so_thang` → 400; B8 `/tinh-thu` cùng giá + cùng mã lỗi |
-| C | C1 manager / staff cấp → 403; C2 owner sai PIN → 400, 5 lần → 423; C3 owner + PIN đúng cấp Kim Cương vô hạn → 1 dòng `cap`, `vo_han=1`, `created_by`, `price_paid=0`, KHÔNG đơn nào; C4 cấp hạng `ban` → 400; C5 cấp 3 tháng → hạn = lúc cấp + 3 tháng; C6 thu hồi → dòng `thu_hoi`, hạng về hạng dưới; C7 khách không có → 404, không tạo khách |
-| D | D1 Vàng + Kim Cương còn hạn → Kim Cương (cả `/membership/status`, `/toi`, giá trên đơn, danh sách `customers-v2`); D2 Kim Cương có hạn hết, Vàng còn → Vàng ở cả 4 chỗ; D3 vô hạn → `expires_at` null, `status active`; D4 đổi thứ bậc (▲▼) → hạng hiện tại đổi theo; D5 đối chứng: mua Vàng SAU khi cấp Kim Cương (dòng mới nhất là Vàng) vẫn ra Kim Cương — ca bắt hàm cũ "dòng mới nhất" |
-| E | E1 mua 1 tháng (lần 1) + 3 tháng (lần 2), huỷ lần 1 → hạn = lúc mua lần 2 + 3 tháng; E2 cùng ca qua XOÁ đơn; E3 huỷ lần 2 → hạn = lần 1; E4 huỷ đơn cấp? (không có đơn) — thu hồi là đường duy nhất |
-| F | F1 `/hang` đúng danh sách trường (so BẰNG) + `goi` chỉ gói bật có giá + `gia_the` = gói ngắn nhất / null; F2 `/toi.hang.het_han` null khi vô hạn; F3 `thu_HOPDONG_KH` xanh (chạy trong `npm test`) |
-| G | bài tĩnh trên `client/src`: không `window.confirm` ở thẻ Hạng, nút xoá đổi chữ lần 1; Sales gửi `so_thang`; Customers có khối Cấp hạng sau `hasPermission('cap_hang')`; `--day-du` so băm dist |
+| B | B1 bán Vàng 3 tháng, máy khách gửi giá giả ở CẢ `membership_buy.gia` / `unit_price` lẫn một dòng giỏ cùng `product_id` thẻ → tổng = giá gói máy chủ; B2 gói chưa giá / gói tắt / tháng không có → 400 `GOI_HANG_KHONG_BAN`; B3 hạng chi_cap → 400 `HANG_CHI_CAP`; B4 có Kim Cương còn hạn mua Vàng → 400 `DA_CO_HANG_CAO_HON`; B4b (K5) Kim Cương HẾT hạn mua Vàng → 200; B4c (K5) **lên hạng**: có Vàng còn hạn mua hạng `ban` cao hơn → 200, hạng hiện tại = hạng mới; B5 mua Vàng 1 tháng hai lần → hạn = lần 1 + 1 tháng + 1 tháng (cộng nối, so BẰNG chuỗi); B5b mua lần 2 sau khi lần 1 hết hạn → tính từ lúc mua; B6 **hai quầy cùng bấm** (co.mocTruocTx: lệnh 2 chạy trọn trước giao dịch lệnh 1) → 2 dòng, hạn = +2 kỳ (luật LUAT §6 đòi ca hai người cùng bấm cho việc tiền; canh luôn ai sau này đổi sang lưu hạn lúc ghi); B7 thiếu `so_thang` → 400; B8 `/tinh-thu` cùng giá + cùng mã lỗi |
+| C | C1 manager / staff cấp → 403; C2 owner sai PIN → 400, 5 lần → 423; C3 owner + PIN đúng cấp Kim Cương vô hạn → 1 dòng `cap`, `vo_han=1`, `created_by`, `price_paid=0`, KHÔNG đơn nào; C4 cấp hạng `ban` → 400; C5 cấp 3 tháng → hạn = lúc cấp + 3 tháng; C6 thu hồi → dòng `thu_hoi`, hạng về hạng dưới; C6b thu hồi bởi manager / staff → 403, sai PIN → 400; C7 SĐT không chuẩn hoá được → 400; C7b (K5) khách chỉ có ở SX (không dòng `pos_customers`) cấp được, KHÔNG sinh dòng `pos_customers` |
+| D | D1 Vàng + Kim Cương còn hạn → Kim Cương ở 5 chỗ (`/membership/status`, `/toi`, `/menu` `gia_hang` của khách, giá trên đơn, danh sách `customers-v2`); D2 Kim Cương có hạn hết, Vàng còn → Vàng ở cả 5 chỗ; D3 vô hạn → `expires_at` null, `status active`; D4 đổi thứ bậc (▲▼) → hạng hiện tại đổi theo; D5 đối chứng: mua Vàng SAU khi cấp Kim Cương (dòng mới nhất là Vàng) vẫn ra Kim Cương — ca bắt hàm cũ "dòng mới nhất" |
+| E | E1 mua 1 tháng (lần 1) + 3 tháng (lần 2), huỷ lần 1 → hạn = lúc mua lần 2 + 3 tháng; E2 cùng ca qua XOÁ đơn; E3 huỷ lần 2 → hạn = lần 1 |
+| F | F1 `/hang` đúng danh sách trường (so BẰNG) + `goi` chỉ gói bật có giá + `gia_the` = gói ngắn nhất / null; F2 `/toi.hang.het_han` null khi vô hạn; F3 `thu_HOPDONG_KH` xanh (chạy trong `npm test`) — dữ liệu mẫu của bài đặt giá cho một gói để `data[].goi[].so_thang` / `.gia` không rỗng (`coDuong` `thu_HOPDONG_KH.js:207` đòi mảng không rỗng) |
+| G | bài tĩnh trên `client/src`, KHOANH đúng khối thẻ Hạng (Settings còn `confirm` ở chỗ khác — `:262, 391, 441, 605, 808` — không quét cả file): không `window.confirm`, xoá 2 lần; có ▲▼ và ＋ Thêm hạng; Sales: gói chưa giá không thành nút, gói khoá kèm lý do khi `thu_bac` khách cao hơn, gửi `so_thang`, `khoaGio` có `so_thang`; Customers: khối Cấp hạng sau `hasPermission('cap_hang')`, Nhật ký hạng, không "null ngày"; `--day-du` so băm dist |
 | K5 | K1 khách đúng một hạng còn hạn: giá hạng trên đơn = trước khi vá (cùng số `tier_unit_price`); K2 điểm của đơn có giảm hạng không đổi; K3 đơn không mua thẻ không đổi; K4 dòng sổ CŨ (không `so_thang`) vẫn ra đúng hạng / hạn; K5 P26a C9 PUT lại GET → 200; bài cũ trong `npm test` xanh |
-| Dữ liệu | N1 013 trên kho có Vàng + Kim Cương → Vàng ban 2 gói giá trống, KC chi_cap; N2 chạy lại 013 (đã ghi) không đè gói chủ quán đặt; N3 tên khác ("Vàng " có khoảng trắng) → không đổi; N4 có bảng `_sao_luu_013_*` |
+| Dữ liệu | N1 013 trên kho có Vàng + Kim Cương → Vàng ban 2 gói giá trống, KC chi_cap; N2 gọi THẲNG `chay()` của 013 lần hai (bộ chạy bỏ qua bước đã ghi ở `pos_nang_cap`, `chay.js:33-40` — đi qua bộ chạy là xanh oan) → không đè gói chủ quán đặt; N2b hạng `sort_order` 0 / trùng → 1..n, PUT lại GET → 200; N3 tên khác ("Vàng " có khoảng trắng) → không đổi; N4 có bảng `_sao_luu_013_*`; N5 Bạch Kim (seed) → `ban`, gói rỗng, không bán được (400 `GOI_HANG_KHONG_BAN`) |
+| Đối soát | O1 cấp + thu hồi (dòng `order_id` NULL) → bất biến I15 KHÔNG báo lệch; O2 dòng `ban` mất đơn vẫn báo như cũ |
 
 Đột biến `viec/HANG-1/dot_bien.py` (mỗi tên một dòng, chạy từng tên, có đối chứng):
-`VS-hang-moi-nhat` (hạng = dòng mới nhất, như cũ) · `VS-khong-cong-noi` (hạn tính từ lúc mua, bỏ hạn đang còn) · `VS-gia-may-khach`
+`VS-hang-moi-nhat` (hạng = dòng mới nhất, như cũ — thay luôn `BV-tinhHang`, trùng nghĩa) · `VS-chieu-cao-hon` (lật chiều: chặn lên hạng) · `VS-khong-cong-noi` (hạn tính từ lúc mua, bỏ hạn đang còn) · `VS-gia-may-khach`
 (giá dòng thẻ lấy `unit_price` gửi lên) · `VS-cao-hon-bang` (chặn cả cùng hạng: `>=` thay `>`) · `VS-cap-khong-pin` (bỏ kiểm PIN) ·
 `VS-cap-quyen-chung` (cấp dùng `manage_promotions`) · `VS-vo-han-het` (vô hạn coi như hết) · `VS-xoa-hang-an` (xoá hạng còn khách vẫn ẩn) ·
-`VS-goi-chua-gia-ban` (gói giá null bán 0đ) · `VS-thang-61` (nới 60 → 61) ·
-`BV-tinhHang` (trả về hàm cũ) · `BV-chi-cap` (bỏ cổng chi_cap ở bán) · `BV-cao-hon` (bỏ cổng hạng cao hơn) · `BV-xoa-hang` (bỏ cổng xoá) ·
+`VS-goi-chua-gia-ban` (gói giá null bán 0đ) · `VS-thang-61` (nới 60 → 61) · `VS-thu-hoi-khong-pin` · `VS-khoa-gio-thieu-thang`
+(Sales `khoaGio` bỏ `so_thang`) · `VS-I15-cap` (I15 bỏ lọc dòng cấp) · `BV-chi-cap` (bỏ cổng chi_cap ở bán) · `BV-cao-hon` (bỏ cổng hạng cao hơn) · `BV-xoa-hang` (bỏ cổng xoá) ·
 `BV-customers-v2` (trả câu SQL riêng cũ) · `BV-hang-kh` (`/hang` trả như cũ).
 
-**Đường song song cần canh (K4):** mọi chỗ đọc hạng (4 chỗ ở mục 0 — `customers-v2` là chỗ dễ sót); mọi chỗ ghi sổ thẻ (bán `:1055`, cấp,
+**Đường song song cần canh (K4):** mọi chỗ đọc hạng (4 chỗ ở mục 0 — `customers-v2` là chỗ dễ sót) + bất biến Đối soát I15
+(`cong_cu/gia_lap/bat_bien.js:296-302`, chạy cả ở màn Đối soát thật qua `utils/doiSoat.js:15`): dòng cấp / thu hồi không có đơn → phải lọc
+`loai = 'ban'`, nếu không màn Đối soát đỏ oan mỗi lần cấp hạng; mọi chỗ ghi sổ thẻ (bán `:1055`, cấp,
 thu hồi); mọi chỗ xoá sổ thẻ (huỷ `:1525`, xoá đơn `:1715`); `/tinh-thu` + phiên thanh toán (cùng `taoDon`); hai màn bán (chỉ `Sales.jsx`
-bán thẻ); `refunds.js` (đã chặn, không đổi).
+bán thẻ); `refunds.js` (đã chặn, không đổi); mọi chỗ đọc `card_price` (`tiers.js:25, 54-58`, `kh/index.js:45, 93`, `Settings.jsx:680-689,
+2117`, `Sales.jsx:530, 989`).
+**Rủi ro biết trước, không thêm xử lý:** phiên QR payOS (`giuCho.js:20`) chạy lại `taoDon` lúc chốt — nếu giữa lúc mở phiên và lúc chốt chủ
+quán tắt gói / đổi giá, hoặc khách vừa được cấp hạng cao hơn, đơn bị 400 sau khi khách đã chuyển. Đúng khuôn gói sản phẩm hiện nay (đổi giá
+gói giữa chừng cũng vậy); cực hiếm trước khai trương — ghi vào CHƯA KIỂM / Phát hiện, không mở đường riêng.
 
 **Luồng hợp lệ phải KHÔNG bị chặn (K5):** mua cùng hạng để gia hạn (B5); mua hạng thấp khi hạng cao đã hết hạn (B4b); mua thẻ + món cùng đơn
-(P26c S4b — giá thẻ nay theo gói); mua thẻ trả tài khoản (P2223, P24, HD1); khách không hạng mua đơn thường (K3); PUT lại nguyên GET (P26a C9);
+(P26c S4b — giá thẻ nay theo gói); **lên hạng** khi đang có hạng thấp còn hạn (B4c); cấp cho khách chỉ có ở SX (C7b); mua thẻ trả tài khoản (P2223, P24, HD1); khách không hạng mua đơn thường (K3); PUT lại nguyên GET (P26a C9);
 xoá hạng không còn ai giữ (A5b); dòng sổ cũ không `so_thang` (K4); manager vẫn sửa Cài đặt hạng nếu có `manage_promotions`.
 
 ## 9. Câu hỏi cho chủ quán (đề xuất của mình in đậm — bạn chỉ cần xác nhận)
 **Q1 — PIN chủ quán chưa có.** Phiếu đòi "cấp có PIN chủ quán" nhưng hệ thống chưa có PIN này (chỉ có PIN của khách).
 - **Q1-a (đề xuất):** PIN 4–6 số của quán, lưu dạng băm (không ai đọc ra được), đặt / đổi ở Cài đặt → Hạng — chỉ tài khoản chủ quán, phải gõ
   mật khẩu đăng nhập; sai 5 lần khoá 15 phút. Một file chung `server/utils/pinChuQuan.js` để DONVI-1 (đổi đơn vị bán) dùng lại.
+  Bộ đếm sai / khoá lưu ở `pos_settings` (không bảng mới); route đặt PIN `POST /api/pos/membership/pin-chu-quan` ở `membership.js`
+  (trong Phạm vi; nếu bạn muốn nó ở Cài đặt chung thì thêm `server/routes/settings.js`).
   → bạn thêm dòng `- server/utils/pinChuQuan.js` vào `## Phạm vi` của phiếu.
 - Q1-b: không làm PIN riêng, cấp hạng gõ lại **mật khẩu đăng nhập** của chủ quán (ít code nhất, không cần thêm file; nhưng khác demo).
 
-**Q2 — 6 bài thử cũ phải sửa** vì cách mua thẻ đổi (bạn đã duyệt đổi → là bài sửa bình thường, ghi `SỐ CA`): các bài này mua thẻ bằng
+**Q2 — 8 bài thử cũ + 1 bất biến Đối soát phải sửa** vì cách mua thẻ đổi (bạn đã duyệt đổi → là bài sửa bình thường, ghi `SỐ CA`): các bài này mua thẻ bằng
 `{ tier_id }` với giá `card_price`, hoặc khoá `gia_the = card_price`; sau HANG-1 Vàng chưa có giá gói nên bán sẽ bị chặn. Mình chỉ sửa phần
 dựng dữ liệu (đặt giá một gói, gửi `so_thang`) và danh sách trường `/hang`, KHÔNG đổi điều các bài đó canh.
 → thêm vào `## Phạm vi`: `cong_cu/thu_DOISOAT1.js`, `cong_cu/thu_HD1.js`, `cong_cu/thu_P2223.js`, `cong_cu/thu_P24.js`, `cong_cu/thu_P26c.js`,
-`cong_cu/thu_KHAPI2.js`.
+`cong_cu/thu_KHAPI2.js`, `cong_cu/thu_UUDAI1.js` (`:371`, `:438`), `cong_cu/thu_P3.js` (`:591`), `cong_cu/gia_lap/kich_ban.js` (KB22 `:479`,
+KB32 `:682`, KB33 `:696` — chạy ở `--day-du`), và `cong_cu/gia_lap/bat_bien.js` (I15 `:296-302`: dòng CẤP hạng không có đơn sẽ bị màn
+Đối soát thật báo "dòng mua thẻ của đơn không còn" — sửa: chỉ xét `loai = 'ban'`).
 
 **Q3 — KH-SDT-1 chưa gộp** (phiếu ghi "mở sau khi KH-SDT-1 gộp"). **Đề xuất:** làm luôn — luật hai việc không dính nhau; chỉ có thể vướng
 khi gộp ở `customers-v2.js` / `kh/index.js` / `PHIEN_BAN`, chat soát xử lý lúc gộp.
@@ -167,7 +186,19 @@ khi gộp ở `customers-v2.js` / `kh/index.js` / `PHIEN_BAN`, chat soát xử l
 - Máy chủ ~310: membershipStatus +70 · tiers +70 · membership +60 · orders +20 · customers-v2 −10 · kh/index +10 · 013 +40 ·
   pinChuQuan +50 (nếu Q1-a). Vượt ~30 dòng do PIN chủ quán (phiếu chưa tính phần đặt PIN).
 - Giao diện ~300: Settings +170 (thay bảng cũ ~95 dòng) · Sales +40 · Customers +90. Vượt ~50 vì Cấp hạng + Nhật ký là khối mới hẳn.
-- Thử ~500 (`thu_HANG1.js`) + ~30 dòng sửa 6 bài cũ.
+- Thử ~520 (`thu_HANG1.js`) + ~45 dòng sửa 8 bài cũ + I15.
 
-## 11. Soát kế hoạch (agent phụ chỉ đọc, 4 câu)
-(ghi sau khi agent trả lời)
+## 11. Soát kế hoạch (agent phụ chỉ đọc, 4 câu — 02.11)
+Đã sửa kế hoạch theo các phát hiện (mình kiểm lại các dòng chính trước khi nhận):
+- Ngoài Phạm vi bị sót: `thu_UUDAI1.js`, `thu_P3.js`, `gia_lap/kich_ban.js` (mua thẻ `{ tier_id }`), bất biến I15 `gia_lap/bat_bien.js`
+  (dòng cấp không có đơn → Đối soát đỏ oan) → gộp vào Q2. Route + nơi lưu bộ đếm của PIN chủ quán → ghi rõ ở Q1.
+- Ngắn hơn: bỏ `cac_hang[]` / "Còn giữ"; bỏ cột `vo_han` (chỉ một cách ghi vô hạn); gộp `BV-tinhHang` vào `VS-hang-moi-nhat`; bỏ ca E4.
+  GIỮ ca B6 (LUAT §6 / skill bước 3 đòi ca hai người cùng bấm cho việc tiền) và PUT một giao dịch (PUT nay có thêm hạng mới).
+- Ca thiếu / xanh oan: B1 gửi giá giả ở cả `membership_buy` lẫn dòng giỏ; thêm B4c lên hạng + `VS-chieu-cao-hon`; C6b quyền / PIN của thu hồi
+  + `VS-thu-hoi-khong-pin`; D thêm `/menu`; F3 dữ liệu mẫu có gói có giá; G khoanh đúng thẻ Hạng, đủ ▲▼ / Thêm hạng / khoá gói / Nhật ký;
+  N2 gọi thẳng `chay()`; thêm N5 Bạch Kim; nhãn "mỗi ca đỏ trên gốc" sửa thành ca chặn đỏ / ca K5 đối chứng.
+- Đường song song: `card_price` mọi chỗ đọc (bỏ cổng PUT `tiers.js:54-58`); `Sales.jsx` `khoaGio`/`unique_key` thêm `so_thang`;
+  danh sách khách `Customers.jsx:494-495` với vô hạn; `kh/index.js:51` `het_han`; 013 đánh lại `sort_order` 1..n; cấp không đòi dòng
+  `pos_customers` (khách SX); phiên payOS ghi là rủi ro biết trước.
+- Ghi để biết, không làm: quyền `cap_hang` chưa có nhãn ở `server/routes/users.js:156-171` (ngoài Phạm vi — `refund_package`,
+  `xoa_pin_khach` cũng vậy); owner luôn qua `checkPermission` (`middleware/auth.js:90`).
