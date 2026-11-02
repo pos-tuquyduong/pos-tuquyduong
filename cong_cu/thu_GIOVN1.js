@@ -260,13 +260,13 @@ async function main() {
   const denLe = async (moc) => { datVN(moc); const d = await taoDon({});   // route thật (damages.js) — đền tiền đơn KHÔNG SĐT
     await goi('POST', '/api/pos/damages', { order_id: d, product_code: sp[0].code, quantity: 1, reason: 'damaged', action: 'refund', refund_amount: 10000 });
     return (await motDong('SELECT code FROM pos_orders WHERE id = ?', [d])).code; };
-  const maDen = [await denLe('2027-01-07T00:30:00'), await denLe('2027-01-07T06:59:00'), await denLe('2027-01-07T07:00:00')];
+  const maDen = [await denLe('2027-01-07T00:30:00'), await denLe('2027-01-07T06:59:00'), await denLe('2027-01-07T07:00:00'), await denLe('2027-01-07T17:30:00')];
   imLang();
   const n7 = await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2027-01-07' }).catch((e) => ({ loi: e.message }));
   const n6 = await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2027-01-06' }).catch((e) => ({ loi: e.message }));
   noiLai();
   const coDen = (r, ma) => (r.can_xem || []).some((l) => l.bat_bien === 'DEN' && l.mo_ta.includes(ma));
-  k('C6 đền tiền khách lẻ (route thật) lúc 00:30 / 06:59 / 07:00 VN ngày 07.01 → đối soát ngày 07.01, không ra 06.01',
+  k('C6 đền tiền khách lẻ (route thật) lúc 00:30 / 06:59 / 07:00 / 17:30 VN ngày 07.01 → đối soát ngày 07.01, không ra 06.01 (17:30: bù +7 hai lần sẽ ra 08.01)',
     maDen.every((m) => coDen(n7, m) && !coDen(n6, m)), `07.01: ${maDen.map((m) => coDen(n7, m)).join(',')} · 06.01: ${maDen.map((m) => coDen(n6, m)).join(',')} ${n7.loi || ''}`);
 
   datVN('2027-03-01T00:10:00'); await taoDon({});
