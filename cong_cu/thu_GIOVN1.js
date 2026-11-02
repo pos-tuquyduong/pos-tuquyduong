@@ -244,8 +244,9 @@ async function main() {
   process.env.TZ = 'UTC';
   k('C5b máy chạy TZ=Asia/Ho_Chi_Minh: mua 31.01 20:00 VN → hạn "2026-04-30T20:00:00" (chốt cuối tháng, không lệch 7 giờ)', c5c === '2026-04-30T20:00:00', String(c5c));
   const { getMembershipStatus } = require(path.join(MAY_CHU, 'utils', 'membershipStatus.js'));
-  datVN('2027-02-02T06:59:59'); const c5d = await getMembershipStatus('0938000002');
-  datVN('2027-02-02T07:00:00'); const c5e = await getMembershipStatus('0938000002');
+  const hangKhach = (sdt) => getMembershipStatus(db.query, db.queryOne, getNow, sdt);
+  datVN('2027-02-02T06:59:59'); const c5d = await hangKhach('0938000002');
+  datVN('2027-02-02T07:00:00'); const c5e = await hangKhach('0938000002');
   k('C5c thẻ hạn 07:00: 06:59:59 còn hạng, 07:00:00 hết', c5d?.status !== 'expired' && c5d?.tier_id && c5e?.status === 'expired', `${JSON.stringify(c5d)} / ${c5e?.status}`);
 
   const { layDiemKhach } = require(path.join(MAY_CHU, 'utils', 'diemKhach.js'));
