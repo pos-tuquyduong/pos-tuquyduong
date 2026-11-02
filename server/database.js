@@ -576,7 +576,7 @@ async function createTables() {
       order_id INTEGER NOT NULL,
       order_code TEXT NOT NULL,
       invoice_number TEXT NOT NULL,
-      paper_size TEXT DEFAULT 'a5',
+      paper_size TEXT DEFAULT '80mm',
       printed_by INTEGER,
       printed_by_name TEXT,
       printed_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -1158,7 +1158,7 @@ async function seedDefaultData() {
       ['store_logo', ''],
 
       // Cài đặt in
-      ['invoice_default_size', 'a5'],
+      ['invoice_default_size', '80mm'],
       ['invoice_quick_size', '80mm'],
       ['invoice_copies', '1'],
       ['invoice_auto_print', 'false'],
