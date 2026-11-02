@@ -62,8 +62,8 @@ const CM = '0900000011';  // trong danh sách, chỉ có dòng điểm mồ côi
 const G = '0900000012';   // trong danh sách, gói không gắn đơn đang được đơn của số khác dùng → giữ cả số (lỗi 4)
 const M2 = '0900000014';  // trong danh sách, là mẹ của khách 0900000015 (ngoài danh sách) → giữ cả số (lỗi 5)
 const T4 = '0900000017';  // trong danh sách, nạp ví tiền mặt rơi vào két ĐÃ ĐẾM từ ngày X → giữ cả số (Q9)
-const T5 = '0900000018';  // đơn tiền mặt trước X, két 31/08 (< X): theo ngày → dọn + liệt kê két; chỉ theo SĐT (không X) → giữ (Q9)
-const KET = ['2026-08-01', '2026-08-06', '2026-08-31', X, '2026-09-02', '2026-09-05'];   // ngày đã đếm két (sổ đối soát KHÔNG dọn)
+const T5 = '0900000018';  // đơn tiền mặt trước X, két 30/08 (< X): theo ngày → dọn + liệt kê két; chỉ theo SĐT (không X) → giữ (Q9)
+const KET = ['2026-08-01', '2026-08-06', '2026-08-30', X, '2026-09-02', '2026-09-05'];   // ngày đã đếm két (sổ đối soát KHÔNG dọn)
 const SO_DON_LON = 40;  // đơn thử có ghi chú dài — bản chụp vượt trần một ô Excel (32767 ký tự)
 
 async function main() {
@@ -237,8 +237,8 @@ async function main() {
 
   // Q9 (chủ quán chốt 02.11) — két một ngày = để lại lần đếm TRƯỚC + tiền mặt vào / ra cả KHOẢNG (doiSoat.js soKet): két < X được lệch
   // (liệt kê đúng ngày), két từ X không được đổi → đơn thử có tiền rơi vào khoảng của két ≥ X giữ lại; không chọn ngày → mọi két giữ nguyên.
-  await don('ORD-20260820-T5', T5, '2026-08-20T10:00:00', true, { cash_amount: 20000 });   // két 31/08 (< X) → lệch, liệt kê
-  await don('ORD-20260831-HUY', null, '2026-08-31T10:00:00', false, { status: 'cancelled', cash_amount: 20000, cancelled_at: X + 'T09:00:00' });   // huỷ ĐÚNG ngày X → két X
+  await don('ORD-20260820-T5', T5, '2026-08-20T10:00:00', true, { cash_amount: 20000 });   // két 30/08 (< X) → lệch, liệt kê; đơn 31/08 23:59:59 (0đ tiền mặt, khoảng két X) vẫn dọn
+  await don('ORD-20260829-HUY', null, '2026-08-29T10:00:00', false, { status: 'cancelled', cash_amount: 20000, cancelled_at: X + 'T09:00:00' });   // huỷ ĐÚNG ngày X → két X
   const ONO = await don('ORD-20260825-NO', null, '2026-08-25T10:00:00', false, { cash_amount: 30000 });   // nợ, thu tiền mặt 02/09 → két 02/09
   await them('pos_order_log', { order_id: ONO, loai: 'thu', luc: '2026-09-02T10:00:00', chi_tiet: JSON.stringify({ cach: 'cash', so_tien: 30000 }) });
   await them('pos_customers', { phone: T4, name: 'Thử nạp', created_at: '2026-09-04T08:00:00' });
@@ -328,8 +328,8 @@ async function main() {
     k('D1 theo ngày KHÔNG chạm hồ sơ khách, ví, gói / thẻ không gắn đơn', !sd.pos_customers && !sd.pos_wallets && !sd.pos_customer_packages && !sd.pos_membership_purchases, JSON.stringify(sd));
     k('D1 tổng tiền = tổng đơn sẽ dọn (45 × 50.000)', l1.j.tong_tien === 50000 * (5 + SO_DON_LON), String(l1.j.tong_tien));
     k('D1 tổng điểm còn hạn sẽ mất: 500 − 200 + 50 + 100 + 300 (P7 hết hạn không tính)', l1.j.tong_diem_con_han === 750, String(l1.j.tong_diem_con_han));
-    k('D1 két < X sẽ lệch, tính theo KHOẢNG két (lần đếm trước → ngày đếm): 06/08 (đơn O1 cùng ngày) + 31/08 (đơn T5 ngày 20/08, không có két đúng ngày đơn)',
-      bang(l1.j.ket_se_lech, ['2026-08-06', '2026-08-31']), JSON.stringify(l1.j.ket_se_lech));
+    k('D1 két < X sẽ lệch, tính theo KHOẢNG két (lần đếm trước → ngày đếm): 06/08 (đơn O1 cùng ngày) + 30/08 (đơn T5 ngày 20/08, không có két đúng ngày đơn; đơn 0đ ngày 31/08 không làm lệch)',
+      bang(l1.j.ket_se_lech, ['2026-08-06', '2026-08-30']), JSON.stringify(l1.j.ket_se_lech));
     k('D1 không bao giờ dọn sổ tiền / kho / phiên / đơn App', ['pos_doi_soat_ghi', 'pos_payos_su_kien', 'pos_phien_thanh_toan', 'pos_don_app', 'pos_nhat_ky_pin', 'pos_stock_pending', 'pos_products', 'pos_settings', 'pos_users', 'pos_sync_logs', 'pos_packages'].every((t) => !sd[t]));
   }
   muc('[D3] Giữ lại cả cụm: ví ≠ 0, phiên, nợ kho, sổ ví, gói');
@@ -344,7 +344,7 @@ async function main() {
     k('D3 đơn R lấy từ gói còn giữ → giữ lại', co('ORD-20260804-001', /gói còn giữ/));
     k('D3 đơn T1 mua gói mà đơn hôm nay đang dùng → giữ lại', co('ORD-20260812-001', /Mua gói/));
     k('D3 đơn thử có mã bill khách thật B đã nhận điểm / ưu đãi → giữ lại (điểm + mã của B còn)', co('ORD-20260805-001', /SĐT khác/));
-    k('D3 đơn thử huỷ ĐÚNG ngày X (tiền trả ra rơi vào két X) → giữ lại, lý do két', co('ORD-20260831-HUY', /két ngày 2026-09-01/), JSON.stringify(gd.filter((d) => /HUY|NO$/.test(d.code))));
+    k('D3 đơn thử huỷ ĐÚNG ngày X (tiền trả ra rơi vào két X) → giữ lại, lý do két', co('ORD-20260829-HUY', /két ngày 2026-09-01/), JSON.stringify(gd.filter((d) => /HUY|NO$/.test(d.code))));
     k('D3 đơn thử nợ, thu tiền mặt SAU X (két 02/09) → giữ lại, lý do két', co('ORD-20260825-NO', /két ngày 2026-09-02/));
     k('D3 ví ≠ 0 của K liệt kê riêng kèm số dư', ((l1.j.giu_lai && l1.j.giu_lai.vi) || []).some((v) => v.phone === K && Number(v.balance) === 50000), JSON.stringify(l1.j.giu_lai && l1.j.giu_lai.vi));
   }
@@ -385,8 +385,8 @@ async function main() {
     const l = await goi('/liet-ke', { sdt: [T5] });
     noiLai();
     const gd = (l.j.giu_lai && l.j.giu_lai.don) || [];
-    k('D15 đơn T5 (tiền vào két 31/08) → giữ lại, lý do két; T5 giữ cả số; không két nào lệch', l.status === 200 && !(l.j.don || []).length
-      && gd.some((d) => d.code === 'ORD-20260820-T5' && /két ngày 2026-08-31/.test(d.ly_do)) && bang(l.j.giu_lai.sdt, [T5]) && bang(l.j.ket_se_lech, []),
+    k('D15 đơn T5 (tiền vào két 30/08) → giữ lại, lý do két; T5 giữ cả số; không két nào lệch', l.status === 200 && !(l.j.don || []).length
+      && gd.some((d) => d.code === 'ORD-20260820-T5' && /két ngày 2026-08-30/.test(d.ly_do)) && bang(l.j.giu_lai.sdt, [T5]) && bang(l.j.ket_se_lech, []),
       `${l.status} ${JSON.stringify(gd)} ${JSON.stringify(l.j.ket_se_lech)}`);
   }
 
