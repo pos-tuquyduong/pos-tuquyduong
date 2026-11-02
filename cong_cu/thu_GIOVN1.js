@@ -241,9 +241,9 @@ async function main() {
   datVN('2026-11-02T07:00:00'); const c5b = await muaThe('0938000002');
   k('C5a mua thẻ 00:00 và 07:00 VN, hạn 3 tháng → expires_at "2027-02-02T00:00:00" / "2027-02-02T07:00:00"', c5a === '2027-02-02T00:00:00' && c5b === '2027-02-02T07:00:00', `${c5a} / ${c5b}`);
   process.env.TZ = 'Asia/Ho_Chi_Minh';
-  datVN('2026-01-31T20:00:00'); const c5c = await muaThe('0938000003');
+  datVN('2026-01-30T20:00:00'); const c5c = await muaThe('0938000003');
   process.env.TZ = 'UTC';
-  k('C5b máy chạy TZ=Asia/Ho_Chi_Minh: mua 31.01 20:00 VN → hạn "2026-04-30T20:00:00" (chốt cuối tháng, không lệch 7 giờ)', c5c === '2026-04-30T20:00:00', String(c5c));
+  k('C5b máy chạy TZ=Asia/Ho_Chi_Minh: mua 30.01 20:00 VN (giờ máy đã sang 31.01) → hạn "2026-04-30T20:00:00" (không lệch 7 giờ, không chốt nhầm cuối tháng)', c5c === '2026-04-30T20:00:00', String(c5c));
   const { getMembershipStatus } = require(path.join(MAY_CHU, 'utils', 'membershipStatus.js'));
   const hangKhach = (sdt) => getMembershipStatus(db.query, db.queryOne, getNow, sdt);
   datVN('2027-02-02T06:59:59'); const c5d = await hangKhach('0938000002');
