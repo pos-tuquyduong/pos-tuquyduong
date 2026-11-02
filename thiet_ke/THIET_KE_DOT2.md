@@ -62,6 +62,16 @@
   riêng); ô 3 "Quán đang giữ hộ khách" = số dư cuối kỳ tách tiền nạp / thưởng nạp / quà chào mừng còn hạn. Nạp chưa phải doanh thu.
   Quà hết hạn chưa dùng: không ghi chi phí. (Thời điểm tính thuế tiền nạp: chủ quán hỏi kế toán.)
 
+## M4b. Ví trên App KH (chủ quán duyệt luồng 02.11 tối) — demo thiet_ke/demo_app_vi.html
+- Ví: số to "Số dư ví" = `so_du_vi` (tổng dùng được); ngay dưới, CHỈ khi `qua_chao_mung` khác `null`: dòng nhỏ "Trong đó Quà chào mừng 20.000 — còn
+  5 ngày 3 giờ" (đếm ngược theo `bay_gio` POS, hết hạn thì mất). Thưởng nạp không có dòng riêng, không đếm ngược. Không có `so_du_nap`.
+- Thanh toán: một công tắc "Trừ từ số dư ví" — tắt → `qr`; bật + đủ → `vi` (PIN); bật + thiếu → `vi_qr` (trừ phần ví có, QR phần còn lại). Hiện rõ
+  "Trừ ví … / Quét QR phần còn lại …" trước khi Đặt; ví 0đ → công tắc khoá.
+- Theo dõi đơn: "Đã giữ trong ví … · Quét QR …" + QR, từ `cach_tra`, `giu_vi`, `con_lai` của `GET /don/:ma` (tải lại / máy khác vẫn đúng).
+- Lịch sử ví theo loại của `GET /vi`; loại lạ → chữ POS trả hoặc "Giao dịch ví".
+- Giao diện App TỰ thiết kế theo nguyên tắc chủ quán: đơn giản · dễ hiểu · thông minh (tự khoá công tắc khi ví 0đ, nhắc quà sắp hết hạn, nhớ lựa
+  chọn lần trước) · ít thao tác (bật công tắc → Đặt → PIN). Demo chỉ minh hoạ LUỒNG.
+
 ## M5. Bán theo kênh (KENH-1) — demo tab 3
 - Cài đặt "Kênh bán": mỗi nền tảng (Grab, Shopee, Be…) có % cộng thêm vào giá quầy (làm tròn 1.000), % phí, % thuế bị trừ (mặc định 4,5);
   sửa giá riêng từng món; in bảng giá từng kênh.
