@@ -128,6 +128,33 @@ BÀI HỌC: KHOÁ mỗi mục bảng phân loại có dòng gieo + đột biến
  cong.js tinh sau mỗi vòng sửa (A17); NGUYÊN TẮC SQL động trên mọi bảng production → ngoặc kép tên; NGUYÊN TẮC tên ca "mọi X" chỉ khi gieo có X.
 ```
 
+## Soát độc lập — vòng 3 (agent /ra-soat, lần soát cuối)
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ) — lỗi NẶNG vòng 2 đã sửa đúng (R12–R17 + N12, N13, R1, R11 BẮT ở B1c); A17 xanh; R10 / R3 / R4 / R2 BẮT; mốc C
+đủ; E1 có đơn + điểm (N16 BẮT); backup.js _Metadata đủ (N5 / N5b bị thu_SAOLUU2 E6 / F1 bắt); hồ sơ khớp số chạy. Chạy lại: HEAD 46/0, gốc
+17/29, dot_bien 43/43, --day-du 97/0/1, cong.js tinh chỉ A19.
+LỖI TÌM ĐƯỢC:
+ 1. viec/GIO-VN-1/trang_thai.md (## Phát hiện, dòng "doSoNo.js … cacheCustomersToLocal … cần SX thật để chạy") — lý do khai SAI.
+    cong_cu/thu_GIOVN1.js:168-171 đã thay sxApi bằng bản giả; cong_cu/thu_P26c.js:61 + :539-550 đã chạy doSoNo() với SX GIẢ;
+    customers-v2.js:23-38 chỉ cần biến môi trường khoá SX + callSxApi giả. Đột biến R9 / N17 (doSoNo.js:83 resolved_at dấu cách), R5, R8
+    (customers-v2.js:58-66) vẫn SỐNG 46/0. — K1 + K3 — NHẸ
+ 2. server/utils/chuanHoaGio.js:15 (MAU_CACH) — lời hứa "mẫu GLOB đủ độ dài, giá trị lạ không đụng" không có ca nào khoá. N15 (khớp tiền tố,
+    bỏ phần giây) SỐNG 46/0; N2 '${NGAY} *' SỐNG. Code hiện tại đúng; thiếu ca "giá trị lạ / thiếu giây trong cột đã phân loại → không đổi". — K3 — NHẸ
+ 3. server/routes/backup.js:134-141 — khối chú thích P26d của chanTrangTien nay nằm NGAY TRÊN themTrangMeta, tách khỏi chanTrangTien
+    (backup.js:143). Sửa: dời themTrangMeta lên trên khối /** P26d */. — K1 (TU-CHAY-6) — NHẸ
+NGHI NGỜ: N11 thêm pos_registrations.created_at: UTC vào COT_CACH SỐNG (hôm nay vô hại — cột chỉ ghi getNow dạng T); CONG7 trên ngày không có
+ thật ('2026-13-45 …') → NULL (cột NOT NULL làm 012 hỏng → kho 503; cột cho NULL mất giờ, có sao lưu); khôi phục bản cũ chạy chuanHoaGio trên
+ MỌI bảng, không sao lưu; dung lượng / thời gian _sao_luu_012_* trên Turso chưa đo.
+NGHIỆM THU: 6/6 mục có bằng chứng — A · B · C (C1–C11) · D · E · K5 · mục thiếu: không
+CHƯA SOÁT ĐƯỢC: Turso production; cong.js chay; thử tay; hệ ngoài đọc /api/pos/health.timestamp; lịch sử git từng cột (kiểm tay '+7 hours',
+ 'localtime'); route phía SX đọc giờ POS (người gác chặn grep có chữ khoá).
+BÀI HỌC: KHOÁ ca giá trị lạ (thiếu giây, mili-giây, chữ rác) vào cột đã phân loại + đột biến nới mẫu GLOB; KHOÁ dòng Phát hiện "cần X thật"
+ phải nêu đã tìm khuôn giả chưa; NGUYÊN TẮC chèn hàm giữa file → kiểm khối /** */ ngay trên chỗ chèn; NGUYÊN TẮC mỗi chỗ gọi hàm chung là một
+ chỗ vá (themTrangMeta: export-all ← thu_SAOLUU2 E6 / F1, export/:table ← B6b).
+```
+→ Hết 3 vòng, lần soát cuối chỉ còn lỗi NHẸ (không tiền / điểm / ví, không lộ thông tin, không ngoài Phạm vi) → **vòng sửa 4** ngay trong
+phiếu (LUAT §6.5), chỉ đúng 3 lỗi trên + ca thử + đột biến. Không gọi agent soát nữa.
+
 ## Câu hỏi
 - (không còn — kế hoạch đã duyệt ở Lượt 2)
 

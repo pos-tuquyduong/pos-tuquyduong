@@ -131,15 +131,15 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
   'pos_man_khach_quay', 'pos_man_khach_may'];   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
 
-/**
- * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
- * Màn Cài đặt hiện `error` ngay ở bước xem trước. Trả true khi đã trả lời 400.
- */
 /** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */
 function themTrangMeta(wb, bang) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ backup_date: getNow(), system: 'POS Tứ Quý Đường', version: '1.0', tables: bang }]), '_Metadata');
 }
 
+/**
+ * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
+ * Màn Cài đặt hiện `error` ngay ở bước xem trước. Trả true khi đã trả lời 400.
+ */
 function chanTrangTien(res, wb) {
   const bang = wb.SheetNames.filter((s) => BANG_KHONG_KHOI_PHUC.includes(BACKUP_TABLES.find((t) => t.label === s)?.name)
     && docTrang(wb.Sheets[s]).length > 0);

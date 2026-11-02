@@ -34,6 +34,7 @@ require.cache[duongKN] = {
 };
 process.env.JWT_SECRET = 'thu_giovn1_nv_' + Date.now();
 process.env.KH_JWT_SECRET = 'thu_giovn1_kh_' + Date.now();
+process.env.SX_API_KEY = 'khoa_sx_gia_thu_giovn1';   // customers-v2.js chỉ gọi SX (giả bên dưới) khi có khoá
 
 let dat = 0, hong = 0;
 const k = (ten, dung, them = '') => {
@@ -168,7 +169,9 @@ async function main() {
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
   const sxOk = async () => ({ ok: true });
-  require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => false, checkStock: async () => ({ sufficient: true }), outStockFIFO: sxOk, inStockReturn: sxOk, callSxApi: sxOk };
+  let sxBat = false, khachSX = [];   // SX giả: tắt mặc định; A2i / A2j bật để chạy doSoNo / bộ nhớ đệm khách SX
+  const sxGoi = async (duong) => (String(duong).includes('/customers/export') ? khachSX : { ok: true });
+  require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => sxBat, checkStock: async () => ({ sufficient: true }), outStockFIFO: sxOk, inStockReturn: sxOk, callSxApi: sxGoi };
   const app = express();
   app.use(express.json());
   for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync', 'signup-codes', 'backup']) {
@@ -232,6 +235,21 @@ async function main() {
   k('A2g ghi địa chỉ khách mới rồi sửa → pos_customers.created_at/updated_at', dc.status === 200 && dc2.status === 200 && gan(kDc?.a, MOC) && gan(kDc2?.b, MOC), `${mo(dc)} · ${JSON.stringify(kDc)} · ${kDc2?.b}`);
   const kSeed = await motDong("SELECT (SELECT created_at FROM pos_users WHERE role = 'owner' LIMIT 1) AS u, (SELECT created_at FROM pos_permissions LIMIT 1) AS p, (SELECT created_at FROM pos_membership_tiers LIMIT 1) AS t, (SELECT updated_at FROM pos_membership_tiers LIMIT 1) AS t2, (SELECT created_at FROM pos_product_groups LIMIT 1) AS g");
   k('A2h dữ liệu gieo lúc khởi tạo kho (chủ, quyền, hạng, nhóm) ghi dạng T', Object.values(kSeed || {}).every((v) => DANG_T.test(String(v))), JSON.stringify(kSeed));
+
+  await db.run("INSERT INTO pos_stock_pending (order_code, sx_product_type, sx_product_id, quantity, direction, status, van_tay, created_at) VALUES ('GV1DS', 'juice', 1, 1, 'out', 'pending', 'POS:GV1DS:1', ?)", [MOC]);
+  const { doSoNo } = require(path.join(MAY_CHU, 'utils', 'doSoNo.js'));
+  sxBat = true; imLang();
+  try { await doSoNo(); } finally { noiLai(); sxBat = false; }
+  const kDs = await motDong("SELECT status, resolved_at AS t FROM pos_stock_pending WHERE order_code = 'GV1DS'");
+  k('A2i đẩy sổ nợ tồn sang SX (doSoNo, SX giả) → pos_stock_pending.resolved_at', kDs?.status === 'resolved' && gan(kDs?.t, MOC), JSON.stringify(kDs));
+  khachSX = [{ phone: '0938000060', name: 'Khách SX mới' }, { phone: '0938111222', name: 'Khách SX đã có' }];
+  await goi('GET', '/api/pos/customers/search/0938');
+  let kSx = null;
+  for (let i = 0; i < 50 && !(kSx?.a); i++) { kSx = await motDong("SELECT created_at AS a, updated_at AS b FROM pos_customers WHERE phone = '0938000060'"); if (!kSx?.a) await new Promise((r) => setTimeout(r, 20)); }
+  const kSx2 = await motDong("SELECT updated_at AS b FROM pos_customers WHERE phone = '0938111222'");
+  khachSX = [];
+  k('A2j bộ nhớ đệm khách từ SX (cacheCustomersToLocal): khách mới created_at/updated_at, khách đã có updated_at', gan(kSx?.a, MOC) && gan(kSx?.b, MOC) && gan(kSx2?.b, MOC),
+    `${JSON.stringify(kSx)} · ${kSx2?.b}`);
 
   muc('C. So giờ quanh 00:00 và 07:00 giờ VN');
   const hang = await motDong('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
@@ -402,6 +420,10 @@ async function main() {
     if (r) await db.run(`UPDATE ${b} SET ${c} = ? WHERE rowid = ?`, [CU[l], r.r]);
     dongPL.push(r?.r ?? null);
   }
+  // B1d: giá trị LẠ trong cột đã phân loại UTC (pos_damage_logs.created_at) — thiếu giây, có mili-giây, thừa chữ, chữ rác → KHÔNG đụng.
+  const LA = ['2026-03-01 18:00', '2026-03-01 18:00:00.123', '2026-03-01 18:00:00 x', 'không rõ', '2026-03-01'];
+  const idLa = [];
+  for (const v of LA) idLa.push(Number((await db.run("INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, processed_by_name, created_at) VALUES (1, 'LA', 'X', 'X', 1, 'damaged', 'remake', 0, 'thu', ?)", [v])).lastInsertRowid));
   const khoaCot = (bang) => (bang === 'pos_settings' ? 'key' : 'id');
   const docGieo = async () => Promise.all(GIEO.map(([bang, cot], i) => motDong(`SELECT ${cot} AS v FROM ${bang} WHERE ${khoaCot(bang)} = ?`, [idGieo[i]]).then((r) => r?.v ?? null)));
   const tongTien = () => motDong('SELECT (SELECT COALESCE(SUM(total),0) FROM pos_orders) AS d, (SELECT COALESCE(SUM(amount),0) FROM pos_balance_transactions) AS v, (SELECT COALESCE(SUM(points),0) FROM pos_point_transactions) AS p, (SELECT COUNT(*) FROM pos_customer_packages) AS g');
@@ -423,6 +445,8 @@ async function main() {
   const plSai = PHAN_LOAI.filter(([, , l], i) => plSau[i] !== MOI[l]).map(([b, c, l], i) => `${b}.${c}(${l})=${plSau[PHAN_LOAI.findIndex((x) => x[0] === b && x[1] === c)]}`);
   k(`B1c MỌI mục phân loại (${PHAN_LOAI.length} cột / ${new Set(PHAN_LOAI.map((x) => x[0])).size} bảng) đổi đúng loại: UTC +7 · VN chỉ đổi T · lẫn và cột chỉ getNow để nguyên`,
     dongPL.every((x) => x != null) && plSai.length === 0, plSai.join(' | ') + (dongPL.some((x) => x == null) ? ' · thiếu dòng gieo: ' + PHAN_LOAI.filter((_, i) => dongPL[i] == null).map((x) => x[0]).join(',') : ''));
+  const laSau = await Promise.all(idLa.map((id) => motDong('SELECT created_at AS v FROM pos_damage_logs WHERE id = ?', [id]).then((r) => r?.v)));
+  k('B1d giá trị lạ trong cột UTC (thiếu giây / mili-giây / thừa chữ / chữ rác / ngày thuần) giữ nguyên — mẫu khớp đủ 19 ký tự', !!lan1.r && JSON.stringify(laSau) === JSON.stringify(LA), JSON.stringify(laSau));
   const saoLuu = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_damage_logs WHERE id = ?", [idGieo[0]]).catch(() => null);
   const saoVi = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_balance_transactions WHERE id = ?", [idGieo[1]]).catch(() => null);
   k('B2 bảng sao lưu _sao_luu_012_<bảng> giữ giá trị GỐC (sự cố, sổ ví)', saoLuu?.v === GIEO[0][2] && saoVi?.v === GIEO[1][2], `${saoLuu?.v} / ${saoVi?.v}`);
