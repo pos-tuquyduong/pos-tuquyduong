@@ -21,6 +21,7 @@ TI = 'server/routes/tiers.js'
 PIN = 'server/utils/pinChuQuan.js'
 N13 = 'server/nang_cap/013_hang.js'
 KH = 'server/routes/kh/index.js'
+SA = 'client/src/pages/Sales.jsx'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
 DOT_BIEN = [
@@ -76,9 +77,7 @@ DOT_BIEN = [
   ('VS-I15-cap', [('cong_cu/gia_lap/bat_bien.js', "      WHERE m.order_id IS NOT NULL AND (o.id IS NULL OR o.status = 'cancelled')`);", "      WHERE o.id IS NULL OR o.status = 'cancelled'`);", 1)], r'✗ O1 '),
   # ── G: giao diện ──
   ('VS-khoa-gio-thieu-thang', [('client/src/pages/Sales.jsx', 'i.package_id, i.tier_id, i.so_thang]));', 'i.package_id, i.tier_id]));', 1)], r'✗ G2 '),
-  ('BV-ban-khoa-cao-hon', [('client/src/pages/Sales.jsx', "{khoa && <div style={{ fontSize: '0.7rem', color: '#b91c1c', marginTop: 4 }}>Khách đang có hạng cao hơn</div>}", '', 1),
-                           ('client/src/pages/Sales.jsx', "title={khoa ? 'Khách đang có hạng cao hơn' : ''}", "title=''", 1),
-                           ('client/src/pages/Sales.jsx', "setError(`Khách đang có hạng cao hơn (${membershipInfo.tier_name}) — không bán hạng ${tier.name}`)", "setError('')", 1)], r'✗ G2b '),
+  ('BV-ban-khoa-cao-hon', [(SA, "{khoa && <div style={{ fontSize: '0.7rem', color: '#b91c1c', marginTop: 4 }}>Khách đang có hạng cao hơn</div>}", '', 1), (SA, "title={khoa ? 'Khách đang có hạng cao hơn' : ''}", "title=''", 1), (SA, "setError(`Khách đang có hạng cao hơn (${membershipInfo.tier_name}) — không bán hạng ${tier.name}`)", "setError('')", 1)], r'✗ G2b '),
   ('VS-xoa-hop-thoai', [('client/src/pages/CaiDat/HangThe.jsx', "    if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }", "    if (!window.confirm('Xoá hạng?')) return;", 1)], r'✗ G1b '),
   ('BV-cap-quyen-giao-dien', [('client/src/pages/Customers.jsx', "coQuyen={hasPermission('cap_hang')}", 'coQuyen={true}', 1)], r'✗ G3 '),
 ]
