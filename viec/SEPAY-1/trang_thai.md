@@ -251,3 +251,52 @@ cổng `node tu_chay/cong.js chay`, chưa ghi `HEAD ĐÃ KIỂM`, chưa có báo
   *Phương án đơn giản hơn nhưng dựa vào lời dặn (không khuyên):* giữ code, dặn trong hướng dẫn "không bao giờ để cả hai webhook cùng bật" — luật kho
   là "bịt bằng KHOÁ, không bằng LỜI DẶN" nên máy không chọn.
   *Bạn cần làm:* trả lời "Q6 đồng ý đề xuất" (máy làm vòng sửa 4 rồi soát lại) hoặc chọn khác. Các câu Q4, Q5 ở trên không chặn, trả lời khi rảnh.
+
+## Chủ quán trả lời (03.11) — Q6 chốt, Q4/Q5 theo đề xuất
+
+- **Q6:** KHÔNG làm vòng sửa 4. Chủ quán đã XOÁ kênh thanh toán trên payOS (03.11), chỉ dùng SePay; chấp nhận rủi ro còn lại. Máy ghi vào
+  `cai_dat_sepay.md` mục 4: muốn bật lại payOS thì TẮT webhook SePay trước (và ngược lại); không bao giờ để hai webhook cùng bật.
+- **Q4:** giữ BẬT "Bỏ qua giao dịch không có mã thanh toán" như phiếu. **Q5:** không so số tài khoản nhận; chỉ liên kết tài khoản quán với SePay.
+- Đã sửa thêm trong `cai_dat_sepay.md`: câu "quầy vẫn chạy payOS" (kênh đã xoá → chưa cài xong thì dùng QR tĩnh + xác nhận tay), tiêu đề mục 3.
+
+## Phát hiện / việc sau (không sửa)
+
+- **Q6 (việc sau, chỉ làm nếu một ngày bật lại payOS):** khi payOS và SePay CÙNG theo dõi một tài khoản, khoản KHÔNG tạo đơn (lệch tiền, hết hạn,
+  đã huỷ, chuyển thêm) ghi HAI dòng đỏ ở Đối soát (`server/routes/thanh-toan.js` ~127–140; chỉ nhánh PHIEN_DA_CHOT + da_thu gộp đúng). Cách sửa
+  khi cần: gộp theo cặp cho mọi lý do chua_khop, loại dòng riêng (`ket_qua`), Đối soát xếp CẦN XEM theo mã không theo câu chữ; `daBao` chỉ đếm
+  `khop`/`chua_khop`; dòng "SePay báo tiền ra" không ghi chữ "về" (`server/utils/doiSoat.js` ~233–234). Hiện chặn bằng lời dặn ở hướng dẫn cài
+  (chủ quán chấp nhận, vì payOS đã xoá).
+
+## Cổng (03.11)
+
+`node tu_chay/cong.js chay . 912576e^ HEAD viec/SEPAY-1` →
+✓ CỔNG CHẠY ĐẠT
+
+## Báo cáo 7 mục
+
+```
+VIỆC:        SEPAY-1 — gộp cổng QR SePay (công tắc CONG_QR, mặc định payOS), webhook chữ ký HMAC, đối soát
+ĐÃ SỬA:      cổng + webhook SePay (server/routes/thanh-toan.js, server/utils/ — chi tiết ở các mục vòng sửa phía trên); lần này chỉ
+             viec/SEPAY-1/cai_dat_sepay.md mục 4 (một cổng bật webhook) + vài câu lỗi thời; không đổi code chạy thật
+BÀI THỬ:     thu_SEPAY1: trên gốc 9 đạt · 61 hỏng (ĐỎ); trên HEAD 70 đạt · 0 hỏng (XANH); đột biến 32/32 bắt; npm test PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn)
+ĐÃ RÀ K4:    xem các vòng sửa 1–2; lỗ hai-cổng còn lại ở nhánh lệch/hết hạn/huỷ/chuyển thêm — KHÔNG sửa theo quyết định Q6, ghi Phát hiện
+CHƯA KIỂM:   tài liệu SePay thật (Q1: máy không đọc được; chi tiết chữ ký theo tài liệu chủ quán dán); trang SePay và webhook thật; payOS có báo
+             khoản lệch/quá hạn/huỷ hay không; điện thoại + tờ in thật; hai webhook cùng bật vẫn ra hai dòng đỏ (chặn bằng lời dặn, chủ quán chấp nhận);
+             soát vòng 4 không chạy (hết 3 vòng, Q6 chốt không sửa)
+GIT:         xem dưới (git log --oneline -2)
+BÀI HỌC:     KHOÁ 1 (đề xuất, ngoài Phạm vi) · NGUYÊN TẮC 3 (đề xuất) · BỎ 1
+```
+
+Nghiệm thu: 6/6 mục có bằng chứng ở các vòng trước (bài thử `thu_SEPAY1` 70 ca xanh); còn lại vì lỗi hai-cổng nên soát vòng 3 KHÔNG ĐẠT — rủi ro
+này do chủ quán chấp nhận, không phải sót.
+
+## Bài học
+
+- **KHOÁ (đề xuất, ngoài Phạm vi):** bài thử `thu_SEPAY1` thêm ca "hai nguồn cùng báo" cho từng nhánh chua_khop (lệch, hết hạn, huỷ, chuyển thêm)
+  — đỏ trên HEAD hiện tại. Chỉ làm nếu bật lại payOS cùng SePay.
+- **NGUYÊN TẮC (K4):** sửa một nhánh của biểu thức lồng nhiều tầng → liệt kê mọi nhánh anh em, hỏi từng nhánh. (K1) Câu hướng dẫn "dòng đỏ = phải hoàn"
+  phải đúng trong MỌI cấu hình hướng dẫn gọi là bình thường. (Đồng bộ) Nhóm trên màn tiền xếp theo mã `ket_qua`, không tìm cụm chữ trong lý do.
+  Đề xuất mục K9 cho chat soát.
+- **BỎ:** việc mạng chặn `developer.sepay.vn` (Q1) — lỗi môi trường, một lần, chủ quán đã dán tài liệu.
+
+HEAD ĐÃ KIỂM: 4617bad
