@@ -16,13 +16,19 @@ sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 B = 'server/utils/chuanHoaGio.js'   # quy tắc bước 012 (bước chỉ gọi lại)
 BAI = 'cong_cu/thu_GIOVN1.js'
+NV = 'client/src/utils/ngayVN.js'   # hàm ngày giờ chung của màn quầy
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
 DOT_BIEN = [
   # ── B: bước nâng cấp 012 ──
-  ('BV-012', [(B, '  const ketQua = [];\n  const bangs', '  const ketQua = [];\n  return ketQua;\n  const bangs', 1)], r'✗ B1 '),
+  ('BV-012', [(B, '  const ketQua = [];\n  const bayGio', '  const ketQua = [];\n  return ketQua;\n  const bayGio', 1)], r'✗ B1 '),
   ('VS-012-VN-CUNG-CONG-7', [(B, 'loai === UTC ? CONG7(c) :', 'loai !== LAN ? CONG7(c) :', 1)], r'✗ B1 '),
-  ('VS-012-COT-LAN-CUNG-DOI', [(B, "      if (loai === LAN) { ketQua.push({ bang, cot: cTen, loai, doi: 0, deNguyen: n }); continue; }\n", '', 1)], r'✗ B1 '),
+  # ── vòng sửa thêm (chủ quán 03.11): pos_settings.updated_at chưa dạng T → giờ VN lúc chạy ──
+  ('BV-CAI-DAT', [(B, '  pos_settings: { updated_at: LAN },\n', '', 1)], r'✗ B1 '),
+  ('VS-CAI-DAT-CHI-DOI-T', [(B, "      if (loai === LAN) viec.push([c, loai, `${c} IS NOT NULL AND NOT ${c} GLOB ${MAU_T}`, `'${bayGio}'`, cTen]);\n      else if (loai)", '      if (loai)', 1)], r'✗ B1 '),
+  ('VS-CAI-DAT-CHI-DAU-CACH', [(B, '`${c} IS NOT NULL AND NOT ${c} GLOB ${MAU_T}`', '`${c} GLOB ${MAU_CACH}`', 1)], r'✗ B1e '),
+  ('VS-CAI-DAT-DOI-CA-DANG-T', [(B, '`${c} IS NOT NULL AND NOT ${c} GLOB ${MAU_T}`', '`${c} IS NOT NULL`', 1)], r'✗ B1e '),
+  ('VS-CAI-DAT-LAP-LAI-GIO-CHAY', [(B, '`${c} IS NOT NULL AND NOT ${c} GLOB ${MAU_T}`', "`${c} IS NOT NULL AND (NOT ${c} GLOB ${MAU_T} OR ${c} GLOB '2027-05-01T*')`", 1)], r'✗ B3 '),
   ('VS-012-Z-THIEU-MAU-MILI-GIAY', [(B, "const MAU_Z = [`'${NGAY}T${GIO}Z'`, `'${NGAY}T${GIO}.${SO}${SO}${SO}Z'`];", "const MAU_Z = [`'${NGAY}T${GIO}Z'`];", 1)], r'✗ B1 '),
   ('BV-012-SAO-LUU', [(B, "      if (saoLuu && !daLuu) { await tx.run(`CREATE TABLE IF NOT EXISTS ${ten('_sao_luu_012_' + bang)} AS SELECT * FROM ${ten(bang)}`); daLuu = true; }\n", '', 1)], r'✗ B2 '),
   # ── vòng 2: mỗi mục bảng phân loại (người soát dựng R12–R17 sống) ──
@@ -59,7 +65,21 @@ DOT_BIEN = [
   ('BV-NHOM-MON', [('server/routes/product-groups.js', "(group_id, sx_product_type, sx_product_id, created_at) VALUES (?, ?, ?, ?)',\n        [group.id, m.sx_product_type, m.sx_product_id, getNow()]",
                     "(group_id, sx_product_type, sx_product_id) VALUES (?, ?, ?)',\n        [group.id, m.sx_product_type, m.sx_product_id]", 1)], r'✗ A2f '),
   ('BV-TON-LUC', [('server/routes/products.js', '        const nowVn = getNow();', "        const nowVn = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');", 1)], r'✗ A1 '),
-  ('BV-NGAY-MAN-QUAY', [('client/src/utils/ngayVN.js', "  return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });", '  return d.toISOString().slice(0, 10);', 1)], r'✗ A3 '),
+  ('BV-NGAY-MAN-QUAY', [(NV, "  return d.toLocaleDateString('sv-SE', { timeZone: MUI });", '  return d.toISOString().slice(0, 10);', 1)], r'✗ A3 '),
+  # ── vòng sửa thêm (chủ quán 03.11): màn quầy chỉ dùng giờ VN — hàm chung ngayVN.js + phép quét G ──
+  ('BV-KHOANG-THANG-THEO-DIEN-THOAI', [(NV, "    case 'thisMonth': return [dauThang, homNay];",
+    "    case 'thisMonth': { const n = new Date(); return [ngayVN(new Date(n.getFullYear(), n.getMonth(), 1)), homNay]; }", 1)], r'✗ G2 '),
+  ('VS-DOC-GIO-THEO-DIEN-THOAI', [(NV, '  return new Date(t.length === 10 ? `${t}T00:00:00+07:00` : `${t}+07:00`);', '  return new Date(t.length === 10 ? `${t}T00:00:00` : t);', 1)], r'✗ G3 '),
+  ('VS-IN-THEO-MUI-DIEN-THOAI', [(NV, '{ ...tuy, timeZone: MUI }', '{ ...tuy }', 1)], r'✗ G3 '),
+  ('BV-NUT-THANG-ORDERS', [('client/src/pages/Orders.jsx', '    const [tu, toi] = khoangNgay(preset);',
+    "    const n = new Date();\n    const [tu, toi] = preset === 'thisMonth' ? [ngayVN(new Date(n.getFullYear(), n.getMonth(), 1)), ngayVN()] : khoangNgay(preset);", 1)], r'✗ G1 '),
+  ('BV-MA-GIAM-HAN-THEO-DIEN-THOAI', [('client/src/pages/DiscountCodes.jsx', 'const hetHan = (c) => !!c.end_date && String(c.end_date).slice(0, 10) < ngayVN();',
+    'const hetHan = (c) => !!c.end_date && new Date(c.end_date) < new Date();', 1)], r'✗ G1 '),
+  ('BV-IN-HOA-DON-GIO-DIEN-THOAI', [('client/src/components/InvoicePrint.jsx', 'const formatDateTime = (dateStr) => hienNgayGio(dateStr || new Date());',
+    "const formatDateTime = (dateStr) => new Date(dateStr || Date.now()).toLocaleString('vi-VN');", 1)], r'✗ G1 '),
+  ('BV-QUET-GD1', [(BAI, '(FullYear|Month|Date|Day|Hours|Minutes|Seconds)', '(KhongCoGi)', 1)], r'✗ G0a '),
+  ('BV-QUET-GD4', [(BAI, r"(d) => /new Date\(\s*[^)\s]|Date\.parse\s*\(/.test(d)", '(d) => false', 1)], r'✗ G0d '),
+  ('VS-NGOAI-LE-GD-CA-FILE-TINH', [(BAI, "['client/src/pages/BanHang/tinh.js', 'Date.parse(hetHan + MUI_VN)',", "['client/src/pages/BanHang/tinh.js', '',", 1)], r'✗ G0e '),
   ('BV-QUET-M5', [(BAI, "    for (const m of s.matchAll(/INSERT\\s+(?:OR\\s+\\w+\\s+)?INTO\\s+(\\w+)\\s*\\(([^)]*)\\)/gi)) {",
                    "    for (const m of [].values()) {", 1)], r'✗ D5 '),
   # ── C: so giờ ──
