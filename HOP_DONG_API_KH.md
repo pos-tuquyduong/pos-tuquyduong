@@ -238,5 +238,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   Mã lỗi mới của đặt đơn (thay tên đã hẹn `NGOAI_GIO_HOAT_DONG` bằng `NGOAI_GIO` + `QUA_GIO_NHAN_DON`, đã báo App ở TRA_LOI_POS_31102026). Chủ quán
   duyệt 31.10: `tong_da_xem` + 409 `GIA_DA_DOI` kèm `bao_gia`; "Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như
   lần đầu." Không xoá / đổi tên trường cũ.
-- v6 · 03.11.2026 · HD-KH-1: `GET /don/:ma` thêm `hoa_don[]` (dòng tờ giao khách dựng bằng cùng hàm hoá đơn quầy); `GET /don/:ma` và mỗi đơn của `GET /don`
+- v6 · 03.11.2026 · HD-KH-1: `GET /don/:ma` thêm `hoa_don[]` (dòng tờ giao khách dựng bằng cùng hàm hoá đơn quầy; dòng `gio` của đơn App có `phai` rỗng — không lộ tên nhân viên); `GET /don/:ma` và mỗi đơn của `GET /don`
   thêm `cach_tra`, `giu_vi`, `con_lai` (đơn App; đơn quầy `null`). Không xoá / đổi tên trường cũ. Chuyển dòng HD-KH-1 từ "Đã hẹn" lên bảng cửa.

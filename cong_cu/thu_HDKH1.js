@@ -176,7 +176,7 @@ async function main() {
     const caiDat = {};
     for (const r of await db.query("SELECT key, value FROM pos_settings WHERE key LIKE 'invoice%' OR key IN ('store_name','store_address','store_phone')")) caiDat[r.key] = r.value;
     const mong = chuCuaTo(P.dungHoaDon(hd.j.hoa_don, caiDat, { lien: 'khach' })).map(([loai, trai, phai, gach, ghi, dam]) => ({ loai, trai, phai: anNhanVien && loai === 'gio' ? '' : phai, dam, gach, ghi_chu: ghi }));   // đơn App: ẩn tên nhân viên (Q1)
-    const co =ct.j.don?.hoa_don;
+    const co = ct.j.don?.hoa_don;
     const duKhoa = Array.isArray(co) && co.every((d) => bang(Object.keys(d), CHU_DONG));
     k(`${ten}: hoa_don[] ${mong.length} dòng, đủ 6 trường, GIỐNG HỆT tờ khách của hàm quầy (từng dòng)`, ct.status === 200 && duKhoa && bang(co, mong),
       `HTTP ${ct.status} · app ${JSON.stringify(co)?.slice(0, 260)} · quầy ${JSON.stringify(mong).slice(0, 260)}`);

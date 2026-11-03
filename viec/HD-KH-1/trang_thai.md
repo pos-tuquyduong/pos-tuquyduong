@@ -15,6 +15,7 @@ afc2000 HOP-DONG: v7 da hen them cach_tra / giu_vi / con_lai cua /don (HD-KH-1) 
 | donApp.js `CAU_DON` hai nhánh UNION (cột phiên) | BV-CAU-DON-NHANH-1-THIEU-COT-PHIEN · BV-CAU-DON-NHANH-2-THIEU-COT-PHIEN |
 | donApp.js `chiTietDon` + `hoaDonCua` | BV-BO-HOA-DON · VS-HOA-DON-SAI-DON · BV-BO-TRY-CATCH-HOA-DON |
 | dongHoaDon.js (cài đặt, tờ khách, dẹt dòng) | VS-HOA-DON-LIEN-LUU · VS-CAI-DAT-THIEU-INVOICE · VS-BO-CANH-BAO · VS-BO-GACH · VS-BO-GHI-CHU-MON · VS-BO-DAM · VS-BO-DONG-THANH-TOAN · VS-BO-LOI-CHAN · VS-DOI-THU-TU-GIO-KHACH · VS-LO-QR-DAU-TO |
+| donApp.js `hoaDonCua(oid, laDonApp)` + dongHoaDon.js `anNhanVien` (Q1, 03.11) | BV-BO-AN-NHAN-VIEN · VS-AN-NHAN-VIEN-CA-DON-QUAY · VS-AN-NHAN-VIEN-KHONG-AN (tổng 27 đột biến, BẮT 27) |
 | HOP_DONG_API_KH.md v6 | BV-HOPDONG-CUA-DON-CACH-TRA · BV-HOPDONG-HOA-DON · BV-HOPDONG-NHAT-KY-V6 |
 Đột biến tương đương đã biết (không đếm): bỏ cổng `r.loai ?` trong `chiTietDon` — try/catch nuốt lỗi thành `[]`, hành vi quan sát không đổi, chỉ thêm dòng log.
 
@@ -66,3 +67,10 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 0 · BỎ 1 — chi tiết bên dưới
 ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 2152a1b
+
+## Làm tiếp 03.11 (chủ quán trả lời Câu hỏi)
+Đối chiếu bản chụp: nhánh viec/HD-KH-1, HEAD = FETCH_HEAD = c64253b; log -3: c64253b ghi cong chay dat · 2152a1b trang thai + bao cao soat · 17e8d77 cap nhat bang chung (vong sua 1).
+- Q1 (chủ quán: ẩn tên nhân viên trên hoá đơn của đơn App, đơn quầy giữ nguyên): DONE. dongHoaDon.js `anNhanVien` (hd.don.nhan_vien = ""), donApp.js truyền `!!r.ma_app`; ca thử A6 / A6c / A6e (đơn App ẩn) + A1c (đơn quầy vẫn có) — ĐỎ trên c64253b ("32 đạt · 3 hỏng"), XANH sau; 3 đột biến mới; hợp đồng v6 ghi `phai` rỗng với đơn App.
+- Q2 (chủ quán: giữ v6, chat đổi số lúc gộp): giữ nguyên PHIEN_BAN 6, không việc gì thêm. Câu hỏi 1 và 2 ở trên đã được trả lời.
+- Soát độc lập vòng 2 (chỉ phần Q1): ĐẠT, 2 lỗi nhẹ (khoảng trắng `co =ct` ở thu_HDKH1.js; nhật ký v6 chưa nhắc Q1) — đã sửa. Nghi ngờ: chưa có ca đơn App do nhân viên xác nhận tay (code không rẽ nhánh theo giá trị created_by). Soát bảo mật: thay đổi Q1 chỉ BỚT dữ liệu trả ra, agent soát đã xét phía bảo mật (không lỗi); không chạy lại /soat-bao-mat riêng.
+- Làm tiếp CHƯA KIỂM thêm: ca đơn App do nhân viên xác nhận tay chưa có bài riêng.
