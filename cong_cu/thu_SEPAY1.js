@@ -338,6 +338,14 @@ async function main() {
     await lech('C12 dư 1.000đ', (pl) => ({ transferAmount: pl.con_lai + 1000 }), 'lệch tiền');
     await lech('C13 tiền về sau khi phiên hết hạn', 'het_han', 'hết hạn');
     await lech('C13 transactionDate (giờ VN) sau het_han', { transactionDate: '2099-01-01 00:00:00' }, 'hết hạn');
+    // Q5 (sổ QUYET_DINH 01.11): máy KIỂM số tài khoản nhận — accountNumber (bỏ khoảng trắng) phải BẰNG SEPAY_SO_TK; khác / thiếu → không chốt.
+    await lech('Q5a tiền vào TÀI KHOẢN KHÁC (đúng mã, đúng tiền)', { accountNumber: '9990009999' }, 'tiền vào tài khoản khác 9990009999');
+    await lech('Q5b số nhận DÀI hơn (SEPAY_SO_TK làm tiền tố)', { accountNumber: SP.soTk + '0' }, 'tiền vào tài khoản khác ' + SP.soTk + '0');
+    await lech('Q5c số nhận NGẮN hơn (cắt số cuối)', { accountNumber: SP.soTk.slice(0, -1) }, 'tiền vào tài khoản khác');
+    await lech('Q5d báo thiếu accountNumber', { accountNumber: undefined }, 'tiền vào tài khoản khác');
+    const p5e = (await taoPhien()).j.phien, r5e = await guiSepay(bao(p5e, { accountNumber: ` ${SP.soTk.slice(0, 4)} ${SP.soTk.slice(4)} ` }));
+    k('Q5e số nhận có khoảng trắng quanh / giữa nhưng đúng số → VẪN chốt (luồng hợp lệ, K5)', daNhan(r5e) && (await dongPhien(p5e.id))?.nguon === 'sepay'
+      && !!(await dongPhien(p5e.id))?.order_id, moTa(r5e) + ' · ' + (await suKien(p5e.id)).map((x) => x.ket_qua + ':' + x.ly_do).join(','));
     const p14 = (await taoPhien()).j.phien;
     const t14 = await goi('POST', `/pos/thanh-toan/phien/${p14.id}/xac-nhan-tay`, { ly_do: 'Thấy tiền về sao kê' });
     const r14 = await guiSepay(bao(p14));
@@ -433,6 +441,9 @@ async function main() {
       && !ck('do').some((m) => /^SePay.*không thuộc phiên nào/.test(m)), ck('can_xem').slice(0, 3).join(' | '));
     k('D2 dòng "cùng một khoản báo qua hai cổng … KHÔNG hoàn" (C14b) ở CẦN XEM, KHÔNG ở ĐỎ (ĐỎ = phải hoàn / nạp)',
       ck('can_xem').some((m) => /hai cổng.*KHÔNG hoàn/.test(m)) && !ck('do').some((m) => /hai cổng/.test(m)), ck('do').filter((m) => /hai cổng/.test(m)).join(' | '));
+    k('D3 dòng "tiền vào tài khoản khác <số>" (Q5) ở CẦN XEM, KHÔNG ở ĐỎ (đối chiếu sao kê, không tự hoàn)',
+      ck('can_xem').some((m) => /^SePay giao dịch .*chưa khớp đơn — tiền vào tài khoản khác 9990009999/.test(m)) && !ck('do').some((m) => /tài khoản khác/.test(m)),
+      ck('do').filter((m) => /tài khoản khác/.test(m)).join(' | '));
     k('D2 dòng SePay "phiên đang da_thu" (C14c — khách chuyển thêm lần thật) ở ĐỎ', ck('do').some((m) => /^SePay giao dịch .*phiên đang da_thu/.test(m)));
     k('D2 dòng "đã xác nhận tay … KHÔNG hoàn" (C14) GIỮ ở ĐỎ như trước (nghiệm thu E: đối soát cũ không đổi)', ck('do').some((m) => /đã xác nhận tay trước/.test(m)));
   });
@@ -455,6 +466,10 @@ async function main() {
     try { hd = fs.readFileSync(path.join(GOC, 'viec', 'SEPAY-1', 'cai_dat_sepay.md'), 'utf8'); } catch { /* chưa có */ }
     k('F1 cai_dat_sepay.md có đủ: CONG_QR, SEPAY_BIN, SEPAY_SO_TK, SEPAY_KHOA_WEBHOOK, /api/sepay/webhook, HMAC-SHA256, TQD, 2.000, quay về payOS',
       ['CONG_QR', 'SEPAY_BIN', 'SEPAY_SO_TK', 'SEPAY_KHOA_WEBHOOK', '/api/sepay/webhook', 'HMAC-SHA256', 'TQD', '2.000', 'payOS'].every((x) => hd.includes(x)));
+    const dongLoc = hd.split('\n').filter((l) => l.includes('Bỏ qua giao dịch không có mã thanh toán'));
+    k('F2 cai_dat_sepay.md (Q4, sổ 01.11): dặn TẮT lọc "Bỏ qua giao dịch không có mã thanh toán" — không còn dặn bật', dongLoc.length > 0
+      && dongLoc.some((l) => /TẮT/.test(l)) && !dongLoc.some((l) => /:\*\* bật/.test(l)), dongLoc.join(' | ').slice(0, 160));
+    k('F2 cai_dat_sepay.md (Q5): nói máy so số tài khoản nhận với SEPAY_SO_TK, không còn câu "KHÔNG so"', /tài khoản khác/.test(hd) && !/KHÔNG so số tài khoản/.test(hd));
     k('F1 cai_dat_sepay.md không chứa dãy ≥ 8 chữ số liền (số tài khoản / khoá)', hd.length > 0 && !/\d{8,}/.test(hd));
   }
 
