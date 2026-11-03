@@ -38,4 +38,10 @@ Lịch sử đổi bài sau lần chạy đỏ đầu (c6c0f15 → 249dc45), m�
   - d8bfc64 (soát vòng 2) thêm C5b, C9b, C14c, C14d, D2 (phiên đang da_thu). Trên code trước vòng sửa 2: 66 đạt · 4 hỏng (C5b, C14c, C14d, D2);
     xanh sau 0f0bc41.
 
-SỐ CA cong_cu/thu_SEPAY1.js: 70
+Vòng sửa 4 (03.11, theo sổ QUYET_DINH 01.11: Q5 máy so số tài khoản nhận, Q4 hướng dẫn tắt lọc) — bài đổi ở commit 71f5428, chạy trên
+code TRƯỚC khi vá (HEAD 6b28d93 + bài mới): 71 đạt · 7 hỏng. ĐỎ ở: Q5a, Q5b, Q5c, Q5d (đơn vẫn chốt khi tiền vào tài khoản khác / số dài hơn /
+ngắn hơn / thiếu số), D3 (không có dòng CẦN XEM "tiền vào tài khoản khác"), F2 ×2 (hướng dẫn còn dặn BẬT lọc và còn câu "KHÔNG so").
+Q5e (số có khoảng trắng nhưng đúng → vẫn chốt) XANH trên gốc là đúng ý — luồng hợp lệ K5.
+Sau vá (f113ea0) → XANH: 78 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_SEPAY1.js: 78

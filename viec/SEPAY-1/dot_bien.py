@@ -52,8 +52,8 @@ DOT_BIEN = [
   # ── D: Đối soát ──
   ('BV-nguon-doi-soat', 'sp', [(DS, 'mo_ta: `${nguon(r)}: về', 'mo_ta: `payOS mã ${r.ma_payos}: về', 1)], r'✗ D1 '),
   # vòng sửa 1 (soát vòng 1 lỗi 2): dòng "hai cổng … KHÔNG hoàn" ở CẦN XEM; dòng "xác nhận tay … KHÔNG hoàn" cũ giữ ĐỎ
-  ('BV-hai-cong-can-xem', 'sp', [(DS, " || String(r.ly_do || '').includes(LY_DO_HAI_CONG)", '', 1)], r'✗ D2 dòng "cùng một khoản'),
-  ('VS-can-xem-moi-khong-hoan', 'sp', [(DS, ".includes(LY_DO_HAI_CONG)", ".includes('KHÔNG hoàn')", 1)], r'✗ D2 dòng "đã xác nhận tay'),
+  ('BV-hai-cong-can-xem', 'sp', [(DS, '[LY_DO_HAI_CONG, LY_DO_TK_KHAC].some', '[LY_DO_TK_KHAC].some', 1)], r'✗ D2 dòng "cùng một khoản'),
+  ('VS-can-xem-moi-khong-hoan', 'sp', [(DS, '[LY_DO_HAI_CONG, LY_DO_TK_KHAC].some', "['KHÔNG hoàn', LY_DO_TK_KHAC].some", 1)], r'✗ D2 dòng "đã xác nhận tay'),
   # vòng sửa 2 (soát vòng 2): "hai cổng" chỉ khi cổng này chưa báo; hai chiều; thân thiếu id; không lưu số dư
   ('BV-hai-cong-da-bao', 'sp', [(TT, ' && sau.nguon !== t.nguon && !daBao', ' && sau.nguon !== t.nguon', 1)], r'✗ C14c '),
   ('VS-hai-cong-mot-chieu', 'sp', [(TT, ' && sau.nguon !== t.nguon && !daBao', " && t.nguon === 'sepay' && sau.nguon === 'payos' && !daBao", 1)], r'✗ C14d '),
