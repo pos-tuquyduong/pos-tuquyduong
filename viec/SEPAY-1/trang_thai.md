@@ -332,3 +332,36 @@ Bài thử: `cong_cu/thu_SEPAY1.js` thêm Q5a–Q5e, D3, F2 ×2 (70 → 78 ca). 
 | `cai_dat_sepay.md` Q4 / Q5 | `VS-huong-dan-bat-loc` · `VS-huong-dan-khong-so-tk` |
 
 `npm test`: PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+
+## Cổng (vòng sửa 4, 03.11)
+
+`node tu_chay/cong.js chay . 912576e^ HEAD viec/SEPAY-1` (HEAD e0ad6ef, cây sạch) →
+✓ CỔNG CHẠY ĐẠT
+
+## Báo cáo 7 mục (vòng sửa 4)
+
+```
+VIỆC:        SEPAY-1 — cổng QR SePay; vòng sửa 4 theo sổ QUYET_DINH 01.11 (Q4 tắt lọc không mã · Q5 so số tài khoản nhận)
+ĐÃ SỬA:      server/utils/sepay.js (docBao: tkKhac) · server/routes/thanh-toan.js (xuLyTienVe: chua_khop "tiền vào tài khoản khác <số>", không chốt) ·
+             server/utils/congQr.js (LY_DO_TK_KHAC) · server/utils/doiSoat.js (CẦN XEM) · viec/SEPAY-1/cai_dat_sepay.md (tắt lọc; máy so số TK)
+BÀI THỬ:     thu_SEPAY1 trên bản chưa vá → ĐỎ ở Q5a Q5b Q5c Q5d D3 F2×2 (71 đạt · 7 hỏng); sau vá → XANH 78 đạt · 0 hỏng; đột biến mới 8/8 BẮT,
+             cả bộ 40; npm test PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn); cổng chạy ĐẠT
+ĐÃ RÀ K4:    grep -rn "accountNumber" server → 1 chỗ (sepay.js), chỉ một đường chốt đơn từ báo SePay (webhookSepay → xuLyTienVe); 2 đột biến cũ
+             khớp biểu thức doiSoat cũ đã sửa; ke_hoach 7.4 đánh dấu ĐÃ ĐỔI
+CHƯA KIỂM:   trang SePay thật có gửi `accountNumber` đúng dạng không (tài liệu ghi trường tuỳ chọn, máy không đọc được trang thật): nếu SePay bỏ trường
+             này thì MỌI đơn QR vào "tài khoản khác (trống)" và phải xác nhận tay — thử đơn 2.000đ ở cai_dat_sepay.md mục 3 sẽ lộ ngay;
+             số tài khoản có chữ hoa/thường khác nhau (so đúng từng ký tự); điện thoại; soát độc lập vòng 5 (hết 3 vòng, chat soát thay)
+GIT:         git log --oneline -2 ở cuối câu trả lời
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 · BỎ 0
+```
+
+Nghiệm thu (vòng 4): Q4 → ca F2 (hướng dẫn) + dòng `khong_phien` có sẵn ca C9/D1; Q5 → Q5a–Q5e + D3; mỗi ca có đột biến ở bảng trên.
+
+## Bài học (vòng sửa 4)
+
+- **KHOÁ (đã làm):** ca F2 canh hướng dẫn cài đúng sổ quyết định (Q4/Q5) + đột biến `VS-huong-dan-*`; lượt trước ghi "theo đề xuất của máy" mà sổ
+  QUYET_DINH nói khác — khoá bằng bài thử để hướng dẫn không trôi khỏi sổ nữa.
+- **NGUYÊN TẮC (K1, đề xuất K1 thêm một dòng "Chặn", ngoài Phạm vi):** chủ quán trả lời "theo đề xuất của máy" → chat phải mở `QUYET_DINH_CHU_QUAN.md`
+  đối chiếu câu đã chốt trước khi giao việc (sổ thắng); câu chép sang lệnh phải dẫn nguyên văn dòng sổ.
+
+HEAD ĐÃ KIỂM: e0ad6ef
