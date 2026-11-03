@@ -483,6 +483,39 @@ async function main() {
     k('A5b (K5) xoá hạng chỉ còn khách ĐÃ hết hạn → 200, ẩn', tam.status === 200 && y.status === 200 && !tim(await tiers(), 'Tạm'), `${moTa(tam)} · ${moTa(y)}`);
     const z = await goi('DELETE', `/pos/tiers/${KC?.id}`, null, TK.nv);
     k('A5c nhân viên xoá hạng → 403', z.status === 403, moTa(z));
+    // soát vòng 1, lỗi 1: khách GIỮ hạng còn hạn mà hạng đó KHÔNG phải hạng hiện tại (có hạng cao hơn) — vẫn là "còn khách giữ"
+    const t2 = await luu([...dsMau(), { name: 'Tạm2', sort_order: 9, discount_percent: 2, special_discount_percent: 0, cach_co: 'ban', goi: [] },
+      { name: 'Cao', sort_order: 10, discount_percent: 3, special_discount_percent: 0, cach_co: 'chi_cap', goi: [] }]);
+    const T2 = tim(await tiers(), 'Tạm2'), CAO = tim(await tiers(), 'Cao');
+    const sHai = sdtMoi();
+    await ghiThe(sHai, T2?.id, 'Tạm2', '2026-11-01T10:00:00', '2026-12-01T10:00:00');
+    await ghiThe(sHai, CAO?.id, 'Cao', '2026-11-02T10:00:00', '2027-11-02T10:00:00');
+    const hHai = (await hangCua(sHai)).tier_id;
+    const w = await goi('DELETE', `/pos/tiers/${T2?.id}`);
+    k('A5d xoá hạng khách còn giữ nhưng KHÔNG phải hạng hiện tại (đang có hạng cao hơn) → 409 HANG_CON_KHACH, hạng vẫn bật', t2.status === 200
+      && hHai === CAO?.id && w.status === 409 && w.code === 'HANG_CON_KHACH' && !!tim(await tiers(), 'Tạm2'), `${moTa(t2)} · hạng ${hHai} · ${moTa(w)}`);
+
+    // soát vòng 1, lỗi 2: đổi "chỉ cấp" → "bán" ở Cài đặt là đường thứ hai tới quyền lợi chỉ chủ quán + PIN cấp được
+    const banKC = dsMau({ KC: { cach_co: 'ban', goi: [{ so_thang: 60, gia: 1, bat: true }] } });
+    const q8 = await luu(banKC, TK.ql);
+    k('A8 quản lý (manage_promotions, không cap_hang) đổi Kim Cương chỉ cấp → bán → 403 DOI_CACH_CO_CAN_QUYEN, Kim Cương vẫn chỉ cấp, không gói',
+      q8.status === 403 && q8.code === 'DOI_CACH_CO_CAN_QUYEN' && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap' && bang(tim(await tiers(), 'Kim Cương')?.goi, []), moTa(q8));
+    const q8b = await luu(dsMau({ V: { cach_co: 'chi_cap' } }), TK.ql);
+    k('A8b quản lý đổi Vàng bán → chỉ cấp → 403 (đổi cách có hạng chỉ người có quyền cấp hạng)', q8b.status === 403 && tim(await tiers(), 'Vàng')?.cach_co === 'ban', moTa(q8b));
+    const c8 = await luu(banKC);
+    const c8lai = await luu(dsMau());
+    k('A8c (K5) chủ quán đổi được (200) rồi đổi lại (200)', c8.status === 200 && c8lai.status === 200 && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap', `${moTa(c8)} · ${moTa(c8lai)}`);
+    const q8d = await luu(dsMau({ KC: { discount_percent: 16 } }), TK.ql);
+    await luu(dsMau());
+    k('A8d (K5) quản lý sửa % của hạng chỉ cấp (không đổi cách có hạng) → 200', q8d.status === 200, moTa(q8d));
+
+    // soát vòng 1, lỗi 3: khách đã bị thu hồi hết hạng → danh sách khách KHÔNG có nhãn hạng rỗng
+    const sThu = await khach(sdtMoi());
+    await goi('POST', '/pos/membership/cap', { phone: sThu, tier_id: KC?.id, so_thang: 1, pin: globalThis.__PIN });
+    await goi('POST', '/pos/membership/thu-hoi', { phone: sThu, tier_id: KC?.id, pin: globalThis.__PIN });
+    const dsKh = await goi('GET', '/pos/v2/customers');
+    const kThu = (dsKh.customers || []).find((c) => c.phone === sThu);
+    k('C6d khách bị thu hồi hết hạng → danh sách khách membership = null (không nhãn rỗng)', !!kThu && kThu.membership === null, JSON.stringify(kThu?.membership));
   });
 
   // ═════════════════════════════════════════════════════════════════════════
