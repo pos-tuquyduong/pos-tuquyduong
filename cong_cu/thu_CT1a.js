@@ -111,7 +111,7 @@ async function main() {
     return { sdt, id, tk: kyTokenKhach(id) };
   };
   const an = async (fn, mac = null) => { imLang(); try { return await fn(); } catch { return mac; } finally { noiLai(); } };   // câu đọc/ghi có thể hỏng trên bản chưa vá: ghi ✗ chứ không sập
-  const ngaySinhDb = async (sdt) => (await an(() => db.queryOne('SELECT ngay_sinh FROM pos_customers WHERE phone = ?', [sdt])))?.ngay_sinh ?? 'KHONG_CO_COT';
+  const ngaySinhDb = async (sdt) => { const d = await an(() => db.queryOne('SELECT ngay_sinh FROM pos_customers WHERE phone = ?', [sdt])); return d ? d.ngay_sinh : 'KHONG_CO_COT'; };   // trống = null
   const soDb = (sdt) => an(() => db.query('SELECT * FROM pos_ngay_sinh_sua WHERE phone = ? ORDER BY id', [sdt]));
   const soKhach = async () => Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_customers')).n);
 

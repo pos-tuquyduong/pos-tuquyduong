@@ -1,8 +1,8 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 5
-NGAY: 2026-10-31
-DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
+PHIEN_BAN: 6
+NGAY: 2026-11-03
+DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/giuCho.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
@@ -22,16 +22,17 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
   hoạt động, từ v2), không lấy đồng hồ điện thoại. Lỗi đã biết: một số giờ CŨ (vd ngày tạo của vài khách) còn lưu theo giờ quốc tế, có
   dấu cách thay chữ `T` — GIO-VN-1 sửa trước khai trương.
 
-## Các cửa (phiên bản 5)
+## Các cửa (phiên bản 6)
 | Cửa | Token | Gửi | Trả (ngoài `success`) |
 |---|---|---|---|
 | `POST /dang-nhap/xin-ma` | không | `{ sdt }` | `lay_ma_tai_quay` (true = khách hỏi mã ở quầy) |
-| `POST /dang-nhap/xac-minh` | không | `{ sdt, ma, ten?, xung_ho?, dia_chi? }` (mã 6 số; khách MỚI thiếu `ten` hoặc `xung_ho` → `CAN_TEN`; khách cũ: ba trường bị bỏ qua) — xem "Đăng ký 3 bước" | `token`, `khach { sdt, ten, ngay_tao, xung_ho, dia_chi }` |
+| `POST /dang-nhap/xac-minh` | không | `{ sdt, ma, ten?, xung_ho?, dia_chi? }` (mã 6 số; khách MỚI thiếu `ten` hoặc `xung_ho` → `CAN_TEN`; khách cũ: ba trường bị bỏ qua) — xem "Đăng ký 3 bước" | `token`, `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
 | `GET /hang` | không | — | `data[] { id, ten, phan_tram, phan_tram_nhom_dac_biet, gia_the, thu_tu }` — hạng đang bật, xếp theo `thu_tu` rồi `gia_the` |
 | `GET /gio-vang` | không | — | `dang_chay, bat_dau, ket_thuc, phan_tram, mon[]` (mã món = `ma` của `/menu`) — xem "Giờ vàng". **Không có suất** (POS không đếm suất) |
 | `GET /gio-hoat-dong` | không | — | `bay_gio, dang_mo, nhan_don, hom_nay { mo, dong } \| null, mo_lai_luc \| null, thong_bao, lich_tuan[] { thu, mo, dong, nghi }, ngay_nghi[] { ngay, ly_do }` — xem "Giờ hoạt động" |
-| `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null`; `so_du_vi` xem dưới |
-| `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi? }` — ít nhất một khoá; xem "Hồ sơ" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi }` |
+| `GET /chuong-trinh` | không | — (không token: dùng chung trần ≤ 300 lần / phút mỗi IP với `/menu`, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, mo_ta, loai, dang_bat }` — chương trình đặc biệt đang bật và trong thời gian chạy; xem "Ghi chú v6" |
+| `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null`; `so_du_vi` xem dưới |
+| `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi?, ngay_sinh? }` — ít nhất một khoá; xem "Hồ sơ" và "Ghi chú v6" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
 | `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
 | `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
 | `GET /diem` | có | — | `points`, `history` |
@@ -44,6 +45,15 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
 | `POST /nhan-ma-bill` | có | `{ ma }` | kết quả nhận ưu đãi khách mới |
 | `POST /nhan-diem` | có | `{ ma }` | kết quả nhân điểm theo mã trên bill |
 | `PUT /pin` | có | `{ pin, pin_lai }` (4 số) | — |
+
+### Ghi chú v6 — ngày sinh + chương trình đặc biệt (CT-1a)
+- `khach.ngay_sinh` (của `/toi`, `PUT /toi`, xác minh): `YYYY-MM-DD` hoặc `null` khi chưa nhập. Là NGÀY LỊCH, không có giờ / múi giờ.
+- **`PUT /toi` nhận `ngay_sinh` MỘT lần:** chỉ khi đang `null`. Đã có → 409 `NGAY_SINH_DA_CO` (kể cả gửi lại cùng giá trị); không phải chuỗi `YYYY-MM-DD`
+  đúng lịch (kể cả `null`, rỗng), ở tương lai, hoặc tuổi hôm nay ngoài khoảng quán đặt (mặc định 5–100, quán đổi được) → 400 `NGAY_SINH_SAI`. Từ chối thì
+  KHÔNG trường nào trong cùng thân được sửa. Sau khi nhập, App không sửa được nữa — khách đưa căn cước cho nhân viên, chỉ quán sửa ở POS. POS không lưu số căn cước.
+- **`GET /chuong-trinh`** (không token): `data[] { ma, ten, mo_ta, loai, dang_bat }` theo thứ tự tạo; `loai` ∈ `sinh_nhat` · `hoc_sinh_gioi` · `khac`;
+  `dang_bat` luôn `true` (chỉ trả chương trình đang bật VÀ trong thời gian chạy — ngày bắt đầu / kết thúc tính cả ngày đó, giờ VN). Chỉ HIỂN THỊ ("áp dụng tại
+  quán"): mức ưu đãi và điều kiện KHÔNG trả ra; App KHÔNG áp chương trình lên đơn App.
 
 ### Ghi chú v4 — thông tin ngắn của món (`/menu`)
 - Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (luôn
@@ -128,6 +138,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
 ## Mã lỗi
 `KH_CHUA_CAU_HINH` 503 · `KH_TOKEN_SAI` 401 · `SDT_KHONG_HOP_LE` 400 · `QUA_NHIEU_LAN` 429 · `MA_SAI` 400 · `MA_HET_HAN` 400 · `CAN_TEN` 400 ·
 `TEN_KHONG_HOP_LE` 400 · `XUNG_HO_SAI` 400 · `DIA_CHI_QUA_DAI` 400 · `KHONG_THAY_DON` 404 · `KHONG_TIM_THAY` 404 · `YEU_CAU_KHONG_HOP_LE` 400 · `LOI_MAY_CHU` 500 · `KHO_BAN` 409 ·
+Ngày sinh (v6): `NGAY_SINH_SAI` 400 · `NGAY_SINH_DA_CO` 409.
 `PUT /pin`: `PIN_KHONG_HOP_LE` 400 · `PIN_KHONG_KHOP` 400 · `PIN_DA_CO` 409 · `KHACH_KHONG_TON_TAI` 404.
 Đặt đơn (v5): `CHUA_GIAO` 400 · `NGOAI_GIO` 400 · `QUA_GIO_NHAN_DON` 400 · `HET_HANG` 400 · `MON_KHONG_BAN` 400 · `KHOA_GUI_SAI` 400 ·
 `KHOA_GUI_DA_DUNG` 409 · `DANG_XU_LY` 503 · `GIA_DA_DOI` 409 · `VI_KHONG_DU` 400 · `CACH_KHONG_KHOP` 400 · `CHUA_CO_PIN` 400 · `PIN_SAI` 400 ·
@@ -157,10 +168,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     `QUA_NHIEU_LAN` 429, `PAYOS_CHUA_CAU_HINH` 503 (giữ tên).
   - NAP-2 — `GET /vi` (token): `?trang=N` (20 dòng / trang) → `trang, con_nua, data[] { ngay, loai, so_tien, thuong, ma_don, ghi_chu }`; `loai`:
     `nap` (`thuong` = phần thưởng nạp) · `tra_don` · `hoan_don` · `qua_chao_mung` · `qua_het_han` · `dieu_chinh`. `so_tien` có dấu (+ vào, − ra).
-  - CT-1a — `/toi.khach.ngay_sinh` (`YYYY-MM-DD` | `null`). `PUT /toi` nhận `ngay_sinh` CHỈ khi đang `null`; đã có → 409 `NGAY_SINH_DA_CO`;
-    sai / tương lai / ngoài khoảng tuổi quán đặt → 400 `NGAY_SINH_SAI`. Chỉ quán sửa ở POS (sau khi xem căn cước).
-  - CT-1a — `GET /chuong-trinh` (không token): `data[] { ma, ten, mo_ta, loai, dang_bat }`; `loai` có `sinh_nhat` · `hoc_sinh_gioi` · `khac`.
-    Chỉ HIỂN THỊ ("áp dụng tại quán"); App KHÔNG áp chương trình lên đơn App.
   - TOPPING-1 — `GET /ghi-chu-nhanh` (không token): `data[] { ma, chu }`; dòng giỏ của `POST /gio/bao-gia` và `POST /don` nhận `ghi_chu`
     (≤ 120 ký tự) — in lên phiếu pha chế, tem, hoá đơn.
   - HD-KH-1 — `GET /don/:ma` thêm `hoa_don[] { loai, trai, phai, dam, gach, ghi_chu }`: các dòng hoá đơn dựng SẴN bằng CÙNG hàm của hoá đơn
@@ -174,16 +181,17 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 5,
+  "phien_ban": 6,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
-    { "pt": "POST", "duong": "/dang-nhap/xac-minh", "token": false, "tra": ["token", "khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi"] },
+    { "pt": "POST", "duong": "/dang-nhap/xac-minh", "token": false, "tra": ["token", "khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh"] },
     { "pt": "GET", "duong": "/hang", "token": false, "tra": ["data[].id", "data[].ten", "data[].phan_tram", "data[].phan_tram_nhom_dac_biet", "data[].gia_the", "data[].thu_tu"] },
     { "pt": "GET", "duong": "/gio-vang", "token": false, "tra": ["dang_chay", "bat_dau", "ket_thuc", "phan_tram", "mon"] },
     { "pt": "GET", "duong": "/gio-hoat-dong", "token": false, "tra": ["bay_gio", "dang_mo", "nhan_don", "hom_nay", "mo_lai_luc", "thong_bao", "lich_tuan[].thu", "lich_tuan[].mo", "lich_tuan[].dong", "lich_tuan[].nghi", "ngay_nghi"] },
-    { "pt": "GET", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.qr", "khach.hang.id", "khach.hang.ten", "khach.hang.phan_tram", "khach.hang.phan_tram_nhom_dac_biet", "khach.hang.het_han", "khach.so_du_vi"] },
-    { "pt": "PUT", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi"] },
+    { "pt": "GET", "duong": "/chuong-trinh", "token": false, "tra": ["data[].ma", "data[].ten", "data[].mo_ta", "data[].loai", "data[].dang_bat"] },
+    { "pt": "GET", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh", "khach.qr", "khach.hang.id", "khach.hang.ten", "khach.hang.phan_tram", "khach.hang.phan_tram_nhom_dac_biet", "khach.hang.het_han", "khach.so_du_vi"] },
+    { "pt": "PUT", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh"] },
     { "pt": "POST", "duong": "/gia-han", "token": true, "tra": ["token", "het_han"] },
     { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia", "data[].nhu_cau", "data[].the_chat", "data[].mo_ta", "data[].cong_dung", "data[].thanh_phan", "data[].anh"] },
     { "pt": "GET", "duong": "/diem", "token": true, "tra": ["points", "history"] },
@@ -205,7 +213,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     "TICH_DIEM_DANG_TAT", "DON_KHONG_DU_DIEM", "KHONG_THEM_DIEM", "MA_TRUNG",
     "CHUA_GIAO", "NGOAI_GIO", "QUA_GIO_NHAN_DON", "HET_HANG", "MON_KHONG_BAN", "KHOA_GUI_SAI", "KHOA_GUI_DA_DUNG", "DANG_XU_LY", "GIA_DA_DOI",
     "VI_KHONG_DU", "CACH_KHONG_KHOP", "CHUA_CO_PIN", "PIN_SAI", "PIN_DANG_KHOA", "DA_TRA_GOI_QUAN", "PAYOS_CHUA_CAU_HINH", "PAYOS_LOI",
-    "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON"]
+    "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON", "NGAY_SINH_SAI", "NGAY_SINH_DA_CO"]
 }
 ```
 <!-- HET HOP_DONG_MAY_DOC -->
@@ -229,3 +237,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   Mã lỗi mới của đặt đơn (thay tên đã hẹn `NGOAI_GIO_HOAT_DONG` bằng `NGOAI_GIO` + `QUA_GIO_NHAN_DON`, đã báo App ở TRA_LOI_POS_31102026). Chủ quán
   duyệt 31.10: `tong_da_xem` + 409 `GIA_DA_DOI` kèm `bao_gia`; "Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như
   lần đầu." Không xoá / đổi tên trường cũ.
+- v6 · 03.11.2026 · CT-1a: `GET /chuong-trinh` (không token, thêm vào bảng cửa); `khach.ngay_sinh` ở `/toi`, `PUT /toi`, xác minh; `PUT /toi` nhận thêm `ngay_sinh`
+  (MỘT lần). Mã lỗi mới `NGAY_SINH_SAI` 400, `NGAY_SINH_DA_CO` 409. Không xoá / đổi tên trường cũ — App v5 bỏ qua trường lạ là chạy nguyên. Hai dòng CT-1a
+  đã chuyển khỏi "Đã hẹn".
