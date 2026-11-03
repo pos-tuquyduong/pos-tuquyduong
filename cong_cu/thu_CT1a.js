@@ -256,7 +256,7 @@ async function main() {
   const soB = await soDb(kB.sdt);
   k('B1 nhân viên nhập khi đang trống → 200, ngày lưu đúng', b0.status === 200 && b0.j.ngay_sinh === NS && await ngaySinhDb(kB.sdt) === NS, mt(b0));
   k('B1b có đúng 1 dòng sổ: cũ null, mới = ngày, ai = nhân viên, lúc dạng giờ VN, không lý do',
-    !!soB && soB.length === 1 && soB[0].cu == null && soB[0].moi === NS && soB[0].boi === 'nv_thu' && DANG_GIO.test(String(soB[0].luc)), JSON.stringify(soB));
+    !!soB && soB.length === 1 && soB[0].cu == null && soB[0].moi === NS && soB[0].boi === 'nv_thu' && soB[0].ly_do == null && DANG_GIO.test(String(soB[0].luc)), JSON.stringify(soB));
   const NS2 = luiNam(homNay, 31);
   const b1x = await pos('PUT', `${dsB}/${kB.sdt}/ngay-sinh`, { ngay_sinh: NS2, ly_do: 'Khách nhập nhầm' }, tkNv);
   const b2x = await pos('PUT', `${dsB}/${kB.sdt}/ngay-sinh`, { ngay_sinh: NS2, ly_do: 'Khách nhập nhầm' }, tkQl);
@@ -280,6 +280,11 @@ async function main() {
   k('B5b thu quyền lại → quản lý lại bị 403', la(b6, 403, 'PERMISSION_DENIED'), mt(b6));
   const b7 = await pos('PUT', `${dsB}/${kB.sdt}/ngay-sinh`, { ngay_sinh: 'khong-phai-ngay', ly_do: 'thử' }, tkChu);
   k('B5c chủ quán sửa thành giá trị sai → 400 NGAY_SINH_SAI; ngày nguyên', la(b7, 400, 'NGAY_SINH_SAI') && await ngaySinhDb(kB.sdt) === NS, mt(b7));
+  const kLd = await khachMoi('Khách lý do'), nsLd = luiNam(homNay, 40);
+  await pos('PUT', `${dsB}/${kLd.sdt}/ngay-sinh`, { ngay_sinh: nsLd }, tkNv);
+  const ld201 = await pos('PUT', `${dsB}/${kLd.sdt}/ngay-sinh`, { ngay_sinh: NS, ly_do: 'l'.repeat(201) }, tkChu);
+  const ld200 = await pos('PUT', `${dsB}/${kLd.sdt}/ngay-sinh`, { ngay_sinh: NS, ly_do: 'l'.repeat(200) }, tkChu);
+  k('B5d lý do dài 201 ký tự → 400 LY_DO_BAT_BUOC (ngày nguyên); đúng 200 ký tự → 200', la(ld201, 400, 'LY_DO_BAT_BUOC') && ld200.status === 200 && await ngaySinhDb(kLd.sdt) === NS, mt(ld201) + ' / ' + mt(ld200));
   const kLa = await pos('PUT', `${dsB}/0944999999/ngay-sinh`, { ngay_sinh: NS }, tkNv);
   const kHong = await pos('PUT', `${dsB}/123/ngay-sinh`, { ngay_sinh: NS }, tkNv);
   k('B6 khách không có → 404 KHACH_KHONG_TON_TAI và KHÔNG tạo khách mới (luật thiết kế 6); SĐT hỏng → 400', la(kLa, 404, 'KHACH_KHONG_TON_TAI') && kHong.status === 400 && await soKhach() === nB, mt(kLa) + ' / ' + mt(kHong));
