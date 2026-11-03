@@ -55,6 +55,19 @@ Chủ quán tự tạo hạng, xếp thứ bậc, bán hạng theo gói nhiều 
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- server/utils/pinChuQuan.js
+- cong_cu/thu_DOISOAT1.js
+- cong_cu/thu_HD1.js
+- cong_cu/thu_P2223.js
+- cong_cu/thu_P24.js
+- cong_cu/thu_P26c.js
+- cong_cu/thu_KHAPI2.js
+- cong_cu/thu_UUDAI1.js
+- cong_cu/thu_P3.js
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/gia_lap/bat_bien.js
+<!-- Chủ quán 03.11 (chat ghi): Q1-a PIN chủ quán riêng (file chung pinChuQuan.js) · Q2 sửa 8 bài cũ + I15, chỉ phần dựng dữ liệu
+     · Q3 làm tiếp SAU khi KH-SDT-1 + GIO-VN-1 gộp (đã gộp). -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_HANG1.js` ĐỎ trên code gốc: thêm hạng + gói; bán gói lấy giá máy chủ; cộng nối hạn; chặn hạng thấp hơn; chặn bán hạng chi_cap;
