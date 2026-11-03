@@ -1,0 +1,86 @@
+TU-CHAY-10 — bằng chứng bài thử ĐỎ trên code gốc (tu-chay 1.8.1, 9ce1a32), XANH trên code đã vá
+Cây gốc: git archive 9ce1a32 (giải nén trong nháp) + ba bài thử của HEAD chép đè; chạy `node tu_chay/<bài>` trong cây đó.
+
+== tu_chay/thu_cong.js trên GỐC — chạy lại sau vòng sửa 4 (ca hai tiêu đề đòi câu báo riêng, HEAD 43e95db) — BẰNG CHỨNG HIỆN HÀNH ==
+thu_cong phần 1/3: 48/142 đơn vị · 146 phép · 15 chỗ hỏng
+thu_cong phần 2/3: 47/142 đơn vị · 121 phép · 12 chỗ hỏng
+thu_cong phần 3/3: 47/142 đơn vị · 124 phép · 17 chỗ hỏng
+  (12 ca "phải ĐỎ" như lần vòng 2 dưới đây; ca hai tiêu đề thêm phép:)
+  ✗ TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có): lý do có "chỉ được MỘT mục ## Soát bảo mật" — ✓ CỔNG TĨNH ĐẠT
+thu_cong: 391 phép · 44 chỗ hỏng
+Trên code đã vá (sau vòng 4): thu_cong: 391 phép · 0 chỗ hỏng — ✓ XANH.
+Bản GỐC thu_cong.js (9ce1a32) trên code đã vá (sau vòng 4): thu_cong: 337 phép · 0 chỗ hỏng — ✓ XANH.
+thu_cong_cu.js (regex đòi thêm chữ "mục lặp") trên GỐC: 117 phép · 8 chỗ hỏng; trên code đã vá: 117 · 0.
+
+== tu_chay/thu_cong.js trên GỐC — chạy lại sau soát vòng 2 (thêm ca hai tiêu đề, HEAD 2567e2e) ==
+thu_cong phần 1/3: 48/142 đơn vị · 146 phép · 15 chỗ hỏng
+thu_cong phần 2/3: 47/142 đơn vị · 121 phép · 12 chỗ hỏng
+thu_cong phần 3/3: 47/142 đơn vị · 123 phép · 16 chỗ hỏng
+  (11 ca "phải ĐỎ" như lần vòng 1 dưới đây, thêm:)
+  ✗ TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong: 390 phép · 43 chỗ hỏng
+Trên code đã vá (sau vòng 2): thu_cong: 390 phép · 0 chỗ hỏng — ✓ XANH.
+Bản GỐC thu_cong.js (9ce1a32) trên code đã vá (sau vòng 2): thu_cong: 337 phép · 0 chỗ hỏng — ✓ XANH.
+
+== tu_chay/thu_cong_cu.js trên GỐC — chạy lại sau soát vòng 2 (thêm phép skill hỏi sớm) — BẰNG CHỨNG HIỆN HÀNH ==
+thu_cong_cu: 117 phép · 8 chỗ hỏng (7 phép TU-CHAY-10 như lần đầu dưới đây, thêm:)
+  ✗ TU-CHAY-10 B skill: A20 tiêu đề lệch / giá trị lạ / mục lặp → ## Câu hỏi sớm (bước 4 và 8b); …
+Trên code đã vá (sau vòng 2): thu_cong_cu: 117 phép · 0 chỗ hỏng — ✓ XANH.
+
+== tu_chay/thu_cong.js trên GỐC — chạy lại sau soát vòng 1 (thêm 3 ca tiêu đề lệch, HEAD 3009890 trở đi) ==
+thu_cong phần 1/3: 47/141 đơn vị · 145 phép · 15 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT → dòng cuối thắng: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 chữ dính "cóthể": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 tiêu đề lệch "### Soát bảo mật": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong phần 2/3: 47/141 đơn vị · 123 phép · 12 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + KHÔNG ĐẠT: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 mục rỗng tới tiêu đề kế: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 tiêu đề lệch "## Soát bảo mật: có — tiền": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong phần 3/3: 47/141 đơn vị · 117 phép · 12 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 giá trị lạ: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong: 385 phép · 39 chỗ hỏng
+  ĐỎ — 39 chỗ hỏng
+Trên code đã vá (sau vòng 1): thu_cong: 385 phép · 0 chỗ hỏng — ✓ XANH.
+Bản GỐC thu_cong.js (9ce1a32) trên code đã vá (sau vòng 1): thu_cong: 337 phép · 0 chỗ hỏng — ✓ XANH.
+
+== tu_chay/thu_cong.js trên GỐC — lần đầu (trước soát vòng 1, giữ để đối chiếu) ==
+thu_cong phần 1/3: 46/138 đơn vị · 141 phép · 11 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay): phải ĐỎ — ✓ CỔNG CHẠY ĐẠT
+  ✗ TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT → dòng cuối thắng: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 chữ dính "cóthể": phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  (+ các dòng lý do "[A20]" / "SOÁT BẢO MẬT: ĐẠT" / "có hoặc không" / "đúng 1 dòng ✗ [" của cùng ba ca)
+thu_cong phần 2/3: 46/138 đơn vị · 119 phép · 8 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + KHÔNG ĐẠT: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 mục rỗng tới tiêu đề kế: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong phần 3/3: 46/138 đơn vị · 112 phép · 8 chỗ hỏng
+  ✗ TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh): phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+  ✗ TU-CHAY-10 A20 giá trị lạ: phải ĐỎ — ✓ CỔNG TĨNH ĐẠT
+thu_cong: 372 phép · 27 chỗ hỏng
+  ĐỎ — 27 chỗ hỏng
+(Các ca K5 — có + ĐẠT, KHÔNG ĐẠT rồi ĐẠT, không — …, "- Có — tiền", PR thêm mục ban_cai soat-bao-mat — XANH cả trên gốc: đúng ý, không bị chặn.)
+Trên code đã vá (lần đầu): thu_cong: 372 phép · 0 chỗ hỏng — ✓ XANH.
+
+== tu_chay/thu_nguoi_gac.js trên GỐC ==
+thu_nguoi_gac: 1011/1011 ca người gác đúng mã · 180 phép khác
+  ✗ cau_hinh: ban_cai — MỘT bảng bản cài cho cai_dat.js, cong.js, bộ kiểm T3/T4 (skill, /ra-soat, cổng, /soat-bao-mat) — [["skill_lam_viec.md",…] (gốc chỉ 3 mục)
+  ĐỎ — 1 chỗ hỏng
+Trên code đã vá: thu_nguoi_gac: 1011/1011 ca người gác đúng mã · 182 phép khác — ✓ XANH.
+
+== tu_chay/thu_cong_cu.js trên GỐC ==
+thu_cong_cu: 116 phép · 7 chỗ hỏng
+  ✗ TU-CHAY-10 A lenh_soat_bao_mat: frontmatter description; ghi nguồn anthropics/claude-code-security-review + MIT + Copyright (c) 2025 Anthropic
+  ✗ TU-CHAY-10 A lenh_soat_bao_mat: bước 1 lấy diff như /ra-soat (mốc PHIEU có neo), không còn dòng lệnh !`git … origin/HEAD` của bản gốc
+  ✗ TU-CHAY-10 A lenh_soat_bao_mat: giữ nguyên các nhóm của bản gốc + lọc báo nhầm bằng subagent riêng, bỏ điểm < 8; nộp SubagentHandback
+  ✗ TU-CHAY-10 A lenh_soat_bao_mat: mục "Tiền lệ của kho này" (…), không chữ POS
+  ✗ TU-CHAY-10 B skill bước 8b: giữa bước 8 và 9, …
+  ✗ TU-CHAY-10 B skill bước 4: [A20] cùng câu "bình thường" với [A19] / [A8]
+  ✗ TU-CHAY-10 D MAU_PHIEU: mục ## Soát bảo mật trước ## Cấm, …
+  ĐỎ — 7 chỗ hỏng
+Trên code đã vá: thu_cong_cu: 116 phép · 0 chỗ hỏng — ✓ XANH.
+
+SỐ CA tu_chay/thu_cong.js: 391
+SỐ CA tu_chay/thu_nguoi_gac.js: 1193
+SỐ CA tu_chay/thu_cong_cu.js: 117

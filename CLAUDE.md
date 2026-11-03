@@ -75,7 +75,8 @@ bash ban_mau_pos/chay_thu.sh              # 119 phép của bản mẫu giao di�
    bọc `try/catch` chỉ log là **chủ ý**, không phải thiếu sót.
 4. **Append-only ledger** cho mọi giao dịch có giá trị tài chính.
 5. **KHÔNG bỏ `client/dist/` khỏi git** cho tới khi lockfile sinh lại (P6).
-6. **Hai hạng thẻ: Vàng và Bạch Kim.** Không có Kim Cương.
+6. **Hạng thẻ do chủ quán cài** (thêm / xoá được, có thứ bậc): hôm nay **Vàng** (bán theo gói thời hạn) + **Kim Cương** (chỉ chủ
+   quán cấp, có thể không thời hạn) — chủ quán 02.11.2026 (HANG-1). Không còn Bạch Kim.
 7. **Replit dùng kho thử `data/pos_thu.db`, Render dùng Turso.** Chỉ
    `server/ketNoiKho.js` được đọc biến kết nối (P8). `data/pos.db` là rác.
 8. **Không fabricate số liệu.** Mất kết nối SX thì hiện giá trị cuối cùng biết

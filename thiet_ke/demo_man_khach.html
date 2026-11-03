@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo màn khách — Tứ Quý Đường</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root { --nen:#f1f5f9; --chu:#0f172a; --mo:#64748b; --the:#ffffff; --vien:#e2e8f0; --do:#dc2626; color-scheme: light;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nen:#0b1220; --chu:#e2e8f0; --mo:#94a3b8; --the:#111a2e; --vien:#24324d; color-scheme: dark; } }
+:root[data-theme="dark"] { --nen:#0b1220; --chu:#e2e8f0; --mo:#94a3b8; --the:#111a2e; --vien:#24324d; color-scheme: dark; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin:0; background:var(--nen); color:var(--chu); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size:15px; }
+*, *::before, *::after { box-sizing: border-box; }
+.dau { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--the); border-bottom: 1px solid var(--vien); padding: .6rem 1rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+body::before { content:""; position:fixed; inset:0 0 auto; height: env(safe-area-inset-top, 0px); z-index:10; background: var(--the); }
+.dau b { margin-right: auto; }
+.tab { border:1px solid var(--vien); background:transparent; color:var(--chu); border-radius:8px; padding:.45rem .8rem; cursor:pointer; font: inherit; }
+.tab[aria-selected="true"] { background: var(--do); color:#fff; border-color: var(--do); }
+.than { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+.ghichu { color: var(--mo); font-size: 13.5px; margin: .2rem 0 1rem; line-height: 1.5; }
+.the { background: var(--the); border:1px solid var(--vien); border-radius: 10px; padding: 1rem; }
+.hang-nut { display:flex; gap:.5rem; flex-wrap:wrap; margin: .6rem 0 1rem; }
+.btn { border:1px solid var(--vien); background: var(--the); color: var(--chu); border-radius: 8px; padding: .5rem .9rem; cursor:pointer; font: inherit; min-height: 40px; }
+.btn-do { background: var(--do); color:#fff; border-color: var(--do); }
+.btn:focus-visible, .tab:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+input.o, textarea.o { border:1px solid var(--vien); background: var(--nen); color: var(--chu); border-radius: 6px; padding: .45rem .6rem; font: inherit; }
+
+/* khung máy tính bảng */
+.tablet { background:#1f2937; border-radius: 22px; padding: 14px; max-width: 980px; margin: 0 auto; }
+.tablet.doc { max-width: 520px; }
+.manh { position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; }
+.tablet.doc .manh { aspect-ratio: 10 / 16; }
+
+/* CSS thật của màn khách (client/src/pages/ManKhach/manKhach.css), .mk đổi từ fixed sang absolute để nằm trong khung */
+.mk { position: absolute; inset: 0; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; overflow: hidden; user-select: none; container-type: size; }
+.mk-giua { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem; padding: 2rem; text-align: center; }
+.mk-to { font-size: clamp(1.3rem, 5cqmin, 3.2rem); font-weight: 800; }
+.mk-vua { font-size: clamp(.95rem, 3cqmin, 1.8rem); }
+.mk-mo { color: #94a3b8; }
+.mk-o-ma { font-size: clamp(1.6rem, 8cqmin, 4rem); letter-spacing: .4em; text-align: center; width: 100%; max-width: 20rem; padding: .6rem; border-radius: 12px; border: 2px solid #475569; background: #1e293b; color: #fff; }
+.mk-nut { background: #dc2626; color: #fff; border: 0; border-radius: 12px; padding: .9rem 2.2rem; font-size: 1.2rem; font-weight: 700; min-height: 56px; cursor: pointer; }
+.mk-nut:disabled { opacity: .5; }
+.mk-loi { color: #fca5a5; min-height: 1.5em; }
+.mk-thu { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; padding: 2rem; align-items: center; min-height: 0; }
+.mk-qr-khung { display: flex; flex-direction: column; align-items: center; gap: .8rem; }
+.mk-qr { width: min(46cqw, 70cqh); height: min(46cqw, 70cqh); background: #fff; border-radius: 16px; padding: .8rem; }
+.mk-qr svg, .mk-qr-app svg { width: 100%; height: 100%; display:block; }
+.mk-tien { font-size: clamp(1.6rem, 7cqmin, 4.5rem); font-weight: 800; color: #fde68a; }
+.mk-ds { display: flex; flex-direction: column; gap: .6rem; min-height: 0; max-height: 100%; overflow-y: auto; }
+.mk-ds .mk-dong-tong { position: sticky; bottom: 0; background: #0f172a; padding-top: .4rem; }
+.mk-dong { display: flex; justify-content: space-between; gap: 1rem; font-size: clamp(.9rem, 3cqmin, 1.9rem); border-bottom: 1px solid #334155; padding-bottom: .4rem; }
+.mk-dong-giam { color: #86efac; }
+.mk-dong-tong { font-weight: 800; border-bottom: 0; color: #fde68a; align-items: baseline; }
+@container (max-aspect-ratio: 1/1) {
+  .mk-thu { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 1.2rem; padding: 1.2rem; align-items: start; }
+  .mk-qr { width: min(80cqw, 44cqh); height: min(80cqw, 44cqh); }
+}
+.mk-trang { flex: 1; padding: 2rem; display: flex; flex-direction: column; gap: 1.2rem; min-height: 0; animation: mk-hien .6s ease; }
+@keyframes mk-hien { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mk-trang { animation: none; } }
+.mk-menu { columns: 2 16rem; column-gap: 3rem; }
+.mk-menu .mk-dong { break-inside: avoid; }
+.mk-het { text-decoration: line-through; color: #64748b; }
+.mk-ten-het { font-size: .7em; background: #475569; border-radius: 6px; padding: 0 .4rem; margin-left: .5rem; display: inline-block; color:#e2e8f0; }
+.mk-qr-app { width: min(50cqw, 50cqh); height: min(50cqw, 50cqh); background: #fff; border-radius: 16px; padding: .8rem; }
+
+/* máy quầy */
+.quay { display:grid; grid-template-columns: minmax(0,1fr) 300px; gap: 1rem; }
+@media (max-width: 760px) { .quay { grid-template-columns: 1fr; } }
+.nut-mk { display:inline-flex; gap:.4rem; align-items:center; }
+.hop-ma { border:1px solid var(--vien); border-radius: 10px; padding: .8rem; margin-top: .6rem; background: var(--nen); }
+.ma-to { font-size: 34px; letter-spacing: .25em; font-weight: 800; text-align: center; margin: .4rem 0; }
+.gio { width:100%; border-collapse: collapse; }
+.gio td { padding: .35rem 0; border-bottom: 1px solid var(--vien); }
+.gio td:last-child { text-align: right; }
+
+/* cài đặt */
+.cd-hang { display:flex; align-items:center; gap:8px; padding:.55rem 0; border-top:1px solid var(--vien); flex-wrap:wrap; }
+.cd-ten { flex: 1 1 220px; font-weight: 500; }
+.tb { padding: 8px; margin-bottom: 8px; border-radius: 6px; background: #dcfce7; color:#14532d; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="dau" role="tablist" aria-label="Chọn màn">
+  <b>Demo màn khách</b>
+  <button class="tab" role="tab" data-tab="quay" aria-selected="true">Máy quầy</button>
+  <button class="tab" role="tab" data-tab="khach" aria-selected="false">Màn khách (máy tính bảng)</button>
+  <button class="tab" role="tab" data-tab="caidat" aria-selected="false">Cài đặt → Màn khách</button>
+</div>
+
+<main class="than">
+  <!-- ═════ MÁY QUẦY ═════ -->
+  <section id="tab-quay">
+    <p class="ghichu">Bản demo chạy trên dữ liệu giả, không nối máy chủ. Bấm nút “Màn khách” lấy mã → sang tab Màn khách nhập mã (chỉ làm một lần). Rồi quay lại đây bấm “Thu bằng QR” hoặc “Thu tiền mặt” để xem màn khách dừng quảng cáo và hiện hoá đơn. Bản demo này đã theo ý 01.11: giá gốc gạch ngang + giá sau giảm, tiền mặt cũng hiện hoá đơn. Trang video chưa có trong demo.</p>
+    <div class="quay">
+      <div class="the">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <b>Bán hàng</b>
+          <button class="btn nut-mk" id="nutMk" aria-expanded="false">🖥️ Màn khách<span id="soMay"></span></button>
+        </div>
+        <div class="hop-ma" id="hopMa" hidden>
+          <b>Ghép màn khách</b>
+          <div class="ghichu" style="margin:.3rem 0 0">Trên máy tính bảng quay về phía khách, mở trang <b>/man-khach</b> rồi nhập mã:</div>
+          <div class="ma-to" id="maTo"></div>
+          <div class="ghichu" id="maGhiChu" style="margin:0 0 .5rem"></div>
+          <button class="btn" id="doiMa">Đổi mã</button>
+        </div>
+        <table class="gio" style="margin-top:1rem" aria-label="Giỏ hàng">
+          <tbody>
+            <tr><td>2 × Trà Tứ Quý</td><td>50.000đ</td></tr>
+            <tr><td>1 × Nước ép Cần tây táo</td><td>30.000đ</td></tr>
+            <tr><td>Hạng Vàng (6%)</td><td>−4.800đ</td></tr>
+            <tr><td><b>Cần thanh toán</b></td><td><b>75.200đ</b></td></tr>
+          </tbody>
+        </table>
+        <div class="hang-nut">
+          <button class="btn btn-do" id="thuQr">Thu bằng QR</button>
+          <button class="btn btn-do" id="thuTm">Thu tiền mặt</button>
+          <button class="btn" id="tienVe" disabled>Giả lập: tiền đã về / đã thu</button>
+          <button class="btn" id="huyQr" disabled>Huỷ QR</button>
+        </div>
+        <div class="ghichu" id="trangThaiQuay">Chưa thu.</div>
+      </div>
+      <div class="the">
+        <b>Màn khách đang thấy</b>
+        <div class="ghichu" id="xemNhanh" style="margin-top:.4rem">Chưa ghép.</div>
+        <button class="btn" data-sang="khach">Mở tab Màn khách</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ MÀN KHÁCH ═════ -->
+  <section id="tab-khach" hidden>
+    <div class="hang-nut">
+      <button class="btn" id="xoay">Xoay máy: dọc</button>
+      <button class="btn" data-sang="quay">Về máy quầy</button>
+    </div>
+    <div class="tablet" id="tablet"><div class="manh"><div class="mk" id="mk"></div></div></div>
+  </section>
+
+  <!-- ═════ CÀI ĐẶT ═════ -->
+  <section id="tab-caidat" hidden>
+    <div class="the">
+      <div style="font-weight:700;margin-bottom:.4rem">🖥️ Màn khách</div>
+      <p class="ghichu">Máy tính bảng quay về phía khách: lúc thu hiện mã QR, món và tổng; lúc rảnh chạy vòng các trang dưới đây. Ghép máy: mở trang <b>/man-khach</b> trên máy tính bảng, nhập mã ở nút “Màn khách” góc màn Bán hàng.</p>
+      <div class="tb" id="cdTb" hidden></div>
+      <div style="font-weight:600">Các trang lúc rảnh (chạy từ trên xuống)</div>
+      <div id="dsTrang"></div>
+      <div class="cd-hang" style="gap:6px">＋
+        <button class="btn" data-them="menu">Thực đơn</button>
+        <button class="btn" data-them="flash">Giờ vàng</button>
+        <button class="btn" data-them="qr_app">QR tải App / tích điểm</button>
+        <button class="btn" data-them="chu">Chữ giới thiệu</button>
+      </div>
+      <div class="cd-hang" style="flex-direction:column;align-items:stretch">
+        <label for="diaChi" style="font-weight:600">Địa chỉ App khách (mã QR ở trang “QR tải App”)</label>
+        <input class="o" id="diaChi" maxlength="300" placeholder="https://…">
+      </div>
+      <label class="cd-hang" style="font-weight:500"><input type="checkbox" id="hienTen"> Hiện tên khách trên màn khách lúc thu (chỉ khi nhân viên đã chọn khách; không bao giờ hiện số điện thoại, số dư, điểm)</label>
+      <button class="btn btn-do" id="luu" style="margin-top:.5rem">💾 Lưu</button>
+      <div style="font-weight:600;margin-top:1.5rem">Màn khách đã ghép</div>
+      <div id="dsMay"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
+  const LOAI = { menu: 'Thực đơn (giá, hết hàng tự cập nhật)', flash: 'Giờ vàng (chỉ hiện khi đang chạy)', qr_app: 'QR tải App / tích điểm', chu: 'Chữ giới thiệu', anh: 'Ảnh (chờ có chỗ lưu ảnh)' };
+  const MENU = [
+    ['Trà Tứ Quý', 25000], ['Trà Hoa Cúc Kỷ Tử', 30000], ['Trà Atiso Đỏ', 28000], ['Trà Gừng Mật Ong', 25000], ['Trà Sen Vàng', 32000],
+    ['Nước ép Cần tây táo', 30000], ['Nước ép Cà rốt cam', 30000], ['Nước ép Dưa hấu', 25000, true], ['Nước ép Thơm bạc hà', 28000],
+    ['Sữa chua Nếp cẩm', 30000], ['Trà Lài Thanh Nhiệt', 25000], ['Trà Bí Đao La Hán', 25000], ['Trà Táo Đỏ Long Nhãn', 35000], ['Trà Hoa Đậu Biếc', 28000],
+  ].map(([ten, gia, het]) => ({ ten, gia, het: !!het }));
+  const S = {
+    trang: [{ loai: 'menu', bat: true, giay: 8 }, { loai: 'flash', bat: true, giay: 6 }, { loai: 'qr_app', bat: true, giay: 6, tieu_de: '', noi_dung: 'Quét mã — tích điểm mỗi lần mua' },
+      { loai: 'chu', bat: true, giay: 6, tieu_de: 'Tứ Quý Đường', noi_dung: 'Trà thảo mộc pha mỗi ngày\nNguyên liệu chọn theo mùa' }],
+    diaChi: 'https://app-kh.pages.dev', hienTen: false,
+    ma: '', may: [], ghep: false, khoa: '', che: 'ranh', thu: null, i: 0, hen: null, demHen: null, doc: false,
+  };
+  const qrSvg = (text) => { try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch { return ''; } };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ── tab ──
+  function sang(t) {
+    document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    ['quay', 'khach', 'caidat'].forEach((x) => { $('tab-' + x).hidden = x !== t; });
+    if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
+    if (t === 'caidat') veCaiDat();
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.onclick = () => sang(b.dataset.tab));
+  document.querySelectorAll('[data-sang]').forEach((b) => b.onclick = () => sang(b.dataset.sang));
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (['quay', 'khach', 'caidat'].includes(h)) sang(h); });
+
+  // ── máy quầy ──
+  const maMoi = () => String(Math.floor(Math.random() * 1e6)).padStart(6, '0');
+  function veQuay() {
+    $('maTo').textContent = S.ma;
+    $('soMay').textContent = S.may.length ? ' · ' + S.may.length : '';
+    $('maGhiChu').textContent = 'Mã dùng một lần, có hạn vài phút.' + (S.may.length ? ' Đã ghép: ' + S.may.map((m) => m.ten).join(', ') + '.' : ' Chưa ghép màn nào.');
+    $('xemNhanh').textContent = !S.ghep ? 'Chưa ghép — màn khách đang chờ nhập mã.' : S.che === 'thu' ? 'Đang hiện QR + món + tổng.' : S.che === 'cam_on' ? 'Đang hiện “Cảm ơn quý khách”.' : 'Đang chạy vòng các trang lúc rảnh.';
+    $('thuQr').disabled = S.che === 'thu'; $('thuTm').disabled = S.che === 'thu'; $('tienVe').disabled = S.che !== 'thu'; $('huyQr').disabled = S.che !== 'thu';
+  }
+  $('nutMk').onclick = () => { const mo = $('hopMa').hidden; $('hopMa').hidden = !mo; $('nutMk').setAttribute('aria-expanded', String(mo)); if (mo && !S.ma) S.ma = maMoi(); veQuay(); };
+  $('doiMa').onclick = () => { S.ma = maMoi(); veQuay(); };
+  const MON_THU = [{ ten: 'Trà Tứ Quý', so_luong: 2, goc: 50000, sau: 47000 }, { ten: 'Nước ép Cần tây táo', so_luong: 1, goc: 30000, sau: 28200 }];
+  $('thuTm').onclick = () => {
+    S.che = 'thu'; S.thu = { tien_mat: true, con_lai: 75200, mon: MON_THU, gia_goc: 80000, giam: [{ ten: 'Giảm hạng Vàng 6%', tien: 4800 }], ten_khach: S.hienTen ? 'Chị Lan' : null };
+    $('trangThaiQuay').textContent = 'Đang thu tiền mặt…'; veQuay(); veMk();
+  };
+  $('thuQr').onclick = () => {
+    S.che = 'thu'; S.thu = { qr: '00020101021238570010A000000727012700069704220113TQD' + Math.floor(Math.random() * 1e6) + '5303704540575200', con_lai: 75200, tong: 75200, con_giay: 900, luc: Date.now(),
+      mon: MON_THU, gia_goc: 80000, giam: [{ ten: 'Giảm hạng Vàng 6%', tien: 4800 }], ten_khach: S.hienTen ? 'Chị Lan' : null };
+    $('trangThaiQuay').textContent = 'Đang chờ khách quét mã…'; veQuay(); veMk();
+  };
+  $('tienVe').onclick = () => { S.tmXong = !!(S.thu && S.thu.tien_mat); S.che = 'cam_on'; $('trangThaiQuay').textContent = 'Đã nhận 75.200đ.'; veQuay(); veMk(); setTimeout(() => { S.che = 'ranh'; S.thu = null; veQuay(); veMk(); }, 6000); };
+  $('huyQr').onclick = () => { S.che = 'ranh'; S.thu = null; $('trangThaiQuay').textContent = 'Đã huỷ QR.'; veQuay(); veMk(); };
+
+  // ── màn khách ──
+  function dsTrang() {
+    const ra = [];
+    for (const t of S.trang.filter((x) => x.bat)) {
+      if (t.loai === 'menu') for (let i = 0; i < MENU.length; i += 12) ra.push({ ...t, mon: MENU.slice(i, i + 12) });
+      else if (t.loai === 'flash') ra.push({ ...t, flash: { phan_tram: 20, mon: ['Trà Tứ Quý', 'Trà Atiso Đỏ'], den: '16:00' } });
+      else if (t.loai === 'qr_app' && S.diaChi) ra.push({ ...t, dia_chi: S.diaChi });
+      else if (t.loai === 'chu' && (t.tieu_de || t.noi_dung)) ra.push(t);
+    }
+    return ra;
+  }
+  function veMk() {
+    clearTimeout(S.hen); clearInterval(S.demHen);
+    const mk = $('mk');
+    if (!S.ghep) {
+      mk.innerHTML = `<div class="mk-giua"><div class="mk-to">Ghép với máy quầy</div><div class="mk-vua mk-mo">Nhập mã hiện ở góc màn Bán hàng (nút “Màn khách”)</div>
+        <input class="mk-o-ma" id="oMa" inputmode="numeric" autocomplete="off" maxlength="6" aria-label="Mã ghép"><div class="mk-loi" id="mkLoi">${S.loi ? esc(S.loi) : ''}</div>
+        <button class="mk-nut" id="mkGhep" disabled>Ghép</button></div>`;
+      const o = $('oMa'), n = $('mkGhep');
+      o.oninput = () => { o.value = o.value.replace(/\D/g, '').slice(0, 6); n.disabled = o.value.length !== 6; };
+      const gui = () => {
+        if (S.ma && o.value === S.ma) { S.ghep = true; S.loi = ''; S.may.push({ id: S.may.length + 1, ten: 'Màn khách', luc: new Date().toLocaleString('vi-VN') }); S.ma = maMoi(); veQuay(); veMk(); }
+        else { S.loi = 'Mã ghép không đúng hoặc đã hết hạn — xem mã mới ở góc màn Bán hàng'; $('mkLoi').textContent = S.loi; }
+      };
+      n.onclick = gui; o.onkeydown = (e) => { if (e.key === 'Enter' && o.value.length === 6) gui(); };
+      return;
+    }
+    if (S.che === 'thu' && S.thu) {
+      const t = S.thu;
+      const dong = t.mon.map((m) => `<div class="mk-dong"><span>${m.so_luong} × ${esc(m.ten)}</span><span>${m.goc !== m.sau ? `<s class="mk-mo" style="font-size:.75em">${vnd(m.goc)}</s> ` : ''}${vnd(m.sau)}</span></div>`).join('')
+        + `<div class="mk-dong mk-mo"><span>Giá gốc</span><span>${vnd(t.gia_goc)}</span></div>`
+        + t.giam.map((g) => `<div class="mk-dong mk-dong-giam"><span>${esc(g.ten)}</span><span>−${vnd(g.tien)}</span></div>`).join('')
+        + `<div class="mk-dong mk-dong-tong"><span>Cần thanh toán</span><span class="mk-tien">${vnd(t.con_lai)}</span></div>`;
+      const trai = t.tien_mat
+        ? `<div class="mk-qr-khung"><div class="mk-to">Thanh toán tiền mặt</div><div class="mk-tien">${vnd(t.con_lai)}</div><div class="mk-vua mk-mo">Quý khách vui lòng kiểm tra hoá đơn</div></div>`
+        : `<div class="mk-qr-khung"><div class="mk-vua mk-mo">Quý khách quét mã để thanh toán</div><div class="mk-qr">${qrSvg(t.qr)}</div><div class="mk-vua mk-mo" id="dem"></div></div>`;
+      mk.innerHTML = `<div class="mk-thu">${trai}
+        <div class="mk-ds">${t.ten_khach ? `<div class="mk-vua mk-mo">Khách: ${esc(t.ten_khach)}</div>` : ''}${dong}</div></div>`;
+      const dem = () => { const g = Math.max(0, t.con_giay - Math.floor((Date.now() - t.luc) / 1000)); $('dem').textContent = g > 0 ? `Còn ${Math.floor(g / 60)}:${String(g % 60).padStart(2, '0')}` : 'Đang kiểm tra…'; };
+      if (!t.tien_mat) { dem(); S.demHen = setInterval(dem, 1000); }
+      return;
+    }
+    if (S.che === 'cam_on') { mk.innerHTML = '<div class="mk-giua"><div class="mk-to">Cảm ơn quý khách</div><div class="mk-vua">' + (S.tmXong ? 'Khách đưa 100.000đ · Tiền thối 24.800đ' : 'Đã nhận 75.200đ') + '</div></div>'; return; }
+    const ds = dsTrang();
+    if (!ds.length) { mk.innerHTML = '<div class="mk-giua"><div class="mk-to">Xin chào quý khách</div></div>'; return; }
+    const cur = ds[S.i % ds.length];
+    let h = '';
+    if (cur.loai === 'menu') h = `<div class="mk-to">Thực đơn</div><div class="mk-menu">${cur.mon.map((m) => `<div class="mk-dong"><span class="${m.het ? 'mk-het' : ''}">${esc(m.ten)}${m.het ? '<span class="mk-ten-het">Hết hàng</span>' : ''}</span><span>${vnd(m.gia)}</span></div>`).join('')}</div>`;
+    if (cur.loai === 'flash') h = `<div class="mk-giua"><div class="mk-to">Giờ vàng — giảm ${cur.flash.phan_tram}%</div><div class="mk-vua">${cur.flash.mon.join(' · ')}</div><div class="mk-vua mk-mo">Đến ${cur.flash.den}</div></div>`;
+    if (cur.loai === 'qr_app') h = `<div class="mk-giua"><div class="mk-to">${esc(cur.tieu_de || 'Tải ứng dụng — tích điểm, nhận ưu đãi')}</div><div class="mk-qr-app">${qrSvg(cur.dia_chi)}</div>${cur.noi_dung ? `<div class="mk-vua mk-mo">${esc(cur.noi_dung)}</div>` : ''}</div>`;
+    if (cur.loai === 'chu') h = `<div class="mk-giua">${cur.tieu_de ? `<div class="mk-to">${esc(cur.tieu_de)}</div>` : ''}${cur.noi_dung ? `<div class="mk-vua" style="white-space:pre-line">${esc(cur.noi_dung)}</div>` : ''}</div>`;
+    mk.innerHTML = `<div class="mk-trang">${h}</div>`;
+    S.hen = setTimeout(() => { S.i++; veMk(); }, Math.max(3, Number(cur.giay) || 10) * 1000);
+  }
+  $('xoay').onclick = () => { S.doc = !S.doc; $('tablet').classList.toggle('doc', S.doc); $('xoay').textContent = 'Xoay máy: ' + (S.doc ? 'ngang' : 'dọc'); };
+
+  // ── cài đặt ──
+  function veCaiDat() {
+    $('diaChi').value = S.diaChi; $('hienTen').checked = S.hienTen;
+    $('dsTrang').innerHTML = S.trang.map((t, i) => `<div class="cd-hang">
+      <label style="display:flex;align-items:center;gap:4px;min-width:80px"><input type="checkbox" data-bat="${i}" ${t.bat ? 'checked' : ''}> Bật</label>
+      <div class="cd-ten">${LOAI[t.loai]}</div>
+      <input type="number" class="o" style="width:76px" min="3" max="120" value="${t.giay}" data-giay="${i}" aria-label="Số giây"> giây
+      <button class="btn" data-len="${i}" aria-label="Lên">↑</button><button class="btn" data-xuong="${i}" aria-label="Xuống">↓</button><button class="btn" data-xoa="${i}" aria-label="Xoá">🗑</button>
+      ${t.loai === 'chu' || t.loai === 'qr_app' ? `<div style="flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap"><input class="o" style="flex:1 1 200px" maxlength="80" placeholder="Tiêu đề" value="${esc(t.tieu_de || '')}" data-td="${i}"><textarea class="o" style="flex:2 1 300px" maxlength="500" rows="2" placeholder="Nội dung" data-nd="${i}">${esc(t.noi_dung || '')}</textarea></div>` : ''}
+    </div>`).join('');
+    $('dsMay').innerHTML = S.may.length ? S.may.map((m) => `<div class="cd-hang"><div style="flex:1">${esc(m.ten)} <span class="ghichu">· ghép lúc ${esc(m.luc)}</span></div><button class="btn" data-thuhoi="${m.id}">Thu hồi</button></div>`).join('')
+      : '<div class="ghichu" style="padding:.5rem 0">Chưa ghép màn nào.</div>';
+  }
+  $('dsTrang').addEventListener('input', (e) => {
+    const d = e.target.dataset;
+    if (d.bat) S.trang[d.bat].bat = e.target.checked;
+    if (d.giay) S.trang[d.giay].giay = e.target.value;
+    if (d.td) S.trang[d.td].tieu_de = e.target.value;
+    if (d.nd) S.trang[d.nd].noi_dung = e.target.value;
+  });
+  $('dsTrang').addEventListener('click', (e) => {
+    const d = e.target.closest('button')?.dataset; if (!d) return;
+    const doi = (i, k) => { const j = i + k; if (j < 0 || j >= S.trang.length) return; [S.trang[i], S.trang[j]] = [S.trang[j], S.trang[i]]; };
+    if (d.len) doi(+d.len, -1); if (d.xuong) doi(+d.xuong, 1); if (d.xoa) S.trang.splice(+d.xoa, 1);
+    veCaiDat();
+  });
+  document.querySelectorAll('[data-them]').forEach((b) => b.onclick = () => { S.trang.push({ loai: b.dataset.them, bat: true, giay: 10 }); veCaiDat(); });
+  $('dsMay').addEventListener('click', (e) => {
+    const id = e.target.dataset.thuhoi; if (!id) return;
+    if (S.choThuHoi !== id) { S.choThuHoi = id; e.target.textContent = 'Bấm lần nữa để thu hồi'; e.target.className = 'btn btn-do'; return; }
+    S.choThuHoi = null;
+    S.may = S.may.filter((m) => String(m.id) !== id);
+    if (!S.may.length) { S.ghep = false; S.loi = 'Màn này đã bị thu hồi hoặc chưa ghép — nhập mã mới để ghép lại'; }
+    veCaiDat(); veQuay(); veMk();
+  });
+  $('luu').onclick = () => {
+    const sai = S.trang.find((t) => !Number.isInteger(Number(t.giay)) || t.giay < 3 || t.giay > 120);
+    $('cdTb').hidden = false;
+    if (sai) { $('cdTb').style.background = '#fee2e2'; $('cdTb').style.color = '#7f1d1d'; $('cdTb').textContent = 'Lỗi: Số giây mỗi trang từ 3 đến 120'; return; }
+    S.diaChi = $('diaChi').value.trim(); S.hienTen = $('hienTen').checked; S.i = 0;
+    $('cdTb').style.background = '#dcfce7'; $('cdTb').style.color = '#14532d'; $('cdTb').textContent = 'Đã lưu. Màn khách cập nhật trong khoảng một phút (demo: ngay).';
+    if (S.che === 'ranh') veMk();
+  };
+
+  S.ma = maMoi();
+  veQuay(); veMk();
+  const h = location.hash.slice(1); sang(['quay', 'khach', 'caidat'].includes(h) ? h : 'quay');
+})();
+</script>
+</body>
+</html>

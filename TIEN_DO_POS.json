@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 51,
-  "cap_nhat": "2026-10-31",
+  "phien_ban_so": 53,
+  "cap_nhat": "2026-11-02",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -481,19 +481,19 @@
       "ma": "SAOLUU-2",
       "ten": "Khoi phuc sao luu an toan (KHO-2b phat hien 31.10: cot trong o dong dau trang Excel mat o moi dong, dong loi bi nuot, khong giao dich): cot = hop moi dong loc theo PRAGMA, mot giao dich toan bo, loi co code; them pos_don_app vao sao luu (khong khoi phuc); bai thu chot moi bang phai co trong BACKUP_TABLES. [T] Opus 2 sau KHO-2b, truoc khai truong | 31.10 chu quan duyet ke hoach (trang trong: bo qua, khong xoa bang; chi khoi phuc khi quan dong cua); dang lam",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "c8284ad",
+      "ngay": "2026-10-31"
     },
     {
       "ma": "KHO-IN-1",
       "ten": "Cai dat in phieu kho: lua chon 80mm / A5 / A4 cho phieu xuat, nhap, dat hang, phat sinh, pha che (chu quan 31.10: hoa don khach chi kho nhiet, PHIEU van co A4 / A5 + phan Cai dat) + chan huy / sua phieu nhan khi lo nguyen lieu da bi tru (KHO-2b de xuat, neu chu quan dong y). [Th] Sonnet, phieu mo khi KHO-2b gop | PHIEU 31.10: viec/KHO-IN-1/phieu.md (Sonnet) - chi phan in phieu + kho hoa don mac dinh; phan sua phieu nhan khi lo da dung chuyen sang KHO-2c (Opus)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "d1b57b8",
+      "ngay": "2026-11-02"
     },
     {
       "ma": "KH-HOSO-1",
@@ -580,15 +580,123 @@
       "ma": "MANKHACH-1",
       "ten": "Man khach: may tinh bang quay ve phia khach ghep voi may quay bang ma; luc thu hien QR + mon + tong, luc ranh chay noi dung quan tu cai (menu, Gio vang, QR App, gioi thieu; anh cho KH-SP-2) (chu quan chot 31.10). [Th] Sonnet",
       "tang": 1,
+      "trang_thai": "xong",
+      "patch": null,
+      "commit": "ae27536",
+      "ngay": "2026-11-01"
+    },
+    {
+      "ma": "KH-SDT-1",
+      "ten": "SDT dang ky moi bat dau tu 0: khoa diem / voucher mo coi cua cung SDT khi tao khach, khong hien lich su cu; cong cu don du lieu thu (liet ke -> chu quan duyet -> don, sao luu truoc) (chu quan chot 31.10 sau khi thu 0912345678 thay 500 diem cu). [T] Opus 2 sau SAOLUU-2",
+      "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
-      "ma": "KH-SDT-1",
-      "ten": "SDT dang ky moi bat dau tu 0: khoa diem / voucher mo coi cua cung SDT khi tao khach, khong hien lich su cu; cong cu don du lieu thu (liet ke -> chu quan duyet -> don, sao luu truoc) (chu quan chot 31.10 sau khi thu 0912345678 thay 500 diem cu). [T] Opus 2 sau SAOLUU-2",
+      "ma": "HANG-1",
+      "ten": "Hang the (chu quan 01-02.11): them / xoa hang, thu bac; hang BAN theo goi thoi han (cong noi han), hang CHI CAP (chu quan + PIN, co the vo han); hang hien tai = hang cao nhat con han; /api/kh/hang v7. [T] Opus, lan 2, truoc khai truong",
       "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "NAP-1",
+      "ten": "Goi nap o quay (khach tra / vao tai khoan sua duoc), vi hai ngan tien nap / thuong nap (khong han), nap khong hoan, tich diem khi tieu vi (doi luat 24.10), so sach tien nap 3 o. [T] Opus, lan 2",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "QUA-1",
+      "ten": "Qua chao mung: ma mo tai khoan lan dau -> tien co han (dem nguoc), mot lan moi khach, tru truoc; /toi.qua_chao_mung v7. [T] Opus, lan 2",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "NAP-2",
+      "ten": "App KH tu nap bang QR (/goi-nap, /nap, /nap/:ma) + lich su vi /vi (v7). [T] Opus, lan 2, truoc khai truong",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "CT-1a",
+      "ten": "The Cai dat Chuong trinh + ngay sinh khach (nhap mot lan, chi chu quan sua) + /api/kh/chuong-trinh, PUT /toi.ngay_sinh (v7). [Th] Sonnet, soat bao mat co",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "CT-1b",
+      "ten": "Ap chuong trinh tai quay: hoc sinh gioi (mien 1 do uong, gia dinh giam 50% khong gioi han mon trong 1 hoa don), sinh nhat 50% ca don dung ngay doi chieu can cuoc (khong luu so CCCD); khong cong voi hang. [T] Opus, lan 1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "MANKHACH-2a",
+      "ten": "Cai dat man khach kieu danh sach phat (anh / video / mau co san, keo tha, thoi gian) + CHO LUU CHUNG file (dung lai cho anh mon KH-SP-2). [Th] Sonnet, soat bao mat co",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "MANKHACH-2b",
+      "ten": "Man khach dot 2 phan tien: hoa don moi cach tra, khung tien mat (lam tron 600, menh gia, tra lai), PIN tren man khach, vi mot phan tru truoc. [T] Opus, lan 2",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KENH-1",
+      "ten": "Ban theo kenh Grab / Shopee / Be: gia kenh, sua gia dong, ma don nen tang khong trung, bill gan tui (ma qua chao mung + QR) + bill noi bo (phi, thue, du kien ve), bao cao kenh. [T] Opus, lan 1, truoc khai truong",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "HD-KH-1",
+      "ten": "GET /api/kh/don/:ma tra dong hoa don dung san bang cung ham hoa don in (App ve dung mau POS) — v7. [Th] Sonnet",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-NHANH-POS-1",
+      "ten": "CORS maxAge 7200 cho /api/kh (yeu cau App 01.11). [Th] Sonnet",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "DONVI-1",
+      "ten": "Don vi ban (nhieu ho kinh doanh doi theo ca): moi don vi tai khoan + SePay rieng, doi phai PIN chu quan, hoa don / ket / doi soat theo don vi. [T] Opus — SAU khai truong",
+      "tang": 2,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
@@ -972,6 +1080,15 @@
       "patch": null,
       "commit": null,
       "ngay": null
+    },
+    {
+      "ma": "TU-CHAY-10",
+      "ten": "Bo khung 1.9.0: soat bao mat tu dong - phieu co muc \"## Soat bao mat: co\" thi may tu chay /soat-bao-mat (loi nhac /security-review cua Anthropic) truoc khi bao xong, cong A20 chan neu chua DAT; chep y sang kho APP-KH (chu quan chot 31.10, mo dong bang bo khung chi cho viec nay). Opus",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": null,
+      "commit": "4891879",
+      "ngay": "2026-11-02"
     },
     {
       "ma": "KHUNG-KEO-1",

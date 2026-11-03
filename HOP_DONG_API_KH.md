@@ -141,6 +141,32 @@ Trong `ma_giam_loi.code` của báo giá: `MA_KHONG_TON_TAI` · `MA_KHONG_AP_DUN
 Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa (không lộ lời máy). App hiện nguyên `error`.
 
 ## Đã hẹn (chưa có — ghi vào khi xong, tăng PHIEN_BAN)
+- **v7 — ĐÃ HẸN, chủ quán chốt 02.11 (làm TRƯỚC khai trương). Tên dưới đây là tên CHỐT: máy POS làm ĐÚNG tên này; App KH được làm trước
+  theo mục này. Mỗi việc POS xong thì chuyển phần của nó lên bảng cửa, tăng PHIEN_BAN, ghi nhật ký. Thiết kế: thiet_ke/THIET_KE_DOT2.md.**
+  - HANG-1 — `GET /hang`: mỗi hạng thêm `chi_cap` (bool), `goi[] { so_thang, gia }` (rỗng khi `chi_cap`; chỉ gói đang bán, có giá), `thu_bac`
+    (số, lớn = cao); giữ `gia_the` một đợt (= giá gói ngắn nhất; `null` khi `chi_cap`). `/toi.khach.hang.het_han` = `null` khi không thời hạn;
+    `/toi.khach.hang` luôn là hạng CAO NHẤT còn hạn.
+  - QUA-1 — `/toi.khach` thêm `qua_chao_mung: { so_tien, het_han } | null` (chỉ khi còn hạn và còn tiền; đếm ngược theo `bay_gio` của
+    `/gio-hoat-dong`). `so_du_vi` = số dư (tiền nạp + thưởng nạp) + quà chào mừng còn hạn — dùng được HẾT cho mọi đơn, không có đơn tối thiểu.
+    Khi trả bằng tài khoản: trừ quà chào mừng TRƯỚC. "Thưởng nạp" KHÔNG có hạn và KHÔNG tách dòng trên App.
+    App hiện ô "Số dư ví" = `so_du_vi`, dưới là dòng nhỏ "Trong đó Quà chào mừng … — còn …" khi `qua_chao_mung` khác `null` (chủ quán 02.11);
+    KHÔNG có trường `so_du_nap` (App 02.11d bỏ đề nghị).
+  - NAP-2 — `GET /goi-nap` (không token): `data[] { ma, tra, vao }` (gói đang bật). `POST /nap` (token): `{ ma_goi, khoa_gui }` → `phien { ma,
+    qr { chuoi, het_han }, tien_trinh }`; luật 4xx / 5xx và khoá gửi y như `POST /don` (4xx = chưa tạo gì). `GET /nap/:ma` (token): đọc lại
+    phiên (`tien_trinh`: `cho_tra` | `da_nap` | `het_han` | `huy`). Nạp xong → `so_du_vi` tăng. Mã lỗi: `GOI_NAP_KHONG_CO` 404,
+    `QUA_NHIEU_LAN` 429, `PAYOS_CHUA_CAU_HINH` 503 (giữ tên).
+  - NAP-2 — `GET /vi` (token): `?trang=N` (20 dòng / trang) → `trang, con_nua, data[] { ngay, loai, so_tien, thuong, ma_don, ghi_chu }`; `loai`:
+    `nap` (`thuong` = phần thưởng nạp) · `tra_don` · `hoan_don` · `qua_chao_mung` · `qua_het_han` · `dieu_chinh`. `so_tien` có dấu (+ vào, − ra).
+  - CT-1a — `/toi.khach.ngay_sinh` (`YYYY-MM-DD` | `null`). `PUT /toi` nhận `ngay_sinh` CHỈ khi đang `null`; đã có → 409 `NGAY_SINH_DA_CO`;
+    sai / tương lai / ngoài khoảng tuổi quán đặt → 400 `NGAY_SINH_SAI`. Chỉ quán sửa ở POS (sau khi xem căn cước).
+  - CT-1a — `GET /chuong-trinh` (không token): `data[] { ma, ten, mo_ta, loai, dang_bat }`; `loai` có `sinh_nhat` · `hoc_sinh_gioi` · `khac`.
+    Chỉ HIỂN THỊ ("áp dụng tại quán"); App KHÔNG áp chương trình lên đơn App.
+  - TOPPING-1 — `GET /ghi-chu-nhanh` (không token): `data[] { ma, chu }`; dòng giỏ của `POST /gio/bao-gia` và `POST /don` nhận `ghi_chu`
+    (≤ 120 ký tự) — in lên phiếu pha chế, tem, hoá đơn.
+  - HD-KH-1 — `GET /don/:ma` thêm `hoa_don[] { loai, trai, phai, dam, gach, ghi_chu }`: các dòng hoá đơn dựng SẴN bằng CÙNG hàm của hoá đơn
+    in ở quầy (đầu theo đơn vị bán). App chỉ vẽ theo, không tự tính / tự xếp.
+    `GET /don/:ma` và mỗi đơn của `GET /don` thêm `cach_tra` (`qr` | `vi` | `vi_qr`), `giu_vi`, `con_lai` — đơn App: đúng như `POST /don` đã trả;
+    đơn quầy: `null` (App 02.11c/d — tải lại / máy khác vẫn biết đã giữ ví bao nhiêu, còn quét QR bao nhiêu).
 - TOPPING-1: `/menu` thêm topping theo món + giá.
 - Đánh giá Google: `loi-moi-danh-gia`, `su-kien`, cờ trên `/don` (tên cuối do POS chốt).
 
