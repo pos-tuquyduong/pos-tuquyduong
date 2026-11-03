@@ -126,6 +126,9 @@ async function main() {
   const sdtMoi = () => '0939' + String(100000 + (++soSdt));
   const khach = async (sdt) => { await db.run("INSERT INTO pos_customers (phone, name, sx_status, created_at, updated_at) VALUES (?, 'Khách HANG-1', 'active', ?, ?)", [sdt, '2026-11-01T10:00:00', '2026-11-01T10:00:00']); return sdt; };
   const ban = (body) => goi('POST', '/pos/orders', { customer_name: 'Khách HANG-1', payment_method: 'cash', ...body });
+  // đơn 1 ly có thể được giảm hạng: hỏi /tinh-thu (cùng taoDon) rồi trả ĐÚNG tổng máy chủ tính
+  const banLy = async (sdt) => { const t = await goi('POST', '/pos/orders/tinh-thu', { customer_phone: sdt, items: [mon()] });
+    return ban({ customer_phone: sdt, items: [mon()], cash_amount: Number(t.total) }); };
   const muaThe = (sdt, tierId, soThang, tien, them = {}) => ban({ customer_phone: sdt, items: [], membership_buy: { tier_id: tierId, so_thang: soThang }, cash_amount: tien, ...them });
   const hangCua = async (sdt) => (await goi('GET', '/pos/membership/status/' + sdt)).data || {};
   const dongThe = (sdt) => db.query('SELECT * FROM pos_membership_purchases WHERE customer_phone = ? ORDER BY id', [sdt]);
@@ -384,7 +387,7 @@ async function main() {
     const toi = (await goi('GET', '/kh/toi', null, tkKh)).khach?.hang?.id;
     const ds = await goi('GET', '/pos/v2/customers');
     const ten = (ds.customers || []).find((c) => c.phone === sdt)?.membership?.tier_name;
-    const d = await ban({ customer_phone: sdt, items: [mon()], cash_amount: 25000 });
+    const d = await banLy(sdt);
     const hangDon = d.order?.customer_tier;
     const ct = await mot('SELECT tier_unit_price FROM pos_order_items WHERE order_id = ? AND product_id > 0', [d.order?.id]);
     return { st, toi, ten, hangDon, giaHang: ct?.tier_unit_price ?? null };
@@ -488,7 +491,7 @@ async function main() {
     const h = await hangCua(s);
     k('K4 dòng sổ CŨ (không so_thang, giờ dấu cách) → Vàng, hạn "2026-12-01T10:00:00", expiring/active', h.tier_id === V?.id && h.expires_at === '2026-12-01T10:00:00'
       && ['active', 'expiring_soon'].includes(h.status), JSON.stringify(h));
-    const d = await ban({ customer_phone: s, items: [mon()], cash_amount: 25000 });
+    const d = await banLy(s);
     const giaV = giaHangMon(25000, tiLeHangMon({ discount_percent: 10, special_discount_percent: 5 }, false));
     const ct = await mot('SELECT tier_unit_price FROM pos_order_items WHERE order_id = ? AND product_id > 0', [d.order?.id]);
     const diem = await so("SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [d.order?.id]);
@@ -517,24 +520,27 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[G] Giao diện (đọc nguồn client/src)');
   {
-    const hang = sach(doc('client/src/components/CaiDatHang.jsx'));
+    const hang = sach(doc('client/src/pages/CaiDat/HangThe.jsx'));
     const cap = sach(doc('client/src/components/CapHang.jsx'));
+    const api = sach(doc('client/src/utils/api.js'));
     const caiDat = sach(doc('client/src/pages/Settings.jsx'));
     const banHang = sach(doc('client/src/pages/Sales.jsx'));
     const khachHang = sach(doc('client/src/pages/Customers.jsx'));
-    k('G1 thẻ Hạng (CaiDatHang.jsx): ▲ ▼ thứ bậc, "+ Thêm hạng", "+ Thêm gói", Bán / Chỉ cấp, Lưu', hang.length > 0 && ['▲', '▼', '+ Thêm hạng', '+ Thêm gói', 'Chỉ cấp', 'chi_cap'].every((x) => hang.includes(x)));
+    k('G1 thẻ Hạng (pages/CaiDat/HangThe.jsx): ▲ ▼ thứ bậc, "+ Thêm hạng", "+ Thêm gói", Bán / Chỉ cấp, Lưu', hang.length > 0 && ['▲', '▼', '+ Thêm hạng', '+ Thêm gói', 'Chỉ cấp', 'chi_cap'].every((x) => hang.includes(x)));
     k('G1b xoá hạng bấm 2 lần ("Bấm lần nữa để xoá"), KHÔNG hộp thoại trình duyệt', hang.includes('Bấm lần nữa để xoá') && !/\bconfirm\s*\(|\balert\s*\(|\bprompt\s*\(/.test(hang));
     k('G1c không ô % combo (COMBO-1a), không ô số tháng hiệu lực chung, không giá thẻ cũ', !/combo/i.test(hang) && !hang.includes('valid_months') && !hang.includes('card_price'));
-    k('G1d Settings.jsx dùng CaiDatHang, bỏ bảng hạng cũ (không còn card_price / valid_months / setTierValidMonths)', caiDat.includes('<CaiDatHang')
+    k('G1d Settings.jsx dùng HangThe, bỏ bảng hạng cũ (không còn card_price / valid_months / setTierValidMonths)', caiDat.includes('<HangThe')
       && !caiDat.includes('card_price') && !caiDat.includes('valid_months') && !caiDat.includes('setTierValidMonths'));
-    k('G1e đặt PIN chủ quán ở thẻ Hạng (chỉ chủ quán, gõ mật khẩu)', hang.includes('/membership/pin-chu-quan') && hang.includes('mat_khau'));
+    k('G1e đặt PIN chủ quán ở thẻ Hạng (chỉ chủ quán, gõ mật khẩu)', hang.includes('hangApi.datPin(') && hang.includes('mat_khau') && hang.includes("user?.role === 'owner'")
+      && api.includes("api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai })"));
     const khoaGio = (banHang.match(/const khoaGio = [^\n]*/) || [''])[0];
     k('G2 Sales: giỏ gửi { tier_id, so_thang }, khoaGio có so_thang, unique_key có so_thang', /membership_buy:\s*membershipInCart\s*\?\s*\{\s*tier_id:\s*membershipInCart\.tier_id,\s*so_thang:\s*membershipInCart\.so_thang\s*\}/.test(banHang)
       && khoaGio.includes('so_thang') && /unique_key:\s*`membership_\$\{tier\.id\}_\$\{goi\.so_thang\}`/.test(banHang), khoaGio);
     k('G2b Sales: chỉ gói đang bán có giá thành nút; khoá gói khi khách có hạng cao hơn, ghi lý do', banHang.includes('Khách đang có hạng cao hơn')
       && /\.filter\(\s*\(?g\)?\s*=>\s*g\.bat\s*&&\s*Number\.isInteger\(g\.gia\)\s*&&\s*g\.gia\s*>\s*0\s*\)/.test(banHang) && banHang.includes('thu_bac') && !banHang.includes('card_price'));
-    k('G3 Customers: khối Cấp hạng sau hasPermission(\'cap_hang\'), Nhật ký hạng, "Không thời hạn"', /hasPermission\(\s*['"]cap_hang['"]\s*\)\s*&&\s*\(?\s*<CapHang/.test(khachHang)
-      && cap.includes('Nhật ký hạng') && cap.includes('/membership/cap') && cap.includes('/membership/thu-hoi') && (cap + khachHang).includes('Không thời hạn'));
+    k('G3 Customers: khối Cấp hạng chỉ khi hasPermission(\'cap_hang\'), Nhật ký hạng, "Không thời hạn"', /<CapHang[^>]*coQuyen=\{hasPermission\(\s*['"]cap_hang['"]\s*\)\}/.test(khachHang)
+      && /\{coQuyen && \(/.test(cap) && cap.includes('Nhật ký hạng') && cap.includes('hangApi.cap(') && cap.includes('hangApi.thuHoi(') && (cap + khachHang).includes('Không thời hạn')
+      && api.includes("api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin })") && api.includes("api.post('/membership/thu-hoi'"));
     k('G3b Customers: không hiện "Còn null ngày" — số ngày chỉ hiện khi không vô hạn', /vo_han\s*\?\s*['"]Không thời hạn['"]/.test(khachHang));
     k('G4 hai file mới gọi máy chủ qua utils/api.js (không fetch trần)', hang.length > 0 && cap.length > 0 && !/\bfetch\s*\(/.test(hang + cap));
   }
