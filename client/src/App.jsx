@@ -21,6 +21,7 @@ import InvoiceSettings from './pages/InvoiceSettings';
 import Kho from './pages/Kho';
 import QuanLy from './pages/QuanLy/QuanLy';
 import ThanhLoi from './pages/QuanLy/ThanhLoi';
+import DonThu from './pages/DonThu';
 import ManKhach from './pages/ManKhach';   // MANKHACH-1
 
 function ProtectedRoute({ children }) {
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="kho" element={<Kho />} />
         <Route path="hom-nay" element={<Reports />} />   {/* BH-2: "Hôm nay" = Báo cáo / Đối soát (mặc định đã là ngày hôm nay) */}
         <Route path="quan-ly" element={<QuanLy />} />
+        <Route path="don-thu" element={<DonThu />} />   {/* KH-SDT-1: chỉ chủ quán (màn + máy chủ cùng kiểm) */}
         <Route path="don-app" element={<ThanhLoi man="don-app"><DonApp /></ThanhLoi>} />   {/* KH-MUA-1 */}
       </Route>
 
