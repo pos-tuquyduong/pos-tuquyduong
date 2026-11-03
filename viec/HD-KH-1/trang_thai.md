@@ -61,3 +61,8 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 0 · BỎ 1 — chi tiết bên dưới
 - KHOÁ 3: bài hợp đồng cũ chỉ kiểm trường đã ghi CÓ mặt, không kiểm ghi thiếu — đã thêm ca v6 ở thu_HOPDONG_KH.js (đỏ trên gốc).
 - BỎ: heredoc chứa chữ SECRET/TOKEN bị người gác chặn — chỉ xảy ra một lần, dùng Write; sửa fixture `note` vs `notes`, cash_amount theo tinh-thu — lỗi dựng bài một lần.
 - Đề xuất ngoài Phạm vi: không.
+
+## Cổng
+✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 2152a1b
