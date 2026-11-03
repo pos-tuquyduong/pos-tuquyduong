@@ -99,3 +99,24 @@ cột UTC giữ nguyên). Chạy lại trên gốc 36b98b8: 17 đạt · 32 hỏ
 Sau vá (HEAD): 49 đạt · 0 hỏng
 SỐ CA cong_cu/thu_GIOVN1.js: 49
 Đột biến: ĐỐI CHỨNG XANH · 49 đạt · 0 hỏng · TỔNG 48 đột biến · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+═══ Vòng sửa thêm (chủ quán chốt LUẬT 03.11: một múi giờ duy nhất — giờ VN — cả máy chủ lẫn giao diện) ═══
+Bài thêm phần G (quét client/src GD1–GD4 + hàm chung ngayVN.js: khoangNgay, docGioVN, hienNgay / hienGio / hienNgayGio ở điện thoại TZ=UTC và
+America/Los_Angeles), B1e (giá trị cài đặt lạ), B1/B1b/B1c/B2/B3 đổi kỳ vọng pos_settings.updated_at (chủ quán đổi Q3 — LUAT 6.8, bài sửa
+thường: bản mới đỏ trên gốc, xanh trên code mới); B3 chạy lần hai ở GIỜ KHÁC.
+(a) Trên code TRƯỚC vòng này (HEAD 01b2687 + bài đã commit f36cb57): 52 đạt · 7 hỏng → ĐỎ:
+  ✗ G1 client/src thật không còn chỗ lấy ngày / giờ theo điện thoại hoặc UTC (44 vi phạm) — components/InvoicePrint.jsx:71 GD3 | …:72 GD3 | …:72 GD4 | pages/Balance.jsx:183 GD3 | …
+  ✗ G2 nút lọc Lịch sử đơn (khoangNgay) theo giờ VN … — UTC 2026-12-01T03:00:00 thisMonth=lỗi NV.khoangNgay is not a function | …
+  ✗ G3 docGioVN … hienNgay / hienGio / hienNgayGio … — ["lỗi NV.docGioVN is not a function", …]
+  ✗ B1 … cài đặt dấu cách → giờ VN lúc chạy — … pos_settings.updated_at=2026-07-01 10:00:00
+  ✗ B1b … cả cài đặt (6 dòng chưa dạng T → giờ chạy); không còn dòng "để nguyên"
+  ✗ B1c MỌI mục phân loại (26 cột / 19 bảng) … — pos_settings.updated_at(lan)=2026-07-01 10:00:00
+  ✗ B1e cài đặt: đuôi Z +7 · mili-giây / chữ rác / rỗng / ngày thuần → giờ VN lúc chạy · đã dạng T và NULL giữ nguyên — ["2026-07-01T10:00:00","2026-07-01T10:00:00.123","không rõ","","2026-07-01",…]
+(b) Trên gốc 36b98b8 (dựng như đầu file, thêm TOÀN BỘ client/src của 36b98b8 qua `git archive`): 23 đạt · 36 hỏng → ĐỎ
+  (A1 63 vi phạm, A1b, A3, A3b, G1 55 vi phạm, G2, G3, A2a–A2j, C5a, C5b, C6, C7a, C7b, C11, B0, B1, B1b, B1c, B1e, B1d, B2, B3, K5b, B5, E1, E2, B6).
+Sau vá (HEAD): 59 đạt · 0 hỏng
+SỐ CA cong_cu/thu_GIOVN1.js: 59
+Đột biến: ĐỐI CHỨNG XANH · 59 đạt · 0 hỏng · TỔNG 61 đột biến · BẮT 61 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (bỏ VS-012-COT-LAN-CUNG-DOI — dòng "để nguyên" không còn; thêm BV-CAI-DAT, VS-CAI-DAT-CHI-DOI-T, VS-CAI-DAT-CHI-DAU-CACH, VS-CAI-DAT-DOI-CA-DANG-T,
+   VS-CAI-DAT-LAP-LAI-GIO-CHAY, BV-KHOANG-THANG-THEO-DIEN-THOAI, VS-DOC-GIO-THEO-DIEN-THOAI, VS-IN-THEO-MUI-DIEN-THOAI, BV-NUT-THANG-ORDERS,
+   BV-MA-GIAM-HAN-THEO-DIEN-THOAI, BV-IN-HOA-DON-GIO-DIEN-THOAI, BV-QUET-GD1, BV-QUET-GD4, VS-NGOAI-LE-GD-CA-FILE-TINH)

@@ -30,12 +30,12 @@
 - Giữa chừng `thu_SAOLUU2` F1 đỏ: khôi phục chuẩn hoá giờ cả file MỚI làm sao lưu → khôi phục không còn y hệt → chỉ chuẩn hoá khi file là bản
   CŨ (`backup_date` không phải giờ VN dạng T — mọi file ghi từ nay mang `backup_date: getNow()`). Không sửa bài cũ.
 
-### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 48/48 BẮT sau vòng sửa 4)
+### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 61/61 BẮT sau vòng sửa thêm 03.11)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | `nang_cap/012` chạy được | BV-012 | B1 |
 | 012: VN dấu cách chỉ đổi T | VS-012-VN-CUNG-CONG-7 | B1 |
-| 012: cột lẫn để nguyên (Q3) | VS-012-COT-LAN-CUNG-DOI | B1 |
+| 012: cài đặt chưa dạng T → giờ chạy (chủ quán 03.11 — thay Q3) | BV-CAI-DAT · VS-CAI-DAT-CHI-DOI-T · VS-CAI-DAT-CHI-DAU-CACH · VS-CAI-DAT-DOI-CA-DANG-T · VS-CAI-DAT-LAP-LAI-GIO-CHAY | B1 · B1e · B3 |
 | 012: đuôi Z có mili-giây | VS-012-Z-THIEU-MAU-MILI-GIAY | B1 |
 | 012: sao lưu trước khi đổi | BV-012-SAO-LUU | B2 |
 | 012: sổ ví đổi giờ (Q1) | BV-012-SO-VI | B1 |
@@ -72,14 +72,24 @@
 | `doSoNo.js` resolved_at (vòng 4) | BV-DOSONO-DAU-CACH | A2i |
 | `customers-v2.js` cacheCustomersToLocal (vòng 4) | BV-KHACH-SX-CACHE · BV-KHACH-SX-CAP-NHAT | A2j |
 | `chuanHoaGio.js` MAU_CACH đủ 19 ký tự (vòng 4) | VS-012-MAU-THIEU-GIAY · VS-012-MAU-NOI-HET | B1d |
+| `ngayVN.js` khoangNgay theo giờ VN (vòng thêm) | BV-KHOANG-THANG-THEO-DIEN-THOAI | G2 |
+| `ngayVN.js` docGioVN gắn +07:00 (vòng thêm) | VS-DOC-GIO-THEO-DIEN-THOAI | G3 |
+| `ngayVN.js` hien* luôn timeZone VN (vòng thêm) | VS-IN-THEO-MUI-DIEN-THOAI | G3 |
+| `Orders.jsx` nút lọc gọi khoangNgay (vòng thêm) | BV-NUT-THANG-ORDERS | G1 |
+| `DiscountCodes.jsx` hạn mã so ngày VN (vòng thêm) | BV-MA-GIAM-HAN-THEO-DIEN-THOAI | G1 |
+| `InvoicePrint.jsx` in ngày giờ qua hienNgayGio (vòng thêm) | BV-IN-HOA-DON-GIO-DIEN-THOAI | G1 |
+| phép quét màn quầy GD1 / GD4 + ngoại lệ đúng dòng (vòng thêm) | BV-QUET-GD1 · BV-QUET-GD4 · VS-NGOAI-LE-GD-CA-FILE-TINH | G0a · G0d · G0e |
 
-Tên đột biến: BV-012 · VS-012-VN-CUNG-CONG-7 · VS-012-COT-LAN-CUNG-DOI · VS-012-Z-THIEU-MAU-MILI-GIAY · BV-012-SAO-LUU · BV-012-SO-VI ·
+Tên đột biến: BV-012 · VS-012-VN-CUNG-CONG-7 · VS-012-Z-THIEU-MAU-MILI-GIAY · BV-012-SAO-LUU · BV-012-SO-VI ·
 BV-012-HAN-THE · BV-KHOI-PHUC · VS-KHOI-PHUC-MOI-FILE · BV-DAMAGES · BV-SETTINGS · BV-PACKAGES · BV-IN-HOA-DON · BV-GIEO-CHU · BV-NHOM-MON ·
 BV-TON-LUC · BV-NGAY-MAN-QUAY · BV-QUET-M5 · VS-THE-DAU-CACH · BV-THE-THEO-MUI-GIO-MAY · VS-DEN-BU-HAI-LAN · BV-HOM-NAY · BV-NAM-HOA-DON ·
 BV-SYNC · BV-HOP-DONG · BV-012-KHACH · BV-012-BUOC-RONG · VS-KHOI-PHUC-BO-QUA-BAN-CU · BV-HAN-MA-THEO-UTC · BV-HAN-MA-BILL-THEO-UTC ·
 BV-HAN-GOI-THEO-UTC · BV-PHIEN-QR-THEO-UTC · BV-012-DON · VS-012-DON-KIEU-VN · BV-012-VI · BV-012-MON · BV-012-MA-GIAM · BV-012-TON-CHO ·
 BV-012-NHOM-MON · VS-012-COT-THUA · VS-SAO-LUU-NGAY-DAU-CACH · VS-KHOI-PHUC-CO-SAO-LUU · BV-SYNC-DA-XUAT · BV-DOSONO-DAU-CACH ·
-BV-KHACH-SX-CACHE · BV-KHACH-SX-CAP-NHAT · VS-012-MAU-THIEU-GIAY · VS-012-MAU-NOI-HET
+BV-KHACH-SX-CACHE · BV-KHACH-SX-CAP-NHAT · VS-012-MAU-THIEU-GIAY · VS-012-MAU-NOI-HET · BV-CAI-DAT · VS-CAI-DAT-CHI-DOI-T ·
+VS-CAI-DAT-CHI-DAU-CACH · VS-CAI-DAT-DOI-CA-DANG-T · VS-CAI-DAT-LAP-LAI-GIO-CHAY · BV-KHOANG-THANG-THEO-DIEN-THOAI · VS-DOC-GIO-THEO-DIEN-THOAI ·
+VS-IN-THEO-MUI-DIEN-THOAI · BV-NUT-THANG-ORDERS · BV-MA-GIAM-HAN-THEO-DIEN-THOAI · BV-IN-HOA-DON-GIO-DIEN-THOAI · BV-QUET-GD1 · BV-QUET-GD4 ·
+VS-NGOAI-LE-GD-CA-FILE-TINH
 
 ## Soát độc lập — vòng 1 (agent /ra-soat, nguyên văn)
 ```
@@ -163,15 +173,20 @@ phiếu (LUAT §6.5), chỉ đúng 3 lỗi trên + ca thử + đột biến. Kh�
 - (không còn — kế hoạch đã duyệt ở Lượt 2)
 
 ## Phát hiện
-- `client/src/pages/Orders.jsx:92-95` nút "tháng này / tháng trước" lấy ranh tháng theo giờ của điện thoại (getFullYear / getMonth) — đúng khi
-  điện thoại đặt giờ VN (quầy hiện nay), chỉ lệch khi máy đặt múi khác. Không sửa trong việc này.
+- ~~`client/src/pages/Orders.jsx:92-95` nút "tháng này / tháng trước" theo giờ điện thoại~~ — đã sửa ở vòng sửa thêm 03.11 (khoangNgay).
 - `cong_cu/thu_GIOVN1.js` E2 viết cứng `PHIEN_BAN = 6` (chủ quán: tăng 1 so với main) — HANG-1 / NAP-1 cùng tăng thì chat sửa số ở bài lúc gộp.
 - `/api/pos/health` `timestamp` đổi từ đuôi Z sang giờ VN dạng T — chưa biết hệ ngoài (SX, theo dõi) có đọc trường này không.
 - (vòng sửa 4) dòng cũ "doSoNo / cacheCustomersToLocal cần SX thật" khai SAI — đã có khuôn SX giả (thu_P26c.js); nay có ca A2i, A2j + đột biến.
 - Bước 012 trên ngày không có thật khớp mẫu (vd '2026-13-45 10:00:00') → strftime ra NULL; cột NOT NULL thì bước hỏng → kho 503 (quầy vẫn bán).
   Chưa thấy dữ liệu kiểu này; chưa đếm trên Turso. Thêm cột thừa vào COT_CACH ở bảng chỉ ghi getNow không bị chặn hết (chỉ 3 cột canh).
 - Kế hoạch soát độc lập (agent chỉ đọc) — 4 câu, đã sửa theo (ghi cuối `ke_hoach.md`).
-- `pos_settings.updated_at` có giá trị dấu cách lẫn UTC / VN — không biết chắc, bước 012 để nguyên.
+- ~~`pos_settings.updated_at` để nguyên~~ — chủ quán 03.11: chưa dạng T → giờ VN lúc chạy nâng cấp (vòng sửa thêm).
+- (vòng thêm) `DiscountCodes.jsx` đọc `code.start_date` / `code.end_date` nhưng máy chủ trả `valid_from` / `valid_to` (`SELECT *`,
+  `discount-codes.js:25`) → huy hiệu "Hết hạn / Chưa bắt đầu" và bộ lọc theo hạn ở màn Mã giảm giá không bao giờ bật. Có từ trước, ngoài
+  mục tiêu giờ — chỉ đổi cách so sang ngày VN, KHÔNG đổi tên trường. Đề xuất việc nhỏ riêng.
+- (vòng thêm) Bước 012 (luật 4) cũng chạy khi khôi phục bản sao lưu CŨ (`khoiPhuc.js`): giờ "lần sửa cuối" của cài đặt chưa dạng T trong file
+  cũ thành giờ lúc khôi phục — cùng quy tắc, không ai so cột này.
+- (vòng thêm) Giá trị cài đặt đuôi Z (UTC biết chắc) đi luật 1 (+7 giờ) trước, không đặt giờ chạy — chính xác hơn; chưa đếm trên Turso có dòng nào như vậy không.
 - `formatDateTime` / `formatDate` (`server/utils/helpers.js:79-101`) xuất ra nhưng không ai gọi — code chết, ngoài mục tiêu, không sửa.
 
 ## Vòng sửa 4 (LUAT §6.5 — chat soát thay)
@@ -240,3 +255,22 @@ Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md có phép ki�
 `node tu_chay/cong.js chay . 36b98b8^ HEAD viec/GIO-VN-1` (cây sạch, HEAD 69b8ba4): ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 69b8ba4
+
+## Vòng sửa thêm (`tiep`, 03.11) — chủ quán chốt LUẬT: một múi giờ duy nhất (giờ VN) cho mọi chỗ ghi / so / trả ra / hiển thị / cài đặt
+- Bước 1: nhánh `viec/GIO-VN-1`, cây sạch; HEAD `01b2687` = FETCH_HEAD `01b2687` (hook mở phiên đã kéo 36b98b8 → 01b2687), không kéo thêm.
+  `git log --oneline -3`:
+  ```
+  01b2687 GIO-VN-1: trang thai — cong chay DAT, HEAD DA KIEM
+  69b8ba4 GIO-VN-1: vong sua 4 xong — bang chung, bao cao 7 muc, bai hoc, thu tay
+  8ce618e GIO-VN-1: vong sua 4 — dot bien doSoNo, khach SX, mau GLOB
+  ```
+- Bốn việc chủ quán giao — mọi file trong Phạm vi (không phải dừng hỏi). Kế hoạch: `ke_hoach.md` mục "Vòng sửa thêm".
+  1. `pos_settings.updated_at`: `utils/chuanHoaGio.js` luật 4 — chưa dạng T (trừ NULL) → `getNow()` lúc chạy, cùng sao lưu `_sao_luu_012_`,
+     chạy lần hai (giờ khác) không đổi gì. Ca B1, B1b, B1c, B1e, B2, B3.
+  2. `Orders.jsx` nút lọc gọi `khoangNgay` (`ngayVN.js`) — ranh tháng / ngày theo giờ VN. Ca G2 (điện thoại TZ=UTC và Los Angeles).
+  3. Rà `client/src` (grep ở `ke_hoach.md`): Orders, Sales, Registrations, Balance, Settings, Reports, DiscountCodes, InvoicePrint → `docGioVN`
+     / `hienNgay` / `hienGio` / `hienNgayGio` / `ngayVN`. Ca G1 (quét = 0), G3.
+  4. Phép quét GD1–GD4 trên `client/src` (ngoại lệ: `utils/ngayVN.js` cả file, `BanHang/tinh.js` dòng `Date.parse(hetHan + MUI_VN)`). Ca G0a–G0e, G1b.
+- Bài thử viết TRƯỚC (commit f36cb57), đỏ trên code trước vòng: 52 đạt · 7 hỏng; trên gốc 36b98b8: 23 đạt · 36 hỏng; sau vá 59 đạt · 0 hỏng.
+  Đột biến 61/61 BẮT (đối chứng xanh). `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn); dist build lại, khớp src.
+- Lint màn đã sửa: không có biến thừa / chưa khai báo (chỉ cảnh báo `exhaustive-deps` có sẵn).
