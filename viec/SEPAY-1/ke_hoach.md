@@ -176,7 +176,7 @@ quá khứ) · `VS-nguong-6-phut` · `BV-chong-trung` (khoá theo `Date.now()`) 
 2. **Q2 = A:** bài cũ KHÔNG sửa dòng nào (bỏ ý ghim `CONG_QR=payos` ở mục 6.4): mặc định đã là payOS, và nếu shell đặt `CONG_QR=sepay` thì bài cũ
    chỉ ĐỎ oan (không thiếu khoá SePay → 503), không xanh oan. Không sửa bài cũ → không cần `## Bài thử cũ sửa` (cổng A11).
 3. **Q3 = mặc định payOS** — giữ như mục 2.
-4. **Không kiểm `accountNumber`** (tài liệu khuyên ở mục "bảo mật khác"): chữ ký HMAC đã chống báo giả; so số tài khoản thì một lệch định dạng
+4. **(ĐÃ ĐỔI 03.11 — sổ QUYET_DINH 01.11 Q5: máy KIỂM `accountNumber`, xem `trang_thai.md` vòng sửa 4; đoạn dưới là quyết định cũ, không còn đúng)** Không kiểm `accountNumber` (tài liệu khuyên ở mục "bảo mật khác"): chữ ký HMAC đã chống báo giả; so số tài khoản thì một lệch định dạng
    (dấu cách, số 0 đầu) là MỌI QR phải xác nhận tay. Tiền vào tài khoản khác của chính quán vẫn là tiền của quán. Ghi ở `cai_dat_sepay.md`.
 5. **Thêm (K4 — một khoản báo qua HAI cổng):** khi chủ quán quay về payOS mà webhook SePay còn bật, một lần chuyển khoản `TQD<n>` có thể được cả
    payOS lẫn SePay báo. Báo tới sau gặp phiên đã chốt bằng cổng kia → ghi `chua_khop` câu "đã chốt bằng báo <cổng> … cùng một khoản báo qua hai

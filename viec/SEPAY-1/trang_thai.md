@@ -300,3 +300,35 @@ này do chủ quán chấp nhận, không phải sót.
 - **BỎ:** việc mạng chặn `developer.sepay.vn` (Q1) — lỗi môi trường, một lần, chủ quán đã dán tài liệu.
 
 HEAD ĐÃ KIỂM: 4617bad
+
+## Vòng sửa 4 (03.11) — theo sổ QUYET_DINH 01.11 (lượt trước chat ghi nhầm "Q4, Q5 theo đề xuất của máy" — sổ thắng)
+
+Bước 1: nhánh `viec/SEPAY-1`, cây sạch, HEAD = origin (`6b28d93`). `git log --oneline -3`: 6b28d93 chot Q6 · 4617bad huong dan cai · 7c7c54c bao cao soat vong 3.
+
+- **Q4:** `cai_dat_sepay.md` dặn TẮT lọc "Bỏ qua giao dịch không có mã thanh toán" (mục 1.3 và mục 5). Khoản không có mã vẫn báo về → dòng
+  `khong_phien` "không có mã TQD trong nội dung" (code có sẵn, `thanh-toan.js` webhookSepay) → Đối soát CẦN XEM. Không sửa code cho Q4.
+- **Q5:** máy KIỂM số tài khoản nhận.
+  - `server/utils/sepay.js` `docBao`: `tk` = `accountNumber` bỏ mọi khoảng trắng; `tkKhac` = null nếu BẰNG `SEPAY_SO_TK`, ngược lại là số nhận
+    (hoặc "(trống)" nếu báo thiếu số).
+  - `server/routes/thanh-toan.js` `xuLyTienVe`: có phiên mà `t.tkKhac` → ghi `chua_khop` "tiền vào tài khoản khác <số>", KHÔNG chốt đơn
+    (đặt trước kiểm lệch tiền). Webhook payOS không có `tkKhac` nên không đổi.
+  - `server/utils/congQr.js`: hằng `LY_DO_TK_KHAC`; `server/utils/doiSoat.js`: dòng có cụm này xếp CẦN XEM (cùng chỗ với "hai cổng"), không ở ĐỎ.
+  - Quyết định "báo thiếu `accountNumber` = tài khoản khác" (không chốt) — chọn phía an toàn tiền; xem CHƯA KIỂM.
+- `ke_hoach.md` mục 7.4 (quyết định cũ "không kiểm") đã gắn dòng "ĐÃ ĐỔI" (K1: hồ sơ không được nói ngược code).
+- Luồng hợp lệ (K5): số có khoảng trắng nhưng đúng → vẫn chốt (ca Q5e). Phiên không có mã / tiền ra / đã chốt: không đổi.
+- K4: `grep -n "accountNumber" server` → chỉ `sepay.js` đọc; payOS đọc `d.accountNumber`? không (chỉ bài thử gửi) — không có đường song song.
+  Đường chốt SePay chỉ qua `webhookSepay` → `xuLyTienVe`; không có đường khác chốt đơn từ báo SePay.
+
+Bài thử: `cong_cu/thu_SEPAY1.js` thêm Q5a–Q5e, D3, F2 ×2 (70 → 78 ca). Trên gốc 71 đạt · 7 hỏng (ĐỎ); sau vá 78 đạt · 0 hỏng. `bang_chung_do.txt` cập nhật.
+
+Đột biến mới (8, cả 8 BẮT; cả bộ 40 · BẮT 40 sau khi sửa hai đột biến cũ `BV-hai-cong-can-xem`, `VS-can-xem-moi-khong-hoan` theo biểu thức mới — K4):
+
+| chỗ vá | đột biến |
+|---|---|
+| `thanh-toan.js` dòng `if (t.tkKhac)` | `BV-tk-khac` |
+| `sepay.js` so BẰNG số tài khoản | `VS-tk-so-dai-hon` · `VS-tk-so-ngan-hon` · `VS-tk-thieu-van-chot` |
+| `sepay.js` bỏ khoảng trắng | `VS-tk-khong-bo-trang` |
+| `doiSoat.js` xếp CẦN XEM | `BV-tk-can-xem` |
+| `cai_dat_sepay.md` Q4 / Q5 | `VS-huong-dan-bat-loc` · `VS-huong-dan-khong-so-tk` |
+
+`npm test`: PASS 89 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
