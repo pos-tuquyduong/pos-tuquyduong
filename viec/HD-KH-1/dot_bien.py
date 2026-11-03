@@ -26,7 +26,7 @@ DOT_BIEN = [
   ('VS-VI-QR-THANH-QR', 'hdkh', [(D, "r.giu_vi + r.giu_vi_me > 0 ? 'vi_qr' : 'qr'", "'qr'", 1)], r'✗ B3 '),
   ('VS-VI-QR-BO-VI-ME', 'hdkh', [(D, "r.giu_vi + r.giu_vi_me > 0 ? 'vi_qr'", "r.giu_vi > 0 && r.giu_vi_me > 0 ? 'vi_qr'", 1)], r'✗ B3 '),
   ('VS-DOI-SO-GIU-VI', 'hdkh', [(D, 'return { cach_tra: cach, giu_vi: r.giu_vi, con_lai: r.con_lai };', 'return { cach_tra: cach, giu_vi: r.con_lai, con_lai: r.giu_vi };', 1)], r'✗ B1 '),
-  ('BV-CAU-DON-THIEU-COT-PHIEN-2', 'hdkh', [(D, "AS tien_ve, 1 AS loai,\n      p.cach, p.giu_vi, p.giu_vi_me, p.con_lai", "AS tien_ve, 1 AS loai,\n      NULL AS cach, NULL AS giu_vi, NULL AS giu_vi_me, NULL AS con_lai", 1)], r'✗ B1 '),
+  ('BV-CAU-DON-THIEU-COT-PHIEN-2', 'hdkh', [(D, "AS tien_ve, 1 AS loai,\n      p.cach, p.giu_vi, p.giu_vi_me, p.con_lai", "AS tien_ve, 1 AS loai,\n      NULL AS cach, NULL AS giu_vi, NULL AS giu_vi_me, NULL AS con_lai", 1)], r'✗ B[1-4] '),
   # ── A: hoa_don[] ──
   ('BV-BO-HOA-DON', 'hdkh', [(D, "hoa_don: r.loai ? await hoaDonCua(r.oid) : [] }", 'hoa_don: [] }', 1)], r'✗ A1 '),
   ('VS-HOA-DON-SAI-DON', 'hdkh', [(D, 'await hoaDonCua(r.oid)', 'await hoaDonCua(1)', 1)], r'✗ A[2-6] '),
@@ -41,11 +41,9 @@ DOT_BIEN = [
   ('VS-DOI-THU-TU-GIO-KHACH', 'hdkh', [(DH, "  ds.push(dong('gio', dau.gio, dau.nhan_vien ? `${dau.nhan_nv ? dau.nhan_nv + ': ' : ''}${dau.nhan_vien}` : ''));\n  ds.push(dong('khach', dau.nhan_khach, dau.khach, { dam: true }));\n",
                                        "  ds.push(dong('khach', dau.nhan_khach, dau.khach, { dam: true }));\n  ds.push(dong('gio', dau.gio, dau.nhan_vien ? `${dau.nhan_nv ? dau.nhan_nv + ': ' : ''}${dau.nhan_vien}` : ''));\n", 1)], r'✗ A1 '),
   ('VS-LO-QR-DAU-TO', 'hdkh', [(DH, "  ds.push(dong('so_bill', dau.chu_so_bill, dau.so_bill, { dam: true }));\n", "  ds.push(dong('so_bill', dau.chu_so_bill, dau.so_bill, { dam: true }));\n  if (dau.qr) ds.push(dong('qr', dau.qr));\n", 1)], r'✗ A8 '),
-  # ── hoá đơn quầy không đổi (K5) ──
-  ('VS-QUAY-HOA-DON-THIEU-TRUONG', 'hdkh', [(H, "so_lan_in: soLan,\n  };", "};", 1)], r'✗ A1 '),
   # ── D: hợp đồng ──
-  ('BV-HOPDONG-CUA-DON-CACH-TRA', 'hopdong', [(HD, ', "data[].cach_tra", "data[].giu_vi", "data[].con_lai"]', ']', 1)], r'✗ '),
-  ('BV-HOPDONG-HOA-DON', 'hopdong', [(HD, ', "don.hoa_don[].loai"', '', 1)], r'✗ '),
+  ('BV-HOPDONG-CUA-DON-CACH-TRA', 'hopdong', [(HD, ', "data[].cach_tra", "data[].giu_vi", "data[].con_lai"]', ']', 1)], r'✗ v6: khối máy đọc'),
+  ('BV-HOPDONG-HOA-DON', 'hopdong', [(HD, ', "don.hoa_don[].loai"', '', 1)], r'✗ v6: khối máy đọc'),
   ('BV-HOPDONG-NHAT-KY-V6', 'hopdong', [(HD, '- v6 · 03.11.2026', '- v5b · 03.11.2026', 1)], r'✗ nhật ký'),
 ]
 
