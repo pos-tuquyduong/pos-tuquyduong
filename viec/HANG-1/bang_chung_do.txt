@@ -26,8 +26,8 @@ Trên gốc 2a12443: thoát 1 · 8 đạt · 98 hỏng → ĐỎ
   ✗ A3 gói 0 tháng → 400 HANG_KHONG_HOP_LE  — HTTP 400 · Giá thẻ không hợp lệ
   ✗ A3 gói 1 tháng → 200  — HTTP 400 · Giá thẻ không hợp lệ
   … (+84 dòng ✗ nữa)
-Trên code đã vá (HEAD): thoát 0 · 115 đạt · 0 hỏng → XANH
-SỐ CA cong_cu/thu_HANG1.js: 115
+Trên code đã vá (HEAD): thoát 0 · 121 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_HANG1.js: 121
 
 ═══ cong_cu/thu_DOISOAT1.js ═══
 Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ

@@ -140,3 +140,33 @@ BÀI HỌC:
 - KHOÁ (K4): phép chặn "còn khách giữ X" phải dùng CÙNG vị từ với chỗ cấp quyền lợi, tức xét mọi hạng còn hạn chứ không chỉ hạng đang thắng. Đột biến nên thêm: ca khách giữ hai hạng, xoá hạng thấp → phải 409.
 - KHOÁ (bảo mật): thao tác nào đã khoá bằng PIN hoặc quyền riêng thì phải grep MỌI đường dẫn tới cùng kết quả (ở đây là đổi cài đặt để thứ "chỉ cấp" thành "bán được"). Thêm vào K4: "khoá một hành động → khoá luôn mọi cách đổi cấu hình cho phép làm cùng hành động đó".
 - NGUYÊN TẮC (K1): báo "FAIL duy nhất ở ca …" phải dán nguyên danh sách ✗ của lần chạy, không tóm theo trí nhớ. Đổi một hằng số mà bài khác khoá cứng (PHIEN_BAN) thì grep mọi bài khoá hằng đó trước khi đề xuất cách sửa.
+
+## Vòng sửa 1 (03.11) — theo báo cáo soát vòng 1
+Bài thử ĐỎ trước (commit `b674460`: 117 đạt · 4 hỏng — ✗ A5d, ✗ A8, ✗ A8b, ✗ C6d), vá ở `f74a56d`, sau vá 121 đạt · 0 hỏng.
+- Lỗi 1 (xoá hạng chỉ đếm hạng HIỆN TẠI): thêm `soKhachGiuHang` (`server/utils/membershipStatus.js`) — đếm khách còn hạn ở CHÍNH hạng đó qua `hanCacHang`
+  (dù có hạng cao hơn); `tiers.js` DELETE gọi nó. Ca A5d (giữ Tạm2 còn hạn + Cao cao hơn → xoá Tạm2 409). Đột biến VS-xoa-chi-hang-hien-tai.
+- Lỗi 2 (quản lý đổi "chỉ cấp" → "bán" rồi bán 1đ — đường thứ hai vượt PIN): PUT /tiers đổi `cach_co` của hạng CÓ SẴN (cả hai chiều) cần quyền
+  `cap_hang` (mặc định chỉ chủ quán), không đủ → 403 `DOI_CACH_CO_CAN_QUYEN`; sửa tên / % / gói / thứ bậc vẫn `manage_promotions` (A8d K5 200).
+  Thêm hạng MỚI dạng chỉ cấp vẫn cho quản lý (không cấp được nếu không PIN; hạng mới dạng bán thì vốn quản lý đã đặt giá được). Đây là cách an
+  toàn nhất mình chọn khi soát nói "cần chủ quán quyết" — xem `## Câu hỏi` câu 2 để bạn xác nhận. Ca A8, A8b, A8c, A8d. Đột biến BV-doi-cach-co,
+  VS-doi-cach-co-mot-chieu, VS-doi-cach-co-quyen-chung.
+- Lỗi 3 (danh sách khách nhãn rỗng khi bị thu hồi hết hạng): `hangNhieuKhach` bỏ khách trạng thái `none` → danh sách hiện "-" như khách chưa có
+  hạng. Ca C6d. Đột biến BV-none-loc.
+- Lỗi 4 + 5 (báo thiếu B1, E2 của thu_GIOVN1; câu "múi giờ đã có bài chứng minh"): `## Câu hỏi` câu 1 đã sửa (B1 kéo theo C5 — ba lần mua
+  hỏng không ghi dòng; E2 khoá cứng PHIEN_BAN 6). Câu về múi giờ: thu_HANG1 chạy TZ=UTC nên KHÔNG chứng minh trường hợp máy chạy múi giờ khác —
+  chỉ là đọc tay `helpers.js:221-227` (phép UTC) + `membershipStatus.js:22`; ca thật là GIOVN1 C5b (đang chờ câu 1). Ghi vào CHƯA KIỂM.
+- Nghi ngờ "expires_at để xem mà không ai đọc": nhật ký hạng (`CapHang.jsx`) nay hiện "→ đến <hạn>" cho dòng mua / cấp (vẫn chỉ để xem —
+  hàm hạng tính từ sổ). Nghi ngờ còn lại (I15 lọc order_id, đối soát price_paid = giá dòng thẻ, kiểm hạng cao hơn ngoài giao dịch, câu "chỉ thêm
+  dòng" cạnh xoá dòng của P26c) → ghi Phát hiện, không đổi trong vòng này.
+- Lần chạy cuối: `node cong_cu/thu_HANG1.js` 121 đạt · 0 hỏng · `python3 viec/HANG-1/dot_bien.py` TỔNG 48 · BẮT 48 · `npm test -- --day-du`
+  PASS 97 · FAIL 1 (dán nguyên dòng ✗: `✗ bài chạy thật cong_cu/thu_GIOVN1.js xanh` → ✗ C5a, ✗ C5b, ✗ C5c, ✗ B1, ✗ E2 — ngoài Phạm vi, câu hỏi 1).
+
+### Câu hỏi thêm (03.11, vòng sửa 1)
+2. **Đổi "bán ↔ chỉ cấp" ở Cài đặt hạng:** mình đã khoá cho CHỈ người có quyền cấp hạng (mặc định chủ quán) — quản lý vẫn sửa tên, %, giá gói,
+   thứ bậc. Nếu bạn muốn quản lý cũng đổi được thì phải có cách khác chặn "đổi Kim Cương thành bán rồi bán rẻ". **Đề xuất: giữ như mình đã làm.**
+
+### Phát hiện thêm (vòng sửa 1)
+- Đối soát chưa có quy tắc "giá ghi ở sổ thẻ (`price_paid`) = giá dòng thẻ trên đơn" — I15 chỉ đếm số dòng (LUAT §5). Đề xuất thêm bất biến sau.
+- I15 lọc `order_id IS NOT NULL`: một dòng BÁN bị mất `order_id` (chỉ khi sửa tay DB) không còn bị báo — trước đây báo "đơn #null không còn".
+- `orders.js` kiểm "khách có hạng cao hơn" trước giao dịch: cấp hạng cao và bán hạng thấp CÙNG lúc thì có thể lọt một đơn (hạng hiện tại vẫn
+  đúng là hạng cao hơn — khách chỉ trả tiền cho hạng thấp không dùng tới). Rất hiếm; ghi để biết.
