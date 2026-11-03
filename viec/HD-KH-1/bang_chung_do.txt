@@ -12,8 +12,9 @@ $ node cong_cu/thu_HOPDONG_KH.js   (bản có ca v6, hợp đồng + code gốc)
   ✗ v6: khối máy đọc ghi đủ cach_tra / giu_vi / con_lai (cả /don, /don/:ma) và hoa_don[] 6 trường
   81 đạt · 1 hỏng
 
-Sau khi vá: thu_HDKH1.js 32 đạt · 0 hỏng · thu_HOPDONG_KH.js 82 đạt · 0 hỏng · npm test PASS 93 · FAIL 0.
-Đột biến: python3 viec/HD-KH-1/dot_bien.py → 22 đột biến · BẮT 22 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh).
+Sau khi vá (cả vòng sửa 1 của người soát: ca A9 ép lỗi dựng tờ, bỏ giu_vi_me chết): thu_HDKH1.js 33 đạt · 0 hỏng · thu_HOPDONG_KH.js 82 đạt · 0 hỏng.
+Đột biến: python3 viec/HD-KH-1/dot_bien.py → 24 đột biến · BẮT 24 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh).
+Đột biến tương đương đã biết: bỏ cổng `r.loai ?` (donApp.js chiTietDon) → try/catch nuốt lỗi thành [] — hành vi quan sát không đổi, chỉ thêm dòng log.
 
-SỐ CA cong_cu/thu_HDKH1.js: 32
+SỐ CA cong_cu/thu_HDKH1.js: 33
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 82
