@@ -66,6 +66,7 @@ Chủ quán tự tạo hạng, xếp thứ bậc, bán hạng theo gói nhiều 
 - cong_cu/thu_P3.js
 - cong_cu/gia_lap/kich_ban.js
 - cong_cu/gia_lap/bat_bien.js
+- cong_cu/thu_GIOVN1.js
 <!-- Chủ quán 03.11 (chat ghi): Q1-a PIN chủ quán riêng (file chung pinChuQuan.js) · Q2 sửa 8 bài cũ + I15, chỉ phần dựng dữ liệu
      · Q3 làm tiếp SAU khi KH-SDT-1 + GIO-VN-1 gộp (đã gộp). -->
 
