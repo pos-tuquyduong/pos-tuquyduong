@@ -110,7 +110,8 @@ async function main() {
     const id = Number((await db.run('INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?)', [sdt, ten, getNow()])).lastInsertRowid);
     return { sdt, id, tk: kyTokenKhach(id) };
   };
-  const ngaySinhDb = async (sdt) => (await db.queryOne('SELECT ngay_sinh FROM pos_customers WHERE phone = ?', [sdt]))?.ngay_sinh ?? 'KHONG_CO_COT';
+  const an = async (fn, mac = null) => { imLang(); try { return await fn(); } catch { return mac; } finally { noiLai(); } };   // câu đọc/ghi có thể hỏng trên bản chưa vá: ghi ✗ chứ không sập
+  const ngaySinhDb = async (sdt) => (await an(() => db.queryOne('SELECT ngay_sinh FROM pos_customers WHERE phone = ?', [sdt])))?.ngay_sinh ?? 'KHONG_CO_COT';
   const soDb = async (sdt) => { try { return await db.query('SELECT * FROM pos_ngay_sinh_sua WHERE phone = ? ORDER BY id', [sdt]); } catch { return null; } };
   const soKhach = async () => Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_customers')).n);
 
@@ -169,7 +170,7 @@ async function main() {
   const c1 = t1.j.chuong_trinh || {};
   k('A3 tạo hợp lệ → 200, có id + ma, tên cắt khoảng trắng, TẮT sẵn khi không nói bật', t1.status === 200 && Number.isInteger(c1.id) && typeof c1.ma === 'string' && c1.ma.length > 0
     && c1.ten === 'Chương trình thử' && c1.giam_ca_don_pt === 15 && c1.dang_bat === false && await soCt() === n0 + 1, mt(t1) + ' ' + JSON.stringify(c1));
-  const dongDb = c1.id ? await db.queryOne('SELECT * FROM pos_chuong_trinh WHERE id = ?', [c1.id]) : null;
+  const dongDb = c1.id ? await an(() => db.queryOne('SELECT * FROM pos_chuong_trinh WHERE id = ?', [c1.id])) : null;
   k('A3b dòng trong kho khớp (ghi lúc dạng giờ VN)', !!dongDb && dongDb.ten === 'Chương trình thử' && Number(dongDb.giam_ca_don_pt) === 15 && DANG_GIO.test(String(dongDb.tao_luc || '')), JSON.stringify(dongDb));
   const t2 = await pos('POST', '/chuong-trinh', mau({ ten: 'CT miễn món', mien_so_mon: 2, mien_gia_toi_da: 45000, giam_ca_don_pt: 0, can_xem_giay_to: true, gioi_han_ky: 'nam', gioi_han_so: 3,
     bat_dau: '2026-09-01', ket_thuc: '2027-05-31', dang_bat: true }), tkChu);
@@ -222,7 +223,7 @@ async function main() {
   const b2 = await pos('PUT', `/chuong-trinh/${c1.id}`, { dang_bat: false }, tkChu);
   k('A6 bật rồi tắt (chỉ gửi dang_bat) → 200, đúng trạng thái; tên giữ nguyên', b1.j.chuong_trinh?.dang_bat === true && b2.j.chuong_trinh?.dang_bat === false && b2.j.chuong_trinh?.ten === 'Đã đổi tên', mt(b1) + ' / ' + mt(b2));
   const s2 = await pos('PUT', `/chuong-trinh/${c1.id}`, { giam_ca_don_pt: 150 }, tkChu);
-  const sauSai = await db.queryOne('SELECT giam_ca_don_pt FROM pos_chuong_trinh WHERE id = ?', [c1.id]);
+  const sauSai = await an(() => db.queryOne('SELECT giam_ca_don_pt FROM pos_chuong_trinh WHERE id = ?', [c1.id]));
   k('A7 sửa thành giá trị sai → 400 CHUONG_TRINH_SAI, dòng cũ nguyên', la(s2, 400, 'CHUONG_TRINH_SAI') && Number(sauSai?.giam_ca_don_pt) === 20, mt(s2));
   const s3 = await pos('PUT', `/chuong-trinh/${c1.id}`, { giam_ca_don_pt: 0 }, tkChu);
   k('A7b sửa làm mất hết ưu đãi (kết quả không còn ưu đãi nào) → 400', la(s3, 400, 'CHUONG_TRINH_SAI'), mt(s3));
@@ -376,9 +377,9 @@ async function main() {
 
   // GET /chuong-trinh — chỉ bật + trong hạn
   muc('C. GET /chuong-trinh (không token)');
-  await db.run('UPDATE pos_chuong_trinh SET dang_bat = 0');
-  const them = (ma, ten, dangBat, batDau, ketThuc) => db.run(`INSERT INTO pos_chuong_trinh (ma, ten, mo_ta, loai, mien_so_mon, mien_gia_toi_da, giam_ca_don_pt, giam_con_lai_pt, chi_tai_quan, can_xem_giay_to,
-    gioi_han_ky, gioi_han_so, bat_dau, ket_thuc, dang_bat, tao_luc) VALUES (?, ?, 'mô tả ' || ?, 'khac', 1, 30000, 25, 40, 1, 1, 'ngay', 1, ?, ?, ?, ?)`, [ma, ten, ten, batDau, ketThuc, dangBat, getNow()]);
+  await an(() => db.run('UPDATE pos_chuong_trinh SET dang_bat = 0'));
+  const them = (ma, ten, dangBat, batDau, ketThuc) => an(() => db.run(`INSERT INTO pos_chuong_trinh (ma, ten, mo_ta, loai, mien_so_mon, mien_gia_toi_da, giam_ca_don_pt, giam_con_lai_pt, chi_tai_quan, can_xem_giay_to,
+    gioi_han_ky, gioi_han_so, bat_dau, ket_thuc, dang_bat, tao_luc) VALUES (?, ?, 'mô tả ' || ?, 'khac', 1, 30000, 25, 40, 1, 1, 'ngay', 1, ?, ?, ?, ?)`, [ma, ten, ten, batDau, ketThuc, dangBat, getNow()]));
   await them('t_bat', 'Đang bật', 1, null, null);
   await them('t_tat', 'Đã tắt', 0, null, null);
   await them('t_chua', 'Chưa tới hạn', 1, cong1(homNay, 1), null);
@@ -406,10 +407,10 @@ async function main() {
   const don = (sdt) => pos('POST', '/orders', { items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 2 }],
     payment_method: 'cash', cash_amount: 80000, customer_phone: sdt }, tkChu);
   const kDon = await khachMoi('Khách đơn');
-  await db.run('UPDATE pos_customers SET ngay_sinh = ? WHERE id = ?', [luiNam(homNay, 30), kDon.id]);   // sinh nhật HÔM NAY
-  await db.run('UPDATE pos_chuong_trinh SET dang_bat = 0');
+  await an(() => db.run('UPDATE pos_customers SET ngay_sinh = ? WHERE id = ?', [luiNam(homNay, 30), kDon.id]));   // sinh nhật HÔM NAY
+  await an(() => db.run('UPDATE pos_chuong_trinh SET dang_bat = 0'));
   const d1 = await don(kDon.sdt);
-  await db.run("UPDATE pos_chuong_trinh SET dang_bat = 1 WHERE ma IN ('sinh_nhat', 'hoc_sinh_gioi', 't_bat')");
+  await an(() => db.run("UPDATE pos_chuong_trinh SET dang_bat = 1 WHERE ma IN ('sinh_nhat', 'hoc_sinh_gioi', 't_bat')"));
   const d2o = await don(kDon.sdt);
   k('K5f tổng đơn y nguyên khi bật chương trình Sinh nhật / Học sinh giỏi (khách sinh nhật hôm nay): CT-1a chỉ lưu cấu hình, không áp giá',
     d1.status === 200 && d2o.status === 200 && d1.j.order?.total === 80000 && d2o.j.order?.total === 80000 && d2o.j.order?.discount === d1.j.order?.discount, mt(d1) + ' ' + d1.j.order?.total + ' / ' + mt(d2o) + ' ' + d2o.j.order?.total);
