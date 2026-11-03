@@ -10,7 +10,7 @@ trang_thai.md), bản MỚI đỏ trên gốc vì phần dựng dữ liệu cầ
 theo từng ca của luật mới nằm ở thu_HANG1.js.
 
 ═══ cong_cu/thu_HANG1.js ═══
-Trên gốc 2a12443: thoát 1 · 8 đạt · 98 hỏng → ĐỎ
+Trên gốc 2a12443: thoát 1 · 8 đạt · 99 hỏng → ĐỎ
   ✗ N1 Vàng → cach_co ban, đúng 2 gói 1 tháng + 3 tháng, giá trống, đang bán  — {"id":1,"name":"Vàng","card_price":500000,"discount_percent":5,"special_discount_percent":0,"sort_order":1,"is_active":1,"created_at":"2026-11-03T10:0
   ✗ N5 Bạch Kim (seed) → cach_co ban, gói rỗng  — {"id":2,"name":"Bạch Kim","card_price":2000000,"discount_percent":8,"special_discount_percent":0,"sort_order":2,"is_active":1,"created_at":"2026-11-03T10:00:00","updated_at":"2026-
   ✗ N5b mua Bạch Kim (chưa gói nào) → 400 GOI_HANG_KHONG_BAN, không dòng thẻ  — HTTP 200
@@ -25,9 +25,9 @@ Trên gốc 2a12443: thoát 1 · 8 đạt · 98 hỏng → ĐỎ
   ✗ A2 sửa gói (bỏ 6 + 12 tháng, thêm 2 tháng) → đúng danh sách, xếp theo tháng  — HTTP 400 · Giá thẻ không hợp lệ
   ✗ A3 gói 0 tháng → 400 HANG_KHONG_HOP_LE  — HTTP 400 · Giá thẻ không hợp lệ
   ✗ A3 gói 1 tháng → 200  — HTTP 400 · Giá thẻ không hợp lệ
-  … (+84 dòng ✗ nữa)
-Trên code đã vá (HEAD): thoát 0 · 121 đạt · 0 hỏng → XANH
-SỐ CA cong_cu/thu_HANG1.js: 121
+  … (+85 dòng ✗ nữa)
+Trên code đã vá (HEAD): thoát 0 · 122 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_HANG1.js: 122
 
 ═══ cong_cu/thu_DOISOAT1.js ═══
 Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ

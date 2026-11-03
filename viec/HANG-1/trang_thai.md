@@ -171,3 +171,54 @@ Bài thử ĐỎ trước (commit `b674460`: 117 đạt · 4 hỏng — ✗ A5d,
 - I15 lọc `order_id IS NOT NULL`: một dòng BÁN bị mất `order_id` (chỉ khi sửa tay DB) không còn bị báo — trước đây báo "đơn #null không còn".
 - `orders.js` kiểm "khách có hạng cao hơn" trước giao dịch: cấp hạng cao và bán hạng thấp CÙNG lúc thì có thể lọt một đơn (hạng hiện tại vẫn
   đúng là hạng cao hơn — khách chỉ trả tiền cho hạng thấp không dùng tới). Rất hiếm; ghi để biết.
+
+## Soát độc lập vòng 2 (/ra-soat, 03.11) — báo cáo chép nguyên
+KHÔNG ĐẠT (ba bản vá của vòng 1 đúng và đủ. Còn 1 lỗi nhẹ mới sinh ra ở vòng sửa 1, 1 lỗ trong cách khoá "chỉ cấp" mà lời gửi chủ quán chưa nói thật, và 1 câu trong hồ sơ vẫn sai)
+
+Tóm tắt: mình đã kiểm lại cả ba bản vá. Bài thử thật sự ĐỎ trên b674460 (117 đạt · 4 hỏng: A5d, A8, A8b, C6d; mình dựng lại bằng `git archive`) và XANH trên HEAD (121/0). 48/48 đột biến bị bắt, đối chứng xanh. `dist` khớp `src`. `--day-du` ra PASS 97 · FAIL 1, và dòng FAIL đúng như trang_thai mô tả (C5a, C5b, C5c, B1, E2).
+
+LỖI TÌM ĐƯỢC:
+1. client/src/components/CapHang.jsx:77 cùng orders.js:1072-1073 và membershipStatus.js:105-108 — Vòng sửa 1 cho nhật ký hiện "→ đến <expires_at>", nhưng expires_at chỉ là hạn TÍNH LÚC GHI. Huỷ một đơn mua gói nằm ở giữa (luật E: orders.js:1538 và :1724 xoá dòng, rồi hàm hạng tự cộng lại từ sổ) thì hạn thật của các dòng mua sau rút ngắn lại. Nhật ký vẫn hiện ngày cũ. Màn chi tiết (getMembershipStatus) thì đúng, nên một màn hiện hai hạn khác nhau và nhân viên đọc sai hạn cho khách. Không có ca nào thử "huỷ đơn giữa → nhật ký". — K4 (hai nguồn cho cùng một hạn: số lưu sẵn và số cộng lại từ sổ). Lỗi nhẹ, không đụng tiền. Cách đơn giản: bỏ phần "→ đến" ở dòng bán, hoặc server trả hạn tính lại.
+2. server/routes/tiers.js:94-99 — Khoá đổi `cach_co` chỉ đòi QUYỀN `cap_hang`, KHÔNG đòi PIN. Trong khi đó cấp hạng đòi cả quyền và PIN (membership.js:98, 108). Hai đường cùng dẫn tới kết quả "khách có Kim Cương":
+   - Ai dùng phiên đăng nhập owner đang mở ở quầy (coQuyen ở tiers.js:25 trả true cho mọi owner), hoặc quản lý được chủ quán giao `cap_hang` (users.js:188 cho sửa quyền), vẫn làm được chuỗi: đổi Kim Cương sang "bán" → thêm gói 60 tháng giá 1đ → bán → đổi lại "chỉ cấp". Không cần PIN.
+   - Ca A8c (cong_cu/thu_HANG1.js:507) đang khoá đúng hành vi này là 200.
+   - Sâu hơn: người chỉ có `manage_promotions` vẫn tạo được hạng MỚI kiểu "bán", đặt thứ bậc cao nhất và % bằng Kim Cương (tiers.js:106-108). Họ cũng đổi tên / hoán thứ bậc hai hạng được (tiers.js:111), hoặc xoá Kim Cương khi chưa ai giữ rồi thêm lại dưới dạng "bán".
+   - Tức là khoá này chỉ giữ ĐÚNG MÃ hạng, không giữ được QUYỀN LỢI (% giảm). Câu hỏi 2 trong trang_thai ("Nếu bạn muốn quản lý cũng đổi được thì phải có cách khác chặn…") làm chủ quán hiểu là đường này đã kín.
+   - — K4 (chính bài học vòng 1 ghi: "khoá một hành động → khoá mọi cách đổi cấu hình"), K1 về lời. Đây là chuyện bảo mật, cần chủ quán quyết; máy không tự chọn. Đề xuất: đổi `cach_co` đòi thêm PIN chủ quán (dùng lại kiemPinChuQuan), và ghi rõ cho chủ quán rằng ai có `manage_promotions` vốn đã đặt được % và giá của mọi hạng bán.
+3. viec/HANG-1/trang_thai.md:96-97 — Câu hỏi 1 vẫn còn câu "Điều bài canh (…không lệch múi giờ) vẫn đúng ở code mới (B5, C5 của thu_HANG1 so chuỗi hạn)". Vòng sửa 1 (:155-157) nói đã sửa câu này và "Ghi vào CHƯA KIỂM", nhưng câu cũ chưa bị gỡ và trang_thai không có mục CHƯA KIỂM nào (`grep -n "CHƯA KIỂM"` chỉ trúng đúng dòng 157). — K4 (sửa một câu tài liệu thì grep cả file) / K1.
+
+NGHI NGỜ:
+- membershipStatus.js:44-46 cùng orders.js:500-503 — Nếu chủ quán đổi một hạng đã CẤP không thời hạn sang "bán", khách đang giữ vô hạn mua gói cùng hạng vẫn được (cùng thứ bậc nên không bị chặn). Khách trả tiền mà hạn không đổi (`cu === HAN_VO_HAN → moi = cu`). Chiều ngược lại: hạng đã bán đổi sang "chỉ cấp", rồi cấp hoặc thu hồi thì xoá luôn phần hạn khách đã trả, không hoàn tiền (cấp là ĐẶT LẠI hạn). Cả hai đều cần chủ quán tự đổi `cach_co` trước. Nên chặn bán gói khi khách đã có vô hạn cùng hạng, hoặc ghi Phát hiện.
+- membership.js:92-93 — Hạng "chỉ cấp" bị đổi sang "bán" thì những khách đã được cấp không thu hồi được nữa (docYeuCau đòi `chi_cap`). Phải đổi về "chỉ cấp" thì mới thu hồi được.
+- tiers.js:25-26 — `coQuyen` chép lại luật của checkPermission (middleware/auth.js:84-101), không gọi chung một hàm (LUAT §2 "một quy tắc — một hàm"). Hôm nay hai bên khớp nhau. Sau này một bên đổi thì sẽ lệch.
+- tiers.js:135-139 — Bước đếm khách giữ hạng chạy ngoài giao dịch. Một đơn bán gói chen vào giữa lúc đếm và lúc ẩn hạng thì vẫn xoá được hạng đang có khách. Rất hiếm.
+- Các nghi ngờ vòng 1 vẫn còn, đã ghi Phát hiện: chưa có đối soát `price_paid` = giá dòng thẻ trên đơn; I15 lọc `order_id IS NOT NULL`; kiểm "hạng cao hơn" đọc ngoài giao dịch.
+
+NGHIỆM THU:    8/9 (A, B, C, D, E, F, G, Dữ liệu có ca và xanh) · mục thiếu: K5 "bài thử cũ xanh" vẫn đỏ ở thu_GIOVN1 E2 (và C5/B1), ngoài Phạm vi, chờ Câu hỏi 1. Mục C có ca nhưng khoá chưa giữ được "+ PIN" ở đường đổi cách có hạng (LỖI 2). Mục E thiếu ca nhật ký sau khi huỷ đơn giữa (LỖI 1).
+
+CHƯA SOÁT ĐƯỢC: chưa chạy `node tu_chay/cong.js chay`. Chưa chạy riêng từng bài cũ DOISOAT1 / HD1 / KHAPI2 / P2223 / P24 / P26c / P3 / UUDAI1 (chúng xanh trong PASS 97 của `--day-du`). Không chạy thẳng được thu_GIOVN1 vì người gác chặn file có chữ SECRET; chỉ chạy được qua bộ kiểm trên bản chép. Chưa thử giao diện trên điện thoại (bấm 2 lần để xoá dựa vào onBlur, ▲▼). Chưa xem dữ liệu thật trên Turso. Chưa soát riêng hợp đồng v7 dòng nào khớp dòng nào (thu_HOPDONG_KH xanh trong bộ kiểm).
+
+BÀI HỌC:
+- KHOÁ (K4): một khoá cần "quyền + PIN" thì mọi đường đổi cấu hình dẫn tới cùng quyền lợi cũng phải đòi đủ CẢ HAI, không chỉ quyền. Trước khi báo "đã kín", liệt kê mọi đường dẫn tới cùng QUYỀN LỢI (% giảm, thứ bậc), không chỉ tới cùng MÃ đối tượng: thêm mới, đổi tên, hoán thứ bậc, xoá rồi thêm lại.
+- KHOÁ (K4/E): giá trị tính lại từ sổ (hạn cộng nối) thì không đưa số lưu sẵn lên màn hình. Sổ thay đổi (huỷ đơn giữa) thì số lưu sẵn sai mà không ai biết.
+- NGUYÊN TẮC (K1): báo "câu X đã sửa" thì grep lại đúng câu X trong file trước khi commit. "Ghi vào CHƯA KIỂM" phải có mục CHƯA KIỂM thật trong file.
+
+## Vòng sửa 2 (03.11)
+- Lỗi 1: bài G3c ĐỎ trước (`1a58ea9`: 121 đạt · 1 hỏng — ✗ G3c), vá `51ede0e`: nhật ký hạng bỏ "→ đến <expires_at>" (hạn thật chỉ hiện ở dòng hạng
+  hiện tại — tính lại từ sổ). Đột biến VS-nhat-ky-han-luu. Sau vá 122 đạt · 0 hỏng; `dot_bien.py` TỔNG 49 · BẮT 49.
+- Lỗi 3: câu múi giờ ở Câu hỏi 1 đã sửa thành "đọc tay, không có bài thử" (grep lại cả file — không còn câu cũ). Mục CHƯA KIỂM thật sẽ nằm trong
+  báo cáo 7 mục cuối việc.
+- Lỗi 2: chuyện BẢO MẬT cần chủ quán quyết (LUAT §6.5 — không tự chọn) → `## Câu hỏi` câu 2 viết lại bên dưới. **DỪNG ở đây** chờ trả lời.
+- Bằng chứng chạy lại (cây gốc `2a12443` dựng lại — thư mục nháp cũ đã bị lần soát ghi đè bằng `b674460`): mọi bài đổi ĐỎ trên gốc, XANH trên
+  HEAD; `SỐ CA cong_cu/thu_HANG1.js: 122`. `npm test -- --day-du` PASS 97 · FAIL 1 (✗ `cong_cu/thu_GIOVN1.js` C5a, C5b, C5c, B1, E2 — câu 1).
+
+## Câu hỏi (03.11, sau soát vòng 2 — chờ chủ quán; thay câu 2 cũ ở "Câu hỏi thêm")
+1. (như trên) Thêm `- cong_cu/thu_GIOVN1.js` vào `## Phạm vi` để sửa phần dựng dữ liệu C5 + E2 `PHIEN_BAN >= 6`.
+2. **Chặn "biến hạng chỉ cấp thành hạng bán được" — hiện mới kín MỘT phần.** Hôm nay: đổi bán ↔ chỉ cấp của hạng có sẵn cần quyền cấp hạng
+   (mặc định chỉ chủ quán), KHÔNG cần PIN. Còn hở:
+   (a) ai đang dùng máy đăng nhập tài khoản chủ quán mà không biết PIN vẫn đổi Kim Cương sang "bán", đặt gói giá thấp, bán, rồi đổi lại;
+   (b) người có quyền "khuyến mãi" (mặc định quản lý) — đã sửa được % và giá của MỌI hạng bán từ trước HANG-1 — có thể tạo một hạng BÁN mới,
+   thứ bậc cao nhất, % bằng Kim Cương, giá rẻ.
+   **Đề xuất của mình:** (a) đổi bán ↔ chỉ cấp phải nhập PIN chủ quán (dùng lại khoá 5 lần sai như lúc cấp); (b) thêm hạng mới / đổi % của hạng /
+   đổi thứ bậc — giữ cho quản lý như cũ, vì quản lý vốn đã đặt giá và % ở quầy; nếu bạn muốn chặn luôn (b) thì mọi thay đổi ở Cài đặt → Hạng
+   đều phải có PIN chủ quán (quản lý không tự sửa hạng được nữa). Bạn chọn: **(a) thôi** hay **(a) + (b)**?
