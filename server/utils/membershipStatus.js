@@ -77,7 +77,8 @@ async function getMembershipStatus(query, queryOne, getNow, phone) {
   return tinhHang(dong, await query(HANG), getNow());
 }
 
-/** Trạng thái hạng của MỌI khách có dòng sổ — 2 câu đọc, cùng tinhHang (danh sách khách, xoá hạng). { sdt: trạng thái }. */
+/** Trạng thái hạng của MỌI khách có hạng (còn hoặc đã hết) — 2 câu đọc, cùng tinhHang (danh sách khách). { sdt: trạng thái }; khách bị thu
+ *  hồi hết hạng ('none') không có mặt — danh sách hiện "-" như khách chưa từng có hạng. */
 async function hangNhieuKhach(query, getNow) {
   const dong = await query('SELECT * FROM pos_membership_purchases ORDER BY customer_phone, purchased_at, id');
   const dsHang = await query(HANG);
@@ -87,7 +88,17 @@ async function hangNhieuKhach(query, getNow) {
     theoSdt.get(d.customer_phone).push(d);
   }
   const now = getNow();
-  return Object.fromEntries([...theoSdt].map(([sdt, ds]) => [sdt, tinhHang(ds, dsHang, now)]));
+  return Object.fromEntries([...theoSdt].map(([sdt, ds]) => [sdt, tinhHang(ds, dsHang, now)]).filter(([, m]) => m.status !== 'none'));
+}
+
+/** Số khách đang GIỮ hạng `tierId` còn hạn — kể cả khi hạng đó không phải hạng hiện tại (khách có hạng cao hơn): hạng trên hết hạn / bị thu
+ *  hồi thì khách quay về hạng này (soát HANG-1 vòng 1). Cùng hanCacHang; hạn mỗi hạng chỉ phụ thuộc dòng của chính hạng đó. */
+async function soKhachGiuHang(query, getNow, tierId) {
+  const dong = await query('SELECT * FROM pos_membership_purchases WHERE tier_id = ? ORDER BY customer_phone, purchased_at, id', [tierId]);
+  const theoSdt = new Map();
+  for (const d of dong) theoSdt.set(d.customer_phone, [...(theoSdt.get(d.customer_phone) || []), d]);
+  const now = gio(getNow());
+  return [...theoSdt.values()].filter((ds) => (hanCacHang(ds).get(Number(tierId))?.han ?? '') > now).length;
 }
 
 /** Hạn của hạng `tierId` ngay sau dòng sắp ghi (để nhật ký hiện "đến …") — đọc sổ TRONG giao dịch ghi. Chỉ để xem: hàm hạng không dùng nó. */
@@ -101,4 +112,4 @@ function isTierUsable(status) {
   return status === 'active' || status === 'expiring_soon';
 }
 
-module.exports = { getMembershipStatus, isTierUsable, hangNhieuKhach, hanSauDong, tinhHang, hanCacHang, docGoi, goiBanDuoc, HAN_VO_HAN };
+module.exports = { getMembershipStatus, isTierUsable, hangNhieuKhach, soKhachGiuHang, hanSauDong, tinhHang, hanCacHang, docGoi, goiBanDuoc, HAN_VO_HAN };

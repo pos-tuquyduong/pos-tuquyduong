@@ -11,7 +11,7 @@ const express = require('express');
 const { query, run, beginTransaction } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
-const { docGoi, hangNhieuKhach, isTierUsable } = require('../utils/membershipStatus');
+const { docGoi, soKhachGiuHang } = require('../utils/membershipStatus');
 
 const router = express.Router();
 
@@ -21,6 +21,9 @@ const THANG_TOI_THIEU = 1;
 const THANG_TOI_DA = 60;
 const PHAN_TRAM_TOI_DA = 90;
 
+// Cùng luật checkPermission (middleware/auth.js): owner luôn có, vai khác theo pos_permissions.
+const coQuyen = async (user, quyen) => user?.role === 'owner'
+  || !!(await query('SELECT allowed FROM pos_permissions WHERE role = ? AND permission = ?', [user?.role, quyen]))[0]?.allowed;
 const caiDat = (khoa, giaTri, now) => [`INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)
   ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`, [khoa, giaTri, now]];
 
@@ -88,6 +91,12 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req, 
       .filter((h) => !ds.some((x) => x.id === Number(h.id)));
     const bac = [...ds.map((x) => x.sort_order), ...conLai.map((h) => Number(h.sort_order))];
     if (new Set(bac).size !== bac.length) return sai('Hai hạng không được cùng thứ bậc');
+    // Đổi cách có hạng của hạng CÓ SẴN (chỉ cấp ↔ bán) chỉ người có quyền cấp hạng (cap_hang — mặc định chủ quán): đổi "chỉ cấp" → "bán" rồi
+    // đặt gói là đường thứ hai tới hạng mà cấp phải có PIN chủ quán (soát HANG-1 vòng 1). Sửa tên / % / gói / thứ bậc vẫn là manage_promotions.
+    const cu = new Map((await query('SELECT id, cach_co FROM pos_membership_tiers')).map((h) => [Number(h.id), h.cach_co]));
+    if (ds.some((h) => h.id !== null && cu.has(h.id) && cu.get(h.id) !== h.cach_co) && !(await coQuyen(req.user, 'cap_hang'))) {
+      return res.status(403).json({ error: 'Đổi cách có hạng (bán / chỉ cấp) chỉ chủ quán làm được', code: 'DOI_CACH_CO_CAN_QUYEN' });
+    }
 
     const now = getNow();
     const tx = await beginTransaction();
@@ -123,7 +132,7 @@ router.delete('/:id', authenticate, checkPermission('manage_promotions'), async 
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID không hợp lệ' });
-    const dangGiu = Object.values(await hangNhieuKhach(query, getNow)).filter((m) => m.tier_id === id && isTierUsable(m.status)).length;
+    const dangGiu = await soKhachGiuHang(query, getNow, id);
     if (dangGiu > 0) {
       return res.status(409).json({ error: `Còn ${dangGiu} khách đang giữ hạng này còn hạn — chưa xoá được`, code: 'HANG_CON_KHACH' });
     }

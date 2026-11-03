@@ -62,7 +62,12 @@ DOT_BIEN = [
   ('BV-bac-trung', [(TI, "    if (new Set(bac).size !== bac.length) return sai('Hai hạng không được cùng thứ bậc');\n", '', 1)], r'✗ A4 thứ bậc trùng'),
   ('BV-chi-cap-goi-rong', [(TI, "  for (const g of cachCo === 'ban' ? vao : []) {", '  for (const g of vao) {', 1)], r'✗ A6 '),
   ('BV-xoa-hang', [(TI, "    if (dangGiu > 0) {", '    if (false) {', 1)], r'✗ A5 '),
-  ('VS-xoa-hang-ca-het-han', [(TI, '.filter((m) => m.tier_id === id && isTierUsable(m.status))', '.filter((m) => m.tier_id === id)', 1)], r'✗ A5b '),
+  ('VS-xoa-hang-ca-het-han', [(MS, "(hanCacHang(ds).get(Number(tierId))?.han ?? '') > now", "(hanCacHang(ds).get(Number(tierId))?.han ?? '') !== ''", 1)], r'✗ A5b '),
+  ('VS-xoa-chi-hang-hien-tai', [(TI, '    const dangGiu = await soKhachGiuHang(query, getNow, id);', "    const dangGiu = Object.values(await require('../utils/membershipStatus').hangNhieuKhach(query, getNow)).filter((m) => m.tier_id === id && m.status !== 'expired').length;", 1)], r'✗ A5d '),
+  ('BV-doi-cach-co', [(TI, "&& !(await coQuyen(req.user, 'cap_hang'))) {", '&& false) {', 1)], r'✗ A8 '),
+  ('VS-doi-cach-co-mot-chieu', [(TI, 'cu.get(h.id) !== h.cach_co)', "cu.get(h.id) === 'chi_cap' && h.cach_co === 'ban')", 1)], r'✗ A8b '),
+  ('VS-doi-cach-co-quyen-chung', [(TI, "!(await coQuyen(req.user, 'cap_hang'))", "!(await coQuyen(req.user, 'manage_promotions'))", 1)], r'✗ A8 '),
+  ('BV-none-loc', [(MS, ".filter(([, m]) => m.status !== 'none'));", ');', 1)], r'✗ C6d '),
   # ── N: bước nâng cấp 013 ──
   ('BV-013-vang', [(N13, '  await tx.run("UPDATE pos_membership_tiers SET goi = ? WHERE name = \'Vàng\' AND cach_co = \'ban\' AND goi = \'[]\'", [GOI_VANG]);\n', '', 1)], r'✗ N1 '),
   ('VS-013-ten-gan-dung', [(N13, "WHERE name = 'Kim Cương' AND goi = '[]'", "WHERE TRIM(name) LIKE 'V%' OR name = 'Kim Cương' AND goi = '[]'", 1)], r'✗ N3 |✗ N1'),
