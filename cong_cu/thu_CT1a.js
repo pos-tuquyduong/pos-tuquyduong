@@ -112,7 +112,7 @@ async function main() {
   };
   const an = async (fn, mac = null) => { imLang(); try { return await fn(); } catch { return mac; } finally { noiLai(); } };   // câu đọc/ghi có thể hỏng trên bản chưa vá: ghi ✗ chứ không sập
   const ngaySinhDb = async (sdt) => (await an(() => db.queryOne('SELECT ngay_sinh FROM pos_customers WHERE phone = ?', [sdt])))?.ngay_sinh ?? 'KHONG_CO_COT';
-  const soDb = async (sdt) => { try { return await db.query('SELECT * FROM pos_ngay_sinh_sua WHERE phone = ? ORDER BY id', [sdt]); } catch { return null; } };
+  const soDb = (sdt) => an(() => db.query('SELECT * FROM pos_ngay_sinh_sua WHERE phone = ? ORDER BY id', [sdt]));
   const soKhach = async () => Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_customers')).n);
 
   // ═════════════ 0. Cấu trúc dữ liệu ═════════════
@@ -142,7 +142,7 @@ async function main() {
   k('A0 có routes/chuong-trinh.js nạp được', !!ct, loiNap);
   const mau = (them = {}) => ({ ten: 'CT thử', mo_ta: 'Mô tả ngắn', loai: 'khac', mien_so_mon: 0, mien_gia_toi_da: null, giam_ca_don_pt: 10, giam_con_lai_pt: 0,
     chi_tai_quan: true, can_xem_giay_to: false, gioi_han_ky: 'ngay', gioi_han_so: 1, bat_dau: null, ket_thuc: null, dang_bat: false, ...them });
-  const soCt = async () => { try { return Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_chuong_trinh')).n); } catch { return -1; } };
+  const soCt = async () => Number((await an(() => db.queryOne('SELECT COUNT(*) AS n FROM pos_chuong_trinh'), { n: -1 })).n);
 
   const ds0 = await pos('GET', '/chuong-trinh', undefined, tkChu);
   const tim = (r, ma) => (r.j.data || []).find((x) => x.ma === ma);
