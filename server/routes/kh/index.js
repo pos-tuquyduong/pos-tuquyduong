@@ -20,7 +20,7 @@ const { layMenuQuay } = require('../products');
 const { bao, loiMayChu } = require('./loi');
 const { datPin } = require('../../utils/pinKhach');
 const { dangGiu } = require('../wallets');
-const { getMembershipStatus, isTierUsable } = require('../../utils/membershipStatus');
+const { getMembershipStatus, isTierUsable, goiBanDuoc } = require('../../utils/membershipStatus');
 const { readFlashState } = require('../../utils/flashState');
 const { tiLeHangMon, giaCacHang } = require('../../utils/giaHang');
 const { docCaiDat, khungHangNgay, traGioHoatDong } = require('../../utils/gioHoatDong');
@@ -41,14 +41,15 @@ const monKhach = (p, dsHang) => ({
   // KH-SP-1: thông tin ngắn nhập ở màn Sản phẩm POS; chưa nhập → [] / null. Ảnh món làm sau (KH-SP-2).
   nhu_cau: p.nhu_cau, the_chat: p.the_chat, mo_ta: p.mo_ta, cong_dung: p.cong_dung, thanh_phan: p.thanh_phan, anh: null,
 });
-// Hạng đang bật — cùng thứ tự GET /api/pos/tiers.
-const hangDangBat = () => query('SELECT * FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order ASC, card_price ASC');
+// Hạng đang bật — cùng thứ tự GET /api/pos/tiers (thứ bậc).
+const hangDangBat = () => query('SELECT * FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order ASC, id ASC');
 const phanTram = (h) => ({ phan_tram: tiLeHangMon(h, false), phan_tram_nhom_dac_biet: tiLeHangMon(h, true) });
-// Thẻ hạng DÙNG ĐƯỢC của khách — CÙNG hai hàm và CÙNG câu đọc hạng (không lọc is_active) với giảm hạng ở orders.js; hết / chưa có → null.
+// Thẻ hạng DÙNG ĐƯỢC của khách (hạng CAO NHẤT còn hạn — HANG-1) — CÙNG hai hàm và CÙNG câu đọc hạng (không lọc is_active) với giảm hạng ở
+// orders.js; hết / chưa có → null. het_han null = không thời hạn (hàm chung đã trả null, không để ra "null" / 9999-…).
 async function theCuaKhach(phone) {
   const m = await getMembershipStatus(query, queryOne, getNow, phone);
   const h = isTierUsable(m.status) && await queryOne('SELECT * FROM pos_membership_tiers WHERE id = ?', [m.tier_id]);
-  return h ? { h, het_han: String(m.expires_at).replace(' ', 'T') } : null;
+  return h ? { h, het_han: m.expires_at } : null;
 }
 // Số dư KHẢ DỤNG của ví riêng khách = số quầy hiện (GET /api/pos/wallets/:phone: balance − dangGiu). Không cộng ví mẹ (chủ quán 29.10).
 async function soDuVi(phone) {
@@ -90,7 +91,11 @@ router.post('/dang-nhap/xac-minh', async (req, res) => {
 router.get('/hang', async (req, res) => {
   try {
     const ds = await hangDangBat();
-    res.json({ success: true, data: ds.map((h) => ({ id: h.id, ten: h.name, ...phanTram(h), gia_the: Number(h.card_price) || 0, thu_tu: h.sort_order })) });
+    // HANG-1 (hợp đồng v7): goi = gói đang bán có giá (CÙNG vị từ với quầy bán); gia_the giữ một đợt = gói ngắn nhất, null khi chỉ cấp / chưa giá.
+    res.json({ success: true, data: ds.map((h) => {
+      const goi = goiBanDuoc(h).map((g) => ({ so_thang: g.so_thang, gia: g.gia }));
+      return { id: h.id, ten: h.name, ...phanTram(h), chi_cap: h.cach_co === 'chi_cap', goi, thu_bac: h.sort_order, gia_the: goi.length ? goi[0].gia : null, thu_tu: h.sort_order };
+    }) });
   } catch (err) {
     loiMayChu(res, err, 'kh hang');
   }

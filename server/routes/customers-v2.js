@@ -11,6 +11,7 @@ const { query, queryOne, run } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
 const { normalizePhone, getNow } = require("../utils/helpers");
 const { callSxApi } = require("../utils/sxApi");
+const { hangNhieuKhach } = require("../utils/membershipStatus");
 
 const router = express.Router();
 
@@ -225,24 +226,8 @@ router.get("/", authenticate, async (req, res) => {
     const regMap = {};
     registrations.forEach((r) => (regMap[r.phone] = r));
 
-    // TIER-1c: hạng thành viên hiện tại (dòng mua mới nhất/phone) — 1 câu truy vấn, không N+1
-    const tierRows = await query(`
-      SELECT customer_phone, tier_name, expires_at FROM (
-        SELECT customer_phone, tier_name, expires_at,
-          ROW_NUMBER() OVER (PARTITION BY customer_phone ORDER BY purchased_at DESC, id DESC) AS rn
-        FROM pos_membership_purchases
-      ) WHERE rn = 1
-    `);
-    const tierMap = {};
-    const nowMs = new Date(nowStr.replace(' ', 'T')).getTime();
-    tierRows.forEach((row) => {
-      const expiresMs = new Date(String(row.expires_at).replace(' ', 'T')).getTime();
-      const daysRemaining = Math.ceil((expiresMs - nowMs) / (24 * 60 * 60 * 1000));
-      let status = 'active';
-      if (daysRemaining <= 0) status = 'expired';
-      else if (daysRemaining <= 7) status = 'expiring_soon';
-      tierMap[row.customer_phone] = { tier_name: row.tier_name, days_remaining: daysRemaining, status };
-    });
+    // TIER-1c / HANG-1: hạng hiện tại (thứ bậc CAO NHẤT còn hạn) — CÙNG hàm với quầy (membershipStatus.js), 2 câu đọc, không N+1
+    const tierMap = await hangNhieuKhach(query, getNow);
 
     // Merge SX + wallets
     const result = sxCustomers.map((c) => {

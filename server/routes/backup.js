@@ -84,6 +84,7 @@ const BACKUP_TABLES = [
   // Thẻ thành viên: hạng trước, lịch sử mua sau
   { name: 'pos_membership_tiers', label: 'Hạng thành viên', key: 'id' },
   { name: 'pos_membership_purchases', label: 'Lịch sử mua thẻ', key: 'id' },
+  { name: 'pos_pin_chu_quan', label: 'PIN chủ quán (băm)', key: 'id' },   // HANG-1: chỉ owner xuất (như pos_users)
 
   // Sổ nợ kho — việc chưa gửi được sang SX. Mất là mất luôn dấu vết hàng
   // đã bán mà kho chưa trừ.
@@ -129,7 +130,8 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin',   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
-  'pos_man_khach_quay', 'pos_man_khach_may'];   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_pin_chu_quan'];   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN thì chủ quán đặt lại ở Cài đặt
 
 /** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */
 function themTrangMeta(wb, bang) {
