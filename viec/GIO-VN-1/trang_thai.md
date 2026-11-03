@@ -378,3 +378,10 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 1 — chi tiết ở ## Bài 
 `node tu_chay/cong.js chay . 36b98b8^ HEAD viec/GIO-VN-1` (cây sạch, HEAD 31d64b1): ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 31d64b1
+
+
+## Chat soát 03.11 — ĐẠT
+Đọc chuanHoaGio.js / 012: luật 1–4, sao lưu trước UPDATE, chạy lần hai không đổi; vòng một múi giờ VN (client/src + quét GD1–GD4).
+Gộp main 9a30501 (KH-SDT-1): chỉ đụng dist. Bài trên bản gộp: GIOVN1 61/0 (quét gồm donThu.js) · KHSDT1 95/0.
+Chủ quán: tải sao lưu toàn bộ TRƯỚC Merge; sau Render chạy lại xem nhật ký dòng "Nâng cấp 012".
+HEAD ĐÃ KIỂM: 4a00780
