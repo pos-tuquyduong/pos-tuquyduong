@@ -170,13 +170,13 @@ async function main() {
   const P = await import(pathToFileURL(path.join(GOC, 'client', 'src', 'utils', 'hoaDon.js')).href);
 
   /** So hoa_don[] của App với tờ khách của hàm quầy trên cùng đơn + cùng cài đặt. */
-  const soVoiQuay = async (ten, kh, oid, maKh) => {
+  const soVoiQuay = async (ten, kh, oid, maKh, anNhanVien = false) => {
     const ct = await goi('GET', `/kh/don/${maKh}`, undefined, kh.tk);
     const hd = await goi('GET', `/pos/hoa-don/${oid}`, undefined, tkChu);
     const caiDat = {};
     for (const r of await db.query("SELECT key, value FROM pos_settings WHERE key LIKE 'invoice%' OR key IN ('store_name','store_address','store_phone')")) caiDat[r.key] = r.value;
-    const mong = chuCuaTo(P.dungHoaDon(hd.j.hoa_don, caiDat, { lien: 'khach' })).map(([loai, trai, phai, gach, ghi, dam]) => ({ loai, trai, phai, dam, gach, ghi_chu: ghi }));
-    const co = ct.j.don?.hoa_don;
+    const mong = chuCuaTo(P.dungHoaDon(hd.j.hoa_don, caiDat, { lien: 'khach' })).map(([loai, trai, phai, gach, ghi, dam]) => ({ loai, trai, phai: anNhanVien && loai === 'gio' ? '' : phai, dam, gach, ghi_chu: ghi }));   // đơn App: ẩn tên nhân viên (Q1)
+    const co =ct.j.don?.hoa_don;
     const duKhoa = Array.isArray(co) && co.every((d) => bang(Object.keys(d), CHU_DONG));
     k(`${ten}: hoa_don[] ${mong.length} dòng, đủ 6 trường, GIỐNG HỆT tờ khách của hàm quầy (từng dòng)`, ct.status === 200 && duKhoa && bang(co, mong),
       `HTTP ${ct.status} · app ${JSON.stringify(co)?.slice(0, 260)} · quầy ${JSON.stringify(mong).slice(0, 260)}`);
@@ -214,9 +214,14 @@ async function main() {
     const r6 = await datApp(kVq, 'vi_qr', { pin: '1357' });
     await webhook(await phienCua(r6.j.ma_don));
     const oid6 = (await phienCua(r6.j.ma_don)).order_id;
-    const d6 = await soVoiQuay('A6 đơn App ví + QR (đã trả)', kVq, oid6, r6.j.ma_don);
+    const d6 = await soVoiQuay('A6 đơn App ví + QR (đã trả)', kVq, oid6, r6.j.ma_don, true);
+    const nv6 = (await db.queryOne('SELECT created_by FROM pos_orders WHERE id = ?', [oid6])).created_by;
+    k('A6e đơn App: dòng giờ KHÔNG có tên nhân viên (phai rỗng), tên người tạo không xuất hiện ở dòng nào', !!nv6 && d6.find((d) => d.loai === 'gio')?.phai === '' && !JSON.stringify(d6).includes(nv6),
+      `created_by=${nv6} · ${JSON.stringify(d6.find((d) => d.loai === 'gio'))}`);
+    const nv1 = (await db.queryOne('SELECT created_by FROM pos_orders WHERE id = ?', [o1.id])).created_by;
+    k('A1c đơn quầy giữ nguyên: dòng giờ vẫn có tên nhân viên (phai = người tạo đơn)', !!nv1 && dong1.find((d) => d.loai === 'gio')?.phai.endsWith(nv1), JSON.stringify(dong1.find((d) => d.loai === 'gio')));
     k('A6b đơn ví + QR: có dòng tu_tk và ck (hai cách trả)', d6.some((d) => d.loai === 'tu_tk') && d6.some((d) => d.loai === 'ck'), d6.map((d) => d.loai).join());
-    const d6b = await soVoiQuay('A6c cùng đơn đọc bằng mã bill (không chỉ mã App)', kVq, oid6, (await db.queryOne('SELECT code FROM pos_orders WHERE id = ?', [oid6])).code);
+    const d6b = await soVoiQuay('A6c cùng đơn đọc bằng mã bill (không chỉ mã App)', kVq, oid6, (await db.queryOne('SELECT code FROM pos_orders WHERE id = ?', [oid6])).code, true);
     k('A6d mã App và mã bill ra cùng một hoa_don', bang(d6, d6b));
     await datCaiDat('invoice_chu_cam_on', 'Hẹn gặp lại {ten_khach}!'); await datCaiDat('invoice_an_chinh_sach', 'true'); await datCaiDat('invoice_chu_ten_quan', 'TIỆM THỬ');
     const dChu = await soVoiQuay('A7 chữ quán sửa ở Cài đặt hoá đơn hiện y như tờ in', kLe, o1.id, o1.code);
