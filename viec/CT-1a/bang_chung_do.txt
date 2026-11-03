@@ -1,0 +1,24 @@
+CT-1a — bằng chứng bài thử ĐỎ trên code gốc, XANH sau vá (03.11.2026)
+
+Code gốc = 0cd852f (commit PHIEU: CT-1a). Dựng bằng `python3 cong_cu/ban_sao_goc.py 0cd852f <nháp>/goc`, rồi
+`node cong_cu/thu_CT1a.js --may-chu <nháp>/goc/server`.
+
+═══ cong_cu/thu_CT1a.js (bài mới) ═══
+Trên gốc 0cd852f:  4 đạt · 69 hỏng  → ĐỎ
+    ✗ A0 có routes/chuong-trinh.js nạp được — Cannot find module
+    ✗ 0a pos_customers có cột ngay_sinh · ✗ 0b có bảng pos_chuong_trinh và pos_ngay_sinh_sua · ✗ A1 … A9 · ✗ B1 … B9 · ✗ C1 … C9 · ✗ A17
+Sau vá (HEAD): 75 đạt · 0 hỏng
+SỐ CA cong_cu/thu_CT1a.js: 75
+
+═══ cong_cu/thu_HOPDONG_KH.js (bài cũ, đổi vì hợp đồng v6 — hành vi chủ quán đã duyệt) ═══
+Trên gốc: bản mới của bài (đòi PHIEN_BAN 6 trong hợp đồng + cửa GET /chuong-trinh) đỏ vì hợp đồng gốc là v5 chưa có cửa.
+Sau vá: 85 đạt · 0 hỏng
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 85
+
+═══ Đột biến (viec/CT-1a/dot_bien.py) ═══
+Đối chứng (bản chưa đột biến): XANH · 75 đạt · 0 hỏng
+Lần chạy đầu: 76 đột biến · BẮT 73 · SỐNG 2 · LẠC 1.
+  · VS-TUOI-LAY-TUYET-DOI SỐNG vì còn kiểm "ngày tương lai" riêng che → bỏ kiểm dư (tuổi âm đã loại), thêm ca B8c (mức tối thiểu 0) → BẮT.
+  · BV-KHACH-KHONG-CO SỐNG vì quầy chặn 404 trước khi tới hàm → thêm ca B6c gọi thẳng datNgaySinh → BẮT.
+  · BV-KIEM-NGAY-SINH-TRUOC-GHI LẠC (bài sập) → bỏ khỏi danh sách (kiểm này được B7/C4 phủ qua các đột biến tuổi / lịch).
+Sau sửa: 75 đột biến, tất cả BẮT (73 + 2 chạy lại riêng: VS-TUOI-LAY-TUYET-DOI, BV-KHACH-KHONG-CO; đối chứng 75 đạt).
