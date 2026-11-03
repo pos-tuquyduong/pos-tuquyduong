@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, reportsApi } from '../utils/api';
 import DoiSoat from '../components/DoiSoat';
 import { useAuth } from '../contexts/AuthContext';
-import { ngayVN } from '../utils/ngayVN';
+import { ngayVN, hienNgay } from '../utils/ngayVN';
 import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
 
 export default function Reports() {
@@ -116,7 +116,7 @@ export default function Reports() {
   const TRANG_THAI = { active: '🔄 Đang dùng', completed: '✅ Đã xong', cancelled: '⛔ Đã kết thúc' };
 
   const formatPrice = (p) => (p || 0).toLocaleString() + 'đ';
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const fmtDate = (d) => hienNgay(d, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
     <>
@@ -352,7 +352,7 @@ export default function Reports() {
                           <tbody>
                             {discountReport.by_date.map(item => (
                               <tr key={item.date}>
-                                <td>{new Date(item.date).toLocaleDateString('vi-VN')}</td>
+                                <td>{hienNgay(item.date)}</td>
                                 <td style={{ textAlign: 'right' }}>{item.order_count}</td>
                                 <td style={{ textAlign: 'right', color: '#dc2626' }}>{formatPrice(item.total_discount)}</td>
                                 <td style={{ textAlign: 'right', color: '#f97316' }}>{formatPrice(item.total_shipping)}</td>

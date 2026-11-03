@@ -16,7 +16,7 @@ import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import { useAuth } from '../contexts/AuthContext';
-import { ngayVN } from '../utils/ngayVN';
+import { ngayVN, khoangNgay, docGioVN, hienNgay, hienGio, hienNgayGio } from '../utils/ngayVN';
 
 export default function Orders() {
   const { user } = useAuth();
@@ -75,28 +75,9 @@ export default function Orders() {
   // Tính from/to từ preset
   const applyPreset = (preset) => {
     setDatePreset(preset);
-    const now = new Date();
-    const fmt = ngayVN;
-    switch (preset) {
-      case 'today':
-        setDateFrom(fmt(now)); setDateTo(fmt(now)); break;
-      case 'yesterday': {
-        const y = new Date(now); y.setDate(y.getDate() - 1);
-        setDateFrom(fmt(y)); setDateTo(fmt(y)); break;
-      }
-      case '7days': {
-        const d7 = new Date(now); d7.setDate(d7.getDate() - 6);
-        setDateFrom(fmt(d7)); setDateTo(fmt(now)); break;
-      }
-      case 'thisMonth':
-        setDateFrom(fmt(new Date(now.getFullYear(), now.getMonth(), 1))); setDateTo(fmt(now)); break;
-      case 'lastMonth': {
-        const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lmEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-        setDateFrom(fmt(lm)); setDateTo(fmt(lmEnd)); break;
-      }
-      case 'custom': break; // user picks manually
-    }
+    if (preset === 'custom') return; // user picks manually
+    const [tu, toi] = khoangNgay(preset);   // GIO-VN-1: ranh ngày / tháng theo giờ VN, không theo giờ điện thoại
+    setDateFrom(tu); setDateTo(toi);
   };
 
   useEffect(() => { loadOrders(); }, [dateFrom, dateTo]);
@@ -227,8 +208,8 @@ export default function Orders() {
           break;
         case 'created_at':
         default:
-          valA = new Date(a.created_at).getTime();
-          valB = new Date(b.created_at).getTime();
+          valA = docGioVN(a.created_at).getTime();
+          valB = docGioVN(b.created_at).getTime();
       }
       
       if (typeof valA === 'string') {
@@ -279,16 +260,10 @@ export default function Orders() {
   };
 
   const formatPrice = (p) => (p || 0).toLocaleString() + 'đ';
-  const formatTime = (d) => new Date(d).toLocaleTimeString('vi-VN', { 
-    timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' 
-  });
-  const formatDateShort = (d) => new Date(d).toLocaleDateString('vi-VN', {
-    timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit'
-  });
+  const formatTime = (d) => hienGio(d, { hour: '2-digit', minute: '2-digit' });
+  const formatDateShort = (d) => hienNgay(d, { day: '2-digit', month: '2-digit' });
   const isMultiDay = dateFrom !== dateTo;
-  const formatDateTime = (d) => new Date(d).toLocaleString('vi-VN', { 
-    timeZone: 'Asia/Ho_Chi_Minh' 
-  });
+  const formatDateTime = (d) => hienNgayGio(d);
 
   // === DAMAGE HANDLING ===
   const DAMAGE_REASONS = {
@@ -734,7 +709,7 @@ export default function Orders() {
                   <tbody>
                     {damages.map(d => (
                       <tr key={d.id}>
-                        <td>{new Date(d.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td>{hienNgay(d.created_at)}</td>
                         <td><strong>{d.order_code}</strong></td>
                         <td>{d.product_code}</td>
                         <td>{d.quantity}</td>
@@ -939,7 +914,7 @@ export default function Orders() {
                   {selectedOrder.due_date && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem' }}>
                       <span>📅 Hạn thanh toán:</span>
-                      <span>{new Date(selectedOrder.due_date).toLocaleDateString('vi-VN')}</span>
+                      <span>{hienNgay(selectedOrder.due_date)}</span>
                     </div>
                   )}
                 </div>

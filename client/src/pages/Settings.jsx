@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
-import { ngayVN } from '../utils/ngayVN';
+import { ngayVN, hienNgayGio } from '../utils/ngayVN';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
@@ -1341,7 +1341,7 @@ export default function Settings() {
                         }
                       </td>
                       <td style={{ fontSize: '0.85rem', color: '#666' }}>
-                        {u.last_login ? new Date(u.last_login).toLocaleString('vi-VN') : 'Chưa đăng nhập'}
+                        {u.last_login ? hienNgayGio(u.last_login) : 'Chưa đăng nhập'}
                       </td>
                       <td>
                         <div className="flex gap-1" style={{ justifyContent: 'center' }}>
