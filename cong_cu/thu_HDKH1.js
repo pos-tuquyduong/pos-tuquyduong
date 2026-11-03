@@ -223,7 +223,7 @@ async function main() {
     k('A7b chữ sửa: tên quán "TIỆM THỬ", lời cảm ơn tự điền tên, chính sách ẩn', dChu[0]?.trai === 'TIỆM THỬ' && dChu.some((d) => d.loai === 'chan' && d.trai.startsWith('Hẹn gặp lại') && d.trai.includes('Chị Hoa'))
       && !dChu.some((d) => d.trai.startsWith('Ly có vấn đề')), JSON.stringify(dChu.filter((d) => d.loai === 'chan')));
     const chuoi = JSON.stringify(dChu) + JSON.stringify(d6) + JSON.stringify(d3);
-    k('A8 tờ KHÔNG chứa mã nhận điểm "TQD-", SĐT đầy đủ của khách, hay địa chỉ QR', !/TQD-/.test(chuoi) && !chuoi.includes(kLe.sdt) && !chuoi.includes('app.thu.vn')
+    k('A8 tờ (có dòng) KHÔNG chứa mã nhận điểm "TQD-", SĐT đầy đủ của khách, hay địa chỉ QR', dChu.length > 0 && d6.length > 0 && d3.length > 0 && !/TQD-/.test(chuoi) && !chuoi.includes(kLe.sdt) && !chuoi.includes('app.thu.vn')
       && !dChu.some((d) => d.loai === 'qr' || d.loai === 'ma_diem'));
     await datCaiDat('invoice_chu_cam_on', ''); await datCaiDat('invoice_an_chinh_sach', 'false'); await datCaiDat('invoice_chu_ten_quan', 'TỨ QUÝ ĐƯỜNG');
   });
