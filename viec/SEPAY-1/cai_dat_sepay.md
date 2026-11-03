@@ -1,9 +1,9 @@
 # Cài SePay cho quầy — hướng dẫn cho chủ quán (SEPAY-1)
 
 **Việc này là gì:** sau khi gộp SEPAY-1, quầy và App có thể thu tiền QR qua SePay (phí thấp hơn payOS). Máy chủ tự vẽ mã QR chuyển khoản tới
-tài khoản quán; khi tiền về, SePay báo cho máy chủ và đơn tự chốt — y như payOS hôm nay. payOS vẫn còn nguyên, bật lại bằng một biến.
+tài khoản quán; khi tiền về, SePay báo cho máy chủ và đơn tự chốt — y như payOS hôm nay. payOS vẫn còn trong code (bật lại theo mục 4 — nhớ tắt webhook SePay trước).
 
-**Gộp xong mà chưa làm các bước dưới:** quầy vẫn chạy payOS như hôm nay (mặc định là payOS — bạn đã chốt 01.11).
+**Gộp xong mà chưa làm các bước dưới:** công tắc mặc định vẫn là payOS (bạn chốt 01.11). Kênh payOS đã xoá 03.11 nên cho tới khi làm xong mục 1–3 và đặt `CONG_QR=sepay`, QR tự chốt không chạy: quầy dùng QR tĩnh + xác nhận tay.
 
 ## 1. Trên trang SePay (my.sepay.vn)
 
@@ -25,12 +25,12 @@ tài khoản quán; khi tiền về, SePay báo cho máy chủ và đơn tự ch
 | `SEPAY_BIN` | mã BIN của ngân hàng nhận tiền — đúng 6 chữ số (tra bảng BIN VietQR của ngân hàng; vd Vietcombank, BIDV… mỗi ngân hàng một mã) |
 | `SEPAY_SO_TK` | số tài khoản nhận tiền, chỉ chữ số / chữ, không dấu cách |
 | `SEPAY_KHOA_WEBHOOK` | Secret Key vừa chép ở bước 1.3 |
-| `CONG_QR` | `sepay` — đặt ở bước 3.1 khi bắt đầu thử (thử không được thì đặt lại `payos`, xem mục 4) |
+| `CONG_QR` | `sepay` — đặt ở bước 3.1 khi bắt đầu thử (thử không được thì xem mục 4 trước khi đổi cổng) |
 
 Thiếu hoặc sai dạng một trong ba biến SePay mà `CONG_QR=sepay` → quầy báo "Chưa cài cổng QR chuyển khoản" (mã `PAYOS_CHUA_CAU_HINH`) và
 dùng QR tĩnh + xác nhận tay như khi payOS chưa cài. Không mất tiền, chỉ chậm.
 
-## 3. Thử một đơn 2.000đ trước khi bỏ payOS
+## 3. Thử một đơn 2.000đ
 
 1. Render: điền `SEPAY_BIN`, `SEPAY_SO_TK`, `SEPAY_KHOA_WEBHOOK`, đặt `CONG_QR=sepay`, lưu (Render khởi động lại ~1 phút).
 2. Tạm đặt một món giá 2.000đ (ở chỗ bạn vẫn sửa giá món; thử xong trả giá cũ). Quầy: bán đúng món đó, chọn QR.
@@ -39,17 +39,18 @@ dùng QR tĩnh + xác nhận tay như khi payOS chưa cài. Không mất tiền,
 5. Không tự chốt sau 1–2 phút → mở trang SePay xem lịch sử webhook của giao dịch đó (mã trả về): 401 = chữ ký không qua (thường là khoá sai →
    dán lại Secret Key; hiếm hơn là đồng hồ hai bên lệch quá 5 phút); 404 = địa chỉ sai. Trong lúc đó xác nhận tay đơn thử như bình thường.
 
-## 4. Quay về payOS (một bước)
+## 4. Chỉ MỘT cổng được bật webhook — payOS và SePay không bao giờ cùng bật (chủ quán chốt 03.11)
 
-Render: đặt `CONG_QR=payos` (hoặc xoá biến). **Giữ nguyên ba biến SePay ít nhất một ngày**: QR SePay khách quét trước lúc đổi mà trả trong
-hạn 10 phút vẫn tự chốt; trả muộn hơn thì (như payOS) không tạo đơn nhưng vẫn được ghi vào Đối soát để hoàn / nạp. Xoá khoá thì báo SePay bị
-từ chối: không tự chốt, không có dấu vết trong Đối soát.
+Ngày 03.11 bạn đã **xoá kênh thanh toán trên payOS**, quầy chỉ dùng SePay. Vì vậy:
 
-**Khi đã quay về payOS lâu dài:** tắt webhook trên trang SePay. Nếu để cả hai cổng cùng theo dõi một tài khoản, một lần chuyển khoản có thể được
-báo hai lần (payOS và SePay): đơn vẫn chỉ tạo MỘT lần, báo thứ hai hiện ở Đối soát mục CẦN XEM (vàng, không phải đỏ) dòng "đã chốt bằng
-báo payOS …" hoặc "đã chốt bằng báo SePay …" kèm "cùng một khoản báo qua hai cổng: đối chiếu sao kê, KHÔNG hoàn" — **không hoàn tiền** cho dòng
-đó. Khách chuyển THÊM một lần thật cho đơn đã trả thì dòng đó hiện ĐỎ ("phiên đang da_thu lúc tiền về") — dòng đỏ này mới là tiền phải hoàn. Việc này cũng xảy ra trong lúc
-cài (bước 1 bật webhook SePay khi quầy còn chạy payOS) — bình thường, không hoàn.
+- **Muốn bật lại payOS** (tạo lại kênh, điền khoá payOS, đặt `CONG_QR=payos`): **TẮT webhook SePay trên trang SePay TRƯỚC**, rồi mới bật payOS.
+- **Muốn dùng lại SePay sau khi đã bật payOS:** **TẮT webhook payOS TRƯỚC**, rồi mới bật webhook SePay và đặt `CONG_QR=sepay`.
+- Lý do: nếu cả hai cùng theo dõi một tài khoản, một lần chuyển khoản bị báo hai lần. Khoản tạo được đơn thì máy gộp đúng (một dòng vàng, KHÔNG
+  hoàn). Nhưng khoản KHÔNG tạo đơn (chuyển lệch số, trả muộn quá 10 phút, trả sau khi đã huỷ, chuyển thêm lần nữa) có thể hiện **HAI dòng đỏ** ở
+  Đối soát cho CÙNG một khoản — **đừng hoàn hai lần**: đối chiếu sao kê ngân hàng, mỗi lần chuyển thật chỉ hoàn một lần.
+- Máy KHÔNG khoá được điều này bằng code (chủ quán chấp nhận rủi ro còn lại — xem `trang_thai.md`, Q6), nên đây là bước làm tay bắt buộc.
+- Đổi cổng thì giữ nguyên ba biến cổng cũ ít nhất một ngày: QR khách quét trước lúc đổi mà trả trong hạn 10 phút vẫn tự chốt. Xoá khoá thì báo bị
+  từ chối: không tự chốt, không có dấu vết trong Đối soát.
 
 ## 5. Điều nên biết
 
