@@ -74,7 +74,6 @@ export default function CapHang({ sdt, coQuyen, onDoi }) {
             <div key={d.id}>
               • {hienNgayGio(d.purchased_at)} — {VIEC[d.loai] || d.loai} {d.tier_name}
               {d.loai !== 'thu_hoi' && ` (${d.so_thang ? d.so_thang + ' tháng' : d.loai === 'cap' ? 'Không thời hạn' : 'thẻ cũ'})`}
-              {d.loai !== 'thu_hoi' && d.expires_at && ` → đến ${hienNgayGio(d.expires_at)}`}
               {Number(d.price_paid) > 0 && ` · ${Number(d.price_paid).toLocaleString('vi-VN')}đ`}
               {d.order_id && ` · đơn #${d.order_id}`}
               {d.created_by && ` · ${d.created_by}`}

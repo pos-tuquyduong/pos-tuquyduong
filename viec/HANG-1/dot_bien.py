@@ -84,6 +84,7 @@ DOT_BIEN = [
   ('VS-khoa-gio-thieu-thang', [('client/src/pages/Sales.jsx', 'i.package_id, i.tier_id, i.so_thang]));', 'i.package_id, i.tier_id]));', 1)], r'✗ G2 '),
   ('BV-ban-khoa-cao-hon', [(SA, "{khoa && <div style={{ fontSize: '0.7rem', color: '#b91c1c', marginTop: 4 }}>Khách đang có hạng cao hơn</div>}", '', 1), (SA, "title={khoa ? 'Khách đang có hạng cao hơn' : ''}", "title=''", 1), (SA, "setError(`Khách đang có hạng cao hơn (${membershipInfo.tier_name}) — không bán hạng ${tier.name}`)", "setError('')", 1)], r'✗ G2b '),
   ('VS-xoa-hop-thoai', [('client/src/pages/CaiDat/HangThe.jsx', "    if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }", "    if (!window.confirm('Xoá hạng?')) return;", 1)], r'✗ G1b '),
+  ('VS-nhat-ky-han-luu', [('client/src/components/CapHang.jsx', "              {Number(d.price_paid) > 0", "              {d.expires_at && ` → đến ${d.expires_at}`}\n              {Number(d.price_paid) > 0", 1)], r'✗ G3c '),
   ('BV-cap-quyen-giao-dien', [('client/src/pages/Customers.jsx', "coQuyen={hasPermission('cap_hang')}", 'coQuyen={true}', 1)], r'✗ G3 '),
 ]
 
