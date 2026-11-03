@@ -99,13 +99,15 @@ async function main() {
   await db.run('UPDATE pos_users SET password = ? WHERE id = ?', [bcrypt.hashSync('mk_chu_quan', 4), chu.id]);
   const nguoi = async (ten, vai) => Number((await db.run("INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES (?, 'x', ?, ?, 1)",
     [ten, ten, vai])).lastInsertRowid);
-  const ky = (id) => jwt.sign({ userId: id }, KHOA_NV, { expiresIn: '1h' });
+  // ký token LÚC GỌI (đồng hồ giả nhảy tháng / năm — token ký trước đó đã hết hạn)
+  const ky = (id) => () => jwt.sign({ userId: id }, KHOA_NV, { expiresIn: '1h' });
   const TK = { chu: ky(chu.id), ql: ky(await nguoi('ql_hang1', 'manager')), nv: ky(await nguoi('nv_hang1', 'staff')) };
+  const tkKhach = async (sdt) => { const id = Number((await mot('SELECT id FROM pos_customers WHERE phone = ?', [sdt])).id); return () => kyTokenKhach(id); };
   const goi = async (method, url, body, token = TK.chu) => {
     imLang();
     try {
       const h = { 'Content-Type': 'application/json' };
-      if (token) h.Authorization = 'Bearer ' + token;
+      if (token) h.Authorization = 'Bearer ' + token();
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined, headers: h });
       let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
       return { ...j, status: r.status };
@@ -378,7 +380,7 @@ async function main() {
   muc('[D] Hạng hiện tại = thứ bậc CAO NHẤT còn hạn — 5 chỗ đọc');
   const namChoDoc = async (sdt) => {
     const st = (await hangCua(sdt)).tier_id;
-    const tkKh = kyTokenKhach(Number((await mot('SELECT id FROM pos_customers WHERE phone = ?', [sdt])).id));
+    const tkKh = await tkKhach(sdt);
     const toi = (await goi('GET', '/kh/toi', null, tkKh)).khach?.hang?.id;
     const ds = await goi('GET', '/pos/v2/customers');
     const ten = (ds.customers || []).find((c) => c.phone === sdt)?.membership?.tier_name;
@@ -414,7 +416,7 @@ async function main() {
     const d1 = (await hangCua(s4)).tier_id;
     await luu(dsMau());
     k('D4 đổi thứ bậc (Vàng ▲ trên Bạch Kim) → hạng hiện tại của khách có cả hai đổi theo', d0 === BK?.id && r.status === 200 && d1 === V?.id, `${d0} → ${moTa(r)} → ${d1}`);
-    const tkKh = kyTokenKhach(Number((await mot('SELECT id FROM pos_customers WHERE phone = ?', [s5])).id));
+    const tkKh = await tkKhach(s5);
     const menu = await goi('GET', '/kh/menu', null, tkKh);
     const m0 = (menu.data || [])[0];
     k('D1b /kh/menu có giá hạng Kim Cương (hạng chi_cap đang bật)', (m0?.gia_hang || []).some((g) => g.hang_id === KC?.id), JSON.stringify(m0?.gia_hang));
@@ -453,12 +455,12 @@ async function main() {
       && x(KC?.id).thu_bac === 3, JSON.stringify(x(KC?.id)));
     const s = await khach(sdtMoi());
     await goi('POST', '/pos/membership/cap', { phone: s, tier_id: KC?.id, so_thang: null, pin: globalThis.__PIN });
-    const toi = await goi('GET', '/kh/toi', null, kyTokenKhach(Number((await mot('SELECT id FROM pos_customers WHERE phone = ?', [s])).id)));
+    const toi = await goi('GET', '/kh/toi', null, await tkKhach(s));
     k('F2 /toi.khach.hang của khách vô hạn: Kim Cương, het_han null', toi.status === 200 && toi.khach?.hang?.id === KC?.id && toi.khach?.hang?.het_han === null
       && 'het_han' in (toi.khach?.hang || {}), JSON.stringify(toi.khach?.hang));
     const s2 = await khach(sdtMoi());
     await muaThe(s2, V?.id, 1, 100000);
-    const toi2 = await goi('GET', '/kh/toi', null, kyTokenKhach(Number((await mot('SELECT id FROM pos_customers WHERE phone = ?', [s2])).id)));
+    const toi2 = await goi('GET', '/kh/toi', null, await tkKhach(s2));
     k('F2b (K5) khách mua Vàng 1 tháng: het_han = "2026-12-03T14:00:00"', toi2.khach?.hang?.het_han === '2026-12-03T14:00:00', JSON.stringify(toi2.khach?.hang));
   });
 
