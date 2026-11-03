@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { luoiQuanLy } from './menu';
 
 export default function QuanLy() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   return (
     <div>
       <header className="page-header"><h1>Quản lý</h1></header>
@@ -21,6 +21,13 @@ export default function QuanLy() {
             </div>
           </div>
         ))}
+        {user?.role === 'owner' && (   // KH-SDT-1: ngoài lưới menu.js (lưới bị thu_BH2 khoá 6 ô); chỉ chủ quán
+          <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <b>Dọn dữ liệu thử</b>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Chạy một lần trước khai trương</span>
+            <div style={{ marginTop: 'auto' }}><Link to="/don-thu" className="btn btn-outline">Mở</Link></div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,134 @@
+GIO-VN-1 — bằng chứng bài thử ĐỎ trên code gốc, XANH sau vá (02.11.2026)
+
+Code gốc = 36b98b8 (commit PHIEU: GIO-VN-1). Dựng: `python3 cong_cu/ban_sao_goc.py 36b98b8 <nháp>/goc` (server/), thêm HOP_DONG_API_KH.md +
+client/src/pages/{Orders,Reports}.jsx của 36b98b8 (git show), cong_cu/thu_GIOVN1.js bản ĐÃ COMMIT ở HEAD, cong_cu/gia_lap/ (doiSoat.js nạp
+bat_bien.js của nó) và node_modules nối symlink; chạy `cd <nháp>/goc && node cong_cu/thu_GIOVN1.js`.
+
+═══ cong_cu/thu_GIOVN1.js (bài mới) ═══
+Trên gốc 36b98b8:  11 đạt · 29 hỏng  → ĐỎ
+  ✓ D1–D6 (phép quét trong chính bài — chuỗi giả, xanh ở mọi bản là đúng: đo bộ quét, không đo server)
+  ✗ A1 server/ không còn chỗ ghi / so giờ UTC (63 vi phạm)  — server/database.js:1252 M2 VALUES (?, ?, datetime('now', '+7 hours')) | … | server/index.js:69 M3 … | server/routes/backup.js:233 M3 …
+  ✗ A1b mọi ngoại lệ còn khớp đúng một chỗ có thật (không ngoại lệ chết)  — server/utils/doiSoat.js ELSE DATETIME(created_at, '+7 hours') END
+  ✗ A3 máy TZ=UTC, giờ VN 06:59:59 ngày 01.01.2027 → "2027-01-01"; 23:59:59 ngày 31.12 → "2026-12-31"  — null / null
+  ✗ A3b Lịch sử đơn + Báo cáo không còn lấy ngày bằng toISOString (giờ UTC của điện thoại)
+  ✗ A2a lưu cài đặt → pos_settings.updated_at  — HTTP 200 · 2026-11-02T05:00:00.000Z
+  ✗ A2b tạo gói → pos_packages.created_at/updated_at  — HTTP 200 · {"a":"2026-11-02T05:00:00.000Z","b":"2026-11-02T05:00:00.000Z"}
+  ✗ A2c ghi + xoá nhật ký in → printed_at / deleted_at  — 2026-11-02 17:30:05 / 2026-11-02 17:30:05
+  ✗ A2d ghi sự cố → pos_damage_logs.created_at  — HTTP 200 · 2026-11-02 10:30:05
+  ✗ A2e đặt giá món mới rồi đổi giá → pos_products.created_at/updated_at  — {"a":"2026-11-02 10:30:05","b":"2026-11-02 10:30:05"}
+  ✗ A2f thêm món vào nhóm → pos_product_group_members.created_at  — HTTP 200 · 2026-11-02 10:30:05
+  ✗ A2g ghi địa chỉ khách mới rồi sửa → pos_customers.created_at/updated_at  — HTTP 200 · {"a":"2026-11-02 10:30:05","b":null} · 2026-11-02 10:30:05
+  ✗ A2h dữ liệu gieo lúc khởi tạo kho (chủ, quyền, hạng, nhóm) ghi dạng T  — {"u":"2026-11-02 10:30:05","p":"2026-11-02 10:30:05","t":"2026-11-02 10:30:05","t2":"2026-11-02 17:30:05","g":"2026-11-02 10:30:05"}
+  ✗ C5a mua thẻ 00:00 và 07:00 VN, hạn 3 tháng → expires_at "2027-02-02T00:00:00" / "2027-02-02T07:00:00"  — 2027-02-02 00:00:00 / 2027-02-02 07:00:00
+  ✗ C5b máy chạy TZ=Asia/Ho_Chi_Minh: mua 30.01 20:00 VN (giờ máy đã sang 31.01) → hạn "2026-04-30T20:00:00" (không lệch 7 giờ, không chốt nhầm cuối tháng)  — 2026-04-30 13:00:00
+  ✓ C5c thẻ hạn 07:00: 06:59:59 còn hạng, 07:00:00 hết   (hồi quy — membershipStatus so mili-giây, đúng sẵn)
+  ✓ C1 điểm hạn 01.01.2027 00:00 … (hồi quy)
+  ✗ C6 đền tiền khách lẻ (route thật) lúc 00:30 / 06:59 / 07:00 / 17:30 VN ngày 07.01 → đối soát ngày 07.01, không ra 06.01 (17:30: bù +7 hai lần sẽ ra 08.01)  — 07.01: false,false,false,false · 06.01: false,false,false,false
+     (gốc ghi created_at bằng datetime('now') = đồng hồ THẬT của SQLite, không theo giờ của máy chủ → không ra ngày nào trong hai ngày)
+  ✗ C7a 06:59 VN ngày 01.03: thống kê "hôm nay" của Lịch sử đơn đếm đơn lúc 00:10 VN  — 3 / 1
+  ✗ C7b 06:59 VN ngày 01.01.2027: số hoá đơn năm 2027, thống kê sự cố tháng 2027-01  — 2026 · {"success":true,"month":"2026-12",…
+  ✗ C11 10.04 09:00 VN: khách tạo 25 giờ trước có cảnh báo tồn, 23 giờ trước không (đếm = 1)  — []
+  ✓ C8 giờ vàng … (hồi quy)
+  ✓ C9 giờ hoạt động … (hồi quy)
+  ✗ B0 có server/nang_cap/012_gio_viet_nam.js xuất chay + chuanHoaGio  — Cannot find module '…/goc/server/nang_cap/012_gio_viet_nam.js'
+  ✗ B1 đổi đúng từng loại … — pos_damage_logs.created_at=2027-01-06 17:30:00 | pos_balance_transactions.created_at=2026-03-01 18:00:00 | …
+  ✗ B1b in một dòng cho mỗi cột đổi …
+  ✗ B2 bảng sao lưu _sao_luu_012_<bảng> giữ giá trị GỐC (sự cố, sổ ví)  — undefined / undefined
+  ✗ B3 chạy lần hai: không dòng "đổi", dữ liệu bằng hệt lần một  — chưa có bước
+  ✓ B4 (K5) dòng đã đúng giờ VN + ngày thuần không đổi; tổng tiền … trước = sau   (K5 — xanh trên gốc là đúng)
+  ✗ K5b đối soát ngày 02.11.2026 (dữ liệu dạng T) trước = sau bước 012   (gốc chưa có bước — điều kiện !!lan1.r)
+  ✗ B5 bảng không có dòng phải đổi → không tạo bảng sao lưu
+  ✗ B6 khôi phục bản sao lưu CŨ (giờ UTC dấu cách) → ra giờ VN dạng T  — 2026-02-01 20:00:00
+  ✗ B6b route khôi phục coi file là bản CŨ khi backup_date không phải giờ VN dạng T (file mới khôi phục y nguyên — SAOLUU-2 F1)
+  ✗ E1 mọi giờ trong /api/kh … — /toi.khach.ngay_tao=2026-02-01 03:00:00 | /menu.data.1.ton_luc=2026-03-01 08:00:00 · /toi:200 /menu:200 …
+  ✗ E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 … — PHIEN_BAN 5
+Sau vá (lần ghi đầu): 40 đạt · 0 hỏng — số ca hiện tại xem dòng SỐ CA cuối file (vòng sửa 2)
+
+═══ Bài cũ ═══
+Không sửa bài cũ nào. `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn trên gốc: "route GET có lệnh ghi" packages /
+products / sync — không do việc này). Giữa chừng thu_SAOLUU2 F1 đỏ (khôi phục chuẩn hoá giờ cả file MỚI → sao lưu → khôi phục không còn y hệt)
+→ sửa code (chỉ chuẩn hoá file CŨ, ca B6b), không sửa bài.
+
+(Bài đổi sau lần ghi đầu — thêm mốc C6 17:30, đổi mốc C5b sang 30.01 — đã chạy lại trên gốc 36b98b8: vẫn 11 đạt · 29 hỏng, C5b + C6 đỏ như trên;
+ trên HEAD 40 đạt · 0 hỏng.)
+
+═══ Đột biến (viec/GIO-VN-1/dot_bien.py) ═══
+ĐỐI CHỨNG (bản chưa đột biến): XANH · 40 đạt · 0 hỏng
+TỔNG 26 đột biến · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (lần chạy đầu: 24 BẮT · 1 SỐNG · 1 LẠC — SỐNG là BV-THE-THEO-MUI-GIO-MAY: mốc 31.01 tình cờ cho cùng kết quả ở hai cách cộng tháng → đổi
+   mốc C5b sang 30.01; LẠC là BV-GIEO-CHU: bước 012 chạy lúc khởi tạo kho tự chữa dòng gieo giờ UTC nên A2h xanh, chỉ phép quét A1 bắt → mẫu ✗ A1.)
+
+═══ Vòng sửa 1 (soát độc lập KHÔNG ĐẠT) ═══
+Bài thêm ca C2 (hạn mã giảm), C3 (hạn mã bill), C4 (hạn gói), C10 (phiên QR 10 phút); B6 / B6b chạy qua route POST /backup/restore thật
+(thay ca soi chữ). Chạy lại trên gốc 36b98b8: 16 đạt · 28 hỏng → ĐỎ:
+  ✓ C2 / C3 / C4 / C10 (hồi quy — code so giờ này đúng sẵn; sức bắt chứng minh bằng đột biến BV-HAN-MA-THEO-UTC, BV-HAN-MA-BILL-THEO-UTC,
+    BV-HAN-GOI-THEO-UTC, BV-PHIEN-QR-THEO-UTC đưa lại đúng cách so UTC cũ)
+  ✗ B0 có server/nang_cap/012_gio_viet_nam.js xuất chay  — Cannot find module …
+  ✗ B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ UTC dấu cách ra giờ VN dạng T  — HTTP 200 · 2026-02-01 03:00:00
+  ✓ B6b khôi phục bản sao lưu MỚI (backup_date giờ VN dạng T) → giữ y nguyên từng ô (K5 — xanh trên gốc là đúng)
+  (các ca A / C5–C11 / B / E đỏ như lần đầu)
+Sau vá (vòng 1): 44 đạt · 0 hỏng
+Đột biến: ĐỐI CHỨNG XANH · 44 đạt · 0 hỏng · TỔNG 32 đột biến · BẮT 32 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (thêm BV-012-BUOC-RONG, VS-KHOI-PHUC-BO-QUA-BAN-CU — đột biến người soát dựng được, trước đây SỐNG — và 4 đột biến hồi quy C)
+
+═══ Vòng sửa 2 (soát độc lập vòng 2 KHÔNG ĐẠT) ═══
+Bài thêm B1c (MỌI mục bảng phân loại — 26 cột / 19 bảng, gồm 3 cột chỉ getNow phải để nguyên), B6 / B6c / B6b khứ hồi xuất → khôi phục qua
+route thật (trang 'Đăng ký mới'), mốc 00:00 cho C3 / C9, hai phía cho C7a / C7b, mốc đúng 24 / 48 giờ cho C11 (gồm cảnh báo đã xuất), E1 khách
+có đơn + điểm. Chạy lại trên gốc 36b98b8: 17 đạt · 29 hỏng → ĐỎ:
+  ✗ C7a … — 3,3,3 / 1,1,0
+  ✗ C7b … — 2026 · {"month":"2026-12", …}
+  ✗ C11 10.04 07:00:01 VN: khách mới tạo 24 giờ + 1 giây có cảnh báo … — []
+  ✗ B1c MỌI mục phân loại (26 cột / 19 bảng) đổi đúng loại … — pos_users.created_at(utc)=2026-03-01 18:00:00 | …
+  ✗ E1 giờ trong /api/kh … — /toi.khach.ngay_tao=2026-02-01 03:00:00 …
+  ✗ B6 khôi phục bản sao lưu CŨ (backup_date đuôi Z) → giờ đuôi Z ra giờ VN dạng T  — HTTP 200 · 2026-02-01T03:00:00.000Z
+  ✓ B6c / B6b (K5 — gốc không đổi giờ khi khôi phục, xanh là đúng; sức bắt: VS-KHOI-PHUC-CO-SAO-LUU, VS-SAO-LUU-NGAY-DAU-CACH)
+  ✓ C2 / C3 / C4 / C8 / C9 / C10 (hồi quy)
+  (A / C5 / C6 / B0–B5 / E2 đỏ như các lần trước)
+Sau vá (HEAD): 46 đạt · 0 hỏng
+(số ca vòng sửa 2: 46 — số hiện tại ở dòng SỐ CA cuối file)
+Đột biến: ĐỐI CHỨNG XANH · 46 đạt · 0 hỏng · TỔNG 43 đột biến · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (thêm 8 đột biến bảng phân loại — BV-012-DON, VS-012-DON-KIEU-VN, BV-012-VI, BV-012-MON, BV-012-MA-GIAM, BV-012-TON-CHO, BV-012-NHOM-MON,
+   VS-012-COT-THUA — và VS-SAO-LUU-NGAY-DAU-CACH, VS-KHOI-PHUC-CO-SAO-LUU, BV-SYNC-DA-XUAT: các đột biến người soát vòng 2 dựng được, trước đây SỐNG)
+
+═══ Vòng sửa 4 (lần soát cuối chỉ còn lỗi NHẸ — LUAT §6.5, chat soát thay) ═══
+Bài thêm A2i (doSoNo với SX giả — khuôn thu_P26c.js), A2j (bộ nhớ đệm khách từ SX, cacheCustomersToLocal, SX giả), B1d (giá trị lạ trong
+cột UTC giữ nguyên). Chạy lại trên gốc 36b98b8: 17 đạt · 32 hỏng → ĐỎ:
+  ✗ A2i đẩy sổ nợ tồn sang SX (doSoNo, SX giả) → pos_stock_pending.resolved_at  — {"status":"resolved","t":"2026-11-02 11:43:53"}
+  ✗ A2j bộ nhớ đệm khách từ SX … — {"a":"2026-11-02 11:43:53","b":"2026-11-02 11:43:53"} · 2026-11-02 11:43:53
+  ✗ B1d giá trị lạ trong cột UTC … giữ nguyên  (gốc chưa có bước 012 — điều kiện !!lan1.r; sức bắt: VS-012-MAU-THIEU-GIAY, VS-012-MAU-NOI-HET)
+Sau vá (HEAD): 49 đạt · 0 hỏng
+SỐ CA cong_cu/thu_GIOVN1.js: 49
+Đột biến: ĐỐI CHỨNG XANH · 49 đạt · 0 hỏng · TỔNG 48 đột biến · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+═══ Vòng sửa thêm (chủ quán chốt LUẬT 03.11: một múi giờ duy nhất — giờ VN — cả máy chủ lẫn giao diện) ═══
+Bài thêm phần G (quét client/src GD1–GD4 + hàm chung ngayVN.js: khoangNgay, docGioVN, hienNgay / hienGio / hienNgayGio ở điện thoại TZ=UTC và
+America/Los_Angeles), B1e (giá trị cài đặt lạ), B1/B1b/B1c/B2/B3 đổi kỳ vọng pos_settings.updated_at (chủ quán đổi Q3 — LUAT 6.8, bài sửa
+thường: bản mới đỏ trên gốc, xanh trên code mới); B3 chạy lần hai ở GIỜ KHÁC.
+(a) Trên code TRƯỚC vòng này (HEAD 01b2687 + bài đã commit f36cb57): 52 đạt · 7 hỏng → ĐỎ:
+  ✗ G1 client/src thật không còn chỗ lấy ngày / giờ theo điện thoại hoặc UTC (44 vi phạm) — components/InvoicePrint.jsx:71 GD3 | …:72 GD3 | …:72 GD4 | pages/Balance.jsx:183 GD3 | …
+  ✗ G2 nút lọc Lịch sử đơn (khoangNgay) theo giờ VN … — UTC 2026-12-01T03:00:00 thisMonth=lỗi NV.khoangNgay is not a function | …
+  ✗ G3 docGioVN … hienNgay / hienGio / hienNgayGio … — ["lỗi NV.docGioVN is not a function", …]
+  ✗ B1 … cài đặt dấu cách → giờ VN lúc chạy — … pos_settings.updated_at=2026-07-01 10:00:00
+  ✗ B1b … cả cài đặt (6 dòng chưa dạng T → giờ chạy); không còn dòng "để nguyên"
+  ✗ B1c MỌI mục phân loại (26 cột / 19 bảng) … — pos_settings.updated_at(lan)=2026-07-01 10:00:00
+  ✗ B1e cài đặt: đuôi Z +7 · mili-giây / chữ rác / rỗng / ngày thuần → giờ VN lúc chạy · đã dạng T và NULL giữ nguyên — ["2026-07-01T10:00:00","2026-07-01T10:00:00.123","không rõ","","2026-07-01",…]
+(b) Trên gốc 36b98b8 (dựng như đầu file, thêm TOÀN BỘ client/src của 36b98b8 qua `git archive`): 23 đạt · 36 hỏng → ĐỎ
+  (A1 63 vi phạm, A1b, A3, A3b, G1 55 vi phạm, G2, G3, A2a–A2j, C5a, C5b, C6, C7a, C7b, C11, B0, B1, B1b, B1c, B1e, B1d, B2, B3, K5b, B5, E1, E2, B6).
+Sau vá (HEAD): 59 đạt · 0 hỏng
+SỐ CA cong_cu/thu_GIOVN1.js: 59
+Đột biến: ĐỐI CHỨNG XANH · 59 đạt · 0 hỏng · TỔNG 61 đột biến · BẮT 61 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (bỏ VS-012-COT-LAN-CUNG-DOI — dòng "để nguyên" không còn; thêm BV-CAI-DAT, VS-CAI-DAT-CHI-DOI-T, VS-CAI-DAT-CHI-DAU-CACH, VS-CAI-DAT-DOI-CA-DANG-T,
+   VS-CAI-DAT-LAP-LAI-GIO-CHAY, BV-KHOANG-THANG-THEO-DIEN-THOAI, VS-DOC-GIO-THEO-DIEN-THOAI, VS-IN-THEO-MUI-DIEN-THOAI, BV-NUT-THANG-ORDERS,
+   BV-MA-GIAM-HAN-THEO-DIEN-THOAI, BV-IN-HOA-DON-GIO-DIEN-THOAI, BV-QUET-GD1, BV-QUET-GD4, VS-NGOAI-LE-GD-CA-FILE-TINH)
+
+═══ Vòng sửa thêm 2 (soát độc lập 03.11 KHÔNG ĐẠT — 3 đột biến người soát dựng SỐNG, chỉ lỗi NHẸ) ═══
+Bài thêm: G2 / G3 thử thêm múi DƯƠNG (Asia/Ho_Chi_Minh — múi của quầy, Asia/Tokyo); G3b soi CHUỖI ngayVN.js đưa vào new Date (ISO có T + múi);
+G4 chạy đúng hàm hetHan / chuaBatDau của DiscountCodes.jsx trên dòng THẬT của GET /api/pos/discount-codes (bài gắn thêm route discount-codes).
+(a) Trên code trước vòng 2 (HEAD 5cb3ade): 60 đạt · 1 hỏng → ĐỎ:
+  ✗ G4 màn Mã giảm giá (hàm của DiscountCodes.jsx trên dòng THẬT của GET /discount-codes) … — false/false,false/false,false/false · GET HTTP 200 · 2 mã · hàm có
+  (G2 / G3b xanh trên code hiện tại là đúng — code đã dùng Date.UTC và đổi dấu cách; sức bắt: VS-CONG-NGAY-THEO-GIO-MAY, VS-BO-DOI-DAU-CACH BẮT)
+(b) Trên gốc 36b98b8: 23 đạt · 38 hỏng → ĐỎ (thêm G3b, G4 so với lần trước).
+Sau vá (HEAD): 61 đạt · 0 hỏng
+SỐ CA cong_cu/thu_GIOVN1.js: 61
+Đột biến: ĐỐI CHỨNG XANH · 61 đạt · 0 hỏng · TỔNG 65 đột biến · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (thêm VS-CONG-NGAY-THEO-GIO-MAY, VS-BO-DOI-DAU-CACH, VS-HAN-MA-TRUONG-SAI, VS-BAT-DAU-MA-TRUONG-SAI — đúng 3 đột biến SỐNG người soát dựng + vế bắt đầu)

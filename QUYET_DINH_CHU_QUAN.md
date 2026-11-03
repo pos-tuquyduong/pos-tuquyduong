@@ -147,6 +147,9 @@
   đơn); sinh nhật giảm 50% CẢ ĐƠN, một đơn, ĐÚNG ngày, đối chiếu căn cước thật khớp tài khoản (không lưu số căn cước); ngày sinh nhập một lần —
   App có ô ngày sinh + danh sách chương trình trước khai trương (CT-1a, CT-1b).
 - 02.11 · Hợp đồng `/api/kh` v7 viết TRƯỚC khi POS code (mục "Đã hẹn") để App KH làm song song.
+- 02.11 · Ví trên App KH (duyệt luồng, demo `thiet_ke/demo_app_vi.html`, `THIET_KE_DOT2.md` M4b): ô Số dư ví = tổng dùng được + dòng nhỏ Quà chào mừng
+  đếm ngược; một công tắc "Trừ từ số dư ví" (QR / ví / ví + QR); theo dõi đơn đọc lại giữ ví / còn lại; giao diện App tự thiết kế — đơn giản, dễ
+  hiểu, thông minh, ít thao tác.
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,

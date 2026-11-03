@@ -15,7 +15,8 @@ const {
   normalizePhone,
   parseCSVLine,
   generateCSV,
-  generateQRCode
+  generateQRCode,
+  getToday
 } = require('../utils/helpers');
 
 const router = express.Router();
@@ -62,8 +63,8 @@ router.get('/status', authenticate, async (req, res) => {
     const oldNew = await queryOne(`
       SELECT COUNT(*) as count FROM pos_customers 
       WHERE sync_status = 'new' 
-      AND datetime(created_at) < datetime('now', '-1 day')
-    `);
+      AND created_at < strftime('%Y-%m-%dT%H:%M:%S', ?, '-1 day')
+    `, [getNow()]);
     if (oldNew?.count > 0) {
       warnings.push({
         type: 'old_new',
@@ -76,8 +77,8 @@ router.get('/status', authenticate, async (req, res) => {
     const oldExported = await queryOne(`
       SELECT COUNT(*) as count FROM pos_customers 
       WHERE sync_status = 'exported' 
-      AND datetime(exported_at) < datetime('now', '-2 day')
-    `);
+      AND exported_at < strftime('%Y-%m-%dT%H:%M:%S', ?, '-2 day')
+    `, [getNow()]);
     if (oldExported?.count > 0) {
       warnings.push({
         type: 'old_exported',
@@ -150,7 +151,7 @@ router.get('/export', authenticate, checkPermission('export_data'), async (req, 
     }
 
     // Ghi log
-    const fileName = `khach-moi_${new Date().toISOString().slice(0,10)}_${Date.now()}.csv`;
+    const fileName = `khach-moi_${getToday()}_${Date.now()}.csv`;
     await run(`
       INSERT INTO pos_sync_logs (type, file_name, record_count, details, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?)

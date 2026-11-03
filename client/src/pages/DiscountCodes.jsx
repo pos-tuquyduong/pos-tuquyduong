@@ -5,10 +5,16 @@
 
 import { useState, useEffect } from 'react';
 import { discountCodesApi } from '../utils/api';
+import { ngayVN, hienNgay } from '../utils/ngayVN';
 import { 
   Plus, Edit2, Trash2, Search, X, Check, 
   Percent, DollarSign, Calendar, Tag, Copy, CheckCircle
 } from 'lucide-react';
+
+// GIO-VN-1: hạn mã so theo NGÀY giờ VN trên cột thật valid_from / valid_to (GET /discount-codes trả SELECT * pos_discount_codes) — cùng cách
+// máy chủ (discount-codes.js: getToday() so valid_from / valid_to), không theo đồng hồ điện thoại.
+const hetHan = (c) => !!c.valid_to && String(c.valid_to).slice(0, 10) < ngayVN();
+const chuaBatDau = (c) => !!c.valid_from && String(c.valid_from).slice(0, 10) > ngayVN();
 
 export default function DiscountCodes() {
   const [codes, setCodes] = useState([]);
@@ -72,11 +78,8 @@ export default function DiscountCodes() {
     }
     
     // Status filter
-    const now = new Date();
-    const startDate = code.start_date ? new Date(code.start_date) : null;
-    const endDate = code.end_date ? new Date(code.end_date) : null;
-    const isExpired = endDate && endDate < now;
-    const isNotStarted = startDate && startDate > now;
+    const isExpired = hetHan(code);
+    const isNotStarted = chuaBatDau(code);
     const isUsedUp = code.usage_limit && code.used_count >= code.usage_limit;
     
     if (filter === 'active') {
@@ -229,22 +232,18 @@ export default function DiscountCodes() {
   
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('vi-VN');
+    return hienNgay(dateStr);
   };
 
   // Get status badge
   const getStatusBadge = (code) => {
-    const now = new Date();
-    const startDate = code.start_date ? new Date(code.start_date) : null;
-    const endDate = code.end_date ? new Date(code.end_date) : null;
-    
     if (!code.is_active) {
       return <span className="badge badge-secondary">Tắt</span>;
     }
-    if (endDate && endDate < now) {
+    if (hetHan(code)) {
       return <span className="badge badge-danger">Hết hạn</span>;
     }
-    if (startDate && startDate > now) {
+    if (chuaBatDau(code)) {
       return <span className="badge badge-warning">Chưa bắt đầu</span>;
     }
     if (code.usage_limit && code.used_count >= code.usage_limit) {
@@ -292,10 +291,8 @@ export default function DiscountCodes() {
             <div className="stat-label">Đang hoạt động</div>
             <div className="stat-value text-success">
               {codes.filter(c => {
-                const now = new Date();
-                const endDate = c.end_date ? new Date(c.end_date) : null;
                 const isUsedUp = c.usage_limit && c.used_count >= c.usage_limit;
-                return c.is_active && (!endDate || endDate >= now) && !isUsedUp;
+                return c.is_active && !hetHan(c) && !isUsedUp;
               }).length}
             </div>
           </div>
@@ -303,10 +300,8 @@ export default function DiscountCodes() {
             <div className="stat-label">Hết hạn/Dùng hết</div>
             <div className="stat-value text-danger">
               {codes.filter(c => {
-                const now = new Date();
-                const endDate = c.end_date ? new Date(c.end_date) : null;
                 const isUsedUp = c.usage_limit && c.used_count >= c.usage_limit;
-                return (endDate && endDate < now) || isUsedUp;
+                return hetHan(c) || isUsedUp;
               }).length}
             </div>
           </div>
@@ -431,9 +426,9 @@ export default function DiscountCodes() {
                         )}
                       </td>
                       <td style={{ fontSize: '0.85rem' }}>
-                        {code.start_date || code.end_date ? (
+                        {code.valid_from || code.valid_to ? (
                           <>
-                            {formatDate(code.start_date)} - {formatDate(code.end_date)}
+                            {formatDate(code.valid_from)} - {formatDate(code.valid_to)}
                           </>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>Không giới hạn</span>

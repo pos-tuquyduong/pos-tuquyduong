@@ -1,7 +1,7 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 5
-NGAY: 2026-10-31
+PHIEN_BAN: 6
+NGAY: 2026-11-02
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/giuCho.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
@@ -19,10 +19,9 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
 - SĐT khách luôn lấy từ token, không bao giờ từ thân yêu cầu. Đơn / dữ liệu của khách khác → 404 như không có.
 - **Giờ:** mọi trường giờ (`ngay`, `ngay_tao`, `ton_luc`…) là **giờ Việt Nam**, dạng `YYYY-MM-DDTHH:mm:ss`, KHÔNG có hậu tố múi giờ. App KHÔNG
   đưa thẳng vào `new Date(...)` (trình duyệt sẽ hiểu là giờ máy khách) — đọc như giờ `Asia/Ho_Chi_Minh`. "Bây giờ" lấy từ máy chủ (cửa giờ
-  hoạt động, từ v2), không lấy đồng hồ điện thoại. Lỗi đã biết: một số giờ CŨ (vd ngày tạo của vài khách) còn lưu theo giờ quốc tế, có
-  dấu cách thay chữ `T` — GIO-VN-1 sửa trước khai trương.
+  hoạt động, từ v2), không lấy đồng hồ điện thoại.
 
-## Các cửa (phiên bản 5)
+## Các cửa (phiên bản 6)
 | Cửa | Token | Gửi | Trả (ngoài `success`) |
 |---|---|---|---|
 | `POST /dang-nhap/xin-ma` | không | `{ sdt }` | `lay_ma_tai_quay` (true = khách hỏi mã ở quầy) |
@@ -149,6 +148,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   - QUA-1 — `/toi.khach` thêm `qua_chao_mung: { so_tien, het_han } | null` (chỉ khi còn hạn và còn tiền; đếm ngược theo `bay_gio` của
     `/gio-hoat-dong`). `so_du_vi` = số dư (tiền nạp + thưởng nạp) + quà chào mừng còn hạn — dùng được HẾT cho mọi đơn, không có đơn tối thiểu.
     Khi trả bằng tài khoản: trừ quà chào mừng TRƯỚC. "Thưởng nạp" KHÔNG có hạn và KHÔNG tách dòng trên App.
+    App hiện ô "Số dư ví" = `so_du_vi`, dưới là dòng nhỏ "Trong đó Quà chào mừng … — còn …" khi `qua_chao_mung` khác `null` (chủ quán 02.11);
+    KHÔNG có trường `so_du_nap` (App 02.11d bỏ đề nghị).
   - NAP-2 — `GET /goi-nap` (không token): `data[] { ma, tra, vao }` (gói đang bật). `POST /nap` (token): `{ ma_goi, khoa_gui }` → `phien { ma,
     qr { chuoi, het_han }, tien_trinh }`; luật 4xx / 5xx và khoá gửi y như `POST /don` (4xx = chưa tạo gì). `GET /nap/:ma` (token): đọc lại
     phiên (`tien_trinh`: `cho_tra` | `da_nap` | `het_han` | `huy`). Nạp xong → `so_du_vi` tăng. Mã lỗi: `GOI_NAP_KHONG_CO` 404,
@@ -163,6 +164,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     (≤ 120 ký tự) — in lên phiếu pha chế, tem, hoá đơn.
   - HD-KH-1 — `GET /don/:ma` thêm `hoa_don[] { loai, trai, phai, dam, gach, ghi_chu }`: các dòng hoá đơn dựng SẴN bằng CÙNG hàm của hoá đơn
     in ở quầy (đầu theo đơn vị bán). App chỉ vẽ theo, không tự tính / tự xếp.
+    `GET /don/:ma` và mỗi đơn của `GET /don` thêm `cach_tra` (`qr` | `vi` | `vi_qr`), `giu_vi`, `con_lai` — đơn App: đúng như `POST /don` đã trả;
+    đơn quầy: `null` (App 02.11c/d — tải lại / máy khác vẫn biết đã giữ ví bao nhiêu, còn quét QR bao nhiêu).
 - TOPPING-1: `/menu` thêm topping theo món + giá.
 - Đánh giá Google: `loi-moi-danh-gia`, `su-kien`, cờ trên `/don` (tên cuối do POS chốt).
 
@@ -170,7 +173,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 5,
+  "phien_ban": 6,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -225,3 +228,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   Mã lỗi mới của đặt đơn (thay tên đã hẹn `NGOAI_GIO_HOAT_DONG` bằng `NGOAI_GIO` + `QUA_GIO_NHAN_DON`, đã báo App ở TRA_LOI_POS_31102026). Chủ quán
   duyệt 31.10: `tong_da_xem` + 409 `GIA_DA_DOI` kèm `bao_gia`; "Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như
   lần đầu." Không xoá / đổi tên trường cũ.
+- v6 · 02.11.2026 · GIO-VN-1: giờ CŨ lưu theo giờ quốc tế / có dấu cách đã đổi sang giờ Việt Nam `YYYY-MM-DDTHH:mm:ss` (bước nâng cấp 012) và mọi
+  chỗ ghi giờ của POS đều qua `getNow` — bỏ câu "Lỗi đã biết" ở mục Chung · Giờ. Không đổi cửa, không đổi trường.
