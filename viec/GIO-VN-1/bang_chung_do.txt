@@ -120,3 +120,15 @@ SỐ CA cong_cu/thu_GIOVN1.js: 59
   (bỏ VS-012-COT-LAN-CUNG-DOI — dòng "để nguyên" không còn; thêm BV-CAI-DAT, VS-CAI-DAT-CHI-DOI-T, VS-CAI-DAT-CHI-DAU-CACH, VS-CAI-DAT-DOI-CA-DANG-T,
    VS-CAI-DAT-LAP-LAI-GIO-CHAY, BV-KHOANG-THANG-THEO-DIEN-THOAI, VS-DOC-GIO-THEO-DIEN-THOAI, VS-IN-THEO-MUI-DIEN-THOAI, BV-NUT-THANG-ORDERS,
    BV-MA-GIAM-HAN-THEO-DIEN-THOAI, BV-IN-HOA-DON-GIO-DIEN-THOAI, BV-QUET-GD1, BV-QUET-GD4, VS-NGOAI-LE-GD-CA-FILE-TINH)
+
+═══ Vòng sửa thêm 2 (soát độc lập 03.11 KHÔNG ĐẠT — 3 đột biến người soát dựng SỐNG, chỉ lỗi NHẸ) ═══
+Bài thêm: G2 / G3 thử thêm múi DƯƠNG (Asia/Ho_Chi_Minh — múi của quầy, Asia/Tokyo); G3b soi CHUỖI ngayVN.js đưa vào new Date (ISO có T + múi);
+G4 chạy đúng hàm hetHan / chuaBatDau của DiscountCodes.jsx trên dòng THẬT của GET /api/pos/discount-codes (bài gắn thêm route discount-codes).
+(a) Trên code trước vòng 2 (HEAD 5cb3ade): 60 đạt · 1 hỏng → ĐỎ:
+  ✗ G4 màn Mã giảm giá (hàm của DiscountCodes.jsx trên dòng THẬT của GET /discount-codes) … — false/false,false/false,false/false · GET HTTP 200 · 2 mã · hàm có
+  (G2 / G3b xanh trên code hiện tại là đúng — code đã dùng Date.UTC và đổi dấu cách; sức bắt: VS-CONG-NGAY-THEO-GIO-MAY, VS-BO-DOI-DAU-CACH BẮT)
+(b) Trên gốc 36b98b8: 23 đạt · 38 hỏng → ĐỎ (thêm G3b, G4 so với lần trước).
+Sau vá (HEAD): 61 đạt · 0 hỏng
+SỐ CA cong_cu/thu_GIOVN1.js: 61
+Đột biến: ĐỐI CHỨNG XANH · 61 đạt · 0 hỏng · TỔNG 65 đột biến · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (thêm VS-CONG-NGAY-THEO-GIO-MAY, VS-BO-DOI-DAU-CACH, VS-HAN-MA-TRUONG-SAI, VS-BAT-DAU-MA-TRUONG-SAI — đúng 3 đột biến SỐNG người soát dựng + vế bắt đầu)

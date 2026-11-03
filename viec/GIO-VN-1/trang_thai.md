@@ -30,7 +30,7 @@
 - Giữa chừng `thu_SAOLUU2` F1 đỏ: khôi phục chuẩn hoá giờ cả file MỚI làm sao lưu → khôi phục không còn y hệt → chỉ chuẩn hoá khi file là bản
   CŨ (`backup_date` không phải giờ VN dạng T — mọi file ghi từ nay mang `backup_date: getNow()`). Không sửa bài cũ.
 
-### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 61/61 BẮT sau vòng sửa thêm 03.11)
+### Chỗ vá → đột biến (`viec/GIO-VN-1/dot_bien.py`, 65/65 BẮT sau vòng sửa thêm 2 — 03.11)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | `nang_cap/012` chạy được | BV-012 | B1 |
@@ -77,6 +77,9 @@
 | `ngayVN.js` hien* luôn timeZone VN (vòng thêm) | VS-IN-THEO-MUI-DIEN-THOAI | G3 |
 | `Orders.jsx` nút lọc gọi khoangNgay (vòng thêm) | BV-NUT-THANG-ORDERS | G1 |
 | `DiscountCodes.jsx` hạn mã so ngày VN (vòng thêm) | BV-MA-GIAM-HAN-THEO-DIEN-THOAI | G1 |
+| `DiscountCodes.jsx` hạn mã đọc cột thật valid_to / valid_from (vòng thêm 2) | VS-HAN-MA-TRUONG-SAI · VS-BAT-DAU-MA-TRUONG-SAI | G4 |
+| `ngayVN.js` congNgay theo lịch thuần Date.UTC (vòng thêm 2) | VS-CONG-NGAY-THEO-GIO-MAY | G2 (múi +7) |
+| `ngayVN.js` docGioVN đổi dấu cách → T trước khi đưa new Date (vòng thêm 2) | VS-BO-DOI-DAU-CACH | G3b |
 | `InvoicePrint.jsx` in ngày giờ qua hienNgayGio (vòng thêm) | BV-IN-HOA-DON-GIO-DIEN-THOAI | G1 |
 | phép quét màn quầy GD1 / GD4 + ngoại lệ đúng dòng (vòng thêm) | BV-QUET-GD1 · BV-QUET-GD4 · VS-NGOAI-LE-GD-CA-FILE-TINH | G0a · G0d · G0e |
 
@@ -89,7 +92,7 @@ BV-012-NHOM-MON · VS-012-COT-THUA · VS-SAO-LUU-NGAY-DAU-CACH · VS-KHOI-PHUC-C
 BV-KHACH-SX-CACHE · BV-KHACH-SX-CAP-NHAT · VS-012-MAU-THIEU-GIAY · VS-012-MAU-NOI-HET · BV-CAI-DAT · VS-CAI-DAT-CHI-DOI-T ·
 VS-CAI-DAT-CHI-DAU-CACH · VS-CAI-DAT-DOI-CA-DANG-T · VS-CAI-DAT-LAP-LAI-GIO-CHAY · BV-KHOANG-THANG-THEO-DIEN-THOAI · VS-DOC-GIO-THEO-DIEN-THOAI ·
 VS-IN-THEO-MUI-DIEN-THOAI · BV-NUT-THANG-ORDERS · BV-MA-GIAM-HAN-THEO-DIEN-THOAI · BV-IN-HOA-DON-GIO-DIEN-THOAI · BV-QUET-GD1 · BV-QUET-GD4 ·
-VS-NGOAI-LE-GD-CA-FILE-TINH
+VS-NGOAI-LE-GD-CA-FILE-TINH · VS-CONG-NGAY-THEO-GIO-MAY · VS-BO-DOI-DAU-CACH · VS-HAN-MA-TRUONG-SAI · VS-BAT-DAU-MA-TRUONG-SAI
 
 ## Soát độc lập — vòng 1 (agent /ra-soat, nguyên văn)
 ```
@@ -181,9 +184,9 @@ phiếu (LUAT §6.5), chỉ đúng 3 lỗi trên + ca thử + đột biến. Kh�
   Chưa thấy dữ liệu kiểu này; chưa đếm trên Turso. Thêm cột thừa vào COT_CACH ở bảng chỉ ghi getNow không bị chặn hết (chỉ 3 cột canh).
 - Kế hoạch soát độc lập (agent chỉ đọc) — 4 câu, đã sửa theo (ghi cuối `ke_hoach.md`).
 - ~~`pos_settings.updated_at` để nguyên~~ — chủ quán 03.11: chưa dạng T → giờ VN lúc chạy nâng cấp (vòng sửa thêm).
-- (vòng thêm) `DiscountCodes.jsx` đọc `code.start_date` / `code.end_date` nhưng máy chủ trả `valid_from` / `valid_to` (`SELECT *`,
-  `discount-codes.js:25`) → huy hiệu "Hết hạn / Chưa bắt đầu" và bộ lọc theo hạn ở màn Mã giảm giá không bao giờ bật. Có từ trước, ngoài
-  mục tiêu giờ — chỉ đổi cách so sang ngày VN, KHÔNG đổi tên trường. Đề xuất việc nhỏ riêng.
+- (vòng thêm) ~~`DiscountCodes.jsx` đọc `start_date` / `end_date` không có thật~~ — vòng sửa thêm 2 đọc `valid_from` / `valid_to` (người soát:
+  vá phép so trên trường luôn undefined là vá suông). Từ nay huy hiệu "Hết hạn / Chưa bắt đầu", bộ lọc theo hạn và cột khoảng ngày ở màn
+  Mã giảm giá BẮT ĐẦU hiện (trước đây không bao giờ hiện) — chỉ hiển thị, máy chủ vẫn tự kiểm hạn khi dùng mã.
 - (vòng thêm) Bước 012 (luật 4) cũng chạy khi khôi phục bản sao lưu CŨ (`khoiPhuc.js`): giờ "lần sửa cuối" của cài đặt chưa dạng T trong file
   cũ thành giờ lúc khôi phục — cùng quy tắc, không ai so cột này.
 - (vòng thêm) Giá trị cài đặt đuôi Z (UTC biết chắc) đi luật 1 (+7 giờ) trước, không đặt giờ chạy — chính xác hơn; chưa đếm trên Turso có dòng nào như vậy không.
@@ -321,3 +324,52 @@ BÀI HỌC:
   - NGUYÊN TẮC (K1/K4): sửa một phép so trên trường dữ liệu thì phải mở route trả trường đó, xác nhận trường CÓ THẬT, rồi mới vá.
 ```
 (Chép nguyên văn phần LỖI; NGHIỆM THU / BÀI HỌC rút gọn câu dài.)
+
+## Vòng sửa thêm 2 (03.11) — chỉ đúng các lỗi lần soát trên nêu (tất cả NHẸ: không tiền / điểm / ví / bảo mật / ngoài Phạm vi)
+1. G2 / G3 thiếu múi dương → thêm Asia/Ho_Chi_Minh (múi quầy) + Asia/Tokyo; đột biến VS-CONG-NGAY-THEO-GIO-MAY (người soát SOAT-CONGNGAY-GIO-MAY) BẮT ở G2.
+2. Dấu cách chỉ thử kết quả trong Node → G3b soi CHUỖI đưa vào new Date (đồng hồ giả ghi lại đối số); VS-BO-DOI-DAU-CACH BẮT.
+3. DiscountCodes đọc trường không có thật → `hetHan` / `chuaBatDau` + cột khoảng ngày đọc `valid_to` / `valid_from`; ca G4 chạy đúng hàm của màn
+   trên dòng THẬT của GET /api/pos/discount-codes quanh 00:00 và 07:00 VN; VS-HAN-MA-TRUONG-SAI, VS-BAT-DAU-MA-TRUONG-SAI BẮT.
+4. Chú thích `chuanHoaGio.js` ("không đoán" chỉ cho luật 1–3; luật 4 đặt giờ chạy) và `InvoicePrint.jsx` (chưa có giờ đơn → lúc in) sửa cùng vòng.
+Chạy: thu_GIOVN1 HEAD 61 đạt · 0 hỏng (trước vòng 2: 60 · 1 — G4 đỏ; gốc 36b98b8: 23 · 38); dot_bien 65/65 BẮT; `npm test -- --day-du`
+PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn), dist build lại, khớp src.
+Nghi ngờ "012 đã chạy ở đâu chưa": 012 chỉ có trên nhánh này (tạo ở 112a5af, phiếu GIO-VN-1 chưa gộp) → Render / Turso (chạy main) chưa chạy 012;
+kho thử Replit có từng chạy nhánh này không thì máy không biết — nếu đã chạy, bảng `pos_nang_cap` ở đó đã ghi 012 và luật 4 sẽ không chạy lại
+(xem CHƯA KIỂM).
+Sự cố: một lần sửa bài thử (có cụm bí mật của bài) bằng script Python qua bash thay vì công cụ Edit — trái luật skill; các lần sau dùng Edit.
+SOÁT LẦN CUỐI: chat soát thay
+
+## Thử tay vòng sửa thêm (chủ quán, sau Merge + Render chạy lại)
+1. **Lịch sử đơn** → bấm "Tháng này" rồi "Tháng trước": "từ ngày" là ngày 1, "tới ngày" của tháng trước là ngày cuối tháng (30 / 31 / 28).
+2. **Mã giảm giá** — mã đã quá hạn hiện huy hiệu "Hết hạn", cột hạn hiện "từ – tới" (trước đây trống).
+3. **Lịch sử đơn** → mở một đơn: giờ đơn đúng giờ bán.
+
+## Báo cáo 7 mục — vòng sửa thêm 03.11
+```
+VIỆC:        GIO-VN-1 — vòng sửa thêm (chủ quán chốt LUẬT 03.11: một múi giờ duy nhất — giờ VN — cả máy chủ lẫn giao diện)
+ĐÃ SỬA:      server/utils/chuanHoaGio.js — luật 4: pos_settings.updated_at chưa dạng T (trừ NULL) → getNow() lúc chạy, sao lưu, lặp lại không đổi ·
+             client/src/utils/ngayVN.js — thêm docGioVN, hienNgay / hienGio / hienNgayGio, congNgay, khoangNgay · pages/Orders.jsx nút lọc gọi
+             khoangNgay, giờ / ngày qua hien* · pages/{Sales,Registrations,Balance,Settings,Reports}.jsx + components/InvoicePrint.jsx in qua hien* ·
+             pages/DiscountCodes.jsx hạn mã so ngày VN trên valid_from / valid_to · client/dist build lại ·
+             cong_cu/thu_GIOVN1.js phần G (quét GD1–GD4 client/src, G2, G3, G3b, G4) + B1e, B3 giờ khác
+BÀI THỬ:     bài viết trước, đỏ trên code trước vòng (52 · 7, rồi 60 · 1 ở vòng 2), đỏ trên gốc 36b98b8 (23 · 38); sau vá 61 đạt · 0 hỏng.
+             Đột biến 65/65 BẮT (đối chứng xanh).
+ĐÃ RÀ K4:    grep "getFullYear|getMonth|getDate(|getDay(|getHours|toISOString|toLocaleDateString|toLocaleString|toLocaleTimeString|setDate|new Date(|Date.parse"
+             client/src → 44 chỗ phép quét GD bắt (55 trên gốc) → còn 0 (G1); ngoại lệ: utils/ngayVN.js (chỗ duy nhất), BanHang/tinh.js Date.parse(+07:00).
+             Date.now() đếm khoảng (mã App, QR, logo, dấu thời gian cài đặt in) không đổi — không phụ thuộc múi.
+CHƯA KIỂM:   hiển thị thật trên Safari / Chrome điện thoại (chỉ thử trong Node — G3 khoá múi, không khoá đúng chữ trình duyệt in); kho thử Replit có
+             từng chạy 012 bản cũ (để nguyên cài đặt) chưa — nếu có, luật 4 không chạy lại ở đó; số dòng cài đặt đổi trên Turso; phép quét GD lọt:
+             biến Date gọi .toLocaleString, `new Date (x)` có dấu cách, `new Date(` với đối số xuống dòng; quyết định 03.11 chưa có trong
+             QUYET_DINH_CHU_QUAN.md (chat ghi sổ).
+GIT:         (xem dòng git log ở câu trả lời cuối phiên)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 1 — chi tiết ở ## Bài học vòng sửa thêm
+```
+
+## Bài học vòng sửa thêm
+- **KHOÁ** (đã làm trong Phạm vi): bài thử theo múi giờ điện thoại thử ĐỦ múi 0, múi âm, múi dương và chính múi quầy (G2 / G3 `MUI_DT`) —
+  lỗi "dựng ngày theo giờ máy rồi toISOString" chỉ lộ ở múi dương. Đề xuất (ngoài Phạm vi) thêm thành dòng chặn K3 trong KHUON_LOI.md.
+- **KHOÁ** (đã làm): đọc chuỗi giờ ở màn quầy → soi chuỗi đưa vào `new Date` (G3b), vì Node đọc lỏng hơn Safari.
+- **NGUYÊN TẮC** (K4 — đề xuất thêm vào KHUON_LOI.md, ngoài Phạm vi): sửa phép so trên một trường → mở route trả trường đó, xác nhận trường CÓ THẬT
+  (vụ DiscountCodes: vá so ngày VN trên `end_date` luôn undefined — mình đã ghi Phát hiện mà vẫn coi là chỗ vá). Ca thử chạy hàm của màn trên
+  dòng THẬT của route (G4) thay vì dữ liệu tự dựng.
+- **BỎ**: sửa bài thử bằng script qua bash thay vì Edit — một lần, luật skill đã có.
