@@ -156,7 +156,8 @@ async function main() {
   };
   const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack || e.message); } };
   const quay = async (kh, than) => {
-    const r = await goi('POST', '/pos/orders', { payment_method: 'cash', customer_phone: kh.sdt, customer_name: 'Chị Hoa', ...than }, tkChu);
+    const tinh = await goi('POST', '/pos/orders/tinh-thu', { customer_phone: kh.sdt, ...than }, tkChu);   // quầy trả đúng tổng: lấy tổng từ máy chủ
+    const r = await goi('POST', '/pos/orders', { payment_method: 'cash', cash_amount: tinh.j.total, customer_phone: kh.sdt, customer_name: 'Chị Hoa', ...than }, tkChu);
     if (!r.j.order) logGoc('  (đơn quầy không tạo được)', r.status, r.tho.slice(0, 200));
     return r.j.order;
   };
