@@ -291,13 +291,13 @@ const BAT_BIEN = {
         .map((r) => `đơn mua gói ${r.code} lấy ngay: trỏ gói #${r.customer_package_id}, gói của chính nó #${r.goi_dau}`));
   },
   // I15 (AU-G3) — thẻ hội viên: đơn không huỷ có món thẻ (product_id ≤ −1000000, orders.js:397) và có SĐT ⇒ đúng một dòng mua
-  // thẻ cùng order_id; mỗi dòng MUA thẻ (loai 'ban') ⇒ đơn còn và không huỷ. Dòng cấp / thu hồi hạng (HANG-1) không có đơn — không xét.
+  // thẻ cùng order_id; mỗi dòng MUA thẻ (có order_id) ⇒ đơn còn và không huỷ. Dòng cấp / thu hồi hạng (HANG-1) luôn order_id NULL — không xét.
   async I15(q) {
     const thieu = await q(`SELECT o.code, (SELECT COUNT(*) FROM pos_membership_purchases m WHERE m.order_id = o.id) AS n
       FROM pos_orders o WHERE o.status <> 'cancelled' AND COALESCE(o.customer_phone, '') <> ''
         AND EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id <= -1000000)`);
     const thua = await q(`SELECT m.id, m.order_id, o.status FROM pos_membership_purchases m LEFT JOIN pos_orders o ON o.id = m.order_id
-      WHERE m.loai = 'ban' AND (o.id IS NULL OR o.status = 'cancelled')`);
+      WHERE m.order_id IS NOT NULL AND (o.id IS NULL OR o.status = 'cancelled')`);
     return thieu.filter((r) => so(r.n) !== 1).map((r) => `đơn mua thẻ ${r.code}: ${so(r.n)} dòng mua thẻ`)
       .concat(thua.map((r) => `dòng mua thẻ #${r.id} của đơn #${r.order_id} ${r.status ? 'đã huỷ' : 'không còn'}`));
   },

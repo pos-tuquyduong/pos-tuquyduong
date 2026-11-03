@@ -515,7 +515,7 @@ async function main() {
       && !/note/.test(khoaGio), khoaGio);
     k('S9 giỏ hiện lý do mã không áp (ma_loi) từ tinh-thu', /\{tinhThu\?\.ma_loi && \(/.test(sa) && /\{tinhThu\.ma_loi\}/.test(sa));
     const st2 = docNguon(CLIENT, 'Settings.jsx');
-    const khoiUuDai = (st2.match(/const loadUuDaiChung = [\s\S]*?const deleteTier/) || [''])[0];
+    const khoiUuDai = (st2.match(/const loadUuDaiChung = [\s\S]*?\/\/ Permissions functions/) || [''])[0];   // HANG-1: deleteTier dời sang CaiDat/HangThe.jsx
     k('S8 Settings.jsx: khối mới gọi máy chủ qua utils/api.js (api.get / api.put), không qua pkgApi / fetch',
       /api\.get\('\/settings'\)/.test(khoiUuDai) && /api\.put\('\/settings'/.test(khoiUuDai) && !/pkgApi|fetch\(/.test(khoiUuDai));
   }
