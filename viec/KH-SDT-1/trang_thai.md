@@ -361,3 +361,10 @@ BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài 
 - `node tu_chay/cong.js chay . 87aa996^ HEAD viec/KH-SDT-1` (ở 15c9ade) → ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 15c9ade
+
+
+## Chat soát 03.11 — ĐẠT
+Đọc donThu.js / don-thu.js / màn: chỉ owner, gõ chữ + mã xác nhận chọn lại trong giao dịch, giữ ví ≠ 0 / phiên / đơn hôm nay / két từ X.
+Gộp main 97fe317 (App.jsx + mảng bài: lấy cả hai). Bài trên bản gộp: KHSDT1 95/0 · MANKHACH1 53/0 · KHOIN1 69/0.
+Ghi việc sau: khoá công cụ sau lần dọn thật (sau khai trương còn chạy được là rủi ro); bản chụp tải về chưa che cột bí mật.
+HEAD ĐÃ KIỂM: 0d12857
