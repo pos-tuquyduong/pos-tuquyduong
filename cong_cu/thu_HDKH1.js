@@ -114,7 +114,7 @@ async function main() {
   const sps = await db.query('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 3');
   for (let i = 0; i < 3; i++) await db.run('UPDATE pos_products SET price = ?, ton_gan_nhat = NULL WHERE id = ?', [[25000, 30000, 20000][i], sps[i].id]);
   const ma = (i) => `${sps[i].sx_product_type}_${sps[i].sx_product_id}`;
-  const monQuay = (i, sl = 1, ghi) => ({ product_id: sps[i].id, sx_product_type: sps[i].sx_product_type, sx_product_id: sps[i].sx_product_id, quantity: sl, ...(ghi ? { notes: ghi } : {}) });
+  const monQuay = (i, sl = 1, ghi) => ({ product_id: sps[i].id, sx_product_type: sps[i].sx_product_type, sx_product_id: sps[i].sx_product_id, quantity: sl, ...(ghi ? { note: ghi } : {}) });
 
   const goi = async (method, url, body, tk) => {
     const headers = body !== undefined ? { 'Content-Type': 'application/json' } : {};
