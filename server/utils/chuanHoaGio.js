@@ -1,7 +1,8 @@
 /**
  * GIO-VN-1 — đổi giờ CŨ sang giờ Việt Nam dạng `YYYY-MM-DDTHH:mm:ss` (chủ quán 28.10). MỘT quy tắc, hai chỗ gọi: bước nâng cấp
  * server/nang_cap/012_gio_viet_nam.js (dữ liệu đang có) và utils/khoiPhuc.js (nạp bản sao lưu CŨ, ghi trước GIO-VN-1).
- * Chỉ đổi giá trị nhận biết CHẮC CHẮN (rà toàn bộ lịch sử git các nơi ghi — viec/GIO-VN-1/ke_hoach.md mục B), không đoán:
+ * Luật 1–3 chỉ đổi giá trị nhận biết CHẮC CHẮN (rà toàn bộ lịch sử git các nơi ghi — viec/GIO-VN-1/ke_hoach.md mục B), không đoán;
+ * luật 4 (cột lẫn) không đoán giờ cũ mà đặt giờ lúc chạy:
  *   1. đuôi Z (`toISOString()`, đủ 20 hoặc 24 ký tự) — chắc chắn UTC ở MỌI cột → +7 giờ;
  *   2. dấu cách ở cột mà mọi nơi ghi chỉ từng ghi UTC (CURRENT_TIMESTAMP / datetime('now')) → +7 giờ (chủ quán 02.11: sổ ví cũng đổi giờ);
  *   3. dấu cách ở cột mà mọi nơi ghi chỉ từng ghi giờ VN ('+7 hours', nowVn, hạn thẻ) → chỉ đổi dấu cách thành T;

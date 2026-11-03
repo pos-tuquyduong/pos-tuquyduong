@@ -68,7 +68,7 @@ const formatPrice = (price) => {
   return price.toLocaleString('vi-VN') + 'đ';
 };
 
-const formatDateTime = (dateStr) => hienNgayGio(dateStr || new Date());   // GIO-VN-1: giờ máy chủ = giờ VN
+const formatDateTime = (dateStr) => hienNgayGio(dateStr || new Date());   // GIO-VN-1: in theo giờ VN (chưa có giờ đơn → lúc in, đồng hồ máy)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT

@@ -11,9 +11,10 @@ import {
   Percent, DollarSign, Calendar, Tag, Copy, CheckCircle
 } from 'lucide-react';
 
-// GIO-VN-1: hạn mã so theo NGÀY giờ VN — cùng cách máy chủ (discount-codes.js: getToday() so valid_from / valid_to), không theo đồng hồ điện thoại.
-const hetHan = (c) => !!c.end_date && String(c.end_date).slice(0, 10) < ngayVN();
-const chuaBatDau = (c) => !!c.start_date && String(c.start_date).slice(0, 10) > ngayVN();
+// GIO-VN-1: hạn mã so theo NGÀY giờ VN trên cột thật valid_from / valid_to (GET /discount-codes trả SELECT * pos_discount_codes) — cùng cách
+// máy chủ (discount-codes.js: getToday() so valid_from / valid_to), không theo đồng hồ điện thoại.
+const hetHan = (c) => !!c.valid_to && String(c.valid_to).slice(0, 10) < ngayVN();
+const chuaBatDau = (c) => !!c.valid_from && String(c.valid_from).slice(0, 10) > ngayVN();
 
 export default function DiscountCodes() {
   const [codes, setCodes] = useState([]);
@@ -425,9 +426,9 @@ export default function DiscountCodes() {
                         )}
                       </td>
                       <td style={{ fontSize: '0.85rem' }}>
-                        {code.start_date || code.end_date ? (
+                        {code.valid_from || code.valid_to ? (
                           <>
-                            {formatDate(code.start_date)} - {formatDate(code.end_date)}
+                            {formatDate(code.valid_from)} - {formatDate(code.valid_to)}
                           </>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>Không giới hạn</span>
