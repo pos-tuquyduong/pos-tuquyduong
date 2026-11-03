@@ -37,6 +37,8 @@ chương trình và ô ngày sinh.
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- cong_cu/thu_KH1.js
+<!-- Chủ quán 04.11: chỉ sửa ca E1 (8 → 9 trường của GET /toi, thêm ngay_sinh). -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_CT1a.js` ĐỎ trên code gốc: tạo / sửa chương trình + giá trị sai 400; `/chuong-trinh` chỉ trả cái đang bật và trong hạn; ngày sinh
