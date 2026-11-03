@@ -373,3 +373,8 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 1 — chi tiết ở ## Bài 
   (vụ DiscountCodes: vá so ngày VN trên `end_date` luôn undefined — mình đã ghi Phát hiện mà vẫn coi là chỗ vá). Ca thử chạy hàm của màn trên
   dòng THẬT của route (G4) thay vì dữ liệu tự dựng.
 - **BỎ**: sửa bài thử bằng script qua bash thay vì Edit — một lần, luật skill đã có.
+
+## Cổng — vòng sửa thêm
+`node tu_chay/cong.js chay . 36b98b8^ HEAD viec/GIO-VN-1` (cây sạch, HEAD 31d64b1): ✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 31d64b1
