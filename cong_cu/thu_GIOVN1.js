@@ -263,7 +263,7 @@ async function main() {
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => sxBat, checkStock: async () => ({ sufficient: true }), outStockFIFO: sxOk, inStockReturn: sxOk, callSxApi: sxGoi };
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync', 'signup-codes', 'backup']) {
+  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync', 'signup-codes', 'backup', 'discount-codes']) {
     app.use('/api/pos/' + (r === 'customers-v2' ? 'customers' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   app.use('/api/kh', require(path.join(MAY_CHU, 'routes', 'kh')));
