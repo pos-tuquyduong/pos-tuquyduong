@@ -343,7 +343,10 @@ async function main() {
     const s5 = sdtMoi();
     const c5 = await goi('POST', '/pos/membership/cap', { phone: s5, tier_id: KC?.id, so_thang: 3, pin: PIN });
     k('C5 cấp 3 tháng lúc 03.11 11:00 → hạn "2027-02-03T11:00:00"', c5.status === 200 && (await hangCua(s5)).expires_at === '2027-02-03T11:00:00', moTa(c5));
-    for (const [ten, st] of [['61 tháng', 61], ['0 tháng', 0], ['không gửi so_thang', undefined], ['"3"', '3x']]) {
+    const c5c = await goi('POST', '/pos/membership/cap', { phone: s5, tier_id: KC?.id, so_thang: 1, pin: PIN });
+    k('C5c cấp LẠI cùng hạng (đang còn 3 tháng) 1 tháng → hạn ĐẶT LẠI = lúc cấp + 1 tháng "2026-12-03T11:00:00" (không cộng nối)', c5c.status === 200
+      && (await hangCua(s5)).expires_at === '2026-12-03T11:00:00', JSON.stringify(await hangCua(s5)));
+    for (const [ten, st] of [['61 tháng', 61], ['0 tháng', 0], ['không gửi so_thang', undefined], ['"3" (chuỗi)', '3'], ['true', true]]) {
       const s = sdtMoi(); const x = await goi('POST', '/pos/membership/cap', { phone: s, tier_id: KC?.id, so_thang: st, pin: PIN });
       k(`C5b cấp ${ten} → 400, không dòng thẻ`, x.status === 400 && (await dongThe(s)).length === 0, moTa(x));
     }
