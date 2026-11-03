@@ -341,9 +341,11 @@ async function main() {
     `${JSON.stringify(kSx)} · ${kSx2?.b}`);
 
   muc('C. So giờ quanh 00:00 và 07:00 giờ VN');
-  const hang = await motDong('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
-  await datCai('tier_card_valid_months', '3');
-  const muaThe = async (sdt) => { const id = await taoDon({ customer_phone: sdt, items: [], membership_buy: { tier_id: hang.id }, cash_amount: Number(hang.card_price) });
+  // HANG-1: mua thẻ = chọn GÓI của hạng bán (máy chủ tra giá gói) — dựng gói 3 tháng cho hạng thấp nhất
+  const GIA_GOI_3 = 300000;
+  const hang = await motDong('SELECT id FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
+  await db.run("UPDATE pos_membership_tiers SET cach_co = 'ban', goi = ? WHERE id = ?", [JSON.stringify([{ so_thang: 3, gia: GIA_GOI_3, bat: true }]), hang.id]);
+  const muaThe = async (sdt) => { const id = await taoDon({ customer_phone: sdt, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, cash_amount: GIA_GOI_3 });
     return (await motDong('SELECT expires_at AS t FROM pos_membership_purchases WHERE order_id = ?', [id]))?.t; };
   datVN('2026-11-02T00:00:00'); const c5a = await muaThe('0938000001');
   datVN('2026-11-02T07:00:00'); const c5b = await muaThe('0938000002');
@@ -604,8 +606,9 @@ async function main() {
     gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') + ` (đơn E ${donE})` : '') + ' · ' + traVe.join(' '));
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));
   const pb = Number((hd2.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
-  k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 (main 5 + 1), khối máy đọc phien_ban 6, nhật ký có dòng v6 GIO-VN-1',
-    hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb === 6 && /"phien_ban":\s*6\b/.test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
+  // HANG-1: phiên bản sau GIO-VN-1 tăng tiếp (v7) — khoá "≥ 6", khối máy đọc khớp đúng PHIEN_BAN, vẫn đòi dòng v6 GIO-VN-1 trong nhật ký
+  k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN ≥ 6 (GIO-VN-1 = 6), khối máy đọc phien_ban = PHIEN_BAN, nhật ký có dòng v6 GIO-VN-1',
+    hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb >= 6 && new RegExp(`"phien_ban":\\s*${pb}\\b`).test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
 
   muc('B6. Khôi phục sao lưu qua route thật (POST /backup/restore, GET /backup/export/:table)');
   const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
