@@ -9,7 +9,8 @@
 const express = require("express");
 const { query, queryOne, run } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
-const { normalizePhone, getNow } = require("../utils/helpers");
+const { normalizePhone, isValidPhone, getNow } = require("../utils/helpers");
+const { datNgaySinh, thanLoi } = require("./chuong-trinh");   // CT-1a
 const { callSxApi } = require("../utils/sxApi");
 
 const router = express.Router();
@@ -93,7 +94,7 @@ async function getLocalCachedCustomers() {
 
 // Helper: Lấy map thông tin bổ sung từ pos_customers (CK + lý do) - ASYNC
 async function getCustomerExtrasMap() {
-  const extras = await query("SELECT phone, discount_type, discount_value, discount_note, address, customer_type FROM pos_customers");
+  const extras = await query("SELECT phone, discount_type, discount_value, discount_note, address, customer_type, ngay_sinh FROM pos_customers");
   const map = {};
   extras.forEach((d) => (map[d.phone] = d));
   return map;
@@ -261,6 +262,7 @@ router.get("/", authenticate, async (req, res) => {
         discount_value: extras?.discount_value || 0,
         discount_note: extras?.discount_note || null,
         address: extras?.address || null,
+        ngay_sinh: extras?.ngay_sinh || null,   // CT-1a
           customer_type: extras?.customer_type || null,
         membership: tierMap[phone] || null,
       };
@@ -285,6 +287,7 @@ router.get("/", authenticate, async (req, res) => {
         notes: r.notes,
         discount_note: extras?.discount_note || null,
         address: extras?.address || null,
+        ngay_sinh: extras?.ngay_sinh || null,   // CT-1a
           customer_type: extras?.customer_type || null,
       });
     });
@@ -378,6 +381,39 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PUT /api/pos/v2/customers/:phone/ngay-sinh   (CT-1a)
+ * Ngày sinh nhập MỘT lần: đang trống → nhân viên nào cũng nhập được; ĐÃ CÓ → chỉ người có quyền sua_ngay_sinh (mặc định chỉ chủ quán),
+ * bắt `ly_do`. Cùng hàm datNgaySinh với App (routes/chuong-trinh.js): kiểm ngày, giao dịch, sổ pos_ngay_sinh_sua. KHÔNG tạo khách mới,
+ * KHÔNG lưu số căn cước.
+ */
+const quyenSuaNgaySinh = checkPermission('sua_ngay_sinh');
+const traLoiNgaySinh = (res, l) => res.status(l.status).json({ success: false, error: l.error, code: l.code });
+router.put("/:phone/ngay-sinh", authenticate, async (req, res, next) => {
+  try {
+    const phone = normalizePhone(req.params.phone);
+    if (!phone || !isValidPhone(phone)) return traLoiNgaySinh(res, thanLoi('SDT_KHONG_HOP_LE'));
+    req.phoneNgaySinh = phone;
+    const kh = await queryOne("SELECT ngay_sinh FROM pos_customers WHERE phone = ?", [phone]);
+    if (!kh) return traLoiNgaySinh(res, thanLoi('KHACH_KHONG_TON_TAI'));
+    if (kh.ngay_sinh == null) return next();   // đang trống: nhân viên nào cũng nhập được
+    return quyenSuaNgaySinh(req, res, () => { req.duocSuaNgaySinh = true; next(); });   // đã có: cần quyền riêng
+  } catch (err) {
+    console.error('Ngày sinh lỗi:', err.message);
+    res.status(500).json({ success: false, error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
+  }
+}, async (req, res) => {
+  try {
+    const kq = await datNgaySinh({ phone: req.phoneNgaySinh, ngaySinh: (req.body || {}).ngay_sinh, lyDo: (req.body || {}).ly_do,
+      nguoi: req.user.username, choPhepSua: req.duocSuaNgaySinh === true });
+    if (kq.loi) return traLoiNgaySinh(res, kq.loi);
+    res.json({ success: true, phone: req.phoneNgaySinh, ngay_sinh: kq.ngay_sinh });
+  } catch (err) {
+    console.error('Ngày sinh lỗi:', err.message);
+    res.status(500).json({ success: false, error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
   }
 });
 

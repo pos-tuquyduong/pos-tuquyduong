@@ -95,6 +95,8 @@ const BACKUP_TABLES = [
   { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },               // SAOLUU-2: bảng của KH-MUA-1 (bước 006) — chưa có thì bangDangCo bỏ qua
   { name: 'pos_man_khach_quay', label: 'Màn khách - Máy quầy', key: 'id' },     // MANKHACH-1 (bước 009): mã ghép + phiên QR đang hiện
   { name: 'pos_man_khach_may', label: 'Màn khách - Máy đã ghép', key: 'id' },   // MANKHACH-1 (bước 009): khoá băm + thu hồi
+  { name: 'pos_chuong_trinh', label: 'Chương trình đặc biệt', key: 'id' },   // CT-1a (bước 017): cấu hình chương trình
+  { name: 'pos_ngay_sinh_sua', label: 'Sổ sửa ngày sinh', key: 'id' },   // CT-1a (bước 017): sổ chỉ-thêm — không khôi phục bằng file
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -128,7 +130,8 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin',   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
-  'pos_man_khach_quay', 'pos_man_khach_may'];   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_ngay_sinh_sua'];   // CT-1a: sổ sửa ngày sinh chỉ-thêm — ghi đè bằng file cũ làm mất dấu ai đã sửa
 
 /**
  * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
