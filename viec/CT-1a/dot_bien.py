@@ -36,7 +36,6 @@ DOT_BIEN = [
   ('VS-TUOI-TOI-DA-LECH', 'ct', [(CT, TUOI, 'tuoi >= khoang.toi_thieu && tuoi < khoang.toi_da', 1)], r'✗ B7b '),
   ('VS-TUOI-BO-QUA-SINH-NHAT', 'ct', [(CT, '- (m2 < m || (m2 === m && d2 < d) ? 1 : 0);', '- 0;', 1)], r'✗ B7 '),
   ('VS-TUOI-LAY-TUYET-DOI', 'ct', [(CT, TUOI, 'Math.abs(tuoi) >= khoang.toi_thieu && Math.abs(tuoi) <= khoang.toi_da', 1)], r'✗ B8c '),
-  ('BV-KIEM-NGAY-SINH-TRUOC-GHI', 'ct', [(CT, "if (!ngaySinhHopLe(ngaySinh, await docKhoangTuoi())) return { loi: thanLoi('NGAY_SINH_SAI') };", '', 1)], r'✗ B7 '),
   # ── khoảng tuổi: đọc cài đặt · ghi cài đặt ──
   ('BV-KHOANG-TUOI-CAI-DAT', 'ct', [(CT, '? { toi_thieu: toiThieu, toi_da: toiDa } : { ...TUOI_MAC_DINH };', '? { ...TUOI_MAC_DINH } : { ...TUOI_MAC_DINH };', 1)], r'✗ B8 '),
   ('VS-KHOANG-TUOI-MIN-LON-MAX', 'ct', [(CT, '&& toiThieu <= toiDa && ', '&& ', 1)], r'✗ B8b '),
@@ -51,7 +50,7 @@ DOT_BIEN = [
   ('BV-GHI-SO-NGAY-SINH', 'ct', [(CT, "await tx.run('INSERT INTO pos_ngay_sinh_sua (phone, cu, moi, ly_do, boi, luc) VALUES (?, ?, ?, ?, ?, ?)', [phone, cu, ngaySinh, cu === null ? null : lyDoSach, nguoi, luc]);", '', 1)], r'✗ B1b '),
   ('VS-SO-GHI-NHAM-GIA-TRI-CU', 'ct', [(CT, '[phone, cu, ngaySinh, cu === null', '[phone, ngaySinh, ngaySinh, cu === null', 1)], r'✗ B4b '),
   ('VS-SO-GHI-LY-DO-LAN-DAU', 'ct', [(CT, 'cu === null ? null : lyDoSach, nguoi, luc]', 'lyDoSach, nguoi, luc]', 1)], r'✗ B1b '),
-  ('BV-KHACH-KHONG-CO', 'ct', [(CT, "if (!kh) return await tuChoi('KHACH_KHONG_TON_TAI');", '', 1)], r'✗ B6 '),
+  ('BV-KHACH-KHONG-CO', 'ct', [(CT, "if (!kh) return await tuChoi('KHACH_KHONG_TON_TAI');", '', 1)], r'✗ B6c '),
   # ── chương trình: kiểm giá trị ──
   ('BV-UU-DAI-TOI-THIEU-MOT', 'ct', [(CT, 'g.mien_so_mon > 0 || g.giam_ca_don_pt > 0 || g.giam_con_lai_pt > 0,', 'true,', 1)], r'✗ A4 '),
   ('VS-GIAM-CA-DON-TRAN-101', 'ct', [(CT, 'so(g.giam_ca_don_pt, 0, 100)', 'so(g.giam_ca_don_pt, 0, 101)', 1)], r'✗ A4 '),

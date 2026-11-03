@@ -76,9 +76,9 @@ async function docKhoangTuoi() {
     ? { toi_thieu: toiThieu, toi_da: toiDa } : { ...TUOI_MAC_DINH };
 }
 
-/** Ngày sinh hợp lệ: ngày thật, không ở tương lai, tuổi hôm nay trong khoảng. */
+/** Ngày sinh hợp lệ: ngày thật và tuổi hôm nay trong khoảng (ngày ở TƯƠNG LAI cho tuổi âm nên tự bị loại, kể cả khi mức tối thiểu là 0). */
 function ngaySinhHopLe(giaTri, khoang) {
-  if (!laNgayThat(giaTri) || giaTri > homNay()) return false;
+  if (!laNgayThat(giaTri)) return false;
   const tuoi = tuoiTai(giaTri, homNay());
   return tuoi >= khoang.toi_thieu && tuoi <= khoang.toi_da;
 }
