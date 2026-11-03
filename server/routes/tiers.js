@@ -95,8 +95,8 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req, 
       for (const h of ds) {
         const goi = JSON.stringify(h.goi);
         if (h.id === null) {
-          await tx.run(`INSERT INTO pos_membership_tiers (name, card_price, discount_percent, special_discount_percent, sort_order, is_active, cach_co, goi, created_at, updated_at)
-            VALUES (?, 0, ?, ?, ?, 1, ?, ?, ?, ?)`, [h.name, h.discount_percent, h.special_discount_percent, h.sort_order, h.cach_co, goi, now, now]);
+          await tx.run(`INSERT INTO pos_membership_tiers (name, discount_percent, special_discount_percent, sort_order, is_active, cach_co, goi, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`, [h.name, h.discount_percent, h.special_discount_percent, h.sort_order, h.cach_co, goi, now, now]);
           continue;
         }
         const r = await tx.run(`UPDATE pos_membership_tiers SET name=?, discount_percent=?, special_discount_percent=?, sort_order=?, cach_co=?, goi=?, updated_at=?
