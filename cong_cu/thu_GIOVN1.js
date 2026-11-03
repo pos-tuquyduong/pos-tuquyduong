@@ -13,6 +13,9 @@
  *   B  bước nâng cấp 012 (server/nang_cap/012_gio_viet_nam.js → utils/chuanHoaGio.js) trên dữ liệu cũ gieo tay · B6 khôi phục sao lưu qua route.
  *   C  so giờ quanh 00:00 và 07:00 giờ VN (07:00 VN = 00:00 UTC, mốc đổi ngày của máy chủ).
  *   E  giờ trả ra /api/kh đúng dạng; hợp đồng bỏ "Lỗi đã biết", PHIEN_BAN 6.
+ *   G  màn quầy (client/src) chỉ dùng giờ VN (chủ quán 03.11: một múi giờ duy nhất): quét GD1–GD4 — chỉ utils/ngayVN.js được đụng Date;
+ *      hàm chung ngayVN.js (khoangNgay, docGioVN, hienNgay / hienGio / hienNgayGio) thử ở điện thoại đặt múi KHÁC giờ VN.
+ *      Giới hạn GD3: `x.toLocaleString()` với x là biến Date (không có `new Date(` cùng dòng) lọt — số tiền cũng gọi toLocaleString.
  *  GIỚI HẠN quét (K4 TU-CHAY-6): chỉ soi chữ trong file server/**.js — giờ dựng qua hàm phụ ở file khác / SQL ghép động (khoiPhuc.js INSERT
  *  theo cột của file Excel) không thấy; mẫu 5 chỉ đọc INSERT có danh sách cột viết thẳng. M3 chỉ bắt đồng hồ trần viết LIỀN
  *  (`new Date().toISOString()`) — tách hai bước (`const d = new Date(); d.toISOString()`) hay `toLocaleString()` thiếu timeZone thì lọt.
@@ -86,14 +89,14 @@ function cotMacDinh(cacFile) {   // bảng → cột DEFAULT CURRENT_TIMESTAMP, 
   return bang;
 }
 /** tep = { 'server/x.js': nội dung } → [{ tep, dong, mau, chu }] */
-function quet(tep) {
+function quet(tep, { mau = MAU, ngoaiLe = NGOAI_LE, m5 = true } = {}) {
   const ra = [];
   const sach = Object.fromEntries(Object.entries(tep).map(([f, s]) => [f, boChuThich(s)]));
   for (const [f, s] of Object.entries(sach)) {
-    s.split('\n').forEach((d, i) => { for (const [ten, phep] of MAU) if (phep(d)) ra.push({ tep: f, dong: i + 1, mau: ten, chu: d.trim() }); });
+    s.split('\n').forEach((d, i) => { for (const [ten, phep] of mau) if (phep(d)) ra.push({ tep: f, dong: i + 1, mau: ten, chu: d.trim() }); });
   }
-  const md = cotMacDinh(Object.values(sach));
-  for (const [f, s] of Object.entries(sach)) {
+  const md = m5 ? cotMacDinh(Object.values(sach)) : {};
+  for (const [f, s] of Object.entries(m5 ? sach : {})) {
     for (const m of s.matchAll(/INSERT\s+(?:OR\s+\w+\s+)?INTO\s+(\w+)\s*\(([^)]*)\)/gi)) {
       const cot = m[2].split(',').map((c) => c.trim().replace(/"/g, ''));
       const thieu = (md[m[1]] || []).filter((c) => !cot.includes(c));
@@ -102,12 +105,33 @@ function quet(tep) {
   }
   const ngoai = [], dung = new Set();
   const conLai = ra.filter((v) => {
-    const j = NGOAI_LE.findIndex(([f, chuoi]) => f === v.tep && sach[f].split('\n')[v.dong - 1].includes(chuoi));
+    const j = ngoaiLe.findIndex(([f, chuoi]) => f === v.tep && sach[f].split('\n')[v.dong - 1].includes(chuoi));
     if (j >= 0) dung.add(j);
     return j < 0;
   });
-  NGOAI_LE.forEach((n, j) => { if (!dung.has(j) && tep[n[0]] !== undefined) ngoai.push(n); });
+  ngoaiLe.forEach((n, j) => { if (!dung.has(j) && tep[n[0]] !== undefined) ngoai.push(n); });
   return { viPham: conLai, ngoaiLeChet: ngoai };
+}
+// Màn quầy (client/src): điện thoại có thể đặt múi khác giờ VN → mọi đọc / tính / in ngày giờ đi qua client/src/utils/ngayVN.js.
+const MAU_GD = [
+  ['GD1 ngày / giờ theo đồng hồ điện thoại', (d) => /\.(get|set)(FullYear|Month|Date|Day|Hours|Minutes|Seconds)\s*\(/.test(d)],
+  ['GD2 giờ UTC', (d) => /\.(toISOString|toJSON)\s*\(|\.(get|set)UTC\w*\s*\(|Date\.UTC\s*\(/.test(d)],
+  ['GD3 in ngày / giờ không qua ngayVN.js', (d) => /\.toLocale(Date|Time)String\s*\(|new Date\([^;]*?\)\s*\.toLocaleString\s*\(|Intl\.DateTimeFormat\s*\(/.test(d)],
+  ['GD4 đọc chuỗi giờ theo múi điện thoại', (d) => /new Date\(\s*[^)\s]|Date\.parse\s*\(/.test(d)],
+];
+const NGOAI_LE_GD = [
+  ['client/src/utils/ngayVN.js', '', 'chỗ DUY NHẤT đọc / tính / in ngày giờ của màn quầy — mọi hàm gắn múi Asia/Ho_Chi_Minh hoặc +07:00 rõ ràng (A3, G2, G3 thử từng hàm)'],
+  ['client/src/pages/BanHang/tinh.js', 'Date.parse(hetHan + MUI_VN)', 'het_han giờ VN không hậu tố, gắn +07:00 rõ ràng — đếm ngược QR theo khoảng'],
+];
+const GD = { mau: MAU_GD, ngoaiLe: NGOAI_LE_GD, m5: false };
+function docClient() {
+  const ra = {};
+  const di = (thu) => { for (const t of fs.readdirSync(thu, { withFileTypes: true })) {
+    const p = path.join(thu, t.name);
+    if (t.isDirectory()) di(p); else if (/\.jsx?$/.test(t.name)) ra[path.relative(GOC, p).split(path.sep).join('/')] = doc(p);
+  } };
+  di(path.join(GOC, 'client', 'src'));
+  return ra;
 }
 function docServer() {
   const ra = {};
@@ -148,8 +172,10 @@ async function main() {
 
   muc('A3. Hàm ngày của màn quầy (client/src/utils/ngayVN.js)');
   const srcNgay = doc(path.join(GOC, 'client', 'src', 'utils', 'ngayVN.js'));
-  let ngayVN = null;
-  try { ngayVN = new Function(srcNgay.replace(/export\s+(default\s+)?function/g, 'function') + '\nreturn ngayVN;')(); } catch { /* chưa có file */ }
+  let NV = {};
+  try { NV = new Function(srcNgay.replace(/export\s+(default\s+)?function/g, 'function')
+    + `\nreturn { ${[...srcNgay.matchAll(/export\s+function\s+(\w+)/g)].map((m) => m[1]).join(', ')} };`)(); } catch { /* chưa có file */ }
+  const ngayVN = NV.ngayVN;
   datVN('2027-01-01T06:59:59');
   const a3 = ngayVN ? ngayVN() : null;
   datVN('2026-12-31T23:59:59');
@@ -157,6 +183,62 @@ async function main() {
   k('A3 máy TZ=UTC, giờ VN 06:59:59 ngày 01.01.2027 → "2027-01-01"; 23:59:59 ngày 31.12 → "2026-12-31"', a3 === '2027-01-01' && a3b === '2026-12-31', `${a3} / ${a3b}`);
   const jsx = doc(path.join(GOC, 'client', 'src', 'pages', 'Orders.jsx')) + doc(path.join(GOC, 'client', 'src', 'pages', 'Reports.jsx'));
   k('A3b Lịch sử đơn + Báo cáo không còn lấy ngày bằng toISOString (giờ UTC của điện thoại)', jsx.length > 0 && !/toISOString\(\)\.slice\(0,\s*10\)/.test(jsx));
+
+  muc('G. Màn quầy (client/src) chỉ dùng giờ VN — quét + hàm chung ngayVN.js (chủ quán 03.11)');
+  const motGD = (src, f = 'client/src/pages/Gia.jsx') => quet({ [f]: src }, GD).viPham;
+  const maGD = (v) => [...new Set(v.map((x) => x.mau.split(' ')[0]))].sort().join(',');
+  k('G0a `now.getFullYear()`, `d.setDate(d.getDate() - 1)`, `new Date().getMonth()`, `d.getHours()` → GD1',
+    ['const y = now.getFullYear();', 'd.setDate(d.getDate() - 1);', 'const m = new Date().getMonth();', 'const h = d.getHours();'].every((s) => maGD(motGD(s)) === 'GD1'));
+  k('G0b `toISOString()`, `toJSON()`, `getUTCDate()`, `setUTCHours(`, `Date.UTC(` → GD2',
+    ['const s = new Date().toISOString().slice(0, 10);', 'const j = d.toJSON();', 'const n = d.getUTCDate();', 'd.setUTCHours(0);', 'const t = Date.UTC(2026, 0, 1);']
+      .every((s) => maGD(motGD(s)) === 'GD2'));
+  k("G0c `toLocaleDateString('vi-VN')`, `toLocaleTimeString` (kể cả có timeZone), `new Date().toLocaleString(`, `Intl.DateTimeFormat(` → GD3",
+    ["{new Date().toLocaleDateString('vi-VN')}", "d.toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })", "const s = new Date().toLocaleString('vi-VN');",
+      "const f = new Intl.DateTimeFormat('vi-VN');"].every((s) => maGD(motGD(s)) === 'GD3'));
+  k('G0d `new Date(d.created_at)`, `new Date(now)`, `Date.parse(s)` → GD4; `new Date(x).toLocaleString(` → GD3 + GD4',
+    ['const a = new Date(d.created_at);', 'const y = new Date(now);', 'const m = Date.parse(s);'].every((s) => maGD(motGD(s)) === 'GD4')
+    && maGD(motGD("return new Date(date).toLocaleString('vi-VN', {")) === 'GD3,GD4');
+  k('G0e KHÔNG đỏ: số tiền toLocaleString, Date.now(), new Date() trần, setter React setDate(, hàm ngayVN.js, chú thích; ngoại lệ ngayVN.js / tinh.js đúng dòng',
+    ["const t = (p || 0).toLocaleString('vi-VN') + 'đ';", 'const h = Date.now() + 5000;', 'const n = new Date();', 'onChange={e => setDate(e.target.value)}',
+      "<td>{hienNgay(d.created_at)}</td>", '// new Date(x).getMonth()', '{/* d.toISOString() */}'].every((s) => motGD(s).length === 0)
+    && quet({ 'client/src/utils/ngayVN.js': "return new Date(t + '+07:00').toLocaleDateString('sv-SE', { timeZone: MUI });" }, GD).viPham.length === 0
+    && quet({ 'client/src/pages/BanHang/tinh.js': 'const m = Date.parse(hetHan + MUI_VN);\nconst x = Date.parse(s);' }, GD).viPham.map((v) => v.dong).join() === '2');
+  const kqGD = quet(docClient(), GD);
+  k(`G1 client/src thật không còn chỗ lấy ngày / giờ theo điện thoại hoặc UTC (${kqGD.viPham.length} vi phạm)`, kqGD.viPham.length === 0,
+    kqGD.viPham.slice(0, 8).map((v) => `${v.tep.replace('client/src/', '')}:${v.dong} ${v.mau.split(' ')[0]}`).join(' | ') + (kqGD.viPham.length > 8 ? ' …' : ''));
+  k('G1b mọi ngoại lệ màn quầy còn khớp chỗ có thật (không ngoại lệ chết)', kqGD.ngoaiLeChet.length === 0, kqGD.ngoaiLeChet.map((n) => n[0]).join(' | '));
+  const tzGoc = process.env.TZ;
+  const g2 = [], g2Mong = [];
+  for (const tz of ['UTC', 'America/Los_Angeles']) {
+    process.env.TZ = tz;
+    for (const [luc, loai, mong] of [
+      ['2026-12-01T03:00:00', 'thisMonth', '2026-12-01..2026-12-01'], ['2026-12-01T03:00:00', 'lastMonth', '2026-11-01..2026-11-30'],
+      ['2026-12-01T03:00:00', 'yesterday', '2026-11-30..2026-11-30'], ['2026-12-01T03:00:00', '7days', '2026-11-25..2026-12-01'],
+      ['2026-12-01T03:00:00', 'today', '2026-12-01..2026-12-01'],
+      ['2027-01-01T06:59:59', 'lastMonth', '2026-12-01..2026-12-31'], ['2027-01-01T06:59:59', 'yesterday', '2026-12-31..2026-12-31'],
+      ['2027-03-31T23:30:00', 'lastMonth', '2027-02-01..2027-02-28'], ['2027-03-31T23:30:00', 'thisMonth', '2027-03-01..2027-03-31'],
+      ['2028-03-01T00:00:00', 'lastMonth', '2028-02-01..2028-02-29']]) {
+      datVN(luc);
+      let r; try { r = NV.khoangNgay(loai).join('..'); } catch (e) { r = 'lỗi ' + e.message; }
+      g2.push(`${tz} ${luc} ${loai}=${r}`); g2Mong.push(`${tz} ${luc} ${loai}=${mong}`);
+    }
+  }
+  const g2Sai = g2.filter((x, i) => x !== g2Mong[i]);
+  k('G2 nút lọc Lịch sử đơn (khoangNgay) theo giờ VN — điện thoại TZ=UTC và TZ=America/Los_Angeles: 01.12 03:00 VN tháng này = 01.12, tháng trước = 01–30.11; 01.01 06:59:59; 31.03 23:30; năm nhuận',
+    g2Sai.length === 0, g2Sai.slice(0, 3).join(' | '));
+  const g3 = [];
+  for (const tz of ['UTC', 'America/Los_Angeles']) {
+    process.env.TZ = tz;
+    const t = (f, ...a) => { try { return f(...a); } catch (e) { return 'lỗi ' + e.message; } };
+    g3.push(t(() => [NV.docGioVN('2026-11-02T12:00:00'), NV.docGioVN('2026-11-02 12:00:00'), NV.docGioVN('2026-11-02T05:00:00Z'), NV.docGioVN('2026-11-02T05:00:00.000Z')]
+      .every((d) => d.getTime() === DateGoc.UTC(2026, 10, 2, 5)) && NV.docGioVN('2026-11-02').getTime() === DateGoc.UTC(2026, 10, 1, 17)));
+    g3.push(t(NV.hienNgay, '2026-12-31'), t(NV.hienNgay, '2026-12-31T00:30:00'), t(NV.hienGio, '2026-11-02T00:30:00', { hour: '2-digit', minute: '2-digit' }),
+      t(NV.hienNgayGio, '2026-11-02T23:30:00'), t(NV.hienNgayGio, ''), t(NV.hienNgay, null));
+  }
+  process.env.TZ = tzGoc;
+  const g3Mong = [true, '31/12/2026', '31/12/2026', '00:30', '23:30:00 2/11/2026', '', ''];
+  k('G3 docGioVN (chuỗi máy chủ không hậu tố = giờ VN; dấu cách cũ; đuôi Z; ngày thuần = 00:00 VN) + hienNgay / hienGio / hienNgayGio in giờ VN ở điện thoại UTC và Los Angeles; rỗng → ""',
+    JSON.stringify(g3) === JSON.stringify([...g3Mong, ...g3Mong]), JSON.stringify(g3));
 
   // ═══════════════ kho tạm + route thật ═══════════════
   datVN('2026-11-02T12:00:00');
@@ -374,7 +456,7 @@ async function main() {
     ['pos_membership_purchases', 'expires_at', '2027-02-02 10:00:00', '2027-02-02T10:00:00'],   // loại 3 (Q2)
     ['pos_packages', 'created_at', '2026-06-01T17:00:00.123Z', '2026-06-02T00:00:00'],          // loại 1: đuôi Z → +7
     ['pos_orders', 'cancelled_at', '2026-01-05T03:00:00.000Z', '2026-01-05T10:00:00'],          // loại 1 ở cột getNow cũ
-    ['pos_settings', 'updated_at', '2026-07-01 10:00:00', '2026-07-01 10:00:00'],               // lẫn → để nguyên (Q3)
+    ['pos_settings', 'updated_at', '2026-07-01 10:00:00', '2027-05-01T12:00:00'],               // cài đặt chưa dạng T → giờ VN lúc chạy (chủ quán 03.11)
     ['pos_orders', 'created_at', '2026-11-01T09:00:00', '2026-11-01T09:00:00'],                 // K5: đã đúng giờ VN → không đổi
     ['pos_discount_codes', 'valid_from', '2026-11-01', '2026-11-01'],                           // ngày thuần → không đụng
   ];
@@ -411,7 +493,7 @@ async function main() {
     ['pos_membership_purchases', 'expires_at', 'vn'], ['pos_discount_codes', 'valid_to', 'vn'], ['pos_settings', 'updated_at', 'lan'],
     ['pos_point_transactions', 'created_at', 'khong'], ['pos_orders', 'cancelled_at', 'khong'], ['pos_signup_codes', 'issued_at', 'khong']];
   const CU = { utc: '2026-03-01 18:00:00', vn: '2026-05-05 08:00:00', lan: '2026-07-01 10:00:00', khong: '2026-08-08 08:00:00' };
-  const MOI = { utc: '2026-03-02T01:00:00', vn: '2026-05-05T08:00:00', lan: '2026-07-01 10:00:00', khong: '2026-08-08 08:00:00' };
+  const MOI = { utc: '2026-03-02T01:00:00', vn: '2026-05-05T08:00:00', lan: '2027-05-01T12:00:00', khong: '2026-08-08 08:00:00' };
   await db.run("INSERT INTO pos_stock_pending (order_code, sx_product_type, sx_product_id, quantity, status) VALUES ('GV1SP', 'juice', 1, 1, 'resolved')");
   await db.run("INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count) VALUES ('2026-11-01T09:00:00', 'thu', '[]', 0)");
   const dongPL = [];
@@ -424,6 +506,12 @@ async function main() {
   const LA = ['2026-03-01 18:00', '2026-03-01 18:00:00.123', '2026-03-01 18:00:00 x', 'không rõ', '2026-03-01'];
   const idLa = [];
   for (const v of LA) idLa.push(Number((await db.run("INSERT INTO pos_damage_logs (order_id, order_code, product_code, product_name, quantity, reason, action, refund_amount, processed_by_name, created_at) VALUES (1, 'LA', 'X', 'X', 1, 'damaged', 'remake', 0, 'thu', ?)", [v])).lastInsertRowid));
+  // B1e: giá trị cài đặt (pos_settings.updated_at — chủ quán 03.11) chưa đúng dạng T → giờ VN lúc chạy nâng cấp; đuôi Z = UTC biết chắc → +7
+  // như mọi cột; đã dạng T và NULL giữ nguyên.
+  const CAI_LA = [['gv1_c_z', '2026-07-01T03:00:00Z', '2026-07-01T10:00:00'], ['gv1_c_mili', '2026-07-01T10:00:00.123', '2027-05-01T12:00:00'],
+    ['gv1_c_rac', 'không rõ', '2027-05-01T12:00:00'], ['gv1_c_rong', '', '2027-05-01T12:00:00'], ['gv1_c_ngay', '2026-07-01', '2027-05-01T12:00:00'],
+    ['gv1_c_t', '2026-07-01T10:00:00', '2026-07-01T10:00:00'], ['gv1_c_null', null, null]];
+  for (const [khoa, v] of CAI_LA) await db.run('INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)', [khoa, '1', v]);
   const khoaCot = (bang) => (bang === 'pos_settings' ? 'key' : 'id');
   const docGieo = async () => Promise.all(GIEO.map(([bang, cot], i) => motDong(`SELECT ${cot} AS v FROM ${bang} WHERE ${khoaCot(bang)} = ?`, [idGieo[i]]).then((r) => r?.v ?? null)));
   const tongTien = () => motDong('SELECT (SELECT COALESCE(SUM(total),0) FROM pos_orders) AS d, (SELECT COALESCE(SUM(amount),0) FROM pos_balance_transactions) AS v, (SELECT COALESCE(SUM(points),0) FROM pos_point_transactions) AS p, (SELECT COUNT(*) FROM pos_customer_packages) AS g');
@@ -435,24 +523,34 @@ async function main() {
   noiLai();
   const lan1 = buoc?.chay ? await chayBuoc() : { loi: 'chưa có bước', log: [] };
   const sau1 = await docGieo();
-  k('B1 đổi đúng từng loại: UTC dấu cách +7 (sự cố, sổ ví) · VN dấu cách chỉ đổi T (in, hạn thẻ) · đuôi Z +7 · cột lẫn để nguyên',
+  k('B1 đổi đúng từng loại: UTC dấu cách +7 (sự cố, sổ ví) · VN dấu cách chỉ đổi T (in, hạn thẻ) · đuôi Z +7 · cài đặt dấu cách → giờ VN lúc chạy',
     GIEO.slice(0, 7).every((g, i) => sau1[i] === g[3]), GIEO.slice(0, 7).map((g, i) => `${g[0]}.${g[1]}=${sau1[i]}`).join(' | ') + (lan1.loi ? ' · ' + lan1.loi : ''));
-  k('B1b in một dòng cho mỗi cột đổi (`🔧 Nâng cấp 012: <bảng>.<cột> đổi n dòng`) + dòng "để nguyên" cho cột lẫn',
+  k('B1b in một dòng cho mỗi cột đổi (`🔧 Nâng cấp 012: <bảng>.<cột> đổi n dòng`), cả cài đặt (6 dòng chưa dạng T → giờ chạy); không còn dòng "để nguyên"',
     ['pos_damage_logs.created_at đổi 1', 'pos_balance_transactions.created_at đổi 1', 'pos_invoice_logs.printed_at đổi 1', 'pos_packages.created_at đổi 1']
-      .every((x) => lan1.log.some((l) => l.includes('Nâng cấp 012') && new RegExp(x.replace(/\./g, '\\.').replace(/ 1$/, ' [1-9]\\d* dòng')).test(l))) && lan1.log.some((l) => l.includes('pos_settings.updated_at') && /để nguyên 2 dòng/.test(l)),
+      .every((x) => lan1.log.some((l) => l.includes('Nâng cấp 012') && new RegExp(x.replace(/\./g, '\\.').replace(/ 1$/, ' [1-9]\\d* dòng')).test(l)))
+      && lan1.log.some((l) => /pos_settings\.updated_at đổi 6 dòng/.test(l)) && !lan1.log.some((l) => /để nguyên/.test(l)),
     lan1.log.join(' | ').slice(0, 300));
   const plSau = await Promise.all(PHAN_LOAI.map(([b, c], i) => (dongPL[i] == null ? null : motDong(`SELECT ${c} AS v FROM ${b} WHERE rowid = ?`, [dongPL[i]]).then((r) => r?.v ?? null))));
   const plSai = PHAN_LOAI.filter(([, , l], i) => plSau[i] !== MOI[l]).map(([b, c, l], i) => `${b}.${c}(${l})=${plSau[PHAN_LOAI.findIndex((x) => x[0] === b && x[1] === c)]}`);
-  k(`B1c MỌI mục phân loại (${PHAN_LOAI.length} cột / ${new Set(PHAN_LOAI.map((x) => x[0])).size} bảng) đổi đúng loại: UTC +7 · VN chỉ đổi T · lẫn và cột chỉ getNow để nguyên`,
+  k(`B1c MỌI mục phân loại (${PHAN_LOAI.length} cột / ${new Set(PHAN_LOAI.map((x) => x[0])).size} bảng) đổi đúng loại: UTC +7 · VN chỉ đổi T · cài đặt → giờ chạy · cột chỉ getNow để nguyên`,
     dongPL.every((x) => x != null) && plSai.length === 0, plSai.join(' | ') + (dongPL.some((x) => x == null) ? ' · thiếu dòng gieo: ' + PHAN_LOAI.filter((_, i) => dongPL[i] == null).map((x) => x[0]).join(',') : ''));
+  const caiSau = await Promise.all(CAI_LA.map(([khoa]) => motDong('SELECT updated_at AS v FROM pos_settings WHERE key = ?', [khoa]).then((r) => r?.v)));
+  k('B1e cài đặt: đuôi Z +7 · mili-giây / chữ rác / rỗng / ngày thuần → giờ VN lúc chạy · đã dạng T và NULL giữ nguyên',
+    JSON.stringify(caiSau) === JSON.stringify(CAI_LA.map((x) => x[2])), JSON.stringify(caiSau));
   const laSau = await Promise.all(idLa.map((id) => motDong('SELECT created_at AS v FROM pos_damage_logs WHERE id = ?', [id]).then((r) => r?.v)));
   k('B1d giá trị lạ trong cột UTC (thiếu giây / mili-giây / thừa chữ / chữ rác / ngày thuần) giữ nguyên — mẫu khớp đủ 19 ký tự', !!lan1.r && JSON.stringify(laSau) === JSON.stringify(LA), JSON.stringify(laSau));
   const saoLuu = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_damage_logs WHERE id = ?", [idGieo[0]]).catch(() => null);
   const saoVi = await motDong("SELECT created_at AS v FROM _sao_luu_012_pos_balance_transactions WHERE id = ?", [idGieo[1]]).catch(() => null);
-  k('B2 bảng sao lưu _sao_luu_012_<bảng> giữ giá trị GỐC (sự cố, sổ ví)', saoLuu?.v === GIEO[0][2] && saoVi?.v === GIEO[1][2], `${saoLuu?.v} / ${saoVi?.v}`);
+  const saoCai = await motDong("SELECT updated_at AS v FROM _sao_luu_012_pos_settings WHERE key = 'gv1_c_rac'").catch(() => null);
+  k('B2 bảng sao lưu _sao_luu_012_<bảng> giữ giá trị GỐC (sự cố, sổ ví, cài đặt)', saoLuu?.v === GIEO[0][2] && saoVi?.v === GIEO[1][2] && saoCai?.v === 'không rõ',
+    `${saoLuu?.v} / ${saoVi?.v} / ${saoCai?.v}`);
+  datVN('2027-05-03T08:00:00');   // lần hai ở GIỜ KHÁC: quy tắc "giờ lúc chạy" không lặp lại được thì cài đặt sẽ đổi giờ
   const lan2 = buoc?.chay ? await chayBuoc() : { loi: 'chưa có bước', log: [] };
+  datVN('2027-05-01T12:00:00');
   const sau2 = await docGieo();
-  k('B3 chạy lần hai: không dòng "đổi", dữ liệu bằng hệt lần một', !lan2.loi && !lan2.log.some((l) => / đổi [1-9]/.test(l)) && JSON.stringify(sau2) === JSON.stringify(sau1), lan2.loi || lan2.log.join(' | ').slice(0, 200));
+  const caiSau2 = await Promise.all(CAI_LA.map(([khoa]) => motDong('SELECT updated_at AS v FROM pos_settings WHERE key = ?', [khoa]).then((r) => r?.v)));
+  k('B3 chạy lần hai (giờ khác): không dòng "đổi", dữ liệu bằng hệt lần một (cả cài đặt)', !lan2.loi && !lan2.log.some((l) => / đổi [1-9]/.test(l))
+    && JSON.stringify(sau2) === JSON.stringify(sau1) && JSON.stringify(caiSau2) === JSON.stringify(caiSau), lan2.loi || lan2.log.join(' | ').slice(0, 200));
   const tienSau = JSON.stringify(await tongTien());
   const dsSau = JSON.stringify(await doiSoat.chayDoiSoat({ kieu: 'ngay', ngay: '2026-11-02' }).catch((e) => e.message));
   k('B4 (K5) dòng đã đúng giờ VN + ngày thuần không đổi; tổng tiền đơn / ví / điểm / số gói trước = sau', sau1[7] === GIEO[7][3] && sau1[8] === GIEO[8][3] && tienTruoc === tienSau, `${sau1[7]} · ${sau1[8]} · ${tienTruoc} → ${tienSau}`);

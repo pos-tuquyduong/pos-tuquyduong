@@ -235,3 +235,35 @@ registrations,users,product-groups,orders}.js`, `utils/{doSoNo,doiSoat,khoiPhuc}
 - (2) #26 tính bằng phép UTC thuần thay vì chỉ bỏ `.replace` — không thêm dòng, hết phụ thuộc múi giờ máy.
 - (3) C5 mình ghi nhầm "so chuỗi" (K1) → sửa mô tả, ca đỏ là ca múi giờ máy khác; thêm mốc 00:00 / 07:00 cho C1, C4, C6, C8, C9, C10; thêm K5b đối soát trước = sau; A3 ca hàm ngày màn quầy; B1 khớp dòng in.
 - (4) phép quét D: không phân biệt hoa thường (`DATE('now'` ở `orders.js:132`), bắt mọi `'now'`, `unixepoch(`, đọc `CREATE TABLE` cả `nang_cap/`, `kho/`. Không có chỗ bù giờ hai lần ngoài `doiSoat.js:221`.
+
+## Vòng sửa thêm (chủ quán chốt LUẬT 03.11: một múi giờ duy nhất — giờ VN — cho mọi chỗ ghi / so / trả ra / hiển thị / cài đặt, máy chủ lẫn giao diện)
+Chủ quán đổi quyết định **Q3**: `pos_settings.updated_at` không để nguyên nữa. Mọi file sửa đều trong Phạm vi (`server/**`, `client/src/**`,
+`client/dist/**`, `cong_cu/thu_GIOVN1.js`, `viec/GIO-VN-1/**`) — không phải dừng hỏi.
+
+| Phần | Phương án A (chọn) | Phương án B | Vì sao A |
+|---|---|---|---|
+| (1) `pos_settings.updated_at` | `utils/chuanHoaGio.js`: loại `LAN` thành loại "chưa dạng T → `getNow()` lúc chạy" (điều kiện `NOT NULL AND NOT GLOB 'YYYY-MM-DDTHH:mm:ss'`), cùng đường sao lưu `_sao_luu_012_`, cùng dòng in "đổi n dòng". ~8 dòng, 1 file | bước 013 riêng — thêm file, thêm khung | 012 chưa chạy trên quầy (nhánh chưa gộp) → sửa ngay quy tắc, một chỗ |
+| (2) Orders "tháng này / tháng trước" | `ngayVN.js` thêm `congNgay` (lịch thuần) + `khoangNgay(loai, homNay)`; `Orders.jsx` gọi một dòng. ~20 dòng | tính tại chỗ trong `Orders.jsx` | thử được bằng bài Node (JSX không chạy được trong bài) |
+| (3) mọi chỗ ngày / giờ ở `client/src` | `ngayVN.js` thêm `docGioVN` (chuỗi máy chủ không hậu tố = giờ VN, gắn `+07:00`) + `hienNgay` / `hienGio` / `hienNgayGio` (luôn `timeZone: Asia/Ho_Chi_Minh`); từng màn gọi. ~30 dòng hàm + ~25 dòng màn | thêm `timeZone` tại chỗ | B vẫn SAI: `new Date('2026-11-02T00:30:00')` trên điện thoại khác múi đọc theo múi điện thoại; thêm timeZone chỉ đúng khi điện thoại đặt giờ VN |
+| (4) Chặn tái phạm | `quet()` nhận bộ mẫu + ngoại lệ; bộ mẫu GD1–GD4 cho `client/src/**.js(x)` | bài riêng | dùng lại khung quét + ngoại lệ chết sẵn có |
+
+**Chỗ sửa (3)** — rà bằng `grep -rnE "getFullYear|getMonth|getDate\(|getDay\(|getHours|toISOString|toLocaleDateString|toLocaleString|toLocaleTimeString|setDate|new Date\(|Date\.parse" client/src`:
+`Orders.jsx` 78–96 (nút lọc), 230–231 (xếp theo giờ), 282–291 (giờ / ngày / ngày giờ), 737 (ngày sự cố), 942 (hạn thanh toán) ·
+`Sales.jsx` 841 (ngày đầu màn) · `Registrations.jsx` 204 · `Balance.jsx` 183 · `Settings.jsx` 1344 (lần đăng nhập cuối) ·
+`Reports.jsx` 119, 355 (ngày thuần `YYYY-MM-DD` → đọc như nửa đêm UTC, điện thoại múi âm ra hôm trước) · `DiscountCodes.jsx` 75–79, 232,
+237–239, 295–296, 306–307 (so hạn mã theo đồng hồ điện thoại → so NGÀY VN như máy chủ `discount-codes.js:95-102`) ·
+`components/InvoicePrint.jsx` 71–72. Không sửa: `Date.now()` dùng đếm KHOẢNG (mã đăng nhập App, QR, logo, dấu thời gian cài đặt in) —
+không phụ thuộc múi; `BanHang/tinh.js:243` đã gắn `+07:00` (ngoại lệ có lý do); `Reports.jsx:423` cắt chuỗi.
+
+**Phép quét màn quầy (D mở rộng)** — chỉ `client/src/utils/ngayVN.js` được đụng Date (ngoại lệ cả file, có lý do):
+GD1 `.get/.set(FullYear|Month|Date|Day|Hours|Minutes|Seconds)(` · GD2 `toISOString(` / `toJSON(` / `getUTC*` / `setUTC*` / `Date.UTC(` ·
+GD3 `toLocaleDateString(` / `toLocaleTimeString(` / `new Date(…).toLocaleString(` / `Intl.DateTimeFormat(` · GD4 `new Date(<đối số>)` / `Date.parse(`.
+Giới hạn: `x.toLocaleString()` khi `x` là biến Date (không viết `new Date(` cùng dòng) lọt — số tiền cũng gọi `toLocaleString`.
+
+**Ca thử** (thêm vào `cong_cu/thu_GIOVN1.js`): G0a–G0e chuỗi giả từng mẫu + ca KHÔNG đỏ (số tiền, `Date.now()`, `new Date()` trần, chú thích,
+setter React `setDate(`) + ngoại lệ · G1 quét `client/src` thật = 0 · G1b ngoại lệ không chết · G2 `khoangNgay` ở điện thoại TZ=UTC và
+TZ=America/Los_Angeles quanh 01.12 03:00 VN, 01.01 06:59:59 VN, 31.03 23:30 VN · G3 `docGioVN` / `hienNgay` / `hienGio` / `hienNgayGio` ở
+điện thoại khác múi · B1/B1b/B1c sửa kỳ vọng `pos_settings` (LUAT 6.8 — hành vi chủ quán duyệt đổi) · B1e giá trị cài đặt lạ (đuôi Z, mili-giây,
+chữ rác, rỗng → giờ chạy; dạng T, NULL → giữ) · B2 sao lưu cài đặt giữ giá trị gốc · B3 chạy lần hai ở GIỜ KHÁC không đổi gì.
+**Luồng hợp lệ không bị chặn (K5):** số tiền `toLocaleString('vi-VN')`; `Date.now()` đếm khoảng; giá trị cài đặt đã dạng T giữ nguyên; NULL giữ
+nguyên; đuôi Z vẫn +7 như mọi cột (giờ biết chắc là UTC — chính xác hơn giờ chạy).
