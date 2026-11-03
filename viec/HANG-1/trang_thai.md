@@ -98,6 +98,10 @@
    (B5, C5 của thu_HANG1 so chuỗi hạn). **Đề xuất:** bạn thêm `- cong_cu/thu_GIOVN1.js` vào `## Phạm vi` (cùng loại Q2 — chỉ phần dựng dữ liệu);
    mình sửa đúng 2 dòng: đặt gói 3 tháng giá = `card_price` cho hạng (`UPDATE … SET goi = json_array(json_object('so_thang', 3, 'gia', …))`, thay dòng
    `datCai('tier_card_valid_months', '3')`) và gửi `membership_buy: { tier_id: hang.id, so_thang: 3 }`.
+   Cùng bài, hai ca đỏ kéo theo (stop hook 03.11 liệt kê đủ): **B1** (`thu_GIOVN1.js:544`) đọc dòng sổ thẻ theo số thứ tự — ba lần mua thẻ C5
+   400 không ghi dòng nên dòng gieo của B1 lệch (`pos_membership_purchases.expires_at=2026-05-05T08:00:00`); sửa C5 là B1 xanh lại.
+   **E2** (`thu_GIOVN1.js:607-608`) ghi CỨNG `PHIEN_BAN = 6` / `"phien_ban": 6` — HANG-1 tăng lên 7 đúng lời dặn "tăng 1 so với main". Đề xuất:
+   đổi E2 thành `pb >= 6` (vẫn đòi dòng v6 GIO-VN-1 trong nhật ký) — một dòng, cùng lần thêm file vào Phạm vi.
 
 ## Phát hiện (03.11 — ngoài phạm vi, không sửa)
 - `GET /api/pos/settings` trả MỌI khoá `pos_settings` cho mọi nhân viên đăng nhập (`server/routes/settings.js:57-60`) — hôm nay chưa có bí mật ở
