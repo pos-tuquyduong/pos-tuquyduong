@@ -54,3 +54,8 @@ BÀI HỌC:     KHOÁ 0 · NGUYÊN TẮC 0 · BỎ 1 — xem ## Bài học
 ## Bài học
 - **BỎ** — việc chỉ thêm một tùy chọn cấu hình, không phát sinh lỗi mới; đề xuất của agent soát (đo header thật từ máy chủ thật + đột biến "đặt ngoài cors") đã nằm trong bài thử (VS-MAXAGE-NOI-NGOAI-CORS) và trùng khuôn K3 sẵn có, không cần mục K9.
 - Không có KHOÁ / NGUYÊN TẮC mới ngoài Phạm vi cần đề xuất.
+
+## Cổng chạy
+✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 8e55323
