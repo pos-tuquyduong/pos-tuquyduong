@@ -417,7 +417,7 @@ async function main() {
   const g4 = [];
   for (const moc of ['2027-01-01T23:59:59', '2027-01-02T00:00:01', '2027-01-02T06:59:59']) { datVN(moc); g4.push(hamMa && maC2 && maG4 ? `${hamMa.hetHan(maC2)}/${hamMa.chuaBatDau(maG4)}` : 'thiếu'); }
   k('G4 màn Mã giảm giá (hàm của DiscountCodes.jsx trên dòng THẬT của GET /discount-codes): hạn 01.01 → 23:59:59 còn, 02.01 00:00:01 và 06:59:59 (UTC còn 01.01) hết; bắt đầu 02.01 → 23:59:59 chưa, 00:00:01 đã',
-    g4.join(',') === 'false/true,true/false,true/false', g4.join(','));
+    g4.join(',') === 'false/true,true/false,true/false', `${g4.join(',')} · GET HTTP ${dsMa.status} · ${dongMa.length} mã · hàm ${hamMa ? 'có' : 'không'}`);
   k('C2 mã giảm hạn 01.01.2027: 01.01 06:59:59 / 23:59:59 còn; 02.01 00:00:00 / 06:59:59 (UTC còn 01.01) hết (hồi quy)', c2.join(',') === 'true,true,false,false', c2.join(','));
 
   await datCai('nhandiem_enabled', '1'); await datCai('nhandiem_han_gio', '24');
