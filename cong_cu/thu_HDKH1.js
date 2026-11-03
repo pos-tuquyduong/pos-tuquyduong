@@ -155,7 +155,11 @@ async function main() {
     return goi('POST', '/payos/webhook', { code: '00', desc: 'success', success: true, data, signature: hmac(chuoiKy(data)) });
   };
   const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack || e.message); } };
-  const quay = async (kh, than) => (await goi('POST', '/pos/orders', { payment_method: 'cash', customer_phone: kh.sdt, customer_name: 'Chị Hoa', ...than }, tkChu)).j.order;
+  const quay = async (kh, than) => {
+    const r = await goi('POST', '/pos/orders', { payment_method: 'cash', customer_phone: kh.sdt, customer_name: 'Chị Hoa', ...than }, tkChu);
+    if (!r.j.order) logGoc('  (đơn quầy không tạo được)', r.status, r.tho.slice(0, 200));
+    return r.j.order;
+  };
 
   const hangId = Number((await db.run(`INSERT INTO pos_membership_tiers (name, card_price, discount_percent, special_discount_percent, sort_order, is_active)
     VALUES ('Vàng thử', 1000, 10, 5, 9, 1)`)).lastInsertRowid);
