@@ -56,7 +56,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
   · `khach` (trai = nhãn, phai = tên) · `mon` (trai = "SL x tên", phai = thành tiền) · dòng tiền `gia_goc` `giam_hang` `giam_flash` `giam_ma` `phi_giao` `tong`
   · `tieu_de` (đầu mục THANH TOÁN / ĐIỂM THƯỞNG) · dòng trả `tu_tk` `tu_tk_me` `ck` `tm` `ghi_no` `dua_tra` · dòng điểm `diem_truoc` `diem_doi` `diem_cong`
   `diem_co` · `chan` (lời cảm ơn, chính sách, ghi chú). App bỏ qua `loai` lạ nhưng vẫn vẽ `trai` / `phai`. KHÔNG có QR, mã nhận điểm, SĐT. Đơn App chưa
-  có đơn thật (đang chờ trả, đã huỷ) hoặc máy chủ không dựng được tờ → `[]` (App tự vẽ từ `mon[]`).
+  có đơn thật (đang chờ trả, hoặc huỷ TRƯỚC khi trả) hoặc máy chủ không dựng được tờ → `[]` (App tự vẽ từ `mon[]`).
 
 ### Ghi chú v4 — thông tin ngắn của món (`/menu`)
 - Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (luôn

@@ -7,7 +7,7 @@
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { query } = require('../database');
-const { dungHoaDon } = require('../routes/hoaDon');
+const hoaDonQuay = require('../routes/hoaDon');
 
 const FILE_HOA_DON = path.join(__dirname, '..', '..', 'client', 'src', 'utils', 'hoaDon.js');
 let nap = null;
@@ -42,8 +42,8 @@ function detTo(to) {
 
 /** Dòng hoá đơn tờ giao khách của MỘT đơn thật (dòng pos_orders của chính khách đang xem). */
 async function dongHoaDonKhach(o) {
-  const [{ dungHoaDon: dungTo }, hd, caiDat] = await Promise.all([hamQuay(), dungHoaDon(o), docCaiDat()]);
+  const [{ dungHoaDon: dungTo }, hd, caiDat] = await Promise.all([hamQuay(), hoaDonQuay.dungHoaDon(o), docCaiDat()]);
   return detTo(dungTo(hd, caiDat, { lien: 'khach', inLai: false }));
 }
 
-module.exports = { dongHoaDonKhach, detTo, docCaiDat };
+module.exports = { dongHoaDonKhach };

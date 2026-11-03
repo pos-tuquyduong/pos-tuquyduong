@@ -255,17 +255,17 @@ const CO_TIEN_VE = "EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos =
 const CAU_DON = `SELECT * FROM (
     SELECT o.code AS ma_bill, o.created_at AS ngay, o.total AS tong, o.debt_amount AS no, o.status AS trang_thai, o.payment_status AS thanh_toan,
       o.id AS oid, a.ma AS ma_app, a.than, a.tien_trinh_quay, p.trang_thai AS p_tt, p.het_han, p.qr, ${CO_TIEN_VE} AS tien_ve, 1 AS loai,
-      p.cach, p.giu_vi, p.giu_vi_me, p.con_lai
+      p.cach, p.giu_vi, p.con_lai
     FROM pos_orders o LEFT JOIN pos_phien_thanh_toan p ON p.order_id = o.id LEFT JOIN pos_don_app a ON a.phien_id = p.id
     WHERE o.customer_phone = ?
     UNION ALL
-    SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.giu_vi_me, p.con_lai
+    SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.con_lai
     FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id WHERE a.phone = ? AND ${THAY_DUOC} AND p.order_id IS NULL)`;
 
 /** cach_tra / giu_vi / con_lai của đơn App, đọc từ phiên (không có cột riêng): thanh toán bằng tài khoản → vi; QR có giữ ví → vi_qr; còn lại → qr. Đơn quầy → null. */
 function cachTraCua(r) {
   if (!r.ma_app) return { cach_tra: null, giu_vi: null, con_lai: null };
-  const cach = r.cach === 'tai_khoan' ? 'vi' : r.giu_vi + r.giu_vi_me > 0 ? 'vi_qr' : 'qr';
+  const cach = r.cach === 'tai_khoan' ? 'vi' : r.giu_vi > 0 ? 'vi_qr' : 'qr';
   return { cach_tra: cach, giu_vi: r.giu_vi, con_lai: r.con_lai };
 }
 

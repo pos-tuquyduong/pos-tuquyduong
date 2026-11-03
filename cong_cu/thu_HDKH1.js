@@ -226,6 +226,15 @@ async function main() {
     k('A8 tờ (có dòng) KHÔNG chứa mã nhận điểm "TQD-", SĐT đầy đủ của khách, hay địa chỉ QR', dChu.length > 0 && d6.length > 0 && d3.length > 0 && !/TQD-/.test(chuoi) && !chuoi.includes(kLe.sdt) && !chuoi.includes('app.thu.vn')
       && !dChu.some((d) => d.loai === 'qr' || d.loai === 'ma_diem'));
     await datCaiDat('invoice_chu_cam_on', ''); await datCaiDat('invoice_an_chinh_sach', 'false'); await datCaiDat('invoice_chu_ten_quan', 'TỨ QUÝ ĐƯỜNG');
+    // A9: hàm dựng tờ ném lỗi → xem đơn VẪN 200 (hoa_don = [], mon[] đủ), không 500 (hợp đồng v6: không dựng được → [])
+    const hoaDonQuay = require(R('hoaDon.js'));
+    const dungGoc = hoaDonQuay.dungHoaDon;
+    hoaDonQuay.dungHoaDon = async () => { throw new Error('lỗi giả của bài thử'); };
+    imLang();
+    let hong9;
+    try { hong9 = await goi('GET', `/kh/don/${o1.code}`, undefined, kLe.tk); } finally { hoaDonQuay.dungHoaDon = dungGoc; noiLai(); }
+    k('A9 hàm dựng tờ ném lỗi: GET /kh/don/:ma vẫn 200, hoa_don=[], mon[] đủ (không 500)', hong9.status === 200 && bang(hong9.j.don?.hoa_don, []) && hong9.j.don?.mon?.length === 2,
+      `HTTP ${hong9.status} ${hong9.tho.slice(0, 120)}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
