@@ -251,7 +251,6 @@ async function main() {
   const dsB = '/v2/customers';
   const NS = luiNam(homNay, 30);   // 30 tuổi — hợp lệ
   const kB = await khachMoi('Khách B');
-  const nB = await soKhach();
   const b0 = await pos('PUT', `${dsB}/${kB.sdt}/ngay-sinh`, { ngay_sinh: NS }, tkNv);
   const soB = await soDb(kB.sdt);
   k('B1 nhân viên nhập khi đang trống → 200, ngày lưu đúng', b0.status === 200 && b0.j.ngay_sinh === NS && await ngaySinhDb(kB.sdt) === NS, mt(b0));
@@ -285,9 +284,10 @@ async function main() {
   const ld201 = await pos('PUT', `${dsB}/${kLd.sdt}/ngay-sinh`, { ngay_sinh: NS, ly_do: 'l'.repeat(201) }, tkChu);
   const ld200 = await pos('PUT', `${dsB}/${kLd.sdt}/ngay-sinh`, { ngay_sinh: NS, ly_do: 'l'.repeat(200) }, tkChu);
   k('B5d lý do dài 201 ký tự → 400 LY_DO_BAT_BUOC (ngày nguyên); đúng 200 ký tự → 200', la(ld201, 400, 'LY_DO_BAT_BUOC') && ld200.status === 200 && await ngaySinhDb(kLd.sdt) === NS, mt(ld201) + ' / ' + mt(ld200));
+  const nTruoc = await soKhach();
   const kLa = await pos('PUT', `${dsB}/0944999999/ngay-sinh`, { ngay_sinh: NS }, tkNv);
   const kHong = await pos('PUT', `${dsB}/123/ngay-sinh`, { ngay_sinh: NS }, tkNv);
-  k('B6 khách không có → 404 KHACH_KHONG_TON_TAI và KHÔNG tạo khách mới (luật thiết kế 6); SĐT hỏng → 400', la(kLa, 404, 'KHACH_KHONG_TON_TAI') && kHong.status === 400 && await soKhach() === nB, mt(kLa) + ' / ' + mt(kHong));
+  k('B6 khách không có → 404 KHACH_KHONG_TON_TAI và KHÔNG tạo khách mới (luật thiết kế 6); SĐT hỏng → 400', la(kLa, 404, 'KHACH_KHONG_TON_TAI') && kHong.status === 400 && await soKhach() === nTruoc, mt(kLa) + ' / ' + mt(kHong));
   const kKo = await pos('PUT', `${dsB}/${kB.sdt}/ngay-sinh`, { ngay_sinh: NS });
   k('B6b không token → 401', kKo.status === 401, mt(kKo));
 
