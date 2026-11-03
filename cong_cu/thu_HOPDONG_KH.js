@@ -137,6 +137,9 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  // v7 (HANG-1): mọi hạng một gói 3 tháng có giá — `data[].goi[].so_thang` đòi mảng KHÔNG rỗng ở mọi hạng (gói chưa giá không hiện)
+  const giaGoi = () => db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");
+  await giaGoi();
   const R = (f) => path.join(GOC, 'server', 'routes', f);
   const app = express();
   app.use(express.json());
@@ -212,6 +215,7 @@ async function main() {
     const hang = Number((await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, special_discount_percent, sort_order, is_active) VALUES ('Mẫu', 1000, 10, 5, 9, 1)")).lastInsertRowid);
     await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at)
       VALUES (?, ?, 'Mẫu', 1000, NULL, ?, datetime('now', '+7 hours', '+300 days'))`, [SDT, hang, getNow()]);
+    await giaGoi();
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 80000)', [SDT]);
     maBill = (await don()).signup_code;
     maDiem = (await don()).signup_code;

@@ -115,7 +115,7 @@ async function main() {
   await db.run("INSERT INTO pos_product_groups (id, code, name) VALUES (91, 'NHOM_UUDAI1', 'Nhóm thử UUDAI-1')");
   for (const i of [0, 1]) await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (91, ?, ?)', [sp[i].sx_product_type, sp[i].sx_product_id]);
 
-  const hangId = Number((await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, special_discount_percent, sort_order, is_active) VALUES ('Vàng', 100000, 10, 20, 99, 1)")).lastInsertRowid);
+  const hangId = Number((await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, special_discount_percent, sort_order, is_active, goi) VALUES ('Vàng', 100000, 10, 20, 99, 1, json_array(json_object('so_thang', 3, 'gia', 100000, 'bat', json('true'))))")).lastInsertRowid);
   let soSdt = 0;
   const sdtMoi = () => '0938' + String(400000 + (++soSdt));
   const khachHang = async (hetHan = false) => {
@@ -368,7 +368,7 @@ async function main() {
     const mG = await taoMa('percent', 10);
     await caDon('G2 thẻ hết hạn + mã 10 % → không hạng: 90.000', await ban({ customer_phone: await khachHang(true), items: [mon(0, 2)], discount_code: mG }, 90000), 90000, 0, mG);
     await caDon('G2b khách lẻ (không SĐT) + mã 10 % → 90.000', await ban({ items: [mon(0, 2)], discount_code: mG }, 90000), 90000, 0, mG);
-    const g3 = await ban({ customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId } }, 145000);
+    const g3 = await ban({ customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId, so_thang: 3 } }, 145000);
     await caDon('G3 mua thẻ 100.000 + món 50.000, khách Vàng → hạng chỉ trên món: 145.000', g3, 145000, 5000, null);
     const goiId = Number((await db.run(`INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active)
       VALUES ('GOI_UUDAI1', 'Gói UUDAI-1', 300000, 'ly', 10, 1)`)).lastInsertRowid);
@@ -435,7 +435,7 @@ async function main() {
     caK4.push(['K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → 310.500',
       { customer_phone: await khachHang(), items: [mon(0, 1)], package_buy: { package_id: goiK4, total_qty: 10, pkg_qty: 1 }, discount_code: await taoMa('percent', 10) }, 310500]);
     caK4.push(['K4c MUA THẺ 100.000 + món 50.000, Vàng, mã tiền 5.000 → 150.000 − 5.000 − 5.000 = 140.000',
-      { customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId }, discount_code: await taoMa('fixed', 5000) }, 140000]);
+      { customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId, so_thang: 3 }, discount_code: await taoMa('fixed', 5000) }, 140000]);
     for (const [ten, than, tong] of caK4) {
       const tt = await tinhThu(than);
       const r = await ban(than, tt.total);
