@@ -1,20 +1,23 @@
 HD-KH-1 — bằng chứng ĐỎ trên code gốc (cây commit a022573 = code gốc 20460ff + bài thử, chép thật ra thư mục nháp), rồi XANH sau khi vá.
 
-$ node cong_cu/thu_HDKH1.js --goc <bản gốc>
+$ node cong_cu/thu_HDKH1.js --goc <bản gốc>        (bài bản cuối, 35 ca)
   ✗ A1 đơn thường ... hoa_don[] 18 dòng ... GIỐNG HỆT tờ khách của hàm quầy   (app trả hoa_don undefined)
-  ✗ A2 · A3 · A4 · A5 · A6 · A6c · A7 (cùng lỗi) và các ca b: giam_hang, giam_ma, phi_giao, canh_bao, tu_tk/ck, chữ quán sửa
+  ✗ A2 · A3 · A4 · A5 · A6 · A6c · A7 (cùng lỗi) và các ca b: giam_hang, giam_ma, phi_giao, canh_bao, tu_tk/ck, chữ quán sửa; A6e, A1c, A9
   ✗ B1 QR thuần ... cach_tra="qr", giu_vi=0, con_lai=50000  — ct [null,null,null]
   ✗ B2 ví đủ · B3 ví + QR chờ quét · B4 ví + QR sau khi quét xong · B5 đơn quầy null · B6 · B7
   ✗ C3 chính khách đọc được đơn của mình (hoa_don rỗng)
-  ✗ 8 đạt · 24 hỏng        (các ca đạt trên gốc là ca bảo vệ K5: C1 C2 C4 C5, B0, K5, A1b... — không bị chặn oan)
+  ✗ 8 đạt · 27 hỏng        (các ca đạt trên gốc là ca bảo vệ K5: C1 C2 C4 C5, B0, K5, A1b... — không bị chặn oan)
+
+Q1 (ẩn tên nhân viên đơn App, 03.11): ca A6 / A6c / A6e ĐỎ trên code của vòng sửa 1 (c64253b): "32 đạt · 3 hỏng" — dòng gio còn phai="app_kh"; sau khi vá XANH.
+Ca A1c (đơn quầy VẪN có tên nhân viên) bảo vệ K5.
 
 $ node cong_cu/thu_HOPDONG_KH.js   (bản có ca v6, hợp đồng + code gốc)
   ✗ v6: khối máy đọc ghi đủ cach_tra / giu_vi / con_lai (cả /don, /don/:ma) và hoa_don[] 6 trường
   81 đạt · 1 hỏng
 
-Sau khi vá (cả vòng sửa 1 của người soát: ca A9 ép lỗi dựng tờ, bỏ giu_vi_me chết): thu_HDKH1.js 33 đạt · 0 hỏng · thu_HOPDONG_KH.js 82 đạt · 0 hỏng.
-Đột biến: python3 viec/HD-KH-1/dot_bien.py → 24 đột biến · BẮT 24 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh).
+Sau khi vá: thu_HDKH1.js 35 đạt · 0 hỏng · thu_HOPDONG_KH.js 82 đạt · 0 hỏng · npm test PASS 93 · FAIL 0.
+Đột biến: python3 viec/HD-KH-1/dot_bien.py → 27 đột biến · BẮT 27 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh).
 Đột biến tương đương đã biết: bỏ cổng `r.loai ?` (donApp.js chiTietDon) → try/catch nuốt lỗi thành [] — hành vi quan sát không đổi, chỉ thêm dòng log.
 
-SỐ CA cong_cu/thu_HDKH1.js: 33
+SỐ CA cong_cu/thu_HDKH1.js: 35
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 82
