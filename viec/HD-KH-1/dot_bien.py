@@ -30,7 +30,10 @@ DOT_BIEN = [
   ('BV-CAU-DON-NHANH-2-THIEU-COT-PHIEN', 'hdkh', [(D, "${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.con_lai", "${CO_TIEN_VE}, 0, NULL, NULL, NULL", 1)], r'✗ B1 '),
   # ── A: hoa_don[] ──
   ('BV-BO-HOA-DON', 'hdkh', [(D, "hoa_don: r.loai ? await hoaDonCua(r.oid) : [] }", 'hoa_don: [] }', 1)], r'✗ A1 '),
-  ('VS-HOA-DON-SAI-DON', 'hdkh', [(D, 'await hoaDonCua(r.oid)', 'await hoaDonCua(1)', 1)], r'✗ A[2-6] '),
+  ('VS-HOA-DON-SAI-DON', 'hdkh', [(D, 'await hoaDonCua(r.oid, !!r.ma_app)', 'await hoaDonCua(1, !!r.ma_app)', 1)], r'✗ A[2-6] '),
+  ('BV-BO-AN-NHAN-VIEN', 'hdkh', [(DH, "  if (anNhanVien) hd.don.nhan_vien = '';\n", '', 1)], r'✗ A6'),
+  ('VS-AN-NHAN-VIEN-CA-DON-QUAY', 'hdkh', [(D, '{ anNhanVien: laDonApp }', '{ anNhanVien: true }', 1)], r'✗ A1c '),
+  ('VS-AN-NHAN-VIEN-KHONG-AN', 'hdkh', [(D, 'await hoaDonCua(r.oid, !!r.ma_app)', 'await hoaDonCua(r.oid, false)', 1)], r'✗ A6'),
   ('BV-BO-TRY-CATCH-HOA-DON', 'hdkh', [(D, "  } catch (e) {\n    console.error('HD-KH-1 dựng hoá đơn lỗi:', e.message);\n    return [];\n  }", "  } finally { /* bỏ catch */ }", 1)], r'✗ A9 '),
   ('VS-HOA-DON-LIEN-LUU', 'hdkh', [(DH, "{ lien: 'khach', inLai: false }", "{ lien: 'luu', inLai: false }", 1)], r'✗ A1 '),
   ('VS-CAI-DAT-THIEU-INVOICE', 'hdkh', [(DH, "key LIKE 'invoice%' OR key IN", 'key IN', 1)], r'✗ A7 '),

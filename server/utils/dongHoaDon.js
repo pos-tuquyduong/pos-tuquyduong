@@ -40,9 +40,11 @@ function detTo(to) {
   return ds;
 }
 
-/** Dòng hoá đơn tờ giao khách của MỘT đơn thật (dòng pos_orders của chính khách đang xem). */
-async function dongHoaDonKhach(o) {
+/** Dòng hoá đơn tờ giao khách của MỘT đơn thật (dòng pos_orders của chính khách đang xem).
+ *  anNhanVien (đơn App, chủ quán chốt 03.11): bỏ tên người tạo đơn khỏi dòng giờ — người tạo đơn App là "app_kh" hoặc nhân viên xác nhận tay. */
+async function dongHoaDonKhach(o, { anNhanVien = false } = {}) {
   const [{ dungHoaDon: dungTo }, hd, caiDat] = await Promise.all([hamQuay(), hoaDonQuay.dungHoaDon(o), docCaiDat()]);
+  if (anNhanVien) hd.don.nhan_vien = '';
   return detTo(dungTo(hd, caiDat, { lien: 'khach', inLai: false }));
 }
 

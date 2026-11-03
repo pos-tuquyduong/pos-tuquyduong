@@ -52,7 +52,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
 - `hoa_don[]` (chỉ ở `GET /don/:ma`): các dòng của tờ GIAO KHÁCH, dựng sẵn bằng CÙNG hàm của hoá đơn in ở quầy (`client/src/utils/hoaDon.js`) trên
   cùng dữ liệu + cùng chữ ở Cài đặt hoá đơn; App chỉ vẽ theo thứ tự, không tự tính / xếp. Mỗi dòng đủ 6 trường: `loai` (xem dưới), `trai`, `phai`
   (chữ, có thể rỗng), `dam` (true = in đậm cả dòng), `gach` (chữ gạch ngang — giá gốc của món có giá hạng, còn lại rỗng), `ghi_chu` (ghi chú của món).
-  `loai`: `canh_bao` (đơn huỷ / hoàn) · `ten_quan` · `dia_chi` · `so_bill` (trai = chữ "SỐ BILL", phai = số bill) · `nhan` · `gio` (trai = giờ, phai = nhân viên)
+  `loai`: `canh_bao` (đơn huỷ / hoàn) · `ten_quan` · `dia_chi` · `so_bill` (trai = chữ "SỐ BILL", phai = số bill) · `nhan` · `gio` (trai = giờ, phai = nhân viên — RỖNG với đơn App, chủ quán 03.11)
   · `khach` (trai = nhãn, phai = tên) · `mon` (trai = "SL x tên", phai = thành tiền) · dòng tiền `gia_goc` `giam_hang` `giam_flash` `giam_ma` `phi_giao` `tong`
   · `tieu_de` (đầu mục THANH TOÁN / ĐIỂM THƯỞNG) · dòng trả `tu_tk` `tu_tk_me` `ck` `tm` `ghi_no` `dua_tra` · dòng điểm `diem_truoc` `diem_doi` `diem_cong`
   `diem_co` · `chan` (lời cảm ơn, chính sách, ghi chú). App bỏ qua `loai` lạ nhưng vẫn vẽ `trai` / `phai`. KHÔNG có QR, mã nhận điểm, SĐT. Đơn App chưa

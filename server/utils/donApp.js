@@ -296,13 +296,13 @@ async function chiTietDon(phone, ma) {
       ma: d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null, ten: d.product_name, so_luong: d.quantity,
       don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes }))
     : JSON.parse(r.than).dong.map((d) => ({ ma: d.ma, ten: d.ten, so_luong: d.so_luong, don_gia: d.don_gia, thanh_tien: d.thanh_tien, ghi_chu: d.ghi_chu }));
-  return { ...tomDon(r), mon, hoa_don: r.loai ? await hoaDonCua(r.oid) : [] };
+  return { ...tomDon(r), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
 }
 
 /** Tờ hoá đơn giao khách của đơn thật. Không dựng được thì [] (App tự vẽ từ mon[]) — không làm hỏng việc xem đơn. */
-async function hoaDonCua(oid) {
+async function hoaDonCua(oid, laDonApp) {
   try {
-    return await dongHoaDonKhach(await queryOne('SELECT * FROM pos_orders WHERE id = ?', [oid]));
+    return await dongHoaDonKhach(await queryOne('SELECT * FROM pos_orders WHERE id = ?', [oid]), { anNhanVien: laDonApp });
   } catch (e) {
     console.error('HD-KH-1 dựng hoá đơn lỗi:', e.message);
     return [];
