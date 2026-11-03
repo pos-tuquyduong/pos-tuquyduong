@@ -289,7 +289,7 @@ async function main() {
   const kHong = await pos('PUT', `${dsB}/123/ngay-sinh`, { ngay_sinh: NS }, tkNv);
   k('B6 khách không có → 404 KHACH_KHONG_TON_TAI và KHÔNG tạo khách mới (luật thiết kế 6); SĐT hỏng → 400', la(kLa, 404, 'KHACH_KHONG_TON_TAI') && kHong.status === 400 && await soKhach() === nTruoc, mt(kLa) + ' / ' + mt(kHong));
   const kKo = await pos('PUT', `${dsB}/${kB.sdt}/ngay-sinh`, { ngay_sinh: NS });
-  const kqTrucTiep = ct ? await ct.datNgaySinh({ phone: '0944888777', ngaySinh: NS, nguoi: 'thu', choPhepSua: false }) : null;
+  const kqTrucTiep = ct ? await an(() => ct.datNgaySinh({ phone: '0944888777', ngaySinh: NS, nguoi: 'thu', choPhepSua: false })) : null;
   k('B6c hàm dùng chung datNgaySinh với SĐT không có khách → loi KHACH_KHONG_TON_TAI (không ném lỗi)', kqTrucTiep?.loi?.code === 'KHACH_KHONG_TON_TAI' && kqTrucTiep.loi.status === 404, JSON.stringify(kqTrucTiep));
   k('B6b không token → 401', kKo.status === 401, mt(kKo));
 
