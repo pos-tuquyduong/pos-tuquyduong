@@ -473,4 +473,17 @@ export const usersApi = {
   updatePermissions: (role, permissions) => api.put(`/permissions/${role}`, { permissions })
 };
 
+// HANG-1 · Hạng thẻ: cài đặt hạng + gói, PIN chủ quán, cấp / thu hồi hạng chỉ cấp (chủ quán + PIN), nhật ký hạng của khách
+export const hangApi = {
+  ds: () => api.get('/tiers'),
+  luu: (body) => api.put('/tiers', body),
+  xoa: (id) => api.delete(`/tiers/${id}`),
+  coPin: () => api.get('/membership/pin-chu-quan'),
+  datPin: (matKhau, pin, pinLai) => api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai }),
+  trangThai: (sdt) => api.get(`/membership/status/${encodeURIComponent(sdt)}`),
+  cap: (sdt, tierId, soThang, pin) => api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin }),
+  thuHoi: (sdt, tierId, pin) => api.post('/membership/thu-hoi', { phone: sdt, tier_id: tierId, pin }),
+  nhatKy: (sdt) => api.get(`/membership/nhat-ky/${encodeURIComponent(sdt)}`)
+};
+
 export default api;

@@ -6,12 +6,15 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api, customersV2Api, registrationsApi } from '../utils/api';
+import { api, customersV2Api, registrationsApi, hangApi } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
+import CapHang from '../components/CapHang';   // HANG-1: cấp hạng (chủ quán + PIN) + nhật ký hạng
 import MaDangNhapApp from '../components/MaDangNhapApp';
 import MaAppSoMoi from '../components/MaAppSoMoi';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
 
 export default function Customers() {
+  const { hasPermission } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0 });
   const [loading, setLoading] = useState(true);
@@ -40,17 +43,13 @@ export default function Customers() {
   const [redeemResult, setRedeemResult] = useState(null);
   const [showRedeem, setShowRedeem] = useState(false);
 
-  // === TIER-1c: hạng thành viên hiện tại (chỉ xem — mua thẻ qua màn Bán hàng, như 1 sản phẩm) ===
+  // === TIER-1c / HANG-1: hạng thành viên hiện tại (hạng CAO NHẤT còn hạn). Mua thẻ qua màn Bán hàng; chủ quán cấp hạng "chỉ cấp" ở CapHang ===
   const [membershipStatus, setMembershipStatus] = useState(null);
 
   const loadMembershipStatus = async (phone) => {
     if (!phone) { setMembershipStatus(null); return; }
     try {
-      const token = localStorage.getItem('pos_token');
-      const res = await fetch(`/api/pos/membership/status/${encodeURIComponent(phone)}`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const result = await res.json();
+      const result = await hangApi.trangThai(phone);
       if (result.success) setMembershipStatus(result.data);
     } catch (err) {
       console.error('Load membership status error:', err);
@@ -491,7 +490,7 @@ export default function Customers() {
                           fontWeight: 700, padding: '2px 7px', borderRadius: 5, fontSize: '0.75rem', whiteSpace: 'nowrap',
                           background: c.membership.status === 'expired' ? '#fee2e2' : c.membership.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
                           color: c.membership.status === 'expired' ? '#b91c1c' : c.membership.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
-                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : `Còn ${c.membership.days_remaining} ngày`}>
+                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : c.membership.vo_han ? 'Không thời hạn' : `Còn ${c.membership.days_remaining} ngày`}>
                           {c.membership.tier_name}{c.membership.status !== 'active' && ` (${c.membership.status === 'expired' ? 'hết hạn' : c.membership.days_remaining + 'n'})`}
                         </span>
                       )}
@@ -713,12 +712,13 @@ export default function Customers() {
                         ) : membershipStatus.status === 'expiring_soon' ? (
                           <span style={{ color: '#92400e', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
                         ) : (
-                          <span style={{ color: '#64748b', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
+                          <span style={{ color: '#64748b', marginLeft: 6 }}>{membershipStatus.vo_han ? 'Không thời hạn' : `Còn ${membershipStatus.days_remaining} ngày`}</span>
                         )}
                       </span>
                     )}
                   </div>
                 </div>
+                <CapHang sdt={selectedCustomer.phone} coQuyen={hasPermission('cap_hang')} onDoi={() => loadMembershipStatus(selectedCustomer.phone)} />
 
                 {/* LOY-2: khu đổi quà tại quầy */}
                 {showRedeem && (
