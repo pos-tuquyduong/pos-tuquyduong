@@ -9,6 +9,7 @@
 const XLSX = require('xlsx');
 const { query } = require('../database');
 const { trongGiaoDich } = require('../routes/wallets');   // cùng khuôn giuCho.js: một giao dịch, lỗi thì rollback rồi ném tiếp
+const { chuanHoaGio } = require('./chuanHoaGio');   // GIO-VN-1: bản sao lưu cũ còn giờ UTC → đổi giờ VN như bước 012
 
 const docTrang = (ws) => XLSX.utils.sheet_to_json(ws, { defval: null });
 
@@ -54,8 +55,9 @@ async function lapKeHoach(wb, bangSaoLuu) {
   return keHoach;
 }
 
-/** Chạy kế hoạch trong MỘT giao dịch. Lỗi dữ liệu → ném { loiDong: { bang, trang, dong, ly_do } }; lỗi khác (kho bận, mạng) → ném nguyên lỗi. */
-async function thucHien(keHoach) {
+/** Chạy kế hoạch trong MỘT giao dịch. Lỗi dữ liệu → ném { loiDong: { bang, trang, dong, ly_do } }; lỗi khác (kho bận, mạng) → ném nguyên lỗi.
+ *  banCu (file sao lưu ghi TRƯỚC GIO-VN-1) → đổi giờ cũ sang giờ VN như bước 012, cùng giao dịch; file mới khôi phục y nguyên. */
+async function thucHien(keHoach, { banCu = false } = {}) {
   const lam = keHoach.filter((m) => m.status === 'se_khoi_phuc').sort((a, b) => a.viTri - b.viTri);
   await trongGiaoDich(async (tx) => {
     const chay = async (m, soDong, sql, args) => {   // soDong null = câu xoá bảng
@@ -69,6 +71,7 @@ async function thucHien(keHoach) {
       const sql = `INSERT INTO ${m.table} (${m.cot.map((c) => `"${c}"`).join(', ')}) VALUES (${m.cot.map(() => '?').join(', ')})`;
       for (const d of m.dong) await chay(m, d.__rowNum__ + 1, sql, m.cot.map((c) => d[c]));   // dòng Excel thật (__rowNum__ đếm từ 0, đã tính dòng trống bị bỏ)
     }
+    if (banCu) await chuanHoaGio(tx, { saoLuu: false });   // bản gốc là chính file vừa nạp
   });
 }
 

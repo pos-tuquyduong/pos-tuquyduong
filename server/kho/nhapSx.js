@@ -180,8 +180,8 @@ async function ghiKeHoach(tx, kh, luc) {
     if (m.pos_id == null) {
       // is_active = 1, giá NULL = chưa có giá (quy ước POS-TONCU-v1 của routes/products.js): menu trả price null, sellable false;
       // tạo đơn (routes/orders.js) từ chối giá <= 0 (null <= 0). Chủ quán đặt giá ở màn giá (PUT /products/price, /batch/prices) là bán được.
-      await tx.run(`INSERT OR IGNORE INTO pos_products (code, name, category, price, unit, is_active, sx_product_type, sx_product_id)
-        VALUES (?, ?, ?, NULL, ?, 1, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id]);
+      await tx.run(`INSERT OR IGNORE INTO pos_products (code, name, category, price, unit, is_active, sx_product_type, sx_product_id, created_at)
+        VALUES (?, ?, ?, NULL, ?, 1, ?, ?, ?)`, [m.code, m.ten, m.loai, m.loai === 'tea' ? 'gói' : 'túi', m.loai, m.khoa_id, luc]);
     }
     const spId = m.pos_id ?? await idTheo('SELECT id FROM pos_products WHERE code = ?', [m.code]);
     if (m.kieu) {
