@@ -54,8 +54,9 @@ const DANG_T = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
 // Đồng hồ giả: datVN('2027-01-01T00:00:00') = giờ Việt Nam đó (máy chủ thấy UTC trừ 7 giờ).
 const DateGoc = Date;
 let gio = DateGoc.UTC(2026, 10, 2, 5, 0, 0);
+const chuoiVaoDate = [];   // G3: chuỗi đưa vào new Date(...) — trình duyệt điện thoại (Safari) chỉ đọc chắc dạng ISO có T + múi
 global.Date = class extends DateGoc {
-  constructor(...a) { if (a.length === 0) super(gio); else super(...a); }
+  constructor(...a) { if (a.length === 0) super(gio); else { if (typeof a[0] === 'string') chuoiVaoDate.push(a[0]); super(...a); } }
   static now() { return gio; }
 };
 const datVN = (s) => { gio = DateGoc.parse(s + 'Z') - 7 * 3600000; };
@@ -208,8 +209,10 @@ async function main() {
     kqGD.viPham.slice(0, 8).map((v) => `${v.tep.replace('client/src/', '')}:${v.dong} ${v.mau.split(' ')[0]}`).join(' | ') + (kqGD.viPham.length > 8 ? ' …' : ''));
   k('G1b mọi ngoại lệ màn quầy còn khớp chỗ có thật (không ngoại lệ chết)', kqGD.ngoaiLeChet.length === 0, kqGD.ngoaiLeChet.map((n) => n[0]).join(' | '));
   const tzGoc = process.env.TZ;
+  // Điện thoại: múi 0, múi ÂM, múi DƯƠNG và chính múi của quầy (+7) — lỗi "dựng ngày theo giờ máy rồi toISOString" chỉ lộ ở múi dương.
+  const MUI_DT = ['UTC', 'America/Los_Angeles', 'Asia/Ho_Chi_Minh', 'Asia/Tokyo'];
   const g2 = [], g2Mong = [];
-  for (const tz of ['UTC', 'America/Los_Angeles']) {
+  for (const tz of MUI_DT) {
     process.env.TZ = tz;
     for (const [luc, loai, mong] of [
       ['2026-12-01T03:00:00', 'thisMonth', '2026-12-01..2026-12-01'], ['2026-12-01T03:00:00', 'lastMonth', '2026-11-01..2026-11-30'],
@@ -224,10 +227,11 @@ async function main() {
     }
   }
   const g2Sai = g2.filter((x, i) => x !== g2Mong[i]);
-  k('G2 nút lọc Lịch sử đơn (khoangNgay) theo giờ VN — điện thoại TZ=UTC và TZ=America/Los_Angeles: 01.12 03:00 VN tháng này = 01.12, tháng trước = 01–30.11; 01.01 06:59:59; 31.03 23:30; năm nhuận',
+  k('G2 nút lọc Lịch sử đơn (khoangNgay) theo giờ VN — điện thoại TZ=UTC / Los Angeles / Hồ Chí Minh / Tokyo: 01.12 03:00 VN tháng này = 01.12, tháng trước = 01–30.11; 01.01 06:59:59; 31.03 23:30; năm nhuận',
     g2Sai.length === 0, g2Sai.slice(0, 3).join(' | '));
   const g3 = [];
-  for (const tz of ['UTC', 'America/Los_Angeles']) {
+  chuoiVaoDate.length = 0;
+  for (const tz of MUI_DT) {
     process.env.TZ = tz;
     const t = (f, ...a) => { try { return f(...a); } catch (e) { return 'lỗi ' + e.message; } };
     g3.push(t(() => [NV.docGioVN('2026-11-02T12:00:00'), NV.docGioVN('2026-11-02 12:00:00'), NV.docGioVN('2026-11-02T05:00:00Z'), NV.docGioVN('2026-11-02T05:00:00.000Z')]
@@ -237,8 +241,11 @@ async function main() {
   }
   process.env.TZ = tzGoc;
   const g3Mong = [true, '31/12/2026', '31/12/2026', '00:30', '23:30:00 2/11/2026', '', ''];
-  k('G3 docGioVN (chuỗi máy chủ không hậu tố = giờ VN; dấu cách cũ; đuôi Z; ngày thuần = 00:00 VN) + hienNgay / hienGio / hienNgayGio in giờ VN ở điện thoại UTC và Los Angeles; rỗng → ""',
-    JSON.stringify(g3) === JSON.stringify([...g3Mong, ...g3Mong]), JSON.stringify(g3));
+  const chuoiLa = chuoiVaoDate.filter((x) => !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(Z|[+-]\d\d:\d\d)$/.test(x));
+  k('G3 docGioVN (chuỗi máy chủ không hậu tố = giờ VN; dấu cách cũ; đuôi Z; ngày thuần = 00:00 VN) + hienNgay / hienGio / hienNgayGio in giờ VN ở điện thoại UTC / Los Angeles / Hồ Chí Minh / Tokyo; rỗng → ""',
+    JSON.stringify(g3) === JSON.stringify(MUI_DT.flatMap(() => g3Mong)), JSON.stringify(g3));
+  k('G3b chuỗi ngayVN.js đưa vào new Date đúng dạng ISO có T + múi (Safari / iPhone không đọc dạng dấu cách) — Node đọc lỏng nên phải soi chuỗi',
+    chuoiVaoDate.length > 0 && chuoiLa.length === 0, `${chuoiVaoDate.length} chuỗi · lạ: ${chuoiLa.slice(0, 3).join(' | ')}`);
 
   // ═══════════════ kho tạm + route thật ═══════════════
   datVN('2026-11-02T12:00:00');
@@ -400,6 +407,17 @@ async function main() {
   await db.run("INSERT INTO pos_signup_codes (code, issued_at, claimed_at, claimed_phone) VALUES ('GV1C2', '2026-12-01T10:00:00', '2026-12-01T11:00:00', '0938000040')");
   const conMa = async (moc) => { datVN(moc); return (await layMaKhachMoi('0938000040')).some((d) => d.code === 'GV1C2'); };
   const c2 = [await conMa('2027-01-01T06:59:59'), await conMa('2027-01-01T23:59:59'), await conMa('2027-01-02T00:00:00'), await conMa('2027-01-02T06:59:59')];
+  await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, valid_from, is_active, created_at) VALUES ('GV1G4', 'fixed', 1000, '2027-01-02', 1, '2026-12-01T10:00:00')");
+  const dsMa = await goi('GET', '/api/pos/discount-codes');
+  const dongMa = Object.keys(dsMa).filter((x) => /^\d+$/.test(x)).map((x) => dsMa[x]);   // goi trải mảng JSON thành { 0: …, 1: …, status }
+  const maC2 = dongMa.find((x) => x.code === 'GV1C2'), maG4 = dongMa.find((x) => x.code === 'GV1G4');
+  const srcMa = doc(path.join(GOC, 'client', 'src', 'pages', 'DiscountCodes.jsx'));
+  let hamMa = null;
+  try { hamMa = new Function('ngayVN', [...srcMa.matchAll(/^const (hetHan|chuaBatDau) = .*$/gm)].map((m) => m[0]).join('\n') + '\nreturn { hetHan, chuaBatDau };')(NV.ngayVN); } catch { /* chưa có hàm */ }
+  const g4 = [];
+  for (const moc of ['2027-01-01T23:59:59', '2027-01-02T00:00:01', '2027-01-02T06:59:59']) { datVN(moc); g4.push(hamMa && maC2 && maG4 ? `${hamMa.hetHan(maC2)}/${hamMa.chuaBatDau(maG4)}` : 'thiếu'); }
+  k('G4 màn Mã giảm giá (hàm của DiscountCodes.jsx trên dòng THẬT của GET /discount-codes): hạn 01.01 → 23:59:59 còn, 02.01 00:00:01 và 06:59:59 (UTC còn 01.01) hết; bắt đầu 02.01 → 23:59:59 chưa, 00:00:01 đã',
+    g4.join(',') === 'false/true,true/false,true/false', g4.join(','));
   k('C2 mã giảm hạn 01.01.2027: 01.01 06:59:59 / 23:59:59 còn; 02.01 00:00:00 / 06:59:59 (UTC còn 01.01) hết (hồi quy)', c2.join(',') === 'true,true,false,false', c2.join(','));
 
   await datCai('nhandiem_enabled', '1'); await datCai('nhandiem_han_gio', '24');

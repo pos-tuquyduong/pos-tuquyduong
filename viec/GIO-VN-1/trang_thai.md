@@ -274,3 +274,50 @@ HEAD ĐÃ KIỂM: 69b8ba4
 - Bài thử viết TRƯỚC (commit f36cb57), đỏ trên code trước vòng: 52 đạt · 7 hỏng; trên gốc 36b98b8: 23 đạt · 36 hỏng; sau vá 59 đạt · 0 hỏng.
   Đột biến 61/61 BẮT (đối chứng xanh). `npm test -- --day-du`: PASS 97 · FAIL 0 · CẢNH BÁO 1 (có sẵn); dist build lại, khớp src.
 - Lint màn đã sửa: không có biến thừa / chưa khai báo (chỉ cảnh báo `exhaustive-deps` có sẵn).
+
+## Soát độc lập — vòng sửa thêm 03.11 (agent /ra-soat, nguyên văn)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+  cong_cu/thu_GIOVN1.js:216 (G2) và :229 (G3) — chỉ thử điện thoại ở TZ=UTC và TZ=America/Los_Angeles (múi 0 và múi âm), không thử múi DƯƠNG,
+     trong khi quầy thật chạy múi Asia/Ho_Chi_Minh (+7). Đột biến mình dựng: SOAT-CONGNGAY-GIO-MAY, ở client/src/utils/ngayVN.js trong hàm congNgay
+     đổi `new Date(Date.UTC(y, m - 1, d + n))` thành `new Date(y, m - 1, d + n)` (dựng ngày theo giờ máy). Chạy qua chính khung
+     dot_bien.py.chay() (scratchpad/dbx.py) → SỐNG, bài xanh trọn. Thử thẳng (scratchpad/m.js): ở TZ=Asia/Ho_Chi_Minh, hôm nay 01.12 thì
+     "tháng trước" = 2026-11-01..2026-11-29, "hôm qua" = 29.11, "7 ngày" = 24.11..01.12 — sai một ngày đúng trên máy quầy. Ở UTC / Los Angeles
+     kết quả y hệt bản gốc. Việc 2 của vòng này chỉ được khoá ở nửa không dùng tới. — K3
+  cong_cu/thu_GIOVN1.js:232 (G3) — đột biến SOAT-BO-DOI-DAU-CACH: ở ngayVN.js trong hàm docGioVN bỏ `.replace(' ', 'T')` → SỐNG.
+     Lý do: Node đọc được '2026-11-02 12:00:00+07:00' (đã chạy: ra 05:00Z), còn Safari / iPhone trả Invalid Date với dạng có dấu cách.
+     Ca "dấu cách cũ" của G3 không bắt được gì trong Node. Cách vá: so CHUỖI truyền vào new Date (phải có T), không so kết quả. — K3
+  client/src/pages/DiscountCodes.jsx:14-16 — hetHan / chuaBatDau đọc c.end_date / c.start_date. Nhưng GET /discount-codes trả `SELECT *`
+     (server/routes/discount-codes.js:25-35), và bảng pos_discount_codes chỉ có valid_from / valid_to (server/database.js:657-658).
+     start_date / end_date là cột của pos_promotions (database.js:444, 458-459). Hai hàm luôn trả false: phần "sửa hạn mã theo ngày VN" không có
+     tác dụng gì, huy hiệu "Hết hạn" và bộ lọc không bao giờ bật, dòng 428-430 không bao giờ hiện khoảng ngày.
+     Chú thích dòng 14 viết "cùng cách máy chủ (… so valid_from / valid_to)" mà lại đọc trường khác — khẳng định sai ngay trong dòng vá.
+     trang_thai.md có ghi ở Phát hiện, nhưng bảng "Chỗ vá → đột biến" vẫn coi đây là chỗ vá (BV-MA-GIAM-HAN-THEO-DIEN-THOAI chỉ bắt phép quét G1).
+     Đột biến SOAT-HAN-MA-LUON-SAI (hetHan luôn false) → SỐNG. Sửa đúng chỉ tốn 2 dòng: đọc c.valid_to / c.valid_from. — K1 + K3
+  server/utils/chuanHoaGio.js:4 — chú thích đầu file còn câu "Chỉ đổi giá trị nhận biết CHẮC CHẮN …, không đoán". Luật 4 (dòng 8-9, 59) nay
+     ghi đè mọi giá trị cài đặt chưa dạng T bằng giờ lúc chạy, nên câu này sai. Theo TU-CHAY-6 phải sửa cùng dòng vá. — K1 (nhẹ)
+  client/src/components/InvoicePrint.jsx:71 — chú thích "giờ máy chủ = giờ VN", nhưng khi không có created_at thì lấy `new Date()` của điện
+     thoại (giờ tuyệt đối, in theo múi VN — vẫn đúng nếu đồng hồ máy đúng). Chú thích nói quá. — K1 (rất nhẹ)
+NGHI NGỜ:
+  - ke_hoach.md (bảng Vòng sửa thêm, dòng (1)) viết "012 chưa chạy trên quầy (nhánh chưa gộp)". Mình không kiểm được: không có main / origin/main
+    ở bản chép, git ls-tree bị người gác chặn. Nếu 012 đã ghi trong pos_nang_cap ở Turso hay data/pos_thu.db thì luật 4 sẽ KHÔNG BAO GIỜ chạy ở đó
+    (bước chạy một lần). Cần chủ quán / chat xác nhận trước khi gộp.
+  - G3 so với chuỗi định dạng ICU của Node ('23:30:00 2/11/2026'). Trình duyệt có thể in khác, nên G3 khoá múi giờ chứ không khoá đúng chữ hiển thị.
+  - Giới hạn của phép quét GD đã được ghi: biến Date gọi .toLocaleString lọt. Lọt thêm (chưa ghi): `new Date (x)` có dấu cách, và `new Date(`
+    cuối dòng với đối số ở dòng sau (GD4 soi từng dòng). Code hiện tại không dính chỗ nào.
+  - docGioVN `t.length > 10 &&` (ngayVN.js:19) thừa: regex không khớp được ngày thuần. Đột biến bỏ vế này tương đương (không phải lỗi).
+  - trang_thai.md chưa ghi lượt chạy cổng cho HEAD 0dd0eb4 (dòng HEAD ĐÃ KIỂM còn 69b8ba4). Mình đã tự chạy
+    `node tu_chay/cong.js chay . 36b98b8^ HEAD viec/GIO-VN-1` → ✓ CỔNG CHẠY ĐẠT.
+NGHIỆM THU:    10/10 mục có bằng chứng; việc 2 và việc 3 bằng chứng YẾU (đột biến sống ở trên).
+  A — A1–A2j · B — B0–B5, B6/B6b/B6c (luật 4 chưa có trong QUYET_DINH_CHU_QUAN.md — chat ghi sổ) · C — C1–C11 · D — D5 + A1 + GD1–GD4 ·
+  E — E1, E2 · K5 — B4, K5b, --day-du PASS 97 · FAIL 0 · CẢNH BÁO 1, cổng ĐẠT · Việc 1 — chuanHoaGio.js:59 + B1/B1b/B1c/B1e/B2/B3 ·
+  Việc 2 — Orders.jsx:78-81 + G2 (thiếu múi +7) · Việc 3 — G1 = 0, G3; DiscountCodes không có tác dụng · Việc 4 — G0a–G0e, G1b, BV-QUET-GD1/GD4, VS-NGOAI-LE-GD.
+CHƯA SOÁT ĐƯỢC: 012 đã chạy trên Turso / kho thử chưa; hiển thị thật trên Safari / Chrome điện thoại; không chạy toàn bộ 61 đột biến;
+  đỏ trên gốc 36b98b8 (23/36) chỉ đọc, không dựng lại.
+BÀI HỌC:
+  - KHOÁ: bài thử theo múi giờ điện thoại phải gồm ÍT NHẤT một múi âm, một múi DƯƠNG, và chính Asia/Ho_Chi_Minh.
+  - KHOÁ: đọc chuỗi giờ trên client → bài thử soi chuỗi đưa vào new Date (đúng dạng chuẩn ISO), không chỉ soi kết quả trong Node.
+  - NGUYÊN TẮC (K1/K4): sửa một phép so trên trường dữ liệu thì phải mở route trả trường đó, xác nhận trường CÓ THẬT, rồi mới vá.
+```
+(Chép nguyên văn phần LỖI; NGHIỆM THU / BÀI HỌC rút gọn câu dài.)
