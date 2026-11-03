@@ -7,11 +7,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, customersV2Api, registrationsApi } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import MaDangNhapApp from '../components/MaDangNhapApp';
 import MaAppSoMoi from '../components/MaAppSoMoi';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
 
 export default function Customers() {
+  const { hasPermission } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0 });
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,8 @@ export default function Customers() {
   // Modal chi tiết khách hàng (ghi chú POS)
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  // CT-1a: ngày sinh nhập MỘT lần (trống → nhân viên nào cũng nhập); đã có → chỉ người có quyền sua_ngay_sinh sửa, bắt lý do
+  const [ngaySinh, setNgaySinh] = useState({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
 
   // LOY-2: đổi quà tại quầy (dùng chung API mà app KH sẽ gọi)
   const [rewards, setRewards] = useState([]);
@@ -150,6 +154,7 @@ export default function Customers() {
     setRedeemResult(null);
     setRewards([]);
     setVouchers([]);
+    setNgaySinh({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
     setDetailForm({
       discount_note: customer.discount_note || '',
       address: customer.address || ''
@@ -264,6 +269,19 @@ export default function Customers() {
       setError(err.message || 'Không thể cập nhật thông tin');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const luuNgaySinh = async () => {
+    const daCo = !!selectedCustomer.ngay_sinh;
+    setNgaySinh((n) => ({ ...n, loi: '', dangLuu: true }));
+    try {
+      const r = await customersV2Api.datNgaySinh(selectedCustomer.phone, ngaySinh.gia, daCo ? ngaySinh.lyDo : undefined);
+      setSelectedCustomer((c) => ({ ...c, ngay_sinh: r.ngay_sinh }));
+      setNgaySinh({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
+      loadCustomers();
+    } catch (err) {
+      setNgaySinh((n) => ({ ...n, loi: err.message || 'Không lưu được ngày sinh', dangLuu: false }));
     }
   };
 
@@ -821,6 +839,34 @@ export default function Customers() {
                       onChange={(e) => setDetailForm({...detailForm, address: e.target.value})}
                       placeholder="VD: 123 Nguyễn Trãi, Thanh Xuân, Hà Nội"
                     />
+                  </div>
+
+                  {/* CT-1a: ngày sinh — nhập MỘT lần; KHÔNG lưu số căn cước */}
+                  <div className="form-group">
+                    <label className="form-label">🎂 Ngày sinh (nhập một lần)</label>
+                    {selectedCustomer.ngay_sinh && !ngaySinh.sua ? (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <b>{selectedCustomer.ngay_sinh.split('-').reverse().join('/')}</b>
+                        {hasPermission('sua_ngay_sinh')
+                          ? <button type="button" className="btn btn-outline" onClick={() => setNgaySinh((n) => ({ ...n, sua: true, gia: selectedCustomer.ngay_sinh }))}>Sửa</button>
+                          : <span style={{ fontSize: 12, color: '#6b7280' }}>Chỉ chủ quán sửa được</span>}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <input type="date" className="input" style={{ flex: '0 1 170px' }} value={ngaySinh.gia} onChange={(e) => setNgaySinh((n) => ({ ...n, gia: e.target.value }))} />
+                        {selectedCustomer.ngay_sinh && (
+                          <input type="text" className="input" style={{ flex: '1 1 200px' }} maxLength={200} placeholder="Lý do sửa (bắt buộc)" value={ngaySinh.lyDo}
+                            onChange={(e) => setNgaySinh((n) => ({ ...n, lyDo: e.target.value }))} />
+                        )}
+                        <button type="button" className="btn btn-primary" onClick={luuNgaySinh}
+                          disabled={ngaySinh.dangLuu || !ngaySinh.gia || (!!selectedCustomer.ngay_sinh && !ngaySinh.lyDo.trim())}>
+                          {ngaySinh.dangLuu ? 'Đang lưu…' : 'Lưu ngày sinh'}
+                        </button>
+                        {ngaySinh.sua && <button type="button" className="btn btn-outline" onClick={() => setNgaySinh((n) => ({ ...n, sua: false, loi: '' }))}>Bỏ</button>}
+                      </div>
+                    )}
+                    {ngaySinh.loi && <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 4 }}>{ngaySinh.loi}</div>}
+                    {!selectedCustomer.ngay_sinh && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Khách chưa có ngày sinh. Nhập theo căn cước khách đưa xem — POS không lưu số căn cước.</div>}
                   </div>
                 </>
               ) : (

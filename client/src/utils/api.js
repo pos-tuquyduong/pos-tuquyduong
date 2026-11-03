@@ -302,7 +302,18 @@ export const customersV2Api = {
   getFull: (phone) => api.get(`/v2/customers/${phone}/full`),
   search: (query) => api.get(`/v2/customers/search/${encodeURIComponent(query)}`),
   // Phase B: Cập nhật chiết khấu mặc định cho khách
-  updateDiscount: (phone, data) => api.put(`/v2/customers/${phone}/discount`, data)
+  updateDiscount: (phone, data) => api.put(`/v2/customers/${phone}/discount`, data),
+  // CT-1a: ngày sinh nhập MỘT lần; đã có thì chỉ người có quyền sua_ngay_sinh sửa (bắt lý do)
+  datNgaySinh: (phone, ngaySinh, lyDo) => api.put(`/v2/customers/${encodeURIComponent(phone)}/ngay-sinh`, { ngay_sinh: ngaySinh, ly_do: lyDo || undefined })
+};
+
+// CT-1a · Cài đặt "Chương trình" (quyền manage_promotions) — chỉ lưu cấu hình; áp tại quầy là CT-1b
+export const chuongTrinhApi = {
+  danhSach: () => api.get('/chuong-trinh'),
+  them: (d) => api.post('/chuong-trinh', d),
+  sua: (id, d) => api.put(`/chuong-trinh/${id}`, d),
+  xoa: (id) => api.delete(`/chuong-trinh/${id}`),
+  datKhoangTuoi: (toiThieu, toiDa) => api.put('/chuong-trinh/khoang-tuoi', { toi_thieu: toiThieu, toi_da: toiDa })
 };
 
 // ============ API CŨ (giữ lại để tương thích) ============
