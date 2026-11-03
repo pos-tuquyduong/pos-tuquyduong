@@ -32,7 +32,9 @@ function kiemBao(headers, than, giayBayGio = Date.now() / 1000) {
 /** Thân báo → dữ liệu chung của tiền về. Mã phiên tìm trong `code` (SePay tách sẵn, có thể null) rồi tới `content`. */
 function docBao(b) {
   const m = MA_PHIEN.exec(String(b.code ?? '')) || MA_PHIEN.exec(String(b.content ?? ''));
-  return { khoa: `sepay:${b.id}`, vao: b.transferType === 'in', ma: m ? Number(m[1]) : null, soTien: Number(b.transferAmount) || 0, luc: b.transactionDate };
+  const tk = String(b.accountNumber ?? '').replace(/\s+/g, '');   // số tài khoản nhận (bỏ khoảng trắng) phải BẰNG SEPAY_SO_TK — tkKhac = số nhận sai, null nếu đúng
+  return { khoa: `sepay:${b.id}`, vao: b.transferType === 'in', ma: m ? Number(m[1]) : null, soTien: Number(b.transferAmount) || 0, luc: b.transactionDate,
+    tkKhac: tk === cauHinh().soTk ? null : tk || '(trống)' };
 }
 
 module.exports = { daCauHinh, taoQr, kiemBao, docBao };

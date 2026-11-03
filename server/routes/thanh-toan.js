@@ -12,7 +12,7 @@ const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
-const { LY_DO_HAI_CONG, congCuaKhoa } = require('../utils/congQr');
+const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('../utils/congQr');
 
 const router = express.Router();
 const webhook = express.Router();
@@ -116,12 +116,13 @@ const CAU_GHI = `INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua
 const TEN_CONG = { payos: 'payOS', sepay: 'SePay' };
 
 /** t: { khoa, ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), duLieu, nguon ('payos' | 'sepay'), boQua (lý do ghi khong_phien ngay),
- *  khongPhien (lý do khi mã không thuộc phiên), thatBai (lý do ghi that_bai) }. */
+ *  khongPhien (lý do khi mã không thuộc phiên), thatBai (lý do ghi that_bai), tkKhac (số tài khoản nhận sai — chỉ SePay) }. */
 async function xuLyTienVe(res, t) {
   const thamSo = (ketQua, lyDo) => [t.khoa, t.ma, t.soTien, ketQua, lyDo, JSON.stringify(t.duLieu), getNow()];
   const ghi = async (ketQua, lyDo) => { await run(CAU_GHI, thamSo(ketQua, lyDo)); res.json({ success: true }); };
   const p = !t.boQua && t.ma ? await queryOne("SELECT * FROM pos_phien_thanh_toan WHERE ma_payos = ? AND cach = 'payos'", [t.ma]) : null;
   if (!p) return ghi('khong_phien', t.boQua || t.khongPhien);
+  if (t.tkKhac) return ghi('chua_khop', `${LY_DO_TK_KHAC} ${t.tkKhac}`);
   if (t.thatBai) return ghi('that_bai', t.thatBai);
   const luc = DANG_GIO.test(String(t.luc || '')) ? String(t.luc).replace(' ', 'T') : getNow();
   const lyDo = t.soTien !== p.con_lai ? `lệch tiền: về ${t.soTien}, phải thu ${p.con_lai}`

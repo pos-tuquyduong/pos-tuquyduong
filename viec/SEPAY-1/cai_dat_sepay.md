@@ -14,7 +14,7 @@ tài khoản quán; khi tiền về, SePay báo cho máy chủ và đơn tự ch
    - Địa chỉ gọi: `https://www.pos-tuquyduong.io.vn/api/sepay/webhook`
    - Kiểu nội dung: `application/json`
    - Sự kiện: **chỉ tiền vào**
-   - **Bỏ qua giao dịch không có mã thanh toán:** bật (theo phiếu — xem mục 5 điều này có nghĩa gì)
+   - **Bỏ qua giao dịch không có mã thanh toán:** TẮT (chủ quán chốt 01.11 — khoản không có mã vẫn báo về máy chủ, hiện ở Đối soát mục CẦN XEM; xem mục 5)
    - Bảo mật / xác thực: **HMAC-SHA256** → SePay hiện **Secret Key** đúng MỘT lần: chép ngay vào ô `SEPAY_KHOA_WEBHOOK` ở Render (bước 2).
      Không dán khoá vào chat, tin nhắn hay file nào khác.
 
@@ -54,11 +54,15 @@ Ngày 03.11 bạn đã **xoá kênh thanh toán trên payOS**, quầy chỉ dùn
 
 ## 5. Điều nên biết
 
-- Khách **xoá** mã `TQD…` khỏi nội dung khi chuyển → vì đã bật "Bỏ qua giao dịch không có mã thanh toán", SePay KHÔNG báo về máy chủ: đơn không
-  tự chốt và Đối soát KHÔNG có dòng nào cho khoản đó. Nhân viên xem app ngân hàng của quán rồi quản lý xác nhận tay (như hôm nay). Đơn App mà
+- Khách **xoá** mã `TQD…` khỏi nội dung khi chuyển → vì đã TẮT "Bỏ qua giao dịch không có mã thanh toán", SePay VẪN báo về máy chủ: đơn không
+  tự chốt, nhưng Đối soát (mục CẦN XEM) có dòng "không thuộc phiên nào" cho khoản đó. Nhân viên đối chiếu app ngân hàng rồi quản lý xác nhận tay. Mọi tiền vào
+  tài khoản (kể cả không liên quan đơn) cũng hiện ở CẦN XEM — nhiều dòng hơn nhưng không sót tiền. Đơn App mà
   khách xoá mã → hết 10 phút đơn thành "đã huỷ", App KHÔNG báo "quán đã nhận tiền" — khách phải gọi quán. Khách chỉ **thêm chữ** quanh mã
   (vd "CK TQD123 tra sua") thì vẫn tự chốt.
 - Chuyển thiếu / dư, chuyển sau khi QR hết hạn 10 phút, hoặc sau khi đơn đã huỷ → không tạo đơn, Đối soát hiện dòng đỏ để hoàn hoặc nạp vào tài
   khoản khách — như payOS.
-- Máy chủ KHÔNG so số tài khoản trong báo SePay với `SEPAY_SO_TK` (chữ ký đã chống báo giả; so số dễ lệch định dạng làm mọi QR phải xác nhận tay).
+- Máy chủ SO số tài khoản nhận trong báo SePay (`accountNumber`, bỏ khoảng trắng) với `SEPAY_SO_TK` (chủ quán chốt 01.11). Khác hoặc báo thiếu số → KHÔNG chốt
+  đơn; Đối soát mục CẦN XEM hiện "chưa khớp đơn — tiền vào tài khoản khác <số>": đối chiếu sao kê, tiền đã vào tài khoản đó thật nên không tự hoàn.
+  Nếu SePay của quán theo dõi nhiều tài khoản, `SEPAY_SO_TK` phải đúng tài khoản in trên QR. Mọi đơn QR đều phải xác nhận tay mà Đối soát toàn dòng
+  "tài khoản khác" → xem `SEPAY_SO_TK` có đúng số tài khoản SePay đang báo (`accountNumber`) không.
 - Chữ "Chuyển khoản (payOS)" trên bill in là chữ mặc định của cài đặt chữ hoá đơn (khoá `invoice_chu_ck`): đổi ở phần cài đặt chữ hoá đơn, vd "Chuyển khoản".
