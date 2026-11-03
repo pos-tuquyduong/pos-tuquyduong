@@ -74,3 +74,7 @@ HEAD ĐÃ KIỂM: 2152a1b
 - Q2 (chủ quán: giữ v6, chat đổi số lúc gộp): giữ nguyên PHIEN_BAN 6, không việc gì thêm. Câu hỏi 1 và 2 ở trên đã được trả lời.
 - Soát độc lập vòng 2 (chỉ phần Q1): ĐẠT, 2 lỗi nhẹ (khoảng trắng `co =ct` ở thu_HDKH1.js; nhật ký v6 chưa nhắc Q1) — đã sửa. Nghi ngờ: chưa có ca đơn App do nhân viên xác nhận tay (code không rẽ nhánh theo giá trị created_by). Soát bảo mật: thay đổi Q1 chỉ BỚT dữ liệu trả ra, agent soát đã xét phía bảo mật (không lỗi); không chạy lại /soat-bao-mat riêng.
 - Làm tiếp CHƯA KIỂM thêm: ca đơn App do nhân viên xác nhận tay chưa có bài riêng.
+
+✓ CỔNG CHẠY ĐẠT (sau Q1)
+
+HEAD ĐÃ KIỂM: 9a6344d
