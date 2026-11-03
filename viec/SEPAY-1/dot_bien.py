@@ -59,6 +59,15 @@ DOT_BIEN = [
   ('VS-hai-cong-mot-chieu', 'sp', [(TT, ' && sau.nguon !== t.nguon && !daBao', " && t.nguon === 'sepay' && sau.nguon === 'payos' && !daBao", 1)], r'✗ C14d '),
   ('BV-bao-thieu-id', 'sp', [(TT, ' || b.id == null)', ')', 1)], r'✗ C9b '),
   ('BV-luu-so-du', 'sp', [(TT, 'duLieu: { ...b, accumulated: undefined }', 'duLieu: b', 1)], r'✗ C5b '),
+  # vòng sửa 4 (sổ QUYET_DINH 01.11): Q5 máy SO số tài khoản nhận (bỏ khoảng trắng) với SEPAY_SO_TK; Q4 hướng dẫn tắt lọc
+  ('BV-tk-khac', 'sp', [(TT, "  if (t.tkKhac) return ghi('chua_khop', `${LY_DO_TK_KHAC} ${t.tkKhac}`);\n", '', 1)], r'✗ Q5a '),
+  ('VS-tk-so-dai-hon', 'sp', [(SP, "tkKhac: tk === cauHinh().soTk ? null : tk || '(trống)' };", "tkKhac: tk.startsWith(cauHinh().soTk) ? null : tk || '(trống)' };", 1)], r'✗ Q5b '),
+  ('VS-tk-so-ngan-hon', 'sp', [(SP, "tkKhac: tk === cauHinh().soTk ? null : tk || '(trống)' };", "tkKhac: cauHinh().soTk.startsWith(tk) ? null : tk || '(trống)' };", 1)], r'✗ Q5c '),
+  ('VS-tk-thieu-van-chot', 'sp', [(SP, "tkKhac: tk === cauHinh().soTk ? null : tk || '(trống)' };", "tkKhac: !tk || tk === cauHinh().soTk ? null : tk };", 1)], r'✗ Q5d '),
+  ('VS-tk-khong-bo-trang', 'sp', [(SP, ".replace(/\\s+/g, '');   // số tài khoản nhận", ";   // số tài khoản nhận", 1)], r'✗ Q5e '),
+  ('BV-tk-can-xem', 'sp', [(DS, '[LY_DO_HAI_CONG, LY_DO_TK_KHAC].some', '[LY_DO_HAI_CONG].some', 1)], r'✗ D3 '),
+  ('VS-huong-dan-bat-loc', 'sp', [('viec/SEPAY-1/cai_dat_sepay.md', 'không có mã thanh toán:** TẮT', 'không có mã thanh toán:** bật', 1)], r'✗ F2 .*TẮT lọc'),
+  ('VS-huong-dan-khong-so-tk', 'sp', [('viec/SEPAY-1/cai_dat_sepay.md', 'Máy chủ SO số tài khoản', 'Máy chủ KHÔNG so số tài khoản', 1)], r'✗ F2 .*so số tài khoản'),
   # ── hàm chung xuLyTienVe: webhook payOS cũ (thu_P3) canh ──
   ('BV-lech-tien-ham-chung', 'p3', [(TT, "const lyDo = t.soTien !== p.con_lai ? ", 'const lyDo = false ? ', 1)], r'✗ B6 '),
 ]
