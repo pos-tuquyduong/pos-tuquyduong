@@ -29,7 +29,7 @@ DOT_BIEN = [
   ('BV-CAU-DON-NHANH-1-THIEU-COT-PHIEN', 'hdkh', [(D, "AS tien_ve, 1 AS loai,\n      p.cach, p.giu_vi, p.con_lai", "AS tien_ve, 1 AS loai,\n      NULL AS cach, NULL AS giu_vi, NULL AS con_lai", 1)], r'✗ B[1-4] '),
   ('BV-CAU-DON-NHANH-2-THIEU-COT-PHIEN', 'hdkh', [(D, "${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.con_lai", "${CO_TIEN_VE}, 0, NULL, NULL, NULL", 1)], r'✗ B1 '),
   # ── A: hoa_don[] ──
-  ('BV-BO-HOA-DON', 'hdkh', [(D, "hoa_don: r.loai ? await hoaDonCua(r.oid) : [] }", 'hoa_don: [] }', 1)], r'✗ A1 '),
+  ('BV-BO-HOA-DON', 'hdkh', [(D, "hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] }", 'hoa_don: [] }', 1)], r'✗ A1 '),
   ('VS-HOA-DON-SAI-DON', 'hdkh', [(D, 'await hoaDonCua(r.oid, !!r.ma_app)', 'await hoaDonCua(1, !!r.ma_app)', 1)], r'✗ A[2-6] '),
   ('BV-BO-AN-NHAN-VIEN', 'hdkh', [(DH, "  if (anNhanVien) hd.don.nhan_vien = '';\n", '', 1)], r'✗ A6'),
   ('VS-AN-NHAN-VIEN-CA-DON-QUAY', 'hdkh', [(D, '{ anNhanVien: laDonApp }', '{ anNhanVien: true }', 1)], r'✗ A1c '),
