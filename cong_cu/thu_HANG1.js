@@ -579,6 +579,8 @@ async function main() {
       && api.includes("api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin })") && api.includes("api.post('/membership/thu-hoi'"));
     k('G3b Customers: không hiện "Còn null ngày" — số ngày chỉ hiện khi không vô hạn', /vo_han\s*\?\s*['"]Không thời hạn['"]/.test(khachHang));
     k('G4 hai file mới gọi máy chủ qua utils/api.js (không fetch trần)', hang.length > 0 && cap.length > 0 && !/\bfetch\s*\(/.test(hang + cap));
+    // soát vòng 2, lỗi 1: expires_at của dòng sổ là hạn TÍNH LÚC GHI — huỷ đơn mua ở giữa làm hạn thật đổi (E1–E3) mà số lưu không đổi → không hiện
+    k('G3c nhật ký hạng KHÔNG hiện expires_at lưu sẵn (hạn thật cộng lại từ sổ — chỉ hiện ở dòng hạng hiện tại)', cap.length > 0 && !cap.includes('expires_at'));
   }
 
   sv.close();
