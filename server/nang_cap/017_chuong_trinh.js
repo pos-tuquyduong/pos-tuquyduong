@@ -48,13 +48,18 @@ const MAU = [
   ['sinh_nhat', 'Sinh nhật', 'Đúng ngày sinh nhật: giảm 50% cả đơn, đối chiếu căn cước.', 'sinh_nhat', 0, 50, 0, 'nam'],
 ];
 
+// Máy thật luôn có pos_customers / pos_permissions (database.js chạy createTables() trước chayNangCap); chỉ kho thử toàn bảng kho
+// (thu_KHO2a E6b chạy cả thư mục nang_cap) mới thiếu — cùng khuôn bước 003.
+const co = async (tx, bang) => !!(await tx.queryOne("SELECT 1 AS co FROM sqlite_master WHERE type = 'table' AND name = ?", [bang]));
+
 module.exports.chay = async (tx, { themCot }) => {
   for (const c of CAU) await tx.run(c);
-  await themCot('pos_customers', 'ngay_sinh TEXT');
+  if (await co(tx, 'pos_customers')) await themCot('pos_customers', 'ngay_sinh TEXT');
   for (const m of MAU) {
     await tx.run(`INSERT OR IGNORE INTO pos_chuong_trinh (ma, ten, mo_ta, loai, mien_so_mon, giam_ca_don_pt, giam_con_lai_pt, chi_tai_quan, can_xem_giay_to,
       gioi_han_ky, gioi_han_so, dang_bat, tao_luc) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, ?, 1, 0, ?)`, [...m, getNow()]);
   }
+  if (!(await co(tx, 'pos_permissions'))) return;
   for (const [vaiTro, duoc] of [['owner', 1], ['manager', 0], ['staff', 0]]) {
     await tx.run("INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, 'sua_ngay_sinh', ?)", [vaiTro, duoc]);
   }

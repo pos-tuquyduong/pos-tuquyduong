@@ -318,7 +318,18 @@ async function main() {
   await datCaiDat('ct_tuoi_toi_thieu', 'abc'); await datCaiDat('ct_tuoi_toi_da', '');
   rh.push(await pos('PUT', `${dsB}/${hu3.sdt}/ngay-sinh`, { ngay_sinh: luiNam(homNay, 30) }, tkNv));
   k('B8b cài đặt tuổi HỎNG (min > max · chữ · rỗng) → dùng mặc định 5–100: 30 tuổi 200, 3 tuổi 400', rh[0].status === 200 && la(rh[1], 400, 'NGAY_SINH_SAI') && rh[2].status === 200, rh.map(mt).join(' | '));
+  // Ngày tương lai bị chặn bởi CHÍNH phép tính tuổi (tuổi âm) — thử riêng khi mức tối thiểu = 0, để mức 5 không che.
+  await pos('PUT', '/chuong-trinh/khoang-tuoi', { toi_thieu: 0, toi_da: 100 }, tkChu);
+  const tl = await khachMoi(), tn = await khachMoi();
+  const rtl = [await pos('PUT', `${dsB}/${tl.sdt}/ngay-sinh`, { ngay_sinh: cong1(homNay, 1) }, tkNv), await pos('PUT', `${dsB}/${tn.sdt}/ngay-sinh`, { ngay_sinh: homNay }, tkNv)];
+  k('B8c khoảng tuổi 0–100: ngày MAI (tương lai) → 400 NGAY_SINH_SAI; ngày HÔM NAY (0 tuổi) → 200', la(rtl[0], 400, 'NGAY_SINH_SAI') && rtl[1].status === 200, rtl.map(mt).join(' | '));
   await pos('PUT', '/chuong-trinh/khoang-tuoi', { toi_thieu: 5, toi_da: 100 }, tkChu);
+  // Danh sách khách của màn Khách hàng mang ngay_sinh (ô Ngày sinh đọc từ đây)
+  const lt = await khachMoi('Khách trong danh sách'), lt2 = await khachMoi('Khách chưa có ngày sinh');
+  await pos('PUT', `${dsB}/${lt.sdt}/ngay-sinh`, { ngay_sinh: NS }, tkNv);
+  const dsKh = await pos('GET', '/v2/customers', undefined, tkNv);
+  const dKh = (dsKh.j.customers || []).find((c) => c.phone === lt.sdt), dKh2 = (dsKh.j.customers || []).find((c) => c.phone === lt2.sdt);
+  k('B9 GET /v2/customers: khách đã nhập có ngay_sinh = ngày; khách chưa nhập = null (không thiếu khoá)', dsKh.status === 200 && dKh?.ngay_sinh === NS && !!dKh2 && dKh2.ngay_sinh === null, mt(dsKh) + ' ' + JSON.stringify([dKh?.ngay_sinh, dKh2?.ngay_sinh]));
 
   // ═════════════ C. Cửa App ═════════════
   muc('C. App: /toi.khach.ngay_sinh · PUT /toi nhận ngay_sinh một lần · GET /chuong-trinh');
@@ -423,6 +434,7 @@ async function main() {
   const ctJsx = doc('client', 'src', 'pages', 'CaiDat', 'ChuongTrinh.jsx');
   const cus = doc('client', 'src', 'pages', 'Customers.jsx');
   const apiJs = doc('client', 'src', 'utils', 'api.js');
+  k('D0 server/index.js gắn /api/pos/chuong-trinh', /app\.use\('\/api\/pos\/chuong-trinh', require\('\.\/routes\/chuong-trinh'\)\)/.test(doc('server', 'index.js')));
   k('D1 Settings.jsx có thẻ chuongTrinh (quyền manage_promotions, nhóm Khách hàng) và nạp CaiDat/ChuongTrinh', /chuongTrinh: 'manage_promotions'/.test(st) && /\['chuongTrinh', 'manage_promotions'\]/.test(st) && /CaiDat\/ChuongTrinh/.test(st));
   k('D2 ChuongTrinh.jsx gọi qua utils/api.js; không fetch trần; xoá KHÔNG dùng hộp thoại trình duyệt (bấm 2 lần)',
     ctJsx.length > 500 && /from '\.\.\/\.\.\/utils\/api'/.test(ctJsx) && !/\bfetch\s*\(/.test(ctJsx) && !/window\.confirm|\bconfirm\s*\(|\balert\s*\(/.test(ctJsx));
