@@ -5,19 +5,24 @@
  *   1. đuôi Z (`toISOString()`, đủ 20 hoặc 24 ký tự) — chắc chắn UTC ở MỌI cột → +7 giờ;
  *   2. dấu cách ở cột mà mọi nơi ghi chỉ từng ghi UTC (CURRENT_TIMESTAMP / datetime('now')) → +7 giờ (chủ quán 02.11: sổ ví cũng đổi giờ);
  *   3. dấu cách ở cột mà mọi nơi ghi chỉ từng ghi giờ VN ('+7 hours', nowVn, hạn thẻ) → chỉ đổi dấu cách thành T;
- *   cột LẪN (pos_settings.updated_at — chủ quán 02.11: để nguyên) → không đổi dòng dấu cách nào, chỉ in số dòng để nguyên.
- * Mẫu GLOB đủ độ dài — ngày thuần, giá trị lạ, dạng T không đuôi không khớp → không đụng; chạy lần hai không đổi gì.
+ *   4. cột LẪN UTC / VN không biết chắc (pos_settings.updated_at — chủ quán 03.11, thay quyết định 02.11 "để nguyên"): mọi giá trị chưa đúng
+ *      dạng T (dấu cách, mili-giây, chữ lạ, rỗng — trừ NULL) → giờ VN lúc chạy (getNow); đuôi Z đã qua luật 1 trước.
+ * Mẫu GLOB đủ độ dài — ngày thuần, giá trị lạ, dạng T không đuôi không khớp luật 1–3 → không đụng; chạy lần hai không đổi gì (luật 4 chỉ
+ * chọn dòng CHƯA dạng T, sau lần một mọi dòng đã dạng T).
  * saoLuu: bảng có dòng sẽ đổi → chép sang _sao_luu_012_<bảng> TRƯỚC khi UPDATE (khuôn 004). Khôi phục sao lưu gọi saoLuu: false.
  */
+const { getNow } = require('./helpers');
+
 const SO = '[0-9]';
 const NGAY = `${SO}${SO}${SO}${SO}-${SO}${SO}-${SO}${SO}`;
 const GIO = `${SO}${SO}:${SO}${SO}:${SO}${SO}`;
 const MAU_CACH = `'${NGAY} ${GIO}'`;
+const MAU_T = `'${NGAY}T${GIO}'`;
 const MAU_Z = [`'${NGAY}T${GIO}Z'`, `'${NGAY}T${GIO}.${SO}${SO}${SO}Z'`];
 const CONG7 = (c) => `strftime('%Y-%m-%dT%H:%M:%S', ${c}, '+7 hours')`;
 const ten = (x) => `"${String(x).replace(/"/g, '""')}"`;   // tên bảng / cột trong ngoặc kép — chạy trên MỌI bảng của kho thật (tên lạ, từ khoá)
 
-const UTC = 'UTC dấu cách', VN = 'VN dấu cách', LAN = 'lẫn';
+const UTC = 'UTC dấu cách', VN = 'VN dấu cách', LAN = 'chưa dạng T → giờ chạy nâng cấp';
 const COT_CACH = {
   pos_users: { created_at: UTC },
   pos_permissions: { created_at: UTC },
@@ -40,6 +45,7 @@ const COT_CACH = {
 
 async function chuanHoaGio(tx, { saoLuu = true } = {}) {
   const ketQua = [];
+  const bayGio = getNow();   // luật 4: một giờ cho cả lượt chạy
   const bangs = (await tx.query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
     AND name NOT LIKE '\\_sao\\_luu\\_%' ESCAPE '\\' AND name <> 'pos_nang_cap' ORDER BY name`)).map((r) => r.name);
   for (const bang of bangs) {
@@ -50,21 +56,21 @@ async function chuanHoaGio(tx, { saoLuu = true } = {}) {
       const c = ten(cTen);
       viec.push([c, 'đuôi Z', MAU_Z.map((m) => `${c} GLOB ${m}`).join(' OR '), CONG7(c), cTen]);
       const loai = COT_CACH[bang]?.[cTen];
-      if (loai) viec.push([c, loai, `${c} GLOB ${MAU_CACH}`, loai === UTC ? CONG7(c) : `substr(${c}, 1, 10) || 'T' || substr(${c}, 12)`, cTen]);
+      if (loai === LAN) viec.push([c, loai, `${c} IS NOT NULL AND NOT ${c} GLOB ${MAU_T}`, `'${bayGio}'`, cTen]);
+      else if (loai) viec.push([c, loai, `${c} GLOB ${MAU_CACH}`, loai === UTC ? CONG7(c) : `substr(${c}, 1, 10) || 'T' || substr(${c}, 12)`, cTen]);
     }
     const dem = await tx.queryOne(`SELECT ${viec.map((v, i) => `SUM(CASE WHEN ${v[2]} THEN 1 ELSE 0 END) AS n${i}`).join(', ')} FROM ${ten(bang)}`);
     let daLuu = false;
     for (const [i, [c, loai, dk, moi, cTen]] of viec.entries()) {
       const n = Number(dem[`n${i}`] || 0);
       if (!n) continue;
-      if (loai === LAN) { ketQua.push({ bang, cot: cTen, loai, doi: 0, deNguyen: n }); continue; }
       if (saoLuu && !daLuu) { await tx.run(`CREATE TABLE IF NOT EXISTS ${ten('_sao_luu_012_' + bang)} AS SELECT * FROM ${ten(bang)}`); daLuu = true; }
       const r = await tx.run(`UPDATE ${ten(bang)} SET ${c} = ${moi} WHERE ${dk}`);
-      ketQua.push({ bang, cot: cTen, loai, doi: Number(r.changes ?? r.rowsAffected ?? n), deNguyen: 0 });
+      ketQua.push({ bang, cot: cTen, loai, doi: Number(r.changes ?? r.rowsAffected ?? n) });
     }
   }
   for (const k of ketQua) {
-    console.log(`🔧 Nâng cấp 012: ${k.bang}.${k.cot} ` + (k.loai === LAN ? `để nguyên ${k.deNguyen} dòng dấu cách (cột lẫn UTC / VN — không biết chắc)` : `đổi ${k.doi} dòng (${k.loai})`));
+    console.log(`🔧 Nâng cấp 012: ${k.bang}.${k.cot} đổi ${k.doi} dòng (${k.loai})`);
   }
   return ketQua;
 }
