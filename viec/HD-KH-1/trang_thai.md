@@ -84,3 +84,8 @@ HEAD ĐÃ KIỂM: 9a6344d
 Q1 ẩn tên nhân viên đơn App (dongHoaDon/donApp) đúng; hợp đồng gộp: GIO-VN-1 v6, HD-KH-1 v7 (PHIEN_BAN 7).
 Chat chỉnh E2 thu_GIOVN1.js: PHIEN_BAN ≥ 6. Bài trên bản gộp: HOPDONG_KH 82/0 · HDKH1 35/0 · GIOVN1 61/0.
 HEAD ĐÃ KIỂM: e63facc
+
+
+## Chat 04.11 — gộp lần 2
+Gộp main có SUA-E2-1 (ca E2 nới trên main) để thu_GIOVN1.js không còn là bài PR sửa; code HD-KH-1 không đổi.
+HEAD ĐÃ KIỂM: 1fc67c5
