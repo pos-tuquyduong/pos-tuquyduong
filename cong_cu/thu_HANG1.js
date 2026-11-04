@@ -192,8 +192,17 @@ async function main() {
     { id: BK?.id, name: 'Bạch Kim', sort_order: 2, discount_percent: 12, special_discount_percent: 6, cach_co: 'ban', goi: [{ so_thang: 1, gia: 150000, bat: true }], ...(doi.BK || {}) },
     ...(KC ? [{ id: KC.id, name: 'Kim Cương', sort_order: 3, discount_percent: 15, special_discount_percent: 10, cach_co: 'chi_cap', goi: [], ...(doi.KC || {}) }] : []),
   ];
-  const luu = (ds, token) => goi('PUT', '/pos/tiers', { tiers: ds, round_to: 500, round_mode: 'nearest' }, token);
+  // chủ quán 04.11 (a)+(b): MỌI thay đổi ở Cài đặt → Hạng (PUT / DELETE /tiers) phải có PIN chủ quán — pin = null: không gửi PIN
+  const PIN = '246810';
+  const luu = (ds, token, pin = PIN) => goi('PUT', '/pos/tiers', { tiers: ds, round_to: 500, round_mode: 'nearest', pin }, token);
+  const xoaHang = (id, token, pin = PIN) => goi('DELETE', `/pos/tiers/${id}`, { pin }, token);
   await thu('A', async () => {
+    datVN('2026-11-03T09:00:00');
+    const a9 = await luu(dsMau({ BK: { discount_percent: 13 } }));
+    k('A9 chưa đặt PIN chủ quán → PUT /tiers 400 CHUA_CO_PIN_CHU_QUAN, không ghi', a9.status === 400 && a9.code === 'CHUA_CO_PIN_CHU_QUAN'
+      && Number(tim(await tiers(), 'Bạch Kim')?.discount_percent) !== 13, moTa(a9));
+    const p9 = await goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'mk_chu_quan', pin: PIN, pin_lai: PIN });
+    k('A (dựng) chủ quán đặt PIN chủ quán', p9.status === 200, moTa(p9));
     const r = await luu([...dsMau(), { name: 'Kim Cương', sort_order: 3, discount_percent: 15, special_discount_percent: 10, cach_co: 'chi_cap', goi: [{ so_thang: 1, gia: 1000, bat: true }] }]);
     const ds = await tiers();
     KC = tim(ds, 'Kim Cương'); V = tim(ds, 'Vàng'); BK = tim(ds, 'Bạch Kim');
@@ -216,12 +225,30 @@ async function main() {
       k(`A4 ${ten} → 400 HANG_KHONG_HOP_LE`, x.status === 400 && x.code === 'HANG_KHONG_HOP_LE', moTa(x));
     }
     k('A4b các lần 400 không ghi gì (kể cả hạng hợp lệ đứng trước trong danh sách)', JSON.stringify(await tiers()) === truoc);
+    // (a) phiên chủ quán đang mở ở quầy mà không biết PIN · (b) quản lý (manage_promotions) không PIN: thêm hạng / % / thứ bậc
+    const a9b = await luu(dsMau({ BK: { discount_percent: 13 } }), TK.chu, null);
+    k('A9b tài khoản chủ quán KHÔNG gửi PIN sửa % → 400 PIN_CHU_QUAN_SAI', a9b.status === 400 && a9b.code === 'PIN_CHU_QUAN_SAI', moTa(a9b));
+    const a9c = await luu(dsMau({ BK: { discount_percent: 13 } }), TK.chu, '000000');
+    k('A9c PIN sai → 400 PIN_CHU_QUAN_SAI', a9c.status === 400 && a9c.code === 'PIN_CHU_QUAN_SAI', moTa(a9c));
+    const a9d = await luu([...dsMau(), { name: 'Rẻ', sort_order: 9, discount_percent: 15, special_discount_percent: 10, cach_co: 'ban', goi: [{ so_thang: 60, gia: 1, bat: true }] }], TK.ql, null);
+    k('A9d quản lý KHÔNG PIN thêm hạng bán mới (thứ bậc cao nhất, 60 tháng 1đ) → 400 PIN_CHU_QUAN_SAI', a9d.status === 400 && a9d.code === 'PIN_CHU_QUAN_SAI', moTa(a9d));
+    const a9e = await luu(dsMau({ V: { sort_order: 2 }, BK: { sort_order: 1 } }), TK.ql, null);
+    k('A9e quản lý KHÔNG PIN hoán thứ bậc Vàng ↔ Bạch Kim → 400 PIN_CHU_QUAN_SAI', a9e.status === 400 && a9e.code === 'PIN_CHU_QUAN_SAI', moTa(a9e));
+    k('A9f các lần thiếu / sai PIN không ghi gì (không hạng Rẻ, % và thứ bậc như cũ)', JSON.stringify(await tiers()) === truoc);
     const nv = await luu(dsMau(), TK.nv);
     k('A7 nhân viên PUT → 403', nv.status === 403, moTa(nv));
     const ql = await luu(dsMau(), TK.ql);
-    k('A7b (K5) quản lý (có manage_promotions) PUT → 200', ql.status === 200, moTa(ql));
+    k('A7b (K5) quản lý (có manage_promotions) gõ đúng PIN chủ quán PUT → 200', ql.status === 200, moTa(ql));
+    // sai 5 lần → khoá CHUNG với cấp hạng (cùng bộ đếm pinChuQuan): PIN đúng vẫn 423 ở cả Cài đặt hạng lẫn cấp hạng; 16 phút sau mở
+    for (let i = 1; i <= 5; i++) await luu(dsMau(), TK.chu, '111111');
+    const a9g = await luu(dsMau(), TK.chu);
+    const a9gCap = await goi('POST', '/pos/membership/cap', { phone: sdtMoi(), tier_id: KC?.id, so_thang: 1, pin: PIN });
+    datVN('2026-11-03T09:16:00');
+    const a9h = await luu(dsMau(), TK.chu);
+    k('A9g sai PIN 5 lần ở Cài đặt hạng → PIN đúng 423 PIN_CHU_QUAN_KHOA (cả cấp hạng); 16 phút sau 200', a9g.status === 423 && a9g.code === 'PIN_CHU_QUAN_KHOA'
+      && a9gCap.status === 423 && a9h.status === 200, `${moTa(a9g)} · cấp ${moTa(a9gCap)} · ${moTa(a9h)}`);
     const lai = await goi('GET', '/pos/tiers');
-    const pl = await goi('PUT', '/pos/tiers', { tiers: lai.data?.tiers, round_to: lai.data?.round_to, round_mode: lai.data?.round_mode });
+    const pl = await goi('PUT', '/pos/tiers', { tiers: lai.data?.tiers, round_to: lai.data?.round_to, round_mode: lai.data?.round_mode, pin: PIN });
     k('K5 PUT lại nguyên GET → 200, không đổi', pl.status === 200 && JSON.stringify((await goi('GET', '/pos/tiers')).data?.tiers) === JSON.stringify(lai.data?.tiers), moTa(pl));
     const r3 = await luu(dsMau());
     k('A (dựng) đặt lại Vàng 4 gói', r3.status === 200, moTa(r3));
@@ -291,9 +318,9 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[C] Cấp / thu hồi hạng — chỉ chủ quán + PIN chủ quán');
-  const PIN = '246810';
   await thu('C', async () => {
     datVN('2026-11-03T10:00:00');
+    await db.run('DELETE FROM pos_pin_chu_quan');   // C0 thử từ lúc CHƯA đặt PIN (phần A đã đặt để sửa hạng)
     const p0 = await goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'mk_chu_quan', pin: PIN, pin_lai: PIN }, TK.ql);
     k('C0a quản lý đặt PIN chủ quán → 403', p0.status === 403, moTa(p0));
     const p1 = await goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'sai', pin: PIN, pin_lai: PIN });
@@ -474,14 +501,21 @@ async function main() {
   muc('[A5] Xoá hạng');
   await thu('A5', async () => {
     datVN('2026-11-03T15:00:00');
-    const x = await goi('DELETE', `/pos/tiers/${KC?.id}`);
+    const x0 = await xoaHang(KC?.id, TK.chu, null);
+    const T0 = await luu([...dsMau(), { name: 'Tạm0', sort_order: 8, discount_percent: 1, special_discount_percent: 0, cach_co: 'ban', goi: [] }]);
+    const x0b = await xoaHang(tim(await tiers(), 'Tạm0')?.id, TK.ql, null);
+    k('A9i xoá hạng KHÔNG PIN (chủ quán / quản lý, cả hạng không khách) → 400 PIN_CHU_QUAN_SAI, hạng vẫn bật', x0.status === 400 && x0.code === 'PIN_CHU_QUAN_SAI'
+      && T0.status === 200 && x0b.status === 400 && x0b.code === 'PIN_CHU_QUAN_SAI' && !!tim(await tiers(), 'Tạm0'), `${moTa(x0)} · ${moTa(x0b)}`);
+    const x0c = await xoaHang(tim(await tiers(), 'Tạm0')?.id, TK.ql);
+    k('A9j (K5) quản lý gõ đúng PIN xoá hạng không khách → 200, ẩn', x0c.status === 200 && !tim(await tiers(), 'Tạm0'), moTa(x0c));
+    const x = await xoaHang(KC?.id);
     k('A5 xoá Kim Cương (còn khách giữ) → 409 HANG_CON_KHACH, hạng vẫn bật', x.status === 409 && x.code === 'HANG_CON_KHACH' && !!tim(await tiers(), 'Kim Cương'), moTa(x));
     const tam = await luu([...dsMau(), { name: 'Tạm', sort_order: 9, discount_percent: 1, special_discount_percent: 0, cach_co: 'ban', goi: [] }]);
     const T = tim(await tiers(), 'Tạm');
     await ghiThe(sdtMoi(), T?.id, 'Tạm', '2026-09-01T10:00:00', '2026-10-01T10:00:00');
-    const y = await goi('DELETE', `/pos/tiers/${T?.id}`);
+    const y = await xoaHang(T?.id);
     k('A5b (K5) xoá hạng chỉ còn khách ĐÃ hết hạn → 200, ẩn', tam.status === 200 && y.status === 200 && !tim(await tiers(), 'Tạm'), `${moTa(tam)} · ${moTa(y)}`);
-    const z = await goi('DELETE', `/pos/tiers/${KC?.id}`, null, TK.nv);
+    const z = await xoaHang(KC?.id, TK.nv);
     k('A5c nhân viên xoá hạng → 403', z.status === 403, moTa(z));
     // soát vòng 1, lỗi 1: khách GIỮ hạng còn hạn mà hạng đó KHÔNG phải hạng hiện tại (có hạng cao hơn) — vẫn là "còn khách giữ"
     const t2 = await luu([...dsMau(), { name: 'Tạm2', sort_order: 9, discount_percent: 2, special_discount_percent: 0, cach_co: 'ban', goi: [] },
@@ -491,23 +525,21 @@ async function main() {
     await ghiThe(sHai, T2?.id, 'Tạm2', '2026-11-01T10:00:00', '2026-12-01T10:00:00');
     await ghiThe(sHai, CAO?.id, 'Cao', '2026-11-02T10:00:00', '2027-11-02T10:00:00');
     const hHai = (await hangCua(sHai)).tier_id;
-    const w = await goi('DELETE', `/pos/tiers/${T2?.id}`);
+    const w = await xoaHang(T2?.id);
     k('A5d xoá hạng khách còn giữ nhưng KHÔNG phải hạng hiện tại (đang có hạng cao hơn) → 409 HANG_CON_KHACH, hạng vẫn bật', t2.status === 200
       && hHai === CAO?.id && w.status === 409 && w.code === 'HANG_CON_KHACH' && !!tim(await tiers(), 'Tạm2'), `${moTa(t2)} · hạng ${hHai} · ${moTa(w)}`);
 
-    // soát vòng 1, lỗi 2: đổi "chỉ cấp" → "bán" ở Cài đặt là đường thứ hai tới quyền lợi chỉ chủ quán + PIN cấp được
+    // soát vòng 1–2, lỗi 2: đổi "chỉ cấp" → "bán" ở Cài đặt là đường thứ hai tới quyền lợi chỉ chủ quán + PIN cấp được → đòi PIN (chủ quán 04.11)
     const banKC = dsMau({ KC: { cach_co: 'ban', goi: [{ so_thang: 60, gia: 1, bat: true }] } });
-    const q8 = await luu(banKC, TK.ql);
-    k('A8 quản lý (manage_promotions, không cap_hang) đổi Kim Cương chỉ cấp → bán → 403 DOI_CACH_CO_CAN_QUYEN, Kim Cương vẫn chỉ cấp, không gói',
-      q8.status === 403 && q8.code === 'DOI_CACH_CO_CAN_QUYEN' && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap' && bang(tim(await tiers(), 'Kim Cương')?.goi, []), moTa(q8));
-    const q8b = await luu(dsMau({ V: { cach_co: 'chi_cap' } }), TK.ql);
-    k('A8b quản lý đổi Vàng bán → chỉ cấp → 403 (đổi cách có hạng chỉ người có quyền cấp hạng)', q8b.status === 403 && tim(await tiers(), 'Vàng')?.cach_co === 'ban', moTa(q8b));
-    const c8 = await luu(banKC);
-    const c8lai = await luu(dsMau());
-    k('A8c (K5) chủ quán đổi được (200) rồi đổi lại (200)', c8.status === 200 && c8lai.status === 200 && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap', `${moTa(c8)} · ${moTa(c8lai)}`);
-    const q8d = await luu(dsMau({ KC: { discount_percent: 16 } }), TK.ql);
-    await luu(dsMau());
-    k('A8d (K5) quản lý sửa % của hạng chỉ cấp (không đổi cách có hạng) → 200', q8d.status === 200, moTa(q8d));
+    const q8 = await luu(banKC, TK.ql, null);
+    k('A8 quản lý KHÔNG PIN đổi Kim Cương chỉ cấp → bán (60 tháng 1đ) → 400 PIN_CHU_QUAN_SAI, Kim Cương vẫn chỉ cấp, không gói',
+      q8.status === 400 && q8.code === 'PIN_CHU_QUAN_SAI' && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap' && bang(tim(await tiers(), 'Kim Cương')?.goi, []), moTa(q8));
+    const q8b = await luu(banKC, TK.chu, null);
+    k('A8b tài khoản chủ quán KHÔNG PIN đổi Kim Cương → bán → 400 (phiên chủ quán mở ở quầy không đủ), vẫn chỉ cấp', q8b.status === 400
+      && q8b.code === 'PIN_CHU_QUAN_SAI' && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap', moTa(q8b));
+    const c8 = await luu(banKC, TK.ql);
+    const c8lai = await luu(dsMau(), TK.ql);
+    k('A8c (K5) có PIN chủ quán (quản lý gõ) đổi được (200) rồi đổi lại (200)', c8.status === 200 && c8lai.status === 200 && tim(await tiers(), 'Kim Cương')?.cach_co === 'chi_cap', `${moTa(c8)} · ${moTa(c8lai)}`);
 
     // soát vòng 1, lỗi 3: khách đã bị thu hồi hết hạng → danh sách khách KHÔNG có nhãn hạng rỗng
     const sThu = await khach(sdtMoi());
@@ -578,6 +610,8 @@ async function main() {
       && /\{coQuyen && \(/.test(cap) && cap.includes('Nhật ký hạng') && cap.includes('hangApi.cap(') && cap.includes('hangApi.thuHoi(') && (cap + khachHang).includes('Không thời hạn')
       && api.includes("api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin })") && api.includes("api.post('/membership/thu-hoi'"));
     k('G3b Customers: không hiện "Còn null ngày" — số ngày chỉ hiện khi không vô hạn', /vo_han\s*\?\s*['"]Không thời hạn['"]/.test(khachHang));
+    k('G1f thẻ Hạng: ô PIN chủ quán gửi kèm khi Lưu và Xoá (hangApi.luu({ … pin }), hangApi.xoa(id, pin))', /hangApi\.luu\(\{[\s\S]*?\bpin\b[\s\S]*?\}\)/.test(hang)
+      && /hangApi\.xoa\(\s*h\.id\s*,\s*pinSua\s*\)/.test(hang) && api.includes("xoa: (id, pin) => api.delete(`/tiers/${id}`, { pin })"));
     k('G4 hai file mới gọi máy chủ qua utils/api.js (không fetch trần)', hang.length > 0 && cap.length > 0 && !/\bfetch\s*\(/.test(hang + cap));
     // soát vòng 2, lỗi 1: expires_at của dòng sổ là hạn TÍNH LÚC GHI — huỷ đơn mua ở giữa làm hạn thật đổi (E1–E3) mà số lưu không đổi → không hiện
     k('G3c nhật ký hạng KHÔNG hiện expires_at lưu sẵn (hạn thật cộng lại từ sổ — chỉ hiện ở dòng hạng hiện tại)', cap.length > 0 && !cap.includes('expires_at'));
