@@ -604,8 +604,8 @@ async function main() {
     gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') + ` (đơn E ${donE})` : '') + ' · ' + traVe.join(' '));
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));
   const pb = Number((hd2.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
-  k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN = 6 (main 5 + 1), khối máy đọc phien_ban 6, nhật ký có dòng v6 GIO-VN-1',
-    hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb === 6 && /"phien_ban":\s*6\b/.test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
+  k('E2 hợp đồng: bỏ câu "Lỗi đã biết", PHIEN_BAN ≥ 6 (GIO-VN-1 là v6, việc sau tăng tiếp), khối máy đọc phien_ban khớp PHIEN_BAN, nhật ký có dòng v6 GIO-VN-1',
+    hd2.length > 0 && !/Lỗi đã biết/.test(hd2.split('## Nhật ký')[0]) && pb >= 6 && new RegExp('"phien_ban":\\s*' + pb + '\\b').test(hd2) && /^- v6 · .*GIO-VN-1/m.test(hd2), `PHIEN_BAN ${pb}`);
 
   muc('B6. Khôi phục sao lưu qua route thật (POST /backup/restore, GET /backup/export/:table)');
   const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
