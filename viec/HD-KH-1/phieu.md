@@ -34,6 +34,8 @@ còn quét QR bao nhiêu, kể cả khi tải lại.
 - HOP_DONG_API_KH.md
 - client/dist/**
 - kiem_tra_truoc_khi_giao.js
+- cong_cu/thu_GIOVN1.js
+<!-- Chat thêm lúc gộp 04.11 (chủ quán chạy): chỉ ca E2 — PHIEN_BAN ≥ 6, vì HD-KH-1 tăng hợp đồng lên v7. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_HDKH1.js` ĐỎ trên code gốc: `/don/:ma` có `hoa_don[]` khớp từng dòng với hàm hoá đơn quầy trên các đơn mẫu; `cach_tra`, `giu_vi`,
