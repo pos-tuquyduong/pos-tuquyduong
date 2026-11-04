@@ -57,10 +57,13 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Middleware
+// KH-NHANH-POS-1: trình duyệt nhớ kết quả hỏi trước (preflight) 2 giờ — không có thì Chrome chỉ nhớ 5 giây, mỗi lần App KH đổi tab mất thêm ~250 ms.
+const CORS_NHO_PREFLIGHT_GIAY = 7200;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: CORS_NHO_PREFLIGHT_GIAY
 }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
