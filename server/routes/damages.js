@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { query, queryOne, run } = require('../database');
+const { getNow, getToday } = require('../utils/helpers');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { tienDaTraTheoDong } = require('../utils/tienDaTra');
@@ -73,8 +74,8 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/stats', authenticate, async (req, res) => {
   try {
     const { month, year } = req.query;
-    const y = year || new Date().getFullYear();
-    const m = month || (new Date().getMonth() + 1);
+    const y = year || getToday().slice(0, 4);   // GIO-VN-1: tháng theo giờ VN (máy chủ chạy UTC)
+    const m = month || getToday().slice(5, 7);
     const monthStr = `${y}-${String(m).padStart(2, '0')}`;
     
     // Tổng hợp tháng hiện tại
@@ -192,12 +193,12 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
           product_code, product_name, quantity, unit_price, damage_value,
           reason, reason_note, action, refund_amount, returned_to_stock,
           processed_by, processed_by_name, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
       `, [
         order_id, order.code, order.customer_phone, order.customer_name,
         product_code, dong.ten, soLuong, gia, damage_value,
         reason, reason_note || null, action, finalRefund,
-        req.user.id, req.user.display_name || req.user.username
+        req.user.id, req.user.display_name || req.user.username, getNow()
       ]);
       return { order, finalRefund, logId: log.lastInsertRowid };
     });

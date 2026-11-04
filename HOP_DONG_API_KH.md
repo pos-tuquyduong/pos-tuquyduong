@@ -1,7 +1,7 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 6
-NGAY: 2026-11-03
+PHIEN_BAN: 7
+NGAY: 2026-11-04
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
@@ -19,8 +19,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1) (server/routes/kh/index.js, loi.js, m
 - SĐT khách luôn lấy từ token, không bao giờ từ thân yêu cầu. Đơn / dữ liệu của khách khác → 404 như không có.
 - **Giờ:** mọi trường giờ (`ngay`, `ngay_tao`, `ton_luc`…) là **giờ Việt Nam**, dạng `YYYY-MM-DDTHH:mm:ss`, KHÔNG có hậu tố múi giờ. App KHÔNG
   đưa thẳng vào `new Date(...)` (trình duyệt sẽ hiểu là giờ máy khách) — đọc như giờ `Asia/Ho_Chi_Minh`. "Bây giờ" lấy từ máy chủ (cửa giờ
-  hoạt động, từ v2), không lấy đồng hồ điện thoại. Lỗi đã biết: một số giờ CŨ (vd ngày tạo của vài khách) còn lưu theo giờ quốc tế, có
-  dấu cách thay chữ `T` — GIO-VN-1 sửa trước khai trương.
+  hoạt động, từ v2), không lấy đồng hồ điện thoại.
 
 ## Các cửa (phiên bản 6)
 | Cửa | Token | Gửi | Trả (ngoài `success`) |
@@ -183,7 +182,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 6,
+  "phien_ban": 7,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -238,5 +237,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   Mã lỗi mới của đặt đơn (thay tên đã hẹn `NGOAI_GIO_HOAT_DONG` bằng `NGOAI_GIO` + `QUA_GIO_NHAN_DON`, đã báo App ở TRA_LOI_POS_31102026). Chủ quán
   duyệt 31.10: `tong_da_xem` + 409 `GIA_DA_DOI` kèm `bao_gia`; "Trả lời 4xx của POST /don không giữ khoá gửi — gửi lại cùng khoa_gui được xử lý như
   lần đầu." Không xoá / đổi tên trường cũ.
-- v6 · 03.11.2026 · HD-KH-1: `GET /don/:ma` thêm `hoa_don[]` (dòng tờ giao khách dựng bằng cùng hàm hoá đơn quầy; dòng `gio` của đơn App có `phai` rỗng — không lộ tên nhân viên); `GET /don/:ma` và mỗi đơn của `GET /don`
+- v6 · 02.11.2026 · GIO-VN-1: giờ CŨ lưu theo giờ quốc tế / có dấu cách đã đổi sang giờ Việt Nam `YYYY-MM-DDTHH:mm:ss` (bước nâng cấp 012) và mọi
+  chỗ ghi giờ của POS đều qua `getNow` — bỏ câu "Lỗi đã biết" ở mục Chung · Giờ. Không đổi cửa, không đổi trường.
+- v7 · 03.11.2026 · HD-KH-1: `GET /don/:ma` thêm `hoa_don[]` (dòng tờ giao khách dựng bằng cùng hàm hoá đơn quầy; dòng `gio` của đơn App có `phai` rỗng — không lộ tên nhân viên); `GET /don/:ma` và mỗi đơn của `GET /don`
   thêm `cach_tra`, `giu_vi`, `con_lai` (đơn App; đơn quầy `null`). Không xoá / đổi tên trường cũ. Chuyển dòng HD-KH-1 từ "Đã hẹn" lên bảng cửa.

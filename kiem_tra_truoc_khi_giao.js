@@ -493,6 +493,7 @@ function chayBaiThat(bai, env, han = 120000, canhGan = false) {
   return ra;
 }
 for (const bai of ['cong_cu/thu_P20.js', 'cong_cu/thu_P21.js', 'cong_cu/thu_P26a.js', 'cong_cu/thu_P26b.js', 'cong_cu/thu_P26c.js', 'cong_cu/thu_GOI1.js', 'cong_cu/thu_KH1.js', 'cong_cu/thu_P2223.js', 'cong_cu/thu_P24.js', 'cong_cu/thu_BH1.js', 'cong_cu/thu_BH2.js', 'cong_cu/thu_DIEMTHAT1.js', 'cong_cu/thu_KHAPI2.js', 'cong_cu/thu_KHAPI3.js', 'cong_cu/thu_HOPDONG_KH.js', 'cong_cu/thu_P3.js']) chayBaiThat(bai);
+chayBaiThat('cong_cu/thu_KHNHANHPOS1.js');   // KH-NHANH-POS-1: CORS maxAge 7200 cho preflight (máy chủ thật, OPTIONS)
 chayBaiThat('cong_cu/thu_UUDAI1.js');   // UUDAI-1: mã giảm & giá hạng, tinh-thu
 chayBaiThat('cong_cu/thu_BHCKTAY1.js');   // BH-CKTAY-1: màn Bán hàng cũ bỏ ô giảm tay
 chayBaiThat('cong_cu/thu_KHACHCK1.js');   // KHACH-CK-1: bỏ chiết khấu riêng từng khách (máy chủ, cửa ghi, nâng cấp 004, màn hình)
@@ -500,6 +501,7 @@ chayBaiThat('cong_cu/thu_KHMUA1.js');   // KH-MUA-1: App KH đặt đơn nhận 
 chayBaiThat('cong_cu/thu_HD1.js');   // HD-1: hoá đơn bố cục mới + QR + chữ tuỳ chỉnh (dòng riêng: thu_P3 neo mảng bài, đòi P3 đứng cuối)
 chayBaiThat('cong_cu/thu_HDKH1.js');   // HD-KH-1: App KH xem hoá đơn đúng mẫu quầy + cach_tra / giu_vi / con_lai của đơn App
 chayBaiThat('cong_cu/thu_SAOLUU2.js');   // SAOLUU-2: khôi phục sao lưu tất cả hoặc không + phép chốt mọi bảng (database.js + nang_cap/) đều sao lưu
+chayBaiThat('cong_cu/thu_GIOVN1.js');   // GIO-VN-1: mọi giờ ghi / so / trả ra là giờ VN — quét chặn tái phạm, bước nâng cấp 012, so giờ quanh 00:00 / 07:00
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
@@ -798,6 +800,7 @@ chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món 
 chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá
 chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
+chayBaiThat('cong_cu/thu_KHSDT1.js');   // KH-SDT-1: công cụ dọn dữ liệu thử (chỉ chủ quán, một giao dịch, giữ ví ≠ 0 / phiên / đơn hôm nay)
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;

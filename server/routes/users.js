@@ -212,8 +212,8 @@ router.put('/permissions/:role', authenticate, checkPermission('manage_permissio
         );
       } else {
         await run(
-          'INSERT INTO pos_permissions (role, permission, allowed) VALUES (?, ?, ?)',
-          [role, permission, allowed ? 1 : 0]
+          'INSERT INTO pos_permissions (role, permission, allowed, created_at) VALUES (?, ?, ?, ?)',
+          [role, permission, allowed ? 1 : 0, getNow()]
         );
       }
     }

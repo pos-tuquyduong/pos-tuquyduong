@@ -9,6 +9,7 @@
  */
 
 const { query, run } = require('../database');
+const { getNow } = require('./helpers');
 const { isSxConfigured, outStockFIFO, inStockReturn } = require('./sxApi');
 
 const SO_LAN_TOI_DA = 5;      // thu qua nguong nay -> can nguoi xem
@@ -77,9 +78,9 @@ async function doSoNo() {
         // SX tra ve `da_lam_roi` cung di vao day — voi POS thi ca hai deu la XONG.
         await run(
           `UPDATE pos_stock_pending
-              SET status = 'resolved', resolved_at = datetime('now')
+              SET status = 'resolved', resolved_at = ?
             WHERE id = ?`,
-          [d.id],
+          [getNow(), d.id],
         );
         kq.xong++;
       } catch (err) {
