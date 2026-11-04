@@ -22,3 +22,9 @@ Lần chạy đầu: 76 đột biến · BẮT 73 · SỐNG 2 · LẠC 1.
   · BV-KHACH-KHONG-CO SỐNG vì quầy chặn 404 trước khi tới hàm → thêm ca B6c gọi thẳng datNgaySinh → BẮT.
   · BV-KIEM-NGAY-SINH-TRUOC-GHI LẠC (bài sập) → bỏ khỏi danh sách (kiểm này được B7/C4 phủ qua các đột biến tuổi / lịch).
 Sau sửa: 75 đột biến, tất cả BẮT (73 + 2 chạy lại riêng: VS-TUOI-LAY-TUYET-DOI, BV-KHACH-KHONG-CO; đối chứng 75 đạt).
+
+═══ cong_cu/thu_KH1.js (ca E1, 8 → 9 trường; chủ quán thêm vào Phạm vi 04.11) ═══
+Bản MỚI chạy trên code gốc 0cd852f → ĐỎ: ✗ E1 GET /toi … đúng 9 trường … — HTTP 200 · dia_chi,hang,ngay_tao,qr,sdt,so_du_vi,ten,xung_ho · 156 đạt · 1 hỏng
+Bản CŨ chạy trên code mới → ĐỎ: ✗ E1 … HTTP 200 · dia_chi,hang,ngay_sinh,ngay_tao,qr,sdt,so_du_vi,ten,xung_ho
+Bản MỚI trên code mới → XANH (npm test: PASS 91 · FAIL 0)
+SỐ CA cong_cu/thu_KH1.js: 157
