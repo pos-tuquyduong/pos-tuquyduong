@@ -2,6 +2,7 @@
 // % giảm thường / nhóm đặc biệt, cách có hạng Bán (danh sách gói: số tháng + giá + bật) hoặc Chỉ cấp (chủ quán cấp ở trang Khách hàng).
 // Lưu một lần cả danh sách (PUT /tiers — máy chủ kiểm hết rồi ghi trong một giao dịch). Xoá hạng bấm 2 lần, không hộp thoại trình duyệt.
 // PIN chủ quán (cấp / thu hồi hạng) đặt ở đây — chỉ tài khoản chủ quán, gõ lại mật khẩu đăng nhập. % combo KHÔNG ở đây (COMBO-1a).
+// Lưu / Xoá hạng phải gõ PIN chủ quán (chủ quán 04.11 — máy chủ kiểm, sai 5 lần khoá như lúc cấp hạng).
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +20,7 @@ export default function HangThe() {
   const [thongDiep, setThongDiep] = useState('');
   const [coPin, setCoPin] = useState(null);
   const [pin, setPin] = useState({ mat_khau: '', pin: '', pin_lai: '' });
+  const [pinSua, setPinSua] = useState('');
 
   const bao = (t) => { setThongDiep(t); if (!t.startsWith('Lỗi')) setTimeout(() => setThongDiep((x) => (x === t ? '' : x)), 3000); };
   const tai = async () => {
@@ -48,7 +50,7 @@ export default function HangThe() {
     if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }
     setXoaCho(null);
     if (!h.id) { setDs((d) => d.filter((x) => x.khoa !== h.khoa)); return; }
-    try { await hangApi.xoa(h.id); bao('Đã xoá hạng ' + h.name); await tai(); } catch (e) { bao('Lỗi: ' + e.message); }
+    try { await hangApi.xoa(h.id, pinSua); setPinSua(''); bao('Đã xoá hạng ' + h.name); await tai(); } catch (e) { bao('Lỗi: ' + e.message); }
   };
   const luu = async () => {
     setDangLuu(true);
@@ -57,8 +59,9 @@ export default function HangThe() {
         tiers: ds.map((h) => ({ id: h.id, name: h.name, sort_order: h.sort_order, discount_percent: h.discount_percent,
           special_discount_percent: h.special_discount_percent, cach_co: h.cach_co,
           goi: h.cach_co === 'ban' ? h.goi.map((g) => ({ so_thang: Number(g.so_thang), gia: g.gia === '' ? null : Number(g.gia), bat: g.bat })) : [] })),
-        round_to: lamTron.round_to, round_mode: lamTron.round_mode,
+        round_to: lamTron.round_to, round_mode: lamTron.round_mode, pin: pinSua,
       });
+      setPinSua('');
       bao('Đã lưu hạng thành viên');
       await tai();
     } catch (e) { bao('Lỗi: ' + e.message); } finally { setDangLuu(false); }
@@ -88,6 +91,7 @@ export default function HangThe() {
         Mỗi hạng một thẻ. Thứ bậc càng lớn càng cao (trên cùng là cao nhất) — khách đang có hạng cao hơn thì không mua được hạng thấp hơn,
         máy luôn áp hạng cao nhất còn hạn. <b>Bán</b>: danh sách gói tuỳ ý, gói chưa đặt giá thì chưa bán, mua thêm gói cùng hạng → hạn cộng nối.
         {' '}<b>Chỉ cấp</b>: chỉ chủ quán cấp ở trang Khách hàng (có PIN chủ quán, ghi người cấp + lúc cấp).
+        {' '}Lưu hoặc xoá hạng: gõ PIN chủ quán vào ô cạnh nút Lưu trước.
       </p>
       {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
 
@@ -155,14 +159,16 @@ export default function HangThe() {
           <option value="0_nearest">Không làm tròn</option>
         </select>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: '0.5rem', flexWrap: 'wrap' }}>
+        <input className="input" type="password" inputMode="numeric" maxLength={6} style={{ width: 170 }} placeholder="PIN chủ quán" value={pinSua}
+          aria-label="PIN chủ quán để lưu / xoá hạng" onChange={(e) => setPinSua(e.target.value.replace(/\D/g, ''))} />
         <button className="btn btn-outline" onClick={them}>+ Thêm hạng</button>
         <button className="btn btn-primary" onClick={luu} disabled={dangLuu}><Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}</button>
       </div>
 
       <div className="card-title" style={{ margin: '1.5rem 0 0.5rem' }}>🔐 PIN chủ quán</div>
       <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 0.5rem' }}>
-        Dùng khi cấp / thu hồi hạng ở trang Khách hàng. {coPin ? 'Đã đặt.' : 'Chưa đặt — chưa cấp hạng được.'}
+        Dùng khi cấp / thu hồi hạng ở trang Khách hàng và khi lưu / xoá hạng ở đây. {coPin ? 'Đã đặt.' : 'Chưa đặt — chưa cấp hạng, chưa lưu / xoá hạng được.'}
       </p>
       {user?.role === 'owner' && (
         <div style={dong}>

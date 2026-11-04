@@ -192,8 +192,8 @@ class ApiClient {
     });
   }
 
-  delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
+  delete(endpoint, data) {
+    return this.request(endpoint, data === undefined ? { method: 'DELETE' } : { method: 'DELETE', body: JSON.stringify(data) });
   }
 
   async upload(endpoint, formData) {
@@ -477,7 +477,7 @@ export const usersApi = {
 export const hangApi = {
   ds: () => api.get('/tiers'),
   luu: (body) => api.put('/tiers', body),
-  xoa: (id) => api.delete(`/tiers/${id}`),
+  xoa: (id, pin) => api.delete(`/tiers/${id}`, { pin }),
   coPin: () => api.get('/membership/pin-chu-quan'),
   datPin: (matKhau, pin, pinLai) => api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai }),
   trangThai: (sdt) => api.get(`/membership/status/${encodeURIComponent(sdt)}`),
