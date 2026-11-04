@@ -9,25 +9,38 @@ quán duyệt đổi, Q2 03.11): bản GỐC của chúng đỏ trên code mới
 trang_thai.md), bản MỚI đỏ trên gốc vì phần dựng dữ liệu cần cột `goi` của bước 013 (gốc chưa có gói → bài dừng ở dựng dữ liệu). Bằng chứng
 theo từng ca của luật mới nằm ở thu_HANG1.js.
 
-═══ cong_cu/thu_HANG1.js ═══
-Trên gốc 2a12443: thoát 1 · 8 đạt · 99 hỏng → ĐỎ
-  ✗ N1 Vàng → cach_co ban, đúng 2 gói 1 tháng + 3 tháng, giá trống, đang bán  — {"id":1,"name":"Vàng","card_price":500000,"discount_percent":5,"special_discount_percent":0,"sort_order":1,"is_active":1,"created_at":"2026-11-03T10:0
-  ✗ N5 Bạch Kim (seed) → cach_co ban, gói rỗng  — {"id":2,"name":"Bạch Kim","card_price":2000000,"discount_percent":8,"special_discount_percent":0,"sort_order":2,"is_active":1,"created_at":"2026-11-03T10:00:00","updated_at":"2026-
+═══ cong_cu/thu_HANG1.js ═══  (chạy lại 04.11 sau ca A9 — khoá PIN chủ quán cho Cài đặt hạng; cây gốc dựng lại ở nháp goc2)
+Trên gốc 2a12443: thoát 1 · 7 đạt · 77 hỏng → ĐỎ
+  ✗ N1 Vàng → cach_co ban, đúng 2 gói 1 tháng + 3 tháng, giá trống, đang bán  — {"id":1,"name":"Vàng","card_price":500000,"discount_percent":5,"special_discount_percent":0,"sort_order":1,"is_active":1,"created_at
+  ✗ N5 Bạch Kim (seed) → cach_co ban, gói rỗng  — {"id":2,"name":"Bạch Kim","card_price":2000000,"discount_percent":8,"special_discount_percent":0,"sort_order":2,"is_active":1,"created_at":"2026-11-03T10:00:00","updat
   ✗ N5b mua Bạch Kim (chưa gói nào) → 400 GOI_HANG_KHONG_BAN, không dòng thẻ  — HTTP 200
   ✗ N1b mua Vàng 1 tháng khi gói chưa có giá → 400 GOI_HANG_KHONG_BAN (không bán theo giá thẻ cũ 500.000)  — HTTP 200
   ✗ N4 có bảng sao lưu _sao_luu_013_pos_membership_tiers
   ✗ N6 quyền cap_hang: manager 0, owner 1, staff 0  — []
   ✗ N7 /kh/hang lúc chưa gói nào có giá: Vàng gia_the null, goi []  — {"id":1,"ten":"Vàng","phan_tram":5,"phan_tram_nhom_dac_biet":0,"gia_the":500000,"thu_tu":1}
-  ✗ N2 (bài sập giữa chừng)  — Cannot find module '/tmp/claude-0/-home-user-pos-tuquyduong/b2e8ff75-7123-53b0-a606-0c267c2aa124/scratchpad/goc/server/nang_cap/013_hang.js'
+  ✗ N2 (bài sập giữa chừng)  — Cannot find module '…/scratchpad/goc2/server/nang_cap/013_hang.js'
+  ✗ A9 chưa đặt PIN chủ quán → PUT /tiers 400 CHUA_CO_PIN_CHU_QUAN, không ghi  — HTTP 400 · Giá thẻ không hợp lệ
+  ✗ A (dựng) chủ quán đặt PIN chủ quán  — HTTP 404
   ✗ A1 PUT thêm hạng không id → 200, GET thấy Kim Cương (thứ bậc 3, chi_cap)  — HTTP 400 · Giá thẻ không hợp lệ
   ✗ A6 hạng chi_cap gửi kèm gói → lưu gói rỗng
   ✗ A1b Vàng lưu đủ 4 gói (giá trống / tắt giữ nguyên)
   ✗ A2 sửa gói (bỏ 6 + 12 tháng, thêm 2 tháng) → đúng danh sách, xếp theo tháng  — HTTP 400 · Giá thẻ không hợp lệ
-  ✗ A3 gói 0 tháng → 400 HANG_KHONG_HOP_LE  — HTTP 400 · Giá thẻ không hợp lệ
-  ✗ A3 gói 1 tháng → 200  — HTTP 400 · Giá thẻ không hợp lệ
-  … (+85 dòng ✗ nữa)
-Trên code đã vá (HEAD): thoát 0 · 122 đạt · 0 hỏng → XANH
-SỐ CA cong_cu/thu_HANG1.js: 122
+  … (+63 dòng ✗ nữa)
+Trên code TRƯỚC vá PIN (c8dddfb = bài mới trên code 80a087e): 114 đạt · 12 hỏng → ĐỎ ở đúng ca mới
+  ✗ A9 chưa đặt PIN chủ quán → PUT /tiers 400 CHUA_CO_PIN_CHU_QUAN, không ghi  — HTTP 200
+  ✗ A9b tài khoản chủ quán KHÔNG gửi PIN sửa % → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9c PIN sai → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9d quản lý KHÔNG PIN thêm hạng bán mới (thứ bậc cao nhất, 60 tháng 1đ) → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9e quản lý KHÔNG PIN hoán thứ bậc Vàng ↔ Bạch Kim → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9f các lần thiếu / sai PIN không ghi gì (không hạng Rẻ, % và thứ bậc như cũ)
+  ✗ A9g sai PIN 5 lần ở Cài đặt hạng → PIN đúng 423 PIN_CHU_QUAN_KHOA (cả cấp hạng); 16 phút sau 200  — HTTP 200 · cấp HTTP 200 · HTTP 200
+  ✗ K5 PUT lại nguyên GET → 200, không đổi  — HTTP 200
+  ✗ A9i xoá hạng KHÔNG PIN (chủ quán / quản lý, cả hạng không khách) → 400 PIN_CHU_QUAN_SAI, hạng vẫn bật  — HTTP 409 · HANG_CON_KHACH
+  ✗ A9j (K5) quản lý gõ đúng PIN xoá hạng không khách → 200, ẩn  — HTTP 400 · ID không hợp lệ
+  ✗ A5 (bài sập giữa chừng)  — SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_membership_purchases.tier_id
+  ✗ G1f thẻ Hạng: ô PIN chủ quán gửi kèm khi Lưu và Xoá (hangApi.luu({ … pin }), hangApi.xoa(id, pin))
+Trên code đã vá (HEAD): thoát 0 · 132 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_HANG1.js: 132
 
 ═══ cong_cu/thu_DOISOAT1.js ═══
 Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
@@ -83,3 +96,9 @@ Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
 Trên code đã vá (HEAD): thoát 0 · 81 đạt · 0 hỏng → XANH
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 81
 
+═══ cong_cu/thu_GIOVN1.js ═══  (04.11 — chủ quán thêm vào Phạm vi: chỉ phần dựng dữ liệu mua thẻ C5 + E2 "PHIEN_BAN ≥ 6"; bài SỬA thường, LUAT §6.8)
+Bản GỐC (c4513ac) trên code HANG-1: 56 đạt · 5 hỏng (✗ C5a, ✗ C5b, ✗ C5c, ✗ B1, ✗ E2 — mua thẻ thiếu so_thang → 400 THE_MUA_THIEU_THONG_TIN; E2 khoá PHIEN_BAN = 6)
+Trên gốc 2a12443 (bản mới df230c4): thoát ≠ 0 · 30 đạt · 1 hỏng → ĐỎ
+  ✗ Bài thử sập: LibsqlError: SQLITE_ERROR: no such column: cach_co
+Trên code đã vá (HEAD): thoát 0 · 61 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_GIOVN1.js: 61

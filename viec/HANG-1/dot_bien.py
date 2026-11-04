@@ -64,9 +64,13 @@ DOT_BIEN = [
   ('BV-xoa-hang', [(TI, "    if (dangGiu > 0) {", '    if (false) {', 1)], r'✗ A5 '),
   ('VS-xoa-hang-ca-het-han', [(MS, "(hanCacHang(ds).get(Number(tierId))?.han ?? '') > now", "(hanCacHang(ds).get(Number(tierId))?.han ?? '') !== ''", 1)], r'✗ A5b '),
   ('VS-xoa-chi-hang-hien-tai', [(TI, '    const dangGiu = await soKhachGiuHang(query, getNow, id);', "    const dangGiu = Object.values(await require('../utils/membershipStatus').hangNhieuKhach(query, getNow)).filter((m) => m.tier_id === id && m.status !== 'expired').length;", 1)], r'✗ A5d '),
-  ('BV-doi-cach-co', [(TI, "&& !(await coQuyen(req.user, 'cap_hang'))) {", '&& false) {', 1)], r'✗ A8 '),
-  ('VS-doi-cach-co-mot-chieu', [(TI, 'cu.get(h.id) !== h.cach_co)', "cu.get(h.id) === 'chi_cap' && h.cach_co === 'ban')", 1)], r'✗ A8b '),
-  ('VS-doi-cach-co-quyen-chung', [(TI, "!(await coQuyen(req.user, 'cap_hang'))", "!(await coQuyen(req.user, 'manage_promotions'))", 1)], r'✗ A8 '),
+  # ── A9: MỌI thay đổi Cài đặt hạng (PUT / DELETE /tiers) cần PIN chủ quán (chủ quán 04.11 — thay khoá đổi cách có hạng chỉ bằng quyền) ──
+  ('BV-pin-sua-hang', [(TI, "    const pin = await kiemPinChuQuan(req.body.pin);\n    if (pin.loi) return baoPin(res, pin.loi);\n", '', 1)], r'✗ A9b '),
+  ('BV-pin-xoa-hang', [(TI, "    const pin = await kiemPinChuQuan(req.body?.pin);\n    if (pin.loi) return baoPin(res, pin.loi);\n", '', 1)], r'✗ A9i '),
+  ('VS-pin-chu-quan-mien', [(TI, 'const pin = await kiemPinChuQuan(req.body.pin);', "const pin = req.user.role === 'owner' ? {} : await kiemPinChuQuan(req.body.pin);", 1)], r'✗ A9b '),
+  ('VS-pin-chi-khi-them-hang', [(TI, 'const pin = await kiemPinChuQuan(req.body.pin);', 'const pin = ds.some((h) => h.id === null) ? await kiemPinChuQuan(req.body.pin) : {};', 1)], r'✗ A9e '),
+  ('VS-pin-khong-bo-dem', [(TI, 'const pin = await kiemPinChuQuan(req.body.pin);', "const pin = (await require('bcryptjs').compare(String(req.body.pin ?? ''), (await query('SELECT pin_bam FROM pos_pin_chu_quan WHERE id = 1'))[0]?.pin_bam || '$2')) ? {} : { loi: [400, 'PIN_CHU_QUAN_SAI', 'sai'] };", 1)], r'✗ A9g '),
+  ('VS-xoa-hang-giao-dien-khong-pin', [('client/src/pages/CaiDat/HangThe.jsx', 'hangApi.xoa(h.id, pinSua)', 'hangApi.xoa(h.id)', 1)], r'✗ G1f '),
   ('BV-none-loc', [(MS, ".filter(([, m]) => m.status !== 'none'));", ');', 1)], r'✗ C6d '),
   # ── N: bước nâng cấp 013 ──
   ('BV-013-vang', [(N13, '  await tx.run("UPDATE pos_membership_tiers SET goi = ? WHERE name = \'Vàng\' AND cach_co = \'ban\' AND goi = \'[]\'", [GOI_VANG]);\n', '', 1)], r'✗ N1 '),

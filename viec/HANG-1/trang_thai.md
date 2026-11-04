@@ -222,3 +222,50 @@ BÀI HỌC:
    **Đề xuất của mình:** (a) đổi bán ↔ chỉ cấp phải nhập PIN chủ quán (dùng lại khoá 5 lần sai như lúc cấp); (b) thêm hạng mới / đổi % của hạng /
    đổi thứ bậc — giữ cho quản lý như cũ, vì quản lý vốn đã đặt giá và % ở quầy; nếu bạn muốn chặn luôn (b) thì mọi thay đổi ở Cài đặt → Hạng
    đều phải có PIN chủ quán (quản lý không tự sửa hạng được nữa). Bạn chọn: **(a) thôi** hay **(a) + (b)**?
+
+## Bước 1 — đối chiếu bản chụp, làm tiếp (04.11.2026 — chủ quán: thêm thu_GIOVN1 vào Phạm vi, bảo mật chọn (a) + (b))
+- Nhánh `viec/HANG-1`, cây sạch. `git fetch origin viec/HANG-1`: HEAD = `80a087e`, FETCH_HEAD = `885fd43` → HEAD là tổ tiên → `git pull --no-rebase --ff-only` (chỉ đổi phiếu).
+- `git log --oneline -3` (sau kéo):
+  ```
+  885fd43 PHIEU: HANG-1 them Pham vi thu_GIOVN1.js (chu quan 04.11)
+  80a087e HANG-1 soat vong 2: chep bao cao, vong sua 2, cau hoi bao mat (dung cho chu quan)
+  51ede0e HANG-1 vong sua 2: nhat ky hang khong hien han luu san; sua cau mui gio o ho so
+  ```
+- (Lần gọi đầu của phiên này, lúc 80a087e = FETCH_HEAD, phiếu CHƯA có dòng thu_GIOVN1 — người gác chặn sửa phiếu G1-PHIEU; lần gọi lại đã thấy 885fd43.)
+
+## Làm tiếp 04.11 — câu 1 + câu 2 đã trả lời
+- **Câu 1 (thu_GIOVN1):** `df230c4` — C5 dựng gói 3 tháng (`cach_co = 'ban'`, `goi = [{ so_thang: 3, gia: 300000, bat: true }]`) cho hạng thấp nhất, mua
+  `{ tier_id, so_thang: 3 }` trả 300.000 (thay `datCai('tier_card_valid_months', '3')` + `card_price`); E2 `pb >= 6` + khối máy đọc `"phien_ban"` khớp đúng
+  PHIEN_BAN + vẫn đòi dòng v6 GIO-VN-1. Chạy thẳng: **61 đạt · 0 hỏng** (C5a, C5b — ca TZ=Asia/Ho_Chi_Minh — C5c, B1, E2 xanh lại). Trên gốc 2a12443: sập
+  `no such column: cach_co` (đỏ). Ca múi giờ (CHƯA KIỂM cũ) nay CÓ bài chứng minh: GIOVN1 C5b chạy trên code HANG-1.
+- **Câu 2 (a)+(b):** bài thử ĐỎ trước (`c8dddfb`: 114 đạt · 12 hỏng — ✗ A9, A9b–A9g, K5 PUT lại, A9i, A9j, A5 sập, G1f), vá `f4642cd`:
+  - `server/routes/tiers.js` PUT và DELETE gọi `kiemPinChuQuan(req.body.pin)` (cùng bộ đếm sai 5 lần / khoá 15 phút với cấp hạng) — PUT sau phần kiểm dữ
+    liệu (400 dữ liệu sai không tốn lượt PIN), DELETE trước khi đếm khách. Bỏ khoá `DOI_CACH_CO_CAN_QUYEN` + hàm `coQuyen` (chép luật checkPermission —
+    nghi ngờ soát vòng 2): PIN phủ mọi thay đổi, kể cả đổi bán ↔ chỉ cấp; người gõ được PIN chủ quán là chủ quán cho phép. Quyền vào màn vẫn `manage_promotions`.
+  - `client/src/utils/api.js`: `delete(endpoint, data)` gửi thân khi có; `hangApi.xoa(id, pin)`. `HangThe.jsx`: ô "PIN chủ quán" cạnh nút Lưu, gửi kèm khi Lưu /
+    Xoá, lưu xong xoá ô; lời hướng dẫn trên thẻ. `client/dist` build lại.
+  - Ca mới: A9 (chưa đặt PIN → 400 CHUA_CO_PIN_CHU_QUAN) · A9b (phiên chủ quán không PIN) · A9c (PIN sai) · A9d (quản lý thêm hạng bán 60 tháng 1đ thứ bậc cao) ·
+    A9e (hoán thứ bậc) · A9f (không ghi gì) · A9g (sai 5 lần → 423 ở cả Cài đặt hạng lẫn cấp hạng, 16 phút sau mở) · A9i (xoá không PIN) · A9j (K5 quản lý gõ PIN
+    xoá 200) · A8/A8b (đổi Kim Cương → bán không PIN, cả tài khoản chủ quán → 400) · A8c (K5 có PIN đổi đi đổi lại 200) · G1f (giao diện gửi PIN). A7b đổi thành
+    "quản lý gõ đúng PIN → 200"; A8d cũ (quản lý sửa % không PIN → 200) bỏ — hành vi đã đổi theo quyết định (b).
+  - Đột biến: bỏ BV-doi-cach-co, VS-doi-cach-co-mot-chieu, VS-doi-cach-co-quyen-chung (khoá cũ đã gỡ); thêm BV-pin-sua-hang, BV-pin-xoa-hang,
+    VS-pin-chu-quan-mien, VS-pin-chi-khi-them-hang, VS-pin-khong-bo-dem, VS-xoa-hang-giao-dien-khong-pin.
+    `python3 viec/HANG-1/dot_bien.py` → ĐỐI CHỨNG XANH 132 đạt · **TỔNG 52 · BẮT 52** · SỐNG 0 · HỎNG 0 · LẠC 0.
+- `node cong_cu/thu_HANG1.js` → **132 đạt · 0 hỏng**. `bang_chung_do.txt`: SỐ CA thu_HANG1 132, thu_GIOVN1 61 (đỏ trên gốc 2a12443 dựng lại).
+- `npm test -- --day-du` → **PASS 97 · FAIL 1 · CẢNH BÁO 1** — dòng ✗ nguyên văn:
+  `✗ bài chạy thật cong_cu/thu_P26a.js xanh (0.9 s)  → ✗ C9 PUT /tiers lưu lại hạng có sẵn → 200  — HTTP 200 / HTTP 400 · Chưa đặt PIN chủ quán — chủ quán đặt ở Cài đặt → Hạng thành viên`
+  (CẢNH BÁO có sẵn từ trước — route GET có lệnh ghi ở packages.js, products.js, sync.js.)
+
+### Bảng chỗ vá → đột biến (bổ sung 04.11)
+| Chỗ vá | Đột biến |
+|---|---|
+| `tiers.js` PUT / DELETE cần PIN chủ quán (cùng bộ đếm khoá) | BV-pin-sua-hang · BV-pin-xoa-hang · VS-pin-chu-quan-mien · VS-pin-chi-khi-them-hang · VS-pin-khong-bo-dem |
+| `HangThe.jsx` gửi PIN khi Lưu / Xoá | VS-xoa-hang-giao-dien-khong-pin |
+
+## Câu hỏi (04.11 — chờ chủ quán; DỪNG trước soát vòng 3 để không đốt vòng soát cuối khi `npm test` còn đỏ)
+3. **`cong_cu/thu_P26a.js` (NGOÀI Phạm vi) đỏ vì khoá PIN bạn vừa chọn.** Ca C9 (`thu_P26a.js:140-142`) lưu lại hạng có sẵn bằng `PUT /tiers` KHÔNG kèm PIN và
+   đòi 200 — điều nó canh là "route trả id kiểu số, không BigInt" (P26a), không phải quyền. Nay mọi lần lưu hạng phải có PIN nên trả 400 `CHUA_CO_PIN_CHU_QUAN`.
+   **Đề xuất:** bạn thêm `- cong_cu/thu_P26a.js` vào `## Phạm vi` (chỉ phần dựng dữ liệu C9); mình sửa đúng chỗ đó: đặt PIN chủ quán bằng route
+   `POST /membership/pin-chu-quan` (tài khoản chủ quán của bài, gõ mật khẩu) rồi gửi `pin` trong thân `PUT /tiers` — C9 vẫn đòi 200 như cũ.
+   (Cách khác mình KHÔNG đề xuất: cho lưu không PIN khi không có gì thay đổi — thêm phép so từng trường, thêm chỗ có thể lọt; chỉ để né một bài thử.)
+   Sau khi bạn thêm, mình làm tiếp: sửa C9 → `npm test` xanh → soát vòng 3 → soát bảo mật → cổng → báo cáo 7 mục.
