@@ -67,3 +67,20 @@ SOÁT BẢO MẬT: ĐẠT
 - **BỎ 1** — hai lần nhắc `cat >> file` / `git worktree` bị người gác chặn: chỉ là cách làm, đổi sang Python ghi file và `git archive` là đủ, không cần luật mới.
 - Dọn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mới được phép kiểm làm thay.
 
+## Cổng chạy
+`node tu_chay/cong.js chay . 0cd852f^ HEAD viec/CT-1a` (HEAD ddeaad0, cây sạch):
+· CẢNH BÁO A16: `cong_cu/thu_CT1a.js` chạy trên gốc in 74 ca ≠ 75 ca ở head — bài dừng sớm trên gốc (thiếu module `routes/chuong-trinh.js`) nên không so được; bằng chứng đỏ 4 đạt · 69 hỏng đã ghi ở `bang_chung_do.txt`.
+✓ CỔNG CHẠY ĐẠT
+
+## Báo cáo 7 mục
+VIỆC:        CT-1a — Thẻ Cài đặt "Chương trình" + ngày sinh khách (nhập MỘT lần) + cửa App `/chuong-trinh`, `PUT /toi.ngay_sinh`
+ĐÃ SỬA:      server/nang_cap/017_chuong_trinh.js · server/routes/chuong-trinh.js · server/routes/kh/index.js · server/routes/customers-v2.js · server/routes/backup.js · server/index.js · client/src (ChuongTrinh.jsx, Settings.jsx, Customers.jsx, api.js) + client/dist · HOP_DONG_API_KH.md (v5 → v6) · cong_cu/thu_CT1a.js · thu_HOPDONG_KH.js · cong_cu/thu_KH1.js (chỉ ca E1: 8 → 9 trường, 534712c)
+BÀI THỬ:     thu_CT1a.js trên gốc 0cd852f → ĐỎ (4 đạt · 69 hỏng); sau vá → XANH 75/75; đột biến 75/75 BẮT. thu_KH1.js E1: bản mới ĐỎ trên gốc, bản cũ ĐỎ trên code mới, bản mới XANH trên code mới (157 ca)
+ĐÃ RÀ K4:    grep `UPDATE pos_customers` / `ngay_sinh` toàn server → chỉ `datNgaySinh` ghi cột ngay_sinh (App + quầy gọi chung); agent soát độc lập grep lại: không còn đường song song
+CHƯA KIỂM:   Turso thật (bước 017, `ngay_sinh IS ?` với null) · thử tay giao diện trên điện thoại · vế `IS <cũ>` + kiểm `changes` trong datNgaySinh không có đột biến bắt được · race "trống lúc kiểm quyền, có lúc ghi" không dựng tất định · ngày sinh ghi trước rồi UPDATE cột khác ném lỗi → 500 nhưng ngày sinh đã ghi (hiếm, không đụng tiền) · `sua_ngay_sinh` chưa có nhãn ở users.js (chưa cấp được qua giao diện) · số PHIEN_BAN hợp đồng chat chỉnh lúc gộp
+GIT:         ddeaad0 CT-1a: trạng thái — soát độc lập, soát bảo mật ĐẠT, Bài học · c6f086d CT-1a: bằng chứng đỏ + SỐ CA cho thu_KH1.js E1
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 1 — chi tiết ở ## Bài học
+
+Thử tay trên điện thoại (khi xong): (1) Cài đặt → Khách hàng → Chương trình: thêm một chương trình, bật, xem App `/chuong-trinh`; (2) Khách hàng → mở một khách → Ngày sinh: nhập, rồi thử sửa bằng tài khoản nhân viên (phải bị chặn).
+
+HEAD ĐÃ KIỂM: ddeaad0
