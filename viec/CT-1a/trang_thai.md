@@ -84,3 +84,7 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 1 — chi tiết ở ## Bài 
 Thử tay trên điện thoại (khi xong): (1) Cài đặt → Khách hàng → Chương trình: thêm một chương trình, bật, xem App `/chuong-trinh`; (2) Khách hàng → mở một khách → Ngày sinh: nhập, rồi thử sửa bằng tài khoản nhân viên (phải bị chặn).
 
 HEAD ĐÃ KIỂM: ddeaad0
+
+
+Chat soát (04.11, bàn 32): đọc báo cáo 7 mục + bằng chứng đỏ/xanh E1 — khớp. Gộp main 81207ac: đụng HOP_DONG_API_KH.md (CT-1a thành v9, sau v6 GIO-VN-1 · v7 HD-KH-1 · v8 SEPAY-1; ghi chú CT-1a đổi nhãn v9) và client/dist (dựng lại). Hai chỗ vênh với main sửa trong commit gộp: bước 017 ghi created_at của pos_permissions bằng getNow (thu_GIOVN1 A1 M5); donThu.js thêm pos_ngay_sinh_sua vào BANG_KHONG_DON (thu_KHSDT1 D14) — phiếu thêm donThu.js vào Phạm vi ở commit PHIEU; khai thu_CT1a.js vào kiem_tra_truoc_khi_giao.js (máy quên); bang_chung_do: SỐ CA thu_HOPDONG_KH.js 85 → 86 sau gộp. npm test --day-du xanh trên bản gộp; cổng tĩnh + cổng chạy chat chạy thử ĐẠT.
+HEAD ĐÃ KIỂM: 008db3a

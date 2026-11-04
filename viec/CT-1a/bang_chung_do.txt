@@ -13,7 +13,8 @@ SỐ CA cong_cu/thu_CT1a.js: 75
 ═══ cong_cu/thu_HOPDONG_KH.js (bài cũ, đổi vì hợp đồng v6 — hành vi chủ quán đã duyệt) ═══
 Trên gốc: bản mới của bài (đòi PHIEN_BAN 6 trong hợp đồng + cửa GET /chuong-trinh) đỏ vì hợp đồng gốc là v5 chưa có cửa.
 Sau vá: 85 đạt · 0 hỏng
-SỐ CA cong_cu/thu_HOPDONG_KH.js: 85
+Sau gộp main 81207ac (chat 04.11 — main HD-KH-1 thêm 1 ca): 86 đạt · 0 hỏng
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 86
 
 ═══ Đột biến (viec/CT-1a/dot_bien.py) ═══
 Đối chứng (bản chưa đột biến): XANH · 75 đạt · 0 hỏng
