@@ -61,6 +61,6 @@ module.exports.chay = async (tx, { themCot }) => {
   }
   if (!(await co(tx, 'pos_permissions'))) return;
   for (const [vaiTro, duoc] of [['owner', 1], ['manager', 0], ['staff', 0]]) {
-    await tx.run("INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, 'sua_ngay_sinh', ?)", [vaiTro, duoc]);
+    await tx.run("INSERT OR IGNORE INTO pos_permissions (role, permission, allowed, created_at) VALUES (?, 'sua_ngay_sinh', ?, ?)", [vaiTro, duoc, getNow()]);
   }
 };

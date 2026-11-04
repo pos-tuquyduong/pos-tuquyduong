@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { productsApi, ordersApi, api } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
+import { hienNgay } from '../utils/ngayVN';
 import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Wallet, X, CheckCircle, Printer, Camera } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
@@ -838,7 +839,7 @@ export default function Sales() {
       <header className="page-header">
     <h1 className="page-title">🛒 Bán hàng</h1>
     <div className="text-sm text-gray">
-      {new Date().toLocaleDateString('vi-VN', { 
+      {hienNgay(new Date(), { 
         weekday: 'long', 
         day: 'numeric', 
         month: 'numeric', 

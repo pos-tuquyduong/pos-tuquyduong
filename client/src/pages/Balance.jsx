@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { walletsApi, customersV2Api } from '../utils/api';
+import { hienNgayGio } from '../utils/ngayVN';
 import { Search, RefreshCw, Plus, X, History, Wallet } from 'lucide-react';
 
 export default function Balance() {
@@ -180,7 +181,7 @@ export default function Balance() {
 
   const formatDate = (date) => {
     if (!date) return '-';
-    return new Date(date).toLocaleString('vi-VN', {
+    return hienNgayGio(date, {
       day: '2-digit',
       month: '2-digit',
       year: '2-digit',

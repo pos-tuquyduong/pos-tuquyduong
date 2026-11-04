@@ -14,7 +14,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { query, queryOne, run, saveDatabase } = require('../database');
-const { getToday } = require('../utils/helpers');
+const { getToday, getNow } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 const { kiemCaiDat } = require('../utils/gioHoatDong');
@@ -157,7 +157,7 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if (loiMan) return res.status(400).json({ success: false, error: loiMan, code: 'CAI_DAT_KHONG_HOP_LE' });
 
     let updated = 0;
-    const timestamp = new Date().toISOString();
+    const timestamp = getNow();
 
     // QUAN TRỌNG: Dùng for...of thay vì forEach vì có await
     for (const [key, value] of Object.entries(settings)) {
@@ -202,7 +202,7 @@ router.post('/logo', authenticate, upload.single('logo'), async (req, res) => {
     const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     
     // Lưu vào database
-    const timestamp = new Date().toISOString();
+    const timestamp = getNow();
     await run(`
       INSERT INTO pos_settings (key, value, updated_at) 
       VALUES ('store_logo', ?, ?)
@@ -248,7 +248,7 @@ router.delete('/logo', authenticate, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Không có quyền xóa logo' });
     }
 
-    const timestamp = new Date().toISOString();
+    const timestamp = getNow();
     await run(`
       UPDATE pos_settings SET value = '', updated_at = ?
       WHERE key = 'store_logo'
@@ -267,7 +267,7 @@ router.delete('/logo', authenticate, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 router.get('/invoice/next-number', authenticate, async (req, res) => {
   try {
-    const currentYear = new Date().getFullYear();
+    const currentYear = Number(getToday().slice(0, 4));   // GIO-VN-1: năm theo giờ VN
     
     // Đếm số hóa đơn trong năm hiện tại
     const result = await queryOne(`
@@ -312,7 +312,7 @@ router.post('/invoice/log', authenticate, async (req, res) => {
       INSERT INTO pos_invoice_logs (
         order_id, order_code, invoice_number, paper_size, 
         printed_by, printed_by_name, print_type, printed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+7 hours'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       order_id, 
       order_code, 
@@ -320,7 +320,8 @@ router.post('/invoice/log', authenticate, async (req, res) => {
       paper_size,
       req.user.id,
       req.user.display_name || req.user.username,
-      print_type
+      print_type,
+      getNow()
     ]);
 
     // Cập nhật invoice_number vào order
@@ -420,9 +421,9 @@ router.delete('/invoice/logs/:id', authenticate, async (req, res) => {
     // Soft delete
     await run(`
       UPDATE pos_invoice_logs 
-      SET is_deleted = 1, deleted_at = datetime('now', '+7 hours'), deleted_by = ?
+      SET is_deleted = 1, deleted_at = ?, deleted_by = ?
       WHERE id = ?
-    `, [req.user.id, id]);
+    `, [getNow(), req.user.id, id]);
 
     res.json({ success: true, message: 'Đã xóa log hóa đơn' });
   } catch (err) {
@@ -452,9 +453,9 @@ router.delete('/invoice/logs', authenticate, async (req, res) => {
     const placeholders = ids.map(() => '?').join(',');
     await run(`
       UPDATE pos_invoice_logs 
-      SET is_deleted = 1, deleted_at = datetime('now', '+7 hours'), deleted_by = ?
+      SET is_deleted = 1, deleted_at = ?, deleted_by = ?
       WHERE id IN (${placeholders})
-    `, [req.user.id, ...ids]);
+    `, [getNow(), req.user.id, ...ids]);
 
     res.json({ 
       success: true, 
@@ -471,7 +472,7 @@ router.delete('/invoice/logs', authenticate, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 router.get('/invoice/stats', authenticate, async (req, res) => {
   try {
-    const currentYear = new Date().getFullYear();
+    const currentYear = Number(getToday().slice(0, 4));   // GIO-VN-1: năm theo giờ VN
     // BUG-FIX (09.08.2026, phát hiện lúc rà soát toàn hệ thống): dùng đúng getToday() thay vì
     // new Date().toISOString() (giờ UTC) — nếu không, thống kê "hôm nay" sai lệch trong khung
     // 0h-7h sáng giờ VN mỗi ngày (đếm nhầm sang ngày hôm qua). Mức độ thấp (chỉ ảnh hưởng số

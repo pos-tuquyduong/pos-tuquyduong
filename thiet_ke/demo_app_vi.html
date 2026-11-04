@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo App KH — ví theo thư (d)</title>
+<style>
+:root { --nen:#eef2f6; --the:#fff; --chu:#0f172a; --mo:#64748b; --vien:#e2e8f0; --nhan:#b91c1c; --xanh:#15803d; --vang:#a16207; --vang-nhat:#fef3c7; color-scheme: light;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nen:#0b1220; --the:#111a2e; --chu:#e2e8f0; --mo:#94a3b8; --vien:#24324d; --nhan:#f87171; --xanh:#4ade80; --vang:#facc15; --vang-nhat:#2e2a0f; color-scheme: dark; } }
+:root[data-theme="dark"] { --nen:#0b1220; --the:#111a2e; --chu:#e2e8f0; --mo:#94a3b8; --vien:#24324d; --nhan:#f87171; --xanh:#4ade80; --vang:#facc15; --vang-nhat:#2e2a0f; color-scheme: dark; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin:0; background: var(--nen); color: var(--chu); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+body::before { content:""; position:fixed; inset:0 0 auto; height: env(safe-area-inset-top, 0px); z-index:10; background: var(--nen); }
+.vo { max-width: 1100px; margin: 0 auto; padding: 1rem; display:grid; grid-template-columns: 300px minmax(0,1fr); gap: 1.2rem; }
+@media (max-width: 820px) { .vo { grid-template-columns: 1fr; } }
+.dk { background: var(--the); border:1px solid var(--vien); border-radius: 12px; padding: 1rem; align-self:start; }
+.dk h2 { font-size: 1rem; margin: 0 0 .5rem; }
+.dk label { display:flex; flex-direction:column; gap:.2rem; font-size:13.5px; color: var(--mo); margin-bottom:.6rem; }
+.dk select, .dk input { font: inherit; color: var(--chu); background: var(--nen); border:1px solid var(--vien); border-radius: 6px; padding:.4rem .5rem; min-height: 38px; }
+.ghichu { color: var(--mo); font-size: 13px; margin: .4rem 0; }
+.dt-vo { display:flex; gap: 1rem; flex-wrap: wrap; justify-content:center; }
+.dt { width: 330px; max-width: 100%; background:#1f2937; border-radius: 34px; padding: 12px; }
+.mh { background: var(--nen); border-radius: 24px; height: 640px; overflow:auto; position:relative; display:flex; flex-direction:column; }
+.mh-dau { position: sticky; top:0; background: var(--the); border-bottom:1px solid var(--vien); padding: .7rem 1rem; font-weight: 700; display:flex; justify-content:space-between; align-items:center; z-index:1; }
+.nd { padding: .8rem; display:flex; flex-direction:column; gap:.7rem; flex:1; }
+.the { background: var(--the); border:1px solid var(--vien); border-radius: 14px; padding: .9rem; }
+.nhan-o { color: var(--mo); font-size: 13px; }
+.so-to { font-size: 1.9rem; font-weight: 800; letter-spacing: -.01em; }
+.qua { margin-top: .35rem; font-size: 13.5px; color: var(--vang); background: var(--vang-nhat); border-radius: 8px; padding: .3rem .5rem; display:inline-block; }
+.dong { display:flex; justify-content:space-between; gap:.8rem; padding: .25rem 0; }
+.dong.dam { font-weight: 800; }
+.cong-tac { display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
+.sw { position:relative; width: 50px; height: 30px; flex:none; }
+.sw input { position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+.sw span { position:absolute; inset:0; background: var(--vien); border-radius: 999px; transition: background .15s; pointer-events:none; }
+.sw span::after { content:""; position:absolute; top:3px; left:3px; width:24px; height:24px; background:#fff; border-radius:50%; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.sw input:checked + span { background: var(--xanh); }
+.sw input:checked + span::after { transform: translateX(20px); }
+.sw input:focus-visible + span { outline: 3px solid #2563eb; outline-offset: 2px; }
+.nut { font: inherit; font-weight: 700; width:100%; min-height: 48px; border:0; border-radius: 12px; background: var(--nhan); color:#fff; cursor:pointer; }
+.nut-phu { font: inherit; min-height: 40px; border:1px solid var(--vien); border-radius: 10px; background: var(--the); color: var(--chu); cursor:pointer; padding: 0 .8rem; }
+.qr { width: 150px; height:150px; margin: .4rem auto; display:block; background:#fff; padding:6px; border-radius: 8px; }
+.ls .dong { border-bottom: 1px solid var(--vien); padding: .5rem 0; align-items:flex-start; }
+.ls .dong:last-child { border-bottom: 0; }
+.cong { color: var(--xanh); font-weight: 700; } .tru { color: var(--chu); font-weight: 700; }
+.huy { color: var(--mo); text-decoration: line-through; }
+.tab-d { display:flex; gap:.3rem; background: var(--the); border-top: 1px solid var(--vien); position: sticky; bottom: 0; padding: .4rem; }
+.tab-d button { flex:1; font: inherit; font-size: 12.5px; border:0; background: transparent; color: var(--mo); padding: .4rem 0; border-radius: 8px; cursor:pointer; min-height: 44px; }
+.tab-d button[aria-current="page"] { color: var(--nhan); font-weight: 700; background: var(--nen); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="vo">
+  <aside class="dk" aria-label="Điều khiển demo">
+    <h2>Thử các trường hợp</h2>
+    <label>Số dư ví (<code>so_du_vi</code>, đã gồm quà còn hạn)
+      <select id="soDu"><option value="125000">125.000 (có quà chào mừng 20.000)</option><option value="40000">40.000 (có quà chào mừng 20.000)</option><option value="105000">105.000 (không có quà)</option><option value="0">0</option></select></label>
+    <label>Quà chào mừng còn lại (<code>qua_chao_mung</code>)
+      <select id="qua"><option value="5d3h">20.000 — còn 5 ngày 3 giờ</option><option value="2p">20.000 — còn 2 phút (xem đếm ngược)</option><option value="null">null (không có / hết hạn)</option></select></label>
+    <label>Tổng đơn đang đặt
+      <select id="tongDon"><option value="75000">75.000</option><option value="150000">150.000</option></select></label>
+    <p class="ghichu">Theo thư App 02.11 (d) + hợp đồng v7 "Đã hẹn". App KHÔNG tự tính: số dư, quà, giữ ví, còn lại đều là số POS trả về. Demo dữ liệu giả, QR giả.</p>
+    <p class="ghichu">Thử: bật / tắt công tắc "Trừ từ số dư ví" ở màn Thanh toán → Đặt đơn → sang "Theo dõi đơn" → bấm "Tải lại trang" (đơn vẫn hiện đã giữ ví bao nhiêu, còn quét QR bao nhiêu).</p>
+  </aside>
+  <div class="dt-vo">
+    <div class="dt"><div class="mh" id="mh">
+      <div class="mh-dau"><span id="tieuDe">Tài khoản</span><span style="font-size:12px;color:var(--mo)">Tứ Quý Đường</span></div>
+      <div class="nd" id="nd"></div>
+      <nav class="tab-d" aria-label="Màn App">
+        <button data-man="vi" aria-current="page">💳 Ví</button>
+        <button data-man="tt">🛒 Thanh toán</button>
+        <button data-man="don">📦 Theo dõi đơn</button>
+        <button data-man="ls">🧾 Lịch sử ví</button>
+      </nav>
+    </div></div>
+  </div>
+</div>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const vnd = (n) => Math.round(Number(n) || 0).toLocaleString('vi-VN');
+  const S = { man: 'vi', bat: true, don: null, dangTai: false, batDau: Date.now() };
+  const quaHet = () => { const v = $('qua').value; if (v === 'null') return null; return S.batDau + (v === '2p' ? 2 * 60e3 : (5 * 24 + 3) * 3600e3); };
+  const quaSo = () => ($('qua').value === 'null' ? 0 : 20000);
+  const soDu = () => Number($('soDu').value);
+  const conLaiChu = (ms) => {
+    if (ms <= 0) return 'đã hết hạn';
+    const g = Math.floor(ms / 1000), ngay = Math.floor(g / 86400), gio = Math.floor((g % 86400) / 3600), phut = Math.floor((g % 3600) / 60), giay = g % 60;
+    if (ngay) return `còn ${ngay} ngày ${gio} giờ`;
+    if (gio) return `còn ${gio} giờ ${phut} phút`;
+    return `còn ${phut} phút ${String(giay).padStart(2, '0')} giây`;
+  };
+  const dongQua = () => {
+    const het = quaHet(); if (!het) return '';
+    const ms = het - Date.now();
+    return ms > 0 ? `<div class="qua">Trong đó Quà chào mừng ${vnd(quaSo())} — ${conLaiChu(ms)}</div>` : '';
+  };
+  const qr = () => { let r = ''; for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) { const g = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13); if (g ? (x % 6 === 0 || y % 6 === 0 || (x % 14 > 1 && x % 14 < 5 && y % 14 > 1 && y % 14 < 5)) : ((x * 7 + y * 13) % 5 < 2)) r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; } return `<svg class="qr" viewBox="0 0 21 21" fill="#111" role="img" aria-label="Mã QR (giả)">${r}</svg>`; };
+  function cachTra() {   // App chọn theo công tắc + so_du_vi (thư d) — số tiền giữ / còn lại là POS trả
+    const t = Number($('tongDon').value), sd = soDu();
+    if (!S.bat || sd <= 0) return { cach_tra: 'qr', giu_vi: 0, con_lai: t };
+    if (sd >= t) return { cach_tra: 'vi', giu_vi: t, con_lai: 0 };
+    return { cach_tra: 'vi_qr', giu_vi: sd, con_lai: t - sd };
+  }
+  function ve() {
+    document.querySelectorAll('.tab-d button').forEach((b) => b.setAttribute('aria-current', b.dataset.man === S.man ? 'page' : 'false'));
+    const nd = $('nd');
+    if (S.man === 'vi') {
+      $('tieuDe').textContent = 'Ví của tôi';
+      nd.innerHTML = `<div class="the"><div class="nhan-o">Số dư ví</div><div class="so-to">${vnd(soDu())}đ</div>${dongQua()}
+          <p class="ghichu">Dùng được cho mọi đơn. Quà chào mừng được trừ trước vì có hạn.</p></div>
+        <div class="the"><div class="nhan-o">Nạp tiền</div><div class="dong"><span>Nạp 100.000</span><span>được 105.000</span></div><div class="dong"><span>Nạp 200.000</span><span>được 212.000</span></div>
+          <p class="ghichu" style="margin:0">Phần được thêm (thưởng nạp) không có hạn, gộp vào số dư.</p></div>`;
+    } else if (S.man === 'tt') {
+      $('tieuDe').textContent = 'Thanh toán';
+      const t = Number($('tongDon').value), c = cachTra();
+      nd.innerHTML = `<div class="the"><div class="dong"><span>2 × Trà Tứ Quý</span><span>${vnd(t * 0.6)}</span></div><div class="dong"><span>1 × Nước ép Cần tây táo</span><span>${vnd(t * 0.4)}</span></div>
+          <div class="dong dam"><span>Tổng</span><span>${vnd(t)}đ</span></div></div>
+        <div class="the"><div class="cong-tac"><div><div style="font-weight:700">Trừ từ số dư ví</div><div class="nhan-o">Số dư ${vnd(soDu())}đ</div>${dongQua()}</div>
+          <span class="sw"><input type="checkbox" id="batVi" ${S.bat ? 'checked' : ''} ${soDu() <= 0 ? 'disabled' : ''} aria-label="Trừ từ số dư ví"><span></span></span></div>
+          <div style="margin-top:.6rem;border-top:1px solid var(--vien);padding-top:.5rem">
+            ${c.cach_tra === 'qr' ? `<div class="dong dam"><span>Quét QR</span><span>${vnd(c.con_lai)}đ</span></div>` : ''}
+            ${c.cach_tra === 'vi' ? `<div class="dong dam"><span>Trừ ví (cần PIN)</span><span>${vnd(c.giu_vi)}đ</span></div>` : ''}
+            ${c.cach_tra === 'vi_qr' ? `<div class="dong"><span>Trừ ví (cần PIN)</span><span>${vnd(c.giu_vi)}đ</span></div><div class="dong dam"><span>Quét QR phần còn lại</span><span>${vnd(c.con_lai)}đ</span></div>` : ''}
+            <div class="nhan-o">Cách trả gửi POS: <code>${c.cach_tra}</code></div></div></div>
+        <button class="nut" id="datDon">Đặt đơn</button>`;
+      const b = $('batVi'); if (b) b.onchange = () => { S.bat = b.checked; ve(); };
+      $('datDon').onclick = () => { S.don = { ma: 'A' + Math.floor(1000 + Math.random() * 8999), tong: t, ...c }; S.man = 'don'; ve(); };
+    } else if (S.man === 'don') {
+      $('tieuDe').textContent = 'Theo dõi đơn';
+      if (!S.don) { nd.innerHTML = '<div class="the">Chưa có đơn. Sang “Thanh toán” bấm Đặt đơn.</div>'; return; }
+      if (S.dangTai) { nd.innerHTML = '<div class="the">Đang tải lại…</div>'; return; }
+      const d = S.don;
+      nd.innerHTML = `<div class="the"><div class="dong dam"><span>Đơn #${d.ma}</span><span>${vnd(d.tong)}đ</span></div>
+          ${d.cach_tra === 'vi' ? `<div class="dong"><span>Đã trừ trong ví</span><span>${vnd(d.giu_vi)}đ</span></div><div class="nhan-o" style="color:var(--xanh)">Đã trả đủ — quán đang pha</div>` : ''}
+          ${d.cach_tra === 'vi_qr' ? `<div class="dong"><span>Đã giữ trong ví</span><span>${vnd(d.giu_vi)}đ</span></div><div class="dong dam"><span>Quét QR</span><span>${vnd(d.con_lai)}đ</span></div>${qr()}<div class="nhan-o" style="text-align:center">QR còn 9:41 phút</div>` : ''}
+          ${d.cach_tra === 'qr' ? `<div class="dong dam"><span>Quét QR</span><span>${vnd(d.con_lai)}đ</span></div>${qr()}<div class="nhan-o" style="text-align:center">QR còn 9:41 phút</div>` : ''}
+          <p class="ghichu">Các số trên lấy từ <code>GET /don/:ma</code> (<code>cach_tra</code>, <code>giu_vi</code>, <code>con_lai</code>) — tải lại / máy khác vẫn thấy đúng.</p>
+          <button class="nut-phu" id="taiLai">⟲ Tải lại trang</button></div>`;
+      $('taiLai').onclick = () => { S.dangTai = true; ve(); setTimeout(() => { S.dangTai = false; ve(); }, 600); };
+    } else {
+      $('tieuDe').textContent = 'Lịch sử ví';
+      const het = quaHet(), conHan = het && het > Date.now();
+      const dongs = [
+        ['Hôm nay 09:12', 'Trả đơn #A2741', '−35.000', 'tru', 'Trừ quà chào mừng trước'],
+        ['01.11 18:30', 'Nạp 100.000 · thưởng 5.000', '+105.000', 'cong', ''],
+        ['01.11 18:02', 'Quà chào mừng', '+20.000', 'cong', conHan ? conLaiChu(het - Date.now()).replace('còn', 'Hạn: còn') : 'Đã hết hạn'],
+        ...(!conHan && het ? [['vừa xong', 'Quà chào mừng hết hạn', '−20.000', 'tru', '']] : []),
+        ['30.10 10:15', 'Hoàn đơn #A2650', '+28.000', 'cong', 'Trả về đúng ngăn đã trừ'],
+        ['29.10 08:40', 'Giao dịch ví', '−5.000', 'tru', 'Loại lạ → hiện chữ POS trả hoặc “Giao dịch ví”'],
+      ];
+      nd.innerHTML = `<div class="the ls">${dongs.map(([ngay, ten, so, cls, phu]) => `<div class="dong"><div><div style="font-weight:600">${ten}</div><div class="nhan-o">${ngay}${phu ? ' · ' + phu : ''}</div></div><span class="${cls}">${so}</span></div>`).join('')}</div>
+        <p class="ghichu">Loại từ <code>GET /vi</code>: nap (kèm thuong) · tra_don · hoan_don · qua_chao_mung · qua_het_han · dieu_chinh.</p>`;
+    }
+  }
+  document.querySelectorAll('.tab-d button').forEach((b) => b.onclick = () => { S.man = b.dataset.man; ve(); $('mh').scrollTop = 0; });
+  ['soDu', 'qua', 'tongDon'].forEach((id) => $(id).onchange = () => {
+    if (id === 'qua') S.batDau = Date.now();
+    if (id === 'soDu') { const co = ['125000', '40000'].includes($('soDu').value); $('qua').value = co ? '5d3h' : 'null'; S.batDau = Date.now(); if (soDu() <= 0) S.bat = false; else S.bat = true; }
+    ve();
+  });
+  setInterval(() => { if (S.man === 'vi' || S.man === 'tt' || S.man === 'ls') { const f = document.activeElement; if (!f || f.tagName !== 'INPUT') ve(); } }, 1000);
+  ve();
+})();
+</script>
+</body>
+</html>

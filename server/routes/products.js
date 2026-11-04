@@ -45,11 +45,8 @@ async function layMenuQuay(category) {
       // goi" tra null — nho null vao la bien no thanh "chua ro ton").
       // Loi o day KHONG duoc lam hong man ban hang: chi ghi log.
       try {
-        // ton_luc la GIO VIET NAM (de hien "luc 14:03" cho nguoi nhin).
-        // Cac cot khac cua POS dung datetime('now') = gio UTC — DUNG so sanh
-        // truc tiep ton_luc voi created_at, lech 7 tieng.
-        const nowVn = new Date(Date.now() + 7 * 3600 * 1000)
-          .toISOString().slice(0, 19).replace('T', ' ');
+        // ton_luc la GIO VIET NAM dang getNow (de hien "luc 14:03" cho nguoi nhin) — cung quy uoc moi cot gio cua POS (GIO-VN-1).
+        const nowVn = getNow();
 
         // Chi GHI KHI TON THAY DOI. Man ban hang tai lai danh sach rat nhieu
         // lan moi ca; ghi mu quang la 10 luot ghi Turso moi lan tai, phan lon
@@ -164,14 +161,14 @@ router.put('/price', authenticate, checkPermission('manage_settings'), async (re
     if (existing) {
       // Update
       await run(
-        'UPDATE pos_products SET price = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
-        [price, sx_product_type, sx_product_id]
+        'UPDATE pos_products SET price = ?, updated_at = ? WHERE sx_product_type = ? AND sx_product_id = ?',
+        [price, getNow(), sx_product_type, sx_product_id]
       );
     } else {
       // Insert mới
       await run(
         `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
         [
           `${sx_product_type === 'tea' ? 'TEA' : 'CT'}${sx_product_id}`,
           'Từ SX',
@@ -179,7 +176,8 @@ router.put('/price', authenticate, checkPermission('manage_settings'), async (re
           sx_product_type,
           sx_product_id,
           price,
-          sx_product_type === 'tea' ? 'gói' : 'túi'
+          sx_product_type === 'tea' ? 'gói' : 'túi',
+          getNow(), getNow()
         ]
       );
     }
@@ -212,13 +210,13 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
 
         if (existing) {
           await run(
-            'UPDATE pos_products SET price = ?, is_special_group = ?, updated_at = datetime("now") WHERE sx_product_type = ? AND sx_product_id = ?',
-            [p.price, p.is_special_group ? 1 : 0, p.sx_product_type, p.sx_product_id]
+            'UPDATE pos_products SET price = ?, is_special_group = ?, updated_at = ? WHERE sx_product_type = ? AND sx_product_id = ?',
+            [p.price, p.is_special_group ? 1 : 0, getNow(), p.sx_product_type, p.sx_product_id]
           );
         } else {
           await run(
-            `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, is_special_group)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+            `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, is_special_group, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
             [
               p.code || `${p.sx_product_type === 'tea' ? 'TEA' : 'CT'}${p.sx_product_id}`,
               p.name || 'Từ SX',
@@ -227,7 +225,8 @@ router.put('/batch/prices', authenticate, checkPermission('manage_settings'), as
               p.sx_product_id,
               p.price,
               p.sx_product_type === 'tea' ? 'gói' : 'túi',
-              p.is_special_group ? 1 : 0
+              p.is_special_group ? 1 : 0,
+              getNow()
             ]
           );
         }
@@ -311,15 +310,15 @@ router.post('/sync-from-sx', authenticate, checkPermission('manage_settings'), a
       if (existing) {
         // Update tên, giữ nguyên giá
         await run(
-          'UPDATE pos_products SET code = ?, name = ?, updated_at = datetime("now") WHERE id = ?',
-          [p.code, p.name, existing.id]
+          'UPDATE pos_products SET code = ?, name = ?, updated_at = ? WHERE id = ?',
+          [p.code, p.name, getNow(), existing.id]
         );
       } else {
         // Insert mới với giá = 0
         await run(
-          `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active)
-           VALUES (?, ?, ?, ?, ?, 0, ?, 1)`,
-          [p.code, p.name, p.category, p.sx_product_type, p.sx_product_id, p.category === 'tea' ? 'gói' : 'túi']
+          `INSERT INTO pos_products (code, name, category, sx_product_type, sx_product_id, price, unit, is_active, created_at)
+           VALUES (?, ?, ?, ?, ?, 0, ?, 1, ?)`,
+          [p.code, p.name, p.category, p.sx_product_type, p.sx_product_id, p.category === 'tea' ? 'gói' : 'túi', getNow()]
         );
       }
       synced++;
