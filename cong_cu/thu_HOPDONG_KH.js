@@ -100,6 +100,11 @@ async function main() {
   k('không còn dòng "Lỗi đã biết (sửa ở KH-API-2)"', !md.includes('Lỗi đã biết (sửa ở KH-API-2)'));
   k('v5: hợp đồng ghi NGUYÊN câu luật 4xx của POST /don (chủ quán duyệt 31.10)', md.includes(CAU_LUAT_4XX));
   k('v5: hợp đồng ghi dạng 409 GIA_DA_DOI có bao_gia', /`\{ error, code: "GIA_DA_DOI", bao_gia: \{/.test(md));
+  // v6 (HD-KH-1): khối máy đọc ghi đủ trường mới của /don và /don/:ma (bài thử cửa chỉ kiểm trường đã ghi CÓ mặt, không kiểm ghi thiếu)
+  const traCua = (duong) => HD.cua.find((c) => c.duong === duong)?.tra || [];
+  const thieuV6 = [...['cach_tra', 'giu_vi', 'con_lai'].flatMap((f) => [['/don', 'data[].' + f], ['/don/:ma', 'don.' + f]]),
+    ...['loai', 'trai', 'phai', 'dam', 'gach', 'ghi_chu'].map((f) => ['/don/:ma', 'don.hoa_don[].' + f])].filter(([d, f]) => !traCua(d).includes(f));
+  k('v6: khối máy đọc ghi đủ cach_tra / giu_vi / con_lai (cả /don, /don/:ma) và hoa_don[] 6 trường', thieuV6.length === 0, thieuV6.map((x) => x.join(' ')).join(', '));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 
