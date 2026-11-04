@@ -30,6 +30,7 @@ chương trình và ô ngày sinh.
 - server/routes/kh/index.js
 - server/routes/backup.js
 - server/index.js
+- server/utils/donThu.js
 - server/nang_cap/017_chuong_trinh.js
 - client/src/**
 - client/dist/**
@@ -39,6 +40,7 @@ chương trình và ô ngày sinh.
 - kiem_tra_truoc_khi_giao.js
 - cong_cu/thu_KH1.js
 <!-- Chủ quán 04.11: chỉ sửa ca E1 (8 → 9 trường của GET /toi, thêm ngay_sinh). -->
+<!-- Chat gộp 04.11: server/utils/donThu.js chỉ thêm pos_ngay_sinh_sua vào BANG_KHONG_DON (main KH-SDT-1 D14: bảng có cột SĐT phải có chủ). -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_CT1a.js` ĐỎ trên code gốc: tạo / sửa chương trình + giá trị sai 400; `/chuong-trinh` chỉ trả cái đang bật và trong hạn; ngày sinh
