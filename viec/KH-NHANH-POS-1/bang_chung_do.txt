@@ -1,0 +1,14 @@
+Bài cong_cu/thu_KHNHANHPOS1.js chạy trên code GỐC (server/index.js chưa có maxAge):
+  ✗ A1 OPTIONS /api/kh/... → Access-Control-Max-Age: 7200
+  ✗ A2 POST + Authorization,Content-Type → cũng Max-Age 7200
+  ✓ B1 origin vẫn *
+  ✓ B2 methods vẫn GET,POST,PUT,DELETE
+  ✓ B3 allowedHeaders vẫn Content-Type,Authorization
+  ✓ B4 OPTIONS vẫn trả 204
+  ✓ K5a GET thường vẫn 200 + origin *
+  ✓ K5b GET thường KHÔNG mang Max-Age (chỉ preflight)
+
+6 đạt · 2 hỏng
+
+Sau khi vá: 8 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHNHANHPOS1.js: 8

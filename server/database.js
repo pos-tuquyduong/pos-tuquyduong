@@ -14,6 +14,7 @@
 
 const { createClient } = require('@libsql/client');
 const { cauHinhTurso, diaChiSX } = require('./ketNoiKho'); // POS-KHOTHU-v2
+const { getNow } = require('./utils/helpers');   // GIO-VN-1: giờ ghi = giờ VN (cột DEFAULT CURRENT_TIMESTAMP là UTC — luôn truyền giờ)
 
 let db = null;
 let nangCapHong = null;   // KHO-1: '<NNN_ten>: <lỗi>' khi một bước nâng cấp hỏng — đường kho trả 503, quầy vẫn mở
@@ -576,7 +577,7 @@ async function createTables() {
       order_id INTEGER NOT NULL,
       order_code TEXT NOT NULL,
       invoice_number TEXT NOT NULL,
-      paper_size TEXT DEFAULT 'a5',
+      paper_size TEXT DEFAULT '80mm',
       printed_by INTEGER,
       printed_by_name TEXT,
       printed_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -1037,9 +1038,9 @@ async function seedDefaultData() {
   if (adminExists[0]?.count === 0) {
     const hashedPassword = bcrypt.hashSync('admin123', 10);
     await run(`
-      INSERT INTO pos_users (username, password, display_name, role, is_active)
-      VALUES (?, ?, ?, ?, ?)
-    `, ['admin', hashedPassword, 'Owner', 'owner', 1]);
+      INSERT INTO pos_users (username, password, display_name, role, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['admin', hashedPassword, 'Owner', 'owner', 1, getNow()]);
     console.log('✅ Đã tạo tài khoản admin mặc định (admin/admin123)');
   }
 
@@ -1091,33 +1092,33 @@ async function seedDefaultData() {
 
     for (const [role, permission, allowed] of permissions) {
       await run(`
-        INSERT OR IGNORE INTO pos_permissions (role, permission, allowed)
-        VALUES (?, ?, ?)
-      `, [role, permission, allowed]);
+        INSERT OR IGNORE INTO pos_permissions (role, permission, allowed, created_at)
+        VALUES (?, ?, ?, ?)
+      `, [role, permission, allowed, getNow()]);
     }
     console.log('✅ Đã tạo phân quyền mặc định');
   }
   // P26c (Q4): quyền hoàn gói trả trước (huỷ / xoá đơn mua gói) — mặc định chỉ owner (H9). Chạy MỌI lần khởi động: kho mới và kho
   // ĐANG CHẠY (bảng quyền đã có dữ liệu) đều có; INSERT OR IGNORE không đè quyền chủ quán đã chỉnh.
   for (const [role, allowed] of [['owner', 1], ['staff', 0], ['manager', 0]]) {
-    await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, 'refund_package', ?)`, [role, allowed]);
+    await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed, created_at) VALUES (?, 'refund_package', ?, ?)`, [role, allowed, getNow()]);
   }
   // P3: xác nhận tay chuyển khoản + xoá PIN khách — owner / manager 1, staff 0. Chạy mọi lần khởi động như refund_package.
   for (const quyen of ['xac_nhan_ck_tay', 'xoa_pin_khach']) {
     for (const [role, allowed] of [['owner', 1], ['manager', 1], ['staff', 0]]) {
-      await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed) VALUES (?, ?, ?)`, [role, quyen, allowed]);
+      await run(`INSERT OR IGNORE INTO pos_permissions (role, permission, allowed, created_at) VALUES (?, ?, ?, ?)`, [role, quyen, allowed, getNow()]);
     }
   }
   // P3: cờ "chuyển khoản / trừ tài khoản chỉ qua phiên" — mặc định 0 (đường cũ như cũ), chủ quán bật khi BH-1 lên quầy.
-  await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES ('thanh_toan_payos_bat_buoc', '0')`);
+  await run(`INSERT OR IGNORE INTO pos_settings (key, value, updated_at) VALUES ('thanh_toan_payos_bat_buoc', '0', ?)`, [getNow()]);
   // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — mặc định '1' (cộng, như cách đang chạy). Quà đổi điểm luôn dùng chung.
   for (const khoa of ['uudai_chung_hang_percent', 'uudai_chung_hang_fixed', 'uudai_chung_hang_item']) {
-    await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, '1')`, [khoa]);
+    await run(`INSERT OR IGNORE INTO pos_settings (key, value, updated_at) VALUES (?, '1', ?)`, [khoa, getNow()]);
   }
   // KH-API-2: giờ hoạt động (server/utils/gioHoatDong.js) — lịch '' = chưa cài = mở cả ngày; không đè cài đặt đã có.
   for (const [khoa, v] of [['gio_hd_lich', ''], ['gio_hd_ngay_nghi', '[]'], ['gio_hd_thong_bao', 'Quán đang nghỉ — mở lại lúc {gio_mo_lai}'],
     ['gio_hd_ngung_truoc_phut', '0']]) {
-    await run(`INSERT OR IGNORE INTO pos_settings (key, value) VALUES (?, ?)`, [khoa, v]);
+    await run(`INSERT OR IGNORE INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)`, [khoa, v, getNow()]);
   }
 
   // Tạo sản phẩm mẫu
@@ -1136,9 +1137,9 @@ async function seedDefaultData() {
 
     for (const [code, name, category, price, unit, sx_type, sx_id] of products) {
       await run(`
-        INSERT INTO pos_products (code, name, category, price, unit, sx_product_type, sx_product_id, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [code, name, category, price, unit, sx_type, sx_id, sx_id]);
+        INSERT INTO pos_products (code, name, category, price, unit, sx_product_type, sx_product_id, sort_order, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [code, name, category, price, unit, sx_type, sx_id, sx_id, getNow()]);
     }
     console.log('✅ Đã tạo sản phẩm mẫu (giá = 0, cần cập nhật sau)');
   }
@@ -1158,7 +1159,7 @@ async function seedDefaultData() {
       ['store_logo', ''],
 
       // Cài đặt in
-      ['invoice_default_size', 'a5'],
+      ['invoice_default_size', '80mm'],
       ['invoice_quick_size', '80mm'],
       ['invoice_copies', '1'],
       ['invoice_auto_print', 'false'],
@@ -1249,8 +1250,8 @@ async function seedDefaultData() {
     for (const [key, value] of defaultSettings) {
       await run(`
         INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
-        VALUES (?, ?, datetime('now', '+7 hours'))
-      `, [key, value]);
+        VALUES (?, ?, ?)
+      `, [key, value, getNow()]);
     }
     console.log('✅ Đã tạo cài đặt mặc định cho hóa đơn');
   }
@@ -1266,8 +1267,8 @@ async function seedDefaultData() {
   for (const [key, value] of loyaltyDefaults) {
     await run(`
       INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
-      VALUES (?, ?, datetime('now', '+7 hours'))
-    `, [key, value]);
+      VALUES (?, ?, ?)
+    `, [key, value, getNow()]);
   }
   console.log('✅ Đã đảm bảo cấu hình điểm thưởng (LOY-1)');
 
@@ -1282,8 +1283,8 @@ async function seedDefaultData() {
   for (const [key, value] of flashDefaults) {
     await run(`
       INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
-      VALUES (?, ?, datetime('now', '+7 hours'))
-    `, [key, value]);
+      VALUES (?, ?, ?)
+    `, [key, value, getNow()]);
   }
   console.log('✅ Đã đảm bảo cấu hình flash sale (F1)');
 
@@ -1326,9 +1327,9 @@ async function seedDefaultData() {
     ];
     for (const [name, price, pct, so] of tierDefaults) {
       await run(`
-        INSERT INTO pos_membership_tiers (name, card_price, discount_percent, sort_order, is_active, updated_at)
-        VALUES (?, ?, ?, ?, 1, datetime('now', '+7 hours'))
-      `, [name, price, pct, so]);
+        INSERT INTO pos_membership_tiers (name, card_price, discount_percent, sort_order, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?)
+      `, [name, price, pct, so, getNow(), getNow()]);
     }
   }
   // Cấu hình làm tròn giá hạng (dùng ở TIER-2) + số tháng hiệu lực thẻ (chung mọi hạng, TIER-1a-v2).
@@ -1341,8 +1342,8 @@ async function seedDefaultData() {
   for (const [key, value] of tierSettings) {
     await run(`
       INSERT OR IGNORE INTO pos_settings (key, value, updated_at)
-      VALUES (?, ?, datetime('now', '+7 hours'))
-    `, [key, value]);
+      VALUES (?, ?, ?)
+    `, [key, value, getNow()]);
   }
   console.log('✅ Đã đảm bảo cấu hình hạng thành viên (TIER-1a-v2)');
 
@@ -1397,11 +1398,11 @@ async function seedDefaultData() {
   // Seed đúng 1 nhóm cần dùng ngay bây giờ (voucher khách-mới) — không dựng UI
   // tạo/xoá nhóm tuỳ ý vì hiện chỉ có 1 nhu cầu thật; owner chỉ tick sản phẩm
   // vào/ra nhóm có sẵn này. Khi có nhu cầu thứ 2 thật sự mới đáng thêm UI quản lý nhóm.
-  await db.execute(`
-    INSERT INTO pos_product_groups (code, name)
-    SELECT 'khach_moi', 'Ưu đãi khách mới'
+  await db.execute({ sql: `
+    INSERT INTO pos_product_groups (code, name, created_at)
+    SELECT 'khach_moi', 'Ưu đãi khách mới', ?
     WHERE NOT EXISTS (SELECT 1 FROM pos_product_groups WHERE code = 'khach_moi')
-  `);
+  `, args: [getNow()] });
   // ═══════════════════════════════════════════════════════════════════════════
   // BẢNG: MÃ ƯU ĐÃI KHÁCH MỚI (Bước 3, 08.08.2026) — in trên bill, đổi lấy tài khoản App KH
   // 2 tầng hạn TÁCH BIỆT, đừng gộp chung 1 cột:
@@ -1444,9 +1445,9 @@ async function seedDefaultData() {
   ]) {
     try {
       await db.execute({
-        sql: `INSERT INTO pos_settings (key, value) VALUES (?, ?)
+        sql: `INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)
                 ON CONFLICT(key) DO NOTHING`,
-        args: [k, v],
+        args: [k, v, getNow()],
       });
     } catch (e) { /* đã có hoặc bảng chưa sẵn — bỏ qua */ }
   }

@@ -217,9 +217,10 @@ async function phepD1(q) {
 }
 
 // ─── DEN: đền TIỀN cho khách lẻ (đơn không SĐT — damages.js chỉ ghi ví khi đơn có SĐT). Quán không đền tiền cho khách lẻ (làm lại ly /
-// tặng món — chủ quán chốt 19.10) nên két không tính khoản này; sổ có thì liệt kê CẦN XEM. created_at ghi bằng datetime('now') = UTC → +7 giờ.
+// tặng món — chủ quán chốt 19.10) nên két không tính khoản này; sổ có thì liệt kê CẦN XEM. created_at ghi bằng getNow (GIO-VN-1); dòng CŨ
+// dạng dấu cách là UTC (datetime('now') cũ, bước 012 chưa đổi được) → +7 giờ.
 async function phepDenLe(q) {
-  const ds = await q(`SELECT id, order_code, refund_amount, DATETIME(created_at, '+7 hours') AS ngay FROM pos_damage_logs
+  const ds = await q(`SELECT id, order_code, refund_amount, CASE WHEN created_at LIKE '%T%' THEN created_at ELSE DATETIME(created_at, '+7 hours') END AS ngay FROM pos_damage_logs
     WHERE refund_amount > 0 AND COALESCE(customer_phone, '') = ''`);
   return ds.map((r) => ({ mo_ta: `đơn ${r.order_code}: đền ${tien(r.refund_amount)} cho khách lẻ không SĐT (sự cố #${r.id}) — két không tính`,
     ngay: r.ngay || null, canXem: true }));

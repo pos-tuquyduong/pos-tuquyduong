@@ -14,6 +14,7 @@ const cors = require('cors');
 const path = require('path');
 
 const { initDatabase } = require('./database');
+const { getNow } = require('./utils/helpers');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -56,10 +57,13 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Middleware
+// KH-NHANH-POS-1: trình duyệt nhớ kết quả hỏi trước (preflight) 2 giờ — không có thì Chrome chỉ nhớ 5 giây, mỗi lần App KH đổi tab mất thêm ~250 ms.
+const CORS_NHO_PREFLIGHT_GIAY = 7200;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: CORS_NHO_PREFLIGHT_GIAY
 }));
 // SEPAY-1: webhook SePay ký trên thân THÔ — đọc thô cho RIÊNG đường này, TRƯỚC express.json (json thấy thân đã đọc thì bỏ qua).
 app.use('/api/sepay/webhook', express.raw({ type: '*/*', limit: '100kb' }));
@@ -68,7 +72,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging — P15-QR: che mã QR thành viên (sau /customers/qr/) để mã không nằm trong log
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} | ${req.method} ${req.path.replace(/(\/customers\/qr\/).*/i, '$1***')}`);
+  console.log(`${getNow()} | ${req.method} ${req.path.replace(/(\/customers\/qr\/).*/i, '$1***')}`);
   next();
 });
 
@@ -119,7 +123,9 @@ app.use('/api/pos/so-no', soNoRoutes);   // POS-DODNO-v1
 app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-v1
 app.use('/api/pos/kho', require('./kho/duong'));   // KHO-1: mục kho (server/kho/)
 app.use('/api/pos/hoa-don', require('./routes/hoaDon'));   // HD-1: một cửa dữ liệu hoá đơn (chỉ đọc)
+app.use('/api/pos/man-khach', require('./routes/man-khach'));   // MANKHACH-1: màn khách ghép máy quầy (chỉ hiển thị)
 app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên cấp mã đăng nhập App cho khách
+app.use('/api/pos/don-thu', require('./routes/don-thu'));   // KH-SDT-1: dọn dữ liệu thử trước khai trương (chỉ chủ quán)
 // KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)
 app.use('/api/kh', require('./routes/kh'));
 app.use('/api/kh', require('./routes/kh/loi').loiTangKh);   // KH-API-1 (G): JSON hỏng / thân quá lớn của /api/kh → { error, code }
@@ -132,7 +138,7 @@ app.use('/api/sepay/webhook', require('./routes/thanh-toan').webhookSepay);   //
 app.get('/api/pos/health', (req, res) => {
   res.json({
     status: 'ok',
-    timestamp: new Date().toISOString(),
+    timestamp: getNow(),
     version: '2.2.0',
     service: 'POS System',
     design: 'phone-based identity',

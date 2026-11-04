@@ -73,6 +73,20 @@ function mucBaiThuCu(phieu) { // HOC-1: "## Bài thử cũ sửa", mỗi dòng "
   }
   return ra;
 }
+// TU-CHAY-10 A20: không có tiêu đề nào giống "Soát bảo mật" → null; tiêu đề giống mà sai dạng (hoa thường, ###, có đuôi) → { lech };
+// hai tiêu đề trở lên → { lap: số tiêu đề } (chỉ được MỘT mục); đúng MỘT "## Soát bảo mật" → { dau: dòng không rỗng đầu tiên tới tiêu đề kế
+// ('' = mục rỗng) }. Bắt RỘNG rồi đòi đúng dạng, đúng MỘT (soát vòng 1: đọc sát chữ thì tiêu đề lệch thành "không có mục"; vòng 2:
+// lấy tiêu đề đầu thì mục "không" đứng trước che mục "có" — cả hai làm cổng mở cửa).
+function mucBaoMat(phieu) {
+  const dong = phieu.normalize('NFC').split('\n').map((d) => d.trim());
+  const gan = dong.filter((d) => /^#+\s*soát\s*bảo\s*mật/iu.test(d));
+  if (!gan.length) return null;
+  if (gan.length > 1) return { lap: gan.length };
+  if (!/^##\s+Soát bảo mật$/.test(gan[0])) return { lech: gan[0] };
+  const i = dong.indexOf(gan[0]);
+  for (let j = i + 1; j < dong.length && !/^#/.test(dong[j]); j++) if (dong[j]) return { dau: dong[j] };
+  return { dau: '' };
+}
 
 function soCa(ra, chiCa = false) { // HOC-2 A16: số ca ở dòng tổng CUỐI mà bài thử in (bỏ mã màu) — ba dạng đang có trong kho; không có → null
   // TU-CHAY-5 C2 (chủ quán chốt Q5) — chiCa: chỉ phần SỐ CA: "x/B ca người gác … · C phép khác" → B (thêm luật người gác là thêm
@@ -116,6 +130,19 @@ function cong({ cheDo, thuMuc, base, head, nhanh, tat = new Set() }) {
   const coCode = doi.some((f) => laCode(f.p));
   const mien = mucMien(phieu);
   if (mien && coCode) ghi.push('miễn bài thử đỏ (phiếu ## Bài thử đỏ): ' + mien);
+  // A20 (TU-CHAY-10) — phiếu có "## Soát bảo mật": dòng đầu bắt đầu có / không (hoa thường như nhau); "có" → dòng "SOÁT BẢO MẬT: …"
+  // CUỐI của trang_thai.md ở head phải là ĐẠT (skill bước 8b; lần soát sau thắng lần trước). Không có mục → không kiểm. Một chỗ cho tinh + chay.
+  const baoMat = mucBaoMat(phieu);
+  const coKhong = baoMat && 'dau' in baoMat ? /^[-*]?\s*(có|không)(?![\p{L}\p{N}])/iu.exec(baoMat.dau) : null;
+  if (baoMat && baoMat.lap) doLy('A20', `${P_PHIEU}: có ${baoMat.lap} tiêu đề giống "Soát bảo mật" — chỉ được MỘT mục ## Soát bảo mật (kể cả dòng nằm trong chú thích / khối mã): xoá tiêu đề thừa`);
+  else if (baoMat && baoMat.lech) doLy('A20', `${P_PHIEU}: tiêu đề "${baoMat.lech}" phải viết đúng "## Soát bảo mật" (một dòng riêng; có / không ghi ở dòng dưới)`);
+  else if (baoMat && !coKhong) doLy('A20', `${P_PHIEU} ## Soát bảo mật: dòng đầu phải ghi "có — <lý do>" hoặc "không — <lý do>" (có hoặc không), đang là "${baoMat.dau}"`);
+  else if (coKhong && coKhong[1].toLowerCase() === 'có') {
+    const cuoi = [...String(blob(thuMuc, head, `viec/${ma}/trang_thai.md`) || '').normalize('NFC').matchAll(/^SOÁT BẢO MẬT:.*$/gm)].pop();
+    if (!cuoi || !/^SOÁT BẢO MẬT: ĐẠT\s*$/u.test(cuoi[0])) {
+      doLy('A20', `phiếu ghi Soát bảo mật: có mà dòng "SOÁT BẢO MẬT: …" cuối của viec/${ma}/trang_thai.md ${cuoi ? `là "${cuoi[0].trim()}"` : 'chưa có'} — cần "SOÁT BẢO MẬT: ĐẠT" (skill bước 8b)`);
+    }
+  }
 
   if (cheDo === 'tinh') {
     // A7/A4 — phiếu, biên bản soát chỉ đổi ở commit "PHIEU: <MÃ>", và commit đó chỉ đụng viec/<MÃ>/

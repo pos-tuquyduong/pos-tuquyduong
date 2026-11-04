@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo đợt 2 — Tứ Quý Đường</title>
+<style>
+:root { --nen:#f1f5f9; --the:#fff; --chu:#0f172a; --mo:#64748b; --vien:#e2e8f0; --do:#b91c1c; --do-nhat:#fee2e2; --xanh:#15803d; --xanh-nhat:#dcfce7; --vang:#a16207; --vang-nhat:#fef9c3; color-scheme: light;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nen:#0b1220; --the:#111a2e; --chu:#e2e8f0; --mo:#94a3b8; --vien:#24324d; --do:#f87171; --do-nhat:#3b1414; --xanh:#4ade80; --xanh-nhat:#0f2e1a; --vang:#facc15; --vang-nhat:#2e2a0f; color-scheme: dark; } }
+:root[data-theme="dark"] { --nen:#0b1220; --the:#111a2e; --chu:#e2e8f0; --mo:#94a3b8; --vien:#24324d; --do:#f87171; --do-nhat:#3b1414; --xanh:#4ade80; --xanh-nhat:#0f2e1a; --vang:#facc15; --vang-nhat:#2e2a0f; color-scheme: dark; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin:0; background:var(--nen); color:var(--chu); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body::before { content:""; position:fixed; inset:0 0 auto; height: env(safe-area-inset-top, 0px); z-index:10; background: var(--the); }
+.dau { position: sticky; top: env(safe-area-inset-top, 0px); z-index:5; background:var(--the); border-bottom:1px solid var(--vien); padding:.6rem 1rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+.dau b { margin-right:auto; }
+.tab, .btn, .seg button { font: inherit; color: var(--chu); background: var(--the); border:1px solid var(--vien); border-radius:8px; padding:.45rem .8rem; cursor:pointer; min-height:40px; }
+.tab[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--do); border-color: var(--do); color:#fff; }
+.btn-chinh { background: var(--do); border-color: var(--do); color:#fff; font-weight:700; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+.than { max-width: 1150px; margin:0 auto; padding:1rem; }
+.ghichu { color:var(--mo); font-size:13.5px; margin:.2rem 0 1rem; }
+.the { background:var(--the); border:1px solid var(--vien); border-radius:12px; padding:1rem; }
+.luoi2 { display:grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap:1rem; }
+@media (max-width: 860px) { .luoi2 { grid-template-columns: 1fr; } }
+input.o, select.o { font: inherit; color: var(--chu); background: var(--nen); border:1px solid var(--vien); border-radius:6px; padding:.4rem .55rem; min-height:38px; }
+.dong { display:flex; justify-content:space-between; gap:1rem; padding:.3rem 0; }
+.so { font-variant-numeric: tabular-nums; }
+.to { font-size: 1.6rem; font-weight: 800; }
+.seg { display:flex; gap:.35rem; flex-wrap:wrap; }
+[hidden] { display:none !important; }
+/* media màn khách */
+.pl { display:flex; flex-direction:column; gap:.5rem; }
+.muc { display:grid; grid-template-columns: 28px 96px minmax(0,1fr) auto; gap:.6rem; align-items:center; border:1px solid var(--vien); border-radius:12px; padding:.5rem; background: var(--the); }
+.muc.tat { opacity:.5; }
+.muc.keo { outline: 2px dashed var(--do); }
+.keo-tay { cursor: grab; color: var(--mo); font-size: 1.2rem; text-align:center; user-select:none; }
+.thumb { width:96px; height:60px; border-radius:8px; overflow:hidden; background:#0f172a; color:#f8fafc; display:flex; align-items:center; justify-content:center; font-size:11px; text-align:center; position:relative; }
+.thumb img, .thumb video { width:100%; height:100%; object-fit:cover; }
+.thumb .loai { position:absolute; left:4px; bottom:4px; background:rgba(0,0,0,.6); color:#fff; border-radius:4px; padding:0 4px; font-size:10px; }
+.muc .ten-m { font-weight:600; }
+.muc .phu { color: var(--mo); font-size: 13px; display:flex; gap:.35rem; align-items:center; flex-wrap:wrap; margin-top:.2rem; }
+.chip-s { font: inherit; font-size:12.5px; border:1px solid var(--vien); background: var(--nen); color: var(--chu); border-radius: 999px; padding: .1rem .5rem; cursor:pointer; min-height:28px; }
+.chip-s[aria-pressed="true"] { background: var(--chu); color: var(--the); }
+.mau { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:.5rem; }
+.mau button { font: inherit; color: var(--chu); text-align:left; border:1px solid var(--vien); border-radius:10px; background: var(--the); padding:.55rem; cursor:pointer; min-height:70px; }
+.mau b { display:block; }
+.tai { display:flex; align-items:center; justify-content:center; gap:.5rem; border:2px dashed var(--vien); border-radius:12px; padding:1rem; cursor:pointer; color: var(--mo); text-align:center; }
+.tai.tren { border-color: var(--do); color: var(--chu); }
+.xem { position:relative; aspect-ratio: 16/10; background:#0f172a; color:#f8fafc; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; text-align:center; }
+.xem img, .xem video { width:100%; height:100%; object-fit:cover; }
+.xem .tien-do { position:absolute; left:0; bottom:0; height:4px; background:#fde68a; }
+.nhap { animation: nhap 1s steps(2, start) infinite; }
+@keyframes nhap { to { visibility: hidden; } }
+.chay-chu { white-space:nowrap; animation: chay 8s linear infinite; }
+@keyframes chay { from { transform: translateX(60%); } to { transform: translateX(-60%); } }
+.phong { animation: phong 3s ease-in-out infinite alternate; }
+@keyframes phong { from { transform: scale(1); } to { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .nhap, .chay-chu, .phong { animation: none; } }
+
+h3 { margin:.2rem 0 .6rem; font-size:1.05rem; }
+
+/* tiền mặt */
+.goiy { display:flex; gap:.4rem; flex-wrap:wrap; margin:.4rem 0; }
+.goiy .btn { font-weight:600; }
+.menhgia { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:.4rem; }
+.mg { position:relative; display:flex; align-items:stretch; border:1px solid var(--vien); border-radius:10px; overflow:hidden; background: var(--the); }
+.mg .cong { flex:1; font: inherit; font-weight:700; padding:.65rem .3rem; border:0; background: transparent; color: var(--chu); cursor:pointer; min-height:48px; }
+.mg .bot { width:36px; border:0; border-left:1px solid var(--vien); background: var(--nen); color: var(--chu); font-size:1.1rem; cursor:pointer; }
+.mg .dem { position:absolute; top:-1px; right:-1px; background: var(--do); color:#fff; font-size:12px; font-weight:700; border-radius: 0 10px 0 8px; padding: 0 .4rem; }
+.mg.co { border-color: var(--do); }
+.ket { display:grid; grid-template-columns: 1fr 1fr; gap:.6rem; margin-top:.8rem; }
+.ket > div { background: var(--nen); border-radius:10px; padding:.6rem .8rem; }
+.ket .nhan { color: var(--mo); font-size: 13px; }
+.thieu { color: var(--do); } .du { color: var(--xanh); }
+
+/* máy tính bảng */
+.tablet { background:#1f2937; border-radius:18px; padding:10px; }
+.mk { background:#0f172a; color:#f8fafc; border-radius:10px; min-height: 360px; padding: 1.1rem; display:flex; flex-direction:column; gap:.4rem; }
+.mk .dg { display:flex; justify-content:space-between; gap:1rem; border-bottom:1px solid #334155; padding-bottom:.3rem; }
+.mk .giam { color:#86efac; } .mk .mo { color:#94a3b8; } .mk .tong { color:#fde68a; font-weight:800; font-size:1.35rem; border:0; }
+.mk s { color:#64748b; font-size:.85em; margin-right:.35rem; }
+.pin { display:grid; grid-template-columns: repeat(3, 72px); gap:10px; justify-content:center; margin-top:.5rem; }
+.pin button { font: 700 1.4rem system-ui; height:60px; border-radius:12px; border:0; background:#1e293b; color:#fff; cursor:pointer; }
+.cham { display:flex; gap:12px; justify-content:center; margin:.6rem 0; }
+.cham span { width:16px; height:16px; border-radius:50%; border:2px solid #94a3b8; }
+.cham span.day { background:#fde68a; border-color:#fde68a; }
+.bao { border-radius:8px; padding:.5rem .7rem; margin-top:.6rem; }
+.bao.ok { background: var(--xanh-nhat); color: var(--xanh); } .bao.loi { background: var(--do-nhat); color: var(--do); } .bao.cho { background: var(--vang-nhat); color: var(--vang); }
+
+/* hạng */
+.hang { border:1px solid var(--vien); border-radius:12px; padding:.9rem; margin-bottom:.8rem; background: var(--the); }
+.hang-dau { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-bottom:.6rem; }
+.nhan-bac { background: var(--nen); border-radius:999px; padding:.1rem .6rem; font-size:13px; color: var(--mo); }
+.luoi-o { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:.6rem; margin:.4rem 0 .7rem; }
+.luoi-o label { display:flex; flex-direction:column; gap:.2rem; font-size:13.5px; color: var(--mo); }
+.goi { display:flex; gap:.4rem; align-items:center; flex-wrap:wrap; padding:.35rem 0; border-top:1px dashed var(--vien); }
+.huy { font-size: 13px; }
+
+/* kênh */
+.menu-k { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:.5rem; }
+.mon { border:1px solid var(--vien); border-radius:10px; padding:.55rem; background: var(--the); text-align:left; cursor:pointer; font: inherit; color: var(--chu); min-height: 64px; }
+.mon .gia { font-weight:700; }
+.gio-k .dg { display:flex; gap:.4rem; align-items:center; padding:.35rem 0; border-bottom:1px solid var(--vien); }
+.gio-k .dg .ten { flex:1; }
+.gio-k input.o { width: 98px; text-align:right; }
+.phieu { width: 300px; max-width: 100%; background:#fff; color:#111; border:1px dashed #94a3b8; border-radius:4px; padding:.7rem; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 12.5px; font-variant-numeric: tabular-nums; position:relative; margin: 0 auto; }
+.phieu .goc { position:absolute; top:.4rem; right:.4rem; border:3px solid #111; border-radius:6px; padding:.15rem .4rem; font: 800 1.15rem system-ui; text-align:center; line-height:1.1; }
+.phieu .goc small { display:block; font-size:.6rem; letter-spacing:.08em; }
+.phieu .gc { font-style: italic; padding-left: .9rem; }
+.b-dau { display:flex; gap:.5rem; align-items:flex-start; }
+.b-dv { flex:1; min-width:0; overflow-wrap:anywhere; }
+.b-ten { font: 800 14px/1.25 system-ui; }
+.b-nho { font-size: 11px; line-height:1.35; }
+.b-so { flex:none; border:3px solid #111; border-radius:6px; padding:.1rem .4rem; text-align:center; font: 800 1.15rem/1.1 system-ui; max-width: 45%; overflow-wrap:anywhere; }
+.b-so small { display:block; font-size:.55rem; letter-spacing:.08em; }
+.b-lien { text-align:center; font-weight:800; letter-spacing:.05em; margin:.35rem 0 .1rem; border-top:1px solid #111; border-bottom:1px solid #111; }
+.b-dong { display:flex; justify-content:space-between; gap:.6rem; }
+.b-dong > span:first-child { min-width:0; overflow-wrap:anywhere; }
+.b-dong > span:last-child { flex:none; text-align:right; }
+.b-dam { font-weight:800; }
+.b-giua { text-align:center; }
+.b-khung { border:2px solid #111; padding:.25rem .35rem; margin-top:.35rem; overflow-wrap:anywhere; }
+.b-qr { display:flex; gap:.5rem; align-items:center; margin-top:.3rem; }
+.b-qr .qr { flex:none; width:84px; height:84px; margin:0; }
+.b-ma { font: 800 15px system-ui, sans-serif; letter-spacing:.05em; border:2px dashed #111; display:inline-block; padding:.05rem .4rem; margin-bottom:.2rem; }
+.phieu .dd { display:flex; justify-content:space-between; gap:.5rem; }
+.phieu hr { border:0; border-top:1px dashed #94a3b8; margin:.45rem 0; }
+.phieu .qr { width: 96px; height: 96px; margin: .3rem auto; display:block; }
+.chip { font: inherit; font-size: 13px; border:1px solid var(--vien); background: var(--nen); color: var(--chu); border-radius: 999px; padding: .2rem .6rem; cursor: pointer; min-height: 32px; }
+.chip[aria-pressed="true"] { background: var(--do); border-color: var(--do); color: #fff; }
+.khoigc { padding: .4rem 0 .5rem 1rem; display:flex; gap:.35rem; flex-wrap:wrap; align-items:center; }
+.gc-nho { color: var(--mo); font-size: 13px; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="dau" role="tablist" aria-label="Chọn demo">
+  <b>Demo đợt 2 (dữ liệu giả)</b>
+  <button class="tab" role="tab" data-tab="tienmat" aria-selected="true">1 · Thu tiền mặt + PIN màn khách</button>
+  <button class="tab" role="tab" data-tab="hang" aria-selected="false">2 · Cài đặt hạng</button>
+  <button class="tab" role="tab" data-tab="kenh" aria-selected="false">3 · Bán theo kênh + giao hàng</button>
+  <button class="tab" role="tab" data-tab="media" aria-selected="false">4 · Cài đặt màn khách</button>
+</div>
+
+<main class="than">
+<!-- ════════ 1. TIỀN MẶT + PIN ════════ -->
+<section id="tab-tienmat">
+  <p class="ghichu">Bấm mệnh giá: mỗi lần bấm = 1 tờ (nút − bớt 1 tờ). Màn khách bên phải đổi theo. Đổi tổng đơn để thử luật làm tròn: phần lẻ từ 600 trở lên tròn lên, còn lại tròn xuống. Chuyển sang “Trừ tài khoản” để xem bảng PIN trên màn khách (PIN thử: 1234). Chọn số dư “50.000 — chỉ đủ một phần” để xem: trừ tài khoản TRƯỚC, rồi mới thu phần còn lại bằng tiền mặt (có làm tròn) hoặc QR.</p>
+  <div class="luoi2">
+    <div class="the">
+      <h3>Máy quầy — thanh toán</h3>
+      <div class="dong"><span>Thử với tổng đơn</span>
+        <select class="o" id="tongThu" aria-label="Tổng đơn thử"><option>75200</option><option>75500</option><option>75600</option><option>75900</option><option>148400</option></select></div>
+      <div class="seg" style="margin:.5rem 0" role="group" aria-label="Cách trả">
+        <button data-cach="tm" aria-pressed="true">💵 Tiền mặt</button>
+        <button data-cach="qr" aria-pressed="false">QR</button>
+        <button data-cach="tk" aria-pressed="false">Trừ tài khoản</button>
+      </div>
+
+      <div id="khoiTm">
+        <div class="dong"><span>Tổng đơn</span><span class="so" id="qTong"></span></div>
+        <div class="dong"><span>Làm tròn tiền mặt</span><span class="so" id="qTron"></span></div>
+        <div class="dong"><b>Cần thu</b><b class="so to" id="qCan"></b></div>
+        <div class="goiy" id="goiY" aria-label="Gợi ý số tiền khách đưa"></div>
+        <div class="menhgia" id="mgChinh"></div>
+        <button class="btn" id="moRong" style="margin-top:.45rem;width:100%" aria-expanded="false">＋ Thêm mệnh giá (20k · 10k · 5k · 2k · 1k)</button>
+        <div class="menhgia" id="mgPhu" hidden style="margin-top:.45rem"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.6rem;align-items:center;flex-wrap:wrap">
+          <label for="nhapTay" style="color:var(--mo)">Hoặc nhập số khách đưa</label>
+          <input class="o so" id="nhapTay" inputmode="numeric" style="flex:1;min-width:140px" placeholder="vd 100000">
+          <button class="btn" id="xoaHet">Xoá</button>
+        </div>
+        <div class="ket">
+          <div><div class="nhan">Khách đưa</div><div class="so to" id="qDua">0</div></div>
+          <div><div class="nhan">Trả lại</div><div class="so to" id="qTra">—</div></div>
+        </div>
+        <button class="btn btn-chinh" id="xongTm" style="width:100%;margin-top:.7rem" disabled>Xong — đã thu tiền</button>
+        <div id="baoTm"></div>
+      </div>
+
+      <div id="khoiTk" hidden>
+        <div class="dong"><span>Cần thanh toán</span><b class="so to" id="tkCan"></b></div>
+        <div class="dong"><span>Số dư tài khoản khách (thử)</span>
+          <select class="o" id="soDu" aria-label="Số dư thử"><option value="250000">250.000 — đủ</option><option value="50000">50.000 — chỉ đủ một phần</option></select></div>
+        <div class="dong"><span>Trừ tài khoản lần này</span><b class="so" id="tkTru"></b></div>
+        <div class="bao cho" id="tkCho">⏳ Đang chờ khách nhập PIN trên màn khách…</div>
+        <button class="btn" id="pinQuay" style="margin-top:.6rem">Màn khách không phản hồi? Nhập PIN trên máy quầy</button>
+        <div id="baoTk"></div>
+        <div id="tkConLai" hidden style="margin-top:.6rem">
+          <div class="bao cho" id="tkConChu"></div>
+          <div class="seg" style="margin-top:.4rem"><button data-conlai="tm">💵 Thu phần còn lại bằng tiền mặt</button><button data-conlai="qr">Thu phần còn lại bằng QR</button></div>
+        </div>
+      </div>
+      <div id="khoiQr" hidden><div class="bao cho">QR như hiện nay (đã có trong demo màn khách đợt 1).</div></div>
+    </div>
+
+    <div>
+      <div class="tablet"><div class="mk" id="mk" aria-live="polite"></div></div>
+      <p class="ghichu" style="margin-top:.5rem">Màn khách: hoá đơn ghi giá gốc gạch ngang + giá sau giảm như tờ in. Không bao giờ hiện SĐT, số dư, điểm. PIN chỉ hiện dấu chấm.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 2. HẠNG ════════ -->
+<section id="tab-hang" hidden>
+  <p class="ghichu">Mỗi hạng một thẻ. Thứ bậc càng lớn càng cao — khách đang có hạng cao hơn thì không mua được hạng thấp hơn. “Bán” có danh sách gói tuỳ ý; “Chỉ cấp” thì chỉ chủ quán cấp ở trang Khách hàng (có PIN, ghi người cấp + lúc cấp).</p>
+  <div class="luoi2">
+    <div>
+      <div id="dsHang"></div>
+      <button class="btn" id="themHang">＋ Thêm hạng</button>
+      <button class="btn btn-chinh" id="luuHang" style="margin-left:.4rem">💾 Lưu</button>
+      <div id="baoHang"></div>
+    </div>
+    <div class="the">
+      <h3>Trang Khách hàng — chị Lan · 0901 234 567</h3>
+      <div class="dong"><span>Hạng hiện tại</span><b id="hangKh"></b></div>
+      <div class="dong"><span>Hạn</span><span id="hanKh"></span></div>
+      <div id="sauKh" class="ghichu" style="margin:.2rem 0 .6rem"></div>
+      <div style="font-weight:600;margin-top:.4rem">Bán thẻ ở quầy</div>
+      <div id="banThe" class="goiy"></div>
+      <div style="font-weight:600;margin-top:.8rem">Cấp hạng (chỉ chủ quán)</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.3rem">
+        <select class="o" id="capHang" aria-label="Hạng cấp"></select>
+        <select class="o" id="capHan" aria-label="Thời hạn cấp"><option value="0">Không thời hạn</option><option value="3">3 tháng</option><option value="6">6 tháng</option><option value="12">12 tháng</option></select>
+        <input class="o" id="capPin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN chủ quán" style="width:130px" aria-label="PIN chủ quán">
+        <button class="btn btn-chinh" id="capNut">Cấp</button>
+      </div>
+      <div id="baoCap"></div>
+      <div style="font-weight:600;margin-top:.8rem">Nhật ký hạng</div>
+      <div id="nhatKy" class="ghichu" style="margin:.3rem 0"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 3. KÊNH ════════ -->
+<section id="tab-kenh" hidden>
+  <p class="ghichu">Đơn vị bán ở góc phải: đổi phải có PIN (thử 1234), mọi bill in thông tin của đơn vị đang chọn. Đơn quầy bật “Giao hàng” để xem phí Ahamove + ai trả phí. Chọn kênh ở đầu màn: cả menu đổi sang giá kênh (giá quầy + % kênh, làm tròn 1.000). Đơn kênh sửa được giá từng dòng để khớp khuyến mãi nền tảng; đơn quầy thì không. Mã đơn nền tảng bắt buộc, không được trùng (thử GF-1001 — đã có). Mỗi dòng có 📝 ghi chú (ít đá, ít đường…) — ghi chú in lên phiếu pha chế, tem ly và bill gắn túi.</p>
+  <div class="the" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;justify-content:space-between">
+    <div class="seg" id="kenhSeg" role="group" aria-label="Kênh bán"></div>
+    <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+      <label for="donVi" style="color:var(--mo)">Đơn vị bán ca này</label>
+      <select class="o" id="donVi"></select>
+      <span id="khoiPinDv" hidden><input class="o" id="pinDv" type="password" inputmode="numeric" maxlength="6" placeholder="PIN chủ quán" style="width:120px" aria-label="PIN chủ quán"> <button class="btn btn-chinh" id="doiDv">Đổi</button></span>
+    </div>
+  </div>
+  <div id="baoDv"></div>
+  <div class="luoi2">
+    <div class="the">
+      <h3 id="tieuDeMenu">Menu</h3>
+      <div class="menu-k" id="menuK"></div>
+      <details style="margin-top:1rem"><summary style="cursor:pointer;font-weight:600">Cài đặt kênh (demo)</summary>
+        <div id="caiKenh" style="margin-top:.5rem"></div></details>
+    </div>
+    <div class="the gio-k">
+      <h3>Đơn đang nhập</h3>
+      <div id="khoiMaDon">
+        <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem">
+          <label for="maDon" style="font-weight:600;min-width:150px">Mã đơn nền tảng *</label>
+          <input class="o" id="maDon" placeholder="vd GF-2045" style="flex:1;min-width:140px"></div>
+        <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem">
+          <label for="tenKhK" style="min-width:150px">Tên khách (trên đơn)</label>
+          <input class="o" id="tenKhK" placeholder="vd Minh A." style="flex:1;min-width:140px"></div>
+      </div>
+      <div id="baoMa"></div>
+      <div id="gioK"></div>
+      <div id="khoiGiao" style="margin-top:.6rem"></div>
+      <div id="tomK" style="margin-top:.6rem"></div>
+      <button class="btn btn-chinh" id="xongK" style="width:100%;margin-top:.6rem">Tạo đơn + in</button>
+      <div id="baoK"></div>
+    </div>
+  </div>
+  <div class="the" style="margin-top:1rem">
+    <h3>Bản in của đơn này</h3>
+    <div class="seg" id="inSeg" role="group" aria-label="Chọn bản in" style="margin-bottom:.7rem"></div>
+    <div id="banIn"></div>
+  </div>
+</section>
+
+<!-- ════════ 4. CÀI ĐẶT MÀN KHÁCH ════════ -->
+<section id="tab-media" hidden>
+  <p class="ghichu">Mọi thứ màn khách chạy lúc rảnh nằm trong MỘT danh sách: kéo ⠿ (hoặc ▲▼) để xếp thứ tự, bấm công tắc để tạm tắt, bấm giây để đổi thời gian. Video chạy hết độ dài của nó; ảnh và mẫu chạy theo số giây bạn chọn. Khung bên phải phát thử đúng như máy tính bảng.</p>
+  <div class="luoi2">
+    <div>
+      <div class="the" style="margin-bottom:.8rem">
+        <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <h3 style="margin:0">Danh sách phát lúc rảnh</h3>
+          <span class="ghichu" style="margin:0" id="tongVong"></span>
+        </div>
+        <div class="pl" id="pl" style="margin-top:.6rem"></div>
+      </div>
+      <div class="the" style="margin-bottom:.8rem">
+        <h3>＋ Thêm vào danh sách</h3>
+        <label class="tai" id="vungTai" for="chonFile">📤 <span><b>Tải ảnh hoặc video lên</b><br>Bấm để chọn, hoặc kéo file thả vào đây · JPG, PNG, MP4 · tối đa 100 MB</span></label>
+        <input type="file" id="chonFile" accept="image/*,video/*" multiple hidden>
+        <div style="font-weight:600;margin:.8rem 0 .4rem">Hoặc chọn mẫu có sẵn (tự cập nhật, không cần làm ảnh)</div>
+        <div class="mau" id="mau"></div>
+      </div>
+      <div class="the">
+        <h3>Khi thu tiền</h3>
+        <label style="display:flex;gap:.4rem"><input type="checkbox" checked> Dừng danh sách, hiện hoá đơn (mọi cách trả) — bắt buộc</label>
+        <label style="display:flex;gap:.4rem;margin-top:.3rem"><input type="checkbox"> Hiện tên khách (không bao giờ hiện SĐT, số dư, điểm)</label>
+        <details style="margin-top:.6rem"><summary style="cursor:pointer;font-weight:600">Máy màn khách đã ghép (1)</summary>
+          <div class="dong" style="margin-top:.4rem"><span>Máy tính bảng quầy 1 · ghép 01.11</span><span class="ghichu" style="margin:0">đã tải 5/5 mục ✓</span></div></details>
+        <p class="ghichu" style="margin:.6rem 0 0">File lưu ở chỗ lưu chung của quán; máy màn khách tự tải về MỘT lần rồi chạy cả khi mất mạng. Sửa ở đây, màn khách cập nhật trong khoảng một phút.</p>
+      </div>
+    </div>
+    <div>
+      <div class="tablet"><div class="xem" id="xem" aria-live="off"></div></div>
+      <div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap;align-items:center">
+        <button class="btn" id="phatLai">⟲ Phát lại từ đầu</button>
+        <span class="ghichu" style="margin:0" id="dangPhat"></span>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const vnd = (n) => (Math.round(Number(n) || 0)).toLocaleString('vi-VN');
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function sang(t) {
+    document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    ['tienmat', 'hang', 'kenh', 'media'].forEach((x) => { $('tab-' + x).hidden = x !== t; });
+    if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.onclick = () => sang(b.dataset.tab));
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (['tienmat', 'hang', 'kenh', 'media'].includes(h)) sang(h); });
+
+  /* ═════════ 1. TIỀN MẶT + PIN ═════════ */
+  const T = { cach: 'tm', dem: {}, tay: null, pin: '', sai: 0, xong: false, tkXong: false, daTru: 0 };
+  const tongDon = () => Number($('tongThu').value);
+  const soDu = () => Number($('soDu').value);
+  const truDuoc = () => Math.min(soDu(), tongDon());
+  const MG_CHINH = [500000, 200000, 100000, 50000], MG_PHU = [20000, 10000, 5000, 2000, 1000];
+  const tron = (n) => { const le = n % 1000; return le >= 600 ? n - le + 1000 : n - le; };   // từ 600 tròn lên
+  const tong = () => tongDon() - T.daTru;   // phần còn phải trả (sau khi đã trừ tài khoản)
+  const canThu = () => tron(tong());
+  const dua = () => T.tay != null ? T.tay : Object.entries(T.dem).reduce((s, [g, c]) => s + g * c, 0);
+  function goiY(n) {   // số tròn gần nhất khách hay đưa
+    const ra = new Set([n]);
+    for (const b of [10000, 20000, 50000, 100000, 200000, 500000]) { const x = Math.ceil(n / b) * b; if (x > n) ra.add(x); }
+    return [...ra].sort((a, b) => a - b).slice(0, 5);
+  }
+  function veMg(id, ds) {
+    $(id).innerHTML = ds.map((g) => `<div class="mg ${T.dem[g] ? 'co' : ''}"><button class="cong" data-mg="${g}" aria-label="Thêm 1 tờ ${vnd(g)}">${g >= 1000 ? (g / 1000) + 'k' : g}</button>${T.dem[g] ? `<button class="bot" data-bot="${g}" aria-label="Bớt 1 tờ ${vnd(g)}">−</button><span class="dem">×${T.dem[g]}</span>` : ''}</div>`).join('');
+  }
+  function veTm() {
+    const t = tong(), c = canThu(), d = dua(), chenh = c - t;
+    $('qTong').textContent = vnd(t); $('qTron').textContent = chenh === 0 ? '0' : (chenh > 0 ? '+' : '−') + vnd(Math.abs(chenh));
+    $('qCan').textContent = vnd(c); $('tkCan').textContent = vnd(tongDon()); $('tkTru').textContent = vnd(truDuoc());
+    $('goiY').innerHTML = goiY(c).map((x, i) => `<button class="btn" data-goiy="${x}">${i === 0 ? 'Đủ tiền ' : ''}${vnd(x)}</button>`).join('');
+    veMg('mgChinh', MG_CHINH); veMg('mgPhu', MG_PHU);
+    $('qDua').textContent = vnd(d);
+    const tra = d - c;
+    $('qTra').textContent = d === 0 ? '—' : tra >= 0 ? vnd(tra) : 'thiếu ' + vnd(-tra);
+    $('qTra').className = 'so to ' + (d === 0 ? '' : tra >= 0 ? 'du' : 'thieu');
+    $('xongTm').disabled = d < c || T.xong;
+    veMk();
+  }
+  function veMk() {
+    const t = tong(), c = canThu(), d = dua();
+    const mon = `<div class="dg"><span>2 × Trà Tứ Quý</span><span class="so"><s>${vnd(50000)}</s>${vnd(47000)}</span></div>
+      <div class="dg"><span>1 × Nước ép Cần tây táo</span><span class="so"><s>${vnd(30000)}</s>${vnd(28200)}</span></div>
+      <div class="dg mo"><span>Giá gốc</span><span class="so">${vnd(tongDon() + 4800)}</span></div>
+      <div class="dg giam"><span>Giảm hạng Vàng 6%</span><span class="so">−${vnd(4800)}</span></div>
+      ${T.daTru ? `<div class="dg"><span>Tổng đơn</span><span class="so">${vnd(tongDon())}</span></div><div class="dg giam"><span>Đã trừ tài khoản</span><span class="so">−${vnd(T.daTru)}</span></div>` : ''}`;
+    const mk = $('mk');
+    if (T.cach === 'tm') {
+      const ch = c - t;
+      mk.innerHTML = `<div class="mo">Hoá đơn của quý khách</div>${mon}
+        ${ch ? `<div class="dg mo"><span>Làm tròn tiền mặt</span><span class="so">${ch > 0 ? '+' : '−'}${vnd(Math.abs(ch))}</span></div>` : ''}
+        <div class="dg tong"><span>${T.daTru ? 'Còn phải trả (tiền mặt)' : 'Cần thanh toán'}</span><span class="so">${vnd(c)}</span></div>
+        ${d ? `<div class="dg"><span>Khách đưa</span><span class="so">${vnd(d)}</span></div>
+               <div class="dg" style="font-size:1.25rem;font-weight:800"><span>Trả lại</span><span class="so">${d >= c ? vnd(d - c) : '—'}</span></div>` : ''}
+        ${T.xong ? '<div style="text-align:center;font-size:1.4rem;font-weight:800;margin-top:auto">Cảm ơn quý khách</div>' : ''}`;
+    } else if (T.cach === 'tk') {
+      if (T.tkXong) {
+        const con = tongDon() - T.daTru;
+        mk.innerHTML = con > 0 ? `<div class="mo">Hoá đơn của quý khách</div>${mon}<div class="dg tong"><span>Còn phải trả</span><span class="so">${vnd(con)}</span></div><div class="mo" style="margin:auto;text-align:center">Nhân viên đang chọn cách thu phần còn lại…</div>`
+          : `<div style="margin:auto;text-align:center"><div style="font-size:1.5rem;font-weight:800">Cảm ơn quý khách</div><div class="mo">Đã trừ ${vnd(T.daTru)} từ tài khoản</div></div>`;
+        return;
+      }
+      mk.innerHTML = `<div class="mo">Hoá đơn của quý khách</div>${mon}<div class="dg"><span>Tổng đơn</span><span class="so">${vnd(tongDon())}</span></div><div class="dg tong"><span>Trừ tài khoản</span><span class="so">${vnd(truDuoc())}</span></div>
+        ${truDuoc() < tongDon() ? `<div class="dg mo"><span>Phần còn lại trả sau bằng QR / tiền mặt</span><span class="so">${vnd(tongDon() - truDuoc())}</span></div>` : ''}
+        <div style="text-align:center;margin-top:.5rem;font-weight:700">Quý khách nhập mã PIN tài khoản</div>
+        <div class="cham" aria-label="Đã nhập ${T.pin.length} số">${[0, 1, 2, 3].map((i) => `<span class="${i < T.pin.length ? 'day' : ''}"></span>`).join('')}</div>
+        <div class="pin">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '✓'].map((k) => `<button data-pin="${k}" aria-label="${k === '⌫' ? 'Xoá' : k === '✓' ? 'Xác nhận' : k}">${k}</button>`).join('')}</div>
+        ${T.sai ? `<div style="text-align:center;color:#fca5a5;margin-top:.4rem">PIN chưa đúng — còn ${5 - T.sai} lần thử</div>` : ''}`;
+    } else {
+      mk.innerHTML = `<div class="mo">Hoá đơn của quý khách</div>${mon}<div class="dg tong"><span>${T.daTru ? 'Còn phải trả' : 'Cần thanh toán'}</span><span class="so">${vnd(t)}</span></div><div class="mo" style="margin:auto;text-align:center">[mã QR ${vnd(t)} — như màn khách đợt 1]</div>`;
+    }
+  }
+  document.querySelectorAll('[data-cach]').forEach((b) => b.onclick = () => {
+    T.cach = b.dataset.cach; T.pin = ''; T.sai = 0; T.tkXong = false; T.daTru = 0; T.dem = {}; T.tay = null; T.xong = false; $('nhapTay').value = ''; $('tkConLai').hidden = true; $('baoTm').innerHTML = '';
+    document.querySelectorAll('[data-cach]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('khoiTm').hidden = T.cach !== 'tm'; $('khoiTk').hidden = T.cach !== 'tk'; $('khoiQr').hidden = T.cach !== 'qr';
+    $('tkCho').textContent = '⏳ Đang chờ khách nhập PIN trên màn khách…'; $('tkCho').className = 'bao cho'; $('baoTk').innerHTML = '';
+    veTm();
+  });
+  $('tongThu').onchange = () => { T.dem = {}; T.tay = null; T.xong = false; T.daTru = 0; T.tkXong = false; T.pin = ''; $('tkConLai').hidden = true; $('nhapTay').value = ''; $('baoTm').innerHTML = ''; veTm(); };
+  $('soDu').onchange = () => { T.daTru = 0; T.tkXong = false; T.pin = ''; $('tkConLai').hidden = true; veTm(); };
+  $('tab-tienmat').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.mg) { T.tay = null; $('nhapTay').value = ''; T.dem[b.dataset.mg] = (T.dem[b.dataset.mg] || 0) + 1; T.xong = false; veTm(); }
+    if (b.dataset.bot) { const g = b.dataset.bot; T.dem[g] = Math.max(0, (T.dem[g] || 0) - 1); if (!T.dem[g]) delete T.dem[g]; veTm(); }
+    if (b.dataset.goiy) { T.dem = {}; T.tay = Number(b.dataset.goiy); $('nhapTay').value = ''; T.xong = false; veTm(); }
+  });
+  $('moRong').onclick = () => { const mo = $('mgPhu').hidden; $('mgPhu').hidden = !mo; $('moRong').setAttribute('aria-expanded', String(mo)); $('moRong').textContent = mo ? '− Thu gọn mệnh giá' : '＋ Thêm mệnh giá (20k · 10k · 5k · 2k · 1k)'; };
+  $('nhapTay').oninput = () => { const v = $('nhapTay').value.replace(/\D/g, ''); $('nhapTay').value = v; T.dem = {}; T.tay = v ? Number(v) : null; T.xong = false; veTm(); };
+  $('xoaHet').onclick = () => { T.dem = {}; T.tay = null; T.xong = false; $('nhapTay').value = ''; $('baoTm').innerHTML = ''; veTm(); };
+  $('xongTm').onclick = () => { T.xong = true; $('baoTm').innerHTML = `<div class="bao ok">Đã thu ${vnd(canThu())} · trả lại ${vnd(dua() - canThu())}. Két ghi đúng số thật; phần làm tròn ghi riêng.</div>`; veTm(); };
+  $('mk').addEventListener('click', (e) => {
+    const k = e.target.closest('button')?.dataset.pin; if (k == null || T.cach !== 'tk' || T.tkXong) return;
+    if (k === '⌫') T.pin = T.pin.slice(0, -1);
+    else if (k === '✓') {
+      if (T.pin.length < 4) return;
+      if (T.pin === '1234') {
+        T.tkXong = true; T.daTru = truDuoc(); const con = tongDon() - T.daTru;
+        $('tkCho').textContent = '✓ Khách nhập PIN đúng — đã trừ ' + vnd(T.daTru) + ' từ tài khoản'; $('tkCho').className = 'bao ok';
+        if (con > 0) { $('tkConLai').hidden = false; $('tkConChu').textContent = 'Tài khoản chỉ đủ một phần — còn ' + vnd(con) + '. Chọn cách thu phần còn lại:'; }
+      }
+      else { T.sai++; T.pin = ''; $('tkCho').textContent = `Khách nhập sai PIN (${T.sai}/5)`; $('tkCho').className = 'bao loi'; }
+    } else if (T.pin.length < 4) T.pin += k;
+    veMk();
+  });
+  $('tkConLai').addEventListener('click', (e) => {
+    const v = e.target.closest('button')?.dataset.conlai; if (!v) return;
+    T.cach = v; T.dem = {}; T.tay = null; T.xong = false; $('nhapTay').value = '';
+    document.querySelectorAll('[data-cach]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.cach === v)));
+    $('khoiTm').hidden = v !== 'tm'; $('khoiTk').hidden = true; $('khoiQr').hidden = v !== 'qr';
+    veTm();
+  });
+  $('pinQuay').onclick = () => { $('baoTk').innerHTML = '<div class="bao cho">Máy quầy hiện bảng PIN như hiện nay; màn khách quay về hoá đơn. (Chỉ dùng khi màn khách mất mạng / chưa ghép.)</div>'; };
+
+  /* ═════════ 2. HẠNG ═════════ */
+  let id = 3, xoaCho = -1;
+  const H = [
+    { id: 1, ten: 'Vàng', bac: 1, giam: 6, dacbiet: 3, combo: 3, cach: 'ban', goi: [{ thang: 1, gia: '', bat: true }, { thang: 3, gia: '', bat: true }], han: 0 },
+    { id: 2, ten: 'Kim Cương', bac: 2, giam: 10, dacbiet: 5, combo: 5, cach: 'cap', goi: [], han: 0 },
+  ];
+  const KH = { the: [{ hang: 1, het: '15.02.2027' }], log: [] };
+  const hangCua = (hid) => H.find((h) => h.id === hid);
+  function hangHienTai() {   // hạng cao nhất còn hạn
+    return KH.the.map((t) => ({ ...t, h: hangCua(t.hang) })).filter((t) => t.h).sort((a, b) => b.h.bac - a.h.bac)[0];
+  }
+  function veHang() {
+    $('dsHang').innerHTML = H.map((h, i) => `<div class="hang">
+      <div class="hang-dau"><input class="o" value="${esc(h.ten)}" data-h="${i}" data-k="ten" style="font-weight:700;flex:1;min-width:140px" aria-label="Tên hạng">
+        <span class="nhan-bac">Thứ bậc ${h.bac}</span>
+        <button class="btn" data-len="${i}" aria-label="Lên bậc">▲</button><button class="btn" data-xuong="${i}" aria-label="Xuống bậc">▼</button>
+        <button class="btn huy" data-xoa="${i}" ${xoaCho === i ? 'style="background:var(--do);color:#fff;border-color:var(--do)"' : ''}>${xoaCho === i ? 'Bấm lần nữa để xoá' : 'Xoá'}</button></div>
+      <div class="luoi-o">
+        <label>% giảm thường<input class="o" type="number" min="0" max="50" value="${h.giam}" data-h="${i}" data-k="giam"></label>
+        <label>% giảm nhóm món đặc biệt<input class="o" type="number" min="0" max="50" value="${h.dacbiet}" data-h="${i}" data-k="dacbiet"></label>
+        <label>% giảm khi mua combo<input class="o" type="number" min="0" max="50" value="${h.combo}" data-h="${i}" data-k="combo"></label>
+      </div>
+      <div class="seg" role="group" aria-label="Cách có hạng">
+        <button data-cach-h="${i}" data-v="ban" aria-pressed="${h.cach === 'ban'}">Bán ở quầy</button>
+        <button data-cach-h="${i}" data-v="cap" aria-pressed="${h.cach === 'cap'}">Chỉ cấp (chủ quán)</button>
+      </div>
+      ${h.cach === 'ban' ? `<div style="margin-top:.5rem">${h.goi.map((g, j) => `<div class="goi">
+          <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" ${g.bat ? 'checked' : ''} data-gh="${i}" data-gj="${j}" data-gk="bat"> Bán</label>
+          <input class="o" type="number" min="1" max="60" value="${g.thang}" style="width:74px" data-gh="${i}" data-gj="${j}" data-gk="thang" aria-label="Số tháng"> tháng
+          <input class="o so" inputmode="numeric" placeholder="Giá (chưa đặt)" value="${g.gia}" style="width:150px" data-gh="${i}" data-gj="${j}" data-gk="gia" aria-label="Giá gói">đ
+          <button class="btn huy" data-xoagoi="${i}" data-gj="${j}">Xoá gói</button></div>`).join('')}
+          <button class="btn" data-themgoi="${i}" style="margin-top:.35rem">＋ Thêm gói</button>
+          <div class="ghichu" style="margin:.3rem 0 0">Gói chưa đặt giá thì chưa bán được. Mua thêm gói → hạn cộng nối vào hạn cũ.</div></div>`
+        : `<div class="ghichu" style="margin:.5rem 0 0">Không hiện ở chỗ bán thẻ. Lúc cấp chủ quán chọn số tháng hoặc “không thời hạn”. Hết hạn mà khách còn hạng thấp hơn đang còn hạn → khách quay về hạng đó.</div>`}
+    </div>`).join('');
+    const ht = hangHienTai();
+    $('hangKh').textContent = ht ? ht.h.ten : 'Chưa có hạng';
+    $('hanKh').textContent = ht ? (ht.het || 'Không thời hạn') : '—';
+    const thap = KH.the.filter((t) => ht && t.hang !== ht.hang).map((t) => `${hangCua(t.hang)?.ten} (đến ${t.het || 'không thời hạn'})`);
+    $('sauKh').textContent = thap.length ? 'Còn giữ: ' + thap.join(', ') + ' — dùng lại khi hạng trên hết hạn.' : '';
+    $('banThe').innerHTML = H.filter((h) => h.cach === 'ban').flatMap((h) => h.goi.filter((g) => g.bat).map((g) => {
+      const cao = ht && ht.h.bac > h.bac, chuaGia = !g.gia;
+      return `<button class="btn" ${cao || chuaGia ? 'disabled' : ''} title="${cao ? 'Khách đang có hạng cao hơn' : chuaGia ? 'Gói chưa đặt giá' : ''}">${esc(h.ten)} ${g.thang} tháng · ${g.gia ? vnd(g.gia) + 'đ' : 'chưa đặt giá'}${cao ? ' — khách đang có hạng cao hơn' : ''}</button>`;
+    })).join('') || '<span class="ghichu">Không có gói nào đang bán.</span>';
+    $('capHang').innerHTML = H.filter((h) => h.cach === 'cap').map((h) => `<option value="${h.id}">${esc(h.ten)}</option>`).join('');
+    $('nhatKy').innerHTML = KH.log.length ? KH.log.map((l) => '• ' + esc(l)).join('<br>') : 'Chưa có.';
+  }
+  $('tab-hang').addEventListener('input', (e) => {
+    const d = e.target.dataset;
+    if (d.h != null && d.k) H[d.h][d.k] = d.k === 'ten' ? e.target.value : Number(e.target.value);
+    if (d.gh != null) { const g = H[d.gh].goi[d.gj]; g[d.gk] = d.gk === 'bat' ? e.target.checked : d.gk === 'gia' ? e.target.value.replace(/\D/g, '') : Number(e.target.value); if (d.gk !== 'gia') veHang(); }
+  });
+  $('tab-hang').addEventListener('change', (e) => { if (e.target.dataset.gk === 'gia') veHang(); });
+  $('tab-hang').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if (d.xoa == null) xoaCho = -1;
+    const doiBac = (i, k) => { const j = i + k; if (j < 0 || j >= H.length) return; [H[i], H[j]] = [H[j], H[i]]; H.forEach((h, n) => { h.bac = n + 1; }); };
+    if (d.len) doiBac(+d.len, -1); else if (d.xuong) doiBac(+d.xuong, 1);
+    else if (d.xoa) {
+      const i = +d.xoa;
+      if (xoaCho !== i) { xoaCho = i; veHang(); return; }
+      const hid = H[i].id; H.splice(i, 1); H.forEach((h, n) => { h.bac = n + 1; });
+      KH.the = KH.the.filter((t) => t.hang !== hid); KH.log.unshift(new Date().toLocaleString('vi-VN') + ' — Xoá hạng (demo)');
+    }
+    else if (d.cachH != null) H[d.cachH].cach = d.v;
+    else if (d.themgoi) H[d.themgoi].goi.push({ thang: 6, gia: '', bat: true });
+    else if (d.xoagoi) H[d.xoagoi].goi.splice(+d.gj, 1);
+    else { veHang(); return; }
+    xoaCho = -1; veHang();
+  });
+  $('themHang').onclick = () => { H.push({ id: id++, ten: 'Hạng mới', bac: H.length + 1, giam: 0, dacbiet: 0, combo: 0, cach: 'ban', goi: [{ thang: 1, gia: '', bat: true }], han: 0 }); veHang(); };
+  $('luuHang').onclick = () => { $('baoHang').innerHTML = '<div class="bao ok">Đã lưu (demo). App KH nhận hạng mới trong vài phút.</div>'; };
+  $('capNut').onclick = () => {
+    if ($('capPin').value !== '1234') { $('baoCap').innerHTML = '<div class="bao loi">PIN chủ quán chưa đúng (PIN thử: 1234).</div>'; return; }
+    const hid = Number($('capHang').value), th = Number($('capHan').value); if (!hid) return;
+    const het = th ? (() => { const d = new Date(); d.setMonth(d.getMonth() + th); return d.toLocaleDateString('vi-VN'); })() : '';
+    KH.the = KH.the.filter((t) => t.hang !== hid); KH.the.push({ hang: hid, het });
+    KH.log.unshift(`${new Date().toLocaleString('vi-VN')} — Chủ quán cấp ${hangCua(hid).ten} (${th ? th + ' tháng' : 'không thời hạn'})`);
+    $('capPin').value = ''; $('baoCap').innerHTML = '<div class="bao ok">Đã cấp.</div>'; veHang();
+  };
+
+  /* ═════════ 3. KÊNH ═════════ */
+  const KENH = [
+    { ma: 'quay', ten: 'Tại quầy', cong: 0, phi: 0, thue: 0 },
+    { ma: 'grab', ten: 'Grab', cong: 25, phi: 25, thue: 4.5 },
+    { ma: 'shopee', ten: 'Shopee', cong: 25, phi: 23, thue: 4.5 },
+    { ma: 'be', ten: 'Be', cong: 20, phi: 18, thue: 4.5 },
+  ];
+  const CHIP = ['Ít đá', 'Không đá', 'Nhiều đá', 'Ít đường', 'Không đường', 'Nhiều cafe', 'Nóng', 'Tách đá riêng'];
+  const MON = [['Trà Tứ Quý', 25000], ['Trà Hoa Cúc Kỷ Tử', 30000], ['Trà Atiso Đỏ', 28000], ['Nước ép Cần tây táo', 30000], ['Cà phê muối thảo mộc', 32000], ['Trà Gừng Mật Ong', 25000]]
+    .map(([ten, gia], i) => ({ id: i, ten, gia, rieng: {} }));
+  const K = { kenh: 'quay', gio: [], daCo: ['GF-1001'], maDon: '', tenKh: '', giamQ: 0, mo: -1, ban: 'tui', daTao: false, maTang: '',
+    dv: 0, dvCho: null, giao: false, dc: 0, dvu: 'nhanh', aiTra: 'tu_dong', maAha: '' };
+  const DON_VI = [
+    { ten: 'HKD Tứ Quý Đường', dc: '88 Hai Bà Trưng, Q.1, TP.HCM', mst: '0312 345 678', sdt: '0909 000 111', tk: 'VCB 1017 588 888' },
+    { ten: 'Hộ Kinh Doanh Thảo Mộc An Khang Phú Quý (ví dụ hộ B — tên dài)', dc: 'Ki-ốt 3, 88 Hai Bà Trưng, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', mst: '0398 765 432', sdt: '0909 222 333', tk: 'ACB 2233 4455' },
+  ];
+  const DC = [{ ten: 'Nhà — 12 Nguyễn Trãi, Q.1', km: 2.1 }, { ten: 'Công ty — 45 Lê Lợi, Q.1', km: 4.8 }, { ten: 'Địa chỉ mới…', km: 3.5, moi: true }];
+  const GIAO_CAI = { mienTu: 150000, mienKm: 3, hoTro: 15000 };   // Cài đặt giao hàng (demo)
+  const phiAha = () => { const d = DC[K.dc].km; const p = 16000 + Math.max(0, d - 2) * 5000; return Math.round((K.dvu === 'nhanh' ? p : p * 0.8) / 1000) * 1000; };
+  function aiTra(tongHang) {
+    const phi = phiAha(), dc = DC[K.dc];
+    let mode = K.aiTra;
+    if (mode === 'tu_dong') mode = (tongHang >= GIAO_CAI.mienTu && dc.km <= GIAO_CAI.mienKm) ? 'quan' : 'khach';
+    const quan = mode === 'quan' ? phi : mode === 'hotro' ? Math.min(phi, GIAO_CAI.hoTro) : 0;
+    return { phi, quan, khach: phi - quan, mode };
+  }
+  const kenh = () => KENH.find((k) => k.ma === K.kenh);
+  const giaKenh = (m, k = kenh()) => m.rieng[k.ma] != null ? m.rieng[k.ma] : Math.round(m.gia * (1 + k.cong / 100) / 1000) * 1000;
+  const chuGc = (d) => [...d.chip, d.tay].filter(Boolean).join(', ');
+  const qrSvg = (txt) => {   // ô vuông giả QR (demo) — bản thật in mã QR thật tới tuquyduong.com
+    let h = 0; for (const c of txt) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    let r = ''; for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) {
+      const goc = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13);
+      const den = goc ? (x % 6 === 0 || y % 6 === 0 || (x > 1 && x < 5 && y > 1 && y < 5) || (x > 15 && x < 19 && y > 1 && y < 5) || (x > 1 && x < 5 && y > 15 && y < 19) || x === 20 || y === 20) : ((h >> ((x * 7 + y * 3) % 31)) & 1) ^ ((x * y) % 3 === 0);
+      if (den && !(goc && (x === 6 || y === 6) && false)) r += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+    }
+    return `<svg class="qr" viewBox="0 0 21 21" fill="#111" role="img" aria-label="Mã QR">${r}</svg>`;
+  };
+  function tinh() {
+    const k = kenh(), tong = K.gio.reduce((s, d) => s + d.gia * d.sl, 0);
+    const phi = Math.round(tong * k.phi / 100), thue = Math.round(tong * k.thue / 100);
+    const g = k.ma === 'quay' && K.giao ? aiTra(tong) : null;
+    return { k, tong, phi, thue, ve: tong - (K.giamQ || 0) - phi - thue, g };
+  }
+  function veGiao() {
+    const k = kenh(), t = tinh();
+    if (k.ma !== 'quay') { $('khoiGiao').innerHTML = `<div class="bao cho">🛵 ${esc(k.ten)} tự giao cho khách — POS không gọi Ahamove, không thu phí giao.</div>`; return; }
+    $('khoiGiao').innerHTML = `<label style="display:flex;gap:.4rem;align-items:center;font-weight:600"><input type="checkbox" id="giaoBat" ${K.giao ? 'checked' : ''}> 🛵 Giao hàng (Ahamove)</label>
+      ${K.giao ? `<div style="border:1px solid var(--vien);border-radius:10px;padding:.6rem;margin-top:.4rem">
+        <div class="dong"><label for="dcGiao">Giao tới (khách chị Lan)</label><select class="o" id="dcGiao">${DC.map((d, i) => `<option value="${i}" ${i === K.dc ? 'selected' : ''}>${esc(d.ten)}${d.moi ? '' : ' · ' + d.km + ' km'}</option>`).join('')}</select></div>
+        ${DC[K.dc].moi ? '<div class="ghichu" style="margin:.2rem 0">Gõ địa chỉ → chọn trong gợi ý bản đồ (máy lấy toạ độ cho Ahamove) → lưu vào sổ địa chỉ của khách.</div>' : ''}
+        <div class="dong"><span>Dịch vụ</span><span class="seg"><button data-dvu="nhanh" aria-pressed="${K.dvu === 'nhanh'}">Siêu tốc</button><button data-dvu="2h" aria-pressed="${K.dvu === '2h'}">Trong 2 giờ</button></span></div>
+        <div class="dong"><span>Phí Ahamove báo</span><b class="so">${vnd(t.g.phi)}</b></div>
+        <div class="dong"><span>Ai trả phí</span><span class="seg">
+          <button data-aitra="tu_dong" aria-pressed="${K.aiTra === 'tu_dong'}">Theo luật</button><button data-aitra="khach" aria-pressed="${K.aiTra === 'khach'}">Khách trả</button>
+          <button data-aitra="hotro" aria-pressed="${K.aiTra === 'hotro'}">Hỗ trợ ${vnd(GIAO_CAI.hoTro)}</button><button data-aitra="quan" aria-pressed="${K.aiTra === 'quan'}">Miễn phí</button></span></div>
+        <div class="ghichu" style="margin:.2rem 0">Luật (Cài đặt giao hàng): miễn phí khi đơn từ ${vnd(GIAO_CAI.mienTu)} và ≤ ${GIAO_CAI.mienKm} km. Đổi tay khỏi luật → máy ghi tên nhân viên.</div>
+        <div class="dong"><span>Khách trả phí giao</span><b class="so">${vnd(t.g.khach)}</b></div>
+        <div class="dong" style="color:var(--mo)"><span>Quán chịu</span><span class="so">${vnd(t.g.quan)}</span></div>
+      </div>` : ''}`;
+  }
+  function veKenh() {
+    const k = kenh();
+    $('kenhSeg').innerHTML = KENH.map((x) => `<button data-kenh="${x.ma}" aria-pressed="${x.ma === K.kenh}">${x.ma === 'quay' ? '🏠 ' : ''}${x.ten}</button>`).join('');
+    $('tieuDeMenu').textContent = 'Menu — giá ' + (k.ma === 'quay' ? 'tại quầy' : k.ten + ' (+' + k.cong + '%)');
+    $('menuK').innerHTML = MON.map((m) => `<button class="mon" data-mon="${m.id}"><div>${esc(m.ten)}</div><div class="gia so">${vnd(giaKenh(m))}đ</div>${k.ma !== 'quay' ? `<div class="ghichu" style="margin:0">quầy ${vnd(m.gia)}</div>` : ''}</button>`).join('');
+    $('khoiMaDon').hidden = k.ma === 'quay';
+    $('gioK').innerHTML = K.gio.length ? K.gio.map((d, i) => `<div>
+        <div class="dg"><span class="ten">${d.sl} × ${esc(d.ten)}${chuGc(d) ? `<br><span class="gc-nho">↳ ${esc(chuGc(d))}</span>` : ''}</span>
+        <button class="btn" data-gc="${i}" aria-expanded="${K.mo === i}" aria-label="Ghi chú ${esc(d.ten)}">📝</button>
+        ${k.ma === 'quay' ? `<span class="so">${vnd(d.gia * d.sl)}</span>` : `<input class="o so" inputmode="numeric" value="${d.gia}" data-sua="${i}" aria-label="Giá ${esc(d.ten)}">`}
+        <button class="btn" data-bo="${i}" aria-label="Bỏ">✕</button></div>
+        ${K.mo === i ? `<div class="khoigc">${CHIP.map((c) => `<button class="chip" data-chip="${i}" data-v="${c}" aria-pressed="${d.chip.includes(c)}">${c}</button>`).join('')}
+          <input class="o" data-tay="${i}" value="${esc(d.tay)}" placeholder="Ghi thêm…" style="flex:1;min-width:150px" aria-label="Ghi chú thêm">
+          <button class="btn" data-dong="${i}">Xong</button></div>` : ''}</div>`).join('') : '<div class="ghichu">Bấm món bên trái để thêm.</div>';
+    const t = tinh();
+    if (k.ma === 'quay') $('tomK').innerHTML = t.g ? `<div class="dong"><span>Tiền hàng</span><span class="so">${vnd(t.tong)}</span></div>
+        <div class="dong"><span>Phí giao (khách trả)</span><span class="so">${vnd(t.g.khach)}</span></div>
+        <div class="dong"><b>Khách thanh toán</b><b class="so">${vnd(t.tong + t.g.khach)}đ</b></div>
+        <div class="ghichu" style="margin:0">Thu đủ tiền xong mới gọi xe. Phí giao là dòng riêng: không giảm, không áp mã, không tích điểm.</div>`
+      : `<div class="dong"><b>Tổng</b><b class="so">${vnd(t.tong)}đ</b></div>`;
+    else $('tomK').innerHTML = `<div class="dong"><span>Tổng theo giá ${k.ten}</span><b class="so">${vnd(t.tong)}</b></div>
+        <div class="dong"><label for="giamQ">Giảm quán chịu (mã của quán)</label><input class="o so" id="giamQ" inputmode="numeric" value="${K.giamQ || 0}" style="width:110px"></div>
+        <div class="dong" style="color:var(--mo)"><span>Phí ${k.ten} ${k.phi}%</span><span class="so">−${vnd(t.phi)}</span></div>
+        <div class="dong" style="color:var(--mo)"><span>Thuế nền tảng trừ ${k.thue}%</span><span class="so">−${vnd(t.thue)}</span></div>
+        <div class="dong"><b>Tiền dự kiến ${k.ten} trả về</b><b class="so">${vnd(t.ve)}</b></div>
+        <div class="ghichu" style="margin:0">Không tích điểm, không giảm hạng, không trừ tài khoản khách. Vẫn trừ kho theo công thức.</div>`;
+    $('caiKenh').innerHTML = KENH.filter((x) => x.ma !== 'quay').map((x) => `<div class="goi" style="border-top:1px solid var(--vien)">
+      <b style="width:70px">${x.ten}</b>
+      <label>+%<input class="o" type="number" value="${x.cong}" style="width:66px" data-kc="${x.ma}" data-kk="cong"></label>
+      <label>phí %<input class="o" type="number" value="${x.phi}" style="width:66px" data-kc="${x.ma}" data-kk="phi"></label>
+      <label>thuế %<input class="o" type="number" step="0.5" value="${x.thue}" style="width:66px" data-kc="${x.ma}" data-kk="thue"></label></div>`).join('')
+      + '<div class="ghichu" style="margin:.4rem 0 0">Món nào cần giá khác thì sửa riêng món đó (Cài đặt sản phẩm). Có nút in bảng giá từng kênh để nhập vào app nền tảng.</div>';
+    veGiao(); veIn();
+  }
+  function veIn() {
+    const t = tinh(), k = t.k, quay = k.ma === 'quay', ma = quay ? 'Q-0001' : (K.maDon || '—');
+    const ds = quay ? [['hd', 'Hoá đơn (tờ khách)'], ['luu', 'Hoá đơn (tờ lưu quầy)'], ['pc', 'Phiếu pha chế'], ['tem', 'Tem ly']]
+      : [['tui', 'Bill gắn túi (đưa khách)'], ['nb', 'Bill lưu nội bộ'], ['pc', 'Phiếu pha chế'], ['tem', 'Tem ly']];
+    if (!ds.some(([m]) => m === K.ban)) K.ban = ds[0][0];
+    $('inSeg').innerHTML = ds.map(([m, ten]) => `<button data-ban="${m}" aria-pressed="${K.ban === m}">${ten}</button>`).join('');
+    const dv = DON_VI[K.dv];
+    const gio = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const nhan = quay ? 'TẠI QUẦY' : k.ten.toUpperCase();
+    // ĐẦU BILL: cột trái = đơn vị bán (tự xuống dòng), cột phải = ô số bill cố định — KHÔNG chồng chữ dù tên hộ dài
+    const dau = (lien) => `<div class="b-dau"><div class="b-dv"><div class="b-ten">${esc(dv.ten)}</div><div class="b-nho">${esc(dv.dc)}</div>
+        <div class="b-nho">ĐT ${esc(dv.sdt)} · MST ${esc(dv.mst)}</div></div>
+      <div class="b-so"><small>${esc(nhan)}</small><b>#${esc(ma)}</b></div></div>
+      ${lien ? `<div class="b-lien">${lien}</div>` : ''}<div class="b-dong b-nho"><span>${gio}</span><span>NV: Hoa</span></div>`;
+    const dongMon = (coGia) => K.gio.map((d) => `<div class="b-mon"><div class="b-dong"><span>${d.sl} × ${esc(d.ten)}</span>${coGia ? `<span class="so">${vnd(d.gia * d.sl)}</span>` : ''}</div>
+        ${coGia && quay && d.giaGoc && d.giaGoc !== d.gia ? `<div class="b-nho" style="padding-left:1rem">Giá gốc ${vnd(d.giaGoc * d.sl)} → ${vnd(d.gia * d.sl)}</div>` : ''}
+        ${chuGc(d) ? `<div class="gc">↳ ${esc(chuGc(d))}</div>` : ''}</div>`).join('') || '<div>(chưa có món)</div>';
+    const d2 = (trai, phai, dam) => `<div class="b-dong${dam ? ' b-dam' : ''}"><span>${trai}</span><span class="so">${phai}</span></div>`;
+    const ma_tang = () => { if (!K.maTang) K.maTang = 'TQD-' + Math.random().toString(36).slice(2, 6).toUpperCase(); return K.maTang; };
+    const chanMoi = () => `<hr><div class="b-giua b-dam">${quay ? 'MÃ ƯU ĐÃI KHÁCH MỚI' : 'Lần đầu uống Tứ Quý Đường?'}</div>
+      <div class="b-qr">${qrSvg('https://tuquyduong.com/?ma=' + ma_tang())}<div><div class="b-ma">${ma_tang()}</div>
+      <div class="b-nho">Quét mã → tạo tài khoản → nhận <b>20.000đ</b> cho đơn đầu tiên. Mã dùng 1 lần, hết hạn sau 30 ngày.</div></div></div>`;
+    const giaoQ = quay && t.g;
+    if (giaoQ && !K.maAha) K.maAha = 'AHA-' + Math.floor(100000 + Math.random() * 899999);
+    const khungGiao = giaoQ ? `<div class="b-khung"><b>GIAO TỚI:</b> chị Lan · 0901 ***567<br>${esc(DC[K.dc].ten)}<br>Ahamove: ${K.maAha}</div>` : '';
+    const goc = K.gio.reduce((s, d) => s + (d.giaGoc || d.gia) * d.sl, 0);
+    let h = '';
+    if (K.ban === 'hd' || K.ban === 'luu') {
+      const tongHang = t.tong, phiKhach = giaoQ ? t.g.khach : 0;
+      h = dau(K.ban === 'hd' ? 'TỜ GIAO KHÁCH' : 'TỜ LƯU QUẦY') + khungGiao + '<hr>' + dongMon(true) + '<hr>'
+        + d2('Giá gốc', vnd(goc)) + (goc > tongHang ? d2('Giảm hạng Vàng 6%', '−' + vnd(goc - tongHang)) : '')
+        + (giaoQ ? d2('Phí giao Ahamove', phiKhach ? vnd(phiKhach) : 'Miễn phí') : '')
+        + d2('TỔNG HÓA ĐƠN', vnd(tongHang + phiKhach), true)
+        + (() => { const can = tongHang + phiKhach, thu = tron(can); return (thu !== can ? d2('Làm tròn tiền mặt', (thu > can ? '+' : '−') + vnd(Math.abs(thu - can))) : '')
+          + '<hr><div class="b-dam">THANH TOÁN</div>' + d2('Tiền mặt', vnd(thu)) + d2('Khách đưa / Trả lại', '100.000 / ' + vnd(100000 - thu)); })()
+        + (K.ban === 'hd' ? chanMoi() + '<hr><div class="b-giua">Cảm ơn quý khách!</div><div class="b-giua b-nho">Ly có vấn đề? Báo quầy trong ngày để đổi.</div>' : '<hr><div class="b-giua b-nho">Tờ lưu — không đưa khách</div>');
+    } else if (K.ban === 'tui') {
+      h = dau(K.tenKh ? 'Khách: ' + esc(K.tenKh) : '') + '<hr>' + dongMon(true) + '<hr>'
+        + (K.giamQ ? d2('Giảm (mã của quán)', '−' + vnd(K.giamQ)) : '')
+        + d2('TỔNG', vnd(t.tong - (K.giamQ || 0)), true) + `<div class="b-nho">Đã thanh toán qua ${esc(k.ten)}</div>` + chanMoi()
+        + '<hr><div class="b-giua">Cảm ơn quý khách!</div>';
+    } else if (K.ban === 'nb') {
+      h = dau('BILL LƯU NỘI BỘ — KHÔNG ĐƯA KHÁCH') + (K.tenKh ? `<div>Khách: ${esc(K.tenKh)}</div>` : '') + '<hr>' + dongMon(true) + '<hr>'
+        + d2('Tổng giá ' + esc(k.ten), vnd(t.tong)) + d2('Giảm quán chịu', '−' + vnd(K.giamQ || 0))
+        + d2('Phí ' + esc(k.ten) + ' ' + k.phi + '%', '−' + vnd(t.phi)) + d2('Thuế bị trừ ' + k.thue + '%', '−' + vnd(t.thue))
+        + d2('DỰ KIẾN VỀ', vnd(t.ve), true) + `<div class="b-nho" style="margin-top:.3rem">Đối chiếu khi ${esc(k.ten)} chuyển tiền. Mã tặng in trên bill túi: ${K.maTang || '—'}</div>`;
+    } else if (K.ban === 'pc') {
+      h = `<div class="b-dau"><div class="b-dv"><div class="b-ten">PHIẾU PHA CHẾ</div><div class="b-nho">${gio}</div></div><div class="b-so"><small>${esc(nhan)}</small><b>#${esc(ma)}</b></div></div>${khungGiao}<hr>${dongMon(false)}`;
+    } else {
+      const d = K.gio[0], tongLy = K.gio.reduce((s, x) => s + x.sl, 0);
+      h = `<div class="b-dau"><div class="b-dv">${d ? `<div class="b-ten">${esc(d.ten)}</div>${chuGc(d) ? `<div class="gc" style="padding:0">${esc(chuGc(d))}</div>` : ''}<div class="b-nho">1/${tongLy}</div>` : '(chưa có món)'}</div>
+        <div class="b-so"><small>${esc(nhan)}</small><b>#${esc(ma)}</b></div></div>`;
+    }
+    $('banIn').innerHTML = `<div class="phieu">${h}</div><p class="ghichu" style="margin:.5rem 0 0;text-align:center">Mẫu bill dùng CHUNG cho đơn quầy, đơn App KH và đơn nền tảng — chỉ khác ô số bill ở góc và dòng thanh toán.</p>`;
+  }
+  $('tab-kenh').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if (d.kenh) { K.kenh = d.kenh; K.gio = []; K.giamQ = 0; K.mo = -1; K.maTang = ''; K.giao = false; K.maAha = ''; $('baoK').innerHTML = ''; }
+    else if (d.mon) {
+      const m = MON[d.mon], g = giaKenh(m);
+      const co = K.gio.find((x) => x.id === m.id && x.giaGoc === g && !x.chip.length && !x.tay);   // dòng có ghi chú thì thêm dòng mới
+      if (co) co.sl++; else K.gio.push({ id: m.id, ten: m.ten, gia: kenh().ma === 'quay' ? Math.round(g * 0.94 / 100) * 100 : g, giaGoc: g, sl: 1, chip: [], tay: '' });
+    }
+    else if (d.bo) { K.gio.splice(+d.bo, 1); K.mo = -1; }
+    else if (d.gc != null) K.mo = K.mo === +d.gc ? -1 : +d.gc;
+    else if (d.chip != null) { const x = K.gio[d.chip]; x.chip = x.chip.includes(d.v) ? x.chip.filter((c) => c !== d.v) : [...x.chip, d.v]; }
+    else if (d.dong != null) K.mo = -1;
+    else if (d.ban) K.ban = d.ban;
+    else if (d.dvu) K.dvu = d.dvu;
+    else if (d.aitra) K.aiTra = d.aitra;
+    else return;
+    veKenh();
+  });
+  $('tab-kenh').addEventListener('input', (e) => {
+    const d = e.target.dataset;
+    if (d.tay != null) { K.gio[d.tay].tay = e.target.value; veIn(); }
+    if (e.target.id === 'giamQ') { K.giamQ = Number(e.target.value.replace(/\D/g, '')) || 0; e.target.value = K.giamQ; const t = tinh(); veIn();
+      const dongs = $('tomK').querySelectorAll('.dong .so'); if (dongs.length >= 4) dongs[dongs.length - 1].textContent = vnd(t.ve); }
+  });
+  $('tab-kenh').addEventListener('change', (e) => {
+    const d = e.target.dataset;
+    if (d.sua) { K.gio[d.sua].gia = Number(e.target.value.replace(/\D/g, '')) || 0; veKenh(); }
+    if (d.kc) { KENH.find((x) => x.ma === d.kc)[d.kk] = Number(e.target.value) || 0; veKenh(); }
+    if (d.tay != null) veKenh();
+    if (e.target.id === 'giaoBat') { K.giao = e.target.checked; K.maAha = ''; veKenh(); }
+    if (e.target.id === 'dcGiao') { K.dc = Number(e.target.value); veKenh(); }
+    if (e.target.id === 'donVi') { const v = Number(e.target.value); if (v !== K.dv) { K.dvCho = v; $('khoiPinDv').hidden = false; $('pinDv').focus(); } }
+  });
+  $('donVi').innerHTML = DON_VI.map((d, i) => `<option value="${i}">${esc(d.ten)}</option>`).join('');
+  $('doiDv').onclick = () => {
+    if ($('pinDv').value !== '1234') { $('baoDv').innerHTML = '<div class="bao loi">PIN chưa đúng — chưa đổi đơn vị (thử 1234).</div>'; return; }
+    K.dv = K.dvCho; K.dvCho = null; $('pinDv').value = ''; $('khoiPinDv').hidden = true;
+    $('baoDv').innerHTML = `<div class="bao ok">Đã đổi sang ${esc(DON_VI[K.dv].ten)} — QR thu tiền, SePay, bill đều theo đơn vị này. Máy ghi ai đổi, lúc nào.</div>`; veKenh();
+  };
+  $('maDon').oninput = () => {
+    K.maDon = $('maDon').value.trim().toUpperCase();
+    $('baoMa').innerHTML = K.daCo.includes(K.maDon) ? '<div class="bao loi">Mã đơn này đã nhập lúc 10:42 — không tạo trùng.</div>' : '';
+    veIn();
+  };
+  $('tenKhK').oninput = () => { K.tenKh = $('tenKhK').value.trim(); veIn(); };
+  $('xongK').onclick = () => {
+    const k = kenh();
+    if (!K.gio.length) { $('baoK').innerHTML = '<div class="bao loi">Chưa có món.</div>'; return; }
+    if (k.ma !== 'quay') {
+      if (!K.maDon) { $('baoK').innerHTML = '<div class="bao loi">Nhập mã đơn của ' + k.ten + ' trước.</div>'; return; }
+      if (K.daCo.includes(K.maDon)) { $('baoK').innerHTML = '<div class="bao loi">Mã đơn trùng.</div>'; return; }
+      K.daCo.push(K.maDon);
+    }
+    $('baoK').innerHTML = `<div class="bao ok">Đã tạo đơn ${k.ma === 'quay' ? '' : k.ten + ' #' + esc(K.maDon)} — in ${k.ma === 'quay' ? 'phiếu pha chế + tem' : 'bill gắn túi + bill nội bộ + phiếu pha chế + tem'}. Bấm các nút “Bản in” bên dưới để xem từng tờ.</div>`;
+  };
+
+
+  /* ═════════ 4. CÀI ĐẶT MÀN KHÁCH ═════════ */
+  const MAU = [
+    { loai: 'menu', ten: 'Thực đơn', mo: 'Giá + hết hàng tự cập nhật', giay: 10 },
+    { loai: 'giovang', ten: 'Giờ vàng', mo: 'Chỉ hiện khi đang chạy', giay: 8 },
+    { loai: 'qr', ten: 'QR tải App', mo: 'Mời tạo tài khoản, nhận quà', giay: 8 },
+    { loai: 'chu', ten: 'Lời chào', mo: 'Chữ lớn + hiệu ứng', giay: 6, tieuDe: 'Chào mừng quý khách', hieuUng: 'nhap' },
+    { loai: 'km', ten: 'Món nổi bật', mo: 'Chọn món + dòng khuyến mãi', giay: 8, tieuDe: 'Trà Atiso Đỏ', phu: 'Mua 2 tặng 1 hôm nay', hieuUng: 'phong' },
+    { loai: 'dongho', ten: 'Đồng hồ + lời chào theo giờ', mo: 'Chào buổi sáng / chiều / tối', giay: 6 },
+  ];
+  const HU = { '': 'Không', nhap: 'Nhấp nháy', chay: 'Chạy chữ', phong: 'Phóng nhẹ' };
+  let mid = 10;
+  const M = { ds: [
+    { id: 1, loai: 'menu', ten: 'Thực đơn', bat: true, giay: 10 },
+    { id: 2, loai: 'video', ten: 'gioi-thieu-quan.mp4', bat: true, dai: 32, catGiay: 0 },
+    { id: 3, loai: 'chu', ten: 'Lời chào', bat: true, giay: 6, tieuDe: 'Chào mừng quý khách', hieuUng: 'nhap' },
+    { id: 4, loai: 'qr', ten: 'QR tải App', bat: true, giay: 8 },
+    { id: 5, loai: 'giovang', ten: 'Giờ vàng', bat: false, giay: 8 },
+  ], mo: -1, xoaCho: -1, keo: -1, i: 0, hen: null, batDau: 0 };
+  const thoiGian = (x) => x.loai === 'video' ? (x.catGiay || x.dai || 15) : x.giay;
+  const mmss = (g) => Math.floor(g / 60) + ':' + String(Math.round(g % 60)).padStart(2, '0');
+  function thumb(x) {
+    const loai = { video: '▶ Video', anh: 'Ảnh', menu: 'Mẫu', giovang: 'Mẫu', qr: 'Mẫu', chu: 'Mẫu', km: 'Mẫu', dongho: 'Mẫu' }[x.loai];
+    let in_ = '';
+    if (x.url && x.loai === 'anh') in_ = `<img src="${x.url}" alt="">`;
+    else if (x.url && x.loai === 'video') in_ = `<video src="${x.url}" muted preload="metadata"></video>`;
+    else in_ = { menu: '☰ Thực đơn', giovang: '⏰ Giờ vàng', qr: '▣ QR App', chu: esc(x.tieuDe || 'Chữ'), km: '★ ' + esc(x.tieuDe || ''), dongho: '🕘 Đồng hồ', video: '🎬 Video', anh: '🖼 Ảnh' }[x.loai];
+    return `<div class="thumb">${in_}<span class="loai">${loai}</span></div>`;
+  }
+  function veMedia() {
+    const bat = M.ds.filter((x) => x.bat);
+    $('tongVong').textContent = `${bat.length} mục đang bật · một vòng ${mmss(bat.reduce((s, x) => s + thoiGian(x), 0))}`;
+    $('pl').innerHTML = M.ds.map((x, i) => `<div class="muc ${x.bat ? '' : 'tat'}" draggable="true" data-keo="${i}">
+      <div class="keo-tay" title="Kéo để đổi chỗ" aria-hidden="true">⠿</div>
+      ${thumb(x)}
+      <div><div class="ten-m">${i + 1}. ${esc(x.ten)}</div>
+        <div class="phu">${x.loai === 'video'
+          ? `<button class="chip-s" data-cat="${i}" data-v="0" aria-pressed="${!x.catGiay}">Hết video ${mmss(x.dai || 0)}</button><button class="chip-s" data-cat="${i}" data-v="15" aria-pressed="${x.catGiay === 15}">Cắt 15 giây</button>`
+          : [5, 8, 10, 15].map((g) => `<button class="chip-s" data-giay="${i}" data-v="${g}" aria-pressed="${x.giay === g}">${g}s</button>`).join('')}
+          ${['chu', 'km'].includes(x.loai) ? `<button class="chip-s" data-sua="${i}" aria-expanded="${M.mo === i}">✎ Sửa chữ</button>` : ''}</div>
+        ${M.mo === i ? `<div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem">
+          <input class="o" data-td="${i}" value="${esc(x.tieuDe || '')}" placeholder="Dòng chữ lớn" style="flex:1;min-width:140px" aria-label="Dòng chữ lớn">
+          ${x.loai === 'km' ? `<input class="o" data-phu="${i}" value="${esc(x.phu || '')}" placeholder="Dòng phụ" style="flex:1;min-width:140px" aria-label="Dòng phụ">` : ''}
+          <span class="seg">${Object.entries(HU).map(([k, v]) => `<button class="chip-s" data-hu="${i}" data-v="${k}" aria-pressed="${(x.hieuUng || '') === k}">${v}</button>`).join('')}</span></div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.25rem;align-items:flex-end">
+        <label style="display:flex;gap:.3rem;align-items:center;font-size:13px"><input type="checkbox" data-bat="${i}" ${x.bat ? 'checked' : ''}> Bật</label>
+        <span><button class="btn" data-len="${i}" aria-label="Lên" style="min-height:32px;padding:.1rem .45rem">▲</button><button class="btn" data-xuong="${i}" aria-label="Xuống" style="min-height:32px;padding:.1rem .45rem">▼</button></span>
+        <button class="btn huy" data-xoam="${i}" style="min-height:32px;padding:.1rem .5rem;${M.xoaCho === i ? 'background:var(--do);color:#fff;border-color:var(--do)' : ''}">${M.xoaCho === i ? 'Bấm lần nữa' : 'Xoá'}</button>
+      </div></div>`).join('') || '<div class="ghichu">Danh sách trống — màn khách hiện “Xin chào quý khách”.</div>';
+    M.ds.forEach((x, i) => {   // lấy độ dài video thật
+      if (x.loai === 'video' && x.url && !x.dai) { const v = document.createElement('video'); v.preload = 'metadata'; v.src = x.url; v.onloadedmetadata = () => { x.dai = Math.round(v.duration) || 15; veMedia(); }; }
+    });
+  }
+  function noiDung(x) {
+    const hu = x.hieuUng === 'nhap' ? 'nhap' : x.hieuUng === 'chay' ? 'chay-chu' : x.hieuUng === 'phong' ? 'phong' : '';
+    const gioNay = new Date().getHours();
+    if (x.loai === 'anh' && x.url) return `<img src="${x.url}" alt="">`;
+    if (x.loai === 'video') return x.url ? `<video src="${x.url}" autoplay muted playsinline></video>` : '<div><div style="font-size:3rem">🎬</div>Video giới thiệu quán (0:32)</div>';
+    if (x.loai === 'menu') return '<div style="padding:1rem;text-align:left;width:100%"><div style="font-size:1.4rem;font-weight:800;margin-bottom:.5rem">Thực đơn</div>' + MON.map((m) => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #334155">${esc(m.ten)}<span>${vnd(m.gia)}</span></div>`).join('') + '</div>';
+    if (x.loai === 'giovang') return '<div><div style="font-size:1.6rem;font-weight:800">Giờ vàng — giảm 20%</div><div>Trà Tứ Quý · Trà Atiso Đỏ · đến 16:00</div></div>';
+    if (x.loai === 'qr') return `<div><div style="font-size:1.2rem;font-weight:800">Tải App — tích điểm, nhận quà</div><div style="background:#fff;display:inline-block;padding:6px;border-radius:8px;margin-top:.5rem">${qrSvg('https://tuquyduong.com')}</div></div>`;
+    if (x.loai === 'chu') return `<div class="${hu}" style="font-size:2rem;font-weight:800;padding:1rem">${esc(x.tieuDe || '')}</div>`;
+    if (x.loai === 'km') return `<div><div class="${hu}" style="font-size:2rem;font-weight:800">${esc(x.tieuDe || '')}</div><div style="color:#fde68a;font-size:1.2rem">${esc(x.phu || '')}</div></div>`;
+    if (x.loai === 'dongho') return `<div><div style="font-size:2.6rem;font-weight:800">${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div><div>${gioNay < 11 ? 'Chào buổi sáng' : gioNay < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'}</div></div>`;
+    return '';
+  }
+  function phat() {
+    clearTimeout(M.hen);
+    const bat = M.ds.filter((x) => x.bat);
+    if (!bat.length) { $('xem').innerHTML = '<div style="font-size:1.6rem;font-weight:800">Xin chào quý khách</div>'; $('dangPhat').textContent = ''; return; }
+    const x = bat[M.i % bat.length], g = thoiGian(x);
+    $('xem').innerHTML = noiDung(x) + `<div class="tien-do" id="tienDo" style="width:0"></div>`;
+    $('dangPhat').textContent = `Đang phát ${(M.i % bat.length) + 1}/${bat.length}: ${x.ten} (${g}s)`;
+    const td = $('tienDo'); requestAnimationFrame(() => { td.style.transition = `width ${g}s linear`; td.style.width = '100%'; });
+    M.hen = setTimeout(() => { M.i++; phat(); }, g * 1000);
+  }
+  $('mau').innerHTML = MAU.map((m, i) => `<button data-mau="${i}"><b>＋ ${m.ten}</b><span class="ghichu" style="margin:0">${m.mo}</span></button>`).join('');
+  function themFile(files) {
+    for (const f of files) {
+      const loai = f.type.startsWith('video') ? 'video' : f.type.startsWith('image') ? 'anh' : null; if (!loai) continue;
+      let url = ''; try { url = URL.createObjectURL(f); } catch (e) { url = ''; }
+      M.ds.push(loai === 'video' ? { id: mid++, loai, ten: f.name, bat: true, url, dai: 0, catGiay: 0 } : { id: mid++, loai, ten: f.name, bat: true, url, giay: 8 });
+    }
+    veMedia(); phat();
+  }
+  $('chonFile').onchange = (e) => themFile(e.target.files);
+  const vt = $('vungTai');
+  vt.addEventListener('dragover', (e) => { e.preventDefault(); vt.classList.add('tren'); });
+  vt.addEventListener('dragleave', () => vt.classList.remove('tren'));
+  vt.addEventListener('drop', (e) => { e.preventDefault(); vt.classList.remove('tren'); themFile(e.dataTransfer.files); });
+  $('tab-media').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    const doi = (i, k) => { const j = i + k; if (j < 0 || j >= M.ds.length) return; [M.ds[i], M.ds[j]] = [M.ds[j], M.ds[i]]; };
+    if (d.xoam == null) M.xoaCho = -1;
+    if (d.mau != null) { const m = MAU[d.mau]; M.ds.push({ id: mid++, loai: m.loai, ten: m.ten, bat: true, giay: m.giay, tieuDe: m.tieuDe, phu: m.phu, hieuUng: m.hieuUng }); }
+    else if (d.giay != null) M.ds[d.giay].giay = Number(d.v);
+    else if (d.cat != null) M.ds[d.cat].catGiay = Number(d.v);
+    else if (d.sua != null) M.mo = M.mo === +d.sua ? -1 : +d.sua;
+    else if (d.hu != null) M.ds[d.hu].hieuUng = d.v;
+    else if (d.len != null) doi(+d.len, -1);
+    else if (d.xuong != null) doi(+d.xuong, 1);
+    else if (d.xoam != null) { const i = +d.xoam; if (M.xoaCho !== i) { M.xoaCho = i; veMedia(); return; } M.ds.splice(i, 1); M.xoaCho = -1; M.mo = -1; }
+    else if (b.id === 'phatLai') { M.i = 0; phat(); return; }
+    else { veMedia(); return; }
+    veMedia(); M.i = 0; phat();
+  });
+  $('tab-media').addEventListener('input', (e) => {
+    const d = e.target.dataset;
+    if (d.td != null) { M.ds[d.td].tieuDe = e.target.value; M.i = M.ds.filter((x) => x.bat).indexOf(M.ds[d.td]); phat(); }
+    if (d.phu != null) { M.ds[d.phu].phu = e.target.value; phat(); }
+  });
+  $('tab-media').addEventListener('change', (e) => { const d = e.target.dataset; if (d.bat != null) { M.ds[d.bat].bat = e.target.checked; veMedia(); M.i = 0; phat(); } });
+  $('pl').addEventListener('dragstart', (e) => { const r = e.target.closest('[data-keo]'); if (!r) return; M.keo = +r.dataset.keo; r.classList.add('keo'); });
+  $('pl').addEventListener('dragover', (e) => { if (M.keo >= 0) e.preventDefault(); });
+  $('pl').addEventListener('drop', (e) => {
+    e.preventDefault(); const r = e.target.closest('[data-keo]'); if (!r || M.keo < 0) return;
+    const den = +r.dataset.keo; const [x] = M.ds.splice(M.keo, 1); M.ds.splice(den, 0, x); M.keo = -1; veMedia(); M.i = 0; phat();
+  });
+  $('pl').addEventListener('dragend', () => { M.keo = -1; veMedia(); });
+
+  veTm(); veHang(); veKenh(); veMedia(); phat();
+  const h = location.hash.slice(1); sang(['tienmat', 'hang', 'kenh', 'media'].includes(h) ? h : 'tienmat');
+})();
+</script>
+</body>
+</html>

@@ -516,6 +516,40 @@ function baiCong() {
   // A1b: git archive (dựng cây gốc, không đường dẫn) hỏng → gốc dựng cây RỖNG, bài thử đỏ trên cây rỗng được tính "đỏ hợp lệ" → cổng ĐẠT oan
   ca('TU-CHAY-6 A1b git giả tự giết ở archive không đường dẫn (dựng cây gốc) → cổng ĐỎ nêu "git archive", không ĐẠT oan', A1_PR, 'ĐỎ',
     { che: 'chay', env: gitGia('^archive --format=tar [^ ]+$'), chua: ['git archive'], soLyDo: 1 });
+  // ═══ TU-CHAY-10 A20 · phiếu có "## Soát bảo mật": dòng đầu không rỗng bắt đầu có / không; "có" → dòng CUỐI "SOÁT BẢO MẬT:" của
+  // trang_thai.md ở head phải là "ĐẠT" (skill bước 8b). Phiếu không có mục → không kiểm (mọi ca ở trên). PR chỉ hồ sơ viec/X/ → mỗi ca
+  // chỉ phá đúng A20 (A12/A18/A19 không áp — K3).
+  const BM = (dau, tt) => [phieuMoi(`\n## Soát bảo mật\n${dau}\n`), ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' + tt }]];
+  const DAT = 'SOÁT BẢO MẬT: ĐẠT\n', KDAT = 'SOÁT BẢO MẬT: KHÔNG ĐẠT — 2\n';
+  const DO20 = (che, ...chua) => ({ che, chua: ['[A20]', ...chua], soLyDo: 1 });
+  ca('TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)', BM('có — webhook', ''), 'ĐỎ', DO20('tinh', 'SOÁT BẢO MẬT: ĐẠT'));
+  ca('TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)', BM('có — webhook', ''), 'ĐỎ', DO20('chay', 'SOÁT BẢO MẬT: ĐẠT'));
+  ca('TU-CHAY-10 A20 có + KHÔNG ĐẠT', BM('có — tiền', KDAT), 'ĐỎ', DO20('tinh', 'SOÁT BẢO MẬT: ĐẠT'));
+  ca('TU-CHAY-10 A20 K5 có + ĐẠT', BM('có — tiền', DAT), 'ĐẠT');
+  ca('TU-CHAY-10 A20 ĐẠT rồi lần soát sau KHÔNG ĐẠT → dòng cuối thắng', BM('có — tiền', DAT + KDAT), 'ĐỎ', DO20('tinh'));
+  ca('TU-CHAY-10 A20 K5 KHÔNG ĐẠT rồi soát lại ĐẠT', BM('có — tiền', KDAT + DAT), 'ĐẠT', { che: 'tinh' });
+  ca('TU-CHAY-10 A20 giá trị lạ', BM('chưa rõ — xem sau', DAT), 'ĐỎ', DO20('tinh', 'có hoặc không'));
+  ca('TU-CHAY-10 A20 chữ dính "cóthể"', BM('cóthể', DAT), 'ĐỎ', DO20('tinh', 'có hoặc không'));
+  ca('TU-CHAY-10 A20 mục rỗng tới tiêu đề kế', [phieuMoi('\n## Soát bảo mật\n\n## Cấm\n- có\n'),
+    ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' + DAT }]], 'ĐỎ', DO20('tinh', 'có hoặc không'));
+  // Soát vòng 1: tiêu đề lệch chữ từng bị coi là "không có mục" → bỏ qua im lặng (cổng mở cửa). Mỗi ca chỉ lệch tiêu đề (có + ĐẠT).
+  for (const td of ['## Soát Bảo Mật', '### Soát bảo mật', '## Soát bảo mật: có — tiền']) {
+    ca(`TU-CHAY-10 A20 tiêu đề lệch "${td}"`, [phieuMoi(`\n${td}\ncó — tiền\n`), ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' + DAT }]],
+      'ĐỎ', DO20('tinh', 'phải viết đúng "## Soát bảo mật"'));
+  }
+  // Soát vòng 2: hai tiêu đề đúng dạng — cổng từng lấy cái ĐẦU ("không") rồi bỏ qua cái sau ("có") → phải đỏ, chỉ được MỘT mục
+  ca('TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có)', [phieuMoi('\n## Soát bảo mật\nkhông — x\n\n## Soát bảo mật\ncó — tiền\n'),
+    ['tt', { 'viec/X/trang_thai.md': 'đột biến: VS-x\n' }]], 'ĐỎ', DO20('tinh', 'chỉ được MỘT mục ## Soát bảo mật', 'xoá tiêu đề thừa'));
+  ca('TU-CHAY-10 A20 K5 không — …, trang_thai không có dòng', BM('không — chỉ sửa khung', ''), 'ĐẠT');
+  ca('TU-CHAY-10 A20 K5 "- Có — tiền" (gạch đầu dòng, hoa) + ĐẠT', BM('- Có — tiền', DAT), 'ĐẠT', { che: 'tinh' });
+  ca('TU-CHAY-10 A20 K5 PR thêm mục ban_cai lenh_soat_bao_mat.md + nguồn + chủ quán đã cài', [['PHIEU: X lenh', { 'viec/X/phieu.md':
+    PHIEU.replace('- tu_chay/lenh_moi.md', '- tu_chay/lenh_moi.md\n- tu_chay/lenh_soat_bao_mat.md') }], ['ban', () => {
+    const DICH = '.claude/commands/soat-bao-mat.md';
+    doiCH((ch) => { if (!ch.ban_cai.some((c) => c[1] === DICH)) ch.ban_cai.push(['lenh_soat_bao_mat.md', DICH]); })();
+    viet(G, 'tu_chay/lenh_soat_bao_mat.md', (doc(path.join(G, 'tu_chay/lenh_soat_bao_mat.md')) || '') + 'lệnh soát bảo mật\n');
+    viet(G, 'cong_cu/thu_a.js', THU_HOP_LE); viet(G, 'server/moi.js', 'module.exports = 2;\n');
+    caiLai();
+  }]], 'ĐẠT');
 
   // Đột biến: tắt từng kiểm → ca chặn tương ứng thành ĐẠT (nghĩa là bài thử ở trên bắt được kiểm đó)
   let mod = null;
@@ -537,7 +571,10 @@ function baiCong() {
     ['A19', 'TU-CHAY-5 A19 thiếu dòng HEAD ĐÃ KIỂM', 'tinh'], ['A19', 'TU-CHAY-5 A19 SHA cũ hơn commit đổi code', 'tinh'],
     ['A19', 'TU-CHAY-5 A19 SHA không thuộc PR (SHA gốc)', 'tinh'],
     ['A19', 'TU-CHAY-5 A19 "+ commit này" ghi ở commit hồ sơ SAU commit code', 'tinh'],
-    ['A19', 'TU-CHAY-5 A19 "+ commit này" cha sai', 'tinh'], ['A19', 'TU-CHAY-5 A19 gộp main SAU lần kiểm', 'tinh']];
+    ['A19', 'TU-CHAY-5 A19 "+ commit này" cha sai', 'tinh'], ['A19', 'TU-CHAY-5 A19 gộp main SAU lần kiểm', 'tinh'],
+    ['A20', 'TU-CHAY-10 A20 có + trang_thai thiếu dòng (tinh)', 'tinh'], ['A20', 'TU-CHAY-10 A20 có + trang_thai thiếu dòng (chay)', 'chay'],
+    ['A20', 'TU-CHAY-10 A20 giá trị lạ', 'tinh'], ['A20', 'TU-CHAY-10 A20 tiêu đề lệch "## Soát Bảo Mật"', 'tinh'],
+    ['A20', 'TU-CHAY-10 A20 hai tiêu đề ## Soát bảo mật (đầu không, sau có)', 'tinh']];
   if (mod && typeof mod.cong === 'function') {
     for (const [ma, ten, cheDo] of DB) {
       if (CUA[ten] === false) continue; // ca thuộc phần khác — phần đó chạy đột biến của nó

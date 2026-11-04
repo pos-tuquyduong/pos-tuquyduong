@@ -216,13 +216,14 @@ function generateCSV(headers, rows) {
 
 // Cộng tháng an toàn — tránh bẫy JS Date.setMonth() nhảy tháng khi ngày đích không tồn tại
 // (vd 31/1 + 1 tháng KHÔNG được nhảy sang 3/3, phải chốt về ngày cuối tháng 2). Dùng chung
-// cho mọi nơi tính hạn hiệu lực theo tháng (TIER-1c và về sau).
+// cho mọi nơi tính hạn hiệu lực theo tháng (TIER-1c và về sau). Phép UTC thuần (GIO-VN-1): người gọi đưa giờ VN
+// dạng `new Date(getNow() + 'Z')` → kết quả không phụ thuộc múi giờ máy chủ.
 function addMonthsSafe(date, months) {
   const d = new Date(date.getTime());
-  const targetMonth = d.getMonth() + months;
-  const lastDayOfTargetMonth = new Date(d.getFullYear(), targetMonth + 1, 0).getDate();
-  d.setDate(Math.min(d.getDate(), lastDayOfTargetMonth));
-  d.setMonth(targetMonth);
+  const targetMonth = d.getUTCMonth() + months;
+  const lastDayOfTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), targetMonth + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(d.getUTCDate(), lastDayOfTargetMonth));
+  d.setUTCMonth(targetMonth);
   return d;
 }
 

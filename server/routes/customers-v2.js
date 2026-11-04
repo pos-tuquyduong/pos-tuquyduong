@@ -55,15 +55,15 @@ async function cacheCustomersToLocal(sxCustomers) {
     const parentPhone = c.parent_phone ? normalizePhone(c.parent_phone) : null;
     try {
       await run(`
-        INSERT INTO pos_customers (phone, name, parent_phone, relationship, sx_status, updated_at)
-        VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+        INSERT INTO pos_customers (phone, name, parent_phone, relationship, sx_status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'active', ?, ?)
         ON CONFLICT(phone) DO UPDATE SET
           name = excluded.name,
           parent_phone = excluded.parent_phone,
           relationship = excluded.relationship,
           sx_status = 'active',
-          updated_at = CURRENT_TIMESTAMP
-      `, [phone, c.name, parentPhone, c.relationship]);
+          updated_at = excluded.updated_at
+      `, [phone, c.name, parentPhone, c.relationship, getNow(), getNow()]);
       cached++;
     } catch (e) { /* skip individual errors */ }
   }
@@ -318,15 +318,15 @@ router.put("/:phone/address", authenticate, checkPermission('manage_users'), asy
     if (existing) {
       await run(`
         UPDATE pos_customers 
-        SET address = ?, updated_at = CURRENT_TIMESTAMP 
+        SET address = ?, updated_at = ? 
         WHERE phone = ?
-      `, [address || null, phone]);
+      `, [address || null, getNow(), phone]);
     } else {
       // Insert mới (khách từ SX chưa có record trong pos_customers)
       await run(`
         INSERT INTO pos_customers (phone, name, address, created_at) 
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-      `, [phone, 'Khách hàng', address || null]);
+        VALUES (?, ?, ?, ?)
+      `, [phone, 'Khách hàng', address || null, getNow()]);
     }
 
     res.json({ success: true, phone, address: address || null });
