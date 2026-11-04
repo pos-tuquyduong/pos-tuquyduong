@@ -78,3 +78,9 @@ HEAD ĐÃ KIỂM: 2152a1b
 ✓ CỔNG CHẠY ĐẠT (sau Q1)
 
 HEAD ĐÃ KIỂM: 9a6344d
+
+
+## Chat soát 04.11 — ĐẠT
+Q1 ẩn tên nhân viên đơn App (dongHoaDon/donApp) đúng; hợp đồng gộp: GIO-VN-1 v6, HD-KH-1 v7 (PHIEN_BAN 7).
+Chat chỉnh E2 thu_GIOVN1.js: PHIEN_BAN ≥ 6. Bài trên bản gộp: HOPDONG_KH 82/0 · HDKH1 35/0 · GIOVN1 61/0.
+HEAD ĐÃ KIỂM: e63facc
