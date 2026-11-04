@@ -49,4 +49,7 @@ async function taoLink({ orderCode, amount, description, expiredAt }) {
   return { qr: j.data.qrCode || null, checkout_url: j.data.checkoutUrl || null };
 }
 
-module.exports = { daCauHinh, kiemChuKy, taoLink };
+// SEPAY-1: cùng dạng với cổng SePay (congQr.js) — mã đơn payOS = mã phiên.
+const taoQr = ({ id, soTien, noiDung, hetGiay }) => taoLink({ orderCode: id, amount: soTien, description: noiDung, expiredAt: hetGiay });
+
+module.exports = { daCauHinh, kiemChuKy, taoLink, taoQr };
