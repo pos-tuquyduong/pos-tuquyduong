@@ -365,3 +365,10 @@ Nghiệm thu (vòng 4): Q4 → ca F2 (hướng dẫn) + dòng `khong_phien` có 
   đối chiếu câu đã chốt trước khi giao việc (sổ thắng); câu chép sang lệnh phải dẫn nguyên văn dòng sổ.
 
 HEAD ĐÃ KIỂM: e0ad6ef
+
+
+## Chat soát 04.11 — ĐẠT
+Đọc sepay.js / vietQr.js / congQr.js / xuLyTienVe: HMAC trên thân thô + mốc giờ 300 s, chống trùng theo id, một hàm chốt cho hai cổng,
+Q5 so số tài khoản nhận (sổ 01.11). Hợp đồng gộp: SEPAY-1 v8 (PHIEN_BAN 8). Bài trên bản gộp: SEPAY1 78/0 · P3 100/0 · HOPDONG_KH 82/0.
+Chủ quán: cài theo viec/SEPAY-1/cai_dat_sepay.md rồi thử một đơn 2.000đ.
+HEAD ĐÃ KIỂM: 48f43ae
