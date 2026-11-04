@@ -43,6 +43,7 @@ Có — `cong_cu/thu_HDKH1.js` ĐỎ trên code gốc: `/don/:ma` có `hoa_don[]
 
 ## Bài thử cũ sửa
 - cong_cu/thu_HD1.js — chỉ thêm ca so hai bên nếu dùng bản máy chủ riêng (không bớt ca).
+- cong_cu/thu_GIOVN1.js — chat sửa lúc gộp 04.11: ca E2 "PHIEN_BAN = 6" thành "≥ 6" vì HD-KH-1 tăng hợp đồng lên v7 (không bớt ca).
 
 ## Ngân sách
 ~150 dòng máy chủ + ~250 dòng thử.
