@@ -216,3 +216,5 @@ Nghi ngờ của người soát:
 - `vi_qr` lỗi đúng hạn: `dangGiu` chỉ đếm phiên `cho` (wallets.js) → phiên `loi` nhả giữ; L1 phủ phần cộng QR. Ca ví giữ + lỗi đúng hạn chưa có → CHƯA KIỂM.
 - node_modules nối symlink khi dựng gốc: chỉ đọc gói, không ghi (K5 nói về bản sao server/ mà đột biến ghi — dot_bien.py chép thật).
 - Cổng `tu_chay/cong.js chay` + thao tác thử tay: làm ở bước 11 / báo cáo 7 mục.
+Kiểm sau vòng sửa 1: `thu_CKNOIDUNG1.js` 100 · 0; `npm test -- --day-du` PASS 102 · FAIL 0 · CẢNH BÁO 2 (như trước, file ngoài việc);
+`python3 viec/CK-NOIDUNG-1/dot_bien.py` ĐỐI CHỨNG XANH (ck 100 · 0, kh 95 · 0) · TỔNG 52 · BẮT 52 · SỐNG 0 · HỎNG 0 · LẠC 0.
