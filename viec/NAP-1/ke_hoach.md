@@ -140,3 +140,25 @@ Bài thử cũ đỏ vì E (Câu hỏi 1, đổi ĐÚNG ca khoá luật điểm 
 Máy chủ ~330 dòng (014 ~25 · viKhach ~35 · wallets ~20 · goi-nap ~70 · orders ~55 · giuCho ~6 · refunds ~4 · reports ~45 · doiSoat ~45 ·
 index/backup ~3 · diemThat ~3 · bat_bien ~20) — sát ~320 của phiếu (+bat_bien do Câu hỏi 1). Giao diện ~210. Thử ~500 + sửa 7 bài cũ.
 Không thư viện mới. Soát bảo mật (phiếu `có`): giá gói máy chủ tra (B3), chặn vòng nạp bằng ví (B6, B7), quyền tạo gói (A5).
+
+## 12. Sau soát kế hoạch (agent phụ chỉ đọc, 05.11) — các điểm dưới THAY mục tương ứng ở trên
+Máy đã đọc lại từng chỗ agent nêu, đều đúng:
+1. **Giảm hạng lọt vào dòng nạp** — `orders.js:642` chỉ bỏ dòng `is_package_item` / `is_membership_item`. Dòng nạp gắn cờ `is_nap_item` và thêm
+   vào điều kiện bỏ qua đó. Ca mới **B13**: khách hạng Vàng mua gói 100.000 → tổng 100.000, không giảm. Đột biến `BV-NAP-GIAM-HANG`.
+2. **Dải `product_id` trùng thẻ** — I15 (`bat_bien.js:298`) coi mọi dòng `≤ −1000000` là thẻ → đơn nạp `−(2000000+id)` bị báo "thiếu dòng mua
+   thẻ". Giữ dải (ngoài dải gói, đền bù vẫn chặn) và sửa I15 thành `BETWEEN −1999999 AND −1000000` (cùng file Câu hỏi 1). Ca C9 chạy I15 = 0 lệch.
+3. **Mã bill của đơn nạp** — `orders.js:1165` phát mã cho mọi đơn → khách đem mã nhận điểm (`signup-codes.js:210`, App `kh/index.js:269-270`),
+   hoá đơn in số điểm (`hoaDon.js:79`). Vá ở MỘT chỗ trong Phạm vi: đơn nạp không phát mã. Ca mới **E6**: bán nạp → đơn không có mã bill,
+   `/nhan-diem` không có gì để nhận. Đột biến `BV-NAP-MA-BILL`.
+4. **Thống kê danh sách đơn** — `orders.js:117-121` cộng `total_revenue` mọi đơn → loại đơn nạp cùng vị từ. Ca F2 thêm `GET /orders` thống kê.
+5. **Đổi cách trả trên đơn nạp** (`don-mo-rong.js:120-156`, ngoài Phạm vi) đổi cột tiền của đơn, không đổi dòng sổ `topup`. Không sửa file đó:
+   ô 1 "trong đó tiền nạp" đọc CỘT TIỀN của đơn nạp (cùng nguồn với két `doiSoat.js:99`) + dòng `topup` không gắn đơn (nạp tay) — không đọc
+   `payment_method` của dòng sổ gắn đơn. Đổi cách trả vẫn được (khớp két). Ca mới **K8**: đổi tiền mặt → CK trên đơn nạp → két và ô 1 cùng chuyển.
+6. **Chia cho 0 khi hoàn** — đền bù vào ví khách của đơn trả ví MẸ + tiền mặt: `viDaTru` của ví khách = 0 → `thuongKhiHoan` trả 0 (toàn tiền nạp),
+   không chia. Ca mới **C7b**. Ca phép tính thuần cho `viDaTru = 0`, `soDu ≤ 0`.
+7. **`total_topup` của đơn nạp** cộng `vao_tk` (105.000 — bằng `amount` dòng sổ, I18 `bat_bien.js:332` khớp), không phải `khach_tra`.
+8. Bỏ cổng thêm ở duyệt hoàn (`refunds.js:145`): thừa — đơn nạp không tạo được yêu cầu (`refunds.js:116` đòi `balance_amount > 0`); ca D3 canh.
+   `refunds.js` không sửa.
+
+Các lệnh ghi thẳng `pos_balance_transactions` ngoài `ghiVi` (`orders.js:947` gắn `order_id`, `:1390` `debt_payment` ngoài danh sách tính vào ví)
+không đổi số dư — không cần ngăn thưởng.
