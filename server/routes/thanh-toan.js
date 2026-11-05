@@ -140,27 +140,33 @@ async function xuLyTienVe(res, t) {
   if (t.tkKhac) return ghi('chua_khop', `${LY_DO_TK_KHAC} ${t.tkKhac}`);
   if (t.thatBai) return ghi('that_bai', t.thatBai);
   const luc = DANG_GIO.test(String(t.luc || '')) ? String(t.luc).replace(' ', 'T') : getNow();
-  // Q1b (chủ quán 05.11): phiên App đã huỷ / hết hạn, tiền về → KHÔNG tạo lại đơn; số tiền thật đã về cộng vào tài khoản khách của phiên.
-  // Dòng báo + dòng ví cùng MỘT giao dịch; chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần.
-  // Phiên 'loi' (chốt hỏng vì đơn lúc tiền về đúng hạn) KHÔNG thuộc Q1b — vẫn chua_khop ĐỎ như cũ (thu_KHMUA1 I3).
-  const quaHan = p.trang_thai === 'huy' || (p.trang_thai === 'cho' && (luc > p.het_han || p.het_han <= getNow()));
-  if (quaHan && p.phone && t.soTien > 0 && await laPhienApp(p.id)) {
-    const soHd = await soHdCuaPhien(p.id);
+  // Q1b + chủ quán 05.11 lượt 2: phiên App đã huỷ / hết hạn, HOẶC 'loi' (không tạo được đơn — vd hết hàng lúc tiền về đúng hạn), tiền về →
+  // KHÔNG tạo đơn; số tiền thật đã về cộng vào tài khoản khách của phiên. MỘT vị từ (vaoViDuoc), MỘT hàm ghi (vaoVi): dòng báo + dòng ví cùng
+  // MỘT giao dịch, chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần. Phiên QUẦY không vào đây.
+  const laApp = !!p.phone && t.soTien > 0 && await laPhienApp(p.id);
+  const vaoViDuoc = (x) => ['huy', 'loi'].includes(x.trang_thai) || (x.trang_thai === 'cho' && (luc > x.het_han || x.het_han <= getNow()));
+  const vaoVi = async (x) => {
+    const soHd = await soHdCuaPhien(x.id), maGd = t.maGd || '—';
+    const dau = x.trang_thai === 'loi' ? `không tạo được đơn (${x.ly_do || 'lỗi'})` : 'tiền về muộn';
     await trongGiaoDich(async (tx) => {
-      const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${LY_DO_VAO_VI} ${p.phone} (${soHd})`));
+      const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));
       if (ins.changes !== 1) return;
-      await ghiVi(tx, { phone: p.phone, loai: 'topup', soTien: t.soTien, cachTra: 'transfer', nguoi: t.nguon, luc: getNow(),
-        ghiChu: `Tiền về muộn ${soHd} (đơn App đã huỷ / hết hạn) · mã GD ${t.maGd || '—'}`, cot: 'total_topup', soCot: t.soTien });
+      await ghiVi(tx, { phone: x.phone, loai: 'topup', soTien: t.soTien, cachTra: 'transfer', nguoi: t.nguon, luc: getNow(), cot: 'total_topup', soCot: t.soTien,
+        ghiChu: (x.trang_thai === 'loi' ? `Không tạo được đơn ${soHd} (${x.ly_do || 'lỗi'})` : `Tiền về muộn ${soHd} (đơn App đã huỷ / hết hạn)`) + ` · mã GD ${maGd}` });
     });
     return res.json({ success: true });
-  }
+  };
+  if (laApp && vaoViDuoc(p)) return vaoVi(p);
   const lyDo = t.soTien !== p.con_lai ? `lệch tiền: về ${t.soTien}, phải thu ${p.con_lai}`
     : luc > p.het_han ? 'tiền về sau khi QR hết hạn' : null;
   if (lyDo) return ghi('chua_khop', lyDo);
   const kq = await chotPhien(p, t.nguon, { maGd: t.maGd, suKien: (tx) => tx.run(CAU_GHI, thamSo('khop', null)) });
   if (kq.status === 200) return res.json({ success: true });
   if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
-  const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
+  // Chốt hỏng: chotPhien vừa đổi phiên App sang 'loi' (đơn hỏng), hoặc phiên vừa bị huỷ / hết hạn giữa chừng → đọc lại, cùng vị từ, vào ví.
+  const moi = laApp ? await docPhien(p.id) : null;
+  if (moi && vaoViDuoc(moi)) return vaoVi(moi);
+  const sau =kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
   // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và cổng này CHƯA báo gì cho phiên — cổng này báo lần nữa là khách chuyển thêm thật (phải hoàn).
   const daBao = sau ? (await query('SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ?', [t.ma])).some((x) => congCuaKhoa(x.khoa) === t.nguon) : false;
   return ghi('chua_khop', !sau ? `không tạo được đơn: ${kq.body?.code || kq.body?.error}`
