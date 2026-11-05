@@ -623,3 +623,30 @@ GIT:         6cfa128 HANG-1 soat bao mat lan 2 (DAT, 0 lo), phat hien, cau hoi 5
 BÀI HỌC:     KHOÁ 3 (1 làm luôn, 2 đề xuất) · NGUYÊN TẮC 2 đề xuất (+1 đã có ở K3) · BỎ 1 — chi tiết ở ## Bài học
 
 HEAD ĐÃ KIỂM: 6cfa128
+
+## Bước 1 — đối chiếu bản chụp, làm tiếp (05.11.2026 — chủ quán trả lời câu 5)
+- Nhánh `viec/HANG-1`, cây sạch. Hook mở phiên đã kéo `c26b4e0 → ca903d6`. `git fetch origin viec/HANG-1`: HEAD = `ca903d6`, FETCH_HEAD = `ca903d6` → bằng nhau.
+- `git log --oneline -3`:
+  ```
+  ca903d6 HANG-1 cong chay, bao cao 7 muc, HEAD DA KIEM (cho cau 5)
+  6cfa128 HANG-1 soat bao mat lan 2 (DAT, 0 lo), phat hien, cau hoi 5 (3 bai cu khoi phuc nguyen file), bai hoc
+  44ecb54 HANG-1 soat vong 4 + vong sua 4: thu_HANG1 vao npm test, dot bien luong hop le (S1b S5 C0e) + VS-pin-cu-tuy-chon, sua chu thich lam tron / PIN
+  ```
+
+## Trả lời câu 5 (chủ quán 05.11) — ĐỎ ĐÃ BIẾT
+- Chat đã sửa trên main (SUA-SL-1) ba bài `thu_SAOLUU2`, `thu_KHO1`, `thu_KHO2b`: bỏ trang "Hạng thành viên" khỏi file trước khi khôi phục. **Trên nhánh này
+  ba bài là ĐỎ ĐÃ BIẾT cùng `thu_P26a` C9** — không sửa, không nới.
+- **KHÔNG gỡ** `pos_membership_tiers` khỏi `BANG_KHONG_KHOI_PHUC` (giữ khoá; `thu_HANG1` S1 canh).
+- Vòng này KHÔNG đổi code — chỉ ghi trạng thái, chạy lại kiểm và cổng.
+- `npm test -- --day-du` ở HEAD `ca903d6`: `PASS 95 · FAIL 4 · CẢNH BÁO 1`. Bốn dòng ✗ đúng bốn bài đã biết, không dòng nào khác:
+  `thu_P26a` C9 (câu 3) · `thu_SAOLUU2` F1 · `thu_KHO1` J3/J5/J6/J7 · `thu_KHO2b` H4 (câu 5) — ba bài sau đều báo `400 KHOI_PHUC_TRANG_TIEN_BI_CHAN … (Hạng thành viên)`.
+
+## Đề xuất việc sau (chủ quán dặn ghi — máy KHÔNG làm trong HANG-1)
+1. **PIN ví khách qua khôi phục** (`server/routes/backup.js`, `server/utils/pinKhach.js`): `pos_customers` có `pin_code` / `pin_sai` / `pin_khoa_den` nhưng không
+   nằm trong `BANG_KHONG_KHOI_PHUC`, file xuất còn băm PIN khách → khôi phục trang "Khách hàng" đặt lại / gỡ khoá PIN ví mà không ghi `pos_nhat_ky_pin`.
+   Đề xuất: chặn khôi phục các cột PIN khách (giữ nguyên PIN đang có khi khôi phục trang Khách) + `boCot` băm PIN khách ở xuất file; kèm phép tĩnh trong
+   `kiem_tra_truoc_khi_giao.js` "bảng có cột băm PIN / bộ đếm khoá phải bị chặn khôi phục và bỏ khỏi file xuất" — ca đỏ: `pos_customers` hôm nay.
+   Việc đụng tiền (ví) + bảo mật → phiếu "chờ duyệt kế hoạch".
+2. **PIN chủ quán nên 6 số** (`server/utils/pinChuQuan.js`, `HangThe.jsx`): khoá 5 lần / 15 phút không tăng dần ≈ 480 lần thử / ngày → PIN 4 số dò được trong
+   1–3 tuần nếu phiên chủ quán để mở. Đề xuất: đòi PIN đúng 6 số khi đặt / đổi (PIN cũ 4 số vẫn dùng được tới lần đổi kế tiếp), hoặc khoá tăng dần
+   (15 phút → 1 giờ → 1 ngày). Mình nghiêng về **6 số** (một dòng kiểm, dễ hiểu). Trong lúc chờ: chủ quán tự đặt PIN 6 số ngay — máy hiện đã nhận.
