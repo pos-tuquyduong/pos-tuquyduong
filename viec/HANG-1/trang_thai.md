@@ -594,3 +594,32 @@ tách lệnh), B-PHANTICH (chạy script kèm `; echo`), CC-LA (ReadNotification
   … trỏ tới MỘT ca + đột biến gỡ vế đó ra BẮT"); lần này quên áp → KHÔNG thêm chữ, đã làm bù (K5-…).
 - **BỎ:** các lệnh bị người gác chặn khi dựng cây gốc / chạy script — luật đã có hướng dẫn, làm lại đúng dạng một lần là qua.
 - Dọn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mà phép mới làm thay trọn.
+
+## Cổng chạy (05.11, ở HEAD 6cfa128, cây sạch) — `node tu_chay/cong.js chay . c4513ac HEAD viec/HANG-1`
+```
+✗ [A13] `npm test` đỏ:
+  ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md.
+✗ [A13] `node kiem_tra_truoc_khi_giao.js --day-du` đỏ:
+  ✗ CÓ LỖI — sửa xong rồi commit. Đọc CHECKLIST_CODE.md.
+✗ CỔNG ĐỎ (CHẠY) — 2 lý do
+```
+A13 đỏ chỉ vì 4 dòng ✗ của `npm test`: thu_P26a C9 (đỏ đã biết, câu 3) + thu_SAOLUU2 F1 / thu_KHO1 J3–J7 / thu_KHO2b H4 (câu 5). Các phép khác (A11, A12, A16–A20) qua.
+
+## Báo cáo 7 mục (05.11 — vòng câu 4)
+VIỆC:        HANG-1 — Hạng thẻ: thêm hạng, thứ bậc, gói thời hạn, hạng chỉ cấp, cấp có PIN, hạng cao nhất còn hạn (vòng câu 4: bịt hai đường vượt PIN)
+ĐÃ SỬA:      server/routes/backup.js — pos_membership_tiers vào BANG_KHONG_KHOI_PHUC; boCot ['pin_bam'] + readTablePaged bỏ cột ở export-all và export/:table
+             server/utils/pinChuQuan.js datPinChuQuan — đã có PIN thì kiemPinChuQuan(pinCu) sau kiểm dữ liệu (cùng bộ đếm, không gỡ khoá); route membership.js nhận pin_cu
+             client/src/pages/CaiDat/HangThe.jsx + utils/api.js — ô "PIN cũ" khi đã có PIN, gửi pin_cu; không nút quên PIN; client/dist build lại
+             chú thích: membership.js, membershipStatus.js, orders.js (expires_at), pinChuQuan.js, HangThe.jsx (PIN dùng cho Cài đặt hạng), tiers.js (làm tròn)
+             kiem_tra_truoc_khi_giao.js — thêm chayBaiThat('cong_cu/thu_HANG1.js')
+BÀI THỬ:     thu_HANG1 trên code chưa vá câu 4 → ĐỎ 135/9 (S1, S1b, S2, S2b, S3, S3b, S4, G1e, G1g); trên gốc 2a12443 → 7/79; sau vá → XANH 144/0.
+             Đột biến 60 + 5 mới (VS-pin-cu-tuy-chon, K5-luon-doi-pin-cu, K5-chan-ca-cai-dat, K5-pin-cu-luon-sai, VS-pin-cu-giao-dien): BẮT hết, SỐNG 0
+ĐÃ RÀ K4:    grep ghi pos_membership_tiers → 4 nơi (tiers.js PIN, khôi phục nay chặn, 013, seed); ghi pos_pin_chu_quan → 3 câu trong pinChuQuan.js;
+             readTablePaged → 2 chỗ gọi, cả hai bỏ cột; đặt/đổi PIN → 1 đường. Đã xử lý hết.
+CHƯA KIỂM:   npm test đỏ 4 bài (P26a C9 đã biết; SAOLUU2 / KHO1 / KHO2b chờ câu 5) → cổng A13 đỏ. Chưa thử giao diện trên điện thoại (ô PIN cũ, báo 423).
+             Chưa xem Turso thật (đã có dòng PIN chưa). Soát bảo mật lần 2 không có agent lọc (0 lỗ ở bước 1). PIN khách / trang Nhân viên: ngoài Phạm vi (Phát hiện).
+GIT:         6cfa128 HANG-1 soat bao mat lan 2 (DAT, 0 lo), phat hien, cau hoi 5 (3 bai cu khoi phuc nguyen file), bai hoc
+             44ecb54 HANG-1 soat vong 4 + vong sua 4: thu_HANG1 vao npm test, dot bien luong hop le (S1b S5 C0e) + VS-pin-cu-tuy-chon, sua chu thich lam tron / PIN
+BÀI HỌC:     KHOÁ 3 (1 làm luôn, 2 đề xuất) · NGUYÊN TẮC 2 đề xuất (+1 đã có ở K3) · BỎ 1 — chi tiết ở ## Bài học
+
+HEAD ĐÃ KIỂM: 6cfa128
