@@ -82,55 +82,56 @@ async function dungMaNhanDiem(o) {
   return { ma: m.code, diem, uu_dai: uuDai && dungDuocUuDai, han_gio: ch.hanGio, han_gio_uu_dai: ch.hanGio };
 }
 
+/** Dữ liệu hoá đơn của MỘT đơn (dòng pos_orders). Quầy (GET /:id) và App KH (utils/dongHoaDon.js) cùng gọi hàm này. */
+async function dungHoaDon(o) {
+  const st = {};
+  for (const r of await query("SELECT key, value FROM pos_settings WHERE key IN ('store_name','store_address','store_phone')")) st[r.key] = r.value;
+  const items = await query('SELECT * FROM pos_order_items WHERE order_id = ? ORDER BY id', [o.id]);
+  const gocTong = so(o.subtotal);
+  const tongDon = so(o.total);
+  const giamHang = so(o.tier_discount);
+  // % hạng THẬT đã giảm lúc bán, suy từ giá đã lưu của từng dòng (không lấy % hiện tại của hạng: hạng có thể đã đổi, món nhóm đặc biệt bỏ qua thẻ).
+  // Mọi dòng có giảm cùng một % → số đó; các dòng khác % hoặc không dòng nào giảm → null (bill chỉ in tên hạng, không kèm %).
+  const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
+  const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
+  const giamFlash = so(o.flash_discount);
+  const phiGiao = so(o.shipping_fee);
+  // Khoản giảm bằng mã / quà suy ra từ tổng: giá gốc − hạng − Flash + phí giao − tổng (đơn cũ ghi cột `discount` không thống nhất)
+  const giamMa = Math.max(0, gocTong - giamHang - giamFlash + phiGiao - tongDon);
+  const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]))?.n);
+
+  return {
+    quan: { ten: st.store_name || '', dia_chi: st.store_address || '', sdt: st.store_phone || '' },
+    don: { id: o.id, code: o.code, so_bill: soBill(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status },
+    khach: {
+      ten: o.customer_name || 'Khách lẻ', sdt_che: cheSdt(o.customer_phone), la_khach_le: !o.customer_phone,
+      hang: o.customer_tier || null, phan_tram: o.customer_tier ? phanTramHang : null,
+    },
+    mon: items.map((m) => {
+      const sl = so(m.quantity);
+      const goc = so(m.unit_price);
+      const hang = m.tier_unit_price != null && so(m.tier_unit_price) < goc ? so(m.tier_unit_price) : null;
+      return {
+        so_luong: sl, ten: m.product_name, ghi_chu: m.notes || '', gia_goc: goc, gia_hang: hang,
+        thanh_tien_goc: goc * sl, thanh_tien: (hang ?? goc) * sl,
+      };
+    }),
+    tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: giamMa, ma_giam: o.discount_code || null, phi_giao: phiGiao, tong: tongDon },
+    thanh_toan: dungThanhToan(o),
+    khach_dua: o.payment_method === 'cash' ? so(o.cash_received) : 0,
+    tra_lai: o.payment_method === 'cash' ? so(o.change_amount) : 0,
+    diem: await dungDiem(o),
+    ma_nhan_diem: await dungMaNhanDiem(o),
+    so_lan_in: soLan,
+  };
+}
+
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const id = Number(req.params.id);
     const o = /^[1-9]\d{0,14}$/.test(req.params.id) && Number.isSafeInteger(id) ? await queryOne('SELECT * FROM pos_orders WHERE id = ?', [id]) : null;
     if (!o) return res.status(404).json({ error: 'Không tìm thấy đơn hàng', code: 'KHONG_THAY_DON' });
-
-    const st = {};
-    for (const r of await query("SELECT key, value FROM pos_settings WHERE key IN ('store_name','store_address','store_phone')")) st[r.key] = r.value;
-    const items = await query('SELECT * FROM pos_order_items WHERE order_id = ? ORDER BY id', [o.id]);
-    const gocTong = so(o.subtotal);
-    const tongDon = so(o.total);
-    const giamHang = so(o.tier_discount);
-    // % hạng THẬT đã giảm lúc bán, suy từ giá đã lưu của từng dòng (không lấy % hiện tại của hạng: hạng có thể đã đổi, món nhóm đặc biệt bỏ qua thẻ).
-    // Mọi dòng có giảm cùng một % → số đó; các dòng khác % hoặc không dòng nào giảm → null (bill chỉ in tên hạng, không kèm %).
-    const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
-    const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
-    const giamFlash = so(o.flash_discount);
-    const phiGiao = so(o.shipping_fee);
-    // Khoản giảm bằng mã / quà suy ra từ tổng: giá gốc − hạng − Flash + phí giao − tổng (đơn cũ ghi cột `discount` không thống nhất)
-    const giamMa = Math.max(0, gocTong - giamHang - giamFlash + phiGiao - tongDon);
-    const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]))?.n);
-
-    res.json({
-      success: true,
-      hoa_don: {
-        quan: { ten: st.store_name || '', dia_chi: st.store_address || '', sdt: st.store_phone || '' },
-        don: { id: o.id, code: o.code, so_bill: soBill(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status },
-        khach: {
-          ten: o.customer_name || 'Khách lẻ', sdt_che: cheSdt(o.customer_phone), la_khach_le: !o.customer_phone,
-          hang: o.customer_tier || null, phan_tram: o.customer_tier ? phanTramHang : null,
-        },
-        mon: items.map((m) => {
-          const sl = so(m.quantity);
-          const goc = so(m.unit_price);
-          const hang = m.tier_unit_price != null && so(m.tier_unit_price) < goc ? so(m.tier_unit_price) : null;
-          return {
-            so_luong: sl, ten: m.product_name, ghi_chu: m.notes || '', gia_goc: goc, gia_hang: hang,
-            thanh_tien_goc: goc * sl, thanh_tien: (hang ?? goc) * sl,
-          };
-        }),
-        tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: giamMa, ma_giam: o.discount_code || null, phi_giao: phiGiao, tong: tongDon },
-        thanh_toan: dungThanhToan(o),
-        khach_dua: o.payment_method === 'cash' ? so(o.cash_received) : 0,
-        tra_lai: o.payment_method === 'cash' ? so(o.change_amount) : 0,
-        diem: await dungDiem(o),
-        ma_nhan_diem: await dungMaNhanDiem(o),
-        so_lan_in: soLan,
-      },
-    });
+    res.json({ success: true, hoa_don: await dungHoaDon(o) });
   } catch (err) {
     console.error('hoa-don error:', err.message);
     res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });
@@ -139,3 +140,4 @@ router.get('/:id', authenticate, async (req, res) => {
 
 module.exports = router;
 module.exports.KHONG_AN_DUOC = KHONG_AN_DUOC;
+module.exports.dungHoaDon = dungHoaDon;

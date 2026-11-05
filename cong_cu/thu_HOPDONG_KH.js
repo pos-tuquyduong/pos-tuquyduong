@@ -72,6 +72,8 @@ const NGUON_MA = [
   // v5 (KH-MUA-1): đặt đơn — mã của donApp.js + mã taoPhien / chotPhien giữ nguyên (GIU_MA); mã khác bị đổi thành DON_KHONG_HOP_LE.
   ['server/utils/donApp.js', '', null, /thanLoi\('([A-Z][A-Z0-9_]+)'/g],
   ['server/utils/donApp.js', 'const GIU_MA', ';', /'([A-Z][A-Z0-9_]+)'/g],
+  // v6 (CT-1a): PUT /toi nhận ngay_sinh qua datNgaySinh (routes/chuong-trinh.js) — mã lỗi dùng chung với quầy nằm ở bảng LOI_NGAY_SINH (trả nguyên cho /api/kh).
+  ['server/routes/chuong-trinh.js', 'const LOI_NGAY_SINH = {', '};', /^\s+([A-Z][A-Z0-9_]+): \[/gm],
   // nhan-ma-bill / nhan-diem gọi hàm quầy: từ đầu file tới route quầy đầu tiên SAU hai hàm (GET / danh sách mã — không thuộc /api/kh).
   ['server/routes/signup-codes.js', '', "router.get('/', authenticate", /code: '([A-Z][A-Z0-9_]+)'/g],
 ];
@@ -100,6 +102,11 @@ async function main() {
   k('không còn dòng "Lỗi đã biết (sửa ở KH-API-2)"', !md.includes('Lỗi đã biết (sửa ở KH-API-2)'));
   k('v5: hợp đồng ghi NGUYÊN câu luật 4xx của POST /don (chủ quán duyệt 31.10)', md.includes(CAU_LUAT_4XX));
   k('v5: hợp đồng ghi dạng 409 GIA_DA_DOI có bao_gia', /`\{ error, code: "GIA_DA_DOI", bao_gia: \{/.test(md));
+  // v6 (HD-KH-1): khối máy đọc ghi đủ trường mới của /don và /don/:ma (bài thử cửa chỉ kiểm trường đã ghi CÓ mặt, không kiểm ghi thiếu)
+  const traCua = (duong) => HD.cua.find((c) => c.duong === duong)?.tra || [];
+  const thieuV6 = [...['cach_tra', 'giu_vi', 'con_lai'].flatMap((f) => [['/don', 'data[].' + f], ['/don/:ma', 'don.' + f]]),
+    ...['loai', 'trai', 'phai', 'dam', 'gach', 'ghi_chu'].map((f) => ['/don/:ma', 'don.hoa_don[].' + f])].filter(([d, f]) => !traCua(d).includes(f));
+  k('v6: khối máy đọc ghi đủ cach_tra / giu_vi / con_lai (cả /don, /don/:ma) và hoa_don[] 6 trường', thieuV6.length === 0, thieuV6.map((x) => x.join(' ')).join(', '));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 
@@ -180,6 +187,7 @@ async function main() {
   const datCaiDat = (key, v) => db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', [key, String(v)]);
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'], ['nhandiem_enabled', '1'],
     ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false']]) await datCaiDat(a, b);
+  await db.run("UPDATE pos_chuong_trinh SET dang_bat = 1 WHERE ma = 'sinh_nhat'");   // v6: GET /chuong-trinh phải có ít nhất một mục để thử đủ trường
   const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_products SET price = 50000 WHERE id = ?', [sp.id]);
   const don = async (sdt) => (await goi('POST', '/pos/orders', { items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 1 }],

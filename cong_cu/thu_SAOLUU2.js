@@ -305,7 +305,8 @@ async function main() {
     const wb1 = docTep(x1.tep);
     const TIEN = new Set(['Số dư', 'Đơn hàng', 'Chi tiết đơn', 'Giao dịch số dư', 'Yêu cầu hoàn tiền', 'Giao dịch điểm thưởng', 'Gói của khách',
       'Lịch sử mua thẻ', 'Voucher đã phát', 'Hàng hỏng', 'Mã chiết khấu', 'Mã ưu đãi khách mới', 'Nhật ký đơn', 'Lịch sử dùng khuyến mãi',
-      'Phiên thanh toán', 'Báo tiền về payOS', 'Nhật ký PIN khách', 'Đơn từ App KH', 'Nâng cấp dữ liệu']);
+      'Phiên thanh toán', 'Báo tiền về payOS', 'Nhật ký PIN khách', 'Đơn từ App KH', 'Nâng cấp dữ liệu',
+      'Hạng thành viên']);   // SUA-SL-1 (chat 05.11): HANG-1 chặn khôi phục trang Hạng (chỉ sửa ở Cài đặt có PIN) — bỏ trang này như trang tiền
     const wbBo = XLSX.utils.book_new();
     for (const s of wb1.SheetNames) if (!TIEN.has(s)) XLSX.utils.book_append_sheet(wbBo, wb1.Sheets[s], s);
     const kp = await DICH.gui(XLSX.write(wbBo, { type: 'buffer', bookType: 'xlsx' }));

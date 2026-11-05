@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 53,
-  "cap_nhat": "2026-11-02",
+  "phien_ban_so": 54,
+  "cap_nhat": "2026-11-05",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -526,10 +526,10 @@
       "ma": "GIO-VN-1",
       "ten": "Mui gio Viet Nam thong nhat (chu quan 28.10): moi gio LUU, SO, TRA RA = gio VN (UTC+7) qua getNow, dinh dang YYYY-MM-DDTHH:mm:ss khong hau to. Ra soat moi cho con ghi gio UTC: CURRENT_TIMESTAMP / datetime('now') trong code ghi (customers-v2.js tao khach + dia chi + chiet khau, products.js gia + dong bo, damages.js, doSoNo.js ...) va cac cot dung DEFAULT CURRENT_TIMESTAMP khi INSERT khong truyen gio -> doi sang getNow; bai thu quet chan cach ghi UTC moi. Du lieu CU da luu UTC: ke hoach liet ke tung bang / cot, cach nhan biet (dinh dang co dau cach, khong T), chi doi qua buoc nang cap danh so co sao luu (khung KHO-1), KHONG doan; cho nao so sanh chuoi gio (han diem, han ma, han goi, doi soat) phai co ca thu truoc / sau. App KH: gio 'bay gio' lay tu may chu. [T] Opus, truoc khai truong",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "c4513ac",
+      "ngay": "2026-11-03"
     },
     {
       "ma": "DG-GOOGLE-1",
@@ -571,10 +571,10 @@
       "ma": "SEPAY-1",
       "ten": "Thanh toan QR qua SePay du chuc nang nhu payOS (quay + App): POS tu dung VietQR, webhook SePay HMAC-SHA256 -> chotPhien, doi soat nhu cu; payOS giu lam du phong bat bang cong tac (chu quan chot 31.10: phi thap hon). [T] Opus 1",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "81207ac",
+      "ngay": "2026-11-04"
     },
     {
       "ma": "MANKHACH-1",
@@ -589,14 +589,50 @@
       "ma": "KH-SDT-1",
       "ten": "SDT dang ky moi bat dau tu 0: khoa diem / voucher mo coi cua cung SDT khi tao khach, khong hien lich su cu; cong cu don du lieu thu (liet ke -> chu quan duyet -> don, sao luu truoc) (chu quan chot 31.10 sau khi thu 0912345678 thay 500 diem cu). [T] Opus 2 sau SAOLUU-2",
       "tang": 1,
+      "trang_thai": "xong",
+      "patch": null,
+      "commit": "9a30501",
+      "ngay": "2026-11-03"
+    },
+    {
+      "ma": "HANG-1",
+      "ten": "Hang the (chu quan 01-02.11): them / xoa hang, thu bac; hang BAN theo goi thoi han (cong noi han), hang CHI CAP (chu quan + PIN, co the vo han); hang hien tai = hang cao nhat con han; /api/kh/hang v7. [T] Opus, lan 2, truoc khai truong",
+      "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
       "commit": null,
       "ngay": null
     },
     {
-      "ma": "HANG-1",
-      "ten": "Hang the (chu quan 01-02.11): them / xoa hang, thu bac; hang BAN theo goi thoi han (cong noi han), hang CHI CAP (chu quan + PIN, co the vo han); hang hien tai = hang cao nhat con han; /api/kh/hang v7. [T] Opus, lan 2, truoc khai truong",
+      "ma": "GIAO-DIEN-1",
+      "ten": "Gon giao dien POS (chu quan duyet hinh mau 05.11): dai bao Don App o dau moi man (bo nut noi che nut), muc Don App trong menu co so; So du gop vao trang Khach hang (khu Vi trong ho so khach, /balance chuyen ve /customers); o Khach va tien o Quan ly; nap tay (topup_balance) chi chu quan (buoc 018). [Th] Sonnet, sau HANG-1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "CK-NOIDUNG-1",
+      "ten": "Noi dung CK co so hoa don (chu quan chot 04-05.11): giu so luc tao QR, quay TQDNOV05 HD0016, App TQDNOV05 APP0016, chung mot day so moi ngay; QR khong thanh cong thi so huy co ly do; bill in dung so; luu ma giao dich ngan hang (buoc 019). [T] Opus",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "HUY-1",
+      "ten": "Huy don o POS tu luc nhan don (chu quan chot 05.11): quan ly + chu quan trong ngay, ngay truoc chi chu quan; ly do bat buoc; huy ca don; khach co tai khoan hoan TOAN BO tien da tra vao vi, khach le tra tien mat (ngoai le duy nhat cua ket), doi soat ghi rieng (buoc 020). [T] Opus, lam sau CK-NOIDUNG-1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KH-TOMTAT-1",
+      "ten": "Lich su don App co tom tat that (thu App KH 05.11 muc 2): GET /don + /don/:ma them kenh, cach_nhan, tra[], so_mon, mon_dau, giam tinh bang cung du lieu hoa don quay; xac nhan hoa_don[] du dong cach tra + giam. [Th] Sonnet, sau CK-NOIDUNG-1",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -634,10 +670,28 @@
       "ma": "CT-1a",
       "ten": "The Cai dat Chuong trinh + ngay sinh khach (nhap mot lan, chi chu quan sua) + /api/kh/chuong-trinh, PUT /toi.ngay_sinh (v7). [Th] Sonnet, soat bao mat co",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "4003ea3",
+      "ngay": "2026-11-05"
+    },
+    {
+      "ma": "SUA-E2-1",
+      "ten": "Noi ca E2 thu_GIOVN1.js: PHIEN_BAN hop dong >= 6 (de viec sau tang so hop dong). Chat lam, chu quan chay script",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "SUA-E2-1",
+      "commit": "f980e28",
+      "ngay": "2026-11-04"
+    },
+    {
+      "ma": "SUA-C9-1",
+      "ten": "Noi ca C9 thu_P26a.js: dat san PIN chu quan thu khi co bang pos_pin_chu_quan, gui kem pin (de HANG-1 gop duoc). Chat lam, chu quan chay script",
+      "tang": 1,
+      "trang_thai": "xong",
+      "patch": "SUA-C9-1",
+      "commit": "4723a3b",
+      "ngay": "2026-11-05"
     },
     {
       "ma": "CT-1b",
@@ -679,19 +733,19 @@
       "ma": "HD-KH-1",
       "ten": "GET /api/kh/don/:ma tra dong hoa don dung san bang cung ham hoa don in (App ve dung mau POS) — v7. [Th] Sonnet",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "95bfb2f",
+      "ngay": "2026-11-04"
     },
     {
       "ma": "KH-NHANH-POS-1",
       "ten": "CORS maxAge 7200 cho /api/kh (yeu cau App 01.11). [Th] Sonnet",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "546b99e",
+      "ngay": "2026-11-04"
     },
     {
       "ma": "DONVI-1",

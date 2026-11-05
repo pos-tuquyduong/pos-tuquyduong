@@ -97,6 +97,8 @@ const BACKUP_TABLES = [
   { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },               // SAOLUU-2: bảng của KH-MUA-1 (bước 006) — chưa có thì bangDangCo bỏ qua
   { name: 'pos_man_khach_quay', label: 'Màn khách - Máy quầy', key: 'id' },     // MANKHACH-1 (bước 009): mã ghép + phiên QR đang hiện
   { name: 'pos_man_khach_may', label: 'Màn khách - Máy đã ghép', key: 'id' },   // MANKHACH-1 (bước 009): khoá băm + thu hồi
+  { name: 'pos_chuong_trinh', label: 'Chương trình đặc biệt', key: 'id' },   // CT-1a (bước 017): cấu hình chương trình
+  { name: 'pos_ngay_sinh_sua', label: 'Sổ sửa ngày sinh', key: 'id' },   // CT-1a (bước 017): sổ chỉ-thêm — không khôi phục bằng file
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -131,6 +133,7 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
   'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_ngay_sinh_sua',   // CT-1a: sổ sửa ngày sinh chỉ-thêm — ghi đè bằng file cũ làm mất dấu ai đã sửa
   'pos_pin_chu_quan',   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN: chủ quán nhờ chat soạn cách xoá PIN (không có nút)
   'pos_membership_tiers'];   // HANG-1 câu 4a (chủ quán 05.11): % giảm, gói, cách có hạng chỉ sửa ở Cài đặt có PIN chủ quán — file không vượt PIN
 

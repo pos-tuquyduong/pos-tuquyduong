@@ -8,6 +8,7 @@ import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, 
 import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
 import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
+import CaiDatChuongTrinh from './CaiDat/ChuongTrinh';   // CT-1a
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
@@ -28,7 +29,7 @@ export default function Settings() {
     products: 'manage_settings', packages: 'manage_users', users: 'manage_users',
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
-    tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings',
+    tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions',
   };
   const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
 
@@ -222,7 +223,7 @@ export default function Settings() {
     { ma: 'khach', ten: 'Khách hàng', the: [
       ['loyalty', 'manage_settings'], ['signup', 'manage_settings'],
       ['tiers', 'manage_promotions'], ['flash', 'manage_settings'],
-      ['rewards', 'manage_promotions'],
+      ['rewards', 'manage_promotions'], ['chuongTrinh', 'manage_promotions'],
     ]},
     { ma: 'hethong', ten: 'Hệ thống', the: [
       ['users', 'manage_users'], ['permissions', 'manage_permissions'],
@@ -993,6 +994,11 @@ export default function Settings() {
           {theTrongNhom.includes('tiers') && hasPermission('manage_promotions') && (
           <button className={`btn ${tab === 'tiers' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('tiers')}>
             🏅 Hạng thành viên
+          </button>
+          )}
+          {theTrongNhom.includes('chuongTrinh') && hasPermission('manage_promotions') && (
+          <button className={`btn ${tab === 'chuongTrinh' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('chuongTrinh')}>
+            🎓 Chương trình
           </button>
           )}
         </div>
@@ -2033,6 +2039,8 @@ export default function Settings() {
             <InPhieu />
           ) : tab === 'manKhach' ? (
             <CaiDatManKhach />
+          ) : tab === 'chuongTrinh' ? (
+            <CaiDatChuongTrinh />
           ) : null}
         </div>
       </div>
