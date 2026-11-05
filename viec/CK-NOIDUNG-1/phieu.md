@@ -51,6 +51,7 @@ Sao kê ngân hàng, app ngân hàng của khách, bill và POS cùng một số
 - server/routes/don-mo-rong.js
 - server/routes/hoaDon.js
 - server/utils/dongHoaDon.js
+- server/utils/donThu.js
 - server/routes/wallets.js
 - server/routes/kh/index.js
 - server/routes/backup.js
@@ -62,6 +63,7 @@ Sao kê ngân hàng, app ngân hàng của khách, bill và POS cùng một số
 - cong_cu/thu_HOPDONG_KH.js
 - cong_cu/thu_SEPAY1.js
 - cong_cu/thu_P26c.js
+- cong_cu/thu_KHMUA1.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
 
@@ -74,6 +76,12 @@ Sao kê ngân hàng, app ngân hàng của khách, bill và POS cùng một số
      Q2 thêm hoaDon.js + dongHoaDon.js (dòng "Mã GD" trên bill quầy và hoá đơn App).
      Q3 thu_SEPAY1.js (B1, E3) + thu_P26c.js (C1, C2) — chỉ các ca khoá dạng cũ, bài sửa thường (đỏ trên gốc, xanh sau vá).
      Bỏ mã App ngẫu nhiên khỏi ghi chú in trên bill đơn App (mã vẫn giữ trong dữ liệu). -->
+<!-- Chủ quán 05.11 (Q4–Q5 trạng thái f45a9be): Q4 CÓ — thu_KHMUA1.js sửa đúng ca G6, I1, I4 theo luật Q1b (tiền về muộn đơn App cộng vào ví),
+     I3 giữ nguyên; bài sửa thường (đỏ trên gốc, xanh sau vá). Q5 CÓ — donThu.js thêm pos_so_hoa_don vào BANG_KHONG_DON (dọn thử không xoá số
+     đã cấp). KHÔNG theo cách máy tự quyết: phiên App LỖI vì đơn (vd hết hàng lúc tiền về trong hạn,
+     không tạo được đơn) → tiền thật đã về CŨNG tự cộng vào ví khách như tiền về muộn (một lần mỗi báo tiền; tài khoản khác / sai chữ ký vẫn
+     chặn). Thông báo phải RÕ cả hai bên: App hiện cho khách "Không tạo được đơn <lý do ngắn> — đã cộng <số tiền> vào tài khoản của bạn" (đơn
+     da_huy + trường số đã cộng); quầy thấy báo ngay (dải / màn Đơn App) và Đối soát ghi CẦN XEM với lý do, số HD, số tiền, mã GD. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_CKNOIDUNG1.js` ĐỎ trên code gốc: nội dung QR quầy / App đúng dạng; hai phiên cùng lúc khác số, đơn tiền mặt chen giữa lấy số
 sau; webhook với nội dung bị ngân hàng đổi dạng vẫn khớp đúng phiên; đơn tạo ra mang đúng số đã giữ; phiên hết hạn → số huỷ có lý do; tiền về
