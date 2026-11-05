@@ -86,6 +86,7 @@ async function main() {
   gan('/api/pos/membership', 'membership.js');
   gan('/api/pos/v2/customers', 'customers-v2.js');
   gan('/api/kh', 'kh/index.js');
+  gan('/api/pos/backup', 'backup.js');   // câu 4: khôi phục / xuất sao lưu
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
@@ -586,6 +587,87 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
+  // Câu 4 (chủ quán 05.11): (a) trang Hạng thành viên KHÔNG khôi phục bằng file · (b1) đã có PIN thì đổi PIN phải gõ PIN cũ · băm PIN không ra file.
+  // Chuỗi bị chặn: phiên chủ quán không biết PIN (a) sửa hạng trong file Excel rồi khôi phục, (b) đặt lại mật khẩu ở trang Nhân viên rồi đặt PIN mới.
+  muc('[S] Câu 4 — khôi phục file không đổi được hạng · đổi PIN phải gõ PIN cũ · băm PIN không ra file sao lưu');
+  await thu('S', async () => {
+    datVN('2026-11-03T17:00:00');
+    const XL = require(path.join(GOC, 'node_modules', 'xlsx'));
+    const goiTep = async (method, url, form) => {   // multipart / tải file — goi() gửi JSON
+      imLang();
+      try {
+        const r = await fetch(goc + url, { method, body: form, headers: { Authorization: 'Bearer ' + TK.chu() } });
+        const buf = Buffer.from(await r.arrayBuffer());
+        let j = {}; try { j = JSON.parse(buf.toString('utf8')); } catch { /* file xlsx */ }
+        return { ...j, status: r.status, buf };
+      } catch (e) { return { status: 0, error: e.message }; } finally { noiLai(); }
+    };
+    const gui = (wb, duong) => { const f = new FormData(); f.append('file', new Blob([XL.write(wb, { type: 'buffer', bookType: 'xlsx' })]), 'sl.xlsx'); return goiTep('POST', '/pos/backup' + duong, f); };
+    const bamPin = async () => (await mot('SELECT pin_bam FROM pos_pin_chu_quan WHERE id = 1'))?.pin_bam || '';
+    const laPin = async (p) => bcrypt.compareSync(p, await bamPin());
+    await db.run('UPDATE pos_pin_chu_quan SET sai = 0, khoa_den = NULL WHERE id = 1');
+
+    // ── băm PIN không ra file sao lưu (bảng vẫn sao lưu — E8 / SAOLUU-2 D2c) ──
+    const bam = await bamPin();
+    const ca = await goiTep('GET', '/pos/backup/export-all');
+    const wbCa = ca.status === 200 ? XL.read(ca.buf, { type: 'buffer' }) : { SheetNames: [], Sheets: {} };
+    const trangCa = (ten) => XL.utils.sheet_to_json(wbCa.Sheets[ten] || {}, { defval: null });
+    const tenPin = wbCa.SheetNames.find((s) => s.startsWith('PIN chủ quán'));
+    const chuCa = JSON.stringify(wbCa.SheetNames.map(trangCa));
+    k('S2 xuất tất cả: trang PIN chủ quán vẫn có (1 dòng, dat_boi) nhưng KHÔNG cột pin_bam, băm PIN không nằm ở đâu trong file', ca.status === 200
+      && bam.startsWith('$2') && !!tenPin && trangCa(tenPin).length === 1 && 'dat_boi' in trangCa(tenPin)[0] && !('pin_bam' in trangCa(tenPin)[0])
+      && !chuCa.includes(bam), `HTTP ${ca.status} · trang ${tenPin} · ${JSON.stringify(trangCa(tenPin || ''))}`);
+    const mot1 = await goiTep('GET', '/pos/backup/export/pos_pin_chu_quan');
+    const wb1 = mot1.status === 200 ? XL.read(mot1.buf, { type: 'buffer' }) : { SheetNames: [], Sheets: {} };
+    const chu1 = JSON.stringify(wb1.SheetNames.map((s) => XL.utils.sheet_to_json(wb1.Sheets[s], { defval: null })));
+    k('S2b xuất riêng bảng PIN chủ quán: KHÔNG cột pin_bam, không băm PIN', mot1.status === 200 && chu1.includes('dat_boi') && !chu1.includes('pin_bam') && !chu1.includes(bam), `HTTP ${mot1.status} · ${chu1.slice(0, 200)}`);
+
+    // ── (a) trang Hạng thành viên không khôi phục bằng file ──
+    const hangTruoc = JSON.stringify(await db.query('SELECT * FROM pos_membership_tiers ORDER BY id'));
+    const dongHang = trangCa('Hạng thành viên').map((h) => (h.name === 'Kim Cương'
+      ? { ...h, cach_co: 'ban', goi: JSON.stringify([{ so_thang: 60, gia: 1000, bat: true }]), discount_percent: 100 } : h));
+    const tepHang = () => { const w = XL.utils.book_new(); XL.utils.book_append_sheet(w, XL.utils.json_to_sheet(dongHang), 'Hạng thành viên');
+      XL.utils.book_append_sheet(w, wbCa.Sheets._Metadata, '_Metadata'); return w; };
+    const xem = await gui(tepHang(), '/preview-restore');
+    const kp = await gui(tepHang(), '/restore');
+    k('S1 khôi phục file có trang Hạng thành viên (Kim Cương → bán 60 tháng 1.000đ, giảm 100%) → xem trước + khôi phục 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN, hạng không đổi',
+      dongHang.length >= 2 && xem.status === 400 && xem.code === 'KHOI_PHUC_TRANG_TIEN_BI_CHAN' && kp.status === 400 && kp.code === 'KHOI_PHUC_TRANG_TIEN_BI_CHAN'
+      && (kp.bang || []).includes('Hạng thành viên') && JSON.stringify(await db.query('SELECT * FROM pos_membership_tiers ORDER BY id')) === hangTruoc,
+    `xem ${moTa(xem)} · khôi phục ${moTa(kp)}`);
+    const tepCaiDat = XL.utils.book_new();
+    XL.utils.book_append_sheet(tepCaiDat, wbCa.Sheets['Cài đặt'], 'Cài đặt');
+    XL.utils.book_append_sheet(tepCaiDat, wbCa.Sheets._Metadata, '_Metadata');
+    const kp2 = await gui(tepCaiDat, '/restore');
+    k('S1b (K5) khôi phục file KHÔNG có trang Hạng (chỉ trang Cài đặt) → 200, hạng không đổi', kp2.status === 200
+      && JSON.stringify(await db.query('SELECT * FROM pos_membership_tiers ORDER BY id')) === hangTruoc, moTa(kp2));
+
+    // ── (b1) đã có PIN: đổi PIN phải gõ PIN cũ (mật khẩu đăng nhập đặt lại được ở trang Nhân viên — không đủ) ──
+    const MOI = '135790';
+    const doiPin = (them) => goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'mk_chu_quan', pin: MOI, pin_lai: MOI, ...them });
+    const p1 = await doiPin({});
+    k('S3 đã có PIN, đúng mật khẩu mà KHÔNG gửi PIN cũ → 400 PIN_CHU_QUAN_SAI, PIN cũ giữ nguyên', p1.status === 400 && p1.code === 'PIN_CHU_QUAN_SAI'
+      && await laPin(PIN), moTa(p1));
+    const p2 = await doiPin({ pin_cu: '000000' });
+    k('S3b PIN cũ sai → 400 PIN_CHU_QUAN_SAI, PIN cũ giữ nguyên', p2.status === 400 && p2.code === 'PIN_CHU_QUAN_SAI' && await laPin(PIN), moTa(p2));
+    const saiTruoc = await so('SELECT sai FROM pos_pin_chu_quan WHERE id = 1');
+    const p3 = await goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'mk_chu_quan', pin: '12', pin_lai: '12', pin_cu: '000000' });
+    k('S3c PIN mới sai dạng → 400 PIN_CHU_QUAN_KHONG_HOP_LE, KHÔNG tốn lượt thử PIN cũ', p3.status === 400 && p3.code === 'PIN_CHU_QUAN_KHONG_HOP_LE'
+      && await so('SELECT sai FROM pos_pin_chu_quan WHERE id = 1') === saiTruoc, `${moTa(p3)} · sai ${saiTruoc} → ${await so('SELECT sai FROM pos_pin_chu_quan WHERE id = 1')}`);
+    await db.run('UPDATE pos_pin_chu_quan SET sai = 0, khoa_den = NULL WHERE id = 1');
+    for (let i = 1; i <= 5; i++) await doiPin({ pin_cu: '111111' });
+    const p4 = await doiPin({ pin_cu: PIN });
+    k('S4 sai PIN cũ 5 lần → PIN cũ đúng vẫn 423 PIN_CHU_QUAN_KHOA (đổi PIN không gỡ khoá), PIN giữ nguyên, khoá còn', p4.status === 423 && p4.code === 'PIN_CHU_QUAN_KHOA'
+      && await laPin(PIN) && !!(await mot('SELECT khoa_den FROM pos_pin_chu_quan WHERE id = 1'))?.khoa_den, moTa(p4));
+    datVN('2026-11-03T17:16:00');
+    const p5 = await doiPin({ pin_cu: PIN });
+    k('S5 (K5) hết khoá, đúng mật khẩu + đúng PIN cũ → 200, PIN mới dùng được, PIN cũ thôi', p5.status === 200 && await laPin(MOI) && !(await laPin(PIN)), moTa(p5));
+    const p6 = await goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'sai', pin: PIN, pin_lai: PIN, pin_cu: MOI });
+    k('S5b có PIN cũ đúng nhưng sai mật khẩu → 400 MAT_KHAU_SAI, PIN không đổi', p6.status === 400 && p6.code === 'MAT_KHAU_SAI' && await laPin(MOI), moTa(p6));
+    const p7 = await goi('POST', '/pos/membership/pin-chu-quan', { mat_khau: 'mk_chu_quan', pin: PIN, pin_lai: PIN, pin_cu: MOI }, TK.ql);
+    k('S5c quản lý gõ đúng PIN cũ + mật khẩu → 403 (chỉ tài khoản chủ quán đổi PIN)', p7.status === 403 && await laPin(MOI), moTa(p7));
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[G] Giao diện (đọc nguồn client/src)');
   {
     const hang = sach(doc('client/src/pages/CaiDat/HangThe.jsx'));
@@ -600,7 +682,9 @@ async function main() {
     k('G1d Settings.jsx dùng HangThe, bỏ bảng hạng cũ (không còn card_price / valid_months / setTierValidMonths)', caiDat.includes('<HangThe')
       && !caiDat.includes('card_price') && !caiDat.includes('valid_months') && !caiDat.includes('setTierValidMonths'));
     k('G1e đặt PIN chủ quán ở thẻ Hạng (chỉ chủ quán, gõ mật khẩu)', hang.includes('hangApi.datPin(') && hang.includes('mat_khau') && hang.includes("user?.role === 'owner'")
-      && api.includes("api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai })"));
+      && api.includes("api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai, pin_cu: pinCu })"));
+    k('G1g (câu 4 b1) đã có PIN: ô "PIN cũ" hiện và gửi kèm khi đổi; KHÔNG nút "quên PIN"', /\{coPin && \(?\s*<input[^>]*placeholder="PIN cũ"/.test(hang)
+      && /hangApi\.datPin\(\s*pin\.mat_khau\s*,\s*pin\.pin\s*,\s*pin\.pin_lai\s*,\s*pin\.pin_cu\s*\)/.test(hang) && !/quên\s*PIN/i.test(hang));
     const khoaGio = (banHang.match(/const khoaGio = [^\n]*/) || [''])[0];
     k('G2 Sales: giỏ gửi { tier_id, so_thang }, khoaGio có so_thang, unique_key có so_thang', /membership_buy:\s*membershipInCart\s*\?\s*\{\s*tier_id:\s*membershipInCart\.tier_id,\s*so_thang:\s*membershipInCart\.so_thang\s*\}/.test(banHang)
       && khoaGio.includes('so_thang') && /unique_key:\s*`membership_\$\{tier\.id\}_\$\{goi\.so_thang\}`/.test(banHang), khoaGio);
