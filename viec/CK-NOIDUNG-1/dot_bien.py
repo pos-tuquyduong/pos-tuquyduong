@@ -70,6 +70,13 @@ DOT_BIEN = [
   ('VS-ly-do-noi-bo', 'ck', [(DA, '`Không tạo được đơn ${lyDoNgan(r.p_ly_do)}`', '`Không tạo được đơn ${r.p_ly_do}`', 1)], r'✗ (L3|L12) '),
   ('BV-quay-vao-vi', 'ck', [(DA, "WHERE s.ket_qua = 'vao_vi' AND s.luc >= ?", 'WHERE 0 AND s.luc >= ?', 1)], r'✗ L8 '),
   ('BV-man-vao-vi', 'ck', [('client/src/pages/DonApp.jsx', "if (d.tien_trinh === 'vao_vi') return (", 'if (false) return (', 1)], r'✗ L13 '),
+  # ── Soát vòng 1 ──
+  ('BV-hai-cong-vao-vi', 'ck', [(TT, '      if (nay < da.filter(', '      if (false && nay < da.filter(', 1)], r'✗ G9b '),
+  ('VS-hai-cong-moi-bao', 'ck', [(TT, '      if (nay < da.filter(', '      if (0 < da.filter(', 1)], r'✗ G9c '),
+  ('VS-ly-do-ngan-thu-tu', 'ck', [(DA, "  [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];",
+                                  "  [/GIA_DA_DOI|giá/i, 'vì giá món đã đổi'], [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được']];", 1)], r'✗ L14 '),
+  ('BV-so-ve-moi-trang-thai', 'ck', [(DS, "  return goc + (r.ve_muon ? ' — có tiền về, xem mục CK' : '');",
+                                     "  return goc + (r.ve_muon && r.p_tt === 'cho' ? ' — có tiền về, xem mục CK' : '');", 1)], r'✗ L9b '),
   ('BV-bang-khong-don', 'kh', [(DT, "  'pos_so_hoa_don'];", '  ];', 1)], r'✗ D14 '),
   ('BV-tien-ve-vi-app', 'ck', [(DA, 'tien_ve_da_cong_vi: Number(r.vao_vi || 0),', 'tien_ve_da_cong_vi: 0,', 1)], r'✗ G1 App thấy'),
   ('VS-vao-vi-do', 'ck', [(DS, "canXem: r.ket_qua !== 'chua_khop' || daTay ||", "canXem: r.ket_qua === 'khong_phien' || daTay ||", 1)], r'✗ G8 '),
@@ -79,7 +86,7 @@ DOT_BIEN = [
   ('VS-ly-do-het-han', 'ck', [(DS, "(r.p_het_han > bayGio ? 'đang chờ' : 'QR hết hạn, chưa nhận tiền')", "'đang chờ'", 1)], r'✗ C2 / E1 '),
   # ── F: cửa App ──
   ('BV-so-hd-app', 'ck', [(DA, 'so_hd: r.loai ? soHdCuaMa(r.ma_bill) : r.so_giu ?? null, ', '', 1)], r'✗ F2 '),
-  ('BV-so-hd-post', 'ck', [(DA, 'so_hd: so ? soHd(so.kenh, so.so) : null, ', '', 1)], r'✗ F1 '),
+  ('BV-so-hd-post', 'ck', [(DA, 'so_hd: so ? chuoiSoHd(so) : null, ', '', 1)], r'✗ F1 '),
   ('BV-so-hd-quay', 'ck', [(DA, 'so_hd: soHdCuaMa(r.code), ', '', 1)], r'✗ F3 '),
   ('VS-hop-dong-luat-4xx', 'ck', [('HOP_DONG_API_KH.md', '409 `KHOA_GUI_DA_DUNG` (khoá đã dùng', '409 (khoá đã dùng', 1)], r'✗ F2 câu luật 4xx'),
 ]

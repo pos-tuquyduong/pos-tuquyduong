@@ -110,7 +110,18 @@ TRÊN CODE GỐC → ĐỎ: 119 đạt · 3 hỏng (thoát 1). Các dòng đỏ:
   ✗ I4 vi_qr hết hạn rồi tiền QR về → ví đã nhả (số dư nguyên) + tiền QR về cộng vào ví (CK-NOIDUNG-1 Q1b), không đơn, App da_huy + cờ  — da_huy
 TRÊN CODE ĐÃ VÁ → 122 đạt · 0 hỏng (thoát 0).
 
-SỐ CA cong_cu/thu_CKNOIDUNG1.js: 95
+### cong_cu/thu_CKNOIDUNG1.js — bản soát vòng 1 (thêm G9b ×2, G9c, L9b, L14)
+TRÊN CODE GỐC → ĐỎ: 21 đạt · 75 hỏng (thoát 1) — mọi dòng đỏ ở trên vẫn đỏ, thêm:
+  ✗ G9b CÙNG khoản báo qua hai cổng (payOS rồi SePay), đơn App đã huỷ → ví cộng đúng MỘT lần; dòng SePay chua_khop "hai cổng" (CẦN XEM)  — ví 0 · chua_khop:phiên đang huy lúc tiền về | chua_khop:phiên đang huy lúc tiền về
+  ✗ G9c khoản THỨ HAI thật (SePay báo thêm một giao dịch khác) → cộng thêm đúng một lần  — ví 0 · chua_khop,chua_khop,chua_khop
+  ✗ G9b Đối soát: dòng "hai cổng" của phiên App ở CẦN XEM, không ĐỎ
+  ✗ L9b Đối soát bảng số hoá đơn: số của phiên loi có tiền về ghi lý do + "xem mục CK"  — null
+  ✗ L14 lý do ngắn theo đúng loại lỗi: flash sale / voucher → mã giảm; không khớp tổng → giá đổi; "chưa có giá bán" → câu chung
+TRÊN CODE TRƯỚC VÒNG SỬA 1 (2bc84b9) → ĐỎ: 95 đạt · 5 hỏng — đúng G9b ×2, G9c, L9b, L14 (G9b: "ví 50000 · vao_vi … mã GD REF3 | vao_vi … mã GD
+FT810021" — một khoản cộng HAI lần, lỗi người soát báo, nay bị bắt).
+TRÊN CODE ĐÃ VÁ (9eb3c5a) → 100 đạt · 0 hỏng (thoát 0).
+
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 100
 SỐ CA cong_cu/thu_SEPAY1.js: 78
 SỐ CA cong_cu/thu_P26c.js: 157
 SỐ CA cong_cu/thu_KHMUA1.js: 122

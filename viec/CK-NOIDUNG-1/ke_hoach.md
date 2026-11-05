@@ -110,7 +110,7 @@ Máy chủ ~165 dòng (helpers 45 · giuCho 15 · sepay 20 · thanh-toan 20 · o
 backup 2 · don-mo-rong 2) — dưới ngân sách 250. Giao diện ~40 (DonApp 3 · Orders 3 · DoiSoat 30) + build `dist`. Bài thử ~400.
 Nếu Q1 = có: +~20 dòng máy chủ.
 
-## Ca thử — `cong_cu/thu_CKNOIDUNG1.js` (ánh xạ 1-1 nghiệm thu)
+## Ca thử — `cong_cu/thu_CKNOIDUNG1.js` (theo nghiệm thu; ca kế hoạch mà mã không có: mục "Đối chiếu" cuối file)
 | Nghiệm thu | Ca | Đỏ trên gốc vì |
 |---|---|---|
 | A | A1 phiên QR quầy nhận số `HD0001`; A2 phiên App `APP0002` (dãy chung); A3 hai phiên `Promise.all` khác số; A4 đơn tiền mặt tạo giữa hai phiên lấy số sau, không trùng số đã giữ; A5 qua 00:00 giờ VN (đổi `getNow` giả) số về 0001; A6 phiên huỷ trong giao dịch (SO_DU_KHONG_DU) không tiêu số; A7 số thứ 10000 trong ngày → ném | gốc không có số |
@@ -256,3 +256,20 @@ mã bill cũ) · khôi phục sao lưu các bảng không dính tiền.
   `BV-thong-bao-app`, `VS-ly-do-noi-bo`, `BV-quay-vao-vi`, `BV-ma-gd-doi-soat`, `BV-dist-vao-vi`.
 - Luồng hợp lệ KHÔNG bị chặn: App QR trả đúng hạn → đơn (KHMUA1 H1); phiên quầy / App chốt thường; Q1a xác nhận tay phiên quầy; báo lệch tiền
   phiên App đang `cho` còn hạn → `chua_khop`, phiên vẫn chờ (KHMUA1 I2).
+
+## Đối chiếu kế hoạch ↔ bài thử / đột biến THẬT (soát vòng 1 — người soát bắt "ánh xạ 1-1" ở trên không đúng hết)
+Danh sách tên đúng là `trang_thai.md` (bảng chỗ vá → đột biến) và `python3 viec/CK-NOIDUNG-1/dot_bien.py --liet-ke`. Ca / đột biến kế hoạch có mà
+mã KHÔNG có, và chỗ phủ thay:
+- C7 (App `GIA_DA_DOI` → "huỷ trước khi trả"): không có ca riêng — cùng nhánh `huy` của `lyDoSo` với C3 (doiSoat.js); App tự huỷ phiên bằng cùng
+  `huyPhien` với khách huỷ (G1 phủ đường đó).
+- `rutGonMa` (tem ly / phiếu pha chế, `client/src/utils/inPhieu.js`): không có ca — hàm không xuất ra (không gọi được từ bài thử); cùng phép
+  `split('-').pop()` với `soHdCuaMa` (helpers.js) mà F2 / C5 kiểm ra `APP<số>` / `HD<số>`. Ghi CHƯA KIỂM; chủ quán thử tay một tem.
+- K2 (giữ ví + QR), K3 (PIN sai), K7 (điểm cộng): không viết ở bài mới — bài cũ chạy trong `npm test` phủ (`thu_P3.js`, `thu_KHMUA1.js` K1 số chụp
+  điểm, `thu_SEPAY1.js`).
+- "Hai webhook cùng nội dung song song → một đơn": không viết ở bài mới — `cong_cu/thu_SEPAY1.js` (Promise.all hai báo cùng giao dịch, nội dung
+  mới vì B1 / E3 đã đổi dạng) và `cong_cu/thu_P3.js` (Promise.all) phủ.
+- Đột biến `VS-MAX-NGOAI-GD`: không viết (cấp số ngoài giao dịch cần tách hàm — A3 hai phiên song song + chỉ mục UNIQUE (ngay, so) là chốt cuối).
+  `VS-cong-vi-sau-chot-quay`: gộp vào `VS-cong-vi-quay` (một biến `laApp` cho cả hai nhánh — mẫu bắt G7 | L10). `BV-dist-vao-vi`: thay bằng
+  `BV-man-vao-vi` (sửa DonApp.jsx, ca L13 đọc cả src lẫn dist).
+- Soát vòng 1 thêm: G9b / G9c (một khoản qua hai cổng → cộng một lần; khoản thứ hai thật → cộng), L9b, L14; đột biến BV-hai-cong-vao-vi,
+  VS-hai-cong-moi-bao, VS-ly-do-ngan-thu-tu, BV-so-ve-moi-trang-thai.

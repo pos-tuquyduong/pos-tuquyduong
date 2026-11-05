@@ -116,5 +116,103 @@
 - Lý do ngắn cho App (`LY_DO_NGAN`, donApp.js) đọc từ `ly_do` phiên — nhiều lỗi của `taoDon` không có `code` (vd "Không đủ hàng…", "Sản phẩm không tồn
   tại hoặc đã ngừng bán") nên bảng so theo chữ. Lỗi lạ → câu chung "vì đơn không còn hợp lệ". Muốn chắc hơn thì thêm `code` cho các lỗi đó ở
   `orders.js` (việc sau — đụng đường tạo đơn).
+- (Soát vòng 1) `viec/SEPAY-1/cai_dat_sepay.md` mục 4 (ngoài Phạm vi) còn tả rủi ro "bật cả hai cổng" theo hành vi cũ ("HAI dòng đỏ — đừng hoàn hai
+  lần"). Nay với đơn App huỷ / hết hạn / lỗi: khoản đầu tự cộng vào ví khách, báo qua cổng thứ hai ghi CẦN XEM "hai cổng" (không cộng lần hai).
+  Nên sửa câu đó ở việc sau. Hai webhook vẫn không tự kiểm cổng nào đang bật — "chỉ một cổng bật" vẫn là bước làm tay.
+- (Soát vòng 1) Không có chỉ mục trên `pos_phien_thanh_toan.noi_dung` — webhook SePay tra theo cột này. Chưa đo; bảng nhỏ. Nếu chậm thì thêm chỉ mục ở
+  một bước nâng cấp sau.
 - Đơn / phiên hỏng TRONG giao dịch (ví thiếu, giá đổi…) → số hoá đơn rollback cùng giao dịch, không thành chỗ trống. Số chỉ "huỷ" khi phiên QR
   đã hiện (khách có thể đã thấy số) — đúng ý "mỗi chỗ trống có lý do".
+
+## Soát độc lập
+
+### Vòng 1 — `/ra-soat` trên HEAD 2bc84b9 (agent độc lập, chỉ đọc) — báo cáo nguyên văn
+```
+KHÔNG ĐẠT
+
+Lý do chính: có một lỗ ở đường tiền (ví) chưa được khoá (lỗi 1 dưới đây). Cần vá lỗ đó, hoặc chủ quán phải chấp nhận rủi ro bằng chữ, dựa trên mô tả rủi ro ĐÚNG với hành vi mới (LUAT §6.5: còn lỗi ví thì dừng, ghi ## Câu hỏi). Các phần khác của nhánh đều có bài thử và bằng chứng.
+
+Mình đã chạy lại `node kiem_tra_truoc_khi_giao.js --day-du` trên HEAD 2bc84b9: PASS 102 · FAIL 0 · CẢNH BÁO 2, và "dist đã commit KHỚP với src hiện tại". Mình không chạy dot_bien.py. Cây làm việc sạch, `git log origin/viec/CK-NOIDUNG-1..HEAD` rỗng.
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/thanh-toan.js:146-159 và 166-168 (vaoViDuoc / vaoVi) — Một lần chuyển khoản được báo qua HAI cổng (payOS + SePay) sẽ được cộng vào ví HAI LẦN, tự động. Khuôn K4 (đường song song) + C16 (bịt bằng khoá, không bằng lời dặn).
+   - Vì sao xảy ra: vaoVi chỉ chặn trùng theo `khoa` (thanh-toan.js:152-153). Khoá payOS là `<orderCode>:<reference>`, khoá SePay là `sepay:<id>` (congQr.js congCuaKhoa). SePay vẫn đọc mẫu cũ `TQD<mã phiên>` (sepay.js:12, 39). Vậy phiên App tạo dưới CONG_QR=payos (nội dung TQD<id>, giuCho.js) mà đang `huy` / `loi` / hết hạn → mỗi cổng ghi một dòng `vao_vi` khác khoá → ghiVi chạy hai lần cho cùng một khoản tiền thật.
+   - Đường chốt đơn đã có khoá "hai cổng" (daBao / LY_DO_HAI_CONG, thanh-toan.js:171-175). Đường vào ví mới thêm thì không có.
+   - Hai webhook không tự kiểm cổng nào đang bật (thanh-toan.js:179-207). "Chỉ một cổng bật" hiện chỉ là bước làm tay (viec/SEPAY-1/cai_dat_sepay.md mục 4).
+   - Trước nhánh này, cấu hình sai đó chỉ sinh hai dòng ĐỎ để người xem. Nay máy tự cộng tiền hai lần, và Đối soát xếp cả hai dòng ở CẦN XEM (doiSoat.js:246), không ĐỎ.
+   - Cách sửa gọn: trong vaoVi, trước khi ghiVi, dùng lại đúng phép daBao sẵn có. Nếu cổng KIA đã có dòng `vao_vi` cho cùng ma_payos (và cùng mã GD khi cả hai có) mà cổng NÀY chưa báo phiên này → ghi `chua_khop` kèm LY_DO_HAI_CONG (CẦN XEM, KHÔNG cộng). Kèm một ca: payOS báo rồi SePay báo cùng khoản cho phiên App đã huỷ → ví cộng đúng một lần. Kèm đột biến bỏ phép đó.
+2. HOP_DONG_API_KH.md, Ghi chú v10, dòng `tien_ve_da_cong_vi` — Hợp đồng hứa cộng "một lần mỗi giao dịch ngân hàng". Câu này sai trong ca lỗi 1. Code chỉ bảo đảm "một lần mỗi báo" (khoá): chú thích ở thanh-toan.js:145 và lời chủ quán Q1b đều nói "mỗi báo tiền". Khuôn K1.
+   viec/SEPAY-1/cai_dat_sepay.md mục 4 cũng đã cũ: còn ghi "trả sau khi đã huỷ … HAI dòng đỏ — đừng hoàn hai lần", trong khi nay máy tự cộng ví hai lần. File này ngoài Phạm vi nên ghi Phát hiện. Rủi ro chủ quán đã chấp nhận ngày 03.11 dựa trên mô tả cũ. K4 (tài liệu hứa theo đối tượng).
+3. server/utils/donApp.js:64-66 (LY_DO_NGAN) — Bảng xét `/GIA_DA_DOI|giá/i` TRƯỚC `/^MA_|mã giảm|voucher/i`. Hậu quả:
+   - Lỗi không có `code` "Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN…" (orders.js:672-674) khớp chữ "giá" trong "giảm giá" → App báo "vì giá món đã đổi".
+   - Lỗi "Sản phẩm X chưa có giá bán" (orders.js:371-372) cũng ra "giá món đã đổi".
+   - Khách nhận lý do sai (không lệch tiền). Sửa: xét mục mã giảm / voucher trước, và cho mục giá khớp đúng cụm `GIA_DA_DOI|giá .*đổi`. Khuôn K4 (một vị từ khớp nhầm loại đầu vào).
+4. server/utils/doiSoat.js:256-262 (lyDoSo) — Chỉ nhánh `cho` nối "— tiền về muộn, xem mục CK" khi `ve_muon`. Nhánh `huy` ("huỷ trước khi trả") và `loi` bỏ qua `ve_muon`, dù phiên App huỷ / lỗi có tiền vào ví là ca thường gặp nhất (G1, L1). Ở bảng số hoá đơn, số APP đã có tiền về và đã cộng ví hiện như số huỷ chưa có tiền. Khuôn K4 (nhẹ).
+5. Kế hoạch ≠ bài thử. viec/CK-NOIDUNG-1/ke_hoach.md:116-128 ghi "ánh xạ 1-1 nghiệm thu", nhưng thu_CKNOIDUNG1.js THIẾU các ca:
+   - C7 (App GIA_DA_DOI → "huỷ trước khi trả");
+   - `rutGonMa` (inPhieu.js, tem ly / phiếu pha chế = APP<số>) — mình grep "rutGon|inPhieu" trong bài thử: 0 chỗ;
+   - K2 (giữ ví + QR), K3 (PIN sai), K7 (điểm cộng);
+   - "hai webhook cùng nội dung song song → một đơn, một số" — Promise.all chỉ có ở dòng 207, 376, 453, 529; không ca nào cho đường chốt thành đơn.
+   Đột biến kế hoạch liệt kê cũng không có trong dot_bien.py: VS-MAX-NGOAI-GD, VS-cong-vi-sau-chot-quay, BV-dist-vao-vi (ke_hoach.md:126-128 và 252-253). trang_thai.md liệt kê đúng 48 tên thật, nên trang_thai trung thực; chỉ ke_hoach sai. K5 vẫn có bằng chứng qua bài cũ: thu_P3, thu_KHMUA1, thu_SEPAY1 chạy trong npm test. Khuôn K1 (hồ sơ khẳng định thứ không có) / K3.
+6. Rườm rà, lệch luật "Một quy tắc — một hàm" (LUAT §2):
+   - Cách ghép số hoá đơn `kenh + padStart(4)` được viết lại 4 lần: helpers.js:24 `chuoiSoHd` (ĐÃ export ở helpers.js:242), donApp.js:60 `soHd` (chú thích còn ghi "= helpers chuoiSoHd"), thanh-toan.js:26-29 `soHdCuaPhien`, doiSoat.js:254 `soHdChuoi`. Thêm bản SQL `printf('%04d')` ở donApp.js SO_GIU, và câu đọc `pos_so_hoa_don WHERE phien_id` lặp ở donApp.js traDon và thanh-toan.js:27.
+   - `soHdCuaMa` (helpers) là bản thứ hai của `soBill` trong hoaDon.js:29 (cùng `split('-').pop()`). Trong khi đó don-mo-rong.js:19 dùng regex khác (mã lạ → null). Hai vị từ cho cùng "số in to" lệch nhau ở mã dạng khác.
+   - Cách gọn: một `chuoiSoHd` + một câu SQL dùng chung; `soHdCuaMa` thay cho soBill của hoaDon.js.
+
+NGHI NGỜ:
+- thanh-toan.js:147, vế `luc > x.het_han` của vaoViDuoc dùng giờ của ngân hàng. Đồng hồ ngân hàng nhanh hơn máy chủ thì phiên App còn hạn theo máy chủ (`cho`) vẫn bị cộng ví. Khi đó App vẫn hiện `cho_tra` + QR, nhưng `thong_bao_tien_ve` lại nói "đơn đã huỷ / hết hạn". Nhân viên xác nhận tay trong hạn (route không chặn vì `muon` = false, thanh-toan.js:86) sẽ tạo đơn cho khoản đã vào ví. Hiếm, chưa có ca thử.
+- Không có index trên `pos_phien_thanh_toan.noi_dung` (019_so_hoa_don.js; database.js:996 chỉ có idx_phien_giu). Mỗi webhook SePay quét cả bảng (thanh-toan.js:134). Chưa đo.
+- Phiên App `vi_qr` hỏng đơn ĐÚNG hạn (`loi`): chưa có ca kiểm ví nhả đúng phần đã giữ, chỉ cộng phần QR. I4 của thu_KHMUA1 chỉ phủ ca hết hạn. Đọc code wallets.js:59-65 (dangGiu chỉ đếm `cho`) thì thấy đúng.
+- bang_chung_do.txt:83 dựng gốc với node_modules nối symlink. Chỉ chạy đọc nên khả năng vô hại, nhưng trái lời K5 "bản sao chép thật".
+- trang_thai.md chưa có: kết quả `node tu_chay/cong.js chay` (LUAT §6.3), và 1–3 thao tác thử tay cho chủ quán (LUAT §6.4 — kế hoạch F6 có hứa). Có thể thuộc bước sau soát.
+
+NGHIỆM THU: 16/16 mục có bằng chứng · mục thiếu: không có mục nào thiếu hẳn. Riêng F chỉ có bằng chứng đọc code cho phần tem ly / phiếu pha chế, không có ca thử. Từng mục:
+- A: A1–A8 (thu_CKNOIDUNG1.js:197-242).
+- B: A1/A2 (nội dung), B3 ×3 / B4 / B5 / B6 / B7 / B8 / B9 (:247-303).
+- C: C1, C5 (:313, 344); C2 / C3 / C6 / E1 (:597-601); C4 (:354-423).
+- D: D1–D5 (:314-349, 603).
+- E: E1–E3 (:597-607).
+- F:
+  - so_hd ở cửa App: F1–F6 (:619-649).
+  - Bill: C5 (:344).
+  - Tem ly / phiếu pha chế: CHỈ có bằng chứng đọc code inPhieu.js:93 và InvoicePreview.jsx:225 (`split('-').pop()`), không có ca thử (lỗi 5).
+- F2: ca ở :656 + thu_HOPDONG_KH trong npm test.
+- K5: K1 / K4 / K5 / K6 (:664-677) + bài cũ xanh (PASS 102).
+- Q1a: C4 (:371-423). Q1b: G1–G9 (:426-492).
+- Q2: D5 (:321, 349). Q3: bang_chung_do.txt:67-75. Bỏ mã App khỏi ghi chú: :346.
+- Q4: bang_chung_do.txt:106-111. Q5: thu_KHSDT1 D14 + đột biến BV-bang-khong-don.
+- Lượt 2 (phiên App lỗi → cộng ví, câu App, quầy thấy báo, Đối soát CẦN XEM): L1–L13 + G11 (:472-575).
+- Đỏ trên gốc / xanh sau vá: bang_chung_do.txt:86-104.
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy dot_bien.py (theo dặn), nên 48/48 BẮT là lời trang_thai, mình chưa kiểm lại.
+- Chưa chạy `tu_chay/cong.js`.
+- Chưa xem màn hình thật: nút nổi màu vàng "· n vào ví", khung vàng ở màn Đơn App, nút "Xác nhận tay → tạo đơn" ở Đối soát, chữ APP0016 trên tem ly / máy in.
+- Chưa kiểm hành vi Turso (BEGIN IMMEDIATE với câu INSERT…MAX+1 khi chạy trên cloud).
+- Chưa kiểm payOS thật có gửi `reference` bằng đúng mã FT như SePay `referenceCode` không — điều này quyết định có dùng mã GD để chặn trùng hai cổng được không.
+
+BÀI HỌC:
+- KHOÁ: mọi đường ghi tiền theo báo tiền (chốt đơn VÀ cộng ví) phải đi qua CÙNG một phép "hai cổng". Cần bài thử "một khoản báo qua payOS rồi SePay cho phiên App huỷ → ví cộng một lần" + đột biến gỡ phép. Nên thêm phép tĩnh: mọi `ghiVi` trong thanh-toan.js nằm sau phép chặn hai cổng.
+- NGUYÊN TẮC (KHUON_LOI K4): đổi hệ quả của một rủi ro chủ quán đã chấp nhận (từ "hiện dòng đỏ cho người xem" sang "máy tự chuyển tiền") thì phải grep tài liệu cài đặt / sổ quyết định tìm câu mô tả rủi ro cũ, rồi hỏi lại chủ quán — rủi ro đã đổi bản chất.
+- NGUYÊN TẮC (K1): ke_hoach.md ghi "ánh xạ 1-1" thì bước báo xong phải đối chiếu từng tên ca / tên đột biến trong kế hoạch với file thật (grep). Ca nào bỏ thì ghi lý do. Lần này 7 ca và 3 đột biến của kế hoạch không có trong mã.
+- NGUYÊN TẮC (LUAT §2): hàm dùng chung đã export (chuoiSoHd) thì không viết lại ở file khác. Chú thích "= helpers X" là dấu hiệu chép công thức.
+```
+
+### Vòng sửa 1 (sau báo cáo vòng 1) — commit 5410562 (bài thử), 9eb3c5a (code)
+Lỗi 1 thuộc đường ví nhưng nằm TRONG Phạm vi và cách vá là áp đúng luật chủ quán đã có (một khoản báo qua hai cổng → CẦN XEM, KHÔNG hoàn —
+`LY_DO_HAI_CONG`, sổ QUYET_DINH 01.11) cho đường vào ví mới → sửa ở vòng 1 (LUAT §6.5: dừng hỏi chỉ khi hết 3 vòng còn lỗi tiền).
+| Lỗi soát | Xử lý | Ca thử (đỏ trên 2bc84b9 + gốc, xanh sau vá) | Đột biến |
+|---|---|---|---|
+| 1 hai cổng cộng ví hai lần | thanh-toan.js `vaoVi`: TRONG giao dịch ghi, cổng này báo phiên ít lần hơn số dòng `vao_vi` của cổng kia → `chua_khop` + LY_DO_HAI_CONG, KHÔNG cộng; báo nhiều hơn (khoản thật thứ hai) → cộng | G9b ×2, G9c | BV-hai-cong-vao-vi · VS-hai-cong-moi-bao |
+| 2 câu hợp đồng "một lần mỗi giao dịch" | nay đúng sau lỗi 1; câu ghi rõ "báo lặp, hoặc cùng khoản qua hai cổng, chỉ cộng một lần" | G9b | (như lỗi 1) |
+| 3 LY_DO_NGAN khớp nhầm "giảm giá" | xét mã giảm TRƯỚC; mục giá chỉ khớp `GIA_DA_DOI\|giá .*đổi\|không khớp tổng` | L14 (3 lời lỗi) | VS-ly-do-ngan-thu-tu |
+| 4 lyDoSo chỉ nhánh `cho` nối "xem mục CK" | mọi trạng thái có báo tiền về nối " — có tiền về, xem mục CK" | L9b | BV-so-ve-moi-trang-thai |
+| 5 kế hoạch ≠ bài thử | `ke_hoach.md` mục "Đối chiếu kế hoạch ↔ bài thử / đột biến THẬT" — từng ca / đột biến bỏ + chỗ phủ thay; tiêu đề "ánh xạ 1-1" sửa | — | — |
+| 6 công thức số hoá đơn chép 4 lần | donApp.js, doiSoat.js, thanh-toan.js dùng `chuoiSoHd` (helpers); hoaDon.js dùng `soHdCuaMa` thay `soBill` riêng. GIỮ: `printf('%04d')` trong SQL (`SO_GIU` — câu SQL cần chuỗi trong câu), `don-mo-rong.js soBill` (biểu thức cũ có từ trước, mã lạ → null là hành vi cũ của màn chờ thu) | toàn bài xanh (F2, C1, C5, E1) | BV-so-hd-post (mẫu đổi theo) |
+Nghi ngờ của người soát:
+- Giờ ngân hàng `luc > het_han`: vế này có từ Q1b (ec477bf) và cùng luật "tiền về sau khi QR hết hạn" của phiên quầy (giờ giao dịch). Đồng hồ ngân hàng
+  nhanh hơn máy chủ trong 10 phút hạn QR là hiếm; chưa có ca → CHƯA KIỂM (báo cáo 7 mục).
+- Chỉ mục `noi_dung`: chưa đo; bảng phiên nhỏ (mỗi ngày vài trăm dòng). Ghi Phát hiện, không thêm bước nâng cấp ở việc này.
+- `vi_qr` lỗi đúng hạn: `dangGiu` chỉ đếm phiên `cho` (wallets.js) → phiên `loi` nhả giữ; L1 phủ phần cộng QR. Ca ví giữ + lỗi đúng hạn chưa có → CHƯA KIỂM.
+- node_modules nối symlink khi dựng gốc: chỉ đọc gói, không ghi (K5 nói về bản sao server/ mà đột biến ghi — dot_bien.py chép thật).
+- Cổng `tu_chay/cong.js chay` + thao tác thử tay: làm ở bước 11 / báo cáo 7 mục.
