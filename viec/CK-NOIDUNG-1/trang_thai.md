@@ -20,6 +20,16 @@
   69fc4d4 CK-NOIDUNG-1: ke hoach (cho duyet) + trang thai
   ```
 
+## Đối chiếu bản chụp — lượt "tiep" 05.11 lần 2 (Q4, Q5, phiên App lỗi vào ví)
+- Nhánh `viec/CK-NOIDUNG-1`; cây sạch; hook mở phiên đã kéo `f45a9be → 9229b85`; `git fetch` được.
+- HEAD `9229b85` · FETCH_HEAD `9229b85` — bằng nhau, không kéo.
+- `git log --oneline -3`:
+  ```
+  9229b85 PHIEU: CK-NOIDUNG-1 chu quan tra loi cau hoi 05.11 (them file vao Pham vi)
+  f45a9be CK-NOIDUNG-1: trang thai (tien do, bang dot bien, Cau hoi Q4-Q5 file ngoai Pham vi) + bang chung do ban ec477bf
+  ec477bf CK-NOIDUNG-1: Q1b chi phien App huy / het han (phien loi giu chua_khop) + ca G11 + dot bien VS-cong-vi-ca-loi
+  ```
+
 ## Tiến độ
 - Lượt đầu: bước 2–3 xong; phiếu dặn chờ duyệt → dừng ở bước 3. Người gác chặn một lệnh ghép (B-PHANTICH) → viết file bằng Write.
 - Lượt "tiep" 05.11 (chủ quán duyệt a10a453, trả lời Q1–Q3 ở phiếu 150e7db):
@@ -33,6 +43,18 @@
   - Bước 6: `npm test` ĐỎ ở 2 bài cũ cần file NGOÀI Phạm vi → `## Câu hỏi` (Q4, Q5), DỪNG. (`thu_HD1` E6/G80 và `thu_HOPDONG_KH` v5 đỏ ở bản
     đầu — đã sửa trong Phạm vi: dòng "Mã GD" dùng nhãn cố định, không thêm khoá chữ cần seed ở `database.js`; hợp đồng giữ NGUYÊN câu 4xx đã
     duyệt 31.10 và nối ba ngoại lệ phía sau.)
+- Lượt "tiep" 05.11 lần 2 (phiếu 9229b85 — Q4 CÓ, Q5 CÓ, phiên App LỖI vì đơn cũng vào ví):
+  - Bước 3: `ke_hoach.md` mục "Sau duyệt lần 2".
+  - Bước 4: `thu_KHMUA1.js` G6, I1, I4 sửa (I3 giữ nguyên) — ĐỎ đúng 3 ca đó trên gốc; `thu_CKNOIDUNG1.js` G11 đổi chiều + mục [L] + L12 — ĐỎ trên gốc
+    (21 · 70) và trên code trước lượt 2 (81 · 14, đúng các ca mới). Bằng chứng + SỐ CA: `bang_chung_do.txt` mục "Lượt 2".
+  - Bước 5: 9a785a0 (máy chủ: thanh-toan.js vị từ `vaoViDuoc` + hàm `vaoVi`, đọc lại phiên sau chốt hỏng; congQr.js; donApp.js `thong_bao_tien_ve`,
+    dòng `vao_vi` của quầy; donThu.js Q5), 19acd58 (DonAppNoi.jsx, DonApp.jsx, dist, hợp đồng), f482a1e (dấu cách).
+    `thu_CKNOIDUNG1.js` 95 · 0; `thu_KHMUA1.js` 122 · 0; `thu_KHSDT1.js` (D14) xanh; `thu_HOPDONG_KH.js` xanh.
+  - Bước 6: `npm test -- --day-du` → PASS 102 · FAIL 0 · CẢNH BÁO 2 (cả hai cảnh báo ở file KHÔNG thuộc việc này: "route GET có lệnh ghi" packages.js /
+    products.js / sync.js; "route ghi không qua loiGhi" 54 — có từ trước).
+  - Đột biến: `python3 viec/CK-NOIDUNG-1/dot_bien.py` — ĐỐI CHỨNG XANH (ck 95 · 0, kh 95 · 0); TỔNG 48 · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0.
+- Người gác chặn trong lượt "tiep" lần 2: GIT-TUYCHON ×1 (`git -C`), B-PHANTICH ×4 (`$(( ))`, script ghép `&&`, `$'…'`, heredoc + chạy),
+  B-CHUONGTRINH ×1 (`bash <script nháp>`) → viết file bằng Write, chạy script Python đứng một mình.
 - Người gác chặn trong lượt này (đọc lý do, làm theo): B-PHANTICH ×5 (lệnh chạy script ghép `> file`, `$'…'`, `git status &&`, heredoc + chạy),
   B-BIMAT-CHU ×2 (lệnh có chữ khoá bí mật — ghi file bằng Write), SED-I ×1, B-CD-VITRI ×1, GIT-ADD ×1 (thư mục `client/dist`), GIT-LENH ×1
   (`git worktree`) → dựng cây gốc bằng `git archive` qua script nháp.
@@ -51,7 +73,11 @@
 | donApp.js ghi chú bỏ mã App | BV-ghi-chu-ma-app |
 | Q1a route xác nhận tay muộn + chặn App; chotPhien `muon` | BV-xnt-muon · BV-xnt-chan-app · VS-muon-moi-cach · VS-muon-khoa-loi |
 | Q1a Đối soát: nút + CẦN XEM sau xác nhận | BV-nut-xnt · BV-da-tay-can-xem |
-| Q1b cộng ví App (một lần, chỉ App, chỉ huỷ / hết hạn) | BV-cong-vi · VS-cong-vi-hai-lan · VS-cong-vi-quay · VS-cong-vi-chi-huy · VS-cong-vi-ca-loi |
+| Q1b cộng ví App (một lần, chỉ App, huỷ / hết hạn / lỗi vì đơn) — thanh-toan.js `vaoViDuoc`, `vaoVi` | BV-cong-vi · VS-cong-vi-hai-lan · VS-cong-vi-quay · VS-cong-vi-chi-huy · BV-cong-vi-loi |
+| Lượt 2: chốt hỏng vì đơn → đọc lại phiên → vào ví; ghi chú ví + lý do báo có mã GD | BV-cong-vi-sau-chot · BV-ghi-chu-loi · BV-ma-gd-doi-soat |
+| Lượt 2: App `thong_bao_tien_ve` + lý do ngắn (không lộ lời lỗi nội bộ) | BV-thong-bao-app · VS-ly-do-noi-bo |
+| Lượt 2: quầy thấy dòng `vao_vi` (dsQuay, DonApp.jsx, DonAppNoi.jsx, dist) | BV-quay-vao-vi · BV-man-vao-vi |
+| Q5 donThu.js `BANG_KHONG_DON` có `pos_so_hoa_don` | BV-bang-khong-don |
 | Q1b App thấy + Đối soát CẦN XEM | BV-tien-ve-vi-app · VS-vao-vi-do |
 | Đối soát số hoá đơn | BV-doi-soat-so · BV-so-trong-do · VS-ly-do-het-han |
 | cửa App `so_hd` | BV-so-hd-app · BV-so-hd-post · BV-so-hd-quay |
@@ -59,8 +85,10 @@
 
 ## Câu hỏi
 (Q1–Q3 lượt trước ĐÃ được chủ quán trả lời 05.11 — phiếu 150e7db; kế hoạch mục "Sau duyệt".)
+(Q4, Q5 dưới đây ĐÃ được chủ quán trả lời 05.11 — phiếu 9229b85: CÓ cả hai; kèm luật mới "phiên App lỗi vì đơn cũng vào ví" — kế hoạch mục
+"Sau duyệt lần 2". Lượt này không còn câu hỏi mở.)
 
-**Lượt "tiep" 05.11 — DỪNG ở bước 6: `npm test` đỏ ở 2 bài cũ, sửa cần 2 file NGOÀI Phạm vi.** Mọi phần khác của việc đã xong và xanh.
+**(Đã trả lời) Lượt "tiep" 05.11 — DỪNG ở bước 6: `npm test` đỏ ở 2 bài cũ, sửa cần 2 file NGOÀI Phạm vi.** Mọi phần khác của việc đã xong và xanh.
 - **Q4 — `cong_cu/thu_KHMUA1.js` (bài cũ khoá hành vi bạn vừa duyệt đổi ở Q1b).** Ba ca khoá "tiền về muộn của đơn App → chưa khớp, ví giữ
   nguyên": G6 (dòng 778, nhánh "huỷ thắng": `sk.some(ket_qua 'chua_khop')` + ví 20.000), I1 (dòng 841: `ket_qua === 'chua_khop'`), I4 (dòng 865:
   ví `=== 20000`). Code mới đúng Q1b: dòng báo `vao_vi` và ví + số tiền đã về (I4: 20.000 + 25.000). **Đề xuất:** thêm `cong_cu/thu_KHMUA1.js`
@@ -82,5 +110,11 @@
   màn Bán hàng thì cần sửa bản mẫu `ban_mau_pos/` (chủ quán quyết).
 - Dòng "Mã GD" trên bill dùng nhãn cố định "Mã GD" (không có ô sửa chữ trong Cài đặt hoá đơn): thêm khoá chữ mới phải seed ở `server/database.js`
   (ngoài Phạm vi, phép `thu_HD1` E6). Muốn sửa được chữ thì mở việc sau.
+- Tên ca I3 của `cong_cu/thu_KHMUA1.js` còn chữ "chua_khop" — nay phiên `loi` của đơn App ghi `vao_vi` (luật chủ quán 05.11 lượt 2). Ca vẫn XANH vì
+  máy chỉ kiểm phiên `loi` + App `da_huy` + cờ `tien_ve_cho_doi_soat`, không kiểm `chua_khop`. Chủ quán dặn giữ nguyên I3 → không sửa; nên sửa tên
+  ở việc sau (tên ca nói một đằng, máy kiểm một nẻo — K3). Hành vi mới đã khoá ở `thu_CKNOIDUNG1.js` L1 / G11.
+- Lý do ngắn cho App (`LY_DO_NGAN`, donApp.js) đọc từ `ly_do` phiên — nhiều lỗi của `taoDon` không có `code` (vd "Không đủ hàng…", "Sản phẩm không tồn
+  tại hoặc đã ngừng bán") nên bảng so theo chữ. Lỗi lạ → câu chung "vì đơn không còn hợp lệ". Muốn chắc hơn thì thêm `code` cho các lỗi đó ở
+  `orders.js` (việc sau — đụng đường tạo đơn).
 - Đơn / phiên hỏng TRONG giao dịch (ví thiếu, giá đổi…) → số hoá đơn rollback cùng giao dịch, không thành chỗ trống. Số chỉ "huỷ" khi phiên QR
   đã hiện (khách có thể đã thấy số) — đúng ý "mỗi chỗ trống có lý do".
