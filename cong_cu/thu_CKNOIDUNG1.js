@@ -503,6 +503,45 @@ async function main() {
     k('G9b Đối soát: dòng "hai cổng" của phiên App ở CẦN XEM, không ĐỎ', ds9.can_xem.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${p9.id}:`)
       && l.mo_ta.includes('hai cổng')) && !ds9.do.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${p9.id}:`)),
     ds9.do.filter((l) => l.mo_ta.includes(`mã ${p9.id}:`)).map((l) => l.mo_ta).join(' | ').slice(0, 200));
+    // Soát vòng 2: MỌI thứ tự (2 khoản × 2 cổng, báo lệch tiền trước, hai cổng cùng lúc, một cổng hai khoản) — tổng cộng ví = số khoản thật.
+    // P = payOS, S = SePay (đọc mẫu cũ TQD<mã phiên> của phiên payOS); số sau chữ = số tiền; 'huy' khách huỷ; 'het' phiên quá hạn; 'PS' hai cổng cùng lúc.
+    const kichBan = [
+      ['X1 huỷ; P T1 · S T1 · S T2 · P T2 (2 khoản) → cộng 2 khoản', ['huy', 'P', 'S', 'S', 'P'], 50000],
+      ['X1b huỷ; S T1 · P T1 · P T2 · S T2 (2 khoản) → cộng 2 khoản', ['huy', 'S', 'P', 'P', 'S'], 50000],
+      ['X2 còn hạn: T1 lệch (20.000) qua S rồi P; huỷ; T2 đúng qua S rồi P → cộng ĐÚNG 1 khoản (T2)', ['S20000', 'P20000', 'huy', 'S', 'P'], 25000],
+      ['X2b còn hạn: T1 lệch qua S (ĐỎ, chờ hoàn tay); hết hạn; cùng T1 qua P → KHÔNG cộng (bản sao)', ['S20000', 'het', 'P20000'], 0],
+      ['X3 huỷ; cùng một khoản qua hai cổng CÙNG LÚC → cộng 1 lần', ['huy', 'PS'], 25000],
+      ['X4 huỷ; chỉ SePay báo 2 khoản thật khác nhau → cộng 2 khoản (một cổng không bị chặn oan)', ['huy', 'S', 'S'], 50000],
+      ['X6 huỷ; SePay báo tiền vào TÀI KHOẢN KHÁC (không phải tiền quán) · payOS báo khoản thật → cộng 1 khoản (không bị coi là bản sao)', ['huy', 'Sk', 'P'], 25000],
+    ];
+    const phienX = {};
+    for (const [ten, buoc, mong] of kichBan) {
+      datCong('payos');
+      const kx = await khach(0);
+      const rx = await datApp(kx);
+      const px = await phienApp(rx.j.ma_don) || {};
+      datCong('sepay');
+      phienX[ten.slice(0, 3).trim()] = px.id;
+      for (const b of buoc) {
+        const tienB = Number(b.slice(1)) || px.con_lai;
+        if (b === 'huy') await goi('POST', `/kh/don/${rx.j.ma_don}/huy`, {}, kx.tk);
+        else if (b === 'het') await luiPhien(px.id);
+        else if (b === 'PS') await Promise.all([guiPayos(px, { amount: px.con_lai }), guiSepay(bao(px))]);
+        else if (b === 'Sk') await guiSepay(bao(px, { accountNumber: '9990009999' }));
+        else if (b[0] === 'P') await guiPayos(px, { amount: tienB });
+        else await guiSepay(bao(px, { transferAmount: tienB }));
+      }
+      k(ten, await soDu(kx.sdt) === mong, `ví ${await soDu(kx.sdt)} (mong ${mong}) · ${(await suKien(px.id)).map((x) => x.ket_qua).join(',')}`);
+    }
+    const dsX = await chayDoiSoat({ kieu: 'ngay' });
+    const doVuot = (id) => dsX.do.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`phiên #${id}`) && /vượt số khoản/.test(l.mo_ta));
+    k('X5 Đối soát: các kịch bản đúng ở trên KHÔNG có dòng ĐỎ "vượt số khoản"', !Object.values(phienX).some(doVuot));
+    // Dựng lại đúng dấu vết lỗi vòng 2 (X1 trên bản lỗi: vao_vi,chua_khop,vao_vi,vao_vi): đổi dòng "hai cổng" của X1 thành vao_vi.
+    await db.run("UPDATE pos_payos_su_kien SET ket_qua = 'vao_vi' WHERE ma_payos = ? AND ket_qua = 'chua_khop'", [phienX.X1]);
+    const dsY = await chayDoiSoat({ kieu: 'ngay' });
+    k('X5 Đối soát: phiên ghi tiền (đơn + cộng ví) NHIỀU hơn số khoản thật mỗi cổng báo → ĐỎ "vượt số khoản" (lưới chặn cộng ví hai lần)',
+      dsY.do.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`phiên #${phienX.X1}`) && /vượt số khoản/.test(l.mo_ta)),
+    dsY.do.filter((l) => l.bat_bien === 'CK').map((l) => l.mo_ta).join(' | ').slice(0, 240));
   });
 
   muc('[L] phiên APP lỗi vì đơn (món ngừng bán lúc tiền về ĐÚNG hạn) → tiền thật đã về cộng vào ví, báo rõ App · quầy · Đối soát');
@@ -587,7 +626,8 @@ async function main() {
     // Soát vòng 1: lý do ngắn đúng loại lỗi — lời lỗi flash sale có chữ "giảm giá" KHÔNG được ra "giá món đã đổi".
     const kl = await khach(0);
     const loiThu = [['Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.', 'vì mã giảm giá không còn dùng được'],
-      ['Số tiền thanh toán (20.000đ) không khớp tổng đơn hàng thật (25.000đ).', 'vì giá món đã đổi'], ['Sản phẩm X chưa có giá bán', 'vì đơn không còn hợp lệ']];
+      ['Số tiền thanh toán (20.000đ) không khớp tổng đơn hàng thật (25.000đ).', 'vì giá món đã đổi'], ['Sản phẩm X chưa có giá bán', 'vì đơn không còn hợp lệ'],
+      ['DISCOUNT_CODE_LIMIT_REACHED', 'vì mã giảm giá không còn dùng được']];   // soát vòng 2: mã giảm hết lượt lúc tiền về (orders.js)
     const raL14 = [];
     for (const [lyDoPhien, mong] of loiThu) {
       const r = await datApp(kl);
@@ -597,7 +637,7 @@ async function main() {
       const tb = (await goi('GET', `/kh/don/${r.j.ma_don}`, undefined, kl.tk)).j.don?.thong_bao_tien_ve;
       raL14.push([tb === `Không tạo được đơn ${mong} — đã cộng 25.000đ vào tài khoản của bạn`, tb]);
     }
-    k('L14 lý do ngắn theo đúng loại lỗi: flash sale / voucher → mã giảm; không khớp tổng → giá đổi; "chưa có giá bán" → câu chung', raL14.every(([d]) => d),
+    k('L14 lý do ngắn theo đúng loại lỗi: flash sale / voucher, DISCOUNT_CODE_LIMIT_REACHED → mã giảm; không khớp tổng → giá đổi; "chưa có giá bán" → câu chung', raL14.every(([d]) => d),
       raL14.map(([, tb]) => tb).join(' | '));
     const doc = (f) => fs.readFileSync(path.join(GOC, 'client', 'src', ...f), 'utf8');
     const dist = path.join(GOC, 'client', 'dist', 'assets');
