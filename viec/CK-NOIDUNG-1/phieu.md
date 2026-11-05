@@ -49,6 +49,9 @@ Sao kê ngân hàng, app ngân hàng của khách, bill và POS cùng một số
 - server/routes/thanh-toan.js
 - server/routes/orders.js
 - server/routes/don-mo-rong.js
+- server/routes/hoaDon.js
+- server/utils/dongHoaDon.js
+- server/routes/wallets.js
 - server/routes/kh/index.js
 - server/routes/backup.js
 - server/nang_cap/019_so_hoa_don.js
@@ -57,9 +60,20 @@ Sao kê ngân hàng, app ngân hàng của khách, bill và POS cùng một số
 - client/dist/**
 - cong_cu/thu_CKNOIDUNG1.js
 - cong_cu/thu_HOPDONG_KH.js
+- cong_cu/thu_SEPAY1.js
+- cong_cu/thu_P26c.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
 
+<!-- Chủ quán 05.11 (Q1–Q3 kế hoạch a10a453):
+     Q1 — tiền về SAU khi QR hết hạn / đã huỷ, chia hai: (a) phiên QUẦY: cho xác nhận tay (quyền xac_nhan_ck_tay + lý do), đơn nhận lại đúng số
+     đã giữ, trừ lại phần ví đã nhả trong cùng giao dịch, ví thiếu → không tạo đơn; (b) phiên APP: KHÔNG tạo lại đơn (khách đã thấy "đã huỷ",
+     có thể đã đặt lại) — số tiền thật đã về TỰ cộng vào ví khách của phiên (ghiVi, ghi rõ "tiền về muộn" + số HD + mã GD), một lần duy nhất mỗi
+     báo tiền (chống báo lặp như cũ); tài khoản nhận khác / sai chữ ký vẫn chặn như cũ; App thấy đơn `da_huy` + số đã cộng vào tài khoản (kế hoạch
+     nêu trường); Đối soát ghi dòng "tiền về muộn — đã cộng vào tài khoản" (CẦN XEM, không ĐỎ).
+     Q2 thêm hoaDon.js + dongHoaDon.js (dòng "Mã GD" trên bill quầy và hoá đơn App).
+     Q3 thu_SEPAY1.js (B1, E3) + thu_P26c.js (C1, C2) — chỉ các ca khoá dạng cũ, bài sửa thường (đỏ trên gốc, xanh sau vá).
+     Bỏ mã App ngẫu nhiên khỏi ghi chú in trên bill đơn App (mã vẫn giữ trong dữ liệu). -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_CKNOIDUNG1.js` ĐỎ trên code gốc: nội dung QR quầy / App đúng dạng; hai phiên cùng lúc khác số, đơn tiền mặt chen giữa lấy số
 sau; webhook với nội dung bị ngân hàng đổi dạng vẫn khớp đúng phiên; đơn tạo ra mang đúng số đã giữ; phiên hết hạn → số huỷ có lý do; tiền về
