@@ -1067,7 +1067,7 @@ async function taoDon(req, res, phien = null) {
       }
 
       // TIER-1c / HANG-1: mua gói thẻ → ghi MỘT dòng sổ (loai ban + số tháng). Hạn thật cộng lại từ sổ mỗi lần đọc (membershipStatus.js —
-      // cộng nối, hai quầy cùng bán không mất kỳ); expires_at ghi hạn ngay sau dòng này để xem (cộng tháng phép UTC — GIO-VN-1).
+      // cộng nối, hai quầy cùng bán không mất kỳ); expires_at ghi hạn tính lúc ghi (chỉ API /nhat-ky trả ra; cộng tháng phép UTC — GIO-VN-1).
       if (membershipTier && phone) {
         const dongThe = { tier_id: membershipTier.id, tier_name: membershipTier.name, loai: 'ban', so_thang: membershipGoi.so_thang, purchased_at: now };
         const expiresAt = await hanSauDong(tx, phone, dongThe);

@@ -56,11 +56,11 @@ router.get('/pin-chu-quan', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/pos/membership/pin-chu-quan { mat_khau, pin, pin_lai } — chỉ tài khoản owner, gõ lại mật khẩu đăng nhập
+// POST /api/pos/membership/pin-chu-quan { mat_khau, pin, pin_lai, pin_cu } — chỉ tài khoản owner, gõ lại mật khẩu; đã có PIN thì cần pin_cu
 router.post('/pin-chu-quan', authenticate, async (req, res) => {
   try {
     const b = req.body || {};
-    const kq = await datPinChuQuan(req.user, b.mat_khau, b.pin, b.pin_lai);
+    const kq = await datPinChuQuan(req.user, b.mat_khau, b.pin, b.pin_lai, b.pin_cu);
     if (kq.loi) return bao(res, kq.loi);
     res.json({ success: true, message: 'Đã đặt PIN chủ quán' });
   } catch (err) {
@@ -68,7 +68,8 @@ router.post('/pin-chu-quan', authenticate, async (req, res) => {
   }
 });
 
-/** Ghi MỘT dòng sổ cấp / thu hồi trong giao dịch (expires_at = hạn của hạng ngay sau dòng này — để nhật ký hiện "đến …"). */
+/** Ghi MỘT dòng sổ cấp / thu hồi trong giao dịch (expires_at = hạn của hạng tính LÚC GHI — chỉ API /nhat-ky trả ra; màn nhật ký không hiện,
+ *  hàm hạng không dùng: hạn thật cộng lại từ sổ). */
 async function ghiDong(phone, hang, loai, soThang, nguoi) {
   const now = getNow();
   const tx = await beginTransaction();

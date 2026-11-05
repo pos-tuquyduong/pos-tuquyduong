@@ -25,7 +25,7 @@ const BACKUP_PAGE_SIZE = parseInt(process.env.BACKUP_PAGE_SIZE || '5', 10);
  * Đọc TOÀN BỘ một bảng nhưng chia thành nhiều trang nhỏ,
  * ghép lại — tránh việc kéo cả bảng đầy đủ cột một phát làm nghẽn kết nối.
  */
-async function readTablePaged(tableName, orderKey) {
+async function readTablePaged(tableName, orderKey, boCot = []) {
   const all = [];
   let offset = 0;
   // eslint-disable-next-line no-constant-condition
@@ -33,7 +33,7 @@ async function readTablePaged(tableName, orderKey) {
     const page = await query(
       `SELECT * FROM ${tableName} ORDER BY "${orderKey}" LIMIT ${BACKUP_PAGE_SIZE} OFFSET ${offset}`
     );
-    for (const row of page) all.push(row);
+    for (const row of page) { for (const c of boCot) delete row[c]; all.push(row); }
     if (page.length < BACKUP_PAGE_SIZE) break;
     offset += BACKUP_PAGE_SIZE;
   }
@@ -84,7 +84,7 @@ const BACKUP_TABLES = [
   // Thẻ thành viên: hạng trước, lịch sử mua sau
   { name: 'pos_membership_tiers', label: 'Hạng thành viên', key: 'id' },
   { name: 'pos_membership_purchases', label: 'Lịch sử mua thẻ', key: 'id' },
-  { name: 'pos_pin_chu_quan', label: 'PIN chủ quán (băm)', key: 'id' },   // HANG-1: chỉ owner xuất (như pos_users)
+  { name: 'pos_pin_chu_quan', label: 'PIN chủ quán', key: 'id', boCot: ['pin_bam'] },   // HANG-1 (câu 4): KHÔNG xuất băm PIN — bảng không khôi phục được
 
   // Sổ nợ kho — việc chưa gửi được sang SX. Mất là mất luôn dấu vết hàng
   // đã bán mà kho chưa trừ.
@@ -131,7 +131,8 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
   'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
-  'pos_pin_chu_quan'];   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN thì chủ quán đặt lại ở Cài đặt
+  'pos_pin_chu_quan',   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN: chủ quán nhờ chat soạn cách xoá PIN (không có nút)
+  'pos_membership_tiers'];   // HANG-1 câu 4a (chủ quán 05.11): % giảm, gói, cách có hạng chỉ sửa ở Cài đặt có PIN chủ quán — file không vượt PIN
 
 /** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */
 function themTrangMeta(wb, bang) {
@@ -230,7 +231,7 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     for (const t of await bangDangCo()) {
       // Đọc phân trang để không bị treo khi bảng có cột nặng.
-      const rows = await readTablePaged(t.name, t.key);
+      const rows = await readTablePaged(t.name, t.key, t.boCot);
       console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
@@ -267,7 +268,7 @@ router.get('/export/:table', authenticate, async (req, res) => {
     }
 
     // Đọc phân trang để tránh treo khi bảng có cột nặng.
-    const rows = await readTablePaged(tableDef.name, tableDef.key);
+    const rows = await readTablePaged(tableDef.name, tableDef.key, tableDef.boCot);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
     themTrangMeta(wb, tableDef.name);

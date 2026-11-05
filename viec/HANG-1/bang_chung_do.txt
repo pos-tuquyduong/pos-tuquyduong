@@ -9,8 +9,10 @@ quán duyệt đổi, Q2 03.11): bản GỐC của chúng đỏ trên code mới
 trang_thai.md), bản MỚI đỏ trên gốc vì phần dựng dữ liệu cần cột `goi` của bước 013 (gốc chưa có gói → bài dừng ở dựng dữ liệu). Bằng chứng
 theo từng ca của luật mới nằm ở thu_HANG1.js.
 
-═══ cong_cu/thu_HANG1.js ═══  (chạy lại 04.11 sau ca A9 — khoá PIN chủ quán cho Cài đặt hạng; cây gốc dựng lại ở nháp goc2)
-Trên gốc 2a12443: thoát 1 · 7 đạt · 77 hỏng → ĐỎ
+═══ cong_cu/thu_HANG1.js ═══  (chạy lại 05.11 sau ca S — câu 4: khôi phục file / PIN cũ / băm PIN; cây gốc dựng lại ở nháp goc từ `git archive 2a12443`,
+bài bản ĐÃ COMMIT 39a6cc2)
+Trên gốc 2a12443 (bản 39a6cc2): thoát 1 · 7 đạt · 79 hỏng → ĐỎ (thêm ✗ S (bài sập giữa chừng) — no such table: pos_pin_chu_quan, ✗ G1g)
+Lần trước (04.11, bản sau A9): thoát 1 · 7 đạt · 77 hỏng → ĐỎ
   ✗ N1 Vàng → cach_co ban, đúng 2 gói 1 tháng + 3 tháng, giá trống, đang bán  — {"id":1,"name":"Vàng","card_price":500000,"discount_percent":5,"special_discount_percent":0,"sort_order":1,"is_active":1,"created_at
   ✗ N5 Bạch Kim (seed) → cach_co ban, gói rỗng  — {"id":2,"name":"Bạch Kim","card_price":2000000,"discount_percent":8,"special_discount_percent":0,"sort_order":2,"is_active":1,"created_at":"2026-11-03T10:00:00","updat
   ✗ N5b mua Bạch Kim (chưa gói nào) → 400 GOI_HANG_KHONG_BAN, không dòng thẻ  — HTTP 200
@@ -39,8 +41,18 @@ Trên code TRƯỚC vá PIN (c8dddfb = bài mới trên code 80a087e): 114 đạ
   ✗ A9j (K5) quản lý gõ đúng PIN xoá hạng không khách → 200, ẩn  — HTTP 400 · ID không hợp lệ
   ✗ A5 (bài sập giữa chừng)  — SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_membership_purchases.tier_id
   ✗ G1f thẻ Hạng: ô PIN chủ quán gửi kèm khi Lưu và Xoá (hangApi.luu({ … pin }), hangApi.xoa(id, pin))
-Trên code đã vá (HEAD): thoát 0 · 132 đạt · 0 hỏng → XANH
-SỐ CA cong_cu/thu_HANG1.js: 132
+Trên code TRƯỚC vá câu 4 (60d70a4 + bài 39a6cc2, 05.11): 135 đạt · 9 hỏng → ĐỎ ở đúng ca mới
+  ✗ S2 xuất tất cả: trang PIN chủ quán vẫn có (1 dòng, dat_boi) nhưng KHÔNG cột pin_bam, băm PIN không nằm ở đâu trong file  — HTTP 200 · trang PIN chủ quán (băm) · [{"id":1,"pin_bam":"$2b$10$…",…}]
+  ✗ S2b xuất riêng bảng PIN chủ quán: KHÔNG cột pin_bam, không băm PIN  — HTTP 200 · [[{"id":1,"pin_bam":"$2b$10$…",…}]
+  ✗ S1 khôi phục file có trang Hạng thành viên (Kim Cương → bán 60 tháng 1.000đ, giảm 100%) → xem trước + khôi phục 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN, hạng không đổi  — xem HTTP 200 · khôi phục HTTP 200
+  ✗ S1b (K5) khôi phục file KHÔNG có trang Hạng (chỉ trang Cài đặt) → 200, hạng không đổi  — HTTP 200   (đỏ kéo theo: S1 trên gốc đã ghi đè hạng)
+  ✗ S3 đã có PIN, đúng mật khẩu mà KHÔNG gửi PIN cũ → 400 PIN_CHU_QUAN_SAI, PIN cũ giữ nguyên  — HTTP 200
+  ✗ S3b PIN cũ sai → 400 PIN_CHU_QUAN_SAI, PIN cũ giữ nguyên  — HTTP 200
+  ✗ S4 sai PIN cũ 5 lần → PIN cũ đúng vẫn 423 PIN_CHU_QUAN_KHOA (đổi PIN không gỡ khoá), PIN giữ nguyên, khoá còn  — HTTP 200
+  ✗ G1e đặt PIN chủ quán ở thẻ Hạng (chỉ chủ quán, gõ mật khẩu)
+  ✗ G1g (câu 4 b1) đã có PIN: ô "PIN cũ" hiện và gửi kèm khi đổi; KHÔNG nút "quên PIN"
+Trên code đã vá (HEAD): thoát 0 · 144 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_HANG1.js: 144
 
 ═══ cong_cu/thu_DOISOAT1.js ═══
 Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ

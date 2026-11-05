@@ -1,8 +1,11 @@
 /**
- * HANG-1 (Q1-a, chủ quán 03.11) — PIN CHỦ QUÁN 4–6 số: MỘT chỗ đặt / kiểm cho thao tác chỉ chủ quán làm (cấp / thu hồi hạng; DONVI-1 dùng lại).
+ * HANG-1 (Q1-a, chủ quán 03.11) — PIN CHỦ QUÁN 4–6 số: MỘT chỗ đặt / kiểm cho thao tác chỉ chủ quán làm (cấp / thu hồi hạng, lưu / xoá Cài đặt
+ * hạng — chủ quán 04.11; DONVI-1 dùng lại).
  * Lưu BĂM bcrypt ở bảng riêng pos_pin_chu_quan (một dòng id = 1, bước nâng cấp 013) — KHÔNG ở pos_settings: GET /api/pos/settings trả
  * mọi khoá cho mọi nhân viên (lộ băm → dò 10⁶ PIN) và PUT /settings cho quản lý ghi đè (đặt PIN của mình).
- * Đặt / đổi: chỉ tài khoản owner, gõ lại mật khẩu đăng nhập. Sai PIN_SAI_TOI_DA lần liền → khoá PIN_KHOA_PHUT phút (khuôn pinKhach.js).
+ * Đặt / đổi: chỉ tài khoản owner, gõ lại mật khẩu đăng nhập; ĐÃ có PIN thì phải gõ cả PIN cũ (chủ quán 05.11 b1 — mật khẩu đặt lại được ở trang
+ * Nhân viên, không đủ). Quên PIN: không có nút — chủ quán nhờ chat soạn cách xoá PIN trong kho. Sai PIN_SAI_TOI_DA lần liền → khoá
+ * PIN_KHOA_PHUT phút (khuôn pinKhach.js).
  * Lỗi trả { loi: [status, code, lời] } để route gói thành { error, code }.
  */
 const bcrypt = require('bcryptjs');
@@ -30,13 +33,18 @@ async function coPinChuQuan() {
   return String((await docPin())?.pin_bam || '').startsWith('$2');
 }
 
-/** Đặt / đổi PIN — `user` là req.user. Đổi PIN gỡ luôn bộ đếm sai + khoá. */
-async function datPinChuQuan(user, matKhau, pin, pinLai) {
+/** Đặt / đổi PIN — `user` là req.user. Đã có PIN → `pinCu` kiểm qua kiemPinChuQuan (tốn lượt, đang khoá thì 423) SAU phần kiểm dữ liệu.
+ *  Đổi xong đặt lại bộ đếm (PIN cũ vừa đúng). */
+async function datPinChuQuan(user, matKhau, pin, pinLai, pinCu) {
   if (user?.role !== 'owner') return loi('CHI_CHU_QUAN');
   const u = await queryOne('SELECT password FROM pos_users WHERE id = ?', [user.id]);
   if (!u || !bcrypt.compareSync(String(matKhau ?? ''), String(u.password || ''))) return loi('MAT_KHAU_SAI');
   if (!MAU_PIN.test(String(pin ?? ''))) return loi('PIN_CHU_QUAN_KHONG_HOP_LE');
   if (String(pin) !== String(pinLai ?? '')) return loi('PIN_KHONG_KHOP');
+  if (await coPinChuQuan()) {
+    const cu = await kiemPinChuQuan(pinCu);
+    if (cu.loi) return cu;
+  }
   await run(`INSERT INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, ?, ?)
     ON CONFLICT(id) DO UPDATE SET pin_bam = excluded.pin_bam, sai = 0, khoa_den = NULL, dat_boi = excluded.dat_boi, dat_luc = excluded.dat_luc`,
   [await bcrypt.hash(String(pin), 10), user.username, getNow()]);

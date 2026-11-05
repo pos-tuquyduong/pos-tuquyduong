@@ -101,7 +101,8 @@ async function soKhachGiuHang(query, getNow, tierId) {
   return [...theoSdt.values()].filter((ds) => (hanCacHang(ds).get(Number(tierId))?.han ?? '') > now).length;
 }
 
-/** Hạn của hạng `tierId` ngay sau dòng sắp ghi (để nhật ký hiện "đến …") — đọc sổ TRONG giao dịch ghi. Chỉ để xem: hàm hạng không dùng nó. */
+/** Hạn của hạng `tierId` ngay sau dòng sắp ghi (cột expires_at — chỉ API /nhat-ky trả ra, màn nhật ký không hiện) — đọc sổ TRONG giao dịch
+ *  ghi. Hàm hạng không dùng nó. */
 async function hanSauDong(tx, phone, dongMoi) {
   const dong = await tx.query(SO_CUA, [phone]);
   return hanCacHang([...dong, dongMoi]).get(Number(dongMoi.tier_id))?.han ?? dongMoi.purchased_at;

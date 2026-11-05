@@ -19,6 +19,7 @@ OR = 'server/routes/orders.js'
 MB = 'server/routes/membership.js'
 TI = 'server/routes/tiers.js'
 PIN = 'server/utils/pinChuQuan.js'
+BK = 'server/routes/backup.js'
 N13 = 'server/nang_cap/013_hang.js'
 KH = 'server/routes/kh/index.js'
 SA = 'client/src/pages/Sales.jsx'
@@ -90,6 +91,16 @@ DOT_BIEN = [
   ('VS-xoa-hop-thoai', [('client/src/pages/CaiDat/HangThe.jsx', "    if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }", "    if (!window.confirm('Xoá hạng?')) return;", 1)], r'✗ G1b '),
   ('VS-nhat-ky-han-luu', [('client/src/components/CapHang.jsx', "              {Number(d.price_paid) > 0", "              {d.expires_at && ` → đến ${d.expires_at}`}\n              {Number(d.price_paid) > 0", 1)], r'✗ G3c '),
   ('BV-cap-quyen-giao-dien', [('client/src/pages/Customers.jsx', "coQuyen={hasPermission('cap_hang')}", 'coQuyen={true}', 1)], r'✗ G3 '),
+  # ── S: câu 4 (chủ quán 05.11) — khôi phục file không đổi hạng · đổi PIN cần PIN cũ · băm PIN không ra file ──
+  ('BV-khoi-phuc-hang', [(BK, "  'pos_membership_tiers'];", "  ];", 1)], r'✗ S1 '),
+  ('VS-khoi-phuc-hang-chi-restore', [(BK, "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n    if (chanTrangTien(res, wb)) return;\n", "    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });\n", 1)], r'✗ S1 '),
+  ('BV-bam-pin-sao-luu', [(BK, "boCot: ['pin_bam'] }", "boCot: [] }", 1)], r'✗ S2 '),
+  ('VS-bam-pin-mot-duong', [(BK, "readTablePaged(tableDef.name, tableDef.key, tableDef.boCot);", "readTablePaged(tableDef.name, tableDef.key);", 1)], r'✗ S2b '),
+  ('BV-pin-cu', [(PIN, "  if (await coPinChuQuan()) {\n    const cu = await kiemPinChuQuan(pinCu);\n    if (cu.loi) return cu;\n  }\n", '', 1)], r'✗ S3 '),
+  ('VS-pin-cu-khong-dem', [(PIN, "    const cu = await kiemPinChuQuan(pinCu);", "    const cu = bcrypt.compareSync(String(pinCu ?? ''), (await docPin()).pin_bam) ? {} : loi('PIN_CHU_QUAN_SAI');", 1)], r'✗ S4 '),
+  ('VS-pin-cu-truoc-du-lieu', [(PIN, "  if (await coPinChuQuan()) {\n    const cu = await kiemPinChuQuan(pinCu);\n    if (cu.loi) return cu;\n  }\n", '', 1),
+                               (PIN, "  if (!MAU_PIN.test(String(pin ?? ''))) return loi('PIN_CHU_QUAN_KHONG_HOP_LE');\n", "  if (await coPinChuQuan()) {\n    const cu = await kiemPinChuQuan(pinCu);\n    if (cu.loi) return cu;\n  }\n  if (!MAU_PIN.test(String(pin ?? ''))) return loi('PIN_CHU_QUAN_KHONG_HOP_LE');\n", 1)], r'✗ S3c '),
+  ('VS-pin-cu-giao-dien', [('client/src/pages/CaiDat/HangThe.jsx', 'hangApi.datPin(pin.mat_khau, pin.pin, pin.pin_lai, pin.pin_cu)', 'hangApi.datPin(pin.mat_khau, pin.pin, pin.pin_lai)', 1)], r'✗ G1g '),
 ]
 
 
