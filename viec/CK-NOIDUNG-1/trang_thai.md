@@ -11,18 +11,21 @@
   ```
 
 ## Tiến độ
-- Bước 2 (đọc) xong. Bước 3: `ke_hoach.md` viết xong, soát bằng agent phụ chỉ đọc, ghi kết quả soát vào cuối kế hoạch.
+- Bước 2 (đọc) xong. Bước 3: `ke_hoach.md` viết xong; agent phụ chỉ đọc đã soát theo 4 câu, kế hoạch đã sửa theo (mục cuối `ke_hoach.md`).
 - Phiếu dặn **Chờ duyệt kế hoạch** → commit, push, DỪNG ở bước 3. Chưa viết bài thử, chưa sửa code.
+- Người gác chặn một lệnh ghép (heredoc ghi script + chạy cùng lệnh, luật B-PHANTICH) → viết lại file kế hoạch bằng công cụ Write.
 
 ## Câu hỏi
 Xem `ke_hoach.md` mục "Câu hỏi cho chủ quán" (Q1–Q3). Tóm tắt:
 - **Q1 (tiền):** hôm nay máy chủ KHÔNG cho xác nhận tay phiên đã hết hạn (`server/utils/giuCho.js:90` và điều kiện `het_han > ?` ở
   `giuCho.js:101`). Nghiệm thu C ("tiền về muộn, xác nhận tay → nhận lại số cũ") cần mở đường này — đổi đường tiền, cần chủ quán duyệt.
-- **Q2 (Phạm vi):** in "Mã GD" lên bill cần `server/routes/hoaDon.js` (hàm `dungHoaDon`), không có trong Phạm vi.
-- **Q3 (Phạm vi):** hai bài thử cũ khoá dạng nội dung cũ `TQD<mã phiên>` sẽ đỏ vì hành vi đã duyệt đổi: `cong_cu/thu_SEPAY1.js` (B1, E3),
-  `cong_cu/thu_P3.js` (A1, A5). Cần thêm hai file vào Phạm vi (bài sửa thường, LUAT_XAY_APP §6.8).
+- **Q2 (Phạm vi):** in "Mã GD" lên bill cần `server/routes/hoaDon.js` (hàm `dungHoaDon`); lên hoá đơn App cần thêm `server/utils/dongHoaDon.js`.
+- **Q3 (Phạm vi):** bài thử cũ khoá dạng cũ sẽ đỏ vì hành vi đã duyệt đổi: `cong_cu/thu_SEPAY1.js` (B1, E3), `cong_cu/thu_P26c.js` (C1, C2).
+  Cần thêm hai file vào Phạm vi (bài sửa thường, LUAT_XAY_APP §6.8).
 
 ## Phát hiện
 - Đơn App ghi ghi chú `Đơn App <mã ngẫu nhiên> · nhận tại quán` (`server/utils/donApp.js:222`) — mã ngẫu nhiên vẫn in ở dòng ghi chú bill.
   Kế hoạch giữ nguyên (không đổi ghi chú); muốn bỏ thì chủ quán nói.
-- Ngày triển khai: đơn đã bán trong ngày mang mã cũ `ORD-YYYYMMDD-NNN`, dãy mới bắt đầu `HD0001` — hai dãy cùng ngày. Nên triển khai ngoài giờ bán.
+- Ngày triển khai: đơn đã bán trong ngày mang mã cũ `ORD-YYYYMMDD-NNN`, dãy mới bắt đầu `HD0001` — hai dãy cùng ngày (bill `HD0001` đứng sau
+  bill `030`). Nên triển khai ngoài giờ bán.
+- payOS (dự phòng) giới hạn nội dung 9 ký tự → nội dung CK của payOS giữ `TQD<mã phiên>`, không mang số hoá đơn (bill vẫn in số).
