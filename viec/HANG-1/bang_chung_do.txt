@@ -106,7 +106,8 @@ SỐ CA cong_cu/thu_UUDAI1.js: 88
 Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
   ✖ Bài thử sập: SQLITE_ERROR: no such column: goi
 Trên code đã vá (HEAD): thoát 0 · 81 đạt · 0 hỏng → XANH
-SỐ CA cong_cu/thu_HOPDONG_KH.js: 81
+Sau gộp main e7d0dd4 (chat 05.11 — main CT-1a / HD-KH-1 / SEPAY-1 thêm ca): 86 đạt · 0 hỏng
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 86
 
 ═══ cong_cu/thu_GIOVN1.js ═══  (04.11 — chủ quán thêm vào Phạm vi: chỉ phần dựng dữ liệu mua thẻ C5 + E2 "PHIEN_BAN ≥ 6"; bài SỬA thường, LUAT §6.8)
 Bản GỐC (c4513ac) trên code HANG-1: 56 đạt · 5 hỏng (✗ C5a, ✗ C5b, ✗ C5c, ✗ B1, ✗ E2 — mua thẻ thiếu so_thang → 400 THE_MUA_THIEU_THONG_TIN; E2 khoá PHIEN_BAN = 6)

@@ -676,3 +676,7 @@ BÀI HỌC:     vòng câu 5: KHOÁ 0 · NGUYÊN TẮC 0 · BỎ 1 (chọn nhầ
              Toàn việc: KHOÁ 3 · NGUYÊN TẮC 2 · BỎ 1 — ở ## Bài học (vòng câu 4)
 
 HEAD ĐÃ KIỂM: dfcfb2e
+
+
+Chat soát + gộp (05.11, bàn 32): gộp main e7d0dd4 (sau SUA-C9-1, SUA-SL-1, CT-1a): đụng HOP_DONG_API_KH.md (HANG-1 thành v10 sau v7 HD-KH-1 · v8 SEPAY-1 · v9 CT-1a; "Ghi chú v7" → "Ghi chú v10"), Customers.jsx / Settings.jsx (giữ cả hai import), backup.js (danh sách không khôi phục gộp cả pos_ngay_sinh_sua lẫn hai bảng HANG-1), kiem_tra_truoc_khi_giao.js (giữ cả thu_SEPAY1, thu_CT1a, thu_HANG1), thu_GIOVN1.js (lấy bản main, cùng nghĩa), client/dist (dựng lại). npm test --day-du xanh trên bản gộp — bốn bài đỏ đã biết (C9, SAOLUU2 F1, KHO1 J3–J7, KHO2b H4) xanh nhờ bản nới trên main.
+HEAD ĐÃ KIỂM: 84480a7
