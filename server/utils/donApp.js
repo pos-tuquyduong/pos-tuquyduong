@@ -62,7 +62,7 @@ const qrCua = (p, tt) => (tt === 'cho_tra' ? { chuoi: p.qr, het_han: p.het_han }
 // (số tồn kho, tên lỗi) ra App. Thứ tự là thứ tự xét — mã giảm TRƯỚC giá (lời flash sale có chữ "giảm giá"); mục giá chỉ khớp cụm "giá … đổi" /
 // "không khớp tổng" (không khớp "chưa có giá bán"). Không khớp dòng nào → câu chung.
 const LY_DO_NGAN = [[/HET_HANG|hết hàng|không đủ hàng|ngừng bán|không tồn tại/i, 'vì món đã hết hàng'], [/SO_DU|số dư/i, 'vì số dư tài khoản không đủ'],
-  [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];
+  [/^MA_|DISCOUNT|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];
 const lyDoNgan = (s) => (LY_DO_NGAN.find(([m]) => m.test(String(s || ''))) || [null, 'vì đơn không còn hợp lệ'])[1];
 /** Câu App hiện khi tiền đã về được cộng vào tài khoản (dòng báo 'vao_vi' — thanh-toan.js xuLyTienVe); không có → null. */
 function thongBaoTienVe(r) {

@@ -125,6 +125,17 @@ const DANG_GIO = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
 const CAU_GHI = `INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(khoa) DO NOTHING`;
 const TEN_CONG = { payos: 'payOS', sepay: 'SePay' };
+// "Hai cổng" (SEPAY-1; soát vòng 1–2 CK-NOIDUNG-1): một khoản báo qua CẢ payOS lẫn SePay mang hai khoá khác nhau. Mỗi cổng báo mỗi khoản thật
+// ĐÚNG một lần → báo thứ n của cổng này là BẢN SAO khi cổng kia đã có ≥ n báo tiền vào cho phiên. Hai vế đếm CÙNG một loại dòng: mọi báo tiền
+// vào của phiên (khop, chua_khop — kể cả lệch tiền và chính dòng "hai cổng", vao_vi), trừ báo thất bại / không thuộc phiên / tiền vào tài khoản
+// khác; không đếm báo đang xét (khoá trùng = báo lặp, câu ghi tự bỏ). MỘT hàm cho đường chốt đơn và đường vào ví. q: tx (trong giao dịch ghi — hai
+// báo tới cùng lúc thì báo sau thấy dòng của báo trước) hoặc { query }.
+async function laBanSao(q, t) {
+  const ds = await q.query(`SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ? AND khoa <> ? AND ket_qua NOT IN ('that_bai', 'khong_phien')
+    AND COALESCE(ly_do, '') NOT LIKE ?`, [t.ma, t.khoa, LY_DO_TK_KHAC + '%']);
+  const nay = ds.filter((d) => congCuaKhoa(d.khoa) === t.nguon).length + 1;   // + báo đang xét
+  return nay <= ds.length - (nay - 1);
+}
 
 /** t: { khoa, noiDung (nội dung số hoá đơn đã chuẩn hoá — SePay) | ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), maGd (mã giao dịch
  *  ngân hàng), duLieu, nguon ('payos' | 'sepay'), boQua (lý do ghi khong_phien ngay), khongPhien (lý do khi mã không thuộc phiên),
@@ -149,13 +160,9 @@ async function xuLyTienVe(res, t) {
     const soHd = await soHdCuaPhien(x.id), maGd = t.maGd || '—';
     const dau = x.trang_thai === 'loi' ? `không tạo được đơn (${x.ly_do || 'lỗi'})` : 'tiền về muộn';
     await trongGiaoDich(async (tx) => {
-      // "Hai cổng" (soát vòng 1): một khoản báo qua CẢ payOS lẫn SePay mang hai khoá khác nhau. Cổng này báo phiên ÍT lần hơn số lần cổng KIA đã
-      // cộng ví → đây là bản sao của khoản đã cộng: ghi chua_khop + LY_DO_HAI_CONG (CẦN XEM), KHÔNG cộng lần hai. Đọc trong giao dịch ghi — hai báo
-      // tới cùng lúc thì báo sau thấy dòng của báo trước. Báo NHIỀU hơn = khách chuyển thêm thật → cộng như thường.
-      const da = await tx.query('SELECT khoa, ket_qua FROM pos_payos_su_kien WHERE ma_payos = ? AND khoa <> ?', [t.ma, t.khoa]);
-      const nay = da.filter((d) => congCuaKhoa(d.khoa) === t.nguon).length;
-      if (nay < da.filter((d) => d.ket_qua === 'vao_vi' && congCuaKhoa(d.khoa) !== t.nguon).length) {
-        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — ${LY_DO_HAI_CONG} (đã cộng vào tài khoản ${x.phone} qua báo cổng kia, ${soHd}) · mã GD ${maGd}: đối chiếu sao kê, KHÔNG cộng lần hai`));
+      // Bản sao của khoản cổng kia đã báo (laBanSao — câu đọc ĐẦU giao dịch ghi) → chua_khop + LY_DO_HAI_CONG (CẦN XEM), KHÔNG cộng.
+      if (await laBanSao(tx, t)) {
+        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — ${LY_DO_HAI_CONG} (cổng kia đã báo khoản này, ${soHd}) · mã GD ${maGd}: đối chiếu sao kê, KHÔNG cộng`));
         return;
       }
       const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));
@@ -176,11 +183,11 @@ async function xuLyTienVe(res, t) {
   const moi = laApp ? await docPhien(p.id) : null;
   if (moi && vaoViDuoc(moi)) return vaoVi(moi);
   const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
-  // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và cổng này CHƯA báo gì cho phiên — cổng này báo lần nữa là khách chuyển thêm thật (phải hoàn).
-  const daBao = sau ? (await query('SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ?', [t.ma])).some((x) => congCuaKhoa(x.khoa) === t.nguon) : false;
+  // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và báo này là bản sao (laBanSao) — không phải bản sao là khách chuyển thêm thật (phải hoàn).
+  const banSao = sau ? await laBanSao({ query }, t) : false;
   return ghi('chua_khop', !sau ? `không tạo được đơn: ${kq.body?.code || kq.body?.error}`
     : sau.nguon === 'tay' ? `đã xác nhận tay trước (${sau.nguoi_xac_nhan}, đơn #${sau.order_id}) — tiền về đúng số: đối chiếu, KHÔNG hoàn`
-      : sau.trang_thai === 'da_thu' && TEN_CONG[sau.nguon] && sau.nguon !== t.nguon && !daBao
+      : sau.trang_thai === 'da_thu' && TEN_CONG[sau.nguon] && sau.nguon !== t.nguon && banSao
         ? `đã chốt bằng báo ${TEN_CONG[sau.nguon]} (đơn #${sau.order_id}) — ${LY_DO_HAI_CONG}: đối chiếu sao kê, KHÔNG hoàn`
         : `phiên đang ${sau.trang_thai} lúc tiền về`);
 }

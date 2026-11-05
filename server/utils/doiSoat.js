@@ -238,7 +238,16 @@ async function phepTienVe(q) {
     FROM pos_payos_su_kien s LEFT JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
     WHERE s.ket_qua IN ('chua_khop', 'khong_phien', 'vao_vi')`);
   const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
-  return ds.map((r) => {
+  // Lưới chặn cộng ví hai lần (soát vòng 2, LUAT §5): mỗi khoản thật được MỖI cổng báo đúng một lần → số lần GHI TIỀN của phiên (dòng khop = đơn,
+  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với laBanSao, thanh-toan.js; 'sepay:%' = congCuaKhoa).
+  const VAO = "s.ket_qua NOT IN ('that_bai', 'khong_phien') AND COALESCE(s.ly_do, '') NOT LIKE ?";
+  const vuot = await q(`SELECT p.id AS phien_id, s.ma_payos, MAX(s.luc) AS luc, SUM(s.ket_qua IN ('khop', 'vao_vi')) AS ghi,
+      SUM(s.khoa LIKE 'sepay:%' AND ${VAO}) AS sepay, SUM(s.khoa NOT LIKE 'sepay:%' AND ${VAO}) AS payos
+    FROM pos_payos_su_kien s JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
+    GROUP BY p.id, s.ma_payos HAVING ghi > MAX(sepay, payos)`, [LY_DO_TK_KHAC + '%', LY_DO_TK_KHAC + '%']);
+  return [...vuot.map((r) => ({ ngay: r.luc || null, canXem: false,
+    mo_ta: `phiên #${r.phien_id} (mã ${r.ma_payos}): ghi tiền ${r.ghi} lần (đơn + cộng ví) vượt số khoản thật (payOS báo ${r.payos}, SePay báo ${r.sepay})`
+      + ' — kiểm ví khách, có thể đã cộng thừa' })), ...ds.map((r) => {
     const muon = r.ket_qua === 'chua_khop' && LY_DO_MUON.some((c) => String(r.ly_do || '').startsWith(c));
     const daTay = muon && r.p_tt === 'da_thu' && r.p_nguon === 'tay' && Number(r.so_tien) === Number(r.p_con_lai);
     const choTay = muon && !r.p_don && !r.p_app && ['cho', 'huy'].includes(r.p_tt);
@@ -246,7 +255,7 @@ async function phepTienVe(q) {
       canXem: r.ket_qua !== 'chua_khop' || daTay || [LY_DO_HAI_CONG, LY_DO_TK_KHAC].some((c) => String(r.ly_do || '').includes(c)),
       mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? `không thuộc phiên nào${r.ly_do ? ` — ${r.ly_do}` : ''}`
         : r.ket_qua === 'vao_vi' ? r.ly_do : `chưa khớp đơn — ${r.ly_do}${daTay ? ' — đã xác nhận tay sau' : ''}`) + ` (báo #${r.id})` };
-  });
+  })];
 }
 
 // ─── SO (CK-NOIDUNG-1): sổ số hoá đơn của KỲ NGÀY — số không thành đơn kèm lý do (suy từ phiên lúc đọc: Render ngủ, không ghi lúc hết hạn),
