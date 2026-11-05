@@ -1,4 +1,4 @@
-# CK-NOIDUNG-1 — kế hoạch (chờ chủ quán duyệt)
+# CK-NOIDUNG-1 — kế hoạch (chủ quán DUYỆT a10a453, 05.11 — Q1–Q3 trả lời ở phiếu 150e7db; phần "Sau duyệt" ở cuối file thắng phần trên khi lệch)
 
 ## Nói gọn cho chủ quán
 Mình làm một **sổ số hoá đơn theo ngày** dùng chung quầy + App. Lúc hiện QR, máy chủ lấy ngay số kế tiếp (ví dụ 16) và ghi nội dung CK
@@ -168,3 +168,53 @@ mã bill cũ) · khôi phục sao lưu các bảng không dính tiền.
 - Đường song song: gán `t.ma` = id phiên sau khi tra; câu báo `khong_phien` / Đối soát giữ chuỗi khách gõ; `ck_tay` loại trừ rõ; khoá sao lưu
   `id`; nhãn lý do huỷ không ghi "huỷ QR" cho phiên App trả ví / `GIA_DA_DOI` → đã sửa trong thiết kế. Ngày triển khai hai dãy → Phát hiện
   trong `trang_thai.md`.
+
+## Sau duyệt (05.11) — Q1 chia hai, Q2 / Q3 CÓ, bỏ mã App khỏi ghi chú bill
+
+### Q1a — phiên QUẦY: xác nhận tay sau khi QR hết hạn / đã huỷ
+- `POST /thanh-toan/phien/:id/xac-nhan-tay` (vẫn `checkPermission('xac_nhan_ck_tay')` + lý do ≥ 3 ký tự): phiên `payos` / `ck_tay` đang `cho`
+  đã quá hạn hoặc `huy`, chưa có đơn → `chotPhien(p, 'tay', { muon: true, … })`. Phiên của đơn App (có dòng `pos_don_app`) → 409
+  `PHIEN_APP_KHONG_TAO_LAI` (Q1b: App không tạo lại đơn). Phiên `loi` / `da_thu` → 409 `PHIEN_DA_CHOT` như cũ.
+- `chotPhien` (MỘT hàm): cờ `muon` chỉ nới điều kiện thời gian của cổng: `WHERE id = ? AND (trang_thai = 'cho' AND het_han > ? OR ? AND
+  trang_thai IN ('cho', 'huy'))` — vẫn MỘT câu ghi, `changes !== 1` → 409 (hai người cùng bấm: một đơn). Đơn qua `taoDon` như mọi lối chốt:
+  máy chủ tự tính lại giá (giá đổi → 400, KHÔNG tạo đơn), ví giữ cũ đã nhả nên `ghiVi(khongAm)` trừ lại TRONG giao dịch tạo đơn — thiếu →
+  400 `SO_DU_KHONG_DU`, rollback, không đơn. Lần chốt muộn hỏng KHÔNG đổi phiên sang `loi` (khách nạp thêm rồi xác nhận lại được).
+- Số hoá đơn: `taoMaDonTheoSo` lấy số phiên đã giữ → đơn nhận lại đúng `HD00xx`. Nhật ký đơn ghi "(sau khi QR hết hạn / huỷ)".
+- Chỗ bấm: màn QR ở quầy tự quay về giỏ khi hết hạn (`client/src/pages/BanHang/ManQr.jsx:34`) và màn Bán hàng là bản vẽ đã chốt (CLAUDE.md §9)
+  → nút "Xác nhận tay → tạo đơn" đặt ở **Đối soát**, trên dòng CK "tiền về sau khi QR hết hạn" / "phiên đang huy" của phiên quầy (người có quyền).
+- Đối soát: báo tiền về muộn của phiên đã xác nhận tay sau đó (đúng số) → CẦN XEM thay ĐỎ. Dòng "đã xác nhận tay trước … KHÔNG hoàn" giữ ĐỎ
+  (`thu_SEPAY1` D2).
+
+### Q1b — phiên APP: tiền về muộn tự cộng vào ví khách
+- `xuLyTienVe` (MỘT hàm cho payOS + SePay), SAU các chặn cũ (sai chữ ký → 4xx trước khi vào; tài khoản khác → `chua_khop`; payOS báo
+  thất bại → `that_bai`): phiên của đơn App, có SĐT, đã `huy` / `loi` / `cho` quá hạn (theo giờ giao dịch hoặc giờ máy chủ) → TRONG MỘT giao dịch:
+  `INSERT pos_payos_su_kien … ket_qua 'vao_vi' ON CONFLICT(khoa) DO NOTHING`; chỉ khi `changes === 1` mới `ghiVi(loai 'topup', cachTra
+  'transfer', cot 'total_topup')` số tiền THẬT đã về, ghi chú "Tiền về muộn APP00xx · mã GD FT…". Báo lặp (cùng khoá) / hai báo cùng lúc →
+  một dòng, cộng một lần.
+- Không tạo đơn, không đổi phiên. Đối soát: `vao_vi` → CẦN XEM "tiền về muộn — đã cộng vào tài khoản <SĐT>". Tiền này vào sổ nạp ví chuyển khoản
+  (két CK khớp sao kê; I4 / I18 khớp vì đi qua `ghiVi`).
+- App: đơn vẫn `da_huy`, `tien_ve_cho_doi_soat: true` (giữ nghĩa cũ) + trường mới **`tien_ve_da_cong_vi`** (số đồng đã cộng vào tài khoản,
+  0 khi không có) ở `GET /don`, `GET /don/:ma`. Ghi hợp đồng.
+
+### Q2 — dòng "Mã GD"
+`routes/hoaDon.js` `don.ma_gd`; `client/src/utils/hoaDon.js` thêm khoá chữ `ma_gd` ("Mã GD", ẩn được) — dòng ngay sau các dòng thanh toán khi
+đơn có mã. Hoá đơn App: `dongHoaDon.js` dẹt mọi dòng `thanh_toan` theo khoá nên dòng "Mã GD" tự có (không phải sửa file này — xác nhận bằng ca D5).
+
+### Q3 — bài cũ sửa (bài sửa thường)
+`thu_SEPAY1.js` B1 (62.08 = `TQD<MMM><DD> HD<4 số>`), E3 (`… APP<4 số>`); `thu_P26c.js` C1 (hai mã `ORD-<ngày>-HD<4 số>` liền số), C2 (mã cũ
+`-999` không ảnh hưởng: đơn mới vẫn `HD<4 số>`).
+
+### Bỏ mã App khỏi ghi chú bill
+`donApp.js`: ghi chú đơn = `Đơn App · nhận tại quán` (mã App vẫn ở `pos_don_app.ma`).
+
+### Ca thử thêm (thu_CKNOIDUNG1.js)
+- C4 quầy: phiên QR giữ ví, hết hạn → xác nhận tay → 200, đơn `ORD-…-HD00xx` đúng số đã giữ, ví trừ đúng phần giữ; C4b ví đã tiêu mất → 400
+  `SO_DU_KHONG_DU`, không đơn, phiên vẫn chốt lại được; C4c giá đổi → 400, không đơn; C4d phiên đã huỷ → xác nhận tay được; C4e phiên App hết
+  hạn → 409 `PHIEN_APP_KHONG_TAO_LAI`; C4f nhân viên không quyền → 403; C4g hai người cùng bấm → một đơn; C4h Đối soát: báo muộn của phiên đã xác
+  nhận tay → CẦN XEM.
+- G1 App huỷ rồi tiền SePay về → ví +đúng số đã về, một dòng `vao_vi`, không đơn, App `da_huy` + `tien_ve_da_cong_vi`; G2 báo lặp cùng khoá →
+  không cộng lần hai; G3 hai báo cùng khoá song song → cộng một lần; G4 App hết hạn (không huỷ) tiền về → cộng; G5 tài khoản khác → KHÔNG cộng
+  (`chua_khop`); G6 sai chữ ký → 401, không cộng; G7 phiên QUẦY hết hạn tiền về → KHÔNG cộng ví (ĐỎ như cũ); G8 Đối soát CẦN XEM "đã cộng vào
+  tài khoản"; G9 payOS báo muộn cho đơn App → cộng (cùng hàm).
+- Đột biến thêm: `VS-MUON-MOI-CACH` (bỏ kiểm `muon` — chốt muộn cả qua webhook), `VS-CONG-VI-HAI-LAN` (cộng ví không xét `changes`),
+  `VS-CONG-VI-QUAY` (bỏ kiểm phiên App), `BV-CONG-VI` (bỏ nhánh cộng ví), `BV-XNT-MUON` (bỏ cờ muộn ở route).
