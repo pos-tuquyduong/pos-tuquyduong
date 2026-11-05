@@ -469,8 +469,15 @@ async function main() {
     const p11 = await phienApp(r11.j.ma_don) || {};
     await db.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = 'HET_HANG' WHERE id = ?", [p11.id]);
     await guiSepay(bao(p11));
-    k('G11 phiên App "loi" (chốt hỏng vì đơn — không phải hết hạn / huỷ) tiền về → chua_khop ĐỎ như cũ, KHÔNG cộng ví', await ketQua(p11.id) === 'chua_khop'
-      && await soDu(kh.sdt) === 70000, `${await ketQua(p11.id)} · ví ${await soDu(kh.sdt)}`);
+    k('G11 phiên App "loi" từ trước (chốt hỏng vì đơn) tiền về → CŨNG cộng vào ví (chủ quán 05.11 lượt 2), dòng vao_vi', await ketQua(p11.id) === 'vao_vi'
+      && await soDu(kh.sdt) === 95000, `${await ketQua(p11.id)} · ví ${await soDu(kh.sdt)}`);
+    const c11 = await goi('GET', `/kh/don/${r11.j.ma_don}`, undefined, kh.tk);
+    k('L12 App: phiên loi "HET_HANG" → thong_bao_tien_ve đúng nguyên câu', c11.j.don?.thong_bao_tien_ve
+      === 'Không tạo được đơn vì món đã hết hàng — đã cộng 25.000đ vào tài khoản của bạn', JSON.stringify(c11.j.don?.thong_bao_tien_ve));
+    k('L12 App: đơn huỷ rồi tiền về (G1) → "Tiền về sau khi đơn đã huỷ / hết hạn — đã cộng 25.000đ vào tài khoản của bạn"; đơn không tiền về → null',
+      c1.j.don?.thong_bao_tien_ve === 'Tiền về sau khi đơn đã huỷ / hết hạn — đã cộng 25.000đ vào tài khoản của bạn'
+      && (await goi('GET', '/kh/don', undefined, kh.tk)).j.data?.some((d) => d.ma === r5.j.ma_don && d.thong_bao_tien_ve === null),
+    JSON.stringify(c1.j.don?.thong_bao_tien_ve));
     const ds = await chayDoiSoat({ kieu: 'ngay' });
     k('G8 Đối soát: "tiền về muộn — đã cộng vào tài khoản" ở CẦN XEM, không ở ĐỎ', ds.can_xem.some((l) => l.bat_bien === 'CK' && /tiền về muộn — đã cộng vào tài khoản/.test(l.mo_ta))
       && !ds.do.some((l) => /đã cộng vào tài khoản/.test(l.mo_ta)), ds.do.filter((l) => l.bat_bien === 'CK').map((l) => l.mo_ta).join(' | ').slice(0, 200));
@@ -483,6 +490,89 @@ async function main() {
     const w9 = await guiPayos(p9);
     k('G9 payOS báo tiền về muộn cho đơn App đã huỷ → cũng cộng (cùng một hàm)', la(w9, 200) && await soDu(kp.sdt) === 25000 && await ketQua(p9.id) === 'vao_vi', `ví ${await soDu(kp.sdt)}`);
     datCong('sepay');
+  });
+
+  muc('[L] phiên APP lỗi vì đơn (món ngừng bán lúc tiền về ĐÚNG hạn) → tiền thật đã về cộng vào ví, báo rõ App · quầy · Đối soát');
+  await chay('L', async () => {
+    datCong('sepay');
+    const ngungBan = (tat) => db.run('UPDATE pos_products SET is_active = ? WHERE id = ?', [tat ? 0 : 1, sp.id]);
+    const kh = await khach(0);
+    const r1 = await datApp(kh);
+    const p1 = await phienApp(r1.j.ma_don) || {}, s1 = await soCua(p1.id);
+    const soHd1 = 'APP' + so4(Number(s1?.so));
+    const b1 = bao(p1, { referenceCode: 'FT26309LOI01' });
+    const dk = await soDon();
+    await ngungBan(true);
+    const w1 = await guiSepay(b1);
+    await ngungBan(false);
+    k('L1 App QR đúng hạn, món ngừng bán, tiền về đúng số → phiên loi, KHÔNG đơn, ví +25.000, một dòng báo vao_vi', daNhan(w1) && (await dongPhien(p1.id))?.trang_thai === 'loi'
+      && await soDon() === dk && await soDu(kh.sdt) === 25000 && await ketQua(p1.id) === 'vao_vi', `${await ketQua(p1.id)} · ví ${await soDu(kh.sdt)} · ${(await dongPhien(p1.id))?.trang_thai}`);
+    const vi1 = await db.queryOne('SELECT * FROM pos_balance_transactions WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [kh.sdt]).catch(() => null);
+    k('L2 dòng ví: nạp chuyển khoản, ghi "Không tạo được đơn" + APP<số> + mã GD', vi1?.type === 'topup' && vi1?.payment_method === 'transfer'
+      && /Không tạo được đơn/.test(vi1?.notes || '') && String(vi1?.notes).includes(soHd1) && String(vi1?.notes).includes('FT26309LOI01'), JSON.stringify(vi1?.notes));
+    const c1 = await goi('GET', `/kh/don/${r1.j.ma_don}`, undefined, kh.tk);
+    const ds1 = await goi('GET', '/kh/don', undefined, kh.tk);
+    const CAU = 'Không tạo được đơn vì món đã hết hàng — đã cộng 25.000đ vào tài khoản của bạn';
+    k('L3 App: da_huy + tien_ve_da_cong_vi 25000 + thong_bao_tien_ve đúng nguyên câu (chi tiết và danh sách)', c1.j.don?.tien_trinh === 'da_huy'
+      && c1.j.don?.tien_ve_da_cong_vi === 25000 && c1.j.don?.thong_bao_tien_ve === CAU
+      && (ds1.j.data || []).some((d) => d.ma === r1.j.ma_don && d.thong_bao_tien_ve === CAU), JSON.stringify(c1.j.don || null).slice(0, 260));
+    k('L3 App KHÔNG nhận lời lỗi nội bộ (tên lỗi máy chủ / "ngừng bán")', !/ngừng bán|không tồn tại/.test(JSON.stringify(c1.j.don || {})));
+    const w2 = await guiSepay(b1);
+    k('L4 báo lặp CÙNG giao dịch → không cộng lần hai', daNhan(w2) && await soDu(kh.sdt) === 25000 && (await suKien(p1.id)).length === 1, `ví ${await soDu(kh.sdt)}`);
+    const w6 = await guiSepay(bao(p1, { referenceCode: 'FT26309LOI06' }));
+    k('L6 khoản KHÁC (giao dịch thứ hai) vào phiên đã loi → cộng thêm đúng một lần', daNhan(w6) && await soDu(kh.sdt) === 50000
+      && await ketQua(p1.id) === 'vao_vi,vao_vi', `ví ${await soDu(kh.sdt)} · ${await ketQua(p1.id)}`);
+    const r5 = await datApp(kh);
+    const p5 = await phienApp(r5.j.ma_don) || {};
+    const b5 = bao(p5);
+    await ngungBan(true);
+    const [w5a, w5b] = await Promise.all([guiSepay(b5), guiSepay(b5)]);
+    await ngungBan(false);
+    k('L5 hai báo CÙNG giao dịch cùng lúc, phiên đúng hạn hỏng đơn → cộng đúng một lần, một dòng báo', daNhan(w5a) && daNhan(w5b) && await soDu(kh.sdt) === 75000
+      && (await suKien(p5.id)).length === 1 && await ketQua(p5.id) === 'vao_vi', `ví ${await soDu(kh.sdt)} · ${await ketQua(p5.id)}`);
+    const r7 = await datApp(kh);
+    const p7 = await phienApp(r7.j.ma_don) || {};
+    await ngungBan(true);
+    const w7 = await guiSepay(bao(p7, { accountNumber: '9990009999' }));
+    const w7b = await guiSepay(bao(p7), { chuKy: 'sha256=' + '2'.repeat(64) });
+    await ngungBan(false);
+    k('L7 tài khoản KHÁC → chua_khop, sai chữ ký → 401; KHÔNG cộng ví', daNhan(w7) && la(w7b, 401) && await ketQua(p7.id) === 'chua_khop'
+      && await soDu(kh.sdt) === 75000, `${await ketQua(p7.id)} · ví ${await soDu(kh.sdt)}`);
+    const q = await goi('GET', '/pos/kh/don-app');
+    const dq = (q.j.data || []).find((d) => d.tien_trinh === 'vao_vi' && d.so_hd === soHd1 && String(d.ly_do).includes('FT26309LOI01'));
+    k('L8 quầy (GET /pos/kh/don-app) có MỖI báo vao_vi một dòng: so_hd, so_tien 25000, tên khách, lý do "không tạo được đơn" + mã GD', la(q, 200) && !!dq
+      && dq.so_tien === 25000 && dq.ten_khach === 'Khách ' + kh.sdt && /không tạo được đơn/.test(dq.ly_do || '') && Array.isArray(dq.mon)
+      && (q.j.data || []).filter((d) => d.tien_trinh === 'vao_vi' && d.so_hd === soHd1).length === 2,
+    JSON.stringify((q.j.data || []).filter((d) => d.tien_trinh === 'vao_vi')).slice(0, 400));
+    const dl = await goi('POST', `/pos/kh/don-app/${(await db.queryOne('SELECT id FROM pos_don_app WHERE ma = ?', [r1.j.ma_don]))?.id}/dang-lam`, {});
+    k('L8 dòng vao_vi không phải đơn "Mới" (không da_tra), không bấm Đang làm được (409)', !(q.j.data || []).some((d) => d.ma === r1.j.ma_don && d.tien_trinh === 'da_tra')
+      && la(dl, 409, 'DA_DOI_TIEN_TRINH'), moTa(dl));
+    const ds = await chayDoiSoat({ kieu: 'ngay' });
+    const dong = ds.can_xem.find((l) => l.bat_bien === 'CK' && l.mo_ta.includes('FT26309LOI01'));
+    k('L9 Đối soát: CẦN XEM có lý do (không tạo được đơn), số HD, số tiền 25.000, mã GD; không ở ĐỎ', !!dong && /không tạo được đơn/.test(dong.mo_ta)
+      && dong.mo_ta.includes(soHd1) && dong.mo_ta.includes('25.000') && !ds.do.some((l) => l.mo_ta.includes('FT26309LOI01')), dong?.mo_ta || 'không thấy');
+    const kq = await khach(0);
+    const pq = (await taoPhien({ sdt: kq.sdt, khongVi: true })).j.phien || {};
+    await ngungBan(true);
+    const wq = await guiSepay(bao(await dongPhien(pq.id) || {}));
+    await ngungBan(false);
+    k('L10 phiên QUẦY hỏng đơn lúc tiền về → chua_khop ĐỎ như cũ, KHÔNG cộng ví', daNhan(wq) && await ketQua(pq.id) === 'chua_khop' && await soDu(kq.sdt) === 0
+      && (await dongPhien(pq.id))?.trang_thai === 'loi', `${await ketQua(pq.id)} · ví ${await soDu(kq.sdt)}`);
+    datCong('payos');
+    const kp = await khach(0);
+    const r11 = await datApp(kp);
+    const p11 = await phienApp(r11.j.ma_don) || {};
+    await ngungBan(true);
+    const w11 = await guiPayos(p11);
+    await ngungBan(false);
+    k('L11 payOS: phiên App hỏng đơn lúc tiền về → cũng cộng ví (cùng một hàm)', la(w11, 200) && await soDu(kp.sdt) === 25000 && await ketQua(p11.id) === 'vao_vi',
+      `ví ${await soDu(kp.sdt)} · ${await ketQua(p11.id)}`);
+    datCong('sepay');
+    const doc = (f) => fs.readFileSync(path.join(GOC, 'client', 'src', ...f), 'utf8');
+    const dist = path.join(GOC, 'client', 'dist', 'assets');
+    const bundle = fs.existsSync(dist) ? fs.readdirSync(dist).filter((f) => f.endsWith('.js')).map((f) => fs.readFileSync(path.join(dist, f), 'utf8')).join('\n') : '';
+    k('L13 màn Đơn App + nút nổi đọc dòng vao_vi; bản build dist có', /'vao_vi'/.test(doc(['pages', 'DonApp.jsx'])) && /'vao_vi'/.test(doc(['components', 'DonAppNoi.jsx']))
+      && /"vao_vi"/.test(bundle) && /vào ví/.test(bundle));
   });
 
   muc('[E] Đối soát cuối ngày — số hoá đơn huỷ kèm lý do; số trống không lý do → ĐỎ');
