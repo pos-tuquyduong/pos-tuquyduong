@@ -202,3 +202,20 @@ khi gộp ở `customers-v2.js` / `kh/index.js` / `PHIEN_BAN`, chat soát xử l
   `pos_customers` (khách SX); phiên payOS ghi là rủi ro biết trước.
 - Ghi để biết, không làm: quyền `cap_hang` chưa có nhãn ở `server/routes/users.js:156-171` (ngoài Phạm vi — `refund_package`,
   `xoa_pin_khach` cũng vậy); owner luôn qua `checkPermission` (`middleware/auth.js:90`).
+
+## 12. Câu 4 (chủ quán 05.11: a theo đề xuất, b1) — vòng sửa sau soát vòng 3 + soát bảo mật lần 1
+| Phần | A (chọn) | B (bỏ) |
+|---|---|---|
+| (a) khôi phục file đổi hạng | `pos_membership_tiers` vào `BANG_KHONG_KHOI_PHUC` (backup.js, 1 dòng) — xem trước + khôi phục 400 như ví / đơn / sổ thẻ | `restore` đòi PIN + chạy `kiemHang` từng dòng — thêm đường ghi hạng thứ hai (K4), nhiều dòng |
+| (b1) đổi PIN | `datPinChuQuan(…, pinCu)`: đã có PIN → `kiemPinChuQuan(pinCu)` SAU kiểm dữ liệu (cùng bộ đếm / khoá) — ~4 dòng | hàm so PIN riêng — mất bộ đếm, đổi PIN thành chỗ dò PIN |
+| băm PIN | `boCot: ['pin_bam']` ở dòng bảng + `readTablePaged` bỏ cột (2 chỗ gọi) — bảng vẫn sao lưu (E8 / D2c) | bỏ bảng khỏi BACKUP_TABLES — phạm E8 / SAOLUU-2 D2c |
+| giao diện | ô "PIN cũ" chỉ khi đã có PIN, gửi `pin_cu`; KHÔNG nút quên PIN | — |
+Ca thử (thu_HANG1 mục [S] + G1e/G1g): S1 (xem trước + khôi phục trang hạng → 400, hạng không đổi) · S1b K5 (file không trang hạng → 200) ·
+S2 / S2b (xuất tất cả / xuất riêng: không cột pin_bam, không băm; bảng vẫn có) · S3 (không PIN cũ → 400) · S3b (PIN cũ sai) · S3c (PIN mới sai dạng
+không tốn lượt) · S4 (sai 5 lần → 423, đổi PIN không gỡ khoá) · S5 K5 (đúng PIN cũ → 200) · S5b (sai mật khẩu) · S5c (quản lý → 403) ·
+C0e K5 (lần đầu chưa có PIN → đặt không cần PIN cũ) · G1g.
+Đường song song (K4): ghi `pos_membership_tiers` — chỉ tiers.js (PIN), khôi phục (nay chặn), bước 013, seed database.js; ghi `pos_pin_chu_quan` —
+chỉ pinChuQuan.js; khôi phục bảng PIN đã chặn từ trước. Xuất bảng: export-all + export/:table (cả hai bỏ cột).
+Luồng hợp lệ (K5): đặt PIN lần đầu; đổi PIN đúng PIN cũ; khôi phục file không có trang hạng; xuất sao lưu vẫn có bảng PIN.
+Ngoài Phạm vi bị chặn theo: bài cũ khôi phục NGUYÊN file "xuất tất cả" (trang hạng luôn có dòng) — `thu_SAOLUU2` F1, `thu_KHO1` J3/J5/J6/J7,
+`thu_KHO2b` H4 → câu hỏi 5.

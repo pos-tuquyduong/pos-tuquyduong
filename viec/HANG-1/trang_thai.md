@@ -384,3 +384,42 @@ SOÁT BẢO MẬT: KHÔNG ĐẠT — 1
    Kèm theo (không cần quyết, mình làm cùng vòng sửa): bỏ cột băm PIN khỏi file sao lưu (người lọc chấm 3 — chỉ là làm cứng, nhưng bảng đó vốn không
    khôi phục được nên sao lưu nó không có ích); sửa 2 lỗi NHẸ của soát vòng 3 (chú thích "để nhật ký hiện đến …" ở `membership.js` / `membershipStatus.js` /
    `orders.js`, và chú thích "PIN chỉ cho cấp / thu hồi" ở `pinChuQuan.js` / `HangThe.jsx`).
+
+## Bước 1 — đối chiếu bản chụp, làm tiếp (05.11.2026 — chủ quán trả lời câu 4: (a) theo đề xuất, (b) chọn b1)
+- Nhánh `viec/HANG-1`, cây sạch. Hook mở phiên kéo `c26b4e0 → 60d70a4`. `git fetch origin viec/HANG-1`: HEAD = `60d70a4`, FETCH_HEAD = `60d70a4` → bằng nhau.
+- `git log --oneline -3`:
+  ```
+  60d70a4 HANG-1 soat bao mat lan 1 (KHONG DAT — 1 lo sau loc: khoi phuc sao luu doi hang khong PIN); cau hoi 4 cho chu quan, dung
+  99e6bd1 HANG-1 soat vong 3: chep bao cao (KHONG DAT — 2 lo bao mat vuot PIN: khoi phuc sao luu hang, dat lai mat khau roi dat PIN)
+  b7e9564 HANG-1 trang thai 05.11: chu quan tra loi cau 3 (C9 thu_P26a do da biet, hop dong v10 chat chinh luc gop)
+  ```
+
+## Làm tiếp 05.11 — câu 4 (kế hoạch: `ke_hoach.md` mục 12)
+- Bài thử TRƯỚC (`39a6cc2`, thu_HANG1 mục [S] + G1e/G1g): trên code chưa vá **135 đạt · 9 hỏng** (✗ S2, S2b, S1, S1b kéo theo, S3, S3b, S4, G1e, G1g);
+  trên gốc 2a12443 **7 đạt · 79 hỏng**. Vá `a00f1c0` → **144 đạt · 0 hỏng**. `bang_chung_do.txt`: SỐ CA thu_HANG1 144.
+- **(a)** `server/routes/backup.js`: `pos_membership_tiers` vào `BANG_KHONG_KHOI_PHUC` → xem trước + khôi phục file có trang "Hạng thành viên" có dòng
+  → 400 `KHOI_PHUC_TRANG_TIEN_BI_CHAN` (như ví / đơn / sổ thẻ); hạng chỉ sửa ở Cài đặt có PIN.
+- **(b1)** `server/utils/pinChuQuan.js` `datPinChuQuan(…, pinCu)`: đã có PIN → `kiemPinChuQuan(pinCu)` SAU phần kiểm dữ liệu (PIN mới sai dạng không tốn
+  lượt), cùng bộ đếm sai 5 lần / khoá 15 phút — đổi PIN KHÔNG còn gỡ khoá. Route `POST /membership/pin-chu-quan` nhận `pin_cu`. Giao diện: ô "PIN cũ"
+  chỉ hiện khi đã có PIN; KHÔNG nút quên PIN (quên PIN: chủ quán nhờ chat soạn cách xoá dòng PIN trong kho). `client/dist` build lại.
+- **Băm PIN:** dòng bảng `pos_pin_chu_quan` có `boCot: ['pin_bam']`; `readTablePaged` bỏ cột đó ở CẢ hai đường xuất (export-all, export/:table). Bảng vẫn
+  sao lưu (E8 / SAOLUU-2 D2c), nhãn đổi "PIN chủ quán (băm)" → "PIN chủ quán".
+- **Chú thích sai (soát vòng 3 lỗi 3, 4):** `membership.js` (ghiDong), `membershipStatus.js` (hanSauDong), `orders.js` (khối ghi sổ thẻ) — expires_at nay ghi
+  "chỉ API /nhat-ky trả ra, màn nhật ký không hiện"; `pinChuQuan.js` đầu file + `HangThe.jsx` đầu file — PIN dùng cả cho lưu / xoá Cài đặt hạng.
+- Rà K4: ghi `pos_membership_tiers` — `tiers.js` (PIN), khôi phục (nay chặn), `nang_cap/013_hang.js`, seed `database.js:1330`; ghi `pos_pin_chu_quan` — chỉ
+  `pinChuQuan.js` (3 câu); xuất sao lưu — 2 chỗ gọi `readTablePaged`, cả hai truyền `boCot`.
+- Đột biến: `python3 viec/HANG-1/dot_bien.py` → ĐỐI CHỨNG XANH 144 đạt · **TỔNG 60 · BẮT 60** · SỐNG 0 · HỎNG 0 · LẠC 0.
+- `npm test -- --day-du` → **PASS 94 · FAIL 4 · CẢNH BÁO 1** (băm dist khớp src). Dòng ✗ nguyên văn:
+  - `✗ bài chạy thật cong_cu/thu_P26a.js xanh (0.8 s)  → ✗ C9 PUT /tiers lưu lại hạng có sẵn → 200  — HTTP 200 / HTTP 400 · Chưa đặt PIN chủ quán — chủ quán đặt ở Cài đặt → Hạng thành viên` — ĐỎ ĐÃ BIẾT (câu 3).
+  - `✗ bài chạy thật cong_cu/thu_SAOLUU2.js xanh (2.5 s)  → ✗ F1 0 trang khôi phục — hai file giống từng ô (kể cả ô trống / ô chữ rỗng / kho)  — HTTP 400 · KHOI_PHUC_TRANG_TIEN_BI_CHAN · File có trang dính tiền (Hạng thành viên) …`
+  - `✗ bài chạy thật cong_cu/thu_KHO1.js xanh (2.3 s)  → ✗ J3 … ✗ J5 … ✗ J6 … ✗ J7 …` — cùng lý do `KHOI_PHUC_TRANG_TIEN_BI_CHAN · … (Hạng thành viên)`.
+  - `✗ bài chạy thật cong_cu/thu_KHO2b.js xanh (1.7 s)  → ✗ H4 sao lưu có cột mới (don_id, su_co); khôi phục khi kho đang có dữ liệu → bảng kho KHÔNG bị chép đè …  — 134039 byte · 400 · …`
+  → ba bài NGOÀI Phạm vi, xem câu hỏi 5.
+
+### Bảng chỗ vá → đột biến (bổ sung 05.11, câu 4)
+| Chỗ vá | Đột biến |
+|---|---|
+| `backup.js` trang Hạng thành viên không khôi phục (xem trước + khôi phục) | BV-khoi-phuc-hang · VS-khoi-phuc-hang-chi-restore |
+| `backup.js` không xuất băm PIN (2 đường xuất) | BV-bam-pin-sao-luu · VS-bam-pin-mot-duong |
+| `pinChuQuan.js` đổi PIN cần PIN cũ, cùng bộ đếm, sau kiểm dữ liệu | BV-pin-cu · VS-pin-cu-khong-dem · VS-pin-cu-truoc-du-lieu |
+| `HangThe.jsx` gửi PIN cũ | VS-pin-cu-giao-dien |
