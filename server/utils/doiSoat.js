@@ -9,7 +9,7 @@
  * Đổi chữ mô tả trong bat_bien.js thì cập nhật KHOA — bài thử C4 canh từng bất biến.
  */
 const db = require('../database');
-const { getToday, getNow, addDaysToDateString } = require('./helpers');
+const { getToday, getNow, addDaysToDateString, chuoiSoHd } = require('./helpers');
 const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('./congQr');
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
@@ -251,14 +251,13 @@ async function phepTienVe(q) {
 
 // ─── SO (CK-NOIDUNG-1): sổ số hoá đơn của KỲ NGÀY — số không thành đơn kèm lý do (suy từ phiên lúc đọc: Render ngủ, không ghi lúc hết hạn),
 // số thành đơn có mã giao dịch ngân hàng. Số không phiên, không đơn = "số trống không lý do" → ĐỎ (cách cấp không để xảy ra — phép canh).
-const soHdChuoi = (r) => r.kenh + String(r.so).padStart(4, '0');
 function lyDoSo(r, bayGio) {
   if (r.order_id) return null;
   if (!r.phien_id) return 'số trống không lý do';
-  if (r.p_tt === 'huy') return 'huỷ trước khi trả';
-  if (r.p_tt === 'loi') return r.p_ly_do ? `lỗi: ${r.p_ly_do}` : 'cổng QR lỗi';
-  if (r.p_tt === 'cho') return (r.p_het_han > bayGio ? 'đang chờ' : 'QR hết hạn, chưa nhận tiền') + (r.ve_muon ? ' — tiền về muộn, xem mục CK' : '');
-  return `phiên ${r.p_tt}`;
+  // Có báo tiền về cho phiên (chua_khop / vao_vi) → MỌI trạng thái nối "xem mục CK" (soát vòng 1: trước chỉ nhánh 'cho').
+  const goc = r.p_tt === 'huy' ? 'huỷ trước khi trả' : r.p_tt === 'loi' ? (r.p_ly_do ? `lỗi: ${r.p_ly_do}` : 'cổng QR lỗi')
+    : r.p_tt === 'cho' ? (r.p_het_han > bayGio ? 'đang chờ' : 'QR hết hạn, chưa nhận tiền') : `phiên ${r.p_tt}`;
+  return goc + (r.ve_muon ? ' — có tiền về, xem mục CK' : '');
 }
 async function soHoaDonNgay(ngay, q) {
   const ds = await q(`SELECT h.kenh, h.so, h.phien_id, h.order_id, o.code AS ma_don, o.ma_gd, p.trang_thai AS p_tt, p.ly_do AS p_ly_do, p.het_han AS p_het_han,
@@ -266,7 +265,7 @@ async function soHoaDonNgay(ngay, q) {
     FROM pos_so_hoa_don h LEFT JOIN pos_orders o ON o.id = h.order_id LEFT JOIN pos_phien_thanh_toan p ON p.id = h.phien_id
     WHERE h.ngay = ? AND (h.order_id IS NULL OR o.ma_gd IS NOT NULL) ORDER BY h.so`, [ngay]);
   const bayGio = getNow();
-  return ds.map((r) => ({ so_hd: soHdChuoi(r), phien_id: r.phien_id, ma_don: r.ma_don || null, ma_gd: r.ma_gd || null,
+  return ds.map((r) => ({ so_hd: chuoiSoHd(r), phien_id: r.phien_id, ma_don: r.ma_don || null, ma_gd: r.ma_gd || null,
     trang_thai: r.order_id ? 'thanh_don' : r.p_tt === 'cho' && r.p_het_han > bayGio ? 'dang_cho' : 'huy', ly_do: lyDoSo(r, bayGio) }));
 }
 

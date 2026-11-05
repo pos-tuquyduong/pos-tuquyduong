@@ -6,7 +6,7 @@
 const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow } = require('../utils/helpers');
+const { getNow, chuoiSoHd } = require('../utils/helpers');
 const { loiGhi, ghiVi, trongGiaoDich } = require('./wallets');
 const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const { datPin, xoaPin } = require('../utils/pinKhach');
@@ -25,7 +25,7 @@ const docPhien = (id) => queryOne('SELECT * FROM pos_phien_thanh_toan WHERE id =
 const laPhienApp = async (id) => !!(await queryOne('SELECT 1 AS co FROM pos_don_app WHERE phien_id = ?', [id]));
 const soHdCuaPhien = async (id) => {
   const s = await queryOne('SELECT kenh, so FROM pos_so_hoa_don WHERE phien_id = ?', [id]);
-  return s ? s.kenh + String(s.so).padStart(4, '0') : `phiên #${id}`;
+  return s ? chuoiSoHd(s) : `phiên #${id}`;
 };
 
 router.post('/phien', authenticate, async (req, res) => {
@@ -149,6 +149,15 @@ async function xuLyTienVe(res, t) {
     const soHd = await soHdCuaPhien(x.id), maGd = t.maGd || '—';
     const dau = x.trang_thai === 'loi' ? `không tạo được đơn (${x.ly_do || 'lỗi'})` : 'tiền về muộn';
     await trongGiaoDich(async (tx) => {
+      // "Hai cổng" (soát vòng 1): một khoản báo qua CẢ payOS lẫn SePay mang hai khoá khác nhau. Cổng này báo phiên ÍT lần hơn số lần cổng KIA đã
+      // cộng ví → đây là bản sao của khoản đã cộng: ghi chua_khop + LY_DO_HAI_CONG (CẦN XEM), KHÔNG cộng lần hai. Đọc trong giao dịch ghi — hai báo
+      // tới cùng lúc thì báo sau thấy dòng của báo trước. Báo NHIỀU hơn = khách chuyển thêm thật → cộng như thường.
+      const da = await tx.query('SELECT khoa, ket_qua FROM pos_payos_su_kien WHERE ma_payos = ? AND khoa <> ?', [t.ma, t.khoa]);
+      const nay = da.filter((d) => congCuaKhoa(d.khoa) === t.nguon).length;
+      if (nay < da.filter((d) => d.ket_qua === 'vao_vi' && congCuaKhoa(d.khoa) !== t.nguon).length) {
+        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — ${LY_DO_HAI_CONG} (đã cộng vào tài khoản ${x.phone} qua báo cổng kia, ${soHd}) · mã GD ${maGd}: đối chiếu sao kê, KHÔNG cộng lần hai`));
+        return;
+      }
       const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));
       if (ins.changes !== 1) return;
       await ghiVi(tx, { phone: x.phone, loai: 'topup', soTien: t.soTien, cachTra: 'transfer', nguoi: t.nguon, luc: getNow(), cot: 'total_topup', soCot: t.soTien,

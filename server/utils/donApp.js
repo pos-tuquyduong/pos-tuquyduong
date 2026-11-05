@@ -18,7 +18,7 @@
  */
 const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
-const { getNow, soHdCuaMa } = require('./helpers');
+const { getNow, soHdCuaMa, chuoiSoHd } = require('./helpers');
 const { taoDon } = require('../routes/orders');
 const { layMenuQuay } = require('../routes/products');
 const { docCaiDat, dangMo } = require('./gioHoatDong');
@@ -57,12 +57,12 @@ function tienTrinh(p, o, quay) {
   if (p.trang_thai === 'da_thu') return o && HUY.includes(o.status) ? 'da_huy' : quay || 'da_tra';
   return p.trang_thai === 'cho' && p.het_han > getNow() ? 'cho_tra' : 'da_huy';
 }
-const soHd = (kenh, so) => kenh + String(so).padStart(4, '0');   // = helpers chuoiSoHd, đọc từ cột SQL
 const qrCua = (p, tt) => (tt === 'cho_tra' ? { chuoi: p.qr, het_han: p.het_han } : null);
 // Lý do NGẮN cho khách khi phiên App 'loi' (không tạo được đơn): đọc từ ly_do phiên (mã lỗi hoặc lời lỗi của taoDon) — KHÔNG đưa lời lỗi nội bộ
-// (số tồn kho, tên lỗi) ra App. Thứ tự là thứ tự xét; không khớp dòng nào → câu chung.
+// (số tồn kho, tên lỗi) ra App. Thứ tự là thứ tự xét — mã giảm TRƯỚC giá (lời flash sale có chữ "giảm giá"); mục giá chỉ khớp cụm "giá … đổi" /
+// "không khớp tổng" (không khớp "chưa có giá bán"). Không khớp dòng nào → câu chung.
 const LY_DO_NGAN = [[/HET_HANG|hết hàng|không đủ hàng|ngừng bán|không tồn tại/i, 'vì món đã hết hàng'], [/SO_DU|số dư/i, 'vì số dư tài khoản không đủ'],
-  [/GIA_DA_DOI|giá/i, 'vì giá món đã đổi'], [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được']];
+  [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];
 const lyDoNgan = (s) => (LY_DO_NGAN.find(([m]) => m.test(String(s || ''))) || [null, 'vì đơn không còn hợp lệ'])[1];
 /** Câu App hiện khi tiền đã về được cộng vào tài khoản (dòng báo 'vao_vi' — thanh-toan.js xuLyTienVe); không có → null. */
 function thongBaoTienVe(r) {
@@ -191,7 +191,7 @@ async function traDon(a, trung) {
   const o = p.order_id ? await queryOne('SELECT status FROM pos_orders WHERE id = ?', [p.order_id]) : null;
   const tt = tienTrinh(p, o, a.tien_trinh_quay);
   const so = await queryOne('SELECT kenh, so FROM pos_so_hoa_don WHERE phien_id = ?', [p.id]);
-  return { status: 200, body: { success: true, ma_don: a.ma, so_hd: so ? soHd(so.kenh, so.so) : null, tong: p.tong, giu_vi: p.giu_vi, con_lai: p.con_lai,
+  return { status: 200, body: { success: true, ma_don: a.ma, so_hd: so ? chuoiSoHd(so) : null, tong: p.tong, giu_vi: p.giu_vi, con_lai: p.con_lai,
     tien_trinh: tt, qr: qrCua(p, tt), trung } };
 }
 

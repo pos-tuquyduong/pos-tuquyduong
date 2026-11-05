@@ -52,7 +52,8 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + CK-NOIDUNG-1) (routes/chuong
 - Nội dung chuyển khoản trong `qr.chuoi`: `TQD<THÁNG 3 chữ tiếng Anh><NGÀY 2 số> APP<4 số>` (vd `TQDNOV05 APP0016`, giờ VN) — App không cần đọc.
 - `tien_ve_da_cong_vi` (số nguyên đồng, 0 khi không có): tiền QR về mà máy chủ KHÔNG tạo được đơn — đơn App đã `da_huy` (khách huỷ / QR hết hạn),
   HOẶC tiền về đúng hạn nhưng đơn hỏng (vd món hết hàng đúng lúc đó) → máy chủ tự cộng số tiền thật đã về vào tài khoản (ví) của khách, một lần
-  mỗi giao dịch ngân hàng (chủ quán 05.11). Đơn hiện `da_huy`, `tien_ve_cho_doi_soat: true`.
+  mỗi giao dịch ngân hàng — báo lặp, hoặc cùng khoản báo qua cả hai cổng QR, chỉ cộng một lần (chủ quán 05.11). Đơn hiện `da_huy`,
+  `tien_ve_cho_doi_soat: true`.
 - `thong_bao_tien_ve` (chuỗi | `null`): câu App HIỆN NGUYÊN cho khách khi `tien_ve_da_cong_vi` > 0 — đơn hỏng: `Không tạo được đơn <lý do ngắn> — đã cộng
   <số tiền> vào tài khoản của bạn` (vd `Không tạo được đơn vì món đã hết hàng — đã cộng 25.000đ vào tài khoản của bạn`); đơn huỷ / hết hạn: `Tiền về sau
   khi đơn đã huỷ / hết hạn — đã cộng <số tiền> vào tài khoản của bạn`. `null` khi không có tiền nào được cộng. App không tự ghép câu.
