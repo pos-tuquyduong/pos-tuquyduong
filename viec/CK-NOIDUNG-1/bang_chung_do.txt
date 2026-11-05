@@ -1,0 +1,83 @@
+CK-NOIDUNG-1 — bằng chứng đỏ (05.11.2026)
+
+Code GỐC: `git archive 150e7db` (PHIEU: CK-NOIDUNG-1 chủ quán trả lời Q1–Q3 — server/, client/ giống mốc^) giải vào thư mục nháp, chép bản bài thử
+HIỆN TẠI vào, node_modules nối symlink. Lệnh: cd <nháp>/goc && node cong_cu/<bài>.js (chạy qua script nháp bỏ mã màu).
+
+## cong_cu/thu_CKNOIDUNG1.js — bài MỚI của việc này
+TRÊN CODE GỐC → ĐỎ: 18 đạt · 56 hỏng (thoát 1). Các dòng đỏ:
+  ✗ A1 phiên QR quầy giữ số ngay lúc tạo: sổ có dòng (ngày hôm nay giờ VN, kênh HD), nội dung = TQD<MMM><DD> HD<4 số> (cả 62.08 VietQR)  — HTTP 200 {"s1":null,"nd":"TQD1","f62":"TQD1"}
+  ✗ A2 phiên App giữ số kế tiếp CÙNG dãy (kênh APP), nội dung TQD<MMM><DD> APP<4 số>  — {"s2":null,"nd":"TQD2"}
+  ✗ A3 hai phiên tạo cùng lúc (Promise.all) → hai số khác nhau, liền nhau  — {}
+  ✗ A4 đơn tiền mặt tạo giữa các phiên → lấy số SAU số đã giữ (không lấy lại), phiên sau đó lấy số kế tiếp  — HTTP 200 ORD-20261105-001 · phiên sau undefined
+  ✗ A8 quầy gửi kenh: "APP" trong thân yêu cầu → vẫn kênh HD (kênh App chỉ do máy chủ đặt)  — {"s8":null,"nd":"TQD6"}
+  ✗ A6 phiên bị từ chối trong giao dịch (400 CACH_KHONG_KHOP) không tiêu số — sổ không thêm dòng  — HTTP 400 · CACH_KHONG_KHOP · -1 → -1
+  ✗ A5 phiên tạo lúc 00:00:30 ngày mai (giờ VN) → số 0001 của ngày mai  — HTTP 200 {"s5":null,"nd":"TQD7"}
+  ✗ A7 ngày đã dùng tới 9999 → tạo phiên QR hỏng (5xx), không có số 10000, không có phiên mới  — HTTP 200
+  ✗ B3 nội dung bị ngân hàng đổi dạng (chấm / gạch giữa các phần: "TQD.10") → khớp ĐÚNG phiên, một đơn  — HTTP 200 ·
+  ✗ B6 CONG_QR=payos: nội dung = TQD<mã phiên> (≤ 9 ký tự), phiên vẫn giữ số HD  — HTTP 200 {"nd":"TQD15","s6":null}
+  ✗ B6 tiền payOS về → đơn mang đúng số đã giữ  — ORD-20261105-006
+  ✗ B8 phiên tạo 06:30 giờ VN ngày 2026-11-07 (UTC còn hôm trước) → nội dung mang ngày VN  — TQD16
+  ✗ B9 nội dung đúng dạng mà không thuộc phiên nào → khong_phien, lý do + Đối soát ghi chuỗi khách gõ "TQDJAN01 HD0099"  — "không có mã TQD trong nội dung"
+  ✗ C1 tiền SePay về → mã đơn ORD-<ngày của số>-HD<số đã giữ>  — ORD-20261105-007
+  ✗ D1 referenceCode SePay → pos_orders.ma_gd  — undefined
+  ✗ C1 hoá đơn (routes/hoaDon.js) so_bill = HD<số> (đúng chuỗi in to)  — 007
+  ✗ D5 dữ liệu hoá đơn có don.ma_gd  — {"id":7,"code":"ORD-20261105-007","so_bill":"007","gio":"2026-11-05T14:34:40","nhan_vien":"admin","trang_thai":"completed","thanh_toan_trang_thai":"paid"}
+  ✗ D5 bill quầy (client/src/utils/hoaDon.js) có dòng "Mã GD" FT26309ABCDE  — null
+  ✗ D3 GET /orders/:id (chi tiết đơn) có ma_gd  — undefined
+  ✗ C1 số bill của don-mo-rong (/orders/cho-thu) = HD<số>  — {"id":7,"code":"ORD-20261105-007","customer_name":"Khách lẻ","customer_phone":null,"total":25000,"debt_amount":0,"payment_status":"pending","created_at":"2026-1
+  ✗ D2 payOS reference → pos_orders.ma_gd
+  ✗ C5 đơn App trả QR qua webhook → mã ORD-<ngày>-APP<số>, hoá đơn so_bill APP<số>  — ORD-20261105-009 · 009
+  ✗ BỎ mã App ngẫu nhiên khỏi ghi chú đơn (in trên bill / phiếu): ghi chú không chứa mã A…, vẫn "Đơn App"  — Đơn App A9QJPJWYN · nhận tại quán
+  ✗ D5 hoá đơn App (GET /kh/don/:ma hoa_don) có dòng "Mã GD"  — [{"loai":"ck","trai":"Chuyển khoản (payOS)","phai":"25.000đ","dam":false,"gach":"","ghi_chu":""}]
+  ✗ C4h Đối soát: dòng tiền về muộn của phiên quầy ở ĐỎ, có nút xác nhận tay (xac_nhan_tay = mã phiên)  — SePay giao dịch 810005, mã 13: về 24.000đ chưa khớp đơn — lệch tiền: về 24000, phải thu 25000 (báo #5) | SePay giao dịch 810
+  ✗ C4 + C4g hai người cùng xác nhận tay phiên QUẦY đã hết hạn → đúng một 200 + một 409, MỘT đơn  — HTTP 409 · PHIEN_DA_CHOT / HTTP 409 · PHIEN_DA_CHOT
+  ✗ C4 đơn nhận LẠI đúng số đã giữ (HD<số>), ví trừ lại đúng phần giữ 30.000 trong cùng giao dịch  — undefined · ví 30000
+  ✗ C4h Đối soát sau xác nhận tay: báo tiền về muộn của phiên đó chuyển sang CẦN XEM (không còn ở ĐỎ)  — SePay giao dịch 810005, mã 13: về 24.000đ chưa khớp đơn — lệch tiền: về 24000, phải thu 25000 (báo #5) | SePay giao dịch 8100
+  ✗ C4b ví đã tiêu (còn 5.000 < 30.000 giữ cũ) → 400 SO_DU_KHONG_DU, không tạo đơn, ví không đổi  — HTTP 409 · PHIEN_DA_CHOT · ví 5000
+  ✗ C4b khách nạp đủ → xác nhận tay lại được (phiên không bị khoá thành lỗi), đơn mang số đã giữ  — HTTP 409 · PHIEN_DA_CHOT
+  ✗ C4d phiên QUẦY đã huỷ, tiền về → xác nhận tay → 200, đơn mang số đã giữ  — HTTP 409 · PHIEN_DA_CHOT
+  ✗ C4e phiên của đơn App đã hết hạn → 409 PHIEN_APP_KHONG_TAO_LAI, không đơn  — HTTP 409 · PHIEN_DA_CHOT
+  ✗ G1 đơn App đã huỷ, tiền SePay về → ví khách +25.000 (số thật đã về), dòng báo vao_vi, KHÔNG tạo đơn  — chua_khop · ví 0
+  ✗ G1 dòng ví: nạp chuyển khoản, ghi "tiền về muộn" + số APP<số> + mã GD
+  ✗ G1 App thấy đơn da_huy + tien_ve_cho_doi_soat + tien_ve_da_cong_vi = 25000  — {"ma":"AUUDVNFB2","ngay":"2026-11-05T14:34:41","tong":25000,"da_tra":0,"trang_thai":null,"thanh_toan":null,"tien_trinh":"da_huy","qr":null,"tien_ve_
+  ✗ G1 GET /don (danh sách) cũng có tien_ve_da_cong_vi
+  ✗ G2 báo lặp CÙNG giao dịch → không cộng lần hai (ví vẫn 25.000, một dòng báo)  — ví 0 · chua_khop
+  ✗ G3 hai báo CÙNG giao dịch tới cùng lúc → cộng đúng một lần  — ví 0
+  ✗ G4 đơn App hết hạn (không huỷ), tiền về (lệch: 20.000) → cộng đúng số THẬT đã về  — ví 0
+  ✗ G5 tiền vào tài khoản KHÁC → chua_khop, KHÔNG cộng; G6 sai chữ ký → 401, KHÔNG cộng  — chua_khop · ví 0
+  ✗ G8 Đối soát: "tiền về muộn — đã cộng vào tài khoản" ở CẦN XEM, không ở ĐỎ  — SePay giao dịch 810005, mã 13: về 24.000đ chưa khớp đơn — lệch tiền: về 24000, phải thu 25000 (báo #5) | SePay giao dịch 810013, mã 20: về 20.000đ ch
+  ✗ G9 payOS báo tiền về muộn cho đơn App đã huỷ → cũng cộng (cùng một hàm)  — ví 0
+  ✗ C2 / E1 phiên hết hạn → Đối soát liệt kê HD<số> + "QR hết hạn"  — null
+  ✗ C3 / E1 phiên nhân viên huỷ → "huỷ trước khi trả"  — null
+  ✗ C6 / E1 cổng QR lỗi lúc tạo → 502 + số ghi "cổng QR lỗi"  — null
+  ✗ E1 phiên còn hạn → "đang chờ" (không phải huỷ)  — null
+  ✗ D4 số thành đơn có mã GD → Đối soát có ma_gd + mã đơn  — []
+  ✗ E3 dòng sổ không phiên không đơn (HD9000) → ĐỎ "số trống không lý do"  — CK,CK,CK,CK,CK,CK,CK
+  ✗ F1 POST /don cách qr → so_hd = APP<số đã giữ>, ma_don vẫn mã App A…  — {"success":true,"ma_don":"AH64RBAGA","tong":25000,"giu_vi":0,"con_lai":25000,"tien_trinh":"cho_tra","qr":{"chuoi":"00020101021238540010A0000007270124000697
+  ✗ F2 GET /don/:ma đơn App CHƯA trả → so_hd APP<số đã giữ>  — undefined
+  ✗ F2 đơn App ĐÃ trả → so_hd APP<số> (= so_bill in trên bill)  — {"ma":"AH64RBAGA","ngay":"2026-11-05T14:34:42","tong":25000,"da_tra":25000,"trang_thai":"completed","thanh_toan":"paid","tien_trinh":"da_tra","qr":null,"tien_ve
+  ✗ F: bài chạy hết mục  — SQLITE_CONSTRAINT_UNIQUE: UNIQUE constraint failed: pos_orders.code
+  ✗ F2 câu luật 4xx của POST /don nêu đủ ba ngoại lệ: 401, 409 KHO_BAN (gửi lại CÙNG khoá), 409 KHOA_GUI_DA_DUNG  — - **Luật 4xx:** MỌI trả lời 4xx của `POST /don` = chưa tạo đơn, chưa giữ / trừ ví. Trả lời 4xx của POST /don không
+  ✗ F hợp đồng PHIEN_BAN ≥ 10; phần máy đọc có so_hd và tien_ve_da_cong_vi
+  ✗ T1 kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_CKNOIDUNG1.js'
+  ✗ K6 huỷ đơn mã mới (ORD-…-HD<số>) chạy như đơn cũ → 200  — HTTP 200 · ORD-20261105-015
+
+## cong_cu/thu_SEPAY1.js — bài CŨ sửa — chỉ ca B1, E3 (chủ quán duyệt Q3, LUAT §6.8)
+TRÊN CODE GỐC → ĐỎ: 76 đạt · 2 hỏng (thoát 1). Các dòng đỏ:
+  ✗ B1 VietQR: BIN + số tài khoản đúng cài đặt; 54 = 20000 (phần còn lại, không phải tổng 50.000); 62.08 = TQD<MMM><DD> HD<4 số>  — 00020101021238540010A00000072701240006970000011099900012340208QRIBFTTA53037045405200005802VN620808
+  ✗ E3 POST /kh/don cách qr (CONG_QR=sepay) → 200 cho_tra, qr.chuoi là VietQR (54 = 25000, 62.08 = TQD<MMM><DD> APP<4 số>), qr.het_han có  — HTTP 200 {"success":true,"ma_don":"ATZ8M7NYG","tong":25000,"giu_vi":0,"con_lai":25000,"ti
+
+## cong_cu/thu_P26c.js — bài CŨ sửa — chỉ ca C1, C2 (chủ quán duyệt Q3, LUAT §6.8)
+TRÊN CODE GỐC → ĐỎ: 155 đạt · 2 hỏng (thoát 1). Các dòng đỏ:
+  ✗ C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau dạng ORD-<ngày>-HD<4 số>, số liền nhau  — HTTP 200 ORD-20261105-101 / HTTP 200 ORD-20261105-100
+  ✗ C2 (K5) ngày có mã cũ ORD-<ngày>-999 → đơn mới vẫn ORD-<ngày>-HD<4 số> liền sau đơn trước (mã cũ không xen vào dãy mới)  — HTTP 200 · ORD-20261105-1000
+
+Ghi chú: thu_CKNOIDUNG1 trên gốc còn in "Run error: UNIQUE constraint failed: pos_orders.code" ở mục F (ca chèn đơn cũ ORD-<ngày>-012 đụng mã
+đơn gốc cùng số) — mục đó vẫn ĐỎ (✗ F: bài chạy hết mục); trên code đã vá không còn (đơn mới mang mã HD<4 số>).
+Ca XANH cả gốc lẫn vá (đối chứng K5 — luật cũ phải giữ): B3 ×3 trên gốc khớp qua mẫu cũ TQD<mã phiên> (gốc ghi nội dung TQD<id>) — trên code vá
+chính các ca đó thử mẫu MỚI (đột biến VS-regex-cach / VS-regex-hoa BẮT); B4, B5 ×2, B7, G7, G7b, G8 (sổ ví), C4f, C4 (lý do), C4c, K5, E2, E1 (không ĐỎ SO),
+K1, K4, K5.
+
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 78
+SỐ CA cong_cu/thu_SEPAY1.js: 78
+SỐ CA cong_cu/thu_P26c.js: 157

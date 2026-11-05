@@ -30,7 +30,7 @@ DOT_BIEN = [
   ('VS-kenh-tu-than', 'ck', [(GC, "async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {", "async function taoPhien(b, nguoi, { kenh = b.kenh || 'HD' } = {}) {", 1)], r'✗ A8 '),
   ('VS-so-moi-khi-chot', 'ck', [(H, "const s = (phienId && await tx.queryOne(", "const s = (false && await tx.queryOne(", 1)], r'✗ C1 tiền SePay về'),
   ('BV-gan-so-don', 'ck', [(OR, "if ((await tx.run('UPDATE pos_so_hoa_don SET order_id = ? WHERE id = ? AND order_id IS NULL', [orderId, maDon.soId])).changes !== 1) {",
-                             'if (false) {', 1)], r'✗ (E2|E1 kỳ ngày) '),
+                             'if (false) {', 1)], r'✗ (E2 |E1 kỳ ngày)'),
   # ── B: nội dung + khớp webhook ──
   ('BV-noi-dung-so', 'ck', [(SP, 'const NOI_DUNG_SO_HD = true;', 'const NOI_DUNG_SO_HD = false;', 1)], r'✗ A1 '),
   ('VS-payos-noi-dung-so', 'ck', [(GC, "const noiDung = cong.NOI_DUNG_SO_HD ? noiDungCk(so) : 'TQD' + id;", 'const noiDung = noiDungCk(so);', 1)], r'✗ B6 '),
