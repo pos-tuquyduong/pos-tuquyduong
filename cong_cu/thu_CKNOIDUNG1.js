@@ -465,6 +465,12 @@ async function main() {
     const w6 = await guiSepay(bao(p5), { chuKy: 'sha256=' + '1'.repeat(64) });
     k('G5 tiền vào tài khoản KHÁC → chua_khop, KHÔNG cộng; G6 sai chữ ký → 401, KHÔNG cộng', daNhan(w5) && la(w6, 401) && await ketQua(p5.id) === 'chua_khop'
       && await soDu(kh.sdt) === 70000, `${await ketQua(p5.id)} · ví ${await soDu(kh.sdt)}`);
+    const r11 = await datApp(kh);
+    const p11 = await phienApp(r11.j.ma_don) || {};
+    await db.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = 'HET_HANG' WHERE id = ?", [p11.id]);
+    await guiSepay(bao(p11));
+    k('G11 phiên App "loi" (chốt hỏng vì đơn — không phải hết hạn / huỷ) tiền về → chua_khop ĐỎ như cũ, KHÔNG cộng ví', await ketQua(p11.id) === 'chua_khop'
+      && await soDu(kh.sdt) === 70000, `${await ketQua(p11.id)} · ví ${await soDu(kh.sdt)}`);
     const ds = await chayDoiSoat({ kieu: 'ngay' });
     k('G8 Đối soát: "tiền về muộn — đã cộng vào tài khoản" ở CẦN XEM, không ở ĐỎ', ds.can_xem.some((l) => l.bat_bien === 'CK' && /tiền về muộn — đã cộng vào tài khoản/.test(l.mo_ta))
       && !ds.do.some((l) => /đã cộng vào tài khoản/.test(l.mo_ta)), ds.do.filter((l) => l.bat_bien === 'CK').map((l) => l.mo_ta).join(' | ').slice(0, 200));

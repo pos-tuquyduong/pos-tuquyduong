@@ -59,6 +59,7 @@ DOT_BIEN = [
   ('VS-cong-vi-hai-lan', 'ck', [(TT, '      if (ins.changes !== 1) return;\n', '', 1)], r'✗ G2 '),
   ('VS-cong-vi-quay', 'ck', [(TT, 't.soTien > 0 && await laPhienApp(p.id)', 't.soTien > 0', 1)], r'✗ G7 '),
   ('VS-cong-vi-chi-huy', 'ck', [(TT, "(p.trang_thai === 'cho' && (luc > p.het_han || p.het_han <= getNow()))", 'false', 1)], r'✗ G4 '),
+  ('VS-cong-vi-ca-loi', 'ck', [(TT, "const quaHan = p.trang_thai === 'huy' || (p.trang_thai === 'cho'", "const quaHan = p.trang_thai === 'huy' || p.trang_thai === 'loi' || (p.trang_thai === 'cho'", 1)], r'✗ G11 '),
   ('BV-tien-ve-vi-app', 'ck', [(DA, 'tien_ve_da_cong_vi: Number(r.vao_vi || 0),', 'tien_ve_da_cong_vi: 0,', 1)], r'✗ G1 App thấy'),
   ('VS-vao-vi-do', 'ck', [(DS, "canXem: r.ket_qua !== 'chua_khop' || daTay ||", "canXem: r.ket_qua === 'khong_phien' || daTay ||", 1)], r'✗ G8 '),
   # ── E: Đối soát số hoá đơn ──

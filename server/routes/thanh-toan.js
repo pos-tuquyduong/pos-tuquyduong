@@ -140,9 +140,10 @@ async function xuLyTienVe(res, t) {
   if (t.tkKhac) return ghi('chua_khop', `${LY_DO_TK_KHAC} ${t.tkKhac}`);
   if (t.thatBai) return ghi('that_bai', t.thatBai);
   const luc = DANG_GIO.test(String(t.luc || '')) ? String(t.luc).replace(' ', 'T') : getNow();
-  // Q1b (chủ quán 05.11): phiên App đã huỷ / lỗi / hết hạn, tiền về → KHÔNG tạo lại đơn; số tiền thật đã về cộng vào tài khoản khách của phiên.
+  // Q1b (chủ quán 05.11): phiên App đã huỷ / hết hạn, tiền về → KHÔNG tạo lại đơn; số tiền thật đã về cộng vào tài khoản khách của phiên.
   // Dòng báo + dòng ví cùng MỘT giao dịch; chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần.
-  const quaHan = p.trang_thai === 'huy' || p.trang_thai === 'loi' || (p.trang_thai === 'cho' && (luc > p.het_han || p.het_han <= getNow()));
+  // Phiên 'loi' (chốt hỏng vì đơn lúc tiền về đúng hạn) KHÔNG thuộc Q1b — vẫn chua_khop ĐỎ như cũ (thu_KHMUA1 I3).
+  const quaHan = p.trang_thai === 'huy' || (p.trang_thai === 'cho' && (luc > p.het_han || p.het_han <= getNow()));
   if (quaHan && p.phone && t.soTien > 0 && await laPhienApp(p.id)) {
     const soHd = await soHdCuaPhien(p.id);
     await trongGiaoDich(async (tx) => {

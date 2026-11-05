@@ -187,7 +187,7 @@ mã bill cũ) · khôi phục sao lưu các bảng không dính tiền.
 
 ### Q1b — phiên APP: tiền về muộn tự cộng vào ví khách
 - `xuLyTienVe` (MỘT hàm cho payOS + SePay), SAU các chặn cũ (sai chữ ký → 4xx trước khi vào; tài khoản khác → `chua_khop`; payOS báo
-  thất bại → `that_bai`): phiên của đơn App, có SĐT, đã `huy` / `loi` / `cho` quá hạn (theo giờ giao dịch hoặc giờ máy chủ) → TRONG MỘT giao dịch:
+  thất bại → `that_bai`): phiên của đơn App, có SĐT, đã `huy` / `cho` quá hạn (theo giờ giao dịch hoặc giờ máy chủ) — phiên `loi` (chốt hỏng vì đơn lúc tiền về đúng hạn) KHÔNG thuộc Q1b, vẫn `chua_khop` ĐỎ (ca G11) → TRONG MỘT giao dịch:
   `INSERT pos_payos_su_kien … ket_qua 'vao_vi' ON CONFLICT(khoa) DO NOTHING`; chỉ khi `changes === 1` mới `ghiVi(loai 'topup', cachTra
   'transfer', cot 'total_topup')` số tiền THẬT đã về, ghi chú "Tiền về muộn APP00xx · mã GD FT…". Báo lặp (cùng khoá) / hai báo cùng lúc →
   một dòng, cộng một lần.
