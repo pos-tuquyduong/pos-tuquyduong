@@ -320,3 +320,6 @@ Dòng bảng vòng sửa 1 "báo nhiều hơn (khoản thật thứ hai) → c�
 | Bài học KHOÁ Đối soát | `phepTienVe` (doiSoat.js): phiên có số lần ghi tiền (khop + vao_vi) > số báo tiền vào của cổng báo nhiều nhất → ĐỎ "vượt số khoản" | X5 ×2 | BV-doi-soat-vuot |
 Nghi ngờ vòng 2: giờ ngân hàng `luc > het_han` và hai tài khoản khác nhau cho hai cổng (K5 hiếm — tiền không mất, CẦN XEM) → CHƯA KIỂM / Phát hiện;
 `soHdCuaPhien` đọc ngoài giao dịch — chỉ chữ mô tả, để nguyên.
+Kiểm sau vòng sửa 2: `thu_CKNOIDUNG1.js` 109 · 0; `npm test -- --day-du` PASS 102 · FAIL 0 · CẢNH BÁO 2 (như trước); `python3 viec/CK-NOIDUNG-1/dot_bien.py`
+ĐỐI CHỨNG XANH (ck 109 · 0, kh 95 · 0, sp 78 · 0) · TỔNG 58 · BẮT 57 · HỎNG 1 (VS-ly-do-ngan-thu-tu: mẫu chuỗi cũ sau khi thêm `DISCOUNT` — sửa mẫu
+trong dot_bien.py, chạy lại riêng tên đó: BẮT) → 58/58 BẮT.
