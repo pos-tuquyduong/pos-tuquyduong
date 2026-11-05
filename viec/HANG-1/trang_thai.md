@@ -269,3 +269,20 @@ BÀI HỌC:
    `POST /membership/pin-chu-quan` (tài khoản chủ quán của bài, gõ mật khẩu) rồi gửi `pin` trong thân `PUT /tiers` — C9 vẫn đòi 200 như cũ.
    (Cách khác mình KHÔNG đề xuất: cho lưu không PIN khi không có gì thay đổi — thêm phép so từng trường, thêm chỗ có thể lọt; chỉ để né một bài thử.)
    Sau khi bạn thêm, mình làm tiếp: sửa C9 → `npm test` xanh → soát vòng 3 → soát bảo mật → cổng → báo cáo 7 mục.
+
+## Bước 1 — đối chiếu bản chụp, làm tiếp (05.11.2026 — chủ quán trả lời câu 3)
+- Nhánh `viec/HANG-1`, cây sạch. `git fetch origin viec/HANG-1`: HEAD = `50ee774`, FETCH_HEAD = `50ee774` → bằng nhau, không kéo.
+- `git log --oneline -3`:
+  ```
+  50ee774 HANG-1 trang thai 04.11: thu_GIOVN1 xanh, PIN chu quan cho Cai dat hang (132 ca, 52/52 dot bien), cau hoi thu_P26a
+  f4642cd HANG-1 moi thay doi Cai dat hang (PUT / DELETE /tiers) can PIN chu quan, bo khoa doi cach co chi bang quyen (chu quan 04.11 a+b)
+  c8dddfb HANG-1 bai thu A9 A8 G1f: moi thay doi Cai dat hang can PIN chu quan (truoc khi va)
+  ```
+
+## Trả lời câu 3 (chủ quán 05.11) — ĐỎ ĐÃ BIẾT
+- KHÔNG thêm `cong_cu/thu_P26a.js` vào Phạm vi. Chat đã nới ca C9 trên main (SUA-C9-1: đặt sẵn PIN chủ quán thử, gửi kèm `pin`, vẫn đòi 200) — bài
+  xanh trên code HANG-1 khi gộp main.
+- **Trên nhánh này, `thu_P26a.js` C9 đỏ là ĐỎ ĐÃ BIẾT** — không sửa, không nới. `npm test -- --day-du` 05.11 trên `50ee774`: PASS 97 · FAIL 1 · CẢNH BÁO 1,
+  dòng ✗ duy nhất: `✗ bài chạy thật cong_cu/thu_P26a.js xanh (0.9 s)  → ✗ C9 PUT /tiers lưu lại hạng có sẵn → 200  — HTTP 200 / HTTP 400 · Chưa đặt PIN chủ quán — chủ quán đặt ở Cài đặt → Hạng thành viên`.
+- Không làm "lưu không PIN khi không đổi gì".
+- Hợp đồng `/api/kh`: nhánh ghi `PHIEN_BAN` 7; CT-1a trên main đã lấy v9 → HANG-1 là **v10**, chat chỉnh số lúc gộp (máy không đổi trên nhánh).
