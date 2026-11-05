@@ -527,3 +527,70 @@ BÀI HỌC:
 | K5 đổi PIN đúng PIN cũ (S5) | K5-pin-cu-luon-sai |
 
 SOÁT LẦN CUỐI: chat soát thay
+
+## Soát bảo mật (/soat-bao-mat, 05.11 — lần 2, sau vòng sửa câu 4)
+Số lỗ: trước lọc **0** · sau lọc **0** (bước 1 không ra lỗ nên không cần agent lọc; agent soát ghi: không có công cụ khởi chạy agent con, tự làm cả ba bước).
+Báo cáo của agent (chép nguyên văn phần kết luận + các đường đã soát):
+
+Kết quả: lần soát bảo mật thứ 2 không thấy lỗ hổng mới nào. Lỗ "khôi phục sao lưu ghi đè hạng không cần PIN" mà lần 1 tìm ra đã được bịt.
+
+**Phạm vi đã soát:** `git diff c4513ac HEAD`, gồm `server/routes/{tiers,membership,orders,customers-v2,backup}.js`, `server/routes/kh/index.js`, `server/utils/{membershipStatus,pinChuQuan}.js`, `server/nang_cap/013_hang.js`, và phía máy khách `client/src/utils/api.js`, `CapHang.jsx`, `HangThe.jsx`.
+
+### Các đường nghi vấn đã soát và lý do gạt (đọc code trong lượt này)
+1. **Khôi phục sao lưu để vượt PIN.** Đã bịt. `server/routes/backup.js:127-135`: `BANG_KHONG_KHOI_PHUC` có đủ ba bảng `pos_membership_tiers`, `pos_pin_chu_quan`, `pos_membership_purchases`. Vì vậy không chèn được dòng "cấp" Kim Cương không thời hạn bằng file. `backup.js:87`: cột `pin_bam` bị bỏ khỏi file xuất. Cả `/preview-restore` và `/restore` đều gọi `chanTrangTien`. File có trang dính tiền thì bị chặn 400 trước mọi lệnh xoá hay chèn.
+2. **Cổng PIN chủ quán.** Ba chỗ đều kiểm PIN trước khi ghi: `PUT /tiers` (tiers.js:93), `DELETE /tiers/:id` (tiers.js:134), và `POST /membership/cap`, `/thu-hoi` (membership.js:113, 131). `/cap` và `/thu-hoi` còn đòi thêm quyền `cap_hang`. Bước 013 đặt quyền này mặc định chỉ cho owner.
+3. **Đoán PIN.** Có giới hạn số lần sai. `pinChuQuan.js:58-67` dùng một câu UPDATE giữ chỗ lượt thử trước khi so, có kiểm `changes`. Sai 5 lần thì khoá 15 phút. Gửi nhiều lượt cùng lúc cũng không vượt được, vì lượt thử được giữ chỗ trước khi so. Đổi PIN khi đã có PIN phải qua cùng bộ đếm này (`pinChuQuan.js:52-55`). API chỉ trả `co_pin`, không trả PIN hay băm PIN.
+4. **Giá thẻ do máy khách gửi.** Không có lỗ. `orders.js` lấy giá từ `goiBanDuoc(membershipTier)` theo `so_thang`, không đọc `unit_price` máy khách gửi lên. Hạng "chỉ cấp" bị chặn bán (`HANG_CHI_CAP`).
+5. **Huỷ đơn xoá nhầm dòng cấp hạng.** Không xảy ra. `orders.js:1534` chỉ xoá dòng có `order_id` của đơn bị huỷ. Dòng cấp hoặc thu hồi có `order_id` là NULL nên không bị chạm.
+6. **Khách xem dữ liệu của khách khác qua App KH.** Không có lỗ. `kh/index.js` `theCuaKhach` lấy SĐT từ token khách. `/hang` chỉ trả danh sách hạng và giá gói công khai.
+7. **XSS.** Không có `dangerouslySetInnerHTML` trong các file giao diện mới hoặc đã sửa.
+8. **Ngoài phạm vi PR.** Lỗ đặt lại mật khẩu hoặc tạo owner ở `server/routes/users.js` có từ trước HANG-1. Mình không tính nó.
+
+**Chưa kiểm:** Không có agent lọc độc lập (bước 1 không ra lỗ). Không chạy bài thử nào (chỉ đọc code); khoá PIN dựa vào `strftime` của SQLite nhận đúng dạng giờ `getNow` — chỉ đọc, chưa chạy (phiên chính: ca A9g / C2b / S4 của thu_HANG1 chạy thật khoá + mở khoá, xanh).
+
+## (2) Báo cáo markdown sau lọc
+Không có lỗ hổng nào sau lọc.
+
+SOÁT BẢO MẬT: ĐẠT
+
+## Phát hiện (05.11 — ngoài Phạm vi, không sửa; từ soát vòng 4)
+- **PIN ví của khách cùng khuôn lỗ vừa vá:** `pos_customers` có `pin_code` / `pin_sai` / `pin_khoa_den` (`pinKhach.js`) nhưng không nằm trong `BANG_KHONG_KHOI_PHUC`
+  và file xuất còn băm PIN khách → khôi phục trang "Khách hàng" đặt lại / gỡ khoá PIN ví không ghi `pos_nhat_ky_pin`. Đề xuất việc sau: chặn khôi phục cột PIN
+  khách (hoặc cả trang) + `boCot` cho băm PIN khách.
+- **Trang Nhân viên (`users.js`)** đặt lại mật khẩu tài khoản chủ quán không cần mật khẩu cũ; `POST /users` nhận `role` bất kỳ (tạo được owner). Với b1, việc này
+  không còn đổi được PIN chủ quán, nhưng lúc CHƯA có PIN, người có `manage_users` đặt PIN trước thì chủ quán phải nhờ chat xoá. Đề xuất việc sau: đặt lại mật khẩu
+  owner phải có mật khẩu cũ; không cho tạo / nâng tài khoản thành owner.
+- `is_special_group` của sản phẩm (quyết định món được % nhóm đặc biệt) sửa được qua khôi phục trang "Sản phẩm" / route sản phẩm, không PIN — một đường tới
+  quyền lợi của hạng, không thuộc Cài đặt hạng.
+- `tier_round_to` / `tier_round_mode` ghi được qua `PUT /settings` không PIN — hiện máy chủ không dùng để tính giá (grep `tier_round`), nên không đụng tiền.
+- Khoá PIN chủ quán không tăng dần (5 lần / 15 phút ≈ 480 lần / ngày): phiên chủ quán mở lâu dò được PIN 4 số trong 1–3 tuần → **khuyên chủ quán dùng PIN 6 số**.
+
+## Câu hỏi (05.11 — chờ chủ quán; phần còn lại đã làm xong)
+5. **Ba bài thử cũ (NGOÀI Phạm vi) đỏ vì quyết định (a) của bạn — đúng hành vi mới, chỉ cách bài dựng file cần đổi.** `thu_SAOLUU2` F1, `thu_KHO1` J3/J5/J6/J7,
+   `thu_KHO2b` H4 khôi phục NGUYÊN file "xuất tất cả". Trang "Hạng thành viên" luôn có dòng nên nay bị 400 `KHOI_PHUC_TRANG_TIEN_BI_CHAN` (như ví / đơn).
+   Ở quán thật, file đầy đủ vốn đã bị chặn vì trang Đơn hàng luôn có dòng — bạn đã quen xoá các trang tiền trước khi khôi phục; nay thêm trang Hạng.
+   **Đề xuất (như câu 3 / SUA-C9-1):** chat sửa trên main — ba bài xoá trang "Hạng thành viên" khỏi file trước khi khôi phục (vẫn đòi 200 như cũ; trên main
+   trang hạng chưa bị chặn nên bài vẫn xanh); trên nhánh này ba bài là ĐỎ ĐÃ BIẾT. Hoặc bạn thêm ba file vào `## Phạm vi`, mình sửa đúng phần dựng file.
+   **KHÔNG** làm: gỡ `pos_membership_tiers` khỏi danh sách chặn để bài xanh — mở lại lỗ; nay `thu_HANG1` S1 trong `npm test` sẽ đỏ nếu ai làm vậy.
+
+## Bài học (05.11 — vòng câu 4)
+Sự cố của vòng này: (1) vá (a) làm ĐỎ ba bài ngoài Phạm vi (SAOLUU2 / KHO1 / KHO2b) mà kế hoạch mục 12 không lường trước — phát hiện ở `npm test`, phải hỏi
+câu 5; (2) soát vòng 4 bắt: `thu_HANG1` (bài của một bản vá bảo mật) chưa nằm trong `npm test`; luồng K5 S1b / S5 / C0e chưa có đột biến tên; (3) người gác
+chặn 5 lệnh: B-BIMAT-CHU (chạy thu_HANG1 trước khi commit — luật đã ghi, làm theo: commit trước), B-CD-VITRI + GIT-TUYCHON + quyền `rm -rf` (dựng cây gốc —
+tách lệnh), B-PHANTICH (chạy script kèm `; echo`), CC-LA (ReadNotifications). Không vượt ngân sách (~35 dòng máy chủ / giao diện, ~70 dòng thử).
+
+- **KHOÁ (làm luôn, trong Phạm vi):** `kiem_tra_truoc_khi_giao.js` chạy `cong_cu/thu_HANG1.js` → khoá S1 / S3 / S4 / A9 canh mãi sau khi gộp; "chữa" câu 5
+  bằng cách gỡ bảng hạng khỏi danh sách chặn sẽ đỏ ở S1. Ca đỏ: đột biến BV-khoi-phuc-hang BẮT (✗ S1).
+- **KHOÁ (đề xuất, ngoài Phạm vi — `tu_chay/cong.js`, khung đóng băng tới khai trương):** phép cổng "mọi `cong_cu/thu_*.js` phiếu ghi ở `## Bài thử đỏ` phải có
+  `chayBaiThat` trong `kiem_tra_truoc_khi_giao.js`". Ca đỏ: nhánh 44ecb54^ (chưa có dòng thu_HANG1) → ✗.
+- **KHOÁ (đề xuất, việc sau — `kiem_tra_truoc_khi_giao.js` + `backup.js`):** phép tĩnh "bảng có cột băm PIN / bộ đếm khoá (`pin_bam`, `pin_code`, `pin_sai`,
+  `pin_khoa_den`) phải nằm trong `BANG_KHONG_KHOI_PHUC` và có `boCot`". Ca đỏ: `pos_customers` hiện nay (Phát hiện PIN khách) — vì thế không thêm trong việc này.
+- **NGUYÊN TẮC (đề xuất `KHUON_LOI.md` K5, ngoài Phạm vi):** "Đã gây (HANG-1 câu 4): thêm bảng vào danh sách chặn khôi phục → ba bài cũ khôi phục nguyên file
+  'xuất tất cả' đỏ. Chặn: siết một cổng dùng chung (khôi phục, cổng đơn) → grep MỌI bài thử đi qua cổng đó (`grep -l "'/restore'\|backup/restore" cong_cu/`)
+  TRƯỚC khi vá, liệt kê vào kế hoạch như luồng phải hỏi."
+- **NGUYÊN TẮC (đề xuất `KHUON_LOI.md` K4, ngoài Phạm vi — từ soát vòng 3, nay đã có ví dụ thật):** "Bí mật 'chỉ chủ quán' đổi được bằng một bí mật yếu hơn
+  (mật khẩu đặt lại được ở trang Nhân viên) thì chỉ mạnh bằng bí mật yếu nhất — rà đường ĐẶT LẠI / ĐỔI bí mật trước khi báo kín."
+- **NGUYÊN TẮC (đã có trong K3 — không thêm):** bảng chỗ vá → đột biến phải có dòng cho từng luồng K5 — K3 TU-CHAY-5 đã ghi ("mỗi luồng phải KHÔNG bị chặn
+  … trỏ tới MỘT ca + đột biến gỡ vế đó ra BẮT"); lần này quên áp → KHÔNG thêm chữ, đã làm bù (K5-…).
+- **BỎ:** các lệnh bị người gác chặn khi dựng cây gốc / chạy script — luật đã có hướng dẫn, làm lại đúng dạng một lần là qua.
+- Dọn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mà phép mới làm thay trọn.
