@@ -138,7 +138,14 @@ async function main() {
   k('C8 POST /loyalty/redeem → 200, grant_id là số, đúng dòng trong kho', c8.status === 200 && laSo(c8.data?.grant_id) && c8.data.grant_id === id8,
     `${moTa(c8)} · grant_id ${c8.data?.grant_id} · kho ${id8}`);
   const hang = await goi('GET', '/tiers');
-  const c9 = await goi('PUT', '/tiers', { ...hang.data, tiers: hang.data?.tiers });
+  // SUA-C9-1 (chat 04.11): HANG-1 đòi PIN chủ quán cho mọi lần lưu hạng. Có bảng pos_pin_chu_quan → đặt sẵn PIN thử; luôn gửi `pin`
+  // (máy chủ chưa có khoá PIN bỏ qua trường lạ). Điều C9 canh giữ nguyên: lưu lại hạng có sẵn → 200.
+  if (await db.queryOne("SELECT 1 AS co FROM sqlite_master WHERE type = 'table' AND name = 'pos_pin_chu_quan'")) {
+    const bcrypt = require(path.join(GOC, 'node_modules', 'bcryptjs'));
+    await db.run(`INSERT INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu_P26a', '2026-11-04T00:00:00')
+      ON CONFLICT(id) DO UPDATE SET pin_bam = excluded.pin_bam, sai = 0, khoa_den = NULL`, [bcrypt.hashSync('2468', 4)]);
+  }
+  const c9 = await goi('PUT', '/tiers', { ...hang.data, tiers: hang.data?.tiers, pin: '2468' });
   k('C9 PUT /tiers lưu lại hạng có sẵn → 200', hang.status === 200 && c9.status === 200, `${moTa(hang)} / ${moTa(c9)}`);
 
   console.log('\n[MA-GIAM-1 A1] DELETE /discount-codes/:id — "đã dùng hay chưa" chốt trong CÙNG câu xoá');
