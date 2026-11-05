@@ -79,6 +79,38 @@ Ca XANH cả gốc lẫn vá (đối chứng K5 — luật cũ phải giữ): B3
 chính các ca đó thử mẫu MỚI (đột biến VS-regex-cach / VS-regex-hoa BẮT); B4, B5 ×2, B7, G7, G7b, G8 (sổ ví), C4f, C4 (lý do), C4c, K5, E2, E1 (không ĐỎ SO),
 K1, K4, K5.
 
-SỐ CA cong_cu/thu_CKNOIDUNG1.js: 79
+## Lượt 2 (05.11, phiếu 9229b85 — Q4, Q5, phiên App LỖI vì đơn cũng vào ví)
+Code GỐC dựng lại như trên (`git archive 150e7db` vào nháp, chép bài thử HIỆN TẠI vào, node_modules nối symlink); chạy qua script nháp bỏ mã màu.
+
+### cong_cu/thu_CKNOIDUNG1.js — bản lượt 2 (G11 đổi chiều + mục [L] + L12)
+TRÊN CODE GỐC → ĐỎ: 21 đạt · 70 hỏng (thoát 1) — mọi dòng đỏ của bản ec477bf ở trên vẫn đỏ, thêm các dòng mới:
+  ✗ G11 phiên App "loi" từ trước (chốt hỏng vì đơn) tiền về → CŨNG cộng vào ví (chủ quán 05.11 lượt 2), dòng vao_vi  — chua_khop · ví 0
+  ✗ L12 App: phiên loi "HET_HANG" → thong_bao_tien_ve đúng nguyên câu
+  ✗ L12 App: đơn huỷ rồi tiền về (G1) → "Tiền về sau khi đơn đã huỷ / hết hạn — đã cộng 25.000đ vào tài khoản của bạn"; đơn không tiền về → null
+  ✗ L1 App QR đúng hạn, món ngừng bán, tiền về đúng số → phiên loi, KHÔNG đơn, ví +25.000, một dòng báo vao_vi  — chua_khop · ví 0 · loi
+  ✗ L2 dòng ví: nạp chuyển khoản, ghi "Không tạo được đơn" + APP<số> + mã GD
+  ✗ L3 App: da_huy + tien_ve_da_cong_vi 25000 + thong_bao_tien_ve đúng nguyên câu (chi tiết và danh sách)
+  ✗ L4 báo lặp CÙNG giao dịch → không cộng lần hai  — ví 0
+  ✗ L6 khoản KHÁC (giao dịch thứ hai) vào phiên đã loi → cộng thêm đúng một lần  — ví 0 · chua_khop,chua_khop
+  ✗ L5 hai báo CÙNG giao dịch cùng lúc, phiên đúng hạn hỏng đơn → cộng đúng một lần, một dòng báo  — ví 0 · chua_khop
+  ✗ L7 tài khoản KHÁC → chua_khop, sai chữ ký → 401; KHÔNG cộng ví  — chua_khop · ví 0   (đỏ vì ví tích luỹ từ L1–L6 không có)
+  ✗ L8 quầy (GET /pos/kh/don-app) có MỖI báo vao_vi một dòng: so_hd, so_tien 25000, tên khách, lý do "không tạo được đơn" + mã GD  — []
+  ✗ L9 Đối soát: CẦN XEM có lý do (không tạo được đơn), số HD, số tiền 25.000, mã GD; không ở ĐỎ  — không thấy
+  ✗ L11 payOS: phiên App hỏng đơn lúc tiền về → cũng cộng ví (cùng một hàm)  — ví 0 · chua_khop
+  ✗ L13 màn Đơn App + nút nổi đọc dòng vao_vi; bản build dist có
+TRÊN CODE TRƯỚC LƯỢT 2 (9229b85, có Q1b) → ĐỎ: 81 đạt · 14 hỏng — đúng G11, L12 ×2, L1, L2, L3, L4, L5, L6, L7, L8, L9, L11, L13.
+Ca XANH cả gốc lẫn vá (đối chứng K5): L3 (App không nhận lời lỗi nội bộ), L8 (dòng vao_vi không phải "Mới", Đang làm → 409), L10 (phiên QUẦY hỏng
+đơn lúc tiền về → chua_khop, KHÔNG cộng ví).
+TRÊN CODE ĐÃ VÁ → 95 đạt · 0 hỏng (thoát 0).
+
+### cong_cu/thu_KHMUA1.js — bài CŨ sửa — chỉ ca G6, I1, I4 (chủ quán duyệt Q4, LUAT §6.8); I3 giữ nguyên
+TRÊN CODE GỐC → ĐỎ: 119 đạt · 3 hỏng (thoát 1). Các dòng đỏ:
+  ✗ G6 huỷ và tiền về cùng lúc → đúng MỘT kết quả (đơn thật HOẶC huỷ + tiền về cộng vào ví), ví không trừ hai lần  — HTTP 200 · phiên huy · đơn +0 · ví 20000 · [{"ket_qua":"chua_khop"}]
+  ✗ I1 tiền về sau khi khách huỷ → cộng vào ví khách (vao_vi, CK-NOIDUNG-1 Q1b), không đơn mới; App da_huy + tien_ve_cho_doi_soat true
+  ✗ I4 vi_qr hết hạn rồi tiền QR về → ví đã nhả (số dư nguyên) + tiền QR về cộng vào ví (CK-NOIDUNG-1 Q1b), không đơn, App da_huy + cờ  — da_huy
+TRÊN CODE ĐÃ VÁ → 122 đạt · 0 hỏng (thoát 0).
+
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 95
 SỐ CA cong_cu/thu_SEPAY1.js: 78
 SỐ CA cong_cu/thu_P26c.js: 157
+SỐ CA cong_cu/thu_KHMUA1.js: 122

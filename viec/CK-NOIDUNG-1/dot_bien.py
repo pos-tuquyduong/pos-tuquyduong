@@ -17,8 +17,10 @@ GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 H, GC, SP = 'server/utils/helpers.js', 'server/utils/giuCho.js', 'server/utils/sepay.js'
 TT, DA, DS = 'server/routes/thanh-toan.js', 'server/utils/donApp.js', 'server/utils/doiSoat.js'
 OR, HD, DM, HDC = 'server/routes/orders.js', 'server/routes/hoaDon.js', 'server/routes/don-mo-rong.js', 'client/src/utils/hoaDon.js'
-BAI = {'ck': 'cong_cu/thu_CKNOIDUNG1.js'}
-CHEP = list(BAI.values()) + ['kiem_tra_truoc_khi_giao.js', 'HOP_DONG_API_KH.md', HDC, 'client/src/pages/DonApp.jsx']
+DT = 'server/utils/donThu.js'
+BAI = {'ck': 'cong_cu/thu_CKNOIDUNG1.js', 'kh': 'cong_cu/thu_KHSDT1.js'}
+CHEP = list(BAI.values()) + ['kiem_tra_truoc_khi_giao.js', 'HOP_DONG_API_KH.md', HDC, 'client/src/pages/DonApp.jsx', 'client/src/components/DonAppNoi.jsx',
+                             'client/src/pages/QuanLy/donThu.js', 'client/src/App.jsx', 'client/src/pages/DonThu.jsx', 'client/src/pages/QuanLy/QuanLy.jsx']   # thu_KHSDT1 đọc
 
 # (tên, bài, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
 DOT_BIEN = [
@@ -55,11 +57,20 @@ DOT_BIEN = [
   ('BV-nut-xnt', 'ck', [(DS, '...(choTay ? { xac_nhan_tay: r.phien_id } : {})', '...({})', 1)], r'✗ C4h Đối soát: dòng tiền về muộn'),
   ('BV-da-tay-can-xem', 'ck', [(DS, "canXem: r.ket_qua !== 'chua_khop' || daTay || [", "canXem: r.ket_qua !== 'chua_khop' || [", 1)], r'✗ C4h Đối soát sau'),
   # ── G: Q1b App tiền về muộn cộng ví ──
-  ('BV-cong-vi', 'ck', [(TT, '  if (quaHan && p.phone && t.soTien > 0', '  if (false && quaHan && p.phone && t.soTien > 0', 1)], r'✗ G1 '),
-  ('VS-cong-vi-hai-lan', 'ck', [(TT, '      if (ins.changes !== 1) return;\n', '', 1)], r'✗ G2 '),
-  ('VS-cong-vi-quay', 'ck', [(TT, 't.soTien > 0 && await laPhienApp(p.id)', 't.soTien > 0', 1)], r'✗ G7 '),
-  ('VS-cong-vi-chi-huy', 'ck', [(TT, "(p.trang_thai === 'cho' && (luc > p.het_han || p.het_han <= getNow()))", 'false', 1)], r'✗ G4 '),
-  ('VS-cong-vi-ca-loi', 'ck', [(TT, "const quaHan = p.trang_thai === 'huy' || (p.trang_thai === 'cho'", "const quaHan = p.trang_thai === 'huy' || p.trang_thai === 'loi' || (p.trang_thai === 'cho'", 1)], r'✗ G11 '),
+  # Lượt 2 (chủ quán 05.11): phiên 'loi' cũng vào ví — VS-cong-vi-ca-loi cũ (thêm 'loi') nay là hành vi ĐÚNG, đã bỏ; thay bằng BV-cong-vi-loi.
+  ('BV-cong-vi', 'ck', [(TT, '  if (laApp && vaoViDuoc(p)) return vaoVi(p);\n', '', 1)], r'✗ G4 '),
+  ('VS-cong-vi-hai-lan', 'ck', [(TT, '      if (ins.changes !== 1) return;\n', '', 1)], r'✗ (G2|L4|L5) '),
+  ('VS-cong-vi-quay', 'ck', [(TT, 't.soTien > 0 && await laPhienApp(p.id)', 't.soTien > 0', 1)], r'✗ (G7|L10) '),
+  ('VS-cong-vi-chi-huy', 'ck', [(TT, "(x.trang_thai === 'cho' && (luc > x.het_han || x.het_han <= getNow()))", 'false', 1)], r'✗ G4 '),
+  ('BV-cong-vi-loi', 'ck', [(TT, "['huy', 'loi'].includes(x.trang_thai)", "['huy'].includes(x.trang_thai)", 1)], r'✗ (G11|L1) '),
+  ('BV-cong-vi-sau-chot', 'ck', [(TT, '  if (moi && vaoViDuoc(moi)) return vaoVi(moi);\n', '', 1)], r'✗ L1 '),
+  ('BV-ghi-chu-loi', 'ck', [(TT, "`Không tạo được đơn ${soHd} (${x.ly_do || 'lỗi'})`", '`Tiền về muộn ${soHd}`', 1)], r'✗ L2 '),
+  ('BV-ma-gd-doi-soat', 'ck', [(TT, '(${soHd}) · mã GD ${maGd}`));', '(${soHd})`));', 1)], r'✗ (L8|L9) '),
+  ('BV-thong-bao-app', 'ck', [(DA, 'thong_bao_tien_ve: thongBaoTienVe(r),', 'thong_bao_tien_ve: null,', 1)], r'✗ (L3|L12) '),
+  ('VS-ly-do-noi-bo', 'ck', [(DA, '`Không tạo được đơn ${lyDoNgan(r.p_ly_do)}`', '`Không tạo được đơn ${r.p_ly_do}`', 1)], r'✗ (L3|L12) '),
+  ('BV-quay-vao-vi', 'ck', [(DA, "WHERE s.ket_qua = 'vao_vi' AND s.luc >= ?", 'WHERE 0 AND s.luc >= ?', 1)], r'✗ L8 '),
+  ('BV-man-vao-vi', 'ck', [('client/src/pages/DonApp.jsx', "if (d.tien_trinh === 'vao_vi') return (", 'if (false) return (', 1)], r'✗ L13 '),
+  ('BV-bang-khong-don', 'kh', [(DT, "  'pos_so_hoa_don'];", '  ];', 1)], r'✗ D14 '),
   ('BV-tien-ve-vi-app', 'ck', [(DA, 'tien_ve_da_cong_vi: Number(r.vao_vi || 0),', 'tien_ve_da_cong_vi: 0,', 1)], r'✗ G1 App thấy'),
   ('VS-vao-vi-do', 'ck', [(DS, "canXem: r.ket_qua !== 'chua_khop' || daTay ||", "canXem: r.ket_qua === 'khong_phien' || daTay ||", 1)], r'✗ G8 '),
   # ── E: Đối soát số hoá đơn ──

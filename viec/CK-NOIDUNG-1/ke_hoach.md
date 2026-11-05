@@ -218,3 +218,41 @@ mã bill cũ) · khôi phục sao lưu các bảng không dính tiền.
   tài khoản"; G9 payOS báo muộn cho đơn App → cộng (cùng hàm).
 - Đột biến thêm: `VS-MUON-MOI-CACH` (bỏ kiểm `muon` — chốt muộn cả qua webhook), `VS-CONG-VI-HAI-LAN` (cộng ví không xét `changes`),
   `VS-CONG-VI-QUAY` (bỏ kiểm phiên App), `BV-CONG-VI` (bỏ nhánh cộng ví), `BV-XNT-MUON` (bỏ cờ muộn ở route).
+
+## Sau duyệt lần 2 (05.11, phiếu 9229b85) — Q4, Q5 CÓ; phiên App LỖI vì đơn cũng vào ví
+
+### Q4 — `thu_KHMUA1.js` G6, I1, I4 (bài sửa thường, đỏ trên gốc, xanh sau vá, `SỐ CA`)
+- G6 nhánh "huỷ thắng": dòng báo `vao_vi`, ví 20.000 (nhả) + 50.000 (tiền QR về) — thay `chua_khop` + ví 20.000.
+- I1: dòng báo `vao_vi` (thay `chua_khop`); I4: ví 20.000 + tiền QR về. I3 GIỮ NGUYÊN (chủ quán) — vẫn xanh: phiên `loi`, App `da_huy` + cờ
+  `tien_ve_cho_doi_soat` (CO_TIEN_VE đếm cả `vao_vi`). Tên ca I3 còn chữ "chua_khop" → Phát hiện (không sửa, theo lời chủ quán).
+
+### Q5 — `donThu.js`: `'pos_so_hoa_don'` vào `BANG_KHONG_DON` (dọn thử không xoá số đã cấp).
+
+### Phiên App LỖI vì đơn → tiền thật đã về cộng vào ví khách (chủ quán — thay cách máy tự quyết ở ec477bf)
+- `thanh-toan.js` `xuLyTienVe` (MỘT hàm, hai cổng), sau mọi chặn cũ (chữ ký → 4xx trước; tài khoản khác → `chua_khop`; payOS thất bại):
+  - MỘT vị từ `vaoViDuoc(phiên)`: `huy` · `loi` · `cho` quá hạn. MỘT hàm `vaoVi(phiên)`: dòng báo `vao_vi` + `ghiVi` cùng giao dịch, cộng chỉ khi
+    `changes === 1` (một lần mỗi báo tiền — `khoa` UNIQUE như cũ).
+  - Trước chốt: phiên App `vaoViDuoc` → `vaoVi` (gồm phiên đã `loi` từ trước — ca G11 đổi chiều: nay cộng ví).
+  - Sau chốt hỏng (4xx vì đơn — `chotPhien` vừa đổi phiên sang `loi`; hoặc phiên vừa huỷ / hết hạn giữa chừng): phiên App → ĐỌC LẠI phiên,
+    `vaoViDuoc` → `vaoVi`. Đơn chốt được thì dòng `khop` đã ghi cùng khoá → `vaoVi` không cộng (`changes 0`). 5xx / `KHO_BAN` → như cũ.
+  - Lý do dòng báo: `<đầu> — đã cộng vào tài khoản <SĐT> (<APP số>) · mã GD <FT…>`; đầu = `tiền về muộn` | `không tạo được đơn (<lý do phiên>)`.
+    `LY_DO_VAO_VI` (congQr.js) = `đã cộng vào tài khoản`. Phiên QUẦY `loi` → `chua_khop` ĐỎ như cũ (không cộng ví).
+- App (`donApp.js` `tomDon`): trường mới **`thong_bao_tien_ve`** (chuỗi | null) ở `GET /don`, `GET /don/:ma`: phiên `loi` →
+  `Không tạo được đơn <lý do ngắn> — đã cộng <số tiền> vào tài khoản của bạn`; huỷ / hết hạn → `Tiền về sau khi đơn đã huỷ / hết hạn — đã cộng …`.
+  Lý do ngắn: MỘT bảng `LY_DO_NGAN` (hết hàng / ngừng bán · số dư · giá · mã giảm) đọc từ `ly_do` phiên, còn lại "vì đơn không còn hợp lệ" —
+  không đưa lời lỗi nội bộ (số tồn kho) ra App. Hợp đồng: thêm trường + nhật ký trong mục v10 (cùng PR).
+- Quầy: `dsQuay` (GET /api/pos/kh/don-app — cửa quầy, không thuộc hợp đồng App) thêm dòng `tien_trinh: 'vao_vi'` cho mỗi báo `vao_vi` HÔM NAY
+  (id `vao_vi:<id báo>`, `so_hd`, `so_tien`, `ly_do` = lý do dòng báo, `ten_khach`, `mon: []`); `DonAppNoi.jsx` (nút nổi mọi màn) thêm
+  "· n vào ví" + chuông kêu khi có dòng mới; `DonApp.jsx` hiện khung vàng "💰 APP0016 · Khách · 25.000đ — <lý do>", không nút Đang làm / Xong.
+- Đối soát: dòng CK `vao_vi` CẦN XEM (đã có) — mô tả nay đủ lý do, số HD, số tiền, mã GD.
+- Ca thử (`thu_CKNOIDUNG1.js` mục [L] + G11 đổi chiều): L1 phiên App QR đúng hạn, món ngừng bán, SePay báo đúng tiền → `vao_vi`, phiên `loi`,
+  không đơn, ví +25.000; L2 dòng ví ghi "Không tạo được đơn" + APP<số> + mã GD; L3 App `da_huy` + `tien_ve_da_cong_vi` + `thong_bao_tien_ve` đúng
+  nguyên câu (chi tiết + danh sách); L4 báo lặp → không cộng lần hai; L5 hai báo CÙNG khoá cùng lúc trên phiên đúng hạn hỏng đơn → cộng một lần;
+  L6 báo KHÁC (khoản thứ hai) vào phiên `loi` → cộng thêm; L7 tài khoản khác → `chua_khop`, sai chữ ký → 401, không cộng; L8 quầy thấy dòng
+  `vao_vi` (so_hd, so_tien, lý do, mã GD), không đếm là đơn "Mới", không bấm Đang làm được; L9 Đối soát CẦN XEM có lý do + APP<số> + 25.000 +
+  mã GD, không ĐỎ; L10 phiên QUẦY hỏng đơn lúc tiền về → `chua_khop`, KHÔNG cộng ví; L11 payOS cùng đường; L12 thông báo huỷ (G1) "Tiền về sau
+  khi đơn đã huỷ / hết hạn — …"; L13 `DonApp.jsx`, `DonAppNoi.jsx` + `dist` có `vao_vi`.
+- Đột biến: bỏ `VS-cong-vi-ca-loi` (nay là hành vi đúng); thêm `BV-cong-vi-loi`, `BV-cong-vi-sau-chot`, `VS-cong-vi-sau-chot-quay`,
+  `BV-thong-bao-app`, `VS-ly-do-noi-bo`, `BV-quay-vao-vi`, `BV-ma-gd-doi-soat`, `BV-dist-vao-vi`.
+- Luồng hợp lệ KHÔNG bị chặn: App QR trả đúng hạn → đơn (KHMUA1 H1); phiên quầy / App chốt thường; Q1a xác nhận tay phiên quầy; báo lệch tiền
+  phiên App đang `cho` còn hạn → `chua_khop`, phiên vẫn chờ (KHMUA1 I2).
