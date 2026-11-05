@@ -490,6 +490,19 @@ async function main() {
     const w9 = await guiPayos(p9);
     k('G9 payOS báo tiền về muộn cho đơn App đã huỷ → cũng cộng (cùng một hàm)', la(w9, 200) && await soDu(kp.sdt) === 25000 && await ketQua(p9.id) === 'vao_vi', `ví ${await soDu(kp.sdt)}`);
     datCong('sepay');
+    // Soát vòng 1: CÙNG một khoản báo qua CẢ HAI cổng (payOS đã cộng, SePay đọc mẫu cũ TQD<mã phiên>) → không cộng lần hai.
+    const w9b = await guiSepay(bao(p9));
+    const sk9 = await suKien(p9.id);
+    k('G9b CÙNG khoản báo qua hai cổng (payOS rồi SePay), đơn App đã huỷ → ví cộng đúng MỘT lần; dòng SePay chua_khop "hai cổng" (CẦN XEM)', daNhan(w9b)
+      && await soDu(kp.sdt) === 25000 && sk9.map((x) => x.ket_qua).join() === 'vao_vi,chua_khop' && String(sk9[1]?.ly_do).includes('cùng một khoản báo qua hai cổng'),
+    `ví ${await soDu(kp.sdt)} · ${sk9.map((x) => `${x.ket_qua}:${x.ly_do}`).join(' | ').slice(0, 220)}`);
+    const w9c = await guiSepay(bao(p9));
+    k('G9c khoản THỨ HAI thật (SePay báo thêm một giao dịch khác) → cộng thêm đúng một lần', daNhan(w9c) && await soDu(kp.sdt) === 50000
+      && await ketQua(p9.id) === 'vao_vi,chua_khop,vao_vi', `ví ${await soDu(kp.sdt)} · ${await ketQua(p9.id)}`);
+    const ds9 = await chayDoiSoat({ kieu: 'ngay' });
+    k('G9b Đối soát: dòng "hai cổng" của phiên App ở CẦN XEM, không ĐỎ', ds9.can_xem.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${p9.id}:`)
+      && l.mo_ta.includes('hai cổng')) && !ds9.do.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${p9.id}:`)),
+    ds9.do.filter((l) => l.mo_ta.includes(`mã ${p9.id}:`)).map((l) => l.mo_ta).join(' | ').slice(0, 200));
   });
 
   muc('[L] phiên APP lỗi vì đơn (món ngừng bán lúc tiền về ĐÚNG hạn) → tiền thật đã về cộng vào ví, báo rõ App · quầy · Đối soát');
@@ -551,6 +564,9 @@ async function main() {
     const dong = ds.can_xem.find((l) => l.bat_bien === 'CK' && l.mo_ta.includes('FT26309LOI01'));
     k('L9 Đối soát: CẦN XEM có lý do (không tạo được đơn), số HD, số tiền 25.000, mã GD; không ở ĐỎ', !!dong && /không tạo được đơn/.test(dong.mo_ta)
       && dong.mo_ta.includes(soHd1) && dong.mo_ta.includes('25.000') && !ds.do.some((l) => l.mo_ta.includes('FT26309LOI01')), dong?.mo_ta || 'không thấy');
+    const so1 = (ds.so_hd || []).find((s) => s.so_hd === soHd1);
+    k('L9b Đối soát bảng số hoá đơn: số của phiên loi có tiền về ghi lý do + "xem mục CK"', /lỗi: /.test(so1?.ly_do || '') && /xem mục CK/.test(so1?.ly_do || ''),
+      JSON.stringify(so1 || null));
     const kq = await khach(0);
     const pq = (await taoPhien({ sdt: kq.sdt, khongVi: true })).j.phien || {};
     await ngungBan(true);
@@ -568,6 +584,21 @@ async function main() {
     k('L11 payOS: phiên App hỏng đơn lúc tiền về → cũng cộng ví (cùng một hàm)', la(w11, 200) && await soDu(kp.sdt) === 25000 && await ketQua(p11.id) === 'vao_vi',
       `ví ${await soDu(kp.sdt)} · ${await ketQua(p11.id)}`);
     datCong('sepay');
+    // Soát vòng 1: lý do ngắn đúng loại lỗi — lời lỗi flash sale có chữ "giảm giá" KHÔNG được ra "giá món đã đổi".
+    const kl = await khach(0);
+    const loiThu = [['Đang flash sale — chỉ dùng được voucher/giảm giá kiểu TIỀN, không dùng kiểu %.', 'vì mã giảm giá không còn dùng được'],
+      ['Số tiền thanh toán (20.000đ) không khớp tổng đơn hàng thật (25.000đ).', 'vì giá món đã đổi'], ['Sản phẩm X chưa có giá bán', 'vì đơn không còn hợp lệ']];
+    const raL14 = [];
+    for (const [lyDoPhien, mong] of loiThu) {
+      const r = await datApp(kl);
+      const p = await phienApp(r.j.ma_don) || {};
+      await db.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ?", [lyDoPhien, p.id]);
+      await guiSepay(bao(p));
+      const tb = (await goi('GET', `/kh/don/${r.j.ma_don}`, undefined, kl.tk)).j.don?.thong_bao_tien_ve;
+      raL14.push([tb === `Không tạo được đơn ${mong} — đã cộng 25.000đ vào tài khoản của bạn`, tb]);
+    }
+    k('L14 lý do ngắn theo đúng loại lỗi: flash sale / voucher → mã giảm; không khớp tổng → giá đổi; "chưa có giá bán" → câu chung', raL14.every(([d]) => d),
+      raL14.map(([, tb]) => tb).join(' | '));
     const doc = (f) => fs.readFileSync(path.join(GOC, 'client', 'src', ...f), 'utf8');
     const dist = path.join(GOC, 'client', 'dist', 'assets');
     const bundle = fs.existsSync(dist) ? fs.readdirSync(dist).filter((f) => f.endsWith('.js')).map((f) => fs.readFileSync(path.join(dist, f), 'utf8')).join('\n') : '';
