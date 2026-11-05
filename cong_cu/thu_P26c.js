@@ -1065,10 +1065,10 @@ async function main() {
     const r1 = await donTienMat();
     co.mocTruocTx = null;
     const m1 = String(r1.order?.code || ''), m2 = String(r2?.order?.code || '');
-    const dang = new RegExp(`^ORD-${NGAY}-\\d{3,}$`);
-    k('C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau đúng dạng, số liền nhau',
+    const dang = new RegExp(`^ORD-${NGAY}-HD\\d{4}$`);   // CK-NOIDUNG-1 (chủ quán duyệt 05.11): số hoá đơn HD<4 số>
+    k('C1 hai đơn tiền mặt chồng nhau (đơn 2 chạy trọn giữa phép kiểm và giao dịch đơn 1) → cả hai 200, hai mã khác nhau dạng ORD-<ngày>-HD<4 số>, số liền nhau',
       r1.status === 200 && r2?.status === 200 && m1 !== m2 && dang.test(m1) && dang.test(m2)
-        && Number(m1.split('-')[2]) === Number(m2.split('-')[2]) + 1,
+        && Number(m1.slice(-4)) === Number(m2.slice(-4)) + 1,
       `${moTa(r1)} ${m1} / ${r2 ? moTa(r2) : 'móc không chạy'} ${m2}`);
     const truoc = await soDon();
     co.banCauDau = true;
@@ -1080,7 +1080,8 @@ async function main() {
       VALUES (?, 'mã cũ', 0, 'cash', 'completed', datetime('now'))`,
       [`ORD-${NGAY}-999`]);
     const r4 = await donTienMat();
-    k('C2 (K5) ngày có mã cũ ORD-<ngày>-999 → đơn mới ORD-<ngày>-1000', r4.status === 200 && r4.order?.code === `ORD-${NGAY}-1000`,
+    k('C2 (K5) ngày có mã cũ ORD-<ngày>-999 → đơn mới vẫn ORD-<ngày>-HD<4 số> liền sau đơn trước (mã cũ không xen vào dãy mới)',
+      r4.status === 200 && dang.test(r4.order?.code || '') && Number(String(r4.order?.code).slice(-4)) === Number(m1.slice(-4)) + 1,
       `${moTa(r4)} · ${r4.order?.code}`);
   }
 

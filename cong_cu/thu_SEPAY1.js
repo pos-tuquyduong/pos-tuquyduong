@@ -241,8 +241,10 @@ async function main() {
       && p.checkout_url === null, moTa(r) + ' ' + JSON.stringify(p).slice(0, 160));
     k('B1 VietQR: 00=01, 01=12 (QR động), 38.00=A000000727, 38.02=QRIBFTTA, 53=704, 58=VN', f['00'] === '01' && f['01'] === '12'
       && m38['00'] === 'A000000727' && m38['02'] === 'QRIBFTTA' && f['53'] === '704' && f['58'] === 'VN', q);
-    k('B1 VietQR: BIN + số tài khoản đúng cài đặt; 54 = 20000 (phần còn lại, không phải tổng 50.000); 62.08 = TQD<mã phiên>',
-      m3801['00'] === SP.bin && m3801['01'] === SP.soTk && f['54'] === '20000' && m62['08'] === 'TQD' + p.id && p.noi_dung === 'TQD' + p.id, q);
+    // CK-NOIDUNG-1 (chủ quán duyệt 05.11): nội dung = TQD<MMM><DD> HD<số hoá đơn 4 số> theo ngày giờ VN (bảng tháng viết riêng ở đây).
+    const nd = `TQD${['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(t0.slice(5, 7)) - 1]}${t0.slice(8, 10)} HD`;
+    k('B1 VietQR: BIN + số tài khoản đúng cài đặt; 54 = 20000 (phần còn lại, không phải tổng 50.000); 62.08 = TQD<MMM><DD> HD<4 số>',
+      m3801['00'] === SP.bin && m3801['01'] === SP.soTk && f['54'] === '20000' && new RegExp(`^${nd}\\d{4}$`).test(m62['08'] || '') && p.noi_dung === m62['08'], q);
     k('B2 CRC: chuỗi kết thúc 6304 + 4 hex, đúng CRC tính riêng', /6304[0-9A-F]{4}$/.test(q) && crc(q.slice(0, -4)) === q.slice(-4), q.slice(-8));
     const sai = q.slice(0, 20) + (q[20] === '1' ? '2' : '1') + q.slice(21);
     k('B2 sửa một ký tự → CRC không còn khớp (phép kiểm CRC có răng)', crc(sai.slice(0, -4)) !== sai.slice(-4));
@@ -404,8 +406,10 @@ async function main() {
     const phienCua = async (ma) => { const d = await db.queryOne('SELECT phien_id FROM pos_don_app WHERE ma = ?', [ma]).catch(() => null); return d ? dongPhien(d.phien_id) : null; };
     const r1 = await datApp();
     const p1 = await phienCua(r1.j.ma_don) || {}, f = tlv(String(r1.j.qr?.chuoi || ''));
-    k('E3 POST /kh/don cách qr (CONG_QR=sepay) → 200 cho_tra, qr.chuoi là VietQR (54 = 25000, 62.08 = TQD<mã phiên>), qr.het_han có', la(r1, 200)
-      && r1.j.tien_trinh === 'cho_tra' && f['54'] === '25000' && tlv(f['62'] || '')['08'] === 'TQD' + p1.id && !!r1.j.qr?.het_han, moTa(r1) + ' ' + JSON.stringify(r1.j).slice(0, 200));
+    const nd3 = tlv(f['62'] || '')['08'] || '';   // CK-NOIDUNG-1: đơn App = TQD<MMM><DD> APP<4 số>
+    k('E3 POST /kh/don cách qr (CONG_QR=sepay) → 200 cho_tra, qr.chuoi là VietQR (54 = 25000, 62.08 = TQD<MMM><DD> APP<4 số>), qr.het_han có', la(r1, 200)
+      && r1.j.tien_trinh === 'cho_tra' && f['54'] === '25000' && /^TQD[A-Z]{3}\d{2} APP\d{4}$/.test(nd3) && nd3 === p1.noi_dung && !!r1.j.qr?.het_han,
+      moTa(r1) + ' ' + JSON.stringify(r1.j).slice(0, 200));
     const w1 = await guiSepay(bao(p1));
     const c1 = await goi('GET', `/kh/don/${r1.j.ma_don}`, undefined, kh.tk);
     k('C18 tiền SePay về → đơn App da_tra, có đơn thật (như payOS)', daNhan(w1) && c1.j.don?.tien_trinh === 'da_tra' && !!(await phienCua(r1.j.ma_don))?.order_id,
