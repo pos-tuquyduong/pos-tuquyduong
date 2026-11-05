@@ -124,6 +124,7 @@ app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-
 app.use('/api/pos/kho', require('./kho/duong'));   // KHO-1: mục kho (server/kho/)
 app.use('/api/pos/hoa-don', require('./routes/hoaDon'));   // HD-1: một cửa dữ liệu hoá đơn (chỉ đọc)
 app.use('/api/pos/man-khach', require('./routes/man-khach'));   // MANKHACH-1: màn khách ghép máy quầy (chỉ hiển thị)
+app.use('/api/pos/chuong-trinh', require('./routes/chuong-trinh'));   // CT-1a: thẻ Cài đặt Chương trình (chỉ lưu cấu hình; áp tại quầy là CT-1b)
 app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên cấp mã đăng nhập App cho khách
 app.use('/api/pos/don-thu', require('./routes/don-thu'));   // KH-SDT-1: dọn dữ liệu thử trước khai trương (chỉ chủ quán)
 // KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)

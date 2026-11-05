@@ -428,7 +428,7 @@ async function main() {
   await chay('E1', async () => {
     const r = await goi('GET', '/kh/toi', undefined, { tk: A.tk });
     const khoa = Object.keys(r.j.khach || {}).sort();
-    k('E1 GET /toi → 200, đúng 8 trường dia_chi · hang · ngay_tao · qr · sdt · so_du_vi · ten · xung_ho (P15-QR, KH-API-2, KH-API-3)', la(r, 200) && bang(khoa, ['dia_chi', 'hang', 'ngay_tao', 'qr', 'sdt', 'so_du_vi', 'ten', 'xung_ho']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
+    k('E1 GET /toi → 200, đúng 9 trường dia_chi · hang · ngay_sinh · ngay_tao · qr · sdt · so_du_vi · ten · xung_ho (P15-QR, KH-API-2, KH-API-3)', la(r, 200) && bang(khoa, ['dia_chi', 'hang', 'ngay_sinh', 'ngay_tao', 'qr', 'sdt', 'so_du_vi', 'ten', 'xung_ho']) && r.j.khach.sdt === A.sdt, `${moTa(r)} · ${khoa}`);
     const rB = await goi('GET', '/kh/toi', undefined, { tk: B.tk });
     const lech = await goi('GET', `/kh/toi?sdt=${B.sdt}&phone=${B.sdt}`, undefined, { tk: A.tk });
     const qA = (r.j.khach || {}).qr, qB = (rB.j.khach || {}).qr;

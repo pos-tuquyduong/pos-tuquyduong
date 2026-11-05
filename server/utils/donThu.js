@@ -47,7 +47,8 @@ const DONG_CON_CO_SDT = [['pos_point_transactions', 'customer_phone'], ['pos_bal
   ['pos_customer_packages', 'customer_phone'], ['pos_membership_purchases', 'customer_phone'], ['pos_signup_codes', 'claimed_phone'],
   ['pos_signup_codes', 'diem_nhan_phone']];
 // Bảng có cột SĐT / order_id mà công cụ KHÔNG BAO GIỜ xoá (chỉ dùng để giữ lại) — bài thử dò PRAGMA canh danh sách này.
-const BANG_KHONG_DON = ['pos_stock_pending', 'pos_phien_thanh_toan', 'pos_don_app', 'pos_nhat_ky_pin', 'kho_nha_cung_cap'];
+const BANG_KHONG_DON = ['pos_stock_pending', 'pos_phien_thanh_toan', 'pos_don_app', 'pos_nhat_ky_pin', 'kho_nha_cung_cap',
+  'pos_ngay_sinh_sua'];   // CT-1a: sổ sửa ngày sinh chỉ-thêm-dòng (như nhật ký PIN) — dọn dữ liệu thử không xoá
 const THU_TU_XOA = [...BANG_THEO_DON, 'pos_voucher_grants', 'pos_discount_codes', 'pos_kh_ma_dang_nhap', 'pos_kh_lan_thu',
   'pos_registrations', 'pos_wallets', 'pos_customers', 'pos_orders'];
 
