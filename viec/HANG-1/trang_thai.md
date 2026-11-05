@@ -337,3 +337,50 @@ BÀI HỌC:
   chỉ đòi `role === 'owner'`; `server/utils/khoiPhuc.js:68-72` `DELETE FROM <bảng>` rồi `INSERT` nguyên cột của file.
 - Lỗi 2 ĐÚNG về luật, số dòng người soát dẫn lệch: `pinChuQuan.js` chỉ có 61 dòng — chỗ đổi PIN bằng mật khẩu là `server/utils/pinChuQuan.js:36-42`
   (`datPinChuQuan`), route `server/routes/membership.js:59-63`. `server/routes/users.js:116-130` `PUT /:id/password` chỉ cần `manage_users`, không hỏi mật khẩu cũ.
+
+## Soát bảo mật (/soat-bao-mat, 05.11 — lần 1)
+Số lỗ: trước lọc **3** · sau lọc (điểm ≥ 8) **1**. Điểm lọc: Vuln 1 lộ băm PIN qua sao lưu = 3 (bỏ — chỉ owner tải được, owner có đường ngắn hơn ở
+users.js) · Vuln 2 khôi phục sao lưu ghi đè hạng = 8 (giữ) · Vuln 3 đặt lại mật khẩu owner rồi đặt PIN = 6 (bỏ — lỗ gốc ở `users.js` có sẵn, không do nhánh thêm;
+NHƯNG soát vòng 3 xếp NẶNG → vẫn đưa vào `## Câu hỏi` câu 4b).
+
+Báo cáo sau lọc (chép nguyên văn):
+
+# Vuln 2: Khôi phục sao lưu ghi đè hạng thẻ không cần PIN: `server/routes/backup.js:85` (danh sách `BANG_KHONG_KHOI_PHUC` ở backup.js:127–134)
+
+* Severity: High (theo mô hình đe doạ của kho)
+* Category: authorization_bypass / privilege_escalation
+* Confidence: 9/10
+* Description:
+  * Luật chủ quán 04.11, chép ở đầu `tiers.js`: mọi thay đổi Cài đặt hạng phải có PIN chủ quán, phiên đăng nhập kể cả của chủ quán là không đủ.
+  * Nhưng `pos_membership_tiers` vẫn nằm trong `BACKUP_TABLES` và KHÔNG có trong `BANG_KHONG_KHOI_PHUC`.
+  * `POST /api/pos/backup/restore` (backup.js:323) chỉ kiểm `role === 'owner'`, rồi gọi `lapKeHoach` / `thucHien` (khoiPhuc.js:28–76). Hai hàm này chạy `DELETE FROM pos_membership_tiers`, rồi `INSERT` mọi cột trong file khớp bảng, gồm cả `cach_co`, `goi`, `discount_percent`, `special_discount_percent`, `sort_order`.
+  * Đường này không kiểm hợp lệ nào. Trần 90% của `kiemHang` cũng bị bỏ qua.
+* Exploit Scenario: Phiên owner không biết PIN:
+  1. Xuất `pos_membership_tiers` ra xlsx.
+  2. Sửa dòng Kim Cương thành `cach_co = 'ban'`, `goi = [{"so_thang":60,"gia":1000,"bat":true}]`, hoặc sửa `discount_percent` của Vàng lên 100.
+  3. Gọi `POST /backup/preview-restore` rồi `POST /backup/restore`. Không bị chặn vì trang này không thuộc nhóm trang tiền.
+  4. Quầy bán thẻ Kim Cương 60 tháng giá 1.000đ qua `POST /orders` với `membership_buy`, hoặc mọi đơn của khách Vàng thành 0đ.
+  Hạng bị đổi trực tiếp mà PUT /tiers với cổng PIN không hề được gọi.
+* Recommendation: Cho `pos_membership_tiers` vào `BANG_KHONG_KHOI_PHUC` (khôi phục báo 400, chủ quán sửa hạng qua Cài đặt có PIN). Hoặc bắt `restore` đòi `pin` khi file có trang "Hạng thành viên" có dòng, và chạy `kiemHang` cho từng dòng. Thêm bài thử: restore một file có trang hạng mà không có PIN thì phải đỏ.
+
+Người lọc (8/10): "HANG-1 đã nghĩ tới đường khôi phục: nó đưa `pos_pin_chu_quan` vào danh sách cấm (backup.js:134) … nhưng bỏ sót bảng hạng. Đây là K4."
+
+SOÁT BẢO MẬT: KHÔNG ĐẠT — 1
+
+## Câu hỏi (05.11 — chờ chủ quán; DỪNG: soát vòng 3 còn lỗi BẢO MẬT, LUAT §6.5 không cho máy tự sửa vòng 4)
+4. **Khoá PIN chủ quán còn hai đường vòng — cả hai chỉ cần máy đang đăng nhập tài khoản chủ quán, không cần biết PIN.**
+   (a) **Khôi phục file sao lưu đổi được Cài đặt hạng** (soát vòng 3 lỗi 1 + soát bảo mật Vuln 2, đã kiểm code `backup.js:85,127-134,323-326`,
+   `khoiPhuc.js:68-72`): tải file sao lưu, sửa trang "Hạng thành viên" (Kim Cương thành hạng bán giá 1.000đ, hoặc giảm 100%), khôi phục lại.
+   **Đề xuất của mình:** không cho khôi phục trang Hạng thành viên bằng file nữa (giống sổ thẻ, ví, đơn — máy báo lỗi, chủ quán sửa hạng ở Cài đặt có
+   PIN). Một dòng ở `backup.js` (trong Phạm vi) + bài thử. Kho có sự cố thì hạng vẫn sửa tay được (thường chỉ 2–3 hạng).
+   (b) **Đặt lại mật khẩu chủ quán rồi đặt PIN mới** (soát vòng 3 lỗi 2, đã kiểm `users.js:116-130`, `pinChuQuan.js:36-42`): trang Nhân viên đặt lại
+   mật khẩu tài khoản chủ quán không cần mật khẩu cũ; có mật khẩu mới là đặt được PIN mới (Q1-a: đặt PIN chỉ cần mật khẩu). Lỗ gốc ở `users.js` có từ
+   trước HANG-1 (ngoài Phạm vi). Hai cách:
+   - **b1 (đề xuất):** khi ĐÃ có PIN, đổi PIN phải gõ PIN cũ + mật khẩu (sửa `pinChuQuan.js`, trong Phạm vi). Quên PIN thì… cần một đường khác bạn chọn
+     (ví dụ chat / người kỹ thuật xoá PIN trực tiếp trong kho dữ liệu). Đổi lại Q1-a nên cần bạn duyệt.
+   - **b2:** giữ như hiện tại, ghi rõ là rủi ro chấp nhận ("ai cầm máy đăng nhập chủ quán thì đặt lại được PIN") — để việc sau sửa trang Nhân viên
+     (đặt lại mật khẩu chủ quán phải có mật khẩu cũ, không cho tạo / nâng tài khoản thành chủ quán).
+   Bạn chọn: **(a) như đề xuất?** và **b1 hay b2?**
+   Kèm theo (không cần quyết, mình làm cùng vòng sửa): bỏ cột băm PIN khỏi file sao lưu (người lọc chấm 3 — chỉ là làm cứng, nhưng bảng đó vốn không
+   khôi phục được nên sao lưu nó không có ích); sửa 2 lỗi NHẸ của soát vòng 3 (chú thích "để nhật ký hiện đến …" ở `membership.js` / `membershipStatus.js` /
+   `orders.js`, và chú thích "PIN chỉ cho cấp / thu hồi" ở `pinChuQuan.js` / `HangThe.jsx`).
