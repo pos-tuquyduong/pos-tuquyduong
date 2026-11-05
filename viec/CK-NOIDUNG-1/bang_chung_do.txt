@@ -121,7 +121,27 @@ TRÊN CODE TRƯỚC VÒNG SỬA 1 (2bc84b9) → ĐỎ: 95 đạt · 5 hỏng —
 FT810021" — một khoản cộng HAI lần, lỗi người soát báo, nay bị bắt).
 TRÊN CODE ĐÃ VÁ (9eb3c5a) → 100 đạt · 0 hỏng (thoát 0).
 
-SỐ CA cong_cu/thu_CKNOIDUNG1.js: 100
+### cong_cu/thu_CKNOIDUNG1.js — bản soát vòng 2 (thêm X1, X1b, X2, X2b, X3, X4, X6, X5 ×2; L14 thêm DISCOUNT_CODE_LIMIT_REACHED)
+TRÊN CODE GỐC → ĐỎ: 23 đạt · 82 hỏng (thoát 1) — mọi dòng đỏ ở trên vẫn đỏ, thêm:
+  ✗ X1 huỷ; P T1 · S T1 · S T2 · P T2 (2 khoản) → cộng 2 khoản  — ví 0 (mong 50000) · chua_khop,chua_khop,chua_khop,chua_khop
+  ✗ X1b huỷ; S T1 · P T1 · P T2 · S T2 (2 khoản) → cộng 2 khoản  — ví 0 (mong 50000) · chua_khop,chua_khop,chua_khop,chua_khop
+  ✗ X2 còn hạn: T1 lệch (20.000) qua S rồi P; huỷ; T2 đúng qua S rồi P → cộng ĐÚNG 1 khoản (T2)  — ví 0 (mong 25000) · chua_khop,chua_khop,chua_khop,chua_khop
+  ✗ X3 huỷ; cùng một khoản qua hai cổng CÙNG LÚC → cộng 1 lần  — ví 0 (mong 25000) · chua_khop,chua_khop
+  ✗ X4 huỷ; chỉ SePay báo 2 khoản thật khác nhau → cộng 2 khoản (một cổng không bị chặn oan)  — ví 0 (mong 50000) · chua_khop,chua_khop
+  ✗ X6 huỷ; SePay báo tiền vào TÀI KHOẢN KHÁC (không phải tiền quán) · payOS báo khoản thật → cộng 1 khoản (không bị coi là bản sao)  — ví 0 (mong 25000)
+  ✗ X5 Đối soát: phiên ghi tiền (đơn + cộng ví) NHIỀU hơn số khoản thật mỗi cổng báo → ĐỎ "vượt số khoản" (lưới chặn cộng ví hai lần)
+  ✗ L14 lý do ngắn theo đúng loại lỗi: flash sale / voucher, DISCOUNT_CODE_LIMIT_REACHED → mã giảm; không khớp tổng → giá đổi; "chưa có giá bán" → câu chung
+TRÊN CODE TRƯỚC VÒNG SỬA 2 (de6cf86) → ĐỎ: 103 đạt · 6 hỏng — đúng lỗi người soát vòng 2 báo, qua webhook THẬT:
+  ✗ X1 … — ví 75000 (mong 50000) · vao_vi,chua_khop,vao_vi,vao_vi        (2 khoản, cộng 3 lần)
+  ✗ X1b … — ví 75000 (mong 50000) · vao_vi,chua_khop,vao_vi,vao_vi
+  ✗ X2 … — ví 50000 (mong 25000) · chua_khop,chua_khop,vao_vi,vao_vi
+  ✗ X2b … — ví 20000 (mong 0) · chua_khop,vao_vi                         (dòng lệch SePay vẫn ĐỎ chờ hoàn tay → hoàn hai lần)
+  ✗ X5 … (chưa có phép Đối soát)
+  ✗ L14 … (DISCOUNT_CODE_LIMIT_REACHED → "vì đơn không còn hợp lệ")
+Ca XANH cả trên de6cf86 (đối chứng K5 — luồng phải KHÔNG bị chặn): X3, X4, X6, X5 (kịch bản đúng không ĐỎ). X2b xanh trên gốc (gốc không cộng ví).
+TRÊN CODE ĐÃ VÁ (ca6aa19) → 109 đạt · 0 hỏng (thoát 0).
+
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 109
 SỐ CA cong_cu/thu_SEPAY1.js: 78
 SỐ CA cong_cu/thu_P26c.js: 157
 SỐ CA cong_cu/thu_KHMUA1.js: 122

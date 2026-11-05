@@ -18,9 +18,10 @@ H, GC, SP = 'server/utils/helpers.js', 'server/utils/giuCho.js', 'server/utils/s
 TT, DA, DS = 'server/routes/thanh-toan.js', 'server/utils/donApp.js', 'server/utils/doiSoat.js'
 OR, HD, DM, HDC = 'server/routes/orders.js', 'server/routes/hoaDon.js', 'server/routes/don-mo-rong.js', 'client/src/utils/hoaDon.js'
 DT = 'server/utils/donThu.js'
-BAI = {'ck': 'cong_cu/thu_CKNOIDUNG1.js', 'kh': 'cong_cu/thu_KHSDT1.js'}
+BAI = {'ck': 'cong_cu/thu_CKNOIDUNG1.js', 'kh': 'cong_cu/thu_KHSDT1.js', 'sp': 'cong_cu/thu_SEPAY1.js'}
 CHEP = list(BAI.values()) + ['kiem_tra_truoc_khi_giao.js', 'HOP_DONG_API_KH.md', HDC, 'client/src/pages/DonApp.jsx', 'client/src/components/DonAppNoi.jsx',
-                             'client/src/pages/QuanLy/donThu.js', 'client/src/App.jsx', 'client/src/pages/DonThu.jsx', 'client/src/pages/QuanLy/QuanLy.jsx']   # thu_KHSDT1 đọc
+                             'client/src/pages/QuanLy/donThu.js', 'client/src/App.jsx', 'client/src/pages/DonThu.jsx', 'client/src/pages/QuanLy/QuanLy.jsx',   # thu_KHSDT1 đọc
+                             'viec/SEPAY-1/cai_dat_sepay.md']   # thu_SEPAY1 đọc
 
 # (tên, bài, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
 DOT_BIEN = [
@@ -71,8 +72,17 @@ DOT_BIEN = [
   ('BV-quay-vao-vi', 'ck', [(DA, "WHERE s.ket_qua = 'vao_vi' AND s.luc >= ?", 'WHERE 0 AND s.luc >= ?', 1)], r'✗ L8 '),
   ('BV-man-vao-vi', 'ck', [('client/src/pages/DonApp.jsx', "if (d.tien_trinh === 'vao_vi') return (", 'if (false) return (', 1)], r'✗ L13 '),
   # ── Soát vòng 1 ──
-  ('BV-hai-cong-vao-vi', 'ck', [(TT, '      if (nay < da.filter(', '      if (false && nay < da.filter(', 1)], r'✗ G9b '),
-  ('VS-hai-cong-moi-bao', 'ck', [(TT, '      if (nay < da.filter(', '      if (0 < da.filter(', 1)], r'✗ G9c '),
+  # Vòng 2: một hàm laBanSao (đếm đối xứng) cho đường vào ví + đường chốt đơn. VS-hai-cong-chi-vao-vi đưa lại ĐÚNG lỗi vòng 2 (vế kia chỉ đếm vao_vi).
+  ('BV-hai-cong-vao-vi', 'ck', [(TT, '      if (await laBanSao(tx, t)) {', '      if (false) {', 1)], r'✗ (G9b|X1|X3) '),
+  ('VS-hai-cong-moi-bao', 'ck', [(TT, '  return nay <= ds.length - (nay - 1);', '  return ds.length - (nay - 1) > 0;', 1)], r'✗ (G9c|X1|X2 ) '),
+  ('VS-hai-cong-chi-vao-vi', 'ck', [(TT, '  return nay <= ds.length - (nay - 1);',
+    "  return nay - 1 < (await q.query(\"SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi'\", [t.ma])).filter((d) => congCuaKhoa(d.khoa) !== t.nguon).length;", 1)],
+   r'✗ (X1|X2) '),
+  ('VS-hai-cong-chi-ghi-tien', 'ck', [(TT, "AND ket_qua NOT IN ('that_bai', 'khong_phien')", "AND ket_qua IN ('khop', 'vao_vi')", 1)], r'✗ X2b '),
+  ('VS-hai-cong-dem-tk-khac', 'ck', [(TT, "    AND COALESCE(ly_do, '') NOT LIKE ?`, [t.ma, t.khoa, LY_DO_TK_KHAC + '%']);", "`, [t.ma, t.khoa]);", 1)], r'✗ X6 '),
+  ('BV-chot-ban-sao', 'sp', [(TT, 'sau.nguon !== t.nguon && banSao', 'sau.nguon !== t.nguon && false', 1)], r'✗ C14(b|d) '),
+  ('BV-doi-soat-vuot', 'ck', [(DS, 'HAVING ghi > MAX(sepay, payos)', 'HAVING 0', 1)], r'✗ X5 '),
+  ('VS-ly-do-discount', 'ck', [(DA, '/^MA_|DISCOUNT|mã giảm|voucher/i', '/^MA_|mã giảm|voucher/i', 1)], r'✗ L14 '),
   ('VS-ly-do-ngan-thu-tu', 'ck', [(DA, "  [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];",
                                   "  [/GIA_DA_DOI|giá/i, 'vì giá món đã đổi'], [/^MA_|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được']];", 1)], r'✗ L14 '),
   ('BV-so-ve-moi-trang-thai', 'ck', [(DS, "  return goc + (r.ve_muon ? ' — có tiền về, xem mục CK' : '');",

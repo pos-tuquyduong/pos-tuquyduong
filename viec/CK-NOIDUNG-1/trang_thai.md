@@ -119,6 +119,11 @@
 - (Soát vòng 1) `viec/SEPAY-1/cai_dat_sepay.md` mục 4 (ngoài Phạm vi) còn tả rủi ro "bật cả hai cổng" theo hành vi cũ ("HAI dòng đỏ — đừng hoàn hai
   lần"). Nay với đơn App huỷ / hết hạn / lỗi: khoản đầu tự cộng vào ví khách, báo qua cổng thứ hai ghi CẦN XEM "hai cổng" (không cộng lần hai).
   Nên sửa câu đó ở việc sau. Hai webhook vẫn không tự kiểm cổng nào đang bật — "chỉ một cổng bật" vẫn là bước làm tay.
+- (Soát vòng 2) Luật "hai cổng" đếm số báo mỗi cổng — đúng khi payOS và SePay theo dõi CÙNG một tài khoản (cấu hình hiện tại). Nếu hai cổng theo dõi
+  HAI tài khoản khác nhau, khoản thứ hai thật vào tài khoản SePay có thể bị ghi "hai cổng" (CẦN XEM, không tự cộng) — tiền không mất, quán cộng tay.
+  Chặn chắc hơn là so mã giao dịch ngân hàng giữa hai cổng — cần biết payOS `reference` có trùng SePay `referenceCode` không (chưa kiểm).
+- (Soát vòng 2) Đường "lệch tiền" khi phiên còn hạn (chua_khop ĐỎ) không xét "hai cổng": một khoản lệch báo qua hai cổng → hai dòng ĐỎ (hành vi cũ
+  SEPAY-1) — chủ quán đối chiếu sao kê trước khi hoàn.
 - (Soát vòng 1) Không có chỉ mục trên `pos_phien_thanh_toan.noi_dung` — webhook SePay tra theo cột này. Chưa đo; bảng nhỏ. Nếu chậm thì thêm chỉ mục ở
   một bước nâng cấp sau.
 - Đơn / phiên hỏng TRONG giao dịch (ví thiếu, giá đổi…) → số hoá đơn rollback cùng giao dịch, không thành chỗ trống. Số chỉ "huỷ" khi phiên QR
@@ -218,3 +223,100 @@ Nghi ngờ của người soát:
 - Cổng `tu_chay/cong.js chay` + thao tác thử tay: làm ở bước 11 / báo cáo 7 mục.
 Kiểm sau vòng sửa 1: `thu_CKNOIDUNG1.js` 100 · 0; `npm test -- --day-du` PASS 102 · FAIL 0 · CẢNH BÁO 2 (như trước, file ngoài việc);
 `python3 viec/CK-NOIDUNG-1/dot_bien.py` ĐỐI CHỨNG XANH (ck 100 · 0, kh 95 · 0) · TỔNG 52 · BẮT 52 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+### Vòng 2 — `/ra-soat` trên HEAD de6cf86 (agent độc lập mới, chỉ đọc) — báo cáo nguyên văn
+```
+KHÔNG ĐẠT
+
+Tóm lại: vòng sửa 1 vá đúng ca người soát nêu: một khoản báo qua payOS, sau đó SePay báo lại → chỉ cộng ví một lần. Nhưng phép "hai cổng" mới trong `vaoVi` đếm lệch giữa hai cổng. Khi khách chuyển từ hai khoản trở lên, hoặc khi đã có báo lệch tiền trước đó, máy vẫn cộng ví hai lần cho cùng một khoản. Lỗi này chạm ví, xếp NẶNG. Các lỗi vòng 1 khác (2–6) đã vá thật trong code.
+
+Mình đã chạy lại trên HEAD de6cf86, cây làm việc sạch:
+- `node cong_cu/thu_CKNOIDUNG1.js` → 100 đạt · 0 hỏng.
+- `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 102 · FAIL 0 · CẢNH BÁO 2, kèm dòng "dist đã commit KHỚP với src hiện tại".
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/thanh-toan.js:155-157 (vaoVi, phép "hai cổng") — Hai vế đếm khác loại dòng nên vẫn còn đường cộng ví hai lần. Khuôn K4 + K3. NẶNG (ví).
+   - Hai vế so sánh:
+     - `nay` = đếm MỌI dòng báo của cổng này, mọi `ket_qua` (khop, chua_khop lệch tiền, chua_khop "hai cổng", tkKhac, that_bai).
+     - Vế kia = CHỈ dòng `vao_vi` của cổng kia.
+   - Hệ quả: dòng chua_khop "hai cổng" mà chính phép này ghi ra được tính vào `nay` của cổng ghi, nhưng không bao giờ tính cho cổng kia. Sau khoản đầu tiên, hai vế lệch nhau.
+   - Mình tách đúng biểu thức 155-157 ra mô phỏng thuần (/tmp/claude-0/-home-user-pos-tuquyduong/9248b212-f5f8-5e47-9ba1-a08ca1af158f/scratchpad/mo_phong.js). Kết quả:
+     - X1 — đúng chuỗi G9 → G9b → G9c, rồi payOS báo nốt khoản T2. Thứ tự hoàn toàn tự nhiên, chỉ là khoản T2 tới SePay trước. 2 khoản thật mà cộng ví 3 lần: `vao_vi,chua_khop,vao_vi,vao_vi`.
+     - X1b — SePay T1 · payOS T1 · payOS T2 · SePay T2: cũng 3 lần cho 2 khoản.
+     - X2 — một khoản lệch tiền báo qua hai cổng khi phiên còn hạn (chua_khop ×2, không cộng). Đơn huỷ, rồi khoản T2 đúng số báo qua hai cổng → cộng 2 lần cho 1 khoản.
+     - Biến thể X2: dòng lệch tiền chỉ có ở SePay, báo payOS cho CÙNG khoản đó tới sau khi hết hạn → payOS cộng ví. Dòng SePay vẫn ĐỎ "lệch tiền" mời chủ quán hoàn tay → hoàn hai lần.
+     - Đối chứng G9b (1 khoản, payOS trước) → 1 lần, đúng.
+   - Cách sửa gọn: đếm đối xứng các dòng "tiền vào" của phiên ở mỗi cổng (bỏ that_bai và tkKhac). Cổng này tính cả báo này mà ≤ số của cổng kia → bản sao → chua_khop LY_DO_HAI_CONG. Mô phỏng tay cho đúng ở cả X1, X1b, X2 và G9b/G9c.
+   - Kèm ca thử cho X1, X1b, X2 và một đột biến đưa lại vế chỉ-`vao_vi`.
+2. HOP_DONG_API_KH.md:55 — Hợp đồng hứa "một lần mỗi giao dịch ngân hàng — … cùng khoản báo qua cả hai cổng QR, chỉ cộng một lần". Câu này sai ở X1/X2. Khuôn K1. NẶNG — lời hứa tiền gửi App KH.
+   - Cùng khuôn: chú thích thanh-toan.js:152-154 "Báo NHIỀU hơn = khách chuyển thêm thật" và bảng vòng sửa ở viec/CK-NOIDUNG-1/trang_thai.md:206 "báo nhiều hơn (khoản thật thứ hai) → cộng". Ở X1, payOS T2 không báo nhiều hơn mà vẫn được cộng.
+3. cong_cu/thu_CKNOIDUNG1.js:490-503 — G9/G9b/G9c chỉ phủ một thứ tự: payOS trước, rồi SePay. Khuôn K3. NHẸ (phép thử).
+   - Thiếu ca SePay → payOS, thiếu ca xen kẽ hai khoản, thiếu ca có dòng chua_khop của cổng này từ trước, thiếu ca hai cổng báo cùng lúc.
+   - Đột biến VS-hai-cong-moi-bao (dot_bien.py:75) chỉ thay `nay <` bằng `0 <`. Công thức sai ở lỗi 1 vì vậy sống mà không bị bắt.
+4. server/utils/donApp.js:64-66 (LY_DO_NGAN) — Chạm tới nhưng chưa vá hết. `ly_do` phiên lưu `code` trước `error` (giuCho.js, khối 'loi' cuối chotPhien). Khuôn K4 (vị từ không phủ đủ mã cùng loại). NHẸ (sai chữ, không lệch tiền).
+   - Mã giảm hết lượt lúc chốt có code `DISCOUNT_CODE_LIMIT_REACHED` (orders.js:1015), không bắt đầu bằng `MA_` → App hiện "vì đơn không còn hợp lệ" thay vì "vì mã giảm giá không còn dùng được".
+   - Đây đúng là ca đua hay gặp ở đơn App: mã còn lượt lúc đặt, hết lượt lúc tiền về.
+5. server/routes/thanh-toan.js:155-157 và 180-184 — Hai vị từ "hai cổng" khác nghĩa nằm trong CÙNG một hàm xuLyTienVe. Chỗ 180 là `daBao` = cổng này đã có dòng nào chưa; chỗ 155-157 là phép đếm. Lệch luật "Một quy tắc — một hàm" (LUAT §2), khuôn K4 (BAN-HANG-1: hai biểu thức sẽ lệch nhau). NHẸ. Nên gom thành một hàm đếm dùng cho cả đường chốt đơn và đường vào ví.
+
+NGHI NGỜ:
+- thanh-toan.js:147, vế `luc > x.het_han` (giờ ngân hàng) — vẫn mở từ vòng 1, trang_thai ghi CHƯA KIỂM.
+  - vaoVi không đổi trạng thái phiên. Nếu đồng hồ ngân hàng nhanh hơn máy chủ, phiên vẫn `cho` còn hạn → App hiện `cho_tra` + QR, trong khi ví đã được cộng.
+  - xac-nhan-tay (thanh-toan.js:86-90) lúc đó có `muon` = false → tạo được đơn cho khoản đã vào ví.
+  - Nút ở Đối soát không hiện cho phiên App (doiSoat.js, `choTay` cần `!r.p_app`), nên chỉ còn đường khác.
+- K5 chặn oan (hiếm): payOS và SePay theo dõi HAI tài khoản khác nhau, khách chuyển tay T2 vào tài khoản SePay với nội dung TQD<mã phiên> sau khi payOS đã cộng T1 → SePay ghi chua_khop "hai cổng", không cộng. Tiền không mất (CẦN XEM), nhưng khách không được cộng tự động.
+- Dòng tkKhac / that_bai của cùng cổng được đếm vào `nay` → thêm một đường lệch, cùng gốc với lỗi 1.
+- Hai cổng báo song song trên đường vào ví: câu đọc ở :155 là câu ĐẦU của giao dịch. beginTransaction (server/database.js:1581-1599) mở `db.transaction("write")` ngay ở câu đầu → đọc nằm trong khoá ghi, nên báo sau thấy dòng của báo trước. Lập luận đúng, nhưng chưa có ca thử hai cổng chạy cùng lúc.
+- soHdCuaPhien được đọc NGOÀI giao dịch (thanh-toan.js:149). Chỉ là chữ mô tả, không hại tiền.
+
+NGHIỆM THU: 16/16 mục có bằng chứng · mục thiếu hẳn: không. Q1b có bằng chứng nhưng mang lỗi 1, nên vẫn KHÔNG ĐẠT.
+- A: A1–A8 (thu_CKNOIDUNG1.js:197-242).
+- B: B3–B9 (:247-303); payOS giữ TQD<mã phiên> ≤ 9 ký tự (giuCho.js:70-71, B6 :283).
+- C: C1 (:313, :328), C5 (:344); C2/C3/C6/E1 (:628-632); C4 (:371-423).
+- D: D1–D5 (:314-349, :634).
+- E: E1–E3 (:628-638).
+- F: F1–F6 (:650-680).
+  - Riêng tem ly / phiếu pha chế: chỉ có bằng chứng đọc code — client/src/utils/inPhieu.js:93 `split('-').pop()`, mình đã đọc. Không có ca thử; ke_hoach ghi CHƯA KIỂM.
+- F2: :687 + thu_HOPDONG_KH trong npm test.
+- K5: K1/K4/K5/K6 (:698-707) + bài cũ xanh (PASS 102).
+- Q1a: C4–C4h (:371-423).
+- Q1b: G1–G8 (:438-484), G9/G9b/G9c (:491-503). Thiếu ca xen kẽ hai cổng (lỗi 1, 3).
+- Q2: D5 (:321, :349).
+- Q3: bang_chung_do.txt (thu_SEPAY1, thu_P26c).
+- Q4: bang_chung_do.txt:106-111.
+- Q5 donThu: donThu.js BANG_KHONG_DON + đột biến BV-bang-khong-don.
+- Q5 lượt 2: L1–L14 (:521-605). Quầy thấy báo: L8 / L13; Đối soát CẦN XEM: L9 / L9b.
+- Bỏ mã App khỏi ghi chú: donApp.js, `notes: 'Đơn App · nhận tại quán'`.
+- Lỗi vòng 1 đã vá, mình đọc code từng chỗ:
+  - Lỗi 2: chỉ đúng câu chữ, sai thực chất vì lỗi 1.
+  - Lỗi 3: thứ tự mã giảm trước giá đã sửa (donApp.js:64-66); còn sót mã như lỗi 4.
+  - Lỗi 4: lyDoSo, doiSoat.js:254-260.
+  - Lỗi 5: ke_hoach.md mục "Đối chiếu". Mình kiểm câu inPhieu.js:93 và thu_SEPAY1.js:308 Promise.all — đúng.
+  - Lỗi 6: chuoiSoHd dùng chung ở thanh-toan.js:28, doiSoat.js:268, donApp.js:194; hoaDon.js dùng soHdCuaMa.
+
+CHƯA SOÁT ĐƯỢC:
+- X1/X2 mình chỉ chứng minh bằng mô phỏng thuần chép đúng biểu thức thanh-toan.js:155-157, CHƯA chạy qua webhook thật. Người gác chặn chạy bản sao bài thử có thêm ca, vì file chứa tên biến JWT_SECRET. Nên thêm thành ca thật trong thu_CKNOIDUNG1.js.
+- Chưa chạy dot_bien.py (theo dặn). Chưa chạy `tu_chay/cong.js chay`.
+- Chưa xem giao diện thật: nút nổi vàng, thẻ vào ví ở màn Đơn App, nút xác nhận tay ở Đối soát, tem ly APP0016.
+- Chưa kiểm hành vi trên Turso.
+- Chưa biết payOS `reference` có trùng mã FT với SePay `referenceCode` không. Nếu trùng thì so mã GD là cách chặn hai cổng chắc hơn đếm.
+
+BÀI HỌC:
+- KHOÁ: phép chặn trùng giữa hai nguồn phải thử theo MỌI thứ tự của ≥ 2 sự kiện mỗi nguồn: A trước B, B trước A, xen kẽ, có dòng loại khác từ trước. Bài thử nên sinh mọi hoán vị nhỏ (2 khoản × 2 cổng) và so tổng cộng ví với số khoản thật. Đột biến: đổi vế đếm của một bên.
+- KHOÁ (Đối soát): một phiên có ≥ 2 dòng `vao_vi` từ HAI cổng khác nhau → ĐỎ, không chỉ CẦN XEM. Đây là phép đối soát kèm theo tính năng tự cộng ví (LUAT §5); có phép này thì X1 đã lộ.
+- NGUYÊN TẮC (K3/K4 — thêm vào KHUON_LOI.md): phép so "đếm A < đếm B" phải đếm CÙNG loại dòng ở hai vế. Dòng do chính phép ghi ra (chua_khop "hai cổng") phải được đếm như nhau ở cả hai phía, nếu không hai vế lệch sau lần kích hoạt đầu tiên.
+- NGUYÊN TẮC (K1): bảng vòng sửa ghi "báo nhiều hơn = khoản thật thứ hai → cộng" là khẳng định về MỌI thứ tự, nhưng chỉ có một ca một thứ tự làm căn cứ.
+```
+
+### Vòng sửa 2 (sau báo cáo vòng 2) — commit 95c7a0f (bài thử), ca6aa19 (code)
+Dòng bảng vòng sửa 1 "báo nhiều hơn (khoản thật thứ hai) → cộng" là SAI (người soát vòng 2 bắt) — thay bằng luật đếm đối xứng dưới đây.
+| Lỗi soát | Xử lý | Ca thử (đỏ trên de6cf86 qua webhook thật; đỏ trên gốc) | Đột biến |
+|---|---|---|---|
+| 1 hai vế đếm khác loại dòng → cộng ví 2 lần | MỘT hàm `laBanSao(q, t)` (thanh-toan.js): báo thứ n của cổng này (tính cả báo đang xét) là bản sao khi cổng kia có ≥ n báo tiền vào; hai vế đếm CÙNG loại dòng (khop, chua_khop kể cả lệch tiền và dòng "hai cổng", vao_vi; trừ that_bai, khong_phien, tiền vào tài khoản khác); câu đọc là câu đầu giao dịch ghi | X1, X1b, X2, X2b, X3 (cùng lúc), G9b/G9c giữ xanh | BV-hai-cong-vao-vi · VS-hai-cong-moi-bao · VS-hai-cong-chi-vao-vi (đưa lại ĐÚNG lỗi vòng 2) · VS-hai-cong-chi-ghi-tien |
+| 1 (K5) không chặn oan | một cổng hai khoản → cộng 2; báo "tài khoản khác" không tính là khoản | X4, X6 | VS-hai-cong-dem-tk-khac |
+| 2 hợp đồng "một lần mỗi giao dịch" | đúng sau lỗi 1 (X1–X3); chú thích code viết lại theo luật đếm | X1–X3 | (như lỗi 1) |
+| 3 bài thử một thứ tự | 6 kịch bản: P→S, S→P, xen kẽ 2 khoản, lệch trước, cùng lúc, một cổng | X1–X6 | (như trên) |
+| 4 `DISCOUNT_CODE_LIMIT_REACHED` | LY_DO_NGAN mục mã giảm thêm `DISCOUNT` | L14 | VS-ly-do-discount |
+| 5 hai vị từ "hai cổng" | đường chốt đơn dùng CÙNG `laBanSao` (thay `daBao`) — thu_SEPAY1 C14b / C14d xanh | C14b, C14d (thu_SEPAY1) | BV-chot-ban-sao |
+| Bài học KHOÁ Đối soát | `phepTienVe` (doiSoat.js): phiên có số lần ghi tiền (khop + vao_vi) > số báo tiền vào của cổng báo nhiều nhất → ĐỎ "vượt số khoản" | X5 ×2 | BV-doi-soat-vuot |
+Nghi ngờ vòng 2: giờ ngân hàng `luc > het_han` và hai tài khoản khác nhau cho hai cổng (K5 hiếm — tiền không mất, CẦN XEM) → CHƯA KIỂM / Phát hiện;
+`soHdCuaPhien` đọc ngoài giao dịch — chỉ chữ mô tả, để nguyên.
