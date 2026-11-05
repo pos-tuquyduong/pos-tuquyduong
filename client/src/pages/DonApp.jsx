@@ -58,8 +58,8 @@ export default function DonApp() {
           return (
             <div key={d.id} style={{ borderTop: '1px solid #eee', padding: '10px 0' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' }}>
-                <strong>{d.ma}</strong>
-                <span style={{ color: '#6b7280', fontSize: 13 }}>{(d.gio || '').slice(11, 16)} · bill {d.ma_bill}</span>
+                <strong style={{ fontSize: 22 }}>{d.so_hd || d.ma_bill}</strong>
+                <span style={{ color: '#9ca3af', fontSize: 12 }}>{(d.gio || '').slice(11, 16)} · mã App {d.ma}</span>
                 <span style={{ color: mau, fontWeight: 700, fontSize: 13 }}>{nhan}</span>
               </div>
               <div style={{ fontSize: 14, margin: '4px 0' }}>{d.ten_khach} · đã trả {tien(d.da_tra)} ({cachTra(d)})</div>

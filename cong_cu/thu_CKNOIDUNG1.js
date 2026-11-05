@@ -214,6 +214,10 @@ async function main() {
     k('A4 đơn tiền mặt tạo giữa các phiên → lấy số SAU số đã giữ (không lấy lại), phiên sau đó lấy số kế tiếp', la(r4, 200)
       && soCuaMa(ma4) === n1 + 4 && Number(sSau?.so) === n1 + 5 && new RegExp(`^ORD-${homNay().replace(/-/g, '')}-HD${so4(n1 + 4)}$`).test(ma4),
       `${moTa(r4)} ${ma4} · phiên sau ${sSau?.so}`);
+    const r8 = await taoPhien({ them: { kenh: 'APP' } });
+    const s8 = await soCua(r8.j.phien?.id);
+    k('A8 quầy gửi kenh: "APP" trong thân yêu cầu → vẫn kênh HD (kênh App chỉ do máy chủ đặt)', la(r8, 200) && s8?.kenh === 'HD'
+      && / HD\d{4}$/.test(r8.j.phien?.noi_dung || ''), JSON.stringify({ s8, nd: r8.j.phien?.noi_dung }));
     // A6: phiên huỷ TRONG giao dịch (tài khoản trả đủ mà chọn QR → CACH_KHONG_KHOP) không tiêu số
     const kv = await khach(50000);
     const truoc = await soDong();
@@ -356,6 +360,12 @@ async function main() {
     const w = await guiSepay(bao(p));   // tiền về SAU hết hạn → chua_khop (ĐỎ), phiên quầy KHÔNG cộng ví
     k('G7 phiên QUẦY hết hạn, tiền về → chua_khop như cũ, KHÔNG cộng ví, không đơn', daNhan(w) && await ketQua(p.id) === 'chua_khop'
       && await soDu(a.sdt) === 30000 && !(await dongPhien(p.id))?.order_id, `${await ketQua(p.id)} · ví ${await soDu(a.sdt)}`);
+    const ph = (await taoPhien()).j.phien || {};
+    await goi('POST', `/pos/thanh-toan/phien/${ph.id}/huy`, {});
+    const dkh = await soDon();
+    const wh = await guiSepay(bao(ph));
+    k('G7b phiên QUẦY đã huỷ, tiền về TRONG hạn → không tự tạo đơn (chốt muộn chỉ qua xác nhận tay), chua_khop', daNhan(wh) && await soDon() === dkh
+      && await ketQua(ph.id) === 'chua_khop' && !(await dongPhien(ph.id))?.order_id, `${await ketQua(ph.id)} · đơn ${dkh} → ${await soDon()}`);
     const ds0 = await chayDoiSoat({ kieu: 'ngay' });
     const dong0 = ds0.do.find((l) => l.bat_bien === 'CK' && l.xac_nhan_tay === p.id);
     k('C4h Đối soát: dòng tiền về muộn của phiên quầy ở ĐỎ, có nút xác nhận tay (xac_nhan_tay = mã phiên)', !!dong0, ds0.do.filter((l) => l.bat_bien === 'CK').map((l) => l.mo_ta).join(' | ').slice(0, 200));
