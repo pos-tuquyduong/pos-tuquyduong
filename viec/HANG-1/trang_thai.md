@@ -286,3 +286,54 @@ BÀI HỌC:
   dòng ✗ duy nhất: `✗ bài chạy thật cong_cu/thu_P26a.js xanh (0.9 s)  → ✗ C9 PUT /tiers lưu lại hạng có sẵn → 200  — HTTP 200 / HTTP 400 · Chưa đặt PIN chủ quán — chủ quán đặt ở Cài đặt → Hạng thành viên`.
 - Không làm "lưu không PIN khi không đổi gì".
 - Hợp đồng `/api/kh`: nhánh ghi `PHIEN_BAN` 7; CT-1a trên main đã lấy v9 → HANG-1 là **v10**, chat chỉnh số lúc gộp (máy không đổi trên nhánh).
+
+## Soát độc lập vòng 3 (/ra-soat, 05.11) — báo cáo chép nguyên
+KHÔNG ĐẠT
+
+Tóm tắt: bài thử và đột biến đều đúng. thu_HANG1 ra 132 đạt · 0 hỏng, đột biến 52/52 bị bắt, `--day-du` ra PASS 97 · FAIL 1 (chỉ dòng C9 của thu_P26a, đỏ đã biết). Bản dist khớp với src. Ba lỗi của vòng 1–2 đã đóng thật. Nhưng khoá PIN cho Cài đặt hạng vẫn hở: theo quyết định (a) của chủ quán, phiên đăng nhập chủ quán mà không biết PIN thì không được đổi hạng. Phiên đó vẫn đổi được, theo hai đường không đi qua `/tiers`. Đây là chuyện bảo mật nên phải dừng lại hỏi chủ quán. Vòng sửa 4 (vòng máy tự sửa luôn) không áp dụng được.
+
+LỖI TÌM ĐƯỢC:
+1. NẶNG (bảo mật, file trong Phạm vi). `server/routes/backup.js:85` đưa `pos_membership_tiers` vào BACKUP_TABLES. Danh sách bảng không được khôi phục ở `:127-134` không có bảng này.
+   - `POST /restore` (`backup.js:323-326`) chỉ đòi role owner, không đòi PIN.
+   - `server/utils/khoiPhuc.js:60-75` XOÁ cả bảng rồi chèn nguyên từng dòng của file. Không qua `kiemHang` (`tiers.js:48-76`), cũng không qua `kiemPinChuQuan`.
+   - Chuỗi tấn công: phiên chủ quán đang mở ở quầy xuất trang "Hạng thành viên" ra Excel. Sửa Kim Cương thành `cach_co=ban`, `goi=[{"so_thang":60,"gia":1,"bat":true}]`, `discount_percent` tới 100. Khôi phục file đó, bán Kim Cương 60 tháng giá 1đ (`orders.js` chỉ xét `cach_co` lúc bán), rồi khôi phục lại bản cũ.
+   - Kết quả: đúng chuỗi A8b canh ở đường PUT, nhưng không cần PIN và còn vượt luôn giới hạn 90%.
+   - Thuộc K4: khoá một hành động thì phải khoá mọi đường đổi cấu hình dẫn tới cùng quyền lợi. Hai vòng soát trước đã ghi đúng bài học này.
+   - Cách sửa có thể: thêm `pos_membership_tiers` vào danh sách không khôi phục, hoặc bắt nhập PIN khi file có trang này. Chủ quán phải chọn.
+2. NẶNG (bảo mật, gốc lỗ nằm ở `users.js`, ngoài Phạm vi; chỗ vá được nằm ở `pinChuQuan.js`, trong Phạm vi). `server/utils/pinChuQuan.js:179-188` cho đổi PIN chỉ bằng mật khẩu đăng nhập. Nhưng phiên chủ quán đặt lại được mật khẩu của chính mình mà không cần mật khẩu cũ, qua `PUT /api/pos/users/:id/password` (`users.js:116-130`; quyền `manage_users`, owner luôn qua theo `auth.js:89`).
+   - Chuỗi: đặt mật khẩu mới, rồi `POST /membership/pin-chu-quan` đặt PIN mới. Lần đặt PIN này còn gỡ luôn khoá sai 5 lần (`:186`). Sau đó cấp Kim Cương, sửa hạng thoải mái.
+   - Đường thứ hai: `POST /users` (`users.js:38,57`) nhận `role` bất kỳ, nên tạo được một tài khoản owner mới với mật khẩu tự chọn. Khôi phục trang `pos_users` (`backup.js:71`) cũng cho kết quả như vậy.
+   - Hệ quả: câu ở `trang_thai.md:243-244` ("PIN phủ mọi thay đổi… phiên đăng nhập (kể cả chủ quán) không đủ") và `tiers.js:6-7` là chưa đúng.
+   - Thuộc K4 + K1. Cách vá trong Phạm vi: khi đã có PIN thì đổi PIN phải gõ PIN cũ (quên PIN thì có đường khác do chủ quán quyết). Chủ quán đã duyệt Q1-a là "chỉ cần mật khẩu", nên phải hỏi lại.
+3. NHẸ (K1, chú thích sai so với code). `server/routes/membership.js:71` và `server/utils/membershipStatus.js:104` ghi expires_at được ghi "để nhật ký hiện 'đến …'". Từ vòng sửa 2 nhật ký đã bỏ phần này: grep `expires_at` trong `client/src/components/CapHang.jsx` không ra dòng nào. Câu "để xem" trong chú thích của `orders.js` (khối ghi sổ thẻ) cũng vậy. Nay `hanSauDong` đọc cả sổ thẻ trong giao dịch chỉ để ghi một cột không màn nào hiển thị (chỉ còn API `/nhat-ky` trả ra).
+4. NHẸ (K1). Đầu file `pinChuQuan.js:2` và `HangThe.jsx:4` vẫn ghi PIN chỉ dùng cho "cấp / thu hồi hạng". Thực tế PIN nay dùng cả khi lưu và xoá Cài đặt hạng.
+
+NGHI NGỜ:
+- `membershipStatus.js:45`: khách đang giữ hạng vô hạn (được cấp) mà chủ quán đổi hạng đó sang "bán" thì khách vẫn mua gói được. Khách trả tiền mà hạn không đổi (`cu === HAN_VO_HAN → moi = cu`), vì `orders.js` chỉ chặn hạng CAO HƠN, không chặn cùng hạng vô hạn. Chiều ngược lại: hạng bán đổi sang "chỉ cấp", rồi cấp thì đặt lại hạn, mất phần khách đã trả. Nay cả hai đều cần PIN, nhưng vẫn là đường tiền chưa có ca thử. Vòng 2 đã nêu, chưa thấy ghi Phát hiện.
+- `membership.js:92-93`: hạng "chỉ cấp" đã đổi sang "bán" thì không thu hồi được những người đã được cấp.
+- Bộ đếm sai PIN dùng chung: quản lý gõ sai 5 lần ở Cài đặt hạng thì chủ quán bị khoá cấp hạng 15 phút. Đây là hành vi đã chọn, nhưng nên nói rõ cho chủ quán.
+- G1f chỉ có đột biến cho đường Xoá (`VS-xoa-hang-giao-dien-khong-pin`). Đường Lưu bỏ `pin` không có đột biến riêng. Regex `hangApi\.luu\(\{[\s\S]*?\bpin\b` có thể khớp chữ `pin` ở chỗ khác trong khối.
+- `tiers.js:134-138`: đếm khách giữ hạng rồi ẩn hạng, hai bước nằm ngoài giao dịch. Vòng 2 đã nêu, vẫn còn.
+
+NGHIỆM THU: 9/9 mục có bằng chứng (`node cong_cu/thu_HANG1.js` → 132/0, đủ các phần N, A, A5, B, C, D, E, F, K5, O, G).
+- A: A1–A9j. B: B*. C: C0–C8. D. E. F: F1, F2 + thu_HOPDONG_KH xanh. G: G1–G4, G1f, G3c. K5. Dữ liệu: N1–N7.
+- Mục thiếu: C "chỉ CHỦ QUÁN + PIN" chưa giữ được trọn, vì còn hai đường vượt PIN (lỗi 1, 2). K5 "bài cũ xanh" chỉ đỏ ở thu_P26a C9 — đỏ đã biết, không tính.
+- Đỏ trên bản chưa vá có bằng chứng thật. `bang_chung_do.txt`: gốc 2a12443 ra 7 đạt · 77 hỏng. c8dddfb ra 114 đạt · 12 hỏng, đỏ đúng ở A9, A9b–A9j, A8, G1f. Các ca so mã lỗi và trạng thái DB (A9f), không chỉ soi marker.
+
+CHƯA SOÁT ĐƯỢC:
+- Không dựng server để chạy thật chuỗi khôi phục Excel và chuỗi đổi mật khẩu → đặt PIN. Hai lỗi nặng kết luận từ việc đọc code: `backup.js:85,127-134,323-326`, `khoiPhuc.js:60-75`, `users.js:38-57,116-130`, `auth.js:89`, `pinChuQuan.js:179-188`.
+- Chưa chạy `node tu_chay/cong.js chay`.
+- Chưa dựng lại cây gốc để tự kiểm `bang_chung_do.txt`, chỉ tin file đó.
+- Chưa thử giao diện trên điện thoại (ô PIN, bấm 2 lần để xoá).
+- Chưa xem dữ liệu thật trên Turso.
+
+BÀI HỌC:
+- KHOÁ (K4, bảo mật): khoá một quyền lợi bằng PIN thì liệt kê MỌI đường ghi vào bảng cấu hình đó, kể cả khôi phục sao lưu (BACKUP_TABLES trừ BANG_KHONG_KHOI_PHUC). Có thể thành phép máy: bảng nào có route đòi PIN mà không nằm trong BANG_KHONG_KHOI_PHUC → đỏ.
+- NGUYÊN TẮC (bảo mật): một bí mật "chỉ chủ quán" mà đổi được bằng một bí mật khác yếu hơn thì chỉ mạnh bằng bí mật yếu nhất trong chuỗi. Ở đây mật khẩu đặt lại được bằng chính phiên đăng nhập, nên PIN không chặn được phiên chủ quán. Trước khi báo "đã kín" phải rà đường đặt lại PIN, mật khẩu và tài khoản.
+- NGUYÊN TẮC (K1): bỏ một phần hiển thị thì grep các chú thích nói "để hiện …" và sửa cùng commit (lỗi 3).
+
+### Phiên chính kiểm lại hai lỗi NẶNG (05.11, đọc code trong lượt này)
+- Lỗi 1 ĐÚNG: `server/routes/backup.js:85` có `pos_membership_tiers`; `BANG_KHONG_KHOI_PHUC` (`backup.js:127-134`) không có; `POST /restore` (`backup.js:323-326`)
+  chỉ đòi `role === 'owner'`; `server/utils/khoiPhuc.js:68-72` `DELETE FROM <bảng>` rồi `INSERT` nguyên cột của file.
+- Lỗi 2 ĐÚNG về luật, số dòng người soát dẫn lệch: `pinChuQuan.js` chỉ có 61 dòng — chỗ đổi PIN bằng mật khẩu là `server/utils/pinChuQuan.js:36-42`
+  (`datPinChuQuan`), route `server/routes/membership.js:59-63`. `server/routes/users.js:116-130` `PUT /:id/password` chỉ cần `manage_users`, không hỏi mật khẩu cũ.
