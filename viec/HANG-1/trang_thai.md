@@ -423,3 +423,107 @@ SOÁT BẢO MẬT: KHÔNG ĐẠT — 1
 | `backup.js` không xuất băm PIN (2 đường xuất) | BV-bam-pin-sao-luu · VS-bam-pin-mot-duong |
 | `pinChuQuan.js` đổi PIN cần PIN cũ, cùng bộ đếm, sau kiểm dữ liệu | BV-pin-cu · VS-pin-cu-khong-dem · VS-pin-cu-truoc-du-lieu |
 | `HangThe.jsx` gửi PIN cũ | VS-pin-cu-giao-dien |
+
+## Soát độc lập vòng 4 (/ra-soat, 05.11 — chủ quán dặn soát lại sau câu 4) — báo cáo chép nguyên
+KHÔNG ĐẠT. Phần vá của vòng câu 4 chạy đúng và không còn lỗ bảo mật nào trong Phạm vi. Bị KHÔNG ĐẠT vì còn 2 lỗi NHẸ, và `npm test` vẫn đỏ ở 3 bài ngoài Phạm vi (đang chờ chủ quán ở câu 5). Theo LUAT §6.3 thì chưa được báo xong.
+
+Tóm tắt bằng lời thường:
+- Khôi phục file không còn đổi được hạng nữa. Mình đã chạy thử trên bản chưa vá: chính file sửa Kim Cương thành giảm 100% khôi phục được với HTTP 200. Trên bản đã vá thì bị chặn 400.
+- Đổi PIN nay phải gõ PIN cũ. Đổi PIN đi chung bộ đếm sai 5 lần và không gỡ được khoá.
+- File sao lưu không còn chứa băm PIN.
+- Chỗ cần sửa nhẹ: bài thử HANG-1 chưa được đưa vào `npm test`, nên sau khi gộp, các khoá này không còn máy nào canh nữa.
+
+LỖI TÌM ĐƯỢC:
+1. `kiem_tra_truoc_khi_giao.js` (cả file) — NHẸ, K6/K3 (canh tái phạm cho một bản vá bảo mật).
+   - `grep -c HANG1 kiem_tra_truoc_khi_giao.js` ra 0. `cong_cu/thu_HANG1.js` không nằm trong `npm test` và hook pre-commit, trong khi thu_SAOLUU2, thu_KHO1, thu_GIOVN1 thì có `chayBaiThat`.
+   - Hậu quả: sau khi gộp, không còn gì canh các khoá S1 (trang hạng không khôi phục), S3/S4 (PIN cũ) và A9 (PIN cho Cài đặt hạng).
+   - Rủi ro cụ thể: câu 5 (ba bài cũ khôi phục nguyên file "xuất tất cả") đúng là chỗ mà cách sửa dễ nhất sai là gỡ `'pos_membership_tiers'` khỏi `BANG_KHONG_KHOI_PHUC` (`backup.js:135`). Làm vậy thì `npm test` lại xanh mà lỗ mở lại.
+   - Cách sửa: thêm `chayBaiThat('cong_cu/thu_HANG1.js')`. File này nằm trong Phạm vi, và thêm phép kiểm là được phép.
+2. `viec/HANG-1/dot_bien.py:94-103` — NHẸ, K3 (TU-CHAY-5: mỗi luồng "phải KHÔNG bị chặn" cần một đột biến BẮT có tên).
+   - Ba luồng hợp lệ chưa có đột biến có tên: S1b (file không có trang hạng → 200), S5 (đúng PIN cũ → 200), C0e (đặt PIN lần đầu không cần PIN cũ).
+   - Mình đã chạy thử bằng chính hàm `chay()` của `dot_bien.py`, trên bản chép trong thư mục nháp. Cả 4 đột biến đều bị BẮT:
+     - K5-luon-doi-pin-cu → ✗ C0e
+     - K5-chan-ca-cai-dat → ✗ S1b
+     - K5-pin-cu-luon-sai → ✗ S5
+     - VS-pin-cu-tuy-chon (`if (pinCu && …)`) → ✗ S3
+   - Như vậy bài thử đã đủ mạnh, chỉ thiếu ghi vào hồ sơ. Nên thêm 4 tên này vào `DOT_BIEN` và bảng "chỗ vá → đột biến" trong `trang_thai.md`.
+
+NGHI NGỜ:
+- Ngoài Phạm vi, nên ghi Phát hiện, cùng khuôn K4 với `pos_pin_chu_quan`: `pos_customers` có `pin_code`, `pin_sai`, `pin_khoa_den` (`pinKhach.js:32,48,59`) nhưng KHÔNG nằm trong `BANG_KHONG_KHOI_PHUC` (`backup.js:127-135`).
+  - Khôi phục trang "Khách hàng" đặt lại hoặc gỡ khoá được PIN ví của khách mà không ghi `pos_nhat_ky_pin`.
+  - File xuất cũng mang băm PIN khách (PIN 4–6 số, dò được).
+  - Lý do đã viết cho PIN chủ quán ở `backup.js:134` áp nguyên cho PIN khách.
+- Ngoài Phạm vi: `is_special_group` của sản phẩm (dùng ở `orders.js:451,658` và `giaHang.js:12`) quyết định món nào được % nhóm đặc biệt. Cờ này sửa được bằng khôi phục trang "Sản phẩm" hoặc route sản phẩm, không cần PIN. Đây không phải "Cài đặt hạng" theo câu 4a, nhưng là một đường tới quyền lợi của hạng.
+- `users.js:36-57` (ngoài Phạm vi): `POST /users` nhận `role` bất kỳ. Với b1, ai có `manage_users` và đặt PIN TRƯỚC chủ quán (lúc chưa có PIN) sẽ khoá chủ quán khỏi việc đổi PIN, phải nhờ chat xoá. Mặc định chỉ owner có `manage_users` (`database.js:1056,1069,1083`), nên rủi ro thấp.
+- `pinChuQuan.js:38-47` (thiết kế đã chọn, không phải lỗi mới):
+  - Mật khẩu kiểm trước, không giới hạn số lần.
+  - Khoá PIN không tăng dần: 5 lần / 15 phút, tức khoảng 480 lần một ngày. Một phiên owner mở lâu dò hết PIN 4 số trong khoảng 1–3 tuần. Nên nói rõ cho chủ quán, hoặc gợi ý dùng PIN 6 số.
+- Đua giữa kiểm PIN cũ và ghi PIN mới (`pinChuQuan.js:44-50`): không khai thác được.
+  - `kiemPinChuQuan` giữ chỗ lượt thử bằng một câu ghi có điều kiện (`:61-63`), nên đoán song song vẫn chỉ tối đa 5 lượt.
+  - Hai lần đặt PIN lần đầu cùng lúc thì lần sau thắng, nhưng cả hai đều đã cần owner và mật khẩu.
+  - Đang khoá thì trả 423 trước khi so (S4 xanh).
+- `tier_round_to` / `tier_round_mode` (`tiers.js:116-118`) có PIN ở PUT /tiers, nhưng vẫn ghi được qua `PUT /settings` (`settings.js:107`, chỉ cần quyền `manage_settings`) và qua khôi phục trang "Cài đặt".
+  - Mình grep thì máy chủ không dùng hai khoá này để tính tiền (chỉ `HangThe.jsx:84-85` dùng để xem trước), nên không đụng tiền.
+  - Chú thích `tiers.js:4` ("+ mức làm tròn giá hạng") làm người đọc tưởng có tác dụng tới giá.
+
+Rà theo thứ tự:
+1. K3 — bài thử có giá trị.
+   - Mình tự dựng cây `git archive 39a6cc2` (code chưa vá + bài mới) và chạy: 135 đạt · 9 hỏng, đỏ ở S2, S2b, S1, S1b, S3, S3b, S4, G1e, G1g. Khớp `bang_chung_do.txt`.
+   - Bài kiểm sự VẮNG MẶT của mẫu nguy hiểm: S2 kiểm `!chuCa.includes(bam)` và không có cột `pin_bam`. S1 so nguyên bảng hạng trước và sau. S3/S4 kiểm `laPin(PIN)` trên DB. Không phải chỉ soi marker.
+   - Ca giao diện G1g đọc nguồn qua `sach()` (`thu_HANG1.js:45`, bỏ chú thích), nên chữ "quên PIN" trong chú thích `HangThe.jsx:5` không làm nó xanh oan.
+   - Trên HEAD: 144 đạt · 0 hỏng (mình chạy lại).
+2. K4 — đường song song.
+   - Ghi `pos_membership_tiers`: 4 chỗ gồm `tiers.js:104,108,138` (PIN), `013_hang.js:41-43`, seed `database.js:1330`, khôi phục (nay chặn ở `backup.js:135`). Không chỗ nào sót.
+   - Ghi `pos_pin_chu_quan`: 3 câu, đều ở `pinChuQuan.js:48,61,65`.
+   - Xuất sao lưu: 2 chỗ gọi `readTablePaged` (`backup.js:234,271`), cả hai truyền `boCot`. `/info` (`:192`) chỉ đếm dòng. Ngoài backup.js không có đường xuất nào khác: grep `json_to_sheet` chỉ ra backup.js; khoiPhuc.js chỉ đọc file khôi phục.
+   - Đặt/đổi PIN chủ quán: 1 đường (`membership.js:60-63`).
+   - `chanTrangTien` (`backup.js:146-147`) và `lapKeHoach` (`khoiPhuc.js:36`) cùng nhận diện trang theo `label`, nên không lách được bằng tên trang.
+   - Nhãn cũ "PIN chủ quán (băm)" giờ thành trang lạ (BANG_LA), bị bỏ qua, không ghi.
+3. K5 — các luồng hợp lệ qua điều kiện mới: đặt PIN lần đầu (C0e), đổi PIN đúng PIN cũ (S5), PIN mới sai dạng không tốn lượt (S3c), khôi phục file không có trang hạng (S1b), sao lưu vẫn có bảng PIN (S2/S2b, E8/D2c).
+   - Bị chặn theo, đã biết: khôi phục NGUYÊN file "xuất tất cả" luôn 400, vì trang hạng luôn có dòng.
+   - Trên quán thật, `pos_orders` vốn có dòng nên khôi phục nguyên file đã 400 từ trước. Thêm trang hạng nên ảnh hưởng thực tế nhỏ; còn ba bài thử thì đỏ (câu 5).
+4. K1 — các chú thích vừa sửa đúng với code:
+   - `membership.js:71-72`, `membershipStatus.js:104-105`, `orders.js:1070`: `expires_at` của dòng mới không được hàm hạng đọc. Hàm hạng chỉ đọc `expires_at` của dòng cũ không có `so_thang` (`membershipStatus.js:47`). `CapHang.jsx` không có `expires_at`.
+   - `pinChuQuan.js:2-8,36-37` đúng.
+   - Còn sai `tiers.js:4` (xem mục làm tròn ở NGHI NGỜ).
+5. Đường tiền: vòng này không đụng. Giá gói vẫn do máy chủ tra (`orders.js` dùng `membershipGoi.gia`, đột biến VS-gia-may-khach có sẵn). Không trường tiền nào máy chủ tin số máy khách gửi.
+6. P1: `node kiem_tra_truoc_khi_giao.js --day-du` cho ✓ "dist đã commit KHỚP với src hiện tại". Kết quả chung: PASS 94 · FAIL 4 · CẢNH BÁO 1, đúng 4 dòng ✗ đã biết (P26a C9, SAOLUU2 F1, KHO1 J3/J5/J6/J7, KHO2b H4).
+7. Nghiệm thu: xem dòng dưới.
+8. Đơn giản:
+   - `pinChuQuan.js:44-45` đọc dòng PIN hai lần (`coPinChuQuan` rồi `kiemPinChuQuan`). Chấp nhận được; gộp lại sẽ khó đọc hơn.
+   - `HangThe.jsx:4-6` nói hai lần chuyện "Lưu / Xoá cần PIN". Gộp dòng 6 vào dòng 4.
+   - `readTablePaged` xoá cột từng dòng (`backup.js:36`). Gọn và đủ, không cần đổi.
+
+NGHIỆM THU: 9/9 mục có bằng chứng: `thu_HANG1` 144/0 với các phần N, A, A5, B, C, D, E, F, K5, O, S, G; `thu_HOPDONG_KH`, BH2, KHAPI2, KHAPI3 xanh trong `--day-du`; Dữ liệu = N1–N7.
+- Mục thiếu một phần: K5 "bài cũ trong `npm test` xanh" chưa đạt (FAIL 4: C9 đã được chủ quán chấp nhận, 3 bài ngoài Phạm vi chờ câu 5).
+- Mục C "chỉ chủ quán + PIN": trong Phạm vi nay đã kín. Còn `users.js` (ngoài Phạm vi), như NGHI NGỜ.
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy `node tu_chay/cong.js chay`.
+- Chưa chạy lại toàn bộ 60 đột biến (chỉ chạy 4 đột biến mình tự viết; tin con số 60/60 của phiên chính).
+- Chưa thử giao diện trên điện thoại: ô "PIN cũ" hiện sau khi đặt PIN lần đầu (`setCoPin(true)`), và báo 423.
+- Chưa xem dữ liệu thật trên Turso (đã có dòng PIN chưa).
+- Chưa dựng lại gốc 2a12443 để kiểm dòng "7 đạt · 79 hỏng". Mình chỉ dựng 39a6cc2 trên code chưa vá câu 4.
+
+BÀI HỌC:
+- KHOÁ (K6/K3): bài thử của một bản vá bảo mật phải nằm trong `npm test` (`chayBaiThat`) cùng PR. Có thể thành phép máy: mọi `cong_cu/thu_*.js` mà phiếu ghi ở "Bài thử đỏ" phải có trong `kiem_tra_truoc_khi_giao.js`. Nếu không, cổng PR xanh một lần rồi thôi, và câu 5 có thể "sửa" bằng cách mở lại lỗ mà không ai biết.
+- KHOÁ (K4): liệt kê mọi bảng có cột băm PIN hoặc bộ đếm khoá (`pos_pin_chu_quan`, `pos_customers.pin_code`/`pin_sai`/`pin_khoa_den`). Bảng nào như vậy mà không nằm trong `BANG_KHONG_KHOI_PHUC` hoặc không có `boCot` thì đỏ. Hiện PIN khách đang hở cùng khuôn với lỗ vừa vá.
+- NGUYÊN TẮC (K3): bảng "chỗ vá → đột biến" phải có cả dòng cho mỗi luồng K5 (S1b, S5, C0e), không chỉ dòng cho chỗ chặn.
+
+## Vòng sửa 4 (05.11 — chỉ lỗi NHẸ, trong Phạm vi; LUAT §6.5: máy làm luôn, không gọi agent soát nữa)
+- Lỗi 1: `kiem_tra_truoc_khi_giao.js` thêm `chayBaiThat('cong_cu/thu_HANG1.js')` (thêm phép kiểm — CLAUDE.md §6 cho phép) → khoá S1 / S3 / S4 / A9 nằm
+  trong `npm test` + hook; gỡ `pos_membership_tiers` khỏi `BANG_KHONG_KHOI_PHUC` để "chữa" câu 5 sẽ làm `npm test` đỏ ở S1.
+- Lỗi 2: `dot_bien.py` thêm `VS-pin-cu-tuy-chon` (→ ✗ S3), `K5-luon-doi-pin-cu` (→ ✗ C0e), `K5-chan-ca-cai-dat` (→ ✗ S1b), `K5-pin-cu-luon-sai` (→ ✗ S5):
+  5 tên (kèm VS-pin-cu-giao-dien) chạy riêng → **BẮT 5 · SỐNG 0**.
+- Chú thích (NGHI NGỜ / Đơn giản): `tiers.js` đầu file — mức làm tròn chỉ màn Cài đặt hạng dùng để xem trước, máy chủ không dùng tính giá
+  (grep `tier_round`: chỉ `tiers.js:35-40,113-114` + seed `database.js:1338-1339`); `HangThe.jsx` gộp hai dòng chú thích PIN. `client/dist` build lại: bundle không đổi.
+
+### Bảng chỗ vá → đột biến (bổ sung vòng sửa 4)
+| Chỗ vá / luồng hợp lệ | Đột biến |
+|---|---|
+| đổi PIN: PIN cũ bắt buộc cả khi không gửi | VS-pin-cu-tuy-chon |
+| K5 đặt PIN lần đầu không cần PIN cũ (C0e) | K5-luon-doi-pin-cu |
+| K5 khôi phục file không có trang hạng (S1b) | K5-chan-ca-cai-dat |
+| K5 đổi PIN đúng PIN cũ (S5) | K5-pin-cu-luon-sai |
+
+SOÁT LẦN CUỐI: chat soát thay

@@ -100,6 +100,11 @@ DOT_BIEN = [
   ('VS-pin-cu-khong-dem', [(PIN, "    const cu = await kiemPinChuQuan(pinCu);", "    const cu = bcrypt.compareSync(String(pinCu ?? ''), (await docPin()).pin_bam) ? {} : loi('PIN_CHU_QUAN_SAI');", 1)], r'✗ S4 '),
   ('VS-pin-cu-truoc-du-lieu', [(PIN, "  if (await coPinChuQuan()) {\n    const cu = await kiemPinChuQuan(pinCu);\n    if (cu.loi) return cu;\n  }\n", '', 1),
                                (PIN, "  if (!MAU_PIN.test(String(pin ?? ''))) return loi('PIN_CHU_QUAN_KHONG_HOP_LE');\n", "  if (await coPinChuQuan()) {\n    const cu = await kiemPinChuQuan(pinCu);\n    if (cu.loi) return cu;\n  }\n  if (!MAU_PIN.test(String(pin ?? ''))) return loi('PIN_CHU_QUAN_KHONG_HOP_LE');\n", 1)], r'✗ S3c '),
+  ('VS-pin-cu-tuy-chon', [(PIN, '  if (await coPinChuQuan()) {', '  if (pinCu && await coPinChuQuan()) {', 1)], r'✗ S3 '),
+  # luồng hợp lệ (K5) — đột biến chặn oan phải bị BẮT (soát vòng 4)
+  ('K5-luon-doi-pin-cu', [(PIN, '  if (await coPinChuQuan()) {', '  if (true) {', 1)], r'✗ C0e '),
+  ('K5-chan-ca-cai-dat', [(BK, "  'pos_membership_tiers'];", "  'pos_membership_tiers', 'pos_settings'];", 1)], r'✗ S1b '),
+  ('K5-pin-cu-luon-sai', [(PIN, '    const cu = await kiemPinChuQuan(pinCu);\n    if (cu.loi) return cu;', "    return loi('PIN_CHU_QUAN_SAI');", 1)], r'✗ S5 '),
   ('VS-pin-cu-giao-dien', [('client/src/pages/CaiDat/HangThe.jsx', 'hangApi.datPin(pin.mat_khau, pin.pin, pin.pin_lai, pin.pin_cu)', 'hangApi.datPin(pin.mat_khau, pin.pin, pin.pin_lai)', 1)], r'✗ G1g '),
 ]
 

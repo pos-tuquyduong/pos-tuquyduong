@@ -1,9 +1,8 @@
 // HANG-1 — thẻ Cài đặt "Hạng thành viên" (demo tab 2, thiet_ke/THIET_KE_DOT2.md M3): mỗi hạng một thẻ — tên, thứ bậc (▲▼, lớn = cao),
 // % giảm thường / nhóm đặc biệt, cách có hạng Bán (danh sách gói: số tháng + giá + bật) hoặc Chỉ cấp (chủ quán cấp ở trang Khách hàng).
 // Lưu một lần cả danh sách (PUT /tiers — máy chủ kiểm hết rồi ghi trong một giao dịch). Xoá hạng bấm 2 lần, không hộp thoại trình duyệt.
-// PIN chủ quán (cấp / thu hồi hạng, lưu / xoá hạng) đặt ở đây — chỉ tài khoản chủ quán, gõ lại mật khẩu; đã có PIN thì gõ cả PIN cũ (chủ quán
-// 05.11 — quên PIN: nhờ chat xoá, không có nút). % combo KHÔNG ở đây (COMBO-1a).
-// Lưu / Xoá hạng phải gõ PIN chủ quán (chủ quán 04.11 — máy chủ kiểm, sai 5 lần khoá như lúc cấp hạng).
+// PIN chủ quán đặt ở đây — chỉ tài khoản chủ quán, gõ lại mật khẩu; đã có PIN thì gõ cả PIN cũ (chủ quán 05.11 — quên PIN: nhờ chat xoá, không
+// có nút). Lưu / Xoá hạng và cấp / thu hồi hạng phải gõ PIN (chủ quán 04.11 — máy chủ kiểm, sai 5 lần khoá). % combo KHÔNG ở đây (COMBO-1a).
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';

@@ -1,7 +1,8 @@
 /**
  * POS System - Membership Tier Routes (TIER-1a-v2, HANG-1)
  * Cài đặt hạng thành viên: tên, thứ bậc (sort_order — lớn = cao), % giảm thường / nhóm đặc biệt, cách có hạng (bán theo gói | chỉ cấp),
- * danh sách GÓI của hạng bán (số tháng 1–60, giá — trống thì chưa bán, bật / tắt) + mức làm tròn giá hạng.
+ * danh sách GÓI của hạng bán (số tháng 1–60, giá — trống thì chưa bán, bật / tắt) + mức làm tròn giá hạng (tier_round_to / tier_round_mode — chỉ màn Cài đặt hạng
+ * dùng để xem trước; máy chủ KHÔNG dùng để tính giá đơn).
  * Hạng lên theo MUA GÓI ở quầy (orders.js) hoặc chủ quán CẤP (membership.js). card_price thôi dùng (giữ cột, không đọc / ghi).
  * MỌI thay đổi (PUT / DELETE) phải kèm PIN chủ quán `pin` (chủ quán 04.11 — cùng khoá sai 5 lần với cấp hạng): sửa %, giá gói, thứ bậc,
  * thêm hạng, đổi bán ↔ chỉ cấp đều là đường tới quyền lợi của hạng chỉ cấp — phiên đăng nhập (kể cả chủ quán) không đủ.
