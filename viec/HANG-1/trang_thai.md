@@ -650,3 +650,29 @@ HEAD ĐÃ KIỂM: 6cfa128
 2. **PIN chủ quán nên 6 số** (`server/utils/pinChuQuan.js`, `HangThe.jsx`): khoá 5 lần / 15 phút không tăng dần ≈ 480 lần thử / ngày → PIN 4 số dò được trong
    1–3 tuần nếu phiên chủ quán để mở. Đề xuất: đòi PIN đúng 6 số khi đặt / đổi (PIN cũ 4 số vẫn dùng được tới lần đổi kế tiếp), hoặc khoá tăng dần
    (15 phút → 1 giờ → 1 ngày). Mình nghiêng về **6 số** (một dòng kiểm, dễ hiểu). Trong lúc chờ: chủ quán tự đặt PIN 6 số ngay — máy hiện đã nhận.
+
+## Cổng chạy (05.11 — câu 5, ở HEAD dfcfb2e, cây sạch) — `node tu_chay/cong.js chay . c4513ac HEAD viec/HANG-1`
+```
+✗ [A13] `npm test` đỏ:
+✗ [A13] `node kiem_tra_truoc_khi_giao.js --day-du` đỏ:
+✗ CỔNG ĐỎ (CHẠY) — 2 lý do
+```
+A13 đỏ chỉ vì bốn bài ĐỎ ĐÃ BIẾT (C9 câu 3; SAOLUU2 / KHO1 / KHO2b câu 5 — chat sửa trên main, xanh khi gộp). Các phép khác qua.
+(Mốc là `c4513ac` = cha thứ hai của `PHIEU: HANG-1`; chạy thử với `c26b4e0^` (cha thứ nhất, nhánh cũ) ra thêm ✗ A16 `thu_KHSDT1` oan — không phải lỗi của việc.)
+
+## Báo cáo 7 mục (05.11 — chốt, câu 5)
+VIỆC:        HANG-1 — Hạng thẻ: thêm hạng, thứ bậc, gói thời hạn, hạng chỉ cấp, cấp có PIN, hạng cao nhất còn hạn
+ĐÃ SỬA:      vòng câu 5 không đổi code. Toàn việc: xem các báo cáo 7 mục trước (câu 4: backup.js chặn khôi phục trang Hạng + bỏ băm PIN khỏi file;
+             pinChuQuan.js đổi PIN cần PIN cũ; HangThe.jsx ô PIN cũ; kiem_tra_truoc_khi_giao.js chạy thu_HANG1)
+BÀI THỬ:     thu_HANG1 đỏ trên gốc / đỏ trên bản chưa vá câu 4 → XANH 144/0, đột biến 65 BẮT hết (vòng 4). Vòng này: npm test --day-du PASS 95 · FAIL 4 —
+             đúng 4 bài ĐỎ ĐÃ BIẾT (P26a C9, SAOLUU2 F1, KHO1 J3/J5/J6/J7, KHO2b H4), không dòng ✗ nào khác
+ĐÃ RÀ K4:    vòng này không vá. Đường song song còn hở cùng khuôn (PIN ví khách qua khôi phục) → "Đề xuất việc sau" 1
+CHƯA KIỂM:   cổng A13 đỏ trên nhánh (4 bài đã biết) — chưa chạy được trên bản gộp với main (SUA-C9-1, SUA-SL-1) để thấy xanh; chat cần chạy npm test sau gộp.
+             Hợp đồng /api/kh: PHIEN_BAN nhánh ghi 7, chat đổi v10 lúc gộp. Chưa thử giao diện trên điện thoại (ô PIN cũ, báo 423). Chưa xem Turso thật.
+             PIN ví khách / trang Nhân viên / PIN 6 số: ngoài Phạm vi, chưa vá.
+GIT:         dfcfb2e HANG-1 cau 5 (chu quan 05.11): 3 bai khoi phuc la DO DA BIET cung C9, giu khoa trang Hang; de xuat viec sau PIN vi khach + PIN chu quan 6 so
+             ca903d6 HANG-1 cong chay, bao cao 7 muc, HEAD DA KIEM (cho cau 5)
+BÀI HỌC:     vòng câu 5: KHOÁ 0 · NGUYÊN TẮC 0 · BỎ 1 (chọn nhầm mốc cổng `c26b4e0^` — commit phiếu là merge, mốc đúng là cha thứ hai; một lần, đã ghi ở mục cổng).
+             Toàn việc: KHOÁ 3 · NGUYÊN TẮC 2 · BỎ 1 — ở ## Bài học (vòng câu 4)
+
+HEAD ĐÃ KIỂM: dfcfb2e
