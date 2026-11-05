@@ -48,6 +48,7 @@ const AP_DUNG_TU = {
   D1: '2026-10-17',   // P20c
   DEN: null,          // luôn CẦN XEM (không đỏ) — không cần mốc
   CK: null,           // P3 — bảng mới, không có dòng cũ
+  SO: null,           // CK-NOIDUNG-1 — sổ số hoá đơn mới, không có dòng cũ
   XNT: null,          // P3 — luôn CẦN XEM
 };
 
@@ -228,11 +229,45 @@ async function phepDenLe(q) {
 
 // ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
 // Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
+// CK-NOIDUNG-1: 'vao_vi' (tiền về muộn của đơn App đã tự cộng vào ví khách — Q1b) → CẦN XEM. Tiền về muộn của phiên QUẦY mà sau đó đã xác nhận
+// tay (đơn đã tạo, đúng số tiền — Q1a) → CẦN XEM; còn chưa xác nhận → ĐỎ kèm `xac_nhan_tay` = mã phiên (màn Đối soát hiện nút cho người có quyền).
+const LY_DO_MUON = ['tiền về sau khi QR hết hạn', 'phiên đang huy lúc tiền về', 'phiên đang cho lúc tiền về'];
 async function phepTienVe(q) {
-  const ds = await q(`SELECT id, khoa, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
+  const ds = await q(`SELECT s.id, s.khoa, s.ma_payos, s.so_tien, s.ket_qua, s.ly_do, s.luc, p.id AS phien_id, p.trang_thai AS p_tt, p.nguon AS p_nguon,
+      p.con_lai AS p_con_lai, p.order_id AS p_don, EXISTS (SELECT 1 FROM pos_don_app a WHERE a.phien_id = p.id) AS p_app
+    FROM pos_payos_su_kien s LEFT JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
+    WHERE s.ket_qua IN ('chua_khop', 'khong_phien', 'vao_vi')`);
   const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
-  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien' || [LY_DO_HAI_CONG, LY_DO_TK_KHAC].some((c) => String(r.ly_do || '').includes(c)),
-    mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
+  return ds.map((r) => {
+    const muon = r.ket_qua === 'chua_khop' && LY_DO_MUON.some((c) => String(r.ly_do || '').startsWith(c));
+    const daTay = muon && r.p_tt === 'da_thu' && r.p_nguon === 'tay' && Number(r.so_tien) === Number(r.p_con_lai);
+    const choTay = muon && !r.p_don && !r.p_app && ['cho', 'huy'].includes(r.p_tt);
+    return { ngay: r.luc || null, ...(choTay ? { xac_nhan_tay: r.phien_id } : {}),
+      canXem: r.ket_qua !== 'chua_khop' || daTay || [LY_DO_HAI_CONG, LY_DO_TK_KHAC].some((c) => String(r.ly_do || '').includes(c)),
+      mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? `không thuộc phiên nào${r.ly_do ? ` — ${r.ly_do}` : ''}`
+        : r.ket_qua === 'vao_vi' ? r.ly_do : `chưa khớp đơn — ${r.ly_do}${daTay ? ' — đã xác nhận tay sau' : ''}`) + ` (báo #${r.id})` };
+  });
+}
+
+// ─── SO (CK-NOIDUNG-1): sổ số hoá đơn của KỲ NGÀY — số không thành đơn kèm lý do (suy từ phiên lúc đọc: Render ngủ, không ghi lúc hết hạn),
+// số thành đơn có mã giao dịch ngân hàng. Số không phiên, không đơn = "số trống không lý do" → ĐỎ (cách cấp không để xảy ra — phép canh).
+const soHdChuoi = (r) => r.kenh + String(r.so).padStart(4, '0');
+function lyDoSo(r, bayGio) {
+  if (r.order_id) return null;
+  if (!r.phien_id) return 'số trống không lý do';
+  if (r.p_tt === 'huy') return 'huỷ trước khi trả';
+  if (r.p_tt === 'loi') return r.p_ly_do ? `lỗi: ${r.p_ly_do}` : 'cổng QR lỗi';
+  if (r.p_tt === 'cho') return (r.p_het_han > bayGio ? 'đang chờ' : 'QR hết hạn, chưa nhận tiền') + (r.ve_muon ? ' — tiền về muộn, xem mục CK' : '');
+  return `phiên ${r.p_tt}`;
+}
+async function soHoaDonNgay(ngay, q) {
+  const ds = await q(`SELECT h.kenh, h.so, h.phien_id, h.order_id, o.code AS ma_don, o.ma_gd, p.trang_thai AS p_tt, p.ly_do AS p_ly_do, p.het_han AS p_het_han,
+      EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua IN ('chua_khop', 'vao_vi')) AS ve_muon
+    FROM pos_so_hoa_don h LEFT JOIN pos_orders o ON o.id = h.order_id LEFT JOIN pos_phien_thanh_toan p ON p.id = h.phien_id
+    WHERE h.ngay = ? AND (h.order_id IS NULL OR o.ma_gd IS NOT NULL) ORDER BY h.so`, [ngay]);
+  const bayGio = getNow();
+  return ds.map((r) => ({ so_hd: soHdChuoi(r), phien_id: r.phien_id, ma_don: r.ma_don || null, ma_gd: r.ma_gd || null,
+    trang_thai: r.order_id ? 'thanh_don' : r.p_tt === 'cho' && r.p_het_han > bayGio ? 'dang_cho' : 'huy', ly_do: lyDoSo(r, bayGio) }));
 }
 
 // ─── XNT (P3): đơn chuyển khoản XÁC NHẬN TAY (không có báo payOS) — luôn CẦN XEM, so với sao kê ngân hàng.
@@ -272,6 +307,7 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
     bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
     for (const l of await phep(chiDoc)) {
       const x = xep(ten, l.mo_ta, l.ngay, 'ky', false, l.canXem);
+      if (x && l.xac_nhan_tay) x.dong.xac_nhan_tay = l.xac_nhan_tay;
       if (x) them(x.nhom, x.dong);
     }
   }
@@ -289,6 +325,11 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
 
   const kq = { ket_qua: 'XANH', kieu, ...ky, hom_nay: getToday(), bat_bien: bangBB, tien: await tongHop(ky.tu, ky.den) };
   if (kieu === 'ngay') {
+    kq.so_hd = await soHoaDonNgay(ky.tu, chiDoc);
+    bangBB.push({ ten: 'SO', pham_vi: 'ky', trang_thai: 'day_du' });
+    for (const s of kq.so_hd.filter((x) => !x.phien_id && !x.ma_don)) {
+      them('do', { bat_bien: 'SO', ngay: ky.tu, pham_vi: 'ky', mo_ta: `số hoá đơn ${s.so_hd} ngày ${ky.tu}: số trống không lý do (không phiên, không đơn)` });
+    }
     kq.ket = await soKet(ky.tu);
     if (kq.ket.trang_thai === 'lech') {
       const c = kq.ket.chenh;

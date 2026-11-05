@@ -102,7 +102,8 @@ async function dungHoaDon(o) {
 
   return {
     quan: { ten: st.store_name || '', dia_chi: st.store_address || '', sdt: st.store_phone || '' },
-    don: { id: o.id, code: o.code, so_bill: soBill(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status },
+    don: { id: o.id, code: o.code, so_bill: soBill(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status,
+      ma_gd: o.ma_gd || null },   // CK-NOIDUNG-1: mã giao dịch ngân hàng (dòng "Mã GD")
     khach: {
       ten: o.customer_name || 'Khách lẻ', sdt_che: cheSdt(o.customer_phone), la_khach_le: !o.customer_phone,
       hang: o.customer_tier || null, phan_tram: o.customer_tier ? phanTramHang : null,
