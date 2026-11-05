@@ -47,6 +47,7 @@ Trục trặc lúc bán (pha nhầm, bấm nhầm, hết nguyên liệu, khách 
 - server/routes/backup.js
 - server/utils/donApp.js
 - server/utils/doiSoat.js
+- server/utils/donThu.js
 - server/utils/tienDaTra.js
 - server/utils/nhatKyDon.js
 - server/database.js
@@ -55,10 +56,21 @@ Trục trặc lúc bán (pha nhầm, bấm nhầm, hết nguyên liệu, khách 
 - client/src/**
 - client/dist/**
 - cong_cu/thu_HUY1.js
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/gia_lap/bat_bien.js
+- ban_mau_pos/**
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
 
+<!-- Chủ quán 05.11 (Q1–Q5 kế hoạch 83c832f):
+     Q1 CÓ — phiếu thắng bản vẽ: sửa ban_mau_pos trước (nút Huỷ đơn ở chi tiết Lịch sử đơn + màn Đơn App, 5 lý do của phiếu, KHÔNG hoàn tác 5 giây).
+     Q2 KHÔNG dùng lại 'hoan_goi' — khách xem lịch sử tài khoản (App /vi) sẽ thấy sai tên. Dùng mã riêng cho phần hoàn tiền mặt / chuyển khoản khi
+        huỷ đơn (tên máy chốt), sửa bất biến trong cong_cu/gia_lap/bat_bien.js cho khớp (bài sửa thường).
+     Q3 CÓ — không thêm lối quầy huỷ phiên App chưa trả (khách tự huỷ / QR hết hạn).
+     Q4 — KHÔNG tự dựng lại nhánh: khi CK-NOIDUNG-1 (và NAP-1, chủ quán đưa lên trước HUY-1) đã gộp, CHAT gộp main vào viec/HUY-1 bằng script rồi
+        chủ quán mới gửi "tiep". Tiền thật khách trả khi huỷ đơn vào ĐÚNG ngăn ví của NAP-1 (tiền nạp, không phải thưởng).
+     Q5 CÓ — thêm server/utils/donThu.js, cong_cu/gia_lap/kich_ban.js (đổi 4 chỗ huỷ bằng nhân viên sang quản lý). -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_HUY1.js` ĐỎ trên code gốc: huỷ đơn có tài khoản trả tiền mặt / chuyển khoản / ví / trộn → ví tăng đúng toàn bộ, sổ ví đủ dòng;
 khách lẻ → ghi khoản hoàn tiền mặt, két trừ đúng; staff → 403; manager huỷ đơn hôm qua → 403, owner được; lý do trống → 400; đơn đang pha / đơn
