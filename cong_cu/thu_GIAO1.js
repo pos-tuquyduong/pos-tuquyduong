@@ -191,7 +191,7 @@ async function main() {
   const baoVe = (body, khoa = BI_MAT.bao) => goi('POST', '/giao-hang/ahamove-bao', body, null, { congKhai: true, headers: khoa === null ? {} : { apikey: khoa } });
   const SDT_KHACH = '0911000001';
   await db.run("INSERT INTO pos_customers (phone, name) VALUES (?, 'Khách Giao')", [SDT_KHACH]).catch(() => {});
-  await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 1000000)', [SDT_KHACH]);
+  await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 10000000)', [SDT_KHACH]);   // đủ cho mọi đơn giao của bài
   const soDu = async () => Number((await db.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [SDT_KHACH]))?.balance || 0);
 
   // Một báo phí (cách 2 — chữ) rồi một đơn giao trả đủ. tra: 'vi' | 'tien_mat' | 'ck'
