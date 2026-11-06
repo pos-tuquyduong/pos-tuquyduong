@@ -481,3 +481,111 @@ BÀI HỌC:
 Kết luận phiên chính: hết 3 vòng sửa (`so_vong_sua_toi_da`), lần soát cuối còn lỗi NẶNG đụng ví (lỗi 1–3) → theo LUAT §6.5 / `/lam-viec` bước 8:
 DỪNG, ghi `## Câu hỏi` (Q6). Không sửa thêm, chưa soát bảo mật (bước 8b), chưa ghi Bài học / HEAD ĐÃ KIỂM. Lỗ chỉ mở khi CẢ HAI cổng QR cùng
 báo tiền về cho một phiên — đúng luật "một cổng tại một thời điểm" (QUYET_DINH 01.11) thì `laBanSao` không kích hoạt (cổng kia không có báo nào).
+
+### Soát nhanh sau Q6 B — agent độc lập, chỉ đọc, trên 72930df (chủ quán: không cần vòng soát 4, soát nhanh MỘT lần phần vừa đổi)
+Kết luận: **ĐẠT** — không đường nào làm ví cộng thừa (`congKiaDaBao` là câu đọc đầu giao dịch ghi `db.transaction("write")`; cộng chỉ khi `changes === 1`;
+một cổng không bị chặn oan — X4 + VS-hai-cong-ca-cong-nay); dòng "KHÔNG tự cộng" chứa `LY_DO_HAI_CONG` → CẦN XEM; đường chốt đơn trùng từng chữ
+với main 4ec877f; tên ca Y1–Y3 khớp thứ tự + số tiền; 5 neo đột biến mới mỗi neo đúng 1 chỗ.
+Hai lỗi NHẸ (chữ, không đụng tiền) — đã sửa ở 246f400: (1) câu hợp đồng `tien_ve_da_cong_vi` nay ghi "từ lúc cổng thứ hai báo, mọi báo sau (của cả
+hai cổng) KHÔNG tự cộng"; (2) chú thích đầu mục CK của doiSoat.js thêm vế "phiên App mà máy không tự cộng ví".
+Nghi ngờ người soát nêu: đường chốt đơn không còn đột biến riêng — đúng chủ ý (là code main, C14b / C14c / C14d của `thu_SEPAY1.js` vẫn canh `daBao`,
+78 · 0); cụm "KHÔNG tự cộng" là chữ tự do mà bài thử đếm — đổi chữ thì bài ĐỎ (không xanh oan), để nguyên.
+BÀI HỌC (người soát): máy không phân biệt chắc "bản sao" với "khoản thật thứ hai" thì đừng ghép theo thứ tự đếm — chặn theo điều kiện có / không
+(cổng kia đã báo chưa) và đẩy sang người đối chiếu tay: thà cộng thiếu rồi bù tay còn hơn cộng thừa.
+
+## Soát bảo mật
+`/soat-bao-mat` lượt "tiep Q6 B" 06.11 — mốc 4ec877f^ … HEAD 246f400, cả nhánh (diff trừ client/dist 3179 dòng). Bước 2: một subagent độc lập chỉ đọc.
+Số lỗi trước lọc: 0 · sau lọc: 0 (bước 3 không cần — bước 2 không tìm được lỗ hổng nào). Báo cáo nguyên văn:
+```
+Bản soát bảo mật nhánh viec/CK-NOIDUNG-1 (mốc 4ec877f^). Mình chỉ đọc, không sửa file, không commit.
+
+**Kết quả: Không tìm thấy lỗ hổng** đạt ngưỡng tin cậy ≥ 8/10 do nhánh này mới thêm vào.
+
+Mình đã đọc hết phần code máy chủ và màn quầy trong diff (dòng 1–286 và 1162–1937). Không đọc kỹ: file bài thử `cong_cu/thu_*.js` (đọc lướt tới khoảng dòng 800), hồ sơ `viec/CK-NOIDUNG-1/*` và `client/dist`. Ba phần này thuộc loại trừ (bài thử, tài liệu, bản build).
+
+## Các đường đã soát và lý do không phải lỗ hổng
+
+1. **Webhook SePay / payOS: chữ ký và chống phát lại** (`server/routes/thanh-toan.js` diff dòng 1418–1437)
+   - Vẫn kiểm chữ ký trước khi xử lý: `kiemBao` của SePay (HMAC kèm mốc giờ ±300 giây) và `kiemChuKy` của payOS.
+   - Mỗi báo tiền ghi một dòng có khoá riêng (`sepay:<id>` hoặc `<orderCode>:<reference>`) bằng `ON CONFLICT DO NOTHING`.
+   - Đường mới cộng ví (`vaoVi`, diff dòng 1387–1403) chỉ gọi `ghiVi` khi câu ghi báo `changes === 1`, trong CÙNG một giao dịch. Báo lặp, hay hai báo tới cùng lúc, chỉ cộng một lần.
+   - Kiểm tài khoản nhận sai (`tkKhac`) và báo thất bại (`thatBai`) chạy TRƯỚC nhánh vào ví, nên tiền vào tài khoản khác không được cộng.
+
+2. **Số tiền cộng vào ví do ai quyết**
+   - `t.soTien` lấy từ thân báo đã ký của cổng (`transferAmount` / `amount`), không phải số máy khách gửi.
+   - Ví được cộng là `x.phone` của phiên. SĐT này lưu lúc tạo phiên App, lấy từ token khách. Không có tham số nào cho người gọi tự chọn ví.
+
+3. **Số hoá đơn đoán được** (`TQDNOV05 HD0016`)
+   - Trước nhánh này, nội dung `TQD<mã phiên>` và mã đơn `ORD-YYYYMMDD-001` vốn đã tăng dần, nên đây không phải chỗ hở mới.
+   - Muốn khớp được một phiên thì phải chuyển tiền thật vào tài khoản quán; webhook giả thì không qua được chữ ký.
+   - Chuyển tiền kèm nội dung của phiên người khác chỉ làm lợi cho người đó (trả hộ, hoặc cộng vào ví họ). Kẻ tấn công không lấy được gì.
+   - Mã nhận điểm trên bill là bảng riêng `pos_signup_codes`, không phải mã đơn (`server/routes/signup-codes.js:160`).
+
+4. **Xác nhận tay khi tiền về muộn** (`thanh-toan.js` diff dòng 1336–1349, `server/utils/giuCho.js` diff dòng 1768–1805)
+   - Vẫn qua `authenticate`, `checkPermission('xac_nhan_ck_tay')` và bắt buộc lý do.
+   - Cờ `muon` do máy chủ tự tính, máy khách không gửi được. Phiên của đơn App bị chặn (409 `PHIEN_APP_KHONG_TAO_LAI`).
+   - Giá và ví đi qua `taoDon`, máy chủ tự tính lại (ví không đủ thì 400 `SO_DU_KHONG_DU`).
+   - Cổng ghi `cho/huy → da_thu` vẫn là một câu ghi có điều kiện, kiểm `changes`.
+
+5. **Kênh `APP` ở quầy**
+   - `kenh` chỉ là tham số thứ ba của `taoPhien`, `donApp.js` truyền vào. Route quầy không đọc nó từ thân yêu cầu (bài thử A8 cũng canh điểm này).
+
+6. **Cửa `/api/kh`**
+   - `chiTietDon` và danh sách đơn vẫn lọc theo `req.khach.phone` lấy từ token (`server/utils/donApp.js:313-314`, `CAU_DON`).
+   - Các trường mới `so_hd`, `tien_ve_da_cong_vi`, `thong_bao_tien_ve` chỉ tính trên các dòng đã lọc theo khách.
+   - `thong_bao_tien_ve` dùng `lyDoNgan` để đổi lỗi thành câu chung, không lộ lỗi nội bộ.
+
+7. **Nội dung lạ hiện ra màn hình**
+   - `ma_gd` (cắt còn 64 ký tự) và `noiDung` đã chuẩn hoá đều hiện qua React, không dùng `dangerouslySetInnerHTML`.
+   - `noiDung` dựng lại từ nhóm của biểu thức chính quy, chỉ gồm chữ và số.
+   - Chuỗi lý do có SĐT khách chỉ hiện ở màn quầy đã đăng nhập (`/kh/don-app` có `authenticate`), không ra App.
+
+8. **Các chỗ khác**
+   - Mọi câu SQL mới đều dùng tham số, không ghép chuỗi người dùng.
+   - Bảng `pos_so_hoa_don` đã có trong `BANG_KHONG_KHOI_PHUC` (sao lưu không ghi đè được) và `BANG_KHONG_DON` (công cụ dọn dữ liệu thử không xoá).
+
+## Ghi chú phụ (dưới ngưỡng báo, không tính là lỗ hổng)
+
+Phiên QUẦY đã `huy` mà vẫn xác nhận tay được thì ví bị trừ lại phần `giu_vi`, không hỏi lại PIN của khách. PIN này khách đã nhập lúc tạo đúng phiên đó. Muốn làm vậy phải có quyền `xac_nhan_ck_tay` và ghi lý do. Đây là chỗ nghiệp vụ nên cân nhắc, không phải lỗ hổng khai thác được. Điểm tin cậy: 3/10.
+```
+SOÁT BẢO MẬT: ĐẠT
+
+## Bài học
+Sự cố của việc: hết 3 vòng soát vẫn còn lỗi ví (ghép báo hai cổng theo thứ tự — vòng 2 vá đếm, vòng 3 bắt thứ tự đảo + khác số tiền) → hỏi chủ quán
+(Q6) → chọn B (đơn giản hoá). Người gác chặn lượt này: B-BIMAT-CHU ×1 (chạy thẳng bài thử có chữ khoá — commit trước rồi chạy), B-PHANTICH ×2 (lệnh
+ghép sau `&&` / script + `node`), SED-I ×1, CC-LA ×1 (ReadNotifications). Lượt trước: xem Tiến độ.
+- **KHOÁ** (đã làm, trong Phạm vi): phép khử trùng giữa hai nguồn thử với sự kiện KHÁC GIÁ TRỊ và thứ tự đảo — Y1, Y2, Y3 (`thu_CKNOIDUNG1.js`) +
+  đột biến VS-hai-cong-thu-tu đưa lại đúng lỗi vòng 3 (BẮT). Đỏ trên gốc và trên e7842a9.
+- **NGUYÊN TẮC** (ngoài Phạm vi — đề xuất `KHUON_LOI.md` K3, thêm một dòng "Chặn (CK-NOIDUNG-1)"): "Ghép 'bản sao' giữa hai nguồn không theo thứ tự
+  đến (webhook gửi lại không giữ thứ tự). Không có khoá nhận dạng chắc (mã GD chung) → đừng tự quyết đường tiền: chặn theo có / không và đẩy sang
+  người đối chiếu tay — thà cộng thiếu có dòng CẦN XEM còn hơn cộng thừa. Đã gây: 3 vòng soát, Y1 cộng 50.000 cho 45.000 thật." KHUON_LOI hiện
+  K1–K8, gộp vào K3 không tăng số mục.
+- **NGUYÊN TẮC** (ngoài Phạm vi — đề xuất K3): "Gom hai đường về một hàm mà đổi hành vi đường CŨ → mỗi ca hành vi khác phải có ca ĐỎ trên bản cũ;
+  không muốn đổi thì để đường cũ nguyên như main." Đã gây: vòng sửa 2 thay `daBao` bằng `laBanSao` (soát vòng 3 lỗi 4, 5) — Q6 B trả về main.
+- **BỎ**: lưới Đối soát so TỔNG TIỀN (soát vòng 3 bài học KHOÁ) — với B, cộng thừa không xảy ra theo cách dựng (cổng kia đã báo → không cộng); lưới
+  đếm "vượt số khoản" giữ làm phép canh. Chặn của người gác: luật đã có trong skill (B-BIMAT-CHU, lệnh đứng một mình, SED-I) — lỗi của máy, không
+  cần luật mới.
+- Dọn: không thấy lời dặn nào trong KHUON_LOI / CLAUDE.md mà việc này có phép kiểm làm thay.
+
+## Báo cáo 7 mục (lượt "tiep Q6 B")
+```
+VIỆC:        CK-NOIDUNG-1 — Nội dung chuyển khoản có số hoá đơn (lượt Q6 B: không tự cộng ví khi cả hai cổng cùng báo)
+ĐÃ SỬA:      server/routes/thanh-toan.js:126-138 — bỏ laBanSao (ghép theo thứ tự), thêm congKiaDaBao: phiên đã có báo tiền vào từ cổng kia → không cộng ví
+             server/routes/thanh-toan.js:162-167 — dòng chua_khop "có thể cùng một khoản báo qua hai cổng … máy KHÔNG tự cộng — đối chiếu sao kê … cộng tay" (CẦN XEM)
+             server/routes/thanh-toan.js:186-192 — đường chốt đơn trả về đúng daBao của main 4ec877f
+             server/utils/doiSoat.js — chỉ chú thích; dòng ĐỎ "vượt số khoản" GIỮ nguyên
+             HOP_DONG_API_KH.md — câu tien_ve_da_cong_vi theo luật mới (không đổi trường, không đổi PHIEN_BAN — v10 chưa gộp)
+BÀI THỬ:     thu_CKNOIDUNG1.js (G9c, X1–X6 đổi mong; Y1, Y2, Y3 + ca Đối soát Y1–Y3 mới) — gốc 4ec877f ĐỎ 22 · 87; e7842a9 ĐỎ 103 · 10
+             (Y1 ví 50.000 cho 45.000 thật, Y2/Y3 40.000); sau vá XANH 113 · 0. npm test -- --day-du PASS 102 · FAIL 0 · CẢNH BÁO 2 (cảnh báo cũ, file khác).
+             Đột biến: ĐỐI CHỨNG XANH · 57 / 57 BẮT.
+ĐÃ RÀ K4:    grep "laBanSao|banSao" server/ cong_cu/ HOP_DONG_API_KH.md → 0 chỗ (chỉ banSao khác nghĩa ở thu_gia_lap.js); grep "hai cổng" → đường vào ví
+             (đã đổi) + đường chốt đơn (về main) + doiSoat (CẦN XEM) — hết. Đường "lệch tiền" khi phiên còn hạn không xét hai cổng (Phát hiện, như cũ).
+CHƯA KIỂM:   Render đang đặt CONG_QR gì / có bật cả hai cổng không — máy không đọc được; "chỉ một cổng" vẫn là việc làm tay. payOS reference có trùng
+             mã FT của SePay không (nếu trùng, ghép theo mã GD sẽ tự cộng được thay vì cộng tay). Giao diện thật trên điện thoại (dòng CẦN XEM "KHÔNG tự
+             cộng" ở Đối soát) — chỉ kiểm qua bài thử. Turso thật (giao dịch ghi) — chỉ chạy trên kho thử. Đường chốt đơn khi bật hai cổng vẫn có thể ra
+             hai dòng ĐỎ cho một khoản (có từ main — Phát hiện).
+GIT:         (xem dòng git log dưới — ghi sau commit cuối)
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 2 · BỎ 2 — chi tiết ở ## Bài học
+```
+Thử tay cho chủ quán (chỉ khi có lúc bật cả hai cổng): vào **Đối soát** → mục CK, dòng có chữ "KHÔNG tự cộng" nằm ở CẦN XEM → mở sao kê ngân hàng,
+khoản nào chưa vào ví khách thì nạp tay vào tài khoản khách (SĐT ghi ngay trong dòng).
