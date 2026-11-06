@@ -7,6 +7,7 @@ const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
+const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ lời máy
 
 const router = express.Router();
 const TRUONG = 'id, ten, khach_tra, vao_tk, is_active, thu_tu';
@@ -51,8 +52,7 @@ router.post('/', authenticate, checkPermission('manage_products'), async (req, r
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [g.ten.trim(), g.khach_tra, g.vao_tk, b.is_active === 0 || b.is_active === false ? 0 : 1, g.thu_tu, now, now, req.user.username]);
     res.json({ success: true, data: await queryOne(`SELECT ${TRUONG} FROM pos_goi_nap WHERE id = ?`, [Number(r.lastInsertRowid)]) });
   } catch (err) {
-    console.error('Gói nạp:', err);
-    res.status(500).json({ error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
+    loiGhi(res, err);
   }
 });
 
@@ -69,8 +69,7 @@ router.put('/:id', authenticate, checkPermission('manage_products'), async (req,
       [g.ten.trim(), g.khach_tra, g.vao_tk, bat, g.thu_tu, getNow(), req.user.username, cu.id]);
     res.json({ success: true, data: await queryOne(`SELECT ${TRUONG} FROM pos_goi_nap WHERE id = ?`, [cu.id]) });
   } catch (err) {
-    console.error('Gói nạp:', err);
-    res.status(500).json({ error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
+    loiGhi(res, err);
   }
 });
 
