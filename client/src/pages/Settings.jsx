@@ -9,6 +9,7 @@ import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
 import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
 import CaiDatChuongTrinh from './CaiDat/ChuongTrinh';   // CT-1a
+import CongQr from './CaiDat/CongQr';   // TINGEE-1: cổng QR đang chạy (tên + đã cài)
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
@@ -908,6 +909,7 @@ export default function Settings() {
       <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
       <div className="page-content">
         {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
+        <CongQr />
 
         {/* POS-BOCUC-v1: hang chon NHOM. Hang the ben duoi chi hien the
             thuoc nhom dang chon, nen moi hang chi con 2-4 the. */}
