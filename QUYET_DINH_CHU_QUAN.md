@@ -184,6 +184,10 @@
   khoảng cách giao tối đa đặt trong Cài đặt; quầy bấm tay Nhận đơn / Gọi tài xế (máy gợi ý giờ gọi); màn Giao hàng 4 cột màu, bấm thẻ ra chi
   tiết; huỷ theo từng bước. Khoá Ahamove hiện là khoá thử — xin khoá thật trước khi giao thật.
 - 06.11 · GIAO-1: món đã làm của đơn giao bị huỷ — "Bỏ đi" KHÔNG cộng lại kho (đồ hỏng); "Dùng cho đơn khác" mới hoàn kho trên sổ.
+- 06.11 · Tingee CHẠY THẬT: đơn thử 2.000đ máy tự báo "đã thu", nội dung chuyển khoản `TQDNOV06 HD…` đúng (TINGEE-1).
+- 06.11 · Khách sinh 29/02: năm không nhuận tính sinh nhật là 28/02 — POS (CT-1b, ưu đãi sinh nhật ở quầy) và App (KH-CT-1) dùng CÙNG luật.
+- 03.11 (ghi sổ 06.11) · Khách tạo tài khoản trên App phải hiện ở màn Khách hàng POS và tìm được ở quầy (tên / SĐT / quét QR), ĐỦ trường như khách
+  tạo ở quầy; quầy và App tạo khách bằng MỘT hàm chung — TRƯỚC khai trương (KHACH-APP-1).
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
