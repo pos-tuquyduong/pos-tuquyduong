@@ -128,6 +128,14 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  // G10: đơn bị hoàn ĐÚNG khe giữa lúc gọi xe đọc đơn và câu giành (gắn TRƯỚC khi nạp route — module lấy hàm lúc nạp)
+  let mocHoan = null;
+  const qoGoc = db.queryOne;
+  db.queryOne = async (sql, p) => {
+    const r = await qoGoc(sql, p);
+    if (mocHoan && /SELECT code, status, payment_status FROM pos_orders/.test(sql)) { const id = mocHoan; mocHoan = null; await db.run("UPDATE pos_orders SET status = 'refunded' WHERE id = ?", [id]); }
+    return r;
+  };
 
   const svAha = await new Promise((ok) => { const s = dungAhamoveGia(express).listen(0, '127.0.0.1', () => ok(s)); });
   const gocAha = `http://127.0.0.1:${svAha.address().port}`;
@@ -188,6 +196,7 @@ async function main() {
 
   // Một báo phí (cách 2 — chữ) rồi một đơn giao trả đủ. tra: 'vi' | 'tien_mat' | 'ck'
   const baoPhi = (diaChi = 'Số 1 Ngõ Gần, Hà Nội', them = {}) => goi('POST', '/giao-hang/bao-phi', { dia_chi: diaChi, ...them });
+  const daTao = [];
   async function donGiao({ tra = 'vi', sl = 2, diaChi, ghiChu = 'Tầng 3, gọi trước' } = {}) {
     const b = await baoPhi(diaChi);
     const ma = b.j.ma_bao_phi;
@@ -197,6 +206,7 @@ async function main() {
       : { payment_method: 'cash', cash_amount: tong, cash_received: tong };
     const r = await goi('POST', '/orders', { customer_phone: SDT_KHACH, customer_name: 'Khách Giao', items: [mon(sl)], shipping_fee: 1, ...tien,
       giao: { ma_bao_phi: ma, ten: 'Chị Nhận', sdt: '0988000111', ghi_chu: ghiChu } });
+    if (r.j.order) daTao.push({ id: r.j.order.id, phi: A.phi });   // sổ của BÀI THỬ: phí Ahamove giả đang báo (K1 — không đọc lại bằng công thức code)
     return { bao: b, tinh, r, id: r.j.order?.id, code: r.j.order?.code, ma };
   }
   const goiXe = (id, body = {}, token = tk.staff) => goi('POST', `/giao-hang/${id}/goi-xe`, body, token);
@@ -336,6 +346,7 @@ async function main() {
     const hh = await goi('POST', '/orders/tinh-thu', { items: [mon(1)], giao: { ma_bao_phi: b3.j.ma_bao_phi } });
     const chot = ph.j.phien ? await goi('POST', `/thanh-toan/phien/${ph.j.phien.id}/chot`, { cash_received: 60000 }) : { status: 0, j: {}, tho: '' };
     const oid = chot.j.order?.id;
+    if (oid) daTao.push({ id: oid, phi: 25000 });
     const ch3 = oid ? await chuyenCua(oid) : null;
     k('D5 báo phí hết hạn → tính tiền 400 BAO_PHI_HET_HAN', hh.status === 400 && hh.j.code === 'BAO_PHI_HET_HAN', `${hh.status} ${hh.j.code}`);
     k('D9 + D5 phiên tiền mặt mang giao (giuCho), chốt SAU hạn báo phí vẫn tạo đơn giao — tiền khách đã nhận', ph.status === 200 && ph.j.phien?.tong === 55000
@@ -535,6 +546,11 @@ async function main() {
     await baoVe({ _id: m5, status: 'CANCELLED' });
     const c5 = await chuyenCua(e5.id);
     k('I5 huỷ khi đang giao → giao_loi + báo quầy, KHÔNG tạo chuyến mới', A.tao.length === t5 && c5?.trang_thai === 'giao_loi' && !!c5?.loi, `tạo ${A.tao.length - t5} ${c5?.trang_thai}`);
+    // Q5c: thẻ giao_loi có lối ra — duyệt hoàn đơn đó đóng thẻ (không nằm mãi ở cột Đang giao)
+    const r5c = await goi('POST', '/refunds', { order_id: e5.id, reason: 'giao lỗi' });
+    const a5c = r5c.j.refund_id ? await goi('POST', `/refunds/${r5c.j.refund_id}/approve`, {}) : { status: 0 };
+    k('Q5c duyệt hoàn đơn giao_loi → chuyến huy, thẻ rời màn', a5c.status === 200 && (await chuyenCua(e5.id))?.trang_thai === 'huy'
+      && !((await goi('GET', '/giao-hang')).j.chuyen || []).some((x) => x.order_id === e5.id), `${r5c.status} ${a5c.status} ${(await chuyenCua(e5.id))?.trang_thai}`);
     // H12: tin báo không tới — màn hỏi thì máy chủ đọc lại chuyến quá 60 s chưa cập nhật
     const e6 = await donGiao({ sl: 1 });
     await goiXe(e6.id);
@@ -570,6 +586,31 @@ async function main() {
     const moiTao = 'AHA' + A.soChuyen;
     k('G9 thua giành giữa chừng → 409, chuyến không ghi mã mới, chuyến vừa tạo bị huỷ ở Ahamove', g9.status === 409 && c8?.ma_ahamove == null
       && A.huy.some((x) => x.id === moiTao), `${g9.status} ${c8?.ma_ahamove} huỷ ${A.huy.some((x) => x.id === moiTao)}`);
+    // G8b: "Tìm lại" chết sau khi giành mà chưa huỷ chuyến cũ X (X còn sống) → treo; Gọi lại phải huỷ X trước, chỉ MỘT chuyến sống
+    const e9 = await donGiao({ sl: 1 });
+    await goiXe(e9.id);
+    const x9 = (await chuyenCua(e9.id))?.ma_ahamove;
+    if (A.chuyen.has(x9)) datTrangThai(x9, { status: 'ACCEPTED', supplier_name: 'TX G', supplier_id: '0977000888' });
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', goi_luc = ? WHERE order_id = ?",
+      [new Date(Date.parse(getNow() + 'Z') - 190 * 1000).toISOString().slice(0, 19), e9.id]).catch(() => {});
+    const t9 = A.tao.length;
+    const g8c = await goiXe(e9.id);
+    const c9 = await chuyenCua(e9.id);
+    const song9 = [...A.chuyen.values()].filter((o) => String(o.tracking_number || '').startsWith(e9.code) && !['CANCELLED', 'COMPLETED'].includes(o.status));
+    k('G8b thẻ treo còn chuyến cũ sống → Gọi lại huỷ chuyến cũ trước, MỘT chuyến sống ở Ahamove', g8c.status === 200 && A.huy.some((x) => x.id === x9)
+      && A.tao.length === t9 + 1 && song9.length === 1 && c9?.ma_ahamove === song9[0]?._id, `${g8c.status} huỷ X ${A.huy.some((x) => x.id === x9)} sống ${song9.length}`);
+    // G10: đơn bị hoàn chen giữa lúc đọc đơn và câu giành → câu giành thua (409), Ahamove không tạo gì
+    const e10 = await donGiao({ sl: 1 });
+    mocHoan = e10.id;
+    const t10 = A.tao.length;
+    const g10 = await goiXe(e10.id);
+    mocHoan = null;
+    k('G10 hoàn đơn chen giữa đọc và giành → 409, không tạo chuyến', g10.status === 409 && A.tao.length === t10, `${g10.status} tạo ${A.tao.length - t10}`);
+    // J5d: Huỷ chuyến khi thẻ đang "đang gọi" (chưa có chuyến chắc chắn) → 409, không gọi Ahamove huỷ
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', goi_luc = ?, ma_ahamove = 'AHA_GIA' WHERE order_id = ?", [getNow(), e10.id]).catch(() => {});
+    const h0 = A.huy.length;
+    const j5d = await goi('POST', `/giao-hang/${e10.id}/huy-chuyen`, { ly_do: 'thử huỷ' }, tk.manager);
+    k('J5d Huỷ chuyến khi đang gọi xe → 409 KHONG_CO_CHUYEN, không gửi huỷ', j5d.status === 409 && j5d.j.code === 'KHONG_CO_CHUYEN' && A.huy.length === h0, `${j5d.status} ${j5d.j.code}`);
   }
 
   // ═══ J · huỷ theo bước ══════════════════════════════════════════════════════
@@ -619,6 +660,20 @@ async function main() {
     if (A.chuyen.has(ma)) datTrangThai(ma, { status: 'ACCEPTED', supplier_name: 'TX C', supplier_id: '0977000555' });
     await baoVe({ _id: ma, status: 'ACCEPTED' });
     const h11b = await chuyenCua(d.id);
+    // H11b: kịch bản từ tin ĐẦU TIÊN Ahamove gửi (ASSIGNING ngay khi tạo) → ACCEPTED B → ASSIGNING (lặp khoá, bị nuốt) → ACCEPTED C; rồi đổi thẳng C → D
+    const hb = await donGiao({ sl: 1 });
+    await goiXe(hb.id);
+    const mb = (await chuyenCua(hb.id))?.ma_ahamove;
+    const bao = async (them) => { if (A.chuyen.has(mb)) datTrangThai(mb, them); await baoVe({ _id: mb, status: them.status }); };
+    await bao({ status: 'ASSIGNING' });
+    await bao({ status: 'ACCEPTED', supplier_name: 'TX B2', supplier_id: '0977001001' });
+    await bao({ status: 'ASSIGNING', supplier_name: null, supplier_id: null });
+    await bao({ status: 'ACCEPTED', supplier_name: 'TX C2', supplier_id: '0977001002' });
+    const hb1 = await chuyenCua(hb.id);
+    await bao({ status: 'ACCEPTED', supplier_name: 'TX D2', supplier_id: '0977001003' });
+    const hb2 = await chuyenCua(hb.id);
+    k('H11b đổi tài xế (có tin ASSIGNING đầu) → thẻ tài xế mới; đổi thẳng ACCEPTED → ACCEPTED → tài xế mới', hb1?.trang_thai === 'doi_tai_xe' && hb1?.tai_xe_ten === 'TX C2'
+      && hb2?.tai_xe_ten === 'TX D2' && hb2?.tai_xe_sdt === '0977001003', `${hb1?.trang_thai} ${hb1?.tai_xe_ten} → ${hb2?.tai_xe_ten}`);
     k('H11 đổi tài xế: ACCEPTED → ASSIGNING (về tim_xe) → ACCEPTED tài xế mới (doi_tai_xe, tên + SĐT mới)', h11a?.trang_thai === 'tim_xe' && h11b?.trang_thai === 'doi_tai_xe'
       && h11b?.tai_xe_ten === 'TX C' && h11b?.tai_xe_sdt === '0977000555', `${h11a?.trang_thai} → ${h11b?.trang_thai} ${h11b?.tai_xe_ten}`);
     const j5a = await huyDon(d.id, { reason: 'khách đổi ý', do_da_pha: 'dung_lai' });
@@ -692,8 +747,9 @@ async function main() {
     // SỐ CỨNG theo kịch bản (không tính lại bằng công thức của code — K3). Phí thật / chênh chỉ của chuyến tài xế ĐÃ lấy hàng:
     // gx xong 30.000 (bù 5.000) · đơn K xong 21.000 (dư 4.000) · I5 giao_loi 25.000 (chênh 0). Chuyến huỷ / đang tìm không tính.
     // Phí huỷ: J5 5.000 + I4b 2.000. Phí khách trả = cột shipping_fee của đơn còn hiệu lực (nguồn khác: pos_orders).
-    const pk = (await db.queryOne(`SELECT COALESCE(SUM(o.shipping_fee), 0) AS n FROM pos_orders o WHERE o.status = 'completed'
-      AND EXISTS (SELECT 1 FROM pos_giao_chuyen c WHERE c.order_id = o.id)`).catch(() => ({ n: -1 }))).n;
+    // phí khách trả: SỔ CỦA BÀI THỬ (phí từ câu trả lúc tạo đơn), chỉ đơn còn hiệu lực
+    let pk = 0;
+    for (const x of daTao) if ((await db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [x.id]))?.status === 'completed') pk += Number(x.phi);
     k('K1 phí khách trả / phí Ahamove thật / quán bù / quán dư / phí huỷ (số cứng: 76.000 · 5.000 · 4.000 · 7.000)', !!g && g.phi_khach === Number(pk)
       && g.phi_that === 76000 && g.quan_bu === 5000 && g.quan_du === 4000 && g.phi_huy === 7000, J(g).slice(0, 200) + ' khách ' + pk);
     const huy = (g?.don_huy || []).map((x) => x.code);
