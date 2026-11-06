@@ -40,7 +40,7 @@ DOT_BIEN = [
   ('BV-tra-theo-ma', 'g1', [(GH, '    if (tn) {\n', '    if (false) {\n', 1)], r'✗ G4 bấm lại'),
   ('VS-chua-thu-van-goi', 'g1', [(GH, "  if (o.payment_status !== 'paid') return", "  if (false) return", 1)], r'✗ G1 '),
   ('BV-chenh', 'g1', [(GH, "phi_that = ?, chenh = ? - phi_khach,", "phi_that = ?, chenh = ? * 0,", 1)], r'✗ G5 '),
-  ('BV-tim-lai-huy-cu', 'g1', [(GH, "  if (c.trang_thai === 'tim_xe' && c.ma_ahamove) {", "  if (false) {", 1)], r'✗ I4 '),
+  ('BV-tim-lai-huy-cu', 'g1', [(GH, "  if (['tim_xe', 'dang_goi'].includes(c.trang_thai) && c.ma_ahamove) {", "  if (false) {", 1)], r'✗ I4 '),
   ('BV-tu-tim-mot-lan', 'g1', [(GH, '!d.nguoi_huy_la_quan && !c.tu_tim_lai', '!d.nguoi_huy_la_quan', 1)], r'✗ I2 tài xế huỷ lần nữa'),
   # ── H: tin báo về ──
   ('BV-khoa-bao', 'g1', [(RG, "typeof nhan !== 'string' || !crypto.timingSafeEqual(bam(nhan), bam(khoa))", "typeof nhan !== 'string'", 1)], r'✗ H1 '),
