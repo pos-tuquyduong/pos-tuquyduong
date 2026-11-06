@@ -146,3 +146,31 @@ NGUYÊN TẮC — (a) K3 số kỳ vọng đối soát không tính bằng chín
 | duyệt hoàn đóng chuyến | BV-hoan-dong-chuyen | Q5b |
 | đọc lại dự phòng | BV-doc-lai-du-phong | H12 |
 | Đối soát chỉ chuyến đã chạy | VS-doi-soat-moi-chuyen · VS-bu-du-triet-tieu | K1 |
+
+## Soát độc lập vòng 2 (/ra-soat, agent riêng) — chép nguyên văn
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+1. NẶNG (tiền) — K4/K5 ngược. server/utils/giaoHang.js:209, 214, 236, 241. Khi bấm "Gọi lại" trên thẻ treo `dang_goi` mà chuyến cũ còn sống, máy tạo chuyến thứ hai và không huỷ chuyến cũ. Khi nào: máy chủ chết đúng khe "Tìm lại" — đã giành `dang_goi` (dòng 208) nhưng chưa gửi xong lệnh huỷ (dòng 215); dòng chuyến `dang_goi`, `ma_ahamove = X` còn sống. Sau 180 s "Gọi lại": dòng 214 chỉ huỷ khi `c.trang_thai === 'tim_xe'` nên bỏ qua; taoChuyenMoi `traTheoMa` trả X, dòng 236 bỏ qua X vì `co.ma === c.ma_ahamove`, dòng 241 `tn = null` → tạo Y mã HD1-2. X và Y cùng chạy, tin báo của X bị bỏ (nhanTinBao 332–333 không thấy mã X), phí X không vào Đối soát. Đã chạy thật (scratchpad/probe.js): `goiXe → {ok:true, ma_ahamove:"Y1"}`, không có lệnh huỷ X. Bài thử không phủ: G8 dựng thẻ treo không có `ma_ahamove`. Hướng sửa: thẻ treo có `ma_ahamove` thì xử lý như "Tìm lại" — huỷ chuyến cũ trước, hoặc nhận lại chuyến cũ nếu còn sống.
+2. NHẸ (sai tài xế trên thẻ / tem) — K3 + K4. giaoHang.js:337 (khoá chống lặp) + dòng 317 (chỉ tiến hạng). Ahamove thật gửi ASSIGNING ngay khi tạo chuyến → khoá `X|ASSIGNING||` đã có; đổi tài xế thì ASSIGNING lần hai bị nuốt, thẻ ở `doi_tai_xe` tài xế cũ; ACCEPTED tài xế mới cùng hạng nên dòng 317 bỏ; đọc lại dự phòng cũng không sửa (cùng hạng). Chạy thật (probe2.js): ASSIGNING → ACCEPTED B → ASSIGNING → ACCEPTED C → thẻ vẫn "TX B". H11 xanh oan vì bỏ tin ASSIGNING đầu. Đổi thẳng ACCEPTED B → C cũng bị bỏ. Hệ quả: tem in tài xế cũ.
+3. NHẸ — K3: chỗ vá vòng sửa không có đột biến / ca: (a) vế `AND EXISTS (...)` của câu giành (dòng 211) — dòng 203 chặn trước, gỡ thì không ca nào đỏ; (b) huyChuyenGiao thu hẹp còn tim_xe / doi_tai_xe — không có ca Huỷ chuyến khi `dang_goi`; (c) giành quyền xoá `loi` cũ — không có ca.
+4. NHẸ — K3: K1 `phi_khach` (thu_GIAO1.js:695–697) tính lại bằng SQL cùng công thức code; F2 qua máy chủ (dòng 370) tính kỳ vọng bằng chính `gioGoiTaiXe` (F1–F3 có số cứng nên bớt nặng).
+5. NHẸ — K4, trạng thái không có nút thoát: thẻ `giao_loi` không có nút (index.jsx:28), không huỷ được (giaoHang.js:153), dongChuyenKhiHoan không đóng nó (191–192) → duyệt hoàn đơn `giao_loi` thì thẻ nằm mãi. Vòng sửa (298–301) mở thêm đường vào `giao_loi`.
+6. NHẸ — K1. Chú thích giaoHang.js:3–4 nói mọi câu ghi khi gọi xe kèm dấu giữ quyền, nhưng dòng 309 (`SET loi = ? WHERE id = ?`, tự tìm lại) không có. huyChuyenGiao (284–286) không kiểm `changes`: Ahamove chấp nhận huỷ nhưng máy khác vừa "Tìm lại" thì vẫn `ok:true` trong khi đã có chuyến mới sống.
+7. NHẸ — quy trình (LUAT §6.3–6.4): cổng `node tu_chay/cong.js chay . 977aefa^ HEAD viec/GIAO-1` → ĐỎ 1 lý do: A20 chưa có "SOÁT BẢO MẬT: ĐẠT"; trang_thai.md chưa ghi kết quả cổng và 1–3 thao tác thử tay.
+
+NGHI NGỜ:
+- Máy A gọi xe chậm quá 180 s (mỗi `goi` có thể tới 4 HTTP khi gặp 401): máy B giành lại, `traTheoMa` nhận lại chính chuyến A vừa tạo (236–239); A thua dấu giữ quyền nên huỷ `t.ma` (257) — đúng chuyến B vừa nhận. Thẻ `tim_xe` nhưng chuyến đã huỷ; tin báo sẽ đưa sang `chuyen_huy`. Nên kiểm `ma_ahamove` hiện tại ≠ `t.ma` trước khi huỷ.
+- `giao_loi` do huỷ khi đang giao (299): cộng `phi_huy` mà Đối soát vẫn cộng `phi_that` (DA_CHAY có giao_loi) — có thể tính hai lần nếu Ahamove không thu cước chuyến huỷ; chưa đối chiếu.
+- Q4: chủ quán viết "Huỷ luôn hoàn kho… Bỏ đi → ghi hàng hỏng để kho trừ lại đúng"; code "Bỏ đi" KHÔNG hoàn kho (orders.js:1604–1606). Kết quả kho hôm nay như nhau nhưng lệch lời chủ quán; sau KHO-3 nếu ghi hàng hỏng trừ kho thì trừ hai lần. Nên để chủ quán xác nhận.
+- Hai phiên QR cùng một mã báo phí: phiên chốt sau 400 BAO_PHI_DA_DUNG, phiên 'loi' (giuCho.js:114–117) trong khi tiền đã về — cùng khuôn lỗi 4xx khác của taoDon.
+- Duyệt hoàn đơn giao đang pha không hỏi đồ đã pha / hàng hỏng (refunds.js:165).
+- `cancel_by_user` thiếu → coi là quán huỷ (ahamove.js:100) → tính năng I có thể không chạy với Ahamove thật.
+
+NGHIỆM THU: 12/12 mục có bằng chứng · mục thiếu: không. Mục yếu: H (H11 không phủ kịch bản thật), K (`phi_khach` cùng công thức), G (G8 không phủ thẻ treo có mã chuyến).
+(K3: bài đỏ trên gốc, kiểm hành vi qua HTTP. K4: taoDon 3 đường đủ; huỷ / xoá / hoàn 4 chỗ đủ, thiếu giao_loi; câu ghi trạng thái đều có điều kiện, 309 không có dấu giữ quyền; lộ khoá A3/A6 xanh. K5: không chặn oan. Đường tiền: phí ship từ báo phí, phí thật / chênh / phí huỷ đọc lại từ Ahamove; chưa có phép bất biến cho phí giao. P1: dist khớp src (afade5e). Đơn giản: utils → routes/damages; danhSach (GET) có thể gọi Ahamove và tự tìm lại; quyền quản lý viết lại ở client index.jsx:43.)
+
+CHƯA SOÁT ĐƯỢC: chưa chạy lại 41 đột biến (lỗi 3 là suy luận); Ahamove thật; giao diện trên trình duyệt; đua thật trên Turso.
+
+BÀI HỌC: KHOÁ — G8b thẻ treo có `ma_ahamove` sống; H11b có ASSIGNING đầu + đổi thẳng ACCEPTED → ACCEPTED; đột biến gỡ EXISTS + ca Huỷ chuyến khi dang_goi; K1 phi_khach số cứng.
+NGUYÊN TẮC — (a) K3 kịch bản tin báo bên thứ ba phải bắt đầu từ tin ĐẦU TIÊN bên đó thật sự gửi; (b) K4 đường "gọi lại sau treo" phải xử lý tác dụng phụ còn dở của MỌI đường có thể treo; (c) K4 khoá chống lặp và luật "chỉ tiến hạng" phải cho cập nhật cùng hạng khi dữ liệu phụ đổi.
