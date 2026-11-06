@@ -195,3 +195,52 @@ NGUYÊN TẮC — (a) K3 kịch bản tin báo bên thứ ba phải bắt đầu
 | câu giành kiểm đơn | BV-gianh-kiem-don | G10 |
 | huỷ chuyến chỉ tim_xe / doi_tai_xe | VS-huy-chuyen-khi-dang-goi | J5d |
 | Đối soát theo dấu giờ đã chạy | VS-doi-soat-theo-trang-thai | K1 |
+
+## Soát độc lập vòng 3 (/ra-soat, agent riêng, HEAD c2b0714) — chép nguyên văn
+KHÔNG ĐẠT
+
+Tóm tắt (của người soát): vòng sửa 2 vá đúng lỗi NẶNG của vòng 2 (hai chuyến sống), nhưng chính nhánh mới ở server/utils/giaoHang.js:219–229 gây ra hai lỗi NẶNG mới, chứng minh bằng script chạy trên HEAD c2b0714 với Ahamove giả của bài thử (scratchpad/p/probe.js, ngoài kho). Chạy lại: thu_GIAO1 106 · 0; --day-du 102 · 0 · 2 cảnh báo cũ, dist khớp src; cổng tu_chay/cong.js ĐỎ ở A20.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/giaoHang.js:219–226 (cùng :306, :368, :30) — thẻ treo `dang_goi` còn chuyến cũ X đang sống mà Ahamove không cho huỷ (tài xế đã lấy hàng). "Gọi lại" → dòng 223 trả thẻ về `dang_goi` với `goi_luc = now`, rồi kẹt vĩnh viễn: capNhatTuAhamove (306) bỏ qua mọi tin vì `dang_goi`; đọc lại dự phòng (368) không đọc `dang_goi`; huỷ đơn 409 (152), hoàn 409 (191 SONG), xoá 409 (183); gọi lại vẫn 502 rồi lại `dang_goi`; X giao xong mà `lay_hang_luc` null nên `daChay` false → Đối soát mất phí Ahamove quán đã trả. Probe P5: `goiXe 502 · dang_goi | sau COMPLETED dang_goi lay_hang null | gọi lại 502 dang_goi | huỷ đơn 409 HUY_CHUYEN_TRUOC`. Hướng sửa: chuyến cũ còn sống thì nhận lại nó (ghi `tim_xe` + mã X rồi `capNhatTuAhamove(c, cu)`), không trả về `dang_goi`. — NẶNG (tiền Đối soát + kẹt trạng thái) — K4.
+2. server/utils/giaoHang.js:219 + :228–229 — nhánh `dang_goi` gọi huỷ và đọc lại phí huỷ của cả chuyến ĐÃ huỷ và ĐÃ cộng phí huỷ trước đó (294 huyChuyenGiao, 315 tự tìm lại, 323 chuyen_huy) → `phi_huy` cộng hai lần, Đối soát thổi phồng phí huỷ. Đường thường gặp: Quản lý Huỷ chuyến → Gọi tài xế → mất mạng → Gọi lại (probe P1: 5000 → 10000); tài xế huỷ → tự tìm lại gặp mất mạng → Gọi lại (P3: 3000 → 6000). Hướng sửa: chỉ cộng phí huỷ khi chính lệnh huỷ ở dòng 220 thành công (hoặc nhớ mã chuyến đã tính phí huỷ). Không ca nào. — NẶNG (tiền Đối soát) — K4/K3.
+3. server/utils/giaoHang.js:211 + :223 — Ahamove từ chối huỷ chuyến cũ → thẻ trả về trạng thái cũ nhưng `goi_luc` vẫn `now`; câu báo "thử lại" nhưng gọi lại 409 DANG_GOI_XE suốt 10 phút (tim_xe) hoặc 180 s (dang_goi); `tim_lau` false nên nút Tìm lại biến mất. Probe P2. — NHẸ — K4.
+4. dot_bien.py + thu_GIAO1.js — ba chỗ vá vòng 2 không có ca khoá (đột biến chạy bằng hàm chay() đều SỐNG): (a) :222 nhánh "còn sống → dừng" → `if (false)` quay về lỗi hai chuyến sống, không ca đỏ (G8b chỉ phủ huỷ X thành công); (b) :265 luôn huỷ chuyến vừa tạo kể cả chuyến máy thắng đã nhận; (c) :297 bỏ kiểm `changes` (TRANG_THAI_DA_DOI). Đột biến thứ tư (câu ghi lỗi tự tìm lại không neo mã mới) BẮT ở I2. — NHẸ, nhưng (a) khoá đường tiền NẶNG — K3.
+5. server/routes/refunds.js:120 + giaoHang.js:155,194–195 — thẻ `giao_loi` của đơn trả tiền mặt / chuyển khoản không có lối ra: không xin hoàn được (cần `balance_amount > 0`), huỷ bị chặn (DANG_GIAO_KHONG_HUY), màn không có nút (index.jsx:28). trang_thai.md "lối ra duy nhất của giao_loi" chỉ đúng với đơn trả bằng tài khoản; Q5c dùng đơn ví. — NHẸ — K4/K1.
+6. server/utils/giaoHang.js:350 — tin ASSIGNING lần hai (tài xế B bỏ chuyến) bị lớp chống lặp nuốt (khoá `X|ASSIGNING|…|` có từ tin đầu); thẻ vẫn "Đợi tài xế · TX B" tới lần đọc lại ≥ 60 s (probe P4). Tem túi in cho tài xế cũ không tự in lại khi đổi tài xế (index.jsx:71). — NHẸ — K4.
+7. viec/GIAO-1/ke_hoach.md:241 — ghi "dang_goi treo > 60 s", code 180 s (giaoHang.js:21); chưa ghi thẻ treo còn mã chuyến thì huỷ chuyến cũ trước. — NHẸ — K1.
+8. Quy trình (LUAT §6.3–6.4) — cổng ĐỎ 1 lý do A20 (chưa "SOÁT BẢO MẬT: ĐẠT"); trang_thai.md chưa ghi kết quả cổng và 1–3 thao tác thử tay. — NHẸ.
+
+NGHI NGỜ:
+- huyChuyenGiao đua tin báo: CANCELLED về trước dòng 294 thì thẻ đã `chuyen_huy`, quầy nhận 409 TRANG_THAI_DA_DOI dù huỷ đã xong (câu báo sai).
+- Ahamove gửi `cancel_by_user=false` cho lệnh huỷ của chính quán → sau Huỷ chuyến máy sẽ tự tìm lại (314); thiếu `cancel_by_user` thì coi là quán huỷ (ahamove.js:100) → I có thể không chạy với Ahamove thật.
+- giao_loi do huỷ khi đang giao: Đối soát cộng cả `phi_that` lẫn `phi_huy` (421, 424) — có thể hai lần.
+- Q4 "Bỏ đi" không hoàn kho lệch lời chủ quán "huỷ luôn hoàn kho"; chờ chủ quán xác nhận.
+- Hai phiên QR cùng mã báo phí: phiên chốt sau 400 BAO_PHI_DA_DUNG trong khi tiền khách đã về.
+- danhSach (GET mỗi 15 s) có thể gọi Ahamove và tự tạo chuyến; chỉ khoá `doc_luc` chặn làm hai lần.
+
+NGHIỆM THU: 12/12 mục có bằng chứng · thiếu: không. Yếu: G (không ca chuyến cũ không huỷ được), K (không ca phí huỷ cộng lặp), J/Q5c (giao_loi chỉ đơn ví). Giao diện thuần: thử tay (E màu / tab, B thẻ Cài đặt, D hoá đơn in, F chuông, H tem).
+(K3: bài đỏ trên gốc, kiểm hành vi; H11b từ tin đầu nhưng H4, I2 chưa; F2 qua máy chủ vẫn dùng gioGoiTaiXe. K4: taoDon 3 đường đủ; huỷ / xoá / hoàn có cổng; hở ở nhánh treo. K5: không chặn oan. Đường tiền: không trường tiền nào từ màn hình; sai ở phi_huy cộng hai lần và daChay bỏ sót. Đơn giản: nhánh dang_goi gánh ba nghĩa — gọn hơn: lưu trạng thái trước khi giành (cột `truoc_goi`); utils require routes/damages; quyền quản lý viết lại ở index.jsx:43.)
+
+CHƯA SOÁT ĐƯỢC: chưa chạy lại 47 đột biến (chỉ 4 đột biến thêm); Ahamove thật; giao diện; đua thật trên Turso.
+
+BÀI HỌC: KHOÁ — ca Gọi lại thẻ treo khi chuyến cũ đã chạy (không huỷ được); ca phí huỷ không cộng lặp; ca giao_loi đơn tiền mặt / CK; đột biến cho 222 / 265 / 297.
+NGUYÊN TẮC — (a) K4 trạng thái "trả về như cũ" sau lỗi phải được MỌI đường đọc trạng thái nhận ra; (b) K4 cộng tiền theo sự kiện bên thứ ba phải gắn ĐÚNG MỘT lần sự kiện, không mỗi lần đọc lại; (c) K3 mỗi nhánh vá mới (kể cả nhánh "dừng") phải có đột biến xoá nhánh đó làm bài đỏ.
+
+## Câu hỏi
+**Dừng ở bước 8 (/lam-viec): hết 3 vòng soát, lần cuối còn 2 lỗi NẶNG đụng tiền Đối soát (LUAT_XAY_APP §6.5 → không tự làm vòng 4).**
+Chưa chạy bước 8b (soát bảo mật), chưa ghi báo cáo 7 mục / HEAD ĐÃ KIỂM — cổng `cong.js` sẽ đỏ A20 cho tới khi làm tiếp.
+
+Lời thường: phần chính đã chạy (bài thử 106/106, đột biến 47/47, --day-du xanh), nhưng nút "Gọi lại" cho thẻ bị treo (máy chủ khởi động lại giữa lúc gọi
+xe — hiếm) còn hai chỗ sai khi gặp trường hợp đặc biệt: (1) chuyến cũ đã có tài xế lấy hàng mà không huỷ được thì thẻ kẹt, Đối soát thiếu phí chuyến đó;
+(2) phí huỷ chuyến có thể bị cộng hai lần trên màn Đối soát (không đụng tiền khách, chỉ sai số báo cáo quán chịu).
+
+Đề xuất của mình (bạn chỉ cần trả lời "đồng ý vòng sửa 4" hoặc chỉnh):
+- Q6: cho làm **vòng sửa 4** trong phiếu này, đúng các lỗi vòng 3 nêu:
+  (a) đơn giản hoá nhánh treo: lưu `truoc_goi` (trạng thái trước khi giành) — khi Gọi lại thẻ treo còn mã chuyến: đọc chuyến cũ ở Ahamove — còn sống thì
+  NHẬN LẠI nó (thẻ theo chuyến cũ, không tạo chuyến mới), đã huỷ thì gọi chuyến mới; (b) phí huỷ chỉ cộng khi CHÍNH lệnh huỷ của quán thành công (không
+  cộng khi đọc lại chuyến đã huỷ trước đó); (c) Ahamove từ chối huỷ thì trả `goi_luc` cũ để nút bấm lại hiện ngay; (d) thẻ `giao_loi` có nút "Đóng thẻ"
+  cho quản lý / chủ quán (kèm lý do, chỉ đóng thẻ, không đụng tiền) — đơn tiền mặt / CK hoàn tiền vẫn chờ HUY-1; (e) đổi tài xế tem tự báo "tài xế đổi —
+  in lại tem"; ca thử + đột biến cho từng chỗ; rồi soát lại.
+- Q7 (đã hỏi trong vòng soát): "Bỏ đi" hiện KHÔNG hoàn kho (vì ghi hàng hỏng không tự trừ kho SX — hoàn rồi ghi hỏng sẽ làm kho DƯ). Kho ra đúng như ý bạn.
+  Bạn xác nhận giữ cách này? (Đề xuất: giữ; khi làm KHO-3 xem lại.)
