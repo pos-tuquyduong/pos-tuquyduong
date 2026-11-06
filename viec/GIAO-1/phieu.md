@@ -55,12 +55,15 @@ Quầy nhận và giao đơn qua Ahamove với ít thao tác nhất (2 lần b�
 - server/utils/giaoHang.js
 - server/routes/giao-hang.js
 - server/routes/orders.js
+- server/routes/refunds.js
+- server/routes/damages.js
 - server/routes/settings.js
 - server/routes/hoaDon.js
 - server/routes/backup.js
 - server/utils/dongHoaDon.js
 - server/utils/doiSoat.js
 - server/utils/donThu.js
+- server/utils/giuCho.js
 - server/index.js
 - server/database.js
 - server/nang_cap/021_giao_hang.js
@@ -70,6 +73,20 @@ Quầy nhận và giao đơn qua Ahamove với ít thao tác nhất (2 lần b�
 - cong_cu/thu_GIAO1.js
 - kiem_tra_truoc_khi_giao.js
 
+<!-- Chủ quán 05.11 (5 câu kế hoạch ef672f9):
+     Q1 — gợi ý địa chỉ: Ahamove CÓ API gợi ý (gói @ahamove/react gọi GET <apiURL>/dplaces/web/v2/autocomplete?text=…, header `apikey`; chi
+       tiết gplaces/web/v2/detail; trả features có lat/lng) nhưng cần apiURL + apiKey RIÊNG do Ahamove cấp — chủ quán đang hỏi Ahamove. Làm ô địa chỉ
+       qua MỘT hàm máy chủ có hai cách: (1) có biến môi trường AHAMOVE_DIA_CHI_URL + AHAMOVE_DIA_CHI_KHOA → gợi ý thật; (2) chưa có → cách của máy:
+       gửi chữ cho Ahamove định vị, hiện lại địa chỉ + km Ahamove hiểu để nhân viên XÁC NHẬN rồi mới tính phí. Thử cách (2) bằng khoá thử trước.
+       Không dùng OpenStreetMap / Google.
+     Q2 CÓ — thêm server/utils/giuCho.js (đơn giao trả QR / tài khoản).
+     Q3 — dựng theo chữ mục E (4 cột MÀU KHÁC NHAU, bấm thẻ ra chi tiết để quyết Nhận / Từ chối, mỗi thẻ một nút chính); chủ quán duyệt bằng mắt
+       trên bản thử.
+     Q4 — huỷ đơn ĐANG PHA / ĐỢI TÀI XẾ: máy hỏi "Đồ đã pha: Dùng cho đơn khác | Bỏ đi". Huỷ luôn hoàn kho như đường huỷ hiện có. "Dùng cho
+       đơn khác" → không ghi gì thêm (đơn sau tự trừ kho khi bán). "Bỏ đi" → ghi HÀNG HỎNG đúng món + số lượng (dùng chung hàm của
+       server/routes/damages.js, lý do "huỷ đơn giao <số HD>") để kho trừ lại đúng; đánh dấu trên chuyến + Đối soát liệt kê.
+     Q5 CÓ — thêm server/routes/refunds.js: không cho hoàn đơn giao còn chuyến ở Ahamove.
+     Vượt ngân sách máy chủ (~755 dòng) chấp nhận nếu cần, ưu tiên gọn. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_GIAO1.js` ĐỎ trên code gốc, chạy với một Ahamove GIẢ trong tiến trình (không gọi Ahamove thật): khoá không lộ ra trình duyệt /
 sao lưu / nhật ký; địa chỉ không qua gợi ý → 400; quá km → 400; phí là dòng riêng (không giảm, không mã, không điểm); chưa thu đủ → không gọi xe;
