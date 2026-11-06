@@ -162,3 +162,22 @@ vẫn chốt bằng báo SePay; báo Tingee lặp vẫn 200; chuyển thử 2.00
 
 Không đổi nội dung CK, số tiền, ví, điểm; không sửa `sepay.js` / `payos.js` ngoài việc chuyển hàm đọc mã phiên (nếu cần) mà hành vi giữ y nguyên;
 không gọi Tingee thật; không đổi DB.
+
+## 11. Điều chỉnh chủ quán duyệt 06.11 (thắng các mục trên khi lệch)
+
+Tingee xác nhận 05.11: tài khoản quán là MB Bank hộ kinh doanh → Tingee CHỈ báo tiền chuyển vào **số tài khoản ảo (VA, dạng VQR…)**, KHÔNG báo
+tiền chuyển vào số gốc.
+1. **QR (thay mục 4):** vẫn tự dựng VietQR (không gọi API Tingee) nhưng trỏ vào VA: `TINGEE_SO_TK` = số VA, `TINGEE_BIN` = 970422 (MB).
+   Số VA có CHỮ CÁI → `dungVietQr` phải nhận số TK chữ + số; bài thử kiểm chuỗi EMV đúng chuẩn (trường 38 → 01 → 00 BIN / 01 số TK, độ dài từng
+   trường, CRC16) với số TK có chữ cái. Hệ quả: QR cổng Tingee KHÁC QR cổng SePay (khác tài khoản) — T25 vế "QR giống hệt" BỎ.
+2. **Khớp tài khoản (thay dòng "số tài khoản nhận" mục 2):** so `vaAccountNumber` với `TINGEE_SO_TK`; `accountNumber` là số gốc → bỏ qua khi so.
+   Ca T13 thêm: `vaAccountNumber` khác → `LY_DO_TK_KHAC`; `accountNumber` (số gốc) khác `TINGEE_SO_TK` mà `vaAccountNumber` đúng → VẪN chốt (K5).
+3. **Chữ ký** theo mục 2 của `tai_lieu_tingee.md`; **câu trả lời** cho Tingee theo mục 3; **không từ chối báo vì giờ cũ** (mục 4) — thay mục 3 kế
+   hoạch: bỏ ngưỡng ±300 s cho Tingee (T9 đổi thành: báo mang mốc giờ cũ, đúng chữ ký → vẫn nhận; báo lặp vẫn chặn bằng khoá `tingee:<mã>`; đột
+   biến `VS-nguong-*`, `VS-gio-utc` thay bằng một đột biến "có ngưỡng giờ" mà T9 bắt). Chi tiết chỉ viết sau khi đọc tài liệu (Câu hỏi 6).
+4. **Hướng dẫn F (thay mục 8 bước 1–4):** BỎ "chuyển thử khi vẫn CONG_QR=sepay" (QR hai cổng giờ khác nhau). Thứ tự mới:
+   1. Render → Environment: cài `TINGEE_CLIENT_ID`, khoá bí mật Tingee, `TINGEE_SO_TK` (số VA), `TINGEE_BIN=970422`, `TINGEE_MOI_TRUONG=production`.
+   2. app.tingee.vn → mục **Webhook** (thanh bên): dán `https://www.pos-tuquyduong.io.vn/api/tingee/webhook`, phạm vi **QR Code**, chứng thực
+      **API Credentials**, lưu.
+   3. Ngoài giờ bán: đặt `CONG_QR=tingee`, tạo đơn thử 2.000đ, quét QR trả.
+   4. Màn QR tự báo "đã thu" → giữ `CONG_QR=tingee`. Không thấy → đổi lại `CONG_QR=sepay` NGAY, xác nhận tay đơn thử, báo chat.
