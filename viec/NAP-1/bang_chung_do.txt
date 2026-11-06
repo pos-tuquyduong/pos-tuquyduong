@@ -121,3 +121,13 @@ SỐ CA cong_cu/thu_P24.js: 33
 Đột biến: ĐỐI CHỨNG XANH · 75 đạt · 0 hỏng — TỔNG 86 đột biến · BẮT 86 · SỐNG 0 · HỎNG 0 · LẠC 0 (trước khi chặn I8 cho kho không sổ ví);
   sau đó chạy lại 8 đột biến điểm (6 mới + BV-I8-nap · VS-I8-luat-cu): BẮT 8 · SỐNG 0.
 npm test -- --day-du: PASS 103 · FAIL 0 · CẢNH BÁO 2
+
+════════ Sửa lỗi nhẹ của soát độc lập sau vá điểm (E9: mẫu số có phí giao, nhiều nhóm hạn) ════════
+cong_cu/thu_NAP1.js (thêm E9) trên code TRƯỚC sửa (aef69d4 — refunds.js ORDER BY expires_at DESC): 75 đạt · 1 hỏng
+  ✗ E9 ví 10.000 + tiền mặt 14.000, phí giao 3.000 (tiền tính điểm 21.000, 21 điểm) → trừ 10 → 11; hai nhóm hạn (không hạn 11 + hạn 2099 10), trừ 11 → nhóm không hạn 0, nhóm có hạn giữ 10  — HTTP 200 · HTTP 200 · trước [21,21] · sau [11,10] · không hạn 10 · có hạn 0
+  (trên gốc của PR 0406870^ / 5a695e6: E7–E9 đỏ — chưa có trừ điểm khi duyệt hoàn)
+  sau vá: 76 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 76
+Đột biến: ĐỐI CHỨNG XANH · 76 đạt · 0 hỏng — TỔNG 89 đột biến · BẮT 89 · SỐNG 0 · HỎNG 0 · LẠC 0
+  mới: VS-hoan-mau-so-total · VS-hoan-nhom-khong-tru-dan · VS-hoan-nhom-thu-tu
+npm test -- --day-du: PASS 103 · FAIL 0 · CẢNH BÁO 2

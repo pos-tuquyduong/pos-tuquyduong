@@ -441,3 +441,78 @@ Không tìm thấy lỗ hổng mới nào đạt mức tin cậy ≥ 8/10 (lỗi
 - Người soát không chạy code, không dựng bài thử; kết luận từ đọc file.
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập vá điểm khi duyệt hoàn (/ra-soat, 06.11, 5a695e6 → aef69d4) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+Tóm tắt: phần vá trong refunds.js đúng với lựa chọn (a) của chủ quán. E7, E8 và I2 đỏ trên bản gốc, xanh trên bản đã vá. Mình chạy lại 6 đột biến mới, cả 6 đều bị bắt. Có hai chỗ chưa ổn:
+- (1) Hai lối song song vẫn trả tiền ví về mà giữ nguyên điểm: đền bù và kết thúc gói. Hồ sơ ghi "đủ ba lối", ghi vậy là sai. Lỗi này dính tới điểm và nằm ngoài Phạm vi, nên cần chủ quán quyết.
+- (2) Phép chia ở máy chủ chưa có bài thử nào khoá. Mình cài thử một đột biến trong thư mục nháp và nó SỐNG.
+
+LỖI TÌM ĐƯỢC:
+- server/routes/damages.js:184-187 (đền bù) và server/routes/packages.js:265-268 → wallets.js:109-117 (kết thúc gói, `hoan: true`). Cả hai trả tiền về ví của một đơn có điểm (đền ghi `ghiVi` loại 'compensation'; kết thúc gói ghi 'refund' qua ghiHoan) mà không trừ điểm nào — khuôn K4 — NẶNG (điểm, ngoài Phạm vi, cần chủ quán quyết).
+  - Lỗ này mới có từ NAP-1. Trước đây phần trả bằng ví được 0 điểm. Nay đơn mua gói và đơn món trả ví đều tích điểm (orders.js:923; chỉ đơn nạp bị loại ở :928).
+  - Ví dụ một vòng: trả 21.000 bằng ví được 21 điểm. Quản lý đền 21.000, tiền về ví, điểm còn nguyên (damages.js:126-130, chỉ cần manager/owner). Nếu sau đó duyệt hoàn thì phần hoàn đã trừ số đền (tienDaTra.js:47-49), nên con + mẹ = 0 và truDiemHoan trừ 0 điểm. Lặp lại được, cùng dạng lỗ mà lần soát bảo mật 1 đã báo.
+  - Ngoài ra, đơn trả tiền mặt được đền vào ví thì tiền đó nay tiêu lại được tích điểm lần hai.
+  - Kết thúc gói cần quyền refund_package (mặc định chỉ owner), mức nhẹ hơn, nhưng cùng khuôn.
+  - trang_thai.md:413-416 ghi "đủ ba (huỷ, xoá, duyệt hoàn)" và đền bù "có từ trước". Câu đó sai, vì phần điểm của ví là mới. Kết thúc gói thì không được nhắc tới.
+- cong_cu/thu_NAP1.js:521-538 (E7) và thu_P24.js:387-392 (I2): không ca nào có phí giao hay total khác tiền tính điểm — khuôn K3 — NHẸ (đụng điểm).
+  - Mình đổi mẫu số ở refunds.js:27 từ `tienTinhDiem(don)` thành `Number(don.total)` trong bản nháp scratchpad/soat_mau, rồi chạy `node cong_cu/thu_NAP1.js --may-chu …/soat_mau/server`. Kết quả: ✓ E7 vẫn xanh, tức đột biến SỐNG.
+  - E8 chỉ khoá hàm thuần, không khoá chỗ gọi. Theo luật K4, mỗi chỗ gọi là một chỗ vá riêng.
+  - Theo suy luận (chưa chạy): vòng nhiều nhóm hạn ở refunds.js:28-33 (`conTru -=`, `ORDER BY`) cũng không có ca nào. Mọi ca chỉ có 1 nhóm, nên gỡ `conTru -= tru` hay đổi DESC thành ASC đều sẽ SỐNG.
+- Chú thích sai hoặc đã cũ — khuôn K1 — NHẸ:
+  - refunds.js:22 ghi "trừ nhóm hạn dùng xa nhất trước". Nhưng SQLite xếp NULL (không hạn, tức xa nhất) xuống CUỐI khi `ORDER BY expires_at DESC` (:27).
+  - bat_bien.js:10 ghi dòng 'adjust' gắn đơn "dành RIÊNG cho việc này (huỷ/xoá), việc sau đừng dùng lẫn". Nay duyệt hoàn cũng dùng loại dòng này. Câu này còn ở :208 ("trừ điểm do huỷ / xoá") và orders.js:1680.
+  - Đầu file bat_bien.js:8-15 chưa ghi luật đơn 'refunded'.
+  - hoaDon.js:46 ghi "huỷ / hoàn … cộng ròng = 0". Nay đơn đã hoàn còn giữ phần tiền mặt (file này ngoài Phạm vi).
+
+NGHI NGỜ:
+- Mốc `pos_nang_cap so = 14` (refunds.js:24). Bộ nâng cấp ghi `luc = getNow()` ngay câu đầu giao dịch của bước 014, chạy khi máy chủ khởi động (chay.js:36, database.js:39), cùng định dạng với `created_at` của dòng earn. Nên nghĩa "từ lúc luật mới chạy" là đúng, với hai lỗ:
+  - (a) Render triển khai không ngắt quãng: máy mới chạy 014 trong khi máy cũ (luật ví 0 điểm) vẫn bán thêm vài chục giây. Dòng earn luật cũ có `created_at ≥ mốc`, nên khi duyệt hoàn sẽ bị trừ oan phần tiền mặt (K5; hiếm, I8 sẽ báo lệch).
+  - (b) Mốc gắn vào SỐ bước (14), không gắn tên `014_nap`. Nếu nhánh khác trùng số 014 thì mốc sai, kiểm bằng `ten` thì chắc hơn.
+- Hai định nghĩa "luật mới" khác nhau: máy chủ dùng mốc 014 trong dữ liệu, I8 dùng hằng `DIEM_VI_TU = '2026-11-08'` (bat_bien.js:27). Nếu ngày gộp không phải 07.11, I8 sẽ báo oan hoặc tha sai cho đơn nằm giữa hai mốc. Đơn cũ có điểm lúc bán trước mốc, rồi nhận thêm qua mã bill sau mốc: máy chủ chỉ trừ theo phần mã bill, I8 tính theo cả đơn, nên có thể lệch.
+- Ca "khách đã tiêu điểm → số dư âm" chưa có bài thử. Chỉ đọc code thấy nó INSERT vô điều kiện (refunds.js:31-32), nên đúng ý chủ quán.
+- Xoá đơn đã hoàn (orders.js:1738, chỉ chạy truDiemDon khi status = 'completed') giữ phần điểm tiền mặt. Trong khi đó, xoá đơn còn 'completed' thì trừ hết. Không phải lỗ mới, chỉ là không nhất quán.
+
+NGHIỆM THU: 8/9 · thiếu: ca "đã tiêu điểm → số dư âm" (chỉ có bằng chứng đọc code).
+- Đủ bằng chứng: tỷ lệ phần hoàn (E7b/c) · gồm cả ví mẹ (E7c + VS-bo-me) · làm tròn LÊN (E7b, E8 + VS-lam-tron) · giữ điểm tiền mặt / CK (E7b/c) · trọn ví về 0 (E7a) · không quá số điểm (E8 + VS-khong-tran) · luật cũ không trừ (E7d) · I8 và I2 cập nhật (E7 lechI8 + BV-I8-hoan; I2 đỏ / xanh).
+- Mẫu số tiền tính điểm ở máy chủ chưa có ca khoá (xem LỖI 2).
+
+CHƯA SOÁT ĐƯỢC: hành vi thật trên Render/Turso lúc triển khai (thời điểm 014 chạy, hai máy chồng nhau); chưa chạy `npm test --day-du` và `cong.js chay`; chưa chạy đột biến cho vòng nhiều nhóm hạn (mới suy luận); chưa đọc toàn bộ 86 đột biến cũ.
+
+BÀI HỌC:
+- KHOÁ: mỗi chỗ GỌI hàm tỷ lệ phải có một ca tích hợp mà mẫu số khác total (có phí giao), kèm đột biến đổi mẫu số.
+- NGUYÊN TẮC (K4): khi đổi luật "cái gì sinh điểm", phải liệt kê theo TIỀN chảy về ví (`grep "ghiVi(\|ghiHoan("`: damages.js:185, packages.js:267, wallets.js:111/116, refunds.js:186/190, orders.js:1498), không liệt kê theo "lối đổi trạng thái đơn". Mốc luật nên gắn vào tên bước nâng cấp, không gắn vào số.
+```
+
+### Đã sửa ngay (lỗi NHẸ trong Phạm vi)
+| Lỗi | Sửa | Ca / đột biến |
+|---|---|---|
+| 2 mẫu số ở chỗ gọi chưa khoá; nhiều nhóm hạn chưa ca | E9 (phí giao 3.000: 21 → trừ 10 → 11; hai nhóm hạn) | VS-hoan-mau-so-total · VS-hoan-nhom-khong-tru-dan · VS-hoan-nhom-thu-tu |
+| K1 refunds.js "xa nhất trước" sai thứ tự (NULL xuống cuối) | `ORDER BY expires_at IS NULL DESC, expires_at DESC` (E9 ĐỎ trên bản trước) | VS-hoan-nhom-thu-tu |
+| K1 chú thích 'adjust' chỉ huỷ / xoá | `bat_bien.js` đầu file + dòng loại điểm lạ; `orders.js` chú thích truDiemDon | — |
+| Nghi ngờ (b) mốc theo số bước | `pos_nang_cap WHERE ten = '014_nap'` | (cùng E7d) |
+Kết quả: thu_NAP1 76 · 0; đột biến 89 · BẮT 89; `npm test -- --day-du` PASS 103 · FAIL 0. Câu "đủ ba lối" trong mục Phiên 06.11 (3) là SAI (xem lỗi 1) — giữ nguyên
+dòng cũ để lịch sử đúng, sửa ở đây: lối trả tiền ví về cho đơn có điểm gồm huỷ · xoá · duyệt hoàn (đã trừ điểm) và **đền bù · kết thúc gói (CHƯA trừ — câu hỏi dưới)**.
+
+## Phát hiện (thêm)
+- `server/utils/hoaDon.js:46` (ngoài Phạm vi) ghi "huỷ / hoàn … cộng ròng = 0" — nay đơn đã hoàn giữ điểm phần tiền mặt; sửa chú thích khi chạm tới.
+- Mốc luật điểm hai nơi: máy chủ dùng thời điểm chạy bước 014 (dữ liệu), I8 dùng hằng `DIEM_VI_TU` (tạm '2026-11-08') — chat đặt hằng đúng ngày gộp.
+  Triển khai không ngắt quãng trên Render: vài chục giây máy cũ còn bán theo luật cũ sau mốc → nếu đơn đó được duyệt hoàn sẽ trừ cả phần tiền mặt (hiếm; I8 báo).
+- Xoá đơn ĐÃ HOÀN giữ điểm phần tiền mặt, xoá đơn còn hoàn tất thì trừ hết — không nhất quán, có từ trước (P24), không đổi tiền.
+
+## Câu hỏi 06.11 (3) — soát độc lập tìm lỗi ĐIỂM ngoài Phạm vi (dừng theo LUAT_XAY_APP §6.5)
+**Chuyện gì:** từ NAP-1 phần trả bằng tài khoản có điểm. Ngoài "duyệt hoàn" (đã sửa theo (a)), còn **hai** lối trả tiền về tài khoản mà điểm vẫn giữ:
+1. **Đền bù sự cố** (Lịch sử đơn → Đền, quản lý / chủ quán): đơn trả 21.000 bằng tài khoản được 21 điểm; đền 21.000 vào tài khoản → điểm còn 21. Lặp lại được
+   (cùng dạng lỗ đã sửa). Thêm: tiền đền vào tài khoản tiêu lại cũng được tích điểm lần nữa.
+2. **Kết thúc gói có hoàn** (Báo cáo → Gói SP, chỉ chủ quán mặc định): phần tài khoản hoàn lại, điểm giữ.
+Hai file này (`server/routes/damages.js`, `server/routes/packages.js`) **ngoài Phạm vi** — máy không tự sửa.
+
+**Đề xuất:** (a) — làm như duyệt hoàn: trừ điểm theo phần **tài khoản** được trả lại (tỷ lệ, làm tròn lên); tiền mặt đền vào tài khoản thì không trừ (khách
+không được điểm từ phần đó lúc mua). Máy dùng lại đúng hàm vừa viết. Nếu đồng ý, bạn thêm `server/routes/damages.js` và `server/routes/packages.js` vào
+`## Phạm vi` của phiếu (hoặc chọn **(b)**: để làm việc sau, ghi vào sổ — NAP-1 đi tiếp tới báo cáo cuối với lỗ này ghi rõ ở CHƯA KIỂM).
+Bạn trả lời "(a) + thêm hai file" hoặc "(b)".
+
+Bước dở: 8 (soát độc lập vá điểm — KHÔNG ĐẠT: lỗi nhẹ đã sửa, lỗi nặng ngoài Phạm vi chờ câu trả lời). Soát bảo mật lần 2 ĐẠT (dòng `SOÁT BẢO MẬT: ĐẠT` ở trên —
+nếu chọn (a) thì sau khi sửa phải soát bảo mật lại theo bước 8b). Chưa làm: cổng `chay`, báo cáo 7 mục, Bài học.
