@@ -123,3 +123,26 @@ BÀI HỌC: KHOÁ — ca duyệt hoàn đơn giao đang pha; ca dang_goi treo; c
 NGUYÊN TẮC — (a) K3 số kỳ vọng đối soát không tính bằng chính công thức đang thử; (b) K4 trạng thái máy chủ cho thoát phải có nút trên màn;
 (c) K4 mọi đường đổi status đơn phải đóng / chặn bảng con có trạng thái riêng; (d) giành quyền bằng hạn giờ phải có dấu giữ quyền ở câu ghi kết thúc
 + kiểm changes, thua thì dọn tác dụng phụ bên ngoài.
+
+### Vòng sửa 1 (sau soát vòng 1)
+- Bài thử thêm (604b51c, đỏ trên bản trước sửa 94 · 7): G8 treo, G9 thua giành, I4b, I5, J8b, Q5b, K1 số cứng; thêm khoá F4 (toi_gio/nhac), H12 (đọc lại).
+- Sửa (afade5e): lỗi 1 → cờ `treo` + nút "Gọi lại", treo 180 s; lỗi 2 → duyệt hoàn đóng chuyến chưa gọi xe (`dongChuyenKhiHoan`); lỗi 3 → Đối soát chỉ
+  cộng phí thật / chênh của chuyến đã chạy (dang_giao, xong, giao_loi); lỗi 4 → huỷ khi dang_giao → giao_loi, không tự gọi xe; lỗi 5 → sửa chú thích đầu
+  giaoHang.js, ahamove.js; lỗi 6 → Tìm lại đọc phí huỷ chuyến cũ. Nghi ngờ: dấu giữ quyền `goi_luc = <lúc giành>` ở mọi câu ghi khi gọi xe, thua thì
+  huỷ chuyến vừa tạo (G9); câu giành kiểm lại đơn completed + paid; huyChuyenGiao chỉ đổi tim_xe / doi_tai_xe; không xoá đơn đã từng gọi xe
+  (DON_GIAO_DA_GOI_XE); giành quyền xoá `loi` cũ; một hàm laQuanLy.
+- Giữ nguyên, ghi lý do: `ghiHangHong` ở routes/damages.js (Phạm vi chỉ có damages.js — tạo utils/hangHong.js là ngoài Phạm vi; đề xuất việc sau);
+  phép bất biến đối soát cho phí giao (cong_cu/gia_lap/bat_bien.js là file luật, ngoài Phạm vi — Đối soát hiện số, đề xuất việc sau);
+  `cancel_by_user` thiếu → coi là quán huỷ (phía an toàn: không tự gọi xe) — CHƯA KIỂM với Ahamove thật.
+- Đột biến: 41/41 BẮT (thêm BV-treo-goi-lai, BV-co-treo, BV-dau-giu-quyen, BV-huy-dang-giao, BV-phi-huy-tim-lai, BV-xoa-da-goi-xe,
+  BV-hoan-dong-chuyen, BV-doc-lai-du-phong, VS-doi-soat-moi-chuyen). Bài: gốc 5 · 96, HEAD 101 · 0. npm test --day-du: 102 · 0 · 2 cảnh báo cũ.
+| Chỗ vá vòng 1 | Đột biến | Ca bắt |
+|---|---|---|
+| treo cho gọi lại + cờ treo | BV-treo-goi-lai · BV-co-treo | G8 |
+| dấu giữ quyền khi gọi xe | BV-dau-giu-quyen | G9 |
+| huỷ khi đang giao không tự gọi xe | BV-huy-dang-giao | I5 |
+| phí huỷ khi Tìm lại | BV-phi-huy-tim-lai | I4b |
+| không xoá đơn đã gọi xe | BV-xoa-da-goi-xe | J8b |
+| duyệt hoàn đóng chuyến | BV-hoan-dong-chuyen | Q5b |
+| đọc lại dự phòng | BV-doc-lai-du-phong | H12 |
+| Đối soát chỉ chuyến đã chạy | VS-doi-soat-moi-chuyen · VS-bu-du-triet-tieu | K1 |

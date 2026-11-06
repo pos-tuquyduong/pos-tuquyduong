@@ -23,7 +23,17 @@ Mọi ca còn lại ĐỎ, nhóm theo nghiệm thu:
 
 H11 còn ĐỎ trên bản vá 6acfc5f (tim_xe → tim_xe: khoá chống lặp cũ nuốt tin ACCEPTED lần hai) — sửa ở d0215a9.
 TRÊN CODE ĐÃ VÁ (HEAD d0215a9): 93 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_GIAO1.js: 93
+(Bản 93 ca ở trên được thay bằng bản vòng sửa 1 bên dưới — dòng SỐ CA cuối là số hiện hành.)
+
+── Vòng sửa 1 (soát vòng 1, 06.11) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit 604b51c (thêm G8, G9, I4b, I5, H12, F4, J8b, Q5b; K1 đổi sang SỐ CỨNG).
+GỐC vòng 1: code GỐC fa03775 (dựng như trên, thư mục nháp goc5) với bản bài 604b51c → ĐỎ: 5 đạt · 96 hỏng (5 ca xanh như trên: B3, K5a, K5b, A3 ×2).
+Code TRƯỚC vòng sửa (server/ của 604b51c = bản vá d0215a9, chưa sửa vòng 1) → ĐỎ: 94 đạt · 7 hỏng:
+  ✗ I4b (phi_huy 0) · ✗ I5 (tạo 1 chuyến, tim_xe) · ✗ G8 (không có cờ treo) · ✗ G9 (200, ghi AHA12, không huỷ) · ✗ J8b (xoá được 200)
+  ✗ Q5b (chuyến vẫn dang_pha) · ✗ K1 (phi_that 251.000 — cộng cả chuyến huỷ)
+  (F4, H12 xanh trên bản trước: khoá hành vi đã có từ 6acfc5f — toi_gio / nhac và đọc lại dự phòng — trước đây không có ca nào.)
+TRÊN CODE ĐÃ VÁ (HEAD afade5e): 101 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAO1.js: 101
 
 Bộ kiểm: npm test -- --day-du → PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo có từ trước: "route GET có lệnh ghi (3)" và "route ghi không qua
 loiGhi 54" — không file nào của việc này trong danh sách).
