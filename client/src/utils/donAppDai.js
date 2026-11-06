@@ -1,14 +1,14 @@
 /**
  * donAppDai.js — phép tính THUẦN của dải báo "Đơn App" (GIAO-DIEN-1 A): từ danh sách GET /kh/don-app ra số đơn mới, số dòng "vào ví",
  * đơn mới CŨ NHẤT bao nhiêu phút, và dòng chữ của dải. Cách đếm giữ đúng như nút nổi cũ: "mới" = đã trả chưa bấm "Đang làm".
- * `gio` là giờ Việt Nam không hậu tố (getNow máy chủ) — so với đồng hồ máy khách qua múi +07:00, không âm, giờ lạ → bỏ qua.
+ * `gio` là giờ Việt Nam không hậu tố (getNow máy chủ) — đọc qua ngayVN.js (chỗ duy nhất đụng Date của màn quầy), không âm, giờ lạ → bỏ qua.
  */
-const GIO_VN = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/;
+import { docGioVN } from './ngayVN.js';   // đuôi .js: bài thử nạp bằng Node ESM
 
 export function tomDonApp(ds, bayGioMs) {
   const dong = Array.isArray(ds) ? ds : [];
   const moi = dong.filter((d) => d?.tien_trinh === 'da_tra');
-  const phut = moi.filter((d) => GIO_VN.test(String(d.gio || ''))).map((d) => Math.max(0, Math.floor((bayGioMs - Date.parse(d.gio + '+07:00')) / 60000)));
+  const phut = moi.map((d) => docGioVN(d.gio).getTime()).filter(Number.isFinite).map((t) => Math.max(0, Math.floor((bayGioMs - t) / 60000)));
   return {
     soMoi: moi.length,
     soViVe: dong.filter((d) => d?.tien_trinh === 'vao_vi').length,
