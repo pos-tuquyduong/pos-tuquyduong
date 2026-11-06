@@ -11,6 +11,7 @@
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString } = require('./helpers');
 const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('./congQr');
+const { doiSoatGiao } = require('./giaoHang');   // GIAO-1 (K)
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
 const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
@@ -121,7 +122,8 @@ async function tongHop(tu, den) {
     chiDoc(`SELECT COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong, COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru
       FROM pos_point_transactions WHERE DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
   ]);
-  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) } };
+  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) },
+    giao: await doiSoatGiao(chiDoc, tu, den) };
 }
 
 // ─── Két của một ngày: sổ = để lại của ngày CÓ ghi gần nhất trước đó + tiền mặt vào − ra các ngày sau đó tới hết ngày này ───

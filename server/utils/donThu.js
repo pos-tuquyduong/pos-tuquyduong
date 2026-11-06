@@ -32,7 +32,8 @@ const COT_BI_MAT = ['pin_code', 'password', 'ma_bam'];  // nhật ký nhân viê
 
 // Bảng gắn đơn qua order_id (con có khoá ngoại tới pos_orders đứng trước — khoá ngoại đang bật).
 const BANG_THEO_DON = ['pos_order_items', 'pos_refund_requests', 'pos_damage_logs', 'pos_promotion_usage', 'pos_invoice_logs',
-  'pos_order_log', 'pos_membership_purchases', 'pos_customer_packages', 'pos_point_transactions', 'pos_balance_transactions', 'pos_signup_codes'];
+  'pos_order_log', 'pos_membership_purchases', 'pos_customer_packages', 'pos_point_transactions', 'pos_balance_transactions', 'pos_signup_codes',
+  'pos_giao_chuyen', 'pos_giao_bao_phi'];   // GIAO-1: chuyến + báo phí đi theo đơn
 // Theo ngày X: [bảng, cột SĐT, cột giờ, có order_id] — dòng gắn đơn chỉ đi theo đơn.
 const BANG_THEO_NGAY = [['pos_point_transactions', 'customer_phone', 'created_at', true], ['pos_voucher_grants', 'customer_phone', 'granted_at', false],
   ['pos_kh_ma_dang_nhap', 'sdt', 'tao_luc', false], ['pos_kh_lan_thu', 'sdt', 'tao_luc', false]];

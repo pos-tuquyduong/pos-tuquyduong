@@ -160,7 +160,7 @@ async function main() {
   const datCaiDat = (key, value) => db.run(`INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [key, String(value), getNow()]);
   for (const [a, b] of [['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['loyalty_expiry_mode', 'none'], ['flash_enabled', 'false'],
-    ['signup_enabled', '0'], ['thanh_toan_payos_bat_buoc', '0']]) await datCaiDat(a, b);
+    ['signup_enabled', '0'], ['thanh_toan_payos_bat_buoc', '0'], ['giao_diem_lay', J({ dia_chi: 'Quán thử, Hà Nội', lat: 21.02, lng: 105.82 })]]) await datCaiDat(a, b);
   const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run("UPDATE pos_products SET price = 30000, ton_gan_nhat = NULL, code = COALESCE(code, 'G1-MON') WHERE id = ?", [sp.id]);
   const spCode = (await db.queryOne('SELECT code FROM pos_products WHERE id = ?', [sp.id])).code;
@@ -362,7 +362,7 @@ async function main() {
     const the = (ds.j.chuyen || []).find((x) => x.order_id === d1.id);
     k('E1 GET /giao-hang: thẻ đơn giao ở cột dang_pha, có món, km, người nhận', ds.status === 200 && the?.cot === 'dang_pha' && the?.so_mon === 2 && the?.km === 3
       && the?.mon?.[0]?.sl === 2 && the?.ten === 'Chị Nhận', ds.status + ' ' + J(the).slice(0, 200));
-    const dangPha = (ds.j.chuyen || []).filter((x) => x.cot === 'dang_pha').sort((a, b) => a.nhan_luc.localeCompare(b.nhan_luc) || a.id - b.id);
+    const dangPha = (ds.j.chuyen || []).filter((x) => x.trang_thai === 'dang_pha').sort((a, b) => a.nhan_luc.localeCompare(b.nhan_luc) || a.id - b.id);
     const sau = dangPha.at(-1), truoc = dangPha.slice(0, -1).reduce((s, x) => s + x.so_mon, 0);
     k('F2 qua máy chủ: giờ gợi ý của thẻ cuối cộng món các đơn đang pha trước nó', dangPha.length >= 2 && sau.goi_luc_goi_y === f(sau.nhan_luc, truoc + sau.so_mon, { phut_moi_mon: 2, phut_tim_xe: 6 }),
       J(dangPha.map((x) => [x.so_mon, x.nhan_luc, x.goi_luc_goi_y])));
@@ -443,10 +443,13 @@ async function main() {
     k('H5 + H10 có tài xế: tên, SĐT, biển số, giờ có xe được lưu', ch1?.tai_xe_ten === 'Tài Xế A' && ch1?.tai_xe_sdt === '0977000333' && ch1?.tai_xe_bien_so === '29B1-12345' && !!ch1?.co_xe_luc,
       J(ch1).slice(0, 220));
     const nTin = Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_giao_tin').catch(() => ({ n: -1 }))).n);
-    if (A.chuyen.has(id)) datTrangThai(id, { status: 'IN PROCESS' });
-    const h3 = await baoVe({ _id: id, status: 'COMPLETED' });
+    if (A.chuyen.has(id)) datTrangThai(id, { supplier_name: 'Đổi Tên Giả' });   // Ahamove vẫn ACCEPTED: báo lại (thân khác) = tin lặp
+    const h3 = await baoVe({ _id: id, status: 'ACCEPTED', sub_status: 'lap' });
     const nTin2 = Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_giao_tin').catch(() => ({ n: -1 }))).n);
-    k('H3 tin lặp (cùng mã + trạng thái) → 200, không thêm dòng, không đổi chuyến', h3.status === 200 && nTin2 === nTin && nTin > 0 && (await chuyenCua(gx.id))?.trang_thai === 'doi_tai_xe', `${h3.status} ${nTin}→${nTin2}`);
+    const ch1b = await chuyenCua(gx.id);
+    k('H3 tin lặp (Ahamove đọc lại vẫn cùng trạng thái) → 200, không thêm dòng, không đổi gì', h3.status === 200 && nTin2 === nTin && nTin > 0
+      && ch1b?.trang_thai === 'doi_tai_xe' && ch1b?.tai_xe_ten === 'Tài Xế A', `${h3.status} ${nTin}→${nTin2} ${ch1b?.tai_xe_ten}`);
+    if (A.chuyen.has(id)) datTrangThai(id, { status: 'IN PROCESS', supplier_name: 'Tài Xế A' });
     const h6 = await baoVe({ _id: id, status: 'IN PROCESS' });
     const ch2 = await chuyenCua(gx.id);
     k('H6 tài xế lấy hàng → TỰ sang dang_giao + giờ lấy hàng (quầy không bấm)', h6.status === 200 && ch2?.trang_thai === 'dang_giao' && !!ch2?.lay_hang_luc, `${ch2?.trang_thai}`);

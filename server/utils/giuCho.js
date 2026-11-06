@@ -17,7 +17,7 @@ const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // chung hai cổng QR — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
 const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
-  'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy'];
+  'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy', 'giao'];   // GIAO-1: đơn giao trả QR / tài khoản / tiền mặt qua phiên
 const GIO = "strftime('%Y-%m-%dT%H:%M:%S', ?, ?)";
 const loi = (status, code, error) => ({ status, body: { error, code } });
 // res giả gom status + thân — gọi taoDon ngoài một yêu cầu HTTP của chính nó (webhook, tạo phiên).
