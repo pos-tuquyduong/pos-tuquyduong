@@ -523,6 +523,7 @@ async function main() {
     const sC7 = sdtMoi();
     await napTay(sC7, 5000);
     const e7c = await ban({ customer_phone: sC7, parent_phone: sE, payment_method: 'cash', balance_amount: 5000, parent_balance_amount: 5000, cash_amount: 11000 });
+    await napTay(sE, 21000);
     const e7d = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
     const truoc = [];
     for (const e of [e7a, e7b, e7c, e7d]) truoc.push(e.order ? await diemDon(e.order.id) : NaN);
