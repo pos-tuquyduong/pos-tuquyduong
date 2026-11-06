@@ -157,8 +157,8 @@ Máy đã đọc lại từng chỗ agent nêu, đều đúng:
 6. **Chia cho 0 khi hoàn** — đền bù vào ví khách của đơn trả ví MẸ + tiền mặt: `viDaTru` của ví khách = 0 → `thuongKhiHoan` trả 0 (toàn tiền nạp),
    không chia. Ca mới **C7b**. Ca phép tính thuần cho `viDaTru = 0`, `soDu ≤ 0`.
 7. **`total_topup` của đơn nạp** cộng `vao_tk` (105.000 — bằng `amount` dòng sổ, I18 `bat_bien.js:332` khớp), không phải `khach_tra`.
-8. Bỏ cổng thêm ở duyệt hoàn (`refunds.js:145`): thừa — đơn nạp không tạo được yêu cầu (`refunds.js:116` đòi `balance_amount > 0`); ca D3 canh.
-   `refunds.js` không sửa.
+8. Bỏ cổng thêm ở duyệt hoàn (`refunds.js:145`): thừa — đơn nạp không tạo được yêu cầu; ca D3 canh. (Vòng sửa 2 06.11: thêm cổng `laDonNap` ở
+   POST yêu cầu hoàn — cùng mã NAP_KHONG_HOAN, theo đối tượng; duyệt hoàn vẫn không thêm.)
 
 Các lệnh ghi thẳng `pos_balance_transactions` ngoài `ghiVi` (`orders.js:947` gắn `order_id`, `:1390` `debt_payment` ngoài danh sách tính vào ví)
 không đổi số dư — không cần ngăn thưởng.
@@ -181,5 +181,5 @@ chỉ ở màn Bán hàng MỚI · (3) đền bù một phần chia THEO TỶ L�
    `GET /don` của khách (không mã bill). `HOP_DONG_API_KH.md` KHÔNG có trong Phạm vi → máy không sửa; dòng nhật ký **v11** soạn sẵn ở
    `trang_thai.md` để chat dán lúc gộp (chủ quán dặn "lấy số kế tiếp, chat chỉnh lúc gộp").
 7. **Mốc luật điểm mới** `DIEM_VI_TU = '2026-11-08'` (TẠM — chat sửa = ngày gộp + 1, khuôn `DIEM_THAT_TU`).
-8. `products.js`, `loyalty.js`, `refunds.js` không cần sửa (đã có trong Phạm vi, không đụng).
+8. `products.js`, `loyalty.js` không cần sửa (đã có trong Phạm vi, không đụng). `refunds.js` sửa ở vòng sửa 2 (cổng `laDonNap` của yêu cầu hoàn).
 Không chỗ lệch nào đổi đường tiền / ví so với kế hoạch đã duyệt → làm luôn.

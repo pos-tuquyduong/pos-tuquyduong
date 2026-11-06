@@ -53,7 +53,8 @@ f464cea Merge pull request #74 from pos-tuquyduong/viec/HANG-1
 Kế hoạch đọc lại trên code mới: `ke_hoach.md` mục 13 (lệch: bất biến thưởng gộp vào I4 thay I20; vị từ đơn nạp theo dòng hàng; hợp đồng không sửa
 vì ngoài Phạm vi). Không lệch nào đổi đường tiền / ví so với kế hoạch đã duyệt → làm luôn.
 
-### Bảng chỗ vá → đột biến (`viec/NAP-1/dot_bien.py`, 68 đột biến · BẮT 68 · có đối chứng)
+### Bảng chỗ vá → đột biến (`viec/NAP-1/dot_bien.py`, nay 73 đột biến · BẮT 73 · có đối chứng — 68 ban đầu + 5 của vòng sửa 1–2: BV-hoan-tra-not ·
+VS-hoan-tra-not-tinh-ca-hoan-goi · BV-products-nap · VS-tra-not-nguong-noi-1 · BV-yeu-cau-hoan-nap)
 | Chỗ vá | Đột biến |
 |---|---|
 | `server/nang_cap/014_nap.js` bảng + cột thưởng | BV-014-cot-vi |
@@ -212,3 +213,57 @@ BÀI HỌC:
 Phát hiện: `server/routes/damages.js` (ngoài Phạm vi) chặn đền đơn nạp bằng GOI_THE_KHONG_DEN (`product_id < 0`) — chặn đúng, mã khác; khi chạm tới thì
 đổi sang `laDonNap` + NAP_KHONG_HOAN. Các NGHI NGỜ vòng 2 (sổ sách huỷ khác kỳ, bất biến "đơn nạp ↔ một dòng topup", nhãn D2, emoji in nhiệt) ghi
 làm đề xuất việc sau — không thuộc nghiệm thu, không đổi tiền.
+
+## Soát độc lập vòng 3 (/ra-soat, 06.11, mốc f464cea → 275c22f) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ: 1 chỗ code ở trường hợp biên khó xảy ra, 3 chỗ hồ sơ / chú thích ghi cũ. Không lỗi nào làm sai số dư, điểm, tiền vào két
+hay lộ thông tin.)
+
+Bốn lỗi vòng 2 đã sửa đúng (cài lại từng lỗi cũ thì bài thử đều bắt): VS-tra-not-nguong-noi-1 BẮT ở C0b; P20 với /nhan-diem cộng 0 điểm bù → ĐỎ
+171 · 1; BV-yeu-cau-hoan-nap BẮT ở D3; chỉ mục có thật (database.js:962-963), viKhach.js:39 nay ghi đúng.
+Đã chạy: thu_NAP1 69 · 0; dot_bien.py 73 · BẮT 73 (đối chứng XANH 69 · 0); --day-du PASS 103 · FAIL 0 · CẢNH BÁO 2 (file ngoài việc này); dist khớp src;
+git status sạch, origin/viec/NAP-1..HEAD rỗng, mọi file đổi trong Phạm vi.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/viKhach.js:34 — nhánh "trả nốt" `return con` không chặn trần bằng `soTien`. Phần thưởng của một lần cộng lại có thể lớn hơn chính số
+   tiền cộng: ví nhận thêm soTien nhưng ngăn thưởng nhận con > soTien, nên tiền nạp bị trừ đi; tiền nạp đang 0 thì thành âm, I4 báo "thưởng > số dư".
+   Ví dụ: [đã trừ 7, thưởng đã trừ 3, đã trả 0, đã cộng lại 6, lần này 1] → trả 3 cho khoản cộng 1 đồng (6 lần cộng một phần, mỗi lần làm tròn xuống 0).
+   Đi tới được qua đền bù (tiền đền tuỳ ý > 0) nhưng cần nhiều lần đền nhỏ rồi một lần rất nhỏ — gần như không xảy ra. Số dư tổng vẫn đúng, chỉ lệch
+   1–2 đồng giữa hai ngăn. Cách vá: `return Math.min(con, soTien)`, thêm ca [7,3,0,6,1] → 1, đột biến bỏ cái min. — K3 — NHẸ (nếu chủ quán coi mọi
+   lệch ngăn ví là NẶNG thì nâng lên NẶNG).
+2. viec/NAP-1/ke_hoach.md §12 mục 8 và §13 mục 8 ("refunds.js không sửa") — trái code (vòng sửa 2 thêm cổng ở refunds.js:118); viKhach.js:7 thiếu
+   "yêu cầu hoàn" trong danh sách chỗ dùng laDonNap. — K1/K4 — NHẸ.
+3. viec/NAP-1/trang_thai.md:56 — tiêu đề bảng còn "68 đột biến · BẮT 68", thực tế 73; bảng thiếu 5 đột biến vòng sửa. — K4 — NHẸ.
+4. server/utils/viKhach.js:6 (chú thích "hoan_goi → tiền nạp") — ghiVi vẫn tính thuongKhiHoan cho dòng hoan_goi, ra 0 chỉ nhờ thứ tự hoàn phần ví trước
+   (C13 + VS-hoan-tra-not-tinh-ca-hoan-goi đã khoá) — chú thích nói như luật của hàm. — K1 — NHẸ.
+
+NGHI NGỜ:
+- goi-nap.js:19-23 — không có trần tỷ lệ thưởng. Ai có quyền manage_products (mặc định cả manager — database.js:1082) tạo được gói "trả 1.000 → vào
+  10.000.000" rồi bán cho một SĐT. Đúng phiếu A nhưng là lối tạo tiền trong ví. Đề xuất chủ quán quyết: trần % thưởng, hoặc chỉ owner tạo / sửa gói.
+- orders.js:892-903 — phép kiểm tổng cho lệch ±1đ (có từ trước): đơn nạp trả 99.999 vẫn cộng đủ 105.000.
+- Duyệt hoàn (refunds.js:167) không tự kiểm laDonNap — an toàn vì yêu cầu hoàn đơn nạp không tạo được.
+- Đền bù đơn nạp chặn bằng GOI_THE_KHONG_DEN (damages.js:178, ngoài Phạm vi) — đã ghi Phát hiện.
+- Nghi ngờ vòng 2 còn (sổ sách huỷ khác kỳ; bất biến "đơn nạp ↔ một dòng topup"; DIEM_VI_TU tạm '2026-11-08').
+
+NGHIỆM THU: 37/38 ý có bằng chứng máy · thiếu: B "nhóm Nạp tiền trên màn Bán hàng" (BanHangMoi.jsx — chờ thao tác thử tay).
+
+CHƯA SOÁT ĐƯỢC: tu_chay/cong.js chay; giao diện / in thật (emoji 💳 trên máy in nhiệt); Turso thật; HOP_DONG_API_KH.md; ban_mau_pos/chay_thu.sh;
+chotPhien chưa đọc kỹ (dựa vào B2 / B10 / B12).
+
+BÀI HỌC:
+- KHOÁ (K3): mọi hàm chia ngăn trả phần thưởng của một khoản phải có ca "phần thưởng ≤ khoản đó" ở MỌI nhánh, kể cả nhánh "trả nốt", và đột biến bỏ trần.
+- NGUYÊN TẮC (K4): vòng sửa thêm / đổi một chỗ vá thì grep ke_hoach.md và trang_thai.md tìm "file X không sửa", số đột biến cũ, danh sách chỗ dùng.
+```
+Máy đã sửa ngay lỗi hồ sơ 2, 3, 4 (chỉ chú thích / hồ sơ). Lỗi 1 CHƯA sửa — xem `## Câu hỏi` dưới.
+
+## Câu hỏi (06.11, sau 3 vòng soát — dừng theo LUAT_XAY_APP §6.5: còn lỗi ở đường VÍ)
+1. **Lỗi 1 vòng 3 (ngăn thưởng, trường hợp biên):** khi một đơn trả ví được đền bù nhiều lần nhỏ, lần đền cuối có thể đưa vào ngăn thưởng nhiều hơn
+   chính số tiền đền (lệch 1–2 đồng giữa tiền nạp và thưởng; tổng số dư khách vẫn đúng). Máy đã có cách sửa một dòng (`server/utils/viKhach.js`: phần
+   thưởng của lần "trả nốt" không vượt số tiền cộng — `Math.min(con, soTien)`) + một ca thử + một đột biến. **Đề xuất:** bạn cho máy làm vòng sửa 4
+   đúng lỗi này (chat soát thay), không đổi gì khác. Bạn chỉ cần trả lời "làm vòng 4".
+2. **Ai được tạo / sửa gói nạp** (soát vòng 3 nghi ngờ, đụng tiền): hiện theo phiếu là quyền "quản lý sản phẩm" — mặc định cả **quản lý (manager)**
+   cũng có. Một gói "trả ít → vào tài khoản nhiều" là cách tạo tiền trong ví. **Đề xuất:** để nguyên như phiếu (bạn tự tắt quyền này của manager ở
+   Cài đặt → Phân quyền nếu muốn), không thêm trần % — vì bạn đã chốt quyền ở phiếu. Nếu bạn muốn chặn cứng (chỉ chủ quán, hoặc trần % thưởng) thì
+   ghi vào phiếu, máy làm trong vòng 4.
+
+Bước dở: bước 8 xong 3 vòng (KHÔNG ĐẠT vòng 3, chờ câu 1). Chưa làm: soát bảo mật (8b), báo cáo 7 mục (10), rút kinh nghiệm (11), cổng `chay`.

@@ -3,9 +3,10 @@
  * `thuong`, tiền nạp = balance − thuong. Mọi lối ghi ví đi qua ghiVi (wallets.js) — ghiVi gọi hai hàm dưới để chia ngăn, chỗ gọi không tự tính.
  * - Trừ (trả đơn, ví mẹ, trừ tay, điều chỉnh âm): theo TỶ LỆ đang có (thuongKhiTru).
  * - Cộng lại theo đơn (huỷ, xoá, duyệt hoàn, đền bù, kết thúc gói): theo TỶ LỆ thưởng / ví của phần ĐÃ TRỪ cho đơn đó trên ví đó, không vượt
- *   phần thưởng đã trừ chưa trả lại (chủ quán 05.11 câu 3). Nạp tay, điều chỉnh cộng, tiền mặt / CK hoàn vào ví (hoan_goi) → tiền nạp.
+ *   phần thưởng đã trừ chưa trả lại (chủ quán 05.11 câu 3). Nạp tay, điều chỉnh cộng → tiền nạp. Dòng tiền mặt / CK hoàn vào ví (hoan_goi) cũng qua
+ *   thuongKhiHoan, ra 0 vì ghiHoan / soTienHoanGoi hoàn phần ví TRƯỚC (đủ phần ví → hết thưởng) — khoá bằng ca C13 của thu_NAP1.js.
  * - Đơn nạp: dòng hàng `product_id ≤ ID_NAP_TU` (−2000000 − mã gói; dải gói −1..−999999, thẻ −1000000..−1999999). sqlDonNap / laDonNap dùng ở
- *   huỷ, xoá, danh sách đơn, báo cáo doanh thu, sổ sách. Két không cần (đếm dòng topup KHÔNG gắn đơn); bất biến bat_bien.js chép hằng riêng.
+ *   huỷ, xoá, yêu cầu hoàn (refunds.js), danh sách đơn, báo cáo doanh thu, sổ sách. Két không cần (đếm dòng topup KHÔNG gắn đơn); bất biến bat_bien.js chép hằng riêng.
  */
 const ID_NAP_TU = -2000000;
 
