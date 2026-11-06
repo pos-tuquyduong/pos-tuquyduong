@@ -147,9 +147,12 @@ const BAT_BIEN = {
       WHERE key IN ('loyalty_enabled', 'loyalty_earn_per_amount', 'nhandiem_he_so')`)).map((r) => [r.key, r.value]));
     const per = Number(cfg.loyalty_earn_per_amount);
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
+    // NAP-1: đơn nạp nhận theo dòng hàng. Kho không có bảng pos_order_items (kho dữ liệu tay của thu_gia_lap.js) thì không thể có đơn nạp → 0.
+    const coMon = so((await q("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_order_items'"))[0]?.n);
+    const napSql = coMon ? `EXISTS (SELECT 1 FROM pos_order_items n WHERE n.order_id = o.id AND n.product_id <= ${NAP_TU})` : '0';
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
-        o.status, o.cancelled_at, EXISTS (SELECT 1 FROM pos_order_items n WHERE n.order_id = o.id AND n.product_id <= ${NAP_TU}) AS nap,
+        o.status, o.cancelled_at, ${napSql} AS nap,
         COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
