@@ -271,7 +271,7 @@ async function main() {
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
   const sV = sdtMoi();
   await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, purchased_at, expires_at, created_by, loai, so_thang)
-    VALUES (?, ?, ?, 0, '2026-01-01T00:00:00', NULL, 'thu', 'cap', NULL)`, [sV, hang.id, hang.name]);
+    VALUES (?, ?, ?, 0, '2026-01-01T00:00:00', '9999-12-31T23:59:59', 'thu', 'cap', NULL)`, [sV, hang.id, hang.name]);
   const doiChung = await ban({ customer_phone: sV, payment_method: 'cash', cash_amount: 18900 });
   const b13 = await banNap(sV, ID1);
   k('B13 khách có hạng (đơn món đối chứng được giảm 10 %) mua gói nạp → tổng 100.000, không giảm hạng',
