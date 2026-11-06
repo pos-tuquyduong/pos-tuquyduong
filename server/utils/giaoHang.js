@@ -289,15 +289,17 @@ async function capNhatTuAhamove(c, d) {
   const moi = trangThaiQuan(d);
   if (!moi || !(HANG[moi] > HANG[c.trang_thai] || (c.trang_thai === 'doi_tai_xe' && moi === 'tim_xe'))) return;
   const tx = d.tai_xe;
-  await run(`UPDATE pos_giao_chuyen SET trang_thai = ?, tai_xe_ten = COALESCE(?, tai_xe_ten), tai_xe_sdt = COALESCE(?, tai_xe_sdt),
-    tai_xe_bien_so = COALESCE(?, tai_xe_bien_so), co_xe_luc = CASE WHEN ? = 'doi_tai_xe' THEN COALESCE(co_xe_luc, ?) ELSE co_xe_luc END,
+  const veTim = moi === 'tim_xe' ? 1 : 0;   // Ahamove tìm tài xế khác: bỏ tài xế cũ khỏi thẻ
+  await run(`UPDATE pos_giao_chuyen SET trang_thai = ?, tai_xe_ten = CASE WHEN ? THEN NULL ELSE COALESCE(?, tai_xe_ten) END,
+    tai_xe_sdt = CASE WHEN ? THEN NULL ELSE COALESCE(?, tai_xe_sdt) END, tai_xe_bien_so = CASE WHEN ? THEN NULL ELSE COALESCE(?, tai_xe_bien_so) END, co_xe_luc = CASE WHEN ? = 'doi_tai_xe' THEN COALESCE(co_xe_luc, ?) ELSE co_xe_luc END,
     lay_hang_luc = CASE WHEN ? = 'dang_giao' THEN ? ELSE lay_hang_luc END, xong_luc = CASE WHEN ? IN ('xong', 'giao_loi') THEN ? ELSE xong_luc END,
     phi_that = COALESCE(?, phi_that), chenh = COALESCE(?, phi_that) - phi_khach, doc_luc = ?, loi = CASE WHEN ? = 'giao_loi' THEN 'Giao không thành công' ELSE loi END
     WHERE id = ? AND trang_thai = ? AND ma_ahamove = ?`,
-  [moi, tx.ten, tx.sdt, tx.bien_so, moi, now, moi, now, moi, now, d.phi, d.phi, now, moi, c.id, c.trang_thai, c.ma_ahamove]);
+  [moi, veTim, tx.ten, veTim, tx.sdt, veTim, tx.bien_so, moi, now, moi, now, moi, now, d.phi, d.phi, now, moi, c.id, c.trang_thai, c.ma_ahamove]);
 }
 
-/** Tin báo về: chỉ lấy mã chuyến; trạng thái đọc lại bằng token của quán. Lặp (mã + trạng thái đọc lại) → không làm gì. */
+/** Tin báo về: chỉ lấy mã chuyến; trạng thái đọc lại bằng token của quán. Lặp (mã + trạng thái đọc lại + điểm giao + SĐT tài xế — Ahamove đổi
+ *  tài xế thì ACCEPTED lần hai là tin MỚI) → không làm gì. */
 async function nhanTinBao(b) {
   const ma = String(b?._id || b?.order_id || '').replace(/-\d+$/, '');
   const c = ma ? await queryOne('SELECT * FROM pos_giao_chuyen WHERE ma_ahamove = ?', [ma]) : null;
@@ -305,7 +307,7 @@ async function nhanTinBao(b) {
   let d;
   try { d = await aha.docChuyen(ma); } catch { return loi(502, 'AHAMOVE_LOI', 'Không đọc lại được chuyến — Ahamove gửi lại sau').loi; }
   if (!d) return { status: 200, body: { success: true } };
-  const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, d.diem_giao, getNow()]);
+  const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, `${d.diem_giao}|${d.tai_xe.sdt || ''}`, getNow()]);
   if (moi.changes === 1) await capNhatTuAhamove(c, d);
   return { status: 200, body: { success: true } };
 }

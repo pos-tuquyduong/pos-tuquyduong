@@ -45,7 +45,8 @@ DOT_BIEN = [
   # ── H: tin báo về ──
   ('BV-khoa-bao', 'g1', [(RG, "typeof nhan !== 'string' || !crypto.timingSafeEqual(bam(nhan), bam(khoa))", "typeof nhan !== 'string'", 1)], r'✗ H1 '),
   ('VS-tin-than-tin', 'g1', [(GH, 'try { d = await aha.docChuyen(ma); }', 'try { d = await aha.docChuyen(ma); if (d) d.trang_thai = String(b.status); }', 1)], r'✗ H4 '),
-  ('BV-chong-lap', 'g1', [(GH, '[ma, d.trang_thai, d.diem_giao, getNow()]', '[ma, d.trang_thai, d.diem_giao + Math.random(), getNow()]', 1)], r'✗ H3 '),
+  ('BV-chong-lap', 'g1', [(GH, "`${d.diem_giao}|${d.tai_xe.sdt || ''}`, getNow()]", "`${d.diem_giao}|${Math.random()}`, getNow()]", 1)], r'✗ H3 '),
+  ('VS-chong-lap-bo-tai-xe', 'g1', [(GH, "`${d.diem_giao}|${d.tai_xe.sdt || ''}`, getNow()]", 'd.diem_giao, getNow()]', 1)], r'✗ H11 '),
   ('VS-tin-lui', 'g1', [(GH, 'HANG[moi] > HANG[c.trang_thai]', 'HANG[moi] !== HANG[c.trang_thai]', 1)], r'✗ H8 '),
   ('BV-in-tem-mot-may', 'g1', [(GH, "lan_in_tem = 1 WHERE order_id = ? AND in_tem_luc IS NULL'", "lan_in_tem = 1 WHERE order_id = ?'", 1)], r'✗ H9 '),
   # ── J: huỷ theo bước, xoá, hoàn ──

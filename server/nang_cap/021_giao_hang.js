@@ -4,7 +4,7 @@
  *                     tới khi một đơn dùng nó (UNIQUE: một báo phí — một đơn).
  *   pos_giao_chuyen:  một đơn giao một dòng — người nhận, trạng thái + giờ từng bước, chuyến Ahamove, tài xế, phí khách trả / phí thật / chênh,
  *                     phí huỷ chuyến, đồ đã pha khi huỷ (dung_lai | bo_di). Trạng thái chỉ đổi qua utils/giaoHang.js.
- *   pos_giao_tin:     nhật ký tin Ahamove báo về — khoá (mã chuyến, trạng thái ĐỌC LẠI, trạng thái điểm giao) chống xử lý lặp. Không lưu header.
+ *   pos_giao_tin:     nhật ký tin Ahamove báo về — khoá (mã chuyến, trạng thái ĐỌC LẠI, 'điểm giao|SĐT tài xế') chống xử lý lặp. Không lưu header.
  */
 const CAU = [
   `CREATE TABLE IF NOT EXISTS pos_giao_bao_phi (
