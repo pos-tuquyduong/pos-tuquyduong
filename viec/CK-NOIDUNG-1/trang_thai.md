@@ -584,8 +584,17 @@ CHƯA KIỂM:   Render đang đặt CONG_QR gì / có bật cả hai cổng khô
              mã FT của SePay không (nếu trùng, ghép theo mã GD sẽ tự cộng được thay vì cộng tay). Giao diện thật trên điện thoại (dòng CẦN XEM "KHÔNG tự
              cộng" ở Đối soát) — chỉ kiểm qua bài thử. Turso thật (giao dịch ghi) — chỉ chạy trên kho thử. Đường chốt đơn khi bật hai cổng vẫn có thể ra
              hai dòng ĐỎ cho một khoản (có từ main — Phát hiện).
-GIT:         (xem dòng git log dưới — ghi sau commit cuối)
+GIT:         28a9878 CK-NOIDUNG-1: soat nhanh Q6 B, soat bao mat (DAT), Bai hoc, bao cao 7 muc
+             246f400 CK-NOIDUNG-1: Q6 B sua chu theo soat nhanh (hop dong: tu luc cong thu hai bao moi bao sau khong tu cong; chu thich doiSoat)
 BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 2 · BỎ 2 — chi tiết ở ## Bài học
 ```
 Thử tay cho chủ quán (chỉ khi có lúc bật cả hai cổng): vào **Đối soát** → mục CK, dòng có chữ "KHÔNG tự cộng" nằm ở CẦN XEM → mở sao kê ngân hàng,
 khoản nào chưa vào ví khách thì nạp tay vào tài khoản khách (SĐT ghi ngay trong dòng).
+
+## Cổng kiểm (bước 11.4)
+`node tu_chay/cong.js chay . 4ec877f^ HEAD viec/CK-NOIDUNG-1` trên HEAD 28a9878, cây sạch:
+✓ CỔNG CHẠY ĐẠT
+(kèm một CẢNH BÁO A16: bài thu_CKNOIDUNG1.js trên gốc in 109 ca, head 113 — bài dừng sớm trên gốc vì gốc chưa có các route / cột mới; bằng chứng đỏ
+22 · 87 ghi ở `bang_chung_do.txt`.)
+
+HEAD ĐÃ KIỂM: 28a9878
