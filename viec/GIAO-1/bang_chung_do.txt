@@ -42,7 +42,17 @@ Code TRƯỚC vòng sửa 2 (server/ = afade5e) → ĐỎ: 103 đạt · 3 hỏn
   ✗ Q5c (thẻ giao_loi còn sau khi hoàn) · ✗ G8b (không huỷ chuyến cũ X, 2 chuyến sống) · ✗ H11b (thẻ vẫn TX B2)
   (G10, J5d xanh trên bản trước: khoá vế EXISTS của câu giành và huyChuyenGiao chỉ tim_xe / doi_tai_xe — đã có từ afade5e, trước không có ca.)
 TRÊN CODE ĐÃ VÁ (HEAD 2eab64e): 106 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_GIAO1.js: 106
+(Dòng SỐ CA 106 ở trên thay bằng vòng sửa 4 bên dưới.)
+
+── Vòng sửa 4 (chủ quán Q6 06.11, sau soát vòng 3) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit cee5f81 (G8b đổi theo Q6 "nhận lại chuyến cũ"; thêm G8c, G9b, I6, GL, DT ×2, J5e, J5f; K1 số mới).
+GỐC fa03775 (nháp goc5) → ĐỎ: 5 đạt · 109 hỏng (5 ca xanh như trên).
+Code TRƯỚC vòng sửa 4 (server/ = 360ca5b) → ĐỎ: 106 đạt · 8 hỏng:
+  ✗ DT ×2 (404 — chưa có cửa đóng thẻ) · ✗ G8b (huỷ X, tạo chuyến mới) · ✗ G8c (502, kẹt dang_goi) · ✗ I6 (502, tim_xe)
+  ✗ GL (giờ gọi bị thay, hết "tìm lâu") · ✗ J5e (phí huỷ 6.000) · ✗ K1 (phí thật 101.000)
+  (G9b, J5f xanh trên bản trước: khoá hành vi vòng 2 — không huỷ chuyến máy thắng đã nhận, TRANG_THAI_DA_DOI — trước không có ca.)
+TRÊN CODE ĐÃ VÁ (HEAD c21ecf4): 114 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAO1.js: 114
 
 Bộ kiểm: npm test -- --day-du → PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo có từ trước: "route GET có lệnh ghi (3)" và "route ghi không qua
 loiGhi 54" — không file nào của việc này trong danh sách).

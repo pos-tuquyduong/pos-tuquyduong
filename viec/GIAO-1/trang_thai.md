@@ -244,3 +244,39 @@ xe — hiếm) còn hai chỗ sai khi gặp trường hợp đặc biệt: (1) c
   in lại tem"; ca thử + đột biến cho từng chỗ; rồi soát lại.
 - Q7 (đã hỏi trong vòng soát): "Bỏ đi" hiện KHÔNG hoàn kho (vì ghi hàng hỏng không tự trừ kho SX — hoàn rồi ghi hỏng sẽ làm kho DƯ). Kho ra đúng như ý bạn.
   Bạn xác nhận giữ cách này? (Đề xuất: giữ; khi làm KHO-3 xem lại.)
+
+## Phiên 3 (06.11) — chủ quán trả lời Q6 (đồng ý vòng sửa 4) + Q7 (giữ)
+### Bước 1 — đối chiếu bản chụp
+- Nhánh viec/GIAO-1, cây sạch. HEAD 360ca5b · FETCH_HEAD 360ca5b (bằng nhau, không kéo).
+- git log --oneline -3:
+  - 360ca5b GIAO-1: bao cao soat vong 3 (KHONG DAT, 2 loi NANG) — Cau hoi, dung o buoc 8
+  - c2b0714 GIAO-1: vong sua 2 — bang chung do (goc 5 · 101, truoc sua 103 · 3, HEAD 106 · 0), trang thai
+  - 0205e98 GIAO-1: dot bien BV-tim-lai-huy-cu neo lai sau vong sua 2
+- Câu hỏi Q6, Q7 ở trên: ĐÃ TRẢ LỜI (Q6 đồng ý vòng sửa 4; Q7 giữ "Bỏ đi" không hoàn kho).
+
+### Q7 — ghi cho KHO-3
+"Bỏ đi" khi huỷ đơn giao: KHÔNG hoàn kho SX + ghi hàng hỏng (pos_damage_logs, action 'none') đúng món + số lượng. Lý do: ghi hàng hỏng không tự trừ kho,
+nên hoàn kho rồi ghi hỏng sẽ làm kho DƯ. Chủ quán chốt 06.11 giữ cách này. **KHO-3 (POS giữ kho) phải xem lại:** nếu ghi hàng hỏng bắt đầu trừ kho thì
+đường "Bỏ đi" phải đổi sang hoàn kho + ghi hỏng (không thì trừ hai lần).
+
+### Vòng sửa 4
+- Bài thử viết trước (72bdc72, cee5f81): đỏ trên code trước vòng 4 (106 · 8), xanh sau (114 · 0); gốc 5 · 109.
+- Sửa (c21ecf4): lỗi 1 vòng 3 → nhận lại chuyến cũ còn chạy / đã xong (`nhanLaiChuyenCu`); lỗi 2 → phí huỷ chỉ khi lệnh huỷ của quán thành công
+  (bỏ ở các đường tự huỷ); lỗi 3 → không đọc được chuyến cũ thì giữ goi_luc cũ; lỗi 4 → đột biến cho nhánh "dừng/nhận lại" (BV-nhan-lai-chuyen-cu),
+  không huỷ chuyến máy thắng (BV-khong-huy-chuyen-may-thang + ca G9b), TRANG_THAI_DA_DOI (BV-trang-thai-da-doi + ca J5f); lỗi 5 → nút "Đóng thẻ" giao lỗi;
+  lỗi 7 → ke_hoach 180 s + mục 12. Lỗi 6 (tin ASSIGNING lần hai bị nuốt, thẻ hiện tài xế cũ tới lần đọc lại ≥ 60 s; tem không tự in lại) — NHẸ, không thuộc
+  Q6, ghi Phát hiện. Lỗi 8 (cổng / thử tay) — làm ở bước 8b–11.
+- Đột biến: 57/57 BẮT. npm test --day-du: 102 · 0 · 2 cảnh báo cũ.
+| Chỗ vá vòng 4 | Đột biến | Ca bắt |
+|---|---|---|
+| nhận lại chuyến cũ còn chạy | BV-nhan-lai-chuyen-cu · VS-nhan-lai-khong-ap-trang-thai | G8b / G8c / I6 |
+| chuyến cũ đã huỷ → gọi mới, không cộng phí | VS-nhan-lai-khi-da-huy · VS-phi-huy-moi-lan-doc | J5e |
+| không đọc được → giữ goi_luc cũ | BV-giu-goi-luc-cu | GL |
+| Đóng thẻ giao lỗi | BV-dong-the · VS-dong-the-nhan-vien · VS-dong-the-moi-the | DT |
+| không huỷ chuyến máy thắng đã nhận | BV-khong-huy-chuyen-may-thang | G9b |
+| huỷ chuyến kiểm changes | BV-trang-thai-da-doi | J5f |
+
+## Phát hiện (thêm phiên 3)
+- Tin ASSIGNING lần hai (tài xế bỏ chuyến) trùng khoá chống lặp với tin ASSIGNING đầu → thẻ hiện tài xế cũ tới lần đọc lại dự phòng (≥ 60 s, khi màn hỏi).
+  Đổi thẳng tài xế (ACCEPTED → ACCEPTED) thì cập nhật ngay. Tem túi không tự in lại khi đổi tài xế — quầy bấm "In lại tem túi". Đề xuất việc sau.
+- Thẻ `da_dong` (đã đóng) của đơn tiền mặt / CK: tiền hoàn cho khách (nếu có) chờ HUY-1.

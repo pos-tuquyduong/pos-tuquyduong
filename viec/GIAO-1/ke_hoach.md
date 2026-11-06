@@ -238,7 +238,7 @@ Các mục dưới đây THẮNG chỗ trái ý ở trên.
   (2) chưa có → gửi chữ cho Ahamove trong lệnh báo phí; máy chủ trả `can_xac_nhan: true` + km (+ địa chỉ Ahamove hiểu nếu Ahamove trả) → quầy hiện
   "Ahamove hiểu: … · km · phí" + nút "Đúng địa chỉ" mới gắn phí vào giỏ. Tên tham số `id` của detail và dạng `features` CHƯA KIỂM với Ahamove thật.
 - **Gộp cửa cho gọn:** "Tìm lại" / "Gọi lại" / đổi loại xe = cùng `POST /:id/goi-xe {loai_xe?}` (giành quyền bằng MỘT câu ghi: từ dang_pha, chuyen_huy,
-  dang_goi treo > 60 s hoặc có lỗi mạng, tim_xe > 10 phút → huỷ chuyến cũ trước). "Từ chối" đơn Mới = `PUT /orders/:id/cancel` (cùng cổng huỷ) —
+  dang_goi treo > 180 s (GOI_TREO_GIAY) hoặc có lỗi mạng, tim_xe > 10 phút → huỷ chuyến cũ trước). "Từ chối" đơn Mới = `PUT /orders/:id/cancel` (cùng cổng huỷ) —
   không viết cửa tu-choi riêng. `:id` của cửa giao hàng = mã ĐƠN.
 - **Kiểm theo mã theo dõi:** mỗi lần tạo có `ma_theo_doi` (= số HD; lần n > 1 thêm `-n`), ghi TRƯỚC khi gọi tạo. Bấm lại sau lỗi bất kỳ → tra
   `GET /v3/orders/tracks/<mã>` trước: có chuyến chưa ghi nhận còn sống → nhận chuyến đó; chuyến đã ghi nhận / huỷ → mã mới.
@@ -253,3 +253,12 @@ Các mục dưới đây THẮNG chỗ trái ý ở trên.
 - **Không sửa `dongHoaDon.js`:** nó tạo dữ liệu trả App KH — đổi là đổi hợp đồng `/api/kh` (HOP_DONG_API_KH.md ngoài Phạm vi). Dòng "GIAO HÀNG" chỉ
   ở hoá đơn quầy (client/src/utils/hoaDon.js `dau.giao` + InvoicePreview). App nhận đơn giao là KH-MUA-2.
 - **Menu:** thu_BH2 khoá menu 6 mục (GIAO-DIEN-1 đang mở) → màn Giao hàng mở bằng nút "Giao hàng" trên màn Bán hàng mới + đường `/giao-hang`.
+
+## 12. Vòng sửa 4 (chủ quán Q6 06.11) — THẮNG chỗ trái ý ở trên
+- Thẻ còn mã chuyến cũ (Tìm lại từ tim_xe, hoặc Gọi lại thẻ treo dang_goi): chỉ "Tìm lại" gửi lệnh huỷ. Sau đó ĐỌC chuyến cũ: còn chạy / đã xong →
+  NHẬN LẠI (`nhanLaiChuyenCu`: thẻ về tim_xe rồi áp trạng thái đọc được — tài xế, đang giao, xong), không gọi chuyến mới; đã huỷ → gọi chuyến mới.
+  Không đọc được → trả thẻ về như cũ, GIỮ goi_luc cũ (bấm lại được ngay).
+- Phí huỷ chỉ cộng khi CHÍNH lệnh huỷ của quán thành công (Huỷ chuyến, Tìm lại). Bỏ cộng phí huỷ ở các đường tài xế / Ahamove tự huỷ.
+- "Đóng thẻ" (POST /giao-hang/:id/dong-the, quản lý / chủ quán + lý do): chỉ thẻ giao_loi → trạng thái da_dong (rời màn), không đụng đơn / tiền;
+  phí chuyến vẫn ở Đối soát (theo dấu giờ đã chạy).
+- Q7: "Bỏ đi" giữ KHÔNG hoàn kho (kho ra đúng) — KHO-3 xem lại khi POS giữ kho.
