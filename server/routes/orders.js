@@ -920,11 +920,12 @@ async function taoDon(req, res, phien = null) {
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
-      if (phone && finalPaymentStatus === 'paid' && !flashApplied && !goiNap) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
       diemTao = null;
     }
+    if (goiNap) diemTao = null;   // NAP-1 (E): lúc nạp KHÔNG tích điểm — điểm tính khi khách tiêu tiền trong tài khoản
 
     const tx = await beginTransaction();
     let orderId;
