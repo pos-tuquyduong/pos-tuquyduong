@@ -170,7 +170,7 @@ async function phanQr() {
   thu('F7 không chấm nào nằm dưới nền tròn của logo', () => ve.cham.every((x) => Math.hypot(x.c + ve.le + 0.5 - ve.logo.tam, x.r + ve.le + 0.5 - ve.logo.tam) > ve.logo.kinhNen / 2));
   thu('F8 phần tử chấm là TRÒN (SVG dùng <circle>), ô góc bo tròn tô đặc (<rect rx>), không vẽ lõi rỗng; nền mã TRẮNG kể cả giao diện tối', () => {
     const s = Q.qrThuongHieuSvg(EMV, 'logo.png');
-    return /<circle/.test(s) && /<rect[^>]*rx=/.test(s) && /<image[^>]*href="logo\.png"/.test(s) && /<rect[^>]*fill="#fff"/i.test(s) && !/<path[^>]*M\d+ \d+h1v1h-1z/.test(s);
+    return (s.match(/<circle/g) || []).length > ve.cham.length && /<rect[^>]*rx=/.test(s) && /<image[^>]*href="logo\.png"/.test(s) && /<rect[^>]*fill="#fff"/i.test(s) && !/<path[^>]*M\d+ \d+h1v1h-1z/.test(s);
   });
   thu('F9 qrThuongHieuSvg(rỗng) → "" (không vẽ QR chết); chuỗi quá dài → không ném, "" ', () => Q.qrThuongHieuSvg('', 'x') === '' && Q.qrThuongHieuSvg('https://a.vn/?x=' + 'x'.repeat(5000), 'x') === '' && Q.veQrThuongHieu('').n === 0);
   // F10: dựng ảnh từ CHÍNH các phần tử đã tính (chấm tròn, ô góc, nền logo) rồi giải mã bằng jsqr — ở cỡ đầy đủ và thu nhỏ còn 40 %
