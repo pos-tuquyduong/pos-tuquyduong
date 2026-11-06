@@ -1,4 +1,4 @@
-# GIAO-1 — kế hoạch (chờ chủ quán duyệt)
+# GIAO-1 — kế hoạch (chủ quán DUYỆT 05.11 — commit fa03775; mục 11 = chốt khi làm, THẮNG chỗ trái ý ở trên)
 
 ## 0. Tóm tắt lời thường
 Một mô-đun máy chủ nói chuyện với Ahamove (`server/utils/ahamove.js`), một mô-đun quy tắc giao hàng (`server/utils/giaoHang.js` — trạng thái
@@ -230,3 +230,26 @@ Các mục dưới đây THẮNG chỗ trái ý ở trên.
   "không mất đơn"), nhưng gói trong ~25 dòng. Bỏ `payos:{da_cai}` nếu chủ quán không cần (QUYET 29.10 có nêu, nên mặc định giữ, 2 dòng).
 - **Q5:** đơn giao còn chuyến ở Ahamove có được xin / duyệt hoàn tiền ở màn Hoàn tiền không? Đề xuất: KHÔNG — chặn ở `refunds.js` (ngoài Phạm vi →
   cần thêm vào Phạm vi) bằng cùng hàm `kiemHuyDonGiao`.
+
+## 11. Chốt khi làm (phiên 2, 06.11) — sau câu trả lời Q1–Q5 của chủ quán
+- **Q1 ô địa chỉ — MỘT hàm máy chủ `phanGiaiDiaChi` (utils/giaoHang.js), hai cách:**
+  (1) có `AHAMOVE_DIA_CHI_URL` + `AHAMOVE_DIA_CHI_KHOA` → `GET <url>/dplaces/web/v2/autocomplete?text=` (header `apikey`) cho danh sách, chọn → máy chủ
+  gọi `GET <url>/gplaces/web/v2/detail?id=<mã>` lấy địa chỉ chuẩn + toạ độ; gõ chữ không chọn → 400 `DIA_CHI_PHAI_CHON_GOI_Y`.
+  (2) chưa có → gửi chữ cho Ahamove trong lệnh báo phí; máy chủ trả `can_xac_nhan: true` + km (+ địa chỉ Ahamove hiểu nếu Ahamove trả) → quầy hiện
+  "Ahamove hiểu: … · km · phí" + nút "Đúng địa chỉ" mới gắn phí vào giỏ. Tên tham số `id` của detail và dạng `features` CHƯA KIỂM với Ahamove thật.
+- **Gộp cửa cho gọn:** "Tìm lại" / "Gọi lại" / đổi loại xe = cùng `POST /:id/goi-xe {loai_xe?}` (giành quyền bằng MỘT câu ghi: từ dang_pha, chuyen_huy,
+  dang_goi treo > 60 s hoặc có lỗi mạng, tim_xe > 10 phút → huỷ chuyến cũ trước). "Từ chối" đơn Mới = `PUT /orders/:id/cancel` (cùng cổng huỷ) —
+  không viết cửa tu-choi riêng. `:id` của cửa giao hàng = mã ĐƠN.
+- **Kiểm theo mã theo dõi:** mỗi lần tạo có `ma_theo_doi` (= số HD; lần n > 1 thêm `-n`), ghi TRƯỚC khi gọi tạo. Bấm lại sau lỗi bất kỳ → tra
+  `GET /v3/orders/tracks/<mã>` trước: có chuyến chưa ghi nhận còn sống → nhận chuyến đó; chuyến đã ghi nhận / huỷ → mã mới.
+- **Tin báo về:** khoá chống lặp = (mã chuyến, trạng thái ĐỌC LẠI, `điểm giao|SĐT tài xế`) — có SĐT tài xế để Ahamove đổi tài xế (ACCEPTED lần hai)
+  không bị nuốt (ca H11). Về `tim_xe` thì bỏ tài xế cũ khỏi thẻ.
+- **Q4 "Bỏ đi":** `pos_damage_logs` KHÔNG trừ kho SX (damages.js chỉ ghi sổ; hoàn kho là action riêng). "Hoàn kho rồi ghi hàng hỏng" sẽ làm kho DƯ.
+  Nên đường huỷ: "Dùng cho đơn khác" → hoàn kho như cũ; "Bỏ đi" → KHÔNG hoàn kho (kho giữ phần đã trừ lúc bán = đúng phần đổ đi) + ghi hàng hỏng
+  đúng món + số lượng bằng hàm chung `ghiHangHong` (tách từ POST /damages, action 'none', tiền đền 0, lý do "Huỷ đơn giao <HD> — đồ đã pha bỏ đi").
+  Kết quả kho đúng như chủ quán muốn, ít một lần gọi SX. Ghi Phát hiện để chủ quán biết.
+- **Hỏi đồ đã pha** ở cả `dang_pha` và `chuyen_huy` (đã huỷ chuyến ở bước Đợi tài xế — đồ đã pha xong). Đơn Mới (chưa pha) không hỏi.
+- **Giờ:** mọi so giờ ở máy chủ (`toi_gio`, `nhac`, `tim_lau` trả kèm thẻ) — màn không dùng đồng hồ máy quầy (LUAT §2).
+- **Không sửa `dongHoaDon.js`:** nó tạo dữ liệu trả App KH — đổi là đổi hợp đồng `/api/kh` (HOP_DONG_API_KH.md ngoài Phạm vi). Dòng "GIAO HÀNG" chỉ
+  ở hoá đơn quầy (client/src/utils/hoaDon.js `dau.giao` + InvoicePreview). App nhận đơn giao là KH-MUA-2.
+- **Menu:** thu_BH2 khoá menu 6 mục (GIAO-DIEN-1 đang mở) → màn Giao hàng mở bằng nút "Giao hàng" trên màn Bán hàng mới + đường `/giao-hang`.
