@@ -429,6 +429,9 @@ async function main() {
       ['TINGEE_CLIENT_ID', 'TINGEE_SECRET_TOKEN', 'TINGEE_SO_TK', 'TINGEE_BIN', 'TINGEE_MOI_TRUONG', 'https://www.pos-tuquyduong.io.vn/api/tingee/webhook', 'Webhook',
         'QR Code', 'API Credentials', 'ngoài giờ bán', 'CONG_QR=tingee', '2.000', 'CONG_QR=sepay'].every((x) => hd.includes(x)));
     k('F1 cai_dat_tingee.md không chứa dãy ≥ 8 chữ số liền (số tài khoản / khoá)', hd.length > 0 && !/\d{8,}/.test(hd));
+    const dongLui = hd.split('\n').filter((l) => /Không thấy/.test(l));
+    k('F2 cai_dat_tingee.md: bước thử có dòng "Không thấy … đổi lại `CONG_QR=sepay` NGAY" (chủ quán 06.11), đứng SAU bước đặt CONG_QR=tingee',
+      dongLui.some((l) => l.includes('`CONG_QR=sepay`') && /NGAY/.test(l)) && hd.indexOf('Không thấy') > hd.indexOf('`CONG_QR=tingee`'), dongLui.join(' | ').slice(0, 160));
   }
 
   sv.close();

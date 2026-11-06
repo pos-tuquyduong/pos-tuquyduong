@@ -41,7 +41,7 @@ DOT_BIEN = [
   ('BV-cong-qr-settings', 'tg', [(ST, '      data: settingsObj,\n      cong_qr: {', '      data: settingsObj,\n      cong_qr_bo: {', 1)], r'✗ A5 '),
   # ── C: đọc báo (tingee.js docBao) + trả lời (thanh-toan.js webhookTingee) ──
   ('BV-tk-va', 'tg', [(TG, "tkKhac: va === cauHinh().soTk.toUpperCase() ? null : va || '(trống)' };", 'tkKhac: null };', 1)], r'✗ D3 vaAccountNumber KHÁC'),
-  ('VS-tk-so-goc', 'tg', [(TG, "const va = String(b.vaAccountNumber ?? '')", "const va = String(b.accountNumber ?? '')", 1)], r'✗ C1 đúng chữ ký'),
+  ('VS-tk-so-goc', 'tg', [(TG, "const va = String(b.vaAccountNumber ?? '')", "const va = String(b.accountNumber ?? '')", 1)], r'✗ C1 phiên da_thu'),
   ('VS-tk-phan-biet-hoa-thuong', 'tg', [(TG, ".replace(/\\s+/g, '').toUpperCase();", ".replace(/\\s+/g, '');", 1)], r'✗ D3 accountNumber'),
   ('VS-bat-buoc-type', 'tg', [(TG, "vao: b.type === undefined || b.type === 'credit'", "vao: b.type === 'credit'", 1)], r'✗ C6 không có trường type'),
   ('BV-loc-tien-ra', 'tg', [(TG, "vao: b.type === undefined || b.type === 'credit'", 'vao: true', 1)], r'✗ C6 type "debit"'),
@@ -67,7 +67,7 @@ DOT_BIEN = [
   ('BV-gan-duong-tingee', 'tg', [(IX, "app.use('/api/tingee/webhook', require('./routes/thanh-toan').webhookTingee);   // TINGEE-1\n", '', 1)], r'✗ T2 '),
   ('BV-bo-kiem-chay-bai', 'tg', [(KT, "chayBaiThat('cong_cu/thu_TINGEE1.js');", "// chayBaiThat('cong_cu/thu_TINGEE1.js');", 1)], r'✗ T3 '),
   ('VS-huong-dan-khong-www', 'tg', [(HD, 'https://www.pos-tuquyduong.io.vn/api/tingee/webhook', 'https://pos-tuquyduong.io.vn/api/tingee/webhook', 1)], r'✗ F1 '),
-  ('VS-huong-dan-khong-quay-lai', 'tg', [(HD, 'đổi lại `CONG_QR=sepay` NGAY', 'đổi lại cổng cũ NGAY', 1)], r'✗ F1 '),
+  ('VS-huong-dan-khong-quay-lai', 'tg', [(HD, 'đổi lại `CONG_QR=sepay` NGAY', 'đổi lại cổng cũ NGAY', 1)], r'✗ F2 '),
 ]
 
 
