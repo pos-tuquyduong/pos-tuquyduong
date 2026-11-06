@@ -71,6 +71,8 @@ DOT_BIEN = [
   ('BV-hoan-tran', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return Math.round((soTien * thuongTru) / viTru);', 1)], r'✗ C0b '),
   ('VS-hoan-tra-het-thuong', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return con;', 1)], r'✗ C0b |✗ C7 '),
   ('BV-hoan-tra-not', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;\n', '', 1)], r'✗ C0b |✗ C7c '),
+  ('VS-tra-not-nguong-noi-1', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;', '  if (Number(r?.vi_hoan || 0) + soTien >= viTru - 1) return con;', 1)], r'✗ C0b '),
+  ('BV-yeu-cau-hoan-nap', [('server/routes/refunds.js', "      if (await laDonNap(tx, order.id)) return { huy: true, status: 400, body: LOI_NAP_KHONG_HOAN };", '', 1)], r'✗ D3 '),
   ('VS-hoan-tra-not-tinh-ca-hoan-goi', [(VK, "AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount END), 0) AS vi_hoan", "THEN amount END), 0) AS vi_hoan", 1),
                                         (WA, "for (const [soTien, cachTra, cot] of [[tuVi, 'cash', 'total_spent'], [tienMat, 'hoan_goi', null]])", "for (const [soTien, cachTra, cot] of [[tienMat, 'hoan_goi', null], [tuVi, 'cash', 'total_spent']])", 1)], r'✗ C13 '),
   ('VS-hoan-moi-vi', [(VK, 'FROM pos_balance_transactions WHERE customer_phone = ? AND order_id = ?`, [phone, orderId]);', 'FROM pos_balance_transactions WHERE order_id = ? AND ? IS NOT NULL`, [orderId, phone]);', 1)], r'✗ C7b |✗ C3 |✗ C9 '),

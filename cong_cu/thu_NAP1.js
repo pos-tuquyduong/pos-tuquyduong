@@ -295,7 +295,7 @@ async function main() {
     // [ví đã trừ, thưởng đã trừ, thưởng đã trả lại, ví đã cộng lại, khoản cộng lần này] → phần thưởng
     const txGia = (vi, th, tra, hoan) => ({ queryOne: async () => ({ vi_tru: vi, thuong_tru: th, thuong_tra: tra, vi_hoan: hoan }) });
     const caH = [[[42000, 2000, 0, 0, 10500], 500], [[42000, 2000, 500, 10500, 21000], 1000], [[63000, 2032, 0, 0, 21000], 677],
-      [[63000, 2032, 1354, 42000, 21000], 678], [[3, 2, 1, 1, 1], 1], [[30, 20, 19, 0, 15], 1], [[3, 2, 2, 1, 2], 0], [[0, 0, 0, 0, 5000], 0],
+      [[63000, 2032, 1354, 42000, 21000], 678], [[63000, 2032, 1354, 41999, 21000], 677], [[3, 2, 1, 1, 1], 1], [[30, 20, 19, 0, 15], 1], [[3, 2, 2, 1, 2], 0], [[0, 0, 0, 0, 5000], 0],
       [[21000, 0, 0, 0, 21000], 0], [[21000, 1000, 0, 0, 0], 0], [[21000, 1000, 0, 0, 30000], 1000]];
     const lechH = [];
     if (typeof h === 'function') for (const [[vi, th, tra, hoan, x], n] of caH) { const r = await h(txGia(vi, th, tra, hoan), 's', 1, x); if (r !== n) lechH.push(`${[vi, th, tra, hoan, x]} → ${r} (đúng ${n})`); }
@@ -445,8 +445,8 @@ async function main() {
     const don = await mot('SELECT status FROM pos_orders WHERE id = ?', [B1_ID]);
     k('D1 huỷ đơn nạp → 400 NAP_KHONG_HOAN', d1.status === 400 && d1.code === 'NAP_KHONG_HOAN', moTa(d1));
     k('D2 xoá đơn nạp → 400 NAP_KHONG_HOAN', d2.status === 400 && d2.code === 'NAP_KHONG_HOAN', moTa(d2));
-    k('D3 yêu cầu hoàn đơn nạp → 400; D4 đền bù đơn nạp → 400; đơn còn completed, ví không đổi',
-      d3.status === 400 && d4.status === 400 && don?.status === 'completed' && sau.so_du === truoc.so_du && sau.thuong === truoc.thuong, `${moTa(d3)} · ${moTa(d4)} · ${don?.status}`);
+    k('D3 yêu cầu hoàn đơn nạp → 400 NAP_KHONG_HOAN; D4 đền bù đơn nạp → 400; đơn còn completed, ví không đổi',
+      d3.status === 400 && d3.code === 'NAP_KHONG_HOAN' && d4.status === 400 && don?.status === 'completed' && sau.so_du === truoc.so_du && sau.thuong === truoc.thuong, `${moTa(d3)} · ${moTa(d4)} · ${don?.status}`);
     const d5 = await goi('POST', '/wallets/adjust', { phone: s1, amount: -1000, reason: '' });
     k('D5 điều chỉnh tay thiếu lý do → 400 (như cũ)', d5.status === 400, moTa(d5));
   }

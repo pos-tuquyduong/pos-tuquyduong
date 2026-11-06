@@ -142,7 +142,7 @@ BÀI HỌC:
 |---|---|---|
 | 1 kết thúc gói có hoàn chưa có ca | bài gắn route packages | C13 · VS-hoan-tra-not-tinh-ca-hoan-goi |
 | 2 làm tròn cộng dồn rơi đồng thưởng | `viKhach.js` thuongKhiHoan: lần cộng làm đủ phần ví đã trừ → trả NỐT phần thưởng còn lại | C0b (số lẻ), C7c · BV-hoan-tra-not |
-| 3 EXISTS lồng không chỉ mục | `sqlDonNap` và I8 dùng `id IN (SELECT order_id … )` (câu con chạy một lần) | (hiệu năng — CHƯA KIỂM bằng máy, xem dưới) |
+| 3 EXISTS lồng (vòng 2: BÁO OAN — kho thật có chỉ mục idx_ds_order_items_order; đo IN 6 ms · EXISTS 17 ms) | `sqlDonNap` và I8 dùng `id IN (SELECT order_id … )` — giữ vì gọn và nhanh hơn | (hiệu năng — người soát vòng 2 đo, máy không có phép canh) |
 | 4 /reports/products có dòng nạp | `reports.js` `AND oi.product_id > ID_NAP_TU` | F7 · BV-products-nap |
 | 5 cổng chạy + thao tác thử tay | ghi ở báo cáo cuối | — |
 | 6 chú thích sai | `viKhach.js` đầu file, `ke_hoach.md` §13.4 | — |
@@ -161,3 +161,54 @@ Thêm (từ NGHI NGỜ): sổ sách `napTay` cùng vị từ két (chỉ cash / 
 - **Tắt / sửa giá gói nạp khi đang có phiên QR chưa chốt:** tiền về mà phiên chuyển 'loi' (cùng khuôn đổi giá món, có từ trước — giuCho.js chotPhien).
   Quầy thấy ở màn Đối soát (tiền về chưa khớp). Không sửa.
 - Màn Đối soát dòng "Ví: nạp" nay gồm cả phần thưởng của gói nạp (là số vào ví, không phải tiền thu) — tiền thu đúng ở thẻ Sổ sách.
+
+## Soát độc lập vòng 2 (/ra-soat, 06.11, mốc f464cea → 8df9626) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT (chỉ lỗi NHẸ)
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/viKhach.js:39 — chú thích "EXISTS lồng ... quét cả pos_order_items (không chỉ mục order_id)" sai. server/database.js:962-963 tạo
+   idx_ds_order_items_order ON pos_order_items(order_id). Đo bằng libsql, 30.000 đơn / 90.000 dòng: EXISTS KHÔNG chỉ mục 53.330 ms (số vòng 1 báo —
+   vòng 1 đo trên kho thiếu chỉ mục); EXISTS CÓ chỉ mục 17 ms; IN 6 ms. Lỗi 3 vòng 1 là báo oan với kho thật. Bản vá IN vẫn đúng và nhanh hơn, giữ
+   được, nhưng chú thích trong code và dòng "3 EXISTS lồng không chỉ mục" trong trang_thai.md (bảng Vòng sửa 1) ghi sai sự thật; "xem dưới" không trỏ
+   tới đâu. — K1 — NHẸ.
+2. cong_cu/thu_NAP1.js C0b + C7c — ngưỡng "trả nốt" `vi_hoan + soTien >= viTru` (viKhach.js:34) chỉ có ca bằng đúng ngưỡng, không có ca ngay dưới.
+   Đột biến nới `>= viTru - 1` trên bộ ca C0b và C7c: SỐNG. Cần ca ngay dưới ngưỡng số lẻ (vd [63000, 2032, 1354, 41999, 21000]) + đột biến. — K3 — NHẸ.
+3. cong_cu/thu_P20.js:299-300 — bản vá lỗi 7 kiểm `SUM(points) > 0`, nhưng đơn có SĐT đã có 25 điểm lúc tạo: /nhan-diem 200 mà cộng 0 điểm vẫn xanh.
+   Đã khoá ở thu_DIEMTHAT1.js:245 (D3), nên chỉ là P20 yếu. — K3 — NHẸ.
+4. server/routes/refunds.js:115-118 và server/routes/damages.js:176-178 — đơn nạp bị chặn hoàn / đền nhờ hai cổng KHÁC chứ không theo laDonNap
+   (yêu cầu hoàn: "đơn không trả bằng số dư"; đền: GOI_THE_KHONG_DEN). Mã lỗi khác NAP_KHONG_HOAN cho cùng tình huống (LUAT §2); cổng hoàn dựa vào
+   cổng "nạp không trả ví" (hai vị từ, K4). Ca D3/D4 chỉ so status 400. — K4 — NHẸ (hôm nay không lối nào hoàn được tiền nạp).
+
+NGHI NGỜ:
+- doiSoat.js:142-145 sổ sách: tong_ban lọc theo trạng thái hiện tại của đơn tạo trong kỳ, thuong_nap_da_dung lọc theo ngày dòng sổ → huỷ sang kỳ sau
+  thì doanh_thu_that lệch giữa hai kỳ (cộng hai kỳ thì đúng). Chưa có ca F huỷ khác ngày.
+- LUAT §5: chưa có bất biến "mỗi đơn nạp có đúng một dòng topup gắn đơn, amount − thuong = total" → đề xuất việc sau.
+- doiSoat.js:314: dòng I8 của đơn nạp (nếu lỡ có điểm) bị gắn nhãn D2 — nhãn sai.
+- Đổi cách trả đơn nạp: dòng sổ topup giữ cách cũ (két / sổ sách đúng; chỉ lịch sử ví hiện cách cũ).
+- product_name gói nạp có emoji "💳" — chưa rõ máy in nhiệt in được không.
+- Thao tác thử tay và kết quả cổng chạy chưa ghi (sẽ ghi ở báo cáo cuối).
+- DIEM_VI_TU = '2026-11-08' ghi tạm — chat sửa đúng ngày gộp + 1.
+
+NGHIỆM THU: 37/38 ý có bằng chứng · thiếu: B "nhóm Nạp tiền trên màn Bán hàng" — JSX (BanHangMoi.jsx) chưa bài máy nào phủ, cần thao tác thử tay.
+
+CHƯA SOÁT ĐƯỢC: chưa chạy đủ 71 đột biến (chỉ 5: BẮT 5/5); chưa chạy tu_chay/cong.js; chưa chạy giao diện / in thật; chưa đo trên Turso; chưa đọc
+HOP_DONG_API_KH.md; chưa chạy ban_mau_pos/chay_thu.sh.
+
+BÀI HỌC:
+- NGUYÊN TẮC (K1): lỗi hiệu năng người soát báo phải kiểm lại trên lược đồ THẬT (database.js tạo chỉ mục lúc khởi động) trước khi vá và trước khi
+  chép lý do vào chú thích.
+- KHOÁ (K3): mỗi ngưỡng mới phải có ca ngay trên + ngay dưới và đột biến "nới 1".
+- KHOÁ (K4): cổng "loại đơn không hoàn" gắn theo ĐỐI TƯỢNG (laDonNap) ở mọi route hoàn / đền, cùng một code lỗi; ca chặn so cả code.
+```
+
+## Vòng sửa 2 (sau soát vòng 2 — chỉ lỗi nhẹ)
+| Lỗi soát | Sửa | Ca / đột biến |
+|---|---|---|
+| 1 chú thích hiệu năng sai | `viKhach.js` chú thích ghi số đo thật; bảng Vòng sửa 1 dòng 3 sửa | — |
+| 2 ngưỡng "trả nốt" thiếu ca ngay dưới | C0b thêm [63000, 2032, 1354, 41999, 21000] → 677 | VS-tra-not-nguong-noi-1 |
+| 3 P20 không khoá điểm bù | ca so điểm sau /nhan-diem > điểm lúc bán (> 0) | (đỏ trên gốc) |
+| 4 cổng hoàn không theo đối tượng | `refunds.js` POST yêu cầu hoàn: `laDonNap` → 400 NAP_KHONG_HOAN; D3 so cả code | BV-yeu-cau-hoan-nap |
+Phát hiện: `server/routes/damages.js` (ngoài Phạm vi) chặn đền đơn nạp bằng GOI_THE_KHONG_DEN (`product_id < 0`) — chặn đúng, mã khác; khi chạm tới thì
+đổi sang `laDonNap` + NAP_KHONG_HOAN. Các NGHI NGỜ vòng 2 (sổ sách huỷ khác kỳ, bất biến "đơn nạp ↔ một dòng topup", nhãn D2, emoji in nhiệt) ghi
+làm đề xuất việc sau — không thuộc nghiệm thu, không đổi tiền.
