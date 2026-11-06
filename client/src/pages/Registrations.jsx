@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { registrationsApi } from '../utils/api';
+import { hienNgayGio } from '../utils/ngayVN';
 import { Download, Check, Trash2, Edit2, X, RefreshCw, FileText, History, RotateCcw } from 'lucide-react';
 
 export default function Registrations() {
@@ -201,7 +202,7 @@ export default function Registrations() {
 
   const formatDate = (date) => {
     if (!date) return '-';
-    return new Date(date).toLocaleString('vi-VN', {
+    return hienNgayGio(date, {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',

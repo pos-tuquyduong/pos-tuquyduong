@@ -4,6 +4,8 @@
  * Phase B: Thêm customersV2Api.updateDiscount
  */
 
+import { ngayVN } from './ngayVN';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api/pos';
 
 /**
@@ -190,8 +192,8 @@ class ApiClient {
     });
   }
 
-  delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
+  delete(endpoint, data) {
+    return this.request(endpoint, data === undefined ? { method: 'DELETE' } : { method: 'DELETE', body: JSON.stringify(data) });
   }
 
   async upload(endpoint, formData) {
@@ -281,7 +283,7 @@ export const registrationsApi = {
   stats: () => api.get('/registrations/stats/summary'),
 
   // Export 2 bước
-  exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${new Date().toISOString().slice(0,10)}.csv`),
+  exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${ngayVN()}.csv`),
   confirmExport: () => api.post('/registrations/confirm-export', {}),
 
   // Hoàn tác
@@ -302,7 +304,18 @@ export const customersV2Api = {
   getFull: (phone) => api.get(`/v2/customers/${phone}/full`),
   search: (query) => api.get(`/v2/customers/search/${encodeURIComponent(query)}`),
   // Phase B: Cập nhật chiết khấu mặc định cho khách
-  updateDiscount: (phone, data) => api.put(`/v2/customers/${phone}/discount`, data)
+  updateDiscount: (phone, data) => api.put(`/v2/customers/${phone}/discount`, data),
+  // CT-1a: ngày sinh nhập MỘT lần; đã có thì chỉ người có quyền sua_ngay_sinh sửa (bắt lý do)
+  datNgaySinh: (phone, ngaySinh, lyDo) => api.put(`/v2/customers/${encodeURIComponent(phone)}/ngay-sinh`, { ngay_sinh: ngaySinh, ly_do: lyDo || undefined })
+};
+
+// CT-1a · Cài đặt "Chương trình" (quyền manage_promotions) — chỉ lưu cấu hình; áp tại quầy là CT-1b
+export const chuongTrinhApi = {
+  danhSach: () => api.get('/chuong-trinh'),
+  them: (d) => api.post('/chuong-trinh', d),
+  sua: (id, d) => api.put(`/chuong-trinh/${id}`, d),
+  xoa: (id) => api.delete(`/chuong-trinh/${id}`),
+  datKhoangTuoi: (toiThieu, toiDa) => api.put('/chuong-trinh/khoang-tuoi', { toi_thieu: toiThieu, toi_da: toiDa })
 };
 
 // ============ API CŨ (giữ lại để tương thích) ============
@@ -417,7 +430,7 @@ export const stockApi = {
 export const syncApi = {
   status: () => api.get('/sync/status'),
   exportPreview: () => api.get('/sync/export/preview'),
-  export: () => api.download('/sync/export', `khach-moi_${new Date().toISOString().slice(0,10)}.csv`),
+  export: () => api.download('/sync/export', `khach-moi_${ngayVN()}.csv`),
   import: (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -469,6 +482,19 @@ export const usersApi = {
   resetPassword: (id, new_password) => api.put(`/users/${id}/password`, { new_password }),
   permissions: () => api.get('/users/permissions'),
   updatePermissions: (role, permissions) => api.put(`/permissions/${role}`, { permissions })
+};
+
+// HANG-1 · Hạng thẻ: cài đặt hạng + gói, PIN chủ quán, cấp / thu hồi hạng chỉ cấp (chủ quán + PIN), nhật ký hạng của khách
+export const hangApi = {
+  ds: () => api.get('/tiers'),
+  luu: (body) => api.put('/tiers', body),
+  xoa: (id, pin) => api.delete(`/tiers/${id}`, { pin }),
+  coPin: () => api.get('/membership/pin-chu-quan'),
+  datPin: (matKhau, pin, pinLai, pinCu) => api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai, pin_cu: pinCu }),
+  trangThai: (sdt) => api.get(`/membership/status/${encodeURIComponent(sdt)}`),
+  cap: (sdt, tierId, soThang, pin) => api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin }),
+  thuHoi: (sdt, tierId, pin) => api.post('/membership/thu-hoi', { phone: sdt, tier_id: tierId, pin }),
+  nhatKy: (sdt) => api.get(`/membership/nhat-ky/${encodeURIComponent(sdt)}`)
 };
 
 export default api;

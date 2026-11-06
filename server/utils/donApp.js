@@ -23,6 +23,7 @@ const { docCaiDat, dangMo } = require('./gioHoatDong');
 const { taoPhien, chotPhien, gomRes } = require('./giuCho');
 const { laTrungKhoa } = require('../kho/tinh');
 const { thanLoi } = require('../routes/kh/loi');
+const { dongHoaDonKhach } = require('./dongHoaDon');
 
 const NGUOI = 'app_kh';
 const GIOI = {
@@ -253,12 +254,20 @@ async function datDon(khach, b) {
 const CO_TIEN_VE = "EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua = 'chua_khop')";
 const CAU_DON = `SELECT * FROM (
     SELECT o.code AS ma_bill, o.created_at AS ngay, o.total AS tong, o.debt_amount AS no, o.status AS trang_thai, o.payment_status AS thanh_toan,
-      o.id AS oid, a.ma AS ma_app, a.than, a.tien_trinh_quay, p.trang_thai AS p_tt, p.het_han, p.qr, ${CO_TIEN_VE} AS tien_ve, 1 AS loai
+      o.id AS oid, a.ma AS ma_app, a.than, a.tien_trinh_quay, p.trang_thai AS p_tt, p.het_han, p.qr, ${CO_TIEN_VE} AS tien_ve, 1 AS loai,
+      p.cach, p.giu_vi, p.con_lai
     FROM pos_orders o LEFT JOIN pos_phien_thanh_toan p ON p.order_id = o.id LEFT JOIN pos_don_app a ON a.phien_id = p.id
     WHERE o.customer_phone = ?
     UNION ALL
-    SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0
+    SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.con_lai
     FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id WHERE a.phone = ? AND ${THAY_DUOC} AND p.order_id IS NULL)`;
+
+/** cach_tra / giu_vi / con_lai của đơn App, đọc từ phiên (không có cột riêng): thanh toán bằng tài khoản → vi; QR có giữ ví → vi_qr; còn lại → qr. Đơn quầy → null. */
+function cachTraCua(r) {
+  if (!r.ma_app) return { cach_tra: null, giu_vi: null, con_lai: null };
+  const cach = r.cach === 'tai_khoan' ? 'vi' : r.giu_vi > 0 ? 'vi_qr' : 'qr';
+  return { cach_tra: cach, giu_vi: r.giu_vi, con_lai: r.con_lai };
+}
 
 function tomDon(r) {
   const tt = r.ma_app ? tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, r.loai ? { status: r.trang_thai } : null, r.tien_trinh_quay)
@@ -267,6 +276,7 @@ function tomDon(r) {
     ma: r.ma_app || r.ma_bill, ngay: r.ngay, tong: r.tong, da_tra: r.loai ? Number(r.tong || 0) - Number(r.no || 0) : 0,
     trang_thai: r.trang_thai, thanh_toan: r.thanh_toan, tien_trinh: tt, qr: r.ma_app ? qrCua(r, tt) : null,
     tien_ve_cho_doi_soat: tt === 'da_huy' && !!r.tien_ve,
+    ...cachTraCua(r),
   };
 }
 
@@ -286,7 +296,17 @@ async function chiTietDon(phone, ma) {
       ma: d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null, ten: d.product_name, so_luong: d.quantity,
       don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes }))
     : JSON.parse(r.than).dong.map((d) => ({ ma: d.ma, ten: d.ten, so_luong: d.so_luong, don_gia: d.don_gia, thanh_tien: d.thanh_tien, ghi_chu: d.ghi_chu }));
-  return { ...tomDon(r), mon };
+  return { ...tomDon(r), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
+}
+
+/** Tờ hoá đơn giao khách của đơn thật. Không dựng được thì [] (App tự vẽ từ mon[]) — không làm hỏng việc xem đơn. */
+async function hoaDonCua(oid, laDonApp) {
+  try {
+    return await dongHoaDonKhach(await queryOne('SELECT * FROM pos_orders WHERE id = ?', [oid]), { anNhanVien: laDonApp });
+  } catch (e) {
+    console.error('HD-KH-1 dựng hoá đơn lỗi:', e.message);
+    return [];
+  }
 }
 
 async function huyDon(phone, ma) {

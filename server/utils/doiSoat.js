@@ -10,6 +10,7 @@
  */
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString } = require('./helpers');
+const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('./congQr');
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
 const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
@@ -216,20 +217,22 @@ async function phepD1(q) {
 }
 
 // ─── DEN: đền TIỀN cho khách lẻ (đơn không SĐT — damages.js chỉ ghi ví khi đơn có SĐT). Quán không đền tiền cho khách lẻ (làm lại ly /
-// tặng món — chủ quán chốt 19.10) nên két không tính khoản này; sổ có thì liệt kê CẦN XEM. created_at ghi bằng datetime('now') = UTC → +7 giờ.
+// tặng món — chủ quán chốt 19.10) nên két không tính khoản này; sổ có thì liệt kê CẦN XEM. created_at ghi bằng getNow (GIO-VN-1); dòng CŨ
+// dạng dấu cách là UTC (datetime('now') cũ, bước 012 chưa đổi được) → +7 giờ.
 async function phepDenLe(q) {
-  const ds = await q(`SELECT id, order_code, refund_amount, DATETIME(created_at, '+7 hours') AS ngay FROM pos_damage_logs
+  const ds = await q(`SELECT id, order_code, refund_amount, CASE WHEN created_at LIKE '%T%' THEN created_at ELSE DATETIME(created_at, '+7 hours') END AS ngay FROM pos_damage_logs
     WHERE refund_amount > 0 AND COALESCE(customer_phone, '') = ''`);
   return ds.map((r) => ({ mo_ta: `đơn ${r.order_code}: đền ${tien(r.refund_amount)} cho khách lẻ không SĐT (sự cố #${r.id}) — két không tính`,
     ngay: r.ngay || null, canXem: true }));
 }
 
-// ─── CK (P3): tiền về payOS mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
-// Báo không thuộc phiên nào (vd payOS thử URL) → CẦN XEM. `luc` ghi bằng getNow (giờ VN).
+// ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
+// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
 async function phepTienVe(q) {
-  const ds = await q(`SELECT id, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
-  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien',
-    mo_ta: `payOS mã ${r.ma_payos}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
+  const ds = await q(`SELECT id, khoa, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
+  const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
+  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien' || [LY_DO_HAI_CONG, LY_DO_TK_KHAC].some((c) => String(r.ly_do || '').includes(c)),
+    mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
 }
 
 // ─── XNT (P3): đơn chuyển khoản XÁC NHẬN TAY (không có báo payOS) — luôn CẦN XEM, so với sao kê ngân hàng.

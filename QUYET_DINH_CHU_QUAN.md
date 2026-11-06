@@ -147,6 +147,26 @@
   đơn); sinh nhật giảm 50% CẢ ĐƠN, một đơn, ĐÚNG ngày, đối chiếu căn cước thật khớp tài khoản (không lưu số căn cước); ngày sinh nhập một lần —
   App có ô ngày sinh + danh sách chương trình trước khai trương (CT-1a, CT-1b).
 - 02.11 · Hợp đồng `/api/kh` v7 viết TRƯỚC khi POS code (mục "Đã hẹn") để App KH làm song song.
+- 02.11 · Ví trên App KH (duyệt luồng, demo `thiet_ke/demo_app_vi.html`, `THIET_KE_DOT2.md` M4b): ô Số dư ví = tổng dùng được + dòng nhỏ Quà chào mừng
+  đếm ngược; một công tắc "Trừ từ số dư ví" (QR / ví / ví + QR); theo dõi đơn đọc lại giữ ví / còn lại; giao diện App tự thiết kế — đơn giản, dễ
+  hiểu, thông minh, ít thao tác.
+
+## Đợt quyết định 04–05.11.2026 (chat bàn 32)
+- 04.11 · HANG-1: mọi lần sửa Cài đặt → Hạng (%, giá gói, thứ bậc…) phải gõ PIN chủ quán, kể cả quản lý.
+- 04–05.11 · Nội dung chuyển khoản ghi luôn số hoá đơn, giữ số ngay lúc tạo QR; QR không thành công thì số đó huỷ (ghi lý do, Đối soát liệt
+  kê). Dạng `TQD<tháng 3 chữ tiếng Anh><ngày 2 số> HD<4 số>` ở quầy (vd `TQDNOV05 HD0016`), `… APP<4 số>` cho đơn App; quầy và App dùng CHUNG
+  một dãy số mỗi ngày; bill in đúng số đó; không cài "Cấu trúc mã thanh toán" bên SePay; mã giao dịch ngân hàng (FT…) lưu vào đơn
+  (CK-NOIDUNG-1).
+- 05.11 · App: số khách đọc ở quầy = số hoá đơn POS (`APP0016`), không phải mã ngẫu nhiên của App; quầy, bill, tem, phiếu pha chế và App hiện
+  cùng một số (CK-NOIDUNG-1). Lịch sử đơn trên App có tóm tắt thật từng đơn: kênh, cách nhận, các cách đã trả, số món, đã giảm (KH-TOMTAT-1).
+- 05.11 · Nạp tay kiểu cũ CHỈ chủ quán (để thử; sau này ẩn / bỏ). Khách nạp theo gói mệnh giá cài sẵn (NAP-1).
+- 05.11 · Giao diện (GIAO-DIEN-1, hình mẫu đã duyệt): báo đơn App là DẢI ở đầu mọi màn (kể cả Bán hàng trên điện thoại), chỉ hiện khi có đơn
+  mới, không nút nổi che nút; menu có mục "Đơn App" kèm số; Số dư gộp vào trang Khách hàng (khu Ví trong hồ sơ khách); Quản lý thêm ô
+  "Khách và tiền".
+- 05.11 · Huỷ đơn (HUY-1): huỷ được ngay từ lúc nhận đơn (trước "xong"); quản lý + chủ quán huỷ đơn trong ngày, đơn ngày trước chỉ chủ quán,
+  nhân viên không huỷ; lý do bắt buộc; huỷ là huỷ CẢ đơn (khách muốn thì đặt lại). Khách có tài khoản: TOÀN BỘ tiền đã trả (ví + tiền mặt +
+  chuyển khoản) hoàn vào tài khoản, không chuyển tiền thật. Khách lẻ đến quán mua mà huỷ: trả tiền mặt (rất hiếm — ngoại lệ DUY NHẤT của luật
+  két không chi tiền mặt), Đối soát ghi riêng.
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,

@@ -4,15 +4,16 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, reportsApi } from '../utils/api';
 import DoiSoat from '../components/DoiSoat';
 import { useAuth } from '../contexts/AuthContext';
+import { ngayVN, hienNgay } from '../utils/ngayVN';
 import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
 
 export default function Reports() {
   const [report, setReport] = useState(null);
   const [discountReport, setDiscountReport] = useState(null);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(ngayVN());
   const [dateRange, setDateRange] = useState({
-    from: new Date(new Date().setDate(1)).toISOString().slice(0, 10), // Đầu tháng
-    to: new Date().toISOString().slice(0, 10)
+    from: ngayVN().slice(0, 8) + '01', // Đầu tháng
+    to: ngayVN()
   });
   const [loading, setLoading] = useState(true);
   // GOI-1 (Q3): /reports?tab=packages&goi=<mã gói> mở thẳng tab Gói SP, lọc sẵn gói đó + "Đang giao" (khớp "🔒 N KH" ở Cài đặt).
@@ -115,7 +116,7 @@ export default function Reports() {
   const TRANG_THAI = { active: '🔄 Đang dùng', completed: '✅ Đã xong', cancelled: '⛔ Đã kết thúc' };
 
   const formatPrice = (p) => (p || 0).toLocaleString() + 'đ';
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const fmtDate = (d) => hienNgay(d, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
     <>
@@ -351,7 +352,7 @@ export default function Reports() {
                           <tbody>
                             {discountReport.by_date.map(item => (
                               <tr key={item.date}>
-                                <td>{new Date(item.date).toLocaleDateString('vi-VN')}</td>
+                                <td>{hienNgay(item.date)}</td>
                                 <td style={{ textAlign: 'right' }}>{item.order_count}</td>
                                 <td style={{ textAlign: 'right', color: '#dc2626' }}>{formatPrice(item.total_discount)}</td>
                                 <td style={{ textAlign: 'right', color: '#f97316' }}>{formatPrice(item.total_shipping)}</td>

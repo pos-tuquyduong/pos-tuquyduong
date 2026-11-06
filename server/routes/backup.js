@@ -10,6 +10,7 @@ const XLSX = require('xlsx');
 const multer = require('multer');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { query } = require('../database');
+const { getNow, getToday } = require('../utils/helpers');
 const { docTrang, lapKeHoach, thucHien } = require('../utils/khoiPhuc');
 const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ câu nội bộ
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
@@ -24,7 +25,7 @@ const BACKUP_PAGE_SIZE = parseInt(process.env.BACKUP_PAGE_SIZE || '5', 10);
  * Đọc TOÀN BỘ một bảng nhưng chia thành nhiều trang nhỏ,
  * ghép lại — tránh việc kéo cả bảng đầy đủ cột một phát làm nghẽn kết nối.
  */
-async function readTablePaged(tableName, orderKey) {
+async function readTablePaged(tableName, orderKey, boCot = []) {
   const all = [];
   let offset = 0;
   // eslint-disable-next-line no-constant-condition
@@ -32,7 +33,7 @@ async function readTablePaged(tableName, orderKey) {
     const page = await query(
       `SELECT * FROM ${tableName} ORDER BY "${orderKey}" LIMIT ${BACKUP_PAGE_SIZE} OFFSET ${offset}`
     );
-    for (const row of page) all.push(row);
+    for (const row of page) { for (const c of boCot) delete row[c]; all.push(row); }
     if (page.length < BACKUP_PAGE_SIZE) break;
     offset += BACKUP_PAGE_SIZE;
   }
@@ -83,6 +84,7 @@ const BACKUP_TABLES = [
   // Thẻ thành viên: hạng trước, lịch sử mua sau
   { name: 'pos_membership_tiers', label: 'Hạng thành viên', key: 'id' },
   { name: 'pos_membership_purchases', label: 'Lịch sử mua thẻ', key: 'id' },
+  { name: 'pos_pin_chu_quan', label: 'PIN chủ quán', key: 'id', boCot: ['pin_bam'] },   // HANG-1 (câu 4): KHÔNG xuất băm PIN — bảng không khôi phục được
 
   // Sổ nợ kho — việc chưa gửi được sang SX. Mất là mất luôn dấu vết hàng
   // đã bán mà kho chưa trừ.
@@ -95,6 +97,8 @@ const BACKUP_TABLES = [
   { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },               // SAOLUU-2: bảng của KH-MUA-1 (bước 006) — chưa có thì bangDangCo bỏ qua
   { name: 'pos_man_khach_quay', label: 'Màn khách - Máy quầy', key: 'id' },     // MANKHACH-1 (bước 009): mã ghép + phiên QR đang hiện
   { name: 'pos_man_khach_may', label: 'Màn khách - Máy đã ghép', key: 'id' },   // MANKHACH-1 (bước 009): khoá băm + thu hồi
+  { name: 'pos_chuong_trinh', label: 'Chương trình đặc biệt', key: 'id' },   // CT-1a (bước 017): cấu hình chương trình
+  { name: 'pos_ngay_sinh_sua', label: 'Sổ sửa ngày sinh', key: 'id' },   // CT-1a (bước 017): sổ chỉ-thêm — không khôi phục bằng file
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -128,7 +132,15 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin',   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
-  'pos_man_khach_quay', 'pos_man_khach_may'];   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
+  'pos_ngay_sinh_sua',   // CT-1a: sổ sửa ngày sinh chỉ-thêm — ghi đè bằng file cũ làm mất dấu ai đã sửa
+  'pos_pin_chu_quan',   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN: chủ quán nhờ chat soạn cách xoá PIN (không có nút)
+  'pos_membership_tiers'];   // HANG-1 câu 4a (chủ quán 05.11): % giảm, gói, cách có hạng chỉ sửa ở Cài đặt có PIN chủ quán — file không vượt PIN
+
+/** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */
+function themTrangMeta(wb, bang) {
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ backup_date: getNow(), system: 'POS Tứ Quý Đường', version: '1.0', tables: bang }]), '_Metadata');
+}
 
 /**
  * P26d — MỘT vị từ cho xem trước và khôi phục (Q7d): file có trang tiền có dòng → trả 400, chỗ gọi dừng TRƯỚC mọi lệnh xoá / chèn.
@@ -222,23 +234,16 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     for (const t of await bangDangCo()) {
       // Đọc phân trang để không bị treo khi bảng có cột nặng.
-      const rows = await readTablePaged(t.name, t.key);
+      const rows = await readTablePaged(t.name, t.key, t.boCot);
       console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
     }
 
-    // Sheet metadata
-    const meta = [{
-      backup_date: new Date().toISOString(),
-      system: 'POS Tứ Quý Đường',
-      version: '1.0',
-      tables: BACKUP_TABLES.map(t => t.name).join(', ')
-    }];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(meta), '_Metadata');
+    themTrangMeta(wb, BACKUP_TABLES.map(t => t.name).join(', '));
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `POS-backup-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `POS-backup-${getToday()}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -266,12 +271,13 @@ router.get('/export/:table', authenticate, async (req, res) => {
     }
 
     // Đọc phân trang để tránh treo khi bảng có cột nặng.
-    const rows = await readTablePaged(tableDef.name, tableDef.key);
+    const rows = await readTablePaged(tableDef.name, tableDef.key, tableDef.boCot);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
+    themTrangMeta(wb, tableDef.name);
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `POS-${tableDef.name}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `POS-${tableDef.name}-${getToday()}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -335,8 +341,11 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2: kế hoạch (kho_* chỉ khi kho trống, pos_nang_cap không bao giờ, cột ∩ bảng) rồi MỘT giao dịch — dòng hỏng → không đổi gì.
     const keHoach = await lapKeHoach(wb, BACKUP_TABLES);
+    // GIO-VN-1: file ghi từ GIO-VN-1 (themTrangMeta) mang backup_date giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString đuôi Z, hoặc xuất một
+    // bảng trước đây không có _Metadata) → đổi giờ cũ như bước 012.
+    const ngaySao = wb.Sheets._Metadata ? String(docTrang(wb.Sheets._Metadata)[0]?.backup_date ?? '') : '';
     try {
-      await thucHien(keHoach);
+      await thucHien(keHoach, { banCu: !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/.test(ngaySao) });
     } catch (err) {
       if (!err.loiDong) return loiGhi(res, err);
       const { bang, trang, dong, ly_do } = err.loiDong;

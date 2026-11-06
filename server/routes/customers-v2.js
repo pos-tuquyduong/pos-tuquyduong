@@ -9,8 +9,10 @@
 const express = require("express");
 const { query, queryOne, run } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
-const { normalizePhone, getNow } = require("../utils/helpers");
+const { normalizePhone, isValidPhone, getNow } = require("../utils/helpers");
+const { datNgaySinh, thanLoi } = require("./chuong-trinh");   // CT-1a
 const { callSxApi } = require("../utils/sxApi");
+const { hangNhieuKhach } = require("../utils/membershipStatus");
 
 const router = express.Router();
 
@@ -55,15 +57,15 @@ async function cacheCustomersToLocal(sxCustomers) {
     const parentPhone = c.parent_phone ? normalizePhone(c.parent_phone) : null;
     try {
       await run(`
-        INSERT INTO pos_customers (phone, name, parent_phone, relationship, sx_status, updated_at)
-        VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+        INSERT INTO pos_customers (phone, name, parent_phone, relationship, sx_status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'active', ?, ?)
         ON CONFLICT(phone) DO UPDATE SET
           name = excluded.name,
           parent_phone = excluded.parent_phone,
           relationship = excluded.relationship,
           sx_status = 'active',
-          updated_at = CURRENT_TIMESTAMP
-      `, [phone, c.name, parentPhone, c.relationship]);
+          updated_at = excluded.updated_at
+      `, [phone, c.name, parentPhone, c.relationship, getNow(), getNow()]);
       cached++;
     } catch (e) { /* skip individual errors */ }
   }
@@ -93,7 +95,7 @@ async function getLocalCachedCustomers() {
 
 // Helper: Lấy map thông tin bổ sung từ pos_customers (CK + lý do) - ASYNC
 async function getCustomerExtrasMap() {
-  const extras = await query("SELECT phone, discount_type, discount_value, discount_note, address, customer_type FROM pos_customers");
+  const extras = await query("SELECT phone, discount_type, discount_value, discount_note, address, customer_type, ngay_sinh FROM pos_customers");
   const map = {};
   extras.forEach((d) => (map[d.phone] = d));
   return map;
@@ -225,24 +227,8 @@ router.get("/", authenticate, async (req, res) => {
     const regMap = {};
     registrations.forEach((r) => (regMap[r.phone] = r));
 
-    // TIER-1c: hạng thành viên hiện tại (dòng mua mới nhất/phone) — 1 câu truy vấn, không N+1
-    const tierRows = await query(`
-      SELECT customer_phone, tier_name, expires_at FROM (
-        SELECT customer_phone, tier_name, expires_at,
-          ROW_NUMBER() OVER (PARTITION BY customer_phone ORDER BY purchased_at DESC, id DESC) AS rn
-        FROM pos_membership_purchases
-      ) WHERE rn = 1
-    `);
-    const tierMap = {};
-    const nowMs = new Date(nowStr.replace(' ', 'T')).getTime();
-    tierRows.forEach((row) => {
-      const expiresMs = new Date(String(row.expires_at).replace(' ', 'T')).getTime();
-      const daysRemaining = Math.ceil((expiresMs - nowMs) / (24 * 60 * 60 * 1000));
-      let status = 'active';
-      if (daysRemaining <= 0) status = 'expired';
-      else if (daysRemaining <= 7) status = 'expiring_soon';
-      tierMap[row.customer_phone] = { tier_name: row.tier_name, days_remaining: daysRemaining, status };
-    });
+    // TIER-1c / HANG-1: hạng hiện tại (thứ bậc CAO NHẤT còn hạn) — CÙNG hàm với quầy (membershipStatus.js), 2 câu đọc, không N+1
+    const tierMap = await hangNhieuKhach(query, getNow);
 
     // Merge SX + wallets
     const result = sxCustomers.map((c) => {
@@ -261,6 +247,7 @@ router.get("/", authenticate, async (req, res) => {
         discount_value: extras?.discount_value || 0,
         discount_note: extras?.discount_note || null,
         address: extras?.address || null,
+        ngay_sinh: extras?.ngay_sinh || null,   // CT-1a
           customer_type: extras?.customer_type || null,
         membership: tierMap[phone] || null,
       };
@@ -285,6 +272,7 @@ router.get("/", authenticate, async (req, res) => {
         notes: r.notes,
         discount_note: extras?.discount_note || null,
         address: extras?.address || null,
+        ngay_sinh: extras?.ngay_sinh || null,   // CT-1a
           customer_type: extras?.customer_type || null,
       });
     });
@@ -318,15 +306,15 @@ router.put("/:phone/address", authenticate, checkPermission('manage_users'), asy
     if (existing) {
       await run(`
         UPDATE pos_customers 
-        SET address = ?, updated_at = CURRENT_TIMESTAMP 
+        SET address = ?, updated_at = ? 
         WHERE phone = ?
-      `, [address || null, phone]);
+      `, [address || null, getNow(), phone]);
     } else {
       // Insert mới (khách từ SX chưa có record trong pos_customers)
       await run(`
         INSERT INTO pos_customers (phone, name, address, created_at) 
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-      `, [phone, 'Khách hàng', address || null]);
+        VALUES (?, ?, ?, ?)
+      `, [phone, 'Khách hàng', address || null, getNow()]);
     }
 
     res.json({ success: true, phone, address: address || null });
@@ -378,6 +366,39 @@ router.put("/:phone/discount", authenticate, checkPermission('manage_users'), as
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PUT /api/pos/v2/customers/:phone/ngay-sinh   (CT-1a)
+ * Ngày sinh nhập MỘT lần: đang trống → nhân viên nào cũng nhập được; ĐÃ CÓ → chỉ người có quyền sua_ngay_sinh (mặc định chỉ chủ quán),
+ * bắt `ly_do`. Cùng hàm datNgaySinh với App (routes/chuong-trinh.js): kiểm ngày, giao dịch, sổ pos_ngay_sinh_sua. KHÔNG tạo khách mới,
+ * KHÔNG lưu số căn cước.
+ */
+const quyenSuaNgaySinh = checkPermission('sua_ngay_sinh');
+const traLoiNgaySinh = (res, l) => res.status(l.status).json({ success: false, error: l.error, code: l.code });
+router.put("/:phone/ngay-sinh", authenticate, async (req, res, next) => {
+  try {
+    const phone = normalizePhone(req.params.phone);
+    if (!phone || !isValidPhone(phone)) return traLoiNgaySinh(res, thanLoi('SDT_KHONG_HOP_LE'));
+    req.phoneNgaySinh = phone;
+    const kh = await queryOne("SELECT ngay_sinh FROM pos_customers WHERE phone = ?", [phone]);
+    if (!kh) return traLoiNgaySinh(res, thanLoi('KHACH_KHONG_TON_TAI'));
+    if (kh.ngay_sinh == null) return next();   // đang trống: nhân viên nào cũng nhập được
+    return quyenSuaNgaySinh(req, res, () => { req.duocSuaNgaySinh = true; next(); });   // đã có: cần quyền riêng
+  } catch (err) {
+    console.error('Ngày sinh lỗi:', err.message);
+    res.status(500).json({ success: false, error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
+  }
+}, async (req, res) => {
+  try {
+    const kq = await datNgaySinh({ phone: req.phoneNgaySinh, ngaySinh: (req.body || {}).ngay_sinh, lyDo: (req.body || {}).ly_do,
+      nguoi: req.user.username, choPhepSua: req.duocSuaNgaySinh === true });
+    if (kq.loi) return traLoiNgaySinh(res, kq.loi);
+    res.json({ success: true, phone: req.phoneNgaySinh, ngay_sinh: kq.ngay_sinh });
+  } catch (err) {
+    console.error('Ngày sinh lỗi:', err.message);
+    res.status(500).json({ success: false, error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
   }
 });
 

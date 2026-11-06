@@ -34,6 +34,7 @@ import { VungTrang, useNhomTheoMa, taiLieuIn, inQuaIframe } from './InPhieu';
 import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn, khoHoaDon } from '../utils/inPhieu';
 import { danhSachTo, sanSangIn } from '../utils/hoaDon';
 import { api } from '../utils/api';
+import { hienNgayGio } from '../utils/ngayVN';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAPER SIZE CONFIG - Chuẩn kích thước thực tế
@@ -67,10 +68,7 @@ const formatPrice = (price) => {
   return price.toLocaleString('vi-VN') + 'đ';
 };
 
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-  return new Date(dateStr).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-};
+const formatDateTime = (dateStr) => hienNgayGio(dateStr || new Date());   // GIO-VN-1: in theo giờ VN (chưa có giờ đơn → lúc in, đồng hồ máy)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT

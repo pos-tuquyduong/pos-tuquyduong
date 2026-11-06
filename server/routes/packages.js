@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { query, queryOne, run } = require('../database');
+const { getNow } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { dieuKienLayTuGoi, daLayTheoLoai, gomTheoKhach, LOC_KHACH } = require('../utils/goiKhach');
 const { loiGhi, trongGiaoDich, ghiHoan } = require('./wallets');   // GOI-2: kết thúc gói có hoàn ghi ví qua cùng một hàm với huỷ đơn
@@ -57,7 +58,7 @@ router.post('/', authenticate, checkPermission('manage_users'), async (req, res)
     if (!luotHopLe(total_qty)) return res.status(400).json(LUOT_SAI);
     const dup = await queryOne('SELECT id FROM pos_packages WHERE code = ?', [code.trim().toUpperCase()]);
     if (dup) return res.status(400).json({ success: false, error: `Mã "${code}" đã tồn tại` });
-    const now = new Date().toISOString();
+    const now = getNow();
     const result = await run(
       `INSERT INTO pos_packages (code, name, description, price, unit, total_qty, package_items, is_active, sort_order, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -115,7 +116,7 @@ router.put('/:id', authenticate, checkPermission('manage_users'), async (req, re
        price !== undefined ? price : existing.price, unit || existing.unit,
        total_qty !== undefined ? total_qty : existing.total_qty, itemsJson,
        is_active !== undefined ? (is_active ? 1 : 0) : existing.is_active,
-       sort_order !== undefined ? sort_order : existing.sort_order, new Date().toISOString(), id]
+       sort_order !== undefined ? sort_order : existing.sort_order, getNow(), id]
     );
     const updated = await queryOne('SELECT * FROM pos_packages WHERE id = ?', [id]);
     res.json({ success: true, data: updated, message: 'Đã cập nhật gói' });
@@ -133,7 +134,7 @@ router.delete('/:id', authenticate, checkPermission('manage_users'), async (req,
     }
     const everUsed = await queryOne('SELECT COUNT(*) as c FROM pos_customer_packages WHERE package_id = ?', [id]);
     if (everUsed?.c > 0) {
-      await run('UPDATE pos_packages SET is_active = 0, updated_at = ? WHERE id = ?', [new Date().toISOString(), id]);
+      await run('UPDATE pos_packages SET is_active = 0, updated_at = ? WHERE id = ?', [getNow(), id]);
       return res.json({ success: true, message: 'Gói đã có lịch sử → chuyển ngừng bán' });
     }
     await run('DELETE FROM pos_packages WHERE id = ?', [id]);
@@ -192,7 +193,7 @@ router.get('/customer-packages/theo-khach', authenticate, async (req, res) => {
   try {
     // Q3: gói đang dùng mà đã lấy đủ → Đã xong (nắn dữ liệu cũ, điều kiện chặt, chạy lại vô hại; code mới không sinh ra lệch này nữa).
     await run("UPDATE pos_customer_packages SET status = 'completed', updated_at = ? WHERE status = 'active' AND delivered_qty >= total_qty",
-      [new Date().toISOString()]);
+      [getNow()]);
     const { loc = 'dang_dung', goi, phone } = req.query;
     const locKhach = Object.hasOwn(LOC_KHACH, loc) ? LOC_KHACH[loc] : null;
     if (!locKhach) return res.status(400).json({ success: false, error: `Bộ lọc "${loc}" không có — dùng dang_dung, lau hoặc xong` });
@@ -244,7 +245,7 @@ router.put('/customer-packages/:id/cancel', authenticate, checkPermission('refun
     const lyDo = String(req.body.reason || '').trim();
     const hoan = req.body.hoan === true;
     if (!lyDo) return res.status(400).json({ success: false, code: 'GOI_THIEU_LY_DO', error: 'Phải nhập lý do kết thúc gói' });
-    const now = new Date().toISOString();
+    const now = getNow();
     const kq = await trongGiaoDich(async (tx) => {
       const cp = await tx.queryOne('SELECT * FROM pos_customer_packages WHERE id = ?', [id]);
       if (!cp) return { huy: true, status: 404, body: { success: false, error: 'Không tìm thấy gói KH' } };

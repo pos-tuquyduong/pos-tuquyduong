@@ -13,6 +13,7 @@
 const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
+const { getNow } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -74,8 +75,8 @@ router.put('/:code/members', authenticate, checkPermission('manage_settings'), a
       if (seen.has(key)) continue;
       seen.add(key);
       await tx.run(
-        'INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (?, ?, ?)',
-        [group.id, m.sx_product_type, m.sx_product_id]
+        'INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id, created_at) VALUES (?, ?, ?, ?)',
+        [group.id, m.sx_product_type, m.sx_product_id, getNow()]
       );
     }
 
