@@ -1,0 +1,69 @@
+NAP-1 — bằng chứng bài thử ĐỎ trên code gốc, XANH sau vá (06.11.2026)
+
+Gốc = ae19926 (nhánh sau khi chat gộp main f464cea, trước mọi sửa của NAP-1), chép bằng `git archive ae19926 server cong_cu/gia_lap client/src`
+vào thư mục nháp. Bài mới / bài sửa chạy trên bản gốc đó bằng `--may-chu <nháp>/server` (bài có cờ) hoặc chép bài vào cây gốc nháp (bài không cờ).
+
+════════ cong_cu/thu_NAP1.js (bài mới) ════════
+Trên GỐC:  6 đạt · 60 hỏng   (6 ca xanh trên gốc là ca K5 / bất biến "phải KHÔNG đổi": B15, C9, D5, F2, K6, K9 — trên gốc không có đơn nạp nên rỗng
+           nghĩa; trên bản vá chúng chạy trên dữ liệu có đơn nạp và bị đột biến BV-I8-nap, BV-I15-dai-nap, VS-I8-luat-cu, BV-doanh-thu-*, K5-* bắt)
+  ✗ M1 có bảng pos_goi_nap, cột pos_wallets.thuong, pos_balance_transactions.thuong
+  ✗ A1 tạo gói 100.000 → 105.000 → 200  — HTTP 404
+  ✗ A7 bán gói đang tắt → 400 GOI_NAP_KHONG_CO, ví không có  — HTTP 400 · Đơn hàng phải có ít nhất 1 sản phẩm
+  ✗ B1 bán gói 100.000 tiền mặt → đơn tổng 100.000; ví 105.000 (thưởng 5.000); sổ topup 105.000 · thưởng 5.000 gắn đơn · cash  — HTTP 400 · Đơn hàng phải có ít nhất 1 sản phẩm
+  ✗ B6 trả gói nạp bằng ví / payment_method balance / ví mẹ / ví một phần → 400 NAP_CHI_TIEN_MAT_QR, ví không đổi  — HTTP 400 · Đơn hàng phải có ít nhất 1 sản phẩm
+  ✗ C0 thuongKhiTru (utils/viKhach.js): … — không có hàm
+  ✗ C1 ví 105.000 (thưởng 5.000) trả đơn 21.000 → trừ thưởng 1.000 + nạp 20.000; ví 84.000 · thưởng 4.000  — HTTP 400 · SO_DU_KHONG_DU
+  ✗ D1 huỷ đơn nạp → 400 NAP_KHONG_HOAN  — HTTP 404
+  ✗ E2 trả trọn bằng ví 21.000 (có thưởng) → 21 điểm  — HTTP 400 · SO_DU_KHONG_DU
+  ✗ E6 tienTinhDiem: ví + ví mẹ + tiền mặt + CK, trần tổng đơn, trừ phí giao  — 0
+  ✗ F1 két ngày: bán gói tiền mặt 100.000 + nạp tay 50.000 → két +150.000 (không đếm đôi đơn nạp)  — két 268900 → 318900 · CK 0 → 0
+  ✗ F5 ô "tiền thật vào quán" … — HTTP 404
+  ✗ G1 thanTinhThu giỏ gói nạp → { khách, items: [], goi_nap_id } (không mã); …
+  (đủ 60 dòng ✗ khi chạy lại lệnh trên)
+Sau vá (HEAD):  66 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 66
+
+════════ Bài cũ sửa vì luật điểm E ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi (01.11; câu 1 ngày 05.11) — bài sửa thường (LUAT_XAY_APP §6.8) ════════
+cong_cu/thu_P20.js — trên GỐC: 171 đạt · 1 hỏng
+  ✗ trả trọn bằng ví: /claim → 200; /nhan-diem → 200 (NAP-1: phần trả bằng ví có điểm)  — HTTP 200 / HTTP 400 · DON_KHONG_DU_DIEM
+  sau vá: 172 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P20.js: 172
+
+cong_cu/thu_P2223.js — trên GỐC: 43 đạt · 1 hỏng
+  ✗ A3 trả đủ 50.000 bằng ví → 200 paid, 1 earn 50 điểm (NAP-1: phần trừ ví có điểm như tiền mặt)  — HTTP 200 · 0
+  sau vá: 44 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P2223.js: 44
+
+cong_cu/thu_P24.js — trên GỐC: 30 đạt · 3 hỏng
+  ✗ A4 câu ghi dòng trừ lỗi → huỷ 500, rollback trọn: đơn vẫn completed, ví vẫn 0, 0 dòng trừ, earn còn 25
+  ✗ G1 xoá đơn completed có earn 25 → 200, ví hoàn 10.000 (K5), 1 dòng adjust −25 cho SĐT đơn (còn lại dù đơn đã xoá)
+  ✗ I2 duyệt hoàn tiền (refunds.js) đơn có 25 điểm → 200, ví hoàn, điểm GIỮ 25, 0 dòng trừ (việc sau)
+  sau vá: 33 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P24.js: 33
+
+cong_cu/thu_DIEMTHAT1.js — trên GỐC: 15 đạt · 20 hỏng
+  ✗ A1 tienTinhDiem … trần total (NAP-1: tính cả ví, ví mẹ)
+  ✗ B1 trả trọn bằng ví 25.000 → 200 paid, 25 điểm (NAP-1)  — HTTP 200 · 0 điểm · 0 earn
+  ✗ B2 ví 10.000 + tiền mặt 15.000 → 25 điểm (cả phần ví)  — HTTP 200 · 15 điểm · 1 earn
+  ✗ C2 ví 10.000 + nợ 15.000 → thu đủ 15.000 → 25 điểm (cả phần ví — NAP-1)  — HTTP 200 / HTTP 200 · 15
+  ✗ D3 đơn trả trọn bằng ví (25 điểm lúc bán) → /nhan-diem 200, bù đủ 25 × 2 = 50, mã đã tiêu  — HTTP 400 · DON_KHONG_DU_DIEM
+  ✗ F2 đơn ví trọn 0 điểm (luật DIEM-THAT-1), tạo ĐÚNG mốc (chưa có DIEM_VI_TU), Đối soát thật → LỆCH  — lệch false
+  ✗ F5 đơn có phí giao: … 30 điểm 1 giây trước DIEM_THAT_TU → KHÔNG lệch
+  (đủ 20 dòng ✗: A1, B1, B2, B4, B5, B7, B8, C2, C4, C5, C6, D2, D3, D4, D5, E3, F2, F3, F4, F5)
+  sau vá: 35 đạt · 0 hỏng
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 35
+
+cong_cu/thu_P3.js — trên GỐC (bài chép vào cây gốc nháp):
+  ✗ B3 ví trừ đúng 30.000 (còn 0), điểm = floor(50.000 / 10.000) = 5 (NAP-1: CK + tài khoản đều có điểm), kho SX có dòng ra như đơn quầy
+  (bài sập SAU ca B3 vì cây nháp không có kiem_tra_truoc_khi_giao.js mà phần sau của bài đọc — không liên quan; ca đổi đỏ trước đó)
+  sau vá: 100 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P3.js: 100
+
+cong_cu/thu_KHMUA1.js — trên GỐC (bài chép vào cây gốc nháp): 121 đạt · 1 hỏng
+  ✗ K1 quầy: điểm = 8 (số gốc); Giờ vàng quầy tinh-thu / POST /orders ra đúng số gốc (5000 · 0 · 20000 · 20000 · 5000)  — 6,5000,0,20000,20000,5000
+  sau vá: 122 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHMUA1.js: 122
+
+════════ Đột biến viec/NAP-1/dot_bien.py (HEAD) ════════
+ĐỐI CHỨNG (bản chưa đột biến): XANH · 66 đạt · 0 hỏng
+TỔNG 68 đột biến · BẮT 68 · SỐNG 0 · HỎNG 0 · LẠC 0
