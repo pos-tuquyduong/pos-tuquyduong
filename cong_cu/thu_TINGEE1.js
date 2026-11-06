@@ -288,6 +288,11 @@ async function main() {
       && (await dongPhien(p6.id))?.trang_thai === 'cho', moTa(r6));
     const r6b = await guiT(baoT(p6, { type: undefined }));
     k('C6 không có trường type (tài liệu HDSD không ghi) → coi là tiền vào, chốt', nhan(r6b) && (await dongPhien(p6.id))?.nguon === 'tingee', moTa(r6b));
+    for (const [ten, type] of [['"CREDIT" viết hoa', 'CREDIT'], ['null', null]]) {
+      const p = (await taoPhien()).j.phien || {};
+      const r = await guiT(baoT(p, { type }));
+      k(`C6 type ${ten} → coi là tiền vào, chốt (soát vòng 1)`, nhan(r) && (await dongPhien(p.id))?.nguon === 'tingee', moTa(r));
+    }
 
     const n7 = await soSuKien();
     const r7 = await guiT(undefined, { tho: 'khong phai json' });
@@ -333,6 +338,15 @@ async function main() {
     const rK3 = await guiT(baoT(pK, { accountNumber: '9999999999', vaAccountNumber: TG.soTk.toLowerCase() }));
     k('D3 accountNumber (số gốc) bất kỳ + VA đúng (khác hoa thường) → VẪN chốt (accountNumber bỏ qua khi so)', nhan(rK3)
       && (await dongPhien(pK.id))?.nguon === 'tingee', moTa(rK3));
+    const pK2 = (await taoPhien()).j.phien || {};
+    const rK4 = await guiT(baoT(pK2, { accountNumber: TG.soTk, vaAccountNumber: 'VQRKHAC0002' }));
+    k('D3 accountNumber = TINGEE_SO_TK nhưng VA KHÁC → KHÔNG chốt (chỉ VA được tính — soát vòng 1)', nhan(rK4)
+      && (await dongPhien(pK2.id))?.trang_thai === 'cho' && String((await suKien(pK2.id)).pop()?.ly_do).includes('tài khoản khác VQRKHAC0002'), moTa(rK4));
+    datTingee({ ...TG, soTk: undefined });
+    const rK5 = await guiT(baoT(pK2, { vaAccountNumber: '' }));
+    datTingee();
+    k('D3 máy chủ CHƯA cài TINGEE_SO_TK + VA rỗng → KHÔNG chốt (rỗng không bằng rỗng — soát vòng 1)', nhan(rK5)
+      && (await dongPhien(pK2.id))?.trang_thai === 'cho', moTa(rK5));
 
     const pT = (await taoPhien()).j.phien || {};
     for (const d of [1, -1]) {

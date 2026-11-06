@@ -137,7 +137,7 @@ async function congKiaDaBao(tx, t) {
   return ds.some((d) => congCuaKhoa(d.khoa) !== t.nguon);
 }
 
-/** t: { khoa, noiDung (nội dung số hoá đơn đã chuẩn hoá — SePay) | ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), maGd (mã giao dịch
+/** t: { khoa, noiDung (nội dung số hoá đơn đã chuẩn hoá — SePay, Tingee) | ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), maGd (mã giao dịch
  *  ngân hàng), duLieu, nguon ('payos' | 'sepay' | 'tingee'), boQua (lý do ghi khong_phien ngay), khongPhien (lý do khi mã không thuộc phiên),
  *  thatBai (lý do ghi that_bai), tkKhac (số tài khoản nhận sai — SePay, Tingee) }. */
 async function xuLyTienVe(res, t) {

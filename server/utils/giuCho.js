@@ -2,7 +2,7 @@
  * P3 — phiên thanh toán: GIỮ tiền tài khoản (khách / mẹ) cho một đơn đang lập, rồi CHỐT bằng ĐÚNG đường tạo đơn của quầy (taoDon).
  * - Tạo phiên: thân đơn lọc theo danh sách TRẮNG (mọi trường tiền do phiên quyết), tổng do taoDon chế độ "chỉ tính" ra; PIN của CHỦ
  *   tài khoản bị trừ (Q4); số dư + đang giữ đọc TRONG giao dịch ghi — hai quầy cùng giữ trên một ví thì quầy sau thấy phần đã giữ.
- * - Chốt (tiền mặt / tài khoản / QR payOS · SePay / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
+ * - Chốt (tiền mặt / tài khoản / QR payOS · SePay · Tingee / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
  * - Hết hạn = tự nhả theo đồng hồ (Render ngủ, không hẹn giờ); huỷ / hết hạn không ghi dòng tiền nào.
  * - CK-NOIDUNG-1: phiên QR (cach 'payos') và MỌI phiên App giữ số hoá đơn NGAY trong giao dịch tạo phiên (helpers capSoHoaDon); cổng SePay
  *   ghi nội dung TQD<MMM><DD> HD|APP<4 số>, cổng payOS giữ TQD<mã phiên> (≤ 9 ký tự). Đơn chốt từ phiên mang đúng số đã giữ.
@@ -89,7 +89,7 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   return { status: 200, body: { success: true, phien: tomPhien(phien) } };
 }
 
-/** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · sepay · tay. them: { khachDua, nguoi, lyDo, maGd (mã giao dịch ngân hàng),
+/** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · sepay · tingee · tay. them: { khachDua, nguoi, lyDo, maGd (mã giao dịch ngân hàng),
  *  suKien(tx) — ghi trong giao dịch, muon (CHỈ route xác nhận tay đặt, phiên quầy — cho chốt phiên 'cho' đã hết hạn hoặc 'huy') }. */
 async function chotPhien(phien, nguon, them = {}) {
   const muon = nguon === 'tay' && them.muon === true;

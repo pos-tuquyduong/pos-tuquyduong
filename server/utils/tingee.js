@@ -13,7 +13,7 @@ const { dungVietQr } = require('./vietQr');
 const { docNoiDung, NOI_DUNG_SO_HD } = require('./sepay');
 
 const MOI_TRUONG = ['', 'production', 'uat'];
-const DANG_TS = /^\d{17}$/;   // yyyyMMddHHmmssSSS (giờ VN)
+const DANG_TS = /^\d{17}$/;   // yyyyMMddHHmmssSSS (giờ VN) — đúng dạng tài liệu mục 1–2; KHÔNG so với giờ máy chủ (mục 4)
 
 const cauHinh = () => ({ id: (process.env.TINGEE_CLIENT_ID || '').trim(), khoa: process.env.TINGEE_SECRET_TOKEN || '',
   soTk: (process.env.TINGEE_SO_TK || '').trim(), bin: (process.env.TINGEE_BIN || '').trim(), moiTruong: (process.env.TINGEE_MOI_TRUONG || '').trim().toLowerCase() });
@@ -42,9 +42,9 @@ function docBao(b) {
   const { noiDung, ma } = docNoiDung(b.content);
   const va = String(b.vaAccountNumber ?? '').replace(/\s+/g, '').toUpperCase();
   const d = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(String(b.transactionDate ?? ''));
-  return { khoa: `tingee:${b.transactionCode}`, vao: b.type === undefined || b.type === 'credit', noiDung, ma, maGd: String(b.transactionCode ?? '').trim() || null,
+  return { khoa: `tingee:${b.transactionCode}`, vao: b.type == null || String(b.type).toLowerCase() === 'credit', noiDung, ma, maGd: String(b.transactionCode ?? '').trim() || null,
     soTien: Number(b.amount) || 0, luc: d ? `${d[1]}-${d[2]}-${d[3]} ${d[4]}:${d[5]}:${d[6]}` : null,
-    tkKhac: va === cauHinh().soTk.toUpperCase() ? null : va || '(trống)' };
+    tkKhac: va && va === cauHinh().soTk.toUpperCase() ? null : va || '(trống)' };   // chưa cài số VA + VA rỗng → KHÔNG chốt
 }
 
 module.exports = { daCauHinh, taoQr, kiemBao, docBao, NOI_DUNG_SO_HD };
