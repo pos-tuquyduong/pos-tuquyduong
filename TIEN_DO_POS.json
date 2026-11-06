@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 56,
+  "phien_ban_so": 57,
   "cap_nhat": "2026-11-06",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -650,7 +650,7 @@
     },
     {
       "ma": "KHACH-APP-1",
-      "ten": "Khach tao tu App (va khach moi o quay) hien o POS (thu App KH 03.11 b + nhac 06.11; chu quan chot 03.11, truoc khai truong): danh sach Khach hang, o tim khach / quet QR man Ban hang, ho so lay tu pos_customers (gop SX theo SDT neu SX con tra loi, moi SDT mot dong); mot ham tao khach chung cho quay + App (sinhQrKhongTrung, cung mac dinh, chi khac created_by). Khong sua client. [T] Opus",
+      "ten": "Khach chi con MOT nguon la POS (thu App KH 03.11 b + nhac 06.11; chu quan chot 03.11 + chon cach triet de 06.11, truoc khai truong): danh sach Khach hang, o tim khach / quet QR man Ban hang, ho so doc pos_customers qua mot ham; chep khach SX con thieu MOT lan (chi them, khong ghi de) roi thoi goi SX; mot ham tao khach chung cho quay + App (sinhQrKhongTrung, chi khac created_by). Khong sua client. [T] Opus",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,

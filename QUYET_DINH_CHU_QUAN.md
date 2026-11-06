@@ -188,6 +188,7 @@
 - 06.11 · Khách sinh 29/02: năm không nhuận tính sinh nhật là 28/02 — POS (CT-1b, ưu đãi sinh nhật ở quầy) và App (KH-CT-1) dùng CÙNG luật.
 - 03.11 (ghi sổ 06.11) · Khách tạo tài khoản trên App phải hiện ở màn Khách hàng POS và tìm được ở quầy (tên / SĐT / quét QR), ĐỦ trường như khách
   tạo ở quầy; quầy và App tạo khách bằng MỘT hàm chung — TRƯỚC khai trương (KHACH-APP-1).
+- 06.11 · Khách chỉ còn MỘT nguồn là POS: chép khách SX còn thiếu một lần (chỉ thêm, không ghi đè), rồi POS thôi đọc khách từ SX (KHACH-APP-1).
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
