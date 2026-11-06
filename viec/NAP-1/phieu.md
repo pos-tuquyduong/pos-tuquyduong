@@ -40,6 +40,8 @@ doanh thu thật không bị đội.
 - server/routes/loyalty.js
 - server/utils/giuCho.js
 - server/utils/doiSoat.js
+- server/utils/diemThat.js
+- cong_cu/gia_lap/bat_bien.js
 - server/utils/viKhach.js
 - server/routes/goi-nap.js
 - server/index.js
@@ -49,8 +51,22 @@ doanh thu thật không bị đội.
 - client/src/**
 - client/dist/**
 - cong_cu/thu_NAP1.js
+- cong_cu/thu_P20.js
+- cong_cu/thu_P2223.js
+- cong_cu/thu_P24.js
+- cong_cu/thu_DIEMTHAT1.js
+- cong_cu/thu_P3.js
+- cong_cu/thu_KHMUA1.js
+- cong_cu/thu_DOISOAT1.js
 - kiem_tra_truoc_khi_giao.js
 
+<!-- Chủ quán 05.11 (3 câu kế hoạch d5ddc8f):
+     1 CÓ — thêm diemThat.js, cong_cu/gia_lap/bat_bien.js và 7 bài cũ (thu_P20, thu_P2223, thu_P24, thu_DIEMTHAT1, thu_P3, thu_KHMUA1, thu_DOISOAT1):
+       chỉ sửa đúng các ca khoá luật điểm cũ, bài sửa thường (đỏ trên gốc, xanh sau vá, ghi SỐ CA).
+     2 (a) — nhóm "Nạp tiền" chỉ ở màn Bán hàng mới (thiết kế M4 đã duyệt là bản vẽ); màn cũ giữ nạp tay (chỉ chủ quán — GIAO-DIEN-1). Khu Ví trong
+       hồ sơ khách (GIAO-DIEN-1) sau này chỉ có nút dẫn sang Bán hàng với khách đó.
+     3 — đền bù một phần đơn trả bằng tài khoản: chia THEO TỶ LỆ thưởng / tiền nạp của phần đã trừ.
+     Nền: CHAT gộp main (đã có HANG-1, CT-1a, CK-NOIDUNG-1 khi gộp xong) vào viec/NAP-1 bằng script TRƯỚC khi chủ quán gửi "tiep"; máy không tự gộp. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_NAP1.js` ĐỎ trên code gốc: tạo gói + giá trị sai 400; bán gói tiền mặt / QR → số dư tăng đúng hai ngăn; chặn trả gói bằng ví / mã;
 trả đơn bằng ví trừ đúng tỷ lệ; hoàn trả đúng ngăn; bất biến hai ngăn = balance qua chuỗi nạp → trả → hoàn → ví mẹ; điểm cộng khi trả ví, không
