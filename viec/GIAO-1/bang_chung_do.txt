@@ -33,7 +33,16 @@ Code TRƯỚC vòng sửa (server/ của 604b51c = bản vá d0215a9, chưa sử
   ✗ Q5b (chuyến vẫn dang_pha) · ✗ K1 (phi_that 251.000 — cộng cả chuyến huỷ)
   (F4, H12 xanh trên bản trước: khoá hành vi đã có từ 6acfc5f — toi_gio / nhac và đọc lại dự phòng — trước đây không có ca nào.)
 TRÊN CODE ĐÃ VÁ (HEAD afade5e): 101 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_GIAO1.js: 101
+(Dòng SỐ CA 101 ở trên thay bằng vòng sửa 2 bên dưới.)
+
+── Vòng sửa 2 (soát vòng 2, 06.11) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit 0548ab4 (thêm G8b, G10, J5d, H11b, Q5c; K1 phí khách theo sổ của bài; ví thử 10.000.000).
+GỐC fa03775 (nháp goc5) → ĐỎ: 5 đạt · 101 hỏng (5 ca xanh như trên).
+Code TRƯỚC vòng sửa 2 (server/ = afade5e) → ĐỎ: 103 đạt · 3 hỏng:
+  ✗ Q5c (thẻ giao_loi còn sau khi hoàn) · ✗ G8b (không huỷ chuyến cũ X, 2 chuyến sống) · ✗ H11b (thẻ vẫn TX B2)
+  (G10, J5d xanh trên bản trước: khoá vế EXISTS của câu giành và huyChuyenGiao chỉ tim_xe / doi_tai_xe — đã có từ afade5e, trước không có ca.)
+TRÊN CODE ĐÃ VÁ (HEAD 2eab64e): 106 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAO1.js: 106
 
 Bộ kiểm: npm test -- --day-du → PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo có từ trước: "route GET có lệnh ghi (3)" và "route ghi không qua
 loiGhi 54" — không file nào của việc này trong danh sách).

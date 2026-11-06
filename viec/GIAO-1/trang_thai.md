@@ -174,3 +174,24 @@ CHƯA SOÁT ĐƯỢC: chưa chạy lại 41 đột biến (lỗi 3 là suy luậ
 
 BÀI HỌC: KHOÁ — G8b thẻ treo có `ma_ahamove` sống; H11b có ASSIGNING đầu + đổi thẳng ACCEPTED → ACCEPTED; đột biến gỡ EXISTS + ca Huỷ chuyến khi dang_goi; K1 phi_khach số cứng.
 NGUYÊN TẮC — (a) K3 kịch bản tin báo bên thứ ba phải bắt đầu từ tin ĐẦU TIÊN bên đó thật sự gửi; (b) K4 đường "gọi lại sau treo" phải xử lý tác dụng phụ còn dở của MỌI đường có thể treo; (c) K4 khoá chống lặp và luật "chỉ tiến hạng" phải cho cập nhật cùng hạng khi dữ liệu phụ đổi.
+
+### Vòng sửa 2 (sau soát vòng 2)
+- Bài thử thêm (51ffd8c, 0548ab4; đỏ trên bản trước sửa 103 · 3): G8b, H11b, Q5c; khoá thêm G10 (hoàn chen giữa đọc và giành), J5d (Huỷ chuyến khi đang gọi).
+  K1 phí khách trả lấy từ SỔ CỦA BÀI (phí Ahamove giả lúc báo), không tính lại bằng công thức code.
+- Sửa (2eab64e): lỗi 1 (NẶNG) → "Gọi lại" thẻ treo còn mã chuyến xử lý như Tìm lại: huỷ chuyến cũ trước; Ahamove từ chối huỷ thì đọc lại — đã CANCELLED
+  mới đi tiếp, còn sống thì trả thẻ về như cũ. Lỗi 2 → đổi tài xế cùng hạng (SĐT tài xế khác) được cập nhật, biển số theo tài xế mới. Lỗi 5 → duyệt hoàn
+  đóng cả thẻ giao_loi (lối ra duy nhất của giao_loi). Lỗi 6 → huyChuyenGiao kiểm changes (409 TRANG_THAI_DA_DOI); câu ghi lỗi sau tự tìm lại neo theo
+  mã chuyến mới. Nghi ngờ 1 → máy thua không huỷ chuyến mà máy thắng đã nhận (so ma_ahamove hiện tại). Đối soát "chuyến đã chạy" theo dấu giờ
+  (lay_hang_luc / xong_luc), không theo trạng thái — thẻ giao lỗi đóng khi hoàn vẫn giữ phí.
+- Không làm: 3(c) giành quyền xoá lỗi cũ — chỉ hiển thị (câu ghi cuối cũng xoá lỗi), không ca riêng; F2 qua máy chủ vẫn dùng hàm gioGoiTaiXe để tính kỳ vọng
+  (F1–F3 số cứng khoá hàm); Q4 "Bỏ đi" không hoàn kho — giữ, đưa vào câu cho chủ quán xác nhận (báo cáo cuối).
+- Đột biến: 47/47 BẮT (thêm VS-doi-soat-theo-trang-thai, BV-treo-huy-chuyen-cu, BV-doi-tai-xe-cung-hang, BV-hoan-dong-giao-loi, BV-gianh-kiem-don,
+  VS-huy-chuyen-khi-dang-goi). Bài: gốc 5 · 101, HEAD 106 · 0. npm test --day-du: 102 · 0 · 2 cảnh báo cũ.
+| Chỗ vá vòng 2 | Đột biến | Ca bắt |
+|---|---|---|
+| Gọi lại thẻ treo huỷ chuyến cũ | BV-treo-huy-chuyen-cu | G8b |
+| đổi tài xế cùng hạng | BV-doi-tai-xe-cung-hang | H11b |
+| hoàn đóng thẻ giao_loi | BV-hoan-dong-giao-loi | Q5c |
+| câu giành kiểm đơn | BV-gianh-kiem-don | G10 |
+| huỷ chuyến chỉ tim_xe / doi_tai_xe | VS-huy-chuyen-khi-dang-goi | J5d |
+| Đối soát theo dấu giờ đã chạy | VS-doi-soat-theo-trang-thai | K1 |
