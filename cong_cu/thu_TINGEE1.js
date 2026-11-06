@@ -123,7 +123,7 @@ async function main() {
       return { status: r.status, j, tho };
     } finally { noiLai(); }
   };
-  const moTa = (r) => `HTTP ${r.status} · ${r.tho.slice(0, 120)}`;
+  const moTa = (r) => `HTTP ${r.status} · ${r.tho.replace(/\s+/g, ' ').slice(0, 120)}`;
   const la = (r, status, code) => r.status === status && (code === undefined || r.j.code === code);
   const dem = async (sql, p = []) => Number((await db.queryOne(sql, p).catch(() => null))?.n ?? -1);
   const soDon = () => dem('SELECT COUNT(*) AS n FROM pos_orders');
@@ -215,7 +215,7 @@ async function main() {
     const t0 = getNow();
     const r = await taoPhien({ sl: 2 });
     const p = r.j.phien || {}, q = String(p.qr || ''), f = tlvDu(q) || {}, m38 = tlvDu(f['38'] || '') || {}, m3801 = tlvDu(m38['01'] || '') || {}, m62 = tlvDu(f['62'] || '') || {};
-    k('B1 chuỗi EMV đọc HẾT được (mọi trường đúng độ dài), trường cuối là 63', !!tlvDu(q) && Object.keys(f).pop() === '63', q);
+    k('B1 chuỗi EMV đọc HẾT được (mọi trường đúng độ dài), trường 63 = 4 ký tự CRC ở cuối', !!tlvDu(q) && f['63']?.length === 4 && q.endsWith(f['63']), q);
     k('B1 00=01, 01=12, 38.00=A000000727, 38.02=QRIBFTTA, 53=704, 58=VN', f['00'] === '01' && f['01'] === '12' && m38['00'] === 'A000000727'
       && m38['02'] === 'QRIBFTTA' && f['53'] === '704' && f['58'] === 'VN', q);
     k(`B2 38.01.00 = ${TG.bin} (MB), 38.01.01 = ${TG.soTk} (số VA có chữ cái, độ dài 13 khai đúng)`, m3801['00'] === TG.bin && m3801['01'] === TG.soTk
@@ -383,10 +383,12 @@ async function main() {
     datCong('tingee');
     const rW = await guiT(baoT(pW));
     k('D8 phiên tạo lúc CONG_QR=sepay → báo Tingee đúng chữ ký vẫn chốt (webhook mọi cổng luôn mở)', nhan(rW) && (await dongPhien(pW.id))?.nguon === 'tingee', moTa(rW));
+    const pW2 = (await taoPhien()).j.phien || {};
     datCong('payos');
-    const rW2 = await guiT(baoT((await (async () => { datCong('tingee'); const x = (await taoPhien()).j.phien || {}; datCong('payos'); return x; })())));
+    const rW2 = await guiT(baoT(pW2));
     datCong('tingee');
-    k('D8 CONG_QR=payos lúc báo Tingee tới → vẫn nhận (webhook Tingee luôn mở)', nhan(rW2), moTa(rW2));
+    k('D8 phiên Tingee, đổi CONG_QR=payos trước khi tiền về → báo Tingee vẫn chốt (đổi công tắc không làm mất tiền về)', nhan(rW2)
+      && (await dongPhien(pW2.id))?.nguon === 'tingee', moTa(rW2));
   });
 
   muc('[E] Đối soát — nhãn "Tingee giao dịch <mã>", lưới chặn ghi tiền vượt tính Tingee là cổng riêng');
@@ -401,7 +403,7 @@ async function main() {
     const { p } = await phienApp();
     const gio = getNow();
     await db.run(`INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, 'khop', NULL, '{}', ?), (?, ?, ?, 'vao_vi', 'thử', '{}', ?)`,
-      ['tingee:FTLUOI1', p.ma_payos, p.con_lai, gio, `${p.ma_payos}:REFLUOI`, p.ma_payos, p.con_lai, gio]);
+      ['tingee:FTLUOI1', p.id, p.con_lai, gio, `${p.id}:REFLUOI`, p.id, p.con_lai, gio]);   // mã phiên (ma_payos) = id phiên (giuCho.js)
     const ds2 = await chayDoiSoat({ kieu: 'ngay' });
     k('E2 phiên ghi tiền 2 lần (đơn qua Tingee + cộng ví qua payOS), mỗi cổng báo 1 → ĐỎ "vượt số khoản thật"',
       ds2.do.some((l) => new RegExp(`^phiên #${p.id} .*vượt số khoản thật`).test(l.mo_ta)), ds2.do.filter((l) => /vượt/.test(l.mo_ta)).map((l) => l.mo_ta).join(' | '));
