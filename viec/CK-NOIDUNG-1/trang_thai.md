@@ -598,3 +598,7 @@ khoản nào chưa vào ví khách thì nạp tay vào tài khoản khách (SĐT
 22 · 87 ghi ở `bang_chung_do.txt`.)
 
 HEAD ĐÃ KIỂM: 28a9878
+
+
+Chat soát + gộp (05.11, bàn 32): đọc báo cáo 7 mục (Q6 B) — khớp. Gộp main f464cea (sau HANG-1): đụng HOP_DONG_API_KH.md (CK-NOIDUNG-1 thành v11 sau v10 HANG-1; "Ghi chú v10 — số hoá đơn" → v11) và client/dist (dựng lại). npm test --day-du xanh trên bản gộp; số ca 4 bài giữ nguyên.
+HEAD ĐÃ KIỂM: 046aa6a
