@@ -489,10 +489,10 @@ async function main() {
     const truoc = A.tao.length;
     const r1 = await goiXe(d.id, { loai_xe: 'HAN-EXPRESS' });
     const ch2 = await chuyenCua(d.id);
-    k('I4 Tìm lại: chưa lâu → 409; lâu → huỷ chuyến cũ ở Ahamove + tạo chuyến mới loại xe đã đổi', r0.status === 409 && r1.status === 200 && A.huy.some((x) => x.id === ch.ma_ahamove)
-      && A.tao.length === truoc + 1 && A.tao.at(-1).service_id === 'HAN-EXPRESS' && ch2.ma_ahamove !== ch.ma_ahamove, `${r0.status} ${r1.status} huỷ ${A.huy.length}`);
+    k('I4 Tìm lại: chưa lâu → 409; lâu → huỷ chuyến cũ ở Ahamove + tạo chuyến mới loại xe đã đổi', r0.status === 409 && r1.status === 200 && A.huy.some((x) => x.id === ch?.ma_ahamove)
+      && A.tao.length === truoc + 1 && A.tao.at(-1)?.service_id === 'HAN-EXPRESS' && ch2?.ma_ahamove !== ch?.ma_ahamove, `${r0.status} ${r1.status} huỷ ${A.huy.length}`);
     // I2: tài xế huỷ → tự tìm lại MỘT lần (hai tin khác nhau đến cùng lúc vẫn một chuyến mới)
-    const ma = ch2.ma_ahamove;
+    const ma = ch2?.ma_ahamove;
     if (A.chuyen.has(ma)) datTrangThai(ma, { status: 'CANCELLED', cancel_by_user: false });
     const t0 = A.tao.length;
     await Promise.all([baoVe({ _id: ma, status: 'CANCELLED', sub_status: 'a' }), baoVe({ _id: ma, status: 'CANCELLED', sub_status: 'b' })]);
