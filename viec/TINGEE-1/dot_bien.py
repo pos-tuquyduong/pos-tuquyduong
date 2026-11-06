@@ -74,6 +74,10 @@ DOT_BIEN = [
   ('BV-bo-kiem-chay-bai', 'tg', [(KT, "chayBaiThat('cong_cu/thu_TINGEE1.js');", "// chayBaiThat('cong_cu/thu_TINGEE1.js');", 1)], r'✗ T3 '),
   ('VS-huong-dan-khong-www', 'tg', [(HD, 'https://www.pos-tuquyduong.io.vn/api/tingee/webhook', 'https://pos-tuquyduong.io.vn/api/tingee/webhook', 1)], r'✗ F1 '),
   ('VS-huong-dan-khong-quay-lai', 'tg', [(HD, 'đổi lại `CONG_QR=sepay` NGAY', 'đổi lại cổng cũ NGAY', 1)], r'✗ F2 '),
+  # vòng sửa 2 (soát vòng 2): đưa ĐÚNG câu cũ của lỗi 1 vòng 1 trở lại
+  ('VS-huong-dan-ve-nhu-cu', 'tg', [(HD, 'Lưu ý: bạn ĐÃ GỠ Webhook ở SePay (phiếu 05.11) — đổi lại `sepay` thì QR\nvề tài khoản cũ nhưng KHÔNG còn tự báo tiền về: mọi đơn QR phải xác nhận tay, cho tới khi khai lại Webhook SePay (`viec/SEPAY-1/cai_dat_sepay.md`).',
+    'Trục trặc → `CONG_QR=sepay` là về như cũ ngay.', 1)], r'✗ F3 '),
+  ('BV-huong-dan-buoc-lui-khong-noi-go', 'tg', [(HD, ' (QR về tài khoản cũ; đơn QR xác nhận tay vì Webhook SePay đã gỡ)', '', 1)], r'✗ F3 '),
 ]
 
 

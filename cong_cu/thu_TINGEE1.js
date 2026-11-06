@@ -446,6 +446,9 @@ async function main() {
     const dongLui = hd.split('\n').filter((l) => /Không thấy/.test(l));
     k('F2 cai_dat_tingee.md: bước thử có dòng "Không thấy … đổi lại `CONG_QR=sepay` NGAY" (chủ quán 06.11), đứng SAU bước đặt CONG_QR=tingee',
       dongLui.some((l) => l.includes('`CONG_QR=sepay`') && /NGAY/.test(l)) && hd.indexOf('Không thấy') > hd.indexOf('`CONG_QR=tingee`'), dongLui.join(' | ').slice(0, 160));
+    // Soát vòng 1 lỗi 1: chủ quán đã gỡ Webhook SePay (phiếu 05.11) → lối lùi sepay KHÔNG "về như cũ"; cả câu đầu lẫn dòng "Không thấy" phải nói rõ.
+    k('F3 cai_dat_tingee.md không hứa "về như cũ"; nói rõ ĐÃ GỠ Webhook ở SePay (đầu file) và ở dòng "Không thấy" (lùi sepay = xác nhận tay)',
+      !/về như cũ/.test(hd) && /ĐÃ GỠ Webhook ở SePay/.test(hd) && dongLui.some((l) => /Webhook SePay đã gỡ/.test(l) && /xác nhận tay/.test(l)), dongLui.join(' | ').slice(0, 160));
   }
 
   sv.close();
