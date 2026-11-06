@@ -387,8 +387,9 @@ async function main() {
     const d3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 });
     const yc = await goi('POST', '/refunds', { order_id: d3.id, reason: 'thử P24' });
     const dy = await goi('POST', `/refunds/${yc.refund_id}/approve`, {});
-    k('I2 duyệt hoàn tiền (refunds.js) đơn có 25 điểm → 200, ví hoàn, điểm GIỮ 25, 0 dòng trừ (việc sau)', dy.status === 200 && await vi(s3) === 10000
-      && await diemDon(d3.id) === 25 && await soDong(d3.id, 'adjust') === 0, `${moTa(yc)} / ${moTa(dy)}`);
+    // NAP-1 (chủ quán 06.11 (a)): duyệt hoàn trả phần ví 10.000 / tiền tính điểm 25.000 → trừ ceil(25 × 10.000 / 25.000) = 10, giữ 15 (phần tiền mặt).
+    k('I2 duyệt hoàn tiền (refunds.js) đơn có 25 điểm (ví 10.000 + tiền mặt 15.000) → 200, ví hoàn, trừ 10 điểm phần ví (1 dòng trừ), giữ 15', dy.status === 200 && await vi(s3) === 10000
+      && await diemDon(d3.id) === 15 && await soDong(d3.id, 'adjust') === 1, `${moTa(yc)} / ${moTa(dy)} · ${await diemDon(d3.id)} điểm`);
     const s4 = sdtMoi();
     const d4 = await tienMat(s4, 1);
     const bh = await goi('POST', '/damages', { order_id: d4.id, product_code: sp[1].code, quantity: 1, reason: 'damaged', reason_note: 'thử P24',
