@@ -31,8 +31,8 @@ async function thuongKhiHoan(tx, phone, orderId, soTien) {
   const viTru = Number(r?.vi_tru || 0), thuongTru = Number(r?.thuong_tru || 0);
   const con = thuongTru - Number(r?.thuong_tra || 0);
   if (!(viTru > 0) || !(con > 0) || !(soTien > 0)) return 0;
-  // Lần cộng lại làm đủ (hoặc vượt) phần ví đã trừ → trả NỐT phần thưởng còn lại: làm tròn từng lần không làm rơi đồng nào sang tiền nạp.
-  // Trần soTien: nhiều lần cộng nhỏ làm tròn về 0 thì phần còn lại có thể lớn hơn chính khoản cộng (đã trừ 7 · thưởng 3 · cộng 6 lần 1 rồi 1).
+  // Lần cộng lại làm đủ (hoặc vượt) phần ví đã trừ → trả NỐT phần thưởng còn lại, nhưng KHÔNG quá chính khoản cộng: nhiều lần cộng nhỏ làm
+  // tròn về 0 thì phần còn lại có thể lớn hơn khoản cộng (đã trừ 7 · thưởng 3 · cộng 6 lần 1 rồi 1 → trả 1) — vài đồng làm tròn sang tiền nạp.
   if (Number(r?.vi_hoan || 0) + soTien >= viTru) return Math.min(con, soTien);
   return Math.min(con, Math.round((soTien * thuongTru) / viTru));
 }

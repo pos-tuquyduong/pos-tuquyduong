@@ -293,3 +293,54 @@ BV-khoi-phuc-goi-nap); neo đổi theo code: BV-goi-quyen-them · BV-goi-quyen-s
 Kết quả: ĐỐI CHỨNG XANH 73 · 0 — BẮT 80 · SỐNG 0 · HỎNG 0 · LẠC 0. `npm test -- --day-du`: PASS 103 · FAIL 0 · CẢNH BÁO 2.
 K4 đã rà: `grep -rn pos_goi_nap server` → chỉ goi-nap.js (ghi), orders.js:542 (đọc gói bật để bán), backup.js (xuất / nay chặn khôi phục), 014_nap.js (tạo bảng).
 `grep -n "return con" server/utils/viKhach.js` → không còn nhánh nào trả `con` trần (nhánh tỷ lệ đã `Math.min(con, round(…))`, và round(soTien × thưởng / ví) ≤ soTien vì thưởng ≤ ví).
+
+## Soát độc lập LẠI sau vòng sửa 4 (/ra-soat, 06.11, vòng 4: 14243de → d920ef0; nhánh 0406870^ → d920ef0) — chép nguyên báo cáo
+```
+ĐẠT (chỉ còn lỗi NHẸ: một chú thích sai, một bài thử chỉ soi chữ, một chỗ chưa có bài thử. Không có lỗi làm sai tiền, điểm, ví hay bảo mật.)
+
+Kết quả ngắn: phần sửa của vòng 4 đúng. Lần hoàn cuối không còn ghi phần thưởng lớn hơn chính khoản hoàn. Chỉ chủ quán mới thêm / sửa / bật / tắt gói nạp, và phải gõ PIN — máy chủ chặn chứ không chỉ giấu nút. Nhân viên và quản lý vẫn bán gói. Khôi phục bằng file sao lưu không còn ghi đè được gói nạp. Mình đã tự chạy lại: `node cong_cu/thu_NAP1.js` → 73 đạt · 0 hỏng. Bảy đột biến mới → đối chứng xanh 73 · BẮT 7/7 · SỐNG 0. `--day-du` → PASS 103 · FAIL 0 · CẢNH BÁO 2, dist khớp src.
+
+LỖI TÌM ĐƯỢC:
+- server/utils/viKhach.js:34 — chú thích nói "làm tròn từng lần không làm rơi đồng nào sang tiền nạp". Từ khi thêm trần `Math.min(con, soTien)` ở dòng 36, câu này sai. Chính ca C0c `[7,3,0,6,1] → 1` (cong_cu/thu_NAP1.js, khối C0c) cho thấy thưởng đã trừ là 3 mà chỉ trả lại 1, còn 2 đồng thưởng chuyển sang ngăn tiền nạp. Dòng 35 ngay dưới cũng tự mô tả chuyện này. Tổng ví không đổi và bất biến bat_bien.js:78 vẫn giữ, chỉ có lời chú thích sai. Cần sửa câu dòng 34 (ví dụ: "trả nốt nhưng không quá khoản cộng; vài đồng làm tròn có thể sang tiền nạp"). — K1 — NHẸ (chú thích; đồng tiền chỉ lệch ở chuỗi hoàn rất nhỏ).
+- cong_cu/thu_NAP1.js, ca M4 — chỉ dò chữ `'pos_goi_nap'` trong đoạn mã nguồn từ `const BANG_KHONG_KHOI_PHUC` đến `];`, không thử hành vi. Nếu ai đó để `'pos_goi_nap'` trong một chú thích nằm trong danh sách, hoặc gỡ lệnh `chanTrangTien` ở backup.js:342 (/restore), M4 vẫn xanh. Nên có một ca gửi file xlsx có trang "Gói nạp tiền" lên /backup/preview-restore và /restore, đòi 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN và bảng gói giữ nguyên. — K3 — NHẸ.
+- cong_cu/thu_NAP1.js, ca A9 — luồng hợp lệ "nhân viên / quản lý bán gói" chỉ được thử qua POST /orders. Luồng phiên thanh toán (/thanh-toan/phien ở dòng 233 và 277) chỉ chạy bằng thẻ chủ quán. Đọc code thì không có chặn: thanh-toan.js:25 `/phien` chỉ có `authenticate`; giuCho.js không kiểm role (grep checkPermission/role → 0). Nhưng chưa có ca và đột biến nào khoá điều này. — K5 — NHẸ.
+
+NGHI NGỜ:
+- server/utils/viKhach.js:37 tính thưởng của từng lần hoàn riêng rẽ (`round(soTien*thuongTru/viTru)`), không cộng dồn. Vì vậy sai số làm tròn tích lại, và lần hoàn cuối, nay bị trần ở dòng 36, không bù được nữa. Số tiền thực tế ở quầy (hàng nghìn đồng) thì lệch không đáng kể, nhưng thiết kế "trả về ĐÚNG ngăn" (phiếu mục C) không còn chính xác tuyệt đối. Cách gọn hơn ở mục ĐƠN GIẢN.
+- client/src/pages/CaiDat/GoiNap.jsx: bấm Tắt / Lưu khi ô PIN còn trống vẫn gửi `pin: ''`. Máy chủ (goi-nap.js:21-26 → pinChuQuan.js:61-64) tính đó là một lần sai PIN. Bấm như vậy 5 lần là khoá PIN chủ quán 15 phút, khoá luôn cả màn Hạng. Màn HangThe.jsx:163-166 làm y hệt nên đây là khuôn có sẵn, không phải lỗi mới. Đột biến VS-goi-pin-chi-khi-gui lại ép máy chủ phải kiểm cả PIN rỗng, nên chỗ nên gọn là giao diện: tắt nút khi ô PIN trống.
+- GoiNap.jsx không xoá PIN khỏi state sau khi lưu xong. HangThe.jsx:53 thì xoá `setPinSua('')` sau khi xoá hạng. Hai màn không nhất quán, việc nhỏ.
+
+NGHIỆM THU: 9/9 mục có bằng chứng · mục thiếu: không
+- A — có: A1–A4, A6, A6b, A7 trong thu_NAP1.js; quyền theo câu 2 xem dòng chủ quán 06.11 câu 2.
+- B — có: B1–B15. Có phiên ck_tay ở dòng 233–238; chặn trả gói bằng ví / ví mẹ ở dòng 265–267 và giuCho.js:40.
+- C — có: C0–C13, K9 (bất biến I4…I19). Bất biến ngăn thưởng ở bat_bien.js:67-79.
+- D — có: D1–D5 (dòng 482–487).
+- E — có: E1–E6 (dòng 494–511).
+- F — có: F1–F7, K8 (dòng 531–567).
+- K5 — có: K2, K6, A9, cùng các bài cũ xanh trong `--day-du` (PASS 103). Thiếu một ca: phiên thanh toán do nhân viên / quản lý bán gói (đã ghi ở LỖI).
+- Chủ quán 06.11 câu 1 — có: C0c + BV-tra-not-tran (BẮT); viKhach.js:36.
+- Chủ quán 06.11 câu 2 — có: chỉ chủ quán (A5 + VS-goi-quyen-quan-ly / BV-goi-quyen-them / BV-goi-quyen-sua; goi-nap.js:18-19, 55, 71); PIN chủ quán (A8 + BV-goi-pin-them / BV-goi-pin-sua / VS-goi-pin-chi-khi-gui; goi-nap.js:21-26, 61, 79; `git diff 14243de HEAD -- server/utils/pinChuQuan.js` rỗng); nhân viên / quản lý vẫn bán (A9 + K5-quay-chi-chu-quan); không trần % (kiemGoi goi-nap.js:29-35); khôi phục file sao lưu (M4 + BV-khoi-phuc-goi-nap; backup.js:140).
+
+(Tám mục soát 1–8, CHƯA SOÁT ĐƯỢC, BÀI HỌC — nguyên văn:)
+1. K3: C0c, A5, A8, A9 đỏ trên bản chưa vá (bang_chung_do.txt, khối vòng 4: 36 đạt · 36 hỏng). M4 đỏ trên bản chưa vá backup.js (72 · 1). C0c kiểm hành vi: thưởng ≤ khoản cộng ở mọi ca C0b, thêm các ca ngay trên / ngay dưới ngưỡng con = soTien `[7,3,0,4,3]`, con > soTien `[7,3,0,6,1]` và con < soTien `[7,3,0,0,7]`. A5 / A8 kiểm cả việc dòng gói KHÔNG đổi, không chỉ mã lỗi. M4 chỉ soi chữ (đã ghi ở LỖI). Bảy đột biến mới mình tự chạy lại: BẮT 7/7, mỗi cái bị đúng ca của nó bắt.
+2. K4: `grep -rn "pos_goi_nap\|goi_nap" server` → chỉ goi-nap.js ghi (dòng 63, 81). orders.js:542 chỉ đọc. backup.js:61 xuất, :140 chặn khôi phục. 014_nap.js tạo bảng. Các chỗ ghi theo tên bảng động (khoiPhuc.js:69-72 đã chặn qua backup.js:342; kho/duong.js; donThu.js:298; chuanHoaGio.js) đều không đụng pos_goi_nap. Có 10 chỗ gọi ghiVi; chỉ refund / compensation đi qua thuongKhiHoan (wallets.js:87). Cả hai nhánh (dòng 36, 37) nay đều ≤ soTien. Nhánh 37 đúng vì thưởng đã trừ ≤ ví đã trừ (thuongKhiTru viKhach.js:18-22). Chỗ duy nhất truyền `thuong` thẳng vào ghiVi là orders.js:1022 (đơn nạp: vao_tk − khach_tra ≤ vao_tk). Không còn chỗ nào chưa xử lý.
+3. K5: chủ quán sửa gói → A6, A6b, A1. Quầy xem gói → GET / chỉ có authenticate (goi-nap.js:37), ca A6, A9. Nhân viên / quản lý bán qua orders.js → A9. Bán qua phiên thanh toán → không chặn theo thanh-toan.js:25, nhưng chưa có ca (ghi ở LỖI). Sao lưu xuất file → pos_goi_nap vẫn nằm trong BACKUP_TABLES (backup.js:61), ca M3. Khôi phục các bảng khác → chanTrangTien chặn cả file nếu có trang gói có dòng (backup.js:150-157): đây là khuôn đã có (ví / đơn cũng làm vậy), trang trống thì bỏ qua (khoiPhuc.js:47). Không thấy luồng nào bị chặn oan. Một lưu ý: chủ quán chưa đặt PIN thì không tạo được gói (400 CHUA_CO_PIN_CHU_QUAN, pinChuQuan.js:58). Đó là đúng câu 2.
+4. K1: chú thích viKhach.js:34 sai (đã ghi ở LỖI). Các khẳng định trong trang_thai.md vòng 4 mình đã kiểm và đều đúng.
+5. Đường tiền: máy chủ tự tra gói (orders.js:542, có `is_active = 1`) và tự tính thưởng (orders.js:1022). Không thấy chỗ nào tin trường tiền client gửi.
+6. P1: `--day-du` báo "dist đã commit KHỚP với src hiện tại".
+8. Đơn giản: viKhach.js:34-37 có thể gộp hai nhánh thành một công thức cộng dồn `x = round((vi_hoan + soTien) × thuongTru / viTru) − thuong_tra`, kẹp `[0, min(con, soTien)]`; goi-nap.js:18-19 `chiChuQuan` chép lại middleware của don-thu.js:11-12; quy tắc đối soát đã có (bat_bien.js:67-79; F1–F5).
+CHƯA SOÁT ĐƯỢC: màn GoiNap.jsx trên điện thoại thật; khôi phục bằng file xlsx thật có trang "Gói nạp tiền"; production đã đặt PIN chưa; chỉ chạy 7 đột biến mới; không chạy cổng `node tu_chay/cong.js chay`.
+BÀI HỌC:
+- NGUYÊN TẮC (K1): thêm trần hoặc kẹp vào một nhánh thì đọc lại chú thích hứa "không rơi đồng nào" hay "đúng tuyệt đối" ngay trên nhánh đó.
+- KHOÁ (K3): ca "bảng X không khôi phục bằng file" phải là ca hành vi (gửi xlsx lên preview-restore / restore → 400, bảng không đổi), không soi chữ trong mã nguồn.
+- NGUYÊN TẮC (K5): luồng "vẫn bán được" phải có ca cho MỌI cửa bán (POST /orders và phiên thanh toán), với mọi vai trò được phép.
+```
+Xử lý sau soát (chủ quán dặn "soát lại một lần" — ĐẠT, không mở vòng 5): sửa chú thích `viKhach.js` (lỗi 1, không đổi hành vi). Lỗi 2 (M4 soi chữ) và
+lỗi 3 (ca phiên thanh toán của nhân viên) → đề xuất KHOÁ ở Bài học; nghi ngờ PIN rỗng tốn lượt → Phát hiện (khuôn có sẵn ở HangThe.jsx).
+
+## Phát hiện (sau soát lại vòng 4)
+- **Ô PIN trống vẫn gửi** (GoiNap.jsx, cùng khuôn HangThe.jsx): bấm Lưu / Tắt khi chưa gõ PIN tính là một lần sai PIN; 5 lần → khoá PIN chủ quán 15 phút
+  (khoá cả màn Hạng). Đề xuất việc sau: tắt nút khi ô PIN trống ở CẢ hai màn (một chỗ sửa theo khuôn).
+- **Làm tròn phần thưởng khi đền nhiều lần nhỏ:** sau trần vòng 4, vài đồng thưởng có thể sang ngăn tiền nạp (tổng ví đúng, bất biến I4 giữ). Gọn hơn: công
+  thức cộng dồn (báo cáo soát mục 8) — đề xuất việc sau, không đổi tiền khách.
+- **Chủ quán phải đặt PIN chủ quán trước** (Cài đặt → Hạng thành viên) thì mới thêm / sửa gói nạp được (400 CHUA_CO_PIN_CHU_QUAN).
