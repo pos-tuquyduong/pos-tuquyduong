@@ -505,6 +505,7 @@ chayBaiThat('cong_cu/thu_GIOVN1.js');   // GIO-VN-1: mọi giờ ghi / so / tr�
 chayBaiThat('cong_cu/thu_SEPAY1.js');   // SEPAY-1: QR qua SePay (VietQR tự dựng + webhook HMAC-SHA256), công tắc CONG_QR, payOS dự phòng
 chayBaiThat('cong_cu/thu_CKNOIDUNG1.js');   // CK-NOIDUNG-1: nội dung CK mang số hoá đơn, giữ số lúc hiện QR, mã GD, tiền về muộn
 chayBaiThat('cong_cu/thu_CT1a.js');   // CT-1a: chương trình đặc biệt + ngày sinh (nhập một lần; sửa ở quầy cần quyền + lý do + sổ) — chat gộp 04.11 thêm
+chayBaiThat('cong_cu/thu_HANG1.js');   // HANG-1: hạng thẻ, gói, cấp hạng + PIN chủ quán (Cài đặt hạng, đổi PIN cần PIN cũ), trang hạng không khôi phục bằng file
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong

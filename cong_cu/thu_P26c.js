@@ -994,15 +994,16 @@ async function main() {
     k('S3 lấy từ gói 0,5 ly → 400 GOI_SL_KHONG_HOP_LE, giao vẫn 2', l.status === 400 && l.code === 'GOI_SL_KHONG_HOP_LE' && await daGiao(gl.cp) === 2, moTa(l));
     const m10 = await goi('POST', '/orders', { customer_name: 'Khách S4', items: [mon(0, 10)], payment_method: 'cash', cash_amount: 250000 });
     k('S4a (K5) bán 10 ly 25.000 → 200, tổng 250.000', m10.status === 200 && Number(m10.order?.total) === 250000, moTa(m10));
+    await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
     const the = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
     const tien = 25000 + Number(the.card_price);
-    const mt = await goi('POST', '/orders', { customer_phone: sdtMoi(), customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id },
+    const mt = await goi('POST', '/orders', { customer_phone: sdtMoi(), customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id, so_thang: 3 },
       payment_method: 'cash', cash_amount: tien });
     k(`S4b (K5) 1 ly 25.000 + mua thẻ ${Number(the.card_price).toLocaleString('vi-VN')} → 200, tổng ${tien.toLocaleString('vi-VN')}`,
       mt.status === 200 && Number(mt.order?.total) === tien, moTa(mt));
     // Cùng khuôn cổng mua thẻ (:187 ↔ :1067 `membershipTier && phone`): SĐT " " → gốc thu tiền thẻ mà không ghi thẻ.
     const dThe = await so('SELECT COUNT(*) FROM pos_orders');
-    const mk = await goi('POST', '/orders', { customer_phone: ' ', customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id },
+    const mk = await goi('POST', '/orders', { customer_phone: ' ', customer_name: 'Khách S4', items: [mon(0)], membership_buy: { tier_id: the.id, so_thang: 3 },
       payment_method: 'cash', cash_amount: tien });
     k(`S4c mua thẻ với SĐT " " (gốc thu ${tien.toLocaleString('vi-VN')} mà không ghi thẻ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn`,
       mk.status === 400 && mk.code === 'THE_MUA_THIEU_THONG_TIN' && await so('SELECT COUNT(*) FROM pos_orders') === dThe, moTa(mk));   // BAN-HANG-1: thêm mã
@@ -1024,7 +1025,7 @@ async function main() {
     const b = await muaThe({ items: [], membership_buy: {} }, 0);
     k('T1b membership_buy: {} + items [] (gốc tạo đơn rỗng 0đ) → 400 THE_MUA_THIEU_THONG_TIN, không đơn',
       b.status === 400 && b.code === 'THE_MUA_THIEU_THONG_TIN' && await demDon() === d0, `${moTa(b)} · tổng ${b.order?.total}`);
-    const c = await muaThe({ items: [], membership_buy: { tier_id: hang.id } }, gia);
+    const c = await muaThe({ items: [], membership_buy: { tier_id: hang.id, so_thang: 3 } }, gia);
     k(`T2a (K5) mua thẻ riêng, items [] → 200, tổng ${gia.toLocaleString('vi-VN')}`, c.status === 200 && Number(c.order?.total) === gia, moTa(c));
     const d = await muaThe({ customer_phone: undefined, membership_buy: null }, 25000);
     k('T2b (K5) membership_buy: null + 1 ly, không SĐT → 200, tổng 25.000', d.status === 200 && Number(d.order?.total) === 25000, moTa(d));
@@ -1135,7 +1136,7 @@ async function main() {
     const tien = 25000 + Number(the.card_price);
     const s2 = sdtMoi();
     const muaThe = (sdtThe) => goi('POST', '/orders', { customer_phone: sdtThe, customer_name: 'Khách P26d', items: [mon(0)],
-      membership_buy: { tier_id: the.id }, payment_method: 'cash', cash_amount: tien });
+      membership_buy: { tier_id: the.id, so_thang: 3 }, payment_method: 'cash', cash_amount: tien });
     const theKhach = (x) => so('SELECT COUNT(*) FROM pos_membership_purchases WHERE customer_phone = ?', [x]);
     const truoc2 = await soDon();
     co.nemGhi = /INSERT INTO pos_membership_purchases/;
