@@ -404,6 +404,20 @@ export const manKhachApi = {
   noiDung: (khoa) => api.request('/man-khach/noi-dung', { method: 'GET', ...tieuDeKhoa(khoa) })
 };
 
+// GIAO-1 · Giao hàng Ahamove: máy chủ hỏi Ahamove (khoá không ra trình duyệt); huỷ đơn giao đi qua ordersApi.huyGiao (cùng đường huỷ)
+export const giaoHangApi = {
+  caiDat: () => api.get('/giao-hang/cai-dat'),
+  diaChi: (q) => api.get(`/giao-hang/dia-chi?q=${encodeURIComponent(q)}`),
+  diemLay: (data) => api.post('/giao-hang/diem-lay', data),
+  baoPhi: (data) => api.post('/giao-hang/bao-phi', data),
+  danhSach: () => api.get('/giao-hang'),
+  nhan: (id) => api.post(`/giao-hang/${id}/nhan`, {}),
+  goiXe: (id, loaiXe) => api.post(`/giao-hang/${id}/goi-xe`, loaiXe ? { loai_xe: loaiXe } : {}),
+  huyChuyen: (id, lyDo) => api.post(`/giao-hang/${id}/huy-chuyen`, { ly_do: lyDo }),
+  inTem: (id, lai = false) => api.post(`/giao-hang/${id}/in-tem`, { lai }),
+  huyDon: (id, lyDo, doDaPha) => api.put(`/orders/${id}/cancel`, { reason: lyDo, ...(doDaPha ? { do_da_pha: doDaPha } : {}) }),
+};
+
 // BH-2 · Dữ liệu hoá đơn (HD-1): một cửa, chỉ đọc
 export const hoaDonApi = { lay: (id) => api.get(`/hoa-don/${id}`) };
 

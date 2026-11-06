@@ -166,6 +166,17 @@ export default function DoiSoat() {
             </div>
           )}
 
+          {t?.giao?.so_don > 0 && (
+            <div className="card mb-1">   {/* GIAO-1 (K): tiền ship Ahamove của kỳ */}
+              <b>Giao hàng Ahamove · {t.giao.so_don} đơn</b>
+              <div>Phí ship khách trả {dong(t.giao.phi_khach)} · phí Ahamove thật {dong(t.giao.phi_that)}</div>
+              <div>Quán bù {dong(t.giao.quan_bu)} · quán dư {dong(t.giao.quan_du)} · phí huỷ chuyến (quán chịu) {dong(t.giao.phi_huy)}</div>
+              {t.giao.don_huy.length > 0 && (
+                <div style={{ fontSize: '0.85rem' }}>Đơn giao huỷ: {t.giao.don_huy.map((d) => `${d.code}${d.do_da_pha === 'bo_di' ? ' (đồ bỏ đi — ghi hàng hỏng)' : d.do_da_pha === 'dung_lai' ? ' (đồ dùng lại)' : ''}${d.phi_huy ? ` · phí huỷ ${dong(d.phi_huy)}` : ''}`).join(' · ')}</div>
+              )}
+            </div>
+          )}
+
           <details className="card mb-1">
             <summary>Các phép đã chạy ({kq.bat_bien.length})</summary>
             <div style={{ fontSize: '0.85rem' }}>

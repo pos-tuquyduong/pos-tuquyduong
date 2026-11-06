@@ -1,0 +1,38 @@
+/* GIAO-1 — màn Giao hàng: 4 cột màu khác nhau (Mới tím · Đang pha cam · Đợi tài xế xanh dương · Đang giao xanh lá); điện thoại: 4 tab. */
+.gh { --gh-moi: #7c3aed; --gh-dang_pha: #ea580c; --gh-doi_tai_xe: #2563eb; --gh-dang_giao: #16a34a; --gh-do: #b91c1c; --gh-vien: #e2e8f0;
+  display: flex; flex-direction: column; gap: 0.6rem; height: 100%; }
+.gh button { font-family: inherit; cursor: pointer; }
+.gh button:disabled { opacity: 0.55; cursor: not-allowed; }
+.gh-dau { display: flex; justify-content: space-between; align-items: center; }
+.gh-dau h2 { margin: 0; font-size: 1.2rem; }
+.gh-cot-bao { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+.gh-cot { background: #f8fafc; border-radius: 12px; border-top: 6px solid; padding: 0.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+.gh-cot-moi { border-color: var(--gh-moi); } .gh-cot-dang_pha { border-color: var(--gh-dang_pha); }
+.gh-cot-doi_tai_xe { border-color: var(--gh-doi_tai_xe); } .gh-cot-dang_giao { border-color: var(--gh-dang_giao); }
+.gh-cot-ten { font-weight: 700; }
+.gh-the { background: #fff; border: 1.5px solid var(--gh-vien); border-radius: 10px; padding: 0.6rem; display: flex; flex-direction: column; gap: 0.25rem; cursor: pointer; }
+.gh-the.gh-toi-gio { border-color: var(--gh-dang_pha); background: #fff7ed; }
+.gh-the.gh-nhac { box-shadow: 0 0 0 3px #fdba74; }
+.gh-the.gh-do { border-color: var(--gh-do); background: #fef2f2; }
+.gh-the-dau { display: flex; justify-content: space-between; align-items: center; }
+.gh-phu { font-size: 0.8rem; color: #64748b; }
+.gh-loi { font-size: 0.85rem; color: var(--gh-do); }
+.gh-loi-to { background: #fef2f2; border-radius: 8px; padding: 0.5rem 0.7rem; }
+.gh-nut { border: 0; border-radius: 8px; min-height: 44px; padding: 0.5rem 0.8rem; font-weight: 700; color: #fff; background: #0f172a; }
+.gh-cot-moi .gh-nut { background: var(--gh-moi); } .gh-cot-dang_pha .gh-nut { background: var(--gh-dang_pha); }
+.gh-cot-doi_tai_xe .gh-nut { background: var(--gh-doi_tai_xe); } .gh-cot-dang_giao .gh-nut { background: var(--gh-dang_giao); }
+.gh-nut-phu { border: 1px solid var(--gh-vien); background: #fff; border-radius: 8px; min-height: 40px; padding: 0.4rem 0.7rem; }
+.gh-nut-do { border: 1.5px solid var(--gh-do); color: var(--gh-do); background: #fff; border-radius: 8px; min-height: 44px; padding: 0.4rem 0.7rem; font-weight: 600; }
+.gh-tab { display: none; gap: 0.3rem; }
+.gh-tab button { flex: 1; border: 0; border-bottom: 4px solid transparent; background: #fff; min-height: 44px; font-weight: 600; font-size: 0.8rem; }
+.gh-tab-moi.gh-chon { border-color: var(--gh-moi); } .gh-tab-dang_pha.gh-chon { border-color: var(--gh-dang_pha); }
+.gh-tab-doi_tai_xe.gh-chon { border-color: var(--gh-doi_tai_xe); } .gh-tab-dang_giao.gh-chon { border-color: var(--gh-dang_giao); }
+.gh-nen { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+.gh-chi-tiet { background: #fff; border-radius: 12px; padding: 1rem; width: min(520px, 100%); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem; }
+.gh-hang-nut { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-top: 0.5rem; }
+@media (max-width: 760px) {
+  .gh-tab { display: flex; }
+  .gh-cot-bao { display: block; }
+  .gh-cot { display: none; }
+  .gh-cot.gh-hien { display: flex; }
+}

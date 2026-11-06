@@ -9,6 +9,7 @@ import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
 import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
 import CaiDatChuongTrinh from './CaiDat/ChuongTrinh';   // CT-1a
+import CaiDatGiaoHang from './CaiDat/GiaoHang';   // GIAO-1
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
 
@@ -28,7 +29,7 @@ export default function Settings() {
     products: 'manage_settings', packages: 'manage_users', users: 'manage_users',
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
-    tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions',
+    tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions', giaoHang: 'manage_settings',
   };
   const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
 
@@ -222,7 +223,7 @@ export default function Settings() {
   // thi mo dung the dau tien HO XEM DUOC.
   const NHOM_THE = [
     { ma: 'ban', ten: 'Bán hàng', the: [
-      ['products', 'manage_settings'], ['packages', 'manage_users'], ['gioHoatDong', 'manage_settings'], ['inPhieu', 'manage_settings'], ['manKhach', 'manage_settings'],
+      ['products', 'manage_settings'], ['packages', 'manage_users'], ['gioHoatDong', 'manage_settings'], ['inPhieu', 'manage_settings'], ['manKhach', 'manage_settings'], ['giaoHang', 'manage_settings'],
     ]},
     { ma: 'khach', ten: 'Khách hàng', the: [
       ['loyalty', 'manage_settings'], ['signup', 'manage_settings'],
@@ -1012,6 +1013,11 @@ export default function Settings() {
           {theTrongNhom.includes('manKhach') && hasPermission('manage_settings') && (
           <button className={`btn ${tab === 'manKhach' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('manKhach')}>
             🖥️ Màn khách
+          </button>
+          )}
+          {theTrongNhom.includes('giaoHang') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'giaoHang' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('giaoHang')}>
+            🛵 Giao hàng
           </button>
           )}
           {theTrongNhom.includes('users') && hasPermission('manage_users') && (
@@ -2192,6 +2198,8 @@ export default function Settings() {
             <CaiDatManKhach />
           ) : tab === 'chuongTrinh' ? (
             <CaiDatChuongTrinh />
+          ) : tab === 'giaoHang' ? (
+            <CaiDatGiaoHang />
           ) : null}
         </div>
       </div>

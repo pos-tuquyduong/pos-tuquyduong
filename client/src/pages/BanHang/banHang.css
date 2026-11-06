@@ -88,3 +88,8 @@
 .bh-cai-dat { position: absolute; right: 0; top: 100%; z-index: 30; background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; padding: 0.9rem; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 0.6rem; }
 
 @media (max-width: 768px) { .bh { height: calc(100dvh - 160px); } }   /* chừa thanh điều hướng đáy của Layout */
+/* GIAO-1: khung giao hàng trong giỏ */
+.bh-giao { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.4rem 0.9rem 0; }
+.bh-giao input { width: 100%; min-height: 44px; border: 1.5px solid var(--bh-vien); border-radius: 8px; padding: 0 0.75rem; font-size: 1rem; }
+.bh-giao .bh-nut.bh-lon { width: 100%; margin: 0.2rem 0 0; }
+.bh-loi-nho { color: var(--bh-do); font-size: 0.85rem; }

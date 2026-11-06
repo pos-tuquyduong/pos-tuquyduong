@@ -227,6 +227,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
       nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',
       qr: duongQr(settings?.[KHOA_DIA_CHI_KH], maDung), chu_qr: hien('chu_qr') ? d('chu_qr') : '',
       gio: gioHienThi(hd?.don?.gio), nhan_vien: hd?.don?.nhan_vien || '', khach: khach.la_khach_le === false ? khach.ten : (khach.ten || 'Khách lẻ'),
+      giao: hd?.giao?.dia_chi ? `GIAO HÀNG: ${hd.giao.dia_chi}` : '',   // GIAO-1: đơn giao Ahamove
     },
     mon: (hd?.mon || []).map((x) => ({
       sl: x.so_luong, ten: x.ten, ghi_chu: x.ghi_chu || '', gia_goc: x.gia_goc, gia_hang: x.gia_hang ?? null,

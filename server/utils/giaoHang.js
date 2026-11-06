@@ -344,6 +344,7 @@ async function danhSach() {
       dia_chi: c.dia_chi, ghi_chu: c.ghi_chu || '', km: c.km, loai_xe: c.loai_xe, so_mon: soMon, mon: m, tong: c.total, thanh_toan: TEN_TRA[c.payment_method] || c.payment_method,
       phi_khach: c.phi_khach, phi_that: c.phi_that, chenh: c.chenh, phi_huy: c.phi_huy, loi: c.loi,
       tai_xe: { ten: c.tai_xe_ten, sdt: c.tai_xe_sdt, bien_so: c.tai_xe_bien_so }, nhan_luc: c.nhan_luc, goi_luc: c.goi_luc, goi_luc_goi_y: goiLuc,
+      toi_gio: !!goiLuc && goiLuc <= now,
       nhac: c.trang_thai === 'dang_pha' && !!c.nhan_luc && lechGiay(c.nhan_luc, cd.phut_nhac * 60) <= now,
       tim_lau: c.trang_thai === 'tim_xe' && !!c.goi_luc && c.goi_luc < lechGiay(now, -TIM_XE_TOI_DA_GIAY),
       in_tem_luc: c.in_tem_luc, lan_in_tem: c.lan_in_tem,
