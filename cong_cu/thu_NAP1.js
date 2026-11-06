@@ -536,6 +536,25 @@ async function main() {
     k('E7 duyệt hoàn trừ điểm phần tài khoản: trọn ví 21 → 0; ví 10.400 + tiền mặt 10.600 (21) → trừ 11 (làm tròn LÊN) → 10; con 5.000 + mẹ 5.000 + tiền mặt 11.000 (21) → 11; điểm luật cũ (earn trước 014) → giữ 21; I8 = 0 lệch',
       hk.every((r) => r.status === 200) && JSON.stringify(truoc) === '[21,21,21,21]' && JSON.stringify(sau) === '[0,10,11,21]' && lechI8.length === 0,
       `${hk.map(moTa).join(' · ')} · trước ${JSON.stringify(truoc)} · sau ${JSON.stringify(sau)} · ${lechI8.join(' | ')}`);
+    // E9 (soát độc lập sau vá điểm): mẫu số ở CHỖ GỌI = tiền tính điểm (trừ phí giao), không phải total; nhiều nhóm hạn: trừ nhóm KHÔNG hạn
+    // (xa nhất) trước, mỗi nhóm trừ dần (tổng trừ đúng một lần).
+    await napTay(sE, 30000);
+    const e9a = await ban({ customer_phone: sE, payment_method: 'cash', balance_amount: 10000, cash_amount: 14000, shipping_fee: 3000 });
+    const e9b = await ban({ customer_phone: sE, payment_method: 'cash', balance_amount: 10400, cash_amount: 10600 });
+    if (e9b.order) {
+      const dong = await mot("SELECT id FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [e9b.order.id]);
+      await db.run('UPDATE pos_point_transactions SET points = 11 WHERE id = ?', [dong?.id]);
+      await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
+        SELECT customer_phone, 'earn', 10, order_id, '2099-12-31T00:00:00', reason, created_by, created_at FROM pos_point_transactions WHERE id = ?`, [dong?.id]);
+    }
+    const d9 = [e9a.order ? await diemDon(e9a.order.id) : NaN, e9b.order ? await diemDon(e9b.order.id) : NaN];
+    const h9 = [e9a.order ? await hoan(e9a.order.id) : e9a, e9b.order ? await hoan(e9b.order.id) : e9b];
+    const s9 = [e9a.order ? await diemDon(e9a.order.id) : NaN, e9b.order ? await diemDon(e9b.order.id) : NaN];
+    const khongHan = e9b.order ? await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ? AND expires_at IS NULL', [e9b.order.id]) : NaN;
+    const coHan = e9b.order ? await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ? AND expires_at IS NOT NULL', [e9b.order.id]) : NaN;
+    k('E9 ví 10.000 + tiền mặt 14.000, phí giao 3.000 (tiền tính điểm 21.000, 21 điểm) → trừ 10 → 11; hai nhóm hạn (không hạn 11 + hạn 2099 10), trừ 11 → nhóm không hạn 0, nhóm có hạn giữ 10',
+      h9.every((r) => r.status === 200) && JSON.stringify(d9) === '[21,21]' && JSON.stringify(s9) === '[11,10]' && khongHan === 0 && coHan === 10,
+      `${h9.map(moTa).join(' · ')} · trước ${JSON.stringify(d9)} · sau ${JSON.stringify(s9)} · không hạn ${khongHan} · có hạn ${coHan}`);
     // Dọn dữ liệu GIẢ của e7d (earn lùi ngày — bài không chạy chế độ đối soát thật nên I8 không nhận luật cũ) để K9 cuối bài soi phần còn lại.
     if (e7d.order) await db.run("DELETE FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [e7d.order.id]);
     k('E8 diemTruKhiHoan: tỷ lệ làm tròn LÊN, không quá điểm, 0 khi không có điểm / tiền',
