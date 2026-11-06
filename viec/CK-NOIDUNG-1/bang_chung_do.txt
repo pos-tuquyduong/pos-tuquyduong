@@ -141,7 +141,25 @@ TRÊN CODE TRƯỚC VÒNG SỬA 2 (de6cf86) → ĐỎ: 103 đạt · 6 hỏng �
 Ca XANH cả trên de6cf86 (đối chứng K5 — luồng phải KHÔNG bị chặn): X3, X4, X6, X5 (kịch bản đúng không ĐỎ). X2b xanh trên gốc (gốc không cộng ví).
 TRÊN CODE ĐÃ VÁ (ca6aa19) → 109 đạt · 0 hỏng (thoát 0).
 
-SỐ CA cong_cu/thu_CKNOIDUNG1.js: 109
+### cong_cu/thu_CKNOIDUNG1.js — bản Q6 B (chủ quán 06.11: phiên đã có báo từ cổng kia → KHÔNG tự cộng ví; G9c, X1–X6 đổi mong; thêm Y1, Y2, Y3
+### = đúng ba thứ tự soát vòng 3 lỗi 1, và một ca Đối soát Y1–Y3) — commit 408ae4a
+TRÊN CODE GỐC (4ec877f, cây dựng bằng git archive + bài thử HEAD) → ĐỎ: 22 đạt · 87 hỏng (thoát 1) — mọi dòng đỏ ở trên vẫn đỏ, các ca đổi / mới:
+  ✗ G9c (Q6 B) phiên đã có báo từ cổng kia → báo SePay thêm (giao dịch khác) KHÔNG tự cộng, ghi CẦN XEM "hai cổng" để chủ quán cộng tay  — ví 0 · chua_khop,chua_khop,chua_khop
+  ✗ X1 … — ví 0 (mong 25000) · ✗ X1b … — ví 0 (mong 25000) · ✗ X2 … — ví 0 (mong 0) (thiếu 2 dòng "KHÔNG tự cộng") · ✗ X2b … (thiếu dòng "KHÔNG tự cộng")
+  ✗ X3 … — ví 0 (mong 25000) · ✗ X4 … — ví 0 (mong 50000) · ✗ X6 … — ví 0 (mong 25000)
+  ✗ Y1 huỷ; S T2 · P T1 · P T2 · S T1 → cộng 25.000 (không thừa), 3 CẦN XEM  — ví 0 (mong 25000)
+  ✗ Y2 huỷ; S T1 · P T2 · P T1 · S T2 → cộng 20.000, 3 CẦN XEM (25.000 cộng tay)  — ví 0 (mong 20000)
+  ✗ Y3 huỷ; P T1 · S T2 · S T1 · P T2 → cộng 20.000, 3 CẦN XEM (25.000 cộng tay)  — ví 0 (mong 20000)
+  ✗ Y1–Y3 Đối soát: báo không tự cộng ở CẦN XEM (3 dòng "KHÔNG tự cộng" mỗi phiên), không dòng ĐỎ nào  — (gốc: "phiên đang huy lúc tiền về" ĐỎ)
+TRÊN CODE TRƯỚC Q6 B (e7842a9 = HEAD vòng 3) → ĐỎ: 103 đạt · 10 hỏng — đúng lỗi người soát vòng 3 báo, qua webhook THẬT:
+  ✗ Y1 … — ví 50000 (mong 25000) · vao_vi,chua_khop,vao_vi,chua_khop      (tiền thật 45.000 — cộng THỪA 5.000)
+  ✗ Y2 … — ví 40000 (mong 20000) · vao_vi,chua_khop,vao_vi,chua_khop      (cộng 20.000 + 20.000 — khoản 25.000 bị coi là "bản sao")
+  ✗ Y3 … — ví 40000 (mong 20000) · vao_vi,chua_khop,vao_vi,chua_khop
+  ✗ G9c — ví 50000 · ✗ X1 / X1b — ví 50000 (mong 25000) · ✗ X2 — ví 25000 (mong 0) · ✗ X2b / X3 (thiếu dòng "KHÔNG tự cộng") · ✗ Y1–Y3 Đối soát
+Ca XANH cả trên e7842a9 (đối chứng K5 — luồng một cổng phải KHÔNG bị chặn): X4 (một cổng hai khoản → cộng 2), X6 (tài khoản khác không tính).
+TRÊN CODE ĐÃ VÁ (72930df) → 113 đạt · 0 hỏng (thoát 0).
+
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 113
 SỐ CA cong_cu/thu_SEPAY1.js: 78
 SỐ CA cong_cu/thu_P26c.js: 157
 SỐ CA cong_cu/thu_KHMUA1.js: 122

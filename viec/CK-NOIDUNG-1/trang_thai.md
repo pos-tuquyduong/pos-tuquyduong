@@ -30,6 +30,16 @@
   ec477bf CK-NOIDUNG-1: Q1b chi phien App huy / het han (phien loi giu chua_khop) + ca G11 + dot bien VS-cong-vi-ca-loi
   ```
 
+## Đối chiếu bản chụp — lượt "tiep Q6 B" 06.11
+- Nhánh `viec/CK-NOIDUNG-1`; cây sạch; hook mở phiên đã kéo `4ec877f → e7842a9`; `git fetch` được.
+- HEAD `e7842a9` · FETCH_HEAD `e7842a9` — bằng nhau, không kéo.
+- `git log --oneline -3`:
+  ```
+  e7842a9 CK-NOIDUNG-1: bao cao soat vong 3 (nguyen van) - con loi vi khi bat hai cong; het 3 vong -> Cau hoi Q6, DUNG
+  68a7cd1 CK-NOIDUNG-1: dot bien 58/58 BAT sau vong sua 2 (sua mau VS-ly-do-ngan-thu-tu)
+  c7a8d20 CK-NOIDUNG-1: bao cao soat vong 2 (nguyen van) + vong sua 2, bang chung do (SO CA 109), dot bien moi
+  ```
+
 ## Tiến độ
 - Lượt đầu: bước 2–3 xong; phiếu dặn chờ duyệt → dừng ở bước 3. Người gác chặn một lệnh ghép (B-PHANTICH) → viết file bằng Write.
 - Lượt "tiep" 05.11 (chủ quán duyệt a10a453, trả lời Q1–Q3 ở phiếu 150e7db):
@@ -53,6 +63,19 @@
   - Bước 6: `npm test -- --day-du` → PASS 102 · FAIL 0 · CẢNH BÁO 2 (cả hai cảnh báo ở file KHÔNG thuộc việc này: "route GET có lệnh ghi" packages.js /
     products.js / sync.js; "route ghi không qua loiGhi" 54 — có từ trước).
   - Đột biến: `python3 viec/CK-NOIDUNG-1/dot_bien.py` — ĐỐI CHỨNG XANH (ck 95 · 0, kh 95 · 0); TỔNG 48 · BẮT 48 · SỐNG 0 · HỎNG 0 · LẠC 0.
+- Lượt "tiep Q6 B" 06.11 (chủ quán chọn B — đơn giản hoá, không cần vòng soát 4; soát nhanh một lần phần vừa đổi):
+  - Bước 4: `thu_CKNOIDUNG1.js` G9c, X1–X6 đổi mong theo luật B + cột "số dòng KHÔNG tự cộng"; thêm Y1, Y2, Y3 (đúng ba thứ tự soát vòng 3 lỗi 1,
+    T1 = 20.000 · T2 = 25.000) + ca Đối soát Y1–Y3 — commit 408ae4a. ĐỎ trên gốc (22 · 87) và trên e7842a9 (103 · 10: Y1 ví 50.000 cho 45.000
+    thật, Y2 / Y3 40.000). Bằng chứng + SỐ CA 113: `bang_chung_do.txt`.
+  - Bước 5 (72930df): thanh-toan.js — `laBanSao` (ghép theo thứ tự) bỏ, thay `congKiaDaBao`: đường vào ví, phiên đã có báo tiền vào từ CỔNG
+    KIA → chua_khop "có thể cùng một khoản báo qua hai cổng … máy KHÔNG tự cộng — đối chiếu sao kê, khoản chưa cộng thì cộng tay vào tài khoản
+    <SĐT>" (CẦN XEM). Đường chốt đơn (phiên đã chốt) trả về NGUYÊN `daBao` của main (chỉ đổi nhãn ĐỎ / CẦN XEM, không chuyển tiền) — soát vòng 3
+    lỗi 4 (có từ main) + lỗi 5 (đổi hành vi so với daBao) hết là chỗ của việc này. Dòng ĐỎ "vượt số khoản" (doiSoat.js) GIỮ. Hợp đồng
+    `tien_ve_da_cong_vi` sửa câu "hai cổng".
+  - Bước 6: `thu_CKNOIDUNG1.js` 113 · 0; `npm test -- --day-du` PASS 102 · FAIL 0 · CẢNH BÁO 2 (như trước).
+  - Đột biến: ĐỐI CHỨNG XANH (ck 113 · 0, kh 95 · 0, sp 78 · 0) · TỔNG 57 · BẮT 57 · SỐNG 0 · HỎNG 0 · LẠC 0. Bỏ 3 đột biến của laBanSao / đường chốt
+    (VS-hai-cong-moi-bao, VS-hai-cong-chi-vao-vi, BV-chot-ban-sao — đường chốt về main, không còn là chỗ vá); thêm VS-hai-cong-thu-tu (đưa lại
+    ĐÚNG lỗi vòng 3: ghép theo thứ tự đếm), VS-hai-cong-ca-cong-nay (chặn oan một cổng).
 - Người gác chặn trong lượt "tiep" lần 2: GIT-TUYCHON ×1 (`git -C`), B-PHANTICH ×4 (`$(( ))`, script ghép `&&`, `$'…'`, heredoc + chạy),
   B-CHUONGTRINH ×1 (`bash <script nháp>`) → viết file bằng Write, chạy script Python đứng một mình.
 - Người gác chặn trong lượt này (đọc lý do, làm theo): B-PHANTICH ×5 (lệnh chạy script ghép `> file`, `$'…'`, `git status &&`, heredoc + chạy),
@@ -74,6 +97,10 @@
 | Q1a route xác nhận tay muộn + chặn App; chotPhien `muon` | BV-xnt-muon · BV-xnt-chan-app · VS-muon-moi-cach · VS-muon-khoa-loi |
 | Q1a Đối soát: nút + CẦN XEM sau xác nhận | BV-nut-xnt · BV-da-tay-can-xem |
 | Q1b cộng ví App (một lần, chỉ App, huỷ / hết hạn / lỗi vì đơn) — thanh-toan.js `vaoViDuoc`, `vaoVi` | BV-cong-vi · VS-cong-vi-hai-lan · VS-cong-vi-quay · VS-cong-vi-chi-huy · BV-cong-vi-loi |
+| Q6 B: `congKiaDaBao` — cổng kia đã báo → không tự cộng, CẦN XEM; một cổng không bị chặn; tài khoản khác không tính | BV-hai-cong-vao-vi · VS-hai-cong-thu-tu · VS-hai-cong-ca-cong-nay · VS-hai-cong-chi-ghi-tien · VS-hai-cong-dem-tk-khac |
+| Lưới Đối soát ĐỎ "vượt số khoản" (doiSoat.js `phepTienVe`) | BV-doi-soat-vuot |
+| Lý do ngắn cho App (donApp.js `LY_DO_NGAN`) | VS-ly-do-discount · VS-ly-do-ngan-thu-tu |
+| Đối soát số của phiên có tiền về ghi "xem mục CK" | BV-so-ve-moi-trang-thai |
 | Lượt 2: chốt hỏng vì đơn → đọc lại phiên → vào ví; ghi chú ví + lý do báo có mã GD | BV-cong-vi-sau-chot · BV-ghi-chu-loi · BV-ma-gd-doi-soat |
 | Lượt 2: App `thong_bao_tien_ve` + lý do ngắn (không lộ lời lỗi nội bộ) | BV-thong-bao-app · VS-ly-do-noi-bo |
 | Lượt 2: quầy thấy dòng `vao_vi` (dsQuay, DonApp.jsx, DonAppNoi.jsx, dist) | BV-quay-vao-vi · BV-man-vao-vi |
@@ -88,7 +115,7 @@
 (Q4, Q5 dưới đây ĐÃ được chủ quán trả lời 05.11 — phiếu 9229b85: CÓ cả hai; kèm luật mới "phiên App lỗi vì đơn cũng vào ví" — kế hoạch mục
 "Sau duyệt lần 2".)
 
-**Q6 — (MỞ, 05.11) Hết 3 vòng soát, còn một lỗ ở ví khi BẬT CẢ HAI cổng QR (payOS + SePay) cùng lúc — bạn chọn cách xử lý.**
+**Q6 — (ĐÃ TRẢ LỜI 06.11: "tiep Q6 B" — làm theo B, xem Tiến độ lượt "tiep Q6 B") Hết 3 vòng soát, còn một lỗ ở ví khi BẬT CẢ HAI cổng QR (payOS + SePay) cùng lúc — bạn chọn cách xử lý.**
 - *Chuyện gì:* khi cả payOS lẫn SePay cùng theo dõi tài khoản quán, MỘT lần khách chuyển tiền sẽ được báo về HAI lần (mỗi cổng một lần). Với đơn
   App đã huỷ / hết hạn / lỗi, máy tự cộng tiền vào ví khách — nên phải nhận ra "hai báo này là một khoản" để chỉ cộng một lần. Hiện máy ghép hai
   báo theo THỨ TỰ (báo thứ 1 của cổng này = báo thứ 1 của cổng kia). Người soát vòng 3 chỉ ra: khách chuyển HAI khoản KHÁC số tiền (vd 20.000
@@ -148,6 +175,12 @@
   một bước nâng cấp sau.
 - Đơn / phiên hỏng TRONG giao dịch (ví thiếu, giá đổi…) → số hoá đơn rollback cùng giao dịch, không thành chỗ trống. Số chỉ "huỷ" khi phiên QR
   đã hiện (khách có thể đã thấy số) — đúng ý "mỗi chỗ trống có lý do".
+
+- (Q6 B, soát vòng 3 lỗi 4) Đường chốt đơn = `daBao` của main: payOS chốt T1, khách chuyển thêm T2, SePay báo T1 rồi T2, payOS báo T2 → hai dòng
+  ĐỎ cho một khoản T2 (có từ main, SEPAY-1). Chỉ khi bật CẢ HAI cổng; không chuyển tiền — chủ quán đối chiếu sao kê trước khi hoàn. Muốn sửa thì
+  việc sau (cùng luật B: cổng kia đã báo → CẦN XEM; phải đổi ca C14c của `thu_SEPAY1.js`).
+- (Q6 B) Bật cả hai cổng thì MỌI khoản về muộn / lỗi của đơn App sau báo đầu phải cộng tay (CẦN XEM "KHÔNG tự cộng"). Đường "lệch tiền" khi phiên
+  còn hạn vẫn không xét hai cổng (ghi ở soát vòng 2).
 
 ## Soát độc lập
 
