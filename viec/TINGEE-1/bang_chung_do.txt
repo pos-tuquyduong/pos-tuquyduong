@@ -4,7 +4,7 @@ Bài: cong_cu/thu_TINGEE1.js
 Code gốc: a935313 (main f9fd8b5 đã gộp + tài liệu) — git archive a935313 server cong_cu … vào thư mục nháp, chép bài thử của HEAD vào, chạy:
   node cong_cu/thu_TINGEE1.js
 
-Trên GỐC → 11 đạt · 42 hỏng (thoát 1). Các ca ĐỎ chính:
+Trên GỐC → 11 đạt · 43 hỏng (thoát 1) — chạy lại sau khi thêm ca F2 (đột biến VS-huong-dan-khong-quay-lai SỐNG lộ lỗ). Các ca ĐỎ chính:
   ✗ A1 CONG_QR=tingee đủ biến → tạo phiên QR 200  — HTTP 503 (chưa có cổng tingee)
   ✗ A3 TINGEE_MOI_TRUONG=production / uat → cài được (200)  — HTTP 503
   ✗ A5 GET /settings có cong_qr = { ten: 'Tingee', da_cai: true }  — không có trường cong_qr
@@ -14,11 +14,11 @@ Trên GỐC → 11 đạt · 42 hỏng (thoát 1). Các ca ĐỎ chính:
   ✗ D: bài chạy hết mục (đường chưa có)
   ✗ E1 nhãn Đối soát "Tingee giao dịch FT…"; E1 "tài khoản khác" của Tingee ở CẦN XEM
   ✗ E2 phiên ghi tiền 2 lần (đơn Tingee + cộng ví payOS) → ĐỎ "vượt số khoản thật" (gốc gộp Tingee vào cột payOS → lọt)
-  ✗ T1 / T2 index.js chưa gắn thân thô + đường Tingee; T3 bộ kiểm chưa chạy bài; F1 chưa có cai_dat_tingee.md
+  ✗ T1 / T2 index.js chưa gắn thân thô + đường Tingee; T3 bộ kiểm chưa chạy bài; F1 / F2 chưa có cai_dat_tingee.md
 Các ca XANH trên gốc (11) là ca CHẶN / ca K5, đúng là phải xanh trên cả gốc: A2 (7 ca thiếu / sai biến → 503 — trên gốc
 cổng tingee chưa có nên mọi giá trị đều 503; ý nghĩa thật của chúng do đột biến VS-thieu-client-id-van-cai / VS-moi-truong-la-van-cai
-bắt), A4 (CONG_QR=sepay như cũ), B0 (tự kiểm CRC), X1 / X2 (khoá không lộ — bắt bởi VS-lo-khoa-settings, VS-luu-client-id).
+bắt), A4 (CONG_QR=sepay như cũ), B0 (tự kiểm CRC), X1 / X2 (khoá không lộ — bắt bởi VS-lo-khoa-nhat-ky, BV-luu-client-id).
 
-Trên code ĐÃ VÁ (HEAD) → 69 đạt · 0 hỏng.
+Trên code ĐÃ VÁ (HEAD) → 70 đạt · 0 hỏng.
 
-SỐ CA cong_cu/thu_TINGEE1.js: 69
+SỐ CA cong_cu/thu_TINGEE1.js: 70
