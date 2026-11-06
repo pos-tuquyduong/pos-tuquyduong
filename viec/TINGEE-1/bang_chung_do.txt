@@ -4,7 +4,8 @@ Bài: cong_cu/thu_TINGEE1.js
 Code gốc: a935313 (main f9fd8b5 đã gộp + tài liệu) — git archive a935313 server cong_cu … vào thư mục nháp, chép bài thử của HEAD vào, chạy:
   node cong_cu/thu_TINGEE1.js
 
-Trên GỐC → 11 đạt · 43 hỏng (thoát 1) — chạy lại sau khi thêm ca F2 (đột biến VS-huong-dan-khong-quay-lai SỐNG lộ lỗ). Các ca ĐỎ chính:
+Trên GỐC → 11 đạt · 45 hỏng (thoát 1) — chạy lại sau vòng sửa 1 (thêm ca F2; C6 "CREDIT" / null; D3 số gốc trùng, chưa cài số VA).
+(Trên gốc mục D dừng ở D1 vì đường chưa có — các ca D sau D1 không in; trên HEAD đủ 74 ca.) Các ca ĐỎ chính:
   ✗ A1 CONG_QR=tingee đủ biến → tạo phiên QR 200  — HTTP 503 (chưa có cổng tingee)
   ✗ A3 TINGEE_MOI_TRUONG=production / uat → cài được (200)  — HTTP 503
   ✗ A5 GET /settings có cong_qr = { ten: 'Tingee', da_cai: true }  — không có trường cong_qr
@@ -19,6 +20,6 @@ Các ca XANH trên gốc (11) là ca CHẶN / ca K5, đúng là phải xanh trê
 cổng tingee chưa có nên mọi giá trị đều 503; ý nghĩa thật của chúng do đột biến VS-thieu-client-id-van-cai / VS-moi-truong-la-van-cai
 bắt), A4 (CONG_QR=sepay như cũ), B0 (tự kiểm CRC), X1 / X2 (khoá không lộ — bắt bởi VS-lo-khoa-nhat-ky, BV-luu-client-id).
 
-Trên code ĐÃ VÁ (HEAD) → 70 đạt · 0 hỏng.
+Trên code ĐÃ VÁ (HEAD) → 74 đạt · 0 hỏng.
 
-SỐ CA cong_cu/thu_TINGEE1.js: 70
+SỐ CA cong_cu/thu_TINGEE1.js: 74
