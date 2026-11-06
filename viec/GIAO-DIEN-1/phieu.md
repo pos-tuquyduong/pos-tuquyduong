@@ -29,8 +29,22 @@ chủ quán làm được.
 - E **Nạp tay chỉ chủ quán**: quyền `topup_balance` của manager và staff = 0 (bước nâng cấp 018, chỉ đổi dữ liệu quyền, chạy một lần); seed
   trong database.js cho kho MỚI cũng là 0 cho manager / staff. Máy chủ `POST /wallets/topup` vẫn kiểm quyền như nay (manager / staff gọi → 403).
   Màn Phân quyền vẫn cho chủ quán bật lại nếu muốn.
+- F **Thẻ mã QR thương hiệu** (chủ quán duyệt mẫu 06.11 — `viec/GIAO-DIEN-1/mau_the_QR_TQD.png`; logo `viec/GIAO-DIEN-1/logo_TQD_bieu_tuong.png`,
+  nền trong suốt, chép vào `client/src/assets/`): MỌI chỗ HIỆN mã QR thanh toán trên MÀN HÌNH (màn quầy, màn khách nhìn, phiên QR mọi cổng —
+  payOS / SePay / Tingee) dùng CHUNG một component. Thẻ: nền kem #FBF3E6, viền vàng kim #B08028, bo góc lớn; đầu thẻ logo + "Tứ Quý Đường" (đỏ đô
+  #7A1E18) + "Quét mã để thanh toán"; ô trắng chứa số tiền chữ to, mã QR, dưới mã "HD0016 · <nội dung chuyển khoản>". KHÔNG có dòng chữ ở cuối
+  thẻ. Giữ đồng hồ đếm ngược / trạng thái phiên đang có. Mã: mức sửa lỗi H; chấm TRÒN; 3 ô góc bo tròn và TÔ ĐẶC (vòng ngoài liền + lõi, không
+  vẽ vòng rỗng); màu theo vị trí 4 mảnh logo — trên trái xanh đậm #253A6E, trên phải vàng kim #966923, dưới trái xanh lá #347042, dưới phải đỏ
+  #B2342C (chấm theo 4 phần tư, ô góc theo góc của nó); viền trắng quanh mã ≥ 3 ô; logo tròn trên nền tròn trắng ở giữa, đường kính logo ≤ 20%
+  bề ngang phần mã. Màu chấm luôn trên nền TRẮNG (cả khi giao diện tối). Chat đã thử: mẫu này giải mã đúng khi thu nhỏ còn 40%.
+  Bill / phiếu IN nhiệt GIỮ mã vuông đen như hiện nay (`veQr` cũ) — không đổi. Thêm hàm vẽ mới cạnh `client/src/utils/veQr.js` (dùng lại
+  qrcode-generator 1.4.4 sẵn có — không thư viện mới). Bài thử: hàm thuần trả đúng ma trận (giải lại bằng chính qrcode-generator so dữ liệu),
+  mức H, màu theo phần tư, logo ≤ 20%, có viền trắng. Thử quét THẬT bằng app MB, Vietcombank, Techcombank + MoMo / ZaloPay (chủ quán thử trên
+  bản chạy thử, ghi kết quả vào trang_thai.md) trước khi báo xong.
 - K5 **Không đổi:** cách tính tiền, ví, đơn, điểm; cửa App; màn Bán hàng (ngoài dải báo); in.
 
+<!-- Chủ quán 06.11 (chat claude.ai, bàn 32): thêm mục F — thẻ mã QR thương hiệu theo mẫu đã duyệt, bỏ dòng chữ cuối thẻ. Phần App KH: chat gửi thư cho
+     App dùng cùng mẫu + logo (App tự vẽ QR từ chuỗi POS trả). -->
 ## Phạm vi
 - viec/GIAO-DIEN-1/**
 - client/src/**
