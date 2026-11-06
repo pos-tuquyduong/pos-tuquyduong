@@ -5,7 +5,7 @@
  * - Chốt (tiền mặt / tài khoản / QR payOS · SePay · Tingee / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
  * - Hết hạn = tự nhả theo đồng hồ (Render ngủ, không hẹn giờ); huỷ / hết hạn không ghi dòng tiền nào.
  * - CK-NOIDUNG-1: phiên QR (cach 'payos') và MỌI phiên App giữ số hoá đơn NGAY trong giao dịch tạo phiên (helpers capSoHoaDon); cổng SePay
- *   ghi nội dung TQD<MMM><DD> HD|APP<4 số>, cổng payOS giữ TQD<mã phiên> (≤ 9 ký tự). Đơn chốt từ phiên mang đúng số đã giữ.
+ *   và Tingee (NOI_DUNG_SO_HD) ghi nội dung TQD<MMM><DD> HD|APP<4 số>, cổng payOS giữ TQD<mã phiên> (≤ 9 ký tự). Đơn chốt từ phiên mang đúng số đã giữ.
  *   Xác nhận tay sau khi QR hết hạn / đã huỷ (chủ quán Q1a 05.11): cờ `muon` CHỈ nới điều kiện thời gian của cổng, vẫn một câu ghi.
  */
 const { queryOne, run } = require('../database');
@@ -17,7 +17,7 @@ const { kiemPin } = require('./pinKhach');
 const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
 
 const HAN_PHUT = 10;
-const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
+const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
 const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
   'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy'];

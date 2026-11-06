@@ -19,7 +19,7 @@ về tài khoản cũ nhưng KHÔNG còn tự báo tiền về: mọi đơn QR p
    - URL: `https://www.pos-tuquyduong.io.vn/api/tingee/webhook` (có `www`)
    - Phạm vi sự kiện: **QR Code** · Loại áp dụng: Tất cả
    - Kiểu chứng thực: **API Credentials** (không chọn None / API Key)
-   - Bật gửi lại (Retry), lưu. Bấm "Kiểm tra kết nối": Tingee KÝ tin thử thì máy chủ trả "00" (Đối soát có một dòng "tin thử kết nối" ở CẦN XEM, bỏ qua được);
+   - Bật gửi lại (Retry), lưu. Bấm "Kiểm tra kết nối": Tingee KÝ tin thử thì máy chủ trả "00" (Đối soát CẦN XEM có thể thêm một dòng "tin thử kết nối" hoặc "không có mã TQD" — bỏ qua được);
      Portal báo lỗi 401 / "09" nghĩa là tin thử không mang chữ ký — không sao, làm tiếp bước 3–5 (đơn thử 2.000đ mới là phép thử thật).
 3. Chọn lúc **ngoài giờ bán**: Render → đặt `CONG_QR=tingee`, chờ Render khởi động lại (~1 phút).
 4. Tạo **một đơn thử 2.000đ** trả bằng QR, tự quét bằng app ngân hàng và trả.

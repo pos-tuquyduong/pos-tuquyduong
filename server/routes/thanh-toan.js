@@ -225,7 +225,7 @@ webhookSepay.post('/', async (req, res) => {
 
 // TINGEE-1: thân THÔ (index.js gắn express.raw riêng đường này). Trả lời theo viec/TINGEE-1/tai_lieu_tingee.md mục 3: 200 + {"code":"00"} khi
 // ghi nhận, {"code":"02"} khi báo lặp (khoá đã có dòng), sai chữ ký 401 + {"code":"09"}. Kho bận / lỗi máy chủ: 409 / 500 với code khác "00" /
-// "02" → Tingee gửi lại. Tin không có transactionCode (tin "Kiểm tra kết nối" của Portal, dạng lạ) → một dòng khong_phien (khoá = băm thân), "00".
+// "02" → Tingee gửi lại. Tin không có transactionCode (tài liệu không nói tin "Kiểm tra kết nối" của Portal có mã hay không — có thể là nó, hoặc dạng lạ) → một dòng khong_phien (khoá = băm thân), "00".
 const webhookTingee = express.Router();
 const DA_NHAN_TINGEE = { code: '00', message: 'Success' };
 webhookTingee.post('/', async (req, res) => {
@@ -242,7 +242,7 @@ webhookTingee.post('/', async (req, res) => {
     const json = res.json.bind(res);
     res.json = (x) => json(x?.success === true ? DA_NHAN_TINGEE : x);
     await xuLyTienVe(res, { ...d, duLieu: { ...b, clientId: undefined }, nguon: 'tingee',   // không lưu Client ID
-      boQua: !d.maGd ? 'Tingee: tin không có mã giao dịch (tin thử kết nối / dạng lạ)' : !d.vao ? 'Tingee báo tiền ra'
+      boQua: !d.maGd ? 'Tingee: tin không có mã giao dịch (có thể là tin thử kết nối / dạng lạ)' : !d.vao ? 'Tingee báo tiền ra'
         : !d.noiDung && !d.ma ? 'không có mã TQD trong nội dung' : null,
       khongPhien: `mã ${d.noiDung || 'TQD' + d.ma} không thuộc phiên nào` });
   } catch (err) {
