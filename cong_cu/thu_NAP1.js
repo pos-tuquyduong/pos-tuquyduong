@@ -89,7 +89,11 @@ async function main() {
     [ten, ten, vai])).lastInsertRowid);
   const chu = await mot("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const ky = (id) => jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  const THE_CHU = ky(chu.id), THE_NV = ky(await nguoi('nv_nap1', 'staff'));
+  const THE_CHU = ky(chu.id), THE_NV = ky(await nguoi('nv_nap1', 'staff')), THE_QL = ky(await nguoi('ql_nap1', 'manager'));
+  // Chủ quán 06.11 câu 2: tạo / sửa / bật / tắt gói nạp chỉ owner + PIN chủ quán (utils/pinChuQuan.js của HANG-1) — đặt sẵn PIN cho bài.
+  const PIN = '1357';
+  await db.run('INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den) VALUES (1, ?, 0, NULL)',
+    [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN, 4)]);
   const goi = async (method, url, body, the = THE_CHU) => {
     imLang();
     try {
@@ -111,8 +115,8 @@ async function main() {
   let soSdt = 0;
   const sdtMoi = () => '0938' + String(400000 + (++soSdt));
   const ban = (body) => goi('POST', '/orders', { customer_name: 'Khách NAP-1', items: [mon(0)], ...body });
-  const banNap = (sdt, goiId, them = {}) => goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách NAP-1', items: [],
-    goi_nap_id: goiId, payment_method: 'cash', cash_amount: 100000, ...them });
+  const banNap = (sdt, goiId, them = {}, the = THE_CHU) => goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách NAP-1', items: [],
+    goi_nap_id: goiId, payment_method: 'cash', cash_amount: 100000, ...them }, the);
   const vi = async (sdt) => {
     try { const w = await mot('SELECT balance, thuong FROM pos_wallets WHERE phone = ?', [sdt]); return { so_du: Number(w?.balance || 0), thuong: Number(w?.thuong || 0), co: !!w && w.thuong !== undefined }; }
     catch { return { so_du: NaN, thuong: NaN, co: false }; }
@@ -150,8 +154,9 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[A] Gói nạp: thêm / sửa / bật / tắt; khách trả > 0, vào tài khoản ≥ khách trả; quyền quản lý sản phẩm');
-  const taoGoi = (b, the) => goi('POST', '/goi-nap', b, the);
+  muc('[A] Gói nạp: thêm / sửa / bật / tắt; khách trả > 0, vào tài khoản ≥ khách trả; CHỈ chủ quán + PIN chủ quán (chủ quán 06.11)');
+  const taoGoi = (b, the) => goi('POST', '/goi-nap', { pin: PIN, ...b }, the);
+  const suaGoi = (id, b, the) => goi('PUT', `/goi-nap/${id}`, { pin: PIN, ...b }, the);
   const g1 = await taoGoi({ ten: 'Nạp 100k', khach_tra: 100000, vao_tk: 105000 });
   k('A1 tạo gói 100.000 → 105.000 → 200', g1.status === 200 && Number(g1.data?.id || g1.id) > 0, moTa(g1));
   const ID1 = Number(g1.data?.id || g1.id);
@@ -168,26 +173,46 @@ async function main() {
   k('A4 vào tài khoản = khách trả (ngay trên ngưỡng) → 200', a4.status === 200, moTa(a4));
   const ID_BANG = Number(a4.data?.id || a4.id);
   const a5 = await taoGoi({ ten: 'NV', khach_tra: 10000, vao_tk: 11000 }, THE_NV);
-  const a5b = await goi('PUT', `/goi-nap/${ID1}`, { is_active: 0 }, THE_NV);
-  k('A5 nhân viên không có quyền manage_products: thêm / sửa → 403', a5.status === 403 && a5b.status === 403, `${moTa(a5)} · ${moTa(a5b)}`);
+  const a5b = await suaGoi(ID1, { is_active: 0 }, THE_NV);
+  const a5c = await taoGoi({ ten: 'QL', khach_tra: 10000, vao_tk: 11000 }, THE_QL);
+  const a5d = await suaGoi(ID1, { vao_tk: 1000000 }, THE_QL);
+  const a5e = await suaGoi(ID1, { is_active: 0 }, THE_QL);
+  const sauA5 = await mot('SELECT vao_tk, is_active FROM pos_goi_nap WHERE id = ?', [ID1]).catch(() => null);
+  const chiChu = [a5, a5b, a5c, a5d, a5e].every((r) => r.status === 403 && r.code === 'CHI_CHU_QUAN');
+  k('A5 nhân viên VÀ quản lý (có quyền manage_products) gửi đúng PIN: thêm / sửa / tắt → 403 CHI_CHU_QUAN, gói giữ nguyên',
+    chiChu && (await so("SELECT COUNT(*) FROM pos_goi_nap WHERE ten IN ('NV', 'QL')")) === 0 && Number(sauA5?.vao_tk) === 105000 && Number(sauA5?.is_active) === 1,
+    [a5, a5b, a5c, a5d, a5e].map(moTa).join(' · '));
+  const a8a = await goi('POST', '/goi-nap', { ten: 'Không PIN', khach_tra: 10000, vao_tk: 11000 });
+  const a8b = await taoGoi({ ten: 'Sai PIN', khach_tra: 10000, vao_tk: 11000, pin: '9999' });
+  const a8c = await goi('PUT', `/goi-nap/${ID1}`, { is_active: 0 });
+  const a8d = await suaGoi(ID1, { vao_tk: 1000000, pin: '135' });
+  const sauA8 = await mot('SELECT vao_tk, is_active FROM pos_goi_nap WHERE id = ?', [ID1]).catch(() => null);
+  k('A8 chủ quán thiếu / sai PIN: thêm, tắt, sửa → 400 PIN_CHU_QUAN_SAI, không tạo, gói giữ nguyên',
+    [a8a, a8b, a8c, a8d].every((r) => r.status === 400 && r.code === 'PIN_CHU_QUAN_SAI')
+      && (await so("SELECT COUNT(*) FROM pos_goi_nap WHERE ten IN ('Không PIN', 'Sai PIN')")) === 0 && Number(sauA8?.vao_tk) === 105000 && Number(sauA8?.is_active) === 1,
+    [a8a, a8b, a8c, a8d].map(moTa).join(' · '));
   const g3 = await taoGoi({ ten: 'Nạp 20k', khach_tra: 20000, vao_tk: 21000 });
   const ID3 = Number(g3.data?.id || g3.id);
   const gTat = await taoGoi({ ten: 'Sẽ tắt', khach_tra: 30000, vao_tk: 33000 });
   const ID_TAT = Number(gTat.data?.id || gTat.id);
-  const a6 = await goi('PUT', `/goi-nap/${ID_TAT}`, { is_active: 0 });
+  const a6 = await suaGoi(ID_TAT, { is_active: 0 });
   const dsQuay = await goi('GET', '/goi-nap', null, THE_NV);
   const dsHet = await goi('GET', '/goi-nap/tat-ca');
   const thay = (r, id) => (r.data || []).some((x) => Number(x.id) === id);
   k('A6 tắt gói → 200; quầy (GET /goi-nap) không thấy gói tắt, thấy gói bật; Cài đặt (tat-ca) thấy cả hai',
     a6.status === 200 && dsQuay.status === 200 && !thay(dsQuay, ID_TAT) && thay(dsQuay, ID1) && thay(dsHet, ID_TAT) && thay(dsHet, ID1),
     `${moTa(a6)} · quầy ${JSON.stringify((dsQuay.data || []).map((x) => x.id))} · tất cả ${JSON.stringify((dsHet.data || []).map((x) => x.id))}`);
-  const a6b = await goi('PUT', `/goi-nap/${ID1}`, { vao_tk: 90000 });
-  const a6c = await goi('PUT', `/goi-nap/${ID_BANG}`, { ten: 'Bằng tiền', vao_tk: 52000 });
+  const a6b = await suaGoi(ID1, { vao_tk: 90000 });
+  const a6c = await suaGoi(ID_BANG, { ten: 'Bằng tiền', vao_tk: 52000 });
   const giuNguyen = await mot('SELECT vao_tk FROM pos_goi_nap WHERE id = ?', [ID1]).catch(() => null);
   k('A6b sửa thành vào tài khoản < khách trả → 400, gói giữ nguyên; sửa hợp lệ → 200',
     a6b.status === 400 && Number(giuNguyen?.vao_tk) === 105000 && a6c.status === 200, `${moTa(a6b)} · ${moTa(a6c)}`);
   const sTat = sdtMoi();
   const a7 = await banNap(sTat, ID_TAT, { cash_amount: 30000 });
+  const a9 = [await banNap(sdtMoi(), ID3, { cash_amount: 20000 }, THE_NV), await banNap(sdtMoi(), ID3, { cash_amount: 20000 }, THE_QL)];
+  const dsQL = await goi('GET', '/goi-nap', null, THE_QL);
+  k('A9 (K5) nhân viên và quản lý vẫn thấy gói đang bật và BÁN gói ở quầy → 200',
+    a9.every((r) => r.status === 200 && r.order?.total === 20000) && thay(dsQuay, ID3) && thay(dsQL, ID3), a9.map(moTa).join(' · ') + ' · ' + moTa(dsQL));
   k('A7 bán gói đang tắt → 400 GOI_NAP_KHONG_CO, ví không có', a7.status === 400 && a7.code === 'GOI_NAP_KHONG_CO' && (await vi(sTat)).so_du === 0, moTa(a7));
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -301,6 +326,14 @@ async function main() {
     if (typeof h === 'function') for (const [[vi, th, tra, hoan, x], n] of caH) { const r = await h(txGia(vi, th, tra, hoan), 's', 1, x); if (r !== n) lechH.push(`${[vi, th, tra, hoan, x]} → ${r} (đúng ${n})`); }
     else lechH.push('không có hàm');
     k('C0b thuongKhiHoan: tỷ lệ thưởng / ví của phần đã trừ, lần làm đủ phần ví trả NỐT thưởng (số lẻ), không vượt phần chưa trả, ví chưa trừ → 0', lechH.length === 0, lechH.join(' | '));
+    // Vòng sửa 4 (soát vòng 3 lỗi 1): lần "trả nốt" sau nhiều lần cộng nhỏ làm tròn về 0 — phần thưởng KHÔNG vượt chính khoản cộng (mọi nhánh).
+    const caT = [[[7, 3, 0, 6, 1], 1], [[7, 3, 0, 5, 2], 2], [[7, 3, 0, 4, 3], 3], [[7, 3, 0, 0, 7], 3], [[100, 99, 0, 99, 1], 1], [[10, 9, 0, 0, 1], 1]];
+    const lechT = [];
+    if (typeof h === 'function') {
+      for (const [[vi, th, tra, hoan, x], n] of caT) { const r = await h(txGia(vi, th, tra, hoan), 's', 1, x); if (r !== n) lechT.push(`${[vi, th, tra, hoan, x]} → ${r} (đúng ${n})`); }
+      for (const [[vi, th, tra, hoan, x]] of caH) { const r = await h(txGia(vi, th, tra, hoan), 's', 1, x); if (r > Math.max(x, 0)) lechT.push(`${[vi, th, tra, hoan, x]} → ${r} > khoản ${x}`); }
+    } else lechT.push('không có hàm');
+    k('C0c thuongKhiHoan: phần thưởng của một lần cộng lại ≤ chính khoản cộng, kể cả lần "trả nốt" (đã trừ 7 · thưởng 3 · đã cộng 6 · lần này 1 → 1)', lechT.length === 0, lechT.join(' | '));
   }
   const c1 = await ban({ customer_phone: s1, payment_method: 'balance', balance_amount: 21000 });
   const vc1 = await vi(s1);
