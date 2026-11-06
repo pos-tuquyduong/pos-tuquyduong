@@ -162,3 +162,23 @@ Máy đã đọc lại từng chỗ agent nêu, đều đúng:
 
 Các lệnh ghi thẳng `pos_balance_transactions` ngoài `ghiVi` (`orders.js:947` gắn `order_id`, `:1390` `debt_payment` ngoài danh sách tính vào ví)
 không đổi số dư — không cần ngăn thưởng.
+
+## 13. Đối chiếu code mới (06.11 — nhánh đã gộp main `f464cea`, HEAD `ae19926`) — các điểm dưới THAY mục tương ứng ở trên
+Chủ quán duyệt `d5ddc8f` + trả lời 3 câu (phiếu `e4dd0bf`): (1) thêm `diemThat.js`, `bat_bien.js`, 7 bài cũ vào Phạm vi · (2a) nhóm "Nạp tiền"
+chỉ ở màn Bán hàng MỚI · (3) đền bù một phần chia THEO TỶ LỆ thưởng / tiền nạp của phần đã trừ. Máy đọc lại trên code mới:
+1. **Bước nâng cấp:** main có `012`, `013` (HANG-1), `017` (CT-1a) → `014_nap.js` còn trống, giữ tên phiếu. `chay.js` chạy mọi bước chưa có
+   dòng `pos_nang_cap` theo thứ tự tên — máy thật đã chạy 017 vẫn chạy 014 lần đầu (không sửa `chay.js`).
+2. **HANG-1:** `membership_buy = { tier_id, so_thang }` (giá gói máy chủ tra), dải thẻ vẫn `−1000000 − tier.id` (`orders.js` khối dòng thẻ). Cổng
+   `NAP_KHONG_GOP` chặn `membership_buy` có mặt — không đổi.
+3. **Bất biến ngăn thưởng GỘP VÀO I4** (thay "I20" ở mục 6, 12): I4 đã là "ví = sổ"; thêm vế `thuong` = Σ`thuong` sổ và `0 ≤ thuong ≤ số dư`, mô
+   tả bắt đầu `ví <sđt>: số dư` (khớp khoá ngày `KHOA.I4` của `doiSoat.js`). Lý do: thêm I20 phải sửa `thu_DOISOAT1` A1 (khoá đúng 18 bất biến),
+   `AP_DUNG_TU`, bảng khoá — gộp ít dòng hơn, cùng nghĩa.
+4. **Vị từ đơn nạp = dòng hàng `product_id ≤ −2000000`** (thay "dòng sổ topup gắn đơn" ở mục 4): cùng khuôn nhận đơn gói / thẻ theo dòng hàng
+   (`doiSoat.js` két, I15); một hằng + một mẩu SQL ở `server/utils/viKhach.js` (`ID_NAP_TU`, `sqlDonNap`), dùng ở huỷ, xoá, báo cáo, két, I8, I15.
+5. **Quyền** `manage_products` có thật (`database.js` quyền mặc định owner 1 · manager 1 · staff 0) — dùng như kế hoạch.
+6. **Hợp đồng `/api/kh`:** NAP-1 không đổi cửa / trường nào; hành vi App thấy khác: đơn App trả ví nay có điểm (E), đơn nạp ở quầy hiện trong
+   `GET /don` của khách (không mã bill). `HOP_DONG_API_KH.md` KHÔNG có trong Phạm vi → máy không sửa; dòng nhật ký **v11** soạn sẵn ở
+   `trang_thai.md` để chat dán lúc gộp (chủ quán dặn "lấy số kế tiếp, chat chỉnh lúc gộp").
+7. **Mốc luật điểm mới** `DIEM_VI_TU = '2026-11-08'` (TẠM — chat sửa = ngày gộp + 1, khuôn `DIEM_THAT_TU`).
+8. `products.js`, `loyalty.js`, `refunds.js` không cần sửa (đã có trong Phạm vi, không đụng).
+Không chỗ lệch nào đổi đường tiền / ví so với kế hoạch đã duyệt → làm luôn.
