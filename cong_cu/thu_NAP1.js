@@ -92,8 +92,8 @@ async function main() {
   const THE_CHU = ky(chu.id), THE_NV = ky(await nguoi('nv_nap1', 'staff')), THE_QL = ky(await nguoi('ql_nap1', 'manager'));
   // Chủ quán 06.11 câu 2: tạo / sửa / bật / tắt gói nạp chỉ owner + PIN chủ quán (utils/pinChuQuan.js của HANG-1) — đặt sẵn PIN cho bài.
   const PIN = '1357';
-  await db.run('INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den) VALUES (1, ?, 0, NULL)',
-    [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN, 4)]);
+  await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu_nap1', ?)",
+    [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN, 4), getToday() + 'T00:00:00']);
   const goi = async (method, url, body, the = THE_CHU) => {
     imLang();
     try {
