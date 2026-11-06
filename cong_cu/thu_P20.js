@@ -291,13 +291,13 @@ async function main() {
     const sdtVi = sdtMoi(); await napVi(sdtVi, 100000);
     await phaiQua('ví 10.000 + tiền mặt 15.000',
       await taoDon('ví', { customer_phone: sdtVi, customer_name: 'Khách ví', items: [mon()], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 }));
-    // DIEM-THAT-1: đơn trả TRỌN bằng ví → 0 điểm gốc → /nhan-diem 400 DON_KHONG_DU_DIEM; voucher (/claim) vẫn qua (K5).
+    // NAP-1 (đổi DIEM-THAT-1, chủ quán 01.11): đơn trả TRỌN bằng ví CÓ điểm như tiền mặt → /nhan-diem 200; voucher (/claim) vẫn qua (K5).
     const sdtViTron = sdtMoi(); await napVi(sdtViTron, 25000);
     const dViTron = await taoDon('ví trọn', { customer_phone: sdtViTron, customer_name: 'Khách ví', items: [mon()], payment_method: 'balance', balance_amount: 25000 });
     const cViTron = await claim(dViTron.ma, sdtViTron);
     const nViTron = await nhanDiem(dViTron.ma, sdtViTron);
-    k('trả trọn bằng ví: /claim → 200; /nhan-diem → 400 DON_KHONG_DU_DIEM (DIEM-THAT-1)', cViTron.status === 200
-      && nViTron.status === 400 && nViTron.code === 'DON_KHONG_DU_DIEM', `${moTa(cViTron)} / ${moTa(nViTron)}`);
+    k('trả trọn bằng ví: /claim → 200; /nhan-diem → 200 (NAP-1: phần trả bằng ví có điểm)', cViTron.status === 200
+      && nViTron.status === 200, `${moTa(cViTron)} / ${moTa(nViTron)}`);
 
     // Đơn có giảm: máy chủ không nhận mức giảm client gửi, và từ KHACH-CK-1 (chủ quán 29.10) cũng không còn chiết khấu riêng
     // trong hồ sơ khách — đơn có giảm dựng bằng mã giảm tiền 5.000 (bản cũ dựng bằng hồ sơ fixed 5000).
