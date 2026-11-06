@@ -11,6 +11,7 @@
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString } = require('./helpers');
 const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('./congQr');
+const { sqlDonNap } = require('./viKhach');   // NAP-1: đơn nạp — một vị từ
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
 const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
@@ -94,6 +95,7 @@ function tinhKy(kieu, ngay) {
 // ─── Tiền theo sổ ───
 // Một quy tắc cho tiền mặt và chuyển khoản (cach = 'cash' | 'transfer'); chủ quán chốt 18.10 (B): tiền thật vào két trong kỳ =
 // bán + nạp ví + thu nợ theo NGÀY THU − trả ra. Thu nợ cộng thẳng vào cột tiền của đơn GỐC (orders.js pay-debt) nên bán phải trừ phần thu.
+// NAP-1: tiền gói nạp bán ở quầy nằm ở CỘT TIỀN của đơn nạp (vào `ban`, đổi cách trả theo đơn) — nạp ví chỉ đếm dòng topup KHÔNG gắn đơn (nạp tay).
 async function tienTheoSo(tu, den, cach) {
   const cot = cach === 'cash' ? 'cash_amount' : 'transfer_amount';
   const jTien = `CASE WHEN json_valid(chi_tiet) THEN (CASE WHEN json_extract(chi_tiet, '$.cach') = ? THEN json_extract(chi_tiet, '$.so_tien') END) END`;
@@ -102,7 +104,7 @@ async function tienTheoSo(tu, den, cach) {
       FROM pos_orders o WHERE DATE(o.created_at) BETWEEN ? AND ?`, [cach, tu, den]),
     chiDoc(`SELECT COALESCE(SUM(${jTien}), 0) AS n FROM pos_order_log WHERE loai = 'thu' AND DATE(luc) BETWEEN ? AND ?`, [cach, tu, den]),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions
-      WHERE type = 'topup' AND COALESCE(payment_method, 'cash') = ? AND DATE(created_at) BETWEEN ? AND ?`, [cach, tu, den]),
+      WHERE type = 'topup' AND order_id IS NULL AND COALESCE(payment_method, 'cash') = ? AND DATE(created_at) BETWEEN ? AND ?`, [cach, tu, den]),
     // Huỷ đơn chỉ hoàn VÍ phần khách trả bằng ví; tiền mặt / CK của đơn thường không vào đâu → trả tận tay. Đơn MUA GÓI hoàn phần tiền
     // mặt / CK vào ví khách (dòng 'hoan_goi') nên két không ra. "Đơn mua gói" nhận theo DÒNG HÀNG gói (product_id = −pkg.id), KHÔNG theo
     // gói khách: huỷ đơn mua gói xoá luôn gói khách chưa giao lượt nào (orders.js, route huỷ) nên nhìn lại sau huỷ thì gói khách đã mất.
@@ -116,12 +118,41 @@ async function tienTheoSo(tu, den, cach) {
 async function tongHop(tu, den) {
   const [tm, ck, nap, chi, diem] = await Promise.all([
     tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
-    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n, COALESCE(SUM(thuong), 0) AS t FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(COALESCE(balance_amount, 0) + COALESCE(parent_balance_amount, 0)), 0) AS n FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong, COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru
       FROM pos_point_transactions WHERE DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
   ]);
-  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) } };
+  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), thuong_nap: so(nap[0].t), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) } };
+}
+
+// ─── NAP-1 — sổ sách tiền nạp (Báo cáo): nạp KHÔNG là doanh thu; thưởng nạp là khoản giảm khi khách tiêu ───
+// tien_vao: tiền thật vào két / tài khoản quán trong kỳ (cùng số với két, tienTheoSo), "trong đó tiền nạp" = cột tiền của đơn nạp + nạp tay.
+// ban_hang: tổng bán (đơn còn completed, không nạp) − thưởng nạp đã dùng (−Σ thưởng các dòng ví gắn đơn: trừ khi trả, cộng lại khi hoàn / đền).
+// giu_ho: số quán đang giữ hộ khách tới hết ngày `den` (Σ sổ ví danh sách trắng) tách tiền nạp / thưởng nạp.
+async function soSach(tu, den) {
+  if (!ngayHopLe(tu) || !ngayHopLe(den) || tu > den) throw loiDS(400, 'DOI_SOAT_KY_SAI', 'Ngày không đúng dạng YYYY-MM-DD (từ ≤ đến)');
+  const loai = require('../routes/wallets').LOAI_TINH_VAO_VI;
+  const [tm, ck, napDon, napTay, ban, thuong, giu] = await Promise.all([
+    tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
+    chiDoc(`SELECT COALESCE(SUM(COALESCE(o.cash_amount, 0) + COALESCE(o.transfer_amount, 0)), 0) AS n FROM pos_orders o
+      WHERE ${sqlDonNap('o')} AND DATE(o.created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND order_id IS NULL
+      AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(o.total), 0) AS n FROM pos_orders o WHERE o.status = 'completed' AND NOT ${sqlDonNap('o')}
+      AND DATE(o.created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(-SUM(thuong), 0) AS n FROM pos_balance_transactions WHERE order_id IS NOT NULL
+      AND type IN ('purchase', 'refund', 'compensation') AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS tong, COALESCE(SUM(thuong), 0) AS thuong FROM pos_balance_transactions
+      WHERE type IN (${loai.map(() => '?').join(', ')}) AND DATE(created_at) <= ?`, [...loai, den]),
+  ]);
+  const tongBan = so(ban[0].n), daDung = so(thuong[0].n), tong = so(giu[0].tong), th = so(giu[0].thuong);
+  return {
+    tu, den,
+    tien_vao: { tien_mat: tm.rong, chuyen_khoan: ck.rong, trong_do_nap: so(napDon[0].n) + so(napTay[0].n) },
+    ban_hang: { tong_ban: tongBan, thuong_nap_da_dung: daDung, doanh_thu_that: tongBan - daDung },
+    giu_ho: { tong, tien_nap: tong - th, thuong_nap: th },
+  };
 }
 
 // ─── Két của một ngày: sổ = để lại của ngày CÓ ghi gần nhất trước đó + tiền mặt vào − ra các ngày sau đó tới hết ngày này ───
@@ -331,4 +362,4 @@ async function ghiMoi(b, nguoi) {
 }
 // </ghi-moi>
 
-module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };
+module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, soSach, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };

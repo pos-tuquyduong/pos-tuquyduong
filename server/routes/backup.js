@@ -58,6 +58,7 @@ const BACKUP_TABLES = [
   // chưa có trong backup nên toàn bộ dữ liệu SĐT đã claim KHÔNG được sao lưu.
   { name: 'pos_signup_codes', label: 'Mã ưu đãi khách mới', key: 'id' },
   { name: 'pos_discount_codes', label: 'Mã chiết khấu', key: 'id' },
+  { name: 'pos_goi_nap', label: 'Gói nạp tiền', key: 'id' },   // NAP-1: danh mục gói — khôi phục được như sản phẩm
   { name: 'pos_product_groups', label: 'Nhóm sản phẩm', key: 'id' },
   { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' },
 

@@ -25,6 +25,7 @@ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
+const { ID_NAP_TU, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN } = require("../utils/viKhach"); // NAP-1: đơn nạp — một vị từ
 const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
@@ -118,8 +119,8 @@ router.get("/", authenticate, async (req, res) => {
         COALESCE(SUM(total), 0) as total_revenue,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count
       FROM pos_orders 
-      WHERE 1=1
-    `;
+      WHERE NOT ${sqlDonNap("pos_orders")}
+    `;   // NAP-1: đơn nạp không là doanh thu
     const statsParams = [];
     if (date) {
       statsSql += ` AND DATE(created_at) = ?`;
@@ -206,11 +207,29 @@ async function taoDon(req, res, phien = null) {
       package_buy = null, // Mua gói → { package_id, total_qty }
       // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm, cùng đơn với hàng thường) ===
       membership_buy = null, // { tier_id, so_thang } — HANG-1: chọn GÓI của hạng; giá do máy chủ tra
+      // === NAP-1: bán gói nạp (đơn riêng, chỉ tiền mặt / CK) ===
+      goi_nap_id = null, // mã gói nạp — giá + số vào tài khoản do máy chủ tra pos_goi_nap
     } = req.body;
 
     // P3 (H, chủ quán chốt 22.10): một đơn KHÔNG trả kết hợp tiền mặt + chuyển khoản; tài khoản + MỘT cách cho phần còn lại thì được.
     if (Number(cash_amount) > 0 && Number(transfer_amount) > 0) {
       return res.status(400).json({ error: "Một đơn chỉ trả tiền mặt HOẶC chuyển khoản, không kết hợp", code: "TRA_KET_HOP" });
+    }
+    // NAP-1: đơn nạp = MỘT gói nạp, đơn riêng, có khách (SĐT đã chuẩn hoá — cùng biểu thức với chỗ ghi ví, SO-LUONG-1), chỉ tiền mặt / CK:
+    // không ví / ví mẹ (vòng nạp bằng ví), không mã, không phí giao, không nợ. Chặn gộp (không tách dòng): giảm hạng / mã / điểm / huỷ / đền
+    // của đơn món khỏi phải tách phần nạp — một vị từ `goi_nap_id` đủ cho mọi luật.
+    if (goi_nap_id != null) {
+      if (!normalizePhone(customer_phone)) {
+        return res.status(400).json({ error: "Nạp tiền cần chọn khách (SĐT)", code: "NAP_CAN_KHACH" });
+      }
+      if ((Array.isArray(items) && items.length) || package_buy || membership_buy || customer_package_id) {
+        return res.status(400).json({ error: "Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ", code: "NAP_KHONG_GOP" });
+      }
+      if (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance" || Number(debt_amount) > 0
+        || discount_code || Number(shipping_fee) > 0) {
+        return res.status(400).json({ error: "Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản, không mã, không ghi nợ, không phí giao",
+          code: "NAP_CHI_TIEN_MAT_QR" });
+      }
     }
     // P3 (Q1a): cờ bật → chuyển khoản chỉ qua QR payOS, trừ tài khoản chỉ qua phiên có PIN (routes/thanh-toan.js). Chốt phiên có `phien`.
     if (!phien && (Number(transfer_amount) > 0 || Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
@@ -223,7 +242,7 @@ async function taoDon(req, res, phien = null) {
     }
 
     // Validate — cho phép items rỗng nếu đang mua gói / mua thẻ hội viên
-    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy) {
+    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy && goi_nap_id == null) {
       return res
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
@@ -517,6 +536,27 @@ async function taoDon(req, res, phien = null) {
       });
     }
 
+    // NAP-1: gói nạp → MỘT dòng hàng, giá = "khách trả" máy chủ tra (gói đang bật); product_id −2000000 − id (ngoài dải gói / thẻ).
+    let goiNap = null;
+    if (goi_nap_id != null) {
+      goiNap = await queryOne("SELECT * FROM pos_goi_nap WHERE id = ? AND is_active = 1", [goi_nap_id]);
+      if (!goiNap) return res.status(400).json({ error: "Gói nạp không có hoặc đang tắt", code: "GOI_NAP_KHONG_CO" });
+      const vnd = (n) => Number(n).toLocaleString("vi-VN") + "đ";
+      subtotal += goiNap.khach_tra;
+      orderItems.push({
+        product_id: ID_NAP_TU - goiNap.id,
+        product_code: `NAP-${goiNap.id}`,
+        product_name: `💳 Nạp ${vnd(goiNap.khach_tra)} → vào tài khoản ${vnd(goiNap.vao_tk)}`,
+        unit: "gói",
+        quantity: 1,
+        unit_price: goiNap.khach_tra,
+        total_price: goiNap.khach_tra,
+        sx_product_type: null,
+        sx_product_id: null,
+        is_nap_item: true,
+      });
+    }
+
     // === F2: Giảm FLASH (tầng 1, tự động) — tính trước mọi chiết khấu (phương án A) ===
     // Chỉ giảm % cho món có (type,id) nằm trong danh sách flash, và ĐANG trong giờ VN.
     // Server tự quyết (không tin client). Lỗi đọc flash → coi như không flash (đơn vẫn chạy).
@@ -654,7 +694,7 @@ async function taoDon(req, res, phien = null) {
           if (tier) {
             appliedTierName = membership.tier_name;
             for (const it of orderItems) {
-              if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
+              if (it.is_package_item || it.is_membership_item || it.is_nap_item) continue; // không giảm giá thẻ / gói / gói nạp
               tiLeHang.set(it, tiLeHangMon(tier, it.is_special_group)); // KH-API-2: cùng hàm với /api/kh/menu (kẹp 0–90 ở giaHang.js)
             }
           }
@@ -880,7 +920,7 @@ async function taoDon(req, res, phien = null) {
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
-      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied && !goiNap) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
       diemTao = null;
@@ -974,6 +1014,14 @@ async function taoDon(req, res, phien = null) {
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
            item.flash_unit_price || null, item.tier_unit_price || null],
         );
+      }
+
+      // NAP-1: thu đủ → cộng ví NGAY trong giao dịch này (lỗi → rollback cả đơn): toàn bộ "vào tài khoản", phần hơn "khách trả" vào ngăn thưởng.
+      if (goiNap) {
+        const r = await ghiVi(tx, { phone, ten: customer_name || null, loai: "topup", soTien: goiNap.vao_tk, thuong: goiNap.vao_tk - goiNap.khach_tra,
+          orderId, cachTra: Number(transfer_amount) > 0 ? "transfer" : "cash", ghiChu: `Nạp tiền đơn ${orderCode}`, nguoi: req.user.username,
+          luc: now, cot: "total_topup", soCot: goiNap.vao_tk });
+        balanceAfter = r.sau;
       }
 
       // P26c (A2): trừ lượt gói TRONG giao dịch, có trần — hai quầy cùng lấy lượt cuối thì đơn sau thua 400, ví hoàn nguyên.
@@ -1181,7 +1229,7 @@ async function taoDon(req, res, phien = null) {
         );
         alreadyClaimed = !!claimedBefore;
       }
-      if (!alreadyClaimed) {
+      if (!alreadyClaimed && !goiNap) {   // NAP-1: đơn nạp không có mã bill (nạp không tích điểm, không ưu đãi)
         // Chống trùng mã: thử tối đa 5 lần, cực hiếm khi đụng (~887 triệu tổ hợp)
         for (let attempt = 0; attempt < 5; attempt++) {
           const candidate = generateVoucherCode();
@@ -1219,6 +1267,7 @@ async function taoDon(req, res, phien = null) {
         total,
         items: orderItems,
         balance_after: balanceAfter,
+        nap: goiNap ? { vao_tk: goiNap.vao_tk, thuong: goiNap.vao_tk - goiNap.khach_tra } : null,
         debt_amount: finalDebtAmount,
         payment_status: finalPaymentStatus,
         created_by: req.user.display_name || req.user.username,
@@ -1270,7 +1319,7 @@ router.post("/", authenticate, (req, res) => taoDon(req, res));
  * độ chỉ tính (cùng phép kiểm, cùng tinhUuDai) → số tinh-thu = số POST / ghi. Không ghi gì, không gọi SX; thân chỉ nhận các trường
  * của giỏ (không trường tiền → các nhánh ví / chuyển khoản / nợ không chạy).
  */
-const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy"];
+const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy", "goi_nap_id"];
 router.post("/tinh-thu", authenticate, async (req, res) => {
   const than = Object.fromEntries(TRUONG_TINH_THU.filter((x) => req.body?.[x] !== undefined).map((x) => [x, req.body[x]]));
   const kq = await taoDon({ body: than, user: req.user }, res, { chiTinh: true, tinhThu: true });
@@ -1474,6 +1523,10 @@ router.put(
           await tx.rollback();
           return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
         }
+        if (await laDonNap(tx, order.id)) {   // NAP-1 (D): tiền nạp không hoàn — trước mọi câu đổi trạng thái / ví
+          await tx.rollback();
+          return res.status(400).json(LOI_NAP_KHONG_HOAN);
+        }
         // P26c (Q4): đơn MUA gói — chỉ owner hoặc vai trò có quyền refund_package (mặc định chỉ owner, H9).
         const cancelBuyPkgs = await tx.query("SELECT id, delivered_qty FROM pos_customer_packages WHERE order_id = ?", [order.id]);
         if (cancelBuyPkgs.length && req.user.role !== "owner") {
@@ -1663,6 +1716,10 @@ router.delete("/:id", authenticate, async (req, res) => {
       if (!order) {
         await tx.rollback();
         return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
+      }
+      if (await laDonNap(tx, order.id)) {   // NAP-1 (D): đơn nạp không xoá — xoá là hoàn tiền nạp + mất dấu tiền vào két
+        await tx.rollback();
+        return res.status(400).json(LOI_NAP_KHONG_HOAN);
       }
 
       // Lấy items trước khi xóa (cần cho hoàn kho SX sau)

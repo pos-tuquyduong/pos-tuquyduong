@@ -10,8 +10,9 @@
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
  * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
  * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
- * DIEM-THAT-1: điểm gốc = floor(tiền khách trả thật / per), tiền thật = max(0, round(min(tiền mặt + CK, total − ví − ví mẹ) − phí giao)) —
- * công thức RIÊNG, không gọi server/utils/diemThat.js (trọng tài không dùng chung lỗi với code). Đơn tạo trước DIEM_THAT_TU ở Đối soát thật: nhận cả total/per.
+ * NAP-1 (đổi DIEM-THAT-1): điểm gốc = floor(tiền tính điểm / per), tiền tính điểm = max(0, round(min(tiền mặt + CK + ví + ví mẹ, total) − phí giao));
+ * đơn NẠP (dòng hàng product_id ≤ −2000000) đúng luật = 0 điểm. Công thức RIÊNG, không gọi server/utils/diemThat.js (trọng tài không dùng chung
+ * lỗi với code). Đối soát thật: đơn tạo trước DIEM_VI_TU nhận thêm luật DIEM-THAT-1 (không tính ví), trước DIEM_THAT_TU nhận cả total/per.
  */
 
 // Chép wallets.js:240 (không export). Bộ kiểm nhóm S so khớp hai bản — sửa một bên là đỏ.
@@ -22,6 +23,9 @@ const DIEM_KHI_THU_TU = '2026-10-23';
 const HUY_TRU_DIEM_TU = '2026-10-26';
 // DIEM-THAT-1: ngày đầu "điểm chỉ trên tiền khách trả thật" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
 const DIEM_THAT_TU = '2026-10-27';
+// NAP-1: ngày đầu "trả bằng ví có điểm" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
+const DIEM_VI_TU = '2026-11-08';
+const NAP_TU = -2000000;   // dòng hàng gói nạp: product_id ≤ NAP_TU (chép server/utils/viKhach.js ID_NAP_TU — trọng tài không require server)
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
 const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
@@ -57,16 +61,25 @@ const BAT_BIEN = {
          OR (payment_status IN ('partial', 'pending') AND COALESCE(debt_amount, 0) <= 0)`);
     return ds.map((r) => `đơn ${r.code}: ${r.status} · ${r.payment_status} · nợ ${tien(r.debt_amount)}`);
   },
-  // I4 — số dư ví = tổng các dòng sổ thuộc danh sách trắng.
+  // I4 — số dư ví = tổng các dòng sổ thuộc danh sách trắng. NAP-1: ngăn thưởng ví = tổng phần thưởng của cùng các dòng, 0 ≤ thưởng ≤ số dư
+  // (tiền nạp = số dư − thưởng không âm). Mô tả luôn mở đầu "ví <sđt>: số dư" (khoá ngày KHOA.I4 của doiSoat.js).
   async I4(q) {
-    const ds = await q(`SELECT p.phone, w.balance,
+    const ds = await q(`SELECT p.phone, w.balance, w.thuong,
         (SELECT COALESCE(SUM(t.amount), 0) FROM pos_balance_transactions t
-          WHERE t.customer_phone = p.phone AND t.type IN (${IN(LOAI_TINH_VAO_VI)})) AS so_sach
+          WHERE t.customer_phone = p.phone AND t.type IN (${IN(LOAI_TINH_VAO_VI)})) AS so_sach,
+        (SELECT COALESCE(SUM(t.thuong), 0) FROM pos_balance_transactions t
+          WHERE t.customer_phone = p.phone AND t.type IN (${IN(LOAI_TINH_VAO_VI)})) AS thuong_so
       FROM (SELECT phone FROM pos_wallets UNION
             SELECT customer_phone FROM pos_balance_transactions WHERE type IN (${IN(LOAI_TINH_VAO_VI)})) p
       LEFT JOIN pos_wallets w ON w.phone = p.phone`);
-    return ds.filter((r) => Math.abs(so(r.balance) - so(r.so_sach)) > 0.5)
-      .map((r) => `ví ${r.phone}: số dư ${tien(r.balance)} ≠ sổ ${tien(r.so_sach)}, lệch ${tien(so(r.balance) - so(r.so_sach))}`);
+    return ds.flatMap((r) => {
+      const l = [];
+      if (Math.abs(so(r.balance) - so(r.so_sach)) > 0.5) l.push(`ví ${r.phone}: số dư ${tien(r.balance)} ≠ sổ ${tien(r.so_sach)}, lệch ${tien(so(r.balance) - so(r.so_sach))}`);
+      if (Math.abs(so(r.thuong) - so(r.thuong_so)) > 0.5 || so(r.thuong) < 0 || so(r.thuong) > so(r.balance) + 0.5) {
+        l.push(`ví ${r.phone}: số dư ${tien(r.balance)}, thưởng nạp ${tien(r.thuong)} (sổ ${tien(r.thuong_so)}) — thưởng phải = sổ và trong 0…số dư`);
+      }
+      return l;
+    });
   },
   // I5 — không có loại dòng ví lạ. debt_payment là loại đã biết, KHÔNG tính vào ví (wallets.js:236).
   async I5(q) {
@@ -136,14 +149,15 @@ const BAT_BIEN = {
     const k = Number(cfg.nhandiem_he_so) >= 1 ? Number(cfg.nhandiem_he_so) : 2;
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
-        o.status, o.cancelled_at,
+        o.status, o.cancelled_at, EXISTS (SELECT 1 FROM pos_order_items n WHERE n.order_id = o.id AND n.product_id <= ${NAP_TU}) AS nap,
         COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
       LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
     const lech = ds.flatMap((r) => {
-      const tra = Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - so(r.balance_amount) - so(r.parent_balance_amount));
-      const g = Math.floor(Math.max(0, Math.round(tra - so(r.shipping_fee))) / per);
+      const vi = so(r.balance_amount) + so(r.parent_balance_amount);
+      const g = Math.floor(Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee))) / per);
+      const gThat = Math.floor(Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - vi) - so(r.shipping_fee))) / per);
       const gCu = Math.floor(so(r.total) / per);
       const diemDung = (luatCu, goc) => {
         const coDiem = cfg.loyalty_enabled === 'true' && !!r.customer_phone && so(r.total) > 0 && so(r.flash) === 0 && goc > 0
@@ -154,9 +168,10 @@ const BAT_BIEN = {
       };
       // Huỷ trước mốc (hoặc dữ liệu cũ không cancelled_at): ngày gộp lẫn hai luật → nhận cả "giữ điểm" (cũ) lẫn tổng 0 (P24).
       const huyCu = ctx.thuc && r.status === 'cancelled' && (r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU);
-      const dung = r.status === 'cancelled' && !huyCu ? 0 : diemDung(false, g);
+      const dung = (r.status === 'cancelled' && !huyCu) || so(r.nap) ? 0 : diemDung(false, g);   // NAP-1: đơn nạp 0 điểm
       if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
       const cu = ctx.thuc && (huyCu || r.status !== 'cancelled');
+      if (cu && String(r.created_at) < DIEM_VI_TU && so(r.diem) === diemDung(false, gThat)) return [];   // NAP-1: luật DIEM-THAT-1 (ví 0 điểm)
       if (cu && String(r.created_at) < DIEM_THAT_TU && so(r.diem) === diemDung(false, gCu)) return [];   // DIEM-THAT-1: luật P22-23
       if (cu && String(r.created_at) < DIEM_KHI_THU_TU && so(r.diem) === diemDung(true, gCu)) return [];
       return [`đơn ${r.code}: ${so(r.diem)} điểm, đúng luật là ${dung}`];
@@ -290,12 +305,12 @@ const BAT_BIEN = {
       mua.filter((r) => so(r.customer_package_id) !== so(r.goi_dau))
         .map((r) => `đơn mua gói ${r.code} lấy ngay: trỏ gói #${r.customer_package_id}, gói của chính nó #${r.goi_dau}`));
   },
-  // I15 (AU-G3) — thẻ hội viên: đơn không huỷ có món thẻ (product_id ≤ −1000000, orders.js:397) và có SĐT ⇒ đúng một dòng mua
+  // I15 (AU-G3) — thẻ hội viên: đơn không huỷ có món thẻ (−2000000 < product_id ≤ −1000000; dải nạp NAP-1 ở dưới) và có SĐT ⇒ đúng một dòng mua
   // thẻ cùng order_id; mỗi dòng MUA thẻ (có order_id) ⇒ đơn còn và không huỷ. Dòng cấp / thu hồi hạng (HANG-1) luôn order_id NULL — không xét.
   async I15(q) {
     const thieu = await q(`SELECT o.code, (SELECT COUNT(*) FROM pos_membership_purchases m WHERE m.order_id = o.id) AS n
       FROM pos_orders o WHERE o.status <> 'cancelled' AND COALESCE(o.customer_phone, '') <> ''
-        AND EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id <= -1000000)`);
+        AND EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id <= -1000000 AND oi.product_id > ${NAP_TU})`);   // NAP-1: dải nạp không phải thẻ
     const thua = await q(`SELECT m.id, m.order_id, o.status FROM pos_membership_purchases m LEFT JOIN pos_orders o ON o.id = m.order_id
       WHERE m.order_id IS NOT NULL AND (o.id IS NULL OR o.status = 'cancelled')`);
     return thieu.filter((r) => so(r.n) !== 1).map((r) => `đơn mua thẻ ${r.code}: ${so(r.n)} dòng mua thẻ`)
@@ -350,4 +365,4 @@ const BAT_BIEN = {
   },
 };
 
-module.exports = { BAT_BIEN, LOAI_TINH_VAO_VI, DIEM_KHI_THU_TU, HUY_TRU_DIEM_TU, DIEM_THAT_TU };
+module.exports = { BAT_BIEN, LOAI_TINH_VAO_VI, DIEM_KHI_THU_TU, HUY_TRU_DIEM_TU, DIEM_THAT_TU, DIEM_VI_TU };
