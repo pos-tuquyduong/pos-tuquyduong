@@ -1,0 +1,27 @@
+GIAO-1 — bằng chứng đỏ (06.11.2026)
+
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit 6acfc5f (bản cuối phiên 2).
+Code GỐC: `python3 cong_cu/ban_sao_goc.py fa03775 <nháp>/goc` (server/ của commit PHIEU fa03775 — code giống mốc^), chép bài thử + cong_cu/gia_lap/
+vào, kiem_tra_truoc_khi_giao.js lấy bằng `git show fa03775:kiem_tra_truoc_khi_giao.js`, node_modules nối symlink.
+Lệnh: cd <nháp>/goc && node cong_cu/thu_GIAO1.js
+
+TRÊN CODE GỐC → ĐỎ: 5 đạt · 87 hỏng (thoát 1, không sập). Năm ca xanh trên gốc là ca KHÔNG-ĐỔI / không-lộ (đúng là phải xanh cả hai phía):
+  B3 (nhân viên sửa cài đặt → 403), K5a (đơn không giao giữ shipping_fee cũ), K5b (nhân viên huỷ đơn thường), A3 ×2 (không khoá trong nhật ký / bảng tin).
+Mọi ca còn lại ĐỎ, nhóm theo nghiệm thu:
+  ✗ A1 ×2, A4, A5 ×2, A7, A8 — cửa /giao-hang chưa có (404); ahamove.gocAhamove chưa có
+  ✗ A2 — backup.js chưa có bảng pos_giao_*
+  ✗ B1, B2 ×6, B4, B5, B6, B7 — khoá giao_* lưu tự do (200), không có cai-dat / diem-lay / bao-phi
+  ✗ C1 ×3, C1b ×2, C2, C3, C4 — không có ô địa chỉ / báo phí
+  ✗ D1 (shipping_fee = 1 màn hình gửi), K5f, D2, D3, D4 ×2, D5, D6, D7, D8, D9 — đơn giao chưa có
+  ✗ E1, E2, F1, F2 ×2, F3 ×2 — màn Giao hàng / gioGoiTaiXe chưa có
+  ✗ G1–G7, G4 ×2, I1–I4, I3 — gọi xe chưa có
+  ✗ H1–H10 — tin báo về chưa có
+  ✗ J1, J2 (400 DON_KHONG_HUY_DUOC — thật ra đơn giao không tạo được), J3, J3b, J3c, J4/J9, J5 ×3, J6, J7, J8, J11, Q5
+  ✗ K1 ×2, A6 — Đối soát / bảng chưa có
+  ✗ T1 (index.js chưa gắn cửa), T2 (bộ kiểm chưa chạy bài)
+
+TRÊN CODE ĐÃ VÁ (HEAD 6acfc5f): 92 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAO1.js: 92
+
+Bộ kiểm: npm test -- --day-du → PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo có từ trước: "route GET có lệnh ghi (3)" và "route ghi không qua
+loiGhi 54" — không file nào của việc này trong danh sách).
