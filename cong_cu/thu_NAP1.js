@@ -150,7 +150,10 @@ async function main() {
     k('M2 chạy lại bộ nâng cấp → không hỏng, không chạy đôi', !lai.hong && (await so("SELECT COUNT(*) FROM pos_nang_cap WHERE ten = '014_nap'")) === 1, JSON.stringify(lai));
     const { BACKUP_TABLES } = (() => { try { return { BACKUP_TABLES: require(path.join(MAY_CHU, 'routes', 'backup.js')).BACKUP_TABLES }; } catch { return {}; } })();
     const src = fs.readFileSync(path.join(MAY_CHU, 'routes', 'backup.js'), 'utf8');
-    k("M3 pos_goi_nap trong BACKUP_TABLES (sao lưu / khôi phục như danh mục)", (BACKUP_TABLES || []).some?.((t) => t.name === 'pos_goi_nap') || /name: 'pos_goi_nap'/.test(src));
+    k("M3 pos_goi_nap trong BACKUP_TABLES (xuất / sao lưu được)", (BACKUP_TABLES || []).some?.((t) => t.name === 'pos_goi_nap') || /name: 'pos_goi_nap'/.test(src));
+    // Chủ quán 06.11 câu 2: gói nạp chỉ sửa được có PIN chủ quán → file sao lưu cũ không được ghi đè (khuôn pos_membership_tiers của HANG-1).
+    const iKP = src.indexOf('const BANG_KHONG_KHOI_PHUC'), khongKP = iKP >= 0 ? src.slice(iKP, src.indexOf('];', iKP)) : '';
+    k("M4 pos_goi_nap trong BANG_KHONG_KHOI_PHUC (khôi phục bằng file không vượt PIN chủ quán)", khongKP.includes("'pos_goi_nap'"), khongKP ? '' : 'không thấy BANG_KHONG_KHOI_PHUC');
   }
 
   // ═════════════════════════════════════════════════════════════════════════
