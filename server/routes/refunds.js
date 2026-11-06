@@ -19,12 +19,13 @@ const { tienTinhDiem, diemTruKhiHoan } = require('../utils/diemThat');
 
 // NAP-1 (soát bảo mật, chủ quán 06.11 (a)): phần tài khoản vừa hoàn có điểm (luật tiêu ví có điểm) → trừ theo tỷ lệ (diemTruKhiHoan). Chỉ tính dòng
 // earn cộng TỪ lúc chạy bước nâng cấp 014 (luật mới); dòng cũ tích theo luật "ví 0 điểm" → không trừ. Dòng 'adjust' gắn đơn như huỷ (P24, I8 canh);
-// số dư điểm được âm như huỷ. Trừ nhóm hạn dùng xa nhất trước. Cùng giao dịch duyệt hoàn (đơn đã chuyển 'refunded' — không chạy hai lần).
+// số dư điểm được âm như huỷ. Trừ nhóm hạn dùng xa nhất trước (không hạn → hạn muộn → hạn sớm). Cùng giao dịch duyệt hoàn (đơn đã chuyển
+// 'refunded' — không chạy hai lần). Mốc luật mới theo TÊN bước (014_nap), không theo số.
 async function truDiemHoan(tx, don, tienHoan, nguoi, luc) {
-  const moc = (await tx.queryOne('SELECT luc FROM pos_nang_cap WHERE so = 14'))?.luc;
+  const moc = (await tx.queryOne("SELECT luc FROM pos_nang_cap WHERE ten = '014_nap'"))?.luc;
   if (!moc) return;
   const nhom = await tx.query(`SELECT customer_phone, expires_at, SUM(points) AS diem FROM pos_point_transactions
-    WHERE order_id = ? AND type = 'earn' AND created_at >= ? GROUP BY customer_phone, expires_at ORDER BY expires_at DESC`, [don.id, moc]);
+    WHERE order_id = ? AND type = 'earn' AND created_at >= ? GROUP BY customer_phone, expires_at ORDER BY expires_at IS NULL DESC, expires_at DESC`, [don.id, moc]);
   let conTru = diemTruKhiHoan(nhom.reduce((t, r) => t + Number(r.diem || 0), 0), tienHoan, tienTinhDiem(don));
   for (const r of nhom) {
     const tru = Math.min(conTru, Number(r.diem || 0));

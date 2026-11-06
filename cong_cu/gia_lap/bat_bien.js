@@ -8,7 +8,8 @@
  * I8 MÔ TẢ LUẬT ĐIỂM HIỆN TẠI (P22-23, chủ quán chốt 02.10 + 13.10.2026): điểm CHỈ khi
  * đơn đã thu đủ (payment_status 'paid'); đơn giảm Flash 0 điểm, kể cả nhận bằng mã bill;
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
- * dành RIÊNG cho việc này, việc sau đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
+ * dành RIÊNG cho việc trừ điểm theo đơn: huỷ / xoá (P24) và duyệt hoàn (NAP-1 — chủ quán 06.11 (a): đơn 'refunded' giữ điểm phần không
+ * hoàn = điểm − ceil(điểm × tiền hoàn ví / tiền tính điểm)); việc khác đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
  * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
  * NAP-1 (đổi DIEM-THAT-1): điểm gốc = floor(tiền tính điểm / per), tiền tính điểm = max(0, round(min(tiền mặt + CK + ví + ví mẹ, total) − phí giao));
  * đơn NẠP (dòng hàng product_id ≤ −2000000) đúng luật = 0 điểm. Công thức RIÊNG, không gọi server/utils/diemThat.js (trọng tài không dùng chung
@@ -205,7 +206,7 @@ const BAT_BIEN = {
       }
     }
     const la = await q(`SELECT type, COUNT(*) AS n FROM pos_point_transactions WHERE COALESCE(type, '') NOT IN ('earn', 'redeem')
-      AND NOT (COALESCE(type, '') = 'adjust' AND order_id IS NOT NULL) GROUP BY type`);   // P24: 'adjust' gắn đơn = trừ điểm do huỷ / xoá
+      AND NOT (COALESCE(type, '') = 'adjust' AND order_id IS NOT NULL) GROUP BY type`);   // P24 + NAP-1: 'adjust' gắn đơn = trừ điểm do huỷ / xoá / duyệt hoàn
     return lech.concat(la.map((r) => `loại dòng điểm lạ "${r.type}": ${r.n} dòng`));
   },
   // I9 — mỗi thao tác tiền có đúng một dòng nhật ký đơn (nhatKyDon.js): 'thu' khớp sổ phía quầy (số dòng + số tiền),
