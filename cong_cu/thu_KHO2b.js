@@ -488,8 +488,15 @@ async function main() {
   const cotSL = XLSX.utils.sheet_to_json(wb.Sheets['Kho - Phiếu'] || {}, { header: 1 })[0] || [];
   await ghiDb("UPDATE kho_phieu SET ghi_chu = 'sau sao lưu' WHERE id = 1");
   const truocSL = await chup();
+  // SUA-SL-1 (chat 05.11): HANG-1 chặn khôi phục trang "Hạng thành viên" — bỏ trang đó khỏi file trước khi khôi phục.
+  let tepKP = tep;
+  if (wb.SheetNames.includes('Hạng thành viên')) {
+    const m = XLSX.utils.book_new();
+    for (const s of wb.SheetNames) if (s !== 'Hạng thành viên') XLSX.utils.book_append_sheet(m, wb.Sheets[s], s);
+    tepKP = XLSX.write(m, { type: 'buffer', bookType: 'xlsx' });
+  }
   const f = new FormData();
-  f.append('file', new Blob([tep]), 'sl.xlsx');
+  f.append('file', new Blob([tepKP]), 'sl.xlsx');
   imLang();
   const kp = await fetch(goc + '/backup/restore', { method: 'POST', headers: { Authorization: 'Bearer ' + the.chu }, body: f }).catch(() => null);
   noiLai();

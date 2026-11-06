@@ -471,10 +471,11 @@ async function phanA(P) {
   k('A18d điểm gốc làm tròn XUỐNG như /nhan-diem: N = 4 và đúng số được cộng thật', aLe.h?.ma_nhan_diem?.diem === 4 && nhanLe.diem_cong === 4, `${aLe.h?.ma_nhan_diem?.diem} vs ${nhanLe.diem_cong}`);
 
   // khách quen có hạng: mua thẻ, tài khoản, điểm
+  await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
   const hang = await mot('SELECT id, card_price, name FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
   const sq = sdtMoi(); await nap(sq, Number(hang.card_price) + 200000);
-  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
   const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 25500, shipping_fee: 5000 });
   const aq = await hd(rq.order?.id);
   const H = aq.h;

@@ -2,11 +2,14 @@
  * P3 — phiên thanh toán: GIỮ tiền tài khoản (khách / mẹ) cho một đơn đang lập, rồi CHỐT bằng ĐÚNG đường tạo đơn của quầy (taoDon).
  * - Tạo phiên: thân đơn lọc theo danh sách TRẮNG (mọi trường tiền do phiên quyết), tổng do taoDon chế độ "chỉ tính" ra; PIN của CHỦ
  *   tài khoản bị trừ (Q4); số dư + đang giữ đọc TRONG giao dịch ghi — hai quầy cùng giữ trên một ví thì quầy sau thấy phần đã giữ.
- * - Chốt (tiền mặt / tài khoản / QR payOS · SePay / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
+ * - Chốt (tiền mặt / tài khoản / QR payOS · SePay · Tingee / xác nhận tay): MỘT hàm chotPhien → MỘT cổng cho → da_thu (còn hạn) trong giao dịch tạo đơn.
  * - Hết hạn = tự nhả theo đồng hồ (Render ngủ, không hẹn giờ); huỷ / hết hạn không ghi dòng tiền nào.
+ * - CK-NOIDUNG-1: phiên QR (cach 'payos') và MỌI phiên App giữ số hoá đơn NGAY trong giao dịch tạo phiên (helpers capSoHoaDon); cổng SePay
+ *   và Tingee (NOI_DUNG_SO_HD) ghi nội dung TQD<MMM><DD> HD|APP<4 số>, cổng payOS giữ TQD<mã phiên> (≤ 9 ký tự). Đơn chốt từ phiên mang đúng số đã giữ.
+ *   Xác nhận tay sau khi QR hết hạn / đã huỷ (chủ quán Q1a 05.11): cờ `muon` CHỈ nới điều kiện thời gian của cổng, vẫn một câu ghi.
  */
 const { queryOne, run } = require('../database');
-const { getNow, normalizePhone } = require('./helpers');
+const { getNow, normalizePhone, capSoHoaDon, noiDungCk } = require('./helpers');
 const { trongGiaoDich, dangGiu } = require('../routes/wallets');
 const { taoDon } = require('../routes/orders');
 const { ghiNhatKy, tien } = require('./nhatKyDon');
@@ -14,7 +17,7 @@ const { kiemPin } = require('./pinKhach');
 const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
 
 const HAN_PHUT = 10;
-const NOI_DUNG_TOI_DA = 9;   // chung hai cổng QR — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
+const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
 const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
   'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy'];
@@ -29,7 +32,8 @@ const tomPhien = (p, order = null) => ({
   noi_dung: p.noi_dung, qr: p.qr, checkout_url: p.checkout_url, order,
 });
 
-async function taoPhien(b, nguoi) {
+/** kenh: 'APP' CHỈ donApp.js truyền (tham số, không đọc từ thân yêu cầu — quầy không tự xưng kênh App). */
+async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   const { cach } = b;
   if (!CACH.includes(cach)) return loi(400, 'CACH_KHONG_HOP_LE', 'Cách trả phải là payos, ck_tay, tien_mat hoặc tai_khoan');
   const cong = cach === 'payos' ? congQr() : null;
@@ -62,9 +66,10 @@ async function taoPhien(b, nguoi) {
     const ins = await tx.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, phone_me, giu_vi_me, con_lai, cach, het_han, nguoi_tao, tao_luc)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${GIO}, ?, ?)`, [JSON.stringify(don), tong, phone || null, giu, phoneMe, giuMe, conLai, cach, now, `+${HAN_PHUT} minutes`, nguoi, now]);
     const id = Number(ins.lastInsertRowid);
+    const so = cach === 'payos' || kenh === 'APP' ? await capSoHoaDon(tx, { kenh: kenh === 'APP' ? 'APP' : 'HD', phienId: id, now }) : null;
     if (cach !== 'payos') return { id };
-    const noiDung = 'TQD' + id;
-    if (noiDung.length > NOI_DUNG_TOI_DA) return { huy: true, ...loi(409, 'MA_PHIEN_QUA_DAI', 'Mã phiên vượt 6 chữ số — nội dung chuyển khoản quá 9 ký tự, báo chủ quán') };
+    const noiDung = cong.NOI_DUNG_SO_HD ? noiDungCk(so) : 'TQD' + id;
+    if (!cong.NOI_DUNG_SO_HD && noiDung.length > NOI_DUNG_TOI_DA) return { huy: true, ...loi(409, 'MA_PHIEN_QUA_DAI', 'Mã phiên vượt 6 chữ số — nội dung chuyển khoản quá 9 ký tự, báo chủ quán') };
     await tx.run('UPDATE pos_phien_thanh_toan SET ma_payos = ?, noi_dung = ? WHERE id = ?', [id, noiDung, id]);
     return { id };
   });
@@ -84,10 +89,13 @@ async function taoPhien(b, nguoi) {
   return { status: 200, body: { success: true, phien: tomPhien(phien) } };
 }
 
-/** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · sepay · tay. them: { khachDua, nguoi, lyDo, suKien(tx) — ghi trong giao dịch }. */
+/** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · sepay · tingee · tay. them: { khachDua, nguoi, lyDo, maGd (mã giao dịch ngân hàng),
+ *  suKien(tx) — ghi trong giao dịch, muon (CHỈ route xác nhận tay đặt, phiên quầy — cho chốt phiên 'cho' đã hết hạn hoặc 'huy') }. */
 async function chotPhien(phien, nguon, them = {}) {
+  const muon = nguon === 'tay' && them.muon === true;
   // Báo sớm theo trạng thái vừa đọc (khỏi tính lại đơn); cổng THẬT là câu ghi cho → da_thu trong giao dịch (vaoGiaoDich).
-  if (phien.trang_thai !== 'cho' || phien.het_han <= getNow()) return loi(409, 'PHIEN_DA_CHOT', 'Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn');
+  const conChot = muon ? ['cho', 'huy'].includes(phien.trang_thai) : phien.trang_thai === 'cho' && phien.het_han > getNow();
+  if (!conChot) return loi(409, 'PHIEN_DA_CHOT', 'Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn');
   const cachTra = phien.cach === 'tien_mat' ? 'cash' : phien.cach === 'tai_khoan' ? 'balance' : 'transfer';
   const khachDua = cachTra === 'cash' ? Number(them.khachDua ?? phien.con_lai) : 0;
   const body = { ...JSON.parse(phien.than), payment_method: cachTra, balance_amount: phien.giu_vi, parent_balance_amount: phien.giu_vi_me,
@@ -98,21 +106,24 @@ async function chotPhien(phien, nguon, them = {}) {
     id: phien.id,
     vaoGiaoDich: async (tx, now) => {
       const cong = await tx.run(`UPDATE pos_phien_thanh_toan SET trang_thai = 'da_thu', nguon = ?, ly_do = ?, nguoi_xac_nhan = ?, luc_chot = ?
-        WHERE id = ? AND trang_thai = 'cho' AND het_han > ?`, [nguon, them.lyDo || null, nguon === 'tay' ? them.nguoi : null, now, phien.id, now]);
+        WHERE id = ? AND (trang_thai = 'cho' AND het_han > ? OR ? = 1 AND trang_thai IN ('cho', 'huy'))`,
+      [nguon, them.lyDo || null, nguon === 'tay' ? them.nguoi : null, now, phien.id, now, muon ? 1 : 0]);
       if (cong.changes !== 1) return false;
       if (them.suKien) await them.suKien(tx);
       return true;
     },
     sauGhiDon: async (tx, orderId) => {
       await tx.run('UPDATE pos_phien_thanh_toan SET order_id = ? WHERE id = ?', [orderId, phien.id]);
+      if (them.maGd) await tx.run('UPDATE pos_orders SET ma_gd = ? WHERE id = ?', [String(them.maGd).slice(0, 64), orderId]);
       if (nguon === 'tay') {
-        await ghiNhatKy(orderId, 'xac_nhan_ck_tay', `Xác nhận tay chuyển khoản ${tien(phien.con_lai)} — ${them.lyDo}`, them.nguoi,
-          { phien: phien.id, so_tien: phien.con_lai, ly_do: them.lyDo }, tx);
+        await ghiNhatKy(orderId, 'xac_nhan_ck_tay', `Xác nhận tay chuyển khoản ${tien(phien.con_lai)}${muon ? ' (sau khi QR hết hạn / huỷ)' : ''} — ${them.lyDo}`,
+          them.nguoi, { phien: phien.id, so_tien: phien.con_lai, ly_do: them.lyDo, muon }, tx);
       }
     },
   });
   // Chốt hỏng vì ĐƠN (giá / hàng / mã đổi — 4xx của taoDon, không phải cổng hay kho bận) → phiên 'loi': thôi giữ, không chốt lại được.
-  if (r.statusCode >= 400 && r.statusCode < 500 && !['PHIEN_DA_CHOT', 'KHO_BAN'].includes(r.body?.code)) {
+  // Chốt muộn hỏng (ví thiếu, giá đổi) KHÔNG khoá phiên: khách nạp thêm rồi xác nhận lại được.
+  if (!muon && r.statusCode >= 400 && r.statusCode < 500 && !['PHIEN_DA_CHOT', 'KHO_BAN'].includes(r.body?.code)) {
     await run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai = 'cho'",
       [String(r.body?.code || r.body?.error || '').slice(0, 200), phien.id]);
   }

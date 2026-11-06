@@ -526,7 +526,17 @@ async function main() {
   const vt = (ten) => backupSrc.indexOf(`'${ten}'`);
   k('J2 BACKUP_TABLES cha trước con: nguyên liệu → công thức; phiếu, lô → dòng phiếu', vt('kho_nguyen_lieu') > 0 && vt('kho_cong_thuc') > vt('kho_nguyen_lieu')
     && vt('kho_phieu_dong') > vt('kho_lo') && vt('kho_lo') > vt('kho_phieu') && vt('kho_san_pham') > vt('kho_nhom_cong_thuc'));
-  const khoiPhuc = async () => { const f = new FormData(); f.append('file', new Blob([xuat.tep || Buffer.alloc(0)]), 'sl.xlsx'); return goi('POST', '/backup/restore', f); };
+  // SUA-SL-1 (chat 05.11): HANG-1 chặn khôi phục trang "Hạng thành viên" (chỉ sửa ở Cài đặt có PIN) — bỏ trang đó khỏi file trước khi khôi phục.
+  const boHang = (tep) => {
+    if (!tep || !tep.length) return Buffer.alloc(0);
+    const w = XLSX.read(tep, { type: 'buffer' });
+    if (!w.SheetNames.includes('Hạng thành viên')) return tep;
+    const m = XLSX.utils.book_new();
+    for (const s of w.SheetNames) if (s !== 'Hạng thành viên') XLSX.utils.book_append_sheet(m, w.Sheets[s], s);
+    return XLSX.write(m, { type: 'buffer', bookType: 'xlsx' });
+  };
+  const tepKP = boHang(xuat.tep);
+  const khoiPhuc = async () => { const f = new FormData(); f.append('file', new Blob([tepKP]), 'sl.xlsx'); return goi('POST', '/backup/restore', f); };
   await ghiDb("INSERT INTO kho_nguyen_lieu (ten, ten_chuan, don_vi_luu, tao_luc) VALUES ('Sau sao lưu', 'sau sao lưu', 'kg', 'x')").catch(() => {});
   await ghiDb("INSERT INTO pos_nang_cap (so, ten, luc) VALUES (999, '999_sau_sao_luu', 'x')").catch(() => {});
   const bamChiKho = async () => { const h = crypto.createHash('sha1'); for (const b of BANG_KHO) if (await coBang(b)) h.update(JSON.stringify(await q(`SELECT * FROM ${b} ORDER BY rowid`))); return h.digest('hex'); };
