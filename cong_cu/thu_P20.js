@@ -297,7 +297,8 @@ async function main() {
     const cViTron = await claim(dViTron.ma, sdtViTron);
     const nViTron = await nhanDiem(dViTron.ma, sdtViTron);
     k('trả trọn bằng ví: /claim → 200; /nhan-diem → 200 (NAP-1: phần trả bằng ví có điểm)', cViTron.status === 200
-      && nViTron.status === 200, `${moTa(cViTron)} / ${moTa(nViTron)}`);
+      && nViTron.status === 200 && Number((await db.queryOne('SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions WHERE order_id = ?', [dViTron.id])).n) > 0,
+      `${moTa(cViTron)} / ${moTa(nViTron)}`);
 
     // Đơn có giảm: máy chủ không nhận mức giảm client gửi, và từ KHACH-CK-1 (chủ quán 29.10) cũng không còn chiết khấu riêng
     // trong hồ sơ khách — đơn có giảm dựng bằng mã giảm tiền 5.000 (bản cũ dựng bằng hồ sơ fixed 5000).

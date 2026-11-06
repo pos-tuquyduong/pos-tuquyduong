@@ -118,12 +118,12 @@ async function tienTheoSo(tu, den, cach) {
 async function tongHop(tu, den) {
   const [tm, ck, nap, chi, diem] = await Promise.all([
     tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
-    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n, COALESCE(SUM(thuong), 0) AS t FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(COALESCE(balance_amount, 0) + COALESCE(parent_balance_amount, 0)), 0) AS n FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong, COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru
       FROM pos_point_transactions WHERE DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
   ]);
-  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), thuong_nap: so(nap[0].t), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) } };
+  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) } };
 }
 
 // ─── NAP-1 — sổ sách tiền nạp (Báo cáo): nạp KHÔNG là doanh thu; thưởng nạp là khoản giảm khi khách tiêu ───
@@ -138,7 +138,7 @@ async function soSach(tu, den) {
     chiDoc(`SELECT COALESCE(SUM(COALESCE(o.cash_amount, 0) + COALESCE(o.transfer_amount, 0)), 0) AS n FROM pos_orders o
       WHERE ${sqlDonNap('o')} AND DATE(o.created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND order_id IS NULL
-      AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+      AND COALESCE(payment_method, 'cash') IN ('cash', 'transfer') AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),   // cùng vị từ két
     chiDoc(`SELECT COALESCE(SUM(o.total), 0) AS n FROM pos_orders o WHERE o.status = 'completed' AND NOT ${sqlDonNap('o')}
       AND DATE(o.created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(-SUM(thuong), 0) AS n FROM pos_balance_transactions WHERE order_id IS NOT NULL

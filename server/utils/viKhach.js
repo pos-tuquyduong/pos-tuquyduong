@@ -4,8 +4,8 @@
  * - Trừ (trả đơn, ví mẹ, trừ tay, điều chỉnh âm): theo TỶ LỆ đang có (thuongKhiTru).
  * - Cộng lại theo đơn (huỷ, xoá, duyệt hoàn, đền bù, kết thúc gói): theo TỶ LỆ thưởng / ví của phần ĐÃ TRỪ cho đơn đó trên ví đó, không vượt
  *   phần thưởng đã trừ chưa trả lại (chủ quán 05.11 câu 3). Nạp tay, điều chỉnh cộng, tiền mặt / CK hoàn vào ví (hoan_goi) → tiền nạp.
- * - Đơn nạp: dòng hàng `product_id ≤ ID_NAP_TU` (−2000000 − mã gói; dải gói −1..−999999, thẻ −1000000..−1999999). Một vị từ (sqlDonNap /
- *   laDonNap) cho huỷ, xoá, báo cáo, két, bất biến.
+ * - Đơn nạp: dòng hàng `product_id ≤ ID_NAP_TU` (−2000000 − mã gói; dải gói −1..−999999, thẻ −1000000..−1999999). sqlDonNap / laDonNap dùng ở
+ *   huỷ, xoá, danh sách đơn, báo cáo doanh thu, sổ sách. Két không cần (đếm dòng topup KHÔNG gắn đơn); bất biến bat_bien.js chép hằng riêng.
  */
 const ID_NAP_TU = -2000000;
 
@@ -24,16 +24,20 @@ function thuongKhiTru(soDu, thuong, soTru) {
 async function thuongKhiHoan(tx, phone, orderId, soTien) {
   const r = await tx.queryOne(`SELECT COALESCE(-SUM(CASE WHEN type = 'purchase' THEN amount END), 0) AS vi_tru,
       COALESCE(-SUM(CASE WHEN type = 'purchase' THEN thuong END), 0) AS thuong_tru,
-      COALESCE(SUM(CASE WHEN type IN ('refund', 'compensation') THEN thuong END), 0) AS thuong_tra
+      COALESCE(SUM(CASE WHEN type IN ('refund', 'compensation') THEN thuong END), 0) AS thuong_tra,
+      COALESCE(SUM(CASE WHEN type IN ('refund', 'compensation') AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount END), 0) AS vi_hoan
     FROM pos_balance_transactions WHERE customer_phone = ? AND order_id = ?`, [phone, orderId]);
   const viTru = Number(r?.vi_tru || 0), thuongTru = Number(r?.thuong_tru || 0);
   const con = thuongTru - Number(r?.thuong_tra || 0);
   if (!(viTru > 0) || !(con > 0) || !(soTien > 0)) return 0;
+  // Lần cộng lại làm đủ (hoặc vượt) phần ví đã trừ → trả NỐT phần thưởng còn lại: làm tròn từng lần không làm rơi đồng nào sang tiền nạp.
+  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;
   return Math.min(con, Math.round((soTien * thuongTru) / viTru));
 }
 
 /** Mẩu SQL: đơn `bi` (bí danh / tên bảng pos_orders) là đơn nạp. */
-const sqlDonNap = (bi) => `EXISTS (SELECT 1 FROM pos_order_items oi_nap WHERE oi_nap.order_id = ${bi}.id AND oi_nap.product_id <= ${ID_NAP_TU})`;
+// IN một câu con KHÔNG lồng (chạy một lần cho cả câu) — EXISTS lồng theo từng đơn quét cả pos_order_items (không chỉ mục order_id) mỗi đơn.
+const sqlDonNap = (bi) => `${bi}.id IN (SELECT order_id FROM pos_order_items WHERE product_id <= ${ID_NAP_TU})`;
 
 async function laDonNap(q, orderId) {
   return !!(await q.queryOne(`SELECT 1 AS co FROM pos_order_items WHERE order_id = ? AND product_id <= ${ID_NAP_TU} LIMIT 1`, [orderId]));

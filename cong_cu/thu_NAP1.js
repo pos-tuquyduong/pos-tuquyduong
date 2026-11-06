@@ -68,7 +68,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'wallets', 'signup-codes', 'thanh-toan', 'refunds', 'damages', 'reports']) {
+  for (const r of ['orders', 'wallets', 'signup-codes', 'thanh-toan', 'refunds', 'damages', 'reports', 'packages']) {
     app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   app.use('/api/pos/orders', require(path.join(MAY_CHU, 'routes', 'don-mo-rong.js')));
@@ -292,13 +292,15 @@ async function main() {
     const tienNapKhongAm = typeof f === 'function' && ca.every(([[d, t, x]]) => x >= d || d <= 0 || (d - x) - (t - f(d, t, x)) >= 0);
     k('C0 thuongKhiTru (utils/viKhach.js): tỷ lệ làm tròn, trừ hết số dư = hết thưởng, số dư ≤ 0 → 0, tiền nạp sau trừ không âm', lech.length === 0 && tienNapKhongAm, lech.join(' | '));
     const h = viKhach.thuongKhiHoan;
-    const txGia = (vi, th, tra) => ({ queryOne: async () => ({ vi_tru: vi, thuong_tru: th, thuong_tra: tra }) });
-    const caH = [[[42000, 2000, 0, 10500], 500], [[42000, 2000, 500, 21000], 1000], [[3, 2, 1, 3], 1], [[3, 2, 2, 3], 0], [[0, 0, 0, 5000], 0],
-      [[21000, 0, 0, 21000], 0], [[21000, 1000, 0, 0], 0]];
+    // [ví đã trừ, thưởng đã trừ, thưởng đã trả lại, ví đã cộng lại, khoản cộng lần này] → phần thưởng
+    const txGia = (vi, th, tra, hoan) => ({ queryOne: async () => ({ vi_tru: vi, thuong_tru: th, thuong_tra: tra, vi_hoan: hoan }) });
+    const caH = [[[42000, 2000, 0, 0, 10500], 500], [[42000, 2000, 500, 10500, 21000], 1000], [[63000, 2032, 0, 0, 21000], 677],
+      [[63000, 2032, 1354, 42000, 21000], 678], [[3, 2, 1, 1, 1], 1], [[30, 20, 19, 0, 15], 1], [[3, 2, 2, 1, 2], 0], [[0, 0, 0, 0, 5000], 0],
+      [[21000, 0, 0, 0, 21000], 0], [[21000, 1000, 0, 0, 0], 0], [[21000, 1000, 0, 0, 30000], 1000]];
     const lechH = [];
-    if (typeof h === 'function') for (const [[vi, th, tra, x], n] of caH) { const r = await h(txGia(vi, th, tra), 's', 1, x); if (r !== n) lechH.push(`${[vi, th, tra, x]} → ${r} (đúng ${n})`); }
+    if (typeof h === 'function') for (const [[vi, th, tra, hoan, x], n] of caH) { const r = await h(txGia(vi, th, tra, hoan), 's', 1, x); if (r !== n) lechH.push(`${[vi, th, tra, hoan, x]} → ${r} (đúng ${n})`); }
     else lechH.push('không có hàm');
-    k('C0b thuongKhiHoan: theo tỷ lệ thưởng / ví của phần đã trừ, không vượt phần thưởng chưa trả lại, ví chưa trừ → 0', lechH.length === 0, lechH.join(' | '));
+    k('C0b thuongKhiHoan: tỷ lệ thưởng / ví của phần đã trừ, lần làm đủ phần ví trả NỐT thưởng (số lẻ), không vượt phần chưa trả, ví chưa trừ → 0', lechH.length === 0, lechH.join(' | '));
   }
   const c1 = await ban({ customer_phone: s1, payment_method: 'balance', balance_amount: 21000 });
   const vc1 = await vi(s1);
@@ -351,6 +353,36 @@ async function main() {
     c7.status === 200 && vc7a.so_du === 63000 && vc7a.thuong === 3000 && d7.status === 200 && vc7.so_du === 73500 && vc7.thuong === 3500
       && d7b.status === 200 && vc7b.so_du === 94500 && vc7b.thuong === 4500,
     `${moTa(c7)} · ${viChu(vc7a)} · ${moTa(d7)} · ${viChu(vc7)} · ${moTa(d7b)} · ${viChu(vc7b)}`);
+  {
+    // Số KHÔNG chia hết (K3): ví 155.000 (thưởng 5.000) trả 63.000 → thưởng 2.032; đền 3 lần × 21.000 → 677 + 677 + 678 (lần cuối trả nốt).
+    const sL = sdtMoi();
+    await banNap(sL, ID1);
+    await napTay(sL, 50000);
+    const cL = await ban({ customer_phone: sL, payment_method: 'balance', balance_amount: 63000, items: [{ ...mon(0), quantity: 3 }] });
+    const thL = cL.order ? -(await so("SELECT thuong FROM pos_balance_transactions WHERE order_id = ? AND type = 'purchase'", [cL.order.id])) : NaN;
+    const ra = [];
+    for (let i = 0; i < 3; i++) { await (cL.order ? den(cL.order, 21000) : null); ra.push(await so("SELECT COALESCE(SUM(thuong), 0) FROM pos_balance_transactions WHERE order_id = ? AND type = 'compensation'", [cL.order?.id])); }
+    const vL = await vi(sL);
+    k('C7c đền 3 lần số lẻ: phần thưởng đã trừ 2.032 → trả lại 677 · 1.354 · 2.032 (đủ, không rơi đồng nào sang tiền nạp); ví 155.000 · 5.000',
+      cL.status === 200 && thL === 2032 && ra.join() === '677,1354,2032' && vL.so_du === 155000 && vL.thuong === 5000, `${moTa(cL)} · trừ ${thL} · trả ${ra} · ${viChu(vL)}`);
+  }
+  {
+    // Kết thúc gói có hoàn (packages.js → ghiHoan): đơn mua gói 30.000 trả ví 21.000 (thưởng 1.000) + tiền mặt 9.000 → hoàn trọn vào ví.
+    const goiId = Number((await db.run("INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active) VALUES ('NAP1G', 'Gói thử NAP-1', 30000, 'ly', 3, 1)")).lastInsertRowid);
+    const sG = sdtMoi();
+    await banNap(sG, ID1);
+    const mua = await goi('POST', '/orders', { customer_phone: sG, customer_name: 'Khách NAP-1', items: [], package_buy: { package_id: goiId }, payment_method: 'cash',
+      balance_amount: 21000, cash_amount: 9000 });
+    const vG0 = await vi(sG);
+    const cp = mua.order ? await mot('SELECT id FROM pos_customer_packages WHERE order_id = ?', [mua.order.id]) : null;
+    const kt = cp ? await goi('PUT', `/packages/customer-packages/${cp.id}/cancel`, { reason: 'thử NAP-1 kết thúc gói', hoan: true }) : { status: 0 };
+    const vG = await vi(sG);
+    const dongG = mua.order ? await db.query("SELECT payment_method AS c, amount AS a, thuong AS t FROM pos_balance_transactions WHERE order_id = ? AND type = 'refund' ORDER BY id", [mua.order.id]) : [];
+    k('C13 kết thúc gói có hoàn: ví 84.000 · 4.000 → hoàn phần ví 21.000 (thưởng 1.000) + tiền mặt 9.000 vào ví (tiền nạp) → 114.000 · 5.000',
+      mua.status === 200 && vG0.so_du === 84000 && vG0.thuong === 4000 && kt.status === 200 && vG.so_du === 114000 && vG.thuong === 5000
+        && JSON.stringify(dongG.map((d) => [d.c, Number(d.a), Number(d.t)])) === JSON.stringify([['cash', 21000, 1000], ['hoan_goi', 9000, 0]]),
+      `${moTa(mua)} · ${viChu(vG0)} · ${moTa(kt)} · ${viChu(vG)} · ${JSON.stringify(dongG)}`);
+  }
   const sMe7 = sdtMoi(), sCon7 = sdtMoi();
   await banNap(sMe7, ID1);
   await banNap(sCon7, ID1);
@@ -495,6 +527,9 @@ async function main() {
     const sTk = await goi('GET', `/reports/so-sach?tu=${homNay}&den=${homNay}`, null, THE_NV);
     const sSai = await soSach().then(() => goi('GET', '/reports/so-sach?tu=2026-13-01&den=2026-13-02'));
     k('F6 sổ sách cần quyền view_reports (nhân viên → 403); ngày sai → 400', sTk.status === 403 && sSai.status === 400, `${moTa(sTk)} · ${moTa(sSai)}`);
+    const spBan = (await goi('GET', `/reports/products?from=${homNay}&to=${homNay}&limit=200`)).data || [];
+    k('F7 /reports/products (sản phẩm bán chạy) không có dòng gói nạp; món thường vẫn có', spBan.length > 0 && !spBan.some((x) => Number(x.product_id) <= -2000000),
+      JSON.stringify(spBan.map((x) => x.product_id)));
   }
 
   // ═════════════════════════════════════════════════════════════════════════

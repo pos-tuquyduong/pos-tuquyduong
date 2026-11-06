@@ -14,7 +14,7 @@ const { query, queryOne } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getToday } = require('../utils/helpers');
 const doiSoat = require('../utils/doiSoat');
-const { sqlDonNap } = require('../utils/viKhach');   // NAP-1: đơn nạp không là doanh thu — loại khỏi số bán hàng
+const { sqlDonNap, ID_NAP_TU } = require('../utils/viKhach');   // NAP-1: đơn nạp không là doanh thu — loại khỏi số bán hàng
 
 const router = express.Router();
 
@@ -178,8 +178,8 @@ router.get('/products', authenticate, checkPermission('view_reports'), async (re
         COUNT(DISTINCT oi.order_id) as order_count
       FROM pos_order_items oi
       JOIN pos_orders o ON oi.order_id = o.id
-      WHERE o.status = 'completed'
-    `;
+      WHERE o.status = 'completed' AND oi.product_id > ${ID_NAP_TU}
+    `;   // NAP-1: gói nạp không phải sản phẩm bán
     const params = [];
 
     if (from) {
