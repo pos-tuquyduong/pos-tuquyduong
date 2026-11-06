@@ -76,3 +76,9 @@ CHƯA KIỂM:   (1) quét thẻ QR bằng app MB / Vietcombank / Techcombank / M
 GIT:         dòng git log cuối ghi ở "HEAD ĐÃ KIỂM" bên dưới
 BÀI HỌC:     KHOÁ 3 (làm luôn) · NGUYÊN TẮC 1 đề xuất · BỎ 1 — chi tiết ở ## Bài học
 ```
+
+## Cổng chạy (06.11)
+✓ CỔNG CHẠY ĐẠT (cảnh báo A16 về số ca trên gốc: bài dừng sớm / đổi số ca trên gốc — thu_BH2 99 vs 100, thu_GIAODIEN1 47 vs 68 — đã đối chiếu với bang_chung_do.txt)
+GIT: 26dcbf7 soat + bao cao; 0be0a45 build dist; 5a7324b sua loi soat 2; 2113a22 dot_bien; fba576b..2e9b5a5 mã (E, A-D, C, F)
+
+HEAD ĐÃ KIỂM: 26dcbf7
