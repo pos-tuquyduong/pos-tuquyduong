@@ -478,7 +478,7 @@ async function main() {
     const ch = await chuyenCua(d.id);
     const tim = async (giay) => {
       const luc = new Date(Date.parse(getNow() + 'Z') - giay * 1000).toISOString().slice(0, 19);
-      await db.run('UPDATE pos_giao_chuyen SET goi_luc = ?, doc_luc = ? WHERE order_id = ?', [luc, getNow(), d.id]);
+      await db.run('UPDATE pos_giao_chuyen SET goi_luc = ?, doc_luc = ? WHERE order_id = ?', [luc, getNow(), d.id]).catch(() => {});
       return ((await goi('GET', '/giao-hang')).j.chuyen || []).find((x) => x.order_id === d.id);
     };
     const a = await tim(599), b = await tim(601);
