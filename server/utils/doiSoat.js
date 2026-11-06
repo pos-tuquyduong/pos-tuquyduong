@@ -228,7 +228,7 @@ async function phepDenLe(q) {
 }
 
 // ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
-// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
+// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn — hoặc phiên App mà máy không tự cộng ví, Q6 B) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
 // CK-NOIDUNG-1: 'vao_vi' (tiền về muộn của đơn App đã tự cộng vào ví khách — Q1b) → CẦN XEM. Tiền về muộn của phiên QUẦY mà sau đó đã xác nhận
 // tay (đơn đã tạo, đúng số tiền — Q1a) → CẦN XEM; còn chưa xác nhận → ĐỎ kèm `xac_nhan_tay` = mã phiên (màn Đối soát hiện nút cho người có quyền).
 const LY_DO_MUON = ['tiền về sau khi QR hết hạn', 'phiên đang huy lúc tiền về', 'phiên đang cho lúc tiền về'];
@@ -239,7 +239,7 @@ async function phepTienVe(q) {
     WHERE s.ket_qua IN ('chua_khop', 'khong_phien', 'vao_vi')`);
   const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
   // Lưới chặn cộng ví hai lần (soát vòng 2, LUAT §5): mỗi khoản thật được MỖI cổng báo đúng một lần → số lần GHI TIỀN của phiên (dòng khop = đơn,
-  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với congKiaDaBao, thanh-toan.js;'sepay:%' = congCuaKhoa).
+  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với congKiaDaBao, thanh-toan.js; 'sepay:%' = congCuaKhoa).
   const VAO = "s.ket_qua NOT IN ('that_bai', 'khong_phien') AND COALESCE(s.ly_do, '') NOT LIKE ?";
   const vuot = await q(`SELECT p.id AS phien_id, s.ma_payos, MAX(s.luc) AS luc, SUM(s.ket_qua IN ('khop', 'vao_vi')) AS ghi,
       SUM(s.khoa LIKE 'sepay:%' AND ${VAO}) AS sepay, SUM(s.khoa NOT LIKE 'sepay:%' AND ${VAO}) AS payos
