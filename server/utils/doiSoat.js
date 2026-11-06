@@ -10,7 +10,7 @@
  */
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString, chuoiSoHd } = require('./helpers');
-const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('./congQr');
+const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa, TEN_CONG } = require('./congQr');
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
 const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
@@ -227,8 +227,8 @@ async function phepDenLe(q) {
     ngay: r.ngay || null, canXem: true }));
 }
 
-// ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
-// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn — hoặc phiên App mà máy không tự cộng ví, Q6 B) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
+// ─── CK (P3, SEPAY-1, TINGEE-1): tiền về payOS / SePay / Tingee mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
+// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn — hoặc phiên App mà máy không tự cộng ví, Q6 B) → CẦN XEM. Nguồn suy từ khoá (SePay 'sepay:<id giao dịch>', Tingee 'tingee:<mã giao dịch>' — congCuaKhoa). `luc` ghi bằng getNow (giờ VN).
 // CK-NOIDUNG-1: 'vao_vi' (tiền về muộn của đơn App đã tự cộng vào ví khách — Q1b) → CẦN XEM. Tiền về muộn của phiên QUẦY mà sau đó đã xác nhận
 // tay (đơn đã tạo, đúng số tiền — Q1a) → CẦN XEM; còn chưa xác nhận → ĐỎ kèm `xac_nhan_tay` = mã phiên (màn Đối soát hiện nút cho người có quyền).
 const LY_DO_MUON = ['tiền về sau khi QR hết hạn', 'phiên đang huy lúc tiền về', 'phiên đang cho lúc tiền về'];
@@ -237,16 +237,18 @@ async function phepTienVe(q) {
       p.con_lai AS p_con_lai, p.order_id AS p_don, EXISTS (SELECT 1 FROM pos_don_app a WHERE a.phien_id = p.id) AS p_app
     FROM pos_payos_su_kien s LEFT JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
     WHERE s.ket_qua IN ('chua_khop', 'khong_phien', 'vao_vi')`);
-  const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
+  const nguon = (r) => { const c = congCuaKhoa(r.khoa);
+    return c === 'payos' ? `payOS mã ${r.ma_payos}` : `${TEN_CONG[c]} giao dịch ${String(r.khoa).slice(c.length + 1)}, mã ${r.ma_payos ?? '—'}`; };
   // Lưới chặn cộng ví hai lần (soát vòng 2, LUAT §5): mỗi khoản thật được MỖI cổng báo đúng một lần → số lần GHI TIỀN của phiên (dòng khop = đơn,
-  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với congKiaDaBao, thanh-toan.js; 'sepay:%' = congCuaKhoa).
+  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với congKiaDaBao, thanh-toan.js; 'sepay:%' / 'tingee:%' = congCuaKhoa).
   const VAO = "s.ket_qua NOT IN ('that_bai', 'khong_phien') AND COALESCE(s.ly_do, '') NOT LIKE ?";
   const vuot = await q(`SELECT p.id AS phien_id, s.ma_payos, MAX(s.luc) AS luc, SUM(s.ket_qua IN ('khop', 'vao_vi')) AS ghi,
-      SUM(s.khoa LIKE 'sepay:%' AND ${VAO}) AS sepay, SUM(s.khoa NOT LIKE 'sepay:%' AND ${VAO}) AS payos
+      SUM(s.khoa LIKE 'sepay:%' AND ${VAO}) AS sepay, SUM(s.khoa LIKE 'tingee:%' AND ${VAO}) AS tingee,
+      SUM(s.khoa NOT LIKE 'sepay:%' AND s.khoa NOT LIKE 'tingee:%' AND ${VAO}) AS payos
     FROM pos_payos_su_kien s JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
-    GROUP BY p.id, s.ma_payos HAVING ghi > MAX(sepay, payos)`, [LY_DO_TK_KHAC + '%', LY_DO_TK_KHAC + '%']);
+    GROUP BY p.id, s.ma_payos HAVING ghi > MAX(sepay, tingee, payos)`, Array(3).fill(LY_DO_TK_KHAC + '%'));
   return [...vuot.map((r) => ({ ngay: r.luc || null, canXem: false,
-    mo_ta: `phiên #${r.phien_id} (mã ${r.ma_payos}): ghi tiền ${r.ghi} lần (đơn + cộng ví) vượt số khoản thật (payOS báo ${r.payos}, SePay báo ${r.sepay})`
+    mo_ta: `phiên #${r.phien_id} (mã ${r.ma_payos}): ghi tiền ${r.ghi} lần (đơn + cộng ví) vượt số khoản thật (payOS báo ${r.payos}, SePay báo ${r.sepay}, Tingee báo ${r.tingee})`
       + ' — kiểm ví khách, có thể đã cộng thừa' })), ...ds.map((r) => {
     const muon = r.ket_qua === 'chua_khop' && LY_DO_MUON.some((c) => String(r.ly_do || '').startsWith(c));
     const daTay = muon && r.p_tt === 'da_thu' && r.p_nguon === 'tay' && Number(r.so_tien) === Number(r.p_con_lai);
