@@ -83,7 +83,7 @@ export function tinhGio(gio, ctx = {}) {
     ? Math.round(m.unit_price * (1 - flash.percent / 100)) : null);
   const tamTinh = gio.reduce((s, m) => s + m.quantity * m.unit_price, 0);
   const giamFlash = gio.reduce((s, m) => { const g = giaFlash(m); return g == null ? s : s + (m.unit_price - g) * m.quantity; }, 0);
-  const giaHangMon = (m) => (giamFlash > 0 ? m.unit_price : giaHang(m.unit_price, phanTramHang(hang, m.is_special_group)).hang);   // đơn dính Flash → hạng không cộng
+  const giaHangMon = (m) => (giamFlash > 0 || m.goi_nap_id ? m.unit_price : giaHang(m.unit_price, phanTramHang(hang, m.is_special_group)).hang);   // đơn dính Flash / gói nạp (NAP-1) → hạng không cộng
   const giamHang = gio.reduce((s, m) => s + (m.unit_price - giaHangMon(m)) * m.quantity, 0);
   const tong = Math.max(0, tamTinh - giamFlash - giamHang);
   const dong = gio.map((m) => ({ ...m, giaHang: giaHangMon(m), giaFlash: giaFlash(m) }));
@@ -159,11 +159,22 @@ export function khoaTinh(gio, khach, ma) {
   const soLuong = {};
   for (const m of gio) soLuong[m.product_id] = (soLuong[m.product_id] || 0) + m.quantity;
   const mon = Object.keys(soLuong).sort((a, b) => a - b).map((id) => [Number(id), soLuong[id]]);
-  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma) });
+  const nap = layGoiNap(gio);
+  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(nap ? { nap: nap.goi_nap_id } : {}) });
+}
+/** NAP-1: dòng gói nạp trong giỏ (giỏ nạp chỉ có đúng một dòng này) hoặc null. */
+export const layGoiNap = (gio) => gio.find((m) => m.goi_nap_id) || null;
+/** NAP-1: chạm gói nạp → lỗi (chuỗi) hoặc null. Chưa chọn khách → báo chọn khách; giỏ đang có món → nạp làm đơn riêng. */
+export function kiemTraNap(gio, khach) {
+  if (!khach?.phone) return 'Chọn khách trước khi nạp tiền';
+  if (gio.some((m) => !m.goi_nap_id)) return 'Nạp tiền làm đơn riêng — thu xong giỏ món (hoặc xoá giỏ) rồi nạp';
+  return null;
 }
 
 /** Thân tinh-thu / phần `don` của phiên: CHỈ khách, món, mã — không trường tiền nào (máy chủ tự tra giá). */
 export function thanTinhThu(gio, khach, ma) {
+  const nap = layGoiNap(gio);
+  if (nap) return { customer_phone: khach?.phone || null, customer_name: khach?.name || 'Khách lẻ', items: [], goi_nap_id: nap.goi_nap_id };
   return {
     customer_phone: khach?.phone || null,
     customer_name: khach?.name || 'Khách lẻ',

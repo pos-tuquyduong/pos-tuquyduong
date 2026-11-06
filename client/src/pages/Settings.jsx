@@ -10,6 +10,7 @@ import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phi
 import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
 import CaiDatChuongTrinh from './CaiDat/ChuongTrinh';   // CT-1a
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
+import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quyền quản lý sản phẩm)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
 
@@ -26,7 +27,7 @@ export default function Settings() {
   // THẬT SỰ có quyền, tránh trường hợp mặc định 'products' bị ẩn nút nhưng nội dung tab đó
   // (không ai bấm được) vẫn là tab đang chọn ngầm, không tab nào sáng lên.
   const TAB_PERMISSION = {
-    products: 'manage_settings', packages: 'manage_users', users: 'manage_users',
+    products: 'manage_settings', packages: 'manage_users', goiNap: 'manage_products', users: 'manage_users',
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
     tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions',
@@ -218,7 +219,7 @@ export default function Settings() {
   // thi mo dung the dau tien HO XEM DUOC.
   const NHOM_THE = [
     { ma: 'ban', ten: 'Bán hàng', the: [
-      ['products', 'manage_settings'], ['packages', 'manage_users'], ['gioHoatDong', 'manage_settings'], ['inPhieu', 'manage_settings'], ['manKhach', 'manage_settings'],
+      ['products', 'manage_settings'], ['packages', 'manage_users'], ['goiNap', 'manage_products'], ['gioHoatDong', 'manage_settings'], ['inPhieu', 'manage_settings'], ['manKhach', 'manage_settings'],
     ]},
     { ma: 'khach', ten: 'Khách hàng', the: [
       ['loyalty', 'manage_settings'], ['signup', 'manage_settings'],
@@ -939,6 +940,11 @@ export default function Settings() {
           <button className={`btn ${tab === 'packages' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('packages')}
             style={{ background: tab === 'packages' ? '#7c3aed' : undefined, borderColor: tab === 'packages' ? '#7c3aed' : undefined }}>
             📦 Gói SP
+          </button>
+          )}
+          {theTrongNhom.includes('goiNap') && hasPermission('manage_products') && (
+          <button className={`btn ${tab === 'goiNap' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('goiNap')}>
+            💳 Gói nạp
           </button>
           )}
           {theTrongNhom.includes('gioHoatDong') && hasPermission('manage_settings') && (
@@ -2041,6 +2047,8 @@ export default function Settings() {
             <CaiDatManKhach />
           ) : tab === 'chuongTrinh' ? (
             <CaiDatChuongTrinh />
+          ) : tab === 'goiNap' ? (
+            <GoiNap />
           ) : null}
         </div>
       </div>
