@@ -27,7 +27,7 @@
 | E seed `database.js` manager / staff / owner | BV-SEED-MANAGER · BV-SEED-STAFF · VS-SEED-OWNER-TAT |
 | E bước 018 (đổi quyền, bản sao lưu, chạy một lần) | BV-018-KHONG-DOI · VS-018-DOI-CA-OWNER · BV-018-KHONG-SAO-LUU · VS-CHAY-NANG-CAP-CHAY-LAI |
 | E route `POST /wallets/topup` (cổng quyền; K5 manager được bật lại) | VS-ROUTE-NAP-BI-CHAN-QUYEN-LA · BV-ROUTE-NAP-BO-CONG |
-| A `donAppDai.js` (đếm / sớm nhất / hiện / chữ) | VS-DEM-CA-DANG-LAM · VS-SOM-NHAT-LA-MIN · VS-PHUT-AM · BV-DAI-HIEN-LUON · VS-DAI-CHI-DEM-MOI · VS-DAI-HEP-VAN-HIEN-PHUT |
+| A `donAppDai.js` (đếm / sớm nhất / hiện / chữ) | VS-DEM-CA-DANG-LAM · VS-SOM-NHAT-LA-MIN · VS-PHUT-AM · BV-DAI-HIEN-LUON · VS-DAI-HIEN-KHI-CHI-VAO-VI · VS-DAI-HEP-VAN-HIEN-PHUT |
 | A `DonAppNoi.jsx` / `Layout.jsx` (bỏ nút nổi, gắn dải, nút Xem, giữ chuông) | BV-NUT-NOI-VE · BV-DAI-BO-GAN · VS-DAI-DOI-NUT-XEM · BV-CHUONG-BO-EXPORT |
 | B `menu.js` + `Layout.jsx` (mục Đơn App, không đòi quyền, số đỏ) | BV-MENU-BO-DON-APP · VS-MENU-DON-APP-DOI-QUYEN · BV-SO-DO · VS-SO-DO-MUC-KHAC · BV-LAYOUT-BO-SO-DO |
 | D lưới Quản lý ô Khách và tiền | BV-O-KHACH-VA-TIEN · VS-O-HOAN-TIEN-KHONG-QUYEN · VS-O-KHACH-CAN-QUYEN-OAN |

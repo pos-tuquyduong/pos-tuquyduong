@@ -16,8 +16,8 @@ export function tomDonApp(ds, bayGioMs) {
   };
 }
 
-/** Không có đơn mới và không có tiền vào ví → dải không hiện gì. */
-export const hienDai = (tom) => tom.soMoi > 0 || tom.soViVe > 0;
+/** Phiếu A: chỉ hiện khi có đơn App mới chưa nhận; không có đơn mới → không hiện gì (dòng "vào ví" chỉ đi kèm khi dải đã hiện). */
+export const hienDai = (tom) => tom.soMoi > 0;
 
 /** `rong`: màn đủ rộng mới nói "đơn sớm nhất X phút trước". */
 export function chuDai(tom, rong) {

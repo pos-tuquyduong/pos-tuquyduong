@@ -66,9 +66,9 @@ async function phanThuan() {
     const t = f(D, 'tomDonApp')([don(1, 'xong', '2026-11-06T09:00:00'), don(2, 'dang_lam', '2026-11-06T09:30:00')], bay);
     return t.soMoi === 0 && t.somNhatPhut === null && f(D, 'hienDai')(t) === false;
   });
-  thu('A5 có đơn mới hoặc tiền về ví → hienDai true (ngay trên ngưỡng 0 / 1 đều hiện)', () => {
+  thu('A5 có đúng 1 đơn mới → hienDai true; chỉ có tiền về ví (không đơn mới) → false (phiếu A: không có đơn mới thì không hiện gì)', () => {
     const g = f(D, 'tomDonApp'), h = f(D, 'hienDai');
-    return h(g([don(1, 'da_tra', '2026-11-06T10:29:00')], bay)) === true && h(g([don('vao_vi:9', 'vao_vi', '2026-11-06T10:00:00')], bay)) === true;
+    return h(g([don(1, 'da_tra', '2026-11-06T10:29:00')], bay)) === true && h(g([don('vao_vi:9', 'vao_vi', '2026-11-06T10:00:00')], bay)) === false;
   });
   thu('A6 giờ lạ / thiếu → somNhatPhut null (không NaN, không âm), vẫn đếm đơn', () => {
     const t = f(D, 'tomDonApp')([don(1, 'da_tra', ''), don(2, 'da_tra', 'xyz')], bay);
