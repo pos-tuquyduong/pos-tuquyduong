@@ -1,9 +1,10 @@
 /**
- * P3 — phiên thanh toán ở quầy (JWT nhân viên) + webhook payOS / SePay (công khai, chỉ tin chữ ký — SEPAY-1).
- * Không đường nào cho nhân viên tự đánh dấu "đã thu chuyển khoản": phiên payos (QR tự xác nhận: payOS hoặc SePay) chỉ chốt bằng webhook đúng chữ ký, phiên payos / ck_tay
+ * P3 — phiên thanh toán ở quầy (JWT nhân viên) + webhook payOS / SePay / Tingee (công khai, chỉ tin chữ ký — SEPAY-1, TINGEE-1).
+ * Không đường nào cho nhân viên tự đánh dấu "đã thu chuyển khoản": phiên payos (QR tự xác nhận: payOS, SePay hoặc Tingee) chỉ chốt bằng webhook đúng chữ ký, phiên payos / ck_tay
  * chốt tay CHỈ qua xac-nhan-tay (quyền xac_nhan_ck_tay, có lý do). Mọi lối chốt đi qua MỘT chotPhien (utils/giuCho.js).
  */
 const express = require('express');
+const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, chuoiSoHd } = require('../utils/helpers');
@@ -12,7 +13,8 @@ const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
-const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, LY_DO_VAO_VI, congCuaKhoa } = require('../utils/congQr');
+const tingee = require('../utils/tingee');
+const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, LY_DO_VAO_VI, congCuaKhoa, TEN_CONG } = require('../utils/congQr');
 
 const router = express.Router();
 const webhook = express.Router();
@@ -117,15 +119,14 @@ router.post('/pin/xoa', authenticate, checkPermission('xoa_pin_khach'), async (r
   }
 });
 
-// ── Webhook tiền về: payOS + SePay (công khai, chỉ tin chữ ký) ─────────────
+// ── Webhook tiền về: payOS + SePay + Tingee (công khai, chỉ tin chữ ký) ────
 // Sai chữ ký → 4xx, không ghi gì. Đúng chữ ký → MỖI báo một dòng pos_payos_su_kien (khoa UNIQUE: báo lặp dừng ở đó) và trả 200
-// {"success": true} (cả hai cổng coi là đã nhận, thôi gửi lại) — trừ khi máy chủ lỗi giữa chừng (5xx) hoặc kho bận (409 KHO_BAN): chưa ghi gì,
-// để cổng báo lại. MỘT hàm xuLyTienVe cho cả hai cổng (SEPAY-1): khoá, khớp phiên, chua_khop, chốt.
+// {"success": true} (payOS, SePay coi là đã nhận, thôi gửi lại; Tingee đổi thành {"code":"00"}) — trừ khi máy chủ lỗi giữa chừng (5xx) hoặc kho bận (409 KHO_BAN): chưa ghi gì,
+// để cổng báo lại. MỘT hàm xuLyTienVe cho mọi cổng (SEPAY-1): khoá, khớp phiên, chua_khop, chốt.
 const DANG_GIO = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
 const CAU_GHI = `INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(khoa) DO NOTHING`;
-const TEN_CONG = { payos: 'payOS', sepay: 'SePay' };
-// "Hai cổng" ở đường vào ví (Q6 B, chủ quán 06.11): một khoản báo qua CẢ payOS lẫn SePay mang hai khoá khác nhau, và hai cổng không giữ cùng
+// "Hai cổng" ở đường vào ví (Q6 B, chủ quán 06.11): một khoản báo qua HAI cổng (payOS, SePay, Tingee) mang hai khoá khác nhau, và hai cổng không giữ cùng
 // thứ tự (gửi lại sau khi Render ngủ) — máy không phân biệt chắc "bản sao" với "khoản thật thứ hai". Nên phiên đã có báo tiền vào từ CỔNG KIA
 // (khop, chua_khop, vao_vi — trừ báo thất bại / không thuộc phiên / tiền vào tài khoản khác) thì KHÔNG tự cộng ví: ghi CẦN XEM, chủ quán đối
 // chiếu sao kê, cộng tay. Ví không bao giờ cộng thừa. Một cổng (cấu hình QUYET_DINH 01.11) không bao giờ chạm vế này. tx: câu đọc ĐẦU giao
@@ -137,8 +138,8 @@ async function congKiaDaBao(tx, t) {
 }
 
 /** t: { khoa, noiDung (nội dung số hoá đơn đã chuẩn hoá — SePay) | ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), maGd (mã giao dịch
- *  ngân hàng), duLieu, nguon ('payos' | 'sepay'), boQua (lý do ghi khong_phien ngay), khongPhien (lý do khi mã không thuộc phiên),
- *  thatBai (lý do ghi that_bai), tkKhac (số tài khoản nhận sai — chỉ SePay) }. */
+ *  ngân hàng), duLieu, nguon ('payos' | 'sepay' | 'tingee'), boQua (lý do ghi khong_phien ngay), khongPhien (lý do khi mã không thuộc phiên),
+ *  thatBai (lý do ghi that_bai), tkKhac (số tài khoản nhận sai — SePay, Tingee) }. */
 async function xuLyTienVe(res, t) {
   const p = t.boQua ? null
     : t.noiDung ? await queryOne("SELECT * FROM pos_phien_thanh_toan WHERE noi_dung = ? AND cach = 'payos' ORDER BY id DESC LIMIT 1", [t.noiDung])
@@ -222,6 +223,34 @@ webhookSepay.post('/', async (req, res) => {
   }
 });
 
+// TINGEE-1: thân THÔ (index.js gắn express.raw riêng đường này). Trả lời theo viec/TINGEE-1/tai_lieu_tingee.md mục 3: 200 + {"code":"00"} khi
+// ghi nhận, {"code":"02"} khi báo lặp (khoá đã có dòng), sai chữ ký 401 + {"code":"09"}. Kho bận / lỗi máy chủ: 409 / 500 với code khác "00" /
+// "02" → Tingee gửi lại. Tin không có transactionCode (tin "Kiểm tra kết nối" của Portal, dạng lạ) → một dòng khong_phien (khoá = băm thân), "00".
+const webhookTingee = express.Router();
+const DA_NHAN_TINGEE = { code: '00', message: 'Success' };
+webhookTingee.post('/', async (req, res) => {
+  try {
+    const cach = tingee.kiemBao(req.headers, req.body);
+    if (!cach) return res.status(401).json({ error: 'Chữ ký không hợp lệ', code: '09' });
+    if (cach === 'gon') console.warn('Tingee: chữ ký khớp trên bản JSON gọn, không khớp thân thô');
+    let b;
+    try { b = JSON.parse(req.body.toString('utf8')); } catch { b = null; }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return res.status(400).json({ error: 'Thân báo không hợp lệ', code: 'BAO_KHONG_HOP_LE' });
+    const d = tingee.docBao(b);
+    if (!d.maGd) d.khoa = 'tingee:tin-la:' + crypto.createHash('sha256').update(req.body).digest('hex').slice(0, 24);
+    if (await queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [d.khoa])) return res.json({ code: '02', message: 'Đã ghi nhận trước đó' });
+    const json = res.json.bind(res);
+    res.json = (x) => json(x?.success === true ? DA_NHAN_TINGEE : x);
+    await xuLyTienVe(res, { ...d, duLieu: { ...b, clientId: undefined }, nguon: 'tingee',   // không lưu Client ID
+      boQua: !d.maGd ? 'Tingee: tin không có mã giao dịch (tin thử kết nối / dạng lạ)' : !d.vao ? 'Tingee báo tiền ra'
+        : !d.noiDung && !d.ma ? 'không có mã TQD trong nội dung' : null,
+      khongPhien: `mã ${d.noiDung || 'TQD' + d.ma} không thuộc phiên nào` });
+  } catch (err) {
+    loiGhi(res, err);
+  }
+});
+
 module.exports = router;
 module.exports.webhook = webhook;
 module.exports.webhookSepay = webhookSepay;
+module.exports.webhookTingee = webhookTingee;
