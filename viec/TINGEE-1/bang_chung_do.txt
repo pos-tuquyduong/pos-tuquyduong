@@ -23,3 +23,11 @@ bắt), A4 (CONG_QR=sepay như cũ), B0 (tự kiểm CRC), X1 / X2 (khoá không
 Trên code ĐÃ VÁ (HEAD) → 75 đạt · 0 hỏng.
 
 SỐ CA cong_cu/thu_TINGEE1.js: 75
+
+Bốn bài dưới đây do việc CK-NOIDUNG-1 sửa (vào nhánh qua lần gộp main f9fd8b5 ở 71c44cb — cổng tính từ mốc e9b7036^ nên thấy chúng).
+TINGEE-1 KHÔNG sửa bốn bài này; bằng chứng đỏ của chúng ở viec/CK-NOIDUNG-1/bang_chung_do.txt. Số ca chạy lại trên HEAD 88a72b4 (06.11),
+khớp số đã ghi ở viec/CK-NOIDUNG-1/bang_chung_do.txt dòng 162–165:
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 113
+SỐ CA cong_cu/thu_SEPAY1.js: 78
+SỐ CA cong_cu/thu_P26c.js: 157
+SỐ CA cong_cu/thu_KHMUA1.js: 122
