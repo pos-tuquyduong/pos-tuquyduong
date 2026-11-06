@@ -13,4 +13,11 @@ const tienTinhDiem = (dong) => {
   return Math.max(0, Math.round(Math.min(tra, Number(dong.total) || 0) - (Number(dong.shipping_fee) || 0)));
 };
 
-module.exports = { tienTinhDiem };
+/**
+ * NAP-1 (soát bảo mật, chủ quán 06.11 chọn (a)): DUYỆT HOÀN trả lại phần tài khoản `tienHoan` (con + mẹ) → số điểm trừ = phần `diem` theo tỷ lệ
+ * tienHoan / tienDiem (tiền tính điểm của đơn — tienTinhDiem), làm tròn LÊN, không quá `diem`. Phần tiền mặt / CK không hoàn giữ điểm.
+ */
+const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
+  (diem > 0 && tienHoan > 0 && tienDiem > 0 ? Math.min(diem, Math.ceil((diem * tienHoan) / tienDiem)) : 0);
+
+module.exports = { tienTinhDiem, diemTruKhiHoan };

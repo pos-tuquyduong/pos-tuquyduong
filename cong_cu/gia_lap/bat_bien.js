@@ -150,16 +150,21 @@ const BAT_BIEN = {
     // NAP-1: đơn nạp nhận theo dòng hàng. Kho không có bảng pos_order_items (kho dữ liệu tay của thu_gia_lap.js) thì không thể có đơn nạp → 0.
     const coMon = so((await q("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_order_items'"))[0]?.n);
     const napSql = coMon ? `o.id IN (SELECT order_id FROM pos_order_items WHERE product_id <= ${NAP_TU})` : '0';
+    // Cùng lý do: kho dữ liệu tay không có sổ ví → không đơn nào được duyệt hoàn phần ví (hoan = 0).
+    const coSo = so((await q("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_balance_transactions'"))[0]?.n);
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
         o.status, o.cancelled_at, ${napSql} AS nap,
-        COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan
+        COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan, COALESCE(h.hoan, 0) AS hoan
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
-      LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id`);
+      LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id
+      ${coSo ? `LEFT JOIN (SELECT order_id, SUM(amount) AS hoan FROM pos_balance_transactions WHERE type = 'refund'
+        AND COALESCE(payment_method, '') <> 'hoan_goi' GROUP BY order_id) h ON h.order_id = o.id` : 'LEFT JOIN (SELECT NULL AS order_id, 0 AS hoan) h ON 0'}`);
     const lech = ds.flatMap((r) => {
       const vi = so(r.balance_amount) + so(r.parent_balance_amount);
-      const g = Math.floor(Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee))) / per);
+      const tienDiem = Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee)));
+      const g = Math.floor(tienDiem / per);
       const gThat = Math.floor(Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - vi) - so(r.shipping_fee))) / per);
       const gCu = Math.floor(so(r.total) / per);
       const diemDung = (luatCu, goc) => {
@@ -171,7 +176,12 @@ const BAT_BIEN = {
       };
       // Huỷ trước mốc (hoặc dữ liệu cũ không cancelled_at): ngày gộp lẫn hai luật → nhận cả "giữ điểm" (cũ) lẫn tổng 0 (P24).
       const huyCu = ctx.thuc && r.status === 'cancelled' && (r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU);
-      const dung = (r.status === 'cancelled' && !huyCu) || so(r.nap) ? 0 : diemDung(false, g);   // NAP-1: đơn nạp 0 điểm
+      const dungBan = (r.status === 'cancelled' && !huyCu) || so(r.nap) ? 0 : diemDung(false, g);   // NAP-1: đơn nạp 0 điểm
+      // NAP-1 (chủ quán 06.11 (a)): đơn ĐÃ HOÀN (duyệt hoàn trả phần tài khoản — dòng sổ 'refund' của đơn) giữ điểm phần không hoàn: trừ
+      // ceil(điểm × tiền hoàn / tiền tính điểm), không quá điểm. Chép riêng (trọng tài), không gọi diemThat.js.
+      const truHoan = r.status === 'refunded' && dungBan > 0 && so(r.hoan) > 0 && tienDiem > 0
+        ? Math.min(dungBan, Math.ceil((dungBan * so(r.hoan)) / tienDiem)) : 0;
+      const dung = dungBan - truHoan;
       if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
       const cu = ctx.thuc && (huyCu || r.status !== 'cancelled');
       if (cu && String(r.created_at) < DIEM_VI_TU && so(r.diem) === diemDung(false, gThat)) return [];   // NAP-1: luật DIEM-THAT-1 (ví 0 điểm)
