@@ -344,3 +344,52 @@ lỗi 3 (ca phiên thanh toán của nhân viên) → đề xuất KHOÁ ở Bà
 - **Làm tròn phần thưởng khi đền nhiều lần nhỏ:** sau trần vòng 4, vài đồng thưởng có thể sang ngăn tiền nạp (tổng ví đúng, bất biến I4 giữ). Gọn hơn: công
   thức cộng dồn (báo cáo soát mục 8) — đề xuất việc sau, không đổi tiền khách.
 - **Chủ quán phải đặt PIN chủ quán trước** (Cài đặt → Hạng thành viên) thì mới thêm / sửa gói nạp được (400 CHUA_CO_PIN_CHU_QUAN).
+
+## Soát bảo mật
+Lần 1 (06.11, `/soat-bao-mat`, mốc 0406870^ → b49c45a; người tìm đọc phần riêng NAP-1 `git diff f464cea HEAD`). Trước lọc: **1** lỗ hổng · sau lọc
+(một agent lọc riêng, điểm 8/10 — GIỮ): **1**. Báo cáo sau lọc, nguyên văn:
+
+# Vuln 1: Logic tiền / điểm — duyệt hoàn trả lại đủ tiền ví nhưng không trừ điểm, mà NAP-1 nay cộng điểm cho phần trả bằng ví: `server/routes/refunds.js:160-166` (nguyên nhân mới ở `server/utils/diemThat.js:10-14`)
+
+* Severity: Medium
+* Category: business_logic / privilege abuse (tiền ↔ điểm)
+* Confidence: 7/10 (người tìm) · 8/10 (người lọc — GIỮ)
+* Description: NAP-1 đổi `tienTinhDiem` (diemThat.js:10-14). Phần trả bằng ví (`balance_amount`) và ví mẹ (`parent_balance_amount`) nay được tính điểm như tiền mặt. orders.js:923 cộng điểm 'earn' theo hàm này khi đơn thu đủ. Lối huỷ / xoá đơn có trừ lại điểm qua `truDiemDon` (orders.js:1683, luật P24). Lối duyệt hoàn ở `POST /api/pos/refunds/:id/approve` thì không:
+  - nó đặt đơn sang `status = 'refunded'` (refunds.js:160);
+  - rồi trả lại vào ví toàn bộ phần ví + ví mẹ đã trừ (refunds.js:162-169, qua `ghiVi` loại 'refund');
+  - và không gọi `truDiemDon`. `grep -n point server/routes/refunds.js` không ra dòng nào.
+
+  Trước NAP-1, yêu cầu hoàn chỉ nhận đơn có `balance_amount > 0` (refunds.js:119), và phần ví khi đó 0 điểm, nên không có điểm nào để giữ lại. Sau NAP-1, đơn trả 100% bằng ví được cộng đủ điểm, hoàn xong tiền về ví mà điểm vẫn còn.
+* Exploit Scenario:
+  1. Khách (hoặc nhân viên thông đồng) trả đơn 500.000đ hoàn toàn bằng tài khoản. Máy chủ cộng điểm 'earn' cho 500.000đ (orders.js:923, diemThat.js:11-13).
+  2. Nhân viên bất kỳ tạo yêu cầu hoàn bằng `POST /api/pos/refunds`. Route này chỉ cần `authenticate`.
+  3. Người có quyền `approve_refund` duyệt. 500.000đ trở lại ví, điểm 'earn' không bị trừ.
+  4. Lặp lại: mỗi vòng sinh điểm mà không tốn tiền. Điểm đổi được ra voucher / mã giảm, tức là tiền thật.
+
+  Cùng lỗ đó áp cho phần ví mẹ: điểm cộng cho khách con, tiền hoàn về ví mẹ.
+* Recommendation: Trong giao dịch duyệt hoàn, ngay sau khi đổi đơn sang 'refunded' (refunds.js:160), gọi đúng hàm `truDiemDon(tx, don, nguoi, now, 'Hoàn')` của orders.js. Hàm này nên đưa sang `server/utils/` để dùng chung, theo luật "một quy tắc — một hàm". Thêm ca thử: đơn trả bằng ví → duyệt hoàn → tổng điểm của đơn về 0. Theo K4 cần rà mọi lối đưa đơn rời 'completed' có trả tiền ví: huỷ, xoá, duyệt hoàn. Hai lối đầu đã trừ điểm, chỉ lối duyệt hoàn còn thiếu.
+
+Người lọc thêm (nguyên ý): lỗ do NAP-1 mới tạo (luật cũ `git show f464cea:server/utils/diemThat.js` cho phần ví 0 điểm; yêu cầu hoàn chỉ hoàn phần ví). Bất biến
+I8 (`cong_cu/gia_lap/bat_bien.js` khoảng 160–180) đòi đơn 'refunded' ĐỦ điểm (tính cả ví) → không bắt lỗ này và phải sửa cùng lúc. `truDiemDon` trừ TOÀN BỘ
+điểm earn của đơn → với đơn ví + tiền mặt sẽ mất cả điểm phần tiền mặt — chỗ chủ quán phải quyết.
+Người tìm cũng ghi "đã soát, không thấy lỗ": giá gói máy chủ tra (orders.js:542, 899); chặn vòng nạp bằng ví (orders.js:225-232, giuCho.js:40); quyền gói nạp
+(goi-nap.js chiChuQuan + kiemPinChuQuan); khôi phục sao lưu (backup.js:140); đơn nạp không huỷ / xoá / hoàn / đền; ví hai ngăn chỉ chia sổ; client không có
+`dangerouslySetInnerHTML` / `fetch` trần mới.
+
+Vòng sửa CHƯA làm — lỗi đụng ĐIỂM, cách vá cần chủ quán chọn luật (xem `## Câu hỏi` 06.11 (2)).
+SOÁT BẢO MẬT: KHÔNG ĐẠT — 1
+
+## Câu hỏi 06.11 (2) — soát bảo mật lần 1 tìm 1 lỗi ĐIỂM (dừng theo LUAT_XAY_APP §6.5 / §8.3)
+**Chuyện gì:** từ NAP-1, đơn trả bằng tài khoản được tích điểm (bạn chốt 01.11). Nhưng khi đơn đó được **duyệt hoàn tiền** (Yêu cầu hoàn → Duyệt), tiền về lại
+tài khoản mà **điểm vẫn giữ nguyên**. Huỷ đơn / xoá đơn thì đã trừ lại điểm, riêng duyệt hoàn thì chưa. Lặp lại "trả bằng tài khoản → xin hoàn → duyệt" sẽ
+sinh điểm không tốn tiền (điểm đổi được quà). Trước NAP-1 không có lỗ này vì phần tài khoản không có điểm.
+
+**Cần bạn chọn cách trừ điểm khi duyệt hoàn** (duyệt hoàn chỉ trả lại phần tài khoản; phần tiền mặt / chuyển khoản của đơn KHÔNG được hoàn):
+- **(a) Đề xuất — trừ theo phần được hoàn:** chỉ trừ điểm của phần tài khoản (và tài khoản mẹ) vừa trả lại, giữ điểm của phần tiền mặt / CK khách vẫn trả thật.
+  Đơn trả trọn bằng tài khoản → trừ hết điểm của đơn. Làm tròn số điểm trừ LÊN (thà trừ đủ, như luật "thà thiếu điểm hơn cộng sai"). Khách đã tiêu điểm
+  thì số dư điểm được âm như khi huỷ đơn (P24).
+- **(b) Trừ hết điểm của đơn** như huỷ đơn — dùng lại đúng hàm huỷ, đơn giản nhất, nhưng khách mất cả điểm phần tiền mặt chưa được hoàn.
+Máy sẽ sửa `server/routes/refunds.js` (duyệt hoàn) + bất biến I8 (`cong_cu/gia_lap/bat_bien.js`, đơn đã hoàn) + ca thử đỏ / xanh + đột biến, rồi soát bảo mật lần 2.
+Cả hai file đã trong Phạm vi. Bạn chỉ cần trả lời "(a)" hoặc "(b)".
+
+Bước dở: 8b (soát bảo mật lần 1 KHÔNG ĐẠT — chờ câu trả lời). Chưa làm: vòng sửa điểm, soát bảo mật lần 2, cổng `chay`, báo cáo 7 mục, Bài học.
