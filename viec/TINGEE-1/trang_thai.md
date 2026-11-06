@@ -25,7 +25,8 @@
   - d01f140 TINGEE-1 ghi dieu chinh duyet 06.11 (VA, huong dan F) + cau hoi: chua keo duoc main, thieu tai lieu Tingee
 
 ## Bước đang ở
-Phiên `tiep` lần 2: bước 4–7 xong; soát vòng 1 KHÔNG ĐẠT (lỗi nhẹ) → vòng sửa 1 (046fd5b); soát vòng 2 KHÔNG ĐẠT (1 lỗi nhẹ) → vòng sửa 2 (84cc3a5); tiếp soát vòng 3.
+Phiên `tiep` lần 2: bước 4–7 xong; soát vòng 1 KHÔNG ĐẠT (lỗi nhẹ) → vòng sửa 1 (046fd5b); soát vòng 2 KHÔNG ĐẠT (1 lỗi nhẹ) → vòng sửa 2 (84cc3a5); soát vòng 3 chỉ lỗi nhẹ → vòng sửa 4 chat soát thay (88a72b4);
+soát bảo mật ĐẠT; cổng ĐẠT. XONG — dừng, chờ chủ quán thử theo cai_dat_tingee.md.
 
 ## Cách làm theo tài liệu (chỗ kế hoạch b4af4be đổi theo duyệt 06.11 + tài liệu)
 - **Trường thân Webhook** (`tai_lieu_tingee.md` mục 1): `transactionCode` → khoá `tingee:<mã>` + mã GD lưu vào đơn; `amount`; `content` → MỘT hàm
@@ -365,7 +366,8 @@ CHƯA KIỂM:   - Chưa có tin Tingee THẬT nào: độ dài x-request-timesta
              - Lối lùi CONG_QR=sepay: Webhook SePay đã gỡ → lùi về là xác nhận tay; SEPAY_* trên Render còn đủ không thì máy không thấy.
              - Màn Cài đặt chưa xem trên điện thoại (thao tác thử tay: mở Cài đặt → thấy dòng "Cổng QR: Tingee ✓").
              - Không gọi Tingee thật (phiếu cấm); không thử trên Render / Turso.
-GIT:         (xem dòng git log ở cuối — ghi khi commit cuối)
+GIT:         fe2e7ef TINGEE-1 soat vong 3 + vong sua 4 (chat soat thay), cong DAT, dem nghiem thu, bao cao 7 muc, bai hoc
+             efa0dc9 TINGEE-1 bang chung: SO CA cua 4 bai CK-NOIDUNG-1 (vao nhanh qua gop main)
 BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài học
 ```
 
@@ -390,3 +392,5 @@ trước) — lỗi của bài, không phải code; (4) đột biến VS-huong-d
 - BỎ: người gác chặn lệnh ghép / heredoc có chữ khoá — luật đã có, chỉ cần nhớ tách lệnh (lặp nhưng đã có hướng dẫn trong lỗi người gác).
 - BỎ: kéo main bị chặn — chủ quán đã quyết gộp là việc của người (30.10); lần này chat gộp hộ, đúng quy trình.
 - BỎ: cổng A16 đòi SỐ CA cho bài của việc khác vì mốc phiếu nằm trước lần gộp main — một lần, xử lý bằng chép số ca thật (khớp hồ sơ CK-NOIDUNG-1).
+
+HEAD ĐÃ KIỂM: efa0dc9
