@@ -171,14 +171,14 @@ async function main() {
     if (token) headers.Authorization = 'Bearer ' + token;
     imLang();
     try {
-      const r = await fetch(goc + url, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+      const r = await fetch(goc + (them.congKhai ? '' : '/pos') + url, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
       const tho = await r.text();
       let j = {}; try { j = JSON.parse(tho); } catch { /* không phải JSON */ }
       return { status: r.status, j, tho };
     } finally { noiLai(); }
   };
   const chuyenCua = (orderId) => db.queryOne('SELECT * FROM pos_giao_chuyen WHERE order_id = ?', [orderId]).catch(() => null);
-  const baoVe = (body, khoa = BI_MAT.bao) => goi('POST', '/giao-hang/ahamove-bao', body, null, { headers: khoa === null ? {} : { apikey: khoa } });
+  const baoVe = (body, khoa = BI_MAT.bao) => goi('POST', '/giao-hang/ahamove-bao', body, null, { congKhai: true, headers: khoa === null ? {} : { apikey: khoa } });
   const SDT_KHACH = '0911000001';
   await db.run("INSERT INTO pos_customers (phone, name) VALUES (?, 'Khách Giao')", [SDT_KHACH]).catch(() => {});
   await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 1000000)', [SDT_KHACH]);
@@ -334,7 +334,7 @@ async function main() {
       giao: { ma_bao_phi: b3.j.ma_bao_phi, ten: 'Anh Phiên', sdt: '0988000222', ghi_chu: '' } } });
     await db.run("UPDATE pos_giao_bao_phi SET het_han = '2000-01-01T00:00:00' WHERE ma = ?", [b3.j.ma_bao_phi]).catch(() => {});
     const hh = await goi('POST', '/orders/tinh-thu', { items: [mon(1)], giao: { ma_bao_phi: b3.j.ma_bao_phi } });
-    const chot = ph.j.phien ? await goi('POST', `/thanh-toan/phien/${ph.j.phien.id}/chot`, { cash_received: 60000 }) : { status: 0, j: {} };
+    const chot = ph.j.phien ? await goi('POST', `/thanh-toan/phien/${ph.j.phien.id}/chot`, { cash_received: 60000 }) : { status: 0, j: {}, tho: '' };
     const oid = chot.j.order?.id;
     const ch3 = oid ? await chuyenCua(oid) : null;
     k('D5 báo phí hết hạn → tính tiền 400 BAO_PHI_HET_HAN', hh.status === 400 && hh.j.code === 'BAO_PHI_HET_HAN', `${hh.status} ${hh.j.code}`);
@@ -583,7 +583,7 @@ async function main() {
     const q1 = await goi('POST', '/refunds', { order_id: q.id, reason: 'thử' });
     await goiXe(q.id);
     const q2 = await goi('POST', '/refunds', { order_id: q.id, reason: 'thử' });
-    const q3 = q1.j.refund_id ? await goi('POST', `/refunds/${q1.j.refund_id}/approve`, {}) : { status: 0, j: {} };
+    const q3 = q1.j.refund_id ? await goi('POST', `/refunds/${q1.j.refund_id}/approve`, {}) : { status: 0, j: {}, tho: '' };
     k('Q5 hoàn tiền: đơn giao đang pha xin được; còn chuyến ở Ahamove → xin 409 / duyệt 409 DON_GIAO_DANG_CHAY', q1.status === 200 && q2.status === 409 && q2.j.code === 'DON_GIAO_DANG_CHAY'
       && q3.status === 409 && q3.j.code === 'DON_GIAO_DANG_CHAY', `${q1.status} ${q2.status} ${q2.j.code} ${q3.status} ${q3.j.code}`);
     dHuy = [a.code, b.code, d.code, m.code];
