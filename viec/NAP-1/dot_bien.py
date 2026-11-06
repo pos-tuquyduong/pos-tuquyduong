@@ -70,6 +70,9 @@ DOT_BIEN = [
   ('VS-hoan-chi-refund', [(WA, "orderId && (loai === 'refund' || loai === 'compensation')", "orderId && loai === 'refund'", 1)], r'✗ C7 '),
   ('BV-hoan-tran', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return Math.round((soTien * thuongTru) / viTru);', 1)], r'✗ C0b '),
   ('VS-hoan-tra-het-thuong', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return con;', 1)], r'✗ C0b |✗ C7 '),
+  ('BV-hoan-tra-not', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;\n', '', 1)], r'✗ C0b |✗ C7c '),
+  ('VS-hoan-tra-not-tinh-ca-hoan-goi', [(VK, "AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount END), 0) AS vi_hoan", "THEN amount END), 0) AS vi_hoan", 1),
+                                        (WA, "for (const [soTien, cachTra, cot] of [[tuVi, 'cash', 'total_spent'], [tienMat, 'hoan_goi', null]])", "for (const [soTien, cachTra, cot] of [[tienMat, 'hoan_goi', null], [tuVi, 'cash', 'total_spent']])", 1)], r'✗ C13 '),
   ('VS-hoan-moi-vi', [(VK, 'FROM pos_balance_transactions WHERE customer_phone = ? AND order_id = ?`, [phone, orderId]);', 'FROM pos_balance_transactions WHERE order_id = ? AND ? IS NOT NULL`, [orderId, phone]);', 1)], r'✗ C7b |✗ C3 |✗ C9 '),
   ('BV-ghi-vi-cot-thuong', [(WA, 'UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + ?, total_topup', 'UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + 0 * ?, total_topup', 1)], r'✗ C1 '),
   ('BV-reconcile-thuong', [(WA, 'UPDATE pos_wallets SET balance = ?, thuong = ?, updated_at = ? WHERE phone = ?', 'UPDATE pos_wallets SET balance = ?, thuong = thuong + 0 * ?, updated_at = ? WHERE phone = ?', 1)], r'✗ C11 '),
@@ -99,6 +102,7 @@ DOT_BIEN = [
   ('VS-thuong-da-dung-khong-hoan', [(DS, "AND type IN ('purchase', 'refund', 'compensation') AND DATE(created_at) BETWEEN ? AND ?", "AND type IN ('purchase') AND DATE(created_at) BETWEEN ? AND ?", 1)], r'✗ F3b '),
   ('BV-doanh-thu-that', [(DS, 'doanh_thu_that: tongBan - daDung', 'doanh_thu_that: tongBan', 1)], r'✗ F3 '),
   ('VS-giu-ho-khong-tach', [(DS, 'giu_ho: { tong, tien_nap: tong - th, thuong_nap: th }', 'giu_ho: { tong, tien_nap: tong, thuong_nap: 0 }', 1)], r'✗ F4 '),
+  ('BV-products-nap', [(RP, "WHERE o.status = 'completed' AND oi.product_id > ${ID_NAP_TU}", "WHERE o.status = 'completed'", 1)], r'✗ F7 '),
   ('BV-so-sach-quyen', [(RP, "router.get('/so-sach', authenticate, checkPermission('view_reports'),", "router.get('/so-sach', authenticate,", 1)], r'✗ F6 '),
   # ── G: màn Bán hàng mới (client/src/pages/BanHang/tinh.js) ──
   ('BV-man-than-nap', [(TI, "  if (nap) return { customer_phone: khach?.phone || null, customer_name: khach?.name || 'Khách lẻ', items: [], goi_nap_id: nap.goi_nap_id };\n", '', 1)], r'✗ G1 '),
