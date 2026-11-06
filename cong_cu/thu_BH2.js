@@ -217,7 +217,7 @@ async function main() {
   k('S3 màn mới KHÔNG còn gọi ordersApi.create (mọi cách thu đi MỘT đường phiên)', Object.values(F).every((s) => !/ordersApi\.create/.test(sach(s))));
   k('S4 màn gọi đủ 4 đường phiên: tạo · hỏi · chốt · huỷ', ['taoPhien', 'hoiPhien', 'chotPhien', 'huyPhien'].every((x) => Object.values(F).some((s) => sach(s).includes(x))));
   const qr = moi('ManQr.jsx');
-  k('S5 ManQr: vẽ QR bằng veQr.js (qrSvg / veQr), đếm ngược theo het_han, hỏi lại phiên bằng hoiPhien', /veQr|qrSvg/.test(qr) && /het_han/.test(qr) && /hoiPhien/.test(qr));
+  k('S5 ManQr: vẽ QR bằng thẻ chung TheQr (GIAO-DIEN-1 F; bill in vẫn veQr.js), đếm ngược theo het_han, hỏi lại phiên bằng hoiPhien', /TheQr|veQr|qrSvg/.test(qr) && /het_han/.test(qr) && /hoiPhien/.test(qr));
   k('S6 KHÔNG có nút "đã nhận chuyển khoản" cho nhân viên (chỉ Xác nhận tay)', Object.values(F).every((s) => !/Đã nhận chuyển khoản|Đã nhận CK|da_nhan_ck/i.test(s)));
   k('S7 Xác nhận tay: chỉ hiện với quyền xac_nhan_ck_tay, bắt buộc lý do, gọi xacNhanTay', /xac_nhan_ck_tay/.test(qr) && /xacNhanTay/.test(qr) && /ly_?do|lyDo/.test(qr));
   const pin = moi('ManPin.jsx');
