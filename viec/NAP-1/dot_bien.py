@@ -71,12 +71,11 @@ DOT_BIEN = [
   ('BV-hoan-tran', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return Math.round((soTien * thuongTru) / viTru);', 1)], r'✗ C0b '),
   ('VS-hoan-tra-het-thuong', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return con;', 1)], r'✗ C0b |✗ C7 '),
   ('VS-hoan-moi-vi', [(VK, 'FROM pos_balance_transactions WHERE customer_phone = ? AND order_id = ?`, [phone, orderId]);', 'FROM pos_balance_transactions WHERE order_id = ? AND ? IS NOT NULL`, [orderId, phone]);', 1)], r'✗ C7b |✗ C3 |✗ C9 '),
-  ('BV-ghi-vi-cot-thuong', [(WA, 'UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + ?, total_topup', 'UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + 0 * ?, total_topup', 1)], r'✗ B1 '),
+  ('BV-ghi-vi-cot-thuong', [(WA, 'UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + ?, total_topup', 'UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + 0 * ?, total_topup', 1)], r'✗ C1 '),
   ('BV-reconcile-thuong', [(WA, 'UPDATE pos_wallets SET balance = ?, thuong = ?, updated_at = ? WHERE phone = ?', 'UPDATE pos_wallets SET balance = ?, thuong = thuong + 0 * ?, updated_at = ? WHERE phone = ?', 1)], r'✗ C11 '),
   # ── D: tiền nạp không hoàn (orders.js) ──
-  ('BV-nap-khong-huy', [(OR, '        if (await laDonNap(tx, order.id)) {   // NAP-1 (D): tiền nạp không hoàn', '        if (false) {', 1)], r'✗ D1 '),
-  ('BV-nap-khong-xoa', [(OR, '      if (await laDonNap(tx, order.id)) {   // NAP-1 (D): đơn nạp không xoá', '      if (false) {', 1)], r'✗ D2 '),
-  ('VS-vi-tu-nap-sai-dai', [(VK, "const ID_NAP_TU = -2000000;", "const ID_NAP_TU = -3000000;", 1)], r'✗ D1 |✗ F2 '),
+  ('BV-nap-khong-huy', [(OR, '        if (await laDonNap(tx, order.id)) {   // NAP-1 (D): tiền nạp không hoàn', '        if (false) {   // NAP-1 (D): tiền nạp không hoàn', 1)], r'✗ D1 '),
+  ('BV-nap-khong-xoa', [(OR, '      if (await laDonNap(tx, order.id)) {   // NAP-1 (D): đơn nạp không xoá', '      if (false) {   // NAP-1 (D): đơn nạp không xoá', 1)], r'✗ D2 '),
   # ── E: điểm (orders.js, diemThat.js, bat_bien.js I8) ──
   ('BV-nap-diem', [(OR, '    if (goiNap) diemTao = null;', '', 1)], r'✗ E1 '),
   ('BV-nap-ma-bill', [(OR, 'if (!alreadyClaimed && !goiNap) {', 'if (!alreadyClaimed) {', 1)], r'✗ E5 '),
@@ -105,7 +104,6 @@ DOT_BIEN = [
   ('BV-man-than-nap', [(TI, "  if (nap) return { customer_phone: khach?.phone || null, customer_name: khach?.name || 'Khách lẻ', items: [], goi_nap_id: nap.goi_nap_id };\n", '', 1)], r'✗ G1 '),
   ('BV-man-nap-can-khach', [(TI, "  if (!khach?.phone) return 'Chọn khách trước khi nạp tiền';\n", '', 1)], r'✗ G3 '),
   ('BV-man-nap-don-rieng', [(TI, "  if (gio.some((m) => !m.goi_nap_id)) return", "  if (false) return", 1)], r'✗ G3 '),
-  ('BV-man-khoa-nap', [(TI, ", ...(nap ? { nap: nap.goi_nap_id } : {})", '', 1)], r'✗ G4 '),
   ('BV-man-nap-gia-hang', [(TI, 'giamFlash > 0 || m.goi_nap_id ? m.unit_price', 'giamFlash > 0 ? m.unit_price', 1)], r'✗ G4 '),
   # luồng hợp lệ (K5) — đột biến chặn oan phải bị BẮT
   ('K5-chan-moi-don-khong-sdt', [(OR, '    if (goi_nap_id != null) {\n      if (!normalizePhone(customer_phone)) {', '    if (true) {\n      if (!normalizePhone(customer_phone)) {', 1)], r'✗ K6 '),

@@ -159,8 +159,7 @@ export function khoaTinh(gio, khach, ma) {
   const soLuong = {};
   for (const m of gio) soLuong[m.product_id] = (soLuong[m.product_id] || 0) + m.quantity;
   const mon = Object.keys(soLuong).sort((a, b) => a - b).map((id) => [Number(id), soLuong[id]]);
-  const nap = layGoiNap(gio);
-  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(nap ? { nap: nap.goi_nap_id } : {}) });
+  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma) });   // NAP-1: gói nạp nằm trong `mon` (product_id −2000000 − mã gói)
 }
 /** NAP-1: dòng gói nạp trong giỏ (giỏ nạp chỉ có đúng một dòng này) hoặc null. */
 export const layGoiNap = (gio) => gio.find((m) => m.goi_nap_id) || null;

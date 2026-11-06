@@ -128,7 +128,7 @@ async function main() {
   };
   const napTay = async (sdt, tien) => {
     const r = await goi('POST', '/wallets/topup', { phone: sdt, amount: tien, customer_name: 'Khách NAP-1', payment_method: 'cash' });
-    if (r.status !== 200) throw new Error('không nạp được ví: ' + moTa(r));
+    if (r.status !== 200) k(`chuẩn bị: nạp tay ${tien} vào ${sdt} → 200`, false, moTa(r));   // không ném: bài chạy tiếp, đột biến được tính BẮT / LẠC đúng
   };
   const homNay = getToday();
 
