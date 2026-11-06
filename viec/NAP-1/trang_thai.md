@@ -93,3 +93,46 @@ NAP-1 không đổi cửa / trường / mã lỗi nào của `/api/kh`. Hành vi
 - `HOP_DONG_API_KH.md`: xem đoạn v11 soạn sẵn ở trên.
 - Báo cáo `/reports/daily` `balance_stats.total_topup` cộng cả "vào tài khoản" của đơn nạp (gồm thưởng) — đúng nghĩa "nạp vào ví", không phải tiền
   thu; tiền thu đúng nằm ở thẻ Sổ sách. Không sửa (không thuộc nghiệm thu).
+
+## Soát độc lập vòng 1 (/ra-soat, 06.11, mốc f464cea → bf8ddd1) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_NAP1.js (dòng 63–66, mount route: thiếu packages) — nghiệm thu C ("mọi lối cộng lại trả về ĐÚNG ngăn") không có ca nào cho
+   kết thúc gói có hoàn (packages.js:267 → ghiHoan → wallets.js:111 loại 'refund', cách 'hoan_goi'). Kế hoạch §2 và §9 liệt kê lối này. Bài thử
+   không gắn route packages, dot_bien.py không có đột biến cho nó. Đọc code: tienDaTra.js:86-89 hoàn phần ví trước, tiền mặt sau, nên tỷ lệ thưởng
+   hiện đúng. Nhưng phần thưởng của dòng 'hoan_goi' chỉ bằng 0 nhờ thứ tự đó + trần `con` ở viKhach.js:40; không phép nào khoá điều này. — K3 / K4.
+2. server/utils/viKhach.js:40 — làm tròn từng lần hoàn một phần, cộng dồn không về đúng phần thưởng đã trừ. Ví dụ: đơn trả ví 21.000 (thưởng
+   1.000), đền 3 lần × 7.000 → mỗi lần round(333,3) = 333 → trả 999. Mất 1 đồng thưởng, đồng đó thành tiền nạp. Ca C7 (thu_NAP1.js:350) chọn
+   42.000 / 2.000 / 10.500 / 21.000 — chia hết, che đúng lỗi này (K3). Cách vá: khi tổng đã hoàn trên ví đó = viTru thì trả trọn `con`; thêm ca số lẻ. — K3.
+3. server/utils/viKhach.js:46 (sqlDonNap), dùng ở orders.js:122, reports.js:43/134/148/270, doiSoat.js:139/142 — EXISTS lồng theo từng đơn vào
+   pos_order_items, mà bảng này không có chỉ mục order_id. Đo trên libsql thật: 30.000 đơn / 90.000 dòng, không lọc ngày: 53 s; 5.000 đơn: 1,4 s;
+   lọc một ngày: 28 ms. Cách gọn hơn: `${bi}.id IN (SELECT order_id FROM pos_order_items WHERE product_id <= ID_NAP_TU)` (không lồng). — K4, tối ưu.
+4. server/routes/reports.js:167-200 GET /reports/products — không loại dòng nạp, "Nạp 100.000đ →…" hiện như sản phẩm bán chạy. Phiếu F: "Nạp không
+   phải doanh thu". Ca F2 không soi route này. Nhẹ: client không gọi route này. — K4.
+5. viec/NAP-1/trang_thai.md — chưa ghi kết quả `node tu_chay/cong.js chay` (LUAT §6.3), chưa ghi 1–3 thao tác thử tay (LUAT §6.4) cho thẻ Cài
+   đặt Gói nạp, nhóm "Nạp tiền" và thẻ Sổ sách. Phần JSX (BanHangMoi.jsx) không bài máy nào phủ. — K6.
+6. server/utils/viKhach.js:7-8 (chú thích "Một vị từ … cho huỷ, xoá, báo cáo, két, bất biến") và ke_hoach.md §13.4 — sai: két dùng `order_id IS NULL`
+   trên dòng topup, bat_bien.js tự chép NAP_TU. — K1.
+7. cong_cu/thu_P20.js (ca "trả trọn bằng ví … /nhan-diem → 200") — chỉ kiểm status 200, không kiểm số điểm nhận. — K3 (nhẹ).
+
+NGHI NGỜ:
+- /nhan-diem áp luật mới cho đơn CŨ trả ví còn trong hạn nhận điểm (LUAT §6.6). Chưa ghi Phát hiện.
+- Bán nhầm gói nạp: đơn nạp không huỷ / xoá được, chủ quán chỉ trừ ví bằng /adjust, nhưng tiền mặt đơn vẫn trong két → két lệch ngày đó. Nên hỏi chủ quán.
+- Thưởng nạp trừ qua /deduct, /adjust âm (không gắn đơn) không vào "Thưởng nạp đã dùng" nhưng rời ô "giữ hộ" — sổ sách không khép; chưa có quy tắc
+  đối soát ba ô (LUAT §5).
+- soSach `napTay` cộng mọi payment_method, két chỉ đếm cash / transfer — cùng vị từ nên dùng cùng biểu thức (K4).
+- DoiSoat.jsx:163 "Ví: nạp" nay gồm cả thưởng; trường `thuong_nap` mới (doiSoat.js:126) không màn nào đọc: code chết.
+- Tắt / sửa giá gói khi đang có phiên QR chưa chốt → tiền về nhưng chotPhien chuyển phiên 'loi' (cùng khuôn đổi giá món, có từ trước).
+
+NGHIỆM THU: 42/45 ý có bằng chứng · thiếu: C (kết thúc gói có hoàn), B (nhóm "Nạp tiền" trên màn — JSX chưa có thao tác thử tay), F (/reports/products)
+
+CHƯA SOÁT ĐƯỢC: không chạy dot_bien.py và tu_chay/cong.js; không chạy giao diện thật; không đo trên Turso thật; không đọc HOP_DONG_API_KH.md.
+
+BÀI HỌC:
+- KHOÁ: ca kết thúc gói có hoàn (đơn mua gói trả ví có thưởng + tiền mặt) + đột biến; ca đền ba lần số lẻ (21.000 / 7.000).
+- KHOÁ: phép tĩnh cấm EXISTS lồng vào pos_order_items theo o.id khi không có chỉ mục (hoặc thêm chỉ mục order_id).
+- NGUYÊN TẮC (K4): "vị từ nhận loại đơn mới" phải grep MỌI route đọc pos_order_items hoặc tính doanh thu (gồm /reports/products).
+- NGUYÊN TẮC (K3): ca chia theo tỷ lệ phải có ít nhất một bộ số KHÔNG chia hết — đã có trong K3, vẫn bị bỏ qua → nên thành phép máy.
+```
