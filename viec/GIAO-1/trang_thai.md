@@ -280,3 +280,47 @@ nên hoàn kho rồi ghi hỏng sẽ làm kho DƯ. Chủ quán chốt 06.11 gi�
 - Tin ASSIGNING lần hai (tài xế bỏ chuyến) trùng khoá chống lặp với tin ASSIGNING đầu → thẻ hiện tài xế cũ tới lần đọc lại dự phòng (≥ 60 s, khi màn hỏi).
   Đổi thẳng tài xế (ACCEPTED → ACCEPTED) thì cập nhật ngay. Tem túi không tự in lại khi đổi tài xế — quầy bấm "In lại tem túi". Đề xuất việc sau.
 - Thẻ `da_dong` (đã đóng) của đơn tiền mặt / CK: tiền hoàn cho khách (nếu có) chờ HUY-1.
+
+## Soát độc lập sau vòng sửa 4 (chủ quán cho thêm một lần soát) — chép nguyên văn
+KHÔNG ĐẠT
+
+Tóm tắt (của người soát): vòng sửa 4 sửa đúng hai lỗi NẶNG của vòng 3 (nhận lại chuyến cũ còn chạy — G8b, G8c, I6 xanh; đọc lại chuyến đã huỷ không cộng phí lần nữa — J5e). Lỗi 3, 4, 5 cũng đã xử lý phần lớn. Nhưng nút "Đóng thẻ" sinh lỗi NẶNG: đóng thẻ xong thì Huỷ đơn được → ví khách được hoàn và kho được cộng lại cho hàng đã đi theo tài xế. Chứng minh bằng script chạy thật trên HEAD 2af349d, ngoài kho (scratchpad/p4/probe.js). Chạy lại: thu_GIAO1 114 · 0; dot_bien 57/57 BẮT; --day-du 102 · 0 · 2 cảnh báo cũ, dist khớp src. Đột biến thêm của người soát (scratchpad/p4/them_db.py): 3 BẮT, 9 SỐNG.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/giaoHang.js:152–157 (kiemHuyDonGiao) + :418–424 (dongThe) — NẶNG (ví + kho; trái phiếu J "Đang giao → KHÔNG huỷ trên máy") — K4. Trạng thái `da_dong` không nằm trong danh sách chặn nào của kiemHuyDonGiao; thẻ `giao_loi` bị chặn Huỷ đơn (DANG_GIAO_KHONG_HUY) nhưng sau "Đóng thẻ" thì lọt: hoàn ví (orders.js:1519), cộng lại kho SX cho hàng đã ra đường (orders.js:1605–1630, pos_stock_pending 'in'), chotHuyGiao đổi `da_dong` → `huy`. Probe P1 (đơn ví): huỷ trước đóng thẻ 409; đóng thẻ 200; huỷ lại 200 — ví 9.915.000 → 10.000.000, kho chờ `[out 2, in 2]`, đơn cancelled. Thẻ hứa "không đụng tiền / đơn" (dongThe :416–417, ke_hoach.md:262) nhưng mở khoá đường tiền. Đơn tiền mặt / CK vẫn chặn ở CHO_HUY_1. Ca DT chỉ dùng đơn tiền mặt, không thử Huỷ sau Đóng thẻ. Hướng sửa: thêm `'da_dong'` vào danh sách :155 + ca "đơn ví: Đóng thẻ rồi Huỷ → 409" + đột biến bỏ `'da_dong'`.
+2. Lệnh huỷ của quán đã thành công ở Ahamove mà phí huỷ không được ghi — NẶNG (Đối soát thiếu; hiếm) — K4/K3. (a) giaoHang.js:223–232: "Tìm lại" huỷ X thành công (`daHuy = true`) nhưng đọc lại X lỗi → `cu === undefined` → không cộng → gọi chuyến mới; phí mất hẳn. Probe P3: phí 4.000 → phi_huy 0. Đột biến bỏ `&& !daHuy` SỐNG. (b) giaoHang.js:308–312: phí gắn vào UPDATE có điều kiện trạng thái — Huỷ chuyến của quản lý thành công mà thẻ vừa đổi (nhân viên bấm Tìm lại đúng lúc) → UPDATE thua → 409 TRANG_THAI_DA_DOI, phí mất; Tìm lại đọc X đã huỷ nên GỌI CHUYẾN MỚI, trái ý quản lý vừa huỷ. Probe P7: `huỷ 409 TRANG_THAI_DA_DOI | Tìm lại 200 | thẻ tim_xe mã AHA10 (cũ AHA9) phi_huy 0` với phí 5.000. J5f chỉ kiểm mã 409. Cả hai có từ trước vòng 4, vòng 4 không gỡ.
+3. Thiếu ca khoá cho chỗ vá vòng 4 — NHẸ, (a) khoá đường tiền — K3. (a) bỏ cộng phí huỷ ở ba đường tài xế / Ahamove tự huỷ (:325, :330, :338) không có ca: đưa lại `phi_huy = phi_huy + d.phi_huy` đều SỐNG (ca tài xế huỷ chạy với cancel_fee 0); (b) điều kiện chống đua nhanLaiChuyenCu (:242–244): bỏ ma_ahamove / goi_luc / kiểm changes đều SỐNG; (c) câu trả thẻ về :227 bỏ điều kiện trang_thai/goi_luc → SỐNG; (d) câu cộng phí :232 bỏ `goi_luc = ?` → SỐNG.
+4. giaoHang.js:226–229 — NHẸ — K4/K5. Câu trả thẻ về giữ goi_luc cũ nhưng không giữ loi_mang (câu giành :211 đặt loi_mang = 0): thẻ dang_goi treo do mất mạng (loi_mang 1, chưa 180 s) mà đọc chuyến cũ lỗi → 502, thẻ hết treo, mất nút Gọi lại, bấm lại 409 tới 180 s. Probe P2. ke_hoach.md:260 "bấm lại được ngay" sai trong ca này.
+5. giaoHang.js:242 + :365 — NHẸ — K4. Tin báo tới lúc thẻ còn dang_goi vẫn ghi vào sổ chống lặp còn capNhatTuAhamove bỏ qua; sau nhận lại, tin ACCEPTED cùng tài xế bị coi là lặp; nhanLaiChuyenCu đặt doc_luc = now nên đọc lại dự phòng lùi ≥ 60 s. Probe P5: thẻ kẹt tim_xe dù Ahamove ACCEPTED.
+6. Chú thích / hồ sơ lệch code — NHẸ — K1. giaoHang.js:192–193 "giao_loi chỉ thoát được qua đây" (nay có Đóng thẻ); đầu file :7–8 thiếu `da_dong`; ke_hoach.md:260 như lỗi 4.
+
+NGHI NGỜ:
+- :223 lệnh DELETE "Tìm lại" báo mất mạng nhưng Ahamove thực ra đã huỷ theo lệnh quán (cancel_by_user = true, có cancel_fee) → không cộng phí (probe P4). Có tính là "lệnh huỷ thành công" không? Chủ quán chốt. Gợi ý: dùng `cu.nguoi_huy_la_quan`.
+- Quán huỷ thẳng trên app Ahamove (không qua POS) → :338 chuyen_huy, không ghi phí. Hợp chữ Q6 nhưng Đối soát thiếu.
+- ahamove.js:100: Ahamove thật gửi cancel_by_user thế nào — chưa đối chiếu.
+
+NGHIỆM THU: 12/12 mục có ca · yếu: J (lỗ da_dong), K (phí huỷ thiếu; không ca khoá việc bỏ phí ở đường tài xế huỷ); giao diện thuần thử tay. K5: không chặn oan trừ lỗi 4. Đường tiền: phí ship, chênh do máy chủ; Đối soát theo dấu giờ đúng; lỗi ở phí huỷ và cổng huỷ đơn. Đua: không còn hai chuyến cùng chạy; P7 một chuyến MỚI được gọi sau khi quản lý vừa huỷ.
+
+CHƯA SOÁT ĐƯỢC: Ahamove thật; giao diện điện thoại; đua thật trên Turso; cổng cong.js; soát bảo mật; refunds.js với da_dong chỉ đọc code.
+
+BÀI HỌC: KHOÁ — ca đơn ví Đóng thẻ rồi Huỷ → 409; ca phí huỷ ≠ 0 ở ba đường tài xế huỷ + đột biến; ca huỷ thành công đọc lại lỗi vẫn ghi phí; J5f kiểm phi_huy; ca thẻ treo loi_mang + đọc lỗi vẫn còn nút Gọi lại.
+NGUYÊN TẮC (K4) — thêm trạng thái mới thì grep MỌI danh sách trạng thái ở các cổng trước dòng đầu tiên; lời hứa "không đụng tiền" phải có ca đi tiếp vào đường tiền SAU thao tác đó; tiền bên thứ ba đã phát sinh ghi ngay sau lệnh thành công, không gắn vào câu ghi trạng thái có thể thua.
+
+## Câu hỏi (phiên 3)
+**Dừng ở bước 8: lần soát chủ quán cho thêm sau vòng sửa 4 vẫn KHÔNG ĐẠT, còn 2 lỗi NẶNG đụng ví / kho / Đối soát (LUAT §6.5 → không tự sửa thêm).**
+Chưa chạy soát bảo mật, cổng, báo cáo 7 mục.
+
+Lời thường: vòng 4 đã chữa đúng hai lỗi bạn duyệt. Nhưng nút "Đóng thẻ" mình thêm có lỗ: đơn trả bằng tài khoản, đóng thẻ giao lỗi xong lại bấm
+Huỷ đơn được → khách được hoàn tiền vào tài khoản và kho cộng lại món đã theo tài xế đi. Lỗi do mình, sửa chỉ một chữ (thêm "đã đóng" vào danh sách chặn huỷ).
+Ngoài ra phí huỷ chuyến có thể bị thiếu trên Đối soát trong hai trường hợp hiếm (máy đọc lại Ahamove lỗi đúng lúc, hoặc hai người bấm cùng lúc).
+
+Đề xuất (bạn chỉ cần trả lời "đồng ý vòng sửa 5" hoặc chỉnh):
+- Q8: cho làm **vòng sửa 5** đúng các lỗi lần soát này nêu, rồi soát lại một lần:
+  (1) thẻ "đã đóng" chặn Huỷ đơn như thẻ giao lỗi (+ ca đơn tài khoản);
+  (2) phí huỷ ghi NGAY sau khi lệnh huỷ của quán thành công, tách khỏi câu đổi trạng thái thẻ (không mất khi thẻ vừa đổi, không mất khi đọc lại lỗi —
+      đọc lỗi thì ghi "phí huỷ chưa rõ" và đọc lại lần sau);
+  (3) quản lý vừa Huỷ chuyến thì "Tìm lại" của máy khác không được gọi chuyến mới;
+  (4) thẻ treo mất mạng mà đọc chuyến cũ lỗi vẫn giữ nút "Gọi lại"; tin báo tới lúc thẻ đang treo không bị đánh dấu "đã xử lý";
+  (5) ca thử + đột biến cho mọi chỗ vá vòng 4 còn thiếu (ba đường tài xế huỷ không cộng phí, chống đua khi nhận lại), sửa chú thích.
+- Q9: Ahamove báo chuyến bị huỷ "theo lệnh của quán" (cancel_by_user) nhưng lệnh huỷ của máy bị mất mạng, chưa biết thành công — có tính phí huỷ không?
+  Đề xuất: CÓ (Ahamove xác nhận quán huỷ = lệnh của quán thành công). Quán huỷ thẳng trên app Ahamove (không qua POS) cũng tính theo cách này.
