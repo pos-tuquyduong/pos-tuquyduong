@@ -67,6 +67,11 @@ doanh thu thật không bị đội.
        hồ sơ khách (GIAO-DIEN-1) sau này chỉ có nút dẫn sang Bán hàng với khách đó.
      3 — đền bù một phần đơn trả bằng tài khoản: chia THEO TỶ LỆ thưởng / tiền nạp của phần đã trừ.
      Nền: CHAT gộp main (đã có HANG-1, CT-1a, CK-NOIDUNG-1 khi gộp xong) vào viec/NAP-1 bằng script TRƯỚC khi chủ quán gửi "tiep"; máy không tự gộp. -->
+<!-- Chủ quán 06.11 (câu hỏi sau soát vòng 3, nhánh 14243de):
+     1 — ĐỒNG Ý VÒNG SỬA 4 (lỗi ví: lần đền cuối ghi ngăn thưởng lớn hơn chính khoản đền) — sửa đúng lỗi đó + ca thử đỏ/xanh + đột biến,
+       soát lại một lần rồi đi tiếp (soát bảo mật, cổng chạy, báo cáo 7 mục, Bài học).
+     2 — Tạo / sửa / bật / tắt GÓI NẠP chỉ CHỦ QUÁN (owner) và phải gõ PIN CHỦ QUÁN (dùng lại khoá PIN của HANG-1 — server/utils/pinChuQuan.js,
+       chỉ gọi, không sửa), máy chủ chặn — không chỉ giấu nút. Quản lý / nhân viên vẫn BÁN gói ở quầy như phiếu. Không đặt trần % thưởng. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_NAP1.js` ĐỎ trên code gốc: tạo gói + giá trị sai 400; bán gói tiền mặt / QR → số dư tăng đúng hai ngăn; chặn trả gói bằng ví / mã;
 trả đơn bằng ví trừ đúng tỷ lệ; hoàn trả đúng ngăn; bất biến hai ngăn = balance qua chuỗi nạp → trả → hoàn → ví mẹ; điểm cộng khi trả ví, không
