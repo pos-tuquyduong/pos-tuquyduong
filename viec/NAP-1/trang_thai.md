@@ -414,3 +414,30 @@ VS-hoan-tru-diem-ca-luat-cu · BV-I8-hoan). ĐỐI CHỨNG XANH 75 · 0 — BẮ
 K4: lối đưa đơn trả ví rời 'completed': huỷ (truDiemDon, orders.js), xoá (truDiemDon), duyệt hoàn (nay truDiemHoan) — đủ ba. Đơn 'refunded' không huỷ được
 (UPDATE … WHERE status = 'completed'). Đền bù (damages.js, ngoài Phạm vi) trả tiền về ví KHÔNG trừ điểm — có từ trước (đền là bồi thường sự cố, khách giữ
 điểm); ghi Phát hiện. K5: đơn tiền mặt / CK không hoàn được qua yêu cầu (cổng balance_amount > 0); phần tiền mặt giữ điểm (E7 ví + tiền mặt).
+
+## Soát bảo mật — lần 2 (06.11, mốc 0406870^ → aef69d4; phần riêng NAP-1 `git diff f464cea HEAD`, phần mới `git diff 5a695e6 HEAD`)
+Trước lọc: **0** lỗ hổng · sau lọc: **0** (không có gì để lọc — bước 3 bỏ qua). Báo cáo nguyên văn:
+
+Không tìm thấy lỗ hổng mới nào đạt mức tin cậy ≥ 8/10 (lỗi thật, khai thác được) trong toàn bộ thay đổi riêng của NAP-1 (`git diff f464cea HEAD`), kể cả phần mới từ lần soát 1 (`git diff 5a695e6 HEAD`). Tôi chỉ đọc code, không chạy thử.
+
+### Bản vá lần 1 (hoàn tiền ví mà không trừ điểm): đúng
+- `server/routes/refunds.js`, đường duyệt hoàn `/:id/approve`: dòng 376 gọi `truDiemHoan(tx, don, con + me, ...)`. Lời gọi nằm trong cùng giao dịch, sau bước chuyển đơn sang `refunded` bằng câu ghi có điều kiện và kiểm `changes`, nên không chạy hai lần.
+- Hàm `truDiemHoan` (dòng 22–36): chỉ trừ trên các dòng `earn` ghi từ lúc chạy bước nâng cấp 014 (mốc ở `pos_nang_cap`, `so = 14`); số trừ theo tỷ lệ tiền hoàn / `tienTinhDiem(don)` (đã gồm phần ví), làm tròn lên, trần là số điểm đã cộng; ghi dòng `adjust` gắn mã đơn, nhờ vậy `truDiemDon` ở huỷ / xoá đơn (`orders.js` 1683–1689, `NOT EXISTS ... type='adjust'`) không trừ lần hai.
+- `server/utils/diemThat.js` `diemTruKhiHoan`: có kẹp `Math.min(diem, ceil(...))` và trả 0 khi bất kỳ đầu vào nào ≤ 0.
+
+### Các trọng tâm phiếu đã soát, không thấy lỗ
+1. Giá gói máy chủ tự tra: `orders.js` 540–556 đọc `pos_goi_nap WHERE id=? AND is_active=1`; giảm hạng bỏ qua món nạp; mã giảm bị chặn; chiết khấu tay đã tắt sẵn (LO 2); tổng tiền khách trả so với tổng máy chủ (dòng ~890).
+2. Chặn vòng nạp bằng ví: `orders.js` 206–210 (trừ tài khoản, ví mẹ, `payment_method=balance`, nợ, mã, phí giao), dòng 203 (không gộp); `giuCho.js` 39–42 lúc tạo phiên, `taoDon` kiểm lại lúc chốt; App khách (`donApp.js`) không truyền được `goi_nap_id`.
+3. Quyền gói: `goi-nap.js` `chiChuQuan` (role owner từ JWT / CSDL) rồi `kiemPinChuQuan`; PIN khoá sau 5 lần sai (`pinChuQuan.js` 61–72), lời báo không lộ PIN; ngoài `goi-nap.js` không chỗ nào ghi `pos_goi_nap`.
+4. Khôi phục sao lưu: `backup.js` 140 — `pos_goi_nap` trong danh sách không khôi phục; `chanTrangTien` chặn ở `/preview-restore` (311) và `/restore` (343).
+5. Ví hai ngăn: tham số `thuong` của `ghiVi` chỉ đơn nạp truyền (`orders.js` 1022), không từ thân yêu cầu; huỷ / xoá / yêu cầu hoàn đơn nạp → `NAP_KHONG_HOAN`; đền đơn nạp chặn ở `damages.js` (`GOI_THE_KHONG_DEN`); không giả được dòng nạp.
+6. Đường mới khác: `GET /goi-nap` chỉ tên + giá; `/tat-ca` cần `manage_products`, `/reports/so-sach` cần `view_reports`; SQL có tham số; giao diện không `dangerouslySetInnerHTML`.
+
+### Ghi chú (không phải lỗ hổng)
+- Đền bù không trừ điểm phần được đền, và khoản đền bị trừ khỏi số hoàn khi duyệt hoàn sau này — có từ trước với đơn tiền mặt, nay áp thêm phần ví; đền có trần theo món, chỉ quản lý / chủ quán làm. Tin cậy là lỗ hổng: 3/10.
+- Phép so tổng cho lệch ±1đ → đơn nạp có thể thu thiếu 1đ mà ví vào đủ; hành vi chung mọi đơn. Tin cậy: 2/10.
+
+### Chưa kiểm
+- Người soát không chạy code, không dựng bài thử; kết luận từ đọc file.
+
+SOÁT BẢO MẬT: ĐẠT
