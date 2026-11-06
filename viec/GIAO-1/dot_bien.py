@@ -69,7 +69,14 @@ DOT_BIEN = [
   ('BV-doc-lai-du-phong', 'g1', [(GH, '    if (doiLai >= DOC_LAI_TOI_DA) break;', '    break;', 1)], r'✗ H12 '),
   # ── K: Đối soát ──
   ('VS-bu-du-triet-tieu', 'g1', [(GH, '? Math.max(0, Number(x.chenh || 0)) : 0)', '? Number(x.chenh || 0) : 0)', 1)], r'✗ K1 '),
-  ('VS-doi-soat-moi-chuyen', 'g1', [(GH, "phi_that: tong((x) => (DA_CHAY.includes(x.trang_thai) ? Number(x.phi_that || 0) : 0)),", "phi_that: tong((x) => Number(x.phi_that || 0)),", 1)], r'✗ K1 '),
+  ('VS-doi-soat-moi-chuyen', 'g1', [(GH, "phi_that: tong((x) => (daChay(x) ? Number(x.phi_that || 0) : 0)),", "phi_that: tong((x) => Number(x.phi_that || 0)),", 1)], r'✗ K1 '),
+  ('VS-doi-soat-theo-trang-thai', 'g1', [(GH, "const daChay = (x) => !!(x.lay_hang_luc || x.xong_luc);", "const daChay = (x) => ['dang_giao', 'xong', 'giao_loi'].includes(x.trang_thai);", 1)], r'✗ K1 '),
+  # ── vòng sửa 2 (soát vòng 2): treo còn chuyến cũ, đổi tài xế cùng hạng, giao_loi có lối ra, không huỷ chuyến máy thắng đã nhận ──
+  ('BV-treo-huy-chuyen-cu', 'g1', [(GH, "  if (['tim_xe', 'dang_goi'].includes(c.trang_thai) && c.ma_ahamove) {", "  if (c.trang_thai === 'tim_xe' && c.ma_ahamove) {", 1)], r'✗ G8b '),
+  ('BV-doi-tai-xe-cung-hang', 'g1', [(GH, " || (c.trang_thai === 'doi_tai_xe' && moi === 'tim_xe') || doiTaiXe))", " || (c.trang_thai === 'doi_tai_xe' && moi === 'tim_xe')))", 1)], r'✗ H11b '),
+  ('BV-hoan-dong-giao-loi', 'g1', [(GH, "IN ('moi', 'dang_pha', 'chuyen_huy', 'giao_loi')", "IN ('moi', 'dang_pha', 'chuyen_huy')", 1)], r'✗ Q5c '),
+  ('BV-gianh-kiem-don', 'g1', [(GH, "      AND EXISTS (SELECT 1 FROM pos_orders WHERE id = pos_giao_chuyen.order_id AND status = 'completed' AND payment_status = 'paid')`,", "`,", 1)], r'✗ G10 '),
+  ('VS-huy-chuyen-khi-dang-goi', 'g1', [(GH, "  if (!c || !['tim_xe', 'doi_tai_xe'].includes(c.trang_thai) || !c.ma_ahamove)", "  if (!c || !['tim_xe', 'doi_tai_xe', 'dang_goi'].includes(c.trang_thai) || !c.ma_ahamove)", 1)], r'✗ J5d '),
 ]
 
 
