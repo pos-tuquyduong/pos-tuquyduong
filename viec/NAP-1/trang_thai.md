@@ -267,3 +267,29 @@ Máy đã sửa ngay lỗi hồ sơ 2, 3, 4 (chỉ chú thích / hồ sơ). Lỗ
    ghi vào phiếu, máy làm trong vòng 4.
 
 Bước dở: bước 8 xong 3 vòng (KHÔNG ĐẠT vòng 3, chờ câu 1). Chưa làm: soát bảo mật (8b), báo cáo 7 mục (10), rút kinh nghiệm (11), cổng `chay`.
+
+## Phiên 06.11 (2) — `tiep` sau câu trả lời của chủ quán (phiếu `ec4cc94`)
+Bước 1: `git branch --show-current` → `viec/NAP-1`; `git status --short` → sạch. Hai SHA: HEAD `ec4cc94` · FETCH_HEAD `ec4cc94` (bằng nhau — không kéo;
+hook mở phiên đã kéo `0406870 → ec4cc94`). `git log --oneline -3`:
+```
+ec4cc94 PHIEU: NAP-1 chu quan tra loi cau hoi 05.11 (them file vao Pham vi)
+14243de NAP-1 soat vong 3 (KHONG DAT, loi nhe o duong vi) + sua chu thich / ho so + Cau hoi cho chu quan
+275c22f NAP-1 bang chung vong sua 2
+```
+Câu trả lời (phiếu, khối "Chủ quán 06.11"): 1 — đồng ý vòng sửa 4 đúng lỗi 1 soát vòng 3; 2 — tạo / sửa / bật / tắt gói nạp CHỈ chủ quán + PIN chủ quán
+(gọi `server/utils/pinChuQuan.js`, không sửa), máy chủ chặn; quản lý / nhân viên vẫn bán gói; không trần %.
+
+## Vòng sửa 4 (chủ quán 06.11 — chat soát thay)
+| Việc | Sửa | Ca / đột biến |
+|---|---|---|
+| Câu 1: lần "trả nốt" ghi ngăn thưởng > khoản cộng | `server/utils/viKhach.js` thuongKhiHoan: `return Math.min(con, soTien)` | C0c ([7,3,0,6,1] → 1 · [7,3,0,5,2] → 2 · [100,99,0,99,1] → 1 + mọi ca C0b: thưởng ≤ khoản) · BV-tra-not-tran |
+| Câu 2: chỉ chủ quán | `server/routes/goi-nap.js` POST / PUT: `chiChuQuan` (403 CHI_CHU_QUAN — cùng code settings.js / don-thu.js) thay `checkPermission('manage_products')` | A5 (nhân viên + QUẢN LÝ có manage_products, gửi đúng PIN → 403, gói giữ nguyên) · BV-goi-quyen-them · BV-goi-quyen-sua · VS-goi-quyen-quan-ly |
+| Câu 2: PIN chủ quán | `goi-nap.js` `quaPin` gọi `kiemPinChuQuan` SAU kiểm dữ liệu (gõ sai số tiền không tốn lượt PIN), lỗi trả nguyên `{ error, code }` của pinChuQuan.js | A8 (thiếu / sai / PIN 3 số: thêm, tắt, sửa → 400 PIN_CHU_QUAN_SAI, không ghi) · BV-goi-pin-them · BV-goi-pin-sua · VS-goi-pin-chi-khi-gui |
+| Câu 2 K5: quản lý / nhân viên vẫn bán | GET `/goi-nap` giữ `authenticate` (không đổi); bán qua `orders.js` không đổi | A9 (nhân viên + quản lý thấy gói, bán gói tiền mặt → 200) · K5-quay-chi-chu-quan |
+| Câu 2 K4: đường song song — khôi phục file sao lưu ghi đè gói không qua PIN | `server/routes/backup.js` thêm `pos_goi_nap` vào BANG_KHONG_KHOI_PHUC (khuôn `pos_membership_tiers` của HANG-1); vẫn trong BACKUP_TABLES (xuất được) | M4 · BV-khoi-phuc-goi-nap |
+| Giao diện | `client/src/pages/CaiDat/GoiNap.jsx`: ô PIN chủ quán, nút Thêm / Sửa / Bật / Tắt chỉ hiện với chủ quán; `client/dist` build lại | (máy chủ chặn — bài A5 / A8; giao diện thử tay) |
+Đột biến nay **80** (73 + 7 mới: BV-tra-not-tran · VS-goi-quyen-quan-ly · BV-goi-pin-them · BV-goi-pin-sua · VS-goi-pin-chi-khi-gui · K5-quay-chi-chu-quan ·
+BV-khoi-phuc-goi-nap); neo đổi theo code: BV-goi-quyen-them · BV-goi-quyen-sua · VS-sua-khong-kiem · BV-hoan-tra-not · VS-tra-not-nguong-noi-1.
+Kết quả: ĐỐI CHỨNG XANH 73 · 0 — BẮT 80 · SỐNG 0 · HỎNG 0 · LẠC 0. `npm test -- --day-du`: PASS 103 · FAIL 0 · CẢNH BÁO 2.
+K4 đã rà: `grep -rn pos_goi_nap server` → chỉ goi-nap.js (ghi), orders.js:542 (đọc gói bật để bán), backup.js (xuất / nay chặn khôi phục), 014_nap.js (tạo bảng).
+`grep -n "return con" server/utils/viKhach.js` → không còn nhánh nào trả `con` trần (nhánh tỷ lệ đã `Math.min(con, round(…))`, và round(soTien × thưởng / ví) ≤ soTien vì thưởng ≤ ví).

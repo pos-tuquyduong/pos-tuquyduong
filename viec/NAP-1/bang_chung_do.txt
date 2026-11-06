@@ -88,3 +88,19 @@ cong_cu/thu_P20.js (ca ví trọn so điểm sau /nhan-diem > điểm lúc bán)
   sau vá: 172 đạt · 0 hỏng
 SỐ CA cong_cu/thu_P20.js: 172
 Đột biến (ad0a48e): ĐỐI CHỨNG XANH · 69 đạt · 0 hỏng — TỔNG 73 đột biến · BẮT 73 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+════════ Vòng sửa 4 (chủ quán 06.11: câu 1 lỗi "trả nốt" + câu 2 gói nạp chỉ chủ quán + PIN) ════════
+cong_cu/thu_NAP1.js (thêm C0c · A5 siết (quản lý cũng 403 CHI_CHU_QUAN) · A8 · A9 · M4; ca A dùng PIN chủ quán):
+  trên code TRƯỚC vòng sửa 4 (bài commit b86a870, code 14243de/ec4cc94 chưa vá): 36 đạt · 36 hỏng — ca mới đỏ:
+    ✗ A5 nhân viên VÀ quản lý (có quyền manage_products) gửi đúng PIN: thêm / sửa / tắt → 403 CHI_CHU_QUAN, gói giữ nguyên  — HTTP 403 · PERMISSION_DENIED · … · HTTP 200 · HTTP 200 · HTTP 200
+    ✗ A8 chủ quán thiếu / sai PIN: thêm, tắt, sửa → 400 PIN_CHU_QUAN_SAI, không tạo, gói giữ nguyên  — HTTP 200 · HTTP 200 · HTTP 200 · HTTP 200
+    ✗ C0c thuongKhiHoan: phần thưởng của một lần cộng lại ≤ chính khoản cộng, kể cả lần "trả nốt" (…)  — 7,3,0,6,1 → 3 (đúng 1) | 7,3,0,5,2 → 3 (đúng 2) | 100,99,0,99,1 → 99 (đúng 1)
+    (các ca B…K đỏ dây chuyền vì quản lý sửa gói ID1 thành vào tài khoản 1.000.000 rồi tắt — đúng lỗ câu 2)
+  M4 (thêm sau, bài commit ef3222f, code đã vá viKhach / goi-nap, backup.js chưa vá): 72 đạt · 1 hỏng
+    ✗ M4 pos_goi_nap trong BANG_KHONG_KHOI_PHUC (khôi phục bằng file không vượt PIN chủ quán)
+  sau vá: 73 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 73
+Đột biến (vòng 4): ĐỐI CHỨNG XANH · 73 đạt · 0 hỏng — TỔNG 80 đột biến · BẮT 80 · SỐNG 0 · HỎNG 0 · LẠC 0
+  mới: BV-tra-not-tran · VS-goi-quyen-quan-ly · BV-goi-pin-them · BV-goi-pin-sua · VS-goi-pin-chi-khi-gui · K5-quay-chi-chu-quan · BV-khoi-phuc-goi-nap
+  neo đổi theo code: BV-goi-quyen-them · BV-goi-quyen-sua · VS-sua-khong-kiem · BV-hoan-tra-not · VS-tra-not-nguong-noi-1
+npm test -- --day-du: PASS 103 · FAIL 0 · CẢNH BÁO 2 (file ngoài việc này, như vòng 3)

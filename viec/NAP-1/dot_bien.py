@@ -31,16 +31,23 @@ TI = 'client/src/pages/BanHang/tinh.js'
 DOT_BIEN = [
   # ── M: bước nâng cấp 014 + sao lưu ──
   ('BV-014-cot-vi', [(N14, "for (const bang of ['pos_wallets', 'pos_balance_transactions'])", "for (const bang of ['pos_balance_transactions'])", 1)], r'✗ M1 '),
+  ('BV-khoi-phuc-goi-nap', [(BK, "  'pos_goi_nap'];   // NAP-1 (chủ quán 06.11)", "  ];   // NAP-1 (chủ quán 06.11)", 1)], r'✗ M4 '),
   ('BV-sao-luu-goi-nap', [(BK, "  { name: 'pos_goi_nap', label: 'Gói nạp tiền', key: 'id' },", '', 1)], r'✗ M3 '),
   # ── A: cài đặt gói nạp (goi-nap.js) ──
   ('BV-goi-khach-tra-duong', [(GN, '!soNguyen(g.khach_tra) || g.khach_tra <= 0', '!soNguyen(g.khach_tra)', 1)], r'✗ A2 '),
   ('VS-goi-so-chuoi', [(GN, "const soNguyen = (x) => typeof x === 'number' && Number.isInteger(x);", 'const soNguyen = (x) => Number.isInteger(Number(x));', 1)], r'✗ A2 '),
   ('BV-goi-vao-tk-it-hon', [(GN, '!soNguyen(g.vao_tk) || g.vao_tk < g.khach_tra', '!soNguyen(g.vao_tk)', 1)], r'✗ A3 '),
   ('VS-goi-nguong-bang', [(GN, 'g.vao_tk < g.khach_tra', 'g.vao_tk <= g.khach_tra', 1)], r'✗ A4 '),
-  ('BV-goi-quyen-them', [(GN, "router.post('/', authenticate, checkPermission('manage_products'),", "router.post('/', authenticate,", 1)], r'✗ A5 '),
-  ('BV-goi-quyen-sua', [(GN, "router.put('/:id', authenticate, checkPermission('manage_products'),", "router.put('/:id', authenticate,", 1)], r'✗ A5 '),
+  ('BV-goi-quyen-them', [(GN, "router.post('/', authenticate, chiChuQuan,", "router.post('/', authenticate,", 1)], r'✗ A5 '),
+  ('BV-goi-quyen-sua', [(GN, "router.put('/:id', authenticate, chiChuQuan,", "router.put('/:id', authenticate,", 1)], r'✗ A5 '),
+  # vòng sửa 4 (chủ quán 06.11 câu 2): chỉ chủ quán + PIN chủ quán; quản lý / nhân viên vẫn bán
+  ('VS-goi-quyen-quan-ly', [(GN, "const chiChuQuan = (req, res, next) => (req.user.role === 'owner' ? next()", "const chiChuQuan = (req, res, next) => (['owner', 'manager'].includes(req.user.role) ? next()", 1)], r'✗ A5 '),
+  ('BV-goi-pin-them', [(GN, "    if (!(await quaPin(req, res))) return;\n    const now = getNow();", "    const now = getNow();", 1)], r'✗ A8 '),
+  ('BV-goi-pin-sua', [(GN, "    if (!(await quaPin(req, res))) return;\n    const bat =", "    const bat =", 1)], r'✗ A8 '),
+  ('VS-goi-pin-chi-khi-gui', [(GN, "  const pin = await kiemPinChuQuan(req.body?.pin);\n  if (!pin.loi) return true;", "  const pin = req.body?.pin ? await kiemPinChuQuan(req.body.pin) : {};\n  if (!pin.loi) return true;", 1)], r'✗ A8 '),
+  ('K5-quay-chi-chu-quan', [(GN, "router.get('/', authenticate, async", "router.get('/', authenticate, chiChuQuan, async", 1)], r'✗ A9 '),
   ('BV-quay-thay-goi-tat', [(GN, 'FROM pos_goi_nap WHERE is_active = 1 ORDER BY', 'FROM pos_goi_nap ORDER BY', 1)], r'✗ A6 '),
-  ('VS-sua-khong-kiem', [(GN, "    const sai = kiemGoi(g);\n    if (sai) return loi(res, sai);\n    const bat =", '    const bat =', 1)], r'✗ A6b '),
+  ('VS-sua-khong-kiem', [(GN, "    const sai = kiemGoi(g);\n    if (sai) return loi(res, sai);\n    if (!(await quaPin(req, res))) return;\n    const bat =", "    if (!(await quaPin(req, res))) return;\n    const bat =", 1)], r'✗ A6b '),
   ('BV-ban-goi-tat', [(OR, 'SELECT * FROM pos_goi_nap WHERE id = ? AND is_active = 1', 'SELECT * FROM pos_goi_nap WHERE id = ?', 1)], r'✗ A7 '),
   # ── B: bán gói ở quầy (orders.js, giuCho.js) ──
   ('VS-nap-vao-bang-tra', [(OR, 'soTien: goiNap.vao_tk, thuong: goiNap.vao_tk - goiNap.khach_tra,', 'soTien: goiNap.khach_tra, thuong: 0,', 1)], r'✗ B1 '),
@@ -70,8 +77,9 @@ DOT_BIEN = [
   ('VS-hoan-chi-refund', [(WA, "orderId && (loai === 'refund' || loai === 'compensation')", "orderId && loai === 'refund'", 1)], r'✗ C7 '),
   ('BV-hoan-tran', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return Math.round((soTien * thuongTru) / viTru);', 1)], r'✗ C0b '),
   ('VS-hoan-tra-het-thuong', [(VK, '  return Math.min(con, Math.round((soTien * thuongTru) / viTru));', '  return con;', 1)], r'✗ C0b |✗ C7 '),
-  ('BV-hoan-tra-not', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;\n', '', 1)], r'✗ C0b |✗ C7c '),
-  ('VS-tra-not-nguong-noi-1', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;', '  if (Number(r?.vi_hoan || 0) + soTien >= viTru - 1) return con;', 1)], r'✗ C0b '),
+  ('BV-hoan-tra-not', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return Math.min(con, soTien);\n', '', 1)], r'✗ C0b |✗ C7c '),
+  ('VS-tra-not-nguong-noi-1', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return Math.min(con, soTien);', '  if (Number(r?.vi_hoan || 0) + soTien >= viTru - 1) return Math.min(con, soTien);', 1)], r'✗ C0b '),
+  ('BV-tra-not-tran', [(VK, '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return Math.min(con, soTien);', '  if (Number(r?.vi_hoan || 0) + soTien >= viTru) return con;', 1)], r'✗ C0c '),
   ('BV-yeu-cau-hoan-nap', [('server/routes/refunds.js', "      if (await laDonNap(tx, order.id)) return { huy: true, status: 400, body: LOI_NAP_KHONG_HOAN };", '', 1)], r'✗ D3 '),
   ('VS-hoan-tra-not-tinh-ca-hoan-goi', [(VK, "AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount END), 0) AS vi_hoan", "THEN amount END), 0) AS vi_hoan", 1),
                                         (WA, "for (const [soTien, cachTra, cot] of [[tuVi, 'cash', 'total_spent'], [tienMat, 'hoan_goi', null]])", "for (const [soTien, cachTra, cot] of [[tienMat, 'hoan_goi', null], [tuVi, 'cash', 'total_spent']])", 1)], r'✗ C13 '),
