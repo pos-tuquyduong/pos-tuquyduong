@@ -33,14 +33,19 @@ function kiemBao(headers, than, giayBayGio = Date.now() / 1000) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-/** Thân báo → dữ liệu chung của tiền về. Nội dung số hoá đơn (rồi mẫu cũ mã phiên) tìm trong `code` (SePay tách sẵn, có thể null) rồi `content`. */
-function docBao(b) {
-  const tim = (mau) => mau.exec(String(b.code ?? '')) || mau.exec(String(b.content ?? ''));
+/** Nội dung số hoá đơn (rồi mẫu cũ mã phiên) tìm lần lượt trong từng chuỗi → { noiDung (chuỗi CHUẨN) | null, ma | null }. MỘT hàm cho SePay
+ *  và Tingee (TINGEE-1: ngân hàng chèn mã VA trước nội dung — mẫu tìm ở bất kỳ đâu trong chuỗi nên vẫn khớp). */
+function docNoiDung(...chuoi) {
+  const tim = (mau) => chuoi.reduce((kq, c) => kq || mau.exec(String(c ?? '')), null);
   const h = tim(MAU_SO_HD), m = h ? null : tim(MA_PHIEN);
-  const noiDung = h ? `TQD${h[1].toUpperCase()}${h[2]} ${h[3].toUpperCase()}${h[4]}` : null;
+  return { noiDung: h ? `TQD${h[1].toUpperCase()}${h[2]} ${h[3].toUpperCase()}${h[4]}` : null, ma: m ? Number(m[1]) : null };
+}
+
+/** Thân báo → dữ liệu chung của tiền về. Nội dung tìm trong `code` (SePay tách sẵn, có thể null) rồi `content`. */
+function docBao(b) {
   const tk = String(b.accountNumber ?? '').replace(/\s+/g, '');   // số tài khoản nhận (bỏ khoảng trắng) phải BẰNG SEPAY_SO_TK — tkKhac = số nhận sai, null nếu đúng
-  return { khoa: `sepay:${b.id}`, vao: b.transferType === 'in', noiDung, ma: m ? Number(m[1]) : null, maGd: String(b.referenceCode ?? '').trim() || null, soTien: Number(b.transferAmount) || 0, luc: b.transactionDate,
+  return { khoa: `sepay:${b.id}`, vao: b.transferType === 'in', ...docNoiDung(b.code, b.content), maGd: String(b.referenceCode ?? '').trim() || null, soTien: Number(b.transferAmount) || 0, luc: b.transactionDate,
     tkKhac: tk === cauHinh().soTk ? null : tk || '(trống)' };
 }
 
-module.exports = { daCauHinh, taoQr, kiemBao, docBao, NOI_DUNG_SO_HD };
+module.exports = { daCauHinh, taoQr, kiemBao, docBao, docNoiDung, NOI_DUNG_SO_HD };
