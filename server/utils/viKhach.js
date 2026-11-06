@@ -9,11 +9,15 @@
  */
 const ID_NAP_TU = -2000000;
 
-/** Phần thưởng (≥ 0) của một khoản trừ `soTru` khỏi ví đang có `soDu`, trong đó `thuong` là thưởng. Tiền nạp sau trừ không âm. */
+/**
+ * Phần thưởng (≥ 0) của một khoản trừ `soTru` khỏi ví đang có `soDu`, trong đó `thuong` là thưởng. Trừ hết số dư → hết thưởng.
+ * Số nguyên đồng: tỷ lệ đúng x = soTru × thuong / soDu nằm giữa thuong − (soDu − soTru) và thuong, hai đầu nguyên → làm tròn vẫn nằm
+ * trong khoảng: thưởng sau trừ không âm, tiền nạp sau trừ không âm (không cần kẹp).
+ */
 function thuongKhiTru(soDu, thuong, soTru) {
   if (!(soDu > 0) || !(thuong > 0) || !(soTru > 0)) return 0;
   if (soTru >= soDu) return thuong;
-  return Math.min(thuong, Math.max(thuong - (soDu - soTru), Math.round((soTru * thuong) / soDu)));
+  return Math.round((soTru * thuong) / soDu);
 }
 
 /** Phần thưởng (≥ 0) của một khoản CỘNG LẠI `soTien` vào ví `phone` theo đơn `orderId` — đọc sổ của (ví, đơn) trong giao dịch `tx`. */

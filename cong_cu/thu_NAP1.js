@@ -14,6 +14,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
 const iMC = process.argv.indexOf('--may-chu');
@@ -290,6 +291,14 @@ async function main() {
     const lech = typeof f === 'function' ? ca.filter(([a, n]) => f(...a) !== n).map(([a, n]) => `${a} → ${f(...a)} (đúng ${n})`) : ['không có hàm'];
     const tienNapKhongAm = typeof f === 'function' && ca.every(([[d, t, x]]) => x >= d || d <= 0 || (d - x) - (t - f(d, t, x)) >= 0);
     k('C0 thuongKhiTru (utils/viKhach.js): tỷ lệ làm tròn, trừ hết số dư = hết thưởng, số dư ≤ 0 → 0, tiền nạp sau trừ không âm', lech.length === 0 && tienNapKhongAm, lech.join(' | '));
+    const h = viKhach.thuongKhiHoan;
+    const txGia = (vi, th, tra) => ({ queryOne: async () => ({ vi_tru: vi, thuong_tru: th, thuong_tra: tra }) });
+    const caH = [[[42000, 2000, 0, 10500], 500], [[42000, 2000, 500, 21000], 1000], [[3, 2, 1, 3], 1], [[3, 2, 2, 3], 0], [[0, 0, 0, 5000], 0],
+      [[21000, 0, 0, 21000], 0], [[21000, 1000, 0, 0], 0]];
+    const lechH = [];
+    if (typeof h === 'function') for (const [[vi, th, tra, x], n] of caH) { const r = await h(txGia(vi, th, tra), 's', 1, x); if (r !== n) lechH.push(`${[vi, th, tra, x]} → ${r} (đúng ${n})`); }
+    else lechH.push('không có hàm');
+    k('C0b thuongKhiHoan: theo tỷ lệ thưởng / ví của phần đã trừ, không vượt phần thưởng chưa trả lại, ví chưa trừ → 0', lechH.length === 0, lechH.join(' | '));
   }
   const c1 = await ban({ customer_phone: s1, payment_method: 'balance', balance_amount: 21000 });
   const vc1 = await vi(s1);
@@ -442,7 +451,7 @@ async function main() {
   {
     const ket = async () => [await doiSoat.tienTheoSo(homNay, homNay, 'cash'), await doiSoat.tienTheoSo(homNay, homNay, 'transfer')];
     const daily = async () => (await goi('GET', `/reports/daily?date=${homNay}`)).order_stats || {};
-    const sales = async () => (await goi('GET', `/reports/sales?from=${homNay}&to=${homNay}`)).totals || {};
+    const sales = async () => { const r = await goi('GET', `/reports/sales?from=${homNay}&to=${homNay}`); return { ...(r.totals || {}), ky: (r.sales || []).reduce((t, x) => t + Number(x.revenue || 0), 0) }; };
     const staff = async () => ((await goi('GET', `/reports/staff?from=${homNay}&to=${homNay}`)).data || []).reduce((s, r) => s + Number(r.revenue || 0), 0);
     const ds = async () => (await goi('GET', `/orders?from=${homNay}&to=${homNay}`)).todayStats || {};
     const soSach = async () => goi('GET', `/reports/so-sach?tu=${homNay}&den=${homNay}`);
@@ -454,7 +463,7 @@ async function main() {
     k('F1 két ngày: bán gói tiền mặt 100.000 + nạp tay 50.000 → két +150.000 (không đếm đôi đơn nạp)', f1.status === 200 && k1.rong - k0.rong === 150000 && c1x.rong === c0.rong,
       `két ${k0.rong} → ${k1.rong} · CK ${c0.rong} → ${c1x.rong}`);
     k('F2 doanh thu /daily, /sales, /staff, danh sách đơn KHÔNG cộng đơn nạp',
-      Number(d1.total_revenue) === Number(d0.total_revenue) && Number(d1.cash_revenue) === Number(d0.cash_revenue) && Number(s1x.total_revenue) === Number(s0.total_revenue)
+      Number(d1.total_revenue) === Number(d0.total_revenue) && Number(d1.cash_revenue) === Number(d0.cash_revenue) && Number(s1x.total_revenue) === Number(s0.total_revenue) && s1x.ky === s0.ky
         && st1 === st0 && Number(o1.total_revenue) === Number(o0.total_revenue),
       `daily ${d0.total_revenue}→${d1.total_revenue} · sales ${s0.total_revenue}→${s1x.total_revenue} · staff ${st0}→${st1} · đơn ${o0.total_revenue}→${o1.total_revenue}`);
     k('F5 ô "tiền thật vào quán": trong đó tiền nạp +150.000 (đơn nạp 100.000 + nạp tay 50.000), cùng số với két',
@@ -500,6 +509,28 @@ async function main() {
     k('K2 ví 10.000 + CK 11.000 → 200, ví 20.000 · thưởng 0', k2.status === 200 && vK.so_du === 20000 && vK.thuong === 0, `${moTa(k2)} · ${viChu(vK)}`);
     const cuoi = await lechBB();
     k('K9 bất biến I4 · I6 · I8 · I11 · I15 · I18 · I19 = 0 lệch cuối bài', cuoi.length === 0, cuoi.join(' | '));
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[G] Màn Bán hàng mới (BanHang/tinh.js): giỏ gói nạp gửi goi_nap_id, cần khách, không gộp, không giá hạng');
+  {
+    let t = {};
+    try { t = await import(pathToFileURL(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'BanHang', 'tinh.js')).href); } catch (e) { t = { loiNap: e.message }; }
+    const kh = { phone: '0938499999', name: 'Khách G' };
+    const gioNap = [{ key: 1, goi_nap_id: 7, product_id: -2000007, product_name: 'Nạp 100k', unit_price: 100000, quantity: 1 }];
+    const gioMon = [{ key: 2, product_id: 5, sx_product_type: 'juice', sx_product_id: 9, product_name: 'Ép', unit_price: 30000, quantity: 1 }];
+    const than = typeof t.thanTinhThu === 'function' ? t.thanTinhThu(gioNap, kh, 'GIAM10') : null;
+    k('G1 thanTinhThu giỏ gói nạp → { khách, items: [], goi_nap_id } (không mã); giỏ món giữ nguyên dạng cũ (không goi_nap_id)',
+      !!than && than.goi_nap_id === 7 && Array.isArray(than.items) && than.items.length === 0 && than.customer_phone === kh.phone && !than.discount_code
+        && !('goi_nap_id' in t.thanTinhThu(gioMon, kh, '')), JSON.stringify(than) + (t.loiNap ? ' · ' + t.loiNap : ''));
+    const p = typeof t.thanPhien === 'function' ? t.thanPhien({ gio: gioNap, khach: kh, ma: '', cach: 'payos', dungTK: false, dungMe: false }) : null;
+    k('G2 thanPhien giỏ nạp → đơn mang goi_nap_id, không trừ tài khoản', p?.don?.goi_nap_id === 7 && p.tru_tai_khoan === false && p.tru_tai_khoan_me === false, JSON.stringify(p));
+    const kt = typeof t.kiemTraNap === 'function' ? [t.kiemTraNap([], null), t.kiemTraNap(gioMon, kh), t.kiemTraNap([], kh), t.kiemTraNap(gioNap, kh)] : [];
+    k('G3 kiemTraNap: chưa khách → báo; giỏ có món → báo; giỏ trống / giỏ nạp + có khách → được',
+      kt.length === 4 && typeof kt[0] === 'string' && typeof kt[1] === 'string' && kt[2] === null && kt[3] === null, JSON.stringify(kt));
+    const k1 = typeof t.khoaTinh === 'function' ? t.khoaTinh(gioNap, kh, '') : '', k2 = typeof t.khoaTinh === 'function' ? t.khoaTinh([{ ...gioNap[0], goi_nap_id: 8, product_id: -2000008 }], kh, '') : '';
+    const g = typeof t.tinhGio === 'function' ? t.tinhGio(gioNap, { hang: { usable: true, discount_percent: 10, special_discount_percent: 10 } }) : null;
+    k('G4 đổi gói nạp → khoá hỏi giá đổi; giá hạng không gạch giá gói nạp (tổng 100.000)', k1 && k1 !== k2 && g?.tong === 100000, `${k1} · ${k2} · ${g?.tong}`);
   }
 
   console.log(`\n  ${dat} đạt · ${hong} hỏng\n`);
