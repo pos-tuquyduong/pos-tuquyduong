@@ -256,3 +256,137 @@ Mình đã đọc toàn bộ phần mới của TINGEE-1 (`git diff a935313 HEAD
 CHƯA KIỂM: mình không chạy thử máy chủ hay bài thử nào. Kết luận trên chỉ dựa vào đọc code.
 ```
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — vòng 3 (agent, 06.11, trên HEAD 16972e2) — chép nguyên văn
+```
+KHÔNG ĐẠT — chỉ còn lỗi NHẸ ở chú thích. Không lỗi nào đụng tiền, ví, điểm hay bảo mật. Đường tiền, chữ ký, chống báo lặp, bài thử, đột biến vững.
+Lỗi vòng 1, vòng 2 đã xử lý đúng.
+
+Đã chạy trên HEAD 16972e2 (code cuối 84cc3a5): thu_TINGEE1 75/0; gốc 11 đạt · 46 hỏng (khớp bang_chung_do.txt dòng 7, 23, 25 — SỐ CA 75);
+thu_SEPAY1 78/0; thu_CKNOIDUNG1 113/0; --day-du PASS 104 · FAIL 0 · CẢNH BÁO 2, thoát 0; dot_bien.py ĐỦ 42 đột biến: BẮT 42 · SỐNG 0 · HỎNG 0 ·
+LẠC 0, đối chứng xanh (tg 75/0, sp 78/0); git status sạch sau khi chạy (bản sao trong thư mục tạm, kiểm realpath dot_bien.py:84-102).
+
+LỖI TÌM ĐƯỢC:
+ 1. server/utils/giuCho.js:7-8 — chú thích "cổng SePay ghi nội dung TQD<MMM><DD> HD|APP<4 số>, cổng payOS giữ TQD<mã phiên>" chưa nhắc Tingee; Tingee
+    cũng ghi nội dung số hoá đơn (tingee.js:13, :50 lấy NOI_DUNG_SO_HD; giuCho.js:71 rẽ theo đó). Cùng dạng giuCho.js:20 "(SePay dùng nội dung số
+    hoá đơn, ≤ 16 ký tự)". Đúng khuôn lỗi 3 vòng 1; vòng sửa 1 sửa :5, :92 nhưng sót :7, :20. K4/K1 — NHẸ.
+ 2. server/routes/thanh-toan.js:228 và :245 — chú thích và lý do ghi khẳng định tin "Kiểm tra kết nối" của Portal không có transactionCode; tài liệu
+    không nói vậy (tingee_tai_lieu_day_du.txt:100; tai_lieu_tingee.md:64). cai_dat_tingee.md bước 2 hứa "Đối soát có một dòng 'tin thử kết nối'".
+    Tin thử mang transactionCode mẫu thì dòng ghi là "không có mã TQD trong nội dung". Hành vi vẫn an toàn (khong_phien, CẦN XEM, 200 "00").
+    Nên ghi "có thể" / "chưa rõ". K1 — NHẸ.
+
+NGHI NGỜ (không chặn): tingee.js:43 khoá dùng transactionCode thô còn maGd đã trim (không gây trùng tiền); type không trim ("credit " → khong_phien,
+hỏng an toàn); sepay.js:48 "rỗng bằng rỗng" — đã ghi Phát hiện, ngoài phiếu, đồng ý không sửa; chưa thử tin thật: dạng x-request-timestamp
+(DANG_TS 17 số), vaAccountNumber có "VQR" không, Content-Type (index.js:71) — đơn thử 2.000đ là lưới cho cả ba.
+
+KIỂM TỪNG MỤC VÒNG TRƯỚC: vòng 1 lỗi 1 đúng (cai_dat_tingee.md:6-7, :28); vòng 2 lỗi 1: F3 (thu_TINGEE1.js:449-451) + VS-huong-dan-ve-nhu-cu đưa
+ĐÚNG câu cũ trở lại (đối chiếu git show 4b58a47 dòng 6), cùng BV-huong-dan-buoc-lui-khong-noi-go đều BẮT; vòng 2 lỗi 2 không sửa, lý do chấp nhận
+được; lỗi 2, 3 và nghi ngờ vòng 1 vẫn đúng (C6 CREDIT/null, D3 ×5, đột biến BẮT).
+
+1 K3: đỏ trên gốc 11/46, xanh HEAD 75/0; ca chặn so đúng kết luận; hai mốc ngưỡng có ca (D5 ±1 s, D4 ±1 đồng); 42/42 đột biến BẮT đúng ca đích.
+2 K4: 'sepay:%' / congCuaKhoa có cột Tingee riêng (doiSoat.js:246-247, Array(3).fill khớp 3 VAO); TEN_CONG một bảng; tkKhac tingee.js:47 vá,
+  sepay.js:48 Phát hiện; chú thích sót giuCho.js:7, :20 (lỗi 1).
+3 K5: VA khác hoa thường, số gốc bất kỳ, type vắng/null/CREDIT, giờ cũ 6 giờ (C4), thân thô / gọn (C5), đổi công tắc (D8), SePay (A4, 78/0) — xanh.
+4 K1: thanh-toan.js:228, :245 (lỗi 2), giuCho.js:7 (lỗi 1); phần còn lại khớp; tingee_tai_lieu_day_du.txt:25 xác nhận chuỗi ký "ts:body".
+5 Đường tiền: số tiền từ thân đã ký so p.con_lai (thanh-toan.js:171-172); HMAC-SHA512 + timingSafeEqual, khoá rỗng → 401; bản gọn không mở cửa giả
+  mạo; phát lại: kiểm trước "02" + UNIQUE + ON CONFLICT; C9; hai cổng D6, D7 ×3, E2; vào ví chỉ khi changes = 1; vá res.json chỉ đổi {success:true}.
+6 P1: client/src + client/dist cùng commit 8cf4b6f; --day-du PASS.
+7 Nghiệm thu 7/7. 8 Đơn giản: gọn; quy tắc đối soát ở doiSoat.js:240-252.
+
+NGHIỆM THU: 7/7 · mục thiếu: không (A: A1, A2 ×7, A3 ×2, X1, X2 · B: A1, A4, A5 ×3, D8 ×2, CongQr.jsx + dist · C: C1–C9 · D: D1–D8 ·
+E: C1 ma_gd, E1 ×2, E2 · F: F1 ×2, F2, F3 · K5: A4, D3, D8, thu_SEPAY1 78/0, thu_CKNOIDUNG1 113/0)
+
+CHƯA SOÁT ĐƯỢC: dạng thật tin Tingee (độ dài timestamp, chữ type, VA có "VQR", Content-Type, tin "Kiểm tra kết nối" có ký / có transactionCode);
+SEPAY_* trên Render còn đủ để lùi CONG_QR=sepay; màn Cài đặt chưa xem trên điện thoại; chưa chạy node tu_chay/cong.js chay.
+
+BÀI HỌC:
+ - KHOÁ (K4): thêm giá trị mới vào một tập (nguon 'tingee', cổng có NOI_DUNG_SO_HD) → nên có phép grep chú thích liệt kê tập đó trong file vừa sửa;
+   vòng 1 bắt giuCho.js:5, :92 nhưng sót :7, :20 cùng file.
+ - NGUYÊN TẮC (K1): hành vi bên thứ ba tài liệu không nói (tin thử kết nối) → chú thích / hướng dẫn viết "có thể / chưa rõ"; code xử lý cả hai khả
+   năng thì chữ cũng phải nói đúng như vậy.
+```
+
+### Vòng sửa 4 (commit 88a72b4) — hết 3 vòng, lần soát cuối chỉ còn lỗi NHẸ → làm thẳng theo LUAT_XAY_APP §6.5
+- Lỗi 1: `giuCho.js` chú thích dòng 7–8 ("SePay và Tingee (NOI_DUNG_SO_HD) ghi nội dung …") và dòng 20 ("SePay, Tingee dùng nội dung số hoá đơn").
+- Lỗi 2: `thanh-toan.js` chú thích webhookTingee + lý do ghi đổi thành "có thể là tin thử kết nối"; `cai_dat_tingee.md` bước 2: Đối soát "có thể"
+  thêm một dòng "tin thử kết nối" hoặc "không có mã TQD".
+- Ca thử / đột biến: KHÔNG thêm — hai lỗi chỉ là chữ (chú thích + lời ghi `ly_do` không bài nào so nguyên văn), không đổi hành vi; ca C8 (đếm dòng,
+  trả "00") vẫn khoá hành vi. Sau sửa: thu_TINGEE1 75/0; `--day-du` PASS 104 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo có sẵn từ trước: route GET có lệnh
+  ghi — packages.js / products.js / sync.js; route ghi không qua loiGhi 54 — không route nào của việc này).
+- Soát bảo mật chạy trên 16972e2 (trước vòng sửa 4): vòng sửa 4 chỉ đổi chú thích và một chuỗi lý do ghi — không đổi đường xử lý nào.
+
+SOÁT LẦN CUỐI: chat soát thay
+
+## Cổng PR
+`node tu_chay/cong.js chay . e9b7036^ HEAD viec/TINGEE-1` lần 1 (HEAD 88a72b4): ✗ [A16] thiếu "SỐ CA" cho thu_CKNOIDUNG1 / thu_KHMUA1 / thu_P26c /
+thu_SEPAY1 — bốn bài CK-NOIDUNG-1 sửa, vào nhánh qua gộp main (mốc phiếu e9b7036 nằm trước lần gộp). Đã chạy lại bốn bài trên HEAD, chép số ca vào
+bang_chung_do.txt (khớp viec/CK-NOIDUNG-1/bang_chung_do.txt 162–165), commit efa0dc9. Lần 2 (HEAD efa0dc9):
+· CẢNH BÁO A16: thu_CKNOIDUNG1 gốc 109 ≠ 113 head; thu_TINGEE1 gốc 57 ≠ 75 head — bài dừng sớm trên gốc (TINGEE1: mục D dừng ở D1 vì chưa có đường).
+✓ CỔNG CHẠY ĐẠT
+
+## Đếm nghiệm thu (phiếu) — mỗi mục một dòng
+- A Biến môi trường, không lộ khoá: thu_TINGEE1 A1, A2 ×7 (thiếu / sai từng biến → 503), A3 ×2 (production / uat), X1 (log + mọi thân trả về), X2
+  (du_lieu không clientId / khoá); đột biến VS-thieu-client-id-van-cai, VS-moi-truong-*, VS-dang-so-tk-long, VS-lo-khoa-nhat-ky, BV-luu-client-id.
+- B Công tắc CONG_QR=tingee, cổng cũ như cũ, webhook mọi cổng luôn mở, Cài đặt "Cổng QR": A1, A4, A5 ×3, D8 ×2; CongQr.jsx + dist (--day-du khớp);
+  thu_SEPAY1 78/0; đột biến BV-cong-tingee, BV-cong-qr-settings, BV-ten-tingee.
+- C Webhook Tingee (chữ ký, không từ chối giờ cũ, 401 không ghi, chỉ tiền vào, 200 kể cả báo lặp): C1–C9 (C3 ×7 ca chặn, C4 giờ cũ 6 tiếng, C5 thân
+  thô / gọn, C6 ×4 type, C7 JSON hỏng, C8 tin lạ, C9 hai báo cùng lúc); 15 đột biến nhóm C.
+- D Khớp phiên bằng luật có sẵn (nội dung mới, mã VA chèn đầu, tiền, hạn, tài khoản VA, báo một lần, hai cổng): D1 ×4, D2, D3 ×5, D4 ×2, D5 ×2,
+  D6 ×2, D7 ×3, D8 ×2, C2; đột biến BV-tk-va, VS-tk-*, BV-va-rong-khop, BV-doc-gio-giao-dich, VS-cong-cua-khoa-chi-sepay, VS-noi-dung-*.
+- E Mã GD lưu vào đơn, Đối soát ghi "Tingee": C1 (ma_gd = transactionCode), E1 ×2, E2 (lưới chặn tách cột Tingee); VS-luoi-gop-tingee-payos, VS-nhan-cat-6.
+- F Hướng dẫn chủ quán: viec/TINGEE-1/cai_dat_tingee.md; F1 ×2, F2, F3; đột biến VS-huong-dan-* ×3, BV-huong-dan-buoc-lui-khong-noi-go.
+- K5 Không đổi số tiền / ví / điểm / nội dung CK / cổng cũ: A4, B3 (nội dung CK-NOIDUNG-1), D7 (ví cộng đúng số, một lần), D8; thu_SEPAY1 78/0,
+  thu_CKNOIDUNG1 113/0, thu_P26c 157/0, thu_KHMUA1 122/0; --day-du PASS 104.
+
+## Báo cáo
+```
+VIỆC:        TINGEE-1 — cổng QR Tingee (Webhook biến động số dư), công tắc CONG_QR=tingee, giữ luật chống trùng / sai tài khoản
+ĐÃ SỬA:      server/utils/tingee.js (mới, 50 dòng) — cauHinh / daCauHinh / taoQr (VietQR tới số VA + BIN) / kiemBao (HMAC-SHA512 thân thô hoặc
+               bản gọn, timingSafeEqual, không so giờ) / docBao (vaAccountNumber, type, transactionDate giờ VN, khoá tingee:<mã>)
+             server/routes/thanh-toan.js — webhookTingee: 401 code "09", 400 thân hỏng, "02" báo lặp, "00" ghi nhận, tin không mã → khong_phien;
+               dùng chung xuLyTienVe; TEN_CONG lấy từ congQr
+             server/utils/congQr.js — CONG.tingee, TEN_CONG một bảng, congCuaKhoa theo tiền tố, tenCongQr
+             server/utils/sepay.js — tách docNoiDung (dùng chung, hành vi SePay giữ nguyên — thu_SEPAY1 78/0)
+             server/utils/doiSoat.js — nhãn "<cổng> giao dịch <mã>", lưới chặn ghi tiền vượt có cột Tingee
+             server/index.js — express.raw + gắn /api/tingee/webhook; server/routes/settings.js — cong_qr { ten, da_cai }
+             server/utils/giuCho.js — chỉ chú thích
+             client/src/pages/CaiDat/CongQr.jsx (mới) + Settings.jsx — dòng "Cổng QR: Tingee ✓ / chưa cài ✗"; client/dist build lại
+             kiem_tra_truoc_khi_giao.js — chạy cong_cu/thu_TINGEE1.js; viec/TINGEE-1/cai_dat_tingee.md — hướng dẫn chủ quán
+BÀI THỬ:     cong_cu/thu_TINGEE1.js chạy trên bản chưa vá (a935313) → ĐỎ 11 đạt · 46 hỏng (404 đường Tingee, 503 cổng, thiếu cong_qr, E2 lưới chặn
+             gộp Tingee vào payOS, T1–T3, F1–F3); sau khi vá → XANH 75 đạt · 0 hỏng. 42 đột biến (VS / BV) BẮT 42/42, đối chứng xanh.
+ĐÃ RÀ K4:    grep "'sepay'|sepay:|congCuaKhoa|TEN_CONG" trong server/ client/src → congQr.js, thanh-toan.js (3 chỗ), doiSoat.js (3 chỗ), settings.js —
+             đã xử lý hết; grep "tkKhac" → tingee.js (vá rỗng-bằng-rỗng), sepay.js:48 (cùng lỗ, ngoài phiếu → Phát hiện); chú thích liệt kê cổng /
+             nguon trong giuCho.js (4 chỗ), thanh-toan.js (5 chỗ), index.js (2 chỗ) — đã thêm Tingee.
+CHƯA KIỂM:   - Chưa có tin Tingee THẬT nào: độ dài x-request-timestamp (máy đòi đúng 17 số), chữ của `type`, vaAccountNumber có "VQR" đầu không,
+               có Content-Type không, tin "Kiểm tra kết nối" có ký / có transactionCode không. Sai một trong số đó → báo bị 401 hoặc rơi vào
+               "tài khoản khác" (hỏng an toàn, không mất tiền) — đơn thử 2.000đ ở hướng dẫn F là phép thử thật duy nhất.
+             - Chữ ký: tài liệu mục 2 nói Tingee ký trên JSON.stringify; máy thử cả thân thô lẫn bản gọn — chưa biết Tingee thật dùng cách nào.
+             - Ngân hàng MB chèn mã VA đầu nội dung: dựa lời chủ quán 06.11 ("Qanjmg7944 PAY36510 …"); bài thử phủ hoa / thường / dính liền.
+             - Lối lùi CONG_QR=sepay: Webhook SePay đã gỡ → lùi về là xác nhận tay; SEPAY_* trên Render còn đủ không thì máy không thấy.
+             - Màn Cài đặt chưa xem trên điện thoại (thao tác thử tay: mở Cài đặt → thấy dòng "Cổng QR: Tingee ✓").
+             - Không gọi Tingee thật (phiếu cấm); không thử trên Render / Turso.
+GIT:         (xem dòng git log ở cuối — ghi khi commit cuối)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 3 — chi tiết ở ## Bài học
+```
+
+## Bài học
+Sự cố của việc: (1) người gác chặn kéo main / merge / đọc GitHub (GIT-KEO, GIT-LENH, CC-LA) → phiên 1 dừng hỏi, chat gộp hộ; (2) người gác chặn
+lệnh ghép (B-PHANTICH ×4, B-CD-VITRI, GIT-TUYCHON, B-CHUONGTRINH `until`, B-BIMAT-CHU khi script Python có chữ khoá) → tách lệnh / dùng Edit;
+(3) bài thử đỏ bất ngờ trên code đã vá ×2: E2 dùng `p.ma_payos` (tomPhien không trả trường này), B1 dựa thứ tự khoá object JS (khoá dạng số xếp
+trước) — lỗi của bài, không phải code; (4) đột biến VS-huong-dan-khong-quay-lai SỐNG → F1 tìm chuỗi ở bất kỳ đâu; (5) soát 3 vòng: hướng dẫn hứa
+"về như cũ" trái phiếu, câu "đã cài" không nguồn, chú thích enum sót (2 lần, cùng file), khẳng định tin thử kết nối không có tài liệu.
+- KHOÁ (đã làm, trong Phạm vi): ca F2 (dòng "Không thấy … `CONG_QR=sepay` NGAY") + F3 (không hứa "về như cũ", nói Webhook SePay đã gỡ) kèm đột biến
+  đưa đúng câu cũ trở lại — hướng dẫn chủ quán giờ có bài canh từng câu hứa.
+- KHOÁ (đề xuất, ngoài Phạm vi): `kiem_tra_truoc_khi_giao.js` / cổng — phép "thêm giá trị vào tập `nguon` hay tên cổng (TEN_CONG) → mọi chú thích
+  liệt kê tập đó trong server/ phải có giá trị mới": quét chú thích có chuỗi `payos · sepay` / `payOS / SePay` mà thiếu `tingee`. Ca đỏ: giuCho.js:7
+  ở 6178e6c (sót qua vòng sửa 1).
+- NGUYÊN TẮC (đề xuất KHUON_LOI K1, ngoài Phạm vi): "Hướng dẫn cho chủ quán là khẳng định — câu về trạng thái ('đã cài', 'về như cũ', 'Đối soát sẽ có
+  dòng …') phải có nguồn trong phiếu / sổ / tài liệu; hành vi bên thứ ba tài liệu không nói thì viết 'có thể'." Ví dụ: TINGEE-1 cai_dat_tingee.md:6
+  "về như cũ ngay" trong khi phiếu ghi Webhook SePay đã gỡ.
+- NGUYÊN TẮC (đề xuất KHUON_LOI K4, ngoài Phạm vi): "Bịt một lỗ ở cổng mới → grep cùng biểu thức ở cổng anh em" — tingee.js `va && va === …` còn
+  sepay.js:48 `tk === …` (rỗng bằng rỗng). Ghi Phát hiện, việc sau.
+- NGUYÊN TẮC (đề xuất KHUON_LOI K3, ngoài Phạm vi): "Bài thử đọc object trả về của API: tra hàm dựng câu trả lời (tomPhien) trước khi dùng một trường;
+  đọc TLV / bảng mã bằng thứ tự key của object JS là sai với key dạng số."
+- BỎ: người gác chặn lệnh ghép / heredoc có chữ khoá — luật đã có, chỉ cần nhớ tách lệnh (lặp nhưng đã có hướng dẫn trong lỗi người gác).
+- BỎ: kéo main bị chặn — chủ quán đã quyết gộp là việc của người (30.10); lần này chat gộp hộ, đúng quy trình.
+- BỎ: cổng A16 đòi SỐ CA cho bài của việc khác vì mốc phiếu nằm trước lần gộp main — một lần, xử lý bằng chép số ca thật (khớp hồ sơ CK-NOIDUNG-1).
