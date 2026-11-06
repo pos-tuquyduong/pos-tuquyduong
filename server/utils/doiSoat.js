@@ -239,7 +239,7 @@ async function phepTienVe(q) {
     WHERE s.ket_qua IN ('chua_khop', 'khong_phien', 'vao_vi')`);
   const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
   // Lưới chặn cộng ví hai lần (soát vòng 2, LUAT §5): mỗi khoản thật được MỖI cổng báo đúng một lần → số lần GHI TIỀN của phiên (dòng khop = đơn,
-  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với laBanSao, thanh-toan.js; 'sepay:%' = congCuaKhoa).
+  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với congKiaDaBao, thanh-toan.js;'sepay:%' = congCuaKhoa).
   const VAO = "s.ket_qua NOT IN ('that_bai', 'khong_phien') AND COALESCE(s.ly_do, '') NOT LIKE ?";
   const vuot = await q(`SELECT p.id AS phien_id, s.ma_payos, MAX(s.luc) AS luc, SUM(s.ket_qua IN ('khop', 'vao_vi')) AS ghi,
       SUM(s.khoa LIKE 'sepay:%' AND ${VAO}) AS sepay, SUM(s.khoa NOT LIKE 'sepay:%' AND ${VAO}) AS payos
