@@ -536,6 +536,8 @@ async function main() {
     k('E7 duyệt hoàn trừ điểm phần tài khoản: trọn ví 21 → 0; ví 10.400 + tiền mặt 10.600 (21) → trừ 11 (làm tròn LÊN) → 10; con 5.000 + mẹ 5.000 + tiền mặt 11.000 (21) → 11; điểm luật cũ (earn trước 014) → giữ 21; I8 = 0 lệch',
       hk.every((r) => r.status === 200) && JSON.stringify(truoc) === '[21,21,21,21]' && JSON.stringify(sau) === '[0,10,11,21]' && lechI8.length === 0,
       `${hk.map(moTa).join(' · ')} · trước ${JSON.stringify(truoc)} · sau ${JSON.stringify(sau)} · ${lechI8.join(' | ')}`);
+    // Dọn dữ liệu GIẢ của e7d (earn lùi ngày — bài không chạy chế độ đối soát thật nên I8 không nhận luật cũ) để K9 cuối bài soi phần còn lại.
+    if (e7d.order) await db.run("DELETE FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [e7d.order.id]);
     k('E8 diemTruKhiHoan: tỷ lệ làm tròn LÊN, không quá điểm, 0 khi không có điểm / tiền',
       typeof diemTruKhiHoan === 'function' && diemTruKhiHoan(21, 10400, 21000) === 11 && diemTruKhiHoan(21, 10000, 21000) === 10
         && diemTruKhiHoan(21, 24000, 21000) === 21 && diemTruKhiHoan(0, 5000, 21000) === 0 && diemTruKhiHoan(21, 0, 21000) === 0 && diemTruKhiHoan(21, 5000, 0) === 0,
