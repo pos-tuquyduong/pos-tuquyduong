@@ -25,7 +25,7 @@
   - d01f140 TINGEE-1 ghi dieu chinh duyet 06.11 (VA, huong dan F) + cau hoi: chua keo duoc main, thieu tai lieu Tingee
 
 ## Bước đang ở
-Phiên `tiep` lần 2: bước 4–7 xong; soát vòng 1 KHÔNG ĐẠT (lỗi nhẹ) → vòng sửa 1 (046fd5b); tiếp soát vòng 2.
+Phiên `tiep` lần 2: bước 4–7 xong; soát vòng 1 KHÔNG ĐẠT (lỗi nhẹ) → vòng sửa 1 (046fd5b); soát vòng 2 KHÔNG ĐẠT (1 lỗi nhẹ) → vòng sửa 2 (84cc3a5); tiếp soát vòng 3.
 
 ## Cách làm theo tài liệu (chỗ kế hoạch b4af4be đổi theo duyệt 06.11 + tài liệu)
 - **Trường thân Webhook** (`tai_lieu_tingee.md` mục 1): `transactionCode` → khoá `tingee:<mã>` + mã GD lưu vào đơn; `amount`; `content` → MỘT hàm
@@ -45,7 +45,7 @@ Phiên `tiep` lần 2: bước 4–7 xong; soát vòng 1 KHÔNG ĐẠT (lỗi nh
   của SePay (không dời lên congQr — không còn cổng thứ hai dùng).
 - **Đối soát**: nhãn `TEN_CONG[cổng] giao dịch <mã>`; lưới chặn "ghi tiền vượt" tách cột Tingee (trước đây khoá không `sepay:` đều tính là payOS).
 
-## Chỗ vá → đột biến (`viec/TINGEE-1/dot_bien.py` — 40 đột biến, lần chạy cuối sau vòng sửa 1: BẮT 40 · SỐNG 0 · HỎNG 0 · LẠC 0; đối chứng tg 74/0, sp 78/0)
+## Chỗ vá → đột biến (`viec/TINGEE-1/dot_bien.py` — 42 đột biến: vòng sửa 1 chạy đủ 40 → BẮT 40; vòng sửa 2 thêm 2 → BẮT 2; SỐNG 0 · HỎNG 0 · LẠC 0; đối chứng tg 75/0, sp 78/0)
 | Chỗ vá | Đột biến |
 |---|---|
 | tingee.js kiemBao so chữ ký | BV-chu-ky |
@@ -70,7 +70,7 @@ Phiên `tiep` lần 2: bước 4–7 xong; soát vòng 1 KHÔNG ĐẠT (lỗi nh
 | sepay.js docNoiDung dùng chung | VS-noi-dung-dau-chuoi · VS-noi-dung-chi-chuoi-dau |
 | index.js thân thô + gắn đường | BV-than-tho-tingee · BV-gan-duong-tingee |
 | bộ kiểm chạy bài | BV-bo-kiem-chay-bai |
-| hướng dẫn F | VS-huong-dan-khong-www · VS-huong-dan-khong-quay-lai |
+| hướng dẫn F | VS-huong-dan-khong-www · VS-huong-dan-khong-quay-lai · VS-huong-dan-ve-nhu-cu · BV-huong-dan-buoc-lui-khong-noi-go |
 
 ## Soát kế hoạch (agent phụ chỉ đọc, 06.11)
 4 câu: (1) ngoài Phạm vi — không; (2) ngắn hơn — gom `TEN_CONG` + `congCuaKhoa` về một bảng ở `congQr.js`, chốt `LECH_TOI_DA_GIAY` dùng chung,
@@ -110,6 +110,9 @@ Câu 5–6: ĐÃ GIẢI (chat gộp main f9fd8b5 vào nhánh ở 71c44cb, thêm 
 - `client/src/utils/hoaDon.js`, `database.js`, `backup.js` còn nhãn "payOS" chung cho QR (đã ghi ở kế hoạch mục 7) — để nguyên, ngoài mục tiêu.
 - Lối lùi `CONG_QR=sepay` (chủ quán chọn 06.11) không còn tự xác nhận vì Webhook SePay đã gỡ (phiếu 05.11) — hướng dẫn đã nói rõ; muốn lối lùi
   tự xác nhận thì khai lại Webhook SePay. Ghi cho chủ quán biết, không đổi lựa chọn.
+- `server/utils/sepay.js` docBao: `tkKhac: tk === cauHinh().soTk ? null : …` — SEPAY_SO_TK rỗng + báo SePay đúng chữ ký có accountNumber rỗng → chốt
+  ("rỗng bằng rỗng", lỗ vừa bịt ở tingee.js). Cần đã cài khoá webhook SePay mà thiếu số TK — rất thấp; phiếu K5 "cổng SePay không đổi" → không sửa ở
+  đây. Đề xuất việc sau: `tk && tk === …` + ca thu_SEPAY1 "SEPAY_SO_TK rỗng, accountNumber rỗng → không chốt".
 
 ## Soát độc lập — vòng 1 (agent, 06.11, trên HEAD 4b58a47) — chép nguyên văn
 ```
@@ -163,3 +166,66 @@ BÀI HỌC:
 - Tin thử: hướng dẫn nói rõ cả hai khả năng (ký → "00"; không ký → 401, làm tiếp bước thử 2.000đ).
 - GIỮ, có lý do: DANG_TS (đúng dạng tài liệu; ghi chú thích); CLIENT_ID / MOI_TRUONG (nghiệm thu A của phiếu đòi); vá `res.json` (giữ
   `xuLyTienVe` dùng chung không đổi chữ ký hàm — đổi sang trả kết quả phải sửa cả payOS / SePay, đụng đường tiền đang chạy).
+
+## Soát độc lập — vòng 2 (agent, 06.11, trên HEAD 6178e6c) — chép nguyên văn
+```
+KHÔNG ĐẠT — chỉ còn lỗi NHẸ (ở bài thử của tài liệu hướng dẫn). Đường tiền, chữ ký, chống báo lặp và bài thử phần code vững. Cả 7 lỗi / nghi ngờ
+vòng 1 đã xử lý đúng hoặc giữ có lý do.
+
+Đã chạy trên HEAD 6178e6c: thu_TINGEE1 74 đạt · 0 hỏng; gốc (scratchpad/goc) 11 đạt · 45 hỏng, khớp bang_chung_do.txt; --day-du PASS 104 · FAIL 0 ·
+CẢNH BÁO 2 ("dist đã commit KHỚP với src", SePay / CK-NOIDUNG / TINGEE xanh); dot_bien.py 3 đột biến mới (BV-va-rong-khop, VS-type-phan-biet-hoa,
+VS-tk-mot-trong-hai) BẮT 3/3, đối chứng xanh (tg 74/0, sp 78/0).
+
+LỖI TÌM ĐƯỢC:
+ 1. cong_cu/thu_TINGEE1.js:442-448 (F1/F2) — lỗi 1 vòng 1 (cai_dat_tingee.md:6 "về như cũ ngay") đã sửa ở cai_dat_tingee.md:6-7 và :28 nhưng KHÔNG có
+    ca thử, KHÔNG có đột biến đưa đúng câu cũ trở lại. F1 chỉ tìm 'CONG_QR=sepay', F2 chỉ tìm dòng "Không thấy … `CONG_QR=sepay` NGAY". Trả dòng 6-7
+    về "về như cũ ngay" và bỏ "Webhook SePay đã gỡ" ở dòng 28 thì 74 ca vẫn xanh (suy từ code). KHUON_LOI K3 (TACH-GL). K3 — NHẸ.
+ 2. client/src/pages/CaiDat/CongQr.jsx:8 — gọi lại GET /settings trong khi Settings.jsx:460 đã gọi; thừa một lần gọi. Gọn hơn: Settings.jsx truyền
+    cong_qr xuống. Mục 8 — NHẸ, không bắt buộc sửa.
+
+NGHI NGỜ:
+ - server/utils/sepay.js:48 `tkKhac: tk === cauHinh().soTk ? null : …` — SePay còn lỗ "rỗng bằng rỗng" vừa bịt ở tingee.js:47 (cài SEPAY_KHOA_WEBHOOK,
+   SEPAY_SO_TK rỗng, báo đúng chữ ký accountNumber rỗng → chốt). K4 ở code cũ SEPAY-1; phiếu K5 "cổng SePay không đổi", Webhook SePay đã gỡ — rất
+   thấp. Đề xuất ghi Phát hiện, không sửa trong phiếu này.
+ - tingee.js:16,31 DANG_TS /^\d{17}$/: không thêm an toàn (mốc giờ trong HMAC); Tingee gửi 14 số → mọi báo 401. Khớp tài liệu mục 1-2; đơn thử 2.000đ
+   (cai_dat_tingee.md:28) lộ ra, có lối lùi. Giữ có lý do — chấp nhận được.
+ - tingee.js:43,47: chưa biết vaAccountNumber gửi "VQRQANJMG7944" hay "QANJMG7944" — nếu dạng sau thì mọi báo vào "tài khoản khác", xác nhận tay.
+   Hỏng an toàn; đơn thử bắt được; Đối soát hiện số VA nhận được.
+ - thanh-toan.js:240: khoá tin lạ = băm thân THÔ — phát lại với khoảng trắng khác thành nhiều dòng khong_phien (chỉ nhiễu CẦN XEM, cần nghe lén HTTPS).
+ - thanh-toan.js:233: sai chữ ký trả 401 không ghi dòng chẩn đoán — đơn thử hỏng vì chữ ký chỉ còn lịch sử Webhook Tingee để đoán. Gợi ý.
+ - index.js:71 express.raw({type:'*/*'}): Tingee gửi KHÔNG kèm Content-Type thì thân không được đọc → 401. Giống SePay. Chưa có căn cứ.
+
+KIỂM TỪNG MỤC VÒNG 1: lỗi 1 ĐÚNG nhưng thiếu ca thử; lỗi 2 ĐÚNG (nguồn lời chủ quán 06.11); lỗi 3 ĐÚNG (giuCho.js:5, :95, thanh-toan.js:140-142);
+type ĐÚNG (C6 "CREDIT" / null, đột biến BẮT); VA rỗng ĐÚNG (D3 rK5 đỏ trên code cũ, đột biến BẮT); số gốc trùng ĐÚNG (D3 rK4, VS-tk-mot-trong-hai
+BẮT); tin thử kết nối ĐÚNG (cai_dat_tingee.md:22-23).
+
+1 K3: bài có giá trị; ca chặn so đúng câu kết luận (401/"09", số dòng sự kiện, trạng thái phiên, số dư ví); chỉ thiếu ca cho phần sửa tài liệu.
+2 K4: tkKhac 2 chỗ (sepay.js:48, tingee.js:47), 1 chưa xử lý (nghi ngờ 1); congCuaKhoa / 'sepay:%' 4 chỗ đã xử lý hết.
+3 K5: không luồng hợp lệ nào bị chặn oan (D3, C6, C5, C4, D1, D8, A4, D7); hai chỗ chưa thử với tin thật: DANG_TS, dạng số VA.
+4 K1: không thấy khẳng định sai trong tingee.js:1-9, congQr.js, thanh-toan.js:226-228, cai_dat_tingee.md. ke_hoach.md:140 "Render log có dòng 401"
+  — log yêu cầu của Render, không nằm trong hướng dẫn chủ quán.
+5 Đường tiền: số tiền từ báo đã ký so p.con_lai; HMAC-SHA512 + timingSafeEqual, khoá rỗng → 401 (C3); phát lại: UNIQUE + kiểm trước "02" + ON CONFLICT
+  (C2, C9); hai báo cùng lúc C9; hai cổng D6, D7, E2; vá res.json chỉ đổi {success:true} → "00", KHO_BAN / 5xx giữ mã khác.
+6 P1: dist đã build, --day-du khớp.
+7 Nghiệm thu 7/7.
+8 Đơn giản: gọn; có quy tắc đối soát (doiSoat.js:240-252). Chỉ lỗi 2.
+
+NGHIỆM THU: 7/7 mục có bằng chứng · mục thiếu: không (A: A1–A3, A2 ×7, X1, X2 · B: A1, A4, A5 ×3, D8 ×2, CongQr.jsx + dist · C: C1–C9 · D: D1–D8 ·
+E: C1 ma_gd, E1 ×2, E2 · F: F1 ×2, F2 · K5: A4, D8, D3 rK3, thu_SEPAY1 + thu_CKNOIDUNG1)
+
+CHƯA SOÁT ĐƯỢC: dạng thật của tin Tingee (độ dài x-request-timestamp, chữ `type`, vaAccountNumber có "VQR" không, có Content-Type không, tin "Kiểm
+tra kết nối" có ký không); SEPAY_* trên Render còn đủ để lùi CONG_QR=sepay dựng QR không (đã xoá thì 503); màn Cài đặt chưa xem trên điện thoại; chỉ
+chạy lại 3/40 đột biến; không chạy node tu_chay/cong.js chay.
+
+BÀI HỌC:
+ - KHOÁ (K3): sửa tài liệu hướng dẫn theo lời soát cũng phải có ca thử + đột biến đưa đúng câu cũ trở lại (ca F3, đột biến trả "về như cũ ngay").
+ - NGUYÊN TẮC (K4): bịt một lỗ ở cổng mới (VA rỗng = số chưa cài) → grep cùng biểu thức ở cổng anh em (sepay.js:48); ngoài phạm vi thì ghi Phát hiện.
+ - NGUYÊN TẮC (K5): phép kiểm dạng trên trường đã nằm trong chữ ký (DANG_TS) — giữ thì phải có đơn thử thật làm lưới, như hướng dẫn F.
+```
+
+### Vòng sửa 2 (commit 84cc3a5)
+- Lỗi 1: ca F3 (`thu_TINGEE1.js`) — không "về như cũ", có "ĐÃ GỠ Webhook ở SePay" đầu file và "Webhook SePay đã gỡ … xác nhận tay" ở dòng "Không thấy";
+  đột biến `VS-huong-dan-ve-nhu-cu` (trả đúng câu cũ) + `BV-huong-dan-buoc-lui-khong-noi-go` → BẮT 2/2. Gốc: 11 đạt · 46 hỏng; HEAD 75/0.
+- Lỗi 2 (CongQr gọi /settings thêm một lần): KHÔNG sửa — lời soát ghi "không bắt buộc"; Settings.jsx gọi /settings ở từng thẻ (loadData theo tab),
+  không có một lần gọi chung ở đầu màn để truyền xuống; thêm state chung là nhiều dòng hơn một lần gọi nhẹ khi mở màn.
+- Nghi ngờ sepay.js:48 → ghi Phát hiện (dưới).
