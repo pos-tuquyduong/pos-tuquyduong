@@ -4,7 +4,7 @@
  * AHAMOVE_DIA_CHI_URL + AHAMOVE_DIA_CHI_KHOA (gợi ý địa chỉ — chủ quán đang xin Ahamove; chưa có thì ô địa chỉ dùng cách 2, giaoHang.js).
  * AHAMOVE_BASE_URL chỉ để bài thử trỏ về Ahamove giả (khuôn PAYOS_BASE_URL).
  * Dạng tin đọc theo tài liệu tóm tắt (viec/GIAO-1/ke_hoach.md mục 2) — đọc RỘNG tay (vài tên trường) vì CHƯA đối chiếu tin Ahamove thật.
- * Lỗi ném { code, tho }: AHAMOVE_CHUA_CAI · AHAMOVE_TU_CHOI (Ahamove trả lời rõ là không) · AHAMOVE_MAT_MANG (không biết Ahamove đã làm chưa).
+ * Lỗi ném { code, status }: AHAMOVE_CHUA_CAI · AHAMOVE_TU_CHOI (Ahamove trả lời rõ là không) · AHAMOVE_MAT_MANG (không biết Ahamove đã làm chưa).
  */
 const GOC = { thu: 'https://partner-apistg.ahamove.com', that: 'https://partner-api.ahamove.com' };
 const HAN_GOI_MS = 10000;

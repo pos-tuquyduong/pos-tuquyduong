@@ -14,7 +14,7 @@ const router = express.Router();
 const webhook = express.Router();
 const tra = (res, kq) => (kq.loi ? res.status(kq.loi.status).json(kq.loi.body) : res.json({ success: true, ...kq }));
 const boc = (lam) => async (req, res) => { try { await lam(req, res); } catch (e) { loiGhi(res, e); } };
-const chiQuanLy = (req, res, next) => (['owner', 'manager'].includes(req.user.role) ? next()
+const chiQuanLy = (req, res, next) => (gh.laQuanLy(req.user) ? next()
   : res.status(403).json({ error: 'Chỉ quản lý hoặc chủ quán', code: 'PERMISSION_DENIED' }));
 
 router.get('/cai-dat', authenticate, boc(async (req, res) => {

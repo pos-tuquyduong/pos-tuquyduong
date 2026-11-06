@@ -21,7 +21,7 @@ const thoat = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;',
 function nutChinh(c, toiGio) {
   if (c.trang_thai === 'moi') return { chu: 'Nhận đơn', viec: 'nhan' };
   if (c.trang_thai === 'dang_pha') return { chu: toiGio ? 'Gọi tài xế ngay' : 'Gọi tài xế', viec: 'goi' };
-  if (c.trang_thai === 'dang_goi') return c.loi ? { chu: 'Gọi lại', viec: 'goi' } : { chu: 'Đang gọi xe…', viec: null };
+  if (c.trang_thai === 'dang_goi') return c.treo ? { chu: 'Gọi lại', viec: 'goi' } : { chu: 'Đang gọi xe…', viec: null };   // treo: máy chủ cho gọi lại
   if (c.trang_thai === 'chuyen_huy') return { chu: 'Gọi lại', viec: 'goi' };
   if (c.trang_thai === 'tim_xe') return c.tim_lau ? { chu: 'Tìm lại', viec: 'goi' } : { chu: 'Đang tìm xe…', viec: null };
   if (c.trang_thai === 'doi_tai_xe') return { chu: c.in_tem_luc ? 'Chờ tài xế lấy' : 'In tem túi', viec: c.in_tem_luc ? null : 'tem' };

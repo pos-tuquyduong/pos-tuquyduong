@@ -58,8 +58,18 @@ DOT_BIEN = [
   ('BV-quyen-huy-chuyen', 'g1', [(GH, "  if (!laQuanLy(user)) return loi(403, 'PERMISSION_DENIED', 'Huỷ chuyến", "  if (false) return loi(403, 'PERMISSION_DENIED', 'Huỷ chuyến", 1)], r'✗ J5 đợi tài xế'),
   ('BV-xoa-don-giao', 'g1', [(OR, '      if (chanGiao) {', '      if (false) {', 1)], r'✗ J8 '),
   ('BV-hoan-don-giao', 'g1', [(RF, '      if (await donGiaoDangChay(tx, order.id)) return DON_GIAO_DANG_CHAY;\n', '', 1)], r'✗ Q5 '),
+  # ── vòng sửa 1 (soát vòng 1): treo, dấu giữ quyền, huỷ khi đang giao, phí huỷ Tìm lại, xoá đơn đã gọi xe, hoàn đóng chuyến, đọc lại ──
+  ('BV-treo-goi-lai', 'g1', [(GH, "(trang_thai = 'dang_goi' AND (loi_mang = 1 OR goi_luc < ?))", "(trang_thai = 'dang_goi' AND (loi_mang = 1 OR goi_luc < ? AND 0))", 1)], r'✗ G8 '),
+  ('BV-co-treo', 'g1', [(GH, "treo: c.trang_thai === 'dang_goi' && (", "treo: false && (", 1)], r'✗ G8 '),
+  ('BV-dau-giu-quyen', 'g1', [(GH, "const giu = \"id = ? AND trang_thai = 'dang_goi' AND goi_luc = ?\";", "const giu = \"id = ? AND trang_thai = 'dang_goi' AND (goi_luc = ? OR 1)\";", 1)], r'✗ G9 '),
+  ('BV-huy-dang-giao', 'g1', [(GH, "    if (c.trang_thai === 'dang_giao') {   // huỷ khi tài xế ĐÃ lấy hàng", "    if (false) {   // huỷ khi tài xế ĐÃ lấy hàng", 1)], r'✗ I5 '),
+  ('BV-phi-huy-tim-lai', 'g1', [(GH, '    if (cu?.phi_huy) await run(', '    if (false) await run(', 1)], r'✗ I4b '),
+  ('BV-xoa-da-goi-xe', 'g1', [(GH, '  if (c?.ma_ahamove) return { loi:', '  if (false) return { loi:', 1)], r'✗ J8b '),
+  ('BV-hoan-dong-chuyen', 'g1', [(RF, '      await dongChuyenKhiHoan(tx, refund.order_id, now);', '', 1)], r'✗ Q5b '),
+  ('BV-doc-lai-du-phong', 'g1', [(GH, '    if (doiLai >= DOC_LAI_TOI_DA) break;', '    break;', 1)], r'✗ H12 '),
   # ── K: Đối soát ──
-  ('VS-bu-du-triet-tieu', 'g1', [(GH, 'quan_bu: tong((x) => Math.max(0, Number(x.chenh || 0)))', 'quan_bu: tong((x) => Number(x.chenh || 0))', 1)], r'✗ K1 tổng'),
+  ('VS-bu-du-triet-tieu', 'g1', [(GH, '? Math.max(0, Number(x.chenh || 0)) : 0)', '? Number(x.chenh || 0) : 0)', 1)], r'✗ K1 '),
+  ('VS-doi-soat-moi-chuyen', 'g1', [(GH, "phi_that: tong((x) => (DA_CHAY.includes(x.trang_thai) ? Number(x.phi_that || 0) : 0)),", "phi_that: tong((x) => Number(x.phi_that || 0)),", 1)], r'✗ K1 '),
 ]
 
 

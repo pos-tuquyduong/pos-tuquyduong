@@ -14,7 +14,7 @@ const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { soTienHoan, traLuotMa } = require('../utils/tienDaTra');
-const { donGiaoDangChay } = require('../utils/giaoHang');   // GIAO-1 (Q5)
+const { donGiaoDangChay, dongChuyenKhiHoan } = require('../utils/giaoHang');   // GIAO-1 (Q5)
 
 const router = express.Router();
 
@@ -162,6 +162,7 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), asy
       if (await donGiaoDangChay(tx, refund.order_id)) return DON_GIAO_DANG_CHAY;
       const doi = await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ? AND status = 'completed'`, [refund.order_id]);
       if (doi.changes !== 1) return loi(400, 'Đơn không còn ở trạng thái hoàn được (đã huỷ / đã hoàn)', 'DON_KHONG_CON_HOAN_DUOC');
+      await dongChuyenKhiHoan(tx, refund.order_id, now);   // GIAO-1: đơn giao chưa gọi xe → đóng chuyến (thẻ rời màn Giao hàng)
       // Q9 = (a) (chủ quán chốt 03.10.2026): trả CẢ phần ví mẹ — cùng giao dịch, SAU cổng đơn, số đọc trong giao dịch.
       // P26c: trừ số đã đền (H4), ví mẹ nhận trước (soTienHoan); yêu cầu ghi lại phần ví con THỰC nhận (I17); giảm total_spent
       // như huỷ đơn (C3); trả lượt mã (H7). Huỷ / xoá đơn đã hoàn không hoàn thêm (A1, A3).
