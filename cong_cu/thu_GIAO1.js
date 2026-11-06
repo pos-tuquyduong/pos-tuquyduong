@@ -455,9 +455,10 @@ async function main() {
     const h6 = await baoVe({ _id: id, status: 'IN PROCESS' });
     const ch2 = await chuyenCua(gx.id);
     k('H6 tài xế lấy hàng → TỰ sang dang_giao + giờ lấy hàng (quầy không bấm)', h6.status === 200 && ch2?.trang_thai === 'dang_giao' && !!ch2?.lay_hang_luc, `${ch2?.trang_thai}`);
-    if (A.chuyen.has(id)) datTrangThai(id, { status: 'ACCEPTED' });
-    await baoVe({ _id: id, status: 'ACCEPTED', sub_status: 'tre' });
-    k('H8 tin trễ lùi trạng thái (ACCEPTED sau IN PROCESS) → bỏ qua', (await chuyenCua(gx.id))?.trang_thai === 'dang_giao');
+    if (A.chuyen.has(id)) datTrangThai(id, { status: 'ASSIGNING' });   // trạng thái chưa từng báo (lớp chống lặp không che) nhưng LÙI
+    const h8 = await baoVe({ _id: id, status: 'ASSIGNING', sub_status: 'tre' });
+    if (A.chuyen.has(id)) datTrangThai(id, { status: 'IN PROCESS' });
+    k('H8 tin trễ lùi trạng thái (ASSIGNING sau IN PROCESS) → bỏ qua, vẫn dang_giao', h8.status === 200 && (await chuyenCua(gx.id))?.trang_thai === 'dang_giao');
     const j6 = await huyDon(gx.id, { reason: 'khách đổi ý', do_da_pha: 'bo_di' });
     const j6b = await goi('POST', `/giao-hang/${gx.id}/huy-chuyen`, { ly_do: 'khách đổi ý' }, tk.manager);
     k('J6 đang giao → huỷ đơn 409 DANG_GIAO_KHONG_HUY; huỷ chuyến 409', j6.status === 409 && j6.j.code === 'DANG_GIAO_KHONG_HUY' && j6b.status === 409, `${j6.status} ${j6.j.code} ${j6b.status}`);
@@ -553,6 +554,15 @@ async function main() {
     const ma = (await chuyenCua(d.id))?.ma_ahamove;
     if (A.chuyen.has(ma)) datTrangThai(ma, { status: 'ACCEPTED', supplier_name: 'TX B', supplier_id: '0977000444' });
     await baoVe({ _id: ma, status: 'ACCEPTED' });
+    // H11: Ahamove đổi tài xế (ACCEPTED → ASSIGNING → ACCEPTED tài xế khác) — tin ACCEPTED lần hai KHÔNG bị coi là tin lặp
+    if (A.chuyen.has(ma)) datTrangThai(ma, { status: 'ASSIGNING', supplier_name: null, supplier_id: null });
+    await baoVe({ _id: ma, status: 'ASSIGNING' });
+    const h11a = await chuyenCua(d.id);
+    if (A.chuyen.has(ma)) datTrangThai(ma, { status: 'ACCEPTED', supplier_name: 'TX C', supplier_id: '0977000555' });
+    await baoVe({ _id: ma, status: 'ACCEPTED' });
+    const h11b = await chuyenCua(d.id);
+    k('H11 đổi tài xế: ACCEPTED → ASSIGNING (về tim_xe) → ACCEPTED tài xế mới (doi_tai_xe, tên + SĐT mới)', h11a?.trang_thai === 'tim_xe' && h11b?.trang_thai === 'doi_tai_xe'
+      && h11b?.tai_xe_ten === 'TX C' && h11b?.tai_xe_sdt === '0977000555', `${h11a?.trang_thai} → ${h11b?.trang_thai} ${h11b?.tai_xe_ten}`);
     const j5a = await huyDon(d.id, { reason: 'khách đổi ý', do_da_pha: 'dung_lai' });
     const j5s = await goi('POST', `/giao-hang/${d.id}/huy-chuyen`, { ly_do: 'khách đổi ý' }, tk.staff);
     const j5l = await goi('POST', `/giao-hang/${d.id}/huy-chuyen`, {}, tk.manager);
