@@ -317,8 +317,6 @@ async function main() {
     const ch = await chuyenCua(d1.id);
     k('D6 đơn giao vào "Đang pha": chuyến dang_pha, giờ nhận, người nhận, ghi chú tài xế', ch?.trang_thai === 'dang_pha' && !!ch.nhan_luc && ch.ten_nhan === 'Chị Nhận'
       && ch.ghi_chu === 'Tầng 3, gọi trước' && ch.phi_khach === 25000, J(ch).slice(0, 200));
-    const p = await db.queryOne("SELECT points FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [d1.id]);
-    k('D3 điểm KHÔNG tính phí ship (60.000 tiền món → 6 điểm, không phải 8)', Number(p?.points) === 6, String(p?.points));
     const lai = await goi('POST', '/orders', { customer_phone: SDT_KHACH, items: [mon(1)], payment_method: 'balance', balance_amount: 55000, giao: { ma_bao_phi: d1.ma, ten: 'A', sdt: '0988000111' } });
     const bp = await db.queryOne('SELECT order_id FROM pos_giao_bao_phi WHERE ma = ?', [d1.ma]).catch(() => null);
     k('D4 dùng lại một báo phí cho đơn thứ hai → 400 BAO_PHI_DA_DUNG; báo phí vẫn gắn đơn đầu', lai.status === 400 && lai.j.code === 'BAO_PHI_DA_DUNG' && Number(bp?.order_id) === d1.id, `${lai.status} ${lai.j.code}`);
@@ -341,6 +339,10 @@ async function main() {
     k('D5 báo phí hết hạn → tính tiền 400 BAO_PHI_HET_HAN', hh.status === 400 && hh.j.code === 'BAO_PHI_HET_HAN', `${hh.status} ${hh.j.code}`);
     k('D9 + D5 phiên tiền mặt mang giao (giuCho), chốt SAU hạn báo phí vẫn tạo đơn giao — tiền khách đã nhận', ph.status === 200 && ph.j.phien?.tong === 55000
       && chot.status === 200 && ch3?.ten_nhan === 'Anh Phiên', `${ph.status} ${ph.j.phien?.tong} ${chot.status} ${chot.tho.slice(0, 100)}`);
+    const p = oid ? await db.queryOne("SELECT points FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [oid]) : null;
+    const o3 = oid ? await db.queryOne('SELECT shipping_fee FROM pos_orders WHERE id = ?', [oid]) : null;
+    k('D3 điểm KHÔNG tính phí ship: đơn giao tiền mặt 55.000 (30.000 món + 25.000 ship) → 3 điểm, không phải 5', o3?.shipping_fee === 25000 && Number(p?.points) === 3,
+      `ship ${o3?.shipping_fee} điểm ${p?.points}`);
     const hd = await goi('GET', `/hoa-don/${d1.id}`);
     k('D7 hoá đơn có giao.dia_chi (dòng "GIAO HÀNG")', hd.j.hoa_don?.giao?.dia_chi === 'Số 1 Ngõ Gần, Hà Nội' && hd.j.hoa_don?.giao?.nguoi_nhan === 'Chị Nhận', J(hd.j.hoa_don?.giao));
     const thuong = await goi('POST', '/orders', { items: [mon(1)], shipping_fee: 7000, payment_method: 'cash', cash_amount: 37000, cash_received: 37000 });
