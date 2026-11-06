@@ -18,6 +18,7 @@ const { getToday, getNow } = require('../utils/helpers');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { KHONG_AN_DUOC } = require('./hoaDon');   // HD-1
 const { kiemCaiDat } = require('../utils/gioHoatDong');
+const { congQr, tenCongQr, TEN_CONG } = require('../utils/congQr');   // TINGEE-1
 const { kiemCaiDat: kiemManKhach } = require('../utils/manKhach');   // MANKHACH-1
 const TIENG_CHUONG = ['ding', 'chuong', 'bip'];   // KH-MUA-1: cùng danh sách client/src/components/DonAppNoi.jsx
 // KHO-IN-1: cài đặt in phiếu kho — in_phieu_<loai>_kho (khổ) / in_phieu_<loai>_ban (số bản). Cùng danh sách client/src/utils/inPhieu.js
@@ -65,9 +66,11 @@ router.get('/', authenticate, async (req, res) => {
       settingsObj[s.key] = s.value;
     });
 
+    // TINGEE-1: cổng QR đang chọn + đã cài đủ biến chưa — CHỈ tên và đúng / sai, không bao giờ trả khoá.
     res.json({
       success: true,
-      data: settingsObj
+      data: settingsObj,
+      cong_qr: { ten: TEN_CONG[tenCongQr()] || tenCongQr(), da_cai: !!congQr()?.daCauHinh() }
     });
   } catch (err) {
     console.error('GET settings error:', err);
