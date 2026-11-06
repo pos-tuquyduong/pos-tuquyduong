@@ -79,7 +79,7 @@ async function main() {
   const { BAT_BIEN } = require(path.join(MAY_CHU, '..', 'cong_cu', 'gia_lap', 'bat_bien.js'));
   const doiSoat = require(path.join(MAY_CHU, 'utils', 'doiSoat.js'));
   const viKhach = thuNap(['utils', 'viKhach.js']) || {};
-  const { tienTinhDiem } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
+  const { tienTinhDiem, diemTruKhiHoan } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
   const { getToday } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   noiLai();
 
@@ -512,6 +512,33 @@ async function main() {
       tienTinhDiem({ balance_amount: 21000, total: 21000 }) === 21000 && tienTinhDiem({ parent_balance_amount: 10000, transfer_amount: 14000, shipping_fee: 3000, total: 24000 }) === 21000
         && tienTinhDiem({ cash_amount: 21001, total: 21000 }) === 21000 && tienTinhDiem({ balance_amount: 5000 }) === 0,
       `${tienTinhDiem({ balance_amount: 21000, total: 21000 })}`);
+    // Soát bảo mật lần 1 (chủ quán 06.11 chọn (a)): DUYỆT HOÀN trả phần tài khoản (con + mẹ) → trừ điểm theo tỷ lệ phần đã hoàn / tiền tính điểm,
+    // làm tròn LÊN, giữ điểm phần tiền mặt / CK. Điểm tích theo luật cũ (dòng earn TRƯỚC bước nâng cấp 014 — ví 0 điểm) → không trừ.
+    const hoan = async (id) => {
+      const y = await goi('POST', '/refunds', { order_id: id, reason: 'thử hoàn điểm' });
+      return y.refund_id ? goi('POST', `/refunds/${y.refund_id}/approve`) : y;
+    };
+    const e7a = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
+    const e7b = await ban({ customer_phone: sE, payment_method: 'cash', balance_amount: 10400, cash_amount: 10600 });
+    const sC7 = sdtMoi();
+    await napTay(sC7, 5000);
+    const e7c = await ban({ customer_phone: sC7, parent_phone: sE, payment_method: 'cash', balance_amount: 5000, parent_balance_amount: 5000, cash_amount: 11000 });
+    const e7d = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
+    const truoc = [];
+    for (const e of [e7a, e7b, e7c, e7d]) truoc.push(e.order ? await diemDon(e.order.id) : NaN);
+    if (e7d.order) await db.run("UPDATE pos_point_transactions SET created_at = '2000-01-01T00:00:00' WHERE order_id = ? AND type = 'earn'", [e7d.order.id]);
+    const hk = [];
+    for (const e of [e7a, e7b, e7c, e7d]) hk.push(e.order ? await hoan(e.order.id) : e);
+    const sau = [];
+    for (const e of [e7a, e7b, e7c, e7d]) sau.push(e.order ? await diemDon(e.order.id) : NaN);
+    const lechI8 = (await lechBB(['I8'])).filter((x) => !e7d.order || !x.includes(e7d.order.code));
+    k('E7 duyệt hoàn trừ điểm phần tài khoản: trọn ví 21 → 0; ví 10.400 + tiền mặt 10.600 (21) → trừ 11 (làm tròn LÊN) → 10; con 5.000 + mẹ 5.000 + tiền mặt 11.000 (21) → 11; điểm luật cũ (earn trước 014) → giữ 21; I8 = 0 lệch',
+      hk.every((r) => r.status === 200) && JSON.stringify(truoc) === '[21,21,21,21]' && JSON.stringify(sau) === '[0,10,11,21]' && lechI8.length === 0,
+      `${hk.map(moTa).join(' · ')} · trước ${JSON.stringify(truoc)} · sau ${JSON.stringify(sau)} · ${lechI8.join(' | ')}`);
+    k('E8 diemTruKhiHoan: tỷ lệ làm tròn LÊN, không quá điểm, 0 khi không có điểm / tiền',
+      typeof diemTruKhiHoan === 'function' && diemTruKhiHoan(21, 10400, 21000) === 11 && diemTruKhiHoan(21, 10000, 21000) === 10
+        && diemTruKhiHoan(21, 24000, 21000) === 21 && diemTruKhiHoan(0, 5000, 21000) === 0 && diemTruKhiHoan(21, 0, 21000) === 0 && diemTruKhiHoan(21, 5000, 0) === 0,
+      typeof diemTruKhiHoan === 'function' ? `${diemTruKhiHoan(21, 10400, 21000)}` : 'không có hàm');
   }
 
   // ═════════════════════════════════════════════════════════════════════════
