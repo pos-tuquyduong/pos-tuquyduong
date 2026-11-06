@@ -890,7 +890,9 @@ async function taoDon(req, res, phien = null) {
     let orderId;
 
     try {
-      orderCode = await taoMaDonTheoSo(tx.queryOne);   // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409
+      // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409. CK-NOIDUNG-1: phiên đã giữ số hoá đơn → đơn mang đúng số đó.
+      const maDon = await taoMaDonTheoSo(tx, phien?.id, now);
+      orderCode = maDon.code;
 
       // P3: chốt phiên — cổng MỘT lần (cho → da_thu, còn hạn) TRƯỚC khi trừ ví: báo lặp / hai báo cùng lúc / tiền mặt + webhook → một đơn.
       if (phien && !(await phien.vaoGiaoDich(tx, now))) {
@@ -959,6 +961,10 @@ async function taoDon(req, res, phien = null) {
         ],
       );
       orderId = Number(result.lastInsertRowid);
+      // CK-NOIDUNG-1: gắn số hoá đơn vào đơn — một số không bao giờ thuộc hai đơn (ném → rollback cả đơn).
+      if ((await tx.run('UPDATE pos_so_hoa_don SET order_id = ? WHERE id = ? AND order_id IS NULL', [orderId, maDon.soId])).changes !== 1) {
+        throw new Error('CK-NOIDUNG-1: số hoá đơn đã gắn đơn khác');
+      }
       for (const id of dongSo) await tx.run("UPDATE pos_balance_transactions SET order_id = ? WHERE id = ?", [orderId, id]);
       if (phien) await phien.sauGhiDon(tx, orderId, orderCode);   // P3: gắn đơn vào phiên (+ nhật ký xác nhận tay) cùng giao dịch
 

@@ -894,6 +894,12 @@ export default function Orders() {
                       <span>{formatPrice(selectedOrder.transfer_amount)}</span>
                     </div>
                   )}
+                  {selectedOrder.ma_gd && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85em', color: '#6b7280' }}>
+                      <span>Mã GD ngân hàng:</span>
+                      <span>{selectedOrder.ma_gd}</span>
+                    </div>
+                  )}
                   
                   {selectedOrder.debt_amount > 0 && (
                     <div style={{ 
