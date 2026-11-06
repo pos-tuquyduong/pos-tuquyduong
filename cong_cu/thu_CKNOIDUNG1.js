@@ -497,25 +497,31 @@ async function main() {
       && await soDu(kp.sdt) === 25000 && sk9.map((x) => x.ket_qua).join() === 'vao_vi,chua_khop' && String(sk9[1]?.ly_do).includes('cùng một khoản báo qua hai cổng'),
     `ví ${await soDu(kp.sdt)} · ${sk9.map((x) => `${x.ket_qua}:${x.ly_do}`).join(' | ').slice(0, 220)}`);
     const w9c = await guiSepay(bao(p9));
-    k('G9c khoản THỨ HAI thật (SePay báo thêm một giao dịch khác) → cộng thêm đúng một lần', daNhan(w9c) && await soDu(kp.sdt) === 50000
-      && await ketQua(p9.id) === 'vao_vi,chua_khop,vao_vi', `ví ${await soDu(kp.sdt)} · ${await ketQua(p9.id)}`);
+    k('G9c (Q6 B) phiên đã có báo từ cổng kia → báo SePay thêm (giao dịch khác) KHÔNG tự cộng, ghi CẦN XEM "hai cổng" để chủ quán cộng tay',
+      daNhan(w9c) && await soDu(kp.sdt) === 25000 && await ketQua(p9.id) === 'vao_vi,chua_khop,chua_khop'
+      && (await suKien(p9.id)).filter((x) => String(x.ly_do).includes('KHÔNG tự cộng')).length === 2, `ví ${await soDu(kp.sdt)} · ${await ketQua(p9.id)}`);
     const ds9 = await chayDoiSoat({ kieu: 'ngay' });
     k('G9b Đối soát: dòng "hai cổng" của phiên App ở CẦN XEM, không ĐỎ', ds9.can_xem.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${p9.id}:`)
       && l.mo_ta.includes('hai cổng')) && !ds9.do.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${p9.id}:`)),
     ds9.do.filter((l) => l.mo_ta.includes(`mã ${p9.id}:`)).map((l) => l.mo_ta).join(' | ').slice(0, 200));
-    // Soát vòng 2: MỌI thứ tự (2 khoản × 2 cổng, báo lệch tiền trước, hai cổng cùng lúc, một cổng hai khoản) — tổng cộng ví = số khoản thật.
-    // P = payOS, S = SePay (đọc mẫu cũ TQD<mã phiên> của phiên payOS); số sau chữ = số tiền; 'huy' khách huỷ; 'het' phiên quá hạn; 'PS' hai cổng cùng lúc.
+    // Q6 B (chủ quán 06.11): phiên App đã có báo tiền vào từ CỔNG KIA → KHÔNG tự cộng ví, ghi CẦN XEM "hai cổng" (chủ quán đối chiếu sao kê, cộng
+    // tay). Ví KHÔNG BAO GIỜ vượt tiền thật; mỗi báo không cộng có đúng một dòng "KHÔNG tự cộng". Cột 3 = ví mong, cột 4 = số dòng "KHÔNG tự cộng".
+    // P = payOS, S = SePay (đọc mẫu cũ TQD<mã phiên> của phiên payOS); số sau chữ = số tiền (không ghi = 25.000 = con_lai); 'huy' khách huỷ;
+    // 'het' phiên quá hạn; 'PS' hai cổng cùng lúc. Y1–Y3: đúng ba thứ tự soát vòng 3 (lỗi 1) — T1 = 20.000, T2 = 25.000, tiền thật 45.000.
     const kichBan = [
-      ['X1 huỷ; P T1 · S T1 · S T2 · P T2 (2 khoản) → cộng 2 khoản', ['huy', 'P', 'S', 'S', 'P'], 50000],
-      ['X1b huỷ; S T1 · P T1 · P T2 · S T2 (2 khoản) → cộng 2 khoản', ['huy', 'S', 'P', 'P', 'S'], 50000],
-      ['X2 còn hạn: T1 lệch (20.000) qua S rồi P; huỷ; T2 đúng qua S rồi P → cộng ĐÚNG 1 khoản (T2)', ['S20000', 'P20000', 'huy', 'S', 'P'], 25000],
-      ['X2b còn hạn: T1 lệch qua S (ĐỎ, chờ hoàn tay); hết hạn; cùng T1 qua P → KHÔNG cộng (bản sao)', ['S20000', 'het', 'P20000'], 0],
-      ['X3 huỷ; cùng một khoản qua hai cổng CÙNG LÚC → cộng 1 lần', ['huy', 'PS'], 25000],
-      ['X4 huỷ; chỉ SePay báo 2 khoản thật khác nhau → cộng 2 khoản (một cổng không bị chặn oan)', ['huy', 'S', 'S'], 50000],
-      ['X6 huỷ; SePay báo tiền vào TÀI KHOẢN KHÁC (không phải tiền quán) · payOS báo khoản thật → cộng 1 khoản (không bị coi là bản sao)', ['huy', 'Sk', 'P'], 25000],
+      ['X1 huỷ; P T1 · S T1 · S T2 · P T2 (2 khoản) → cộng khoản đầu, 3 báo sau CẦN XEM', ['huy', 'P', 'S', 'S', 'P'], 25000, 3],
+      ['X1b huỷ; S T1 · P T1 · P T2 · S T2 (2 khoản) → cộng khoản đầu, 3 báo sau CẦN XEM', ['huy', 'S', 'P', 'P', 'S'], 25000, 3],
+      ['X2 còn hạn: T1 lệch (20.000) qua S rồi P; huỷ; T2 đúng qua S rồi P → KHÔNG tự cộng (cổng kia đã báo), 2 CẦN XEM', ['S20000', 'P20000', 'huy', 'S', 'P'], 0, 2],
+      ['X2b còn hạn: T1 lệch qua S (ĐỎ, chờ hoàn tay); hết hạn; cùng T1 qua P → KHÔNG cộng, CẦN XEM', ['S20000', 'het', 'P20000'], 0, 1],
+      ['X3 huỷ; cùng một khoản qua hai cổng CÙNG LÚC → cộng 1 lần, báo kia CẦN XEM', ['huy', 'PS'], 25000, 1],
+      ['X4 huỷ; chỉ SePay báo 2 khoản thật khác nhau → cộng 2 khoản (một cổng không bị chặn oan)', ['huy', 'S', 'S'], 50000, 0],
+      ['X6 huỷ; SePay báo tiền vào TÀI KHOẢN KHÁC (không phải tiền quán) · payOS báo khoản thật → cộng 1 khoản (không tính là cổng kia)', ['huy', 'Sk', 'P'], 25000, 0],
+      ['Y1 huỷ; S T2 · P T1 · P T2 · S T1 → cộng 25.000 (không thừa), 3 CẦN XEM', ['huy', 'S', 'P20000', 'P', 'S20000'], 25000, 3],
+      ['Y2 huỷ; S T1 · P T2 · P T1 · S T2 → cộng 20.000, 3 CẦN XEM (25.000 cộng tay)', ['huy', 'S20000', 'P', 'P20000', 'S'], 20000, 3],
+      ['Y3 huỷ; P T1 · S T2 · S T1 · P T2 → cộng 20.000, 3 CẦN XEM (25.000 cộng tay)', ['huy', 'P20000', 'S', 'S20000', 'P'], 20000, 3],
     ];
     const phienX = {};
-    for (const [ten, buoc, mong] of kichBan) {
+    for (const [ten, buoc, mong, canXem] of kichBan) {
       datCong('payos');
       const kx = await khach(0);
       const rx = await datApp(kx);
@@ -531,12 +537,18 @@ async function main() {
         else if (b[0] === 'P') await guiPayos(px, { amount: tienB });
         else await guiSepay(bao(px, { transferAmount: tienB }));
       }
-      k(ten, await soDu(kx.sdt) === mong, `ví ${await soDu(kx.sdt)} (mong ${mong}) · ${(await suKien(px.id)).map((x) => x.ket_qua).join(',')}`);
+      const skx = await suKien(px.id);
+      k(ten, await soDu(kx.sdt) === mong && skx.filter((x) => String(x.ly_do).includes('KHÔNG tự cộng')).length === canXem,
+        `ví ${await soDu(kx.sdt)} (mong ${mong}) · ${skx.map((x) => x.ket_qua).join(',')}`);
     }
     const dsX = await chayDoiSoat({ kieu: 'ngay' });
     const doVuot = (id) => dsX.do.some((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`phiên #${id}`) && /vượt số khoản/.test(l.mo_ta));
     k('X5 Đối soát: các kịch bản đúng ở trên KHÔNG có dòng ĐỎ "vượt số khoản"', !Object.values(phienX).some(doVuot));
-    // Dựng lại đúng dấu vết lỗi vòng 2 (X1 trên bản lỗi: vao_vi,chua_khop,vao_vi,vao_vi): đổi dòng "hai cổng" của X1 thành vao_vi.
+    const dongY = (ds, id) => ds.filter((l) => l.bat_bien === 'CK' && l.mo_ta.includes(`mã ${id}:`));
+    k('Y1–Y3 Đối soát: báo không tự cộng ở CẦN XEM (3 dòng "KHÔNG tự cộng" mỗi phiên), không dòng ĐỎ nào',
+      ['Y1', 'Y2', 'Y3'].every((y) => dongY(dsX.can_xem, phienX[y]).filter((l) => l.mo_ta.includes('KHÔNG tự cộng')).length === 3
+        && dongY(dsX.do, phienX[y]).length === 0), ['Y1', 'Y2', 'Y3'].map((y) => dongY(dsX.do, phienX[y]).map((l) => l.mo_ta).join(' | ')).join(' ‖ ').slice(0, 240));
+    // Dựng lại dấu vết cộng ví thừa (lỗi vòng 2 / vòng 3): đổi các dòng "hai cổng" của X1 thành vao_vi.
     await db.run("UPDATE pos_payos_su_kien SET ket_qua = 'vao_vi' WHERE ma_payos = ? AND ket_qua = 'chua_khop'", [phienX.X1]);
     const dsY = await chayDoiSoat({ kieu: 'ngay' });
     k('X5 Đối soát: phiên ghi tiền (đơn + cộng ví) NHIỀU hơn số khoản thật mỗi cổng báo → ĐỎ "vượt số khoản" (lưới chặn cộng ví hai lần)',
