@@ -76,3 +76,15 @@ SỐ CA cong_cu/thu_KHMUA1.js: 122
 ĐỐI CHỨNG (bản chưa đột biến): XANH · 66 đạt · 0 hỏng
 TỔNG 68 đột biến · BẮT 68 · SỐNG 0 · HỎNG 0 · LẠC 0   (bf8ddd1)
 Vòng sửa 1: ĐỐI CHỨNG XANH · 69 đạt · 0 hỏng — TỔNG 71 đột biến · BẮT 71 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+════════ Vòng sửa 2 (soát độc lập vòng 2 — chỉ lỗi nhẹ) ════════
+cong_cu/thu_NAP1.js (D3 so cả code NAP_KHONG_HOAN; C0b thêm ca ngay dưới ngưỡng 41.999):
+  trên GỐC ae19926: 7 đạt · 62 hỏng
+  trên bản TRƯỚC vòng sửa 2 (8df9626): 68 đạt · 1 hỏng
+    ✗ D3 yêu cầu hoàn đơn nạp → 400 NAP_KHONG_HOAN; D4 đền bù đơn nạp → 400; đơn còn completed, ví không đổi  — HTTP 400 · Đơn hàng không thanh toán bằng số dư
+  sau vá (ad0a48e): 69 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 69
+cong_cu/thu_P20.js (ca ví trọn so điểm sau /nhan-diem > điểm lúc bán): trên GỐC 171 đạt · 1 hỏng (✗ trả trọn bằng ví … — HTTP 400 · DON_KHONG_DU_DIEM);
+  sau vá: 172 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P20.js: 172
+Đột biến (ad0a48e): ĐỐI CHỨNG XANH · 69 đạt · 0 hỏng — TỔNG 73 đột biến · BẮT 73 · SỐNG 0 · HỎNG 0 · LẠC 0
