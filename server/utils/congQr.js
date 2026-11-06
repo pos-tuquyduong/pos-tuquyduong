@@ -10,9 +10,12 @@ const MAC_DINH = 'payos';
 const LY_DO_HAI_CONG = 'cùng một khoản báo qua hai cổng';
 // Tiền SePay về TÀI KHOẢN KHÁC với SEPAY_SO_TK (sổ QUYET_DINH 01.11 Q5): không chốt đơn, ghi chua_khop có cụm này + số nhận; Đối soát xếp CẦN XEM.
 const LY_DO_TK_KHAC = 'tiền vào tài khoản khác';
+// CK-NOIDUNG-1 (Q1b + chủ quán 05.11 lượt 2): tiền về cho phiên App đã huỷ / hết hạn / lỗi vì đơn → ket_qua 'vao_vi' + cụm này + SĐT; tiền đã
+// cộng vào ví khách; Đối soát xếp CẦN XEM.
+const LY_DO_VAO_VI = 'đã cộng vào tài khoản';
 // Cổng của một dòng pos_payos_su_kien suy từ khoá: SePay 'sepay:<id giao dịch>' (sepay.js docBao), payOS '<orderCode>:<reference>'.
 const congCuaKhoa = (khoa) => (String(khoa).startsWith('sepay:') ? 'sepay' : 'payos');
 
 const congQr = () => { const ten = (process.env.CONG_QR || MAC_DINH).trim().toLowerCase(); return Object.hasOwn(CONG, ten) ? CONG[ten] : null; };
 
-module.exports = { congQr, LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa };
+module.exports = { congQr, LY_DO_HAI_CONG, LY_DO_TK_KHAC, LY_DO_VAO_VI, congCuaKhoa };

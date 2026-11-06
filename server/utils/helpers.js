@@ -13,34 +13,41 @@ function generateOrderCode() {
 }
 
 /**
- * POS-MADON-v1 — Tạo mã đơn theo SỐ THỨ TỰ trong ngày: ORD-YYYYMMDD-001
- *
- * Thay cho `generateOrderCode()` bốc ngẫu nhiên 3 số: chỉ 1.000 khả năng mỗi
- * ngày, bán 40 đơn là hơn nửa số ngày có trùng. Cột `code` có UNIQUE nên
- * trùng = đơn BỊ TỪ CHỐI lúc ghi, giữa lúc khách đang đứng chờ.
- *
- * Nhận `queryOne` từ nơi gọi để không tạo phụ thuộc vòng giữa helpers và
- * database (helpers hiện không nạp database, giữ nguyên như vậy).
- *
- * P26d (10): PHẢI gọi với `tx.queryOne` của giao dịch ghi tạo đơn (BEGIN IMMEDIATE = khoá ghi độc quyền) — hai đơn không đọc
- * chung một số, `số lớn nhất + 1` luôn trống. Không nuốt lỗi: trong giao dịch, lỗi đọc (kể cả kho bận ở câu đầu) phải
- * rơi về route để rollback + 409 / 500, không được đi tiếp trên giao dịch đã hỏng. UNIQUE `pos_orders.code` vẫn là chốt cuối.
+ * CK-NOIDUNG-1 — SỔ SỐ HOÁ ĐƠN theo ngày giờ VN, dãy CHUNG quầy (HD) + App (APP), 4 số, đếm lại từ 0001 mỗi ngày.
+ * Cấp số = MỘT câu INSERT … SELECT MAX + 1 trong giao dịch ghi (BEGIN IMMEDIATE — hai giao dịch không đọc chung một MAX); UNIQUE (ngay, so)
+ * là chốt cuối. Số > SO_HD_TOI_DA → ném (không cắt, không quay vòng) — cả giao dịch rollback. Giao dịch rollback thì số cũng rollback:
+ * phiên / đơn hỏng trong giao dịch không để lại chỗ trống.
+ * Nhận `tx` (đối tượng giao dịch: run + queryOne) từ nơi gọi — helpers không nạp database (tránh phụ thuộc vòng).
  */
-async function taoMaDonTheoSo(queryOne) {
-  const ngay = new Date()
-    .toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })
-    .replace(/-/g, "");
-  const dau = `ORD-${ngay}-`;
+const SO_HD_TOI_DA = 9999;
+const THANG_CK = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const chuoiSoHd = (s) => s.kenh + String(s.so).padStart(4, '0');   // { kenh, so } → 'HD0016' / 'APP0016' — đúng chuỗi in to trên bill
 
-  // Số lớn nhất đã dùng hôm nay. Đơn CŨ mang mã ngẫu nhiên cũng cùng dạng
-  // nên vẫn đếm được — mã mới luôn lớn hơn mọi mã cũ trong ngày.
-  const cuoi = await queryOne(
-    `SELECT code FROM pos_orders WHERE code LIKE ? ORDER BY LENGTH(code) DESC, code DESC LIMIT 1`,
-    [`${dau}%`],
-  );
-  const so = cuoi ? parseInt(String(cuoi.code).slice(dau.length), 10) : 0;
-  return dau + String((Number.isFinite(so) ? so : 0) + 1).padStart(3, "0");
+async function capSoHoaDon(tx, { kenh, phienId = null, now }) {
+  const ngay = now.slice(0, 10);
+  const ins = await tx.run(`INSERT INTO pos_so_hoa_don (ngay, so, kenh, phien_id, luc)
+    SELECT ?, COALESCE(MAX(so), 0) + 1, ?, ?, ? FROM pos_so_hoa_don WHERE ngay = ?`, [ngay, kenh, phienId, now, ngay]);
+  const s = await tx.queryOne('SELECT * FROM pos_so_hoa_don WHERE id = ?', [Number(ins.lastInsertRowid)]);
+  if (!s || s.so > SO_HD_TOI_DA) throw new Error(`Số hoá đơn ngày ${ngay} vượt ${SO_HD_TOI_DA} — báo chủ quán`);
+  return s;
 }
+
+/** Nội dung chuyển khoản của một số: TQD<MMM><DD> <kênh><4 số> (vd "TQDNOV05 HD0016"), MMM / DD theo NGÀY CỦA SỐ (giờ VN). */
+const noiDungCk = (s) => `TQD${THANG_CK[Number(s.ngay.slice(5, 7)) - 1]}${s.ngay.slice(8, 10)} ${chuoiSoHd(s)}`;
+
+/**
+ * Mã đơn ORD-<YYYYMMDD của số>-<kênh><4 số> (vd ORD-20261105-HD0016). Phiên đã giữ số → dùng ĐÚNG số đó (kể cả xác nhận tay sau khi QR
+ * hết hạn); không có → cấp số HD mới. PHẢI gọi đầu giao dịch ghi tạo đơn (P26d (10)): kho bận ở đây rơi về route để rollback + 409.
+ * Mọi chỗ in số bill đọc phần sau dấu '-' cuối → "HD0016". Đơn cũ giữ mã cũ (ORD-YYYYMMDD-NNN), không đánh số lại.
+ */
+async function taoMaDonTheoSo(tx, phienId, now) {
+  const s = (phienId && await tx.queryOne('SELECT * FROM pos_so_hoa_don WHERE phien_id = ?', [phienId]))
+    || await capSoHoaDon(tx, { kenh: 'HD', now });
+  return { code: `ORD-${s.ngay.replace(/-/g, '')}-${chuoiSoHd(s)}`, soId: s.id };
+}
+
+/** Số hoá đơn đọc từ mã đơn: ORD-…-HD0016 → "HD0016"; mã cũ ORD-…-012 → "012" (cùng phép với số bill in to). */
+const soHdCuaMa = (code) => String(code || '').split('-').pop();
 
 /**
  * P15-QR — mã QR thành viên: QR_TIEN_TO + 12 ký tự ngẫu nhiên (≈ 60 bit), KHÔNG suy ra từ SĐT.
@@ -54,7 +61,7 @@ function generateQRCode() {
   return QR_TIEN_TO + Array.from(crypto.randomBytes(12), (b) => QR_BANG_KY_TU[b % 32]).join('');
 }
 
-/** Sinh mã chưa có trong pos_customers.qr_code; trùng thì sinh lại, quá QR_THU_TOI_DA lần thì ném. Nhận queryOne như taoMaDonTheoSo. */
+/** Sinh mã chưa có trong pos_customers.qr_code; trùng thì sinh lại, quá QR_THU_TOI_DA lần thì ném. Nhận queryOne từ nơi gọi (helpers không nạp database). */
 async function sinhQrKhongTrung(queryOne) {
   for (let lan = 0; lan < QR_THU_TOI_DA; lan++) {
     const ma = generateQRCode();
@@ -229,7 +236,11 @@ function addMonthsSafe(date, months) {
 
 module.exports = {
   generateOrderCode,
-  taoMaDonTheoSo, // POS-MADON-v1
+  taoMaDonTheoSo, // POS-MADON-v1 → CK-NOIDUNG-1
+  capSoHoaDon,
+  noiDungCk,
+  chuoiSoHd,
+  soHdCuaMa,
   generateQRCode,
   sinhQrKhongTrung, // P15-QR
   QR_TIEN_TO,

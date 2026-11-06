@@ -48,6 +48,7 @@ export function keuChuong(tieng, amLuong = AM_LUONG_MAC_DINH) {
 export default function DonAppNoi() {
   const navigate = useNavigate();
   const [soMoi, setSoMoi] = useState(0);
+  const [soViVe, setSoViVe] = useState(0);   // CK-NOIDUNG-1: tiền về hôm nay được cộng vào ví khách thay vì tạo đơn
 
   useEffect(() => {
     let tat = false;
@@ -56,12 +57,13 @@ export default function DonAppNoi() {
         const ds = (await api.get('/kh/don-app')).data || [];
         if (tat) return;
         setSoMoi(ds.filter((d) => d.tien_trinh === 'da_tra').length);
+        setSoViVe(ds.filter((d) => d.tien_trinh === 'vao_vi').length);
         let daThay = null;
         const tho = docMay(KHOA_DA_THAY);   // null = máy chưa có tập (lần đầu) → chỉ ghi, không kêu
         try { daThay = tho === null ? null : new Set(JSON.parse(tho)); } catch { daThay = null; }
         const moi = ds.filter((d) => daThay && !daThay.has(d.id));
         ghiMay(KHOA_DA_THAY, JSON.stringify(ds.map((d) => d.id)));   // danh sách ≤ 100 đơn: chỉ cần nhớ đúng các id đang có
-        if (!daThay || !mayOQuan() || !moi.some((d) => d.tien_trinh === 'da_tra')) return;
+        if (!daThay || !mayOQuan() || !moi.some((d) => d.tien_trinh === 'da_tra' || d.tien_trinh === 'vao_vi')) return;
         const s = (await api.get('/settings')).data || {};
         if (s.don_app_chuong_bat !== '0') keuChuong(s.don_app_chuong_tieng, s.don_app_chuong_am_luong ?? AM_LUONG_MAC_DINH);
       } catch { /* im lặng: đài báo hỏng không được làm hỏng màn hình */ }
@@ -78,10 +80,10 @@ export default function DonAppNoi() {
       style={{
         position: 'fixed', top: 10, right: 12, zIndex: 900, border: 'none', borderRadius: 999, padding: '6px 12px',
         fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-        background: soMoi ? '#dc2626' : '#e5e7eb', color: soMoi ? '#fff' : '#374151',
+        background: soMoi ? '#dc2626' : soViVe ? '#f59e0b' : '#e5e7eb', color: soMoi || soViVe ? '#fff' : '#374151',
       }}
     >
-      🔔 Đơn App{soMoi ? ` · ${soMoi} mới` : ''}
+      🔔 Đơn App{soMoi ? ` · ${soMoi} mới` : ''}{soViVe ? ` · ${soViVe} vào ví` : ''}
     </button>
   );
 }

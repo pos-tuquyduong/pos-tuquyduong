@@ -54,12 +54,20 @@ export default function DonApp() {
         {loi && <div style={{ padding: 8, marginBottom: 8, background: '#fee2e2', borderRadius: 6 }}>{loi}</div>}
         {!ds.length && <p style={{ color: '#6b7280' }}>Chưa có đơn App nào hôm nay.</p>}
         {ds.map((d) => {
+          // CK-NOIDUNG-1: tiền về được cộng vào tài khoản khách thay vì tạo đơn (đơn App lỗi / huỷ / hết hạn) — báo cho quầy, không có nút.
+          if (d.tien_trinh === 'vao_vi') return (
+            <div key={d.id} style={{ border: '1px solid #f59e0b', background: '#fef3c7', borderRadius: 6, padding: '8px 10px', margin: '8px 0' }}>
+              <strong>💰 {d.so_hd || d.ma}</strong> · {d.ten_khach} · {tien(d.so_tien)} vào ví khách
+              <span style={{ color: '#9ca3af', fontSize: 12 }}> · {(d.gio || '').slice(11, 16)}</span>
+              <div style={{ fontSize: 13, marginTop: 2 }}>{d.ly_do}</div>
+            </div>
+          );
           const [nhan, mau] = NHAN[d.tien_trinh] || [d.tien_trinh, '#6b7280'];
           return (
             <div key={d.id} style={{ borderTop: '1px solid #eee', padding: '10px 0' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' }}>
-                <strong>{d.ma}</strong>
-                <span style={{ color: '#6b7280', fontSize: 13 }}>{(d.gio || '').slice(11, 16)} · bill {d.ma_bill}</span>
+                <strong style={{ fontSize: 22 }}>{d.so_hd || d.ma_bill}</strong>
+                <span style={{ color: '#9ca3af', fontSize: 12 }}>{(d.gio || '').slice(11, 16)} · mã App {d.ma}</span>
                 <span style={{ color: mau, fontWeight: 700, fontSize: 13 }}>{nhan}</span>
               </div>
               <div style={{ fontSize: 14, margin: '4px 0' }}>{d.ten_khach} · đã trả {tien(d.da_tra)} ({cachTra(d)})</div>
