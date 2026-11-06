@@ -586,9 +586,9 @@ async function main() {
     const i4 = await goi('POST', '/pos/orders', { customer_phone: a, items: [], package_buy: { package_id: goiP.id }, payment_method: 'cash', cash_amount: 200000 });
     const cp = await db.queryOne('SELECT id FROM pos_customer_packages WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [a]);
     const i3 = await goi('POST', '/pos/orders', { customer_phone: a, items: [{ ...mon(1), from_package: true }], customer_package_id: cp?.id, payment_method: 'cash', cash_amount: 0 });
-    await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, is_active) VALUES ('Vàng', 300000, 5, 1)");
+    await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, is_active, sort_order, goi) VALUES ('Vàng', 300000, 5, 1, 99, json_array(json_object('so_thang', 3, 'gia', 300000, 'bat', json('true'))))");
     const hang = await db.queryOne("SELECT id FROM pos_membership_tiers WHERE name = 'Vàng' ORDER BY id DESC LIMIT 1");
-    const i5 = await goi('POST', '/pos/orders', { customer_phone: await khach(0, null), items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cash', cash_amount: 300000 });
+    const i5 = await goi('POST', '/pos/orders', { customer_phone: await khach(0, null), items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: 300000 });
     const no = await goi('POST', '/pos/orders', { customer_phone: a, customer_name: 'K', items: [mon(1)], payment_method: 'debt', debt_amount: 25000, due_date: '2026-12-31' });
     const i6 = await goi('POST', `/pos/orders/${no.j.order?.id}/pay-debt`, { payment_method: 'cash', amount: 25000 });
     k('I1–I6 tiền mặt · số dư đủ (2 kiểu) · mua gói · giao từ gói 0đ · mua thẻ · thu nợ CŨ ở pay-debt → 200',

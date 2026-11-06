@@ -1,0 +1,117 @@
+HANG-1 — bằng chứng bài thử ĐỎ trên code gốc, XANH sau vá (03.11.2026)
+
+Code gốc = 2a12443 (commit PHIEU: HANG-1 cuối, đã có main mới c4513ac). Dựng như cổng A11: `git archive 2a12443` CẢ CÂY ra nháp/goc,
+node_modules (. và client) nối symlink, chép bài thử bản ĐÃ COMMIT ở HEAD vào cây gốc, chạy `cd <nháp>/goc && node cong_cu/<bài>`
+(công cụ nháp: dung_goc.py + bang_chung.py — không để trong kho). "Trên code đã vá" = chạy cùng bài trong kho ở HEAD.
+
+Các bài CŨ (DOISOAT1, HD1, KHAPI2, P2223, P24, P26c, P3, UUDAI1, HOPDONG_KH) là bài SỬA thường (LUAT §6.8 — hành vi mua thẻ ĐÃ được chủ
+quán duyệt đổi, Q2 03.11): bản GỐC của chúng đỏ trên code mới (mua thẻ thiếu gói → 400 THE_MUA_THIEU_THONG_TIN / C1 6 trường — xem
+trang_thai.md), bản MỚI đỏ trên gốc vì phần dựng dữ liệu cần cột `goi` của bước 013 (gốc chưa có gói → bài dừng ở dựng dữ liệu). Bằng chứng
+theo từng ca của luật mới nằm ở thu_HANG1.js.
+
+═══ cong_cu/thu_HANG1.js ═══  (chạy lại 05.11 sau ca S — câu 4: khôi phục file / PIN cũ / băm PIN; cây gốc dựng lại ở nháp goc từ `git archive 2a12443`,
+bài bản ĐÃ COMMIT 39a6cc2)
+Trên gốc 2a12443 (bản 39a6cc2): thoát 1 · 7 đạt · 79 hỏng → ĐỎ (thêm ✗ S (bài sập giữa chừng) — no such table: pos_pin_chu_quan, ✗ G1g)
+Lần trước (04.11, bản sau A9): thoát 1 · 7 đạt · 77 hỏng → ĐỎ
+  ✗ N1 Vàng → cach_co ban, đúng 2 gói 1 tháng + 3 tháng, giá trống, đang bán  — {"id":1,"name":"Vàng","card_price":500000,"discount_percent":5,"special_discount_percent":0,"sort_order":1,"is_active":1,"created_at
+  ✗ N5 Bạch Kim (seed) → cach_co ban, gói rỗng  — {"id":2,"name":"Bạch Kim","card_price":2000000,"discount_percent":8,"special_discount_percent":0,"sort_order":2,"is_active":1,"created_at":"2026-11-03T10:00:00","updat
+  ✗ N5b mua Bạch Kim (chưa gói nào) → 400 GOI_HANG_KHONG_BAN, không dòng thẻ  — HTTP 200
+  ✗ N1b mua Vàng 1 tháng khi gói chưa có giá → 400 GOI_HANG_KHONG_BAN (không bán theo giá thẻ cũ 500.000)  — HTTP 200
+  ✗ N4 có bảng sao lưu _sao_luu_013_pos_membership_tiers
+  ✗ N6 quyền cap_hang: manager 0, owner 1, staff 0  — []
+  ✗ N7 /kh/hang lúc chưa gói nào có giá: Vàng gia_the null, goi []  — {"id":1,"ten":"Vàng","phan_tram":5,"phan_tram_nhom_dac_biet":0,"gia_the":500000,"thu_tu":1}
+  ✗ N2 (bài sập giữa chừng)  — Cannot find module '…/scratchpad/goc2/server/nang_cap/013_hang.js'
+  ✗ A9 chưa đặt PIN chủ quán → PUT /tiers 400 CHUA_CO_PIN_CHU_QUAN, không ghi  — HTTP 400 · Giá thẻ không hợp lệ
+  ✗ A (dựng) chủ quán đặt PIN chủ quán  — HTTP 404
+  ✗ A1 PUT thêm hạng không id → 200, GET thấy Kim Cương (thứ bậc 3, chi_cap)  — HTTP 400 · Giá thẻ không hợp lệ
+  ✗ A6 hạng chi_cap gửi kèm gói → lưu gói rỗng
+  ✗ A1b Vàng lưu đủ 4 gói (giá trống / tắt giữ nguyên)
+  ✗ A2 sửa gói (bỏ 6 + 12 tháng, thêm 2 tháng) → đúng danh sách, xếp theo tháng  — HTTP 400 · Giá thẻ không hợp lệ
+  … (+63 dòng ✗ nữa)
+Trên code TRƯỚC vá PIN (c8dddfb = bài mới trên code 80a087e): 114 đạt · 12 hỏng → ĐỎ ở đúng ca mới
+  ✗ A9 chưa đặt PIN chủ quán → PUT /tiers 400 CHUA_CO_PIN_CHU_QUAN, không ghi  — HTTP 200
+  ✗ A9b tài khoản chủ quán KHÔNG gửi PIN sửa % → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9c PIN sai → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9d quản lý KHÔNG PIN thêm hạng bán mới (thứ bậc cao nhất, 60 tháng 1đ) → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9e quản lý KHÔNG PIN hoán thứ bậc Vàng ↔ Bạch Kim → 400 PIN_CHU_QUAN_SAI  — HTTP 200
+  ✗ A9f các lần thiếu / sai PIN không ghi gì (không hạng Rẻ, % và thứ bậc như cũ)
+  ✗ A9g sai PIN 5 lần ở Cài đặt hạng → PIN đúng 423 PIN_CHU_QUAN_KHOA (cả cấp hạng); 16 phút sau 200  — HTTP 200 · cấp HTTP 200 · HTTP 200
+  ✗ K5 PUT lại nguyên GET → 200, không đổi  — HTTP 200
+  ✗ A9i xoá hạng KHÔNG PIN (chủ quán / quản lý, cả hạng không khách) → 400 PIN_CHU_QUAN_SAI, hạng vẫn bật  — HTTP 409 · HANG_CON_KHACH
+  ✗ A9j (K5) quản lý gõ đúng PIN xoá hạng không khách → 200, ẩn  — HTTP 400 · ID không hợp lệ
+  ✗ A5 (bài sập giữa chừng)  — SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_membership_purchases.tier_id
+  ✗ G1f thẻ Hạng: ô PIN chủ quán gửi kèm khi Lưu và Xoá (hangApi.luu({ … pin }), hangApi.xoa(id, pin))
+Trên code TRƯỚC vá câu 4 (60d70a4 + bài 39a6cc2, 05.11): 135 đạt · 9 hỏng → ĐỎ ở đúng ca mới
+  ✗ S2 xuất tất cả: trang PIN chủ quán vẫn có (1 dòng, dat_boi) nhưng KHÔNG cột pin_bam, băm PIN không nằm ở đâu trong file  — HTTP 200 · trang PIN chủ quán (băm) · [{"id":1,"pin_bam":"$2b$10$…",…}]
+  ✗ S2b xuất riêng bảng PIN chủ quán: KHÔNG cột pin_bam, không băm PIN  — HTTP 200 · [[{"id":1,"pin_bam":"$2b$10$…",…}]
+  ✗ S1 khôi phục file có trang Hạng thành viên (Kim Cương → bán 60 tháng 1.000đ, giảm 100%) → xem trước + khôi phục 400 KHOI_PHUC_TRANG_TIEN_BI_CHAN, hạng không đổi  — xem HTTP 200 · khôi phục HTTP 200
+  ✗ S1b (K5) khôi phục file KHÔNG có trang Hạng (chỉ trang Cài đặt) → 200, hạng không đổi  — HTTP 200   (đỏ kéo theo: S1 trên gốc đã ghi đè hạng)
+  ✗ S3 đã có PIN, đúng mật khẩu mà KHÔNG gửi PIN cũ → 400 PIN_CHU_QUAN_SAI, PIN cũ giữ nguyên  — HTTP 200
+  ✗ S3b PIN cũ sai → 400 PIN_CHU_QUAN_SAI, PIN cũ giữ nguyên  — HTTP 200
+  ✗ S4 sai PIN cũ 5 lần → PIN cũ đúng vẫn 423 PIN_CHU_QUAN_KHOA (đổi PIN không gỡ khoá), PIN giữ nguyên, khoá còn  — HTTP 200
+  ✗ G1e đặt PIN chủ quán ở thẻ Hạng (chỉ chủ quán, gõ mật khẩu)
+  ✗ G1g (câu 4 b1) đã có PIN: ô "PIN cũ" hiện và gửi kèm khi đổi; KHÔNG nút "quên PIN"
+Trên code đã vá (HEAD): thoát 0 · 144 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_HANG1.js: 144
+
+═══ cong_cu/thu_DOISOAT1.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+  ✖ Bài thử sập: LibsqlError: SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 134 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
+
+═══ cong_cu/thu_HD1.js ═══
+Trên gốc 2a12443: thoát 1 · 117 đạt · 1 hỏng → ĐỎ
+  ✓ C5 chuỗi quá dài cho mã QR (địa chỉ App KH dán sai): veQr / qrSvg KHÔNG ném (render hoá đơn không sập), không vẽ QR
+  ✗ A99 phần A chạy hết, không sập  — SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 157 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_HD1.js: 157
+
+═══ cong_cu/thu_KHAPI2.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 101 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+
+═══ cong_cu/thu_P2223.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 44 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_P2223.js: 44
+
+═══ cong_cu/thu_P24.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 33 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_P24.js: 33
+
+═══ cong_cu/thu_P26c.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 157 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_P26c.js: 157
+
+═══ cong_cu/thu_P3.js ═══
+Trên gốc 2a12443: thoát 1 · 96 đạt · 1 hỏng → ĐỎ
+  ✗ I: bài chạy hết mục  — SQLITE_ERROR: table pos_membership_tiers has no column named goi
+Trên code đã vá (HEAD): thoát 0 · 100 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_P3.js: 100
+
+═══ cong_cu/thu_UUDAI1.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+Trên code đã vá (HEAD): thoát 0 · 88 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+
+═══ cong_cu/thu_HOPDONG_KH.js ═══
+Trên gốc 2a12443: thoát 2 · không in dòng tổng → ĐỎ
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: goi
+Trên code đã vá (HEAD): thoát 0 · 81 đạt · 0 hỏng → XANH
+Sau gộp main e7d0dd4 (chat 05.11 — main CT-1a / HD-KH-1 / SEPAY-1 thêm ca): 86 đạt · 0 hỏng
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 86
+
+═══ cong_cu/thu_GIOVN1.js ═══  (04.11 — chủ quán thêm vào Phạm vi: chỉ phần dựng dữ liệu mua thẻ C5 + E2 "PHIEN_BAN ≥ 6"; bài SỬA thường, LUAT §6.8)
+Bản GỐC (c4513ac) trên code HANG-1: 56 đạt · 5 hỏng (✗ C5a, ✗ C5b, ✗ C5c, ✗ B1, ✗ E2 — mua thẻ thiếu so_thang → 400 THE_MUA_THIEU_THONG_TIN; E2 khoá PHIEN_BAN = 6)
+Trên gốc 2a12443 (bản mới df230c4): thoát ≠ 0 · 30 đạt · 1 hỏng → ĐỎ
+  ✗ Bài thử sập: LibsqlError: SQLITE_ERROR: no such column: cach_co
+Trên code đã vá (HEAD): thoát 0 · 61 đạt · 0 hỏng → XANH
+SỐ CA cong_cu/thu_GIOVN1.js: 61

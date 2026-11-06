@@ -472,11 +472,12 @@ const KICH_BAN = [
   } },
   { ten: 'mua thẻ hội viên bằng ví rồi nhân viên huỷ', chay: async (c) => {
     const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB22' };   // khách MỚI: hạng thẻ giảm giá đơn sau (orders.js:529)
+    await c.db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
     const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order, id LIMIT 1');
     if (!hang) throw new Error('không có hạng thẻ nào đang bật');
     const gia = Number(hang.card_price);
     await c.nap(kh.customer_phone, gia);
-    const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'balance', balance_amount: gia });
+    const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: gia });
     const co = await c.so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d.id]);
     const truoc = await c.vi(kh.customer_phone);
     const h = await c.goi('nv', 'PUT', `/orders/${d.id}/cancel`, { reason: 'giả lập' });
@@ -678,8 +679,9 @@ const KICH_BAN = [
     const d2 = await dung('KB32 dùng lại mã');
     c.mong('mã 1 lượt: duyệt hoàn đơn → total_spent −20.000, mã trả lượt, đơn mới dùng lại được (giảm 5.000)', r.status === 200
       && t2 === t - 20000 && Number(d2.discount_amount) === 5000, `${c.ma(r)} · tổng chi ${t} → ${t2} · giảm ${d2.discount_amount}`);
+    await c.db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
     const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order, id LIMIT 1');
-    const the = await c.taoDon('KB32 mua thẻ', { customer_phone: sdtMoi(), customer_name: 'Khách KB32b', items: [], membership_buy: { tier_id: hang.id },
+    const the = await c.taoDon('KB32 mua thẻ', { customer_phone: sdtMoi(), customer_name: 'Khách KB32b', items: [], membership_buy: { tier_id: hang.id, so_thang: 3 },
       payment_method: 'cash', cash_amount: Number(hang.card_price) });
     const xt = await c.goi('chu', 'DELETE', `/orders/${the.id}`);
     c.mong('chủ xoá đơn mua thẻ → 200, không còn dòng mua thẻ', xt.status === 200
@@ -692,8 +694,9 @@ const KICH_BAN = [
   } },
   { ten: 'UUDAI-1: khách hạng + mã, tắt "dùng chung với giá hạng" → máy chọn hạng, mã KHÔNG tiêu (I13 qua nhánh chọn hạng)', chay: async (c) => {
     const S = sdtMoi();
+    await c.db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
     const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 AND discount_percent > 0 ORDER BY sort_order, id LIMIT 1');
-    await c.taoDon('KB33 mua thẻ', { customer_phone: S, customer_name: 'Khách KB33', items: [], membership_buy: { tier_id: hang.id },
+    await c.taoDon('KB33 mua thẻ', { customer_phone: S, customer_name: 'Khách KB33', items: [], membership_buy: { tier_id: hang.id, so_thang: 3 },
       payment_method: 'cash', cash_amount: Number(hang.card_price) });
     await c.db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
       VALUES ('KB33_1LUOT', 'fixed', 1, 0, 0, 1, 0, 1)`);
