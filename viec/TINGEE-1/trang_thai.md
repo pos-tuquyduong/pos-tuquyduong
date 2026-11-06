@@ -229,3 +229,30 @@ BÀI HỌC:
 - Lỗi 2 (CongQr gọi /settings thêm một lần): KHÔNG sửa — lời soát ghi "không bắt buộc"; Settings.jsx gọi /settings ở từng thẻ (loadData theo tab),
   không có một lần gọi chung ở đầu màn để truyền xuống; thêm state chung là nhiều dòng hơn một lần gọi nhẹ khi mở màn.
 - Nghi ngờ sepay.js:48 → ghi Phát hiện (dưới).
+
+## Soát bảo mật
+Lần 1 (06.11, agent độc lập, chỉ đọc, trên HEAD 16972e2, phần mới `git diff a935313 HEAD`). Trước lọc: 0 lỗi · sau lọc: 0 lỗi (không có lỗi nào
+nên không chạy bước lọc). Báo cáo chép nguyên văn:
+```
+Không tìm thấy lỗ hổng.
+
+Mình đã đọc toàn bộ phần mới của TINGEE-1 (`git diff a935313 HEAD`). Chỉ đọc, không sửa file, không commit. Từng điểm đã soát:
+
+- Kiểm chữ ký (server/utils/tingee.js, hàm kiemBao): máy tính HMAC-SHA512 trên "<ts>:<thân>" rồi so bằng timingSafeEqual. Chưa đặt khoá thì mọi báo
+  đều bị từ chối. Thân không phải Buffer thì cũng bị từ chối, nên thân rỗng của express.raw ({}) ra 401. Cách khớp dự phòng trên bản JSON gọn
+  ('gon'): ai sửa khoảng trắng hoặc thêm khoá trùng vào một báo thật thì báo sau khi đọc ra vẫn y nguyên báo gốc, nên cùng khoá
+  tingee:<transactionCode>. Kết quả: dừng ở dòng chống lặp (trả 02, hoặc ON CONFLICT DO NOTHING / changes !== 1 ở đường vào ví). Không cộng tiền hai lần.
+- Chống phát lại: máy không so mốc giờ. Điều này đúng tài liệu mục 4, chủ quán đã duyệt. Chống lặp dựa vào khoá UNIQUE theo transactionCode, nằm
+  trong thân đã ký. Báo không có transactionCode thì khoá là băm của thân, nhưng luôn đi nhánh boQua thành dòng khong_phien: không chốt đơn, không cộng ví.
+- Số tiền: xuLyTienVe (server/routes/thanh-toan.js) so soTien với p.con_lai và kiểm tài khoản nhận qua tkKhac. Với Tingee, vaAccountNumber phải
+  bằng TINGEE_SO_TK, nếu không thì ghi chua_khop chứ không chốt. Chỉ khớp đủ mới gọi chotPhien. Mọi giá trị đều lấy từ thân đã ký.
+- Lộ dữ liệu: GET /settings chỉ trả tên cổng và đã cài hay chưa, có authenticate, không trả khoá. du_lieu lưu xuống bỏ clientId. Nhật ký chỉ ghi
+  cách khớp chữ ký, không ghi khoá.
+- Phân biệt cổng: congCuaKhoa (server/utils/congQr.js) và các câu SQL đối soát (server/utils/doiSoat.js) dùng tham số ? và tiền tố cố định. Không có
+  chỗ chèn SQL.
+- server/index.js: express.raw chỉ gắn cho /api/tingee/webhook, đặt trước express.json.
+- Giao diện (client/src/pages/CaiDat/CongQr.jsx, client/src/pages/Settings.jsx): chỉ thêm 17 dòng React. Không có dangerouslySetInnerHTML, không có fetch trần.
+
+CHƯA KIỂM: mình không chạy thử máy chủ hay bài thử nào. Kết luận trên chỉ dựa vào đọc code.
+```
+SOÁT BẢO MẬT: ĐẠT
