@@ -1,10 +1,10 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 9
-NGAY: 2026-11-04
-DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
-  routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, nang_cap/003_xung_ho_khach.js,
-  nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
+PHIEN_BAN: 10
+NGAY: 2026-11-05
+DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
+  routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
+  nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
 <!-- Nguồn DUY NHẤT về cổng /api/kh. Chủ: POS. Đổi cổng → đổi file này cùng PR, tăng PHIEN_BAN, ghi nhật ký (luật L2).
      Khối HOP_DONG_MAY_DOC là phần máy đọc: bài thử hợp đồng của POS và bộ kiểm của App KH cùng dựa vào nó. -->
@@ -26,11 +26,11 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a) (routes/chuong-trinh.js, serv
 |---|---|---|---|
 | `POST /dang-nhap/xin-ma` | không | `{ sdt }` | `lay_ma_tai_quay` (true = khách hỏi mã ở quầy) |
 | `POST /dang-nhap/xac-minh` | không | `{ sdt, ma, ten?, xung_ho?, dia_chi? }` (mã 6 số; khách MỚI thiếu `ten` hoặc `xung_ho` → `CAN_TEN`; khách cũ: ba trường bị bỏ qua) — xem "Đăng ký 3 bước" | `token`, `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
-| `GET /hang` | không | — | `data[] { id, ten, phan_tram, phan_tram_nhom_dac_biet, gia_the, thu_tu }` — hạng đang bật, xếp theo `thu_tu` rồi `gia_the` |
+| `GET /hang` | không | — | `data[] { id, ten, phan_tram, phan_tram_nhom_dac_biet, chi_cap, goi[] { so_thang, gia }, thu_bac, gia_the, thu_tu }` — hạng đang bật, xếp theo `thu_bac` (v10 — xem "Ghi chú v10") |
 | `GET /gio-vang` | không | — | `dang_chay, bat_dau, ket_thuc, phan_tram, mon[]` (mã món = `ma` của `/menu`) — xem "Giờ vàng". **Không có suất** (POS không đếm suất) |
 | `GET /gio-hoat-dong` | không | — | `bay_gio, dang_mo, nhan_don, hom_nay { mo, dong } \| null, mo_lai_luc \| null, thong_bao, lich_tuan[] { thu, mo, dong, nghi }, ngay_nghi[] { ngay, ly_do }` — xem "Giờ hoạt động" |
 | `GET /chuong-trinh` | không | — (không token: dùng chung trần ≤ 300 lần / phút mỗi IP với `/menu`, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, mo_ta, loai, dang_bat }` — chương trình đặc biệt đang bật và trong thời gian chạy; xem "Ghi chú v9" |
-| `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null`; `so_du_vi` xem dưới |
+| `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null` (hạng CAO NHẤT còn hạn; `het_han` null = không thời hạn — v10); `so_du_vi` xem dưới |
 | `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi?, ngay_sinh? }` — ít nhất một khoá; xem "Hồ sơ" và "Ghi chú v9" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
 | `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
 | `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
@@ -128,6 +128,15 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a) (routes/chuong-trinh.js, serv
   mở app 30 ngày → token hết hạn (401) → khách nhận mã lại.
 - Giới hạn của `/menu` (không token) và `/gia-han` đếm trong bộ nhớ máy chủ: máy chủ khởi động lại thì đếm lại từ 0.
 
+### Ghi chú v10 (HANG-1 — hạng thẻ có thứ bậc, gói, hạng chỉ cấp)
+- `thu_bac`: số nguyên, lớn = cao. `/hang` xếp `thu_bac` tăng dần. `thu_tu` = `thu_bac` (giữ cho App cũ).
+- `chi_cap`: `true` = hạng chỉ chủ quán cấp (không bán) — `goi` luôn `[]`, `gia_the` `null`.
+- `goi[] { so_thang, gia }`: gói ĐANG BÁN ở quầy (bật + đã đặt giá; giá số đồng nguyên > 0), xếp theo `so_thang`. Gói chưa đặt giá / đang tắt không hiện.
+  App KH chỉ hiển thị — mua thẻ trên App chưa có (P3b sau khai trương).
+- `gia_the` (giữ MỘT đợt cho App cũ): giá gói ngắn nhất; `null` khi `chi_cap` hoặc chưa gói nào đang bán. App mới đọc `goi`.
+- `/toi.khach.hang`: hạng có `thu_bac` CAO NHẤT còn hạn (hạng trên hết hạn mà hạng dưới còn → hạng dưới). `het_han` = `null` khi không thời hạn.
+  `/menu` `gia_hang` theo cùng luật.
+
 ### Ghi chú các trường mới (v2)
 - `hang` (của `/toi`): hạng khách ĐANG dùng được (còn hạn, kể cả sắp hết); hết hạn / chưa mua → `null`. `phan_tram` cho món thường,
   `phan_tram_nhom_dac_biet` cho món nhóm đặc biệt (đã kẹp 0–90). `het_han` là giờ VN.
@@ -166,9 +175,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 ## Đã hẹn (chưa có — ghi vào khi xong, tăng PHIEN_BAN)
 - **v7 — ĐÃ HẸN, chủ quán chốt 02.11 (làm TRƯỚC khai trương). Tên dưới đây là tên CHỐT: máy POS làm ĐÚNG tên này; App KH được làm trước
   theo mục này. Mỗi việc POS xong thì chuyển phần của nó lên bảng cửa, tăng PHIEN_BAN, ghi nhật ký. Thiết kế: thiet_ke/THIET_KE_DOT2.md.**
-  - HANG-1 — `GET /hang`: mỗi hạng thêm `chi_cap` (bool), `goi[] { so_thang, gia }` (rỗng khi `chi_cap`; chỉ gói đang bán, có giá), `thu_bac`
-    (số, lớn = cao); giữ `gia_the` một đợt (= giá gói ngắn nhất; `null` khi `chi_cap`). `/toi.khach.hang.het_han` = `null` khi không thời hạn;
-    `/toi.khach.hang` luôn là hạng CAO NHẤT còn hạn.
   - QUA-1 — `/toi.khach` thêm `qua_chao_mung: { so_tien, het_han } | null` (chỉ khi còn hạn và còn tiền; đếm ngược theo `bay_gio` của
     `/gio-hoat-dong`). `so_du_vi` = số dư (tiền nạp + thưởng nạp) + quà chào mừng còn hạn — dùng được HẾT cho mọi đơn, không có đơn tối thiểu.
     Khi trả bằng tài khoản: trừ quà chào mừng TRƯỚC. "Thưởng nạp" KHÔNG có hạn và KHÔNG tách dòng trên App.
@@ -189,12 +195,12 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 9,
+  "phien_ban": 10,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
     { "pt": "POST", "duong": "/dang-nhap/xac-minh", "token": false, "tra": ["token", "khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh"] },
-    { "pt": "GET", "duong": "/hang", "token": false, "tra": ["data[].id", "data[].ten", "data[].phan_tram", "data[].phan_tram_nhom_dac_biet", "data[].gia_the", "data[].thu_tu"] },
+    { "pt": "GET", "duong": "/hang", "token": false, "tra": ["data[].id", "data[].ten", "data[].phan_tram", "data[].phan_tram_nhom_dac_biet", "data[].chi_cap", "data[].goi[].so_thang", "data[].goi[].gia", "data[].thu_bac", "data[].gia_the", "data[].thu_tu"] },
     { "pt": "GET", "duong": "/gio-vang", "token": false, "tra": ["dang_chay", "bat_dau", "ket_thuc", "phan_tram", "mon"] },
     { "pt": "GET", "duong": "/gio-hoat-dong", "token": false, "tra": ["bay_gio", "dang_mo", "nhan_don", "hom_nay", "mo_lai_luc", "thong_bao", "lich_tuan[].thu", "lich_tuan[].mo", "lich_tuan[].dong", "lich_tuan[].nghi", "ngay_nghi"] },
     { "pt": "GET", "duong": "/chuong-trinh", "token": false, "tra": ["data[].ma", "data[].ten", "data[].mo_ta", "data[].loai", "data[].dang_bat"] },
@@ -255,3 +261,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 - v9 · 04.11.2026 · CT-1a: `GET /chuong-trinh` (không token, thêm vào bảng cửa); `khach.ngay_sinh` ở `/toi`, `PUT /toi`, xác minh; `PUT /toi` nhận thêm `ngay_sinh`
   (MỘT lần). Mã lỗi mới `NGAY_SINH_SAI` 400, `NGAY_SINH_DA_CO` 409. Không xoá / đổi tên trường cũ — App v8 bỏ qua trường lạ là chạy nguyên. Hai dòng CT-1a
   đã chuyển khỏi "Đã hẹn".
+- v10 · 05.11.2026 · HANG-1 (phần HANG-1 của "Đã hẹn — v7", đúng tên đã hẹn): `GET /hang` mỗi hạng thêm `chi_cap`, `goi[] { so_thang, gia }`, `thu_bac`;
+  `gia_the` đổi nghĩa = giá gói ngắn nhất, `null` khi chỉ cấp / chưa gói nào bán (giữ một đợt); xếp theo `thu_bac`. `/toi.khach.hang` = hạng CAO NHẤT
+  còn hạn, `het_han` `null` khi không thời hạn. Không xoá / đổi tên trường cũ. (Viết là v7 trên nhánh; chat gộp 05.11 đổi thành v10 sau v7 HD-KH-1 · v8 SEPAY-1 · v9 CT-1a.)

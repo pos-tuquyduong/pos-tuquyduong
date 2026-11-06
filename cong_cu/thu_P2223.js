@@ -142,6 +142,7 @@ async function main() {
   let soGoi = 0;
   const taoGoi = async (gia, luot) => Number((await db.run(`INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active)
     VALUES (?, 'Gói P22-23', ?, 'ly', ?, 1)`, [`GOI_P2223_${++soGoi}`, gia, luot])).lastInsertRowid);
+  await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
   const hang = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   const giaThe = Number(hang.card_price);
   const boQuaF1 = new Set();   // đơn cố ý đổi cài đặt / ném lỗi ghi giữa chừng — I8 so với cài đặt HIỆN TẠI nên không mô tả được
@@ -300,12 +301,12 @@ async function main() {
       sdtMoi(), { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'debt', debt_amount: 299000,
         discount_code: 'P2223GIAM', is_new_customer: true });
     await tuChoi('D2 mua thẻ hội viên CHỜ THU (bill mang ra bàn) → 400, không đơn, không dòng mua thẻ', sdtMoi(),
-      { items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cho_thu', debt_amount: giaThe });
+      { items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cho_thu', debt_amount: giaThe });
     const s3 = sdtMoi(); await nap(s3, 100000);
     await tuChoi('D3 mua gói trả ví 100.000 + nợ 200.000 → 400, ví không bị trừ', s3,
       { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'debt', balance_amount: 100000, debt_amount: 200000 });
     await tuChoi('D3b mua thẻ + nợ, máy khách gửi payment_status "paid" → 400', sdtMoi(),
-      { items: [], membership_buy: { tier_id: hang.id }, payment_method: 'debt', debt_amount: giaThe, payment_status: 'paid' });
+      { items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'debt', debt_amount: giaThe, payment_status: 'paid' });
     await tuChoi('D3d mua gói, cách trả "cash" (tiền mặt 100.000) kèm nợ 200.000 → 400 (cổng không xét payment_method máy khách gửi)', sdtMoi(),
       { items: [], package_buy: { package_id: goi1, pkg_qty: 1 }, payment_method: 'cash', cash_amount: 100000, debt_amount: 200000 });
     await tuChoi('D3e sát ngưỡng: mua gói tiền mặt 299.999 + nợ 1đ → 400', sdtMoi(),
@@ -321,7 +322,7 @@ async function main() {
       payment_method: 'cash', cash_amount: 300000 });
     k('D4b (K5) gia hạn gói trả đủ → 200', d4b.status === 200, moTa(d4b));
     const s5 = sdtMoi(); await nap(s5, giaThe);
-    const d5 = await ban({ customer_phone: s5, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'balance', balance_amount: giaThe });
+    const d5 = await ban({ customer_phone: s5, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: giaThe });
     k('D5 (K5) mua thẻ trả đủ bằng ví → 200, 1 dòng mua thẻ', d5.status === 200
       && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d5.order?.id]) === 1, moTa(d5));
     const d6 = await ban({ customer_phone: s4, items: [mon(0, 1, true), mon(1)], customer_package_id: cp4, payment_method: 'debt', debt_amount: 20000 });

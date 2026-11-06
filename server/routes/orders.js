@@ -20,7 +20,6 @@ const {
   getNow,
   getToday,
   normalizePhone,
-  addMonthsSafe,
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
@@ -30,7 +29,7 @@ const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + gi�
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
-const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
+const { getMembershipStatus, isTierUsable, goiBanDuoc, hanSauDong } = require("../utils/membershipStatus");
 const { kiemDonCuaMa, docCauHinhNhanDiem } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
 
 const router = express.Router();
@@ -206,7 +205,7 @@ async function taoDon(req, res, phien = null) {
       customer_package_id = null, // Giao từ gói → ID của customer_package
       package_buy = null, // Mua gói → { package_id, total_qty }
       // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm, cùng đơn với hàng thường) ===
-      membership_buy = null, // { tier_id }
+      membership_buy = null, // { tier_id, so_thang } — HANG-1: chọn GÓI của hạng; giá do máy chủ tra
     } = req.body;
 
     // P3 (H, chủ quán chốt 22.10): một đơn KHÔNG trả kết hợp tiền mặt + chuyển khoản; tài khoản + MỘT cách cho phần còn lại thì được.
@@ -231,8 +230,9 @@ async function taoDon(req, res, phien = null) {
     }
     // BAN-HANG-1: có `membership_buy` thì phải đủ hạng thẻ + SĐT đã chuẩn hoá (cùng khuôn cổng gói dưới) — cổng cũ chỉ chạy khi có `tier_id`
     // nên `{}` lọt: 1 món → đơn thường, `items: []` → đơn rỗng 0đ. SĐT chuẩn hoá vì khối ghi thẻ (`membershipTier && phone`) đòi `phone` (SO-LUONG-1).
-    if (membership_buy && !(membership_buy.tier_id && normalizePhone(customer_phone))) {
-      return res.status(400).json({ error: "Mua thẻ cần chọn hạng thẻ và khách hàng", code: "THE_MUA_THIEU_THONG_TIN" });
+    // HANG-1: phải chọn GÓI (so_thang) — gói khớp, giá, cách có hạng kiểm ở khối dòng thẻ bên dưới.
+    if (membership_buy && !(membership_buy.tier_id && membership_buy.so_thang && normalizePhone(customer_phone))) {
+      return res.status(400).json({ error: "Mua thẻ cần chọn hạng thẻ, gói và khách hàng", code: "THE_MUA_THIEU_THONG_TIN" });
     }
     // P26c (A3): một đơn vừa MUA gói mới vừa LẤY từ gói cũ thì trừ lượt cả hai gói — không cho, tách làm hai đơn.
     if (customer_package_id && package_buy && items.some((i) => i.from_package)) {   // gia hạn (bật gói cũ, không lấy) vẫn được
@@ -483,16 +483,30 @@ async function taoDon(req, res, phien = null) {
     }
 
     // TIER-1c: Mua thẻ hội viên → thêm line item cho thẻ (giống hệt cách mua gói)
+    // HANG-1: bán theo GÓI — hạng `ban` đang bật, gói khớp số tháng + đang bán + có giá (goiBanDuoc, cùng vị từ với App KH /hang); giá dòng =
+    // giá gói MÁY CHỦ TRA (không đọc giá máy khách). Khách đang có hạng còn hạn THỨ BẬC CAO HƠN → chặn; cùng hạng → cho (hạn cộng nối ở sổ).
     let membershipTier = null;
+    let membershipGoi = null;
     if (membership_buy && membership_buy.tier_id) {
       membershipTier = await queryOne('SELECT * FROM pos_membership_tiers WHERE id = ? AND is_active = 1', [membership_buy.tier_id]);
       if (!membershipTier) return res.status(400).json({ error: 'Hạng thành viên không tồn tại hoặc đã bị xóa' });
-      const cardPrice = Number(membershipTier.card_price) || 0;
+      if (membershipTier.cach_co !== 'ban') {
+        return res.status(400).json({ error: `Hạng ${membershipTier.name} chỉ chủ quán cấp, không bán`, code: 'HANG_CHI_CAP' });
+      }
+      membershipGoi = goiBanDuoc(membershipTier).find((g) => g.so_thang === Number(membership_buy.so_thang));
+      if (!membershipGoi) {
+        return res.status(400).json({ error: `Gói ${membership_buy.so_thang} tháng của hạng ${membershipTier.name} chưa bán (chưa có giá hoặc đang tắt)`, code: 'GOI_HANG_KHONG_BAN' });
+      }
+      const hangDangCo = await getMembershipStatus(query, queryOne, getNow, normalizePhone(customer_phone));
+      if (isTierUsable(hangDangCo.status) && hangDangCo.thu_bac > Number(membershipTier.sort_order)) {
+        return res.status(400).json({ error: `Khách đang có hạng ${hangDangCo.tier_name} cao hơn — không bán hạng ${membershipTier.name}`, code: 'DA_CO_HANG_CAO_HON' });
+      }
+      const cardPrice = membershipGoi.gia;
       subtotal += cardPrice;
       orderItems.push({
         product_id: -1000000 - membershipTier.id, // né trùng với product_id thường và -pkg.id
         product_code: `THE-${membershipTier.name}`,
-        product_name: `🎟️ Thẻ hội viên ${membershipTier.name}`,
+        product_name: `🎟️ Thẻ hội viên ${membershipTier.name} · ${membershipGoi.so_thang} tháng`,
         unit: 'thẻ',
         quantity: 1,
         unit_price: cardPrice,
@@ -1052,23 +1066,17 @@ async function taoDon(req, res, phien = null) {
         }
       }
 
-      // TIER-1c: mua thẻ hội viên → ghi vào sổ, TÍNH LẠI hạn dùng đúng cấu hình hiện tại
+      // TIER-1c / HANG-1: mua gói thẻ → ghi MỘT dòng sổ (loai ban + số tháng). Hạn thật cộng lại từ sổ mỗi lần đọc (membershipStatus.js —
+      // cộng nối, hai quầy cùng bán không mất kỳ); expires_at ghi hạn tính lúc ghi (chỉ API /nhat-ky trả ra; cộng tháng phép UTC — GIO-VN-1).
       if (membershipTier && phone) {
-        const settingsRows = await tx.query(
-          "SELECT key, value FROM pos_settings WHERE key = 'tier_card_valid_months'",
-        );
-        let validMonths = parseInt(settingsRows[0]?.value, 10);
-        if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
-
-        const nowDate = new Date(now + 'Z');   // giờ VN coi như UTC → cộng tháng không theo múi giờ máy (GIO-VN-1)
-        const expiresDate = addMonthsSafe(nowDate, validMonths);
-        const expiresAt = expiresDate.toISOString().slice(0, 19);
+        const dongThe = { tier_id: membershipTier.id, tier_name: membershipTier.name, loai: 'ban', so_thang: membershipGoi.so_thang, purchased_at: now };
+        const expiresAt = await hanSauDong(tx, phone, dongThe);
 
         await tx.run(
           `INSERT INTO pos_membership_purchases
-            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [phone, membershipTier.id, membershipTier.name, membershipTier.card_price, orderId, now, expiresAt, req.user.username],
+            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by, loai, so_thang)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ban', ?)`,
+          [phone, membershipTier.id, membershipTier.name, membershipGoi.gia, orderId, now, expiresAt, req.user.username, membershipGoi.so_thang],
         );
         console.log(`🎟️ Đã ghi mua thẻ ${membershipTier.name} cho ${phone}, hết hạn ${expiresAt}`);
       }
