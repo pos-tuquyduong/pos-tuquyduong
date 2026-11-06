@@ -174,7 +174,8 @@ chỉ ở màn Bán hàng MỚI · (3) đền bù một phần chia THEO TỶ L�
    tả bắt đầu `ví <sđt>: số dư` (khớp khoá ngày `KHOA.I4` của `doiSoat.js`). Lý do: thêm I20 phải sửa `thu_DOISOAT1` A1 (khoá đúng 18 bất biến),
    `AP_DUNG_TU`, bảng khoá — gộp ít dòng hơn, cùng nghĩa.
 4. **Vị từ đơn nạp = dòng hàng `product_id ≤ −2000000`** (thay "dòng sổ topup gắn đơn" ở mục 4): cùng khuôn nhận đơn gói / thẻ theo dòng hàng
-   (`doiSoat.js` két, I15); một hằng + một mẩu SQL ở `server/utils/viKhach.js` (`ID_NAP_TU`, `sqlDonNap`), dùng ở huỷ, xoá, báo cáo, két, I8, I15.
+   (`doiSoat.js` két, I15); một hằng + một mẩu SQL ở `server/utils/viKhach.js` (`ID_NAP_TU`, `sqlDonNap`), dùng ở huỷ, xoá, danh sách đơn, báo cáo,
+   sổ sách. Két KHÔNG dùng vị từ (đếm dòng topup `order_id IS NULL`); `bat_bien.js` (I8, I15) chép hằng riêng — trọng tài không require server.
 5. **Quyền** `manage_products` có thật (`database.js` quyền mặc định owner 1 · manager 1 · staff 0) — dùng như kế hoạch.
 6. **Hợp đồng `/api/kh`:** NAP-1 không đổi cửa / trường nào; hành vi App thấy khác: đơn App trả ví nay có điểm (E), đơn nạp ở quầy hiện trong
    `GET /don` của khách (không mã bill). `HOP_DONG_API_KH.md` KHÔNG có trong Phạm vi → máy không sửa; dòng nhật ký **v11** soạn sẵn ở

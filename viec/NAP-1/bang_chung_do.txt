@@ -20,11 +20,19 @@ Trên GỐC:  6 đạt · 60 hỏng   (6 ca xanh trên gốc là ca K5 / bất b
   ✗ F5 ô "tiền thật vào quán" … — HTTP 404
   ✗ G1 thanTinhThu giỏ gói nạp → { khách, items: [], goi_nap_id } (không mã); …
   (đủ 60 dòng ✗ khi chạy lại lệnh trên)
-Sau vá (HEAD):  66 đạt · 0 hỏng
-SỐ CA cong_cu/thu_NAP1.js: 66
+Sau vá:  66 đạt · 0 hỏng (bf8ddd1)
+
+Vòng sửa 1 (soát độc lập vòng 1) — bài thêm C0b số lẻ, C7c (đền 3 lần số lẻ), C13 (kết thúc gói có hoàn), F7 (/reports/products):
+  trên GỐC ae19926:            7 đạt · 62 hỏng  (✗ C7c · ✗ C13 · …; F7 xanh vì gốc không có đơn nạp)
+  trên bản TRƯỚC vòng sửa bf8ddd1 (bắt ĐÚNG lỗi người soát báo):  66 đạt · 3 hỏng
+    ✗ C0b thuongKhiHoan: … lần làm đủ phần ví trả NỐT thưởng (số lẻ) …  — 63000,2032,1354,42000,21000 → 677 (đúng 678)
+    ✗ C7c đền 3 lần số lẻ: … trả lại 677 · 1.354 · 2.032 …  — trả 677,1354,2031
+    ✗ F7 /reports/products (sản phẩm bán chạy) không có dòng gói nạp; món thường vẫn có  — [1,-2000001,-2000003,-1]
+  sau vá (cfa1941): 69 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 69
 
 ════════ Bài cũ sửa vì luật điểm E ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi (01.11; câu 1 ngày 05.11) — bài sửa thường (LUAT_XAY_APP §6.8) ════════
-cong_cu/thu_P20.js — trên GỐC: 171 đạt · 1 hỏng
+cong_cu/thu_P20.js — trên GỐC: 171 đạt · 1 hỏng (chạy lại sau vòng sửa 1 — ca thêm đếm điểm của đơn: vẫn 171 · 1)
   ✗ trả trọn bằng ví: /claim → 200; /nhan-diem → 200 (NAP-1: phần trả bằng ví có điểm)  — HTTP 200 / HTTP 400 · DON_KHONG_DU_DIEM
   sau vá: 172 đạt · 0 hỏng
 SỐ CA cong_cu/thu_P20.js: 172
@@ -66,4 +74,5 @@ SỐ CA cong_cu/thu_KHMUA1.js: 122
 
 ════════ Đột biến viec/NAP-1/dot_bien.py (HEAD) ════════
 ĐỐI CHỨNG (bản chưa đột biến): XANH · 66 đạt · 0 hỏng
-TỔNG 68 đột biến · BẮT 68 · SỐNG 0 · HỎNG 0 · LẠC 0
+TỔNG 68 đột biến · BẮT 68 · SỐNG 0 · HỎNG 0 · LẠC 0   (bf8ddd1)
+Vòng sửa 1: ĐỐI CHỨNG XANH · 69 đạt · 0 hỏng — TỔNG 71 đột biến · BẮT 71 · SỐNG 0 · HỎNG 0 · LẠC 0

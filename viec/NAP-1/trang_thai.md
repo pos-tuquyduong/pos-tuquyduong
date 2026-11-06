@@ -136,3 +136,28 @@ BÀI HỌC:
 - NGUYÊN TẮC (K4): "vị từ nhận loại đơn mới" phải grep MỌI route đọc pos_order_items hoặc tính doanh thu (gồm /reports/products).
 - NGUYÊN TẮC (K3): ca chia theo tỷ lệ phải có ít nhất một bộ số KHÔNG chia hết — đã có trong K3, vẫn bị bỏ qua → nên thành phép máy.
 ```
+
+## Vòng sửa 1 (sau soát vòng 1)
+| Lỗi soát | Sửa | Ca / đột biến |
+|---|---|---|
+| 1 kết thúc gói có hoàn chưa có ca | bài gắn route packages | C13 · VS-hoan-tra-not-tinh-ca-hoan-goi |
+| 2 làm tròn cộng dồn rơi đồng thưởng | `viKhach.js` thuongKhiHoan: lần cộng làm đủ phần ví đã trừ → trả NỐT phần thưởng còn lại | C0b (số lẻ), C7c · BV-hoan-tra-not |
+| 3 EXISTS lồng không chỉ mục | `sqlDonNap` và I8 dùng `id IN (SELECT order_id … )` (câu con chạy một lần) | (hiệu năng — CHƯA KIỂM bằng máy, xem dưới) |
+| 4 /reports/products có dòng nạp | `reports.js` `AND oi.product_id > ID_NAP_TU` | F7 · BV-products-nap |
+| 5 cổng chạy + thao tác thử tay | ghi ở báo cáo cuối | — |
+| 6 chú thích sai | `viKhach.js` đầu file, `ke_hoach.md` §13.4 | — |
+| 7 P20 không đếm điểm | ca kiểm tổng điểm đơn > 0 | (đỏ trên gốc) |
+Thêm (từ NGHI NGỜ): sổ sách `napTay` cùng vị từ két (chỉ cash / transfer); bỏ trường `tongHop.vi.thuong_nap` không màn nào đọc.
+
+## Phát hiện (thêm sau soát vòng 1 — không sửa, ghi cho chủ quán / việc sau)
+- **Đơn CŨ trả ví còn trong hạn nhận điểm** (LUAT §6.6): sau khi gộp, `/nhan-diem` của đơn trả ví tạo TRƯỚC giờ gộp sẽ cộng điểm theo luật mới (hạn
+  nhận ngắn — cài đặt `nhandiem_han_gio`, mặc định 24 giờ). Đối soát (I8) đã tha đơn trước mốc `DIEM_VI_TU` theo luật cũ; số điểm mới vẫn đúng luật mới
+  → I8 không đỏ. Ảnh hưởng chỉ trong một ngày sau gộp, chiều có lợi cho khách. Không sửa.
+- **Bán nhầm gói nạp:** đơn nạp không huỷ / xoá được (phiếu D). Sửa sai = chủ quán điều chỉnh âm số dư (ghi lý do) + trả lại tiền mặt; tiền mặt đơn vẫn
+  nằm trong két ngày đó → két ghi chênh đúng số trả lại. Đề xuất việc sau (chủ quán quyết): dòng "trả lại tiền nạp nhầm" có quyền chủ quán + PIN, ghi
+  ra két, trong ngày bán.
+- **Thưởng nạp trừ qua /deduct, /adjust âm** (không gắn đơn) không vào ô "Thưởng nạp đã dùng" nhưng rời ô "giữ hộ" — đúng nghĩa (không phải bán hàng),
+  nhưng ba ô sổ sách chưa có phép khép (đầu kỳ + nạp − đã dùng − điều chỉnh = cuối kỳ). Đề xuất thêm phép khép ở Đối soát (việc sau).
+- **Tắt / sửa giá gói nạp khi đang có phiên QR chưa chốt:** tiền về mà phiên chuyển 'loi' (cùng khuôn đổi giá món, có từ trước — giuCho.js chotPhien).
+  Quầy thấy ở màn Đối soát (tiền về chưa khớp). Không sửa.
+- Màn Đối soát dòng "Ví: nạp" nay gồm cả phần thưởng của gói nạp (là số vào ví, không phải tiền thu) — tiền thu đúng ở thẻ Sổ sách.
