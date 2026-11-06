@@ -27,6 +27,7 @@ router.get('/', authenticate, boc(async (req, res) => res.json({ success: true, 
 router.post('/:id/nhan', authenticate, boc(async (req, res) => tra(res, await gh.nhanDon(Number(req.params.id)))));
 router.post('/:id/goi-xe', authenticate, boc(async (req, res) => tra(res, await gh.goiXe(Number(req.params.id), req.body?.loai_xe ?? null))));
 router.post('/:id/huy-chuyen', authenticate, boc(async (req, res) => tra(res, await gh.huyChuyenGiao(Number(req.params.id), req.body?.ly_do, req.user))));
+router.post('/:id/dong-the', authenticate, boc(async (req, res) => tra(res, await gh.dongThe(Number(req.params.id), req.body?.ly_do, req.user))));
 router.post('/:id/in-tem', authenticate, boc(async (req, res) => tra(res, await gh.inTem(Number(req.params.id), req.body?.lai === true))));
 
 const bam = (s) => crypto.createHash('sha256').update(String(s)).digest();

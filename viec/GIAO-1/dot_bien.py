@@ -67,6 +67,17 @@ DOT_BIEN = [
   ('BV-xoa-da-goi-xe', 'g1', [(GH, '  if (c?.ma_ahamove) return { loi:', '  if (false) return { loi:', 1)], r'✗ J8b '),
   ('BV-hoan-dong-chuyen', 'g1', [(RF, '      await dongChuyenKhiHoan(tx, refund.order_id, now);', '', 1)], r'✗ Q5b '),
   ('BV-doc-lai-du-phong', 'g1', [(GH, '    if (doiLai >= DOC_LAI_TOI_DA) break;', '    break;', 1)], r'✗ H12 '),
+  # ── vòng sửa 4 (chủ quán Q6 06.11): nhận lại chuyến cũ còn chạy, phí huỷ chỉ khi lệnh huỷ của quán thành công, Đóng thẻ giao lỗi ──
+  ('BV-nhan-lai-chuyen-cu', 'g1', [(GH, "    } else if (cu && cu.trang_thai !== 'CANCELLED') {\n      return nhanLaiChuyenCu(c, cu, now);", "    } else if (false) {\n      return nhanLaiChuyenCu(c, cu, now);", 1)], r'✗ (G8b|G8c|I6) '),
+  ('VS-nhan-lai-khi-da-huy', 'g1', [(GH, "    } else if (cu && cu.trang_thai !== 'CANCELLED') {", "    } else if (cu) {", 1)], r'✗ J5e '),
+  ('VS-nhan-lai-khong-ap-trang-thai', 'g1', [(GH, "  await capNhatTuAhamove({ ...(await docChuyenDon(c.order_id)) }, cu);\n", '', 1)], r'✗ (G8b|G8c|I6) '),
+  ('VS-phi-huy-moi-lan-doc', 'g1', [(GH, "    if (daHuy) {\n      if (cu?.phi_huy)", "    if (true) {\n      if (cu?.phi_huy)", 1)], r'✗ J5e '),
+  ('BV-giu-goi-luc-cu', 'g1', [(GH, "[c.trang_thai, c.goi_luc, 'Không đọc được chuyến cũ", "[c.trang_thai, now, 'Không đọc được chuyến cũ", 1)], r'✗ GL '),
+  ('BV-dong-the', 'g1', [(GH, "  const g = await run(\"UPDATE pos_giao_chuyen SET trang_thai = 'da_dong'", "  const g = await run(\"UPDATE pos_giao_chuyen SET trang_thai = 'giao_loi'", 1)], r'✗ DT '),
+  ('VS-dong-the-nhan-vien', 'g1', [(GH, "  if (!laQuanLy(user)) return loi(403, 'PERMISSION_DENIED', 'Đóng thẻ", "  if (false) return loi(403, 'PERMISSION_DENIED', 'Đóng thẻ", 1)], r'✗ DT '),
+  ('VS-dong-the-moi-the', 'g1', [(GH, "WHERE order_id = ? AND trang_thai = 'giao_loi'\",", "WHERE order_id = ?\",", 1)], r'✗ DT '),
+  ('BV-khong-huy-chuyen-may-thang', 'g1', [(GH, "      if ((await docChuyenDon(c.order_id))?.ma_ahamove !== t.ma) {", "      if (true) {", 1)], r'✗ G9b '),
+  ('BV-trang-thai-da-doi', 'g1', [(GH, "  return n.changes === 1 ? { ok: true } : loi(409, 'TRANG_THAI_DA_DOI'", "  return true ? { ok: true } : loi(409, 'TRANG_THAI_DA_DOI'", 1)], r'✗ J5f '),
   # ── K: Đối soát ──
   ('VS-bu-du-triet-tieu', 'g1', [(GH, '? Math.max(0, Number(x.chenh || 0)) : 0)', '? Number(x.chenh || 0) : 0)', 1)], r'✗ K1 '),
   ('VS-doi-soat-moi-chuyen', 'g1', [(GH, "phi_that: tong((x) => (daChay(x) ? Number(x.phi_that || 0) : 0)),", "phi_that: tong((x) => Number(x.phi_that || 0)),", 1)], r'✗ K1 '),

@@ -214,21 +214,36 @@ async function goiXe(orderId, loaiXe) {
       AND EXISTS (SELECT 1 FROM pos_orders WHERE id = pos_giao_chuyen.order_id AND status = 'completed' AND payment_status = 'paid')`,
   [now, loaiXe ?? null, c.id, lechGiay(now, -GOI_TREO_GIAY), lechGiay(now, -TIM_XE_TOI_DA_GIAY)]);
   if (g.changes !== 1) return loi(409, 'DANG_GOI_XE', 'Chuyến đang được gọi hoặc đã có xe — xem trạng thái trên thẻ');
-  // "Tìm lại" (tim_xe), hoặc "Gọi lại" thẻ treo còn mã chuyến (Tìm lại chết trước khi huỷ xong — chuyến cũ có thể còn sống): huỷ chuyến cũ
-  // trước — không bao giờ để hai chuyến cùng chạy. Ahamove từ chối huỷ mà đọc lại thấy chuyến đã huỷ → đi tiếp; còn sống → dừng, trả thẻ về như cũ.
+  // Thẻ còn mã chuyến cũ (Tìm lại, hoặc Gọi lại thẻ treo — có thể chết giữa chừng): không bao giờ để hai chuyến cùng chạy.
+  // Chỉ "Tìm lại" (tim_xe) gửi lệnh huỷ; lệnh huỷ đó THÀNH CÔNG mới cộng phí huỷ (chủ quán Q6 06.11). Còn lại ĐỌC chuyến cũ: còn chạy / đã xong →
+  // NHẬN LẠI (thẻ theo chuyến cũ, không gọi chuyến mới); đã huỷ → gọi chuyến mới, không cộng phí huỷ lần nữa (đã tính lúc huỷ).
   if (['tim_xe', 'dang_goi'].includes(c.trang_thai) && c.ma_ahamove) {
-    try { await aha.huyChuyen(c.ma_ahamove, 'Quán tìm lại xe'); } catch (e) {
-      const cu = await aha.docChuyen(c.ma_ahamove).catch(() => null);
-      if (cu?.trang_thai !== 'CANCELLED') {
-        await run('UPDATE pos_giao_chuyen SET trang_thai = ?, loi = ? WHERE id = ? AND trang_thai = \'dang_goi\' AND goi_luc = ?',
-          [c.trang_thai, 'Không huỷ được chuyến cũ để tìm lại — thử lại', c.id, now]);
-        return loiAhamove(e);
-      }
+    let daHuy = false;
+    if (c.trang_thai === 'tim_xe') {
+      try { await aha.huyChuyen(c.ma_ahamove, 'Quán tìm lại xe'); daHuy = true; } catch { /* không huỷ được: đọc chuyến cũ bên dưới */ }
     }
-    const cu = await aha.docChuyen(c.ma_ahamove).catch(() => null);   // phí huỷ chuyến cũ (nếu có) quán chịu — vào Đối soát
-    if (cu?.phi_huy) await run('UPDATE pos_giao_chuyen SET phi_huy = phi_huy + ? WHERE id = ? AND goi_luc = ?', [Math.round(cu.phi_huy), c.id, now]);
+    const cu = await aha.docChuyen(c.ma_ahamove).catch(() => undefined);
+    if (cu === undefined && !daHuy) {   // không đọc được chuyến cũ: trả thẻ về như cũ, GIỮ goi_luc cũ để bấm lại được ngay
+      await run("UPDATE pos_giao_chuyen SET trang_thai = ?, goi_luc = ?, loi = ? WHERE id = ? AND trang_thai = 'dang_goi' AND goi_luc = ?",
+        [c.trang_thai, c.goi_luc, 'Không đọc được chuyến cũ ở Ahamove — bấm lại sau', c.id, now]);
+      return loi(502, 'AHAMOVE_LOI', 'Không đọc được chuyến cũ ở Ahamove — thử lại');
+    }
+    if (daHuy) {
+      if (cu?.phi_huy) await run('UPDATE pos_giao_chuyen SET phi_huy = phi_huy + ? WHERE id = ? AND goi_luc = ?', [Math.round(cu.phi_huy), c.id, now]);
+    } else if (cu && cu.trang_thai !== 'CANCELLED') {
+      return nhanLaiChuyenCu(c, cu, now);
+    }
   }
   return taoChuyenMoi({ ...c, loai_xe: loaiXe || c.loai_xe }, o, c.trang_thai, now);
+}
+
+/** Chuyến cũ vẫn chạy ở Ahamove → thẻ theo nó: về 'tim_xe' (giữ quyền) rồi áp trạng thái đọc được (tài xế, đang giao, xong). */
+async function nhanLaiChuyenCu(c, cu, khoa) {
+  const n = await run(`UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe', loi = NULL, loi_mang = 0, doc_luc = ? WHERE id = ? AND trang_thai = 'dang_goi'
+    AND goi_luc = ? AND ma_ahamove = ?`, [getNow(), c.id, khoa, cu.ma]);
+  if (n.changes !== 1) return loi(409, 'DANG_GOI_XE', 'Máy khác đã gọi lại chuyến này — xem trạng thái trên thẻ');
+  await capNhatTuAhamove({ ...(await docChuyenDon(c.order_id)) }, cu);
+  return { ok: true, ma_ahamove: cu.ma, nhan_lai: true };
 }
 
 /** Chuyến đang 'dang_goi' (đã giành lúc `khoa` = goi_luc): kiểm theo mã theo dõi (lần trước có thể đã tạo) → báo phí lại → tạo chuyến.
@@ -307,21 +322,21 @@ async function capNhatTuAhamove(c, d) {
   const now = getNow();
   if (d.trang_thai === 'CANCELLED') {
     if (c.trang_thai === 'dang_giao') {   // huỷ khi tài xế ĐÃ lấy hàng: hàng đang ngoài đường — KHÔNG tự gọi xe mới, báo quầy
-      await run(`UPDATE pos_giao_chuyen SET trang_thai = 'giao_loi', phi_huy = phi_huy + ?, loi = ? WHERE id = ? AND trang_thai = 'dang_giao' AND ma_ahamove = ?`,
-        [Math.round(d.phi_huy), 'Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove', c.id, c.ma_ahamove]);
+      await run(`UPDATE pos_giao_chuyen SET trang_thai = 'giao_loi', loi = ? WHERE id = ? AND trang_thai = 'dang_giao' AND ma_ahamove = ?`,
+        ['Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove', c.id, c.ma_ahamove]);
       return;
     }
     if (!d.nguoi_huy_la_quan && !c.tu_tim_lai) {   // tài xế / Ahamove huỷ lần đầu (chưa lấy hàng) → tự tìm lại MỘT lần
-      const g = await run(`UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', tu_tim_lai = 1, goi_luc = ?, phi_huy = phi_huy + ? WHERE id = ? AND trang_thai = ?
-        AND ma_ahamove = ? AND tu_tim_lai = 0`, [now, Math.round(d.phi_huy), c.id, c.trang_thai, c.ma_ahamove]);
+      const g = await run(`UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', tu_tim_lai = 1, goi_luc = ? WHERE id = ? AND trang_thai = ?
+        AND ma_ahamove = ? AND tu_tim_lai = 0`, [now, c.id, c.trang_thai, c.ma_ahamove]);
       if (g.changes !== 1) return;
       const o = await queryOne('SELECT code FROM pos_orders WHERE id = ?', [c.order_id]);
       const kq = await taoChuyenMoi({ ...c, tu_tim_lai: 1 }, o, 'chuyen_huy', now);
       if (kq.ok) await run('UPDATE pos_giao_chuyen SET loi = ? WHERE id = ? AND ma_ahamove = ?', ['Tài xế huỷ chuyến — máy đã tự tìm xe lại', c.id, kq.ma_ahamove]);
       return;
     }
-    await run(`UPDATE pos_giao_chuyen SET trang_thai = 'chuyen_huy', phi_huy = phi_huy + ?, loi = ? WHERE id = ? AND trang_thai = ? AND ma_ahamove = ?`,
-      [Math.round(d.phi_huy), 'Tài xế / Ahamove huỷ chuyến — gọi lại hoặc huỷ đơn', c.id, c.trang_thai, c.ma_ahamove]);
+    await run(`UPDATE pos_giao_chuyen SET trang_thai = 'chuyen_huy', loi = ? WHERE id = ? AND trang_thai = ? AND ma_ahamove = ?`,
+      ['Tài xế / Ahamove huỷ chuyến — gọi lại hoặc huỷ đơn', c.id, c.trang_thai, c.ma_ahamove]);
     return;
   }
   const moi = trangThaiQuan(d);
@@ -362,7 +377,7 @@ const TEN_TRA = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', balance: '
 async function danhSach() {
   const cd = await docCaiDat(), now = getNow();
   const doc = () => query(`SELECT c.*, o.code, o.total, o.payment_method, o.payment_status FROM pos_giao_chuyen c JOIN pos_orders o ON o.id = c.order_id
-    WHERE c.trang_thai NOT IN ('xong', 'huy') ORDER BY COALESCE(c.nhan_luc, c.tao_luc), c.id`);
+    WHERE c.trang_thai NOT IN ('xong', 'huy', 'da_dong') ORDER BY COALESCE(c.nhan_luc, c.tao_luc), c.id`);
   let ds = await doc();
   let doiLai = 0;
   for (const c of ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai) && (!x.doc_luc || x.doc_luc < lechGiay(now, -DOC_LAI_GIAY)))) {
@@ -398,6 +413,15 @@ async function nhanDon(orderId) {
   const g = await run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_pha', nhan_luc = ? WHERE order_id = ? AND trang_thai = 'moi'", [getNow(), orderId]);
   return g.changes === 1 ? { ok: true } : loi(409, 'KHONG_O_COT_MOI', 'Đơn đã được nhận hoặc không còn ở cột Mới');
 }
+/** Thẻ giao lỗi (Ahamove báo giao không thành / huỷ khi đã lấy hàng): quản lý / chủ quán đóng thẻ có lý do — CHỈ rời màn, không đụng tiền / đơn
+ *  (chủ quán Q6 06.11; hoàn tiền đơn tiền mặt / CK chờ HUY-1). Phí chuyến vẫn ở Đối soát (tính theo dấu giờ đã chạy). */
+async function dongThe(orderId, lyDo, user) {
+  if (!laQuanLy(user)) return loi(403, 'PERMISSION_DENIED', 'Đóng thẻ cần quản lý hoặc chủ quán');
+  if (!lyDoHopLe(lyDo)) return loi(400, 'LY_DO_BAT_BUOC', 'Nhập lý do đóng thẻ (ít nhất 3 ký tự)');
+  const g = await run("UPDATE pos_giao_chuyen SET trang_thai = 'da_dong', huy_luc = ?, loi = ? WHERE order_id = ? AND trang_thai = 'giao_loi'",
+    [getNow(), 'Đã đóng thẻ: ' + lyDo.trim().slice(0, 200), orderId]);
+  return g.changes === 1 ? { ok: true } : loi(409, 'KHONG_PHAI_GIAO_LOI', 'Chỉ đóng được thẻ giao lỗi');
+}
 /** Tem túi giao: lần đầu chỉ MỘT máy giành được (hai máy cùng mở màn); in lại thì đếm lần. */
 async function inTem(orderId, lai) {
   const g = lai ? await run('UPDATE pos_giao_chuyen SET lan_in_tem = lan_in_tem + 1, in_tem_luc = COALESCE(in_tem_luc, ?) WHERE order_id = ?', [getNow(), orderId])
@@ -429,5 +453,5 @@ async function doiSoatGiao(q, tu, den) {
 
 module.exports = {
   LOAI_XE, MAC_DINH, kiemCaiDat, docCaiDat, goiY, datDiemLay, taoBaoPhi, docBaoPhiDon, ghiChuyenDon, kiemHuyDonGiao, chotHuyGiao, xoaDonGiao,
-  donGiaoDangChay, dongChuyenKhiHoan, laQuanLy, goiXe, huyChuyenGiao, nhanTinBao, gioGoiTaiXe, danhSach, nhanDon, inTem, giaoTrenHoaDon, doiSoatGiao,
+  donGiaoDangChay, dongChuyenKhiHoan, laQuanLy, goiXe, dongThe, huyChuyenGiao, nhanTinBao, gioGoiTaiXe, danhSach, nhanDon, inTem, giaoTrenHoaDon, doiSoatGiao,
 };

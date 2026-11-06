@@ -82,6 +82,11 @@ export default function GiaoHang() {
       else if (viec === 'tem' || viec === 'tem_lai') {
         const r = await giaoHangApi.inTem(c.order_id, viec === 'tem_lai');
         if (r.duoc) await inTemTui(c, r.lan);
+      } else if (viec === 'dong_the') {
+        const lyDo = window.prompt('Lý do đóng thẻ giao lỗi (chỉ đóng thẻ, không đụng tiền / đơn):');
+        if (!lyDo) return;
+        await giaoHangApi.dongThe(c.order_id, lyDo);
+        setMoThe(null);
       } else if (viec === 'huy_chuyen') {
         const lyDo = window.prompt('Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):');
         if (!lyDo) return;
@@ -162,6 +167,7 @@ export default function GiaoHang() {
                   <button className="gh-nut-do" disabled={dang} onClick={() => lam(ct, 'huy_don', { doDaPha: 'bo_di' })}>Bỏ đi</button>
                 </>
               )}
+              {quanLy && ct.trang_thai === 'giao_loi' && <button className="gh-nut-do" disabled={dang} onClick={() => lam(ct, 'dong_the')}>Đóng thẻ</button>}
               {ct.trang_thai === 'dang_giao' && <span className="gh-phu">Tài xế đã lấy hàng — không huỷ trên máy (gọi tài xế / Ahamove nếu có sự cố)</span>}
             </div>
           </div>

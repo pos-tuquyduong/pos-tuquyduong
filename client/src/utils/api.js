@@ -415,6 +415,7 @@ export const giaoHangApi = {
   goiXe: (id, loaiXe) => api.post(`/giao-hang/${id}/goi-xe`, loaiXe ? { loai_xe: loaiXe } : {}),
   huyChuyen: (id, lyDo) => api.post(`/giao-hang/${id}/huy-chuyen`, { ly_do: lyDo }),
   inTem: (id, lai = false) => api.post(`/giao-hang/${id}/in-tem`, { lai }),
+  dongThe: (id, lyDo) => api.post(`/giao-hang/${id}/dong-the`, { ly_do: lyDo }),
   huyDon: (id, lyDo, doDaPha) => api.put(`/orders/${id}/cancel`, { reason: lyDo, ...(doDaPha ? { do_da_pha: doDaPha } : {}) }),
 };
 
