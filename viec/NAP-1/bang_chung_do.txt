@@ -104,3 +104,20 @@ SỐ CA cong_cu/thu_NAP1.js: 73
   mới: BV-tra-not-tran · VS-goi-quyen-quan-ly · BV-goi-pin-them · BV-goi-pin-sua · VS-goi-pin-chi-khi-gui · K5-quay-chi-chu-quan · BV-khoi-phuc-goi-nap
   neo đổi theo code: BV-goi-quyen-them · BV-goi-quyen-sua · VS-sua-khong-kiem · BV-hoan-tra-not · VS-tra-not-nguong-noi-1
 npm test -- --day-du: PASS 103 · FAIL 0 · CẢNH BÁO 2 (file ngoài việc này, như vòng 3)
+
+════════ Vòng sửa soát bảo mật lần 1 (chủ quán 06.11 chọn (a): duyệt hoàn trừ điểm phần tài khoản) ════════
+Gốc = bản sao server/ + cong_cu/gia_lap/ của 5a695e6 (git archive vào nháp), chạy bài bằng --may-chu:
+cong_cu/thu_NAP1.js (thêm E7 · E8): trên gốc 68 đạt · 7 hỏng (G1–G4 đỏ chỉ vì bản sao nháp không có client/ — không liên quan)
+  ✗ E7 duyệt hoàn trừ điểm phần tài khoản: trọn ví 21 → 0; ví 10.400 + tiền mặt 10.600 (21) → trừ 11 (làm tròn LÊN) → 10; con 5.000 + mẹ 5.000 + tiền mặt 11.000 (21) → 11; điểm luật cũ (earn trước 014) → giữ 21; I8 = 0 lệch
+    (lần chạy đầu trên gốc in: trước [21,21,21,21] · sau [21,21,21,21])
+  ✗ E8 diemTruKhiHoan: tỷ lệ làm tròn LÊN, không quá điểm, 0 khi không có điểm / tiền  — không có hàm
+  ✗ K9 bất biến … = 0 lệch cuối bài  — I8 đơn ORD-20261106-037: 0 điểm, đúng luật là 21
+  sau vá: 75 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 75
+cong_cu/thu_P24.js (I2 đổi: hành vi ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi — LUAT §6.8, bài sửa thường): trên gốc 32 đạt · 1 hỏng
+  ✗ I2 duyệt hoàn tiền (refunds.js) đơn có 25 điểm (ví 10.000 + tiền mặt 15.000) → 200, ví hoàn, trừ 10 điểm phần ví (1 dòng trừ), giữ 15  — HTTP 200 / HTTP 200 · 25 điểm
+  sau vá: 33 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P24.js: 33
+Đột biến: ĐỐI CHỨNG XANH · 75 đạt · 0 hỏng — TỔNG 86 đột biến · BẮT 86 · SỐNG 0 · HỎNG 0 · LẠC 0 (trước khi chặn I8 cho kho không sổ ví);
+  sau đó chạy lại 8 đột biến điểm (6 mới + BV-I8-nap · VS-I8-luat-cu): BẮT 8 · SỐNG 0.
+npm test -- --day-du: PASS 103 · FAIL 0 · CẢNH BÁO 2

@@ -393,3 +393,24 @@ Máy sẽ sửa `server/routes/refunds.js` (duyệt hoàn) + bất biến I8 (`c
 Cả hai file đã trong Phạm vi. Bạn chỉ cần trả lời "(a)" hoặc "(b)".
 
 Bước dở: 8b (soát bảo mật lần 1 KHÔNG ĐẠT — chờ câu trả lời). Chưa làm: vòng sửa điểm, soát bảo mật lần 2, cổng `chay`, báo cáo 7 mục, Bài học.
+
+## Phiên 06.11 (3) — `tiep (a)`: vòng sửa lỗi soát bảo mật lần 1
+Bước 1: nhánh `viec/NAP-1`, cây sạch; HEAD `5a695e6` · FETCH_HEAD `5a695e6` (bằng nhau — không kéo). `git log --oneline -3`:
+```
+5a695e6 NAP-1 soat bao mat lan 1 (KHONG DAT, 1 loi diem khi duyet hoan) + Cau hoi cho chu quan
+b49c45a NAP-1 soat lai sau vong 4 (DAT, loi nhe) + sua chu thich viKhach
+d920ef0 NAP-1 vong sua 4: dot bien + bang chung + trang thai
+```
+Chủ quán chọn **(a)**: duyệt hoàn trừ điểm theo phần tài khoản được hoàn, làm tròn LÊN, giữ điểm phần tiền mặt / CK.
+
+| Chỗ vá | Sửa | Ca / đột biến |
+|---|---|---|
+| `server/utils/diemThat.js` | hàm thuần `diemTruKhiHoan(diem, tienHoan, tienDiem)` = min(diem, ceil(diem × tienHoan / tienDiem)) | E8 · VS-hoan-tru-diem-lam-tron · VS-hoan-tru-diem-khong-tran |
+| `server/routes/refunds.js` duyệt hoàn | `truDiemHoan` trong CÙNG giao dịch, tiền hoàn = con + mẹ, chỉ dòng earn cộng TỪ lúc chạy bước nâng cấp 014 (`pos_nang_cap.luc` — luật tiêu ví có điểm; đơn tích theo luật cũ "ví 0 điểm" không trừ, LUAT §6.6), dòng 'adjust' gắn đơn như huỷ (P24) | E7 · BV-hoan-tru-diem · VS-hoan-tru-diem-bo-me · VS-hoan-tru-diem-ca-luat-cu |
+| `cong_cu/gia_lap/bat_bien.js` I8 | đơn 'refunded': điểm đúng = điểm bán − ceil(điểm × tiền hoàn (sổ 'refund' của đơn, trừ hoan_goi) / tiền tính điểm); kho không có sổ ví → hoàn 0 | E7 (I8 = 0 lệch) · BV-I8-hoan |
+| `cong_cu/thu_P24.js` I2 | ca cũ khoá "duyệt hoàn GIỮ điểm (việc sau)" → nay trừ 10 / giữ 15 (LUAT §6.8 — hành vi đã duyệt đổi, đỏ trên gốc) | I2 |
+Đột biến nay **86** (80 + 6: BV-hoan-tru-diem · VS-hoan-tru-diem-bo-me · VS-hoan-tru-diem-lam-tron · VS-hoan-tru-diem-khong-tran ·
+VS-hoan-tru-diem-ca-luat-cu · BV-I8-hoan). ĐỐI CHỨNG XANH 75 · 0 — BẮT 86 · SỐNG 0 · HỎNG 0 · LẠC 0. `npm test -- --day-du`: PASS 103 · FAIL 0.
+K4: lối đưa đơn trả ví rời 'completed': huỷ (truDiemDon, orders.js), xoá (truDiemDon), duyệt hoàn (nay truDiemHoan) — đủ ba. Đơn 'refunded' không huỷ được
+(UPDATE … WHERE status = 'completed'). Đền bù (damages.js, ngoài Phạm vi) trả tiền về ví KHÔNG trừ điểm — có từ trước (đền là bồi thường sự cố, khách giữ
+điểm); ghi Phát hiện. K5: đơn tiền mặt / CK không hoàn được qua yêu cầu (cổng balance_amount > 0); phần tiền mặt giữ điểm (E7 ví + tiền mặt).

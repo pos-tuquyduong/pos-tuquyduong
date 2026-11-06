@@ -90,6 +90,13 @@ DOT_BIEN = [
   ('BV-nap-khong-huy', [(OR, '        if (await laDonNap(tx, order.id)) {   // NAP-1 (D): tiền nạp không hoàn', '        if (false) {   // NAP-1 (D): tiền nạp không hoàn', 1)], r'✗ D1 '),
   ('BV-nap-khong-xoa', [(OR, '      if (await laDonNap(tx, order.id)) {   // NAP-1 (D): đơn nạp không xoá', '      if (false) {   // NAP-1 (D): đơn nạp không xoá', 1)], r'✗ D2 '),
   # ── E: điểm (orders.js, diemThat.js, bat_bien.js I8) ──
+  # soát bảo mật lần 1 (chủ quán 06.11 (a)): duyệt hoàn trừ điểm phần tài khoản
+  ('BV-hoan-tru-diem', [('server/routes/refunds.js', '      await truDiemHoan(tx, don, con + me, req.user.username, now);\n', '', 1)], r'✗ E7 '),
+  ('VS-hoan-tru-diem-bo-me', [('server/routes/refunds.js', 'await truDiemHoan(tx, don, con + me,', 'await truDiemHoan(tx, don, con,', 1)], r'✗ E7 '),
+  ('VS-hoan-tru-diem-lam-tron', [(DT, 'Math.min(diem, Math.ceil((diem * tienHoan) / tienDiem))', 'Math.min(diem, Math.round((diem * tienHoan) / tienDiem))', 1)], r'✗ E7 |✗ E8 '),
+  ('VS-hoan-tru-diem-khong-tran', [(DT, 'Math.min(diem, Math.ceil((diem * tienHoan) / tienDiem))', 'Math.ceil((diem * tienHoan) / tienDiem)', 1)], r'✗ E8 '),
+  ('VS-hoan-tru-diem-ca-luat-cu', [('server/routes/refunds.js', "AND type = 'earn' AND created_at >= ? GROUP BY", "AND type = 'earn' AND ? IS NOT NULL GROUP BY", 1)], r'✗ E7 '),
+  ('BV-I8-hoan', [(BB, '      const dung = dungBan - truHoan;', '      const dung = dungBan;', 1)], r'✗ E7 '),
   ('BV-nap-diem', [(OR, '    if (goiNap) diemTao = null;', '', 1)], r'✗ E1 '),
   ('BV-nap-ma-bill', [(OR, 'if (!alreadyClaimed && !goiNap) {', 'if (!alreadyClaimed) {', 1)], r'✗ E5 '),
   ('BV-diem-vi', [(DT, '\n    + (Number(dong.balance_amount) || 0) + (Number(dong.parent_balance_amount) || 0);', ';', 1)], r'✗ E2 '),
