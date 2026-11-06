@@ -94,6 +94,7 @@ function dungAhamoveGia(express) {
   });
   g.get('/v3/orders/:id', (req, res) => {
     if (!coToken(req)) return res.status(401).json({ title: 'Token not found' });
+    if (A.hong === 'doc') return res.status(500).json({ title: 'loi doc' });
     const o = A.chuyen.get(req.params.id);
     return o ? res.json(o) : res.status(404).json({ title: 'not found' });
   });
@@ -650,6 +651,21 @@ async function main() {
     const c13 = await chuyenCua(e13.id);
     k('I6 Tìm lại mà Ahamove không cho huỷ (tài xế vừa lấy hàng) → nhận lại chuyến: dang_giao, không tạo mới', i6.status === 200 && A.tao.length === t13
       && c13?.trang_thai === 'dang_giao' && c13?.ma_ahamove === x13, `${i6.status} ${c13?.trang_thai}`);
+    // GL: Tìm lại mà Ahamove không cho huỷ VÀ không đọc được chuyến cũ → 502, thẻ về tim_xe GIỮ giờ gọi cũ (vẫn "tìm lâu", bấm lại được ngay)
+    const e15 = await donGiao({ sl: 1 });
+    await goiXe(e15.id);
+    const x15 = (await chuyenCua(e15.id))?.ma_ahamove;
+    await db.run('UPDATE pos_giao_chuyen SET goi_luc = ?, doc_luc = ? WHERE order_id = ?',
+      [new Date(Date.parse(getNow() + 'Z') - 601 * 1000).toISOString().slice(0, 19), getNow(), e15.id]).catch(() => {});
+    if (A.chuyen.has(x15)) datTrangThai(x15, { status: 'IN PROCESS', supplier_name: 'TX L', supplier_id: '0977001333' });
+    A.hong = 'doc';
+    const gl1 = await goiXe(e15.id);
+    A.hong = null;
+    const the15 = ((await goi('GET', '/giao-hang')).j.chuyen || []).find((x) => x.order_id === e15.id);
+    const gl2 = await goiXe(e15.id);
+    k('GL không đọc được chuyến cũ → 502, thẻ tim_xe vẫn "tìm lâu" (giữ giờ gọi cũ); bấm lại ngay → 200 nhận lại chuyến', gl1.status === 502
+      && the15?.trang_thai === 'tim_xe' && the15?.tim_lau === true && gl2.status === 200 && (await chuyenCua(e15.id))?.trang_thai === 'dang_giao',
+      `${gl1.status} ${the15?.trang_thai} ${the15?.tim_lau} ${gl2.status}`);
     // G10: đơn bị hoàn chen giữa lúc đọc đơn và câu giành → câu giành thua (409), Ahamove không tạo gì
     const e10 = await donGiao({ sl: 1 });
     mocHoan = e10.id;
@@ -819,9 +835,9 @@ async function main() {
     // phí khách trả: SỔ CỦA BÀI THỬ (phí từ câu trả lúc tạo đơn), chỉ đơn còn hiệu lực
     let pk = 0;
     for (const x of daTao) if ((await db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [x.id]))?.status === 'completed') pk += Number(x.phi);
-    // Vòng 4: + chuyến đã chạy G8c 25.000, I6 25.000, DT 25.000 (chênh 0) → phí thật 151.000; phí huỷ chỉ lệnh huỷ của quán: J5 5.000 + I4b 2.000 + J5e 3.000.
-    k('K1 phí khách trả / phí Ahamove thật / quán bù / quán dư / phí huỷ (số cứng: 151.000 · 5.000 · 4.000 · 10.000)', !!g && g.phi_khach === Number(pk)
-      && g.phi_that === 151000 && g.quan_bu === 5000 && g.quan_du === 4000 && g.phi_huy === 10000, J(g).slice(0, 200) + ' khách ' + pk);
+    // Vòng 4: + chuyến đã chạy G8c 25.000, I6 25.000, GL 25.000, DT 25.000 (chênh 0) → phí thật 176.000; phí huỷ chỉ lệnh huỷ của quán: J5 5.000 + I4b 2.000 + J5e 3.000.
+    k('K1 phí khách trả / phí Ahamove thật / quán bù / quán dư / phí huỷ (số cứng: 176.000 · 5.000 · 4.000 · 10.000)', !!g && g.phi_khach === Number(pk)
+      && g.phi_that === 176000 && g.quan_bu === 5000 && g.quan_du === 4000 && g.phi_huy === 10000, J(g).slice(0, 200) + ' khách ' + pk);
     const huy = (g?.don_huy || []).map((x) => x.code);
     k('K1 danh sách đơn giao huỷ đủ, kèm "Bỏ đi" / "Dùng cho đơn khác"', dHuy.every((c) => huy.includes(c)) && (g?.don_huy || []).some((x) => x.do_da_pha === 'bo_di'),
       J(g?.don_huy || []).slice(0, 200));
