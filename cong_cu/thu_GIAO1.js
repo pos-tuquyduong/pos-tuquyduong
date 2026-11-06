@@ -49,6 +49,7 @@ const nhatKy = [];
 const imLang = () => { console.log = console.error = console.warn = (...a) => nhatKy.push(a.map(String).join(' ')); };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
 const thuNap = (p) => { try { return require(p); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return null; throw e; } };
+const J = (x) => String(JSON.stringify(x) ?? 'undefined');
 const coBiMat = (s) => Object.values(BI_MAT).some((b) => String(s).includes(b));
 
 // ─── Ahamove GIẢ ─────────────────────────────────────────────────────────
@@ -221,11 +222,11 @@ async function main() {
     process.env.AHAMOVE_BASE_URL = luu.b; if (luu.m === undefined) delete process.env.AHAMOVE_MOI_TRUONG; else process.env.AHAMOVE_MOI_TRUONG = luu.m;
     const STG = 'https://partner-apistg.ahamove.com', PRD = 'https://partner-api.ahamove.com';
     k('A5 AHAMOVE_MOI_TRUONG: thiếu / staging / lạ → gốc THỬ; đúng "production" (bỏ khoảng trắng, hoa thường) → gốc THẬT',
-      JSON.stringify(gocDung) === JSON.stringify([STG, STG, PRD, PRD, STG]), JSON.stringify(gocDung));
+      J(gocDung) === J([STG, STG, PRD, PRD, STG]), J(gocDung));
     process.env.AHAMOVE_MOI_TRUONG = 'production';
     const r3 = await goi('GET', '/giao-hang/cai-dat');
     delete process.env.AHAMOVE_MOI_TRUONG;
-    k('A5 production → cai-dat báo bản thật', r3.j.ahamove?.ban === 'that', JSON.stringify(r3.j.ahamove));
+    k('A5 production → cai-dat báo bản thật', r3.j.ahamove?.ban === 'that', J(r3.j.ahamove));
     A.hong = 'bao_phi';
     const r4 = await baoPhi();
     A.hong = null;
@@ -245,11 +246,11 @@ async function main() {
   {
     const r0 = await goi('GET', '/giao-hang/cai-dat');
     const cd0 = r0.j.cai_dat || {};
-    k('B4 chưa lưu → mặc định: 2 phút/món, 6 phút tìm xe, 15 phút nhắc, HAN-BIKE', cd0.phut_moi_mon === 2 && cd0.phut_tim_xe === 6 && cd0.phut_nhac === 15 && cd0.loai_xe === 'HAN-BIKE', JSON.stringify(cd0));
+    k('B4 chưa lưu → mặc định: 2 phút/món, 6 phút tìm xe, 15 phút nhắc, HAN-BIKE', cd0.phut_moi_mon === 2 && cd0.phut_tim_xe === 6 && cd0.phut_nhac === 15 && cd0.loai_xe === 'HAN-BIKE', J(cd0));
     const tot = { giao_km_toi_da: '5', giao_gio_nhan: '', giao_loai_xe: 'HAN-BIKE', giao_phut_moi_mon: '2', giao_phut_tim_xe: '6', giao_phut_nhac: '15', giao_sdt_quan: '0912345678' };
     const r1 = await goi('PUT', '/settings', { settings: tot });
     const r1b = await goi('GET', '/giao-hang/cai-dat');
-    k('B1 lưu đủ khoá giao_* → cai-dat đọc lại đúng', r1.status === 200 && r1b.j.cai_dat?.km_toi_da === 5 && r1b.j.cai_dat?.sdt_quan === '0912345678', r1.status + ' ' + JSON.stringify(r1b.j.cai_dat));
+    k('B1 lưu đủ khoá giao_* → cai-dat đọc lại đúng', r1.status === 200 && r1b.j.cai_dat?.km_toi_da === 5 && r1b.j.cai_dat?.sdt_quan === '0912345678', r1.status + ' ' + J(r1b.j.cai_dat));
     for (const [ten, sai] of [['km âm', { giao_km_toi_da: '-1' }], ['giờ sai', { giao_gio_nhan: '25:00-26:00' }], ['loại xe lạ', { giao_loai_xe: 'HAN-TRUCK' }],
       ['phút không nguyên', { giao_phut_moi_mon: '1.5' }], ['điểm lấy gõ tay', { giao_diem_lay: '{"dia_chi":"x","lat":1,"lng":2}' }], ['khoá giao_ lạ', { giao_la: '1' }]]) {
       const r = await goi('PUT', '/settings', { settings: { ...tot, giao_km_toi_da: '9', ...sai } });
@@ -262,7 +263,7 @@ async function main() {
     const d1 = await goi('POST', '/giao-hang/diem-lay', { ma_goi_y: 'LAY' }, tk.staff);
     const d2 = await goi('POST', '/giao-hang/diem-lay', { ma_goi_y: 'LAY' });
     const dl = JSON.parse((await db.queryOne("SELECT value FROM pos_settings WHERE key = 'giao_diem_lay'"))?.value || '{}');
-    k('B7 điểm lấy hàng: nhân viên 403; chủ quán chọn gợi ý → lưu địa chỉ + toạ độ', d1.status === 403 && d2.status === 200 && dl.lat === 21.02 && dl.lng === 105.82 && /Tứ Quý/.test(dl.dia_chi), `${d1.status} ${d2.status} ${JSON.stringify(dl)}`);
+    k('B7 điểm lấy hàng: nhân viên 403; chủ quán chọn gợi ý → lưu địa chỉ + toạ độ', d1.status === 403 && d2.status === 200 && dl.lat === 21.02 && dl.lng === 105.82 && /Tứ Quý/.test(dl.dia_chi), `${d1.status} ${d2.status} ${J(dl)}`);
     datGoiY(false);
     const h = Number(getNow().slice(11, 13));
     const hh = (x) => String((x + 24) % 24).padStart(2, '0') + ':00';
@@ -276,7 +277,7 @@ async function main() {
     A.baoPhi.length = 0;
     await baoPhi();
     await datCaiDat('giao_loai_xe', 'HAN-BIKE');
-    k('B6 loại xe mặc định (Cài đặt) tới lệnh báo phí Ahamove', A.baoPhi[0]?.services?.[0]?._id === 'HAN-EXPRESS', JSON.stringify(A.baoPhi[0]?.services));
+    k('B6 loại xe mặc định (Cài đặt) tới lệnh báo phí Ahamove', A.baoPhi[0]?.services?.[0]?._id === 'HAN-EXPRESS', J(A.baoPhi[0]?.services));
   }
 
   // ═══ C · ô địa chỉ ══════════════════════════════════════════════════════════
@@ -291,14 +292,14 @@ async function main() {
     const c1b = await goi('POST', '/giao-hang/bao-phi', { ma_goi_y: 'G1' });
     const den = A.baoPhi[0]?.path?.[1] || {};
     k('C1 cách 1 bật: gõ chữ không chọn gợi ý → 400 DIA_CHI_PHAI_CHON_GOI_Y', c1.status === 400 && c1.j.code === 'DIA_CHI_PHAI_CHON_GOI_Y', `${c1.status} ${c1.j.code}`);
-    k('C1 cách 1: chọn gợi ý → báo phí với toạ độ của gợi ý', c1b.status === 200 && den.lat === 21.01 && den.lng === 105.81 && c1b.j.can_xac_nhan === false, `${c1b.status} ${JSON.stringify(den)}`);
+    k('C1 cách 1: chọn gợi ý → báo phí với toạ độ của gợi ý', c1b.status === 200 && den.lat === 21.01 && den.lng === 105.81 && c1b.j.can_xac_nhan === false, `${c1b.status} ${J(den)}`);
     const c1c = await goi('POST', '/giao-hang/bao-phi', { ma_goi_y: 'KHONG_CO' });
     k('C1 cách 1: mã gợi ý không có ở Ahamove → 400 (không báo phí)', c1c.status === 400, `${c1c.status} ${c1c.j.code}`);
     datGoiY(false);
     const g2 = await goi('GET', '/giao-hang/dia-chi?q=' + encodeURIComponent('Số 1 Ngõ Gần'));
     const c2 = await baoPhi('Số 1 Ngõ Gần, Hà Nội');
     k('C1b cách 2 (chưa có khoá gợi ý): dia-chi báo cach = xac_nhan; báo phí bằng chữ → km + phí + can_xac_nhan', g2.j.cach === 'xac_nhan' && c2.status === 200
-      && c2.j.km === 3 && c2.j.phi === 25000 && c2.j.can_xac_nhan === true && typeof c2.j.ma_bao_phi === 'string' && c2.j.ma_bao_phi.length >= 32, JSON.stringify(c2.j).slice(0, 160));
+      && c2.j.km === 3 && c2.j.phi === 25000 && c2.j.can_xac_nhan === true && typeof c2.j.ma_bao_phi === 'string' && c2.j.ma_bao_phi.length >= 32, J(c2.j).slice(0, 160));
     const c2b = await baoPhi('  ');
     k('C1b cách 2: chữ rỗng → 400', c2b.status === 400, String(c2b.status));
     const e1 = await baoPhi('Số 9 Đường Biên, Hà Nội');
@@ -312,10 +313,10 @@ async function main() {
   {
     d1 = await donGiao();
     k('D1 đơn giao: shipping_fee = phí báo (25.000), bỏ qua số màn hình gửi', d1.r.status === 200 && d1.r.j.order?.shipping_fee === 25000, `${d1.r.status} ${d1.r.tho.slice(0, 160)}`);
-    k('K5f tinh-thu có giao: trả phí ship đúng mà KHÔNG tiêu báo phí', d1.tinh.j.shipping_fee === 25000 && d1.r.status === 200, JSON.stringify(d1.tinh.j).slice(0, 120));
+    k('K5f tinh-thu có giao: trả phí ship đúng mà KHÔNG tiêu báo phí', d1.tinh.j.shipping_fee === 25000 && d1.r.status === 200, J(d1.tinh.j).slice(0, 120));
     const ch = await chuyenCua(d1.id);
     k('D6 đơn giao vào "Đang pha": chuyến dang_pha, giờ nhận, người nhận, ghi chú tài xế', ch?.trang_thai === 'dang_pha' && !!ch.nhan_luc && ch.ten_nhan === 'Chị Nhận'
-      && ch.ghi_chu === 'Tầng 3, gọi trước' && ch.phi_khach === 25000, JSON.stringify(ch).slice(0, 200));
+      && ch.ghi_chu === 'Tầng 3, gọi trước' && ch.phi_khach === 25000, J(ch).slice(0, 200));
     const p = await db.queryOne("SELECT points FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [d1.id]);
     k('D3 điểm KHÔNG tính phí ship (60.000 tiền món → 6 điểm, không phải 8)', Number(p?.points) === 6, String(p?.points));
     const lai = await goi('POST', '/orders', { customer_phone: SDT_KHACH, items: [mon(1)], payment_method: 'balance', balance_amount: 55000, giao: { ma_bao_phi: d1.ma, ten: 'A', sdt: '0988000111' } });
@@ -323,7 +324,7 @@ async function main() {
     k('D4 dùng lại một báo phí cho đơn thứ hai → 400 BAO_PHI_DA_DUNG; báo phí vẫn gắn đơn đầu', lai.status === 400 && lai.j.code === 'BAO_PHI_DA_DUNG' && Number(bp?.order_id) === d1.id, `${lai.status} ${lai.j.code}`);
     const b2 = await baoPhi();
     const t2 = await goi('POST', '/orders/tinh-thu', { customer_phone: SDT_KHACH, items: [mon(2)], discount_code: 'G1GIAM10', giao: { ma_bao_phi: b2.j.ma_bao_phi } });
-    k('D2 mã giảm 10% chỉ giảm tiền món, phí ship nguyên (54.000 + 25.000)', t2.j.total === 79000 && t2.j.shipping_fee === 25000, JSON.stringify(t2.j).slice(0, 160));
+    k('D2 mã giảm 10% chỉ giảm tiền món, phí ship nguyên (54.000 + 25.000)', t2.j.total === 79000 && t2.j.shipping_fee === 25000, J(t2.j).slice(0, 160));
     const no = await goi('POST', '/orders', { customer_phone: SDT_KHACH, items: [mon(1)], payment_method: 'debt', debt_amount: 55000, giao: { ma_bao_phi: b2.j.ma_bao_phi, ten: 'A', sdt: '0988000111' } });
     k('D8 đơn giao ghi nợ / chưa thu đủ → 400 GIAO_PHAI_THU_DU', no.status === 400 && no.j.code === 'GIAO_PHAI_THU_DU', `${no.status} ${no.j.code}`);
     const sai = await goi('POST', '/orders/tinh-thu', { items: [mon(1)], giao: { ma_bao_phi: 'f'.repeat(32) } });
@@ -341,7 +342,7 @@ async function main() {
     k('D9 + D5 phiên tiền mặt mang giao (giuCho), chốt SAU hạn báo phí vẫn tạo đơn giao — tiền khách đã nhận', ph.status === 200 && ph.j.phien?.tong === 55000
       && chot.status === 200 && ch3?.ten_nhan === 'Anh Phiên', `${ph.status} ${ph.j.phien?.tong} ${chot.status} ${chot.tho.slice(0, 100)}`);
     const hd = await goi('GET', `/hoa-don/${d1.id}`);
-    k('D7 hoá đơn có giao.dia_chi (dòng "GIAO HÀNG")', hd.j.hoa_don?.giao?.dia_chi === 'Số 1 Ngõ Gần, Hà Nội' && hd.j.hoa_don?.giao?.nguoi_nhan === 'Chị Nhận', JSON.stringify(hd.j.hoa_don?.giao));
+    k('D7 hoá đơn có giao.dia_chi (dòng "GIAO HÀNG")', hd.j.hoa_don?.giao?.dia_chi === 'Số 1 Ngõ Gần, Hà Nội' && hd.j.hoa_don?.giao?.nguoi_nhan === 'Chị Nhận', J(hd.j.hoa_don?.giao));
     const thuong = await goi('POST', '/orders', { items: [mon(1)], shipping_fee: 7000, payment_method: 'cash', cash_amount: 37000, cash_received: 37000 });
     const hd2 = thuong.j.order ? await goi('GET', `/hoa-don/${thuong.j.order.id}`) : { j: {} };
     k('K5a đơn KHÔNG giao: shipping_fee màn hình gửi vẫn như cũ (7.000), không chuyến, hoá đơn không có giao', thuong.status === 200 && thuong.j.order?.shipping_fee === 7000
@@ -360,11 +361,11 @@ async function main() {
     const ds = await goi('GET', '/giao-hang');
     const the = (ds.j.chuyen || []).find((x) => x.order_id === d1.id);
     k('E1 GET /giao-hang: thẻ đơn giao ở cột dang_pha, có món, km, người nhận', ds.status === 200 && the?.cot === 'dang_pha' && the?.so_mon === 2 && the?.km === 3
-      && the?.mon?.[0]?.sl === 2 && the?.ten === 'Chị Nhận', ds.status + ' ' + JSON.stringify(the).slice(0, 200));
+      && the?.mon?.[0]?.sl === 2 && the?.ten === 'Chị Nhận', ds.status + ' ' + J(the).slice(0, 200));
     const dangPha = (ds.j.chuyen || []).filter((x) => x.cot === 'dang_pha').sort((a, b) => a.nhan_luc.localeCompare(b.nhan_luc) || a.id - b.id);
     const sau = dangPha.at(-1), truoc = dangPha.slice(0, -1).reduce((s, x) => s + x.so_mon, 0);
     k('F2 qua máy chủ: giờ gợi ý của thẻ cuối cộng món các đơn đang pha trước nó', dangPha.length >= 2 && sau.goi_luc_goi_y === f(sau.nhan_luc, truoc + sau.so_mon, { phut_moi_mon: 2, phut_tim_xe: 6 }),
-      JSON.stringify(dangPha.map((x) => [x.so_mon, x.nhan_luc, x.goi_luc_goi_y])));
+      J(dangPha.map((x) => [x.so_mon, x.nhan_luc, x.goi_luc_goi_y])));
     // E2: cột Mới (đơn App — KH-MUA-2 sau): dựng một chuyến 'moi' bằng tay rồi Nhận
     const dm = await donGiao({ sl: 1 });
     await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'moi', nhan_luc = NULL WHERE order_id = ?", [dm.id]).catch(() => {});
@@ -397,13 +398,13 @@ async function main() {
     const body = A.tao.at(-1) || {};
     const ch = await chuyenCua(gx.id);
     k('G6 mã theo dõi = số HD; toạ độ / địa chỉ điểm giao = đã lưu; không COD', body.path?.[1]?.tracking_number === gx.code && body.path?.[1]?.address === 'Số 1 Ngõ Gần, Hà Nội'
-      && body.path?.[0]?.address && !('cod' in (body.path?.[1] || {})), JSON.stringify(body).slice(0, 220));
-    k('C4 ghi chú cho tài xế tới remarks của điểm giao', body.path?.[1]?.remarks === 'Ngõ 5, nhà xanh', JSON.stringify(body.path?.[1]));
+      && body.path?.[0]?.address && !('cod' in (body.path?.[1] || {})), J(body).slice(0, 220));
+    k('C4 ghi chú cho tài xế tới remarks của điểm giao', body.path?.[1]?.remarks === 'Ngõ 5, nhà xanh', J(body.path?.[1]));
     k('G5 phí thật 30.000 ≠ khách trả 25.000 → chenh = +5.000 (quán bù), chuyến tim_xe', ch?.trang_thai === 'tim_xe' && ch?.phi_that === 30000 && ch?.chenh === 5000 && ch?.ma_ahamove === 'AHA' + A.soChuyen,
-      JSON.stringify(ch).slice(0, 200));
+      J(ch).slice(0, 200));
     const ds = await goi('GET', '/giao-hang');
     const the = (ds.j.chuyen || []).find((x) => x.order_id === gx.id);
-    k('G7 thẻ trả chenh để hiện "quán bù X đ"; cột doi_tai_xe', the?.chenh === 5000 && the?.cot === 'doi_tai_xe', JSON.stringify(the).slice(0, 160));
+    k('G7 thẻ trả chenh để hiện "quán bù X đ"; cột doi_tai_xe', the?.chenh === 5000 && the?.cot === 'doi_tai_xe', J(the).slice(0, 160));
     // G4: Ahamove tạo xong nhưng câu trả bị cắt → bấm lại tra theo mã, KHÔNG tạo chuyến thứ hai
     const g4 = await donGiao({ sl: 1 });
     A.nuot = true;
@@ -440,7 +441,7 @@ async function main() {
     const ch1 = await chuyenCua(gx.id);
     k('H4 thân tin nói COMPLETED nhưng Ahamove (đọc lại) nói ACCEPTED → doi_tai_xe', h4.status === 200 && ch1?.trang_thai === 'doi_tai_xe', `${h4.status} ${ch1?.trang_thai}`);
     k('H5 + H10 có tài xế: tên, SĐT, biển số, giờ có xe được lưu', ch1?.tai_xe_ten === 'Tài Xế A' && ch1?.tai_xe_sdt === '0977000333' && ch1?.tai_xe_bien_so === '29B1-12345' && !!ch1?.co_xe_luc,
-      JSON.stringify(ch1).slice(0, 220));
+      J(ch1).slice(0, 220));
     const nTin = Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_giao_tin').catch(() => ({ n: -1 }))).n);
     if (A.chuyen.has(id)) datTrangThai(id, { status: 'IN PROCESS' });
     const h3 = await baoVe({ _id: id, status: 'COMPLETED' });
@@ -462,7 +463,7 @@ async function main() {
       && !((await goi('GET', '/giao-hang')).j.chuyen || []).some((x) => x.order_id === gx.id), `${ch3?.trang_thai}`);
     const la = await baoVe({ _id: 'KHONG_CUA_QUAN', status: 'ACCEPTED' });
     k('H tin của chuyến không thuộc quán → 200, không làm gì', la.status === 200);
-    k('A3 tin báo không lưu header / khoá: bảng pos_giao_tin không chứa khoá', !(await db.query('SELECT * FROM pos_giao_tin').catch(() => [])).some((r) => coBiMat(JSON.stringify(r))));
+    k('A3 tin báo không lưu header / khoá: bảng pos_giao_tin không chứa khoá', !(await db.query('SELECT * FROM pos_giao_tin').catch(() => [])).some((r) => coBiMat(J(r))));
   }
 
   // ═══ H9 in tem · I sự cố ════════════════════════════════════════════════════
@@ -534,7 +535,7 @@ async function main() {
     k('J3b "Bỏ đi" → ghi hàng hỏng ĐÚNG món + số lượng (lý do có số HD), KHÔNG hoàn kho (đồ đã đổ — kho giữ phần đã trừ), đánh dấu trên chuyến',
       j3b.status === 200 && chb?.do_da_pha === 'bo_di' && kho2.length === 0 && hong2.length === 1 && hong2[0].product_code === spCode && Number(hong2[0].quantity) === 3
       && hong2[0].action === 'none' && Number(hong2[0].refund_amount) === 0 && String(hong2[0].reason_note || '').includes(b.code),
-      `${j3b.status} ${chb?.do_da_pha} kho ${kho2.length} hỏng ${JSON.stringify(hong2[0] || {}).slice(0, 160)}`);
+      `${j3b.status} ${chb?.do_da_pha} kho ${kho2.length} hỏng ${J(hong2[0] || {}).slice(0, 160)}`);
     const c = await donGiao({ tra: 'tien_mat' });
     const j4 = await huyDon(c.id, { reason: 'khách đổi ý', do_da_pha: 'dung_lai' });
     const ck = await donGiao({ tra: 'ck' });
@@ -573,7 +574,7 @@ async function main() {
     const j8b = await goi('DELETE', `/orders/${y.id}`);
     const bpY = await db.queryOne('SELECT order_id FROM pos_giao_bao_phi WHERE ma = ?', [y.ma]).catch(() => null);
     k('J8 xoá đơn có chuyến ở Ahamove → 409 HUY_CHUYEN_TRUOC; xoá đơn đang pha → xoá chuyến, báo phí nhả order_id', j8a.status === 409 && j8a.j.code === 'HUY_CHUYEN_TRUOC'
-      && j8b.status === 200 && !(await chuyenCua(y.id)) && bpY && bpY.order_id === null, `${j8a.status} ${j8a.j.code} ${j8b.status} ${JSON.stringify(bpY)}`);
+      && j8b.status === 200 && !(await chuyenCua(y.id)) && bpY && bpY.order_id === null, `${j8a.status} ${j8a.j.code} ${j8b.status} ${J(bpY)}`);
     // K5b: đơn thường nhân viên huỷ như cũ
     const t = await goi('POST', '/orders', { items: [mon(1)], payment_method: 'cash', cash_amount: 30000, cash_received: 30000 });
     const k5 = await huyDon(t.j.order?.id, { reason: '' }, tk.staff);
@@ -607,10 +608,10 @@ async function main() {
       phi_that: ds.reduce((s, x) => s + Number(x.phi_that || 0), 0), bu: ds.reduce((s, x) => s + Math.max(0, Number(x.chenh || 0)), 0),
       du: ds.reduce((s, x) => s + Math.max(0, -Number(x.chenh || 0)), 0), huy: ds.reduce((s, x) => s + Number(x.phi_huy || 0), 0) };
     k('K1 tổng phí khách trả / phí Ahamove thật / quán bù / quán dư / phí huỷ khớp từng chuyến', !!g && g.phi_khach === ky.phi_khach && g.phi_that === ky.phi_that && g.quan_bu === ky.bu
-      && g.quan_du === ky.du && g.phi_huy === ky.huy && ky.bu > 0 && ky.du > 0 && ky.huy === 5000, JSON.stringify(g) + ' ≠ ' + JSON.stringify(ky));
+      && g.quan_du === ky.du && g.phi_huy === ky.huy && ky.bu > 0 && ky.du > 0 && ky.huy === 5000, J(g) + ' ≠ ' + J(ky));
     const huy = (g?.don_huy || []).map((x) => x.code);
     k('K1 danh sách đơn giao huỷ đủ, kèm "Bỏ đi" / "Dùng cho đơn khác"', dHuy.every((c) => huy.includes(c)) && (g?.don_huy || []).some((x) => x.do_da_pha === 'bo_di'),
-      JSON.stringify(g?.don_huy || []).slice(0, 200));
+      J(g?.don_huy || []).slice(0, 200));
   }
 
   // ═══ A6 · không khoá nào trong DB / nhật ký ════════════════════════════════
@@ -618,7 +619,7 @@ async function main() {
   {
     const bang = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name);
     const lo = [];
-    for (const t of bang) for (const r of await db.query(`SELECT * FROM "${t}"`)) if (coBiMat(JSON.stringify(r))) lo.push(t);
+    for (const t of bang) for (const r of await db.query(`SELECT * FROM "${t}"`)) if (coBiMat(J(r))) lo.push(t);
     k('A6 mọi bảng (gồm pos_settings, pos_giao_*) không chứa khoá / token Ahamove', bang.includes('pos_giao_chuyen') && lo.length === 0, lo.join(', ') || (bang.includes('pos_giao_chuyen') ? '' : 'chưa có bảng'));
     k('A3 nhật ký (console) cả bài không chứa khoá / token', nhatKy.length > 0 && !nhatKy.some(coBiMat), nhatKy.find(coBiMat)?.slice(0, 120));
   }
