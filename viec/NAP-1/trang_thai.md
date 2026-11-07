@@ -641,3 +641,35 @@ Bài thử: E16 ĐỎ trên gốc (điểm 31, đúng 21 — bang_chung_do.txt),
 Lần đầu hoaDon.js đếm 'adjust' cho MỌI đơn hoàn tất → `thu_HD1.js` A24 / A28b đỏ (hai ca chèn tay dòng trừ vào đơn KHÔNG có tiền trả vào tài khoản; file ngoài
 Phạm vi) → thu hẹp theo đúng chữ phiếu (chỉ khi có tiền trả vào tài khoản); thu_HD1 157 · 0.
 Đang chạy: trọn bộ đột biến (kiểm neo cũ) và soát độc lập phần mới.
+
+## Soát độc lập (/ra-soat, 07.11 (2), phần mới 2f48b42 → a670b86) — tóm tắt báo cáo (bản đầy đủ do agent nộp về phiên)
+```
+KHÔNG ĐẠT (mọi lỗi NHẸ, không mất tiền quán)
+LỖI TÌM ĐƯỢC:
+- server/utils/diemThat.js:34 — `if (!moc) return;` trả undefined trong khi chú thích ghi "Trả số điểm vừa trừ" → signup-codes.js diem_cong NaN ("Đã cộng NaN điểm")
+  khi bước 014 hỏng mà quầy vẫn mở (database.js:20, 39-40). — K1/K4 — NHẸ
+- server/routes/signup-codes.js:240-262 — đơn đền TRỌN / kết thúc gói hoàn trọn rồi nhận mã: mã bị tiêu, earn +N rồi −N, "Đã cộng 0 điểm"; chiLanDau ghi
+  diem_nhan_phone → SĐT mất quyền nhận lần đầu mà 0 điểm. Trái nguyên tắc dòng 208-209 "chặn TRƯỚC câu chiếm mã". — K5 — NHẸ
+- cong_cu/thu_NAP1.js:623-643 — E16 chỉ thử đền (sổ 'compensation'); kết thúc gói ghi 'refund' (wallets.js:108-116) không ca nào thử bill / nhận mã → đột biến bỏ
+  'refund' khỏi hoaDon.js:50 SỐNG. — K3 — NHẸ
+NGHI NGỜ: VS-ma-bill-tru-ngoai-gd có thể BẮT do kho thử báo bận (vẫn là phép canh hợp lý). Thu hẹp hoaDon.js:49-51 trên dữ liệu thật tương đương "luôn đếm
+  adjust" (adjust gắn đơn chỉ sinh ở orders.js:1687 và diemThat.js:48 sau sổ ví refund/compensation) — không thấy lỗ; nhánh nới chỉ thu_HD1 bắt. App KH: diem_cong
+  nay RÒNG nhưng diem_goc / he_so như cũ — nếu App hiện diem_goc × he_so sẽ lệch (kho App không ở đây; HOP_DONG_API_KH.md:216 không liệt kê trường).
+K3 đạt (tự chạy HEAD-bài trên gốc 2f48b42: 82 · 2, đỏ E16 + K9; 6/6 đột biến BẮT). K4: lối cộng điểm theo đơn 3 chỗ (orders.js:1140 lúc bán, :1431 thu nợ —
+  không thể sau đền vì đền đòi đã thu đủ damages.js:174, signup-codes.js:255 — đã xử lý); hiển thị: hoaDon dungDiem (App qua dongHoaDon.js:46); dungMaNhanDiem
+  chỉ khách lẻ (không có sổ ví) — không tới được. K5: E16b, khách lẻ, luật cũ (diemThat.js:38), duyệt hoàn (đơn 'refunded' bị từ chối mã). P1: không đụng client/.
+  thu_NAP1 84 · 0; thu_HD1 157 · 0; npm test PASS 99 · FAIL 0 · CẢNH BÁO 2.
+NGHIỆM THU: 13/14 · thiếu: kết thúc gói → nhận mã + bill (không ca).
+CHƯA SOÁT ĐƯỢC: App KH dùng diem_goc / he_so / diem_cong thế nào; /api/kh/nhan-diem không ca riêng (chung hàm); Turso thật khi đền và nhận mã chen nhau; A–F
+  không soát sâu lại lượt này.
+BÀI HỌC: KHOÁ — hàm trả số mà chỗ gọi dùng để tính thì MỌI nhánh return phải trả số, đột biến phủ từng nhánh return. NGUYÊN TẮC — thêm bước TRỪ sau câu
+  chiếm mã phải hỏi "ròng = 0 thì sao" (đường song song của "chặn TRƯỚC câu chiếm mã", K4 + K5); phiếu nêu N đường thì mỗi đường một ca (sổ ví khác loại).
+```
+
+### Vòng sửa 1 (phần 07.11 (2))
+| Lỗi | Sửa | Ca / đột biến |
+|---|---|---|
+| 1 NaN khi chưa có mốc | `diemThat.js` `if (!moc) return 0;` | E16f (đỏ trên bản trước) · VS-tru-diem-moc-thieu-khong-so |
+| 2 ròng 0 tiêu mã | `signup-codes.js`: sau trừ, `diemCong − diemTru ≤ 0` → rollback cả giao dịch (mã + quyền lần đầu không tiêu), 400 `KHONG_THEM_DIEM` (mã lỗi có sẵn của /nhan-diem — không đổi hợp đồng App) | E16c (đỏ trên bản trước) · BV-ma-bill-rong-0 · VS-ma-bill-rong-am |
+| 3 kết thúc gói chưa ca | E16d: gói 30.000 + món 21.000 (51) hoàn 30.000 → 21, bill 21; nhận mã ×2 → báo 21, điểm 42, bill 42, I8 0 | VS-bill-diem-bo-refund |
+thu_NAP1 87 · 0.
