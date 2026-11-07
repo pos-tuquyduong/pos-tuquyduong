@@ -260,6 +260,11 @@ async function nhanDiemMaBill(req, res) {
       // NAP-1 (chủ quán 07.11): đơn đã được đền / kết thúc gói (tiền trả vào tài khoản) → trừ ngay phần điểm tương ứng, CÙNG giao dịch, đúng
       // hàm của duyệt hoàn / đền bù. Báo khách số điểm cộng RÒNG (không đổi tên trường).
       diemTru = await truDiemHoan(tx, don, (req.user && req.user.username) || 'service', now, `Nhận điểm mã bill ${maGoc}`);
+      // Đơn đã trả lại vào tài khoản TRỌN → ròng 0: huỷ cả giao dịch (mã và quyền nhận lần đầu không bị tiêu), cùng mã lỗi "không cộng thêm".
+      if (diemCong - diemTru <= 0) {
+        await tx.rollback();
+        return res.status(400).json({ success: false, error: 'Tiền đơn này đã được trả lại vào tài khoản, mã không cộng thêm điểm nào.', code: 'KHONG_THEM_DIEM' });
+      }
       await tx.commit();
     } catch (e) {
       try { await tx.rollback(); } catch {}
