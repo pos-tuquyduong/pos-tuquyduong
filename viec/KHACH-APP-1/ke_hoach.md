@@ -106,7 +106,7 @@ Soát kế hoạch (agent chỉ đọc, 07.11): không ra ngoài Phạm vi; đã
 - Mọi `INSERT INTO pos_customers` (grep: customers.js 363, 402, 615; maKhach.js 186; customers-v2.js 60, 315, 355; sync.js 290): 60 bỏ cùng
   `cacheCustomersToLocal`; 363 + 402 + 186 sang `taoKhach`; 615 (`POST /:id/children`) cũng sang `taoKhach` (cùng QR / mặc định — trong
   customers.js, Phạm vi) — **soát kế hoạch: KHÔNG chuyển** — đường này kế thừa `customer_type` / `sync_status` của khách cha
-  (customers.js:625–626), nghiệm thu C không đòi; giữ nguyên. 315, 355 (ghi địa chỉ / ghi chú tự chèn khách) và sync.js ngoài nghiệm thu C → giữ, ghi Phát hiện.
+  (customers.js:625–626), nghiệm thu C không đòi; giữ nguyên. *Lệch kế hoạch (làm khi vá):* chủ quán chốt 07.11 "MỘT hàm tạo khách cho mọi đường" → đã chuyển sang `taoKhach`, vẫn theo loại của mẹ (ca K2, K2c; đột biến BV-NHAN-RIENG-QR). 315, 355 (ghi địa chỉ / ghi chú tự chèn khách) và sync.js ngoài nghiệm thu C → giữ, ghi Phát hiện.
 - `generateQRCode(` (grep: maKhach.js 187, sync.js 298) — sync.js ngoài Phạm vi, ghi Phát hiện. `sinhQrKhongTrung` đã dùng ở
   `routes/kh/index.js:168` (App cấp lại QR) — đúng, không đổi.
 - `sync.js:204` `POST /import` (UPDATE 265, INSERT 290): đường nhập khách SX bằng FILE còn sống sau khi cắt SX — ngoài Phạm vi, K5 "không đổi
