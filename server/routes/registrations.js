@@ -37,6 +37,9 @@ const CAU_XOA_KHACH_TRANG = `DELETE FROM pos_customers WHERE phone = ? AND creat
   AND NOT EXISTS (SELECT 1 FROM pos_wallets WHERE phone = ? AND (COALESCE(balance, 0) <> 0 OR COALESCE(total_topup, 0) <> 0 OR COALESCE(total_spent, 0) <> 0))
   ${DAU_VET_KHACH.map(([bang, cot]) => `AND NOT EXISTS (SELECT 1 FROM ${bang} WHERE ${cot} = ?)`).join('\n  ')}`;
 const LY_DO_XOA_MAC_DINH = 'Xoá đăng ký chờ nhập nhầm — khách chưa có giao dịch nào';
+// Nhật ký xoá khách (pos_sync_logs — mọi nhân viên đọc qua GET /sync/logs): chỉ chép cột ở danh sách trắng này, KHÔNG băm PIN / mật khẩu
+const COT_NHAT_KY_KHACH = ['id', 'phone', 'name', 'notes', 'parent_phone', 'relationship', 'qr_code', 'customer_type', 'sync_status',
+  'requested_product', 'requested_cycles', 'xung_ho', 'address', 'ngay_sinh', 'created_by', 'created_at'];
 
 // ══════════════════════════════════════════════════════
 // ROUTES CỤ THỂ - ĐẶT TRƯỚC /:id
@@ -264,7 +267,8 @@ router.post('/', authenticate, async (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?) ON CONFLICT(phone) DO NOTHING`,
         [normalizedPhone, name.trim(), notes || null, normalizedParentPhone, validRelationship, requested_product || null, soChu, req.user.username, getNow()]
       );
-      if (r.changes !== 1) return { huy: true, daDangKy: true };
+      // SĐT đã có đăng ký: đã là khách → cùng lời Q7 (một ý "khách đã có tài khoản" cho mọi đường); chưa là khách → câu cũ
+      if (r.changes !== 1) return { huy: true, ...(await tx.queryOne('SELECT 1 AS co FROM pos_customers WHERE phone = ?', [normalizedPhone]) ? { trung: true } : { daDangKy: true }) };
       const t = await taoKhach({ phone: normalizedPhone, name, notes, parent_phone: normalizedParentPhone, relationship: validRelationship,
         requested_product, requested_cycles: soChu, created_by: req.user.username }, tx);
       if (t.loi || t.trung) return { huy: true, ...t };
@@ -356,7 +360,8 @@ router.delete('/:id', authenticate, async (req, res) => {
       const x = await tx.run(CAU_XOA_KHACH_TRANG, [dk.phone, dk.created_by, dk.created_at, dk.phone, ...DAU_VET_KHACH.map(() => dk.phone)]);
       if (x.changes !== 1) return { xoaKhach: false };
       await tx.run(`INSERT INTO pos_sync_logs (type, record_count, details, status, created_by, created_at) VALUES ('xoa_khach', 1, ?, 'success', ?, ?)`,
-        [JSON.stringify({ phone: kh.phone, name: kh.name, ly_do: lyDo, registration_id: dk.id, khach: kh }), req.user.username, getNow()]);
+        [JSON.stringify({ phone: kh.phone, name: kh.name, ly_do: lyDo, registration_id: dk.id,
+          khach: Object.fromEntries(COT_NHAT_KY_KHACH.map((c) => [c, kh[c] ?? null])) }), req.user.username, getNow()]);
       return { xoaKhach: true };
     });
     if (kq.khong) return res.status(404).json({ error: 'Không tìm thấy' });

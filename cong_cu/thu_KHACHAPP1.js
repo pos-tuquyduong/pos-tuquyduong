@@ -464,9 +464,9 @@ async function main() {
   });
 
   sv.close();
-  console.log(`\nTỔNG: ${dat}/${dat + hong} ca đạt`);
+  console.log(`\nTỔNG: ${dat}/${dat + hong} ca đạt · ${dat} đạt · ${hong} hỏng`);   // dạng thứ hai cho chayBaiThat
   console.log(hong ? `✗ CÓ ${hong} CA HỎNG` : '✓ ĐẠT');
   process.exit(hong ? 1 : 0);
 }
 
-main().catch((e) => { noiLai(); console.log(`\n✗ BÀI SẬP: ${e.stack}`); console.log(`\nTỔNG: ${dat}/${dat + hong + 1} ca đạt`); process.exit(1); });
+main().catch((e) => { noiLai(); console.log(`\n✗ BÀI SẬP: ${e.stack}`); console.log(`\nTỔNG: ${dat}/${dat + hong + 1} ca đạt · ${dat} đạt · ${hong + 1} hỏng`); process.exit(1); });

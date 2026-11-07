@@ -80,6 +80,13 @@ DOT_BIEN = [
   ('BV-XOA-BO-GD-VI', [(RG, "  ['pos_balance_transactions', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có giao dịch ví ', T),
   ('BV-XOA-BO-DIEM', [(RG, "  ['pos_point_transactions', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có điểm ', T),
   ('BV-XOA-BO-GOI', [(RG, "  ['pos_customer_packages', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có gói ', T),
+  # ── vòng sửa 2 (soát vòng 2) ──
+  ('VS-DK-DA-DANG-KY-CAU-CU', [(RG, "? { trung: true } : { daDangKy: true }", "? { daDangKy: true } : { daDangKy: true }", 1)], r'✗ C7d ', T),
+  ('BV-XOA-LO-PIN', [(RG, "          khach: Object.fromEntries(COT_NHAT_KY_KHACH.map((c) => [c, kh[c] ?? null])) }),", "          khach: kh }),", 1)], r'✗ R2d ', T),
+  ('BV-XOA-BO-VOUCHER', [(RG, "  ['pos_voucher_grants', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có voucher ', T),
+  ('BV-XOA-BO-HOAN-TIEN', [(RG, "  ['pos_refund_requests', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có yêu cầu hoàn tiền ', T),
+  ('BV-XOA-BO-PHIEN', [(RG, "  ['pos_phien_thanh_toan', 'phone'],\n", "", 1)], r'✗ R4 khách có phiên thanh toán ', T),
+  ('BV-XOA-BO-DON-APP', [(RG, "  ['pos_don_app', 'phone'],\n", "", 1)], r'✗ R4 khách có đơn App ', T),
   ('BV-V2-CHEN-RIENG', [(C2, '  const t = await taoKhach({ phone, name: "Khách hàng", created_by: nguoi });\n  return t.loi || null;',
                          '  await run("INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?)", [phone, "Khách hàng", getNow()]);\n  return null;', 1)],
    r'✗ C8 ', T),
