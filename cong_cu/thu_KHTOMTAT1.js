@@ -200,11 +200,18 @@ async function main() {
     k('A6b có CẢ giảm hạng (> 0) lẫn mã (5.000) nên giam > 5.000, và = tổng các dòng giảm in trên hoa_don[]',
       dong6.tier_discount > 0 && d6.giam === dong6.tier_discount + 5000 && d6.giam === tienGiamTrenTo(d6.hoa_don), JSON.stringify([dong6, d6.giam, tienGiamTrenTo(d6.hoa_don)]));
 
+    const hd6 = (await goi('GET', `/pos/hoa-don/${o6.id}`, undefined, tkChu)).j.hoa_don.tien;
+    k('A6c hoá đơn quầy của đơn giảm giữ nguyên: giam_hang = cột tier_discount, giam_ma = 5.000, tổng 40.000', hd6.giam_hang === dong6.tier_discount && hd6.giam_ma === 5000 && hd6.tong === 40000, JSON.stringify(hd6));
+
     const o7 = await quay(kh, { items: [monQuay(2, 1)] });
     await datCot(o7.id, { shipping_fee: 23000, total: 43000, cash_amount: 43000 });
     const d7 = await kiem('A7 đơn có phí giao 23.000 → cach_nhan "giao", giam 0 (phí giao không phải giảm)', kh, o7.code,
       { cach_nhan: 'giao', giam: 0, tra: [{ cach: 'tien_mat', so_tien: 43000 }] });
     k('A7b hoa_don[] của đơn giao có dòng phi_giao +23.000đ', d7.hoa_don?.find((d) => d.loai === 'phi_giao')?.phai === '+23.000đ');
+
+    const o8 = await quay(kh, { items: [monQuay(0, 2)] });
+    await datCot(o8.id, { flash_discount: 3000, total: 47000, cash_amount: 47000 });
+    await kiem('A8 giảm Flash 3.000 (cột flash_discount): giam 3.000', kh, o8.code, { giam: 3000, tra: [{ cach: 'tien_mat', so_tien: 47000 }] });
   });
 
   // ═════════════════════════════════════════════════════════════════════════
