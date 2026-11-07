@@ -8,8 +8,8 @@
  * I8 MÔ TẢ LUẬT ĐIỂM HIỆN TẠI (P22-23, chủ quán chốt 02.10 + 13.10.2026): điểm CHỈ khi
  * đơn đã thu đủ (payment_status 'paid'); đơn giảm Flash 0 điểm, kể cả nhận bằng mã bill;
  * đơn đã huỷ: tổng điểm của đơn (earn + dòng trừ) = 0 (P24 — huỷ / xoá ghi dòng 'adjust' gắn đơn; dòng 'adjust' CÓ order_id
- * dành RIÊNG cho việc trừ điểm theo đơn: huỷ / xoá (P24) và duyệt hoàn (NAP-1 — chủ quán 06.11 (a): đơn 'refunded' giữ điểm phần không
- * hoàn = điểm − ceil(điểm × tiền hoàn ví / tiền tính điểm)); việc khác đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
+ * dành RIÊNG cho việc trừ điểm theo đơn: huỷ / xoá (P24) và tiền của đơn trả vào tài khoản — duyệt hoàn, đền bù, kết thúc gói có hoàn (NAP-1 —
+ * chủ quán 06.11: đơn chưa huỷ giữ điểm = điểm − ceil(điểm × TỔNG sổ ví 'refund' + 'compensation' của đơn / tiền tính điểm)); việc khác đừng dùng lẫn). Dữ liệu cũ chỉ được tha ở Đối soát thật (ctx.thuc): đơn chưa thu có điểm theo
  * luật trước, tạo trước DIEM_KHI_THU_TU; đơn huỷ trước HUY_TRU_DIEM_TU giữ điểm theo trạng thái tiền lúc huỷ HOẶC đã về 0.
  * NAP-1 (đổi DIEM-THAT-1): điểm gốc = floor(tiền tính điểm / per), tiền tính điểm = max(0, round(min(tiền mặt + CK + ví + ví mẹ, total) − phí giao));
  * đơn NẠP (dòng hàng product_id ≤ −2000000) đúng luật = 0 điểm. Công thức RIÊNG, không gọi server/utils/diemThat.js (trọng tài không dùng chung
@@ -151,7 +151,7 @@ const BAT_BIEN = {
     // NAP-1: đơn nạp nhận theo dòng hàng. Kho không có bảng pos_order_items (kho dữ liệu tay của thu_gia_lap.js) thì không thể có đơn nạp → 0.
     const coMon = so((await q("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_order_items'"))[0]?.n);
     const napSql = coMon ? `o.id IN (SELECT order_id FROM pos_order_items WHERE product_id <= ${NAP_TU})` : '0';
-    // Cùng lý do: kho dữ liệu tay không có sổ ví → không đơn nào được duyệt hoàn phần ví (hoan = 0).
+    // Cùng lý do: kho dữ liệu tay không có sổ ví → không đơn nào có tiền trả vào tài khoản (hoan = 0).
     const coSo = so((await q("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_balance_transactions'"))[0]?.n);
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
@@ -160,8 +160,8 @@ const BAT_BIEN = {
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
       LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id
-      ${coSo ? `LEFT JOIN (SELECT order_id, SUM(amount) AS hoan FROM pos_balance_transactions WHERE type = 'refund'
-        AND COALESCE(payment_method, '') <> 'hoan_goi' GROUP BY order_id) h ON h.order_id = o.id` : 'LEFT JOIN (SELECT NULL AS order_id, 0 AS hoan) h ON 0'}`);
+      ${coSo ? `LEFT JOIN (SELECT order_id, SUM(amount) AS hoan FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')
+        GROUP BY order_id) h ON h.order_id = o.id` : 'LEFT JOIN (SELECT NULL AS order_id, 0 AS hoan) h ON 0'}`);
     const lech = ds.flatMap((r) => {
       const vi = so(r.balance_amount) + so(r.parent_balance_amount);
       const tienDiem = Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee)));
@@ -178,9 +178,10 @@ const BAT_BIEN = {
       // Huỷ trước mốc (hoặc dữ liệu cũ không cancelled_at): ngày gộp lẫn hai luật → nhận cả "giữ điểm" (cũ) lẫn tổng 0 (P24).
       const huyCu = ctx.thuc && r.status === 'cancelled' && (r.cancelled_at == null || String(r.cancelled_at) < HUY_TRU_DIEM_TU);
       const dungBan = (r.status === 'cancelled' && !huyCu) || so(r.nap) ? 0 : diemDung(false, g);   // NAP-1: đơn nạp 0 điểm
-      // NAP-1 (chủ quán 06.11 (a)): đơn ĐÃ HOÀN (duyệt hoàn trả phần tài khoản — dòng sổ 'refund' của đơn) giữ điểm phần không hoàn: trừ
-      // ceil(điểm × tiền hoàn / tiền tính điểm), không quá điểm. Chép riêng (trọng tài), không gọi diemThat.js.
-      const truHoan = r.status === 'refunded' && dungBan > 0 && so(r.hoan) > 0 && tienDiem > 0
+      // NAP-1 (chủ quán 06.11): đơn CHƯA HUỶ có tiền trả vào tài khoản (duyệt hoàn, đền bù, kết thúc gói có hoàn — sổ ví 'refund' +
+      // 'compensation' của đơn, cộng dồn) giữ điểm phần còn lại: trừ ceil(điểm × tổng tiền trả / tiền tính điểm), không quá điểm. Đơn huỷ: về 0
+      // ở trên. Chép riêng (trọng tài), không gọi diemThat.js.
+      const truHoan = r.status !== 'cancelled' && dungBan > 0 && so(r.hoan) > 0 && tienDiem > 0
         ? Math.min(dungBan, Math.ceil((dungBan * so(r.hoan)) / tienDiem)) : 0;
       const dung = dungBan - truHoan;
       if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
@@ -206,7 +207,7 @@ const BAT_BIEN = {
       }
     }
     const la = await q(`SELECT type, COUNT(*) AS n FROM pos_point_transactions WHERE COALESCE(type, '') NOT IN ('earn', 'redeem')
-      AND NOT (COALESCE(type, '') = 'adjust' AND order_id IS NOT NULL) GROUP BY type`);   // P24 + NAP-1: 'adjust' gắn đơn = trừ điểm do huỷ / xoá / duyệt hoàn
+      AND NOT (COALESCE(type, '') = 'adjust' AND order_id IS NOT NULL) GROUP BY type`);   // P24 + NAP-1: 'adjust' gắn đơn = trừ điểm do huỷ / xoá / duyệt hoàn / đền bù / kết thúc gói
     return lech.concat(la.map((r) => `loại dòng điểm lạ "${r.type}": ${r.n} dòng`));
   },
   // I9 — mỗi thao tác tiền có đúng một dòng nhật ký đơn (nhatKyDon.js): 'thu' khớp sổ phía quầy (số dòng + số tiền),

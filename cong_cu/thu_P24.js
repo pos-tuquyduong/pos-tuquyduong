@@ -126,7 +126,6 @@ async function main() {
   const dongTru = (id) => db.query("SELECT customer_phone, points, expires_at, reason FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust' ORDER BY id", [id]);
   const dongEarn = (id) => db.query("SELECT id, customer_phone, points, expires_at FROM pos_point_transactions WHERE order_id = ? AND type = 'earn' ORDER BY id", [id]);
   const soDu = async (sdt) => (await goi('GET', `/loyalty/points/${sdt}`)).points;
-  const boQuaI8 = new Set();   // đơn bài cố ý chèn dòng điểm tay (F2) — I8 phải lệch ở đó, ca H1 tự thử riêng
 
   console.log('\nTHỬ P24 — huỷ / xoá đơn trừ lại điểm');
 
@@ -335,8 +334,8 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[H] bất biến I8: đơn đã huỷ → tổng điểm 0; đơn huỷ trước mốc P24 giữ như cũ (chỉ Đối soát thật)');
   {
-    const lech = (await I8()).filter((d) => !boQuaI8.has((/^đơn (\S+): /.exec(d) || [])[1]));
-    k('H1 I8 trên mọi đơn của bài (trừ đơn F2 chèn tay) → 0 lệch (dòng adjust gắn đơn không phải "loại lạ")', lech.length === 0, JSON.stringify(lech.slice(0, 4)));
+    const lech = await I8();   // NAP-1: F2 nay huỷ về 0 → không còn đơn nào phải bỏ qua
+    k('H1 I8 trên mọi đơn của bài → 0 lệch (dòng adjust gắn đơn không phải "loại lạ")', lech.length === 0, JSON.stringify(lech.slice(0, 4)));
     const s = sdtMoi();
     const d = await tienMat(s);
     await db.run("UPDATE pos_orders SET status = 'cancelled', cancelled_at = ? WHERE id = ?", [d.created_at, d.id]);   // huỷ kiểu CŨ: không trừ

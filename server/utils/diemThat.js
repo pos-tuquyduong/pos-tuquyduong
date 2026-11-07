@@ -14,10 +14,37 @@ const tienTinhDiem = (dong) => {
 };
 
 /**
- * NAP-1 (soát bảo mật, chủ quán 06.11 chọn (a)): DUYỆT HOÀN trả lại phần tài khoản `tienHoan` (con + mẹ) → số điểm trừ = phần `diem` theo tỷ lệ
+ * NAP-1 (soát bảo mật, chủ quán 06.11 chọn (a)): tiền trả vào tài khoản `tienHoan` (duyệt hoàn, đền bù, kết thúc gói) → số điểm trừ = phần `diem` theo tỷ lệ
  * tienHoan / tienDiem (tiền tính điểm của đơn — tienTinhDiem), làm tròn LÊN, không quá `diem`. Phần tiền mặt / CK không hoàn giữ điểm.
  */
 const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
   (diem > 0 && tienHoan > 0 && tienDiem > 0 ? Math.min(diem, Math.ceil((diem * tienHoan) / tienDiem)) : 0);
 
-module.exports = { tienTinhDiem, diemTruKhiHoan };
+/**
+ * NAP-1 — trừ điểm khi tiền của đơn TRẢ VÀO TÀI KHOẢN (chủ quán 06.11: duyệt hoàn (a); đền bù, kết thúc gói có hoàn — "(a) + thêm hai file").
+ * MỘT hàm cho refunds.js, damages.js, packages.js; gọi SAU khi đã ghi khoản trả vào ví, CÙNG giao dịch. CỘNG DỒN: tổng cần trừ =
+ * diemTruKhiHoan(điểm đã cộng, TỔNG tiền sổ ví 'refund' + 'compensation' của đơn (con, mẹ, cả 'hoan_goi'), tiền tính điểm), rồi trừ phần còn
+ * thiếu so với dòng 'adjust' đã ghi — nhiều lần đền nhỏ không cộng dồn làm tròn. Chỉ tính dòng earn / adjust ghi TỪ lúc chạy bước 014_nap
+ * (luật tiêu ví có điểm); dòng cũ tích theo luật "ví 0 điểm" → không trừ (LUAT §6.6). Dòng 'adjust' gắn đơn như huỷ (P24, I8 canh); số dư điểm
+ * được âm. Trừ nhóm hạn xa nhất trước (không hạn → hạn muộn → hạn sớm). Mốc theo TÊN bước, không theo số.
+ */
+async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
+  const moc = (await tx.queryOne("SELECT luc FROM pos_nang_cap WHERE ten = '014_nap'"))?.luc;
+  if (!moc) return;
+  const tra = await tx.queryOne(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions
+    WHERE order_id = ? AND type IN ('refund', 'compensation')`, [don.id]);
+  const nhom = await tx.query(`SELECT customer_phone, expires_at, SUM(CASE WHEN type = 'earn' THEN points ELSE 0 END) AS diem, SUM(points) AS con
+    FROM pos_point_transactions WHERE order_id = ? AND type IN ('earn', 'adjust') AND created_at >= ?
+    GROUP BY customer_phone, expires_at ORDER BY expires_at IS NULL DESC, expires_at DESC`, [don.id, moc]);
+  const diem = nhom.reduce((t, r) => t + Number(r.diem || 0), 0);
+  let conTru = diemTruKhiHoan(diem, Number(tra?.n || 0), tienTinhDiem(don)) - (diem - nhom.reduce((t, r) => t + Number(r.con || 0), 0));
+  for (const r of nhom) {
+    const tru = Math.min(conTru, Number(r.con || 0));
+    if (!(tru > 0)) continue;
+    conTru -= tru;
+    await tx.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
+      VALUES (?, 'adjust', ?, ?, ?, ?, ?, ?)`, [r.customer_phone, -tru, don.id, r.expires_at, `${lyDo} — trừ điểm phần trả vào tài khoản`, nguoi, luc]);
+  }
+}
+
+module.exports = { tienTinhDiem, diemTruKhiHoan, truDiemHoan };

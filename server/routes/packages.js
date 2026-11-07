@@ -10,6 +10,7 @@ const { authenticate, checkPermission } = require('../middleware/auth');
 const { dieuKienLayTuGoi, daLayTheoLoai, gomTheoKhach, LOC_KHACH } = require('../utils/goiKhach');
 const { loiGhi, trongGiaoDich, ghiHoan } = require('./wallets');   // GOI-2: kết thúc gói có hoàn ghi ví qua cùng một hàm với huỷ đơn
 const { soTienHoanGoi } = require('../utils/tienDaTra');
+const { truDiemHoan } = require('../utils/diemThat');   // NAP-1 (chủ quán 06.11 (3)): kết thúc gói có hoàn trừ điểm như duyệt hoàn
 
 // Helper: đếm KH đang dùng gói
 const countActiveUsers = async (packageId) => {
@@ -267,6 +268,7 @@ router.put('/customer-packages/:id/cancel', authenticate, checkPermission('refun
         await ghiHoan(tx, tien.don, { me: tien.me, tuVi: tien.vi, tienMat: tien.tien_mat }, { nguoi: req.user.username, luc: now,
           ghiChu: `Hoàn kết thúc gói KH #${cp.id} (đơn ${tien.don.code})`,
           ghiChuMe: `Hoàn tiền mẹ kết thúc gói KH #${cp.id} (đơn ${tien.don.code}, KH: ${tien.don.customer_name})` });
+        await truDiemHoan(tx, tien.don, req.user.username, now, `Kết thúc gói KH #${cp.id} (đơn ${tien.don.code})`);   // NAP-1 (chủ quán 06.11 (3))
       }
       return { cp, hoan: tien.tong };
     });
