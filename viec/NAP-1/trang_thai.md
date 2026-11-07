@@ -673,3 +673,6 @@ BÀI HỌC: KHOÁ — hàm trả số mà chỗ gọi dùng để tính thì M�
 | 2 ròng 0 tiêu mã | `signup-codes.js`: sau trừ, `diemCong − diemTru ≤ 0` → rollback cả giao dịch (mã + quyền lần đầu không tiêu), 400 `KHONG_THEM_DIEM` (mã lỗi có sẵn của /nhan-diem — không đổi hợp đồng App) | E16c (đỏ trên bản trước) · BV-ma-bill-rong-0 · VS-ma-bill-rong-am |
 | 3 kết thúc gói chưa ca | E16d: gói 30.000 + món 21.000 (51) hoàn 30.000 → 21, bill 21; nhận mã ×2 → báo 21, điểm 42, bill 42, I8 0 | VS-bill-diem-bo-refund |
 thu_NAP1 87 · 0.
+
+`npm test -- --day-du` trên 1cca289 (sau vòng sửa 1): PASS 103 · FAIL 0 · CẢNH BÁO 2. Đột biến trọn bộ: ĐỐI CHỨNG XANH 87 · 0 — TỔNG 111 · BẮT 111 · SỐNG 0 · HỎNG 0 · LẠC 0.
+Đang soát lại vòng sửa 1.
