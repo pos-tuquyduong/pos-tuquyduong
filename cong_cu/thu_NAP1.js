@@ -601,6 +601,24 @@ async function main() {
     const ma10 = [e10a, e10b, e11, e12, e13].map((o) => o.order?.code).filter(Boolean);
     const l10 = (await lechBB(['I8'])).filter((x) => ma10.some((m) => x.includes(m)));
     k('E14 I8 (trọng tài) nhận luật đền / kết thúc gói / huỷ sau đền: 0 lệch trên các đơn E10–E13', ma10.length === 5 && l10.length === 0, l10.join(' | '));
+    // E15 (soát độc lập 07.11): nhiều nhóm hạn + trừ LẦN HAI — lần sau trừ theo phần CÒN LẠI từng nhóm (không nhóm nào âm); huỷ đơn đã trừ hết
+    // không ghi dòng trừ 0 điểm (HAVING).
+    await napTay(sE, 50000);
+    const e15 = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 42000, items: [{ ...mon(0), quantity: 2 }] });
+    if (e15.order) {
+      const dong = await mot("SELECT id FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [e15.order.id]);
+      await db.run('UPDATE pos_point_transactions SET points = 22 WHERE id = ?', [dong?.id]);
+      await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
+        SELECT customer_phone, 'earn', 20, order_id, '2099-12-31T00:00:00', reason, created_by, created_at FROM pos_point_transactions WHERE id = ?`, [dong?.id]);
+    }
+    const d15 = [e15.order ? await den(e15.order, 21000) : e15, e15.order ? await den(e15.order, 21000) : e15];
+    const nhom15 = e15.order ? (await db.query('SELECT expires_at IS NULL AS kh, SUM(points) AS d FROM pos_point_transactions WHERE order_id = ? GROUP BY kh ORDER BY kh', [e15.order.id])).map((r) => Number(r.d)) : [];
+    const h15 = e15.order ? await goi('PUT', `/orders/${e15.order.id}/cancel`, { reason: 'thử huỷ sau đền trọn' }) : e15;
+    const s15 = e15.order ? await diemDon(e15.order.id) : NaN;
+    const rong15 = e15.order ? await so("SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust' AND points = 0", [e15.order.id]) : NaN;
+    k('E15 hai nhóm hạn (không hạn 22 + hạn 2099 20), đền 21.000 hai lần → mỗi nhóm về 0 (không nhóm nào âm); huỷ sau đó → 200, điểm 0, không dòng trừ 0 điểm',
+      d15.every((r) => r.status === 200) && JSON.stringify(nhom15) === '[0,0]' && h15.status === 200 && s15 === 0 && rong15 === 0,
+      `${d15.map(moTa).join(' · ')} · nhóm [có hạn, không hạn] ${JSON.stringify(nhom15)} · ${moTa(h15)} · ${s15} · dòng 0 điểm ${rong15}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

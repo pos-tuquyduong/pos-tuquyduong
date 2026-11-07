@@ -1678,7 +1678,7 @@ router.put(
 );
 
 // P24 (chủ quán duyệt 24.10): đơn rời 'completed' bằng huỷ / xoá → trừ lại điểm đã cộng, cho phép số dư âm. CÙNG giao dịch, KHÔNG
-// bọc try/catch: lỗi ghi → rollback cả lệnh, sổ điểm luôn cân. Dòng 'adjust' CÓ order_id dành RIÊNG cho trừ điểm theo đơn (huỷ / xoá; duyệt hoàn — refunds.js truDiemHoan) (I8 canh). Gom
+// bọc try/catch: lỗi ghi → rollback cả lệnh, sổ điểm luôn cân. Dòng 'adjust' CÓ order_id dành RIÊNG cho trừ điểm theo đơn (huỷ / xoá; tiền trả vào tài khoản: duyệt hoàn, đền bù, kết thúc gói — utils/diemThat.js truDiemHoan) (I8 canh). Gom
 // theo (SĐT, hạn): chép đúng hạn của earn (earn đã hết hạn → dòng trừ cũng hết hạn, số dư không đổi). Trừ phần CÒN LẠI của nhóm (earn + adjust > 0):
 // không trừ lần hai, và đơn đã bị trừ một phần (đền bù / kết thúc gói — diemThat.js truDiemHoan) thì trừ nốt (NAP-1).
 async function truDiemDon(tx, order, nguoi, now, viec) {

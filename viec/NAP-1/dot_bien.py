@@ -108,6 +108,8 @@ DOT_BIEN = [
   ('BV-huy-tru-not', [(OR, "     WHERE order_id = ? AND type IN ('earn', 'adjust')\n     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,\n    [`${viec} đơn ${order.code} — trừ lại điểm`, nguoi, now, order.id],",
                        "     WHERE order_id = ? AND type = 'earn'\n       AND NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust')\n     GROUP BY customer_phone, expires_at`,\n    [`${viec} đơn ${order.code} — trừ lại điểm`, nguoi, now, order.id, order.id],", 1)], r'✗ E11 '),
   ('VS-huy-tru-lai-ca-phan-da-tru', [(OR, "     WHERE order_id = ? AND type IN ('earn', 'adjust')\n     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,", "     WHERE order_id = ? AND type = 'earn'\n     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,", 1)], r'✗ E11 '),
+  ('VS-tru-diem-theo-diem-goc', [(DT, '    const tru = Math.min(conTru, Number(r.con || 0));', '    const tru = Math.min(conTru, Number(r.diem || 0));', 1)], r'✗ E15 '),
+  ('BV-huy-having', [(OR, "     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,", "     GROUP BY customer_phone, expires_at`,", 1)], r'✗ E15 '),
   ('BV-I8-den', [(BB, "const truHoan = r.status !== 'cancelled' && dungBan > 0", "const truHoan = r.status === 'refunded' && dungBan > 0", 1)], r'✗ E14 '),
   ('VS-I8-bo-den', [(BB, "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')\n", "FROM pos_balance_transactions WHERE type = 'refund'\n", 1)], r'✗ E14 '),
   ('VS-I8-bo-hoan-goi', [(BB, "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')\n", "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation') AND COALESCE(payment_method, '') <> 'hoan_goi'\n", 1)], r'✗ E14 '),
