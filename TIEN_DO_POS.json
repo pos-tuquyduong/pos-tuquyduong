@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 55,
+  "phien_ban_so": 57,
   "cap_nhat": "2026-11-06",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -623,7 +623,7 @@
     },
     {
       "ma": "TINGEE-1",
-      "ten": "Cong QR Tingee thay SePay (chu quan chot 05-06.11, re hon): webhook /api/tingee/webhook (chung thuc API Credentials), chi nhan tien vao so tai khoan AO (VA) MB, cong tac CONG_QR=tingee bat ngoai gio ban sau don thu 2.000d; giu moi luat chong trung / sai tai khoan. [T] Opus",
+      "ten": "Cong QR Tingee thay SePay (chu quan chot 05-06.11, re hon): webhook /api/tingee/webhook (chung thuc API Credentials), chi nhan tien vao so tai khoan AO (VA) MB, cong tac CONG_QR=tingee bat ngoai gio ban sau don thu 2.000d; giu moi luat chong trung / sai tai khoan. [T] Opus | 06.11: CHAY THAT — don thu 2.000d tu bao da thu, noi dung TQDNOV06 HDxxxx dung (chu quan xac nhan)",
       "tang": 1,
       "trang_thai": "xong",
       "patch": null,
@@ -642,6 +642,15 @@
     {
       "ma": "KH-TOMTAT-1",
       "ten": "Lich su don App co tom tat that (thu App KH 05.11 muc 2): GET /don + /don/:ma them kenh, cach_nhan, tra[], so_mon, mon_dau, giam tinh bang cung du lieu hoa don quay; xac nhan hoa_don[] du dong cach tra + giam. [Th] Sonnet, sau CK-NOIDUNG-1 | 06.11: chat gop main (co CK-NOIDUNG-1) vao nhanh truoc khi lam",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KHACH-APP-1",
+      "ten": "Khach chi con MOT nguon la POS (thu App KH 03.11 b + nhac 06.11; chu quan chot 03.11 + chon cach triet de 06.11, truoc khai truong): danh sach Khach hang, o tim khach / quet QR man Ban hang, ho so doc pos_customers qua mot ham; chep khach SX con thieu MOT lan (chi them, khong ghi de) roi thoi goi SX; mot ham tao khach chung cho quay + App (sinhQrKhongTrung, chi khac created_by). Khong sua client. [T] Opus",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -713,7 +722,7 @@
     },
     {
       "ma": "CT-1b",
-      "ten": "Ap chuong trinh tai quay: hoc sinh gioi (mien 1 do uong, gia dinh giam 50% khong gioi han mon trong 1 hoa don), sinh nhat 50% ca don dung ngay doi chieu can cuoc (khong luu so CCCD); khong cong voi hang. [T] Opus, lan 1",
+      "ten": "Ap chuong trinh tai quay: hoc sinh gioi (mien 1 do uong, gia dinh giam 50% khong gioi han mon trong 1 hoa don), sinh nhat 50% ca don dung ngay doi chieu can cuoc (khong luu so CCCD); khong cong voi hang. [T] Opus, lan 1 | 06.11: khach sinh 29/02 -> nam khong nhuan tinh sinh nhat 28/02 (CUNG luat App KH-CT-1)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,

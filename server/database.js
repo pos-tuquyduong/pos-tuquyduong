@@ -1062,7 +1062,7 @@ async function seedDefaultData() {
       ['owner', 'manage_promotions', 1],
       ['owner', 'manage_permissions', 1],
       ['staff', 'view_customer_balance', 1],
-      ['staff', 'topup_balance', 1],
+      ['staff', 'topup_balance', 0],   // GIAO-DIEN-1 E: nạp tay chỉ chủ quán (kho đang chạy: bước nâng cấp 018)
       ['staff', 'adjust_balance', 0],
       ['staff', 'view_reports', 0],
       ['staff', 'manage_products', 0],
@@ -1076,7 +1076,7 @@ async function seedDefaultData() {
       ['staff', 'manage_permissions', 0],
       // Manager permissions
       ['manager', 'view_customer_balance', 1],
-      ['manager', 'topup_balance', 1],
+      ['manager', 'topup_balance', 0],
       ['manager', 'adjust_balance', 0],
       ['manager', 'view_reports', 1],
       ['manager', 'manage_products', 1],

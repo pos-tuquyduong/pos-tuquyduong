@@ -3,10 +3,10 @@
  * và hỏi lại phiên cho tới khi máy chủ báo đã nhận (tiền về → webhook payOS chốt). KHÔNG có nút tự đánh dấu đã thu: ngoại lệ duy nhất là
  * "Xác nhận tay" — chỉ người có quyền xac_nhan_ck_tay, bắt buộc lý do, máy chủ ghi nhật ký.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { thanhToanApi } from '../../utils/api';
-import { qrSvg } from '../../utils/veQr';
+import TheQr from '../../components/TheQr';   // GIAO-DIEN-1 F: thẻ QR thương hiệu dùng chung
 import { conLaiGiay, dinhDangDemNguoc, hanhDongPhien } from './tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
@@ -21,7 +21,6 @@ export default function ManQr({ phien, onXong, onNha }) {
   const [loi, setLoi] = useState('');
   const [dang, setDang] = useState(false);
   const daXong = useRef(false);                             // chỉ báo kết quả một lần (hỏi lại và bấm tay có thể chồng nhau)
-  const svg = useMemo(() => qrSvg(phien.qr), [phien.qr]);
 
   const hoi = useCallback(async () => {
     if (daXong.current) return;
@@ -62,8 +61,7 @@ export default function ManQr({ phien, onXong, onNha }) {
     <div className="bh-lop" style={{ alignItems: 'center' }}>
       <div className="bh-khung bh-noi" style={{ textAlign: 'center' }}>
         <b>Chuyển khoản · {vnd(phien.con_lai)}</b>
-        {svg ? <div style={{ width: 240, height: 240, margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: svg }} /> : <div className="bh-trong">Không vẽ được mã QR — huỷ và thu lại</div>}
-        <div>Nội dung: <b>{phien.noi_dung}</b></div>
+        <TheQr qr={phien.qr} tien={phien.con_lai} noiDung={phien.noi_dung} khongVe="Không vẽ được mã QR — huỷ và thu lại" style={{ width: 300, maxWidth: '100%', margin: '0 auto' }} />
         <div className="bh-so-lon" style={{ textAlign: 'center' }}>{giay > 0 ? `Còn ${dinhDangDemNguoc(giay)}` : 'Đang kiểm tra…'}</div>
         <div className="bh-ghi-chu-ngu">Tiền về sẽ tự sang màn kết thúc.</div>
         {loi && <div className="bh-loi"><span>{loi}</span></div>}

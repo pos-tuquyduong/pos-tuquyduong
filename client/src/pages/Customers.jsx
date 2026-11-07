@@ -10,13 +10,14 @@ import { api, customersV2Api, registrationsApi, hangApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import CapHang from '../components/CapHang';   // HANG-1: cấp hạng (chủ quán + PIN) + nhật ký hạng
 import MaDangNhapApp from '../components/MaDangNhapApp';
+import ViKhach from '../components/ViKhach';   // GIAO-DIEN-1 C: khu Ví (thay màn Số dư cũ)
 import MaAppSoMoi from '../components/MaAppSoMoi';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
 
 export default function Customers() {
   const { hasPermission } = useAuth();
   const [customers, setCustomers] = useState([]);
-  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0 });
+  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0, totalBalance: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -78,8 +79,10 @@ export default function Customers() {
         total: allCustomers.length,
         synced: allCustomers.filter(c => c.is_synced).length,
         pending: allCustomers.filter(c => c.is_pending).length,
-        hasBalance: allCustomers.filter(c => c.balance > 0).length
+        hasBalance: allCustomers.filter(c => c.balance > 0).length,
+        totalBalance: allCustomers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0)   // GIAO-DIEN-1: tổng khách đang gửi quán
       });
+      return allCustomers;
     } catch (err) {
       setError('Không thể tải danh sách khách hàng');
       console.error(err);
@@ -348,6 +351,10 @@ export default function Customers() {
           <div className="stat-card">
             <div className="stat-label">💰 Có số dư</div>
             <div className="stat-value">{stats.hasBalance}</div>
+          </div>
+          <div className="stat-card" style={{ background: '#dbeafe' }}>
+            <div className="stat-label">💵 Khách đang gửi quán</div>
+            <div className="stat-value">{formatMoney(stats.totalBalance)}</div>
           </div>
         </div>
 
@@ -702,6 +709,12 @@ export default function Customers() {
                 </div>
 
                 {selectedCustomer.phone && <MaDangNhapApp key={selectedCustomer.phone} sdt={selectedCustomer.phone} />}
+
+                <ViKhach khach={selectedCustomer} onDoi={async () => {
+                  const ds = await loadCustomers();
+                  const moi = ds?.find((x) => x.phone === selectedCustomer.phone);
+                  if (moi) setSelectedCustomer(moi);
+                }} />
 
                 {goiDangDung?.so_dang_dung > 0 && (
                   <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
