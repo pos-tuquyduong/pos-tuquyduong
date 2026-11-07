@@ -40,3 +40,16 @@ Có commit `0adf75d PHIEU: KH-TOMTAT-1` trong lịch sử.
 
 Lần chạy đầu có 1 đột biến SỐNG (VS-TOM-TAT-LAY-SAI-DON): các ca đọc từng đơn lúc danh sách mới có 1–2 đơn, nên đơn bị gán tóm tắt của đơn khác không lộ.
 Thêm ca A10 (8 đơn cùng trang, danh sách = chi tiết của chính đơn đó, các đơn khác nhau) → BẮT.
+
+## Soát độc lập (/ra-soat, vòng 1) — báo cáo agent
+ĐẠT có điều kiện, không lỗi chặn. Điểm nhẹ và cách xử lý:
+- Hợp đồng ghi "Đơn App luôn tai_quan" chặt hơn code → ĐÃ SỬA chữ: "đơn App chưa có đơn thật luôn `tai_quan`; đơn App đã trả tính theo phí giao như đơn quầy" (K1).
+- Nghiệm thu D thiếu ca đọc dòng cách trả trên `hoa_don[]` → ĐÃ THÊM ca A4b (`tu_tk` 20.000đ + `ck` 30.000đ). Tờ in KHÔNG có dòng "cách nhận" riêng (chỉ `phi_giao` khi giao, client/src/utils/hoaDon.js) nên không thêm dòng: `cach_nhan` chỉ có ở trường mới (ke_hoach.md đã ghi).
+- Nghi ngờ đơn quầy đã huỷ/hoàn: `tra[]`/`giam` vẫn hiện số đã có, nhất quán với `da_tra` → ĐÃ KHOÁ hành vi bằng ca A4c/A4d (đơn huỷ: tổng `tra[]` = `da_tra`). Chưa đọc `orders.js` huỷ/hoàn (vùng CHƯA rà) nên không khẳng định ý chủ quán có muốn App hiện `tra` của đơn đã hoàn tiền.
+- `so_mon` của đơn App chưa có đơn thật là 0 chứ không null nếu `dong` rỗng — không xảy ra (App bắt buộc ≥ 1 món).
+- Nghiệm thu sau sửa: A, B, C, D, E, K5 đều có ca; bài 33 ca xanh; đột biến chạy lại 32/32 BẮT.
+
+## Soát bảo mật
+Số lỗi trước lọc: 0 · sau lọc: 0. Báo cáo subagent (nguyên ý):
+Không tìm thấy lỗ hổng độ tin cậy cao. Đã đọc donApp.js:277-358, hoaDon.js:32-40, 84-91, 135-145. (1) `IN (${cho})` chỉ ghép `?,?,?`, `ids` là `r.oid` số nguyên từ CAU_DON, đi qua tham số. (2) Đầu vào `tomTatDonThat` chỉ là dòng CAU_DON đã lọc theo SĐT token; tra `pos_orders`/`pos_order_items` theo khoá chính / order_id; Map tra bằng đúng oid; dòng `loai = 0` bị loại khỏi ids. (3) `SELECT *` chỉ trong bộ nhớ; câu trả lời chỉ 6 trường đặt tên (`tra[]` chỉ `cach`, `so_tien`), không spread `o`. (4) Export `dungThanhToan`/`tinhGiam` là hàm thuần, không route mới; route quầy giữ `authenticate`. (5) Không tin số tiền/giá nào từ máy khách.
+SOÁT BẢO MẬT: ĐẠT
