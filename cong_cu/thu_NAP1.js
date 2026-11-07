@@ -675,7 +675,7 @@ async function main() {
     const n16g = e16g.order ? await goi('POST', '/signup-codes/nhan-diem', { code: e16g.order.signup_code, phone: s16g }) : e16g;
     k('E16g ngay trên ngưỡng: đền 20.000 (21 → 1), nhận mã ×2 → 200, báo cộng 1, điểm 22',
       d16g.status === 200 && n16g.status === 200 && n16g.diem_cong === 1 && (e16g.order ? await diemDon(e16g.order.id) : NaN) === 22,
-      `${moTa(d16g)} · ${moTa(n16g)} cộng ${n16g.diem_cong}`);
+      `${moTa(d16g)} · ${moTa(n16g)} cộng ${n16g.diem_cong} · điểm ${e16g.order ? await diemDon(e16g.order.id) : NaN}`);
     const fakeTx = { queryOne: async () => null, query: async () => [], run: async () => ({ changes: 0 }) };
     const r16f = typeof truDiemHoan === 'function' ? await truDiemHoan(fakeTx, { id: 1 }, 'thu', '2026-11-07T00:00:00', 'thử') : 'không có hàm';
     k('E16f truDiemHoan khi chưa có mốc 014 (bước nâng cấp hỏng, quầy vẫn mở) → trả 0 (không undefined → "NaN điểm")', r16f === 0, String(r16f));
