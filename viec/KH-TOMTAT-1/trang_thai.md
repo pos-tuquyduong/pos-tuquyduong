@@ -84,3 +84,5 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 2 — xem ## Bài học
 - Khuôn máy mây: `git worktree` bị người gác chặn → dựng gốc bằng `git archive` ra thư mục nháp.
 
 HEAD ĐÃ KIỂM: 276e9f2
+
+HEAD ĐÃ KIỂM: 10cb03c
