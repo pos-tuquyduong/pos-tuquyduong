@@ -22,5 +22,5 @@ Sau khi vá (HEAD):
   node cong_cu/thu_KHTOMTAT1.js  → ✓ 33 đạt · 0 hỏng
   node cong_cu/thu_HOPDONG_KH.js → 88 đạt · 0 hỏng
 
-SỐ CA thu_KHTOMTAT1.js: 33
-SỐ CA thu_HOPDONG_KH.js: 88
+SỐ CA cong_cu/thu_KHTOMTAT1.js: 33
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 88
