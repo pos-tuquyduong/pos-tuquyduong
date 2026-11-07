@@ -7,6 +7,10 @@
  * Bước chỉ THÊM (bảng / cột / chỉ mục) và viết lặp lại được; thêm cột vào bảng có sẵn PHẢI qua themCot (tự chép bảng sao lưu trước).
  * Bước đổi DỮ LIỆU (từ 004) chép bảng sang _sao_luu_<NNN>_<bang> trước khi UPDATE, cùng khuôn themCot; không DELETE / DROP.
  * Nhận hàm giao dịch từ database.js (không require nó — tránh vòng nạp; bài thử chạy được trên thư mục bước giả).
+ * HOÃN (KHACH-APP-1, chủ quán 07.11): bước cần dữ liệu ngoài (SX) xuất thêm `truoc()` — gọi NGOÀI giao dịch (giao dịch Turso không được
+ * mở trong lúc chờ mạng) và chỉ khi bước chưa chạy; bước TỰ trả `{ hoan: '<lý do>' }` → không ghi gì, không pos_nang_cap, KHÔNG hỏng
+ * (kho không 503), sang bước sau, lần khởi động sau chạy lại; trả `{ du_lieu }` → `chay(tx, ctx, du_lieu)`. Bước dùng truoc phải độc lập
+ * với bước sau nó. truoc / chay NÉM lỗi → hỏng như cũ (rollback, dừng, hong).
  */
 const fs = require('fs');
 const path = require('path');
@@ -29,6 +33,14 @@ async function chayNangCap({ beginTransaction, query }, thuMuc = __dirname) {
   for (const tep of fs.readdirSync(thuMuc).filter((f) => MAU_BUOC.test(f)).sort()) {
     const ten = tep.slice(0, -3);
     const so = tep.slice(0, 3);
+    const buoc = require(path.join(thuMuc, tep));
+    let duLieu;
+    if (buoc.truoc) {
+      if ((await query('SELECT 1 FROM pos_nang_cap WHERE so = ?', [Number(so)])).length) continue;
+      try { duLieu = await buoc.truoc(); } catch (e) { return { hong: `${ten}: ${e.message}` }; }
+      if (duLieu && duLieu.hoan) { console.warn(`⏸ NÂNG CẤP ${ten} HOÃN — ${duLieu.hoan} (lần khởi động sau chạy lại)`); continue; }
+      duLieu = duLieu && duLieu.du_lieu;
+    }
     const tx = await beginTransaction();
     try {
       try {
@@ -38,7 +50,7 @@ async function chayNangCap({ beginTransaction, query }, thuMuc = __dirname) {
         await tx.rollback();   // bước đã chạy (hoặc máy khác vừa chạy) — bỏ qua
         continue;
       }
-      await require(path.join(thuMuc, tep)).chay(tx, { themCot: (bang, dinhNghia) => themCot(tx, so, bang, dinhNghia) });
+      await buoc.chay(tx, { themCot: (bang, dinhNghia) => themCot(tx, so, bang, dinhNghia) }, duLieu);
       await tx.commit();
     } catch (e) {
       await tx.rollback();
