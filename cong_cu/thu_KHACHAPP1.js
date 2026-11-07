@@ -138,9 +138,11 @@ async function main() {
     const s = '0938100004';
     const [q, a] = await Promise.all([quayTao({ phone: s, name: 'Đua Quầy' }), appTao(s, 'Đua App', 'em')]);
     const n = Number((await mot('SELECT COUNT(*) AS n FROM pos_customers WHERE phone = ?', [s])).n);
-    const id = (await mot('SELECT id FROM pos_customers WHERE phone = ?', [s]))?.id;
+    const dong = await mot('SELECT name FROM pos_customers WHERE phone = ?', [s]);
     const quayDung = q.status === 201 || (q.status === 400 && q.j.code === 'SDT_DA_CO');
-    k('C3 quầy + App cùng SĐT cùng lúc → MỘT khách; quầy 201 hoặc 400 SDT_DA_CO; App đăng nhập đúng khách đó', n === 1 && quayDung && a.status === 200 && Number(a.j.khach?.id ?? id) === Number(id),
+    // hồ sơ App (kh/index.js hoSo) không có id → so sdt + ten với dòng trong kho; thiếu trường thì ĐỎ (không `??` về giá trị mong đợi)
+    k('C3 quầy + App cùng SĐT cùng lúc → MỘT khách; quầy 201 hoặc 400 SDT_DA_CO; App đăng nhập đúng khách đó', n === 1 && quayDung && a.status === 200
+      && a.j.khach?.sdt === s && !!dong && a.j.khach?.ten === dong.name,
       `${n} dòng · ${moTa(q)} · ${moTa(a)}`);
   });
   await thu('C4', async () => {

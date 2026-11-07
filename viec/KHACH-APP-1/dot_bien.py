@@ -76,6 +76,12 @@ DOT_BIEN = [
                        "UPDATE pos_customers SET qr_code = ?, updated_at = '2026-11-07T00:00:00' WHERE id = ?", 1)], r'✗ B6 ', T),
   ('BV-021-DANG-KY', [(N21, "SELECT * FROM pos_registrations WHERE status = 'pending'", "SELECT * FROM pos_registrations WHERE 0 AND status = 'pending'", 1)], r'✗ B6b ', T),
   ('VS-021-CHEP-DA-XUAT', [(N21, "WHERE status = 'pending'\n    AND phone NOT IN", 'WHERE phone NOT IN', 1)], r'✗ B6b ', T),
+  # ── vòng sửa 1 (soát độc lập 07.11): lỗ bài thử C3 (so định danh qua `??`) và thu_KHO1 B1c (tập miễn HOÃN sinh từ file) ──
+  ('VS-APP-SAI-KHACH', [(MK, "    const kh = await tx.queryOne('SELECT id FROM pos_customers WHERE phone = ?', [sdt]);\n    if (!kh)",
+                         "    const kh = await tx.queryOne('SELECT id FROM pos_customers ORDER BY id LIMIT 1', []);\n    if (!kh)", 1)], r'✗ C3 ', T),
+  ('VS-BUOC-KHAC-HOAN', [('server/nang_cap/019_so_hoa_don.js', 'module.exports.chay = async (tx, { themCot }) => {',
+                          "module.exports.truoc = async () => ({ hoan: 'thử' });\nmodule.exports.chay = async (tx, { themCot }) => {", 1)],
+   r'✗ B1c ', 'thu_KHO1.js'),
   ('BV-021-CAP-QR', [(N21, "WHERE qr_code IS NULL OR qr_code = '' ORDER BY id", "WHERE 0 ORDER BY id", 1)], r'✗ B6 ', T),
 ]
 

@@ -253,8 +253,9 @@ async function main() {
   const tapSo = (ds) => JSON.stringify(ds.map((r) => Number(r.so)).sort((a, b) => a - b));
   k('B1 khởi động lần 1: pos_nang_cap đủ mọi bước không HOÃN được, bước 1 là 001_kho', soBuoc >= 1 && nc1.length === soBuoc
     && tapSo(nc1) === JSON.stringify(soCanCo) && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho', JSON.stringify(nc1));
-  k('B1c bước chép khách SX (020_chep_khach_sx, có truoc) KHÔNG có dòng pos_nang_cap khi SX không cấu hình',
-    tepTruoc.some((f) => f.startsWith('020_chep_khach_sx')) && !nc1.some((r) => tepTruoc.some((f) => Number(f.slice(0, 3)) === Number(r.so))),
+  // Danh sách miễn HOÃN CỐ ĐỊNH, có tên — bước mới lỡ thêm `truoc` thì ĐỎ ở đây (không tự được miễn).
+  k('B1c bước có truoc ĐÚNG [020_chep_khach_sx.js] và nó KHÔNG có dòng pos_nang_cap khi SX không cấu hình',
+    JSON.stringify(tepTruoc) === JSON.stringify(['020_chep_khach_sx.js']) && !nc1.some((r) => tepTruoc.some((f) => Number(f.slice(0, 3)) === Number(r.so))),
     `bước có truoc: ${tepTruoc.join(', ') || 'không có'} · ${JSON.stringify(nc1.map((r) => r.so))}`);
   imLang(); await db.initDatabase(); noiLai();
   k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === soBuoc
