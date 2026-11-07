@@ -72,6 +72,7 @@ async function main() {
     app.use('/api/pos/' + r, require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   app.use('/api/pos/orders', require(path.join(MAY_CHU, 'routes', 'don-mo-rong.js')));
+  app.use('/api/pos/hoa-don', require(path.join(MAY_CHU, 'routes', 'hoaDon.js')));
   const goiNapRoute = thuNap(['routes', 'goi-nap.js']);
   if (goiNapRoute) app.use('/api/pos/goi-nap', goiNapRoute);
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
@@ -619,6 +620,27 @@ async function main() {
     k('E15 hai nhóm hạn (không hạn 22 + hạn 2099 20), đền 21.000 hai lần → mỗi nhóm về 0 (không nhóm nào âm); huỷ sau đó → 200, điểm 0, không dòng trừ 0 điểm',
       d15.every((r) => r.status === 200) && JSON.stringify(nhom15) === '[0,0]' && h15.status === 200 && s15 === 0 && rong15 === 0,
       `${d15.map(moTa).join(' · ')} · nhóm [có hạn, không hạn] ${JSON.stringify(nhom15)} · ${moTa(h15)} · ${s15} · dòng 0 điểm ${rong15}`);
+    // E16 (chủ quán 07.11 "(a) + thêm file"): nhận điểm mã bill SAU khi đơn đã được đền → ngay sau khi cộng, CÙNG giao dịch, gọi lại truDiemHoan
+    // (điểm mã bill cũng trừ theo phần đã trả vào tài khoản); bill / hoá đơn (hoaDon.js) hiện số điểm ĐÃ trừ. K5: đơn chưa đền → như cũ.
+    const s16 = sdtMoi(), s16b = sdtMoi();
+    const e16 = await ban({ customer_phone: s16, payment_method: 'cash', cash_amount: 21000 });
+    const d16 = e16.order ? await den(e16.order, 10500) : e16;
+    const b16a = e16.order ? (await goi('GET', `/hoa-don/${e16.order.id}`)).hoa_don?.diem : null;
+    const n16 = e16.order ? await goi('POST', '/signup-codes/nhan-diem', { code: e16.order.signup_code, phone: s16 }) : e16;
+    const v16 = e16.order ? await diemDon(e16.order.id) : NaN;
+    const b16b = e16.order ? (await goi('GET', `/hoa-don/${e16.order.id}`)).hoa_don?.diem : null;
+    const l16 = e16.order ? (await lechBB(['I8'])).filter((x) => x.includes(e16.order.code)) : ['không có đơn'];
+    k('E16 tiền mặt 21.000 (21) đền 10.500 → 10, bill ghi cộng 10; nhận mã ×2 → +21 rồi trừ 10 cùng lúc → 21 (báo cộng 11), bill ghi cộng 21; I8 = 0 lệch',
+      d16.status === 200 && b16a?.cong === 10 && n16.status === 200 && n16.diem_cong === 11 && v16 === 21 && b16b?.cong === 21
+        && b16b?.hien_co === b16b?.truoc + 21 && l16.length === 0,
+      `${moTa(d16)} · bill trước ${JSON.stringify(b16a)} · ${moTa(n16)} cộng ${n16.diem_cong} · điểm ${v16} · bill sau ${JSON.stringify(b16b)} · ${l16.join(' | ')}`);
+    const e16b = await ban({ customer_phone: s16b, payment_method: 'cash', cash_amount: 21000 });
+    const n16b = e16b.order ? await goi('POST', '/signup-codes/nhan-diem', { code: e16b.order.signup_code, phone: s16b }) : e16b;
+    const b16c = e16b.order ? (await goi('GET', `/hoa-don/${e16b.order.id}`)).hoa_don?.diem : null;
+    const t16b = e16b.order ? await so("SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust'", [e16b.order.id]) : NaN;
+    k('E16b K5 đơn chưa đền: nhận mã ×2 → +21 như cũ (42), không dòng trừ, bill ghi cộng 42',
+      n16b.status === 200 && n16b.diem_cong === 21 && (e16b.order ? await diemDon(e16b.order.id) : NaN) === 42 && t16b === 0 && b16c?.cong === 42,
+      `${moTa(n16b)} cộng ${n16b.diem_cong} · dòng trừ ${t16b} · bill ${JSON.stringify(b16c)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
