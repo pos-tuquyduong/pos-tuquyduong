@@ -199,6 +199,7 @@ async function main() {
   await db.run('UPDATE pos_customers SET ngay_sinh = ? WHERE phone = ?', ['1990-05-06', SDT_A]);
   await db.run("INSERT INTO pos_registrations (phone, name, status, created_at) VALUES ('0938100099', 'Chỉ Đăng Ký', 'pending', '2026-11-01T08:00:00')");
   await db.run("INSERT INTO pos_wallets (phone, balance, created_at) VALUES ('0938100098', 7000, '2026-11-01T08:00:00')");
+  await db.run("INSERT INTO pos_customers (phone, name, sx_status, qr_code, created_at) VALUES ('0938100097', 'Khách SX Ngừng', 'expired', 'TQD-BBBBBBBBBBBB', '2026-11-01T08:00:00')");
 
   for (const [che, nhan] of [['ds', 'SX trả danh sách KHÔNG có họ'], ['loi', 'SX tắt']]) {
     sx.che = che;
@@ -211,6 +212,10 @@ async function main() {
       k(`A1b (${che}) khách App: balance 50000, points 30 (điểm hết hạn không tính), ngay_sinh, xung_ho`, a?.balance === 50000 && a?.points === 30 && a?.ngay_sinh === '1990-05-06' && a?.xung_ho === 'chi', JSON.stringify(a));
       const dem = {}; ds.forEach((c) => { dem[c.phone] = (dem[c.phone] || 0) + 1; });
       k(`A6 (${che}) mỗi SĐT MỘT dòng`, Object.values(dem).every((n) => n === 1), JSON.stringify(Object.entries(dem).filter(([, n]) => n > 1)));
+      const dkk = ds.find((c) => c.phone === '0938100008');
+      k(`A6b (${che}) khách tạo qua "Thêm khách" hiện là KHÁCH (id, is_synced), không phải dòng đăng ký chờ`, !!dkk?.id && dkk.is_synced === true && !dkk.is_pending, JSON.stringify(dkk));
+      const ngung = ds.find((c) => c.phone === '0938100097');
+      k(`A14 (${che}) khách SX đã ngừng (sx_status 'expired') vẫn hiện (Q3)`, !!ngung, `${ds.length} dòng`);
       const dk = ds.find((c) => c.phone === '0938100099');
       k(`A9 (${che}) đăng ký chờ chưa là khách vẫn hiện is_pending + registration_id`, dk?.is_pending === true && !!dk?.registration_id, JSON.stringify(dk));
       const t1 = await tim('Khách Mới'), t2 = await tim(SDT_Q), t3 = await tim('khách mớ');
