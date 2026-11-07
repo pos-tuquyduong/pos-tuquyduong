@@ -10,6 +10,8 @@ const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, getToday, normalizePhone } = require('../utils/helpers');
 const { RELATIONSHIP_VALUES } = require('../constants/relationships');
+const { taoKhach } = require('../utils/khachMoi');   // KHACH-APP-1
+const { loiGhi, trongGiaoDich } = require('./wallets');
 
 const router = express.Router();
 
@@ -234,17 +236,27 @@ router.post('/', authenticate, async (req, res) => {
 
     const validRelationship = RELATIONSHIP_VALUES.includes(relationship) ? relationship : null;
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
+    const soChu = requested_cycles ? parseInt(requested_cycles) : null;
 
-    const result = await run(`
-      INSERT INTO pos_registrations (phone, name, notes, parent_phone, relationship, requested_product, requested_cycles, status, created_by, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-      [normalizedPhone, name.trim(), notes || null, normalizedParentPhone, validRelationship, requested_product || null, requested_cycles ? parseInt(requested_cycles) : null, req.user.username, getNow()]
-    );
+    // KHACH-APP-1 (Q1 chủ quán 07.11): "Thêm khách" tạo khách THẬT bằng hàm chung + vẫn ghi đăng ký chờ — MỘT giao dịch
+    const kq = await trongGiaoDich(async (tx) => {
+      const t = await taoKhach({ phone: normalizedPhone, name, notes, parent_phone: normalizedParentPhone, relationship: validRelationship,
+        requested_product, requested_cycles: soChu, created_by: req.user.username }, tx);
+      if (t.loi || t.trung) return { huy: true, ...t };
+      const r = await tx.run(`
+        INSERT INTO pos_registrations (phone, name, notes, parent_phone, relationship, requested_product, requested_cycles, status, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        [normalizedPhone, name.trim(), notes || null, normalizedParentPhone, validRelationship, requested_product || null, soChu, req.user.username, getNow()]
+      );
+      return { id: r.lastInsertRowid };
+    });
+    if (kq.loi) return res.status(400).json({ error: 'SĐT không hợp lệ', code: kq.loi });
+    if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã là khách', code: 'SDT_DA_CO' });
 
-    const newReg = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [result.lastInsertRowid]);
+    const newReg = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [kq.id]);
     res.json({ success: true, registration: newReg });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
