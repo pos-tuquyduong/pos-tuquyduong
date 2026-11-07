@@ -383,3 +383,84 @@ VS-nhan-lai-bo-goi-luc, VS-nhan-lai-bo-ma, BV-nhan-lai-changes, VS-tra-ve-bo-die
 - `goi-xe` không gửi `tu` (công cụ cũ / gọi tay) thì không kiểm trạng thái màn — màn quầy luôn gửi; bảo vệ đua thật vẫn ở câu giành + nhánh
   "chuyến vừa bị huỷ".
 
+
+## Soát độc lập sau vòng sửa 5 (/ra-soat, agent riêng, HEAD 3fcb7ec) — chép nguyên văn
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ — không có lỗi NẶNG nào đã chứng minh được)
+
+Tóm tắt (của người soát): hai lỗi NẶNG + bốn lỗi nhẹ của lần soát sau vòng 4 đã vá thật (chạy lại kiểm). Số đo trên HEAD 3fcb7ec: thu_GIAO1 127 · 0;
+bài thử HEAD trên code 515a021: 116 · 11 (khớp bang_chung_do.txt, đỏ J5f, V1–V7, V9, V10, K1); dot_bien.py 72/72 BẮT, đối chứng XANH; --day-du PASS 102 ·
+FAIL 0 · CẢNH BÁO 2 (cũ), dist KHỚP src. Đột biến thêm của người soát (scratchpad/p5/them_db.py): 1 BẮT, 8 SỐNG.
+Lỗi cũ đã vá: 1 (da_dong :157, V1, BV-da-dong-chan-huy BẮT) · 2a (:253 ghiPhiHuyLenh, V2) · 2b (:341 trước :342; :258–264; J5f, V3) · 3 (V8, V11–V13)
+· 4 (:255–256 loi_mang, V9) · 5 (:400 409 khi dang_goi, V10) · 6 (chú thích :7–12, :194–195, :456–458; ke_hoach.md:260).
+
+LỖI TÌM ĐƯỢC:
+1. viec/GIAO-1/trang_thai.md (dòng "Q9: Ahamove báo huỷ theo lệnh quán (capNhatTuAhamove, Gọi lại thẻ treo)…" + bảng "BV-q9-huy-theo-lenh-quan | V5 / V6")
+   + server/utils/giaoHang.js:259 — NHẸ (khoá đường tiền) — K3/K1. Hồ sơ nói nhánh Gọi lại thẻ treo đã có ca, nhưng V5/V6 chỉ chạy :360.
+   Đột biến bỏ hẳn :259 → SỐNG. Đột biến đổi :259 thành ghi phí bất kể ai huỷ → SỐNG.
+   Kịch bản đột biến sau lọt: tài xế huỷ X (có cancel_fee) → máy tự tìm lại → mất mạng → thẻ treo giữ mã X → quầy bấm Gọi lại → máy ghi phí
+   huỷ, trái Q9 "tài xế huỷ → không phí". Cần ca này + ca ngược "quán huỷ trên app khi thẻ treo → có phí".
+2. server/utils/giaoHang.js:311–315 — NHẸ (tiền, rất hiếm) — K4. Có 3 chỗ gọi aha.huyChuyen (:250, :313, :337); chỉ :250 và :337 ghi phí huỷ.
+   :313 huỷ "chuyến trùng" cũng là lệnh của quán (Q9) nhưng không ghi phí. Mã chuyến trùng không lưu ở đâu, nên tin báo về của nó bị bỏ (:398).
+   Lệnh huỷ :313 lỗi thì chỉ console.error: chuyến thứ hai vẫn chạy, phí thật không lên Đối soát. Không bịt bằng khoá. Có từ vòng 2.
+3. server/utils/giaoHang.js:291–296 — NHẸ (tiền, hiếm) — K4. Vòng 4 đã sửa nhánh có mã chuyến cũ: "chuyến cũ đã xong thì nhận lại" (:265).
+   Nhánh tra theo mã theo dõi chưa sửa: chuyến tìm thấy đã COMPLETED bị coi như đã huỷ (`if (co) tn = null`) → máy gọi chuyến MỚI.
+   Kịch bản: thẻ treo vì mất mạng, chuyến Z thực ra đã tạo và giao xong → bấm Gọi lại = trả tiền chuyến thứ hai.
+   Phí thật của Z cũng không vào Đối soát.
+4. viec/GIAO-1/ke_hoach.md:278 + giaoHang.js:399 — NHẸ — K1. Viết "Ahamove gửi lại" khi nhận 409 / 502, nhưng không dẫn được tài liệu Ahamove nào.
+   Đọc lại dự phòng sau 60 s (:422) che phần lớn trường hợp, nên hậu quả nhỏ.
+   Thêm: :263 trả "Chuyến vừa bị huỷ — bấm Gọi lại" ngay cả khi :262 → capNhatTuAhamove đã tự gọi chuyến mới (tài xế huỷ, chưa tự tìm lần nào) — lời báo sai.
+
+NGHI NGỜ:
+- ahamove.js:100 `nguoi_huy_la_quan: o.cancel_by_user !== false`: Ahamove không gửi trường này thì coi là QUÁN huỷ.
+  Từ vòng 5 chỗ này quyết TIỀN (Q9 ghi phí huỷ :360, :259), không chỉ quyết việc tự tìm lại.
+  Đột biến đổi thành `=== true` → SỐNG: giá trị mặc định chưa có ca khoá (K3). Ahamove thật gửi trường này ra sao — vẫn chưa đối chiếu.
+- giaoHang.js:204–205: dấu PHI_HUY ghi ngay lần đọc đầu, kể cả khi phi_huy = 0.
+  Nếu Ahamove tính cancel_fee SAU khi chuyển sang CANCELLED thì phí bị khoá ở 0 mãi.
+  Đột biến đổi :210 thành "đọc được là ghi" (chưa cần CANCELLED) → SỐNG: thiếu ca "lệnh huỷ thành công nhưng đọc lại thấy chưa CANCELLED".
+- giaoHang.js:212–218: docLaiPhiHuy lấy `LIMIT 3`, không ORDER BY, không bỏ qua dòng đọc mãi không ra.
+  3 dòng chờ đọc không giải được (Ahamove trả 404 / không bao giờ CANCELLED) sẽ chặn mọi dòng sau.
+  Nó chạy mỗi lần màn hỏi (15 s, client GiaoHang/index.jsx:15), mỗi màn mở thêm tối đa 3 lời gọi Ahamove, không giới hạn nhịp.
+  Đột biến "chỉ ghi khi phí > 0" → SỐNG: chưa có ca "phí huỷ = 0 vẫn hết chờ".
+- giaoHang.js:337–338: Tìm lại huỷ X trước, sau đó quản lý bấm Huỷ chuyến → Ahamove từ chối → quản lý thấy "có thể tài xế đã lấy hàng" (sai lý do) trong khi máy đã gọi chuyến mới.
+  Nếu Ahamove thật trả 200 khi DELETE một chuyến đã huỷ, :250 đặt daHuy = true → Tìm lại gọi chuyến mới ngay sau khi quản lý vừa huỷ (trái Q8-3). Máy giả từ chối (thu_GIAO1.js:106) nên không thấy.
+- Đột biến còn SỐNG, nhẹ: lọc theo kỳ của phi_huy_chua_ro (:491); trả 200 không cần cùng mã chuyến (:347); hoàn tiền thẻ da_dong (:197, vô hại).
+
+NGHIỆM THU: 12/12 mục có bằng chứng (thu_GIAO1.js) · mục thiếu: không có.
+  A :221 + A6 :1006 · B :261 · C :300 · D :327 (D1–D9) · E :372 (E1, E2) · F :376–405 (F1–F4) · G :410 (G1–G10, G8b/c)
+  · H :457 (H1–H12) · I :501 (I1–I6, V7) · J :687 (J1–J8b) + V1–V4, V6 · K :974 (K1 số cứng 201.000 · 5.000 · 4.000 · 44.500; V2 phi_huy_chua_ro)
+  · K5 :332, :367, :804, V4 (Gọi lại đúng thẻ được).
+  Hạn chế: E/F phần giao diện (màu cột, tab điện thoại, kêu) chỉ thử tay; phần Q9 của K yếu ở nhánh Gọi lại thẻ treo (lỗi 1); cửa App không đổi
+  (git diff 977aefa^ HEAD -- server/routes/kh server/middleware HOP_DONG_API_KH.md app_kh rỗng).
+  K5: không thấy chặn oan (`tu` màn luôn gửi — index.jsx:81, :156; 409 lúc dang_goi có dự phòng :422; da_dong chỉ chặn Huỷ đơn; Huỷ chuyến 200 khi
+  thẻ đã chuyen_huy cùng chuyến; Tìm lại khi tài xế đã huỷ nay phải bấm thêm Gọi lại — đúng Q8-3). Đường tiền: phí ship từ báo phí (orders.js:746);
+  phí thật / chênh do máy chủ; phí huỷ đọc từ Ahamove — không tin số màn hình. P1: dist khớp src, build cùng 9539c56.
+  Đơn giản: giaoHang.js đúng 500 dòng (đã ghi Phát hiện); dấu PHI_HUY / CHO_PHI_HUY nhét vào pos_giao_tin, `phu` chứa id chuyến dạng chữ — trộn
+  nghĩa, gọn hơn: bảng hoặc cột phí huỷ riêng; :259 trùng :360 trong nhánh tim_xe (vô hại nhờ dấu một lần); tiền mới đã có đối soát ("n chuyến chưa rõ phí huỷ").
+
+CHƯA SOÁT ĐƯỢC: Ahamove thật (cancel_by_user, cancel_fee tính lúc nào, DELETE chuyến đã huỷ trả gì, tin báo có gửi lại không);
+  đua thật trên Turso; giao diện điện thoại; `node tu_chay/cong.js chay`; soát bảo mật.
+
+BÀI HỌC:
+- KHOÁ: ca Gọi lại thẻ treo cho Q9, hai chiều (quán huỷ → có phí; tài xế huỷ → không); ca thiếu cancel_by_user (khoá giá trị mặc định);
+  ca "lệnh huỷ thành công, đọc lại chưa CANCELLED / phí 0"; ca 3 dòng chờ đọc kẹt không chặn dòng thứ 4; ca tra theo mã theo dõi ra COMPLETED → không gọi chuyến mới.
+- NGUYÊN TẮC (K4): luật "lệnh X của quán → ghi Y" phải grep MỌI chỗ gọi lệnh X (3 chỗ huyChuyen, mới vá 2).
+  Luật "đã xong → nhận lại" phải áp ở MỌI nhánh tìm ra chuyến cũ: theo mã chuyến VÀ theo mã theo dõi.
+- NGUYÊN TẮC (K1): bảng "chỗ vá → ca" trong trang_thai phải có một đột biến xoá đúng dòng đó mà BẮT, không chỉ trỏ ca của một dòng cùng tên hàm.
+
+## Câu hỏi (phiên 4)
+**Dừng ở bước 8: lần soát chủ quán cho thêm sau vòng sửa 5 KHÔNG ĐẠT — không còn lỗi NẶNG, nhưng lỗi nhẹ 1–3 đụng TIỀN (phí huỷ, chuyến thứ hai),
+nên theo LUAT §6.5 máy không tự làm vòng sửa 6.** Chưa chạy soát bảo mật, cổng, báo cáo 7 mục.
+
+Lời thường: vòng 5 đã chữa đúng mọi lỗi bạn duyệt (thẻ đã đóng hết huỷ được đơn; phí huỷ không mất, không cộng hai lần; Q9 tính phí khi quán huỷ
+kể cả mất mạng / huỷ trên app Ahamove). Người soát còn thấy vài chỗ hiếm gặp:
+(1) nút "Gọi lại" ở thẻ bị treo chưa có ca thử cho luật Q9 (tính / không tính phí huỷ) — code đã làm đúng, chỉ thiếu bài khoá;
+(2) khi máy lỡ tạo trùng chuyến và tự huỷ chuyến trùng, phí huỷ của chuyến trùng đó chưa ghi vào Đối soát (rất hiếm, có từ trước);
+(3) thẻ treo vì mất mạng mà chuyến thực ra đã tạo và giao xong → bấm "Gọi lại" sẽ gọi thêm một chuyến (quán trả thêm một lần ship) — hiếm, có từ trước;
+(4) vài câu chữ / chú thích nói Ahamove "gửi lại tin" chưa có tài liệu xác nhận.
+
+Đề xuất (bạn chỉ cần trả lời "đồng ý vòng sửa 6" hoặc chỉnh):
+- Q10: cho làm **vòng sửa 6** đúng 4 điểm trên + ca khoá người soát nêu (Ahamove không gửi `cancel_by_user` → coi là quán huỷ như hiện nay;
+  đọc lại chưa thấy huỷ / phí 0 vẫn hết "chưa rõ"; chuyến tra theo mã theo dõi đã giao xong → nhận lại, không gọi mới; chuyến trùng tự huỷ → ghi phí
+  huỷ), rồi KHÔNG soát độc lập lần nữa mà chat soát thay (như LUAT §6.5 vòng cuối), sau đó soát bảo mật + cổng + báo cáo.
+- Q11: Ahamove không gửi trường "ai huỷ" (`cancel_by_user`) thì hiện máy coi là QUÁN huỷ → tính phí huỷ vào Đối soát (phía an toàn: Đối soát
+  không thiếu tiền quán trả). Bạn giữ cách này? (Đề xuất: giữ; khi có khoá Ahamove thật thì xem trường thật.)
