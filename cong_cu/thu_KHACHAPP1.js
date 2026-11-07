@@ -254,18 +254,21 @@ async function main() {
   });
   await thu('R4', async () => {
     // mỗi dấu vết một ca: khách có dấu vết đó → chủ quán xoá đăng ký thì CHỈ xoá đăng ký, khách giữ
-    const chen = async (bang, cot, s) => {
-      const cots = (await db.query(`PRAGMA table_info(${bang})`)).filter((c) => c.notnull && c.dflt_value == null && !c.pk && c.name !== cot);
-      const gt = cots.map((c) => (/INT|REAL/i.test(c.type) ? 1 : 'thu_' + Math.random().toString(36).slice(2)));
-      await db.run(`INSERT INTO ${bang} (${[cot, ...cots.map((c) => c.name)].join(', ')}) VALUES (${['?', ...cots.map(() => '?')].join(', ')})`, [s, ...gt]);
+    // chèn một dòng: cột cho sẵn + mọi cột NOT NULL không mặc định điền giá trị giả (số → 1, chữ → chuỗi ngẫu nhiên)
+    const chenDong = async (bang, dat) => {
+      const cots = (await db.query(`PRAGMA table_info(${bang})`)).filter((c) => c.notnull && c.dflt_value == null && !c.pk && !(c.name in dat));
+      const ten = [...Object.keys(dat), ...cots.map((c) => c.name)];
+      const gt = [...Object.values(dat), ...cots.map((c) => (/INT|REAL/i.test(c.type) ? 1 : 'thu_' + Math.random().toString(36).slice(2)))];
+      return Number((await db.run(`INSERT INTO ${bang} (${ten.join(', ')}) VALUES (${ten.map(() => '?').join(', ')})`, gt)).lastInsertRowid);
     };
+    const chen = (bang, cot, s) => chenDong(bang, { [cot]: s });
     const DAU_VET = [
       ['đơn', (s) => chen('pos_orders', 'customer_phone', s)],
       ['ví còn tiền', (s) => db.run('INSERT INTO pos_wallets (phone, balance, created_at) VALUES (?, 5000, ?)', [s, '2026-11-01T08:00:00'])],
       ['giao dịch ví (ví về 0)', async (s) => { await db.run('INSERT INTO pos_wallets (phone, balance, created_at) VALUES (?, 0, ?)', [s, '2026-11-01T08:00:00']);
         await chen('pos_balance_transactions', 'customer_phone', s); }],
       ['điểm', (s) => chen('pos_point_transactions', 'customer_phone', s)],
-      ['gói', (s) => chen('pos_customer_packages', 'customer_phone', s)],
+      ['gói', async (s) => chenDong('pos_customer_packages', { customer_phone: s, package_id: await chenDong('pos_packages', {}) })],
       ['thẻ hạng', (s) => chen('pos_membership_purchases', 'customer_phone', s)],
       ['người nhận gắn SĐT', (s) => db.run("INSERT INTO pos_customers (phone, name, parent_phone, created_at) VALUES (?, 'Con Gắn', ?, '2026-11-01T08:00:00')", ['0938109' + s.slice(-3), s])],
       ['mã đăng nhập App', (s) => chen('pos_kh_ma_dang_nhap', 'sdt', s)],
