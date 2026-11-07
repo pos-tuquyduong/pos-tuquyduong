@@ -258,6 +258,10 @@ async function main() {
     const d21 = await mot('SELECT 1 AS co FROM pos_nang_cap WHERE so = 21');
     k('B3b bước 020 (SX) HOÃN — chưa ghi pos_nang_cap; bước 021 sau nó vẫn chạy', !d20 && !!d21, `${!!d20} ${!!d21}`);
     k('B5 trong lúc 020 chưa xong, danh sách vẫn 200', (await goi('GET', '/pos/v2/customers')).status === 200);
+    sx.che = 'ds'; const dsCu = sx.ds; sx.ds = [];
+    imLang(); const rr = await nangCap(); noiLai();
+    sx.ds = dsCu;
+    k('B3c SX trả danh sách RỖNG → 020 vẫn HOÃN (không coi là xong), khung không hỏng', rr.hong === null && !(await mot('SELECT 1 AS co FROM pos_nang_cap WHERE so = 20')), String(rr.hong));
   });
   await thu('B1', async () => {
     const SDT_CU = '0938100031';
