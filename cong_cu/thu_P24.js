@@ -299,10 +299,10 @@ async function main() {
     const d2 = await tienMat(s2);
     await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, reason, created_at)
       VALUES (?, 'adjust', -5, ?, 'chèn tay P24', ?)`, [s2, d2.id, d2.created_at]);
-    boQuaI8.add(d2.code);
     const h2 = await huy(d2.id);
-    k('F2 đơn đã có dòng adjust (chèn tay) → huỷ 200 nhưng KHÔNG thêm dòng trừ thứ hai (chặn trong câu ghi)', h2.status === 200
-      && await soDong(d2.id, 'adjust') === 1 && await diemDon(d2.id) === 20, `${moTa(h2)} · adjust ${await soDong(d2.id, 'adjust')} · ${await diemDon(d2.id)}`);
+    // NAP-1 (chủ quán 06.11 (3)): đơn đã bị trừ MỘT PHẦN (đền bù / kết thúc gói) → huỷ trừ NỐT phần còn lại (tổng đơn về 0), không bỏ qua.
+    k('F2 đơn đã có dòng adjust −5 (chèn tay) → huỷ 200, trừ NỐT 20 (2 dòng trừ), điểm đơn 0', h2.status === 200
+      && await soDong(d2.id, 'adjust') === 2 && await diemDon(d2.id) === 0, `${moTa(h2)} · adjust ${await soDong(d2.id, 'adjust')} · ${await diemDon(d2.id)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -394,8 +394,9 @@ async function main() {
     const d4 = await tienMat(s4, 1);
     const bh = await goi('POST', '/damages', { order_id: d4.id, product_code: sp[1].code, quantity: 1, reason: 'damaged', reason_note: 'thử P24',
       action: 'refund', refund_amount: 10000, return_to_stock: false });
-    k('I3 hoàn MỘT PHẦN (báo hỏng hoàn 10.000) đơn có 20 điểm → 200, điểm GIỮ 20, 0 dòng trừ (việc sau)', bh.status === 200
-      && await diemDon(d4.id) === 20 && await soDong(d4.id, 'adjust') === 0, moTa(bh));
+    // NAP-1 (chủ quán 06.11 (3)): đền vào tài khoản trừ điểm như duyệt hoàn — ceil(20 × 10.000 / 20.000) = 10.
+    k('I3 hoàn MỘT PHẦN (báo hỏng hoàn 10.000) đơn có 20 điểm → 200, trừ 10 (1 dòng trừ), giữ 10', bh.status === 200
+      && await diemDon(d4.id) === 10 && await soDong(d4.id, 'adjust') === 1, `${moTa(bh)} · ${await diemDon(d4.id)} điểm`);
   }
 
   sv.close();
