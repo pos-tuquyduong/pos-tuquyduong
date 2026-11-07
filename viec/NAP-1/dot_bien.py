@@ -26,6 +26,8 @@ N14 = 'server/nang_cap/014_nap.js'
 BK = 'server/routes/backup.js'
 BB = 'cong_cu/gia_lap/bat_bien.js'
 TI = 'client/src/pages/BanHang/tinh.js'
+SC = 'server/routes/signup-codes.js'
+HD = 'server/routes/hoaDon.js'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
 DOT_BIEN = [
@@ -110,6 +112,13 @@ DOT_BIEN = [
   ('VS-huy-tru-lai-ca-phan-da-tru', [(OR, "     WHERE order_id = ? AND type IN ('earn', 'adjust')\n     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,", "     WHERE order_id = ? AND type = 'earn'\n     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,", 1)], r'✗ E11 '),
   ('VS-tru-diem-theo-diem-goc', [(DT, '    const tru = Math.min(conTru, Number(r.con || 0));', '    const tru = Math.min(conTru, Number(r.diem || 0));', 1)], r'✗ E15 '),
   ('BV-huy-having', [(OR, "     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,", "     GROUP BY customer_phone, expires_at`,", 1)], r'✗ E15 '),
+  # ── chủ quán 07.11 "(a) + thêm file": nhận điểm mã bill sau đền → trừ ngay (signup-codes.js); bill hiện điểm đã trừ (hoaDon.js) ──
+  ('BV-ma-bill-tru-diem', [(SC, "      diemTru = await truDiemHoan(tx, don, (req.user && req.user.username) || 'service', now, `Nhận điểm mã bill ${maGoc}`);\n", '', 1)], r'✗ E16 '),
+  ('VS-ma-bill-bao-diem-gop', [(SC, '      diem_cong: diemCong - diemTru,', '      diem_cong: diemCong,', 1)], r'✗ E16 '),
+  ('VS-ma-bill-tru-ngoai-gd', [(SC, "      diemTru = await truDiemHoan(tx, don,", "      diemTru = await truDiemHoan({ query, queryOne, run }, don,", 1)], r'✗ E16 '),
+  ('BV-bill-diem-ro-rong', [(HD, "  const traTK = o.status !== 'completed' || !!(await queryOne(", "  const traTK = o.status !== 'completed' || false && !!(await queryOne(", 1)], r'✗ E16 '),
+  ('VS-bill-diem-loai-tra', [(HD, "WHERE order_id = ? AND type IN ('refund', 'compensation') LIMIT 1\", [o.id]));", "WHERE order_id = ? AND type IN ('refund') LIMIT 1\", [o.id]));", 1)], r'✗ E16 '),
+  ('VS-tru-diem-khong-tra-so', [(DT, '  return daTru;\n}', '}', 1)], r'✗ E16 '),
   ('BV-I8-den', [(BB, "const truHoan = r.status !== 'cancelled' && dungBan > 0", "const truHoan = r.status === 'refunded' && dungBan > 0", 1)], r'✗ E14 '),
   ('VS-I8-bo-den', [(BB, "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')\n", "FROM pos_balance_transactions WHERE type = 'refund'\n", 1)], r'✗ E14 '),
   ('VS-I8-bo-hoan-goi', [(BB, "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')\n", "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation') AND COALESCE(payment_method, '') <> 'hoan_goi'\n", 1)], r'✗ E14 '),
