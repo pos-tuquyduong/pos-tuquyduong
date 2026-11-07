@@ -558,3 +558,65 @@ Hai người cùng bấm: đền / kết thúc gói chạy trong `trongGiaoDich`
 - `viec/P24/dot_bien.py:23` (ngoài Phạm vi, việc cũ) neo chuỗi `AND NOT EXISTS (… type = 'adjust')` của truDiemDon — nay không còn → đột biến đó LẠC khi ai chạy
   lại bộ P24. Canh hành vi này nay ở BV-huy-tru-not (NAP-1) + thu_P24 F1 / F1b / G2.
 - Điểm đã hoàn / đền theo luật mới chỉ tính từ lúc chạy bước 014 (như duyệt hoàn): đền đơn tạo TRƯỚC khi gộp NAP-1 không trừ điểm (dữ liệu cũ — LUAT §6.6).
+
+## Soát độc lập (/ra-soat, 07.11, phần mới 17efb89 → f2d82c1; nhánh 0406870^ → f2d82c1) — chép nguyên báo cáo
+```
+KHÔNG ĐẠT
+
+Tóm tắt bằng lời thường: phần vá mới chạy đúng ở cả ba lối (duyệt hoàn, đền bù, kết thúc gói), bài thử đỏ trên bản gốc và xanh trên bản mới, đột biến bắt đủ. Mình tự chạy: thu_NAP1 HEAD 81 đạt · 0 hỏng; thu_NAP1 trên server gốc 17efb89 thì 77 đạt · 4 hỏng (E10–E13, khớp bang_chung_do.txt); 2 đột biến bắt 2/2; `npm test` PASS 99 · FAIL 0. Tuy vậy còn một lối ngoài Phạm vi cộng lại điểm sau khi đã đền, nên luật mới bị hở. Cần chủ quán quyết vì lối đó nằm trong file chưa có trong Phạm vi.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/nhanDiem.js:15-19,42 + server/routes/signup-codes.js:209-210,253-259 — Lối song song với luật trừ điểm. Đơn đền bù hoặc kết thúc gói vẫn ở trạng thái 'completed'. Khách đã cho SĐT vẫn có mã bill (orders.js:1226-1243 phát mã cho mọi đơn; InvoicePrint.jsx:203 in ra; billSdtKhac ở signup-codes.js:91 cho đúng SĐT đó nhận). Khách nhận điểm qua /nhan-diem (cả /api/kh/nhan-diem, kh/index.js:296) SAU khi đã đền thì được cộng diemGoc×(hệ số−1). diemGoc tính trên TOÀN BỘ tienTinhDiem(don), không trừ phần đã trả vào tài khoản. Ví dụ: đơn 20.000 tiền mặt (20 điểm), đền 10.000 → còn 10; nhận mã ×2 → +20 → 30. I8 (bat_bien.js:184-185) lại tính đúng là 40 − ceil(40×10.000/20.000) = 20 → Đối soát thật sẽ báo lệch. Trước NAP-1 lối này không hở: đơn 'refunded' bị chặn nhận mã (signup-codes.js:67), còn đền thì chưa trừ gì cả. Nay mở rộng luật trừ sang đơn 'completed' mà không bịt lối nhận mã. trang_thai.md mục K4 ghi "Hết." là sai. — K4 (và K1) — NẶNG (đụng điểm, file ngoài Phạm vi → phải hỏi chủ quán).
+2. server/routes/hoaDon.js:46-47 — Bill và hoá đơn App KH (dungHoaDon → dongHoaDon) với đơn 'completed' chỉ cộng dòng 'earn', bỏ qua 'adjust'. Đơn đã đền hay đã kết thúc gói nay có dòng 'adjust' trên đơn 'completed' → in lại bill vẫn ghi "cộng 20", ô "hiện có" cao hơn thật. Chú thích dòng 46 ("bill không hứa điểm đã bị trừ") không còn đúng. — K4 — đụng điểm hiển thị cho khách, ngoài Phạm vi.
+3. cong_cu/thu_NAP1.js (E9/E10) — Đột biến SỐNG mình tự dựng: diemThat.js:41 đổi `Math.min(conTru, Number(r.con || 0))` thành `Math.min(conTru, Number(r.diem || 0))` → thu_NAP1 vẫn xanh hết; chỉ G1–G4 đỏ, do bản sao của mình không chép client/src, không liên quan đột biến. Nghĩa là chưa ca nào phủ trường hợp "nhiều nhóm hạn + trừ lần hai". Ở trường hợp đó, đột biến làm một nhóm âm; truDiemDon có `HAVING SUM(points) > 0` sẽ bỏ qua nhóm âm, nên huỷ sau đó không đưa tổng đơn về 0. — K3 — NHẸ (thiếu ca, code thật đúng).
+4. server/routes/orders.js:1693 — Đột biến SỐNG: bỏ `HAVING SUM(points) > 0` → thu_NAP1 (trừ G do bản sao) và thu_P24 (33/33) đều xanh. Hậu quả thật: huỷ một đơn đã đền trọn sẽ ghi một dòng 'adjust' 0 điểm, là dòng rác. Không ca nào khoá điều đó. — K3 — NHẸ.
+5. server/routes/orders.js:1681 — Chú thích cũ còn ghi "duyệt hoàn — refunds.js truDiemHoan"; hàm đã dời sang server/utils/diemThat.js. — K1 (TU-CHAY-6: chú thích là khẳng định) — NHẸ.
+
+NGHI NGỜ:
+- diemThat.js:34-35: tổng tiền trả (`tra`) KHÔNG lọc theo mốc 014_nap, còn earn thì có lọc (dòng 37). Có một ca hẹp: đơn cũ được đền trước mốc (luật cũ, không trừ), rồi có earn sau mốc (thu nợ sau mốc, hoặc nhận mã bill sau mốc), rồi đền thêm hoặc kết thúc gói sau mốc. Khi đó khoản đền cũ cũng bị đem ra trừ điểm. Như vậy lệch LUAT §6.6 ("dữ liệu cũ không trừ"). Chưa dựng ca để thử.
+- Cách hiểu "phần tiền trả vào tài khoản" = toàn bộ khoản đền / hoàn gói: khớp chữ phiếu. damages.js:185-189 chỉ ghi ví khi đơn có SĐT, nên khoản đền đó vào tài khoản trọn. packages.js:268 → wallets.js:105-111 đưa cả phần tiền mặt vào ví (dòng 'hoan_goi', H2 = 1B). Duyệt hoàn ở refunds.js:163-176 đã trừ phần đã đền (tienDaTra.js:47-49), nên cộng dồn không đếm đôi. Mình không thấy luồng nào bị trừ oan về số học: đơn không SĐT, đơn không có điểm, đơn luật cũ, đơn đã huỷ đều ra 0 (diemThat.js:40). Riêng "đền cho khách vì lỗi của quán mà vẫn trừ điểm" là quyết định của chủ quán; máy không nên tự đổi.
+
+Các mục soát theo thứ tự:
+1. K3: bài thử là bài hành vi (HTTP + tổng sổ điểm), không dò marker. Đỏ trên gốc: mình tự chạy lại, đúng E10–E13; E14 xanh trên gốc nhưng đã có BV-I8-den canh. Đột biến: chạy từng tên VS-tru-diem-khong-cong-don và BV-huy-tru-not → BẮT 2/2, có đối chứng xanh 81. Còn 2 đột biến SỐNG (lỗi 3, 4).
+2. K4: grep `ghiVi(|ghiHoan(|hoanVi(` trong server/ ra 12 chỗ. 3 lối trả tiền về ví theo đơn (refunds.js:168/172, damages.js:186, packages.js:268) đều đã gọi truDiemHoan. Huỷ / xoá (orders.js:1562/1740) đi qua truDiemDon. wallets.js:164/196/235 không gắn đơn. Các lối ĐỌC / GHI điểm theo đơn: còn 2 chỗ chưa xử lý (signup-codes nhan-diem / nhanDiem.js; hoaDon.js:47). loyalty.js không ghi 'adjust' gắn đơn (grep `'adjust'` chỉ ra diemThat, orders, hoaDon). Thu nợ (orders.js:1429-1433) không đụng vì đền và hoàn gói đều đòi đơn đã thu đủ (damages.js:177, tienDaTra.js:79).
+3. K5: truDiemDon mới (orders.js:1684-1693): huỷ đơn chưa trừ gì → trừ đủ (thu_P24 A, F1, G xanh); đơn đã trừ một phần → trừ nốt (E11); đơn đã trừ hết → không ghi (HAVING). truDiemHoan: không SĐT / không điểm / luật cũ / đã huỷ → 0. Không có luồng 200 nào bị chặn mới, vì hàm chỉ ghi điểm, không trả lỗi.
+4. K1: số dòng trích trong trang_thai.md (diemThat:31, refunds:176, damages:189, packages:271, orders 1562/1740) khớp code. Sai: câu "Hết." ở mục K4 và chú thích orders.js:1681.
+5. Đường tiền: không tin số client. Số trừ điểm lấy từ sổ ví và sổ điểm trong cùng giao dịch. Số đền vẫn qua trần của máy chủ (damages.js:179-184); so_tien của kết thúc gói chỉ để đối chiếu (packages.js:256).
+6. P1: diff 17efb89..HEAD không đụng client/src hay client/dist (diff --stat xác nhận).
+7. Đơn giản: một hàm cho 3 lối, cách tính cộng dồn gọn, không thấy phần nào thừa.
+
+NGHIỆM THU:    12/13 mục có bằng chứng · mục thiếu: "trừ điểm theo phần tiền trả vào tài khoản" chưa giữ được trên mọi lối (lỗi 1 — lối nhận mã bill sau đền / kết thúc gói cộng lại điểm).
+Chi tiết: A, B, C, D, E, F, K5 — có ([A]–[K] trong thu_NAP1, 81 đạt). Đền — E10, E13, I3 của thu_P24. Kết thúc gói — E12. Tỷ lệ — E10, E12. Làm tròn lên — E10 (đền 500 → trừ 1) + VS-hoan-tru-diem-lam-tron. Cho âm — E13. Dùng lại đúng hàm — grep thấy một hàm truDiemHoan ở diemThat.js:31, 3 chỗ gọi, bản riêng ở refunds.js đã xoá.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy được bài thử dựng riêng cho lỗi 1 (đền rồi mới /nhan-diem). Người gác chặn chạy script ở thư mục nháp vì trong file có chữ JWT_SECRET. Kết luận lỗi 1 dựa trên đọc code nhanDiem.js:42 + signup-codes.js:210 + I8 bat_bien.js:184; chưa có kết quả chạy.
+- Chưa chạy `--day-du` và `node tu_chay/cong.js chay`. Chưa chạy trọn bộ 99 đột biến, chỉ chạy 2.
+- Chưa thử trên dữ liệu thật (Turso) phần I8 với đơn cũ có đền trước mốc.
+
+BÀI HỌC:       KHOÁ — mở rộng một luật trừ điểm / tiền từ trạng thái "đã rời 'completed'" sang đơn VẪN 'completed' thì phải grep mọi lối còn cộng hoặc hiển thị điểm cho đơn 'completed' (/nhan-diem, hoaDon dungDiem, App KH), không chỉ các lối ghi ví. Nên thêm vào K4 câu "đổi tập trạng thái mà luật áp → rà mọi phép lọc theo trạng thái". NGUYÊN TẮC — phép tính chia theo nhóm cộng dồn cần ca "nhiều nhóm + lần hai" (lỗi 3); một mệnh đề chặn (HAVING) phải có ca riêng khoá nó, nếu không đột biến bỏ nó sẽ sống (lỗi 4).
+```
+
+### Đã sửa ngay (lỗi NHẸ trong Phạm vi, commit 233991a)
+| Lỗi | Sửa | Ca / đột biến |
+|---|---|---|
+| 3 nhiều nhóm hạn + trừ lần hai chưa ca | E15: hai nhóm (không hạn 22 + hạn 2099 20), đền 21.000 hai lần → mỗi nhóm 0; huỷ sau đó → 0 | VS-tru-diem-theo-diem-goc (BẮT) |
+| 4 `HAVING` của truDiemDon chưa ca | E15: huỷ đơn đã trừ hết → không dòng trừ 0 điểm | BV-huy-having (BẮT) |
+| 5 chú thích orders.js truDiemDon | trỏ đúng `utils/diemThat.js truDiemHoan`, đủ ba lối | — |
+thu_NAP1: gốc (17efb89, bản sao server/ nháp) E15 ĐỎ · HEAD 82 đạt · 0 hỏng; 2 đột biến: ĐỐI CHỨNG XANH 82 · BẮT 2 · SỐNG 0. Câu "Hết." ở mục K4 phiên 07.11 là SAI (giữ dòng cũ
+cho lịch sử đúng): còn lối CỘNG điểm theo đơn — nhận điểm mã bill (signup-codes.js, nhanDiem.js) — và lối HIỂN THỊ điểm (hoaDon.js) chưa theo luật mới (câu hỏi dưới).
+Nghi ngờ "tổng tiền trả không lọc mốc 014": chỉ xảy ra với đơn tạo TRƯỚC khi gộp, có đền trước gộp rồi lại đền / kết thúc gói sau gộp — ghi Phát hiện, không sửa (dữ liệu cũ; I8
+thực tha đơn trước DIEM_VI_TU).
+
+## Câu hỏi 07.11 — soát độc lập tìm lỗi ĐIỂM ngoài Phạm vi (dừng theo LUAT_XAY_APP §6.5)
+**Chuyện gì:** đền bù / kết thúc gói nay trừ điểm như bạn chọn. Nhưng đơn đó vẫn còn mã bill. Nếu khách **nhận điểm bằng mã bill SAU khi đã được đền**
+(ở quầy hoặc trên App), máy cộng điểm thưởng trên TOÀN BỘ tiền đơn, không trừ phần đã trả lại vào tài khoản. Ví dụ: đơn 20.000 tiền mặt (20 điểm), đền
+10.000 → còn 10 điểm; khách nhận mã ×2 → +20 → 30 điểm, đúng ra 20. Bill in lại / hoá đơn trên App cũng vẫn ghi "cộng 20" (chưa tính phần đã trừ).
+Hai file ngoài Phạm vi: `server/routes/signup-codes.js` (nhận điểm mã bill — cả quầy lẫn App) và `server/routes/hoaDon.js` (bill / hoá đơn).
+
+**Đề xuất (a):** ngay sau khi cộng điểm mã bill, gọi lại ĐÚNG hàm trừ điểm vừa viết (cùng giao dịch) — điểm mã bill cũng bị trừ theo phần đã trả vào tài khoản
+(ví dụ trên ra 20, khớp Đối soát); bill / hoá đơn hiện điểm đã trừ. Không đổi trường nào của App (chỉ số điểm đúng hơn). Bạn thêm hai file trên vào `## Phạm vi`.
+**(b):** để việc sau — NAP-1 đi tiếp tới báo cáo cuối, lỗ này ghi rõ ở CHƯA KIỂM (Đối soát sẽ báo lệch khi xảy ra).
+Bạn trả lời "(a) + thêm hai file" hoặc "(b)".
+
+Bước dở: 8 (soát độc lập vòng 1 của phần mới — KHÔNG ĐẠT: lỗi nhẹ đã sửa, lỗi nặng ngoài Phạm vi chờ câu trả lời). Chưa làm: soát bảo mật lại (8b — phần
+mới đổi code server/), cổng `chay`, báo cáo 7 mục, Bài học.

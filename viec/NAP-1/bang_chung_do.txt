@@ -151,3 +151,8 @@ SỐ CA cong_cu/thu_P24.js: 33
 Đột biến: ĐỐI CHỨNG XANH · 81 đạt · 0 hỏng — TỔNG 99 đột biến · BẮT 99 · SỐNG 0 · HỎNG 0 · LẠC 0
   mới: BV-den-tru-diem · BV-goi-tru-diem · VS-tru-diem-khong-cong-don · VS-tru-diem-bo-den · VS-tru-diem-bo-hoan-goi · BV-huy-tru-not ·
   VS-huy-tru-lai-ca-phan-da-tru · BV-I8-den · VS-I8-bo-den · VS-I8-bo-hoan-goi
+cong_cu/thu_NAP1.js (thêm E15 — soát độc lập 07.11, commit 233991a) chạy `--may-chu` trên bản sao server/ gốc 17efb89 (không có client/src → G1–G4 cũng đỏ, không liên quan):
+  ✗ E15 hai nhóm hạn (không hạn 22 + hạn 2099 20), đền 21.000 hai lần → mỗi nhóm về 0 (không nhóm nào âm); huỷ sau đó → 200, điểm 0, không dòng trừ 0 điểm  — HTTP 200 · HTTP 200 · nhóm [có hạn, không hạn] [20,22]
+  sau vá: 82 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 82
+Đột biến mới: VS-tru-diem-theo-diem-goc · BV-huy-having — ĐỐI CHỨNG XANH 82 · BẮT 2 · SỐNG 0 · HỎNG 0 · LẠC 0 (bộ nay 101)
