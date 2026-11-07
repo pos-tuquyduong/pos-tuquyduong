@@ -268,7 +268,10 @@ router.post('/', authenticate, async (req, res) => {
         [normalizedPhone, name.trim(), notes || null, normalizedParentPhone, validRelationship, requested_product || null, soChu, req.user.username, getNow()]
       );
       // SĐT đã có đăng ký: đã là khách → cùng lời Q7 (một ý "khách đã có tài khoản" cho mọi đường); chưa là khách → câu cũ
-      if (r.changes !== 1) return { huy: true, ...(await tx.queryOne('SELECT 1 AS co FROM pos_customers WHERE phone = ?', [normalizedPhone]) ? { trung: true } : { daDangKy: true }) };
+      if (r.changes !== 1) {
+        const daLaKhach = await tx.queryOne('SELECT 1 AS co FROM pos_customers WHERE phone = ?', [normalizedPhone]);
+        return daLaKhach ? { huy: true, trung: true } : { huy: true, daDangKy: true };
+      }
       const t = await taoKhach({ phone: normalizedPhone, name, notes, parent_phone: normalizedParentPhone, relationship: validRelationship,
         requested_product, requested_cycles: soChu, created_by: req.user.username }, tx);
       if (t.loi || t.trung) return { huy: true, ...t };

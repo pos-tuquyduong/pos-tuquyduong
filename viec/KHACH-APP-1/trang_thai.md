@@ -136,6 +136,77 @@ BÀI HỌC:
 Xử lý vòng sửa 1: lỗi 3 → ca C3 (commit 2681286) + đột biến VS-APP-SAI-KHACH BẮT; lỗi 4 → B1c tập cố định + VS-BUOC-KHAC-HOAN BẮT; lỗi 5 → sửa
 `trang_thai.md` Phát hiện (2 dòng) + `ke_hoach.md` ghi lệch kế hoạch POST /:id/children. Lỗi 1, 2 → Q6, Q7 (chờ chủ quán).
 
+## Soát độc lập — vòng 3 (07.11, agent general-purpose, chép nguyên văn)
+```
+Cả năm lỗi vòng 2 đã được sửa thật, và mình đã tự kiểm lại. thu_KHACHAPP1 99/99. dot_bien.py 52/52 BẮT, có đối chứng xanh. npm test PASS 102 · FAIL 0, cảnh báo duy nhất là cái có sẵn: route GET có lệnh ghi ở packages.js:195, products.js:66, sync.js:148. Bánh cóc in "= 47 đúng ngưỡng". Bài mới ĐỎ trên 35e5c5d7 đúng ở C7d và R2d (mình chạy lại `--goc 35e5c5d7`: 97/99).
+Còn hai lỗ nhỏ trong bài thử: mình tự cài 10 đột biến, 3 cái lọt, trong đó 2 cái đúng vào phần vừa sửa. Thêm hai câu trong hồ sơ đã cũ. Tất cả đều NHẸ, không đụng tiền / ví / điểm. Theo LUAT_XAY_APP §6.5, đây là trường hợp làm vòng sửa 4 ngay trong phiếu, không cần hỏi chủ quán.
+
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ)
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/registrations.js:271 — nhánh "đã có đăng ký nhưng CHƯA là khách → 400 SDT_DA_DANG_KY (câu cũ)" không có ca nào giữ. Đột biến của mình S-Q7-LUON-TRUNG (đổi `{ daDangKy: true }` thành `{ trung: true }`, tức luôn trả 409) → SỐNG, bài xanh trọn. `grep -rn "SDT_DA_DANG_KY\|đã được đăng ký" cong_cu/` → 0 chỗ. Dòng 270 nói rõ là cố ý giữ câu cũ cho trường hợp này, vậy mà không có ca "phải KHÔNG bị chặn bằng 409". Trường hợp này còn gặp được: đăng ký đã xuất mà khách chưa chép về (020 HOÃN), đăng ký do orders.js:1166 tạo. — K3 / K5 — NHẸ.
+2. cong_cu/thu_KHACHAPP1.js:246–247 (ca R2d) — chỉ kiểm hai thứ: không có `pin_code` / `password` và không có hai chuỗi đã cài. Không so BẰNG danh sách trắng COT_NHAT_KY_KHACH (registrations.js:41–42). Đột biến S-NK-THEM-EMAIL (thêm 'email', 'pin_sai', 'pin_khoa_den' vào danh sách trắng) → SỐNG. Cách sửa: so `Object.keys(ct.khach)` BẰNG đúng danh sách. — K3 (danh sách trắng phải so bằng — LUAT §6.7) — NHẸ.
+3. viec/KHACH-APP-1/trang_thai.md:310 — vẫn ghi nhật ký xoá chép "khach: cả dòng khách đã xoá". Đây đúng là điều vòng 2b vừa sửa: nay chỉ chép cột danh sách trắng (registrations.js:363–364). — K1 / K4 (sửa một khẳng định thì grep cả hồ sơ) — NHẸ.
+4. viec/KHACH-APP-1/trang_thai.md:292 — "*Cập nhật:* … bước 021 đã làm (ca B6, B6c)". Câu này nói về trạng thái hiện tại, không phải lời trích lịch sử; file thật là 022. Vòng 2 chỉ sửa :380. — K4 — NHẸ.
+
+NGHI NGỜ:
+- server/routes/orders.js:1150–1172: `is_new_customer` ghi một dòng `pos_registrations` pending nhưng KHÔNG gọi taoKhach. Đây là đường tạo khách thứ hai bên cạnh POST /registrations (Q1), và chưa có trong Phát hiện. Hiện quầy gần như không đi vào nhánh này:
+  - CustomerSearch.jsx:224–253 gọi /registrations trước, nên ở orders.js nhánh rơi vào UPDATE ghi chú.
+  - CustomerInput.jsx:117 không file nào import (`grep -rln CustomerInput client/src` chỉ ra chính nó).
+  - Sau khi 022 đã chạy, đăng ký mới tạo theo đường này không bao giờ thành khách thật.
+  - orders.js ngoài Phạm vi → nên ghi Phát hiện.
+- server/routes/customers.js:339 và :526: SĐT đã là khách → 400 `SDT_DA_CO`; registrations.js:280 cùng tình huống → 409 `KHACH_DA_CO_TAI_KHOAN`. LUAT §2 "cùng tình huống → cùng code". Không màn nào gọi POST /customers, và Q7 chỉ nói "Thêm khách" → để chủ quán biết, chưa phải lỗi.
+- registrations.js:37 (vế `total_topup` / `total_spent`): đột biến S-XOA-BO-VI → SỐNG, vì DAU_VET `pos_balance_transactions` đã che. Chỉ dữ liệu cũ (ví có total_topup mà không có giao dịch) mới lọt. NHẸ.
+- 020_chep_khach_sx.js:31–33: `phone` của SX không phải chuỗi (số) → taoKhach trả `loi` → bị đếm `bo_qua`, không chép. Chưa biết SX thật trả dạng gì.
+- 020 chép trong MỘT giao dịch Turso, mỗi khách 2–3 câu qua mạng (sinhQrKhongTrung + INSERT + SELECT). Hàng trăm khách thì giao dịch dài; chưa đo giới hạn giao dịch tương tác của Turso.
+- Vẫn còn từ vòng 1–2, đã có Phát hiện:
+  - `subscriptions: []` (docKhach.js:68);
+  - motKhach đọc toàn bộ bảng (customers-v2.js:20);
+  - 020 chờ SX tới 8 s mỗi lần khởi động (database.js:39 chạy trước khi server nghe) và HOÃN mãi khi SX tắt hẳn (KHO-3);
+  - PUT /registrations ghi đè tên khách App (registrations.js:333–334).
+
+NGHIỆM THU:    19/19 mục có bằng chứng · mục thiếu: không
+- A: A1, A1b, A3–A6b, A9, A9b, A11–A14 + A12c mới (thu_KHACHAPP1.js:367–370); customers-v2.js:20, 42, 58 gọi docKhach.
+- B: B1–B7, B3b, B3c, B6–B6e; chay.js:36–43.
+- C: C0–C6b, C4b, C5b, K2–K2d, C8.
+- D: C1 so cột; vòng ds / loi; A8, A8b; B2, B6e.
+- K5: diff cả nhánh không đụng client/, sync.js, routes/kh, HOP_DONG_API_KH.md (đã xem `git diff --stat 9a49cdf^ HEAD`); docKhach.js:52–54 dùng cùng câu điểm và hangNhieuKhach như cũ.
+- Q1: C7, A6b, B6b · Q2: C1 · Q3: A14 · Q4: thu_GIOVN1 A2j (xanh trong npm test) · Q5: thu_KHO1 B1, B1c, B2 (xanh).
+- Q6a: R1–R1d · Q6b: R2, R2b, R2c, R3, R3b, R4 ×12, R5–R5d.
+- Q7: C7b, C7d (mới; ĐỎ trên 35e5c5d7 → mình đã chạy lại).
+- Phát hiện chủ quán chốt ×5: K2d · C8 · B6, B6c · B3, B7 · nhãn SX để sau (không đụng client).
+- Đổi 021 → 022: R6, B3b, B6.
+- Lỗi vòng 2 đã sửa thật, đột biến vòng 2b BẮT:
+  - (1) C7d / VS-DK-DA-DANG-KY-CAU-CU;
+  - (2) R2d / BV-XOA-LO-PIN;
+  - (3) kiem_tra_truoc_khi_giao.js:809 có chayBaiThat, npm test in "thu_KHACHAPP1.js xanh";
+  - (4) kiem_tra_truoc_khi_giao.js:549 = 47, bộ kiểm in "đúng ngưỡng";
+  - (5) :380 đã sửa, còn :292 (lỗi 4 ở trên).
+- Từng mục theo đề:
+  - Mục 1 K3: bài thử hành vi qua HTTP + dữ liệu thật; marker suông không làm nó xanh được. Có hai lỗ ở trên.
+  - Mục 5 tiền: không có trường tiền nào server tin client. DELETE kiểm ví ngay trong câu xoá, trong một giao dịch.
+  - Mục 6 P1: không đổi client/src.
+  - Mục 8 đơn giản:
+    - registrations.js:271 nhồi await + ternary + spread vào một dòng → tách `const daLaKhach = await tx.queryOne(…)` rồi chọn.
+    - COT_NHAT_KY_KHACH (danh sách trắng) và donThu.js:31 COT_BI_MAT (danh sách đen) là hai cách cho cùng một luật "nhật ký không lộ bí mật". donThu.js ngoài Phạm vi nên chấp nhận được, nên ghi Phát hiện gom một hàm che chung vào utils.
+    - Không có tính năng tiền mới → không cần quy tắc đối soát.
+
+CHƯA SOÁT ĐƯỢC:
+- `tu_chay/cong.js`: không chạy được — kho không có origin/main (npm test cũng in "thu_cong.js: không xác định được gốc chung với origin/main").
+- `--day-du`: không chạy; không đổi client nên P1 không áp.
+- Không xem được main: chưa biết số 020 / 022 có bị việc khác (GIAO-1, NAP-1) chiếm không, chưa thử gộp chay.js.
+- Đua / giao dịch trên Turso thật; SX thật trả dạng gì.
+- Không thử tay màn Đăng ký và "Tạo nhanh" ở màn Bán hàng.
+
+BÀI HỌC:
+- KHOÁ: ca thử cho danh sách trắng (cột nhật ký, khoá trả ra) phải so BẰNG `Object.keys`, không chỉ "không có X". Đột biến chuẩn đi kèm: "thêm một cột vào danh sách trắng" phải BẮT.
+- KHOÁ: vá thêm một vị từ rẽ hai nhánh (registrations.js:271) thì CẢ HAI nhánh có ca + đột biến "đổi nhánh này thành nhánh kia". Nhánh "giữ như cũ" là luồng phải KHÔNG bị chặn (K5).
+- NGUYÊN TẮC (K4, KHUON_LOI.md): sửa hành vi mà hồ sơ đã mô tả (vd "khach: cả dòng") thì grep trang_thai / ke_hoach tìm câu mô tả cũ trong cùng commit. Vòng 2b sửa code mà sót :310.
+- NGUYÊN TẮC (K4): "một hàm tạo khách" thì grep `INSERT INTO pos_registrations` cùng `INSERT INTO pos_customers`. Đăng ký chờ cũng là một đường sinh khách (orders.js:1166).
+```
+Xử lý — vòng sửa 4 (LUAT §6.5: lần soát cuối chỉ còn lỗi NHẸ → làm luôn, chat soát thay): lỗi 1 → ca C7e + đột biến VS-DK-LUON-409, tách
+dòng 271 theo mục 8 · lỗi 2 → R2d so BẰNG danh sách cột + đột biến VS-NK-THEM-COT · lỗi 3, 4 → sửa hai dòng hồ sơ. Nghi ngờ → Phát hiện.
+
 ## Soát độc lập — vòng 2 (07.11, agent general-purpose, chép nguyên văn)
 ```
 Phần chính của việc chạy đúng. Quầy đọc khách thẳng từ POS, các bước chép làm đúng, và sửa / xoá đăng ký làm đúng điều chủ quán dặn ở Q6. Mình chạy lại `npm test`: PASS 101 · FAIL 0 · cảnh báo 1 (có sẵn từ trước). Thêm 9 đột biến riêng của mình: 7 bị bắt, 2 lọt. Nhưng còn hai lỗi thật nên chưa đạt. (1) Câu chủ quán chốt ở Q7 không hiện trong trường hợp hay gặp nhất: SĐT đã từng "Thêm khách" thì vẫn nhận câu cũ 400. (2) Nhật ký xoá khách chép nguyên dòng khách, kể cả mã băm PIN, mà mọi nhân viên đọc được. Ngoài ra bài thử của việc chưa được nối vào bộ kiểm, nên sau khi gộp không ai chạy lại nó.
@@ -262,6 +333,17 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   đọc thấy đều chạy với SX tắt / chỉ dùng `PUT …/discount` → dự kiến vẫn xanh; chạy thật mới chắc (bước 6).
 
 ## Phát hiện
+- (soát vòng 3) `orders.js:1150–1172` (`is_new_customer`) ghi đăng ký chờ mà KHÔNG gọi `taoKhach` — đường sinh khách thứ hai bên cạnh
+  POST /registrations; sau khi 022 đã chạy, đăng ký tạo theo đường này không thành khách thật. Màn hiện gần như không đi vào nhánh này
+  (theo người soát: `CustomerSearch.jsx` gọi /registrations trước; `CustomerInput.jsx` không ai import). orders.js ngoài Phạm vi → việc sau.
+- (soát vòng 3) `POST /customers` (customers.js) SĐT đã là khách → 400 `SDT_DA_CO`; "Thêm khách" → 409 `KHACH_DA_CO_TAI_KHOAN` (Q7 chỉ nói
+  "Thêm khách"; không màn nào gọi POST /customers). LUAT §2 "cùng tình huống cùng code" — chủ quán xem có gộp không.
+- (soát vòng 3) Điều kiện ví của xoá khách: vế `total_topup` / `total_spent` ≠ 0 không có ca riêng (giao dịch ví đã che); chỉ dữ liệu cũ
+  (ví có tổng nạp mà không có dòng giao dịch) mới cần vế này.
+- (soát vòng 3) Bước 020 chép trong MỘT giao dịch Turso, mỗi khách 2–3 câu qua mạng — hàng trăm khách thì giao dịch dài; chưa đo trên Turso.
+  `phone` SX dạng số → bị bỏ (`bo_qua`) — chưa biết SX thật trả dạng gì.
+- (soát vòng 3) Hai cách che bí mật trong nhật ký: `COT_NHAT_KY_KHACH` (danh sách trắng, registrations.js) và `COT_BI_MAT` (danh sách đen,
+  donThu.js) — gom một hàm che chung vào utils → việc sau.
 - (soát vòng 2) `PUT /registrations/:id` sửa MỌI dòng khách cùng SĐT (đúng chữ Q6a chủ quán duyệt), kể cả khách App / khách có từ trước
   có đăng ký chờ cũ; `parent_phone` / `relationship` lấy theo đăng ký (null nếu đăng ký để trống). DELETE thì chỉ khách do đăng ký tạo.
   Sau Q7 không tạo được đăng ký mới cho SĐT đã là khách, nên chỉ còn dữ liệu cũ rơi vào trường hợp này — chủ quán xem có muốn PUT cũng
@@ -289,7 +371,7 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
 - `PUT /v2/customers/:phone/address` và `/discount` (`customers-v2.js:315, 355`) tự chèn khách tên "Khách hàng" khi chưa có — đường tạo khách
   thứ ba, khác cột mặc định, không QR. *Cập nhật:* chủ quán chốt 07.11 đi qua hàm chung — đã chuyển sang `taoKhach` (ca C8).
 - Khách cũ chép từ bộ đệm SX (`cacheCustomersToLocal`) có `qr_code` NULL → quét QR không ra họ. Bước chép lần cuối chỉ THÊM khách thiếu (có QR);
-  không ghi đè dòng cũ. *Cập nhật:* chủ quán chốt 07.11 cấp QR ô trống — bước 021 đã làm (ca B6, B6c).
+  không ghi đè dòng cũ. *Cập nhật:* chủ quán chốt 07.11 cấp QR ô trống — bước 022 (lúc đầu số 021) đã làm (ca B6, B6c).
 - Màn quầy vẫn hiện nhãn "SX" / "Đã đồng bộ" cho mọi khách (`CustomerSearch.jsx:306`, `Customers.jsx:298`) vì dạng trả ra giữ `source: 'sx'`,
   `is_synced: true` (phiếu: giữ nguyên dạng, client Cấm). Đổi nhãn thuộc việc giao diện sau.
 - `orders.js:818` lấy tên mẹ từ `pos_registrations` (không từ `pos_customers`) để ghi nhật ký — ngoài Phạm vi.
@@ -307,7 +389,7 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
 - `DELETE /registrations/:id`: một giao dịch — xoá đăng ký; rồi CHỈ KHI đăng ký đang CHỜ, người xoá `owner` / `manager`, có `created_by`:
   một câu `DELETE pos_customers` với mọi điều kiện TRONG câu (khách do đăng ký tạo: `created_by` = người nhập đăng ký và `created_at` ≥ giờ
   đăng ký; ví 0; không dòng nào ở `DAU_VET_KHACH`) → `changes = 1` thì ghi `pos_sync_logs` type `xoa_khach` (created_by = người xoá,
-  created_at = getNow, details = {phone, name, ly_do, registration_id, khach: cả dòng khách đã xoá}). Trả `xoa_khach` + `message`.
+  created_at = getNow, details = {phone, name, ly_do, registration_id, khach: các cột danh sách trắng COT_NHAT_KY_KHACH — không băm PIN / mật khẩu (vòng sửa 2b)}). Trả `xoa_khach` + `message`.
   `DAU_VET_KHACH` thêm cho chắc (ngoài 5 thứ chủ quán nêu): thẻ hạng, voucher, hoàn tiền, phiên thanh toán, đơn App, mã đăng nhập App,
   người nhận gắn SĐT — chỉ làm hẹp lại chỗ được xoá (an toàn hơn), không xoá thêm gì.
 - Nhật ký dùng bảng có sẵn `pos_sync_logs` (như `donThu.js` 'don_thu', bước 020 / 022) — không thêm bảng (phiếu: không đổi cấu trúc DB).

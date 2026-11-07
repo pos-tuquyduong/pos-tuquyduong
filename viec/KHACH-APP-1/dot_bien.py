@@ -81,7 +81,9 @@ DOT_BIEN = [
   ('BV-XOA-BO-DIEM', [(RG, "  ['pos_point_transactions', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có điểm ', T),
   ('BV-XOA-BO-GOI', [(RG, "  ['pos_customer_packages', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có gói ', T),
   # ── vòng sửa 2 (soát vòng 2) ──
-  ('VS-DK-DA-DANG-KY-CAU-CU', [(RG, "? { trung: true } : { daDangKy: true }", "? { daDangKy: true } : { daDangKy: true }", 1)], r'✗ C7d ', T),
+  ('VS-DK-DA-DANG-KY-CAU-CU', [(RG, "return daLaKhach ? { huy: true, trung: true } :", "return daLaKhach ? { huy: true, daDangKy: true } :", 1)], r'✗ C7d ', T),
+  ('VS-DK-LUON-409', [(RG, ": { huy: true, daDangKy: true };", ": { huy: true, trung: true };", 1)], r'✗ C7e ', T),
+  ('VS-NK-THEM-COT', [(RG, "'xung_ho', 'address', 'ngay_sinh', 'created_by', 'created_at'];", "'xung_ho', 'address', 'ngay_sinh', 'created_by', 'created_at', 'email', 'pin_sai'];", 1)], r'✗ R2d ', T),
   ('BV-XOA-LO-PIN', [(RG, "          khach: Object.fromEntries(COT_NHAT_KY_KHACH.map((c) => [c, kh[c] ?? null])) }),", "          khach: kh }),", 1)], r'✗ R2d ', T),
   ('BV-XOA-BO-VOUCHER', [(RG, "  ['pos_voucher_grants', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có voucher ', T),
   ('BV-XOA-BO-HOAN-TIEN', [(RG, "  ['pos_refund_requests', 'customer_phone'],\n", "", 1)], r'✗ R4 khách có yêu cầu hoàn tiền ', T),
