@@ -28,13 +28,33 @@
   da1f1df KHACH-APP-1: dot_bien.py sua mau / chuoi
   ```
 
+## Bước 1 — lần làm tiếp 3 (07.11.2026, sau khi chủ quán trả lời Q6, Q7)
+- nhánh `viec/KHACH-APP-1`, cây sạch; `git rev-parse --short HEAD FETCH_HEAD`: HEAD `8baeca4` · FETCH_HEAD `8baeca4` (bằng nhau → không kéo).
+- `git log --oneline -3`:
+  ```
+  8baeca4 KHACH-APP-1: soat vong 1 KHONG DAT - vong sua 1 + cau hoi Q6, Q7 (cho chu quan)
+  2681286 KHACH-APP-1: vong sua 1 - ca C3 so sdt/ten (bo ??), thu_KHO1 B1c tap mien HOAN co dinh; dot bien VS-APP-SAI-KHACH, VS-BUOC-KHAC-HOAN
+  ad98cdd KHACH-APP-1: bang chung do thu_KHO1 (Q5) + trang thai sau npm test
+  ```
+- Kho mở NÔNG lại → `thu_BH2.js` G1 đỏ `bad revision 'cbbb809..HEAD'`; chạy `git fetch -q --unshallow origin viec/KHACH-APP-1` → `npm test` PASS 101 · FAIL 0.
+
 ## Đang ở bước
-Bước 8 vòng soát 1: **KHÔNG ĐẠT** (báo cáo dưới). Vòng sửa 1 đã làm phần trong Phạm vi, không phải quyết định nghiệp vụ (lỗi 3, 4, 5):
-ca C3 bỏ `?? id` (so sdt + ten), thu_KHO1 B1c tập miễn HOÃN cố định `['020_chep_khach_sx.js']`, ba chỗ hồ sơ lệch; thêm đột biến
-VS-APP-SAI-KHACH, VS-BUOC-KHAC-HOAN → `dot_bien.py` 32/32 BẮT (đối chứng 68/68 · 112/112). Lỗi 1, 2 là cách quầy làm việc + đụng dữ liệu
-khách (Cấm "không xoá dữ liệu khách") → **DỪNG chờ chủ quán** (Q6, Q7).
+Vòng sửa 2 (Q6, Q7 chủ quán trả lời 07.11 + chat soát đổi 021 → 022) đã làm: bài thử đỏ trước (bang_chung_do.txt "Vòng sửa 2"), vá
+`registrations.js`, đổi tên bước, đột biến 46/46 BẮT. Tiếp: soát độc lập vòng 2 (bước 8), soát bảo mật (8b), cổng, báo cáo.
 
 ## Câu hỏi
+(không còn câu nào mở)
+
+## Câu hỏi đã trả lời (chủ quán 07.11 — lệnh làm tiếp sau 8baeca4)
+- **Q6 trả lời:** (a) ĐỒNG Ý. (b) ĐỒNG Ý kèm điều kiện: chỉ xoá khách khi khách còn trắng (không đơn, ví 0, không điểm, không gói, không
+  giao dịch ví) VÀ dòng khách do chính đăng ký đó tạo — khách App / khách có từ trước KHÔNG xoá, chỉ xoá đăng ký; xoá khách chỉ QUẢN LÝ TRỞ
+  LÊN (nhân viên xoá đăng ký thì khách giữ nguyên); mỗi lần xoá khách ghi nhật ký ai / lúc nào / SĐT / tên / lý do. → đã làm (ca R1–R5).
+- **Q7 trả lời:** GIỮ CHẶN — khách đã có tài khoản thì tìm ở màn Bán hàng và bán gói như bán món; "Thêm khách" SĐT đã có không lưu gì, báo
+  "Khách đã có tài khoản — tìm khách ở màn Bán hàng để bán gói", 409 mã riêng (không 500). → đã làm (ca C7b: 409 `KHACH_DA_CO_TAI_KHOAN`).
+- **Chat soát:** đổi `021_chep_dang_ky_qr.js` → `022_chep_dang_ky_qr.js` (GIAO-1 giữ số 021; hai file cùng số → bộ chạy lặng lẽ bỏ qua
+  file sau). → đã đổi file, bảng sao lưu `_sao_luu_022_pos_customers`, chú thích khachMoi.js, bài thử (B3b, B6, B6d, B6e), tên đột biến
+  `*-022-*`; thêm ca R6 (không hai file cùng số).
+Nội dung câu hỏi gốc:
 - **Q6 (07.11, soát vòng 1 lỗi 1) — màn "Đăng ký" sửa / xoá nay không tác dụng lên khách.** Từ Q1, "Thêm khách" tạo dòng `pos_customers`
   (`registrations.js:241–252`) và bước 021 biến mọi đăng ký chờ thành khách. Nhưng `PUT /registrations/:id` (`registrations.js:285–307`) và
   `DELETE /registrations/:id` (`:313–322`) vẫn chỉ đụng `pos_registrations`; danh sách ưu tiên dòng khách (`docKhach.js:40`). Hệ quả: nhân viên
@@ -141,6 +161,12 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   đọc thấy đều chạy với SX tắt / chỉ dùng `PUT …/discount` → dự kiến vẫn xanh; chạy thật mới chắc (bước 6).
 
 ## Phát hiện
+- (vòng sửa 2) Màn Đăng ký (`Registrations.jsx:160`) gọi xoá KHÔNG gửi lý do và luôn báo "Đã xóa!" → nhật ký xoá khách ghi lý do mặc định
+  "Xoá đăng ký chờ nhập nhầm — khách chưa có giao dịch nào"; máy chủ đã nhận `ly_do` trong thân yêu cầu và trả `xoa_khach` + `message`
+  ("Đã xoá đăng ký và khách…" / "…khách giữ nguyên") nhưng màn chưa hiện (client Cấm). Thêm ô lý do + hiện `message` → việc giao diện sau.
+- (vòng sửa 2) "Khách do đăng ký tạo" so `created_at` khách ≥ `created_at` đăng ký bằng so chuỗi. Đăng ký cũ ghi bằng `CURRENT_TIMESTAMP`
+  (UTC, dấu cách) so với khách giờ VN dạng T có thể lệch thứ tự quanh nửa đêm — chỉ xảy ra khi cùng người nhập; lệch về phía GIỮ khách
+  khi cùng ngày (' ' < 'T'). Ghi để biết, không đổi.
 - (soát vòng 1) `docKhach.js` trả `subscriptions: []` cho mọi khách → màn Khách hàng (`Customers.jsx:451, 792`) mất cột gói SX (sản phẩm /
   nhóm / chu kỳ). Kế hoạch đã ghi `subscriptions:[]` nhưng chưa nói màn mất thông tin này. Bảng có cột `sx_product`, `sx_group_name`,
   `sx_end_date` để ghép — chủ quán xem có cần không (giao diện sau hoặc thêm vào Q của việc này).
@@ -164,7 +190,20 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   code gốc (nhánh chưa đổi code): route GET có lệnh ghi (3: packages.js:195, products.js:66, sync.js:148) và route ghi không qua loiGhi đếm 54 >
   ngưỡng 50 (có `customers.js:314 POST` — việc này sẽ cho đi qua `loiGhi`). Không nới ngưỡng (K8).
 
-## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 68/68 + 112/112 xanh, 32/32 BẮT)
+## Vòng sửa 2 — cách làm (07.11)
+- `POST /registrations`: ghi đăng ký TRƯỚC (`ON CONFLICT(phone) DO NOTHING` + `changes` → 400 `SDT_DA_DANG_KY`, không 500 khi đua) rồi
+  `taoKhach`; khách đã có → huỷ cả giao dịch, 409 `KHACH_DA_CO_TAI_KHOAN` (Q7). Lỗi tên trống trả đúng câu "Tên không được để trống".
+- `PUT /registrations/:id`: một giao dịch — sửa đăng ký (`AND status IS NOT 'exported'` trong câu ghi) + sửa `name, notes, parent_phone,
+  relationship, updated_at` của dòng khách cùng SĐT (Q6a). Các cột khác của khách không đổi.
+- `DELETE /registrations/:id`: một giao dịch — xoá đăng ký; rồi CHỈ KHI đăng ký đang CHỜ, người xoá `owner` / `manager`, có `created_by`:
+  một câu `DELETE pos_customers` với mọi điều kiện TRONG câu (khách do đăng ký tạo: `created_by` = người nhập đăng ký và `created_at` ≥ giờ
+  đăng ký; ví 0; không dòng nào ở `DAU_VET_KHACH`) → `changes = 1` thì ghi `pos_sync_logs` type `xoa_khach` (created_by = người xoá,
+  created_at = getNow, details = {phone, name, ly_do, registration_id, khach: cả dòng khách đã xoá}). Trả `xoa_khach` + `message`.
+  `DAU_VET_KHACH` thêm cho chắc (ngoài 5 thứ chủ quán nêu): thẻ hạng, voucher, hoàn tiền, phiên thanh toán, đơn App, mã đăng nhập App,
+  người nhận gắn SĐT — chỉ làm hẹp lại chỗ được xoá (an toàn hơn), không xoá thêm gì.
+- Nhật ký dùng bảng có sẵn `pos_sync_logs` (như `donThu.js` 'don_thu', bước 020 / 022) — không thêm bảng (phiếu: không đổi cấu trúc DB).
+
+## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 91/91 + 112/112 xanh, 46/46 BẮT)
 | Chỗ vá | Đột biến (ca bắt) |
 |---|---|
 | customers-v2.js `GET /` đọc qua docKhach, không gọi SX | BV-DOC-SX-DANH-SACH (A11) |
@@ -184,7 +223,21 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
 | customers.js POST /:id/children qua taoKhach | BV-NHAN-RIENG-QR (K2c) |
 | maKhach.js App tạo qua taoKhach | BV-APP-TAO-RIENG (C2b) |
 | registrations.js tạo khách thật (Q1) | BV-DK-KHONG-TAO (C7) |
-| registrations.js SĐT đã là khách → 400, không ghi | VS-DK-TRUNG-VAN-GHI (C7b) |
+| registrations.js SĐT đã là khách → không ghi | VS-DK-TRUNG-VAN-GHI (C7b) |
+| registrations.js SĐT đã là khách → 409 KHACH_DA_CO_TAI_KHOAN (Q7) | VS-DK-TRUNG-400 (C7b) |
+| registrations.js trùng đăng ký chặn trong câu ghi (đua không 500) | BV-DK-DUA-500 (C7c) |
+| registrations.js PUT sửa luôn dòng khách (Q6a) | BV-DK-SUA-KHONG-KHACH (R1) |
+| registrations.js PUT chỉ khách cùng SĐT | VS-DK-SUA-MOI-KHACH (R1b) |
+| registrations.js DELETE xoá khách trắng (Q6b) | BV-DK-XOA-KHONG-KHACH (R2) |
+| registrations.js DELETE nhật ký xoá khách | BV-XOA-KHONG-NHAT-KY (R2b) |
+| registrations.js DELETE chỉ quản lý trở lên | VS-XOA-MOI-VAI (R3) |
+| registrations.js DELETE chỉ đăng ký CHỜ | VS-XOA-MOI-TRANG-THAI (R5c) |
+| registrations.js DELETE chỉ khách do đăng ký tạo | VS-XOA-KHACH-CUA-NGUOI-KHAC (R5) |
+| registrations.js DELETE ví 0 | VS-XOA-BO-VI (R4 ví còn tiền) |
+| registrations.js DELETE không đơn | BV-XOA-BO-DON (R4 đơn) |
+| registrations.js DELETE không giao dịch ví | BV-XOA-BO-GD-VI (R4 giao dịch ví) |
+| registrations.js DELETE không điểm | BV-XOA-BO-DIEM (R4 điểm) |
+| registrations.js DELETE không gói | BV-XOA-BO-GOI (R4 gói) |
 | customers-v2.js địa chỉ / ghi chú tạo qua taoKhach | BV-V2-CHEN-RIENG (C8) |
 | chay.js trạng thái HOÃN | BV-HOAN (B3) |
 | chay.js bước NÉM vẫn hỏng + dừng | VS-NEM-THANH-HOAN (B7) |
@@ -193,18 +246,20 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
 | 020 sao lưu | BV-CHEP-SAO-LUU (B1d) |
 | 020 nhật ký trước / sau | BV-CHEP-NHAT-KY (B1e) |
 | 020 SX trả rỗng → HOÃN | VS-CHEP-RONG-LA-XONG (B3c) |
-| 021 chỉ điền ô QR trống, không đổi cột khác | VS-021-DOI-COT (B6) |
-| 021 chép đăng ký chờ | BV-021-DANG-KY (B6b) |
-| 021 chỉ đăng ký CHỜ | VS-021-CHEP-DA-XUAT (B6b) |
-| 021 cấp QR | BV-021-CAP-QR (B6) |
+| 022 chỉ điền ô QR trống, không đổi cột khác | VS-022-DOI-COT (B6) |
+| 022 chép đăng ký chờ | BV-022-DANG-KY (B6b) |
+| 022 chỉ đăng ký CHỜ | VS-022-CHEP-DA-XUAT (B6b) |
+| 022 cấp QR | BV-022-CAP-QR (B6) |
 | (bài) C3 App nhận đúng khách khi đua | VS-APP-SAI-KHACH (C3) |
 | (bài) thu_KHO1 tập miễn HOÃN cố định | VS-BUOC-KHAC-HOAN (thu_KHO1 B1c) |
 
 Tên đột biến: BV-DOC-SX-DANH-SACH, BV-DOC-SX-TIM, BV-DOC-SX-HO-SO, VS-DOC-CHI-ACTIVE, VS-DOC-LO-BI-MAT, VS-DOC-DANG-KY-DE-KHACH,
 VS-DOC-DIEM-HET-HAN, VS-DOC-SO-DU-ME, BV-DOC-XUNG-HO, BV-TAO-MAC-DINH, BV-TAO-QR-KHONG-KIEM, BV-TAO-TRUNG-NGOAI-CAU, VS-QUAY-TRUNG-SAI-MA,
 BV-QUAY-MAC-DINH-CU, BV-APP-TAO-RIENG, BV-NHAN-RIENG-QR, BV-DK-KHONG-TAO, VS-DK-TRUNG-VAN-GHI, BV-V2-CHEN-RIENG, BV-HOAN, VS-NEM-THANH-HOAN,
-VS-HOAN-GOI-LAI-SX, VS-CHEP-GHI-DE, BV-CHEP-SAO-LUU, BV-CHEP-NHAT-KY, VS-CHEP-RONG-LA-XONG, VS-021-DOI-COT, BV-021-DANG-KY,
-VS-021-CHEP-DA-XUAT, BV-021-CAP-QR, VS-APP-SAI-KHACH, VS-BUOC-KHAC-HOAN.
+VS-HOAN-GOI-LAI-SX, VS-CHEP-GHI-DE, BV-CHEP-SAO-LUU, BV-CHEP-NHAT-KY, VS-CHEP-RONG-LA-XONG, VS-022-DOI-COT, BV-022-DANG-KY,
+VS-022-CHEP-DA-XUAT, BV-022-CAP-QR, VS-APP-SAI-KHACH, VS-BUOC-KHAC-HOAN, VS-DK-TRUNG-400, BV-DK-DUA-500, BV-DK-SUA-KHONG-KHACH,
+VS-DK-SUA-MOI-KHACH, BV-DK-XOA-KHONG-KHACH, VS-XOA-MOI-VAI, VS-XOA-MOI-TRANG-THAI, BV-XOA-KHONG-NHAT-KY, VS-XOA-KHACH-CUA-NGUOI-KHAC,
+VS-XOA-BO-VI, BV-XOA-BO-DON, BV-XOA-BO-GD-VI, BV-XOA-BO-DIEM, BV-XOA-BO-GOI.
 
 ## Ghi chú làm tiếp (07.11)
 - Bộ chạy nâng cấp: HOÃN do bước TỰ trả về qua `truoc()` — gọi NGOÀI giao dịch vì giao dịch ghi Turso (`database.js` beginTransaction →

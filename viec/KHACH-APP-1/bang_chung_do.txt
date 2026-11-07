@@ -79,3 +79,36 @@ SỐ CA cong_cu/thu_KHO1.js: 112
 ## Trên code đã vá (HEAD, bài 2681286): thu_KHACHAPP1 TỔNG: 68/68 ca đạt · thu_KHO1 112 đạt · 0 hỏng · đột biến 32/32 BẮT
 SỐ CA cong_cu/thu_KHACHAPP1.js: 68
 SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 2 (chủ quán trả lời Q6, Q7 07.11 + chat soát: đổi 021 → 022). Bài thử ở 1ef2e70 — thêm C7c, R1–R6; C7b đổi theo Q7 (409
+   KHACH_DA_CO_TAI_KHOAN); B3b / B6 / B6d / B6e đổi số bước 21 → 22.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js   (code gốc của việc)
+  thu_KHACHAPP1.js trên 37d195b: TỔNG: 34/91 ca đạt · thoát 1. Ca MỚI / ĐỔI đỏ trên gốc:
+  ✗ C7b "Thêm khách" SĐT đã là khách → 409 KHACH_DA_CO_TAI_KHOAN … — HTTP 200 (gốc ghi đăng ký, không chặn)
+  ✗ C7c ba "Thêm khách" cùng SĐT mới cùng lúc → … một khách — 1 đk · 0 khách
+  ✗ R1 sửa đăng ký CHỜ → dòng khách cùng SĐT đổi tên … (bài sập giữa chừng: gốc không có dòng khách)
+  ✗ R2b nhật ký xoá khách … — không có dòng
+  ✗ R2c nhập lại cùng SĐT sau khi xoá → 200, khách mới — HTTP 200 nhưng không có khách
+  ✗ R3 NHÂN VIÊN xoá đăng ký → … khách giữ nguyên — gốc không tạo khách
+  ✗ R4 × 8 (đơn, ví còn tiền, giao dịch ví, điểm, gói, thẻ hạng, người nhận, mã đăng nhập App) — gốc không tạo khách
+  ✗ R5c đăng ký đã xuất → chỉ xoá đăng ký, khách GIỮ — gốc không tạo khách
+  ✗ R6 server/nang_cap: không hai file cùng số … — gốc chưa có 022
+  ✗ B3b, B6, B6b, B6c, B6d (gốc chưa có bước chép)
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 8baeca4 thu_KHACHAPP1.js   (code TRƯỚC vòng sửa 2 — đúng chỗ vòng này vá)
+  ✗ C7b … — HTTP 400 {"error":"Số điện thoại đã là khách","code":"SDT_DA_CO"}
+  ✗ R1 sửa đăng ký CHỜ → … (Q6a) — khách vẫn "Tên Đăng Ký"
+  ✗ R1c danh sách / ô tìm hiện tên mới
+  ✗ R1d đăng ký đã xuất → 400, khách không đổi (theo R1)
+  ✗ R2 chủ quán xoá đăng ký chờ, khách trắng do chính đăng ký tạo → xoá cả đăng ký lẫn khách (Q6b) — HTTP 200 {"success":true}
+  ✗ R2b nhật ký xoá khách … — không có dòng
+  ✗ R2c nhập lại cùng SĐT sau khi xoá → 200 — HTTP 400 SDT_DA_CO
+  ✗ R3b QUẢN LÝ xoá đăng ký chờ … → xoá khách — HTTP 200 {"success":true}
+  ✗ R6 server/nang_cap: không hai file cùng số … — 001,…,019,020,021
+  ✗ B3b bước 020 HOÃN; bước 022 sau nó vẫn chạy — false false
+  ✗ B6, B6b, B6c, B6d (bước 021 cũ đã ghi pos_nang_cap so 21 — ca xoá so 22 không chạy lại được)
+  TỔNG: 77/91 ca đạt · thoát 1
+  (xanh trên 8baeca4 = hồi quy: C7c, R3, R4 × 8, R5, R5b, R5c, R5d — mỗi ca có đột biến riêng BẮT: VS-XOA-MOI-VAI, BV-XOA-BO-*, VS-XOA-BO-VI,
+   VS-XOA-KHACH-CUA-NGUOI-KHAC, VS-XOA-MOI-TRANG-THAI, BV-DK-DUA-500.)
+## Trên code đã vá (HEAD, bài 1ef2e70): thu_KHACHAPP1 TỔNG: 91/91 ca đạt · thu_KHO1 112 đạt · 0 hỏng · đột biến 46/46 BẮT
+SỐ CA cong_cu/thu_KHACHAPP1.js: 91
+SỐ CA cong_cu/thu_KHO1.js: 112

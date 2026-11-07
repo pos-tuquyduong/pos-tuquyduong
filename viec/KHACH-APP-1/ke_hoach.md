@@ -136,3 +136,14 @@ Vượt phiếu ở phần thêm (~150) vì bước chép + móc `layTruoc` — 
 3. **Khách SX đã ngừng** (`sx_status` khác 'active') — *đề xuất:* vẫn hiện (khách có tiền / điểm không được mất khỏi danh sách).
 4. **Bài cũ `thu_GIOVN1.js` A2j** kiểm hàm bộ đệm phiếu bắt bỏ → sẽ đỏ. Phiếu dặn dừng: xin chat nới A2j trên main trước (đề xuất: chuyển sang
    kiểm giờ ghi của bước 020), hoặc cho phép sửa đúng ca đó trong việc này (thêm vào `## Bài thử cũ sửa`).
+
+## Vòng sửa 2 (chủ quán trả lời Q6, Q7 07.11 + chat soát đổi 021 → 022)
+- PA chọn: sửa trong `server/routes/registrations.js` (một nơi dùng — không tách hàm chung, LUAT §3 "≥ 2 chỗ mới vào utils"); điều kiện
+  xoá khách viết TRONG một câu `DELETE` (chặn đua, LUAT §5); nhật ký vào bảng có sẵn `pos_sync_logs` (không thêm bảng). PA B — bảng nhật ký
+  riêng: rõ hơn nhưng đổi cấu trúc DB (phiếu: không) → loại.
+- Ca: C7b (Q7 409), C7c (đua), R1–R1d (Q6a), R2–R2c (Q6b xoá + nhật ký + nhập lại), R3 / R3b (nhân viên / quản lý), R4 × 8 (mỗi dấu vết một
+  ca), R5–R5d (khách App, khách có trước, đăng ký đã xuất, 404), R6 (không hai file nâng cấp cùng số).
+- Luồng hợp lệ KHÔNG bị chặn (K5): nhân viên vẫn xoá được đăng ký (R3); sửa đăng ký đã xuất vẫn 400 như cũ (R1d); nhập lại SĐT sau khi xoá
+  (R2c); "Thêm khách" SĐT mới (C7).
+- Bước 022 đổi số: kho nào đã chạy 021 của nhánh này (chỉ kho thử) sẽ chạy 022 thêm một lần — bước lặp lại được (chỉ chép đăng ký chưa là
+  khách, chỉ điền ô QR trống), không hại.
