@@ -216,6 +216,16 @@ async function main() {
     const o9 = await quay(kh, { items: [monQuay(0, 2)], discount_code: 'THUTT' });
     await datCot(o9.id, { shipping_fee: 23000, total: 68000, cash_amount: 68000 });
     await kiem('A9 mã 5.000 + phí giao 23.000 cùng đơn: giam = 5.000 (phí giao không bù vào giảm), cach_nhan "giao"', kh, o9.code, { giam: 5000, cach_nhan: 'giao' });
+
+    // A10: nhiều đơn cùng trang — mỗi đơn mang tóm tắt CỦA CHÍNH NÓ (các ca trên đọc từng đơn lúc danh sách mới có 1–2 đơn)
+    const dsKh = (await goi('GET', '/kh/don', undefined, kh.tk)).j.data || [];
+    const khac = [];
+    for (const d of dsKh) {
+      const ct = (await goi('GET', `/kh/don/${d.ma}`, undefined, kh.tk)).j.don;
+      if (!bang(TRUONG_MOI.map((f) => d[f]), TRUONG_MOI.map((f) => ct?.[f]))) khac.push(d.ma);
+    }
+    k(`A10 ${dsKh.length} đơn cùng trang: tóm tắt trong danh sách = tóm tắt trong chi tiết của CHÍNH đơn đó, và các đơn không giống nhau hết`,
+      dsKh.length === 9 && !khac.length && new Set(dsKh.map((d) => JSON.stringify(d.tra))).size > 4, `${dsKh.length} đơn · lệch ${khac}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
