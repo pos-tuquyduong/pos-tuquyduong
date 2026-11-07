@@ -164,3 +164,7 @@ cong_cu/thu_NAP1.js (thêm E16, E16b — chủ quán 07.11 "(a) + thêm file", c
 SỐ CA cong_cu/thu_NAP1.js: 84
 Đột biến (trọn bộ, sau E16): ĐỐI CHỨNG XANH · 84 đạt · 0 hỏng — TỔNG 107 đột biến · BẮT 107 · SỐNG 0 · HỎNG 0 · LẠC 0
   mới: BV-ma-bill-tru-diem · VS-ma-bill-bao-diem-gop · VS-ma-bill-tru-ngoai-gd · BV-bill-diem-ro-rong · VS-bill-diem-loai-tra · VS-tru-diem-khong-tra-so
+cong_cu/thu_NAP1.js (thêm E16c, E16d, E16f — soát độc lập 07.11 (2), commit 5fdaddd) chạy trên code a670b86 (chưa vá vòng này):
+  ✗ E16c đền trọn 21.000 rồi nhận mã → 400 KHONG_THEM_DIEM, mã chưa bị dùng (không ghi SĐT), không thêm dòng điểm, điểm đơn vẫn 0  — HTTP 200 · HTTP 200 · mã {"diem_nhan_luc":"2026-11-07T12:00:51","diem_nhan_phone":"0938400031"} · dòng 2 → 4
+  ✗ E16f truDiemHoan khi chưa có mốc 014 (bước nâng cấp hỏng, quầy vẫn mở) → trả 0 (không undefined → "NaN điểm")  — undefined
+  85 đạt · 2 hỏng   (E16d — ca phủ đường kết thúc gói 'refund' — xanh trên bản này là đúng: code đã đúng, canh bằng đột biến VS-bill-diem-bo-refund · VS-tru-diem-bo-hoan-goi)
