@@ -618,5 +618,7 @@ Hai file ngoài Phạm vi: `server/routes/signup-codes.js` (nhận điểm mã b
 **(b):** để việc sau — NAP-1 đi tiếp tới báo cáo cuối, lỗ này ghi rõ ở CHƯA KIỂM (Đối soát sẽ báo lệch khi xảy ra).
 Bạn trả lời "(a) + thêm hai file" hoặc "(b)".
 
+`npm test -- --day-du` trên 233991a: PASS 103 · FAIL 0 · CẢNH BÁO 2 (dist khớp src).
+
 Bước dở: 8 (soát độc lập vòng 1 của phần mới — KHÔNG ĐẠT: lỗi nhẹ đã sửa, lỗi nặng ngoài Phạm vi chờ câu trả lời). Chưa làm: soát bảo mật lại (8b — phần
 mới đổi code server/), cổng `chay`, báo cáo 7 mục, Bài học.
