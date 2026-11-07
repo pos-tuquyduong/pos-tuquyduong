@@ -622,3 +622,22 @@ Bạn trả lời "(a) + thêm hai file" hoặc "(b)".
 
 Bước dở: 8 (soát độc lập vòng 1 của phần mới — KHÔNG ĐẠT: lỗi nhẹ đã sửa, lỗi nặng ngoài Phạm vi chờ câu trả lời). Chưa làm: soát bảo mật lại (8b — phần
 mới đổi code server/), cổng `chay`, báo cáo 7 mục, Bài học.
+
+## Phiên 07.11 (2) — `tiep`: chủ quán trả lời "(a) + thêm file" (phiếu `2f48b42`)
+Bước 1: nhánh `viec/NAP-1`, cây sạch; HEAD `0406870` · FETCH_HEAD `2f48b42` — lệch hai phía trên kho nông → `fetch --unshallow`, so lại: HEAD là tổ tiên →
+`pull --ff-only` (lên `2f48b42`). `git log --oneline -3`:
+```
+2f48b42e PHIEU: NAP-1 chu quan tra loi cau hoi 07.11 (them file vao Pham vi)
+8c72808d NAP-1 ghi ket qua --day-du sau vong sua nhe
+746a1dc1 NAP-1 soat doc lap phan den bu / ket thuc goi (KHONG DAT: loi nhe da sua, nhan diem ma bill / bill ngoai Pham vi) + Cau hoi
+```
+
+| Chỗ vá | Sửa | Ca / đột biến |
+|---|---|---|
+| `server/routes/signup-codes.js` nhanDiemMaBill | sau INSERT earn, CÙNG giao dịch: `truDiemHoan(tx, don, …, 'Nhận điểm mã bill …')`; `diem_cong` / message báo cộng RÒNG (không đổi tên trường) | E16 · BV-ma-bill-tru-diem · VS-ma-bill-bao-diem-gop · VS-ma-bill-tru-ngoai-gd |
+| `server/utils/diemThat.js` truDiemHoan | trả số điểm vừa trừ (chỗ gọi cũ bỏ qua) | E16 · VS-tru-diem-khong-tra-so |
+| `server/routes/hoaDon.js` dungDiem | đơn 'completed' CÓ sổ ví 'refund' / 'compensation' (cùng tập loại với truDiemHoan) → đếm cả 'adjust' (điểm đã trừ); không có → chỉ earn như trước | E16 · BV-bill-diem-ro-rong · VS-bill-diem-loai-tra |
+Bài thử: E16 ĐỎ trên gốc (điểm 31, đúng 21 — bang_chung_do.txt), xanh sau vá; E16b (K5) xanh cả hai. thu_NAP1 84 · 0. 6 đột biến mới: ĐỐI CHỨNG XANH 84 · BẮT 6.
+Lần đầu hoaDon.js đếm 'adjust' cho MỌI đơn hoàn tất → `thu_HD1.js` A24 / A28b đỏ (hai ca chèn tay dòng trừ vào đơn KHÔNG có tiền trả vào tài khoản; file ngoài
+Phạm vi) → thu hẹp theo đúng chữ phiếu (chỉ khi có tiền trả vào tài khoản); thu_HD1 157 · 0.
+Đang chạy: trọn bộ đột biến (kiểm neo cũ) và soát độc lập phần mới.
