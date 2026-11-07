@@ -39,8 +39,7 @@
 - Kho mở NÔNG lại → `thu_BH2.js` G1 đỏ `bad revision 'cbbb809..HEAD'`; chạy `git fetch -q --unshallow origin viec/KHACH-APP-1` → `npm test` PASS 101 · FAIL 0.
 
 ## Đang ở bước
-Vòng sửa 2 (Q6, Q7 chủ quán trả lời 07.11 + chat soát đổi 021 → 022) đã làm: bài thử đỏ trước (bang_chung_do.txt "Vòng sửa 2"), vá
-`registrations.js`, đổi tên bước, đột biến 46/46 BẮT. Tiếp: soát độc lập vòng 2 (bước 8), soát bảo mật (8b), cổng, báo cáo.
+Soát vòng 2 KHÔNG ĐẠT → vòng sửa 2b đã làm (bang_chung_do.txt "Vòng sửa 2b"; 99/99, 52/52 BẮT, npm test PASS 102). Tiếp: soát vòng 3.
 
 ## Câu hỏi
 (không còn câu nào mở)
@@ -263,6 +262,14 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   đọc thấy đều chạy với SX tắt / chỉ dùng `PUT …/discount` → dự kiến vẫn xanh; chạy thật mới chắc (bước 6).
 
 ## Phát hiện
+- (soát vòng 2) `PUT /registrations/:id` sửa MỌI dòng khách cùng SĐT (đúng chữ Q6a chủ quán duyệt), kể cả khách App / khách có từ trước
+  có đăng ký chờ cũ; `parent_phone` / `relationship` lấy theo đăng ký (null nếu đăng ký để trống). DELETE thì chỉ khách do đăng ký tạo.
+  Sau Q7 không tạo được đăng ký mới cho SĐT đã là khách, nên chỉ còn dữ liệu cũ rơi vào trường hợp này — chủ quán xem có muốn PUT cũng
+  giới hạn "khách do đăng ký tạo" không (mình để đúng chữ Q6a).
+- (soát vòng 2) `DAU_VET_KHACH` (registrations.js) là danh sách thứ hai "bảng có SĐT khách", song song `donThu.js` (ngoài Phạm vi) — chưa
+  có thẻ / lượt mã nhận điểm (`pos_signup_codes`), `pos_nhat_ky_pin`, `pos_ngay_sinh_sua`, `pos_registrations.parent_phone`. Còn thiếu thì
+  khách có các dấu vết đó vẫn có thể bị xoá (để lại dòng mồ côi, không mất tiền). Gom một danh sách chung vào `server/utils/` → việc sau.
+- (soát vòng 2) Còn 5 bài `cong_cu/thu_*.js` không nối vào bộ kiểm (HOPDONG_KH… theo người soát) — ngoài việc này; đề xuất phép kiểm ở Bài học.
 - (vòng sửa 2) Màn Đăng ký (`Registrations.jsx:160`) gọi xoá KHÔNG gửi lý do và luôn báo "Đã xóa!" → nhật ký xoá khách ghi lý do mặc định
   "Xoá đăng ký chờ nhập nhầm — khách chưa có giao dịch nào"; máy chủ đã nhận `ly_do` trong thân yêu cầu và trả `xoa_khach` + `message`
   ("Đã xoá đăng ký và khách…" / "…khách giữ nguyên") nhưng màn chưa hiện (client Cấm). Thêm ô lý do + hiện `message` → việc giao diện sau.
@@ -305,7 +312,7 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   người nhận gắn SĐT — chỉ làm hẹp lại chỗ được xoá (an toàn hơn), không xoá thêm gì.
 - Nhật ký dùng bảng có sẵn `pos_sync_logs` (như `donThu.js` 'don_thu', bước 020 / 022) — không thêm bảng (phiếu: không đổi cấu trúc DB).
 
-## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 91/91 + 112/112 xanh, 46/46 BẮT)
+## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 99/99 + 112/112 xanh, 52/52 BẮT)
 | Chỗ vá | Đột biến (ca bắt) |
 |---|---|
 | customers-v2.js `GET /` đọc qua docKhach, không gọi SX | BV-DOC-SX-DANH-SACH (A11) |
@@ -340,6 +347,9 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
 | registrations.js DELETE không giao dịch ví | BV-XOA-BO-GD-VI (R4 giao dịch ví) |
 | registrations.js DELETE không điểm | BV-XOA-BO-DIEM (R4 điểm) |
 | registrations.js DELETE không gói | BV-XOA-BO-GOI (R4 gói) |
+| registrations.js SĐT có đăng ký + là khách → cũng 409 (soát v2 lỗi 1) | VS-DK-DA-DANG-KY-CAU-CU (C7d) |
+| registrations.js nhật ký xoá khách không chép băm PIN (soát v2 lỗi 2) | BV-XOA-LO-PIN (R2d) |
+| registrations.js DELETE không voucher / hoàn tiền / phiên / đơn App | BV-XOA-BO-VOUCHER, BV-XOA-BO-HOAN-TIEN, BV-XOA-BO-PHIEN, BV-XOA-BO-DON-APP (R4) |
 | customers-v2.js địa chỉ / ghi chú tạo qua taoKhach | BV-V2-CHEN-RIENG (C8) |
 | chay.js trạng thái HOÃN | BV-HOAN (B3) |
 | chay.js bước NÉM vẫn hỏng + dừng | VS-NEM-THANH-HOAN (B7) |
@@ -361,7 +371,8 @@ BV-QUAY-MAC-DINH-CU, BV-APP-TAO-RIENG, BV-NHAN-RIENG-QR, BV-DK-KHONG-TAO, VS-DK-
 VS-HOAN-GOI-LAI-SX, VS-CHEP-GHI-DE, BV-CHEP-SAO-LUU, BV-CHEP-NHAT-KY, VS-CHEP-RONG-LA-XONG, VS-022-DOI-COT, BV-022-DANG-KY,
 VS-022-CHEP-DA-XUAT, BV-022-CAP-QR, VS-APP-SAI-KHACH, VS-BUOC-KHAC-HOAN, VS-DK-TRUNG-400, BV-DK-DUA-500, BV-DK-SUA-KHONG-KHACH,
 VS-DK-SUA-MOI-KHACH, BV-DK-XOA-KHONG-KHACH, VS-XOA-MOI-VAI, VS-XOA-MOI-TRANG-THAI, BV-XOA-KHONG-NHAT-KY, VS-XOA-KHACH-CUA-NGUOI-KHAC,
-VS-XOA-BO-VI, BV-XOA-BO-DON, BV-XOA-BO-GD-VI, BV-XOA-BO-DIEM, BV-XOA-BO-GOI.
+VS-XOA-BO-VI, BV-XOA-BO-DON, BV-XOA-BO-GD-VI, BV-XOA-BO-DIEM, BV-XOA-BO-GOI, VS-DK-DA-DANG-KY-CAU-CU, BV-XOA-LO-PIN, BV-XOA-BO-VOUCHER,
+BV-XOA-BO-HOAN-TIEN, BV-XOA-BO-PHIEN, BV-XOA-BO-DON-APP.
 
 ## Ghi chú làm tiếp (07.11)
 - Bộ chạy nâng cấp: HOÃN do bước TỰ trả về qua `truoc()` — gọi NGOÀI giao dịch vì giao dịch ghi Turso (`database.js` beginTransaction →

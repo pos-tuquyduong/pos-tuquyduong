@@ -112,3 +112,21 @@ SỐ CA cong_cu/thu_KHO1.js: 112
 ## Trên code đã vá (HEAD, bài 1ef2e70): thu_KHACHAPP1 TỔNG: 91/91 ca đạt · thu_KHO1 112 đạt · 0 hỏng · đột biến 46/46 BẮT
 SỐ CA cong_cu/thu_KHACHAPP1.js: 91
 SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 2b (soát vòng 2 KHÔNG ĐẠT): thêm C7d, R2d, R4 × 4 (voucher, hoàn tiền, phiên thanh toán, đơn App), A12c; dòng tổng thêm dạng
+   "n đạt · m hỏng" (chayBaiThat). Bài ở c6c8382.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 35e5c5d7 thu_KHACHAPP1.js   (code TRƯỚC vòng sửa 2b)
+  ✗ C7d "Thêm khách" lần hai cho SĐT vừa thêm (có cả đăng ký lẫn khách) → cũng 409 KHACH_DA_CO_TAI_KHOAN đúng câu (Q7)  — HTTP 400 {"error":"SĐT đã được đăng ký","code":"SDT_DA_DANG_KY"}
+  ✗ R2d nhật ký KHÔNG chép băm PIN / mật khẩu (GET /sync/logs mọi nhân viên đọc được)  — {… "pin_code":"bam_pin_thu_r2" … "password":"mk_thu_r2" …}
+  TỔNG: 97/99 ca đạt · 97 đạt · 2 hỏng · thoát 1
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js   (code gốc của việc)
+  ✗ C7d … — HTTP 400 {"error":"SĐT đã được đăng ký"}
+  ✗ R2d … — không có dòng
+  ✗ R4 khách có voucher / yêu cầu hoàn tiền / phiên thanh toán / đơn App → … khách GIỮ — HTTP 200 (gốc không tạo khách)
+  ✗ A12c (ds) /search, /:phone, /:phone/full giữ đủ khoá cũ + xung_ho — search: points,is_synced,ngay_sinh,membership,xung_ho · …
+  ✗ A12c (loi) … — search: points,is_synced,ngay_sinh,membership,xung_ho · phone: points,ngay_sinh,membership,xung_ho · …
+  TỔNG: 34/99 ca đạt · 34 đạt · 65 hỏng · thoát 1
+  (R4 × 4 mới, A12c xanh trên 35e5c5d7 = hồi quy; đột biến BV-XOA-BO-VOUCHER / -HOAN-TIEN / -PHIEN / -DON-APP BẮT.)
+## Trên code đã vá (HEAD c6c8382): thu_KHACHAPP1 99/99 · thu_KHO1 112 đạt · 0 hỏng · đột biến 52/52 BẮT · npm test PASS 102 · FAIL 0
+SỐ CA cong_cu/thu_KHACHAPP1.js: 99
+SỐ CA cong_cu/thu_KHO1.js: 112
