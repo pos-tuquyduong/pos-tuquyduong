@@ -335,7 +335,7 @@ async function main() {
   // (lúc khởi động SX giả trả rỗng → bước HOÃN; nay SX trả danh sách → chạy khung lại).
   khachSX = [{ phone: '0938000060', name: 'Khách SX mới' }, { phone: '0938111222', name: 'Khách SX đã có' }];
   const kDcTruoc = await motDong("SELECT name, created_at AS a, updated_at AS b FROM pos_customers WHERE phone = '0938111222'");
-  delete require.cache[require.resolve(path.join(MAY_CHU, 'nang_cap', '020_chep_khach_sx.js'))];   // bước nạp lúc khởi động, TRƯỚC SX giả → nạp lại
+  try { delete require.cache[require.resolve(path.join(MAY_CHU, 'nang_cap', '020_chep_khach_sx.js'))]; } catch { /* chưa có bước (code gốc) */ }   // nạp lúc khởi động, TRƯỚC SX giả → nạp lại
   imLang();
   try { await require(path.join(MAY_CHU, 'nang_cap', 'chay.js')).chayNangCap({ beginTransaction: db.beginTransaction, query: db.query }); } finally { noiLai(); }
   khachSX = [];
