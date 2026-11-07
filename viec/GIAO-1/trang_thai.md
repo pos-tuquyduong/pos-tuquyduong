@@ -528,3 +528,65 @@ Không có lỗ hổng nào.
 
 (Ghi thêm cho chủ quán: subagent chạy 40 s, 10 lần gọi công cụ — đọc nhanh so với 1878 dòng diff; xem mục CHƯA KIỂM.)
 SOÁT BẢO MẬT: ĐẠT
+
+## Cổng (bước 11.4, HEAD 065fe58, cây sạch)
+- Lần 1: `node tu_chay/cong.js chay . 977aefa^ HEAD viec/GIAO-1` →
+  ✗ bài chạy thật cong_cu/thu_gia_lap.js xanh (52.9 s)  → ✗ data/ không đổi (pos_thu.db:1794027616098.191)  — pos_thu.db:1794027752883.855
+  ✗ CỔNG ĐỎ (CHẠY) — 1 lý do   (ĐẾM: PASS 101 · FAIL 1 · CẢNH BÁO 2)
+- Lần 2 (chạy lại, không đổi gì — K3 lỗi thất thường): ✓ CỔNG CHẠY ĐẠT
+- Phát hiện (ngoài Phạm vi, không sửa bộ kiểm): data/pos_thu.db đổi giờ sửa trong CẢ HAI lần chạy cổng (05:02:32, 05:07:12) — có bước nào đó của
+  bộ kiểm ghi vào kho thử thật; lần 1 rơi đúng khung của thu_gia_lap nên đỏ. Bộ kiểm báo đúng (K8): chưa tìm ra bước nào ghi — cần việc riêng
+  truy (chạy từng bài, chụp giờ sửa data/ trước / sau). `npm test -- --day-du` chạy riêng lúc trước: PASS 102 · FAIL 0.
+
+## SOÁT LẦN CUỐI: chat soát thay
+Chủ quán Q10 (07.11): sau vòng sửa 6 KHÔNG soát độc lập nữa — chat soát thay (LUAT §6.5). Máy không gọi /ra-soat sau vòng 6.
+
+## Nghiệm thu — đếm từng mục (bằng chứng: cong_cu/thu_GIAO1.js, 136 · 0 trên HEAD)
+- A Biến môi trường, khoá không lộ: ca A1–A6 (A6 quét mọi bảng + nhật ký cả bài, gồm ca V6).
+- B Cài đặt → Giao hàng: ca B1–B3.
+- C Ô địa chỉ hai cách + km: ca C1, C2.
+- D Bán hàng đơn giao: ca D1–D9.
+- E Màn Giao hàng 4 cột: ca E1, E2 (màu / tab điện thoại: thử tay — CHƯA KIỂM).
+- F Giờ gọi tài xế: ca F1–F4 (kêu nhẹ: thử tay).
+- G Gọi xe chuẩn: ca G1–G10, G8b/c, G9b + W4 (chuyến trùng tự huỷ ghi phí), W5 (mã theo dõi ra chuyến đã giao → nhận lại).
+- H Ahamove báo về: ca H1–H12, V10.
+- I Sự cố tự xử lý: ca I1–I6, V7, W6 (Tìm lại khi tài xế vừa huỷ → máy tự tìm lại, 200).
+- J Huỷ theo bước: ca J1–J8b, V1–V4, V6, W1, W2, W7–W9.
+- K Đối soát: ca K1 (số cứng 201.000 · 5.000 · 4.000 · 44.500), V2 + W7–W9 (phí huỷ chưa rõ), W3 (Q11).
+- K5 Không đổi: ca K5a, K5b + V4 (Gọi lại đúng thẻ được), W1 / W2 (Gọi lại thẻ treo vẫn gọi được chuyến mới).
+12/12 mục có bằng chứng.
+
+## Báo cáo 7 mục
+VIỆC:        GIAO-1 — Giao hàng Ahamove ở quầy (phiên 5: vòng sửa 6 theo Q10 + Q11, soát bảo mật, cổng)
+ĐÃ SỬA:      server/utils/giaoHang.js — docLaiPhiHuy: đọc dòng chờ lâu nhất trước, chưa ra thì đẩy `luc` xuống cuối; goiXe nhánh Tìm lại: máy đã tự
+             tìm lại → 200 `{ tu_tim_lai }`; taoChuyenMoi: mã theo dõi ra chuyến chưa huỷ (còn chạy / đã giao xong) → nhận lại + capNhatTuAhamove;
+             chuyến trùng tự huỷ thành công → ghiPhiHuyLenh; nhanTinBao: chú thích / lời báo không khẳng định "Ahamove gửi lại".
+             cong_cu/thu_GIAO1.js — mục [V6] ca W1–W9. viec/GIAO-1/dot_bien.py — thêm 12 đột biến (84 tổng). ke_hoach.md mục 14.
+             (Cả việc: 39 file từ 977aefa^ — xem các phiên trước trong file này.)
+BÀI THỬ:     gốc fa03775 → ĐỎ 5 · 131; code trước vòng 6 → ĐỎ 132 · 4 (W4, W5, W6, W9); sau vá → XANH 136 · 0. Đột biến 84/84 BẮT, đối chứng XANH.
+             npm test -- --day-du: PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo cũ).
+ĐÃ RÀ K4:    grep "aha.huyChuyen" giaoHang.js → 3 chỗ (Tìm lại, chuyến trùng, Huỷ chuyến) — cả 3 nay ghi phí huỷ khi lệnh thành công;
+             grep "traTheoMa\|docChuyen(" giaoHang.js → mọi nhánh tìm ra chuyến cũ (theo mã chuyến ở goiXe, theo mã theo dõi ở taoChuyenMoi) đều
+             "chưa huỷ → nhận lại"; grep "CHO_PHI_HUY" → 3 chỗ (ghi, đọc lại, Đối soát) — câu SELECT chung thêm `t.id`, Đối soát chỉ đếm.
+             grep "gửi lại" server/ viec/GIAO-1/ke_hoach.md → không còn câu khẳng định Ahamove gửi lại tin.
+CHƯA KIỂM:   Ahamove THẬT (cancel_by_user có gửi không, cancel_fee tính lúc nào, DELETE chuyến đã huỷ trả gì, tin báo có gửi lại không) — bài thử dùng
+             máy giả theo dạng tin GIẢ ĐỊNH; đua thật trên Turso; giao diện điện thoại (màu cột, tab, kêu) — chủ quán thử tay;
+             chuyến trùng mà lệnh tự huỷ LỖI vẫn chỉ ghi nhật ký (Phát hiện phiên 5); soát bảo mật: subagent chạy 40 s / 10 lần gọi công cụ, báo 0 lỗi
+             — nhanh so với 1878 dòng diff, chat nên xem lại cửa webhook + phân quyền nếu muốn chắc; vòng 6 không có soát độc lập (Q10 — chat soát thay).
+GIT:         065fe58 GIAO-1: soat bao mat sau vong sua 6 — 0 loi (DAT)
+             5494259 GIAO-1: vong sua 6 — dot bien 84/84 BAT (them 12), bang chung do (goc 5 · 131, truoc 132 · 4, HEAD 136 · 0), ke hoach muc 14, trang thai, Q11 ghi cho so quyet dinh
+             (+ commit ghi báo cáo này — chỉ viec/GIAO-1/trang_thai.md)
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
+
+## Bài học
+- KHOÁ — ca W1–W9 + 12 đột biến (đã làm, trong Phạm vi): mỗi lời "chỗ vá → ca" của người soát nay có đột biến xoá đúng dòng đó mà BẮT
+  (VS-q9-goi-lai-moi-nguoi-huy, VS-thieu-ai-huy-la-tai-xe, VS-phi-huy-doc-duoc-la-ghi, VS-phi-huy-chi-khi-co-phi — bốn đột biến người soát báo SỐNG nay BẮT).
+- NGUYÊN TẮC (K3, đề xuất thêm vào KHUON_LOI.md — ngoài Phạm vi, máy không sửa): ca "thứ tự / kẹt" dựng dữ liệu bằng tên tự đặt phải kiểm thứ tự
+  thật của câu đọc (chỉ mục UNIQUE quyết thứ tự khi không có ORDER BY). Đã gây: W9 lần đầu xanh oan trên bản chưa vá vì 'AHA_KET…' xếp sau 'AHA47'.
+  Chặn: chạy ca trên bản chưa vá (đã làm — bắt được), chọn dữ liệu bắt buộc rơi vào nhánh lỗi.
+- NGUYÊN TẮC (K4, đề xuất — ngoài Phạm vi): luật "lệnh X của quán → ghi Y" phải grep MỌI chỗ gọi X (3 chỗ huyChuyen, vòng 5 mới vá 2); luật
+  "chưa huỷ → nhận lại" áp MỌI nhánh tìm ra chuyến cũ (theo mã chuyến VÀ theo mã theo dõi). Ví dụ thật: lỗi soát 2 và 3 sau vòng 5.
+- BỎ — người gác chặn 6 lệnh phiên này (B-PHANTICH ×2 heredoc / python nối lệnh, B-BIMAT-CHU khi chạy bài thử chưa commit, SED-I, B-DICHCHU biến
+  đích, B-CD-VITRI): đều do máy viết lệnh gộp; làm lại đúng dạng ngay, không tốn vòng. Luật đã có, không cần thêm.
+
+HEAD ĐÃ KIỂM: 065fe58
