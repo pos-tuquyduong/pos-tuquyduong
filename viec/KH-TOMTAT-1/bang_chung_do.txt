@@ -10,8 +10,8 @@ $ node cong_cu/thu_KHTOMTAT1.js          (trên gốc)
   ✗ C1 đơn không dòng món, không tổng ... kenh=undefined ...
   ✗ E3 chính A thấy đơn của mình với đủ 6 trường
   ✗ K5c phân trang giữ nguyên ... mọi đơn đủ 6 trường
-✗ 8 đạt · 22 hỏng
-(8 ca đạt trên gốc là ca KHÔNG đổi: A0, A6c, A7b, E1, E2, E4, K5a, K5b — chứng tỏ khung chạy đúng; 22 ca đỏ vì thiếu trường.)
+✗ 9 đạt · 24 hỏng
+(9 ca đạt trên gốc là ca KHÔNG đổi hành vi cũ (A0, A6c, A7b, E1, E2, E4, K5a, K5b + A4d dựng được đơn huỷ) — chứng tỏ khung chạy đúng; 24 ca đỏ vì thiếu trường. Đổi bài sau soát vòng 1: thêm A4b/A4c/A4d, chạy lại trên gốc.)
 
 $ node cong_cu/thu_HOPDONG_KH.js         (bản mới của bài, trên gốc: hợp đồng còn v11)
   ✗ v12: khối máy đọc ghi đủ kenh / cach_nhan / tra / so_mon / mon_dau / giam (cả /don, /don/:ma)
@@ -19,8 +19,8 @@ $ node cong_cu/thu_HOPDONG_KH.js         (bản mới của bài, trên gốc: h
   86 đạt · 2 hỏng
 
 Sau khi vá (HEAD):
-  node cong_cu/thu_KHTOMTAT1.js  → ✓ 30 đạt · 0 hỏng
+  node cong_cu/thu_KHTOMTAT1.js  → ✓ 33 đạt · 0 hỏng
   node cong_cu/thu_HOPDONG_KH.js → 88 đạt · 0 hỏng
 
-SỐ CA thu_KHTOMTAT1.js: 30
+SỐ CA thu_KHTOMTAT1.js: 33
 SỐ CA thu_HOPDONG_KH.js: 88
