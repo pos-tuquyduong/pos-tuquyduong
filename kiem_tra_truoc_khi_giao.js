@@ -544,9 +544,9 @@ chayBaiThat('cong_cu/thu_HANG1.js');   // HANG-1: hạng thẻ, gói, cấp hạ
 // Thân route = từ `router.<m>(` đầu dòng tới dòng đóng `});` hoặc `);` ở cột 0 (orders.js:1357 đóng bằng `},\n);`), chặn ở `router.`
 // kế tiếp — hàm phụ đứng giữa hai route (wallets.js:60–119 ghiVi…) KHÔNG thuộc route trước.
 // Chú thích bỏ nhưng GIỮ xuống dòng (boGhiChu gộp dòng → số dòng trôi). Bài thử: cong_cu/thu_TOCDO1.js mục R cắt đúng hai hàm dưới.
-// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (customers-v2.js GET gọi fetchSXCustomers → INSERT
-// pos_customers) không bắt — đúng chữ phiếu A2, ghi Phát hiện cho việc quầy.
-const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 50;   // bánh cóc: hạ 51 → 50 (bộ kiểm báo đã dọn 1 chỗ — chat sổ v53, 02.11)
+// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (vd taoKhach của utils/khachMoi.js — KHACH-APP-1
+// đã bỏ đường GET customers-v2.js ghi pos_customers qua bộ đệm SX) không bắt — đúng chữ phiếu A2.
+const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 49;   // bánh cóc: hạ 50 → 49 (KHACH-APP-1: 5 route tạo / ghi khách qua loiGhi, đếm 54 → 49 — 07.11)
 function xetBanhCoc(n, nguong) { // 'canh' = mọc thêm · 'ha' = đã dọn, hạ ngưỡng · 'dung' = đúng ngưỡng
   return n > nguong ? 'canh' : n < nguong ? 'ha' : 'dung';
 }
