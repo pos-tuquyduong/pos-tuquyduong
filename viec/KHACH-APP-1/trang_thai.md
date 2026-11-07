@@ -19,22 +19,27 @@
   05764eb KHACH-APP-1: ke hoach + cau hoi (cho chu quan duyet)
   ```
 
+## Bước 1 — lần làm tiếp 2 (07.11.2026, sau khi chủ quán trả lời Q5)
+- nhánh `viec/KHACH-APP-1`, cây sạch; `git rev-parse --short HEAD FETCH_HEAD`: HEAD `63334e5` · FETCH_HEAD `63334e5` (bằng nhau → không kéo).
+- `git log --oneline -3`:
+  ```
+  63334e5 PHIEU: KHACH-APP-1 chu quan tra loi cau hoi 07.11 (them file vao Pham vi)
+  afe703e KHACH-APP-1: bang chung do + trang thai; cau hoi Q5 (thu_KHO1 B1/B2)
+  da1f1df KHACH-APP-1: dot_bien.py sua mau / chuoi
+  ```
+
 ## Đang ở bước
-Bước 4–5 xong (bài thử đỏ trên gốc → code vá → `thu_KHACHAPP1` 68/68, `thu_GIOVN1` 61/61, đột biến 30/30 BẮT). Bước 6 `npm test` ĐỎ ở MỘT
-bài cũ ngoài Phạm vi — `cong_cu/thu_KHO1.js` B1, B2 (Câu hỏi Q5) → **DỪNG chờ chủ quán** (phiếu: "Bài cũ khác đỏ thì vẫn DỪNG hỏi").
+Bước 6 xong (lần làm tiếp 2): `thu_KHO1.js` sửa theo Q5 — gốc 37d195b đỏ đúng ca B1c (111 đạt · 1 hỏng), HEAD 112/112.
+`npm test -- --day-du` → PASS 105 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi: packages.js:195, products.js:66, sync.js:148 — có sẵn trên gốc).
+Kho mở nông lần nữa → `thu_BH2` G1 `bad revision 'cbbb809..HEAD'`; `git fetch -q --unshallow origin viec/KHACH-APP-1` rồi chạy lại xanh.
+Tiếp: bước 8 soát độc lập, 8b soát bảo mật.
 
 ## Câu hỏi
-- **Q5 (07.11, lần làm tiếp) — bài cũ `cong_cu/thu_KHO1.js` đỏ vì hành vi HOÃN chủ quán đã duyệt.**
-  `npm test` → `✗ bài chạy thật cong_cu/thu_KHO1.js` → `✗ B1 khởi động lần 1: pos_nang_cap đủ mọi bước, bước 1 là 001_kho — [... {"so":19,…},
-  {"so":21,"ten":"021_chep_dang_ky_qr"}]` và `✗ B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng`.
-  Lý do (đọc `cong_cu/thu_KHO1.js:247–251`): B1 / B2 đòi số dòng `pos_nang_cap` = số file `NNN_*.js`. Kho thử của bài không có SX → bước 020
-  HOÃN (đúng nghiệm thu B: "SX không trả lời / không có khoá → bước chưa coi là xong") → 13 dòng cho 14 file. Không có cách nào code đúng
-  phiếu mà B1 xanh — đây là bài sửa vì hành vi ĐÃ DUYỆT đổi (LUAT_XAY_APP §6.8), không phải lỗi code.
-  *Đề xuất:* thêm `cong_cu/thu_KHO1.js` vào Phạm vi; sửa đúng hai dòng 247–251: số bước PHẢI có dòng = số file KHÔNG xuất `truoc` (bước có
-  `truoc` được phép HOÃN khi kho thử không có SX) và tập `so` khớp đúng các file đó (vẫn so BẰNG, không nới thành "ít nhất"); thêm một ca
-  "B1c bước 020 không có dòng pos_nang_cap khi SX không cấu hình" — ca này ĐỎ trên gốc (gốc chưa có 020) để bản sửa có bằng chứng đỏ,
-  ghi `SỐ CA`. Hoặc chat nới B1 / B2 trên main trước (khuôn SUA-*).
-  Ngoài B1, B2: `npm test` PASS 100 · FAIL 1 (chỉ thu_KHO1) · CẢNH BÁO 1 (route GET có lệnh ghi — có sẵn trên gốc).
+(không còn câu mở)
+
+## Câu hỏi đã trả lời (chủ quán 07.11 — phiếu 63334e5)
+- **Q5 — bài cũ `cong_cu/thu_KHO1.js` B1 / B2 đỏ vì bước 020 HOÃN khi kho thử không có SX.** Chủ quán đồng ý đề xuất: thêm `thu_KHO1.js` vào
+  Phạm vi; B1 / B2 so BẰNG tập `so` của các file `NNN_*.js` KHÔNG xuất `truoc`; thêm ca B1c (đỏ trên gốc). Đã làm ở commit 729386a.
 
 ## Câu hỏi đã trả lời (chủ quán 07.11 — phiếu commit 37d195b)
 Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho chủ quán". Tóm tắt:

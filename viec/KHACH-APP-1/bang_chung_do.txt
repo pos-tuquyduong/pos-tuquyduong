@@ -58,3 +58,13 @@
 ## Trên code đã vá (HEAD, cùng bài): node cong_cu/thu_KHACHAPP1.js → TỔNG: 68/68 ca đạt · node cong_cu/thu_GIOVN1.js → 61 đạt · 0 hỏng
 SỐ CA cong_cu/thu_KHACHAPP1.js: 68
 SỐ CA cong_cu/thu_GIOVN1.js: 61
+
+── thu_KHO1.js — sửa B1 / B2 + thêm B1c theo Q5 (chủ quán 07.11, phiếu 63334e5). Bài ở commit 729386a.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHO1.js  (bài HIỆN TẠI trên server/ + client/src/ của 37d195b)
+  ✗ B1c bước chép khách SX (020_chep_khach_sx, có truoc) KHÔNG có dòng pos_nang_cap khi SX không cấu hình  — bước có truoc: không có · [1,2,3,4,5,6,7,9,12,13,17,19]
+  111 đạt · 1 hỏng
+  thoát 1
+  (B1, B2 xanh trên gốc: gốc không có bước nào xuất truoc → tập bước cần có = mọi file, như bài cũ.)
+# Bài CŨ (trước Q5) trên code đã vá: ✗ B1 (13 dòng cho 14 file — bước 020 HOÃN) · ✗ B2 — xem Câu hỏi Q5 trong trang_thai.md.
+## Trên code đã vá (HEAD, bài 729386a): node cong_cu/thu_KHO1.js → 112 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 112
