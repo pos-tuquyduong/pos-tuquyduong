@@ -170,4 +170,5 @@ cong_cu/thu_NAP1.js (thêm E16c, E16d, E16f — soát độc lập 07.11 (2), co
   85 đạt · 2 hỏng   (E16d — ca phủ đường kết thúc gói 'refund' — xanh trên bản này là đúng: code đã đúng, canh bằng đột biến VS-bill-diem-bo-refund · VS-tru-diem-bo-hoan-goi)
 SỐ CA cong_cu/thu_NAP1.js: 87
 Đột biến (trọn bộ, sau vòng sửa 1): ĐỐI CHỨNG XANH · 87 đạt · 0 hỏng — TỔNG 111 · BẮT 111 · SỐNG 0 · HỎNG 0 · LẠC 0
-SỐ CA cong_cu/thu_NAP1.js: 88   (thêm E16g — ca K5 ngay trên ngưỡng, xanh trên code hiện tại; canh bằng VS-ma-bill-rong-nguong-1 BẮT)
+  (thêm E16g — ca K5 ngay trên ngưỡng, xanh trên code hiện tại; canh bằng VS-ma-bill-rong-nguong-1 BẮT)
+SỐ CA cong_cu/thu_NAP1.js: 88
