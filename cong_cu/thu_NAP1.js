@@ -668,6 +668,14 @@ async function main() {
       kt16d.status === 200 && b16d?.cong === 21 && n16d.status === 200 && n16d.diem_cong === 21 && (e16d.order ? await diemDon(e16d.order.id) : NaN) === 42
         && b16e?.cong === 42 && l16d.length === 0,
       `${moTa(kt16d)} · bill trước ${JSON.stringify(b16d)} · ${moTa(n16d)} cộng ${n16d.diem_cong} · bill sau ${JSON.stringify(b16e)} · ${l16d.join(' | ')}`);
+    // E16g (soát lại 07.11): NGAY TRÊN ngưỡng — đền 20.000 (21 → 1), nhận mã ×2 → +21 − 20 → ròng 1 → 200 (không bị chặn oan), báo cộng 1, điểm 22.
+    const s16g = sdtMoi();
+    const e16g = await ban({ customer_phone: s16g, payment_method: 'cash', cash_amount: 21000 });
+    const d16g = e16g.order ? await den(e16g.order, 20000) : e16g;
+    const n16g = e16g.order ? await goi('POST', '/signup-codes/nhan-diem', { code: e16g.order.signup_code, phone: s16g }) : e16g;
+    k('E16g ngay trên ngưỡng: đền 20.000 (21 → 1), nhận mã ×2 → 200, báo cộng 1, điểm 22',
+      d16g.status === 200 && n16g.status === 200 && n16g.diem_cong === 1 && (e16g.order ? await diemDon(e16g.order.id) : NaN) === 22,
+      `${moTa(d16g)} · ${moTa(n16g)} cộng ${n16g.diem_cong}`);
     const fakeTx = { queryOne: async () => null, query: async () => [], run: async () => ({ changes: 0 }) };
     const r16f = typeof truDiemHoan === 'function' ? await truDiemHoan(fakeTx, { id: 1 }, 'thu', '2026-11-07T00:00:00', 'thử') : 'không có hàm';
     k('E16f truDiemHoan khi chưa có mốc 014 (bước nâng cấp hỏng, quầy vẫn mở) → trả 0 (không undefined → "NaN điểm")', r16f === 0, String(r16f));
