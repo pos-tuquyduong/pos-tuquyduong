@@ -285,6 +285,7 @@ async function main() {
   await thu('R5', async () => {
     const s = '0938100071';
     await appTao(s, 'Khách App Có Đăng Ký Cũ', 'anh');
+    await db.run('DELETE FROM pos_kh_ma_dang_nhap WHERE sdt = ?', [s]);   // chỉ vi phạm ĐÚNG điều kiện "khách do đăng ký tạo" (K3) — bỏ dấu vết mã App
     await db.run("INSERT INTO pos_registrations (phone, name, status, created_by, created_at) VALUES (?, 'Đăng Ký Cũ', 'pending', ?, '2026-10-01T00:00:00')", [s, chu.username]);
     const r = await xoaDk(s);
     k('R5 khách App (created_by app_kh) → chủ quán xoá đăng ký cũ: khách GIỮ', r.status === 200 && !(await idDk(s)) && !!(await khachCua(s)), moTa(r));
