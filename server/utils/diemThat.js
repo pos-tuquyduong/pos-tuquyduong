@@ -22,7 +22,8 @@ const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
 
 /**
  * NAP-1 — trừ điểm khi tiền của đơn TRẢ VÀO TÀI KHOẢN (chủ quán 06.11: duyệt hoàn (a); đền bù, kết thúc gói có hoàn — "(a) + thêm hai file").
- * MỘT hàm cho refunds.js, damages.js, packages.js; gọi SAU khi đã ghi khoản trả vào ví, CÙNG giao dịch. CỘNG DỒN: tổng cần trừ =
+ * MỘT hàm cho refunds.js, damages.js, packages.js; gọi SAU khi đã ghi khoản trả vào ví, CÙNG giao dịch. Nhận điểm mã bill (signup-codes.js, chủ quán
+ * 07.11) gọi lại ngay SAU khi cộng — điểm mã bill của đơn đã được đền / kết thúc gói cũng trừ theo phần đã trả vào tài khoản. Trả số điểm vừa trừ. CỘNG DỒN: tổng cần trừ =
  * diemTruKhiHoan(điểm đã cộng, TỔNG tiền sổ ví 'refund' + 'compensation' của đơn (con, mẹ, cả 'hoan_goi'), tiền tính điểm), rồi trừ phần còn
  * thiếu so với dòng 'adjust' đã ghi — nhiều lần đền nhỏ không cộng dồn làm tròn. Chỉ tính dòng earn / adjust ghi TỪ lúc chạy bước 014_nap
  * (luật tiêu ví có điểm); dòng cũ tích theo luật "ví 0 điểm" → không trừ (LUAT §6.6). Dòng 'adjust' gắn đơn như huỷ (P24, I8 canh); số dư điểm
@@ -38,13 +39,16 @@ async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
     GROUP BY customer_phone, expires_at ORDER BY expires_at IS NULL DESC, expires_at DESC`, [don.id, moc]);
   const diem = nhom.reduce((t, r) => t + Number(r.diem || 0), 0);
   let conTru = diemTruKhiHoan(diem, Number(tra?.n || 0), tienTinhDiem(don)) - (diem - nhom.reduce((t, r) => t + Number(r.con || 0), 0));
+  let daTru = 0;
   for (const r of nhom) {
     const tru = Math.min(conTru, Number(r.con || 0));
     if (!(tru > 0)) continue;
     conTru -= tru;
+    daTru += tru;
     await tx.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
       VALUES (?, 'adjust', ?, ?, ?, ?, ?, ?)`, [r.customer_phone, -tru, don.id, r.expires_at, `${lyDo} — trừ điểm phần trả vào tài khoản`, nguoi, luc]);
   }
+  return daTru;
 }
 
 module.exports = { tienTinhDiem, diemTruKhiHoan, truDiemHoan };
