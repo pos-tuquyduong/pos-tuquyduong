@@ -563,16 +563,16 @@ async function main() {
       typeof diemTruKhiHoan === 'function' ? `${diemTruKhiHoan(21, 10400, 21000)}` : 'không có hàm');
     // Chủ quán 06.11 (3) "(a) + thêm hai file": ĐỀN BÙ (damages.js) và KẾT THÚC GÓI có hoàn (packages.js) trả tiền vào tài khoản → trừ điểm như
     // duyệt hoàn, CÙNG hàm truDiemHoan: theo TỔNG tiền đã trả vào tài khoản của đơn (cộng dồn mọi lần), tỷ lệ, làm tròn LÊN, cho âm như P24.
-    await napTay(sE, 60000);
-    const e10a = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
+    await napTay(sE, 100000);
+    const e10a = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 63000, items: [{ ...mon(0), quantity: 3 }] });
     const e10b = await ban({ customer_phone: sE, payment_method: 'cash', cash_amount: 24000, shipping_fee: 3000 });
     const d10 = [], s10 = [];
-    for (const [o, t] of [[e10a, 500], [e10a, 500], [e10a, 20000], [e10b, 10000]]) {
+    for (const [o, t] of [[e10a, 500], [e10a, 500], [e10a, 21000], [e10b, 10000]]) {
       d10.push(o.order ? await den(o.order, t) : o);
       s10.push(o.order ? await diemDon(o.order.id) : NaN);
     }
-    k('E10 đền bù trừ điểm: trả ví 21.000 (21) đền 500 → 20, đền 500 nữa → 20 (cộng dồn 1.000 → trừ 1, không trừ 2), đền 20.000 → 0; tiền mặt 24.000 phí giao 3.000 (21) đền 10.000 → 11 (mẫu số tiền tính điểm)',
-      d10.every((r) => r.status === 200) && JSON.stringify(s10) === '[20,20,0,11]', `${d10.map(moTa).join(' · ')} · ${JSON.stringify(s10)}`);
+    k('E10 đền bù trừ điểm: 3 ly trả ví 63.000 (63) đền 500 → 62, đền 500 nữa → 62 (cộng dồn 1.000 → trừ 1, không trừ 2), đền 21.000 → 41; tiền mặt 24.000 phí giao 3.000 (21) đền 10.000 → 11 (mẫu số tiền tính điểm)',
+      d10.every((r) => r.status === 200) && JSON.stringify(s10) === '[62,62,41,11]', `${d10.map(moTa).join(' · ')} · ${JSON.stringify(s10)}`);
     const e11 = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
     const d11 = e11.order ? await den(e11.order, 10000) : e11;
     const s11a = e11.order ? await diemDon(e11.order.id) : NaN;
